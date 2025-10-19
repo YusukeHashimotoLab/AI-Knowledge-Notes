@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="環境構築から訓練、MLP-MDまで">
+    <title>第3章：Pythonで体験するMLP - SchNetPackハンズオン - MI Knowledge Hub</title>
+
+    <!-- CSS Styling -->
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #3498db;
+            --link-hover: #2980b9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header .container {
+            padding: 0 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-top: 1rem;
+        }
+
+        .meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Typography */
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            color: var(--primary-color);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.6rem;
+            color: var(--primary-color);
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+        }
+
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--link-hover);
+            text-decoration: underline;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1.2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Code blocks */
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            display: block;
+        }
+
+        thead {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        tbody {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 0.8rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        /* Blockquotes */
+        blockquote {
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: #666;
+        }
+
+        /* Images */
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        /* Mermaid diagrams */
+        .mermaid {
+            text-align: center;
+            margin: 2rem 0;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Details/Summary (for exercises) */
+        details {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary-color);
+            padding: 0.5rem;
+        }
+
+        summary:hover {
+            color: var(--secondary-color);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--border-color);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Navigation buttons */
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 3rem 0;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .nav-button:hover {
+            background: var(--link-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+
+            table {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>第3章：Pythonで体験するMLP - SchNetPackハンズオン</h1>
+            <div class="meta">
+                <span>📖 読了時間: 不明</span>
+                <span>📊 レベル: beginner-intermediate</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1 id="3pythonmlp-schnetpack">第3章：Pythonで体験するMLP - SchNetPackハンズオン</h1>
+<h2 id="_1">学習目標</h2>
+<p>この章を読むことで、以下を習得できます：<br />
+- Python環境でSchNetPackをインストールし、環境をセットアップできる<br />
+- 小規模データセット（MD17のアスピリン分子）を用いてMLPモデルを訓練できる<br />
+- 訓練済みモデルの精度を評価し、エネルギー・力の予測誤差を確認できる<br />
+- MLP-MDシミュレーションを実行し、トラジェクトリを解析できる<br />
+- よくあるエラーと対処法を理解する</p>
+<hr />
+<h2 id="31">3.1 環境構築：必要なツールのインストール</h2>
+<p>MLPを実践するには、Python環境とSchNetPackのセットアップが必要です。</p>
+<h3 id="_2">必要なソフトウェア</h3>
+<table>
+<thead>
+<tr>
+<th>ツール</th>
+<th>バージョン</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Python</strong></td>
+<td>3.9-3.11</td>
+<td>基盤言語</td>
+</tr>
+<tr>
+<td><strong>PyTorch</strong></td>
+<td>2.0+</td>
+<td>ディープラーニングフレームワーク</td>
+</tr>
+<tr>
+<td><strong>SchNetPack</strong></td>
+<td>2.0+</td>
+<td>MLP訓練・推論</td>
+</tr>
+<tr>
+<td><strong>ASE</strong></td>
+<td>3.22+</td>
+<td>原子構造操作、MD実行</td>
+</tr>
+<tr>
+<td><strong>NumPy/Matplotlib</strong></td>
+<td>最新版</td>
+<td>データ解析・可視化</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_3">インストール手順</h3>
+<p><strong>ステップ1: Conda環境の作成</strong></p>
+<pre class="codehilite"><code class="language-bash"># 新しいConda環境を作成（Python 3.10）
+conda create -n mlp-tutorial python=3.10 -y
+conda activate mlp-tutorial
+</code></pre>
+
+<p><strong>ステップ2: PyTorchのインストール</strong></p>
+<pre class="codehilite"><code class="language-bash"># CPU版（ローカルマシン、軽量）
+conda install pytorch cpuonly -c pytorch
+
+# GPU版（CUDAが利用可能な場合）
+conda install pytorch pytorch-cuda=11.8 -c pytorch -c nvidia
+</code></pre>
+
+<p><strong>ステップ3: SchNetPackとASEのインストール</strong></p>
+<pre class="codehilite"><code class="language-bash"># SchNetPack（pip推奨）
+pip install schnetpack
+
+# ASE（原子シミュレーション環境）
+pip install ase
+
+# 可視化ツール
+pip install matplotlib seaborn
+</code></pre>
+
+<p><strong>ステップ4: 動作確認</strong></p>
+<pre class="codehilite"><code class="language-python"># Example 1: 環境確認スクリプト（5行）
+import torch
+import schnetpack as spk
+print(f&quot;PyTorch: {torch.__version__}&quot;)
+print(f&quot;SchNetPack: {spk.__version__}&quot;)
+print(f&quot;GPU available: {torch.cuda.is_available()}&quot;)
+</code></pre>
+
+<p><strong>期待される出力</strong>:</p>
+<pre class="codehilite"><code>PyTorch: 2.1.0
+SchNetPack: 2.0.3
+GPU available: False  # CPUの場合
+</code></pre>
+
+<hr />
+<h2 id="32-md17">3.2 データ準備：MD17データセットの取得</h2>
+<p>SchNetPackは、小規模分子のベンチマークデータセット<strong>MD17</strong>を内蔵しています。</p>
+<h3 id="md17">MD17データセットとは</h3>
+<ul>
+<li><strong>内容</strong>: DFT計算による分子動力学トラジェクトリ</li>
+<li><strong>対象分子</strong>: アスピリン、ベンゼン、エタノールなど10種類</li>
+<li><strong>データ数</strong>: 各分子約10万配置</li>
+<li><strong>精度</strong>: PBE/def2-SVP レベル（DFT）</li>
+<li><strong>用途</strong>: MLP手法のベンチマーク</li>
+</ul>
+<h3 id="_4">データのダウンロードと読み込み</h3>
+<p><strong>Example 2: MD17データセットのロード（10行）</strong></p>
+<pre class="codehilite"><code class="language-python">from schnetpack.datasets import MD17
+from schnetpack.data import AtomsDataModule
+
+# アスピリン分子のデータセット（約10万配置）をダウンロード
+dataset = MD17(
+    datapath='./data',
+    molecule='aspirin',
+    download=True
+)
+
+print(f&quot;Total samples: {len(dataset)}&quot;)
+print(f&quot;Properties: {dataset.available_properties}&quot;)
+print(f&quot;First sample: {dataset[0]}&quot;)
+</code></pre>
+
+<p><strong>出力</strong>:</p>
+<pre class="codehilite"><code>Total samples: 211762
+Properties: ['energy', 'forces']
+First sample: {'_atomic_numbers': tensor([...]), 'energy': tensor(-1234.5), 'forces': tensor([...])}
+</code></pre>
+
+<h3 id="_5">データの分割</h3>
+<p><strong>Example 3: 訓練/検証/テストセットの分割（10行）</strong></p>
+<pre class="codehilite"><code class="language-python"># データを訓練:検証:テスト = 70%:15%:15%に分割
+data_module = AtomsDataModule(
+    datapath='./data',
+    dataset=dataset,
+    batch_size=32,
+    num_train=100000,      # 訓練データ数
+    num_val=10000,          # 検証データ数
+    num_test=10000,         # テストデータ数
+    split_file='split.npz', # 分割情報を保存
+)
+data_module.prepare_data()
+data_module.setup()
+</code></pre>
+
+<p><strong>説明</strong>:<br />
+- <code>batch_size=32</code>: 32配置ずつまとめて処理（メモリ効率）<br />
+- <code>num_train=100000</code>: 大量データで汎化性能向上<br />
+- <code>split_file</code>: 分割をファイルに保存（再現性確保）</p>
+<hr />
+<h2 id="33-schnetpack">3.3 SchNetPackでのモデル訓練</h2>
+<p>SchNetモデルを訓練し、エネルギーと力を学習します。</p>
+<h3 id="schnet">SchNetアーキテクチャの設定</h3>
+<p><strong>Example 4: SchNetモデルの定義（15行）</strong></p>
+<pre class="codehilite"><code class="language-python">import schnetpack.transform as trn
+from schnetpack.representation import SchNet
+from schnetpack.model import AtomisticModel
+from schnetpack.task import ModelOutput
+
+# 1. SchNet表現層（原子配置→特徴ベクトル）
+representation = SchNet(
+    n_atom_basis=128,      # 原子特徴ベクトルの次元
+    n_interactions=6,      # メッセージパッシング層の数
+    cutoff=5.0,            # カットオフ半径（Å）
+    n_filters=128          # フィルタ数
+)
+
+# 2. 出力層（エネルギー予測）
+output = ModelOutput(
+    name='energy',
+    loss_fn=torch.nn.MSELoss(),
+    metrics={'MAE': spk.metrics.MeanAbsoluteError()}
+)
+</code></pre>
+
+<p><strong>パラメータ解説</strong>:<br />
+- <code>n_atom_basis=128</code>: 各原子の特徴ベクトルが128次元（典型的な値）<br />
+- <code>n_interactions=6</code>: 6層のメッセージパッシング（深いほど長距離相互作用を捉える）<br />
+- <code>cutoff=5.0Å</code>: この距離以上の原子間相互作用を無視（計算効率）</p>
+<h3 id="_6">訓練の実行</h3>
+<p><strong>Example 5: 訓練ループの設定（15行）</strong></p>
+<pre class="codehilite"><code class="language-python">import pytorch_lightning as pl
+from schnetpack.task import AtomisticTask
+
+# 訓練タスクの定義
+task = AtomisticTask(
+    model=AtomisticModel(representation, [output]),
+    outputs=[output],
+    optimizer_cls=torch.optim.AdamW,
+    optimizer_args={'lr': 1e-4}  # 学習率
+)
+
+# Trainerの設定
+trainer = pl.Trainer(
+    max_epochs=50,               # 最大50エポック
+    accelerator='cpu',           # CPU使用（GPU: 'gpu'）
+    devices=1,
+    default_root_dir='./training'
+)
+
+# 訓練開始
+trainer.fit(task, datamodule=data_module)
+</code></pre>
+
+<p><strong>訓練時間の目安</strong>:<br />
+- CPU（4コア）: 約2-3時間（10万配置）<br />
+- GPU（RTX 3090）: 約15-20分</p>
+<h3 id="_7">訓練の進捗確認</h3>
+<p><strong>Example 6: TensorBoardでの可視化（10行）</strong></p>
+<pre class="codehilite"><code class="language-python"># TensorBoardの起動（別ターミナル）
+# tensorboard --logdir=./training/lightning_logs
+
+# Pythonからのログ確認
+import pandas as pd
+
+metrics = pd.read_csv('./training/lightning_logs/version_0/metrics.csv')
+print(metrics[['epoch', 'train_loss', 'val_loss']].tail(10))
+</code></pre>
+
+<p><strong>期待される出力</strong>:</p>
+<pre class="codehilite"><code>   epoch  train_loss  val_loss
+40    40      0.0023    0.0031
+41    41      0.0022    0.0030
+42    42      0.0021    0.0029
+...
+</code></pre>
+
+<p><strong>観察ポイント</strong>:<br />
+- <code>train_loss</code>と<code>val_loss</code>がともに減少 → 正常に学習中<br />
+- <code>val_loss</code>が増加し始めたら <strong>過学習</strong>の兆候 → Early Stoppingを検討</p>
+<hr />
+<h2 id="34">3.4 精度検証：エネルギーと力の予測精度</h2>
+<p>訓練したモデルがDFT精度を達成しているか評価します。</p>
+<h3 id="_8">テストセットでの評価</h3>
+<p><strong>Example 7: テストセット評価（12行）</strong></p>
+<pre class="codehilite"><code class="language-python"># テストセットで評価
+test_results = trainer.test(task, datamodule=data_module)
+
+# 結果の表示
+print(f&quot;Energy MAE: {test_results[0]['test_energy_MAE']:.4f} eV&quot;)
+print(f&quot;Energy RMSE: {test_results[0]['test_energy_RMSE']:.4f} eV&quot;)
+
+# 力の評価（別途計算が必要）
+from schnetpack.metrics import MeanAbsoluteError
+force_mae = MeanAbsoluteError(target='forces')
+# ... 力の評価コード
+</code></pre>
+
+<p><strong>良好な精度の目安</strong>（アスピリン分子、21原子）:<br />
+- <strong>エネルギーMAE</strong>: &lt; 1 kcal/mol（&lt; 0.043 eV）<br />
+- <strong>力のMAE</strong>: &lt; 1 kcal/mol/Å（&lt; 0.043 eV/Å）</p>
+<h3 id="_9">予測値と真値の相関プロット</h3>
+<p><strong>Example 8: 予測精度の可視化（15行）</strong></p>
+<pre class="codehilite"><code class="language-python">import matplotlib.pyplot as plt
+import numpy as np
+
+# テストデータで予測
+model = task.model
+predictions, targets = [], []
+
+for batch in data_module.test_dataloader():
+    pred = model(batch)['energy'].detach().numpy()
+    true = batch['energy'].numpy()
+    predictions.extend(pred)
+    targets.extend(true)
+
+# 散布図プロット
+plt.scatter(targets, predictions, alpha=0.5, s=1)
+plt.plot([min(targets), max(targets)], [min(targets), max(targets)], 'r--')
+plt.xlabel('DFT Energy (eV)')
+plt.ylabel('MLP Predicted Energy (eV)')
+plt.title('Energy Prediction Accuracy')
+plt.show()
+</code></pre>
+
+<p><strong>理想的な結果</strong>:<br />
+- 点が赤い対角線（y=x）上に密集<br />
+- R² &gt; 0.99（決定係数）</p>
+<hr />
+<h2 id="35-mlp-md">3.5 MLP-MDシミュレーション：分子動力学の実行</h2>
+<p>訓練したMLPを使って、DFTより10⁴倍高速なMDシミュレーションを実行します。</p>
+<h3 id="asemlp-md">ASEでのMLP-MD設定</h3>
+<p><strong>Example 9: MLP-MD計算の準備（10行）</strong></p>
+<pre class="codehilite"><code class="language-python">from ase import units
+from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
+from ase.md.verlet import VelocityVerlet
+import schnetpack.interfaces.ase_interface as spk_ase
+
+# MLPをASE Calculatorとしてラップ
+calculator = spk_ase.SpkCalculator(
+    model_file='./training/best_model.ckpt',
+    device='cpu'
+)
+
+# 初期構造の準備（MD17の最初の配置）
+atoms = dataset.get_atoms(0)
+atoms.calc = calculator
+</code></pre>
+
+<h3 id="_10">初期速度の設定と平衡化</h3>
+<p><strong>Example 10: 温度初期化（10行）</strong></p>
+<pre class="codehilite"><code class="language-python"># 300Kでの速度分布を設定
+temperature = 300  # K
+MaxwellBoltzmannDistribution(atoms, temperature_K=temperature)
+
+# 運動量をゼロに（系全体の並進を除去）
+from ase.md.velocitydistribution import Stationary
+Stationary(atoms)
+
+print(f&quot;Initial kinetic energy: {atoms.get_kinetic_energy():.3f} eV&quot;)
+print(f&quot;Initial potential energy: {atoms.get_potential_energy():.3f} eV&quot;)
+</code></pre>
+
+<h3 id="md">MDシミュレーションの実行</h3>
+<p><strong>Example 11: MD実行とトラジェクトリ保存（12行）</strong></p>
+<pre class="codehilite"><code class="language-python">from ase.io.trajectory import Trajectory
+
+# MDシミュレータの設定
+timestep = 0.5 * units.fs  # 0.5フェムト秒
+dyn = VelocityVerlet(atoms, timestep=timestep)
+
+# トラジェクトリファイル出力
+traj = Trajectory('aspirin_md.traj', 'w', atoms)
+dyn.attach(traj.write, interval=10)  # 10ステップごとに保存
+
+# 10,000ステップ（5ピコ秒）のMD実行
+dyn.run(10000)
+print(&quot;MD simulation completed!&quot;)
+</code></pre>
+
+<p><strong>計算時間の目安</strong>:<br />
+- CPU（4コア）: 約5分（10,000ステップ）<br />
+- DFTなら: 約1週間（10,000ステップ）<br />
+- <strong>10⁴倍の高速化達成！</strong></p>
+<h3 id="_11">トラジェクトリの解析</h3>
+<p><strong>Example 12: エネルギー保存とRDF計算（15行）</strong></p>
+<pre class="codehilite"><code class="language-python">from ase.io import read
+import numpy as np
+
+# トラジェクトリの読み込み
+traj_data = read('aspirin_md.traj', index=':')
+
+# エネルギー保存の確認
+energies = [a.get_total_energy() for a in traj_data]
+plt.plot(energies)
+plt.xlabel('Time step')
+plt.ylabel('Total Energy (eV)')
+plt.title('Energy Conservation Check')
+plt.show()
+
+# エネルギードリフト（単調増加/減少）の計算
+drift = (energies[-1] - energies[0]) / len(energies)
+print(f&quot;Energy drift: {drift:.6f} eV/step&quot;)
+</code></pre>
+
+<p><strong>良好なシミュレーションの指標</strong>:<br />
+- エネルギードリフト: &lt; 0.001 eV/step<br />
+- 全エネルギーが時間とともに振動（保存則）</p>
+<hr />
+<h2 id="36">3.6 物性計算：振動スペクトルと拡散係数</h2>
+<p>MLP-MDから物理的な物性値を計算します。</p>
+<h3 id="_12">振動スペクトル（パワースペクトル）</h3>
+<p><strong>Example 13: 振動スペクトル計算（15行）</strong></p>
+<pre class="codehilite"><code class="language-python">from scipy.fft import fft, fftfreq
+
+# 1つの原子の速度時系列を抽出
+atom_idx = 0  # 最初の原子
+velocities = np.array([a.get_velocities()[atom_idx] for a in traj_data])
+
+# x方向速度のフーリエ変換
+vx = velocities[:, 0]
+freq = fftfreq(len(vx), d=timestep)
+spectrum = np.abs(fft(vx))**2
+
+# 正の周波数のみプロット
+mask = freq &gt; 0
+plt.plot(freq[mask] * 1e15 / (2 * np.pi), spectrum[mask])  # Hz → THz変換
+plt.xlabel('Frequency (THz)')
+plt.ylabel('Power Spectrum')
+plt.title('Vibrational Spectrum')
+plt.xlim(0, 100)
+plt.show()
+</code></pre>
+
+<p><strong>解釈</strong>:<br />
+- ピークが分子の振動モードに対応<br />
+- DFTで計算した振動スペクトルと比較することで精度検証</p>
+<h3 id="msd">平均二乗変位（MSD）と拡散係数</h3>
+<p><strong>Example 14: MSD計算（15行）</strong></p>
+<pre class="codehilite"><code class="language-python">def calculate_msd(traj, atom_idx=0):
+    &quot;&quot;&quot;平均二乗変位を計算&quot;&quot;&quot;
+    positions = np.array([a.positions[atom_idx] for a in traj])
+    msd = np.zeros(len(positions))
+
+    for t in range(len(positions)):
+        displacement = positions[t:] - positions[:-t or None]
+        msd[t] = np.mean(np.sum(displacement**2, axis=1))
+
+    return msd
+
+# MSD計算とプロット
+msd = calculate_msd(traj_data)
+time_ps = np.arange(len(msd)) * timestep / units.fs * 1e-3  # ピコ秒
+
+plt.plot(time_ps, msd)
+plt.xlabel('Time (ps)')
+plt.ylabel('MSD (Ų)')
+plt.title('Mean Square Displacement')
+plt.show()
+</code></pre>
+
+<p><strong>拡散係数の計算</strong>:</p>
+<pre class="codehilite"><code class="language-python"># MSDの線形領域から拡散係数を計算（Einstein関係式）
+# D = lim_{t→∞} MSD(t) / (6t)
+linear_region = slice(100, 500)
+fit = np.polyfit(time_ps[linear_region], msd[linear_region], deg=1)
+D = fit[0] / 6  # Ų/ps → cm²/s変換が必要
+print(f&quot;Diffusion coefficient: {D:.6f} Ų/ps&quot;)
+</code></pre>
+
+<hr />
+<h2 id="37-active-learning">3.7 Active Learning：効率的なデータ追加</h2>
+<p>モデルが不確実な配置を自動検出し、DFT計算を追加します。</p>
+<h3 id="_13">アンサンブル不確実性の評価</h3>
+<p><strong>Example 15: 予測の不確実性（15行）</strong></p>
+<pre class="codehilite"><code class="language-python"># 複数の独立したモデルを訓練（省略：Example 5を3回実行）
+models = [model1, model2, model3]  # 3つの独立モデル
+
+def predict_with_uncertainty(atoms, models):
+    &quot;&quot;&quot;アンサンブル予測と不確実性&quot;&quot;&quot;
+    predictions = []
+    for model in models:
+        atoms.calc = spk_ase.SpkCalculator(model_file=model, device='cpu')
+        predictions.append(atoms.get_potential_energy())
+
+    mean = np.mean(predictions)
+    std = np.std(predictions)
+    return mean, std
+
+# MDトラジェクトリの各配置で不確実性評価
+uncertainties = []
+for atoms in traj_data[::100]:  # 100フレームごと
+    _, std = predict_with_uncertainty(atoms, models)
+    uncertainties.append(std)
+
+# 不確実性が高い配置を特定
+threshold = np.percentile(uncertainties, 95)
+high_uncertainty_frames = np.where(np.array(uncertainties) &gt; threshold)[0]
+print(f&quot;High uncertainty frames: {high_uncertainty_frames}&quot;)
+</code></pre>
+
+<p><strong>次のステップ</strong>:<br />
+- 不確実性の高い配置をDFT計算に追加<br />
+- データセットを更新してモデル再訓練<br />
+- 精度向上を確認</p>
+<hr />
+<h2 id="38">3.8 トラブルシューティング：よくあるエラーと対処法</h2>
+<p>実践でよく遭遇する問題と解決策を紹介します。</p>
+<table>
+<thead>
+<tr>
+<th>エラー</th>
+<th>原因</th>
+<th>対処法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Out of Memory (OOM)</strong></td>
+<td>バッチサイズが大きすぎる</td>
+<td><code>batch_size</code>を32→16→8と減らす</td>
+</tr>
+<tr>
+<td><strong>Loss becomes NaN</strong></td>
+<td>学習率が高すぎる</td>
+<td><code>lr=1e-4</code>→<code>1e-5</code>に下げる</td>
+</tr>
+<tr>
+<td><strong>Energy drift in MD</strong></td>
+<td>タイムステップが大きすぎる</td>
+<td><code>timestep=0.5fs</code>→<code>0.25fs</code>に減らす</td>
+</tr>
+<tr>
+<td><strong>Poor generalization</strong></td>
+<td>訓練データが偏っている</td>
+<td>Active Learningでデータ多様化</td>
+</tr>
+<tr>
+<td><strong>CUDA error</strong></td>
+<td>GPU互換性の問題</td>
+<td>PyTorchとCUDAバージョン確認</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_14">デバッグのベストプラクティス</h3>
+<pre class="codehilite"><code class="language-python"># 1. 小規模データでテスト
+data_module.num_train = 1000  # 1,000配置でクイックテスト
+
+# 2. 1バッチでのオーバーフィッティング確認
+trainer = pl.Trainer(max_epochs=100, overfit_batches=1)
+# 訓練誤差が0に近づけば、モデルに学習能力あり
+
+# 3. グラディエントのクリッピング
+task = AtomisticTask(..., gradient_clip_val=1.0)  # 勾配爆発防止
+</code></pre>
+
+<hr />
+<h2 id="39">3.9 本章のまとめ</h2>
+<h3 id="_15">学んだこと</h3>
+<ol>
+<li>
+<p><strong>環境構築</strong><br />
+   - Conda環境、PyTorch、SchNetPackのインストール<br />
+   - GPU/CPU環境の選択</p>
+</li>
+<li>
+<p><strong>データ準備</strong><br />
+   - MD17データセットのダウンロードと読み込み<br />
+   - 訓練/検証/テストセットへの分割</p>
+</li>
+<li>
+<p><strong>モデル訓練</strong><br />
+   - SchNetアーキテクチャの設定（6層、128次元）<br />
+   - 50エポックの訓練（CPU: 2-3時間）<br />
+   - TensorBoardでの進捗確認</p>
+</li>
+<li>
+<p><strong>精度検証</strong><br />
+   - エネルギーMAE &lt; 1 kcal/mol達成を確認<br />
+   - 予測値vs真値の相関プロット<br />
+   - R² &gt; 0.99の高精度</p>
+</li>
+<li>
+<p><strong>MLP-MD実行</strong><br />
+   - ASE Calculatorとしての統合<br />
+   - 10,000ステップ（5ピコ秒）のMD実行<br />
+   - DFTより10⁴倍高速化を体験</p>
+</li>
+<li>
+<p><strong>物性計算</strong><br />
+   - 振動スペクトル（フーリエ変換）<br />
+   - 拡散係数（平均二乗変位から計算）</p>
+</li>
+<li>
+<p><strong>Active Learning</strong><br />
+   - アンサンブル不確実性による配置選択<br />
+   - データ追加の自動化戦略</p>
+</li>
+</ol>
+<h3 id="_16">重要なポイント</h3>
+<ul>
+<li><strong>SchNetPackは実装が容易</strong>: 数十行のコードでMLP訓練が可能</li>
+<li><strong>小規模データ（10万配置）で実用精度達成</strong>: MD17は優れたベンチマーク</li>
+<li><strong>MLP-MDは実用的</strong>: DFTの10⁴倍高速、個人のPCで実行可能</li>
+<li><strong>Active Learningで効率化</strong>: 重要な配置を自動発見、データ収集コスト削減</li>
+</ul>
+<h3 id="_17">次の章へ</h3>
+<p>第4章では、最新のMLP手法（NequIP、MACE）と実際の研究応用例を学びます：<br />
+- E(3)等変グラフニューラルネットワークの理論<br />
+- データ効率の劇的向上（10万→3,000配置）<br />
+- 触媒反応、バッテリー材料への応用事例<br />
+- 大規模シミュレーション（100万原子）の実現</p>
+<hr />
+<h2 id="_18">演習問題</h2>
+<h3 id="1easy">問題1（難易度：easy）</h3>
+<p>Example 4のSchNet設定で、<code>n_interactions</code>（メッセージパッシング層の数）を3, 6, 9に変えて訓練し、テストMAEがどのように変化するか予測してください。</p>
+<details>
+<summary>ヒント</summary>
+
+層が深いほど、長距離の原子間相互作用を捉えられます。しかし、深すぎると過学習のリスクも。
+
+</details>
+
+<details>
+<summary>解答例</summary>
+
+**予測される結果**:
+
+| `n_interactions` | テストMAE予測 | 訓練時間 | 特徴 |
+|-----------------|-------------|---------|------|
+| **3** | 0.8-1.2 kcal/mol | 1時間 | 浅いため長距離相互作用を捉えきれない |
+| **6** | 0.5-0.8 kcal/mol | 2-3時間 | バランスが良い（推奨） |
+| **9** | 0.6-1.0 kcal/mol | 4-5時間 | 過学習リスク、訓練データ不足なら精度低下 |
+
+**実験方法**:
+
+<pre class="codehilite"><code class="language-python">for n in [3, 6, 9]:
+    representation = SchNet(n_interactions=n, ...)
+    task = AtomisticTask(...)
+    trainer.fit(task, datamodule=data_module)
+    results = trainer.test(task, datamodule=data_module)
+    print(f&quot;n={n}: MAE={results[0]['test_energy_MAE']:.4f} eV&quot;)
+</code></pre>
+
+
+
+**結論**: 小分子（アスピリン21原子）では`n_interactions=6`が最適。大規模系（100原子以上）では9-12層が有効な場合もある。
+
+</details>
+
+<h3 id="2medium">問題2（難易度：medium）</h3>
+<p>Example 11のMLP-MDで、エネルギードリフトが許容範囲を超えた場合（例: 0.01 eV/step）、どのような対処法が考えられますか？3つ挙げてください。</p>
+<details>
+<summary>ヒント</summary>
+
+タイムステップ、訓練精度、MDアルゴリズムの3つの観点から考えましょう。
+
+</details>
+
+<details>
+<summary>解答例</summary>
+
+**対処法1: タイムステップを小さくする**
+
+<pre class="codehilite"><code class="language-python">timestep = 0.25 * units.fs  # 0.5fs → 0.25fsに半減
+dyn = VelocityVerlet(atoms, timestep=timestep)
+</code></pre>
+
+
+- **理由**: 小さいタイムステップは数値積分の誤差を減らす
+- **デメリット**: 2倍の計算時間
+
+**対処法2: モデル訓練精度を向上**
+
+<pre class="codehilite"><code class="language-python"># より多くのデータで訓練
+data_module.num_train = 200000  # 10万→20万配置に増加
+
+# または力の損失関数の重みを増やす
+task = AtomisticTask(..., loss_weights={'energy': 1.0, 'forces': 1000})
+</code></pre>
+
+
+- **理由**: 力の予測精度が低いとMDが不安定
+- **目標**: 力のMAE < 0.05 eV/Å
+
+**対処法3: Langevin動力学に変更（熱浴結合）**
+
+<pre class="codehilite"><code class="language-python">from ase.md.langevin import Langevin
+dyn = Langevin(atoms, timestep=0.5*units.fs,
+               temperature_K=300, friction=0.01)
+</code></pre>
+
+
+- **理由**: 熱浴がエネルギードリフトを吸収
+- **注意**: 厳密な微小正準アンサンブル（NVE）ではなくなる
+
+**優先順位**: 対処法2（精度向上）→ 対処法1（タイムステップ）→ 対処法3（Langevin）
+
+</details>
+
+<hr />
+<h2 id="310">3.10 データライセンスと再現性</h2>
+
+<p>本章のハンズオンコードを再現するために必要なデータセットとツールのバージョン情報を記載します。</p>
+
+<h3 id="3101">3.10.1 使用データセット</h3>
+
+<table>
+<thead>
+<tr>
+<th>データセット</th>
+<th>説明</th>
+<th>ライセンス</th>
+<th>アクセス方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MD17</strong></td>
+<td>小分子MD軌道（アスピリン、ベンゼンなど10種類）</td>
+<td>CC0 1.0 (Public Domain)</td>
+<td>SchNetPack内蔵 (<code>MD17(molecule='aspirin')</code>)</td>
+</tr>
+<tr>
+<td><strong>アスピリン分子</strong></td>
+<td>211,762配置、DFT（PBE/def2-SVP）</td>
+<td>CC0 1.0</td>
+<td><a href="http://sgdml.org/#datasets">sgdml.org</a></td>
+</tr>
+</tbody>
+</table>
+
+<p><strong>注意事項</strong>:<br />
+- <strong>商用利用</strong>: CC0ライセンスにより、商用利用・改変・再配布すべて自由<br />
+- <strong>論文引用</strong>: MD17使用時は以下を引用<br />
+  Chmiela, S., et al. (2017). "Machine learning of accurate energy-conserving molecular force fields." <em>Science Advances</em>, 3(5), e1603015.<br />
+- <strong>データ完全性</strong>: SchNetPackのダウンロード機能はSHA256チェックサムで検証</p>
+
+<h3 id="3102">3.10.2 コード再現性のための環境情報</h3>
+
+<p>本章のコード例を正確に再現するために、以下のバージョンを使用してください。</p>
+
+<table>
+<thead>
+<tr>
+<th>ツール</th>
+<th>推奨バージョン</th>
+<th>インストールコマンド</th>
+<th>互換性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Python</strong></td>
+<td>3.10.x</td>
+<td><code>conda create -n mlp python=3.10</code></td>
+<td>3.9-3.11で動作確認済み</td>
+</tr>
+<tr>
+<td><strong>PyTorch</strong></td>
+<td>2.1.0</td>
+<td><code>conda install pytorch=2.1.0</code></td>
+<td>2.0以上必須</td>
+</tr>
+<tr>
+<td><strong>SchNetPack</strong></td>
+<td>2.0.3</td>
+<td><code>pip install schnetpack==2.0.3</code></td>
+<td>2.0系と1.x系でAPIが異なる</td>
+</tr>
+<tr>
+<td><strong>ASE</strong></td>
+<td>3.22.1</td>
+<td><code>pip install ase==3.22.1</code></td>
+<td>3.20以上推奨</td>
+</tr>
+<tr>
+<td><strong>PyTorch Lightning</strong></td>
+<td>2.1.0</td>
+<td><code>pip install pytorch-lightning==2.1.0</code></td>
+<td>SchNetPack 2.0.3と互換</td>
+</tr>
+<tr>
+<td><strong>NumPy</strong></td>
+<td>1.24.3</td>
+<td><code>pip install numpy==1.24.3</code></td>
+<td>1.20以上</td>
+</tr>
+<tr>
+<td><strong>Matplotlib</strong></td>
+<td>3.7.1</td>
+<td><code>pip install matplotlib==3.7.1</code></td>
+<td>3.5以上</td>
+</tr>
+</tbody>
+</table>
+
+<p><strong>環境ファイルの保存</strong>:</p>
+<pre class="codehilite"><code class="language-bash"># 現在の環境を再現可能な形で保存
+conda env export > environment.yml
+
+# 他の環境で再現
+conda env create -f environment.yml
+</code></pre>
+
+<p><strong>Dockerによる再現性確保</strong>（推奨）:</p>
+<pre class="codehilite"><code class="language-dockerfile"># Dockerfile例
+FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
+RUN pip install schnetpack==2.0.3 ase==3.22.1 pytorch-lightning==2.1.0
+</code></pre>
+
+<h3 id="3103">3.10.3 訓練ハイパーパラメータの完全記録</h3>
+
+<p>Example 4, 5で使用したハイパーパラメータの全記録（論文再現用）:</p>
+
+<table>
+<thead>
+<tr>
+<th>パラメータ</th>
+<th>値</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>n_atom_basis</code></td>
+<td>128</td>
+<td>原子特徴ベクトルの次元</td>
+</tr>
+<tr>
+<td><code>n_interactions</code></td>
+<td>6</td>
+<td>メッセージパッシング層の数</td>
+</tr>
+<tr>
+<td><code>cutoff</code></td>
+<td>5.0 Å</td>
+<td>原子間相互作用のカットオフ半径</td>
+</tr>
+<tr>
+<td><code>n_filters</code></td>
+<td>128</td>
+<td>畳み込みフィルタの数</td>
+</tr>
+<tr>
+<td><code>batch_size</code></td>
+<td>32</td>
+<td>ミニバッチサイズ</td>
+</tr>
+<tr>
+<td><code>learning_rate</code></td>
+<td>1e-4</td>
+<td>初期学習率（AdamW）</td>
+</tr>
+<tr>
+<td><code>max_epochs</code></td>
+<td>50</td>
+<td>最大訓練エポック数</td>
+</tr>
+<tr>
+<td><code>num_train</code></td>
+<td>100,000</td>
+<td>訓練データ数</td>
+</tr>
+<tr>
+<td><code>num_val</code></td>
+<td>10,000</td>
+<td>検証データ数</td>
+</tr>
+<tr>
+<td><code>num_test</code></td>
+<td>10,000</td>
+<td>テストデータ数</td>
+</tr>
+<tr>
+<td><code>random_seed</code></td>
+<td>42</td>
+<td>乱数シード（データ分割の再現性）</td>
+</tr>
+</tbody>
+</table>
+
+<p><strong>完全な再現コード</strong>:</p>
+<pre class="codehilite"><code class="language-python">import torch
+torch.manual_seed(42)  # 再現性確保
+
+representation = SchNet(
+    n_atom_basis=128, n_interactions=6, cutoff=5.0, n_filters=128
+)
+task = AtomisticTask(
+    model=AtomisticModel(representation, [output]),
+    optimizer_cls=torch.optim.AdamW,
+    optimizer_args={'lr': 1e-4, 'weight_decay': 0.01}
+)
+trainer = pl.Trainer(max_epochs=50, deterministic=True)
+</code></pre>
+
+<h3 id="3104">3.10.4 エネルギー・力の単位換算表</h3>
+
+<p>本章で使用する物理量の単位換算（SchNetPackとASEの標準単位）:</p>
+
+<table>
+<thead>
+<tr>
+<th>物理量</th>
+<th>SchNetPack/ASE</th>
+<th>eV</th>
+<th>kcal/mol</th>
+<th>Hartree</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>エネルギー</strong></td>
+<td>eV</td>
+<td>1.0</td>
+<td>23.06</td>
+<td>0.03674</td>
+</tr>
+<tr>
+<td><strong>力</strong></td>
+<td>eV/Å</td>
+<td>1.0</td>
+<td>23.06</td>
+<td>0.01945</td>
+</tr>
+<tr>
+<td><strong>距離</strong></td>
+<td>Å</td>
+<td>-</td>
+<td>-</td>
+<td>1.889726 Bohr</td>
+</tr>
+<tr>
+<td><strong>時間</strong></td>
+<td>fs (フェムト秒)</td>
+<td>-</td>
+<td>-</td>
+<td>0.02419 a.u.</td>
+</tr>
+</tbody>
+</table>
+
+<p><strong>単位変換例</strong>:</p>
+<pre class="codehilite"><code class="language-python">from ase import units
+
+# エネルギー換算
+energy_ev = 1.0  # eV
+energy_kcal = energy_ev * 23.06052  # kcal/mol
+energy_hartree = energy_ev * 0.036749  # Hartree
+
+# ASEの単位定数を使用（推奨）
+print(f"{energy_ev} eV = {energy_ev * units.eV / units.kcal * units.mol} kcal/mol")
+</code></pre>
+
+<hr />
+<h2 id="311">3.11 実践上の注意点：ハンズオンでの失敗パターン</h2>
+
+<h3 id="3111">3.11.1 環境構築とインストールの落とし穴</h3>
+
+<details>
+<summary><strong>失敗1: PyTorchとCUDAバージョンの不一致</strong></summary>
+
+<p><strong>問題</strong>:</p>
+<pre class="codehilite"><code>RuntimeError: CUDA error: no kernel image is available for execution on the device
+</code></pre>
+
+<p><strong>原因</strong>:<br />
+PyTorch 2.1.0はCUDA 11.8または12.1でコンパイルされているが、システムのCUDAが10.2など古いバージョン</p>
+
+<p><strong>診断コード</strong>:</p>
+<pre class="codehilite"><code class="language-python">import torch
+print(f"PyTorch version: {torch.__version__}")
+print(f"CUDA available: {torch.cuda.is_available()}")
+print(f"CUDA version (PyTorch): {torch.version.cuda}")
+
+# システムCUDAバージョン確認（ターミナル）
+# nvcc --version
+</code></pre>
+
+<p><strong>対処法</strong>:</p>
+<pre class="codehilite"><code class="language-bash"># システムCUDA 11.8の場合
+conda install pytorch==2.1.0 pytorch-cuda=11.8 -c pytorch -c nvidia
+
+# CUDA利用不可の場合はCPU版に切り替え
+conda install pytorch==2.1.0 cpuonly -c pytorch
+</code></pre>
+
+<p><strong>予防策</strong>:<br />
+環境構築前に <code>nvidia-smi</code> でGPUドライバとCUDAバージョンを確認する</p>
+
+</details>
+
+<details>
+<summary><strong>失敗2: SchNetPack 1.x と 2.x のAPI混同</strong></summary>
+
+<p><strong>問題</strong>:</p>
+<pre class="codehilite"><code>AttributeError: module 'schnetpack' has no attribute 'AtomsData'
+</code></pre>
+
+<p><strong>原因</strong>:<br />
+SchNetPack 1.x系の古いチュートリアルコードを2.x系で実行</p>
+
+<p><strong>バージョン確認</strong>:</p>
+<pre class="codehilite"><code class="language-python">import schnetpack as spk
+print(spk.__version__)  # 2.0.3なら本章のコードが動作
+</code></pre>
+
+<p><strong>主なAPI変更</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>SchNetPack 1.x</th>
+<th>SchNetPack 2.x</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spk.AtomsData</code></td>
+<td><code>spk.data.AtomsDataModule</code></td>
+</tr>
+<tr>
+<td><code>spk.atomistic.Atomwise</code></td>
+<td><code>spk.task.ModelOutput</code></td>
+</tr>
+<tr>
+<td><code>spk.train.Trainer</code></td>
+<td><code>pytorch_lightning.Trainer</code></td>
+</tr>
+</tbody>
+</table>
+
+<p><strong>対処法</strong>:<br />
+本章のコード例（2.x系）を使用するか、SchNetPack公式ドキュメント（<a href="https://schnetpack.readthedocs.io">schnetpack.readthedocs.io</a>）の2.x系チュートリアルを参照</p>
+
+</details>
+
+<details>
+<summary><strong>失敗3: メモリ不足（OOM）の誤診断</strong></summary>
+
+<p><strong>問題</strong>:</p>
+<pre class="codehilite"><code>RuntimeError: CUDA out of memory. Tried to allocate 1.50 GiB
+</code></pre>
+
+<p><strong>よくある誤解</strong>:<br />
+「GPUメモリ不足なのでGPUを買い替える必要がある」→ <strong>間違い</strong></p>
+
+<p><strong>診断手順</strong>:</p>
+<pre class="codehilite"><code class="language-python"># 1. バッチサイズを確認
+print(f"Current batch size: {data_module.batch_size}")
+
+# 2. GPUメモリ使用量を確認
+if torch.cuda.is_available():
+    print(f"GPU memory allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB")
+    print(f"GPU memory reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB")
+</code></pre>
+
+<p><strong>対処法（優先順）</strong>:</p>
+<ol>
+<li><strong>バッチサイズを減らす</strong>: <code>batch_size=32</code> → <code>16</code> → <code>8</code> → <code>4</code></li>
+<li><strong>勾配累積</strong>: 小バッチを複数回累積して疑似的に大バッチ</li>
+</ol>
+<pre class="codehilite"><code class="language-python">trainer = pl.Trainer(accumulate_grad_batches=4)  # 4バッチごとに更新
+</code></pre>
+
+<ol start="3">
+<li><strong>Mixed Precision訓練</strong>: メモリ使用量を半減</li>
+</ol>
+<pre class="codehilite"><code class="language-python">trainer = pl.Trainer(precision=16)  # float16使用
+</code></pre>
+
+<p><strong>目安</strong>:<br />
+- GPU 4GB: batch_size=4-8<br />
+- GPU 8GB: batch_size=16-32<br />
+- GPU 24GB: batch_size=64-128</p>
+
+</details>
+
+<h3 id="3112">3.11.2 訓練とデバッグの落とし穴</h3>
+
+<details>
+<summary><strong>失敗4: 訓練誤差が減少しない（NaN損失）</strong></summary>
+
+<p><strong>問題</strong>:</p>
+<pre class="codehilite"><code>Epoch 5: train_loss=nan, val_loss=nan
+</code></pre>
+
+<p><strong>原因トップ3</strong>:</p>
+<ol>
+<li><strong>学習率が高すぎる</strong>: 勾配爆発 → パラメータがNaNに</li>
+<li><strong>データ正規化の欠如</strong>: エネルギーの絶対値が大きすぎる（例: -1000 eV）</li>
+<li><strong>力の損失係数が不適切</strong>: 力の損失が支配的すぎる</li>
+</ol>
+
+<p><strong>診断コード</strong>:</p>
+<pre class="codehilite"><code class="language-python"># 訓練開始直後にモデルの出力を確認
+for batch in data_module.train_dataloader():
+    output = task.model(batch)
+    print(f"Energy prediction: {output['energy'][:5]}")  # 最初の5サンプル
+    print(f"Energy target: {batch['energy'][:5]}")
+    break
+
+# NaNチェック
+print(f"Has NaN in prediction: {torch.isnan(output['energy']).any()}")
+</code></pre>
+
+<p><strong>対処法</strong>:</p>
+<ol>
+<li><strong>学習率を下げる</strong>:</li>
+</ol>
+<pre class="codehilite"><code class="language-python">optimizer_args={'lr': 1e-5}  # 1e-4 → 1e-5に減少
+</code></pre>
+
+<ol start="2">
+<li><strong>勾配クリッピング</strong>:</li>
+</ol>
+<pre class="codehilite"><code class="language-python">trainer = pl.Trainer(gradient_clip_val=1.0)  # 勾配ノルムを1.0以下に
+</code></pre>
+
+<ol start="3">
+<li><strong>データ正規化</strong>（SchNetPack 2.xは自動だが、手動確認）:</li>
+</ol>
+<pre class="codehilite"><code class="language-python">import schnetpack.transform as trn
+data_module.train_transforms = [
+    trn.SubtractCenterOfMass(),
+    trn.RemoveOffsets('energy', remove_mean=True)  # エネルギーオフセット除去
+]
+</code></pre>
+
+</details>
+
+<details>
+<summary><strong>失敗5: 過学習の見逃し</strong></summary>
+
+<p><strong>問題</strong>:<br />
+訓練誤差は減少するが、検証誤差が停滞または増加</p>
+
+<pre class="codehilite"><code>Epoch 30: train_loss=0.001, val_loss=0.050  # val_lossが悪化
+</code></pre>
+
+<p><strong>原因</strong>:<br />
+モデルが訓練データを記憶し、未知データへの汎化性能が低下</p>
+
+<p><strong>診断グラフ</strong>:</p>
+<pre class="codehilite"><code class="language-python">import matplotlib.pyplot as plt
+import pandas as pd
+
+metrics = pd.read_csv('./training/lightning_logs/version_0/metrics.csv')
+plt.plot(metrics['epoch'], metrics['train_loss'], label='Train')
+plt.plot(metrics['epoch'], metrics['val_loss'], label='Validation')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()
+</code></pre>
+
+<p><strong>対処法</strong>:</p>
+<ol>
+<li><strong>Early Stopping</strong>（自動停止）:</li>
+</ol>
+<pre class="codehilite"><code class="language-python">from pytorch_lightning.callbacks import EarlyStopping
+
+early_stop = EarlyStopping(monitor='val_loss', patience=10, mode='min')
+trainer = pl.Trainer(callbacks=[early_stop])
+</code></pre>
+
+<ol start="2">
+<li><strong>データ増強</strong>（訓練データを増やす）:</li>
+</ol>
+<pre class="codehilite"><code class="language-python">data_module.num_train = 200000  # 10万 → 20万に増加
+</code></pre>
+
+<ol start="3">
+<li><strong>Dropout（非推奨、MLPでは効果薄い）</strong>: 代わりにモデルのパラメータ数を減らす</li>
+</ol>
+<pre class="codehilite"><code class="language-python">representation = SchNet(n_atom_basis=64, n_interactions=4)  # 128→64に削減
+</code></pre>
+
+</details>
+
+<h3 id="3113">3.11.3 MLP-MDシミュレーションの落とし穴</h3>
+
+<details>
+<summary><strong>失敗6: エネルギードリフトの過小評価</strong></summary>
+
+<p><strong>問題</strong>:<br />
+MDシミュレーション中にエネルギーが単調増加/減少（保存則の破れ）</p>
+
+<p><strong>許容範囲の誤解</strong>:</p>
+<ul>
+<li>「少しくらいのドリフトは仕方ない」→ <strong>危険</strong></li>
+<li>0.01 eV/stepのドリフトでも、10,000ステップで100 eVのエネルギー変化（非現実的）</li>
+</ul>
+
+<p><strong>定量診断</strong>:</p>
+<pre class="codehilite"><code class="language-python">from ase.io import read
+
+traj = read('aspirin_md.traj', index=':')
+energies = [a.get_total_energy() for a in traj]
+
+# ドリフトの計算（線形フィット）
+import numpy as np
+time_steps = np.arange(len(energies))
+drift_rate, offset = np.polyfit(time_steps, energies, deg=1)
+print(f"Energy drift: {drift_rate:.6f} eV/step")
+
+# 許容範囲チェック
+if abs(drift_rate) > 0.001:
+    print("⚠️ WARNING: Excessive energy drift detected!")
+</code></pre>
+
+<p><strong>対処法（問題2の詳細版）</strong>:</p>
+<ol>
+<li><strong>力の訓練精度を向上</strong>（最重要）:</li>
+</ol>
+<pre class="codehilite"><code class="language-python"># 力の損失関数の重みを大幅に増加
+task = AtomisticTask(
+    loss_weights={'energy': 0.01, 'forces': 0.99}  # 力に99%の重み
+)
+</code></pre>
+
+<ol start="2">
+<li><strong>タイムステップの最適化</strong>:</li>
+</ol>
+<pre class="codehilite"><code class="language-bash"># 安定性テスト
+for dt in [0.1, 0.25, 0.5, 1.0]:  # fs
+    # dt=0.5で安定、dt=1.0で発散なら、dt=0.5を採用
+</code></pre>
+
+<ol start="3">
+<li><strong>MLP精度の限界を認識</strong>:<br />
+力のMAE > 0.1 eV/Åの場合、長時間MD（>10 ps）は信頼性低下<br />
+→ Active Learningで訓練データ追加</li>
+</ol>
+
+</details>
+
+<details>
+<summary><strong>失敗7: MD結果の物理的妥当性の未検証</strong></summary>
+
+<p><strong>問題</strong>:<br />
+「MDが完走したから成功」と誤解 → 実は非物理的な構造変化</p>
+
+<p><strong>検証すべき項目</strong>:</p>
+
+<p><strong>1. 温度制御の確認</strong>:</p>
+<pre class="codehilite"><code class="language-python">temperatures = [a.get_temperature() for a in traj]
+print(f"Average T: {np.mean(temperatures):.1f} K (target: 300 K)")
+print(f"Std T: {np.std(temperatures):.1f} K")
+# 標準偏差が30K以上なら異常
+</code></pre>
+
+<p><strong>2. 構造の破壊チェック</strong>:</p>
+<pre class="codehilite"><code class="language-python">from ase.geometry.analysis import Analysis
+
+# 初期構造と最終構造の比較
+ana_init = Analysis(traj[0])
+ana_final = Analysis(traj[-1])
+
+# 結合が切れていないか確認
+bonds_init = ana_init.all_bonds[0]
+bonds_final = ana_final.all_bonds[0]
+print(f"Initial bonds: {len(bonds_init)}, Final bonds: {len(bonds_final)}")
+
+# 結合数が変化 → 構造破壊の可能性
+</code></pre>
+
+<p><strong>3. 動径分布関数（RDF）の妥当性</strong>:</p>
+<pre class="codehilite"><code class="language-python"># 第一ピーク位置がDFT計算やX線回折データと一致するか確認
+# （実装は高度なため、省略）
+</code></pre>
+
+<p><strong>対処法</strong>:<br />
+物理的に妥当な結果が得られない場合、訓練データの範囲外（外挿）の可能性<br />
+→ Active Learningで該当する配置を訓練データに追加</p>
+
+</details>
+
+<hr />
+<h2 id="312">3.12 章末チェックリスト：ハンズオンの品質保証</h2>
+
+<p>この章を完了したら、以下の項目を確認してください。全てチェックできれば、実際の研究プロジェクトでMLPを活用する準備が整っています。</p>
+
+<h3 id="3121">3.12.1 概念理解（Understanding）</h3>
+
+<p><strong>環境とツールの理解</strong>:</p>
+<ul>
+<li>□ SchNetPackの役割（MLP訓練ライブラリ）を説明できる</li>
+<li>□ PyTorchとSchNetPackの関係（PyTorchベースのMLP実装）を理解している</li>
+<li>□ ASEの役割（原子構造操作、MD実行）を説明できる</li>
+<li>□ MD17データセットの特徴（10種類の小分子、DFT精度）を理解している</li>
+</ul>
+
+<p><strong>モデル訓練の理解</strong>:</p>
+<ul>
+<li>□ SchNetのハイパーパラメータ（<code>n_atom_basis</code>、<code>n_interactions</code>、<code>cutoff</code>）の意味を説明できる</li>
+<li>□ 訓練/検証/テストセットの役割を理解している</li>
+<li>□ 過学習の兆候（検証誤差の増加）を識別できる</li>
+<li>□ エネルギーMAE < 1 kcal/molが高精度の目安であることを理解している</li>
+</ul>
+
+<p><strong>MLP-MDの理解</strong>:</p>
+<ul>
+<li>□ MLPがASE Calculatorとして統合される仕組みを理解している</li>
+<li>□ エネルギー保存則とエネルギードリフトの違いを説明できる</li>
+<li>□ タイムステップ（0.5 fs）が安定性に影響する理由を理解している</li>
+<li>□ MLP-MDがDFTより10⁴倍高速な理由を説明できる</li>
+</ul>
+
+<h3 id="3122">3.12.2 実践スキル（Doing）</h3>
+
+<p><strong>環境構築</strong>:</p>
+<ul>
+<li>□ Conda環境を作成し、Python 3.10をインストールできる</li>
+<li>□ PyTorch（CPU版/GPU版）を正しくインストールできる</li>
+<li>□ SchNetPack 2.0.3とASE 3.22.1をインストールできる</li>
+<li>□ 環境確認スクリプトを実行し、バージョンを確認できる</li>
+</ul>
+
+<p><strong>データ準備と訓練</strong>:</p>
+<ul>
+<li>□ MD17データセットをダウンロードし、10万配置に分割できる</li>
+<li>□ SchNetモデルを定義し、ハイパーパラメータを設定できる</li>
+<li>□ 50エポックの訓練を実行し、TensorBoardで進捗を確認できる</li>
+<li>□ テストセットでMAEを評価し、目標精度（< 1 kcal/mol）を達成できる</li>
+</ul>
+
+<p><strong>MLP-MDシミュレーション</strong>:</p>
+<ul>
+<li>□ 訓練済みモデルをASE Calculatorとしてラップできる</li>
+<li>□ Maxwell-Boltzmann分布で初期速度を設定できる</li>
+<li>□ 10,000ステップ（5ピコ秒）のMDを実行できる</li>
+<li>□ トラジェクトリを保存し、エネルギー保存を確認できる</li>
+</ul>
+
+<p><strong>解析とトラブルシューティング</strong>:</p>
+<ul>
+<li>□ 振動スペクトル（パワースペクトル）を計算できる</li>
+<li>□ 平均二乗変位（MSD）から拡散係数を計算できる</li>
+<li>□ Out of Memory（OOM）エラーに対処できる（バッチサイズ削減）</li>
+<li>□ NaN損失の原因を診断し、学習率を調整できる</li>
+</ul>
+
+<h3 id="3123">3.12.3 応用力（Applying）</h3>
+
+<p><strong>自分の研究への適用計画</strong>:</p>
+<ul>
+<li>□ 自分の研究対象（分子、材料）でMD17相当のデータセットを設計できる</li>
+<li>□ 必要なDFT計算数（目標精度と系のサイズから）を見積もれる</li>
+<li>□ SchNetのハイパーパラメータを自分の系に最適化する戦略を立てられる</li>
+<li>□ MLP-MDで得たい物性（拡散係数、振動スペクトル、反応経路）を明確にできる</li>
+</ul>
+
+<p><strong>問題解決とデバッグ</strong>:</p>
+<ul>
+<li>□ 訓練が収束しない場合の診断手順（学習率、データ正規化、勾配クリッピング）を実行できる</li>
+<li>□ エネルギードリフトの原因を特定し、対処法を選択できる</li>
+<li>□ 過学習を検出し、Early StoppingやData Augmentationを適用できる</li>
+<li>□ GPU/CPUリソースに応じてバッチサイズと訓練時間を最適化できる</li>
+</ul>
+
+<p><strong>Advanced技術への準備</strong>:</p>
+<ul>
+<li>□ Active Learning（Example 15）の概念を理解し、実装の流れを説明できる</li>
+<li>□ アンサンブル不確実性による配置選択の重要性を理解している</li>
+<li>□ 次章（NequIP、MACE）でデータ効率がどう改善されるか期待を持っている</li>
+<li>□ SchNetPackのドキュメント（<a href="https://schnetpack.readthedocs.io">schnetpack.readthedocs.io</a>）を活用して、独学で学習を続けられる</li>
+</ul>
+
+<p><strong>次章へのブリッジ</strong>:</p>
+<ul>
+<li>□ SchNetの限界（データ効率、回転等変性）を認識している</li>
+<li>□ E(3)等変性アーキテクチャ（NequIP、MACE）がどう改善するか興味を持っている</li>
+<li>□ 実際の研究応用例（触媒、バッテリー、創薬）を第4章で学ぶ準備ができている</li>
+</ul>
+
+<hr />
+<h2 id="_19">参考文献</h2>
+<ol>
+<li>
+<p>Schütt, K. T., et al. (2019). "SchNetPack: A Deep Learning Toolbox For Atomistic Systems." <em>Journal of Chemical Theory and Computation</em>, 15(1), 448-455.<br />
+   DOI: <a href="https://doi.org/10.1021/acs.jctc.8b00908">10.1021/acs.jctc.8b00908</a></p>
+</li>
+<li>
+<p>Chmiela, S., et al. (2017). "Machine learning of accurate energy-conserving molecular force fields." <em>Science Advances</em>, 3(5), e1603015.<br />
+   DOI: <a href="https://doi.org/10.1126/sciadv.1603015">10.1126/sciadv.1603015</a></p>
+</li>
+<li>
+<p>Larsen, A. H., et al. (2017). "The atomic simulation environment—a Python library for working with atoms." <em>Journal of Physics: Condensed Matter</em>, 29(27), 273002.<br />
+   DOI: <a href="https://doi.org/10.1088/1361-648X/aa680e">10.1088/1361-648X/aa680e</a></p>
+</li>
+<li>
+<p>Paszke, A., et al. (2019). "PyTorch: An imperative style, high-performance deep learning library." <em>Advances in Neural Information Processing Systems</em>, 32.<br />
+   arXiv: <a href="https://arxiv.org/abs/1912.01703">1912.01703</a></p>
+</li>
+<li>
+<p>Zhang, L., et al. (2020). "Active learning of uniformly accurate interatomic potentials for materials simulation." <em>Physical Review Materials</em>, 3(2), 023804.<br />
+   DOI: <a href="https://doi.org/10.1103/PhysRevMaterials.3.023804">10.1103/PhysRevMaterials.3.023804</a></p>
+</li>
+<li>
+<p>Schütt, K. T., et al. (2017). "Quantum-chemical insights from deep tensor neural networks." <em>Nature Communications</em>, 8(1), 13890.<br />
+   DOI: <a href="https://doi.org/10.1038/ncomms13890">10.1038/ncomms13890</a></p>
+</li>
+</ol>
+<hr />
+<h2 id="_20">著者情報</h2>
+<p><strong>作成者</strong>: MI Knowledge Hub Content Team<br />
+<strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）<br />
+<strong>作成日</strong>: 2025-10-17<br />
+<strong>バージョン</strong>: 1.1（Chapter 3 quality improvement）<br />
+<strong>シリーズ</strong>: MLP入門シリーズ</p>
+<p><strong>更新履歴</strong>:<br />
+- 2025-10-19: v1.1 品質向上改訂<br />
+  - データライセンスと再現性セクション追加（MD17データセット、アスピリン分子情報）<br />
+  - コード再現性情報（Python 3.10.x, PyTorch 2.1.0, SchNetPack 2.0.3, ASE 3.22.1）<br />
+  - 訓練ハイパーパラメータの完全記録（11項目、論文再現用）<br />
+  - エネルギー・力の単位換算表（eV, kcal/mol, Hartree相互変換）<br />
+  - 実践上の注意点セクション追加（7つの失敗パターン: CUDA不一致、API混同、OOM、NaN損失、過学習、エネルギードリフト、物理妥当性）<br />
+  - 章末チェックリスト追加（概念理解12項目、実践スキル16項目、応用力16項目）<br />
+- 2025-10-17: v1.0 第3章初版作成<br />
+  - Python環境構築（Conda, PyTorch, SchNetPack）<br />
+  - MD17データセット準備と分割<br />
+  - SchNetモデル訓練（15コード例）<br />
+  - MLP-MD実行と解析（トラジェクトリ、振動スペクトル、MSD）<br />
+  - Active Learning不確実性評価<br />
+  - トラブルシューティング表（5項目）<br />
+  - 演習問題2問（easy, medium）<br />
+  - 参考文献6件</p>
+<p><strong>ライセンス</strong>: Creative Commons BY-NC-SA 4.0</p>
+
+        <div class="nav-buttons">
+            <a href="index.html" class="nav-button">← シリーズ目次に戻る</a>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 MI Knowledge Hub - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>
