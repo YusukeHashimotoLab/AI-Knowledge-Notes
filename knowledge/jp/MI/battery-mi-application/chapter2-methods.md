@@ -538,6 +538,6 @@ sim.plot()
 
 ---
 
-**次章**: [第3章：Pythonで実装する電池MI](chapter3-hands-on.md)
+**次章**: [第3章：Pythonで実装する電池MI](chapter3-hands-on.html)
 
 **ライセンス**: このコンテンツはCC BY 4.0ライセンスの下で提供されています。

@@ -31,10 +31,12 @@ SERIES = [
     "experimental-data-analysis-introduction",
     "high-throughput-computing-introduction",
     "materials-databases-introduction",
-    "materials-applications-introduction"
+    "materials-applications-introduction",
+    "battery-mi-application",
+    "catalyst-mi-application"
 ]
 
-BASE_PATH = Path("/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/knowledge/jp")
+BASE_PATH = Path("/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/knowledge/jp/MI")
 
 # HTML template header
 HTML_HEADER_TEMPLATE = '''<!DOCTYPE html>
@@ -518,21 +520,35 @@ def convert_markdown_to_html(md_content):
     return html
 
 
-def create_navigation(chapter_num, series_path):
+def create_navigation(chapter_num, series_path, current_file):
     """Create navigation links for chapter."""
     nav_html = '<div class="navigation">\n'
 
+    # Get all chapter HTML files in the series (sorted)
+    chapter_html_files = sorted([f.name for f in series_path.glob("chapter*.html")])
+
+    # Find current file index
+    current_html = current_file.replace('.md', '.html')
+    try:
+        current_idx = chapter_html_files.index(current_html)
+    except ValueError:
+        # If current file not in list yet (being generated), estimate position
+        current_idx = chapter_num - 1
+
     # Previous chapter
-    if chapter_num > 1:
-        nav_html += f'    <a href="chapter-{chapter_num-1}.html" class="nav-button">← 第{chapter_num-1}章</a>\n'
+    if current_idx > 0 and len(chapter_html_files) > current_idx:
+        prev_file = chapter_html_files[current_idx - 1]
+        nav_html += f'    <a href="{prev_file}" class="nav-button">← 前の章</a>\n'
 
     # Index
     nav_html += '    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>\n'
 
-    # Next chapter (check if next chapter exists)
-    next_chapter = series_path / f"chapter-{chapter_num+1}.md"
-    if next_chapter.exists():
-        nav_html += f'    <a href="chapter-{chapter_num+1}.html" class="nav-button">第{chapter_num+1}章 →</a>\n'
+    # Next chapter (estimate next file name)
+    # Try to find next chapter MD file
+    next_chapter_files = sorted(series_path.glob(f"chapter*{chapter_num+1}*.md"))
+    if next_chapter_files:
+        next_html = next_chapter_files[0].name.replace('.md', '.html')
+        nav_html += f'    <a href="{next_html}" class="nav-button">次の章 →</a>\n'
 
     nav_html += '</div>'
     return nav_html
@@ -555,12 +571,14 @@ def convert_chapter(series_path, chapter_file):
     # Convert body to HTML
     body_html = convert_markdown_to_html(body)
 
-    # Extract chapter number from filename
-    chapter_match = re.match(r'chapter-(\d+)\.md', chapter_file)
+    # Extract chapter number from filename (supports both patterns)
+    # Pattern 1: chapter-1.md, chapter-2.md
+    # Pattern 2: chapter1-introduction.md, chapter2-fundamentals.md
+    chapter_match = re.match(r'chapter-?(\d+)', chapter_file)
     chapter_num = int(chapter_match.group(1)) if chapter_match else 1
 
     # Create navigation
-    nav_html = create_navigation(chapter_num, series_path)
+    nav_html = create_navigation(chapter_num, series_path, chapter_file)
 
     # Build complete HTML
     html = HTML_HEADER_TEMPLATE.format(
@@ -597,16 +615,21 @@ def main():
         print(f"\nProcessing series: {series}")
         print("-" * 60)
 
-        # Convert all chapters (check 1-10)
-        for i in range(1, 11):
-            chapter_file = f"chapter-{i}.md"
-            chapter_path = series_path / chapter_file
+        if not series_path.exists():
+            print(f"⚠ Series directory not found: {series_path}")
+            continue
 
-            if chapter_path.exists():
-                convert_chapter(series_path, chapter_file)
-            # Only print warning for chapters 1-5 (most series have 4-5 chapters)
-            elif i <= 5:
-                print(f"⚠ Skipping {chapter_file} (not found)")
+        # Find all chapter*.md files in the series directory
+        chapter_files = sorted(series_path.glob("chapter*.md"))
+
+        if not chapter_files:
+            print(f"⚠ No chapter files found in {series}")
+            continue
+
+        # Convert each chapter file
+        for chapter_path in chapter_files:
+            chapter_file = chapter_path.name
+            convert_chapter(series_path, chapter_file)
 
     print("\n" + "=" * 60)
     print("✓ Conversion complete!")

@@ -1129,6 +1129,6 @@ print(f"  TOF: {TOF:.3f} s⁻¹")
 
 ---
 
-**次章**: [第4章：触媒MI実践ケーススタディ](chapter4-case-studies.md)
+**次章**: [第4章：触媒MI実践ケーススタディ](chapter4-case-studies.html)
 
 **ライセンス**: このコンテンツはCC BY 4.0ライセンスの下で提供されています。
