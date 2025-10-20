@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 2: 教師あり学習の基礎 - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Chapter 2: 教師あり学習の基礎</h1>
+            <p class="subtitle"></p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 30-35分</span>
+                <span class="meta-item">📊 難易度: 初級〜中級</span>
+                <span class="meta-item">💻 コード例: 0個</span>
+                <span class="meta-item">📝 演習問題: 0問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>Chapter 2: 教師あり学習の基礎</h1>
+<h2>本章の概要</h2>
+<p>教師あり学習は、入力データ（特徴量）と正解ラベルのペアから学習し、新しいデータに対して予測を行う手法です。本章では、分類と回帰の代表的なアルゴリズムを学び、scikit-learnを使った実装方法を習得します。</p>
+<h3>学習目標</h3>
+<ul>
+<li>✅ 線形回帰とロジスティック回帰の違いを理解する</li>
+<li>✅ k近傍法、決定木、SVMの仕組みを説明できる</li>
+<li>✅ scikit-learnで各アルゴリズムを実装できる</li>
+<li>✅ 問題に応じて適切なアルゴリズムを選択できる</li>
+</ul>
+<hr />
+<h2>1. 線形回帰（Linear Regression）</h2>
+<h3>1.1 概要</h3>
+<p><strong>線形回帰</strong>は、特徴量とターゲット変数の間に線形関係を仮定し、最適な直線（または超平面）を見つける回帰アルゴリズムです。</p>
+<p><strong>数式:</strong>
+$$
+y = w_0 + w_1 x_1 + w_2 x_2 + \cdots + w_n x_n
+$$</p>
+<ul>
+<li>$y$: 予測値</li>
+<li>$x_i$: 特徴量</li>
+<li>$w_i$: 重み（係数）</li>
+<li>$w_0$: 切片（バイアス）</li>
+</ul>
+<h3>1.2 最小二乗法</h3>
+<p>線形回帰は、<strong>最小二乗法</strong>を使って最適な重みを求めます。</p>
+<p><strong>目的関数（損失関数）:</strong>
+$$
+J(w) = \frac{1}{2m} \sum_{i=1}^{m} (y_i - \hat{y}_i)^2
+$$</p>
+<ul>
+<li>$m$: サンプル数</li>
+<li>$y_i$: 実際の値</li>
+<li>$\hat{y}_i$: 予測値</li>
+</ul>
+<h3>1.3 実装例</h3>
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
+
+# サンプルデータ生成
+np.random.seed(42)
+X = np.random.rand(100, 1) * 10
+y = 2.5 * X + 5 + np.random.randn(100, 1) * 2
+
+# 訓練・テストデータ分割
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# モデル作成と訓練
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# 予測
+y_pred = model.predict(X_test)
+
+# 評価
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print(f&quot;係数: {model.coef_[0][0]:.2f}&quot;)
+print(f&quot;切片: {model.intercept_[0]:.2f}&quot;)
+print(f&quot;MSE: {mse:.2f}&quot;)
+print(f&quot;R²スコア: {r2:.2f}&quot;)
+
+# 可視化
+plt.figure(figsize=(10, 6))
+plt.scatter(X_test, y_test, color='blue', label='実際の値', alpha=0.6)
+plt.plot(X_test, y_pred, color='red', linewidth=2, label='予測値')
+plt.xlabel('X')
+plt.ylabel('y')
+plt.title('線形回帰')
+plt.legend()
+plt.show()
+</code></pre>
+<h3>1.4 利点と欠点</h3>
+<p><strong>利点:</strong>
+- ✅ シンプルで解釈しやすい
+- ✅ 計算が高速
+- ✅ 過学習しにくい</p>
+<p><strong>欠点:</strong>
+- ❌ 非線形関係をうまく捉えられない
+- ❌ 外れ値に敏感
+- ❌ 特徴量間の相関（多重共線性）に弱い</p>
+<hr />
+<h2>2. ロジスティック回帰（Logistic Regression）</h2>
+<h3>2.1 概要</h3>
+<p><strong>ロジスティック回帰</strong>は、分類問題に使われるアルゴリズムで、線形モデルの出力をシグモイド関数で0〜1の確率に変換します。</p>
+<p><strong>シグモイド関数:</strong>
+$$
+\sigma(z) = \frac{1}{1 + e^{-z}}
+$$</p>
+<h3>2.2 決定境界</h3>
+<p>ロジスティック回帰は、特徴空間を2つのクラスに分ける<strong>決定境界</strong>を学習します。</p>
+<h3>2.3 実装例: アイリス分類（2クラス）</h3>
+<pre><code class="language-python">from sklearn.datasets import load_iris
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+import seaborn as sns
+
+# データ読み込み（2クラスのみ使用）
+iris = load_iris()
+X = iris.data[iris.target != 2]  # setosaとversicolor
+y = iris.target[iris.target != 2]
+
+# 訓練・テストデータ分割
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+# モデル作成と訓練
+model = LogisticRegression(random_state=42)
+model.fit(X_train, y_train)
+
+# 予測
+y_pred = model.predict(X_test)
+y_prob = model.predict_proba(X_test)  # 確率
+
+# 評価
+accuracy = accuracy_score(y_test, y_pred)
+print(f&quot;正解率: {accuracy:.2%}&quot;)
+print(&quot;\n分類レポート:&quot;)
+print(classification_report(y_test, y_pred, target_names=['setosa', 'versicolor']))
+
+# 混同行列
+cm = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(6, 5))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+            xticklabels=['setosa', 'versicolor'],
+            yticklabels=['setosa', 'versicolor'])
+plt.ylabel('実際のラベル')
+plt.xlabel('予測ラベル')
+plt.title('混同行列')
+plt.show()
+</code></pre>
+<h3>2.4 多クラス分類</h3>
+<p>ロジスティック回帰は、<strong>One-vs-Rest (OvR)</strong> または <strong>Multinomial</strong> 方式で多クラス分類にも対応できます。</p>
+<pre><code class="language-python"># 多クラス分類（全3クラス）
+iris = load_iris()
+X, y = iris.data, iris.target
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+model = LogisticRegression(multi_class='multinomial', max_iter=200)
+model.fit(X_train, y_train)
+
+accuracy = model.score(X_test, y_test)
+print(f&quot;多クラス分類の正解率: {accuracy:.2%}&quot;)
+</code></pre>
+<hr />
+<h2>3. k近傍法（k-Nearest Neighbors, k-NN）</h2>
+<h3>3.1 概要</h3>
+<p><strong>k近傍法</strong>は、新しいデータポイントに最も近い$k$個の訓練データを見つけ、それらの多数決（分類）または平均（回帰）で予測します。</p>
+<div class="mermaid">
+graph TD
+    A[新しいデータ点] --> B[距離計算]
+    B --> C[k個の最近傍を選択]
+    C --> D[多数決 or 平均]
+    D --> E[予測結果]
+</div>
+
+<h3>3.2 距離の計算</h3>
+<p><strong>ユークリッド距離:</strong>
+$$
+d(x, x') = \sqrt{\sum_{i=1}^{n} (x_i - x'_i)^2}
+$$</p>
+<h3>3.3 実装例: 分類</h3>
+<pre><code class="language-python">from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
+
+# データ準備
+iris = load_iris()
+X, y = iris.data, iris.target
+
+# 標準化（k-NNは距離ベースなのでスケールが重要）
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 訓練・テストデータ分割
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled, y, test_size=0.3, random_state=42
+)
+
+# kの値を変えて性能を比較
+k_values = [1, 3, 5, 7, 9, 11]
+accuracies = []
+
+for k in k_values:
+    model = KNeighborsClassifier(n_neighbors=k)
+    model.fit(X_train, y_train)
+    accuracy = model.score(X_test, y_test)
+    accuracies.append(accuracy)
+    print(f&quot;k={k}: 正解率 {accuracy:.2%}&quot;)
+
+# 最適なkの可視化
+plt.figure(figsize=(10, 6))
+plt.plot(k_values, accuracies, marker='o', linewidth=2)
+plt.xlabel('k（近傍数）')
+plt.ylabel('正解率')
+plt.title('k値と性能の関係')
+plt.xticks(k_values)
+plt.grid(True)
+plt.show()
+</code></pre>
+<h3>3.4 利点と欠点</h3>
+<p><strong>利点:</strong>
+- ✅ シンプルで直感的
+- ✅ 非線形な決定境界を学習可能
+- ✅ 学習が不要（インスタンスベース）</p>
+<p><strong>欠点:</strong>
+- ❌ 予測が遅い（全データとの距離計算が必要）
+- ❌ 高次元データに弱い（次元の呪い）
+- ❌ 不均衡データに弱い</p>
+<hr />
+<h2>4. 決定木（Decision Tree）</h2>
+<h3>4.1 概要</h3>
+<p><strong>決定木</strong>は、データを木構造で分岐させながら分類・回帰を行うアルゴリズムです。</p>
+<div class="mermaid">
+graph TD
+    A[花びらの長さ <= 2.45?] -->|Yes| B[Setosa]
+    A -->|No| C[花びらの幅 <= 1.75?]
+    C -->|Yes| D[Versicolor]
+    C -->|No| E[Virginica]
+</div>
+
+<h3>4.2 分岐基準</h3>
+<p><strong>ジニ不純度（Gini Impurity）:</strong>
+$$
+Gini = 1 - \sum_{i=1}^{C} p_i^2
+$$</p>
+<ul>
+<li>$C$: クラス数</li>
+<li>$p_i$: クラス$i$の割合</li>
+</ul>
+<p><strong>情報利得（Information Gain）:</strong>
+エントロピーの減少量を基準に分岐</p>
+<h3>4.3 実装例</h3>
+<pre><code class="language-python">from sklearn.tree import DecisionTreeClassifier, plot_tree
+
+# データ準備
+iris = load_iris()
+X, y = iris.data, iris.target
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+# 決定木モデル
+model = DecisionTreeClassifier(
+    max_depth=3,  # 深さを制限（過学習防止）
+    random_state=42
+)
+model.fit(X_train, y_train)
+
+# 評価
+accuracy = model.score(X_test, y_test)
+print(f&quot;正解率: {accuracy:.2%}&quot;)
+
+# 特徴量の重要度
+feature_importance = pd.DataFrame({
+    '特徴量': iris.feature_names,
+    '重要度': model.feature_importances_
+}).sort_values('重要度', ascending=False)
+
+print(&quot;\n特徴量の重要度:&quot;)
+print(feature_importance)
+
+# 木構造の可視化
+plt.figure(figsize=(20, 10))
+plot_tree(model, feature_names=iris.feature_names,
+         class_names=iris.target_names, filled=True, fontsize=10)
+plt.title('決定木の可視化')
+plt.show()
+</code></pre>
+<h3>4.4 過学習の防止</h3>
+<p>決定木は過学習しやすいため、以下のパラメータで制御します：</p>
+<pre><code class="language-python">model = DecisionTreeClassifier(
+    max_depth=5,           # 最大の深さ
+    min_samples_split=20,  # 分岐に必要な最小サンプル数
+    min_samples_leaf=10,   # 葉ノードの最小サンプル数
+    max_features='sqrt'    # 各分岐で使用する特徴量数
+)
+</code></pre>
+<hr />
+<h2>5. サポートベクターマシン（SVM）</h2>
+<h3>5.1 概要</h3>
+<p><strong>SVM</strong>は、クラス間のマージン（余白）を最大化する決定境界を学習するアルゴリズムです。</p>
+<div class="mermaid">
+graph LR
+    A[データ点] --> B[マージン最大化]
+    B --> C[最適な超平面]
+    C --> D[分類]
+</div>
+
+<h3>5.2 カーネルトリック</h3>
+<p>SVMは<strong>カーネルトリック</strong>を使って、非線形な決定境界を学習できます。</p>
+<p><strong>主なカーネル:</strong>
+- <strong>線形（linear）</strong>: 線形分離可能な場合
+- <strong>RBF（Gaussian）</strong>: 一般的な非線形問題
+- <strong>多項式（poly）</strong>: 多項式の決定境界
+- <strong>シグモイド（sigmoid）</strong>: ニューラルネットワークに類似</p>
+<h3>5.3 実装例</h3>
+<pre><code class="language-python">from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+
+# データ準備と標準化
+iris = load_iris()
+X, y = iris.data, iris.target
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled, y, test_size=0.3, random_state=42
+)
+
+# 異なるカーネルで比較
+kernels = ['linear', 'poly', 'rbf', 'sigmoid']
+
+for kernel in kernels:
+    model = SVC(kernel=kernel, random_state=42)
+    model.fit(X_train, y_train)
+    accuracy = model.score(X_test, y_test)
+    print(f&quot;{kernel}カーネル: 正解率 {accuracy:.2%}&quot;)
+</code></pre>
+<h3>5.4 ハイパーパラメータ</h3>
+<p><strong>C（正則化パラメータ）:</strong>
+- 大きい値: マージンが狭い（過学習リスク）
+- 小さい値: マージンが広い（過少学習リスク）</p>
+<p><strong>gamma（RBFカーネルのパラメータ）:</strong>
+- 大きい値: 決定境界が複雑（過学習リスク）
+- 小さい値: 決定境界が滑らか</p>
+<pre><code class="language-python">from sklearn.model_selection import GridSearchCV
+
+# グリッドサーチでパラメータ最適化
+param_grid = {
+    'C': [0.1, 1, 10, 100],
+    'gamma': ['scale', 'auto', 0.001, 0.01, 0.1],
+    'kernel': ['rbf']
+}
+
+grid_search = GridSearchCV(SVC(), param_grid, cv=5)
+grid_search.fit(X_train, y_train)
+
+print(f&quot;最適なパラメータ: {grid_search.best_params_}&quot;)
+print(f&quot;最良スコア: {grid_search.best_score_:.2%}&quot;)
+</code></pre>
+<hr />
+<h2>6. アルゴリズム比較と選択</h2>
+<h3>6.1 性能比較</h3>
+<pre><code class="language-python">from sklearn.datasets import load_iris
+from sklearn.model_selection import cross_val_score
+import pandas as pd
+
+# データ準備
+iris = load_iris()
+X, y = iris.data, iris.target
+
+# 各アルゴリズムの交差検証スコア
+models = {
+    '線形回帰': LinearRegression(),  # 回帰なので不適切（参考）
+    'ロジスティック回帰': LogisticRegression(max_iter=200),
+    'k-NN (k=5)': KNeighborsClassifier(n_neighbors=5),
+    '決定木': DecisionTreeClassifier(max_depth=5, random_state=42),
+    'SVM (RBF)': SVC(kernel='rbf', random_state=42)
+}
+
+results = []
+for name, model in models.items():
+    if name != '線形回帰':  # 分類問題なのでスキップ
+        scores = cross_val_score(model, X, y, cv=5)
+        results.append({
+            'アルゴリズム': name,
+            '平均スコア': scores.mean(),
+            '標準偏差': scores.std()
+        })
+
+df_results = pd.DataFrame(results)
+print(df_results.sort_values('平均スコア', ascending=False))
+</code></pre>
+<h3>6.2 選択ガイドライン</h3>
+<table>
+<thead>
+<tr>
+<th>条件</th>
+<th>推奨アルゴリズム</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>データが線形分離可能</td>
+<td>ロジスティック回帰、線形SVM</td>
+<td>シンプルで高速</td>
+</tr>
+<tr>
+<td>非線形な関係</td>
+<td>決定木、RBF-SVM、k-NN</td>
+<td>複雑なパターンを捉える</td>
+</tr>
+<tr>
+<td>解釈性が重要</td>
+<td>決定木、線形回帰</td>
+<td>視覚化・説明しやすい</td>
+</tr>
+<tr>
+<td>高次元データ</td>
+<td>SVM、ロジスティック回帰</td>
+<td>次元の呪いに強い</td>
+</tr>
+<tr>
+<td>小規模データ</td>
+<td>SVM、k-NN</td>
+<td>少ないデータでも性能良好</td>
+</tr>
+<tr>
+<td>大規模データ</td>
+<td>ロジスティック回帰、決定木</td>
+<td>計算が高速</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>7. まとめ</h2>
+<h3>7.1 本章で学んだこと</h3>
+<p>✅ <strong>5つの主要アルゴリズム</strong>
+- 線形回帰: 連続値予測
+- ロジスティック回帰: 確率的分類
+- k-NN: インスタンスベース学習
+- 決定木: 木構造による分類・回帰
+- SVM: マージン最大化</p>
+<p>✅ <strong>実装スキル</strong>
+- scikit-learnでの実装方法
+- パラメータチューニング
+- モデル評価と比較</p>
+<p>✅ <strong>選択基準</strong>
+- 問題とデータに応じたアルゴリズム選択</p>
+<h3>7.2 次のステップ</h3>
+<p>次章では、教師なし学習（クラスタリング・次元削減）を学びます。</p>
+<hr />
+<h2>8. 練習問題</h2>
+<h3>問題1: ワイン品質予測（基礎）</h3>
+<p>ワインの特徴量から品質を予測するモデルを作成してください。</p>
+<pre><code class="language-python">from sklearn.datasets import load_wine
+
+wine = load_wine()
+X, y = wine.data, wine.target
+
+# ここに実装
+</code></pre>
+<details>
+<summary>解答例</summary>
+
+
+<pre><code class="language-python">from sklearn.datasets import load_wine
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
+
+wine = load_wine()
+X, y = wine.data, wine.target
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+print(classification_report(y_test, y_pred))
+</code></pre>
+
+
+</details>
+
+<hr />
+<p><strong>次へ</strong>: <a href="chapter-3.html">Chapter 3: 教師なし学習の基礎 →</a></p>
+<p><strong>前へ</strong>: <a href="chapter-1.html">← Chapter 1: 機械学習の基礎</a></p>
+<p><strong>目次へ</strong>: <a href="index.html">↑ シリーズ目次</a></p><div class="navigation">
+    <a href="chapter-1.html" class="nav-button">← 第1章</a>
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+    <a href="chapter-3.html" class="nav-button">第3章 →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-17</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>
