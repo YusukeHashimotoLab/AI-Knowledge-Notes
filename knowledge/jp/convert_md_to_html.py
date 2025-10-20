@@ -31,14 +31,7 @@ SERIES = [
     "experimental-data-analysis-introduction",
     "high-throughput-computing-introduction",
     "materials-databases-introduction",
-    "materials-applications-introduction",
-    "ML/nlp-introduction",
-    "ML/ml-introduction",
-    "ML/linear-regression-introduction",
-    "ML/decision-tree-introduction",
-    "ML/data-preprocessing-introduction",
-    "ML/feature-engineering-introduction",
-    "ML/text-preprocessing-introduction"
+    "materials-applications-introduction"
 ]
 
 BASE_PATH = Path("/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/knowledge/jp")
