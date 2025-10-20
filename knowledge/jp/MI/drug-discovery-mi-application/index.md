@@ -28,7 +28,7 @@
 <div class="mermaid">
 graph TD
     A[第1章: 創薬における<br/>MIの役割] --> B[第2章: 創薬特化<br/>MI手法]
-    B --> C[第3章: Python実装<br/>RDKit & ChEMBL]
+    B --> C[第3章: Python実装<br/>RDKit &amp; ChEMBL]
     C --> D[第4章: AI創薬の<br/>最新事例]
 
     style A fill:#e3f2fd

@@ -33,7 +33,8 @@ SERIES = [
     "materials-databases-introduction",
     "materials-applications-introduction",
     "battery-mi-application",
-    "catalyst-mi-application"
+    "catalyst-mi-application",
+    "materials-property-mapping-introduction"
 ]
 
 BASE_PATH = Path("/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/knowledge/jp/MI")
