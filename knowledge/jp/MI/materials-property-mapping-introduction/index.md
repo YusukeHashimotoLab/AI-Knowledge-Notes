@@ -643,7 +643,7 @@ graph LR
     A[Materials Data<br/>MP/AFLOW] --> B[GNN Training<br/>CGCNN/MEGNet]
     B --> C[Embedding<br/>Extraction]
     C --> D[Dimensionality<br/>Reduction]
-    D --> E[Visualization &<br/>Analysis]
+    D --> E[Visualization &amp;<br/>Analysis]
     E --> F[Materials<br/>Discovery]
     end
 
