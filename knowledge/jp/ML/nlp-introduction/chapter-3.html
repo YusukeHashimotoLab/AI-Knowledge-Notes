@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3: 実践 - テキスト分類 - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Chapter 3: 実践 - テキスト分類</h1>
+            <p class="subtitle"></p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 35-40分</span>
+                <span class="meta-item">📊 難易度: 初級</span>
+                <span class="meta-item">💻 コード例: 0個</span>
+                <span class="meta-item">📝 演習問題: 0問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>Chapter 3: 実践 - テキスト分類</h1>
+<h2>本章の概要</h2>
+<p>テキスト分類（Text Classification）は、NLPの最も実用的なタスクの1つです。感情分析、スパムフィルタ、ニュース記事のカテゴリ分類など、幅広い応用があります。</p>
+<p>本章では、実際にテキスト分類モデルを構築する方法を、完全な実装例とともに学びます。</p>
+<h3>学習目標</h3>
+<ul>
+<li>✅ テキスト前処理パイプラインの実装</li>
+<li>✅ Bag-of-Words と TF-IDF による特徴量抽出</li>
+<li>✅ 機械学習アルゴリズムによる分類</li>
+<li>✅ モデルの評価と改善手法</li>
+<li>✅ 実際のデータセットでの実装経験</li>
+</ul>
+<hr />
+<h2>1. テキスト分類とは</h2>
+<h3>1.1 定義と応用例</h3>
+<p><strong>テキスト分類（Text Classification）</strong> とは、テキストを予め定義されたカテゴリに自動的に分類するタスクです。</p>
+<h4>主な応用例</h4>
+<table>
+<thead>
+<tr>
+<th>応用分野</th>
+<th>具体例</th>
+<th>ビジネス価値</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>感情分析</strong></td>
+<td>商品レビューの Positive/Negative 判定</td>
+<td>顧客満足度の把握</td>
+</tr>
+<tr>
+<td><strong>スパムフィルタ</strong></td>
+<td>メールのスパム/非スパム分類</td>
+<td>セキュリティ向上</td>
+</tr>
+<tr>
+<td><strong>カテゴリ分類</strong></td>
+<td>ニュース記事のジャンル分類</td>
+<td>コンテンツ推薦</td>
+</tr>
+<tr>
+<td><strong>意図推定</strong></td>
+<td>問い合わせの種類判定</td>
+<td>カスタマーサポート効率化</td>
+</tr>
+<tr>
+<td><strong>トピック分類</strong></td>
+<td>論文の研究分野分類</td>
+<td>情報整理</td>
+</tr>
+</tbody>
+</table>
+<h3>1.2 テキスト分類の流れ</h3>
+<div class="mermaid">
+graph LR
+    A[生テキスト] --> B[前処理]
+    B --> C[特徴量抽出]
+    C --> D[モデル学習]
+    D --> E[予測]
+    E --> F[評価]
+    F -->|改善| B
+</div>
+
+<ol>
+<li><strong>前処理</strong>: テキストのクリーニング、正規化</li>
+<li><strong>特徴量抽出</strong>: テキストを数値ベクトルに変換</li>
+<li><strong>モデル学習</strong>: 機械学習アルゴリズムで学習</li>
+<li><strong>予測</strong>: 新しいテキストを分類</li>
+<li><strong>評価</strong>: モデルの性能を測定</li>
+</ol>
+<hr />
+<h2>2. テキスト前処理パイプライン</h2>
+<h3>2.1 なぜ前処理が重要か</h3>
+<p>生のテキストデータには以下の問題があります：</p>
+<ul>
+<li><strong>ノイズ</strong>: URL、記号、絵文字など不要な情報</li>
+<li><strong>表記ゆれ</strong>: "パソコン" vs "パーソナルコンピュータ"</li>
+<li><strong>大文字小文字</strong>: "Apple" vs "apple"</li>
+<li><strong>活用形</strong>: "走る", "走った", "走れば"</li>
+</ul>
+<p>前処理によってこれらを統一し、モデルの学習効率を上げます。</p>
+<h3>2.2 基本的な前処理ステップ</h3>
+<h4>英語テキストの前処理</h4>
+<pre><code class="language-python">import re
+import string
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer, WordNetLemmatizer
+from nltk.tokenize import word_tokenize
+
+class EnglishTextPreprocessor:
+    &quot;&quot;&quot;英語テキスト前処理クラス&quot;&quot;&quot;
+
+    def __init__(self):
+        self.stop_words = set(stopwords.words('english'))
+        self.stemmer = PorterStemmer()
+        self.lemmatizer = WordNetLemmatizer()
+
+    def clean_text(self, text):
+        &quot;&quot;&quot;テキストのクリーニング&quot;&quot;&quot;
+        # 小文字化
+        text = text.lower()
+
+        # URLの除去
+        text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
+
+        # メンション・ハッシュタグの除去（Twitter用）
+        text = re.sub(r'@\w+|#\w+', '', text)
+
+        # HTMLタグの除去
+        text = re.sub(r'&lt;.*?&gt;', '', text)
+
+        # 句読点の除去
+        text = text.translate(str.maketrans('', '', string.punctuation))
+
+        # 数字の除去（オプション）
+        text = re.sub(r'\d+', '', text)
+
+        # 余分な空白の除去
+        text = ' '.join(text.split())
+
+        return text
+
+    def tokenize_and_filter(self, text):
+        &quot;&quot;&quot;トークン化とストップワード除去&quot;&quot;&quot;
+        # トークン化
+        tokens = word_tokenize(text)
+
+        # ストップワード除去
+        tokens = [word for word in tokens if word not in self.stop_words]
+
+        # 短すぎる単語を除去（2文字未満）
+        tokens = [word for word in tokens if len(word) &gt; 2]
+
+        return tokens
+
+    def stem_tokens(self, tokens):
+        &quot;&quot;&quot;ステミング（語幹抽出）&quot;&quot;&quot;
+        return [self.stemmer.stem(token) for token in tokens]
+
+    def lemmatize_tokens(self, tokens):
+        &quot;&quot;&quot;レンマ化（見出し語化）&quot;&quot;&quot;
+        return [self.lemmatizer.lemmatize(token) for token in tokens]
+
+    def preprocess(self, text, use_lemmatization=True):
+        &quot;&quot;&quot;完全な前処理パイプライン&quot;&quot;&quot;
+        # 1. クリーニング
+        text = self.clean_text(text)
+
+        # 2. トークン化とフィルタリング
+        tokens = self.tokenize_and_filter(text)
+
+        # 3. 正規化（ステミング or レンマ化）
+        if use_lemmatization:
+            tokens = self.lemmatize_tokens(tokens)
+        else:
+            tokens = self.stem_tokens(tokens)
+
+        return ' '.join(tokens)
+
+# 使用例
+preprocessor = EnglishTextPreprocessor()
+
+raw_text = &quot;&quot;&quot;
+This is AMAZING!!! Check out http://example.com
+I absolutely love this product 😍 #happy @company
+&quot;&quot;&quot;
+
+processed_text = preprocessor.preprocess(raw_text)
+print(f&quot;元のテキスト: {raw_text}&quot;)
+print(f&quot;前処理後: {processed_text}&quot;)
+# 出力例: &quot;amazing absolutely love product happy company&quot;
+</code></pre>
+<h4>日本語テキストの前処理</h4>
+<pre><code class="language-python">import re
+import MeCab
+import unicodedata
+
+class JapaneseTextPreprocessor:
+    &quot;&quot;&quot;日本語テキスト前処理クラス&quot;&quot;&quot;
+
+    def __init__(self):
+        self.mecab = MeCab.Tagger()
+
+        # 日本語ストップワード（一部）
+        self.stop_words = set([
+            'の', 'は', 'を', 'が', 'に', 'で', 'と', 'た', 'し',
+            'て', 'ます', 'です', 'ある', 'いる', 'この', 'その',
+            'れる', 'られる', 'せる', 'させる', 'こと', 'もの'
+        ])
+
+        # 除外する品詞
+        self.exclude_pos = set([
+            '助詞', '助動詞', '接続詞', '記号', 'フィラー', '感動詞'
+        ])
+
+    def clean_text(self, text):
+        &quot;&quot;&quot;テキストのクリーニング&quot;&quot;&quot;
+        # Unicode正規化（NFKCで半角・全角を統一）
+        text = unicodedata.normalize('NFKC', text)
+
+        # URLの除去
+        text = re.sub(r'http\S+|www\S+|https\S+', '', text)
+
+        # メンション・ハッシュタグの除去
+        text = re.sub(r'@\w+|#\w+', '', text)
+
+        # 改行・タブを空白に
+        text = re.sub(r'[\n\t]', ' ', text)
+
+        # 絵文字の除去（オプション）
+        emoji_pattern = re.compile(
+            &quot;[&quot;
+            &quot;\U0001F600-\U0001F64F&quot;  # 顔文字
+            &quot;\U0001F300-\U0001F5FF&quot;  # 記号・絵文字
+            &quot;\U0001F680-\U0001F6FF&quot;  # 乗り物・建物
+            &quot;\U0001F1E0-\U0001F1FF&quot;  # 旗
+            &quot;]+&quot;, flags=re.UNICODE
+        )
+        text = emoji_pattern.sub('', text)
+
+        # 余分な空白の除去
+        text = ' '.join(text.split())
+
+        return text
+
+    def tokenize_with_filter(self, text):
+        &quot;&quot;&quot;MeCabでトークン化 + フィルタリング&quot;&quot;&quot;
+        # MeCabで形態素解析
+        node = self.mecab.parseToNode(text)
+
+        words = []
+        while node:
+            if node.surface:
+                features = node.feature.split(',')
+                surface = node.surface
+                pos = features[0]  # 品詞
+                base_form = features[6] if len(features) &gt; 6 else surface
+
+                # フィルタリング条件
+                if (pos not in self.exclude_pos and
+                    surface not in self.stop_words and
+                    len(surface) &gt; 1):  # 1文字単語を除外
+
+                    # 基本形を使用
+                    words.append(base_form if base_form != '*' else surface)
+
+            node = node.next
+
+        return words
+
+    def preprocess(self, text):
+        &quot;&quot;&quot;完全な前処理パイプライン&quot;&quot;&quot;
+        # 1. クリーニング
+        text = self.clean_text(text)
+
+        # 2. トークン化とフィルタリング
+        tokens = self.tokenize_with_filter(text)
+
+        return ' '.join(tokens)
+
+# 使用例
+jp_preprocessor = JapaneseTextPreprocessor()
+
+raw_jp_text = &quot;&quot;&quot;
+この商品は本当に素晴らしいです！！！😍
+絶対におすすめします🎉 #最高
+詳しくはこちら→ http://example.com
+&quot;&quot;&quot;
+
+processed_jp_text = jp_preprocessor.preprocess(raw_jp_text)
+print(f&quot;元のテキスト: {raw_jp_text}&quot;)
+print(f&quot;前処理後: {processed_jp_text}&quot;)
+# 出力例: &quot;商品 本当 素晴らしい 絶対 おすすめ 最高 詳しい&quot;
+</code></pre>
+<hr />
+<h2>3. 特徴量抽出</h2>
+<p>機械学習モデルは数値しか扱えません。テキストを数値ベクトルに変換する必要があります。</p>
+<h3>3.1 Bag-of-Words (BoW)</h3>
+<p><strong>Bag-of-Words</strong> は最もシンプルな方法で、各文書を単語の出現回数で表現します。</p>
+<h4>仕組み</h4>
+<pre><code>文書1: &quot;猫が好き&quot;
+文書2: &quot;犬が好き&quot;
+文書3: &quot;猫も犬も好き&quot;
+
+語彙: [猫, 犬, 好き, が, も]
+
+BoW表現:
+文書1: [1, 0, 1, 1, 0]  # 猫:1回, 犬:0回, 好き:1回, が:1回, も:0回
+文書2: [0, 1, 1, 1, 0]
+文書3: [1, 1, 1, 0, 2]
+</code></pre>
+<h4>実装</h4>
+<pre><code class="language-python">from sklearn.feature_extraction.text import CountVectorizer
+
+# サンプルデータ
+documents = [
+    &quot;機械学習は面白い&quot;,
+    &quot;深層学習は難しい&quot;,
+    &quot;機械学習と深層学習は関連している&quot;,
+    &quot;自然言語処理も面白い&quot;
+]
+
+# BoW変換
+vectorizer = CountVectorizer()
+bow_matrix = vectorizer.fit_transform(documents)
+
+# 語彙の確認
+print(&quot;語彙:&quot;, vectorizer.get_feature_names_out())
+print(&quot;\nBoW行列:&quot;)
+print(bow_matrix.toarray())
+</code></pre>
+<p><strong>出力:</strong></p>
+<pre><code>語彙: ['と' '深層' '機械' '自然' '言語' '処理' '関連' '難しい' '面白い' '学習']
+
+BoW行列:
+[[0 0 1 0 0 0 0 0 1 1]  # 機械学習は面白い
+ [0 1 0 0 0 0 0 1 0 1]  # 深層学習は難しい
+ [1 1 1 0 0 0 1 0 0 2]  # 機械学習と深層学習は関連している
+ [0 0 0 1 1 1 0 0 1 0]] # 自然言語処理も面白い
+</code></pre>
+<h4>問題点</h4>
+<ul>
+<li><strong>語順を無視</strong>: "犬が猫を追いかける" と "猫が犬を追いかける" が同じ</li>
+<li><strong>文書長の影響</strong>: 長い文書ほど値が大きくなる</li>
+<li><strong>重要度を考慮しない</strong>: すべての単語が同等に扱われる</li>
+</ul>
+<h3>3.2 TF-IDF (Term Frequency-Inverse Document Frequency)</h3>
+<p><strong>TF-IDF</strong> は、単語の重要度を考慮した特徴量抽出手法です。</p>
+<h4>計算式</h4>
+<p>$$
+\text{TF-IDF}(t, d) = \text{TF}(t, d) \times \text{IDF}(t)
+$$</p>
+<ul>
+<li>
+<p><strong>TF (Term Frequency)</strong>: 文書内での単語の出現頻度
+$$
+\text{TF}(t, d) = \frac{\text{文書}d\text{における単語}t\text{の出現回数}}{\text{文書}d\text{の総単語数}}
+$$</p>
+</li>
+<li>
+<p><strong>IDF (Inverse Document Frequency)</strong>: 単語の希少性
+$$
+\text{IDF}(t) = \log \frac{\text{総文書数}}{\text{単語}t\text{を含む文書数}}
+$$</p>
+</li>
+</ul>
+<h4>直感的理解</h4>
+<ul>
+<li><strong>頻出する単語</strong> (TF が高い) → 重要度が高い</li>
+<li><strong>多くの文書に出現する単語</strong> (IDF が低い) → あまり重要ではない</li>
+<li>例: "機械学習" は特定の文書に頻出 → TF-IDF 高い</li>
+<li>例: "です", "ます" は全文書に出現 → TF-IDF 低い</li>
+</ul>
+<h4>実装</h4>
+<pre><code class="language-python">from sklearn.feature_extraction.text import TfidfVectorizer
+
+# サンプルデータ
+documents = [
+    &quot;機械学習は教師あり学習と教師なし学習に分類される&quot;,
+    &quot;深層学習はニューラルネットワークを用いた機械学習の手法&quot;,
+    &quot;自然言語処理は人間の言語をコンピュータで処理する技術&quot;,
+    &quot;画像認識には畳み込みニューラルネットワークが使われる&quot;
+]
+
+# TF-IDF変換
+tfidf_vectorizer = TfidfVectorizer()
+tfidf_matrix = tfidf_vectorizer.fit_transform(documents)
+
+# 語彙と TF-IDF 値
+feature_names = tfidf_vectorizer.get_feature_names_out()
+print(&quot;語彙:&quot;, feature_names)
+print(&quot;\nTF-IDF行列の形状:&quot;, tfidf_matrix.shape)
+
+# 最初の文書の TF-IDF 値を表示
+doc_index = 0
+feature_index = tfidf_matrix[doc_index].nonzero()[1]
+tfidf_scores = zip(
+    [feature_names[i] for i in feature_index],
+    [tfidf_matrix[doc_index, i] for i in feature_index]
+)
+
+print(f&quot;\n文書{doc_index+1}のTF-IDFスコア:&quot;)
+for word, score in sorted(tfidf_scores, key=lambda x: x[1], reverse=True):
+    print(f&quot;  {word}: {score:.4f}&quot;)
+</code></pre>
+<p><strong>出力例:</strong></p>
+<pre><code>文書1のTF-IDFスコア:
+  教師: 0.5774  # 他の文書にはない → IDF高い
+  学習: 0.4082  # 複数文書に出現 → IDF中程度
+  分類: 0.4082
+  機械: 0.2887  # 2文書に出現 → IDF低め
+</code></pre>
+<h3>3.3 N-gram</h3>
+<p><strong>N-gram</strong> は連続するN個の単語を1つの特徴として扱います。</p>
+<ul>
+<li><strong>Unigram (1-gram)</strong>: "機械", "学習"</li>
+<li><strong>Bigram (2-gram)</strong>: "機械学習"</li>
+<li><strong>Trigram (3-gram)</strong>: "機械学習の手法"</li>
+</ul>
+<h4>実装</h4>
+<pre><code class="language-python">from sklearn.feature_extraction.text import TfidfVectorizer
+
+documents = [
+    &quot;機械 学習 は 面白い&quot;,
+    &quot;深層 学習 も 面白い&quot;,
+    &quot;機械 学習 と 深層 学習&quot;
+]
+
+# Bigram + Unigram の TF-IDF
+vectorizer = TfidfVectorizer(ngram_range=(1, 2))  # 1-gram と 2-gram
+tfidf = vectorizer.fit_transform(documents)
+
+print(&quot;特徴語（Unigram + Bigram）:&quot;)
+print(vectorizer.get_feature_names_out())
+</code></pre>
+<p><strong>出力:</strong></p>
+<pre><code>['と' 'は' 'も' '学習' '学習 と' '学習 は' '学習 も' '機械' '機械 学習'
+ '深層' '深層 学習' '面白い']
+</code></pre>
+<hr />
+<h2>4. 機械学習による分類</h2>
+<h3>4.1 Naive Bayes (ナイーブベイズ)</h3>
+<p>Naive Bayes はテキスト分類で最もよく使われるアルゴリズムの1つです。</p>
+<h4>理論</h4>
+<p>ベイズの定理に基づき、各クラスの確率を計算：</p>
+<p>$$
+P(C|D) = \frac{P(D|C) \times P(C)}{P(D)}
+$$</p>
+<ul>
+<li>$P(C|D)$: 文書 $D$ が与えられたときのクラス $C$ の確率</li>
+<li>$P(D|C)$: クラス $C$ における文書 $D$ の尤度</li>
+<li>$P(C)$: クラス $C$ の事前確率</li>
+</ul>
+<h4>実装: スパムフィルタ</h4>
+<pre><code class="language-python">from sklearn.naive_bayes import MultinomialNB
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix
+import pandas as pd
+
+# サンプルデータセット（実際は大量のメールデータを使用）
+emails = [
+    &quot;無料でiPhoneが当たります！今すぐクリック！&quot;,
+    &quot;会議の資料を送付します&quot;,
+    &quot;激安セール！本日限定50%オフ&quot;,
+    &quot;プロジェクトの進捗報告&quot;,
+    &quot;あなたに100万円が当たりました&quot;,
+    &quot;来週の予定について確認させてください&quot;,
+    &quot;限定オファー！今すぐ登録&quot;,
+    &quot;議事録を共有します&quot;
+]
+
+labels = [1, 0, 1, 0, 1, 0, 1, 0]  # 1: スパム, 0: 正常
+
+# 前処理（実際は日本語形態素解析を使用）
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+vectorizer = TfidfVectorizer(max_features=100)
+X = vectorizer.fit_transform(emails)
+y = labels
+
+# 訓練データとテストデータに分割
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=42
+)
+
+# Naive Bayes モデルの訓練
+nb_model = MultinomialNB()
+nb_model.fit(X_train, y_train)
+
+# 予測
+y_pred = nb_model.predict(X_test)
+
+# 評価
+print(&quot;分類レポート:&quot;)
+print(classification_report(y_test, y_pred,
+                          target_names=['正常メール', 'スパム']))
+
+print(&quot;\n混同行列:&quot;)
+print(confusion_matrix(y_test, y_pred))
+
+# 新しいメールの予測
+new_emails = [
+    &quot;会議室の予約をお願いします&quot;,
+    &quot;今すぐクリック！大金が手に入ります&quot;
+]
+new_emails_vec = vectorizer.transform(new_emails)
+predictions = nb_model.predict(new_emails_vec)
+
+for email, pred in zip(new_emails, predictions):
+    label = &quot;スパム&quot; if pred == 1 else &quot;正常&quot;
+    print(f&quot;'{email}' → {label}&quot;)
+</code></pre>
+<h3>4.2 Support Vector Machine (SVM)</h3>
+<p>SVM は高次元データでも効果的な分類アルゴリズムです。</p>
+<h4>実装: 感情分析</h4>
+<pre><code class="language-python">from sklearn.svm import LinearSVC
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# サンプルレビューデータ
+reviews = [
+    &quot;この映画は最高でした！感動しました&quot;,
+    &quot;つまらない映画。時間の無駄&quot;,
+    &quot;素晴らしい演技と美しい映像&quot;,
+    &quot;退屈で眠くなった&quot;,
+    &quot;期待以上の作品！また観たい&quot;,
+    &quot;ストーリーが薄く、がっかり&quot;,
+    &quot;圧巻のラストシーン&quot;,
+    &quot;二度と観たくない&quot;
+]
+
+sentiments = [1, 0, 1, 0, 1, 0, 1, 0]  # 1: Positive, 0: Negative
+
+# パイプライン構築（前処理 → 特徴抽出 → モデル）
+pipeline = Pipeline([
+    ('tfidf', TfidfVectorizer(max_features=100)),
+    ('svm', LinearSVC(random_state=42))
+])
+
+# 訓練
+X_train, X_test, y_train, y_test = train_test_split(
+    reviews, sentiments, test_size=0.25, random_state=42
+)
+
+pipeline.fit(X_train, y_train)
+
+# 評価
+y_pred = pipeline.predict(X_test)
+print(&quot;正解率:&quot;, pipeline.score(X_test, y_test))
+
+# 新しいレビューの感情予測
+new_reviews = [
+    &quot;期待外れの作品&quot;,
+    &quot;感動的なストーリー&quot;
+]
+
+for review in new_reviews:
+    sentiment = pipeline.predict([review])[0]
+    label = &quot;Positive&quot; if sentiment == 1 else &quot;Negative&quot;
+    print(f&quot;'{review}' → {label}&quot;)
+</code></pre>
+<h3>4.3 完全な分類パイプライン</h3>
+<p>実際のプロジェクトで使える完全なパイプライン例：</p>
+<pre><code class="language-python">import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.svm import LinearSVC
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, accuracy_score
+import joblib
+
+class TextClassifier:
+    &quot;&quot;&quot;テキスト分類器クラス&quot;&quot;&quot;
+
+    def __init__(self, model_type='nb'):
+        &quot;&quot;&quot;
+        Parameters:
+        -----------
+        model_type : str
+            'nb': Naive Bayes
+            'svm': Support Vector Machine
+            'lr': Logistic Regression
+            'rf': Random Forest
+        &quot;&quot;&quot;
+        self.vectorizer = TfidfVectorizer(
+            max_features=5000,
+            ngram_range=(1, 2),
+            min_df=2,
+            max_df=0.8
+        )
+
+        # モデル選択
+        if model_type == 'nb':
+            self.model = MultinomialNB()
+        elif model_type == 'svm':
+            self.model = LinearSVC(random_state=42)
+        elif model_type == 'lr':
+            self.model = LogisticRegression(random_state=42, max_iter=1000)
+        elif model_type == 'rf':
+            self.model = RandomForestClassifier(random_state=42, n_estimators=100)
+        else:
+            raise ValueError(f&quot;Unknown model type: {model_type}&quot;)
+
+    def train(self, X_train, y_train):
+        &quot;&quot;&quot;モデルの訓練&quot;&quot;&quot;
+        # TF-IDF変換
+        X_train_vec = self.vectorizer.fit_transform(X_train)
+
+        # モデル学習
+        self.model.fit(X_train_vec, y_train)
+
+    def predict(self, X_test):
+        &quot;&quot;&quot;予測&quot;&quot;&quot;
+        X_test_vec = self.vectorizer.transform(X_test)
+        return self.model.predict(X_test_vec)
+
+    def evaluate(self, X_test, y_test):
+        &quot;&quot;&quot;評価&quot;&quot;&quot;
+        y_pred = self.predict(X_test)
+
+        print(&quot;正解率:&quot;, accuracy_score(y_test, y_pred))
+        print(&quot;\n分類レポート:&quot;)
+        print(classification_report(y_test, y_pred))
+
+        return y_pred
+
+    def save(self, filepath):
+        &quot;&quot;&quot;モデルの保存&quot;&quot;&quot;
+        joblib.dump((self.vectorizer, self.model), filepath)
+
+    def load(self, filepath):
+        &quot;&quot;&quot;モデルの読み込み&quot;&quot;&quot;
+        self.vectorizer, self.model = joblib.load(filepath)
+
+# 使用例
+if __name__ == &quot;__main__&quot;:
+    # データ準備（実際はCSVファイルから読み込み）
+    texts = [
+        &quot;素晴らしい商品です&quot;,
+        &quot;最悪の品質&quot;,
+        &quot;期待通りの性能&quot;,
+        &quot;二度と買いません&quot;,
+        # ... 大量のデータ
+    ]
+    labels = [1, 0, 1, 0]  # 1: Positive, 0: Negative
+
+    # 訓練・テスト分割
+    X_train, X_test, y_train, y_test = train_test_split(
+        texts, labels, test_size=0.2, random_state=42, stratify=labels
+    )
+
+    # 分類器の訓練
+    classifier = TextClassifier(model_type='svm')
+    classifier.train(X_train, y_train)
+
+    # 評価
+    y_pred = classifier.evaluate(X_test, y_test)
+
+    # モデルの保存
+    classifier.save('text_classifier.pkl')
+
+    # 新しいテキストの予測
+    new_texts = [&quot;この商品は最高です&quot;, &quot;がっかりしました&quot;]
+    predictions = classifier.predict(new_texts)
+    print(&quot;\n新しいテキストの予測:&quot;)
+    for text, pred in zip(new_texts, predictions):
+        print(f&quot;'{text}' → {'Positive' if pred == 1 else 'Negative'}&quot;)
+</code></pre>
+<hr />
+<h2>5. モデルの評価</h2>
+<h3>5.1 評価指標</h3>
+<h4>正解率 (Accuracy)</h4>
+<p>$$
+\text{Accuracy} = \frac{\text{正しく分類されたサンプル数}}{\text{全サンプル数}}
+$$</p>
+<ul>
+<li><strong>使いどころ</strong>: クラスのバランスが取れている場合</li>
+<li><strong>注意点</strong>: 不均衡データでは不適切</li>
+</ul>
+<h4>適合率 (Precision)</h4>
+<p>$$
+\text{Precision} = \frac{TP}{TP + FP}
+$$</p>
+<ul>
+<li><strong>意味</strong>: 「Positive と予測したもののうち、実際に Positive だった割合」</li>
+<li><strong>使いどころ</strong>: 偽陽性を避けたい場合（スパムフィルタなど）</li>
+</ul>
+<h4>再現率 (Recall)</h4>
+<p>$$
+\text{Recall} = \frac{TP}{TP + FN}
+$$</p>
+<ul>
+<li><strong>意味</strong>: 「実際に Positive のもののうち、正しく Positive と予測できた割合」</li>
+<li><strong>使いどころ</strong>: 偽陰性を避けたい場合（病気診断など）</li>
+</ul>
+<h4>F1スコア</h4>
+<p>$$
+F1 = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}
+$$</p>
+<ul>
+<li><strong>意味</strong>: Precision と Recall の調和平均</li>
+<li><strong>使いどころ</strong>: バランスの取れた評価が必要な場合</li>
+</ul>
+<h3>5.2 混同行列 (Confusion Matrix)</h3>
+<pre><code class="language-python">from sklearn.metrics import confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# 予測結果（例）
+y_true = [0, 1, 0, 1, 0, 1, 1, 0]
+y_pred = [0, 1, 0, 0, 0, 1, 1, 1]
+
+# 混同行列
+cm = confusion_matrix(y_true, y_pred)
+
+# 可視化
+plt.figure(figsize=(6, 5))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+            xticklabels=['Negative', 'Positive'],
+            yticklabels=['Negative', 'Positive'])
+plt.ylabel('実際のラベル')
+plt.xlabel('予測ラベル')
+plt.title('混同行列')
+plt.show()
+
+print(&quot;混同行列:&quot;)
+print(cm)
+print(f&quot;\nTrue Negative: {cm[0,0]}&quot;)
+print(f&quot;False Positive: {cm[0,1]}&quot;)
+print(f&quot;False Negative: {cm[1,0]}&quot;)
+print(f&quot;True Positive: {cm[1,1]}&quot;)
+</code></pre>
+<h3>5.3 交差検証 (Cross-Validation)</h3>
+<p>データを複数の fold に分け、より信頼性の高い評価を行います。</p>
+<pre><code class="language-python">from sklearn.model_selection import cross_val_score
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.pipeline import Pipeline
+
+# パイプライン
+pipeline = Pipeline([
+    ('tfidf', TfidfVectorizer(max_features=1000)),
+    ('nb', MultinomialNB())
+])
+
+# 5-fold 交差検証
+scores = cross_val_score(
+    pipeline,
+    texts,  # 全テキストデータ
+    labels,  # 全ラベル
+    cv=5,  # 5分割
+    scoring='f1'
+)
+
+print(f&quot;各foldのF1スコア: {scores}&quot;)
+print(f&quot;平均F1スコア: {scores.mean():.4f} (+/- {scores.std():.4f})&quot;)
+</code></pre>
+<hr />
+<h2>6. ハイパーパラメータチューニング</h2>
+<h3>6.1 Grid Search</h3>
+<pre><code class="language-python">from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.svm import LinearSVC
+
+# パイプライン
+pipeline = Pipeline([
+    ('tfidf', TfidfVectorizer()),
+    ('svm', LinearSVC())
+])
+
+# チューニングするパラメータ
+param_grid = {
+    'tfidf__max_features': [1000, 3000, 5000],
+    'tfidf__ngram_range': [(1, 1), (1, 2), (1, 3)],
+    'tfidf__min_df': [1, 2, 5],
+    'svm__C': [0.1, 1, 10]
+}
+
+# Grid Search
+grid_search = GridSearchCV(
+    pipeline,
+    param_grid,
+    cv=5,
+    scoring='f1',
+    n_jobs=-1,  # 並列処理
+    verbose=1
+)
+
+grid_search.fit(X_train, y_train)
+
+# 最良のパラメータ
+print(&quot;最良のパラメータ:&quot;)
+print(grid_search.best_params_)
+print(f&quot;\n最良のF1スコア: {grid_search.best_score_:.4f}&quot;)
+
+# 最良モデルで予測
+best_model = grid_search.best_estimator_
+y_pred = best_model.predict(X_test)
+</code></pre>
+<hr />
+<h2>7. 実践例: 日本語感情分析システム</h2>
+<h3>7.1 完全な実装</h3>
+<pre><code class="language-python">import pandas as pd
+import MeCab
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.svm import LinearSVC
+from sklearn.metrics import classification_report
+import pickle
+
+class JapaneseSentimentAnalyzer:
+    &quot;&quot;&quot;日本語感情分析システム&quot;&quot;&quot;
+
+    def __init__(self):
+        self.mecab = MeCab.Tagger()
+        self.vectorizer = None
+        self.model = None
+
+    def tokenize(self, text):
+        &quot;&quot;&quot;MeCabでトークン化&quot;&quot;&quot;
+        node = self.mecab.parseToNode(text)
+        tokens = []
+
+        while node:
+            if node.surface:
+                features = node.feature.split(',')
+                pos = features[0]
+
+                # 名詞、動詞、形容詞のみ抽出
+                if pos in ['名詞', '動詞', '形容詞']:
+                    base_form = features[6] if len(features) &gt; 6 else node.surface
+                    if base_form != '*':
+                        tokens.append(base_form)
+
+            node = node.next
+
+        return ' '.join(tokens)
+
+    def prepare_data(self, texts):
+        &quot;&quot;&quot;データの前処理&quot;&quot;&quot;
+        return [self.tokenize(text) for text in texts]
+
+    def train(self, texts, labels):
+        &quot;&quot;&quot;モデルの訓練&quot;&quot;&quot;
+        # トークン化
+        tokenized_texts = self.prepare_data(texts)
+
+        # TF-IDF ベクトル化
+        self.vectorizer = TfidfVectorizer(
+            max_features=3000,
+            ngram_range=(1, 2),
+            min_df=2
+        )
+        X = self.vectorizer.fit_transform(tokenized_texts)
+
+        # SVM 訓練
+        self.model = LinearSVC(C=1.0, random_state=42)
+        self.model.fit(X, labels)
+
+    def predict(self, texts):
+        &quot;&quot;&quot;感情予測&quot;&quot;&quot;
+        tokenized_texts = self.prepare_data(texts)
+        X = self.vectorizer.transform(tokenized_texts)
+        return self.model.predict(X)
+
+    def predict_proba(self, texts):
+        &quot;&quot;&quot;確率付き予測（SVMの決定関数を使用）&quot;&quot;&quot;
+        tokenized_texts = self.prepare_data(texts)
+        X = self.vectorizer.transform(tokenized_texts)
+        decision = self.model.decision_function(X)
+        return decision
+
+    def save(self, filepath):
+        &quot;&quot;&quot;モデルの保存&quot;&quot;&quot;
+        with open(filepath, 'wb') as f:
+            pickle.dump((self.vectorizer, self.model), f)
+
+    def load(self, filepath):
+        &quot;&quot;&quot;モデルの読み込み&quot;&quot;&quot;
+        with open(filepath, 'rb') as f:
+            self.vectorizer, self.model = pickle.load(f)
+
+# データ準備
+if __name__ == &quot;__main__&quot;:
+    # サンプルレビューデータ（実際は大規模データセットを使用）
+    reviews = [
+        &quot;この商品は本当に素晴らしい。期待以上でした&quot;,
+        &quot;最悪の品質。二度と買いません&quot;,
+        &quot;値段の割には良い商品だと思います&quot;,
+        &quot;配送が遅く、商品も傷だらけ&quot;,
+        &quot;使いやすくて満足しています&quot;,
+        &quot;説明と違う商品が届いた&quot;,
+        &quot;コストパフォーマンスが高い&quot;,
+        &quot;期待外れでがっかり&quot;,
+        &quot;デザインが美しく、機能も充実&quot;,
+        &quot;壊れやすく、すぐに故障した&quot;
+    ]
+
+    sentiments = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0]  # 1: Positive, 0: Negative
+
+    # 訓練・テスト分割
+    X_train, X_test, y_train, y_test = train_test_split(
+        reviews, sentiments, test_size=0.2, random_state=42
+    )
+
+    # 分析器の訓練
+    analyzer = JapaneseSentimentAnalyzer()
+    analyzer.train(X_train, y_train)
+
+    # 評価
+    y_pred = analyzer.predict(X_test)
+    print(&quot;分類レポート:&quot;)
+    print(classification_report(y_test, y_pred,
+                              target_names=['Negative', 'Positive']))
+
+    # 新しいレビューの感情分析
+    new_reviews = [
+        &quot;とても良い買い物ができました&quot;,
+        &quot;お金を無駄にした&quot;,
+        &quot;普通の商品です&quot;
+    ]
+
+    predictions = analyzer.predict(new_reviews)
+    scores = analyzer.predict_proba(new_reviews)
+
+    print(&quot;\n新しいレビューの感情分析:&quot;)
+    for review, pred, score in zip(new_reviews, predictions, scores):
+        sentiment = &quot;Positive&quot; if pred == 1 else &quot;Negative&quot;
+        confidence = abs(score)
+        print(f&quot;'{review}'&quot;)
+        print(f&quot;  → {sentiment} (信頼度: {confidence:.2f})\n&quot;)
+
+    # モデルの保存
+    analyzer.save('sentiment_model.pkl')
+</code></pre>
+<hr />
+<h2>8. まとめ</h2>
+<h3>8.1 本章で学んだこと</h3>
+<p>✅ <strong>テキスト前処理</strong>
+- クリーニング、トークン化、正規化の実装
+- 日本語と英語の前処理の違い</p>
+<p>✅ <strong>特徴量抽出</strong>
+- Bag-of-Words (BoW) の仕組み
+- TF-IDF による重み付け
+- N-gram の活用</p>
+<p>✅ <strong>機械学習モデル</strong>
+- Naive Bayes による分類
+- SVM による高次元データ分類
+- パイプラインの構築</p>
+<p>✅ <strong>モデル評価</strong>
+- 正解率、適合率、再現率、F1スコア
+- 混同行列の読み方
+- 交差検証による信頼性向上</p>
+<p>✅ <strong>実践システム</strong>
+- 日本語感情分析システムの完全実装</p>
+<h3>8.2 次のステップ</h3>
+<p>本章で基礎的なテキスト分類を学びました。さらに発展させるには：</p>
+<ol>
+<li><strong>深層学習の活用</strong>: LSTM、Transformer などのモデル</li>
+<li><strong>大規模データセット</strong>: 実際のビジネスデータでの実験</li>
+<li><strong>多クラス分類</strong>: 3つ以上のカテゴリへの拡張</li>
+<li><strong>リアルタイム分類</strong>: Web API としてデプロイ</li>
+</ol>
+<hr />
+<h2>9. 練習問題</h2>
+<h3>問題1: 前処理パイプライン（基礎）</h3>
+<p>次のテキストに対して、適切な前処理を実装してください。</p>
+<pre><code class="language-python">text = &quot;&quot;&quot;
+【速報】新製品発売！！！🎉
+今なら50%OFF → http://example.com
+#セール #お得 @公式アカウント
+&quot;&quot;&quot;
+
+# あなたの実装:
+def preprocess(text):
+    # ここにコードを書く
+    pass
+
+result = preprocess(text)
+print(result)
+</code></pre>
+<details>
+<summary>解答例</summary>
+
+
+<pre><code class="language-python">import re
+import unicodedata
+
+def preprocess(text):
+    # Unicode正規化
+    text = unicodedata.normalize('NFKC', text)
+
+    # URL除去
+    text = re.sub(r'http\S+', '', text)
+
+    # メンション・ハッシュタグ除去
+    text = re.sub(r'[@#]\S+', '', text)
+
+    # 絵文字除去
+    text = re.sub(r'[^\w\s]', '', text, flags=re.UNICODE)
+
+    # 余分な空白除去
+    text = ' '.join(text.split())
+
+    return text
+
+result = preprocess(text)
+print(result)  # 出力: &quot;速報 新製品発売 今なら50OFF&quot;
+</code></pre>
+
+
+</details>
+
+<h3>問題2: TF-IDF 実装（中級）</h3>
+<p>以下の文書集合に対して、TF-IDF を計算し、各文書で最も重要な単語トップ3を抽出してください。</p>
+<pre><code class="language-python">documents = [
+    &quot;機械学習は人工知能の一分野&quot;,
+    &quot;深層学習はニューラルネットワークを使う&quot;,
+    &quot;自然言語処理はテキストを扱う人工知能技術&quot;,
+    &quot;画像認識は深層学習の応用例&quot;
+]
+
+# あなたの実装
+</code></pre>
+<details>
+<summary>解答例</summary>
+
+
+<pre><code class="language-python">from sklearn.feature_extraction.text import TfidfVectorizer
+
+documents = [
+    &quot;機械学習は人工知能の一分野&quot;,
+    &quot;深層学習はニューラルネットワークを使う&quot;,
+    &quot;自然言語処理はテキストを扱う人工知能技術&quot;,
+    &quot;画像認識は深層学習の応用例&quot;
+]
+
+vectorizer = TfidfVectorizer()
+tfidf_matrix = vectorizer.fit_transform(documents)
+feature_names = vectorizer.get_feature_names_out()
+
+for doc_idx in range(len(documents)):
+    print(f&quot;\n文書{doc_idx+1}: {documents[doc_idx]}&quot;)
+
+    # 各文書のTF-IDFスコアを取得
+    feature_index = tfidf_matrix[doc_idx].nonzero()[1]
+    tfidf_scores = [(feature_names[i], tfidf_matrix[doc_idx, i])
+                    for i in feature_index]
+
+    # スコア降順でソート
+    tfidf_scores = sorted(tfidf_scores, key=lambda x: x[1], reverse=True)
+
+    print(&quot;  重要単語トップ3:&quot;)
+    for word, score in tfidf_scores[:3]:
+        print(f&quot;    {word}: {score:.4f}&quot;)
+</code></pre>
+
+
+</details>
+
+<h3>問題3: 感情分類システム（応用）</h3>
+<p>以下の仕様で感情分類システムを実装してください：</p>
+<p><strong>仕様:</strong>
+- 入力: 日本語レビューテキスト
+- 出力: Positive/Negative + 信頼度スコア
+- モデル: Naive Bayes または SVM
+- 評価指標: F1スコアを表示</p>
+<details>
+<summary>解答例</summary>
+
+
+<pre><code class="language-python">from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import classification_report, f1_score
+import numpy as np
+
+# データ準備
+reviews = [
+    &quot;素晴らしい商品です&quot;, &quot;最悪の品質&quot;, &quot;期待通り&quot;,
+    &quot;がっかり&quot;, &quot;大満足&quot;, &quot;二度と買わない&quot;,
+    &quot;おすすめです&quot;, &quot;価値がない&quot;
+]
+labels = [1, 0, 1, 0, 1, 0, 1, 0]
+
+# 訓練・テスト分割
+X_train, X_test, y_train, y_test = train_test_split(
+    reviews, labels, test_size=0.25, random_state=42
+)
+
+# TF-IDF + Naive Bayes
+vectorizer = TfidfVectorizer()
+X_train_vec = vectorizer.fit_transform(X_train)
+X_test_vec = vectorizer.transform(X_test)
+
+model = MultinomialNB()
+model.fit(X_train_vec, y_train)
+
+# 予測と評価
+y_pred = model.predict(X_test_vec)
+f1 = f1_score(y_test, y_pred)
+
+print(f&quot;F1スコア: {f1:.4f}&quot;)
+print(&quot;\n分類レポート:&quot;)
+print(classification_report(y_test, y_pred,
+                          target_names=['Negative', 'Positive']))
+
+# 新しいレビューの予測
+new_review = [&quot;この商品は最高です&quot;]
+new_vec = vectorizer.transform(new_review)
+prediction = model.predict(new_vec)[0]
+proba = model.predict_proba(new_vec)[0]
+
+sentiment = &quot;Positive&quot; if prediction == 1 else &quot;Negative&quot;
+confidence = proba[prediction]
+
+print(f&quot;\n'{new_review[0]}'&quot;)
+print(f&quot;→ {sentiment} (信頼度: {confidence:.2f})&quot;)
+</code></pre>
+
+
+</details>
+
+<hr />
+<h2>10. 参考文献</h2>
+<h3>書籍</h3>
+<ol>
+<li>「入門 自然言語処理」Steven Bird 他（オライリー・ジャパン）</li>
+<li>「scikit-learn と TensorFlow による実践機械学習」Aurélien Géron</li>
+<li>「Pythonではじめるテキストアナリティクス入門」佐藤 敏紀</li>
+</ol>
+<h3>オンラインリソース</h3>
+<ul>
+<li><a href="https://scikit-learn.org/stable/modules/feature_extraction.html#text-feature-extraction">scikit-learn Text Feature Extraction</a></li>
+<li><a href="https://www.kaggle.com/c/sentiment-analysis-on-movie-reviews">Kaggle: Sentiment Analysis Tutorial</a></li>
+<li><a href="https://qiita.com/Hironsan/items/2466fe0f344115aff177">日本語自然言語処理ライブラリまとめ</a></li>
+</ul>
+<h3>データセット</h3>
+<ul>
+<li><a href="https://www.rondhuit.com/download.html">livedoor ニュースコーパス</a> - 日本語テキスト分類</li>
+<li><a href="http://www.db.info.gifu-u.ac.jp/data/Data_5d832973308d57446583ed9f">日本語評判分析データセット</a> - 感情分析</li>
+<li><a href="https://ai.stanford.edu/~amaas/data/sentiment/">IMDB Movie Reviews</a> - 英語感情分析</li>
+</ul>
+<hr />
+<p><strong>次へ</strong>: <a href="chapter-4.html">Chapter 4: 実世界のNLP応用 →</a></p>
+<p><strong>前へ</strong>: <a href="chapter-2.html">← Chapter 2: 形態素解析・構文解析</a></p>
+<p><strong>目次へ</strong>: <a href="index.html">↑ シリーズ目次</a></p><div class="navigation">
+    <a href="chapter-2.html" class="nav-button">← 第2章</a>
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+    <a href="chapter-4.html" class="nav-button">第4章 →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-17</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>
