@@ -169,7 +169,7 @@ graph TD
 
 <!-- 全章について詳細に記載 -->
 
-### [第1章：なぜ材料科学にGNNが必要か](./chapter1-why-gnn.html)
+### [第1章：なぜ材料科学にGNNが必要か](./chapter-1.html)
 
 **難易度**: 入門
 **読了時間**: 20-25分
@@ -224,11 +224,11 @@ graph TD
 - **メッセージパッシング**: 隣接原子間で情報を伝播する基本原理
 - **従来記述子の限界**: 組成のみでは構造情報が失われる問題
 
-**[第1章を読む →](./chapter1-why-gnn.html)**
+**[第1章を読む →](./chapter-1.html)**
 
 ---
 
-### [第2章：GNNの基礎理論](./chapter2-fundamentals.html)
+### [第2章：GNNの基礎理論](./chapter-2.html)
 
 **難易度**: 初級〜中級
 **読了時間**: 25-30分
@@ -284,11 +284,11 @@ graph TD
 - **GCN更新式**: $\mathbf{H}^{(l+1)} = \sigma(\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2} \mathbf{H}^{(l)} \mathbf{W}^{(l)})$
 - **等変性条件**: $f(g \cdot \mathbf{x}) = g \cdot f(\mathbf{x})$ for all $g \in E(3)$
 
-**[第2章を読む →](./chapter2-fundamentals.html)**
+**[第2章を読む →](./chapter-2.html)**
 
 ---
 
-### [第3章：PyTorch Geometric実践](./chapter3-hands-on.html)
+### [第3章：PyTorch Geometric実践](./chapter-3.html)
 
 **難易度**: 中級
 **読了時間**: 30-35分
@@ -362,11 +362,11 @@ graph TD
 - ✅ ハイパーパラメータチューニングを実行できる
 - ✅ エラーを自力でデバッグできる
 
-**[第3章を読む →](./chapter3-hands-on.html)**
+**[第3章を読む →](./chapter-3.html)**
 
 ---
 
-### [第4章：高度なGNN技術](./chapter4-advanced.html)
+### [第4章：高度なGNN技術](./chapter-4.html)
 
 **難易度**: 中級〜上級
 **読了時間**: 20-25分
@@ -426,11 +426,11 @@ graph TD
 - ✅ 事前学習モデルの転移学習を実行できる
 - ✅ 最新研究の動向を把握し、自分の研究に活かせる
 
-**[第4章を読む →](./chapter4-advanced.html)**
+**[第4章を読む →](./chapter-4.html)**
 
 ---
 
-### [第5章：実世界応用とキャリア](./chapter5-real-world.html)
+### [第5章：実世界応用とキャリア](./chapter-5.html)
 
 **難易度**: 中級〜上級
 **読了時間**: 15-20分
@@ -579,7 +579,7 @@ graph TD
 - ✅ 具体的な学習タイムライン（3ヶ月/1年/3年）を計画できる
 - ✅ 次のステップとして適切な学習リソースを選択できる
 
-**[第5章を読む →](./chapter5-real-world.html)**
+**[第5章を読む →](./chapter-5.html)**
 
 ---
 
@@ -878,9 +878,9 @@ Day 7: 復習と次のステップ計画
    - 関連性: GNNベースのポテンシャルエネルギー予測（SchNet、NequIP）
    - リンク: [../mlp-introduction/index.md](../mlp-introduction/index.html)
 
-3. **[ベイズ最適化・アクティブラーニング入門](../bayesian-optimization/index.html)** (初級〜中級)
+3. **[ベイズ最適化・アクティブラーニング入門](../bayesian-optimization-introduction/index.html)** (初級〜中級)
    - 関連性: GNN予測結果を活用した効率的材料探索
-   - リンク: [../bayesian-optimization/index.md](../bayesian-optimization/index.html)
+   - リンク: [../bayesian-optimization/index.md](../bayesian-optimization-introduction/index.html)
 
 ### 学習パス全体図
 
@@ -975,7 +975,7 @@ graph TD
 2. ✅ Kaggleコンペに参加（Molecular Properties Prediction）
 3. ✅ 日本材料学会やMRSの勉強会に参加
 4. ✅ 独自プロジェクトを実行（自分の研究データでGNN実装）
-5. ✅ [Transformer入門シリーズ](../transformer-materials/index.html)に進む
+5. ✅ [Transformer入門シリーズ](../transformer-introduction/index.html)に進む
 
 **Medium-term（3-6ヶ月）:**
 1. ✅ 主要論文を10本精読（SchNet、DimeNet、Graphormer、NequIP、MACE等）
@@ -1116,7 +1116,7 @@ Retrieved from [URL]
 
 準備はできましたか？ 第1章から始めて、グラフニューラルネットワークの世界への旅を始めましょう！
 
-**[第1章: なぜ材料科学にGNNが必要か →](./chapter1-why-gnn.html)**
+**[第1章: なぜ材料科学にGNNが必要か →](./chapter-1.html)**
 
 または、[学習の進め方](#学習の進め方)に戻って自分に合った学習パスを確認してください。
 

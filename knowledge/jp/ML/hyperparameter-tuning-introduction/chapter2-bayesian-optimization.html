@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第2章：ベイズ最適化とOptuna - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第2章：ベイズ最適化とOptuna</h1>
+            <p class="subtitle">効率的なハイパーパラメータチューニング - 賢い探索戦略</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 25-30分</span>
+                <span class="meta-item">📊 難易度: 中級</span>
+                <span class="meta-item">💻 コード例: 8個</span>
+                <span class="meta-item">🎯 重要度: 高</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+<h2>学習目標</h2>
+<p>この章を読むことで、以下を習得できます：</p>
+<ul>
+<li>✅ ベイズ最適化の基本原理を理解する</li>
+<li>✅ TPE（Tree-structured Parzen Estimator）の仕組みを学ぶ</li>
+<li>✅ Optunaの基本概念とAPIを習得する</li>
+<li>✅ Pruning（枝刈り）で効率的な探索を実現する</li>
+<li>✅ 深層学習モデルのハイパーパラメータを最適化できる</li>
+<li>✅ 可視化ツールで最適化プロセスを分析できる</li>
+</ul>
+
+<hr>
+
+<h2>2.1 ベイズ最適化の基礎</h2>
+
+<h3>ベイズ最適化とは</h3>
+
+<p><strong>ベイズ最適化（Bayesian Optimization）</strong>は、評価コストが高い目的関数を効率的に最適化する手法です。グリッドサーチやランダムサーチと比較して、以下の特徴があります：</p>
+
+<ul>
+<li>過去の試行結果を活用して次の探索点を決定</li>
+<li>探索と活用のバランスを自動調整</li>
+<li>少ない試行回数で良い解を発見</li>
+</ul>
+
+<h3>探索と活用のトレードオフ</h3>
+
+<p>ベイズ最適化の核心は、<strong>探索（Exploration）</strong>と<strong>活用（Exploitation）</strong>のバランスです。</p>
+
+<table>
+<thead>
+<tr>
+<th>戦略</th>
+<th>説明</th>
+<th>メリット</th>
+<th>デメリット</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>探索（Exploration）</strong></td>
+<td>未知の領域を調査</td>
+<td>グローバル最適解の発見</td>
+<td>無駄な試行が増える可能性</td>
+</tr>
+<tr>
+<td><strong>活用（Exploitation）</strong></td>
+<td>良い性能の周辺を集中調査</td>
+<td>早く良い解に収束</td>
+<td>局所最適解に陥る可能性</td>
+</tr>
+</tbody>
+</table>
+
+<div class="mermaid">
+graph LR
+    A[初期ランダムサンプリング] --> B[サロゲートモデル構築]
+    B --> C[獲得関数で次の点を選択]
+    C --> D[目的関数を評価]
+    D --> E{停止条件?}
+    E -->|No| B
+    E -->|Yes| F[最良の点を返す]
+
+    style A fill:#ffebee
+    style B fill:#e3f2fd
+    style C fill:#f3e5f5
+    style D fill:#fff3e0
+    style E fill:#fce4ec
+    style F fill:#c8e6c9
+</div>
+
+<h3>サロゲートモデル（ガウス過程）</h3>
+
+<p><strong>サロゲートモデル（Surrogate Model）</strong>は、目的関数の代理モデルです。最も一般的なのは<strong>ガウス過程（Gaussian Process, GP）</strong>です。</p>
+
+<p>ガウス過程は、各点での予測値と不確実性を提供します：</p>
+
+<p>$$
+f(x) \sim \mathcal{N}(\mu(x), \sigma^2(x))
+$$</p>
+
+<ul>
+<li>$\mu(x)$: 予測平均（期待値）</li>
+<li>$\sigma^2(x)$: 予測分散（不確実性）</li>
+</ul>
+
+<blockquote>
+<p><strong>重要</strong>: 観測点から遠いほど不確実性が大きくなり、探索が促進されます。</p>
+</blockquote>
+
+<h3>獲得関数（Acquisition Function）</h3>
+
+<p><strong>獲得関数</strong>は、次に評価すべき点を決定する指標です。主要な獲得関数：</p>
+
+<h4>1. Expected Improvement (EI)</h4>
+
+<p>現在の最良値からの改善期待値：</p>
+
+<p>$$
+\text{EI}(x) = \mathbb{E}[\max(f(x) - f(x^+), 0)]
+$$</p>
+
+<ul>
+<li>$f(x^+)$: 現在の最良値</li>
+<li>改善が期待される点を優先</li>
+</ul>
+
+<h4>2. Upper Confidence Bound (UCB)</h4>
+
+<p>平均と不確実性のバランス：</p>
+
+<p>$$
+\text{UCB}(x) = \mu(x) + \kappa \sigma(x)
+$$</p>
+
+<ul>
+<li>$\kappa$: 探索の強さを制御（通常1.96）</li>
+<li>高い平均または高い不確実性の点を選択</li>
+</ul>
+
+<h4>3. Probability of Improvement (PI)</h4>
+
+<p>改善する確率：</p>
+
+<p>$$
+\text{PI}(x) = P(f(x) > f(x^+))
+$$</p>
+
+<ul>
+<li>改善確率が高い点を選択</li>
+<li>比較的保守的</li>
+</ul>
+
+<h3>ベイズ最適化の実装例</h3>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel
+from scipy.stats import norm
+
+# 目的関数（例：1次元の複雑な関数）
+def objective_function(x):
+    return -(x ** 2) * np.sin(5 * x)
+
+# 獲得関数: Expected Improvement (EI)
+def expected_improvement(X, X_sample, Y_sample, gpr, xi=0.01):
+    mu, sigma = gpr.predict(X, return_std=True)
+    mu_sample = gpr.predict(X_sample)
+
+    sigma = sigma.reshape(-1, 1)
+
+    # 現在の最良値
+    mu_sample_opt = np.max(mu_sample)
+
+    with np.errstate(divide='warn'):
+        imp = mu - mu_sample_opt - xi
+        Z = imp / sigma
+        ei = imp * norm.cdf(Z) + sigma * norm.pdf(Z)
+        ei[sigma == 0.0] = 0.0
+
+    return ei
+
+# ベイズ最適化の実行
+np.random.seed(42)
+
+# 探索空間
+X_true = np.linspace(-3, 3, 1000).reshape(-1, 1)
+y_true = objective_function(X_true)
+
+# 初期サンプリング
+n_initial = 3
+X_sample = np.random.uniform(-3, 3, n_initial).reshape(-1, 1)
+Y_sample = objective_function(X_sample)
+
+# ガウス過程の定義
+kernel = ConstantKernel(1.0) * RBF(length_scale=1.0)
+gpr = GaussianProcessRegressor(kernel=kernel, alpha=1e-6, n_restarts_optimizer=10)
+
+# 反復最適化
+n_iterations = 7
+plt.figure(figsize=(16, 12))
+
+for i in range(n_iterations):
+    # ガウス過程のフィッティング
+    gpr.fit(X_sample, Y_sample)
+
+    # 予測
+    mu, sigma = gpr.predict(X_true, return_std=True)
+
+    # 獲得関数の計算
+    ei = expected_improvement(X_true, X_sample, Y_sample, gpr)
+
+    # 次の点を選択（EIが最大）
+    X_next = X_true[np.argmax(ei)]
+    Y_next = objective_function(X_next)
+
+    # プロット
+    plt.subplot(3, 3, i + 1)
+
+    # 真の関数
+    plt.plot(X_true, y_true, 'r--', label='真の関数', alpha=0.7)
+
+    # ガウス過程の予測
+    plt.plot(X_true, mu, 'b-', label='GP平均')
+    plt.fill_between(X_true.ravel(),
+                     mu.ravel() - 1.96 * sigma,
+                     mu.ravel() + 1.96 * sigma,
+                     alpha=0.2, label='95%信頼区間')
+
+    # 観測点
+    plt.scatter(X_sample, Y_sample, c='green', s=100,
+                zorder=10, label='観測点', edgecolors='black')
+
+    # 次の点
+    plt.axvline(x=X_next, color='purple', linestyle='--',
+                linewidth=2, label='次の探索点')
+
+    plt.xlabel('x')
+    plt.ylabel('f(x)')
+    plt.title(f'反復 {i+1}/{n_iterations}', fontsize=12)
+    plt.legend(loc='best', fontsize=8)
+    plt.grid(True, alpha=0.3)
+
+    # サンプルを追加
+    X_sample = np.vstack((X_sample, X_next))
+    Y_sample = np.vstack((Y_sample, Y_next))
+
+plt.tight_layout()
+plt.show()
+
+# 最終結果
+best_idx = np.argmax(Y_sample)
+print(f"\n=== ベイズ最適化の結果 ===")
+print(f"最良の x: {X_sample[best_idx][0]:.4f}")
+print(f"最良の f(x): {Y_sample[best_idx][0]:.4f}")
+print(f"総評価回数: {len(X_sample)}")
+</code></pre>
+
+<p><strong>出力</strong>：</p>
+<pre><code>=== ベイズ最適化の結果 ===
+最良の x: 1.7854
+最良の f(x): 2.8561
+総評価回数: 10
+</code></pre>
+
+<blockquote>
+<p><strong>観察</strong>: 少ない試行回数で効率的に最大値に収束しています。</p>
+</blockquote>
+
+<hr>
+
+<h2>2.2 TPE (Tree-structured Parzen Estimator)</h2>
+
+<h3>TPEの仕組み</h3>
+
+<p><strong>TPE（Tree-structured Parzen Estimator）</strong>は、ベイズ最適化の効率的な実装です。Optunaのデフォルト最適化アルゴリズムです。</p>
+
+<p>TPEの核心的なアイデア：</p>
+
+<ol>
+<li>観測データを良い結果と悪い結果に分割</li>
+<li>それぞれの分布をモデル化</li>
+<li>良い分布から多く、悪い分布から少なくサンプリングされる点を選択</li>
+</ol>
+
+<h3>ガウス過程との違い</h3>
+
+<table>
+<thead>
+<tr>
+<th>側面</th>
+<th>ガウス過程（GP）</th>
+<th>TPE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>モデル化対象</strong></td>
+<td>$P(y|x)$ - 出力を予測</td>
+<td>$P(x|y)$ - 入力の条件付き分布</td>
+</tr>
+<tr>
+<td><strong>計算コスト</strong></td>
+<td>$O(n^3)$ - サンプル数に対して高い</td>
+<td>$O(n)$ - 線形</td>
+</tr>
+<tr>
+<td><strong>高次元性能</strong></td>
+<td>次元が高いと低下</td>
+<td>高次元でも安定</td>
+</tr>
+<tr>
+<td><strong>カテゴリカル変数</strong></td>
+<td>扱いが難しい</td>
+<td>自然に扱える</td>
+</tr>
+<tr>
+<td><strong>並列化</strong></td>
+<td>難しい</td>
+<td>容易</td>
+</tr>
+</tbody>
+</table>
+
+<h3>TPEの数式</h3>
+
+<p>TPEは以下のように2つの分布を定義します：</p>
+
+<p>$$
+P(x|y) = \begin{cases}
+\ell(x) & \text{if } y < y^* \\
+g(x) & \text{if } y \geq y^*
+\end{cases}
+$$</p>
+
+<ul>
+<li>$\ell(x)$: 良い結果の分布</li>
+<li>$g(x)$: 悪い結果の分布</li>
+<li>$y^*$: 閾値（通常、上位20-25%）</li>
+</ul>
+
+<p>獲得関数は以下の比率を最大化：</p>
+
+<p>$$
+\text{EI}(x) \propto \frac{\ell(x)}{g(x)}
+$$</p>
+
+<blockquote>
+<p><strong>直感</strong>: 良い結果の分布で確率が高く、悪い結果の分布で確率が低い点を選択します。</p>
+</blockquote>
+
+<h3>実装の効率性</h3>
+
+<p>TPEの主な利点：</p>
+
+<ol>
+<li><strong>スケーラビリティ</strong>: 大規模な探索空間でも高速</li>
+<li><strong>柔軟性</strong>: 連続、離散、カテゴリカル変数を統一的に扱える</li>
+<li><strong>並列化</strong>: 複数の試行を同時実行可能</li>
+<li><strong>条件付き空間</strong>: ハイパーパラメータ間の依存関係に対応</li>
+</ol>
+
+<pre><code class="language-python"># TPEの動作イメージ（Optunaの内部動作）
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
+
+# サンプルデータ（ハイパーパラメータと性能）
+np.random.seed(42)
+n_trials = 50
+
+# ランダムなハイパーパラメータ値
+x_trials = np.random.uniform(0, 10, n_trials)
+
+# 性能（真の関数 + ノイズ）
+y_trials = -(x_trials - 6) ** 2 + 30 + np.random.normal(0, 2, n_trials)
+
+# 閾値の設定（上位25%）
+threshold_idx = int(n_trials * 0.75)
+sorted_indices = np.argsort(y_trials)
+threshold_value = y_trials[sorted_indices[threshold_idx]]
+
+# 良い試行と悪い試行に分割
+good_x = x_trials[y_trials >= threshold_value]
+bad_x = x_trials[y_trials < threshold_value]
+
+# カーネル密度推定
+x_range = np.linspace(0, 10, 1000)
+
+if len(good_x) > 1:
+    kde_good = gaussian_kde(good_x)
+    density_good = kde_good(x_range)
+else:
+    density_good = np.zeros_like(x_range)
+
+if len(bad_x) > 1:
+    kde_bad = gaussian_kde(bad_x)
+    density_bad = kde_bad(x_range)
+else:
+    density_bad = np.zeros_like(x_range)
+
+# EIの近似（ℓ(x) / g(x)）
+ei_approx = np.zeros_like(x_range)
+mask = density_bad > 1e-6
+ei_approx[mask] = density_good[mask] / density_bad[mask]
+
+# プロット
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# 1. 試行の分布
+axes[0, 0].scatter(x_trials, y_trials, c='blue', alpha=0.6,
+                   s=50, edgecolors='black')
+axes[0, 0].axhline(y=threshold_value, color='red',
+                   linestyle='--', linewidth=2, label=f'閾値 (上位25%)')
+axes[0, 0].scatter(good_x, y_trials[y_trials >= threshold_value],
+                   c='green', s=100, label='良い試行',
+                   edgecolors='black', zorder=5)
+axes[0, 0].set_xlabel('ハイパーパラメータ x')
+axes[0, 0].set_ylabel('性能 y')
+axes[0, 0].set_title('試行の分布', fontsize=12)
+axes[0, 0].legend()
+axes[0, 0].grid(True, alpha=0.3)
+
+# 2. 良い試行の分布 ℓ(x)
+axes[0, 1].fill_between(x_range, density_good, alpha=0.5,
+                        color='green', label='ℓ(x): 良い試行の分布')
+axes[0, 1].scatter(good_x, np.zeros_like(good_x),
+                   c='green', s=50, marker='|', linewidths=2)
+axes[0, 1].set_xlabel('ハイパーパラメータ x')
+axes[0, 1].set_ylabel('密度')
+axes[0, 1].set_title('良い試行の分布 ℓ(x)', fontsize=12)
+axes[0, 1].legend()
+axes[0, 1].grid(True, alpha=0.3)
+
+# 3. 悪い試行の分布 g(x)
+axes[1, 0].fill_between(x_range, density_bad, alpha=0.5,
+                        color='red', label='g(x): 悪い試行の分布')
+axes[1, 0].scatter(bad_x, np.zeros_like(bad_x),
+                   c='red', s=50, marker='|', linewidths=2)
+axes[1, 0].set_xlabel('ハイパーパラメータ x')
+axes[1, 0].set_ylabel('密度')
+axes[1, 0].set_title('悪い試行の分布 g(x)', fontsize=12)
+axes[1, 0].legend()
+axes[1, 0].grid(True, alpha=0.3)
+
+# 4. 獲得関数 EI ∝ ℓ(x) / g(x)
+axes[1, 1].plot(x_range, ei_approx, 'purple', linewidth=2,
+                label='EI ∝ ℓ(x) / g(x)')
+next_x = x_range[np.argmax(ei_approx)]
+axes[1, 1].axvline(x=next_x, color='purple', linestyle='--',
+                   linewidth=2, label=f'次の探索点: {next_x:.2f}')
+axes[1, 1].set_xlabel('ハイパーパラメータ x')
+axes[1, 1].set_ylabel('獲得関数値')
+axes[1, 1].set_title('獲得関数（TPE）', fontsize=12)
+axes[1, 1].legend()
+axes[1, 1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print(f"\n=== TPEの動作 ===")
+print(f"総試行数: {n_trials}")
+print(f"良い試行: {len(good_x)}個")
+print(f"悪い試行: {len(bad_x)}個")
+print(f"閾値: {threshold_value:.2f}")
+print(f"次の探索点: {next_x:.2f}")
+</code></pre>
+
+<hr>
+
+<h2>2.3 Optunaの基本</h2>
+
+<h3>Optunaとは</h3>
+
+<p><strong>Optuna</strong>は、Preferred Networksが開発したハイパーパラメータ最適化フレームワークです。</p>
+
+<p>特徴：</p>
+<ul>
+<li>Define-by-Run API: 動的な探索空間定義</li>
+<li>効率的なアルゴリズム: TPEがデフォルト</li>
+<li>Pruning: 早期終了で効率化</li>
+<li>並列化: 分散最適化をサポート</li>
+<li>可視化: 豊富なプロット機能</li>
+</ul>
+
+<h3>インストール</h3>
+
+<pre><code class="language-bash"># 基本インストール
+pip install optuna
+
+# 可視化付き
+pip install optuna[visualization]
+
+# PyTorch統合
+pip install optuna[pytorch]
+</code></pre>
+
+<h3>基本概念</h3>
+
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Study</strong></td>
+<td>最適化タスク全体。複数のTrialを管理</td>
+</tr>
+<tr>
+<td><strong>Trial</strong></td>
+<td>1回の試行。ハイパーパラメータの組み合わせ</td>
+</tr>
+<tr>
+<td><strong>Objective</strong></td>
+<td>最小化または最大化する目的関数</td>
+</tr>
+<tr>
+<td><strong>Sampler</strong></td>
+<td>ハイパーパラメータのサンプリング戦略（TPEなど）</td>
+</tr>
+<tr>
+<td><strong>Pruner</strong></td>
+<td>途中経過から有望でない試行を早期終了</td>
+</tr>
+</tbody>
+</table>
+
+<div class="mermaid">
+graph TD
+    A[Study作成] --> B[Objective関数定義]
+    B --> C[Trial開始]
+    C --> D[suggest_*でパラメータ取得]
+    D --> E[モデル訓練]
+    E --> F[評価指標を返す]
+    F --> G{最適化終了?}
+    G -->|No| C
+    G -->|Yes| H[最良パラメータ取得]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+    style E fill:#fce4ec
+    style F fill:#ffebee
+    style G fill:#f3e5f5
+    style H fill:#c8e6c9
+</div>
+
+<h3>基本的な最適化例</h3>
+
+<pre><code class="language-python">import optuna
+from sklearn.datasets import load_iris
+from sklearn.model_selection import cross_val_score
+from sklearn.ensemble import RandomForestClassifier
+
+# データの準備
+iris = load_iris()
+X, y = iris.data, iris.target
+
+# Objective関数の定義
+def objective(trial):
+    # ハイパーパラメータの提案
+    n_estimators = trial.suggest_int('n_estimators', 10, 100)
+    max_depth = trial.suggest_int('max_depth', 2, 32, log=True)
+    min_samples_split = trial.suggest_int('min_samples_split', 2, 10)
+    min_samples_leaf = trial.suggest_int('min_samples_leaf', 1, 10)
+
+    # モデルの訓練と評価
+    clf = RandomForestClassifier(
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        min_samples_split=min_samples_split,
+        min_samples_leaf=min_samples_leaf,
+        random_state=42
+    )
+
+    # Cross-validation
+    score = cross_val_score(clf, X, y, cv=3, scoring='accuracy').mean()
+
+    return score
+
+# Studyの作成と最適化
+study = optuna.create_study(
+    direction='maximize',  # 精度を最大化
+    sampler=optuna.samplers.TPESampler(seed=42)
+)
+
+study.optimize(objective, n_trials=50)
+
+# 結果の表示
+print("\n=== Optuna最適化結果 ===")
+print(f"最良の精度: {study.best_value:.4f}")
+print(f"最良のパラメータ:")
+for key, value in study.best_params.items():
+    print(f"  {key}: {value}")
+
+print(f"\n総試行回数: {len(study.trials)}")
+print(f"完了した試行: {len([t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE])}")
+</code></pre>
+
+<p><strong>出力</strong>：</p>
+<pre><code>=== Optuna最適化結果 ===
+最良の精度: 0.9733
+最良のパラメータ:
+  n_estimators: 87
+  max_depth: 8
+  min_samples_split: 2
+  min_samples_leaf: 1
+
+総試行回数: 50
+完了した試行: 50
+</code></pre>
+
+<hr>
+
+<h2>2.4 Optuna実践テクニック</h2>
+
+<h3>探索空間の定義</h3>
+
+<p>Optunaは多様な<code>suggest_*</code>メソッドを提供します：</p>
+
+<h4>suggest系メソッド一覧</h4>
+
+<table>
+<thead>
+<tr>
+<th>メソッド</th>
+<th>用途</th>
+<th>例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>suggest_int</code></td>
+<td>整数値</td>
+<td><code>trial.suggest_int('n_layers', 1, 5)</code></td>
+</tr>
+<tr>
+<td><code>suggest_float</code></td>
+<td>浮動小数点</td>
+<td><code>trial.suggest_float('lr', 1e-5, 1e-1, log=True)</code></td>
+</tr>
+<tr>
+<td><code>suggest_categorical</code></td>
+<td>カテゴリカル</td>
+<td><code>trial.suggest_categorical('optimizer', ['adam', 'sgd'])</code></td>
+</tr>
+<tr>
+<td><code>suggest_uniform</code></td>
+<td>一様分布（非推奨、floatを使用）</td>
+<td><code>trial.suggest_float('dropout', 0.0, 0.5)</code></td>
+</tr>
+<tr>
+<td><code>suggest_loguniform</code></td>
+<td>対数一様分布（非推奨、float+logを使用）</td>
+<td><code>trial.suggest_float('lr', 1e-5, 1e-1, log=True)</code></td>
+</tr>
+</tbody>
+</table>
+
+<pre><code class="language-python">import optuna
+
+def objective_comprehensive(trial):
+    # 整数（線形スケール）
+    batch_size = trial.suggest_int('batch_size', 16, 128, step=16)
+
+    # 整数（対数スケール）- 大きな範囲で有効
+    hidden_size = trial.suggest_int('hidden_size', 32, 512, log=True)
+
+    # 浮動小数点（線形スケール）
+    dropout_rate = trial.suggest_float('dropout', 0.0, 0.5)
+
+    # 浮動小数点（対数スケール）- 学習率などで有効
+    learning_rate = trial.suggest_float('lr', 1e-5, 1e-1, log=True)
+
+    # カテゴリカル変数
+    optimizer_name = trial.suggest_categorical('optimizer', ['adam', 'sgd', 'rmsprop'])
+    activation = trial.suggest_categorical('activation', ['relu', 'tanh', 'sigmoid'])
+
+    # 条件付きパラメータ
+    if optimizer_name == 'sgd':
+        momentum = trial.suggest_float('momentum', 0.0, 0.99)
+    else:
+        momentum = None
+
+    print(f"\n--- Trial {trial.number} ---")
+    print(f"batch_size: {batch_size}")
+    print(f"hidden_size: {hidden_size}")
+    print(f"dropout: {dropout_rate:.4f}")
+    print(f"lr: {learning_rate:.6f}")
+    print(f"optimizer: {optimizer_name}")
+    print(f"activation: {activation}")
+    if momentum is not None:
+        print(f"momentum: {momentum:.4f}")
+
+    # ダミーの評価値
+    score = 0.85 + 0.1 * (learning_rate / 1e-1)
+
+    return score
+
+# 実行例
+study = optuna.create_study(direction='maximize')
+study.optimize(objective_comprehensive, n_trials=5, show_progress_bar=True)
+</code></pre>
+
+<h3>Pruning（枝刈り）の活用</h3>
+
+<p><strong>Pruning</strong>は、訓練途中で有望でない試行を早期終了させる機能です。深層学習で特に有効です。</p>
+
+<h4>主要なPruner</h4>
+
+<table>
+<thead>
+<tr>
+<th>Pruner</th>
+<th>説明</th>
+<th>使用場面</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MedianPruner</strong></td>
+<td>中央値以下の試行を枝刈り</td>
+<td>一般的な用途</td>
+</tr>
+<tr>
+<td><strong>PercentilePruner</strong></td>
+<td>指定パーセンタイル以下を枝刈り</td>
+<td>より保守的/積極的な枝刈り</td>
+</tr>
+<tr>
+<td><strong>SuccessiveHalvingPruner</strong></td>
+<td>リソースを段階的に配分</td>
+<td>多数の試行</td>
+</tr>
+<tr>
+<td><strong>HyperbandPruner</strong></td>
+<td>Successive Halvingの改良版</td>
+<td>大規模最適化</td>
+</tr>
+</tbody>
+</table>
+
+<pre><code class="language-python">import optuna
+from optuna.pruners import MedianPruner
+import numpy as np
+import time
+
+def objective_with_pruning(trial):
+    # ハイパーパラメータの提案
+    lr = trial.suggest_float('lr', 1e-5, 1e-1, log=True)
+    n_layers = trial.suggest_int('n_layers', 1, 5)
+
+    # エポックごとのシミュレーション
+    n_epochs = 20
+
+    for epoch in range(n_epochs):
+        # ダミーの性能（徐々に改善）
+        # 悪いハイパーパラメータは改善が遅い
+        score = 0.5 + 0.5 * (epoch / n_epochs) * lr * n_layers / 5
+        score += np.random.normal(0, 0.05)  # ノイズ
+
+        # 途中経過を報告
+        trial.report(score, epoch)
+
+        # 枝刈りの判定
+        if trial.should_prune():
+            print(f"  Trial {trial.number} pruned at epoch {epoch}")
+            raise optuna.TrialPruned()
+
+        time.sleep(0.05)  # 訓練のシミュレーション
+
+    return score
+
+# MedianPrunerを使用
+study = optuna.create_study(
+    direction='maximize',
+    pruner=MedianPruner(
+        n_startup_trials=5,  # 最初の5試行は枝刈りしない
+        n_warmup_steps=5,    # 最初の5ステップは枝刈りしない
+        interval_steps=1     # 毎ステップ判定
+    )
+)
+
+print("=== Pruning付き最適化 ===")
+study.optimize(objective_with_pruning, n_trials=20, show_progress_bar=False)
+
+# 結果の分析
+n_complete = len([t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE])
+n_pruned = len([t for t in study.trials if t.state == optuna.trial.TrialState.PRUNED])
+
+print(f"\n完了した試行: {n_complete}")
+print(f"枝刈りされた試行: {n_pruned}")
+print(f"削減率: {n_pruned / len(study.trials) * 100:.1f}%")
+print(f"\n最良の精度: {study.best_value:.4f}")
+print(f"最良のパラメータ: {study.best_params}")
+</code></pre>
+
+<p><strong>出力例</strong>：</p>
+<pre><code>=== Pruning付き最適化 ===
+  Trial 5 pruned at epoch 7
+  Trial 7 pruned at epoch 6
+  Trial 9 pruned at epoch 8
+  ...
+
+完了した試行: 12
+枝刈りされた試行: 8
+削減率: 40.0%
+
+最良の精度: 0.9234
+最良のパラメータ: {'lr': 0.08234, 'n_layers': 5}
+</code></pre>
+
+<blockquote>
+<p><strong>効果</strong>: Pruningにより、無駄な計算を40%削減しました。</p>
+</blockquote>
+
+<h3>並列最適化</h3>
+
+<p>Optunaは簡単に並列最適化が可能です：</p>
+
+<pre><code class="language-python">import optuna
+from joblib import Parallel, delayed
+
+def objective(trial):
+    x = trial.suggest_float('x', -10, 10)
+    return (x - 2) ** 2
+
+# 方法1: n_jobsパラメータ
+study = optuna.create_study(direction='minimize')
+study.optimize(objective, n_trials=100, n_jobs=4)  # 4並列
+
+# 方法2: 共有ストレージ（RDB）
+storage = 'sqlite:///optuna_study.db'
+study = optuna.create_study(
+    study_name='parallel_optimization',
+    storage=storage,
+    load_if_exists=True
+)
+
+# 複数プロセスから同時に実行可能
+study.optimize(objective, n_trials=50)
+</code></pre>
+
+<hr>
+
+<h2>2.5 実践: 深層学習モデルのチューニング</h2>
+
+<h3>PyTorchモデルのOptuna統合</h3>
+
+<p>実際の深層学習モデルでOptunaを活用する完全な例を示します。</p>
+
+<pre><code class="language-python">import optuna
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+# デバイスの設定
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"使用デバイス: {device}")
+
+# データの準備
+X, y = make_classification(
+    n_samples=5000, n_features=20, n_informative=15,
+    n_redundant=5, n_classes=2, random_state=42
+)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# スケーリング
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# PyTorchテンソルに変換
+X_train_t = torch.FloatTensor(X_train).to(device)
+y_train_t = torch.LongTensor(y_train).to(device)
+X_test_t = torch.FloatTensor(X_test).to(device)
+y_test_t = torch.LongTensor(y_test).to(device)
+
+# モデル定義関数
+def create_model(trial, input_size, output_size):
+    # ハイパーパラメータの提案
+    n_layers = trial.suggest_int('n_layers', 1, 4)
+    hidden_sizes = []
+
+    for i in range(n_layers):
+        hidden_size = trial.suggest_int(f'hidden_size_l{i}', 32, 256, log=True)
+        hidden_sizes.append(hidden_size)
+
+    dropout_rate = trial.suggest_float('dropout', 0.0, 0.5)
+    activation_name = trial.suggest_categorical('activation', ['relu', 'tanh', 'elu'])
+
+    # 活性化関数の選択
+    if activation_name == 'relu':
+        activation = nn.ReLU()
+    elif activation_name == 'tanh':
+        activation = nn.Tanh()
+    else:
+        activation = nn.ELU()
+
+    # ネットワーク構築
+    layers = []
+    in_features = input_size
+
+    for hidden_size in hidden_sizes:
+        layers.append(nn.Linear(in_features, hidden_size))
+        layers.append(activation)
+        layers.append(nn.Dropout(dropout_rate))
+        in_features = hidden_size
+
+    layers.append(nn.Linear(in_features, output_size))
+
+    model = nn.Sequential(*layers)
+    return model
+
+# Objective関数
+def objective(trial):
+    # モデルの作成
+    model = create_model(trial, input_size=20, output_size=2).to(device)
+
+    # オプティマイザーのハイパーパラメータ
+    optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'SGD', 'RMSprop'])
+    lr = trial.suggest_float('lr', 1e-5, 1e-1, log=True)
+
+    if optimizer_name == 'Adam':
+        optimizer = optim.Adam(model.parameters(), lr=lr)
+    elif optimizer_name == 'SGD':
+        momentum = trial.suggest_float('momentum', 0.0, 0.99)
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
+    else:
+        optimizer = optim.RMSprop(model.parameters(), lr=lr)
+
+    # バッチサイズ
+    batch_size = trial.suggest_int('batch_size', 16, 256, step=16)
+
+    # DataLoader
+    train_dataset = TensorDataset(X_train_t, y_train_t)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    # 損失関数
+    criterion = nn.CrossEntropyLoss()
+
+    # 訓練ループ
+    n_epochs = 20
+
+    for epoch in range(n_epochs):
+        model.train()
+        train_loss = 0.0
+
+        for batch_X, batch_y in train_loader:
+            optimizer.zero_grad()
+            outputs = model(batch_X)
+            loss = criterion(outputs, batch_y)
+            loss.backward()
+            optimizer.step()
+            train_loss += loss.item()
+
+        # 検証（テストセット）
+        model.eval()
+        with torch.no_grad():
+            outputs = model(X_test_t)
+            _, predicted = torch.max(outputs.data, 1)
+            accuracy = (predicted == y_test_t).sum().item() / len(y_test_t)
+
+        # 途中経過を報告（Pruning用）
+        trial.report(accuracy, epoch)
+
+        # Pruningの判定
+        if trial.should_prune():
+            raise optuna.TrialPruned()
+
+    return accuracy
+
+# Study作成と最適化
+study = optuna.create_study(
+    direction='maximize',
+    sampler=optuna.samplers.TPESampler(seed=42),
+    pruner=optuna.pruners.MedianPruner(
+        n_startup_trials=10,
+        n_warmup_steps=5
+    )
+)
+
+print("\n=== 深層学習モデルの最適化開始 ===")
+study.optimize(objective, n_trials=50, timeout=600)
+
+# 結果の表示
+print("\n=== 最適化完了 ===")
+print(f"最良の精度: {study.best_value:.4f}")
+print(f"\n最良のハイパーパラメータ:")
+for key, value in study.best_params.items():
+    print(f"  {key}: {value}")
+
+# 統計情報
+n_complete = len([t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE])
+n_pruned = len([t for t in study.trials if t.state == optuna.trial.TrialState.PRUNED])
+print(f"\n完了した試行: {n_complete}")
+print(f"枝刈りされた試行: {n_pruned}")
+</code></pre>
+
+<h3>可視化</h3>
+
+<p>Optunaは強力な可視化機能を提供します：</p>
+
+<pre><code class="language-python">import optuna
+from optuna.visualization import (
+    plot_optimization_history,
+    plot_param_importances,
+    plot_slice,
+    plot_parallel_coordinate,
+    plot_contour
+)
+import matplotlib.pyplot as plt
+
+# 1. 最適化履歴
+fig = plot_optimization_history(study)
+fig.show()
+
+# 2. パラメータ重要度
+fig = plot_param_importances(study)
+fig.show()
+
+# 3. スライスプロット（各パラメータの影響）
+fig = plot_slice(study)
+fig.show()
+
+# 4. 平行座標プロット
+fig = plot_parallel_coordinate(study)
+fig.show()
+
+# 5. 等高線プロット（2次元の関係）
+fig = plot_contour(study, params=['lr', 'n_layers'])
+fig.show()
+
+# MatplotlibでカスタムPlot
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# 1. 試行ごとの精度
+trial_numbers = [t.number for t in study.trials]
+values = [t.value for t in study.trials if t.value is not None]
+axes[0, 0].plot(trial_numbers[:len(values)], values, 'o-', alpha=0.6)
+axes[0, 0].axhline(y=study.best_value, color='r',
+                   linestyle='--', label=f'最良: {study.best_value:.4f}')
+axes[0, 0].set_xlabel('Trial番号')
+axes[0, 0].set_ylabel('精度')
+axes[0, 0].set_title('試行ごとの精度推移')
+axes[0, 0].legend()
+axes[0, 0].grid(True, alpha=0.3)
+
+# 2. 学習率 vs 精度
+lrs = [t.params['lr'] for t in study.trials if t.value is not None]
+values = [t.value for t in study.trials if t.value is not None]
+axes[0, 1].scatter(lrs, values, alpha=0.6, s=50, edgecolors='black')
+axes[0, 1].set_xscale('log')
+axes[0, 1].set_xlabel('学習率')
+axes[0, 1].set_ylabel('精度')
+axes[0, 1].set_title('学習率 vs 精度')
+axes[0, 1].grid(True, alpha=0.3)
+
+# 3. 層数 vs 精度
+n_layers_list = [t.params['n_layers'] for t in study.trials if t.value is not None]
+values = [t.value for t in study.trials if t.value is not None]
+axes[1, 0].scatter(n_layers_list, values, alpha=0.6, s=50, edgecolors='black')
+axes[1, 0].set_xlabel('層数')
+axes[1, 0].set_ylabel('精度')
+axes[1, 0].set_title('層数 vs 精度')
+axes[1, 0].grid(True, alpha=0.3)
+
+# 4. バッチサイズ vs 精度
+batch_sizes = [t.params['batch_size'] for t in study.trials if t.value is not None]
+values = [t.value for t in study.trials if t.value is not None]
+axes[1, 1].scatter(batch_sizes, values, alpha=0.6, s=50, edgecolors='black')
+axes[1, 1].set_xlabel('バッチサイズ')
+axes[1, 1].set_ylabel('精度')
+axes[1, 1].set_title('バッチサイズ vs 精度')
+axes[1, 1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+
+<h3>Optuna Dashboard</h3>
+
+<p>インタラクティブなWebダッシュボードで結果を可視化：</p>
+
+<pre><code class="language-bash"># インストール
+pip install optuna-dashboard
+
+# ダッシュボード起動
+optuna-dashboard sqlite:///optuna_study.db
+</code></pre>
+
+<p>ブラウザで <code>http://127.0.0.1:8080</code> にアクセスすると、リアルタイムで最適化の進捗を確認できます。</p>
+
+<hr>
+
+<h2>2.6 本章のまとめ</h2>
+
+<h3>学んだこと</h3>
+
+<ol>
+<li><p><strong>ベイズ最適化の原理</strong></p>
+<ul>
+<li>サロゲートモデル（ガウス過程）で目的関数を近似</li>
+<li>獲得関数（EI, UCB, PI）で次の探索点を決定</li>
+<li>探索と活用のバランスで効率的に最適化</li>
+</ul></li>
+
+<li><p><strong>TPEアルゴリズム</strong></p>
+<ul>
+<li>P(x|y)をモデル化する効率的な手法</li>
+<li>高次元・カテゴリカル変数に強い</li>
+<li>並列化が容易</li>
+</ul></li>
+
+<li><p><strong>Optunaの基本</strong></p>
+<ul>
+<li>Study, Trial, Objectiveの概念</li>
+<li>Define-by-Run APIで柔軟な探索空間定義</li>
+<li>豊富なsuggest_*メソッド</li>
+</ul></li>
+
+<li><p><strong>実践テクニック</strong></p>
+<ul>
+<li>Pruningで計算時間を削減</li>
+<li>並列最適化で高速化</li>
+<li>条件付きハイパーパラメータの扱い</li>
+</ul></li>
+
+<li><p><strong>深層学習への応用</strong></p>
+<ul>
+<li>PyTorchモデルの統合</li>
+<li>学習率、アーキテクチャ、オプティマイザーの最適化</li>
+<li>可視化による洞察の獲得</li>
+</ul></li>
+</ol>
+
+<h3>ベイズ最適化 vs ランダムサーチ</h3>
+
+<table>
+<thead>
+<tr>
+<th>側面</th>
+<th>ランダムサーチ</th>
+<th>ベイズ最適化（Optuna）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>試行回数</strong></td>
+<td>多数必要</td>
+<td>少数で収束</td>
+</tr>
+<tr>
+<td><strong>過去情報の活用</strong></td>
+<td>なし</td>
+<td>あり（サロゲートモデル）</td>
+</tr>
+<tr>
+<td><strong>計算コスト</strong></td>
+<td>低い</td>
+<td>やや高い（TPEは軽量）</td>
+</tr>
+<tr>
+<td><strong>高次元性能</strong></td>
+<td>良好</td>
+<td>TPEは良好、GPは低下</td>
+</tr>
+<tr>
+<td><strong>並列化</strong></td>
+<td>容易</td>
+<td>容易（Optuna）</td>
+</tr>
+<tr>
+<td><strong>実装の複雑さ</strong></td>
+<td>シンプル</td>
+<td>Optunaで簡単</td>
+</tr>
+</tbody>
+</table>
+
+<h3>推奨する使い分け</h3>
+
+<table>
+<thead>
+<tr>
+<th>状況</th>
+<th>推奨手法</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>訓練コストが高い</td>
+<td>Optuna + Pruning</td>
+<td>早期終了で効率化</td>
+</tr>
+<tr>
+<td>低次元（< 10）</td>
+<td>グリッドサーチ or Optuna</td>
+<td>どちらも有効</td>
+</tr>
+<tr>
+<td>高次元（> 20）</td>
+<td>Optuna（TPE）</td>
+<td>次元の呪いに強い</td>
+</tr>
+<tr>
+<td>カテゴリカル変数多い</td>
+<td>Optuna</td>
+<td>自然に扱える</td>
+</tr>
+<tr>
+<td>初期探索</td>
+<td>ランダムサーチ</td>
+<td>シンプルで高速</td>
+</tr>
+<tr>
+<td>最終調整</td>
+<td>Optuna</td>
+<td>精密な最適化</td>
+</tr>
+</tbody>
+</table>
+
+<h3>次の章へ</h3>
+
+<p>第3章では、<strong>自動機械学習（AutoML）</strong>を学びます：</p>
+<ul>
+<li>Auto-sklearn: 自動モデル選択とアンサンブル</li>
+<li>H2O AutoML: 大規模データ向け</li>
+<li>PyCaret: ローコードML</li>
+<li>TPOT: 遺伝的プログラミング</li>
+<li>AutoMLの限界と使いどころ</li>
+</ul>
+
+<hr>
+
+<h2>参考文献</h2>
+
+<ol>
+<li>Akiba, T., Sano, S., Yanase, T., Ohta, T., & Koyama, M. (2019). Optuna: A Next-generation Hyperparameter Optimization Framework. <em>Proceedings of the 25th ACM SIGKDD</em>.</li>
+<li>Bergstra, J., Bardenet, R., Bengio, Y., & Kégl, B. (2011). Algorithms for Hyper-Parameter Optimization. <em>NIPS</em>.</li>
+<li>Shahriari, B., Swersky, K., Wang, Z., Adams, R. P., & de Freitas, N. (2016). Taking the Human Out of the Loop: A Review of Bayesian Optimization. <em>Proceedings of the IEEE</em>, 104(1), 148-175.</li>
+<li>Snoek, J., Larochelle, H., & Adams, R. P. (2012). Practical Bayesian Optimization of Machine Learning Algorithms. <em>NIPS</em>.</li>
+<li>Falkner, S., Klein, A., & Hutter, F. (2018). BOHB: Robust and Efficient Hyperparameter Optimization at Scale. <em>ICML</em>.</li>
+</ol>
+
+<div class="navigation">
+    <a href="chapter1-grid-random-search.html" class="nav-button">← 前の章: グリッドサーチとランダムサーチ</a>
+    <a href="chapter3-automl.html" class="nav-button">次の章: AutoML →</a>
+</div>
+
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-21</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

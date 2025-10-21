@@ -223,7 +223,7 @@ graph TD
 
 ---
 
-### [第2章：ベイズ最適化の理論](./chapter2-fundamentals.html)
+### [第2章：ベイズ最適化の理論](./chapter-2.html)
 
 **難易度**: 初級〜中級
 **読了時間**: 30-35分
@@ -302,11 +302,11 @@ graph TD
     style F fill:#4CAF50,color:#fff
 ```
 
-**[第2章を読む →](./chapter2-fundamentals.html)**
+**[第2章を読む →](./chapter-2.html)**
 
 ---
 
-### [第3章：実践：材料探索への応用](./chapter3-hands-on.html)
+### [第3章：実践：材料探索への応用](./chapter-3.html)
 
 **難易度**: 中級
 **読了時間**: 35-40分
@@ -392,7 +392,7 @@ graph TD
 | BoTorch | 高 | ✅ | ✅ | ✅ | 産業応用、大規模問題 |
 | Ax | 中 | ✅ | ✅ | ✅ | A/Bテスト、Webサービス |
 
-**[第3章を読む →](./chapter3-hands-on.html)**
+**[第3章を読む →](./chapter-3.html)**
 
 ---
 
@@ -745,7 +745,7 @@ Transformer・Foundation Models入門
 
 3. **ロボティクス実験自動化入門** (中級〜上級)
    - 関連性: クローズドループ最適化の実装、自動実験装置との統合
-   - リンク: [../robotic-lab-automation/index.md](../robotic-lab-automation/index.html)
+   - リンク: [../robotic-lab-automation/index.md](../robotic-lab-automation-introduction/index.html)
    - **推奨度**: ⭐⭐⭐⭐⭐（次のステップとして最適）
 
 ### 学習パス全体図
