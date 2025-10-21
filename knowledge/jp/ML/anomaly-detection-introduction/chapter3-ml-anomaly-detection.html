@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章：機械学習ベース異常検知 - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第3章：機械学習ベース異常検知</h1>
+            <p class="subtitle">Isolation Forest、LOF、One-Class SVMによる異常検出</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 70-80分</span>
+                <span class="meta-item">📊 難易度: 中級</span>
+                <span class="meta-item">💻 コード例: 10個</span>
+                <span class="meta-item">📝 演習問題: 5問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>第3章：機械学習ベース異常検知</h1>
+
+<div class="learning-objectives">
+<h2>学習目標</h2>
+<ul>
+<li>Isolation Forestのアルゴリズム原理を理解する</li>
+<li>LOF（Local Outlier Factor）で局所的な異常を検出できる</li>
+<li>One-Class SVMによる正常データの境界学習を習得する</li>
+<li>DBSCANやその他の手法を異常検知に適用できる</li>
+<li>アンサンブル異常検知の実装方法を学ぶ</li>
+</ul>
+</div>
+
+<p><strong>読了時間</strong>: 70-80分</p>
+
+<hr />
+
+<h2>3.1 Isolation Forest（孤立森林）</h2>
+
+<p>Isolation Forestは、異常データが正常データより「分離しやすい」という性質を利用した異常検知アルゴリズムです。2008年にLiu et al.によって提案され、高次元データにも効果的に適用できます。</p>
+
+<h3>3.1.1 アルゴリズム原理</h3>
+
+<p><strong>基本アイデア:</strong></p>
+<ul>
+<li>異常データは数が少なく、正常データとは異なる特徴値を持つ</li>
+<li>ランダムに選んだ特徴量で分割を繰り返すと、異常データはより早く孤立する</li>
+<li>孤立までの分割回数（パス長）が短いほど異常度が高い</li>
+</ul>
+
+<p><strong>アルゴリズムステップ:</strong></p>
+
+<pre><code>1. ランダムに特徴量を選択
+2. その特徴量の最小値と最大値の間でランダムに分割点を選ぶ
+3. データを2つのグループに分ける
+4. 各グループに対して再帰的に1-3を繰り返す
+5. 各データポイントが孤立するまでのパス長を記録
+6. 複数の木（森）を構築し、平均パス長から異常スコアを計算
+</code></pre>
+
+<h3>3.1.2 パス長と異常スコア</h3>
+
+<p><strong>パス長（Path Length）:</strong></p>
+
+<p>データポイント $x$ が孤立するまでの分割回数を $h(x)$ とすると、正常データは深い位置（大きな $h(x)$）、異常データは浅い位置（小さな $h(x)$）に孤立します。</p>
+
+<p><strong>異常スコアの計算:</strong></p>
+
+$$
+s(x, n) = 2^{-\frac{E[h(x)]}{c(n)}}
+$$
+
+<p>ここで:</p>
+<ul>
+<li>$E[h(x)]$: 複数の木における平均パス長</li>
+<li>$c(n)$: サンプルサイズ $n$ における平均パス長の正規化定数</li>
+<li>$c(n) = 2H(n-1) - \frac{2(n-1)}{n}$ （$H(i)$ は調和数）</li>
+</ul>
+
+<p><strong>スコアの解釈:</strong></p>
+<ul>
+<li>$s \approx 1$: 異常（明確な異常値）</li>
+<li>$s \approx 0.5$: 正常（平均的なパス長）</li>
+<li>$s < 0.5$: 正常（平均より深い位置）</li>
+</ul>
+
+<h3>3.1.3 ハイパーパラメータ調整</h3>
+
+<p><strong>主要パラメータ:</strong></p>
+
+<table>
+<thead>
+<tr>
+<th>パラメータ</th>
+<th>説明</th>
+<th>推奨値</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>n_estimators</code></td>
+<td>木の数</td>
+<td>100-200（デフォルト: 100）</td>
+</tr>
+<tr>
+<td><code>max_samples</code></td>
+<td>各木でサンプリングするデータ数</td>
+<td>256（デフォルト: auto）</td>
+</tr>
+<tr>
+<td><code>contamination</code></td>
+<td>異常データの割合</td>
+<td>0.1（データに依存）</td>
+</tr>
+<tr>
+<td><code>max_features</code></td>
+<td>各分割で考慮する特徴量数</td>
+<td>1.0（全特徴量）</td>
+</tr>
+</tbody>
+</table>
+
+<p><strong>パラメータ選択のガイドライン:</strong></p>
+<ul>
+<li><code>n_estimators</code>: 多いほど安定するが計算コスト増加（100-200で十分）</li>
+<li><code>max_samples</code>: 256が推奨（論文のデフォルト）、大規模データでは小さくしてスピードアップ</li>
+<li><code>contamination</code>: 事前に異常率がわかっていればそれを設定、不明なら0.1</li>
+</ul>
+
+<h3>3.1.4 scikit-learn実装</h3>
+
+<p><strong>基本実装:</strong></p>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.ensemble import IsolationForest
+from sklearn.datasets import make_blobs
+
+# サンプルデータ生成（正常データ + 異常データ）
+np.random.seed(42)
+X_normal, _ = make_blobs(n_samples=300, centers=1, cluster_std=0.5, random_state=42)
+X_anomaly = np.random.uniform(low=-4, high=4, size=(20, 2))  # 異常データ
+X = np.vstack([X_normal, X_anomaly])
+
+# Isolation Forestモデル
+iso_forest = IsolationForest(
+    n_estimators=100,
+    max_samples=256,
+    contamination=0.1,  # 10%が異常と想定
+    random_state=42
+)
+
+# 学習と予測
+y_pred = iso_forest.fit_predict(X)  # -1: 異常、1: 正常
+scores = iso_forest.score_samples(X)  # 異常スコア（低いほど異常）
+
+# 可視化
+plt.figure(figsize=(12, 5))
+
+plt.subplot(1, 2, 1)
+plt.scatter(X[:, 0], X[:, 1], c=y_pred, cmap='coolwarm', edgecolors='k')
+plt.title('Isolation Forest: 異常検知結果')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.colorbar(label='Prediction (-1: Anomaly, 1: Normal)')
+
+plt.subplot(1, 2, 2)
+plt.scatter(X[:, 0], X[:, 1], c=scores, cmap='viridis', edgecolors='k')
+plt.title('Isolation Forest: 異常スコア')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.colorbar(label='Anomaly Score')
+
+plt.tight_layout()
+plt.show()
+
+print(f"検出された異常データ数: {np.sum(y_pred == -1)}")
+print(f"異常スコア範囲: [{scores.min():.3f}, {scores.max():.3f}]")
+</code></pre>
+
+<p><strong>出力例:</strong></p>
+<pre><code>検出された異常データ数: 32
+異常スコア範囲: [-0.234, 0.178]
+</code></pre>
+
+<p><strong>実データへの適用例（クレジットカード不正検知）:</strong></p>
+
+<pre><code class="language-python">import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix
+
+# データ読み込み（仮想的な例）
+# 実際のデータは Kaggle Credit Card Fraud Detection などを使用
+# URL: https://www.kaggle.com/mlg-ulb/creditcardfraud
+
+# サンプルデータ生成（実データの代替）
+np.random.seed(42)
+n_normal = 1000
+n_fraud = 50
+
+# 正常取引（金額小、回数多、地理的に集中）
+normal_features = np.random.randn(n_normal, 5) * [10, 5, 2, 1, 0.5]
+normal_labels = np.zeros(n_normal)
+
+# 不正取引（金額大、回数少、地理的に分散）
+fraud_features = np.random.randn(n_fraud, 5) * [50, 1, 10, 5, 3] + [100, 0, 50, 20, 10]
+fraud_labels = np.ones(n_fraud)
+
+X = np.vstack([normal_features, fraud_features])
+y = np.hstack([normal_labels, fraud_labels])
+
+# 訓練・テスト分割
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, stratify=y, random_state=42
+)
+
+# Isolation Forest（正常データのみで学習）
+iso_forest = IsolationForest(
+    n_estimators=100,
+    contamination=0.05,  # 5%が不正と想定
+    random_state=42
+)
+
+# 訓練データで学習
+iso_forest.fit(X_train)
+
+# テストデータで予測
+y_pred = iso_forest.predict(X_test)
+y_pred = np.where(y_pred == -1, 1, 0)  # -1を1（不正）に変換
+
+# 評価
+print("Confusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred, target_names=['Normal', 'Fraud']))
+</code></pre>
+
+<p><strong>出力例:</strong></p>
+<pre><code>Confusion Matrix:
+[[285  15]
+ [  3  12]]
+
+Classification Report:
+              precision    recall  f1-score   support
+
+      Normal       0.99      0.95      0.97       300
+       Fraud       0.44      0.80      0.57        15
+
+    accuracy                           0.94       315
+   macro avg       0.72      0.88      0.77       315
+weighted avg       0.96      0.94      0.95       315
+</code></pre>
+
+<hr />
+
+<h2>3.2 LOF（Local Outlier Factor）</h2>
+
+<p>LOFは、各データポイントの局所的な密度に基づいて異常を検出する手法です。2000年にBreunig et al.によって提案されました。</p>
+
+<h3>3.2.1 密度ベース異常検知</h3>
+
+<p><strong>基本原理:</strong></p>
+<ul>
+<li>正常データは高密度領域に存在する</li>
+<li>異常データは低密度領域に存在する</li>
+<li>各点の密度を近傍点の密度と比較して異常度を計算</li>
+</ul>
+
+<p><strong>なぜ「局所的」か:</strong></p>
+<ul>
+<li>グローバルな密度では検出できない異常も検出可能</li>
+<li>密度が異なる複数のクラスタが存在する場合に有効</li>
+<li>各点の周辺環境を考慮した相対的な異常度を算出</li>
+</ul>
+
+<h3>3.2.2 局所到達可能密度（Local Reachability Density）</h3>
+
+<p><strong>k距離（k-distance）:</strong></p>
+
+<p>点 $p$ から k番目に近い点までの距離を $d_k(p)$ とします。</p>
+
+<p><strong>到達可能距離（Reachability Distance）:</strong></p>
+
+$$
+\text{reach-dist}_k(p, o) = \max\{d_k(o), d(p, o)\}
+$$
+
+<ul>
+<li>$d(p, o)$: 点 $p$ と $o$ 間の実際の距離</li>
+<li>近傍点 $o$ が密な場合、到達可能距離は $d_k(o)$ で下限が設定される</li>
+</ul>
+
+<p><strong>局所到達可能密度（LRD）:</strong></p>
+
+$$
+\text{LRD}_k(p) = \frac{1}{\frac{\sum_{o \in N_k(p)} \text{reach-dist}_k(p, o)}{|N_k(p)|}}
+$$
+
+<ul>
+<li>$N_k(p)$: 点 $p$ の k近傍点の集合</li>
+<li>到達可能距離の平均の逆数 = 密度</li>
+</ul>
+
+<h3>3.2.3 LOFスコアの計算</h3>
+
+<p><strong>LOF（Local Outlier Factor）:</strong></p>
+
+$$
+\text{LOF}_k(p) = \frac{\sum_{o \in N_k(p)} \frac{\text{LRD}_k(o)}{\text{LRD}_k(p)}}{|N_k(p)|}
+$$
+
+<p><strong>スコアの解釈:</strong></p>
+<ul>
+<li>$\text{LOF} \approx 1$: 正常（近傍と同程度の密度）</li>
+<li>$\text{LOF} \gg 1$: 異常（近傍より密度が低い）</li>
+<li>$\text{LOF} < 1$: 正常（近傍より密度が高い）</li>
+</ul>
+
+<p>一般的に $\text{LOF} > 1.5$ を異常とみなします。</p>
+
+<h3>3.2.4 完全な実装例</h3>
+
+<p><strong>基本実装:</strong></p>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.datasets import make_moons
+
+# サンプルデータ生成（月型データ + 異常点）
+np.random.seed(42)
+X, _ = make_moons(n_samples=300, noise=0.05, random_state=42)
+X_outliers = np.random.uniform(low=-1, high=2, size=(20, 2))
+X = np.vstack([X, X_outliers])
+
+# LOFモデル
+lof = LocalOutlierFactor(
+    n_neighbors=20,  # 近傍点数
+    contamination=0.1,  # 異常率
+    novelty=False  # 新規データ予測にはTrue
+)
+
+# 予測
+y_pred = lof.fit_predict(X)  # -1: 異常、1: 正常
+scores = lof.negative_outlier_factor_  # 負の異常度スコア（低いほど異常）
+
+# 可視化
+plt.figure(figsize=(12, 5))
+
+plt.subplot(1, 2, 1)
+plt.scatter(X[:, 0], X[:, 1], c=y_pred, cmap='coolwarm', edgecolors='k')
+plt.title('LOF: 異常検知結果')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.colorbar(label='Prediction (-1: Anomaly, 1: Normal)')
+
+plt.subplot(1, 2, 2)
+plt.scatter(X[:, 0], X[:, 1], c=scores, cmap='viridis', edgecolors='k')
+plt.title('LOF: 異常スコア')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.colorbar(label='Negative Outlier Factor')
+
+plt.tight_layout()
+plt.show()
+
+print(f"検出された異常データ数: {np.sum(y_pred == -1)}")
+print(f"異常スコア範囲: [{scores.min():.3f}, {scores.max():.3f}]")
+</code></pre>
+
+<p><strong>n_neighborsパラメータの影響:</strong></p>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.neighbors import LocalOutlierFactor
+
+# データ生成
+np.random.seed(42)
+X_normal = np.random.randn(200, 2) * 0.5
+X_outliers = np.random.uniform(low=-3, high=3, size=(10, 2))
+X = np.vstack([X_normal, X_outliers])
+
+# 異なるn_neighborsで比較
+n_neighbors_list = [5, 20, 50]
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+for idx, n_neighbors in enumerate(n_neighbors_list):
+    lof = LocalOutlierFactor(n_neighbors=n_neighbors, contamination=0.1)
+    y_pred = lof.fit_predict(X)
+
+    axes[idx].scatter(X[:, 0], X[:, 1], c=y_pred, cmap='coolwarm', edgecolors='k')
+    axes[idx].set_title(f'LOF (n_neighbors={n_neighbors})')
+    axes[idx].set_xlabel('Feature 1')
+    axes[idx].set_ylabel('Feature 2')
+
+    anomaly_count = np.sum(y_pred == -1)
+    axes[idx].text(0.05, 0.95, f'Anomalies: {anomaly_count}',
+                   transform=axes[idx].transAxes, verticalalignment='top',
+                   bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+
+<p><strong>新規データの異常検知（novelty=True）:</strong></p>
+
+<pre><code class="language-python">from sklearn.neighbors import LocalOutlierFactor
+from sklearn.model_selection import train_test_split
+
+# データ準備
+np.random.seed(42)
+X_train = np.random.randn(500, 2) * 0.5  # 正常データのみ
+X_test_normal = np.random.randn(100, 2) * 0.5
+X_test_outliers = np.random.uniform(low=-3, high=3, size=(10, 2))
+X_test = np.vstack([X_test_normal, X_test_outliers])
+
+# LOF（novelty=True: 新規データ予測モード）
+lof = LocalOutlierFactor(n_neighbors=20, contamination=0.1, novelty=True)
+lof.fit(X_train)  # 正常データのみで学習
+
+# 新規データの予測
+y_pred = lof.predict(X_test)
+scores = lof.score_samples(X_test)
+
+# 可視化
+plt.figure(figsize=(10, 6))
+plt.scatter(X_train[:, 0], X_train[:, 1], alpha=0.3, label='Training Data', color='blue')
+plt.scatter(X_test[:, 0], X_test[:, 1], c=y_pred, cmap='coolwarm',
+            edgecolors='k', s=100, label='Test Data')
+plt.title('LOF: 新規データの異常検知（novelty=True）')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.legend()
+plt.colorbar(label='Prediction (-1: Anomaly, 1: Normal)')
+plt.show()
+
+print(f"検出された異常データ数: {np.sum(y_pred == -1)}/{len(y_pred)}")
+</code></pre>
+
+<hr />
+
+<h2>3.3 One-Class SVM</h2>
+
+<p>One-Class SVMは、正常データの境界を学習し、その境界の外側にあるデータを異常として検出する手法です。</p>
+
+<h3>3.3.1 最大マージン超平面</h3>
+
+<p><strong>基本原理:</strong></p>
+<ul>
+<li>正常データを原点から最もよく分離する超平面を見つける</li>
+<li>超平面とデータ点の間のマージンを最大化</li>
+<li>カーネルトリックで非線形な境界を学習</li>
+</ul>
+
+<p><strong>数式定義:</strong></p>
+
+<p>決定関数:</p>
+
+$$
+f(x) = \text{sign}(w \cdot \phi(x) - \rho)
+$$
+
+<ul>
+<li>$w$: 法線ベクトル</li>
+<li>$\phi(x)$: カーネル変換後の特徴ベクトル</li>
+<li>$\rho$: バイアス項</li>
+</ul>
+
+<p>最適化問題:</p>
+
+$$
+\min_{w, \rho, \xi} \frac{1}{2} \|w\|^2 + \frac{1}{\nu n} \sum_{i=1}^{n} \xi_i - \rho
+$$
+
+<p>制約:</p>
+
+$$
+w \cdot \phi(x_i) \geq \rho - \xi_i, \quad \xi_i \geq 0
+$$
+
+<h3>3.3.2 カーネルトリック</h3>
+
+<p><strong>線形カーネル:</strong></p>
+
+$$
+K(x, x') = x \cdot x'
+$$
+
+<ul>
+<li>高速、解釈しやすい</li>
+<li>線形分離可能なデータに適用</li>
+</ul>
+
+<p><strong>RBF（ガウス）カーネル:</strong></p>
+
+$$
+K(x, x') = \exp\left(-\gamma \|x - x'\|^2\right)
+$$
+
+<ul>
+<li>非線形境界を学習可能</li>
+<li>最もよく使われるカーネル</li>
+<li>$\gamma$: カーネル幅（大きいほど複雑な境界）</li>
+</ul>
+
+<p><strong>多項式カーネル:</strong></p>
+
+$$
+K(x, x') = (\gamma x \cdot x' + r)^d
+$$
+
+<ul>
+<li>次数 $d$ の多項式境界</li>
+<li>RBFより制約が強い</li>
+</ul>
+
+<h3>3.3.3 nuパラメータ</h3>
+
+<p><strong>nuの意味:</strong></p>
+
+<p>$\nu \in (0, 1]$ は以下の2つの量の上限と下限を制御します:</p>
+<ul>
+<li>訓練データにおける異常値の割合の<strong>上限</strong></li>
+<li>サポートベクターの割合の<strong>下限</strong></li>
+</ul>
+
+<p><strong>推奨値:</strong></p>
+<ul>
+<li>$\nu = 0.1$: 10%が異常と想定</li>
+<li>$\nu = 0.05$: 5%が異常と想定</li>
+<li>$\nu = 0.01$: 1%が異常と想定</li>
+</ul>
+
+<p><strong>注意点:</strong></p>
+<ul>
+<li>$\nu$ を小さくしすぎると、ほとんど異常が検出されない</li>
+<li>$\nu$ を大きくしすぎると、正常データも異常と判定される</li>
+<li>ドメイン知識や事前の異常率から設定</li>
+</ul>
+
+<h3>3.3.4 scikit-learn実装</h3>
+
+<p><strong>基本実装:</strong></p>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.svm import OneClassSVM
+
+# データ生成
+np.random.seed(42)
+X_train = np.random.randn(200, 2) * 0.5  # 正常データ
+X_test_normal = np.random.randn(50, 2) * 0.5
+X_test_outliers = np.random.uniform(low=-3, high=3, size=(10, 2))
+X_test = np.vstack([X_test_normal, X_test_outliers])
+
+# One-Class SVM
+oc_svm = OneClassSVM(
+    kernel='rbf',  # RBFカーネル
+    gamma='auto',  # gamma = 1 / n_features
+    nu=0.1  # 10%が異常と想定
+)
+
+# 学習
+oc_svm.fit(X_train)
+
+# 予測
+y_pred_train = oc_svm.predict(X_train)
+y_pred_test = oc_svm.predict(X_test)
+scores_test = oc_svm.decision_function(X_test)
+
+# 決定境界の可視化
+xx, yy = np.meshgrid(np.linspace(-3, 3, 500), np.linspace(-3, 3, 500))
+Z = oc_svm.decision_function(np.c_[xx.ravel(), yy.ravel()])
+Z = Z.reshape(xx.shape)
+
+plt.figure(figsize=(12, 5))
+
+plt.subplot(1, 2, 1)
+plt.contourf(xx, yy, Z, levels=np.linspace(Z.min(), 0, 7), cmap=plt.cm.Blues_r)
+plt.contour(xx, yy, Z, levels=[0], linewidths=2, colors='darkred')
+plt.scatter(X_train[:, 0], X_train[:, 1], c='white', s=20, edgecolors='k', label='Training')
+plt.title('One-Class SVM: 決定境界')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.legend()
+
+plt.subplot(1, 2, 2)
+plt.scatter(X_test[:, 0], X_test[:, 1], c=y_pred_test, cmap='coolwarm',
+            edgecolors='k', s=100)
+plt.title('One-Class SVM: テストデータ予測')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.colorbar(label='Prediction (-1: Anomaly, 1: Normal)')
+
+plt.tight_layout()
+plt.show()
+
+print(f"訓練データの異常数: {np.sum(y_pred_train == -1)}/{len(y_pred_train)}")
+print(f"テストデータの異常数: {np.sum(y_pred_test == -1)}/{len(y_pred_test)}")
+</code></pre>
+
+<p><strong>gammaパラメータの影響:</strong></p>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.svm import OneClassSVM
+
+# データ生成
+np.random.seed(42)
+X_train = np.random.randn(200, 2) * 0.5
+
+# 異なるgammaで比較
+gamma_list = [0.01, 0.1, 1.0]
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+for idx, gamma in enumerate(gamma_list):
+    oc_svm = OneClassSVM(kernel='rbf', gamma=gamma, nu=0.1)
+    oc_svm.fit(X_train)
+
+    # 決定境界
+    xx, yy = np.meshgrid(np.linspace(-3, 3, 300), np.linspace(-3, 3, 300))
+    Z = oc_svm.decision_function(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+
+    axes[idx].contourf(xx, yy, Z, levels=np.linspace(Z.min(), 0, 7), cmap=plt.cm.Blues_r)
+    axes[idx].contour(xx, yy, Z, levels=[0], linewidths=2, colors='darkred')
+    axes[idx].scatter(X_train[:, 0], X_train[:, 1], c='white', s=20, edgecolors='k')
+    axes[idx].set_title(f'One-Class SVM (gamma={gamma})')
+    axes[idx].set_xlabel('Feature 1')
+    axes[idx].set_ylabel('Feature 2')
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+
+<hr />
+
+<h2>3.4 その他の機械学習手法</h2>
+
+<h3>3.4.1 DBSCAN（密度ベースクラスタリング）</h3>
+
+<p><strong>原理:</strong></p>
+<ul>
+<li>密度の高い領域をクラスタとして検出</li>
+<li>どのクラスタにも属さない点をノイズ（異常）とみなす</li>
+<li>クラスタ数を事前に指定する必要がない</li>
+</ul>
+
+<p><strong>主要パラメータ:</strong></p>
+<ul>
+<li><code>eps</code>: 近傍の半径（距離の閾値）</li>
+<li><code>min_samples</code>: コア点になるための最小近傍点数</li>
+</ul>
+
+<p><strong>実装例:</strong></p>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.cluster import DBSCAN
+
+# データ生成
+np.random.seed(42)
+X_cluster1 = np.random.randn(100, 2) * 0.3 + [0, 0]
+X_cluster2 = np.random.randn(100, 2) * 0.3 + [3, 3]
+X_outliers = np.random.uniform(low=-2, high=5, size=(20, 2))
+X = np.vstack([X_cluster1, X_cluster2, X_outliers])
+
+# DBSCAN
+dbscan = DBSCAN(eps=0.5, min_samples=5)
+labels = dbscan.fit_predict(X)
+
+# ラベル-1がノイズ（異常）
+outliers = labels == -1
+
+# 可視化
+plt.figure(figsize=(10, 6))
+plt.scatter(X[~outliers, 0], X[~outliers, 1], c=labels[~outliers],
+            cmap='viridis', edgecolors='k', label='Clusters')
+plt.scatter(X[outliers, 0], X[outliers, 1], c='red', marker='x',
+            s=100, label='Outliers (Anomalies)')
+plt.title('DBSCAN: 密度ベース異常検知')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.legend()
+plt.show()
+
+print(f"検出されたクラスタ数: {len(set(labels)) - (1 if -1 in labels else 0)}")
+print(f"異常データ数: {np.sum(outliers)}")
+</code></pre>
+
+<h3>3.4.2 Elliptic Envelope（楕円エンベロープ）</h3>
+
+<p><strong>原理:</strong></p>
+<ul>
+<li>正規分布を仮定し、データの中心と共分散を推定</li>
+<li>マハラノビス距離で異常を検出</li>
+<li>ロバスト推定（Minimum Covariance Determinant）で外れ値の影響を抑える</li>
+</ul>
+
+<p><strong>実装例:</strong></p>
+
+<pre><code class="language-python">from sklearn.covariance import EllipticEnvelope
+import numpy as np
+import matplotlib.pyplot as plt
+
+# データ生成
+np.random.seed(42)
+X_normal = np.random.randn(200, 2)
+X_outliers = np.random.uniform(low=-5, high=5, size=(10, 2))
+X = np.vstack([X_normal, X_outliers])
+
+# Elliptic Envelope
+elliptic = EllipticEnvelope(contamination=0.1, random_state=42)
+y_pred = elliptic.fit_predict(X)
+
+# 可視化
+plt.figure(figsize=(10, 6))
+plt.scatter(X[:, 0], X[:, 1], c=y_pred, cmap='coolwarm', edgecolors='k')
+plt.title('Elliptic Envelope: 異常検知')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.colorbar(label='Prediction (-1: Anomaly, 1: Normal)')
+plt.show()
+
+print(f"検出された異常データ数: {np.sum(y_pred == -1)}")
+</code></pre>
+
+<h3>3.4.3 Robust Covariance（ロバスト共分散推定）</h3>
+
+<p><strong>Minimum Covariance Determinant（MCD）:</strong></p>
+<ul>
+<li>共分散行列の行列式を最小化するサブセットを探索</li>
+<li>外れ値に対してロバストな推定</li>
+<li>マハラノビス距離の計算に使用</li>
+</ul>
+
+<pre><code class="language-python">from sklearn.covariance import MinCovDet
+import numpy as np
+
+# データ生成
+np.random.seed(42)
+X = np.random.randn(100, 2)
+X[:5] = X[:5] + 5  # 外れ値追加
+
+# MCD推定
+mcd = MinCovDet(random_state=42)
+mcd.fit(X)
+
+# マハラノビス距離の計算
+distances = mcd.mahalanobis(X)
+
+# 異常判定（カイ二乗分布の95パーセンタイル）
+from scipy import stats
+threshold = stats.chi2.ppf(0.95, df=2)
+outliers = distances > threshold
+
+print(f"異常データ数: {np.sum(outliers)}")
+print(f"距離の閾値: {threshold:.2f}")
+</code></pre>
+
+<h3>3.4.4 PyODライブラリ</h3>
+
+<p><strong>PyOD（Python Outlier Detection）</strong>は、異常検知専門のライブラリで40以上のアルゴリズムを提供します。</p>
+
+<p><strong>インストール:</strong></p>
+
+<pre><code class="language-bash">pip install pyod
+</code></pre>
+
+<p><strong>使用例:</strong></p>
+
+<pre><code class="language-python">from pyod.models.knn import KNN
+from pyod.models.iforest import IForest
+from pyod.models.lof import LOF
+from pyod.utils.data import generate_data
+from pyod.utils.utility import standardizer
+import numpy as np
+
+# データ生成
+X_train, X_test, y_train, y_test = generate_data(
+    n_train=200, n_test=100, n_features=2,
+    contamination=0.1, random_state=42
+)
+
+# データ標準化
+X_train = standardizer(X_train)
+X_test = standardizer(X_test)
+
+# 複数モデルの比較
+models = {
+    'KNN': KNN(contamination=0.1),
+    'IForest': IForest(contamination=0.1, random_state=42),
+    'LOF': LOF(contamination=0.1)
+}
+
+for name, model in models.items():
+    model.fit(X_train)
+    y_pred = model.predict(X_test)
+    scores = model.decision_function(X_test)
+
+    # 評価（仮想的な正解ラベルで）
+    from sklearn.metrics import roc_auc_score
+    auc = roc_auc_score(y_test, scores)
+
+    print(f"{name}:")
+    print(f"  AUC-ROC: {auc:.3f}")
+    print(f"  検出異常数: {np.sum(y_pred == 1)}")
+    print()
+</code></pre>
+
+<p><strong>出力例:</strong></p>
+<pre><code>KNN:
+  AUC-ROC: 0.892
+  検出異常数: 10
+
+IForest:
+  AUC-ROC: 0.915
+  検出異常数: 10
+
+LOF:
+  AUC-ROC: 0.903
+  検出異常数: 10
+</code></pre>
+
+<hr />
+
+<h2>3.5 アンサンブル異常検知</h2>
+
+<p>複数の異常検知アルゴリズムを組み合わせることで、より高精度で安定した異常検知が可能になります。</p>
+
+<h3>3.5.1 Feature Bagging</h3>
+
+<p><strong>原理:</strong></p>
+<ul>
+<li>特徴量のサブセットをランダムに選択</li>
+<li>各サブセットで異常検知モデルを訓練</li>
+<li>複数モデルの予測を集約</li>
+</ul>
+
+<p><strong>実装例:</strong></p>
+
+<pre><code class="language-python">from pyod.models.feature_bagging import FeatureBagging
+from pyod.models.lof import LOF
+from pyod.utils.data import generate_data
+from sklearn.metrics import roc_auc_score
+
+# データ生成
+X_train, X_test, y_train, y_test = generate_data(
+    n_train=200, n_test=100, n_features=10,
+    contamination=0.1, random_state=42
+)
+
+# Feature Bagging（ベースモデル: LOF）
+fb = FeatureBagging(
+    base_estimator=LOF(),
+    n_estimators=10,  # モデル数
+    contamination=0.1,
+    random_state=42
+)
+
+# 学習と予測
+fb.fit(X_train)
+y_pred = fb.predict(X_test)
+scores = fb.decision_function(X_test)
+
+# 評価
+auc = roc_auc_score(y_test, scores)
+print(f"Feature Bagging AUC-ROC: {auc:.3f}")
+print(f"検出異常数: {np.sum(y_pred == 1)}")
+</code></pre>
+
+<h3>3.5.2 モデル平均化（Model Averaging）</h3>
+
+<p><strong>原理:</strong></p>
+<ul>
+<li>複数の異なるアルゴリズムを訓練</li>
+<li>各モデルの異常スコアを平均化</li>
+<li>単一モデルより頑健な予測</li>
+</ul>
+
+<p><strong>実装例:</strong></p>
+
+<pre><code class="language-python">from pyod.models.combination import average, maximization
+from pyod.models.knn import KNN
+from pyod.models.iforest import IForest
+from pyod.models.lof import LOF
+from pyod.utils.data import generate_data
+import numpy as np
+
+# データ生成
+X_train, X_test, y_train, y_test = generate_data(
+    n_train=200, n_test=100, n_features=5,
+    contamination=0.1, random_state=42
+)
+
+# 複数モデルの訓練
+models = [
+    KNN(contamination=0.1),
+    IForest(contamination=0.1, random_state=42),
+    LOF(contamination=0.1)
+]
+
+# 各モデルのスコアを計算
+scores_list = []
+for model in models:
+    model.fit(X_train)
+    scores = model.decision_function(X_test)
+    scores_list.append(scores)
+
+scores_array = np.array(scores_list)
+
+# スコア集約（平均）
+scores_avg = average(scores_array)
+
+# スコア集約（最大値）
+scores_max = maximization(scores_array)
+
+# 評価
+from sklearn.metrics import roc_auc_score
+auc_avg = roc_auc_score(y_test, scores_avg)
+auc_max = roc_auc_score(y_test, scores_max)
+
+print(f"Average Combination AUC-ROC: {auc_avg:.3f}")
+print(f"Maximum Combination AUC-ROC: {auc_max:.3f}")
+</code></pre>
+
+<h3>3.5.3 Isolation-Based Ensemble</h3>
+
+<p><strong>LSCP（Locally Selective Combination in Parallel）:</strong></p>
+<ul>
+<li>各テストサンプルに対して局所的に最適なモデルを選択</li>
+<li>近傍での性能に基づいてモデルを重み付け</li>
+<li>グローバルな平均化より高精度</li>
+</ul>
+
+<pre><code class="language-python">from pyod.models.lscp import LSCP
+from pyod.models.knn import KNN
+from pyod.models.iforest import IForest
+from pyod.models.lof import LOF
+from pyod.utils.data import generate_data
+
+# データ生成
+X_train, X_test, y_train, y_test = generate_data(
+    n_train=200, n_test=100, n_features=5,
+    contamination=0.1, random_state=42
+)
+
+# ベースモデルのリスト
+detector_list = [
+    KNN(),
+    IForest(random_state=42),
+    LOF()
+]
+
+# LSCP
+lscp = LSCP(detector_list, contamination=0.1, random_state=42)
+lscp.fit(X_train)
+
+# 予測
+y_pred = lscp.predict(X_test)
+scores = lscp.decision_function(X_test)
+
+# 評価
+from sklearn.metrics import roc_auc_score
+auc = roc_auc_score(y_test, scores)
+print(f"LSCP AUC-ROC: {auc:.3f}")
+print(f"検出異常数: {np.sum(y_pred == 1)}")
+</code></pre>
+
+<h3>3.5.4 完全なパイプライン例</h3>
+
+<p><strong>データ前処理 → 複数モデル訓練 → アンサンブル → 評価:</strong></p>
+
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from pyod.models.knn import KNN
+from pyod.models.iforest import IForest
+from pyod.models.lof import LOF
+from pyod.models.ocsvm import OCSVM
+from pyod.models.combination import average
+from sklearn.metrics import classification_report, roc_auc_score, roc_curve
+import matplotlib.pyplot as plt
+
+# データ生成（実データの代替）
+np.random.seed(42)
+n_samples = 1000
+n_features = 10
+contamination = 0.05
+
+# 正常データ
+X_normal = np.random.randn(int(n_samples * (1 - contamination)), n_features)
+# 異常データ
+X_anomaly = np.random.uniform(low=-5, high=5, size=(int(n_samples * contamination), n_features))
+X = np.vstack([X_normal, X_anomaly])
+y = np.hstack([np.zeros(len(X_normal)), np.ones(len(X_anomaly))])
+
+# 訓練・テスト分割
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, stratify=y, random_state=42
+)
+
+# データ標準化
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# 複数モデルの訓練
+models = {
+    'KNN': KNN(contamination=contamination),
+    'IForest': IForest(contamination=contamination, random_state=42),
+    'LOF': LOF(contamination=contamination),
+    'OCSVM': OCSVM(contamination=contamination)
+}
+
+scores_dict = {}
+predictions_dict = {}
+
+for name, model in models.items():
+    model.fit(X_train_scaled)
+    scores = model.decision_function(X_test_scaled)
+    y_pred = model.predict(X_test_scaled)
+
+    scores_dict[name] = scores
+    predictions_dict[name] = y_pred
+
+    auc = roc_auc_score(y_test, scores)
+    print(f"{name} AUC-ROC: {auc:.3f}")
+
+# アンサンブル（平均）
+scores_list = [scores_dict[name] for name in models.keys()]
+scores_ensemble = average(np.array(scores_list))
+auc_ensemble = roc_auc_score(y_test, scores_ensemble)
+print(f"\nEnsemble AUC-ROC: {auc_ensemble:.3f}")
+
+# ROC曲線の可視化
+plt.figure(figsize=(10, 6))
+
+for name, scores in scores_dict.items():
+    fpr, tpr, _ = roc_curve(y_test, scores)
+    auc_val = roc_auc_score(y_test, scores)
+    plt.plot(fpr, tpr, label=f'{name} (AUC={auc_val:.3f})')
+
+# アンサンブルのROC
+fpr_ens, tpr_ens, _ = roc_curve(y_test, scores_ensemble)
+plt.plot(fpr_ens, tpr_ens, 'k--', linewidth=2,
+         label=f'Ensemble (AUC={auc_ensemble:.3f})')
+
+plt.plot([0, 1], [0, 1], 'r--', label='Random')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curves: 複数モデルとアンサンブル')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.show()
+</code></pre>
+
+<hr />
+
+<h2>3.6 まとめ</h2>
+
+<h3>本章で学んだこと</h3>
+
+<ol>
+<li>
+<p><strong>Isolation Forest:</strong></p>
+<ul>
+<li>ランダム分離による異常検知</li>
+<li>パス長から異常スコアを計算</li>
+<li>ハイパーパラメータ（n_estimators, max_samples, contamination）</li>
+<li>高次元データに効果的</li>
+</ul>
+</li>
+<li>
+<p><strong>LOF（Local Outlier Factor）:</strong></p>
+<ul>
+<li>局所密度に基づく異常検知</li>
+<li>到達可能距離と局所到達可能密度</li>
+<li>LOFスコアの計算と解釈</li>
+<li>密度が異なるクラスタに対応</li>
+</ul>
+</li>
+<li>
+<p><strong>One-Class SVM:</strong></p>
+<ul>
+<li>最大マージン超平面による境界学習</li>
+<li>カーネルトリック（RBF, 線形, 多項式）</li>
+<li>nuパラメータによる異常率制御</li>
+<li>非線形境界の学習</li>
+</ul>
+</li>
+<li>
+<p><strong>その他の手法:</strong></p>
+<ul>
+<li>DBSCAN（密度ベースクラスタリング）</li>
+<li>Elliptic Envelope（楕円エンベロープ）</li>
+<li>Robust Covariance（ロバスト共分散推定）</li>
+<li>PyODライブラリ（40以上のアルゴリズム）</li>
+</ul>
+</li>
+<li>
+<p><strong>アンサンブル異常検知:</strong></p>
+<ul>
+<li>Feature Bagging（特徴量サブセット）</li>
+<li>Model Averaging（スコア平均化）</li>
+<li>Isolation-Based Ensemble（LSCP）</li>
+<li>複数モデルの組み合わせによる精度向上</li>
+</ul>
+</li>
+</ol>
+
+<h3>手法の使い分け</h3>
+
+<table>
+<thead>
+<tr>
+<th>手法</th>
+<th>適用場面</th>
+<th>長所</th>
+<th>短所</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Isolation Forest</td>
+<td>高次元データ、大規模データ</td>
+<td>高速、スケーラブル</td>
+<td>パラメータ調整が必要</td>
+</tr>
+<tr>
+<td>LOF</td>
+<td>密度が異なるクラスタ</td>
+<td>局所的な異常を検出</td>
+<td>計算コストが高い</td>
+</tr>
+<tr>
+<td>One-Class SVM</td>
+<td>非線形境界、理論的保証</td>
+<td>頑健、理論的基盤</td>
+<td>大規模データで遅い</td>
+</tr>
+<tr>
+<td>DBSCAN</td>
+<td>クラスタリング + 異常検知</td>
+<td>クラスタ数不要</td>
+<td>パラメータに敏感</td>
+</tr>
+<tr>
+<td>アンサンブル</td>
+<td>高精度が必要な場面</td>
+<td>頑健、高精度</td>
+<td>計算コスト増加</td>
+</tr>
+</tbody>
+</table>
+
+<h3>次のステップ</h3>
+
+<p>第4章では、深層学習による異常検知を学びます：</p>
+<ul>
+<li>Autoencoder（再構成誤差ベース）</li>
+<li>VAE（Variational Autoencoder）</li>
+<li>GAN（Generative Adversarial Network）</li>
+<li>LSTM Autoencoder（時系列異常検知）</li>
+<li>Transformer（Attention機構）</li>
+</ul>
+
+<hr />
+
+<h2>演習問題</h2>
+
+<details>
+<summary><strong>問1:</strong> Isolation Forestで、異常スコア $s(x, n) = 0.8$ のデータポイントは異常と判定すべきか？理由とともに答えよ。</summary>
+
+<p><strong>解答:</strong></p>
+<p>はい、異常と判定すべきです。</p>
+
+<p><strong>理由:</strong></p>
+<ul>
+<li>異常スコア $s \approx 1$ は明確な異常を示す</li>
+<li>$s \approx 0.5$ は正常（平均的なパス長）</li>
+<li>$s = 0.8$ は1に近く、通常より早く孤立していることを意味する</li>
+<li>一般的に $s > 0.6$ を異常とみなす閾値として使用</li>
+</ul>
+</details>
+
+<details>
+<summary><strong>問2:</strong> LOFスコアが $\text{LOF}_k(p) = 2.5$ の場合、この点は異常か？また、このスコアが意味することを説明せよ。</summary>
+
+<p><strong>解答:</strong></p>
+<p>はい、異常です。</p>
+
+<p><strong>意味:</strong></p>
+<ul>
+<li>$\text{LOF} \approx 1$ は近傍と同程度の密度（正常）</li>
+<li>$\text{LOF} > 1$ は近傍より密度が低い（異常の可能性）</li>
+<li>$\text{LOF} = 2.5$ は、この点の密度が近傍の平均密度の約1/2.5であることを示す</li>
+<li>一般的に $\text{LOF} > 1.5$ を異常とみなすため、2.5は明確な異常</li>
+</ul>
+</details>
+
+<details>
+<summary><strong>問3:</strong> One-Class SVMのnuパラメータを0.05に設定した場合、訓練データの何%が異常と判定されるか？また、nuを大きくした場合の影響を説明せよ。</summary>
+
+<p><strong>解答:</strong></p>
+<p>訓練データの最大5%が異常と判定されます。</p>
+
+<p><strong>nuを大きくした場合の影響:</strong></p>
+<ul>
+<li>$\nu = 0.1$: 最大10%が異常と判定される</li>
+<li>$\nu = 0.2$: 最大20%が異常と判定される</li>
+<li>nuを大きくすると、より多くのデータが異常と判定される</li>
+<li>正常データも異常と誤判定されるリスクが増加（偽陽性増加）</li>
+<li>異常検知の感度が高くなるが、精度は低下する可能性</li>
+</ul>
+</details>
+
+<details>
+<summary><strong>問4:</strong> DBSCANで異常検知を行う際、epsとmin_samplesパラメータをどのように選択すべきか？具体的な選択方法を3つ述べよ。</summary>
+
+<p><strong>解答:</strong></p>
+
+<ol>
+<li>
+<p><strong>K距離グラフ法:</strong></p>
+<ul>
+<li>各点のk番目の最近傍距離を計算（kはmin_samplesの候補）</li>
+<li>距離を降順にソートしてプロット</li>
+<li>急激に増加する点（エルボー点）をepsとして選択</li>
+</ul>
+</li>
+<li>
+<p><strong>ドメイン知識に基づく選択:</strong></p>
+<ul>
+<li>データの性質から適切な近傍サイズを推定</li>
+<li>例: 2次元データなら min_samples=4、高次元なら min_samples=2×次元数</li>
+<li>epsはデータのスケールに応じて調整</li>
+</ul>
+</li>
+<li>
+<p><strong>グリッドサーチ:</strong></p>
+<ul>
+<li>複数の(eps, min_samples)の組み合わせを試す</li>
+<li>シルエットスコアやクラスタ数で評価</li>
+<li>最適な組み合わせを選択</li>
+</ul>
+</li>
+</ol>
+</details>
+
+<details>
+<summary><strong>問5:</strong> アンサンブル異常検知で、Feature Baggingとモデル平均化の違いを説明し、それぞれがどのような状況で有効か論じよ（300字以内）。</summary>
+
+<p><strong>解答例:</strong></p>
+
+<p>Feature Baggingは特徴量のサブセットで複数モデルを訓練し、高次元データにおける特徴量間の相関や冗長性に対処します。特徴量が多く相関が強い場合に有効です。一方、モデル平均化は異なるアルゴリズム（KNN、Isolation Forest、LOFなど）の予測を集約し、各手法の長所を活かします。データの性質が不明確で、どの手法が最適か事前にわからない場合に有効です。Feature Baggingは同一アルゴリズムの多様性を高め、モデル平均化はアルゴリズムの多様性を活用する点が主な違いです。実務では両方を組み合わせることで、より頑健な異常検知システムを構築できます。</p>
+</details>
+
+<hr />
+
+<h2>参考文献</h2>
+
+<ol>
+<li>Liu, F. T., Ting, K. M., &amp; Zhou, Z. H. (2008). "Isolation Forest." <em>IEEE International Conference on Data Mining (ICDM)</em>.</li>
+<li>Breunig, M. M., Kriegel, H. P., Ng, R. T., &amp; Sander, J. (2000). "LOF: Identifying Density-Based Local Outliers." <em>ACM SIGMOD International Conference on Management of Data</em>.</li>
+<li>Schölkopf, B., Platt, J. C., Shawe-Taylor, J., Smola, A. J., &amp; Williamson, R. C. (2001). "Estimating the Support of a High-Dimensional Distribution." <em>Neural Computation</em>, 13(7), 1443-1471.</li>
+<li>Ester, M., Kriegel, H. P., Sander, J., &amp; Xu, X. (1996). "A Density-Based Algorithm for Discovering Clusters." <em>KDD</em>, 96(34), 226-231.</li>
+<li>Zhao, Y., Nasrullah, Z., &amp; Li, Z. (2019). "PyOD: A Python Toolbox for Scalable Outlier Detection." <em>Journal of Machine Learning Research</em>, 20(96), 1-7.</li>
+</ol>
+
+<hr />
+
+<p><strong>次章</strong>: <a href="chapter4-deep-learning-anomaly.html">第4章：深層学習による異常検知</a></p>
+
+<p><strong>ライセンス</strong>: このコンテンツはCC BY 4.0ライセンスの下で提供されています。</p>
+
+<div class="navigation">
+    <a href="chapter2-statistical-methods.html" class="nav-button">← 前の章</a>
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+    <a href="chapter4-deep-learning-anomaly.html" class="nav-button">次の章 →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-21</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>
