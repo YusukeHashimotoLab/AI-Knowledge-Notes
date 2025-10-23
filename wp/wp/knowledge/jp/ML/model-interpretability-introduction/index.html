@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="モデル解釈性入門シリーズ - ブラックボックスモデルの説明可能性と信頼性向上の完全ガイド">
+    <title>モデル解釈性入門シリーズ v1.0 - AI Terakoya</title>
+
+    <!-- CSS Styling -->
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #3498db;
+            --link-hover: #2980b9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header .container {
+            padding: 0 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-top: 1rem;
+        }
+
+        .meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Typography */
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            color: var(--primary-color);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.6rem;
+            color: var(--primary-color);
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+        }
+
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--link-hover);
+            text-decoration: underline;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1.2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Code blocks */
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            display: block;
+        }
+
+        thead {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        tbody {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 0.8rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        /* Blockquotes */
+        blockquote {
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: #666;
+        }
+
+        /* Images */
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        /* Mermaid diagrams */
+        .mermaid {
+            text-align: center;
+            margin: 2rem 0;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Details/Summary (for exercises) */
+        details {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary-color);
+            padding: 0.5rem;
+        }
+
+        summary:hover {
+            color: var(--secondary-color);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--border-color);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Navigation buttons */
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 3rem 0;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .nav-button:hover {
+            background: var(--link-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+
+            table {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        // Mermaid.js Converter - Converts markdown-style mermaid code blocks to renderable divs
+        document.addEventListener('DOMContentLoaded', function() {
+            // Find all code blocks with class="language-mermaid"
+            const mermaidCodeBlocks = document.querySelectorAll('pre.codehilite code.language-mermaid, pre code.language-mermaid');
+
+            mermaidCodeBlocks.forEach(function(codeBlock) {
+                const pre = codeBlock.parentElement;
+                const mermaidCode = codeBlock.textContent;
+
+                // Create a new div with mermaid class
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = mermaidCode.trim();
+
+                // Replace the pre element with the new div
+                pre.parentNode.replaceChild(mermaidDiv, pre);
+            });
+
+            // Re-initialize mermaid after conversion
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+                mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+            }
+        });
+    </script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🔍 モデル解釈性入門シリーズ v1.0</h1>
+            <p style="font-size: 1.1rem; margin-top: 0.5rem; opacity: 0.95;">ブラックボックスモデルの説明可能性と信頼性向上</p>
+            <div class="meta">
+                <span>📖 総学習時間: 4-5時間</span>
+                <span>📊 レベル: 中級</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <p><strong>SHAP、LIME、Grad-CAMなどの解釈手法を用いて、機械学習モデルの予測根拠を理解し、信頼性の高いAIシステムを構築する方法を学びます</strong></p>
+
+        <h2 id="overview">シリーズ概要</h2>
+        <p>このシリーズは、機械学習モデルの解釈性（Interpretability）と説明可能性（Explainability）の理論と実装を基礎から段階的に学べる全4章構成の実践的教育コンテンツです。</p>
+
+        <p><strong>モデル解釈性（Model Interpretability）</strong>は、ブラックボックス化しがちな機械学習モデルの予測根拠を人間が理解できる形で説明する技術です。SHAP（Shapley値ベースの特徴量重要度）、LIME（局所的線形近似）、Grad-CAM（畳み込みニューラルネットワークの可視化）などの手法により、「なぜこの予測をしたのか」を定量的に説明できます。医療診断、金融審査、自動運転など、説明責任が求められる分野では必須の技術となっており、EU一般データ保護規則（GDPR）などの法規制でも「説明する権利」が明記されています。Google、Microsoft、IBMなどの企業が研究・実用化を進める最先端技術を理解し、実装できるようになります。SHAP、LIME、ELI5、Captumなどの主要ライブラリを使った実践的な知識を提供します。</p>
+
+        <p><strong>特徴:</strong></p>
+        <ul>
+            <li>✅ <strong>理論から実践まで</strong>: 解釈性の概念から実装、可視化まで体系的に学習</li>
+            <li>✅ <strong>実装重視</strong>: 30個以上の実行可能なPython/SHAP/LIME/Captumコード例</li>
+            <li>✅ <strong>実務指向</strong>: 実際のビジネス課題を想定した実践的な解釈手法</li>
+            <li>✅ <strong>最新技術準拠</strong>: SHAP、LIME、Grad-CAM、Integrated Gradientsを使った実装</li>
+            <li>✅ <strong>実用的応用</strong>: 表形式データ・画像・テキストモデルの解釈</li>
+        </ul>
+
+        <p><strong>総学習時間</strong>: 4-5時間（コード実行と演習を含む）</p>
+
+        <h2 id="learning">学習の進め方</h2>
+
+        <h3>推奨学習順序</h3>
+
+        <div class="mermaid">
+graph TD
+    A[第1章: モデル解釈性の基礎] --> B[第2章: SHAP]
+    B --> C[第3章: LIME & その他の手法]
+    C --> D[第4章: ディープラーニングの解釈]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+</div>
+
+        <p><strong>初学者の方（モデル解釈性をまったく知らない）:</strong><br>
+        - 第1章 → 第2章 → 第3章 → 第4章（全章推奨）<br>
+        - 所要時間: 4-5時間</p>
+
+        <p><strong>中級者の方（ML開発の経験あり）:</strong><br>
+        - 第1章（概要把握）→ 第2章 → 第3章 → 第4章<br>
+        - 所要時間: 3-4時間</p>
+
+        <p><strong>特定トピックの強化:</strong><br>
+        - 解釈性の基礎・グローバル/ローカル解釈: 第1章（集中学習）<br>
+        - SHAP・Shapley値: 第2章（集中学習）<br>
+        - LIME・Permutation Importance: 第3章（集中学習）<br>
+        - Grad-CAM・Attention可視化: 第4章（集中学習）<br>
+        - 所要時間: 50-70分/章</p>
+
+        <h2 id="chapters">各章の詳細</h2>
+
+        <h3><a href="./chapter1-interpretability-basics.html">第1章：モデル解釈性の基礎</a></h3>
+        <p><strong>難易度</strong>: 中級<br>
+        <strong>読了時間</strong>: 50-60分<br>
+        <strong>コード例</strong>: 5個</p>
+
+        <h4>学習内容</h4>
+        <ol>
+            <li><strong>なぜ解釈性が重要か</strong> - 信頼性、公平性、デバッグ、法規制対応</li>
+            <li><strong>解釈性 vs 説明可能性</strong> - Interpretability vs Explainability</li>
+            <li><strong>グローバル解釈 vs ローカル解釈</strong> - モデル全体 vs 個別予測</li>
+            <li><strong>解釈手法の分類</strong> - モデル固有手法 vs モデル非依存手法</li>
+            <li><strong>解釈性と精度のトレードオフ</strong> - 線形モデル vs ブラックボックスモデル</li>
+        </ol>
+
+        <h4>学習目標</h4>
+        <ul>
+            <li>✅ モデル解釈性の重要性を説明できる</li>
+            <li>✅ グローバル解釈とローカル解釈を区別できる</li>
+            <li>✅ 解釈手法の分類を理解できる</li>
+            <li>✅ 解釈性と精度のトレードオフを説明できる</li>
+            <li>✅ 適切な解釈手法を選択できる</li>
+        </ul>
+
+        <p><strong><a href="./chapter1-interpretability-basics.html">第1章を読む →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter2-shap.html">第2章：SHAP (SHapley Additive exPlanations)</a></h3>
+        <p><strong>難易度</strong>: 中級<br>
+        <strong>読了時間</strong>: 60-70分<br>
+        <strong>コード例</strong>: 10個</p>
+
+        <h4>学習内容</h4>
+        <ol>
+            <li><strong>Shapley値の理論</strong> - ゲーム理論からの導出、公理的性質</li>
+            <li><strong>SHAPの基本概念</strong> - 加法性、局所精度、一貫性</li>
+            <li><strong>TreeSHAP</strong> - 決定木・ランダムフォレスト・XGBoostの高速解釈</li>
+            <li><strong>DeepSHAP</strong> - ニューラルネットワークの解釈</li>
+            <li><strong>SHAP可視化</strong> - Waterfall、Force、Summary、Dependenceプロット</li>
+        </ol>
+
+        <h4>学習目標</h4>
+        <ul>
+            <li>✅ Shapley値の理論的背景を理解できる</li>
+            <li>✅ SHAPで特徴量重要度を計算できる</li>
+            <li>✅ TreeSHAPで決定木系モデルを解釈できる</li>
+            <li>✅ DeepSHAPでニューラルネットワークを解釈できる</li>
+            <li>✅ SHAP可視化で予測根拠を説明できる</li>
+        </ul>
+
+        <p><strong><a href="./chapter2-shap.html">第2章を読む →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter3-lime-and-others.html">第3章：LIME & その他の手法</a></h3>
+        <p><strong>難易度</strong>: 中級<br>
+        <strong>読了時間</strong>: 60-70分<br>
+        <strong>コード例</strong>: 9個</p>
+
+        <h4>学習内容</h4>
+        <ol>
+            <li><strong>LIME（Local Interpretable Model-agnostic Explanations）</strong> - 局所的線形近似、サンプリングベース解釈</li>
+            <li><strong>Permutation Importance</strong> - 特徴量のシャッフルによる重要度計算</li>
+            <li><strong>PDP（Partial Dependence Plot）</strong> - 特徴量と予測の関係性可視化</li>
+            <li><strong>ICE（Individual Conditional Expectation）</strong> - 個別サンプルの条件付き期待値</li>
+            <li><strong>Anchors</strong> - ルールベースの局所解釈</li>
+        </ol>
+
+        <h4>学習目標</h4>
+        <ul>
+            <li>✅ LIMEで局所的な予測根拠を説明できる</li>
+            <li>✅ Permutation Importanceで特徴量重要度を計算できる</li>
+            <li>✅ PDPで特徴量と予測の関係を可視化できる</li>
+            <li>✅ ICEで個別サンプルの挙動を理解できる</li>
+            <li>✅ 各手法の適用場面を判断できる</li>
+        </ul>
+
+        <p><strong><a href="./chapter3-lime-and-others.html">第3章を読む →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter4-deep-learning-interpretation.html">第4章：ディープラーニングの解釈</a></h3>
+        <p><strong>難易度</strong>: 中級<br>
+        <strong>読了時間</strong>: 60-70分<br>
+        <strong>コード例</strong>: 8個</p>
+
+        <h4>学習内容</h4>
+        <ol>
+            <li><strong>Grad-CAM（Gradient-weighted Class Activation Mapping）</strong> - CNNの注目領域可視化</li>
+            <li><strong>Integrated Gradients</strong> - 勾配ベースの特徴量重要度</li>
+            <li><strong>Attention可視化</strong> - Transformerの注意機構解釈</li>
+            <li><strong>Saliency Maps</strong> - 入力に対する勾配の可視化</li>
+            <li><strong>Layer-wise Relevance Propagation（LRP）</strong> - 逆伝播による重要度計算</li>
+        </ol>
+
+        <h4>学習目標</h4>
+        <ul>
+            <li>✅ Grad-CAMでCNNの注目領域を可視化できる</li>
+            <li>✅ Integrated Gradientsで特徴量重要度を計算できる</li>
+            <li>✅ Attentionの可視化でTransformerを解釈できる</li>
+            <li>✅ Saliency Mapsで入力の影響を理解できる</li>
+            <li>✅ 各手法の特性と適用場面を判断できる</li>
+        </ul>
+
+        <p><strong><a href="./chapter4-deep-learning-interpretation.html">第4章を読む →</a></strong></p>
+
+        <hr>
+
+        <h2 id="outcomes">全体の学習成果</h2>
+
+        <p>このシリーズを完了すると、以下のスキルと知識を習得できます：</p>
+
+        <h3>知識レベル（Understanding）</h3>
+        <ul>
+            <li>✅ モデル解釈性の重要性と法規制要求を説明できる</li>
+            <li>✅ グローバル解釈とローカル解釈の違いを理解している</li>
+            <li>✅ SHAP・LIME・Grad-CAMの理論的背景を説明できる</li>
+            <li>✅ 各解釈手法の特性と適用場面を理解している</li>
+            <li>✅ 解釈性と精度のトレードオフを説明できる</li>
+        </ul>
+
+        <h3>実践スキル（Doing）</h3>
+        <ul>
+            <li>✅ SHAPで特徴量重要度を計算・可視化できる</li>
+            <li>✅ LIMEで局所的な予測根拠を説明できる</li>
+            <li>✅ Grad-CAMでCNNの注目領域を可視化できる</li>
+            <li>✅ Permutation ImportanceとPDPで特徴量を分析できる</li>
+            <li>✅ Integrated GradientsとAttentionで深層学習モデルを解釈できる</li>
+        </ul>
+
+        <h3>応用力（Applying）</h3>
+        <ul>
+            <li>✅ 問題に適した解釈手法を選択できる</li>
+            <li>✅ モデルの予測根拠をステークホルダーに説明できる</li>
+            <li>✅ 解釈性の観点からモデルを評価・改善できる</li>
+            <li>✅ 説明可能なAIシステムを設計できる</li>
+            <li>✅ 法規制要求に対応した解釈レポートを作成できる</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="prerequisites">前提知識</h2>
+
+        <p>このシリーズを効果的に学習するために、以下の知識があることが望ましいです：</p>
+
+        <h3>必須（Must Have）</h3>
+        <ul>
+            <li>✅ <strong>Python基礎</strong>: 変数、関数、クラス、NumPy、pandas</li>
+            <li>✅ <strong>機械学習の基礎</strong>: 学習・評価・特徴量の概念</li>
+            <li>✅ <strong>scikit-learn基礎</strong>: モデル学習、予測、評価</li>
+            <li>✅ <strong>統計基礎</strong>: 平均、分散、相関、分布</li>
+            <li>✅ <strong>線形代数基礎</strong>: ベクトル、行列（推奨）</li>
+        </ul>
+
+        <h3>推奨（Nice to Have）</h3>
+        <ul>
+            <li>💡 <strong>深層学習基礎</strong>: PyTorch/TensorFlow（第4章のため）</li>
+            <li>💡 <strong>ゲーム理論基礎</strong>: Shapley値の理論理解のため</li>
+            <li>💡 <strong>可視化ライブラリ</strong>: matplotlib、seaborn</li>
+            <li>💡 <strong>決定木系モデル</strong>: XGBoost、LightGBM（第2章のため）</li>
+            <li>💡 <strong>CNN基礎</strong>: 畳み込み、プーリング（第4章のため）</li>
+        </ul>
+
+        <p><strong>推奨される前の学習</strong>:</p>
+        <ul>
+            <li>📚 <a href="../machine-learning-basics/">機械学習入門シリーズ</a> - ML基礎知識</li>
+            <li>📚 <a href="../python-for-ml/">Python機械学習実践</a> - scikit-learn、pandas</li>
+            <li>📚 <a href="../deep-learning-basics/">深層学習入門</a> - PyTorch/TensorFlow基礎</li>
+            <li>📚 <a href="../ensemble-learning/">アンサンブル学習</a> - XGBoost、LightGBM</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="tech">使用技術とツール</h2>
+
+        <h3>主要ライブラリ</h3>
+        <ul>
+            <li><strong>SHAP 0.43+</strong> - Shapley値ベースの解釈</li>
+            <li><strong>LIME 0.2+</strong> - 局所的線形近似</li>
+            <li><strong>Captum 0.6+</strong> - PyTorchモデルの解釈</li>
+            <li><strong>ELI5 0.13+</strong> - scikit-learnモデルの解釈</li>
+            <li><strong>scikit-learn 1.3+</strong> - 機械学習</li>
+            <li><strong>XGBoost 2.0+</strong> - 勾配ブースティング</li>
+            <li><strong>PyTorch 2.0+</strong> - 深層学習</li>
+        </ul>
+
+        <h3>可視化ライブラリ</h3>
+        <ul>
+            <li><strong>matplotlib 3.7+</strong> - グラフ描画</li>
+            <li><strong>seaborn 0.12+</strong> - 統計的可視化</li>
+            <li><strong>plotly 5.0+</strong> - インタラクティブ可視化</li>
+        </ul>
+
+        <h3>開発環境</h3>
+        <ul>
+            <li><strong>Python 3.8+</strong> - プログラミング言語</li>
+            <li><strong>Jupyter Notebook</strong> - 対話的開発環境</li>
+            <li><strong>NumPy 1.24+</strong> - 数値計算</li>
+            <li><strong>pandas 2.0+</strong> - データ処理</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="start">さあ、始めましょう！</h2>
+        <p>準備はできましたか？ 第1章から始めて、モデル解釈性の技術を習得しましょう！</p>
+
+        <p><strong><a href="./chapter1-interpretability-basics.html">第1章: モデル解釈性の基礎 →</a></strong></p>
+
+        <hr>
+
+        <h2 id="next">次のステップ</h2>
+
+        <p>このシリーズを完了した後、以下のトピックへ進むことをお勧めします：</p>
+
+        <h3>深掘り学習</h3>
+        <ul>
+            <li>📚 <strong>因果推論</strong>: 因果効果の推定、介入分析、反事実推論</li>
+            <li>📚 <strong>公平性（Fairness）</strong>: バイアス検出、公平性指標、緩和手法</li>
+            <li>📚 <strong>モデルデバッグ</strong>: エラー分析、特徴量エンジニアリング、モデル改善</li>
+            <li>📚 <strong>Counterfactual Explanations</strong>: 反事実的説明、What-if分析</li>
+        </ul>
+
+        <h3>関連シリーズ</h3>
+        <ul>
+            <li>🎯 <a href="../trustworthy-ai/">信頼できるAI</a> - 公平性、プライバシー、堅牢性</li>
+            <li>🎯 <a href="../model-debugging/">モデルデバッグ実践</a> - エラー分析、改善手法</li>
+            <li>🎯 <a href="../causality-introduction/">因果推論入門</a> - 因果効果、介入分析</li>
+        </ul>
+
+        <h3>実践プロジェクト</h3>
+        <ul>
+            <li>🚀 金融審査モデルの解釈 - SHAP・LIMEによる説明可能性</li>
+            <li>🚀 医療画像診断の可視化 - Grad-CAMによる注目領域特定</li>
+            <li>🚀 自然言語処理モデルの解釈 - Attention可視化</li>
+            <li>🚀 解釈性レポート自動生成 - ステークホルダー向け説明資料</li>
+        </ul>
+
+        <hr>
+
+        <p><strong>更新履歴</strong></p>
+        <ul>
+            <li><strong>2025-10-21</strong>: v1.0 初版公開</li>
+        </ul>
+
+        <hr>
+
+        <p><strong>あなたのモデル解釈性の旅はここから始まります！</strong></p>
+
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

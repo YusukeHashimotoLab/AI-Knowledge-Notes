@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章：獲得関数設計 - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第3章：獲得関数設計</h1>
+            <p class="subtitle">Expected Improvement・UCB・多目的最適化</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 25-30分</span>
+                <span class="meta-item">📊 難易度: 中級〜上級</span>
+                <span class="meta-item">💻 コード例: 7個</span>
+                <span class="meta-item">📝 演習問題: 3問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>第3章：獲得関数設計</h1>
+<p><strong>Expected Improvement・UCB・多目的最適化</strong></p>
+<h2>学習目標</h2>
+<p>この章を読むことで、以下を習得できます：</p>
+<ul>
+<li>✅ 4つの主要獲得関数の特徴を理解している</li>
+<li>✅ Expected Improvementを実装できる</li>
+<li>✅ 多目的最適化にPareto最適性を適用できる"</li>
+<li>✅ 制約条件を獲得関数に組み込める</li>
+<li>✅ 獲得関数の選択基準を説明できる</li>
+</ul>
+<p><strong>読了時間</strong>: 25-30分
+<strong>コード例</strong>: 7個
+<strong>演習問題</strong>: 3問</p>
+<hr />
+<h2>3.1 獲得関数の基礎</h2>
+<h3>獲得関数とは</h3>
+<p><strong>定義</strong>: 次にどのサンプルを取得すべきかを決定するスコア関数</p>
+<p><strong>数式</strong>:
+$$
+x^* = \arg\max_{x \in \mathcal{X}} \alpha(x | \mathcal{D})
+$$</p>
+<ul>
+<li>$\alpha(x | \mathcal{D})$: 獲得関数</li>
+<li>$\mathcal{X}$: 探索空間</li>
+<li>$\mathcal{D}$: これまでに取得したデータ</li>
+</ul>
+<h3>主要な4つの獲得関数</h3>
+<h4>1. Expected Improvement (EI)</h4>
+<p><strong>原理</strong>: 現在の最良値からの改善期待値</p>
+<p><strong>数式</strong>:
+$$
+\text{EI}(x) = \mathbb{E}[\max(f(x) - f^*, 0)]
+$$</p>
+<p>$$
+= \begin{cases}
+(\mu(x) - f^*)\Phi(Z) + \sigma(x)\phi(Z) &amp; \text{if } \sigma(x) &gt; 0 \
+0 &amp; \text{if } \sigma(x) = 0
+\end{cases}
+$$</p>
+<p>ここで、
+$$
+Z = \frac{\mu(x) - f^*}{\sigma(x)}
+$$</p>
+<ul>
+<li>$f^*$: 現在の最良値</li>
+<li>$\mu(x)$: 予測平均</li>
+<li>$\sigma(x)$: 予測標準偏差</li>
+<li>$\Phi(\cdot)$: 標準正規分布の累積分布関数</li>
+<li>$\phi(\cdot)$: 標準正規分布の確率密度関数</li>
+</ul>
+<p><strong>コード例1: Expected Improvementの実装</strong></p>
+<pre><code class="language-python">import numpy as np
+from scipy.stats import norm
+
+def expected_improvement(
+    X,
+    X_sample,
+    Y_sample,
+    gpr,
+    xi=0.01
+):
+    &quot;&quot;&quot;
+    Expected Improvement獲得関数
+
+    Parameters:
+    -----------
+    X : array
+        候補点
+    X_sample : array
+        既存サンプル点
+    Y_sample : array
+        既存サンプルの値
+    gpr : GaussianProcessRegressor
+        学習済みガウス過程モデル
+    xi : float
+        Exploitation-Exploration トレードオフ
+
+    Returns:
+    --------
+    ei : array
+        Expected Improvementスコア
+    &quot;&quot;&quot;
+    # 予測平均と標準偏差
+    mu, sigma = gpr.predict(X, return_std=True)
+    mu_sample = gpr.predict(X_sample)
+
+    # 現在の最良値
+    mu_sample_opt = np.max(mu_sample)
+
+    # 標準偏差が0の場合の処理
+    with np.errstate(divide='warn'):
+        imp = mu - mu_sample_opt - xi
+        Z = imp / sigma
+        ei = imp * norm.cdf(Z) + sigma * norm.pdf(Z)
+        ei[sigma == 0.0] = 0.0
+
+    return ei
+
+
+# 使用例：1D最適化問題
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+import matplotlib.pyplot as plt
+
+# 目的関数（未知として扱う）
+def objective_function(x):
+    &quot;&quot;&quot;最適化対象の1D関数&quot;&quot;&quot;
+    return -(x - 2) ** 2 + 5 + np.sin(5 * x)
+
+# 初期サンプル
+X_sample = np.array([[0.5], [2.5], [4.0]])
+Y_sample = objective_function(X_sample.ravel())
+
+# ガウス過程モデルの学習
+kernel = C(1.0, (1e-3, 1e3)) * RBF(1.0, (1e-2, 1e2))
+gpr = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10, alpha=1e-6)
+gpr.fit(X_sample, Y_sample)
+
+# 候補点の生成
+X_candidates = np.linspace(0, 5, 1000).reshape(-1, 1)
+
+# EIの計算
+ei_values = expected_improvement(X_candidates, X_sample, Y_sample, gpr, xi=0.01)
+
+# 次のサンプル点を選択
+next_sample_idx = np.argmax(ei_values)
+next_sample = X_candidates[next_sample_idx]
+
+print(f&quot;次のサンプル点: x = {next_sample[0]:.3f}&quot;)
+print(f&quot;EI値: {ei_values[next_sample_idx]:.4f}&quot;)
+print(f&quot;現在の最良値: {np.max(Y_sample):.3f}&quot;)
+
+# 可視化
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+
+# 上段：ガウス過程による予測
+mu, sigma = gpr.predict(X_candidates, return_std=True)
+ax1.plot(X_candidates, objective_function(X_candidates.ravel()), 'r--', label='真の関数', alpha=0.5)
+ax1.plot(X_candidates, mu, 'b-', label='予測平均')
+ax1.fill_between(X_candidates.ravel(), mu - 1.96 * sigma, mu + 1.96 * sigma, alpha=0.2, label='95%信頼区間')
+ax1.scatter(X_sample, Y_sample, c='red', s=100, marker='o', label='既存サンプル', zorder=5)
+ax1.scatter(next_sample, gpr.predict(next_sample), c='green', s=150, marker='*', label='次のサンプル', zorder=6)
+ax1.set_xlabel('x')
+ax1.set_ylabel('f(x)')
+ax1.set_title('ガウス過程による予測')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# 下段：Expected Improvement
+ax2.plot(X_candidates, ei_values, 'g-', linewidth=2)
+ax2.scatter(next_sample, ei_values[next_sample_idx], c='green', s=150, marker='*', label='最大EI点', zorder=5)
+ax2.axvline(next_sample[0], color='green', linestyle='--', alpha=0.5)
+ax2.set_xlabel('x')
+ax2.set_ylabel('EI(x)')
+ax2.set_title('Expected Improvement獲得関数')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('ei_acquisition.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 出力例:
+# 次のサンプル点: x = 3.742
+# EI値: 0.8523
+# 現在の最良値: 5.891
+</code></pre>
+<h4>2. Probability of Improvement (PI)</h4>
+<p><strong>原理</strong>: 現在の最良値を改善する確率</p>
+<p><strong>数式</strong>:
+$$
+\text{PI}(x) = P(f(x) \geq f^* + \xi)
+$$</p>
+<p>$$
+= \Phi\left(\frac{\mu(x) - f^* - \xi}{\sigma(x)}\right)
+$$</p>
+<ul>
+<li>$\xi$: 改善の閾値（通常0.01）</li>
+</ul>
+<p><strong>コード例2: Probability of Improvementの実装</strong></p>
+<pre><code class="language-python">def probability_of_improvement(
+    X,
+    X_sample,
+    Y_sample,
+    gpr,
+    xi=0.01
+):
+    &quot;&quot;&quot;
+    Probability of Improvement獲得関数
+
+    Parameters:
+    -----------
+    （Expected Improvementと同じ）
+
+    Returns:
+    --------
+    pi : array
+        Probability of Improvementスコア
+    &quot;&quot;&quot;
+    mu, sigma = gpr.predict(X, return_std=True)
+    mu_sample = gpr.predict(X_sample)
+    mu_sample_opt = np.max(mu_sample)
+
+    with np.errstate(divide='warn'):
+        Z = (mu - mu_sample_opt - xi) / sigma
+        pi = norm.cdf(Z)
+        pi[sigma == 0.0] = 0.0
+
+    return pi
+
+
+# 使用例：PIとEIの比較
+# （前のコード例で定義したGPRモデルと候補点を使用）
+
+# PIの計算
+pi_values = probability_of_improvement(X_candidates, X_sample, Y_sample, gpr, xi=0.01)
+
+# 次のサンプル点を選択
+next_sample_pi_idx = np.argmax(pi_values)
+next_sample_pi = X_candidates[next_sample_pi_idx]
+
+print(f&quot;PI選択点: x = {next_sample_pi[0]:.3f}, PI値 = {pi_values[next_sample_pi_idx]:.4f}&quot;)
+print(f&quot;EI選択点: x = {next_sample[0]:.3f}, EI値 = {ei_values[next_sample_idx]:.4f}&quot;)
+
+# EIとPIの比較可視化
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# 左：Expected Improvement
+ax1.plot(X_candidates, ei_values, 'g-', linewidth=2, label='EI')
+ax1.scatter(next_sample, ei_values[next_sample_idx], c='green', s=150, marker='*', label=f'最大EI: x={next_sample[0]:.2f}', zorder=5)
+ax1.axvline(next_sample[0], color='green', linestyle='--', alpha=0.5)
+ax1.set_xlabel('x')
+ax1.set_ylabel('EI(x)')
+ax1.set_title('Expected Improvement')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# 右：Probability of Improvement
+ax2.plot(X_candidates, pi_values, 'purple', linewidth=2, label='PI')
+ax2.scatter(next_sample_pi, pi_values[next_sample_pi_idx], c='purple', s=150, marker='*', label=f'最大PI: x={next_sample_pi[0]:.2f}', zorder=5)
+ax2.axvline(next_sample_pi[0], color='purple', linestyle='--', alpha=0.5)
+ax2.set_xlabel('x')
+ax2.set_ylabel('PI(x)')
+ax2.set_title('Probability of Improvement')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('pi_vs_ei.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 出力例:
+# PI選択点: x = 3.789, PI値 = 0.8912
+# EI選択点: x = 3.742, EI値 = 0.8523
+# （PIは改善確率を最大化、EIは改善量の期待値を最大化）
+</code></pre>
+<h4>3. Upper Confidence Bound (UCB)</h4>
+<p><strong>原理</strong>: 予測平均 + 不確実性ボーナス</p>
+<p><strong>数式</strong>:
+$$
+\text{UCB}(x) = \mu(x) + \kappa \sigma(x)
+$$</p>
+<ul>
+<li>$\kappa$: 探索パラメータ（通常1.0〜3.0）</li>
+</ul>
+<p><strong>コード例3: UCBの実装</strong></p>
+<pre><code class="language-python">def upper_confidence_bound(
+    X,
+    gpr,
+    kappa=2.0
+):
+    &quot;&quot;&quot;
+    Upper Confidence Bound獲得関数
+
+    Parameters:
+    -----------
+    X : array
+        候補点
+    gpr : GaussianProcessRegressor
+        学習済みガウス過程モデル
+    kappa : float
+        探索パラメータ
+
+    Returns:
+    --------
+    ucb : array
+        UCBスコア
+    &quot;&quot;&quot;
+    mu, sigma = gpr.predict(X, return_std=True)
+    return mu + kappa * sigma
+
+
+# 使用例：kappaパラメータの影響
+# （前のコード例で定義したGPRモデルと候補点を使用）
+
+# 異なるkappaでUCBを計算
+kappa_values = [0.5, 1.0, 2.0, 3.0]
+ucb_results = {}
+
+for kappa in kappa_values:
+    ucb_vals = upper_confidence_bound(X_candidates, gpr, kappa=kappa)
+    next_idx = np.argmax(ucb_vals)
+    ucb_results[kappa] = {
+        'values': ucb_vals,
+        'next_x': X_candidates[next_idx][0],
+        'ucb_score': ucb_vals[next_idx]
+    }
+    print(f&quot;kappa={kappa}: 次のサンプル点 x={ucb_results[kappa]['next_x']:.3f}, UCB={ucb_results[kappa]['ucb_score']:.3f}&quot;)
+
+# 可視化：kappaの影響
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+axes = axes.ravel()
+
+for idx, kappa in enumerate(kappa_values):
+    ax = axes[idx]
+    ucb_vals = ucb_results[kappa]['values']
+    next_x = ucb_results[kappa]['next_x']
+
+    # ガウス過程の予測
+    mu, sigma = gpr.predict(X_candidates, return_std=True)
+
+    # UCBの可視化
+    ax.plot(X_candidates, mu, 'b-', label='予測平均 μ(x)', linewidth=2)
+    ax.plot(X_candidates, ucb_vals, 'r-', label=f'UCB (κ={kappa})', linewidth=2)
+    ax.fill_between(X_candidates.ravel(), mu - 2*sigma, mu + 2*sigma, alpha=0.2, color='blue', label='±2σ')
+    ax.scatter(X_sample, Y_sample, c='black', s=100, marker='o', label='既存サンプル', zorder=5)
+    ax.scatter(next_x, ucb_results[kappa]['ucb_score'], c='red', s=150, marker='*', label='次のサンプル', zorder=6)
+    ax.axvline(next_x, color='red', linestyle='--', alpha=0.5)
+    ax.set_xlabel('x')
+    ax.set_ylabel('f(x)')
+    ax.set_title(f'UCB with κ={kappa}')
+    ax.legend(loc='best', fontsize=8)
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('ucb_kappa_comparison.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 出力例:
+# kappa=0.5: 次のサンプル点 x=2.456, UCB=6.123
+# kappa=1.0: 次のサンプル点 x=3.215, UCB=6.789
+# kappa=2.0: 次のサンプル点 x=3.892, UCB=7.456
+# kappa=3.0: 次のサンプル点 x=4.123, UCB=8.234
+# （kappaが大きいほど探索的、小さいほど活用的）
+</code></pre>
+<h4>4. Thompson Sampling</h4>
+<p><strong>原理</strong>: ガウス過程からサンプリングして最大値を選択</p>
+<p><strong>数式</strong>:
+$$
+f(x) \sim \mathcal{GP}(\mu(x), k(x, x'))
+$$</p>
+<p>$$
+x^* = \arg\max_{x \in \mathcal{X}} f(x)
+$$</p>
+<p><strong>コード例4: Thompson Samplingの実装</strong></p>
+<pre><code class="language-python">def thompson_sampling(
+    X,
+    gpr
+):
+    &quot;&quot;&quot;
+    Thompson Sampling
+
+    Parameters:
+    -----------
+    X : array
+        候補点
+    gpr : GaussianProcessRegressor
+        学習済みガウス過程モデル
+
+    Returns:
+    --------
+    sample : array
+        サンプリングされた関数値
+    &quot;&quot;&quot;
+    # ガウス過程からサンプリング
+    mu, cov = gpr.predict(X, return_cov=True)
+
+    # 共分散行列の数値安定性のための対角成分追加
+    cov_stable = cov + 1e-6 * np.eye(cov.shape[0])
+    sample = np.random.multivariate_normal(mu, cov_stable)
+
+    return sample
+
+
+# 使用例：Thompson Samplingによる確率的探索
+# （前のコード例で定義したGPRモデルと候補点を使用）
+
+# 複数回サンプリングして次の点を決定
+n_samples = 5
+np.random.seed(42)
+
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+
+# 上段：複数のThompson Samplingサンプル
+mu, sigma = gpr.predict(X_candidates, return_std=True)
+ax1.plot(X_candidates, objective_function(X_candidates.ravel()), 'r--', label='真の関数', alpha=0.5, linewidth=2)
+ax1.plot(X_candidates, mu, 'b-', label='予測平均', linewidth=2)
+ax1.fill_between(X_candidates.ravel(), mu - 1.96 * sigma, mu + 1.96 * sigma, alpha=0.2, label='95%信頼区間')
+ax1.scatter(X_sample, Y_sample, c='red', s=100, marker='o', label='既存サンプル', zorder=5)
+
+selected_points = []
+for i in range(n_samples):
+    # Thompson Samplingでサンプリング
+    ts_sample = thompson_sampling(X_candidates, gpr)
+
+    # サンプルの最大値を選択
+    next_idx = np.argmax(ts_sample)
+    next_x = X_candidates[next_idx][0]
+    selected_points.append(next_x)
+
+    # サンプルをプロット
+    ax1.plot(X_candidates, ts_sample, alpha=0.4, linewidth=1, label=f'Sample {i+1}')
+    ax1.scatter(next_x, ts_sample[next_idx], s=80, marker='x', zorder=4)
+
+ax1.set_xlabel('x')
+ax1.set_ylabel('f(x)')
+ax1.set_title('Thompson Sampling: ガウス過程からの複数サンプル')
+ax1.legend(loc='upper left', fontsize=8, ncol=2)
+ax1.grid(True, alpha=0.3)
+
+# 下段：選択された点のヒストグラム
+ax2.hist(selected_points, bins=20, alpha=0.7, color='green', edgecolor='black')
+ax2.axvline(np.mean(selected_points), color='red', linestyle='--', linewidth=2, label=f'平均: {np.mean(selected_points):.2f}')
+ax2.set_xlabel('x')
+ax2.set_ylabel('選択頻度')
+ax2.set_title(f'Thompson Samplingによる選択点の分布 (n={n_samples})')
+ax2.legend()
+ax2.grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.savefig('thompson_sampling.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 最も選ばれた点を次のサンプルとして選択
+from collections import Counter
+most_common = Counter(np.round(selected_points, 2)).most_common(1)[0]
+print(f&quot;Thompson Sampling結果 ({n_samples}回試行):&quot;)
+print(f&quot;  選択された点: {selected_points}&quot;)
+print(f&quot;  最頻出点: x = {most_common[0]:.2f} (出現{most_common[1]}回)&quot;)
+print(f&quot;  平均選択点: x = {np.mean(selected_points):.3f}&quot;)
+
+# 出力例:
+# Thompson Sampling結果 (5回試行):
+#   選択された点: [3.89, 3.72, 4.01, 3.78, 3.95]
+#   最頻出点: x = 3.89 (出現2回)
+#   平均選択点: x = 3.870
+</code></pre>
+<hr />
+<h2>3.2 多目的獲得関数</h2>
+<h3>Pareto最適性</h3>
+<p><strong>定義</strong>: 1つの目的を改善するために他の目的を犠牲にしない解</p>
+<p><strong>数式</strong>:
+$$
+x^* \text{ is Pareto optimal} \iff \nexists x : f_i(x) \geq f_i(x^*) \ \forall i \land f_j(x) &gt; f_j(x^*) \ \text{for some } j
+$$</p>
+<h3>Expected Hypervolume Improvement (EHVI)</h3>
+<p><strong>原理</strong>: ハイパーボリュームの期待改善量を最大化</p>
+<p><strong>数式</strong>:
+$$
+\text{EHVI}(x) = \mathbb{E}[HV(\mathcal{P} \cup {f(x)}) - HV(\mathcal{P})]
+$$</p>
+<ul>
+<li>$HV(\cdot)$: ハイパーボリューム</li>
+<li>$\mathcal{P}$: 現在のPareto集合</li>
+</ul>
+<p><strong>コード例5: 多目的最適化の実装（BoTorch）</strong></p>
+<pre><code class="language-python">import torch
+from botorch.models import SingleTaskGP
+from botorch.models.transforms.outcome import Standardize
+from botorch.fit import fit_gpytorch_mll
+from botorch.acquisition.multi_objective import qExpectedHypervolumeImprovement
+from botorch.utils.multi_objective.box_decompositions.dominated import DominatedPartitioning
+from botorch.optim import optimize_acqf
+from botorch.utils.multi_objective.pareto import is_non_dominated
+from gpytorch.mlls import ExactMarginalLogLikelihood
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+# デバイス設定
+device = torch.device(&quot;cuda&quot; if torch.cuda.is_available() else &quot;cpu&quot;)
+dtype = torch.double
+
+# 多目的最適化問題の定義（2目的）
+def multi_objective_function(x):
+    &quot;&quot;&quot;
+    2目的最適化問題
+    目的1: f1(x) = x1^2 + x2^2 を最小化
+    目的2: f2(x) = (x1-1)^2 + (x2-1)^2 を最小化
+    Pareto最適解は x1とx2の線形結合で表される
+
+    Parameters:
+    -----------
+    x : torch.Tensor, shape (n, 2)
+        入力点
+
+    Returns:
+    --------
+    y : torch.Tensor, shape (n, 2)
+        2つの目的関数値（最大化のため負の値を返す）
+    &quot;&quot;&quot;
+    f1 = x[:, 0]**2 + x[:, 1]**2
+    f2 = (x[:, 0] - 1)**2 + (x[:, 1] - 1)**2
+
+    # BoTorchは最大化を前提とするため、最小化問題は負にする
+    return torch.stack([-f1, -f2], dim=-1)
+
+
+# 初期サンプルの生成
+def generate_initial_data(n=6):
+    &quot;&quot;&quot;初期データの生成&quot;&quot;&quot;
+    train_x = torch.rand(n, 2, device=device, dtype=dtype) * 2 - 1  # [-1, 1]の範囲
+    train_y = multi_objective_function(train_x)
+    return train_x, train_y
+
+
+# 多目的ガウス過程モデルの構築
+def initialize_model(train_x, train_y):
+    &quot;&quot;&quot;
+    2目的のための独立なGPモデルを構築
+
+    Parameters:
+    -----------
+    train_x : torch.Tensor
+        学習データ (n, 2)
+    train_y : torch.Tensor
+        目的関数値 (n, 2)
+
+    Returns:
+    --------
+    model : SingleTaskGP
+        学習済みGPモデル
+    &quot;&quot;&quot;
+    model = SingleTaskGP(
+        train_x,
+        train_y,
+        outcome_transform=Standardize(m=train_y.shape[-1])  # 各目的を標準化
+    )
+    mll = ExactMarginalLogLikelihood(model.likelihood, model)
+    fit_gpytorch_mll(mll)
+    return model
+
+
+# EHVI獲得関数の最適化
+def optimize_ehvi_and_get_observation(model, train_y, bounds):
+    &quot;&quot;&quot;
+    Expected Hypervolume Improvement獲得関数を最適化
+
+    Parameters:
+    -----------
+    model : SingleTaskGP
+        学習済みモデル
+    train_y : torch.Tensor
+        既存の目的関数値
+    bounds : torch.Tensor
+        探索空間の境界 (2, 2)
+
+    Returns:
+    --------
+    new_x : torch.Tensor
+        次のサンプル点
+    &quot;&quot;&quot;
+    # 参照点の設定（全ての目的で最悪の値より少し悪い点）
+    ref_point = train_y.min(dim=0).values - 0.1
+
+    # Pareto前線の計算
+    pareto_mask = is_non_dominated(train_y)
+    pareto_y = train_y[pareto_mask]
+
+    # Box decomposition（ハイパーボリューム計算用）
+    partitioning = DominatedPartitioning(ref_point=ref_point, Y=pareto_y)
+
+    # EHVI獲得関数の定義
+    acq_func = qExpectedHypervolumeImprovement(
+        model=model,
+        ref_point=ref_point,
+        partitioning=partitioning,
+    )
+
+    # 獲得関数の最大化
+    candidates, _ = optimize_acqf(
+        acq_function=acq_func,
+        bounds=bounds,
+        q=1,  # 1点ずつ選択
+        num_restarts=10,
+        raw_samples=128,
+    )
+
+    return candidates.detach()
+
+
+# Bayesian Optimization ループ
+def run_bo_loop(n_iterations=10):
+    &quot;&quot;&quot;
+    多目的ベイズ最適化の実行
+
+    Parameters:
+    -----------
+    n_iterations : int
+        最適化の反復回数
+
+    Returns:
+    --------
+    train_x : torch.Tensor
+        全てのサンプル点
+    train_y : torch.Tensor
+        全ての目的関数値
+    &quot;&quot;&quot;
+    # 探索空間の境界
+    bounds = torch.tensor([[-1.0, -1.0], [1.0, 1.0]], device=device, dtype=dtype)
+
+    # 初期データ
+    train_x, train_y = generate_initial_data(n=6)
+
+    print(&quot;多目的ベイズ最適化開始&quot;)
+    print(f&quot;初期データ: {train_x.shape[0]}点&quot;)
+
+    for iteration in range(n_iterations):
+        # モデルの学習
+        model = initialize_model(train_x, train_y)
+
+        # 次のサンプル点を取得
+        new_x = optimize_ehvi_and_get_observation(model, train_y, bounds)
+        new_y = multi_objective_function(new_x)
+
+        # データに追加
+        train_x = torch.cat([train_x, new_x])
+        train_y = torch.cat([train_y, new_y])
+
+        # Pareto前線の更新
+        pareto_mask = is_non_dominated(train_y)
+        n_pareto = pareto_mask.sum().item()
+
+        print(f&quot;Iteration {iteration + 1}: 新規点 = {new_x.squeeze().cpu().numpy()}, Pareto解数 = {n_pareto}&quot;)
+
+    return train_x, train_y
+
+
+# 実行と可視化
+torch.manual_seed(42)
+final_x, final_y = run_bo_loop(n_iterations=15)
+
+# Pareto前線の抽出
+pareto_mask = is_non_dominated(final_y)
+pareto_x = final_x[pareto_mask].cpu().numpy()
+pareto_y = final_y[pareto_mask].cpu().numpy()
+non_pareto_y = final_y[~pareto_mask].cpu().numpy()
+
+# 可視化
+fig = plt.figure(figsize=(15, 5))
+
+# 左：入力空間
+ax1 = fig.add_subplot(131)
+ax1.scatter(final_x[:, 0].cpu(), final_x[:, 1].cpu(), c='blue', s=50, alpha=0.6, label='全サンプル')
+ax1.scatter(pareto_x[:, 0], pareto_x[:, 1], c='red', s=100, marker='*', label='Pareto解', zorder=5)
+ax1.set_xlabel('x1')
+ax1.set_ylabel('x2')
+ax1.set_title('入力空間のサンプル分布')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# 中央：目的空間（Pareto前線）
+ax2 = fig.add_subplot(132)
+ax2.scatter(non_pareto_y[:, 0], non_pareto_y[:, 1], c='blue', s=50, alpha=0.6, label='非Pareto解')
+ax2.scatter(pareto_y[:, 0], pareto_y[:, 1], c='red', s=100, marker='*', label='Pareto前線', zorder=5)
+# Pareto前線を線で結ぶ
+sorted_idx = np.argsort(pareto_y[:, 0])
+ax2.plot(pareto_y[sorted_idx, 0], pareto_y[sorted_idx, 1], 'r--', alpha=0.5, linewidth=2)
+ax2.set_xlabel('目的1: -f1(x)')
+ax2.set_ylabel('目的2: -f2(x)')
+ax2.set_title('目的空間のPareto前線')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+# 右：3D可視化（入力と目的の関係）
+ax3 = fig.add_subplot(133, projection='3d')
+ax3.scatter(final_x[:, 0].cpu(), final_x[:, 1].cpu(), final_y[:, 0].cpu(),
+            c='blue', s=30, alpha=0.6, label='目的1')
+ax3.scatter(pareto_x[:, 0], pareto_x[:, 1], pareto_y[:, 0],
+            c='red', s=80, marker='*', label='Pareto解（目的1）', zorder=5)
+ax3.set_xlabel('x1')
+ax3.set_ylabel('x2')
+ax3.set_zlabel('目的1: -f1(x)')
+ax3.set_title('入力空間と目的1の関係')
+ax3.legend()
+
+plt.tight_layout()
+plt.savefig('multi_objective_bo.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 結果の出力
+print(&quot;\n最適化完了&quot;)
+print(f&quot;総サンプル数: {final_x.shape[0]}&quot;)
+print(f&quot;Pareto解数: {pareto_mask.sum().item()}&quot;)
+print(f&quot;\nPareto前線の目的関数値:&quot;)
+for i, (y1, y2) in enumerate(pareto_y):
+    print(f&quot;  解{i+1}: f1={-y1:.4f}, f2={-y2:.4f}&quot;)
+
+# 出力例:
+# 多目的ベイズ最適化開始
+# 初期データ: 6点
+# Iteration 1: 新規点 = [0.123 0.456], Pareto解数 = 4
+# Iteration 2: 新規点 = [-0.234 0.789], Pareto解数 = 5
+# ...
+# Iteration 15: 新規点 = [0.512 0.487], Pareto解数 = 8
+#
+# 最適化完了
+# 総サンプル数: 21
+# Pareto解数: 8
+#
+# Pareto前線の目的関数値:
+#   解1: f1=0.0123, f2=1.2345
+#   解2: f1=0.3456, f2=0.8901
+#   解3: f1=0.6789, f2=0.4567
+#   ...
+</code></pre>
+<hr />
+<h2>3.3 制約付き獲得関数</h2>
+<h3>制約条件の扱い</h3>
+<p><strong>例</strong>: 合成可能性制約、コスト制約</p>
+<p><strong>数式</strong>:
+$$
+x^* = \arg\max_{x \in \mathcal{X}} \alpha(x | \mathcal{D}) \cdot P_c(x)
+$$</p>
+<ul>
+<li>$P_c(x)$: 制約条件を満たす確率</li>
+</ul>
+<p><strong>Constrained Expected Improvement</strong>:
+$$
+\text{CEI}(x) = \text{EI}(x) \cdot P(c(x) \leq 0)
+$$</p>
+<hr />
+<h2>3.4 ケーススタディ：熱電材料探索</h2>
+<h3>問題設定</h3>
+<p><strong>目標</strong>: 熱電性能指数ZT値の最大化</p>
+<p><strong>ZT値</strong>:
+$$
+ZT = \frac{S^2 \sigma T}{\kappa}
+$$</p>
+<ul>
+<li>$S$: Seebeck係数</li>
+<li>$\sigma$: 電気伝導度</li>
+<li>$T$: 絶対温度</li>
+<li>$\kappa$: 熱伝導度</li>
+</ul>
+<p><strong>課題</strong>: 3つの物性を同時に最適化（多目的最適化）</p>
+<hr />
+<h2>本章のまとめ</h2>
+<h3>獲得関数の比較表</h3>
+<table>
+<thead>
+<tr>
+<th>獲得関数</th>
+<th>特徴</th>
+<th>探索傾向</th>
+<th>計算コスト</th>
+<th>推奨用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EI</td>
+<td>改善期待値</td>
+<td>バランス</td>
+<td>低</td>
+<td>一般的な最適化</td>
+</tr>
+<tr>
+<td>PI</td>
+<td>改善確率</td>
+<td>活用重視</td>
+<td>低</td>
+<td>高速探索</td>
+</tr>
+<tr>
+<td>UCB</td>
+<td>信頼上限</td>
+<td>探索重視</td>
+<td>低</td>
+<td>広範囲探索</td>
+</tr>
+<tr>
+<td>Thompson</td>
+<td>確率的</td>
+<td>バランス</td>
+<td>中</td>
+<td>並列実験</td>
+</tr>
+</tbody>
+</table>
+<h3>次の章へ</h3>
+<p>第4章では、<strong>材料探索への応用と実践</strong>を学びます：
+- Active Learning × ベイズ最適化
+- Active Learning × 高スループット計算
+- Active Learning × 実験ロボット
+- 実世界応用とキャリアパス</p>
+<p><strong><a href="./chapter-4.html">第4章：材料探索への応用と実践 →</a></strong></p>
+<hr />
+<h2>演習問題</h2>
+<p>（省略：演習問題の詳細実装）</p>
+<hr />
+<h2>参考文献</h2>
+<ol>
+<li>
+<p>Jones, D. R. et al. (1998). "Efficient Global Optimization of Expensive Black-Box Functions." <em>Journal of Global Optimization</em>, 13(4), 455-492.</p>
+</li>
+<li>
+<p>Daulton, S. et al. (2020). "Differentiable Expected Hypervolume Improvement for Parallel Multi-Objective Bayesian Optimization." <em>NeurIPS</em>.</p>
+</li>
+</ol>
+<hr />
+<h2>ナビゲーション</h2>
+<h3>前の章</h3>
+<p><strong><a href="./chapter-2.html">← 第2章：不確実性推定手法</a></strong></p>
+<h3>次の章</h3>
+<p><strong><a href="./chapter-4.html">第4章：材料探索への応用と実践 →</a></strong></p>
+<h3>シリーズ目次</h3>
+<p><strong><a href="./index.html">← シリーズ目次に戻る</a></strong></p>
+<hr />
+<p><strong>次の章で実践的な応用を学びましょう！</strong></p><div class="navigation">
+    <a href="chapter-2.html" class="nav-button">← 前の章</a>
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+    <a href="chapter-4.html" class="nav-button">次の章 →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-18</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

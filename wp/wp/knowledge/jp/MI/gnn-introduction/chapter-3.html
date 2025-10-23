@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章：PyTorch Geometric実践 - 分子・材料特性予測の実装 - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第3章：PyTorch Geometric実践 - 分子・材料特性予測の実装</h1>
+            <p class="subtitle">実データで学ぶグラフニューラルネットワークの構築と評価</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 20-25分</span>
+                <span class="meta-item">📊 難易度: 中級</span>
+                <span class="meta-item">💻 コード例: 0個</span>
+                <span class="meta-item">📝 演習問題: 0問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>第3章：PyTorch Geometric実践 - 分子・材料特性予測の実装</h1>
+<p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #7b2cbf; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">PyGでデータ準備→モデル学習→評価までを最短ルートで体験します。学習が安定しない時のチェックリストも示します。</p>
+<p class="chapter-supplement" style="margin: 0.75rem 0 1.5rem 0; padding: 0.75rem 1rem; background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%); border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 0.95rem; line-height: 1.7; color: #4a5568;"><strong>💡 補足:</strong> まずは小グラフ・小エポックで動作確認→バッチ・層数を増やす順番で拡張。学習率は小さめから。</p>
+
+
+
+
+
+<h2>学習目標</h2>
+<p>この章を読むことで、以下を習得できます：
+- PyTorch Geometric環境を構築し、GNNライブラリを使いこなせる
+- QM9データセットで分子特性予測モデルを実装できる
+- Materials Projectデータで結晶特性予測を実行できる
+- モデル訓練のベストプラクティスを適用できる
+- 予測結果を可視化し、性能を評価できる</p>
+<p><strong>読了時間</strong>: 25-30分
+<strong>コード例</strong>: 10個
+<strong>演習問題</strong>: 3問</p>
+<hr />
+<h2>3.1 環境構築：PyTorch Geometricのインストール</h2>
+<h3>3.1.1 PyTorch Geometricとは</h3>
+<p><strong>PyTorch Geometric (PyG)</strong>は、PyTorch上で動作するグラフニューラルネットワーク専用ライブラリです。</p>
+<p><strong>主な特徴</strong>:
+- 🚀 <strong>高速</strong>: GPUによる効率的なグラフ処理
+- 📦 <strong>豊富なモデル</strong>: GCN、GAT、GraphSAGE、SchNetなど30種類以上
+- 🧪 <strong>データセット</strong>: QM9、ZINC、OGB（Open Graph Benchmark）が組み込み済み
+- 🛠️ <strong>柔軟性</strong>: カスタムレイヤーやモデルを簡単に実装可能</p>
+<h3>3.1.2 インストール手順</h3>
+<p><strong>Option 1: Conda環境（推奨）</strong></p>
+<pre><code class="language-bash"># 1. Python 3.9以上の環境を作成
+conda create -n gnn-env python=3.10
+conda activate gnn-env
+
+# 2. PyTorchをインストール（CUDA版推奨）
+# CPU版の場合:
+conda install pytorch torchvision torchaudio cpuonly -c pytorch
+
+# GPU版の場合（CUDA 11.8）:
+conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
+
+# 3. PyTorch Geometricをインストール
+conda install pyg -c pyg
+
+# 4. 追加ライブラリ
+pip install rdkit matplotlib seaborn pandas scikit-learn
+</code></pre>
+<p><strong>Option 2: pipでのインストール</strong></p>
+<pre><code class="language-bash"># 1. 仮想環境を作成
+python -m venv gnn-env
+source gnn-env/bin/activate  # macOS/Linux
+# gnn-env\Scripts\activate  # Windows
+
+# 2. PyTorchをインストール
+pip install torch torchvision torchaudio
+
+# 3. PyTorch Geometricをインストール
+pip install torch-geometric
+
+# 4. 依存ライブラリ
+pip install torch-scatter torch-sparse torch-cluster -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+
+# 5. 追加ライブラリ
+pip install rdkit matplotlib seaborn pandas scikit-learn
+</code></pre>
+<p><strong>Option 3: Google Colab（インストール不要）</strong></p>
+<pre><code class="language-python"># Google Colabでは以下を実行
+!pip install torch-geometric
+!pip install rdkit
+</code></pre>
+<h3>3.1.3 インストール確認</h3>
+<pre><code class="language-python">import torch
+import torch_geometric
+from torch_geometric.data import Data
+from rdkit import Chem
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+print(&quot;===== インストール確認 =====&quot;)
+print(f&quot;PyTorch version: {torch.__version__}&quot;)
+print(f&quot;PyTorch Geometric version: {torch_geometric.__version__}&quot;)
+print(f&quot;CUDA available: {torch.cuda.is_available()}&quot;)
+if torch.cuda.is_available():
+    print(f&quot;CUDA version: {torch.version.cuda}&quot;)
+    print(f&quot;GPU: {torch.cuda.get_device_name(0)}&quot;)
+
+# 簡単なグラフを作成してテスト
+edge_index = torch.tensor([[0, 1, 1, 2],
+                           [1, 0, 2, 1]], dtype=torch.long)
+x = torch.tensor([[-1], [0], [1]], dtype=torch.float)
+data = Data(x=x, edge_index=edge_index)
+
+print(f&quot;\nテストグラフ作成成功!&quot;)
+print(f&quot;ノード数: {data.num_nodes}&quot;)
+print(f&quot;エッジ数: {data.num_edges}&quot;)
+print(&quot;✅ PyTorch Geometric環境の構築完了!&quot;)
+</code></pre>
+<p><strong>期待される出力</strong>:</p>
+<pre><code>===== インストール確認 =====
+PyTorch version: 2.0.0
+PyTorch Geometric version: 2.3.0
+CUDA available: True
+CUDA version: 11.8
+GPU: NVIDIA GeForce RTX 3090
+
+テストグラフ作成成功!
+ノード数: 3
+エッジ数: 4
+✅ PyTorch Geometric環境の構築完了!
+</code></pre>
+<h3>3.1.4 トラブルシューティング</h3>
+<table>
+<thead>
+<tr>
+<th>エラー</th>
+<th>原因</th>
+<th>解決方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ImportError: No module named 'torch_geometric'</code></td>
+<td>PyG未インストール</td>
+<td><code>pip install torch-geometric</code></td>
+</tr>
+<tr>
+<td><code>OSError: [WinError 126] DLL読み込みエラー</code> (Windows)</td>
+<td>C++再頒布可能パッケージ不足</td>
+<td>Microsoft Visual C++ Redistributableをインストール</td>
+</tr>
+<tr>
+<td><code>RuntimeError: CUDA out of memory</code></td>
+<td>GPU メモリ不足</td>
+<td>バッチサイズを削減、CPU版PyTorch使用</td>
+</tr>
+<tr>
+<td><code>ImportError: cannot import name 'Data'</code></td>
+<td>バージョン不一致</td>
+<td>PyTorchとPyGのバージョンを確認</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>3.2 PyTorch Geometricの基本：データ構造とDataLoader</h2>
+<h3>3.2.1 Dataオブジェクトの構造</h3>
+<p>PyTorch Geometricでは、グラフを<code>Data</code>オブジェクトで表現します。</p>
+<pre><code class="language-python">from torch_geometric.data import Data
+import torch
+
+# エタノール分子 (C2H5OH) をグラフで表現
+# C: 炭素（ノード0, 1）
+# O: 酸素（ノード2）
+# H: 水素（ノード3-7）
+
+# ノード特徴量（原子番号を使用）
+x = torch.tensor([
+    [6],   # C (炭素)
+    [6],   # C (炭素)
+    [8],   # O (酸素)
+    [1],   # H (水素)
+    [1],   # H (水素)
+    [1],   # H (水素)
+    [1],   # H (水素)
+    [1],   # H (水素)
+], dtype=torch.float)
+
+# エッジインデックス（結合関係）
+# 各結合は双方向（無向グラフ）
+edge_index = torch.tensor([
+    [0, 1, 1, 0, 0, 2, 2, 0, 0, 3, 3, 0, 1, 4, 4, 1, 1, 5, 5, 1, 2, 6, 6, 2],
+    [1, 0, 2, 2, 3, 0, 0, 3, 4, 1, 1, 4, 5, 1, 1, 5, 6, 2, 2, 6, 7, 2, 2, 7]
+], dtype=torch.long)
+
+# エッジ特徴量（結合タイプ: 1=単結合）
+edge_attr = torch.ones(edge_index.size(1), 1)
+
+# 分子レベルの特徴（目的変数）
+y = torch.tensor([[156.0]], dtype=torch.float)  # 沸点 (°C)
+
+# Dataオブジェクトを作成
+ethanol = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
+
+print(&quot;===== エタノール分子のグラフ表現 =====&quot;)
+print(f&quot;ノード数（原子数）: {ethanol.num_nodes}&quot;)
+print(f&quot;エッジ数（結合数×2）: {ethanol.num_edges}&quot;)
+print(f&quot;ノード特徴量の形状: {ethanol.x.shape}&quot;)
+print(f&quot;エッジインデックスの形状: {ethanol.edge_index.shape}&quot;)
+print(f&quot;目的変数（沸点）: {ethanol.y.item()} °C&quot;)
+
+# グラフの基本統計
+print(f&quot;\n===== グラフの統計情報 =====&quot;)
+print(f&quot;平均次数（結合数）: {ethanol.num_edges / ethanol.num_nodes:.2f}&quot;)
+print(f&quot;孤立ノード: {ethanol.contains_isolated_nodes()}&quot;)
+print(f&quot;自己ループ: {ethanol.contains_self_loops()}&quot;)
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>===== エタノール分子のグラフ表現 =====
+ノード数（原子数）: 8
+エッジ数（結合数×2）: 24
+ノード特徴量の形状: torch.Size([8, 1])
+エッジインデックスの形状: torch.Size([2, 24])
+目的変数（沸点）: 156.0 °C
+
+===== グラフの統計情報 =====
+平均次数（結合数）: 3.00
+孤立ノード: False
+自己ループ: False
+</code></pre>
+<h3>3.2.2 RDKitからグラフへの変換</h3>
+<p>RDKitはSMILES（分子の文字列表現）から分子オブジェクトを作成できます。</p>
+<pre><code class="language-python">from rdkit import Chem
+from rdkit.Chem import Draw
+from torch_geometric.data import Data
+import torch
+
+def mol_to_graph(smiles):
+    &quot;&quot;&quot;
+    SMILES文字列からPyTorch GeometricのDataオブジェクトを作成
+
+    Parameters:
+    -----------
+    smiles : str
+        分子のSMILES表現
+
+    Returns:
+    --------
+    data : torch_geometric.data.Data
+        グラフデータ
+    &quot;&quot;&quot;
+    # SMILESから分子オブジェクトを作成
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+
+    # ノード特徴量（原子の特性）
+    atom_features = []
+    for atom in mol.GetAtoms():
+        # 原子番号をワンホットエンコーディング（C, N, O, F, その他）
+        atom_type = [0] * 5
+        if atom.GetAtomicNum() == 6:    # C
+            atom_type[0] = 1
+        elif atom.GetAtomicNum() == 7:  # N
+            atom_type[1] = 1
+        elif atom.GetAtomicNum() == 8:  # O
+            atom_type[2] = 1
+        elif atom.GetAtomicNum() == 9:  # F
+            atom_type[3] = 1
+        else:
+            atom_type[4] = 1
+
+        # 形式電荷と芳香族性を追加
+        formal_charge = atom.GetFormalCharge()
+        is_aromatic = int(atom.GetIsAromatic())
+
+        atom_features.append(atom_type + [formal_charge, is_aromatic])
+
+    x = torch.tensor(atom_features, dtype=torch.float)
+
+    # エッジインデックス（結合関係）
+    edge_indices = []
+    for bond in mol.GetBonds():
+        i = bond.GetBeginAtomIdx()
+        j = bond.GetEndAtomIdx()
+        edge_indices += [[i, j], [j, i]]  # 無向グラフなので双方向
+
+    edge_index = torch.tensor(edge_indices, dtype=torch.long).t().contiguous()
+
+    data = Data(x=x, edge_index=edge_index)
+    return data, mol
+
+# テスト: いくつかの分子をグラフに変換
+smiles_list = [
+    (&quot;C&quot;, &quot;メタン&quot;),
+    (&quot;CCO&quot;, &quot;エタノール&quot;),
+    (&quot;c1ccccc1&quot;, &quot;ベンゼン&quot;),
+    (&quot;CC(=O)O&quot;, &quot;酢酸&quot;),
+]
+
+print(&quot;===== SMILESからグラフへの変換 =====&quot;)
+for smiles, name in smiles_list:
+    data, mol = mol_to_graph(smiles)
+    print(f&quot;\n{name} ({smiles}):&quot;)
+    print(f&quot;  ノード数: {data.num_nodes}&quot;)
+    print(f&quot;  エッジ数: {data.num_edges}&quot;)
+    print(f&quot;  ノード特徴量次元: {data.x.shape[1]}&quot;)
+
+# 分子構造の可視化
+import matplotlib.pyplot as plt
+from rdkit.Chem import Draw
+
+fig, axes = plt.subplots(1, 4, figsize=(16, 4))
+for i, (smiles, name) in enumerate(smiles_list):
+    _, mol = mol_to_graph(smiles)
+    img = Draw.MolToImage(mol, size=(300, 300))
+    axes[i].imshow(img)
+    axes[i].set_title(f&quot;{name}\n{smiles}&quot;, fontsize=12)
+    axes[i].axis('off')
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<h3>3.2.3 DataLoaderの使用</h3>
+<p>複数のグラフをバッチ処理するには<code>DataLoader</code>を使用します。</p>
+<pre><code class="language-python">from torch_geometric.data import Data, DataLoader
+import torch
+
+# サンプルデータセットを作成（10個の分子）
+dataset = []
+for i in range(10):
+    num_nodes = torch.randint(5, 15, (1,)).item()  # 5-14原子
+    x = torch.randn(num_nodes, 7)  # ノード特徴量（7次元）
+
+    # ランダムなエッジを生成
+    edge_index = torch.randint(0, num_nodes, (2, num_nodes * 2))
+
+    # 目的変数（例: HOMO-LUMOギャップ）
+    y = torch.randn(1)
+
+    data = Data(x=x, edge_index=edge_index, y=y)
+    dataset.append(data)
+
+# DataLoaderを作成（バッチサイズ=4）
+loader = DataLoader(dataset, batch_size=4, shuffle=True)
+
+print(&quot;===== DataLoaderの使用 =====&quot;)
+print(f&quot;データセットサイズ: {len(dataset)}&quot;)
+print(f&quot;バッチ数: {len(loader)}&quot;)
+
+# 最初のバッチを確認
+for batch in loader:
+    print(f&quot;\n最初のバッチ:&quot;)
+    print(f&quot;  バッチ内の分子数: {batch.num_graphs}&quot;)
+    print(f&quot;  総ノード数: {batch.num_nodes}&quot;)
+    print(f&quot;  総エッジ数: {batch.num_edges}&quot;)
+    print(f&quot;  ノード特徴量の形状: {batch.x.shape}&quot;)
+    print(f&quot;  バッチインデックス: {batch.batch}&quot;)
+    print(f&quot;  目的変数の形状: {batch.y.shape}&quot;)
+    break
+</code></pre>
+<p><strong>出力例</strong>:</p>
+<pre><code>===== DataLoaderの使用 =====
+データセットサイズ: 10
+バッチ数: 3
+
+最初のバッチ:
+  バッチ内の分子数: 4
+  総ノード数: 38
+  総エッジ数: 76
+  ノード特徴量の形状: torch.Size([38, 7])
+  バッチインデックス: tensor([0, 0, 0, ..., 3, 3, 3])
+  目的変数の形状: torch.Size([4, 1])
+</code></pre>
+<p><strong>重要</strong>: <code>batch</code>テンソルは各ノードがどの分子に属するかを示します（0, 0, 0, 1, 1, 2, 2, 2, 3, ...）。</p>
+<hr />
+<h2>3.3 QM9データセットで分子特性予測</h2>
+<h3>3.3.1 QM9データセットの概要</h3>
+<p><strong>QM9</strong>は134,000個の有機小分子の量子化学計算データセットです。</p>
+<p><strong>含まれる特性</strong>:
+- HOMO（最高被占軌道エネルギー）
+- LUMO（最低非占軌道エネルギー）
+- バンドギャップ（HOMO-LUMOギャップ）
+- 双極子モーメント
+- 内部エネルギー
+- エンタルピー、自由エネルギー、熱容量など</p>
+<h3>3.3.2 QM9データセットの読み込み</h3>
+<pre><code class="language-python">from torch_geometric.datasets import QM9
+import torch
+
+# データセットをダウンロード（初回のみ、約1GB）
+dataset = QM9(root='./data/QM9')
+
+print(&quot;===== QM9データセット =====&quot;)
+print(f&quot;分子数: {len(dataset)}&quot;)
+print(f&quot;ノード特徴量次元: {dataset.num_node_features}&quot;)
+print(f&quot;エッジ特徴量次元: {dataset.num_edge_features}&quot;)
+print(f&quot;目的変数数: {dataset.num_classes}&quot;)
+
+# 最初の分子を確認
+data = dataset[0]
+print(f&quot;\n最初の分子:&quot;)
+print(f&quot;  原子数: {data.num_nodes}&quot;)
+print(f&quot;  結合数: {data.num_edges // 2}&quot;)
+print(f&quot;  ノード特徴量: {data.x.shape}&quot;)
+print(f&quot;  エッジ特徴量: {data.edge_attr.shape}&quot;)
+print(f&quot;  目的変数（19種類）: {data.y.shape}&quot;)
+
+# 目的変数の一部を表示
+target_names = ['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve',
+                'U0', 'U', 'H', 'G', 'Cv']
+print(f&quot;\n主要な特性値:&quot;)
+for i, name in enumerate(target_names):
+    print(f&quot;  {name}: {data.y[0, i].item():.4f}&quot;)
+</code></pre>
+<h3>3.3.3 Graph Convolutional Network（GCN）の実装</h3>
+<pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.nn import GCNConv, global_mean_pool
+
+class GCN_QM9(torch.nn.Module):
+    &quot;&quot;&quot;
+    QM9分子特性予測用のGraph Convolutional Network
+
+    Architecture:
+    - 3層のGCNConv
+    - Global mean pooling
+    - 2層の全結合層
+    &quot;&quot;&quot;
+    def __init__(self, num_node_features, num_classes, hidden_channels=64):
+        super(GCN_QM9, self).__init__()
+
+        # GCN層
+        self.conv1 = GCNConv(num_node_features, hidden_channels)
+        self.conv2 = GCNConv(hidden_channels, hidden_channels)
+        self.conv3 = GCNConv(hidden_channels, hidden_channels)
+
+        # 全結合層
+        self.lin1 = torch.nn.Linear(hidden_channels, hidden_channels // 2)
+        self.lin2 = torch.nn.Linear(hidden_channels // 2, num_classes)
+
+    def forward(self, x, edge_index, batch):
+        &quot;&quot;&quot;
+        Parameters:
+        -----------
+        x : torch.Tensor (num_nodes, num_node_features)
+            ノード特徴量
+        edge_index : torch.Tensor (2, num_edges)
+            エッジインデックス
+        batch : torch.Tensor (num_nodes,)
+            バッチインデックス
+
+        Returns:
+        --------
+        out : torch.Tensor (batch_size, num_classes)
+            予測値
+        &quot;&quot;&quot;
+        # GCN層1（畳み込み + 活性化 + ドロップアウト）
+        x = self.conv1(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=0.2, training=self.training)
+
+        # GCN層2
+        x = self.conv2(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=0.2, training=self.training)
+
+        # GCN層3
+        x = self.conv3(x, edge_index)
+        x = F.relu(x)
+
+        # グローバルプーリング（ノード特徴量を分子レベルに集約）
+        x = global_mean_pool(x, batch)
+
+        # 全結合層
+        x = self.lin1(x)
+        x = F.relu(x)
+        x = F.dropout(x, p=0.3, training=self.training)
+
+        x = self.lin2(x)
+        return x
+
+# モデルのインスタンス化
+model = GCN_QM9(
+    num_node_features=dataset.num_node_features,
+    num_classes=1,  # HOMO-LUMOギャップのみを予測
+    hidden_channels=64
+)
+
+print(&quot;===== GCNモデル =====&quot;)
+print(model)
+print(f&quot;\nパラメータ数: {sum(p.numel() for p in model.parameters()):,}&quot;)
+</code></pre>
+<h3>3.3.4 モデルの訓練</h3>
+<pre><code class="language-python">from torch_geometric.loader import DataLoader
+from sklearn.model_selection import train_test_split
+import time
+
+# データセットを小さくする（高速化のため、実際には全データを使用）
+dataset = dataset[:10000]
+
+# HOMO-LUMOギャップ（index=4）のみを目的変数に設定
+for data in dataset:
+    data.y = data.y[:, 4:5]  # shape: (1, 1)
+
+# データ分割（80% train, 10% val, 10% test）
+train_dataset = dataset[:8000]
+val_dataset = dataset[8000:9000]
+test_dataset = dataset[9000:]
+
+# DataLoaderを作成
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+# デバイス設定（GPU利用可能ならGPU、そうでなければCPU）
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = model.to(device)
+
+# 損失関数と最適化アルゴリズム
+criterion = torch.nn.MSELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
+
+# 訓練関数
+def train(model, loader, optimizer, criterion, device):
+    model.train()
+    total_loss = 0
+
+    for data in loader:
+        data = data.to(device)
+        optimizer.zero_grad()
+
+        # 順伝播
+        out = model(data.x, data.edge_index, data.batch)
+        loss = criterion(out, data.y)
+
+        # 逆伝播
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item() * data.num_graphs
+
+    return total_loss / len(loader.dataset)
+
+# 検証関数
+def evaluate(model, loader, criterion, device):
+    model.eval()
+    total_loss = 0
+
+    with torch.no_grad():
+        for data in loader:
+            data = data.to(device)
+            out = model(data.x, data.edge_index, data.batch)
+            loss = criterion(out, data.y)
+            total_loss += loss.item() * data.num_graphs
+
+    return total_loss / len(loader.dataset)
+
+# 訓練ループ
+epochs = 50
+train_losses = []
+val_losses = []
+best_val_loss = float('inf')
+
+print(&quot;===== 訓練開始 =====&quot;)
+start_time = time.time()
+
+for epoch in range(1, epochs + 1):
+    train_loss = train(model, train_loader, optimizer, criterion, device)
+    val_loss = evaluate(model, val_loader, criterion, device)
+
+    train_losses.append(train_loss)
+    val_losses.append(val_loss)
+
+    # ベストモデルを保存
+    if val_loss &lt; best_val_loss:
+        best_val_loss = val_loss
+        torch.save(model.state_dict(), 'best_model_qm9.pt')
+
+    if epoch % 10 == 0:
+        print(f&quot;Epoch {epoch:03d}, &quot;
+              f&quot;Train Loss: {train_loss:.4f}, &quot;
+              f&quot;Val Loss: {val_loss:.4f}&quot;)
+
+training_time = time.time() - start_time
+print(f&quot;\n訓練完了! 所要時間: {training_time:.2f}秒&quot;)
+
+# 最良モデルをロード
+model.load_state_dict(torch.load('best_model_qm9.pt'))
+
+# テストデータで評価
+test_loss = evaluate(model, test_loader, criterion, device)
+test_mae = test_loss ** 0.5  # RMSEをMAEの近似として使用
+
+print(f&quot;\n===== テスト性能 =====&quot;)
+print(f&quot;Test Loss (MSE): {test_loss:.4f}&quot;)
+print(f&quot;Test MAE (approx): {test_mae:.4f} eV&quot;)
+</code></pre>
+<h3>3.3.5 学習曲線の可視化</h3>
+<pre><code class="language-python">import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.plot(train_losses, label='Train Loss', linewidth=2)
+ax.plot(val_losses, label='Validation Loss', linewidth=2)
+ax.set_xlabel('Epoch', fontsize=12)
+ax.set_ylabel('Loss (MSE)', fontsize=12)
+ax.set_title('GCN学習曲線（QM9 HOMO-LUMOギャップ予測）', fontsize=14)
+ax.legend(fontsize=11)
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+# 予測 vs 実測のプロット
+model.eval()
+all_preds = []
+all_targets = []
+
+with torch.no_grad():
+    for data in test_loader:
+        data = data.to(device)
+        out = model(data.x, data.edge_index, data.batch)
+        all_preds.append(out.cpu().numpy())
+        all_targets.append(data.y.cpu().numpy())
+
+all_preds = np.concatenate(all_preds)
+all_targets = np.concatenate(all_targets)
+
+fig, ax = plt.subplots(figsize=(8, 8))
+ax.scatter(all_targets, all_preds, alpha=0.6, s=10)
+ax.plot([all_targets.min(), all_targets.max()],
+        [all_targets.min(), all_targets.max()],
+        'r--', lw=2, label='完全な予測')
+ax.set_xlabel('実測値 (eV)', fontsize=12)
+ax.set_ylabel('予測値 (eV)', fontsize=12)
+ax.set_title('HOMO-LUMOギャップ予測結果', fontsize=14)
+ax.legend(fontsize=11)
+ax.grid(True, alpha=0.3)
+
+# R²スコアを計算
+from sklearn.metrics import r2_score
+r2 = r2_score(all_targets, all_preds)
+mae = np.mean(np.abs(all_targets - all_preds))
+
+ax.text(0.05, 0.95, f'R² = {r2:.3f}\nMAE = {mae:.3f} eV',
+        transform=ax.transAxes, fontsize=12, verticalalignment='top',
+        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
+plt.tight_layout()
+plt.show()
+
+print(f&quot;===== 最終性能 =====&quot;)
+print(f&quot;R² score: {r2:.4f}&quot;)
+print(f&quot;MAE: {mae:.4f} eV&quot;)
+</code></pre>
+<hr />
+<h2>3.4 Materials Projectデータで結晶特性予測</h2>
+<h3>3.4.1 結晶構造のグラフ表現</h3>
+<p>結晶は周期的な構造を持つため、分子とは異なる扱いが必要です。</p>
+<pre><code class="language-python">from pymatgen.core import Structure
+from pymatgen.ext.matproj import MPRester
+import torch
+from torch_geometric.data import Data
+
+def structure_to_graph(structure, cutoff=5.0):
+    &quot;&quot;&quot;
+    pymatgen Structureオブジェクトをグラフに変換
+
+    Parameters:
+    -----------
+    structure : pymatgen.core.Structure
+        結晶構造
+    cutoff : float
+        エッジを作成する距離のカットオフ（Å）
+
+    Returns:
+    --------
+    data : torch_geometric.data.Data
+        グラフデータ
+    &quot;&quot;&quot;
+    # ノード特徴量（原子番号）
+    atomic_numbers = [site.specie.Z for site in structure]
+    x = torch.tensor(atomic_numbers, dtype=torch.float).view(-1, 1)
+
+    # エッジインデックスとエッジ特徴量（原子間距離）
+    edge_indices = []
+    edge_attrs = []
+
+    for i, site_i in enumerate(structure):
+        for j, site_j in enumerate(structure):
+            if i != j:
+                distance = structure.get_distance(i, j)
+                if distance &lt; cutoff:
+                    edge_indices.append([i, j])
+                    edge_attrs.append([distance])
+
+    edge_index = torch.tensor(edge_indices, dtype=torch.long).t().contiguous()
+    edge_attr = torch.tensor(edge_attrs, dtype=torch.float)
+
+    data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+    return data
+
+# Materials ProjectからLi化合物を取得（サンプル）
+# 注意: 実際にはAPIキーが必要
+# API_KEY = &quot;your_api_key_here&quot;
+# with MPRester(API_KEY) as mpr:
+#     entries = mpr.query(
+#         criteria={&quot;elements&quot;: {&quot;$all&quot;: [&quot;Li&quot;]}, &quot;nelements&quot;: 2},
+#         properties=[&quot;structure&quot;, &quot;band_gap&quot;]
+#     )
+
+# サンプルデータ（LiCl結晶）
+from pymatgen.core import Lattice, Structure
+
+# LiCl 岩塩型構造
+lattice = Lattice.cubic(5.14)  # 格子定数
+species = [&quot;Li&quot;, &quot;Li&quot;, &quot;Li&quot;, &quot;Li&quot;, &quot;Cl&quot;, &quot;Cl&quot;, &quot;Cl&quot;, &quot;Cl&quot;]
+coords = [
+    [0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5],
+    [0.5, 0, 0], [0, 0.5, 0], [0, 0, 0.5], [0.5, 0.5, 0.5]
+]
+structure = Structure(lattice, species, coords)
+
+# グラフに変換
+data = structure_to_graph(structure, cutoff=4.0)
+
+print(&quot;===== LiCl結晶のグラフ表現 =====&quot;)
+print(f&quot;ノード数（原子数）: {data.num_nodes}&quot;)
+print(f&quot;エッジ数（距離 &lt; 4.0Åの原子ペア）: {data.num_edges}&quot;)
+print(f&quot;ノード特徴量: {data.x}&quot;)
+print(f&quot;\nエッジ特徴量（距離）の統計:&quot;)
+print(f&quot;  最小距離: {data.edge_attr.min().item():.2f} Å&quot;)
+print(f&quot;  最大距離: {data.edge_attr.max().item():.2f} Å&quot;)
+print(f&quot;  平均距離: {data.edge_attr.mean().item():.2f} Å&quot;)
+</code></pre>
+<h3>3.4.2 結晶特性予測モデル（Crystal Graph Convolutional Network）</h3>
+<pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.nn import GCNConv, global_add_pool
+
+class CGCN(torch.nn.Module):
+    &quot;&quot;&quot;
+    Crystal Graph Convolutional Network
+    結晶のバンドギャップを予測
+    &quot;&quot;&quot;
+    def __init__(self, num_node_features=1, hidden_channels=64):
+        super(CGCN, self).__init__()
+
+        # ノード埋め込み層
+        self.embedding = torch.nn.Linear(num_node_features, hidden_channels)
+
+        # GCN層（エッジ特徴量を考慮する場合はSchNetなどを使用）
+        self.conv1 = GCNConv(hidden_channels, hidden_channels)
+        self.conv2 = GCNConv(hidden_channels, hidden_channels)
+        self.conv3 = GCNConv(hidden_channels, hidden_channels)
+
+        # 全結合層
+        self.lin1 = torch.nn.Linear(hidden_channels, hidden_channels // 2)
+        self.lin2 = torch.nn.Linear(hidden_channels // 2, 1)
+
+    def forward(self, x, edge_index, edge_attr, batch):
+        # ノード埋め込み
+        x = self.embedding(x)
+        x = F.relu(x)
+
+        # GCN層
+        x = self.conv1(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=0.2, training=self.training)
+
+        x = self.conv2(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=0.2, training=self.training)
+
+        x = self.conv3(x, edge_index)
+        x = F.relu(x)
+
+        # グローバルプーリング（結晶レベルに集約）
+        x = global_add_pool(x, batch)
+
+        # 全結合層
+        x = self.lin1(x)
+        x = F.relu(x)
+        x = self.lin2(x)
+
+        return x
+
+# モデルのインスタンス化
+model_crystal = CGCN(num_node_features=1, hidden_channels=128)
+
+print(&quot;===== Crystal Graph Convolutional Network =====&quot;)
+print(model_crystal)
+print(f&quot;\nパラメータ数: {sum(p.numel() for p in model_crystal.parameters()):,}&quot;)
+</code></pre>
+<h3>3.4.3 模擬データでの訓練デモ</h3>
+<pre><code class="language-python"># 模擬データセット作成（実際はMaterials Projectデータを使用）
+crystal_dataset = []
+
+for i in range(200):
+    num_atoms = torch.randint(4, 12, (1,)).item()
+    x = torch.randint(1, 20, (num_atoms, 1)).float()  # 原子番号
+
+    # ランダムなエッジ（距離でフィルタリングしたと仮定）
+    edge_index = torch.randint(0, num_atoms, (2, num_atoms * 4))
+    edge_attr = torch.rand(num_atoms * 4, 1) * 5.0  # 距離 (0-5Å)
+
+    # バンドギャップ（原子番号の関数として模擬）
+    y = (x.mean() / 10.0 + torch.randn(1) * 0.5).clamp(0, 10)
+
+    data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
+    crystal_dataset.append(data)
+
+# データ分割
+train_crystals = crystal_dataset[:160]
+test_crystals = crystal_dataset[160:]
+
+train_loader_crystal = DataLoader(train_crystals, batch_size=16, shuffle=True)
+test_loader_crystal = DataLoader(test_crystals, batch_size=16, shuffle=False)
+
+# 訓練（簡略版）
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model_crystal = model_crystal.to(device)
+optimizer = torch.optim.Adam(model_crystal.parameters(), lr=0.001)
+criterion = torch.nn.MSELoss()
+
+print(&quot;===== 結晶バンドギャップ予測訓練 =====&quot;)
+for epoch in range(1, 51):
+    model_crystal.train()
+    total_loss = 0
+
+    for data in train_loader_crystal:
+        data = data.to(device)
+        optimizer.zero_grad()
+        out = model_crystal(data.x, data.edge_index, data.edge_attr, data.batch)
+        loss = criterion(out, data.y)
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item() * data.num_graphs
+
+    if epoch % 10 == 0:
+        train_loss = total_loss / len(train_crystals)
+        print(f&quot;Epoch {epoch:03d}, Train Loss: {train_loss:.4f}&quot;)
+
+# テスト評価
+model_crystal.eval()
+test_preds = []
+test_targets = []
+
+with torch.no_grad():
+    for data in test_loader_crystal:
+        data = data.to(device)
+        out = model_crystal(data.x, data.edge_index, data.edge_attr, data.batch)
+        test_preds.append(out.cpu().numpy())
+        test_targets.append(data.y.cpu().numpy())
+
+test_preds = np.concatenate(test_preds)
+test_targets = np.concatenate(test_targets)
+
+test_mae = np.mean(np.abs(test_targets - test_preds))
+test_r2 = r2_score(test_targets, test_preds)
+
+print(f&quot;\n===== テスト性能 =====&quot;)
+print(f&quot;MAE: {test_mae:.4f} eV&quot;)
+print(f&quot;R²: {test_r2:.4f}&quot;)
+</code></pre>
+<hr />
+<h2>3.5 トレーニングのベストプラクティス</h2>
+<h3>3.5.1 学習率スケジューリング</h3>
+<pre><code class="language-python">from torch.optim.lr_scheduler import ReduceLROnPlateau
+
+# 学習率を動的に調整
+scheduler = ReduceLROnPlateau(
+    optimizer,
+    mode='min',
+    factor=0.5,     # 学習率を半分に
+    patience=10,    # 10エポック改善なしで調整
+    verbose=True
+)
+
+# 訓練ループ内で使用
+for epoch in range(epochs):
+    train_loss = train(model, train_loader, optimizer, criterion, device)
+    val_loss = evaluate(model, val_loader, criterion, device)
+
+    # 検証損失に基づいて学習率を調整
+    scheduler.step(val_loss)
+</code></pre>
+<h3>3.5.2 Early Stopping</h3>
+<pre><code class="language-python">class EarlyStopping:
+    &quot;&quot;&quot;
+    Early Stoppingクラス
+    検証損失が改善しなくなったら訓練を停止
+    &quot;&quot;&quot;
+    def __init__(self, patience=20, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.best_loss = None
+        self.early_stop = False
+
+    def __call__(self, val_loss):
+        if self.best_loss is None:
+            self.best_loss = val_loss
+        elif val_loss &gt; self.best_loss - self.min_delta:
+            self.counter += 1
+            if self.counter &gt;= self.patience:
+                self.early_stop = True
+        else:
+            self.best_loss = val_loss
+            self.counter = 0
+
+# 使用例
+early_stopping = EarlyStopping(patience=20)
+
+for epoch in range(epochs):
+    train_loss = train(model, train_loader, optimizer, criterion, device)
+    val_loss = evaluate(model, val_loader, criterion, device)
+
+    early_stopping(val_loss)
+    if early_stopping.early_stop:
+        print(f&quot;Early stopping at epoch {epoch}&quot;)
+        break
+</code></pre>
+<h3>3.5.3 データ拡張（グラフの摂動）</h3>
+<pre><code class="language-python">import torch
+from torch_geometric.utils import dropout_edge
+
+def augment_graph(data, drop_edge_prob=0.1, noise_scale=0.01):
+    &quot;&quot;&quot;
+    グラフのデータ拡張
+
+    Parameters:
+    -----------
+    data : Data
+        元のグラフ
+    drop_edge_prob : float
+        エッジをドロップする確率
+    noise_scale : float
+        ノード特徴量に加えるノイズのスケール
+
+    Returns:
+    --------
+    augmented_data : Data
+        拡張されたグラフ
+    &quot;&quot;&quot;
+    # エッジのドロップアウト
+    edge_index, edge_mask = dropout_edge(data.edge_index, p=drop_edge_prob)
+
+    # ノード特徴量にノイズを追加
+    noise = torch.randn_like(data.x) * noise_scale
+    x = data.x + noise
+
+    augmented_data = Data(x=x, edge_index=edge_index, y=data.y)
+    return augmented_data
+
+# 使用例
+original = dataset[0]
+augmented = augment_graph(original, drop_edge_prob=0.15)
+
+print(f&quot;元のエッジ数: {original.num_edges}&quot;)
+print(f&quot;拡張後のエッジ数: {augmented.num_edges}&quot;)
+</code></pre>
+<hr />
+<h2>3.6 モデル性能の評価と可視化</h2>
+<h3>3.6.1 評価指標の計算</h3>
+<pre><code class="language-python">from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import numpy as np
+
+def evaluate_regression(y_true, y_pred):
+    &quot;&quot;&quot;
+    回帰モデルの評価指標を計算
+    &quot;&quot;&quot;
+    mae = mean_absolute_error(y_true, y_pred)
+    mse = mean_squared_error(y_true, y_pred)
+    rmse = np.sqrt(mse)
+    r2 = r2_score(y_true, y_pred)
+
+    # Mean Absolute Percentage Error
+    mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100
+
+    return {
+        'MAE': mae,
+        'MSE': mse,
+        'RMSE': rmse,
+        'R²': r2,
+        'MAPE': mape
+    }
+
+# 使用例
+metrics = evaluate_regression(test_targets, test_preds)
+
+print(&quot;===== 評価指標 =====&quot;)
+for name, value in metrics.items():
+    print(f&quot;{name}: {value:.4f}&quot;)
+</code></pre>
+<h3>3.6.2 残差プロット</h3>
+<pre><code class="language-python">import matplotlib.pyplot as plt
+
+def plot_residuals(y_true, y_pred):
+    &quot;&quot;&quot;
+    残差プロット
+    &quot;&quot;&quot;
+    residuals = y_true - y_pred
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # 残差 vs 予測値
+    axes[0].scatter(y_pred, residuals, alpha=0.6, s=20)
+    axes[0].axhline(y=0, color='r', linestyle='--', lw=2)
+    axes[0].set_xlabel('予測値', fontsize=12)
+    axes[0].set_ylabel('残差（実測 - 予測）', fontsize=12)
+    axes[0].set_title('残差プロット', fontsize=14)
+    axes[0].grid(True, alpha=0.3)
+
+    # 残差のヒストグラム
+    axes[1].hist(residuals, bins=30, alpha=0.7, edgecolor='black')
+    axes[1].set_xlabel('残差', fontsize=12)
+    axes[1].set_ylabel('頻度', fontsize=12)
+    axes[1].set_title('残差分布', fontsize=14)
+    axes[1].axvline(x=0, color='r', linestyle='--', lw=2)
+    axes[1].grid(True, alpha=0.3, axis='y')
+
+    plt.tight_layout()
+    plt.show()
+
+# 使用例
+plot_residuals(test_targets, test_preds)
+</code></pre>
+<h3>3.6.3 モデル比較</h3>
+<pre><code class="language-python">import pandas as pd
+import matplotlib.pyplot as plt
+
+# 複数モデルの性能を比較
+models_performance = {
+    'GCN (3層)': {'MAE': 0.32, 'R²': 0.88, 'Time': 45.2},
+    'GAT (2層)': {'MAE': 0.28, 'R²': 0.91, 'Time': 62.8},
+    'SchNet': {'MAE': 0.25, 'R²': 0.93, 'Time': 89.5},
+    'MPNN': {'MAE': 0.30, 'R²': 0.90, 'Time': 55.1},
+}
+
+df = pd.DataFrame(models_performance).T
+
+# プロット
+fig, axes = plt.subplots(1, 3, figsize=(16, 4))
+
+# MAE比較
+df['MAE'].plot(kind='bar', ax=axes[0], color='steelblue')
+axes[0].set_ylabel('MAE (eV)', fontsize=12)
+axes[0].set_title('平均絶対誤差（低いほど良い）', fontsize=13)
+axes[0].tick_params(axis='x', rotation=45)
+axes[0].grid(True, alpha=0.3, axis='y')
+
+# R²比較
+df['R²'].plot(kind='bar', ax=axes[1], color='forestgreen')
+axes[1].set_ylabel('R² Score', fontsize=12)
+axes[1].set_title('決定係数（高いほど良い）', fontsize=13)
+axes[1].tick_params(axis='x', rotation=45)
+axes[1].grid(True, alpha=0.3, axis='y')
+axes[1].set_ylim(0.8, 1.0)
+
+# 訓練時間比較
+df['Time'].plot(kind='bar', ax=axes[2], color='coral')
+axes[2].set_ylabel('訓練時間 (秒)', fontsize=12)
+axes[2].set_title('計算コスト', fontsize=13)
+axes[2].tick_params(axis='x', rotation=45)
+axes[2].grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<hr />
+<h2>3.7 トラブルシューティング</h2>
+<h3>3.7.1 よくあるエラーと解決策</h3>
+<table>
+<thead>
+<tr>
+<th>エラー</th>
+<th>原因</th>
+<th>解決方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RuntimeError: CUDA out of memory</code></td>
+<td>GPU メモリ不足</td>
+<td>バッチサイズ削減、モデルの小型化、CPU使用</td>
+</tr>
+<tr>
+<td><code>AssertionError: edge_index not contiguous</code></td>
+<td>エッジインデックスのメモリ配置</td>
+<td><code>edge_index = edge_index.t().contiguous()</code></td>
+</tr>
+<tr>
+<td><code>ValueError: too many values to unpack</code></td>
+<td>Dataオブジェクトの属性不足</td>
+<td><code>x</code>, <code>edge_index</code>, <code>batch</code>が正しく設定されているか確認</td>
+</tr>
+<tr>
+<td><code>RuntimeError: Expected all tensors on same device</code></td>
+<td>テンソルのデバイス不一致</td>
+<td><code>data = data.to(device)</code>を確認</td>
+</tr>
+</tbody>
+</table>
+<h3>3.7.2 デバッグのチェックリスト</h3>
+<pre><code class="language-python"># データの確認
+print(f&quot;ノード数: {data.num_nodes}&quot;)
+print(f&quot;エッジ数: {data.num_edges}&quot;)
+print(f&quot;孤立ノード: {data.contains_isolated_nodes()}&quot;)
+print(f&quot;自己ループ: {data.contains_self_loops()}&quot;)
+
+# テンソルの形状確認
+print(f&quot;x.shape: {data.x.shape}&quot;)
+print(f&quot;edge_index.shape: {data.edge_index.shape}&quot;)
+print(f&quot;y.shape: {data.y.shape}&quot;)
+
+# デバイスの確認
+print(f&quot;x device: {data.x.device}&quot;)
+print(f&quot;edge_index device: {data.edge_index.device}&quot;)
+
+# エッジインデックスの範囲確認
+print(f&quot;max edge index: {data.edge_index.max().item()}&quot;)
+print(f&quot;num_nodes: {data.num_nodes}&quot;)
+assert data.edge_index.max().item() &lt; data.num_nodes, &quot;エッジインデックスがノード数を超えています&quot;
+</code></pre>
+<hr />
+<h2>3.8 本章のまとめ</h2>
+<h3>学んだこと</h3>
+<ol>
+<li>
+<p><strong>PyTorch Geometric環境構築</strong>
+   - Conda、pip、Google Colabの3つの方法
+   - バージョン互換性の確認とトラブルシューティング</p>
+</li>
+<li>
+<p><strong>データ構造の理解</strong>
+   - Dataオブジェクトの構造（x, edge_index, batch）
+   - RDKitからのグラフ変換
+   - DataLoaderによるバッチ処理</p>
+</li>
+<li>
+<p><strong>QM9データセットでの実践</strong>
+   - 134,000分子の量子化学データセット
+   - GCNモデルの実装と訓練
+   - HOMO-LUMOギャップ予測（MAE &lt; 0.5 eV目標）</p>
+</li>
+<li>
+<p><strong>結晶特性予測</strong>
+   - Materials Project結晶データのグラフ表現
+   - Crystal Graph Convolutional Network
+   - バンドギャップ予測</p>
+</li>
+<li>
+<p><strong>訓練のベストプラクティス</strong>
+   - 学習率スケジューリング
+   - Early Stopping
+   - データ拡張（グラフの摂動）</p>
+</li>
+<li>
+<p><strong>評価と可視化</strong>
+   - MAE、MSE、R²などの指標
+   - 残差プロット
+   - モデル間の性能比較</p>
+</li>
+</ol>
+<h3>重要なポイント</h3>
+<ul>
+<li>✅ PyTorch Geometricは材料・分子のGNN実装に最適</li>
+<li>✅ QM9は初学者に最適な分子特性予測ベンチマーク</li>
+<li>✅ グラフの前処理（孤立ノード、自己ループの確認）が重要</li>
+<li>✅ バッチ処理では<code>batch</code>テンソルが各ノードの所属を示す</li>
+<li>✅ 学習率スケジューリングとEarly Stoppingで過学習を防止</li>
+</ul>
+<h3>次の章へ</h3>
+<p>第4章では、高度なGNN技術を学びます：
+- グラフプーリング（階層的表現）
+- エッジ特徴量の活用
+- 3D幾何情報の組込み（SchNet、DimeNet）
+- 等変GNN（E(3)-equivariant）
+- GNNExplainerによる解釈可能性</p>
+<p><strong><a href="./chapter-4.html">第4章：高度なGNN技術 →</a></strong></p>
+<hr />
+<h2>演習問題</h2>
+<h3>問題1（難易度：easy）</h3>
+<p>PyTorch GeometricのDataオブジェクトに含まれる主要な属性を3つ挙げ、それぞれの役割を説明してください。</p>
+<details>
+<summary>ヒント</summary>
+
+ノード、エッジ、バッチに関する情報を格納する属性を考えましょう。
+
+</details>
+
+<details>
+<summary>解答例</summary>
+
+**主要な3つの属性**:
+
+1. **`x` (ノード特徴量)**
+   - 形状: `(num_nodes, num_node_features)`
+   - 役割: 各ノード（原子）の特徴量を格納
+   - 例: 原子番号、電気陰性度、形式電荷など
+
+2. **`edge_index` (エッジインデックス)**
+   - 形状: `(2, num_edges)`
+   - 役割: グラフの接続関係（隣接リスト形式）
+   - 例: `[[0, 1], [1, 2]]` → ノード0とノード1が接続
+
+3. **`batch` (バッチインデックス)**
+   - 形状: `(num_nodes,)`
+   - 役割: 各ノードがどのグラフに属するかを示す
+   - 例: `[0, 0, 1, 1, 2]` → ノード0,1はグラフ0、ノード2,3はグラフ1
+
+**追加の重要な属性**:
+- `edge_attr`: エッジ特徴量（結合タイプ、距離など）
+- `y`: 目的変数（分子特性、結晶特性）
+
+</details>
+
+<hr />
+<h3>問題2（難易度：medium）</h3>
+<p>QM9データセットで訓練したGCNモデルのMAEが0.8 eVでした。性能を向上させるための3つの具体的なアプローチを提案してください。</p>
+<details>
+<summary>ヒント</summary>
+
+モデルアーキテクチャ、ハイパーパラメータ、データ前処理の3つの観点から考えましょう。
+
+</details>
+
+<details>
+<summary>解答例</summary>
+
+**アプローチ1: モデルアーキテクチャの改善**
+
+
+<pre><code class="language-python"># GATレイヤーを使用（注意機構で重要な結合を学習）
+from torch_geometric.nn import GATConv
+
+class ImprovedGNN(torch.nn.Module):
+    def __init__(self, num_node_features, hidden_channels=128):
+        super().__init__()
+        # GATレイヤー（ヘッド数=8）
+        self.conv1 = GATConv(num_node_features, hidden_channels, heads=8)
+        self.conv2 = GATConv(hidden_channels * 8, hidden_channels, heads=8)
+        self.conv3 = GATConv(hidden_channels * 8, hidden_channels, heads=1)
+        # 層を増やす（3層 → 4層）
+        self.conv4 = GCNConv(hidden_channels, hidden_channels)
+</code></pre>
+
+
+**期待される改善**: MAE 0.8 eV → 0.5-0.6 eV
+
+---
+
+**アプローチ2: エッジ特徴量の活用**
+
+
+<pre><code class="language-python"># エッジ特徴量（結合タイプ）を組み込む
+from torch_geometric.nn import NNConv
+
+class EdgeFeaturesGNN(torch.nn.Module):
+    def __init__(self, num_node_features, num_edge_features, hidden_channels=64):
+        super().__init__()
+        # NNConv: エッジ特徴量を考慮
+        nn = torch.nn.Sequential(
+            torch.nn.Linear(num_edge_features, hidden_channels * hidden_channels),
+            torch.nn.ReLU()
+        )
+        self.conv1 = NNConv(num_node_features, hidden_channels, nn, aggr='mean')
+</code></pre>
+
+
+**期待される改善**: MAE 0.8 eV → 0.6-0.7 eV
+
+---
+
+**アプローチ3: データ正規化と拡張**
+
+
+<pre><code class="language-python"># 目的変数を標準化
+y_mean = train_dataset.data.y.mean(dim=0)
+y_std = train_dataset.data.y.std(dim=0)
+
+for data in train_dataset:
+    data.y = (data.y - y_mean) / y_std
+
+# データ拡張（グラフの摂動）
+def augment_graph(data):
+    # エッジのドロップアウト
+    edge_index, _ = dropout_edge(data.edge_index, p=0.1)
+    # ノイズ追加
+    x = data.x + torch.randn_like(data.x) * 0.01
+    return Data(x=x, edge_index=edge_index, y=data.y)
+
+# 訓練データを2倍に
+augmented_train = [augment_graph(data) for data in train_dataset]
+train_dataset = train_dataset + augmented_train
+</code></pre>
+
+
+**期待される改善**: MAE 0.8 eV → 0.7 eV
+
+---
+
+**最適な戦略**: アプローチ1（モデル改善）とアプローチ2（エッジ特徴量）を組み合わせ、MAE 0.4-0.5 eVを目指す。
+
+</details>
+
+<hr />
+<h3>問題3（難易度：hard）</h3>
+<p>以下のコードでエラーが発生しました。原因を特定し、修正してください。</p>
+<pre><code class="language-python"># エラーが発生するコード
+model = GCN_QM9(num_node_features=11, num_classes=1)
+device = torch.device('cuda')
+model = model.to(device)
+
+for data in train_loader:
+    optimizer.zero_grad()
+    out = model(data.x, data.edge_index, data.batch)
+    loss = criterion(out, data.y)
+    loss.backward()
+    optimizer.step()
+</code></pre>
+<p><strong>エラーメッセージ</strong>:</p>
+<pre><code>RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!
+</code></pre>
+<details>
+<summary>ヒント</summary>
+
+モデルとデータのデバイスが一致していません。
+
+</details>
+
+<details>
+<summary>解答例</summary>
+
+**原因**:
+モデルは`cuda`デバイスに移動されていますが、`data`オブジェクトは`cpu`のままです。PyTorchでは、すべてのテンソルが同じデバイス上にある必要があります。
+
+**修正コード**:
+
+
+<pre><code class="language-python">model = GCN_QM9(num_node_features=11, num_classes=1)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = model.to(device)
+
+for data in train_loader:
+    # データをGPUに移動（重要！）
+    data = data.to(device)
+
+    optimizer.zero_grad()
+    out = model(data.x, data.edge_index, data.batch)
+    loss = criterion(out, data.y)
+    loss.backward()
+    optimizer.step()
+</code></pre>
+
+
+**重要なポイント**:
+1. `data = data.to(device)`で、`data`内のすべてのテンソル（`x`, `edge_index`, `batch`, `y`）を一度にGPUに移動
+2. `torch.cuda.is_available()`でGPUが利用可能か確認（CPUのみの環境でもエラーを回避）
+3. 訓練ループの**最初**でデータをデバイスに移動
+
+**デバッグのチェック**:
+
+<pre><code class="language-python"># デバイスの確認
+print(f&quot;Model device: {next(model.parameters()).device}&quot;)
+print(f&quot;Data x device: {data.x.device}&quot;)
+print(f&quot;Data edge_index device: {data.edge_index.device}&quot;)
+</code></pre>
+
+
+</details>
+
+<hr />
+<h2>参考文献</h2>
+<ol>
+<li>
+<p>Fey, M., &amp; Lenssen, J. E. (2019). "Fast Graph Representation Learning with PyTorch Geometric." <em>ICLR Workshop on Representation Learning on Graphs and Manifolds</em>.
+   GitHub: https://github.com/pyg-team/pytorch_geometric
+   <em>PyTorch Geometric公式論文。ライブラリの設計思想と実装の詳細。</em></p>
+</li>
+<li>
+<p>Ramakrishnan, R., et al. (2014). "Quantum chemistry structures and properties of 134 kilo molecules." <em>Scientific Data</em>, 1, 140022.
+   DOI: <a href="https://doi.org/10.1038/sdata.2014.22">10.1038/sdata.2014.22</a>
+   <em>QM9データセット公式論文。134,000分子の量子化学計算データ。</em></p>
+</li>
+<li>
+<p>Xie, T., &amp; Grossman, J. C. (2018). "Crystal Graph Convolutional Neural Networks for an Accurate and Interpretable Prediction of Material Properties." <em>Physical Review Letters</em>, 120(14), 145301.
+   DOI: <a href="https://doi.org/10.1103/PhysRevLett.120.145301">10.1103/PhysRevLett.120.145301</a>
+   <em>Crystal Graph Convolutional Networks（CGCN）の原論文。結晶特性予測への応用。</em></p>
+</li>
+<li>
+<p>Gilmer, J., et al. (2017). "Neural Message Passing for Quantum Chemistry." <em>ICML 2017</em>.
+   URL: https://arxiv.org/abs/1704.01212
+   <em>Message Passing Neural Networks（MPNN）の理論。QM9での高精度予測を達成。</em></p>
+</li>
+<li>
+<p>PyTorch Geometric Documentation. (2024). "Introduction by Example."
+   URL: https://pytorch-geometric.readthedocs.io/en/latest/get_started/introduction.html
+   <em>PyTorch Geometric公式チュートリアル。基本的な使い方を例示。</em></p>
+</li>
+<li>
+<p>RDKit Documentation. (2024). "Getting Started with the RDKit in Python."
+   URL: https://www.rdkit.org/docs/GettingStartedInPython.html
+   <em>RDKitの公式ドキュメント。SMILESから分子オブジェクトを作成する方法。</em></p>
+</li>
+</ol>
+<hr />
+<p><strong>作成日</strong>: 2025-10-17
+<strong>バージョン</strong>: 1.0
+<strong>テンプレート</strong>: chapter-template-v2.0
+<strong>著者</strong>: GNN入門シリーズプロジェクト</p><div class="navigation">
+    <a href="chapter-2.html" class="nav-button">← 前の章</a>
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+    <a href="chapter-4.html" class="nav-button">次の章 →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-17</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

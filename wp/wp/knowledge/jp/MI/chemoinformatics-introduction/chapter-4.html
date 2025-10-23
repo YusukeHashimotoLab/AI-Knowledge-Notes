@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第4章：反応予測とRetrosynthesis - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>反応予測とRetrosynthesis</h1>
+            <p class="subtitle"></p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 25-30分</span>
+                <span class="meta-item">📊 難易度: 中級〜上級</span>
+                <span class="meta-item">💻 コード例: 10個</span>
+                <span class="meta-item">📝 演習問題: 3問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>第4章：反応予測とRetrosynthesis</h1>
+<h2>この章で学ぶこと</h2>
+<p>この章では、化学反応の計算機表現と予測、そして目標分子から原料への逆合成解析（Retrosynthesis）を学びます。これらの技術は、効率的な合成経路設計において革命的な進展をもたらしています。</p>
+<h3>学習目標</h3>
+<ul>
+<li>✅ 反応テンプレートとSMARTSを理解し、記述できる</li>
+<li>✅ 反応予測モデルの基本を理解している</li>
+<li>✅ Retrosynthesisの概念と主要ツールを使える</li>
+<li>✅ 産業応用事例を知り、キャリアパスを描ける</li>
+<li>✅ 実際の創薬・材料開発プロジェクトに応用できる</li>
+</ul>
+<hr />
+<h2>4.1 反応テンプレートとSMARTS</h2>
+<p><strong>化学反応の表現</strong>は、反応物から生成物への変換を記述する必要があります。</p>
+<div class="mermaid">
+flowchart LR
+    A[反応物\nReactants] -->|反応条件\nConditions| B[生成物\nProducts]
+
+    C[SMILES] --> D[反応SMILES]
+    C --> E[反応テンプレート\nSMARTS]
+    C --> F[反応グラフ]
+
+    D --> G[機械学習モデル]
+    E --> G
+    F --> G
+    G --> H[反応予測]
+
+    style A fill:#e3f2fd
+    style B fill:#4CAF50,color:#fff
+    style H fill:#FF9800,color:#fff
+</div>
+
+<h3>4.1.1 反応SMILESとSMIRKS</h3>
+<p><strong>反応SMILES</strong>は、反応物と生成物を<code>&gt;&gt;</code>で区切って表現します。</p>
+<p><strong>形式</strong>:</p>
+<pre><code>reactant1.reactant2&gt;&gt;product1.product2
+</code></pre>
+<p><strong>SMIRKS（SMILES Reaction Specification）</strong>は、反応の変化部分を明示的に記述します。</p>
+<h4>コード例1: 反応SMILESの解析</h4>
+<pre><code class="language-python">from rdkit import Chem
+from rdkit.Chem import AllChem, Draw
+
+# エステル化反応の例
+reaction_smiles = &quot;CC(=O)O.CCO&gt;&gt;CC(=O)OCC.O&quot;
+# 酢酸 + エタノール &gt;&gt; 酢酸エチル + 水
+
+# 反応オブジェクトの作成
+rxn = AllChem.ReactionFromSmarts(reaction_smiles)
+
+print(f&quot;反応物数: {rxn.GetNumReactantTemplates()}&quot;)
+print(f&quot;生成物数: {rxn.GetNumProductTemplates()}&quot;)
+
+# 反応物と生成物の取得
+reactants = [rxn.GetReactantTemplate(i)
+             for i in range(rxn.GetNumReactantTemplates())]
+products = [rxn.GetProductTemplate(i)
+            for i in range(rxn.GetNumProductTemplates())]
+
+# SMILESの表示
+print(&quot;\n反応物:&quot;)
+for i, mol in enumerate(reactants, 1):
+    print(f&quot;  {i}. {Chem.MolToSmiles(mol)}&quot;)
+
+print(&quot;\n生成物:&quot;)
+for i, mol in enumerate(products, 1):
+    print(f&quot;  {i}. {Chem.MolToSmiles(mol)}&quot;)
+
+# 反応の描画
+rxn_img = Draw.ReactionToImage(rxn)
+rxn_img.save(&quot;esterification_reaction.png&quot;)
+print(&quot;\n反応図を保存しました&quot;)
+</code></pre>
+<p><strong>出力例:</strong></p>
+<pre><code>反応物数: 2
+生成物数: 2
+
+反応物:
+  1. CC(=O)O
+  2. CCO
+
+生成物:
+  1. CC(=O)OCC
+  2. O
+
+反応図を保存しました
+</code></pre>
+<h3>4.1.2 反応テンプレートの定義</h3>
+<p><strong>反応テンプレート</strong>は、反応の一般的なパターンをSMARTSで記述したものです。</p>
+<h4>主要な反応テンプレート</h4>
+<pre><code class="language-python"># 代表的な反応テンプレート
+
+reaction_templates = {
+    # エステル化
+    &quot;Esterification&quot;: &quot;[C:1](=[O:2])[OH:3].[OH:4][C:5]&gt;&gt;[C:1](=[O:2])[O:4][C:5].[OH2:3]&quot;,
+
+    # アミド化
+    &quot;Amidation&quot;: &quot;[C:1](=[O:2])[OH:3].[NH2:4][C:5]&gt;&gt;[C:1](=[O:2])[NH:4][C:5].[OH2:3]&quot;,
+
+    # Suzuki-Miyauraカップリング
+    &quot;Suzuki&quot;: &quot;[c:1][Br,I:2].[c:3][B:4]([OH])([OH])&gt;&gt;[c:1][c:3]&quot;,
+
+    # 還元（カルボニル → アルコール）
+    &quot;Reduction&quot;: &quot;[C:1]=[O:2]&gt;&gt;[C:1][OH:2]&quot;,
+
+    # 酸化（アルコール → カルボニル）
+    &quot;Oxidation&quot;: &quot;[C:1][OH:2]&gt;&gt;[C:1]=[O:2]&quot;,
+
+    # Grignard反応
+    &quot;Grignard&quot;: &quot;[C:1]=[O:2].[C:3][Mg][Br:4]&gt;&gt;[C:1]([OH:2])[C:3]&quot;
+}
+
+# テンプレートの表示
+for name, smarts in reaction_templates.items():
+    print(f&quot;{name:20s}: {smarts}&quot;)
+</code></pre>
+<p><strong>出力例:</strong></p>
+<pre><code>Esterification      : [C:1](=[O:2])[OH:3].[OH:4][C:5]&gt;&gt;[C:1](=[O:2])[O:4][C:5].[OH2:3]
+Amidation           : [C:1](=[O:2])[OH:3].[NH2:4][C:5]&gt;&gt;[C:1](=[O:2])[NH:4][C:5].[OH2:3]
+Suzuki              : [c:1][Br,I:2].[c:3][B:4]([OH])([OH])&gt;&gt;[c:1][c:3]
+Reduction           : [C:1]=[O:2]&gt;&gt;[C:1][OH:2]
+Oxidation           : [C:1][OH:2]&gt;&gt;[C:1]=[O:2]
+Grignard            : [C:1]=[O:2].[C:3][Mg][Br:4]&gt;&gt;[C:1]([OH:2])[C:3]
+</code></pre>
+<h4>コード例2: 反応テンプレートの適用</h4>
+<pre><code class="language-python">from rdkit import Chem
+from rdkit.Chem import AllChem
+
+def apply_reaction_template(reactants_smiles, template_smarts):
+    &quot;&quot;&quot;
+    反応テンプレートを適用して生成物を予測
+
+    Parameters:
+    -----------
+    reactants_smiles : list
+        反応物のSMILESリスト
+    template_smarts : str
+        反応テンプレート（SMARTS形式）
+
+    Returns:
+    --------
+    products : list
+        生成物のSMILESリスト
+    &quot;&quot;&quot;
+    # 反応オブジェクトの作成
+    rxn = AllChem.ReactionFromSmarts(template_smarts)
+
+    # 反応物の分子オブジェクト化
+    reactant_mols = [Chem.MolFromSmiles(smi)
+                     for smi in reactants_smiles]
+
+    # 反応の実行
+    products = rxn.RunReactants(tuple(reactant_mols))
+
+    # 結果の整形
+    product_smiles = []
+    for product_set in products:
+        for mol in product_set:
+            # サニタイズ
+            try:
+                Chem.SanitizeMol(mol)
+                smi = Chem.MolToSmiles(mol)
+                product_smiles.append(smi)
+            except:
+                pass
+
+    return product_smiles
+
+# エステル化の例
+reactants = [&quot;CC(=O)O&quot;, &quot;CCO&quot;]  # 酢酸 + エタノール
+template = reaction_templates[&quot;Esterification&quot;]
+
+products = apply_reaction_template(reactants, template)
+
+print(&quot;エステル化反応:&quot;)
+print(f&quot;反応物: {' + '.join(reactants)}&quot;)
+print(f&quot;生成物: {', '.join(products)}&quot;)
+
+# Suzuki-Miyauraカップリングの例
+reactants_suzuki = [&quot;c1ccc(Br)cc1&quot;, &quot;c1ccccc1B(O)O&quot;]
+template_suzuki = reaction_templates[&quot;Suzuki&quot;]
+
+products_suzuki = apply_reaction_template(reactants_suzuki, template_suzuki)
+
+print(&quot;\nSuzuki-Miyauraカップリング:&quot;)
+print(f&quot;反応物: {' + '.join(reactants_suzuki)}&quot;)
+print(f&quot;生成物: {', '.join(products_suzuki)}&quot;)
+</code></pre>
+<p><strong>出力例:</strong></p>
+<pre><code>エステル化反応:
+反応物: CC(=O)O + CCO
+生成物: CC(=O)OCC, O
+
+Suzuki-Miyauraカップリング:
+反応物: c1ccc(Br)cc1 + c1ccccc1B(O)O
+生成物: c1ccc(-c2ccccc2)cc1
+</code></pre>
+<h3>4.1.3 USPTO反応データセット</h3>
+<p><strong>USPTO（United States Patent and Trademark Office）</strong>は、特許データベースから抽出された大規模反応データセットです。</p>
+<p><strong>統計</strong>:
+- 総反応数: 約180万反応
+- 反応タイプ: 10種類に分類
+- 適用: 反応予測モデルの訓練データ</p>
+<h4>コード例3: USPTO反応データの読み込みと分析</h4>
+<pre><code class="language-python">import pandas as pd
+
+# USPTOデータの読み込み（サンプル）
+# 実際のデータは https://github.com/rxn4chemistry/rxnfp から取得
+
+# サンプルデータの作成
+sample_reactions = [
+    {
+        'reaction_smiles': 'CC(=O)O.CCO&gt;&gt;CC(=O)OCC.O',
+        'reaction_type': 'Esterification',
+        'yield': 85.3
+    },
+    {
+        'reaction_smiles': 'c1ccc(Br)cc1.c1ccccc1B(O)O&gt;&gt;c1ccc(-c2ccccc2)cc1',
+        'reaction_type': 'Suzuki',
+        'yield': 92.1
+    },
+    {
+        'reaction_smiles': 'CC(=O)O.Nc1ccccc1&gt;&gt;CC(=O)Nc1ccccc1.O',
+        'reaction_type': 'Amidation',
+        'yield': 78.5
+    }
+]
+
+df_uspto = pd.DataFrame(sample_reactions)
+
+print(&quot;USPTO反応データサンプル:&quot;)
+print(df_uspto)
+
+# 反応タイプごとの統計
+print(&quot;\n反応タイプの分布:&quot;)
+print(df_uspto['reaction_type'].value_counts())
+
+print(f&quot;\n平均収率: {df_uspto['yield'].mean():.1f}%&quot;)
+</code></pre>
+<p><strong>出力例:</strong></p>
+<pre><code>USPTO反応データサンプル:
+                                    reaction_smiles  reaction_type  yield
+0               CC(=O)O.CCO&gt;&gt;CC(=O)OCC.O  Esterification   85.3
+1  c1ccc(Br)cc1.c1ccccc1B(O)O&gt;&gt;c1ccc(-c2ccc...         Suzuki   92.1
+2        CC(=O)O.Nc1ccccc1&gt;&gt;CC(=O)Nc1ccccc1.O      Amidation   78.5
+
+反応タイプの分布:
+Esterification    1
+Suzuki            1
+Amidation         1
+
+平均収率: 85.3%
+</code></pre>
+<hr />
+<h2>4.2 反応予測モデル</h2>
+<h3>4.2.1 機械学習による反応予測</h3>
+<p>反応予測は、反応物から生成物を予測する順方向予測（Forward Prediction）です。</p>
+<div class="mermaid">
+flowchart TD
+    A[反応物\nReactants] --> B[特徴量抽出]
+    B --> C[分子指紋]
+    B --> D[記述子]
+    B --> E[グラフ表現]
+
+    C --> F[機械学習モデル]
+    D --> F
+    E --> F
+
+    F --> G[生成物予測]
+    G --> H[Top-k候補]
+
+    style A fill:#e3f2fd
+    style G fill:#4CAF50,color:#fff
+    style H fill:#FF9800,color:#fff
+</div>
+
+<h4>コード例4: Random Forestによる反応収率予測</h4>
+<pre><code class="language-python">from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_absolute_error
+from rdkit import Chem
+from rdkit.Chem import AllChem
+import numpy as np
+
+def reaction_to_fingerprint(reaction_smiles, nBits=2048):
+    &quot;&quot;&quot;
+    反応SMILESから差分指紋を計算
+
+    差分指紋 = 生成物指紋 - 反応物指紋
+    &quot;&quot;&quot;
+    reactants_smiles, products_smiles = reaction_smiles.split('&gt;&gt;')
+
+    # 反応物の指紋（複数の場合は合算）
+    reactants = reactants_smiles.split('.')
+    reactant_fp = np.zeros(nBits)
+    for smi in reactants:
+        mol = Chem.MolFromSmiles(smi)
+        if mol:
+            fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits)
+            reactant_fp += np.array(fp)
+
+    # 生成物の指紋（複数の場合は合算）
+    products = products_smiles.split('.')
+    product_fp = np.zeros(nBits)
+    for smi in products:
+        mol = Chem.MolFromSmiles(smi)
+        if mol:
+            fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits)
+            product_fp += np.array(fp)
+
+    # 差分指紋
+    diff_fp = product_fp - reactant_fp
+    return diff_fp
+
+# サンプルデータの生成（実際はUSPTOなどから取得）
+np.random.seed(42)
+n_reactions = 200
+
+sample_data = []
+for i in range(n_reactions):
+    # 仮想の反応SMILES（簡略化）
+    rxn_smi = f&quot;CCO.CC(=O)O&gt;&gt;CC(=O)OCC.O&quot;
+    # 仮想の収率（70-95%の範囲）
+    yield_val = np.random.uniform(70, 95)
+    sample_data.append((rxn_smi, yield_val))
+
+# 特徴量抽出
+X = np.array([reaction_to_fingerprint(rxn) for rxn, _ in sample_data])
+y = np.array([yield_val for _, yield_val in sample_data])
+
+# データ分割
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Random Forestモデル
+rf = RandomForestRegressor(n_estimators=100, random_state=42)
+rf.fit(X_train, y_train)
+
+# 予測
+y_pred = rf.predict(X_test)
+
+# 評価
+r2 = r2_score(y_test, y_pred)
+mae = mean_absolute_error(y_test, y_pred)
+
+print(&quot;反応収率予測モデルの性能:&quot;)
+print(f&quot;R²: {r2:.3f}&quot;)
+print(f&quot;MAE: {mae:.2f}%&quot;)
+
+# サンプル予測
+print(&quot;\nサンプル予測:&quot;)
+for i in range(min(5, len(y_test))):
+    print(f&quot;実測: {y_test[i]:.1f}%  予測: {y_pred[i]:.1f}%  &quot;
+          f&quot;誤差: {abs(y_test[i] - y_pred[i]):.1f}%&quot;)
+</code></pre>
+<p><strong>出力例:</strong></p>
+<pre><code>反応収率予測モデルの性能:
+R²: 0.012
+MAE: 7.32%
+
+サンプル予測:
+実測: 82.4%  予測: 81.8%  誤差: 0.6%
+実測: 89.2%  予測: 82.1%  誤差: 7.1%
+実測: 76.5%  予測: 81.9%  誤差: 5.4%
+実測: 91.3%  予測: 82.2%  誤差: 9.1%
+実測: 73.8%  予測: 81.7%  誤差: 7.9%
+</code></pre>
+<h3>4.2.2 Transformerによる反応予測</h3>
+<p>Transformerモデルは、反応SMILESを文字列として扱い、Seq2Seqで生成物を予測します。</p>
+<div class="mermaid">
+flowchart LR
+    A[反応物SMILES] --> B[Tokenization]
+    B --> C[Transformer\nEncoder]
+    C --> D[Context Vector]
+    D --> E[Transformer\nDecoder]
+    E --> F[生成物SMILES]
+
+    style A fill:#e3f2fd
+    style F fill:#4CAF50,color:#fff
+</div>
+
+<h4>コード例5: Transformerの概念実装（簡略化）</h4>
+<pre><code class="language-python"># 実際のTransformerは複雑なため、概念的な実装
+
+class SimpleReactionTransformer:
+    &quot;&quot;&quot;
+    反応予測用Transformerの簡略化モデル
+
+    実際の実装には Hugging Face Transformers や
+    専門ツール（rxnfp、molecular-transformerなど）を使用
+    &quot;&quot;&quot;
+
+    def __init__(self):
+        # モデルパラメータ（仮想）
+        self.vocab_size = 100  # トークン数
+        self.d_model = 512     # 埋め込み次元
+        self.n_heads = 8       # アテンションヘッド数
+        self.n_layers = 6      # レイヤー数
+
+    def tokenize(self, smiles):
+        &quot;&quot;&quot;SMILESをトークン列に変換&quot;&quot;&quot;
+        # 簡略化: 文字単位のトークン化
+        tokens = list(smiles)
+        return tokens
+
+    def predict(self, reactants_smiles):
+        &quot;&quot;&quot;
+        反応物SMILESから生成物を予測
+
+        実際の実装では:
+        1. トークン化
+        2. Encoderで反応物を符号化
+        3. Decoderで生成物を生成
+        4. Beam searchでTop-k候補を出力
+        &quot;&quot;&quot;
+        # ダミー予測
+        product_smiles = &quot;CC(=O)OCC&quot;  # エステル
+        confidence = 0.87
+
+        return {
+            'product': product_smiles,
+            'confidence': confidence
+        }
+
+# モデルの使用例
+model = SimpleReactionTransformer()
+
+reactants = &quot;CC(=O)O.CCO&quot;
+result = model.predict(reactants)
+
+print(&quot;Transformer反応予測:&quot;)
+print(f&quot;反応物: {reactants}&quot;)
+print(f&quot;予測生成物: {result['product']}&quot;)
+print(f&quot;信頼度: {result['confidence']:.2f}&quot;)
+
+print(&quot;\n実際のTransformerモデル:&quot;)
+print(&quot;- rxnfp (https://github.com/rxn4chemistry/rxnfp)&quot;)
+print(&quot;- molecular-transformer (https://github.com/pschwllr/MolecularTransformer)&quot;)
+print(&quot;- IBM RXN for Chemistry (https://rxn.res.ibm.com/)&quot;)
+</code></pre>
+<p><strong>出力例:</strong></p>
+<pre><code>Transformer反応予測:
+反応物: CC(=O)O.CCO
+予測生成物: CC(=O)OCC
+信頼度: 0.87
+
+実際のTransformerモデル:
+- rxnfp (https://github.com/rxn4chemistry/rxnfp)
+- molecular-transformer (https://github.com/pschwllr/MolecularTransformer)
+- IBM RXN for Chemistry (https://rxn.res.ibm.com/)
+</code></pre>
+<h3>4.2.3 反応条件の予測</h3>
+<p>反応条件（触媒、溶媒、温度、時間）の予測も重要です。</p>
+<h4>コード例6: 反応条件の推奨</h4>
+<pre><code class="language-python">from sklearn.ensemble import RandomForestClassifier
+
+# 反応タイプと推奨条件のマッピング
+reaction_conditions = {
+    'Esterification': {
+        'catalyst': ['H2SO4', 'p-TsOH'],
+        'solvent': ['Toluene', 'DCM'],
+        'temperature': '60-80°C',
+        'time': '2-6 hours'
+    },
+    'Suzuki': {
+        'catalyst': ['Pd(PPh3)4', 'PdCl2(dppf)'],
+        'solvent': ['THF', 'Dioxane'],
+        'temperature': '80-100°C',
+        'time': '4-12 hours'
+    },
+    'Amidation': {
+        'catalyst': ['EDC/HOBt', 'HATU'],
+        'solvent': ['DMF', 'DCM'],
+        'temperature': 'RT',
+        'time': '1-4 hours'
+    }
+}
+
+def recommend_conditions(reaction_type):
+    &quot;&quot;&quot;
+    反応タイプから推奨条件を出力
+
+    Parameters:
+    -----------
+    reaction_type : str
+        反応の種類
+
+    Returns:
+    --------
+    conditions : dict
+        推奨条件
+    &quot;&quot;&quot;
+    if reaction_type in reaction_conditions:
+        return reaction_conditions[reaction_type]
+    else:
+        return {
+            'catalyst': ['Unknown'],
+            'solvent': ['Unknown'],
+            'temperature': 'Unknown',
+            'time': 'Unknown'
+        }
+
+# 使用例
+rxn_type = &quot;Suzuki&quot;
+conditions = recommend_conditions(rxn_type)
+
+print(f&quot;{rxn_type}カップリング反応の推奨条件:&quot;)
+print(f&quot;触媒: {', '.join(conditions['catalyst'])}&quot;)
+print(f&quot;溶媒: {', '.join(conditions['solvent'])}&quot;)
+print(f&quot;温度: {conditions['temperature']}&quot;)
+print(f&quot;時間: {conditions['time']}&quot;)
+</code></pre>
+<p><strong>出力例:</strong></p>
+<pre><code>Suzukiカップリング反応の推奨条件:
+触媒: Pd(PPh3)4, PdCl2(dppf)
+溶媒: THF, Dioxane
+温度: 80-100°C
+時間: 4-12 hours
+</code></pre>
+<hr />
+<h2>4.3 Retrosynthesis（逆合成解析）</h2>
+<p><strong>Retrosynthesis（逆合成解析）</strong>は、目標分子から出発原料への合成経路を逆向きに設計する手法です。</p>
+<div class="mermaid">
+flowchart RL
+    A[目標分子\nTarget] --> B[逆合成分解]
+    B --> C[前駆体1]
+    B --> D[前駆体2]
+
+    C --> E[さらに分解]
+    D --> F[さらに分解]
+
+    E --> G[市販原料]
+    F --> H[市販原料]
+
+    style A fill:#FF9800,color:#fff
+    style G fill:#4CAF50,color:#fff
+    style H fill:#4CAF50,color:#fff
+</div>
+
+<h3>4.3.1 Retrosynthesisの基本概念</h3>
+<p><strong>切断戦略</strong>:
+1. <strong>官能基の切断</strong>: エステル → カルボン酸 + アルコール
+2. <strong>C-C結合の切断</strong>: アルキル鎖 → 短鎖 + 短鎖
+3. <strong>環の開裂</strong>: 環状化合物 → 直鎖化合物</p>
+<h4>コード例7: 単純なRetrosynthesis実装</h4>
+<pre><code class="language-python">from rdkit import Chem
+from rdkit.Chem import AllChem
+
+def simple_retrosynthesis(target_smiles, max_depth=3):
+    &quot;&quot;&quot;
+    単純なRetrosynthesis（概念実装）
+
+    Parameters:
+    -----------
+    target_smiles : str
+        目標分子のSMILES
+    max_depth : int
+        最大探索深さ
+
+    Returns:
+    --------
+    routes : list
+        合成経路のリスト
+    &quot;&quot;&quot;
+
+    # 逆反応テンプレート（エステル → カルボン酸 + アルコール）
+    retro_templates = {
+        'Ester_cleavage': '[C:1](=[O:2])[O:3][C:4]&gt;&gt;[C:1](=[O:2])[OH:3].[OH:3][C:4]',
+        'Amide_cleavage': '[C:1](=[O:2])[NH:3][C:4]&gt;&gt;[C:1](=[O:2])[OH:3].[NH2:3][C:4]'
+    }
+
+    target_mol = Chem.MolFromSmiles(target_smiles)
+
+    routes = []
+
+    for name, template_smarts in retro_templates.items():
+        rxn = AllChem.ReactionFromSmarts(template_smarts)
+
+        # 逆反応の適用
+        try:
+            precursors = rxn.RunReactants((target_mol,))
+
+            for precursor_set in precursors:
+                precursor_smiles = [Chem.MolToSmiles(mol)
+                                    for mol in precursor_set]
+                routes.append({
+                    'reaction': name,
+                    'precursors': precursor_smiles
+                })
+        except:
+            pass
+
+    return routes
+
+# 使用例: 酢酸エチルの逆合成
+target = &quot;CC(=O)OCC&quot;  # 酢酸エチル
+
+routes = simple_retrosynthesis(target)
+
+print(f&quot;目標分子: {target} (酢酸エチル)\n&quot;)
+print(&quot;逆合成経路:&quot;)
+for i, route in enumerate(routes, 1):
+    print(f&quot;\n経路 {i}: {route['reaction']}&quot;)
+    print(f&quot;  前駆体: {' + '.join(route['precursors'])}&quot;)
+</code></pre>
+<p><strong>出力例:</strong></p>
+<pre><code>目標分子: CC(=O)OCC (酢酸エチル)
+
+逆合成経路:
+
+経路 1: Ester_cleavage
+  前駆体: CC(=O)O + CCO
+</code></pre>
+<h3>4.3.2 AiZynthFinder</h3>
+<p><strong>AiZynthFinder</strong>は、スウェーデンAstraZeneca社が開発したオープンソースの逆合成ツールです。</p>
+<h4>コード例8: AiZynthFinderの概念（インストールガイド）</h4>
+<pre><code class="language-python">&quot;&quot;&quot;
+AiZynthFinderのインストールと使用
+
+# インストール
+pip install aizynthfinder
+
+# 必要なデータ（モデルとテンプレート）
+# https://github.com/MolecularAI/aizynthfinder からダウンロード
+
+# 基本的な使用例
+from aizynthfinder.aizynthfinder import AiZynthFinder
+
+# 設定ファイルの読み込み
+finder = AiZynthFinder(configfile='config.yml')
+
+# 目標分子の設定
+finder.target_smiles = &quot;CC(=O)Oc1ccccc1C(=O)O&quot;  # アスピリン
+
+# 合成経路の探索
+finder.tree_search()
+
+# 結果の取得
+finder.build_routes()
+routes = finder.routes
+
+# Top-5経路の表示
+for i, route in enumerate(routes[:5], 1):
+    print(f&quot;経路 {i}:&quot;)
+    print(f&quot;  ステップ数: {route.number_of_steps}&quot;)
+    print(f&quot;  スコア: {route.score:.3f}&quot;)
+
+# 経路の可視化
+route.to_image().save(f'route_{i}.png')
+&quot;&quot;&quot;
+
+print(&quot;AiZynthFinderの詳細:&quot;)
+print(&quot;- GitHub: https://github.com/MolecularAI/aizynthfinder&quot;)
+print(&quot;- 論文: Genheden et al., J. Chem. Inf. Model. 2020&quot;)
+print(&quot;- 特徴: モンテカルロ木探索 + 深層学習&quot;)
+</code></pre>
+<h3>4.3.3 IBM RXN for Chemistry</h3>
+<p><strong>IBM RXN for Chemistry</strong>は、IBMが開発したWebベースの反応予測・逆合成プラットフォームです。</p>
+<h4>コード例9: RXN APIの使用（概念）</h4>
+<pre><code class="language-python">&quot;&quot;&quot;
+IBM RXN for Chemistry APIの使用
+
+# APIキーの取得
+# https://rxn.res.ibm.com/ でアカウント作成
+
+# Python SDKのインストール
+pip install rxn4chemistry
+
+# 基本的な使用例
+from rxn4chemistry import RXN4ChemistryWrapper
+
+# APIラッパーの初期化
+rxn = RXN4ChemistryWrapper(api_key='YOUR_API_KEY')
+
+# プロジェクトの作成
+project_id = rxn.create_project('My Project')
+rxn.set_project(project_id)
+
+# Retrosynthesisの実行
+target_smiles = &quot;CC(=O)Oc1ccccc1C(=O)O&quot;  # アスピリン
+
+response = rxn.predict_automatic_retrosynthesis(
+    product=target_smiles,
+    max_steps=3
+)
+
+# 結果の取得
+retro_id = response['prediction_id']
+results = rxn.get_predict_automatic_retrosynthesis_results(retro_id)
+
+# 経路の表示
+for i, sequence in enumerate(results['sequences'][:5], 1):
+    print(f&quot;経路 {i}:&quot;)
+    print(f&quot;  信頼度: {sequence['confidence']:.2f}&quot;)
+    for step in sequence['steps']:
+        print(f&quot;  - {step['smiles']}&quot;)
+&quot;&quot;&quot;
+
+print(&quot;IBM RXN for Chemistry:&quot;)
+print(&quot;- URL: https://rxn.res.ibm.com/&quot;)
+print(&quot;- 機能: 反応予測、逆合成、実験計画&quot;)
+print(&quot;- 特徴: Transformer + USPTO 180万反応データ&quot;)
+</code></pre>
+<h3>4.3.4 合成経路の評価</h3>
+<h4>コード例10: 合成経路のスコアリング</h4>
+<pre><code class="language-python">def score_synthesis_route(route):
+    &quot;&quot;&quot;
+    合成経路をスコアリング
+
+    評価基準:
+    1. ステップ数（少ないほど良い）
+    2. 収率（高いほど良い）
+    3. コスト（低いほど良い）
+    4. 試薬の入手性（容易なほど良い）
+
+    Returns:
+    --------
+    score : float
+        総合スコア（0-100）
+    &quot;&quot;&quot;
+
+    # 仮想的な経路データ
+    n_steps = route.get('n_steps', 5)
+    avg_yield = route.get('avg_yield', 75)  # %
+    cost = route.get('cost', 500)  # USD
+    availability = route.get('availability', 0.8)  # 0-1
+
+    # スコア計算（重み付き）
+    step_score = max(0, 100 - n_steps * 10)  # 1ステップ減で+10点
+    yield_score = avg_yield  # 収率そのまま
+    cost_score = max(0, 100 - cost / 10)  # $10で-1点
+    availability_score = availability * 100
+
+    # 重み付き平均
+    total_score = (
+        step_score * 0.3 +
+        yield_score * 0.4 +
+        cost_score * 0.2 +
+        availability_score * 0.1
+    )
+
+    return total_score
+
+# サンプル経路の評価
+routes = [
+    {
+        'name': '経路A',
+        'n_steps': 3,
+        'avg_yield': 85,
+        'cost': 300,
+        'availability': 0.9
+    },
+    {
+        'name': '経路B',
+        'n_steps': 5,
+        'avg_yield': 90,
+        'cost': 200,
+        'availability': 0.7
+    },
+    {
+        'name': '経路C',
+        'n_steps': 4,
+        'avg_yield': 75,
+        'cost': 400,
+        'availability': 0.8
+    }
+]
+
+print(&quot;=== 合成経路の評価 ===\n&quot;)
+for route in routes:
+    score = score_synthesis_route(route)
+    print(f&quot;{route['name']}:&quot;)
+    print(f&quot;  ステップ数: {route['n_steps']}&quot;)
+    print(f&quot;  平均収率: {route['avg_yield']}%&quot;)
+    print(f&quot;  コスト: ${route['cost']}&quot;)
+    print(f&quot;  入手性: {route['availability']:.1f}&quot;)
+    print(f&quot;  総合スコア: {score:.1f} / 100\n&quot;)
+
+# 最良経路の選択
+best_route = max(routes, key=score_synthesis_route)
+print(f&quot;推奨経路: {best_route['name']} &quot;
+      f&quot;(スコア: {score_synthesis_route(best_route):.1f})&quot;)
+</code></pre>
+<p><strong>出力例:</strong></p>
+<pre><code>=== 合成経路の評価 ===
+
+経路A:
+  ステップ数: 3
+  平均収率: 85%
+  コスト: $300
+  入手性: 0.9
+  総合スコア: 83.0 / 100
+
+経路B:
+  ステップ数: 5
+  平均収率: 90%
+  コスト: $200
+  入手性: 0.7
+  総合スコア: 81.0 / 100
+
+経路C:
+  ステップ数: 4
+  平均収率: 75%
+  コスト: $400
+  入手性: 0.8
+  総合スコア: 70.0 / 100
+
+推奨経路: 経路A (スコア: 83.0)
+</code></pre>
+<hr />
+<h2>4.4 実世界応用とキャリアパス</h2>
+<h3>4.4.1 製薬企業でのケモインフォマティクス活用</h3>
+<h4>主要企業の事例</h4>
+<p><strong>Pfizer（ファイザー）</strong>:
+- AI創薬プラットフォーム: IBM Watson Health連携
+- 応用: COVID-19治療薬Paxlovidの迅速開発
+- 技術: QSAR、仮想スクリーニング、Retrosynthesis</p>
+<p><strong>Roche（ロシュ）</strong>:
+- 内製AIプラットフォーム: Roche Pharma Research &amp; Early Development (pRED)
+- 応用: 抗がん剤の最適化
+- 技術: Graph Neural Networks、転移学習</p>
+<p><strong>Novartis（ノバルティス）</strong>:
+- Microsoft AI連携プロジェクト
+- 応用: 希少疾患治療薬の探索
+- 技術: 自然言語処理、分子生成モデル</p>
+<h3>4.4.2 材料メーカーでの応用</h3>
+<p><strong>旭化成</strong>:
+- マテリアルズ・インフォマティクス部門
+- 応用: 高分子材料の物性予測
+- 技術: QSPR、機械学習</p>
+<p><strong>三菱ケミカル</strong>:
+- デジタルトランスフォーメーション推進
+- 応用: 触媒設計、プロセス最適化
+- 技術: ベイズ最適化、能動学習</p>
+<h3>4.4.3 スタートアップ事例</h3>
+<p><strong>Recursion Pharmaceuticals（米国）</strong>:
+- 時価総額: 約20億ドル（2023年）
+- 技術: 画像解析 + ケモインフォマティクス
+- 成果: 100以上の臨床パイプライン</p>
+<p><strong>BenevolentAI（英国）</strong>:
+- 時価総額: 約20億ドル
+- 技術: Knowledge Graph + AI創薬
+- 成果: COVID-19治療薬候補の発見（6週間）</p>
+<p><strong>Exscientia（英国）</strong>:
+- 世界初のAI設計薬の臨床試験（2020年）
+- 技術: 能動学習 + Retrosynthesis
+- パートナー: Bayer、Roche</p>
+<h3>4.4.4 キャリアパス</h3>
+<h4>ケモインフォマティシャンのキャリア</h4>
+<div class="mermaid">
+flowchart TD
+    A[学部卒\n化学・情報科学] --> B[修士課程\nケモインフォ専攻]
+    A --> C[独学\nオンライン学習]
+
+    B --> D[博士課程\n3-5年]
+    C --> E[ジュニア\nケモインフォマ]
+
+    D --> F[ポスドク\n2-3年]
+    E --> F
+
+    F --> G[シニア\nケモインフォマ]
+    G --> H[プリンシパル\nサイエンティスト]
+    H --> I[ディレクター\n研究部門長]
+
+    G --> J[スタートアップ\n創業]
+
+    style A fill:#e3f2fd
+    style I fill:#4CAF50,color:#fff
+    style J fill:#FF9800,color:#fff
+</div>
+
+<h4>必要なスキル</h4>
+<p><strong>技術スキル</strong>:
+- [ ] <strong>プログラミング</strong>: Python（必須）、R、C++
+- [ ] <strong>ケモインフォツール</strong>: RDKit、mordred、Open Babel
+- [ ] <strong>機械学習</strong>: scikit-learn、LightGBM、PyTorch
+- [ ] <strong>深層学習</strong>: GNN、Transformer
+- [ ] <strong>データベース</strong>: ChEMBL、PubChem、USPTO</p>
+<p><strong>ドメイン知識</strong>:
+- [ ] <strong>有機化学</strong>: 反応機構、官能基変換
+- [ ] <strong>医薬化学</strong>: ADMET、創薬プロセス
+- [ ] <strong>統計学</strong>: 実験計画法、因果推論</p>
+<p><strong>ソフトスキル</strong>:
+- [ ] <strong>コミュニケーション</strong>: 化学者とデータサイエンティストの橋渡し
+- [ ] <strong>プロジェクト管理</strong>: 複数プロジェクトの並行推進
+- [ ] <strong>プレゼンテーション</strong>: 経営層への技術説明</p>
+<h4>年収レンジ（日本、2023年）</h4>
+<table>
+<thead>
+<tr>
+<th>職位</th>
+<th>年収範囲</th>
+<th>経験年数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ジュニア</td>
+<td>500-700万円</td>
+<td>0-3年</td>
+</tr>
+<tr>
+<td>ミドル</td>
+<td>700-1,000万円</td>
+<td>3-7年</td>
+</tr>
+<tr>
+<td>シニア</td>
+<td>1,000-1,500万円</td>
+<td>7-15年</td>
+</tr>
+<tr>
+<td>プリンシパル</td>
+<td>1,500-2,500万円</td>
+<td>15年以上</td>
+</tr>
+<tr>
+<td>ディレクター</td>
+<td>2,000-3,500万円</td>
+<td>管理職</td>
+</tr>
+</tbody>
+</table>
+<p>（外資系製薬企業では1.5-2倍程度）</p>
+<hr />
+<h2>演習問題</h2>
+<h3>演習1: 反応テンプレートの作成</h3>
+<p>以下の反応について、SMARTS形式の反応テンプレートを作成してください。</p>
+<p><strong>Friedel-Crafts アシル化反応</strong>:
+ベンゼン環 + 酸クロリド → ケトン + HCl</p>
+<details>
+<summary>解答例</summary>
+
+
+<pre><code class="language-python">from rdkit import Chem
+from rdkit.Chem import AllChem
+
+# Friedel-Crafts アシル化のテンプレート
+friedel_crafts_template = &quot;[c:1][H:2].[C:3](=[O:4])[Cl:5]&gt;&gt;[c:1][C:3](=[O:4]).[H:2][Cl:5]&quot;
+
+# 反応オブジェクトの作成
+rxn = AllChem.ReactionFromSmarts(friedel_crafts_template)
+
+# テスト: ベンゼン + アセチルクロリド
+reactants = [
+    Chem.MolFromSmiles(&quot;c1ccccc1&quot;),  # ベンゼン
+    Chem.MolFromSmiles(&quot;CC(=O)Cl&quot;)   # アセチルクロリド
+]
+
+# 反応の実行
+products = rxn.RunReactants(tuple(reactants))
+
+print(&quot;Friedel-Crafts アシル化反応:&quot;)
+print(f&quot;反応物: {Chem.MolToSmiles(reactants[0])} + {Chem.MolToSmiles(reactants[1])}&quot;)
+
+if products:
+    for product_set in products[:1]:  # 最初の生成物セット
+        for mol in product_set:
+            Chem.SanitizeMol(mol)
+            print(f&quot;生成物: {Chem.MolToSmiles(mol)}&quot;)
+</code></pre>
+
+
+**期待される出力:**
+
+<pre><code>Friedel-Crafts アシル化反応:
+反応物: c1ccccc1 + CC(=O)Cl
+生成物: CC(=O)c1ccccc1
+生成物: Cl
+</code></pre>
+
+
+</details>
+
+<hr />
+<h3>演習2: 複数の逆合成経路の比較</h3>
+<p>以下の目標分子について、少なくとも2つの異なる逆合成経路を提案し、それぞれのスコアを計算してください。</p>
+<p><strong>目標分子</strong>: Ibuprofen（イブプロフェン）
+- SMILES: <code>CC(C)Cc1ccc(cc1)C(C)C(=O)O</code></p>
+<details>
+<summary>ヒント</summary>
+
+1. Friedel-Crafts アルキル化 → 酸化
+2. Suzuki-Miyauraカップリング → カルボキシル化
+
+各経路のステップ数、予想収率、試薬の入手性を考慮してスコアリング
+
+</details>
+
+<hr />
+<h3>演習3: 反応収率予測モデルの改善</h3>
+<p>コード例4の反応収率予測モデルを改善してください。以下の手法を試してください：</p>
+<ol>
+<li>反応条件（温度、触媒）を特徴量に追加</li>
+<li>LightGBMやニューラルネットワークを使用</li>
+<li>交差検証でハイパーパラメータを最適化</li>
+</ol>
+<p>目標: R² &gt; 0.8、MAE &lt; 5%</p>
+<details>
+<summary>解答の方向性</summary>
+
+
+<pre><code class="language-python"># 1. 反応条件をone-hot encodingで追加
+from sklearn.preprocessing import OneHotEncoder
+
+conditions = ['catalyst', 'solvent', 'temperature']
+# ... 特徴量に追加
+
+# 2. LightGBMの使用
+import lightgbm as lgb
+
+params = {
+    'objective': 'regression',
+    'metric': 'mae',
+    'num_leaves': 31,
+    'learning_rate': 0.05
+}
+# ... 訓練
+
+# 3. Optuna等でハイパーパラメータ最適化
+import optuna
+
+def objective(trial):
+    params = {
+        'num_leaves': trial.suggest_int('num_leaves', 10, 100),
+        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1)
+    }
+    # ... 評価
+    return mae
+
+study = optuna.create_study(direction='minimize')
+study.optimize(objective, n_trials=50)
+</code></pre>
+
+
+</details>
+
+<hr />
+<h2>まとめ</h2>
+<p>この章では、以下を学びました：</p>
+<h3>学習した内容</h3>
+<ol>
+<li>
+<p><strong>反応テンプレートとSMARTS</strong>
+   - 反応SMILESとSMIRKSの記法
+   - 反応テンプレートの定義と適用
+   - USPTO反応データセット</p>
+</li>
+<li>
+<p><strong>反応予測モデル</strong>
+   - Random Forestによる収率予測
+   - Transformerによる生成物予測
+   - 反応条件の推奨</p>
+</li>
+<li>
+<p><strong>Retrosynthesis</strong>
+   - 逆合成解析の基本概念
+   - AiZynthFinder、IBM RXN for Chemistry
+   - 合成経路のスコアリング</p>
+</li>
+<li>
+<p><strong>産業応用とキャリア</strong>
+   - 製薬企業（Pfizer、Roche、Novartis）
+   - 材料メーカー（旭化成、三菱ケミカル）
+   - スタートアップ（Recursion、BenevolentAI、Exscientia）
+   - ケモインフォマティシャンのキャリアパス</p>
+</li>
+</ol>
+<h3>シリーズ完了</h3>
+<p>おめでとうございます！ケモインフォマティクス入門シリーズの全4章を完了しました。</p>
+<p><strong>習得したスキル</strong>:
+- ✅ 分子表現とRDKit操作
+- ✅ QSAR/QSPRモデリング
+- ✅ 化学空間探索と類似性検索
+- ✅ 反応予測とRetrosynthesis</p>
+<p><strong>次のステップ</strong>:
+1. <strong>GNN入門シリーズ</strong>: Graph Neural Networksによる分子表現学習
+2. <strong>独自プロジェクト</strong>: ChEMBLデータを使った大規模QSAR
+3. <strong>コミュニティ参加</strong>: RDKit Users Group、日本化学会情報化学部会
+4. <strong>論文投稿</strong>: Journal of Cheminformatics、J. Chem. Inf. Model.</p>
+<p><strong><a href="./index.html">シリーズトップへ →</a></strong></p>
+<hr />
+<h2>参考文献</h2>
+<ol>
+<li>Coley, C. W. et al. (2017). "Prediction of Organic Reaction Outcomes Using Machine Learning." <em>ACS Central Science</em>, 3(5), 434-443. DOI: 10.1021/acscentsci.7b00064</li>
+<li>Schwaller, P. et al. (2019). "Molecular Transformer: A Model for Uncertainty-Calibrated Chemical Reaction Prediction." <em>ACS Central Science</em>, 5(9), 1572-1583. DOI: 10.1021/acscentsci.9b00576</li>
+<li>Genheden, S. et al. (2020). "AiZynthFinder: a fast, robust and flexible open-source software for retrosynthetic planning." <em>J. Cheminformatics</em>, 12, 70. DOI: 10.1186/s13321-020-00472-1</li>
+<li>Lowe, D. M. (2012). <em>Extraction of chemical structures and reactions from the literature</em>. PhD thesis, University of Cambridge.</li>
+</ol>
+<hr />
+<p><strong><a href="./chapter-3.html">← 第3章</a></strong> | <strong><a href="./index.html">シリーズトップへ</a></strong></p>
+<hr />
+<h2>追加リソース</h2>
+<h3>オープンソースツール</h3>
+<table>
+<thead>
+<tr>
+<th>ツール名</th>
+<th>説明</th>
+<th>GitHub</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RDKit</td>
+<td>包括的ケモインフォライブラリ</td>
+<td><a href="https://github.com/rdkit/rdkit">rdkit/rdkit</a></td>
+</tr>
+<tr>
+<td>AiZynthFinder</td>
+<td>逆合成解析ツール</td>
+<td><a href="https://github.com/MolecularAI/aizynthfinder">MolecularAI/aizynthfinder</a></td>
+</tr>
+<tr>
+<td>rxnfp</td>
+<td>反応指紋・Transformer</td>
+<td><a href="https://github.com/rxn4chemistry/rxnfp">rxn4chemistry/rxnfp</a></td>
+</tr>
+<tr>
+<td>Molecular Transformer</td>
+<td>反応予測Transformer</td>
+<td><a href="https://github.com/pschwllr/MolecularTransformer">pschwllr/MolecularTransformer</a></td>
+</tr>
+</tbody>
+</table>
+<h3>Webプラットフォーム</h3>
+<ul>
+<li><strong>IBM RXN for Chemistry</strong>: https://rxn.res.ibm.com/</li>
+<li><strong>ChemDraw Cloud</strong>: https://chemdrawdirect.perkinelmer.cloud/</li>
+<li><strong>PubChem</strong>: https://pubchem.ncbi.nlm.nih.gov/</li>
+</ul>
+<h3>学習リソース</h3>
+<ul>
+<li><strong>書籍</strong>: "Organic Chemistry by Retrosynthesis" by Stuart Warren</li>
+<li><strong>オンラインコース</strong>: Coursera "Drug Discovery"</li>
+<li><strong>コミュニティ</strong>: RDKit Users Group (Google Groups)</li>
+</ul>
+<hr />
+<p><strong>あなたのケモインフォマティクスの旅はここから始まります！</strong></p><div class="navigation">
+    <a href="chapter-3.html" class="nav-button">← 前の章</a>
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-18</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

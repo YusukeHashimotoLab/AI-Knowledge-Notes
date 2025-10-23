@@ -459,7 +459,7 @@ best_catalyst = optimizer.get_best()
 - DFT計算との統合
 - 30個の実行可能なコード例
 
-**[第3章へ進む →](./chapter3-hands-on.html)**
+**[第3章へ進む →](./chapter-3.html)**
 
 ---
 

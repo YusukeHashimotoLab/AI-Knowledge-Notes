@@ -140,7 +140,7 @@ graph TD
 
 ---
 
-### [第3章：Pythonで実装する触媒MI - ASE & 機械学習実践](./chapter3-hands-on.html)
+### [第3章：Pythonで実装する触媒MI - ASE & 機械学習実践](./chapter-3.html)
 
 **難易度**: 中級
 **読了時間**: 35-45分
@@ -208,7 +208,7 @@ graph TD
 - ✅ DFT計算結果とMLを統合できる
 - ✅ 実際の触媒開発プロジェクトを実行できる
 
-**[第3章を読む →](./chapter3-hands-on.html)**
+**[第3章を読む →](./chapter-3.html)**
 
 ---
 

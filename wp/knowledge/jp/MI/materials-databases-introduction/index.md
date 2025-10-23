@@ -550,7 +550,7 @@ Day 5: 実践プロジェクト
 
 3. **ベイズ最適化・アクティブラーニング入門** (中級)
    - 関連性: データベースから取得したデータでの材料探索
-   - リンク: [../bayesian-optimization/index.md](../bayesian-optimization/index.html)
+   - リンク: [../bayesian-optimization/index.md](../bayesian-optimization-introduction/index.html)
 
 ### 学習パス全体図
 

@@ -739,7 +739,7 @@ flowchart LR
 
 **次のステップ**:
 - [MI入門シリーズ](../mi-introduction/index.html)で機械学習を学ぶ
-- [ベイズ最適化入門](../bayesian-optimization/index.html)で効率的探索
+- [ベイズ最適化入門](../bayesian-optimization-introduction/index.html)で効率的探索
 - 独自の研究プロジェクトに応用
 
 **[← シリーズ目次に戻る](./index.html)**

@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章：LightGBMとCatBoost - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第3章：LightGBMとCatBoost</h1>
+            <p class="subtitle">次世代勾配ブースティング - 高速化とカテゴリカル変数処理</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 25-30分</span>
+                <span class="meta-item">📊 難易度: 中級</span>
+                <span class="meta-item">💻 コード例: 9個</span>
+                <span class="meta-item">📝 演習問題: 5問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+<h2>学習目標</h2>
+<p>この章を読むことで、以下を習得できます：</p>
+<ul>
+<li>✅ LightGBMの高速化技術（GOSS、EFB、Histogram-based）を理解する</li>
+<li>✅ LightGBMを実装し、パラメータチューニングができる</li>
+<li>✅ CatBoostのOrdered BoostingとCategorical Features処理を理解する</li>
+<li>✅ CatBoostを実装し、エンコーディング戦略を選択できる</li>
+<li>✅ XGBoost、LightGBM、CatBoostの特性を比較し、使い分けられる</li>
+</ul>
+
+<hr>
+
+<h2>3.1 LightGBM - 高速化の仕組み</h2>
+
+<h3>LightGBMとは</h3>
+<p><strong>LightGBM（Light Gradient Boosting Machine）</strong>は、Microsoftが開発した高速で効率的な勾配ブースティングフレームワークです。</p>
+
+<blockquote>
+<p>「Light」の名の通り、XGBoostよりも軽量で高速、大規模データセットに適しています。</p>
+</blockquote>
+
+<h3>主要な技術革新</h3>
+
+<h4>1. Histogram-based Algorithm（ヒストグラムベースアルゴリズム）</h4>
+
+<p>連続値を離散化（ビニング）することで、計算量を大幅削減します。</p>
+
+<table>
+<thead>
+<tr>
+<th>手法</th>
+<th>計算量</th>
+<th>メモリ</th>
+<th>精度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pre-sorted</strong>（XGBoost）</td>
+<td>$O(n \log n)$</td>
+<td>高</td>
+<td>高</td>
+</tr>
+<tr>
+<td><strong>Histogram-based</strong>（LightGBM）</td>
+<td>$O(n \times k)$</td>
+<td>低</td>
+<td>ほぼ同等</td>
+</tr>
+</tbody>
+</table>
+
+<p>$k$: ビン数（通常255）、$n$: データ数</p>
+
+<div class="mermaid">
+graph LR
+    A[連続値データ] --> B[ヒストグラム化]
+    B --> C[255ビンに離散化]
+    C --> D[高速な分岐探索]
+
+    style A fill:#ffebee
+    style B fill:#e3f2fd
+    style C fill:#f3e5f5
+    style D fill:#c8e6c9
+</div>
+
+<h4>2. GOSS（Gradient-based One-Side Sampling）</h4>
+
+<p><strong>GOSS</strong>は、勾配の大きいデータを重視し、小さいデータをサンプリングすることで学習を高速化します。</p>
+
+<p>アルゴリズム：</p>
+<ol>
+<li>勾配の絶対値でデータをソート</li>
+<li>上位 $a\%$ （大きい勾配）を全て保持</li>
+<li>残り $(1-a)\%$ から $b\%$ をランダムサンプリング</li>
+<li>サンプルされたデータの重みを $(1-a)/b$ 倍に調整</li>
+</ol>
+
+<h4>3. EFB（Exclusive Feature Bundling）</h4>
+
+<p><strong>EFB</strong>は、互いに排他的な特徴量（同時に非ゼロにならない）を束ねて次元を削減します。</p>
+
+<p>例：One-Hot Encoding された特徴量</p>
+<pre><code>color_red:   [1, 0, 0, 1, 0]
+color_blue:  [0, 1, 0, 0, 1]
+color_green: [0, 0, 1, 0, 0]
+→ 1つの特徴量に統合可能
+</code></pre>
+
+<h3>Leaf-wise vs Level-wise 成長戦略</h3>
+
+<table>
+<thead>
+<tr>
+<th>戦略</th>
+<th>説明</th>
+<th>使用</th>
+<th>長所</th>
+<th>短所</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Level-wise</strong></td>
+<td>深さ優先で全ノードを分割</td>
+<td>XGBoost</td>
+<td>バランスの取れた木</td>
+<td>情報利得が低いノードも分割</td>
+</tr>
+<tr>
+<td><strong>Leaf-wise</strong></td>
+<td>最大情報利得のリーフを分割</td>
+<td>LightGBM</td>
+<td>効率的、高精度</td>
+<td>過学習しやすい</td>
+</tr>
+</tbody>
+</table>
+
+<div class="mermaid">
+graph TD
+    A[Level-wise: XGBoost] --> B1[レベル1: 全て分割]
+    B1 --> C1[レベル2: 全て分割]
+
+    D[Leaf-wise: LightGBM] --> E1[最大利得ノードのみ分割]
+    E1 --> F1[次の最大利得ノードを分割]
+
+    style A fill:#e3f2fd
+    style D fill:#f3e5f5
+</div>
+
+<hr>
+
+<h2>3.2 LightGBM実装</h2>
+
+<h3>基本的な使い方</h3>
+
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, roc_auc_score
+import lightgbm as lgb
+
+# データ生成
+X, y = make_classification(
+    n_samples=10000,
+    n_features=20,
+    n_informative=15,
+    n_redundant=5,
+    random_state=42
+)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# LightGBMモデルの構築
+model = lgb.LGBMClassifier(
+    objective='binary',
+    n_estimators=100,
+    learning_rate=0.1,
+    max_depth=7,
+    num_leaves=31,
+    random_state=42
+)
+
+# 学習
+model.fit(X_train, y_train)
+
+# 予測
+y_pred = model.predict(X_test)
+y_proba = model.predict_proba(X_test)[:, 1]
+
+# 評価
+accuracy = accuracy_score(y_test, y_pred)
+auc = roc_auc_score(y_test, y_proba)
+
+print("=== LightGBM 基本実装 ===")
+print(f"精度: {accuracy:.4f}")
+print(f"AUC: {auc:.4f}")
+</code></pre>
+
+<p><strong>出力</strong>：</p>
+<pre><code>=== LightGBM 基本実装 ===
+精度: 0.9350
+AUC: 0.9712
+</code></pre>
+
+<h3>重要なパラメータ</h3>
+
+<table>
+<thead>
+<tr>
+<th>パラメータ</th>
+<th>説明</th>
+<th>推奨値</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>num_leaves</code></td>
+<td>木の最大リーフ数</td>
+<td>31-255（デフォルト: 31）</td>
+</tr>
+<tr>
+<td><code>max_depth</code></td>
+<td>木の最大深さ（過学習制御）</td>
+<td>3-10（デフォルト: -1=無制限）</td>
+</tr>
+<tr>
+<td><code>learning_rate</code></td>
+<td>学習率</td>
+<td>0.01-0.1</td>
+</tr>
+<tr>
+<td><code>n_estimators</code></td>
+<td>木の本数</td>
+<td>100-1000</td>
+</tr>
+<tr>
+<td><code>min_child_samples</code></td>
+<td>リーフの最小サンプル数</td>
+<td>20-100</td>
+</tr>
+<tr>
+<td><code>subsample</code></td>
+<td>データサンプリング比率</td>
+<td>0.7-1.0</td>
+</tr>
+<tr>
+<td><code>colsample_bytree</code></td>
+<td>特徴量サンプリング比率</td>
+<td>0.7-1.0</td>
+</tr>
+<tr>
+<td><code>reg_alpha</code></td>
+<td>L1正則化</td>
+<td>0-1</td>
+</tr>
+<tr>
+<td><code>reg_lambda</code></td>
+<td>L2正則化</td>
+<td>0-1</td>
+</tr>
+</tbody>
+</table>
+
+<h3>早期停止とバリデーション</h3>
+
+<pre><code class="language-python"># 訓練データをさらに分割
+X_tr, X_val, y_tr, y_val = train_test_split(
+    X_train, y_train, test_size=0.2, random_state=42
+)
+
+# 早期停止付きで学習
+model_early = lgb.LGBMClassifier(
+    objective='binary',
+    n_estimators=1000,
+    learning_rate=0.05,
+    max_depth=7,
+    num_leaves=31,
+    random_state=42
+)
+
+model_early.fit(
+    X_tr, y_tr,
+    eval_set=[(X_val, y_val)],
+    eval_metric='auc',
+    callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=True)]
+)
+
+print(f"\n=== 早期停止 ===")
+print(f"最適なイテレーション数: {model_early.best_iteration_}")
+print(f"バリデーションAUC: {model_early.best_score_['valid_0']['auc']:.4f}")
+
+# テストデータで評価
+y_pred_early = model_early.predict(X_test)
+accuracy_early = accuracy_score(y_test, y_pred_early)
+print(f"テスト精度: {accuracy_early:.4f}")
+</code></pre>
+
+<h3>特徴量重要度の可視化</h3>
+
+<pre><code class="language-python">import matplotlib.pyplot as plt
+
+# 特徴量重要度の取得
+feature_importance = model.feature_importances_
+feature_names = [f'feature_{i}' for i in range(X.shape[1])]
+
+# DataFrameに変換
+importance_df = pd.DataFrame({
+    'feature': feature_names,
+    'importance': feature_importance
+}).sort_values('importance', ascending=False)
+
+print("\n=== 特徴量重要度 Top 10 ===")
+print(importance_df.head(10))
+
+# 可視化
+plt.figure(figsize=(10, 8))
+lgb.plot_importance(model, max_num_features=15, importance_type='gain')
+plt.title('LightGBM 特徴量重要度（Gain）', fontsize=14)
+plt.tight_layout()
+plt.show()
+</code></pre>
+
+<h3>GPU サポート</h3>
+
+<pre><code class="language-python"># GPU使用（CUDA環境が必要）
+model_gpu = lgb.LGBMClassifier(
+    objective='binary',
+    n_estimators=100,
+    learning_rate=0.1,
+    device='gpu',  # GPU使用
+    gpu_platform_id=0,
+    gpu_device_id=0,
+    random_state=42
+)
+
+# 学習（GPUで高速化）
+# model_gpu.fit(X_train, y_train)
+
+print("\n=== GPU サポート ===")
+print("LightGBMはGPU（CUDA）をサポートしており、大規模データで10-30倍高速化可能")
+print("device='gpu' パラメータで有効化")
+</code></pre>
+
+<blockquote>
+<p><strong>注意</strong>: GPU版を使うには、LightGBMをGPUサポート付きでビルドする必要があります。</p>
+</blockquote>
+
+<hr>
+
+<h2>3.3 CatBoost - Ordered Boostingとカテゴリカル変数処理</h2>
+
+<h3>CatBoostとは</h3>
+<p><strong>CatBoost（Categorical Boosting）</strong>は、Yandexが開発した勾配ブースティングフレームワークで、カテゴリカル変数の自動処理が特徴です。</p>
+
+<h3>主要な技術革新</h3>
+
+<h4>1. Ordered Boosting</h4>
+
+<p><strong>Ordered Boosting</strong>は、予測シフト（prediction shift）を防ぐための手法です。</p>
+
+<p><strong>問題</strong>: 従来のブースティングでは、同じデータで勾配計算と学習を行うため、過学習しやすい。</p>
+
+<p><strong>解決策</strong>:</p>
+<ol>
+<li>データをランダムに並べ替え</li>
+<li>各サンプル $i$ の予測に、サンプル $1, ..., i-1$ のみを使用</li>
+<li>異なる順序で複数のモデルを構築</li>
+</ol>
+
+<div class="mermaid">
+graph LR
+    A[従来のブースティング] --> B[全データで学習]
+    B --> C[同じデータで予測]
+    C --> D[予測シフト発生]
+
+    E[Ordered Boosting] --> F[過去データのみで学習]
+    F --> G[未来データで予測]
+    G --> H[予測シフト防止]
+
+    style D fill:#ffebee
+    style H fill:#c8e6c9
+</div>
+
+<h4>2. Categorical Features の自動処理</h4>
+
+<p>CatBoostは、カテゴリカル変数を自動でエンコーディングします。</p>
+
+<p><strong>Target Statistics</strong>（ターゲット統計量）の計算：</p>
+
+$$
+\text{TS}(x_i) = \frac{\sum_{j=1}^{i-1} \mathbb{1}_{x_j = x_i} \cdot y_j + a \cdot P}{\sum_{j=1}^{i-1} \mathbb{1}_{x_j = x_i} + a}
+$$
+
+<ul>
+<li>$x_i$: カテゴリ値</li>
+<li>$y_j$: ターゲット値</li>
+<li>$a$: 平滑化パラメータ</li>
+<li>$P$: 事前確率</li>
+</ul>
+
+<p>この手法により、以下の利点があります：</p>
+<ul>
+<li>One-Hot Encodingが不要</li>
+<li>高カーディナリティ（多数のカテゴリ）に対応</li>
+<li>ターゲットリークを防止</li>
+</ul>
+
+<h3>対称木（Oblivious Trees）</h3>
+
+<p>CatBoostは<strong>対称木</strong>（Oblivious Decision Trees）を使用します。</p>
+
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>通常の決定木</th>
+<th>対称木（CatBoost）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>分割条件</td>
+<td>各ノードで異なる</td>
+<td>同じレベルで同じ条件</td>
+</tr>
+<tr>
+<td>構造</td>
+<td>非対称</td>
+<td>完全対称</td>
+</tr>
+<tr>
+<td>過学習</td>
+<td>しやすい</td>
+<td>しにくい</td>
+</tr>
+<tr>
+<td>予測速度</td>
+<td>普通</td>
+<td>非常に高速</td>
+</tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>3.4 CatBoost実装</h2>
+
+<h3>基本的な使い方</h3>
+
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, roc_auc_score
+from catboost import CatBoostClassifier
+
+# データ生成
+X, y = make_classification(
+    n_samples=10000,
+    n_features=20,
+    n_informative=15,
+    n_redundant=5,
+    random_state=42
+)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# CatBoostモデルの構築
+model = CatBoostClassifier(
+    iterations=100,
+    learning_rate=0.1,
+    depth=6,
+    loss_function='Logloss',
+    random_seed=42,
+    verbose=0
+)
+
+# 学習
+model.fit(X_train, y_train)
+
+# 予測
+y_pred = model.predict(X_test)
+y_proba = model.predict_proba(X_test)[:, 1]
+
+# 評価
+accuracy = accuracy_score(y_test, y_pred)
+auc = roc_auc_score(y_test, y_proba)
+
+print("=== CatBoost 基本実装 ===")
+print(f"精度: {accuracy:.4f}")
+print(f"AUC: {auc:.4f}")
+</code></pre>
+
+<p><strong>出力</strong>：</p>
+<pre><code>=== CatBoost 基本実装 ===
+精度: 0.9365
+AUC: 0.9721
+</code></pre>
+
+<h3>カテゴリカル変数の扱い</h3>
+
+<pre><code class="language-python"># カテゴリカル変数を含むデータセット生成
+np.random.seed(42)
+n = 5000
+
+df = pd.DataFrame({
+    'num_feature1': np.random.randn(n),
+    'num_feature2': np.random.uniform(0, 100, n),
+    'cat_feature1': np.random.choice(['A', 'B', 'C', 'D'], n),
+    'cat_feature2': np.random.choice(['Low', 'Medium', 'High'], n),
+    'cat_feature3': np.random.choice([f'Cat_{i}' for i in range(50)], n)  # 高カーディナリティ
+})
+
+# ターゲット変数（カテゴリに依存）
+df['target'] = (
+    (df['cat_feature1'].isin(['A', 'B'])) &
+    (df['num_feature1'] > 0) &
+    (df['num_feature2'] > 50)
+).astype(int)
+
+# 特徴量とターゲットの分離
+X = df.drop('target', axis=1)
+y = df['target']
+
+# カテゴリカル変数の列を指定
+cat_features = ['cat_feature1', 'cat_feature2', 'cat_feature3']
+
+# 訓練・テストデータ分割
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+print("=== カテゴリカル変数を含むデータ ===")
+print(f"データ形状: {X.shape}")
+print(f"カテゴリカル変数: {cat_features}")
+print(f"\n各カテゴリのユニーク数:")
+for col in cat_features:
+    print(f"  {col}: {X[col].nunique()}")
+
+# CatBoostで学習（カテゴリカル変数を自動処理）
+model_cat = CatBoostClassifier(
+    iterations=100,
+    learning_rate=0.1,
+    depth=6,
+    cat_features=cat_features,  # カテゴリカル変数を指定
+    random_seed=42,
+    verbose=0
+)
+
+model_cat.fit(X_train, y_train)
+
+# 評価
+y_pred_cat = model_cat.predict(X_test)
+y_proba_cat = model_cat.predict_proba(X_test)[:, 1]
+
+accuracy_cat = accuracy_score(y_test, y_pred_cat)
+auc_cat = roc_auc_score(y_test, y_proba_cat)
+
+print(f"\n=== カテゴリカル変数処理結果 ===")
+print(f"精度: {accuracy_cat:.4f}")
+print(f"AUC: {auc_cat:.4f}")
+print("✓ One-Hot Encoding不要で高カーディナリティに対応")
+</code></pre>
+
+<h3>エンコーディング戦略</h3>
+
+<p>CatBoostは複数のエンコーディングモードをサポートします：</p>
+
+<table>
+<thead>
+<tr>
+<th>モード</th>
+<th>説明</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Ordered</code></td>
+<td>Ordered Target Statistics</td>
+<td>過学習防止（デフォルト）</td>
+</tr>
+<tr>
+<td><code>GreedyLogSum</code></td>
+<td>貪欲なログ和</td>
+<td>大規模データ</td>
+</tr>
+<tr>
+<td><code>OneHot</code></td>
+<td>One-Hot Encoding</td>
+<td>低カーディナリティ（≤10）</td>
+</tr>
+</tbody>
+</table>
+
+<pre><code class="language-python"># エンコーディング戦略の比較
+from catboost import Pool
+
+# CatBoost Pool作成（効率的なデータ構造）
+train_pool = Pool(
+    X_train,
+    y_train,
+    cat_features=cat_features
+)
+test_pool = Pool(
+    X_test,
+    y_test,
+    cat_features=cat_features
+)
+
+# 異なるエンコーディング戦略
+strategies = {
+    'Ordered': 'Ordered',
+    'GreedyLogSum': 'GreedyLogSum',
+    'OneHot': {'one_hot_max_size': 10}  # カーディナリティ≤10でOne-Hot
+}
+
+print("\n=== エンコーディング戦略の比較 ===")
+for name, strategy in strategies.items():
+    model_strategy = CatBoostClassifier(
+        iterations=100,
+        learning_rate=0.1,
+        depth=6,
+        cat_features=cat_features,
+        random_seed=42,
+        verbose=0
+    )
+
+    if name == 'OneHot':
+        model_strategy.set_params(**strategy)
+
+    model_strategy.fit(train_pool)
+    y_pred = model_strategy.predict(test_pool)
+    accuracy = accuracy_score(y_test, y_pred)
+
+    print(f"{name:15s}: 精度 = {accuracy:.4f}")
+</code></pre>
+
+<h3>早期停止とバリデーション</h3>
+
+<pre><code class="language-python"># 訓練データをさらに分割
+X_tr, X_val, y_tr, y_val = train_test_split(
+    X_train, y_train, test_size=0.2, random_state=42
+)
+
+# 早期停止付きで学習
+model_early = CatBoostClassifier(
+    iterations=1000,
+    learning_rate=0.05,
+    depth=6,
+    cat_features=cat_features,
+    random_seed=42,
+    early_stopping_rounds=50,
+    verbose=100
+)
+
+model_early.fit(
+    X_tr, y_tr,
+    eval_set=(X_val, y_val),
+    use_best_model=True
+)
+
+print(f"\n=== 早期停止 ===")
+print(f"最適なイテレーション数: {model_early.get_best_iteration()}")
+print(f"最良スコア: {model_early.get_best_score()}")
+
+# テストデータで評価
+y_pred_early = model_early.predict(X_test)
+accuracy_early = accuracy_score(y_test, y_pred_early)
+print(f"テスト精度: {accuracy_early:.4f}")
+</code></pre>
+
+<hr>
+
+<h2>3.5 XGBoost、LightGBM、CatBoostの比較</h2>
+
+<h3>アルゴリズムの特性比較</h3>
+
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>XGBoost</th>
+<th>LightGBM</th>
+<th>CatBoost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>開発元</strong></td>
+<td>Tianqi Chen（DMLC）</td>
+<td>Microsoft</td>
+<td>Yandex</td>
+</tr>
+<tr>
+<td><strong>分割アルゴリズム</strong></td>
+<td>Pre-sorted</td>
+<td>Histogram-based</td>
+<td>Histogram-based</td>
+</tr>
+<tr>
+<td><strong>木の成長戦略</strong></td>
+<td>Level-wise</td>
+<td>Leaf-wise</td>
+<td>Level-wise（対称木）</td>
+</tr>
+<tr>
+<td><strong>速度</strong></td>
+<td>普通</td>
+<td>高速</td>
+<td>やや遅い</td>
+</tr>
+<tr>
+<td><strong>メモリ効率</strong></td>
+<td>普通</td>
+<td>高効率</td>
+<td>普通</td>
+</tr>
+<tr>
+<td><strong>カテゴリカル処理</strong></td>
+<td>手動エンコーディング必要</td>
+<td>手動エンコーディング必要</td>
+<td>自動処理</td>
+</tr>
+<tr>
+<td><strong>過学習耐性</strong></td>
+<td>高</td>
+<td>中（Leaf-wiseで注意）</td>
+<td>非常に高</td>
+</tr>
+<tr>
+<td><strong>GPUサポート</strong></td>
+<td>あり</td>
+<td>あり</td>
+<td>あり</td>
+</tr>
+<tr>
+<td><strong>ハイパーパラメータ調整</strong></td>
+<td>やや複雑</td>
+<td>やや複雑</td>
+<td>シンプル</td>
+</tr>
+</tbody>
+</table>
+
+<h3>パフォーマンス比較実験</h3>
+
+<pre><code class="language-python">import time
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
+from catboost import CatBoostClassifier
+from sklearn.metrics import accuracy_score, roc_auc_score
+
+# 大規模データ生成
+X_large, y_large = make_classification(
+    n_samples=50000,
+    n_features=50,
+    n_informative=30,
+    n_redundant=10,
+    random_state=42
+)
+
+X_train_lg, X_test_lg, y_train_lg, y_test_lg = train_test_split(
+    X_large, y_large, test_size=0.2, random_state=42
+)
+
+# 共通パラメータ
+common_params = {
+    'n_estimators': 100,
+    'max_depth': 6,
+    'learning_rate': 0.1,
+    'random_state': 42
+}
+
+# モデル定義
+models = {
+    'XGBoost': XGBClassifier(**common_params, verbosity=0),
+    'LightGBM': LGBMClassifier(**common_params, verbose=-1),
+    'CatBoost': CatBoostClassifier(
+        iterations=100,
+        depth=6,
+        learning_rate=0.1,
+        random_seed=42,
+        verbose=0
+    )
+}
+
+print("=== 性能比較（50,000サンプル、50特徴量）===\n")
+results = []
+
+for name, model in models.items():
+    # 学習時間測定
+    start_time = time.time()
+    model.fit(X_train_lg, y_train_lg)
+    train_time = time.time() - start_time
+
+    # 予測時間測定
+    start_time = time.time()
+    y_pred = model.predict(X_test_lg)
+    y_proba = model.predict_proba(X_test_lg)[:, 1]
+    pred_time = time.time() - start_time
+
+    # 評価
+    accuracy = accuracy_score(y_test_lg, y_pred)
+    auc = roc_auc_score(y_test_lg, y_proba)
+
+    results.append({
+        'Model': name,
+        'Train Time (s)': train_time,
+        'Predict Time (s)': pred_time,
+        'Accuracy': accuracy,
+        'AUC': auc
+    })
+
+    print(f"{name}:")
+    print(f"  学習時間: {train_time:.3f}秒")
+    print(f"  予測時間: {pred_time:.3f}秒")
+    print(f"  精度: {accuracy:.4f}")
+    print(f"  AUC: {auc:.4f}\n")
+
+# 結果をDataFrameで表示
+results_df = pd.DataFrame(results)
+print("=== 結果サマリー ===")
+print(results_df.to_string(index=False))
+</code></pre>
+
+<h3>メモリ使用量の比較</h3>
+
+<pre><code class="language-python">import sys
+
+print("\n=== メモリ使用量の推定 ===")
+for name, model in models.items():
+    # モデルのメモリサイズ（概算）
+    model_size = sys.getsizeof(model) / (1024 * 1024)  # MB
+    print(f"{name:10s}: 約 {model_size:.2f} MB")
+
+print("\n特徴:")
+print("• LightGBM: Histogram化により最小メモリ")
+print("• XGBoost: Pre-sorted法で中程度メモリ")
+print("• CatBoost: 対称木でコンパクト")
+</code></pre>
+
+<h3>使い分けガイドライン</h3>
+
+<table>
+<thead>
+<tr>
+<th>状況</th>
+<th>推奨</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>大規模データ（>100万行）</strong></td>
+<td>LightGBM</td>
+<td>最高速、低メモリ</td>
+</tr>
+<tr>
+<td><strong>カテゴリカル変数多数</strong></td>
+<td>CatBoost</td>
+<td>自動処理、高精度</td>
+</tr>
+<tr>
+<td><strong>高カーディナリティ</strong></td>
+<td>CatBoost</td>
+<td>Target Statistics</td>
+</tr>
+<tr>
+<td><strong>過学習が心配</strong></td>
+<td>CatBoost</td>
+<td>Ordered Boosting</td>
+</tr>
+<tr>
+<td><strong>バランスの取れた性能</strong></td>
+<td>XGBoost</td>
+<td>安定、豊富な実績</td>
+</tr>
+<tr>
+<td><strong>速度優先</strong></td>
+<td>LightGBM</td>
+<td>Leaf-wise + Histogram</td>
+</tr>
+<tr>
+<td><strong>精度優先</strong></td>
+<td>CatBoost</td>
+<td>過学習耐性</td>
+</tr>
+<tr>
+<td><strong>チューニング時間が限られる</strong></td>
+<td>CatBoost</td>
+<td>デフォルトで良好</td>
+</tr>
+<tr>
+<td><strong>GPUで高速化</strong></td>
+<td>全て対応</td>
+<td>環境に応じて選択</td>
+</tr>
+</tbody>
+</table>
+
+<h3>実務での選択フローチャート</h3>
+
+<div class="mermaid">
+graph TD
+    A[勾配ブースティングが必要] --> B{カテゴリカル変数が多い?}
+    B -->|Yes| C[CatBoost]
+    B -->|No| D{データサイズは?}
+    D -->|大規模 >100万行| E[LightGBM]
+    D -->|中小規模| F{何を重視?}
+    F -->|速度| E
+    F -->|精度| C
+    F -->|バランス| G[XGBoost]
+
+    style C fill:#c8e6c9
+    style E fill:#fff9c4
+    style G fill:#e1bee7
+</div>
+
+<hr>
+
+<h2>3.6 本章のまとめ</h2>
+
+<h3>学んだこと</h3>
+
+<ol>
+<li><p><strong>LightGBMの技術革新</strong></p>
+<ul>
+<li>Histogram-based Algorithm: 計算量削減</li>
+<li>GOSS: 勾配ベースサンプリング</li>
+<li>EFB: 排他的特徴量の束ね</li>
+<li>Leaf-wise成長: 効率的な木構築</li>
+</ul></li>
+
+<li><p><strong>LightGBM実装</strong></p>
+<ul>
+<li>高速で効率的な学習</li>
+<li>GPUサポートによる更なる高速化</li>
+<li>豊富なパラメータで柔軟な調整</li>
+</ul></li>
+
+<li><p><strong>CatBoostの技術革新</strong></p>
+<ul>
+<li>Ordered Boosting: 予測シフト防止</li>
+<li>カテゴリカル変数の自動処理</li>
+<li>対称木: 過学習耐性と高速予測</li>
+</ul></li>
+
+<li><p><strong>CatBoost実装</strong></p>
+<ul>
+<li>カテゴリカル変数を直接扱える</li>
+<li>高カーディナリティに対応</li>
+<li>デフォルトパラメータで高性能</li>
+</ul></li>
+
+<li><p><strong>3ツールの比較</strong></p>
+<ul>
+<li>XGBoost: バランスと実績</li>
+<li>LightGBM: 速度とメモリ効率</li>
+<li>CatBoost: カテゴリカル処理と精度</li>
+</ul></li>
+</ol>
+
+<h3>選択のポイント</h3>
+
+<table>
+<thead>
+<tr>
+<th>重視項目</th>
+<th>第1候補</th>
+<th>第2候補</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>学習速度</td>
+<td>LightGBM</td>
+<td>XGBoost</td>
+</tr>
+<tr>
+<td>予測精度</td>
+<td>CatBoost</td>
+<td>XGBoost</td>
+</tr>
+<tr>
+<td>メモリ効率</td>
+<td>LightGBM</td>
+<td>CatBoost</td>
+</tr>
+<tr>
+<td>カテゴリカル処理</td>
+<td>CatBoost</td>
+<td>-</td>
+</tr>
+<tr>
+<td>チューニングのしやすさ</td>
+<td>CatBoost</td>
+<td>XGBoost</td>
+</tr>
+<tr>
+<td>安定性</td>
+<td>XGBoost</td>
+<td>CatBoost</td>
+</tr>
+</tbody>
+</table>
+
+<h3>次のステップ</h3>
+
+<ul>
+<li>ハイパーパラメータの自動チューニング（Optuna、Hyperopt）</li>
+<li>アンサンブル手法の組み合わせ（スタッキング、ブレンディング）</li>
+<li>特徴量エンジニアリングとの統合</li>
+<li>モデルの解釈性向上（SHAP、LIME）</li>
+</ul>
+
+<hr>
+
+<h2>演習問題</h2>
+
+<h3>問題1（難易度：easy）</h3>
+<p>LightGBMの3つの主要な高速化技術（Histogram-based、GOSS、EFB）をそれぞれ説明してください。</p>
+
+<details>
+<summary>解答例</summary>
+
+<p><strong>解答</strong>：</p>
+
+<ol>
+<li><p><strong>Histogram-based Algorithm（ヒストグラムベースアルゴリズム）</strong></p>
+<ul>
+<li>説明: 連続値を固定数のビン（通常255）に離散化</li>
+<li>効果: 計算量を $O(n \log n)$ から $O(n \times k)$ に削減</li>
+<li>利点: メモリ効率向上、分岐探索の高速化</li>
+</ul></li>
+
+<li><p><strong>GOSS（Gradient-based One-Side Sampling）</strong></p>
+<ul>
+<li>説明: 勾配の大きいデータを優先的に使用</li>
+<li>手順: 勾配上位 $a\%$ 全保持 + 残りから $b\%$ サンプリング</li>
+<li>利点: データ削減による高速化、精度維持</li>
+</ul></li>
+
+<li><p><strong>EFB（Exclusive Feature Bundling）</strong></p>
+<ul>
+<li>説明: 排他的な特徴量（同時に非ゼロにならない）を束ねる</li>
+<li>例: One-Hot Encodingされた変数を1つにまとめる</li>
+<li>利点: 特徴量数削減による高速化</li>
+</ul></li>
+</ol>
+
+</details>
+
+<h3>問題2（難易度：medium）</h3>
+<p>Level-wise（XGBoost）とLeaf-wise（LightGBM）の木成長戦略の違いを説明し、それぞれの長所と短所を述べてください。</p>
+
+<details>
+<summary>解答例</summary>
+
+<p><strong>解答</strong>：</p>
+
+<p><strong>Level-wise（レベル方向）</strong>：</p>
+<ul>
+<li>戦略: 深さ優先で、同じレベルの全ノードを分割</li>
+<li>長所: バランスの取れた木、過学習しにくい</li>
+<li>短所: 情報利得の低いノードも分割するため非効率</li>
+<li>使用: XGBoost、CatBoost</li>
+</ul>
+
+<p><strong>Leaf-wise（リーフ方向）</strong>：</p>
+<ul>
+<li>戦略: 最大情報利得のリーフのみを分割</li>
+<li>長所: 効率的、高精度、高速</li>
+<li>短所: 過学習しやすい（深さ制限が重要）</li>
+<li>使用: LightGBM</li>
+</ul>
+
+<p><strong>比較表</strong>：</p>
+
+<table>
+<thead>
+<tr>
+<th>項目</th>
+<th>Level-wise</th>
+<th>Leaf-wise</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>効率</td>
+<td>普通</td>
+<td>高</td>
+</tr>
+<tr>
+<td>精度</td>
+<td>安定</td>
+<td>高いが過学習注意</td>
+</tr>
+<tr>
+<td>木の形状</td>
+<td>対称</td>
+<td>非対称</td>
+</tr>
+<tr>
+<td>過学習耐性</td>
+<td>高</td>
+<td>中（深さ制限必要）</td>
+</tr>
+</tbody>
+</table>
+
+</details>
+
+<h3>問題3（難易度：medium）</h3>
+<p>CatBoostのOrdered Boostingが、なぜ予測シフト（prediction shift）を防げるのか説明してください。</p>
+
+<details>
+<summary>解答例</summary>
+
+<p><strong>解答</strong>：</p>
+
+<p><strong>予測シフトの問題</strong>：</p>
+<p>従来のブースティングでは、以下の問題が発生します：</p>
+<ol>
+<li>全データで勾配を計算</li>
+<li>同じデータで次の弱学習器を学習</li>
+<li>訓練データに過剰適合（同じデータを見て予測と学習）</li>
+<li>テストデータで性能低下</li>
+</ol>
+
+<p><strong>Ordered Boostingの解決策</strong>：</p>
+<ol>
+<li><strong>データの順序付け</strong>: データをランダムに並べ替え</li>
+<li><strong>過去データのみ使用</strong>: サンプル $i$ の予測に、サンプル $1, ..., i-1$ のみを使用</li>
+<li><strong>未来データで検証</strong>: 学習に使ったデータで予測しない</li>
+<li><strong>複数モデル</strong>: 異なる順序で複数モデルを構築し平均化</li>
+</ol>
+
+<p><strong>効果</strong>：</p>
+<ul>
+<li>訓練とテストで同じ条件（過去データのみで予測）</li>
+<li>予測シフトの防止</li>
+<li>汎化性能の向上</li>
+<li>過学習の抑制</li>
+</ul>
+
+<p><strong>数式</strong>：</p>
+<p>サンプル $i$ の予測値 $\hat{y}_i$ は：</p>
+$$
+\hat{y}_i = M(\{(x_j, y_j)\}_{j=1}^{i-1})
+$$
+<p>つまり、$i$ より前のデータのみで学習したモデル $M$ を使用。</p>
+
+</details>
+
+<h3>問題4（難易度：hard）</h3>
+<p>以下のデータに対して、LightGBMとCatBoostで学習し、性能を比較してください。カテゴリカル変数の処理方法の違いに注目してください。</p>
+
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+
+np.random.seed(42)
+n = 10000
+
+df = pd.DataFrame({
+    'num1': np.random.randn(n),
+    'num2': np.random.uniform(0, 100, n),
+    'cat1': np.random.choice(['A', 'B', 'C', 'D', 'E'], n),
+    'cat2': np.random.choice([f'Cat_{i}' for i in range(100)], n),  # 高カーディナリティ
+    'target': np.random.choice([0, 1], n)
+})
+</code></pre>
+
+<details>
+<summary>解答例</summary>
+
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score, roc_auc_score
+from lightgbm import LGBMClassifier
+from catboost import CatBoostClassifier
+
+# データ生成
+np.random.seed(42)
+n = 10000
+
+df = pd.DataFrame({
+    'num1': np.random.randn(n),
+    'num2': np.random.uniform(0, 100, n),
+    'cat1': np.random.choice(['A', 'B', 'C', 'D', 'E'], n),
+    'cat2': np.random.choice([f'Cat_{i}' for i in range(100)], n),
+})
+
+# ターゲット生成（カテゴリに依存）
+df['target'] = (
+    (df['cat1'].isin(['A', 'B'])) &
+    (df['num1'] > 0)
+).astype(int)
+
+X = df.drop('target', axis=1)
+y = df['target']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+print("=== データ情報 ===")
+print(f"サンプル数: {n}")
+print(f"カテゴリカル変数:")
+print(f"  cat1: {X['cat1'].nunique()} ユニーク値")
+print(f"  cat2: {X['cat2'].nunique()} ユニーク値（高カーディナリティ）")
+
+# ===== LightGBM: Label Encodingが必要 =====
+print("\n=== LightGBM（Label Encoding使用）===")
+
+X_train_lgb = X_train.copy()
+X_test_lgb = X_test.copy()
+
+# Label Encoding
+le_cat1 = LabelEncoder()
+le_cat2 = LabelEncoder()
+
+X_train_lgb['cat1'] = le_cat1.fit_transform(X_train_lgb['cat1'])
+X_test_lgb['cat1'] = le_cat1.transform(X_test_lgb['cat1'])
+
+X_train_lgb['cat2'] = le_cat2.fit_transform(X_train_lgb['cat2'])
+# テストデータに未知カテゴリがある可能性に対処
+X_test_lgb['cat2'] = X_test_lgb['cat2'].map(
+    {v: k for k, v in enumerate(le_cat2.classes_)}
+).fillna(-1).astype(int)
+
+model_lgb = LGBMClassifier(
+    n_estimators=100,
+    learning_rate=0.1,
+    max_depth=6,
+    random_state=42,
+    verbose=-1
+)
+
+model_lgb.fit(X_train_lgb, y_train)
+y_pred_lgb = model_lgb.predict(X_test_lgb)
+y_proba_lgb = model_lgb.predict_proba(X_test_lgb)[:, 1]
+
+acc_lgb = accuracy_score(y_test, y_pred_lgb)
+auc_lgb = roc_auc_score(y_test, y_proba_lgb)
+
+print(f"精度: {acc_lgb:.4f}")
+print(f"AUC: {auc_lgb:.4f}")
+print("処理: Label Encodingで数値化（順序情報なし）")
+
+# ===== CatBoost: カテゴリカル変数を直接扱える =====
+print("\n=== CatBoost（自動カテゴリカル処理）===")
+
+cat_features = ['cat1', 'cat2']
+
+model_cat = CatBoostClassifier(
+    iterations=100,
+    learning_rate=0.1,
+    depth=6,
+    cat_features=cat_features,
+    random_seed=42,
+    verbose=0
+)
+
+model_cat.fit(X_train, y_train)
+y_pred_cat = model_cat.predict(X_test)
+y_proba_cat = model_cat.predict_proba(X_test)[:, 1]
+
+acc_cat = accuracy_score(y_test, y_pred_cat)
+auc_cat = roc_auc_score(y_test, y_proba_cat)
+
+print(f"精度: {acc_cat:.4f}")
+print(f"AUC: {auc_cat:.4f}")
+print("処理: Target Statisticsで自動エンコーディング")
+
+# ===== 比較 =====
+print("\n=== 比較結果 ===")
+comparison = pd.DataFrame({
+    'Model': ['LightGBM', 'CatBoost'],
+    'Accuracy': [acc_lgb, acc_cat],
+    'AUC': [auc_lgb, auc_cat],
+    'Categorical Handling': ['Manual (Label Encoding)', 'Automatic (Target Statistics)']
+})
+print(comparison.to_string(index=False))
+
+print("\n=== 考察 ===")
+print("• LightGBM: Label Encodingで順序情報がない数値化（準最適）")
+print("• CatBoost: Target Statisticsで意味のあるエンコーディング")
+print("• 高カーディナリティでCatBoostが有利")
+print("• One-Hot Encodingは次元爆発で非実用的（100カテゴリ）")
+</code></pre>
+
+</details>
+
+<h3>問題5（難易度：hard）</h3>
+<p>XGBoost、LightGBM、CatBoostのそれぞれで、以下の状況に最適なものを選び、理由を述べてください：</p>
+<ol>
+<li>1億行、100特徴量のデータセット</li>
+<li>100カテゴリを持つ高カーディナリティ変数が5つ</li>
+<li>小規模データ（10,000行）で精度を最大化したい</li>
+</ol>
+
+<details>
+<summary>解答例</summary>
+
+<p><strong>解答</strong>：</p>
+
+<p><strong>1. 1億行、100特徴量のデータセット</strong></p>
+<ul>
+<li><strong>推奨</strong>: LightGBM</li>
+<li><strong>理由</strong>:
+<ul>
+<li>Histogram-based Algorithmで最速</li>
+<li>GOSSによるデータサンプリングで更に高速化</li>
+<li>メモリ効率が最高（大規模データに不可欠）</li>
+<li>GPUサポートで更に加速可能</li>
+</ul></li>
+<li><strong>代替</strong>: XGBoost（GPUモード）も選択肢だが、LightGBMより遅い</li>
+</ul>
+
+<p><strong>2. 100カテゴリを持つ高カーディナリティ変数が5つ</strong></p>
+<ul>
+<li><strong>推奨</strong>: CatBoost</li>
+<li><strong>理由</strong>:
+<ul>
+<li>カテゴリカル変数を自動で処理（Target Statistics）</li>
+<li>One-Hot Encodingが不要（100カテゴリ×5 = 500次元の爆発を回避）</li>
+<li>Ordered Boostingでターゲットリーク防止</li>
+<li>高カーディナリティに最適化された設計</li>
+</ul></li>
+<li><strong>他の選択肢の問題点</strong>:
+<ul>
+<li>XGBoost: Label Encodingでは順序情報が無意味、One-Hotは次元爆発</li>
+<li>LightGBM: 同上</li>
+</ul></li>
+</ul>
+
+<p><strong>3. 小規模データ（10,000行）で精度を最大化したい</strong></p>
+<ul>
+<li><strong>推奨</strong>: CatBoost</li>
+<li><strong>理由</strong>:
+<ul>
+<li>Ordered Boostingで過学習を防ぎ、汎化性能が高い</li>
+<li>小規模データでの精度に定評</li>
+<li>デフォルトパラメータが優秀（チューニング時間削減）</li>
+<li>対称木で安定した学習</li>
+<li>速度は問題にならない（データが小さい）</li>
+</ul></li>
+<li><strong>代替</strong>: XGBoost（バランスが良く安定）</li>
+<li><strong>LightGBMの問題</strong>: Leaf-wiseで小規模データでは過学習しやすい</li>
+</ul>
+
+<p><strong>まとめ表</strong>：</p>
+
+<table>
+<thead>
+<tr>
+<th>状況</th>
+<th>第1選択</th>
+<th>第2選択</th>
+<th>キーファクター</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>大規模データ</td>
+<td>LightGBM</td>
+<td>XGBoost (GPU)</td>
+<td>速度、メモリ</td>
+</tr>
+<tr>
+<td>高カーディナリティ</td>
+<td>CatBoost</td>
+<td>-</td>
+<td>自動カテゴリ処理</td>
+</tr>
+<tr>
+<td>小規模・高精度</td>
+<td>CatBoost</td>
+<td>XGBoost</td>
+<td>過学習耐性</td>
+</tr>
+</tbody>
+</table>
+
+</details>
+
+<hr>
+
+<h2>参考文献</h2>
+
+<ol>
+<li>Ke, G., et al. (2017). "LightGBM: A Highly Efficient Gradient Boosting Decision Tree." <em>Advances in Neural Information Processing Systems</em> 30.</li>
+<li>Prokhorenkova, L., et al. (2018). "CatBoost: unbiased boosting with categorical features." <em>Advances in Neural Information Processing Systems</em> 31.</li>
+<li>Chen, T., & Guestrin, C. (2016). "XGBoost: A Scalable Tree Boosting System." <em>Proceedings of the 22nd ACM SIGKDD</em>.</li>
+<li>Microsoft LightGBM Documentation: <a href="https://lightgbm.readthedocs.io/">https://lightgbm.readthedocs.io/</a></li>
+<li>Yandex CatBoost Documentation: <a href="https://catboost.ai/docs/">https://catboost.ai/docs/</a></li>
+</ol>
+
+<div class="navigation">
+    <a href="index.html" class="nav-button">← シリーズ目次</a>
+    <a href="chapter4-advanced-techniques.html" class="nav-button">次の章: 高度なアンサンブル技法 →</a>
+</div>
+
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-21</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>
