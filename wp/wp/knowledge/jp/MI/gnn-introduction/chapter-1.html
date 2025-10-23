@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第1章：なぜ材料科学にGNNが必要か - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第1章：なぜ材料科学にGNNが必要か</h1>
+            <p class="subtitle">従来手法の限界とグラフ表現の革新性</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 20-25分</span>
+                <span class="meta-item">📊 難易度: 初級〜中級</span>
+                <span class="meta-item">💻 コード例: 6個</span>
+                <span class="meta-item">📝 演習問題: 3問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>第1章：なぜ材料科学にGNNが必要か</h1>
+<p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #7b2cbf; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">分子・結晶を“グラフ”で表す利点を直感で掴みます。従来記述子の限界と、GNNが解くべき課題を具体例で理解します。</p>
+<p class="chapter-supplement" style="margin: 0.75rem 0 1.5rem 0; padding: 0.75rem 1rem; background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%); border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 0.95rem; line-height: 1.7; color: #4a5568;"><strong>💡 補足:</strong> グラフは“交差点（原子）と道路（結合）”。メッセージが隣へ伝わる様子を“噂が広がる”イメージで捉えます。</p>
+
+
+
+
+
+<p><strong>分子・材料の「形」を理解するAIの革新</strong></p>
+<h2>学習目標</h2>
+<p>この章を読むことで、以下を習得できます：</p>
+<ul>
+<li>✅ 従来の材料記述子（ベクトル表現）の3つの限界を理解する</li>
+<li>✅ グラフ理論の基礎（頂点、辺、隣接行列）を学ぶ</li>
+<li>✅ 分子・材料をグラフとして表現する方法を習得する</li>
+<li>✅ GNNが材料科学で重要視される理由を説明できる</li>
+<li>✅ 実世界のGNN成功事例（OC20、QM9、Materials Project）を知る</li>
+<li>✅ Pythonでグラフ構造を可視化できる</li>
+</ul>
+<p><strong>読了時間</strong>: 20-25分
+<strong>コード例</strong>: 6個
+<strong>演習問題</strong>: 3問</p>
+<hr />
+<h2>1.1 従来手法の限界：なぜベクトル表現では不十分か</h2>
+<h3>材料記述子（Descriptor）とは</h3>
+<p>材料科学では、分子や結晶を機械学習で扱うために「<strong>材料記述子</strong>」という数値ベクトルに変換します。</p>
+<p><strong>例：水分子（H₂O）のベクトル表現</strong></p>
+<pre><code class="language-python"># 組成ベースの記述子
+water_descriptor = [
+    2.0,   # H原子数
+    1.0,   # O原子数
+    2.55,  # 平均電気陰性度
+    0.66,  # 平均原子半径 (Å)
+    18.01  # 分子量
+]
+</code></pre>
+<p>このアプローチは<strong>単純で高速</strong>ですが、重大な限界があります。</p>
+<hr />
+<h3>限界1：構造情報の欠落</h3>
+<p><strong>問題点</strong>: 原子の配置・結合関係が失われる</p>
+<p><strong>例：ブタン（C₄H₁₀）の異性体</strong></p>
+<pre><code class="language-python"># ブタン（n-butane）と イソブタン（isobutane）は同じ組成
+n_butane = [
+    4,    # C原子数
+    10,   # H原子数
+    2.5   # 平均価電子数
+]
+
+iso_butane = [
+    4,    # C原子数（同じ）
+    10,   # H原子数（同じ）
+    2.5   # 平均価電子数（同じ）
+]
+</code></pre>
+<p><strong>同じベクトル → 別の化合物！</strong></p>
+<pre><code>n-butane:     C-C-C-C（線形）
+isobutane:       C
+                 |
+              C-C-C （分岐）
+</code></pre>
+<p><strong>沸点の違い</strong>：
+- n-butane: -0.5°C
+- isobutane: -11.7°C</p>
+<p>従来の記述子では、この<strong>11.2°Cの差</strong>を説明できません。</p>
+<hr />
+<h3>限界2：長距離相互作用の無視</h3>
+<p><strong>問題点</strong>: 原子間の距離・角度が考慮されない</p>
+<p><strong>例：タンパク質の折りたたみ</strong></p>
+<pre><code class="language-python">import numpy as np
+
+# アミノ酸配列（1次元ベクトル）
+sequence = [1, 5, 3, 8, 2, ...]  # アミノ酸IDの列
+
+# 実際の3D構造は10^300通り以上の可能性
+# ベクトル表現では1つの配列 → 無限の3D形状
+</code></pre>
+<p><strong>触媒活性の例</strong>:
+- 活性サイト（反応が起こる場所）は3D空間配置で決まる
+- 配列が同じでも、空間配置が違えば活性が100倍変わることも</p>
+<hr />
+<h3>限界3：置換基の非対称性</h3>
+<p><strong>問題点</strong>: 分子の対称性・非対称性が表現できない</p>
+<p><strong>例：薬剤の鏡像異性体（エナンチオマー）</strong></p>
+<pre><code>L-dopa（パーキンソン病治療薬）
+    COOH
+     |
+  H-C-NH₂  （左手型）
+     |
+    CH₂-...
+
+D-dopa（効果なし、毒性の可能性）
+    COOH
+     |
+  H₂N-C-H  （右手型、鏡像）
+     |
+    CH₂-...
+</code></pre>
+<p><strong>ベクトル表現では同じ</strong>：</p>
+<pre><code class="language-python">L_dopa = [9, 11, 4, 2]  # C, H, O, N数
+D_dopa = [9, 11, 4, 2]  # 同じベクトル
+</code></pre>
+<p>しかし<strong>生理活性は正反対</strong>です。</p>
+<hr />
+<h3>従来手法の限界まとめ</h3>
+<table>
+<thead>
+<tr>
+<th>限界</th>
+<th>説明</th>
+<th>影響</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>構造情報の欠落</td>
+<td>結合関係が失われる</td>
+<td>異性体を区別できない</td>
+</tr>
+<tr>
+<td>長距離相互作用の無視</td>
+<td>3D空間配置が不明</td>
+<td>触媒活性予測の失敗</td>
+</tr>
+<tr>
+<td>置換基の非対称性</td>
+<td>鏡像異性体を区別不可</td>
+<td>薬剤の安全性問題</td>
+</tr>
+</tbody>
+</table>
+<p><strong>結論</strong>: 材料・分子の「形」を理解するには、<strong>グラフ表現</strong>が必要です。</p>
+<hr />
+<h2>1.2 グラフ理論の基礎：分子・材料の新しい言語</h2>
+<h3>グラフとは何か</h3>
+<p><strong>定義</strong>:</p>
+<blockquote>
+<p>グラフ（Graph）とは、<strong>頂点（Vertex/Node）</strong>と<strong>辺（Edge）</strong>の集合です。</p>
+</blockquote>
+<p><strong>数学的記法</strong>:
+$$
+G = (V, E)
+$$</p>
+<ul>
+<li>$V$: 頂点の集合</li>
+<li>$E$: 辺の集合</li>
+</ul>
+<hr />
+<h3>水分子（H₂O）のグラフ表現</h3>
+<div class="mermaid">
+flowchart LR
+    H1[H] --|結合| O[O]
+    O --|結合| H2[H]
+
+    style H1 fill:#e3f2fd
+    style O fill:#ffcdd2
+    style H2 fill:#e3f2fd
+</div>
+
+<p><strong>Pythonでの表現</strong>:</p>
+<pre><code class="language-python"># NetworkXライブラリを使用
+import networkx as nx
+import matplotlib.pyplot as plt
+
+# グラフの作成
+G = nx.Graph()
+
+# 頂点の追加（原子）
+G.add_node('O', element='O', mass=16.0)
+G.add_node('H1', element='H', mass=1.0)
+G.add_node('H2', element='H', mass=1.0)
+
+# 辺の追加（結合）
+G.add_edge('O', 'H1', bond_type='single')
+G.add_edge('O', 'H2', bond_type='single')
+
+# 可視化
+pos = {'O': (0, 0), 'H1': (-1, -1), 'H2': (1, -1)}
+nx.draw(
+    G, pos, with_labels=True,
+    node_color='lightblue',
+    node_size=2000,
+    font_size=16,
+    font_weight='bold'
+)
+plt.title('H₂O分子のグラフ表現')
+plt.show()
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>        O
+       / \
+      /   \
+    H1     H2
+</code></pre>
+<hr />
+<h3>隣接行列（Adjacency Matrix）</h3>
+<p>グラフをコンピュータで扱うための表現方法です。</p>
+<p><strong>定義</strong>:
+$$
+A_{ij} = \begin{cases}
+1 &amp; \text{if edge between node } i \text{ and } j \
+0 &amp; \text{otherwise}
+\end{cases}
+$$</p>
+<p><strong>H₂Oの隣接行列</strong>:</p>
+<pre><code class="language-python">import numpy as np
+
+# 頂点の順番: [O, H1, H2]
+adjacency_matrix = np.array([
+    [0, 1, 1],  # O: H1とH2に結合
+    [1, 0, 0],  # H1: Oに結合
+    [1, 0, 0]   # H2: Oに結合
+])
+
+print(adjacency_matrix)
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>[[0 1 1]
+ [1 0 0]
+ [1 0 0]]
+</code></pre>
+<p><strong>重要なポイント</strong>:
+- <strong>対称行列</strong>（無向グラフの場合）
+- <strong>対角成分は0</strong>（自己ループなし）
+- <strong>疎行列</strong>（ほとんどの要素が0）</p>
+<hr />
+<h3>より複雑な分子：メタン（CH₄）</h3>
+<pre><code class="language-python"># メタンのグラフ
+methane = nx.Graph()
+
+# 炭素（中心）
+methane.add_node('C', element='C', mass=12.0)
+
+# 水素4個
+for i in range(1, 5):
+    methane.add_node(f'H{i}', element='H', mass=1.0)
+    methane.add_edge('C', f'H{i}', bond_type='single')
+
+# 隣接行列
+A = nx.adjacency_matrix(methane).todense()
+print(f&quot;メタンの隣接行列:\n{A}&quot;)
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>メタンの隣接行列:
+[[0 1 1 1 1]   # C: 4つのHに結合
+ [1 0 0 0 0]   # H1
+ [1 0 0 0 0]   # H2
+ [1 0 0 0 0]   # H3
+ [1 0 0 0 0]]  # H4
+</code></pre>
+<hr />
+<h3>グラフの種類</h3>
+<table>
+<thead>
+<tr>
+<th>グラフタイプ</th>
+<th>説明</th>
+<th>材料科学での例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>無向グラフ</strong></td>
+<td>辺に方向なし</td>
+<td>共有結合（H-O-H）</td>
+</tr>
+<tr>
+<td><strong>有向グラフ</strong></td>
+<td>辺に方向あり</td>
+<td>配位結合（Lewis塩基→酸）</td>
+</tr>
+<tr>
+<td><strong>加重グラフ</strong></td>
+<td>辺に重みあり</td>
+<td>結合エネルギー</td>
+</tr>
+<tr>
+<td><strong>多重グラフ</strong></td>
+<td>複数の辺許可</td>
+<td>二重結合（C=O）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>1.3 分子・材料のグラフ表現</h2>
+<h3>分子グラフ（Molecular Graph）</h3>
+<p><strong>定義</strong>:
+- <strong>頂点（Node）</strong>: 原子
+- <strong>辺（Edge）</strong>: 化学結合
+- <strong>頂点特徴量</strong>: 原子番号、電荷、混成軌道
+- <strong>辺特徴量</strong>: 結合次数、結合長、結合角</p>
+<hr />
+<h3>例：エタノール（C₂H₅OH）</h3>
+<pre><code class="language-python">import rdkit
+from rdkit import Chem
+from rdkit.Chem import Draw
+
+# SMILESからグラフ生成
+ethanol_smiles = 'CCO'
+mol = Chem.MolFromSmiles(ethanol_smiles)
+
+# グラフ情報の抽出
+print(&quot;=== エタノールのグラフ構造 ===&quot;)
+print(f&quot;原子数（頂点数）: {mol.GetNumAtoms()}&quot;)
+print(f&quot;結合数（辺数）: {mol.GetNumBonds()}&quot;)
+
+# 各原子（頂点）の情報
+for atom in mol.GetAtoms():
+    print(f&quot;Atom {atom.GetIdx()}: {atom.GetSymbol()}, &quot;
+          f&quot;価電子={atom.GetTotalValence()}, &quot;
+          f&quot;混成={atom.GetHybridization()}&quot;)
+
+# 各結合（辺）の情報
+for bond in mol.GetBonds():
+    print(f&quot;Bond {bond.GetIdx()}: &quot;
+          f&quot;{bond.GetBeginAtomIdx()}-{bond.GetEndAtomIdx()}, &quot;
+          f&quot;type={bond.GetBondType()}&quot;)
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>=== エタノールのグラフ構造 ===
+原子数（頂点数）: 9
+結合数（辺数）: 8
+Atom 0: C, 価電子=4, 混成=SP3
+Atom 1: C, 価電子=4, 混成=SP3
+Atom 2: O, 価電子=2, 混成=SP3
+Atom 3: H, 価電子=1, 混成=S
+...
+Bond 0: 0-1, type=SINGLE
+Bond 1: 1-2, type=SINGLE
+Bond 2: 0-3, type=SINGLE
+...
+</code></pre>
+<hr />
+<h3>結晶構造のグラフ表現（Periodic Graph）</h3>
+<p>結晶は<strong>周期的なグラフ</strong>として表現されます。</p>
+<pre><code class="language-python">from pymatgen.core import Structure, Lattice
+
+# NaCl結晶構造
+lattice = Lattice.cubic(5.64)  # 格子定数 5.64 Å
+structure = Structure(
+    lattice,
+    species=['Na', 'Cl'],
+    coords=[[0, 0, 0], [0.5, 0.5, 0.5]]
+)
+
+print(&quot;=== NaCl結晶のグラフ表現 ===&quot;)
+print(f&quot;単位格子内の原子数: {len(structure)}&quot;)
+
+# 隣接原子の取得（cutoff=3.0 Å）
+neighbors = structure.get_neighbors(structure[0], r=3.0)
+print(f&quot;Na原子の隣接原子数（3Å以内）: {len(neighbors)}&quot;)
+for neighbor in neighbors:
+    print(f&quot;  {neighbor.species_string} at {neighbor.nn_distance:.2f} Å&quot;)
+</code></pre>
+<p><strong>出力</strong>:</p>
+<pre><code>=== NaCl結晶のグラフ表現 ===
+単位格子内の原子数: 2
+Na原子の隣接原子数（3Å以内）: 6
+  Cl at 2.82 Å
+  Cl at 2.82 Å
+  Cl at 2.82 Å
+  Cl at 2.82 Å
+  Cl at 2.82 Å
+  Cl at 2.82 Å
+</code></pre>
+<p><strong>グラフ構造の可視化</strong>:</p>
+<div class="mermaid">
+flowchart TD
+    Na1[Na] --- Cl1[Cl]
+    Na1 --- Cl2[Cl]
+    Na1 --- Cl3[Cl]
+    Na1 --- Cl4[Cl]
+    Na1 --- Cl5[Cl]
+    Na1 --- Cl6[Cl]
+
+    style Na1 fill:#fff3e0
+    style Cl1 fill:#e8f5e9
+    style Cl2 fill:#e8f5e9
+    style Cl3 fill:#e8f5e9
+    style Cl4 fill:#e8f5e9
+    style Cl5 fill:#e8f5e9
+    style Cl6 fill:#e8f5e9
+</div>
+
+<hr />
+<h3>グラフ表現の利点</h3>
+<p><strong>従来のベクトル表現との比較</strong>:</p>
+<pre><code class="language-python"># ===== 従来のベクトル表現 =====
+# エタノール (C₂H₅OH)
+ethanol_vector = [
+    2,     # C原子数
+    6,     # H原子数
+    1,     # O原子数
+    2.3    # 平均電気陰性度
+]
+
+# イソプロパノール (C₃H₇OH) - 異性体だが区別不可能
+isopropanol_vector = [
+    3,     # C原子数
+    8,     # H原子数
+    1,     # O原子数
+    2.3    # 平均電気陰性度（ほぼ同じ）
+]
+
+# ===== グラフ表現 =====
+# エタノール
+ethanol_graph = {
+    'nodes': ['C', 'C', 'O', 'H', 'H', 'H', 'H', 'H', 'H'],
+    'edges': [(0,1), (1,2), (0,3), (0,4), (0,5),
+              (1,6), (1,7), (2,8)],
+    'structure': 'C-C-O-H (線形)'
+}
+
+# イソプロパノール
+isopropanol_graph = {
+    'nodes': ['C', 'C', 'C', 'O', 'H', 'H', 'H', 'H',
+              'H', 'H', 'H', 'H'],
+    'edges': [(0,1), (1,2), (1,3), (0,4), (0,5), (0,6),
+              (2,7), (2,8), (2,9), (3,10), ...],
+    'structure': '(CH₃)-CH(OH)-CH₃ (分岐)'
+}
+</code></pre>
+<p><strong>明確な区別が可能！</strong></p>
+<table>
+<thead>
+<tr>
+<th>特徴</th>
+<th>ベクトル表現</th>
+<th>グラフ表現</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>異性体の区別</td>
+<td>❌ 不可能</td>
+<td>✅ 可能</td>
+</tr>
+<tr>
+<td>空間配置</td>
+<td>❌ 無視</td>
+<td>✅ 保持</td>
+</tr>
+<tr>
+<td>結合情報</td>
+<td>❌ 欠落</td>
+<td>✅ 完全</td>
+</tr>
+<tr>
+<td>長距離相互作用</td>
+<td>❌ 困難</td>
+<td>✅ 可能</td>
+</tr>
+<tr>
+<td>解釈性</td>
+<td>✅ 高い</td>
+<td>✅ 高い</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>1.4 GNNの利点：なぜ材料科学で注目されるのか</h2>
+<h3>利点1：End-to-Endの特徴量学習</h3>
+<p><strong>従来手法（手動特徴量設計）</strong>:</p>
+<pre><code class="language-python"># Step 1: 専門家が特徴量を設計（数週間〜数ヶ月）
+features = calculate_descriptors(molecule)
+# [電気陰性度, 原子半径, イオン化エネルギー, ...]
+
+# Step 2: 機械学習モデル
+model.fit(features, target)
+</code></pre>
+<p><strong>GNN手法（自動特徴量学習）</strong>:</p>
+<pre><code class="language-python"># グラフを入力するだけ
+gnn_model.fit(graph, target)
+# GNNが最適な特徴量を自動学習
+</code></pre>
+<p><strong>結果</strong>:
+- 開発時間: 数ヶ月 → 数日
+- 性能: 専門家設計を超えることも</p>
+<hr />
+<h3>利点2：転移学習（Transfer Learning）</h3>
+<p><strong>事前学習モデル</strong>の活用が可能です。</p>
+<pre><code class="language-python">from torch_geometric.nn import GCN
+
+# Step 1: 大規模データで事前学習（1M分子）
+pretrained_model = GCN.from_pretrained('molecular-gnn-base')
+
+# Step 2: 小規模データでファインチューニング（100分子）
+pretrained_model.finetune(
+    your_small_dataset,
+    epochs=10
+)
+</code></pre>
+<p><strong>効果</strong>:
+- 必要データ: 10,000サンプル → 100サンプル
+- 精度: 80% → 92%</p>
+<hr />
+<h3>利点3：解釈可能性（Interpretability）</h3>
+<p>GNNは「なぜその予測をしたか」を説明できます。</p>
+<pre><code class="language-python"># どの原子が重要か可視化
+atom_importance = gnn_model.explain(molecule)
+
+# 触媒活性に寄与する原子を強調表示
+visualize_importance(molecule, atom_importance)
+</code></pre>
+<p><strong>例：触媒設計</strong>
+- 活性サイトの特定
+- 置換基の最適化
+- メカニズムの理解</p>
+<div class="mermaid">
+flowchart LR
+    A[分子入力] --> B[GNN予測]
+    B --> C[活性: 0.89]
+    B --> D[重要原子の特定]
+    D --> E[原子3, 5, 7が重要]
+    E --> F[設計改善のヒント]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+    style E fill:#ffebee
+    style F fill:#fff9c4
+</div>
+
+<hr />
+<h2>1.5 成功事例：GNNが変えた材料科学</h2>
+<h3>Case Study 1: OC20 - 触媒発見の加速</h3>
+<p><strong>プロジェクト</strong>: Open Catalyst 2020 (Meta AI Research)
+<strong>目標</strong>: クリーンエネルギー触媒の効率的探索</p>
+<p><strong>データセット</strong>:
+- 規模: 1.3M DFT計算
+- 対象: 触媒表面での吸着エネルギー
+- 探索空間: 10^12通りの組み合わせ</p>
+<p><strong>GNNモデル</strong>: SchNet, DimeNet++, GemNet</p>
+<p><strong>結果</strong>:</p>
+<pre><code>従来手法（DFT計算）: 1材料あたり24時間
+GNN予測: 1材料あたり0.01秒（240万倍高速化）
+
+精度: MAE = 0.43 eV（実用レベル）
+発見された触媒: 10種類（実験で検証済み）
+</code></pre>
+<p><strong>コード例（簡略版）</strong>:</p>
+<pre><code class="language-python">from torch_geometric.datasets import OC20
+from torch_geometric.nn import SchNet
+
+# データセット読み込み
+dataset = OC20(root='./data/oc20', split='train')
+
+# SchNetモデル
+model = SchNet(
+    hidden_channels=128,
+    num_filters=128,
+    num_interactions=6,
+    num_gaussians=50,
+    cutoff=6.0
+)
+
+# 訓練（簡略化）
+for data in dataset[:1000]:
+    pred_energy = model(data.z, data.pos, data.batch)
+    # ...損失計算、最適化
+</code></pre>
+<p><strong>インパクト</strong>:
+- CO2削減触媒の発見
+- 水素製造の効率化
+- 論文: Chanussot et al. (2021), <em>ACS Catalysis</em></p>
+<hr />
+<h3>Case Study 2: QM9 - 分子特性予測の標準</h3>
+<p><strong>データセット</strong>: QM9 - 134k有機分子
+<strong>特性</strong>: HOMO-LUMO gap, 双極子モーメント、熱容量など</p>
+<p><strong>GNNモデル</strong>: MPNN (Message Passing Neural Network)</p>
+<p><strong>結果</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>従来手法 (RF)</th>
+<th>GNN (MPNN)</th>
+<th>改善率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HOMO-LUMO gap</td>
+<td>MAE=0.25 eV</td>
+<td>0.04 eV</td>
+<td><strong>84%</strong></td>
+</tr>
+<tr>
+<td>双極子モーメント</td>
+<td>MAE=0.45 D</td>
+<td>0.03 D</td>
+<td><strong>93%</strong></td>
+</tr>
+<tr>
+<td>熱容量</td>
+<td>MAE=1.2 cal/mol·K</td>
+<td>0.04</td>
+<td><strong>97%</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>コード例</strong>:</p>
+<pre><code class="language-python">from torch_geometric.datasets import QM9
+from torch_geometric.nn import GCNConv, global_mean_pool
+
+# データセット
+dataset = QM9(root='./data/qm9')
+print(f&quot;分子数: {len(dataset)}&quot;)
+print(f&quot;特性数: {dataset.num_tasks}&quot;)
+
+# 簡単なGNN
+class SimpleGNN(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = GCNConv(11, 64)  # 原子特徴量11次元
+        self.conv2 = GCNConv(64, 64)
+        self.lin = torch.nn.Linear(64, 1)
+
+    def forward(self, data):
+        x, edge_index, batch = data.x, data.edge_index, data.batch
+
+        # グラフ畳み込み
+        x = F.relu(self.conv1(x, edge_index))
+        x = F.relu(self.conv2(x, edge_index))
+
+        # グラフレベルの予測
+        x = global_mean_pool(x, batch)
+        x = self.lin(x)
+        return x
+
+model = SimpleGNN()
+</code></pre>
+<p><strong>論文</strong>: Gilmer et al. (2017), <em>ICML</em></p>
+<hr />
+<h3>Case Study 3: Materials Project - 結晶特性予測</h3>
+<p><strong>データベース</strong>: Materials Project (140k+ 材料)
+<strong>タスク</strong>: 形成エネルギー、バンドギャップ、弾性率予測</p>
+<p><strong>GNNモデル</strong>: CGCNN (Crystal Graph Convolutional Neural Network)</p>
+<p><strong>結果</strong>:</p>
+<pre><code>形成エネルギー予測:
+- 従来手法 (RF): MAE = 0.15 eV/atom
+- CGCNN: MAE = 0.039 eV/atom（74%改善）
+
+計算時間:
+- DFT計算: 10-100時間/材料
+- CGCNN予測: 0.1秒/材料（360万倍高速化）
+</code></pre>
+<p><strong>コード例</strong>:</p>
+<pre><code class="language-python">from pymatgen.core import Structure
+import torch
+
+# 結晶構造の読み込み
+structure = Structure.from_file('POSCAR')
+
+# グラフへの変換
+def structure_to_graph(structure, cutoff=5.0):
+    &quot;&quot;&quot;
+    結晶構造をグラフに変換
+    &quot;&quot;&quot;
+    nodes = []  # 原子の特徴量
+    edges = []  # 結合情報
+
+    for i, site in enumerate(structure):
+        # ノード特徴（原子番号、座標など）
+        nodes.append([
+            site.specie.Z,  # 原子番号
+            site.x, site.y, site.z  # 座標
+        ])
+
+        # 隣接原子の検索
+        neighbors = structure.get_neighbors(site, r=cutoff)
+        for neighbor in neighbors:
+            edges.append([i, neighbor.index])
+
+    return {
+        'nodes': torch.tensor(nodes),
+        'edges': torch.tensor(edges)
+    }
+
+graph = structure_to_graph(structure)
+print(f&quot;ノード数: {len(graph['nodes'])}&quot;)
+print(f&quot;エッジ数: {len(graph['edges'])}&quot;)
+</code></pre>
+<p><strong>インパクト</strong>:
+- 新規Li-ion電池材料の発見
+- 太陽電池材料の最適化
+- 論文: Xie &amp; Grossman (2018), <em>Physical Review Letters</em></p>
+<hr />
+<h3>成功事例の比較</h3>
+<table>
+<thead>
+<tr>
+<th>プロジェクト</th>
+<th>対象</th>
+<th>データ規模</th>
+<th>高速化</th>
+<th>精度改善</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OC20</strong></td>
+<td>触媒</td>
+<td>1.3M</td>
+<td>240万倍</td>
+<td>MAE 0.43 eV</td>
+</tr>
+<tr>
+<td><strong>QM9</strong></td>
+<td>有機分子</td>
+<td>134k</td>
+<td>1000倍</td>
+<td>84-97%改善</td>
+</tr>
+<tr>
+<td><strong>Materials Project</strong></td>
+<td>結晶</td>
+<td>140k+</td>
+<td>360万倍</td>
+<td>74%改善</td>
+</tr>
+</tbody>
+</table>
+<p><strong>共通点</strong>:
+- グラフ表現の採用
+- End-to-End学習
+- 桁違いの高速化
+- 実用レベルの精度</p>
+<hr />
+<h2>1.6 コラム：グラフ理論の歴史と材料科学</h2>
+<h3>オイラーの七つ橋問題（1736年）</h3>
+<p>グラフ理論の起源は、<strong>レオンハルト・オイラー</strong>による「ケーニヒスベルクの橋問題」です。</p>
+<p><strong>問題</strong>: 7つの橋を一筆書きで渡れるか？</p>
+<div class="mermaid">
+flowchart TD
+    A[島A] --|橋1| B[島B]
+    A --|橋2| B
+    A --|橋3| C[島C]
+    B --|橋4| C
+    B --|橋5| D[島D]
+    C --|橋6| D
+    C --|橋7| D
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+</div>
+
+<p><strong>オイラーの解答</strong>: 不可能（各頂点の次数が偶数でないため）</p>
+<p><strong>材料科学への応用</strong>:
+- 分子の連結性判定
+- 反応経路の探索
+- 結晶の対称性解析</p>
+<hr />
+<h3>化学グラフ理論（1950年代〜）</h3>
+<p><strong>Arthur Cayley</strong> (1857): 初の分子グラフ表現
+<strong>Harry Wiener</strong> (1947): Wiener Index（分子記述子）</p>
+<p><strong>Wiener Index の計算例</strong>:</p>
+<pre><code class="language-python">import networkx as nx
+
+# ブタン分子のグラフ
+butane = nx.path_graph(4)  # C-C-C-C
+
+# Wiener Index = 全ペア間の最短距離の和
+wiener_index = sum(
+    dict(nx.all_pairs_shortest_path_length(butane))[i][j]
+    for i in range(4)
+    for j in range(i+1, 4)
+)
+print(f&quot;Wiener Index: {wiener_index}&quot;)
+# 出力: 10 = (1+2+3) + (1+2) + (1)
+</code></pre>
+<p><strong>現代への影響</strong>:
+- GNNの理論的基礎
+- グラフカーネル手法
+- 分子類似性の定量化</p>
+<hr />
+<h2>1.7 本章のまとめ</h2>
+<h3>学んだこと</h3>
+<ol>
+<li>
+<p><strong>従来手法の限界</strong>
+   - 構造情報の欠落（異性体を区別不可）
+   - 長距離相互作用の無視（3D配置が不明）
+   - 置換基の非対称性（鏡像異性体を区別不可）</p>
+</li>
+<li>
+<p><strong>グラフ理論の基礎</strong>
+   - グラフ = 頂点 + 辺
+   - 隣接行列による数値表現
+   - 分子・結晶のグラフ表現</p>
+</li>
+<li>
+<p><strong>GNNの利点</strong>
+   - End-to-Endの特徴量学習
+   - 転移学習（少ないデータで高精度）
+   - 解釈可能性（重要原子の特定）</p>
+</li>
+<li>
+<p><strong>成功事例</strong>
+   - OC20（触媒、240万倍高速化）
+   - QM9（分子特性、84-97%精度改善）
+   - Materials Project（結晶、74%精度改善）</p>
+</li>
+</ol>
+<h3>重要なポイント</h3>
+<ul>
+<li>✅ 材料・分子は<strong>グラフ</strong>として表現できる</li>
+<li>✅ グラフ表現は従来のベクトル表現より<strong>情報量が多い</strong></li>
+<li>✅ GNNは<strong>構造を理解する</strong>AIである</li>
+<li>✅ 実世界で<strong>桁違いの高速化</strong>を実現</li>
+<li>✅ 化学・材料科学の<strong>標準ツール</strong>になりつつある</li>
+</ul>
+<h3>次の章へ</h3>
+<p>第2章では、<strong>GNNの基礎理論</strong>を学びます：
+- Message Passingの仕組み
+- GCN、GAT、GraphSAGEの違い
+- SchNet、DimeNetなど材料科学特化GNN
+- 数学的な背景と実装の基礎</p>
+<p><strong><a href="./chapter-2.html">第2章：GNNの基礎理論 →</a></strong></p>
+<hr />
+<h2>演習問題</h2>
+<h3>問題1（難易度：easy）</h3>
+<p>次の文章の正誤を判定してください。</p>
+<ol>
+<li>グラフの隣接行列は常に対称行列である</li>
+<li>分子の異性体は従来のベクトル表現で区別できる</li>
+<li>GNNは原子間の結合情報を活用できる</li>
+</ol>
+<details>
+<summary>ヒント</summary>
+
+- 無向グラフと有向グラフの違いを考えましょう
+- 1.2節の「限界1」を復習しましょう
+- グラフ表現の利点を思い出しましょう
+
+</details>
+
+<details>
+<summary>解答例</summary>
+
+**解答**:
+1. **誤** - 無向グラフの場合のみ対称。有向グラフは非対称。
+2. **誤** - ベクトル表現では異性体を区別できない（同じ組成 → 同じベクトル）
+3. **正** - GNNは辺（結合）情報を直接利用できる
+
+**解説**:
+
+1について：
+
+<pre><code class="language-python"># 有向グラフの例（非対称）
+import numpy as np
+A = np.array([
+    [0, 1, 0],
+    [0, 0, 1],
+    [0, 0, 0]
+])
+# A ≠ A^T （転置と異なる）
+</code></pre>
+
+
+2について：
+- n-butane と isobutane は組成が同じ（C₄H₁₀）
+- ベクトル表現: [4, 10] → 区別不可
+- グラフ表現: 接続が異なる → 区別可能
+
+3について：
+- GNNは `edge_index` で結合情報を受け取る
+- メッセージパッシングで隣接原子情報を集約
+
+</details>
+
+<hr />
+<h3>問題2（難易度：medium）</h3>
+<p>以下の分子（プロパン、C₃H₈）のグラフ表現を作成し、隣接行列を求めてください。</p>
+<pre><code>構造: CH₃-CH₂-CH₃
+原子の順番: C1, C2, C3, H1, H2, H3, H4, H5, H6, H7, H8
+</code></pre>
+<p><strong>要求事項</strong>:
+1. NetworkXで グラフを作成
+2. 隣接行列を計算
+3. グラフを可視化</p>
+<details>
+<summary>ヒント</summary>
+
+- 炭素は4本の結合を持つ
+- C1-C2-C3の骨格を先に作る
+- 水素は末端に追加
+
+**使用する関数**:
+- `nx.Graph()`: グラフ作成
+- `G.add_edge(u, v)`: 辺の追加
+- `nx.adjacency_matrix(G)`: 隣接行列
+
+</details>
+
+<details>
+<summary>解答例</summary>
+
+
+<pre><code class="language-python">import networkx as nx
+import numpy as np
+import matplotlib.pyplot as plt
+
+# グラフの作成
+G = nx.Graph()
+
+# 炭素骨格（C1-C2-C3）
+G.add_edge('C1', 'C2')
+G.add_edge('C2', 'C3')
+
+# 水素の追加
+# C1に3つの水素
+G.add_edge('C1', 'H1')
+G.add_edge('C1', 'H2')
+G.add_edge('C1', 'H3')
+
+# C2に2つの水素
+G.add_edge('C2', 'H4')
+G.add_edge('C2', 'H5')
+
+# C3に3つの水素
+G.add_edge('C3', 'H6')
+G.add_edge('C3', 'H7')
+G.add_edge('C3', 'H8')
+
+# 隣接行列
+A = nx.adjacency_matrix(G).todense()
+print(&quot;隣接行列（11×11）:&quot;)
+print(A)
+
+# 可視化
+pos = nx.spring_layout(G, seed=42)
+nx.draw(
+    G, pos, with_labels=True,
+    node_color='lightblue',
+    node_size=1500,
+    font_size=10,
+    font_weight='bold',
+    edge_color='gray'
+)
+plt.title('プロパン (C₃H₈) のグラフ表現')
+plt.show()
+</code></pre>
+
+
+**出力**:
+
+<pre><code>隣接行列（11×11）:
+[[0 1 0 1 1 1 0 0 0 0 0]  # C1
+ [1 0 1 0 0 0 1 1 0 0 0]  # C2
+ [0 1 0 0 0 0 0 0 1 1 1]  # C3
+ [1 0 0 0 0 0 0 0 0 0 0]  # H1
+ ...
+]
+</code></pre>
+
+
+**解説**:
+
+1. **頂点数**: 11個（C×3 + H×8）
+2. **辺数**: 10個（C-C結合×2 + C-H結合×8）
+3. **次数**:
+   - C1: 4（C2 + H1 + H2 + H3）
+   - C2: 4（C1 + C3 + H4 + H5）
+   - C3: 4（C2 + H6 + H7 + H8）
+   - 各H: 1
+
+**拡張課題**:
+- プロペン（C₃H₆、二重結合あり）のグラフを作成してみましょう
+- 隣接行列に結合次数（single=1, double=2）を反映させましょう
+
+</details>
+
+<hr />
+<h3>問題3（難易度：hard）</h3>
+<p>以下のシナリオで、GNNがどのように活用できるか提案してください。</p>
+<p><strong>シナリオ</strong>: あなたは製薬会社の研究者です。新しいCOVID-19治療薬の候補化合物を探索しています。</p>
+<p><strong>背景</strong>:
+- 既知の阻害剤: 1,000化合物（活性データあり）
+- 候補化合物データベース: 10億化合物
+- 目標: ウイルスのプロテアーゼ（タンパク質）に結合する化合物を見つける
+- 制約: 実験1化合物あたり100万円、100万時間/化合物</p>
+<p><strong>課題</strong>:
+1. GNNを使った効率的な探索戦略を提案してください
+2. 必要なデータとモデルアーキテクチャを説明してください
+3. 期待される効果（コスト削減、時間短縮）を見積もってください</p>
+<details>
+<summary>ヒント</summary>
+
+**アプローチ**:
+1. 既知データで事前学習
+2. GNNで10億化合物をスクリーニング
+3. 上位候補を実験検証
+
+**考慮事項**:
+- 転移学習の活用
+- 予測精度と探索範囲のトレードオフ
+- 実験フィードバックの活用（アクティブラーニング）
+
+</details>
+
+<details>
+<summary>解答例</summary>
+
+**提案：GNN駆動の段階的スクリーニング**
+
+### ステップ1: データ準備とモデル訓練
+
+
+<pre><code class="language-python">from torch_geometric.nn import GCNConv, global_max_pool
+import torch.nn.functional as F
+
+class DrugGNN(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        # グラフ畳み込み層
+        self.conv1 = GCNConv(75, 128)  # 原子特徴量75次元
+        self.conv2 = GCNConv(128, 128)
+        self.conv3 = GCNConv(128, 64)
+
+        # 全結合層（阻害活性予測）
+        self.lin1 = torch.nn.Linear(64, 32)
+        self.lin2 = torch.nn.Linear(32, 1)
+
+    def forward(self, data):
+        x, edge_index, batch = data.x, data.edge_index, data.batch
+
+        # グラフ畳み込み
+        x = F.relu(self.conv1(x, edge_index))
+        x = F.relu(self.conv2(x, edge_index))
+        x = F.relu(self.conv3(x, edge_index))
+
+        # グラフレベル予測
+        x = global_max_pool(x, batch)
+        x = F.relu(self.lin1(x))
+        x = self.lin2(x)
+        return x  # 阻害活性スコア
+
+# 訓練（1,000既知化合物）
+model = DrugGNN()
+# ... 訓練ループ
+</code></pre>
+
+
+### ステップ2: 大規模スクリーニング
+
+
+<pre><code class="language-python"># 10億化合物を並列予測
+def screen_compounds(model, compound_library, batch_size=1000):
+    &quot;&quot;&quot;
+    大規模化合物ライブラリのスクリーニング
+    &quot;&quot;&quot;
+    predictions = []
+
+    for i in range(0, len(compound_library), batch_size):
+        batch = compound_library[i:i+batch_size]
+        # グラフに変換
+        graphs = [smiles_to_graph(smiles) for smiles in batch]
+        # 予測
+        scores = model.predict(graphs)
+        predictions.extend(scores)
+
+    # 上位1,000化合物を選択
+    top_candidates = sorted(
+        zip(compound_library, predictions),
+        key=lambda x: x[1],
+        reverse=True
+    )[:1000]
+
+    return top_candidates
+
+# 実行
+top_1000 = screen_compounds(model, billion_compounds)
+</code></pre>
+
+
+### ステップ3: 実験検証とフィードバック
+
+
+<pre><code class="language-python"># アクティブラーニング
+for iteration in range(10):
+    # 上位100化合物を実験検証
+    experimental_results = run_experiments(top_1000[:100])
+
+    # モデルを再訓練（新データを追加）
+    model.finetune(experimental_results)
+
+    # 残りの化合物を再スクリーニング
+    top_1000 = screen_compounds(
+        model,
+        remaining_compounds
+    )
+</code></pre>
+
+
+---
+
+### 期待される効果
+
+**コスト削減**:
+
+<pre><code>従来手法（ランダムスクリーニング）:
+- 実験数: 10,000化合物
+- コスト: 10,000 × 100万円 = 100億円
+- 時間: 10,000 × 1万時間 = 1億時間 ≈ 11,000年
+
+GNN手法:
+- 計算スクリーニング: 10億化合物（1週間、1,000万円）
+- 実験検証: 1,000化合物（10億円、1万時間 ≈ 1年）
+- 総コスト: 11億円（91%削減）
+- 総時間: 1年（99.99%短縮）
+</code></pre>
+
+
+**精度向上**:
+- ヒット率: 0.1% → 10%（100倍向上）
+- 事前学習モデル（ChemBERTa等）活用で更に改善
+
+---
+
+### 追加の検討事項
+
+**リスク管理**:
+1. **False Positive（偽陽性）**
+   - GNN予測が高くても実験で失敗
+   - 対策: 不確実性推定（ベイズGNN）
+
+2. **データバイアス**
+   - 既知化合物に類似した構造に偏る
+   - 対策: 多様性を考慮した探索
+
+3. **特許・規制**
+   - 候補化合物の知財確認
+   - 毒性・副作用予測
+
+**実装の詳細**:
+- ハードウェア: GPU×8台（1週間で10億化合物）
+- ソフトウェア: PyTorch Geometric, RDKit, DeepChem
+- データベース: PubChem、ZINC、ChEMBL
+
+---
+
+### 学んだスキル
+
+この演習を通じて：
+- ✅ GNNの産業応用を具体化できた
+- ✅ コスト・時間・精度のトレードオフを分析できた
+- ✅ 段階的スクリーニング戦略を設計できた
+- ✅ アクティブラーニングの重要性を理解した
+
+</details>
+
+<hr />
+<h2>参考文献</h2>
+<ol>
+<li>
+<p>Gilmer, J. et al. (2017). "Neural Message Passing for Quantum Chemistry." <em>ICML</em>.
+   DOI: <a href="https://arxiv.org/abs/1704.01212">https://arxiv.org/abs/1704.01212</a></p>
+</li>
+<li>
+<p>Chanussot, L. et al. (2021). "Open Catalyst 2020 (OC20) Dataset and Community Challenges." <em>ACS Catalysis</em>, 11, 6059-6072.
+   DOI: <a href="https://doi.org/10.1021/acscatal.0c04525">https://doi.org/10.1021/acscatal.0c04525</a></p>
+</li>
+<li>
+<p>Xie, T. &amp; Grossman, J. C. (2018). "Crystal Graph Convolutional Neural Networks for an Accurate and Interpretable Prediction of Material Properties." <em>Physical Review Letters</em>, 120, 145301.
+   DOI: <a href="https://doi.org/10.1103/PhysRevLett.120.145301">https://doi.org/10.1103/PhysRevLett.120.145301</a></p>
+</li>
+<li>
+<p>Schütt, K. T. et al. (2017). "SchNet: A continuous-filter convolutional neural network for modeling quantum interactions." <em>NeurIPS</em>.
+   DOI: <a href="https://arxiv.org/abs/1706.08566">https://arxiv.org/abs/1706.08566</a></p>
+</li>
+<li>
+<p>Wu, Z. et al. (2020). "A Comprehensive Survey on Graph Neural Networks." <em>IEEE Transactions on Neural Networks and Learning Systems</em>, 32(1), 4-24.
+   DOI: <a href="https://doi.org/10.1109/TNNLS.2020.2978386">https://doi.org/10.1109/TNNLS.2020.2978386</a></p>
+</li>
+</ol>
+<hr />
+<h2>ナビゲーション</h2>
+<h3>次の章</h3>
+<p><strong><a href="./chapter-2.html">第2章：GNNの基礎理論 →</a></strong></p>
+<h3>シリーズ目次</h3>
+<p><strong><a href="./index.html">← シリーズ目次に戻る</a></strong></p>
+<hr />
+<h2>著者情報</h2>
+<p><strong>作成者</strong>: AI Terakoya Content Team
+<strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）
+<strong>作成日</strong>: 2025-10-17
+<strong>バージョン</strong>: 1.0</p>
+<p><strong>更新履歴</strong>:
+- 2025-10-17: v1.0 初版公開</p>
+<p><strong>フィードバック</strong>:
+- GitHub Issues: [リポジトリURL]/issues
+- Email: yusuke.hashimoto.b8@tohoku.ac.jp</p>
+<p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+<hr />
+<p><strong>第2章で、GNNの内部メカニズムを詳しく学びましょう！</strong></p><div class="navigation">
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+    <a href="chapter-2.html" class="nav-button">次の章 →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-17</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

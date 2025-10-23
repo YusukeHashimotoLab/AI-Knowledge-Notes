@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ハイスループット計算入門シリーズ - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>ハイスループット計算入門シリーズ</h1>
+            <p class="subtitle">自動化と並列化で材料探索を加速する</p>
+            <div class="meta">
+                <span class="meta-item">📊 難易度: 中級〜上級</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1>ハイスループット計算入門シリーズ</h1>
+
+<strong>自動化と並列化で材料探索を1000倍加速する完全ガイド</strong>
+
+<h2>シリーズ概要</h2>
+
+<p>このシリーズは、ハイスループット計算材料科学（High-Throughput Computational Materials Science）を学びたい研究者・エンジニア向けの全5章構成の教育コンテンツです。DFT計算の自動化、ワークフロー管理、並列計算、クラウドHPC活用まで、実践的なスキルを段階的に習得できます。</p>
+
+<strong>特徴:</strong>
+<ul>
+<li>✅ <strong>実践重視</strong>: ASE、pymatgen、FireWorks、AiiDAの実装例</li>
+<li>✅ <strong>包括的内容</strong>: 自動化設計から大規模並列計算まで網羅</li>
+<li>✅ <strong>産業応用</strong>: Materials Project、AFLOW等の成功事例</li>
+<li>✅ <strong>再現性</strong>: Docker、環境構築スクリプトで完全再現可能</li>
+</ul>
+
+<strong>総学習時間</strong>: 110-140分（コード実行と演習を含む）
+
+<p>---</p>
+
+<h2>学習の進め方</h2>
+
+<h3>推奨学習順序</h3>
+
+<div class="mermaid">
+flowchart TD
+    A[第1章: HT計算の必要性] --> B[第2章: DFT計算自動化]
+    B --> C[第3章: ジョブスケジューリング]
+    C --> D[第4章: データ管理とワークフロー]
+    D --> E[第5章: クラウドHPC活用]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+    style E fill:#fce4ec
+</div>
+
+<strong>DFT計算経験者（推奨）:</strong>
+<ul>
+<li>第1章 → 第2章 → 第3章 → 第4章 → 第5章</li>
+<li>所要時間: 110-140分</li>
+</ul>
+
+<strong>自動化のみ学びたい方:</strong>
+<ul>
+<li>第2章 → 第4章</li>
+<li>所要時間: 50-60分</li>
+</ul>
+
+<strong>クラウド活用のみ学びたい方:</strong>
+<ul>
+<li>第1章 → 第5章</li>
+<li>所要時間: 35-45分</li>
+</ul>
+
+<p>---</p>
+
+<h2>各章の詳細</h2>
+
+<h3><a href="./chapter-1.html">第1章：ハイスループット計算の必要性とワークフロー設計</a></h3>
+
+<strong>難易度</strong>: 中級
+<strong>読了時間</strong>: 20-30分
+
+<h4>学習内容</h4>
+
+<ol>
+<li><strong>材料探索の課題</strong></li>
+</ol>
+<p>- 探索空間の広大さ: 10^60通りの組み合わせ</p>
+<p>- 従来手法の限界: 1材料/週 → 1000材料/週の必要性</p>
+<p>- Materials Genome Initiative (MGI)の目標</p>
+
+<ol>
+<li><strong>ハイスループット計算の定義</strong></li>
+</ol>
+<p>- 自動化 (Automation)</p>
+<p>- 並列化 (Parallelization)</p>
+<p>- 標準化 (Standardization)</p>
+<p>- データ管理 (Data Management)</p>
+
+<ol>
+<li><strong>成功事例</strong></li>
+</ol>
+<p>- Materials Project: 140,000材料のDFT計算</p>
+<p>- AFLOW: 3,500,000結晶構造の自動解析</p>
+<p>- OQMD: 815,000材料の熱力学データ</p>
+<p>- JARVIS: 40,000材料の多様な特性計算</p>
+
+<ol>
+<li><strong>ワークフロー設計の原則</strong></li>
+</ol>
+<p>- モジュール化 (Modularity)</p>
+<p>- エラー処理 (Error Handling)</p>
+<p>- 再現性 (Reproducibility)</p>
+<p>- スケーラビリティ (Scalability)</p>
+
+<ol>
+<li><strong>コストと効果</strong></li>
+</ol>
+<p>- 開発期間: 15-20年 → 3-5年（67%短縮）</p>
+<p>- 実験コスト: 95%削減</p>
+<p>- 計算コスト: 初期投資 vs 長期ROI</p>
+
+<h4>学習目標</h4>
+
+<ul>
+<li>✅ ハイスループット計算の4つの要素を説明できる</li>
+<li>✅ Materials Projectの成功要因を分析できる</li>
+<li>✅ ワークフロー設計の原則を理解している</li>
+<li>✅ コスト削減効果を定量的に評価できる</li>
+</ul>
+
+<strong><a href="./chapter-1.html">第1章を読む →</a></strong>
+
+<p>---</p>
+
+<h3><a href="./chapter-2.html">第2章：DFT計算の自動化（VASP, Quantum ESPRESSO）</a></h3>
+
+<strong>難易度</strong>: 中級〜上級
+<strong>読了時間</strong>: 20-25分
+<strong>コード例</strong>: 6個
+
+<h4>学習内容</h4>
+
+<ol>
+<li><strong>ASE（Atomic Simulation Environment）基礎</strong></li>
+</ol>
+<p>- インストールと環境構築</p>
+<p>- 構造生成と操作</p>
+<p>- 計算機インターフェース</p>
+<p>- 結果解析の自動化</p>
+
+<ol>
+<li><strong>VASP自動化</strong></li>
+</ol>
+<p>- INCARファイル自動生成</p>
+<p>- K-point自動設定</p>
+<p>- POTCAR管理</p>
+<p>- 収束判定の自動化</p>
+
+<ol>
+<li><strong>Quantum ESPRESSO自動化</strong></li>
+</ol>
+<p>- 入力ファイルテンプレート</p>
+<p>- 擬ポテンシャル管理</p>
+<p>- SCF/NSCF/DOS計算の連鎖</p>
+<p>- バンド構造自動プロット</p>
+
+<ol>
+<li><strong>pymatgenによる高度な自動化</strong></li>
+</ol>
+<p>- InputSet: 標準化された入力生成</p>
+<p>- Taskflow: 計算フロー定義</p>
+<p>- エラー検出とリスタート</p>
+<p>- 結果のデータベース化</p>
+
+<ol>
+<li><strong>構造最適化の自動化</strong></li>
+</ol>
+<p>- 緩和計算の収束判定</p>
+<p>- 格子定数最適化</p>
+<p>- 内部座標最適化</p>
+<p>- エネルギーカットオフの自動決定</p>
+
+<ol>
+<li><strong>トラブルシューティング</strong></li>
+</ol>
+<p>- よくあるエラーと対処法</p>
+<p>- 収束しない計算の診断</p>
+<p>- メモリ不足への対応</p>
+
+<h4>学習目標</h4>
+
+<ul>
+<li>✅ ASEで基本的なDFT計算を自動実行できる</li>
+<li>✅ VASPとQuantum ESPRESSOの入力ファイルを自動生成できる</li>
+<li>✅ pymatgenのInputSetを使いこなせる</li>
+<li>✅ エラーを検出して自動リスタートできる</li>
+</ul>
+
+<strong><a href="./chapter-2.html">第2章を読む →</a></strong>
+
+<p>---</p>
+
+<h3><a href="./chapter-3.html">第3章：ジョブスケジューリングと並列化（SLURM, PBS）</a></h3>
+
+<strong>難易度</strong>: 上級
+<strong>読了時間</strong>: 25-30分
+<strong>コード例</strong>: 5-6個
+
+<h4>学習内容</h4>
+
+<ol>
+<li><strong>ジョブスケジューラの基礎</strong></li>
+</ol>
+<p>- SLURM vs PBS vs Torque</p>
+<p>- キューシステムの仕組み</p>
+<p>- リソース要求の最適化</p>
+<p>- 優先度と公平性</p>
+
+<ol>
+<li><strong>SLURMスクリプト作成</strong></li>
+</ol>
+<p>- ヘッダー: <code>#SBATCH</code>ディレクティブ</p>
+<p>- ノード数、コア数、メモリ要求</p>
+<p>- 時間制限の設定</p>
+<p>- アレイジョブによる並列実行</p>
+
+<ol>
+<li><strong>MPIによる並列計算</strong></li>
+</ol>
+<p>- MPI並列の原理</p>
+<p>- VASP/QEのMPI実行</p>
+<p>- ノード間通信の最適化</p>
+<p>- スケーリング効率の評価</p>
+
+<ol>
+<li><strong>Pythonによるジョブ管理</strong></li>
+</ol>
+<p>- subprocessでジョブ投入</p>
+<p>- ジョブ状態の監視</p>
+<p>- 完了待ちと自動再投入</p>
+<p>- 依存関係のあるジョブチェーン</p>
+
+<ol>
+<li><strong>大規模並列計算</strong></li>
+</ol>
+<p>- 1000材料の同時計算</p>
+<p>- リソース競合の回避</p>
+<p>- フェイルセーフ設計</p>
+<p>- 計算コストの最適化</p>
+
+<ol>
+<li><strong>ベンチマークとチューニング</strong></li>
+</ol>
+<p>- 並列効率の測定</p>
+<p>- ボトルネック分析</p>
+<p>- I/O最適化</p>
+<p>- メモリ帯域幅の考慮</p>
+
+<h4>学習目標</h4>
+
+<ul>
+<li>✅ SLURMスクリプトを作成して投入できる</li>
+<li>✅ MPI並列計算の効率を評価できる</li>
+<li>✅ Pythonでジョブ管理スクリプトを書ける</li>
+<li>✅ 1000材料規模の並列計算を設計できる</li>
+</ul>
+
+<strong><a href="./chapter-3.html">第3章を読む →</a></strong>
+
+<p>---</p>
+
+<h3><a href="./chapter-4.html">第4章：データ管理とポストプロセス（FireWorks, AiiDA）</a></h3>
+
+<strong>難易度</strong>: 上級
+<strong>読了時間</strong>: 20-25分
+<strong>コード例</strong>: 6個
+
+<h4>学習内容</h4>
+
+<ol>
+<li><strong>FireWorksによるワークフロー管理</strong></li>
+</ol>
+<p>- FireWorksアーキテクチャ</p>
+<p>- Firework（単一タスク）定義</p>
+<p>- Workflow（タスク連鎖）構築</p>
+<p>- LaunchPad（データベース）設定</p>
+
+<ol>
+<li><strong>Materials Project採用のAtomateワークフロー</strong></li>
+</ol>
+<p>- 標準ワークフロー: 構造最適化 → 静的計算 → バンド構造</p>
+<p>- カスタムワークフローの作成</p>
+<p>- エラーハンドリングとリスタート</p>
+<p>- 結果のJSON出力</p>
+
+<ol>
+<li><strong>AiiDAによるプロビナンス管理</strong></li>
+</ol>
+<p>- データプロビナンス（来歴追跡）の重要性</p>
+<p>- AiiDAのデータモデル</p>
+<p>- WorkChain定義</p>
+<p>- クエリとデータ検索</p>
+
+<ol>
+<li><strong>計算データの構造化</strong></li>
+</ol>
+<p>- JSONスキーマ設計</p>
+<p>- MongoDB/SQLiteの選択</p>
+<p>- インデックス最適化</p>
+<p>- バージョン管理</p>
+
+<ol>
+<li><strong>ポストプロセスの自動化</strong></li>
+</ol>
+<p>- DOS/バンド構造の自動プロット</p>
+<p>- フォノン分散の解析</p>
+<p>- 熱力学量の計算</p>
+<p>- レポート自動生成</p>
+
+<ol>
+<li><strong>データ共有とアーカイブ</strong></li>
+</ol>
+<p>- NOMAD Repositoryへのアップロード</p>
+<p>- Materials Cloudでの公開</p>
+<p>- DOI取得</p>
+<p>- FAIRデータ原則</p>
+
+<h4>学習目標</h4>
+
+<ul>
+<li>✅ FireWorksで複雑なワークフローを構築できる</li>
+<li>✅ Atomateの標準ワークフローを使いこなせる</li>
+<li>✅ AiiDAでデータプロビナンスを記録できる</li>
+<li>✅ 計算結果をNOMADに公開できる</li>
+</ul>
+
+<strong><a href="./chapter-4.html">第4章を読む →</a></strong>
+
+<p>---</p>
+
+<h3><a href="./chapter-5.html">第5章：クラウドHPC活用と最適化</a></h3>
+
+<strong>難易度</strong>: 中級〜上級
+<strong>読了時間</strong>: 15-20分
+<strong>コード例</strong>: 5個
+
+<h4>学習内容</h4>
+
+<ol>
+<li><strong>クラウドHPCの選択肢</strong></li>
+</ol>
+<p>- AWS Parallel Cluster</p>
+<p>- Google Cloud HPC Toolkit</p>
+<p>- Azure CycleCloud</p>
+<p>- 専用HPC: TSUBAME, 富岳</p>
+
+<ol>
+<li><strong>AWS Parallel Clusterセットアップ</strong></li>
+</ol>
+<p>- VPC/サブネット設定</p>
+<p>- クラスタ構成ファイル</p>
+<p>- SLURM統合</p>
+<p>- ストレージ（EFS/FSx）</p>
+
+<ol>
+<li><strong>コスト最適化</strong></li>
+</ol>
+<p>- スポットインスタンス活用</p>
+<p>- 自動スケーリング</p>
+<p>- アイドルタイムアウト</p>
+<p>- ストレージ階層化</p>
+
+<ol>
+<li><strong>Docker/Singularityによるコンテナ化</strong></li>
+</ol>
+<p>- 環境の完全再現</p>
+<p>- Dockerfileベストプラクティス</p>
+<p>- Singularity on HPC</p>
+<p>- イメージレジストリ管理</p>
+
+<ol>
+<li><strong>セキュリティとコンプライアンス</strong></li>
+</ol>
+<p>- アクセス制御（IAM）</p>
+<p>- データ暗号化</p>
+<p>- ログ監査</p>
+<p>- 学術ライセンス遵守</p>
+
+<ol>
+<li><strong>ケーススタディ: 10,000材料スクリーニング</strong></li>
+</ol>
+<p>- 要件定義</p>
+<p>- アーキテクチャ設計</p>
+<p>- 実装と実行</p>
+<p>- コスト分析（総額$500-1000）</p>
+
+<h4>学習目標</h4>
+
+<ul>
+<li>✅ AWS Parallel Clusterを構築できる</li>
+<li>✅ スポットインスタンスでコストを50%削減できる</li>
+<li>✅ Dockerで計算環境を完全再現できる</li>
+<li>✅ 10,000材料規模のプロジェクトを設計・実行できる</li>
+</ul>
+
+<strong><a href="./chapter-5.html">第5章を読む →</a></strong>
+
+<p>---</p>
+
+<h2>全体の学習成果</h2>
+
+<p>このシリーズを完了すると、以下のスキルと知識を習得できます：</p>
+
+<h3>知識レベル（Understanding）</h3>
+
+<ul>
+<li>✅ ハイスループット計算の原理と必要性を説明できる</li>
+<li>✅ Materials Projectの技術スタックを理解している</li>
+<li>✅ ワークフロー管理ツールの比較ができる</li>
+<li>✅ クラウドHPCの選択肢と特徴を知っている</li>
+</ul>
+
+<h3>実践スキル（Doing）</h3>
+
+<ul>
+<li>✅ ASE/pymatgenでDFT計算を自動化できる</li>
+<li>✅ SLURMスクリプトを書いて並列ジョブを投入できる</li>
+<li>✅ FireWorks/AiiDAで複雑なワークフローを構築できる</li>
+<li>✅ AWS Parallel Clusterで大規模計算を実行できる</li>
+<li>✅ 計算結果をNOMADに公開できる</li>
+</ul>
+
+<h3>応用力（Applying）</h3>
+
+<ul>
+<li>✅ 1000材料規模のスクリーニングプロジェクトを設計できる</li>
+<li>✅ 計算コストを最適化して予算内で実行できる</li>
+<li>✅ 再現可能な研究ワークフローを構築できる</li>
+<li>✅ 産業界でのHT計算導入を提案できる</li>
+</ul>
+
+<p>---</p>
+
+<h2>推奨学習パターン</h2>
+
+<h3>パターン1: 完全習得（HT計算初学者向け）</h3>
+
+<strong>対象</strong>: DFT計算経験はあるが自動化は初めての方
+<strong>期間</strong>: 2週間
+<strong>進め方</strong>:
+
+<pre><code class="language-">Week 1:
+<ul>
+<li>Day 1-2: 第1章（概念理解）</li>
+<li>Day 3-4: 第2章（ASE/pymatgen実装）</li>
+<li>Day 5-7: 第3章（SLURM実践）</li>
+</ul>
+
+<p>Week 2:</p>
+<ul>
+<li>Day 1-3: 第4章（FireWorks/AiiDA）</li>
+<li>Day 4-5: 第5章（クラウドHPC）</li>
+<li>Day 6-7: 統合プロジェクト（100材料スクリーニング）</li>
+</ul>
+</code></pre>
+
+<strong>成果物</strong>:
+<ul>
+<li>100材料のバンドギャップ予測プロジェクト</li>
+<li>GitHub公開されたワークフローコード</li>
+</ul>
+
+<h3>パターン2: 速習（経験者向け）</h3>
+
+<strong>対象</strong>: 既にDFT自動化経験があり、ワークフロー管理を学びたい方
+<strong>期間</strong>: 3-5日
+<strong>進め方</strong>:
+
+<pre><code class="language-">Day 1: 第1章（スキップ可）+ 第2章（復習）
+<p>Day 2-3: 第4章（FireWorks集中学習）</p>
+<p>Day 4: 第5章（クラウド実践）</p>
+<p>Day 5: プロジェクト統合</p>
+</code></pre>
+
+<h3>パターン3: クラウド特化</h3>
+
+<strong>対象</strong>: オンプレHPCからクラウド移行を検討している方
+<strong>期間</strong>: 1週間
+<strong>進め方</strong>:
+
+<pre><code class="language-">Day 1-2: 第1章 + 第5章（クラウド選択肢理解）
+<p>Day 3-4: AWS Parallel Cluster構築</p>
+<p>Day 5-6: 既存ワークフローの移植</p>
+<p>Day 7: コスト最適化とベンチマーク</p>
+</code></pre>
+
+<p>---</p>
+
+<h2>前提知識</h2>
+
+<h3>必須</h3>
+
+<ul>
+<li>✅ <strong>DFT計算の基礎知識</strong>: VASP、Quantum ESPRESSO、CP2Kのいずれか使用経験</li>
+<li>✅ <strong>Linux/UNIXコマンド</strong>: bash、ssh、ファイル操作</li>
+<li>✅ <strong>Python基礎</strong>: 関数、クラス、モジュール</li>
+</ul>
+
+<h3>推奨</h3>
+
+<ul>
+<li>✅ <strong>材料科学の基礎</strong>: 結晶構造、バンド理論、状態密度</li>
+<li>✅ <strong>機械学習基礎</strong>: MI入門シリーズ受講済み</li>
+<li>✅ <strong>Git/GitHub</strong>: バージョン管理の基本</li>
+</ul>
+
+<h3>あると良い</h3>
+
+<ul>
+<li>✅ <strong>クラスタ計算経験</strong>: ジョブスケジューラ使用歴</li>
+<li>✅ <strong>データベース基礎</strong>: SQL、JSON、MongoDB</li>
+<li>✅ <strong>Docker基礎</strong>: コンテナの概念</li>
+</ul>
+
+<p>---</p>
+
+<h2>ツールとソフトウェア</h2>
+
+<h3>必須ツール</h3>
+
+<p>| ツール | 用途 | ライセンス | インストール |</p>
+<p>|--------|------|-----------|-------------|</p>
+<p>| Python 3.10+ | スクリプト実行 | オープン | conda, pip |</p>
+<p>| ASE | 構造操作・計算実行 | LGPL | <code>pip install ase</code> |</p>
+<p>| pymatgen | 材料科学計算 | MIT | <code>pip install pymatgen</code> |</p>
+
+<h3>DFTコード（いずれか1つ）</h3>
+
+<p>| コード | ライセンス | 特徴 |</p>
+<p>|--------|-----------|------|</p>
+<p>| VASP | 商用（学術ライセンス） | 高精度、広く使用 |</p>
+<p>| Quantum ESPRESSO | GPL | オープン、平面波基底 |</p>
+<p>| CP2K | GPL | オープン、ハイブリッド基底 |</p>
+
+<h3>ワークフローツール</h3>
+
+<p>| ツール | 採用プロジェクト | 学習難易度 |</p>
+<p>|--------|----------------|-----------|</p>
+<p>| FireWorks | Materials Project | 中 |</p>
+<p>| AiiDA | MARVEL（欧州） | 高 |</p>
+<p>| Atomate | Materials Project | 中 |</p>
+
+<h3>クラウドHPC</h3>
+
+<p>| サービス | 推奨用途 | 初期費用 |</p>
+<p>|---------|---------|---------|</p>
+<p>| AWS Parallel Cluster | 大規模計算 | $0（従量課金） |</p>
+<p>| Google Cloud HPC | 機械学習統合 | $0（従量課金） |</p>
+<p>| Azure CycleCloud | Windows統合 | $0（従量課金） |</p>
+
+<p>---</p>
+
+<h2>FAQ（よくある質問）</h2>
+
+<h3>Q1: DFT計算経験がないと受講できませんか？</h3>
+
+<strong>A</strong>: 第2章以降はVASPやQuantum ESPRESSOの基本的な使用経験を前提としています。未経験の場合は、まず「計算材料科学基礎入門」シリーズで基礎を学ぶことをお勧めします。
+
+<h3>Q2: 商用ライセンスのVASPが必要ですか？</h3>
+
+<strong>A</strong>: コード例の多くはオープンソースのQuantum ESPRESSOでも実行できます。VASPは産業界で広く使われているため例に含めていますが、学術ライセンスをお持ちでない場合は他のコードで代替可能です。
+
+<h3>Q3: 手元にHPCクラスタがない場合は？</h3>
+
+<strong>A</strong>: 第5章でクラウドHPC（AWS、Google Cloud）の使い方を学びます。初期投資なしで始められるため、個人でも学習可能です。初回は$100-200の予算で十分です。
+
+<h3>Q4: FireWorksとAiiDAはどちらを学ぶべきですか？</h3>
+
+<strong>A</strong>: <strong>Materials Projectと同じ環境を使いたい場合はFireWorks</strong>がお勧めです。AiiDAは欧州中心で、データプロビナンス（来歴追跡）に強みがあります。第4章で両方学びますが、まずFireWorksから始めることを推奨します。
+
+<h3>Q5: どれくらいの計算リソースが必要ですか？</h3>
+
+<strong>A</strong>: 学習段階では：
+<ul>
+<li><strong>ローカルPC</strong>: 第1-2章（小規模テスト計算）</li>
+<li><strong>大学のクラスタ</strong>: 第3-4章（並列計算）</li>
+<li><strong>クラウド</strong>: 第5章（$50-100の予算）</li>
+</ul>
+
+<p>実プロジェクトでは1000材料で$500-1000程度です。</p>
+
+<h3>Q6: Materials Projectのコードは公開されていますか？</h3>
+
+<strong>A</strong>: はい、Materials Projectの中核技術は以下でオープンソース公開されています：
+<ul>
+<li><strong>pymatgen</strong>: https://github.com/materialsproject/pymatgen</li>
+<li><strong>FireWorks</strong>: https://github.com/materialsproject/fireworks</li>
+<li><strong>Atomate</strong>: https://github.com/hackingmaterials/atomate</li>
+</ul>
+
+<p>このシリーズではこれらを実際に使います。</p>
+
+<h3>Q7: 学んだスキルは産業界で役立ちますか？</h3>
+
+<strong>A</strong>: 非常に役立ちます。以下の企業・研究所でハイスループット計算が使われています：
+<ul>
+<li><strong>日本</strong>: トヨタ、パナソニック、三菱ケミカル、NIMS</li>
+<li><strong>海外</strong>: Tesla、IBM Research、BASF、DuPont</li>
+</ul>
+
+<p>MIエンジニア職では年収700-1500万円（日本）、$80-200K（米国）が相場です。</p>
+
+<h3>Q8: 計算結果を論文に使う場合の注意点は？</h3>
+
+<strong>A</strong>: 以下を確認してください：
+<ol>
+<li><strong>再現性</strong>: 計算条件（k-point、カットオフ等）を明記</li>
+<li><strong>ライセンス</strong>: 使用ソフトウェアを論文で引用</li>
+<li><strong>データ公開</strong>: NOMAD等でraw dataを公開（推奨）</li>
+<li><strong>検証</strong>: 少なくとも一部は実験データと比較</li>
+</ol>
+
+<p>---</p>
+
+<h2>次のステップ</h2>
+
+<h3>シリーズ完了後の推奨アクション</h3>
+
+<strong>Immediate（1-2週間以内）:</strong>
+<ol>
+<li>✅ 100-1000材料の小規模プロジェクトを実行</li>
+<li>✅ 計算結果をNOMADに公開</li>
+<li>✅ GitHubにワークフローコードを公開</li>
+</ol>
+
+<strong>Short-term（1-3ヶ月）:</strong>
+<ol>
+<li>✅ Materials Projectのコードベースにコントリビュート</li>
+<li>✅ 独自のFireWorksワークフローを開発</li>
+<li>✅ 論文投稿（計算データセット公開を含む）</li>
+</ol>
+
+<strong>Medium-term（3-6ヶ月）:</strong>
+<ol>
+<li>✅ 10,000材料規模のプロジェクトを実行</li>
+<li>✅ クラウドHPCのコスト最適化ノウハウを蓄積</li>
+<li>✅ 国際学会（MRS、E-MRS）で発表</li>
+</ol>
+
+<strong>Long-term（1年以上）:</strong>
+<ol>
+<li>✅ 研究室・企業でHT計算システムを構築</li>
+<li>✅ 独自のデータベースを公開</li>
+<li>✅ MI分野のエキスパートとして認知される</li>
+</ol>
+
+<p>---</p>
+
+<h2>関連シリーズ</h2>
+
+<ul>
+<li><strong><a href="../mi-introduction/">MI入門シリーズ</a></strong>: 機械学習による材料特性予測</li>
+<li><strong><a href="../mlp-introduction/">MLP入門シリーズ</a></strong>: 機械学習ポテンシャル</li>
+<li><strong><a href="../materials-databases-introduction/">材料データベース活用入門</a></strong>: Materials Project完全ガイド</li>
+<li><strong><a href="../gnn-introduction/">GNN入門シリーズ</a></strong>: グラフニューラルネットワーク</li>
+</ul>
+
+<p>---</p>
+
+<h2>フィードバックとサポート</h2>
+
+<h3>作成者</h3>
+
+<p>このシリーズは、東北大学 Dr. Yusuke Hashimotoのもと、MI寺子屋プロジェクトの一環として作成されました。</p>
+
+<strong>作成日</strong>: 2025年10月17日
+<strong>バージョン</strong>: 1.0
+
+<h3>フィードバック</h3>
+
+<ul>
+<li><strong>誤字・技術的誤り</strong>: GitHubリポジトリのIssueで報告</li>
+<li><strong>改善提案</strong>: 新しいトピック、追加コード例等</li>
+<li><strong>質問</strong>: 理解が難しかった部分、追加説明が欲しい箇所</li>
+</ul>
+
+<strong>連絡先</strong>: yusuke.hashimoto.b8@tohoku.ac.jp
+
+<p>---</p>
+
+<h2>ライセンス</h2>
+
+<p>このシリーズは <strong>CC BY 4.0</strong>（Creative Commons Attribution 4.0 International）ライセンスのもとで公開されています。</p>
+
+<strong>可能なこと:</strong>
+<ul>
+<li>✅ 自由な閲覧・ダウンロード</li>
+<li>✅ 教育目的での利用（授業、勉強会等）</li>
+<li>✅ 改変・二次創作（翻訳、要約等）</li>
+</ul>
+
+<strong>条件:</strong>
+<ul>
+<li>📌 著者のクレジット表示が必要</li>
+<li>📌 改変した場合はその旨を明記</li>
+</ul>
+
+<p>---</p>
+
+<h2>さあ、始めましょう！</h2>
+
+<p>準備はできましたか？ 第1章から始めて、ハイスループット計算の世界への旅を始めましょう！</p>
+
+<strong><a href="./chapter-1.html">第1章: ハイスループット計算の必要性とワークフロー設計 →</a></strong>
+
+<p>---</p>
+
+<strong>更新履歴</strong>
+
+<ul>
+<li><strong>2025-10-17</strong>: v1.0 初版公開</li>
+</ul>
+
+<p>---</p>
+
+<strong>材料探索の加速化はここから始まります！</strong>
+
+
+        <div class="navigation">
+            <a href="../../index.html" class="nav-button">← ホームに戻る</a>
+        </div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-17</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mermaidCodeBlocks = document.querySelectorAll('pre.codehilite code.language-mermaid, pre code.language-mermaid');
+
+            mermaidCodeBlocks.forEach(function(codeBlock) {
+                const pre = codeBlock.parentElement;
+                const mermaidCode = codeBlock.textContent;
+
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = mermaidCode.trim();
+
+                pre.parentNode.replaceChild(mermaidDiv, pre);
+            });
+
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({
+                    startOnLoad: true,
+                    theme: 'default'
+                });
+                mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+            }
+        });
+    </script>
+</body>
+</html>

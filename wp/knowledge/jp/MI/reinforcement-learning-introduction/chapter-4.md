@@ -1159,7 +1159,7 @@ print(f"  総コスト: ${exp_count * 500}")
 
 **次のステップ**:
 - **実践**: 自身の研究課題に強化学習を適用
-- **発展学習**: [ロボティクス実験自動化入門](../robotic-lab-automation/index.html)でハードウェア統合を学ぶ
+- **発展学習**: [ロボティクス実験自動化入門](../robotic-lab-automation-introduction/index.html)でハードウェア統合を学ぶ
 - **コミュニティ**: GitHub、学会で最新情報を追跡
 
 **フィードバック募集**:

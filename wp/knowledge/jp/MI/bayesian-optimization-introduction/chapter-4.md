@@ -1935,7 +1935,7 @@ print("  - 実務では応用に応じて解を選択")
 **[← シリーズ目次に戻る](./index.html)**
 
 ### 次のステップ
-**[ロボティクス実験自動化入門 →](../robotic-lab-automation/index.html)**
+**[ロボティクス実験自動化入門 →](../robotic-lab-automation-introduction/index.html)**
 
 ---
 
