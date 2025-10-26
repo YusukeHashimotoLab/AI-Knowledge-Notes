@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第5章: 数値解法と有限要素法 | FM Dojo - 偏微分方程式と境界値問題</title>
+    <meta name="description" content="数値解法と有限要素法：有限差分法、有限要素法、時間積分スキーム、安定性と収束性、メッシュ生成を学び、プロセスシミュレーションへの応用を実装します。">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background: #f5f5f5;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+        .breadcrumb {
+            max-width: 1200px;
+            margin: 1rem auto;
+            padding: 0 1rem;
+            font-size: 0.9rem;
+        }
+        .breadcrumb a { color: #667eea; text-decoration: none; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        h1 { font-size: 2rem; margin-bottom: 1rem; }
+        h2 {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid #764ba2;
+            color: #667eea;
+        }
+        h3 { font-size: 1.2rem; margin: 1.5rem 0 1rem; color: #555; }
+        p { margin-bottom: 1rem; }
+        ul, ol { margin: 1rem 0 1rem 2rem; }
+        li { margin-bottom: 0.5rem; }
+        .theory-box {
+            background: linear-gradient(to right, #f0f4ff, #faf5ff);
+            border-left: 4px solid #667eea;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+        .code-example {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        .code-title {
+            background: #667eea;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px 6px 0 0;
+            font-weight: 600;
+            margin-top: 1.5rem;
+        }
+        .exercise {
+            background: #fff9e6;
+            border-left: 4px solid #f59e0b;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            gap: 1rem;
+        }
+        .nav-button {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.3s;
+        }
+        .nav-button:hover { transform: translateY(-2px); }
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 2rem 1rem;
+            margin-top: 4rem;
+        }
+        @media (max-width: 768px) {
+            .content { padding: 1.5rem; }
+            h1 { font-size: 1.5rem; }
+            h2 { font-size: 1.3rem; }
+            .navigation { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📐 第5章: 数値解法と有限要素法</h1>
+        <p>Numerical Methods and Finite Element Method</p>
+    </header>
+
+    <div class="breadcrumb">
+        <a href="../../index.html">ナレッジベース</a> &gt;
+        <a href="../index.html">FM Dojo</a> &gt;
+        <a href="index.html">偏微分方程式と境界値問題</a> &gt;
+        第5章
+    </div>
+
+    <div class="container">
+        <div class="content">
+            <h2>🎯 学習目標</h2>
+            <ul>
+                <li>有限差分法（FDM）の基礎と様々なスキームを理解する</li>
+                <li>有限要素法（FEM）の理論と実装を習得する</li>
+                <li>時間積分スキーム（陽解法・陰解法）の特性を学ぶ</li>
+                <li>安定性解析と収束性の理論的基礎を理解する</li>
+                <li>メッシュ生成と要素の選択を学ぶ</li>
+                <li>2次元・3次元問題への拡張を理解する</li>
+                <li>スパース行列の効率的な扱い方を習得する</li>
+                <li>プロセスシミュレーション（熱処理、反応拡散）への応用を実装する</li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <h2>📖 数値解法の基礎</h2>
+            
+            <div class="theory-box">
+                <h3>数値解法の分類</h3>
+                <p><strong>有限差分法（Finite Difference Method, FDM）</strong>:</p>
+                <ul>
+                    <li>微分を差分近似で置き換える</li>
+                    <li>構造格子で実装が容易</li>
+                    <li>複雑形状への適用が困難</li>
+                </ul>
+                <p><strong>有限要素法（Finite Element Method, FEM）</strong>:</p>
+                <ul>
+                    <li>変分原理に基づく弱形式を利用</li>
+                    <li>非構造格子で複雑形状に対応</li>
+                    <li>要素内での補間が高精度</li>
+                </ul>
+                <p><strong>有限体積法（Finite Volume Method, FVM）</strong>:</p>
+                <ul>
+                    <li>保存則を積分形式で扱う</li>
+                    <li>流体力学で広く使用</li>
+                    <li>質量・エネルギー保存が厳密</li>
+                </ul>
+            </div>
+
+            <div class="theory-box">
+                <h3>安定性と収束性</h3>
+                <p><strong>安定性（Stability）</strong>: 数値誤差が時間発展で発散しない条件</p>
+                <p><strong>CFL条件（Courant-Friedrichs-Lewy）</strong>: 波動方程式の安定性条件</p>
+                <p>\[
+                C = c \frac{\Delta t}{\Delta x} \leq C_{\text{max}}
+                \]</p>
+                <p><strong>収束性（Convergence）</strong>: メッシュ幅 \(\Delta x \to 0\) で真の解に近づく性質</p>
+                <p><strong>一貫性（Consistency）</strong>: 差分式が微分方程式に収束する性質</p>
+                <p><strong>Laxの等価定理</strong>: 一貫性 + 安定性 ⇒ 収束性</p>
+            </div>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題5.1: 有限差分法の比較（FTCS, BTCS, Crank-Nicolson）</h2>
+            
+            <div class="theory-box">
+                <h3>熱方程式の差分スキーム</h3>
+                <p>1次元熱方程式: \(\frac{\partial u}{\partial t} = \alpha \frac{\partial^2 u}{\partial x^2}\)</p>
+                <p><strong>FTCS（Forward Time, Centered Space）</strong>: 陽解法、条件付き安定</p>
+                <p>\[
+                \frac{u_i^{n+1} - u_i^n}{\Delta t} = \alpha \frac{u_{i+1}^n - 2u_i^n + u_{i-1}^n}{\Delta x^2}
+                \]</p>
+                <p>安定条件: \(r = \alpha \Delta t / \Delta x^2 \leq 0.5\)</p>
+                <p><strong>BTCS（Backward Time, Centered Space）</strong>: 陰解法、無条件安定</p>
+                <p>\[
+                \frac{u_i^{n+1} - u_i^n}{\Delta t} = \alpha \frac{u_{i+1}^{n+1} - 2u_i^{n+1} + u_{i-1}^{n+1}}{\Delta x^2}
+                \]</p>
+                <p><strong>Crank-Nicolson法</strong>: 陰解法、2次精度、無条件安定</p>
+                <p>\[
+                \frac{u_i^{n+1} - u_i^n}{\Delta t} = \frac{\alpha}{2}\left[\frac{u_{i+1}^{n+1} - 2u_i^{n+1} + u_{i-1}^{n+1}}{\Delta x^2} + \frac{u_{i+1}^n - 2u_i^n + u_{i-1}^n}{\Delta x^2}\right]
+                \]</p>
+            </div>
+
+            <div class="code-title">Python実装: 3つのスキームの比較</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.sparse import diags
+from scipy.sparse.linalg import spsolve
+
+# 熱方程式の初期値・境界値問題
+alpha = 0.01  # 熱拡散係数
+L = 1.0  # 領域の長さ
+T_final = 0.5  # 終了時刻
+
+# 初期条件: u(x, 0) = sin(πx)
+def initial_condition(x):
+    return np.sin(np.pi * x)
+
+# 解析解: u(x, t) = exp(-π²αt) sin(πx)
+def analytical_solution(x, t, alpha):
+    return np.exp(-np.pi**2 * alpha * t) * np.sin(np.pi * x)
+
+# 空間離散化
+Nx = 50
+x = np.linspace(0, L, Nx)
+dx = x[1] - x[0]
+
+# 時間離散化（安定条件を考慮）
+r_stable = 0.4  # FTCS用（r ≤ 0.5）
+dt_ftcs = r_stable * dx**2 / alpha
+dt_implicit = 2 * dt_ftcs  # 陰解法は安定条件なし
+Nt_ftcs = int(T_final / dt_ftcs)
+Nt_implicit = int(T_final / dt_implicit)
+
+print(f"=== 時間刻み ===")
+print(f"FTCS: dt = {dt_ftcs:.6f} s, Nt = {Nt_ftcs}")
+print(f"陰解法: dt = {dt_implicit:.6f} s, Nt = {Nt_implicit}")
+
+# FTCS法（陽解法）
+def ftcs_method(x, dt, Nt, alpha):
+    u = initial_condition(x)
+    u_history = [u.copy()]
+    
+    r = alpha * dt / dx**2
+    
+    for n in range(Nt):
+        u_new = u.copy()
+        for i in range(1, len(x)-1):
+            u_new[i] = u[i] + r * (u[i+1] - 2*u[i] + u[i-1])
+        
+        # 境界条件
+        u_new[0] = 0
+        u_new[-1] = 0
+        
+        u = u_new
+        u_history.append(u.copy())
+    
+    return np.array(u_history), r
+
+# BTCS法（陰解法）
+def btcs_method(x, dt, Nt, alpha):
+    u = initial_condition(x)
+    u_history = [u.copy()]
+    
+    r = alpha * dt / dx**2
+    
+    # 係数行列（境界条件を組み込む）
+    main_diag = np.full(len(x)-2, 1 + 2*r)
+    off_diag = np.full(len(x)-3, -r)
+    A = diags([off_diag, main_diag, off_diag], [-1, 0, 1], format='csr')
+    
+    for n in range(Nt):
+        # 右辺ベクトル
+        b = u[1:-1].copy()
+        
+        # スパース線形システムを解く
+        u[1:-1] = spsolve(A, b)
+        
+        u_history.append(u.copy())
+    
+    return np.array(u_history), r
+
+# Crank-Nicolson法
+def crank_nicolson_method(x, dt, Nt, alpha):
+    u = initial_condition(x)
+    u_history = [u.copy()]
+    
+    r = alpha * dt / dx**2
+    
+    # 係数行列
+    main_diag_L = np.full(len(x)-2, 1 + r)
+    off_diag_L = np.full(len(x)-3, -r/2)
+    A = diags([off_diag_L, main_diag_L, off_diag_L], [-1, 0, 1], format='csr')
+    
+    main_diag_R = np.full(len(x)-2, 1 - r)
+    off_diag_R = np.full(len(x)-3, r/2)
+    B = diags([off_diag_R, main_diag_R, off_diag_R], [-1, 0, 1], format='csr')
+    
+    for n in range(Nt):
+        # 右辺ベクトル
+        b = B @ u[1:-1]
+        
+        # 線形システムを解く
+        u[1:-1] = spsolve(A, b)
+        
+        u_history.append(u.copy())
+    
+    return np.array(u_history), r
+
+# 各手法で解く
+u_ftcs, r_ftcs = ftcs_method(x, dt_ftcs, Nt_ftcs, alpha)
+u_btcs, r_btcs = btcs_method(x, dt_implicit, Nt_implicit, alpha)
+u_cn, r_cn = crank_nicolson_method(x, dt_implicit, Nt_implicit, alpha)
+
+# 解析解
+u_analytical = analytical_solution(x, T_final, alpha)
+
+# 可視化
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# 最終時刻での解の比較
+ax1 = axes[0, 0]
+ax1.plot(x, u_analytical, 'k-', label='解析解', linewidth=3)
+ax1.plot(x, u_ftcs[-1], 'b--', label=f'FTCS (r={r_ftcs:.3f})', linewidth=2)
+ax1.plot(x, u_btcs[-1], 'r:', label=f'BTCS (r={r_btcs:.3f})', linewidth=2)
+ax1.plot(x, u_cn[-1], 'g-.', label=f'Crank-Nicolson (r={r_cn:.3f})', linewidth=2)
+ax1.set_xlabel('x')
+ax1.set_ylabel('u(x, t)')
+ax1.set_title(f'最終時刻 t = {T_final} s での解')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# 誤差の比較
+ax2 = axes[0, 1]
+error_ftcs = np.abs(u_ftcs[-1] - u_analytical)
+error_btcs = np.abs(u_btcs[-1] - u_analytical)
+error_cn = np.abs(u_cn[-1] - u_analytical)
+ax2.semilogy(x, error_ftcs, 'b--', label='FTCS', linewidth=2)
+ax2.semilogy(x, error_btcs, 'r:', label='BTCS', linewidth=2)
+ax2.semilogy(x, error_cn, 'g-.', label='Crank-Nicolson', linewidth=2)
+ax2.set_xlabel('x')
+ax2.set_ylabel('Absolute error')
+ax2.set_title('誤差分布')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+# 時間発展（FTCS）
+ax3 = axes[1, 0]
+time_snapshots = np.linspace(0, Nt_ftcs, 6, dtype=int)
+for nt in time_snapshots:
+    t = nt * dt_ftcs
+    ax3.plot(x, u_ftcs[nt], label=f't = {t:.3f} s')
+ax3.set_xlabel('x')
+ax3.set_ylabel('u(x, t)')
+ax3.set_title('FTCS法の時間発展')
+ax3.legend()
+ax3.grid(True, alpha=0.3)
+
+# L2ノルム誤差の比較
+ax4 = axes[1, 1]
+methods = ['FTCS', 'BTCS', 'Crank-Nicolson']
+errors_l2 = [
+    np.linalg.norm(u_ftcs[-1] - u_analytical) / np.linalg.norm(u_analytical),
+    np.linalg.norm(u_btcs[-1] - u_analytical) / np.linalg.norm(u_analytical),
+    np.linalg.norm(u_cn[-1] - u_analytical) / np.linalg.norm(u_analytical)
+]
+colors = ['blue', 'red', 'green']
+bars = ax4.bar(methods, errors_l2, color=colors, alpha=0.7)
+ax4.set_ylabel('Relative L2 error')
+ax4.set_title('L2ノルム誤差の比較')
+ax4.grid(True, axis='y', alpha=0.3)
+
+for bar, error in zip(bars, errors_l2):
+    ax4.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
+             f'{error:.2e}', ha='center', fontweight='bold', fontsize=9)
+
+plt.tight_layout()
+plt.savefig('fem_fdm_comparison.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print(f"\n=== 誤差比較（相対L2ノルム）===")
+for method, error in zip(methods, errors_l2):
+    print(f"{method}: {error:.6e}")
+</div>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題5.2: 2次元有限要素法（三角形要素）</h2>
+            
+            <div class="theory-box">
+                <h3>2次元FEMの基礎</h3>
+                <p>2次元ポアソン方程式: \(-\nabla^2 u = f\) を領域 \(\Omega\) で解く</p>
+                <p>弱形式: \(\int_\Omega \nabla u \cdot \nabla v \, dA = \int_\Omega f v \, dA\)</p>
+                <p><strong>線形三角形要素</strong>:</p>
+                <ul>
+                    <li>3つの節点を持つ</li>
+                    <li>要素内で線形補間: \(u(x,y) = N_1(x,y) u_1 + N_2(x,y) u_2 + N_3(x,y) u_3\)</li>
+                    <li>形状関数 \(N_i\) は面積座標で表現</li>
+                </ul>
+            </div>
+
+            <div class="code-title">Python実装: 2次元ポアソン方程式の有限要素解</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.spatial import Delaunay
+from scipy.sparse import lil_matrix
+from scipy.sparse.linalg import spsolve
+
+def generate_mesh_2d(Lx, Ly, Nx, Ny):
+    """2次元矩形領域のメッシュ生成（Delaunay三角形分割）"""
+    x = np.linspace(0, Lx, Nx)
+    y = np.linspace(0, Ly, Ny)
+    X, Y = np.meshgrid(x, y)
+    points = np.column_stack([X.ravel(), Y.ravel()])
+    
+    # Delaunay三角形分割
+    tri = Delaunay(points)
+    
+    return points, tri
+
+def compute_element_stiffness(nodes):
+    """三角形要素の剛性行列を計算"""
+    # nodes: (3, 2) の配列（3節点の座標）
+    x1, y1 = nodes[0]
+    x2, y2 = nodes[1]
+    x3, y3 = nodes[2]
+    
+    # 要素の面積
+    A = 0.5 * abs((x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1))
+    
+    # 形状関数の勾配
+    b = np.array([y2 - y3, y3 - y1, y1 - y2])
+    c = np.array([x3 - x2, x1 - x3, x2 - x1])
+    
+    # 要素剛性行列
+    K_elem = np.zeros((3, 3))
+    for i in range(3):
+        for j in range(3):
+            K_elem[i, j] = (b[i] * b[j] + c[i] * c[j]) / (4 * A)
+    
+    return K_elem, A
+
+def assemble_global_system(points, tri, source_func):
+    """全体剛性行列と荷重ベクトルの組み立て"""
+    n_points = len(points)
+    K = lil_matrix((n_points, n_points))
+    F = np.zeros(n_points)
+    
+    # 要素ループ
+    for elem in tri.simplices:
+        nodes = points[elem]
+        K_elem, A_elem = compute_element_stiffness(nodes)
+        
+        # 全体行列への組み込み
+        for i in range(3):
+            for j in range(3):
+                K[elem[i], elem[j]] += K_elem[i, j]
+            
+            # 荷重ベクトル（要素重心での評価）
+            x_center = np.mean(nodes[:, 0])
+            y_center = np.mean(nodes[:, 1])
+            F[elem[i]] += source_func(x_center, y_center) * A_elem / 3
+    
+    return K.tocsr(), F
+
+def apply_boundary_conditions(K, F, points, boundary_value=0.0):
+    """ディリクレ境界条件の適用"""
+    Lx = np.max(points[:, 0])
+    Ly = np.max(points[:, 1])
+    
+    # 境界上の節点を特定
+    tol = 1e-10
+    boundary_nodes = []
+    for i, (x, y) in enumerate(points):
+        if x < tol or x > Lx - tol or y < tol or y > Ly - tol:
+            boundary_nodes.append(i)
+    
+    # 境界条件の適用（行と列をゼロにし、対角成分を1に）
+    for node in boundary_nodes:
+        K[node, :] = 0
+        K[:, node] = 0
+        K[node, node] = 1
+        F[node] = boundary_value
+    
+    return K, F, boundary_nodes
+
+# 問題設定
+Lx, Ly = 1.0, 1.0  # 領域サイズ
+Nx, Ny = 15, 15    # メッシュ分割数
+
+# 右辺関数: f(x,y) = 2π² sin(πx) sin(πy)
+def source_function(x, y):
+    return 2 * np.pi**2 * np.sin(np.pi * x) * np.sin(np.pi * y)
+
+# 解析解: u(x,y) = sin(πx) sin(πy)
+def analytical_solution(x, y):
+    return np.sin(np.pi * x) * np.sin(np.pi * y)
+
+# メッシュ生成
+points, tri = generate_mesh_2d(Lx, Ly, Nx, Ny)
+
+# 全体系の組み立て
+K, F = assemble_global_system(points, tri, source_function)
+
+# 境界条件の適用
+K, F, boundary_nodes = apply_boundary_conditions(K, F, points)
+
+# 線形システムを解く
+u_fem = spsolve(K, F)
+
+# 解析解
+u_analytical = analytical_solution(points[:, 0], points[:, 1])
+
+# 可視化
+fig = plt.figure(figsize=(16, 5))
+
+# メッシュ
+ax1 = fig.add_subplot(141)
+ax1.triplot(points[:, 0], points[:, 1], tri.simplices, 'k-', linewidth=0.5)
+ax1.plot(points[boundary_nodes, 0], points[boundary_nodes, 1], 'ro', 
+         markersize=3, label='境界節点')
+ax1.set_xlabel('x')
+ax1.set_ylabel('y')
+ax1.set_title(f'メッシュ ({len(points)} 節点, {len(tri.simplices)} 要素)')
+ax1.legend()
+ax1.axis('equal')
+ax1.grid(True, alpha=0.3)
+
+# FEM解
+ax2 = fig.add_subplot(142)
+contour_fem = ax2.tricontourf(points[:, 0], points[:, 1], u_fem, levels=20, cmap='viridis')
+ax2.tricontour(points[:, 0], points[:, 1], u_fem, levels=10, colors='white', 
+               linewidths=0.5, alpha=0.5)
+ax2.set_xlabel('x')
+ax2.set_ylabel('y')
+ax2.set_title('FEM解')
+ax2.axis('equal')
+plt.colorbar(contour_fem, ax=ax2, label='u(x,y)')
+
+# 解析解
+ax3 = fig.add_subplot(143)
+contour_analytical = ax3.tricontourf(points[:, 0], points[:, 1], u_analytical, 
+                                      levels=20, cmap='viridis')
+ax3.tricontour(points[:, 0], points[:, 1], u_analytical, levels=10, colors='white', 
+               linewidths=0.5, alpha=0.5)
+ax3.set_xlabel('x')
+ax3.set_ylabel('y')
+ax3.set_title('解析解')
+ax3.axis('equal')
+plt.colorbar(contour_analytical, ax=ax3, label='u(x,y)')
+
+# 誤差分布
+ax4 = fig.add_subplot(144)
+error = np.abs(u_fem - u_analytical)
+contour_error = ax4.tricontourf(points[:, 0], points[:, 1], error, 
+                                 levels=20, cmap='Reds')
+ax4.set_xlabel('x')
+ax4.set_ylabel('y')
+ax4.set_title('誤差分布')
+ax4.axis('equal')
+plt.colorbar(contour_error, ax=ax4, label='|error|')
+
+plt.tight_layout()
+plt.savefig('fem_2d_poisson.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("=== 2次元FEM解析 ===")
+print(f"節点数: {len(points)}")
+print(f"要素数: {len(tri.simplices)}")
+print(f"境界節点数: {len(boundary_nodes)}")
+print(f"最大誤差: {np.max(error):.6e}")
+print(f"相対L2ノルム誤差: {np.linalg.norm(error) / np.linalg.norm(u_analytical):.6e}")
+</div>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題5.3: 適応的メッシュ細分化</h2>
+            
+            <div class="code-title">Python実装: 誤差推定に基づくメッシュ細分化</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.spatial import Delaunay
+
+def refine_mesh_adaptive(points, tri, error, threshold, max_iterations=3):
+    """誤差の大きい要素を細分化"""
+    for iteration in range(max_iterations):
+        # 各要素の誤差を計算（節点平均）
+        element_errors = np.array([np.mean(error[elem]) for elem in tri.simplices])
+        
+        # 細分化する要素を選択
+        refine_mask = element_errors > threshold * np.max(element_errors)
+        n_refine = np.sum(refine_mask)
+        
+        if n_refine == 0:
+            print(f"反復 {iteration+1}: 細分化不要")
+            break
+        
+        print(f"反復 {iteration+1}: {n_refine} 要素を細分化")
+        
+        # 新しい点を追加（要素の重心）
+        new_points = []
+        for i, elem in enumerate(tri.simplices):
+            if refine_mask[i]:
+                center = np.mean(points[elem], axis=0)
+                new_points.append(center)
+        
+        if len(new_points) > 0:
+            points = np.vstack([points, new_points])
+            tri = Delaunay(points)
+    
+    return points, tri
+
+# 初期粗メッシュ
+Nx_coarse, Ny_coarse = 7, 7
+points_coarse, tri_coarse = generate_mesh_2d(Lx, Ly, Nx_coarse, Ny_coarse)
+
+# 粗メッシュで解く
+K_coarse, F_coarse = assemble_global_system(points_coarse, tri_coarse, source_function)
+K_coarse, F_coarse, boundary_nodes_coarse = apply_boundary_conditions(K_coarse, F_coarse, points_coarse)
+u_coarse = spsolve(K_coarse, F_coarse)
+
+# 誤差推定
+u_analytical_coarse = analytical_solution(points_coarse[:, 0], points_coarse[:, 1])
+error_coarse = np.abs(u_coarse - u_analytical_coarse)
+
+# 適応的細分化
+threshold = 0.3  # 細分化の閾値（最大誤差の30%）
+points_refined, tri_refined = refine_mesh_adaptive(points_coarse, tri_coarse, 
+                                                     error_coarse, threshold, max_iterations=2)
+
+# 細分化メッシュで解く
+K_refined, F_refined = assemble_global_system(points_refined, tri_refined, source_function)
+K_refined, F_refined, boundary_nodes_refined = apply_boundary_conditions(K_refined, F_refined, points_refined)
+u_refined = spsolve(K_refined, F_refined)
+
+# 誤差
+u_analytical_refined = analytical_solution(points_refined[:, 0], points_refined[:, 1])
+error_refined = np.abs(u_refined - u_analytical_refined)
+
+# 可視化
+fig, axes = plt.subplots(2, 3, figsize=(16, 10))
+
+# 粗メッシュ
+ax1 = axes[0, 0]
+ax1.triplot(points_coarse[:, 0], points_coarse[:, 1], tri_coarse.simplices, 'k-', linewidth=0.5)
+ax1.set_xlabel('x')
+ax1.set_ylabel('y')
+ax1.set_title(f'粗メッシュ ({len(points_coarse)} 節点)')
+ax1.axis('equal')
+ax1.grid(True, alpha=0.3)
+
+# 粗メッシュ解
+ax2 = axes[0, 1]
+contour = ax2.tricontourf(points_coarse[:, 0], points_coarse[:, 1], u_coarse, 
+                           levels=20, cmap='viridis')
+ax2.set_xlabel('x')
+ax2.set_ylabel('y')
+ax2.set_title('粗メッシュ解')
+ax2.axis('equal')
+plt.colorbar(contour, ax=ax2)
+
+# 粗メッシュ誤差
+ax3 = axes[0, 2]
+contour_error = ax3.tricontourf(points_coarse[:, 0], points_coarse[:, 1], error_coarse, 
+                                 levels=20, cmap='Reds')
+ax3.set_xlabel('x')
+ax3.set_ylabel('y')
+ax3.set_title(f'粗メッシュ誤差（最大: {np.max(error_coarse):.2e}）')
+ax3.axis('equal')
+plt.colorbar(contour_error, ax=ax3)
+
+# 細分化メッシュ
+ax4 = axes[1, 0]
+ax4.triplot(points_refined[:, 0], points_refined[:, 1], tri_refined.simplices, 'k-', linewidth=0.5)
+ax4.set_xlabel('x')
+ax4.set_ylabel('y')
+ax4.set_title(f'細分化メッシュ ({len(points_refined)} 節点)')
+ax4.axis('equal')
+ax4.grid(True, alpha=0.3)
+
+# 細分化メッシュ解
+ax5 = axes[1, 1]
+contour_refined = ax5.tricontourf(points_refined[:, 0], points_refined[:, 1], u_refined, 
+                                   levels=20, cmap='viridis')
+ax5.set_xlabel('x')
+ax5.set_ylabel('y')
+ax5.set_title('細分化メッシュ解')
+ax5.axis('equal')
+plt.colorbar(contour_refined, ax=ax5)
+
+# 細分化メッシュ誤差
+ax6 = axes[1, 2]
+contour_error_refined = ax6.tricontourf(points_refined[:, 0], points_refined[:, 1], 
+                                        error_refined, levels=20, cmap='Reds')
+ax6.set_xlabel('x')
+ax6.set_ylabel('y')
+ax6.set_title(f'細分化メッシュ誤差（最大: {np.max(error_refined):.2e}）')
+ax6.axis('equal')
+plt.colorbar(contour_error_refined, ax=ax6)
+
+plt.tight_layout()
+plt.savefig('fem_adaptive_refinement.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("\n=== 適応的メッシュ細分化 ===")
+print(f"粗メッシュ: 節点数 {len(points_coarse)}, 最大誤差 {np.max(error_coarse):.6e}")
+print(f"細分化メッシュ: 節点数 {len(points_refined)}, 最大誤差 {np.max(error_refined):.6e}")
+print(f"誤差改善率: {np.max(error_coarse) / np.max(error_refined):.2f}x")
+</div>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題5.4: 時間依存問題（反応拡散方程式）</h2>
+            
+            <div class="theory-box">
+                <h3>反応拡散方程式</h3>
+                <p>時間依存の反応拡散方程式:</p>
+                <p>\[
+                \frac{\partial u}{\partial t} = D \nabla^2 u + f(u)
+                \]</p>
+                <p>ここで \(D\) は拡散係数、\(f(u)\) は反応項（例: \(f(u) = ku(1-u)\)）。</p>
+                <p>半離散化（空間のみ離散化）後、時間積分で解きます。</p>
+            </div>
+
+            <div class="code-title">Python実装: Fisher-KPP方程式</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+# Fisher-KPP方程式: ∂u/∂t = D ∂²u/∂x² + ku(1-u)
+# 人口成長モデル、腫瘍成長、化学反応などに応用
+
+D = 0.01  # 拡散係数
+k = 1.0   # 反応速度定数
+L = 1.0   # 領域の長さ
+T_final = 2.0  # 終了時刻
+
+# 空間離散化
+Nx = 100
+x = np.linspace(0, L, Nx)
+dx = x[1] - x[0]
+
+# 初期条件: ステップ関数
+def initial_condition_fisher(x):
+    u0 = np.zeros_like(x)
+    u0[x < 0.2] = 1.0
+    return u0
+
+u0 = initial_condition_fisher(x)
+
+# 右辺関数（半離散化後のODE系）
+def rhs_fisher_kpp(u, t, D, k, dx):
+    """Fisher-KPP方程式の右辺"""
+    dudt = np.zeros_like(u)
+    
+    # 内部点: 拡散 + 反応
+    for i in range(1, len(u)-1):
+        diffusion = D * (u[i+1] - 2*u[i] + u[i-1]) / dx**2
+        reaction = k * u[i] * (1 - u[i])
+        dudt[i] = diffusion + reaction
+    
+    # 境界条件: ノイマン条件（勾配ゼロ）
+    dudt[0] = dudt[1]
+    dudt[-1] = dudt[-2]
+    
+    return dudt
+
+# 時間積分
+t = np.linspace(0, T_final, 200)
+solution = odeint(rhs_fisher_kpp, u0, t, args=(D, k, dx))
+
+# 可視化
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# 時空間プロット
+ax1 = axes[0]
+X, T = np.meshgrid(x, t)
+contour = ax1.contourf(X, T, solution, levels=20, cmap='viridis')
+ax1.set_xlabel('x (空間)')
+ax1.set_ylabel('t (時間)')
+ax1.set_title('Fisher-KPP方程式の解（時空間図）')
+plt.colorbar(contour, ax=ax1, label='u(x,t)')
+
+# 時間スナップショット
+ax2 = axes[1]
+time_snapshots = [0, 0.5, 1.0, 1.5, 2.0]
+colors = plt.cm.viridis(np.linspace(0, 1, len(time_snapshots)))
+
+for t_snap, color in zip(time_snapshots, colors):
+    idx = np.argmin(np.abs(t - t_snap))
+    ax2.plot(x, solution[idx], label=f't = {t_snap:.1f} s', linewidth=2, color=color)
+
+ax2.set_xlabel('x')
+ax2.set_ylabel('u(x, t)')
+ax2.set_title('時間スナップショット')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('fem_fisher_kpp.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 進行波の速度を推定（u=0.5の位置を追跡）
+def find_wave_position(solution, x, threshold=0.5):
+    """波面の位置を各時刻で求める"""
+    positions = []
+    for u_t in solution:
+        # u = threshold となる位置を線形補間で求める
+        idx = np.where(np.diff(u_t > threshold))[0]
+        if len(idx) > 0:
+            i = idx[0]
+            # 線形補間
+            x_wave = x[i] + (threshold - u_t[i]) * (x[i+1] - x[i]) / (u_t[i+1] - u_t[i])
+            positions.append(x_wave)
+        else:
+            positions.append(np.nan)
+    return np.array(positions)
+
+wave_positions = find_wave_position(solution, x)
+valid_indices = ~np.isnan(wave_positions)
+t_valid = t[valid_indices]
+pos_valid = wave_positions[valid_indices]
+
+# 速度の推定（線形回帰）
+if len(t_valid) > 1:
+    wave_speed = np.polyfit(t_valid, pos_valid, 1)[0]
+    theoretical_speed = 2 * np.sqrt(D * k)
+    
+    print("=== Fisher-KPP方程式 ===")
+    print(f"拡散係数 D = {D}")
+    print(f"反応速度 k = {k}")
+    print(f"推定進行波速度: {wave_speed:.4f} m/s")
+    print(f"理論進行波速度: {theoretical_speed:.4f} m/s")
+    print(f"相対誤差: {abs(wave_speed - theoretical_speed) / theoretical_speed * 100:.2f}%")
+</div>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題5.5: 非線形問題（Newton-Raphson法）</h2>
+            
+            <div class="code-title">Python実装: 非線形ポアソン方程式</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.sparse import lil_matrix, diags
+from scipy.sparse.linalg import spsolve
+
+# 非線形ポアソン方程式: -∇²u + u³ = f
+# Newton-Raphson法で反復的に解く
+
+def nonlinear_poisson_residual(u, K, M, F):
+    """残差ベクトル: R(u) = K*u + M*(u³) - F"""
+    return K @ u + M @ (u**3) - F
+
+def nonlinear_poisson_jacobian(u, K, M):
+    """ヤコビ行列: J(u) = K + M*diag(3u²)"""
+    J = K.copy()
+    # 対角成分に 3u² を加算
+    diag_3u2 = 3 * u**2
+    J += M.multiply(diags(diag_3u2, format='csr'))
+    return J
+
+def newton_raphson_solve(u0, K, M, F, boundary_nodes, max_iter=20, tol=1e-6):
+    """Newton-Raphson法で非線形システムを解く"""
+    u = u0.copy()
+    residual_history = []
+    
+    for iteration in range(max_iter):
+        # 残差とヤコビ行列
+        R = nonlinear_poisson_residual(u, K, M, F)
+        J = nonlinear_poisson_jacobian(u, K, M)
+        
+        # 境界条件の適用（残差と修正をゼロに）
+        R[boundary_nodes] = 0
+        for node in boundary_nodes:
+            J[node, :] = 0
+            J[:, node] = 0
+            J[node, node] = 1
+        
+        # Newton修正を解く: J * delta_u = -R
+        delta_u = spsolve(J, -R)
+        
+        # 解の更新
+        u += delta_u
+        
+        # 収束判定
+        residual_norm = np.linalg.norm(R) / np.linalg.norm(F)
+        residual_history.append(residual_norm)
+        
+        print(f"反復 {iteration+1}: 残差ノルム = {residual_norm:.6e}")
+        
+        if residual_norm < tol:
+            print(f"収束: {iteration+1} 反復")
+            break
+    
+    return u, residual_history
+
+# メッシュ生成
+Nx, Ny = 20, 20
+points, tri = generate_mesh_2d(1.0, 1.0, Nx, Ny)
+
+# 右辺関数: f(x,y) = 10 * sin(2πx) * sin(2πy)
+def source_nonlinear(x, y):
+    return 10 * np.sin(2 * np.pi * x) * np.sin(2 * np.pi * y)
+
+# 線形項の剛性行列と質量行列
+K, _ = assemble_global_system(points, tri, lambda x, y: 0)  # f=0で剛性行列のみ
+M = lil_matrix((len(points), len(points)))
+
+# 質量行列の組み立て（u³項用）
+for elem in tri.simplices:
+    nodes = points[elem]
+    _, A_elem = compute_element_stiffness(nodes)
+    
+    # 集中質量行列（lumped mass matrix）
+    for i in range(3):
+        M[elem[i], elem[i]] += A_elem / 3
+
+M = M.tocsr()
+
+# 荷重ベクトル
+F = np.array([source_nonlinear(x, y) for x, y in points])
+
+# 境界条件
+K_bc, F_bc, boundary_nodes = apply_boundary_conditions(K.copy(), F.copy(), points)
+
+# 初期推測（線形問題の解）
+u0 = spsolve(K_bc, F_bc)
+
+# Newton-Raphson法で解く
+u_nonlinear, residual_history = newton_raphson_solve(u0, K, M, F, boundary_nodes)
+
+# 可視化
+fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+
+# 線形解（初期推測）
+ax1 = axes[0]
+contour1 = ax1.tricontourf(points[:, 0], points[:, 1], u0, levels=20, cmap='viridis')
+ax1.tricontour(points[:, 0], points[:, 1], u0, levels=10, colors='white', 
+               linewidths=0.5, alpha=0.5)
+ax1.set_xlabel('x')
+ax1.set_ylabel('y')
+ax1.set_title('線形解（初期推測）')
+ax1.axis('equal')
+plt.colorbar(contour1, ax=ax1)
+
+# 非線形解
+ax2 = axes[1]
+contour2 = ax2.tricontourf(points[:, 0], points[:, 1], u_nonlinear, levels=20, cmap='viridis')
+ax2.tricontour(points[:, 0], points[:, 1], u_nonlinear, levels=10, colors='white', 
+               linewidths=0.5, alpha=0.5)
+ax2.set_xlabel('x')
+ax2.set_ylabel('y')
+ax2.set_title('非線形解（Newton-Raphson）')
+ax2.axis('equal')
+plt.colorbar(contour2, ax=ax2)
+
+# 収束履歴
+ax3 = axes[2]
+ax3.semilogy(range(1, len(residual_history)+1), residual_history, 'bo-', linewidth=2, markersize=8)
+ax3.set_xlabel('Iteration')
+ax3.set_ylabel('Residual norm (relative)')
+ax3.set_title('Newton-Raphson収束履歴')
+ax3.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('fem_nonlinear_newton.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("\n=== 非線形ポアソン方程式 ===")
+print(f"節点数: {len(points)}")
+print(f"収束反復数: {len(residual_history)}")
+print(f"線形解の最大値: {np.max(np.abs(u0)):.6f}")
+print(f"非線形解の最大値: {np.max(np.abs(u_nonlinear)):.6f}")
+</div>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題5.6: スパース行列の効率的扱い</h2>
+            
+            <div class="code-title">Python実装: スパース行列の性能比較</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, diags
+from scipy.sparse.linalg import spsolve
+import time
+
+# 大規模スパース線形システムの性能比較
+
+def create_sparse_system(N):
+    """N×N の三重対角行列を生成（ラプラシアン）"""
+    main_diag = 2 * np.ones(N)
+    off_diag = -np.ones(N-1)
+    K = diags([off_diag, main_diag, off_diag], [-1, 0, 1], format='csr')
+    F = np.ones(N)
+    return K, F
+
+# 異なるサイズでベンチマーク
+sizes = [100, 500, 1000, 2000, 5000]
+times_lil = []
+times_csr = []
+times_dense = []
+memory_sparse = []
+memory_dense = []
+
+print("=== スパース行列の性能ベンチマーク ===\n")
+
+for N in sizes:
+    print(f"サイズ N = {N}")
+    
+    K, F = create_sparse_system(N)
+    
+    # LIL形式（構築）
+    start = time.time()
+    K_lil = lil_matrix(K)
+    time_lil = time.time() - start
+    times_lil.append(time_lil)
+    
+    # CSR形式（演算）
+    start = time.time()
+    K_csr = csr_matrix(K)
+    u_sparse = spsolve(K_csr, F)
+    time_csr = time.time() - start
+    times_csr.append(time_csr)
+    
+    # 密行列（比較用、N≤2000まで）
+    if N <= 2000:
+        start = time.time()
+        K_dense = K.toarray()
+        u_dense = np.linalg.solve(K_dense, F)
+        time_dense = time.time() - start
+        times_dense.append(time_dense)
+    else:
+        times_dense.append(np.nan)
+    
+    # メモリ使用量
+    nnz = K.nnz  # 非ゼロ要素数
+    memory_sparse.append(nnz * 8 / 1024)  # KB（float64 = 8 bytes）
+    memory_dense.append(N * N * 8 / 1024)  # KB
+    
+    print(f"  CSR解法: {time_csr:.6f} s")
+    print(f"  密行列解法: {time_dense[-1] if not np.isnan(time_dense[-1]) else 'N/A':.6f} s" if N <= 2000 else "  密行列解法: スキップ（大きすぎる）")
+    print(f"  スパース性: {nnz / (N*N) * 100:.2f}%")
+    print()
+
+# 可視化
+fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+
+# 計算時間の比較
+ax1 = axes[0]
+ax1.loglog(sizes, times_csr, 'b-o', label='CSR (スパース)', linewidth=2, markersize=8)
+valid_dense = ~np.isnan(times_dense)
+ax1.loglog(np.array(sizes)[valid_dense], np.array(times_dense)[valid_dense], 
+           'r-s', label='Dense (密行列)', linewidth=2, markersize=8)
+ax1.set_xlabel('System size N')
+ax1.set_ylabel('Computation time (s)')
+ax1.set_title('計算時間の比較')
+ax1.legend()
+ax1.grid(True, alpha=0.3, which='both')
+
+# メモリ使用量の比較
+ax2 = axes[1]
+ax2.loglog(sizes, memory_sparse, 'b-o', label='Sparse', linewidth=2, markersize=8)
+ax2.loglog(sizes, memory_dense, 'r-s', label='Dense', linewidth=2, markersize=8)
+ax2.set_xlabel('System size N')
+ax2.set_ylabel('Memory usage (KB)')
+ax2.set_title('メモリ使用量の比較')
+ax2.legend()
+ax2.grid(True, alpha=0.3, which='both')
+
+# 高速化率
+ax3 = axes[2]
+speedup = np.array(times_dense) / np.array(times_csr)
+valid_speedup = ~np.isnan(speedup)
+ax3.semilogy(np.array(sizes)[valid_speedup], speedup[valid_speedup], 
+             'go-', linewidth=2, markersize=8)
+ax3.set_xlabel('System size N')
+ax3.set_ylabel('Speedup (Dense / Sparse)')
+ax3.set_title('スパース行列による高速化率')
+ax3.grid(True, alpha=0.3, which='both')
+
+plt.tight_layout()
+plt.savefig('fem_sparse_performance.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("=== まとめ ===")
+print(f"最大サイズ N={sizes[-1]} での性能:")
+print(f"  スパース解法: {times_csr[-1]:.4f} s")
+print(f"  メモリ削減率: {(1 - memory_sparse[-1]/memory_dense[-1]) * 100:.2f}%")
+</div>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題5.7: プロセスシミュレーション - 熱処理過程</h2>
+            
+            <div class="code-title">Python実装: 鋼材の焼入れシミュレーション</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+# 鋼材の焼入れ過程のシミュレーション
+# 1次元熱伝導 + 相変態（マルテンサイト変態）
+
+# 材料物性値
+rho = 7850  # 密度 (kg/m³)
+c_p = 460   # 比熱 (J/(kg·K))
+k = 50      # 熱伝導率 (W/(m·K))
+alpha = k / (rho * c_p)  # 熱拡散係数
+
+# 焼入れ条件
+T_initial = 900  # 初期温度（オーステナイト化温度）(°C)
+T_coolant = 20   # 冷却液温度 (°C)
+h = 5000    # 対流熱伝達係数 (W/(m²·K))
+L = 0.05    # 試験片の厚さ（半分、対称性より）(m)
+
+# マルテンサイト変態温度
+M_s = 350   # マルテンサイト変態開始温度 (°C)
+M_f = 200   # マルテンサイト変態終了温度 (°C)
+
+def quenching_rhs(u, t, alpha, dx, h, k, T_coolant, M_s, M_f):
+    """焼入れ過程の右辺（熱伝導 + 対流境界条件 + 相変態潜熱）"""
+    dudt = np.zeros_like(u)
+    
+    # 内部点: 拡散
+    for i in range(1, len(u)-1):
+        dudt[i] = alpha * (u[i+1] - 2*u[i] + u[i-1]) / dx**2
+    
+    # 左端: 対称境界条件（断熱）
+    dudt[0] = alpha * (2*u[1] - 2*u[0]) / dx**2
+    
+    # 右端: 対流境界条件
+    dudt[-1] = alpha * (2*u[-2] - 2*u[-1]) / dx**2 + \
+               (2 * h / (rho * c_p * dx)) * (T_coolant - u[-1])
+    
+    # 相変態潜熱の効果（簡易モデル）
+    for i in range(len(u)):
+        if M_f < u[i] < M_s:
+            # 変態進行度に応じた発熱（Koistinen-Marburger式の簡略版）
+            transformation_rate = 0.01 * (M_s - u[i]) / (M_s - M_f)
+            latent_heat = 200000  # 潜熱 (J/kg)
+            dudt[i] += transformation_rate * latent_heat / (rho * c_p)
+    
+    return dudt
+
+# 空間離散化
+Nx = 50
+x = np.linspace(0, L, Nx)
+dx = x[1] - x[0]
+
+# 初期条件
+u0 = np.full(Nx, T_initial)
+
+# 時間積分
+t_end = 60  # 焼入れ時間 (s)
+t = np.linspace(0, t_end, 500)
+solution = odeint(quenching_rhs, u0, t, args=(alpha, dx, h, k, T_coolant, M_s, M_f))
+
+# マルテンサイト分率の計算（Koistinen-Marburger式）
+def martensite_fraction(T):
+    """マルテンサイト分率"""
+    f_M = np.zeros_like(T)
+    mask = T < M_s
+    f_M[mask] = 1 - np.exp(-0.011 * (M_s - T[mask]))
+    f_M[T < M_f] = 1.0
+    return f_M
+
+martensite_final = martensite_fraction(solution[-1, :])
+
+# 可視化
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# 時空間温度分布
+ax1 = axes[0, 0]
+X, T_grid = np.meshgrid(x * 1000, t)  # mm単位
+contour = ax1.contourf(X, T_grid, solution, levels=20, cmap='hot')
+ax1.contour(X, T_grid, solution, levels=[M_s, M_f], colors='cyan', linewidths=2, 
+            linestyles=['--', ':'])
+ax1.set_xlabel('Distance from center (mm)')
+ax1.set_ylabel('Time (s)')
+ax1.set_title('温度分布の時間発展')
+plt.colorbar(contour, ax=ax1, label='Temperature (°C)')
+
+# 表面と中心の温度履歴
+ax2 = axes[0, 1]
+ax2.plot(t, solution[:, 0], 'b-', label='中心', linewidth=2)
+ax2.plot(t, solution[:, -1], 'r-', label='表面', linewidth=2)
+ax2.axhline(M_s, color='cyan', linestyle='--', linewidth=1.5, label=f'M_s = {M_s}°C')
+ax2.axhline(M_f, color='cyan', linestyle=':', linewidth=1.5, label=f'M_f = {M_f}°C')
+ax2.set_xlabel('Time (s)')
+ax2.set_ylabel('Temperature (°C)')
+ax2.set_title('温度履歴')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+# 最終温度分布
+ax3 = axes[1, 0]
+ax3.plot(x * 1000, solution[-1, :], 'k-', linewidth=2)
+ax3.axhline(M_s, color='cyan', linestyle='--', linewidth=1.5, label=f'M_s = {M_s}°C')
+ax3.axhline(M_f, color='cyan', linestyle=':', linewidth=1.5, label=f'M_f = {M_f}°C')
+ax3.fill_between(x * 1000, 0, solution[-1, :], alpha=0.3, color='red')
+ax3.set_xlabel('Distance from center (mm)')
+ax3.set_ylabel('Temperature (°C)')
+ax3.set_title(f'最終温度分布 (t = {t_end} s)')
+ax3.legend()
+ax3.grid(True, alpha=0.3)
+
+# マルテンサイト分率分布
+ax4 = axes[1, 1]
+ax4.plot(x * 1000, martensite_final * 100, 'b-', linewidth=2)
+ax4.fill_between(x * 1000, 0, martensite_final * 100, alpha=0.3, color='blue')
+ax4.set_xlabel('Distance from center (mm)')
+ax4.set_ylabel('Martensite fraction (%)')
+ax4.set_title('最終マルテンサイト分率')
+ax4.grid(True, alpha=0.3)
+ax4.set_ylim([0, 105])
+
+plt.tight_layout()
+plt.savefig('fem_quenching_simulation.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("=== 焼入れシミュレーション ===")
+print(f"初期温度: {T_initial}°C")
+print(f"冷却液温度: {T_coolant}°C")
+print(f"対流熱伝達係数: {h} W/(m²·K)")
+print(f"試験片厚さ: {L*2*1000:.1f} mm")
+print(f"\n焼入れ後（t={t_end}s）:")
+print(f"  中心温度: {solution[-1, 0]:.1f}°C")
+print(f"  表面温度: {solution[-1, -1]:.1f}°C")
+print(f"  平均マルテンサイト分率: {np.mean(martensite_final)*100:.1f}%")
+print(f"  表面マルテンサイト分率: {martensite_final[-1]*100:.1f}%")
+</div>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題5.8: 連成問題（熱-機械連成）</h2>
+            
+            <div class="code-title">Python実装: 熱応力シミュレーション</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+
+# 熱-機械連成問題: 温度変化による熱応力
+# 1次元弾性棒が加熱されたときの変位と応力
+
+# 材料物性値（鋼）
+E = 200e9  # ヤング率 (Pa)
+alpha_thermal = 12e-6  # 線膨張係数 (1/K)
+L = 1.0  # 棒の長さ (m)
+A = 0.01**2  # 断面積 (m²)
+
+# 温度分布（線形勾配）
+def temperature_distribution(x, T_left, T_right):
+    """左端から右端への線形温度勾配"""
+    return T_left + (T_right - T_left) * x / L
+
+T_ref = 20  # 参照温度 (°C)
+T_left = 100  # 左端温度 (°C)
+T_right = 20  # 右端温度 (°C)
+
+# 有限要素解析
+Nx = 50
+x_nodes = np.linspace(0, L, Nx)
+h = x_nodes[1] - x_nodes[0]
+
+# 温度場
+T = temperature_distribution(x_nodes, T_left, T_right)
+delta_T = T - T_ref
+
+# 熱ひずみ: ε_th = α * ΔT
+epsilon_thermal = alpha_thermal * delta_T
+
+# 剛性行列
+K = np.zeros((Nx, Nx))
+for i in range(Nx-1):
+    K_elem = (E * A / h) * np.array([[1, -1],
+                                      [-1, 1]])
+    K[i:i+2, i:i+2] += K_elem
+
+# 熱荷重ベクトル
+F_thermal = np.zeros(Nx)
+for i in range(Nx-1):
+    # 熱ひずみによる等価節点力
+    epsilon_th_avg = (epsilon_thermal[i] + epsilon_thermal[i+1]) / 2
+    F_elem = E * A * epsilon_th_avg * np.array([1, -1])
+    F_thermal[i:i+2] += F_elem
+
+# 境界条件: 両端固定
+K_reduced = K[1:-1, 1:-1]
+F_reduced = F_thermal[1:-1]
+
+# 変位を解く
+u_interior = np.linalg.solve(K_reduced, F_reduced)
+u = np.concatenate([[0], u_interior, [0]])
+
+# 全ひずみと応力
+epsilon_total = np.diff(u) / h
+epsilon_mechanical = epsilon_total - epsilon_thermal[:-1]  # 平均値を使用
+stress = E * epsilon_mechanical
+
+# 可視化
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# 温度分布
+ax1 = axes[0, 0]
+ax1.plot(x_nodes * 1000, T, 'r-', linewidth=2)
+ax1.fill_between(x_nodes * 1000, T_ref, T, alpha=0.3, color='red')
+ax1.axhline(T_ref, color='k', linestyle='--', linewidth=1, label=f'参照温度 ({T_ref}°C)')
+ax1.set_xlabel('Position (mm)')
+ax1.set_ylabel('Temperature (°C)')
+ax1.set_title('温度分布')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# 変位分布
+ax2 = axes[0, 1]
+ax2.plot(x_nodes * 1000, u * 1e6, 'b-', linewidth=2)
+ax2.fill_between(x_nodes * 1000, 0, u * 1e6, alpha=0.3, color='blue')
+ax2.set_xlabel('Position (mm)')
+ax2.set_ylabel('Displacement (μm)')
+ax2.set_title('変位分布（両端固定）')
+ax2.grid(True, alpha=0.3)
+
+# ひずみ成分
+ax3 = axes[1, 0]
+x_strain = (x_nodes[:-1] + x_nodes[1:]) / 2 * 1000
+ax3.plot(x_strain, epsilon_thermal[:-1] * 1e6, 'r--', label='熱ひずみ', linewidth=2)
+ax3.plot(x_strain, epsilon_mechanical * 1e6, 'b:', label='機械ひずみ', linewidth=2)
+ax3.plot(x_strain, epsilon_total * 1e6, 'k-', label='全ひずみ', linewidth=2)
+ax3.set_xlabel('Position (mm)')
+ax3.set_ylabel('Strain (με)')
+ax3.set_title('ひずみ成分')
+ax3.legend()
+ax3.grid(True, alpha=0.3)
+ax3.axhline(0, color='k', linestyle='-', linewidth=0.5)
+
+# 応力分布
+ax4 = axes[1, 1]
+ax4.plot(x_strain, stress / 1e6, 'k-', linewidth=2)
+ax4.fill_between(x_strain, 0, stress / 1e6, alpha=0.3, 
+                  where=(stress > 0), color='red', label='引張')
+ax4.fill_between(x_strain, 0, stress / 1e6, alpha=0.3, 
+                  where=(stress < 0), color='blue', label='圧縮')
+ax4.set_xlabel('Position (mm)')
+ax4.set_ylabel('Stress (MPa)')
+ax4.set_title('熱応力分布')
+ax4.legend()
+ax4.grid(True, alpha=0.3)
+ax4.axhline(0, color='k', linestyle='-', linewidth=0.5)
+
+plt.tight_layout()
+plt.savefig('fem_thermal_stress.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("=== 熱応力解析 ===")
+print(f"材料: 鋼")
+print(f"ヤング率: {E/1e9:.0f} GPa")
+print(f"線膨張係数: {alpha_thermal*1e6:.1f} με/K")
+print(f"温度範囲: {T_left}°C → {T_right}°C")
+print(f"\n結果:")
+print(f"  最大変位: {np.max(np.abs(u))*1e6:.2f} μm")
+print(f"  最大引張応力: {np.max(stress)/1e6:.2f} MPa")
+print(f"  最大圧縮応力: {np.min(stress)/1e6:.2f} MPa")
+print(f"  最大熱ひずみ: {np.max(epsilon_thermal)*1e6:.2f} με")
+</div>
+        </div>
+
+        <div class="content">
+            <h2>📚 まとめ</h2>
+            <ul>
+                <li><strong>有限差分法</strong>は実装が容易だが、複雑形状への適用が困難。FTCS, BTCS, Crank-Nicolsonの特性を理解することが重要</li>
+                <li><strong>有限要素法</strong>は変分原理に基づき、非構造格子で複雑形状に対応。線形三角形要素が基本</li>
+                <li><strong>安定性と収束性</strong>は数値解法の信頼性を保証する基本概念。CFL条件やLaxの等価定理が重要</li>
+                <li><strong>適応的メッシュ細分化</strong>により、効率的に高精度解が得られる</li>
+                <li><strong>時間依存問題</strong>は半離散化後、陽解法または陰解法で時間積分する</li>
+                <li><strong>非線形問題</strong>はNewton-Raphson法などの反復法で解く</li>
+                <li><strong>スパース行列</strong>の効率的な扱いが大規模問題の鍵</li>
+                <li>プロセスシミュレーション（焼入れ、熱応力）など、材料科学への実用的応用が豊富</li>
+            </ul>
+        </div>
+
+        <div class="exercise">
+            <h3>💡 演習問題</h3>
+            <ol>
+                <li><strong>安定性解析</strong>: FTCS法で熱方程式を解く際、\(r > 0.5\) とした場合の不安定性を数値的に確認せよ。</li>
+                <li><strong>2次要素FEM</strong>: 線形三角形要素を2次要素に拡張し、精度向上を検証せよ。</li>
+                <li><strong>3次元問題</strong>: 2次元FEMを3次元に拡張し、四面体要素でポアソン方程式を解け。</li>
+                <li><strong>反応拡散系</strong>: Gray-Scott反応拡散系を2次元で解き、パターン形成を観察せよ。</li>
+                <li><strong>連成問題</strong>: 熱-機械連成に動的効果を加え、熱衝撃問題をシミュレートせよ。</li>
+            </ol>
+        </div>
+
+        <div class="navigation">
+            <a href="chapter-4.html" class="nav-button">← 第4章: 変分法と最適化</a>
+            <a href="index.html" class="nav-button">シリーズTOPへ</a>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 AI Terakoya - Fundamentals of Mathematics & Physics Dojo</p>
+    </footer>
+</body>
+</html>

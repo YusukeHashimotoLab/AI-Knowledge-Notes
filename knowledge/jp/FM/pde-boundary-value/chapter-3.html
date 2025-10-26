@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章: ラプラス方程式とポテンシャル理論 | FM Dojo - 偏微分方程式と境界値問題</title>
+    <meta name="description" content="ラプラス方程式とポテンシャル理論：調和関数、極座標・円筒座標での解法、グリーン関数、ポアソン方程式、数値解法を学び、定常状態問題への応用を実装します。">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background: #f5f5f5;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+        .breadcrumb {
+            max-width: 1200px;
+            margin: 1rem auto;
+            padding: 0 1rem;
+            font-size: 0.9rem;
+        }
+        .breadcrumb a { color: #667eea; text-decoration: none; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        h1 { font-size: 2rem; margin-bottom: 1rem; }
+        h2 {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid #764ba2;
+            color: #667eea;
+        }
+        h3 { font-size: 1.2rem; margin: 1.5rem 0 1rem; color: #555; }
+        p { margin-bottom: 1rem; }
+        ul, ol { margin: 1rem 0 1rem 2rem; }
+        li { margin-bottom: 0.5rem; }
+        .theory-box {
+            background: linear-gradient(to right, #f0f4ff, #faf5ff);
+            border-left: 4px solid #667eea;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+        .code-example {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        .code-title {
+            background: #667eea;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px 6px 0 0;
+            font-weight: 600;
+            margin-top: 1.5rem;
+        }
+        .exercise {
+            background: #fff9e6;
+            border-left: 4px solid #f59e0b;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            gap: 1rem;
+        }
+        .nav-button {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.3s;
+        }
+        .nav-button:hover { transform: translateY(-2px); }
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 2rem 1rem;
+            margin-top: 4rem;
+        }
+        @media (max-width: 768px) {
+            .content { padding: 1.5rem; }
+            h1 { font-size: 1.5rem; }
+            h2 { font-size: 1.3rem; }
+            .navigation { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📐 第3章: ラプラス方程式とポテンシャル理論</h1>
+        <p>Laplace Equation and Potential Theory</p>
+    </header>
+
+    <div class="breadcrumb">
+        <a href="../../index.html">ナレッジベース</a> &gt;
+        <a href="../index.html">FM Dojo</a> &gt;
+        <a href="index.html">偏微分方程式と境界値問題</a> &gt;
+        第3章
+    </div>
+
+    <div class="container">
+        <div class="content">
+            <h2>🎯 学習目標</h2>
+            <ul>
+                <li>ラプラス方程式とポテンシャル理論の基礎を理解する</li>
+                <li>調和関数の性質と最大値原理を学ぶ</li>
+                <li>極座標・円筒座標でのラプラス方程式を解く</li>
+                <li>グリーン関数による境界値問題の解法を習得する</li>
+                <li>ポアソン方程式と電荷分布・熱源の扱いを理解する</li>
+                <li>反復法による数値解法（Jacobi法、Gauss-Seidel法、SOR法）を実装する</li>
+                <li>材料科学への応用（静電場解析、定常熱伝導）を理解する</li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <h2>📖 ラプラス方程式とは</h2>
+            
+            <div class="theory-box">
+                <h3>ラプラス方程式の定義</h3>
+                <p><strong>ラプラス方程式（Laplace equation）</strong>は、以下の形式の楕円型偏微分方程式です：</p>
+                <p>\[
+                \nabla^2 u = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2} + \frac{\partial^2 u}{\partial z^2} = 0
+                \]</p>
+                <p>ラプラス方程式の解を<strong>調和関数（harmonic function）</strong>と呼びます。</p>
+                <p><strong>ポアソン方程式（Poisson equation）</strong>は、右辺が非ゼロの場合です：</p>
+                <p>\[
+                \nabla^2 u = f(x,y,z)
+                \]</p>
+                <p>ここで \(f\) は熱源や電荷密度を表します。</p>
+            </div>
+
+            <h3>物理的意義</h3>
+            <ul>
+                <li><strong>静電ポテンシャル</strong>: 電荷のない領域での電位 \(V\) は \(\nabla^2 V = 0\)</li>
+                <li><strong>定常熱伝導</strong>: 熱源のない領域での温度分布 \(T\) は \(\nabla^2 T = 0\)</li>
+                <li><strong>流体ポテンシャル</strong>: 非圧縮・非粘性流体の速度ポテンシャル \(\phi\) は \(\nabla^2 \phi = 0\)</li>
+                <li><strong>重力ポテンシャル</strong>: 質量のない領域での重力ポテンシャル</li>
+            </ul>
+
+            <div class="theory-box">
+                <h3>調和関数の性質</h3>
+                <p><strong>最大値原理（Maximum Principle）</strong>: 調和関数は内部に極値を持たず、最大値・最小値は境界上で達成されます。</p>
+                <p><strong>平均値定理（Mean Value Theorem）</strong>: 点 \((x_0, y_0)\) における調和関数の値は、その点を中心とする円周上の平均値に等しい：</p>
+                <p>\[
+                u(x_0, y_0) = \frac{1}{2\pi} \int_0^{2\pi} u(x_0 + r\cos\theta, y_0 + r\sin\theta) d\theta
+                \]</p>
+                <p><strong>一意性</strong>: ディリクレ境界条件のもとで、ラプラス方程式の解は一意的です。</p>
+            </div>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題3.1: 調和関数と最大値原理の検証</h2>
+            
+            <div class="code-title">Python実装: 調和関数の性質確認</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+# 調和関数の例: u(x,y) = x^2 - y^2 (実部 z^2 の調和関数)
+def harmonic_function(x, y):
+    return x**2 - y**2
+
+# 2次元グリッド作成
+x = np.linspace(-2, 2, 100)
+y = np.linspace(-2, 2, 100)
+X, Y = np.meshgrid(x, y)
+U = harmonic_function(X, Y)
+
+# ラプラシアンの計算（数値微分）
+dx = x[1] - x[0]
+dy = y[1] - y[0]
+
+# 2次偏微分
+d2u_dx2 = np.zeros_like(U)
+d2u_dy2 = np.zeros_like(U)
+
+for i in range(1, len(x)-1):
+    for j in range(1, len(y)-1):
+        d2u_dx2[j, i] = (U[j, i+1] - 2*U[j, i] + U[j, i-1]) / dx**2
+        d2u_dy2[j, i] = (U[j+1, i] - 2*U[j, i] + U[j-1, i]) / dy**2
+
+laplacian = d2u_dx2 + d2u_dy2
+
+# 可視化
+fig = plt.figure(figsize=(15, 5))
+
+# 調和関数
+ax1 = fig.add_subplot(131, projection='3d')
+ax1.plot_surface(X, Y, U, cmap='viridis', alpha=0.8)
+ax1.set_xlabel('x')
+ax1.set_ylabel('y')
+ax1.set_zlabel('u(x,y)')
+ax1.set_title('調和関数: u = x² - y²')
+
+# 等高線図
+ax2 = fig.add_subplot(132)
+contour = ax2.contour(X, Y, U, levels=20, cmap='viridis')
+ax2.clabel(contour, inline=True, fontsize=8)
+ax2.set_xlabel('x')
+ax2.set_ylabel('y')
+ax2.set_title('等高線図')
+ax2.axis('equal')
+
+# ラプラシアン
+ax3 = fig.add_subplot(133)
+laplacian_plot = ax3.imshow(laplacian[1:-1, 1:-1], extent=[-2, 2, -2, 2], 
+                             origin='lower', cmap='RdBu', vmin=-0.1, vmax=0.1)
+plt.colorbar(laplacian_plot, ax=ax3, label='∇²u')
+ax3.set_xlabel('x')
+ax3.set_ylabel('y')
+ax3.set_title(f'ラプラシアン (max: {np.max(np.abs(laplacian[1:-1,1:-1])):.2e})')
+
+plt.tight_layout()
+plt.savefig('laplace_harmonic_function.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 最大値原理の検証
+print("=== 最大値原理の検証 ===")
+print(f"内部の最大値: {np.max(U[10:-10, 10:-10]):.4f}")
+print(f"境界の最大値: {np.max([np.max(U[0,:]), np.max(U[-1,:]), np.max(U[:,0]), np.max(U[:,-1])]):.4f}")
+print(f"内部の最小値: {np.min(U[10:-10, 10:-10]):.4f}")
+print(f"境界の最小値: {np.min([np.min(U[0,:]), np.min(U[-1,:]), np.min(U[:,0]), np.min(U[:,-1])]):.4f}")
+</div>
+            <p><strong>出力解説</strong>:</p>
+            <ul>
+                <li>\(u = x^2 - y^2\) は調和関数（\(\nabla^2 u = 2 - 2 = 0\)）</li>
+                <li>ラプラシアンが数値誤差の範囲内でゼロであることを確認</li>
+                <li>最大値原理により、極値は境界上に存在</li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題3.2: 極座標でのラプラス方程式（円形領域）</h2>
+            
+            <div class="theory-box">
+                <h3>極座標でのラプラス方程式</h3>
+                <p>極座標 \((r, \theta)\) では、ラプラス方程式は：</p>
+                <p>\[
+                \nabla^2 u = \frac{1}{r}\frac{\partial}{\partial r}\left(r\frac{\partial u}{\partial r}\right) + \frac{1}{r^2}\frac{\partial^2 u}{\partial \theta^2} = 0
+                \]</p>
+                <p>変数分離 \(u(r,\theta) = R(r)\Theta(\theta)\) により：</p>
+                <p>\[
+                R(r) = A r^n + B r^{-n}, \quad \Theta(\theta) = C \cos(n\theta) + D \sin(n\theta)
+                \]</p>
+            </div>
+
+            <div class="code-title">Python実装: 円形領域のディリクレ問題</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+
+# 境界条件: u(a, θ) = f(θ) = sin(3θ) (半径 a の円周上)
+a = 1.0  # 円の半径
+n = 3    # モード数
+
+def boundary_condition(theta):
+    return np.sin(n * theta)
+
+def analytical_solution(r, theta):
+    """解析解: u(r,θ) = (r/a)^n sin(nθ)"""
+    return (r / a)**n * np.sin(n * theta)
+
+# 極座標グリッド
+r_vals = np.linspace(0, a, 50)
+theta_vals = np.linspace(0, 2*np.pi, 100)
+R, THETA = np.meshgrid(r_vals, theta_vals)
+
+# 解の計算
+U_analytical = analytical_solution(R, THETA)
+
+# デカルト座標変換
+X = R * np.cos(THETA)
+Y = R * np.sin(THETA)
+
+# 可視化
+fig = plt.figure(figsize=(15, 5))
+
+# 3Dプロット
+ax1 = fig.add_subplot(131, projection='3d')
+surf = ax1.plot_surface(X, Y, U_analytical, cmap='coolwarm', alpha=0.8)
+ax1.set_xlabel('x')
+ax1.set_ylabel('y')
+ax1.set_zlabel('u(r,θ)')
+ax1.set_title(f'解析解: u = (r/a)³ sin(3θ)')
+plt.colorbar(surf, ax=ax1, shrink=0.5)
+
+# 極座標での等高線
+ax2 = fig.add_subplot(132, projection='polar')
+contour = ax2.contourf(THETA, R, U_analytical, levels=20, cmap='coolwarm')
+plt.colorbar(contour, ax=ax2, label='u(r,θ)')
+ax2.set_title('極座標での等高線図')
+
+# デカルト座標での等高線
+ax3 = fig.add_subplot(133)
+contour2 = ax3.contourf(X, Y, U_analytical, levels=20, cmap='coolwarm')
+ax3.set_xlabel('x')
+ax3.set_ylabel('y')
+ax3.set_title('デカルト座標での等高線図')
+ax3.axis('equal')
+plt.colorbar(contour2, ax=ax3, label='u(x,y)')
+
+plt.tight_layout()
+plt.savefig('laplace_polar_coordinates.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 境界条件の検証
+theta_test = np.linspace(0, 2*np.pi, 100)
+u_boundary = analytical_solution(a, theta_test)
+u_bc = boundary_condition(theta_test)
+
+print("=== 境界条件の検証 ===")
+print(f"境界での誤差: {np.max(np.abs(u_boundary - u_bc)):.2e}")
+</div>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題3.3: 矩形領域でのラプラス方程式（変数分離法）</h2>
+            
+            <div class="code-title">Python実装: 矩形領域のディリクレ問題</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+
+# 矩形領域: 0 < x < L, 0 < y < H
+# 境界条件: u(x,0)=0, u(x,H)=sin(πx/L), u(0,y)=0, u(L,y)=0
+L = 1.0  # 長さ
+H = 1.0  # 高さ
+
+def analytical_solution(x, y, n_terms=50):
+    """変数分離法による解析解
+    u(x,y) = Σ B_n sin(nπx/L) sinh(nπy/L) / sinh(nπH/L)
+    """
+    u = np.zeros_like(x)
+    for n in range(1, n_terms + 1):
+        if n == 1:
+            # B_1 = 1 (フーリエ係数)
+            B_n = 1.0
+        else:
+            # 他の項は0（境界条件が sin(πx/L) のため）
+            B_n = 0.0
+        
+        u += B_n * np.sin(n * np.pi * x / L) * \
+             np.sinh(n * np.pi * y / L) / np.sinh(n * np.pi * H / L)
+    
+    return u
+
+# グリッド作成
+Nx, Ny = 100, 100
+x = np.linspace(0, L, Nx)
+y = np.linspace(0, H, Ny)
+X, Y = np.meshgrid(x, y)
+
+# 解析解
+U_analytical = analytical_solution(X, Y)
+
+# 可視化
+fig = plt.figure(figsize=(15, 5))
+
+# 3Dプロット
+ax1 = fig.add_subplot(131, projection='3d')
+surf = ax1.plot_surface(X, Y, U_analytical, cmap='viridis', alpha=0.8)
+ax1.set_xlabel('x')
+ax1.set_ylabel('y')
+ax1.set_zlabel('u(x,y)')
+ax1.set_title('解析解（変数分離法）')
+plt.colorbar(surf, ax=ax1, shrink=0.5)
+
+# 等高線図
+ax2 = fig.add_subplot(132)
+contour = ax2.contourf(X, Y, U_analytical, levels=20, cmap='viridis')
+ax2.set_xlabel('x')
+ax2.set_ylabel('y')
+ax2.set_title('等高線図')
+plt.colorbar(contour, ax=ax2, label='u(x,y)')
+
+# y方向の断面
+ax3 = fig.add_subplot(133)
+x_sections = [0.25, 0.5, 0.75]
+for x_val in x_sections:
+    idx = np.argmin(np.abs(x - x_val))
+    ax3.plot(y, U_analytical[:, idx], label=f'x = {x_val:.2f}')
+ax3.set_xlabel('y')
+ax3.set_ylabel('u(x,y)')
+ax3.set_title('y方向の断面')
+ax3.legend()
+ax3.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('laplace_rectangular_domain.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 境界条件の検証
+print("=== 境界条件の検証 ===")
+print(f"u(x,0) の最大値: {np.max(np.abs(U_analytical[0, :])):.2e}")
+print(f"u(0,y) の最大値: {np.max(np.abs(U_analytical[:, 0])):.2e}")
+print(f"u(L,y) の最大値: {np.max(np.abs(U_analytical[:, -1])):.2e}")
+print(f"u(x,H) vs sin(πx/L) の誤差: {np.max(np.abs(U_analytical[-1,:] - np.sin(np.pi*x/L))):.2e}")
+</div>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題3.4: グリーン関数による境界値問題</h2>
+            
+            <div class="theory-box">
+                <h3>グリーン関数</h3>
+                <p><strong>グリーン関数（Green's function）</strong> \(G(\mathbf{r}, \mathbf{r}')\) は、点源に対する応答を表します：</p>
+                <p>\[
+                \nabla^2 G(\mathbf{r}, \mathbf{r}') = \delta(\mathbf{r} - \mathbf{r}')
+                \]</p>
+                <p>3次元での基本解（自由空間グリーン関数）：</p>
+                <p>\[
+                G(\mathbf{r}, \mathbf{r}') = -\frac{1}{4\pi|\mathbf{r} - \mathbf{r}'|}
+                \]</p>
+                <p>ポアソン方程式 \(\nabla^2 u = f\) の解は：</p>
+                <p>\[
+                u(\mathbf{r}) = \int G(\mathbf{r}, \mathbf{r}') f(\mathbf{r}') d^3\mathbf{r}'
+                \]</p>
+            </div>
+
+            <div class="code-title">Python実装: グリーン関数による解の構成</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+# 2次元グリーン関数: G(r,r') = -1/(2π) ln|r-r'|
+def green_function_2d(x, y, x_prime, y_prime):
+    """2次元のグリーン関数"""
+    r = np.sqrt((x - x_prime)**2 + (y - y_prime)**2)
+    # 特異点を避ける
+    r = np.where(r < 1e-10, 1e-10, r)
+    return -np.log(r) / (2 * np.pi)
+
+# ポアソン方程式: ∇²u = f
+# 例: f(x,y) = exp(-(x²+y²)) (ガウス型熱源)
+def source_function(x, y):
+    return np.exp(-(x**2 + y**2))
+
+# グリッド設定
+N = 100
+x = np.linspace(-2, 2, N)
+y = np.linspace(-2, 2, N)
+X, Y = np.meshgrid(x, y)
+
+# 数値積分によるグリーン関数解の構成
+dx = x[1] - x[0]
+dy = y[1] - y[0]
+
+U = np.zeros((N, N))
+for i in range(N):
+    for j in range(N):
+        # 各点でグリーン関数による畳み込み積分
+        G = green_function_2d(X, Y, x[i], y[j])
+        F = source_function(X, Y)
+        U[j, i] = np.sum(G * F) * dx * dy
+
+# 点源の例（x'=0.5, y'=0.5）
+x_source, y_source = 0.5, 0.5
+G_point = green_function_2d(X, Y, x_source, y_source)
+
+# 可視化
+fig = plt.figure(figsize=(15, 5))
+
+# グリーン関数
+ax1 = fig.add_subplot(131, projection='3d')
+surf1 = ax1.plot_surface(X, Y, G_point, cmap='coolwarm', alpha=0.8)
+ax1.set_xlabel('x')
+ax1.set_ylabel('y')
+ax1.set_zlabel('G(r,r\')')
+ax1.set_title(f'グリーン関数 (点源: ({x_source}, {y_source}))')
+plt.colorbar(surf1, ax=ax1, shrink=0.5)
+
+# 熱源関数
+ax2 = fig.add_subplot(132, projection='3d')
+F = source_function(X, Y)
+surf2 = ax2.plot_surface(X, Y, F, cmap='hot', alpha=0.8)
+ax2.set_xlabel('x')
+ax2.set_ylabel('y')
+ax2.set_zlabel('f(x,y)')
+ax2.set_title('熱源分布: f = exp(-(x²+y²))')
+plt.colorbar(surf2, ax=ax2, shrink=0.5)
+
+# ポアソン方程式の解
+ax3 = fig.add_subplot(133, projection='3d')
+surf3 = ax3.plot_surface(X, Y, U, cmap='viridis', alpha=0.8)
+ax3.set_xlabel('x')
+ax3.set_ylabel('y')
+ax3.set_zlabel('u(x,y)')
+ax3.set_title('ポアソン方程式の解')
+plt.colorbar(surf3, ax=ax3, shrink=0.5)
+
+plt.tight_layout()
+plt.savefig('laplace_green_function.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("=== グリーン関数による解の構成 ===")
+print(f"解の最大値: {np.max(U):.4f}")
+print(f"解の最小値: {np.min(U):.4f}")
+</div>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題3.5: ポアソン方程式（電荷分布と電位）</h2>
+            
+            <div class="code-title">Python実装: 電荷分布からの電位計算</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+
+# ポアソン方程式: ∇²V = -ρ/ε₀ (電位と電荷密度)
+# 例: 2点電荷による電位分布
+
+epsilon_0 = 8.854e-12  # 真空の誘電率 (F/m)
+q1 = 1e-9  # 電荷1 (C)
+q2 = -1e-9  # 電荷2 (C)
+r1 = np.array([-0.5, 0.0])  # 電荷1の位置
+r2 = np.array([0.5, 0.0])   # 電荷2の位置
+
+def point_charge_potential(x, y, q, r_charge):
+    """点電荷による電位: V = q/(4πε₀r)"""
+    r = np.sqrt((x - r_charge[0])**2 + (y - r_charge[1])**2)
+    r = np.where(r < 0.01, 0.01, r)  # 特異点回避
+    return q / (4 * np.pi * epsilon_0 * r)
+
+def electric_field(x, y, q, r_charge):
+    """点電荷による電場: E = -∇V"""
+    r_vec = np.array([x - r_charge[0], y - r_charge[1]])
+    r = np.sqrt(r_vec[0]**2 + r_vec[1]**2)
+    r = np.where(r < 0.01, 0.01, r)
+    E = q * r_vec / (4 * np.pi * epsilon_0 * r**3)
+    return E
+
+# グリッド作成
+N = 200
+x = np.linspace(-2, 2, N)
+y = np.linspace(-2, 2, N)
+X, Y = np.meshgrid(x, y)
+
+# 重ね合わせの原理による電位
+V1 = point_charge_potential(X, Y, q1, r1)
+V2 = point_charge_potential(X, Y, q2, r2)
+V_total = V1 + V2
+
+# 電場の計算
+E1 = electric_field(X, Y, q1, r1)
+E2 = electric_field(X, Y, q2, r2)
+Ex_total = E1[0] + E2[0]
+Ey_total = E1[1] + E2[1]
+
+# 可視化
+fig = plt.figure(figsize=(15, 5))
+
+# 電位分布
+ax1 = fig.add_subplot(131)
+# 対数スケールで可視化（広範囲の値に対応）
+V_plot = np.clip(V_total, -1e3, 1e3)
+contour1 = ax1.contourf(X, Y, V_plot, levels=50, cmap='RdBu_r')
+ax1.plot(r1[0], r1[1], 'ro', markersize=10, label=f'q₁={q1*1e9:.1f}nC')
+ax1.plot(r2[0], r2[1], 'bo', markersize=10, label=f'q₂={q2*1e9:.1f}nC')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('y (m)')
+ax1.set_title('電位分布 V(x,y)')
+ax1.legend()
+plt.colorbar(contour1, ax=ax1, label='V (V)')
+
+# 等電位線と電場ベクトル
+ax2 = fig.add_subplot(132)
+contour2 = ax2.contour(X, Y, V_plot, levels=20, colors='gray', linewidths=0.5)
+# 電場ベクトル（間引いてプロット）
+skip = 10
+ax2.quiver(X[::skip, ::skip], Y[::skip, ::skip], 
+           Ex_total[::skip, ::skip], Ey_total[::skip, ::skip],
+           color='blue', alpha=0.6)
+ax2.plot(r1[0], r1[1], 'ro', markersize=10)
+ax2.plot(r2[0], r2[1], 'bo', markersize=10)
+ax2.set_xlabel('x (m)')
+ax2.set_ylabel('y (m)')
+ax2.set_title('電場ベクトル E = -∇V')
+ax2.axis('equal')
+
+# x軸上の電位プロファイル
+ax3 = fig.add_subplot(133)
+y_idx = N // 2
+ax3.plot(x, V_plot[y_idx, :], 'k-', linewidth=2)
+ax3.axvline(r1[0], color='r', linestyle='--', alpha=0.5, label='q₁位置')
+ax3.axvline(r2[0], color='b', linestyle='--', alpha=0.5, label='q₂位置')
+ax3.set_xlabel('x (m)')
+ax3.set_ylabel('V (V)')
+ax3.set_title('x軸上の電位プロファイル')
+ax3.grid(True, alpha=0.3)
+ax3.legend()
+
+plt.tight_layout()
+plt.savefig('poisson_electric_potential.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("=== 電荷分布と電位 ===")
+print(f"中心点(0,0)の電位: {point_charge_potential(0, 0, q1, r1) + point_charge_potential(0, 0, q2, r2):.2e} V")
+</div>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題3.6: 反復法による数値解法（Jacobi法）</h2>
+            
+            <div class="theory-box">
+                <h3>反復法の基礎</h3>
+                <p>ラプラス方程式の差分近似：</p>
+                <p>\[
+                \frac{u_{i+1,j} - 2u_{i,j} + u_{i-1,j}}{\Delta x^2} + \frac{u_{i,j+1} - 2u_{i,j} + u_{i,j-1}}{\Delta y^2} = 0
+                \]</p>
+                <p><strong>Jacobi法</strong>: 各点を周囲4点の平均値で更新</p>
+                <p>\[
+                u_{i,j}^{(k+1)} = \frac{1}{4}(u_{i+1,j}^{(k)} + u_{i-1,j}^{(k)} + u_{i,j+1}^{(k)} + u_{i,j-1}^{(k)})
+                \]</p>
+            </div>
+
+            <div class="code-title">Python実装: Jacobi法による反復解法</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+
+def jacobi_method(u_init, boundary_mask, max_iter=10000, tol=1e-6):
+    """Jacobi法による反復解法
+    
+    Parameters:
+    - u_init: 初期値
+    - boundary_mask: True=境界点, False=内部点
+    - max_iter: 最大反復回数
+    - tol: 収束判定の閾値
+    """
+    u = u_init.copy()
+    u_new = u.copy()
+    residual_history = []
+    
+    for iteration in range(max_iter):
+        # 内部点の更新（周囲4点の平均）
+        u_new[1:-1, 1:-1] = 0.25 * (u[2:, 1:-1] + u[:-2, 1:-1] + 
+                                      u[1:-1, 2:] + u[1:-1, :-2])
+        
+        # 境界値を保持
+        u_new[boundary_mask] = u[boundary_mask]
+        
+        # 収束判定（残差のL2ノルム）
+        residual = np.linalg.norm(u_new - u) / np.linalg.norm(u_new)
+        residual_history.append(residual)
+        
+        if residual < tol:
+            print(f"収束: iteration = {iteration}, residual = {residual:.2e}")
+            break
+        
+        u = u_new.copy()
+    
+    return u_new, residual_history
+
+# 問題設定: 矩形領域 [0,1]×[0,1]
+# 境界条件: u(x,0)=0, u(x,1)=sin(πx), u(0,y)=0, u(1,y)=0
+Nx, Ny = 50, 50
+x = np.linspace(0, 1, Nx)
+y = np.linspace(0, 1, Ny)
+X, Y = np.meshgrid(x, y)
+
+# 初期値と境界条件
+u_init = np.zeros((Ny, Nx))
+boundary_mask = np.zeros((Ny, Nx), dtype=bool)
+
+# 境界条件設定
+u_init[0, :] = 0  # y=0
+u_init[-1, :] = np.sin(np.pi * x)  # y=1
+u_init[:, 0] = 0  # x=0
+u_init[:, -1] = 0  # x=1
+
+boundary_mask[0, :] = True
+boundary_mask[-1, :] = True
+boundary_mask[:, 0] = True
+boundary_mask[:, -1] = True
+
+# Jacobi法で解く
+u_jacobi, residual_history = jacobi_method(u_init, boundary_mask, max_iter=10000, tol=1e-6)
+
+# 可視化
+fig = plt.figure(figsize=(15, 5))
+
+# 数値解
+ax1 = fig.add_subplot(131, projection='3d')
+surf = ax1.plot_surface(X, Y, u_jacobi, cmap='viridis', alpha=0.8)
+ax1.set_xlabel('x')
+ax1.set_ylabel('y')
+ax1.set_zlabel('u(x,y)')
+ax1.set_title('Jacobi法による数値解')
+plt.colorbar(surf, ax=ax1, shrink=0.5)
+
+# 等高線図
+ax2 = fig.add_subplot(132)
+contour = ax2.contourf(X, Y, u_jacobi, levels=20, cmap='viridis')
+ax2.set_xlabel('x')
+ax2.set_ylabel('y')
+ax2.set_title('等高線図')
+plt.colorbar(contour, ax=ax2, label='u(x,y)')
+
+# 収束履歴
+ax3 = fig.add_subplot(133)
+ax3.semilogy(residual_history, 'b-', linewidth=2)
+ax3.set_xlabel('Iteration')
+ax3.set_ylabel('Residual (L2 norm)')
+ax3.set_title('収束履歴')
+ax3.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('laplace_jacobi_method.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print(f"=== Jacobi法の結果 ===")
+print(f"反復回数: {len(residual_history)}")
+print(f"最終残差: {residual_history[-1]:.2e}")
+print(f"解の最大値: {np.max(u_jacobi):.4f}")
+</div>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題3.7: Gauss-Seidel法とSOR法の比較</h2>
+            
+            <div class="theory-box">
+                <h3>高速化手法</h3>
+                <p><strong>Gauss-Seidel法</strong>: 更新された値を即座に使用</p>
+                <p>\[
+                u_{i,j}^{(k+1)} = \frac{1}{4}(u_{i+1,j}^{(k)} + u_{i-1,j}^{(k+1)} + u_{i,j+1}^{(k)} + u_{i,j-1}^{(k+1)})
+                \]</p>
+                <p><strong>SOR法（Successive Over-Relaxation）</strong>: 緩和係数 \(\omega\) で収束加速</p>
+                <p>\[
+                u_{i,j}^{(k+1)} = (1-\omega)u_{i,j}^{(k)} + \omega \cdot \frac{1}{4}(u_{i+1,j}^{(k)} + u_{i-1,j}^{(k+1)} + u_{i,j+1}^{(k)} + u_{i,j-1}^{(k+1)})
+                \]</p>
+                <p>最適な \(\omega\) は約 1.7〜1.9（問題依存）</p>
+            </div>
+
+            <div class="code-title">Python実装: 3手法の収束速度比較</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+
+def gauss_seidel_method(u_init, boundary_mask, max_iter=10000, tol=1e-6):
+    """Gauss-Seidel法"""
+    u = u_init.copy()
+    residual_history = []
+    
+    for iteration in range(max_iter):
+        u_old = u.copy()
+        
+        # 内部点を順次更新（更新値を即座に使用）
+        for i in range(1, u.shape[0]-1):
+            for j in range(1, u.shape[1]-1):
+                if not boundary_mask[i, j]:
+                    u[i, j] = 0.25 * (u[i+1, j] + u[i-1, j] + u[i, j+1] + u[i, j-1])
+        
+        residual = np.linalg.norm(u - u_old) / np.linalg.norm(u)
+        residual_history.append(residual)
+        
+        if residual < tol:
+            break
+    
+    return u, residual_history
+
+def sor_method(u_init, boundary_mask, omega=1.5, max_iter=10000, tol=1e-6):
+    """SOR法"""
+    u = u_init.copy()
+    residual_history = []
+    
+    for iteration in range(max_iter):
+        u_old = u.copy()
+        
+        for i in range(1, u.shape[0]-1):
+            for j in range(1, u.shape[1]-1):
+                if not boundary_mask[i, j]:
+                    u_new = 0.25 * (u[i+1, j] + u[i-1, j] + u[i, j+1] + u[i, j-1])
+                    u[i, j] = (1 - omega) * u[i, j] + omega * u_new
+        
+        residual = np.linalg.norm(u - u_old) / np.linalg.norm(u)
+        residual_history.append(residual)
+        
+        if residual < tol:
+            break
+    
+    return u, residual_history
+
+# 同じ問題設定で3手法を比較
+Nx, Ny = 50, 50
+x = np.linspace(0, 1, Nx)
+y = np.linspace(0, 1, Ny)
+
+u_init = np.zeros((Ny, Nx))
+boundary_mask = np.zeros((Ny, Nx), dtype=bool)
+
+u_init[-1, :] = np.sin(np.pi * x)
+boundary_mask[0, :] = True
+boundary_mask[-1, :] = True
+boundary_mask[:, 0] = True
+boundary_mask[:, -1] = True
+
+# 3手法で解く
+print("=== 3手法の比較 ===")
+
+u_jacobi, res_jacobi = jacobi_method(u_init, boundary_mask, max_iter=10000, tol=1e-6)
+u_gs, res_gs = gauss_seidel_method(u_init, boundary_mask, max_iter=10000, tol=1e-6)
+u_sor, res_sor = sor_method(u_init, boundary_mask, omega=1.8, max_iter=10000, tol=1e-6)
+
+# 収束速度の可視化
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# 収束履歴
+ax1 = axes[0]
+ax1.semilogy(res_jacobi, 'b-', label=f'Jacobi ({len(res_jacobi)} iter)', linewidth=2)
+ax1.semilogy(res_gs, 'g-', label=f'Gauss-Seidel ({len(res_gs)} iter)', linewidth=2)
+ax1.semilogy(res_sor, 'r-', label=f'SOR (ω=1.8, {len(res_sor)} iter)', linewidth=2)
+ax1.set_xlabel('Iteration')
+ax1.set_ylabel('Residual (L2 norm)')
+ax1.set_title('収束速度の比較')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# 反復回数の棒グラフ
+ax2 = axes[1]
+methods = ['Jacobi', 'Gauss-Seidel', 'SOR (ω=1.8)']
+iterations = [len(res_jacobi), len(res_gs), len(res_sor)]
+colors = ['blue', 'green', 'red']
+ax2.bar(methods, iterations, color=colors, alpha=0.7)
+ax2.set_ylabel('Iterations to convergence')
+ax2.set_title('収束に必要な反復回数')
+ax2.grid(True, axis='y', alpha=0.3)
+
+for i, (method, iter_count) in enumerate(zip(methods, iterations)):
+    ax2.text(i, iter_count + 50, str(iter_count), ha='center', fontweight='bold')
+
+plt.tight_layout()
+plt.savefig('laplace_iterative_comparison.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print(f"Jacobi法: {len(res_jacobi)} 回")
+print(f"Gauss-Seidel法: {len(res_gs)} 回 (高速化率: {len(res_jacobi)/len(res_gs):.2f}x)")
+print(f"SOR法: {len(res_sor)} 回 (高速化率: {len(res_jacobi)/len(res_sor):.2f}x)")
+</div>
+        </div>
+
+        <div class="content">
+            <h2>💻 例題3.8: 材料科学応用 - 定常熱伝導問題</h2>
+            
+            <div class="code-title">Python実装: 複雑形状での熱分布解析</div>
+            <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+
+# 問題設定: L字型の材料での定常熱伝導
+# 一部の境界を高温、他を低温に設定
+
+def create_L_shaped_domain(Nx, Ny):
+    """L字型の領域を作成"""
+    domain = np.ones((Ny, Nx), dtype=bool)
+    # 右上の四角形を除外
+    domain[Ny//2:, Nx//2:] = False
+    return domain
+
+def solve_laplace_L_shaped(Nx=60, Ny=60, T_hot=100, T_cold=0, max_iter=10000, tol=1e-6):
+    """L字型領域でのラプラス方程式を解く"""
+    
+    # 領域作成
+    domain = create_L_shaped_domain(Nx, Ny)
+    
+    # 初期温度分布
+    u = np.full((Ny, Nx), T_cold, dtype=float)
+    u[~domain] = np.nan  # 領域外はNaN
+    
+    # 境界条件: 内側のL字の一部を高温に
+    u[0, :Nx//2] = T_hot  # 下辺の左半分
+    u[:Ny//2, 0] = T_hot  # 左辺の下半分
+    
+    # 境界マスク
+    boundary_mask = np.zeros((Ny, Nx), dtype=bool)
+    boundary_mask[0, :] = True
+    boundary_mask[-1, :] = True
+    boundary_mask[:, 0] = True
+    boundary_mask[:, -1] = True
+    boundary_mask[Ny//2-1, :Nx//2] = True  # L字の内側角
+    boundary_mask[:Ny//2, Nx//2-1] = True
+    
+    # SOR法で解く
+    omega = 1.8
+    for iteration in range(max_iter):
+        u_old = u.copy()
+        
+        for i in range(1, Ny-1):
+            for j in range(1, Nx-1):
+                if domain[i, j] and not boundary_mask[i, j]:
+                    # 周囲が領域内の点のみ使用
+                    neighbors = []
+                    if domain[i+1, j]: neighbors.append(u[i+1, j])
+                    if domain[i-1, j]: neighbors.append(u[i-1, j])
+                    if domain[i, j+1]: neighbors.append(u[i, j+1])
+                    if domain[i, j-1]: neighbors.append(u[i, j-1])
+                    
+                    if len(neighbors) > 0:
+                        u_new = np.mean(neighbors)
+                        u[i, j] = (1 - omega) * u[i, j] + omega * u_new
+        
+        # 収束判定
+        valid_points = domain & ~np.isnan(u) & ~np.isnan(u_old)
+        if np.any(valid_points):
+            residual = np.linalg.norm(u[valid_points] - u_old[valid_points]) / \
+                       np.linalg.norm(u[valid_points])
+            if residual < tol:
+                print(f"収束: iteration = {iteration}, residual = {residual:.2e}")
+                break
+    
+    return u, domain
+
+# 解を計算
+Nx, Ny = 60, 60
+u_solution, domain = solve_laplace_L_shaped(Nx, Ny, T_hot=100, T_cold=0)
+
+# 座標グリッド
+x = np.linspace(0, 1, Nx)
+y = np.linspace(0, 1, Ny)
+X, Y = np.meshgrid(x, y)
+
+# 可視化
+fig = plt.figure(figsize=(15, 5))
+
+# 温度分布（カラーマップ）
+ax1 = fig.add_subplot(131)
+im1 = ax1.imshow(u_solution, origin='lower', cmap='hot', extent=[0, 1, 0, 1],
+                  vmin=0, vmax=100)
+ax1.set_xlabel('x')
+ax1.set_ylabel('y')
+ax1.set_title('温度分布（L字型材料）')
+ax1.set_aspect('equal')
+plt.colorbar(im1, ax=ax1, label='Temperature (°C)')
+
+# 等温線
+ax2 = fig.add_subplot(132)
+u_plot = np.ma.masked_invalid(u_solution)
+contour = ax2.contourf(X, Y, u_plot, levels=20, cmap='hot')
+contour_lines = ax2.contour(X, Y, u_plot, levels=10, colors='black', 
+                              linewidths=0.5, alpha=0.5)
+ax2.clabel(contour_lines, inline=True, fontsize=8)
+ax2.set_xlabel('x')
+ax2.set_ylabel('y')
+ax2.set_title('等温線')
+ax2.set_aspect('equal')
+plt.colorbar(contour, ax=ax2, label='Temperature (°C)')
+
+# 温度勾配（ヒートフラックス方向）
+ax3 = fig.add_subplot(133)
+# 温度勾配を計算
+grad_y, grad_x = np.gradient(u_solution)
+# NaNを除外
+valid = ~np.isnan(grad_x) & ~np.isnan(grad_y)
+ax3.imshow(u_solution, origin='lower', cmap='hot', extent=[0, 1, 0, 1], alpha=0.3)
+# 勾配ベクトル（間引いてプロット）
+skip = 3
+ax3.quiver(X[::skip, ::skip][valid[::skip, ::skip]], 
+           Y[::skip, ::skip][valid[::skip, ::skip]],
+           -grad_x[::skip, ::skip][valid[::skip, ::skip]],
+           -grad_y[::skip, ::skip][valid[::skip, ::skip]],
+           color='blue', alpha=0.6)
+ax3.set_xlabel('x')
+ax3.set_ylabel('y')
+ax3.set_title('熱流束ベクトル (-∇T)')
+ax3.set_aspect('equal')
+
+plt.tight_layout()
+plt.savefig('laplace_L_shaped_heat_conduction.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("=== L字型材料の定常熱伝導 ===")
+print(f"最高温度: {np.nanmax(u_solution):.2f} °C")
+print(f"最低温度: {np.nanmin(u_solution):.2f} °C")
+print(f"平均温度: {np.nanmean(u_solution):.2f} °C")
+</div>
+        </div>
+
+        <div class="content">
+            <h2>📚 まとめ</h2>
+            <ul>
+                <li><strong>ラプラス方程式</strong>は定常状態の物理現象を記述し、調和関数として最大値原理などの重要な性質を持つ</li>
+                <li><strong>極座標・円筒座標</strong>での変数分離法により、円形・球形領域での解析解が得られる</li>
+                <li><strong>グリーン関数</strong>により、点源に対する応答から境界値問題の解を構成できる</li>
+                <li><strong>ポアソン方程式</strong>は熱源や電荷分布を含む問題を扱い、材料科学で広く応用される</li>
+                <li><strong>反復法</strong>（Jacobi, Gauss-Seidel, SOR）により数値的に解を求めることができ、SOR法が最も高速</li>
+                <li>複雑形状での定常熱伝導問題など、実用的な材料科学への応用が可能</li>
+            </ul>
+        </div>
+
+        <div class="exercise">
+            <h3>💡 演習問題</h3>
+            <ol>
+                <li><strong>調和関数の検証</strong>: \(u(x,y) = xy\) が調和関数でないことを、ラプラシアンを計算して確認せよ。</li>
+                <li><strong>極座標での解</strong>: 半径 \(a\) の円盤上で境界条件 \(u(a,\theta) = \cos(2\theta)\) を満たすラプラス方程式の解を求め、可視化せよ。</li>
+                <li><strong>グリーン関数の応用</strong>: 矩形領域でのグリーン関数を用い、熱源 \(f(x,y) = \delta(x-0.5, y-0.5)\) に対する温度分布を求めよ。</li>
+                <li><strong>収束の比較</strong>: SOR法の緩和係数 \(\omega\) を 1.0 から 2.0 まで変化させ、最適な \(\omega\) を求めよ。</li>
+                <li><strong>複雑形状</strong>: 円形の穴が開いた矩形領域でのラプラス方程式を解き、穴の周りの温度分布を可視化せよ。</li>
+            </ol>
+        </div>
+
+        <div class="navigation">
+            <a href="chapter-2.html" class="nav-button">← 第2章: 熱方程式と拡散</a>
+            <a href="chapter-4.html" class="nav-button">第4章: 変分法と最適化 →</a>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 AI Terakoya - Fundamentals of Mathematics & Physics Dojo</p>
+    </footer>
+</body>
+</html>
