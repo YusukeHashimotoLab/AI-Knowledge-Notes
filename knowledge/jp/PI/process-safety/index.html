@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="プロセス安全性評価入門シリーズ - HAZOPからリスクアセスメント、異常検知まで完全ガイド">
+    <title>プロセス安全性評価入門シリーズ v1.0 - PI Knowledge Hub</title>
+
+    <!-- CSS Styling -->
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #11998e;
+            --accent-color: #38ef7d;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #11998e;
+            --link-hover: #0d7a6f;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header .container {
+            padding: 0 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-top: 1rem;
+        }
+
+        .meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Typography */
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            color: var(--primary-color);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.6rem;
+            color: var(--primary-color);
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+        }
+
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--link-hover);
+            text-decoration: underline;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1.2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Code blocks */
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            display: block;
+        }
+
+        thead {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        tbody {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 0.8rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        /* Blockquotes */
+        blockquote {
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: #666;
+        }
+
+        /* Images */
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        /* Mermaid diagrams */
+        .mermaid {
+            text-align: center;
+            margin: 2rem 0;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Details/Summary (for exercises) */
+        details {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary-color);
+            padding: 0.5rem;
+        }
+
+        summary:hover {
+            color: var(--secondary-color);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--border-color);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        /* Navigation buttons */
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 3rem 0;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .nav-button:hover {
+            background: var(--link-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
+        }
+
+        .chapter-card {
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .chapter-card:hover {
+            border-color: var(--secondary-color);
+            box-shadow: 0 4px 12px rgba(17, 153, 142, 0.2);
+        }
+
+        .chapter-title {
+            font-size: 1.3rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .chapter-meta {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+
+            table {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mermaidCodeBlocks = document.querySelectorAll('pre.codehilite code.language-mermaid, pre code.language-mermaid');
+
+            mermaidCodeBlocks.forEach(function(codeBlock) {
+                const pre = codeBlock.parentElement;
+                const mermaidCode = codeBlock.textContent;
+
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = mermaidCode.trim();
+
+                pre.parentNode.replaceChild(mermaidDiv, pre);
+            });
+
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+                mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+            }
+        });
+    </script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🛡️ プロセス安全性評価入門シリーズ v1.0</h1>
+            <div class="meta">
+                <span>📖 読了時間: 100-120分</span>
+                <span>📊 レベル: 中級</span>
+                <span>💻 コード例: 30個</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1 id="v10">プロセス安全性評価入門シリーズ v1.0</h1>
+<p><strong>安全性の基礎からHAZOP、FMEA、異常検知まで - 化学プロセス安全の完全実践ガイド</strong></p>
+
+<h2 id="_1">シリーズ概要</h2>
+<p>このシリーズは、化学プロセスの安全性評価の基礎から実践まで、段階的に学べる全4章構成の教育コンテンツです。プロセス安全の基本概念、HAZOP、FMEA、リスクアセスメント、異常検知まで、産業界で求められる安全性評価手法を体系的に習得します。</p>
+
+<p><strong>特徴:</strong><br />
+- ✅ <strong>実践重視</strong>: 30個の実行可能なPythonコード例<br />
+- ✅ <strong>体系的構成</strong>: 基礎理論から産業応用まで段階的に学べる4章構成<br />
+- ✅ <strong>産業応用</strong>: HAZOP、LOPA、SIL計算、F-N曲線の完全実装<br />
+- ✅ <strong>最新技術</strong>: 機械学習による異常検知、リスク予測、安全分析自動化</p>
+
+<p><strong>総学習時間</strong>: 100-120分（コード実行と演習を含む）</p>
+
+<hr />
+
+<h2 id="_2">学習の進め方</h2>
+
+<h3 id="_3">推奨学習順序</h3>
+
+<div class="mermaid">
+flowchart TD
+    A[第1章: プロセス安全性の基礎] --> B[第2章: HAZOPとリスクアセスメント]
+    B --> C[第3章: FMEAと信頼性評価]
+    C --> D[第4章: 異常検知とプロアクティブ安全]
+
+    style A fill:#e8f5e9
+    style B fill:#c8e6c9
+    style C fill:#a5d6a7
+    style D fill:#81c784
+</div>
+
+<p><strong>初学者の方（プロセス安全を初めて学ぶ）:</strong><br />
+- 第1章 → 第2章 → 第3章 → 第4章<br />
+- 所要時間: 100-120分</p>
+
+<p><strong>化学工学経験者（プロセス設計の基礎知識あり）:</strong><br />
+- 第1章（軽く確認） → 第2章 → 第3章 → 第4章<br />
+- 所要時間: 80-100分</p>
+
+<p><strong>安全管理経験者（HAZOPやFMEAの経験あり）:</strong><br />
+- 第3章 → 第4章<br />
+- 所要時間: 50-60分</p>
+
+<hr />
+
+<h2 id="_4">各章の詳細</h2>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-1.html">第1章：プロセス安全性の基礎</a></h3>
+    <div class="chapter-meta">
+        <span>📖 読了時間: 25-30分</span>
+        <span>💻 コード例: 8個</span>
+        <span>📊 難易度: 中級</span>
+    </div>
+
+    <h4>学習内容</h4>
+    <ol>
+        <li><strong>プロセス安全の概要</strong>
+            <ul>
+                <li>プロセス安全とは（労働安全との違い）</li>
+                <li>重大事故の歴史（Bhopal、Flixborough、Texas City）</li>
+                <li>安全管理の階層（PSM: Process Safety Management）</li>
+                <li>リスクの概念（ハザード vs リスク）</li>
+            </ul>
+        </li>
+        <li><strong>ハザード識別フレームワーク</strong>
+            <ul>
+                <li>ハザード分類（物理的、化学的、生物学的）</li>
+                <li>ハザード識別手法（Checklist、What-if、HAZID）</li>
+                <li>プロセスハザード分析（PHA）の概要</li>
+                <li>Pythonでのハザード識別システム実装</li>
+            </ul>
+        </li>
+        <li><strong>リスク評価の基礎</strong>
+            <ul>
+                <li>リスクマトリックス（発生頻度 × 影響度）</li>
+                <li>リスクランキングと優先順位付け</li>
+                <li>許容リスク基準（ALARP: As Low As Reasonably Practicable）</li>
+                <li>リスクレジスターの構築</li>
+            </ul>
+        </li>
+        <li><strong>保護層分析（LOPA）</strong>
+            <ul>
+                <li>LOPAの概念と手順</li>
+                <li>保護層の種類（IPL: Independent Protection Layer）</li>
+                <li>リスク低減係数（Risk Reduction Factor）</li>
+                <li>安全度水準（SIL: Safety Integrity Level）計算</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>学習目標</h4>
+    <ul>
+        <li>✅ プロセス安全の概念と重要性を理解する</li>
+        <li>✅ ハザード識別フレームワークを実装できる</li>
+        <li>✅ リスクマトリックスでリスク評価ができる</li>
+        <li>✅ LOPA手法でSILを計算できる</li>
+        <li>✅ Bow-tie図でリスク分析を可視化できる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-1.html">第1章を読む →</a></strong></p>
+</div>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-2.html">第2章：HAZOPとリスクアセスメント</a></h3>
+    <div class="chapter-meta">
+        <span>📖 読了時間: 30-35分</span>
+        <span>💻 コード例: 8個</span>
+        <span>📊 難易度: 中級</span>
+    </div>
+
+    <h4>学習内容</h4>
+    <ol>
+        <li><strong>HAZOPスタディの基礎</strong>
+            <ul>
+                <li>HAZOP（Hazard and Operability Study）とは</li>
+                <li>ガイドワード（No, More, Less, Reverse, etc.）の適用</li>
+                <li>逸脱分析（Deviation Analysis）</li>
+                <li>原因-影響-対策（Cause-Consequence-Safeguard）</li>
+            </ul>
+        </li>
+        <li><strong>HAZOP自動化システム</strong>
+            <ul>
+                <li>P&ID（配管計装図）の解析</li>
+                <li>ガイドワード適用の自動化</li>
+                <li>逸脱シナリオの網羅的生成</li>
+                <li>HAZOPレポートの自動生成</li>
+            </ul>
+        </li>
+        <li><strong>定量的リスクアセスメント（QRA）</strong>
+            <ul>
+                <li>事象頻度分析（Event Tree Analysis）</li>
+                <li>故障頻度データベース（Generic Failure Rate）</li>
+                <li>影響度計算（Consequence Modeling）</li>
+                <li>個人リスク vs 社会リスク</li>
+            </ul>
+        </li>
+        <li><strong>F-N曲線とリスク基準</strong>
+            <ul>
+                <li>F-N曲線（頻度-影響度曲線）の作成</li>
+                <li>許容リスク基準線（Tolerability Criteria）</li>
+                <li>ALARPデモンストレーション</li>
+                <li>リスクランキングと優先順位付け</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>学習目標</h4>
+    <ul>
+        <li>✅ HAZOPスタディを実践できる</li>
+        <li>✅ ガイドワードを用いた逸脱分析ができる</li>
+        <li>✅ QRAで定量的リスク評価ができる</li>
+        <li>✅ F-N曲線を作成しリスク判定ができる</li>
+        <li>✅ HAZOPレポートを自動生成できる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-2.html">第2章を読む →</a></strong></p>
+</div>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-3.html">第3章：FMEAと信頼性評価</a></h3>
+    <div class="chapter-meta">
+        <span>📖 読了時間: 25-30分</span>
+        <span>💻 コード例: 7個</span>
+        <span>📊 難易度: 中級</span>
+    </div>
+
+    <h4>学習内容</h4>
+    <ol>
+        <li><strong>FMEA（故障モード影響解析）</strong>
+            <ul>
+                <li>FMEAの概念と手順</li>
+                <li>故障モードの識別</li>
+                <li>RPN（Risk Priority Number）の計算</li>
+                <li>クリティカリティ分析</li>
+            </ul>
+        </li>
+        <li><strong>信頼性工学の基礎</strong>
+            <ul>
+                <li>信頼性関数とMTBF（平均故障間隔）</li>
+                <li>ワイブル分布による寿命予測</li>
+                <li>バスタブ曲線と故障率</li>
+                <li>冗長性設計（並列・直列システム）</li>
+            </ul>
+        </li>
+        <li><strong>フォールトツリー解析（FTA）</strong>
+            <ul>
+                <li>トップ事象の定義</li>
+                <li>論理ゲート（AND, OR）の構築</li>
+                <li>最小カットセット（Minimal Cut Set）</li>
+                <li>システム信頼性の計算</li>
+            </ul>
+        </li>
+        <li><strong>予防保全最適化</strong>
+            <ul>
+                <li>RCM（Reliability Centered Maintenance）</li>
+                <li>故障予測モデル</li>
+                <li>保全間隔の最適化</li>
+                <li>リスクベース検査（RBI）</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>学習目標</h4>
+    <ul>
+        <li>✅ FMEAを実施しRPNで優先順位付けできる</li>
+        <li>✅ 信頼性関数とMTBFを計算できる</li>
+        <li>✅ FTAでシステム信頼性を解析できる</li>
+        <li>✅ 予防保全計画を最適化できる</li>
+        <li>✅ RBIでリスクベース検査ができる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-3.html">第3章を読む →</a></strong></p>
+</div>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-4.html">第4章：異常検知とプロアクティブ安全</a></h3>
+    <div class="chapter-meta">
+        <span>📖 読了時間: 30-35分</span>
+        <span>💻 コード例: 7個</span>
+        <span>📊 難易度: 中級〜上級</span>
+    </div>
+
+    <h4>学習内容</h4>
+    <ol>
+        <li><strong>機械学習による異常検知</strong>
+            <ul>
+                <li>教師なし学習（Isolation Forest, One-Class SVM）</li>
+                <li>統計的プロセス管理（SPC: Statistical Process Control）</li>
+                <li>時系列異常検知（LSTM, Autoencoder）</li>
+                <li>プロセスデータの前処理</li>
+            </ul>
+        </li>
+        <li><strong>早期警告システム</strong>
+            <ul>
+                <li>異常スコアリング</li>
+                <li>閾値設定と最適化</li>
+                <li>False Positive/Negativeのバランス</li>
+                <li>リアルタイムモニタリング</li>
+            </ul>
+        </li>
+        <li><strong>根本原因分析（RCA）</strong>
+            <ul>
+                <li>なぜなぜ分析（5 Whys）の自動化</li>
+                <li>因果関係分析</li>
+                <li>相関分析と特徴量重要度</li>
+                <li>事故調査支援ツール</li>
+            </ul>
+        </li>
+        <li><strong>プロアクティブ安全文化</strong>
+            <ul>
+                <li>先行指標（Leading Indicators）</li>
+                <li>安全KPI（Key Performance Indicators）</li>
+                <li>安全パフォーマンスダッシュボード</li>
+                <li>継続的改善サイクル（PDCA）</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>学習目標</h4>
+    <ul>
+        <li>✅ 機械学習で異常検知システムを構築できる</li>
+        <li>✅ 早期警告システムを実装できる</li>
+        <li>✅ 根本原因分析を自動化できる</li>
+        <li>✅ 安全KPIダッシュボードを作成できる</li>
+        <li>✅ プロアクティブ安全文化を推進できる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-4.html">第4章を読む →</a></strong></p>
+</div>
+
+<hr />
+
+<h2 id="_5">全体の学習成果</h2>
+
+<p>このシリーズを完了すると、以下のスキルと知識を習得できます：</p>
+
+<h3>知識レベル（Understanding）</h3>
+
+<ul>
+<li>✅ プロセス安全の概念と重大事故の教訓を理解している</li>
+<li>✅ ハザード識別とリスク評価の手法を知っている</li>
+<li>✅ HAZOP、FMEA、FTAの理論を理解している</li>
+<li>✅ 保護層分析とSIL計算の原理を知っている</li>
+<li>✅ 異常検知と予防保全の最新技術を理解している</li>
+</ul>
+
+<h3>実践スキル（Doing）</h3>
+
+<ul>
+<li>✅ リスクマトリックスでリスク評価ができる</li>
+<li>✅ HAZOPスタディを実施し逸脱分析ができる</li>
+<li>✅ LOPAでSILを計算できる</li>
+<li>✅ F-N曲線を作成しリスク判定ができる</li>
+<li>✅ FMEAでRPNを計算し優先順位付けできる</li>
+<li>✅ 機械学習で異常検知システムを構築できる</li>
+</ul>
+
+<h3>応用力（Applying）</h3>
+
+<ul>
+<li>✅ 実際の化学プロセスの安全性評価ができる</li>
+<li>✅ HAZOPレポートを自動生成できる</li>
+<li>✅ リスクベース検査計画を策定できる</li>
+<li>✅ 早期警告システムを実装できる</li>
+<li>✅ プロセス安全エンジニアとして安全管理業務に対応できる</li>
+</ul>
+
+<hr />
+
+<h2 id="faq">FAQ（よくある質問）</h2>
+
+<h3>Q1: 化学工学の予備知識はどの程度必要ですか？</h3>
+
+<p><strong>A</strong>: 化学工学の基礎（物質収支、反応工学、単位操作）とリスク管理の基本概念を理解していることが望ましいです。大学2-3年レベルの化学工学を履修していることを前提としています。</p>
+
+<h3>Q2: HAZOPやFMEAの実務経験は必要ですか？</h3>
+
+<p><strong>A</strong>: いいえ、必要ありません。このシリーズでは、HAZOPやFMEAの基礎から実践まで段階的に学べます。ただし、実務での適用には専門家の指導が推奨されます。</p>
+
+<h3>Q3: どのPythonライブラリが必要ですか？</h3>
+
+<p><strong>A</strong>: 主にNumPy、Pandas、Scikit-learn、Matplotlib、Seabornを使用します。異常検知にはTensorFlow/Kerasも使用します。すべてpipでインストール可能です。</p>
+
+<h3>Q4: プロセスシミュレーションシリーズとの関係は？</h3>
+
+<p><strong>A</strong>: プロセスシミュレーションシリーズで構築したモデルに、本シリーズの安全性評価手法を適用することで、設計段階での安全性検証が可能になります。両シリーズを組み合わせることで、安全で効率的なプロセス設計ができます。</p>
+
+<h3>Q5: 実際の化学プラントに適用できますか？</h3>
+
+<p><strong>A</strong>: はい。本シリーズの手法は産業界で広く使用されています。ただし、実装時には安全規制、社内基準、専門家レビューが必要です。特に安全計装システム（SIS）の設計にはIEC 61511などの規格準拠が求められます。</p>
+
+<hr />
+
+<h2 id="_6">次のステップ</h2>
+
+<h3>シリーズ完了後の推奨アクション</h3>
+
+<p><strong>Immediate（1週間以内）:</strong><br />
+1. ✅ 第4章の異常検知システムをGitHubに公開<br />
+2. ✅ 自社プロセスの安全性評価機会を評価<br />
+3. ✅ 簡単なリスクマトリックスを作成してみる</p>
+
+<p><strong>Short-term（1-3ヶ月）:</strong><br />
+1. ✅ 実プロセスでHAZOPスタディを実施<br />
+2. ✅ 機械学習による異常検知システムの構築<br />
+3. ✅ 安全KPIダッシュボードの作成<br />
+4. ✅ IEC 61511（SIS規格）の学習</p>
+
+<p><strong>Long-term（6ヶ月以上）:</strong><br />
+1. ✅ プロセス安全管理（PSM）システムの構築<br />
+2. ✅ リアルタイム異常検知システムの実装<br />
+3. ✅ 学会発表や論文執筆<br />
+4. ✅ プロセス安全エンジニアとしてのキャリア構築</p>
+
+<hr />
+
+<h2 id="_7">フィードバックとサポート</h2>
+
+<h3>このシリーズについて</h3>
+
+<p>このシリーズは、東北大学 Dr. Yusuke Hashimotoのもと、PI Knowledge Hubプロジェクトの一環として作成されました。</p>
+
+<p><strong>作成日</strong>: 2025年10月26日<br />
+<strong>バージョン</strong>: 1.0</p>
+
+<h3>フィードバックをお待ちしています</h3>
+
+<p>このシリーズを改善するため、皆様のフィードバックをお待ちしています：</p>
+
+<ul>
+<li><strong>誤字・脱字・技術的誤り</strong>: GitHubリポジトリのIssueで報告してください</li>
+<li><strong>改善提案</strong>: 新しいトピック、追加して欲しいコード例等</li>
+<li><strong>質問</strong>: 理解が難しかった部分、追加説明が欲しい箇所</li>
+<li><strong>成功事例</strong>: このシリーズで学んだことを使ったプロジェクト</li>
+</ul>
+
+<p><strong>連絡先</strong>: yusuke.hashimoto.b8@tohoku.ac.jp</p>
+
+<hr />
+
+<h2 id="_8">ライセンスと利用規約</h2>
+
+<p>このシリーズは <strong>CC BY 4.0</strong>（Creative Commons Attribution 4.0 International）ライセンスのもとで公開されています。</p>
+
+<p><strong>可能なこと:</strong><br />
+- ✅ 自由な閲覧・ダウンロード<br />
+- ✅ 教育目的での利用（授業、勉強会等）<br />
+- ✅ 改変・二次創作（翻訳、要約等）</p>
+
+<p><strong>条件:</strong><br />
+- 📌 著者のクレジット表示が必要<br />
+- 📌 改変した場合はその旨を明記<br />
+- 📌 商業利用の場合は事前に連絡</p>
+
+<p>詳細: <a href="https://creativecommons.org/licenses/by/4.0/deed.ja">CC BY 4.0ライセンス全文</a></p>
+
+<hr />
+
+<h2 id="_9">さあ、始めましょう！</h2>
+
+<p>準備はできましたか？ 第1章から始めて、プロセス安全性評価の世界への旅を始めましょう！</p>
+
+<p><strong><a href="./chapter-1.html">第1章: プロセス安全性の基礎 →</a></strong></p>
+
+<hr />
+
+<p><strong>更新履歴</strong></p>
+
+<ul>
+<li><strong>2025-10-26</strong>: v1.0 初版公開</li>
+</ul>
+
+<hr />
+
+<p><strong>あなたのプロセス安全学習の旅はここから始まります！</strong></p>
+
+        <div class="nav-buttons">
+            <a href="../index.html" class="nav-button">← PI寺子屋トップに戻る</a>
+        </div>
+    </main>
+
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+<footer>
+        <div class="container">
+            <p>&copy; 2025 PI Knowledge Hub - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>
