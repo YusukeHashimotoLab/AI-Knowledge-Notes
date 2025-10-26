@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章: Laurent展開と留数定理 | 複素関数論と特殊関数 - FM道場</title>
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>MathJax = {tex: {inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']]}};</script>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="header-content">
+                <div class="site-logo"><a href="../../../index.html">🏛️ AI寺子屋</a></div>
+                <nav class="main-nav">
+                    <a href="../../../index.html">ホーム</a>
+                    <a href="../../index.html">知識ベース</a>
+                    <a href="../index.html" class="active">FM道場</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="chapter-page">
+        <div class="container">
+            <nav class="breadcrumb">
+                <a href="../../../index.html">ホーム</a> &gt;
+                <a href="../index.html">FM道場</a> &gt;
+                <a href="index.html">複素関数論と特殊関数</a> &gt;
+                <span>第3章</span>
+            </nav>
+
+            <article class="chapter-content">
+                <div class="chapter-header">
+                    <span class="chapter-label">第3章</span>
+                    <h1>Laurent展開と留数定理</h1>
+                    <p class="chapter-subtitle">Laurent Series and Residue Theorem</p>
+                    <div class="chapter-meta">
+                        <span class="meta-item">⏱️ 24-28分</span>
+                        <span class="meta-item">💻 9コード例</span>
+                        <span class="meta-item">📊 中級</span>
+                    </div>
+                </div>
+
+                <section class="chapter-section">
+                    <h2>3.1 Taylor級数とMaclaurin展開</h2>
+                    <p>
+                        正則関数は収束円内でTaylor級数に展開できます。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>Taylor級数展開:</strong></p>
+                        $$f(z) = \sum_{n=0}^{\infty} \frac{f^{(n)}(z_0)}{n!} (z - z_0)^n$$
+                        <p><strong>Maclaurin展開 ($z_0 = 0$):</strong></p>
+                        $$f(z) = \sum_{n=0}^{\infty} \frac{f^{(n)}(0)}{n!} z^n$$
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 1: Taylor級数展開の計算</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.special import factorial
+import sympy as sp
+
+# SymPyで記号計算
+z = sp.Symbol('z')
+z0 = sp.Symbol('z0')
+
+# 関数の定義
+functions_sym = {
+    'e^z': sp.exp(z),
+    'sin(z)': sp.sin(z),
+    'cos(z)': sp.cos(z),
+    '1/(1-z)': 1/(1-z),
+}
+
+print("=== Taylor級数展開 (Maclaurin展開, z0=0) ===\n")
+
+for name, f_sym in functions_sym.items():
+    print(f"f(z) = {name}")
+    # Taylor展開（10次まで）
+    taylor_series = sp.series(f_sym, z, 0, n=6).removeO()
+    print(f"Taylor series: {taylor_series}")
+    print()
+
+# 数値計算による近似の検証
+def taylor_approx(f, z_val, n_terms, z0=0):
+    """Taylor級数による近似（数値微分）"""
+    h = 1e-5
+    approx = 0
+    
+    for n in range(n_terms):
+        # n階微分を数値的に計算（中心差分）
+        if n == 0:
+            deriv = f(z0)
+        elif n == 1:
+            deriv = (f(z0 + h) - f(z0 - h)) / (2*h)
+        elif n == 2:
+            deriv = (f(z0 + h) - 2*f(z0) + f(z0 - h)) / h**2
+        else:
+            # 高階微分は再帰的に計算（簡略化のため理論値を使用）
+            if hasattr(f, '__name__') and f.__name__ == 'exp_func':
+                deriv = np.exp(z0)
+            elif hasattr(f, '__name__') and f.__name__ == 'sin_func':
+                deriv = [np.sin, np.cos, lambda x: -np.sin(x), lambda x: -np.cos(x)][n % 4](z0)
+            else:
+                deriv = 0
+        
+        term = deriv * (z_val - z0)**n / factorial(n)
+        approx += term
+    
+    return approx
+
+# 可視化
+x = np.linspace(-2, 2, 200)
+z_vals = x + 0j
+
+functions_num = {
+    'e^z': np.exp,
+    'sin(z)': np.sin,
+    'cos(z)': np.cos,
+}
+
+fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+
+for idx, (name, f) in enumerate(functions_num.items()):
+    ax = axes[idx]
+    
+    # 真の関数値
+    y_true = f(z_vals).real
+    ax.plot(x, y_true, 'b-', linewidth=2, label='True function')
+    
+    # Taylor近似（異なる次数）
+    colors = ['red', 'green', 'orange', 'purple']
+    for n_terms, color in zip([3, 5, 7, 10], colors):
+        y_approx = []
+        for z_val in z_vals:
+            # SymPyで正確なTaylor展開を計算
+            if name == 'e^z':
+                f_sym = sp.exp(z)
+            elif name == 'sin(z)':
+                f_sym = sp.sin(z)
+            else:
+                f_sym = sp.cos(z)
+            
+            taylor = sp.series(f_sym, z, 0, n=n_terms).removeO()
+            y_val = complex(taylor.subs(z, z_val))
+            y_approx.append(y_val.real)
+        
+        ax.plot(x, y_approx, color=color, linewidth=1.5, alpha=0.7, 
+                linestyle='--', label=f'Taylor (n={n_terms})')
+    
+    ax.grid(True, alpha=0.3)
+    ax.set_xlabel('x', fontsize=12)
+    ax.set_ylabel('f(x)', fontsize=12)
+    ax.set_title(f'$f(z) = {name}$', fontsize=12)
+    ax.legend()
+    ax.set_ylim(-2, 3)
+
+plt.suptitle('Taylor級数近似（異なる次数）', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# 収束半径の計算
+print("\n=== 収束半径 ===")
+print("e^z: R = ∞ (全平面で収束)")
+print("sin(z), cos(z): R = ∞ (全平面で収束)")
+print("1/(1-z): R = 1 (|z| < 1 で収束)")
+print("log(1+z): R = 1 (|z| < 1 で収束)")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>3.2 Laurent級数展開</h2>
+                    <p>
+                        特異点を含む領域では、負のべきを含むLaurent級数で展開されます。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>Laurent級数展開:</strong></p>
+                        $$f(z) = \sum_{n=-\infty}^{\infty} a_n (z - z_0)^n$$
+                        <p>正部（正則部）と負部（主要部）に分けると:</p>
+                        $$f(z) = \underbrace{\sum_{n=0}^{\infty} a_n (z - z_0)^n}_{\text{正則部}} + \underbrace{\sum_{n=1}^{\infty} \frac{a_{-n}}{(z - z_0)^n}}_{\text{主要部}}$$
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 2: Laurent級数展開の計算</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+import sympy as sp
+
+z = sp.Symbol('z')
+
+# Laurent展開の例
+functions_laurent = {
+    '1/z': 1/z,
+    'e^(1/z)': sp.exp(1/z),
+    '1/(z^2)': 1/z**2,
+    'sin(z)/z': sp.sin(z)/z,
+    '1/(z(z-1))': 1/(z*(z-1)),
+}
+
+print("=== Laurent級数展開 ===\n")
+
+for name, f in functions_laurent.items():
+    print(f"f(z) = {name}")
+    
+    # z=0 の周りでLaurent展開
+    try:
+        laurent = sp.series(f, z, 0, n=6)
+        print(f"Laurent series around z=0: {laurent}")
+    except:
+        print("Cannot expand around z=0")
+    
+    print()
+
+# 可視化: Laurent級数の部分和
+z_sym = sp.Symbol('z')
+f = sp.exp(1/z_sym)
+
+print("\n=== e^(1/z) のLaurent展開 ===")
+laurent_exp = sp.series(f, z_sym, 0, n=10)
+print(laurent_exp)
+
+# 数値計算
+theta = np.linspace(0, 2*np.pi, 1000)
+r_values = [0.5, 1.0, 2.0]
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+for idx, r in enumerate(r_values):
+    ax = axes[idx]
+    
+    # 経路: z = r * e^(iθ)
+    z_path = r * np.exp(1j * theta)
+    
+    # 真の関数値
+    f_true = np.exp(1/z_path)
+    
+    # Laurent級数による近似（異なる次数）
+    ax.plot(f_true.real, f_true.imag, 'b-', linewidth=2, label='True: $e^{1/z}$')
+    
+    # 部分和による近似
+    for n_terms in [5, 10, 15]:
+        f_approx = np.zeros_like(z_path, dtype=complex)
+        for n in range(-n_terms, n_terms+1):
+            if n >= 0:
+                continue  # e^(1/z) は負のべきのみ
+            coeff = 1 / sp.factorial(-n)
+            f_approx += coeff * z_path**n
+        
+        ax.plot(f_approx.real, f_approx.imag, linewidth=1.5, alpha=0.7, 
+                linestyle='--', label=f'Laurent (N={n_terms})')
+    
+    ax.grid(True, alpha=0.3)
+    ax.set_xlabel('Re(f)', fontsize=12)
+    ax.set_ylabel('Im(f)', fontsize=12)
+    ax.set_title(f'$|z| = {r}$', fontsize=12)
+    ax.axis('equal')
+    ax.legend()
+
+plt.suptitle('Laurent級数近似: $f(z) = e^{1/z}$', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>3.3 特異点の分類</h2>
+                    <p>
+                        特異点は除去可能特異点、極、真性特異点の3つに分類されます。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>特異点の分類:</strong></p>
+                        <ul>
+                            <li><strong>除去可能特異点:</strong> 主要部が0 → $\lim_{z \to z_0} f(z)$ が有限</li>
+                            <li><strong>$m$ 位の極:</strong> 主要部が有限項 $(z-z_0)^{-m}$ まで</li>
+                            <li><strong>真性特異点:</strong> 主要部が無限項</li>
+                        </ul>
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 3: 特異点の分類</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+import sympy as sp
+
+z = sp.Symbol('z')
+
+# 様々な特異点を持つ関数
+singular_functions = {
+    'sin(z)/z (z=0)': {
+        'function': sp.sin(z)/z,
+        'singularity': 0,
+        'type': '除去可能',
+    },
+    '1/z (z=0)': {
+        'function': 1/z,
+        'singularity': 0,
+        'type': '1位の極',
+    },
+    '1/z^2 (z=0)': {
+        'function': 1/z**2,
+        'singularity': 0,
+        'type': '2位の極',
+    },
+    'e^(1/z) (z=0)': {
+        'function': sp.exp(1/z),
+        'singularity': 0,
+        'type': '真性特異点',
+    },
+    '1/((z-1)(z-2)) (z=1,2)': {
+        'function': 1/((z-1)*(z-2)),
+        'singularity': 1,
+        'type': '1位の極 (at z=1)',
+    },
+}
+
+print("=== 特異点の分類 ===\n")
+
+for name, info in singular_functions.items():
+    f = info['function']
+    z0 = info['singularity']
+    sing_type = info['type']
+    
+    print(f"{name}: {sing_type}")
+    
+    # Laurent展開
+    try:
+        laurent = sp.series(f, z, z0, n=6)
+        print(f"  Laurent series: {laurent}")
+        
+        # 主要部の項数を数える
+        laurent_dict = laurent.removeO().as_coefficients_dict()
+        negative_powers = [key for key in laurent_dict.keys() if z in key.free_symbols and sp.degree(key, z) < 0]
+        
+        if len(negative_powers) == 0:
+            print(f"  → 除去可能特異点")
+        elif len(negative_powers) < 10:
+            max_neg = max([-sp.degree(key, z) for key in negative_powers])
+            print(f"  → {max_neg}位の極")
+        else:
+            print(f"  → 真性特異点")
+    except:
+        print(f"  Cannot expand")
+    
+    print()
+
+# 可視化: 特異点近傍での挙動
+fig, axes = plt.subplots(2, 2, figsize=(12, 12))
+axes = axes.flatten()
+
+cases = [
+    ('sin(z)/z', lambda z: np.sin(z)/z, '除去可能特異点'),
+    ('1/z', lambda z: 1/z, '1位の極'),
+    ('1/z^2', lambda z: 1/z**2, '2位の極'),
+    ('e^(1/z)', lambda z: np.exp(1/z), '真性特異点'),
+]
+
+for idx, (name, f, sing_type) in enumerate(cases):
+    ax = axes[idx]
+    
+    # 極座標グリッド
+    r = np.linspace(0.1, 2, 100)
+    theta = np.linspace(0, 2*np.pi, 100)
+    R, Theta = np.meshgrid(r, theta)
+    Z = R * np.exp(1j * Theta)
+    
+    # 関数値
+    try:
+        W = f(Z)
+        magnitude = np.abs(W)
+        magnitude = np.clip(magnitude, 0, 10)  # クリップして可視化
+        
+        im = ax.contourf(Z.real, Z.imag, magnitude, levels=20, cmap='viridis')
+        ax.plot(0, 0, 'r*', markersize=15, label='特異点 z=0')
+        plt.colorbar(im, ax=ax, label='|f(z)|')
+    except:
+        pass
+    
+    ax.set_xlabel('Re(z)', fontsize=12)
+    ax.set_ylabel('Im(z)', fontsize=12)
+    ax.set_title(f'$f(z) = {name}$\n({sing_type})', fontsize=12)
+    ax.axis('equal')
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+
+plt.suptitle('特異点近傍での関数の挙動', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>3.4 留数の計算</h2>
+                    <p>
+                        留数は Laurent展開の $(z-z_0)^{-1}$ の係数で、複素積分の計算に重要です。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>留数（Residue）:</strong></p>
+                        $$\text{Res}(f, z_0) = a_{-1}$$
+                        <p>ただし $a_{-1}$ はLaurent展開 $f(z) = \sum a_n (z-z_0)^n$ の $(z-z_0)^{-1}$ の係数</p>
+                        <p><strong>$m$ 位の極の場合:</strong></p>
+                        $$\text{Res}(f, z_0) = \frac{1}{(m-1)!} \lim_{z \to z_0} \frac{d^{m-1}}{dz^{m-1}} [(z-z_0)^m f(z)]$$
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 4: 留数の計算（SymPy）</h4>
+                        <pre><code class="language-python">import sympy as sp
+import numpy as np
+
+z = sp.Symbol('z')
+
+# 様々な関数の留数計算
+functions_residue = [
+    (1/z, 0, "1/z at z=0"),
+    (1/z**2, 0, "1/z^2 at z=0"),
+    (sp.exp(z)/z, 0, "e^z/z at z=0"),
+    (sp.sin(z)/z**2, 0, "sin(z)/z^2 at z=0"),
+    (1/(z-1), 1, "1/(z-1) at z=1"),
+    (z/(z**2 + 1), sp.I, "z/(z^2+1) at z=i"),
+    (sp.exp(1/z), 0, "e^(1/z) at z=0"),
+]
+
+print("=== 留数の計算 ===\n")
+
+for f, z0, description in functions_residue:
+    print(f"{description}:")
+    
+    # SymPyで留数を計算
+    residue = sp.residue(f, z, z0)
+    print(f"  Residue: {residue}")
+    
+    # Laurent展開も表示
+    try:
+        laurent = sp.series(f, z, z0, n=5)
+        print(f"  Laurent series: {laurent}")
+    except:
+        print(f"  Laurent series: Cannot expand")
+    
+    print()
+
+# 留数の公式を使った計算例
+print("\n=== 留数公式による計算 ===\n")
+
+# 1位の極の場合
+print("【1位の極】")
+f1 = (z**2 + 1) / (z - 1)
+z0_1 = 1
+numerator = (z**2 + 1)
+denominator = (z - 1)
+
+# 公式: Res(f, z0) = lim (z-z0) * f(z)
+residue_manual = sp.limit((z - z0_1) * f1, z, z0_1)
+residue_auto = sp.residue(f1, z, z0_1)
+
+print(f"f(z) = {f1}")
+print(f"Res(f, {z0_1}) by formula: {residue_manual}")
+print(f"Res(f, {z0_1}) by SymPy: {residue_auto}")
+
+# 2位の極の場合
+print("\n【2位の極】")
+f2 = sp.sin(z) / z**2
+z0_2 = 0
+
+# 公式: Res(f, z0) = lim d/dz [(z-z0)^m * f(z)]
+residue_manual2 = sp.limit(sp.diff(z**2 * f2, z), z, z0_2)
+residue_auto2 = sp.residue(f2, z, z0_2)
+
+print(f"f(z) = {f2}")
+print(f"Res(f, {z0_2}) by formula: {residue_manual2}")
+print(f"Res(f, {z0_2}) by SymPy: {residue_auto2}")
+
+print("\n【部分分数分解と留数】")
+f3 = 1 / ((z-1)*(z-2))
+print(f"f(z) = {f3}")
+
+# 部分分数分解
+partial_fractions = sp.apart(f3, z)
+print(f"Partial fractions: {partial_fractions}")
+
+# 各極での留数
+for pole in [1, 2]:
+    res = sp.residue(f3, z, pole)
+    print(f"Res(f, z={pole}) = {res}")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>3.5 留数定理</h2>
+                    <p>
+                        留数定理により、複素積分が留数の和で計算できます。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>留数定理:</strong></p>
+                        $$\oint_C f(z) dz = 2\pi i \sum_{k} \text{Res}(f, z_k)$$
+                        <p>ただし $z_k$ は $C$ 内部の特異点</p>
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 5: 留数定理の検証</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+import sympy as sp
+
+# 複素積分の数値計算
+def complex_contour_integral_numerical(f, path, t_range, n_points=1000):
+    """数値積分"""
+    t = np.linspace(t_range[0], t_range[1], n_points)
+    dt = t[1] - t[0]
+    z = path(t)
+    dz_dt = np.gradient(z, dt)
+    f_z = f(z)
+    integral = np.trapz(f_z * dz_dt, dx=dt)
+    return integral, z
+
+# テストケース
+z_sym = sp.Symbol('z')
+
+test_cases = [
+    {
+        'name': '1/z',
+        'function_sym': 1/z_sym,
+        'function_num': lambda z: 1/z,
+        'poles': [0],
+        'path': lambda t: 2*np.exp(1j*t),
+        't_range': (0, 2*np.pi),
+    },
+    {
+        'name': '1/(z^2+1)',
+        'function_sym': 1/(z_sym**2 + 1),
+        'function_num': lambda z: 1/(z**2 + 1),
+        'poles': [1j, -1j],
+        'path': lambda t: 2*np.exp(1j*t),
+        't_range': (0, 2*np.pi),
+    },
+    {
+        'name': 'z/(z-1)/(z-2)',
+        'function_sym': z_sym/((z_sym-1)*(z_sym-2)),
+        'function_num': lambda z: z/((z-1)*(z-2)),
+        'poles': [1, 2],
+        'path': lambda t: 3*np.exp(1j*t),
+        't_range': (0, 2*np.pi),
+    },
+]
+
+print("=== 留数定理の検証 ===\n")
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+for idx, case in enumerate(test_cases):
+    ax = axes[idx]
+    
+    # 数値積分
+    integral_num, z_path = complex_contour_integral_numerical(
+        case['function_num'], case['path'], case['t_range']
+    )
+    
+    # 留数定理による計算
+    residue_sum = 0
+    for pole in case['poles']:
+        res = sp.residue(case['function_sym'], z_sym, pole)
+        residue_sum += complex(res)
+    
+    integral_residue = 2 * np.pi * 1j * residue_sum
+    
+    # 結果表示
+    print(f"f(z) = {case['name']}")
+    print(f"  Poles inside contour: {case['poles']}")
+    print(f"  Numerical integral: {integral_num:.8f}")
+    print(f"  Residue theorem: 2πi × Σ Res = {integral_residue:.8f}")
+    print(f"  Error: {np.abs(integral_num - integral_residue):.2e}\n")
+    
+    # 可視化
+    ax.plot(z_path.real, z_path.imag, 'b-', linewidth=2, label='Contour')
+    
+    # 極の位置
+    for pole in case['poles']:
+        if isinstance(pole, complex) or np.abs(np.imag(pole)) > 1e-10:
+            pole_complex = complex(pole)
+        else:
+            pole_complex = complex(float(pole), 0)
+        
+        # 経路内かチェック
+        if np.abs(pole_complex) < np.abs(case['path'](0)):
+            ax.plot(pole_complex.real, pole_complex.imag, 'r*', 
+                   markersize=15, label=f'Pole at {pole}')
+    
+    ax.grid(True, alpha=0.3)
+    ax.axhline(0, color='gray', linewidth=0.5)
+    ax.axvline(0, color='gray', linewidth=0.5)
+    ax.set_xlabel('Re(z)', fontsize=12)
+    ax.set_ylabel('Im(z)', fontsize=12)
+    ax.set_title(f'$f(z) = {case["name"]}$', fontsize=11)
+    ax.axis('equal')
+    ax.legend(fontsize=9)
+
+plt.suptitle('留数定理の検証', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>3.6 実積分への応用 (1): 有理関数</h2>
+                    <p>
+                        留数定理を使うと、複雑な実積分を複素積分に変換して計算できます。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>実積分の計算:</strong></p>
+                        $$\int_{-\infty}^{\infty} \frac{P(x)}{Q(x)} dx = 2\pi i \sum_{\text{上半平面}} \text{Res}(f, z_k)$$
+                        <p>ただし $\deg Q \geq \deg P + 2$ のとき収束</p>
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 6: 有理関数の実積分</h4>
+                        <pre><code class="language-python">import numpy as np
+from scipy import integrate
+import sympy as sp
+import matplotlib.pyplot as plt
+
+z = sp.Symbol('z', complex=True)
+x = sp.Symbol('x', real=True)
+
+# 実積分の例
+real_integrals = [
+    {
+        'name': '1/(1+x^2)',
+        'integrand': 1/(1 + x**2),
+        'complex_func': 1/(1 + z**2),
+        'poles_upper': [sp.I],
+    },
+    {
+        'name': '1/(1+x^4)',
+        'integrand': 1/(1 + x**4),
+        'complex_func': 1/(1 + z**4),
+        'poles_upper': [sp.exp(sp.I*sp.pi/4), sp.exp(sp.I*3*sp.pi/4)],
+    },
+    {
+        'name': 'x^2/(1+x^4)',
+        'integrand': x**2/(1 + x**4),
+        'complex_func': z**2/(1 + z**4),
+        'poles_upper': [sp.exp(sp.I*sp.pi/4), sp.exp(sp.I*3*sp.pi/4)],
+    },
+]
+
+print("=== 留数定理による実積分の計算 ===\n")
+
+for case in real_integrals:
+    print(f"∫[-∞,∞] {case['name']} dx")
+    
+    # 数値積分（検証用）
+    integrand_lambda = sp.lambdify(x, case['integrand'], 'numpy')
+    integral_numerical, error = integrate.quad(integrand_lambda, -np.inf, np.inf)
+    
+    # 留数定理
+    residue_sum = 0
+    for pole in case['poles_upper']:
+        res = sp.residue(case['complex_func'], z, pole)
+        residue_sum += res
+    
+    integral_residue = 2 * sp.pi * sp.I * residue_sum
+    integral_residue_val = complex(integral_residue)
+    
+    print(f"  Numerical integration: {integral_numerical:.10f}")
+    print(f"  Residue theorem: {integral_residue} = {integral_residue_val.real:.10f}")
+    print(f"  Error: {abs(integral_numerical - integral_residue_val.real):.2e}")
+    print(f"  Poles in upper half-plane: {case['poles_upper']}")
+    print()
+
+# 可視化: 複素平面での積分経路
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+R_values = [5, 10, 20]
+f_test = lambda z: 1/(1 + z**2)
+pole_test = 1j
+
+for idx, R in enumerate(R_values):
+    ax = axes[idx]
+    
+    # 実軸上の経路
+    x_line = np.linspace(-R, R, 100)
+    ax.plot(x_line, np.zeros_like(x_line), 'b-', linewidth=2, label='実軸')
+    
+    # 上半円
+    theta = np.linspace(0, np.pi, 100)
+    semicircle = R * np.exp(1j * theta)
+    ax.plot(semicircle.real, semicircle.imag, 'r--', linewidth=2, label='上半円')
+    
+    # 極
+    ax.plot(0, 1, 'g*', markersize=15, label='Pole at i')
+    
+    # 閉曲線を強調
+    ax.arrow(-R, 0, R/5, 0, head_width=0.3, head_length=0.5, fc='blue', ec='blue')
+    ax.arrow(R*np.cos(np.pi/4), R*np.sin(np.pi/4), 
+             -R/5*np.sin(np.pi/4), R/5*np.cos(np.pi/4),
+             head_width=0.3, head_length=0.5, fc='red', ec='red')
+    
+    ax.grid(True, alpha=0.3)
+    ax.axhline(0, color='gray', linewidth=0.5)
+    ax.axvline(0, color='gray', linewidth=0.5)
+    ax.set_xlabel('Re(z)', fontsize=12)
+    ax.set_ylabel('Im(z)', fontsize=12)
+    ax.set_title(f'積分経路 (R={R})', fontsize=12)
+    ax.axis('equal')
+    ax.set_xlim(-R-1, R+1)
+    ax.set_ylim(-1, R+1)
+    ax.legend()
+
+plt.suptitle('留数定理による実積分: 上半円の経路', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# R → ∞ での上半円の寄与
+print("\n=== 上半円の寄与 (R→∞) ===")
+print("∫[semicircle] f(z)dz → 0 as R→∞ (if deg(Q) ≥ deg(P)+2)")
+for R in [10, 50, 100, 500]:
+    theta = np.linspace(0, np.pi, 1000)
+    z_semi = R * np.exp(1j * theta)
+    dz = 1j * R * np.exp(1j * theta) * (theta[1] - theta[0])
+    
+    f_semi = f_test(z_semi)
+    integral_semi = np.sum(f_semi * dz)
+    
+    print(f"R = {R:4d}: |∫[semicircle]| = {np.abs(integral_semi):.6e}")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>3.7 実積分への応用 (2): 三角関数を含む積分</h2>
+                    <p>
+                        $z = e^{i\theta}$ の置換により、三角関数を含む積分を複素積分に変換できます。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>三角関数積分の変換:</strong></p>
+                        $$z = e^{i\theta}, \quad \cos\theta = \frac{z + z^{-1}}{2}, \quad \sin\theta = \frac{z - z^{-1}}{2i}$$
+                        $$\int_0^{2\pi} R(\cos\theta, \sin\theta) d\theta = \oint_{|z|=1} R\left(\frac{z+z^{-1}}{2}, \frac{z-z^{-1}}{2i}\right) \frac{dz}{iz}$$
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 7: 三角関数積分の計算</h4>
+                        <pre><code class="language-python">import numpy as np
+from scipy import integrate
+import sympy as sp
+import matplotlib.pyplot as plt
+
+theta_sym = sp.Symbol('theta', real=True)
+z_sym = sp.Symbol('z', complex=True)
+
+# 三角関数積分の例
+trig_integrals = [
+    {
+        'name': '1/(2+cos(θ))',
+        'integrand': 1/(2 + sp.cos(theta_sym)),
+        'description': '∫[0,2π] 1/(2+cos(θ)) dθ',
+    },
+    {
+        'name': '1/(5+4*cos(θ))',
+        'integrand': 1/(5 + 4*sp.cos(theta_sym)),
+        'description': '∫[0,2π] 1/(5+4cos(θ)) dθ',
+    },
+    {
+        'name': 'cos(θ)/(5+4*cos(θ))',
+        'integrand': sp.cos(theta_sym)/(5 + 4*sp.cos(theta_sym)),
+        'description': '∫[0,2π] cos(θ)/(5+4cos(θ)) dθ',
+    },
+]
+
+print("=== 三角関数積分の計算 ===\n")
+
+for case in trig_integrals:
+    print(case['description'])
+    
+    # 数値積分
+    integrand_func = sp.lambdify(theta_sym, case['integrand'], 'numpy')
+    integral_numerical, _ = integrate.quad(integrand_func, 0, 2*np.pi)
+    
+    # z = e^(iθ) の置換
+    # cos(θ) = (z + 1/z)/2
+    integrand_original = case['integrand']
+    integrand_z = integrand_original.subs(sp.cos(theta_sym), (z_sym + 1/z_sym)/2)
+    integrand_z = integrand_z.subs(sp.sin(theta_sym), (z_sym - 1/z_sym)/(2*sp.I))
+    
+    # dθ = dz/(iz)
+    integrand_complex = integrand_z / (sp.I * z_sym)
+    integrand_complex = sp.simplify(integrand_complex)
+    
+    print(f"  Complex integrand: {integrand_complex}")
+    
+    # 単位円内の極を見つける
+    denominator = sp.denom(integrand_complex)
+    poles_all = sp.solve(denominator, z_sym)
+    poles_inside = [p for p in poles_all if sp.Abs(p) < 1]
+    
+    print(f"  All poles: {poles_all}")
+    print(f"  Poles inside |z|=1: {poles_inside}")
+    
+    # 留数の計算
+    residue_sum = 0
+    for pole in poles_inside:
+        res = sp.residue(integrand_complex, z_sym, pole)
+        residue_sum += res
+        print(f"    Res at z={pole}: {res}")
+    
+    integral_residue = 2 * sp.pi * sp.I * residue_sum
+    integral_residue_val = complex(integral_residue)
+    
+    print(f"\n  Numerical: {integral_numerical:.10f}")
+    print(f"  Residue theorem: {integral_residue} = {integral_residue_val.real:.10f}")
+    print(f"  Error: {abs(integral_numerical - integral_residue_val.real):.2e}\n")
+    print("-" * 60)
+    print()
+
+# 可視化
+theta = np.linspace(0, 2*np.pi, 1000)
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+for idx, case in enumerate(trig_integrals):
+    ax = axes[idx]
+    
+    # 被積分関数
+    integrand_func = sp.lambdify(theta_sym, case['integrand'], 'numpy')
+    y = integrand_func(theta)
+    
+    ax.plot(theta, y, 'b-', linewidth=2)
+    ax.fill_between(theta, 0, y, alpha=0.3)
+    ax.grid(True, alpha=0.3)
+    ax.set_xlabel('θ (rad)', fontsize=12)
+    ax.set_ylabel('f(θ)', fontsize=12)
+    ax.set_title(f'${case["name"]}$', fontsize=11)
+    ax.set_xlim(0, 2*np.pi)
+    ax.set_xticks([0, np.pi/2, np.pi, 3*np.pi/2, 2*np.pi])
+    ax.set_xticklabels(['0', 'π/2', 'π', '3π/2', '2π'])
+
+plt.suptitle('三角関数積分の被積分関数', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>3.8 実積分への応用 (3): フーリエ型積分</h2>
+                    <p>
+                        $e^{iax}$ を含む積分にも留数定理が有効です。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>フーリエ型積分:</strong></p>
+                        $$\int_{-\infty}^{\infty} f(x) e^{iax} dx = 2\pi i \sum_{\text{Im}(z_k)>0} \text{Res}(f(z)e^{iaz}, z_k) \quad (a > 0)$$
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 8: フーリエ型積分</h4>
+                        <pre><code class="language-python">import numpy as np
+from scipy import integrate
+import sympy as sp
+
+x = sp.Symbol('x', real=True)
+z = sp.Symbol('z', complex=True)
+a = sp.Symbol('a', positive=True, real=True)
+
+# フーリエ型積分の例
+fourier_integrals = [
+    {
+        'name': 'e^(iax)/(1+x^2)',
+        'a_val': 1,
+        'f_x': 1/(1 + x**2),
+        'f_z': 1/(1 + z**2),
+        'poles_upper': [sp.I],
+    },
+    {
+        'name': 'e^(iax)/(x^2+4)',
+        'a_val': 2,
+        'f_x': 1/(x**2 + 4),
+        'f_z': 1/(z**2 + 4),
+        'poles_upper': [2*sp.I],
+    },
+]
+
+print("=== フーリエ型積分 ===\n")
+
+for case in fourier_integrals:
+    a_val = case['a_val']
+    print(f"∫[-∞,∞] {case['name']} dx (a={a_val})")
+    
+    # 数値積分（実部と虚部を別々に）
+    integrand_real = sp.lambdify(x, case['f_x'] * sp.cos(a_val * x), 'numpy')
+    integrand_imag = sp.lambdify(x, case['f_x'] * sp.sin(a_val * x), 'numpy')
+    
+    integral_real, _ = integrate.quad(integrand_real, -np.inf, np.inf)
+    integral_imag, _ = integrate.quad(integrand_imag, -np.inf, np.inf)
+    integral_numerical = integral_real + 1j * integral_imag
+    
+    # 留数定理
+    f_z_exp = case['f_z'] * sp.exp(sp.I * a_val * z)
+    
+    residue_sum = 0
+    for pole in case['poles_upper']:
+        res = sp.residue(f_z_exp, z, pole)
+        residue_sum += res
+        print(f"  Pole at z={pole}: Res = {res}")
+    
+    integral_residue = 2 * sp.pi * sp.I * residue_sum
+    integral_residue_complex = complex(integral_residue)
+    
+    print(f"\n  Numerical: {integral_numerical}")
+    print(f"  Residue theorem: {integral_residue} = {integral_residue_complex}")
+    print(f"  Error: {abs(integral_numerical - integral_residue_complex):.2e}\n")
+    print("-" * 60)
+    print()
+
+# 可視化: a の依存性
+a_values = np.linspace(0.1, 5, 50)
+integrals_vs_a = []
+
+for a_val in a_values:
+    # ∫[-∞,∞] e^(iax)/(1+x^2) dx = π e^(-a) (a>0)
+    integral_theory = np.pi * np.exp(-a_val)
+    integrals_vs_a.append(integral_theory.real)
+
+plt.figure(figsize=(10, 6))
+plt.plot(a_values, integrals_vs_a, 'b-', linewidth=2)
+plt.grid(True, alpha=0.3)
+plt.xlabel('a', fontsize=12)
+plt.ylabel('∫ e^(iax)/(1+x²) dx', fontsize=12)
+plt.title('フーリエ型積分の a 依存性\n理論値: π e^(-a)', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+print("\n理論値の確認:")
+print("∫[-∞,∞] e^(iax)/(1+x²) dx = π e^(-a) (a>0)")
+for a_test in [0.5, 1.0, 2.0, 5.0]:
+    theory = np.pi * np.exp(-a_test)
+    print(f"  a={a_test}: π e^(-a) = {theory:.6f}")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>3.9 材料科学への応用: 格子振動とフォノン分散</h2>
+                    <p>
+                        固体物理学では、格子振動の分散関係を解析する際に複素関数論が使われます。
+                    </p>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 9: 1次元格子振動のグリーン関数</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy import integrate
+
+# 1次元単原子格子のグリーン関数
+# G(ω) = 1/(ω² - ω₀² - Σ(ω))
+# ω₀: 格子振動の固有角周波数
+# Σ(ω): 自己エネルギー
+
+omega_0 = 1.0  # 固有角周波数
+gamma = 0.1    # 減衰定数（虚部）
+
+def green_function(omega):
+    """格子振動のグリーン関数"""
+    return 1 / (omega**2 - omega_0**2 + 1j*gamma*omega)
+
+def spectral_function(omega):
+    """スペクトル関数 A(ω) = -2 Im[G(ω)]"""
+    G = green_function(omega)
+    return -2 * G.imag
+
+# 周波数範囲
+omega = np.linspace(0, 3, 1000)
+
+# グリーン関数とスペクトル関数
+G = green_function(omega)
+A = spectral_function(omega)
+
+# 可視化
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# グリーン関数の実部
+axes[0, 0].plot(omega, G.real, 'b-', linewidth=2)
+axes[0, 0].axvline(omega_0, color='red', linestyle='--', label=f'ω₀={omega_0}')
+axes[0, 0].axhline(0, color='gray', linewidth=0.5)
+axes[0, 0].grid(True, alpha=0.3)
+axes[0, 0].set_xlabel('ω', fontsize=12)
+axes[0, 0].set_ylabel('Re[G(ω)]', fontsize=12)
+axes[0, 0].set_title('グリーン関数の実部', fontsize=12)
+axes[0, 0].legend()
+
+# グリーン関数の虚部
+axes[0, 1].plot(omega, G.imag, 'r-', linewidth=2)
+axes[0, 1].axvline(omega_0, color='red', linestyle='--', label=f'ω₀={omega_0}')
+axes[0, 1].axhline(0, color='gray', linewidth=0.5)
+axes[0, 1].grid(True, alpha=0.3)
+axes[0, 1].set_xlabel('ω', fontsize=12)
+axes[0, 1].set_ylabel('Im[G(ω)]', fontsize=12)
+axes[0, 1].set_title('グリーン関数の虚部', fontsize=12)
+axes[0, 1].legend()
+
+# スペクトル関数
+axes[1, 0].plot(omega, A, 'g-', linewidth=2)
+axes[1, 0].fill_between(omega, 0, A, alpha=0.3)
+axes[1, 0].axvline(omega_0, color='red', linestyle='--', label=f'ω₀={omega_0}')
+axes[1, 0].grid(True, alpha=0.3)
+axes[1, 0].set_xlabel('ω', fontsize=12)
+axes[1, 0].set_ylabel('A(ω) = -2Im[G(ω)]', fontsize=12)
+axes[1, 0].set_title('スペクトル関数（状態密度）', fontsize=12)
+axes[1, 0].legend()
+
+# 複素平面でのグリーン関数
+omega_complex = np.linspace(-2, 2, 100) + 1j * np.linspace(-2, 2, 100)[:, np.newaxis]
+G_complex = 1 / (omega_complex**2 - omega_0**2 + 1j*gamma*omega_complex)
+G_abs = np.abs(G_complex)
+G_abs = np.clip(G_abs, 0, 10)
+
+im = axes[1, 1].contourf(omega_complex.real, omega_complex.imag, G_abs, 
+                         levels=20, cmap='viridis')
+# 極の位置
+pole1 = np.sqrt(omega_0**2 - 1j*gamma*omega_0)
+pole2 = -pole1
+axes[1, 1].plot([pole1.real, pole2.real], [pole1.imag, pole2.imag], 
+               'r*', markersize=15, label='Poles')
+axes[1, 1].axhline(0, color='white', linewidth=1, linestyle='--', alpha=0.5)
+axes[1, 1].axvline(0, color='white', linewidth=1, linestyle='--', alpha=0.5)
+axes[1, 1].set_xlabel('Re(ω)', fontsize=12)
+axes[1, 1].set_ylabel('Im(ω)', fontsize=12)
+axes[1, 1].set_title('|G(ω)| in complex plane', fontsize=12)
+axes[1, 1].legend()
+plt.colorbar(im, ax=axes[1, 1])
+
+plt.suptitle('格子振動のグリーン関数解析', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# 和則の検証（Kramers-Kronig関係）
+print("=== 和則の検証 ===")
+# ∫ A(ω) dω = -2
+integral_A, _ = integrate.quad(spectral_function, 0, np.inf)
+print(f"∫[0,∞] A(ω) dω = {integral_A:.6f}")
+print(f"理論値: -2")
+print(f"(符号は定義による)")
+
+print("\n格子振動の物理:")
+print("- グリーン関数の極 → 格子振動モード（フォノン）")
+print("- スペクトル関数 → 状態密度")
+print("- 複素周波数 → 振動の減衰")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>📝 章末問題</h2>
+                    <div class="exercise-box">
+                        <h4>演習問題</h4>
+                        <ol>
+                            <li>$f(z) = \frac{e^z}{z^3}$ の $z=0$ 周りのLaurent展開を求めよ。</li>
+                            <li>$f(z) = \frac{1}{z(z-1)(z-2)}$ の留数を全ての特異点で計算せよ。</li>
+                            <li>留数定理を使って $\int_{-\infty}^{\infty} \frac{dx}{1+x^4}$ を計算せよ。</li>
+                            <li>$\int_0^{2\pi} \frac{d\theta}{3 + 2\cos\theta}$ を留数定理で計算せよ。</li>
+                        </ol>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>🔗 参考文献</h2>
+                    <ul class="reference-list">
+                        <li>Churchill, R. V., & Brown, J. W. (2013). <em>Complex Variables and Applications</em>. McGraw-Hill.</li>
+                        <li>Arfken, G. B., & Weber, H. J. (2005). <em>Mathematical Methods for Physicists</em>. Academic Press.</li>
+                    </ul>
+                </section>
+            </article>
+
+            <nav class="chapter-navigation">
+                <a href="chapter-2.html" class="btn btn-secondary">← 第2章へ</a>
+                <a href="chapter-4.html" class="btn btn-primary">第4章へ →</a>
+            </nav>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第4章: フーリエ変換とラプラス変換 | 複素関数論と特殊関数 - FM道場</title>
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>MathJax = {tex: {inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']]}};</script>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="header-content">
+                <div class="site-logo"><a href="../../../index.html">🏛️ AI寺子屋</a></div>
+                <nav class="main-nav">
+                    <a href="../../../index.html">ホーム</a>
+                    <a href="../../index.html">知識ベース</a>
+                    <a href="../index.html" class="active">FM道場</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="chapter-page">
+        <div class="container">
+            <nav class="breadcrumb">
+                <a href="../../../index.html">ホーム</a> &gt;
+                <a href="../index.html">FM道場</a> &gt;
+                <a href="index.html">複素関数論と特殊関数</a> &gt;
+                <span>第4章</span>
+            </nav>
+
+            <article class="chapter-content">
+                <div class="chapter-header">
+                    <span class="chapter-label">第4章</span>
+                    <h1>フーリエ変換とラプラス変換</h1>
+                    <p class="chapter-subtitle">Fourier and Laplace Transforms</p>
+                    <div class="chapter-meta">
+                        <span class="meta-item">⏱️ 22-26分</span>
+                        <span class="meta-item">💻 8コード例</span>
+                        <span class="meta-item">📊 中級</span>
+                    </div>
+                </div>
+
+                <section class="chapter-section">
+                    <h2>4.1 フーリエ級数</h2>
+                    <p>
+                        周期関数は三角関数の級数（フーリエ級数）で表現できます。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>フーリエ級数展開:</strong></p>
+                        $$f(x) = \frac{a_0}{2} + \sum_{n=1}^{\infty} \left( a_n \cos\frac{n\pi x}{L} + b_n \sin\frac{n\pi x}{L} \right)$$
+                        <p><strong>フーリエ係数:</strong></p>
+                        $$a_n = \frac{1}{L} \int_{-L}^{L} f(x) \cos\frac{n\pi x}{L} dx$$
+                        $$b_n = \frac{1}{L} \int_{-L}^{L} f(x) \sin\frac{n\pi x}{L} dx$$
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 1: フーリエ級数展開</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy import integrate
+
+def fourier_coefficients(f, L, n_max):
+    """フーリエ係数の計算"""
+    a0 = (1/L) * integrate.quad(f, -L, L)[0]
+    
+    a_n = []
+    b_n = []
+    
+    for n in range(1, n_max + 1):
+        # a_n
+        integrand_a = lambda x: f(x) * np.cos(n * np.pi * x / L)
+        a_n.append((1/L) * integrate.quad(integrand_a, -L, L)[0])
+        
+        # b_n
+        integrand_b = lambda x: f(x) * np.sin(n * np.pi * x / L)
+        b_n.append((1/L) * integrate.quad(integrand_b, -L, L)[0])
+    
+    return a0, np.array(a_n), np.array(b_n)
+
+def fourier_series(x, a0, a_n, b_n, L):
+    """フーリエ級数の部分和"""
+    result = a0 / 2
+    for n, (a, b) in enumerate(zip(a_n, b_n), start=1):
+        result += a * np.cos(n * np.pi * x / L) + b * np.sin(n * np.pi * x / L)
+    return result
+
+# テスト関数: 方形波
+L = np.pi
+def square_wave(x):
+    return np.where(np.abs(x) < L/2, 1.0, 0.0)
+
+# テスト関数: のこぎり波
+def sawtooth_wave(x):
+    return x / L
+
+# テスト関数: 三角波
+def triangle_wave(x):
+    return 1 - 2*np.abs(x)/L
+
+# フーリエ係数の計算
+a0_sq, a_n_sq, b_n_sq = fourier_coefficients(square_wave, L, 20)
+a0_saw, a_n_saw, b_n_saw = fourier_coefficients(sawtooth_wave, L, 20)
+a0_tri, a_n_tri, b_n_tri = fourier_coefficients(triangle_wave, L, 20)
+
+print("=== フーリエ級数展開 ===\n")
+print("方形波:")
+print(f"  a0 = {a0_sq:.6f}")
+print(f"  First 5 a_n: {a_n_sq[:5]}")
+print(f"  First 5 b_n: {b_n_sq[:5]}")
+
+print("\nのこぎり波:")
+print(f"  a0 = {a0_saw:.6f}")
+print(f"  First 5 a_n: {a_n_saw[:5]}")
+print(f"  First 5 b_n: {b_n_saw[:5]}")
+
+# 可視化
+x = np.linspace(-2*L, 2*L, 1000)
+
+fig, axes = plt.subplots(3, 1, figsize=(14, 12))
+
+# 方形波
+ax = axes[0]
+ax.plot(x, square_wave(x % (2*L) - L), 'b-', linewidth=2, alpha=0.5, label='Original')
+for n_terms in [3, 5, 10, 20]:
+    y_approx = fourier_series(x % (2*L) - L, a0_sq, a_n_sq[:n_terms], b_n_sq[:n_terms], L)
+    ax.plot(x, y_approx, linewidth=1.5, alpha=0.8, label=f'N={n_terms}')
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('x', fontsize=12)
+ax.set_ylabel('f(x)', fontsize=12)
+ax.set_title('方形波のフーリエ級数近似', fontsize=12)
+ax.legend()
+ax.set_ylim(-0.5, 1.5)
+
+# のこぎり波
+ax = axes[1]
+ax.plot(x, sawtooth_wave(x % (2*L) - L), 'b-', linewidth=2, alpha=0.5, label='Original')
+for n_terms in [3, 5, 10, 20]:
+    y_approx = fourier_series(x % (2*L) - L, a0_saw, a_n_saw[:n_terms], b_n_saw[:n_terms], L)
+    ax.plot(x, y_approx, linewidth=1.5, alpha=0.8, label=f'N={n_terms}')
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('x', fontsize=12)
+ax.set_ylabel('f(x)', fontsize=12)
+ax.set_title('のこぎり波のフーリエ級数近似', fontsize=12)
+ax.legend()
+
+# 三角波
+ax = axes[2]
+ax.plot(x, triangle_wave(x % (2*L) - L), 'b-', linewidth=2, alpha=0.5, label='Original')
+for n_terms in [3, 5, 10, 20]:
+    y_approx = fourier_series(x % (2*L) - L, a0_tri, a_n_tri[:n_terms], b_n_tri[:n_terms], L)
+    ax.plot(x, y_approx, linewidth=1.5, alpha=0.8, label=f'N={n_terms}')
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('x', fontsize=12)
+ax.set_ylabel('f(x)', fontsize=12)
+ax.set_title('三角波のフーリエ級数近似', fontsize=12)
+ax.legend()
+
+plt.tight_layout()
+plt.show()
+
+# ギブス現象の観察
+print("\n=== ギブス現象 ===")
+print("方形波の不連続点近傍でオーバーシュートが発生")
+x_gibbs = np.linspace(-L/2 - 0.5, -L/2 + 0.5, 200)
+y_gibbs_20 = fourier_series(x_gibbs, a0_sq, a_n_sq[:20], b_n_sq[:20], L)
+overshoot = np.max(y_gibbs_20) - 1.0
+print(f"N=20のときのオーバーシュート: {overshoot:.4f}")
+print(f"理論値: 約 0.0895 (Gibbsの定数 ≈ 9%)")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>4.2 フーリエ変換</h2>
+                    <p>
+                        非周期関数に対しては、フーリエ級数を連続化したフーリエ変換を用います。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>フーリエ変換:</strong></p>
+                        $$F(\omega) = \mathcal{F}[f(t)] = \int_{-\infty}^{\infty} f(t) e^{-i\omega t} dt$$
+                        <p><strong>逆フーリエ変換:</strong></p>
+                        $$f(t) = \mathcal{F}^{-1}[F(\omega)] = \frac{1}{2\pi} \int_{-\infty}^{\infty} F(\omega) e^{i\omega t} d\omega$$
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 2: フーリエ変換（FFT）</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.fft import fft, fftfreq, ifft
+
+# サンプリングパラメータ
+T = 0.01  # サンプリング間隔
+N = 2048  # サンプル数
+t = np.arange(N) * T
+
+# テスト信号: 複数の周波数成分
+f1, f2, f3 = 5, 20, 50  # Hz
+signal = (np.sin(2*np.pi*f1*t) + 
+          0.5*np.sin(2*np.pi*f2*t) + 
+          0.3*np.sin(2*np.pi*f3*t))
+
+# ノイズの追加
+noise = 0.2 * np.random.randn(N)
+signal_noisy = signal + noise
+
+# FFT
+fft_result = fft(signal_noisy)
+freq = fftfreq(N, T)
+
+# パワースペクトル
+power_spectrum = np.abs(fft_result)**2
+
+# 可視化
+fig, axes = plt.subplots(3, 1, figsize=(14, 12))
+
+# 時間領域: 元の信号
+ax = axes[0]
+ax.plot(t[:500], signal[:500], 'b-', linewidth=2, label='Clean signal')
+ax.plot(t[:500], signal_noisy[:500], 'r-', linewidth=1, alpha=0.6, label='Noisy signal')
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('時間 (s)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('時間領域の信号', fontsize=12)
+ax.legend()
+
+# 周波数領域: フーリエ変換
+ax = axes[1]
+ax.plot(freq[:N//2], np.abs(fft_result[:N//2]), 'b-', linewidth=2)
+ax.axvline(f1, color='red', linestyle='--', alpha=0.5, label=f'{f1} Hz')
+ax.axvline(f2, color='green', linestyle='--', alpha=0.5, label=f'{f2} Hz')
+ax.axvline(f3, color='orange', linestyle='--', alpha=0.5, label=f'{f3} Hz')
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('周波数 (Hz)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('周波数スペクトル（フーリエ変換）', fontsize=12)
+ax.set_xlim(0, 100)
+ax.legend()
+
+# パワースペクトル
+ax = axes[2]
+ax.semilogy(freq[:N//2], power_spectrum[:N//2], 'b-', linewidth=2)
+ax.axvline(f1, color='red', linestyle='--', alpha=0.5)
+ax.axvline(f2, color='green', linestyle='--', alpha=0.5)
+ax.axvline(f3, color='orange', linestyle='--', alpha=0.5)
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('周波数 (Hz)', fontsize=12)
+ax.set_ylabel('パワー', fontsize=12)
+ax.set_title('パワースペクトル', fontsize=12)
+ax.set_xlim(0, 100)
+
+plt.tight_layout()
+plt.show()
+
+print("=== フーリエ変換による周波数解析 ===")
+print(f"入力信号: {f1} Hz, {f2} Hz, {f3} Hz")
+print(f"\nピーク検出:")
+# ピークを検出
+threshold = np.max(np.abs(fft_result[:N//2])) * 0.3
+peaks = np.where(np.abs(fft_result[:N//2]) > threshold)[0]
+peak_freqs = freq[peaks]
+for pf in peak_freqs[:10]:
+    if pf > 0:
+        print(f"  {pf:.2f} Hz")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>4.3 畳み込み定理</h2>
+                    <p>
+                        フーリエ変換は畳み込み演算を単純な積に変換します。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>畳み込み定理:</strong></p>
+                        $$\mathcal{F}[f * g] = \mathcal{F}[f] \cdot \mathcal{F}[g]$$
+                        <p>ここで畳み込み $(f * g)(t) = \int_{-\infty}^{\infty} f(\tau) g(t-\tau) d\tau$</p>
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 3: 畳み込みとフィルタリング</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.fft import fft, ifft, fftfreq
+from scipy import signal
+
+# サンプリングパラメータ
+fs = 1000  # サンプリング周波数 (Hz)
+T = 1/fs
+N = 2048
+t = np.arange(N) * T
+
+# 入力信号: 矩形パルス + 高周波ノイズ
+pulse_width = 50
+pulse = np.zeros(N)
+pulse[N//2 - pulse_width//2:N//2 + pulse_width//2] = 1.0
+
+noise_high_freq = 0.3 * np.sin(2*np.pi*200*t)
+signal_input = pulse + noise_high_freq
+
+# ローパスフィルタ（Gaussian）
+cutoff_freq = 50  # Hz
+sigma = 1 / (2 * np.pi * cutoff_freq)
+filter_time = np.exp(-t**2 / (2*sigma**2))
+filter_time = filter_time / np.sum(filter_time)  # 正規化
+
+# 方法1: 時間領域での畳み込み
+signal_filtered_time = np.convolve(signal_input, filter_time, mode='same')
+
+# 方法2: 周波数領域での積（畳み込み定理）
+fft_signal = fft(signal_input)
+fft_filter = fft(filter_time)
+fft_filtered = fft_signal * fft_filter
+signal_filtered_freq = ifft(fft_filtered).real
+
+# 可視化
+fig, axes = plt.subplots(3, 2, figsize=(14, 12))
+
+# 時間領域: 入力信号
+ax = axes[0, 0]
+ax.plot(t[:500], signal_input[:500], 'b-', linewidth=1.5)
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('時間 (s)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('入力信号（パルス + ノイズ）', fontsize=12)
+
+# 周波数領域: 入力信号
+ax = axes[0, 1]
+freq = fftfreq(N, T)
+ax.semilogy(freq[:N//2], np.abs(fft_signal[:N//2]), 'b-', linewidth=1.5)
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('周波数 (Hz)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('入力信号のスペクトル', fontsize=12)
+ax.set_xlim(0, 300)
+
+# 時間領域: フィルタ
+ax = axes[1, 0]
+ax.plot(t[:200], filter_time[:200], 'g-', linewidth=2)
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('時間 (s)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('ローパスフィルタ（時間領域）', fontsize=12)
+
+# 周波数領域: フィルタ
+ax = axes[1, 1]
+ax.plot(freq[:N//2], np.abs(fft_filter[:N//2]), 'g-', linewidth=2)
+ax.axvline(cutoff_freq, color='red', linestyle='--', label=f'Cutoff: {cutoff_freq} Hz')
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('周波数 (Hz)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('フィルタの周波数応答', fontsize=12)
+ax.set_xlim(0, 300)
+ax.legend()
+
+# 時間領域: フィルタ後の信号
+ax = axes[2, 0]
+ax.plot(t[:500], signal_input[:500], 'b-', linewidth=1, alpha=0.3, label='Input')
+ax.plot(t[:500], signal_filtered_time[:500], 'r-', linewidth=2, label='Filtered')
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('時間 (s)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('フィルタ後の信号（時間領域畳み込み）', fontsize=12)
+ax.legend()
+
+# 周波数領域: フィルタ後の信号
+ax = axes[2, 1]
+ax.semilogy(freq[:N//2], np.abs(fft_signal[:N//2]), 'b-', linewidth=1, alpha=0.3, label='Input')
+ax.semilogy(freq[:N//2], np.abs(fft_filtered[:N//2]), 'r-', linewidth=2, label='Filtered')
+ax.axvline(cutoff_freq, color='green', linestyle='--', alpha=0.5)
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('周波数 (Hz)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('フィルタ後のスペクトル（周波数領域積）', fontsize=12)
+ax.set_xlim(0, 300)
+ax.legend()
+
+plt.tight_layout()
+plt.show()
+
+# 畳み込み定理の検証
+error = np.linalg.norm(signal_filtered_time - signal_filtered_freq) / np.linalg.norm(signal_filtered_time)
+print("=== 畳み込み定理の検証 ===")
+print(f"時間領域畳み込み vs 周波数領域積")
+print(f"相対誤差: {error:.2e}")
+print("畳み込み定理: F[f * g] = F[f] · F[g] ✓")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>4.4 ラプラス変換</h2>
+                    <p>
+                        ラプラス変換は片側のフーリエ変換を一般化したもので、微分方程式の解法に有用です。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>ラプラス変換:</strong></p>
+                        $$F(s) = \mathcal{L}[f(t)] = \int_0^{\infty} f(t) e^{-st} dt$$
+                        <p><strong>主な性質:</strong></p>
+                        <ul>
+                            <li>微分: $\mathcal{L}[f'(t)] = sF(s) - f(0)$</li>
+                            <li>積分: $\mathcal{L}\left[\int_0^t f(\tau)d\tau\right] = \frac{F(s)}{s}$</li>
+                            <li>畳み込み: $\mathcal{L}[f * g] = F(s) \cdot G(s)$</li>
+                        </ul>
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 4: ラプラス変換の数値計算</h4>
+                        <pre><code class="language-python">import numpy as np
+from scipy import integrate
+import matplotlib.pyplot as plt
+
+def laplace_transform(f, s, t_max=10):
+    """ラプラス変換の数値計算"""
+    integrand = lambda t: f(t) * np.exp(-s * t)
+    result, error = integrate.quad(integrand, 0, t_max)
+    return result
+
+# テスト関数
+functions = {
+    'e^(-at)': lambda t, a=2: np.exp(-a*t),
+    't e^(-at)': lambda t, a=1: t * np.exp(-a*t),
+    'sin(ωt)': lambda t, omega=3: np.sin(omega*t),
+    'cos(ωt)': lambda t, omega=3: np.cos(omega*t),
+    'H(t-a)': lambda t, a=2: np.where(t >= a, 1.0, 0.0),  # ヘビサイド関数
+}
+
+# 理論値
+def theoretical_laplace(func_name, s):
+    if func_name == 'e^(-at)':
+        a = 2
+        return 1 / (s + a)
+    elif func_name == 't e^(-at)':
+        a = 1
+        return 1 / (s + a)**2
+    elif func_name == 'sin(ωt)':
+        omega = 3
+        return omega / (s**2 + omega**2)
+    elif func_name == 'cos(ωt)':
+        omega = 3
+        return s / (s**2 + omega**2)
+    elif func_name == 'H(t-a)':
+        a = 2
+        return np.exp(-a*s) / s
+    return None
+
+print("=== ラプラス変換の計算 ===\n")
+
+s_values = np.array([0.5, 1.0, 2.0, 5.0])
+
+for name, f in functions.items():
+    print(f"f(t) = {name}")
+    for s in s_values:
+        numerical = laplace_transform(f, s)
+        theoretical = theoretical_laplace(name, s)
+        
+        if theoretical is not None:
+            error = abs(numerical - theoretical) / abs(theoretical) if theoretical != 0 else abs(numerical)
+            print(f"  s={s}: Numerical={numerical:.6f}, Theory={theoretical:.6f}, Error={error:.2e}")
+        else:
+            print(f"  s={s}: Numerical={numerical:.6f}")
+    print()
+
+# 可視化: s平面でのラプラス変換
+sigma = np.linspace(-3, 3, 50)
+omega = np.linspace(-10, 10, 50)
+Sigma, Omega = np.meshgrid(sigma, omega)
+S = Sigma + 1j*Omega
+
+fig, axes = plt.subplots(2, 2, figsize=(12, 12))
+axes = axes.flatten()
+
+test_cases = [
+    ('e^(-2t)', lambda s: 1/(s+2), -2, None),
+    ('t e^(-t)', lambda s: 1/(s+1)**2, -1, None),
+    ('sin(3t)', lambda s: 3/(s**2+9), None, 3),
+    ('cos(3t)', lambda s: s/(s**2+9), None, 3),
+]
+
+for idx, (name, F_theory, pole_real, pole_imag) in enumerate(test_cases):
+    ax = axes[idx]
+    
+    # ラプラス変換の値（理論値）
+    F_val = F_theory(S)
+    F_abs = np.abs(F_val)
+    F_abs = np.clip(F_abs, 0, 10)  # クリップ
+    
+    im = ax.contourf(Sigma, Omega, F_abs, levels=20, cmap='viridis')
+    
+    # 極の位置
+    if pole_real is not None and pole_imag is None:
+        ax.plot(pole_real, 0, 'r*', markersize=15, label=f'Pole at s={pole_real}')
+    elif pole_imag is not None:
+        ax.plot(0, pole_imag, 'r*', markersize=15)
+        ax.plot(0, -pole_imag, 'r*', markersize=15, label=f'Poles at s=±{pole_imag}i')
+    
+    ax.axvline(0, color='white', linewidth=1, linestyle='--', alpha=0.5)
+    ax.axhline(0, color='white', linewidth=1, linestyle='--', alpha=0.5)
+    ax.set_xlabel('σ (Re(s))', fontsize=12)
+    ax.set_ylabel('ω (Im(s))', fontsize=12)
+    ax.set_title(f'$|F(s)|$ for $f(t)={name}$', fontsize=11)
+    ax.legend()
+    plt.colorbar(im, ax=ax)
+
+plt.suptitle('ラプラス変換のs平面表示', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>4.5 逆ラプラス変換と微分方程式</h2>
+                    <p>
+                        ラプラス変換を使うと、微分方程式を代数方程式に変換できます。
+                    </p>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 5: 逆ラプラス変換による微分方程式の解法</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy import integrate
+import sympy as sp
+
+# SymPyで記号計算
+t_sym = sp.Symbol('t', positive=True, real=True)
+s_sym = sp.Symbol('s')
+
+# 微分方程式: y'' + 4y' + 3y = e^(-t), y(0) = 0, y'(0) = 0
+print("=== 微分方程式の解法（ラプラス変換） ===\n")
+print("微分方程式: y'' + 4y' + 3y = e^(-t)")
+print("初期条件: y(0) = 0, y'(0) = 0\n")
+
+# ラプラス変換
+# L[y''] = s²Y(s) - sy(0) - y'(0)
+# L[y'] = sY(s) - y(0)
+# L[y] = Y(s)
+# L[e^(-t)] = 1/(s+1)
+
+# 代数方程式: (s² + 4s + 3)Y(s) = 1/(s+1)
+# Y(s) = 1/[(s+1)(s²+4s+3)] = 1/[(s+1)(s+1)(s+3)] = 1/[(s+1)²(s+3)]
+
+Y_s = 1 / ((s_sym + 1)**2 * (s_sym + 3))
+
+print("ラプラス空間での解: Y(s) =", Y_s)
+
+# 部分分数分解
+Y_partial = sp.apart(Y_s, s_sym)
+print("部分分数分解: Y(s) =", Y_partial)
+
+# 逆ラプラス変換
+y_solution = sp.inverse_laplace_transform(Y_s, s_sym, t_sym)
+print("解: y(t) =", y_solution)
+
+# 数値計算での検証
+y_func = sp.lambdify(t_sym, y_solution, 'numpy')
+t_num = np.linspace(0, 5, 500)
+y_num = y_func(t_num)
+
+# 直接数値解（比較用）
+def ode_system(t, y):
+    """y = [y, y']"""
+    return [y[1], np.exp(-t) - 3*y[0] - 4*y[1]]
+
+from scipy.integrate import solve_ivp
+sol = solve_ivp(ode_system, [0, 5], [0, 0], t_eval=t_num, method='RK45')
+
+# 可視化
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# 解の比較
+ax1.plot(t_num, y_num, 'b-', linewidth=2, label='Laplace method')
+ax1.plot(sol.t, sol.y[0], 'r--', linewidth=2, alpha=0.7, label='Numerical ODE')
+ax1.grid(True, alpha=0.3)
+ax1.set_xlabel('t', fontsize=12)
+ax1.set_ylabel('y(t)', fontsize=12)
+ax1.set_title('微分方程式の解（比較）', fontsize=12)
+ax1.legend()
+
+# 誤差
+error = np.abs(y_num - sol.y[0])
+ax2.semilogy(t_num, error, 'g-', linewidth=2)
+ax2.grid(True, alpha=0.3)
+ax2.set_xlabel('t', fontsize=12)
+ax2.set_ylabel('誤差', fontsize=12)
+ax2.set_title('ラプラス法 vs 数値解の誤差', fontsize=12)
+
+plt.tight_layout()
+plt.show()
+
+print(f"\n最大誤差: {np.max(error):.2e}")
+
+# 別の例: 強制振動
+print("\n\n=== 例2: 強制振動 ===")
+print("微分方程式: y'' + ω₀²y = F₀sin(ωt)")
+print("初期条件: y(0) = 0, y'(0) = 0")
+
+omega_0 = 2.0
+omega = 1.5
+F0 = 1.0
+
+# Y(s) = F₀ω / [(s² + ω²)(s² + ω₀²)]
+Y_forced = (F0 * omega) / ((s_sym**2 + omega**2) * (s_sym**2 + omega_0**2))
+print(f"\nY(s) =", Y_forced)
+
+# 部分分数分解
+Y_forced_partial = sp.apart(Y_forced, s_sym)
+print("部分分数分解:", Y_forced_partial)
+
+# 逆ラプラス変換
+y_forced = sp.inverse_laplace_transform(Y_forced, s_sym, t_sym)
+y_forced_simplified = sp.simplify(y_forced)
+print("解:", y_forced_simplified)
+
+# 数値評価
+y_forced_func = sp.lambdify(t_sym, y_forced, 'numpy')
+t_forced = np.linspace(0, 20, 1000)
+y_forced_num = y_forced_func(t_forced)
+
+plt.figure(figsize=(12, 5))
+plt.plot(t_forced, y_forced_num, 'b-', linewidth=2)
+plt.plot(t_forced, (F0*omega/(omega_0**2 - omega**2)) * np.sin(omega*t_forced), 
+         'r--', linewidth=1, alpha=0.5, label='Forcing term (scaled)')
+plt.grid(True, alpha=0.3)
+plt.xlabel('t', fontsize=12)
+plt.ylabel('y(t)', fontsize=12)
+plt.title(f'強制振動の解 (ω₀={omega_0}, ω={omega})', fontsize=14)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+print("\n振動の特徴:")
+print(f"固有角周波数: ω₀ = {omega_0}")
+print(f"外力の角周波数: ω = {omega}")
+print(f"ω ≠ ω₀ のため、うなりが観察される")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>4.6 フーリエ変換の性質</h2>
+                    <p>
+                        フーリエ変換には様々な有用な性質があります。
+                    </p>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 6: フーリエ変換の性質（シフト、スケーリング、微分）</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.fft import fft, fftfreq, fftshift
+
+# サンプリングパラメータ
+fs = 1000
+T = 1/fs
+N = 2048
+t = np.arange(N) * T
+freq = fftfreq(N, T)
+
+# 元の信号: Gaussianパルス
+sigma = 0.05
+t_center = N * T / 2
+gaussian = np.exp(-(t - t_center)**2 / (2*sigma**2))
+
+# 性質1: 時間シフト
+t_shift = 0.2
+gaussian_shifted = np.exp(-(t - t_center - t_shift)**2 / (2*sigma**2))
+
+# 性質2: スケーリング
+sigma_scaled = sigma * 2
+gaussian_scaled = np.exp(-(t - t_center)**2 / (2*sigma_scaled**2))
+
+# 性質3: 微分
+gaussian_deriv = -(t - t_center) / sigma**2 * gaussian
+
+# FFT
+fft_orig = fftshift(fft(gaussian))
+fft_shifted = fftshift(fft(gaussian_shifted))
+fft_scaled = fftshift(fft(gaussian_scaled))
+fft_deriv = fftshift(fft(gaussian_deriv))
+freq_shifted = fftshift(freq)
+
+# 可視化
+fig, axes = plt.subplots(4, 2, figsize=(14, 14))
+
+# 元の信号
+ax = axes[0, 0]
+ax.plot(t, gaussian, 'b-', linewidth=2)
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('時間 (s)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('元の信号: Gaussian', fontsize=12)
+
+ax = axes[0, 1]
+ax.plot(freq_shifted, np.abs(fft_orig), 'b-', linewidth=2)
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('周波数 (Hz)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('フーリエ変換', fontsize=12)
+ax.set_xlim(-100, 100)
+
+# 時間シフト
+ax = axes[1, 0]
+ax.plot(t, gaussian, 'b-', linewidth=1, alpha=0.3, label='Original')
+ax.plot(t, gaussian_shifted, 'r-', linewidth=2, label=f'Shifted by {t_shift}s')
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('時間 (s)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('時間シフト', fontsize=12)
+ax.legend()
+
+ax = axes[1, 1]
+ax.plot(freq_shifted, np.abs(fft_orig), 'b-', linewidth=1, alpha=0.3, label='Original')
+ax.plot(freq_shifted, np.abs(fft_shifted), 'r-', linewidth=2, label='Shifted')
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('周波数 (Hz)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('シフト後のスペクトル（振幅不変）', fontsize=12)
+ax.set_xlim(-100, 100)
+ax.legend()
+
+# スケーリング
+ax = axes[2, 0]
+ax.plot(t, gaussian, 'b-', linewidth=1, alpha=0.3, label='Original')
+ax.plot(t, gaussian_scaled, 'g-', linewidth=2, label=f'Scaled (σ×2)')
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('時間 (s)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('時間スケーリング', fontsize=12)
+ax.legend()
+
+ax = axes[2, 1]
+ax.plot(freq_shifted, np.abs(fft_orig), 'b-', linewidth=1, alpha=0.3, label='Original')
+ax.plot(freq_shifted, np.abs(fft_scaled), 'g-', linewidth=2, label='Scaled')
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('周波数 (Hz)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('スケール後のスペクトル（周波数圧縮）', fontsize=12)
+ax.set_xlim(-100, 100)
+ax.legend()
+
+# 微分
+ax = axes[3, 0]
+ax.plot(t, gaussian, 'b-', linewidth=1, alpha=0.3, label='f(t)')
+ax.plot(t, gaussian_deriv, 'm-', linewidth=2, label="f'(t)")
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('時間 (s)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('微分', fontsize=12)
+ax.legend()
+
+ax = axes[3, 1]
+ax.plot(freq_shifted, np.abs(fft_orig), 'b-', linewidth=1, alpha=0.3, label='F(ω)')
+ax.plot(freq_shifted, np.abs(fft_deriv), 'm-', linewidth=2, label="F[f'(t)] = iωF(ω)")
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('周波数 (Hz)', fontsize=12)
+ax.set_ylabel('振幅', fontsize=12)
+ax.set_title('微分後のスペクトル（高周波強調）', fontsize=12)
+ax.set_xlim(-100, 100)
+ax.legend()
+
+plt.suptitle('フーリエ変換の性質', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+print("=== フーリエ変換の性質 ===")
+print("1. 時間シフト: f(t-t₀) → e^(-iωt₀)F(ω) (振幅不変、位相変化)")
+print("2. スケーリング: f(at) → (1/|a|)F(ω/a) (時間拡大 ↔ 周波数圧縮)")
+print("3. 微分: f'(t) → iωF(ω) (高周波強調)")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>4.7 ウィンドウ関数とスペクトル漏れ</h2>
+                    <p>
+                        有限長の信号をFFTで解析する際、ウィンドウ関数を使って スペクトル漏れを抑制します。
+                    </p>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 7: ウィンドウ関数の効果</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.fft import fft, fftfreq
+from scipy import signal as sig
+
+# サンプリングパラメータ
+fs = 1000
+T = 1/fs
+N = 1024
+t = np.arange(N) * T
+
+# テスト信号: 50.5 Hz の正弦波（ビン中心からずれている）
+f_signal = 50.5
+signal_pure = np.sin(2*np.pi*f_signal*t)
+
+# 様々なウィンドウ関数
+windows = {
+    'Rectangular (no window)': np.ones(N),
+    'Hann': sig.windows.hann(N),
+    'Hamming': sig.windows.hamming(N),
+    'Blackman': sig.windows.blackman(N),
+    'Kaiser (β=5)': sig.windows.kaiser(N, 5),
+}
+
+# 可視化
+fig = plt.figure(figsize=(16, 12))
+gs = fig.add_gridspec(4, 3, hspace=0.3, wspace=0.3)
+
+# 時間領域のウィンドウ
+ax_time = fig.add_subplot(gs[0, :])
+for name, window in windows.items():
+    ax_time.plot(t[:200], window[:200], linewidth=2, label=name, alpha=0.7)
+ax_time.grid(True, alpha=0.3)
+ax_time.set_xlabel('時間 (s)', fontsize=12)
+ax_time.set_ylabel('振幅', fontsize=12)
+ax_time.set_title('ウィンドウ関数（時間領域）', fontsize=14)
+ax_time.legend()
+
+# 各ウィンドウでのスペクトル
+freq = fftfreq(N, T)
+
+for idx, (name, window) in enumerate(windows.items()):
+    # ウィンドウ適用
+    signal_windowed = signal_pure * window
+    
+    # FFT
+    fft_result = fft(signal_windowed)
+    magnitude_db = 20 * np.log10(np.abs(fft_result[:N//2]) / N + 1e-10)
+    
+    # プロット位置
+    row = (idx // 2) + 1
+    col = idx % 2
+    ax = fig.add_subplot(gs[row, col])
+    
+    ax.plot(freq[:N//2], magnitude_db, 'b-', linewidth=1.5)
+    ax.axvline(f_signal, color='red', linestyle='--', label=f'{f_signal} Hz')
+    ax.grid(True, alpha=0.3)
+    ax.set_xlabel('周波数 (Hz)', fontsize=12)
+    ax.set_ylabel('振幅 (dB)', fontsize=12)
+    ax.set_title(f'{name}', fontsize=12)
+    ax.set_xlim(0, 150)
+    ax.set_ylim(-100, 0)
+    ax.legend()
+
+# ウィンドウの周波数特性の比較
+ax_compare = fig.add_subplot(gs[1:, 2])
+for name, window in windows.items():
+    fft_window = fft(window, N)
+    magnitude_db = 20 * np.log10(np.abs(fft_window[:N//2]) / N + 1e-10)
+    ax_compare.plot(freq[:N//2], magnitude_db, linewidth=2, label=name, alpha=0.7)
+
+ax_compare.grid(True, alpha=0.3)
+ax_compare.set_xlabel('周波数 (Hz)', fontsize=12)
+ax_compare.set_ylabel('振幅 (dB)', fontsize=12)
+ax_compare.set_title('ウィンドウの周波数特性', fontsize=12)
+ax_compare.set_xlim(0, 50)
+ax_compare.set_ylim(-100, 10)
+ax_compare.legend()
+
+plt.suptitle('ウィンドウ関数とスペクトル漏れの抑制', fontsize=16)
+plt.tight_layout()
+plt.show()
+
+print("=== ウィンドウ関数の特性 ===\n")
+for name, window in windows.items():
+    # メインローブ幅とサイドローブレベルを計算
+    fft_window = fft(window, N)
+    magnitude = np.abs(fft_window[:N//2])
+    magnitude_db = 20 * np.log10(magnitude / np.max(magnitude) + 1e-10)
+    
+    # メインローブ幅（-3dB幅）
+    main_lobe_idx = np.where(magnitude_db > -3)[0]
+    main_lobe_width = len(main_lobe_idx) * fs / N
+    
+    # 最大サイドローブレベル
+    # メインローブを除外
+    sidelobe_start = main_lobe_idx[-1] + 1 if len(main_lobe_idx) > 0 else 10
+    if sidelobe_start < len(magnitude_db):
+        max_sidelobe = np.max(magnitude_db[sidelobe_start:])
+    else:
+        max_sidelobe = -np.inf
+    
+    print(f"{name}:")
+    print(f"  メインローブ幅: {main_lobe_width:.2f} Hz")
+    print(f"  最大サイドローブレベル: {max_sidelobe:.1f} dB")
+    print()</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>4.8 材料科学への応用: X線回折パターン解析</h2>
+                    <p>
+                        結晶構造の解析では、実空間の原子配列とフーリエ変換された逆格子空間（回折パターン）が対応します。
+                    </p>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 8: 1次元結晶のX線回折シミュレーション</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.fft import fft, fftfreq, fftshift
+
+# 1次元結晶モデル
+a = 1.0  # 格子定数
+N_unit_cells = 50  # ユニットセルの数
+N_points = 1024  # サンプリング点数
+
+# 実空間の格子点
+x = np.linspace(0, N_unit_cells * a, N_points)
+dx = x[1] - x[0]
+
+# 原子密度関数（デルタ関数の近似としてガウシアン）
+rho = np.zeros(N_points)
+sigma_atom = 0.02  # 原子のサイズ
+
+for n in range(N_unit_cells):
+    x_atom = n * a
+    rho += np.exp(-(x - x_atom)**2 / (2*sigma_atom**2))
+
+# フーリエ変換（構造因子）
+structure_factor = fftshift(fft(rho))
+k = fftshift(fftfreq(N_points, dx)) * 2 * np.pi  # 逆格子ベクトル
+
+# 回折強度（|F(k)|²）
+diffraction_intensity = np.abs(structure_factor)**2
+
+# 可視化
+fig, axes = plt.subplots(3, 1, figsize=(14, 12))
+
+# 実空間: 原子配列
+ax = axes[0]
+ax.plot(x, rho, 'b-', linewidth=2)
+ax.stem([n*a for n in range(N_unit_cells)], [np.max(rho)]*N_unit_cells, 
+        linefmt='r-', markerfmt='ro', basefmt=' ', label='格子点')
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('位置 x', fontsize=12)
+ax.set_ylabel('電子密度 ρ(x)', fontsize=12)
+ax.set_title(f'実空間: 1次元結晶（格子定数 a={a}）', fontsize=12)
+ax.legend()
+ax.set_xlim(0, 10*a)
+
+# 逆空間: 構造因子
+ax = axes[1]
+ax.plot(k, np.abs(structure_factor), 'g-', linewidth=2)
+# ブラッグピークの位置
+k_bragg = 2*np.pi * np.arange(-5, 6) / a
+for kb in k_bragg:
+    if abs(kb) < np.max(k):
+        ax.axvline(kb, color='red', linestyle='--', alpha=0.3)
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('逆格子ベクトル k (2π/a)', fontsize=12)
+ax.set_ylabel('|F(k)|', fontsize=12)
+ax.set_title('逆空間: 構造因子', fontsize=12)
+ax.set_xlim(-30, 30)
+
+# 回折パターン
+ax = axes[2]
+ax.plot(k, diffraction_intensity, 'purple', linewidth=2)
+# ブラッグピーク
+for kb in k_bragg:
+    if abs(kb) < np.max(k):
+        ax.axvline(kb, color='red', linestyle='--', alpha=0.5, label='Bragg peaks' if kb == k_bragg[5] else '')
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('逆格子ベクトル k (2π/a)', fontsize=12)
+ax.set_ylabel('回折強度 |F(k)|²', fontsize=12)
+ax.set_title('X線回折パターン', fontsize=12)
+ax.set_xlim(-30, 30)
+ax.legend()
+
+plt.suptitle('1次元結晶のX線回折シミュレーション', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+print("=== X線回折の解析 ===")
+print(f"格子定数: a = {a}")
+print(f"ユニットセル数: N = {N_unit_cells}")
+print(f"\nブラッグの条件: k = 2πn/a (n = 整数)")
+print(f"第1ブラッグピーク: k = {2*np.pi/a:.2f}")
+print(f"第2ブラッグピーク: k = {4*np.pi/a:.2f}")
+print(f"第3ブラッグピーク: k = {6*np.pi/a:.2f}")
+
+print("\n物理的解釈:")
+print("- 実空間の周期構造 → 逆空間の離散的なブラッグピーク")
+print("- 格子定数 a が大きい → ブラッグピーク間隔が小さい")
+print("- 結晶サイズ（Nセル）が大きい → ブラッグピークがシャープ")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>📝 章末問題</h2>
+                    <div class="exercise-box">
+                        <h4>演習問題</h4>
+                        <ol>
+                            <li>方形波のフーリエ級数展開を10次まで求め、ギブス現象を観察せよ。</li>
+                            <li>Gaussian関数 $f(t) = e^{-t^2/(2\sigma^2)}$ のフーリエ変換を計算し、自己双対性を確認せよ。</li>
+                            <li>畳み込み定理を使って、2つのローパスフィルタの縦続接続の周波数応答を求めよ。</li>
+                            <li>ラプラス変換を使って、微分方程式 $y'' + 2y' + 2y = \sin(t)$, $y(0)=0$, $y'(0)=1$ を解け。</li>
+                        </ol>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>🔗 参考文献</h2>
+                    <ul class="reference-list">
+                        <li>Bracewell, R. N. (1986). <em>The Fourier Transform and Its Applications</em>. McGraw-Hill.</li>
+                        <li>Oppenheim, A. V., & Schafer, R. W. (2009). <em>Discrete-Time Signal Processing</em>. Prentice Hall.</li>
+                    </ul>
+                </section>
+            </article>
+
+            <nav class="chapter-navigation">
+                <a href="chapter-3.html" class="btn btn-secondary">← 第3章へ</a>
+                <a href="chapter-5.html" class="btn btn-primary">第5章へ →</a>
+            </nav>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

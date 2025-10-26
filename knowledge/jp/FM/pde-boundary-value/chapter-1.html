@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第1章: 波動方程式と振動現象 | 偏微分方程式と境界値問題 - FM道場</title>
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>MathJax = {tex: {inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']]}};</script>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="header-content">
+                <div class="site-logo"><a href="../../../index.html">🏛️ AI寺子屋</a></div>
+                <nav class="main-nav">
+                    <a href="../../../index.html">ホーム</a>
+                    <a href="../../index.html">知識ベース</a>
+                    <a href="../index.html" class="active">FM道場</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="chapter-page">
+        <div class="container">
+            <nav class="breadcrumb">
+                <a href="../../../index.html">ホーム</a> &gt;
+                <a href="../index.html">FM道場</a> &gt;
+                <a href="index.html">偏微分方程式と境界値問題</a> &gt;
+                <span>第1章</span>
+            </nav>
+
+            <article class="chapter-content">
+                <div class="chapter-header">
+                    <span class="chapter-label">第1章</span>
+                    <h1>波動方程式と振動現象</h1>
+                    <p class="chapter-subtitle">Wave Equation and Oscillations</p>
+                    <div class="chapter-meta">
+                        <span class="meta-item">⏱️ 20-24分</span>
+                        <span class="meta-item">💻 8コード例</span>
+                        <span class="meta-item">📊 中級</span>
+                    </div>
+                </div>
+
+                <section class="chapter-section">
+                    <h2>1.1 波動方程式の導出</h2>
+                    <p>
+                        弦の振動から1次元波動方程式を導出します。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>1次元波動方程式:</strong></p>
+                        $$\frac{\partial^2 u}{\partial t^2} = c^2 \frac{\partial^2 u}{\partial x^2}$$
+                        <p>ここで $u(x,t)$ は変位、$c$ は波の伝播速度</p>
+                        <p><strong>導出:</strong> 張力 $T$ の弦、線密度 $\rho$ のとき $c = \sqrt{T/\rho}$</p>
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 1: 波動方程式の数値シミュレーション（有限差分法）</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from IPython.display import HTML
+
+# パラメータ
+L = 10.0  # 弦の長さ
+c = 1.0   # 波の伝播速度
+T = 20.0  # 時間範囲
+Nx = 200  # 空間格子点数
+Nt = 1000 # 時間ステップ数
+
+# 格子
+x = np.linspace(0, L, Nx)
+t = np.linspace(0, T, Nt)
+dx = x[1] - x[0]
+dt = t[1] - t[0]
+
+# CFL条件の確認
+r = c * dt / dx  # クーラント数
+print(f"クーラント数 r = {r:.3f} (安定条件: r ≤ 1)")
+
+# 初期条件: 三角波
+def initial_displacement(x):
+    u = np.zeros_like(x)
+    peak = L / 2
+    width = L / 5
+    mask = np.abs(x - peak) < width
+    u[mask] = 1 - np.abs(x[mask] - peak) / width
+    return u
+
+# 初期化
+u = np.zeros((Nt, Nx))
+u[0] = initial_displacement(x)
+u[1] = u[0].copy()  # 初速度=0
+
+# 有限差分法（陽的スキーム）
+for n in range(1, Nt-1):
+    for i in range(1, Nx-1):
+        u[n+1, i] = (2*(1-r**2)*u[n, i] - u[n-1, i] + 
+                     r**2*(u[n, i+1] + u[n, i-1]))
+    
+    # 境界条件: u(0,t) = u(L,t) = 0
+    u[n+1, 0] = 0
+    u[n+1, -1] = 0
+
+# 可視化
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# スナップショット
+times = [0, Nt//4, Nt//2, 3*Nt//4]
+for idx, n in enumerate(times):
+    ax = axes[idx//2, idx%2]
+    ax.plot(x, u[n], 'b-', linewidth=2)
+    ax.axhline(0, color='gray', linewidth=0.5)
+    ax.grid(True, alpha=0.3)
+    ax.set_xlabel('位置 x', fontsize=12)
+    ax.set_ylabel('変位 u(x,t)', fontsize=12)
+    ax.set_title(f't = {t[n]:.2f}', fontsize=12)
+    ax.set_ylim(-1.2, 1.2)
+
+plt.suptitle('波動方程式の数値解（有限差分法）', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# 時空間プロット
+plt.figure(figsize=(12, 6))
+plt.contourf(x, t, u, levels=50, cmap='RdBu_r')
+plt.colorbar(label='変位 u(x,t)')
+plt.xlabel('位置 x', fontsize=12)
+plt.ylabel('時間 t', fontsize=12)
+plt.title('波動の伝播（時空間図）', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+print("\n波動方程式の性質:")
+print("- 波は左右に伝播し、境界で反射")
+print("- エネルギーは保存される")
+print(f"- 伝播速度: c = {c} m/s")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>1.2 ダランベールの解（進行波解）</h2>
+                    <p>
+                        無限領域での波動方程式の一般解はダランベールの公式で表されます。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>ダランベールの解:</strong></p>
+                        $$u(x,t) = f(x-ct) + g(x+ct)$$
+                        <p>左進行波 $f(x-ct)$ と右進行波 $g(x+ct)$ の重ね合わせ</p>
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 2: ダランベールの解の可視化</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# パラメータ
+c = 1.0
+x = np.linspace(-10, 10, 500)
+t_values = np.linspace(0, 5, 6)
+
+# 初期波形
+def f(xi):
+    """左進行波"""
+    return np.exp(-xi**2)
+
+def g(xi):
+    """右進行波"""
+    return 0.5 * np.exp(-(xi-2)**2 / 0.5)
+
+# 可視化
+fig, axes = plt.subplots(3, 2, figsize=(14, 12))
+axes = axes.flatten()
+
+for idx, t in enumerate(t_values):
+    ax = axes[idx]
+    
+    # ダランベールの解
+    u_left = f(x - c*t)
+    u_right = g(x + c*t)
+    u_total = u_left + u_right
+    
+    ax.plot(x, u_left, 'b--', linewidth=1.5, alpha=0.7, label='左進行波 f(x-ct)')
+    ax.plot(x, u_right, 'r--', linewidth=1.5, alpha=0.7, label='右進行波 g(x+ct)')
+    ax.plot(x, u_total, 'k-', linewidth=2, label='全波形 u(x,t)')
+    
+    ax.axhline(0, color='gray', linewidth=0.5)
+    ax.grid(True, alpha=0.3)
+    ax.set_xlabel('位置 x', fontsize=11)
+    ax.set_ylabel('変位 u', fontsize=11)
+    ax.set_title(f't = {t:.2f}', fontsize=12)
+    ax.set_ylim(-0.5, 1.5)
+    ax.legend(fontsize=9)
+
+plt.suptitle('ダランベールの解: 進行波の重ね合わせ', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+print("=== ダランベールの解の性質 ===")
+print("- 左進行波: f(x-ct) は速度 c で右に移動")
+print("- 右進行波: g(x+ct) は速度 c で左に移動")
+print("- 総合波形: 重ね合わせの原理により u = f + g")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>1.3 変数分離法と固有値問題</h2>
+                    <p>
+                        境界条件のある波動方程式を変数分離法で解きます。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>変数分離:</strong> $u(x,t) = X(x)T(t)$ と仮定すると</p>
+                        $$\frac{T''}{c^2 T} = \frac{X''}{X} = -\lambda$$
+                        <p><strong>固有値問題:</strong> $X'' + \lambda X = 0$ with $X(0) = X(L) = 0$</p>
+                        $$\lambda_n = \left(\frac{n\pi}{L}\right)^2, \quad X_n(x) = \sin\frac{n\pi x}{L}$$
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 3: 変数分離法による解析解</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# パラメータ
+L = 10.0
+c = 1.0
+n_modes = 5
+
+# 空間・時間グリッド
+x = np.linspace(0, L, 200)
+t_values = np.linspace(0, 10, 100)
+
+# 固有関数と固有値
+def eigenfunction(x, n, L):
+    return np.sin(n * np.pi * x / L)
+
+def eigenvalue(n, L, c):
+    return (n * np.pi * c / L)**2
+
+# 初期条件からフーリエ係数を計算
+def fourier_coefficients(initial_func, L, n_max):
+    """初期変位からフーリエ係数を計算"""
+    coeffs = []
+    for n in range(1, n_max+1):
+        integrand = lambda x: initial_func(x) * eigenfunction(x, n, L)
+        # 数値積分
+        x_int = np.linspace(0, L, 1000)
+        y_int = integrand(x_int)
+        c_n = (2/L) * np.trapz(y_int, x_int)
+        coeffs.append(c_n)
+    return coeffs
+
+# 初期条件: 三角波
+def initial_shape(x):
+    peak = L/2
+    width = L/4
+    u = np.zeros_like(x)
+    mask = np.abs(x - peak) < width
+    u[mask] = 1 - np.abs(x[mask] - peak) / width
+    return u
+
+# フーリエ係数の計算
+a_n = fourier_coefficients(initial_shape, L, n_modes)
+print(f"フーリエ係数: {a_n}")
+
+# 可視化: 固有モード
+fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+axes = axes.flatten()
+
+# 固有モード
+for n in range(1, 6):
+    ax = axes[n-1]
+    X_n = eigenfunction(x, n, L)
+    omega_n = np.sqrt(eigenvalue(n, L, c))
+    
+    ax.plot(x, X_n, linewidth=2, label=f'Mode {n}')
+    ax.axhline(0, color='gray', linewidth=0.5)
+    ax.grid(True, alpha=0.3)
+    ax.set_xlabel('位置 x', fontsize=11)
+    ax.set_ylabel('$X_n(x)$', fontsize=11)
+    ax.set_title(f'Mode {n}: $\\omega_{{{n}}} = {omega_n:.2f}$', fontsize=11)
+    ax.legend()
+
+# 初期形状とフーリエ近似
+ax = axes[5]
+ax.plot(x, initial_shape(x), 'b-', linewidth=2, label='初期形状')
+
+# フーリエ級数近似
+u_approx = np.zeros_like(x)
+for n, a in enumerate(a_n, 1):
+    u_approx += a * eigenfunction(x, n, L)
+ax.plot(x, u_approx, 'r--', linewidth=2, label=f'フーリエ近似 (N={n_modes})')
+
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('位置 x', fontsize=11)
+ax.set_ylabel('変位 u', fontsize=11)
+ax.set_title('初期形状とフーリエ展開', fontsize=11)
+ax.legend()
+
+plt.suptitle('変数分離法: 固有モードと固有振動数', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+print("\n固有値と固有振動数:")
+for n in range(1, 6):
+    lambda_n = eigenvalue(n, L, c)
+    omega_n = np.sqrt(lambda_n)
+    f_n = omega_n / (2 * np.pi)
+    print(f"Mode {n}: λ_{n} = {lambda_n:.3f}, ω_{n} = {omega_n:.3f}, f_{n} = {f_n:.3f} Hz")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>1.4 定在波とフーリエ級数解</h2>
+                    <p>
+                        変数分離解を用いて、定在波を構成します。
+                    </p>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 4: 定在波のアニメーション</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# パラメータ
+L = 10.0
+c = 1.0
+n_modes = 10
+
+# グリッド
+x = np.linspace(0, L, 200)
+t_values = np.linspace(0, 20, 100)
+
+# フーリエ係数（前の例から）
+def initial_shape(x):
+    peak = L/2
+    width = L/4
+    u = np.zeros_like(x)
+    mask = np.abs(x - peak) < width
+    u[mask] = 1 - np.abs(x[mask] - peak) / width
+    return u
+
+def fourier_coefficients(initial_func, L, n_max):
+    coeffs = []
+    for n in range(1, n_max+1):
+        integrand = lambda x: initial_func(x) * np.sin(n * np.pi * x / L)
+        x_int = np.linspace(0, L, 1000)
+        y_int = integrand(x_int)
+        c_n = (2/L) * np.trapz(y_int, x_int)
+        coeffs.append(c_n)
+    return coeffs
+
+a_n = fourier_coefficients(initial_shape, L, n_modes)
+
+# 解の計算
+def wave_solution(x, t, L, c, a_n):
+    u = np.zeros_like(x)
+    for n, a in enumerate(a_n, 1):
+        omega_n = n * np.pi * c / L
+        u += a * np.sin(n * np.pi * x / L) * np.cos(omega_n * t)
+    return u
+
+# スナップショット
+fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+axes = axes.flatten()
+
+snapshot_times = [0, 2, 4, 6, 8, 10]
+for idx, t in enumerate(snapshot_times):
+    ax = axes[idx]
+    u = wave_solution(x, t, L, c, a_n)
+    ax.plot(x, u, 'b-', linewidth=2)
+    ax.axhline(0, color='gray', linewidth=0.5)
+    ax.grid(True, alpha=0.3)
+    ax.set_xlabel('位置 x', fontsize=11)
+    ax.set_ylabel('変位 u(x,t)', fontsize=11)
+    ax.set_title(f't = {t:.1f}', fontsize=12)
+    ax.set_ylim(-1.2, 1.2)
+
+plt.suptitle('定在波の時間発展（フーリエ級数解）', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# エネルギーの計算
+def energy(x, t, L, c, a_n, dx):
+    u = wave_solution(x, t, L, c, a_n)
+    
+    # 運動エネルギー (∂u/∂t)²
+    dt = 0.01
+    u_plus = wave_solution(x, t+dt, L, c, a_n)
+    u_minus = wave_solution(x, t-dt, L, c, a_n)
+    du_dt = (u_plus - u_minus) / (2*dt)
+    KE = 0.5 * np.trapz(du_dt**2, dx=dx)
+    
+    # ポテンシャルエネルギー c²(∂u/∂x)²
+    du_dx = np.gradient(u, dx)
+    PE = 0.5 * c**2 * np.trapz(du_dx**2, dx=dx)
+    
+    return KE, PE
+
+# エネルギーの時間変化
+dx = x[1] - x[0]
+energies = [energy(x, t, L, c, a_n, dx) for t in t_values]
+KE_arr = [e[0] for e in energies]
+PE_arr = [e[1] for e in energies]
+E_total = [ke + pe for ke, pe in zip(KE_arr, PE_arr)]
+
+plt.figure(figsize=(10, 6))
+plt.plot(t_values, KE_arr, 'b-', linewidth=2, label='運動エネルギー')
+plt.plot(t_values, PE_arr, 'r-', linewidth=2, label='ポテンシャルエネルギー')
+plt.plot(t_values, E_total, 'k--', linewidth=2, label='全エネルギー')
+plt.grid(True, alpha=0.3)
+plt.xlabel('時間 t', fontsize=12)
+plt.ylabel('エネルギー', fontsize=12)
+plt.title('定在波のエネルギー保存', fontsize=14)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+print("エネルギー保存の検証:")
+print(f"初期エネルギー: {E_total[0]:.6f}")
+print(f"最終エネルギー: {E_total[-1]:.6f}")
+print(f"相対誤差: {abs(E_total[-1] - E_total[0])/E_total[0]:.2e}")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>1.5 初期値問題の解</h2>
+                    <p>
+                        一般的な初期条件（初期変位と初速度）からの解を構成します。
+                    </p>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 5: 初期値問題の一般解</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# パラメータ
+L = 10.0
+c = 1.0
+n_modes = 20
+
+x = np.linspace(0, L, 200)
+
+# 初期条件
+def initial_displacement(x):
+    """初期変位"""
+    return np.sin(np.pi * x / L) + 0.5 * np.sin(3 * np.pi * x / L)
+
+def initial_velocity(x):
+    """初期速度"""
+    return 0.5 * np.sin(2 * np.pi * x / L)
+
+# フーリエ係数 a_n (初期変位から)
+def compute_a_n(f, L, n_max):
+    coeffs = []
+    for n in range(1, n_max+1):
+        x_int = np.linspace(0, L, 1000)
+        integrand = f(x_int) * np.sin(n * np.pi * x_int / L)
+        c_n = (2/L) * np.trapz(integrand, x_int)
+        coeffs.append(c_n)
+    return coeffs
+
+# フーリエ係数 b_n (初速度から)
+def compute_b_n(g, L, c, n_max):
+    coeffs = []
+    for n in range(1, n_max+1):
+        omega_n = n * np.pi * c / L
+        x_int = np.linspace(0, L, 1000)
+        integrand = g(x_int) * np.sin(n * np.pi * x_int / L)
+        b_n = (2/(L * omega_n)) * np.trapz(integrand, x_int)
+        coeffs.append(b_n)
+    return coeffs
+
+a_n = compute_a_n(initial_displacement, L, n_modes)
+b_n = compute_b_n(initial_velocity, L, c, n_modes)
+
+print(f"a_n (初期変位): {a_n[:5]}")
+print(f"b_n (初速度): {b_n[:5]}")
+
+# 一般解
+def general_solution(x, t, L, c, a_n, b_n):
+    u = np.zeros_like(x)
+    for n in range(len(a_n)):
+        omega_n = (n+1) * np.pi * c / L
+        X_n = np.sin((n+1) * np.pi * x / L)
+        u += X_n * (a_n[n] * np.cos(omega_n * t) + b_n[n] * np.sin(omega_n * t))
+    return u
+
+# 可視化
+fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+axes = axes.flatten()
+
+times = [0, 1, 2, 3, 4, 5]
+for idx, t in enumerate(times):
+    ax = axes[idx]
+    u = general_solution(x, t, L, c, a_n, b_n)
+    ax.plot(x, u, 'b-', linewidth=2)
+    ax.axhline(0, color='gray', linewidth=0.5)
+    ax.grid(True, alpha=0.3)
+    ax.set_xlabel('位置 x', fontsize=11)
+    ax.set_ylabel('変位 u(x,t)', fontsize=11)
+    ax.set_title(f't = {t:.1f}', fontsize=12)
+    ax.set_ylim(-2, 2)
+
+plt.suptitle('初期値問題の一般解（初期変位 + 初速度）', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+print("\n一般解の形:")
+print("u(x,t) = Σ sin(nπx/L) [a_n cos(ω_n t) + b_n sin(ω_n t)]")
+print("a_n: 初期変位から決定")
+print("b_n: 初速度から決定")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>1.6 2次元波動方程式（膜の振動）</h2>
+                    <p>
+                        長方形膜の振動を2次元波動方程式で解きます。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>2次元波動方程式:</strong></p>
+                        $$\frac{\partial^2 u}{\partial t^2} = c^2 \left(\frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\right)$$
+                        <p><strong>固有値:</strong> $\omega_{mn} = c\pi\sqrt{\frac{m^2}{L_x^2} + \frac{n^2}{L_y^2}}$</p>
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 6: 2次元膜の振動モード</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+
+# パラメータ
+Lx, Ly = 10.0, 8.0
+c = 1.0
+
+# グリッド
+x = np.linspace(0, Lx, 100)
+y = np.linspace(0, Ly, 80)
+X, Y = np.meshgrid(x, y)
+
+# 固有モード
+def eigenmode_2d(x, y, m, n, Lx, Ly):
+    return np.sin(m * np.pi * x / Lx) * np.sin(n * np.pi * y / Ly)
+
+def eigenfrequency_2d(m, n, Lx, Ly, c):
+    return c * np.pi * np.sqrt((m/Lx)**2 + (n/Ly)**2)
+
+# 振動モード
+modes = [(1,1), (2,1), (1,2), (2,2), (3,1), (1,3)]
+
+fig = plt.figure(figsize=(16, 10))
+
+for idx, (m, n) in enumerate(modes, 1):
+    omega_mn = eigenfrequency_2d(m, n, Lx, Ly, c)
+    
+    # 固有モード
+    U = eigenmode_2d(X, Y, m, n, Lx, Ly)
+    
+    # 3Dプロット
+    ax = fig.add_subplot(2, 3, idx, projection='3d')
+    surf = ax.plot_surface(X, Y, U, cmap=cm.coolwarm, alpha=0.9)
+    
+    ax.set_xlabel('x', fontsize=10)
+    ax.set_ylabel('y', fontsize=10)
+    ax.set_zlabel('u', fontsize=10)
+    ax.set_title(f'Mode ({m},{n}): $\\omega_{{{m}{n}}} = {omega_mn:.2f}$', fontsize=11)
+    ax.set_zlim(-1, 1)
+
+plt.suptitle('長方形膜の振動モード', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# 固有振動数のテーブル
+print("=== 2次元膜の固有振動数 ===")
+print("Mode (m,n) | ω_mn")
+print("-" * 30)
+for m, n in modes:
+    omega = eigenfrequency_2d(m, n, Lx, Ly, c)
+    print(f"  ({m},{n})    | {omega:.3f}")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>1.7 減衰と強制振動</h2>
+                    <p>
+                        減衰項と外力を含む波動方程式を考えます。
+                    </p>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 7: 減衰振動のシミュレーション</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# 減衰波動方程式: u_tt + 2γu_t = c²u_xx
+# γ: 減衰係数
+
+L = 10.0
+c = 1.0
+gamma = 0.1  # 減衰係数
+T = 30.0
+Nx = 200
+Nt = 1500
+
+x = np.linspace(0, L, Nx)
+t = np.linspace(0, T, Nt)
+dx = x[1] - x[0]
+dt = t[1] - t[0]
+
+# 初期条件
+u = np.zeros((Nt, Nx))
+u[0] = np.sin(np.pi * x / L)
+u[1] = u[0] * (1 - 2*gamma*dt)  # 初速度 = -2γu_0
+
+# 有限差分法（減衰項付き）
+r = c * dt / dx
+for n in range(1, Nt-1):
+    for i in range(1, Nx-1):
+        u[n+1, i] = ((2 - 2*r**2 - 4*gamma*dt)*u[n, i] - (1 - 2*gamma*dt)*u[n-1, i] +
+                     r**2*(u[n, i+1] + u[n, i-1])) / (1 + 2*gamma*dt)
+    
+    u[n+1, 0] = 0
+    u[n+1, -1] = 0
+
+# 可視化
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# スナップショット
+times_idx = [0, Nt//4, Nt//2, 3*Nt//4]
+for idx, n in enumerate(times_idx):
+    ax = axes[idx//2, idx%2]
+    ax.plot(x, u[n], 'b-', linewidth=2)
+    ax.axhline(0, color='gray', linewidth=0.5)
+    ax.grid(True, alpha=0.3)
+    ax.set_xlabel('位置 x', fontsize=11)
+    ax.set_ylabel('変位 u(x,t)', fontsize=11)
+    ax.set_title(f't = {t[n]:.2f}', fontsize=12)
+    ax.set_ylim(-1.2, 1.2)
+
+plt.suptitle(f'減衰振動（減衰係数 γ={gamma}）', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# 振幅の減衰
+amplitude = [np.max(np.abs(u[n])) for n in range(Nt)]
+
+plt.figure(figsize=(10, 6))
+plt.plot(t, amplitude, 'b-', linewidth=2)
+plt.plot(t, amplitude[0] * np.exp(-gamma * t), 'r--', linewidth=2, label=f'理論減衰 $e^{{-\\gamma t}}$')
+plt.grid(True, alpha=0.3)
+plt.xlabel('時間 t', fontsize=12)
+plt.ylabel('振幅', fontsize=12)
+plt.title('振幅の時間減衰', fontsize=14)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+print(f"減衰係数: γ = {gamma}")
+print(f"減衰時定数: τ = 1/γ = {1/gamma:.2f}")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>1.8 材料科学への応用: 超音波探傷</h2>
+                    <p>
+                        超音波を使った材料の非破壊検査をシミュレーションします。
+                    </p>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 8: 超音波パルスの反射シミュレーション</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# 材料パラメータ
+L1 = 50.0  # 材料1の厚さ (mm)
+L2 = 30.0  # 材料2の厚さ (mm)
+c1 = 5.9   # 材料1の音速 (mm/μs) - 鋼
+c2 = 3.2   # 材料2の音速 (mm/μs) - アルミ
+Z1 = 45.0  # 材料1の音響インピーダンス
+Z2 = 17.0  # 材料2の音響インピーダンス
+
+# 反射率と透過率
+R = (Z2 - Z1) / (Z2 + Z1)  # 反射率
+T = 2 * Z2 / (Z2 + Z1)     # 透過率
+
+print(f"界面での反射率: R = {R:.3f}")
+print(f"界面での透過率: T = {T:.3f}")
+
+# グリッド
+L_total = L1 + L2 + 50  # 追加の空間
+Nx = 500
+Nt = 1000
+x = np.linspace(0, L_total, Nx)
+dx = x[1] - x[0]
+
+# 可変音速
+c = np.ones(Nx) * c1
+interface_idx = int(L1 / L_total * Nx)
+c[interface_idx:] = c2
+
+# 時間ステップ（最小音速でCFL条件）
+dt = 0.5 * dx / np.max(c)
+t = np.arange(Nt) * dt
+
+# 初期パルス（ガウシアン）
+u = np.zeros((Nt, Nx))
+pulse_center = L1 / 4
+pulse_width = 5.0
+u[0] = np.exp(-((x - pulse_center)/pulse_width)**2)
+
+# 波動伝播（可変音速）
+for n in range(Nt-1):
+    for i in range(1, Nx-1):
+        r_local = c[i] * dt / dx
+        u[n+1, i] = 2*(1-r_local**2)*u[n, i] - u[n-1, i] + r_local**2*(u[n, i+1] + u[n, i-1])
+    
+    # 境界条件
+    u[n+1, 0] = 0
+    u[n+1, -1] = 0
+    
+    # 界面での処理（簡易モデル）
+    # 実際にはより精密な境界条件が必要
+
+# 可視化
+fig, axes = plt.subplots(3, 2, figsize=(14, 12))
+axes = axes.flatten()
+
+snapshot_times = [50, 150, 250, 350, 450, 550]
+for idx, n in enumerate(snapshot_times):
+    if n >= Nt:
+        continue
+    ax = axes[idx]
+    ax.plot(x, u[n], 'b-', linewidth=1.5)
+    ax.axvline(L1, color='red', linestyle='--', linewidth=2, alpha=0.7, label='界面')
+    ax.axhline(0, color='gray', linewidth=0.5)
+    ax.fill_between([0, L1], -1, 1, alpha=0.1, color='blue', label='材料1 (鋼)')
+    ax.fill_between([L1, L1+L2], -1, 1, alpha=0.1, color='green', label='材料2 (Al)')
+    ax.grid(True, alpha=0.3)
+    ax.set_xlabel('位置 x (mm)', fontsize=11)
+    ax.set_ylabel('振幅', fontsize=11)
+    ax.set_title(f't = {t[n]:.2f} μs', fontsize=12)
+    ax.set_ylim(-0.5, 1.2)
+    if idx == 0:
+        ax.legend()
+
+plt.suptitle('超音波パルスの伝播と界面反射', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+print("\n超音波探傷の原理:")
+print("- 超音波パルスを材料に入射")
+print("- 界面や欠陥で反射")
+print("- 反射波の到達時間から欠陥位置を特定")
+print(f"- 材料1の音速: {c1} mm/μs")
+print(f"- 材料2の音速: {c2} mm/μs")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>📝 章末問題</h2>
+                    <div class="exercise-box">
+                        <h4>演習問題</h4>
+                        <ol>
+                            <li>長さ $L=5$ m、波速 $c=2$ m/sの弦で、基本振動の周期を求めよ。</li>
+                            <li>初期形状 $u(x,0) = \sin(\pi x/L)$、初速度 $u_t(x,0) = 0$ の場合の解をフーリエ級数で表せ。</li>
+                            <li>2次元正方形膜（$L_x = L_y = L$）で、最低3つの固有振動数を求めよ。</li>
+                            <li>減衰係数 $\gamma$ が大きいとき、振動はどのように変化するか数値実験で確認せよ。</li>
+                        </ol>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>🔗 参考文献</h2>
+                    <ul class="reference-list">
+                        <li>Strauss, W. A. (2007). <em>Partial Differential Equations: An Introduction</em>. Wiley.</li>
+                        <li>Haberman, R. (2012). <em>Applied Partial Differential Equations</em>. Pearson.</li>
+                    </ul>
+                </section>
+            </article>
+
+            <nav class="chapter-navigation">
+                <a href="index.html" class="btn btn-secondary">← シリーズトップへ</a>
+                <a href="chapter-2.html" class="btn btn-primary">第2章へ →</a>
+            </nav>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

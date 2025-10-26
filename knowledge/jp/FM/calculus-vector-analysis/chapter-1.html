@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第1章: 微分の基礎と数値微分 | 微積分とベクトル解析入門</title>
+    <meta name="description" content="微分の定義から導関数、高階導関数、NumPyによる数値微分実装まで学びます。">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; text-align: center; }
+        h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+        .subtitle { opacity: 0.9; }
+        .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+        .breadcrumb { margin-bottom: 1.5rem; font-size: 0.9rem; }
+        .breadcrumb a { color: #667eea; text-decoration: none; }
+        .content { background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+        h2 { color: #667eea; margin: 2rem 0 1rem 0; padding-bottom: 0.5rem; border-bottom: 2px solid #e0e0e0; }
+        h3 { color: #764ba2; margin: 1.5rem 0 0.8rem 0; }
+        .definition { background: #e7f3ff; border-left: 4px solid #667eea; padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .theorem { background: #f3e5f5; border-left: 4px solid #764ba2; padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .example { background: #fff3e0; border-left: 4px solid #ff9800; padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .code-block { background: #282c34; color: #abb2bf; padding: 1.5rem; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
+        .code-block code { font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem; line-height: 1.6; }
+        .output { background: #f8f9fa; border: 1px solid #dee2e6; padding: 1rem; border-radius: 6px; margin: 1rem 0; font-family: monospace; font-size: 0.9rem; }
+        table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+        th, td { padding: 0.8rem; text-align: left; border: 1px solid #ddd; }
+        th { background: #667eea; color: white; }
+        .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .exercise { background: #d4edda; border-left: 4px solid #28a745; padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .nav-buttons { display: flex; justify-content: space-between; margin: 2rem 0; }
+        .nav-button { padding: 0.8rem 1.5rem; background: #667eea; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; }
+        .nav-button:hover { background: #764ba2; }
+        footer { background: #2c3e50; color: white; text-align: center; padding: 2rem 1rem; margin-top: 3rem; }
+        @media (max-width: 768px) { .content { padding: 1.5rem; } h1 { font-size: 1.5rem; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>第1章: 微分の基礎と数値微分</h1>
+        <p class="subtitle">Fundamentals of Differentiation and Numerical Differentiation</p>
+    </header>
+
+    <div class="container">
+        <div class="breadcrumb">
+            <a href="../index.html">FM Dojo</a> &gt;
+            <a href="index.html">微積分とベクトル解析入門</a> &gt;
+            第1章
+        </div>
+
+        <div class="content">
+            <h2>1.1 微分の定義と導関数</h2>
+
+            <div class="definition">
+                <strong>📐 定義: 微分</strong><br>
+                関数 f(x) の x = a における微分係数は、極限値
+                $$f'(a) = \lim_{h \to 0} \frac{f(a+h) - f(a)}{h}$$
+                で定義されます。この値は、点 (a, f(a)) における接線の傾きを表します。
+            </div>
+
+            <p>
+                微分は、関数の「瞬間的な変化率」を表す概念です。材料科学では、温度に対する物性値の変化率、
+                プロセス工学では反応速度、機械学習では損失関数の勾配として頻繁に登場します。
+            </p>
+
+            <h3>💻 コード例1: 微分係数の数値計算（前進差分法）</h3>
+            <div class="code-block"><code>import numpy as np
+import matplotlib.pyplot as plt
+
+# 関数の定義: f(x) = x^2
+def f(x):
+    return x**2
+
+# 前進差分法による微分係数の近似
+def forward_difference(f, x, h=1e-5):
+    """前進差分法: f'(x) ≈ [f(x+h) - f(x)] / h"""
+    return (f(x + h) - f(x)) / h
+
+# x = 2 における微分係数を計算
+x0 = 2.0
+numerical_derivative = forward_difference(f, x0)
+analytical_derivative = 2 * x0  # 解析解: f'(x) = 2x
+
+print(f"数値微分: f'({x0}) ≈ {numerical_derivative:.6f}")
+print(f"解析解:   f'({x0}) = {analytical_derivative:.6f}")
+print(f"誤差:     {abs(numerical_derivative - analytical_derivative):.2e}")
+
+# 可視化
+x = np.linspace(0, 4, 100)
+y = f(x)
+tangent_y = analytical_derivative * (x - x0) + f(x0)
+
+plt.figure(figsize=(8, 6))
+plt.plot(x, y, label='f(x) = x²', linewidth=2)
+plt.plot(x, tangent_y, '--', label=f"接線 (傾き={analytical_derivative})", linewidth=2)
+plt.scatter([x0], [f(x0)], color='red', s=100, zorder=5)
+plt.xlabel('x', fontsize=12)
+plt.ylabel('f(x)', fontsize=12)
+plt.title('微分係数と接線', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()</code></div>
+
+            <div class="output">
+数値微分: f'(2.0) ≈ 4.000010
+解析解:   f'(2.0) = 4.000000
+誤差:     1.00e-05
+            </div>
+
+            <h2>1.2 微分の計算法則</h2>
+
+            <div class="theorem">
+                <strong>📐 定理: 微分の基本公式</strong><br>
+                <ul style="margin-top: 0.5rem;">
+                    <li>$(c)' = 0$ （定数関数）</li>
+                    <li>$(x^n)' = nx^{n-1}$ （べき関数）</li>
+                    <li>$(e^x)' = e^x$ （指数関数）</li>
+                    <li>$(\ln x)' = \frac{1}{x}$ （対数関数）</li>
+                    <li>$(\sin x)' = \cos x, (\cos x)' = -\sin x$ （三角関数）</li>
+                    <li>$(cf)' = cf'$ （定数倍）</li>
+                    <li>$(f + g)' = f' + g'$ （和の微分）</li>
+                    <li>$(fg)' = f'g + fg'$ （積の微分）</li>
+                    <li>$\left(\frac{f}{g}\right)' = \frac{f'g - fg'}{g^2}$ （商の微分）</li>
+                </ul>
+            </div>
+
+            <h3>💻 コード例2: SymPyによる記号微分</h3>
+            <div class="code-block"><code>import sympy as sp
+
+# 記号変数の定義
+x = sp.Symbol('x')
+
+# 様々な関数の微分
+functions = [
+    x**3,
+    sp.exp(x),
+    sp.ln(x),
+    sp.sin(x),
+    x**2 * sp.exp(x),
+    sp.sin(x) / x
+]
+
+print("記号微分の例:")
+for func in functions:
+    derivative = sp.diff(func, x)
+    print(f"d/dx({func}) = {derivative}")</code></div>
+
+            <div class="output">
+記号微分の例:
+d/dx(x**3) = 3*x**2
+d/dx(exp(x)) = exp(x)
+d/dx(log(x)) = 1/x
+d/dx(sin(x)) = cos(x)
+d/dx(x**2*exp(x)) = x**2*exp(x) + 2*x*exp(x)
+d/dx(sin(x)/x) = -sin(x)/x**2 + cos(x)/x
+            </div>
+
+            <h2>1.3 数値微分法の比較</h2>
+
+            <p>
+                実際のデータ解析では、関数形が不明な場合が多く、数値微分が必要になります。
+                代表的な数値微分法には、前進差分法、後退差分法、中心差分法があります。
+            </p>
+
+            <h3>💻 コード例3: 前進・後退・中心差分法の比較</h3>
+            <div class="code-block"><code>def forward_diff(f, x, h):
+    """前進差分法: O(h)"""
+    return (f(x + h) - f(x)) / h
+
+def backward_diff(f, x, h):
+    """後退差分法: O(h)"""
+    return (f(x) - f(x - h)) / h
+
+def central_diff(f, x, h):
+    """中心差分法: O(h²) - より精度が高い"""
+    return (f(x + h) - f(x - h)) / (2 * h)
+
+# テスト関数: f(x) = sin(x), f'(x) = cos(x)
+f = np.sin
+f_prime_exact = np.cos
+
+x0 = np.pi / 4  # 45度
+exact = f_prime_exact(x0)
+
+# 様々な刻み幅で誤差を評価
+h_values = np.logspace(-10, -1, 50)
+errors_forward = []
+errors_backward = []
+errors_central = []
+
+for h in h_values:
+    errors_forward.append(abs(forward_diff(f, x0, h) - exact))
+    errors_backward.append(abs(backward_diff(f, x0, h) - exact))
+    errors_central.append(abs(central_diff(f, x0, h) - exact))
+
+# 可視化
+plt.figure(figsize=(10, 6))
+plt.loglog(h_values, errors_forward, label='前進差分法', marker='o', markersize=3)
+plt.loglog(h_values, errors_backward, label='後退差分法', marker='s', markersize=3)
+plt.loglog(h_values, errors_central, label='中心差分法', marker='^', markersize=3)
+plt.loglog(h_values, h_values, '--', label='O(h)', alpha=0.5)
+plt.loglog(h_values, h_values**2, '--', label='O(h²)', alpha=0.5)
+plt.xlabel('刻み幅 h', fontsize=12)
+plt.ylabel('絶対誤差', fontsize=12)
+plt.title('数値微分法の精度比較', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+print(f"解析解: cos(π/4) = {exact:.10f}")
+print(f"前進差分 (h=1e-5): {forward_diff(f, x0, 1e-5):.10f}")
+print(f"中心差分 (h=1e-5): {central_diff(f, x0, 1e-5):.10f}")</code></div>
+
+            <div class="note">
+                <strong>📝 注意:</strong> 中心差分法は前進・後退差分法よりも高精度（O(h²)）ですが、
+                計算量は2倍必要です。実用上は、精度と計算コストのバランスを考慮して選択します。
+            </div>
+
+            <h2>1.4 高階導関数</h2>
+
+            <p>
+                導関数をさらに微分したものを高階導関数と呼びます。第2次導関数 f''(x) は関数の凸凹性を、
+                第3次以降の導関数は関数の細かい形状を特徴づけます。
+            </p>
+
+            <h3>💻 コード例4: 高階導関数の数値計算</h3>
+            <div class="code-block"><code>def second_derivative(f, x, h=1e-5):
+    """第2次導関数: f''(x) ≈ [f(x+h) - 2f(x) + f(x-h)] / h²"""
+    return (f(x + h) - 2*f(x) + f(x - h)) / h**2
+
+def third_derivative(f, x, h=1e-4):
+    """第3次導関数 (中心差分)"""
+    return (f(x + 2*h) - 2*f(x + h) + 2*f(x - h) - f(x - 2*h)) / (2 * h**3)
+
+# テスト関数: f(x) = x^4
+f = lambda x: x**4
+x0 = 2.0
+
+# 解析解と数値解の比較
+print("f(x) = x^4 の高階導関数 (x=2):")
+print(f"f'(x) = 4x³     → f'(2) = {4 * x0**3:.1f} (解析解)")
+print(f"f'(x)           → f'(2) ≈ {central_diff(f, x0, 1e-5):.6f} (数値)")
+print(f"f''(x) = 12x²   → f''(2) = {12 * x0**2:.1f} (解析解)")
+print(f"f''(x)          → f''(2) ≈ {second_derivative(f, x0):.6f} (数値)")
+print(f"f'''(x) = 24x   → f'''(2) = {24 * x0:.1f} (解析解)")
+print(f"f'''(x)         → f'''(2) ≈ {third_derivative(f, x0):.6f} (数値)")</code></div>
+
+            <h2>1.5 材料科学への応用: 熱膨張係数</h2>
+
+            <div class="example">
+                <strong>🔬 応用例:</strong> 材料の熱膨張係数 α は、長さ L の温度 T による変化率として定義されます：
+                $$\alpha = \frac{1}{L}\frac{dL}{dT}$$
+                実測データから数値微分で熱膨張係数を求めます。
+            </div>
+
+            <h3>💻 コード例5: 熱膨張係数の数値計算</h3>
+            <div class="code-block"><code># 実験データ: 温度 T (K) vs 長さ L (mm)
+temperature = np.array([300, 350, 400, 450, 500, 550, 600])
+length = np.array([100.000, 100.087, 100.175, 100.265, 100.357, 100.450, 100.545])
+
+# スプライン補間で滑らかな関数を作成
+from scipy.interpolate import UnivariateSpline
+spline = UnivariateSpline(temperature, length, s=0, k=3)
+
+# 微分して dL/dT を求める
+dL_dT = spline.derivative()(temperature)
+
+# 熱膨張係数 α = (1/L) * dL/dT
+alpha = dL_dT / length
+
+# 結果の表示
+print("熱膨張係数の計算結果:")
+print("T (K)\tL (mm)\tdL/dT (mm/K)\tα (1/K)")
+for T, L, dLdT, a in zip(temperature, length, dL_dT, alpha):
+    print(f"{T:.0f}\t{L:.3f}\t{dLdT:.6f}\t{a:.2e}")
+
+# 可視化
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# 左図: 長さの温度依存性
+T_fine = np.linspace(300, 600, 100)
+ax1.plot(temperature, length, 'o', label='実験データ', markersize=8)
+ax1.plot(T_fine, spline(T_fine), '-', label='スプライン補間', linewidth=2)
+ax1.set_xlabel('温度 T (K)', fontsize=12)
+ax1.set_ylabel('長さ L (mm)', fontsize=12)
+ax1.set_title('熱膨張曲線', fontsize=14)
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# 右図: 熱膨張係数の温度依存性
+ax2.plot(temperature, alpha * 1e6, 'o-', linewidth=2, markersize=8)
+ax2.set_xlabel('温度 T (K)', fontsize=12)
+ax2.set_ylabel('熱膨張係数 α (10⁻⁶/K)', fontsize=12)
+ax2.set_title('熱膨張係数の温度依存性', fontsize=14)
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()</code></div>
+
+            <h2>1.6 Richardson外挿法による高精度化</h2>
+
+            <p>
+                Richardson外挿法は、異なる刻み幅での数値微分結果を組み合わせて、
+                より高精度な近似値を得る手法です。
+            </p>
+
+            <h3>💻 コード例6: Richardson外挿法</h3>
+            <div class="code-block"><code>def richardson_extrapolation(f, x, h, order=4):
+    """Richardson外挿法による高精度数値微分"""
+    # 異なる刻み幅での中心差分
+    D1 = central_diff(f, x, h)
+    D2 = central_diff(f, x, h/2)
+
+    # 1次外挿 (O(h⁴)の精度)
+    D_improved = (4 * D2 - D1) / 3
+
+    return D_improved
+
+# テスト: f(x) = exp(x), f'(x) = exp(x)
+f = np.exp
+x0 = 1.0
+exact = np.exp(x0)
+
+h = 0.1
+D_central = central_diff(f, x0, h)
+D_richardson = richardson_extrapolation(f, x0, h)
+
+print(f"解析解:              {exact:.10f}")
+print(f"中心差分 (h=0.1):    {D_central:.10f}, 誤差 = {abs(D_central - exact):.2e}")
+print(f"Richardson外挿:      {D_richardson:.10f}, 誤差 = {abs(D_richardson - exact):.2e}")
+print(f"精度向上: {abs(D_central - exact) / abs(D_richardson - exact):.1f}倍")</code></div>
+
+            <h2>1.7 練習問題</h2>
+
+            <div class="exercise">
+                <strong>✏️ 演習1:</strong>
+                関数 f(x) = x³ - 3x² + 2x + 1 について、x = 2 における微分係数を
+                (1) 解析的に、(2) 前進差分法で、(3) 中心差分法で求めよ。
+            </div>
+
+            <div class="exercise">
+                <strong>✏️ 演習2:</strong>
+                プロセス変数 y(t) が時間 t に対して y(t) = 10 + 5sin(πt/10) で与えられる。
+                t = 5 における変化率 dy/dt を数値微分で求め、制御の必要性を判断せよ。
+            </div>
+
+            <h3>💻 コード例7: 演習問題の解答例</h3>
+            <div class="code-block"><code># 演習1の解答
+x = sp.Symbol('x')
+f_sym = x**3 - 3*x**2 + 2*x + 1
+f_prime_sym = sp.diff(f_sym, x)
+f_prime_at_2 = f_prime_sym.subs(x, 2)
+
+f_num = lambda x: x**3 - 3*x**2 + 2*x + 1
+x0 = 2.0
+
+print("演習1の解答:")
+print(f"(1) 解析解: f'(2) = {f_prime_at_2}")
+print(f"(2) 前進差分: f'(2) ≈ {forward_diff(f_num, x0, 1e-5):.6f}")
+print(f"(3) 中心差分: f'(2) ≈ {central_diff(f_num, x0, 1e-5):.6f}")
+
+# 演習2の解答
+def y(t):
+    return 10 + 5 * np.sin(np.pi * t / 10)
+
+t0 = 5.0
+dy_dt = central_diff(y, t0, 0.01)
+
+print(f"\n演習2の解答:")
+print(f"t = 5 における dy/dt = {dy_dt:.4f}")
+print(f"解析解: dy/dt = (5π/10)cos(π·5/10) = {5*np.pi/10 * np.cos(np.pi*5/10):.4f}")
+if abs(dy_dt) > 0.5:
+    print("→ 変化率が大きいため、制御介入が必要")</code></div>
+
+            <h2>まとめ</h2>
+            <ul>
+                <li>微分は関数の瞬間的な変化率を表し、接線の傾きとして幾何学的に解釈できる</li>
+                <li>数値微分では中心差分法が前進・後退差分法より高精度（O(h²)）</li>
+                <li>Richardson外挿法により、さらに高精度な数値微分が可能</li>
+                <li>材料科学では熱膨張係数、反応速度など様々な物性値の計算に微分が使われる</li>
+                <li>SymPyによる記号微分とNumPyによる数値微分を使い分けることが重要</li>
+            </ul>
+
+            <div class="nav-buttons">
+                <a href="index.html" class="nav-button">← シリーズトップ</a>
+                <a href="chapter-2.html" class="nav-button">第2章: 積分の基礎 →</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 AI Terakoya - FM Dojo</p>
+    </footer>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</body>
+</html>

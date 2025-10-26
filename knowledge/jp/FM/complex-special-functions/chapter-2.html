@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第2章: 正則関数と複素微積分 | 複素関数論と特殊関数 - FM道場</title>
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>MathJax = {tex: {inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']]}};</script>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="header-content">
+                <div class="site-logo"><a href="../../../index.html">🏛️ AI寺子屋</a></div>
+                <nav class="main-nav">
+                    <a href="../../../index.html">ホーム</a>
+                    <a href="../../index.html">知識ベース</a>
+                    <a href="../index.html" class="active">FM道場</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="chapter-page">
+        <div class="container">
+            <nav class="breadcrumb">
+                <a href="../../../index.html">ホーム</a> &gt;
+                <a href="../index.html">FM道場</a> &gt;
+                <a href="index.html">複素関数論と特殊関数</a> &gt;
+                <span>第2章</span>
+            </nav>
+
+            <article class="chapter-content">
+                <div class="chapter-header">
+                    <span class="chapter-label">第2章</span>
+                    <h1>正則関数と複素微積分</h1>
+                    <p class="chapter-subtitle">Analytic Functions and Complex Calculus</p>
+                    <div class="chapter-meta">
+                        <span class="meta-item">⏱️ 22-26分</span>
+                        <span class="meta-item">💻 8コード例</span>
+                        <span class="meta-item">📊 中級</span>
+                    </div>
+                </div>
+
+                <section class="chapter-section">
+                    <h2>2.1 複素微分とコーシー・リーマンの方程式</h2>
+                    <p>
+                        複素関数 $f(z)$ が点 $z_0$ で微分可能であるとは、極限 $\lim_{h \to 0} \frac{f(z_0+h) - f(z_0)}{h}$ が $h$ の近づき方によらず存在することです。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>コーシー・リーマンの方程式:</strong></p>
+                        <p>$f(z) = u(x,y) + iv(x,y)$ が正則であるための必要十分条件:</p>
+                        $$\frac{\partial u}{\partial x} = \frac{\partial v}{\partial y}, \quad \frac{\partial u}{\partial y} = -\frac{\partial v}{\partial x}$$
+                        <p><strong>複素微分の計算:</strong></p>
+                        $$f'(z) = \frac{\partial u}{\partial x} + i\frac{\partial v}{\partial x} = \frac{\partial v}{\partial y} - i\frac{\partial u}{\partial y}$$
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 1: コーシー・リーマンの方程式の検証</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.misc import derivative
+
+def f_analytic(z):
+    """正則関数: f(z) = z^2"""
+    return z**2
+
+def f_not_analytic(z):
+    """非正則関数: f(z) = z̄ (複素共役)"""
+    return np.conj(z)
+
+# 実部と虚部を分離
+def extract_uv(f, x, y):
+    z = x + 1j*y
+    w = f(z)
+    return w.real, w.imag
+
+# 偏微分の数値計算
+def check_cauchy_riemann(f, x0, y0, h=1e-5):
+    u, v = extract_uv(f, x0, y0)
+    
+    # ∂u/∂x
+    u_xp, _ = extract_uv(f, x0+h, y0)
+    u_xm, _ = extract_uv(f, x0-h, y0)
+    du_dx = (u_xp - u_xm) / (2*h)
+    
+    # ∂u/∂y
+    u_yp, _ = extract_uv(f, x0, y0+h)
+    u_ym, _ = extract_uv(f, x0, y0-h)
+    du_dy = (u_yp - u_ym) / (2*h)
+    
+    # ∂v/∂x
+    _, v_xp = extract_uv(f, x0+h, y0)
+    _, v_xm = extract_uv(f, x0-h, y0)
+    dv_dx = (v_xp - v_xm) / (2*h)
+    
+    # ∂v/∂y
+    _, v_yp = extract_uv(f, x0, y0+h)
+    _, v_ym = extract_uv(f, x0, y0-h)
+    dv_dy = (v_yp - v_ym) / (2*h)
+    
+    return du_dx, du_dy, dv_dx, dv_dy
+
+# テスト点
+x0, y0 = 1.5, 2.0
+
+print("=== 正則関数: f(z) = z^2 ===")
+du_dx, du_dy, dv_dx, dv_dy = check_cauchy_riemann(f_analytic, x0, y0)
+print(f"∂u/∂x = {du_dx:.6f}")
+print(f"∂v/∂y = {dv_dy:.6f}")
+print(f"∂u/∂x - ∂v/∂y = {du_dx - dv_dy:.6e} (should be ~0)")
+print(f"\n∂u/∂y = {du_dy:.6f}")
+print(f"-∂v/∂x = {-dv_dx:.6f}")
+print(f"∂u/∂y - (-∂v/∂x) = {du_dy - (-dv_dx):.6e} (should be ~0)")
+
+print("\n\n=== 非正則関数: f(z) = z̄ ===")
+du_dx, du_dy, dv_dx, dv_dy = check_cauchy_riemann(f_not_analytic, x0, y0)
+print(f"∂u/∂x = {du_dx:.6f}")
+print(f"∂v/∂y = {dv_dy:.6f}")
+print(f"∂u/∂x - ∂v/∂y = {du_dx - dv_dy:.6f} (NOT ~0)")
+print(f"\n∂u/∂y = {du_dy:.6f}")
+print(f"-∂v/∂x = {-dv_dx:.6f}")
+print(f"∂u/∂y - (-∂v/∂x) = {du_dy - (-dv_dx):.6f} (NOT ~0)")
+
+# 可視化
+x = np.linspace(-2, 2, 100)
+y = np.linspace(-2, 2, 100)
+X, Y = np.meshgrid(x, y)
+Z = X + 1j*Y
+
+# 正則関数
+W_analytic = f_analytic(Z)
+U_analytic = W_analytic.real
+V_analytic = W_analytic.imag
+
+# 非正則関数
+W_not = f_not_analytic(Z)
+U_not = W_not.real
+V_not = W_not.imag
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+
+# 正則関数: 実部
+im = axes[0, 0].contourf(X, Y, U_analytic, levels=20, cmap='RdBu_r')
+axes[0, 0].contour(X, Y, V_analytic, levels=10, colors='green', linewidths=1, alpha=0.5)
+axes[0, 0].plot(x0, y0, 'ko', markersize=10)
+axes[0, 0].set_xlabel('x', fontsize=12)
+axes[0, 0].set_ylabel('y', fontsize=12)
+axes[0, 0].set_title('正則関数 $f(z)=z^2$: 実部(色), 虚部(緑線)', fontsize=12)
+plt.colorbar(im, ax=axes[0, 0])
+
+# 正則関数: 虚部
+im = axes[0, 1].contourf(X, Y, V_analytic, levels=20, cmap='RdBu_r')
+axes[0, 1].contour(X, Y, U_analytic, levels=10, colors='red', linewidths=1, alpha=0.5)
+axes[0, 1].plot(x0, y0, 'ko', markersize=10)
+axes[0, 1].set_xlabel('x', fontsize=12)
+axes[0, 1].set_ylabel('y', fontsize=12)
+axes[0, 1].set_title('正則関数 $f(z)=z^2$: 虚部(色), 実部(赤線)', fontsize=12)
+plt.colorbar(im, ax=axes[0, 1])
+
+# 非正則関数: 実部
+im = axes[1, 0].contourf(X, Y, U_not, levels=20, cmap='RdBu_r')
+axes[1, 0].contour(X, Y, V_not, levels=10, colors='green', linewidths=1, alpha=0.5)
+axes[1, 0].plot(x0, y0, 'ko', markersize=10)
+axes[1, 0].set_xlabel('x', fontsize=12)
+axes[1, 0].set_ylabel('y', fontsize=12)
+axes[1, 0].set_title('非正則関数 $f(z)=\\bar{z}$: 実部(色), 虚部(緑線)', fontsize=12)
+plt.colorbar(im, ax=axes[1, 0])
+
+# 非正則関数: 虚部
+im = axes[1, 1].contourf(X, Y, V_not, levels=20, cmap='RdBu_r')
+axes[1, 1].contour(X, Y, U_not, levels=10, colors='red', linewidths=1, alpha=0.5)
+axes[1, 1].plot(x0, y0, 'ko', markersize=10)
+axes[1, 1].set_xlabel('x', fontsize=12)
+axes[1, 1].set_ylabel('y', fontsize=12)
+axes[1, 1].set_title('非正則関数 $f(z)=\\bar{z}$: 虚部(色), 実部(赤線)', fontsize=12)
+plt.colorbar(im, ax=axes[1, 1])
+
+plt.suptitle('正則関数と非正則関数の等高線 (直交性の検証)', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+                    </div>
+
+                    <p class="note">
+                        <strong>📌 注意:</strong> 正則関数では実部と虚部の等高線が直交します（コーシー・リーマンの方程式の幾何学的意味）。
+                    </p>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>2.2 正則関数の例と性質</h2>
+                    <p>
+                        多くの複素関数は正則ですが、複素共役や絶対値を含む関数は正則ではありません。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>正則関数の例:</strong></p>
+                        <ul>
+                            <li>多項式: $z^n$, $a_n z^n + \cdots + a_1 z + a_0$</li>
+                            <li>指数関数: $e^z$</li>
+                            <li>三角関数: $\sin z$, $\cos z$</li>
+                            <li>有理関数: $\frac{P(z)}{Q(z)}$ （$Q(z) \neq 0$ の領域）</li>
+                        </ul>
+                        <p><strong>正則でない関数の例:</strong></p>
+                        <ul>
+                            <li>複素共役: $\bar{z}$</li>
+                            <li>実部/虚部: $\mathrm{Re}(z)$, $\mathrm{Im}(z)$</li>
+                            <li>絶対値: $|z|$</li>
+                        </ul>
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 2: 様々な正則関数の微分</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# 複素微分の数値計算
+def complex_derivative(f, z, h=1e-7):
+    return (f(z + h) - f(z - h)) / (2*h)
+
+# テスト関数
+functions = {
+    'z^2': lambda z: z**2,
+    'z^3': lambda z: z**3,
+    'e^z': lambda z: np.exp(z),
+    'sin(z)': lambda z: np.sin(z),
+    '1/z': lambda z: 1/z,
+}
+
+# 理論的な導関数
+derivatives_theory = {
+    'z^2': lambda z: 2*z,
+    'z^3': lambda z: 3*z**2,
+    'e^z': lambda z: np.exp(z),
+    'sin(z)': lambda z: np.cos(z),
+    '1/z': lambda z: -1/z**2,
+}
+
+# テスト点
+z0 = 1.5 + 2.0j
+
+print("複素微分の計算と検証:")
+print("=" * 60)
+for name, f in functions.items():
+    f_prime_numerical = complex_derivative(f, z0)
+    f_prime_theoretical = derivatives_theory[name](z0)
+    error = np.abs(f_prime_numerical - f_prime_theoretical)
+    
+    print(f"\nf(z) = {name}")
+    print(f"  z = {z0}")
+    print(f"  数値微分: f'(z) = {f_prime_numerical:.6f}")
+    print(f"  理論値:   f'(z) = {f_prime_theoretical:.6f}")
+    print(f"  誤差: {error:.2e}")
+
+# 可視化: ベクトル場としての導関数
+x = np.linspace(-2, 2, 15)
+y = np.linspace(-2, 2, 15)
+X, Y = np.meshgrid(x, y)
+Z = X + 1j*Y
+
+fig, axes = plt.subplots(2, 3, figsize=(16, 10))
+axes = axes.flatten()
+
+for idx, (name, f) in enumerate(functions.items()):
+    if idx >= len(axes):
+        break
+    
+    ax = axes[idx]
+    
+    # 関数値
+    W = f(Z)
+    # 導関数（ベクトル場）
+    F_prime = np.array([[complex_derivative(f, z) for z in row] for row in Z])
+    
+    # ベクトル場の可視化
+    U = F_prime.real
+    V = F_prime.imag
+    magnitude = np.sqrt(U**2 + V**2)
+    
+    # 色で大きさを表示
+    im = ax.contourf(X, Y, magnitude, levels=20, cmap='viridis', alpha=0.6)
+    # ベクトル場
+    skip = 2
+    ax.quiver(X[::skip, ::skip], Y[::skip, ::skip], 
+              U[::skip, ::skip], V[::skip, ::skip],
+              magnitude[::skip, ::skip], cmap='hot', scale=50, width=0.003)
+    
+    ax.set_xlabel('Re(z)', fontsize=10)
+    ax.set_ylabel('Im(z)', fontsize=10)
+    ax.set_title(f"$f'(z)$ for $f(z) = {name}$", fontsize=12)
+    ax.axis('equal')
+    ax.grid(True, alpha=0.3)
+    plt.colorbar(im, ax=ax, label="$|f'(z)|$")
+
+# 最後のサブプロットを削除（5つしか関数がないので）
+fig.delaxes(axes[5])
+
+plt.suptitle('正則関数の導関数（ベクトル場表示）', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>2.3 複素積分の計算</h2>
+                    <p>
+                        複素積分は経路積分として定義されます: $\int_C f(z) dz = \int_a^b f(z(t)) z'(t) dt$
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>複素線積分:</strong></p>
+                        $$\int_C f(z) dz = \int_a^b f(z(t)) \frac{dz}{dt} dt$$
+                        <p>ここで $z(t)$ は経路 $C$ のパラメータ表示 $(a \leq t \leq b)$</p>
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 3: 複素積分の数値計算</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import quad
+
+def complex_line_integral(f, z_t, t_range, n_points=1000):
+    """
+    複素線積分の数値計算
+    f: 被積分関数
+    z_t: 経路のパラメータ表示 z(t)
+    t_range: (t_start, t_end)
+    """
+    t = np.linspace(t_range[0], t_range[1], n_points)
+    dt = t[1] - t[0]
+    
+    # 経路上の点
+    z = z_t(t)
+    # 導関数 dz/dt (数値微分)
+    dz_dt = np.gradient(z, dt)
+    # 被積分関数の値
+    f_z = f(z)
+    
+    # 積分 (台形則)
+    integral = np.trapz(f_z * dz_dt, dx=dt)
+    return integral, z
+
+# テスト関数
+f1 = lambda z: z
+f2 = lambda z: z**2
+f3 = lambda z: 1/z
+
+# 経路1: 原点から1+iへの直線
+path1 = lambda t: t * (1 + 1j)
+t_range1 = (0, 1)
+
+print("=== 経路1: 直線 (0 → 1+i) ===")
+integral1_f1, z1 = complex_line_integral(f1, path1, t_range1)
+print(f"∫ z dz = {integral1_f1:.6f}")
+print(f"理論値: (1+i)^2 / 2 = {(1+1j)**2 / 2:.6f}")
+
+integral1_f2, _ = complex_line_integral(f2, path1, t_range1)
+print(f"\n∫ z^2 dz = {integral1_f2:.6f}")
+print(f"理論値: (1+i)^3 / 3 = {(1+1j)**3 / 3:.6f}")
+
+# 経路2: 単位円（反時計回り）
+path2 = lambda t: np.exp(1j * t)
+t_range2 = (0, 2*np.pi)
+
+print("\n\n=== 経路2: 単位円（反時計回り） ===")
+integral2_f1, z2 = complex_line_integral(f1, path2, t_range2)
+print(f"∫ z dz = {integral2_f1:.6f}")
+print(f"理論値: 0 (正則関数の閉曲線積分)")
+
+integral2_f3, _ = complex_line_integral(f3, path2, t_range2)
+print(f"\n∫ (1/z) dz = {integral2_f3:.6f}")
+print(f"理論値: 2πi = {2*np.pi*1j:.6f}")
+
+# 経路3: 原点から1+iへの折れ線 (0→1→1+i)
+path3a = lambda t: t  # 0 → 1 (実軸)
+path3b = lambda t: 1 + 1j*t  # 1 → 1+i (虚軸)
+
+integral3_f1a, z3a = complex_line_integral(f1, path3a, (0, 1))
+integral3_f1b, z3b = complex_line_integral(f1, path3b, (0, 1))
+integral3_f1_total = integral3_f1a + integral3_f1b
+
+print("\n\n=== 経路3: 折れ線 (0→1→1+i) ===")
+print(f"∫ z dz = {integral3_f1_total:.6f}")
+print(f"理論値: (1+i)^2 / 2 = {(1+1j)**2 / 2:.6f}")
+print(f"(経路によらない = 正則関数)")
+
+# 可視化
+fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+
+# 経路1
+ax = axes[0]
+ax.plot(z1.real, z1.imag, 'b-', linewidth=2, label='経路')
+ax.plot(0, 0, 'go', markersize=10, label='始点')
+ax.plot(1, 1, 'ro', markersize=10, label='終点')
+ax.arrow(0, 0, 0.4, 0.4, head_width=0.05, head_length=0.05, fc='blue', ec='blue')
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('Re(z)', fontsize=12)
+ax.set_ylabel('Im(z)', fontsize=12)
+ax.set_title('経路1: 直線 $(0 \\to 1+i)$', fontsize=12)
+ax.axis('equal')
+ax.legend()
+
+# 経路2
+ax = axes[1]
+ax.plot(z2.real, z2.imag, 'b-', linewidth=2, label='経路')
+ax.plot(1, 0, 'go', markersize=10, label='始点/終点')
+# 矢印（反時計回り）
+angles_arrow = [0, np.pi/2, np.pi, 3*np.pi/2]
+for angle in angles_arrow:
+    z_arr = np.exp(1j * angle)
+    dz = 0.3 * np.exp(1j * (angle + np.pi/2))
+    ax.arrow(z_arr.real, z_arr.imag, dz.real, dz.imag, 
+             head_width=0.1, head_length=0.08, fc='blue', ec='blue', alpha=0.6)
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('Re(z)', fontsize=12)
+ax.set_ylabel('Im(z)', fontsize=12)
+ax.set_title('経路2: 単位円（反時計回り）', fontsize=12)
+ax.axis('equal')
+ax.legend()
+
+# 経路3
+ax = axes[2]
+ax.plot(z3a.real, z3a.imag, 'b-', linewidth=2, label='経路')
+ax.plot(z3b.real, z3b.imag, 'b-', linewidth=2)
+ax.plot(0, 0, 'go', markersize=10, label='始点')
+ax.plot(1, 1, 'ro', markersize=10, label='終点')
+ax.plot(1, 0, 'ko', markersize=8, label='中間点')
+ax.arrow(0, 0, 0.4, 0, head_width=0.05, head_length=0.05, fc='blue', ec='blue')
+ax.arrow(1, 0, 0, 0.4, head_width=0.05, head_length=0.05, fc='blue', ec='blue')
+ax.grid(True, alpha=0.3)
+ax.set_xlabel('Re(z)', fontsize=12)
+ax.set_ylabel('Im(z)', fontsize=12)
+ax.set_title('経路3: 折れ線 $(0 \\to 1 \\to 1+i)$', fontsize=12)
+ax.axis('equal')
+ax.legend()
+
+plt.suptitle('複素積分の経路', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>2.4 コーシーの積分定理</h2>
+                    <p>
+                        正則関数の閉曲線に沿った積分は0になります。これはコーシーの積分定理として知られています。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>コーシーの積分定理:</strong></p>
+                        $$\oint_C f(z) dz = 0$$
+                        <p>ただし $f(z)$ は閉曲線 $C$ の内部で正則</p>
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 4: コーシーの積分定理の検証</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def complex_contour_integral(f, path, t_range, n_points=1000):
+    """閉曲線に沿った複素積分"""
+    t = np.linspace(t_range[0], t_range[1], n_points)
+    dt = t[1] - t[0]
+    z = path(t)
+    dz_dt = np.gradient(z, dt)
+    f_z = f(z)
+    integral = np.trapz(f_z * dz_dt, dx=dt)
+    return integral, z
+
+# 正則関数
+f_analytic = [
+    ('z', lambda z: z),
+    ('z^2', lambda z: z**2),
+    ('e^z', lambda z: np.exp(z)),
+    ('sin(z)', lambda z: np.sin(z)),
+]
+
+# 非正則関数
+f_not_analytic = [
+    ('z̄', lambda z: np.conj(z)),
+    ('|z|^2', lambda z: np.abs(z)**2),
+]
+
+# 特異点を含む関数
+f_singular = [
+    ('1/z', lambda z: 1/z),  # z=0 で特異点
+    ('1/(z-1)', lambda z: 1/(z-1)),  # z=1 で特異点
+]
+
+# 閉曲線: 単位円
+unit_circle = lambda t: np.exp(1j * t)
+t_range = (0, 2*np.pi)
+
+print("=== コーシーの積分定理の検証 ===\n")
+print("閉曲線: 単位円（反時計回り）\n")
+
+print("【正則関数（特異点なし）】")
+print("コーシーの積分定理により ∮f(z)dz = 0 のはず:")
+for name, f in f_analytic:
+    integral, _ = complex_contour_integral(f, unit_circle, t_range)
+    print(f"  ∮ {name:8s} dz = {integral.real:10.6f} + {integral.imag:10.6f}i")
+
+print("\n【非正則関数】")
+print("一般に ∮f(z)dz ≠ 0:")
+for name, f in f_not_analytic:
+    integral, _ = complex_contour_integral(f, unit_circle, t_range)
+    print(f"  ∮ {name:8s} dz = {integral.real:10.6f} + {integral.imag:10.6f}i")
+
+print("\n【特異点を含む関数】")
+print("単位円内に特異点 → ∮f(z)dz ≠ 0:")
+for name, f in f_singular:
+    integral, _ = complex_contour_integral(f, unit_circle, t_range)
+    print(f"  ∮ {name:12s} dz = {integral.real:10.6f} + {integral.imag:10.6f}i")
+
+# 可視化: 様々な閉曲線での検証
+contours = {
+    '単位円': (lambda t: np.exp(1j * t), (0, 2*np.pi)),
+    '正方形': (lambda t: np.where(t < 0.25, 4*t, 
+                         np.where(t < 0.5, 1 + 4j*(t-0.25),
+                         np.where(t < 0.75, 1 - 4*(t-0.5) + 1j,
+                                  4j*(1 - (t-0.75))))), (0, 1)),
+    '楕円': (lambda t: 2*np.cos(t) + 1j*np.sin(t), (0, 2*np.pi)),
+}
+
+f_test = lambda z: z**2  # 正則関数
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+for ax, (name, (path, t_range)) in zip(axes, contours.items()):
+    integral, z_path = complex_contour_integral(f_test, path, t_range)
+    
+    ax.plot(z_path.real, z_path.imag, 'b-', linewidth=2, label=f'経路: {name}')
+    ax.plot(z_path.real[0], z_path.imag[0], 'go', markersize=10, label='始点')
+    ax.grid(True, alpha=0.3)
+    ax.axhline(0, color='gray', linewidth=0.5)
+    ax.axvline(0, color='gray', linewidth=0.5)
+    ax.set_xlabel('Re(z)', fontsize=12)
+    ax.set_ylabel('Im(z)', fontsize=12)
+    ax.set_title(f'{name}\n∮ $z^2$ dz = {integral:.6f}', fontsize=12)
+    ax.axis('equal')
+    ax.legend()
+
+plt.suptitle('コーシーの積分定理: 正則関数の閉曲線積分 = 0', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>2.5 コーシーの積分公式</h2>
+                    <p>
+                        正則関数の値は、その周囲の閉曲線上の値から求められます。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>コーシーの積分公式:</strong></p>
+                        $$f(z_0) = \frac{1}{2\pi i} \oint_C \frac{f(z)}{z - z_0} dz$$
+                        <p><strong>導関数の公式:</strong></p>
+                        $$f^{(n)}(z_0) = \frac{n!}{2\pi i} \oint_C \frac{f(z)}{(z - z_0)^{n+1}} dz$$
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 5: コーシーの積分公式の検証</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def cauchy_integral_formula(f, z0, radius=1.0, n_points=1000):
+    """
+    コーシーの積分公式を使ってf(z0)を計算
+    f: 正則関数
+    z0: 評価点
+    radius: z0を中心とする円の半径
+    """
+    t = np.linspace(0, 2*np.pi, n_points)
+    dt = t[1] - t[0]
+    
+    # 経路: z0を中心とする円
+    z = z0 + radius * np.exp(1j * t)
+    dz_dt = 1j * radius * np.exp(1j * t)
+    
+    # 被積分関数
+    integrand = f(z) / (z - z0)
+    
+    # 積分
+    integral = np.trapz(integrand * dz_dt, dx=dt)
+    f_z0_from_integral = integral / (2 * np.pi * 1j)
+    
+    return f_z0_from_integral, z
+
+# テスト関数
+functions = {
+    'z^2': lambda z: z**2,
+    'z^3': lambda z: z**3,
+    'e^z': lambda z: np.exp(z),
+    'sin(z)': lambda z: np.sin(z),
+}
+
+# 評価点
+z0 = 0.5 + 0.8j
+
+print("=== コーシーの積分公式の検証 ===")
+print(f"評価点: z0 = {z0}\n")
+
+results = []
+for name, f in functions.items():
+    # 直接計算
+    f_z0_direct = f(z0)
+    
+    # コーシーの積分公式で計算
+    f_z0_integral, path = cauchy_integral_formula(f, z0, radius=1.0)
+    
+    error = np.abs(f_z0_direct - f_z0_integral)
+    
+    print(f"f(z) = {name}")
+    print(f"  直接計算:     f(z0) = {f_z0_direct:.8f}")
+    print(f"  積分公式から: f(z0) = {f_z0_integral:.8f}")
+    print(f"  誤差: {error:.2e}\n")
+    
+    results.append((name, f, path))
+
+# 可視化
+fig, axes = plt.subplots(2, 2, figsize=(12, 12))
+axes = axes.flatten()
+
+for idx, (name, f, path) in enumerate(results):
+    if idx >= len(axes):
+        break
+    
+    ax = axes[idx]
+    
+    # 関数の等高線
+    x = np.linspace(-2, 2, 100)
+    y = np.linspace(-2, 2, 100)
+    X, Y = np.meshgrid(x, y)
+    Z = X + 1j*Y
+    W = f(Z)
+    
+    im = ax.contourf(X, Y, np.abs(W), levels=20, cmap='viridis', alpha=0.6)
+    plt.colorbar(im, ax=ax, label='|f(z)|')
+    
+    # 積分経路
+    ax.plot(path.real, path.imag, 'r-', linewidth=2, label='積分経路')
+    ax.plot(z0.real, z0.imag, 'ko', markersize=10, label=f'z0 = {z0:.2f}')
+    
+    ax.grid(True, alpha=0.3)
+    ax.set_xlabel('Re(z)', fontsize=12)
+    ax.set_ylabel('Im(z)', fontsize=12)
+    ax.set_title(f'$f(z) = {name}$', fontsize=12)
+    ax.axis('equal')
+    ax.legend()
+    ax.set_xlim(-1.5, 2)
+    ax.set_ylim(-1, 2)
+
+plt.suptitle('コーシーの積分公式: 円周上の値から中心の値を計算', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>2.6 導関数の積分公式</h2>
+                    <p>
+                        コーシーの積分公式を拡張すると、高階導関数も積分で表現できます。
+                    </p>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 6: 高階導関数の積分公式</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.special import factorial
+
+def cauchy_derivative_formula(f, z0, n, radius=1.0, n_points=1000):
+    """
+    コーシーの導関数公式を使ってf^(n)(z0)を計算
+    f: 正則関数
+    z0: 評価点
+    n: 導関数の階数
+    """
+    t = np.linspace(0, 2*np.pi, n_points)
+    dt = t[1] - t[0]
+    
+    # 経路: z0を中心とする円
+    z = z0 + radius * np.exp(1j * t)
+    dz_dt = 1j * radius * np.exp(1j * t)
+    
+    # 被積分関数
+    integrand = f(z) / (z - z0)**(n + 1)
+    
+    # 積分
+    integral = np.trapz(integrand * dz_dt, dx=dt)
+    f_n_z0 = factorial(n) * integral / (2 * np.pi * 1j)
+    
+    return f_n_z0
+
+# 複素微分の数値計算（検証用）
+def numerical_derivative(f, z, n=1, h=1e-5):
+    """n階微分の数値計算"""
+    if n == 0:
+        return f(z)
+    elif n == 1:
+        return (f(z + h) - f(z - h)) / (2*h)
+    else:
+        # 再帰的に計算
+        f_n_minus_1 = lambda w: numerical_derivative(f, w, n-1, h)
+        return (f_n_minus_1(z + h) - f_n_minus_1(z - h)) / (2*h)
+
+# テスト関数
+f = lambda z: np.exp(z)
+z0 = 1.0 + 0.5j
+
+print("=== 高階導関数の積分公式 ===")
+print(f"f(z) = e^z, z0 = {z0}\n")
+print("理論値: すべての導関数が e^z0\n")
+
+for n in range(5):
+    # 積分公式
+    f_n_integral = cauchy_derivative_formula(f, z0, n, radius=0.5)
+    # 数値微分
+    f_n_numerical = numerical_derivative(f, z0, n)
+    # 理論値 (e^z の n 階導関数は e^z)
+    f_n_theory = np.exp(z0)
+    
+    error_integral = np.abs(f_n_integral - f_n_theory)
+    error_numerical = np.abs(f_n_numerical - f_n_theory)
+    
+    print(f"f^({n})(z0):")
+    print(f"  積分公式:   {f_n_integral:.8f}")
+    print(f"  数値微分:   {f_n_numerical:.8f}")
+    print(f"  理論値:     {f_n_theory:.8f}")
+    print(f"  誤差(積分): {error_integral:.2e}")
+    print(f"  誤差(数値): {error_numerical:.2e}\n")
+
+# 別のテスト: f(z) = z^4
+print("\n=== f(z) = z^4 ===")
+f2 = lambda z: z**4
+z0_2 = 2.0 + 1.0j
+
+derivatives_theory = [
+    z0_2**4,                    # f
+    4 * z0_2**3,               # f'
+    12 * z0_2**2,              # f''
+    24 * z0_2,                 # f'''
+    24,                        # f''''
+]
+
+for n in range(5):
+    f_n_integral = cauchy_derivative_formula(f2, z0_2, n, radius=1.0)
+    f_n_theory = derivatives_theory[n]
+    error = np.abs(f_n_integral - f_n_theory)
+    
+    print(f"f^({n})(z0) = {f_n_integral:.6f}, 理論値 = {f_n_theory:.6f}, 誤差 = {error:.2e}")
+
+# 可視化: 異なる半径での精度
+radii = np.linspace(0.1, 2.0, 20)
+errors = []
+
+for radius in radii:
+    f_2_integral = cauchy_derivative_formula(f2, z0_2, 2, radius=radius)
+    error = np.abs(f_2_integral - derivatives_theory[2])
+    errors.append(error)
+
+plt.figure(figsize=(10, 6))
+plt.semilogy(radii, errors, 'b-o', linewidth=2, markersize=6)
+plt.grid(True, alpha=0.3)
+plt.xlabel('積分経路の半径', fontsize=12)
+plt.ylabel('誤差', fontsize=12)
+plt.title("コーシーの導関数公式の精度 vs 積分経路の半径\n$f''(z_0)$ for $f(z) = z^4$", fontsize=14)
+plt.axhline(1e-10, color='red', linestyle='--', label='数値誤差の限界')
+plt.legend()
+plt.tight_layout()
+plt.show()</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>2.7 等角写像と調和関数</h2>
+                    <p>
+                        正則関数は角度を保つ写像（等角写像）です。また、正則関数の実部と虚部は調和関数（ラプラス方程式の解）です。
+                    </p>
+
+                    <div class="theory-box">
+                        <h4>📐 理論</h4>
+                        <p><strong>等角写像:</strong> 正則関数 $w = f(z)$ は角度を保つ</p>
+                        <p><strong>調和関数:</strong> $f(z) = u + iv$ が正則なら</p>
+                        $$\nabla^2 u = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2} = 0$$
+                        $$\nabla^2 v = \frac{\partial^2 v}{\partial x^2} + \frac{\partial^2 v}{\partial y^2} = 0$$
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 7: 等角写像の可視化</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def plot_conformal_map(f, title):
+    """等角写像の可視化"""
+    # 元の領域: 格子
+    x = np.linspace(-1.5, 1.5, 15)
+    y = np.linspace(-1.5, 1.5, 15)
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # 左図: 元の領域
+    for xi in x:
+        y_line = y
+        z_line = xi + 1j*y_line
+        ax1.plot(z_line.real, z_line.imag, 'b-', linewidth=1, alpha=0.5)
+    
+    for yi in y:
+        x_line = x
+        z_line = x_line + 1j*yi
+        ax1.plot(z_line.real, z_line.imag, 'b-', linewidth=1, alpha=0.5)
+    
+    ax1.axhline(0, color='gray', linewidth=0.5)
+    ax1.axvline(0, color='gray', linewidth=0.5)
+    ax1.grid(True, alpha=0.3)
+    ax1.set_xlabel('Re(z)', fontsize=12)
+    ax1.set_ylabel('Im(z)', fontsize=12)
+    ax1.set_title('元の領域 (z平面)', fontsize=12)
+    ax1.axis('equal')
+    ax1.set_xlim(-2, 2)
+    ax1.set_ylim(-2, 2)
+    
+    # 右図: 写像後の領域
+    for xi in x:
+        y_line = y
+        z_line = xi + 1j*y_line
+        w_line = f(z_line)
+        ax2.plot(w_line.real, w_line.imag, 'r-', linewidth=1, alpha=0.5)
+    
+    for yi in y:
+        x_line = x
+        z_line = x_line + 1j*yi
+        w_line = f(z_line)
+        ax2.plot(w_line.real, w_line.imag, 'r-', linewidth=1, alpha=0.5)
+    
+    ax2.axhline(0, color='gray', linewidth=0.5)
+    ax2.axvline(0, color='gray', linewidth=0.5)
+    ax2.grid(True, alpha=0.3)
+    ax2.set_xlabel('Re(w)', fontsize=12)
+    ax2.set_ylabel('Im(w)', fontsize=12)
+    ax2.set_title(f'写像後の領域 (w平面): {title}', fontsize=12)
+    ax2.axis('equal')
+    
+    plt.tight_layout()
+    return fig
+
+# 様々な等角写像
+maps = {
+    'w = z^2': lambda z: z**2,
+    'w = e^z': lambda z: np.exp(z),
+    'w = 1/z': lambda z: 1/z,
+    'w = (z-1)/(z+1) (Möbius)': lambda z: (z-1)/(z+1),
+}
+
+for name, f in maps.items():
+    fig = plot_conformal_map(f, name)
+    plt.show()
+
+print("等角写像の性質:")
+print("- 格子の交点での角度が保たれる")
+print("- 正則関数は局所的に回転と拡大の合成")</code></pre>
+                    </div>
+
+                    <div class="code-example">
+                        <h4>💻 コード例 8: 調和関数の検証</h4>
+                        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def laplacian_2d(u, x, y, h=0.01):
+    """2次元ラプラシアンの数値計算"""
+    u_xx = (u(x+h, y) - 2*u(x, y) + u(x-h, y)) / h**2
+    u_yy = (u(x, y+h) - 2*u(x, y) + u(x, y-h)) / h**2
+    return u_xx + u_yy
+
+# 正則関数 f(z) = z^2 = (x+iy)^2 = (x^2-y^2) + i(2xy)
+def u(x, y):
+    """実部: u = x^2 - y^2"""
+    return x**2 - y**2
+
+def v(x, y):
+    """虚部: v = 2xy"""
+    return 2*x*y
+
+# グリッド
+x = np.linspace(-2, 2, 100)
+y = np.linspace(-2, 2, 100)
+X, Y = np.meshgrid(x, y)
+
+U = u(X, Y)
+V = v(X, Y)
+
+# ラプラシアンの計算（数値微分）
+dx = x[1] - x[0]
+dy = y[1] - y[0]
+
+Laplacian_U = (np.roll(U, -1, axis=1) - 2*U + np.roll(U, 1, axis=1)) / dx**2 + \
+              (np.roll(U, -1, axis=0) - 2*U + np.roll(U, 1, axis=0)) / dy**2
+
+Laplacian_V = (np.roll(V, -1, axis=1) - 2*V + np.roll(V, 1, axis=1)) / dx**2 + \
+              (np.roll(V, -1, axis=0) - 2*V + np.roll(V, 1, axis=0)) / dy**2
+
+# テスト点でのラプラシアン
+x0, y0 = 1.0, 1.5
+lap_u = laplacian_2d(u, x0, y0)
+lap_v = laplacian_2d(v, x0, y0)
+
+print("=== 調和関数の検証 ===")
+print(f"正則関数: f(z) = z^2")
+print(f"実部: u(x,y) = x^2 - y^2")
+print(f"虚部: v(x,y) = 2xy")
+print(f"\nテスト点: ({x0}, {y0})")
+print(f"∇²u = {lap_u:.6e} (should be ~0)")
+print(f"∇²v = {lap_v:.6e} (should be ~0)")
+
+# 可視化
+fig, axes = plt.subplots(2, 3, figsize=(16, 10))
+
+# 実部
+im = axes[0, 0].contourf(X, Y, U, levels=20, cmap='RdBu_r')
+axes[0, 0].contour(X, Y, U, levels=10, colors='black', linewidths=0.5, alpha=0.4)
+axes[0, 0].set_xlabel('x', fontsize=12)
+axes[0, 0].set_ylabel('y', fontsize=12)
+axes[0, 0].set_title('実部: $u = x^2 - y^2$', fontsize=12)
+axes[0, 0].axis('equal')
+plt.colorbar(im, ax=axes[0, 0])
+
+# 虚部
+im = axes[0, 1].contourf(X, Y, V, levels=20, cmap='RdBu_r')
+axes[0, 1].contour(X, Y, V, levels=10, colors='black', linewidths=0.5, alpha=0.4)
+axes[0, 1].set_xlabel('x', fontsize=12)
+axes[0, 1].set_ylabel('y', fontsize=12)
+axes[0, 1].set_title('虚部: $v = 2xy$', fontsize=12)
+axes[0, 1].axis('equal')
+plt.colorbar(im, ax=axes[0, 1])
+
+# 実部と虚部の等高線（直交性）
+axes[0, 2].contour(X, Y, U, levels=15, colors='blue', linewidths=1.5, alpha=0.7)
+axes[0, 2].contour(X, Y, V, levels=15, colors='red', linewidths=1.5, alpha=0.7)
+axes[0, 2].set_xlabel('x', fontsize=12)
+axes[0, 2].set_ylabel('y', fontsize=12)
+axes[0, 2].set_title('等高線の直交性（青:u, 赤:v）', fontsize=12)
+axes[0, 2].axis('equal')
+axes[0, 2].grid(True, alpha=0.3)
+
+# ラプラシアン（実部）
+im = axes[1, 0].contourf(X, Y, Laplacian_U, levels=20, cmap='seismic', vmin=-0.1, vmax=0.1)
+axes[1, 0].set_xlabel('x', fontsize=12)
+axes[1, 0].set_ylabel('y', fontsize=12)
+axes[1, 0].set_title('$\\nabla^2 u$ (should be ~0)', fontsize=12)
+axes[1, 0].axis('equal')
+plt.colorbar(im, ax=axes[1, 0])
+
+# ラプラシアン（虚部）
+im = axes[1, 1].contourf(X, Y, Laplacian_V, levels=20, cmap='seismic', vmin=-0.1, vmax=0.1)
+axes[1, 1].set_xlabel('x', fontsize=12)
+axes[1, 1].set_ylabel('y', fontsize=12)
+axes[1, 1].set_title('$\\nabla^2 v$ (should be ~0)', fontsize=12)
+axes[1, 1].axis('equal')
+plt.colorbar(im, ax=axes[1, 1])
+
+# ラプラシアンの大きさ
+Lap_magnitude = np.sqrt(Laplacian_U**2 + Laplacian_V**2)
+im = axes[1, 2].contourf(X, Y, Lap_magnitude, levels=20, cmap='viridis')
+axes[1, 2].set_xlabel('x', fontsize=12)
+axes[1, 2].set_ylabel('y', fontsize=12)
+axes[1, 2].set_title('$|\\nabla^2 u|^2 + |\\nabla^2 v|^2$', fontsize=12)
+axes[1, 2].axis('equal')
+plt.colorbar(im, ax=axes[1, 2])
+
+plt.suptitle('調和関数: 正則関数の実部・虚部はラプラス方程式を満たす', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+print("\n調和関数の性質:")
+print("- 正則関数の実部と虚部は調和関数")
+print("- 調和関数の等高線は直交する（コーシー・リーマンの方程式）")
+print("- 調和関数は極大値・極小値を持たない（最大値原理）")</code></pre>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>📝 章末問題</h2>
+                    <div class="exercise-box">
+                        <h4>演習問題</h4>
+                        <ol>
+                            <li>$f(z) = z^3$ について、点 $z_0 = 1+i$ でコーシー・リーマンの方程式を検証せよ。</li>
+                            <li>$\oint_C z^n dz$ を計算せよ。ただし $C$ は原点中心の単位円、$n$ は整数。</li>
+                            <li>$f(z) = \frac{1}{z-2}$ について、単位円に沿った積分 $\oint_C f(z) dz$ を計算し、コーシーの積分定理との関係を考察せよ。</li>
+                            <li>等角写像 $w = z^2$ によって、直線 $x=1$ がどのような曲線に写されるか求めよ。</li>
+                        </ol>
+                    </div>
+                </section>
+
+                <section class="chapter-section">
+                    <h2>🔗 参考文献</h2>
+                    <ul class="reference-list">
+                        <li>Ahlfors, L. V. (1979). <em>Complex Analysis</em>. McGraw-Hill.</li>
+                        <li>Stein, E. M., & Shakarchi, R. (2003). <em>Complex Analysis</em>. Princeton University Press.</li>
+                    </ul>
+                </section>
+            </article>
+
+            <nav class="chapter-navigation">
+                <a href="chapter-1.html" class="btn btn-secondary">← 第1章へ</a>
+                <a href="chapter-3.html" class="btn btn-primary">第3章へ →</a>
+            </nav>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
