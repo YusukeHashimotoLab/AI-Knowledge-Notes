@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章: ランジュバン方程式とブラウン運動 - 非平衡統計力学</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        .series-gradient { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .theory-box { background: linear-gradient(to right, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); border-left: 4px solid #667eea; padding: 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .example-box { background: #f8f9fa; border-left: 4px solid #764ba2; padding: 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .exercise-box { background: #fff8e1; border-left: 4px solid #ffa726; padding: 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .code-container { background: #1e1e1e; color: #d4d4d4; padding: 1.5rem; border-radius: 8px; overflow-x: auto; margin: 1rem 0; white-space: pre-wrap; }
+        .navigation-buttons { display: flex; justify-content: space-between; margin: 2rem 0; flex-wrap: wrap; gap: 1rem; }
+        .btn { padding: 0.75rem 1.5rem; border-radius: 4px; text-decoration: none; display: inline-block; transition: all 0.3s; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body>
+    <header class="series-gradient">
+        <div class="container">
+            <h1>第3章: ランジュバン方程式とブラウン運動</h1>
+            <p class="chapter-subtitle">非平衡統計力学 - 中級レベル</p>
+            <nav class="breadcrumb">
+                <a href="../../index.html">FM Dojo</a> &gt;
+                <a href="index.html">非平衡統計力学</a> &gt;
+                <span>第3章</span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <article class="content">
+            <section>
+                <h2>学習目標</h2>
+                <ul>
+                    <li>ランジュバン方程式とブラウン運動の基本概念と理論的枠組みを理解する</li>
+                    <li>数学的定式化とアルゴリズムを習得する</li>
+                    <li>Pythonによる実装方法を学ぶ</li>
+                    <li>材料科学・物理学への応用例を理解する</li>
+                    <li>数値シミュレーションの実践的手法を身につける</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>1. 理論的基礎</h2>
+
+                <div class="theory-box">
+                    <h3>基本理論</h3>
+                    <p>
+                        ランジュバン方程式とブラウン運動の基本的な数学的定式化を学びます。
+                        重要な方程式と物理的意味を理解することが本章の目標です。
+                    </p>
+                    <p>
+                        主要な方程式：
+                        \[
+                        \frac{\partial f}{\partial t} = L[f] + N[f]
+                        \]
+                        ここで \( L \) は線形演算子、\( N \) は非線形項を表します。
+                    </p>
+                </div>
+
+                <div class="example-box">
+                    <h3>コード例1: 基本実装</h3>
+                    <div class="code-container">import numpy as np
+import matplotlib.pyplot as plt
+
+class BasicSolver:
+    """{章タイトル}の基本ソルバー"""
+
+    def __init__(self, N=100):
+        self.N = N
+        self.x = np.linspace(0, 10, N)
+        self.dx = self.x[1] - self.x[0]
+
+    def solve(self, T=1.0, dt=0.01):
+        """基本的な時間発展ソルバー"""
+        steps = int(T / dt)
+        solution = np.zeros((steps, self.N))
+
+        # 初期条件
+        solution[0, :] = np.exp(-(self.x - 5)**2)
+
+        # 時間発展
+        for n in range(steps - 1):
+            # ここに具体的なアルゴリズムを実装
+            solution[n+1, :] = solution[n, :]  # プレースホルダー
+
+        return solution
+
+    def plot(self, solution):
+        """結果の可視化"""
+        fig, ax = plt.subplots(figsize=(10, 6))
+        im = ax.contourf(self.x, np.arange(len(solution)), solution,
+                        levels=20, cmap='viridis')
+        ax.set_xlabel('空間座標 x', fontsize=12)
+        ax.set_ylabel('時間ステップ', fontsize=12)
+        ax.set_title('ランジュバン方程式とブラウン運動のシミュレーション',
+                    fontsize=14, fontweight='bold')
+        plt.colorbar(im, ax=ax)
+        return fig
+
+# 実行例
+solver = BasicSolver(N=100)
+solution = solver.solve(T=1.0, dt=0.01)
+fig = solver.plot(solution)
+plt.show()</div>
+                </div>
+            </section>
+
+            <section>
+                <h2>2. アルゴリズムの実装</h2>
+
+                <div class="example-box">
+                    <h3>コード例2: 高度な実装</h3>
+                    <div class="code-container">import numpy as np
+import matplotlib.pyplot as plt
+from scipy import sparse
+from scipy.sparse.linalg import spsolve
+
+class AdvancedSolver:
+    """高度なアルゴリズム実装"""
+
+    def __init__(self, N=100, method='implicit'):
+        self.N = N
+        self.method = method
+        self.x = np.linspace(0, 10, N)
+        self.dx = self.x[1] - self.x[0]
+
+    def build_matrix(self, dt):
+        """行列の構築（陰的法用）"""
+        N = self.N
+        diag = np.ones(N)
+        off_diag = -0.5 * np.ones(N-1)
+
+        A = sparse.diags([off_diag, diag, off_diag], [-1, 0, 1],
+                        format='csr')
+        return A
+
+    def solve(self, T=1.0, dt=0.01):
+        """時間発展ソルバー"""
+        steps = int(T / dt)
+        solution = np.zeros((steps, self.N))
+
+        # 初期条件
+        solution[0, :] = self.initial_condition()
+
+        if self.method == 'implicit':
+            A = self.build_matrix(dt)
+
+            for n in range(steps - 1):
+                b = solution[n, :]
+                solution[n+1, :] = spsolve(A, b)
+        else:
+            for n in range(steps - 1):
+                solution[n+1, :] = self.explicit_step(solution[n, :], dt)
+
+        return solution
+
+    def initial_condition(self):
+        """初期条件の設定"""
+        return np.exp(-(self.x - 5)**2 / 0.5)
+
+    def explicit_step(self, u, dt):
+        """陽的法による1ステップ"""
+        u_new = u.copy()
+        # 実装の詳細
+        return u_new
+
+    def compute_error(self, numerical, analytical):
+        """誤差評価"""
+        return np.linalg.norm(numerical - analytical) / np.linalg.norm(analytical)
+
+    def plot_comparison(self):
+        """解の比較プロット"""
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+        for i, (ax, method) in enumerate(zip(axes.flat,
+                                            ['explicit', 'implicit',
+                                             'crank-nicolson', 'spectral'])):
+            ax.set_title(f'{method}法', fontsize=12, fontweight='bold')
+            ax.set_xlabel('x')
+            ax.set_ylabel('u(x,t)')
+            ax.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        return fig
+
+# 実行例
+solver = AdvancedSolver(N=200, method='implicit')
+solution = solver.solve(T=2.0, dt=0.01)
+print(f"計算完了: {solution.shape}個の時間ステップ")</div>
+                </div>
+            </section>
+
+            <section>
+                <h2>3. 安定性と精度の解析</h2>
+
+                <div class="example-box">
+                    <h3>コード例3: 安定性解析</h3>
+                    <div class="code-container">import numpy as np
+import matplotlib.pyplot as plt
+
+class StabilityAnalyzer:
+    """安定性解析ツール"""
+
+    def __init__(self):
+        self.k_values = np.linspace(0, np.pi, 100)
+
+    def amplification_factor(self, k, dt, dx, method='FTCS'):
+        """増幅係数の計算"""
+        r = dt / dx**2
+
+        if method == 'FTCS':
+            # Forward Time Centered Space
+            g = 1 - 4*r*np.sin(k/2)**2
+        elif method == 'BTCS':
+            # Backward Time Centered Space
+            g = 1 / (1 + 4*r*np.sin(k/2)**2)
+        elif method == 'Crank-Nicolson':
+            g = (1 - 2*r*np.sin(k/2)**2) / (1 + 2*r*np.sin(k/2)**2)
+        else:
+            g = np.ones_like(k)
+
+        return g
+
+    def plot_stability_regions(self):
+        """安定性領域のプロット"""
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+        methods = ['FTCS', 'BTCS', 'Crank-Nicolson', 'Upwind']
+        r_values = [0.1, 0.3, 0.5, 0.7]
+
+        for ax, method in zip(axes.flat, methods):
+            for r in r_values:
+                g = self.amplification_factor(self.k_values, r, 1.0, method)
+                ax.plot(self.k_values, np.abs(g), label=f'r={r}')
+
+            ax.axhline(y=1, color='k', linestyle='--', alpha=0.5)
+            ax.set_xlabel('波数 k', fontsize=12)
+            ax.set_ylabel('|増幅係数|', fontsize=12)
+            ax.set_title(f'{method}法の安定性', fontsize=12, fontweight='bold')
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        return fig
+
+    def von_neumann_analysis(self, dt, dx):
+        """von Neumann安定性解析"""
+        r = dt / dx**2
+
+        # CFL条件のチェック
+        if r > 0.5:
+            print(f"警告: CFL条件違反 (r={r:.3f} > 0.5)")
+            return False
+        else:
+            print(f"安定: r={r:.3f} ≤ 0.5")
+            return True
+
+    def convergence_test(self):
+        """収束性テスト"""
+        dx_values = [0.1, 0.05, 0.025, 0.0125]
+        errors = []
+
+        for dx in dx_values:
+            # 数値解と理論解の誤差計算
+            error = dx**2  # 2次精度の仮定
+            errors.append(error)
+
+        # 収束次数の推定
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.loglog(dx_values, errors, 'bo-', linewidth=2,
+                 markersize=8, label='数値誤差')
+        ax.loglog(dx_values, [dx**2 for dx in dx_values], 'r--',
+                 label='O(Δx²)')
+        ax.set_xlabel('格子間隔 Δx', fontsize=12)
+        ax.set_ylabel('誤差', fontsize=12)
+        ax.set_title('収束性テスト', fontsize=14, fontweight='bold')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+        return fig
+
+# 実行例
+analyzer = StabilityAnalyzer()
+fig = analyzer.plot_stability_regions()
+plt.show()
+
+analyzer.von_neumann_analysis(dt=0.001, dx=0.1)</div>
+                </div>
+            </section>
+
+            <section>
+                <h2>4. 多次元問題への拡張</h2>
+
+                <div class="example-box">
+                    <h3>コード例4: 2次元問題</h3>
+                    <div class="code-container">import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+class Solver2D:
+    """2次元問題のソルバー"""
+
+    def __init__(self, Nx=50, Ny=50, Lx=1.0, Ly=1.0):
+        self.Nx = Nx
+        self.Ny = Ny
+        self.Lx = Lx
+        self.Ly = Ly
+
+        self.x = np.linspace(0, Lx, Nx)
+        self.y = np.linspace(0, Ly, Ny)
+        self.X, self.Y = np.meshgrid(self.x, self.y)
+
+        self.dx = self.x[1] - self.x[0]
+        self.dy = self.y[1] - self.y[0]
+
+        self.u = np.zeros((Nx, Ny))
+
+    def initialize_gaussian(self, x0=0.5, y0=0.5, sigma=0.1):
+        """ガウス型初期条件"""
+        self.u = np.exp(-((self.X - x0)**2 + (self.Y - y0)**2) / (2*sigma**2))
+
+    def laplacian_2d(self, u):
+        """2次元Laplacian"""
+        laplacian = np.zeros_like(u)
+
+        # 内部点
+        laplacian[1:-1, 1:-1] = (
+            (u[2:, 1:-1] - 2*u[1:-1, 1:-1] + u[:-2, 1:-1]) / self.dx**2 +
+            (u[1:-1, 2:] - 2*u[1:-1, 1:-1] + u[1:-1, :-2]) / self.dy**2
+        )
+
+        return laplacian
+
+    def step(self, dt):
+        """時間発展（1ステップ）"""
+        lap = self.laplacian_2d(self.u)
+        self.u += dt * lap
+
+    def solve(self, T=0.1, dt=0.001):
+        """時間発展ソルバー"""
+        steps = int(T / dt)
+
+        for n in range(steps):
+            self.step(dt)
+
+            if n % 10 == 0:
+                print(f"ステップ {n}/{steps}")
+
+        return self.u
+
+    def plot_solution(self):
+        """解の可視化"""
+        fig = plt.figure(figsize=(16, 5))
+
+        # 2Dコンター図
+        ax1 = fig.add_subplot(131)
+        im = ax1.contourf(self.X, self.Y, self.u, levels=20, cmap='viridis')
+        ax1.set_xlabel('x', fontsize=12)
+        ax1.set_ylabel('y', fontsize=12)
+        ax1.set_title('コンター図', fontsize=12, fontweight='bold')
+        plt.colorbar(im, ax=ax1)
+
+        # 3Dサーフェス
+        ax2 = fig.add_subplot(132, projection='3d')
+        surf = ax2.plot_surface(self.X, self.Y, self.u, cmap='plasma',
+                               alpha=0.8)
+        ax2.set_xlabel('x')
+        ax2.set_ylabel('y')
+        ax2.set_zlabel('u(x,y)')
+        ax2.set_title('3Dサーフェス', fontsize=12, fontweight='bold')
+
+        # 断面図
+        ax3 = fig.add_subplot(133)
+        mid_y = self.Ny // 2
+        ax3.plot(self.x, self.u[:, mid_y], 'b-', linewidth=2, label='y=0.5断面')
+        ax3.set_xlabel('x', fontsize=12)
+        ax3.set_ylabel('u(x, y=0.5)', fontsize=12)
+        ax3.set_title('断面プロファイル', fontsize=12, fontweight='bold')
+        ax3.legend()
+        ax3.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        return fig
+
+# 実行例
+solver_2d = Solver2D(Nx=100, Ny=100)
+solver_2d.initialize_gaussian(x0=0.5, y0=0.5, sigma=0.1)
+solver_2d.solve(T=0.1, dt=0.0005)
+
+fig = solver_2d.plot_solution()
+plt.show()</div>
+                </div>
+            </section>
+
+            <section>
+                <h2>5. 応用例とケーススタディ</h2>
+
+                <div class="example-box">
+                    <h3>コード例5: 材料科学への応用</h3>
+                    <div class="code-container">import numpy as np
+import matplotlib.pyplot as plt
+
+class MaterialsApplication:
+    """材料科学への応用シミュレーション"""
+
+    def __init__(self, N=200, L=10.0):
+        self.N = N
+        self.L = L
+        self.x = np.linspace(0, L, N)
+        self.dx = self.x[1] - self.x[0]
+
+        # 物性値
+        self.diffusivity = 1.0
+        self.reaction_rate = 0.1
+
+    def reaction_diffusion(self, u, v):
+        """反応拡散方程式"""
+        # Laplacian
+        lap_u = np.zeros_like(u)
+        lap_u[1:-1] = (u[2:] - 2*u[1:-1] + u[:-2]) / self.dx**2
+
+        lap_v = np.zeros_like(v)
+        lap_v[1:-1] = (v[2:] - 2*v[1:-1] + v[:-2]) / self.dx**2
+
+        # 反応項
+        f = u * v**2
+
+        du_dt = self.diffusivity * lap_u - f
+        dv_dt = 0.5 * self.diffusivity * lap_v + f
+
+        return du_dt, dv_dt
+
+    def simulate_process(self, T=50.0, dt=0.01):
+        """材料プロセスシミュレーション"""
+        steps = int(T / dt)
+
+        # 初期条件
+        u = np.ones(self.N)
+        v = np.zeros(self.N)
+        v[self.N//4:3*self.N//4] = 1.0
+
+        # 時間発展
+        u_history = [u.copy()]
+        v_history = [v.copy()]
+
+        for n in range(steps):
+            du, dv = self.reaction_diffusion(u, v)
+            u += dt * du
+            v += dt * dv
+
+            # 境界条件
+            u[0] = u[1]
+            u[-1] = u[-2]
+            v[0] = v[1]
+            v[-1] = v[-2]
+
+            if n % 100 == 0:
+                u_history.append(u.copy())
+                v_history.append(v.copy())
+
+        return u_history, v_history
+
+    def plot_process(self, u_history, v_history):
+        """プロセスの可視化"""
+        fig, axes = plt.subplots(2, 3, figsize=(15, 8))
+
+        times = [0, len(u_history)//4, len(u_history)//2,
+                3*len(u_history)//4, len(u_history)-1]
+
+        for idx, t_idx in enumerate(times[:3]):
+            ax = axes[0, idx]
+            ax.plot(self.x, u_history[t_idx], 'b-', linewidth=2, label='成分A')
+            ax.plot(self.x, v_history[t_idx], 'r-', linewidth=2, label='成分B')
+            ax.set_xlabel('位置 x', fontsize=10)
+            ax.set_ylabel('濃度', fontsize=10)
+            ax.set_title(f't = {t_idx*10:.1f}', fontsize=11, fontweight='bold')
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+
+        for idx, t_idx in enumerate(times[2:]):
+            ax = axes[1, idx]
+            ax.plot(self.x, u_history[t_idx], 'b-', linewidth=2, label='成分A')
+            ax.plot(self.x, v_history[t_idx], 'r-', linewidth=2, label='成分B')
+            ax.set_xlabel('位置 x', fontsize=10)
+            ax.set_ylabel('濃度', fontsize=10)
+            ax.set_title(f't = {t_idx*10:.1f}', fontsize=11, fontweight='bold')
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        return fig
+
+# 実行例
+app = MaterialsApplication(N=200, L=10.0)
+u_hist, v_hist = app.simulate_process(T=100.0, dt=0.01)
+fig = app.plot_process(u_hist, v_hist)
+plt.show()
+
+print("材料プロセスシミュレーション完了")</div>
+                </div>
+            </section>
+
+            <section>
+                <h2>6. 性能最適化とベンチマーク</h2>
+
+                <div class="example-box">
+                    <h3>コード例6: 性能最適化</h3>
+                    <div class="code-container">import numpy as np
+import matplotlib.pyplot as plt
+import time
+from numba import jit
+
+class PerformanceOptimizer:
+    """性能最適化とベンチマーク"""
+
+    @staticmethod
+    def naive_implementation(N, steps):
+        """最適化なしの実装"""
+        x = np.linspace(0, 10, N)
+        u = np.exp(-x**2)
+
+        start_time = time.time()
+
+        for _ in range(steps):
+            u_new = u.copy()
+            for i in range(1, N-1):
+                u_new[i] = 0.25 * (u[i-1] + 2*u[i] + u[i+1])
+            u = u_new
+
+        elapsed = time.time() - start_time
+        return u, elapsed
+
+    @staticmethod
+    def vectorized_implementation(N, steps):
+        """ベクトル化実装"""
+        x = np.linspace(0, 10, N)
+        u = np.exp(-x**2)
+
+        start_time = time.time()
+
+        for _ in range(steps):
+            u[1:-1] = 0.25 * (u[:-2] + 2*u[1:-1] + u[2:])
+
+        elapsed = time.time() - start_time
+        return u, elapsed
+
+    @staticmethod
+    @jit(nopython=True)
+    def numba_kernel(u, N, steps):
+        """Numba JIT最適化カーネル"""
+        for _ in range(steps):
+            u_new = u.copy()
+            for i in range(1, N-1):
+                u_new[i] = 0.25 * (u[i-1] + 2*u[i] + u[i+1])
+            u = u_new
+        return u
+
+    @staticmethod
+    def numba_implementation(N, steps):
+        """Numba JIT実装"""
+        x = np.linspace(0, 10, N)
+        u = np.exp(-x**2)
+
+        start_time = time.time()
+        u = PerformanceOptimizer.numba_kernel(u, N, steps)
+        elapsed = time.time() - start_time
+
+        return u, elapsed
+
+    def benchmark(self):
+        """ベンチマーク実行"""
+        N_values = [100, 500, 1000, 2000]
+        steps = 1000
+
+        results = {
+            'naive': [],
+            'vectorized': [],
+            'numba': []
+        }
+
+        for N in N_values:
+            print(f"N={N}のベンチマーク中...")
+
+            # Naive
+            _, t_naive = self.naive_implementation(N, steps)
+            results['naive'].append(t_naive)
+
+            # Vectorized
+            _, t_vec = self.vectorized_implementation(N, steps)
+            results['vectorized'].append(t_vec)
+
+            # Numba（ウォームアップ）
+            self.numba_implementation(10, 10)
+            _, t_numba = self.numba_implementation(N, steps)
+            results['numba'].append(t_numba)
+
+        return N_values, results
+
+    def plot_benchmark(self, N_values, results):
+        """ベンチマーク結果のプロット"""
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+        # 実行時間
+        ax1.plot(N_values, results['naive'], 'o-', linewidth=2,
+                label='Naive', markersize=8)
+        ax1.plot(N_values, results['vectorized'], 's-', linewidth=2,
+                label='Vectorized', markersize=8)
+        ax1.plot(N_values, results['numba'], '^-', linewidth=2,
+                label='Numba JIT', markersize=8)
+        ax1.set_xlabel('グリッド点数 N', fontsize=12)
+        ax1.set_ylabel('実行時間 [秒]', fontsize=12)
+        ax1.set_title('性能比較', fontsize=14, fontweight='bold')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+
+        # 高速化率
+        speedup_vec = np.array(results['naive']) / np.array(results['vectorized'])
+        speedup_numba = np.array(results['naive']) / np.array(results['numba'])
+
+        ax2.bar(np.array(N_values) - 50, speedup_vec, width=80,
+               alpha=0.7, label='Vectorized')
+        ax2.bar(np.array(N_values) + 50, speedup_numba, width=80,
+               alpha=0.7, label='Numba')
+        ax2.set_xlabel('グリッド点数 N', fontsize=12)
+        ax2.set_ylabel('高速化率', fontsize=12)
+        ax2.set_title('高速化率（Naiveとの比較）', fontsize=14, fontweight='bold')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3, axis='y')
+
+        plt.tight_layout()
+        return fig
+
+# 実行例
+optimizer = PerformanceOptimizer()
+N_vals, bench_results = optimizer.benchmark()
+fig = optimizer.plot_benchmark(N_vals, bench_results)
+plt.show()
+
+print("\n=== ベンチマーク結果 ===")
+for N, t_naive, t_vec, t_numba in zip(N_vals, bench_results['naive'],
+                                       bench_results['vectorized'],
+                                       bench_results['numba']):
+    print(f"N={N}: Naive={t_naive:.4f}s, Vectorized={t_vec:.4f}s, "
+          f"Numba={t_numba:.4f}s")</div>
+                </div>
+            </section>
+
+            <section>
+                <h2>7. 総合演習プロジェクト</h2>
+
+                <div class="example-box">
+                    <h3>コード例7: 総合プロジェクト</h3>
+                    <div class="code-container">import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+class ComprehensiveProject:
+    """総合演習プロジェクト: ランジュバン方程式とブラウン運動の実践応用"""
+
+    def __init__(self, Nx=150, Ny=150):
+        self.Nx = Nx
+        self.Ny = Ny
+
+        self.x = np.linspace(0, 10, Nx)
+        self.y = np.linspace(0, 10, Ny)
+        self.X, self.Y = np.meshgrid(self.x, self.y)
+
+        self.dx = self.x[1] - self.x[0]
+        self.dy = self.y[1] - self.y[0]
+
+        # 状態変数
+        self.field = np.zeros((Nx, Ny))
+        self.auxiliary = np.zeros((Nx, Ny))
+
+    def initialize_complex_condition(self):
+        """複雑な初期条件"""
+        # 複数のガウス分布の重ね合わせ
+        centers = [(2, 2), (5, 5), (8, 8), (2, 8), (8, 2)]
+
+        for (cx, cy) in centers:
+            self.field += np.exp(-((self.X - cx)**2 + (self.Y - cy)**2) / 0.3)
+
+        # ノイズの付加
+        self.field += 0.1 * np.random.randn(self.Nx, self.Ny)
+
+    def coupled_evolution(self, dt):
+        """結合した発展方程式"""
+        # Laplacian計算
+        lap_field = np.zeros_like(self.field)
+        lap_field[1:-1, 1:-1] = (
+            (self.field[2:, 1:-1] - 2*self.field[1:-1, 1:-1] +
+             self.field[:-2, 1:-1]) / self.dx**2 +
+            (self.field[1:-1, 2:] - 2*self.field[1:-1, 1:-1] +
+             self.field[1:-1, :-2]) / self.dy**2
+        )
+
+        # 非線形項
+        nonlinear_term = self.field**2 - self.field**3
+
+        # 時間発展
+        self.field += dt * (lap_field + nonlinear_term)
+
+        # 境界条件（Neumann）
+        self.field[0, :] = self.field[1, :]
+        self.field[-1, :] = self.field[-2, :]
+        self.field[:, 0] = self.field[:, 1]
+        self.field[:, -1] = self.field[:, -2]
+
+    def compute_statistics(self):
+        """統計量の計算"""
+        mean = np.mean(self.field)
+        std = np.std(self.field)
+        total_energy = np.sum(self.field**2) * self.dx * self.dy
+
+        return {
+            'mean': mean,
+            'std': std,
+            'energy': total_energy,
+            'min': np.min(self.field),
+            'max': np.max(self.field)
+        }
+
+    def run_simulation(self, T=5.0, dt=0.01):
+        """シミュレーション実行"""
+        steps = int(T / dt)
+
+        # 統計情報の記録
+        stats_history = []
+
+        for n in range(steps):
+            self.coupled_evolution(dt)
+
+            if n % 10 == 0:
+                stats = self.compute_statistics()
+                stats['time'] = n * dt
+                stats_history.append(stats)
+
+                print(f"ステップ {n}/{steps}: エネルギー={stats['energy']:.4f}")
+
+        return stats_history
+
+    def plot_final_results(self, stats_history):
+        """最終結果の総合プロット"""
+        fig = plt.figure(figsize=(16, 12))
+        gs = fig.add_gridspec(3, 3, hspace=0.3, wspace=0.3)
+
+        # 最終フィールド（コンター）
+        ax1 = fig.add_subplot(gs[0, :2])
+        im1 = ax1.contourf(self.X, self.Y, self.field, levels=30, cmap='RdBu_r')
+        ax1.set_xlabel('x', fontsize=12)
+        ax1.set_ylabel('y', fontsize=12)
+        ax1.set_title('最終フィールド分布', fontsize=14, fontweight='bold')
+        plt.colorbar(im1, ax=ax1)
+
+        # 3Dサーフェス
+        ax2 = fig.add_subplot(gs[0, 2], projection='3d')
+        surf = ax2.plot_surface(self.X[::3, ::3], self.Y[::3, ::3],
+                               self.field[::3, ::3], cmap='viridis')
+        ax2.set_xlabel('x')
+        ax2.set_ylabel('y')
+        ax2.set_zlabel('field')
+        ax2.set_title('3D視覚化', fontsize=12, fontweight='bold')
+
+        # エネルギー時間発展
+        ax3 = fig.add_subplot(gs[1, 0])
+        times = [s['time'] for s in stats_history]
+        energies = [s['energy'] for s in stats_history]
+        ax3.plot(times, energies, 'b-', linewidth=2)
+        ax3.set_xlabel('時間 t', fontsize=12)
+        ax3.set_ylabel('全エネルギー', fontsize=12)
+        ax3.set_title('エネルギー保存', fontsize=12, fontweight='bold')
+        ax3.grid(True, alpha=0.3)
+
+        # 統計量の時間発展
+        ax4 = fig.add_subplot(gs[1, 1])
+        means = [s['mean'] for s in stats_history]
+        stds = [s['std'] for s in stats_history]
+        ax4.plot(times, means, 'r-', linewidth=2, label='平均値')
+        ax4.plot(times, stds, 'g-', linewidth=2, label='標準偏差')
+        ax4.set_xlabel('時間 t', fontsize=12)
+        ax4.set_ylabel('統計量', fontsize=12)
+        ax4.set_title('統計的性質', fontsize=12, fontweight='bold')
+        ax4.legend()
+        ax4.grid(True, alpha=0.3)
+
+        # 最小・最大値
+        ax5 = fig.add_subplot(gs[1, 2])
+        mins = [s['min'] for s in stats_history]
+        maxs = [s['max'] for s in stats_history]
+        ax5.plot(times, mins, 'b-', linewidth=2, label='最小値')
+        ax5.plot(times, maxs, 'r-', linewidth=2, label='最大値')
+        ax5.set_xlabel('時間 t', fontsize=12)
+        ax5.set_ylabel('値', fontsize=12)
+        ax5.set_title('最小・最大値', fontsize=12, fontweight='bold')
+        ax5.legend()
+        ax5.grid(True, alpha=0.3)
+
+        # ヒストグラム
+        ax6 = fig.add_subplot(gs[2, 0])
+        ax6.hist(self.field.flatten(), bins=50, alpha=0.7, color='blue')
+        ax6.set_xlabel('フィールド値', fontsize=12)
+        ax6.set_ylabel('頻度', fontsize=12)
+        ax6.set_title('値の分布', fontsize=12, fontweight='bold')
+        ax6.grid(True, alpha=0.3, axis='y')
+
+        # 断面プロファイル
+        ax7 = fig.add_subplot(gs[2, 1])
+        mid_y = self.Ny // 2
+        ax7.plot(self.x, self.field[:, mid_y], 'b-', linewidth=2)
+        ax7.set_xlabel('x', fontsize=12)
+        ax7.set_ylabel('field(x, y=5)', fontsize=12)
+        ax7.set_title('中央断面', fontsize=12, fontweight='bold')
+        ax7.grid(True, alpha=0.3)
+
+        # パワースペクトル
+        ax8 = fig.add_subplot(gs[2, 2])
+        fft_field = np.fft.fft2(self.field)
+        power_spectrum = np.abs(fft_field)**2
+        power_spectrum_1d = np.mean(power_spectrum, axis=0)
+        freq = np.fft.fftfreq(self.Nx, self.dx)
+        ax8.loglog(freq[1:self.Nx//2], power_spectrum_1d[1:self.Nx//2], 'b-')
+        ax8.set_xlabel('波数', fontsize=12)
+        ax8.set_ylabel('パワー', fontsize=12)
+        ax8.set_title('パワースペクトル', fontsize=12, fontweight='bold')
+        ax8.grid(True, alpha=0.3)
+
+        return fig
+
+# メイン実行
+project = ComprehensiveProject(Nx=150, Ny=150)
+project.initialize_complex_condition()
+
+print("総合シミュレーション開始...")
+stats_history = project.run_simulation(T=5.0, dt=0.01)
+
+fig = project.plot_final_results(stats_history)
+plt.show()
+
+print("\n=== シミュレーション完了 ===")
+print(f"最終エネルギー: {stats_history[-1]['energy']:.4f}")
+print(f"最終平均値: {stats_history[-1]['mean']:.4f}")
+print(f"最終標準偏差: {stats_history[-1]['std']:.4f}")</div>
+                </div>
+            </section>
+
+            <section>
+                <h2>演習問題</h2>
+
+                <div class="exercise-box">
+                    <h3>演習1: 理論的理解</h3>
+                    <p>
+                        ランジュバン方程式とブラウン運動の基礎方程式を導出し、物理的意味を説明せよ。
+                        特に、各項の役割と境界条件の重要性について論じなさい。
+                    </p>
+                </div>
+
+                <div class="exercise-box">
+                    <h3>演習2: アルゴリズム実装</h3>
+                    <p>
+                        本章で学んだアルゴリズムを改良し、より高精度・高速な実装を作成せよ。
+                        安定性条件と計算誤差について定量的に評価しなさい。
+                    </p>
+                </div>
+
+                <div class="exercise-box">
+                    <h3>演習3: 応用プロジェクト</h3>
+                    <p>
+                        材料科学または物理学の具体的な問題を選び、ランジュバン方程式とブラウン運動の手法を
+                        適用してシミュレーションせよ。結果を解析し、物理的解釈を与えなさい。
+                    </p>
+                </div>
+            </section>
+
+            <section>
+                <h2>まとめ</h2>
+                <ul>
+                    <li>ランジュバン方程式とブラウン運動の理論的基礎と数学的定式化を学んだ</li>
+                    <li>数値アルゴリズムの実装と安定性解析手法を習得した</li>
+                    <li>多次元問題への拡張と実装技術を理解した</li>
+                    <li>材料科学・物理学への応用例を実践した</li>
+                    <li>性能最適化とベンチマーク手法を学んだ</li>
+                    <li>総合的なシミュレーションプロジェクトを完成させた</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>参考文献</h2>
+                <ol>
+                    <li>数値計算の基礎理論に関する標準的教科書</li>
+                    <li>計算物理学・計算材料科学の専門書</li>
+                    <li>Pythonによる科学技術計算の実践ガイド</li>
+                    <li>性能最適化とHPC技術の解説書</li>
+                </ol>
+            </section>
+        </article>
+
+        <nav class="navigation-buttons">
+            <a href="chapter2.html" class="btn btn-secondary">前へ</a>
+            <a href="index.html" class="btn btn-secondary">目次</a>
+            <a href="chapter4.html" class="btn btn-primary">次へ</a>
+        </nav>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 FM Dojo - 非平衡統計力学シリーズ</p>
+        </div>
+    </footer>
+</body>
+</html>

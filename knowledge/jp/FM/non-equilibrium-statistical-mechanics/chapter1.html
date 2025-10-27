@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第1章: ボルツマン方程式とH定理 - 非平衡統計力学</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        .series-gradient { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .theory-box { background: linear-gradient(to right, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); border-left: 4px solid #667eea; padding: 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .example-box { background: #f8f9fa; border-left: 4px solid #764ba2; padding: 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .exercise-box { background: #fff8e1; border-left: 4px solid #ffa726; padding: 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .code-container { background: #1e1e1e; color: #d4d4d4; padding: 1.5rem; border-radius: 8px; overflow-x: auto; margin: 1rem 0; white-space: pre-wrap; }
+        .navigation-buttons { display: flex; justify-content: space-between; margin: 2rem 0; flex-wrap: wrap; gap: 1rem; }
+        .btn { padding: 0.75rem 1.5rem; border-radius: 4px; text-decoration: none; display: inline-block; transition: all 0.3s; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body>
+    <header class="series-gradient">
+        <div class="container">
+            <h1>第1章: ボルツマン方程式とH定理</h1>
+            <p class="chapter-subtitle">分布関数の時間発展とエントロピー増大則</p>
+            <nav class="breadcrumb">
+                <a href="../../index.html">FM Dojo</a> &gt;
+                <a href="index.html">非平衡統計力学</a> &gt;
+                <span>第1章</span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <article class="content">
+            <section>
+                <h2>学習目標</h2>
+                <ul>
+                    <li>分布関数の概念と物理的意味を理解する</li>
+                    <li>ボルツマン方程式を導出し、衝突項の扱いを習得する</li>
+                    <li>H定理を証明し、エントロピー増大則との関係を理解する</li>
+                    <li>緩和時間近似（BGK近似）を学び、実用的な解法を身につける</li>
+                    <li>Pythonで気体分子の緩和過程をシミュレーションする</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>1.1 分布関数と位相空間</h2>
+                
+                <div class="theory-box">
+                    <h3>理論: 1粒子分布関数</h3>
+                    <p>
+                        気体分子系を記述する最も基本的な量は1粒子分布関数 \( f(\mathbf{r}, \mathbf{v}, t) \) です。
+                        これは時刻 \( t \) において、位置 \( \mathbf{r} \) から \( \mathbf{r} + d\mathbf{r} \)、
+                        速度 \( \mathbf{v} \) から \( \mathbf{v} + d\mathbf{v} \) の範囲内にある粒子数の期待値を表します。
+                    </p>
+                    <p>
+                        分布関数の規格化条件：
+                        \[
+                        N = \int f(\mathbf{r}, \mathbf{v}, t) \, d\mathbf{r} \, d\mathbf{v}
+                        \]
+                        ここで \( N \) は全粒子数です。
+                    </p>
+                    <p>
+                        マクロな物理量は分布関数の速度モーメントとして表されます：
+                        \[
+                        n(\mathbf{r}, t) = \int f(\mathbf{r}, \mathbf{v}, t) \, d\mathbf{v} \quad \text{（数密度）}
+                        \]
+                        \[
+                        \mathbf{u}(\mathbf{r}, t) = \frac{1}{n} \int \mathbf{v} f(\mathbf{r}, \mathbf{v}, t) \, d\mathbf{v} \quad \text{（流速）}
+                        \]
+                    </p>
+                </div>
+
+                <div class="example-box">
+                    <h3>コード例1: Maxwell分布の可視化</h3>
+                    <div class="code-container">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import maxwell
+
+class MaxwellDistribution:
+    """Maxwell速度分布の解析と可視化"""
+    
+    def __init__(self, temperature, mass):
+        """
+        Parameters:
+            temperature: 温度 [K]
+            mass: 粒子質量 [kg]
+        """
+        self.T = temperature
+        self.m = mass
+        self.kB = 1.380649e-23  # Boltzmann定数
+        
+        # 特性速度
+        self.v_mean = np.sqrt(8 * self.kB * self.T / (np.pi * self.m))
+        self.v_rms = np.sqrt(3 * self.kB * self.T / self.m)
+        self.v_prob = np.sqrt(2 * self.kB * self.T / self.m)
+        
+    def distribution(self, v):
+        """Maxwell速度分布関数"""
+        a = np.sqrt(self.kB * self.T / self.m)
+        return maxwell.pdf(v, scale=a)
+    
+    def plot_distribution(self):
+        """分布関数のプロット"""
+        v = np.linspace(0, 4*self.v_rms, 1000)
+        f_v = self.distribution(v)
+        
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+        
+        # 速度分布
+        ax1.plot(v, f_v, 'b-', linewidth=2, label='Maxwell分布')
+        ax1.axvline(self.v_prob, color='r', linestyle='--', 
+                   label=f'最確速度 = {self.v_prob:.1f} m/s')
+        ax1.axvline(self.v_mean, color='g', linestyle='--',
+                   label=f'平均速度 = {self.v_mean:.1f} m/s')
+        ax1.axvline(self.v_rms, color='purple', linestyle='--',
+                   label=f'RMS速度 = {self.v_rms:.1f} m/s')
+        ax1.set_xlabel('速度 v [m/s]', fontsize=12)
+        ax1.set_ylabel('確率密度 f(v)', fontsize=12)
+        ax1.set_title(f'Maxwell速度分布 (T={self.T}K)', fontsize=14, fontweight='bold')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+        
+        # 温度依存性
+        temperatures = [100, 300, 500, 1000]
+        for T in temperatures:
+            md = MaxwellDistribution(T, self.m)
+            v = np.linspace(0, 3000, 1000)
+            ax2.plot(v, md.distribution(v), label=f'T={T}K')
+        
+        ax2.set_xlabel('速度 v [m/s]', fontsize=12)
+        ax2.set_ylabel('確率密度 f(v)', fontsize=12)
+        ax2.set_title('温度依存性', fontsize=14, fontweight='bold')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        return fig
+
+# 実行例: 窒素分子（室温）
+m_N2 = 28.014 * 1.66054e-27  # kg
+maxwell_N2 = MaxwellDistribution(temperature=300, mass=m_N2)
+fig = maxwell_N2.plot_distribution()
+plt.show()
+
+print(f"最確速度: {maxwell_N2.v_prob:.2f} m/s")
+print(f"平均速度: {maxwell_N2.v_mean:.2f} m/s")
+print(f"RMS速度: {maxwell_N2.v_rms:.2f} m/s")</div>
+                </div>
+            </section>
+
+            <section>
+                <h2>1.2 ボルツマン方程式の導出</h2>
+                
+                <div class="theory-box">
+                    <h3>理論: ボルツマン方程式</h3>
+                    <p>
+                        分布関数の時間発展は、外力と衝突の効果を考慮したボルツマン方程式で記述されます：
+                        \[
+                        \frac{\partial f}{\partial t} + \mathbf{v} \cdot \nabla_{\mathbf{r}} f + \frac{\mathbf{F}}{m} \cdot \nabla_{\mathbf{v}} f = \left( \frac{\partial f}{\partial t} \right)_{\text{coll}}
+                        \]
+                    </p>
+                    <p>
+                        左辺の各項の物理的意味：
+                    </p>
+                    <ul>
+                        <li>\( \frac{\partial f}{\partial t} \): 分布の時間変化</li>
+                        <li>\( \mathbf{v} \cdot \nabla_{\mathbf{r}} f \): 位置空間での流れ</li>
+                        <li>\( \frac{\mathbf{F}}{m} \cdot \nabla_{\mathbf{v}} f \): 外力による速度空間での流れ</li>
+                        <li>右辺: 衝突による分布の変化（衝突項）</li>
+                    </ul>
+                    <p>
+                        衝突項の詳細な形：
+                        \[
+                        \left( \frac{\partial f}{\partial t} \right)_{\text{coll}} = \int \int [f(\mathbf{v}')f(\mathbf{v}_1') - f(\mathbf{v})f(\mathbf{v}_1)] \sigma(\Omega) |\mathbf{v} - \mathbf{v}_1| \, d\Omega \, d\mathbf{v}_1
+                        \]
+                        ここで \( \sigma(\Omega) \) は微分散乱断面積です。
+                    </p>
+                </div>
+
+                <div class="example-box">
+                    <h3>コード例2: 自由流中のボルツマン方程式</h3>
+                    <div class="code-container">import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+class FreeBoltzmannSolver:
+    """衝突なし自由流のボルツマン方程式ソルバー"""
+    
+    def __init__(self, Nx=100, Nv=100, Lx=10.0, v_max=3.0):
+        """
+        Parameters:
+            Nx: 位置グリッド点数
+            Nv: 速度グリッド点数
+            Lx: 空間領域サイズ
+            v_max: 速度領域の最大値
+        """
+        self.Nx = Nx
+        self.Nv = Nv
+        self.Lx = Lx
+        self.v_max = v_max
+        
+        # グリッド生成
+        self.x = np.linspace(0, Lx, Nx)
+        self.v = np.linspace(-v_max, v_max, Nv)
+        self.dx = self.x[1] - self.x[0]
+        self.dv = self.v[1] - self.v[0]
+        
+        # 分布関数（2次元配列: x, v）
+        self.f = np.zeros((Nx, Nv))
+        
+    def initialize_gaussian(self, x0, v0, sigma_x, sigma_v):
+        """ガウス型初期分布"""
+        X, V = np.meshgrid(self.x, self.v, indexing='ij')
+        self.f = np.exp(-((X - x0)**2 / (2*sigma_x**2) + 
+                         (V - v0)**2 / (2*sigma_v**2)))
+        self.f /= np.sum(self.f) * self.dx * self.dv  # 規格化
+        
+    def step(self, dt):
+        """時間発展（1ステップ）- Upwind法"""
+        f_new = self.f.copy()
+        
+        for i in range(self.Nx):
+            for j in range(self.Nv):
+                v_ij = self.v[j]
+                
+                if v_ij > 0:  # 右向き移流
+                    if i > 0:
+                        f_new[i, j] = self.f[i, j] - v_ij * dt / self.dx * \
+                                      (self.f[i, j] - self.f[i-1, j])
+                elif v_ij < 0:  # 左向き移流
+                    if i < self.Nx - 1:
+                        f_new[i, j] = self.f[i, j] - v_ij * dt / self.dx * \
+                                      (self.f[i+1, j] - self.f[i, j])
+        
+        self.f = f_new
+        
+    def get_density(self):
+        """数密度 n(x)"""
+        return np.sum(self.f, axis=1) * self.dv
+    
+    def get_mean_velocity(self):
+        """平均速度 u(x)"""
+        n = self.get_density()
+        u = np.sum(self.f * self.v[np.newaxis, :], axis=1) * self.dv
+        return u / (n + 1e-10)
+    
+    def plot_state(self, t):
+        """現在の状態をプロット"""
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        
+        # 分布関数f(x,v)
+        ax = axes[0, 0]
+        im = ax.contourf(self.x, self.v, self.f.T, levels=20, cmap='viridis')
+        ax.set_xlabel('位置 x', fontsize=12)
+        ax.set_ylabel('速度 v', fontsize=12)
+        ax.set_title(f'分布関数 f(x,v) at t={t:.2f}', fontsize=14, fontweight='bold')
+        plt.colorbar(im, ax=ax)
+        
+        # 数密度n(x)
+        ax = axes[0, 1]
+        n = self.get_density()
+        ax.plot(self.x, n, 'b-', linewidth=2)
+        ax.set_xlabel('位置 x', fontsize=12)
+        ax.set_ylabel('数密度 n(x)', fontsize=12)
+        ax.set_title('数密度分布', fontsize=14, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+        
+        # 平均速度u(x)
+        ax = axes[1, 0]
+        u = self.get_mean_velocity()
+        ax.plot(self.x, u, 'r-', linewidth=2)
+        ax.set_xlabel('位置 x', fontsize=12)
+        ax.set_ylabel('平均速度 u(x)', fontsize=12)
+        ax.set_title('速度場', fontsize=14, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+        
+        # 速度分布（特定位置）
+        ax = axes[1, 1]
+        for x_pos in [self.Nx//4, self.Nx//2, 3*self.Nx//4]:
+            ax.plot(self.v, self.f[x_pos, :], label=f'x={self.x[x_pos]:.2f}')
+        ax.set_xlabel('速度 v', fontsize=12)
+        ax.set_ylabel('分布 f(v)', fontsize=12)
+        ax.set_title('速度分布（各位置）', fontsize=14, fontweight='bold')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        return fig
+
+# シミュレーション実行
+solver = FreeBoltzmannSolver(Nx=100, Nv=100)
+solver.initialize_gaussian(x0=2.0, v0=1.0, sigma_x=0.5, sigma_v=0.3)
+
+dt = 0.01
+for step in range(100):
+    solver.step(dt)
+
+fig = solver.plot_state(t=1.0)
+plt.show()</div>
+                </div>
+            </section>
+
+            <section>
+                <h2>1.3 H定理とエントロピー増大則</h2>
+                
+                <div class="theory-box">
+                    <h3>理論: H定理</h3>
+                    <p>
+                        Boltzmannは、H関数を次のように定義しました：
+                        \[
+                        H(t) = \int f(\mathbf{r}, \mathbf{v}, t) \ln f(\mathbf{r}, \mathbf{v}, t) \, d\mathbf{r} \, d\mathbf{v}
+                        \]
+                        この関数は熱力学的エントロピー \( S \) と \( S = -k_B H \) の関係にあります。
+                    </p>
+                    <p>
+                        <strong>H定理</strong>: ボルツマン方程式の解に対して、
+                        \[
+                        \frac{dH}{dt} \leq 0
+                        \]
+                        が成り立ち、等号はMaxwell分布のときに限り成立します。
+                    </p>
+                    <p>
+                        証明の概略：
+                        \[
+                        \frac{dH}{dt} = \int (\ln f + 1) \left( \frac{\partial f}{\partial t} \right)_{\text{coll}} d\mathbf{r} d\mathbf{v}
+                        \]
+                        衝突項の性質を用いて、この積分が常に非正であることを示せます。
+                        Maxwell分布 \( f_M \propto \exp(-\beta m v^2/2) \) では \( \frac{dH}{dt} = 0 \) となり、
+                        これが平衡状態に対応します。
+                    </p>
+                </div>
+
+                <div class="example-box">
+                    <h3>コード例3: H関数の時間発展</h3>
+                    <div class="code-container">import numpy as np
+import matplotlib.pyplot as plt
+
+class HTheoremDemo:
+    """H定理のデモンストレーション"""
+    
+    def __init__(self, N_particles=1000, N_bins=50):
+        """
+        Parameters:
+            N_particles: 粒子数
+            N_bins: 速度ヒストグラムのビン数
+        """
+        self.N = N_particles
+        self.N_bins = N_bins
+        
+        # 速度の範囲
+        self.v_min, self.v_max = -5.0, 5.0
+        self.bins = np.linspace(self.v_min, self.v_max, N_bins+1)
+        self.bin_centers = 0.5 * (self.bins[:-1] + self.bins[1:])
+        
+    def initialize_two_maxwellians(self, T1=1.0, T2=4.0):
+        """2つの異なる温度のMaxwell分布の混合"""
+        N1 = self.N // 2
+        N2 = self.N - N1
+        
+        v1 = np.random.normal(0, np.sqrt(T1), N1)
+        v2 = np.random.normal(0, np.sqrt(T2), N2)
+        
+        self.velocities = np.concatenate([v1, v2])
+        
+    def compute_H(self, velocities):
+        """H関数の計算"""
+        # ヒストグラムで分布関数を近似
+        hist, _ = np.histogram(velocities, bins=self.bins, density=True)
+        
+        # H = ∫ f ln(f) dv ≈ Σ f_i ln(f_i) Δv
+        H = 0.0
+        dv = self.bins[1] - self.bins[0]
+        
+        for f_i in hist:
+            if f_i > 1e-10:  # ゼロ除算回避
+                H += f_i * np.log(f_i) * dv
+                
+        return H
+    
+    def maxwell_boltzmann_collision(self, dt, cross_section=0.1):
+        """簡略化された衝突過程"""
+        N_collisions = int(cross_section * self.N * dt)
+        
+        for _ in range(N_collisions):
+            # ランダムに2粒子を選択
+            i, j = np.random.choice(self.N, size=2, replace=False)
+            
+            v_i = self.velocities[i]
+            v_j = self.velocities[j]
+            
+            # 重心系速度と相対速度
+            v_cm = 0.5 * (v_i + v_j)
+            v_rel = v_i - v_j
+            
+            # ランダムな角度で散乱
+            theta = np.random.uniform(0, 2*np.pi)
+            v_rel_new = v_rel * np.array([np.cos(theta), np.sin(theta)])[0]
+            
+            # 衝突後の速度
+            self.velocities[i] = v_cm + 0.5 * v_rel_new
+            self.velocities[j] = v_cm - 0.5 * v_rel_new
+    
+    def simulate(self, T_max=10.0, dt=0.1):
+        """時間発展シミュレーション"""
+        times = np.arange(0, T_max, dt)
+        H_values = []
+        
+        for t in times:
+            H = self.compute_H(self.velocities)
+            H_values.append(H)
+            
+            self.maxwell_boltzmann_collision(dt)
+        
+        return times, H_values
+    
+    def plot_evolution(self, times, H_values):
+        """H関数の時間発展と分布関数の変化"""
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        
+        # H関数の時間発展
+        ax = axes[0, 0]
+        ax.plot(times, H_values, 'b-', linewidth=2)
+        ax.set_xlabel('時間 t', fontsize=12)
+        ax.set_ylabel('H関数', fontsize=12)
+        ax.set_title('H定理: dH/dt ≤ 0', fontsize=14, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+        ax.axhline(y=H_values[-1], color='r', linestyle='--', 
+                   label='平衡値')
+        ax.legend()
+        
+        # H関数の時間微分
+        ax = axes[0, 1]
+        dH_dt = np.gradient(H_values, times[1] - times[0])
+        ax.plot(times, dH_dt, 'r-', linewidth=2)
+        ax.axhline(y=0, color='k', linestyle='--', alpha=0.5)
+        ax.set_xlabel('時間 t', fontsize=12)
+        ax.set_ylabel('dH/dt', fontsize=12)
+        ax.set_title('エントロピー生成率', fontsize=14, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+        
+        # 初期分布
+        ax = axes[1, 0]
+        demo_init = HTheoremDemo(self.N, self.N_bins)
+        demo_init.initialize_two_maxwellians()
+        ax.hist(demo_init.velocities, bins=self.bins, density=True, 
+               alpha=0.7, color='blue', label='初期状態')
+        ax.set_xlabel('速度 v', fontsize=12)
+        ax.set_ylabel('確率密度 f(v)', fontsize=12)
+        ax.set_title('初期速度分布（2温度混合）', fontsize=14, fontweight='bold')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        # 最終分布
+        ax = axes[1, 1]
+        ax.hist(self.velocities, bins=self.bins, density=True,
+               alpha=0.7, color='green', label='平衡状態')
+        
+        # 理論的Maxwell分布
+        T_eq = np.var(self.velocities)
+        v_theory = np.linspace(self.v_min, self.v_max, 200)
+        f_maxwell = (1/np.sqrt(2*np.pi*T_eq)) * np.exp(-v_theory**2/(2*T_eq))
+        ax.plot(v_theory, f_maxwell, 'r--', linewidth=2, label='Maxwell分布')
+        
+        ax.set_xlabel('速度 v', fontsize=12)
+        ax.set_ylabel('確率密度 f(v)', fontsize=12)
+        ax.set_title('平衡速度分布', fontsize=14, fontweight='bold')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        return fig
+
+# シミュレーション実行
+demo = HTheoremDemo(N_particles=10000, N_bins=50)
+demo.initialize_two_maxwellians(T1=1.0, T2=4.0)
+
+times, H_values = demo.simulate(T_max=20.0, dt=0.1)
+fig = demo.plot_evolution(times, H_values)
+plt.show()
+
+print(f"初期H値: {H_values[0]:.4f}")
+print(f"最終H値: {H_values[-1]:.4f}")
+print(f"ΔH = {H_values[-1] - H_values[0]:.4f} < 0 (エントロピー増大)")</div>
+                </div>
+            </section>
+
+            <section>
+                <h2>1.4 緩和時間近似（BGK近似）</h2>
+                
+                <div class="theory-box">
+                    <h3>理論: BGK衝突演算子</h3>
+                    <p>
+                        完全な衝突項の計算は非常に複雑です。Bhatnagar-Gross-Krook (BGK)は、
+                        衝突項を緩和時間 \( \tau \) を用いて近似しました：
+                        \[
+                        \left( \frac{\partial f}{\partial t} \right)_{\text{coll}} = -\frac{f - f^{(0)}}{\tau}
+                        \]
+                        ここで \( f^{(0)} \) は局所Maxwell分布：
+                        \[
+                        f^{(0)}(\mathbf{v}) = n \left( \frac{m}{2\pi k_B T} \right)^{3/2} \exp\left( -\frac{m(\mathbf{v} - \mathbf{u})^2}{2k_B T} \right)
+                        \]
+                    </p>
+                    <p>
+                        この近似により、ボルツマン方程式は：
+                        \[
+                        \frac{\partial f}{\partial t} + \mathbf{v} \cdot \nabla_{\mathbf{r}} f = -\frac{f - f^{(0)}}{\tau}
+                        \]
+                        となり、数値計算が大幅に簡略化されます。
+                    </p>
+                </div>
+
+                <div class="example-box">
+                    <h3>コード例4: BGK方程式の数値解法</h3>
+                    <div class="code-container">import numpy as np
+import matplotlib.pyplot as plt
+
+class BGKSolver:
+    """BGK方程式ソルバー"""
+    
+    def __init__(self, Nx=100, Nv=64, Lx=10.0, v_max=5.0, tau=1.0):
+        """
+        Parameters:
+            Nx: 空間グリッド数
+            Nv: 速度グリッド数
+            Lx: 空間領域サイズ
+            v_max: 速度領域の最大値
+            tau: 緩和時間
+        """
+        self.Nx = Nx
+        self.Nv = Nv
+        self.Lx = Lx
+        self.v_max = v_max
+        self.tau = tau
+        
+        # グリッド
+        self.x = np.linspace(0, Lx, Nx)
+        self.v = np.linspace(-v_max, v_max, Nv)
+        self.dx = self.x[1] - self.x[0]
+        self.dv = self.v[1] - self.v[0]
+        
+        # 分布関数
+        self.f = np.zeros((Nx, Nv))
+        
+    def local_maxwell(self, n, u, T):
+        """局所Maxwell分布"""
+        f_eq = np.zeros((self.Nx, self.Nv))
+        
+        for i in range(self.Nx):
+            for j in range(self.Nv):
+                v_rel = self.v[j] - u[i]
+                f_eq[i, j] = n[i] / np.sqrt(2*np.pi*T[i]) * \
+                            np.exp(-v_rel**2 / (2*T[i]))
+        
+        return f_eq
+    
+    def compute_moments(self):
+        """マクロ量の計算"""
+        # 数密度
+        n = np.sum(self.f, axis=1) * self.dv
+        
+        # 平均速度
+        u = np.sum(self.f * self.v[np.newaxis, :], axis=1) * self.dv / (n + 1e-10)
+        
+        # 温度
+        v_rel_sq = np.zeros(self.Nx)
+        for i in range(self.Nx):
+            v_rel_sq[i] = np.sum(self.f[i, :] * (self.v - u[i])**2) * self.dv
+        T = v_rel_sq / (n + 1e-10)
+        
+        return n, u, T
+    
+    def step_BGK(self, dt):
+        """BGK方程式の時間発展"""
+        # マクロ量計算
+        n, u, T = self.compute_moments()
+        
+        # 局所Maxwell分布
+        f_eq = self.local_maxwell(n, u, T)
+        
+        # BGK衝突項
+        collision_term = -(self.f - f_eq) / self.tau
+        
+        # 移流項（Upwind法）
+        advection_term = np.zeros_like(self.f)
+        for j in range(self.Nv):
+            v_j = self.v[j]
+            if v_j > 0:
+                advection_term[1:, j] = -v_j * (self.f[1:, j] - self.f[:-1, j]) / self.dx
+            else:
+                advection_term[:-1, j] = -v_j * (self.f[1:, j] - self.f[:-1, j]) / self.dx
+        
+        # 時間発展
+        self.f += dt * (advection_term + collision_term)
+        
+    def initialize_shock(self, x_shock=5.0):
+        """衝撃波問題の初期条件"""
+        n_L, u_L, T_L = 2.0, 1.0, 1.0  # 左側
+        n_R, u_R, T_R = 1.0, 0.0, 0.5  # 右側
+        
+        for i in range(self.Nx):
+            if self.x[i] < x_shock:
+                n, u, T = n_L, u_L, T_L
+            else:
+                n, u, T = n_R, u_R, T_R
+            
+            for j in range(self.Nv):
+                v_rel = self.v[j] - u
+                self.f[i, j] = n / np.sqrt(2*np.pi*T) * np.exp(-v_rel**2/(2*T))
+    
+    def plot_solution(self, t):
+        """解のプロット"""
+        n, u, T = self.compute_moments()
+        
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        
+        # 分布関数
+        ax = axes[0, 0]
+        im = ax.contourf(self.x, self.v, self.f.T, levels=20, cmap='plasma')
+        ax.set_xlabel('位置 x', fontsize=12)
+        ax.set_ylabel('速度 v', fontsize=12)
+        ax.set_title(f'分布関数 f(x,v) at t={t:.2f}', fontsize=14, fontweight='bold')
+        plt.colorbar(im, ax=ax)
+        
+        # 数密度
+        ax = axes[0, 1]
+        ax.plot(self.x, n, 'b-', linewidth=2)
+        ax.set_xlabel('位置 x', fontsize=12)
+        ax.set_ylabel('数密度 n(x)', fontsize=12)
+        ax.set_title('数密度プロファイル', fontsize=14, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+        
+        # 流速
+        ax = axes[1, 0]
+        ax.plot(self.x, u, 'r-', linewidth=2)
+        ax.set_xlabel('位置 x', fontsize=12)
+        ax.set_ylabel('流速 u(x)', fontsize=12)
+        ax.set_title('流速プロファイル', fontsize=14, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+        
+        # 温度
+        ax = axes[1, 1]
+        ax.plot(self.x, T, 'g-', linewidth=2)
+        ax.set_xlabel('位置 x', fontsize=12)
+        ax.set_ylabel('温度 T(x)', fontsize=12)
+        ax.set_title('温度プロファイル', fontsize=14, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        return fig
+
+# シミュレーション実行
+solver = BGKSolver(Nx=100, Nv=64, tau=0.5)
+solver.initialize_shock(x_shock=5.0)
+
+dt = 0.01
+for step in range(200):
+    solver.step_BGK(dt)
+
+fig = solver.plot_solution(t=2.0)
+plt.show()</div>
+                </div>
+            </section>
+
+            <section>
+                <h2>1.5 数値シミュレーション実践</h2>
+                
+                <div class="example-box">
+                    <h3>コード例5: 気体分子の直接シミュレーション (DSMC法)</h3>
+                    <div class="code-container">import numpy as np
+import matplotlib.pyplot as plt
+
+class DSMCSimulator:
+    """Direct Simulation Monte Carlo法"""
+    
+    def __init__(self, N_particles=10000, Lx=10.0, N_cells=50):
+        """
+        Parameters:
+            N_particles: 粒子数
+            Lx: 空間領域サイズ
+            N_cells: セル数
+        """
+        self.N = N_particles
+        self.Lx = Lx
+        self.N_cells = N_cells
+        self.dx = Lx / N_cells
+        
+        # 粒子位置と速度
+        self.x = np.random.uniform(0, Lx, N_particles)
+        self.v = np.zeros(N_particles)
+        
+    def initialize_two_stream(self):
+        """2流体初期条件"""
+        N_half = self.N // 2
+        self.v[:N_half] = np.random.normal(2.0, 0.5, N_half)
+        self.v[N_half:] = np.random.normal(-2.0, 0.5, self.N - N_half)
+    
+    def advect(self, dt):
+        """粒子の移流"""
+        self.x += self.v * dt
+        
+        # 周期境界条件
+        self.x = self.x % self.Lx
+    
+    def collide(self, dt, sigma_collision=0.5):
+        """粒子衝突処理"""
+        # セルごとに粒子を分類
+        cell_indices = (self.x / self.dx).astype(int)
+        
+        for cell in range(self.N_cells):
+            # このセル内の粒子を取得
+            particles_in_cell = np.where(cell_indices == cell)[0]
+            N_cell = len(particles_in_cell)
+            
+            if N_cell < 2:
+                continue
+            
+            # 衝突回数の推定
+            N_collisions = int(0.5 * N_cell * sigma_collision * dt / self.dx + 0.5)
+            
+            for _ in range(N_collisions):
+                # ランダムに2粒子選択
+                if N_cell >= 2:
+                    i, j = np.random.choice(particles_in_cell, size=2, replace=False)
+                    
+                    # 相対速度
+                    v_rel = self.v[i] - self.v[j]
+                    
+                    # 衝突後の速度（等方散乱）
+                    v_cm = 0.5 * (self.v[i] + self.v[j])
+                    theta = np.random.uniform(0, 2*np.pi)
+                    v_rel_new = abs(v_rel) * np.cos(theta)
+                    
+                    self.v[i] = v_cm + 0.5 * v_rel_new
+                    self.v[j] = v_cm - 0.5 * v_rel_new
+    
+    def compute_distribution(self, N_bins=50):
+        """位相空間分布の計算"""
+        x_bins = np.linspace(0, self.Lx, N_bins+1)
+        v_bins = np.linspace(self.v.min()-1, self.v.max()+1, N_bins+1)
+        
+        H, xedges, vedges = np.histogram2d(self.x, self.v, bins=[x_bins, v_bins])
+        
+        return H.T, xedges, vedges
+    
+    def run_simulation(self, T_max=5.0, dt=0.01):
+        """シミュレーション実行"""
+        times = np.arange(0, T_max, dt)
+        entropy = []
+        
+        for t in times:
+            self.advect(dt)
+            self.collide(dt)
+            
+            # エントロピー計算
+            H, _, _ = self.compute_distribution(N_bins=30)
+            H_norm = H / (H.sum() + 1e-10)
+            S = -np.sum(H_norm * np.log(H_norm + 1e-10))
+            entropy.append(S)
+        
+        return times, entropy
+    
+    def plot_phase_space(self, t):
+        """位相空間プロット"""
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        
+        # 位相空間散布図
+        ax = axes[0, 0]
+        ax.scatter(self.x, self.v, alpha=0.3, s=1)
+        ax.set_xlabel('位置 x', fontsize=12)
+        ax.set_ylabel('速度 v', fontsize=12)
+        ax.set_title(f'位相空間 t={t:.2f}', fontsize=14, fontweight='bold')
+        ax.set_xlim(0, self.Lx)
+        
+        # 位相空間密度
+        ax = axes[0, 1]
+        H, xedges, vedges = self.compute_distribution(N_bins=50)
+        im = ax.contourf(xedges[:-1], vedges[:-1], H, levels=20, cmap='viridis')
+        ax.set_xlabel('位置 x', fontsize=12)
+        ax.set_ylabel('速度 v', fontsize=12)
+        ax.set_title('分布関数密度', fontsize=14, fontweight='bold')
+        plt.colorbar(im, ax=ax)
+        
+        # 空間密度
+        ax = axes[1, 0]
+        x_hist, x_bins = np.histogram(self.x, bins=50, density=True)
+        ax.bar(x_bins[:-1], x_hist, width=x_bins[1]-x_bins[0], alpha=0.7)
+        ax.set_xlabel('位置 x', fontsize=12)
+        ax.set_ylabel('密度', fontsize=12)
+        ax.set_title('空間密度分布', fontsize=14, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+        
+        # 速度分布
+        ax = axes[1, 1]
+        v_hist, v_bins = np.histogram(self.v, bins=50, density=True)
+        ax.bar(v_bins[:-1], v_hist, width=v_bins[1]-v_bins[0], alpha=0.7)
+        
+        # Maxwell分布（理論値）
+        T = np.var(self.v)
+        v_theory = np.linspace(self.v.min(), self.v.max(), 200)
+        f_maxwell = (1/np.sqrt(2*np.pi*T)) * np.exp(-v_theory**2/(2*T))
+        ax.plot(v_theory, f_maxwell, 'r--', linewidth=2, label='Maxwell分布')
+        
+        ax.set_xlabel('速度 v', fontsize=12)
+        ax.set_ylabel('確率密度', fontsize=12)
+        ax.set_title('速度分布', fontsize=14, fontweight='bold')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        return fig
+
+# シミュレーション実行
+dsmc = DSMCSimulator(N_particles=20000, Lx=10.0, N_cells=50)
+dsmc.initialize_two_stream()
+
+times, entropy = dsmc.run_simulation(T_max=5.0, dt=0.01)
+
+# 時間発展のプロット
+fig_phase = dsmc.plot_phase_space(t=5.0)
+plt.show()
+
+# エントロピー増大
+fig_entropy, ax = plt.subplots(figsize=(10, 6))
+ax.plot(times, entropy, 'b-', linewidth=2)
+ax.set_xlabel('時間 t', fontsize=12)
+ax.set_ylabel('エントロピー S', fontsize=12)
+ax.set_title('DSMC法によるエントロピー増大', fontsize=14, fontweight='bold')
+ax.grid(True, alpha=0.3)
+plt.show()
+
+print(f"初期エントロピー: {entropy[0]:.4f}")
+print(f"最終エントロピー: {entropy[-1]:.4f}")
+print(f"エントロピー増加: {entropy[-1] - entropy[0]:.4f}")</div>
+                </div>
+
+                <div class="example-box">
+                    <h3>コード例6: 温度緩和過程</h3>
+                    <div class="code-container">import numpy as np
+import matplotlib.pyplot as plt
+
+class TemperatureRelaxation:
+    """温度緩和過程のシミュレーション"""
+    
+    def __init__(self, N1=5000, N2=5000, T1=2.0, T2=0.5):
+        """
+        2つの異なる温度の気体の混合
+        
+        Parameters:
+            N1, N2: 各気体の粒子数
+            T1, T2: 初期温度
+        """
+        self.N1 = N1
+        self.N2 = N2
+        
+        # 初期速度分布
+        self.v1 = np.random.normal(0, np.sqrt(T1), N1)
+        self.v2 = np.random.normal(0, np.sqrt(T2), N2)
+        
+    def compute_temperatures(self):
+        """各気体の温度計算"""
+        T1 = np.var(self.v1)
+        T2 = np.var(self.v2)
+        return T1, T2
+    
+    def collide_step(self, dt, collision_rate=0.1):
+        """衝突による温度緩和"""
+        N_collisions = int(collision_rate * min(self.N1, self.N2) * dt)
+        
+        for _ in range(N_collisions):
+            # 各気体からランダムに1粒子選択
+            i = np.random.randint(0, self.N1)
+            j = np.random.randint(0, self.N2)
+            
+            # 衝突（エネルギーと運動量保存）
+            v_cm = 0.5 * (self.v1[i] + self.v2[j])
+            v_rel = self.v1[i] - self.v2[j]
+            
+            # 散乱角
+            theta = np.random.uniform(0, 2*np.pi)
+            v_rel_new = abs(v_rel) * np.cos(theta)
+            
+            # 衝突後の速度
+            self.v1[i] = v_cm + 0.5 * v_rel_new
+            self.v2[j] = v_cm - 0.5 * v_rel_new
+    
+    def run_simulation(self, T_max=50.0, dt=0.1):
+        """シミュレーション実行"""
+        times = np.arange(0, T_max, dt)
+        T1_history = []
+        T2_history = []
+        
+        for t in times:
+            T1, T2 = self.compute_temperatures()
+            T1_history.append(T1)
+            T2_history.append(T2)
+            
+            self.collide_step(dt)
+        
+        return times, np.array(T1_history), np.array(T2_history)
+    
+    def plot_relaxation(self, times, T1_hist, T2_hist):
+        """緩和過程のプロット"""
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        
+        # 温度の時間発展
+        ax = axes[0, 0]
+        ax.plot(times, T1_hist, 'r-', linewidth=2, label='気体1')
+        ax.plot(times, T2_hist, 'b-', linewidth=2, label='気体2')
+        
+        # 平衡温度（理論値）
+        T_eq = (self.N1 * T1_hist[0] + self.N2 * T2_hist[0]) / (self.N1 + self.N2)
+        ax.axhline(y=T_eq, color='k', linestyle='--', label=f'平衡温度={T_eq:.3f}')
+        
+        ax.set_xlabel('時間 t', fontsize=12)
+        ax.set_ylabel('温度 T', fontsize=12)
+        ax.set_title('温度緩和過程', fontsize=14, fontweight='bold')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        # 温度差の時間発展
+        ax = axes[0, 1]
+        dT = np.abs(T1_hist - T2_hist)
+        ax.semilogy(times, dT, 'g-', linewidth=2)
+        
+        # 指数関数的減衰のフィット
+        from scipy.optimize import curve_fit
+        def exp_decay(t, A, tau):
+            return A * np.exp(-t/tau)
+        
+        try:
+            popt, _ = curve_fit(exp_decay, times[10:], dT[10:], p0=[dT[10], 10.0])
+            ax.semilogy(times, exp_decay(times, *popt), 'r--', 
+                       label=f'フィット: τ={popt[1]:.2f}')
+            ax.legend()
+        except:
+            pass
+        
+        ax.set_xlabel('時間 t', fontsize=12)
+        ax.set_ylabel('温度差 |T1 - T2|', fontsize=12)
+        ax.set_title('温度差の緩和（対数スケール）', fontsize=14, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+        
+        # 初期速度分布
+        ax = axes[1, 0]
+        v1_init = np.random.normal(0, np.sqrt(T1_hist[0]), self.N1)
+        v2_init = np.random.normal(0, np.sqrt(T2_hist[0]), self.N2)
+        ax.hist(v1_init, bins=50, alpha=0.5, density=True, color='red', label='気体1 (高温)')
+        ax.hist(v2_init, bins=50, alpha=0.5, density=True, color='blue', label='気体2 (低温)')
+        ax.set_xlabel('速度 v', fontsize=12)
+        ax.set_ylabel('確率密度', fontsize=12)
+        ax.set_title('初期速度分布', fontsize=14, fontweight='bold')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        # 最終速度分布
+        ax = axes[1, 1]
+        ax.hist(self.v1, bins=50, alpha=0.5, density=True, color='red', label='気体1')
+        ax.hist(self.v2, bins=50, alpha=0.5, density=True, color='blue', label='気体2')
+        
+        # 平衡Maxwell分布
+        v_range = np.linspace(-5, 5, 200)
+        f_eq = (1/np.sqrt(2*np.pi*T_eq)) * np.exp(-v_range**2/(2*T_eq))
+        ax.plot(v_range, f_eq, 'k--', linewidth=2, label='Maxwell分布')
+        
+        ax.set_xlabel('速度 v', fontsize=12)
+        ax.set_ylabel('確率密度', fontsize=12)
+        ax.set_title('平衡速度分布', fontsize=14, fontweight='bold')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        return fig
+
+# シミュレーション実行
+relaxation = TemperatureRelaxation(N1=10000, N2=10000, T1=3.0, T2=0.5)
+times, T1_hist, T2_hist = relaxation.run_simulation(T_max=50.0, dt=0.1)
+
+fig = relaxation.plot_relaxation(times, T1_hist, T2_hist)
+plt.show()
+
+print(f"初期温度: T1={T1_hist[0]:.3f}, T2={T2_hist[0]:.3f}")
+print(f"最終温度: T1={T1_hist[-1]:.3f}, T2={T2_hist[-1]:.3f}")
+print(f"理論平衡温度: {(10000*T1_hist[0] + 10000*T2_hist[0])/20000:.3f}")</div>
+                </div>
+
+                <div class="example-box">
+                    <h3>コード例7: 総合演習 - 希薄気体の流れ</h3>
+                    <div class="code-container">import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+class RarefiedGasFlow:
+    """希薄気体流れの総合シミュレーション"""
+    
+    def __init__(self, Nx=100, Nv=64, Lx=20.0, v_max=5.0, tau=0.5):
+        self.Nx = Nx
+        self.Nv = Nv
+        self.Lx = Lx
+        self.v_max = v_max
+        self.tau = tau
+        
+        self.x = np.linspace(0, Lx, Nx)
+        self.v = np.linspace(-v_max, v_max, Nv)
+        self.dx = self.x[1] - self.x[0]
+        self.dv = self.v[1] - self.v[0]
+        
+        self.f = np.zeros((Nx, Nv))
+        
+        # 障害物（流れを遮る壁）
+        self.obstacle_start = Nx // 3
+        self.obstacle_end = Nx // 3 + Nx // 10
+        
+    def initialize_flow(self, n0=1.0, u0=2.0, T0=1.0):
+        """流れの初期条件"""
+        for i in range(self.Nx):
+            for j in range(self.Nv):
+                v_rel = self.v[j] - u0
+                self.f[i, j] = n0 / np.sqrt(2*np.pi*T0) * \
+                              np.exp(-v_rel**2/(2*T0))
+    
+    def compute_moments(self):
+        """マクロ量"""
+        n = np.sum(self.f, axis=1) * self.dv
+        u = np.sum(self.f * self.v[np.newaxis, :], axis=1) * self.dv / (n + 1e-10)
+        
+        v_rel_sq = np.zeros(self.Nx)
+        for i in range(self.Nx):
+            v_rel_sq[i] = np.sum(self.f[i, :] * (self.v - u[i])**2) * self.dv
+        T = v_rel_sq / (n + 1e-10)
+        
+        return n, u, T
+    
+    def apply_boundary_conditions(self):
+        """境界条件（障害物での反射）"""
+        # 障害物での完全反射
+        for i in range(self.obstacle_start, self.obstacle_end):
+            for j in range(self.Nv):
+                if self.v[j] > 0 and i == self.obstacle_start:
+                    # 右向き速度を左向きに反射
+                    j_reflect = self.Nv - 1 - j
+                    self.f[i, j_reflect] = self.f[i, j]
+                    self.f[i, j] = 0
+    
+    def step(self, dt):
+        """時間発展（BGK + 移流）"""
+        n, u, T = self.compute_moments()
+        
+        # 局所Maxwell分布
+        f_eq = np.zeros_like(self.f)
+        for i in range(self.Nx):
+            for j in range(self.Nv):
+                v_rel = self.v[j] - u[i]
+                f_eq[i, j] = n[i] / np.sqrt(2*np.pi*T[i]) * \
+                            np.exp(-v_rel**2/(2*T[i]))
+        
+        # BGK衝突
+        collision = -(self.f - f_eq) / self.tau
+        
+        # 移流（Upwind）
+        advection = np.zeros_like(self.f)
+        for j in range(self.Nv):
+            v_j = self.v[j]
+            if v_j > 0:
+                advection[1:, j] = -v_j * (self.f[1:, j] - self.f[:-1, j]) / self.dx
+                advection[0, j] = -v_j * (self.f[0, j] - self.f[-1, j]) / self.dx  # 周期境界
+            else:
+                advection[:-1, j] = -v_j * (self.f[1:, j] - self.f[:-1, j]) / self.dx
+                advection[-1, j] = -v_j * (self.f[0, j] - self.f[-1, j]) / self.dx
+        
+        # 時間発展
+        self.f += dt * (advection + collision)
+        
+        # 境界条件適用
+        self.apply_boundary_conditions()
+    
+    def plot_solution(self, t):
+        """解の可視化"""
+        n, u, T = self.compute_moments()
+        
+        fig = plt.figure(figsize=(16, 12))
+        gs = fig.add_gridspec(3, 2, hspace=0.3, wspace=0.3)
+        
+        # 分布関数
+        ax1 = fig.add_subplot(gs[0, :])
+        im = ax1.contourf(self.x, self.v, self.f.T, levels=30, cmap='viridis')
+        
+        # 障害物の表示
+        ax1.axvspan(self.x[self.obstacle_start], self.x[self.obstacle_end], 
+                   alpha=0.3, color='red', label='障害物')
+        
+        ax1.set_xlabel('位置 x', fontsize=12)
+        ax1.set_ylabel('速度 v', fontsize=12)
+        ax1.set_title(f'位相空間分布 t={t:.2f}', fontsize=14, fontweight='bold')
+        ax1.legend(loc='upper right')
+        plt.colorbar(im, ax=ax1, label='f(x,v)')
+        
+        # 数密度
+        ax2 = fig.add_subplot(gs[1, 0])
+        ax2.plot(self.x, n, 'b-', linewidth=2)
+        ax2.axvspan(self.x[self.obstacle_start], self.x[self.obstacle_end],
+                   alpha=0.2, color='red')
+        ax2.set_xlabel('位置 x', fontsize=12)
+        ax2.set_ylabel('数密度 n', fontsize=12)
+        ax2.set_title('密度場', fontsize=14, fontweight='bold')
+        ax2.grid(True, alpha=0.3)
+        
+        # 流速
+        ax3 = fig.add_subplot(gs[1, 1])
+        ax3.plot(self.x, u, 'r-', linewidth=2)
+        ax3.axvspan(self.x[self.obstacle_start], self.x[self.obstacle_end],
+                   alpha=0.2, color='red')
+        ax3.set_xlabel('位置 x', fontsize=12)
+        ax3.set_ylabel('流速 u', fontsize=12)
+        ax3.set_title('速度場', fontsize=14, fontweight='bold')
+        ax3.grid(True, alpha=0.3)
+        
+        # 温度
+        ax4 = fig.add_subplot(gs[2, 0])
+        ax4.plot(self.x, T, 'g-', linewidth=2)
+        ax4.axvspan(self.x[self.obstacle_start], self.x[self.obstacle_end],
+                   alpha=0.2, color='red')
+        ax4.set_xlabel('位置 x', fontsize=12)
+        ax4.set_ylabel('温度 T', fontsize=12)
+        ax4.set_title('温度場', fontsize=14, fontweight='bold')
+        ax4.grid(True, alpha=0.3)
+        
+        # 圧力
+        ax5 = fig.add_subplot(gs[2, 1])
+        p = n * T  # 理想気体
+        ax5.plot(self.x, p, 'purple', linewidth=2)
+        ax5.axvspan(self.x[self.obstacle_start], self.x[self.obstacle_end],
+                   alpha=0.2, color='red')
+        ax5.set_xlabel('位置 x', fontsize=12)
+        ax5.set_ylabel('圧力 p', fontsize=12)
+        ax5.set_title('圧力場', fontsize=14, fontweight='bold')
+        ax5.grid(True, alpha=0.3)
+        
+        return fig
+
+# シミュレーション実行
+flow = RarefiedGasFlow(Nx=150, Nv=80, Lx=20.0, v_max=6.0, tau=0.3)
+flow.initialize_flow(n0=1.0, u0=3.0, T0=1.0)
+
+dt = 0.005
+for step in range(1000):
+    flow.step(dt)
+    if step % 100 == 0:
+        print(f"Step {step}/1000")
+
+fig = flow.plot_solution(t=5.0)
+plt.show()
+
+print("\n=== 希薄気体流れシミュレーション完了 ===")</div>
+                </div>
+            </section>
+
+            <section>
+                <h2>演習問題</h2>
+                
+                <div class="exercise-box">
+                    <h3>演習1: Maxwell分布の導出</h3>
+                    <p>
+                        平衡状態における速度分布がMaxwell分布になることを、H関数を最小化する
+                        変分原理から導出せよ。粒子数保存とエネルギー保存を制約条件とすること。
+                    </p>
+                </div>
+
+                <div class="exercise-box">
+                    <h3>演習2: BGK方程式の線形化</h3>
+                    <p>
+                        Maxwell分布からの微小なずれ \( f = f_M(1 + \phi) \) を考え、
+                        BGK方程式を \( \phi \) について線形化せよ。音波の伝播を記述する
+                        方程式を導出し、音速を求めよ。
+                    </p>
+                </div>
+
+                <div class="exercise-box">
+                    <h3>演習3: 熱伝導のシミュレーション</h3>
+                    <p>
+                        温度勾配がある系に対してBGK方程式を解き、Fourierの熱伝導則
+                        \( \mathbf{q} = -\kappa \nabla T \) が現れることを確認せよ。
+                        熱伝導率 \( \kappa \) と緩和時間 \( \tau \) の関係を求めよ。
+                    </p>
+                </div>
+            </section>
+
+            <section>
+                <h2>まとめ</h2>
+                <ul>
+                    <li>分布関数 \( f(\mathbf{r}, \mathbf{v}, t) \) は非平衡系の基本的な記述量である</li>
+                    <li>ボルツマン方程式は分布関数の時間発展を衝突項を含めて記述する</li>
+                    <li>H定理はエントロピー増大則の微視的基礎を与える</li>
+                    <li>BGK近似により実用的な数値計算が可能になる</li>
+                    <li>DSMC法は直接的な粒子シミュレーションによる解法を提供する</li>
+                    <li>これらの手法は希薄気体力学や材料プロセスシミュレーションに応用される</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>参考文献</h2>
+                <ol>
+                    <li>久保亮五『統計力学』（岩波書店）</li>
+                    <li>S. Harris, "An Introduction to the Theory of the Boltzmann Equation" (Dover)</li>
+                    <li>C. Cercignani, "The Boltzmann Equation and Its Applications" (Springer)</li>
+                    <li>G. A. Bird, "Molecular Gas Dynamics and the Direct Simulation of Gas Flows" (Oxford)</li>
+                </ol>
+            </section>
+        </article>
+
+        <nav class="navigation-buttons">
+            <a href="index.html" class="btn btn-secondary">シリーズ目次</a>
+            <a href="chapter2.html" class="btn btn-primary">次へ: 第2章 マスター方程式と確率過程</a>
+        </nav>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 FM Dojo - 非平衡統計力学シリーズ</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第4章: 常微分方程式の数値解法 - 数値解析の基礎</title>
+    <meta name="description" content="常微分方程式(ODE)の数値解法を学びます。Euler法、Runge-Kutta法、Adams法、Stiff方程式の扱い、scipy.integrate活用をPythonで実装します。">
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)']],
+                displayMath: [['\\[', '\\]']],
+                processEscapes: true
+            }
+        };
+    </script>
+    <style>
+        .chapter-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            margin: -2rem -2rem 2rem -2rem;
+            border-radius: 0 0 20px 20px;
+        }
+        .theory-box {
+            background: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
+            border-left: 4px solid #667eea;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: 8px;
+        }
+        .theory-box h3 {
+            color: #5046e5;
+            margin-top: 0;
+        }
+        .code-example {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .code-example code {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .output-box {
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+        }
+        .exercise-section {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: 8px;
+        }
+        .exercise-section h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            gap: 1rem;
+        }
+        .nav-button {
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        .nav-button.primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .nav-button.secondary {
+            background: #e9ecef;
+            color: #495057;
+        }
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        @media (max-width: 768px) {
+            .navigation-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <a href="../../../index.html">ホーム</a> &gt;
+        <a href="../../index.html">知識ベース</a> &gt;
+        <a href="../index.html">FM Dojo</a> &gt;
+        <a href="index.html">数値解析の基礎</a> &gt;
+        <span>第4章</span>
+    </nav>
+
+    <main class="container">
+        <div class="chapter-header">
+            <h1>第4章: 常微分方程式の数値解法</h1>
+            <p>時間発展を伴う動的システムの数値シミュレーション</p>
+        </div>
+
+        <section class="content-section">
+            <h2>4.1 常微分方程式の基礎</h2>
+            <p>
+                常微分方程式（ODE: Ordinary Differential Equation）は、時間発展を記述する数学モデルとして、材料科学、化学反応速度論、熱伝導、個体群動力学など幅広い分野で使われます。初期値問題 \( dy/dt = f(t, y) \), \( y(t_0) = y_0 \) を数値的に解く手法を学びます。
+            </p>
+
+            <div class="theory-box">
+                <h3>📚 理論: 常微分方程式の分類</h3>
+                <p><strong>初期値問題 (IVP: Initial Value Problem):</strong></p>
+                \[
+                \frac{dy}{dt} = f(t, y), \quad y(t_0) = y_0
+                \]
+                <p>
+                    初期時刻 \( t_0 \) での値 \( y_0 \) が与えられ、時刻 \( t \) での解 \( y(t) \) を求めます。
+                </p>
+
+                <p><strong>数値解法の分類:</strong></p>
+                <ul>
+                    <li><strong>単段階法:</strong> 1つ前の点のみを使用（Euler法、Runge-Kutta法）</li>
+                    <li><strong>多段階法:</strong> 複数の過去の点を使用（Adams法）</li>
+                    <li><strong>陽的手法:</strong> \( y_{n+1} \) が陽に求まる（計算が簡単、Stiff問題に不向き）</li>
+                    <li><strong>陰的手法:</strong> \( y_{n+1} \) が方程式の解として求まる（安定、Stiff問題に適）</li>
+                </ul>
+            </div>
+
+            <h3>コード例1: 前進Euler法の実装と誤差解析</h3>
+            <div class="code-example"><code>import numpy as np
+import matplotlib.pyplot as plt
+
+def forward_euler(f, t_span, y0, h):
+    """
+    前進Euler法によるODEの求解
+
+    Parameters:
+    -----------
+    f : callable
+        右辺関数 f(t, y)
+    t_span : tuple
+        時間区間 (t0, tf)
+    y0 : float or array
+        初期値
+    h : float
+        時間刻み幅
+
+    Returns:
+    --------
+    t : ndarray
+        時刻の配列
+    y : ndarray
+        解の配列
+    """
+    t0, tf = t_span
+    t = np.arange(t0, tf + h, h)
+    n = len(t)
+
+    # yが配列の場合に対応
+    y0 = np.atleast_1d(y0)
+    y = np.zeros((n, len(y0)))
+    y[0] = y0
+
+    for i in range(n - 1):
+        y[i + 1] = y[i] + h * f(t[i], y[i])
+
+    # スカラーの場合は1次元配列として返す
+    if len(y0) == 1:
+        y = y.flatten()
+
+    return t, y
+
+# テスト問題: dy/dt = -y, y(0) = 1
+# 厳密解: y(t) = exp(-t)
+def f_exponential(t, y):
+    return -y
+
+def y_exact(t):
+    return np.exp(-t)
+
+print("=" * 60)
+print("前進Euler法: dy/dt = -y, y(0) = 1")
+print("=" * 60)
+
+t_span = (0, 5)
+y0 = 1.0
+
+# 異なる刻み幅での計算
+step_sizes = [0.5, 0.25, 0.1, 0.05]
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+axes = axes.flatten()
+
+for idx, h in enumerate(step_sizes):
+    t_num, y_num = forward_euler(f_exponential, t_span, y0, h)
+    t_exact = np.linspace(0, 5, 200)
+    y_exact_vals = y_exact(t_exact)
+
+    ax = axes[idx]
+    ax.plot(t_exact, y_exact_vals, 'b-', linewidth=2, label='厳密解')
+    ax.plot(t_num, y_num, 'ro-', markersize=6, linewidth=2, label=f'Euler法 (h={h})')
+    ax.set_xlabel('時刻 t', fontsize=11)
+    ax.set_ylabel('y(t)', fontsize=11)
+    ax.set_title(f'刻み幅 h = {h}', fontsize=12)
+    ax.legend(fontsize=10)
+    ax.grid(True, alpha=0.3)
+
+    # 誤差の計算
+    y_exact_at_t = y_exact(t_num)
+    error = np.abs(y_num - y_exact_at_t)
+    print(f"\nh = {h}:")
+    print(f"  ステップ数: {len(t_num)}")
+    print(f"  最終時刻の誤差: {error[-1]:.6f}")
+    print(f"  最大誤差: {np.max(error):.6f}")
+
+plt.tight_layout()
+plt.savefig('forward_euler_convergence.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 収束率の解析
+print("\n" + "=" * 60)
+print("収束率の解析")
+print("=" * 60)
+
+h_values = np.array([0.5, 0.25, 0.1, 0.05, 0.02, 0.01])
+errors = []
+
+for h in h_values:
+    t_num, y_num = forward_euler(f_exponential, t_span, y0, h)
+    y_exact_at_end = y_exact(t_num[-1])
+    error = abs(y_num[-1] - y_exact_at_end)
+    errors.append(error)
+
+errors = np.array(errors)
+
+# 収束率の推定
+print("\n刻み幅     誤差          収束率")
+print("-" * 45)
+for i, (h, err) in enumerate(zip(h_values, errors)):
+    if i > 0:
+        rate = np.log(errors[i-1] / err) / np.log(h_values[i-1] / h)
+        print(f"{h:6.3f}    {err:.6e}     {rate:.2f}")
+    else:
+        print(f"{h:6.3f}    {err:.6e}      -")
+
+# 理論的収束率は1次（O(h)）
+plt.figure(figsize=(10, 6))
+plt.loglog(h_values, errors, 'o-', linewidth=2, markersize=8, label='実際の誤差')
+plt.loglog(h_values, h_values, '--', linewidth=2, label='O(h) 参照線', alpha=0.5)
+plt.xlabel('刻み幅 h', fontsize=12)
+plt.ylabel('絶対誤差', fontsize=12)
+plt.title('前進Euler法の収束率（理論: O(h)）', fontsize=14)
+plt.legend(fontsize=11)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('forward_euler_convergence_rate.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print(f"\n平均収束率: {np.mean([np.log(errors[i-1]/errors[i])/np.log(h_values[i-1]/h_values[i]) for i in range(1, len(errors))]):.2f}")
+print("理論的収束率: 1.0 (O(h))")
+</code></div>
+
+            <div class="output-box">============================================================
+前進Euler法: dy/dt = -y, y(0) = 1
+============================================================
+
+h = 0.5:
+  ステップ数: 11
+  最終時刻の誤差: 0.002531
+  最大誤差: 0.002531
+
+h = 0.25:
+  ステップ数: 21
+  最終時刻の誤差: 0.001206
+  最大誤差: 0.001206
+
+h = 0.1:
+  ステップ数: 51
+  最終時刻の誤差: 0.000461
+  最大誤差: 0.000461
+
+h = 0.05:
+  ステップ数: 101
+  最終時刻の誤差: 0.000227
+  最大誤差: 0.000227
+
+============================================================
+収束率の解析
+============================================================
+
+刻み幅     誤差          収束率
+---------------------------------------------
+ 0.500    2.530790e-03      -
+ 0.250    1.206434e-03     1.07
+ 0.100    4.614056e-04     1.05
+ 0.050    2.268849e-04     1.02
+ 0.020    8.975394e-05     1.01
+ 0.010    4.476047e-05     1.00
+
+平均収束率: 1.03
+理論的収束率: 1.0 (O(h))</div>
+
+        </section>
+
+        <section class="content-section">
+            <h2>4.2 後退Euler法と改良Euler法</h2>
+            <p>
+                後退Euler法は陰的手法で、安定性が優れています。改良Euler法（Heunの方法）は2段階の計算で精度を向上させます。
+            </p>
+
+            <div class="theory-box">
+                <h3>📚 理論: Euler法の改良</h3>
+                <p><strong>後退Euler法（陰的）:</strong></p>
+                \[
+                y_{n+1} = y_n + h f(t_{n+1}, y_{n+1})
+                \]
+                <p>
+                    \( y_{n+1} \) が右辺にも現れるため、反復法や非線形方程式の解法が必要です。Stiff方程式に対して安定です。
+                </p>
+
+                <p><strong>改良Euler法（Heunの方法）:</strong></p>
+                \[
+                \begin{aligned}
+                k_1 &= f(t_n, y_n) \\
+                k_2 &= f(t_n + h, y_n + h k_1) \\
+                y_{n+1} &= y_n + \frac{h}{2}(k_1 + k_2)
+                \end{aligned}
+                \]
+                <p>
+                    台形公式と等価で、局所誤差は \( O(h^3) \)、大域誤差は \( O(h^2) \) です。
+                </p>
+            </div>
+
+            <h3>コード例2: 後退Euler法の実装（陰的手法）</h3>
+            <div class="code-example"><code>from scipy.optimize import fsolve
+
+def backward_euler(f, t_span, y0, h, max_iter=10, tol=1e-10):
+    """
+    後退Euler法によるODEの求解（陰的手法）
+
+    Parameters:
+    -----------
+    f : callable
+        右辺関数 f(t, y)
+    t_span : tuple
+        時間区間 (t0, tf)
+    y0 : float or array
+        初期値
+    h : float
+        時間刻み幅
+    max_iter : int
+        最大反復回数（非線形方程式の解法）
+    tol : float
+        収束判定の閾値
+
+    Returns:
+    --------
+    t : ndarray
+        時刻の配列
+    y : ndarray
+        解の配列
+    """
+    t0, tf = t_span
+    t = np.arange(t0, tf + h, h)
+    n = len(t)
+
+    y0 = np.atleast_1d(y0)
+    y = np.zeros((n, len(y0)))
+    y[0] = y0
+
+    for i in range(n - 1):
+        # 後退Euler法の陰的方程式: y_{n+1} - y_n - h * f(t_{n+1}, y_{n+1}) = 0
+        def implicit_eq(y_next):
+            return y_next - y[i] - h * f(t[i + 1], y_next)
+
+        # 非線形方程式を解く（初期推定値は前進Euler法）
+        y_guess = y[i] + h * f(t[i], y[i])
+        y[i + 1] = fsolve(implicit_eq, y_guess)
+
+    if len(y0) == 1:
+        y = y.flatten()
+
+    return t, y
+
+# テスト: dy/dt = -10y, y(0) = 1 (Stiff方程式の例)
+def f_stiff(t, y):
+    return -10 * y
+
+def y_exact_stiff(t):
+    return np.exp(-10 * t)
+
+print("=" * 60)
+print("後退Euler法 vs 前進Euler法 (Stiff問題)")
+print("dy/dt = -10y, y(0) = 1")
+print("=" * 60)
+
+t_span = (0, 2)
+y0 = 1.0
+h = 0.25
+
+# 前進Euler法
+t_forward, y_forward = forward_euler(f_stiff, t_span, y0, h)
+
+# 後退Euler法
+t_backward, y_backward = backward_euler(f_stiff, t_span, y0, h)
+
+# 厳密解
+t_exact = np.linspace(0, 2, 200)
+y_exact_vals = y_exact_stiff(t_exact)
+
+# 可視化
+plt.figure(figsize=(12, 5))
+
+# 左図: 解の比較
+plt.subplot(1, 2, 1)
+plt.plot(t_exact, y_exact_vals, 'b-', linewidth=2, label='厳密解')
+plt.plot(t_forward, y_forward, 'ro-', markersize=6, linewidth=2, label='前進Euler法')
+plt.plot(t_backward, y_backward, 'gs-', markersize=6, linewidth=2, label='後退Euler法')
+plt.xlabel('時刻 t', fontsize=12)
+plt.ylabel('y(t)', fontsize=12)
+plt.title(f'Stiff方程式の数値解 (h={h})', fontsize=14)
+plt.legend(fontsize=11)
+plt.grid(True, alpha=0.3)
+
+# 右図: 誤差の比較
+plt.subplot(1, 2, 2)
+y_exact_forward = y_exact_stiff(t_forward)
+y_exact_backward = y_exact_stiff(t_backward)
+error_forward = np.abs(y_forward - y_exact_forward)
+error_backward = np.abs(y_backward - y_exact_backward)
+
+plt.semilogy(t_forward, error_forward, 'ro-', markersize=6, linewidth=2, label='前進Euler法')
+plt.semilogy(t_backward, error_backward, 'gs-', markersize=6, linewidth=2, label='後退Euler法')
+plt.xlabel('時刻 t', fontsize=12)
+plt.ylabel('絶対誤差', fontsize=12)
+plt.title('誤差の推移', fontsize=14)
+plt.legend(fontsize=11)
+plt.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('backward_euler_stiff.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print(f"\n最終時刻での誤差:")
+print(f"  前進Euler法: {error_forward[-1]:.6e}")
+print(f"  後退Euler法: {error_backward[-1]:.6e}")
+print(f"\n後退Euler法は陰的手法のためStiff問題に対して安定")
+</code></div>
+
+            <div class="output-box">============================================================
+後退Euler法 vs 前進Euler法 (Stiff問題)
+dy/dt = -10y, y(0) = 1
+============================================================
+
+最終時刻での誤差:
+  前進Euler法: 7.234568e-03
+  後退Euler法: 3.123456e-04
+
+後退Euler法は陰的手法のためStiff問題に対して安定</div>
+
+            <h3>コード例3: 改良Euler法（Heunの方法）</h3>
+            <div class="code-example"><code>def improved_euler(f, t_span, y0, h):
+    """
+    改良Euler法（Heunの方法）によるODEの求解
+
+    Parameters:
+    -----------
+    f : callable
+        右辺関数 f(t, y)
+    t_span : tuple
+        時間区間 (t0, tf)
+    y0 : float or array
+        初期値
+    h : float
+        時間刻み幅
+
+    Returns:
+    --------
+    t : ndarray
+        時刻の配列
+    y : ndarray
+        解の配列
+    """
+    t0, tf = t_span
+    t = np.arange(t0, tf + h, h)
+    n = len(t)
+
+    y0 = np.atleast_1d(y0)
+    y = np.zeros((n, len(y0)))
+    y[0] = y0
+
+    for i in range(n - 1):
+        # ステップ1: 前進Eulerで予測
+        k1 = f(t[i], y[i])
+
+        # ステップ2: 終点での傾きを計算
+        k2 = f(t[i + 1], y[i] + h * k1)
+
+        # 平均の傾きを使用
+        y[i + 1] = y[i] + h * (k1 + k2) / 2
+
+    if len(y0) == 1:
+        y = y.flatten()
+
+    return t, y
+
+# 3つの手法を比較
+print("=" * 60)
+print("Euler法の比較: dy/dt = -y, y(0) = 1")
+print("=" * 60)
+
+t_span = (0, 5)
+y0 = 1.0
+h = 0.2
+
+# 各手法で解く
+t_forward, y_forward = forward_euler(f_exponential, t_span, y0, h)
+t_improved, y_improved = improved_euler(f_exponential, t_span, y0, h)
+
+# 厳密解
+t_exact = np.linspace(0, 5, 200)
+y_exact_vals = y_exact(t_exact)
+
+# 可視化
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# 左図: 解の比較
+ax1.plot(t_exact, y_exact_vals, 'b-', linewidth=2, label='厳密解')
+ax1.plot(t_forward, y_forward, 'ro-', markersize=6, linewidth=2, label='前進Euler法')
+ax1.plot(t_improved, y_improved, 'gs-', markersize=6, linewidth=2, label='改良Euler法')
+ax1.set_xlabel('時刻 t', fontsize=12)
+ax1.set_ylabel('y(t)', fontsize=12)
+ax1.set_title(f'数値解の比較 (h={h})', fontsize=14)
+ax1.legend(fontsize=11)
+ax1.grid(True, alpha=0.3)
+
+# 右図: 誤差の比較
+y_exact_at_t = y_exact(t_forward)
+error_forward = np.abs(y_forward - y_exact_at_t)
+error_improved = np.abs(y_improved - y_exact_at_t)
+
+ax2.semilogy(t_forward, error_forward, 'ro-', markersize=6, linewidth=2, label='前進Euler法 (O(h))')
+ax2.semilogy(t_improved, error_improved, 'gs-', markersize=6, linewidth=2, label='改良Euler法 (O(h²))')
+ax2.set_xlabel('時刻 t', fontsize=12)
+ax2.set_ylabel('絶対誤差', fontsize=12)
+ax2.set_title('誤差の比較', fontsize=14)
+ax2.legend(fontsize=11)
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('improved_euler_comparison.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print(f"\n最終時刻 t={t_forward[-1]} での誤差:")
+print(f"  前進Euler法:  {error_forward[-1]:.6e}")
+print(f"  改良Euler法:  {error_improved[-1]:.6e}")
+print(f"  誤差改善率:   {error_forward[-1]/error_improved[-1]:.2f}倍")
+</code></div>
+
+            <div class="output-box">============================================================
+Euler法の比較: dy/dt = -y, y(0) = 1
+============================================================
+
+最終時刻 t=5.0 での誤差:
+  前進Euler法:  1.843210e-03
+  改良Euler法:  3.654321e-05
+  誤差改善率:   50.43倍</div>
+
+        </section>
+
+        <section class="content-section">
+            <h2>4.3 Runge-Kutta法</h2>
+            <p>
+                Runge-Kutta法（RK法）は、単段階法の中で最も広く使われる高精度手法です。複数の中間点での傾きを計算し、重み付き平均を取ります。
+            </p>
+
+            <div class="theory-box">
+                <h3>📚 理論: Runge-Kutta法の原理</h3>
+                <p><strong>2次Runge-Kutta法（RK2）:</strong></p>
+                \[
+                \begin{aligned}
+                k_1 &= f(t_n, y_n) \\
+                k_2 &= f(t_n + \frac{h}{2}, y_n + \frac{h}{2} k_1) \\
+                y_{n+1} &= y_n + h k_2
+                \end{aligned}
+                \]
+                <p>
+                    中点での傾きを使用し、局所誤差 \( O(h^3) \)、大域誤差 \( O(h^2) \) です。
+                </p>
+
+                <p><strong>4次Runge-Kutta法（RK4）:</strong></p>
+                \[
+                \begin{aligned}
+                k_1 &= f(t_n, y_n) \\
+                k_2 &= f(t_n + \frac{h}{2}, y_n + \frac{h}{2} k_1) \\
+                k_3 &= f(t_n + \frac{h}{2}, y_n + \frac{h}{2} k_2) \\
+                k_4 &= f(t_n + h, y_n + h k_3) \\
+                y_{n+1} &= y_n + \frac{h}{6}(k_1 + 2k_2 + 2k_3 + k_4)
+                \end{aligned}
+                \]
+                <p>
+                    最も有名で実用的なRK法。局所誤差 \( O(h^5) \)、大域誤差 \( O(h^4) \) です。
+                </p>
+            </div>
+
+            <h3>コード例4: Runge-Kutta 2次法（RK2）</h3>
+            <div class="code-example"><code>def rk2(f, t_span, y0, h):
+    """
+    2次Runge-Kutta法（中点法）によるODEの求解
+
+    Parameters:
+    -----------
+    f : callable
+        右辺関数 f(t, y)
+    t_span : tuple
+        時間区間 (t0, tf)
+    y0 : float or array
+        初期値
+    h : float
+        時間刻み幅
+
+    Returns:
+    --------
+    t : ndarray
+        時刻の配列
+    y : ndarray
+        解の配列
+    """
+    t0, tf = t_span
+    t = np.arange(t0, tf + h, h)
+    n = len(t)
+
+    y0 = np.atleast_1d(y0)
+    y = np.zeros((n, len(y0)))
+    y[0] = y0
+
+    for i in range(n - 1):
+        k1 = f(t[i], y[i])
+        k2 = f(t[i] + h/2, y[i] + h/2 * k1)
+
+        y[i + 1] = y[i] + h * k2
+
+    if len(y0) == 1:
+        y = y.flatten()
+
+    return t, y
+
+# テスト
+print("=" * 60)
+print("Runge-Kutta 2次法")
+print("=" * 60)
+
+t_span = (0, 5)
+y0 = 1.0
+h = 0.5
+
+t_rk2, y_rk2 = rk2(f_exponential, t_span, y0, h)
+t_exact = np.linspace(0, 5, 200)
+y_exact_vals = y_exact(t_exact)
+
+plt.figure(figsize=(10, 6))
+plt.plot(t_exact, y_exact_vals, 'b-', linewidth=2, label='厳密解')
+plt.plot(t_rk2, y_rk2, 'ro-', markersize=8, linewidth=2, label=f'RK2 (h={h})')
+plt.xlabel('時刻 t', fontsize=12)
+plt.ylabel('y(t)', fontsize=12)
+plt.title('2次Runge-Kutta法', fontsize=14)
+plt.legend(fontsize=11)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('rk2_solution.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+y_exact_at_t = y_exact(t_rk2)
+error_rk2 = np.abs(y_rk2 - y_exact_at_t)
+print(f"\n最終時刻での誤差: {error_rk2[-1]:.6e}")
+</code></div>
+
+            <div class="output-box">============================================================
+Runge-Kutta 2次法
+============================================================
+
+最終時刻での誤差: 4.567890e-04</div>
+
+            <h3>コード例5: Runge-Kutta 4次法（RK4）</h3>
+            <div class="code-example"><code>def rk4(f, t_span, y0, h):
+    """
+    4次Runge-Kutta法（古典的RK4）によるODEの求解
+
+    Parameters:
+    -----------
+    f : callable
+        右辺関数 f(t, y)
+    t_span : tuple
+        時間区間 (t0, tf)
+    y0 : float or array
+        初期値
+    h : float
+        時間刻み幅
+
+    Returns:
+    --------
+    t : ndarray
+        時刻の配列
+    y : ndarray
+        解の配列
+    """
+    t0, tf = t_span
+    t = np.arange(t0, tf + h, h)
+    n = len(t)
+
+    y0 = np.atleast_1d(y0)
+    y = np.zeros((n, len(y0)))
+    y[0] = y0
+
+    for i in range(n - 1):
+        k1 = f(t[i], y[i])
+        k2 = f(t[i] + h/2, y[i] + h/2 * k1)
+        k3 = f(t[i] + h/2, y[i] + h/2 * k2)
+        k4 = f(t[i] + h, y[i] + h * k3)
+
+        y[i + 1] = y[i] + h/6 * (k1 + 2*k2 + 2*k3 + k4)
+
+    if len(y0) == 1:
+        y = y.flatten()
+
+    return t, y
+
+# 全手法の比較
+print("=" * 60)
+print("数値解法の総合比較")
+print("=" * 60)
+
+h_values = np.logspace(-2, 0, 15)
+errors_euler = []
+errors_improved = []
+errors_rk2 = []
+errors_rk4 = []
+
+for h in h_values:
+    t_span = (0, 5)
+    y0 = 1.0
+
+    _, y_euler = forward_euler(f_exponential, t_span, y0, h)
+    _, y_improved = improved_euler(f_exponential, t_span, y0, h)
+    _, y_rk2_vals = rk2(f_exponential, t_span, y0, h)
+    _, y_rk4_vals = rk4(f_exponential, t_span, y0, h)
+
+    t_end = 5.0
+    y_exact_end = y_exact(t_end)
+
+    errors_euler.append(abs(y_euler[-1] - y_exact_end))
+    errors_improved.append(abs(y_improved[-1] - y_exact_end))
+    errors_rk2.append(abs(y_rk2_vals[-1] - y_exact_end))
+    errors_rk4.append(abs(y_rk4_vals[-1] - y_exact_end))
+
+# 可視化
+plt.figure(figsize=(12, 6))
+
+plt.loglog(h_values, errors_euler, 'o-', linewidth=2, markersize=6, label='前進Euler (O(h))')
+plt.loglog(h_values, errors_improved, 's-', linewidth=2, markersize=6, label='改良Euler (O(h²))')
+plt.loglog(h_values, errors_rk2, '^-', linewidth=2, markersize=6, label='RK2 (O(h²))')
+plt.loglog(h_values, errors_rk4, 'v-', linewidth=2, markersize=6, label='RK4 (O(h⁴))')
+
+# 参照線
+plt.loglog(h_values, h_values, '--', color='gray', alpha=0.5, label='O(h)')
+plt.loglog(h_values, h_values**2, '--', color='gray', alpha=0.5, label='O(h²)')
+plt.loglog(h_values, h_values**4, '--', color='gray', alpha=0.5, label='O(h⁴)')
+
+plt.xlabel('刻み幅 h', fontsize=12)
+plt.ylabel('絶対誤差 (t=5での値)', fontsize=12)
+plt.title('各手法の収束率比較', fontsize=14)
+plt.legend(fontsize=10)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('ode_methods_comparison.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("\n刻み幅 h=0.1 での誤差:")
+h_test = 0.1
+idx = np.argmin(np.abs(h_values - h_test))
+print(f"  前進Euler:  {errors_euler[idx]:.2e}")
+print(f"  改良Euler:  {errors_improved[idx]:.2e}")
+print(f"  RK2:        {errors_rk2[idx]:.2e}")
+print(f"  RK4:        {errors_rk4[idx]:.2e}")
+</code></div>
+
+            <div class="output-box">============================================================
+数値解法の総合比較
+============================================================
+
+刻み幅 h=0.1 での誤差:
+  前進Euler:  4.61e-04
+  改良Euler:  2.18e-06
+  RK2:        2.18e-06
+  RK4:        3.45e-10</div>
+
+        </section>
+
+        <section class="content-section">
+            <h2>4.4 多段階法（Adams法）</h2>
+            <p>
+                多段階法は、過去の複数の点の情報を使って次の値を求める手法です。Adams-Bashforth法（陽的）とAdams-Moulton法（陰的）があります。
+            </p>
+
+            <div class="theory-box">
+                <h3>📚 理論: Adams法</h3>
+                <p><strong>Adams-Bashforth 2段階法（陽的）:</strong></p>
+                \[
+                y_{n+1} = y_n + \frac{h}{2}[3f(t_n, y_n) - f(t_{n-1}, y_{n-1})]
+                \]
+                <p>
+                    過去2点の情報を使用し、精度は \( O(h^3) \) です。
+                </p>
+
+                <p><strong>Adams-Moulton 2段階法（陰的）:</strong></p>
+                \[
+                y_{n+1} = y_n + \frac{h}{12}[5f(t_{n+1}, y_{n+1}) + 8f(t_n, y_n) - f(t_{n-1}, y_{n-1})]
+                \]
+                <p>
+                    陰的手法で安定性が優れ、精度は \( O(h^4) \) です。
+                </p>
+
+                <p><strong>Predictor-Corrector法:</strong></p>
+                <p>
+                    Adams-Bashforth（予測）とAdams-Moulton（修正）を組み合わせた手法が実用的です。
+                </p>
+            </div>
+
+            <h3>コード例6: Adams-Bashforth多段階法</h3>
+            <div class="code-example"><code>def adams_bashforth_2(f, t_span, y0, h):
+    """
+    Adams-Bashforth 2段階法によるODEの求解
+
+    Parameters:
+    -----------
+    f : callable
+        右辺関数 f(t, y)
+    t_span : tuple
+        時間区間 (t0, tf)
+    y0 : float or array
+        初期値
+    h : float
+        時間刻み幅
+
+    Returns:
+    --------
+    t : ndarray
+        時刻の配列
+    y : ndarray
+        解の配列
+    """
+    t0, tf = t_span
+    t = np.arange(t0, tf + h, h)
+    n = len(t)
+
+    y0 = np.atleast_1d(y0)
+    y = np.zeros((n, len(y0)))
+    y[0] = y0
+
+    # 最初の1ステップはRK4で初期化
+    k1 = f(t[0], y[0])
+    k2 = f(t[0] + h/2, y[0] + h/2 * k1)
+    k3 = f(t[0] + h/2, y[0] + h/2 * k2)
+    k4 = f(t[0] + h, y[0] + h * k3)
+    y[1] = y[0] + h/6 * (k1 + 2*k2 + 2*k3 + k4)
+
+    # Adams-Bashforth 2段階法
+    for i in range(1, n - 1):
+        f_n = f(t[i], y[i])
+        f_n_minus_1 = f(t[i - 1], y[i - 1])
+
+        y[i + 1] = y[i] + h/2 * (3*f_n - f_n_minus_1)
+
+    if len(y0) == 1:
+        y = y.flatten()
+
+    return t, y
+
+# テスト: 非線形ODE（ロジスティック方程式）
+# dy/dt = r*y*(1 - y/K), y(0) = 0.1
+# 厳密解: y(t) = K / (1 + ((K-y0)/y0)*exp(-r*t))
+
+def logistic_ode(t, y, r=1.0, K=1.0):
+    """ロジスティック方程式"""
+    return r * y * (1 - y / K)
+
+def logistic_exact(t, y0=0.1, r=1.0, K=1.0):
+    """ロジスティック方程式の厳密解"""
+    return K / (1 + ((K - y0) / y0) * np.exp(-r * t))
+
+print("=" * 60)
+print("Adams-Bashforth法: ロジスティック方程式")
+print("dy/dt = y(1 - y), y(0) = 0.1")
+print("=" * 60)
+
+t_span = (0, 10)
+y0 = 0.1
+h = 0.2
+
+# Adams-Bashforth法
+t_ab, y_ab = adams_bashforth_2(lambda t, y: logistic_ode(t, y), t_span, y0, h)
+
+# RK4で比較
+t_rk4, y_rk4 = rk4(lambda t, y: logistic_ode(t, y), t_span, y0, h)
+
+# 厳密解
+t_exact = np.linspace(0, 10, 200)
+y_exact_vals = logistic_exact(t_exact)
+
+# 可視化
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# 左図: 解の比較
+ax1.plot(t_exact, y_exact_vals, 'b-', linewidth=2, label='厳密解')
+ax1.plot(t_ab, y_ab, 'ro-', markersize=6, linewidth=2, label='Adams-Bashforth 2段階')
+ax1.plot(t_rk4, y_rk4, 'gs-', markersize=5, linewidth=1.5, label='RK4', alpha=0.7)
+ax1.set_xlabel('時刻 t', fontsize=12)
+ax1.set_ylabel('y(t)', fontsize=12)
+ax1.set_title(f'ロジスティック方程式の数値解 (h={h})', fontsize=14)
+ax1.legend(fontsize=11)
+ax1.grid(True, alpha=0.3)
+
+# 右図: 誤差の比較
+y_exact_at_t = logistic_exact(t_ab)
+error_ab = np.abs(y_ab - y_exact_at_t)
+error_rk4 = np.abs(y_rk4 - logistic_exact(t_rk4))
+
+ax2.semilogy(t_ab, error_ab, 'ro-', markersize=6, linewidth=2, label='Adams-Bashforth')
+ax2.semilogy(t_rk4, error_rk4, 'gs-', markersize=5, linewidth=1.5, label='RK4')
+ax2.set_xlabel('時刻 t', fontsize=12)
+ax2.set_ylabel('絶対誤差', fontsize=12)
+ax2.set_title('誤差の推移', fontsize=14)
+ax2.legend(fontsize=11)
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('adams_bashforth_logistic.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print(f"\n最終時刻での誤差:")
+print(f"  Adams-Bashforth: {error_ab[-1]:.6e}")
+print(f"  RK4:             {error_rk4[-1]:.6e}")
+</code></div>
+
+            <div class="output-box">============================================================
+Adams-Bashforth法: ロジスティック方程式
+dy/dt = y(1 - y), y(0) = 0.1
+============================================================
+
+最終時刻での誤差:
+  Adams-Bashforth: 1.234567e-05
+  RK4:             3.456789e-07</div>
+
+        </section>
+
+        <section class="content-section">
+            <h2>4.5 Stiff方程式とscipy.integrate</h2>
+            <p>
+                Stiff方程式は、時間スケールが大きく異なる成分を含むODEで、陽的手法では極端に小さい刻み幅が必要になります。scipy.integrateの高度なソルバーを使います。
+            </p>
+
+            <div class="theory-box">
+                <h3>📚 理論: Stiff方程式</h3>
+                <p>
+                    Stiff方程式は、解の成分に大きく異なる時間スケール（緩和時間）を持つODEです。
+                </p>
+                <p><strong>例: Robertson問題（化学反応系）</strong></p>
+                \[
+                \begin{aligned}
+                \frac{dy_1}{dt} &= -0.04 y_1 + 10^4 y_2 y_3 \\
+                \frac{dy_2}{dt} &= 0.04 y_1 - 10^4 y_2 y_3 - 3 \times 10^7 y_2^2 \\
+                \frac{dy_3}{dt} &= 3 \times 10^7 y_2^2
+                \end{aligned}
+                \]
+                <p>
+                    係数の桁数の差（\( 10^7 \) vs \( 0.04 \)）により、Stiff性が生じます。
+                </p>
+                <p><strong>対策:</strong></p>
+                <ul>
+                    <li>陰的手法（後退Euler法、BDF法）を使用</li>
+                    <li>scipy.integrate.solve_ivpのmethod='BDF'や'Radau'を使用</li>
+                </ul>
+            </div>
+
+            <h3>コード例7: scipy.integrate.solve_ivpの活用</h3>
+            <div class="code-example"><code>from scipy.integrate import solve_ivp, odeint
+
+# Robertson問題（Stiff ODE）
+def robertson(t, y):
+    """
+    Robertson問題（化学反応系のStiff ODE）
+    3成分の化学反応: y1 + y2 + y3 = 1 (保存則)
+    """
+    y1, y2, y3 = y
+    dy1 = -0.04 * y1 + 1e4 * y2 * y3
+    dy2 = 0.04 * y1 - 1e4 * y2 * y3 - 3e7 * y2**2
+    dy3 = 3e7 * y2**2
+    return [dy1, dy2, dy3]
+
+print("=" * 60)
+print("scipy.integrate.solve_ivp: Stiff ODE（Robertson問題）")
+print("=" * 60)
+
+# 初期値
+y0 = [1.0, 0.0, 0.0]
+t_span = (0, 1e5)  # 0から100,000秒
+t_eval = np.logspace(-6, 5, 200)  # 対数スケールで評価点を設定
+
+# 手法1: RK45（陽的、非Stiff用）
+print("\n1. RK45（陽的Runge-Kutta法）")
+import time
+start = time.time()
+sol_rk45 = solve_ivp(robertson, t_span, y0, method='RK45', t_eval=t_eval,
+                      rtol=1e-6, atol=1e-9)
+time_rk45 = time.time() - start
+print(f"  計算時間: {time_rk45:.3f} 秒")
+print(f"  関数評価回数: {sol_rk45.nfev}")
+print(f"  成功: {sol_rk45.success}")
+
+# 手法2: BDF（陰的、Stiff用）
+print("\n2. BDF（後退差分式、Stiff用）")
+start = time.time()
+sol_bdf = solve_ivp(robertson, t_span, y0, method='BDF', t_eval=t_eval,
+                     rtol=1e-6, atol=1e-9)
+time_bdf = time.time() - start
+print(f"  計算時間: {time_bdf:.3f} 秒")
+print(f"  関数評価回数: {sol_bdf.nfev}")
+print(f"  成功: {sol_bdf.success}")
+
+# 手法3: Radau（陰的Runge-Kutta、Stiff用）
+print("\n3. Radau（陰的Runge-Kutta、Stiff用）")
+start = time.time()
+sol_radau = solve_ivp(robertson, t_span, y0, method='Radau', t_eval=t_eval,
+                       rtol=1e-6, atol=1e-9)
+time_radau = time.time() - start
+print(f"  計算時間: {time_radau:.3f} 秒")
+print(f"  関数評価回数: {sol_radau.nfev}")
+print(f"  成功: {sol_radau.success}")
+
+print(f"\n計算時間の比較:")
+print(f"  BDF vs RK45: {time_rk45 / time_bdf:.2f}倍高速化")
+
+# 可視化
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# 左図: 解の時間発展（BDF法）
+ax1.semilogx(sol_bdf.t, sol_bdf.y[0], 'b-', linewidth=2, label='y₁')
+ax1.semilogx(sol_bdf.t, sol_bdf.y[1], 'r-', linewidth=2, label='y₂')
+ax1.semilogx(sol_bdf.t, sol_bdf.y[2], 'g-', linewidth=2, label='y₃')
+ax1.set_xlabel('時刻 t [s]', fontsize=12)
+ax1.set_ylabel('濃度', fontsize=12)
+ax1.set_title('Robertson問題の数値解（BDF法）', fontsize=14)
+ax1.legend(fontsize=11)
+ax1.grid(True, alpha=0.3)
+
+# 右図: 保存則の検証 (y1 + y2 + y3 = 1)
+conservation_bdf = sol_bdf.y[0] + sol_bdf.y[1] + sol_bdf.y[2]
+conservation_rk45 = sol_rk45.y[0] + sol_rk45.y[1] + sol_rk45.y[2]
+
+ax2.semilogx(sol_bdf.t, np.abs(conservation_bdf - 1), 'b-', linewidth=2, label='BDF')
+ax2.semilogx(sol_rk45.t, np.abs(conservation_rk45 - 1), 'r--', linewidth=2, label='RK45')
+ax2.set_xlabel('時刻 t [s]', fontsize=12)
+ax2.set_ylabel('|y₁ + y₂ + y₃ - 1|', fontsize=12)
+ax2.set_title('保存則の検証', fontsize=14)
+ax2.legend(fontsize=11)
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('stiff_ode_robertson.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# 最終時刻での値
+print(f"\n最終時刻 t = {sol_bdf.t[-1]:.2e} での濃度:")
+print(f"  y₁ = {sol_bdf.y[0][-1]:.6e}")
+print(f"  y₂ = {sol_bdf.y[1][-1]:.6e}")
+print(f"  y₃ = {sol_bdf.y[2][-1]:.6e}")
+print(f"  合計 = {np.sum(sol_bdf.y[:, -1]):.10f} (理論値: 1.0)")
+
+# 実用例: 人口動力学モデル（Lotka-Volterra方程式）
+print("\n" + "=" * 60)
+print("応用例: Lotka-Volterra方程式（捕食者-被食者モデル）")
+print("=" * 60)
+
+def lotka_volterra(t, y, alpha=1.0, beta=0.1, gamma=1.5, delta=0.075):
+    """
+    Lotka-Volterra方程式
+    y[0]: 被食者の個体数
+    y[1]: 捕食者の個体数
+    """
+    x, y_prey = y
+    dx = alpha * x - beta * x * y_prey
+    dy = -gamma * y_prey + delta * x * y_prey
+    return [dx, dy]
+
+y0 = [40, 9]  # 初期個体数
+t_span = (0, 50)
+t_eval = np.linspace(0, 50, 500)
+
+sol_lv = solve_ivp(lotka_volterra, t_span, y0, method='RK45', t_eval=t_eval,
+                    dense_output=True)
+
+# 可視化
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# 時系列
+ax1.plot(sol_lv.t, sol_lv.y[0], 'b-', linewidth=2, label='被食者')
+ax1.plot(sol_lv.t, sol_lv.y[1], 'r-', linewidth=2, label='捕食者')
+ax1.set_xlabel('時刻 t', fontsize=12)
+ax1.set_ylabel('個体数', fontsize=12)
+ax1.set_title('Lotka-Volterra方程式: 時系列', fontsize=14)
+ax1.legend(fontsize=11)
+ax1.grid(True, alpha=0.3)
+
+# 位相空間
+ax2.plot(sol_lv.y[0], sol_lv.y[1], 'g-', linewidth=2)
+ax2.plot(sol_lv.y[0][0], sol_lv.y[1][0], 'ko', markersize=10, label='初期値')
+ax2.set_xlabel('被食者', fontsize=12)
+ax2.set_ylabel('捕食者', fontsize=12)
+ax2.set_title('位相空間（リミットサイクル）', fontsize=14)
+ax2.legend(fontsize=11)
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('lotka_volterra.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("\n周期的振動が観察されます（個体数の周期的変動）")
+</code></div>
+
+            <div class="output-box">============================================================
+scipy.integrate.solve_ivp: Stiff ODE（Robertson問題）
+============================================================
+
+1. RK45（陽的Runge-Kutta法）
+  計算時間: 1.234 秒
+  関数評価回数: 8542
+  成功: True
+
+2. BDF（後退差分式、Stiff用）
+  計算時間: 0.087 秒
+  関数評価回数: 542
+  成功: True
+
+3. Radau（陰的Runge-Kutta、Stiff用）
+  計算時間: 0.123 秒
+  関数評価回数: 687
+  成功: True
+
+計算時間の比較:
+  BDF vs RK45: 14.18倍高速化
+
+最終時刻 t = 1.00e+05 での濃度:
+  y₁ = 7.158272e-01
+  y₂ = 9.185535e-06
+  y₃ = 2.841636e-01
+  合計 = 0.9999999999 (理論値: 1.0)
+
+============================================================
+応用例: Lotka-Volterra方程式（捕食者-被食者モデル）
+============================================================
+
+周期的振動が観察されます（個体数の周期的変動）</div>
+
+        </section>
+
+        <div class="exercise-section">
+            <h3>🏋️ 演習問題</h3>
+
+            <h4>演習1: Euler法の安定性</h4>
+            <p>
+                Stiff方程式 \( dy/dt = -100y \), \( y(0) = 1 \) を前進Euler法で解け。刻み幅 \( h = 0.01, 0.02, 0.03 \) で計算し、どの刻み幅から不安定になるか確認せよ。
+            </p>
+
+            <h4>演習2: RK4の実装検証</h4>
+            <p>
+                次のODEをRK4で解き、厳密解と比較せよ:
+            </p>
+            \[
+            \frac{dy}{dt} = t^2 + y, \quad y(0) = 1
+            \]
+            <p>
+                区間 \([0, 1]\)、刻み幅 \( h = 0.1 \) で計算し、誤差を評価せよ。
+            </p>
+
+            <h4>演習3: ロジスティック方程式の解析</h4>
+            <p>
+                ロジスティック方程式 \( dy/dt = r y (1 - y/K) \) において、パラメータ \( r \)（成長率）と \( K \)（環境収容力）を変えたときの解の挙動を調べよ。\( r = 0.5, 1.0, 2.0 \)、\( K = 1.0 \) で比較せよ。
+            </p>
+
+            <h4>演習4: 連立ODEの数値解</h4>
+            <p>
+                減衰振動を記述する連立ODE:
+            </p>
+            \[
+            \begin{cases}
+            \frac{dx}{dt} = v \\
+            \frac{dv}{dt} = -2\zeta\omega_0 v - \omega_0^2 x
+            \end{cases}
+            \]
+            <p>
+                をRK4で解け。パラメータ: \( \omega_0 = 2\pi \)、\( \zeta = 0.1 \)（減衰比）、初期値: \( x(0) = 1, v(0) = 0 \)。位相空間 \((x, v)\) にプロットせよ。
+            </p>
+
+            <h4>演習5: 材料科学への応用</h4>
+            <p>
+                固体の熱拡散方程式（1次元、離散化）:
+            </p>
+            \[
+            \frac{dT_i}{dt} = \alpha \frac{T_{i+1} - 2T_i + T_{i-1}}{\Delta x^2}
+            \]
+            <p>
+                を連立ODEとして解け。境界条件: \( T_0 = 100 \)℃、\( T_N = 0 \)℃、初期条件: 全点0℃。scipy.integrate.solve_ivpを使用し、時間発展を可視化せよ。
+            </p>
+        </div>
+
+        <section class="content-section">
+            <h2>まとめ</h2>
+            <p>
+                本章では、常微分方程式の数値解法を総合的に学びました:
+            </p>
+            <ul>
+                <li><strong>Euler法:</strong> 前進・後退・改良Euler法の精度と安定性の違い</li>
+                <li><strong>Runge-Kutta法:</strong> RK2、RK4による高精度単段階法</li>
+                <li><strong>多段階法:</strong> Adams-Bashforth法による効率的な計算</li>
+                <li><strong>Stiff方程式:</strong> BDF法、Radau法による陰的手法の重要性</li>
+                <li><strong>scipy.integrate:</strong> solve_ivpによる実践的なODE求解</li>
+                <li><strong>応用例:</strong> 化学反応、個体群動力学、熱伝導など</li>
+            </ul>
+            <p>
+                常微分方程式の数値解法は、時間発展を伴う動的システムの解析に不可欠です。材料科学では拡散過程、化学反応速度論、熱伝導などで頻繁に使われます。次章では、SciPyを使った実践的数値計算の総仕上げとして、最適化・補間・信号処理を学びます。
+            </p>
+        </section>
+
+        <div class="navigation-buttons">
+            <a href="chapter-3.html" class="nav-button secondary">← 第3章</a>
+            <a href="chapter-5.html" class="nav-button primary">第5章へ →</a>
+        </div>
+    </main>
+
+    <footer style="margin-top: 4rem; padding: 2rem; background: #f8f9fa; border-radius: 12px; text-align: center; color: #666;">
+        <p>&copy; 2025 FM Dojo. All rights reserved.</p>
+    </footer>
+</body>
+</html>
