@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第2章: ギブスエネルギーと化学ポテンシャル - 材料熱力学入門 - MS Terakoya</title>
+    <meta name="description" content="ギブスエネルギー最小化原理、化学ポテンシャル、活量、理想溶体・正則溶体モデル、共通接線法を学び、Pythonで相平衡を計算・可視化します。">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #f093fb;
+            --color-accent-light: #f5576c;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #f093fb;
+            --color-link-hover: #d07be8;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .breadcrumb {
+            font-size: 0.9rem;
+            margin-bottom: var(--spacing-sm);
+            opacity: 0.95;
+        }
+
+        .breadcrumb a {
+            color: white;
+            text-decoration: underline;
+            opacity: 0.9;
+        }
+
+        .breadcrumb a:hover {
+            opacity: 1;
+        }
+
+        .breadcrumb span {
+            margin: 0 0.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.15rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        .info-box {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .info-box h3,
+        .info-box h4 {
+            margin-top: 0;
+        }
+
+        .warning-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .example-box {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .key-point {
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .code-container {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            overflow-x: auto;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-sm);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .code-title {
+            font-weight: 600;
+            color: var(--color-primary);
+            font-size: 0.95rem;
+        }
+
+        .copy-button {
+            background-color: var(--color-accent);
+            color: white;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background-color 0.2s;
+        }
+
+        .copy-button:hover {
+            background-color: var(--color-link-hover);
+        }
+
+        pre {
+            margin: 0;
+            padding: 0;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .inline-code {
+            background-color: var(--color-code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            color: var(--color-primary-dark);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            background-color: white;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--color-bg-alt);
+        }
+
+        .exercise-section {
+            background-color: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .exercise {
+            background-color: white;
+            padding: var(--spacing-md);
+            margin-top: var(--spacing-md);
+            border-radius: var(--border-radius);
+            border: 1px solid #bae6fd;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            flex: 1;
+            min-width: 200px;
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        .mermaid {
+            background-color: white;
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--spacing-md);
+            border: 1px solid var(--color-border);
+        }
+
+        .disclaimer {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin: var(--spacing-xl) var(--spacing-md);
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .disclaimer h3 {
+            margin-top: 0;
+            color: var(--color-primary);
+        }
+
+        .disclaimer ul {
+            margin-left: var(--spacing-lg);
+        }
+
+        .disclaimer li {
+            margin-bottom: var(--spacing-xs);
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        footer {
+            background-color: var(--color-primary-dark);
+            color: white;
+            padding: var(--spacing-lg) var(--spacing-md);
+            text-align: center;
+            margin-top: var(--spacing-xl);
+        }
+
+        footer p {
+            margin-bottom: var(--spacing-xs);
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                font-size: 15px;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            .nav-button {
+                min-width: 100%;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+
+    <!-- MathJax 3.x for mathematical equations -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+            }
+        };
+    </script>
+
+    <!-- Mermaid.js for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#f093fb',
+                primaryTextColor: '#2c3e50',
+                primaryBorderColor: '#f5576c',
+                lineColor: '#f5576c',
+                secondaryColor: '#fce7f3',
+                tertiaryColor: '#f7fafc'
+            }
+        });
+    </script>
+
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <nav class="breadcrumb" aria-label="パンくずリスト">
+                <a href="../../../../index.html">AI寺子屋トップ</a>
+                <span>›</span>
+                <a href="../../../index.html">MS Dojo</a>
+                <span>›</span>
+                <a href="index.html">材料熱力学入門</a>
+                <span>›</span>
+                <span>第2章</span>
+            </nav>
+            <h1>第2章: ギブスエネルギーと化学ポテンシャル</h1>
+            <p class="subtitle">Gibbs Energy and Chemical Potential</p>
+            <div class="meta">
+                <span class="meta-item">📖 推定学習時間: 26-32分</span>
+                <span class="meta-item">💻 コード例: 8個</span>
+                <span class="meta-item">📊 難易度: 中級</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section>
+            <h2>学習目標</h2>
+            <div class="info-box">
+                <p>この章を学ぶことで、以下のスキルを習得できます：</p>
+                <ul>
+                    <li>ギブスエネルギー最小化原理を理解し、平衡状態の判定ができる</li>
+                    <li>化学ポテンシャルの物理的意味と計算方法を説明できる</li>
+                    <li>活量（activity）と活量係数の役割を理解し、実在溶体に応用できる</li>
+                    <li>理想溶体と正則溶体モデルの違いを説明し、使い分けられる</li>
+                    <li>共通接線法を用いて二相平衡組成を決定できる</li>
+                    <li>Pythonでギブスエネルギー曲線を描画し、相分離を予測できる</li>
+                    <li>実材料系（Cu-Ni、Fe-Cr等）での熱力学計算を実行できる</li>
+                </ul>
+            </div>
+        </section>
+
+        <section>
+            <h2>1. ギブスエネルギー最小化原理</h2>
+
+            <h3>1.1 平衡の熱力学的条件</h3>
+            <p>前章で学んだように、一定温度・圧力下では、系は<strong>ギブスエネルギー（G）が最小</strong>となる状態で平衡に達します。これは材料科学における最も重要な原理の一つです。</p>
+
+            <div class="key-point">
+                <h4>ギブスエネルギー最小化原理</h4>
+                <p>一定温度 $T$、一定圧力 $P$ の下で、系は以下の条件を満たす状態で平衡に達する：</p>
+                <p style="text-align: center; font-size: 1.2rem; margin: 1rem 0;">
+                    $$ G = \text{minimum} $$
+                </p>
+                <p>言い換えると、任意の微小変化 $\delta G$ に対して：</p>
+                <p style="text-align: center;">
+                    $$ \delta G = 0 \quad \text{（平衡条件）} $$
+                </p>
+            </div>
+
+            <p>この原理から、多くの実用的な結論が導かれます：</p>
+            <ul>
+                <li><strong>相平衡</strong>: 複数の相が共存する条件</li>
+                <li><strong>化学反応平衡</strong>: 反応物と生成物の存在比</li>
+                <li><strong>溶解度</strong>: 溶質が溶媒にどれだけ溶けるか</li>
+                <li><strong>相変態温度</strong>: ある相から別の相へ変化する温度</li>
+            </ul>
+
+            <h3>1.2 ギブスエネルギー最小化のフロー図</h3>
+            <p>平衡状態を見つけるプロセスは、以下のフローで表されます：</p>
+
+            <div class="mermaid">
+flowchart TD
+    A[初期状態: 任意の組成・相状態] --> B[ギブスエネルギー G を計算]
+    B --> C{すべての可能な<br/>状態を比較}
+    C --> D[単相状態]
+    C --> E[二相状態]
+    C --> F[多相状態]
+    D --> G[G_single を計算]
+    E --> H[G_two-phase を計算<br/>共通接線法を使用]
+    F --> I[G_multi-phase を計算]
+    G --> J{最小 G を持つのは?}
+    H --> J
+    I --> J
+    J --> K[平衡状態を決定]
+    K --> L[相の種類と組成を出力]
+
+    style A fill:#fce7f3
+    style K fill:#d1fae5
+    style L fill:#dbeafe
+            </div>
+
+            <p>このフローは、CALPHADソフトウェア（Thermo-Calc、FactSage等）の動作原理でもあります。</p>
+        </section>
+
+        <section>
+            <h2>2. 化学ポテンシャル</h2>
+
+            <h3>2.1 化学ポテンシャルの定義</h3>
+            <p>化学ポテンシャル（chemical potential）$\mu_i$ は、<strong>成分 $i$ を1モル追加したときのギブスエネルギーの変化</strong>として定義されます。これは「成分 $i$ のエネルギー的な価値」を表す量です。</p>
+
+            <div class="key-point">
+                <h4>化学ポテンシャルの定義</h4>
+                <p>成分 $i$ の化学ポテンシャル $\mu_i$ は、一定温度・圧力・他成分のモル数の下で：</p>
+                <p style="text-align: center; font-size: 1.1rem; margin: 1rem 0;">
+                    $$ \mu_i = \left( \frac{\partial G}{\partial n_i} \right)_{T, P, n_{j \neq i}} $$
+                </p>
+                <p>ここで、$n_i$ は成分 $i$ のモル数、$G$ は系全体のギブスエネルギーです。</p>
+            </div>
+
+            <p>化学ポテンシャルは、<strong>部分モルギブスエネルギー（partial molar Gibbs energy）</strong>とも呼ばれます。</p>
+
+            <h3>2.2 化学ポテンシャルの物理的意味</h3>
+            <p>化学ポテンシャルは、以下のような物理的意味を持ちます：</p>
+
+            <div class="example-box">
+                <h4>水の流れとの類推</h4>
+                <p>水は高い場所から低い場所へ流れます。これを化学ポテンシャルで理解すると：</p>
+                <ul>
+                    <li><strong>水の位置エネルギー</strong> ↔ <strong>化学ポテンシャル $\mu$</strong></li>
+                    <li><strong>水の流れ</strong> ↔ <strong>成分の移動・拡散</strong></li>
+                    <li><strong>平衡（水が止まる）</strong> ↔ <strong>$\mu$ が等しくなる</strong></li>
+                </ul>
+                <p>つまり、<strong>化学ポテンシャルが高い領域から低い領域へ、成分が移動する</strong>のが自然な流れです。平衡では、すべての相で各成分の化学ポテンシャルが等しくなります：</p>
+                <p style="text-align: center;">
+                    $$ \mu_i^{\alpha} = \mu_i^{\beta} = \mu_i^{\gamma} = \cdots $$
+                </p>
+                <p>（$\alpha$, $\beta$, $\gamma$ は異なる相を表す）</p>
+            </div>
+
+            <h3>2.3 理想溶体における化学ポテンシャル</h3>
+            <p>理想溶体（ideal solution）では、成分間の相互作用がなく、混合はエントロピー効果のみによって起こります。この場合、化学ポテンシャルは単純な形で表されます：</p>
+
+            <div class="info-box">
+                <h4>理想溶体の化学ポテンシャル</h4>
+                <p>成分 $i$ の化学ポテンシャルは：</p>
+                <p style="text-align: center;">
+                    $$ \mu_i = \mu_i^0 + RT \ln x_i $$
+                </p>
+                <ul>
+                    <li>$\mu_i^0$: 純粋成分 $i$ の標準化学ポテンシャル（参照状態）</li>
+                    <li>$R = 8.314$ J/(mol·K): 気体定数</li>
+                    <li>$T$: 絶対温度 [K]</li>
+                    <li>$x_i$: 成分 $i$ のモル分率（$0 \leq x_i \leq 1$）</li>
+                </ul>
+                <p>第2項 $RT \ln x_i$ は、混合によるエントロピー増大の寄与です。$x_i < 1$ なので、$\ln x_i < 0$ となり、混合により化学ポテンシャルは下がります。</p>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">📝 コード例1: 理想溶体の化学ポテンシャル</span>
+                    <button class="copy-button" onclick="copyCode(this)">コピー</button>
+                </div>
+                <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# 定数
+R = 8.314  # J/(mol·K)
+T = 1000   # K
+
+# 組成範囲
+x = np.linspace(0.001, 0.999, 200)  # 0と1を避ける（対数発散）
+
+# 化学ポテンシャル（μ_A^0 = 0 を参照状態とする）
+mu_relative = R * T * np.log(x)  # J/mol
+
+# 可視化
+plt.figure(figsize=(10, 6))
+plt.plot(x, mu_relative / 1000, linewidth=2.5, color='#f093fb')
+plt.xlabel('モル分率 $x_A$', fontsize=13)
+plt.ylabel('化学ポテンシャル $\\mu_A - \\mu_A^0$ (kJ/mol)', fontsize=13)
+plt.title('理想溶体における化学ポテンシャル (T = 1000 K)', fontsize=14, fontweight='bold')
+plt.grid(True, alpha=0.3)
+plt.axhline(0, color='black', linewidth=0.8, linestyle='--', alpha=0.5)
+
+# 重要点を強調
+x_points = [0.1, 0.5, 0.9]
+for xp in x_points:
+    mu_p = R * T * np.log(xp) / 1000
+    plt.plot(xp, mu_p, 'o', markersize=8, color='#f5576c')
+    plt.text(xp + 0.05, mu_p, f'$x={xp}$\n$\\mu={mu_p:.1f}$ kJ/mol',
+             fontsize=10, verticalalignment='center')
+
+plt.tight_layout()
+plt.savefig('chemical_potential_ideal.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("化学ポテンシャルの特性：")
+print("- x → 0 で μ → -∞ (希薄溶液で混合が非常に有利)")
+print("- x = 1 で μ = μ^0 (純粋成分)")
+print("- x < 1 で常に μ < μ^0 (混合により安定化)")
+</code></pre>
+            </div>
+
+            <p>このグラフから、<strong>希薄溶液（$x$ が小さい）では、混合により化学ポテンシャルが大きく下がる</strong>ことがわかります。これが溶解現象の熱力学的駆動力です。</p>
+        </section>
+
+        <section>
+            <h2>3. 活量と活量係数</h2>
+
+            <h3>3.1 実在溶体と活量の導入</h3>
+            <p>実際の材料では、成分間に相互作用（引力・反発力）があり、理想溶体からのずれが生じます。このずれを定量的に扱うために、<strong>活量（activity）</strong> $a_i$ を導入します。</p>
+
+            <div class="key-point">
+                <h4>活量を用いた化学ポテンシャル</h4>
+                <p>実在溶体では、モル分率 $x_i$ の代わりに活量 $a_i$ を用いて：</p>
+                <p style="text-align: center; font-size: 1.1rem; margin: 1rem 0;">
+                    $$ \mu_i = \mu_i^0 + RT \ln a_i $$
+                </p>
+                <p>活量は、「熱力学的に有効な濃度」と解釈できます。</p>
+            </div>
+
+            <h3>3.2 活量係数</h3>
+            <p>活量とモル分率の関係は、<strong>活量係数（activity coefficient）</strong> $\gamma_i$ を用いて表されます：</p>
+
+            <p style="text-align: center; font-size: 1.1rem; background-color: var(--color-bg-alt); padding: 1rem; border-radius: var(--border-radius);">
+                $$ a_i = \gamma_i x_i $$
+            </p>
+
+            <ul>
+                <li>$\gamma_i = 1$: 理想溶体（成分間の相互作用なし）</li>
+                <li>$\gamma_i > 1$: 正の偏倚（成分間に反発力、混合しにくい）</li>
+                <li>$\gamma_i < 1$: 負の偏倚（成分間に引力、混合しやすい）</li>
+            </ul>
+
+            <div class="example-box">
+                <h4>具体例: Cu-Ni合金</h4>
+                <p>銅（Cu）とニッケル（Ni）は全率固溶する合金系ですが、完全な理想溶体ではありません。1300 Kでの活量係数は：</p>
+                <ul>
+                    <li>$\gamma_{\text{Cu}} \approx 0.95$ （$x_{\text{Cu}} = 0.5$ 付近）</li>
+                    <li>$\gamma_{\text{Ni}} \approx 0.95$</li>
+                </ul>
+                <p>$\gamma < 1$ なので、Cu-Ni間にはわずかに引力的相互作用があり、理想溶体よりも混合が有利です。</p>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">📝 コード例2: 活量と活量係数の計算</span>
+                    <button class="copy-button" onclick="copyCode(this)">コピー</button>
+                </div>
+                <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# 組成範囲
+x = np.linspace(0.001, 0.999, 200)
+
+# 活量係数のモデル（正則溶体モデル、後述）
+# Ω: 相互作用パラメータ [J/mol]
+R = 8.314
+T = 1300  # K
+
+def activity_coefficient(x, omega, T):
+    """正則溶体モデルによる活量係数"""
+    return np.exp(omega * (1 - x)**2 / (R * T))
+
+# 異なる相互作用の場合
+omega_values = [0, 10000, -10000]  # J/mol
+labels = ['理想溶体 (Ω=0)', '反発的 (Ω=10 kJ/mol)', '引力的 (Ω=-10 kJ/mol)']
+colors = ['black', '#f5576c', '#10b981']
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# 左図: 活量係数
+for omega, label, color in zip(omega_values, labels, colors):
+    gamma = activity_coefficient(x, omega, T)
+    ax1.plot(x, gamma, linewidth=2.5, label=label, color=color)
+
+ax1.axhline(1, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+ax1.set_xlabel('モル分率 $x_A$', fontsize=13)
+ax1.set_ylabel('活量係数 $\\gamma_A$', fontsize=13)
+ax1.set_title('活量係数の組成依存性', fontsize=14, fontweight='bold')
+ax1.legend(fontsize=11)
+ax1.grid(True, alpha=0.3)
+ax1.set_ylim([0, 2])
+
+# 右図: 活量
+for omega, label, color in zip(omega_values, labels, colors):
+    gamma = activity_coefficient(x, omega, T)
+    activity = gamma * x
+    ax2.plot(x, activity, linewidth=2.5, label=label, color=color)
+
+# 理想線（a = x）を破線で表示
+ax2.plot(x, x, 'k--', linewidth=1.5, alpha=0.5, label='理想線 ($a=x$)')
+
+ax2.set_xlabel('モル分率 $x_A$', fontsize=13)
+ax2.set_ylabel('活量 $a_A$', fontsize=13)
+ax2.set_title('活量の組成依存性', fontsize=14, fontweight='bold')
+ax2.legend(fontsize=11)
+ax2.grid(True, alpha=0.3)
+ax2.set_ylim([0, 1])
+
+plt.tight_layout()
+plt.savefig('activity_coefficient.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("活量係数の解釈：")
+print("- γ > 1: 活量が理想値より大きい → 成分が「逃げたがる」（反発）")
+print("- γ < 1: 活量が理想値より小さい → 成分が「とどまりたがる」（引力）")
+print("- γ = 1: 理想溶体（Raoult則に従う）")
+</code></pre>
+            </div>
+        </section>
+
+        <section>
+            <h2>4. 理想溶体と正則溶体モデル</h2>
+
+            <h3>4.1 理想溶体の混合ギブスエネルギー</h3>
+            <p>理想溶体では、混合によるギブスエネルギー変化は、エントロピー項のみで決まります：</p>
+
+            <div class="info-box">
+                <h4>理想溶体の混合ギブスエネルギー</h4>
+                <p>二元系（A-B）の理想溶体における混合ギブスエネルギー：</p>
+                <p style="text-align: center;">
+                    $$ \Delta G_{\text{mix}}^{\text{ideal}} = RT (x_A \ln x_A + x_B \ln x_B) $$
+                </p>
+                <p>ここで、$x_A + x_B = 1$ です。この式は常に負（$\Delta G_{\text{mix}} < 0$）なので、理想溶体は常に混合が有利です。</p>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">📝 コード例3: 理想溶体のギブス混合エネルギー曲線</span>
+                    <button class="copy-button" onclick="copyCode(this)">コピー</button>
+                </div>
+                <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# 定数
+R = 8.314  # J/(mol·K)
+
+# 組成範囲
+x_A = np.linspace(0.001, 0.999, 300)
+x_B = 1 - x_A
+
+# 温度依存性を示す
+temperatures = [500, 1000, 1500]  # K
+colors = ['#3b82f6', '#f093fb', '#f5576c']
+
+plt.figure(figsize=(10, 6))
+
+for T, color in zip(temperatures, colors):
+    # 理想溶体の混合ギブスエネルギー
+    dG_mix = R * T * (x_A * np.log(x_A) + x_B * np.log(x_B))  # J/mol
+    plt.plot(x_A, dG_mix / 1000, linewidth=2.5, label=f'T = {T} K', color=color)
+
+plt.axhline(0, color='black', linewidth=0.8, linestyle='--', alpha=0.5)
+plt.xlabel('モル分率 $x_A$', fontsize=13)
+plt.ylabel('混合ギブスエネルギー $\\Delta G_{mix}$ (kJ/mol)', fontsize=13)
+plt.title('理想溶体における混合ギブスエネルギー', fontsize=14, fontweight='bold')
+plt.legend(fontsize=12)
+plt.grid(True, alpha=0.3)
+
+# 最小値の位置を示す
+plt.axvline(0.5, color='gray', linewidth=0.8, linestyle=':', alpha=0.5)
+plt.text(0.5, -2, '$x_A = 0.5$\n(最大混合)', ha='center', fontsize=10,
+         bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+
+plt.tight_layout()
+plt.savefig('ideal_solution_gibbs.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("理想溶体の特徴：")
+print("- 曲線は常に下に凸（二階微分が正）")
+print("- x_A = 0.5 で最小値（最大混合エントロピー）")
+print("- 温度が高いほどエントロピー効果が大きくなり、曲線が深くなる")
+print("- すべての組成で ΔG_mix < 0 なので、相分離は起こらない")
+</code></pre>
+            </div>
+
+            <h3>4.2 正則溶体モデル</h3>
+            <p>正則溶体（regular solution）モデルは、理想溶体に<strong>エンタルピー項</strong>を追加したモデルです。成分間の相互作用を考慮できます。</p>
+
+            <div class="key-point">
+                <h4>正則溶体の混合ギブスエネルギー</h4>
+                <p>二元系（A-B）の正則溶体における混合ギブスエネルギー：</p>
+                <p style="text-align: center; font-size: 1.1rem; margin: 1rem 0;">
+                    $$ \Delta G_{\text{mix}}^{\text{regular}} = \Omega x_A x_B + RT (x_A \ln x_A + x_B \ln x_B) $$
+                </p>
+                <ul>
+                    <li><strong>第1項</strong> $\Omega x_A x_B$: エンタルピー項（相互作用パラメータ $\Omega$）</li>
+                    <li><strong>第2項</strong>: エントロピー項（理想溶体と同じ）</li>
+                </ul>
+                <p>$\Omega$ の符号により、溶体の挙動が変わります：</p>
+                <ul>
+                    <li>$\Omega > 0$: 反発的相互作用（相分離しやすい）</li>
+                    <li>$\Omega < 0$: 引力的相互作用（化合物形成しやすい）</li>
+                    <li>$\Omega = 0$: 理想溶体</li>
+                </ul>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">📝 コード例4: 正則溶体モデル（相互作用パラメータΩ）</span>
+                    <button class="copy-button" onclick="copyCode(this)">コピー</button>
+                </div>
+                <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# 定数
+R = 8.314  # J/(mol·K)
+T = 1000   # K
+
+# 組成範囲
+x_A = np.linspace(0.001, 0.999, 300)
+x_B = 1 - x_A
+
+# エントロピー項
+entropy_term = R * T * (x_A * np.log(x_A) + x_B * np.log(x_B))
+
+# 異なる相互作用パラメータ
+omega_values = [0, 10000, 20000, 30000]  # J/mol
+colors = ['black', '#10b981', '#f093fb', '#f5576c']
+labels = ['Ω = 0 (理想)', 'Ω = 10 kJ/mol', 'Ω = 20 kJ/mol', 'Ω = 30 kJ/mol']
+
+plt.figure(figsize=(12, 7))
+
+for omega, color, label in zip(omega_values, colors, labels):
+    # 正則溶体の混合ギブスエネルギー
+    enthalpy_term = omega * x_A * x_B
+    dG_mix = enthalpy_term + entropy_term
+    plt.plot(x_A, dG_mix / 1000, linewidth=2.5, label=label, color=color)
+
+plt.axhline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+plt.xlabel('モル分率 $x_A$', fontsize=13)
+plt.ylabel('混合ギブスエネルギー $\\Delta G_{mix}$ (kJ/mol)', fontsize=13)
+plt.title('正則溶体モデル: 相互作用パラメータの効果 (T = 1000 K)', fontsize=14, fontweight='bold')
+plt.legend(fontsize=12, loc='best')
+plt.grid(True, alpha=0.3)
+
+# 重要な変化点を強調
+plt.text(0.5, 5, '↑ Ω が大きいと中間組成で\n  ΔG が上昇（相分離傾向）',
+         ha='center', fontsize=11,
+         bbox=dict(boxstyle='round', facecolor='#fff3cd', alpha=0.9))
+
+plt.ylim([-12, 10])
+plt.tight_layout()
+plt.savefig('regular_solution_omega.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("正則溶体モデルの特徴：")
+print("- Ω > 0 が大きいほど、中間組成での ΔG が上昇")
+print("- Ω が十分大きいと、ΔG > 0 となる組成範囲が現れ、相分離が起こる")
+print("- 臨界温度 T_c 以下で相分離、以上で完全固溶")
+</code></pre>
+            </div>
+
+            <h3>4.3 スピノーダル分解と相分離</h3>
+            <p>正則溶体で $\Omega > 0$ が十分大きいと、ギブスエネルギー曲線が<strong>上に凸</strong>の領域（$\frac{\partial^2 G}{\partial x^2} < 0$）を持つようになります。この領域を<strong>スピノーダル領域（spinodal region）</strong>と呼び、ここでは自発的な相分離（スピノーダル分解）が起こります。</p>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">📝 コード例5: スピノーダル分解領域の可視化</span>
+                    <button class="copy-button" onclick="copyCode(this)">コピー</button>
+                </div>
+                <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import fsolve
+
+# 定数
+R = 8.314  # J/(mol·K)
+Omega = 25000  # J/mol (反発的相互作用)
+T = 1000  # K
+
+# 組成範囲
+x_A = np.linspace(0.001, 0.999, 500)
+x_B = 1 - x_A
+
+# ギブスエネルギー
+entropy_term = R * T * (x_A * np.log(x_A) + x_B * np.log(x_B))
+enthalpy_term = Omega * x_A * x_B
+G = enthalpy_term + entropy_term
+
+# 二階微分を計算（スピノーダル点の判定）
+def second_derivative(x):
+    """ギブスエネルギーの二階微分"""
+    return 2 * Omega + R * T * (1/x + 1/(1-x))
+
+d2G_dx2 = second_derivative(x_A)
+
+# スピノーダル点（二階微分 = 0）
+spinodal_unstable = x_A[d2G_dx2 < 0]
+
+# 可視化
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(11, 10))
+
+# 上図: ギブスエネルギー曲線
+ax1.plot(x_A, G / 1000, linewidth=3, color='#f093fb', label='$\\Delta G_{mix}$')
+ax1.axhline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+
+# スピノーダル領域を塗りつぶし
+if len(spinodal_unstable) > 0:
+    x_spin_min = spinodal_unstable[0]
+    x_spin_max = spinodal_unstable[-1]
+    ax1.axvspan(x_spin_min, x_spin_max, alpha=0.2, color='red',
+                label=f'スピノーダル領域\n({x_spin_min:.3f} < $x_A$ < {x_spin_max:.3f})')
+    ax1.axvline(x_spin_min, color='red', linewidth=1.5, linestyle='--', alpha=0.7)
+    ax1.axvline(x_spin_max, color='red', linewidth=1.5, linestyle='--', alpha=0.7)
+
+ax1.set_xlabel('モル分率 $x_A$', fontsize=13)
+ax1.set_ylabel('$\\Delta G_{mix}$ (kJ/mol)', fontsize=13)
+ax1.set_title(f'正則溶体のギブスエネルギー (Ω = {Omega/1000:.0f} kJ/mol, T = {T} K)',
+              fontsize=14, fontweight='bold')
+ax1.legend(fontsize=11, loc='upper right')
+ax1.grid(True, alpha=0.3)
+
+# 下図: 二階微分（安定性判定）
+ax2.plot(x_A, d2G_dx2 / 1000, linewidth=2.5, color='#3b82f6')
+ax2.axhline(0, color='red', linewidth=2, linestyle='-', alpha=0.7, label='安定/不安定境界')
+ax2.fill_between(x_A, 0, d2G_dx2 / 1000, where=(d2G_dx2 < 0),
+                  alpha=0.3, color='red', label='不安定領域 ($\\partial^2 G / \\partial x^2 < 0$)')
+ax2.fill_between(x_A, 0, d2G_dx2 / 1000, where=(d2G_dx2 >= 0),
+                  alpha=0.3, color='green', label='安定領域 ($\\partial^2 G / \\partial x^2 > 0$)')
+
+ax2.set_xlabel('モル分率 $x_A$', fontsize=13)
+ax2.set_ylabel('$\\partial^2 G / \\partial x^2$ (kJ/mol)', fontsize=13)
+ax2.set_title('熱力学的安定性の判定', fontsize=14, fontweight='bold')
+ax2.legend(fontsize=11, loc='upper left')
+ax2.grid(True, alpha=0.3)
+ax2.set_ylim([-50, 100])
+
+plt.tight_layout()
+plt.savefig('spinodal_decomposition.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print(f"スピノーダル点: x_A = {x_spin_min:.3f} と {x_spin_max:.3f}")
+print("この領域では自発的に相分離が起こります（スピノーダル分解）。")
+print("\n相分離の種類：")
+print("- スピノーダル分解: 組成のゆらぎが成長（核生成不要）")
+print("- 核生成・成長: 新相の核が形成され成長（エネルギー障壁あり）")
+</code></pre>
+            </div>
+
+            <div class="warning-box">
+                <h4>注意: スピノーダル分解と核生成・成長の違い</h4>
+                <p>相分離には2つのメカニズムがあります：</p>
+                <ul>
+                    <li><strong>スピノーダル分解</strong>: $\frac{\partial^2 G}{\partial x^2} < 0$ の領域で、組成のわずかなゆらぎが自発的に成長。核生成のエネルギー障壁がない。</li>
+                    <li><strong>核生成・成長</strong>: $\frac{\partial^2 G}{\partial x^2} > 0$ だが、共通接線法で二相の方が安定な領域。新相の核を形成するエネルギー障壁があり、過飽和状態が必要。</li>
+                </ul>
+            </div>
+        </section>
+
+        <section>
+            <h2>5. 共通接線法（Common Tangent Construction）</h2>
+
+            <h3>5.1 共通接線法の原理</h3>
+            <p>複数の相が共存する場合、系全体のギブスエネルギーを最小化する組成を見つける必要があります。この問題を幾何学的に解くのが<strong>共通接線法</strong>です。</p>
+
+            <div class="key-point">
+                <h4>共通接線法の原理</h4>
+                <p>二相（$\alpha$ 相と $\beta$ 相）が平衡共存する組成は、ギブスエネルギー曲線 $G(x)$ に対する<strong>共通接線</strong>の接点として求められます。</p>
+                <p><strong>幾何学的条件</strong>:</p>
+                <ul>
+                    <li>接線の傾きが両方の接点で等しい（化学ポテンシャルの平衡条件）</li>
+                    <li>接線が $G(x)$ 曲線のすべての点の下側にある（最小ギブスエネルギー条件）</li>
+                </ul>
+                <p><strong>数学的条件</strong>: 組成 $x_\alpha$ と $x_\beta$ で：</p>
+                <p style="text-align: center;">
+                    $$ \mu_A^\alpha = \mu_A^\beta, \quad \mu_B^\alpha = \mu_B^\beta $$
+                </p>
+                <p>または、傾きの等式：</p>
+                <p style="text-align: center;">
+                    $$ \frac{dG}{dx}\bigg|_{x_\alpha} = \frac{dG}{dx}\bigg|_{x_\beta} = \frac{G(x_\beta) - G(x_\alpha)}{x_\beta - x_\alpha} $$
+                </p>
+            </div>
+
+            <div class="example-box">
+                <h4>共通接線法の手順</h4>
+                <ol>
+                    <li>ギブスエネルギー曲線 $G(x)$ を描く</li>
+                    <li>曲線上の2点を結ぶ直線（接線候補）を考える</li>
+                    <li>その直線が両方の点で $G(x)$ に接しているか確認（微分が等しい）</li>
+                    <li>その直線が $G(x)$ のすべての点より下にあるか確認</li>
+                    <li>条件を満たす2点が、二相平衡の組成 $x_\alpha$ と $x_\beta$</li>
+                </ol>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">📝 コード例6: 共通接線法による二相平衡組成の決定</span>
+                    <button class="copy-button" onclick="copyCode(this)">コピー</button>
+                </div>
+                <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+
+# 定数
+R = 8.314  # J/(mol·K)
+Omega = 25000  # J/mol
+T = 1000  # K
+
+def gibbs_energy(x):
+    """正則溶体のギブスエネルギー"""
+    if x <= 0 or x >= 1:
+        return np.inf
+    return Omega * x * (1 - x) + R * T * (x * np.log(x) + (1 - x) * np.log(1 - x))
+
+def gibbs_derivative(x):
+    """ギブスエネルギーの一階微分（化学ポテンシャル差）"""
+    if x <= 0 or x >= 1:
+        return 0
+    return Omega * (1 - 2*x) + R * T * (np.log(x) - np.log(1 - x))
+
+# 共通接線法：二相平衡組成を求める
+def common_tangent_condition(params):
+    """共通接線条件（最小化する目的関数）"""
+    x_alpha, x_beta = params
+    if x_alpha <= 0 or x_alpha >= 1 or x_beta <= 0 or x_beta >= 1 or x_alpha >= x_beta:
+        return 1e10
+
+    # 条件1: 両点での接線の傾きが等しい
+    slope_alpha = gibbs_derivative(x_alpha)
+    slope_beta = gibbs_derivative(x_beta)
+
+    # 条件2: 接線の傾きが2点を結ぶ直線の傾きと等しい
+    tangent_slope = (gibbs_energy(x_beta) - gibbs_energy(x_alpha)) / (x_beta - x_alpha)
+
+    # 誤差の二乗和
+    error = (slope_alpha - tangent_slope)**2 + (slope_beta - tangent_slope)**2
+    return error
+
+# 初期値から最適化
+initial_guess = [0.2, 0.8]
+result = minimize(common_tangent_condition, initial_guess, method='Nelder-Mead',
+                  bounds=[(0.01, 0.49), (0.51, 0.99)])
+
+x_alpha, x_beta = result.x
+G_alpha = gibbs_energy(x_alpha)
+G_beta = gibbs_energy(x_beta)
+
+print(f"二相平衡組成:")
+print(f"  α相: x_A = {x_alpha:.4f}, G = {G_alpha/1000:.2f} kJ/mol")
+print(f"  β相: x_A = {x_beta:.4f}, G = {G_beta/1000:.2f} kJ/mol")
+
+# 可視化
+x = np.linspace(0.001, 0.999, 500)
+G = np.array([gibbs_energy(xi) for xi in x])
+
+plt.figure(figsize=(12, 7))
+plt.plot(x, G / 1000, linewidth=3, color='#f093fb', label='$G(x)$ 単相')
+
+# 共通接線を描画
+tangent_x = np.array([x_alpha, x_beta])
+tangent_G = np.array([G_alpha, G_beta])
+plt.plot(tangent_x, tangent_G / 1000, 'o-', markersize=10, linewidth=2.5,
+         color='#f5576c', label='共通接線（二相平衡）')
+
+# 共通接線を延長
+slope = (G_beta - G_alpha) / (x_beta - x_alpha)
+x_extended = np.linspace(0, 1, 100)
+G_extended = G_alpha + slope * (x_extended - x_alpha)
+plt.plot(x_extended, G_extended / 1000, '--', linewidth=1.5, color='#f5576c', alpha=0.5)
+
+# 平衡組成を強調
+plt.axvline(x_alpha, color='gray', linewidth=1, linestyle=':', alpha=0.5)
+plt.axvline(x_beta, color='gray', linewidth=1, linestyle=':', alpha=0.5)
+plt.text(x_alpha, -2, f'$x_\\alpha={x_alpha:.3f}$', ha='center', fontsize=11,
+         bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
+plt.text(x_beta, -2, f'$x_\\beta={x_beta:.3f}$', ha='center', fontsize=11,
+         bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
+
+# 二相領域を塗りつぶし
+plt.axvspan(x_alpha, x_beta, alpha=0.15, color='orange',
+            label=f'二相領域 (α + β)')
+
+plt.axhline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+plt.xlabel('モル分率 $x_A$', fontsize=13)
+plt.ylabel('ギブスエネルギー $G$ (kJ/mol)', fontsize=13)
+plt.title(f'共通接線法による二相平衡の決定 (T = {T} K)', fontsize=14, fontweight='bold')
+plt.legend(fontsize=12, loc='upper right')
+plt.grid(True, alpha=0.3)
+plt.ylim([-4, 3])
+
+plt.tight_layout()
+plt.savefig('common_tangent_method.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("\n共通接線法の意味：")
+print("- 共通接線より上の単相状態は不安定（二相に分離した方が G が低い）")
+print("- 系の平均組成が x_alpha < x_avg < x_beta なら、α相と β相が共存")
+print("- レバールール：各相の量比は、平均組成から反対側の端までの距離の比")
+</code></pre>
+            </div>
+
+            <h3>5.2 レバールール（Lever Rule）</h3>
+            <p>系の平均組成が $x_{\text{avg}}$ で、$x_\alpha < x_{\text{avg}} < x_\beta$ の二相領域にある場合、各相の量比は<strong>レバールール（lever rule）</strong>で決まります：</p>
+
+            <p style="text-align: center; font-size: 1.1rem; background-color: var(--color-bg-alt); padding: 1rem; border-radius: var(--border-radius);">
+                $$ \frac{n_\beta}{n_\alpha} = \frac{x_{\text{avg}} - x_\alpha}{x_\beta - x_{\text{avg}}} $$
+            </p>
+
+            <p>ここで、$n_\alpha$ と $n_\beta$ は各相のモル数です。これは、てこの原理と同じ関係です。</p>
+        </section>
+
+        <section>
+            <h2>6. 化学ポテンシャルの組成依存性</h2>
+
+            <h3>6.1 化学ポテンシャルとギブスエネルギーの関係</h3>
+            <p>化学ポテンシャルは、ギブスエネルギー曲線の<strong>傾き（一階微分）</strong>と密接に関係しています。二元系（A-B）では：</p>
+
+            <p style="text-align: center; font-size: 1.05rem;">
+                $$ \mu_A - \mu_B = \frac{\partial G}{\partial x_A} $$
+            </p>
+
+            <p>これは、「化学ポテンシャルの差」が「ギブスエネルギー曲線の傾き」を表すことを意味します。共通接線法で求めた平衡組成では、両相でこの傾きが等しくなります。</p>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">📝 コード例7: 化学ポテンシャルの組成依存性</span>
+                    <button class="copy-button" onclick="copyCode(this)">コピー</button>
+                </div>
+                <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# 定数
+R = 8.314
+T = 1000
+Omega = 20000  # J/mol
+
+# 組成範囲
+x_A = np.linspace(0.01, 0.99, 200)
+
+def chemical_potential_A(x, T, Omega):
+    """成分Aの化学ポテンシャル（μ_A^0 = 0 を基準）"""
+    return Omega * (1 - x)**2 + R * T * np.log(x)
+
+def chemical_potential_B(x, T, Omega):
+    """成分Bの化学ポテンシャル（μ_B^0 = 0 を基準）"""
+    return Omega * x**2 + R * T * np.log(1 - x)
+
+mu_A = chemical_potential_A(x_A, T, Omega)
+mu_B = chemical_potential_B(x_A, T, Omega)
+
+# 可視化
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+
+# 左図: 化学ポテンシャル
+ax1.plot(x_A, mu_A / 1000, linewidth=2.5, color='#f093fb', label='$\\mu_A$')
+ax1.plot(x_A, mu_B / 1000, linewidth=2.5, color='#3b82f6', label='$\\mu_B$')
+ax1.axhline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+ax1.set_xlabel('モル分率 $x_A$', fontsize=13)
+ax1.set_ylabel('化学ポテンシャル (kJ/mol)', fontsize=13)
+ax1.set_title('化学ポテンシャルの組成依存性', fontsize=14, fontweight='bold')
+ax1.legend(fontsize=12)
+ax1.grid(True, alpha=0.3)
+ax1.set_ylim([-40, 20])
+
+# 交点を強調（理想溶体では x = 0.5）
+x_cross = 0.5
+mu_cross = chemical_potential_A(x_cross, T, Omega)
+ax1.plot(x_cross, mu_cross / 1000, 'o', markersize=10, color='#10b981')
+ax1.text(x_cross + 0.1, mu_cross / 1000, f'$x_A={x_cross}$\n$\\mu_A=\\mu_B$',
+         fontsize=10, verticalalignment='center')
+
+# 右図: 化学ポテンシャル差（駆動力）
+mu_diff = mu_A - mu_B
+ax2.plot(x_A, mu_diff / 1000, linewidth=2.5, color='#f5576c')
+ax2.axhline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+ax2.axvline(x_cross, color='gray', linewidth=0.8, linestyle=':', alpha=0.5)
+ax2.fill_between(x_A, 0, mu_diff / 1000, where=(mu_diff > 0),
+                  alpha=0.2, color='red', label='A → B への駆動力')
+ax2.fill_between(x_A, 0, mu_diff / 1000, where=(mu_diff < 0),
+                  alpha=0.2, color='blue', label='B → A への駆動力')
+ax2.set_xlabel('モル分率 $x_A$', fontsize=13)
+ax2.set_ylabel('$\\mu_A - \\mu_B$ (kJ/mol)', fontsize=13)
+ax2.set_title('化学ポテンシャル差（拡散駆動力）', fontsize=14, fontweight='bold')
+ax2.legend(fontsize=11)
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('chemical_potential_composition.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("化学ポテンシャルの物理的意味：")
+print("- μ_A > μ_B: 成分Aが「高エネルギー」状態 → A原子が減る方向へ変化")
+print("- μ_A < μ_B: 成分Bが「高エネルギー」状態 → B原子が減る方向へ変化")
+print("- μ_A = μ_B: 化学平衡（拡散なし）")
+print("\n拡散現象への応用：")
+print("- Fick則の駆動力は濃度勾配ではなく、化学ポテンシャル勾配 ∇μ")
+print("- 上り拡散（uphill diffusion）もμ勾配で説明可能")
+</code></pre>
+            </div>
+        </section>
+
+        <section>
+            <h2>7. 実材料系での応用</h2>
+
+            <h3>7.1 Cu-Ni合金系</h3>
+            <p>銅（Cu）とニッケル（Ni）は、全率固溶する代表的な合金系です。やや引力的な相互作用（$\Omega < 0$）を持ち、理想溶体に近い挙動を示します。</p>
+
+            <h3>7.2 Fe-Cr合金系</h3>
+            <p>鉄（Fe）とクロム（Cr）は、ステンレス鋼の主要成分ですが、低温で反発的相互作用（$\Omega > 0$）により相分離（$\alpha$ + $\alpha'$ 二相分離）を起こします。これは「475°C脆化」として知られる現象の原因です。</p>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">📝 コード例8: 実材料系（Cu-Ni, Fe-Cr）でのギブスエネルギー計算</span>
+                    <button class="copy-button" onclick="copyCode(this)">コピー</button>
+                </div>
+                <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# 定数
+R = 8.314  # J/(mol·K)
+
+# 材料系のパラメータ（文献値に基づく簡略モデル）
+materials = {
+    'Cu-Ni': {
+        'Omega': -5000,  # J/mol (引力的)
+        'T': 1300,       # K
+        'color': '#10b981',
+        'title': 'Cu-Ni合金 (全率固溶)'
+    },
+    'Fe-Cr': {
+        'Omega': 22000,  # J/mol (反発的)
+        'T': 750,        # K (475°C ≈ 748 K)
+        'color': '#f5576c',
+        'title': 'Fe-Cr合金 (相分離傾向)'
+    }
+}
+
+x = np.linspace(0.001, 0.999, 400)
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+for ax, (name, params) in zip(axes, materials.items()):
+    Omega = params['Omega']
+    T = params['T']
+    color = params['color']
+    title = params['title']
+
+    # ギブスエネルギー
+    entropy = R * T * (x * np.log(x) + (1 - x) * np.log(1 - x))
+    enthalpy = Omega * x * (1 - x)
+    G_mix = enthalpy + entropy
+
+    # 描画
+    ax.plot(x, G_mix / 1000, linewidth=3, color=color, label='$\\Delta G_{mix}$')
+    ax.axhline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+
+    # エンタルピー項とエントロピー項を別々に表示
+    ax.plot(x, enthalpy / 1000, '--', linewidth=1.5, color='red', alpha=0.5, label='エンタルピー項')
+    ax.plot(x, entropy / 1000, '--', linewidth=1.5, color='blue', alpha=0.5, label='エントロピー項')
+
+    ax.set_xlabel(f'モル分率 $x_{name.split("-")[0]}$', fontsize=12)
+    ax.set_ylabel('$\\Delta G_{mix}$ (kJ/mol)', fontsize=12)
+    ax.set_title(f'{title}\n(T = {T} K, Ω = {Omega/1000:.0f} kJ/mol)',
+                 fontsize=13, fontweight='bold')
+    ax.legend(fontsize=10, loc='best')
+    ax.grid(True, alpha=0.3)
+
+    # Cu-Niの場合、全体が負で安定
+    if Omega < 0:
+        ax.text(0.5, G_mix[len(G_mix)//2] / 1000 - 1.5,
+                '全組成で ΔG < 0\n→ 完全固溶',
+                ha='center', fontsize=10,
+                bbox=dict(boxstyle='round', facecolor='#d1fae5', alpha=0.9))
+    else:
+        # Fe-Crの場合、相分離領域を示唆
+        if np.any(G_mix > 0):
+            ax.text(0.5, 1,
+                    '中間組成で ΔG > 0\n→ 相分離傾向',
+                    ha='center', fontsize=10,
+                    bbox=dict(boxstyle='round', facecolor='#fee2e2', alpha=0.9))
+
+plt.tight_layout()
+plt.savefig('real_materials_gibbs.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("実材料系の熱力学的挙動：")
+print("\n【Cu-Ni合金】")
+print("- Ω < 0: わずかに引力的")
+print("- 全温度・全組成で完全固溶（単一FCC相）")
+print("- 連続固溶体合金の代表例")
+print("\n【Fe-Cr合金】")
+print("- Ω > 0: 反発的（特に低温で顕著）")
+print("- 475°C付近で α → α + α' 相分離（スピノーダル分解）")
+print("- Cr濃度約15-70%で脆化（ステンレス鋼の課題）")
+print("\n応用：")
+print("- CALPHADデータベースを使えば、実験データに基づく高精度計算が可能")
+print("- 多元系（3成分以上）や複雑な相図も計算可能")
+</code></pre>
+            </div>
+
+            <div class="warning-box">
+                <h4>注意: 実用材料の複雑性</h4>
+                <p>ここで示した正則溶体モデルは、教育目的の簡略化です。実際の材料では：</p>
+                <ul>
+                    <li><strong>温度依存性</strong>: $\Omega$ は温度に依存（$\Omega = \Omega_0 + \Omega_1 T$ など）</li>
+                    <li><strong>高次項</strong>: $\Omega x(1-x)$ だけでなく、$x^3$, $x^4$ などの項が必要</li>
+                    <li><strong>結晶構造の違い</strong>: FCC、BCC、HCPなど、相ごとに異なるギブスエネルギー</li>
+                    <li><strong>磁気効果</strong>: Fe、Niなどは磁気寄与が大きい</li>
+                </ul>
+                <p>精密な計算には、CALPHAD法（Thermo-Calc、FactSage、PANDAT等）を使います。</p>
+            </div>
+        </section>
+
+        <section>
+            <h2>8. 温度変化によるギブス曲線の変化</h2>
+
+            <p>温度が変わると、ギブスエネルギー曲線の形状が変化し、相平衡も変わります。これを可視化することで、相図（phase diagram）の起源を理解できます。</p>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span class="code-title">📝 コード例（追加）: 温度変化によるギブスエネルギー曲線の変化</span>
+                    <button class="copy-button" onclick="copyCode(this)">コピー</button>
+                </div>
+                <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# 定数
+R = 8.314
+Omega = 25000  # J/mol (一定)
+
+# 組成範囲
+x = np.linspace(0.001, 0.999, 300)
+
+# 温度範囲
+temperatures = [600, 800, 1000, 1200, 1400]  # K
+colors = ['#dc2626', '#f97316', '#f093fb', '#3b82f6', '#10b981']
+
+plt.figure(figsize=(12, 7))
+
+for T, color in zip(temperatures, colors):
+    entropy = R * T * (x * np.log(x) + (1 - x) * np.log(1 - x))
+    enthalpy = Omega * x * (1 - x)
+    G_mix = enthalpy + entropy
+
+    plt.plot(x, G_mix / 1000, linewidth=2.5, label=f'T = {T} K', color=color)
+
+plt.axhline(0, color='gray', linewidth=0.8, linestyle='--', alpha=0.5)
+plt.xlabel('モル分率 $x_A$', fontsize=13)
+plt.ylabel('混合ギブスエネルギー $\\Delta G_{mix}$ (kJ/mol)', fontsize=13)
+plt.title('温度変化によるギブスエネルギー曲線の変化', fontsize=14, fontweight='bold')
+plt.legend(fontsize=11, loc='upper right')
+plt.grid(True, alpha=0.3)
+
+# 臨界温度の説明
+T_critical = Omega / (2 * R)  # 正則溶体の臨界温度近似
+plt.text(0.5, -8, f'臨界温度 $T_c \\approx {T_critical:.0f}$ K\n'
+                  f'$T > T_c$: 完全固溶\n$T < T_c$: 相分離',
+         ha='center', fontsize=11,
+         bbox=dict(boxstyle='round', facecolor='#fef3c7', alpha=0.9))
+
+plt.ylim([-12, 8])
+plt.tight_layout()
+plt.savefig('temperature_effect_gibbs.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print(f"臨界温度（近似）: T_c ≈ Ω/(2R) = {T_critical:.0f} K")
+print("\n温度効果：")
+print("- 高温: エントロピー項（-TΔS）が支配的 → 混合が有利")
+print("- 低温: エンタルピー項（Ω x(1-x)）が支配的 → 相分離傾向")
+print("- T > T_c: 全組成で ΔG < 0 → 単相")
+print("- T < T_c: 中間組成で二相分離")
+print("\nこれが相図の温度-組成平面での相境界線を決定します。")
+</code></pre>
+            </div>
+        </section>
+
+        <section>
+            <h2>まとめ</h2>
+
+            <div class="key-point">
+                <h4>本章で学んだ重要事項</h4>
+                <ul>
+                    <li><strong>ギブスエネルギー最小化原理</strong>: 一定温度・圧力下で、系は $G$ が最小の状態で平衡</li>
+                    <li><strong>化学ポテンシャル（$\mu_i$）</strong>: 成分 $i$ を追加したときの $G$ の変化率、「成分の熱力学的価値」</li>
+                    <li><strong>活量（$a_i$）と活量係数（$\gamma_i$）</strong>: 実在溶体での「有効濃度」、理想溶体からのずれを表す</li>
+                    <li><strong>理想溶体</strong>: $\Delta G_{\text{mix}} = RT(x_A \ln x_A + x_B \ln x_B)$、常に混合が有利</li>
+                    <li><strong>正則溶体モデル</strong>: $\Delta G_{\text{mix}} = \Omega x_A x_B + RT(x_A \ln x_A + x_B \ln x_B)$、相互作用パラメータ $\Omega$ で相分離を予測</li>
+                    <li><strong>共通接線法</strong>: ギブスエネルギー曲線への共通接線で、二相平衡組成を決定する幾何学的方法</li>
+                    <li><strong>スピノーダル分解</strong>: $\frac{\partial^2 G}{\partial x^2} < 0$ の領域で起こる自発的相分離</li>
+                    <li><strong>実材料系への応用</strong>: Cu-Ni（全率固溶）、Fe-Cr（低温相分離）などの熱力学計算</li>
+                </ul>
+            </div>
+
+            <p>次章では、これらの概念を三元系以上の多成分系に拡張し、<strong>相図（phase diagram）</strong>の読み方と計算法を学びます。また、実験データとCALPHADデータベースを組み合わせた実用的な熱力学計算手法も紹介します。</p>
+        </section>
+
+        <section class="exercise-section">
+            <h3>📝 演習問題</h3>
+
+            <div class="exercise">
+                <h4>演習1: 化学ポテンシャルの計算</h4>
+                <p><strong>問題</strong>: 理想溶体において、成分Aのモル分率が $x_A = 0.3$ のときの化学ポテンシャル $\mu_A$ を計算してください。条件：$T = 1200$ K、$\mu_A^0 = 0$ J/mol（参照状態）。</p>
+                <p><strong>ヒント</strong>: $\mu_A = \mu_A^0 + RT \ln x_A$ を使います。</p>
+            </div>
+
+            <div class="exercise">
+                <h4>演習2: 活量の計算</h4>
+                <p><strong>問題</strong>: ある合金系で、成分Aの活量係数が $\gamma_A = 1.2$、モル分率が $x_A = 0.5$ です。活量 $a_A$ を計算してください。また、この系は理想溶体と比べて混合しやすいか、しにくいかを判定してください。</p>
+            </div>
+
+            <div class="exercise">
+                <h4>演習3: 相分離の判定</h4>
+                <p><strong>問題</strong>: 正則溶体モデルで、$\Omega = 18000$ J/mol、$T = 900$ K のとき、$x_A = 0.5$ での混合ギブスエネルギー $\Delta G_{\text{mix}}$ を計算してください。この組成で単相は安定ですか？</p>
+                <p><strong>ヒント</strong>: コード例4を参考に、$\Delta G_{\text{mix}}$ の符号を確認します。</p>
+            </div>
+
+            <div class="exercise">
+                <h4>演習4: 共通接線法の応用（発展）</h4>
+                <p><strong>問題</strong>: コード例6を改変して、$\Omega = 30000$ J/mol、$T = 800$ K の条件で二相平衡組成 $x_\alpha$ と $x_\beta$ を求めてください。さらに、系の平均組成が $x_{\text{avg}} = 0.5$ のとき、レバールールを使って各相のモル分率を計算してください。</p>
+                <p><strong>レバールール</strong>: $f_\beta = \frac{x_{\text{avg}} - x_\alpha}{x_\beta - x_\alpha}$ （$f_\beta$ は β相のモル分率）</p>
+            </div>
+        </section>
+
+        <section>
+            <h2>参考文献</h2>
+            <ol>
+                <li>D.R. Gaskell, D.E. Laughlin, "Introduction to the Thermodynamics of Materials", 6th Edition, CRC Press, 2017</li>
+                <li>D.A. Porter, K.E. Easterling, M.Y. Sherif, "Phase Transformations in Metals and Alloys", 3rd Edition, CRC Press, 2009</li>
+                <li>H. Lukas, S.G. Fries, B. Sundman, "Computational Thermodynamics: The CALPHAD Method", Cambridge University Press, 2007</li>
+                <li>J.W. Cahn, J.E. Hilliard, "Free Energy of a Nonuniform System. I. Interfacial Free Energy", Journal of Chemical Physics, 28(2), 258-267, 1958</li>
+                <li>R.A. Swalin, "Thermodynamics of Solids", 2nd Edition, Wiley, 1972</li>
+                <li>矢島悦次郎, 「材料の物理化学」, 内田老鶴圃, 2010</li>
+                <li>西澤泰二, 「材料組織学」, 朝倉書店, 2005</li>
+            </ol>
+        </section>
+
+        <nav class="navigation" aria-label="章ナビゲーション">
+            <a href="chapter-1.html" class="nav-button">← 前の章：熱力学の基礎と材料への応用</a>
+            <a href="chapter-3.html" class="nav-button">次の章へ：相図と相平衡 →</a>
+        </nav>
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言（法律・会計・技術的保証など）を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するコード例は「現状有姿（AS IS）」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツの著作権・ライセンスは明記された条件（例: CC BY 4.0）に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <p><strong>シリーズ</strong>: 材料熱力学入門（Materials Thermodynamics Introduction）</p>
+        <p><strong>第2章</strong>: ギブスエネルギーと化学ポテンシャル</p>
+        <p><strong>作成者</strong>: MS Knowledge Hub Content Team</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-27</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>&copy; 2025 MS Terakoya. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // コピー機能
+        function copyCode(button) {
+            const codeBlock = button.parentElement.nextElementSibling.querySelector('code');
+            const textArea = document.createElement('textarea');
+            textArea.value = codeBlock.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+
+            button.textContent = 'コピーしました！';
+            button.style.backgroundColor = '#10b981';
+            setTimeout(() => {
+                button.textContent = 'コピー';
+                button.style.backgroundColor = '';
+            }, 2000);
+        }
+
+        // ページロード時のアニメーション（オプション）
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('第2章: ギブスエネルギーと化学ポテンシャル - 読み込み完了');
+        });
+    </script>
+</body>
+</html>
