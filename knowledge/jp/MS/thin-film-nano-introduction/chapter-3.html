@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章: 化学蒸着法（CVD） - 薄膜・ナノ材料プロセス入門 - MS Dojo</title>
+    <meta name="description" content="化学蒸着法（CVD）の原理と応用を学ぶ。熱CVD、PECVD、ALD、MOCVDの技術をPythonシミュレーションで理解する。">
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- MathJax for mathematical expressions -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --accent-pink: #f093fb;
+            --accent-coral: #f5576c;
+            --primary-dark: #2c3e50;
+            --secondary-dark: #34495e;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #ecf0f1;
+            --white: #ffffff;
+            --code-bg: #2d2d2d;
+            --border-light: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-coral) 100%);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-coral) 100%);
+            color: white;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        section {
+            background: var(--white);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(90deg, var(--accent-pink), var(--accent-coral)) 1;
+        }
+
+        h3 {
+            color: var(--secondary-dark);
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem;
+        }
+
+        h4 {
+            color: var(--secondary-dark);
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        pre code {
+            background: none;
+            color: #f8f8f2;
+            padding: 0;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.1) 0%, rgba(245, 87, 108, 0.1) 100%);
+            border-left: 4px solid var(--accent-coral);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            color: var(--accent-coral);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .warning-box {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .warning-box strong {
+            color: var(--warning);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .exercise-box {
+            background: rgba(39, 174, 96, 0.05);
+            border: 2px solid var(--success);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .exercise-box h4 {
+            color: var(--success);
+            margin-top: 0;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .difficulty.easy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .difficulty.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .difficulty.hard {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-coral) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(240, 147, 251, 0.05);
+        }
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--accent-pink);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--accent-coral);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>第3章: 化学蒸着法（CVD）</h1>
+        <p>熱CVD・PECVD・ALD・MOCVDの原理と応用技術</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">トップ</a></li>
+            <li><a href="chapter-2.html">← 前の章</a></li>
+            <li><a href="#overview">CVD概要</a></li>
+            <li><a href="#thermal-cvd">熱CVD</a></li>
+            <li><a href="#pecvd">PECVD</a></li>
+            <li><a href="#ald">ALD</a></li>
+            <li><a href="#mocvd">MOCVD</a></li>
+            <li><a href="#exercises">演習問題</a></li>
+            <li><a href="#references">参考文献</a></li>
+            <li><a href="chapter-4.html">次の章へ →</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="intro">
+            <h2>3.1 化学蒸着法（CVD）の概要</h2>
+
+            <p>
+                <strong>化学蒸着法（Chemical Vapor Deposition, CVD）</strong>は、前駆体ガスを基板表面で化学反応させ、固体薄膜を生成する技術です。PVDと異なり、化学反応を駆動力とするため、<strong>高い共形性（conformal coating）</strong>と<strong>組成制御</strong>が実現できます。
+            </p>
+
+            <div class="info-box">
+                <strong>本章の学習目標</strong>
+                <ul>
+                    <li><strong>レベル1（基本理解）</strong>: CVD4技術（熱CVD、PECVD、ALD、MOCVD）の原理と違いを理解する</li>
+                    <li><strong>レベル2（実践スキル）</strong>: Pythonで成長速度、反応速度定数、ALDサイクルを計算できる</li>
+                    <li><strong>レベル3（応用力）</strong>: プロセスパラメータ（温度、圧力、ガス流量）と膜質の関係を説明し、条件最適化できる</li>
+                </ul>
+            </div>
+
+            <h3>CVD技術の分類</h3>
+
+            <div class="mermaid">
+            flowchart TD
+                A[化学蒸着法 CVD] --> B[熱CVD]
+                A --> C[PECVD]
+                A --> D[ALD]
+                A --> E[MOCVD]
+
+                B --> B1[LPCVD]
+                B --> B2[APCVD]
+
+                C --> C1[CCP]
+                C --> C2[ICP]
+
+                D --> D1[熱ALD]
+                D --> D2[プラズマALD]
+
+                E --> E1[大気圧MOCVD]
+                E --> E2[LP-MOCVD]
+
+                style A fill:#f093fb,color:#fff
+                style B fill:#f5576c,color:#fff
+                style C fill:#27ae60,color:#fff
+                style D fill:#f39c12,color:#fff
+                style E fill:#3498db,color:#fff
+            </div>
+
+            <h3>CVD vs PVD</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>特徴</th>
+                        <th>CVD</th>
+                        <th>PVD（比較）</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>成膜メカニズム</td>
+                        <td>化学反応</td>
+                        <td>物理的気化・堆積</td>
+                    </tr>
+                    <tr>
+                        <td>ステップカバレッジ</td>
+                        <td>優秀（90～100%）</td>
+                        <td>不良（20～60%）</td>
+                    </tr>
+                    <tr>
+                        <td>プロセス温度</td>
+                        <td>400～1000°C</td>
+                        <td>室温～500°C</td>
+                    </tr>
+                    <tr>
+                        <td>成膜速度</td>
+                        <td>1～100 nm/min</td>
+                        <td>0.1～10 nm/s</td>
+                    </tr>
+                    <tr>
+                        <td>組成制御</td>
+                        <td>精密（ガス流量比）</td>
+                        <td>困難（多元系）</td>
+                    </tr>
+                    <tr>
+                        <td>装置コスト</td>
+                        <td>中～高</td>
+                        <td>中</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="warning-box">
+                <strong>CVDの制約</strong>
+                <ul>
+                    <li>高温が必要（熱CVD: 400～1000°C）→ 基板選択性制限</li>
+                    <li>副生成物（HCl、CO等）の除去が必要</li>
+                    <li>前駆体の毒性・可燃性（SiH₄、NH₃等）</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="thermal-cvd">
+            <h2>3.2 熱CVD（Thermal CVD）</h2>
+
+            <h3>3.2.1 熱CVDの原理</h3>
+
+            <p>
+                <strong>熱CVD</strong>は、加熱された基板表面で前駆体ガスが熱分解し、固体膜を生成する技術です。代表的なプロセス：
+            </p>
+
+            <ul>
+                <li><strong>SiO₂成膜（TEOS CVD）</strong>: Si(OC₂H₅)₄ → SiO₂ + 副生成物（450～750°C）</li>
+                <li><strong>Si₃N₄成膜（LPCVD）</strong>: 3SiH₂Cl₂ + 4NH₃ → Si₃N₄ + 6HCl + 6H₂（700～800°C）</li>
+                <li><strong>ポリSi成膜</strong>: SiH₄ → Si + 2H₂（580～650°C）</li>
+            </ul>
+
+            <h3>3.2.2 CVD成長速度の理論</h3>
+
+            <p>
+                CVD成長速度 \(R\) は、<strong>化学反応速度</strong>と<strong>物質輸送速度</strong>の競合で決まります。
+            </p>
+
+            <p>
+                総括的な成長速度式：
+            </p>
+
+            <p>
+                \[
+                R = \frac{1}{\frac{1}{k_{\text{surface}}} + \frac{1}{k_{\text{transport}}}}
+                \]
+            </p>
+
+            <p>ここで：</p>
+            <ul>
+                <li>\(k_{\text{surface}}\): 表面反応速度定数（Arrhenius型温度依存）</li>
+                <li>\(k_{\text{transport}}\): 物質輸送速度（拡散律速、温度に弱依存）</li>
+            </ul>
+
+            <h4>低温領域（表面反応律速）</h4>
+
+            <p>
+                \[
+                k_{\text{surface}} = k_0 \exp\left(-\frac{E_a}{RT}\right)
+                \]
+            </p>
+
+            <p>
+                \(E_a\) は活性化エネルギー（20～60 kcal/mol）。低温では指数関数的に温度依存。
+            </p>
+
+            <h4>高温領域（物質輸送律速）</h4>
+
+            <p>
+                \[
+                k_{\text{transport}} = \frac{D}{L} \propto T^{1.5}
+                \]
+            </p>
+
+            <p>
+                \(D\) は拡散係数、\(L\) は境界層厚さ。高温では温度依存性が弱く、ガス流量に依存。
+            </p>
+
+            <div class="mermaid">
+            graph LR
+                A[ガス相] -->|拡散| B[境界層]
+                B -->|吸着| C[表面]
+                C -->|表面反応| D[固体膜]
+                C -->|脱離| E[副生成物]
+                E -->|拡散| A
+
+                style A fill:#f093fb,color:#fff
+                style C fill:#f5576c,color:#fff
+                style D fill:#27ae60,color:#fff
+            </div>
+
+            <h3>Python実装: CVD成長速度の温度依存性</h3>
+
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def cvd_growth_rate(T, P, k0, Ea, D0=0.1, L=0.1):
+    """
+    CVD成長速度の計算（表面反応律速 vs 物質輸送律速）
+
+    Parameters:
+    -----------
+    T : float or array
+        温度 [K]
+    P : float
+        前駆体分圧 [Pa]
+    k0 : float
+        頻度因子 [m/s]
+    Ea : float
+        活性化エネルギー [J/mol]
+    D0 : float
+        拡散係数基準値 [cm^2/s]（デフォルト: 0.1）
+    L : float
+        境界層厚さ [cm]（デフォルト: 0.1）
+
+    Returns:
+    --------
+    R : float or array
+        成長速度 [nm/min]
+    k_surface : float or array
+        表面反応速度定数 [m/s]
+    k_transport : float or array
+        物質輸送速度 [m/s]
+    """
+    R_gas = 8.314  # J/(mol·K)
+
+    # 表面反応速度定数（Arrhenius式）
+    k_surface = k0 * np.exp(-Ea / (R_gas * T))
+
+    # 物質輸送速度（温度の1.5乗依存）
+    D = D0 * (T / 300)**1.5  # 拡散係数 [cm^2/s]
+    k_transport = (D * 1e-4) / (L * 1e-2)  # [m/s]に変換
+
+    # 総括成長速度（直列抵抗モデル）
+    R_total = 1 / (1/k_surface + 1/k_transport)
+
+    # 前駆体分圧による補正
+    R_total = R_total * P / 100  # 100 Paを基準
+
+    # [nm/min]に変換（仮定: 1 m/s = 6e10 nm/min）
+    R_nm_min = R_total * 6e10
+
+    return R_nm_min, k_surface, k_transport
+
+# SiO2 TEOS CVDの例
+T_range = np.linspace(400, 900, 100) + 273.15  # K
+P = 100  # Pa
+k0 = 1e-2  # m/s
+Ea = 150e3  # J/mol（約36 kcal/mol）
+
+R_values, k_s, k_t = cvd_growth_rate(T_range, P, k0, Ea)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# 成長速度のArrhenius plot
+ax1.semilogy(1000/T_range, R_values, linewidth=2.5, color='#f5576c', label='Total Rate')
+ax1.semilogy(1000/T_range, k_s*6e10*P/100, linewidth=2, linestyle='--', color='#27ae60', label='Surface Reaction')
+ax1.semilogy(1000/T_range, k_t*6e10*P/100, linewidth=2, linestyle='--', color='#3498db', label='Mass Transport')
+ax1.set_xlabel('1000/T (K$^{-1}$)', fontsize=12)
+ax1.set_ylabel('Growth Rate (nm/min)', fontsize=12)
+ax1.set_title('CVD Growth Rate: Arrhenius Plot', fontsize=14, fontweight='bold')
+ax1.legend(fontsize=10)
+ax1.grid(True, alpha=0.3, which='both')
+ax1.invert_xaxis()
+
+# 温度 vs 成長速度（通常プロット）
+ax2.plot(T_range - 273.15, R_values, linewidth=2.5, color='#f5576c')
+ax2.set_xlabel('Temperature (°C)', fontsize=12)
+ax2.set_ylabel('Growth Rate (nm/min)', fontsize=12)
+ax2.set_title('CVD Growth Rate vs Temperature', fontsize=14, fontweight='bold')
+ax2.grid(True, alpha=0.3)
+ax2.axvline(x=550, color='gray', linestyle='--', label='Typical Process T')
+ax2.legend()
+
+plt.tight_layout()
+plt.savefig('cvd_growth_rate_temperature.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 具体的な計算例
+T_example = 650 + 273.15  # K
+R_ex, k_s_ex, k_t_ex = cvd_growth_rate(T_example, P, k0, Ea)
+
+print("=== CVD成長速度計算（SiO2 TEOS, 650°C）===")
+print(f"温度: {T_example - 273.15:.0f}°C")
+print(f"表面反応速度定数: {k_s_ex:.2e} m/s")
+print(f"物質輸送速度: {k_t_ex:.2e} m/s")
+print(f"成長速度: {R_ex:.2f} nm/min")
+print(f"\n律速段階: {'表面反応' if k_s_ex < k_t_ex else '物質輸送'}")
+</code></pre>
+
+            <div class="info-box">
+                <strong>律速段階の判定</strong>
+                <ul>
+                    <li>低温（&lt;600°C）: 表面反応律速 → 温度に強く依存、均一性良好</li>
+                    <li>高温（&gt;800°C）: 物質輸送律速 → 温度に弱依存、ガス流量で制御</li>
+                    <li>中温（600～800°C）: 混合律速 → 両方の効果</li>
+                </ul>
+            </div>
+
+            <h3>3.2.3 LPCVD vs APCVD</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>特徴</th>
+                        <th>LPCVD（低圧CVD）</th>
+                        <th>APCVD（大気圧CVD）</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>圧力</td>
+                        <td>0.1～10 Torr</td>
+                        <td>760 Torr</td>
+                    </tr>
+                    <tr>
+                        <td>温度</td>
+                        <td>600～900°C</td>
+                        <td>300～600°C</td>
+                    </tr>
+                    <tr>
+                        <td>均一性</td>
+                        <td>優秀（±2%）</td>
+                        <td>中（±5～10%）</td>
+                    </tr>
+                    <tr>
+                        <td>ステップカバレッジ</td>
+                        <td>優秀（&gt;90%）</td>
+                        <td>良好（70～90%）</td>
+                    </tr>
+                    <tr>
+                        <td>スループット</td>
+                        <td>高（バッチ処理）</td>
+                        <td>中（枚葉）</td>
+                    </tr>
+                    <tr>
+                        <td>膜質</td>
+                        <td>高密度、低応力</td>
+                        <td>多孔質、高応力</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Python実装: 反応速度定数の計算</h3>
+
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def reaction_rate_constant(T, A, Ea):
+    """
+    Arrhenius式による反応速度定数の計算
+
+    Parameters:
+    -----------
+    T : float or array
+        温度 [K]
+    A : float
+        頻度因子（前指数因子） [s^-1 or cm^3/(mol·s)]
+    Ea : float
+        活性化エネルギー [kJ/mol]
+
+    Returns:
+    --------
+    k : float or array
+        反応速度定数 [same unit as A]
+    """
+    R = 8.314  # J/(mol·K)
+    Ea_J = Ea * 1000  # kJ/mol → J/mol
+    k = A * np.exp(-Ea_J / (R * T))
+    return k
+
+# 代表的なCVD反応の活性化エネルギー
+reactions = [
+    ("SiH4 → Si (LPCVD)", 1e13, 35),      # A [s^-1], Ea [kJ/mol]
+    ("TEOS → SiO2", 1e10, 150),
+    ("NH3 + SiH2Cl2 → Si3N4", 1e12, 200),
+    ("WF6 → W (CVD-W)", 1e11, 50),
+]
+
+T_range = np.linspace(400, 1000, 100) + 273.15  # K
+
+fig, ax = plt.subplots(figsize=(10, 6))
+
+for name, A, Ea in reactions:
+    k_values = reaction_rate_constant(T_range, A, Ea)
+    ax.semilogy(1000/T_range, k_values, linewidth=2.5, label=name)
+
+ax.set_xlabel('1000/T (K$^{-1}$)', fontsize=13)
+ax.set_ylabel('Rate Constant k (s$^{-1}$)', fontsize=13)
+ax.set_title('Arrhenius Plot: CVD Reaction Kinetics', fontsize=15, fontweight='bold')
+ax.legend(fontsize=10, loc='lower left')
+ax.grid(True, alpha=0.3, which='both')
+ax.invert_xaxis()
+plt.tight_layout()
+plt.savefig('cvd_reaction_kinetics.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 具体的な計算例
+T_example = 700 + 273.15  # K
+print("=== 反応速度定数計算（700°C）===\n")
+for name, A, Ea in reactions:
+    k = reaction_rate_constant(T_example, A, Ea)
+    print(f"{name}:")
+    print(f"  活性化エネルギー: {Ea} kJ/mol")
+    print(f"  反応速度定数: {k:.2e} s^-1\n")
+</code></pre>
+        </section>
+
+        <section id="pecvd">
+            <h2>3.3 プラズマCVD（PECVD）</h2>
+
+            <h3>3.3.1 PECVDの原理</h3>
+
+            <p>
+                <strong>プラズマ励起CVD（Plasma-Enhanced CVD, PECVD）</strong>は、プラズマ中の高エネルギー電子により前駆体を活性化し、<strong>低温（200～400°C）</strong>で成膜する技術です。
+            </p>
+
+            <p><strong>プラズマの役割</strong>:</p>
+            <ul>
+                <li><strong>電子衝撃解離</strong>: e⁻ + SiH₄ → SiH₃* + H + e⁻（励起種生成）</li>
+                <li><strong>イオン衝撃</strong>: SiH₃⁺が基板に加速衝突 → 表面反応促進</li>
+                <li><strong>ラジカル反応</strong>: SiH₃*が基板に吸着 → Si + H₂</li>
+            </ul>
+
+            <h3>3.3.2 CCP vs ICP</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>方式</th>
+                        <th>CCP（容量結合プラズマ）</th>
+                        <th>ICP（誘導結合プラズマ）</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>周波数</td>
+                        <td>13.56 MHz（RF）</td>
+                        <td>13.56 MHz（RF）</td>
+                    </tr>
+                    <tr>
+                        <td>結合方式</td>
+                        <td>容量結合（平行平板）</td>
+                        <td>誘導結合（コイル）</td>
+                    </tr>
+                    <tr>
+                        <td>プラズマ密度</td>
+                        <td>10⁹～10¹¹ cm⁻³</td>
+                        <td>10¹¹～10¹³ cm⁻³</td>
+                    </tr>
+                    <tr>
+                        <td>イオンエネルギー</td>
+                        <td>高（50～500 eV）</td>
+                        <td>低（10～50 eV）</td>
+                    </tr>
+                    <tr>
+                        <td>成膜速度</td>
+                        <td>10～100 nm/min</td>
+                        <td>50～500 nm/min</td>
+                    </tr>
+                    <tr>
+                        <td>応用</td>
+                        <td>SiO₂, SiN（半導体）</td>
+                        <td>高速成膜、大面積</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>3.3.3 プラズマパラメータ</h3>
+
+            <p>
+                <strong>電子温度 \(T_e\)</strong>と<strong>プラズマ密度 \(n_e\)</strong>は、PECVDの膜質を決定します。
+            </p>
+
+            <p>
+                デバイ長（Debye length）：
+            </p>
+
+            <p>
+                \[
+                \lambda_D = \sqrt{\frac{\epsilon_0 k_B T_e}{n_e e^2}}
+                \]
+            </p>
+
+            <p>
+                プラズマ振動数（plasma frequency）：
+            </p>
+
+            <p>
+                \[
+                \omega_p = \sqrt{\frac{n_e e^2}{\epsilon_0 m_e}}
+                \]
+            </p>
+
+            <h3>Python実装: プラズマパラメータ計算</h3>
+
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def plasma_parameters(n_e, T_e):
+    """
+    プラズマパラメータの計算
+
+    Parameters:
+    -----------
+    n_e : float or array
+        電子密度 [cm^-3]
+    T_e : float
+        電子温度 [eV]
+
+    Returns:
+    --------
+    lambda_D : float or array
+        デバイ長 [cm]
+    omega_p : float or array
+        プラズマ振動数 [rad/s]
+    """
+    k_B = 1.381e-23  # J/K
+    e = 1.602e-19  # C
+    epsilon_0 = 8.854e-12  # F/m
+    m_e = 9.109e-31  # kg
+
+    # 電子温度をJに変換
+    T_e_J = T_e * e  # eV → J
+
+    # 電子密度をm^-3に変換
+    n_e_m3 = n_e * 1e6
+
+    # デバイ長 [m]
+    lambda_D_m = np.sqrt(epsilon_0 * k_B * T_e_J / e / (n_e_m3 * e))
+    lambda_D = lambda_D_m * 100  # m → cm
+
+    # プラズマ振動数 [rad/s]
+    omega_p = np.sqrt(n_e_m3 * e**2 / (epsilon_0 * m_e))
+
+    return lambda_D, omega_p
+
+# CCP vs ICPの比較
+n_e_CCP = 1e10  # cm^-3
+n_e_ICP = 1e12  # cm^-3
+T_e = 3.0  # eV（典型値）
+
+lambda_D_CCP, omega_p_CCP = plasma_parameters(n_e_CCP, T_e)
+lambda_D_ICP, omega_p_ICP = plasma_parameters(n_e_ICP, T_e)
+
+print("=== プラズマパラメータ比較 ===\n")
+print(f"電子温度: {T_e} eV\n")
+print("CCP（容量結合プラズマ）:")
+print(f"  電子密度: {n_e_CCP:.1e} cm^-3")
+print(f"  デバイ長: {lambda_D_CCP:.2e} cm = {lambda_D_CCP*1e4:.2f} µm")
+print(f"  プラズマ振動数: {omega_p_CCP:.2e} rad/s = {omega_p_CCP/(2*np.pi):.2e} Hz\n")
+
+print("ICP（誘導結合プラズマ）:")
+print(f"  電子密度: {n_e_ICP:.1e} cm^-3")
+print(f"  デバイ長: {lambda_D_ICP:.2e} cm = {lambda_D_ICP*1e4:.2f} µm")
+print(f"  プラズマ振動数: {omega_p_ICP:.2e} rad/s = {omega_p_ICP/(2*np.pi):.2e} Hz\n")
+
+# 電子密度依存性のプロット
+n_e_range = np.logspace(8, 13, 100)  # cm^-3
+lambda_D_range, omega_p_range = plasma_parameters(n_e_range, T_e)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# デバイ長
+ax1.loglog(n_e_range, lambda_D_range * 1e4, linewidth=2.5, color='#f5576c')
+ax1.axvline(x=n_e_CCP, color='#27ae60', linestyle='--', label='CCP')
+ax1.axvline(x=n_e_ICP, color='#3498db', linestyle='--', label='ICP')
+ax1.set_xlabel('Electron Density (cm$^{-3}$)', fontsize=12)
+ax1.set_ylabel('Debye Length (µm)', fontsize=12)
+ax1.set_title('Debye Length vs Electron Density', fontsize=14, fontweight='bold')
+ax1.legend()
+ax1.grid(True, alpha=0.3, which='both')
+
+# プラズマ振動数
+ax2.loglog(n_e_range, omega_p_range / (2*np.pi), linewidth=2.5, color='#f093fb')
+ax2.axvline(x=n_e_CCP, color='#27ae60', linestyle='--', label='CCP')
+ax2.axvline(x=n_e_ICP, color='#3498db', linestyle='--', label='ICP')
+ax2.set_xlabel('Electron Density (cm$^{-3}$)', fontsize=12)
+ax2.set_ylabel('Plasma Frequency (Hz)', fontsize=12)
+ax2.set_title('Plasma Frequency vs Electron Density', fontsize=14, fontweight='bold')
+ax2.legend()
+ax2.grid(True, alpha=0.3, which='both')
+
+plt.tight_layout()
+plt.savefig('plasma_parameters.png', dpi=300, bbox_inches='tight')
+plt.show()
+</code></pre>
+
+            <div class="info-box">
+                <strong>PECVDの応用</strong>
+                <ul>
+                    <li>SiO₂ (PECVD-SiO₂): 層間絶縁膜（ILD）</li>
+                    <li>SiN (PECVD-SiN): パッシベーション膜、拡散バリア</li>
+                    <li>a-Si:H (水素化アモルファスSi): 太陽電池、TFT</li>
+                    <li>DLC (ダイヤモンドライクカーボン): 保護膜</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="ald">
+            <h2>3.4 原子層堆積法（ALD）</h2>
+
+            <h3>3.4.1 ALDの原理</h3>
+
+            <p>
+                <strong>原子層堆積法（Atomic Layer Deposition, ALD）</strong>は、前駆体の<strong>自己停止吸着</strong>を利用し、原子層レベルで制御された成膜を実現する技術です。
+            </p>
+
+            <p><strong>ALDサイクル（例: Al₂O₃）</strong>:</p>
+            <ol>
+                <li><strong>前駆体A導入</strong>: TMA（トリメチルアルミニウム）パルス → 表面OH基と反応</li>
+                <li><strong>パージ</strong>: 過剰TMAと副生成物（CH₄）を排気</li>
+                <li><strong>前駆体B導入</strong>: H₂Oパルス → Al-CH₃基と反応してAl-OH形成</li>
+                <li><strong>パージ</strong>: 過剰H₂Oと副生成物を排気</li>
+            </ol>
+
+            <p>
+                反応式：
+            </p>
+
+            <p>
+                \[
+                \text{Al(CH}_3)_3 + \text{-OH} \rightarrow \text{-O-Al(CH}_3)_2 + \text{CH}_4
+                \]
+            </p>
+
+            <p>
+                \[
+                \text{-O-Al(CH}_3)_2 + \text{H}_2\text{O} \rightarrow \text{-O-Al-OH} + 2\text{CH}_4
+                \]
+            </p>
+
+            <h3>3.4.2 ALDの特徴</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>特徴</th>
+                        <th>ALD</th>
+                        <th>CVD（比較）</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>成膜メカニズム</td>
+                        <td>自己停止吸着</td>
+                        <td>連続反応</td>
+                    </tr>
+                    <tr>
+                        <td>膜厚制御</td>
+                        <td>原子層単位（±0.1Å）</td>
+                        <td>時間制御（±数nm）</td>
+                    </tr>
+                    <tr>
+                        <td>ステップカバレッジ</td>
+                        <td>完璧（100%）</td>
+                        <td>良好（80～95%）</td>
+                    </tr>
+                    <tr>
+                        <td>成膜速度</td>
+                        <td>遅い（0.1～1 Å/cycle）</td>
+                        <td>速い（10～100 nm/min）</td>
+                    </tr>
+                    <tr>
+                        <td>温度</td>
+                        <td>低温（100～400°C）</td>
+                        <td>中～高温（400～1000°C）</td>
+                    </tr>
+                    <tr>
+                        <td>均一性</td>
+                        <td>卓越（±1%）</td>
+                        <td>良好（±2～5%）</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>3.4.3 ALD成長窓</h3>
+
+            <p>
+                ALDは<strong>成長窓（ALD window）</strong>と呼ばれる温度範囲で、1サイクルあたりの成長量（GPC: Growth Per Cycle）が一定になります。
+            </p>
+
+            <ul>
+                <li><strong>低温側</strong>: 前駆体の凝縮 → GPC増加（ALD条件外）</li>
+                <li><strong>成長窓</strong>: 自己停止吸着 → GPC一定（理想的ALD）</li>
+                <li><strong>高温側</strong>: 前駆体の熱分解 → GPC増加（CVD的）</li>
+            </ul>
+
+            <h3>Python実装: ALDサイクルシミュレーション</h3>
+
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def ald_growth_simulation(n_cycles, GPC, T, T_window_low=150, T_window_high=350):
+    """
+    ALDサイクル成長シミュレーション
+
+    Parameters:
+    -----------
+    n_cycles : int
+        サイクル数
+    GPC : float
+        1サイクルあたりの成長量（成長窓内） [Å/cycle]
+    T : float
+        基板温度 [°C]
+    T_window_low : float
+        成長窓下限温度 [°C]（デフォルト: 150）
+    T_window_high : float
+        成長窓上限温度 [°C]（デフォルト: 350）
+
+    Returns:
+    --------
+    thickness : array
+        各サイクル後の膜厚 [nm]
+    actual_GPC : float
+        実効GPC [Å/cycle]
+    """
+    # 温度による補正（成長窓外での挙動）
+    if T < T_window_low:
+        # 凝縮によるGPC増加
+        correction = 1 + 0.5 * (T_window_low - T) / 100
+    elif T > T_window_high:
+        # 熱分解によるGPC増加
+        correction = 1 + 0.3 * (T - T_window_high) / 100
+    else:
+        # 成長窓内: 理想的ALD
+        correction = 1.0
+
+    actual_GPC = GPC * correction
+
+    # サイクルごとの膜厚計算
+    cycles = np.arange(0, n_cycles + 1)
+    thickness = cycles * actual_GPC / 10  # Å → nm
+
+    return thickness, actual_GPC
+
+# シミュレーション実行
+n_cycles = 100
+GPC_ideal = 1.1  # Å/cycle（Al2O3の典型値）
+
+temperatures = [100, 200, 300, 400]  # °C
+
+fig, ax = plt.subplots(figsize=(10, 6))
+
+for T in temperatures:
+    thickness, actual_GPC = ald_growth_simulation(n_cycles, GPC_ideal, T)
+    ax.plot(thickness, linewidth=2.5, label=f'T = {T}°C (GPC = {actual_GPC:.2f} Å/cycle)')
+
+ax.set_xlabel('Cycle Number', fontsize=13)
+ax.set_ylabel('Film Thickness (nm)', fontsize=13)
+ax.set_title('ALD Growth: Thickness vs Cycle Number', fontsize=15, fontweight='bold')
+ax.legend(fontsize=11)
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('ald_growth_cycles.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 成長窓の可視化
+T_range = np.linspace(50, 450, 100)  # °C
+GPC_range = []
+
+for T in T_range:
+    _, gpc = ald_growth_simulation(1, GPC_ideal, T)
+    GPC_range.append(gpc)
+
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.plot(T_range, GPC_range, linewidth=3, color='#f5576c')
+ax.axvspan(150, 350, alpha=0.2, color='#27ae60', label='ALD Window')
+ax.set_xlabel('Temperature (°C)', fontsize=13)
+ax.set_ylabel('Growth Per Cycle (Å/cycle)', fontsize=13)
+ax.set_title('ALD Growth Window: GPC vs Temperature', fontsize=15, fontweight='bold')
+ax.legend(fontsize=12)
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('ald_growth_window.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("=== ALD成長シミュレーション ===")
+print(f"理想GPC: {GPC_ideal} Å/cycle")
+print(f"成長窓: 150～350°C\n")
+for T in temperatures:
+    _, gpc = ald_growth_simulation(1, GPC_ideal, T)
+    print(f"T = {T}°C: 実効GPC = {gpc:.2f} Å/cycle")
+print(f"\n100サイクルで10 nm成膜には GPC = {10*10/100:.2f} Å/cycle が必要")
+</code></pre>
+
+            <div class="info-box">
+                <strong>ALDの応用</strong>
+                <ul>
+                    <li>High-k誘電体（HfO₂、Al₂O₃）: ゲート絶縁膜</li>
+                    <li>拡散バリア（TiN、TaN）: Cu配線</li>
+                    <li>パッシベーション（Al₂O₃）: 有機EL、太陽電池</li>
+                    <li>3Dトランジスタ（FinFET）: 共形性が必須</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="mocvd">
+            <h2>3.5 有機金属CVD（MOCVD）</h2>
+
+            <h3>3.5.1 MOCVDの原理</h3>
+
+            <p>
+                <strong>有機金属CVD（Metal-Organic CVD, MOCVD）</strong>は、有機金属化合物（TMGa、TEGa等）を前駆体として、化合物半導体（GaN、InP、GaAs）をエピタキシャル成長させる技術です。
+            </p>
+
+            <p><strong>代表的な反応（GaN成長）</strong>:</p>
+
+            <p>
+                \[
+                \text{Ga(CH}_3)_3 + \text{NH}_3 \rightarrow \text{GaN} + 3\text{CH}_4
+                \]
+            </p>
+
+            <p>
+                温度: 900～1100°C、圧力: 100～760 Torr
+            </p>
+
+            <h3>3.5.2 MOCVDの特徴</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>特徴</th>
+                        <th>MOCVD</th>
+                        <th>MBE（比較）</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>成長メカニズム</td>
+                        <td>化学反応</td>
+                        <td>物理蒸着</td>
+                    </tr>
+                    <tr>
+                        <td>成長速度</td>
+                        <td>速い（1～10 µm/h）</td>
+                        <td>遅い（0.1～1 µm/h）</td>
+                    </tr>
+                    <tr>
+                        <td>スループット</td>
+                        <td>高（枚葉・バッチ）</td>
+                        <td>低（枚葉のみ）</td>
+                    </tr>
+                    <tr>
+                        <td>界面急峻性</td>
+                        <td>良好（～5 ML）</td>
+                        <td>卓越（～1 ML）</td>
+                    </tr>
+                    <tr>
+                        <td>工業生産性</td>
+                        <td>優秀</td>
+                        <td>研究開発向け</td>
+                    </tr>
+                    <tr>
+                        <td>応用</td>
+                        <td>LED、LD、HEMT</td>
+                        <td>量子デバイス研究</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>3.5.3 MOCVDリアクター設計</h3>
+
+            <p>
+                MOCVD成長は、<strong>ガス流動制御</strong>と<strong>温度均一性</strong>が鍵です。縦型リアクター、横型リアクター、回転ディスクリアクターなど、様々な設計があります。
+            </p>
+
+            <h3>Python実装: MOCVD成長速度モデリング</h3>
+
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def mocvd_growth_rate(T, P_precursor, V_NH3, k0=1e8, Ea=150):
+    """
+    MOCVD成長速度の簡易モデル
+
+    Parameters:
+    -----------
+    T : float or array
+        基板温度 [K]
+    P_precursor : float
+        有機金属前駆体分圧 [Pa]
+    V_NH3 : float
+        NH3/前駆体のV/III比（モル比）
+    k0 : float
+        頻度因子 [µm/(h·Pa)]（デフォルト: 1e8）
+    Ea : float
+        活性化エネルギー [kJ/mol]（デフォルト: 150）
+
+    Returns:
+    --------
+    growth_rate : float or array
+        成長速度 [µm/h]
+    """
+    R = 8.314  # J/(mol·K)
+    Ea_J = Ea * 1000  # kJ/mol → J/mol
+
+    # Arrhenius型反応速度
+    k_reaction = k0 * np.exp(-Ea_J / (R * T))
+
+    # V/III比による補正（過剰NH3で飽和）
+    V_III_correction = V_NH3 / (V_NH3 + 100)
+
+    # 成長速度
+    growth_rate = k_reaction * P_precursor * V_III_correction
+
+    return growth_rate
+
+# GaN MOCVD成長の例
+T_range = np.linspace(800, 1200, 100) + 273.15  # K
+P_TMGa = 50  # Pa
+V_III_ratio = 1000  # NH3/TMGa
+
+growth_rates = mocvd_growth_rate(T_range, P_TMGa, V_III_ratio)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# 温度依存性
+ax1.plot(T_range - 273.15, growth_rates, linewidth=2.5, color='#f5576c')
+ax1.set_xlabel('Temperature (°C)', fontsize=12)
+ax1.set_ylabel('Growth Rate (µm/h)', fontsize=12)
+ax1.set_title('MOCVD Growth Rate vs Temperature', fontsize=14, fontweight='bold')
+ax1.grid(True, alpha=0.3)
+ax1.axvline(x=1050, color='gray', linestyle='--', label='Typical Process T')
+ax1.legend()
+
+# V/III比依存性
+V_III_range = np.logspace(1, 4, 100)
+T_fixed = 1050 + 273.15  # K
+growth_V_III = mocvd_growth_rate(T_fixed, P_TMGa, V_III_range)
+
+ax2.semilogx(V_III_range, growth_V_III, linewidth=2.5, color='#27ae60')
+ax2.set_xlabel('V/III Ratio (NH$_3$/TMGa)', fontsize=12)
+ax2.set_ylabel('Growth Rate (µm/h)', fontsize=12)
+ax2.set_title('MOCVD Growth Rate vs V/III Ratio', fontsize=14, fontweight='bold')
+ax2.grid(True, alpha=0.3)
+ax2.axvline(x=1000, color='gray', linestyle='--', label='Typical V/III')
+ax2.legend()
+
+plt.tight_layout()
+plt.savefig('mocvd_growth_rate.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 具体的な計算例
+T_example = 1050 + 273.15  # K
+growth_ex = mocvd_growth_rate(T_example, P_TMGa, V_III_ratio)
+
+print("=== GaN MOCVD成長速度計算 ===")
+print(f"基板温度: {T_example - 273.15:.0f}°C")
+print(f"TMGa分圧: {P_TMGa} Pa")
+print(f"V/III比: {V_III_ratio}")
+print(f"成長速度: {growth_ex:.2f} µm/h")
+print(f"\n1 µm成膜に必要な時間: {1/growth_ex*60:.1f} min")
+</code></pre>
+
+            <div class="info-box">
+                <strong>MOCVDの工業応用</strong>
+                <ul>
+                    <li>青色LED（GaN/InGaN）: 照明、ディスプレイ</li>
+                    <li>レーザーダイオード（GaN、InP）: 通信、ストレージ</li>
+                    <li>HEMT（AlGaN/GaN）: 高周波・高電力デバイス</li>
+                    <li>太陽電池（GaAs、InGaP）: 高効率多接合型</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="exercises">
+            <h2>演習問題</h2>
+
+            <div class="exercise-box">
+                <h4>演習1: CVD成長速度の計算 <span class="difficulty easy">Easy</span></h4>
+                <p><strong>問題</strong>: SiO₂ TEOS CVDで、基板温度650°C、表面反応速度定数 \(k_s = 5 \times 10^{-3}\) m/s、物質輸送速度 \(k_t = 1 \times 10^{-2}\) m/sのとき、成長速度を計算せよ。律速段階はどちらか？</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+                    <p>総括成長速度（直列抵抗モデル）:</p>
+                    <p>\[ R = \frac{1}{\frac{1}{k_s} + \frac{1}{k_t}} = \frac{1}{\frac{1}{5 \times 10^{-3}} + \frac{1}{1 \times 10^{-2}}} \]</p>
+                    <p>\[ R = \frac{1}{200 + 100} = \frac{1}{300} = 3.33 \times 10^{-3} \text{ m/s} \]</p>
+                    <p>nm/min換算: \(3.33 \times 10^{-3} \times 6 \times 10^{10} = 2.0 \times 10^{8}\) nm/min ≈ 200 nm/min</p>
+                    <p><strong>律速段階判定</strong>: \(k_s = 5 \times 10^{-3}\) &lt; \(k_t = 1 \times 10^{-2}\) → <strong>表面反応律速</strong></p>
+                    <p><strong>意味</strong>: 温度上昇により成長速度が大きく向上します。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習2: Arrhenius式の活性化エネルギー推定 <span class="difficulty easy">Easy</span></h4>
+                <p><strong>問題</strong>: SiH₄ LPCVDで、700°Cで成長速度10 nm/min、800°Cで100 nm/minが観測された。活性化エネルギー \(E_a\) を推定せよ。気体定数 \(R = 8.314\) J/(mol·K)。</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+                    <p>Arrhenius式: \(R = A \exp(-E_a / RT)\)</p>
+                    <p>2つの温度での比:</p>
+                    <p>\[ \frac{R_2}{R_1} = \exp\left(-\frac{E_a}{R}\left(\frac{1}{T_2} - \frac{1}{T_1}\right)\right) \]</p>
+                    <p>\[ \frac{100}{10} = \exp\left(-\frac{E_a}{8.314}\left(\frac{1}{1073} - \frac{1}{973}\right)\right) \]</p>
+                    <p>\[ \ln(10) = -\frac{E_a}{8.314} \times (-9.67 \times 10^{-5}) \]</p>
+                    <p>\[ E_a = \frac{2.303 \times 8.314}{9.67 \times 10^{-5}} = 1.98 \times 10^{5} \text{ J/mol} = 198 \text{ kJ/mol} \]</p>
+                    <p><strong>妥当性</strong>: SiH₄分解の活性化エネルギーは150～200 kJ/mol → 妥当な値です。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習3: プラズマデバイ長の計算 <span class="difficulty easy">Easy</span></h4>
+                <p><strong>問題</strong>: PECVD CCP プラズマで、電子密度 \(n_e = 5 \times 10^{10}\) cm⁻³、電子温度 \(T_e = 3\) eVのとき、デバイ長 \(\lambda_D\) を計算せよ。ボルツマン定数 \(k_B = 1.381 \times 10^{-23}\) J/K、真空誘電率 \(\epsilon_0 = 8.854 \times 10^{-12}\) F/m。</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+                    <p>デバイ長の式: \(\lambda_D = \sqrt{\frac{\epsilon_0 k_B T_e}{n_e e^2}}\)</p>
+                    <p>Pythonコードを使用（提供されたコード）:</p>
+                    <pre><code class="language-python">lambda_D, _ = plasma_parameters(5e10, 3.0)
+print(f"デバイ長: {lambda_D:.2e} cm = {lambda_D*1e4:.2f} µm")
+</code></pre>
+                    <p><strong>期待される結果</strong>: \(\lambda_D \approx 2 \times 10^{-3}\) cm = 20 µm</p>
+                    <p><strong>物理的意味</strong>: プラズマ中で電荷が遮蔽される特性長。リアクター寸法（数cm）より十分小さいため、プラズマ状態を維持できます。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習4: ALD成膜時間の計算 <span class="difficulty medium">Medium</span></h4>
+                <p><strong>問題</strong>: Al₂O₃ ALDで、GPC = 1.1 Å/cycle、サイクル時間5秒/cycleのとき、10 nmの膜を成膜するのに要する時間を計算せよ。</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+                    <p>必要サイクル数: \( n = \frac{10 \text{ nm}}{1.1 \text{ Å/cycle}} = \frac{100 \text{ Å}}{1.1 \text{ Å/cycle}} = 90.9 \approx 91 \text{ cycles} \)</p>
+                    <p>総時間: \( t = 91 \times 5 = 455 \text{ s} = 7.6 \text{ min} \)</p>
+                    <p><strong>比較</strong>:</p>
+                    <ul>
+                        <li>PECVD-SiO₂ (50 nm/min): 10 nm → 12秒</li>
+                        <li>ALD-Al₂O₃: 10 nm → 7.6分</li>
+                        <li>ALDは約40倍遅いが、共形性・膜厚制御は卓越</li>
+                    </ul>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習5: MOCVD V/III比の最適化 <span class="difficulty medium">Medium</span></h4>
+                <p><strong>問題</strong>: GaN MOCVDで、TMGa流量20 sccm、NH₃流量20,000 sccmのとき、V/III比を計算せよ。標準状態（1 mol = 22.4 L）を仮定。</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+                    <p>sccm（標準cm³/min）からモル流量への変換:</p>
+                    <p>1 sccm = 1 cm³/min = 1/1000 L/min = (1/1000) / 22.4 mol/min = 4.46 × 10⁻⁵ mol/min</p>
+                    <p>TMGa流量: \( 20 \times 4.46 \times 10^{-5} = 8.93 \times 10^{-4} \) mol/min</p>
+                    <p>NH₃流量: \( 20000 \times 4.46 \times 10^{-5} = 0.893 \) mol/min</p>
+                    <p>V/III比: \( \frac{0.893}{8.93 \times 10^{-4}} = 1000 \)</p>
+                    <p><strong>妥当性</strong>: GaN MOCVDの典型的V/III比は500～2000 → 1000は適切な値です。</p>
+                    <p><strong>意味</strong>: 過剰NH₃により、TMGaの完全反応を促進し、高品質GaNを得られます。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習6: PythonでCVD律速段階解析 <span class="difficulty medium">Medium</span></h4>
+                <p><strong>問題</strong>: TEOS CVDで、温度500～900°Cの範囲で成長速度を計算し、律速段階が切り替わる温度を特定せよ。パラメータ: \(k_0 = 0.01\) m/s、\(E_a = 150\) kJ/mol、\(D_0 = 0.1\) cm²/s、\(L = 0.1\) cm。</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答（Pythonコード）</strong>:</p>
+                    <pre><code class="language-python">T_range = np.linspace(500, 900, 100) + 273.15  # K
+R_values, k_s, k_t = cvd_growth_rate(T_range, 100, 0.01, 150e3)
+
+# 律速段階の判定
+transition_idx = np.argmin(np.abs(k_s - k_t))
+T_transition = T_range[transition_idx] - 273.15
+
+print(f"律速段階切り替わり温度: {T_transition:.0f}°C")
+print(f"  低温側（<{T_transition:.0f}°C）: 表面反応律速")
+print(f"  高温側（>{T_transition:.0f}°C）: 物質輸送律速")
+
+# プロット
+plt.figure(figsize=(10, 6))
+plt.semilogy(T_range - 273.15, k_s, label='Surface Reaction', linewidth=2)
+plt.semilogy(T_range - 273.15, k_t, label='Mass Transport', linewidth=2)
+plt.axvline(x=T_transition, color='red', linestyle='--', label=f'Transition: {T_transition:.0f}°C')
+plt.xlabel('Temperature (°C)')
+plt.ylabel('Rate Constant (m/s)')
+plt.title('CVD Limiting Step Transition')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+</code></pre>
+                    <p><strong>期待される結果</strong>: 切り替わり温度 ≈ 650～700°C</p>
+                    <p><strong>プロセス設計への応用</strong>: 均一性重視 → 表面反応律速温度（&lt;650°C）、高速成膜重視 → 物質輸送律速温度（&gt;700°C）で操作。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習7: ALD成長窓の実験的決定 <span class="difficulty medium">Medium</span></h4>
+                <p><strong>問題</strong>: Al₂O₃ ALDで、温度100～400°Cの範囲でGPCを測定した結果、以下のデータが得られた。成長窓を特定し、最適プロセス温度を提案せよ。</p>
+                <ul>
+                    <li>100°C: 1.8 Å/cycle</li>
+                    <li>150°C: 1.3 Å/cycle</li>
+                    <li>200°C: 1.1 Å/cycle</li>
+                    <li>250°C: 1.1 Å/cycle</li>
+                    <li>300°C: 1.1 Å/cycle</li>
+                    <li>350°C: 1.2 Å/cycle</li>
+                    <li>400°C: 1.5 Å/cycle</li>
+                </ul>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+                    <p><strong>成長窓の特定</strong>:</p>
+                    <ul>
+                        <li>GPC ≈ 一定（1.1 Å/cycle）の範囲: <strong>200～300°C</strong></li>
+                        <li>低温側（&lt;150°C）: GPC増加 → 前駆体凝縮</li>
+                        <li>高温側（&gt;350°C）: GPC増加 → 熱分解（CVD的）</li>
+                    </ul>
+
+                    <p><strong>最適プロセス温度提案</strong>: <strong>250°C</strong></p>
+
+                    <p><strong>理由</strong>:</p>
+                    <ol>
+                        <li>成長窓の中心 → 最も安定なALD条件</li>
+                        <li>温度変動に対してGPCが不感（±25°Cの変動でもGPC一定）</li>
+                        <li>低温で有機EL、ポリマー基板にも適用可能</li>
+                        <li>前駆体利用効率が最適</li>
+                    </ol>
+
+                    <p><strong>Pythonでの可視化</strong>:</p>
+                    <pre><code class="language-python">T_data = [100, 150, 200, 250, 300, 350, 400]
+GPC_data = [1.8, 1.3, 1.1, 1.1, 1.1, 1.2, 1.5]
+
+plt.figure(figsize=(10, 6))
+plt.plot(T_data, GPC_data, 'o-', linewidth=2.5, markersize=10, color='#f5576c')
+plt.axhspan(1.0, 1.15, alpha=0.2, color='#27ae60', label='ALD Window (200-300°C)')
+plt.xlabel('Temperature (°C)', fontsize=13)
+plt.ylabel('GPC (Å/cycle)', fontsize=13)
+plt.title('Al$_2$O$_3$ ALD Growth Window', fontsize=15, fontweight='bold')
+plt.legend(fontsize=11)
+plt.grid(True, alpha=0.3)
+plt.show()
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習8: CVD vs ALDのステップカバレッジ比較 <span class="difficulty hard">Hard</span></h4>
+                <p><strong>問題</strong>: アスペクト比5:1のトレンチ構造に、熱CVDとALDで10 nm成膜した場合の、底部/上部の膜厚比を推定せよ。CVDの入射角度分布は30°標準偏差のガウス分布、ALDは完全共形と仮定する。</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+
+                    <p><strong>ALD（完全共形）</strong>:</p>
+                    <p>底部膜厚 = 上部膜厚 = 10 nm</p>
+                    <p>膜厚比 = 10 / 10 = <strong>1.00（100%）</strong></p>
+
+                    <p><strong>熱CVD（指向性あり）</strong>:</p>
+                    <p>簡略モデル: ステップカバレッジ \( C = \frac{1}{1 + \text{AR} \times f}\)</p>
+                    <p>AR = 5（アスペクト比）、\(f = 0.3\)（指向性パラメータ、ガウス分布σ=30°から推定）</p>
+                    <p>\( C = \frac{1}{1 + 5 \times 0.3} = \frac{1}{2.5} = 0.40 \)</p>
+                    <p>底部膜厚 = 10 × 0.40 = 4 nm</p>
+                    <p>膜厚比 = 4 / 10 = <strong>0.40（40%）</strong></p>
+
+                    <p><strong>Pythonシミュレーション</strong>:</p>
+                    <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# トレンチ形状
+aspect_ratio = 5
+depth = 100  # nm
+width = depth / aspect_ratio  # 20 nm
+
+# CVDシミュレーション（モンテカルロ）
+n_particles = 10000
+angles = np.random.normal(0, 30, n_particles)  # 入射角度分布（deg）
+
+# 底部到達確率
+bottom_reach = np.sum(np.abs(angles) < np.arctan(1/aspect_ratio) * 180 / np.pi) / n_particles
+
+print(f"=== ステップカバレッジ比較（AR = {aspect_ratio}）===")
+print(f"ALD: 100%")
+print(f"CVD: {bottom_reach*100:.1f}%")
+print(f"\nALDはCVDの{1/bottom_reach:.1f}倍優れた共形性")
+</code></pre>
+
+                    <p><strong>実用的意義</strong>:</p>
+                    <ul>
+                        <li>3Dトランジスタ（FinFET）: ALDが必須</li>
+                        <li>高アスペクト比トレンチ: CVDではボイド形成リスク</li>
+                        <li>コスト・スループット vs 共形性のトレードオフ</li>
+                    </ul>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習9: MOCVD前駆体流量の最適化 <span class="difficulty hard">Hard</span></h4>
+                <p><strong>問題</strong>: GaN MOCVDで、目標成長速度2 µm/h、V/III比1000を達成するために、TMGa流量とNH₃流量を計算せよ。リアクター体積10 L、温度1050°C、圧力100 Torr。提供されたMOCVD成長速度モデルを使用。</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答（Python実装）</strong>:</p>
+                    <pre><code class="language-python">import numpy as np
+from scipy.optimize import fsolve
+
+# 目標値
+target_rate = 2.0  # µm/h
+V_III_target = 1000
+T = 1050 + 273.15  # K
+
+# 反応器条件
+V_reactor = 10  # L
+P_total = 100  # Torr = 13332 Pa
+
+# MOCVD成長速度関数（簡略版）
+def growth_model(P_TMGa, V_III, T):
+    return mocvd_growth_rate(T, P_TMGa, V_III)
+
+# 前駆体分圧から流量への変換
+def pressure_to_flow(P_precursor, V_reactor, T, P_total):
+    # 理想気体: n = PV/(RT)
+    R = 8.314  # J/(mol·K)
+    n_mol_per_s = P_precursor * V_reactor * 1e-3 / (R * T)  # mol/s
+    # sccm換算（標準状態 22.4 L/mol）
+    flow_sccm = n_mol_per_s * 22.4 * 1000 * 60  # sccm
+    return flow_sccm
+
+# 最適化（方程式）
+def equations(vars):
+    P_TMGa, P_NH3 = vars
+    eq1 = growth_model(P_TMGa, V_III_target, T) - target_rate
+    eq2 = P_NH3 / P_TMGa - V_III_target
+    return [eq1, eq2]
+
+# 初期推定値
+P_TMGa_init = 50  # Pa
+P_NH3_init = P_TMGa_init * V_III_target
+
+# 求解
+solution = fsolve(equations, [P_TMGa_init, P_NH3_init])
+P_TMGa_opt, P_NH3_opt = solution
+
+# 流量計算
+flow_TMGa = pressure_to_flow(P_TMGa_opt, V_reactor, T, P_total)
+flow_NH3 = pressure_to_flow(P_NH3_opt, V_reactor, T, P_total)
+
+print("=== MOCVD前駆体流量最適化 ===")
+print(f"目標成長速度: {target_rate} µm/h")
+print(f"目標V/III比: {V_III_target}")
+print(f"\n最適前駆体分圧:")
+print(f"  TMGa: {P_TMGa_opt:.2f} Pa")
+print(f"  NH3: {P_NH3_opt:.2f} Pa")
+print(f"\n最適流量:")
+print(f"  TMGa: {flow_TMGa:.2f} sccm")
+print(f"  NH3: {flow_NH3:.2f} sccm")
+print(f"\n検証:")
+print(f"  成長速度: {growth_model(P_TMGa_opt, V_III_target, T):.2f} µm/h")
+print(f"  V/III比: {P_NH3_opt / P_TMGa_opt:.0f}")
+</code></pre>
+
+                    <p><strong>期待される結果</strong>: TMGa ≈ 20 sccm、NH₃ ≈ 20,000 sccm</p>
+                    <p><strong>実用的考慮</strong>:</p>
+                    <ul>
+                        <li>前駆体利用効率（通常5～20%）</li>
+                        <li>リアクター設計（ガス流動パターン）</li>
+                        <li>温度均一性（±5°C以内）</li>
+                        <li>圧力制御精度（±1%）</li>
+                    </ul>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習10: 総合問題 - CVD技術選択 <span class="difficulty hard">Hard</span></h4>
+                <p><strong>問題</strong>: 以下の3つの成膜要求に対して、最適なCVD技術（熱CVD、PECVD、ALD、MOCVD）を選択し、プロセス条件を提案せよ。</p>
+                <ol>
+                    <li>Si基板上にSiO₂ 500 nm（層間絶縁膜、低応力、高スループット）</li>
+                    <li>GaAs基板上にAlGaN/GaN HEMT構造（AlGaN 20 nm、GaN 1 µm）</li>
+                    <li>ポリマーフィルム上にAl₂O₃ 30 nm（バリア膜、完全共形、低温）</li>
+                </ol>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+
+                    <p><strong>要求1: SiO₂ 500 nm（層間絶縁膜）</strong></p>
+                    <p><strong>推奨技術</strong>: <strong>LPCVD（TEOS）</strong></p>
+                    <p><strong>プロセス条件</strong>:</p>
+                    <ul>
+                        <li>温度: 650～750°C</li>
+                        <li>圧力: 0.5～2 Torr</li>
+                        <li>前駆体: TEOS（Si(OC₂H₅)₄）+ O₂</li>
+                        <li>成長速度: 50～100 nm/min</li>
+                        <li>成膜時間: 5～10分</li>
+                    </ul>
+                    <p><strong>理由</strong>:</p>
+                    <ul>
+                        <li>バッチ処理 → 高スループット（50～100枚/バッチ）</li>
+                        <li>均一性優秀（±2%）</li>
+                        <li>低応力膜（&lt;100 MPa、アニールでさらに低減）</li>
+                        <li>ステップカバレッジ良好（&gt;90%）</li>
+                        <li>工業標準プロセス</li>
+                    </ul>
+                    <p><strong>代替案</strong>: PECVD-SiO₂（低温必要時、200～400°C）</p>
+
+                    <p><strong>要求2: AlGaN/GaN HEMT構造</strong></p>
+                    <p><strong>推奨技術</strong>: <strong>MOCVD</strong></p>
+                    <p><strong>プロセス条件</strong>:</p>
+                    <ul>
+                        <li>温度: 1050～1100°C</li>
+                        <li>圧力: 100～300 Torr</li>
+                        <li>GaN層: TMGa + NH₃、V/III比 = 1000、成長速度2 µm/h → 30分</li>
+                        <li>AlGaN層: TMAl + TMGa + NH₃、Al組成20%、成長速度1 µm/h → 1.2分</li>
+                    </ul>
+                    <p><strong>理由</strong>:</p>
+                    <ul>
+                        <li>エピタキシャル成長 → 単結晶高品質</li>
+                        <li>組成制御精密（Al_xGa_{1-x}N、x = 0～1）</li>
+                        <li>急峻界面（&lt;5 ML）→ HEMT特性最適</li>
+                        <li>高速成膜（MBEの10倍）→ 工業生産性</li>
+                        <li>LED・HEMT産業標準技術</li>
+                    </ul>
+                    <p><strong>不適技術</strong>: MBE（研究用、低スループット）、PVD/CVD（エピタキシー不可）</p>
+
+                    <p><strong>要求3: ポリマー上にAl₂O₃ 30 nm（バリア膜）</strong></p>
+                    <p><strong>推奨技術</strong>: <strong>熱ALD</strong></p>
+                    <p><strong>プロセス条件</strong>:</p>
+                    <ul>
+                        <li>温度: 80～120°C（ポリマー耐熱性に依存）</li>
+                        <li>前駆体A: TMA（トリメチルアルミニウム）</li>
+                        <li>前駆体B: H₂O</li>
+                        <li>GPC: 1.1 Å/cycle</li>
+                        <li>必要サイクル数: 300 nm / 1.1 Å = 273 cycles</li>
+                        <li>サイクル時間: 5秒/cycle</li>
+                        <li>総成膜時間: 273 × 5 = 1365秒 ≈ 23分</li>
+                    </ul>
+                    <p><strong>理由</strong>:</p>
+                    <ul>
+                        <li>超低温プロセス（&lt;120°C）→ ポリマー基板損傷なし</li>
+                        <li>完全共形（100%）→ 高アスペクト比構造対応</li>
+                        <li>ピンホールフリー → 優れたガスバリア性（WVTR &lt; 10⁻⁴ g/(m²·day））</li>
+                        <li>原子層制御（±0.1 nm）→ 超薄膜で高性能</li>
+                        <li>有機EL、フレキシブルデバイスの標準技術</li>
+                    </ul>
+                    <p><strong>不適技術</strong>: 熱CVD（高温でポリマー損傷）、PECVD（プラズマ損傷）</p>
+
+                    <p><strong>技術選択まとめ表</strong>:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>要求</th>
+                                <th>重要因子</th>
+                                <th>最適技術</th>
+                                <th>温度</th>
+                                <th>成膜時間</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>高スループット・低応力</td>
+                                <td>バッチ処理、膜質</td>
+                                <td>LPCVD</td>
+                                <td>650～750°C</td>
+                                <td>5～10分</td>
+                            </tr>
+                            <tr>
+                                <td>エピタキシー・組成制御</td>
+                                <td>単結晶成長、速度</td>
+                                <td>MOCVD</td>
+                                <td>1050～1100°C</td>
+                                <td>30分</td>
+                            </tr>
+                            <tr>
+                                <td>低温・完全共形</td>
+                                <td>基板適合性、共形性</td>
+                                <td>ALD</td>
+                                <td>80～120°C</td>
+                                <td>23分</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </details>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>参考文献</h2>
+
+            <ol>
+                <li>
+                    <strong>Pierson, H.O. (1999).</strong> <em>Handbook of Chemical Vapor Deposition (CVD): Principles, Technology and Applications</em> (2nd ed.). William Andrew, pp. 1-50 (CVD fundamentals), pp. 100-180 (thermal CVD processes), pp. 250-320 (PECVD).
+                </li>
+                <li>
+                    <strong>George, S.M. (2010).</strong> "Atomic Layer Deposition: An Overview." <em>Chemical Reviews</em>, 110(1), 111-131. (ALD総合レビュー、自己停止機構の詳細)
+                </li>
+                <li>
+                    <strong>Stringfellow, G.B. (1999).</strong> <em>Organometallic Vapor-Phase Epitaxy: Theory and Practice</em> (2nd ed.). Academic Press, pp. 1-80 (MOCVD theory), pp. 150-250 (precursor chemistry), pp. 300-400 (III-V semiconductors).
+                </li>
+                <li>
+                    <strong>Leskelä, M., Ritala, M. (2002).</strong> "Atomic Layer Deposition (ALD): from precursors to thin film structures." <em>Thin Solid Films</em>, 409(1), 138-146. (ALD材料・前駆体の包括的レビュー)
+                </li>
+                <li>
+                    <strong>Choy, K.L. (2003).</strong> "Chemical vapour deposition of coatings." <em>Progress in Materials Science</em>, 48(2), 57-170. (CVDプロセス・応用の総合レビュー)
+                </li>
+                <li>
+                    <strong>Lieberman, M.A., Lichtenberg, A.J. (2005).</strong> <em>Principles of Plasma Discharges and Materials Processing</em> (2nd ed.). Wiley, pp. 1-60 (plasma fundamentals), pp. 200-280 (PECVD processes), pp. 450-520 (plasma chemistry).
+                </li>
+                <li>
+                    <strong>Ohring, M. (2002).</strong> <em>Materials Science of Thin Films: Deposition and Structure</em> (2nd ed.). Academic Press, pp. 321-456 (CVD kinetics and transport), pp. 457-504 (CVD reactor design).
+                </li>
+                <li>
+                    <strong>Parsons, G.N., George, S.M., Knez, M. (2011).</strong> "Progress and future directions for atomic layer deposition and ALD-based chemistry." <em>MRS Bulletin</em>, 36(11), 865-871. (ALD最新動向・応用展開)
+                </li>
+            </ol>
+
+            <div class="info-box">
+                <strong>さらに学ぶために</strong>
+                <ul>
+                    <li>CVD装置設計: <em>Chemical Vapor Deposition</em> (Powell et al., 1966) - 古典的名著</li>
+                    <li>MOCVD詳細: <em>MOCVD Challenge</em> (Manasevit, 1981) - 産業化の歴史</li>
+                    <li>ALD応用: <em>Atomic Layer Deposition for Semiconductors</em> (Hwang, 2014)</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="learning-objectives">
+            <h2>学習目標確認チェックリスト</h2>
+
+            <h3>レベル1: 基本理解</h3>
+            <ul>
+                <li>□ CVD4技術（熱CVD、PECVD、ALD、MOCVD）の原理を説明できる</li>
+                <li>□ 表面反応律速と物質輸送律速の違いを理解している</li>
+                <li>□ ALDの自己停止吸着メカニズムを説明できる</li>
+                <li>□ LPCVD vs APCVDの違いを理解している</li>
+                <li>□ CVDとPVDの違い（共形性、温度、速度）を説明できる</li>
+            </ul>
+
+            <h3>レベル2: 実践スキル</h3>
+            <ul>
+                <li>□ PythonでCVD成長速度のArrhenius解析ができる</li>
+                <li>□ 反応速度定数を温度から計算できる</li>
+                <li>□ プラズマパラメータ（デバイ長、プラズマ振動数）を計算できる</li>
+                <li>□ ALDサイクルシミュレーションで成長窓を可視化できる</li>
+                <li>□ MOCVD成長速度をV/III比から推定できる</li>
+                <li>□ 律速段階を判定し、プロセス最適化に応用できる</li>
+            </ul>
+
+            <h3>レベル3: 応用力</h3>
+            <ul>
+                <li>□ プロセスパラメータ（温度、圧力、ガス流量）と膜質の関係を説明できる</li>
+                <li>□ 成膜要求（材料、膜厚、基板、共形性）に応じて最適CVD技術を選択できる</li>
+                <li>□ ALD成長窓を実験データから決定し、最適温度を提案できる</li>
+                <li>□ MOCVD前駆体流量を目標成長速度・V/III比から計算できる</li>
+                <li>□ CVD vs ALDのステップカバレッジ差を定量的に評価できる</li>
+                <li>□ 工業生産における技術選択（コスト、スループット、品質）を総合的に判断できる</li>
+            </ul>
+
+            <div class="warning-box">
+                <strong>次のステップ</strong>
+                第4章では、ナノ材料合成技術（ナノ粒子、ナノワイヤー、2D材料、量子ドット）を学びます。CVD/PVDで培った薄膜成長の知識を、0次元～2次元ナノ構造の合成に応用しましょう。
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 MS Dojo - Materials Science Learning Platform</p>
+        <p><a href="https://github.com/your-repo/ms-dojo" target="_blank" rel="noopener">GitHub</a> | <a href="../index.html">トップページ</a></p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script>
+        // Mermaid initialization
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('nav a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

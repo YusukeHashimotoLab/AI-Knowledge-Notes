@@ -1748,6 +1748,190 @@ Martensite    48           5.3           2.0            0.10
         </ul>
         </details>
 
+        <details>
+        <summary><strong>Q8:</strong> オブジェクト検出モデル（YOLO、Faster R-CNN）を用いて、材料組織中の特定の欠陥（介在物、ボイド、クラック）を検出するシステムを設計してください。精度評価指標（mAP: mean Average Precision）についても説明してください。</summary>
+
+        <p><strong>解答のポイント</strong>:</p>
+        <ul>
+            <li>YOLOv5/YOLOv8モデルのファインチューニング（事前学習済みCOCOモデル → 材料欠陥データセット）</li>
+            <li>3クラス分類：inclusion（介在物）、void（ボイド）、crack（クラック）</li>
+            <li>mAP@0.5計算：IoU閾値0.5でのPrecision-Recall曲線からAPを算出、全クラスの平均をmAPとする</li>
+            <li>データ拡張：回転、反転、明度変化、ノイズ付加で訓練データを増強</li>
+            <li>Hard Negative Mining：誤検出（False Positive）の多い画像を重点的に訓練</li>
+        </ul>
+
+        <p><strong>簡易実装例</strong>:</p>
+        <pre><code class="language-python">
+import torch
+model = torch.hub.load('ultralytics/yolov5', 'custom', path='weights/defect_detector.pt')
+results = model('sample_microstructure.png')
+detections = results.pandas().xyxy[0]  # DataFrame形式で結果取得
+print(f"検出数: {len(detections)}, mAP@0.5: {model.metrics['mAP_0.5']:.3f}")
+</code></pre>
+        </details>
+
+        <details>
+        <summary><strong>Q9:</strong> EBSD（Electron Backscatter Diffraction）データから、粒界性格分布（Grain Boundary Character Distribution, GBCD）を計算し、Σ3双晶粒界の割合を定量化するPythonコードを作成してください。</summary>
+
+        <p><strong>解答のポイント</strong>:</p>
+        <ul>
+            <li>orixライブラリを用いたEBSDデータ読み込み（.ang、.ctf形式）</li>
+            <li>粒界方位差（Misorientation）の計算：ori1.inv() * ori2</li>
+            <li>Brandon基準によるCSL粒界分類：Δθ_max = 15°/√Σ</li>
+            <li>Σ3双晶粒界：60° &lt;111&gt;回転、許容差±8.66°</li>
+            <li>粒界方位差分布（GBCD）のヒストグラム作成</li>
+        </ul>
+
+        <p><strong>簡易実装例</strong>:</p>
+        <pre><code class="language-python">
+from orix import io
+xmap = io.load('sample_ebsd.ang')
+grain_boundaries = xmap.get_grain_boundaries(threshold=5)  # 方位差 > 5°
+misorientation_angles = [np.degrees(gb.misorientation.angle) for gb in grain_boundaries]
+sigma3_count = sum([1 for angle in misorientation_angles if abs(angle - 60) < 8.66])
+sigma3_fraction = sigma3_count / len(misorientation_angles) * 100
+print(f"Σ3双晶粒界の割合: {sigma3_fraction:.1f}%")
+</code></pre>
+        </details>
+
+        <details>
+        <summary><strong>Q10:</strong> 材料組織画像の自動解析システムを実用化する際の課題（データ収集、モデル選択、システム統合、保守）について、それぞれの解決策と具体的な実装例を提案してください。</summary>
+
+        <p><strong>解答例</strong>:</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>課題</th>
+                    <th>問題点</th>
+                    <th>解決策</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>データ収集</strong></td>
+                    <td>高品質ラベル付きデータが不足</td>
+                    <td>Active Learning、半教師あり学習、自己教師あり学習</td>
+                </tr>
+                <tr>
+                    <td><strong>モデル選択</strong></td>
+                    <td>精度、速度、解釈性のトレードオフ</td>
+                    <td>2段階アプローチ：高速モデル（スクリーニング）+ 高精度モデル（精査）</td>
+                </tr>
+                <tr>
+                    <td><strong>ドメイン適応</strong></td>
+                    <td>撮影条件の変化でモデル性能劣化</td>
+                    <td>Histogram Matching、CLAHE、データ拡張</td>
+                </tr>
+                <tr>
+                    <td><strong>システム統合</strong></td>
+                    <td>既存設備（SEM、EBSD）との連携</td>
+                    <td>REST API、gRPC、Python-C++連携（pybind11）</td>
+                </tr>
+                <tr>
+                    <td><strong>保守・更新</strong></td>
+                    <td>モデルの経年劣化、新材料への対応</td>
+                    <td>継続学習（Continual Learning）、MLOps（MLflow）</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p><strong>実装例：FastAPIによるREST APIデプロイ</strong>:</p>
+        <pre><code class="language-python">
+from fastapi import FastAPI, File, UploadFile
+app = FastAPI()
+
+@app.post("/analyze")
+async def analyze_image(file: UploadFile = File(...)):
+    # 画像読み込み → 前処理 → モデル推論 → 結果返却
+    results = model.predict(preprocess(file))
+    return {"status": "success", "features": results}
+
+# uvicorn main:app --host 0.0.0.0 --port 8000
+</code></pre>
+        </details>
+
+        </section>
+
+        <!-- 学習目標の確認 -->
+        <section class="learning-check">
+            <h2>✓ 学習目標の確認</h2>
+            <p>この章を完了すると、以下を説明・実行できるようになります：</p>
+
+            <h3>基本理解</h3>
+            <ul>
+                <li>✅ 画像処理の基礎（フィルタリング、セグメンテーション、形態学的処理）を理解している</li>
+                <li>✅ Watershed法とその派生手法による粒界セグメンテーションの原理を説明できる</li>
+                <li>✅ EBSD（Electron Backscatter Diffraction）データの構造と解析手法を理解している</li>
+                <li>✅ 機械学習（Random Forest、CNN）による材料組織の分類・セグメンテーションの基本原理を知っている</li>
+            </ul>
+
+            <h3>実践スキル</h3>
+            <ul>
+                <li>✅ OpenCVとscikit-imageを用いて、顕微鏡画像の前処理（ノイズ除去、コントラスト調整）ができる</li>
+                <li>✅ Watershed法を実装し、結晶粒の自動セグメンテーションと粒径分布の計算ができる</li>
+                <li>✅ orixライブラリを用いて、EBSDデータから粒界性格分布（GBCD）を計算できる</li>
+                <li>✅ Random ForestまたはCNNを用いて、多相材料の相分類モデルを構築・評価できる</li>
+                <li>✅ U-Netを用いた深層学習ベースのセグメンテーションモデルを訓練・検証できる</li>
+            </ul>
+
+            <h3>応用力</h3>
+            <ul>
+                <li>✅ 実際の研究・開発プロジェクトに画像解析パイプラインを適用できる</li>
+                <li>✅ YOLOやFaster R-CNNを用いて、材料中の欠陥検出システムを構築できる</li>
+                <li>✅ ドメイン適応や転移学習を活用し、少量データでのモデル構築ができる</li>
+                <li>✅ MLOps（MLflow、Docker、API化）を用いて、解析システムを本番環境にデプロイできる</li>
+                <li>✅ Active LearningやHuman-in-the-Loopアプローチで、効率的なデータ収集とモデル改善ができる</li>
+            </ul>
+
+            <p><strong>次のステップ</strong>:</p>
+            <p>本章で習得したPython組織解析スキルは、材料科学の広範な分野に応用できます。次は以下の領域に挑戦してみましょう：</p>
+            <ul>
+                <li><strong>マルチモーダル解析</strong>: 画像、EBSD、XRD、機械試験データを統合した総合評価システムの構築</li>
+                <li><strong>プロセス-組織-特性リンケージ</strong>: 製造条件から最終特性までの全体最適化（ICME: Integrated Computational Materials Engineering）</li>
+                <li><strong>自律実験システム</strong>: ベイズ最適化とロボティクスを統合した、AI駆動の材料探索システムの開発</li>
+            </ul>
+        </section>
+
+        <!-- 参考文献 -->
+        <section class="references">
+            <h2>📚 参考文献</h2>
+
+            <ol>
+                <li>Gonzalez, R.C., Woods, R.E. (2018). <em>Digital Image Processing</em> (4th ed.). Pearson. ISBN: 978-0133356724</li>
+
+                <li>Modin, H., Modin, S. (1973). <em>Metallurgical Microscopy</em>. Butterworth-Heinemann. ISBN: 978-0408705806</li>
+
+                <li>Azimi, S.M., Britz, D., Engstler, M., Fritz, M., Mücklich, F. (2018). "Advanced Steel Microstructural Classification by Deep Learning Methods." <em>Scientific Reports</em>, 8(1), 2128. <a href="https://doi.org/10.1038/s41598-018-20037-5" target="_blank">DOI:10.1038/s41598-018-20037-5</a></li>
+
+                <li>DeCost, B.L., Lei, B., Francis, T., Holm, E.A. (2019). "High Throughput Quantitative Metallography for Complex Microstructures Using Deep Learning: A Case Study in Ultrahigh Carbon Steel." <em>Microscopy and Microanalysis</em>, 25(1), 21-29. <a href="https://doi.org/10.1017/S1431927618015635" target="_blank">DOI:10.1017/S1431927618015635</a></li>
+
+                <li>Chowdhury, A., Kautz, E., Yener, B., Lewis, D. (2016). "Image driven machine learning methods for microstructure recognition." <em>Computational Materials Science</em>, 123, 176-187. <a href="https://doi.org/10.1016/j.commatsci.2016.05.034" target="_blank">DOI:10.1016/j.commatsci.2016.05.034</a></li>
+
+                <li>Kaufmann, K., Zhu, C., Rosengarten, A.S., Maryanovsky, D., Harrington, T.J., Marin, E., Vecchio, K.S. (2020). "Crystal symmetry determination in electron diffraction using machine learning." <em>Science</em>, 367(6477), 564-568. <a href="https://doi.org/10.1126/science.aay3062" target="_blank">DOI:10.1126/science.aay3062</a></li>
+
+                <li>Cecen, A., Dai, H., Yabansu, Y.C., Kalidindi, S.R., Song, L. (2018). "Material structure-property linkages using three-dimensional convolutional neural networks." <em>Acta Materialia</em>, 146, 76-84. <a href="https://doi.org/10.1016/j.actamat.2017.11.053" target="_blank">DOI:10.1016/j.actamat.2017.11.053</a></li>
+
+                <li>Callister, W.D., Rethwisch, D.G. (2020). <em>Materials Science and Engineering: An Introduction</em> (10th ed.). Wiley. ISBN: 978-1119405498</li>
+            </ol>
+
+            <h3>Pythonライブラリ・ツール</h3>
+            <ul>
+                <li><strong>OpenCV</strong>: Computer Vision Library (<a href="https://opencv.org/" target="_blank">https://opencv.org/</a>)</li>
+                <li><strong>scikit-image</strong>: Image Processing in Python (<a href="https://scikit-image.org/" target="_blank">https://scikit-image.org/</a>)</li>
+                <li><strong>orix</strong>: Crystallographic Orientation Analysis (<a href="https://orix.readthedocs.io/" target="_blank">https://orix.readthedocs.io/</a>)</li>
+                <li><strong>PyTorch</strong>: Deep Learning Framework (<a href="https://pytorch.org/" target="_blank">https://pytorch.org/</a>)</li>
+                <li><strong>MLflow</strong>: ML Lifecycle Management (<a href="https://mlflow.org/" target="_blank">https://mlflow.org/</a>)</li>
+            </ul>
+
+            <h3>オープンデータセット</h3>
+            <ul>
+                <li><strong>UHCSDB</strong>: Ultra-High Carbon Steel Database (Materials Data Facility)</li>
+                <li><strong>NIST Materials Data Repository</strong> (<a href="https://materialsdata.nist.gov/" target="_blank">https://materialsdata.nist.gov/</a>)</li>
+                <li><strong>Materials Project</strong>: Computational Materials Science Database (<a href="https://materialsproject.org/" target="_blank">https://materialsproject.org/</a>)</li>
+            </ul>
+        </section>
+
         <h2>章のまとめ</h2>
 
         <p>本章では、Pythonを用いた材料組織の定量解析手法を、基礎から実践まで網羅的に学びました。以下に重要なポイントをまとめます。</p>

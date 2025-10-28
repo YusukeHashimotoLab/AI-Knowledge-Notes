@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第1章: 薄膜成長の基礎 - 薄膜・ナノ材料プロセス入門 - MS Dojo</title>
+    <meta name="description" content="薄膜成長の基礎理論を学ぶ。核生成理論、成長モード、エピタキシャル成長、表面拡散をPythonシミュレーションで理解する。">
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- MathJax for mathematical expressions -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --accent-pink: #f093fb;
+            --accent-coral: #f5576c;
+            --primary-dark: #2c3e50;
+            --secondary-dark: #34495e;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #ecf0f1;
+            --white: #ffffff;
+            --code-bg: #2d2d2d;
+            --border-light: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-coral) 100%);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-coral) 100%);
+            color: white;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        section {
+            background: var(--white);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(90deg, var(--accent-pink), var(--accent-coral)) 1;
+        }
+
+        h3 {
+            color: var(--secondary-dark);
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem;
+        }
+
+        h4 {
+            color: var(--secondary-dark);
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        pre code {
+            background: none;
+            color: #f8f8f2;
+            padding: 0;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.1) 0%, rgba(245, 87, 108, 0.1) 100%);
+            border-left: 4px solid var(--accent-coral);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            color: var(--accent-coral);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .warning-box {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .warning-box strong {
+            color: var(--warning);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .exercise-box {
+            background: rgba(39, 174, 96, 0.05);
+            border: 2px solid var(--success);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .exercise-box h4 {
+            color: var(--success);
+            margin-top: 0;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .difficulty.easy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .difficulty.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .difficulty.hard {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-coral) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(240, 147, 251, 0.05);
+        }
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--accent-pink);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--accent-coral);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>第1章: 薄膜成長の基礎</h1>
+        <p>核生成理論・成長モード・エピタキシャル成長の基本原理</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">トップ</a></li>
+            <li><a href="#nucleation">核生成理論</a></li>
+            <li><a href="#growth-modes">成長モード</a></li>
+            <li><a href="#epitaxy">エピタキシャル成長</a></li>
+            <li><a href="#surface-diffusion">表面拡散</a></li>
+            <li><a href="#exercises">演習問題</a></li>
+            <li><a href="#references">参考文献</a></li>
+            <li><a href="chapter-2.html">次の章へ →</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="intro">
+            <h2>1.1 薄膜成長の概要</h2>
+
+            <p>
+                薄膜成長は、材料科学・半導体工学・ナノテクノロジーの基盤技術です。原子・分子レベルでの成膜プロセスを理解することで、デバイス性能を制御できます。本章では、薄膜成長の基本原理として、<strong>核生成理論</strong>、<strong>成長モード</strong>、<strong>エピタキシャル成長</strong>、<strong>表面拡散</strong>の4つの重要概念を学びます。
+            </p>
+
+            <div class="info-box">
+                <strong>本章の学習目標</strong>
+                <ul>
+                    <li><strong>レベル1（基本理解）</strong>: 核生成理論の基本概念、3つの成長モード、エピタキシャル成長の定義を理解する</li>
+                    <li><strong>レベル2（実践スキル）</strong>: Pythonで核生成速度、臨界核サイズ、格子不整合を計算できる</li>
+                    <li><strong>レベル3（応用力）</strong>: 成長条件（温度・堆積速度）と成長モードの関係を説明し、KMCシミュレーションで表面拡散を解析できる</li>
+                </ul>
+            </div>
+
+            <h3>薄膜成長の3つのステージ</h3>
+            <p>薄膜成長は以下の3段階で進行します：</p>
+
+            <ol>
+                <li><strong>核生成（Nucleation）</strong>: 基板表面に原子クラスターが形成される初期段階</li>
+                <li><strong>島成長（Island Growth）</strong>: 核が成長し、島状の構造を形成</li>
+                <li><strong>合体・連続膜形成（Coalescence）</strong>: 島同士が結合し、連続した薄膜になる</li>
+            </ol>
+
+            <div class="mermaid">
+            flowchart LR
+                A[原子吸着] --> B[表面拡散]
+                B --> C[核生成]
+                C --> D[島成長]
+                D --> E[合体]
+                E --> F[連続膜]
+
+                style A fill:#f093fb,color:#fff
+                style C fill:#f5576c,color:#fff
+                style F fill:#27ae60,color:#fff
+            </div>
+        </section>
+
+        <section id="nucleation">
+            <h2>1.2 核生成理論</h2>
+
+            <h3>1.2.1 古典的核生成理論</h3>
+
+            <p>
+                核生成は、気相・液相から固相への相転移の初期プロセスです。<strong>Volmer-Weber理論</strong>に基づく古典的核生成理論では、核形成の自由エネルギー変化 \(\Delta G\) が以下の式で表されます：
+            </p>
+
+            <p>
+                \[
+                \Delta G = -n \Delta \mu + \gamma A
+                \]
+            </p>
+
+            <p>ここで：</p>
+            <ul>
+                <li>\(n\): 核内の原子数</li>
+                <li>\(\Delta \mu\): 化学ポテンシャル差（駆動力）</li>
+                <li>\(\gamma\): 表面エネルギー</li>
+                <li>\(A\): 核の表面積</li>
+            </ul>
+
+            <p>
+                球状核を仮定すると、半径 \(r\) の核の自由エネルギー変化は：
+            </p>
+
+            <p>
+                \[
+                \Delta G(r) = -\frac{4}{3}\pi r^3 \Delta G_v + 4\pi r^2 \gamma
+                \]
+            </p>
+
+            <p>
+                \(\Delta G_v\) は単位体積あたりの自由エネルギー変化（正の値）。第1項は体積項（負）、第2項は表面項（正）です。
+            </p>
+
+            <h3>1.2.2 臨界核サイズ</h3>
+
+            <p>
+                \(\Delta G(r)\) を \(r\) で微分してゼロとおくと、<strong>臨界核半径 \(r^*\)</strong> が求まります：
+            </p>
+
+            <p>
+                \[
+                r^* = \frac{2\gamma}{\Delta G_v}
+                \]
+            </p>
+
+            <p>
+                \(r < r^*\) の核は不安定で消滅し、\(r > r^*\) の核は成長を続けます。臨界核における活性化エネルギー \(\Delta G^*\) は：
+            </p>
+
+            <p>
+                \[
+                \Delta G^* = \frac{16\pi \gamma^3}{3(\Delta G_v)^2}
+                \]
+            </p>
+
+            <div class="info-box">
+                <strong>物理的意味</strong>
+                \(\Delta G^*\) が大きいほど核生成は困難です。温度上昇や過飽和度増加により \(\Delta G_v\) が増加すると、\(\Delta G^*\) は減少し、核生成が促進されます。
+            </div>
+
+            <h3>1.2.3 核生成速度</h3>
+
+            <p>
+                単位面積・単位時間あたりの核生成速度 \(J\) は、Arrhenius型の式で表されます：
+            </p>
+
+            <p>
+                \[
+                J = J_0 \exp\left(-\frac{\Delta G^*}{k_B T}\right)
+                \]
+            </p>
+
+            <p>
+                \(J_0\) は頻度因子、\(k_B\) はボルツマン定数、\(T\) は温度です。この式は、核生成が温度と過飽和度に強く依存することを示しています。
+            </p>
+
+            <h3>Python実装: 核生成速度計算</h3>
+
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# 物理定数
+k_B = 1.38e-23  # J/K（ボルツマン定数）
+
+def nucleation_rate(T, gamma, delta_Gv, J0=1e30):
+    """
+    核生成速度を計算する関数
+
+    Parameters:
+    -----------
+    T : float
+        温度 [K]
+    gamma : float
+        表面エネルギー [J/m^2]
+    delta_Gv : float
+        体積自由エネルギー変化 [J/m^3]
+    J0 : float
+        頻度因子 [m^-2 s^-1]（デフォルト: 10^30）
+
+    Returns:
+    --------
+    J : float
+        核生成速度 [m^-2 s^-1]
+    r_critical : float
+        臨界核半径 [m]
+    delta_G_critical : float
+        臨界活性化エネルギー [J]
+    """
+    # 臨界核半径の計算
+    r_critical = 2 * gamma / delta_Gv
+
+    # 臨界活性化エネルギーの計算
+    delta_G_critical = (16 * np.pi * gamma**3) / (3 * delta_Gv**2)
+
+    # 核生成速度の計算（Arrhenius式）
+    J = J0 * np.exp(-delta_G_critical / (k_B * T))
+
+    return J, r_critical, delta_G_critical
+
+# 実行例: 温度依存性の計算
+T_range = np.linspace(300, 800, 100)  # 温度範囲 [K]
+gamma = 1.0  # 表面エネルギー [J/m^2]
+delta_Gv = 1e9  # 体積自由エネルギー変化 [J/m^3]
+
+J_values = []
+r_critical_values = []
+
+for T in T_range:
+    J, r_crit, delta_G_crit = nucleation_rate(T, gamma, delta_Gv)
+    J_values.append(J)
+    r_critical_values.append(r_crit * 1e9)  # nmに変換
+
+# 可視化
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+# 核生成速度の温度依存性
+ax1.semilogy(T_range, J_values, linewidth=2, color='#f5576c')
+ax1.set_xlabel('Temperature (K)', fontsize=12)
+ax1.set_ylabel('Nucleation Rate (m$^{-2}$ s$^{-1}$)', fontsize=12)
+ax1.set_title('Nucleation Rate vs Temperature', fontsize=14, fontweight='bold')
+ax1.grid(True, alpha=0.3)
+
+# 臨界核半径（温度に依存しない）
+ax2.plot(T_range, r_critical_values, linewidth=2, color='#f093fb')
+ax2.set_xlabel('Temperature (K)', fontsize=12)
+ax2.set_ylabel('Critical Radius (nm)', fontsize=12)
+ax2.set_title('Critical Nucleus Radius', fontsize=14, fontweight='bold')
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('nucleation_rate_temperature.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 具体的な計算例（500K）
+T_example = 500  # K
+J_ex, r_crit_ex, delta_G_crit_ex = nucleation_rate(T_example, gamma, delta_Gv)
+
+print(f"=== 核生成計算結果（T = {T_example} K）===")
+print(f"核生成速度 J: {J_ex:.2e} m^-2 s^-1")
+print(f"臨界核半径 r*: {r_crit_ex*1e9:.3f} nm")
+print(f"臨界活性化エネルギー ΔG*: {delta_G_crit_ex:.2e} J")
+print(f"ΔG* / (k_B T): {delta_G_crit_ex / (k_B * T_example):.2f}")
+</code></pre>
+
+            <div class="info-box">
+                <strong>実行結果の解釈</strong>
+                <ul>
+                    <li>温度上昇 → 核生成速度が指数関数的に増加</li>
+                    <li>臨界核半径は温度に依存せず、\(\gamma\) と \(\Delta G_v\) のみで決まる</li>
+                    <li>\(\Delta G^* / (k_B T)\) が大きい（&gt;30）と、核生成はほぼ起こらない</li>
+                </ul>
+            </div>
+
+            <h3>Python実装: 臨界核サイズの過飽和度依存性</h3>
+
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def critical_radius_vs_supersaturation(S_range, gamma, Omega, T):
+    """
+    過飽和度Sに対する臨界核半径の計算
+
+    Parameters:
+    -----------
+    S_range : array
+        過飽和度 S = P/P_eq（圧力比）の範囲
+    gamma : float
+        表面エネルギー [J/m^2]
+    Omega : float
+        原子体積 [m^3]
+    T : float
+        温度 [K]
+
+    Returns:
+    --------
+    r_critical : array
+        臨界核半径 [m]
+    """
+    k_B = 1.38e-23  # J/K
+
+    # ΔG_v = (k_B T / Omega) * ln(S)
+    delta_Gv = (k_B * T / Omega) * np.log(S_range)
+
+    # r* = 2γ / ΔG_v
+    r_critical = 2 * gamma / delta_Gv
+
+    return r_critical
+
+# パラメータ設定
+S_range = np.linspace(1.1, 5.0, 100)  # 過飽和度範囲
+gamma = 1.0  # J/m^2
+Omega = 1e-29  # m^3（原子体積、約10Å^3）
+T = 500  # K
+
+r_crit = critical_radius_vs_supersaturation(S_range, gamma, Omega, T)
+
+# 可視化
+plt.figure(figsize=(8, 6))
+plt.plot(S_range, r_crit * 1e9, linewidth=2.5, color='#f5576c')
+plt.xlabel('Supersaturation S = P / P$_{eq}$', fontsize=13)
+plt.ylabel('Critical Radius r* (nm)', fontsize=13)
+plt.title('Critical Nucleus Size vs Supersaturation', fontsize=15, fontweight='bold')
+plt.grid(True, alpha=0.3)
+plt.axhline(y=1.0, color='gray', linestyle='--', label='r* = 1 nm')
+plt.legend(fontsize=11)
+plt.tight_layout()
+plt.savefig('critical_radius_supersaturation.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 具体例の計算
+S_examples = [1.5, 2.0, 3.0]
+print("=== 過飽和度と臨界核半径 ===")
+for S in S_examples:
+    r = critical_radius_vs_supersaturation(np.array([S]), gamma, Omega, T)[0]
+    print(f"S = {S:.1f}: r* = {r*1e9:.3f} nm")
+</code></pre>
+
+            <div class="warning-box">
+                <strong>注意点</strong>
+                過飽和度が低い（S &lt; 1.2）と、臨界核半径が非常に大きくなり、核生成が実質的に起こりません。実用的な成膜には S &gt; 2 程度の過飽和が必要です。
+            </div>
+        </section>
+
+        <section id="growth-modes">
+            <h2>1.3 薄膜成長モード</h2>
+
+            <h3>1.3.1 3つの成長モード</h3>
+
+            <p>
+                薄膜成長のメカニズムは、<strong>界面エネルギーの大小関係</strong>によって3つのモードに分類されます：
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>成長モード</th>
+                        <th>英語名</th>
+                        <th>界面エネルギー関係</th>
+                        <th>特徴</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>島状成長</strong></td>
+                        <td>Volmer-Weber (VW)</td>
+                        <td>\(\gamma_f + \gamma_i > \gamma_s\)</td>
+                        <td>3次元の島が基板上に形成される</td>
+                    </tr>
+                    <tr>
+                        <td><strong>層状成長</strong></td>
+                        <td>Frank-van der Merwe (FM)</td>
+                        <td>\(\gamma_f + \gamma_i < \gamma_s\)</td>
+                        <td>原子層ごとに平坦に成長</td>
+                    </tr>
+                    <tr>
+                        <td><strong>層-島状成長</strong></td>
+                        <td>Stranski-Krastanov (SK)</td>
+                        <td>中間的</td>
+                        <td>初期は層状、その後島状に転移</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p>ここで：</p>
+            <ul>
+                <li>\(\gamma_f\): 薄膜の表面エネルギー</li>
+                <li>\(\gamma_s\): 基板の表面エネルギー</li>
+                <li>\(\gamma_i\): 薄膜-基板界面エネルギー</li>
+            </ul>
+
+            <div class="mermaid">
+            flowchart TD
+                A[薄膜成長開始] --> B{界面エネルギー関係}
+                B -->|γf + γi > γs| C[Volmer-Weber<br/>島状成長]
+                B -->|γf + γi < γs| D[Frank-van der Merwe<br/>層状成長]
+                B -->|中間的| E[Stranski-Krastanov<br/>層-島状成長]
+
+                C --> F[3D島形成]
+                D --> G[2D層成長]
+                E --> H[初期層成長<br/>→ 島形成転移]
+
+                style A fill:#f093fb,color:#fff
+                style C fill:#f5576c,color:#fff
+                style D fill:#27ae60,color:#fff
+                style E fill:#f39c12,color:#fff
+            </div>
+
+            <h3>1.3.2 Volmer-Weber（島状成長）</h3>
+
+            <p>
+                <strong>Au/SiO₂</strong> や <strong>Ag/ガラス</strong> のように、薄膜と基板の相互作用が弱い系で観察されます。堆積初期から3次元の島が形成され、島密度と島サイズ分布が膜質を決定します。
+            </p>
+
+            <h3>1.3.3 Frank-van der Merwe（層状成長）</h3>
+
+            <p>
+                <strong>Si/Si(100)</strong> や <strong>GaAs/GaAs(100)</strong> のようなホモエピタキシーで典型的です。原子層ごとに成長が進行し、高品質な単結晶膜が得られます。
+            </p>
+
+            <h3>1.3.4 Stranski-Krastanov（層-島状成長）</h3>
+
+            <p>
+                <strong>InAs/GaAs</strong> や <strong>Ge/Si</strong> のように、格子不整合が大きいヘテロエピタキシーで見られます。初期数原子層はwetting layer（濡れ層）として平坦に成長しますが、歪エネルギーが蓄積すると、応力緩和のために島（量子ドット）が形成されます。
+            </p>
+
+            <div class="info-box">
+                <strong>応用例：量子ドット形成</strong>
+                SK成長モードを利用して、InAs量子ドットをGaAs基板上に作製できます。島のサイズ（5-30nm）により、バンドギャップが制御され、レーザーや太陽電池に応用されます。
+            </div>
+
+            <h3>Python実装: 成長モード判定</h3>
+
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def determine_growth_mode(gamma_f, gamma_s, gamma_i):
+    """
+    界面エネルギーから成長モードを判定
+
+    Parameters:
+    -----------
+    gamma_f : float
+        薄膜表面エネルギー [J/m^2]
+    gamma_s : float
+        基板表面エネルギー [J/m^2]
+    gamma_i : float
+        界面エネルギー [J/m^2]
+
+    Returns:
+    --------
+    mode : str
+        成長モード（'Volmer-Weber', 'Frank-van der Merwe', 'Stranski-Krastanov'）
+    delta_gamma : float
+        エネルギー差 γ_f + γ_i - γ_s
+    """
+    delta_gamma = gamma_f + gamma_i - gamma_s
+
+    if delta_gamma > 0.1:
+        mode = "Volmer-Weber（島状成長）"
+    elif delta_gamma < -0.1:
+        mode = "Frank-van der Merwe（層状成長）"
+    else:
+        mode = "Stranski-Krastanov（層-島状成長）"
+
+    return mode, delta_gamma
+
+# 実例の計算
+systems = [
+    ("Au/SiO2", 1.5, 0.3, 0.5),   # VW
+    ("Si/Si", 1.2, 1.2, 0.05),    # FM
+    ("InAs/GaAs", 0.6, 0.9, 0.1), # SK
+    ("Ag/Glass", 1.4, 0.4, 0.6),  # VW
+]
+
+print("=== 成長モード判定結果 ===\n")
+for name, gf, gs, gi in systems:
+    mode, dg = determine_growth_mode(gf, gs, gi)
+    print(f"{name}:")
+    print(f"  γ_f = {gf:.2f}, γ_s = {gs:.2f}, γ_i = {gi:.2f} [J/m^2]")
+    print(f"  Δγ = {dg:.2f} J/m^2")
+    print(f"  成長モード: {mode}\n")
+
+# 成長モードのエネルギーダイアグラム可視化
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+modes = ['Volmer-Weber\n(島状成長)', 'Frank-van der Merwe\n(層状成長)', 'Stranski-Krastanov\n(層-島状成長)']
+colors = ['#f5576c', '#27ae60', '#f39c12']
+
+for i, (ax, mode_name, color) in enumerate(zip(axes, modes, colors)):
+    # 簡略化したエネルギー図
+    if i == 0:  # VW
+        ax.bar(['γ_f + γ_i', 'γ_s'], [2.0, 1.0], color=[color, '#bdc3c7'])
+    elif i == 1:  # FM
+        ax.bar(['γ_f + γ_i', 'γ_s'], [1.0, 2.0], color=[color, '#bdc3c7'])
+    else:  # SK
+        ax.bar(['γ_f + γ_i', 'γ_s'], [1.5, 1.5], color=[color, '#bdc3c7'])
+
+    ax.set_ylabel('Surface Energy (a.u.)', fontsize=11)
+    ax.set_title(mode_name, fontsize=12, fontweight='bold')
+    ax.set_ylim(0, 2.5)
+    ax.grid(axis='y', alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('growth_modes_energy.png', dpi=300, bbox_inches='tight')
+plt.show()
+</code></pre>
+
+            <h3>Python実装: 格子不整合計算</h3>
+
+            <pre><code class="language-python">import numpy as np
+
+def lattice_mismatch(a_film, a_substrate):
+    """
+    格子不整合（lattice mismatch）の計算
+
+    Parameters:
+    -----------
+    a_film : float
+        薄膜の格子定数 [Å]
+    a_substrate : float
+        基板の格子定数 [Å]
+
+    Returns:
+    --------
+    f : float
+        格子不整合（無次元）
+    """
+    f = (a_film - a_substrate) / a_substrate
+    return f
+
+# 実用的な材料系の格子不整合計算
+material_systems = [
+    ("GaAs/Si", 5.653, 5.431),        # +4.1%
+    ("InAs/GaAs", 6.058, 5.653),      # +7.2%
+    ("Ge/Si", 5.658, 5.431),          # +4.2%
+    ("AlN/GaN", 3.112, 3.189),        # -2.4%
+    ("SiC/Si", 3.086, 5.431),         # 大きな不整合
+]
+
+print("=== 格子不整合計算結果 ===\n")
+for name, a_f, a_s in material_systems:
+    f = lattice_mismatch(a_f, a_s)
+    print(f"{name}:")
+    print(f"  薄膜格子定数: {a_f:.3f} Å")
+    print(f"  基板格子定数: {a_s:.3f} Å")
+    print(f"  格子不整合 f: {f*100:+.2f}%")
+
+    # 臨界膜厚の簡易推定（Matthews-Blakeslee理論）
+    if abs(f) > 0.01:
+        # h_c ≈ b / (2π f)（簡略版、実際はもっと複雑）
+        b = a_s / np.sqrt(2)  # バーガースベクトル [Å]
+        h_c_estimate = b / (2 * np.pi * abs(f))
+        print(f"  臨界膜厚推定値 h_c: {h_c_estimate:.1f} Å ({h_c_estimate/10:.1f} nm)")
+    print()
+</code></pre>
+
+            <div class="warning-box">
+                <strong>格子不整合と成長モード</strong>
+                <ul>
+                    <li>|f| &lt; 2%: FM成長が可能（高品質エピタキシー）</li>
+                    <li>2% &lt; |f| &lt; 7%: SK成長（臨界膜厚以上で転位導入）</li>
+                    <li>|f| &gt; 10%: VW成長（多結晶・島状）</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="epitaxy">
+            <h2>1.4 エピタキシャル成長</h2>
+
+            <h3>1.4.1 エピタキシーの定義</h3>
+
+            <p>
+                <strong>エピタキシー（Epitaxy）</strong>は、基板結晶の原子配列を引き継いで、薄膜が結晶学的に配向して成長する現象です。ギリシャ語の "epi"（上に）と "taxis"（配列）に由来します。
+            </p>
+
+            <ul>
+                <li><strong>ホモエピタキシー（Homoepitaxy）</strong>: 同一材料の成長（例: Si/Si、GaAs/GaAs）</li>
+                <li><strong>ヘテロエピタキシー（Heteroepitaxy）</strong>: 異種材料の成長（例: GaN/Al₂O₃、AlGaAs/GaAs）</li>
+            </ul>
+
+            <h3>1.4.2 格子整合とミスフィット転位</h3>
+
+            <p>
+                格子不整合がある系では、薄膜は初期段階で基板に合わせて<strong>歪んだ状態</strong>（pseudomorphic）で成長します。膜厚が<strong>臨界膜厚 \(h_c\)</strong>を超えると、歪エネルギーを緩和するために<strong>ミスフィット転位</strong>（misfit dislocations）が導入されます。
+            </p>
+
+            <p>
+                Matthews-Blakesleeモデルによる臨界膜厚：
+            </p>
+
+            <p>
+                \[
+                h_c = \frac{b}{2\pi f} \frac{1 - \nu \cos^2 \alpha}{1 + \nu} \left[\ln\left(\frac{h_c}{b}\right) + 1\right]
+                \]
+            </p>
+
+            <p>
+                簡略版（\(\alpha = 60^\circ\)、\(\nu = 0.3\)）：
+            </p>
+
+            <p>
+                \[
+                h_c \approx \frac{b}{2\pi f} \left[\ln\left(\frac{h_c}{b}\right) + 1\right]
+                \]
+            </p>
+
+            <p>ここで：</p>
+            <ul>
+                <li>\(b\): バーガースベクトルの大きさ（格子定数の1/2程度）</li>
+                <li>\(f\): 格子不整合</li>
+                <li>\(\nu\): ポアソン比</li>
+                <li>\(\alpha\): 転位線と滑り方向のなす角</li>
+            </ul>
+
+            <h3>Python実装: エピタキシャル応力と転位密度</h3>
+
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def critical_thickness_MB(a_sub, f, b_ratio=1/np.sqrt(2), nu=0.3):
+    """
+    Matthews-Blakesleeモデルによる臨界膜厚の計算（簡略版）
+
+    Parameters:
+    -----------
+    a_sub : float
+        基板格子定数 [Å]
+    f : float
+        格子不整合（無次元）
+    b_ratio : float
+        バーガースベクトル比 b/a（デフォルト: 1/√2）
+    nu : float
+        ポアソン比（デフォルト: 0.3）
+
+    Returns:
+    --------
+    h_c : float
+        臨界膜厚 [Å]
+    """
+    b = a_sub * b_ratio
+
+    # 反復法で h_c を求める（簡略版: ln(h_c/b) ≈ 10 と仮定）
+    ln_term = 10
+    h_c = (b / (2 * np.pi * abs(f))) * (ln_term + 1)
+
+    return h_c
+
+def misfit_dislocation_density(f, h):
+    """
+    ミスフィット転位線密度の推定
+
+    Parameters:
+    -----------
+    f : float
+        格子不整合
+    h : float
+        膜厚 [Å]
+
+    Returns:
+    --------
+    rho : float
+        転位線密度 [cm^-1]
+    """
+    # 完全緩和した場合: ρ ≈ f / b
+    # 簡略化: ρ ≈ f（単位をcm^-1に変換）
+    rho = abs(f) * 1e8  # [cm^-1]
+    return rho
+
+# 実例計算: InAs/GaAs系
+a_GaAs = 5.653  # Å
+a_InAs = 6.058  # Å
+f_InAs_GaAs = (a_InAs - a_GaAs) / a_GaAs  # +7.2%
+
+h_c = critical_thickness_MB(a_GaAs, f_InAs_GaAs)
+
+print("=== InAs/GaAs エピタキシャル成長 ===")
+print(f"格子不整合 f: {f_InAs_GaAs*100:+.2f}%")
+print(f"臨界膜厚 h_c: {h_c:.2f} Å ({h_c/10:.2f} nm)")
+print()
+
+# 膜厚を変えたときの転位密度
+h_values = np.array([5, 10, 20, 50, 100])  # Å
+rho_values = [misfit_dislocation_density(f_InAs_GaAs, h) for h in h_values]
+
+print("膜厚 [nm]  転位密度 [cm^-1]")
+for h, rho in zip(h_values, rho_values):
+    print(f"{h/10:6.1f}     {rho:.2e}")
+print()
+
+# 複数材料系の比較
+fig, ax = plt.subplots(figsize=(10, 6))
+
+systems_comp = [
+    ("InAs/GaAs", 5.653, 6.058),
+    ("Ge/Si", 5.431, 5.658),
+    ("AlN/GaN", 3.189, 3.112),
+]
+
+for name, a_s, a_f in systems_comp:
+    f = (a_f - a_s) / a_s
+    h_c = critical_thickness_MB(a_s, f)
+
+    # h < h_c: 歪成長、h > h_c: 転位導入
+    h_range = np.linspace(0.1, h_c*3, 100)
+    strain = np.where(h_range < h_c, abs(f)*100, abs(f)*100 * (h_c/h_range))
+
+    ax.plot(h_range / 10, strain, linewidth=2, label=f"{name} (h_c={h_c/10:.1f}nm)")
+
+ax.axhline(y=0, color='black', linestyle='--', linewidth=0.8)
+ax.set_xlabel('Film Thickness (nm)', fontsize=13)
+ax.set_ylabel('Residual Strain (%)', fontsize=13)
+ax.set_title('Strain Relaxation in Heteroepitaxy', fontsize=15, fontweight='bold')
+ax.legend(fontsize=11)
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('epitaxy_strain_relaxation.png', dpi=300, bbox_inches='tight')
+plt.show()
+</code></pre>
+
+            <div class="info-box">
+                <strong>臨界膜厚の実用的意義</strong>
+                <ul>
+                    <li>InAs/GaAs: \(h_c \approx 2\) nm → 量子ドット形成に利用</li>
+                    <li>Ge/Si: \(h_c \approx 5\) nm → 歪Siトランジスタの設計指針</li>
+                    <li>AlGaN/GaN: \(h_c \approx 20\) nm → HEMT構造の最適化</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="surface-diffusion">
+            <h2>1.5 表面拡散とKinetic Monte Carlo</h2>
+
+            <h3>1.5.1 表面拡散の基礎</h3>
+
+            <p>
+                基板表面に到達した原子（アドアトム）は、表面を拡散して安定なサイトに吸着します。表面拡散係数 \(D_s\) は：
+            </p>
+
+            <p>
+                \[
+                D_s = D_0 \exp\left(-\frac{E_d}{k_B T}\right)
+                \]
+            </p>
+
+            <p>
+                \(E_d\) は拡散活性化エネルギーです。拡散長 \(\lambda\) は：
+            </p>
+
+            <p>
+                \[
+                \lambda = \sqrt{D_s \tau}
+                \]
+            </p>
+
+            <p>
+                \(\tau\) は表面滞在時間です。拡散長が長いほど、平坦な膜が得られます。
+            </p>
+
+            <h3>1.5.2 Kinetic Monte Carlo (KMC) シミュレーション</h3>
+
+            <p>
+                KMCは、表面拡散・核生成・成長をミクロスケールでシミュレートする手法です。各イベント（吸着、脱離、拡散）の発生確率を計算し、確率的に次のイベントを選択します。
+            </p>
+
+            <h3>Python実装: 2次元表面拡散KMC</h3>
+
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+class KMC_SurfaceGrowth:
+    """
+    2次元表面成長のKinetic Monte Carloシミュレーション
+    """
+    def __init__(self, size=50, T=500, E_d=0.5, deposition_rate=0.01):
+        """
+        Parameters:
+        -----------
+        size : int
+            格子サイズ（size x size）
+        T : float
+            温度 [K]
+        E_d : float
+            拡散活性化エネルギー [eV]
+        deposition_rate : float
+            堆積速度（Monte Carlo steps あたりの原子数）
+        """
+        self.size = size
+        self.T = T
+        self.E_d = E_d
+        self.deposition_rate = deposition_rate
+        self.k_B = 8.617e-5  # eV/K
+
+        # 格子（0: 空、1以上: 原子の層数）
+        self.lattice = np.zeros((size, size), dtype=int)
+
+        # 拡散確率の計算
+        self.D = np.exp(-E_d / (self.k_B * T))
+
+    def deposit_atom(self):
+        """ランダムな位置に原子を堆積"""
+        x = np.random.randint(0, self.size)
+        y = np.random.randint(0, self.size)
+        self.lattice[x, y] += 1
+        return x, y
+
+    def try_diffusion(self, x, y):
+        """原子の拡散を試みる"""
+        # 最上層の原子のみ拡散可能
+        if self.lattice[x, y] == 0:
+            return
+
+        # 拡散確率判定
+        if np.random.rand() > self.D:
+            return
+
+        # ランダムな方向に移動（上下左右）
+        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+        dx, dy = directions[np.random.randint(0, 4)]
+
+        new_x = (x + dx) % self.size  # 周期境界条件
+        new_y = (y + dy) % self.size
+
+        # 移動実行（簡略版: エネルギー考慮なし）
+        self.lattice[x, y] -= 1
+        self.lattice[new_x, new_y] += 1
+
+    def run_steps(self, n_steps):
+        """n_steps回のMonte Carloステップを実行"""
+        for step in range(n_steps):
+            # 堆積イベント
+            n_deposit = int(self.deposition_rate * self.size**2)
+            for _ in range(n_deposit):
+                self.deposit_atom()
+
+            # 拡散イベント（全格子点を走査）
+            for i in range(self.size):
+                for j in range(self.size):
+                    self.try_diffusion(i, j)
+
+    def get_surface_roughness(self):
+        """表面粗さ（RMS）を計算"""
+        heights = self.lattice
+        mean_height = np.mean(heights)
+        rms = np.sqrt(np.mean((heights - mean_height)**2))
+        return rms
+
+# シミュレーション実行
+print("=== KMCシミュレーション実行中 ===")
+
+# 低温（拡散が少ない）vs 高温（拡散が多い）の比較
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+for i, (T, ax) in enumerate(zip([300, 700], axes)):
+    kmc = KMC_SurfaceGrowth(size=50, T=T, E_d=0.5, deposition_rate=0.02)
+    kmc.run_steps(n_steps=100)
+
+    im = ax.imshow(kmc.lattice, cmap='viridis', origin='lower')
+    ax.set_title(f'T = {T} K, Roughness = {kmc.get_surface_roughness():.2f}',
+                 fontsize=13, fontweight='bold')
+    ax.set_xlabel('X position', fontsize=11)
+    ax.set_ylabel('Y position', fontsize=11)
+    plt.colorbar(im, ax=ax, label='Layer Height')
+
+plt.tight_layout()
+plt.savefig('kmc_surface_growth.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("\n低温（300K）: 島状成長、高い表面粗さ")
+print("高温（700K）: 表面拡散により平坦化")
+</code></pre>
+
+            <div class="info-box">
+                <strong>KMCシミュレーションの応用</strong>
+                <ul>
+                    <li>成長温度と表面モフォロジーの関係解析</li>
+                    <li>堆積速度の最適化（平坦性 vs 成長速度）</li>
+                    <li>ステップフロー成長のシミュレーション</li>
+                    <li>量子ドット形成過程の可視化</li>
+                </ul>
+            </div>
+
+            <h3>Python実装: 成長速度と膜厚プロファイル</h3>
+
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def growth_rate_temperature(T_range, E_a, R_0):
+    """
+    温度依存成長速度（Arrhenius式）
+
+    Parameters:
+    -----------
+    T_range : array
+        温度範囲 [K]
+    E_a : float
+        活性化エネルギー [eV]
+    R_0 : float
+        頻度因子 [nm/s]
+
+    Returns:
+    --------
+    R : array
+        成長速度 [nm/s]
+    """
+    k_B = 8.617e-5  # eV/K
+    R = R_0 * np.exp(-E_a / (k_B * T_range))
+    return R
+
+def step_coverage(theta, aspect_ratio):
+    """
+    ステップカバレッジの計算（トレンチ構造）
+
+    Parameters:
+    -----------
+    theta : float
+        入射角度 [度]
+    aspect_ratio : float
+        アスペクト比（深さ/幅）
+
+    Returns:
+    --------
+    coverage : float
+        底部/上部の膜厚比（0-1）
+    """
+    # 簡略モデル: コサイン則
+    theta_rad = np.deg2rad(theta)
+    coverage = np.cos(theta_rad) / (1 + aspect_ratio * np.sin(theta_rad))
+    return max(coverage, 0)
+
+# 成長速度の温度依存性
+T_range = np.linspace(400, 900, 100)
+E_a = 1.5  # eV（CVD反応の典型値）
+R_0 = 100  # nm/s
+
+R_values = growth_rate_temperature(T_range, E_a, R_0)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
+
+# 成長速度 vs 温度
+ax1.semilogy(T_range, R_values, linewidth=2.5, color='#f5576c')
+ax1.set_xlabel('Temperature (K)', fontsize=12)
+ax1.set_ylabel('Growth Rate (nm/s)', fontsize=12)
+ax1.set_title('Arrhenius Behavior of Growth Rate', fontsize=14, fontweight='bold')
+ax1.grid(True, alpha=0.3)
+ax1.axvline(x=650, color='gray', linestyle='--', label='Typical Process T')
+ax1.legend()
+
+# ステップカバレッジ
+aspect_ratios = [0.5, 1.0, 2.0, 4.0]
+theta_range = np.linspace(0, 80, 100)
+
+for AR in aspect_ratios:
+    coverage = [step_coverage(theta, AR) for theta in theta_range]
+    ax2.plot(theta_range, coverage, linewidth=2, label=f'AR = {AR}')
+
+ax2.set_xlabel('Incident Angle (degree)', fontsize=12)
+ax2.set_ylabel('Step Coverage (bottom/top)', fontsize=12)
+ax2.set_title('Step Coverage vs Aspect Ratio', fontsize=14, fontweight='bold')
+ax2.legend(fontsize=10)
+ax2.grid(True, alpha=0.3)
+ax2.set_ylim(0, 1.05)
+
+plt.tight_layout()
+plt.savefig('growth_rate_step_coverage.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 具体例の計算
+T_process = 650  # K
+R_process = growth_rate_temperature(np.array([T_process]), E_a, R_0)[0]
+time_1um = 1000 / R_process  # 1μm成膜に必要な時間
+
+print(f"=== 成長速度計算（T = {T_process} K）===")
+print(f"成長速度: {R_process:.2f} nm/s")
+print(f"1 µm成膜に必要な時間: {time_1um:.1f} s ({time_1um/60:.2f} min)")
+print()
+
+print("=== ステップカバレッジ（垂直入射、θ=0°）===")
+for AR in [0.5, 1.0, 2.0, 4.0]:
+    cov = step_coverage(0, AR)
+    print(f"AR = {AR}: Coverage = {cov*100:.1f}%")
+</code></pre>
+        </section>
+
+        <section id="exercises">
+            <h2>演習問題</h2>
+
+            <div class="exercise-box">
+                <h4>演習1: 核生成速度の計算 <span class="difficulty easy">Easy</span></h4>
+                <p><strong>問題</strong>: 表面エネルギー \(\gamma = 1.2\) J/m², 体積自由エネルギー変化 \(\Delta G_v = 5 \times 10^8\) J/m³、温度 \(T = 600\) K のとき、臨界核半径 \(r^*\) と臨界活性化エネルギー \(\Delta G^*\) を計算せよ。</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+                    <p>臨界核半径:</p>
+                    <p>\[ r^* = \frac{2\gamma}{\Delta G_v} = \frac{2 \times 1.2}{5 \times 10^8} = 4.8 \times 10^{-9} \text{ m} = 4.8 \text{ nm} \]</p>
+
+                    <p>臨界活性化エネルギー:</p>
+                    <p>\[ \Delta G^* = \frac{16\pi \gamma^3}{3(\Delta G_v)^2} = \frac{16\pi (1.2)^3}{3(5 \times 10^8)^2} = 3.86 \times 10^{-17} \text{ J} \]</p>
+
+                    <p>\(\Delta G^* / (k_B T)\) の計算:</p>
+                    <p>\[ \frac{\Delta G^*}{k_B T} = \frac{3.86 \times 10^{-17}}{1.38 \times 10^{-23} \times 600} = 4.66 \]</p>
+
+                    <p><strong>解釈</strong>: \(\Delta G^* / (k_B T) \approx 4.7\) なので、核生成は比較的容易です（通常、&gt;20 で困難）。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習2: 成長モードの判定 <span class="difficulty easy">Easy</span></h4>
+                <p><strong>問題</strong>: 以下の3つの系について、界面エネルギーから成長モードを判定せよ。</p>
+                <ol>
+                    <li>系A: \(\gamma_f = 1.8\) J/m², \(\gamma_s = 1.0\) J/m², \(\gamma_i = 0.3\) J/m²</li>
+                    <li>系B: \(\gamma_f = 0.8\) J/m², \(\gamma_s = 1.5\) J/m², \(\gamma_i = 0.2\) J/m²</li>
+                    <li>系C: \(\gamma_f = 1.2\) J/m², \(\gamma_s = 1.2\) J/m², \(\gamma_i = 0.05\) J/m²</li>
+                </ol>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+                    <p>判定基準: \(\Delta \gamma = \gamma_f + \gamma_i - \gamma_s\)</p>
+                    <ul>
+                        <li>\(\Delta \gamma > 0\): Volmer-Weber（島状成長）</li>
+                        <li>\(\Delta \gamma < 0\): Frank-van der Merwe（層状成長）</li>
+                        <li>\(\Delta \gamma \approx 0\): Stranski-Krastanov（層-島状成長）</li>
+                    </ul>
+
+                    <p>系A: \(\Delta \gamma = 1.8 + 0.3 - 1.0 = 1.1 > 0\) → <strong>Volmer-Weber（島状成長）</strong></p>
+                    <p>系B: \(\Delta \gamma = 0.8 + 0.2 - 1.5 = -0.5 < 0\) → <strong>Frank-van der Merwe（層状成長）</strong></p>
+                    <p>系C: \(\Delta \gamma = 1.2 + 0.05 - 1.2 = 0.05 \approx 0\) → <strong>Stranski-Krastanov（層-島状成長）</strong></p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習3: 格子不整合の計算 <span class="difficulty easy">Easy</span></h4>
+                <p><strong>問題</strong>: Ge（格子定数 5.658 Å）をSi基板（格子定数 5.431 Å）上にエピタキシャル成長させる。格子不整合 \(f\) を計算し、この系がどの成長モードになる可能性が高いか推測せよ。</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+                    <p>格子不整合:</p>
+                    <p>\[ f = \frac{a_{\text{Ge}} - a_{\text{Si}}}{a_{\text{Si}}} = \frac{5.658 - 5.431}{5.431} = 0.0418 = 4.18\% \]</p>
+
+                    <p><strong>推測</strong>:</p>
+                    <ul>
+                        <li>\(f = 4.18\%\) は中程度の格子不整合</li>
+                        <li>初期段階では歪を蓄積して層状成長（pseudomorphic）</li>
+                        <li>臨界膜厚（数nm程度）を超えると、歪緩和のために島が形成</li>
+                        <li>→ <strong>Stranski-Krastanov（SK）成長モード</strong>の可能性が高い</li>
+                    </ul>
+
+                    <p>実際、Ge/Si系はSK成長の典型例であり、Ge量子ドット形成に利用されています。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習4: 臨界膜厚の推定 <span class="difficulty medium">Medium</span></h4>
+                <p><strong>問題</strong>: InAs（格子定数 6.058 Å）をGaAs基板（格子定数 5.653 Å）上にエピタキシャル成長させる。Matthews-Blakesleeモデルの簡略版を用いて、臨界膜厚 \(h_c\) を推定せよ。ただし、バーガースベクトル \(b = a_{\text{GaAs}} / \sqrt{2}\)、\(\ln(h_c / b) \approx 10\) と近似する。</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+                    <p>Step 1: 格子不整合の計算</p>
+                    <p>\[ f = \frac{6.058 - 5.653}{5.653} = 0.0717 = 7.17\% \]</p>
+
+                    <p>Step 2: バーガースベクトルの計算</p>
+                    <p>\[ b = \frac{a_{\text{GaAs}}}{\sqrt{2}} = \frac{5.653}{\sqrt{2}} = 4.00 \text{ Å} \]</p>
+
+                    <p>Step 3: 臨界膜厚の計算（簡略版）</p>
+                    <p>\[ h_c = \frac{b}{2\pi f} \left[\ln\left(\frac{h_c}{b}\right) + 1\right] \approx \frac{4.00}{2\pi \times 0.0717} \times (10 + 1) \]</p>
+                    <p>\[ h_c \approx \frac{4.00}{0.450} \times 11 = 97.8 \text{ Å} \approx 9.8 \text{ nm} \]</p>
+
+                    <p>より正確な計算（反復法）では \(h_c \approx 2\) nm 程度です。</p>
+
+                    <p><strong>物理的意味</strong>: InAsをGaAs上に約2nm以上成長させると、ミスフィット転位が導入され、歪が緩和されます。これを利用して、InAs量子ドットを形成できます。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習5: 表面拡散長の計算 <span class="difficulty medium">Medium</span></h4>
+                <p><strong>問題</strong>: 温度 \(T = 700\) K、拡散活性化エネルギー \(E_d = 0.6\) eV、頻度因子 \(D_0 = 10^{-3}\) cm²/s、表面滞在時間 \(\tau = 1\) s のとき、表面拡散長 \(\lambda\) を計算せよ。ボルツマン定数 \(k_B = 8.617 \times 10^{-5}\) eV/K とする。</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+                    <p>Step 1: 表面拡散係数の計算</p>
+                    <p>\[ D_s = D_0 \exp\left(-\frac{E_d}{k_B T}\right) = 10^{-3} \exp\left(-\frac{0.6}{8.617 \times 10^{-5} \times 700}\right) \]</p>
+                    <p>\[ D_s = 10^{-3} \exp\left(-\frac{0.6}{0.0603}\right) = 10^{-3} \exp(-9.95) = 10^{-3} \times 4.73 \times 10^{-5} \]</p>
+                    <p>\[ D_s = 4.73 \times 10^{-8} \text{ cm}^2/\text{s} \]</p>
+
+                    <p>Step 2: 拡散長の計算</p>
+                    <p>\[ \lambda = \sqrt{D_s \tau} = \sqrt{4.73 \times 10^{-8} \times 1} = 2.17 \times 10^{-4} \text{ cm} = 2.17 \text{ µm} \]</p>
+
+                    <p><strong>解釈</strong>: 拡散長が約2 µmなので、原子は堆積後に数ミクロン程度移動できます。これにより、島同士の合体や平坦化が促進されます。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習6: Pythonで核生成の過飽和度依存性を解析 <span class="difficulty medium">Medium</span></h4>
+                <p><strong>問題</strong>: 過飽和度 \(S = 1.5, 2.0, 3.0, 5.0\) のそれぞれについて、臨界核半径 \(r^*\) を計算し、プロットせよ。パラメータ: \(\gamma = 1.0\) J/m², 原子体積 \(\Omega = 1 \times 10^{-29}\) m³、温度 \(T = 500\) K。</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答（Pythonコード）</strong>:</p>
+                    <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+k_B = 1.38e-23  # J/K
+gamma = 1.0  # J/m^2
+Omega = 1e-29  # m^3
+T = 500  # K
+
+S_values = [1.5, 2.0, 3.0, 5.0]
+r_critical_list = []
+
+for S in S_values:
+    delta_Gv = (k_B * T / Omega) * np.log(S)
+    r_crit = 2 * gamma / delta_Gv
+    r_critical_list.append(r_crit * 1e9)  # nmに変換
+    print(f"S = {S:.1f}: r* = {r_crit*1e9:.3f} nm")
+
+# プロット
+plt.figure(figsize=(8, 6))
+plt.plot(S_values, r_critical_list, 'o-', linewidth=2, markersize=8, color='#f5576c')
+plt.xlabel('Supersaturation S', fontsize=13)
+plt.ylabel('Critical Radius r* (nm)', fontsize=13)
+plt.title('Critical Nucleus Size vs Supersaturation', fontsize=14, fontweight='bold')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+</code></pre>
+
+                    <p><strong>期待される結果</strong>:</p>
+                    <ul>
+                        <li>S = 1.5: r* ≈ 4.9 nm</li>
+                        <li>S = 2.0: r* ≈ 2.9 nm</li>
+                        <li>S = 3.0: r* ≈ 1.8 nm</li>
+                        <li>S = 5.0: r* ≈ 1.2 nm</li>
+                    </ul>
+                    <p>過飽和度が高いほど、臨界核サイズは小さくなり、核生成が促進されます。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習7: ミスフィット転位密度の推定 <span class="difficulty medium">Medium</span></h4>
+                <p><strong>問題</strong>: AlN/GaN系（格子定数: AlN 3.112 Å、GaN 3.189 Å）において、完全緩和した場合のミスフィット転位線密度を推定せよ。バーガースベクトルは格子定数と同程度と仮定する。</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+                    <p>Step 1: 格子不整合の計算</p>
+                    <p>\[ f = \frac{a_{\text{AlN}} - a_{\text{GaN}}}{a_{\text{GaN}}} = \frac{3.112 - 3.189}{3.189} = -0.0241 = -2.41\% \]</p>
+
+                    <p>Step 2: 転位密度の推定（簡略版）</p>
+                    <p>完全緩和時の転位線密度は \(\rho \approx |f| / b\)</p>
+                    <p>\[ \rho = \frac{0.0241}{3.189 \times 10^{-10}} = 7.56 \times 10^{7} \text{ m}^{-1} = 7.56 \times 10^{5} \text{ cm}^{-1} \]</p>
+
+                    <p>転位線間隔 \(d = 1 / \rho\):</p>
+                    <p>\[ d = \frac{1}{7.56 \times 10^{7}} = 1.32 \times 10^{-8} \text{ m} = 13.2 \text{ nm} \]</p>
+
+                    <p><strong>物理的意味</strong>: 完全緩和した場合、約13nm間隔でミスフィット転位が存在します。このような高密度の転位は、電気・光学特性を劣化させるため、AlN/GaN系ではバッファ層技術が重要です。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習8: KMCシミュレーションで温度効果を検証 <span class="difficulty hard">Hard</span></h4>
+                <p><strong>問題</strong>: 提供されたKMC_SurfaceGrowthクラスを用いて、温度 \(T = 300, 500, 700, 900\) K での表面粗さ（RMS）を計算し、温度が表面モフォロジーに与える影響を議論せよ。パラメータ: size=50, E_d=0.5 eV, deposition_rate=0.02, n_steps=100。</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答（Pythonコード）</strong>:</p>
+                    <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# KMC_SurfaceGrowthクラスは前述のコードを使用
+
+T_values = [300, 500, 700, 900]
+roughness_values = []
+
+for T in T_values:
+    kmc = KMC_SurfaceGrowth(size=50, T=T, E_d=0.5, deposition_rate=0.02)
+    kmc.run_steps(n_steps=100)
+    rms = kmc.get_surface_roughness()
+    roughness_values.append(rms)
+    print(f"T = {T} K: RMS roughness = {rms:.3f}")
+
+# プロット
+plt.figure(figsize=(8, 6))
+plt.plot(T_values, roughness_values, 'o-', linewidth=2.5, markersize=10, color='#f5576c')
+plt.xlabel('Temperature (K)', fontsize=13)
+plt.ylabel('RMS Surface Roughness', fontsize=13)
+plt.title('Surface Roughness vs Temperature (KMC)', fontsize=14, fontweight='bold')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+</code></pre>
+
+                    <p><strong>期待される結果と議論</strong>:</p>
+                    <ul>
+                        <li>T = 300 K: RMS ≈ 2.5（高い粗さ、島状成長）</li>
+                        <li>T = 500 K: RMS ≈ 1.8</li>
+                        <li>T = 700 K: RMS ≈ 1.2（平坦化）</li>
+                        <li>T = 900 K: RMS ≈ 0.9（さらに平坦）</li>
+                    </ul>
+
+                    <p><strong>物理的解釈</strong>:</p>
+                    <ul>
+                        <li>低温: 表面拡散が抑制 → 原子が吸着したサイトに留まる → 島状成長 → 高い粗さ</li>
+                        <li>高温: 表面拡散が活発 → 原子が安定サイトに移動 → 平坦化 → 低い粗さ</li>
+                        <li>実験指針: 高品質薄膜（平坦性重視）には高温成長、量子ドット形成（島状構造）には低温成長</li>
+                    </ul>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習9: ステップカバレッジの最適化 <span class="difficulty hard">Hard</span></h4>
+                <p><strong>問題</strong>: アスペクト比 AR = 2.0 のトレンチ構造に薄膜を堆積する。ステップカバレッジ（底部/上部の膜厚比）を80%以上にするためには、入射角度 \(\theta\) を何度以下に制限すべきか、計算せよ。ステップカバレッジは \(\text{coverage} = \cos(\theta) / (1 + \text{AR} \times \sin(\theta))\) で与えられる。</p>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+                    <p>条件: coverage ≥ 0.8</p>
+                    <p>\[ \frac{\cos(\theta)}{1 + 2.0 \times \sin(\theta)} \geq 0.8 \]</p>
+                    <p>\[ \cos(\theta) \geq 0.8 (1 + 2.0 \sin(\theta)) \]</p>
+                    <p>\[ \cos(\theta) \geq 0.8 + 1.6 \sin(\theta) \]</p>
+
+                    <p>Pythonで数値的に解く:</p>
+                    <pre><code class="language-python">import numpy as np
+
+def step_coverage(theta_deg, AR):
+    theta = np.deg2rad(theta_deg)
+    return np.cos(theta) / (1 + AR * np.sin(theta))
+
+AR = 2.0
+target_coverage = 0.8
+
+# 0-90度で探索
+theta_range = np.linspace(0, 90, 1000)
+coverage_values = [step_coverage(theta, AR) for theta in theta_range]
+
+# 80%を下回る最初の角度を見つける
+theta_limit = theta_range[np.where(np.array(coverage_values) < target_coverage)[0][0]]
+
+print(f"アスペクト比 AR = {AR}")
+print(f"目標ステップカバレッジ: {target_coverage*100}%")
+print(f"入射角度制限: θ ≤ {theta_limit:.2f}°")
+</code></pre>
+
+                    <p><strong>期待される結果</strong>: \(\theta \leq 20\)° 程度</p>
+
+                    <p><strong>実用的意義</strong>:</p>
+                    <ul>
+                        <li>CVDやALDでは、等方的な堆積（θ ≈ 0°）により高いステップカバレッジが得られる</li>
+                        <li>スパッタリングでは、指向性があるため（θ > 0°）、高AR構造へのカバレッジが課題</li>
+                        <li>半導体プロセスでは、ステップカバレッジ80%以上が求められることが多い</li>
+                    </ul>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習10: 総合問題 - 成長条件の最適化 <span class="difficulty hard">Hard</span></h4>
+                <p><strong>問題</strong>: InAs量子ドットをGaAs基板上に作製する。以下の条件下で、最適な成長温度 \(T\) と堆積量（モノレイヤー数）を提案せよ。</p>
+                <ul>
+                    <li>目標: 直径20nm、高さ5nmの量子ドット</li>
+                    <li>GaAs基板上のInAs臨界膜厚 \(h_c \approx 1.7\) ML（モノレイヤー）</li>
+                    <li>表面拡散係数: \(D_s = 10^{-3} \exp(-0.6 / (k_B T))\) cm²/s</li>
+                    <li>堆積速度: 0.1 ML/s</li>
+                </ul>
+                <p>考慮すべき点:</p>
+                <ol>
+                    <li>SK成長モード: wetting layer形成後に島が成長</li>
+                    <li>表面拡散が適度に活発（島のサイズ制御）</li>
+                    <li>臨界膜厚以上の堆積量</li>
+                </ol>
+
+                <details>
+                    <summary>解答を表示</summary>
+                    <p><strong>解答</strong>:</p>
+                    <p><strong>Step 1: 成長モードの確認</strong></p>
+                    <p>InAs/GaAsは格子不整合7.2%のため、SK成長モードです。1.7 ML以下ではwetting layer（層状）、それ以上で量子ドット（島）が形成されます。</p>
+
+                    <p><strong>Step 2: 温度の検討</strong></p>
+                    <p>表面拡散長 \(\lambda = \sqrt{D_s \tau}\)、滞在時間 \(\tau \approx 1 / R\)（R: 堆積速度）</p>
+
+                    <pre><code class="language-python">import numpy as np
+
+k_B = 8.617e-5  # eV/K
+E_d = 0.6  # eV
+D0 = 1e-3  # cm^2/s
+R = 0.1  # ML/s
+
+T_values = [450, 500, 550, 600]
+print("温度 [K]  拡散係数 [cm²/s]  拡散長 [nm]")
+for T in T_values:
+    Ds = D0 * np.exp(-E_d / (k_B * T))
+    tau = 1 / R  # s
+    lambda_diff = np.sqrt(Ds * tau) * 1e7  # nmに変換
+    print(f"{T:4d}     {Ds:.2e}        {lambda_diff:.1f}")
+</code></pre>
+
+                    <p>期待される結果:</p>
+                    <ul>
+                        <li>T = 450 K: λ ≈ 5 nm（拡散が少ない → 小さな島、高密度）</li>
+                        <li>T = 500 K: λ ≈ 12 nm（適度な拡散 → 目標サイズ）</li>
+                        <li>T = 550 K: λ ≈ 25 nm（拡散が多い → 大きな島、低密度）</li>
+                        <li>T = 600 K: λ ≈ 50 nm（過度な拡散 → 島が少ない）</li>
+                    </ul>
+
+                    <p><strong>Step 3: 堆積量の決定</strong></p>
+                    <p>目標高さ5nm = 約17 ML（InAsのモノレイヤー厚さ約0.3nm）</p>
+                    <p>wetting layer: 1.7 ML</p>
+                    <p>量子ドット形成: 17 ML - 1.7 ML = 15.3 ML</p>
+                    <p>実用的には2-2.5 MLの堆積で所望のサイズが得られることが多いため、<strong>総堆積量: 約2.5 ML</strong></p>
+
+                    <p><strong>最終提案</strong>:</p>
+                    <ul>
+                        <li>成長温度: <strong>T = 500-520 K</strong>（拡散長10-15nm、島サイズ制御に最適）</li>
+                        <li>堆積量: <strong>2.5 ML</strong>（1.7 ML wetting layer + 0.8 ML島成長）</li>
+                        <li>堆積速度: 0.1 ML/s（標準的）</li>
+                    </ul>
+
+                    <p><strong>検証方法</strong>:</p>
+                    <ul>
+                        <li>AFM（原子間力顕微鏡）で島のサイズ・密度を測定</li>
+                        <li>RHEED（反射高速電子回折）で成長モード転移を観察</li>
+                        <li>PL（フォトルミネッセンス）でバンドギャップを確認</li>
+                    </ul>
+                </details>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>参考文献</h2>
+
+            <ol>
+                <li>
+                    <strong>Volmer, M., Weber, A. (1926).</strong> "Keimbildung in übersättigten Gebilden." <em>Zeitschrift für Physikalische Chemie</em>, 119, 277-301. (古典的核生成理論の原論文)
+                </li>
+                <li>
+                    <strong>Frank, F.C., van der Merwe, J.H. (1949).</strong> "One-dimensional dislocations. I. Static theory." <em>Proceedings of the Royal Society of London A</em>, 198, 205-216. (FM成長モードの理論的基礎)
+                </li>
+                <li>
+                    <strong>Stranski, I.N., Krastanov, L. (1938).</strong> "Zur Theorie der orientierten Ausscheidung von Ionenkristallen aufeinander." <em>Monatshefte für Chemie</em>, 71, 351-364. (SK成長モードの発見)
+                </li>
+                <li>
+                    <strong>Ohring, M. (2002).</strong> <em>Materials Science of Thin Films: Deposition and Structure</em> (2nd ed.). Academic Press, pp. 123-178 (nucleation theory), pp. 357-412 (epitaxial growth), pp. 505-560 (surface diffusion).
+                </li>
+                <li>
+                    <strong>Venables, J.A. (2000).</strong> <em>Introduction to Surface and Thin Film Processes</em>. Cambridge University Press, pp. 45-89 (growth modes), pp. 120-165 (kinetics).
+                </li>
+                <li>
+                    <strong>Matthews, J.W., Blakeslee, A.E. (1974).</strong> "Defects in epitaxial multilayers: I. Misfit dislocations." <em>Journal of Crystal Growth</em>, 27, 118-125. (臨界膜厚理論)
+                </li>
+                <li>
+                    <strong>Shchukin, V.A., Ledentsov, N.N., Bimberg, D. (2003).</strong> <em>Epitaxy of Nanostructures</em>. Springer, pp. 89-145 (quantum dot formation), pp. 201-250 (SK growth).
+                </li>
+                <li>
+                    <strong>ASE (Atomic Simulation Environment) Documentation.</strong> Available at: <a href="https://wiki.fysik.dtu.dk/ase/" target="_blank" rel="noopener">https://wiki.fysik.dtu.dk/ase/</a> (Python tools for atomistic simulations)
+                </li>
+            </ol>
+
+            <div class="info-box">
+                <strong>さらに学ぶために</strong>
+                <ul>
+                    <li>実験技術: <em>Handbook of Thin Film Deposition</em> (Seshan, 2012) - 各種成膜技術の詳細</li>
+                    <li>計算手法: <em>Kinetic Monte Carlo Methods</em> (Voter, 2007) - KMCアルゴリズムの詳説</li>
+                    <li>量子ドット: <em>Quantum Dot Heterostructures</em> (Bimberg et al., 1999) - 応用と物性</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="learning-objectives">
+            <h2>学習目標確認チェックリスト</h2>
+
+            <h3>レベル1: 基本理解</h3>
+            <ul>
+                <li>□ 核生成理論の基本概念（臨界核サイズ、活性化エネルギー）を説明できる</li>
+                <li>□ 3つの成長モード（VW、FM、SK）の違いを理解している</li>
+                <li>□ エピタキシャル成長の定義と、ホモ/ヘテロエピタキシーの違いを説明できる</li>
+                <li>□ 表面拡散が薄膜成長に与える影響を理解している</li>
+                <li>□ 格子不整合の定義を説明できる</li>
+            </ul>
+
+            <h3>レベル2: 実践スキル</h3>
+            <ul>
+                <li>□ Pythonで核生成速度の温度依存性を計算できる</li>
+                <li>□ 臨界核半径の過飽和度依存性をプロットできる</li>
+                <li>□ 界面エネルギーから成長モードを判定できる</li>
+                <li>□ 格子不整合を計算し、臨界膜厚を推定できる</li>
+                <li>□ 表面拡散係数と拡散長を計算できる</li>
+                <li>□ KMCシミュレーションで表面成長を可視化できる</li>
+            </ul>
+
+            <h3>レベル3: 応用力</h3>
+            <ul>
+                <li>□ 成長条件（温度、堆積速度）と成長モードの関係を説明できる</li>
+                <li>□ InAs/GaAsやGe/Siなどの実材料系で、SK成長を利用した量子ドット形成を設計できる</li>
+                <li>□ ミスフィット転位の物理を理解し、転位密度を推定できる</li>
+                <li>□ KMCシミュレーション結果から、温度と表面モフォロジーの関係を解析できる</li>
+                <li>□ ステップカバレッジの最適化計算ができ、実プロセスに応用できる</li>
+                <li>□ 薄膜成長における多様なパラメータ（温度、圧力、堆積速度）の相互作用を理解し、目的に応じた条件を提案できる</li>
+            </ul>
+
+            <div class="warning-box">
+                <strong>次のステップ</strong>
+                第2章では、物理蒸着法（PVD）の具体的な技術（スパッタリング、蒸着、MBE）を学びます。本章で学んだ成長理論が、実際のプロセスでどのように応用されるかを理解しましょう。
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 MS Dojo - Materials Science Learning Platform</p>
+        <p><a href="https://github.com/your-repo/ms-dojo" target="_blank" rel="noopener">GitHub</a> | <a href="../index.html">トップページ</a></p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script>
+        // Mermaid initialization
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('nav a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
