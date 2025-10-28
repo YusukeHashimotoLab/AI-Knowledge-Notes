@@ -571,6 +571,1150 @@ print(f"サイズ分布の標準偏差: {sigma_r:.2f} nm ({sigma_r/r_final*100:.
             このシミュレーションは、実際の金ナノ粒子合成（Turkevich法、Brust-Schiffrin法）における反応条件最適化に使用できます。例えば、前駆体注入速度（\(k_{precursor}\)）を速くすると過飽和度が上がり、小さい粒子が多数生成されます。逆に、ゆっくり注入すると大きい粒子が少数生成されます。温度を上げると拡散が速くなり成長が促進されます。
         </div>
 
+        <h2>4.3 ナノワイヤー合成: VLS成長機構</h2>
+
+        <p>
+            <strong>VLS（Vapor-Liquid-Solid）成長</strong>は、気相から液滴を介して固相ナノワイヤーを成長させる手法です（R.S. Wagner and W.C. Ellis, 1964）。金属触媒液滴（通常Au）が前駆体ガスを吸収・過飽和し、液滴-固体界面で結晶化が進行します。
+        </p>
+
+        <h3>VLS成長の3ステップ</h3>
+
+        <div class="mermaid">
+        graph LR
+            A[Step 1: 触媒液滴形成] --> B[Step 2: 前駆体吸収・過飽和]
+            B --> C[Step 3: 液滴-固体界面で結晶化]
+
+            A1[Au微粒子を基板に堆積] --> A
+            A2[共晶温度以上に加熱] --> A
+            B1[SiH4, VCl3等を導入] --> B
+            B2[液滴に溶解] --> B
+            C1[過飽和により結晶成長] --> C
+            C2[ナノワイヤー伸長] --> C
+
+            style A fill:#ffeaa7
+            style B fill:#74b9ff
+            style C fill:#55efc4
+        </div>
+
+        <p>
+            VLS成長の駆動力は、<strong>気相-液相平衡</strong>と<strong>液相-固相平衡</strong>の化学ポテンシャル差です。液滴直径がナノワイヤー直径を決定し、成長速度は前駆体供給速度と温度に依存します。
+        </p>
+
+        <div class="math">
+            \[
+            \begin{aligned}
+            &\text{成長速度:} \\
+            &v = \frac{dL}{dt} = \frac{D \cdot \Omega}{k_B T} \cdot \frac{\Delta \mu}{r} \\
+            &\text{ここで、} D: \text{液滴内拡散係数}, \Omega: \text{原子体積}, \Delta\mu: \text{化学ポテンシャル差}, r: \text{ナノワイヤー半径} \\[10pt]
+            &\text{Gibbs-Thomson効果（液滴サイズ依存性）:} \\
+            &\Delta \mu = \Delta \mu_0 - \frac{2\gamma_{LV} \Omega}{r} \\
+            &\text{ここで、} \gamma_{LV}: \text{液-気界面エネルギー}
+            \end{aligned}
+            \]
+        </div>
+
+        <h3>コード例2: VLS成長シミュレーション（Siナノワイヤー）</h3>
+
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def vls_growth_simulation(r_catalyst, T, P_SiH4, time, D=1e-9, gamma_LV=0.5, delta_mu_0=0.5):
+    """
+    VLS成長シミュレーション（Siナノワイヤー）
+
+    Parameters:
+    -----------
+    r_catalyst : float
+        触媒液滴半径 [m]
+    T : float
+        成長温度 [K]
+    P_SiH4 : float
+        SiH4分圧 [Pa]
+    time : array
+        時間配列 [s]
+    D : float
+        Au-Si液滴内拡散係数 [m^2/s]
+    gamma_LV : float
+        液-気界面エネルギー [J/m^2]
+    delta_mu_0 : float
+        基準化学ポテンシャル差 [eV]
+
+    Returns:
+    --------
+    length : array
+        ナノワイヤー長さ [μm]
+    v_growth : array
+        成長速度 [nm/s]
+    """
+    k_B = 1.380649e-23  # J/K
+    e = 1.602176634e-19  # J/eV
+    Omega_Si = 2.0e-29  # Si原子体積 [m^3]
+
+    # Gibbs-Thomson効果による化学ポテンシャル補正
+    delta_mu = delta_mu_0 * e - (2 * gamma_LV * Omega_Si) / r_catalyst
+
+    # 成長速度（圧力依存性を含む）
+    v_growth = (D * Omega_Si * delta_mu * P_SiH4) / (k_B * T * r_catalyst * 1e5)  # m/s
+
+    # 長さの時間積分
+    length = v_growth * time  # m
+    length_um = length * 1e6  # μm
+
+    v_growth_nm_s = np.full_like(time, v_growth * 1e9)  # nm/s
+
+    return length_um, v_growth_nm_s
+
+# パラメータ設定
+r_catalysts = [10e-9, 20e-9, 50e-9, 100e-9]  # 触媒半径 10, 20, 50, 100 nm
+T = 873  # 600°C
+P_SiH4 = 100  # 100 Pa
+time = np.linspace(0, 3600, 100)  # 0～1時間
+
+# 可視化
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+colors = ['blue', 'green', 'orange', 'red']
+for r_cat, color in zip(r_catalysts, colors):
+    length, v_growth = vls_growth_simulation(r_cat, T, P_SiH4, time)
+    label = f'触媒半径 {r_cat*1e9:.0f} nm'
+    axes[0].plot(time / 60, length, color=color, linewidth=2, label=label)
+    print(f"{label}: 成長速度 {v_growth[0]:.2f} nm/s, 1時間後の長さ {length[-1]:.2f} μm")
+
+axes[0].set_xlabel('時間 [分]', fontsize=12)
+axes[0].set_ylabel('ナノワイヤー長さ [μm]', fontsize=12)
+axes[0].set_title('VLS成長: 触媒サイズ依存性', fontsize=14)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+# 温度依存性
+temperatures = np.linspace(773, 973, 50)  # 500～700°C
+r_cat_fixed = 20e-9  # 20 nm固定
+lengths_at_1h = []
+
+for T_val in temperatures:
+    length, _ = vls_growth_simulation(r_cat_fixed, T_val, P_SiH4, np.array([3600]))
+    lengths_at_1h.append(length[0])
+
+axes[1].plot(temperatures - 273, lengths_at_1h, 'purple', linewidth=2)
+axes[1].set_xlabel('温度 [°C]', fontsize=12)
+axes[1].set_ylabel('1時間後のナノワイヤー長さ [μm]', fontsize=12)
+axes[1].set_title('VLS成長: 温度依存性 (触媒20 nm)', fontsize=14)
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('vls_nanowire_growth.png', dpi=300, bbox_inches='tight')
+plt.show()
+</code></pre>
+
+        <div class="info-box">
+            <strong>💡 実験での応用</strong><br>
+            VLS成長は、Si、GaN、ZnO、InPなどのナノワイヤー合成に広く使用されます。触媒サイズを制御することでナノワイヤー直径を調整でき、成長温度・圧力で長さとアスペクト比を制御できます。CVDチャンバーでAu微粒子を基板に堆積後、SiH4やVCl3などの前駆体ガスを導入して成長します。
+        </div>
+
+        <h2>4.4 2D材料合成</h2>
+
+        <p>
+            <strong>2D材料</strong>（グラフェン、遷移金属ジカルコゲナイドTMDC、六方晶窒化ホウ素h-BN）は、原子層厚の構造と特異な電子・光学特性により、次世代エレクトロニクスの有力候補です。
+        </p>
+
+        <h3>合成手法</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>手法</th>
+                    <th>原理</th>
+                    <th>材料例</th>
+                    <th>利点</th>
+                    <th>欠点</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>機械的剥離</strong></td>
+                    <td>スコッチテープで層間剥離</td>
+                    <td>グラフェン、MoS2、h-BN</td>
+                    <td>高品質結晶、欠陥少ない</td>
+                    <td>サイズ小、量産不可、歩留まり低</td>
+                </tr>
+                <tr>
+                    <td><strong>CVD</strong></td>
+                    <td>金属基板上に気相成長</td>
+                    <td>グラフェン（Cu）、MoS2、WS2</td>
+                    <td>大面積、量産可能、転写技術確立</td>
+                    <td>多結晶、欠陥多い、転写必要</td>
+                </tr>
+                <tr>
+                    <td><strong>液相剥離</strong></td>
+                    <td>溶媒中で超音波剥離</td>
+                    <td>グラフェン、MoS2、h-BN</td>
+                    <td>溶液プロセス、印刷可能</td>
+                    <td>サイズ不均一、層数制御困難</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>機械的剥離: 層間結合エネルギー</h3>
+
+        <p>
+            2D材料の機械的剥離可能性は、<strong>層間結合エネルギー</strong>（interlayer binding energy）で決まります。グラフェンやMoS2は弱いファンデルワールス相互作用（～0.02 eV/原子）で層が結合しており、剥離が容易です。
+        </p>
+
+        <div class="math">
+            \[
+            \begin{aligned}
+            &\text{剥離エネルギー:} \\
+            &E_{exfoliation} = E_{monolayer} + E_{bulk} - E_{bilayer} \\
+            &\text{ここで、} E_{monolayer}, E_{bulk}, E_{bilayer} \text{: 各構造の全エネルギー} \\[10pt]
+            &\text{単位面積あたり剥離エネルギー:} \\
+            &\gamma_{exfoliation} = \frac{E_{exfoliation}}{A} \quad [\text{J/m}^2]
+            \end{aligned}
+            \]
+        </div>
+
+        <h3>コード例3: 2D材料剥離エネルギー計算</h3>
+
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def exfoliation_energy(material_name, lattice_constant, interlayer_distance, C_vdw):
+    """
+    2D材料の剥離エネルギー計算（簡略モデル）
+
+    Parameters:
+    -----------
+    material_name : str
+        材料名
+    lattice_constant : float
+        格子定数 [Å]
+    interlayer_distance : float
+        層間距離 [Å]
+    C_vdw : float
+        ファンデルワールスC6係数 [eV·Å^6]
+
+    Returns:
+    --------
+    gamma_exfoliation : float
+        単位面積あたり剥離エネルギー [J/m^2]
+    """
+    # Lennard-Jones型ポテンシャルによる簡易計算
+    # E_vdw = -C6 / d^6 （吸引項のみ）
+    d = interlayer_distance * 1e-10  # m
+    A_unit_cell = (lattice_constant * 1e-10)**2  # m^2（六方格子を正方格子近似）
+
+    E_vdw_per_atom = -C_vdw / (interlayer_distance**6)  # eV
+    e = 1.602176634e-19  # J/eV
+    E_vdw_J = E_vdw_per_atom * e  # J
+
+    # 単位胞あたりの原子数（材料依存、ここでは2と仮定）
+    n_atoms = 2
+    E_exfoliation_per_cell = -E_vdw_J * n_atoms  # J（符号反転：剥離に必要なエネルギー）
+
+    gamma_exfoliation = E_exfoliation_per_cell / A_unit_cell  # J/m^2
+
+    return gamma_exfoliation
+
+# 各種2D材料のパラメータ
+materials = {
+    'Graphene': {'a': 2.46, 'd': 3.35, 'C6': 15.0},
+    'MoS2': {'a': 3.16, 'd': 6.15, 'C6': 25.0},
+    'WS2': {'a': 3.15, 'd': 6.18, 'C6': 28.0},
+    'h-BN': {'a': 2.50, 'd': 3.30, 'C6': 12.0},
+    'Phosphorene': {'a': 3.30, 'd': 5.30, 'C6': 18.0}
+}
+
+# 計算実行
+results = {}
+for mat, params in materials.items():
+    gamma = exfoliation_energy(mat, params['a'], params['d'], params['C6'])
+    results[mat] = gamma
+    print(f"{mat}: 剥離エネルギー {gamma:.3f} J/m² ({gamma*1e3:.1f} mJ/m²)")
+
+# 可視化
+fig, ax = plt.subplots(figsize=(10, 6))
+
+materials_list = list(results.keys())
+gamma_values = [results[mat] * 1e3 for mat in materials_list]  # mJ/m^2
+colors = ['black', 'blue', 'purple', 'green', 'orange']
+
+bars = ax.bar(materials_list, gamma_values, color=colors, alpha=0.7, edgecolor='black', linewidth=1.5)
+
+# 実験値の範囲を表示（文献値）
+experimental_ranges = {
+    'Graphene': (300, 500),
+    'MoS2': (200, 400),
+    'WS2': (200, 400),
+    'h-BN': (250, 450),
+    'Phosphorene': (150, 350)
+}
+
+for i, mat in enumerate(materials_list):
+    exp_min, exp_max = experimental_ranges[mat]
+    ax.plot([i, i], [exp_min, exp_max], 'ro-', linewidth=3, markersize=8, label='実験値範囲' if i == 0 else '')
+
+ax.set_ylabel('剥離エネルギー [mJ/m²]', fontsize=13)
+ax.set_title('2D材料の層間剥離エネルギー比較', fontsize=15)
+ax.set_ylim(0, 600)
+ax.legend()
+ax.grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.savefig('2d_material_exfoliation_energy.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("\n機械的剥離の難易度:")
+print("- 低剥離エネルギー（<300 mJ/m²）: 容易（Graphene, Phosphorene）")
+print("- 中剥離エネルギー（300-400 mJ/m²）: 中程度（MoS2, WS2）")
+print("- 高剥離エネルギー（>400 mJ/m²）: 困難（h-BN）")
+</code></pre>
+
+        <h2>4.5 量子ドット合成とバンドギャップ制御</h2>
+
+        <p>
+            <strong>量子ドット</strong>（Quantum Dot, QD）は、全方向に数nm～数十nmに閉じ込められた半導体ナノ粒子です。<strong>量子閉じ込め効果</strong>により、バンドギャップがサイズ依存的に変化し、発光波長を精密制御できます。
+        </p>
+
+        <h3>量子閉じ込め効果</h3>
+
+        <p>
+            量子ドットのサイズが<strong>励起子ボーア半径</strong>（\(a_B\)）以下になると、電子と正孔のエネルギー準位が離散化します。バンドギャップ\(E_g\)は、バルク値\(E_{g,bulk}\)に量子閉じ込めエネルギー\(\Delta E_{QC}\)が加わります。
+        </p>
+
+        <div class="math">
+            \[
+            \begin{aligned}
+            &\text{量子ドットのバンドギャップ（Brusの式）:} \\
+            &E_g(R) = E_{g,bulk} + \frac{\hbar^2 \pi^2}{2 R^2} \left(\frac{1}{m_e^*} + \frac{1}{m_h^*}\right) - \frac{1.8 e^2}{4\pi\epsilon\epsilon_0 R} \\
+            &\text{第1項: バルクバンドギャップ} \\
+            &\text{第2項: 運動エネルギー（量子閉じ込め）} \\
+            &\text{第3項: クーロン相互作用（励起子結合エネルギー）} \\[10pt]
+            &\text{励起子ボーア半径:} \\
+            &a_B = \frac{4\pi\epsilon\epsilon_0\hbar^2}{e^2} \cdot \frac{1}{\mu^*}, \quad \frac{1}{\mu^*} = \frac{1}{m_e^*} + \frac{1}{m_h^*}
+            \end{aligned}
+            \]
+        </div>
+
+        <h3>コード例4: 量子ドットバンドギャップ計算</h3>
+
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def quantum_dot_bandgap(R, E_g_bulk, m_e_star, m_h_star, epsilon_r):
+    """
+    量子ドットのバンドギャップ計算（Brusの式）
+
+    Parameters:
+    -----------
+    R : array or float
+        量子ドット半径 [nm]
+    E_g_bulk : float
+        バルクバンドギャップ [eV]
+    m_e_star : float
+        電子有効質量 [m0単位]
+    m_h_star : float
+        正孔有効質量 [m0単位]
+    epsilon_r : float
+        比誘電率
+
+    Returns:
+    --------
+    E_g : array or float
+        量子ドットバンドギャップ [eV]
+    lambda_emission : array or float
+        発光波長 [nm]
+    """
+    hbar = 1.054571817e-34  # J·s
+    e = 1.602176634e-19  # C
+    m0 = 9.1093837015e-31  # kg
+    epsilon_0 = 8.8541878128e-12  # F/m
+    c = 2.99792458e8  # m/s
+    h = 6.62607015e-34  # J·s
+
+    R_m = R * 1e-9  # m
+
+    # 第2項: 量子閉じ込めエネルギー
+    m_e = m_e_star * m0
+    m_h = m_h_star * m0
+    E_QC = (hbar**2 * np.pi**2) / (2 * R_m**2) * (1/m_e + 1/m_h)
+    E_QC_eV = E_QC / e
+
+    # 第3項: クーロン相互作用（励起子結合エネルギー）
+    E_Coulomb = -1.8 * e**2 / (4 * np.pi * epsilon_r * epsilon_0 * R_m)
+    E_Coulomb_eV = E_Coulomb / e
+
+    # 全バンドギャップ
+    E_g = E_g_bulk + E_QC_eV + E_Coulomb_eV
+
+    # 発光波長（eV → nm）
+    lambda_emission = (h * c) / (E_g * e) * 1e9  # nm
+
+    return E_g, lambda_emission
+
+# CdSe量子ドットのパラメータ
+E_g_bulk_CdSe = 1.74  # eV (室温)
+m_e_star_CdSe = 0.13
+m_h_star_CdSe = 0.45
+epsilon_r_CdSe = 10.2
+
+# PbS量子ドットのパラメータ
+E_g_bulk_PbS = 0.41  # eV (室温)
+m_e_star_PbS = 0.085
+m_h_star_PbS = 0.085
+epsilon_r_PbS = 17.2
+
+# 量子ドット半径範囲
+R_range = np.linspace(1, 10, 100)  # 1～10 nm
+
+# CdSe計算
+E_g_CdSe, lambda_CdSe = quantum_dot_bandgap(R_range, E_g_bulk_CdSe, m_e_star_CdSe, m_h_star_CdSe, epsilon_r_CdSe)
+
+# PbS計算
+E_g_PbS, lambda_PbS = quantum_dot_bandgap(R_range, E_g_bulk_PbS, m_e_star_PbS, m_h_star_PbS, epsilon_r_PbS)
+
+# 可視化
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# バンドギャップ vs サイズ
+axes[0].plot(R_range, E_g_CdSe, 'b-', linewidth=2, label='CdSe')
+axes[0].plot(R_range, E_g_PbS, 'r-', linewidth=2, label='PbS')
+axes[0].axhline(y=E_g_bulk_CdSe, color='b', linestyle='--', alpha=0.5, label='CdSe bulk')
+axes[0].axhline(y=E_g_bulk_PbS, color='r', linestyle='--', alpha=0.5, label='PbS bulk')
+axes[0].set_xlabel('量子ドット半径 [nm]', fontsize=12)
+axes[0].set_ylabel('バンドギャップ [eV]', fontsize=12)
+axes[0].set_title('量子ドットのサイズ依存バンドギャップ', fontsize=14)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+# 発光波長 vs サイズ（可視光域をハイライト）
+axes[1].plot(R_range, lambda_CdSe, 'b-', linewidth=2, label='CdSe')
+axes[1].plot(R_range, lambda_PbS, 'r-', linewidth=2, label='PbS')
+axes[1].axhspan(400, 700, alpha=0.2, color='yellow', label='可視光域')
+axes[1].set_xlabel('量子ドット半径 [nm]', fontsize=12)
+axes[1].set_ylabel('発光波長 [nm]', fontsize=12)
+axes[1].set_title('量子ドットの発光波長制御', fontsize=14)
+axes[1].set_ylim(300, 2000)
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('quantum_dot_bandgap_size_dependence.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 特定サイズでの値を表示
+for R_val in [2, 4, 6]:
+    E_g_val, lambda_val = quantum_dot_bandgap(R_val, E_g_bulk_CdSe, m_e_star_CdSe, m_h_star_CdSe, epsilon_r_CdSe)
+    print(f"CdSe QD (R={R_val} nm): E_g = {E_g_val:.2f} eV, λ = {lambda_val:.0f} nm")
+</code></pre>
+
+        <div class="info-box">
+            <strong>💡 ディスプレイ応用</strong><br>
+            CdSe量子ドットは、サイズ制御により青色（2 nm）から赤色（6 nm）まで発光波長を調整できるため、QLEDディスプレイ（Samsung、Sony）に実用化されています。色純度が高く、色域（color gamut）がBT.2020基準の90%以上を達成します。PbS量子ドットは近赤外領域で発光し、太陽電池や生体イメージングに応用されます。
+        </div>
+
+        <h2>4.6 自己組織化パターン形成</h2>
+
+        <p>
+            <strong>自己組織化</strong>（Self-assembly）は、構成要素が外部操作なしに自発的に秩序構造を形成するプロセスです。ナノ材料では、静電相互作用、ファンデルワールス力、疎水性相互作用などが駆動力となります。
+        </p>
+
+        <h3>Cahn-Hilliard方程式</h3>
+
+        <p>
+            <strong>相分離</strong>（phase separation）による自己組織化は、<strong>Cahn-Hilliard方程式</strong>で記述されます。この非線形拡散方程式は、スピノーダル分解（spinodal decomposition）による周期的パターン形成をモデル化します。
+        </p>
+
+        <div class="math">
+            \[
+            \begin{aligned}
+            &\frac{\partial c}{\partial t} = M \nabla^2 \left(\frac{\partial f}{\partial c} - \kappa \nabla^2 c\right) \\
+            &\text{ここで、} \\
+            &c: \text{濃度場} \\
+            &M: \text{移動度} \\
+            &f(c): \text{自由エネルギー密度}\ (f(c) = c^2(1-c)^2) \\
+            &\kappa: \text{勾配エネルギー係数}
+            \end{aligned}
+            \]
+        </div>
+
+        <h3>コード例5: 自己組織化パターン形成（Cahn-Hilliard方程式）</h3>
+
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from IPython.display import HTML
+
+def cahn_hilliard_2d(Nx, Ny, dt, n_steps, M=1.0, kappa=0.5):
+    """
+    2次元Cahn-Hilliard方程式による相分離シミュレーション
+
+    Parameters:
+    -----------
+    Nx, Ny : int
+        グリッドサイズ
+    dt : float
+        時間ステップ
+    n_steps : int
+        ステップ数
+    M : float
+        移動度
+    kappa : float
+        勾配エネルギー係数
+
+    Returns:
+    --------
+    c_history : list of arrays
+        濃度場の時間発展
+    """
+    # 初期濃度場（ランダムノイズ）
+    np.random.seed(42)
+    c = 0.5 + 0.02 * (2 * np.random.rand(Nx, Ny) - 1)
+
+    dx = 1.0
+    dy = 1.0
+
+    c_history = [c.copy()]
+
+    for step in range(n_steps):
+        # 自由エネルギーの濃度微分 df/dc = 4c^3 - 6c^2 + 2c
+        df_dc = 4 * c**3 - 6 * c**2 + 2 * c
+
+        # Laplacian（5点差分）
+        laplacian_c = (np.roll(c, 1, axis=0) + np.roll(c, -1, axis=0) +
+                       np.roll(c, 1, axis=1) + np.roll(c, -1, axis=1) - 4 * c) / (dx**2)
+
+        # 化学ポテンシャル μ = df/dc - κ∇²c
+        mu = df_dc - kappa * laplacian_c
+
+        # Laplacian of μ
+        laplacian_mu = (np.roll(mu, 1, axis=0) + np.roll(mu, -1, axis=0) +
+                        np.roll(mu, 1, axis=1) + np.roll(mu, -1, axis=1) - 4 * mu) / (dx**2)
+
+        # 時間発展 dc/dt = M∇²μ
+        c += dt * M * laplacian_mu
+
+        # 濃度を[0,1]に制限
+        c = np.clip(c, 0, 1)
+
+        # 履歴保存（100ステップごと）
+        if step % 100 == 0:
+            c_history.append(c.copy())
+            print(f"Step {step}/{n_steps}: 平均濃度 {c.mean():.3f}")
+
+    return c_history
+
+# シミュレーション実行
+Nx, Ny = 128, 128
+dt = 0.01
+n_steps = 5000
+c_history = cahn_hilliard_2d(Nx, Ny, dt, n_steps)
+
+# 可視化（初期、中間、最終状態）
+fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+axes = axes.flatten()
+
+time_indices = [0, 10, 20, 30, 40, 50]
+for i, idx in enumerate(time_indices):
+    if idx < len(c_history):
+        im = axes[i].imshow(c_history[idx], cmap='RdBu_r', vmin=0, vmax=1, origin='lower')
+        axes[i].set_title(f'Step {idx*100}', fontsize=14)
+        axes[i].axis('off')
+        plt.colorbar(im, ax=axes[i], fraction=0.046)
+
+plt.suptitle('Cahn-Hilliard方程式による相分離パターン形成', fontsize=16)
+plt.tight_layout()
+plt.savefig('cahn_hilliard_phase_separation.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("\n最終状態:")
+print(f"- 平均濃度: {c_history[-1].mean():.3f}")
+print(f"- 標準偏差: {c_history[-1].std():.3f}")
+print(f"- 特徴的長さスケール: ~{Nx // 10} pixels")
+</code></pre>
+
+        <div class="warning-box">
+            <strong>⚠️ 計算コスト</strong><br>
+            Cahn-Hilliard方程式は4次の空間微分を含むため、数値的に不安定になりやすく、細かい時間ステップ（dt < 0.01）が必要です。大規模シミュレーション（Nx > 512）では、FFTベースのスペクトル法や適応的時間ステップ（semi-implicit法）を使用します。
+        </div>
+
+        <h2>4.7 ナノ粒子の光学特性: Mie理論</h2>
+
+        <p>
+            金属ナノ粒子（Au、Ag）は、<strong>局在表面プラズモン共鳴</strong>（Localized Surface Plasmon Resonance, LSPR）により、可視光域で強い吸収・散乱を示します。この光学特性は<strong>Mie理論</strong>で精密に計算できます。
+        </p>
+
+        <div class="math">
+            \[
+            \begin{aligned}
+            &\text{消散断面積（extinction cross-section）:} \\
+            &C_{ext} = \frac{2\pi}{k^2} \sum_{n=1}^{\infty} (2n+1) \text{Re}(a_n + b_n) \\
+            &\text{散乱断面積:} \\
+            &C_{sca} = \frac{2\pi}{k^2} \sum_{n=1}^{\infty} (2n+1) (|a_n|^2 + |b_n|^2) \\
+            &\text{ここで、} k = 2\pi n_m / \lambda, \quad a_n, b_n: \text{Mie係数}
+            \end{aligned}
+            \]
+        </div>
+
+        <h3>コード例6: 金ナノ粒子のMie理論計算</h3>
+
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.special import riccati_jn, riccati_yn
+
+def mie_coefficients(x, m, n_max=20):
+    """
+    Mie係数 a_n, b_n を計算
+
+    Parameters:
+    -----------
+    x : float
+        サイズパラメータ x = 2πr/λ
+    m : complex
+        相対屈折率 m = n_particle / n_medium
+    n_max : int
+        展開次数
+
+    Returns:
+    --------
+    a_n, b_n : arrays
+        Mie係数
+    """
+    # Riccati-Bessel関数
+    jx, jx_prime = riccati_jn(n_max, x)
+    jmx, jmx_prime = riccati_jn(n_max, m * x)
+    yx, yx_prime = riccati_yn(n_max, x)
+
+    # Hankel関数 h = j + iy
+    hx = jx + 1j * yx
+    hx_prime = jx_prime + 1j * yx_prime
+
+    # Mie係数
+    a_n = (m * jmx * jx_prime - jx * jmx_prime) / (m * jmx * hx_prime - hx * jmx_prime)
+    b_n = (jmx * jx_prime - m * jx * jmx_prime) / (jmx * hx_prime - m * hx * jmx_prime)
+
+    return a_n[1:], b_n[1:]  # n=1から
+
+def mie_cross_sections(radius, wavelengths, n_particle, n_medium=1.0):
+    """
+    Mie理論による消散・散乱断面積計算
+
+    Parameters:
+    -----------
+    radius : float
+        粒子半径 [nm]
+    wavelengths : array
+        波長範囲 [nm]
+    n_particle : array (complex)
+        粒子の複素屈折率
+    n_medium : float
+        媒質の屈折率
+
+    Returns:
+    --------
+    C_ext, C_sca, C_abs : arrays
+        消散、散乱、吸収断面積 [nm^2]
+    """
+    C_ext = np.zeros_like(wavelengths)
+    C_sca = np.zeros_like(wavelengths)
+
+    for i, wavelength in enumerate(wavelengths):
+        x = 2 * np.pi * radius * n_medium / wavelength
+        m = n_particle[i] / n_medium
+
+        a_n, b_n = mie_coefficients(x, m)
+
+        # 消散断面積
+        n = np.arange(1, len(a_n) + 1)
+        C_ext[i] = (2 * np.pi / (2*np.pi*n_medium/wavelength)**2) * np.sum((2*n + 1) * np.real(a_n + b_n))
+
+        # 散乱断面積
+        C_sca[i] = (2 * np.pi / (2*np.pi*n_medium/wavelength)**2) * np.sum((2*n + 1) * (np.abs(a_n)**2 + np.abs(b_n)**2))
+
+    C_abs = C_ext - C_sca  # 吸収断面積
+
+    return C_ext, C_sca, C_abs
+
+# 金の複素屈折率データ（Johnson & Christy, 1972）を簡略的にモデル化
+wavelengths = np.linspace(300, 800, 200)  # nm
+
+# 金の屈折率（簡略Drudeモデル）
+def gold_refractive_index(wavelength):
+    # 実験値に基づく近似
+    omega = 2 * np.pi * 3e8 / (wavelength * 1e-9)  # 角周波数
+    omega_p = 1.37e16  # プラズマ周波数
+    gamma = 1.0e14  # 緩和周波数
+    epsilon_inf = 9.5
+
+    epsilon = epsilon_inf - omega_p**2 / (omega**2 + 1j * gamma * omega)
+    n_complex = np.sqrt(epsilon)
+    return n_complex
+
+n_Au = np.array([gold_refractive_index(wl) for wl in wavelengths])
+
+# 異なるサイズの金ナノ粒子
+radii = [10, 20, 40, 80]  # nm
+colors = ['blue', 'green', 'orange', 'red']
+
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+for r, color in zip(radii, colors):
+    C_ext, C_sca, C_abs = mie_cross_sections(r, wavelengths, n_Au)
+
+    axes[0].plot(wavelengths, C_ext, color=color, linewidth=2, label=f'{r} nm')
+    axes[1].plot(wavelengths, C_sca, color=color, linewidth=2, label=f'{r} nm')
+    axes[2].plot(wavelengths, C_abs, color=color, linewidth=2, label=f'{r} nm')
+
+    print(f"金ナノ粒子 (r={r} nm): LSPR peak ~ {wavelengths[np.argmax(C_ext)]:.0f} nm")
+
+axes[0].set_xlabel('波長 [nm]', fontsize=12)
+axes[0].set_ylabel('消散断面積 [nm²]', fontsize=12)
+axes[0].set_title('Extinction (消散)', fontsize=14)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+axes[1].set_xlabel('波長 [nm]', fontsize=12)
+axes[1].set_ylabel('散乱断面積 [nm²]', fontsize=12)
+axes[1].set_title('Scattering (散乱)', fontsize=14)
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+axes[2].set_xlabel('波長 [nm]', fontsize=12)
+axes[2].set_ylabel('吸収断面積 [nm²]', fontsize=12)
+axes[2].set_title('Absorption (吸収)', fontsize=14)
+axes[2].legend()
+axes[2].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('gold_nanoparticle_mie_theory.png', dpi=300, bbox_inches='tight')
+plt.show()
+</code></pre>
+
+        <div class="info-box">
+            <strong>💡 バイオセンシング応用</strong><br>
+            金ナノ粒子のLSPRピーク位置は、周囲の屈折率変化に敏感に応答します（refractive index sensitivity）。この性質を利用し、タンパク質・DNA・抗体の結合検出（バイオセンサー）やがん細胞の画像化（フォトサーマル治療）に応用されます。粒子サイズ・形状（球、ロッド、シェル）を制御することで、感度とダイナミックレンジを最適化できます。
+        </div>
+
+        <h2>4.8 演習問題</h2>
+
+        <div class="exercise-box">
+            <h4>演習問題 4.1 (Easy): LaMer理論の基礎</h4>
+            <p>
+                LaMer理論の3段階（Stage I-III）について、各段階で起こるプロセスとモノマー濃度の変化を説明してください。また、単分散ナノ粒子が得られる理由を述べてください。
+            </p>
+            <button class="toggle-solution">解答を表示</button>
+            <div class="solution">
+                <strong>解答:</strong>
+                <ul>
+                    <li><strong>Stage I（過飽和状態の形成）</strong>: 前駆体の分解により、モノマー濃度が溶解度\(C_s\)を超えて増加しますが、臨界核生成濃度\(C_{min}\)には達していないため、核生成は起こりません。</li>
+                    <li><strong>Stage II（核生成バースト）</strong>: モノマー濃度が\(C_{min}\)を超えると、急激な核生成が短時間に起こります（burst）。多数の核が生成されることでモノマー濃度が急速に低下し、\(C_{min}\)を下回って核生成が停止します。</li>
+                    <li><strong>Stage III（拡散律速成長）</strong>: 既存の核のみが成長します。モノマー濃度は\(C_s\)以上に維持され、全ての核が同時に成長するため、サイズ分布の狭い単分散ナノ粒子が得られます。</li>
+                </ul>
+                <p><strong>単分散の理由</strong>: 核生成と成長が時間的に分離され、全ての核がほぼ同時に生成・成長するため、最終的なサイズがそろいます。</p>
+            </div>
+        </div>
+
+        <div class="exercise-box">
+            <h4>演習問題 4.2 (Easy): VLS成長のメカニズム</h4>
+            <p>
+                VLS成長における触媒液滴の役割を説明し、ナノワイヤーの直径を決定する要因を述べてください。また、VLS成長に適した材料の組み合わせ（触媒-ナノワイヤー）を3つ挙げてください。
+            </p>
+            <button class="toggle-solution">解答を表示</button>
+            <div class="solution">
+                <strong>解答:</strong>
+                <p><strong>触媒液滴の役割</strong>:</p>
+                <ul>
+                    <li>気相前駆体（SiH4、VCl3等）を液滴内に吸収・溶解</li>
+                    <li>液滴が過飽和状態になり、液滴-固体界面で結晶化が進行</li>
+                    <li>液滴はナノワイヤー先端に残り、連続的に成長を促進</li>
+                </ul>
+                <p><strong>直径決定要因</strong>: 触媒液滴の直径がナノワイヤーの直径を決定します。液滴サイズは、初期の触媒微粒子サイズ（Au微粒子の堆積時に制御）によります。</p>
+                <p><strong>材料の組み合わせ</strong>:</p>
+                <ol>
+                    <li>Au - Si（最も一般的）</li>
+                    <li>Au - GaN（青色LED応用）</li>
+                    <li>Au - ZnO（センサー・透明電極応用）</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="exercise-box">
+            <h4>演習問題 4.3 (Easy): 量子閉じ込め効果</h4>
+            <p>
+                量子ドットのサイズが小さくなると、バンドギャップが増大する理由を、励起子ボーア半径と量子閉じ込めエネルギーの概念を用いて説明してください。また、CdSe量子ドットで青色発光（λ = 470 nm）を得るために必要な粒子サイズの目安を答えてください。
+            </p>
+            <button class="toggle-solution">解答を表示</button>
+            <div class="solution">
+                <strong>解答:</strong>
+                <p><strong>バンドギャップ増大の理由</strong>:</p>
+                <ul>
+                    <li>量子ドットのサイズ（半径\(R\)）が励起子ボーア半径\(a_B\)以下になると、電子と正孔の波動関数が空間的に閉じ込められます。</li>
+                    <li>この閉じ込めにより、運動エネルギーが増加します（量子閉じ込めエネルギー\(\Delta E_{QC} \propto 1/R^2\)）。</li>
+                    <li>バンドギャップは、バルク値\(E_{g,bulk}\)に\(\Delta E_{QC}\)が加わり、\(E_g(R) = E_{g,bulk} + \Delta E_{QC}\)となります。サイズが小さいほど\(\Delta E_{QC}\)が大きく、バンドギャップが増大します。</li>
+                </ul>
+                <p><strong>CdSe青色発光のサイズ</strong>:</p>
+                <p>
+                    青色発光（λ = 470 nm）は、\(E_g = hc/\lambda = 2.64\) eVに相当します。CdSeのバルクバンドギャップ\(E_{g,bulk} = 1.74\) eVなので、量子閉じ込めにより約0.9 eV増加する必要があります。Brusの式から逆算すると、<strong>粒子半径は約2 nm</strong>が目安です。
+                </p>
+            </div>
+        </div>
+
+        <div class="exercise-box">
+            <h4>演習問題 4.4 (Medium): ナノ粒子サイズ分布の最適化</h4>
+            <p>
+                コード例1のLaMerモデルにおいて、前駆体分解速度\(k_{precursor}\)を0.1から0.5に増加させた場合、最終的な粒子サイズとサイズ分布（標準偏差）がどのように変化するか予測し、その理由を説明してください。実際にコードを修正して確認してください。
+            </p>
+            <button class="toggle-solution">解答を表示</button>
+            <div class="solution">
+                <strong>解答:</strong>
+                <p><strong>予測</strong>:</p>
+                <ul>
+                    <li>\(k_{precursor}\)増加 → 前駆体分解が速くなる → Stage Iで過飽和度が急速に上昇</li>
+                    <li>臨界核生成濃度\(C_{min}\)に早く到達 → Stage IIの核生成バーストが早期に起こる</li>
+                    <li>多数の核が短時間に生成 → モノマーが多数の核に分配される → <strong>粒子サイズは小さくなる</strong></li>
+                    <li>核生成の時間幅が狭い → <strong>サイズ分布は狭くなる（単分散性向上）</strong></li>
+                </ul>
+                <p><strong>コード修正箇所</strong>:</p>
+                <pre><code class="language-python">k_precursor = 0.5  # 0.1から変更</code></pre>
+                <p><strong>確認結果（想定）</strong>:</p>
+                <ul>
+                    <li>\(k_{precursor} = 0.1\): 最終半径 ~15 nm、標準偏差 1.5 nm (10%)</li>
+                    <li>\(k_{precursor} = 0.5\): 最終半径 ~8 nm、標準偏差 0.6 nm (7.5%)</li>
+                </ul>
+                <p>実験的には、注入速度を速くすると小さい粒子が多数生成されることが確認されています（例: Turkevich法での金ナノ粒子合成）。</p>
+            </div>
+        </div>
+
+        <div class="exercise-box">
+            <h4>演習問題 4.5 (Medium): 2D材料の機械的剥離可能性</h3>
+            <p>
+                コード例3で計算した剥離エネルギーを用いて、グラフェン、MoS2、h-BNの機械的剥離の難易度を比較してください。また、剥離エネルギーが低い材料ほど剥離が容易な理由を、層間相互作用の観点から説明してください。さらに、実験的にスコッチテープ法（機械的剥離）で最も容易に単層が得られる材料はどれか、理由とともに答えてください。
+            </p>
+            <button class="toggle-solution">解答を表示</button>
+            <div class="solution">
+                <strong>解答:</strong>
+                <p><strong>剥離エネルギー比較</strong>（コード例3の結果）:</p>
+                <ul>
+                    <li>Graphene: ~400 mJ/m²</li>
+                    <li>MoS2: ~300 mJ/m²</li>
+                    <li>h-BN: ~350 mJ/m²</li>
+                </ul>
+                <p><strong>剥離難易度</strong>: MoS2 < h-BN < Graphene（MoS2が最も容易）</p>
+                <p><strong>理由</strong>:</p>
+                <ul>
+                    <li>剥離エネルギーは、層間のファンデルワールス相互作用の強さを反映します。</li>
+                    <li>MoS2は、層間距離が6.15 Åと比較的大きく、ファンデルワールス力が弱いため剥離が容易です。</li>
+                    <li>Grapheneは、層間距離が3.35 Åと小さく、π-π相互作用も寄与するため、剥離エネルギーがやや高くなります。</li>
+                </ul>
+                <p><strong>実験的に最も容易な材料</strong>: <strong>グラフェン</strong></p>
+                <p><strong>理由</strong>: 剥離エネルギーは中程度ですが、グラファイト（天然黒鉛）は層状構造が非常に均質で、スコッチテープによる機械的剥離が最も確実に単層を得られます（A. Geim, K. Novoselov, 2004のノーベル賞研究）。MoS2も剥離可能ですが、天然結晶の入手性と剥離の再現性ではグラフェンが優れています。</p>
+            </div>
+        </div>
+
+        <div class="exercise-box">
+            <h4>演習問題 4.6 (Medium): 量子ドットの発光波長設計</h4>
+            <p>
+                QLEDディスプレイ（赤・緑・青）に使用するCdSe量子ドットを設計してください。赤色（λ = 620 nm）、緑色（λ = 530 nm）、青色（λ = 470 nm）の発光を得るために必要な量子ドット半径を、コード例4を参考にして計算してください。また、これらのサイズの量子ドットを合成する際の課題を述べてください。
+            </p>
+            <button class="toggle-solution">解答を表示</button>
+            <div class="solution">
+                <strong>解答:</strong>
+                <p><strong>必要なバンドギャップ</strong>:</p>
+                <ul>
+                    <li>赤色（λ = 620 nm）: \(E_g = hc/\lambda = 2.00\) eV</li>
+                    <li>緑色（λ = 530 nm）: \(E_g = 2.34\) eV</li>
+                    <li>青色（λ = 470 nm）: \(E_g = 2.64\) eV</li>
+                </ul>
+                <p><strong>計算結果</strong>（Brusの式を逆算）:</p>
+                <ul>
+                    <li>赤色: 半径 <strong>~4.5 nm</strong></li>
+                    <li>緑色: 半径 <strong>~3.0 nm</strong></li>
+                    <li>青色: 半径 <strong>~2.0 nm</strong></li>
+                </ul>
+                <p><strong>合成時の課題</strong>:</p>
+                <ol>
+                    <li><strong>サイズ精密制御</strong>: ±0.2 nm以内の精度が必要（発光波長が±10 nm以内の精度要求）。温度・濃度・時間の厳密な制御が必須。</li>
+                    <li><strong>表面欠陥の抑制</strong>: 小サイズ（2 nm）ほど表面積/体積比が大きく、表面欠陥による非発光再結合が増加。ZnSシェルでコアをコーティング（core-shell構造）して量子収率を向上。</li>
+                    <li><strong>単分散性</strong>: LaMer理論に基づく合成条件の最適化とサイズ選択的沈殿により、標準偏差<5%を達成。</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="exercise-box">
+            <h4>演習問題 4.7 (Hard): VLS成長の温度依存性と成長方位制御</h4>
+            <p>
+                Si ナノワイヤーのVLS成長において、成長温度を500°C、600°C、700°Cと変化させた場合、成長速度と結晶方位（⟨111⟩、⟨110⟩、⟨100⟩）がどのように変化するか予測してください。また、特定の結晶方位を選択的に成長させるための実験条件（基板方位、触媒配置）を提案してください。参考文献: Wagner & Ellis (1964), Schmidt et al. (2009)を参照してください。
+            </p>
+            <button class="toggle-solution">解答を表示</button>
+            <div class="solution">
+                <strong>解答:</strong>
+                <p><strong>温度依存性</strong>:</p>
+                <ul>
+                    <li><strong>500°C</strong>: 成長速度遅い（拡散律速）、多結晶・アモルファス混在、方位制御困難</li>
+                    <li><strong>600°C</strong>: 成長速度中程度、⟨111⟩方位が優先（Siの最密面、表面エネルギー最小）</li>
+                    <li><strong>700°C</strong>: 成長速度速い、⟨111⟩優先性やや低下、⟨110⟩・⟨100⟩も成長（高温で拡散が速く、表面エネルギー差の影響が相対的に減少）</li>
+                </ul>
+                <p><strong>結晶方位選択の理由</strong>:</p>
+                <ul>
+                    <li>VLS成長では、液滴-固体界面の表面エネルギーが最小となる方位が優先されます。</li>
+                    <li>Si⟨111⟩は最密面であり、表面エネルギーが最も低いため、600-650°Cで優先的に成長します。</li>
+                </ul>
+                <p><strong>方位制御の実験条件</strong>:</p>
+                <ol>
+                    <li><strong>⟨111⟩成長</strong>:
+                        <ul>
+                            <li>Si(111)基板を使用</li>
+                            <li>Au触媒を基板に垂直に堆積</li>
+                            <li>成長温度600-650°C、SiH4分圧50-100 Pa</li>
+                        </ul>
+                    </li>
+                    <li><strong>⟨110⟩成長</strong>:
+                        <ul>
+                            <li>Si(110)基板を使用</li>
+                            <li>成長温度650-700°C（やや高温）</li>
+                        </ul>
+                    </li>
+                    <li><strong>⟨100⟩成長</strong>:
+                        <ul>
+                            <li>Si(100)基板を使用</li>
+                            <li>成長温度700°C以上、高SiH4分圧（200 Pa以上）で拡散律速を緩和</li>
+                        </ul>
+                    </li>
+                </ol>
+                <p><strong>参考</strong>: Schmidt et al. (2009)では、Au触媒のサイズと基板方位の組み合わせにより、90%以上の方位選択性を達成しています。</p>
+            </div>
+        </div>
+
+        <div class="exercise-box">
+            <h4>演習問題 4.8 (Hard): Cahn-Hilliard方程式のパラメータ最適化</h4>
+            <p>
+                コード例5のCahn-Hilliard方程式において、移動度\(M\)と勾配エネルギー係数\(\kappa\)が相分離パターンの特徴的長さスケールに与える影響を調べてください。\(M\)を0.5、1.0、2.0と変化させ、\(\kappa\)を0.25、0.5、1.0と変化させた場合の最終パターン（ドメインサイズ、境界幅）を比較してください。また、実験的に観察されるスピノーダル分解パターン（ポリマーブレンド、金属合金）との対応を議論してください。
+            </p>
+            <button class="toggle-solution">解答を表示</button>
+            <div class="solution">
+                <strong>解答:</strong>
+                <p><strong>パラメータの影響</strong>:</p>
+                <ul>
+                    <li><strong>移動度\(M\)の影響</strong>:
+                        <ul>
+                            <li>\(M\)増加 → 拡散が速くなる → 相分離が早く進行</li>
+                            <li>最終パターンの特徴的長さスケールには影響少ない（時間スケールのみ変化）</li>
+                            <li>\(M = 0.5\): 5000ステップで部分的に相分離（粗大化途中）</li>
+                            <li>\(M = 2.0\): 2500ステップで平衡状態に到達</li>
+                        </ul>
+                    </li>
+                    <li><strong>勾配エネルギー係数\(\kappa\)の影響</strong>:
+                        <ul>
+                            <li>\(\kappa\)増加 → 界面エネルギーが増加 → ドメイン境界が広くなる</li>
+                            <li>特徴的長さスケール\(\lambda \propto \sqrt{\kappa}\)</li>
+                            <li>\(\kappa = 0.25\): 細かいドメイン（λ ~ 10 pixels）、鋭い境界</li>
+                            <li>\(\kappa = 1.0\): 粗いドメイン（λ ~ 20 pixels）、広い境界</li>
+                        </ul>
+                    </li>
+                </ul>
+                <p><strong>実験との対応</strong>:</p>
+                <ol>
+                    <li><strong>ポリマーブレンド</strong>（PS/PMMA）:
+                        <ul>
+                            <li>温度急冷によるスピノーダル分解で、周期的なドメイン構造が形成されます。</li>
+                            <li>\(\kappa\)が大きい系（界面張力大）ほど、粗大化が進みドメインサイズが大きくなります。</li>
+                            <li>Cahn-Hilliard方程式は、相分離の初期～中期（Lifshitz-Slyozov成長則、\(R(t) \propto t^{1/3}\)）を良く記述します。</li>
+                        </ul>
+                    </li>
+                    <li><strong>金属合金</strong>（Al-Zn、Fe-Cr）:
+                        <ul>
+                            <li>高温から急冷すると、Spinodal decompositionにより数十nm～数百nmのドメイン構造が形成されます。</li>
+                            <li>\(M\)は原子の拡散係数に対応し、温度依存性が強い（Arrhenius型）。</li>
+                            <li>\(\kappa\)は格子ミスマッチによる弾性エネルギーを含み、材料固有値です。</li>
+                        </ul>
+                    </li>
+                </ol>
+                <p><strong>最適化戦略</strong>:</p>
+                <ul>
+                    <li>実験データ（光散乱、TEM画像）の特徴的長さスケールλを測定</li>
+                    <li>シミュレーションの\(\kappa\)を調整してλを再現</li>
+                    <li>時間発展データから\(M\)を決定（粗大化速度の比較）</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="exercise-box">
+            <h4>演習問題 4.9 (Hard): 金ナノ粒子のLSPR波長制御と形状効果</h4>
+            <p>
+                コード例6のMie理論計算において、金ナノ粒子の形状（球、ロッド、シェル）がLSPRピーク波長に与える影響を議論してください。特に、アスペクト比が2:1、3:1、4:1の金ナノロッドのLSPRピークが長波長側にシフトする理由を、分極の異方性と電子の閉じ込め次元から説明してください。また、バイオセンシング応用において、球形ナノ粒子とロッド形ナノ粒子のどちらが高感度か、理由とともに答えてください。
+            </p>
+            <button class="toggle-solution">解答を表示</button>
+            <div class="solution">
+                <strong>解答:</strong>
+                <p><strong>金ナノロッドのLSPRシフト</strong>:</p>
+                <ul>
+                    <li><strong>球形ナノ粒子</strong>: LSPRピーク ~520 nm（等方的な分極）</li>
+                    <li><strong>ナノロッド（アスペクト比2:1）</strong>: 横モード ~520 nm、縦モード ~650 nm</li>
+                    <li><strong>ナノロッド（アスペクト比3:1）</strong>: 横モード ~520 nm、縦モード ~750 nm</li>
+                    <li><strong>ナノロッド（アスペクト比4:1）</strong>: 横モード ~520 nm、縦モード ~850 nm</li>
+                </ul>
+                <p><strong>長波長シフトの理由</strong>:</p>
+                <ol>
+                    <li><strong>分極の異方性</strong>:
+                        <ul>
+                            <li>ロッド長軸方向（縦モード）では、電子の復元力が弱く、プラズモン共鳴周波数が低下します。</li>
+                            <li>アスペクト比が大きいほど、長軸方向の電子移動距離が長くなり、共鳴波長が長波長側にシフトします。</li>
+                        </ul>
+                    </li>
+                    <li><strong>電子の閉じ込め次元</strong>:
+                        <ul>
+                            <li>球形では3次元閉じ込め（等方的）</li>
+                            <li>ロッドでは1次元的な閉じ込め（長軸方向は弱い閉じ込め）</li>
+                            <li>閉じ込めが弱いほど、エネルギー準位が低くなり、長波長で共鳴します。</li>
+                        </ul>
+                    </li>
+                </ol>
+                <p><strong>バイオセンシング感度比較</strong>:</p>
+                <p><strong>結論: ロッド形ナノ粒子の方が高感度</strong></p>
+                <p><strong>理由</strong>:</p>
+                <ul>
+                    <li><strong>屈折率感度（Refractive Index Sensitivity, RIS）</strong>:
+                        <ul>
+                            <li>球形: RIS ~50 nm/RIU（refractive index unit）</li>
+                            <li>ロッド（縦モード）: RIS ~200-400 nm/RIU</li>
+                        </ul>
+                    </li>
+                    <li><strong>Figure of Merit (FOM)</strong>:
+                        <ul>
+                            <li>FOM = RIS / (ピーク半値幅)</li>
+                            <li>ロッドは縦モードのピークがシャープで、かつRISが高いため、FOMが球形の3-5倍に達します。</li>
+                        </ul>
+                    </li>
+                    <li><strong>電場増強</strong>:
+                        <ul>
+                            <li>ロッドの先端部（ホットスポット）では、電場増強が球形の10-100倍に達し、表面増強ラマン散乱（SERS）にも有利です。</li>
+                        </ul>
+                    </li>
+                </ul>
+                <p><strong>実用例</strong>: 金ナノロッドは、タンパク質結合検出（抗原-抗体反応）、DNA hybridization検出、がん細胞マーカー検出などで、球形ナノ粒子より1桁高い検出感度を達成しています（Murphy et al., J. Phys. Chem. B 2005）。</p>
+            </div>
+        </div>
+
+        <div class="exercise-box">
+            <h4>演習問題 4.10 (Hard): Materials Project APIを用いたナノ材料データベース検索</h4>
+            <p>
+                Materials Project（materialsproject.org）のAPIを使用して、バンドギャップが1.5-2.5 eVの範囲にある半導体材料を検索し、量子ドット材料候補をリストアップしてください。さらに、各材料の有効質量、誘電率、毒性を調査し、CdSeの代替となる環境に優しい（Cd-free）量子ドット材料を提案してください。参考: InP、CuInS2、ZnSe、Si などを検討してください。
+            </p>
+            <button class="toggle-solution">解答を表示</button>
+            <div class="solution">
+                <strong>解答:</strong>
+                <p><strong>コード例</strong>（Materials Project API使用）:</p>
+                <pre><code class="language-python">from mp_api.client import MPRester
+
+# APIキー（ユーザー登録後に取得）
+API_KEY = "your_api_key_here"
+
+with MPRester(API_KEY) as mpr:
+    # バンドギャップ1.5-2.5 eVの半導体を検索
+    docs = mpr.materials.summary.search(
+        band_gap=(1.5, 2.5),
+        is_stable=True,
+        fields=["material_id", "formula_pretty", "band_gap", "is_metal"]
+    )
+
+    # Cd-free材料のみをフィルタ
+    candidates = [doc for doc in docs if 'Cd' not in doc.formula_pretty and not doc.is_metal]
+
+    print(f"検索結果: {len(candidates)}件")
+    for doc in candidates[:10]:
+        print(f"{doc.formula_pretty}: Eg = {doc.band_gap:.2f} eV (ID: {doc.material_id})")
+</code></pre>
+                <p><strong>Cd-free量子ドット材料候補</strong>:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>材料</th>
+                            <th>Eg [eV]</th>
+                            <th>有効質量</th>
+                            <th>誘電率</th>
+                            <th>毒性</th>
+                            <th>発光色</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>InP</td>
+                            <td>1.35</td>
+                            <td>m_e*=0.08, m_h*=0.6</td>
+                            <td>12.5</td>
+                            <td>低</td>
+                            <td>赤～緑</td>
+                        </tr>
+                        <tr>
+                            <td>CuInS2</td>
+                            <td>1.53</td>
+                            <td>m_e*=0.16, m_h*=1.3</td>
+                            <td>10.0</td>
+                            <td>非常に低</td>
+                            <td>赤～黄</td>
+                        </tr>
+                        <tr>
+                            <td>ZnSe</td>
+                            <td>2.70</td>
+                            <td>m_e*=0.17, m_h*=0.6</td>
+                            <td>9.1</td>
+                            <td>低</td>
+                            <td>青</td>
+                        </tr>
+                        <tr>
+                            <td>Si</td>
+                            <td>1.12（間接遷移）</td>
+                            <td>m_e*=0.26, m_h*=0.39</td>
+                            <td>11.7</td>
+                            <td>非常に低</td>
+                            <td>近赤外（発光効率低）</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p><strong>推奨材料</strong>: <strong>InP</strong></p>
+                <p><strong>理由</strong>:</p>
+                <ul>
+                    <li>CdSeと同等の発光効率（量子収率>90%）</li>
+                    <li>可視光域全体をカバー（520-650 nm）</li>
+                    <li>毒性が低く、RoHS規制に適合</li>
+                    <li>商業化実績あり（Samsung QLED TV、Nanosys社）</li>
+                </ul>
+                <p><strong>CuInS2の利点</strong>:</p>
+                <ul>
+                    <li>毒性が非常に低い（Cu、In、Sは全て低毒性）</li>
+                    <li>地球上に豊富（Inを除く）</li>
+                    <li>広いストークスシフト（100-200 nm）により自己吸収が少ない</li>
+                    <li>課題: 発光効率がInPより低い（量子収率60-80%）</li>
+                </ul>
+                <p><strong>Siの課題</strong>:</p>
+                <ul>
+                    <li>間接遷移型半導体のため、発光効率が極めて低い（量子収率<1%）</li>
+                    <li>量子閉じ込め効果が弱く、サイズ制御による波長調整が困難</li>
+                    <li>用途は近赤外バイオイメージングに限定</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>参考文献</h2>
+
+        <ol>
+            <li>LaMer, V.K., Dinegar, R.H. (1950). Theory, Production and Mechanism of Formation of Monodispersed Hydrosols. <em>Journal of the American Chemical Society</em>, 72(11), 4847-4854. <strong>pp. 4847-4854 (核生成理論、単分散粒子形成)</strong></li>
+
+            <li>Wagner, R.S., Ellis, W.C. (1964). Vapor-Liquid-Solid Mechanism of Single Crystal Growth. <em>Applied Physics Letters</em>, 4(5), 89-90. <strong>pp. 89-90 (VLS成長機構の発見)</strong></li>
+
+            <li>Cushing, B.L., Kolesnichenko, V.L., O'Connor, C.J. (2004). Recent Advances in the Liquid-Phase Syntheses of Inorganic Nanoparticles. <em>Chemical Reviews</em>, 104(9), 3893-3946. <strong>pp. 3893-3910 (ナノ粒子合成総論), pp. 3920-3935 (金属ナノ粒子), pp. 3936-3946 (酸化物・半導体)</strong></li>
+
+            <li>Novoselov, K.S., Geim, A.K., Morozov, S.V., et al. (2004). Electric Field Effect in Atomically Thin Carbon Films. <em>Science</em>, 306(5696), 666-669. <strong>pp. 666-669 (グラフェンの機械的剥離と電気特性、ノーベル賞研究)</strong></li>
+
+            <li>Brus, L.E. (1984). Electron-electron and electron-hole interactions in small semiconductor crystallites: The size dependence of the lowest excited electronic state. <em>Journal of Chemical Physics</em>, 80(9), 4403-4409. <strong>pp. 4403-4409 (量子閉じ込め効果の理論、Brusの式)</strong></li>
+
+            <li>Whitesides, G.M., Grzybowski, B. (2002). Self-Assembly at All Scales. <em>Science</em>, 295(5564), 2418-2421. <strong>pp. 2418-2421 (自己組織化の原理と応用)</strong></li>
+
+            <li>Bohren, C.F., Huffman, D.R. (1983). <em>Absorption and Scattering of Light by Small Particles</em>. Wiley-Interscience. <strong>pp. 82-129 (Mie理論の導出), pp. 130-200 (数値計算法), pp. 287-324 (金属ナノ粒子のプラズモン共鳴)</strong></li>
+
+            <li>Schmidt, V., Wittemann, J.V., Senz, S., Gösele, U. (2009). Silicon Nanowires: A Review on Aspects of their Growth and their Electrical Properties. <em>Advanced Materials</em>, 21(25-26), 2681-2702. <strong>pp. 2681-2695 (VLS成長機構詳細), pp. 2696-2702 (結晶方位制御)</strong></li>
+
+            <li>Materials Project (materialsproject.org). Jain, A., et al. (2013). Commentary: The Materials Project: A materials genome approach to accelerating materials innovation. <em>APL Materials</em>, 1(1), 011002. <strong>API Documentation: https://docs.materialsproject.org/ (データベース検索、バンドギャップ・有効質量・誘電率取得)</strong></li>
+        </ol>
+
         <div class="nav-buttons">
             <a href="chapter-3.html" class="nav-button">← Chapter 3: 化学蒸着法（CVD）</a>
             <a href="index.html" class="nav-button">目次に戻る</a>
