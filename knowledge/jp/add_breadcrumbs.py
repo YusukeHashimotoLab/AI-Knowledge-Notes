@@ -69,7 +69,7 @@ def get_breadcrumb_path(file_path: Path, base_dir: Path) -> List[Tuple[str, str]
     Returns:
         List of (title, url) tuples
     """
-    breadcrumbs = [('AI寺子屋トップ', '/wp/knowledge/jp/index.html')]
+    breadcrumbs = [('AI寺子屋トップ', '/AI-Knowledge-Notes/knowledge/jp/index.html')]
 
     relative_path = file_path.relative_to(base_dir)
     parts = relative_path.parts
@@ -81,14 +81,14 @@ def get_breadcrumb_path(file_path: Path, base_dir: Path) -> List[Tuple[str, str]
     if len(parts) >= 1:
         domain = parts[0]
         domain_name = DOMAIN_NAMES.get(domain, domain)
-        breadcrumbs.append((domain_name, f'/wp/knowledge/jp/{domain}/index.html'))
+        breadcrumbs.append((domain_name, f'/AI-Knowledge-Notes/knowledge/jp/{domain}/index.html'))
 
     # シリーズレベル
     if len(parts) >= 2 and parts[1] != 'index.html':
         series_dir = parts[1]
         # シリーズ名を読みやすく変換
         series_name = series_dir.replace('-introduction', '').replace('-', ' ').title()
-        breadcrumbs.append((series_name, f'/wp/knowledge/jp/{domain}/{series_dir}/index.html'))
+        breadcrumbs.append((series_name, f'/AI-Knowledge-Notes/knowledge/jp/{domain}/{series_dir}/index.html'))
 
     # チャプターレベル
     if len(parts) >= 3 and parts[2] != 'index.html':
