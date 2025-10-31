@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VASP DFT計算入門 - 材料科学のための第一原理計算 - CT Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #11998e;
+            --color-accent-light: #38ef7d;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #11998e;
+            --color-link-hover: #0e7c74;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            a:hover {
+                color: var(--color-link-hover);
+                text-decoration: underline;
+            }
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        .chapter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-lg);
+            margin: var(--spacing-xl) 0;
+        }
+
+        .chapter-card {
+            background: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .chapter-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 4px 12px rgba(17, 153, 142, 0.2);
+            }
+        }
+
+        .chapter-number {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .chapter-title {
+            font-size: 1.3rem;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-sm);
+            font-weight: 600;
+        }
+
+        .chapter-description {
+            color: var(--color-text-light);
+            font-size: 0.95rem;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .chapter-meta {
+            display: flex;
+            gap: var(--spacing-md);
+            font-size: 0.85rem;
+            color: var(--color-text-light);
+            margin-top: var(--spacing-sm);
+        }
+
+        .learning-path {
+            background: linear-gradient(135deg, #d4f1f4 0%, #a8e6cf 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .info-box {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .warning-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #f39c12;
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            border-radius: 4px;
+        }
+
+        .warning-box strong {
+            color: #f39c12;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .nav-button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                text-decoration: none;
+            }
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .chapter-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #11998e;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #0e7c74;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/index.html">計算工学</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/vasp-introduction/index.html">VASP DFT入門</a>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>⚛️ VASP DFT計算入門 - 材料科学のための第一原理計算</h1>
+            <p class="subtitle">密度汎関数理論による電子状態計算の実践ガイド</p>
+            <div class="meta">
+                <span class="meta-item">📚 全7章構成</span>
+                <span class="meta-item">⏱️ 学習時間: 6.5-7時間</span>
+                <span class="meta-item">💻 コード例: 45個</span>
+                <span class="meta-item">📊 難易度: 中級〜上級</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2>シリーズ概要</h2>
+        <p>本シリーズは、VASP（Vienna Ab initio Simulation Package）を使った密度汎関数理論（DFT）計算の基礎から実践までを体系的に学ぶコースです。材料の電子状態、バンド構造、構造最適化、分子動力学シミュレーションを、Pythonを使いながら実践的に習得します。</p>
+
+        <div class="warning-box">
+            <strong>⚠️ VASP ライセンスについて</strong>
+            <p>VASPは商用ソフトウェアであり、使用には有償ライセンスが必要です。大学・研究機関では機関ライセンスが利用可能な場合があります。無償の代替ソフトとして、Quantum ESPRESSO、GPAW、Abinitなどがあります。本シリーズではVASP特有の機能を扱いますが、DFTの基礎概念は他のソフトウェアにも応用できます。</p>
+        </div>
+
+        <div class="learning-path">
+            <h3>学習の流れ</h3>
+            <div class="mermaid">
+graph TD
+    A[第1章<br/>VASP基礎と環境構築] --> B[第2章<br/>入力ファイル解説]
+    B --> C[第3章<br/>構造最適化]
+    C --> D[第4章<br/>バンド構造・DOS]
+    C --> E[第5章<br/>分子動力学]
+    D --> F[第6章<br/>高度な計算手法]
+    E --> F
+    F --> G[第7章<br/>Python自動化]
+
+    style A fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+    style B fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+    style C fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+    style D fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+    style E fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+    style F fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+    style G fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+            </div>
+        </div>
+
+        <h2>シリーズ構成</h2>
+        <div class="chapter-grid">
+            <div class="chapter-card">
+                <span class="chapter-number">第1章</span>
+                <div class="chapter-title">VASPの基礎と環境構築</div>
+                <p class="chapter-description">
+                    密度汎関数理論（DFT）の基礎、Kohn-Sham方程式、VASPの概要と特徴、ライセンス取得方法、インストール手順、基本的な入力ファイルの構成を学びます。pymatgenを使った入力ファイル生成も実践します。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 50分</span>
+                    <span>💻 5コード例</span>
+                    <span>📊 中級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-1.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <span class="chapter-number">第2章</span>
+                <div class="chapter-title">INCAR/POSCAR/KPOINTS/POTCARファイル解説</div>
+                <p class="chapter-description">
+                    INCARの主要パラメータ（ENCUT, EDIFF, ISMEAR, PREC）、POSCARの結晶構造記述、KPOINTSのk点メッシュ設定、POTCARの擬ポテンシャル選択を詳しく解説します。収束テストの実施方法も学びます。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 55分</span>
+                    <span>💻 7コード例</span>
+                    <span>📊 中級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-2.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <span class="chapter-number">第3章</span>
+                <div class="chapter-title">構造最適化と全エネルギー計算</div>
+                <p class="chapter-description">
+                    構造最適化アルゴリズム（CG, RMM-DIIS, FIRE）、収束判定基準（EDIFFG）、格子定数最適化（ISIF）、全エネルギー計算と安定性評価を学びます。Materials Projectとの連携も解説します。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 60分</span>
+                    <span>💻 8コード例</span>
+                    <span>📊 中級〜上級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-3.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <span class="chapter-number">第4章</span>
+                <div class="chapter-title">バンド構造・状態密度計算</div>
+                <p class="chapter-description">
+                    高対称点の設定、バンド構造計算の手順、状態密度（DOS）と部分状態密度（PDOS）の計算、有効質量・バンドギャップの抽出、pymatgenでの可視化手法を実践します。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 55分</span>
+                    <span>💻 6コード例</span>
+                    <span>📊 中級〜上級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-4.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <span class="chapter-number">第5章</span>
+                <div class="chapter-title">分子動力学シミュレーション</div>
+                <p class="chapter-description">
+                    NVT・NPTアンサンブルの設定、Nosé-Hoover熱浴、Parrinello-Rahmanバロスタット、温度・圧力制御、熱力学物性の計算（熱膨張係数、弾性定数）、軌跡解析をASEで実践します。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 50分</span>
+                    <span>💻 6コード例</span>
+                    <span>📊 上級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-5.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <span class="chapter-number">第6章</span>
+                <div class="chapter-title">高度な計算手法（GW, Hybrid, vdW）</div>
+                <p class="chapter-description">
+                    GW近似（準粒子エネルギー補正）、ハイブリッド汎関数（HSE06, PBE0）、van der Waals補正（DFT-D3, vdW-DF）、スピン偏極計算、強相関系の計算手法（DFT+U）を学びます。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 65分</span>
+                    <span>💻 7コード例</span>
+                    <span>📊 上級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-6.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <span class="chapter-number">第7章</span>
+                <div class="chapter-title">Pythonによるワークフロー自動化</div>
+                <p class="chapter-description">
+                    pymatgen、ASE、FireWorksを使った計算ワークフローの自動化、バッチ処理、エラーハンドリング、計算結果のデータベース化、ハイスループット材料探索の実践方法を学びます。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 60分</span>
+                    <span>💻 6コード例</span>
+                    <span>📊 上級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-7.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+        </div>
+
+        <h2>学習目標</h2>
+        <p>このシリーズを完了することで、以下のスキルと知識を習得できます：</p>
+
+        <h3>基本理解</h3>
+        <ul>
+            <li>✅ DFT計算の基本原理とKohn-Sham方程式を説明できる</li>
+            <li>✅ VASPの4つの主要入力ファイルの役割を理解できる</li>
+            <li>✅ PAW法の概要と他の擬ポテンシャル法との違いを説明できる</li>
+            <li>✅ k点メッシュと平面波カットオフの物理的意味を理解できる</li>
+        </ul>
+
+        <h3>実践スキル</h3>
+        <ul>
+            <li>✅ pymatgenを使ってINCAR/POSCARファイルを作成できる</li>
+            <li>✅ 構造最適化と全エネルギー計算を実行できる</li>
+            <li>✅ バンド構造と状態密度を計算・可視化できる</li>
+            <li>✅ 分子動力学シミュレーションを実行・解析できる</li>
+            <li>✅ VASP計算結果をPythonで解析できる</li>
+        </ul>
+
+        <h3>応用力</h3>
+        <ul>
+            <li>✅ 材料に応じた適切な計算パラメータを設定できる</li>
+            <li>✅ 収束しない計算のトラブルシューティングができる</li>
+            <li>✅ GW近似やハイブリッド汎関数を使った高精度計算ができる</li>
+            <li>✅ Pythonで計算ワークフローを自動化できる</li>
+            <li>✅ ハイスループット材料探索プロジェクトを設計できる</li>
+        </ul>
+
+        <h2>推奨学習パターン</h2>
+        <div class="info-box">
+            <h3>パターン1: 初学者向け - 順序通り学習（14日間）</h3>
+            <ul>
+                <li>1-2日目: 第1章（VASP基礎）- DFT理論とインストール</li>
+                <li>3-4日目: 第2章（入力ファイル）- 各ファイルの役割を理解</li>
+                <li>5-6日目: 第3章（構造最適化）- 実際に計算を実行</li>
+                <li>7-8日目: 第4章（バンド構造）- 電子状態計算</li>
+                <li>9-10日目: 第5章（分子動力学）- MDシミュレーション</li>
+                <li>11-12日目: 第6章（高度な手法）- GW、ハイブリッド汎関数</li>
+                <li>13-14日目: 第7章（Python自動化）+ 総復習 + 実プロジェクト適用</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <h3>パターン2: 中級者向け - 集中学習（7日間）</h3>
+            <ul>
+                <li>1日目: 第1-2章（基礎と入力ファイル）</li>
+                <li>2日目: 第3章（構造最適化）- 集中実践</li>
+                <li>3日目: 第4章（バンド構造）- 電子状態解析</li>
+                <li>4日目: 第5章（分子動力学）- 動的シミュレーション</li>
+                <li>5日目: 第6章（高度な手法）- 高精度計算</li>
+                <li>6日目: 第7章（Python自動化）- ワークフロー構築</li>
+                <li>7日目: 総復習と自分の研究への応用</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <h3>パターン3: 実践重視 - VASP計算中心（3日間）</h3>
+            <ul>
+                <li>第1章: 基礎と環境構築（3時間）</li>
+                <li>第3章: 構造最適化に集中（4時間）</li>
+                <li>第4章: バンド構造計算（4時間）</li>
+                <li>第7章: Python自動化（3時間）</li>
+                <li>第2,5,6章: 必要に応じて参照</li>
+            </ul>
+        </div>
+
+        <h2>前提知識</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>分野</th>
+                    <th>必要レベル</th>
+                    <th>説明</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>量子力学</strong></td>
+                    <td>大学学部レベル</td>
+                    <td>Schrödinger方程式、波動関数、固有値問題</td>
+                </tr>
+                <tr>
+                    <td><strong>Python</strong></td>
+                    <td>中級レベル</td>
+                    <td>NumPy、関数・クラスの定義、ファイル操作</td>
+                </tr>
+                <tr>
+                    <td><strong>Linux</strong></td>
+                    <td>基礎レベル</td>
+                    <td>ターミナル操作、シェルスクリプト、ジョブ投入</td>
+                </tr>
+                <tr>
+                    <td><strong>固体物理学</strong></td>
+                    <td>入門レベル</td>
+                    <td>結晶構造、逆格子、バンド構造の基礎知識</td>
+                </tr>
+                <tr>
+                    <td><strong>材料科学</strong></td>
+                    <td>入門レベル</td>
+                    <td>基本的な材料物性の知識</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>使用するPythonライブラリとツール</h2>
+        <p>このシリーズで使用する主要なライブラリとツール：</p>
+
+        <h3>必須ライブラリ</h3>
+        <ul>
+            <li><strong>pymatgen</strong>: VASPファイル操作、結晶構造解析（Materials Project標準ライブラリ）</li>
+            <li><strong>ASE</strong>: Atomic Simulation Environment（汎用原子シミュレーションライブラリ）</li>
+            <li><strong>NumPy</strong>: 数値計算</li>
+            <li><strong>matplotlib</strong>: データ可視化</li>
+            <li><strong>pandas</strong>: データ解析</li>
+        </ul>
+
+        <h3>VASP関連ツール</h3>
+        <ul>
+            <li><strong>VASP本体</strong>: 第一原理計算ソフトウェア（商用ライセンス必要）</li>
+            <li><strong>VESTA</strong>: 結晶構造可視化ソフト（無償）</li>
+            <li><strong>p4vasp</strong>: VASP計算結果可視化ツール（無償）</li>
+        </ul>
+
+        <h3>ワークフロー自動化</h3>
+        <ul>
+            <li><strong>FireWorks</strong>: ワークフロー管理システム（Materials Project開発）</li>
+            <li><strong>Custodian</strong>: VASP計算のエラーハンドリング</li>
+            <li><strong>atomate</strong>: Materials Project標準ワークフロー</li>
+        </ul>
+
+        <h2>FAQ - よくある質問</h2>
+        <div class="info-box">
+            <h3>Q1: VASPのライセンスはどうやって取得しますか？</h3>
+            <p>VASPは大学・研究機関向けの機関ライセンスと個人ライセンスがあります。所属機関に既存ライセンスがあるか管理者に確認してください。新規購入の場合、VASP公式サイト（https://www.vasp.at）から申請します。価格は機関ライセンスで年間数千ユーロ程度です。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q2: 無料の代替ソフトはありますか？</h3>
+            <p>はい。Quantum ESPRESSO（平面波基底）、GPAW（PAW法、Python統合）、Abinit（高精度計算）、CP2K（大規模系）などがあります。これらは無償で利用でき、VASPと同等の計算が可能です。ただし、VASPは計算効率と安定性で優れており、Materials Projectでも標準採用されています。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q3: DFT計算に必要な計算資源は？</h3>
+            <p>小規模系（〜50原子）: ワークステーション（16コア、64GB RAM）で数時間。中規模系（50-200原子）: 小規模クラスタ（4-8ノード）で1-2日。大規模系（>200原子）: スパコンが必要。初学者は無料クラウドGPU（Google Colab）やオンプレミスPCでも学習可能です。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q4: PAW法とUltrasoft擬ポテンシャルの違いは？</h3>
+            <p>PAW（Projector Augmented Wave）法は、全電子法の精度を保ちつつ平面波基底の効率を実現します。Ultrasoft擬ポテンシャルより精度が高く、磁性体や遷移金属で特に有効です。VASPではPAWがデフォルトで推奨されています。計算コストはほぼ同等です。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q5: k点メッシュの設定方法は？</h3>
+            <p>k点密度は材料と計算精度に依存します。目安: 金属は0.03 Å⁻¹以下、半導体・絶縁体は0.04 Å⁻¹以下。Monkhorst-Pack法で自動生成できます。第2章で収束テストの実施方法を詳しく解説します。pymatgenのauto k-point機能も便利です。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q6: 計算精度と計算時間のバランスは？</h3>
+            <p>初期構造探索: 低精度（PREC=Normal, ENCUT=1.0×推奨値）で高速化。構造最適化: 中精度（PREC=Accurate, ENCUT=1.3×推奨値）。最終エネルギー計算: 高精度（PREC=Accurate, 厳しい収束判定）。段階的精度向上で効率化できます。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q7: Pythonでワークフローを自動化できますか？</h3>
+            <p>はい。pymatgenでファイル生成、subprocessでジョブ投入、結果解析を自動化できます。第7章でFireWorksを使った本格的なワークフロー管理を学びます。Materials Projectのatomateライブラリには標準ワークフローが多数用意されています。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q8: Materials ProjectとVASPの関係は？</h3>
+            <p>Materials Projectは、VASPで計算した150,000以上の材料物性データベースです。pymatgenはMaterials Project開発のライブラリで、VASPとの連携に最適化されています。本シリーズでもpymatgenを積極的に活用します。データはREST APIで無料アクセス可能です。</p>
+        </div>
+
+        <h2>学習のポイント</h2>
+        <ul>
+            <li><strong>DFT理論の理解</strong>: Kohn-Sham方程式の物理的意味を理解することで、パラメータ設定の根拠が明確になります</li>
+            <li><strong>収束テストの重要性</strong>: ENCUTとk点メッシュの収束を確認し、精度と計算コストのバランスを最適化します</li>
+            <li><strong>エラーハンドリング</strong>: 計算が収束しない原因を特定し、適切に対処するスキルを身につけます</li>
+            <li><strong>Pythonとの統合</strong>: pymatgenを使ったワークフロー自動化で、研究効率を大幅に向上させます</li>
+        </ul>
+
+        <h2>次のステップ</h2>
+        <p>このシリーズを完了した後、以下の発展学習をお勧めします：</p>
+        <ul>
+            <li>Quantum ESPRESSO: 無償DFTソフトでの計算手法</li>
+            <li>Wannier90: 最局在Wannier関数を使った解析</li>
+            <li>BoltzTraP: Boltzmann輸送方程式による電気伝導度計算</li>
+            <li>PHONOPY: 格子振動・フォノン計算</li>
+            <li>Materials Project API: 大規模データ解析とハイスループット探索</li>
+            <li>機械学習ポテンシャル: DFTデータを使ったニューラルネットワークポテンシャル訓練</li>
+        </ul>
+
+        <div class="navigation">
+            <a href="chapter-1.html" class="nav-button">第1章から学習を開始 →</a>
+        </div>
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <p><strong>作成者</strong>: CT Knowledge Hub Content Team</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-31</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>&copy; 2025 CT Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

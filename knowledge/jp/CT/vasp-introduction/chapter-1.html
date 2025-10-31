@@ -1,0 +1,2232 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第1章: VASPの基礎と環境構築 - VASP DFT計算入門 - CT Dojo</title>
+    <meta name="description" content="密度汎関数理論（DFT）の基礎、Kohn-Sham方程式、VASPの概要と特徴、ライセンス取得、インストール、基本的な入力ファイルの構成をpymatgenで実践。">
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- MathJax for mathematical expressions -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --accent-green: #11998e;
+            --accent-lime: #38ef7d;
+            --primary-dark: #2c3e50;
+            --secondary-dark: #34495e;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #ecf0f1;
+            --white: #ffffff;
+            --code-bg: #2d2d2d;
+            --border-light: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        section {
+            background: var(--white);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(90deg, var(--accent-green), var(--accent-lime)) 1;
+        }
+
+        h3 {
+            color: var(--secondary-dark);
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem;
+        }
+
+        h4 {
+            color: var(--secondary-dark);
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        pre code {
+            background: none;
+            color: #f8f8f2;
+            padding: 0;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
+            border-left: 4px solid var(--accent-green);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            color: var(--accent-green);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .warning-box {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .warning-box strong {
+            color: var(--warning);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .exercise-box {
+            background: rgba(39, 174, 96, 0.05);
+            border: 2px solid var(--success);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .exercise-box h4 {
+            color: var(--success);
+            margin-top: 0;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .difficulty.easy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .difficulty.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .difficulty.hard {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(17, 153, 142, 0.05);
+        }
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--accent-lime);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #11998e;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #0e7c74;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/index.html">計算工学</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/vasp-introduction/index.html">VASP DFT入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 1</span>
+        </div>
+    </nav>
+
+    <header>
+        <h1>第1章: VASPの基礎と環境構築</h1>
+        <p>密度汎関数理論・Kohn-Sham方程式・VASPの特徴・ライセンス・インストール</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">トップ</a></li>
+            <li><a href="#intro">本章の概要</a></li>
+            <li><a href="#dft-basics">DFTの基礎</a></li>
+            <li><a href="#vasp-overview">VASPの概要</a></li>
+            <li><a href="#license">ライセンスとインストール</a></li>
+            <li><a href="#input-files">基本的な入力ファイル</a></li>
+            <li><a href="#first-calculation">最初のVASP計算</a></li>
+            <li><a href="#results">計算結果の確認</a></li>
+            <li><a href="#learning-objectives">学習目標</a></li>
+            <li><a href="#exercises">演習問題</a></li>
+            <li><a href="#references">参考文献</a></li>
+            <li><a href="chapter-2.html">次の章へ →</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="intro">
+            <h2>1.1 本章の概要</h2>
+
+            <p>
+                VASP（Vienna Ab initio Simulation Package）は、密度汎関数理論（DFT）に基づく第一原理計算ソフトウェアです。材料の電子状態、構造安定性、力学特性、光学特性などを量子力学的に計算でき、実験前の材料設計や物性予測に不可欠なツールとなっています。本章では、DFTの基礎理論からVASPの環境構築、最初の計算実行までを学びます。
+            </p>
+
+            <div class="info-box">
+                <strong>本章の学習目標</strong>
+                <ul>
+                    <li><strong>レベル1（基本理解）</strong>: DFT計算の基本原理を説明できる、VASPの4つの主要入力ファイルの役割を理解している、PAW法の概要を説明できる</li>
+                    <li><strong>レベル2（実践スキル）</strong>: pymatgenを使ってINCAR/POSCARを作成できる、ジョブスクリプトを作成してVASP計算を実行できる、OUTCAR/vasprun.xmlから結果を読み取れる</li>
+                    <li><strong>レベル3（応用力）</strong>: 材料に応じた適切な計算パラメータを設定できる、収束しない計算のトラブルシューティングができる、Pythonで計算ワークフローを自動化できる</li>
+                </ul>
+            </div>
+
+            <div class="warning-box">
+                <strong>⚠️ 前提知識</strong>
+                <p>本章では、量子力学基礎（Schrödinger方程式、波動関数、固有値問題）、Python基礎（NumPy、関数定義）、Linux基本操作（ターミナルコマンド）を前提とします。</p>
+            </div>
+        </section>
+
+        <section id="dft-basics">
+            <h2>1.2 密度汎関数理論（DFT）の基礎</h2>
+
+            <h3>1.2.1 Schrödingerの多体問題</h3>
+
+            <p>
+                材料中の電子は、原子核との相互作用と電子間相互作用により複雑な量子多体系を形成します。時間に依存しないSchrödinger方程式は以下の形です：
+            </p>
+
+            <p>\[
+            \hat{H}\Psi = E\Psi
+            \]</p>
+
+            <p>
+                ここで、ハミルトニアン \(\hat{H}\) は以下の項から成ります：
+            </p>
+
+            <p>\[
+            \hat{H} = \hat{T}_e + \hat{V}_{e-n} + \hat{V}_{e-e} + \hat{T}_n + \hat{V}_{n-n}
+            \]</p>
+
+            <ul>
+                <li>\(\hat{T}_e\): 電子の運動エネルギー</li>
+                <li>\(\hat{V}_{e-n}\): 電子-原子核間クーロン相互作用</li>
+                <li>\(\hat{V}_{e-e}\): 電子-電子間クーロン相互作用（難しい！）</li>
+                <li>\(\hat{T}_n\): 原子核の運動エネルギー</li>
+                <li>\(\hat{V}_{n-n}\): 原子核-原子核間クーロン相互作用</li>
+            </ul>
+
+            <p>
+                この方程式を正確に解くことは、電子数Nが増えると計算量が指数関数的に増加するため、実質的に不可能です。DFTは、この多体問題を効率的に解く枠組みを提供します。
+            </p>
+
+            <h3>1.2.2 Hohenberg-Kohnの定理</h3>
+
+            <p>
+                DFTの理論基盤は、1964年にHohenbergとKohnによって確立されました。2つの基本定理があります：
+            </p>
+
+            <div class="info-box">
+                <strong>第1定理（一意性）</strong>
+                <p>基底状態のエネルギーは、電子密度 \(n(\mathbf{r})\) の汎関数として一意に決まる。</p>
+            </div>
+
+            <div class="info-box">
+                <strong>第2定理（変分原理）</strong>
+                <p>正しい電子密度 \(n(\mathbf{r})\) は、エネルギー汎関数 \(E[n]\) を最小化する。</p>
+            </div>
+
+            <p>
+                この定理により、3N次元の波動関数問題が、3次元の電子密度問題に帰着されます。これが計算量削減の鍵です。
+            </p>
+
+            <h3>1.2.3 Kohn-Sham方程式</h3>
+
+            <p>
+                1965年、KohnとShamは実用的な計算方法を提案しました。非相互作用電子系の固有値問題として定式化されます：
+            </p>
+
+            <p>\[
+            \left[-\frac{\hbar^2}{2m}\nabla^2 + V_{\text{eff}}(\mathbf{r})\right]\psi_i(\mathbf{r}) = \varepsilon_i \psi_i(\mathbf{r})
+            \]</p>
+
+            <p>
+                有効ポテンシャル \(V_{\text{eff}}(\mathbf{r})\) は以下の成分から成ります：
+            </p>
+
+            <p>\[
+            V_{\text{eff}}(\mathbf{r}) = V_{\text{ext}}(\mathbf{r}) + V_{\text{H}}(\mathbf{r}) + V_{\text{xc}}(\mathbf{r})
+            \]</p>
+
+            <ul>
+                <li>\(V_{\text{ext}}\): 外部ポテンシャル（原子核との相互作用）</li>
+                <li>\(V_{\text{H}}\): Hartreeポテンシャル（古典的な電子間静電相互作用）</li>
+                <li>\(V_{\text{xc}}\): 交換相関ポテンシャル（量子力学的効果）</li>
+            </ul>
+
+            <p>
+                電子密度は以下で求まります：
+            </p>
+
+            <p>\[
+            n(\mathbf{r}) = \sum_{i=1}^{N} |\psi_i(\mathbf{r})|^2
+            \]</p>
+
+            <p>
+                この方程式は自己無撞着場（SCF: Self-Consistent Field）法で反復的に解きます。
+            </p>
+
+            <div class="mermaid">
+flowchart TD
+    A[初期電子密度 n0] --> B[有効ポテンシャル Veff計算]
+    B --> C[Kohn-Sham方程式を解く]
+    C --> D[新しい電子密度 n'計算]
+    D --> E{収束判定<br/>|n' - n| < ε?}
+    E -->|No| F[電子密度を更新 n = n']
+    F --> B
+    E -->|Yes| G[全エネルギー E計算]
+    G --> H[完了]
+
+    style A fill:#e3f2fd
+    style G fill:#e8f5e9
+    style E fill:#fff3e0
+            </div>
+
+            <h3>1.2.4 交換相関汎関数</h3>
+
+            <p>
+                DFT計算の精度は、交換相関汎関数 \(E_{\text{xc}}[n]\) の近似に大きく依存します。主要な近似方法を以下に示します。
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>汎関数</th>
+                        <th>近似レベル</th>
+                        <th>特徴</th>
+                        <th>適用例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>LDA</strong></td>
+                        <td>局所密度近似</td>
+                        <td>計算高速、結合長を過小評価</td>
+                        <td>金属、高密度系</td>
+                    </tr>
+                    <tr>
+                        <td><strong>GGA (PBE)</strong></td>
+                        <td>一般化勾配近似</td>
+                        <td>LDAより精度向上、標準的選択</td>
+                        <td>ほとんどの材料</td>
+                    </tr>
+                    <tr>
+                        <td><strong>meta-GGA</strong></td>
+                        <td>密度の2次微分利用</td>
+                        <td>高精度だが計算コスト増</td>
+                        <td>精密計算</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Hybrid (HSE06)</strong></td>
+                        <td>Hartree-Fock混合</td>
+                        <td>バンドギャップ精度向上、高コスト</td>
+                        <td>半導体、絶縁体</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box">
+                <strong>💡 推奨汎関数</strong>
+                <p>一般的な材料科学計算では、PBE（GGA）が標準的な選択です。計算コストと精度のバランスが良く、Materials Projectでも採用されています。バンド構造計算や磁性体では、HSE06などのハイブリッド汎関数が必要な場合があります（第6章で詳述）。</p>
+            </div>
+
+            <h3>1.2.5 DFT計算の精度と限界</h3>
+
+            <p>
+                DFTは強力な手法ですが、いくつかの既知の限界があります：
+            </p>
+
+            <ul>
+                <li><strong>バンドギャップの過小評価</strong>: GGAは半導体のバンドギャップを30-50%過小評価します（GW近似やハイブリッド汎関数で改善可能）</li>
+                <li><strong>van der Waals相互作用</strong>: 標準DFTは分散力を適切に記述できません（DFT-D3補正で対応）</li>
+                <li><strong>強相関系</strong>: 遷移金属酸化物など強い電子相関がある系では精度が低下します（DFT+Uで改善）</li>
+                <li><strong>励起状態</strong>: DFTは基底状態理論です。励起状態には時間依存DFT（TD-DFT）やBSE法が必要です</li>
+            </ul>
+
+            <p>
+                それでも、適切な汎関数と補正を使えば、多くの材料物性（格子定数±1%、形成エネルギー±0.1 eV/atom）を実験に近い精度で予測できます。
+            </p>
+        </section>
+
+        <section id="vasp-overview">
+            <h2>1.3 VASPの概要と特徴</h2>
+
+            <h3>1.3.1 VASPとは</h3>
+
+            <p>
+                VASP（Vienna Ab initio Simulation Package）は、ウィーン大学で開発された第一原理計算ソフトウェアです。1990年代初頭にGeorg Kresse氏とJürgen Furthmüller氏によって開発が始まり、現在では世界中の研究機関で最も広く使われているDFTコードの1つです。
+            </p>
+
+            <div class="info-box">
+                <strong>VASPの主要な特徴</strong>
+                <ul>
+                    <li><strong>平面波基底</strong>: 周期系の計算に最適化</li>
+                    <li><strong>PAW法</strong>: 高精度と計算効率の両立</li>
+                    <li><strong>並列計算</strong>: MPI/OpenMPによる大規模並列化</li>
+                    <li><strong>豊富な機能</strong>: 構造最適化、MD、バンド計算、光学特性など</li>
+                    <li><strong>高い信頼性</strong>: 20年以上の開発実績、10万本以上の論文引用</li>
+                </ul>
+            </div>
+
+            <h3>1.3.2 平面波基底と擬ポテンシャル法</h3>
+
+            <p>
+                VASPは、周期的境界条件を持つ系を平面波基底で展開します。波動関数は以下のように表されます：
+            </p>
+
+            <p>\[
+            \psi_i(\mathbf{r}) = \sum_{\mathbf{G}} c_{i,\mathbf{G}} e^{i(\mathbf{k}+\mathbf{G})\cdot\mathbf{r}}
+            \]</p>
+
+            <p>
+                ここで、\(\mathbf{G}\)は逆格子ベクトル、\(\mathbf{k}\)はBlochの定理によるk点です。カットオフエネルギー \(E_{\text{cut}}\) により、波数ベクトルの上限が決まります：
+            </p>
+
+            <p>\[
+            \frac{\hbar^2}{2m}|\mathbf{k}+\mathbf{G}|^2 < E_{\text{cut}}
+            \]</p>
+
+            <p>
+                内殻電子（化学結合に寄与しない）は擬ポテンシャルで置き換えることで、計算効率を大幅に向上させます。
+            </p>
+
+            <h3>1.3.3 PAW法（Projector Augmented Wave method）</h3>
+
+            <p>
+                PAW法は、Peter Blöchlによって1994年に提案された擬ポテンシャル法の一種です。全電子波動関数と擬波動関数の間の線形変換を導入することで、以下の利点があります：
+            </p>
+
+            <ul>
+                <li><strong>高精度</strong>: 全電子法に近い精度を保持</li>
+                <li><strong>効率性</strong>: 平面波基底での高速計算</li>
+                <li><strong>物理量の正確な計算</strong>: 電荷密度、磁気モーメントなどを正確に評価</li>
+                <li><strong>汎用性</strong>: 軽元素から遷移金属、f電子系まで幅広く適用可能</li>
+            </ul>
+
+            <div class="info-box">
+                <strong>💡 PAW vs Ultrasoft擬ポテンシャル</strong>
+                <p>VASPではPAWがデフォルトで推奨されています。Ultrasoft擬ポテンシャル（USPP）より精度が高く、特に磁性体や酸化物で重要です。計算コストはほぼ同等ですが、PAWは物理量の信頼性が高いため、新規計算ではPAWを選択すべきです。</p>
+            </div>
+
+            <h3>1.3.4 VASPと他のDFTコードの比較</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>ソフトウェア</th>
+                        <th>ライセンス</th>
+                        <th>基底関数</th>
+                        <th>特徴</th>
+                        <th>推奨用途</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>VASP</strong></td>
+                        <td>商用</td>
+                        <td>平面波 + PAW</td>
+                        <td>高速、安定、Materials Project標準</td>
+                        <td>固体物理全般</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Quantum ESPRESSO</strong></td>
+                        <td>無償（GPL）</td>
+                        <td>平面波 + USPP/PAW</td>
+                        <td>オープンソース、機能豊富</td>
+                        <td>VASP代替、フォノン計算</td>
+                    </tr>
+                    <tr>
+                        <td><strong>GPAW</strong></td>
+                        <td>無償（GPL）</td>
+                        <td>平面波/実空間グリッド</td>
+                        <td>Python統合、使いやすさ</td>
+                        <td>Python開発者向け</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CASTEP</strong></td>
+                        <td>商用</td>
+                        <td>平面波 + USPP</td>
+                        <td>GUIツール充実</td>
+                        <td>材料設計、産業応用</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Gaussian</strong></td>
+                        <td>商用</td>
+                        <td>ガウス基底</td>
+                        <td>分子計算に特化</td>
+                        <td>有機化合物、生体分子</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>1.3.5 Materials Projectでの利用例</h3>
+
+            <p>
+                Materials Projectは、VASPで計算した150,000以上の材料物性データベースです。標準的な計算設定（PBE汎関数、PAW-PBE擬ポテンシャル、厳格な収束判定）を使い、高い信頼性を確保しています。本シリーズでもこの標準設定を基本とします。
+            </p>
+
+            <p>
+                Materials Projectのデータは、pymatgenライブラリを通じて簡単にアクセスでき、自分の計算結果と比較・検証できます。
+            </p>
+        </section>
+
+        <section id="license">
+            <h2>1.4 ライセンスとインストール</h2>
+
+            <h3>1.4.1 VASPライセンスの取得方法</h3>
+
+            <div class="warning-box">
+                <strong>⚠️ VASPは商用ソフトウェアです</strong>
+                <p>使用には有償ライセンスが必要です。無断使用は違法です。</p>
+            </div>
+
+            <p>
+                VASPのライセンスには以下の種類があります：
+            </p>
+
+            <ul>
+                <li><strong>機関ライセンス</strong>: 大学・研究機関全体で利用可能。年間数千ユーロ。複数ユーザーで共有できるため、所属機関に既存ライセンスがないか確認してください</li>
+                <li><strong>研究グループライセンス</strong>: 特定の研究室内で利用。年間1,000-2,000ユーロ程度</li>
+                <li><strong>個人ライセンス</strong>: 個人利用。価格は機関ライセンスより高額</li>
+            </ul>
+
+            <p>
+                ライセンス申請手順：
+            </p>
+
+            <ol>
+                <li>VASP公式サイト（<a href="https://www.vasp.at" target="_blank">https://www.vasp.at</a>）にアクセス</li>
+                <li>「License」ページからオンラインフォームに記入</li>
+                <li>所属機関の証明（公式メールアドレス、所属証明書）を提出</li>
+                <li>ライセンス契約書にサイン</li>
+                <li>支払い完了後、ダウンロードリンクが送付される</li>
+            </ol>
+
+            <h3>1.4.2 無料の代替ソフトウェア</h3>
+
+            <p>
+                VASPのライセンスが取得できない場合、以下の無償DFTソフトウェアで学習・研究が可能です：
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>ソフトウェア</th>
+                        <th>URL</th>
+                        <th>特徴</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Quantum ESPRESSO</strong></td>
+                        <td><a href="https://www.quantum-espresso.org" target="_blank">quantum-espresso.org</a></td>
+                        <td>VASPに最も近い機能、活発なコミュニティ</td>
+                    </tr>
+                    <tr>
+                        <td><strong>GPAW</strong></td>
+                        <td><a href="https://wiki.fysik.dtu.dk/gpaw" target="_blank">wiki.fysik.dtu.dk/gpaw</a></td>
+                        <td>Python統合、初学者向け</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Abinit</strong></td>
+                        <td><a href="https://www.abinit.org" target="_blank">www.abinit.org</a></td>
+                        <td>多電子励起、GW計算に強い</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CP2K</strong></td>
+                        <td><a href="https://www.cp2k.org" target="_blank">www.cp2k.org</a></td>
+                        <td>大規模系、分子動力学に最適</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>1.4.3 インストール手順（Linux）</h3>
+
+            <p>
+                VASPはソースコードで配布されるため、コンパイルが必要です。以下はLinux環境での標準的な手順です。
+            </p>
+
+            <h4>必要なライブラリ</h4>
+
+<pre><code class="language-bash"># Intel oneAPI（推奨）またはgccコンパイラ
+sudo apt-get install build-essential
+
+# MPI（並列計算用）
+sudo apt-get install openmpi-bin libopenmpi-dev
+
+# 数値計算ライブラリ
+sudo apt-get install libblas-dev liblapack-dev libfftw3-dev
+
+# Intel MKL（推奨、高速）
+# oneAPIからインストール: https://www.intel.com/content/www/us/en/developer/tools/oneapi/
+</code></pre>
+
+            <h4>コンパイル</h4>
+
+<pre><code class="language-bash"># VASPソースコードを展開
+tar -xvf vasp.6.4.0.tar.gz
+cd vasp.6.4.0
+
+# makefileをコピー
+cp arch/makefile.include.intel makefile.include
+
+# 必要に応じてmakefile.includeを編集
+# - コンパイラパス（FC, CC）
+# - ライブラリパス（BLAS, LAPACK, FFTW）
+
+# コンパイル（標準版）
+make std
+
+# 並列版
+make gam  # Gamma点のみ
+make ncl  # Non-collinear磁性
+
+# 実行ファイルをパスに追加
+sudo cp bin/vasp_std /usr/local/bin/
+</code></pre>
+
+            <h4>動作確認</h4>
+
+<pre><code class="language-python">#!/usr/bin/env python3
+"""VASP installation verification script"""
+
+import subprocess
+import os
+import sys
+
+def check_vasp_installation():
+    """VASPインストールの確認"""
+
+    # VASPバイナリの候補パス
+    vasp_paths = [
+        '/usr/local/bin/vasp_std',
+        '/opt/vasp/bin/vasp_std',
+        os.path.expanduser('~/bin/vasp_std')
+    ]
+
+    vasp_found = False
+
+    print("VASP Installation Check")
+    print("=" * 50)
+
+    for path in vasp_paths:
+        if os.path.exists(path):
+            print(f"✓ VASP found: {path}")
+            vasp_found = True
+
+            # バージョン確認（実行は危険なので存在確認のみ）
+            file_size = os.path.getsize(path) / (1024 * 1024)  # MB
+            print(f"  File size: {file_size:.1f} MB")
+
+            # 実行権限確認
+            if os.access(path, os.X_OK):
+                print(f"  Executable: Yes")
+            else:
+                print(f"  Executable: No (check permissions)")
+
+            break
+
+    if not vasp_found:
+        print("✗ VASP not found in common locations")
+        print("\nPlease ensure VASP is installed and in your PATH.")
+        return False
+
+    # MPI確認
+    print("\nMPI Check:")
+    try:
+        result = subprocess.run(['mpirun', '--version'],
+                               capture_output=True,
+                               text=True,
+                               timeout=5)
+        if result.returncode == 0:
+            print(f"✓ MPI available")
+            print(f"  {result.stdout.split()[0:3]}")
+        else:
+            print("✗ MPI not available")
+    except FileNotFoundError:
+        print("✗ mpirun not found")
+    except Exception as e:
+        print(f"✗ Error checking MPI: {e}")
+
+    # Python環境確認
+    print("\nPython Libraries Check:")
+    required_libs = ['numpy', 'pymatgen', 'ase', 'matplotlib']
+
+    for lib in required_libs:
+        try:
+            __import__(lib)
+            print(f"✓ {lib} installed")
+        except ImportError:
+            print(f"✗ {lib} not installed (pip install {lib})")
+
+    print("\n" + "=" * 50)
+    print("Installation check complete.")
+
+    return vasp_found
+
+if __name__ == "__main__":
+    success = check_vasp_installation()
+    sys.exit(0 if success else 1)
+</code></pre>
+
+            <p>
+                このスクリプトを実行してVASPのインストールを確認してください：
+            </p>
+
+<pre><code class="language-bash">python check_vasp.py
+</code></pre>
+        </section>
+
+        <section id="input-files">
+            <h2>1.5 基本的な入力ファイルの構成</h2>
+
+            <p>
+                VASP計算には4つの必須入力ファイルがあります。各ファイルの役割を理解することが、VASP使いこなしの第一歩です。
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>ファイル名</th>
+                        <th>役割</th>
+                        <th>例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>INCAR</strong></td>
+                        <td>計算パラメータの設定</td>
+                        <td>ENCUT=520, EDIFF=1E-6</td>
+                    </tr>
+                    <tr>
+                        <td><strong>POSCAR</strong></td>
+                        <td>結晶構造情報</td>
+                        <td>格子定数、原子座標</td>
+                    </tr>
+                    <tr>
+                        <td><strong>KPOINTS</strong></td>
+                        <td>k点メッシュ設定</td>
+                        <td>Monkhorst-Pack 8×8×8</td>
+                    </tr>
+                    <tr>
+                        <td><strong>POTCAR</strong></td>
+                        <td>擬ポテンシャルファイル</td>
+                        <td>PAW-PBE Si, PAW-PBE O</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>1.5.1 POSCAR: 結晶構造の記述</h3>
+
+            <p>
+                pymatgenを使ってSi結晶のPOSCARファイルを作成してみましょう：
+            </p>
+
+<pre><code class="language-python">#!/usr/bin/env python3
+"""POSCARファイルの作成例 - Si結晶"""
+
+from pymatgen.core import Structure, Lattice
+import numpy as np
+
+# Si結晶構造の作成（ダイヤモンド構造）
+lattice = Lattice.cubic(5.43)  # 格子定数 5.43 Å
+
+si_structure = Structure(
+    lattice,
+    ["Si", "Si"],  # 元素
+    [[0, 0, 0], [0.25, 0.25, 0.25]],  # 分数座標
+    coords_are_cartesian=False
+)
+
+# POSCARファイルに出力
+si_structure.to(filename="POSCAR", fmt="poscar")
+
+print("POSCAR created for Si")
+print(si_structure)
+
+# 出力:
+# POSCAR created for Si
+# Full Formula (Si2)
+# Reduced Formula: Si
+# abc   :   5.430000   5.430000   5.430000
+# angles:  90.000000  90.000000  90.000000
+# Sites (2)
+#   #  SP       a     b     c
+# ---  ----  ----  ----  ----
+#   0  Si    0.00  0.00  0.00
+#   1  Si    0.25  0.25  0.25
+</code></pre>
+
+            <p>
+                生成されたPOSCARファイルの内容：
+            </p>
+
+<pre><code>Si2
+1.0
+5.430000 0.000000 0.000000
+0.000000 5.430000 0.000000
+0.000000 0.000000 5.430000
+Si
+2
+direct
+0.000000 0.000000 0.000000 Si
+0.250000 0.250000 0.250000 Si
+</code></pre>
+
+            <h3>1.5.2 INCAR: 計算パラメータの設定</h3>
+
+            <p>
+                INCARファイルには計算の詳細設定を記述します。構造最適化の基本的なINCARをpymatgenで作成してみましょう：
+            </p>
+
+<pre><code class="language-python">#!/usr/bin/env python3
+"""INCARファイルの作成例 - 構造最適化"""
+
+from pymatgen.io.vasp.inputs import Incar
+
+# 構造最適化用のINCAR設定
+incar = Incar({
+    # システム情報
+    'SYSTEM': 'Si bulk',
+
+    # 計算開始設定
+    'ISTART': 0,       # 0: 新規計算
+    'ICHARG': 2,       # 2: 重ね合わせ原子電荷
+
+    # 電子計算
+    'ENCUT': 520,      # 平面波カットオフエネルギー（eV）
+    'EDIFF': 1e-6,     # 電子SCF収束判定（eV）
+    'PREC': 'Accurate',  # 精度設定
+    'LREAL': False,    # False: 逆空間、True: 実空間（大規模系）
+
+    # イオン緩和
+    'NSW': 100,        # 最大イオンステップ数
+    'IBRION': 2,       # 2: CG法、1: RMM-DIIS
+    'ISIF': 3,         # 3: 原子座標+格子定数最適化
+    'EDIFFG': -0.01,   # イオン収束判定（eV/Å、負なら力の閾値）
+
+    # 電子スメアリング
+    'ISMEAR': 0,       # 0: Gaussian、-5: tetrahedron（DOS用）
+    'SIGMA': 0.05,     # スメアリング幅（eV）
+})
+
+# ファイルに書き込み
+incar.write_file('INCAR')
+
+print("INCAR created")
+print(incar)
+
+# 出力:
+# INCAR created
+# SYSTEM = Si bulk
+# ISTART = 0
+# ICHARG = 2
+# ENCUT = 520
+# EDIFF = 1e-06
+# ...
+</code></pre>
+
+            <h3>1.5.3 KPOINTS: k点メッシュの設定</h3>
+
+            <p>
+                k点メッシュはBrillouin zone積分の精度を決定します。pymatgenで自動生成できます：
+            </p>
+
+<pre><code class="language-python">#!/usr/bin/env python3
+"""KPOINTSファイルの作成例"""
+
+from pymatgen.io.vasp.inputs import Kpoints
+from pymatgen.core import Structure
+
+# 構造を読み込み（先ほど作成したPOSCARから）
+structure = Structure.from_file("POSCAR")
+
+# 自動k点メッシュ生成（k点密度指定）
+kpoints = Kpoints.automatic_density(structure, kppa=1000)
+# kppa: k-points per reciprocal atom（原子あたりk点数）
+
+kpoints.write_file("KPOINTS")
+
+print(f"KPOINTS created: {kpoints.kpts[0]} mesh")
+
+# 出力例:
+# KPOINTS created: [8 8 8] mesh
+
+# または、明示的にMonkhorst-Pack法で指定
+kpoints_manual = Kpoints.monkhorst_automatic(kpts=(8, 8, 8), shift=(0, 0, 0))
+kpoints_manual.write_file("KPOINTS_manual")
+</code></pre>
+
+            <h3>1.5.4 POTCAR: 擬ポテンシャルファイル</h3>
+
+            <div class="warning-box">
+                <strong>⚠️ POTCARファイルの配布について</strong>
+                <p>POTCARファイルはVASPライセンスに含まれる機密データです。公開リポジトリへのアップロードや再配布は禁止されています。ライセンス取得後、VASP配布ディレクトリから適切なPOTCARを選択してください。</p>
+            </div>
+
+            <p>
+                POTCARはVASPインストールディレクトリの<code>potpaw_PBE/</code>などにあります。使用する元素のPOTCARを連結します：
+            </p>
+
+<pre><code class="language-bash"># Si単体の場合
+cat $VASP_POTCAR_DIR/Si/POTCAR > POTCAR
+
+# 化合物（例: SiO2）の場合、POSCARの元素順に連結
+cat $VASP_POTCAR_DIR/Si/POTCAR $VASP_POTCAR_DIR/O/POTCAR > POTCAR
+</code></pre>
+
+            <p>
+                pymatgenでPOTCARパスを設定すれば、自動生成も可能です：
+            </p>
+
+<pre><code class="language-python"># ~/.pmgrc.yaml に設定
+PMG_VASP_PSP_DIR: /path/to/vasp/potpaw_PBE
+
+# Pythonで自動生成
+from pymatgen.io.vasp.inputs import PotcarSingle
+potcar = PotcarSingle.from_symbol_and_functional("Si", "PBE")
+</code></pre>
+        </section>
+
+        <section id="first-calculation">
+            <h2>1.6 最初のVASP計算実行</h2>
+
+            <h3>1.6.1 ジョブスクリプトの作成</h3>
+
+            <p>
+                VASP計算は通常、MPIを使った並列実行で行います。ジョブスクリプトをPythonで生成してみましょう：
+            </p>
+
+<pre><code class="language-python">#!/usr/bin/env python3
+"""VASP job script generator"""
+
+def create_job_script(
+    job_name='vasp_job',
+    nodes=1,
+    cores_per_node=16,
+    walltime='24:00:00',
+    partition='standard',
+    vasp_executable='vasp_std'
+):
+    """SLURMジョブスクリプトを生成
+
+    Args:
+        job_name (str): ジョブ名
+        nodes (int): ノード数
+        cores_per_node (int): ノードあたりのコア数
+        walltime (str): 最大実行時間（HH:MM:SS）
+        partition (str): パーティション名
+        vasp_executable (str): VASP実行ファイル名
+
+    Returns:
+        str: ジョブスクリプトの内容
+    """
+
+    script = f"""#!/bin/bash
+#SBATCH --job-name={job_name}
+#SBATCH --nodes={nodes}
+#SBATCH --ntasks-per-node={cores_per_node}
+#SBATCH --time={walltime}
+#SBATCH --partition={partition}
+
+# 環境変数設定
+export OMP_NUM_THREADS=1
+
+# モジュールロード（環境に応じて調整）
+module load intel/2023
+module load impi/2023
+module load vasp/6.4.0
+
+# 計算開始
+echo "Job started at $(date)"
+echo "Running on $(hostname)"
+echo "Number of MPI tasks: $SLURM_NTASKS"
+
+# VASP実行
+mpirun -n $SLURM_NTASKS {vasp_executable} > vasp.out
+
+# 計算終了
+echo "Job completed at $(date)"
+
+# 結果ファイルのチェック
+if [ -f CONTCAR ]; then
+    echo "CONTCAR created successfully"
+fi
+
+if [ -f OUTCAR ]; then
+    echo "OUTCAR created successfully"
+    # 収束確認
+    tail -20 OUTCAR
+fi
+"""
+
+    return script
+
+
+# ジョブスクリプト作成
+script_content = create_job_script(
+    job_name='si_relax',
+    nodes=1,
+    cores_per_node=32,
+    walltime='12:00:00'
+)
+
+# ファイルに書き込み
+with open('submit.sh', 'w') as f:
+    f.write(script_content)
+
+print("Job script created: submit.sh")
+print(f"Submit with: sbatch submit.sh")
+</code></pre>
+
+            <h3>1.6.2 計算の投入と監視</h3>
+
+            <p>
+                ジョブスクリプトを投入し、計算の進行状況を監視します：
+            </p>
+
+<pre><code class="language-bash"># ジョブ投入
+sbatch submit.sh
+
+# ジョブ状態確認
+squeue -u $USER
+
+# 計算ログをリアルタイム監視
+tail -f vasp.out
+
+# 収束状況の確認（エネルギー変化）
+grep "TOTEN" OSZICAR
+
+# 計算が完了したら、最終構造を確認
+grep "TOTEN" OUTCAR | tail -1
+</code></pre>
+
+            <h3>1.6.3 エラーメッセージの読み方</h3>
+
+            <p>
+                VASP計算でよく遭遇するエラーと対処法：
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>エラーメッセージ</th>
+                        <th>原因</th>
+                        <th>対処法</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>Error EDDDAV: Call to ZHEGV failed</code></td>
+                        <td>電子SCFが収束しない</td>
+                        <td>ALGO=Fast → Normal/All、NELM増加</td>
+                    </tr>
+                    <tr>
+                        <td><code>ZBRENT: fatal error in bracketing</code></td>
+                        <td>イオン緩和での線形探索失敗</td>
+                        <td>IBRION=2 → 1、POTIM減少（0.1-0.3）</td>
+                    </tr>
+                    <tr>
+                        <td><code>POSMAP internal error</code></td>
+                        <td>原子間距離が近すぎる</td>
+                        <td>初期構造を修正</td>
+                    </tr>
+                    <tr>
+                        <td><code>VERY BAD NEWS! internal error</code></td>
+                        <td>数値不安定性</td>
+                        <td>PREC=Normal、ENCUT増加、POTIM減少</td>
+                    </tr>
+                    <tr>
+                        <td><code>Error reading POTCAR</code></td>
+                        <td>POTCARが不正または欠落</td>
+                        <td>POTCAR再生成、元素順確認</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box">
+                <strong>💡 デバッグのヒント</strong>
+                <ul>
+                    <li><strong>段階的アプローチ</strong>: まず低精度（PREC=Normal, ENCUT低め）で計算し、収束を確認してから精度を上げる</li>
+                    <li><strong>ログファイル確認</strong>: OUTCAR、OSZICAR、stdout（vasp.out）を全て確認</li>
+                    <li><strong>初期構造チェック</strong>: VESTA等で構造を可視化し、原子衝突がないか確認</li>
+                    <li><strong>パラメータ変更は1つずつ</strong>: 複数同時変更は原因特定を困難にする</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="results">
+            <h2>1.7 計算結果の確認と可視化</h2>
+
+            <h3>1.7.1 出力ファイルの種類</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>ファイル名</th>
+                        <th>内容</th>
+                        <th>用途</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>OUTCAR</strong></td>
+                        <td>詳細な計算ログ</td>
+                        <td>エネルギー、力、応力、磁気モーメント等</td>
+                    </tr>
+                    <tr>
+                        <td><strong>OSZICAR</strong></td>
+                        <td>SCF収束履歴（簡易版）</td>
+                        <td>収束確認、エネルギー変化の追跡</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CONTCAR</strong></td>
+                        <td>最終構造</td>
+                        <td>次の計算の初期構造として使用</td>
+                    </tr>
+                    <tr>
+                        <td><strong>vasprun.xml</strong></td>
+                        <td>XML形式の全結果</td>
+                        <td>Pythonでの解析に最適</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CHG/CHGCAR</strong></td>
+                        <td>電荷密度</td>
+                        <td>可視化、次の計算の初期電荷</td>
+                    </tr>
+                    <tr>
+                        <td><strong>WAVECAR</strong></td>
+                        <td>波動関数</td>
+                        <td>計算再開、バンド計算</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>1.7.2 OUTCAR/OSZICARの読み方</h3>
+
+            <p>
+                最終エネルギー、力、応力をOUTCARから抽出します：
+            </p>
+
+<pre><code class="language-bash"># 最終全エネルギー
+grep "TOTEN" OUTCAR | tail -1
+# energy  without entropy=     -10.843210  energy(sigma->0) =     -10.843210
+
+# 最終的な原子に働く力
+grep -A 10 "TOTAL-FORCE" OUTCAR | tail -10
+
+# 応力テンソル
+grep -A 5 "Total" OUTCAR | grep -A 5 "in kB"
+</code></pre>
+
+            <h3>1.7.3 pymatgenでの解析</h3>
+
+            <p>
+                pymatgenを使って計算結果を解析してみましょう：
+            </p>
+
+<pre><code class="language-python">#!/usr/bin/env python3
+"""VASP計算結果の解析（pymatgen使用）"""
+
+from pymatgen.io.vasp.outputs import Vasprun, Outcar
+import matplotlib.pyplot as plt
+import numpy as np
+
+# vasprun.xmlを読み込み（全結果が格納）
+vasprun = Vasprun("vasprun.xml")
+
+# 最終構造と全エネルギー
+final_structure = vasprun.final_structure
+final_energy = vasprun.final_energy
+
+print(f"Final Energy: {final_energy:.6f} eV")
+print(f"Final Structure:")
+print(final_structure)
+
+# 構造最適化の履歴
+ionic_steps = vasprun.ionic_steps
+n_steps = len(ionic_steps)
+
+# エネルギー収束の可視化
+energies = [step['e_0_energy'] for step in ionic_steps]
+
+plt.figure(figsize=(10, 6))
+plt.plot(range(1, n_steps+1), energies, 'o-', linewidth=2, markersize=6)
+plt.xlabel('Ionic Step', fontsize=12)
+plt.ylabel('Energy (eV)', fontsize=12)
+plt.title('Energy Convergence', fontsize=14, fontweight='bold')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('energy_convergence.png', dpi=300, bbox_inches='tight')
+print(f"Energy convergence plot saved: energy_convergence.png")
+
+# 力の収束確認
+forces = []
+for step in ionic_steps:
+    # 各原子の力の最大値
+    max_force = max([np.linalg.norm(f) for f in step['forces']])
+    forces.append(max_force)
+
+plt.figure(figsize=(10, 6))
+plt.plot(range(1, n_steps+1), forces, 's-', linewidth=2, markersize=6, color='orange')
+plt.axhline(y=0.01, color='red', linestyle='--', label='Convergence threshold')
+plt.xlabel('Ionic Step', fontsize=12)
+plt.ylabel('Max Force on Atoms (eV/Å)', fontsize=12)
+plt.title('Force Convergence', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.yscale('log')
+plt.tight_layout()
+plt.savefig('force_convergence.png', dpi=300, bbox_inches='tight')
+print(f"Force convergence plot saved: force_convergence.png")
+
+# OUTCARからの詳細情報読み取り
+outcar = Outcar("OUTCAR")
+
+# 最終的な力（全原子）
+print(f"\nFinal forces on atoms:")
+final_forces = ionic_steps[-1]['forces']
+for i, force in enumerate(final_forces):
+    f_magnitude = np.linalg.norm(force)
+    print(f"  Atom {i+1}: |F| = {f_magnitude:.6f} eV/Å, F = {force}")
+
+# 応力テンソル（kBar単位）
+if hasattr(outcar, 'final_stress'):
+    stress = outcar.final_stress  # 3x3行列（kBar）
+    print(f"\nFinal stress tensor (kBar):")
+    print(stress)
+
+# 収束判定
+converged = final_energy is not None and forces[-1] < 0.01
+print(f"\nConvergence status: {'✓ Converged' if converged else '✗ Not converged'}")
+
+# 実行時間の取得
+elapsed_time = outcar.run_stats.get('Total CPU time used (sec)', 0)
+print(f"Total CPU time: {elapsed_time:.2f} seconds ({elapsed_time/3600:.2f} hours)")
+</code></pre>
+
+            <p>
+                このスクリプトは以下を出力します：
+            </p>
+
+            <ul>
+                <li>最終エネルギーと構造</li>
+                <li>エネルギー収束グラフ（energy_convergence.png）</li>
+                <li>力の収束グラフ（force_convergence.png）</li>
+                <li>各原子に働く力</li>
+                <li>応力テンソル</li>
+                <li>収束判定と計算時間</li>
+            </ul>
+
+            <h3>1.7.4 結晶構造の可視化</h3>
+
+            <p>
+                VESTAは結晶構造可視化に最適なツールです。POSCAR/CONTCARを直接読み込めます：
+            </p>
+
+<pre><code class="language-bash"># VESTAで開く（GUIツール）
+vesta CONTCAR
+
+# または、ASEでPython内で可視化
+python -c "from ase.io import read, write; \
+           atoms = read('CONTCAR'); \
+           write('structure.png', atoms)"
+</code></pre>
+
+            <p>
+                pymatgenでも簡易的な可視化ができます：
+            </p>
+
+<pre><code class="language-python">from pymatgen.core import Structure
+from pymatgen.analysis.structure_analyzer import SpacegroupAnalyzer
+
+structure = Structure.from_file("CONTCAR")
+
+# 空間群解析
+sga = SpacegroupAnalyzer(structure)
+print(f"Space group: {sga.get_space_group_symbol()}")
+print(f"Space group number: {sga.get_space_group_number()}")
+
+# 原始セルへの変換
+primitive = sga.find_primitive()
+print(f"Primitive cell: {len(primitive)} atoms")
+</code></pre>
+        </section>
+
+        <section id="learning-objectives">
+            <h2>1.8 学習目標の確認</h2>
+
+            <div class="info-box">
+                <strong>このchapterを完了すると、以下を説明できるようになります：</strong>
+            </div>
+
+            <h3>レベル1: 基本理解</h3>
+            <ul>
+                <li>✅ DFT計算の基本原理（Hohenberg-Kohnの定理、Kohn-Sham方程式）を説明できる</li>
+                <li>✅ VASPの4つの主要入力ファイル（INCAR, POSCAR, KPOINTS, POTCAR）の役割を理解している</li>
+                <li>✅ PAW法の概要とUltrasoft擬ポテンシャルとの違いを説明できる</li>
+                <li>✅ 交換相関汎関数（LDA, GGA, meta-GGA, Hybrid）の特徴を説明できる</li>
+            </ul>
+
+            <h3>レベル2: 実践スキル</h3>
+            <ul>
+                <li>✅ pymatgenを使ってINCAR/POSCARファイルを作成できる</li>
+                <li>✅ ジョブスクリプトを作成してVASP計算を実行できる</li>
+                <li>✅ OUTCAR/vasprun.xmlから計算結果（エネルギー、力、応力）を読み取れる</li>
+                <li>✅ エネルギー・力の収束グラフをPythonで作成できる</li>
+                <li>✅ 計算エラーの原因を特定し、対処法を選択できる</li>
+            </ul>
+
+            <h3>レベル3: 応用力</h3>
+            <ul>
+                <li>✅ 材料に応じた適切な計算パラメータ（ENCUT, k点, 汎関数）を設定できる</li>
+                <li>✅ 収束しない計算のトラブルシューティングができる（ALGOアルゴリズム変更、POTIM調整等）</li>
+                <li>✅ Pythonで計算ワークフロー（ファイル生成→実行→解析）を自動化できる</li>
+                <li>✅ Materials ProjectのデータとVASP計算結果を比較・検証できる</li>
+            </ul>
+        </section>
+
+        <section id="exercises">
+            <h2>1.9 演習問題</h2>
+
+            <div class="exercise-box">
+                <h4>Easy - 基礎確認 <span class="difficulty easy">Easy</span></h4>
+
+                <p><strong>Q1</strong>: DFT計算で使われるKohn-Sham方程式の物理的意味を説明しなさい。</p>
+
+                <details>
+                    <summary>解答例を見る</summary>
+                    <p><strong>解答</strong>: Kohn-Sham方程式は、電子間相互作用を含む多体問題を、有効ポテンシャル中の非相互作用電子系の問題に置き換えたものです。各電子は独立に動きますが、有効ポテンシャル（外部ポテンシャル + Hartreeポテンシャル + 交換相関ポテンシャル）を通じて間接的に相互作用します。これにより、N電子系の3N次元Schrödinger方程式が、N個の3次元Kohn-Sham方程式に分解され、計算が実用的になります。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Easy - 基礎確認 <span class="difficulty easy">Easy</span></h4>
+
+                <p><strong>Q2</strong>: VASP計算に必須の4つの入力ファイル（INCAR, POSCAR, KPOINTS, POTCAR）の役割を説明しなさい。</p>
+
+                <details>
+                    <summary>解答例を見る</summary>
+                    <p><strong>解答</strong>:</p>
+                    <ul>
+                        <li><strong>INCAR</strong>: 計算パラメータ（ENCUT, EDIFF, NSW, IBRIONなど）を設定。計算の種類（SCF, 構造最適化, MD）や精度を指定</li>
+                        <li><strong>POSCAR</strong>: 結晶構造情報（格子ベクトル、原子種、原子座標）を記述。計算対象のジオメトリを定義</li>
+                        <li><strong>KPOINTS</strong>: Brillouin zone積分のためのk点メッシュを設定。密度が高いほど精度向上</li>
+                        <li><strong>POTCAR</strong>: 擬ポテンシャル（PAW-PBEなど）を格納。内殻電子を置き換え、計算効率を向上</li>
+                    </ul>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Easy - 基礎確認 <span class="difficulty easy">Easy</span></h4>
+
+                <p><strong>Q3</strong>: pymatgenを使ってNaCl（岩塩型）の結晶構造のPOSCARファイルを作成しなさい。格子定数は5.64 Åです。</p>
+
+                <details>
+                    <summary>解答例を見る</summary>
+<pre><code class="language-python">from pymatgen.core import Structure, Lattice
+
+# NaCl岩塩型構造（face-centered cubic）
+lattice = Lattice.cubic(5.64)
+
+nacl_structure = Structure(
+    lattice,
+    ["Na", "Cl"],
+    [[0, 0, 0], [0.5, 0.5, 0.5]],  # 分数座標
+    coords_are_cartesian=False
+)
+
+nacl_structure.to(filename="POSCAR_NaCl", fmt="poscar")
+print(nacl_structure)
+
+# 出力:
+# Full Formula (NaCl1)
+# Reduced Formula: NaCl
+# abc   :   5.640000   5.640000   5.640000
+# angles:  90.000000  90.000000  90.000000
+# Sites (2)
+#   #  SP       a     b     c
+# ---  ----  ----  ----  ----
+#   0  Na    0.00  0.00  0.00
+#   1  Cl    0.50  0.50  0.50
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium - 応用問題 <span class="difficulty medium">Medium</span></h4>
+
+                <p><strong>Q4</strong>: LDA、GGA、meta-GGAの違いを説明し、それぞれの適用例を挙げなさい。</p>
+
+                <details>
+                    <summary>解答例を見る</summary>
+                    <p><strong>解答</strong>:</p>
+                    <ul>
+                        <li><strong>LDA（Local Density Approximation）</strong>: 交換相関エネルギーを局所的な電子密度のみで近似。計算高速だが、結合長を過小評価する傾向あり。適用例: 金属、高密度系</li>
+                        <li><strong>GGA（Generalized Gradient Approximation、例: PBE）</strong>: 電子密度の勾配も考慮。LDAより精度向上し、ほとんどの材料に適用可能。適用例: 金属、半導体、絶縁体、有機物</li>
+                        <li><strong>meta-GGA（例: SCAN）</strong>: 電子密度の2次微分（Laplacian）や運動エネルギー密度も利用。高精度だが計算コスト増。適用例: 格子定数・形成エネルギーの精密計算</li>
+                    </ul>
+                    <p><strong>推奨</strong>: 一般的にはPBE（GGA）が標準的選択。精度とコストのバランスが良く、Materials Projectでも採用。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium - 応用問題 <span class="difficulty medium">Medium</span></h4>
+
+                <p><strong>Q5</strong>: VASPとQuantum ESPRESSOの違いを3つ挙げ、使い分けの基準を述べなさい。</p>
+
+                <details>
+                    <summary>解答例を見る</summary>
+                    <p><strong>解答</strong>:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>項目</th>
+                                <th>VASP</th>
+                                <th>Quantum ESPRESSO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>ライセンス</td>
+                                <td>商用（有償）</td>
+                                <td>オープンソース（GPL、無償）</td>
+                            </tr>
+                            <tr>
+                                <td>計算速度</td>
+                                <td>高速（最適化済み）</td>
+                                <td>やや遅い（ただし改善中）</td>
+                            </tr>
+                            <tr>
+                                <td>擬ポテンシャル</td>
+                                <td>PAW（高精度）</td>
+                                <td>USPP/PAW（両対応）</td>
+                            </tr>
+                            <tr>
+                                <td>コミュニティ</td>
+                                <td>商用サポート、Materials Project標準</td>
+                                <td>活発なオープンソースコミュニティ</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p><strong>使い分け基準</strong>:</p>
+                    <ul>
+                        <li><strong>VASPを選ぶ</strong>: 計算効率重視、Materials Projectとの連携、産業応用</li>
+                        <li><strong>Quantum ESPRESSOを選ぶ</strong>: ライセンス予算なし、カスタマイズ性重視、フォノン計算</li>
+                    </ul>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium - 実装問題 <span class="difficulty medium">Medium</span></h4>
+
+                <p><strong>Q6</strong>: Si結晶の構造最適化を行うINCAR, POSCAR, KPOINTSファイルをpymatgenで作成しなさい。構造最適化の条件は、EDIFFG=-0.01（力の収束判定0.01 eV/Å）、Monkhorst-Pack 8×8×8 k点メッシュとします。</p>
+
+                <details>
+                    <summary>解答例を見る</summary>
+<pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.io.vasp.inputs import Incar, Kpoints
+
+# 1. POSCAR作成
+lattice = Lattice.cubic(5.43)
+si_structure = Structure(
+    lattice,
+    ["Si", "Si"],
+    [[0, 0, 0], [0.25, 0.25, 0.25]],
+    coords_are_cartesian=False
+)
+si_structure.to(filename="POSCAR", fmt="poscar")
+print("POSCAR created")
+
+# 2. INCAR作成
+incar = Incar({
+    'SYSTEM': 'Si bulk relaxation',
+    'ISTART': 0,
+    'ICHARG': 2,
+    'ENCUT': 520,      # Si推奨値: 245.3 eVの2倍
+    'EDIFF': 1e-6,
+    'EDIFFG': -0.01,   # 力の収束判定（問題指定）
+    'NSW': 100,
+    'IBRION': 2,       # CG法
+    'ISIF': 3,         # 原子+格子最適化
+    'ISMEAR': 0,
+    'SIGMA': 0.05,
+    'PREC': 'Accurate',
+    'LREAL': False,
+})
+incar.write_file('INCAR')
+print("INCAR created")
+
+# 3. KPOINTS作成
+kpoints = Kpoints.monkhorst_automatic(kpts=(8, 8, 8), shift=(0, 0, 0))
+kpoints.write_file('KPOINTS')
+print("KPOINTS created: 8x8x8 mesh")
+
+print("\nFiles created successfully!")
+print("Next step: Prepare POTCAR and submit job")
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium - 実装問題 <span class="difficulty medium">Medium</span></h4>
+
+                <p><strong>Q7</strong>: vasprun.xmlからエネルギー収束をプロットし、収束性を評価しなさい。収束判定基準は、連続2ステップでエネルギー変化が1 meV/atom以下とします。</p>
+
+                <details>
+                    <summary>解答例を見る</summary>
+<pre><code class="language-python">from pymatgen.io.vasp.outputs import Vasprun
+import matplotlib.pyplot as plt
+import numpy as np
+
+# vasprun.xml読み込み
+vasprun = Vasprun("vasprun.xml")
+
+# 構造最適化履歴
+ionic_steps = vasprun.ionic_steps
+n_atoms = len(vasprun.final_structure)
+
+# エネルギー（atom平均）
+energies = [step['e_0_energy'] / n_atoms for step in ionic_steps]
+n_steps = len(energies)
+
+# エネルギー差（meV/atom）
+energy_diffs = [1000 * (energies[i] - energies[i-1]) for i in range(1, n_steps)]
+
+# 収束判定
+converged_step = None
+for i in range(1, len(energy_diffs)):
+    if abs(energy_diffs[i]) < 1.0 and abs(energy_diffs[i-1]) < 1.0:
+        converged_step = i + 1  # ionic step番号（1-indexed）
+        break
+
+# プロット
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
+
+# エネルギー
+ax1.plot(range(1, n_steps+1), energies, 'o-', linewidth=2)
+ax1.set_xlabel('Ionic Step', fontsize=12)
+ax1.set_ylabel('Energy per atom (eV)', fontsize=12)
+ax1.set_title('Energy Convergence', fontsize=14, fontweight='bold')
+ax1.grid(True, alpha=0.3)
+
+if converged_step:
+    ax1.axvline(x=converged_step, color='green', linestyle='--',
+                label=f'Converged at step {converged_step}')
+    ax1.legend()
+
+# エネルギー差
+ax2.plot(range(2, n_steps+1), energy_diffs, 's-', linewidth=2, color='orange')
+ax2.axhline(y=1.0, color='red', linestyle='--', label='±1 meV/atom threshold')
+ax2.axhline(y=-1.0, color='red', linestyle='--')
+ax2.set_xlabel('Ionic Step', fontsize=12)
+ax2.set_ylabel('Energy change (meV/atom)', fontsize=12)
+ax2.set_title('Energy Change per Step', fontsize=14, fontweight='bold')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('energy_convergence_analysis.png', dpi=300)
+
+# 評価結果
+print(f"Total ionic steps: {n_steps}")
+print(f"Final energy: {energies[-1]:.6f} eV/atom")
+
+if converged_step:
+    print(f"✓ Converged at step {converged_step}")
+    print(f"  Energy change in last 2 steps: {energy_diffs[-1]:.3f}, {energy_diffs[-2]:.3f} meV/atom")
+else:
+    print("✗ Not converged within NSW steps")
+    print(f"  Consider increasing NSW or checking structure stability")
+
+print(f"\nPlot saved: energy_convergence_analysis.png")
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Hard - 発展問題 <span class="difficulty hard">Hard</span></h4>
+
+                <p><strong>Q8</strong>: カットオフエネルギー（ENCUT）とk点メッシュを変化させ、全エネルギーの収束性を調べなさい。Si結晶を例に、ENCUT = 300, 400, 520, 600 eV、k点 = 4×4×4, 6×6×6, 8×8×8, 10×10×10の16通りの組み合わせで計算し、収束判定を実施しなさい。</p>
+
+                <details>
+                    <summary>解答例を見る</summary>
+<pre><code class="language-python">#!/usr/bin/env python3
+"""ENCUT & k-points convergence test"""
+
+import os
+import subprocess
+from pymatgen.core import Structure, Lattice
+from pymatgen.io.vasp.inputs import Incar, Kpoints
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Si構造
+lattice = Lattice.cubic(5.43)
+structure = Structure(lattice, ["Si", "Si"],
+                     [[0, 0, 0], [0.25, 0.25, 0.25]])
+
+# 収束テスト範囲
+encut_values = [300, 400, 520, 600]  # eV
+kpoint_values = [4, 6, 8, 10]  # k-mesh (uniform)
+
+# 結果保存用
+results = []
+
+for encut in encut_values:
+    for k in kpoint_values:
+        job_dir = f"encut_{encut}_k_{k}"
+        os.makedirs(job_dir, exist_ok=True)
+
+        # POSCAR
+        structure.to(filename=f"{job_dir}/POSCAR", fmt="poscar")
+
+        # INCAR（SCF計算のみ、構造固定）
+        incar = Incar({
+            'SYSTEM': f'Si ENCUT={encut} k={k}',
+            'ISTART': 0,
+            'ICHARG': 2,
+            'ENCUT': encut,
+            'EDIFF': 1e-7,  # 厳格な収束判定
+            'NSW': 0,       # 構造固定（SCFのみ）
+            'ISMEAR': 0,
+            'SIGMA': 0.05,
+            'PREC': 'Accurate',
+            'LREAL': False,
+        })
+        incar.write_file(f"{job_dir}/INCAR")
+
+        # KPOINTS
+        kpoints = Kpoints.monkhorst_automatic(kpts=(k, k, k), shift=(0, 0, 0))
+        kpoints.write_file(f"{job_dir}/KPOINTS")
+
+        # POTCAR（手動でコピー必要）
+        # subprocess.run(['cp', 'POTCAR_Si', f'{job_dir}/POTCAR'])
+
+        print(f"Setup complete: {job_dir}")
+
+        # 実際の計算実行（ジョブスクリプト経由）
+        # os.chdir(job_dir)
+        # subprocess.run(['sbatch', 'submit.sh'])
+        # os.chdir('..')
+
+# 結果解析（全計算完了後）
+print("\n=== Convergence Analysis ===")
+results_df = pd.DataFrame(columns=['ENCUT', 'k-mesh', 'Energy (eV/atom)',
+                                   'Delta E (meV/atom)'])
+
+# 各計算結果を読み込み（vasprun.xml）
+for encut in encut_values:
+    for k in kpoint_values:
+        job_dir = f"encut_{encut}_k_{k}"
+        vasprun_path = f"{job_dir}/vasprun.xml"
+
+        if os.path.exists(vasprun_path):
+            from pymatgen.io.vasp.outputs import Vasprun
+            vr = Vasprun(vasprun_path)
+            energy_per_atom = vr.final_energy / len(structure)
+
+            results.append({
+                'ENCUT': encut,
+                'k-mesh': k,
+                'Energy': energy_per_atom
+            })
+
+# DataFrame化
+df = pd.DataFrame(results)
+
+# 最も収束した値（ENCUT=600, k=10）を基準
+ref_energy = df[(df['ENCUT']==600) & (df['k-mesh']==10)]['Energy'].values[0]
+
+# 相対エネルギー差（meV/atom）
+df['Delta E (meV/atom)'] = 1000 * (df['Energy'] - ref_energy)
+
+print(df)
+
+# 可視化
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+
+# ENCUT収束（k=8固定）
+encut_conv = df[df['k-mesh'] == 8]
+ax1.plot(encut_conv['ENCUT'], encut_conv['Delta E (meV/atom)'], 'o-', linewidth=2)
+ax1.axhline(y=1.0, color='red', linestyle='--', label='1 meV/atom threshold')
+ax1.axhline(y=-1.0, color='red', linestyle='--')
+ax1.set_xlabel('ENCUT (eV)', fontsize=12)
+ax1.set_ylabel('Energy difference (meV/atom)', fontsize=12)
+ax1.set_title('ENCUT Convergence (k=8x8x8)', fontsize=14, fontweight='bold')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# k点収束（ENCUT=520固定）
+k_conv = df[df['ENCUT'] == 520]
+ax2.plot(k_conv['k-mesh'], k_conv['Delta E (meV/atom)'], 's-', linewidth=2, color='orange')
+ax2.axhline(y=1.0, color='red', linestyle='--', label='1 meV/atom threshold')
+ax2.axhline(y=-1.0, color='red', linestyle='--')
+ax2.set_xlabel('k-mesh', fontsize=12)
+ax2.set_ylabel('Energy difference (meV/atom)', fontsize=12)
+ax2.set_title('k-point Convergence (ENCUT=520 eV)', fontsize=14, fontweight='bold')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('convergence_test.png', dpi=300)
+
+print("\n✓ Convergence analysis complete")
+print("Recommended settings:")
+print(f"  ENCUT >= 520 eV (converged within 1 meV/atom)")
+print(f"  k-mesh >= 8x8x8 (converged within 1 meV/atom)")
+</code></pre>
+                    <p><strong>評価</strong>: 一般的にSiではENCUT=520 eV（推奨値の2倍）、k点8×8×8で1 meV/atom以内の精度が得られます。高精度計算ではENCUT=600 eV、k点10×10×10が推奨されます。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Hard - 発展問題 <span class="difficulty hard">Hard</span></h4>
+
+                <p><strong>Q9</strong>: PAW法がUltrasoft擬ポテンシャルより精度が高い理由を、波動関数の取り扱いの観点から説明しなさい。</p>
+
+                <details>
+                    <summary>解答例を見る</summary>
+                    <p><strong>解答</strong>:</p>
+
+                    <p><strong>PAW法の原理</strong>:</p>
+                    <ul>
+                        <li>全電子波動関数 \(\psi\) と擬波動関数 \(\tilde{\psi}\) の間に線形変換 \(\hat{T}\) を定義: \(|\psi\rangle = \hat{T}|\tilde{\psi}\rangle\)</li>
+                        <li>原子核近傍では全電子波動関数を再構成し、外側では擬波動関数を使用</li>
+                        <li>電荷密度・磁気モーメントなどの物理量を正確に計算可能</li>
+                    </ul>
+
+                    <p><strong>Ultrasoft擬ポテンシャルとの違い</strong>:</p>
+                    <ul>
+                        <li><strong>USPP</strong>: 擬波動関数のみを扱い、内殻領域の詳細情報を失う。ノルム保存条件を緩和</li>
+                        <li><strong>PAW</strong>: 全電子波動関数を保持し、内殻領域の情報も正確。ノルム保存条件を満たす</li>
+                    </ul>
+
+                    <p><strong>精度向上の理由</strong>:</p>
+                    <ol>
+                        <li><strong>全電子密度の正確な再構成</strong>: 原子核近傍の電荷密度を精密に計算</li>
+                        <li><strong>磁気モーメントの精度</strong>: スピン密度がノード構造を持つ遷移金属で重要</li>
+                        <li><strong>超微細相互作用</strong>: NMR、Mössbauerパラメータの計算精度が向上</li>
+                        <li><strong>電場勾配</strong>: 核四重極相互作用の正確な評価</li>
+                    </ol>
+
+                    <p><strong>実用的影響</strong>:</p>
+                    <ul>
+                        <li>遷移金属酸化物: 磁気モーメント、酸化状態の正確な決定</li>
+                        <li>f電子系: 局在電子の記述精度向上</li>
+                        <li>計算コスト: USPPとほぼ同等（PAWの追加コストは数%以内）</li>
+                    </ul>
+
+                    <p><strong>結論</strong>: PAW法は全電子法の精度を保ちつつ、平面波基底の計算効率を実現する「いいとこ取り」の手法です。VASPではPAWがデフォルトで推奨されており、特別な理由がない限りPAWを使用すべきです。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Hard - 総合問題 <span class="difficulty hard">Hard</span></h4>
+
+                <p><strong>Q10</strong>: pymatgenを使って、複数の材料（Si, GaAs, NaCl, Fe）の構造最適化を自動化するワークフローを設計し、実装しなさい。各材料に適したパラメータ（ENCUT, k点, ISMEAR）を自動設定する機能を含めてください。</p>
+
+                <details>
+                    <summary>解答例を見る</summary>
+<pre><code class="language-python">#!/usr/bin/env python3
+"""Automated VASP workflow for multiple materials"""
+
+import os
+from pymatgen.core import Structure
+from pymatgen.io.vasp.inputs import Incar, Kpoints, PotcarSingle
+from pymatgen.io.vasp.outputs import Vasprun
+from pymatgen.ext.matproj import MPRester
+import json
+
+class VASPWorkflow:
+    """VASP計算ワークフローの自動化クラス"""
+
+    def __init__(self, base_dir='vasp_calculations'):
+        self.base_dir = base_dir
+        os.makedirs(base_dir, exist_ok=True)
+
+    def get_material_params(self, structure):
+        """材料に応じた推奨パラメータを自動設定"""
+
+        # 金属判定（簡易版: Fe等の遷移金属、アルカリ金属）
+        metallic_elements = ['Fe', 'Co', 'Ni', 'Cu', 'Ag', 'Au',
+                            'Na', 'K', 'Li', 'Al', 'Mg']
+        is_metal = any(el.symbol in metallic_elements
+                      for el in structure.composition.elements)
+
+        # ENCUT推奨値（各元素のMAXIMALの最大値 × 1.3）
+        encut_recommendations = {
+            'Si': 245.3 * 1.3,
+            'Ga': 134.6 * 1.3,
+            'As': 208.7 * 1.3,
+            'Na': 102.1 * 1.3,
+            'Cl': 241.4 * 1.3,
+            'Fe': 267.9 * 1.3,
+        }
+
+        max_encut = max(
+            encut_recommendations.get(el.symbol, 400)
+            for el in structure.composition.elements
+        )
+        encut = int(max_encut)
+
+        # ISMEARとSIGMA（金属か絶縁体か）
+        if is_metal:
+            ismear = 1  # Methfessel-Paxton
+            sigma = 0.2
+        else:
+            ismear = 0  # Gaussian
+            sigma = 0.05
+
+        # k点密度（原子数に応じて調整）
+        n_atoms = len(structure)
+        if n_atoms < 10:
+            kppa = 1000  # 高密度
+        elif n_atoms < 50:
+            kppa = 500
+        else:
+            kppa = 200  # 大規模系は低密度
+
+        return {
+            'ENCUT': encut,
+            'ISMEAR': ismear,
+            'SIGMA': sigma,
+            'kppa': kppa,
+            'is_metal': is_metal
+        }
+
+    def setup_calculation(self, material_name, structure):
+        """単一材料の計算セットアップ"""
+
+        job_dir = os.path.join(self.base_dir, material_name)
+        os.makedirs(job_dir, exist_ok=True)
+
+        # 材料パラメータ取得
+        params = self.get_material_params(structure)
+
+        # POSCAR
+        structure.to(filename=f"{job_dir}/POSCAR", fmt="poscar")
+
+        # INCAR
+        incar = Incar({
+            'SYSTEM': material_name,
+            'ISTART': 0,
+            'ICHARG': 2,
+            'ENCUT': params['ENCUT'],
+            'EDIFF': 1e-6,
+            'EDIFFG': -0.01,
+            'NSW': 100,
+            'IBRION': 2,
+            'ISIF': 3,
+            'ISMEAR': params['ISMEAR'],
+            'SIGMA': params['SIGMA'],
+            'PREC': 'Accurate',
+            'LREAL': False,
+            'LORBIT': 11,  # DOSとPDOS出力
+        })
+
+        # 磁性体の場合はスピン分極を有効化
+        if params['is_metal'] and 'Fe' in [el.symbol for el in structure.composition.elements]:
+            incar['ISPIN'] = 2
+            incar['MAGMOM'] = [5.0 if el.symbol == 'Fe' else 0.0
+                              for el in structure.composition.elements]
+
+        incar.write_file(f"{job_dir}/INCAR")
+
+        # KPOINTS
+        kpoints = Kpoints.automatic_density(structure, kppa=params['kppa'])
+        kpoints.write_file(f"{job_dir}/KPOINTS")
+
+        # パラメータ情報を保存
+        with open(f"{job_dir}/params.json", 'w') as f:
+            json.dump(params, f, indent=2)
+
+        print(f"✓ Setup complete: {material_name}")
+        print(f"  ENCUT: {params['ENCUT']} eV")
+        print(f"  k-mesh: {kpoints.kpts[0]}")
+        print(f"  ISMEAR: {params['ISMEAR']} ({'metal' if params['is_metal'] else 'insulator'})")
+
+    def run_workflow(self, materials_dict):
+        """複数材料のワークフローを実行
+
+        Args:
+            materials_dict (dict): {material_name: Structure} の辞書
+        """
+
+        for name, structure in materials_dict.items():
+            print(f"\n{'='*50}")
+            print(f"Processing: {name}")
+            print(f"{'='*50}")
+
+            self.setup_calculation(name, structure)
+
+            # 実際の計算実行はジョブスクリプト経由
+            # job_dir = os.path.join(self.base_dir, name)
+            # os.chdir(job_dir)
+            # subprocess.run(['sbatch', 'submit.sh'])
+            # os.chdir('../..')
+
+        print(f"\n{'='*50}")
+        print(f"All setups complete!")
+        print(f"Results will be saved in: {self.base_dir}/")
+        print(f"{'='*50}")
+
+    def analyze_results(self):
+        """全材料の結果解析"""
+
+        results = []
+
+        for material_dir in os.listdir(self.base_dir):
+            vasprun_path = os.path.join(self.base_dir, material_dir, 'vasprun.xml')
+
+            if os.path.exists(vasprun_path):
+                vr = Vasprun(vasprun_path)
+
+                results.append({
+                    'Material': material_dir,
+                    'Energy (eV/atom)': vr.final_energy / len(vr.final_structure),
+                    'Volume (Å³/atom)': vr.final_structure.volume / len(vr.final_structure),
+                    'Lattice a (Å)': vr.final_structure.lattice.a,
+                    'Converged': vr.converged
+                })
+
+        import pandas as pd
+        df = pd.DataFrame(results)
+        print("\n=== Results Summary ===")
+        print(df.to_string(index=False))
+
+        df.to_csv(f"{self.base_dir}/summary.csv", index=False)
+        print(f"\nResults saved: {self.base_dir}/summary.csv")
+
+        return df
+
+
+# ===========================
+# 使用例
+# ===========================
+
+if __name__ == "__main__":
+    # ワークフロー初期化
+    workflow = VASPWorkflow(base_dir='multi_material_workflow')
+
+    # Materials Projectから構造取得（またはローカルで定義）
+    # api_key = "YOUR_MP_API_KEY"
+    # mpr = MPRester(api_key)
+
+    # ここではローカルで構造を定義
+    from pymatgen.core import Lattice
+
+    materials = {
+        'Si': Structure(
+            Lattice.cubic(5.43),
+            ["Si", "Si"],
+            [[0, 0, 0], [0.25, 0.25, 0.25]]
+        ),
+        'GaAs': Structure(
+            Lattice.cubic(5.65),
+            ["Ga", "As"],
+            [[0, 0, 0], [0.25, 0.25, 0.25]]
+        ),
+        'NaCl': Structure(
+            Lattice.cubic(5.64),
+            ["Na", "Cl"],
+            [[0, 0, 0], [0.5, 0.5, 0.5]]
+        ),
+        'Fe': Structure(
+            Lattice.cubic(2.87),
+            ["Fe", "Fe"],
+            [[0, 0, 0], [0.5, 0.5, 0.5]]  # BCC構造
+        ),
+    }
+
+    # ワークフロー実行
+    workflow.run_workflow(materials)
+
+    # 結果解析（全計算完了後）
+    # workflow.analyze_results()
+</code></pre>
+                    <p><strong>このワークフローの特徴</strong>:</p>
+                    <ul>
+                        <li>材料の化学組成から自動的に金属/絶縁体を判定</li>
+                        <li>各元素の推奨ENCUTを考慮して最適値を設定</li>
+                        <li>原子数に応じてk点密度を調整（大規模系は自動的に粗く）</li>
+                        <li>磁性体（Fe等）は自動的にスピン分極計算を有効化</li>
+                        <li>パラメータをJSON形式で保存し、再現性を確保</li>
+                        <li>結果解析機能で全材料の比較を自動化</li>
+                    </ul>
+                    <p><strong>拡張可能性</strong>: このワークフローは、Materials Project APIとの連携、エラーハンドリング（Custodian）、ジョブ投入の自動化（FireWorks）など、さらなる拡張が可能です（第7章で詳述）。</p>
+                </details>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>1.10 参考文献</h2>
+
+            <ol>
+                <li>Kresse, G., & Hafner, J. (1993). "Ab initio molecular dynamics for liquid metals." <em>Physical Review B</em>, 47(1), 558-561. https://doi.org/10.1103/PhysRevB.47.558</li>
+
+                <li>Kresse, G., & Furthmüller, J. (1996). "Efficient iterative schemes for ab initio total-energy calculations using a plane-wave basis set." <em>Physical Review B</em>, 54(16), 11169-11186. https://doi.org/10.1103/PhysRevB.54.11169</li>
+
+                <li>Blöchl, P. E. (1994). "Projector augmented-wave method." <em>Physical Review B</em>, 50(24), 17953-17979. https://doi.org/10.1103/PhysRevB.50.17953</li>
+
+                <li>Hohenberg, P., & Kohn, W. (1964). "Inhomogeneous Electron Gas." <em>Physical Review</em>, 136(3B), B864-B871. https://doi.org/10.1103/PhysRev.136.B864</li>
+
+                <li>Kohn, W., & Sham, L. J. (1965). "Self-Consistent Equations Including Exchange and Correlation Effects." <em>Physical Review</em>, 140(4A), A1133-A1138. https://doi.org/10.1103/PhysRev.140.A1133</li>
+
+                <li>Perdew, J. P., Burke, K., & Ernzerhof, M. (1996). "Generalized Gradient Approximation Made Simple." <em>Physical Review Letters</em>, 77(18), 3865-3868. https://doi.org/10.1103/PhysRevLett.77.3865</li>
+
+                <li>Sholl, D., & Steckel, J. A. (2022). <em>Density Functional Theory: A Practical Introduction</em> (2nd ed.). Wiley. (特に第3-5章)</li>
+
+                <li>Martin, R. M. (2020). <em>Electronic Structure: Basic Theory and Practical Methods</em> (2nd ed.). Cambridge University Press. (包括的なDFT理論)</li>
+
+                <li>Ong, S. P., et al. (2013). "Python Materials Genomics (pymatgen): A robust, open-source python library for materials analysis." <em>Computational Materials Science</em>, 68, 314-319. https://doi.org/10.1016/j.commatsci.2012.10.028</li>
+
+                <li>Jain, A., et al. (2013). "Commentary: The Materials Project: A materials genome approach to accelerating materials innovation." <em>APL Materials</em>, 1(1), 011002. https://doi.org/10.1063/1.4812323</li>
+
+                <li>VASP公式ドキュメント: <a href="https://www.vasp.at/wiki/index.php/The_VASP_Manual" target="_blank">https://www.vasp.at/wiki/</a> (最新の使用方法とパラメータ説明)</li>
+
+                <li>常行真司 (2018). 『計算機マテリアルデザイン入門』. 森北出版. (日本語の標準的教科書)</li>
+            </ol>
+        </section>
+
+        <section style="text-align: center; margin-top: 3rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; max-width: 600px; margin: 0 auto;">
+                <a href="index.html" style="color: var(--accent-green); text-decoration: none; font-weight: 600;">← シリーズ目次に戻る</a>
+                <a href="chapter-2.html" style="padding: 1rem 2rem; background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">第2章へ進む →</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p><strong>著者</strong>: CT Knowledge Hub Content Team</p>
+        <p><strong>最終更新</strong>: 2025-10-31</p>
+        <p><strong>ライセンス</strong>: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a></p>
+        <p>&copy; 2025 CT Terakoya. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</body>
+</html>
