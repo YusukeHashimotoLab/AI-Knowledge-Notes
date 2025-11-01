@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 2: 分子軌道理論と電子構造 - 材料化学入門</title>
+    <meta name="description" content="LCAO法、Hückel理論、tight-bindingモデル、バンド理論、状態密度の理論とPython実践。">
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif; line-height: 1.8; color: #2c3e50; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+        h1, h2, h3 { color: #2c3e50; margin-top: 2rem; }
+        h1 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 10px; }
+        h2 { border-left: 5px solid #f5576c; padding-left: 15px; background: linear-gradient(to right, rgba(245,87,108,0.1), transparent); }
+        .code-block { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
+        .equation { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 1rem 0; border-radius: 5px; }
+        .exercise { background: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 1.5rem 0; border-radius: 8px; }
+        .solution { background: #f0f0f0; padding: 15px; margin-top: 10px; border-radius: 5px; }
+        .reference { background: white; padding: 15px; margin: 10px 0; border-left: 3px solid #f5576c; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .mermaid { background: white; padding: 20px; border-radius: 10px; margin: 1.5rem 0; }
+    </style>
+</head>
+<body>
+    <h1>Chapter 2: 分子軌道理論と電子構造</h1>
+
+    <h2>2.1 LCAO法とH₂分子の分子軌道</h2>
+    <p>LCAO（Linear Combination of Atomic Orbitals、原子軌道の線形結合）法は、分子軌道を原子軌道の重ね合わせで表現する基本的手法です。H₂分子では、2つの1s原子軌道から結合性軌道σと反結合性軌道σ*が形成されます。</p>
+
+    <div class="equation">
+        $$\psi_{\sigma} = c_1 \phi_A + c_2 \phi_B, \quad \psi_{\sigma^*} = c_1 \phi_A - c_2 \phi_B$$
+        <p>$\phi_A, \phi_B$: 原子A, Bの1s軌道、$c_1, c_2$: LCAO係数</p>
+    </div>
+
+    <h3>Python実装: H₂分子のLCAO計算</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def h2_lcao(r, alpha=-13.6, beta=-1.5):
+    """
+    H2分子のLCAO近似によるエネルギー準位計算
+
+    Parameters:
+    r: 核間距離 (Å)
+    alpha: クーロン積分 (eV)
+    beta: 共鳴積分 (eV、距離依存)
+    """
+    # 重なり積分（簡易モデル）
+    S = np.exp(-r / 1.0)
+
+    # ハミルトニアン行列
+    H = np.array([[alpha, beta], [beta, alpha]])
+    overlap = np.array([[1, S], [S, 1]])
+
+    # 一般化固有値問題 H|ψ⟩ = E S|ψ⟩
+    eigenvalues, eigenvectors = np.linalg.eigh(H, overlap)
+
+    return eigenvalues, eigenvectors, S
+
+# 平衡核間距離付近での計算
+r_eq = 0.74  # Å
+E, psi, S = h2_lcao(r_eq)
+
+print(f"H2分子（r = {r_eq} Å）のLCAO計算:")
+print(f"結合性軌道 σ: {E[0]:.3f} eV")
+print(f"反結合性軌道 σ*: {E[1]:.3f} eV")
+print(f"HOMO-LUMO gap: {E[1] - E[0]:.3f} eV")
+
+# エネルギーダイアグラム
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+# 核間距離依存性
+r_range = np.linspace(0.5, 3.0, 100)
+E_sigma = []
+E_sigma_star = []
+
+for r in r_range:
+    E_temp, _, _ = h2_lcao(r)
+    E_sigma.append(E_temp[0])
+    E_sigma_star.append(E_temp[1])
+
+ax1.plot(r_range, E_sigma, label='σ (結合性)', color='#f093fb', linewidth=2.5)
+ax1.plot(r_range, E_sigma_star, label='σ* (反結合性)', color='#f5576c', linewidth=2.5)
+ax1.axvline(x=r_eq, color='gray', linestyle='--', alpha=0.5, label=f'r_eq = {r_eq} Å')
+ax1.set_xlabel('核間距離 (Å)', fontsize=12)
+ax1.set_ylabel('エネルギー (eV)', fontsize=12)
+ax1.set_title('H₂分子軌道のエネルギー準位', fontsize=14, fontweight='bold')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# 軌道エネルギー図
+levels = [alpha, E[0], E[1]]
+labels = ['1s (原子)', 'σ', 'σ*']
+colors = ['#2c3e50', '#f093fb', '#f5576c']
+
+for i, (level, label, color) in enumerate(zip(levels, labels, colors)):
+    if i == 0:
+        ax2.hlines(level, 0, 0.8, color=color, linewidth=4, label=label)
+        ax2.hlines(level, 2.2, 3, color=color, linewidth=4)
+    else:
+        ax2.hlines(level, 1.2, 1.8, color=color, linewidth=4, label=label)
+    ax2.text(1.5 if i > 0 else 0.4, level-0.5, label, ha='center', fontsize=11, fontweight='bold')
+
+ax2.set_xlim(-0.2, 3.2)
+ax2.set_ylim(-16, -10)
+ax2.set_ylabel('エネルギー (eV)', fontsize=12)
+ax2.set_title('H₂分子軌道エネルギー図', fontsize=14, fontweight='bold')
+ax2.set_xticks([0.4, 1.5, 2.6])
+ax2.set_xticklabels(['H 1s', 'H₂', 'H 1s'], fontsize=11)
+ax2.grid(axis='y', alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('h2_lcao.png', dpi=300)
+plt.show()
+</code></pre>
+
+    <h2>2.2 Hückel理論と芳香族性</h2>
+    <p>Hückel理論は、π共役系分子の電子構造を簡略化して扱う半経験的手法です。ベンゼンC₆H₆など、環状共役系の安定化（芳香族性）を説明できます。</p>
+
+    <div class="equation">
+        $$E_k = \alpha + 2\beta \cos\left(\frac{2\pi k}{N}\right), \quad k = 0, 1, \ldots, N-1$$
+        <p>環状共役系（N個の炭素原子）のエネルギー準位。α: クーロン積分、β: 共鳴積分</p>
+    </div>
+
+    <h3>Python実装: Hückel理論（ベンゼン・ナフタレン）</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def huckel_cyclic(N, alpha=0, beta=-1):
+    """環状共役系のHückel理論計算"""
+    energies = [alpha + 2 * beta * np.cos(2 * np.pi * k / N) for k in range(N)]
+    return sorted(energies, reverse=True)
+
+def huckel_matrix(adjacency, alpha=0, beta=-1):
+    """一般的な共役系のHückel理論（ハミルトニアン行列法）"""
+    H = alpha * np.eye(len(adjacency)) + beta * adjacency
+    eigenvalues = np.linalg.eigvalsh(H)
+    return sorted(eigenvalues, reverse=True)
+
+# ベンゼン（C6H6）
+benzene_adjacency = np.array([
+    [0, 1, 0, 0, 0, 1],
+    [1, 0, 1, 0, 0, 0],
+    [0, 1, 0, 1, 0, 0],
+    [0, 0, 1, 0, 1, 0],
+    [0, 0, 0, 1, 0, 1],
+    [1, 0, 0, 0, 1, 0]
+])
+
+E_benzene = huckel_matrix(benzene_adjacency)
+E_pi_total = sum(E_benzene[:3]) * 2  # 6個のπ電子、下3準位に2個ずつ
+delocalization_energy = E_pi_total - 6 * (-1)  # 3つの独立した二重結合と比較
+
+print("ベンゼンのHückel計算:")
+print(f"エネルギー準位: {[f'{E:.3f}β' for E in E_benzene]}")
+print(f"全π電子エネルギー: {E_pi_total:.3f}β")
+print(f"非局在化エネルギー: {delocalization_energy:.3f}β = {delocalization_energy * (-75):.1f} kJ/mol")
+print(f"（β ≈ -75 kJ/molと仮定）")
+
+# ナフタレン（C10H8）
+naphthalene_adjacency = np.array([
+    [0,1,0,0,0,0,0,0,1,0],
+    [1,0,1,0,0,0,0,0,0,0],
+    [0,1,0,1,0,0,0,0,0,0],
+    [0,0,1,0,1,0,0,0,0,1],
+    [0,0,0,1,0,1,0,0,0,0],
+    [0,0,0,0,1,0,1,0,0,0],
+    [0,0,0,0,0,1,0,1,0,0],
+    [0,0,0,0,0,0,1,0,1,0],
+    [1,0,0,0,0,0,0,1,0,1],
+    [0,0,0,1,0,0,0,0,1,0]
+])
+
+E_naphthalene = huckel_matrix(naphthalene_adjacency)
+
+print("\nナフタレンのHückel計算:")
+print(f"エネルギー準位（下5準位）: {[f'{E:.3f}β' for E in E_naphthalene[:5]]}")
+
+# エネルギー準位図の比較
+fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+
+for ax, energies, title, n_electrons in zip(axes, [E_benzene, E_naphthalene[:5]],
+                                             ['ベンゼン (C₆H₆)', 'ナフタレン (C₁₀H₈)'],
+                                             [6, 10]):
+    for i, E in enumerate(energies):
+        color = '#f093fb' if i < n_electrons // 2 else '#2c3e50'
+        ax.hlines(E, 0.2, 0.8, color=color, linewidth=4)
+        electrons = '↑↓' if i < n_electrons // 2 else ''
+        ax.text(0.85, E, f'{E:.2f}β  {electrons}', va='center', fontsize=11)
+
+    ax.axhline(y=0, color='gray', linestyle='--', alpha=0.5, label='α')
+    ax.set_ylim(-2.5, 2.5)
+    ax.set_xlim(0, 1.2)
+    ax.set_ylabel('エネルギー / β', fontsize=12)
+    ax.set_title(title, fontsize=14, fontweight='bold')
+    ax.set_xticks([])
+    ax.grid(axis='y', alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('huckel_aromatics.png', dpi=300)
+plt.show()
+</code></pre>
+
+    <h2>2.3 Tight-bindingモデルとバンド構造</h2>
+    <p>Tight-bindingモデルは、周期系（1次元鎖、2次元格子）の電子状態をHückel理論の拡張として扱います。Blochの定理により、波数k依存のバンド構造E(k)が得られます。</p>
+
+    <div class="equation">
+        $$E(k) = \alpha + 2\beta \cos(ka)$$
+        <p>1次元tight-bindingモデル。a: 格子定数、k: 波数（-π/a ≤ k ≤ π/a）</p>
+    </div>
+
+    <h3>Python実装: 1D・2D tight-bindingバンド構造</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# 1D tight-binding
+def band_1d(k, a=1.0, alpha=0, beta=-1):
+    """1次元tight-bindingバンド"""
+    return alpha + 2 * beta * np.cos(k * a)
+
+# 2D tight-binding (正方格子)
+def band_2d_square(kx, ky, a=1.0, alpha=0, beta=-1):
+    """2次元正方格子のtight-bindingバンド"""
+    return alpha + 2 * beta * (np.cos(kx * a) + np.cos(ky * a))
+
+# 1Dバンド構造
+a = 1.0
+k_1d = np.linspace(-np.pi/a, np.pi/a, 200)
+E_1d = band_1d(k_1d, a)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+ax1.plot(k_1d, E_1d, color='#f093fb', linewidth=2.5)
+ax1.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+ax1.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
+ax1.set_xlabel('波数 k (単位: π/a)', fontsize=12)
+ax1.set_ylabel('エネルギー E(k) / β', fontsize=12)
+ax1.set_title('1次元tight-bindingバンド構造', fontsize=14, fontweight='bold')
+ax1.set_xticks([-np.pi, 0, np.pi])
+ax1.set_xticklabels(['-π/a', '0', 'π/a'])
+ax1.grid(True, alpha=0.3)
+
+bandwidth = 4 * abs(-1)  # 2|β| × 2
+ax1.text(0, 1.5, f'バンド幅: {bandwidth}|β|', fontsize=12, ha='center',
+         bbox=dict(boxstyle='round', facecolor='white', edgecolor='#f5576c', linewidth=2))
+
+# 2Dバンド構造（正方格子）
+kx = ky = np.linspace(-np.pi/a, np.pi/a, 100)
+KX, KY = np.meshgrid(kx, ky)
+E_2d = band_2d_square(KX, KY, a)
+
+contour = ax2.contourf(KX, KY, E_2d, levels=20, cmap='RdPu')
+ax2.contour(KX, KY, E_2d, levels=10, colors='black', linewidths=0.5, alpha=0.3)
+plt.colorbar(contour, ax=ax2, label='エネルギー E(k) / β')
+ax2.set_xlabel('kx (単位: π/a)', fontsize=12)
+ax2.set_ylabel('ky (単位: π/a)', fontsize=12)
+ax2.set_title('2次元正方格子のtight-bindingバンド', fontsize=14, fontweight='bold')
+ax2.set_xticks([-np.pi, 0, np.pi])
+ax2.set_xticklabels(['-π/a', '0', 'π/a'])
+ax2.set_yticks([-np.pi, 0, np.pi])
+ax2.set_yticklabels(['-π/a', '0', 'π/a'])
+
+plt.tight_layout()
+plt.savefig('tight_binding_bands.png', dpi=300)
+plt.show()
+
+print("1D tight-bindingバンド:")
+print(f"バンド幅: {bandwidth}|β|")
+print(f"エネルギー範囲: [{2*(-1):.1f}β, {-2*(-1):.1f}β]")
+</code></pre>
+
+    <h2>2.4 状態密度（DOS）とFermi準位</h2>
+    <p>状態密度（Density of States, DOS）D(E)は、エネルギーE付近の電子状態の数を表します。Fermi準位μは、温度T=0で最も高いエネルギーの占有準位です。</p>
+
+    <div class="equation">
+        $$D(E) = \frac{1}{L}\sum_k \delta(E - E_k) \approx \frac{1}{2\pi|dE/dk|}$$
+        <p>1次元系のDOS。バンド端（dE/dk = 0）でDOSが発散（van Hove特異点）。</p>
+    </div>
+
+    <h3>Python実装: DOSとFermi面可視化</h3>
+    <pre class="code-block"><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy import integrate
+
+def dos_1d(E, alpha=0, beta=-1):
+    """1D tight-bindingモデルのDOS（解析解）"""
+    E_min, E_max = alpha + 2*beta, alpha - 2*beta
+    if E_min <= E <= E_max:
+        return 1 / (np.pi * np.sqrt(4*beta**2 - (E - alpha)**2))
+    else:
+        return 0.0
+
+def calculate_fermi_level(n_electrons, N_sites, alpha=0, beta=-1):
+    """Fermi準位の計算（電子数から）"""
+    E_range = np.linspace(alpha + 2*beta, alpha - 2*beta, 1000)
+    dos_values = [dos_1d(E, alpha, beta) for E in E_range]
+
+    # 累積電子数を計算
+    for i, E_f in enumerate(E_range):
+        n_filled = integrate.quad(lambda E: dos_1d(E, alpha, beta),
+                                  alpha + 2*beta, E_f)[0] * N_sites
+        if n_filled >= n_electrons:
+            return E_f
+
+    return alpha - 2*beta
+
+# DOSプロット
+E = np.linspace(2*(-1), -2*(-1), 500)
+dos = [dos_1d(e) for e in E]
+
+# 半充填（n_electrons = N_sites）のFermi準位
+E_fermi = calculate_fermi_level(100, 100)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+ax1.plot(dos, E, color='#f093fb', linewidth=2.5)
+ax1.axhline(y=E_fermi, color='#f5576c', linestyle='--', linewidth=2, label=f'Fermi準位: {E_fermi:.3f}β')
+ax1.fill_betweenx(E, 0, dos, where=(E <= E_fermi), alpha=0.3, color='#f5576c', label='占有準位')
+ax1.set_xlabel('状態密度 DOS(E)', fontsize=12)
+ax1.set_ylabel('エネルギー E / β', fontsize=12)
+ax1.set_title('1次元tight-bindingモデルのDOS', fontsize=14, fontweight='bold')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# 2DバンドのFermi面
+kx = ky = np.linspace(-np.pi, np.pi, 200)
+KX, KY = np.meshgrid(kx, ky)
+E_2d = band_2d_square(KX, KY)
+
+# 半充填（E_f = 0）のFermi面
+contour = ax2.contourf(KX, KY, E_2d, levels=50, cmap='RdPu')
+fermi_contour = ax2.contour(KX, KY, E_2d, levels=[0], colors='blue', linewidths=3)
+ax2.clabel(fermi_contour, inline=True, fontsize=10, fmt='Fermi面')
+plt.colorbar(contour, ax=ax2, label='エネルギー E(k) / β')
+ax2.set_xlabel('kx (単位: π/a)', fontsize=12)
+ax2.set_ylabel('ky (単位: π/a)', fontsize=12)
+ax2.set_title('2次元正方格子のFermi面（半充填）', fontsize=14, fontweight='bold')
+ax2.set_xticks([-np.pi, 0, np.pi])
+ax2.set_xticklabels(['-π/a', '0', 'π/a'])
+ax2.set_yticks([-np.pi, 0, np.pi])
+ax2.set_yticklabels(['-π/a', '0', 'π/a'])
+
+plt.tight_layout()
+plt.savefig('dos_fermi.png', dpi=300)
+plt.show()
+
+print(f"1D DOS積分（全バンド）: {integrate.quad(lambda E: dos_1d(E), 2*(-1), -2*(-1))[0]:.3f}")
+print(f"（理論値: 1.0 = 1 state/site）")
+</code></pre>
+
+    <div class="mermaid">
+        flowchart TD
+            A[原子軌道] --> B[LCAO法]
+            B --> C[分子軌道]
+            C --> D1[小分子<br/>H2, O2等]
+            C --> D2[共役系<br/>ベンゼン等]
+
+            D2 --> E[Hückel理論]
+            E --> F[芳香族性<br/>4n+2則]
+
+            B --> G[周期系への拡張]
+            G --> H[Tight-binding]
+            H --> I1[1Dバンド]
+            H --> I2[2Dバンド]
+
+            I1 --> J[状態密度<br/>DOS]
+            I2 --> J
+            J --> K[Fermi準位<br/>Fermi面]
+
+            style A fill:#2c3e50,stroke:#f5576c,stroke-width:2px,color:#fff
+            style C fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff
+            style H fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff
+            style K fill:#f5576c,stroke:#f093fb,stroke-width:2px,color:#fff
+    </div>
+
+    <h2>演習問題</h2>
+
+    <div class="exercise">
+        <h3>問題1（Easy）: H₂分子のLCAO係数</h3>
+        <p>H₂分子の結合性軌道σと反結合性軌道σ*のLCAO係数を、等核二原子分子の対称性から決定せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+            <p>等核二原子分子（H-H）では、2つの原子が等価なため、LCAO係数は対称性で決まる。</p>
+            <p><strong>結合性軌道σ</strong>: ψ_σ = c(φ_A + φ_B)、偶関数（対称）</p>
+            <p><strong>反結合性軌道σ*</strong>: ψ_σ* = c(φ_A - φ_B)、奇関数（反対称）</p>
+            <p>規格化条件から、c = 1/√(2(1+S)) (σ)、c = 1/√(2(1-S)) (σ*)、Sは重なり積分。</p>
+<pre class="code-block"><code class="language-python">import numpy as np
+
+# S = 0.6と仮定（典型的なH2の重なり積分）
+S = 0.6
+
+c_sigma = 1 / np.sqrt(2 * (1 + S))
+c_sigma_star = 1 / np.sqrt(2 * (1 - S))
+
+print(f"結合性軌道σのLCAO係数: c = {c_sigma:.3f}")
+print(f"反結合性軌道σ*のLCAO係数: c = {c_sigma_star:.3f}")
+print(f"σ軌道: ψ = {c_sigma:.3f}(φ_A + φ_B)")
+print(f"σ*軌道: ψ = {c_sigma_star:.3f}(φ_A - φ_B)")
+</code></pre>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題2（Easy）: ベンゼンのHückel 4n+2則</h3>
+        <p>ベンゼン（C₆H₆）が芳香族性を示す理由を、Hückel則（4n+2個のπ電子）で説明せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+            <p>ベンゼンはπ電子を6個持つ（4×1 + 2 = 6、n=1）。Hückel則により、4n+2個のπ電子を持つ環状共役系は、全ての結合性π軌道が完全に占有され、エネルギー的に特別に安定化される（芳香族性）。</p>
+<pre class="code-block"><code class="language-python"># ベンゼンのエネルギー準位（Hückel理論、環状N=6）
+N = 6
+alpha, beta = 0, -1
+
+energies = [alpha + 2 * beta * np.cos(2 * np.pi * k / N) for k in range(N)]
+energies_sorted = sorted(energies, reverse=True)
+
+print(f"ベンゼンのπ軌道エネルギー準位:")
+for i, E in enumerate(energies_sorted):
+    electrons = '↑↓' if i < 3 else ''  # 6個のπ電子、下3準位に2個ずつ
+    print(f"準位{i+1}: {E:.3f}β  {electrons}")
+
+E_total = sum(energies_sorted[:3]) * 2
+E_ref = 3 * 2 * (alpha + beta)  # 3つの独立したC=C二重結合
+delocalization_energy = E_total - E_ref
+
+print(f"\n非局在化エネルギー: {delocalization_energy:.3f}β")
+print(f"（β ≈ -75 kJ/molで約{delocalization_energy * (-75):.0f} kJ/mol）")
+print(f"→ 芳香族安定化により、ベンゼンは極めて安定")
+</code></pre>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題3（Easy）: 1D tight-bindingバンド幅</h3>
+        <p>1次元tight-bindingモデル E(k) = α + 2β cos(ka) のバンド幅を求め、βの物理的意味を説明せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+            <p>バンド幅 = E_max - E_min = (α + 2β) - (α - 2β) = 4|β|</p>
+            <p><strong>βの物理的意味</strong>: 共鳴積分（transfer integral）。隣接サイト間の電子の飛び移りやすさを表す。|β|が大きいほど、電子は動きやすく（伝導性高）、バンド幅が広い。</p>
+<pre class="code-block"><code class="language-python">beta_values = np.array([-0.5, -1.0, -2.0])  # eV
+
+for beta in beta_values:
+    bandwidth = 4 * abs(beta)
+    print(f"β = {beta:.1f} eV: バンド幅 = {bandwidth:.1f} eV")
+
+print("\n|β|が大きい → バンド幅広い → 有効質量小 → 高移動度")
+</code></pre>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題4（Medium）: ナフタレンのHückel計算</h3>
+        <p>ナフタレン（C₁₀H₈）のHückel理論で、全π電子エネルギーとHOMO-LUMOギャップを計算せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+<pre class="code-block"><code class="language-python">def huckel_naphthalene():
+    # ナフタレンの隣接行列（10個の炭素原子）
+    adj = np.array([
+        [0,1,0,0,0,0,0,0,1,0],
+        [1,0,1,0,0,0,0,0,0,0],
+        [0,1,0,1,0,0,0,0,0,0],
+        [0,0,1,0,1,0,0,0,0,1],
+        [0,0,0,1,0,1,0,0,0,0],
+        [0,0,0,0,1,0,1,0,0,0],
+        [0,0,0,0,0,1,0,1,0,0],
+        [0,0,0,0,0,0,1,0,1,0],
+        [1,0,0,0,0,0,0,1,0,1],
+        [0,0,0,1,0,0,0,0,1,0]
+    ])
+
+    alpha, beta = 0, -1
+    H = alpha * np.eye(10) + beta * adj
+    eigenvalues = sorted(np.linalg.eigvalsh(H), reverse=True)
+
+    # 10個のπ電子、下5準位に2個ずつ
+    E_total = sum(eigenvalues[:5]) * 2
+    HOMO = eigenvalues[4]
+    LUMO = eigenvalues[5]
+    gap = LUMO - HOMO
+
+    print("ナフタレンのHückel計算結果:")
+    print(f"全エネルギー準位: {[f'{E:.3f}β' for E in eigenvalues]}")
+    print(f"\n全π電子エネルギー: {E_total:.3f}β = {E_total * (-75):.1f} kJ/mol")
+    print(f"HOMO: {HOMO:.3f}β")
+    print(f"LUMO: {LUMO:.3f}β")
+    print(f"HOMO-LUMOギャップ: {gap:.3f}β = {gap * (-75) * 1.036:.2f} eV")
+    print(f"（β ≈ -75 kJ/mol ≈ -0.78 eVと仮定）")
+
+    return eigenvalues, E_total, gap
+
+eigenvalues, E_total, gap = huckel_naphthalene()
+</code></pre>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題5（Medium）: 1D DOSのvan Hove特異点</h3>
+        <p>1次元tight-bindingモデルのDOSがバンド端で発散する理由を、dE/dkの振る舞いから説明せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+            <p>D(E) ∝ 1/|dE/dk|。バンド端（k = 0, π/a）では、dE/dk = 0となり、DOSが発散する（van Hove特異点）。</p>
+<pre class="code-block"><code class="language-python">def dos_and_derivative():
+    k = np.linspace(-np.pi, np.pi, 200)
+    E = 2 * np.cos(k)  # α=0, β=-1の場合
+    dE_dk = -2 * np.sin(k)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    # E(k)とdE/dk
+    ax1.plot(k, E, label='E(k)', color='#f093fb', linewidth=2)
+    ax1.plot(k, dE_dk, label='dE/dk', color='#f5576c', linewidth=2)
+    ax1.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
+    ax1.axvline(x=np.pi, color='gray', linestyle='--', alpha=0.5)
+    ax1.axvline(x=-np.pi, color='gray', linestyle='--', alpha=0.5)
+    ax1.set_xlabel('波数 k', fontsize=12)
+    ax1.set_ylabel('E(k), dE/dk', fontsize=12)
+    ax1.set_title('E(k)とdE/dk', fontsize=14)
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+
+    # DOS
+    E_range = np.linspace(-2, 2, 500)
+    dos = [dos_1d(e) for e in E_range]
+
+    ax2.plot(dos, E_range, color='#f093fb', linewidth=2)
+    ax2.axhline(y=2, color='#f5576c', linestyle='--', label='バンド端（k=0）')
+    ax2.axhline(y=-2, color='#f5576c', linestyle='--', label='バンド端（k=π）')
+    ax2.set_xlabel('DOS(E)', fontsize=12)
+    ax2.set_ylabel('エネルギー E / β', fontsize=12)
+    ax2.set_title('1D DOS（van Hove特異点）', fontsize=14)
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('van_hove_singularity.png', dpi=300)
+    plt.show()
+
+    print("k = 0（バンド頂）: dE/dk = 0 → DOS発散")
+    print("k = ±π/a（バンド底）: dE/dk = 0 → DOS発散")
+    print("これらがvan Hove特異点。1D特有の現象。")
+
+dos_and_derivative()
+</code></pre>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題6（Medium）: Fermi準位と金属・絶縁体</h3>
+        <p>1D tight-bindingモデルで、半充填（n=1電子/サイト）と四分の一充填（n=0.5）のFermi準位を計算し、金属・絶縁体の違いを議論せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+<pre class="code-block"><code class="language-python">def fermi_level_analysis():
+    # 半充填（n=1）
+    E_f_half = 0  # α = 0の場合、対称性からE_f = 0
+
+    # 四分の一充填（n=0.5）
+    # DOS積分: ∫_{-2}^{E_f} DOS(E) dE = 0.5
+    # 数値的に解く
+    from scipy.optimize import fsolve
+
+    def equation(E_f):
+        integral, _ = integrate.quad(lambda E: dos_1d(E), -2, E_f)
+        return integral - 0.5
+
+    E_f_quarter = fsolve(equation, -1)[0]
+
+    print("1D tight-bindingモデルのFermi準位:")
+    print(f"半充填（n=1）: E_f = {E_f_half:.3f}β （バンド中央）")
+    print(f"四分の一充填（n=0.5）: E_f = {E_f_quarter:.3f}β")
+
+    print("\n金属・絶縁体の判定:")
+    print("半充填: E_fがバンド中央 → DOS(E_f) ≠ 0 → 金属")
+    print("四分の一充填: E_fがバンド内部 → DOS(E_f) ≠ 0 → 金属")
+    print("\n1Dバンドが完全に充填（n=2）または空（n=0）の場合のみ絶縁体")
+    print("（実際には、1Dでは格子歪み（Peierls転移）で絶縁体化）")
+
+    return E_f_half, E_f_quarter
+
+E_f_half, E_f_quarter = fermi_level_analysis()
+</code></pre>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題7（Hard）: グラフェンのtight-bindingバンド構造</h3>
+        <p>グラフェン（ハニカム格子）のtight-bindingバンド構造をK点（Dirac点）で線形分散E(k) ∝ |k-K|となることを示せ。簡略化して、最近接相互作用のみ考慮せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+            <p>グラフェンのハニカム格子は、2つのサブラティスA, Bから成る。K点付近での展開により、線形分散（Diracコーン）が得られる。</p>
+<pre class="code-block"><code class="language-python">def graphene_tight_binding():
+    """グラフェンの簡略tight-bindingバンド構造"""
+    # K点の座標
+    K_x = 4 * np.pi / (3 * np.sqrt(3))
+    K_y = 0
+
+    # K点周りの小さな波数範囲
+    delta_k = 0.3
+    kx = np.linspace(K_x - delta_k, K_x + delta_k, 100)
+    ky = np.linspace(-delta_k, delta_k, 100)
+    KX, KY = np.meshgrid(kx, ky)
+
+    # K点周りの線形分散（簡略化）
+    a = 1.42 * np.sqrt(3)  # グラフェン格子定数（Å）
+    v_F = 3 * (-1) * a / 2  # Fermi速度（β単位）
+
+    E_plus = v_F * np.sqrt((KX - K_x)**2 + KY**2)
+    E_minus = -v_F * np.sqrt((KX - K_x)**2 + KY**2)
+
+    fig = plt.figure(figsize=(12, 5))
+    ax1 = fig.add_subplot(121, projection='3d')
+    ax2 = fig.add_subplot(122)
+
+    # 3DプロットDiracコーン
+    ax1.plot_surface(KX, KY, E_plus, cmap='Reds', alpha=0.8)
+    ax1.plot_surface(KX, KY, E_minus, cmap='Blues', alpha=0.8)
+    ax1.set_xlabel('kx', fontsize=11)
+    ax1.set_ylabel('ky', fontsize=11)
+    ax1.set_zlabel('E(k) / β', fontsize=11)
+    ax1.set_title('グラフェンのDiracコーン（K点）', fontsize=13, fontweight='bold')
+
+    # 2Dコンター
+    contour = ax2.contourf(KX, KY, E_plus, levels=20, cmap='Reds', alpha=0.6)
+    contour2 = ax2.contourf(KX, KY, E_minus, levels=20, cmap='Blues', alpha=0.6)
+    ax2.scatter([K_x], [0], color='black', s=100, zorder=5, label='K点（Dirac点）')
+    ax2.set_xlabel('kx', fontsize=12)
+    ax2.set_ylabel('ky', fontsize=12)
+    ax2.set_title('エネルギー等高線図', fontsize=13, fontweight='bold')
+    ax2.legend()
+
+    plt.tight_layout()
+    plt.savefig('graphene_dirac_cone.png', dpi=300)
+    plt.show()
+
+    print("グラフェンのK点周りの線形分散:")
+    print(f"E(k) = ±v_F|k-K|, v_F ≈ {abs(v_F):.2f}|β|a")
+    print("これがDiracコーン。電子が質量ゼロのDirac粒子として振る舞う。")
+
+graphene_tight_binding()
+</code></pre>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題8（Hard）: Peierls転移と1D金属の不安定性</h3>
+        <p>1次元金属が格子歪み（Peierls転移）により絶縁体化する理由を、バンドギャップの開口とエネルギー利得から説明せよ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+            <p>半充填の1Dバンドは、周期aの格子が2aに倍周期化すると、Brillouin zone境界k=π/(2a)でバンドギャップΔが開く。占有準位のエネルギー低下が格子歪みエネルギーを上回るため、Peierls転移が自発的に起こる。</p>
+<pre class="code-block"><code class="language-python">def peierls_transition():
+    """Peierls転移の簡略モデル"""
+    k = np.linspace(-np.pi, np.pi, 200)
+
+    # 通常のバンド（周期a）
+    E_normal = 2 * np.cos(k)
+
+    # Peierls歪み後（周期2a、ギャップΔ）
+    Delta = 0.5  # β単位
+    E_lower = np.sqrt((2 * np.cos(k))**2 + Delta**2) - Delta
+    E_upper = np.sqrt((2 * np.cos(k))**2 + Delta**2) + Delta
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(k, E_normal, label='歪みなし', color='gray', linestyle='--', linewidth=2)
+    plt.plot(k, E_lower, label='歪み後（占有バンド）', color='#f093fb', linewidth=2.5)
+    plt.plot(k, E_upper, label='歪み後（空バンド）', color='#f5576c', linewidth=2.5)
+    plt.axhline(y=0, color='black', linestyle='-', linewidth=1, label='Fermi準位（半充填）')
+    plt.fill_between(k, -3, E_lower, where=(E_lower <= 0), alpha=0.2, color='#f093fb')
+
+    plt.axvspan(-np.pi/2, np.pi/2, alpha=0.1, color='yellow', label='新しいBZ（周期2a）')
+    plt.xlabel('波数 k (単位: π/a)', fontsize=12)
+    plt.ylabel('エネルギー E(k) / β', fontsize=12)
+    plt.title('Peierls転移によるバンドギャップ開口', fontsize=14, fontweight='bold')
+    plt.xticks([-np.pi, -np.pi/2, 0, np.pi/2, np.pi], ['-π/a', '-π/(2a)', '0', 'π/(2a)', 'π/a'])
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig('peierls_transition.png', dpi=300)
+    plt.show()
+
+    # エネルギー利得計算
+    E_gain = integrate.quad(lambda k: (E_lower - E_normal) * (E_lower <= 0), -np.pi, np.pi)[0]
+    print(f"Peierls転移:")
+    print(f"バンドギャップ: Δ = {Delta:.2f}β")
+    print(f"エネルギー利得（1サイトあたり）: {E_gain/(2*np.pi):.4f}β")
+    print("この利得が格子歪みエネルギーを上回る → 1D金属は不安定")
+
+peierls_transition()
+</code></pre>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題9（Hard）: Hückel理論の限界とDFTとの比較</h3>
+        <p>ベンゼンのHOMO-LUMOギャップをHückel理論とDFT（B3LYP/6-31G*レベル）で計算し、差の原因を議論せよ。PySCFを使用。</p>
+        <div class="solution">
+            <h4>解答</h4>
+<pre class="code-block"><code class="language-python"># Hückel理論
+E_huckel = huckel_cyclic(6)
+HOMO_huckel = E_huckel[2]  # 3番目の準位（0-indexed）
+LUMO_huckel = E_huckel[3]
+gap_huckel = LUMO_huckel - HOMO_huckel
+
+print("ベンゼンのHOMO-LUMOギャップ比較:")
+print(f"Hückel理論: {gap_huckel:.3f}β = {gap_huckel * (-75) * 1.036:.2f} eV")
+print("（β ≈ -75 kJ/mol ≈ -0.78 eVと仮定）")
+
+# DFT計算（PySCF使用、実際に実行する場合）
+print("\nDFT（B3LYP/6-31G*）:")
+print("実験/計算値: 約4.8-5.5 eV")
+print("（参考: Atkins & de Paula, 実験値約4.9 eV）")
+
+print("\nHückel理論の限界:")
+print("1. 電子間相互作用を無視（一電子近似）")
+print("2. 励起状態のエネルギーを過小評価")
+print("3. σ電子の影響を考慮しない")
+print("4. βが経験的パラメータ（厳密な値なし）")
+
+print("\nDFT（密度汎関数理論）:")
+print("1. 電子間相互作用を考慮（交換相関汎関数）")
+print("2. 全電子（σ + π）を扱う")
+print("3. 定量的精度が高い")
+print("4. Hückel理論は定性的理解に有用")
+</code></pre>
+<p><strong>結論</strong>: Hückel理論のギャップ（約1.6 eV）は、実験値（約4.9 eV）より大幅に小さい。これは電子間相互作用とσ電子の無視による。Hückel理論は芳香族性の定性的理解には有用だが、定量的予測にはDFTが必要。</p>
+        </div>
+    </div>
+
+    <div class="exercise">
+        <h3>問題10（Hard）: 2Dバンド構造の有効質量</h3>
+        <p>2次元正方格子tight-bindingモデルで、Γ点（k=0）周りの有効質量m*を計算し、m* ∝ 1/β²となることを示せ。</p>
+        <div class="solution">
+            <h4>解答</h4>
+            <p>有効質量は、m* = ħ²/(∂²E/∂k²)で定義される。2D正方格子ではE(k) = α + 2β(cos k_x a + cos k_y a)。</p>
+<pre class="code-block"><code class="language-python">import scipy.constants as const
+
+def effective_mass_2d():
+    a = 3.0e-10  # 格子定数（m）
+    beta_eV = -1.0  # eV
+    beta_J = beta_eV * const.e  # J
+
+    # Γ点（k=0）での2階微分
+    # E(k) = α + 2β(cos kx*a + cos ky*a)
+    # ∂²E/∂kx² |_{k=0} = -2β a²
+
+    d2E_dk2 = -2 * beta_J * a**2
+
+    # 有効質量
+    m_star = const.hbar**2 / d2E_dk2
+    m_e = const.m_e  # 電子質量
+
+    m_ratio = m_star / m_e
+
+    print("2D正方格子の有効質量（Γ点）:")
+    print(f"∂²E/∂kx² = -2β a² = {d2E_dk2:.3e} J·m²")
+    print(f"有効質量 m* = ħ²/(∂²E/∂kx²) = {m_star:.3e} kg")
+    print(f"m*/m_e = {m_ratio:.3f}")
+
+    print(f"\nβ依存性:")
+    beta_values = np.array([-0.5, -1.0, -2.0])
+    for beta in beta_values:
+        m_star_temp = const.hbar**2 / (-2 * beta * const.e * a**2)
+        print(f"β = {beta:.1f} eV: m* = {m_star_temp/m_e:.3f} m_e")
+
+    print("\nm* ∝ 1/|β|: βが大きい → バンド幅広い → 有効質量小 → 高移動度")
+
+effective_mass_2d()
+</code></pre>
+        </div>
+    </div>
+
+    <h2>参考文献</h2>
+    <div class="reference">
+        <p>1. McWeeny, R. (1992). <em>Methods of Molecular Quantum Mechanics</em>, 2nd Edition. Academic Press, pp. 112-158.</p>
+    </div>
+    <div class="reference">
+        <p>2. Szabo, A., Ostlund, N.S. (1996). <em>Modern Quantum Chemistry: Introduction to Advanced Electronic Structure Theory</em>. Dover, pp. 108-142.</p>
+    </div>
+    <div class="reference">
+        <p>3. Ashcroft, N.W., Mermin, N.D. (1976). <em>Solid State Physics</em>. Brooks Cole, pp. 133-165.</p>
+    </div>
+    <div class="reference">
+        <p>4. Martin, R.M. (2004). <em>Electronic Structure: Basic Theory and Practical Methods</em>. Cambridge University Press, pp. 45-89.</p>
+    </div>
+    <div class="reference">
+        <p>5. Levine, I.N. (2013). <em>Quantum Chemistry</em>, 7th Edition. Pearson, pp. 456-498.</p>
+    </div>
+    <div class="reference">
+        <p>6. Hoffmann, R. (1963). "An Extended Hückel Theory". <em>Journal of Chemical Physics</em>, 39, 1397-1412.</p>
+    </div>
+    <div class="reference">
+        <p>7. Hückel, E. (1931). "Quantentheoretische Beiträge zum Benzolproblem". <em>Zeitschrift für Physik</em>, 70, 204-286.</p>
+    </div>
+    <div class="reference">
+        <p>8. PySCF Documentation: <em>Python-based Simulations of Chemistry Framework</em>. https://pyscf.org/</p>
+    </div>
+
+    <h2>学習目標確認</h2>
+    <div class="exercise">
+        <h3>レベル1（基本理解）</h3>
+        <ul>
+            <li>LCAO法、Hückel理論、tight-bindingモデルの基本概念を理解している</li>
+            <li>結合性軌道と反結合性軌道の違いを説明できる</li>
+            <li>芳香族性（4n+2則）とバンド構造の基礎を理解している</li>
+        </ul>
+
+        <h3>レベル2（実践スキル）</h3>
+        <ul>
+            <li>PythonでH₂分子のLCAO計算、ベンゼンのHückel計算ができる</li>
+            <li>1D・2D tight-bindingバンド構造を計算し可視化できる</li>
+            <li>DOSとFermi準位を計算し、金属・絶縁体を判定できる</li>
+        </ul>
+
+        <h3>レベル3（応用力）</h3>
+        <ul>
+            <li>ナフタレン等の複雑共役系のHückel計算とHOMO-LUMO解析ができる</li>
+            <li>グラフェンのDiracコーン、Peierls転移などの高度な概念を理解し計算できる</li>
+            <li>Hückel理論とDFTの違いを理解し、適切に使い分けられる</li>
+            <li>バンド構造から有効質量・移動度を予測し、材料設計に応用できる</li>
+        </ul>
+    </div>
+
+    <p style="text-align: center; margin-top: 3rem;">
+        <a href="chapter-1.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">← Chapter 1: 化学結合の基礎</a> |
+        <a href="index.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">シリーズトップに戻る</a> |
+        <a href="chapter-3.html" style="color: #f5576c; text-decoration: none; font-weight: bold;">Chapter 3: 結晶場理論 →</a>
+    </p>
+</body>
+</html>

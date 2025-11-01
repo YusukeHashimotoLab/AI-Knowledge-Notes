@@ -1,0 +1,2269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第5章: Python実践：HPCワークフロー自動化 - HPCクラスタ入門 - CT Dojo</title>
+    <meta name="description" content="PythonによるHPCワークフロー自動化、ジョブ管理、データパイプライン構築、モニタリングと最適化を学ぶ実践ガイド。">
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- MathJax for mathematical expressions -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --accent-green: #11998e;
+            --accent-lime: #38ef7d;
+            --primary-dark: #2c3e50;
+            --secondary-dark: #34495e;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #ecf0f1;
+            --white: #ffffff;
+            --code-bg: #2d2d2d;
+            --border-light: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem 3rem;
+        }
+
+        section {
+            background: var(--white);
+            margin-bottom: 2rem;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%) 1;
+        }
+
+        h3 {
+            color: var(--secondary-dark);
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        h4 {
+            color: var(--text-dark);
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        p, li {
+            margin-bottom: 0.75rem;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            border-left: 4px solid var(--accent-green);
+        }
+
+        code {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .note {
+            background: #e8f5e9;
+            border-left: 4px solid var(--success);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .warning {
+            background: #fff3e0;
+            border-left: 4px solid var(--warning);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .danger {
+            background: #ffebee;
+            border-left: 4px solid var(--danger);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 6px;
+            margin: 1.5rem 0;
+            border: 1px solid var(--border-light);
+        }
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem 1.5rem;
+            margin-top: 3rem;
+        }
+
+        footer a {
+            color: var(--accent-lime);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.05) 0%, rgba(56, 239, 125, 0.05) 100%);
+            border: 2px solid var(--accent-green);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .learning-objectives h3 {
+            color: var(--accent-green);
+            margin-top: 0;
+        }
+
+        .learning-level {
+            margin: 1rem 0;
+            padding-left: 1rem;
+        }
+
+        .learning-level strong {
+            color: var(--accent-green);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+            }
+
+            main {
+                padding: 0 1rem 2rem;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>第5章: Python実践：HPCワークフロー自動化</h1>
+        <p>Python Practice: HPC Workflow Automation</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="chapter-1.html">第1章: HPC基礎</a></li>
+            <li><a href="chapter-2.html">第2章: ジョブスケジューラ</a></li>
+            <li><a href="chapter-3.html">第3章: 並列計算とMPI</a></li>
+            <li><a href="chapter-4.html">第4章: ストレージ管理</a></li>
+            <li><a href="chapter-5.html">第5章: Python自動化</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="intro">
+            <h2>5.1 本章の概要</h2>
+            <p>本章では、PythonによるHPCワークフローの自動化手法を実践的に学びます。ジョブ管理、データパイプライン構築、モニタリング、最適化までを含む総合的なワークフロー構築スキルを身につけます。</p>
+
+            <div class="learning-objectives">
+                <h3>学習目標</h3>
+                <div class="learning-level">
+                    <strong>レベル1: 基本理解</strong>
+                    <ul>
+                        <li>HPCワークフローの設計パターン理解（map-reduce、parameter sweep、DAG）</li>
+                        <li>Pythonジョブ管理ライブラリの特徴把握（Dask、Ray、Parsl）</li>
+                        <li>データパイプラインの基本構造理解（ETL、checkpointing）</li>
+                    </ul>
+                </div>
+                <div class="learning-level">
+                    <strong>レベル2: 実践スキル</strong>
+                    <ul>
+                        <li>Slurmジョブ自動投入システムの実装</li>
+                        <li>Dask/Parslによる並列ワークフロー構築</li>
+                        <li>データパイプラインのcheckpointing機能実装</li>
+                        <li>ジョブ監視ダッシュボードの作成</li>
+                    </ul>
+                </div>
+                <div class="learning-level">
+                    <strong>レベル3: 応用力</strong>
+                    <ul>
+                        <li>複雑な多段階ワークフローの設計と実装</li>
+                        <li>適応的リソース割り当ての実装</li>
+                        <li>フォールトトレラントな分散計算フレームワークの構築</li>
+                        <li>パラメータ最適化ワークフローの自動化</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="workflow-design">
+            <h2>5.2 HPCワークフロー設計</h2>
+            <h3>5.2.1 ワークフローパターン</h3>
+            <p>HPCワークフローの代表的な設計パターンは以下の通りです：</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>パターン</th>
+                        <th>特徴</th>
+                        <th>適用例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Map-Reduce</td>
+                        <td>並列処理→結果集約</td>
+                        <td>大規模データ解析、統計処理</td>
+                    </tr>
+                    <tr>
+                        <td>Parameter Sweep</td>
+                        <td>パラメータ空間探索</td>
+                        <td>最適化、感度解析</td>
+                    </tr>
+                    <tr>
+                        <td>DAG (Directed Acyclic Graph)</td>
+                        <td>依存関係を持つタスク連鎖</td>
+                        <td>多段階シミュレーション、ML pipeline</td>
+                    </tr>
+                    <tr>
+                        <td>Master-Worker</td>
+                        <td>動的タスク割り当て</td>
+                        <td>不均衡負荷、動的生成タスク</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>5.2.2 エラーハンドリングとフォールトトレランス</h3>
+            <p>HPC環境では長時間実行ジョブが一般的なため、robust なエラーハンドリング戦略が不可欠です：</p>
+
+            <ul>
+                <li><strong>Checkpointing</strong>: 定期的な中間状態保存により、障害時に最新チェックポイントから再開</li>
+                <li><strong>Retry Logic</strong>: 一時的障害に対する自動リトライ（exponential backoff推奨）</li>
+                <li><strong>Graceful Degradation</strong>: 一部タスク失敗時も全体ワークフローは継続</li>
+                <li><strong>Dead Letter Queue</strong>: 繰り返し失敗するタスクを隔離して後処理</li>
+            </ul>
+
+            <div class="mermaid">
+                graph TB
+                    A[ワークフロー開始] --> B[タスク実行]
+                    B --> C{成功?}
+                    C -->|Yes| D[次タスク]
+                    C -->|No| E{リトライ回数<br/>上限以内?}
+                    E -->|Yes| F[Wait with<br/>Exponential Backoff]
+                    F --> B
+                    E -->|No| G[Dead Letter Queue]
+                    G --> H[管理者通知]
+                    D --> I[結果保存]
+                    I --> J[ワークフロー完了]
+            </div>
+
+            <h3>5.2.3 リソース見積もりとスケジューリング</h3>
+            <p>適切なリソース見積もりは、キューイング時間短縮と無駄なリソース消費回避の両立に重要です：</p>
+
+            <p><strong>コスト見積もり公式：</strong></p>
+            <p>\[
+            \text{Total Cost} = N_{\text{nodes}} \times T_{\text{walltime}} \times C_{\text{cost\_per\_node\_hour}}
+            \]</p>
+
+            <p><strong>スループット最適化：</strong></p>
+            <p>\[
+            \text{Throughput} = \frac{N_{\text{tasks}}}{\max(T_{\text{queue}}, T_{\text{exec}}/N_{\text{parallel}})}
+            \]</p>
+
+            <div class="note">
+                <strong>ベストプラクティス：</strong> まず小規模テストラン（1-2ノード）で実際の実行時間を計測し、その結果を基にリソース要求を決定します。過剰なリソース要求はキュー待ち時間を増加させます。
+            </div>
+        </section>
+
+        <section id="job-management">
+            <h2>5.3 Pythonジョブ管理ライブラリ</h2>
+
+            <h3>5.3.1 主要ライブラリ比較</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ライブラリ</th>
+                        <th>特徴</th>
+                        <th>適用シーン</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Dask Distributed</td>
+                        <td>NumPy/Pandas互換の並列処理</td>
+                        <td>データ解析、配列演算</td>
+                    </tr>
+                    <tr>
+                        <td>Ray</td>
+                        <td>スケーラブルML、低レイテンシ</td>
+                        <td>強化学習、リアルタイム推論</td>
+                    </tr>
+                    <tr>
+                        <td>Parsl</td>
+                        <td>HPC特化、複雑DAGサポート</td>
+                        <td>科学計算ワークフロー、parameter sweep</td>
+                    </tr>
+                    <tr>
+                        <td>subprocess/fabric</td>
+                        <td>シンプルなリモート実行</td>
+                        <td>小規模自動化、既存スクリプト統合</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>5.3.2 Slurm Job Manager実装</h3>
+            <p>包括的なSlurmジョブ管理クラスの実装例です：</p>
+
+            <pre><code class="language-python">#!/usr/bin/env python3
+"""
+Slurmジョブ管理クラス
+機能: ジョブ投入、監視、キャンセル、リソース推定
+"""
+
+import subprocess
+import re
+import time
+import json
+from pathlib import Path
+from typing import Dict, List, Optional
+from dataclasses import dataclass, asdict
+
+@dataclass
+class JobConfig:
+    """ジョブ設定データクラス"""
+    job_name: str
+    nodes: int
+    ntasks_per_node: int
+    cpus_per_task: int
+    time: str  # HH:MM:SS形式
+    partition: str
+    mem_per_cpu: str  # e.g., "4G"
+    output: str
+    error: str
+    executable: str
+    args: List[str]
+    modules: List[str] = None
+    env_vars: Dict[str, str] = None
+
+class SlurmJobManager:
+    """Slurmジョブ管理マネージャー"""
+
+    def __init__(self, workspace: Path):
+        """
+        Parameters
+        ----------
+        workspace : Path
+            ワークスペースディレクトリ（ログ、スクリプト保存先）
+        """
+        self.workspace = Path(workspace)
+        self.workspace.mkdir(parents=True, exist_ok=True)
+        self.scripts_dir = self.workspace / "scripts"
+        self.logs_dir = self.workspace / "logs"
+        self.scripts_dir.mkdir(exist_ok=True)
+        self.logs_dir.mkdir(exist_ok=True)
+
+    def generate_script(self, config: JobConfig) -> Path:
+        """
+        Slurmジョブスクリプト生成
+
+        Parameters
+        ----------
+        config : JobConfig
+            ジョブ設定
+
+        Returns
+        -------
+        Path
+            生成されたスクリプトファイルパス
+        """
+        script_path = self.scripts_dir / f"{config.job_name}.sh"
+
+        # SBATCHヘッダー生成
+        lines = [
+            "#!/bin/bash",
+            f"#SBATCH --job-name={config.job_name}",
+            f"#SBATCH --nodes={config.nodes}",
+            f"#SBATCH --ntasks-per-node={config.ntasks_per_node}",
+            f"#SBATCH --cpus-per-task={config.cpus_per_task}",
+            f"#SBATCH --time={config.time}",
+            f"#SBATCH --partition={config.partition}",
+            f"#SBATCH --mem-per-cpu={config.mem_per_cpu}",
+            f"#SBATCH --output={config.output}",
+            f"#SBATCH --error={config.error}",
+            "",
+            "# エラー時即座終了",
+            "set -e",
+            "",
+        ]
+
+        # モジュールロード
+        if config.modules:
+            lines.append("# モジュールロード")
+            for module in config.modules:
+                lines.append(f"module load {module}")
+            lines.append("")
+
+        # 環境変数設定
+        if config.env_vars:
+            lines.append("# 環境変数設定")
+            for key, value in config.env_vars.items():
+                lines.append(f"export {key}={value}")
+            lines.append("")
+
+        # 実行コマンド
+        args_str = " ".join(config.args)
+        lines.extend([
+            "# ジョブ実行",
+            f"{config.executable} {args_str}",
+            "",
+            "# 終了ステータス記録",
+            "echo \"Job completed with status: $?\"",
+        ])
+
+        with open(script_path, "w") as f:
+            f.write("\n".join(lines))
+
+        script_path.chmod(0o755)  # 実行権限付与
+        return script_path
+
+    def submit(self, config: JobConfig) -> str:
+        """
+        ジョブ投入
+
+        Parameters
+        ----------
+        config : JobConfig
+            ジョブ設定
+
+        Returns
+        -------
+        str
+            ジョブID（例: "12345"）
+        """
+        script_path = self.generate_script(config)
+
+        # sbatch実行
+        result = subprocess.run(
+            ["sbatch", str(script_path)],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        # ジョブID抽出（"Submitted batch job 12345"形式）
+        match = re.search(r"Submitted batch job (\d+)", result.stdout)
+        if not match:
+            raise RuntimeError(f"Failed to parse job ID from: {result.stdout}")
+
+        job_id = match.group(1)
+
+        # メタデータ保存
+        metadata = {
+            "job_id": job_id,
+            "config": asdict(config),
+            "script_path": str(script_path),
+            "submit_time": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+        metadata_path = self.logs_dir / f"{job_id}_metadata.json"
+        with open(metadata_path, "w") as f:
+            json.dump(metadata, f, indent=2)
+
+        return job_id
+
+    def get_status(self, job_id: str) -> Dict:
+        """
+        ジョブステータス取得
+
+        Parameters
+        ----------
+        job_id : str
+            ジョブID
+
+        Returns
+        -------
+        Dict
+            ステータス情報（state, reason, elapsed_time等）
+        """
+        result = subprocess.run(
+            ["scontrol", "show", "job", job_id],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+            return {"state": "NOT_FOUND"}
+
+        # scontrol出力をパース
+        status = {}
+        for line in result.stdout.split("\n"):
+            if "JobState=" in line:
+                match = re.search(r"JobState=(\S+)", line)
+                status["state"] = match.group(1) if match else "UNKNOWN"
+            if "Reason=" in line:
+                match = re.search(r"Reason=(\S+)", line)
+                status["reason"] = match.group(1) if match else "None"
+            if "RunTime=" in line:
+                match = re.search(r"RunTime=(\S+)", line)
+                status["elapsed_time"] = match.group(1) if match else "00:00:00"
+
+        return status
+
+    def cancel(self, job_id: str) -> bool:
+        """
+        ジョブキャンセル
+
+        Parameters
+        ----------
+        job_id : str
+            ジョブID
+
+        Returns
+        -------
+        bool
+            成功時True
+        """
+        result = subprocess.run(
+            ["scancel", job_id],
+            capture_output=True,
+            text=True
+        )
+        return result.returncode == 0
+
+    def wait_for_completion(self, job_id: str, check_interval: int = 30) -> str:
+        """
+        ジョブ完了まで待機
+
+        Parameters
+        ----------
+        job_id : str
+            ジョブID
+        check_interval : int
+            ステータス確認間隔（秒）
+
+        Returns
+        -------
+        str
+            最終ステータス（COMPLETED、FAILED等）
+        """
+        while True:
+            status = self.get_status(job_id)
+            state = status.get("state", "UNKNOWN")
+
+            # 終了状態の判定
+            if state in ["COMPLETED", "FAILED", "CANCELLED", "TIMEOUT", "NOT_FOUND"]:
+                return state
+
+            # 実行中ステータス表示
+            print(f"Job {job_id}: {state} (elapsed: {status.get('elapsed_time', 'N/A')})")
+            time.sleep(check_interval)
+
+# 使用例
+if __name__ == "__main__":
+    manager = SlurmJobManager(workspace=Path("./workspace"))
+
+    # ジョブ設定
+    config = JobConfig(
+        job_name="my_simulation",
+        nodes=2,
+        ntasks_per_node=8,
+        cpus_per_task=4,
+        time="01:00:00",
+        partition="standard",
+        mem_per_cpu="4G",
+        output="logs/sim_%j.out",
+        error="logs/sim_%j.err",
+        executable="mpirun",
+        args=["-np", "16", "./my_mpi_app"],
+        modules=["openmpi/4.1.1", "python/3.9"],
+        env_vars={"OMP_NUM_THREADS": "4"}
+    )
+
+    # ジョブ投入
+    job_id = manager.submit(config)
+    print(f"Submitted job: {job_id}")
+
+    # 完了待機
+    final_status = manager.wait_for_completion(job_id)
+    print(f"Job {job_id} finished with status: {final_status}")
+</code></pre>
+
+            <h3>5.3.3 Dask Distributedによる並列計算</h3>
+            <p>DaskはPandasやNumPyと互換性の高いAPIを提供し、大規模データ解析を並列化できます：</p>
+
+            <pre><code class="language-python">#!/usr/bin/env python3
+"""
+Dask Distributed によるHPCクラスタ並列計算
+"""
+
+from dask.distributed import Client, LocalCluster
+import dask.array as da
+import numpy as np
+
+# HPCクラスタ上でDaskスケジューラを起動する場合
+# $ dask-scheduler --port 8786
+# $ dask-worker scheduler-node:8786 --nprocs 4 --nthreads 2
+
+def setup_dask_client(scheduler_address: str = None):
+    """
+    Daskクライアント設定
+
+    Parameters
+    ----------
+    scheduler_address : str, optional
+        スケジューラアドレス（例: "scheduler-node:8786"）
+        Noneの場合はローカルクラスタ起動
+    """
+    if scheduler_address:
+        # 既存スケジューラに接続
+        client = Client(scheduler_address)
+    else:
+        # ローカルクラスタ起動（テスト用）
+        cluster = LocalCluster(n_workers=4, threads_per_worker=2)
+        client = Client(cluster)
+
+    print(f"Dashboard: {client.dashboard_link}")
+    return client
+
+def parallel_array_computation():
+    """大規模配列演算の並列化例"""
+    client = setup_dask_client()
+
+    # 100GB の大規模配列生成（実際にはメモリに乗らないサイズ）
+    # Daskは遅延評価で実際には計算しない
+    x = da.random.random((100000, 100000), chunks=(10000, 10000))
+    y = da.random.random((100000, 100000), chunks=(10000, 10000))
+
+    # 行列演算（実際にはタスクグラフ構築のみ）
+    z = (x + y).mean(axis=0)
+
+    # compute()で実際の並列計算実行
+    result = z.compute()
+
+    print(f"Result shape: {result.shape}")
+    print(f"Mean: {result.mean():.6f}")
+
+    client.close()
+    return result
+
+def parallel_monte_carlo_pi(n_samples: int = 1_000_000_000):
+    """
+    Monte CarloによるPI推定（並列版）
+
+    Parameters
+    ----------
+    n_samples : int
+        サンプル数（10億点デフォルト）
+    """
+    client = setup_dask_client()
+
+    # サンプル生成（チャンク分割で並列化）
+    x = da.random.uniform(-1, 1, size=n_samples, chunks=10_000_000)
+    y = da.random.uniform(-1, 1, size=n_samples, chunks=10_000_000)
+
+    # 円内判定
+    inside = (x**2 + y**2) <= 1
+
+    # PI推定（並列集約）
+    pi_estimate = 4 * inside.sum() / n_samples
+    pi_value = pi_estimate.compute()
+
+    print(f"PI estimate ({n_samples:,} samples): {pi_value:.10f}")
+    print(f"Error: {abs(pi_value - np.pi):.10f}")
+
+    client.close()
+    return pi_value
+
+if __name__ == "__main__":
+    # 並列配列演算
+    parallel_array_computation()
+
+    # 並列Monte Carlo
+    parallel_monte_carlo_pi(n_samples=1_000_000_000)
+</code></pre>
+        </section>
+
+        <section id="automated-submission">
+            <h2>5.4 ジョブ自動投入システム</h2>
+
+            <h3>5.4.1 Parameter Sweep Framework</h3>
+            <p>パラメータ空間探索を自動化するフレームワークの実装例です：</p>
+
+            <pre><code class="language-python">#!/usr/bin/env python3
+"""
+Parameter Sweep自動化フレームワーク
+多次元パラメータ空間探索とジョブ依存関係管理
+"""
+
+import itertools
+import json
+from pathlib import Path
+from typing import List, Dict, Any
+from dataclasses import dataclass
+import subprocess
+
+@dataclass
+class Parameter:
+    """パラメータ定義"""
+    name: str
+    values: List[Any]
+
+class ParameterSweepManager:
+    """Parameter Sweepマネージャー"""
+
+    def __init__(self, workspace: Path, job_template: str):
+        """
+        Parameters
+        ----------
+        workspace : Path
+            ワークスペースディレクトリ
+        job_template : str
+            Slurmジョブスクリプトテンプレートパス
+        """
+        self.workspace = Path(workspace)
+        self.workspace.mkdir(parents=True, exist_ok=True)
+        self.job_template = Path(job_template).read_text()
+        self.job_ids = []
+
+    def generate_parameter_combinations(self, parameters: List[Parameter]) -> List[Dict]:
+        """
+        パラメータ組み合わせ生成
+
+        Parameters
+        ----------
+        parameters : List[Parameter]
+            パラメータリスト
+
+        Returns
+        -------
+        List[Dict]
+            全組み合わせ辞書のリスト
+        """
+        # 各パラメータの値リストを取得
+        names = [p.name for p in parameters]
+        value_lists = [p.values for p in parameters]
+
+        # 直積（Cartesian product）で全組み合わせ生成
+        combinations = []
+        for values in itertools.product(*value_lists):
+            combo = dict(zip(names, values))
+            combinations.append(combo)
+
+        return combinations
+
+    def create_job_script(self, params: Dict, job_id: int) -> Path:
+        """
+        パラメータを埋め込んだジョブスクリプト生成
+
+        Parameters
+        ----------
+        params : Dict
+            パラメータ辞書
+        job_id : int
+            ジョブ識別番号
+
+        Returns
+        -------
+        Path
+            生成されたスクリプトパス
+        """
+        # テンプレート変数置換
+        script_content = self.job_template
+        script_content = script_content.replace("{JOB_ID}", str(job_id))
+
+        for key, value in params.items():
+            script_content = script_content.replace(f"{{{key}}}", str(value))
+
+        # スクリプト保存
+        script_path = self.workspace / f"job_{job_id:04d}.sh"
+        script_path.write_text(script_content)
+        script_path.chmod(0o755)
+
+        # パラメータメタデータ保存
+        metadata = {
+            "job_id": job_id,
+            "parameters": params,
+            "script_path": str(script_path)
+        }
+        metadata_path = self.workspace / f"job_{job_id:04d}_params.json"
+        with open(metadata_path, "w") as f:
+            json.dump(metadata, f, indent=2)
+
+        return script_path
+
+    def submit_sweep(self, parameters: List[Parameter],
+                     max_concurrent: int = None) -> List[str]:
+        """
+        Parameter Sweepジョブ一括投入
+
+        Parameters
+        ----------
+        parameters : List[Parameter]
+            パラメータリスト
+        max_concurrent : int, optional
+            同時実行数上限（Slurm依存関係で制御）
+
+        Returns
+        -------
+        List[str]
+            投入されたSlurm Job IDリスト
+        """
+        combinations = self.generate_parameter_combinations(parameters)
+        print(f"Total combinations: {len(combinations)}")
+
+        slurm_job_ids = []
+        for i, params in enumerate(combinations):
+            script_path = self.create_job_script(params, i)
+
+            # sbatch実行
+            cmd = ["sbatch"]
+
+            # 同時実行数制限（依存関係で実現）
+            if max_concurrent and i >= max_concurrent:
+                # 前のジョブが完了してから起動
+                dependency_idx = i - max_concurrent
+                dependency_job_id = slurm_job_ids[dependency_idx]
+                cmd.extend(["--dependency", f"afterok:{dependency_job_id}"])
+
+            cmd.append(str(script_path))
+
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+
+            # Job ID抽出
+            import re
+            match = re.search(r"Submitted batch job (\d+)", result.stdout)
+            if match:
+                job_id = match.group(1)
+                slurm_job_ids.append(job_id)
+                print(f"Submitted job {i:04d} (Slurm ID: {job_id}) with params: {params}")
+
+        self.job_ids = slurm_job_ids
+        return slurm_job_ids
+
+    def collect_results(self, output_pattern: str) -> List[Dict]:
+        """
+        全ジョブ結果収集
+
+        Parameters
+        ----------
+        output_pattern : str
+            出力ファイル名パターン（例: "result_{JOB_ID:04d}.json"）
+
+        Returns
+        -------
+        List[Dict]
+            結果辞書のリスト
+        """
+        results = []
+        for i in range(len(self.job_ids)):
+            # パラメータメタデータ読み込み
+            metadata_path = self.workspace / f"job_{i:04d}_params.json"
+            with open(metadata_path) as f:
+                metadata = json.load(f)
+
+            # 結果ファイル読み込み
+            output_file = self.workspace / output_pattern.replace("{JOB_ID:04d}", f"{i:04d}")
+            if output_file.exists():
+                with open(output_file) as f:
+                    result_data = json.load(f)
+
+                # パラメータと結果を統合
+                results.append({
+                    "parameters": metadata["parameters"],
+                    "result": result_data
+                })
+
+        return results
+
+# テンプレート例（template.sh）
+# #!/bin/bash
+# #SBATCH --job-name=sweep_{JOB_ID}
+# #SBATCH --output=logs/job_{JOB_ID}.out
+# #SBATCH --time=00:30:00
+#
+# python simulation.py --alpha {alpha} --beta {beta} --gamma {gamma}
+
+# 使用例
+if __name__ == "__main__":
+    manager = ParameterSweepManager(
+        workspace=Path("./sweep_workspace"),
+        job_template="template.sh"
+    )
+
+    # パラメータ定義（3次元空間: 2×3×4 = 24 combinations）
+    parameters = [
+        Parameter("alpha", [0.1, 0.5]),
+        Parameter("beta", [1.0, 2.0, 3.0]),
+        Parameter("gamma", [0.01, 0.05, 0.1, 0.5])
+    ]
+
+    # 一括投入（最大5ジョブ同時実行）
+    job_ids = manager.submit_sweep(parameters, max_concurrent=5)
+
+    print(f"\nSubmitted {len(job_ids)} jobs")
+    print("Waiting for completion...")
+
+    # 全ジョブ完了後に結果収集
+    # results = manager.collect_results("result_{JOB_ID:04d}.json")
+</code></pre>
+        </section>
+
+        <section id="data-pipeline">
+            <h2>5.5 データパイプライン構築</h2>
+
+            <h3>5.5.1 Checkpointing機能付きETLパイプライン</h3>
+            <p>障害からの自動回復機能を持つデータパイプライン実装です：</p>
+
+            <pre><code class="language-python">#!/usr/bin/env python3
+"""
+Checkpointing機能付きデータパイプライン
+ETL (Extract, Transform, Load) + フォールトトレランス
+"""
+
+import pickle
+import hashlib
+import json
+from pathlib import Path
+from typing import Any, Callable, List, Dict
+from dataclasses import dataclass
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+@dataclass
+class PipelineStage:
+    """パイプラインステージ定義"""
+    name: str
+    function: Callable
+    dependencies: List[str] = None
+
+class CheckpointedPipeline:
+    """Checkpointing機能付きパイプライン"""
+
+    def __init__(self, checkpoint_dir: Path):
+        """
+        Parameters
+        ----------
+        checkpoint_dir : Path
+            チェックポイント保存ディレクトリ
+        """
+        self.checkpoint_dir = Path(checkpoint_dir)
+        self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        self.stages = []
+        self.results = {}
+
+    def add_stage(self, name: str, function: Callable, dependencies: List[str] = None):
+        """
+        ステージ追加
+
+        Parameters
+        ----------
+        name : str
+            ステージ名
+        function : Callable
+            実行関数（引数: 依存ステージの結果辞書）
+        dependencies : List[str], optional
+            依存ステージ名リスト
+        """
+        stage = PipelineStage(name, function, dependencies or [])
+        self.stages.append(stage)
+
+    def _get_checkpoint_path(self, stage_name: str, input_hash: str) -> Path:
+        """チェックポイントファイルパス生成"""
+        return self.checkpoint_dir / f"{stage_name}_{input_hash}.pkl"
+
+    def _compute_input_hash(self, dependencies: Dict[str, Any]) -> str:
+        """入力データのハッシュ計算"""
+        # 依存データをJSON化してハッシュ化
+        data_str = json.dumps(dependencies, sort_keys=True, default=str)
+        return hashlib.md5(data_str.encode()).hexdigest()[:16]
+
+    def _load_checkpoint(self, stage_name: str, input_hash: str) -> Any:
+        """チェックポイント読み込み"""
+        checkpoint_path = self._get_checkpoint_path(stage_name, input_hash)
+        if checkpoint_path.exists():
+            with open(checkpoint_path, "rb") as f:
+                return pickle.load(f)
+        return None
+
+    def _save_checkpoint(self, stage_name: str, input_hash: str, result: Any):
+        """チェックポイント保存"""
+        checkpoint_path = self._get_checkpoint_path(stage_name, input_hash)
+        with open(checkpoint_path, "wb") as f:
+            pickle.dump(result, f)
+
+    def execute(self, force_recompute: bool = False) -> Dict[str, Any]:
+        """
+        パイプライン実行
+
+        Parameters
+        ----------
+        force_recompute : bool
+            Trueの場合、チェックポイント無視して再計算
+
+        Returns
+        -------
+        Dict[str, Any]
+            全ステージの結果辞書
+        """
+        for stage in self.stages:
+            # 依存ステージの結果取得
+            deps = {dep: self.results[dep] for dep in stage.dependencies}
+
+            # 入力ハッシュ計算
+            input_hash = self._compute_input_hash(deps)
+
+            # チェックポイント確認
+            if not force_recompute:
+                cached = self._load_checkpoint(stage.name, input_hash)
+                if cached is not None:
+                    logging.info(f"Stage '{stage.name}': Loaded from checkpoint")
+                    self.results[stage.name] = cached
+                    continue
+
+            # ステージ実行
+            logging.info(f"Stage '{stage.name}': Executing...")
+            try:
+                result = stage.function(deps)
+                self.results[stage.name] = result
+
+                # チェックポイント保存
+                self._save_checkpoint(stage.name, input_hash, result)
+                logging.info(f"Stage '{stage.name}': Completed and checkpointed")
+            except Exception as e:
+                logging.error(f"Stage '{stage.name}': Failed with error: {e}")
+                raise
+
+        return self.results
+
+# ETL例：大規模データ前処理パイプライン
+def example_etl_pipeline():
+    """ETLパイプライン実装例"""
+    pipeline = CheckpointedPipeline(checkpoint_dir=Path("./checkpoints"))
+
+    # Stage 1: Extract - データ収集
+    def extract(deps):
+        import numpy as np
+        import time
+        logging.info("Extracting data from source...")
+        time.sleep(2)  # 重い処理をシミュレート
+        data = np.random.randn(1000000, 10)  # 1M行のデータ
+        return {"raw_data": data}
+
+    pipeline.add_stage("extract", extract)
+
+    # Stage 2: Clean - データクリーニング
+    def clean(deps):
+        import numpy as np
+        import time
+        logging.info("Cleaning data...")
+        time.sleep(2)
+        data = deps["extract"]["raw_data"]
+        # 欠損値除去、外れ値処理
+        cleaned = data[~np.isnan(data).any(axis=1)]
+        return {"cleaned_data": cleaned}
+
+    pipeline.add_stage("clean", clean, dependencies=["extract"])
+
+    # Stage 3: Transform - 特徴量エンジニアリング
+    def transform(deps):
+        import numpy as np
+        import time
+        logging.info("Transforming features...")
+        time.sleep(2)
+        data = deps["clean"]["cleaned_data"]
+        # 標準化
+        mean = data.mean(axis=0)
+        std = data.std(axis=0)
+        normalized = (data - mean) / std
+        return {"features": normalized, "mean": mean, "std": std}
+
+    pipeline.add_stage("transform", transform, dependencies=["clean"])
+
+    # Stage 4: Load - 結果保存
+    def load(deps):
+        import numpy as np
+        logging.info("Saving processed data...")
+        features = deps["transform"]["features"]
+        np.save("processed_features.npy", features)
+        return {"output_path": "processed_features.npy"}
+
+    pipeline.add_stage("load", load, dependencies=["transform"])
+
+    # パイプライン実行
+    results = pipeline.execute()
+    logging.info(f"Pipeline completed. Output: {results['load']}")
+
+if __name__ == "__main__":
+    example_etl_pipeline()
+</code></pre>
+        </section>
+
+        <section id="monitoring">
+            <h2>5.6 モニタリングと最適化</h2>
+
+            <h3>5.6.1 リアルタイムジョブ監視ダッシュボード</h3>
+            <p>Streamlitを使用したインタラクティブなジョブ監視ダッシュボードの実装例です：</p>
+
+            <pre><code class="language-python">#!/usr/bin/env python3
+"""
+Streamlitベースのジョブ監視ダッシュボード
+リアルタイムジョブステータス、リソース使用率表示
+
+起動方法:
+$ streamlit run dashboard.py
+"""
+
+import streamlit as st
+import subprocess
+import re
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime
+import time
+
+def get_queue_status():
+    """Slurmキュー状態取得"""
+    result = subprocess.run(
+        ["squeue", "-u", "$USER", "-o", "%i,%j,%t,%M,%D,%C"],
+        capture_output=True,
+        text=True
+    )
+
+    if result.returncode != 0:
+        return pd.DataFrame()
+
+    # CSV形式でパース
+    lines = result.stdout.strip().split("\n")
+    if len(lines) < 2:
+        return pd.DataFrame()
+
+    data = []
+    for line in lines[1:]:  # ヘッダースキップ
+        parts = line.split(",")
+        if len(parts) >= 6:
+            data.append({
+                "JobID": parts[0],
+                "Name": parts[1],
+                "State": parts[2],
+                "Time": parts[3],
+                "Nodes": int(parts[4]),
+                "CPUs": int(parts[5])
+            })
+
+    return pd.DataFrame(data)
+
+def get_cluster_utilization():
+    """クラスタ全体のリソース使用率取得"""
+    result = subprocess.run(
+        ["sinfo", "-o", "%P,%a,%l,%D,%T,%C"],
+        capture_output=True,
+        text=True
+    )
+
+    if result.returncode != 0:
+        return pd.DataFrame()
+
+    lines = result.stdout.strip().split("\n")
+    data = []
+    for line in lines[1:]:
+        parts = line.split(",")
+        if len(parts) >= 6:
+            # CPUs: allocated/idle/other/total
+            cpu_info = parts[5]
+            match = re.match(r"(\d+)/(\d+)/(\d+)/(\d+)", cpu_info)
+            if match:
+                alloc, idle, other, total = map(int, match.groups())
+                data.append({
+                    "Partition": parts[0],
+                    "Availability": parts[1],
+                    "Time Limit": parts[2],
+                    "Nodes": int(parts[3]),
+                    "State": parts[4],
+                    "CPUs Allocated": alloc,
+                    "CPUs Idle": idle,
+                    "CPUs Total": total,
+                    "Utilization": alloc / total * 100 if total > 0 else 0
+                })
+
+    return pd.DataFrame(data)
+
+def main():
+    st.set_page_config(page_title="HPC Job Monitor", layout="wide")
+
+    st.title("🖥️ HPC Cluster Job Monitor")
+    st.markdown("Real-time Slurm job status and cluster utilization dashboard")
+
+    # サイドバー設定
+    st.sidebar.header("Settings")
+    refresh_interval = st.sidebar.slider("Refresh Interval (seconds)", 5, 60, 10)
+    auto_refresh = st.sidebar.checkbox("Auto Refresh", value=True)
+
+    # メインコンテンツ
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.header("Your Jobs")
+        jobs_df = get_queue_status()
+
+        if not jobs_df.empty:
+            # ステータス集計
+            status_counts = jobs_df["State"].value_counts()
+            st.metric("Total Jobs", len(jobs_df))
+
+            # 状態別カウント表示
+            st.dataframe(jobs_df, use_container_width=True)
+
+            # 状態別パイチャート
+            fig_pie = px.pie(
+                values=status_counts.values,
+                names=status_counts.index,
+                title="Job States Distribution"
+            )
+            st.plotly_chart(fig_pie, use_container_width=True)
+        else:
+            st.info("No running jobs")
+
+    with col2:
+        st.header("Cluster Utilization")
+        cluster_df = get_cluster_utilization()
+
+        if not cluster_df.empty:
+            # パーティション別使用率
+            fig_bar = px.bar(
+                cluster_df,
+                x="Partition",
+                y="Utilization",
+                title="CPU Utilization by Partition",
+                color="Utilization",
+                color_continuous_scale="RdYlGn_r"
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+            # 詳細テーブル
+            st.dataframe(cluster_df, use_container_width=True)
+        else:
+            st.warning("No cluster information available")
+
+    # リソース使用率タイムライン（実運用ではDBに保存したデータを表示）
+    st.header("Historical Resource Usage")
+    st.info("Feature under development - will show time-series CPU/memory usage")
+
+    # 自動更新
+    if auto_refresh:
+        time.sleep(refresh_interval)
+        st.rerun()
+
+if __name__ == "__main__":
+    main()
+</code></pre>
+
+            <h3>5.6.2 適応的リソース割り当て</h3>
+            <p>ジョブの過去実績に基づいて最適なリソースを自動推定する仕組みです：</p>
+
+            <pre><code class="language-python">#!/usr/bin/env python3
+"""
+適応的リソース割り当てシステム
+過去のジョブ実績からリソース要求を最適化
+"""
+
+import json
+import sqlite3
+from pathlib import Path
+from typing import Dict, Optional
+from dataclasses import dataclass
+import subprocess
+import re
+
+@dataclass
+class ResourceRecommendation:
+    """リソース推奨値"""
+    nodes: int
+    cpus_per_node: int
+    memory_gb: int
+    walltime_hours: float
+    confidence: float  # 0-1の信頼度
+
+class AdaptiveResourceAllocator:
+    """適応的リソース割り当て"""
+
+    def __init__(self, db_path: Path):
+        """
+        Parameters
+        ----------
+        db_path : Path
+            ジョブ履歴データベースパス
+        """
+        self.db_path = db_path
+        self._init_database()
+
+    def _init_database(self):
+        """データベース初期化"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS job_history (
+                job_id TEXT PRIMARY KEY,
+                job_name TEXT,
+                nodes INTEGER,
+                cpus_per_node INTEGER,
+                memory_gb INTEGER,
+                requested_time_hours REAL,
+                actual_time_hours REAL,
+                max_memory_gb REAL,
+                exit_code INTEGER,
+                timestamp TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+    def record_job(self, job_id: str):
+        """
+        完了ジョブの実績を記録
+
+        Parameters
+        ----------
+        job_id : str
+            Slurm Job ID
+        """
+        # sacctでジョブ情報取得
+        result = subprocess.run(
+            ["sacct", "-j", job_id, "--format=JobName,NNodes,NCPUS,ReqMem,Timelimit,Elapsed,MaxRSS,ExitCode", "-P", "-n"],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+            return
+
+        # パース
+        line = result.stdout.strip().split("\n")[0]
+        parts = line.split("|")
+
+        if len(parts) < 8:
+            return
+
+        job_name = parts[0]
+        nodes = int(parts[1]) if parts[1] else 1
+        cpus = int(parts[2]) if parts[2] else 1
+
+        # メモリ（Gc、Mcなどの単位を処理）
+        req_mem = parts[3]
+        memory_gb = self._parse_memory(req_mem)
+
+        # 時間（HH:MM:SS形式をhoursに変換）
+        requested_time = self._parse_time(parts[4])
+        actual_time = self._parse_time(parts[5])
+
+        # 最大メモリ使用量
+        max_rss = self._parse_memory(parts[6])
+
+        # 終了コード
+        exit_code = int(parts[7].split(":")[0])
+
+        # データベース保存
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO job_history VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        """, (job_id, job_name, nodes, cpus, memory_gb, requested_time, actual_time, max_rss, exit_code))
+        conn.commit()
+        conn.close()
+
+    def _parse_memory(self, mem_str: str) -> float:
+        """メモリ文字列をGBに変換"""
+        if not mem_str:
+            return 0.0
+        match = re.match(r"([\d.]+)([KMGT]?)", mem_str)
+        if not match:
+            return 0.0
+        value, unit = match.groups()
+        value = float(value)
+        unit_map = {"K": 1e-6, "M": 1e-3, "G": 1.0, "T": 1e3, "": 1e-3}
+        return value * unit_map.get(unit, 1.0)
+
+    def _parse_time(self, time_str: str) -> float:
+        """HH:MM:SS形式を時間に変換"""
+        if not time_str or time_str == "UNLIMITED":
+            return 0.0
+        parts = list(map(int, time_str.split(":")))
+        if len(parts) == 3:
+            return parts[0] + parts[1]/60 + parts[2]/3600
+        return 0.0
+
+    def recommend(self, job_name: str, safety_factor: float = 1.2) -> Optional[ResourceRecommendation]:
+        """
+        リソース推奨値計算
+
+        Parameters
+        ----------
+        job_name : str
+            ジョブ名（過去の同名ジョブから推定）
+        safety_factor : float
+            安全率（過去実績の何倍を要求するか）
+
+        Returns
+        -------
+        ResourceRecommendation or None
+            推奨値（履歴がない場合はNone）
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # 同名ジョブの成功実績を取得
+        cursor.execute("""
+            SELECT AVG(nodes), AVG(cpus_per_node), AVG(max_memory_gb), AVG(actual_time_hours), COUNT(*)
+            FROM job_history
+            WHERE job_name = ? AND exit_code = 0
+        """, (job_name,))
+
+        result = cursor.fetchone()
+        conn.close()
+
+        if not result or result[4] == 0:  # 履歴なし
+            return None
+
+        avg_nodes, avg_cpus, avg_mem, avg_time, count = result
+
+        # 安全率適用
+        rec = ResourceRecommendation(
+            nodes=int(avg_nodes * safety_factor),
+            cpus_per_node=int(avg_cpus * safety_factor),
+            memory_gb=int(avg_mem * safety_factor),
+            walltime_hours=avg_time * safety_factor,
+            confidence=min(count / 10.0, 1.0)  # 10回以上で信頼度1.0
+        )
+
+        return rec
+
+# 使用例
+if __name__ == "__main__":
+    allocator = AdaptiveResourceAllocator(db_path=Path("job_history.db"))
+
+    # ジョブ完了後に実績記録
+    allocator.record_job("12345")
+
+    # 次回同種ジョブのリソース推奨取得
+    rec = allocator.recommend("my_simulation")
+    if rec:
+        print(f"Recommended resources (confidence: {rec.confidence:.2f}):")
+        print(f"  Nodes: {rec.nodes}")
+        print(f"  CPUs/node: {rec.cpus_per_node}")
+        print(f"  Memory: {rec.memory_gb} GB")
+        print(f"  Walltime: {rec.walltime_hours:.2f} hours")
+    else:
+        print("No historical data available for this job")
+</code></pre>
+        </section>
+
+        <section id="exercises">
+            <h2>5.7 演習問題</h2>
+
+            <h3>演習1: 簡易ジョブテンプレート生成器（Easy）</h3>
+            <p>ユーザー入力からSlurmジョブスクリプトを生成するCLIツールを作成してください。</p>
+            <details>
+                <summary>解答例を表示</summary>
+                <pre><code class="language-python">#!/usr/bin/env python3
+"""
+簡易Slurmジョブテンプレート生成器
+"""
+
+def generate_slurm_script():
+    """対話式ジョブスクリプト生成"""
+    print("=== Slurm Job Script Generator ===")
+
+    # ユーザー入力
+    job_name = input("Job name: ")
+    nodes = int(input("Number of nodes: "))
+    ntasks = int(input("Tasks per node: "))
+    time = input("Walltime (HH:MM:SS): ")
+    partition = input("Partition: ")
+    command = input("Command to execute: ")
+
+    # テンプレート生成
+    script = f"""#!/bin/bash
+#SBATCH --job-name={job_name}
+#SBATCH --nodes={nodes}
+#SBATCH --ntasks-per-node={ntasks}
+#SBATCH --time={time}
+#SBATCH --partition={partition}
+#SBATCH --output={job_name}_%j.out
+#SBATCH --error={job_name}_%j.err
+
+echo "Starting job on $(hostname) at $(date)"
+
+{command}
+
+echo "Job finished at $(date)"
+"""
+
+    # ファイル保存
+    filename = f"{job_name}.sh"
+    with open(filename, "w") as f:
+        f.write(script)
+
+    print(f"\nScript saved to: {filename}")
+    return filename
+
+if __name__ == "__main__":
+    generate_slurm_script()
+</code></pre>
+            </details>
+
+            <h3>演習2: ジョブステータスチェッカー（Easy）</h3>
+            <p>複数のジョブIDを受け取り、各ジョブの状態を表形式で表示するツールを作成してください。</p>
+            <details>
+                <summary>解答例を表示</summary>
+                <pre><code class="language-python">#!/usr/bin/env python3
+"""
+複数ジョブステータス一括確認ツール
+"""
+
+import subprocess
+import re
+from typing import List, Dict
+
+def get_job_status(job_id: str) -> Dict:
+    """単一ジョブのステータス取得"""
+    result = subprocess.run(
+        ["scontrol", "show", "job", job_id],
+        capture_output=True,
+        text=True
+    )
+
+    if result.returncode != 0:
+        return {"job_id": job_id, "state": "NOT_FOUND"}
+
+    # パース
+    state = re.search(r"JobState=(\S+)", result.stdout)
+    reason = re.search(r"Reason=(\S+)", result.stdout)
+    elapsed = re.search(r"RunTime=(\S+)", result.stdout)
+
+    return {
+        "job_id": job_id,
+        "state": state.group(1) if state else "UNKNOWN",
+        "reason": reason.group(1) if reason else "None",
+        "elapsed": elapsed.group(1) if elapsed else "00:00:00"
+    }
+
+def check_multiple_jobs(job_ids: List[str]):
+    """複数ジョブステータス確認"""
+    print(f"{'Job ID':<12} {'State':<12} {'Elapsed':<12} {'Reason':<20}")
+    print("=" * 60)
+
+    for job_id in job_ids:
+        status = get_job_status(job_id)
+        print(f"{status['job_id']:<12} {status['state']:<12} {status['elapsed']:<12} {status['reason']:<20}")
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 2:
+        print("Usage: python check_jobs.py <job_id1> <job_id2> ...")
+        sys.exit(1)
+
+    job_ids = sys.argv[1:]
+    check_multiple_jobs(job_ids)
+</code></pre>
+            </details>
+
+            <h3>演習3: Parameter Sweep依存関係管理（Medium）</h3>
+            <p>前のパラメータセットが成功した場合のみ次を実行するParameter Sweepシステムを実装してください。</p>
+            <details>
+                <summary>解答例を表示</summary>
+                <pre><code class="language-python">#!/usr/bin/env python3
+"""
+依存関係管理付きParameter Sweep
+前タスク成功時のみ次を実行
+"""
+
+import subprocess
+import re
+from typing import List, Dict
+
+def submit_with_dependency(script: str, dependency_job_id: str = None) -> str:
+    """
+    依存関係付きジョブ投入
+
+    Parameters
+    ----------
+    script : str
+        ジョブスクリプトパス
+    dependency_job_id : str, optional
+        依存するジョブID（このジョブ成功後に実行）
+
+    Returns
+    -------
+    str
+        投入されたジョブID
+    """
+    cmd = ["sbatch"]
+
+    if dependency_job_id:
+        # afterok: 依存ジョブが成功（exit code 0）した場合のみ実行
+        cmd.extend(["--dependency", f"afterok:{dependency_job_id}"])
+
+    cmd.append(script)
+
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    match = re.search(r"Submitted batch job (\d+)", result.stdout)
+    if not match:
+        raise RuntimeError(f"Failed to parse job ID: {result.stdout}")
+
+    return match.group(1)
+
+def sequential_parameter_sweep(parameters: List[Dict], template: str):
+    """
+    逐次的Parameter Sweep（前タスク成功が次の実行条件）
+
+    Parameters
+    ----------
+    parameters : List[Dict]
+        パラメータ辞書リスト
+    template : str
+        ジョブスクリプトテンプレート
+    """
+    prev_job_id = None
+
+    for i, params in enumerate(parameters):
+        # テンプレート変数置換
+        script_content = template
+        for key, value in params.items():
+            script_content = script_content.replace(f"{{{key}}}", str(value))
+
+        # スクリプト保存
+        script_path = f"job_{i:04d}.sh"
+        with open(script_path, "w") as f:
+            f.write(script_content)
+
+        # 依存関係付きで投入
+        job_id = submit_with_dependency(script_path, prev_job_id)
+        print(f"Submitted job {i:04d} (ID: {job_id}) with dependency: {prev_job_id or 'None'}")
+
+        prev_job_id = job_id
+
+# テンプレート例
+template = """#!/bin/bash
+#SBATCH --job-name=sweep_{idx}
+#SBATCH --output=logs/job_{idx}.out
+#SBATCH --time=00:10:00
+
+python simulation.py --param1 {param1} --param2 {param2}
+
+# 終了コードチェック（失敗時は依存チェーンを停止）
+if [ $? -ne 0 ]; then
+    echo "Simulation failed, stopping chain"
+    exit 1
+fi
+"""
+
+# 使用例
+if __name__ == "__main__":
+    parameters = [
+        {"idx": 0, "param1": 0.1, "param2": 1.0},
+        {"idx": 1, "param1": 0.2, "param2": 1.5},
+        {"idx": 2, "param1": 0.3, "param2": 2.0},
+    ]
+
+    sequential_parameter_sweep(parameters, template)
+</code></pre>
+            </details>
+
+            <h3>演習4: ETLパイプライン実装（Medium）</h3>
+            <p>データ抽出、変換、ロードの3ステージを持つパイプラインを実装してください。各ステージでバリデーションを行い、エラー時は適切にログを記録してください。</p>
+            <details>
+                <summary>解答例を表示</summary>
+                <pre><code class="language-python">#!/usr/bin/env python3
+"""
+バリデーション付きETLパイプライン
+"""
+
+import logging
+import pandas as pd
+from pathlib import Path
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+class ETLPipeline:
+    """ETLパイプライン"""
+
+    def __init__(self, source_file: Path, output_file: Path):
+        self.source_file = Path(source_file)
+        self.output_file = Path(output_file)
+
+    def extract(self) -> pd.DataFrame:
+        """Extract: データ抽出"""
+        logging.info(f"Extracting data from {self.source_file}")
+
+        try:
+            df = pd.read_csv(self.source_file)
+            logging.info(f"Extracted {len(df)} rows, {len(df.columns)} columns")
+            return df
+        except Exception as e:
+            logging.error(f"Extraction failed: {e}")
+            raise
+
+    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Transform: データ変換とバリデーション"""
+        logging.info("Transforming data...")
+
+        # 欠損値チェック
+        missing = df.isnull().sum()
+        if missing.any():
+            logging.warning(f"Missing values detected:\n{missing[missing > 0]}")
+
+        # 欠損値除去
+        df_clean = df.dropna()
+        logging.info(f"Removed {len(df) - len(df_clean)} rows with missing values")
+
+        # 数値カラム標準化
+        numeric_cols = df_clean.select_dtypes(include=['float64', 'int64']).columns
+        for col in numeric_cols:
+            df_clean[col] = (df_clean[col] - df_clean[col].mean()) / df_clean[col].std()
+
+        logging.info(f"Standardized {len(numeric_cols)} numeric columns")
+
+        # バリデーション
+        assert len(df_clean) > 0, "No data remaining after transformation"
+        assert not df_clean.isnull().any().any(), "Unexpected missing values after cleaning"
+
+        return df_clean
+
+    def load(self, df: pd.DataFrame):
+        """Load: データ保存"""
+        logging.info(f"Loading data to {self.output_file}")
+
+        try:
+            df.to_csv(self.output_file, index=False)
+            logging.info(f"Successfully saved {len(df)} rows")
+        except Exception as e:
+            logging.error(f"Load failed: {e}")
+            raise
+
+    def run(self):
+        """パイプライン実行"""
+        try:
+            data = self.extract()
+            transformed = self.transform(data)
+            self.load(transformed)
+            logging.info("ETL pipeline completed successfully")
+        except Exception as e:
+            logging.error(f"Pipeline failed: {e}")
+            raise
+
+if __name__ == "__main__":
+    pipeline = ETLPipeline(
+        source_file="raw_data.csv",
+        output_file="processed_data.csv"
+    )
+    pipeline.run()
+</code></pre>
+            </details>
+
+            <h3>演習5: フォールトトレラント分散計算（Hard）</h3>
+            <p>タスクが失敗した場合に自動リトライ（最大3回）し、それでも失敗する場合はDead Letter Queueに送るシステムを実装してください。</p>
+            <details>
+                <summary>解答例を表示</summary>
+                <pre><code class="language-python">#!/usr/bin/env python3
+"""
+フォールトトレラント分散計算フレームワーク
+リトライ、Dead Letter Queue、エラーログ機能
+"""
+
+import time
+import logging
+from typing import Callable, Any, List
+from dataclasses import dataclass
+from pathlib import Path
+import json
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+@dataclass
+class Task:
+    """タスク定義"""
+    task_id: str
+    function: Callable
+    args: tuple
+    kwargs: dict
+    max_retries: int = 3
+    retry_delay: float = 1.0  # 秒
+
+@dataclass
+class TaskResult:
+    """タスク実行結果"""
+    task_id: str
+    success: bool
+    result: Any = None
+    error: str = None
+    attempts: int = 0
+
+class FaultTolerantExecutor:
+    """フォールトトレラントタスク実行エンジン"""
+
+    def __init__(self, dlq_path: Path):
+        """
+        Parameters
+        ----------
+        dlq_path : Path
+            Dead Letter Queueファイルパス
+        """
+        self.dlq_path = Path(dlq_path)
+        self.dlq_path.parent.mkdir(parents=True, exist_ok=True)
+        self.results = []
+
+    def execute_task(self, task: Task) -> TaskResult:
+        """
+        タスク実行（リトライ付き）
+
+        Parameters
+        ----------
+        task : Task
+            実行タスク
+
+        Returns
+        -------
+        TaskResult
+            実行結果
+        """
+        attempts = 0
+        last_error = None
+
+        while attempts < task.max_retries:
+            attempts += 1
+            try:
+                logging.info(f"Task {task.task_id}: Attempt {attempts}/{task.max_retries}")
+                result = task.function(*task.args, **task.kwargs)
+                logging.info(f"Task {task.task_id}: Success")
+                return TaskResult(task.task_id, True, result, attempts=attempts)
+
+            except Exception as e:
+                last_error = str(e)
+                logging.warning(f"Task {task.task_id}: Failed with {e}")
+
+                if attempts < task.max_retries:
+                    # Exponential backoff
+                    delay = task.retry_delay * (2 ** (attempts - 1))
+                    logging.info(f"Task {task.task_id}: Retrying in {delay:.1f}s...")
+                    time.sleep(delay)
+
+        # 最大リトライ回数到達
+        logging.error(f"Task {task.task_id}: Failed after {attempts} attempts")
+        return TaskResult(task.task_id, False, error=last_error, attempts=attempts)
+
+    def send_to_dlq(self, task: Task, result: TaskResult):
+        """
+        Dead Letter Queueに失敗タスク記録
+
+        Parameters
+        ----------
+        task : Task
+            失敗タスク
+        result : TaskResult
+            実行結果
+        """
+        dlq_entry = {
+            "task_id": task.task_id,
+            "attempts": result.attempts,
+            "error": result.error,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+        # 追記モードでJSON Lines形式で保存
+        with open(self.dlq_path, "a") as f:
+            f.write(json.dumps(dlq_entry) + "\n")
+
+        logging.error(f"Task {task.task_id} sent to DLQ: {self.dlq_path}")
+
+    def run(self, tasks: List[Task]) -> List[TaskResult]:
+        """
+        タスクリスト実行
+
+        Parameters
+        ----------
+        tasks : List[Task]
+            タスクリスト
+
+        Returns
+        -------
+        List[TaskResult]
+            実行結果リスト
+        """
+        results = []
+
+        for task in tasks:
+            result = self.execute_task(task)
+
+            if not result.success:
+                self.send_to_dlq(task, result)
+
+            results.append(result)
+
+        # サマリー
+        success_count = sum(1 for r in results if r.success)
+        logging.info(f"Execution complete: {success_count}/{len(results)} tasks succeeded")
+
+        return results
+
+# テスト用タスク関数
+def flaky_function(value: int, fail_rate: float = 0.5):
+    """確率的に失敗する関数（テスト用）"""
+    import random
+    if random.random() < fail_rate:
+        raise RuntimeError(f"Simulated failure for value {value}")
+    return value * 2
+
+# 使用例
+if __name__ == "__main__":
+    executor = FaultTolerantExecutor(dlq_path=Path("./logs/dlq.jsonl"))
+
+    # タスク定義
+    tasks = [
+        Task(f"task_{i}", flaky_function, (i,), {"fail_rate": 0.3}, max_retries=3)
+        for i in range(10)
+    ]
+
+    # 実行
+    results = executor.run(tasks)
+
+    # 結果集計
+    for result in results:
+        if result.success:
+            print(f"{result.task_id}: SUCCESS (result={result.result}, attempts={result.attempts})")
+        else:
+            print(f"{result.task_id}: FAILED (error={result.error}, attempts={result.attempts})")
+</code></pre>
+            </details>
+
+            <h3>演習6: 適応的ジョブスケジューラ（Hard）</h3>
+            <p>キューの混雑状況に応じてジョブサイズを動的に調整する適応的スケジューラを実装してください。キューが空いている時は大きなジョブを、混雑時は小さなジョブに分割して投入します。</p>
+            <details>
+                <summary>解答例を表示</summary>
+                <pre><code class="language-python">#!/usr/bin/env python3
+"""
+適応的ジョブスケジューラ
+キュー混雑度に応じてジョブサイズを動的調整
+"""
+
+import subprocess
+import re
+from typing import Dict
+from dataclasses import dataclass
+
+@dataclass
+class ClusterState:
+    """クラスタ状態"""
+    total_nodes: int
+    idle_nodes: int
+    pending_jobs: int
+    running_jobs: int
+    utilization: float
+
+@dataclass
+class JobSpec:
+    """ジョブ仕様"""
+    total_tasks: int
+    script_template: str
+    min_nodes: int = 1
+    max_nodes: int = 16
+
+class AdaptiveScheduler:
+    """適応的スケジューラ"""
+
+    def get_cluster_state(self) -> ClusterState:
+        """クラスタ状態取得"""
+        # sinfo でノード情報取得
+        result = subprocess.run(
+            ["sinfo", "-h", "-o", "%D,%T"],
+            capture_output=True,
+            text=True
+        )
+
+        total_nodes = 0
+        idle_nodes = 0
+        for line in result.stdout.strip().split("\n"):
+            parts = line.split(",")
+            if len(parts) == 2:
+                nodes = int(parts[0])
+                state = parts[1]
+                total_nodes += nodes
+                if "idle" in state.lower():
+                    idle_nodes += nodes
+
+        # squeue で実行中・待機中ジョブ数取得
+        result = subprocess.run(
+            ["squeue", "-h", "-o", "%T"],
+            capture_output=True,
+            text=True
+        )
+
+        running = result.stdout.count("RUNNING")
+        pending = result.stdout.count("PENDING")
+
+        utilization = 1 - (idle_nodes / total_nodes) if total_nodes > 0 else 1.0
+
+        return ClusterState(total_nodes, idle_nodes, pending, running, utilization)
+
+    def decide_job_size(self, job: JobSpec, state: ClusterState) -> int:
+        """
+        クラスタ状態に基づいてジョブサイズ決定
+
+        Parameters
+        ----------
+        job : JobSpec
+            ジョブ仕様
+        state : ClusterState
+            クラスタ状態
+
+        Returns
+        -------
+        int
+            割り当てノード数
+        """
+        # 利用率ベースの戦略
+        if state.utilization < 0.3:
+            # 空いている：最大サイズ
+            nodes = min(job.max_nodes, state.idle_nodes)
+        elif state.utilization < 0.7:
+            # 中程度：半分
+            nodes = min(job.max_nodes // 2, state.idle_nodes)
+        else:
+            # 混雑：最小サイズ
+            nodes = job.min_nodes
+
+        # ペンディングジョブが多い場合はさらに縮小
+        if state.pending_jobs > 10:
+            nodes = max(job.min_nodes, nodes // 2)
+
+        return max(job.min_nodes, min(nodes, job.max_nodes))
+
+    def submit_adaptive_job(self, job: JobSpec):
+        """
+        適応的ジョブ投入
+
+        Parameters
+        ----------
+        job : JobSpec
+            ジョブ仕様
+        """
+        state = self.get_cluster_state()
+        nodes = self.decide_job_size(job, state)
+
+        print(f"Cluster state: {state.utilization*100:.1f}% utilized, {state.idle_nodes} idle nodes")
+        print(f"Decision: Allocating {nodes} nodes")
+
+        # スクリプト生成
+        script = job.script_template.replace("{NODES}", str(nodes))
+        script_path = "adaptive_job.sh"
+        with open(script_path, "w") as f:
+            f.write(script)
+
+        # 投入
+        result = subprocess.run(
+            ["sbatch", script_path],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        match = re.search(r"Submitted batch job (\d+)", result.stdout)
+        if match:
+            print(f"Submitted job: {match.group(1)}")
+
+# テンプレート例
+template = """#!/bin/bash
+#SBATCH --job-name=adaptive_job
+#SBATCH --nodes={NODES}
+#SBATCH --ntasks-per-node=32
+#SBATCH --time=01:00:00
+#SBATCH --output=adaptive_%j.out
+
+echo "Running on {NODES} nodes"
+srun ./my_mpi_app
+"""
+
+# 使用例
+if __name__ == "__main__":
+    scheduler = AdaptiveScheduler()
+    job = JobSpec(
+        total_tasks=1000,
+        script_template=template,
+        min_nodes=1,
+        max_nodes=16
+    )
+
+    scheduler.submit_adaptive_job(job)
+</code></pre>
+            </details>
+        </section>
+
+        <section id="references">
+            <h2>5.8 参考文献</h2>
+            <ol>
+                <li>Rocklin, M. (2015). Dask: Parallel Computation with Blocked Algorithms and Task Scheduling. <em>Proceedings of the 14th Python in Science Conference (SciPy 2015)</em>, pp. 126-132.</li>
+                <li>Moritz, P., Nishihara, R., Wang, S., et al. (2018). Ray: A Distributed Framework for Emerging AI Applications. <em>Proceedings of OSDI 2018</em>, pp. 561-577.</li>
+                <li>Babuji, Y., Woodard, A., Li, Z., et al. (2019). Parsl: Pervasive Parallel Programming in Python. <em>Proceedings of HPDC 2019</em>, pp. 25-36.</li>
+                <li>McKinney, W. (2022). <em>Python for Data Analysis: Data Wrangling with pandas, NumPy, and Jupyter</em>, 3rd Edition. O'Reilly Media, pp. 200-280, 350-420.</li>
+                <li>Beazley, D. (2009). <em>Python Essential Reference</em>, 4th Edition. Addison-Wesley Professional, pp. 180-245.</li>
+                <li>Deelman, E., Vahi, K., Juve, G., et al. (2015). Pegasus: A Workflow Management System for Science Automation. <em>Future Generation Computer Systems</em>, 46, pp. 17-35.</li>
+                <li>Amstutz, P., Crusoe, M. R., Tijanić, N., et al. (2016). Common Workflow Language, v1.0. <em>figshare</em>. https://doi.org/10.6084/m9.figshare.3115156.v2</li>
+            </ol>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 CT Dojo. All rights reserved.</p>
+        <p><a href="../index.html">CTドメインホームへ戻る</a> | <a href="index.html">HPCクラスタ入門トップへ</a></p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+</body>
+</html>

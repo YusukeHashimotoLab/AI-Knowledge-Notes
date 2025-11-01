@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第1章: Gaussianの基礎と量子化学計算 - Gaussian入門 - CT Dojo</title>
+    <meta name="description" content="Gaussianの基礎、分子軌道理論、GTO基底関数、HF/DFT法、入力ファイル構造を学ぶ。水分子のHF計算からHOMO-LUMO、TD-DFT計算まで実践。">
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- MathJax for mathematical expressions -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --accent-green: #11998e;
+            --accent-lime: #38ef7d;
+            --primary-dark: #2c3e50;
+            --secondary-dark: #34495e;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #ecf0f1;
+            --white: #ffffff;
+            --code-bg: #2d2d2d;
+            --border-light: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        section {
+            background: var(--white);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(90deg, var(--accent-green), var(--accent-lime)) 1;
+        }
+
+        h3 {
+            color: var(--secondary-dark);
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem;
+        }
+
+        h4 {
+            color: var(--secondary-dark);
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        pre code {
+            background: none;
+            color: #f8f8f2;
+            padding: 0;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
+            border-left: 4px solid var(--accent-green);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            color: var(--accent-green);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .warning-box {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .warning-box strong {
+            color: var(--warning);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .exercise-box {
+            background: rgba(39, 174, 96, 0.05);
+            border: 2px solid var(--success);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .exercise-box h4 {
+            color: var(--success);
+            margin-top: 0;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .difficulty.easy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .difficulty.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .difficulty.hard {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(17, 153, 142, 0.05);
+        }
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--accent-lime);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+        }
+
+
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #11998e;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #0e7c74;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/index.html">計算工学</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/gaussian-introduction/index.html">Gaussian</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 1</span>
+        </div>
+    </nav>
+
+        <header>
+        <h1>第1章: Gaussianの基礎と量子化学計算</h1>
+        <p>分子軌道理論・GTO基底・HF/DFT法・入力ファイル構造・HOMO-LUMO</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">トップ</a></li>
+            <li><a href="#intro">概要</a></li>
+            <li><a href="#molecular-orbital">分子軌道理論</a></li>
+            <li><a href="#gaussian-features">Gaussianの特徴</a></li>
+            <li><a href="#installation">ライセンスとインストール</a></li>
+            <li><a href="#input-structure">入力ファイル構造</a></li>
+            <li><a href="#code-examples">コード例</a></li>
+            <li><a href="#exercises">演習問題</a></li>
+            <li><a href="#references">参考文献</a></li>
+            <li><a href="chapter-2.html">次の章へ →</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="intro">
+            <h2>1.1 本章の概要</h2>
+
+            <p>
+                Gaussianは、世界で最も広く使われている量子化学計算ソフトウェアです。分子軌道法（Hartree-Fock法）、密度汎関数理論（DFT）、時間依存DFT（TD-DFT）などの手法を用いて、分子の電子状態、構造、反応性、スペクトルを計算できます。材料科学では、有機分子、金属錯体、表面吸着系の電子状態解析に広く使われています。
+            </p>
+
+            <div class="info-box">
+                <strong>本章の学習目標</strong>
+                <ul>
+                    <li><strong>レベル1（基本理解）</strong>: 分子軌道理論とGaussian Type Orbital（GTO）基底関数の役割、Hartree-Fock法とDFT法の違い、入力ファイルのRoute SectionとMolecule Specificationの構造を説明できる</li>
+                    <li><strong>レベル2（実践スキル）</strong>: Gaussian入力ファイル（.gjf/.com）を作成でき、基本的な単点エネルギー計算、構造最適化、振動解析を実行でき、ログファイル（.log）から結果を読み取れる</li>
+                    <li><strong>レベル3（応用力）</strong>: HOMO-LUMOギャップを計算して電子物性を評価でき、TD-DFTで励起状態エネルギーを計算でき、基底関数と計算手法を目的に応じて適切に選択できる</li>
+                </ul>
+            </div>
+
+            <div class="warning-box">
+                <strong>前提知識</strong>
+                <p>本章では、量子化学の基礎（シュレディンガー方程式、原子軌道）、物理化学の基礎（熱力学、分光学）、有機化学の基本（分子構造、化学結合）を前提とします。</p>
+            </div>
+        </section>
+
+        <section id="molecular-orbital">
+            <h2>1.2 分子軌道理論の基礎</h2>
+
+            <h3>シュレディンガー方程式と電子状態</h3>
+            <p>
+                量子化学計算の基礎は、時間に依存しないシュレディンガー方程式です：
+            </p>
+
+            <p style="text-align: center;">
+                \[
+                \hat{H}\Psi = E\Psi
+                \]
+            </p>
+
+            <p>
+                ここで、\(\hat{H}\)はハミルトニアン演算子、\(\Psi\)は波動関数、\(E\)はエネルギー固有値です。多電子系（分子）では、この方程式を厳密に解くことはできないため、<strong>近似的な方法</strong>を使います。
+            </p>
+
+            <h3>Born-Oppenheimer近似</h3>
+            <p>
+                原子核の質量は電子の1800倍以上あるため、<strong>電子は原子核の位置に瞬時に応答する</strong>と仮定します（Born-Oppenheimer近似）。これにより、原子核の運動と電子の運動を分離し、固定された原子核配置での電子状態を計算できます。
+            </p>
+
+            <h3>分子軌道（MO: Molecular Orbital）</h3>
+            <p>
+                分子軌道は、原子軌道（AO: Atomic Orbital）の線形結合で表されます（LCAO-MO法）：
+            </p>
+
+            <p style="text-align: center;">
+                \[
+                \psi_i = \sum_{\mu=1}^{N} c_{\mu i} \phi_{\mu}
+                \]
+            </p>
+
+            <p>
+                ここで、\(\psi_i\)は分子軌道、\(\phi_{\mu}\)は原子軌道（基底関数）、\(c_{\mu i}\)はMO係数です。Gaussianは、この係数を求めることで分子軌道を計算します。
+            </p>
+
+            <div class="mermaid">
+flowchart TD
+    A[原子軌道 AO] --> B[線形結合 LCAO]
+    B --> C[分子軌道 MO]
+    C --> D[電子配置]
+    D --> E[エネルギー計算]
+
+    style A fill:#d4f1f4
+    style B fill:#d4f1f4
+    style C fill:#a8e6cf
+    style D fill:#a8e6cf
+    style E fill:#11998e,color:#fff
+            </div>
+
+            <h3>HOMO（最高被占軌道）とLUMO（最低空軌道）</h3>
+            <p>
+                分子の電子物性は、<strong>HOMO（Highest Occupied Molecular Orbital）</strong>と<strong>LUMO（Lowest Unoccupied Molecular Orbital）</strong>のエネルギー差（HOMO-LUMOギャップ）で特徴づけられます。
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>軌道</th>
+                        <th>意味</th>
+                        <th>化学的重要性</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>HOMO</strong></td>
+                        <td>電子が占有する最高エネルギー軌道</td>
+                        <td>電子供与性（求核性）を表す</td>
+                    </tr>
+                    <tr>
+                        <td><strong>LUMO</strong></td>
+                        <td>電子が占有していない最低エネルギー軌道</td>
+                        <td>電子受容性（求電子性）を表す</td>
+                    </tr>
+                    <tr>
+                        <td><strong>HOMO-LUMO gap</strong></td>
+                        <td>HOMOとLUMOのエネルギー差</td>
+                        <td>励起エネルギー、バンドギャップ、化学的安定性</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box">
+                <strong>HOMO-LUMOギャップの目安</strong>
+                <ul>
+                    <li><strong>小さい（&lt; 2 eV）</strong>: 半導体、導電性高分子、色素（可視光吸収）</li>
+                    <li><strong>中程度（2-4 eV）</strong>: 有機半導体、OLED材料</li>
+                    <li><strong>大きい（&gt; 5 eV）</strong>: 絶縁体、安定な分子、透明材料</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="gaussian-features">
+            <h2>1.3 Gaussianの特徴</h2>
+
+            <h3>Gaussian Type Orbital（GTO）基底関数</h3>
+            <p>
+                Gaussianでは、原子軌道を<strong>Gaussian型関数</strong>で近似します：
+            </p>
+
+            <p style="text-align: center;">
+                \[
+                g(\alpha, \mathbf{r}) = \left(\frac{2\alpha}{\pi}\right)^{3/4} \exp(-\alpha r^2)
+                \]
+            </p>
+
+            <p>
+                ここで、\(\alpha\)はGaussian指数、\(r\)は原子核からの距離です。GTOは計算が高速ですが、原子核近傍の波動関数の再現性が低いため、複数のGaussian関数を組み合わせて使います（縮約型GTO）。
+            </p>
+
+            <h3>基底関数のサイズと種類</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>基底関数</th>
+                        <th>サイズ</th>
+                        <th>精度</th>
+                        <th>用途</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>STO-3G</strong></td>
+                        <td>最小基底</td>
+                        <td>低</td>
+                        <td>初期構造最適化、テスト計算</td>
+                    </tr>
+                    <tr>
+                        <td><strong>3-21G</strong></td>
+                        <td>分割原子価基底</td>
+                        <td>中</td>
+                        <td>構造最適化</td>
+                    </tr>
+                    <tr>
+                        <td><strong>6-31G(d)</strong></td>
+                        <td>分極関数付き</td>
+                        <td>中〜高</td>
+                        <td>一般的な計算（推奨）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>6-311++G(2d,2p)</strong></td>
+                        <td>拡散関数+分極関数</td>
+                        <td>高</td>
+                        <td>高精度計算、アニオン、励起状態</td>
+                    </tr>
+                    <tr>
+                        <td><strong>cc-pVDZ</strong></td>
+                        <td>相関整合基底</td>
+                        <td>高</td>
+                        <td>高精度構造、エネルギー計算</td>
+                    </tr>
+                    <tr>
+                        <td><strong>LANL2DZ</strong></td>
+                        <td>有効内殻ポテンシャル</td>
+                        <td>中</td>
+                        <td>遷移金属、重原子系</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Hartree-Fock法（HF）</h3>
+            <p>
+                Hartree-Fock法は、電子間相互作用を<strong>平均場近似</strong>で扱います。各電子は、他のすべての電子による平均的な電場の中で運動すると仮定します。<strong>電子相関（electron correlation）</strong>を無視するため、計算は高速ですが精度は中程度です。
+            </p>
+
+            <h3>密度汎関数理論（DFT）</h3>
+            <p>
+                密度汎関数理論（DFT）は、電子密度\(\rho(\mathbf{r})\)を基本変数とし、<strong>電子相関を交換相関汎関数で近似的に取り込む</strong>方法です。HF法より計算コストが低く、精度も高いため、材料科学で広く使われています。
+            </p>
+
+            <h3>主要なDFT汎関数</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>汎関数</th>
+                        <th>分類</th>
+                        <th>特徴</th>
+                        <th>推奨用途</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>B3LYP</strong></td>
+                        <td>ハイブリッドGGA</td>
+                        <td>最も広く使用、バランスが良い</td>
+                        <td>一般的な有機分子、遷移金属錯体</td>
+                    </tr>
+                    <tr>
+                        <td><strong>PBE0</strong></td>
+                        <td>ハイブリッドGGA</td>
+                        <td>熱力学的性質が正確</td>
+                        <td>エネルギー計算、固体</td>
+                    </tr>
+                    <tr>
+                        <td><strong>M06-2X</strong></td>
+                        <td>メタGGA</td>
+                        <td>分散力、非共有結合相互作用</td>
+                        <td>水素結合、π-π相互作用</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ωB97X-D</strong></td>
+                        <td>長距離補正+分散補正</td>
+                        <td>励起状態、電荷移動</td>
+                        <td>TD-DFT計算</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CAM-B3LYP</strong></td>
+                        <td>長距離補正</td>
+                        <td>Rydberg励起、CT励起</td>
+                        <td>UV-Visスペクトル計算</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box">
+                <strong>推奨設定</strong>
+                <ul>
+                    <li><strong>構造最適化</strong>: B3LYP/6-31G(d)</li>
+                    <li><strong>エネルギー計算</strong>: B3LYP/6-311++G(2d,2p) または PBE0/cc-pVTZ</li>
+                    <li><strong>励起状態</strong>: CAM-B3LYP/6-311++G(2d,2p) または ωB97X-D/cc-pVDZ</li>
+                    <li><strong>遷移金属</strong>: B3LYP/LANL2DZ (金属) + 6-31G(d) (配位子)</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="installation">
+            <h2>1.4 ライセンスとインストール</h2>
+
+            <h3>ライセンス取得</h3>
+            <p>
+                Gaussianは<strong>商用ソフトウェア</strong>のため、ライセンス購入が必要です。多くの大学・研究機関では包括ライセンスを保有しているため、所属機関の計算機センターに問い合わせてください。
+            </p>
+
+            <h3>無料の代替ソフトウェア</h3>
+            <ul>
+                <li><strong>GAMESS</strong>: 学術利用無料、Gaussian類似の機能</li>
+                <li><strong>NWChem</strong>: オープンソース、大規模並列計算対応</li>
+                <li><strong>Orca</strong>: 学術利用無料、高性能、GaussianとORCAの両方を使う研究者も多い</li>
+                <li><strong>Psi4</strong>: オープンソース、Python API、機械学習連携</li>
+            </ul>
+
+            <h3>インストール（Linux環境）</h3>
+            <pre><code class="language-bash"># Gaussian 16の場合（ライセンス取得済みと仮定）
+# 1. インストールディレクトリを作成
+sudo mkdir -p /opt/gaussian16
+cd /opt/gaussian16
+
+# 2. 配布ファイルを展開
+tar xvf gaussian16.tar.gz
+
+# 3. 環境変数を設定（~/.bashrcに追加）
+export g16root="/opt/gaussian16"
+source $g16root/g16/bsd/g16.profile
+
+# 4. 動作確認
+g16 --version
+# Gaussian 16, Revision C.01が表示されればOK
+</code></pre>
+
+            <h3>GaussView（GUI）のインストール</h3>
+            <p>
+                GaussViewは分子構造の作成・可視化、計算結果の確認ができるGUIツールです（別途ライセンス必要）。代替として、無料のAvogadroやIQmolも使えます。
+            </p>
+
+            <div class="warning-box">
+                <strong>計算環境の準備</strong>
+                <ul>
+                    <li><strong>メモリ</strong>: 小分子で16GB以上、大分子で64GB以上推奨</li>
+                    <li><strong>ストレージ</strong>: Scratchディレクトリに十分な空き容量（100GB以上推奨）</li>
+                    <li><strong>並列化</strong>: マルチコアCPU活用のため%NProcShared設定が必要</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="input-structure">
+            <h2>1.5 入力ファイル構造</h2>
+
+            <h3>Gaussian入力ファイルの基本構造</h3>
+            <p>
+                Gaussian入力ファイル（.gjf または .com）は以下の構造を持ちます：
+            </p>
+
+            <div class="mermaid">
+flowchart TD
+    A[Link 0 Section<br/>リソース設定] --> B[Route Section<br/>計算手法・基底関数]
+    B --> C[Title Section<br/>計算の説明]
+    C --> D[Molecule Specification<br/>分子構造・電荷・多重度]
+    D --> E[Additional Input<br/>追加設定]
+
+    style A fill:#ffd6d6
+    style B fill:#ffe6d6
+    style C fill:#fff6d6
+    style D fill:#d6f5d6
+    style E fill:#d6e6f5
+            </div>
+
+            <h3>セクションごとの詳細</h3>
+
+            <h4>1. Link 0 Section（リソース設定）</h4>
+            <p>
+                計算リソース（メモリ、CPU数、Scratchディレクトリ）を指定します。
+            </p>
+            <pre><code class="language-bash">%NProcShared=8          # 使用するCPUコア数
+%Mem=16GB               # 使用メモリ
+%Chk=water.chk          # チェックポイントファイル名
+</code></pre>
+
+            <h4>2. Route Section（計算手法と基底関数）</h4>
+            <p>
+                計算手法（HF、DFT等）、基底関数、計算タイプ（SP、Opt、Freq等）を指定します。<strong>#</strong>で始まり、1行または複数行で記述します。
+            </p>
+            <pre><code class="language-bash"># HF/STO-3G SP               # Hartree-Fock、STO-3G基底、単点エネルギー計算
+# B3LYP/6-31G(d) Opt         # B3LYP、6-31G(d)基底、構造最適化
+# B3LYP/6-31G(d) Opt Freq    # 構造最適化 + 振動解析
+</code></pre>
+
+            <h4>3. Title Section（計算の説明）</h4>
+            <p>
+                計算の目的や分子名を記述します（任意の文字列、空白行で終了）。
+            </p>
+            <pre><code class="language-bash">Water molecule HF/STO-3G single point energy
+
+</code></pre>
+
+            <h4>4. Molecule Specification（分子構造）</h4>
+            <p>
+                <strong>電荷</strong>と<strong>多重度</strong>、原子座標（Cartesian座標またはZ-matrix）を記述します。
+            </p>
+            <pre><code class="language-bash">0 1                    # 電荷 多重度（0=中性、1=一重項）
+O   0.000000   0.000000   0.117176
+H   0.000000   0.756950  -0.468706
+H   0.000000  -0.756950  -0.468706
+
+</code></pre>
+
+            <div class="info-box">
+                <strong>多重度（Spin Multiplicity）の決定</strong>
+                <ul>
+                    <li><strong>多重度 = 2S + 1</strong>（Sは全スピン角運動量）</li>
+                    <li><strong>一重項（Singlet, S=0）</strong>: 多重度 = 1（すべての電子がペア）</li>
+                    <li><strong>二重項（Doublet, S=1/2）</strong>: 多重度 = 2（不対電子1個、ラジカル）</li>
+                    <li><strong>三重項（Triplet, S=1）</strong>: 多重度 = 3（不対電子2個、励起状態）</li>
+                </ul>
+            </div>
+
+            <h3>完全な入力ファイル例</h3>
+            <pre><code class="language-bash">%NProcShared=8
+%Mem=16GB
+%Chk=water.chk
+# HF/STO-3G SP
+
+Water molecule HF/STO-3G single point energy
+
+0 1
+O   0.000000   0.000000   0.117176
+H   0.000000   0.756950  -0.468706
+H   0.000000  -0.756950  -0.468706
+
+</code></pre>
+
+            <div class="warning-box">
+                <strong>入力ファイル作成の注意点</strong>
+                <ul>
+                    <li>各セクションは<strong>空白行</strong>で区切る（必須）</li>
+                    <li>Route Sectionの<strong>#</strong>は行頭に必要</li>
+                    <li>Molecule Specificationの最後は<strong>必ず空白行</strong>で終わる</li>
+                    <li>座標の単位はデフォルトで<strong>Ångström（オングストローム）</strong></li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="code-examples">
+            <h2>1.6 コード例</h2>
+
+            <h3>コード例1: 水分子のHartree-Fock計算（STO-3G基底）</h3>
+            <pre><code class="language-bash">%NProcShared=4
+%Mem=8GB
+%Chk=water_hf.chk
+# HF/STO-3G SP
+
+Water molecule single point energy with HF/STO-3G
+
+0 1
+O   0.000000   0.000000   0.117176
+H   0.000000   0.756950  -0.468706
+H   0.000000  -0.756950  -0.468706
+
+</code></pre>
+            <p><strong>実行方法:</strong></p>
+            <pre><code class="language-bash">g16 water_hf.gjf
+# ログファイル water_hf.log が生成される
+</code></pre>
+            <p><strong>結果の確認:</strong></p>
+            <pre><code class="language-bash">grep "SCF Done" water_hf.log
+# SCF Done:  E(RHF) =  -74.9659012053     A.U. after    7 cycles
+# エネルギーは -74.966 Hartree（約 -2039 eV）
+</code></pre>
+
+            <h3>コード例2: 水分子の構造最適化（B3LYP/6-31G(d)）</h3>
+            <pre><code class="language-bash">%NProcShared=8
+%Mem=16GB
+%Chk=water_opt.chk
+# B3LYP/6-31G(d) Opt
+
+Water molecule geometry optimization with B3LYP/6-31G(d)
+
+0 1
+O   0.000000   0.000000   0.117176
+H   0.000000   0.756950  -0.468706
+H   0.000000  -0.756950  -0.468706
+
+</code></pre>
+            <p><strong>実行とログ確認:</strong></p>
+            <pre><code class="language-bash">g16 water_opt.gjf
+
+# 収束確認
+grep "Optimization completed" water_opt.log
+# Optimization completed. が表示されれば成功
+
+# 最適化エネルギー
+grep "SCF Done" water_opt.log | tail -1
+# SCF Done:  E(RB3LYP) =  -76.4178479123     A.U.
+
+# 最適化された構造（Standard orientation）
+grep -A 10 "Standard orientation" water_opt.log | tail -10
+</code></pre>
+
+            <h3>コード例3: 振動解析とIRスペクトル予測</h3>
+            <pre><code class="language-bash">%NProcShared=8
+%Mem=16GB
+%Chk=water_freq.chk
+# B3LYP/6-31G(d) Opt Freq
+
+Water molecule optimization and frequency calculation
+
+0 1
+O   0.000000   0.000000   0.117176
+H   0.000000   0.756950  -0.468706
+H   0.000000  -0.756950  -0.468706
+
+</code></pre>
+            <p><strong>結果の確認:</strong></p>
+            <pre><code class="language-bash"># 振動数（cm^-1）とIR強度
+grep -A 5 "Harmonic frequencies" water_freq.log
+
+# 熱力学量（298.15 K, 1 atm）
+grep -A 10 "Thermochemistry" water_freq.log
+# Zero-point correction
+# Thermal correction to Energy
+# Thermal correction to Enthalpy
+# Thermal correction to Gibbs Free Energy
+</code></pre>
+            <div class="info-box">
+                <strong>出力例</strong>
+                <ul>
+                    <li><strong>振動数</strong>: 1645 cm⁻¹（H-O-H変角）、3756 cm⁻¹（O-H伸縮）</li>
+                    <li><strong>ゼロ点エネルギー</strong>: 0.021 Hartree</li>
+                    <li><strong>Gibbs自由エネルギー（298 K）</strong>: -76.397 Hartree</li>
+                </ul>
+            </div>
+
+            <h3>コード例4: HOMO-LUMOギャップの計算</h3>
+            <pre><code class="language-bash">%NProcShared=8
+%Mem=16GB
+%Chk=benzene_homo_lumo.chk
+# B3LYP/6-311G(d,p) SP Pop=Full
+
+Benzene HOMO-LUMO gap calculation
+
+0 1
+C        1.396200    0.000000    0.000000
+C        0.698100    1.209100    0.000000
+C       -0.698100    1.209100    0.000000
+C       -1.396200    0.000000    0.000000
+C       -0.698100   -1.209100    0.000000
+C        0.698100   -1.209100    0.000000
+H        2.482000    0.000000    0.000000
+H        1.241000    2.149100    0.000000
+H       -1.241000    2.149100    0.000000
+H       -2.482000    0.000000    0.000000
+H       -1.241000   -2.149100    0.000000
+H        1.241000   -2.149100    0.000000
+
+</code></pre>
+            <p><strong>HOMO-LUMO抽出:</strong></p>
+            <pre><code class="language-bash"># 軌道エネルギーを抽出
+grep "Alpha  occ. eigenvalues" benzene_homo_lumo.log | tail -1  # HOMO
+grep "Alpha virt. eigenvalues" benzene_homo_lumo.log | head -1  # LUMO
+
+# Pythonで解析（cclib使用）
+import cclib
+data = cclib.io.ccread("benzene_homo_lumo.log")
+homo_energy = data.moenergies[0][data.homos[0]]  # eV
+lumo_energy = data.moenergies[0][data.homos[0] + 1]
+gap = lumo_energy - homo_energy
+print(f"HOMO: {homo_energy:.3f} eV")
+print(f"LUMO: {lumo_energy:.3f} eV")
+print(f"HOMO-LUMO gap: {gap:.3f} eV")
+# 出力例: HOMO: -6.387 eV, LUMO: -0.872 eV, Gap: 5.515 eV
+</code></pre>
+
+            <h3>コード例5: 励起状態とTD-DFT計算（UV-Visスペクトル）</h3>
+            <pre><code class="language-bash">%NProcShared=8
+%Mem=16GB
+%Chk=benzene_tddft.chk
+# B3LYP/6-311G(d,p) TD=(NStates=10)
+
+Benzene UV-Vis spectrum with TD-DFT
+
+0 1
+C        1.396200    0.000000    0.000000
+C        0.698100    1.209100    0.000000
+C       -0.698100    1.209100    0.000000
+C       -1.396200    0.000000    0.000000
+C       -0.698100   -1.209100    0.000000
+C        0.698100   -1.209100    0.000000
+H        2.482000    0.000000    0.000000
+H        1.241000    2.149100    0.000000
+H       -1.241000    2.149100    0.000000
+H       -2.482000    0.000000    0.000000
+H       -1.241000   -2.149100    0.000000
+H        1.241000   -2.149100    0.000000
+
+</code></pre>
+            <p><strong>励起状態の抽出:</strong></p>
+            <pre><code class="language-bash"># 励起エネルギーと振動子強度
+grep "Excited State" benzene_tddft.log
+
+# 出力例:
+# Excited State   1:      Singlet-A      4.9010 eV  253.01 nm  f=0.0000
+# Excited State   2:      Singlet-B      6.2064 eV  199.78 nm  f=0.9524
+# Excited State   3:      Singlet-B      6.2064 eV  199.78 nm  f=0.9524
+# ベンゼンの第一吸収帯は約200 nm（実験値: 180-200 nm）
+</code></pre>
+        </section>
+
+        <section id="exercises">
+            <h2>1.7 演習問題</h2>
+
+            <div class="exercise-box">
+                <h4>演習1: 基礎理論の理解<span class="difficulty easy">基礎</span></h4>
+                <p><strong>問題:</strong> Born-Oppenheimer近似とは何か、またなぜ量子化学計算で重要なのかを200字以内で説明してください。</p>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習2: 基底関数の選択<span class="difficulty medium">中級</span></h4>
+                <p><strong>問題:</strong> 以下の計算タイプに最適な基底関数を選び、理由を説明してください：</p>
+                <ul>
+                    <li>(a) 小さな有機分子（C, H, O, N）の構造最適化</li>
+                    <li>(b) アニオン（負イオン）の高精度エネルギー計算</li>
+                    <li>(c) 鉄錯体（Fe(CO)₅）の構造最適化</li>
+                    <li>(d) 大きなタンパク質（1000原子）の初期構造生成</li>
+                </ul>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習3: 多重度の決定<span class="difficulty easy">基礎</span></h4>
+                <p><strong>問題:</strong> 以下の化学種の多重度を答えてください（すべて基底状態を仮定）：</p>
+                <ul>
+                    <li>(a) メタン（CH₄）</li>
+                    <li>(b) メチルラジカル（CH₃•）</li>
+                    <li>(c) 酸素分子（O₂、三重項基底状態）</li>
+                    <li>(d) 一酸化窒素（NO）</li>
+                </ul>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習4: Gaussian入力ファイルの作成<span class="difficulty medium">中級</span></h4>
+                <p><strong>問題:</strong> メタン（CH₄）のB3LYP/6-31G(d)による構造最適化と振動解析を行うGaussian入力ファイルを作成してください。以下を含めること：</p>
+                <ul>
+                    <li>CPU 8コア、メモリ 16GB使用</li>
+                    <li>チェックポイントファイル名: methane.chk</li>
+                    <li>初期座標（任意の妥当な構造）</li>
+                </ul>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習5: ログファイル解析<span class="difficulty medium">中級</span></h4>
+                <p><strong>問題:</strong> Gaussianログファイルから以下の情報を抽出するLinuxコマンド（grep等）を記述してください：</p>
+                <ul>
+                    <li>(a) 最終SCFエネルギー</li>
+                    <li>(b) 構造最適化が収束したか確認</li>
+                    <li>(c) すべての振動数（cm⁻¹）</li>
+                    <li>(d) Gibbs自由エネルギー（298 K）</li>
+                </ul>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習6: HOMO-LUMOギャップの計算<span class="difficulty medium">中級</span></h4>
+                <p><strong>問題:</strong> エチレン（C₂H₄）のHOMO-LUMOギャップをB3LYP/6-311G(d,p)で計算し、以下を答えてください：</p>
+                <ul>
+                    <li>(a) HOMO、LUMOのエネルギー（eV）</li>
+                    <li>(b) HOMO-LUMOギャップ（eV）</li>
+                    <li>(c) このギャップから、エチレンは可視光（1.8-3.1 eV）を吸収するか？</li>
+                </ul>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習7: TD-DFT計算<span class="difficulty hard">上級</span></h4>
+                <p><strong>問題:</strong> ベンゼン（C₆H₆）の最初の5つの励起状態をTD-DFT（B3LYP/6-311G(d,p)）で計算してください。以下を答えてください：</p>
+                <ul>
+                    <li>(a) 第一励起状態のエネルギー（eV）と波長（nm）</li>
+                    <li>(b) 最も強い吸収帯（振動子強度f最大）の波長</li>
+                    <li>(c) 実験値（約180 nm）と計算値を比較し、誤差の原因を考察してください</li>
+                </ul>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習8: HF法とDFT法の比較<span class="difficulty hard">上級</span></h4>
+                <p><strong>問題:</strong> 水分子（H₂O）のエネルギーをHF/6-31G(d)とB3LYP/6-31G(d)で計算し、以下を比較してください：</p>
+                <ul>
+                    <li>(a) 全エネルギー（Hartree）</li>
+                    <li>(b) 計算時間（秒）</li>
+                    <li>(c) O-H結合長（Å）</li>
+                    <li>(d) どちらが実験値に近いか考察してください</li>
+                </ul>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習9: 遷移金属錯体の計算設定<span class="difficulty hard">上級</span></h4>
+                <p><strong>問題:</strong> フェロセン（Fe(C₅H₅)₂）の構造最適化を行うための適切なGaussian入力ファイルを作成してください。以下を考慮すること：</p>
+                <ul>
+                    <li>Feには有効内殻ポテンシャル（LANL2DZ）を使用</li>
+                    <li>C, Hには6-31G(d)を使用</li>
+                    <li>スピン多重度は一重項（すべての電子がペア）</li>
+                    <li>DFT汎関数はB3LYPを使用</li>
+                </ul>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習10: 実践プロジェクト<span class="difficulty hard">上級</span></h4>
+                <p><strong>問題:</strong> 任意の有機色素分子（例: アントラセン、ペリレン、クマリン誘導体）を選び、以下を実行してください：</p>
+                <ul>
+                    <li>(a) B3LYP/6-31G(d)で構造最適化</li>
+                    <li>(b) HOMO-LUMOギャップを計算</li>
+                    <li>(c) TD-DFT（CAM-B3LYP/6-311G(d,p)）でUV-Visスペクトルを予測</li>
+                    <li>(d) 実験値（文献値）と比較し、計算精度を評価</li>
+                    <li>(e) 分子設計（置換基導入等）でHOMO-LUMOギャップを調整する方法を提案</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>1.8 参考文献</h2>
+
+            <ol>
+                <li>
+                    <strong>Gaussian 16 User's Reference</strong><br>
+                    Gaussian, Inc.<br>
+                    <a href="https://gaussian.com/man/" target="_blank">https://gaussian.com/man/</a><br>
+                    公式マニュアル、すべての計算手法とキーワードを網羅（p. 1-500）
+                </li>
+                <li>
+                    <strong>Exploring Chemistry with Electronic Structure Methods (3rd Edition)</strong><br>
+                    James B. Foresman, Æleen Frisch<br>
+                    Gaussian, Inc., 2015<br>
+                    Gaussian初学者向けの実践的教科書、計算化学の基礎から応用まで（p. 1-350）
+                </li>
+                <li>
+                    <strong>Introduction to Computational Chemistry (3rd Edition)</strong><br>
+                    Frank Jensen<br>
+                    Wiley, 2017<br>
+                    量子化学計算の理論的背景、HF法、DFT、基底関数を詳述（p. 100-250）
+                </li>
+                <li>
+                    <strong>Essentials of Computational Chemistry: Theories and Models (2nd Edition)</strong><br>
+                    Christopher J. Cramer<br>
+                    Wiley, 2004<br>
+                    分子軌道理論、DFT汎関数、溶媒和モデルの理論（p. 150-300）
+                </li>
+                <li>
+                    <strong>A Chemist's Guide to Density Functional Theory (2nd Edition)</strong><br>
+                    Wolfram Koch, Max C. Holthausen<br>
+                    Wiley-VCH, 2001<br>
+                    DFTの化学的解釈、汎関数の選択、精度評価（p. 50-150）
+                </li>
+                <li>
+                    <strong>Time-Dependent Density Functional Theory</strong><br>
+                    Carsten Ullrich<br>
+                    Oxford University Press, 2012<br>
+                    TD-DFTの理論、励起状態計算、スペクトル予測（p. 1-100）
+                </li>
+                <li>
+                    <strong>cclib: A library for package-independent computational chemistry algorithms</strong><br>
+                    Noel M. O'Boyle, Adam L. Tenderholt, Karol M. Langner<br>
+                    Journal of Computational Chemistry, 2008, 29(5), 839-845<br>
+                    Gaussianログファイル解析ツールcclibの使い方とPython実装
+                </li>
+            </ol>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 CT Terakoya. All rights reserved.</p>
+        <p><a href="index.html">シリーズトップに戻る</a> | <a href="chapter-2.html">次の章へ →</a></p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+</body>
+</html>

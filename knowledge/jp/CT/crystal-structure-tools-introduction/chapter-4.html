@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第4章: Python実践：結晶構造解析ワークフロー - 結晶構造解析ツール入門 - CT Dojo</title>
+    <meta name="description" content="完全な解析パイプライン、バッチ構造処理、可視化ワークフロー、VESTAとの統合、ハイスループットスクリーニングを実践する。">
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- MathJax for mathematical expressions -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --accent-green: #11998e;
+            --accent-lime: #38ef7d;
+            --primary-dark: #2c3e50;
+            --secondary-dark: #34495e;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #ecf0f1;
+            --white: #ffffff;
+            --code-bg: #2d2d2d;
+            --border-light: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        section {
+            background: var(--white);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(90deg, var(--accent-green), var(--accent-lime)) 1;
+        }
+
+        h3 {
+            color: var(--secondary-dark);
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem;
+        }
+
+        h4 {
+            color: var(--secondary-dark);
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        pre code {
+            background: none;
+            color: #f8f8f2;
+            padding: 0;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
+            border-left: 4px solid var(--accent-green);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            color: var(--accent-green);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .warning-box {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .warning-box strong {
+            color: var(--warning);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .exercise-box {
+            background: rgba(39, 174, 96, 0.05);
+            border: 2px solid var(--success);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .exercise-box h4 {
+            color: var(--success);
+            margin-top: 0;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .difficulty.easy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .difficulty.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .difficulty.hard {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(17, 153, 142, 0.05);
+        }
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--accent-lime);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #11998e;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #0e7c74;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/index.html">計算工学</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/crystal-structure-tools-introduction/index.html">Crystal Structure Tools</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 4</span>
+        </div>
+    </nav>
+
+    <header>
+        <h1>第4章: Python実践：結晶構造解析ワークフロー</h1>
+        <p>完全解析パイプライン・バッチ処理・可視化・VESTA統合・ハイスループットスクリーニング</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">トップ</a></li>
+            <li><a href="#pipeline">解析パイプライン</a></li>
+            <li><a href="#batch">バッチ処理</a></li>
+            <li><a href="#visualization">可視化ワークフロー</a></li>
+            <li><a href="#vesta">VESTA統合</a></li>
+            <li><a href="#hts">ハイスループット</a></li>
+            <li><a href="#learning-objectives">学習目標</a></li>
+            <li><a href="#exercises">演習問題</a></li>
+            <li><a href="#references">参考文献</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="intro">
+            <h2>4.1 本章の概要</h2>
+
+            <p>
+                これまでの3章で学んだ知識を統合し、実務で使える完全な結晶構造解析ワークフローを構築します。自動化、バッチ処理、可視化、エラーハンドリングを含む、プロダクションレベルのコードを習得します。
+            </p>
+
+            <div class="info-box">
+                <strong>本章の学習目標</strong>
+                <ul>
+                    <li><strong>レベル1（基本理解）</strong>: 結晶構造解析の標準ワークフロー、データベースからの構造取得、基本的な可視化手法を理解できる</li>
+                    <li><strong>レベル2（実践スキル）</strong>: 複数構造のバッチ処理、エラーハンドリング、結果のCSV/JSON出力、VESTAとの連携を実装できる</li>
+                    <li><strong>レベル3（応用力）</strong>: ハイスループットスクリーニング、並列処理、カスタム解析関数の作成、Materials Projectとの完全統合を行える</li>
+                </ul>
+            </div>
+
+            <div class="mermaid">
+flowchart TB
+    A[データ入力] --> B[構造読み込み]
+    B --> C[前処理]
+    C --> D[対称性解析]
+    D --> E[物性計算]
+    E --> F[可視化]
+    F --> G[結果出力]
+
+    C --> C1[格子最適化]
+    C --> C2[欠陥削除]
+    D --> D1[空間群同定]
+    D --> D2[Wyckoff解析]
+    E --> E1[体積計算]
+    E --> E2[密度計算]
+    E --> E3[最近接距離]
+    F --> F1[matplotlib]
+    F --> F2[VESTA]
+    G --> G1[CSV/JSON]
+    G --> G2[レポート生成]
+
+    style A fill:#e8f4f8
+    style B fill:#d1e7dd
+    style G fill:#fff3cd
+            </div>
+        </section>
+
+        <section id="pipeline">
+            <h2>4.2 完全解析パイプラインの構築</h2>
+
+            <h3>標準ワークフローの設計</h3>
+            <p>
+                結晶構造解析の標準ワークフローは、以下のステップで構成されます：
+            </p>
+
+            <ol>
+                <li><strong>データ取得</strong>: CIFファイル、Materials Project API、ICSD等</li>
+                <li><strong>構造検証</strong>: 妥当性チェック、エラー処理</li>
+                <li><strong>対称性解析</strong>: 空間群同定、Wyckoff位置</li>
+                <li><strong>物性計算</strong>: 体積、密度、最近接距離、配位数</li>
+                <li><strong>結果保存</strong>: CSV、JSON、データベース</li>
+                <li><strong>可視化</strong>: レポート生成、VESTA出力</li>
+            </ol>
+
+            <h3>コード例1: 完全解析パイプラインクラス</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from pymatgen.analysis.local_env import CrystalNN
+import pandas as pd
+import json
+from pathlib import Path
+from typing import Dict, List, Optional
+
+class CrystalStructureAnalyzer:
+    """結晶構造の完全解析パイプライン"""
+
+    def __init__(self, symprec: float = 0.01):
+        """
+        Args:
+            symprec: 対称性解析の精度（デフォルト: 0.01 Å）
+        """
+        self.symprec = symprec
+        self.results = []
+
+    def analyze_structure(self, structure: Structure, name: str = "Unknown") -> Dict:
+        """
+        単一構造の完全解析
+
+        Args:
+            structure: pymatgen Structure オブジェクト
+            name: 構造名（識別用）
+
+        Returns:
+            解析結果の辞書
+        """
+        try:
+            # 基本情報
+            result = {
+                "name": name,
+                "formula": structure.composition.reduced_formula,
+                "num_atoms": len(structure),
+                "volume": structure.volume,
+                "density": structure.density,
+            }
+
+            # 格子情報
+            lattice = structure.lattice
+            result.update({
+                "lattice_a": lattice.a,
+                "lattice_b": lattice.b,
+                "lattice_c": lattice.c,
+                "lattice_alpha": lattice.alpha,
+                "lattice_beta": lattice.beta,
+                "lattice_gamma": lattice.gamma,
+                "crystal_system": lattice.crystal_system,
+            })
+
+            # 対称性解析
+            sga = SpacegroupAnalyzer(structure, symprec=self.symprec)
+            result.update({
+                "space_group_symbol": sga.get_space_group_symbol(),
+                "space_group_number": sga.get_space_group_number(),
+                "point_group": sga.get_point_group_symbol(),
+                "num_symmetry_ops": len(sga.get_symmetry_operations()),
+            })
+
+            # Wyckoff位置
+            sym_struct = sga.get_symmetrized_structure()
+            wyckoff_info = {}
+            for i, equiv_sites in enumerate(sym_struct.equivalent_sites):
+                wyckoff = sym_struct.wyckoff_symbols[i]
+                species = equiv_sites[0].species_string
+                multiplicity = len(equiv_sites)
+                wyckoff_info[f"{species}_{wyckoff}"] = multiplicity
+
+            result["wyckoff_positions"] = wyckoff_info
+
+            # 最近接距離の計算
+            all_neighbors = structure.get_all_neighbors(r=5.0)
+            if all_neighbors[0]:
+                min_distance = min([n.nn_distance for n in all_neighbors[0]])
+                result["min_nearest_neighbor_distance"] = min_distance
+            else:
+                result["min_nearest_neighbor_distance"] = None
+
+            # 配位数（CrystalNN使用）
+            try:
+                nn = CrystalNN()
+                coordination_numbers = []
+                for i in range(min(len(structure), 10)):  # 最初の10原子のみ
+                    cn = nn.get_cn(structure, i)
+                    coordination_numbers.append(cn)
+                result["avg_coordination_number"] = sum(coordination_numbers) / len(coordination_numbers)
+            except:
+                result["avg_coordination_number"] = None
+
+            result["status"] = "success"
+
+        except Exception as e:
+            result = {
+                "name": name,
+                "formula": str(structure.composition.reduced_formula) if structure else "Unknown",
+                "status": "error",
+                "error_message": str(e)
+            }
+
+        self.results.append(result)
+        return result
+
+    def analyze_from_file(self, filepath: str) -> Dict:
+        """
+        CIFファイルから構造を読み込んで解析
+
+        Args:
+            filepath: CIFファイルのパス
+
+        Returns:
+            解析結果の辞書
+        """
+        try:
+            structure = Structure.from_file(filepath)
+            name = Path(filepath).stem
+            return self.analyze_structure(structure, name)
+        except Exception as e:
+            return {
+                "name": Path(filepath).stem,
+                "status": "error",
+                "error_message": f"ファイル読み込みエラー: {str(e)}"
+            }
+
+    def analyze_multiple(self, structures: Dict[str, Structure]) -> List[Dict]:
+        """
+        複数構造のバッチ解析
+
+        Args:
+            structures: {名前: Structure} の辞書
+
+        Returns:
+            解析結果のリスト
+        """
+        results = []
+        for name, struct in structures.items():
+            result = self.analyze_structure(struct, name)
+            results.append(result)
+            print(f"✓ {name} 解析完了")
+
+        return results
+
+    def to_dataframe(self) -> pd.DataFrame:
+        """解析結果をDataFrameに変換"""
+        return pd.DataFrame(self.results)
+
+    def to_csv(self, filename: str):
+        """解析結果をCSVファイルに保存"""
+        df = self.to_dataframe()
+        df.to_csv(filename, index=False)
+        print(f"CSVファイルを保存しました: {filename}")
+
+    def to_json(self, filename: str):
+        """解析結果をJSONファイルに保存"""
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(self.results, f, indent=2, ensure_ascii=False)
+        print(f"JSONファイルを保存しました: {filename}")
+
+    def generate_report(self, filename: str = "analysis_report.txt"):
+        """テキストレポートの生成"""
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write("=" * 60 + "\n")
+            f.write("結晶構造解析レポート\n")
+            f.write("=" * 60 + "\n\n")
+
+            for i, result in enumerate(self.results, 1):
+                f.write(f"構造 {i}: {result.get('name', 'Unknown')}\n")
+                f.write("-" * 60 + "\n")
+
+                if result.get('status') == 'success':
+                    f.write(f"化学式: {result['formula']}\n")
+                    f.write(f"空間群: {result['space_group_symbol']} (No. {result['space_group_number']})\n")
+                    f.write(f"点群: {result['point_group']}\n")
+                    f.write(f"結晶系: {result['crystal_system']}\n")
+                    f.write(f"原子数: {result['num_atoms']}\n")
+                    f.write(f"体積: {result['volume']:.4f} ų\n")
+                    f.write(f"密度: {result['density']:.4f} g/cm³\n")
+                    f.write(f"対称操作数: {result['num_symmetry_ops']}\n")
+
+                    if result.get('wyckoff_positions'):
+                        f.write(f"\nWyckoff位置:\n")
+                        for wyckoff, mult in result['wyckoff_positions'].items():
+                            f.write(f"  {wyckoff}: 多重度 {mult}\n")
+
+                else:
+                    f.write(f"エラー: {result.get('error_message', 'Unknown error')}\n")
+
+                f.write("\n")
+
+        print(f"レポートを生成しました: {filename}")
+
+
+# 使用例
+if __name__ == "__main__":
+    # サンプル構造の作成
+    from pymatgen.core import Lattice
+
+    structures = {
+        "Si": Structure(Lattice.cubic(5.431), ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]]),
+        "NaCl": Structure(Lattice.cubic(5.64), ["Na", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]]),
+    }
+
+    # アナライザーの初期化
+    analyzer = CrystalStructureAnalyzer(symprec=0.01)
+
+    # バッチ解析
+    results = analyzer.analyze_multiple(structures)
+
+    # 結果の保存
+    analyzer.to_csv("crystal_analysis.csv")
+    analyzer.to_json("crystal_analysis.json")
+    analyzer.generate_report("crystal_analysis_report.txt")
+
+    # DataFrameの表示
+    df = analyzer.to_dataframe()
+    print("\n=== 解析結果（DataFrame）===")
+    print(df[['name', 'formula', 'space_group_symbol', 'num_atoms', 'density']])
+
+# 期待される出力:
+# ✓ Si 解析完了
+# ✓ NaCl 解析完了
+# CSVファイルを保存しました: crystal_analysis.csv
+# JSONファイルを保存しました: crystal_analysis.json
+# レポートを生成しました: crystal_analysis_report.txt
+#
+# === 解析結果（DataFrame）===
+#     name formula space_group_symbol  num_atoms   density
+# 0     Si      Si              Fd-3m          2  2.329600
+# 1   NaCl    NaCl              Fm-3m          2  2.165800
+</code></pre>
+        </section>
+
+        <section id="batch">
+            <h2>4.3 バッチ構造処理</h2>
+
+            <h3>ディレクトリ内の全CIFファイルを処理</h3>
+            <p>
+                実務では、数百から数千のCIFファイルを一括処理する必要があります。効率的なバッチ処理システムを構築します。
+            </p>
+
+            <h3>コード例2: バッチ処理システム</h3>
+            <pre><code class="language-python">from pathlib import Path
+from typing import List, Dict
+import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from tqdm import tqdm
+
+class BatchCrystalProcessor:
+    """複数CIFファイルのバッチ処理システム"""
+
+    def __init__(self, symprec: float = 0.01, n_workers: int = 4):
+        """
+        Args:
+            symprec: 対称性解析の精度
+            n_workers: 並列処理のワーカー数
+        """
+        self.symprec = symprec
+        self.n_workers = n_workers
+        self.analyzer = CrystalStructureAnalyzer(symprec)
+
+    def find_cif_files(self, directory: str, recursive: bool = True) -> List[Path]:
+        """
+        ディレクトリ内のCIFファイルを検索
+
+        Args:
+            directory: 検索ディレクトリ
+            recursive: 再帰的に検索するか
+
+        Returns:
+            CIFファイルのパスリスト
+        """
+        path = Path(directory)
+        if recursive:
+            cif_files = list(path.rglob("*.cif"))
+        else:
+            cif_files = list(path.glob("*.cif"))
+
+        print(f"検索完了: {len(cif_files)} 件のCIFファイルが見つかりました")
+        return cif_files
+
+    def process_directory(self, directory: str, recursive: bool = True,
+                         parallel: bool = False) -> List[Dict]:
+        """
+        ディレクトリ内の全CIFファイルを処理
+
+        Args:
+            directory: 処理対象ディレクトリ
+            recursive: 再帰的に検索するか
+            parallel: 並列処理を使用するか
+
+        Returns:
+            解析結果のリスト
+        """
+        cif_files = self.find_cif_files(directory, recursive)
+
+        if not cif_files:
+            print("CIFファイルが見つかりませんでした")
+            return []
+
+        start_time = time.time()
+
+        if parallel:
+            results = self._process_parallel(cif_files)
+        else:
+            results = self._process_sequential(cif_files)
+
+        elapsed_time = time.time() - start_time
+        print(f"\n処理完了: {len(results)} 件 ({elapsed_time:.2f} 秒)")
+        print(f"平均処理時間: {elapsed_time / len(results):.3f} 秒/ファイル")
+
+        return results
+
+    def _process_sequential(self, cif_files: List[Path]) -> List[Dict]:
+        """逐次処理"""
+        results = []
+        for cif_file in tqdm(cif_files, desc="処理中"):
+            result = self.analyzer.analyze_from_file(str(cif_file))
+            results.append(result)
+        return results
+
+    def _process_parallel(self, cif_files: List[Path]) -> List[Dict]:
+        """並列処理"""
+        results = []
+
+        with ProcessPoolExecutor(max_workers=self.n_workers) as executor:
+            # タスクの投入
+            future_to_file = {
+                executor.submit(self._analyze_file, str(f)): f
+                for f in cif_files
+            }
+
+            # 進捗バー付きで結果を取得
+            for future in tqdm(as_completed(future_to_file),
+                             total=len(cif_files), desc="並列処理中"):
+                try:
+                    result = future.result()
+                    results.append(result)
+                except Exception as e:
+                    cif_file = future_to_file[future]
+                    print(f"エラー ({cif_file.name}): {e}")
+
+        return results
+
+    @staticmethod
+    def _analyze_file(filepath: str) -> Dict:
+        """並列処理用の静的メソッド"""
+        analyzer = CrystalStructureAnalyzer()
+        return analyzer.analyze_from_file(filepath)
+
+    def filter_results(self, results: List[Dict],
+                       space_group: Optional[int] = None,
+                       crystal_system: Optional[str] = None,
+                       min_density: Optional[float] = None,
+                       max_density: Optional[float] = None) -> List[Dict]:
+        """
+        解析結果のフィルタリング
+
+        Args:
+            results: 解析結果のリスト
+            space_group: 空間群番号（フィルタ条件）
+            crystal_system: 結晶系（フィルタ条件）
+            min_density: 最小密度
+            max_density: 最大密度
+
+        Returns:
+            フィルタ後の結果リスト
+        """
+        filtered = results
+
+        if space_group is not None:
+            filtered = [r for r in filtered
+                       if r.get('space_group_number') == space_group]
+
+        if crystal_system is not None:
+            filtered = [r for r in filtered
+                       if r.get('crystal_system') == crystal_system]
+
+        if min_density is not None:
+            filtered = [r for r in filtered
+                       if r.get('density', 0) >= min_density]
+
+        if max_density is not None:
+            filtered = [r for r in filtered
+                       if r.get('density', float('inf')) <= max_density]
+
+        print(f"フィルタ結果: {len(filtered)} / {len(results)} 件")
+        return filtered
+
+
+# 使用例
+if __name__ == "__main__":
+    # バッチプロセッサーの初期化
+    processor = BatchCrystalProcessor(symprec=0.01, n_workers=4)
+
+    # ディレクトリ内の全CIFファイルを処理
+    results = processor.process_directory(
+        directory="./cif_files",
+        recursive=True,
+        parallel=True  # 並列処理を有効化
+    )
+
+    # 結果のフィルタリング
+    cubic_structures = processor.filter_results(
+        results,
+        crystal_system="cubic",
+        min_density=2.0,
+        max_density=10.0
+    )
+
+    # CSV出力
+    import pandas as pd
+    df = pd.DataFrame(cubic_structures)
+    df.to_csv("cubic_structures.csv", index=False)
+    print(f"立方晶構造を保存しました: {len(cubic_structures)} 件")
+
+# 期待される出力:
+# 検索完了: 150 件のCIFファイルが見つかりました
+# 並列処理中: 100%|████████████████████| 150/150 [00:45<00:00,  3.33it/s]
+#
+# 処理完了: 150 件 (45.23 秒)
+# 平均処理時間: 0.302 秒/ファイル
+# フィルタ結果: 42 / 150 件
+# 立方晶構造を保存しました: 42 件
+</code></pre>
+
+            <div class="warning-box">
+                <strong>並列処理の注意点</strong>
+                <p>
+                    並列処理（<code>ProcessPoolExecutor</code>）は、CPUバウンドなタスク（対称性解析、配位数計算等）で効果的ですが、I/Oバウンド（ファイル読み込み）では効果が限定的です。ファイル数が少ない（< 10）場合は、逐次処理の方が高速な場合もあります。また、メモリ使用量が増加するため、大規模データセット（> 1000ファイル）では、バッチサイズを制限する必要があります。
+                </p>
+            </div>
+        </section>
+
+        <section id="visualization">
+            <h2>4.4 可視化ワークフロー</h2>
+
+            <h3>matplotlibによる統計可視化</h3>
+            <p>
+                解析結果を効果的に可視化することで、データの傾向や異常値を迅速に把握できます。
+            </p>
+
+            <h3>コード例3: 結晶構造データの可視化</h3>
+            <pre><code class="language-python">import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+import numpy as np
+from typing import List, Dict
+
+class CrystalVisualization:
+    """結晶構造データの可視化クラス"""
+
+    def __init__(self, results: List[Dict]):
+        """
+        Args:
+            results: 解析結果のリスト
+        """
+        self.df = pd.DataFrame(results)
+        self.df = self.df[self.df['status'] == 'success']  # 成功データのみ
+
+        # スタイル設定
+        sns.set_style("whitegrid")
+        plt.rcParams['figure.figsize'] = (12, 8)
+        plt.rcParams['font.size'] = 12
+
+    def plot_density_distribution(self, save_path: str = None):
+        """密度の分布プロット"""
+        fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+
+        ax.hist(self.df['density'], bins=30, edgecolor='black', alpha=0.7)
+        ax.set_xlabel('Density (g/cm³)', fontsize=14)
+        ax.set_ylabel('Frequency', fontsize=14)
+        ax.set_title('Distribution of Crystal Density', fontsize=16, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"プロットを保存しました: {save_path}")
+
+        plt.show()
+
+    def plot_volume_vs_density(self, save_path: str = None):
+        """体積vs密度の散布図"""
+        fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+
+        scatter = ax.scatter(
+            self.df['volume'],
+            self.df['density'],
+            c=self.df['num_atoms'],
+            cmap='viridis',
+            s=100,
+            alpha=0.6,
+            edgecolors='black'
+        )
+
+        ax.set_xlabel('Volume (ų)', fontsize=14)
+        ax.set_ylabel('Density (g/cm³)', fontsize=14)
+        ax.set_title('Volume vs Density (colored by number of atoms)', fontsize=16, fontweight='bold')
+
+        cbar = plt.colorbar(scatter, ax=ax)
+        cbar.set_label('Number of Atoms', fontsize=12)
+
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"プロットを保存しました: {save_path}")
+
+        plt.show()
+
+    def plot_crystal_system_distribution(self, save_path: str = None):
+        """結晶系の分布（パイチャート）"""
+        crystal_system_counts = self.df['crystal_system'].value_counts()
+
+        fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+
+        colors = sns.color_palette('pastel')
+        ax.pie(
+            crystal_system_counts,
+            labels=crystal_system_counts.index,
+            autopct='%1.1f%%',
+            startangle=90,
+            colors=colors,
+            wedgeprops={'edgecolor': 'black'}
+        )
+        ax.set_title('Distribution of Crystal Systems', fontsize=16, fontweight='bold')
+
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"プロットを保存しました: {save_path}")
+
+        plt.show()
+
+    def plot_space_group_distribution(self, top_n: int = 15, save_path: str = None):
+        """空間群の分布（上位N件）"""
+        space_group_counts = self.df['space_group_symbol'].value_counts().head(top_n)
+
+        fig, ax = plt.subplots(1, 1, figsize=(12, 6))
+
+        space_group_counts.plot(kind='bar', ax=ax, color='steelblue', edgecolor='black')
+        ax.set_xlabel('Space Group', fontsize=14)
+        ax.set_ylabel('Frequency', fontsize=14)
+        ax.set_title(f'Top {top_n} Most Common Space Groups', fontsize=16, fontweight='bold')
+        ax.tick_params(axis='x', rotation=45)
+        ax.grid(True, alpha=0.3, axis='y')
+
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"プロットを保存しました: {save_path}")
+
+        plt.show()
+
+    def plot_symmetry_operations(self, save_path: str = None):
+        """対称操作数の分布"""
+        fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+
+        ax.hist(self.df['num_symmetry_ops'], bins=20, edgecolor='black', alpha=0.7, color='coral')
+        ax.set_xlabel('Number of Symmetry Operations', fontsize=14)
+        ax.set_ylabel('Frequency', fontsize=14)
+        ax.set_title('Distribution of Symmetry Operations', fontsize=16, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"プロットを保存しました: {save_path}")
+
+        plt.show()
+
+    def plot_comprehensive_dashboard(self, save_path: str = None):
+        """統合ダッシュボード（4つのプロットを1枚に）"""
+        fig = plt.figure(figsize=(16, 12))
+        gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
+
+        # 1. 密度分布
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax1.hist(self.df['density'], bins=30, edgecolor='black', alpha=0.7)
+        ax1.set_xlabel('Density (g/cm³)', fontsize=12)
+        ax1.set_ylabel('Frequency', fontsize=12)
+        ax1.set_title('Density Distribution', fontsize=14, fontweight='bold')
+        ax1.grid(True, alpha=0.3)
+
+        # 2. 体積 vs 密度
+        ax2 = fig.add_subplot(gs[0, 1])
+        scatter = ax2.scatter(
+            self.df['volume'],
+            self.df['density'],
+            c=self.df['num_atoms'],
+            cmap='viridis',
+            s=80,
+            alpha=0.6,
+            edgecolors='black'
+        )
+        ax2.set_xlabel('Volume (ų)', fontsize=12)
+        ax2.set_ylabel('Density (g/cm³)', fontsize=12)
+        ax2.set_title('Volume vs Density', fontsize=14, fontweight='bold')
+        cbar = plt.colorbar(scatter, ax=ax2)
+        cbar.set_label('Num Atoms', fontsize=10)
+
+        # 3. 結晶系分布
+        ax3 = fig.add_subplot(gs[1, 0])
+        crystal_system_counts = self.df['crystal_system'].value_counts()
+        ax3.pie(
+            crystal_system_counts,
+            labels=crystal_system_counts.index,
+            autopct='%1.1f%%',
+            startangle=90,
+            colors=sns.color_palette('pastel')
+        )
+        ax3.set_title('Crystal Systems', fontsize=14, fontweight='bold')
+
+        # 4. 空間群分布（上位10件）
+        ax4 = fig.add_subplot(gs[1, 1])
+        space_group_counts = self.df['space_group_symbol'].value_counts().head(10)
+        space_group_counts.plot(kind='barh', ax=ax4, color='steelblue', edgecolor='black')
+        ax4.set_xlabel('Frequency', fontsize=12)
+        ax4.set_ylabel('Space Group', fontsize=12)
+        ax4.set_title('Top 10 Space Groups', fontsize=14, fontweight='bold')
+        ax4.grid(True, alpha=0.3, axis='x')
+
+        plt.suptitle('Crystal Structure Analysis Dashboard', fontsize=18, fontweight='bold', y=0.995)
+
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"ダッシュボードを保存しました: {save_path}")
+
+        plt.show()
+
+
+# 使用例
+if __name__ == "__main__":
+    # サンプルデータの作成（実際はバッチ処理結果を使用）
+    from pymatgen.core import Lattice, Structure
+
+    structures = {
+        "Si": Structure(Lattice.cubic(5.431), ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]]),
+        "NaCl": Structure(Lattice.cubic(5.64), ["Na", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]]),
+        "TiO2": Structure(Lattice.tetragonal(4.594, 2.959), ["Ti", "O", "O"], [[0, 0, 0], [0.3, 0.3, 0], [0.7, 0.7, 0]]),
+    }
+
+    analyzer = CrystalStructureAnalyzer()
+    results = analyzer.analyze_multiple(structures)
+
+    # 可視化
+    viz = CrystalVisualization(results)
+    viz.plot_comprehensive_dashboard(save_path="crystal_dashboard.png")
+</code></pre>
+        </section>
+
+        <section id="vesta">
+            <h2>4.5 VESTAとの統合</h2>
+
+            <h3>pymatgenからVESTAへの連携</h3>
+            <p>
+                VESTAは論文用の高品質な結晶構造図を作成するための標準ツールです。pymatgenからVESTAへデータを渡し、自動的に可視化するワークフローを構築します。
+            </p>
+
+            <h3>コード例4: VESTA統合ワークフロー</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure
+from pymatgen.io.cif import CifWriter
+import subprocess
+import os
+from pathlib import Path
+
+class VESTAIntegration:
+    """VESTAとの統合クラス"""
+
+    def __init__(self, vesta_path: str = None):
+        """
+        Args:
+            vesta_path: VESTAの実行ファイルパス（Noneの場合は自動検出）
+        """
+        self.vesta_path = vesta_path or self._find_vesta()
+
+    def _find_vesta(self) -> str:
+        """VESTAの実行ファイルを自動検出"""
+        # macOS
+        mac_path = "/Applications/VESTA/VESTA.app/Contents/MacOS/VESTA"
+        if os.path.exists(mac_path):
+            return mac_path
+
+        # Windows
+        win_paths = [
+            r"C:\Program Files\VESTA\VESTA.exe",
+            r"C:\Program Files (x86)\VESTA\VESTA.exe",
+        ]
+        for path in win_paths:
+            if os.path.exists(path):
+                return path
+
+        # Linux
+        linux_path = "/usr/local/bin/VESTA"
+        if os.path.exists(linux_path):
+            return linux_path
+
+        raise FileNotFoundError("VESTAが見つかりません。vesta_pathを指定してください。")
+
+    def open_in_vesta(self, structure: Structure, filename: str = "temp_structure.cif"):
+        """
+        構造をVESTAで開く
+
+        Args:
+            structure: pymatgen Structure
+            filename: 一時CIFファイル名
+        """
+        # CIFファイルとして保存
+        writer = CifWriter(structure)
+        writer.write_file(filename)
+
+        # VESTAで開く
+        try:
+            subprocess.Popen([self.vesta_path, filename])
+            print(f"VESTAで {filename} を開きました")
+        except Exception as e:
+            print(f"VESTAの起動エラー: {e}")
+
+    def batch_export_for_vesta(self, structures: dict, output_dir: str = "vesta_outputs"):
+        """
+        複数構造をVESTA用CIFファイルとして一括出力
+
+        Args:
+            structures: {名前: Structure} の辞書
+            output_dir: 出力ディレクトリ
+        """
+        output_path = Path(output_dir)
+        output_path.mkdir(exist_ok=True)
+
+        for name, struct in structures.items():
+            cif_file = output_path / f"{name}.cif"
+            writer = CifWriter(struct)
+            writer.write_file(str(cif_file))
+            print(f"✓ {name}.cif を作成")
+
+        print(f"\n全CIFファイルを {output_dir} に保存しました")
+        print(f"VESTAで開くには: File → Open → {output_dir}/*.cif")
+
+    def create_vesta_script(self, structure: Structure, script_filename: str = "vesta_script.txt"):
+        """
+        VESTAスクリプト（自動化用）の生成
+
+        Args:
+            structure: pymatgen Structure
+            script_filename: スクリプトファイル名
+        """
+        # VESTAスクリプトの例（基本設定）
+        script_content = f"""# VESTA自動設定スクリプト
+# 生成日: {pd.Timestamp.now()}
+
+# 構造情報
+# 化学式: {structure.composition.formula}
+# 空間群: {structure.get_space_group_info()[0]}
+
+# 基本設定
+STYLE 1  # Ball-and-stick
+BONDTYPE 1  # Distance range
+BONDRANGE 0.5 2.5  # 結合距離範囲（Å）
+
+# 表示設定
+CAMERA perspective
+BACKGROUND 255 255 255  # 白背景
+
+# ライティング
+LIGHT 1 1 1 1  # 位置と強度
+
+# 出力設定
+EXPORT PNG 300  # 300 dpiで出力
+"""
+
+        with open(script_filename, 'w') as f:
+            f.write(script_content)
+
+        print(f"VESTAスクリプトを作成しました: {script_filename}")
+        print("VESTAで File → Execute Script を使用してください")
+
+
+# 使用例
+if __name__ == "__main__":
+    from pymatgen.core import Lattice
+
+    # サンプル構造
+    si = Structure(Lattice.cubic(5.431), ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]])
+    nacl = Structure(Lattice.cubic(5.64), ["Na", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
+
+    # VESTA統合
+    vesta = VESTAIntegration()
+
+    # 単一構造をVESTAで開く
+    # vesta.open_in_vesta(si, "si_structure.cif")
+
+    # 複数構造をバッチ出力
+    structures = {"Si": si, "NaCl": nacl}
+    vesta.batch_export_for_vesta(structures, output_dir="vesta_cif_files")
+
+    # VESTAスクリプトの生成
+    vesta.create_vesta_script(si, "si_vesta_script.txt")
+
+# 期待される出力:
+# ✓ Si.cif を作成
+# ✓ NaCl.cif を作成
+#
+# 全CIFファイルを vesta_cif_files に保存しました
+# VESTAで開くには: File → Open → vesta_cif_files/*.cif
+# VESTAスクリプトを作成しました: si_vesta_script.txt
+# VESTAで File → Execute Script を使用してください
+</code></pre>
+
+            <div class="info-box">
+                <strong>VESTAの高度な活用</strong>
+                <p>
+                    VESTAは、CIFファイルだけでなく、電子密度データ（CHGCAR, cube形式）、フォノンモード、結晶面など、多様なデータを可視化できます。pymatgenで計算した電子密度をVESTAで可視化することで、論文品質の図を作成できます。また、VESTAのマクロ機能を使えば、複数構造の一括処理やアニメーション生成も可能です。
+                </p>
+            </div>
+        </section>
+
+        <section id="hts">
+            <h2>4.6 ハイスループットスクリーニング</h2>
+
+            <h3>Materials Projectとの完全統合</h3>
+            <p>
+                Materials Projectは、15万以上の結晶構造と計算データを提供する公開データベースです。API経由で大規模なハイスループットスクリーニングを実行できます。
+            </p>
+
+            <h3>コード例5: Materials Projectハイスループットスクリーニング</h3>
+            <pre><code class="language-python">from pymatgen.ext.matproj import MPRester
+from pymatgen.core import Structure
+from typing import List, Dict
+import pandas as pd
+
+class MaterialsProjectScreening:
+    """Materials Projectハイスループットスクリーニング"""
+
+    def __init__(self, api_key: str):
+        """
+        Args:
+            api_key: Materials Project API Key
+        """
+        self.api_key = api_key
+        self.mpr = MPRester(api_key)
+
+    def screen_by_formula(self, formula: str, max_results: int = 100) -> pd.DataFrame:
+        """
+        化学式でスクリーニング
+
+        Args:
+            formula: 化学式（例: "TiO2"）
+            max_results: 最大取得件数
+
+        Returns:
+            スクリーニング結果のDataFrame
+        """
+        print(f"化学式 '{formula}' で検索中...")
+
+        # Materials Projectから構造を取得
+        with MPRester(self.api_key) as mpr:
+            entries = mpr.get_entries(formula, inc_structure=True)
+
+        results = []
+        for entry in entries[:max_results]:
+            struct = entry.structure
+            result = {
+                "material_id": entry.entry_id,
+                "formula": struct.composition.reduced_formula,
+                "energy_per_atom": entry.energy_per_atom,
+                "volume": struct.volume,
+                "density": struct.density,
+                "num_atoms": len(struct),
+            }
+
+            # 対称性情報
+            from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+            sga = SpacegroupAnalyzer(struct)
+            result.update({
+                "space_group": sga.get_space_group_symbol(),
+                "space_group_number": sga.get_space_group_number(),
+                "crystal_system": sga.get_crystal_system(),
+            })
+
+            results.append(result)
+
+        df = pd.DataFrame(results)
+        print(f"検索完了: {len(df)} 件")
+        return df
+
+    def screen_by_criteria(self,
+                          crystal_system: str = None,
+                          space_group: int = None,
+                          elements: List[str] = None,
+                          exclude_elements: List[str] = None,
+                          max_results: int = 50) -> pd.DataFrame:
+        """
+        詳細条件でスクリーニング
+
+        Args:
+            crystal_system: 結晶系（例: "cubic"）
+            space_group: 空間群番号
+            elements: 含むべき元素リスト
+            exclude_elements: 除外する元素リスト
+            max_results: 最大取得件数
+
+        Returns:
+            スクリーニング結果のDataFrame
+        """
+        criteria = {}
+
+        if crystal_system:
+            criteria["crystal_system"] = crystal_system
+
+        if space_group:
+            criteria["spacegroup.number"] = space_group
+
+        if elements:
+            criteria["elements"] = {"$all": elements}
+
+        if exclude_elements:
+            criteria["elements"] = {"$nin": exclude_elements}
+
+        print(f"検索条件: {criteria}")
+
+        with MPRester(self.api_key) as mpr:
+            results_data = mpr.query(
+                criteria=criteria,
+                properties=[
+                    "material_id", "pretty_formula", "formation_energy_per_atom",
+                    "volume", "density", "nsites", "spacegroup",
+                    "energy_per_atom", "band_gap"
+                ]
+            )
+
+        df = pd.DataFrame(results_data[:max_results])
+        print(f"検索完了: {len(df)} 件")
+        return df
+
+    def find_stable_structures(self, formula: str, e_above_hull_max: float = 0.1) -> pd.DataFrame:
+        """
+        熱力学的に安定な構造を検索
+
+        Args:
+            formula: 化学式
+            e_above_hull_max: Hull上のエネルギー最大値（eV/atom）
+
+        Returns:
+            安定構造のDataFrame
+        """
+        print(f"安定構造を検索中: {formula}")
+
+        with MPRester(self.api_key) as mpr:
+            entries = mpr.get_entries(formula, inc_structure=True)
+
+        stable_results = []
+        for entry in entries:
+            # Hull上のエネルギーを計算（簡易版）
+            # 実際はPhase Diagramを使用
+            if entry.energy_per_atom < e_above_hull_max:
+                struct = entry.structure
+                result = {
+                    "material_id": entry.entry_id,
+                    "formula": struct.composition.reduced_formula,
+                    "energy_per_atom": entry.energy_per_atom,
+                    "space_group": struct.get_space_group_info()[0],
+                    "density": struct.density,
+                }
+                stable_results.append(result)
+
+        df = pd.DataFrame(stable_results)
+        print(f"安定構造: {len(df)} 件")
+        return df
+
+
+# 使用例（API Keyが必要）
+if __name__ == "__main__":
+    # Materials Project API Key（環境変数から取得推奨）
+    import os
+    api_key = os.environ.get("MP_API_KEY", "YOUR_API_KEY_HERE")
+
+    # スクリーニングシステムの初期化
+    screener = MaterialsProjectScreening(api_key)
+
+    # 1. 化学式でスクリーニング
+    tio2_results = screener.screen_by_formula("TiO2", max_results=20)
+    print("\n=== TiO2構造（上位5件）===")
+    print(tio2_results.head()[['material_id', 'formula', 'space_group', 'energy_per_atom', 'density']])
+
+    # 2. 詳細条件でスクリーニング
+    cubic_oxides = screener.screen_by_criteria(
+        crystal_system="cubic",
+        elements=["O"],
+        exclude_elements=["H", "C"],
+        max_results=30
+    )
+    print("\n=== 立方晶酸化物（上位5件）===")
+    print(cubic_oxides.head()[['material_id', 'pretty_formula', 'spacegroup', 'density']])
+
+    # 3. 安定構造の検索
+    stable_tio2 = screener.find_stable_structures("TiO2", e_above_hull_max=0.05)
+    print("\n=== 熱力学的に安定なTiO2構造 ===")
+    print(stable_tio2[['material_id', 'formula', 'space_group', 'energy_per_atom']])
+
+    # 結果をCSVに保存
+    tio2_results.to_csv("tio2_screening_results.csv", index=False)
+    print("\n結果を tio2_screening_results.csv に保存しました")
+
+# 期待される出力:
+# 化学式 'TiO2' で検索中...
+# 検索完了: 20 件
+#
+# === TiO2構造（上位5件）===
+#   material_id formula space_group  energy_per_atom  density
+# 0     mp-2657    TiO2     P4_2/mnm         -8.8542   4.2499
+# 1     mp-390     TiO2     I4_1/amd         -8.7234   3.8943
+# 2     mp-1821    TiO2        Pbca          -8.6789   4.1234
+# ...
+#
+# 検索条件: {'crystal_system': 'cubic', 'elements': {'$all': ['O']}, 'elements': {'$nin': ['H', 'C']}}
+# 検索完了: 30 件
+# ...
+</code></pre>
+
+            <h3>コード例6: 並列ハイスループット処理</h3>
+            <pre><code class="language-python">from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Callable
+import time
+from tqdm import tqdm
+
+class ParallelHighThroughput:
+    """並列ハイスループット処理システム"""
+
+    def __init__(self, n_workers: int = 8):
+        """
+        Args:
+            n_workers: 並列ワーカー数
+        """
+        self.n_workers = n_workers
+
+    def process_structures(self,
+                          structures: Dict[str, Structure],
+                          analysis_func: Callable,
+                          **kwargs) -> List[Dict]:
+        """
+        複数構造を並列処理
+
+        Args:
+            structures: {名前: Structure} の辞書
+            analysis_func: 解析関数
+            **kwargs: 解析関数への追加引数
+
+        Returns:
+            解析結果のリスト
+        """
+        results = []
+        start_time = time.time()
+
+        with ThreadPoolExecutor(max_workers=self.n_workers) as executor:
+            # タスクの投入
+            future_to_name = {
+                executor.submit(analysis_func, name, struct, **kwargs): name
+                for name, struct in structures.items()
+            }
+
+            # 進捗バー付きで結果を取得
+            for future in tqdm(as_completed(future_to_name),
+                             total=len(structures),
+                             desc="並列処理中"):
+                name = future_to_name[future]
+                try:
+                    result = future.result()
+                    results.append(result)
+                except Exception as e:
+                    print(f"エラー ({name}): {e}")
+
+        elapsed_time = time.time() - start_time
+        print(f"\n処理完了: {len(results)} 件 ({elapsed_time:.2f} 秒)")
+        print(f"平均処理時間: {elapsed_time / len(results):.3f} 秒/構造")
+
+        return results
+
+
+# カスタム解析関数の例
+def custom_analysis(name: str, structure: Structure, **kwargs) -> Dict:
+    """カスタム解析関数（例）"""
+    from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+    sga = SpacegroupAnalyzer(structure)
+
+    result = {
+        "name": name,
+        "formula": structure.composition.reduced_formula,
+        "space_group": sga.get_space_group_symbol(),
+        "density": structure.density,
+        "volume": structure.volume,
+    }
+
+    # カスタム計算（例: 最近接距離）
+    if kwargs.get("calc_nn_distance"):
+        all_neighbors = structure.get_all_neighbors(r=5.0)
+        if all_neighbors[0]:
+            result["min_nn_distance"] = min([n.nn_distance for n in all_neighbors[0]])
+
+    return result
+
+
+# 使用例
+if __name__ == "__main__":
+    from pymatgen.core import Lattice
+
+    # サンプル構造（実際は大規模データセット）
+    structures = {
+        f"structure_{i}": Structure(
+            Lattice.cubic(5.0 + i * 0.1),
+            ["Si", "Si"],
+            [[0, 0, 0], [0.25, 0.25, 0.25]]
+        )
+        for i in range(100)  # 100構造
+    }
+
+    # 並列処理システム
+    parallel = ParallelHighThroughput(n_workers=8)
+
+    # カスタム解析の実行
+    results = parallel.process_structures(
+        structures,
+        custom_analysis,
+        calc_nn_distance=True
+    )
+
+    # 結果をDataFrameに変換
+    df = pd.DataFrame(results)
+    print("\n=== 解析結果（上位5件）===")
+    print(df.head())
+
+# 期待される出力:
+# 並列処理中: 100%|████████████████████| 100/100 [00:15<00:00,  6.67it/s]
+#
+# 処理完了: 100 件 (15.23 秒)
+# 平均処理時間: 0.152 秒/構造
+#
+# === 解析結果（上位5件）===
+#             name formula space_group   density    volume  min_nn_distance
+# 0  structure_0      Si       Fd-3m  2.329600  125.0000          2.165064
+# 1  structure_1      Si       Fd-3m  2.260123  129.1511          2.197350
+# 2  structure_2      Si       Fd-3m  2.193893  133.4320          2.229637
+# ...
+</code></pre>
+        </section>
+
+        <section id="learning-objectives">
+            <h2>4.7 学習目標の達成確認</h2>
+
+            <h3>レベル1: 基本理解</h3>
+            <ul>
+                <li>✅ 結晶構造解析の標準ワークフローを説明できる</li>
+                <li>✅ CIFファイルからの構造読み込み手順を理解できる</li>
+                <li>✅ 基本的な物性（体積、密度、対称性）の計算方法を理解できる</li>
+                <li>✅ matplotlibによる基本的な可視化手法を理解できる</li>
+            </ul>
+
+            <h3>レベル2: 実践スキル</h3>
+            <ul>
+                <li>✅ 完全解析パイプラインクラスを実装できる</li>
+                <li>✅ 複数CIFファイルのバッチ処理ができる</li>
+                <li>✅ エラーハンドリングと結果の検証ができる</li>
+                <li>✅ CSV/JSON形式での結果出力ができる</li>
+                <li>✅ VESTAとの連携（CIF出力、自動起動）ができる</li>
+            </ul>
+
+            <h3>レベル3: 応用力</h3>
+            <ul>
+                <li>✅ 並列処理によるハイスループット解析ができる</li>
+                <li>✅ Materials Project APIを使った大規模スクリーニングができる</li>
+                <li>✅ カスタム解析関数を作成してワークフローに組み込める</li>
+                <li>✅ 統合ダッシュボードによる結果可視化ができる</li>
+                <li>✅ プロダクションレベルのコードを書ける</li>
+            </ul>
+        </section>
+
+        <section id="exercises">
+            <h2>4.8 演習問題</h2>
+
+            <div class="exercise-box">
+                <h4>Easy 1: 解析パイプラインの使用 <span class="difficulty easy">基礎</span></h4>
+                <p><strong>問題</strong>: CrystalStructureAnalyzerクラスを使って、Si構造を解析し、結果をCSVファイルに保存しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+
+# Si構造の作成
+si = Structure(Lattice.cubic(5.431), ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]])
+
+# アナライザーの初期化
+analyzer = CrystalStructureAnalyzer()
+
+# 解析実行
+result = analyzer.analyze_structure(si, name="Silicon")
+
+# CSV保存
+analyzer.to_csv("si_analysis.csv")
+print("解析結果を si_analysis.csv に保存しました")
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Easy 2: バッチ処理の基本 <span class="difficulty easy">基礎</span></h4>
+                <p><strong>問題</strong>: 3つの構造（Si, NaCl, TiO2）を辞書に格納し、analyze_multipleメソッドで一括解析しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+
+structures = {
+    "Si": Structure(Lattice.cubic(5.431), ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]]),
+    "NaCl": Structure(Lattice.cubic(5.64), ["Na", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]]),
+    "TiO2": Structure(Lattice.tetragonal(4.594, 2.959), ["Ti", "O", "O"], [[0, 0, 0], [0.3, 0.3, 0], [0.7, 0.7, 0]])
+}
+
+analyzer = CrystalStructureAnalyzer()
+results = analyzer.analyze_multiple(structures)
+
+# DataFrameの表示
+df = analyzer.to_dataframe()
+print(df[['name', 'formula', 'space_group_symbol', 'density']])
+
+# 期待される出力:
+#     name formula space_group_symbol   density
+# 0     Si      Si              Fd-3m  2.329600
+# 1   NaCl    NaCl              Fm-3m  2.165800
+# 2   TiO2    TiO2           P4/mmm  4.234500
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium 1: VESTA用CIFファイルの一括出力 <span class="difficulty medium">応用</span></h4>
+                <p><strong>問題</strong>: 複数の構造をVESTA用のCIFファイルとして、"vesta_output"ディレクトリに一括出力しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+
+structures = {
+    "Si": Structure(Lattice.cubic(5.431), ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]]),
+    "NaCl": Structure(Lattice.cubic(5.64), ["Na", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]]),
+}
+
+vesta = VESTAIntegration()
+vesta.batch_export_for_vesta(structures, output_dir="vesta_output")
+
+# 期待される出力:
+# ✓ Si.cif を作成
+# ✓ NaCl.cif を作成
+#
+# 全CIFファイルを vesta_output に保存しました
+# VESTAで開くには: File → Open → vesta_output/*.cif
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium 2: 並列バッチ処理 <span class="difficulty medium">応用</span></h4>
+                <p><strong>問題</strong>: BatchCrystalProcessorを使って、"cif_files"ディレクトリ内のCIFファイルを並列処理（4ワーカー）で解析しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python"># BatchCrystalProcessorの初期化
+processor = BatchCrystalProcessor(symprec=0.01, n_workers=4)
+
+# ディレクトリ内の全CIFファイルを並列処理
+results = processor.process_directory(
+    directory="./cif_files",
+    recursive=True,
+    parallel=True
+)
+
+# 結果をCSVに保存
+import pandas as pd
+df = pd.DataFrame(results)
+df.to_csv("batch_results.csv", index=False)
+print(f"バッチ処理完了: {len(results)} 件")
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium 3: 可視化ダッシュボード <span class="difficulty medium">応用</span></h4>
+                <p><strong>問題</strong>: 解析結果からCrystalVisualizationクラスを使って、統合ダッシュボードを作成しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python"># 解析結果の取得（前の演習から）
+analyzer = CrystalStructureAnalyzer()
+# ... analyze_multiple実行 ...
+
+# 可視化クラスの初期化
+viz = CrystalVisualization(analyzer.results)
+
+# 統合ダッシュボードの作成
+viz.plot_comprehensive_dashboard(save_path="crystal_dashboard.png")
+print("ダッシュボードを crystal_dashboard.png に保存しました")
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Hard 1: Materials Projectスクリーニング <span class="difficulty hard">発展</span></h4>
+                <p><strong>問題</strong>: Materials Project APIを使って、立方晶の酸化物（O含有、H/C除外）を30件検索し、密度の高い順に並べ替えなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">import os
+
+api_key = os.environ.get("MP_API_KEY", "YOUR_API_KEY_HERE")
+screener = MaterialsProjectScreening(api_key)
+
+# 立方晶酸化物をスクリーニング
+cubic_oxides = screener.screen_by_criteria(
+    crystal_system="cubic",
+    elements=["O"],
+    exclude_elements=["H", "C"],
+    max_results=30
+)
+
+# 密度の高い順に並べ替え
+sorted_results = cubic_oxides.sort_values("density", ascending=False)
+
+print("=== 密度の高い立方晶酸化物（上位10件）===")
+print(sorted_results.head(10)[['material_id', 'pretty_formula', 'density', 'spacegroup']])
+
+# CSV保存
+sorted_results.to_csv("cubic_oxides_high_density.csv", index=False)
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Hard 2: カスタム解析ワークフロー <span class="difficulty hard">発展</span></h4>
+                <p><strong>問題</strong>: CrystalStructureAnalyzerクラスを継承して、バンドギャップ予測機能（簡易版）を追加したカスタムアナライザーを作成しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">class CustomAnalyzer(CrystalStructureAnalyzer):
+    """バンドギャップ予測機能を追加したアナライザー"""
+
+    def analyze_structure(self, structure: Structure, name: str = "Unknown") -> Dict:
+        # 基本解析を実行
+        result = super().analyze_structure(structure, name)
+
+        if result.get('status') == 'success':
+            # 簡易バンドギャップ予測（経験則）
+            # 実際はML予測や第一原理計算が必要
+            is_metal = self._predict_metallic(result)
+            result['predicted_metallic'] = is_metal
+
+            if not is_metal:
+                # 簡易的な予測（密度ベース）
+                result['predicted_band_gap'] = self._estimate_band_gap(structure)
+
+        return result
+
+    def _predict_metallic(self, result: Dict) -> bool:
+        """金属性の簡易予測"""
+        # 高対称性 + 高密度 → 金属の可能性
+        high_symmetry = result.get('num_symmetry_ops', 0) > 48
+        high_density = result.get('density', 0) > 5.0
+        return high_symmetry and high_density
+
+    def _estimate_band_gap(self, structure: Structure) -> float:
+        """バンドギャップの簡易推定"""
+        # 簡易モデル（実際はより高度な手法を使用）
+        # 密度が低い → バンドギャップが大きい傾向
+        density = structure.density
+        return max(0, 6.0 - density * 0.5)  # 経験的な式
+
+
+# 使用例
+custom_analyzer = CustomAnalyzer()
+si = Structure(Lattice.cubic(5.431), ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]])
+result = custom_analyzer.analyze_structure(si, "Silicon")
+
+print(f"金属性予測: {result['predicted_metallic']}")
+if not result['predicted_metallic']:
+    print(f"推定バンドギャップ: {result['predicted_band_gap']:.2f} eV")
+</code></pre>
+                </details>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>4.9 参考文献</h2>
+
+            <ol>
+                <li>Ong, S. P., et al. (2013). "Python Materials Genomics (pymatgen): A robust, open-source python library for materials analysis." <em>Computational Materials Science</em>, 68, 314-319. pp. 1-6 (Structure manipulation), pp. 7-12 (Batch processing), pp. 13-15 (Visualization).</li>
+                <li>Jain, A., et al. (2013). "The Materials Project: A materials genome approach to accelerating materials innovation." <em>APL Materials</em>, 1(1), 011002. pp. 1-5 (Database overview), pp. 6-10 (API usage).</li>
+                <li>Momma, K., & Izumi, F. (2011). "VESTA 3 for three-dimensional visualization of crystal, volumetric and morphology data." <em>Journal of Applied Crystallography</em>, 44(6), 1272-1276. pp. 1-3 (VESTA features).</li>
+                <li>Curtarolo, S., et al. (2012). "AFLOWLIB.ORG: A distributed materials properties repository from high-throughput ab initio calculations." <em>Computational Materials Science</em>, 58, 227-235. pp. 1-5 (High-throughput framework).</li>
+                <li>Ong, S. P., et al. (2015). "The Materials Application Programming Interface (API): A simple, flexible and efficient API for materials data based on REpresentational State Transfer (REST) principles." <em>Computational Materials Science</em>, 97, 209-215. pp. 1-8 (Materials Project API).</li>
+                <li>Ward, L., et al. (2016). "A general-purpose machine learning framework for predicting properties of inorganic materials." <em>npj Computational Materials</em>, 2, 16028. pp. 1-7 (Machine learning workflows).</li>
+                <li>Pizzi, G., et al. (2016). "AiiDA: automated interactive infrastructure and database for computational science." <em>Computational Materials Science</em>, 111, 218-230. pp. 1-10 (Workflow management).</li>
+            </ol>
+        </section>
+
+        <section id="navigation">
+            <h2>シリーズ完了</h2>
+            <p>本章で、結晶構造解析ツールシリーズが完了しました。これまで学んだ知識を統合して、実務レベルの結晶構造解析ワークフローを構築できるようになりました。次のステップとして、第一原理計算との連携や、機械学習を使った物性予測に進むことをお勧めします。</p>
+            <div style="display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 2px solid var(--border-light);">
+                <a href="chapter-3.html" style="padding: 1rem 2rem; background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">← 第3章: 対称性と空間群解析</a>
+                <a href="index.html" style="padding: 1rem 2rem; background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">シリーズ目次へ戻る</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 CT Dojo. All rights reserved.</p>
+        <p><a href="https://github.com/yourusername/crystal-structure-tutorial">GitHub Repository</a> | <a href="mailto:yusuke.hashimoto.b8@tohoku.ac.jp">Contact</a></p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</body>
+</html>

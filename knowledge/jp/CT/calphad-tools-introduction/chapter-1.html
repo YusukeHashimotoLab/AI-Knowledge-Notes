@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第1章: CALPHAD法の基礎と熱力学計算 - CALPHAD法入門 - CT Dojo</title>
+    <meta name="description" content="CALPHAD法の基礎、Gibbs自由エネルギー、相平衡、熱力学データベース（SSUB、TCFE、TTAL）を学ぶ。pycalphadで状態図を計算し、材料設計への応用を理解する。">
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- MathJax for mathematical expressions -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --accent-green: #11998e;
+            --accent-lime: #38ef7d;
+            --primary-dark: #2c3e50;
+            --secondary-dark: #34495e;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #ecf0f1;
+            --white: #ffffff;
+            --code-bg: #2d2d2d;
+            --border-light: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        section {
+            background: var(--white);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(90deg, var(--accent-green), var(--accent-lime)) 1;
+        }
+
+        h3 {
+            color: var(--secondary-dark);
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem;
+        }
+
+        h4 {
+            color: var(--secondary-dark);
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        pre code {
+            background: none;
+            color: #f8f8f2;
+            padding: 0;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
+            border-left: 4px solid var(--accent-green);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            color: var(--accent-green);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .warning-box {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .warning-box strong {
+            color: var(--warning);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .exercise-box {
+            background: rgba(39, 174, 96, 0.05);
+            border: 2px solid var(--success);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .exercise-box h4 {
+            color: var(--success);
+            margin-top: 0;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .difficulty.easy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .difficulty.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .difficulty.hard {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(17, 153, 142, 0.05);
+        }
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--accent-lime);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #11998e;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #0e7c74;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/index.html">計算工学</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/calphad-tools-introduction/index.html">CALPHAD法入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 1</span>
+        </div>
+    </nav>
+
+    <header>
+        <h1>第1章: CALPHAD法の基礎と熱力学計算</h1>
+        <p>Gibbs自由エネルギー・相平衡・データベース・状態図計算の実践</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">トップ</a></li>
+            <li><a href="#intro">概要</a></li>
+            <li><a href="#thermodynamics">熱力学の基礎</a></li>
+            <li><a href="#calphad-method">CALPHAD法の原理</a></li>
+            <li><a href="#tools-comparison">ツール比較</a></li>
+            <li><a href="#databases">データベース</a></li>
+            <li><a href="#code-examples">コード例</a></li>
+            <li><a href="#learning-objectives">学習目標</a></li>
+            <li><a href="#exercises">演習問題</a></li>
+            <li><a href="#references">参考文献</a></li>
+            <li><a href="chapter-2.html">次の章へ →</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="intro">
+            <h2>1.1 本章の概要</h2>
+
+            <p>
+                CALPHAD（CALculation of PHAse Diagrams）法は、熱力学データベースを用いて相平衡を計算し、状態図を予測する強力な手法です。材料科学では、新材料設計、プロセス最適化、組織予測に広く使われています。本章では、CALPHAD法の基礎となる熱力学原理、計算手法、主要ツール、データベースを学びます。
+            </p>
+
+            <div class="info-box">
+                <strong>本章の学習目標</strong>
+                <ul>
+                    <li><strong>レベル1（基本理解）</strong>: Gibbs自由エネルギーと相平衡の原理、CALPHAD法の基本概念、Thermo-Calc/FactSage/pycalphadの違いを説明できる</li>
+                    <li><strong>レベル2（実践スキル）</strong>: pycalphadで二元系・三元系状態図を計算でき、熱力学データベース（SSUB、TCFE、TTAL）を使用でき、Scheil-Gulliverシミュレーションを実行できる</li>
+                    <li><strong>レベル3（応用力）</strong>: 実合金系の相平衡を予測でき、実験データと計算結果を比較検証でき、材料設計にCALPHADを活用できる</li>
+                </ul>
+            </div>
+
+            <div class="warning-box">
+                <strong>前提知識</strong>
+                <p>本章では、Python基礎（NumPy、Matplotlib）、熱力学の基本（Gibbs自由エネルギー、化学ポテンシャル）、材料科学の基礎（相図の読み方）を前提とします。</p>
+            </div>
+        </section>
+
+        <section id="thermodynamics">
+            <h2>1.2 熱力学の基礎</h2>
+
+            <h3>Gibbs自由エネルギーと化学ポテンシャル</h3>
+            <p>
+                相平衡の根本原理は、<strong>Gibbs自由エネルギーGの最小化</strong>です。一定の温度T、圧力Pの下で、系のGibbs自由エネルギーが最小となる状態が熱力学的平衡状態です。
+            </p>
+
+            <p>Gibbs自由エネルギーは次式で定義されます：</p>
+            <p style="text-align: center; font-size: 1.1em; margin: 1.5rem 0;">
+                \( G = H - TS \)
+            </p>
+            <p>ここで、Hはエンタルピー、Tは絶対温度、Sはエントロピーです。</p>
+
+            <p>多成分系では、各成分iの化学ポテンシャル \(\mu_i\) が重要です：</p>
+            <p style="text-align: center; font-size: 1.1em; margin: 1.5rem 0;">
+                \( \mu_i = \left( \frac{\partial G}{\partial n_i} \right)_{T,P,n_{j \neq i}} \)
+            </p>
+
+            <h3>相平衡の条件</h3>
+            <p>
+                2つの相α、βが平衡状態にあるとき、各成分の化学ポテンシャルが等しくなります：
+            </p>
+            <p style="text-align: center; font-size: 1.1em; margin: 1.5rem 0;">
+                \( \mu_i^{\alpha} = \mu_i^{\beta} \quad (\text{すべての成分} i) \)
+            </p>
+
+            <p>
+                CALPHAD法は、この条件を満たす温度・組成を数値的に解くことで、相境界を決定します。
+            </p>
+
+            <div class="mermaid">
+flowchart TD
+    A[多相系の自由エネルギー] --> B{各相のGを計算}
+    B --> C[α相のGα]
+    B --> D[β相のGβ]
+    B --> E[γ相のGγ]
+    C --> F[Gを最小化]
+    D --> F
+    E --> F
+    F --> G[平衡相の決定]
+    G --> H[状態図の作成]
+
+    style A fill:#d4f1f4
+    style F fill:#a8e6cf
+    style H fill:#ffcccc
+            </div>
+
+            <h3>溶体モデルと過剰Gibbs自由エネルギー</h3>
+            <p>
+                理想溶体では、混合のGibbs自由エネルギーは次式で表されます：
+            </p>
+            <p style="text-align: center; font-size: 1.1em; margin: 1.5rem 0;">
+                \( G_{\text{mix}}^{\text{id}} = RT \sum_i x_i \ln x_i \)
+            </p>
+
+            <p>
+                実際の溶体では、原子間相互作用により理想溶体からのずれ（過剰Gibbs自由エネルギー \(G^{\text{ex}}\)）が生じます：
+            </p>
+            <p style="text-align: center; font-size: 1.1em; margin: 1.5rem 0;">
+                \( G = G^{\text{ref}} + G_{\text{mix}}^{\text{id}} + G^{\text{ex}} \)
+            </p>
+
+            <p>
+                \(G^{\text{ex}}\)は、Redlich-Kister多項式などでモデル化されます（第2章で詳述）。
+            </p>
+        </section>
+
+        <section id="calphad-method">
+            <h2>1.3 CALPHAD法の原理</h2>
+
+            <h3>CALPHAD法とは</h3>
+            <p>
+                CALPHAD（CALculation of PHAse Diagrams）法は、1970年代にLarry Kaufmanらによって体系化された手法で、熱力学モデルとデータベースを用いて相平衡を計算します。
+            </p>
+
+            <div class="info-box">
+                <strong>CALPHAD法の3つの柱</strong>
+                <ol>
+                    <li><strong>熱力学モデル</strong>: 各相のGibbs自由エネルギーを組成・温度の関数として記述（Compound Energy Formalism等）</li>
+                    <li><strong>熱力学データベース（TDB）</strong>: 実験データ・第一原理計算から最適化されたパラメータ集</li>
+                    <li><strong>最適化計算</strong>: Gibbs自由エネルギー最小化により平衡相・組成を決定</li>
+                </ol>
+            </div>
+
+            <h3>CALPHAD法のワークフロー</h3>
+            <div class="mermaid">
+flowchart LR
+    A[実験データ<br/>DSC, XRD, SEM] --> B[データベース構築<br/>TDB形式]
+    C[第一原理計算<br/>DFT, VASP] --> B
+    B --> D[CALPHAD計算<br/>Gibbs最小化]
+    D --> E[状態図<br/>Property Diagram]
+    E --> F[実験検証]
+    F --> B
+
+    style A fill:#ffd6d6
+    style C fill:#d6f5d6
+    style D fill:#d6e5ff
+    style E fill:#fff9d6
+            </div>
+
+            <h3>CALPHAD法の利点と限界</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>利点</th>
+                        <th>限界</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>多元系合金の相平衡を高速計算</td>
+                        <td>データベースの精度に依存</td>
+                    </tr>
+                    <tr>
+                        <td>実験困難な条件（高温、高圧）も予測可能</td>
+                        <td>外挿領域では精度低下</td>
+                    </tr>
+                    <tr>
+                        <td>温度・組成依存のProperty計算</td>
+                        <td>動的過程（拡散、変態速度）は別途必要</td>
+                    </tr>
+                    <tr>
+                        <td>材料設計の迅速なスクリーニング</td>
+                        <td>準安定相の予測が困難な場合あり</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>CALPHAD法の歴史</h3>
+            <ul>
+                <li><strong>1970年代</strong>: Larry Kaufman、Mats Hillertらが基礎を確立</li>
+                <li><strong>1980年代</strong>: Thermo-Calc、PANDATの開発開始</li>
+                <li><strong>1990年代</strong>: SGTE（Scientific Group Thermodata Europe）データベース整備</li>
+                <li><strong>2000年代</strong>: DICTRAによる拡散シミュレーション統合</li>
+                <li><strong>2010年代〜</strong>: 第一原理計算との統合、機械学習の導入、pycalphad等のオープンソースツール登場</li>
+            </ul>
+        </section>
+
+        <section id="tools-comparison">
+            <h2>1.4 Thermo-Calc vs FactSage vs pycalphad</h2>
+
+            <h3>主要CALPHADツールの比較</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ツール</th>
+                        <th>種別</th>
+                        <th>強み</th>
+                        <th>用途</th>
+                        <th>価格</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Thermo-Calc</strong></td>
+                        <td>商用</td>
+                        <td>包括的DB、GUI、DICTRA連携</td>
+                        <td>合金設計、プロセス最適化</td>
+                        <td>高額（年間数万ドル）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>FactSage</strong></td>
+                        <td>商用</td>
+                        <td>冶金・セラミックス特化、スラグDB</td>
+                        <td>冶金プロセス、高温反応</td>
+                        <td>高額</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pandat</strong></td>
+                        <td>商用</td>
+                        <td>合金設計特化、Scheil計算</td>
+                        <td>鋳造合金、凝固解析</td>
+                        <td>中〜高額</td>
+                    </tr>
+                    <tr>
+                        <td><strong>pycalphad</strong></td>
+                        <td>OSS</td>
+                        <td>Python統合、自動化、ML連携</td>
+                        <td>研究、ハイスループット計算</td>
+                        <td>無料</td>
+                    </tr>
+                    <tr>
+                        <td><strong>OpenCalphad</strong></td>
+                        <td>OSS</td>
+                        <td>完全オープンソース、Fortran実装</td>
+                        <td>教育、研究</td>
+                        <td>無料</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>pycalphadを選ぶ理由</h3>
+            <ul>
+                <li><strong>Pythonエコシステム</strong>: NumPy、pandas、scikit-learnとシームレス統合</li>
+                <li><strong>自動化</strong>: スクリプトで大量の状態図を自動生成</li>
+                <li><strong>機械学習連携</strong>: 訓練データ生成、パラメータ最適化（ESPEI）</li>
+                <li><strong>オープンソース</strong>: コードが公開されており、カスタマイズ可能</li>
+                <li><strong>無料</strong>: 商用ソフトの代替として教育・研究に最適</li>
+            </ul>
+
+            <div class="warning-box">
+                <strong>pycalphadの制約</strong>
+                <p>商用ソフト（Thermo-Calc、FactSage）と比較して、GUIがなく、データベースの整備状況も限定的です。本格的な産業応用には商用ツールの利用も検討してください。</p>
+            </div>
+        </section>
+
+        <section id="databases">
+            <h2>1.5 熱力学データベース（SSUB、TCFE、TTAL）</h2>
+
+            <h3>TDB形式の構造</h3>
+            <p>
+                TDB（ThermoData Base）形式は、CALPHADデータベースの標準フォーマットです。各相のGibbs自由エネルギーをパラメータ化した式を記述します。
+            </p>
+
+            <h4>TDBファイルの基本構造</h4>
+            <pre><code class="language-text">ELEMENT A  RHOMBOHEDRAL  26.9815  4577.3   28.3  ! アルミニウム
+ELEMENT B  FCC  63.546  5004.0   33.15  ! 銅
+
+FUNCTION GHSERAL  298.15
+    -7976.15+137.093038*T-24.3671976*T*LN(T)-0.001884662*T**2
+    -8.77664E-07*T**3+74092*T**(-1); 6000 N !
+
+PHASE LIQUID % 1 1.0 !
+PARAMETER G(LIQUID,A;0) 298.15
+    +GHSERAL+11005.029-11.841867*T+7.934E-20*T**7; 6000 N !
+</code></pre>
+
+            <h3>主要データベースの特徴</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>データベース</th>
+                        <th>対象系</th>
+                        <th>相数</th>
+                        <th>用途</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>SSUB（SGTE）</strong></td>
+                        <td>純物質・二元系基本</td>
+                        <td>78元素</td>
+                        <td>基礎データベース、教育</td>
+                    </tr>
+                    <tr>
+                        <td><strong>TCFE（Thermo-Calc Fe）</strong></td>
+                        <td>鉄鋼・Fe基合金</td>
+                        <td>Fe-C-Cr-Ni-Mo等</td>
+                        <td>ステンレス鋼、耐熱鋼設計</td>
+                    </tr>
+                    <tr>
+                        <td><strong>TTAL（Thermo-Calc Al）</strong></td>
+                        <td>アルミニウム合金</td>
+                        <td>Al-Mg-Si-Cu等</td>
+                        <td>航空機用Al合金、鋳造合金</td>
+                    </tr>
+                    <tr>
+                        <td><strong>TCNI（Thermo-Calc Ni）</strong></td>
+                        <td>Ni基超合金</td>
+                        <td>Ni-Cr-Co-Al-Ti等</td>
+                        <td>タービンブレード、航空機エンジン</td>
+                    </tr>
+                    <tr>
+                        <td><strong>MOB（Mobility）</strong></td>
+                        <td>拡散移動度</td>
+                        <td>各元素の拡散係数</td>
+                        <td>DICTRA拡散シミュレーション</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>データベースの精度と検証</h3>
+            <p>
+                CALPHADデータベースは、実験データ（DSC、XRD、化学分析等）に基づき最適化されます。精度は次の要因に依存します：
+            </p>
+            <ul>
+                <li><strong>実験データの量</strong>: データが豊富な系（Fe-C、Al-Si等）は高精度</li>
+                <li><strong>外挿の程度</strong>: 測定範囲内では±50K程度、外挿領域では精度低下</li>
+                <li><strong>データベースの版</strong>: 新しい版ほど改良されている（TCFE12 > TCFE10）</li>
+                <li><strong>多元系の複雑さ</strong>: 3元系以上では相互作用パラメータの不確実性が増加</li>
+            </ul>
+
+            <div class="info-box">
+                <strong>データベース選択のポイント</strong>
+                <ul>
+                    <li>対象合金系がカバーされているか確認</li>
+                    <li>最新版を使用（古い版は精度が低い場合あり）</li>
+                    <li>実験データと比較検証を必ず実施</li>
+                    <li>外挿領域では慎重に解釈（不確実性が大きい）</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="code-examples">
+            <h2>1.6 コード例と実践</h2>
+
+            <h3>コード例1: pycalphadのインストールとセットアップ</h3>
+            <pre><code class="language-bash"># pycalphadのインストール
+pip install pycalphad
+
+# 依存ライブラリ
+pip install numpy matplotlib pandas xarray sympy
+
+# データベースの準備（例: NIST Al-Fe TDB）
+wget https://github.com/pycalphad/pycalphad/raw/develop/examples/AlFe_Sundman.tdb
+</code></pre>
+
+            <h3>コード例2: 二元系状態図の計算（Al-Fe系）</h3>
+            <pre><code class="language-python">import matplotlib.pyplot as plt
+from pycalphad import Database, binplot
+import pycalphad.variables as v
+
+# データベースの読み込み
+db = Database('AlFe_Sundman.tdb')
+
+# 計算条件の設定
+my_phases = ['LIQUID', 'B2_BCC', 'FCC_A1', 'HCP_A3', 'AL5FE2', 'AL2FE', 'AL13FE4']
+
+# 二元系状態図の計算
+fig = plt.figure(figsize=(10, 8))
+binplot(db, ['AL', 'FE', 'VA'], my_phases, {v.X('FE'): (0, 1, 0.01), v.T: (300, 2000, 10), v.P: 101325})
+
+plt.title('Al-Fe Binary Phase Diagram', fontsize=16, fontweight='bold')
+plt.xlabel('Mole Fraction Fe', fontsize=14)
+plt.ylabel('Temperature (K)', fontsize=14)
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.savefig('Al-Fe_phase_diagram.png', dpi=300)
+plt.show()
+
+# 出力: Al-Fe二元系状態図（液相線、固相線、相境界を表示）
+</code></pre>
+
+            <div class="info-box">
+                <strong>計算結果の解釈</strong>
+                <ul>
+                    <li><strong>液相線</strong>: 液体が凝固を開始する温度</li>
+                    <li><strong>固相線</strong>: 完全に固化する温度</li>
+                    <li><strong>共晶点</strong>: 液体から2つの固相が同時に析出する点</li>
+                    <li><strong>金属間化合物</strong>: AL5FE2、AL2FE等のストイキオメトリック化合物</li>
+                </ul>
+            </div>
+
+            <h3>コード例3: 三元系等温断面図の計算（Al-Fe-Ni系、1000K）</h3>
+            <pre><code class="language-python">from pycalphad import equilibrium, ternplot
+import numpy as np
+
+# データベース（三元系対応のTDBが必要）
+db = Database('AlFeNi_database.tdb')  # 例
+
+# 計算条件
+comps = ['AL', 'FE', 'NI', 'VA']
+phases = ['LIQUID', 'FCC_A1', 'BCC_A2', 'B2_BCC']
+
+# 等温断面図（1000K）
+fig = plt.figure(figsize=(10, 10))
+ternplot(db, comps, phases, {v.T: 1000, v.P: 101325}, x=v.X('FE'), y=v.X('NI'))
+
+plt.title('Al-Fe-Ni Isothermal Section at 1000K', fontsize=16, fontweight='bold')
+plt.tight_layout()
+plt.savefig('AlFeNi_1000K_ternary.png', dpi=300)
+plt.show()
+
+# 出力: 1000Kでの三元系等温断面図（相領域を表示）
+</code></pre>
+
+            <h3>コード例4: Scheil-Gulliver凝固シミュレーション</h3>
+            <pre><code class="language-python">from pycalphad import equilibrium
+import matplotlib.pyplot as plt
+
+# Al-10wt%Si合金のScheil凝固シミュレーション
+db = Database('AlSi_database.tdb')
+comps = ['AL', 'SI', 'VA']
+phases = ['LIQUID', 'FCC_A1', 'DIAMOND_A4']
+
+# 凝固条件
+alloy_composition = {v.X('SI'): 0.10}  # 10 at% Si
+T_liquidus = 850  # K（液相線温度）
+T_solidus = 660   # K（共晶温度）
+
+# Scheilモデル: 液相は平衡、固相は拡散なし
+temperatures = np.linspace(T_liquidus, T_solidus, 100)
+fraction_solid = []
+
+for T in temperatures:
+    eq = equilibrium(db, comps, phases, {v.P: 101325, v.T: T, **alloy_composition})
+    fs = eq.NP.sel(Phase='FCC_A1').values.sum()
+    fraction_solid.append(fs)
+
+# プロット
+plt.figure(figsize=(8, 6))
+plt.plot(temperatures, fraction_solid, linewidth=2, color='#11998e')
+plt.xlabel('Temperature (K)', fontsize=14)
+plt.ylabel('Fraction Solid', fontsize=14)
+plt.title('Scheil-Gulliver Solidification (Al-10at%Si)', fontsize=16, fontweight='bold')
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.savefig('Scheil_solidification.png', dpi=300)
+plt.show()
+
+# 出力: 温度-固相分率曲線（凝固過程の予測）
+</code></pre>
+
+            <div class="warning-box">
+                <strong>Scheilモデルの仮定</strong>
+                <p>液相は完全平衡、固相は拡散なし（初晶組成が保存）という極端な仮定です。実際の凝固は中間的な挙動を示します。拡散を考慮する場合はDICTRAを使用します。</p>
+            </div>
+
+            <h3>コード例5: Property Diagram（密度、熱容量）の計算</h3>
+            <pre><code class="language-python">from pycalphad import equilibrium
+import matplotlib.pyplot as plt
+
+# Al-5wt%Mg合金の熱容量を温度関数として計算
+db = Database('AlMg_database.tdb')
+comps = ['AL', 'MG', 'VA']
+phases = ['LIQUID', 'FCC_A1']
+
+alloy_comp = {v.X('MG'): 0.05}
+temperatures = np.linspace(300, 900, 100)
+heat_capacity = []
+
+for T in temperatures:
+    eq = equilibrium(db, comps, phases, {v.P: 101325, v.T: T, **alloy_comp}, output='CP')
+    cp = eq.CP.values.sum()  # J/(mol·K)
+    heat_capacity.append(cp)
+
+# プロット
+plt.figure(figsize=(8, 6))
+plt.plot(temperatures, heat_capacity, linewidth=2, color='#38ef7d')
+plt.xlabel('Temperature (K)', fontsize=14)
+plt.ylabel('Heat Capacity Cp (J/mol·K)', fontsize=14)
+plt.title('Property Diagram: Al-5at%Mg Heat Capacity', fontsize=16, fontweight='bold')
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.savefig('AlMg_heat_capacity.png', dpi=300)
+plt.show()
+
+# 出力: 温度-熱容量曲線（相変態時のCp変化を検出可能）
+</code></pre>
+        </section>
+
+        <section id="learning-objectives">
+            <h2>1.7 学習目標の確認</h2>
+
+            <p>このchapterを完了すると、以下を説明できるようになります：</p>
+
+            <h3>基本理解</h3>
+            <ul>
+                <li>✅ Gibbs自由エネルギー最小化による相平衡の原理を説明できる</li>
+                <li>✅ CALPHAD法の基本概念と3つの柱（モデル、DB、最適化）を理解できる</li>
+                <li>✅ Thermo-Calc、FactSage、pycalphadの違いと用途を説明できる</li>
+                <li>✅ TDB形式のデータベース構造を理解できる</li>
+            </ul>
+
+            <h3>実践スキル</h3>
+            <ul>
+                <li>✅ pycalphadで二元系状態図を計算できる</li>
+                <li>✅ 三元系等温断面図を作成できる</li>
+                <li>✅ Scheil-Gulliver凝固シミュレーションを実行できる</li>
+                <li>✅ Property Diagram（熱容量、密度等）を計算できる</li>
+                <li>✅ 熱力学データベース（SSUB、TCFE、TTAL）を適切に選択できる</li>
+            </ul>
+
+            <h3>応用力</h3>
+            <ul>
+                <li>✅ 実合金系（Al合金、鉄鋼等）の相平衡を予測できる</li>
+                <li>✅ 実験データ（DSC、XRD）と計算結果を比較検証できる</li>
+                <li>✅ 材料設計にCALPHAD計算を活用できる</li>
+            </ul>
+        </section>
+
+        <section id="exercises">
+            <h2>1.8 演習問題</h2>
+
+            <h3>Easy（基礎確認）</h3>
+
+            <div class="exercise-box">
+                <h4>Easy 1: CALPHAD法の定義 <span class="difficulty easy">基礎</span></h4>
+                <p><strong>問題</strong>: CALPHAD法のアクロニムを展開し、その基本原理を2-3文で説明しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>正解</strong>:</p>
+                    <p><strong>CALPHAD</strong> = <strong>CAL</strong>culation of <strong>PH</strong>ase <strong>D</strong>iagrams</p>
+                    <p><strong>基本原理</strong>:</p>
+                    <ul>
+                        <li>熱力学モデルとデータベースを用いて、各相のGibbs自由エネルギーを組成・温度の関数として記述します</li>
+                        <li>Gibbs自由エネルギー最小化により、平衡状態の相組成・分率を計算します</li>
+                        <li>計算結果から状態図（相図）やProperty Diagramを作成し、材料設計に活用します</li>
+                    </ul>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Easy 2: 相平衡の条件 <span class="difficulty easy">基礎</span></h4>
+                <p><strong>問題</strong>: 2つの相α、βが熱力学的平衡にあるための条件を数式で示しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>正解</strong>:</p>
+                    <p>各成分iの化学ポテンシャルが等しい：</p>
+                    <p style="text-align: center; font-size: 1.1em; margin: 1rem 0;">
+                        \( \mu_i^{\alpha} = \mu_i^{\beta} \quad (\text{すべての成分} i) \)
+                    </p>
+                    <p><strong>解説</strong>:</p>
+                    <ul>
+                        <li>化学ポテンシャル \(\mu_i\) は、成分iの追加によるGibbs自由エネルギー変化を表します</li>
+                        <li>平衡状態では、成分が相間を移動してもGの変化がない（\(\mu_i\) が等しい）状態です</li>
+                        <li>温度T、圧力Pも両相で等しい必要があります（\(T^{\alpha} = T^{\beta}\)、\(P^{\alpha} = P^{\beta}\)）</li>
+                    </ul>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Easy 3: TDBデータベースの用途 <span class="difficulty easy">基礎</span></h4>
+                <p><strong>問題</strong>: 次の材料系に最適なTDBデータベースを選びなさい：<br>
+                (a) SUS304ステンレス鋼の熱処理、<br>
+                (b) Al-6061航空機用合金の時効析出、<br>
+                (c) Ni基超合金（Inconel 718）のγ'析出
+                </p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>正解</strong>:</p>
+                    <ul>
+                        <li>(a) <strong>TCFE（Thermo-Calc Fe）</strong> - 鉄鋼・Fe基合金データベース（Fe-Cr-Ni系を含む）</li>
+                        <li>(b) <strong>TTAL（Thermo-Calc Al）</strong> - アルミニウム合金データベース（Al-Mg-Si-Cu系を含む）</li>
+                        <li>(c) <strong>TCNI（Thermo-Calc Ni）</strong> - Ni基超合金データベース（Ni-Cr-Fe-Mo-Al-Ti系を含む）</li>
+                    </ul>
+                    <p><strong>補足</strong>:</p>
+                    <ul>
+                        <li>Al-6061は Al-Mg-Si-Cu系で、析出相（Mg2Si、Al2Cu等）の計算にTTALが必要</li>
+                        <li>Inconel 718のγ'相（Ni3(Al,Ti)）の予測にはTCNIが不可欠</li>
+                    </ul>
+                </details>
+            </div>
+
+            <h3>Medium（応用）</h3>
+
+            <div class="exercise-box">
+                <h4>Medium 1: Scheilモデルの仮定 <span class="difficulty medium">応用</span></h4>
+                <p><strong>問題</strong>: Scheil-Gulliverモデルと平衡凝固モデルの違いを説明し、実際の凝固がどちらに近いか、冷却速度との関係を述べなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>解答</strong>:</p>
+                    <h5>Scheil-Gulliverモデルの仮定</h5>
+                    <ul>
+                        <li><strong>液相</strong>: 完全平衡（拡散が速い）</li>
+                        <li><strong>固相</strong>: 拡散なし（初晶組成が凍結）</li>
+                        <li><strong>結果</strong>: 偏析（segregation）が最大、共晶温度まで凝固が継続</li>
+                    </ul>
+                    <h5>平衡凝固モデルの仮定</h5>
+                    <ul>
+                        <li><strong>液相・固相ともに完全平衡</strong>（拡散が無限に速い）</li>
+                        <li><strong>結果</strong>: 偏析なし、均一組成、固相線で凝固完了</li>
+                    </ul>
+                    <h5>実際の凝固との関係</h5>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>冷却速度</th>
+                                <th>近いモデル</th>
+                                <th>理由</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>極めて遅い（鋳造、炉冷）</td>
+                                <td>平衡モデル</td>
+                                <td>固相内拡散が十分進行</td>
+                            </tr>
+                            <tr>
+                                <td>中程度（砂型鋳造）</td>
+                                <td>中間的挙動</td>
+                                <td>部分的拡散</td>
+                            </tr>
+                            <tr>
+                                <td>速い（金型鋳造、溶接）</td>
+                                <td>Scheilモデル</td>
+                                <td>固相拡散が遅い</td>
+                            </tr>
+                            <tr>
+                                <td>極めて速い（急冷、スパッタ）</td>
+                                <td>非平衡（アモルファス）</td>
+                                <td>結晶化自体が抑制</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p><strong>実践的重要性</strong>:</p>
+                    <ul>
+                        <li>Scheilモデルは鋳造欠陥（ホットクラック、ポロシティ）の予測に有用</li>
+                        <li>実際の偏析を定量的に予測するには、DICTRAによる拡散シミュレーションが必要</li>
+                    </ul>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium 2: 状態図の読み方 <span class="difficulty medium">応用</span></h4>
+                <p><strong>問題</strong>: Al-10wt%Si合金を800Kから500Kまで冷却した場合、どの温度で何が起こるか、Al-Si二元系状態図を参照して説明しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>解答</strong>（Al-Si系の代表的な値）:</p>
+                    <h5>冷却過程</h5>
+                    <ol>
+                        <li><strong>850K（液相線）</strong>: 液体から初晶Al（FCC）の析出開始</li>
+                        <li><strong>850K → 850K</strong>: 初晶Alの成長、液相のSi濃度が増加</li>
+                        <li><strong>850K（共晶温度）</strong>: 残留液体が共晶組織（Al + Si）に変態</li>
+                        <li><strong>850K以下</strong>: 完全固化、組織は初晶Al + 共晶（Al + Si）</li>
+                    </ol>
+                    <h5>最終組織の予測</h5>
+                    <ul>
+                        <li><strong>初晶Al分率</strong>: てこの法則により約70%（組成依存）</li>
+                        <li><strong>共晶組織分率</strong>: 約30%</li>
+                        <li><strong>実用的意味</strong>: Al-10%Si合金は鋳造性が良好（共晶組成12.6%Siに近い）</li>
+                    </ul>
+                    <h5>てこの法則（Lever Rule）</h5>
+                    <p>固相分率 \(f_s\) は次式で計算：</p>
+                    <p style="text-align: center; font-size: 1.1em; margin: 1rem 0;">
+                        \( f_s = \frac{C_L - C_0}{C_L - C_S} \)
+                    </p>
+                    <p>ここで、\(C_0\)は合金組成、\(C_L\)は液相組成、\(C_S\)は固相組成です。</p>
+                </details>
+            </div>
+
+            <h3>Hard（発展）</h3>
+
+            <div class="exercise-box">
+                <h4>Hard 1: CALPHADとDFTの統合 <span class="difficulty hard">発展</span></h4>
+                <p><strong>問題</strong>: 第一原理計算（DFT）とCALPHAD法を統合する利点と課題を、具体例を挙げて説明しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>解答</strong>:</p>
+                    <h5>統合アプローチの利点</h5>
+                    <ol>
+                        <li><strong>実験データが乏しい系への適用</strong>
+                            <ul>
+                                <li>例: 新規高エントロピー合金（HEA）のCALPHADデータベース構築</li>
+                                <li>DFT計算で0Kでの生成エンタルピーを取得 → CALPHADパラメータの初期値に使用</li>
+                            </ul>
+                        </li>
+                        <li><strong>準安定相の予測精度向上</strong>
+                            <ul>
+                                <li>例: 鉄鋼のマルテンサイト変態温度（Ms点）予測</li>
+                                <li>DFTでBCC, FCCの自由エネルギー差を計算 → CALPHADモデルを補正</li>
+                            </ul>
+                        </li>
+                        <li><strong>物性値（弾性定数、磁性）の予測</strong>
+                            <ul>
+                                <li>例: Ni基超合金のγ/γ'界面エネルギー計算</li>
+                                <li>DFTで界面構造を最適化 → CALPHADで析出形態を予測</li>
+                            </ul>
+                        </li>
+                    </ol>
+                    <h5>課題と限界</h5>
+                    <ol>
+                        <li><strong>DFTは0K、CALPHADは高温</strong>
+                            <ul>
+                                <li>問題: DFTの0K結果を高温に外挿する際の不確実性</li>
+                                <li>解決策: フォノン計算（phonopy）で振動エントロピーを考慮</li>
+                            </ul>
+                        </li>
+                        <li><strong>DFT計算コストの高さ</strong>
+                            <ul>
+                                <li>問題: 多元系（5元系以上）では組合せ爆発</li>
+                                <li>解決策: 機械学習ポテンシャル（MLIP）で高速化</li>
+                            </ul>
+                        </li>
+                        <li><strong>精度の不一致</strong>
+                            <ul>
+                                <li>問題: DFT（GGA、PBE）は遷移金属で誤差±0.1 eV/atom程度</li>
+                                <li>解決策: 実験データとの併用、SCAN汎関数等の高精度手法</li>
+                            </ul>
+                        </li>
+                    </ol>
+                    <h5>実践例: ESPEI（Extensible Self-optimizing Phase Equilibria Infrastructure）</h5>
+                    <pre><code class="language-python"># ESPEIによるCALPHADパラメータ自動最適化
+from espei import run_espei
+
+# DFT生成エンタルピー + 実験相境界データを統合
+input_data = {
+    "DFT_formation_energies": "dft_results.json",
+    "experimental_phase_boundaries": "exp_data.json",
+    "database": "initial_TDB.tdb"
+}
+
+# ベイズ最適化でCALPHADパラメータをフィット
+optimized_tdb = run_espei(input_data)
+# 出力: 最適化されたTDBファイル
+</code></pre>
+                    <p><strong>将来展望</strong>:</p>
+                    <ul>
+                        <li>機械学習（ニューラルネットワーク）でDFT-CALPHAD統合を加速</li>
+                        <li>マルチスケールシミュレーション: DFT → CALPHAD → Phase-field → FEM</li>
+                    </ul>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Hard 2: データベース精度の検証 <span class="difficulty hard">発展</span></h4>
+                <p><strong>問題</strong>: CALPHAD計算結果の信頼性を評価するために、どのような実験データと比較すべきか、3つの手法を挙げ、それぞれの長所・短所を述べなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>解答</strong>:</p>
+                    <h5>手法1: 示差走査熱量測定（DSC, Differential Scanning Calorimetry）</h5>
+                    <ul>
+                        <li><strong>測定内容</strong>: 相変態温度（液相線、固相線、共析温度）、変態熱</li>
+                        <li><strong>長所</strong>: 迅速（数十分）、必要試料量が少ない（数mg）、定量的な熱量データ取得</li>
+                        <li><strong>短所</strong>: 平衡到達が不十分な場合あり、相の同定はできない（温度異常のみ検出）</li>
+                        <li><strong>比較方法</strong>: CALPHAD計算の相変態温度とDSCピーク温度を比較</li>
+                    </ul>
+                    <h5>手法2: X線回折（XRD, X-ray Diffraction）</h5>
+                    <ul>
+                        <li><strong>測定内容</strong>: 析出相の同定、格子定数、相分率</li>
+                        <li><strong>長所</strong>: 相の種類を直接同定可能、結晶構造情報も取得、非破壊</li>
+                        <li><strong>短所</strong>: 高温その場測定は装置が高価、アモルファス相は検出困難</li>
+                        <li><strong>比較方法</strong>: CALPHAD予測相とXRD同定相を比較、Rietveld解析で相分率を定量</li>
+                    </ul>
+                    <h5>手法3: 電子顕微鏡分析（SEM/EDS, Scanning Electron Microscopy / Energy Dispersive X-ray Spectroscopy）</h5>
+                    <ul>
+                        <li><strong>測定内容</strong>: 組織観察、局所組成分析（元素マッピング）</li>
+                        <li><strong>長所</strong>: ミクロ組織と組成を同時観察、偏析の定量評価が可能</li>
+                        <li><strong>短所</strong>: 試料調製が必要、局所分析のため統計性が低い場合あり</li>
+                        <li><strong>比較方法</strong>: CALPHAD予測の相組成とEDS測定組成を比較、偏析プロファイルの検証</li>
+                    </ul>
+                    <h5>統合的検証アプローチ</h5>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>検証項目</th>
+                                <th>推奨手法</th>
+                                <th>精度目標</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>相変態温度</td>
+                                <td>DSC</td>
+                                <td>±10-20K</td>
+                            </tr>
+                            <tr>
+                                <td>析出相の同定</td>
+                                <td>XRD + SEM</td>
+                                <td>100%一致</td>
+                            </tr>
+                            <tr>
+                                <td>相分率</td>
+                                <td>XRD (Rietveld) + SEM (画像解析)</td>
+                                <td>±5-10%</td>
+                            </tr>
+                            <tr>
+                                <td>偏析</td>
+                                <td>SEM/EDS + EPMA</td>
+                                <td>±0.5 wt%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p><strong>実践的な検証フロー</strong>:</p>
+                    <ol>
+                        <li>CALPHAD計算で相変態温度を予測</li>
+                        <li>DSC測定で予測温度を検証（±50K以内なら次へ）</li>
+                        <li>予測温度で熱処理した試料をXRD/SEM分析</li>
+                        <li>析出相・組成が一致すれば、データベースを信頼</li>
+                        <li>不一致があれば、データベースパラメータを再最適化（ESPEI等）</li>
+                    </ol>
+                </details>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>1.9 参考文献</h2>
+
+            <ol>
+                <li>Saunders, N., & Miodownik, A. P. (1998). <em>CALPHAD (Calculation of Phase Diagrams): A Comprehensive Guide</em>. Pergamon Materials Series, Vol. 1, Elsevier. (pp. 1-50: CALPHAD法の歴史と基礎理論)</li>
+                <li>Lukas, H. L., Fries, S. G., & Sundman, B. (2007). <em>Computational Thermodynamics: The Calphad Method</em>. Cambridge University Press. (pp. 75-120: 溶体モデルとデータベース構築)</li>
+                <li>Liu, Z.-K. (2009). "First-Principles Calculations and CALPHAD Modeling of Thermodynamics." <em>Journal of Phase Equilibria and Diffusion</em>, 30(5), 517-534. (DFT-CALPHAD統合の最新レビュー)</li>
+                <li>Otis, R., & Liu, Z.-K. (2017). "pycalphad: CALPHAD-based Computational Thermodynamics in Python." <em>Journal of Open Research Software</em>, 5(1), 1. (pycalphadの公式論文、アルゴリズム解説)</li>
+                <li>Thermo-Calc Software AB. (2023). <em>Thermo-Calc User Guide</em>. <a href="https://thermocalc.com/support/documentation/" target="_blank">https://thermocalc.com/support/documentation/</a> (商用ツールの使用法とデータベース仕様)</li>
+                <li>Andersson, J.-O., et al. (2002). "Thermo-Calc & DICTRA, Computational Tools for Materials Science." <em>Calphad</em>, 26(2), 273-312. (Thermo-CalcとDICTRAの技術的詳細)</li>
+                <li>Bocklund, B., et al. (2019). "ESPEI for Efficient Database Development, Uncertainty Quantification, and Property Prediction." <em>MRS Communications</em>, 9(2), 618-627. (ESPEI自動最適化ツールの解説、pp. 620-623: ベイズ最適化手法)</li>
+            </ol>
+        </section>
+
+        <section id="navigation">
+            <h2>次のステップ</h2>
+            <p>本章で、CALPHAD法の基礎と熱力学計算を理解しました。次章では、TDB形式のデータベース構造、Redlich-Kister多項式、Compound Energy Formalismなど、熱力学モデルの詳細を学びます。</p>
+            <div style="display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 2px solid var(--border-light);">
+                <a href="index.html" style="padding: 1rem 2rem; background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">← シリーズ目次</a>
+                <a href="chapter-2.html" style="padding: 1rem 2rem; background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">第2章: データベースと熱力学モデル →</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 CT Dojo. All rights reserved.</p>
+        <p><a href="https://github.com/yourusername/calphad-tutorial">GitHub Repository</a> | <a href="mailto:yusuke.hashimoto.b8@tohoku.ac.jp">Contact</a></p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</body>
+</html>

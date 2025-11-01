@@ -1,0 +1,2039 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第2章: ジョブスケジューラ（Slurm と PBS） - HPCクラスタ入門 - CT Dojo</title>
+    <meta name="description" content="SlurmとPBS Professionalによるジョブスケジューリング、リソース管理、ジョブスクリプト作成、ワークフロー自動化を学ぶ実践ガイド。">
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- MathJax for mathematical expressions -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --accent-green: #11998e;
+            --accent-lime: #38ef7d;
+            --primary-dark: #2c3e50;
+            --secondary-dark: #34495e;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #ecf0f1;
+            --white: #ffffff;
+            --code-bg: #2d2d2d;
+            --border-light: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        section {
+            background: var(--white);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(90deg, var(--accent-green), var(--accent-lime)) 1;
+        }
+
+        h3 {
+            color: var(--secondary-dark);
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem;
+        }
+
+        h4 {
+            color: var(--secondary-dark);
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        pre code {
+            background: none;
+            color: #f8f8f2;
+            padding: 0;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
+            border-left: 4px solid var(--accent-green);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            color: var(--accent-green);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .warning-box {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .warning-box strong {
+            color: var(--warning);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .exercise-box {
+            background: rgba(39, 174, 96, 0.05);
+            border: 2px solid var(--success);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .exercise-box h4 {
+            color: var(--success);
+            margin-top: 0;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .difficulty.easy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .difficulty.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .difficulty.hard {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(17, 153, 142, 0.05);
+        }
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--accent-lime);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #11998e;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #0e7c74;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        details {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid var(--accent-green);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--accent-green);
+            user-select: none;
+        }
+
+        summary:hover {
+            color: var(--accent-lime);
+        }
+
+        details[open] summary {
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/index.html">計算工学</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/hpc-cluster-introduction/index.html">HPC Cluster</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+        </div>
+    </nav>
+
+    <header>
+        <h1>第2章: ジョブスケジューラ（Slurm と PBS）</h1>
+        <p>リソース管理・ジョブスクリプト作成・ワークフロー自動化・トラブルシューティング</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">トップ</a></li>
+            <li><a href="#intro">本章の概要</a></li>
+            <li><a href="#scheduler-fundamentals">スケジューラ基礎</a></li>
+            <li><a href="#slurm">Slurm</a></li>
+            <li><a href="#pbs">PBS Professional</a></li>
+            <li><a href="#job-scripts">ジョブスクリプト</a></li>
+            <li><a href="#resource-optimization">リソース最適化</a></li>
+            <li><a href="#exercises">演習問題</a></li>
+            <li><a href="#references">参考文献</a></li>
+            <li><a href="chapter-1.html">← 前の章</a></li>
+            <li><a href="chapter-3.html">次の章へ →</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="intro">
+            <h2>2.1 本章の概要</h2>
+
+            <p>
+                ジョブスケジューラは、HPCクラスタにおける計算リソースの効率的な管理と分配を担う中核システムです。本章では、現代のHPC環境で最も広く使われている<strong>Slurm（Simple Linux Utility for Resource Management）</strong>と<strong>PBS Professional（Portable Batch System）</strong>を中心に、ジョブスケジューリングの理論から実践までを学びます。
+            </p>
+
+            <div class="info-box">
+                <strong>本章の学習目標</strong>
+                <ul>
+                    <li><strong>レベル1（基本理解）</strong>: ジョブスケジューラの役割、SlurmとPBSの違い、スケジューリングアルゴリズムの基礎を理解できる</li>
+                    <li><strong>レベル2（実践スキル）</strong>: Slurm/PBSでジョブスクリプトを作成し、適切なリソース指定でジョブを投入・監視・管理できる</li>
+                    <li><strong>レベル3（応用力）</strong>: 複雑なワークフローを自動化し、リソース使用を最適化し、エラーハンドリングとデバッグができる</li>
+                </ul>
+            </div>
+
+            <div class="warning-box">
+                <strong>前提知識</strong>
+                <p>本章では、第1章で学んだHPCクラスタの基礎、Linux基本操作、シェルスクリプトの知識を前提とします。</p>
+            </div>
+        </section>
+
+        <section id="scheduler-fundamentals">
+            <h2>2.2 ジョブスケジューラの基礎</h2>
+
+            <h3>ジョブスケジューラの役割と責任</h3>
+            <p>
+                ジョブスケジューラは、限られた計算リソース（CPU、メモリ、GPU、ストレージI/O）を複数ユーザーの多数のジョブに対して効率的かつ公平に分配します。主な責任は以下の通りです：
+            </p>
+
+            <ul>
+                <li><strong>リソースアロケーション</strong>: 各ジョブに必要なリソースを割り当て、競合を回避</li>
+                <li><strong>優先度管理</strong>: ユーザー、プロジェクト、ジョブ種別に基づく優先順位付け</li>
+                <li><strong>スケジューリング最適化</strong>: クラスタ稼働率の最大化と待ち時間の最小化</li>
+                <li><strong>アカウンティング</strong>: リソース使用量の記録と課金（商用HPC）</li>
+                <li><strong>障害管理</strong>: ノード障害時の自動再投入、エラー通知</li>
+            </ul>
+
+            <h3>スケジューリングアルゴリズム</h3>
+            <p>
+                現代のジョブスケジューラは、複数のアルゴリズムを組み合わせて最適なスケジューリングを実現します：
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>アルゴリズム</th>
+                        <th>動作原理</th>
+                        <th>利点</th>
+                        <th>欠点</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>FIFO（First In First Out）</strong></td>
+                        <td>到着順に実行</td>
+                        <td>実装が単純、公平性が高い</td>
+                        <td>小ジョブが大ジョブの後ろで長時間待機</td>
+                    </tr>
+                    <tr>
+                        <td><strong>バックフィル（Backfill）</strong></td>
+                        <td>大ジョブの待ち時間に小ジョブを挿入</td>
+                        <td>クラスタ稼働率が向上</td>
+                        <td>スケジューリング計算が複雑</td>
+                    </tr>
+                    <tr>
+                        <td><strong>フェアシェア（Fair Share）</strong></td>
+                        <td>過去の使用量に基づき優先度を動的調整</td>
+                        <td>長期的な公平性を保証</td>
+                        <td>短期的には不公平に見える場合あり</td>
+                    </tr>
+                    <tr>
+                        <td><strong>優先度ベース</strong></td>
+                        <td>ジョブ属性（サイズ、年齢等）で優先順位付け</td>
+                        <td>柔軟な制御が可能</td>
+                        <td>優先度設定が難しい</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>ジョブライフサイクル</h3>
+            <div class="mermaid">
+flowchart TD
+    A[ジョブ投入<br/>sbatch/qsub] --> B{リソース要求<br/>の妥当性検証}
+    B -->|OK| C[PENDING<br/>待機キュー]
+    B -->|NG| X[REJECTED<br/>エラー通知]
+    C --> D{リソース<br/>利用可能?}
+    D -->|No| C
+    D -->|Yes| E[RUNNING<br/>実行中]
+    E --> F{正常終了?}
+    F -->|Yes| G[COMPLETED<br/>完了]
+    F -->|No| H{再試行<br/>可能?}
+    H -->|Yes| C
+    H -->|No| I[FAILED<br/>失敗]
+    E -->|時間制限超過| J[TIMEOUT<br/>タイムアウト]
+    E -->|ユーザーキャンセル| K[CANCELLED<br/>キャンセル]
+
+    style A fill:#e3f2fd
+    style C fill:#fff3e0
+    style E fill:#e8f5e9
+    style G fill:#c8e6c9
+    style I fill:#ffcdd2
+    style X fill:#ffcdd2
+    style J fill:#ffcdd2
+    style K fill:#f0f4c3
+            </div>
+
+            <h3>リソース管理の数学的モデル</h3>
+            <p>
+                ジョブスケジューラは、利用可能リソース\(R_{\text{total}}\)に対して、各ジョブ\(j\)の要求リソース\(r_j\)を割り当てます。制約条件は：
+            </p>
+
+            <p style="text-align: center; font-size: 1.1rem; margin: 1.5rem 0;">
+                \[
+                \sum_{j \in \text{Running}} r_j \leq R_{\text{total}}
+                \]
+            </p>
+
+            <p>
+                さらに、待ち時間\(W_j\)と実行時間\(T_j\)を考慮した<strong>ジョブ応答時間</strong>は：
+            </p>
+
+            <p style="text-align: center; font-size: 1.1rem; margin: 1.5rem 0;">
+                \[
+                \text{Response Time}_j = W_j + T_j
+                \]
+            </p>
+
+            <p>
+                スケジューラは、全ジョブの平均応答時間を最小化しつつ、クラスタの<strong>利用率（Utilization）</strong>を最大化することを目指します：
+            </p>
+
+            <p style="text-align: center; font-size: 1.1rem; margin: 1.5rem 0;">
+                \[
+                \text{Utilization} = \frac{\sum_{j} (r_j \times T_j)}{R_{\text{total}} \times T_{\text{total}}}
+                \]
+            </p>
+
+            <div class="info-box">
+                <strong>実践的な意味</strong>
+                <p>
+                    利用率80-90%が理想的です。100%に近いとジョブが常に待機状態になり、低すぎるとリソースの無駄が発生します。バックフィルアルゴリズムは、利用率を90%以上に保ちつつ小ジョブの待ち時間を削減します。
+                </p>
+            </div>
+        </section>
+
+        <section id="slurm">
+            <h2>2.3 Slurm（Simple Linux Utility for Resource Management）</h2>
+
+            <h3>Slurmの特徴とアーキテクチャ</h3>
+            <p>
+                Slurmは、2002年にローレンス・リバモア国立研究所で開発された、オープンソースのジョブスケジューラです。現在、世界のTop500スーパーコンピュータの60%以上で採用されています。
+            </p>
+
+            <h4>主要コンポーネント</h4>
+            <ul>
+                <li><strong>slurmctld（Controller Daemon）</strong>: マスターノードで動作し、スケジューリング決定を行う中央管理デーモン</li>
+                <li><strong>slurmd（Compute Daemon）</strong>: 各計算ノードで動作し、ジョブ実行を管理</li>
+                <li><strong>slurmdbd（Database Daemon）</strong>: アカウンティング情報をデータベースに記録</li>
+            </ul>
+
+            <div class="mermaid">
+flowchart TB
+    subgraph Users["ユーザー"]
+        U1[sbatch]
+        U2[squeue]
+        U3[scancel]
+    end
+
+    subgraph Master["マスターノード"]
+        CTL[slurmctld<br/>スケジューラ]
+        DB[(slurmdbd<br/>DB)]
+    end
+
+    subgraph Compute["計算ノード群"]
+        N1[slurmd<br/>node001]
+        N2[slurmd<br/>node002]
+        N3[slurmd<br/>node003]
+        N4[slurmd<br/>node004-128]
+    end
+
+    Users --> CTL
+    CTL --> DB
+    CTL --> Compute
+
+    style Users fill:#e3f2fd
+    style Master fill:#f3e5f5
+    style Compute fill:#e8f5e9
+            </div>
+
+            <h3>コード例1: Slurm基本ジョブスクリプト</h3>
+            <pre><code class="language-bash">#!/bin/bash
+#SBATCH --job-name=材料シミュレーション     # ジョブ名（日本語可）
+#SBATCH --output=logs/job_%j.out          # 標準出力（%j=ジョブID）
+#SBATCH --error=logs/job_%j.err           # 標準エラー出力
+#SBATCH --partition=normal                # パーティション（キュー）
+#SBATCH --nodes=2                         # ノード数
+#SBATCH --ntasks-per-node=16              # ノードあたりMPIタスク数
+#SBATCH --cpus-per-task=2                 # タスクあたりCPUコア数（OpenMP用）
+#SBATCH --mem=64G                         # ノードあたりメモリ
+#SBATCH --time=06:00:00                   # 最大実行時間（6時間）
+#SBATCH --gres=gpu:2                      # GPU数（2枚）
+#SBATCH --mail-type=BEGIN,END,FAIL        # メール通知（開始、終了、失敗）
+#SBATCH --mail-user=user@university.edu   # 通知先
+
+# ログディレクトリ作成
+mkdir -p logs results
+
+# 環境モジュールのロード
+module purge                              # 既存モジュールをクリア
+module load gcc/11.2.0                    # コンパイラ
+module load openmpi/4.1.4                 # MPI実装
+module load cuda/11.7                     # CUDA（GPU計算用）
+module load python/3.10                   # Python環境
+
+# 環境変数の設定
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK  # OpenMPスレッド数
+export UCX_TLS=rc,sm,cuda                 # MPI通信プロトコル（GPU対応）
+
+# ジョブ情報の記録
+echo "========================================="
+echo "Job ID       : $SLURM_JOB_ID"
+echo "Job Name     : $SLURM_JOB_NAME"
+echo "Node List    : $SLURM_JOB_NODELIST"
+echo "Num Nodes    : $SLURM_JOB_NUM_NODES"
+echo "Num Tasks    : $SLURM_NTASKS"
+echo "CPUs per Task: $SLURM_CPUS_PER_TASK"
+echo "Working Dir  : $SLURM_SUBMIT_DIR"
+echo "Start Time   : $(date)"
+echo "========================================="
+
+# 作業ディレクトリに移動
+cd $SLURM_SUBMIT_DIR
+
+# MPI + OpenMP ハイブリッド並列実行
+# 2ノード × 16タスク × 2スレッド = 64並列
+mpirun -np $SLURM_NTASKS \
+       python simulation.py \
+       --input data/input.h5 \
+       --output results/output_${SLURM_JOB_ID}.h5 \
+       --iterations 1000
+
+# 終了時刻の記録
+echo "End Time: $(date)"
+echo "Job completed successfully"
+</code></pre>
+
+            <h3>コード例2: Slurmアレイジョブ（パラメータスイープ）</h3>
+            <pre><code class="language-bash">#!/bin/bash
+#SBATCH --job-name=param_sweep
+#SBATCH --output=logs/sweep_%A_%a.out     # %A=アレイジョブID、%a=タスクID
+#SBATCH --error=logs/sweep_%A_%a.err
+#SBATCH --array=1-100%10                  # タスク1-100、同時実行10個まで
+#SBATCH --partition=normal
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=16G
+#SBATCH --time=02:00:00
+
+# ログ・結果ディレクトリ作成
+mkdir -p logs results
+
+# パラメータファイルから該当行を取得
+# params.txt フォーマット: "temperature pressure concentration"
+PARAMS=$(sed -n "${SLURM_ARRAY_TASK_ID}p" params.txt)
+TEMP=$(echo $PARAMS | awk '{print $1}')
+PRES=$(echo $PARAMS | awk '{print $2}')
+CONC=$(echo $PARAMS | awk '{print $3}')
+
+echo "Task ID: $SLURM_ARRAY_TASK_ID"
+echo "Temperature: $TEMP K, Pressure: $PRES MPa, Concentration: $CONC mol/L"
+
+# 計算実行
+python simulation.py \
+    --temperature $TEMP \
+    --pressure $PRES \
+    --concentration $CONC \
+    --output results/result_${SLURM_ARRAY_TASK_ID}.csv
+
+# 成功フラグファイル作成
+touch results/completed_${SLURM_ARRAY_TASK_ID}.flag
+</code></pre>
+
+            <h3>コード例3: Slurmジョブ監視と管理コマンド</h3>
+            <pre><code class="language-bash"># ========================================
+# ジョブ投入
+# ========================================
+sbatch job_script.sh
+# 出力: Submitted batch job 123456
+
+# ========================================
+# ジョブ状態の確認
+# ========================================
+# 自分のジョブ一覧
+squeue -u $USER
+
+# 特定パーティションのジョブ
+squeue -p normal
+
+# アレイジョブの全タスク表示
+squeue -r --job 123456
+
+# 詳細フォーマット指定
+squeue -u $USER --format="%.10i %.9P %.30j %.8u %.2t %.10M %.6D %R"
+# 出力:
+#    JOBID PARTITION                           NAME     USER ST       TIME  NODES NODELIST(REASON)
+#   123456    normal              材料シミュレーション  user01  R      45:32      2 node[001-002]
+#   123457    normal                    param_sweep  user01 PD       0:00      1 (Priority)
+
+# ========================================
+# ジョブの詳細情報
+# ========================================
+scontrol show job 123456
+# 出力: JobId, UserId, NodeList, TimeLimit, StartTime, 等の詳細情報
+
+# ========================================
+# ジョブキャンセル
+# ========================================
+# 特定ジョブをキャンセル
+scancel 123456
+
+# アレイジョブの特定タスクをキャンセル
+scancel 123456_25
+
+# 自分の全ジョブをキャンセル
+scancel -u $USER
+
+# 特定パーティションの自分のジョブをキャンセル
+scancel -u $USER -p normal
+
+# ========================================
+# ジョブ効率レポート（完了後）
+# ========================================
+seff 123456
+# 出力例:
+# Job ID: 123456
+# Cluster: hpc-cluster
+# User/Group: user01/group01
+# State: COMPLETED (exit code 0)
+# Nodes: 2
+# Cores per node: 32
+# CPU Utilized: 1-12:34:56
+# CPU Efficiency: 87.35% of 1-16:00:00 core-walltime
+# Job Wall-clock time: 06:00:00
+# Memory Utilized: 112.4 GB
+# Memory Efficiency: 87.81% of 128.0 GB
+
+# ========================================
+# アカウンティング情報（過去のジョブ）
+# ========================================
+# 過去7日間の自分のジョブ履歴
+sacct -u $USER --starttime=now-7days --format=JobID,JobName,State,Elapsed,MaxRSS
+
+# 特定ジョブの詳細
+sacct -j 123456 --format=JobID,JobName,Partition,State,AllocCPUS,Elapsed,MaxRSS,ExitCode
+
+# ========================================
+# クラスタ全体の状態確認
+# ========================================
+# ノード一覧と状態
+sinfo
+
+# 詳細表示
+sinfo -Nel
+# 出力: NODELIST, NODES, PARTITION, STATE, CPUS, MEMORY, AVAIL_FEATURES
+
+# 特定パーティションの情報
+sinfo -p normal
+
+# ノード別のジョブ割り当て状況
+sinfo -N -o "%.12N %.8t %.4c %.8m %.20C %.10e"
+# N=ノード名、t=状態、c=CPU数、m=メモリ、C=CPU使用状況、e=空きメモリ
+</code></pre>
+
+            <div class="info-box">
+                <strong>Slurmコマンドのエイリアス設定（生産性向上）</strong>
+                <p><code>~/.bashrc</code>に以下を追加すると便利です：</p>
+                <pre><code class="language-bash"># Slurmコマンドのエイリアス
+alias sq='squeue -u $USER'
+alias si='sinfo'
+alias sj='scontrol show job'
+alias sc='scancel'
+alias sa='sacct -u $USER --format=JobID,JobName,State,Elapsed,MaxRSS'
+</code></pre>
+            </div>
+        </section>
+
+        <section id="pbs">
+            <h2>2.4 PBS Professional（Portable Batch System）</h2>
+
+            <h3>PBSの特徴と歴史</h3>
+            <p>
+                PBS（Portable Batch System）は、1990年代初頭にNASAで開発された歴史あるジョブスケジューラです。現在は<strong>PBS Professional</strong>（Altair社の商用版）と<strong>OpenPBS</strong>（オープンソース版）が存在します。Slurmと比較すると以下の特徴があります：
+            </p>
+
+            <ul>
+                <li><strong>長期安定性</strong>: 30年以上の運用実績、枯れた技術</li>
+                <li><strong>柔軟な設定</strong>: 複雑なポリシー設定が可能</li>
+                <li><strong>商用サポート</strong>: PBS Professionalは企業サポートあり</li>
+                <li><strong>採用例</strong>: 東工大TSUBAME、NIMS、産業界のHPCクラスタ</li>
+            </ul>
+
+            <h3>SlurmとPBSのコマンド対応表</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>操作</th>
+                        <th>Slurm</th>
+                        <th>PBS Professional</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>ジョブ投入</td>
+                        <td><code>sbatch script.sh</code></td>
+                        <td><code>qsub script.sh</code></td>
+                    </tr>
+                    <tr>
+                        <td>対話的ジョブ</td>
+                        <td><code>salloc -N 1</code></td>
+                        <td><code>qsub -I</code></td>
+                    </tr>
+                    <tr>
+                        <td>ジョブ一覧</td>
+                        <td><code>squeue -u $USER</code></td>
+                        <td><code>qstat -u $USER</code></td>
+                    </tr>
+                    <tr>
+                        <td>ジョブキャンセル</td>
+                        <td><code>scancel 123456</code></td>
+                        <td><code>qdel 123456</code></td>
+                    </tr>
+                    <tr>
+                        <td>ジョブ詳細</td>
+                        <td><code>scontrol show job 123456</code></td>
+                        <td><code>qstat -f 123456</code></td>
+                    </tr>
+                    <tr>
+                        <td>ノード情報</td>
+                        <td><code>sinfo</code></td>
+                        <td><code>pbsnodes -a</code></td>
+                    </tr>
+                    <tr>
+                        <td>ジョブ履歴</td>
+                        <td><code>sacct</code></td>
+                        <td><code>qstat -x</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>コード例4: PBS Professionalジョブスクリプト</h3>
+            <pre><code class="language-bash">#!/bin/bash
+#PBS -N 材料シミュレーション              # ジョブ名
+#PBS -o logs/job_$PBS_JOBID.out           # 標準出力
+#PBS -e logs/job_$PBS_JOBID.err           # 標準エラー出力
+#PBS -q normal                             # キュー名
+#PBS -l select=2:ncpus=32:mem=64gb        # リソース: 2ノード、各32コア、64GB
+#PBS -l walltime=06:00:00                 # 最大実行時間
+#PBS -l ngpus=2                            # GPU数（ノードあたり2枚）
+#PBS -m be                                 # メール通知（b=開始、e=終了）
+#PBS -M user@university.edu               # 通知先
+
+# ログディレクトリ作成
+mkdir -p logs results
+
+# 環境モジュールのロード
+module purge
+module load gcc/11.2.0
+module load openmpi/4.1.4
+module load cuda/11.7
+module load python/3.10
+
+# 環境変数の設定
+export OMP_NUM_THREADS=2                  # OpenMPスレッド数
+export UCX_TLS=rc,sm,cuda
+
+# ジョブ情報の記録
+echo "========================================="
+echo "Job ID       : $PBS_JOBID"
+echo "Job Name     : $PBS_JOBNAME"
+echo "Node List    : $(cat $PBS_NODEFILE | sort | uniq)"
+echo "Num Nodes    : $(cat $PBS_NODEFILE | sort | uniq | wc -l)"
+echo "Working Dir  : $PBS_O_WORKDIR"
+echo "Start Time   : $(date)"
+echo "========================================="
+
+# 作業ディレクトリに移動
+cd $PBS_O_WORKDIR
+
+# MPI + OpenMP ハイブリッド並列実行
+# PBSではmpiexecを推奨（自動でノードファイルを認識）
+mpiexec -np 64 \
+        python simulation.py \
+        --input data/input.h5 \
+        --output results/output_${PBS_JOBID}.h5 \
+        --iterations 1000
+
+# 終了時刻の記録
+echo "End Time: $(date)"
+echo "Job completed successfully"
+</code></pre>
+
+            <h3>コード例5: PBSアレイジョブ</h3>
+            <pre><code class="language-bash">#!/bin/bash
+#PBS -N param_sweep
+#PBS -o logs/sweep_${PBS_JOBID}_${PBS_ARRAY_INDEX}.out
+#PBS -e logs/sweep_${PBS_JOBID}_${PBS_ARRAY_INDEX}.err
+#PBS -J 1-100                             # アレイ範囲: 1-100
+#PBS -q normal
+#PBS -l select=1:ncpus=4:mem=16gb
+#PBS -l walltime=02:00:00
+
+# ログ・結果ディレクトリ作成
+mkdir -p logs results
+
+# パラメータファイルから該当行を取得
+# $PBS_ARRAY_INDEX: 現在のタスクID（1-100）
+PARAMS=$(sed -n "${PBS_ARRAY_INDEX}p" params.txt)
+TEMP=$(echo $PARAMS | awk '{print $1}')
+PRES=$(echo $PARAMS | awk '{print $2}')
+CONC=$(echo $PARAMS | awk '{print $3}')
+
+echo "Array Index: $PBS_ARRAY_INDEX"
+echo "Temperature: $TEMP K, Pressure: $PRES MPa, Concentration: $CONC mol/L"
+
+# 作業ディレクトリに移動
+cd $PBS_O_WORKDIR
+
+# 計算実行
+python simulation.py \
+    --temperature $TEMP \
+    --pressure $PRES \
+    --concentration $CONC \
+    --output results/result_${PBS_ARRAY_INDEX}.csv
+
+# 成功フラグファイル作成
+touch results/completed_${PBS_ARRAY_INDEX}.flag
+</code></pre>
+
+            <h3>コード例6: PBSジョブ依存関係（パイプライン）</h3>
+            <pre><code class="language-bash">#!/bin/bash
+# ========================================
+# PBSジョブ依存関係パイプライン
+# ========================================
+
+# ステップ1: データ前処理
+JOB1=$(qsub preprocess.sh)
+echo "Preprocessing Job ID: $JOB1"
+
+# ステップ2: 計算（前処理が成功したら実行）
+# -W depend=afterok:JOB_ID で依存関係を設定
+JOB2=$(qsub -W depend=afterok:$JOB1 calculate.sh)
+echo "Calculation Job ID: $JOB2 (depends on $JOB1)"
+
+# ステップ3: 後処理（計算が成功したら実行）
+JOB3=$(qsub -W depend=afterok:$JOB2 postprocess.sh)
+echo "Postprocessing Job ID: $JOB3 (depends on $JOB2)"
+
+echo "Pipeline submitted successfully"
+echo "Monitor with: qstat -u $USER"
+
+# 依存関係の種類:
+# afterok: 正常終了後に実行
+# afterany: 終了後に実行（成否問わず）
+# afternotok: 異常終了後に実行
+# before: 指定ジョブの前に実行
+</code></pre>
+        </section>
+
+        <section id="job-scripts">
+            <h2>2.5 ジョブスクリプト作成のベストプラクティス</h2>
+
+            <h3>リソース要求の適切な見積もり</h3>
+            <p>
+                過大なリソース要求は待ち時間を増やし、過小な要求はジョブ失敗を招きます。以下の手順で適切な値を決定します：
+            </p>
+
+            <ol>
+                <li><strong>小規模テスト実行</strong>: 代表的なデータセットで試験実行し、実行時間・メモリ使用量を測定</li>
+                <li><strong>スケーリング測定</strong>: データサイズに対する実行時間の増加率を把握</li>
+                <li><strong>安全マージン追加</strong>: 実測値の1.2-1.5倍を要求値とする</li>
+                <li><strong>効率レポート確認</strong>: <code>seff</code>/<code>qstat -f</code>で実際の使用率（80-95%が理想）</li>
+            </ol>
+
+            <h3>コード例7: Pythonからのジョブ投入自動化</h3>
+            <pre><code class="language-python">#!/usr/bin/env python3
+"""
+Slurmジョブ投入自動化スクリプト
+パラメータグリッドに基づき、自動でジョブスクリプト生成・投入
+"""
+
+import subprocess
+import itertools
+import os
+from pathlib import Path
+
+# パラメータグリッドの定義
+temperatures = [300, 400, 500, 600, 700]  # K
+pressures = [0.1, 1.0, 10.0]              # MPa
+concentrations = [0.01, 0.05, 0.1]        # mol/L
+
+# ディレクトリ作成
+Path("job_scripts").mkdir(exist_ok=True)
+Path("logs").mkdir(exist_ok=True)
+Path("results").mkdir(exist_ok=True)
+
+# ジョブスクリプトテンプレート
+JOB_TEMPLATE = """#!/bin/bash
+#SBATCH --job-name=sim_T{temp}_P{pres}_C{conc}
+#SBATCH --output=logs/job_%j.out
+#SBATCH --error=logs/job_%j.err
+#SBATCH --partition=normal
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=16G
+#SBATCH --time=02:00:00
+
+module load python/3.10
+
+python simulation.py \\
+    --temperature {temp} \\
+    --pressure {pres} \\
+    --concentration {conc} \\
+    --output results/result_T{temp}_P{pres}_C{conc}.csv
+
+echo "Completed: T={temp}K, P={pres}MPa, C={conc}mol/L"
+"""
+
+def generate_and_submit_jobs():
+    """パラメータの全組み合わせに対してジョブを生成・投入"""
+    job_ids = []
+
+    # パラメータの全組み合わせを生成
+    param_combinations = itertools.product(temperatures, pressures, concentrations)
+
+    for idx, (temp, pres, conc) in enumerate(param_combinations, start=1):
+        # ジョブスクリプト生成
+        job_script_content = JOB_TEMPLATE.format(
+            temp=temp,
+            pres=pres,
+            conc=conc
+        )
+
+        # ファイルに保存
+        job_script_path = f"job_scripts/job_{idx:03d}.sh"
+        with open(job_script_path, 'w') as f:
+            f.write(job_script_content)
+
+        # ジョブ投入
+        result = subprocess.run(
+            ["sbatch", job_script_path],
+            capture_output=True,
+            text=True
+        )
+
+        # ジョブID取得
+        if result.returncode == 0:
+            job_id = result.stdout.strip().split()[-1]
+            job_ids.append(job_id)
+            print(f"[{idx:3d}] Submitted Job {job_id}: T={temp}K, P={pres}MPa, C={conc}mol/L")
+        else:
+            print(f"[{idx:3d}] ERROR: {result.stderr}")
+
+    return job_ids
+
+def monitor_jobs(job_ids):
+    """投入したジョブの状態を監視"""
+    import time
+
+    print(f"\n合計 {len(job_ids)} 個のジョブを投入しました")
+    print("ジョブ監視を開始します（Ctrl+C で終了）\n")
+
+    try:
+        while True:
+            # squeue でジョブ状態を取得
+            result = subprocess.run(
+                ["squeue", "-u", os.environ.get("USER"), "-h", "-o", "%.10i %.2t"],
+                capture_output=True,
+                text=True
+            )
+
+            # 状態の集計
+            running = 0
+            pending = 0
+            for line in result.stdout.strip().split('\n'):
+                if not line:
+                    continue
+                job_id, state = line.split()
+                if state == 'R':
+                    running += 1
+                elif state == 'PD':
+                    pending += 1
+
+            completed = len(job_ids) - running - pending
+
+            print(f"\r実行中: {running:3d} | 待機中: {pending:3d} | 完了: {completed:3d} / {len(job_ids)}",
+                  end='', flush=True)
+
+            if completed == len(job_ids):
+                print("\n\n全ジョブが完了しました！")
+                break
+
+            time.sleep(10)  # 10秒ごとに更新
+
+    except KeyboardInterrupt:
+        print("\n\n監視を終了します")
+
+if __name__ == "__main__":
+    print("=== Slurmジョブ自動投入スクリプト ===\n")
+    print(f"パラメータ空間: {len(temperatures)} × {len(pressures)} × {len(concentrations)} = "
+          f"{len(temperatures) * len(pressures) * len(concentrations)} 個のジョブ\n")
+
+    # ジョブ投入
+    job_ids = generate_and_submit_jobs()
+
+    # ジョブ監視
+    monitor_jobs(job_ids)
+</code></pre>
+
+            <h3>コード例8: ログ解析とデバッグ</h3>
+            <pre><code class="language-bash">#!/bin/bash
+# ========================================
+# ジョブログの自動解析スクリプト
+# ========================================
+
+JOB_ID=$1
+
+if [ -z "$JOB_ID" ]; then
+    echo "Usage: $0 JOB_ID"
+    exit 1
+fi
+
+echo "=== ジョブ $JOB_ID の解析レポート ==="
+echo ""
+
+# ========================================
+# 1. ジョブ基本情報
+# ========================================
+echo "[1] ジョブ基本情報"
+scontrol show job $JOB_ID | grep -E "JobId|JobName|UserId|Partition|State|ExitCode"
+echo ""
+
+# ========================================
+# 2. リソース使用効率
+# ========================================
+echo "[2] リソース使用効率"
+seff $JOB_ID
+echo ""
+
+# ========================================
+# 3. エラーログの解析
+# ========================================
+echo "[3] エラーログ解析"
+ERROR_LOG=$(scontrol show job $JOB_ID | grep "StdErr=" | cut -d'=' -f2)
+
+if [ -f "$ERROR_LOG" ]; then
+    ERROR_COUNT=$(grep -i "error" $ERROR_LOG | wc -l)
+    WARNING_COUNT=$(grep -i "warning" $ERROR_LOG | wc -l)
+
+    echo "エラー数: $ERROR_COUNT"
+    echo "警告数: $WARNING_COUNT"
+
+    if [ $ERROR_COUNT -gt 0 ]; then
+        echo ""
+        echo "最初の5個のエラー:"
+        grep -i "error" $ERROR_LOG | head -5
+    fi
+else
+    echo "エラーログが見つかりません: $ERROR_LOG"
+fi
+echo ""
+
+# ========================================
+# 4. 実行時間の分析
+# ========================================
+echo "[4] 実行時間分析"
+sacct -j $JOB_ID --format=JobID,Elapsed,TotalCPU,UserCPU,SystemCPU,MaxRSS
+echo ""
+
+# ========================================
+# 5. ノード別の実行状況
+# ========================================
+echo "[5] ノード別実行状況"
+sacct -j $JOB_ID --format=JobID,NodeList,AllocCPUS,State,ExitCode
+echo ""
+
+# ========================================
+# 6. メモリ使用パターン
+# ========================================
+echo "[6] メモリ使用パターン"
+sacct -j $JOB_ID --format=JobID,MaxRSS,MaxVMSize,AveRSS,AveVMSize
+echo ""
+
+# ========================================
+# 7. 推奨事項
+# ========================================
+echo "[7] 推奨事項"
+
+# CPU効率をチェック
+CPU_EFF=$(seff $JOB_ID | grep "CPU Efficiency" | awk '{print $3}' | tr -d '%')
+MEM_EFF=$(seff $JOB_ID | grep "Memory Efficiency" | awk '{print $3}' | tr -d '%')
+
+if [ ! -z "$CPU_EFF" ] && [ "$CPU_EFF" -lt 70 ]; then
+    echo "⚠ CPU効率が低い（${CPU_EFF}%）: CPUコア数を削減してください"
+fi
+
+if [ ! -z "$MEM_EFF" ] && [ "$MEM_EFF" -lt 70 ]; then
+    echo "⚠ メモリ効率が低い（${MEM_EFF}%）: メモリ要求を削減してください"
+fi
+
+if [ ! -z "$MEM_EFF" ] && [ "$MEM_EFF" -gt 95 ]; then
+    echo "⚠ メモリ使用率が高い（${MEM_EFF}%）: メモリ不足の可能性あり、増量を検討してください"
+fi
+
+echo ""
+echo "=== 解析完了 ==="
+</code></pre>
+        </section>
+
+        <section id="resource-optimization">
+            <h2>2.6 リソース管理と最適化</h2>
+
+            <h3>並列スケーラビリティの測定</h3>
+            <p>
+                並列効率を評価するため、<strong>強スケーリング</strong>（固定問題サイズ）と<strong>弱スケーリング</strong>（プロセッサあたりの問題サイズ固定）を測定します。
+            </p>
+
+            <h4>強スケーリング（Strong Scaling）</h4>
+            <p>
+                問題サイズを固定し、プロセッサ数を増やした時の実行時間の変化を測定します。理想的には、プロセッサ数を2倍にすると実行時間が1/2になります。
+            </p>
+
+            <p style="text-align: center; font-size: 1.1rem; margin: 1.5rem 0;">
+                \[
+                \text{Parallel Efficiency} = \frac{T_1}{N \times T_N} \times 100\%
+                \]
+            </p>
+
+            <p>
+                ここで、\(T_1\)は1プロセッサでの実行時間、\(T_N\)は\(N\)プロセッサでの実行時間です。
+            </p>
+
+            <h4>弱スケーリング（Weak Scaling）</h4>
+            <p>
+                プロセッサあたりの問題サイズを一定に保ちながら、プロセッサ数を増やします。理想的には、実行時間は一定です。
+            </p>
+
+            <p style="text-align: center; font-size: 1.1rem; margin: 1.5rem 0;">
+                \[
+                \text{Scaled Efficiency} = \frac{T_1}{T_N} \times 100\%
+                \]
+            </p>
+
+            <div class="info-box">
+                <strong>スケーラビリティテストの実施例</strong>
+                <p>1プロセッサから64プロセッサまで、2の累乗でジョブを投入し、各ケースの実行時間を記録します。並列効率が80%以上を保てる最大プロセッサ数を特定し、それを標準設定とします。</p>
+            </div>
+
+            <h3>I/Oボトルネックの回避</h3>
+            <p>
+                大規模並列計算では、ストレージI/Oがボトルネックになります。以下の戦略で緩和します：
+            </p>
+
+            <ul>
+                <li><strong>バッファリング</strong>: データをメモリに蓄積し、まとめて書き込む</li>
+                <li><strong>並列I/O</strong>: MPI-IOやHDF5の並列機能を使用</li>
+                <li><strong>ローカルストレージ活用</strong>: 各ノードのローカルディスク（<code>/tmp</code>、<code>$TMPDIR</code>）を一時ファイルに使用</li>
+                <li><strong>ファイル数削減</strong>: 多数の小ファイルではなく、1つの大ファイル（HDF5、NetCDF）に集約</li>
+            </ul>
+
+            <h3>ジョブの優先度と公平性</h3>
+            <p>
+                多くのHPCシステムは、<strong>フェアシェアスケジューリング</strong>を採用し、過去のリソース使用量に基づいて優先度を動的調整します。
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>状況</th>
+                        <th>優先度の変化</th>
+                        <th>結果</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>過去1週間で大量のジョブ実行</td>
+                        <td>優先度が低下</td>
+                        <td>新規ジョブの待ち時間が長くなる</td>
+                    </tr>
+                    <tr>
+                        <td>長期間ジョブを投入していない</td>
+                        <td>優先度が上昇</td>
+                        <td>新規ジョブが早くスケジュールされる</td>
+                    </tr>
+                    <tr>
+                        <td>短時間・小リソースのジョブ</td>
+                        <td>バックフィルで優先実行</td>
+                        <td>大ジョブの待ち時間に挿入される</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="warning-box">
+                <strong>優先度を上げる裏技（非推奨）</strong>
+                <p>
+                    一部ユーザーは、1つの大ジョブを多数の小ジョブに分割してバックフィルを狙う行為をしますが、これはシステム全体の効率を下げ、他ユーザーに迷惑をかけます。多くのHPCセンターでは、このような行為を禁止しています。
+                </p>
+            </div>
+        </section>
+
+        <section id="exercises">
+            <h2>演習問題</h2>
+
+            <h3>Easy（基礎確認）<span class="difficulty easy">初級</span></h3>
+
+            <div class="exercise-box">
+                <h4>Q1: SlurmとPBSのコマンド対応</h4>
+                <p>以下のSlurm操作に対応するPBSコマンドを答えてください。</p>
+                <ul>
+                    <li>(a) <code>sbatch job.sh</code></li>
+                    <li>(b) <code>squeue -u $USER</code></li>
+                    <li>(c) <code>scancel 123456</code></li>
+                    <li>(d) <code>sinfo</code></li>
+                </ul>
+
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>正解</strong>:</p>
+                    <ul>
+                        <li>(a) <code>qsub job.sh</code></li>
+                        <li>(b) <code>qstat -u $USER</code></li>
+                        <li>(c) <code>qdel 123456</code></li>
+                        <li>(d) <code>pbsnodes -a</code></li>
+                    </ul>
+                    <p><strong>補足</strong>: PBSは<code>q</code>で始まるコマンド（qsub, qstat, qdel）、Slurmは<code>s</code>で始まるコマンド（sbatch, squeue, scancel）という命名規則があります。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Q2: スケジューリングアルゴリズムの理解</h4>
+                <p>以下のスケジューリングアルゴリズムを説明してください。</p>
+                <ul>
+                    <li>(a) バックフィル（Backfill）</li>
+                    <li>(b) フェアシェア（Fair Share）</li>
+                </ul>
+
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>正解</strong>:</p>
+                    <ul>
+                        <li><strong>(a) バックフィル</strong>: 大きなジョブの実行開始を待っている間、その待ち時間を延ばさない範囲で小さなジョブを先に実行する手法。クラスタの稼働率を向上させる。</li>
+                        <li><strong>(b) フェアシェア</strong>: 過去のリソース使用量を記録し、使いすぎたユーザーの優先度を下げ、あまり使っていないユーザーの優先度を上げる手法。長期的な公平性を保証する。</li>
+                    </ul>
+                    <p><strong>実例</strong>: ユーザーAが先週100時間使用、ユーザーBが10時間使用の場合、今週はユーザーBのジョブが優先的にスケジュールされます。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Q3: ジョブ状態の理解</h4>
+                <p>Slurmの<code>squeue</code>コマンドで表示される以下の状態（ST列）の意味を答えてください。</p>
+                <ul>
+                    <li>(a) R</li>
+                    <li>(b) PD</li>
+                    <li>(c) CG</li>
+                </ul>
+
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>正解</strong>:</p>
+                    <ul>
+                        <li><strong>(a) R（Running）</strong>: 実行中。ジョブが計算ノードで実行されている状態。</li>
+                        <li><strong>(b) PD（Pending）</strong>: 待機中。リソースの空きを待っているか、優先度が低い状態。</li>
+                        <li><strong>(c) CG（Completing）</strong>: 完了処理中。ジョブは終了したが、クリーンアップ処理が実行されている状態。</li>
+                    </ul>
+                    <p><strong>その他の状態</strong>: CA（Cancelled）、F（Failed）、TO（Timeout）、S（Suspended）など。</p>
+                </details>
+            </div>
+
+            <h3>Medium（応用）<span class="difficulty medium">中級</span></h3>
+
+            <div class="exercise-box">
+                <h4>Q4: リソース効率の計算</h4>
+                <p>以下の<code>seff</code>出力から、CPU効率とメモリ効率を計算し、リソース要求の改善案を提案してください。</p>
+                <pre><code>Job ID: 123456
+State: COMPLETED
+Cores: 16
+CPU Utilized: 08:30:00
+CPU Efficiency: 53.13% of 16:00:00 core-walltime
+Memory Utilized: 24.5 GB
+Memory Efficiency: 38.28% of 64.0 GB</code></pre>
+
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>分析</strong>:</p>
+                    <ul>
+                        <li><strong>CPU効率 53.13%</strong>: 16コアを要求したが、平均8-9コアしか使用していない。並列化が不十分か、逐次部分が多い。</li>
+                        <li><strong>メモリ効率 38.28%</strong>: 64GB要求したが、24.5GBしか使用していない。過大な要求。</li>
+                    </ul>
+                    <p><strong>改善案</strong>:</p>
+                    <pre><code class="language-bash"># 現在の設定（非効率）
+#SBATCH --ntasks=16
+#SBATCH --mem=64G
+
+# 改善版（効率的）
+#SBATCH --ntasks=10           # 実使用量8.5 × 1.2倍
+#SBATCH --mem=32G             # 実使用量24.5 × 1.3倍
+
+# さらなる改善: プログラムの並列化を見直す
+# - OpenMPのスレッド数を最適化
+# - MPIプロセス数とOpenMPスレッドのバランス調整
+</code></pre>
+                    <p><strong>期待効果</strong>: リソース要求を62.5%削減（16コア→10コア、64GB→32GB）。待ち時間が短縮され、他ユーザーもリソースを使える。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Q5: アレイジョブの設計</h4>
+                <p>温度（300K, 400K, 500K）と圧力（1MPa, 10MPa）の6通りの組み合わせでシミュレーションを実行します。各計算は45分、メモリ8GB必要です。Slurmアレイジョブのスクリプトを書いてください。パラメータは<code>params.txt</code>に格納されています。</p>
+
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>解答例</strong>:</p>
+
+                    <p><strong>1. params.txt の内容</strong></p>
+                    <pre><code>300 1
+300 10
+400 1
+400 10
+500 1
+500 10</code></pre>
+
+                    <p><strong>2. array_job.sh</strong></p>
+                    <pre><code class="language-bash">#!/bin/bash
+#SBATCH --job-name=temp_pressure_sweep
+#SBATCH --output=logs/job_%A_%a.out
+#SBATCH --error=logs/job_%A_%a.err
+#SBATCH --array=1-6                   # 6通りの組み合わせ
+#SBATCH --partition=normal
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=8G
+#SBATCH --time=01:00:00               # 45分 + 余裕15分
+
+# ディレクトリ作成
+mkdir -p logs results
+
+# パラメータ取得
+PARAMS=$(sed -n "${SLURM_ARRAY_TASK_ID}p" params.txt)
+TEMP=$(echo $PARAMS | awk '{print $1}')
+PRES=$(echo $PARAMS | awk '{print $2}')
+
+echo "Task ${SLURM_ARRAY_TASK_ID}: Temperature=${TEMP}K, Pressure=${PRES}MPa"
+
+# シミュレーション実行
+python simulation.py \
+    --temperature $TEMP \
+    --pressure $PRES \
+    --output results/result_T${TEMP}_P${PRES}.csv
+
+echo "Task ${SLURM_ARRAY_TASK_ID} completed successfully"
+</code></pre>
+
+                    <p><strong>投入コマンド</strong>:</p>
+                    <pre><code class="language-bash">sbatch array_job.sh</code></pre>
+
+                    <p><strong>考察</strong>: 6タスクが並列実行されるため、クラスタに空きがあれば全体で1時間以内に完了（逐次実行なら4.5時間）。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Q6: ジョブ依存関係の実装</h4>
+                <p>以下の3ステップのワークフローをSlurmのジョブ依存関係で実装してください。</p>
+                <ol>
+                    <li>データ収集（<code>collect.sh</code>）: 1時間、4GB</li>
+                    <li>データ処理（<code>process.sh</code>）: 3時間、32GB、collect.sh成功後に実行</li>
+                    <li>可視化（<code>visualize.sh</code>）: 30分、8GB、process.sh成功後に実行</li>
+                </ol>
+
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>解答例</strong>:</p>
+
+                    <p><strong>1. collect.sh</strong></p>
+                    <pre><code class="language-bash">#!/bin/bash
+#SBATCH --job-name=collect
+#SBATCH --output=collect_%j.log
+#SBATCH --time=01:30:00
+#SBATCH --mem=4G
+#SBATCH --ntasks=1
+
+python collect_data.py --output data/raw_data.h5
+</code></pre>
+
+                    <p><strong>2. process.sh</strong></p>
+                    <pre><code class="language-bash">#!/bin/bash
+#SBATCH --job-name=process
+#SBATCH --output=process_%j.log
+#SBATCH --time=03:30:00
+#SBATCH --mem=32G
+#SBATCH --ntasks=1
+
+python process_data.py --input data/raw_data.h5 --output data/processed_data.h5
+</code></pre>
+
+                    <p><strong>3. visualize.sh</strong></p>
+                    <pre><code class="language-bash">#!/bin/bash
+#SBATCH --job-name=visualize
+#SBATCH --output=visualize_%j.log
+#SBATCH --time=00:45:00
+#SBATCH --mem=8G
+#SBATCH --ntasks=1
+
+python visualize.py --input data/processed_data.h5 --output figures/
+</code></pre>
+
+                    <p><strong>4. submit_workflow.sh（パイプライン投入スクリプト）</strong></p>
+                    <pre><code class="language-bash">#!/bin/bash
+
+# ステップ1: データ収集
+JOB1=$(sbatch --parsable collect.sh)
+echo "Submitted collect job: $JOB1"
+
+# ステップ2: データ処理（collect成功後）
+JOB2=$(sbatch --parsable --dependency=afterok:$JOB1 process.sh)
+echo "Submitted process job: $JOB2 (depends on $JOB1)"
+
+# ステップ3: 可視化（process成功後）
+JOB3=$(sbatch --parsable --dependency=afterok:$JOB2 visualize.sh)
+echo "Submitted visualize job: $JOB3 (depends on $JOB2)"
+
+echo ""
+echo "Workflow submitted successfully"
+echo "Total expected time: 1.5h + 3.5h + 0.75h = 5.75 hours"
+echo "Monitor with: squeue -u $USER"
+</code></pre>
+
+                    <p><strong>実行</strong>:</p>
+                    <pre><code class="language-bash">bash submit_workflow.sh</code></pre>
+
+                    <p><strong>出力例</strong>:</p>
+                    <pre><code>Submitted collect job: 123456
+Submitted process job: 123457 (depends on 123456)
+Submitted visualize job: 123458 (depends on 123457)
+
+Workflow submitted successfully
+Total expected time: 1.5h + 3.5h + 0.75h = 5.75 hours
+Monitor with: squeue -u $USER</code></pre>
+
+                    <p><strong>利点</strong>: 各ステップの失敗時、後続ジョブは自動的にキャンセルされ、無駄な計算を防げます。</p>
+                </details>
+            </div>
+
+            <h3>Hard（発展）<span class="difficulty hard">上級</span></h3>
+
+            <div class="exercise-box">
+                <h4>Q7: Pythonによるジョブ管理システム</h4>
+                <p>
+                    100個のパラメータでシミュレーションを実行するPythonスクリプトを作成してください。要件：
+                </p>
+                <ul>
+                    <li>パラメータは温度200-600K（5K刻み）、圧力0.1-10MPa（対数スケールで10点）の組み合わせ</li>
+                    <li>自動でジョブスクリプト生成、Slurmに投入</li>
+                    <li>投入したジョブの状態を監視し、全完了後に結果を集計</li>
+                    <li>失敗したジョブを自動再投入（最大3回まで）</li>
+                </ul>
+
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>解答例</strong>:</p>
+                    <pre><code class="language-python">#!/usr/bin/env python3
+"""
+高度なSlurmジョブ管理システム
+- パラメータグリッド自動生成
+- ジョブ投入・監視・再投入
+- 結果集計
+"""
+
+import subprocess
+import time
+import os
+import json
+from pathlib import Path
+import numpy as np
+
+class SlurmJobManager:
+    def __init__(self, max_retries=3):
+        self.max_retries = max_retries
+        self.jobs = {}  # {job_id: {params, status, retries}}
+        self.results_dir = Path("results")
+        self.results_dir.mkdir(exist_ok=True)
+
+    def generate_parameter_grid(self):
+        """パラメータグリッドの生成"""
+        # 温度: 200-600K、5K刻み
+        temperatures = np.arange(200, 605, 5)
+
+        # 圧力: 0.1-10MPa、対数スケールで10点
+        pressures = np.logspace(-1, 1, 10)
+
+        params = []
+        for temp in temperatures:
+            for pres in pressures:
+                params.append({"temperature": temp, "pressure": pres})
+
+        return params
+
+    def create_job_script(self, job_id, params):
+        """個別ジョブスクリプトの生成"""
+        temp = params["temperature"]
+        pres = params["pressure"]
+
+        script_content = f"""#!/bin/bash
+#SBATCH --job-name=sim_T{temp:.0f}_P{pres:.2f}
+#SBATCH --output=logs/job_%j.out
+#SBATCH --error=logs/job_%j.err
+#SBATCH --partition=normal
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=8G
+#SBATCH --time=01:00:00
+
+module load python/3.10
+
+python simulation.py \\
+    --temperature {temp} \\
+    --pressure {pres} \\
+    --output results/result_T{temp:.0f}_P{pres:.2f}.json
+
+echo "Completed: T={temp}K, P={pres}MPa"
+"""
+
+        script_path = f"job_scripts/job_{job_id}.sh"
+        with open(script_path, 'w') as f:
+            f.write(script_content)
+
+        return script_path
+
+    def submit_job(self, params, retry_count=0):
+        """ジョブ投入"""
+        job_id = len(self.jobs) + 1
+        script_path = self.create_job_script(job_id, params)
+
+        result = subprocess.run(
+            ["sbatch", script_path],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode == 0:
+            slurm_job_id = result.stdout.strip().split()[-1]
+            self.jobs[slurm_job_id] = {
+                "params": params,
+                "status": "PENDING",
+                "retries": retry_count,
+                "local_id": job_id
+            }
+            return slurm_job_id
+        else:
+            print(f"ERROR submitting job {job_id}: {result.stderr}")
+            return None
+
+    def check_job_status(self, job_id):
+        """ジョブ状態の確認"""
+        result = subprocess.run(
+            ["sacct", "-j", job_id, "--format=State", "--noheader"],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode == 0:
+            states = result.stdout.strip().split('\n')
+            # 最後の状態を返す（複数ステップがある場合）
+            return states[-1].strip()
+        return "UNKNOWN"
+
+    def monitor_jobs(self):
+        """全ジョブの監視と再投入"""
+        print("\nジョブ監視を開始します...")
+
+        while True:
+            running = 0
+            pending = 0
+            completed = 0
+            failed = 0
+
+            for job_id in list(self.jobs.keys()):
+                status = self.check_job_status(job_id)
+                self.jobs[job_id]["status"] = status
+
+                if status in ["RUNNING", "PENDING", "CONFIGURING"]:
+                    if status == "RUNNING":
+                        running += 1
+                    else:
+                        pending += 1
+                elif status == "COMPLETED":
+                    completed += 1
+                elif status in ["FAILED", "TIMEOUT", "CANCELLED", "NODE_FAIL"]:
+                    failed += 1
+                    # 再投入処理
+                    if self.jobs[job_id]["retries"] < self.max_retries:
+                        print(f"\nジョブ {job_id} が失敗。再投入します（試行 {self.jobs[job_id]['retries'] + 1}/{self.max_retries}）")
+                        params = self.jobs[job_id]["params"]
+                        retry_count = self.jobs[job_id]["retries"] + 1
+                        new_job_id = self.submit_job(params, retry_count)
+                        # 古いジョブIDを削除
+                        del self.jobs[job_id]
+                    else:
+                        print(f"\nジョブ {job_id} が最大再試行回数に達しました")
+
+            # 進捗表示
+            total = len(self.jobs)
+            print(f"\r実行中: {running:3d} | 待機中: {pending:3d} | 完了: {completed:3d} | 失敗: {failed:3d} / {total}",
+                  end='', flush=True)
+
+            # 全ジョブ完了チェック
+            if completed + failed == total and running == 0 and pending == 0:
+                print("\n\n全ジョブが完了しました！")
+                break
+
+            time.sleep(15)  # 15秒ごとに更新
+
+    def aggregate_results(self):
+        """結果の集計"""
+        print("\n結果を集計しています...")
+
+        results = []
+        for result_file in self.results_dir.glob("result_*.json"):
+            with open(result_file, 'r') as f:
+                data = json.load(f)
+                results.append(data)
+
+        print(f"合計 {len(results)} 個の結果を集計しました")
+
+        # 集計結果を保存
+        with open("results/aggregated_results.json", 'w') as f:
+            json.dump(results, f, indent=2)
+
+        return results
+
+def main():
+    # ディレクトリ作成
+    Path("job_scripts").mkdir(exist_ok=True)
+    Path("logs").mkdir(exist_ok=True)
+    Path("results").mkdir(exist_ok=True)
+
+    # ジョブ管理システムの初期化
+    manager = SlurmJobManager(max_retries=3)
+
+    # パラメータグリッド生成
+    params_list = manager.generate_parameter_grid()
+    print(f"パラメータ空間: {len(params_list)} 個のジョブ")
+
+    # 全ジョブ投入
+    print("\nジョブを投入しています...")
+    for i, params in enumerate(params_list, start=1):
+        job_id = manager.submit_job(params)
+        if job_id:
+            print(f"[{i:3d}/{len(params_list)}] Job {job_id}: T={params['temperature']:.0f}K, P={params['pressure']:.2f}MPa")
+
+    # ジョブ監視
+    manager.monitor_jobs()
+
+    # 結果集計
+    results = manager.aggregate_results()
+
+    print("\n処理が完了しました！")
+    print(f"集計結果: results/aggregated_results.json")
+
+if __name__ == "__main__":
+    main()
+</code></pre>
+
+                    <p><strong>実行方法</strong>:</p>
+                    <pre><code class="language-bash">python job_manager.py</code></pre>
+
+                    <p><strong>機能</strong>:</p>
+                    <ul>
+                        <li>パラメータグリッド自動生成（温度81点 × 圧力10点 = 810ジョブ）</li>
+                        <li>ジョブスクリプト自動生成・投入</li>
+                        <li>リアルタイム監視（15秒ごとに状態更新）</li>
+                        <li>失敗ジョブの自動再投入（最大3回）</li>
+                        <li>完了後、結果を自動集計</li>
+                    </ul>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Q8: 並列スケーラビリティの測定と分析</h4>
+                <p>
+                    強スケーリング測定を行い、並列効率を評価してください。1, 2, 4, 8, 16, 32, 64プロセッサで同じ問題を実行し、各ケースの実行時間を測定します。並列効率が80%以上を保てる最大プロセッサ数を特定してください。
+                </p>
+
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>解答例</strong>:</p>
+
+                    <p><strong>1. スケーリング測定スクリプト（scaling_test.sh）</strong></p>
+                    <pre><code class="language-bash">#!/bin/bash
+# 強スケーリング測定スクリプト
+
+PROBLEM_SIZE=10000  # 固定問題サイズ
+NPROCS_LIST="1 2 4 8 16 32 64"
+
+mkdir -p scaling_results
+
+for NPROCS in $NPROCS_LIST; do
+    echo "Testing with $NPROCS processors..."
+
+    # ジョブスクリプト生成
+    cat > scaling_job_${NPROCS}.sh <<EOF
+#!/bin/bash
+#SBATCH --job-name=scaling_${NPROCS}
+#SBATCH --output=scaling_results/job_${NPROCS}_%j.out
+#SBATCH --ntasks=${NPROCS}
+#SBATCH --time=02:00:00
+#SBATCH --mem-per-cpu=4G
+
+module load openmpi/4.1.4
+
+# 実行時間測定
+/usr/bin/time -v mpirun -np ${NPROCS} ./simulation --size ${PROBLEM_SIZE} \\
+    > scaling_results/time_${NPROCS}.log 2>&1
+
+# 実行時間を抽出
+grep "Elapsed" scaling_results/time_${NPROCS}.log | \\
+    awk '{print \$8}' > scaling_results/elapsed_${NPROCS}.txt
+EOF
+
+    # ジョブ投入
+    sbatch scaling_job_${NPROCS}.sh
+done
+
+echo "All scaling jobs submitted. Monitor with: squeue -u $USER"
+</code></pre>
+
+                    <p><strong>2. 結果分析スクリプト（analyze_scaling.py）</strong></p>
+                    <pre><code class="language-python">#!/usr/bin/env python3
+"""
+並列スケーラビリティ分析スクリプト
+"""
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+# プロセッサ数リスト
+nprocs = np.array([1, 2, 4, 8, 16, 32, 64])
+
+# 実行時間データ（例：実測値）
+# 実際にはscaling_results/elapsed_*.txtから読み込む
+elapsed_times = np.array([
+    3600,   # 1プロセッサ: 3600秒（1時間）
+    1850,   # 2プロセッサ
+    950,    # 4プロセッサ
+    490,    # 8プロセッサ
+    260,    # 16プロセッサ
+    145,    # 32プロセッサ
+    90      # 64プロセッサ
+])
+
+# 並列効率の計算
+T1 = elapsed_times[0]  # 1プロセッサでの実行時間
+speedup = T1 / elapsed_times
+ideal_speedup = nprocs
+parallel_efficiency = (speedup / nprocs) * 100
+
+# 結果表示
+print("=== 並列スケーラビリティ分析 ===\n")
+print(f"{'Procs':<8} {'Time(s)':<12} {'Speedup':<12} {'Efficiency(%)':<15}")
+print("-" * 50)
+for i in range(len(nprocs)):
+    print(f"{nprocs[i]:<8} {elapsed_times[i]:<12.1f} {speedup[i]:<12.2f} {parallel_efficiency[i]:<15.2f}")
+
+# 80%以上の効率を保つ最大プロセッサ数
+max_efficient_procs = nprocs[parallel_efficiency >= 80][-1]
+print(f"\n80%以上の効率を保つ最大プロセッサ数: {max_efficient_procs}")
+
+# グラフ作成
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+# 高速化率
+ax1.plot(nprocs, speedup, 'o-', label='実測', linewidth=2)
+ax1.plot(nprocs, ideal_speedup, '--', label='理想（線形）', linewidth=2)
+ax1.set_xlabel('プロセッサ数', fontsize=12)
+ax1.set_ylabel('高速化率', fontsize=12)
+ax1.set_title('強スケーリング: 高速化率', fontsize=14)
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+ax1.set_xscale('log', base=2)
+ax1.set_yscale('log', base=2)
+
+# 並列効率
+ax2.plot(nprocs, parallel_efficiency, 'o-', linewidth=2, color='#e74c3c')
+ax2.axhline(y=80, color='green', linestyle='--', label='80%基準')
+ax2.axhline(y=100, color='gray', linestyle=':', label='理想（100%）')
+ax2.set_xlabel('プロセッサ数', fontsize=12)
+ax2.set_ylabel('並列効率 (%)', fontsize=12)
+ax2.set_title('強スケーリング: 並列効率', fontsize=14)
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+ax2.set_xscale('log', base=2)
+
+plt.tight_layout()
+plt.savefig('scaling_results/scaling_analysis.png', dpi=300)
+print("\nグラフを保存しました: scaling_results/scaling_analysis.png")
+
+# Amdahlの法則でフィッティング
+# Speedup = 1 / ((1-P) + P/N)
+# 逆算してPを推定
+from scipy.optimize import curve_fit
+
+def amdahl_model(N, P):
+    return 1 / ((1 - P) + P / N)
+
+P_estimated, _ = curve_fit(amdahl_model, nprocs, speedup, p0=[0.95])
+print(f"\n推定並列化率: P = {P_estimated[0]:.4f} ({P_estimated[0]*100:.2f}%)")
+print(f"逐次部分: {(1-P_estimated[0])*100:.2f}%")
+</code></pre>
+
+                    <p><strong>実行手順</strong>:</p>
+                    <pre><code class="language-bash"># 1. スケーリング測定ジョブ投入
+bash scaling_test.sh
+
+# 2. 全ジョブ完了を待つ
+watch -n 10 'squeue -u $USER'
+
+# 3. 結果分析
+python analyze_scaling.py
+</code></pre>
+
+                    <p><strong>出力例</strong>:</p>
+                    <pre><code>=== 並列スケーラビリティ分析 ===
+
+Procs    Time(s)      Speedup      Efficiency(%)
+--------------------------------------------------
+1        3600.0       1.00         100.00
+2        1850.0       1.95         97.30
+4        950.0        3.79         94.74
+8        490.0        7.35         91.84
+16       260.0        13.85        86.54
+32       145.0        24.83        77.60
+64       90.0         40.00        62.50
+
+80%以上の効率を保つ最大プロセッサ数: 16
+
+推定並列化率: P = 0.9720 (97.20%)
+逐次部分: 2.80%
+</code></pre>
+
+                    <p><strong>考察</strong>:</p>
+                    <ul>
+                        <li>16プロセッサまでは86.54%の効率を維持（推奨設定）</li>
+                        <li>32プロセッサでは77.60%に低下（コミュニケーションオーバーヘッド増加）</li>
+                        <li>64プロセッサでは62.50%に低下（並列化の限界）</li>
+                        <li>推定並列化率97.20%は良好だが、残り2.80%の逐次部分が32プロセッサ以上でボトルネック</li>
+                    </ul>
+                </details>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>参考文献</h2>
+
+            <ol>
+                <li>
+                    Slurm Workload Manager Documentation (2024). SchedMD LLC.
+                    <a href="https://slurm.schedmd.com/documentation.html" target="_blank">https://slurm.schedmd.com/documentation.html</a>
+                    (Slurm Quick Start User Guide, pp. 1-50; Resource Management, pp. 120-185)
+                </li>
+                <li>
+                    PBS Professional User Guide (2023). Altair Engineering Inc.
+                    <a href="https://www.altair.com/pbs-professional/" target="_blank">https://www.altair.com/pbs-professional/</a>
+                    (Job Submission and Management, pp. 15-80; Advanced Features, pp. 150-220)
+                </li>
+                <li>
+                    Barker, A., & van Hemert, J. (2018). <em>Scientific Computing: An Introduction using Maple and MATLAB</em>.
+                    Springer International Publishing.
+                    (Chapter 8: High Performance Computing, pp. 250-295; Job Scheduling, pp. 270-285)
+                </li>
+                <li>
+                    Sterling, T., Anderson, M., & Brodowicz, M. (2018). <em>High Performance Computing: Modern Systems and Practices</em>.
+                    Morgan Kaufmann Publishers.
+                    (Chapter 7: Resource Management and Scheduling, pp. 180-230; Fair-share Algorithms, pp. 200-215)
+                </li>
+                <li>
+                    Eijkhout, V. (2020). <em>Introduction to High Performance Scientific Computing</em>. Lulu.com.
+                    <a href="https://pages.tacc.utexas.edu/~eijkhout/istc/istc.html" target="_blank">https://pages.tacc.utexas.edu/~eijkhout/istc/istc.html</a>
+                    (Chapter 4: Parallel Computing, pp. 120-165; Job Schedulers, pp. 140-155)
+                </li>
+                <li>
+                    Linux MAN Pages: <code>sbatch(1)</code>, <code>squeue(1)</code>, <code>scancel(1)</code>, <code>qsub(1B)</code>, <code>qstat(1B)</code>, <code>qdel(1B)</code>.
+                    (Available on HPC systems via <code>man sbatch</code> etc.)
+                </li>
+                <li>
+                    Feitelson, D. G., Rudolph, L., & Schwiegelshohn, U. (2004).
+                    "Parallel job scheduling—a status report."
+                    <em>Job Scheduling Strategies for Parallel Processing</em>, Springer, pp. 1-16.
+                    (Survey of scheduling algorithms and fairness policies, pp. 5-12)
+                </li>
+            </ol>
+        </section>
+
+        <section id="next-steps">
+            <h2>次のステップ</h2>
+
+            <p>
+                本章では、SlurmとPBS Professionalを使ったジョブスケジューリングの実践的手法を学びました。次章では、<strong>並列計算技術（MPI、OpenMP、GPU並列化）</strong>を学び、プログラムを実際に高速化する方法を習得します。
+            </p>
+
+            <div class="info-box">
+                <strong>第3章の予習</strong>
+                <p>次章では、MPI（分散メモリ並列）とOpenMP（共有メモリ並列）の実装を学びます。以下を事前に準備しておくとスムーズです：</p>
+                <ul>
+                    <li>C言語の基本的なプログラミングスキル（ポインタ、配列操作）</li>
+                    <li>Pythonでのマルチプロセス・マルチスレッドの基礎知識</li>
+                    <li>HPCクラスタ上でのMPI/OpenMP環境の確認（<code>module avail openmpi</code>、<code>module avail gcc</code>）</li>
+                    <li>本章で学んだジョブスクリプト作成スキル</li>
+                </ul>
+            </div>
+
+            <div style="text-align: center; margin: 2rem 0;">
+                <a href="chapter-1.html" style="margin-right: 1rem; padding: 0.75rem 1.5rem; background: #34495e; color: white; border-radius: 4px; text-decoration: none;">← 第1章へ戻る</a>
+                <a href="index.html" style="margin-right: 1rem; padding: 0.75rem 1.5rem; background: #34495e; color: white; border-radius: 4px; text-decoration: none;">シリーズトップ</a>
+                <a href="chapter-3.html" style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; border-radius: 4px; text-decoration: none;">第3章へ進む →</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p><strong>CT Dojo - 計算工学道場</strong></p>
+        <p>HPCクラスタ入門シリーズ 第2章</p>
+        <p><a href="https://github.com/your-repo" target="_blank">GitHub</a> | <a href="mailto:contact@example.com">お問い合わせ</a></p>
+        <p>&copy; 2025 CT Knowledge Hub. Licensed under CC BY 4.0.</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</body>
+</html>

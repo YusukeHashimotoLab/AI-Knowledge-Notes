@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaussian入門 - 量子化学計算の実践 - CT Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #11998e;
+            --color-accent-light: #38ef7d;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #11998e;
+            --color-link-hover: #0e7c74;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            a:hover {
+                color: var(--color-link-hover);
+                text-decoration: underline;
+            }
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        .chapter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-lg);
+            margin: var(--spacing-xl) 0;
+        }
+
+        .chapter-card {
+            background: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .chapter-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 4px 12px rgba(17, 153, 142, 0.2);
+            }
+        }
+
+        .chapter-number {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .chapter-title {
+            font-size: 1.3rem;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-sm);
+            font-weight: 600;
+        }
+
+        .chapter-description {
+            color: var(--color-text-light);
+            font-size: 0.95rem;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .chapter-meta {
+            display: flex;
+            gap: var(--spacing-md);
+            font-size: 0.85rem;
+            color: var(--color-text-light);
+            margin-top: var(--spacing-sm);
+        }
+
+        .learning-path {
+            background: linear-gradient(135deg, #d4f1f4 0%, #a8e6cf 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .info-box {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .nav-button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                text-decoration: none;
+            }
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .chapter-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #11998e;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #0e7c74;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/index.html">計算工学</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/gaussian-introduction/index.html">Gaussian</a>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>💫 Gaussian入門 - 量子化学計算の実践</h1>
+            <p class="subtitle">材料科学のための電子状態計算と分子軌道理論</p>
+            <div class="meta">
+                <span class="meta-item">📚 全6章構成</span>
+                <span class="meta-item">⏱️ 学習時間: 3時間</span>
+                <span class="meta-item">💻 コード例: 35個</span>
+                <span class="meta-item">📊 難易度: 中級〜上級</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2>シリーズ概要</h2>
+        <p>本シリーズは、量子化学計算ソフトウェアGaussianを使った電子状態計算の基礎から実践までを体系的に学ぶコースです。材料科学で必須となる分子軌道理論、密度汎関数理論（DFT）、時間依存DFT（TD-DFT）を理解し、分子構造最適化、振動解析、励起状態計算、反応経路解析などの実践的な計算手法を習得します。</p>
+
+        <div class="learning-path">
+            <h3>学習の流れ</h3>
+            <div class="mermaid">
+graph LR
+    A[第1章<br/>Gaussianの基礎] --> B[第2章<br/>構造最適化]
+    B --> C[第3章<br/>振動解析とIR/Ramanスペクトル]
+    C --> D[第4章<br/>励起状態とTD-DFT]
+    D --> E[第5章<br/>反応経路とIRC]
+    E --> F[第6章<br/>溶媒効果と実践応用]
+
+    style A fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+    style B fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+    style C fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+    style D fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+    style E fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+    style F fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+            </div>
+        </div>
+
+        <h2>シリーズ構成</h2>
+        <div class="chapter-grid">
+            <div class="chapter-card">
+                <span class="chapter-number">第1章</span>
+                <div class="chapter-title">Gaussianの基礎と量子化学計算</div>
+                <p class="chapter-description">
+                    分子軌道理論の基礎、Gaussianの特徴（GTO基底関数、HF/DFT法）、ライセンスとインストール、入力ファイル構造（Route Section、Molecule Specification）を学びます。水分子のHF/STO-3G計算から始めて、実践的な計算ワークフローを理解します。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 30分</span>
+                    <span>💻 5コード例</span>
+                    <span>📊 中級〜上級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-1.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <span class="chapter-number">第2章</span>
+                <div class="chapter-title">構造最適化と安定構造探索</div>
+                <p class="chapter-description">
+                    エネルギー最小化の原理、最適化アルゴリズム（Berny、Z-matrix）、収束条件の設定、多重度とスピン状態、初期構造の作成方法を学びます。ベンゼン、エタノール、遷移金属錯体の最適化を実践します。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 30分</span>
+                    <span>💻 6コード例</span>
+                    <span>📊 中級〜上級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-2.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <span class="chapter-number">第3章</span>
+                <div class="chapter-title">振動解析とIR/Ramanスペクトル</div>
+                <p class="chapter-description">
+                    正規振動モードの計算、IR/Ramanスペクトルの予測、虚振動数の解釈（遷移状態の確認）、同位体効果のシミュレーション、熱力学量（エンタルピー、エントロピー、ギブス自由エネルギー）の計算を学びます。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 30分</span>
+                    <span>💻 6コード例</span>
+                    <span>📊 中級〜上級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-3.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <span class="chapter-number">第4章</span>
+                <div class="chapter-title">励起状態とTD-DFT計算</div>
+                <p class="chapter-description">
+                    時間依存密度汎関数理論（TD-DFT）の原理、UV-Visスペクトルの予測、HOMO-LUMOギャップの計算、励起エネルギーと振動子強度、蛍光・りん光の計算、有機EL材料・色素増感太陽電池への応用を学びます。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 30分</span>
+                    <span>💻 6コード例</span>
+                    <span>📊 上級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-4.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <span class="chapter-number">第5章</span>
+                <div class="chapter-title">反応経路とIRC計算</div>
+                <p class="chapter-description">
+                    遷移状態探索（QST2/QST3、Scan）、固有反応座標（IRC）計算、活性化エネルギーの計算、反応速度定数の予測、触媒反応のメカニズム解析、エネルギープロファイルの作成を実践します。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 30分</span>
+                    <span>💻 6コード例</span>
+                    <span>📊 上級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-5.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <span class="chapter-number">第6章</span>
+                <div class="chapter-title">溶媒効果と実践応用</div>
+                <p class="chapter-description">
+                    連続体溶媒和モデル（PCM、SMD）、溶媒中での構造最適化、pKa計算、酸化還元電位の予測、大規模系の計算戦略（ONIOM法）、Gaussianと機械学習の連携、実験データとの比較方法を学びます。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 30分</span>
+                    <span>💻 6コード例</span>
+                    <span>📊 上級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-6.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+        </div>
+
+        <h2>学習目標</h2>
+        <p>このシリーズを完了することで、以下のスキルと知識を習得できます：</p>
+
+        <h3>基本理解</h3>
+        <ul>
+            <li>✅ 分子軌道理論とHartree-Fock法の基礎を説明できる</li>
+            <li>✅ 密度汎関数理論（DFT）の原理を理解できる</li>
+            <li>✅ 基底関数（STO-3G、6-31G*、cc-pVDZ等）の役割を理解できる</li>
+            <li>✅ 励起状態とTD-DFTの概念を説明できる</li>
+        </ul>
+
+        <h3>実践スキル</h3>
+        <ul>
+            <li>✅ Gaussian入力ファイルを正しく作成できる</li>
+            <li>✅ 構造最適化と振動解析を実行できる</li>
+            <li>✅ IR/Raman/UV-Visスペクトルを予測できる</li>
+            <li>✅ 遷移状態探索とIRC計算を実行できる</li>
+            <li>✅ 溶媒効果を考慮した計算ができる</li>
+        </ul>
+
+        <h3>応用力</h3>
+        <ul>
+            <li>✅ 化学反応のメカニズムを量子化学的に解析できる</li>
+            <li>✅ 活性化エネルギーと反応速度を予測できる</li>
+            <li>✅ 有機材料の光学特性を計算で予測できる</li>
+            <li>✅ 実験データと計算結果を適切に比較・検証できる</li>
+        </ul>
+
+        <h2>推奨学習パターン</h2>
+        <div class="info-box">
+            <h3>パターン1: 初学者向け - 順序通り学習（6日間）</h3>
+            <ul>
+                <li>1日目: 第1章（Gaussian基礎）- 量子化学の基本概念と入力ファイル構造</li>
+                <li>2日目: 第2章（構造最適化）- 実際に分子構造を最適化</li>
+                <li>3日目: 第3章（振動解析）- IRスペクトル予測を実践</li>
+                <li>4日目: 第4章（励起状態）- UV-Visスペクトル計算</li>
+                <li>5日目: 第5章（反応経路）- 遷移状態探索とIRC</li>
+                <li>6日目: 第6章（溶媒効果）+ 総復習 + 自分の研究テーマに適用</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <h3>パターン2: 中級者向け - 集中学習（3日間）</h3>
+            <ul>
+                <li>1日目: 第1-2章（基礎と構造最適化）</li>
+                <li>2日目: 第3-4章（振動解析と励起状態）</li>
+                <li>3日目: 第5-6章（反応経路と溶媒効果）+ 実践プロジェクト</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <h3>パターン3: 実践重視 - 研究応用中心（1日間）</h3>
+            <ul>
+                <li>第1章: 入力ファイル構造の理解（30分）</li>
+                <li>第2-3章: 構造最適化と振動解析に集中（1時間）</li>
+                <li>第4章または第5章: 自分の研究に必要な方（励起状態 or 反応経路）に集中（1時間）</li>
+                <li>第6章: 溶媒効果と実験データ比較（30分）</li>
+            </ul>
+        </div>
+
+        <h2>前提知識</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>分野</th>
+                    <th>必要レベル</th>
+                    <th>説明</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>量子化学</strong></td>
+                    <td>入門〜中級レベル</td>
+                    <td>シュレディンガー方程式、原子軌道、分子軌道の基礎</td>
+                </tr>
+                <tr>
+                    <td><strong>物理化学</strong></td>
+                    <td>大学学部レベル</td>
+                    <td>熱力学、分光学、反応速度論の基礎</td>
+                </tr>
+                <tr>
+                    <td><strong>有機化学</strong></td>
+                    <td>大学学部レベル</td>
+                    <td>分子構造、化学反応、立体化学の基礎</td>
+                </tr>
+                <tr>
+                    <td><strong>Linux</strong></td>
+                    <td>基礎レベル</td>
+                    <td>ターミナル操作、ファイル編集、ジョブ投入</td>
+                </tr>
+                <tr>
+                    <td><strong>Python</strong></td>
+                    <td>入門レベル（推奨）</td>
+                    <td>結果解析とデータ可視化に使用</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>使用するツールとソフトウェア</h2>
+        <p>このシリーズで使用する主要なツール：</p>
+
+        <h3>必須ソフトウェア</h3>
+        <ul>
+            <li><strong>Gaussian 16/09</strong>: 量子化学計算パッケージ（商用ライセンス必要）</li>
+            <li><strong>GaussView</strong>: Gaussian用GUI（分子構造作成・可視化）</li>
+            <li><strong>テキストエディタ</strong>: Vim、Emacs、Visual Studio Code等</li>
+        </ul>
+
+        <h3>推奨ツール</h3>
+        <ul>
+            <li><strong>Avogadro</strong>: オープンソース分子エディタ（初期構造作成）</li>
+            <li><strong>Multiwfn</strong>: 波動関数解析ツール（電荷、軌道、NCI解析）</li>
+            <li><strong>cclib</strong>: Python製Gaussianログ解析ライブラリ</li>
+            <li><strong>PyMOL/VMD</strong>: 分子可視化ソフトウェア</li>
+        </ul>
+
+        <h3>計算環境</h3>
+        <ul>
+            <li><strong>ローカルワークステーション</strong>: 小規模計算に適用</li>
+            <li><strong>大学計算機クラスタ</strong>: 中〜大規模計算に使用</li>
+            <li><strong>クラウドHPC</strong>: AWS、Azure、GCP等（要コスト管理）</li>
+        </ul>
+
+        <h2>FAQ - よくある質問</h2>
+        <div class="info-box">
+            <h3>Q1: Gaussianは無料で使えますか？</h3>
+            <p>Gaussianは商用ソフトウェアのため、ライセンス購入が必要です（大学や研究機関で包括ライセンスを保有している場合があります）。無料の代替として、GAMESS、NWChem、Orca（学術利用無料）等があります。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q2: HF法とDFT法の違いは？</h3>
+            <p>Hartree-Fock（HF）法は電子相関を無視するため高速ですが精度は中程度です。密度汎関数理論（DFT）は電子相関を近似的に取り込むため、計算コストと精度のバランスが良く、材料科学では主にDFT（特にB3LYP汎関数）が使われます。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q3: 基底関数はどれを選べばいいですか？</h3>
+            <p>一般的な推奨は6-31G(d)またはcc-pVDZです。軽い計算にはSTO-3G、高精度にはcc-pVTZや6-311++G(2d,2p)を使います。遷移金属を含む系ではLANL2DZ（擬ポテンシャル）やdef2-SVPが適しています。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q4: TD-DFTの精度はどのくらいですか？</h3>
+            <p>TD-DFTで予測したUV-Visスペクトルは、通常0.1-0.3 eV程度の誤差があります（汎関数に依存）。Rydberg励起や電荷移動励起には不向きなため、系に応じてlong-range corrected汎関数（CAM-B3LYP等）を使います。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q5: 遷移状態探索が収束しません</h3>
+            <p>遷移状態探索は初期構造が重要です。QST2/QST3を使う場合は反応物・生成物の最適化構造を用意し、Scanで反応座標を推定してから遷移状態最適化を実行します。Opt=CalcFC、Opt=TS、Opt=Noeigenを組み合わせます。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q6: 溶媒効果はいつ考慮すべきですか？</h3>
+            <p>溶液中での反応や分光測定を再現する場合は必須です。PCM（Polarizable Continuum Model）やSMD（Solvation Model based on Density）で溶媒の誘電効果を取り込みます。極性溶媒（水、DMSO等）では特に重要です。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q7: 計算時間を短縮する方法は？</h3>
+            <p>まず小さな基底関数（STO-3G、3-21G）で構造を最適化し、その構造を使って大きな基底関数で単点計算（SP）を実行します。対称性（Symmetry）を利用し、初期軌道（Guess=Read）を再利用し、並列計算（%NProcShared）を活用します。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q8: 実験データとの比較方法は？</h3>
+            <p>IRスペクトルは0.96倍のスケーリングファクターを適用し、UV-Visスペクトルはガウス関数で広がりを再現します。活性化エネルギーは温度補正（ΔG‡）を適用し、ギブス自由エネルギーで反応平衡を評価します。</p>
+        </div>
+
+        <h2>学習のポイント</h2>
+        <ul>
+            <li><strong>理論と実践のバランス</strong>: 量子化学の理論を理解しつつ、実際の計算を手を動かして学びます</li>
+            <li><strong>入力ファイルの理解</strong>: Route SectionとMolecule Specificationの構造を正確に把握します</li>
+            <li><strong>収束性の確認</strong>: 計算が正しく収束したか、ログファイルで必ず確認します</li>
+            <li><strong>実験データとの比較</strong>: 計算結果を実験値と比較し、妥当性を検証します</li>
+        </ul>
+
+        <h2>次のステップ</h2>
+        <p>このシリーズを完了した後、以下の発展学習をお勧めします：</p>
+        <ul>
+            <li>ORCA: 無料で使える高性能量子化学パッケージ</li>
+            <li>CP2K: 周期境界条件を持つ大規模DFT計算</li>
+            <li>Quantum ESPRESSO: 固体物理のためのDFT計算</li>
+            <li>機械学習ポテンシャル: ANI、SchNet、PaiNN等</li>
+            <li>マルチスケールシミュレーション: QM/MM法、ONIOM法</li>
+        </ul>
+
+        <div class="navigation">
+            <a href="chapter-1.html" class="nav-button">第1章から学習を開始 →</a>
+        </div>
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <p><strong>作成者</strong>: CT Knowledge Hub Content Team</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-11-01</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>&copy; 2025 CT Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

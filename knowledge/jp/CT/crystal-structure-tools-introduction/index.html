@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>結晶構造解析ツール入門 - VESTA・CrystalMakerの活用 - CT Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #11998e;
+            --color-accent-light: #38ef7d;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #11998e;
+            --color-link-hover: #0e7c74;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            a:hover {
+                color: var(--color-link-hover);
+                text-decoration: underline;
+            }
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        .chapter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-lg);
+            margin: var(--spacing-xl) 0;
+        }
+
+        .chapter-card {
+            background: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .chapter-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 4px 12px rgba(17, 153, 142, 0.2);
+            }
+        }
+
+        .chapter-number {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .chapter-title {
+            font-size: 1.3rem;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-sm);
+            font-weight: 600;
+        }
+
+        .chapter-description {
+            color: var(--color-text-light);
+            font-size: 0.95rem;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .chapter-meta {
+            display: flex;
+            gap: var(--spacing-md);
+            font-size: 0.85rem;
+            color: var(--color-text-light);
+            margin-top: var(--spacing-sm);
+        }
+
+        .learning-path {
+            background: linear-gradient(135deg, #d4f1f4 0%, #a8e6cf 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .info-box {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .nav-button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                text-decoration: none;
+            }
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .chapter-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #11998e;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #0e7c74;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/index.html">計算工学</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/crystal-structure-tools-introduction/index.html">Crystal Structure Tools</a>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>💎 結晶構造解析ツール入門 - VESTA・CrystalMakerの活用</h1>
+            <p class="subtitle">材料科学のための結晶構造可視化・解析実践ガイド</p>
+            <div class="meta">
+                <span class="meta-item">📚 全4章構成</span>
+                <span class="meta-item">⏱️ 学習時間: 2時間</span>
+                <span class="meta-item">💻 コード例: 25個</span>
+                <span class="meta-item">📊 難易度: 初級〜中級</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2>シリーズ概要</h2>
+        <p>本シリーズは、材料科学研究で必須となる結晶構造可視化・解析ツールの使い方を体系的に学ぶコースです。VESTA、CrystalMaker、Materials Studioといった主要ツールの特徴を理解し、CIFファイルの操作、結晶構造の可視化、対称性解析、Pythonによる自動化までを実践的に習得します。</p>
+
+        <div class="learning-path">
+            <h3>学習の流れ</h3>
+            <div class="mermaid">
+flowchart LR
+    A[第1章<br/>結晶構造可視化の基礎] --> B[第2章<br/>VESTA実践]
+    B --> C[第3章<br/>CrystalMaker/Materials Studio]
+    C --> D[第4章<br/>Python連携と自動化]
+
+    style A fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+    style B fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+    style C fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+    style D fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+            </div>
+        </div>
+
+        <h2>シリーズ構成</h2>
+        <div class="chapter-grid">
+            <div class="chapter-card">
+                <span class="chapter-number">第1章</span>
+                <div class="chapter-title">結晶構造可視化の基礎</div>
+                <p class="chapter-description">
+                    結晶学の基礎（格子、対称性、空間群）、VESTAの特徴と機能、CrystalMaker/Materials Studioとの比較、CIFファイルの読み込みと構造理解を学びます。pymatgenを使った構造生成とASEでの可視化も実践します。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 30分</span>
+                    <span>💻 5コード例</span>
+                    <span>📊 初級〜中級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-1.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <span class="chapter-number">第2章</span>
+                <div class="chapter-title">VESTA実践 - 詳細機能と可視化</div>
+                <p class="chapter-description">
+                    VESTAの詳細機能（多面体描画、結合表示、等値面描画）、電子密度/静電ポテンシャルの可視化、複数構造の重ね合わせ、アニメーション作成、高品質画像の出力方法を学びます。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 30分</span>
+                    <span>💻 8コード例</span>
+                    <span>📊 中級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-2.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <span class="chapter-number">第3章</span>
+                <div class="chapter-title">CrystalMaker/Materials Studio活用</div>
+                <p class="chapter-description">
+                    CrystalMakerの高度な可視化機能、Materials Studioによる構造最適化とシミュレーション、結晶構造データベース（COD, ICSD）の活用、構造検索と比較の実践方法を学びます。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 30分</span>
+                    <span>💻 6コード例</span>
+                    <span>📊 中級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-3.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <span class="chapter-number">第4章</span>
+                <div class="chapter-title">Python連携と自動化ワークフロー</div>
+                <p class="chapter-description">
+                    pymatgen/ASE/spglibを使った結晶構造操作、CIFファイルの自動生成とバッチ処理、構造変換（超格子、欠陥導入）、VESTAスクリプトによる自動可視化、大規模データセットの処理を実践します。
+                </p>
+                <div class="chapter-meta">
+                    <span>⏱️ 30分</span>
+                    <span>💻 6コード例</span>
+                    <span>📊 中級</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="chapter-4.html" class="nav-button" style="display: inline-block;">学習を開始 →</a>
+                </div>
+            </div>
+        </div>
+
+        <h2>学習目標</h2>
+        <p>このシリーズを完了することで、以下のスキルと知識を習得できます：</p>
+
+        <h3>基本理解</h3>
+        <ul>
+            <li>✅ 結晶学の基礎（格子、対称性、空間群）を説明できる</li>
+            <li>✅ CIFファイル形式の構造と内容を理解できる</li>
+            <li>✅ VESTA、CrystalMaker、Materials Studioの特徴を説明できる</li>
+            <li>✅ 結晶構造データベース（COD、ICSD）の活用方法を理解できる</li>
+        </ul>
+
+        <h3>実践スキル</h3>
+        <ul>
+            <li>✅ VESTAで結晶構造を可視化・編集できる</li>
+            <li>✅ CIFファイルを読み込み、構造情報を抽出できる</li>
+            <li>✅ pymatgen/ASEで結晶構造を生成・操作できる</li>
+            <li>✅ 電子密度や静電ポテンシャルを可視化できる</li>
+            <li>✅ 結晶構造の対称性を解析できる</li>
+        </ul>
+
+        <h3>応用力</h3>
+        <ul>
+            <li>✅ Pythonで結晶構造データを自動処理できる</li>
+            <li>✅ 超格子や欠陥構造を作成できる</li>
+            <li>✅ 複数構造の比較と解析ができる</li>
+            <li>✅ 論文品質の構造図を作成できる</li>
+        </ul>
+
+        <h2>推奨学習パターン</h2>
+        <div class="info-box">
+            <h3>パターン1: 初学者向け - 順序通り学習（4日間）</h3>
+            <ul>
+                <li>1日目: 第1章（結晶学基礎とVESTA導入）</li>
+                <li>2日目: 第2章（VESTA詳細機能）- 実際に構造を可視化</li>
+                <li>3日目: 第3章（CrystalMaker/Materials Studio）</li>
+                <li>4日目: 第4章（Python自動化）+ 実プロジェクト適用</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <h3>パターン2: VESTA集中学習（1日間）</h3>
+            <ul>
+                <li>午前: 第1章（結晶学基礎）+ 第2章（VESTA実践）</li>
+                <li>午後: 第4章のVESTA関連部分 + 自分の研究データで実践</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <h3>パターン3: Python自動化重視（半日）</h3>
+            <ul>
+                <li>第1章: 結晶学基礎とCIFファイル（30分）</li>
+                <li>第4章: Python連携と自動化に集中（1.5時間）</li>
+                <li>第2,3章: 必要に応じて参照</li>
+            </ul>
+        </div>
+
+        <h2>前提知識</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>分野</th>
+                    <th>必要レベル</th>
+                    <th>説明</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Python</strong></td>
+                    <td>基礎レベル</td>
+                    <td>基本文法、ライブラリのインポート、関数の使用</td>
+                </tr>
+                <tr>
+                    <td><strong>結晶学</strong></td>
+                    <td>入門レベル</td>
+                    <td>原子配列、格子定数の概念（本シリーズで学習可能）</td>
+                </tr>
+                <tr>
+                    <td><strong>材料科学</strong></td>
+                    <td>基礎レベル</td>
+                    <td>基本的な材料の結晶構造（金属、セラミックス等）</td>
+                </tr>
+                <tr>
+                    <td><strong>GUI操作</strong></td>
+                    <td>基礎レベル</td>
+                    <td>一般的なソフトウェアの操作経験</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>使用するツールとライブラリ</h2>
+        <p>このシリーズで使用する主要なツールとライブラリ：</p>
+
+        <h3>可視化ツール</h3>
+        <ul>
+            <li><strong>VESTA</strong>: 無料で高機能な結晶構造可視化ツール</li>
+            <li><strong>CrystalMaker</strong>: 商用の高度な可視化・モデリングソフト</li>
+            <li><strong>Materials Studio</strong>: 商用の統合材料設計環境</li>
+            <li><strong>Avogadro</strong>: オープンソースの分子エディタ（参考）</li>
+        </ul>
+
+        <h3>Pythonライブラリ</h3>
+        <ul>
+            <li><strong>pymatgen</strong>: 材料科学計算の総合ライブラリ</li>
+            <li><strong>ASE</strong>: 原子シミュレーション環境</li>
+            <li><strong>spglib</strong>: 空間群・対称性解析</li>
+            <li><strong>numpy</strong>: 数値計算基盤</li>
+            <li><strong>matplotlib</strong>: グラフ描画（補助的）</li>
+        </ul>
+
+        <h3>データベース</h3>
+        <ul>
+            <li><strong>COD (Crystallography Open Database)</strong>: オープンアクセス結晶構造DB</li>
+            <li><strong>ICSD (Inorganic Crystal Structure Database)</strong>: 無機化合物構造DB（有料）</li>
+            <li><strong>Materials Project</strong>: 計算材料データベース</li>
+        </ul>
+
+        <h2>FAQ - よくある質問</h2>
+        <div class="info-box">
+            <h3>Q1: VESTAとCrystalMakerの違いは？</h3>
+            <p>VESTAは無料で、CIFファイルの可視化、電子密度表示、基本的な編集機能が充実しています。CrystalMakerは商用ソフトで、より高度なモデリング機能、アニメーション、複雑な構造操作が可能です。研究用途ではVESTAで多くのニーズをカバーできます。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q2: CIFファイルとは何ですか？</h3>
+            <p>CIF (Crystallographic Information File) は、結晶構造データの標準フォーマットです。格子定数、原子座標、対称性情報などをテキスト形式で記述します。CODやICSＤから取得でき、VESTA等のツールで直接読み込めます。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q3: 空間群とは何ですか？</h3>
+            <p>空間群は、結晶の対称性を記述する数学的概念で、230種類に分類されます。例えば、Fm-3m（立方晶）、P6₃/mmc（六方晶）など。VESTAやpymatgenは空間群を自動認識し、対称操作を適用して完全な構造を生成します。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q4: Pythonでの自動化は必須ですか？</h3>
+            <p>必須ではありません。少数の構造を扱う場合はVESTAのGUIで十分です。ただし、多数のCIFファイルを処理する、構造を系統的に変更する、データベースから自動取得するといった場合は、Pythonによる自動化が非常に効率的です。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q5: 電子密度の可視化はどうやるのですか？</h3>
+            <p>VESTAでは、VASP、Gaussian、Quantum ESPRESSO等の計算結果（CHGCAR、cube形式等）を読み込み、等値面（isosurface）として電子密度や静電ポテンシャルを3D表示できます。第2章で詳しく解説します。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q6: Materials Studioは必須ですか？</h3>
+            <p>必須ではありません。Materials Studioは商用の高価なソフトウェアで、企業や一部の研究機関で使われています。学術研究ではVESTA + pymatgen/ASE + Quantum ESPRESSO/VASPの組み合わせで同等の機能を実現できます。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q7: どのツールから始めるべきですか？</h3>
+            <p>VESTAから始めることをお勧めします。無料で、インストールも簡単、CIFファイルの可視化から電子密度表示まで幅広く対応しています。使いこなせるようになってから、必要に応じてCrystalMakerやPython自動化に進むと良いでしょう。</p>
+        </div>
+
+        <div class="info-box">
+            <h3>Q8: 論文用の高品質な構造図を作るには？</h3>
+            <p>VESTAで高解像度のPNG/TIFF出力が可能です（File → Export Raster Image）。背景を透明化し、解像度を300 dpi以上に設定します。さらに高度な図が必要な場合は、POV-Ray形式で出力してレイトレーシングで高品質レンダリングもできます。</p>
+        </div>
+
+        <h2>学習のポイント</h2>
+        <ul>
+            <li><strong>実際に手を動かす</strong>: CIFファイルをダウンロードし、VESTAで開いて構造を回転・拡大してみましょう</li>
+            <li><strong>対称性を理解する</strong>: 空間群と対称操作の概念は最初は難しいですが、実例で学ぶと理解が深まります</li>
+            <li><strong>データベースを活用する</strong>: CODから類似構造を検索し、比較することで材料設計の発想が広がります</li>
+            <li><strong>自動化の威力</strong>: Python連携をマスターすると、数百の構造を一括処理でき、研究効率が劇的に向上します</li>
+        </ul>
+
+        <h2>次のステップ</h2>
+        <p>このシリーズを完了した後、以下の発展学習をお勧めします：</p>
+        <ul>
+            <li>第一原理計算（VASP、Quantum ESPRESSO）による電子状態計算</li>
+            <li>分子動力学（LAMMPS）による構造緩和と動的性質</li>
+            <li>機械学習ポテンシャル（MATLANTIS）による高速構造探索</li>
+            <li>結晶構造予測（USPEX、CALYPSO）</li>
+            <li>Materials Projectを使った高速材料スクリーニング</li>
+        </ul>
+
+        <div class="navigation">
+            <a href="chapter-1.html" class="nav-button">第1章から学習を開始 →</a>
+        </div>
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <p><strong>作成者</strong>: CT Knowledge Hub Content Team</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-11-01</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>&copy; 2025 CT Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

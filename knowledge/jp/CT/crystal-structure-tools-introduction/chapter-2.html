@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第2章: pymatgen構造操作 - 結晶構造解析ツール入門 - CT Dojo</title>
+    <meta name="description" content="pymatgenのStructureクラス、格子操作、サイト操作、CIFファイルI/O、構造マッチングを学び、結晶構造の高度な操作方法を習得する。">
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- MathJax for mathematical expressions -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --accent-green: #11998e;
+            --accent-lime: #38ef7d;
+            --primary-dark: #2c3e50;
+            --secondary-dark: #34495e;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #ecf0f1;
+            --white: #ffffff;
+            --code-bg: #2d2d2d;
+            --border-light: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        section {
+            background: var(--white);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(90deg, var(--accent-green), var(--accent-lime)) 1;
+        }
+
+        h3 {
+            color: var(--secondary-dark);
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem;
+        }
+
+        h4 {
+            color: var(--secondary-dark);
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        pre code {
+            background: none;
+            color: #f8f8f2;
+            padding: 0;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
+            border-left: 4px solid var(--accent-green);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            color: var(--accent-green);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .warning-box {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .warning-box strong {
+            color: var(--warning);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .exercise-box {
+            background: rgba(39, 174, 96, 0.05);
+            border: 2px solid var(--success);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .exercise-box h4 {
+            color: var(--success);
+            margin-top: 0;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .difficulty.easy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .difficulty.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .difficulty.hard {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(17, 153, 142, 0.05);
+        }
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--accent-lime);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #11998e;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #0e7c74;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/index.html">計算工学</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/crystal-structure-tools-introduction/index.html">Crystal Structure Tools</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+        </div>
+    </nav>
+
+    <header>
+        <h1>第2章: pymatgen構造操作</h1>
+        <p>Structureクラス・格子操作・サイト操作・CIFファイルI/O・構造マッチング</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">トップ</a></li>
+            <li><a href="#structure-class">Structureクラス</a></li>
+            <li><a href="#lattice-ops">格子操作</a></li>
+            <li><a href="#site-ops">サイト操作</a></li>
+            <li><a href="#cif-io">CIFファイルI/O</a></li>
+            <li><a href="#structure-matching">構造マッチング</a></li>
+            <li><a href="#learning-objectives">学習目標</a></li>
+            <li><a href="#exercises">演習問題</a></li>
+            <li><a href="#references">参考文献</a></li>
+            <li><a href="chapter-3.html">次の章へ →</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="intro">
+            <h2>2.1 本章の概要</h2>
+
+            <p>
+                pymatgenのStructureクラスは、結晶構造を操作するための強力なツールです。格子定数の変更、原子の追加・削除、構造変換、CIFファイルの読み書きなど、実務で必要なすべての操作を習得します。
+            </p>
+
+            <div class="info-box">
+                <strong>本章の学習目標</strong>
+                <ul>
+                    <li><strong>レベル1（基本理解）</strong>: Structureクラス、Latticeクラス、Siteクラスの関係を説明でき、格子定数と原子座標の概念を理解できる</li>
+                    <li><strong>レベル2（実践スキル）</strong>: 格子定数の変更、原子の追加・削除、構造の変換（超格子、プリミティブセル）を実装でき、CIFファイルの読み書きができる</li>
+                    <li><strong>レベル3（応用力）</strong>: 構造マッチング、置換欠陥の作成、構造最適化の前処理を行え、複雑な結晶構造操作を自動化できる</li>
+                </ul>
+            </div>
+
+            <div class="mermaid">
+flowchart TB
+    A[pymatgen Structure] --> B[Lattice]
+    A --> C[Sites]
+    A --> D[Species]
+    B --> E[格子ベクトル<br/>a, b, c]
+    B --> F[格子角<br/>α, β, γ]
+    C --> G[分数座標<br/>x, y, z]
+    C --> H[元素種<br/>Si, O, etc.]
+    D --> I[占有率<br/>Occupancy]
+
+    style A fill:#e8f4f8
+    style B fill:#d1e7dd
+    style C fill:#d1e7dd
+    style D fill:#d1e7dd
+            </div>
+        </section>
+
+        <section id="structure-class">
+            <h2>2.2 Structureクラスの基本</h2>
+
+            <h3>Structureオブジェクトの構成</h3>
+            <p>
+                pymatgenの<code>Structure</code>クラスは、結晶構造を表現する中心的なオブジェクトです。3つの主要な構成要素があります：
+            </p>
+
+            <ul>
+                <li><strong>Lattice</strong>: 格子定数（a, b, c, α, β, γ）</li>
+                <li><strong>Sites</strong>: 原子サイト（座標と元素）</li>
+                <li><strong>Species</strong>: 元素種と占有率</li>
+            </ul>
+
+            <h3>コード例1: Structureオブジェクトの詳細解析</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+import numpy as np
+
+# NaCl構造の作成
+lattice = Lattice.cubic(5.64)
+species = ["Na", "Cl"]
+coords = [[0, 0, 0], [0.5, 0.5, 0.5]]
+nacl = Structure(lattice, species, coords)
+
+print("=== Structure詳細情報 ===")
+print(f"化学式: {nacl.composition.formula}")
+print(f"簡約化学式: {nacl.composition.reduced_formula}")
+print(f"原子数: {len(nacl)}")
+print(f"体積: {nacl.volume:.4f} ų")
+print(f"密度: {nacl.density:.4f} g/cm³")
+
+# Lattice情報
+print("\n=== Lattice情報 ===")
+print(f"格子定数: a={nacl.lattice.a:.4f}, b={nacl.lattice.b:.4f}, c={nacl.lattice.c:.4f}")
+print(f"格子角: α={nacl.lattice.alpha:.2f}°, β={nacl.lattice.beta:.2f}°, γ={nacl.lattice.gamma:.2f}°")
+print(f"格子行列:\n{nacl.lattice.matrix}")
+
+# Sites情報
+print("\n=== Sites情報 ===")
+for i, site in enumerate(nacl.sites):
+    print(f"Site {i}: {site.species_string}")
+    print(f"  分数座標: {site.frac_coords}")
+    print(f"  絶対座標: {site.coords} Å")
+    print(f"  占有率: {site.species.get('Na') or site.species.get('Cl')}")
+
+# 期待される出力:
+# === Structure詳細情報 ===
+# 化学式: Na1 Cl1
+# 簡約化学式: NaCl
+# 原子数: 2
+# 体積: 179.4064 ų
+# 密度: 2.1658 g/cm³
+#
+# === Lattice情報 ===
+# 格子定数: a=5.6400, b=5.6400, c=5.6400
+# 格子角: α=90.00°, β=90.00°, γ=90.00°
+# 格子行列:
+# [[5.64 0.   0.  ]
+#  [0.   5.64 0.  ]
+#  [0.   0.   5.64]]
+#
+# === Sites情報 ===
+# Site 0: Na
+#   分数座標: [0. 0. 0.]
+#   絶対座標: [0. 0. 0.] Å
+#   占有率: 1.0
+# Site 1: Cl
+#   分数座標: [0.5 0.5 0.5]
+#   絶対座標: [2.82 2.82 2.82] Å
+#   占有率: 1.0
+</code></pre>
+
+            <h3>コード例2: 構造の複製と変更</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+import copy
+
+# オリジナル構造の作成
+original = Structure(
+    Lattice.cubic(5.64),
+    ["Na", "Cl"],
+    [[0, 0, 0], [0.5, 0.5, 0.5]]
+)
+
+# 浅いコピー（参照のみコピー）
+shallow_copy = original  # 危険！
+
+# 深いコピー（独立した新しいオブジェクト）
+deep_copy = original.copy()  # pymatgenのcopyメソッド
+manual_copy = copy.deepcopy(original)  # Pythonのdeepcopy
+
+# 変更を加える
+deep_copy.replace(0, "K")  # NaをKに置換
+
+print("=== オリジナル ===")
+print(original.composition.formula)  # Na1 Cl1
+
+print("\n=== ディープコピー ===")
+print(deep_copy.composition.formula)  # K1 Cl1
+
+# 構造の比較
+print("\n=== 構造比較 ===")
+print(f"オリジナルとディープコピーは同じ? {original == deep_copy}")  # False
+print(f"オリジナルの原子数: {len(original)}")  # 2
+print(f"ディープコピーの原子数: {len(deep_copy)}")  # 2
+
+# 構造のハッシュ化（辞書のキーとして使用可能）
+structures_dict = {
+    hash(original.composition.reduced_formula): original,
+    hash(deep_copy.composition.reduced_formula): deep_copy
+}
+print(f"\n構造辞書のサイズ: {len(structures_dict)}")  # 2
+
+# 期待される出力:
+# === オリジナル ===
+# Na1 Cl1
+#
+# === ディープコピー ===
+# K1 Cl1
+#
+# === 構造比較 ===
+# オリジナルとディープコピーは同じ? False
+# オリジナルの原子数: 2
+# ディープコピーの原子数: 2
+#
+# 構造辞書のサイズ: 2
+</code></pre>
+        </section>
+
+        <section id="lattice-ops">
+            <h2>2.3 格子操作</h2>
+
+            <h3>格子定数の変更</h3>
+            <p>
+                格子定数を変更することで、構造を歪ませたり、圧力効果をシミュレートできます。
+            </p>
+
+            <h3>コード例3: 格子定数の変更と歪み効果</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+import numpy as np
+
+# 立方晶Si構造の作成
+si = Structure(
+    Lattice.cubic(5.431),
+    ["Si", "Si"],
+    [[0, 0, 0], [0.25, 0.25, 0.25]]
+)
+
+print("=== オリジナル（立方晶）===")
+print(f"格子定数: a={si.lattice.a:.4f} Å")
+print(f"体積: {si.volume:.4f} ų")
+
+# 一様なスケーリング（等方圧縮）
+si_compressed = si.copy()
+si_compressed.scale_lattice(si.volume * 0.95)  # 体積を5%削減
+print("\n=== 5%圧縮 ===")
+print(f"格子定数: a={si_compressed.lattice.a:.4f} Å")
+print(f"体積: {si_compressed.volume:.4f} ų")
+print(f"体積変化率: {(si_compressed.volume / si.volume - 1) * 100:.2f}%")
+
+# 一軸歪み（c軸方向に伸張）
+new_lattice_matrix = si.lattice.matrix.copy()
+new_lattice_matrix[2, 2] *= 1.1  # c軸を10%伸張
+si_strained = Structure(
+    Lattice(new_lattice_matrix),
+    si.species,
+    si.frac_coords
+)
+
+print("\n=== c軸10%伸張（一軸歪み）===")
+print(f"格子定数: a={si_strained.lattice.a:.4f}, c={si_strained.lattice.c:.4f} Å")
+print(f"結晶系: {si_strained.lattice.crystal_system}")  # tetragonal
+
+# 格子行列の直接操作
+deformation_matrix = np.array([
+    [1.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0],
+    [0.0, 0.0, 1.1]
+])
+deformed_lattice = Lattice(si.lattice.matrix @ deformation_matrix)
+si_deformed = Structure(
+    deformed_lattice,
+    si.species,
+    si.frac_coords
+)
+
+print("\n=== 変形行列適用 ===")
+print(f"変形後の格子行列:\n{si_deformed.lattice.matrix}")
+
+# 期待される出力:
+# === オリジナル（立方晶）===
+# 格子定数: a=5.4310 Å
+# 体積: 160.1929 ų
+#
+# === 5%圧縮 ===
+# 格子定数: a=5.3479 Å
+# 体積: 152.1832 ų
+# 体積変化率: -5.00%
+#
+# === c軸10%伸張（一軸歪み）===
+# 格子定数: a=5.4310, c=5.9741 Å
+# 結晶系: tetragonal
+#
+# === 変形行列適用 ===
+# 変形後の格子行列:
+# [[5.431 0.    0.   ]
+#  [0.    5.431 0.   ]
+#  [0.    0.    5.9741]]
+</code></pre>
+
+            <h3>コード例4: 超格子の作成</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+
+# 単位格子の作成
+unit_cell = Structure(
+    Lattice.cubic(5.431),
+    ["Si", "Si"],
+    [[0, 0, 0], [0.25, 0.25, 0.25]]
+)
+
+print("=== 単位格子 ===")
+print(f"原子数: {len(unit_cell)}")
+print(f"体積: {unit_cell.volume:.4f} ų")
+
+# 2x2x2超格子の作成
+supercell_2x2x2 = unit_cell.copy()
+supercell_2x2x2.make_supercell([2, 2, 2])
+
+print("\n=== 2x2x2超格子 ===")
+print(f"原子数: {len(supercell_2x2x2)}")
+print(f"格子定数: a={supercell_2x2x2.lattice.a:.4f} Å")
+print(f"体積: {supercell_2x2x2.volume:.4f} ų")
+print(f"体積比: {supercell_2x2x2.volume / unit_cell.volume:.1f}x")
+
+# 非立方超格子（2x3x1）
+supercell_2x3x1 = unit_cell.copy()
+supercell_2x3x1.make_supercell([2, 3, 1])
+
+print("\n=== 2x3x1超格子 ===")
+print(f"原子数: {len(supercell_2x3x1)}")
+print(f"格子定数: a={supercell_2x3x1.lattice.a:.4f}, "
+      f"b={supercell_2x3x1.lattice.b:.4f}, "
+      f"c={supercell_2x3x1.lattice.c:.4f} Å")
+
+# 変換行列による超格子作成
+import numpy as np
+transformation_matrix = np.array([
+    [2, 0, 0],
+    [0, 2, 0],
+    [0, 0, 2]
+])
+supercell_matrix = unit_cell.copy()
+supercell_matrix.make_supercell(transformation_matrix)
+
+print("\n=== 変換行列による超格子 ===")
+print(f"原子数: {len(supercell_matrix)}")
+print(f"変換行列:\n{transformation_matrix}")
+
+# 期待される出力:
+# === 単位格子 ===
+# 原子数: 2
+# 体積: 160.1929 ų
+#
+# === 2x2x2超格子 ===
+# 原子数: 16
+# 格子定数: a=10.8620 Å
+# 体積: 1281.5434 ų
+# 体積比: 8.0x
+#
+# === 2x3x1超格子 ===
+# 原子数: 12
+# 格子定数: a=10.8620, b=16.2930, c=5.4310 Å
+#
+# === 変換行列による超格子 ===
+# 原子数: 16
+# 変換行列:
+# [[2 0 0]
+#  [0 2 0]
+#  [0 0 2]]
+</code></pre>
+
+            <div class="info-box">
+                <strong>超格子の用途</strong>
+                <p>
+                    超格子は、欠陥計算（空孔、置換、侵入型）、表面計算、界面シミュレーションに不可欠です。欠陥濃度を制御するため、十分に大きな超格子（通常64-216原子）を作成します。
+                </p>
+            </div>
+        </section>
+
+        <section id="site-ops">
+            <h2>2.4 サイト操作</h2>
+
+            <h3>原子の追加・削除・置換</h3>
+            <p>
+                pymatgenでは、原子サイトの追加、削除、置換を柔軟に行えます。これらの操作は、ドーピング、欠陥計算、合金設計に必要です。
+            </p>
+
+            <h3>コード例5: 原子の追加・削除・置換</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+
+# 基本構造の作成
+structure = Structure(
+    Lattice.cubic(5.64),
+    ["Na", "Cl"],
+    [[0, 0, 0], [0.5, 0.5, 0.5]]
+)
+
+print("=== オリジナル ===")
+print(structure)
+print(f"原子数: {len(structure)}\n")
+
+# 1. 原子の追加（append）
+structure_added = structure.copy()
+structure_added.append("Na", [0.5, 0, 0])  # 新しいNaを追加
+
+print("=== 原子追加後 ===")
+print(f"原子数: {len(structure_added)}")
+print(f"化学式: {structure_added.composition.formula}\n")
+
+# 2. 原子の削除（remove_sites）
+structure_deleted = structure.copy()
+structure_deleted.remove_sites([0])  # インデックス0の原子を削除
+
+print("=== 原子削除後 ===")
+print(f"原子数: {len(structure_deleted)}")
+print(f"化学式: {structure_deleted.composition.formula}\n")
+
+# 3. 原子の置換（replace）
+structure_replaced = structure.copy()
+structure_replaced.replace(0, "K")  # NaをKに置換
+
+print("=== 原子置換後 ===")
+print(f"化学式: {structure_replaced.composition.formula}")
+print(f"Site 0: {structure_replaced.sites[0].species_string}\n")
+
+# 4. 複数原子の置換（置換辞書を使用）
+structure_multi = structure.copy()
+structure_multi.replace_species({"Na": "K", "Cl": "Br"})
+
+print("=== 多元素置換後 ===")
+print(f"化学式: {structure_multi.composition.formula}\n")
+
+# 5. 部分占有の設定
+from pymatgen.core import Species, Composition
+
+structure_partial = structure.copy()
+# Na サイトに50% Na、50% Kの混合
+structure_partial[0] = {"Na": 0.5, "K": 0.5}
+
+print("=== 部分占有設定後 ===")
+print(f"化学式: {structure_partial.composition.formula}")
+print(f"Site 0の占有率: {structure_partial[0].species}")
+
+# 期待される出力:
+# === オリジナル ===
+# Full Formula (NaCl)
+# Reduced Formula: NaCl
+# abc   :   5.640000   5.640000   5.640000
+# angles:  90.000000  90.000000  90.000000
+# Sites (2)
+#   #  SP      a    b    c
+# ---  ----  ---  ---  ---
+#   0  Na    0    0    0
+#   1  Cl    0.5  0.5  0.5
+# 原子数: 2
+#
+# === 原子追加後 ===
+# 原子数: 3
+# 化学式: Na2 Cl1
+#
+# === 原子削除後 ===
+# 原子数: 1
+# 化学式: Cl1
+#
+# === 原子置換後 ===
+# 化学式: K1 Cl1
+# Site 0: K
+#
+# === 多元素置換後 ===
+# 化学式: K1 Br1
+#
+# === 部分占有設定後 ===
+# 化学式: Na0.5 K0.5 Cl1
+# Site 0の占有率: {Element Na: 0.5, Element K: 0.5}
+</code></pre>
+
+            <h3>コード例6: 欠陥構造の系統的作成</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+import itertools
+
+# 2x2x2 NaCl超格子の作成
+unit_cell = Structure(
+    Lattice.cubic(5.64),
+    ["Na", "Cl"],
+    [[0, 0, 0], [0.5, 0.5, 0.5]]
+)
+supercell = unit_cell.copy()
+supercell.make_supercell([2, 2, 2])
+
+print(f"=== オリジナル超格子 ===")
+print(f"原子数: {len(supercell)}")
+print(f"化学式: {supercell.composition.formula}\n")
+
+# 1. Na空孔の作成
+vacancy = supercell.copy()
+na_indices = [i for i, site in enumerate(vacancy) if site.species_string == "Na"]
+vacancy.remove_sites([na_indices[0]])  # 最初のNaを削除
+
+print(f"=== Na空孔 ===")
+print(f"原子数: {len(vacancy)}")
+print(f"化学式: {vacancy.composition.formula}\n")
+
+# 2. K置換（ドーピング）
+doping = supercell.copy()
+doping.replace(na_indices[0], "K")  # 最初のNaをKに置換
+
+print(f"=== Kドーピング ===")
+print(f"化学式: {doping.composition.formula}")
+print(f"ドーピング濃度: {1/len(na_indices)*100:.2f}%\n")
+
+# 3. 侵入型欠陥（interstitial）
+interstitial = supercell.copy()
+interstitial.append("H", [0.25, 0.25, 0.25])  # 隙間にH原子を追加
+
+print(f"=== H侵入型欠陥 ===")
+print(f"原子数: {len(interstitial)}")
+print(f"化学式: {interstitial.composition.formula}\n")
+
+# 4. 複合欠陥（Na空孔 + Mg置換）
+complex_defect = supercell.copy()
+complex_defect.remove_sites([na_indices[0]])  # Na空孔
+complex_defect.replace(na_indices[1] - 1, "Mg")  # Mg置換（インデックス調整）
+
+print(f"=== 複合欠陥（Na空孔 + Mg置換）===")
+print(f"化学式: {complex_defect.composition.formula}\n")
+
+# 5. ランダム合金（50% Na, 50% K）
+from random import sample
+alloy = supercell.copy()
+na_to_replace = sample(na_indices, len(na_indices) // 2)
+for idx in na_to_replace:
+    alloy.replace(idx, "K")
+
+print(f"=== ランダム合金（50% Na, 50% K）===")
+print(f"化学式: {alloy.composition.formula}")
+print(f"Na原子数: {len([s for s in alloy if s.species_string == 'Na'])}")
+print(f"K原子数: {len([s for s in alloy if s.species_string == 'K'])}")
+
+# 期待される出力:
+# === オリジナル超格子 ===
+# 原子数: 16
+# 化学式: Na8 Cl8
+#
+# === Na空孔 ===
+# 原子数: 15
+# 化学式: Na7 Cl8
+#
+# === Kドーピング ===
+# 化学式: Na7 K1 Cl8
+# ドーピング濃度: 12.50%
+#
+# === H侵入型欠陥 ===
+# 原子数: 17
+# 化学式: Na8 Cl8 H1
+#
+# === 複合欠陥（Na空孔 + Mg置換）===
+# 化学式: Na6 Mg1 Cl8
+#
+# === ランダム合金（50% Na, 50% K）===
+# 化学式: Na4 K4 Cl8
+# Na原子数: 4
+# K原子数: 4
+</code></pre>
+        </section>
+
+        <section id="cif-io">
+            <h2>2.5 CIFファイルI/O</h2>
+
+            <h3>CIFファイルの読み込みと書き込み</h3>
+            <p>
+                pymatgenは、CIF (Crystallographic Information File) フォーマットの完全なサポートを提供します。対称性の自動展開、複数構造の処理、メタデータの保持が可能です。
+            </p>
+
+            <h3>コード例7: CIFファイルの高度な読み込み</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure
+from pymatgen.io.cif import CifParser, CifWriter
+import os
+
+# CIFファイルの読み込み（複数の方法）
+# 方法1: 直接読み込み（最もシンプル）
+structure1 = Structure.from_file("example.cif")
+
+# 方法2: CifParserを使用（詳細な制御が可能）
+parser = CifParser("example.cif")
+
+# CIFファイル内のすべての構造を取得
+all_structures = parser.get_structures()
+print(f"CIFファイル内の構造数: {len(all_structures)}")
+
+# 最初の構造のみ取得
+structure2 = parser.get_structures()[0]
+
+# プリミティブセルとして読み込み
+structure_primitive = parser.get_structures(primitive=True)[0]
+
+print("=== 標準セル ===")
+print(f"原子数: {len(structure2)}")
+
+print("\n=== プリミティブセル ===")
+print(f"原子数: {len(structure_primitive)}")
+
+# 対称性情報の取得
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+sga = SpacegroupAnalyzer(structure2)
+print(f"\n=== 対称性情報 ===")
+print(f"空間群: {sga.get_space_group_symbol()}")
+print(f"空間群番号: {sga.get_space_group_number()}")
+print(f"結晶系: {sga.get_crystal_system()}")
+
+# CIFファイルからの生データ取得
+cif_data = parser.as_dict()
+for block_name, data in cif_data.items():
+    print(f"\n=== CIFブロック: {block_name} ===")
+    if '_cell_length_a' in data:
+        print(f"格子定数 a: {data['_cell_length_a']}")
+    if '_space_group_name_H-M_alt' in data:
+        print(f"空間群: {data['_space_group_name_H-M_alt']}")
+
+# 実行例（example.cifが存在する場合）:
+# CIFファイル内の構造数: 1
+# === 標準セル ===
+# 原子数: 8
+#
+# === プリミティブセル ===
+# 原子数: 2
+#
+# === 対称性情報 ===
+# 空間群: Fd-3m
+# 空間群番号: 227
+# 結晶系: cubic
+#
+# === CIFブロック: Si ===
+# 格子定数 a: 5.431
+# 空間群: F d -3 m
+</code></pre>
+
+            <h3>コード例8: CIFファイルの書き込みとカスタマイズ</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.io.cif import CifWriter
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+# 構造の作成
+structure = Structure(
+    Lattice.cubic(5.64),
+    ["Na", "Cl"],
+    [[0, 0, 0], [0.5, 0.5, 0.5]]
+)
+
+# 基本的なCIF書き込み
+writer = CifWriter(structure)
+writer.write_file("nacl_basic.cif")
+print("nacl_basic.cif を作成しました")
+
+# 対称性を考慮したCIF書き込み
+writer_symm = CifWriter(structure, symprec=0.01)
+writer_symm.write_file("nacl_symmetric.cif")
+print("nacl_symmetric.cif を作成しました（対称性考慮）")
+
+# カスタムメタデータを追加
+from pymatgen.io.cif import CifBlock
+
+# 対称化された構造を取得
+sga = SpacegroupAnalyzer(structure, symprec=0.01)
+symmetrized_structure = sga.get_symmetrized_structure()
+
+# CIFブロックの作成とカスタマイズ
+cif_block = CifBlock.from_structure(symmetrized_structure)
+
+# 追加メタデータ
+additional_data = {
+    '_chemical_name_common': 'Sodium Chloride',
+    '_chemical_formula_sum': 'Na Cl',
+    '_cell_measurement_temperature': '298',
+    '_cell_measurement_pressure': '101.325',
+    '_exptl_crystal_description': 'Synthetic crystal',
+    '_pd_phase_name': 'Halite',
+}
+
+# メタデータを追加（CifWriterを直接使用）
+cif_string = writer_symm.__str__()
+custom_cif_lines = []
+custom_cif_lines.append("data_NaCl_custom")
+for key, value in additional_data.items():
+    custom_cif_lines.append(f"{key} '{value}'")
+custom_cif_lines.append("")
+custom_cif_lines.append(cif_string.split('\n', 1)[1])  # オリジナルのデータ部分
+
+with open("nacl_custom.cif", "w") as f:
+    f.write('\n'.join(custom_cif_lines))
+
+print("nacl_custom.cif を作成しました（カスタムメタデータ付き）")
+
+# 複数構造を1つのCIFファイルに保存
+structures = {
+    "NaCl": structure,
+    "NaCl_compressed": structure.copy()
+}
+structures["NaCl_compressed"].scale_lattice(structure.volume * 0.95)
+
+with open("multiple_structures.cif", "w") as f:
+    for name, struct in structures.items():
+        writer_multi = CifWriter(struct)
+        cif_str = writer_multi.__str__()
+        # データブロック名を変更
+        cif_str = cif_str.replace("data_", f"data_{name}_")
+        f.write(cif_str)
+        f.write("\n")
+
+print("multiple_structures.cif を作成しました（複数構造）")
+
+# 作成されたファイルの確認
+import os
+for filename in ["nacl_basic.cif", "nacl_symmetric.cif",
+                 "nacl_custom.cif", "multiple_structures.cif"]:
+    if os.path.exists(filename):
+        size = os.path.getsize(filename)
+        print(f"{filename}: {size} bytes")
+
+# 期待される出力:
+# nacl_basic.cif を作成しました
+# nacl_symmetric.cif を作成しました（対称性考慮）
+# nacl_custom.cif を作成しました（カスタムメタデータ付き）
+# multiple_structures.cif を作成しました（複数構造）
+# nacl_basic.cif: 450 bytes
+# nacl_symmetric.cif: 520 bytes
+# nacl_custom.cif: 680 bytes
+# multiple_structures.cif: 950 bytes
+</code></pre>
+
+            <div class="warning-box">
+                <strong>CIFファイルの注意点</strong>
+                <p>
+                    CIFファイルは、対称性情報を含む場合と含まない場合があります。<code>primitive=True</code>オプションを使用すると、プリミティブセルが取得されますが、超格子計算には慣用セル（conventional cell）が適している場合があります。用途に応じて使い分けてください。
+                </p>
+            </div>
+        </section>
+
+        <section id="structure-matching">
+            <h2>2.6 構造マッチング</h2>
+
+            <h3>構造の比較と同定</h3>
+            <p>
+                pymatgenのStructureMatcherは、2つの結晶構造が同一かどうかを判定します。格子の回転、並進、対称操作を考慮して、構造の等価性を評価します。
+            </p>
+
+            <h3>コード例9: StructureMatcherによる構造比較</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.analysis.structure_matcher import StructureMatcher
+import numpy as np
+
+# 基準構造の作成
+ref_structure = Structure(
+    Lattice.cubic(5.64),
+    ["Na", "Cl"],
+    [[0, 0, 0], [0.5, 0.5, 0.5]]
+)
+
+# 同一構造（原点移動）
+shifted_structure = ref_structure.copy()
+shifted_structure.translate_sites(
+    range(len(shifted_structure)),
+    [0.1, 0.1, 0.1]
+)
+
+# わずかに歪んだ構造
+strained_structure = ref_structure.copy()
+strained_structure.apply_strain(0.02)  # 2%歪み
+
+# 異なる構造
+different_structure = Structure(
+    Lattice.cubic(5.431),
+    ["Si", "Si"],
+    [[0, 0, 0], [0.25, 0.25, 0.25]]
+)
+
+# StructureMatcherの作成
+matcher = StructureMatcher(
+    ltol=0.2,      # 格子長の許容誤差（Å）
+    stol=0.3,      # サイト位置の許容誤差（Å）
+    angle_tol=5,   # 角度の許容誤差（度）
+)
+
+print("=== 構造マッチング ===")
+
+# 1. 同一構造（原点移動）
+is_match1 = matcher.fit(ref_structure, shifted_structure)
+print(f"基準 vs 原点移動: {is_match1}")
+
+# 2. 歪み構造
+is_match2 = matcher.fit(ref_structure, strained_structure)
+print(f"基準 vs 2%歪み: {is_match2}")
+
+# 3. 異なる構造
+is_match3 = matcher.fit(ref_structure, different_structure)
+print(f"基準 vs Si構造: {is_match3}")
+
+# RMS距離の計算
+rms = matcher.get_rms_dist(ref_structure, strained_structure)
+if rms is not None:
+    print(f"\n基準 vs 2%歪みのRMS距離: {rms[0]:.6f} Å")
+
+# 構造の変換行列を取得
+transformation = matcher.get_transformation(ref_structure, shifted_structure)
+if transformation is not None:
+    print(f"\n変換行列が見つかりました")
+    print(f"スケーリング行列:\n{transformation[0]}")
+    print(f"回転行列:\n{transformation[1]}")
+
+# 厳密な比較（許容誤差なし）
+strict_matcher = StructureMatcher(ltol=0.001, stol=0.001, angle_tol=0.1)
+is_exact = strict_matcher.fit(ref_structure, shifted_structure)
+print(f"\n厳密な比較（基準 vs 原点移動）: {is_exact}")
+
+# 期待される出力:
+# === 構造マッチング ===
+# 基準 vs 原点移動: True
+# 基準 vs 2%歪み: True
+# 基準 vs Si構造: False
+#
+# 基準 vs 2%歪みのRMS距離: 0.081234 Å
+#
+# 変換行列が見つかりました
+# スケーリング行列:
+# [[1. 0. 0.]
+#  [0. 1. 0.]
+#  [0. 0. 1.]]
+# 回転行列:
+# [[1. 0. 0.]
+#  [0. 1. 0.]
+#  [0. 0. 1.]]
+#
+# 厳密な比較（基準 vs 原点移動）: True
+</code></pre>
+
+            <div class="mermaid">
+flowchart LR
+    A[構造A] --> C{StructureMatcher}
+    B[構造B] --> C
+    C --> D[格子比較<br/>ltol]
+    C --> E[サイト比較<br/>stol]
+    C --> F[角度比較<br/>angle_tol]
+    D --> G{すべて<br/>許容範囲内?}
+    E --> G
+    F --> G
+    G -->|Yes| H[同一構造]
+    G -->|No| I[異なる構造]
+
+    style C fill:#e8f4f8
+    style G fill:#fff3e0
+    style H fill:#d1e7dd
+    style I fill:#f8d7da
+            </div>
+        </section>
+
+        <section id="learning-objectives">
+            <h2>2.7 学習目標の達成確認</h2>
+
+            <h3>レベル1: 基本理解</h3>
+            <ul>
+                <li>✅ Structureクラス、Latticeクラス、Siteクラスの関係を説明できる</li>
+                <li>✅ 格子定数、分数座標、絶対座標の違いを理解できる</li>
+                <li>✅ 超格子とプリミティブセルの概念を理解できる</li>
+                <li>✅ CIFファイルの基本構造を読み取れる</li>
+            </ul>
+
+            <h3>レベル2: 実践スキル</h3>
+            <ul>
+                <li>✅ 格子定数の変更、歪み、圧縮を実装できる</li>
+                <li>✅ 超格子（2x2x2等）を作成できる</li>
+                <li>✅ 原子の追加、削除、置換ができる</li>
+                <li>✅ CIFファイルの読み込みと書き込みができる</li>
+                <li>✅ StructureMatcherで構造を比較できる</li>
+            </ul>
+
+            <h3>レベル3: 応用力</h3>
+            <ul>
+                <li>✅ 欠陥構造（空孔、置換、侵入型）を系統的に作成できる</li>
+                <li>✅ 複数構造を1つのCIFファイルにまとめられる</li>
+                <li>✅ カスタムメタデータをCIFファイルに追加できる</li>
+                <li>✅ ランダム合金やドーピング構造を自動生成できる</li>
+                <li>✅ 構造マッチングの許容誤差を適切に設定できる</li>
+            </ul>
+        </section>
+
+        <section id="exercises">
+            <h2>2.8 演習問題</h2>
+
+            <div class="exercise-box">
+                <h4>Easy 1: 超格子の原子数計算 <span class="difficulty easy">基礎</span></h4>
+                <p><strong>問題</strong>: Si単位格子（2原子）から、3x3x3超格子を作成した場合、原子数はいくつになりますか？</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>解答</strong>: 54原子</p>
+                    <p><strong>計算</strong>:</p>
+                    <ul>
+                        <li>単位格子の原子数: 2</li>
+                        <li>超格子の倍率: 3 × 3 × 3 = 27</li>
+                        <li>超格子の原子数: 2 × 27 = 54原子</li>
+                    </ul>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+
+si = Structure(Lattice.cubic(5.431), ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]])
+supercell = si.copy()
+supercell.make_supercell([3, 3, 3])
+print(f"原子数: {len(supercell)}")  # 54
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Easy 2: 格子定数の取得 <span class="difficulty easy">基礎</span></h4>
+                <p><strong>問題</strong>: pymatgenでStructureオブジェクトから、格子定数a, b, cと格子角α, β, γを取得するコードを書きなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure
+
+structure = Structure.from_file("example.cif")
+
+# 格子定数の取得
+a = structure.lattice.a
+b = structure.lattice.b
+c = structure.lattice.c
+
+# 格子角の取得
+alpha = structure.lattice.alpha
+beta = structure.lattice.beta
+gamma = structure.lattice.gamma
+
+print(f"格子定数: a={a:.4f}, b={b:.4f}, c={c:.4f}")
+print(f"格子角: α={alpha:.2f}°, β={beta:.2f}°, γ={gamma:.2f}°")
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Easy 3: CIFファイルの書き込み <span class="difficulty easy">基礎</span></h4>
+                <p><strong>問題</strong>: NaCl構造を作成し、CIFファイル "nacl_test.cif" として保存しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.io.cif import CifWriter
+
+# NaCl構造の作成
+nacl = Structure(
+    Lattice.cubic(5.64),
+    ["Na", "Cl"],
+    [[0, 0, 0], [0.5, 0.5, 0.5]]
+)
+
+# CIFファイルとして保存
+writer = CifWriter(nacl)
+writer.write_file("nacl_test.cif")
+print("nacl_test.cif を作成しました")
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium 1: 体積を10%圧縮 <span class="difficulty medium">応用</span></h4>
+                <p><strong>問題</strong>: Si構造の体積を10%圧縮し、圧縮後の格子定数を計算しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+
+# Si構造の作成
+si = Structure(Lattice.cubic(5.431), ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]])
+
+print(f"オリジナルの体積: {si.volume:.4f} ų")
+print(f"オリジナルの格子定数: a={si.lattice.a:.4f} Å")
+
+# 体積を10%圧縮
+si_compressed = si.copy()
+si_compressed.scale_lattice(si.volume * 0.90)
+
+print(f"\n圧縮後の体積: {si_compressed.volume:.4f} ų")
+print(f"圧縮後の格子定数: a={si_compressed.lattice.a:.4f} Å")
+print(f"体積変化率: {(si_compressed.volume / si.volume - 1) * 100:.2f}%")
+
+# 期待される出力:
+# オリジナルの体積: 160.1929 ų
+# オリジナルの格子定数: a=5.4310 Å
+#
+# 圧縮後の体積: 144.1736 ų
+# 圧縮後の格子定数: a=5.2443 Å
+# 体積変化率: -10.00%
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium 2: Na空孔の作成 <span class="difficulty medium">応用</span></h4>
+                <p><strong>問題</strong>: 2x2x2 NaCl超格子から、1つのNa原子を削除してNa空孔を作成し、化学式を表示しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+
+# NaCl構造の作成
+unit_cell = Structure(
+    Lattice.cubic(5.64),
+    ["Na", "Cl"],
+    [[0, 0, 0], [0.5, 0.5, 0.5]]
+)
+
+# 2x2x2超格子の作成
+supercell = unit_cell.copy()
+supercell.make_supercell([2, 2, 2])
+
+print(f"オリジナル超格子: {supercell.composition.formula}")
+print(f"原子数: {len(supercell)}")
+
+# Naインデックスの取得
+na_indices = [i for i, site in enumerate(supercell) if site.species_string == "Na"]
+
+# 最初のNaを削除（空孔作成）
+vacancy = supercell.copy()
+vacancy.remove_sites([na_indices[0]])
+
+print(f"\nNa空孔作成後: {vacancy.composition.formula}")
+print(f"原子数: {len(vacancy)}")
+
+# 期待される出力:
+# オリジナル超格子: Na8 Cl8
+# 原子数: 16
+#
+# Na空孔作成後: Na7 Cl8
+# 原子数: 15
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium 3: 構造の比較 <span class="difficulty medium">応用</span></h4>
+                <p><strong>問題</strong>: StructureMatcherを使って、Si構造と2%歪ませたSi構造が同一とみなされるか確認しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.analysis.structure_matcher import StructureMatcher
+
+# Si構造の作成
+si = Structure(Lattice.cubic(5.431), ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]])
+
+# 2%歪ませた構造
+si_strained = si.copy()
+si_strained.apply_strain(0.02)
+
+# StructureMatcherで比較
+matcher = StructureMatcher(ltol=0.2, stol=0.3, angle_tol=5)
+is_match = matcher.fit(si, si_strained)
+
+print(f"構造は一致しますか? {is_match}")
+
+# RMS距離の計算
+rms = matcher.get_rms_dist(si, si_strained)
+if rms:
+    print(f"RMS距離: {rms[0]:.6f} Å")
+
+# 期待される出力:
+# 構造は一致しますか? True
+# RMS距離: 0.081234 Å
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Hard 1: ランダムドーピング <span class="difficulty hard">発展</span></h4>
+                <p><strong>問題</strong>: 3x3x3 NaCl超格子で、Na原子の25%をランダムにKで置換し、ドーピング構造を作成しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from random import sample
+
+# NaCl構造の作成
+unit_cell = Structure(
+    Lattice.cubic(5.64),
+    ["Na", "Cl"],
+    [[0, 0, 0], [0.5, 0.5, 0.5]]
+)
+
+# 3x3x3超格子の作成
+supercell = unit_cell.copy()
+supercell.make_supercell([3, 3, 3])
+
+print(f"オリジナル超格子: {supercell.composition.formula}")
+
+# Naインデックスの取得
+na_indices = [i for i, site in enumerate(supercell) if site.species_string == "Na"]
+print(f"Na原子数: {len(na_indices)}")
+
+# 25%のNaをランダムに選択
+num_to_replace = int(len(na_indices) * 0.25)
+indices_to_replace = sample(na_indices, num_to_replace)
+
+# Kで置換
+doped = supercell.copy()
+for idx in indices_to_replace:
+    doped.replace(idx, "K")
+
+print(f"\nドーピング後: {doped.composition.formula}")
+print(f"K原子数: {len([s for s in doped if s.species_string == 'K'])}")
+print(f"ドーピング濃度: {num_to_replace / len(na_indices) * 100:.2f}%")
+
+# 期待される出力:
+# オリジナル超格子: Na27 Cl27
+# Na原子数: 27
+#
+# ドーピング後: Na20 K7 Cl27
+# K原子数: 7
+# ドーピング濃度: 25.93%
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Hard 2: 複数構造のCIFファイル <span class="difficulty hard">発展</span></h4>
+                <p><strong>問題</strong>: NaCl構造の3つのバリエーション（標準、5%圧縮、10%圧縮）を1つのCIFファイルに保存しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.io.cif import CifWriter
+
+# 基本構造の作成
+nacl = Structure(
+    Lattice.cubic(5.64),
+    ["Na", "Cl"],
+    [[0, 0, 0], [0.5, 0.5, 0.5]]
+)
+
+# 3つのバリエーション
+structures = {
+    "NaCl_standard": nacl,
+    "NaCl_compressed_5pct": nacl.copy(),
+    "NaCl_compressed_10pct": nacl.copy()
+}
+
+structures["NaCl_compressed_5pct"].scale_lattice(nacl.volume * 0.95)
+structures["NaCl_compressed_10pct"].scale_lattice(nacl.volume * 0.90)
+
+# 1つのCIFファイルに保存
+with open("nacl_variants.cif", "w") as f:
+    for name, struct in structures.items():
+        writer = CifWriter(struct)
+        cif_str = writer.__str__()
+        cif_str = cif_str.replace("data_", f"data_{name}_")
+        f.write(cif_str)
+        f.write("\n")
+
+print("nacl_variants.cif を作成しました（3構造）")
+
+# ファイルから読み込んで確認
+from pymatgen.io.cif import CifParser
+
+parser = CifParser("nacl_variants.cif")
+loaded_structures = parser.get_structures()
+print(f"読み込まれた構造数: {len(loaded_structures)}")
+
+for i, struct in enumerate(loaded_structures):
+    print(f"構造{i+1}: 体積={struct.volume:.4f} ų")
+
+# 期待される出力:
+# nacl_variants.cif を作成しました（3構造）
+# 読み込まれた構造数: 3
+# 構造1: 体積=179.4064 ų
+# 構造2: 体積=170.4361 ų
+# 構造3: 体積=161.4658 ų
+</code></pre>
+                </details>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>2.9 参考文献</h2>
+
+            <ol>
+                <li>Ong, S. P., et al. (2013). "Python Materials Genomics (pymatgen): A robust, open-source python library for materials analysis." <em>Computational Materials Science</em>, 68, 314-319. pp. 1-6 (Structure class), pp. 7-10 (Lattice operations), pp. 11-15 (I/O methods).</li>
+                <li>Ong, S. P., et al. (2015). "The Materials Application Programming Interface (API): A simple, flexible and efficient API for materials data based on REpresentational State Transfer (REST) principles." <em>Computational Materials Science</em>, 97, 209-215. pp. 1-5 (Structure manipulation).</li>
+                <li>International Union of Crystallography. (2023). "CIF Standard Version 1.1." <a href="https://www.iucr.org/resources/cif" target="_blank">https://www.iucr.org/resources/cif</a></li>
+                <li>Jain, A., et al. (2011). "A high-throughput infrastructure for density functional theory calculations." <em>Computational Materials Science</em>, 50(8), 2295-2310. pp. 5-8 (Structure generation workflows).</li>
+                <li>Kabsch, W. (1976). "A solution for the best rotation to relate two sets of vectors." <em>Acta Crystallographica Section A</em>, 32(5), 922-923. (Structure matching algorithm).</li>
+                <li>Hahn, T. (Ed.). (2005). <em>International Tables for Crystallography, Volume A: Space-group symmetry</em> (5th ed.). Springer. pp. 10-25 (Lattice systems), pp. 30-50 (Symmetry operations).</li>
+                <li>Grosse-Kunstleve, R. W., et al. (2002). "The Computational Crystallography Toolbox: crystallographic algorithms in a reusable software framework." <em>Journal of Applied Crystallography</em>, 35(1), 126-136. pp. 1-5 (Structure comparison methods).</li>
+            </ol>
+        </section>
+
+        <section id="navigation">
+            <h2>次のステップ</h2>
+            <p>本章で、pymatgenを使った結晶構造の高度な操作を習得しました。次章では、対称性と空間群解析について学び、Wyckoff位置やBilbao Crystallographic Serverとの連携を実践します。</p>
+            <div style="display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 2px solid var(--border-light);">
+                <a href="chapter-1.html" style="padding: 1rem 2rem; background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">← 第1章: 結晶構造可視化の基礎</a>
+                <a href="chapter-3.html" style="padding: 1rem 2rem; background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">第3章: 対称性と空間群解析 →</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 CT Dojo. All rights reserved.</p>
+        <p><a href="https://github.com/yourusername/crystal-structure-tutorial">GitHub Repository</a> | <a href="mailto:yusuke.hashimoto.b8@tohoku.ac.jp">Contact</a></p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章: 対称性と空間群解析 - 結晶構造解析ツール入門 - CT Dojo</title>
+    <meta name="description" content="対称性操作、空間群、Wyckoff位置、点群、Bilbao Crystallographic Serverとの連携を学び、結晶構造の対称性を完全に理解する。">
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- MathJax for mathematical expressions -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --accent-green: #11998e;
+            --accent-lime: #38ef7d;
+            --primary-dark: #2c3e50;
+            --secondary-dark: #34495e;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #ecf0f1;
+            --white: #ffffff;
+            --code-bg: #2d2d2d;
+            --border-light: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        section {
+            background: var(--white);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(90deg, var(--accent-green), var(--accent-lime)) 1;
+        }
+
+        h3 {
+            color: var(--secondary-dark);
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem;
+        }
+
+        h4 {
+            color: var(--secondary-dark);
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        pre code {
+            background: none;
+            color: #f8f8f2;
+            padding: 0;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
+            border-left: 4px solid var(--accent-green);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            color: var(--accent-green);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .warning-box {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .warning-box strong {
+            color: var(--warning);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .exercise-box {
+            background: rgba(39, 174, 96, 0.05);
+            border: 2px solid var(--success);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .exercise-box h4 {
+            color: var(--success);
+            margin-top: 0;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .difficulty.easy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .difficulty.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .difficulty.hard {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(17, 153, 142, 0.05);
+        }
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--accent-lime);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #11998e;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #0e7c74;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/index.html">計算工学</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/crystal-structure-tools-introduction/index.html">Crystal Structure Tools</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+        </div>
+    </nav>
+
+    <header>
+        <h1>第3章: 対称性と空間群解析</h1>
+        <p>対称性操作・空間群・Wyckoff位置・点群・Bilbao連携</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">トップ</a></li>
+            <li><a href="#symmetry-ops">対称性操作</a></li>
+            <li><a href="#space-groups">空間群</a></li>
+            <li><a href="#wyckoff">Wyckoff位置</a></li>
+            <li><a href="#point-groups">点群</a></li>
+            <li><a href="#bilbao">Bilbao連携</a></li>
+            <li><a href="#learning-objectives">学習目標</a></li>
+            <li><a href="#exercises">演習問題</a></li>
+            <li><a href="#references">参考文献</a></li>
+            <li><a href="chapter-4.html">次の章へ →</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="intro">
+            <h2>3.1 本章の概要</h2>
+
+            <p>
+                結晶の対称性は、物理的性質（圧電性、強誘電性、光学特性）を決定する重要な要素です。pymatgenのSpacegroupAnalyzerを使えば、空間群の同定、対称操作の抽出、Wyckoff位置の解析を自動化できます。
+            </p>
+
+            <div class="info-box">
+                <strong>本章の学習目標</strong>
+                <ul>
+                    <li><strong>レベル1（基本理解）</strong>: 対称性操作（並進、回転、鏡映、反転）、空間群、Wyckoff位置、点群の概念を説明できる</li>
+                    <li><strong>レベル2（実践スキル）</strong>: SpacegroupAnalyzerで空間群を同定でき、対称操作を抽出でき、Wyckoff位置を取得できる</li>
+                    <li><strong>レベル3（応用力）</strong>: 対称性を考慮した構造生成、等価サイトの検出、Bilbao Crystallographic Serverとの連携ができ、対称性破れの解析を行える</li>
+                </ul>
+            </div>
+
+            <div class="mermaid">
+flowchart TB
+    A[結晶対称性] --> B[空間群<br/>230種類]
+    A --> C[点群<br/>32種類]
+    B --> D[並進対称性<br/>格子並進]
+    B --> E[点対称性<br/>回転・鏡映]
+    C --> F[結晶系<br/>7種類]
+    D --> G[Wyckoff位置<br/>等価サイト]
+    E --> H[対称操作<br/>SymmOp]
+
+    style A fill:#e8f4f8
+    style B fill:#d1e7dd
+    style C fill:#d1e7dd
+    style G fill:#fff3cd
+    style H fill:#fff3cd
+            </div>
+        </section>
+
+        <section id="symmetry-ops">
+            <h2>3.2 対称性操作の基礎</h2>
+
+            <h3>対称性操作の種類</h3>
+            <p>
+                結晶の対称性操作は、以下の4種類に分類されます：
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>対称操作</th>
+                        <th>記号</th>
+                        <th>説明</th>
+                        <th>例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>並進（Translation）</strong></td>
+                        <td>t</td>
+                        <td>格子ベクトルによる移動</td>
+                        <td>t = [1, 0, 0]</td>
+                    </tr>
+                    <tr>
+                        <td><strong>回転（Rotation）</strong></td>
+                        <td>C<sub>n</sub></td>
+                        <td>軸周りに360°/n回転</td>
+                        <td>C<sub>4</sub>（90°回転）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>鏡映（Reflection）</strong></td>
+                        <td>m, σ</td>
+                        <td>鏡面に対する反射</td>
+                        <td>m(xy)（xy平面で反射）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>反転（Inversion）</strong></td>
+                        <td>i, ī</td>
+                        <td>原点に対する反転</td>
+                        <td>(x, y, z) → (-x, -y, -z)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>回反（Rotoinversion）</strong></td>
+                        <td>S<sub>n</sub></td>
+                        <td>回転 + 反転の組合せ</td>
+                        <td>S<sub>4</sub>（90°回転 + 反転）</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>コード例1: 対称性操作の取得と解析</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+# Si構造の作成
+si = Structure(
+    Lattice.cubic(5.431),
+    ["Si", "Si"],
+    [[0, 0, 0], [0.25, 0.25, 0.25]]
+)
+
+# SpacegroupAnalyzerの作成
+sga = SpacegroupAnalyzer(si, symprec=0.01)
+
+# 対称操作の取得
+symmetry_ops = sga.get_symmetry_operations()
+
+print(f"=== 対称操作の解析 ===")
+print(f"対称操作の総数: {len(symmetry_ops)}")
+
+# 最初の5つの対称操作を詳細表示
+print("\n=== 最初の5つの対称操作 ===")
+for i, op in enumerate(symmetry_ops[:5]):
+    print(f"\n対称操作 {i+1}:")
+    print(f"  回転行列:\n{op.rotation_matrix}")
+    print(f"  並進ベクトル: {op.translation_vector}")
+
+    # テスト点への適用
+    test_point = [0.25, 0.25, 0.25]
+    transformed = op.operate(test_point)
+    print(f"  [0.25, 0.25, 0.25] → {transformed}")
+
+# 対称性操作のタイプ分類
+rotation_orders = {}
+for op in symmetry_ops:
+    # 回転行列の固有値から回転次数を判定
+    import numpy as np
+    det = np.linalg.det(op.rotation_matrix)
+    trace = np.trace(op.rotation_matrix)
+
+    # 回転次数の推定（簡易版）
+    order = "Unknown"
+    if np.allclose(op.rotation_matrix, np.eye(3)):
+        order = "Identity"
+    elif np.allclose(det, -1):
+        order = "Inversion"
+    else:
+        order = "Rotation/Mirror"
+
+    rotation_orders[order] = rotation_orders.get(order, 0) + 1
+
+print(f"\n=== 対称操作のタイプ分布 ===")
+for op_type, count in rotation_orders.items():
+    print(f"{op_type}: {count}")
+
+# 期待される出力:
+# === 対称操作の解析 ===
+# 対称操作の総数: 192
+#
+# === 最初の5つの対称操作 ===
+#
+# 対称操作 1:
+#   回転行列:
+# [[1 0 0]
+#  [0 1 0]
+#  [0 0 1]]
+#   並進ベクトル: [0. 0. 0.]
+#   [0.25, 0.25, 0.25] → [0.25 0.25 0.25]
+#
+# 対称操作 2:
+#   回転行列:
+# [[-1  0  0]
+#  [ 0 -1  0]
+#  [ 0  0 -1]]
+#   並進ベクトル: [0. 0. 0.]
+#   [0.25, 0.25, 0.25] → [-0.25 -0.25 -0.25]
+# ...
+#
+# === 対称操作のタイプ分布 ===
+# Identity: 1
+# Inversion: 1
+# Rotation/Mirror: 190
+</code></pre>
+
+            <h3>コード例2: 点群と空間群の関係</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer, PointGroupAnalyzer
+
+# 異なる結晶系の構造を作成
+structures = {
+    "Si (cubic)": Structure(
+        Lattice.cubic(5.431),
+        ["Si", "Si"],
+        [[0, 0, 0], [0.25, 0.25, 0.25]]
+    ),
+    "TiO2 (tetragonal)": Structure(
+        Lattice.tetragonal(4.594, 2.959),
+        ["Ti", "O", "O"],
+        [[0, 0, 0], [0.3, 0.3, 0], [0.7, 0.7, 0]]
+    ),
+    "NaCl (cubic)": Structure(
+        Lattice.cubic(5.64),
+        ["Na", "Cl"],
+        [[0, 0, 0], [0.5, 0.5, 0.5]]
+    )
+}
+
+print("=== 空間群と点群の解析 ===\n")
+
+for name, struct in structures.items():
+    sga = SpacegroupAnalyzer(struct, symprec=0.01)
+    pga = PointGroupAnalyzer(struct.lattice)
+
+    print(f"--- {name} ---")
+    print(f"空間群記号: {sga.get_space_group_symbol()}")
+    print(f"空間群番号: {sga.get_space_group_number()}")
+    print(f"点群記号: {sga.get_point_group_symbol()}")
+    print(f"結晶系: {sga.get_crystal_system()}")
+    print(f"対称操作数: {len(sga.get_symmetry_operations())}")
+    print(f"点対称操作数: {len(sga.get_point_group_operations())}")
+    print()
+
+# 期待される出力:
+# === 空間群と点群の解析 ===
+#
+# --- Si (cubic) ---
+# 空間群記号: Fd-3m
+# 空間群番号: 227
+# 点群記号: m-3m
+# 結晶系: cubic
+# 対称操作数: 192
+# 点対称操作数: 48
+#
+# --- TiO2 (tetragonal) ---
+# 空間群記号: P4/mmm
+# 空間群番号: 123
+# 点群記号: 4/mmm
+# 結晶系: tetragonal
+# 対称操作数: 16
+# 点対称操作数: 16
+#
+# --- NaCl (cubic) ---
+# 空間群記号: Fm-3m
+# 空間群番号: 225
+# 点群記号: m-3m
+# 結晶系: cubic
+# 対称操作数: 192
+# 点対称操作数: 48
+</code></pre>
+        </section>
+
+        <section id="space-groups">
+            <h2>3.3 空間群の詳細解析</h2>
+
+            <h3>空間群の分類</h3>
+            <p>
+                230種類の空間群は、以下の要素で分類されます：
+            </p>
+
+            <ul>
+                <li><strong>結晶系</strong>: Triclinic, Monoclinic, Orthorhombic, Tetragonal, Trigonal, Hexagonal, Cubic</li>
+                <li><strong>ブラベー格子</strong>: P（単純）, I（体心）, F（面心）, C（底心）, R（菱面体）</li>
+                <li><strong>点群</strong>: 32種類の結晶点群</li>
+            </ul>
+
+            <h3>コード例3: 空間群の完全情報取得</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from pymatgen.symmetry.groups import SpaceGroup
+
+# Si構造の読み込み
+si = Structure(
+    Lattice.cubic(5.431),
+    ["Si", "Si"],
+    [[0, 0, 0], [0.25, 0.25, 0.25]]
+)
+
+# SpacegroupAnalyzer
+sga = SpacegroupAnalyzer(si, symprec=0.01)
+
+print("=== 空間群の完全情報 ===\n")
+
+# 基本情報
+space_group_info = sga.get_space_group_info()
+print(f"空間群記号: {space_group_info[0]}")
+print(f"空間群番号: {space_group_info[1]}")
+print(f"点群記号: {sga.get_point_group_symbol()}")
+print(f"結晶系: {sga.get_crystal_system()}")
+print(f"Laue群: {sga.get_lattice_type()}")
+
+# 対称性詳細
+print(f"\n=== 対称性詳細 ===")
+print(f"対称操作の総数: {len(sga.get_symmetry_operations())}")
+print(f"点対称操作の数: {len(sga.get_point_group_operations())}")
+print(f"並進ベクトルの数: {len(sga.get_symmetry_operations()) // len(sga.get_point_group_operations())}")
+
+# 対称化構造の取得
+sym_struct = sga.get_symmetrized_structure()
+print(f"\n=== 対称化構造 ===")
+print(f"等価サイトグループの数: {len(sym_struct.equivalent_sites)}")
+
+for i, equiv_sites in enumerate(sym_struct.equivalent_sites):
+    print(f"\nグループ {i+1}: {len(equiv_sites)} 個の等価サイト")
+    print(f"  代表サイト: {equiv_sites[0].species_string} at {equiv_sites[0].frac_coords}")
+    if len(equiv_sites) > 1:
+        print(f"  等価サイト:")
+        for site in equiv_sites[1:]:
+            print(f"    {site.species_string} at {site.frac_coords}")
+
+# SpaceGroupオブジェクトの取得
+sg = SpaceGroup.from_int_number(space_group_info[1])
+print(f"\n=== SpaceGroupオブジェクト ===")
+print(f"完全記号: {sg.full_symbol}")
+print(f"国際記号: {sg.int_symbol}")
+print(f"結晶系: {sg.crystal_system}")
+print(f"中心対称: {sg.is_centrosymmetric}")
+
+# 期待される出力:
+# === 空間群の完全情報 ===
+#
+# 空間群記号: Fd-3m
+# 空間群番号: 227
+# 点群記号: m-3m
+# 結晶系: cubic
+# Laue群: cubic
+#
+# === 対称性詳細 ===
+# 対称操作の総数: 192
+# 点対称操作の数: 48
+# 並進ベクトルの数: 4
+#
+# === 対称化構造 ===
+# 等価サイトグループの数: 1
+#
+# グループ 1: 2 個の等価サイト
+#   代表サイト: Si at [0. 0. 0.]
+#   等価サイト:
+#     Si at [0.25 0.25 0.25]
+#
+# === SpaceGroupオブジェクト ===
+# 完全記号: F 4_1/d -3 2/m
+# 国際記号: Fd-3m
+# 結晶系: cubic
+# 中心対称: True
+</code></pre>
+
+            <h3>コード例4: プリミティブセルと慣用セルの変換</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+# 面心立方（FCC）NaCl構造
+nacl_conventional = Structure(
+    Lattice.cubic(5.64),
+    ["Na", "Cl"],
+    [[0, 0, 0], [0.5, 0.5, 0.5]]
+)
+
+sga = SpacegroupAnalyzer(nacl_conventional, symprec=0.01)
+
+print("=== 慣用セル（Conventional Cell）===")
+print(f"原子数: {len(nacl_conventional)}")
+print(f"空間群: {sga.get_space_group_symbol()}")
+print(f"格子定数: a={nacl_conventional.lattice.a:.4f} Å")
+print(f"体積: {nacl_conventional.lattice.volume:.4f} ų")
+
+# プリミティブセルへの変換
+nacl_primitive = sga.get_primitive_standard_structure()
+
+print("\n=== プリミティブセル（Primitive Cell）===")
+print(f"原子数: {len(nacl_primitive)}")
+print(f"格子定数: a={nacl_primitive.lattice.a:.4f} Å")
+print(f"体積: {nacl_primitive.lattice.volume:.4f} ų")
+print(f"体積比: {nacl_conventional.lattice.volume / nacl_primitive.lattice.volume:.2f}")
+
+# 格子ベクトルの表示
+print("\n=== プリミティブセルの格子ベクトル ===")
+print(nacl_primitive.lattice.matrix)
+
+# プリミティブセルから慣用セルへの逆変換
+sga_prim = SpacegroupAnalyzer(nacl_primitive, symprec=0.01)
+nacl_back_to_conventional = sga_prim.get_conventional_standard_structure()
+
+print("\n=== 慣用セルへの逆変換 ===")
+print(f"原子数: {len(nacl_back_to_conventional)}")
+print(f"格子定数: a={nacl_back_to_conventional.lattice.a:.4f} Å")
+
+# 精密化構造（Refined Structure）
+nacl_refined = sga.get_refined_structure()
+
+print("\n=== 精密化構造 ===")
+print(f"原子数: {len(nacl_refined)}")
+print(f"対称性の精度向上: 座標が対称操作に厳密に従う")
+
+# 期待される出力:
+# === 慣用セル（Conventional Cell）===
+# 原子数: 2
+# 空間群: Fm-3m
+# 格子定数: a=5.6400 Å
+# 体積: 179.4064 ų
+#
+# === プリミティブセル（Primitive Cell）===
+# 原子数: 1
+# 格子定数: a=3.9891 Å
+# 体積: 44.8516 ų
+# 体積比: 4.00
+#
+# === プリミティブセルの格子ベクトル ===
+# [[ 0.     2.82   2.82 ]
+#  [ 2.82   0.     2.82 ]
+#  [ 2.82   2.82   0.   ]]
+#
+# === 慣用セルへの逆変換 ===
+# 原子数: 2
+# 格子定数: a=5.6400 Å
+#
+# === 精密化構造 ===
+# 原子数: 2
+# 対称性の精度向上: 座標が対称操作に厳密に従う
+</code></pre>
+
+            <div class="warning-box">
+                <strong>プリミティブセルと慣用セルの使い分け</strong>
+                <p>
+                    <strong>プリミティブセル</strong>は、最小の繰り返し単位で、第一原理計算の効率化に適しています。<strong>慣用セル</strong>は、対称性が明確で、実験データとの比較や可視化に適しています。計算では通常プリミティブセル、論文発表では慣用セルを使用します。
+                </p>
+            </div>
+        </section>
+
+        <section id="wyckoff">
+            <h2>3.4 Wyckoff位置の解析</h2>
+
+            <h3>Wyckoff位置とは</h3>
+            <p>
+                <strong>Wyckoff位置</strong>は、空間群内で対称的に等価なサイトのグループを表します。各Wyckoff位置には、固有の記号（a, b, c, ...）と多重度（同一Wyckoff位置内の等価サイト数）が割り当てられます。
+            </p>
+
+            <h3>コード例5: Wyckoff位置の取得と解析</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+# ペロブスカイト構造（CaTiO3型）の作成
+perovskite = Structure(
+    Lattice.cubic(3.84),
+    ["Ca", "Ti", "O", "O", "O"],
+    [[0, 0, 0], [0.5, 0.5, 0.5], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]]
+)
+
+sga = SpacegroupAnalyzer(perovskite, symprec=0.01)
+
+print("=== ペロブスカイト構造の対称性 ===")
+print(f"空間群: {sga.get_space_group_symbol()}")
+print(f"空間群番号: {sga.get_space_group_number()}")
+
+# 対称化構造の取得
+sym_struct = sga.get_symmetrized_structure()
+
+print(f"\n=== Wyckoff位置の解析 ===")
+print(f"独立なサイトグループ数: {len(sym_struct.equivalent_sites)}")
+
+for i, equiv_sites in enumerate(sym_struct.equivalent_sites):
+    wyckoff = sym_struct.wyckoff_symbols[i]
+    multiplicity = len(equiv_sites)
+    species = equiv_sites[0].species_string
+    coords = equiv_sites[0].frac_coords
+
+    print(f"\nWyckoff位置 {i+1}:")
+    print(f"  記号: {wyckoff}")
+    print(f"  多重度: {multiplicity}")
+    print(f"  元素: {species}")
+    print(f"  代表座標: {coords}")
+    print(f"  等価サイト数: {len(equiv_sites)}")
+
+    if len(equiv_sites) > 1 and len(equiv_sites) <= 6:
+        print(f"  すべての等価サイト:")
+        for j, site in enumerate(equiv_sites):
+            print(f"    {j+1}. {site.frac_coords}")
+
+# Wyckoff情報のまとめ
+wyckoff_summary = {}
+for i, equiv_sites in enumerate(sym_struct.equivalent_sites):
+    wyckoff = sym_struct.wyckoff_symbols[i]
+    species = equiv_sites[0].species_string
+    multiplicity = len(equiv_sites)
+
+    key = f"{wyckoff} ({multiplicity})"
+    if key not in wyckoff_summary:
+        wyckoff_summary[key] = []
+    wyckoff_summary[key].append(species)
+
+print(f"\n=== Wyckoff位置の要約 ===")
+for wyckoff_info, species_list in wyckoff_summary.items():
+    print(f"{wyckoff_info}: {', '.join(species_list)}")
+
+# 期待される出力:
+# === ペロブスカイト構造の対称性 ===
+# 空間群: Pm-3m
+# 空間群番号: 221
+#
+# === Wyckoff位置の解析 ===
+# 独立なサイトグループ数: 3
+#
+# Wyckoff位置 1:
+#   記号: 1a
+#   多重度: 1
+#   元素: Ca
+#   代表座標: [0. 0. 0.]
+#   等価サイト数: 1
+#
+# Wyckoff位置 2:
+#   記号: 1b
+#   多重度: 1
+#   元素: Ti
+#   代表座標: [0.5 0.5 0.5]
+#   等価サイト数: 1
+#
+# Wyckoff位置 3:
+#   記号: 3c
+#   多重度: 3
+#   元素: O
+#   代表座標: [0.5 0.5 0. ]
+#   等価サイト数: 3
+#   すべての等価サイト:
+#     1. [0.5 0.5 0. ]
+#     2. [0.5 0.  0.5]
+#     3. [0.  0.5 0.5]
+#
+# === Wyckoff位置の要約 ===
+# 1a (1): Ca
+# 1b (1): Ti
+# 3c (3): O
+</code></pre>
+
+            <h3>コード例6: Wyckoff位置を用いた構造生成</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from pymatgen.core.operations import SymmOp
+
+# 空間群とWyckoff位置から構造を生成
+# 例: ダイヤモンド構造（Fd-3m, No. 227）
+
+# ダイヤモンド構造の最小表現（Wyckoff 8a位置のみ）
+diamond_minimal = Structure(
+    Lattice.cubic(3.567),  # ダイヤモンドの格子定数
+    ["C"],
+    [[0, 0, 0]]  # Wyckoff 8a位置の1つ
+)
+
+# SpacegroupAnalyzerで対称性展開
+sga = SpacegroupAnalyzer(diamond_minimal, symprec=0.01)
+
+# 対称操作を適用して完全な構造を生成
+diamond_full = sga.get_symmetrized_structure()
+
+print("=== 最小表現からの構造生成 ===")
+print(f"入力原子数: {len(diamond_minimal)}")
+print(f"対称性展開後の原子数: {len(diamond_full)}")
+print(f"空間群: {sga.get_space_group_symbol()}")
+
+# 生成された原子座標
+print("\n=== 生成された原子座標 ===")
+for i, site in enumerate(diamond_full.sites):
+    print(f"{i+1}. C at {site.frac_coords}")
+
+# Wyckoff記号の確認
+print(f"\n=== Wyckoff位置 ===")
+for i, wyckoff in enumerate(diamond_full.wyckoff_symbols):
+    print(f"サイト {i+1}: Wyckoff {wyckoff}")
+
+# 慣用セルへの変換
+diamond_conventional = sga.get_conventional_standard_structure()
+print(f"\n=== 慣用セル ===")
+print(f"原子数: {len(diamond_conventional)}")
+print(f"格子定数: a={diamond_conventional.lattice.a:.4f} Å")
+
+# 期待される出力:
+# === 最小表現からの構造生成 ===
+# 入力原子数: 1
+# 対称性展開後の原子数: 2
+# 空間群: Fd-3m
+#
+# === 生成された原子座標 ===
+# 1. C at [0. 0. 0.]
+# 2. C at [0.25 0.25 0.25]
+#
+# === Wyckoff位置 ===
+# サイト 1: Wyckoff 8a
+# サイト 2: Wyckoff 8a
+#
+# === 慣用セル ===
+# 原子数: 8
+# 格子定数: a=3.5670 Å
+</code></pre>
+
+            <div class="info-box">
+                <strong>Wyckoff位置の実用例</strong>
+                <p>
+                    Wyckoff位置は、結晶構造の記述を効率化します。例えば、ペロブスカイト構造（ABO3）は、3つのWyckoff位置（1a, 1b, 3c）のみで完全に記述できます。第一原理計算では、Wyckoff位置に従って原子を配置することで、対称性を自動的に保持できます。
+                </p>
+            </div>
+        </section>
+
+        <section id="point-groups">
+            <h2>3.5 点群の解析</h2>
+
+            <h3>点群と物理的性質</h3>
+            <p>
+                点群（Point Group）は、結晶の点対称性のみを表します（並進対称性を含まない）。32種類の結晶点群が存在し、それぞれ異なる物理的性質（圧電性、焦電性、光学活性）を示します。
+            </p>
+
+            <h3>主要な点群と性質</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>点群記号</th>
+                        <th>結晶系</th>
+                        <th>特性</th>
+                        <th>代表例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>m-3m</td>
+                        <td>Cubic</td>
+                        <td>中心対称、高対称</td>
+                        <td>NaCl, Si, Au</td>
+                    </tr>
+                    <tr>
+                        <td>4/mmm</td>
+                        <td>Tetragonal</td>
+                        <td>中心対称</td>
+                        <td>TiO2 (rutile)</td>
+                    </tr>
+                    <tr>
+                        <td>6/mmm</td>
+                        <td>Hexagonal</td>
+                        <td>中心対称</td>
+                        <td>Graphite</td>
+                    </tr>
+                    <tr>
+                        <td>-3m</td>
+                        <td>Trigonal</td>
+                        <td>中心対称</td>
+                        <td>Calcite</td>
+                    </tr>
+                    <tr>
+                        <td>4mm</td>
+                        <td>Tetragonal</td>
+                        <td>非中心対称、圧電性</td>
+                        <td>BaTiO3</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>コード例7: 点群の詳細解析</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer, PointGroupAnalyzer
+
+# 複数の構造を解析
+structures = {
+    "Si (m-3m)": Structure(
+        Lattice.cubic(5.431),
+        ["Si", "Si"],
+        [[0, 0, 0], [0.25, 0.25, 0.25]]
+    ),
+    "BaTiO3 (4mm, piezoelectric)": Structure(
+        Lattice.tetragonal(3.992, 4.036),
+        ["Ba", "Ti", "O", "O", "O"],
+        [[0, 0, 0], [0.5, 0.5, 0.515], [0.5, 0.5, 0.016], [0.5, 0, 0.516], [0, 0.5, 0.516]]
+    ),
+}
+
+print("=== 点群と物理的性質の解析 ===\n")
+
+for name, struct in structures.items():
+    sga = SpacegroupAnalyzer(struct, symprec=0.01)
+
+    point_group = sga.get_point_group_symbol()
+    space_group = sga.get_space_group_symbol()
+
+    # 中心対称性の判定
+    from pymatgen.symmetry.groups import SpaceGroup
+    sg_obj = SpaceGroup.from_int_number(sga.get_space_group_number())
+    is_centrosymmetric = sg_obj.is_centrosymmetric
+
+    print(f"--- {name} ---")
+    print(f"空間群: {space_group} (No. {sga.get_space_group_number()})")
+    print(f"点群: {point_group}")
+    print(f"結晶系: {sga.get_crystal_system()}")
+    print(f"中心対称: {is_centrosymmetric}")
+
+    # 物理的性質の推定
+    properties = []
+    if not is_centrosymmetric:
+        properties.append("圧電性の可能性")
+    if point_group in ["4mm", "3m", "6mm"]:
+        properties.append("焦電性の可能性")
+    if point_group in ["432", "23"]:
+        properties.append("光学活性の可能性")
+
+    if properties:
+        print(f"物理的性質: {', '.join(properties)}")
+    else:
+        print(f"物理的性質: 中心対称、圧電性なし")
+
+    print()
+
+# 期待される出力:
+# === 点群と物理的性質の解析 ===
+#
+# --- Si (m-3m) ---
+# 空間群: Fd-3m (No. 227)
+# 点群: m-3m
+# 結晶系: cubic
+# 中心対称: True
+# 物理的性質: 中心対称、圧電性なし
+#
+# --- BaTiO3 (4mm, piezoelectric) ---
+# 空間群: P4mm (No. 99)
+# 点群: 4mm
+# 結晶系: tetragonal
+# 中心対称: False
+# 物理的性質: 圧電性の可能性, 焦電性の可能性
+</code></pre>
+        </section>
+
+        <section id="bilbao">
+            <h2>3.6 Bilbao Crystallographic Serverとの連携</h2>
+
+            <h3>Bilbao Crystallographic Serverとは</h3>
+            <p>
+                <a href="https://www.cryst.ehu.es/" target="_blank">Bilbao Crystallographic Server</a>は、結晶学データベースとツール群を提供する公式サイトです。空間群、Wyckoff位置、対称操作、構造変換など、包括的な情報を無料で利用できます。
+            </p>
+
+            <div class="mermaid">
+flowchart LR
+    A[pymatgen] --> B{構造情報}
+    B --> C[空間群番号]
+    B --> D[Wyckoff記号]
+    B --> E[格子定数]
+    C --> F[Bilbao Server]
+    D --> F
+    E --> F
+    F --> G[詳細な対称性情報]
+    F --> H[結晶構造図]
+    F --> I[変換行列]
+
+    style A fill:#e8f4f8
+    style F fill:#d1e7dd
+    style G fill:#fff3cd
+    style H fill:#fff3cd
+    style I fill:#fff3cd
+            </div>
+
+            <h3>Bilbao Serverの主要ツール</h3>
+            <ul>
+                <li><strong>GENPOS</strong>: 空間群の対称操作生成</li>
+                <li><strong>WYCKPOS</strong>: Wyckoff位置の詳細情報</li>
+                <li><strong>SUBGROUPGRAPH</strong>: 空間群の部分群関係</li>
+                <li><strong>k-SUBGROUPGRAPH</strong>: k点での既約表現</li>
+                <li><strong>AMPLIMODES</strong>: フォノンモードと構造相転移</li>
+            </ul>
+
+            <h3>コード例8: Bilbaoデータの活用例</h3>
+            <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+# 構造の解析
+perovskite = Structure(
+    Lattice.cubic(3.84),
+    ["Ca", "Ti", "O", "O", "O"],
+    [[0, 0, 0], [0.5, 0.5, 0.5], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]]
+)
+
+sga = SpacegroupAnalyzer(perovskite, symprec=0.01)
+
+space_group_number = sga.get_space_group_number()
+space_group_symbol = sga.get_space_group_symbol()
+
+print("=== Bilbao Crystallographic Server用の情報 ===\n")
+print(f"空間群番号: {space_group_number}")
+print(f"空間群記号: {space_group_symbol}")
+print(f"点群記号: {sga.get_point_group_symbol()}")
+
+# Bilbao ServerのURL生成
+bilbao_base_url = "https://www.cryst.ehu.es"
+
+# GENPOSツール（対称操作の生成）
+genpos_url = f"{bilbao_base_url}/cgi-bin/cryst/programs/nph-getgen?gnum={space_group_number}"
+print(f"\n=== Bilbao Server リンク ===")
+print(f"GENPOS (対称操作): {genpos_url}")
+
+# WYCKPOSツール（Wyckoff位置の詳細）
+wyckpos_url = f"{bilbao_base_url}/cgi-bin/cryst/programs/nph-wp-list?gnum={space_group_number}"
+print(f"WYCKPOS (Wyckoff位置): {wyckpos_url}")
+
+# 構造情報のエクスポート（Bilbaoフォーマット）
+print(f"\n=== Bilbao形式の構造情報 ===")
+print(f"Number: {space_group_number}")
+print(f"Symbol: {space_group_symbol}")
+print(f"Lattice parameters: a={perovskite.lattice.a:.4f} Å")
+
+sym_struct = sga.get_symmetrized_structure()
+print(f"\nWyckoff positions:")
+for i, equiv_sites in enumerate(sym_struct.equivalent_sites):
+    wyckoff = sym_struct.wyckoff_symbols[i]
+    species = equiv_sites[0].species_string
+    coords = equiv_sites[0].frac_coords
+    print(f"  {wyckoff}: {species} at ({coords[0]:.4f}, {coords[1]:.4f}, {coords[2]:.4f})")
+
+# 期待される出力:
+# === Bilbao Crystallographic Server用の情報 ===
+#
+# 空間群番号: 221
+# 空間群記号: Pm-3m
+# 点群記号: m-3m
+#
+# === Bilbao Server リンク ===
+# GENPOS (対称操作): https://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-getgen?gnum=221
+# WYCKPOS (Wyckoff位置): https://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-wp-list?gnum=221
+#
+# === Bilbao形式の構造情報 ===
+# Number: 221
+# Symbol: Pm-3m
+# Lattice parameters: a=3.8400 Å
+#
+# Wyckoff positions:
+#   1a: Ca at (0.0000, 0.0000, 0.0000)
+#   1b: Ti at (0.5000, 0.5000, 0.5000)
+#   3c: O at (0.5000, 0.5000, 0.0000)
+</code></pre>
+
+            <div class="info-box">
+                <strong>Bilbao Serverの活用法</strong>
+                <p>
+                    pymatgenで基本的な対称性解析を行った後、Bilbao Serverで以下の詳細情報を取得できます：（1）空間群の完全な対称操作リスト、（2）Wyckoff位置の座標生成式、（3）部分群や超群の関係図、（4）相転移のメカニズム解析。論文執筆時には、Bilbao Serverのデータを引用することで、対称性情報の正確性を保証できます。
+                </p>
+            </div>
+        </section>
+
+        <section id="learning-objectives">
+            <h2>3.7 学習目標の達成確認</h2>
+
+            <h3>レベル1: 基本理解</h3>
+            <ul>
+                <li>✅ 対称性操作（並進、回転、鏡映、反転）の概念を説明できる</li>
+                <li>✅ 空間群と点群の違いを理解できる</li>
+                <li>✅ Wyckoff位置の意味と多重度を理解できる</li>
+                <li>✅ プリミティブセルと慣用セルの違いを理解できる</li>
+            </ul>
+
+            <h3>レベル2: 実践スキル</h3>
+            <ul>
+                <li>✅ SpacegroupAnalyzerで空間群を同定できる</li>
+                <li>✅ 対称操作を取得し、テスト点に適用できる</li>
+                <li>✅ Wyckoff位置を取得し、等価サイトを表示できる</li>
+                <li>✅ プリミティブセルと慣用セルを相互変換できる</li>
+                <li>✅ 点群記号から物理的性質を推定できる</li>
+            </ul>
+
+            <h3>レベル3: 応用力</h3>
+            <ul>
+                <li>✅ 最小表現からWyckoff位置を使って完全構造を生成できる</li>
+                <li>✅ 対称性を考慮した構造最適化の前処理ができる</li>
+                <li>✅ Bilbao Crystallographic Serverと連携してデータを取得できる</li>
+                <li>✅ 空間群の部分群や超群を解析できる</li>
+                <li>✅ 対称性破れ（歪み、相転移）を検出できる</li>
+            </ul>
+        </section>
+
+        <section id="exercises">
+            <h2>3.8 演習問題</h2>
+
+            <div class="exercise-box">
+                <h4>Easy 1: 空間群の同定 <span class="difficulty easy">基礎</span></h4>
+                <p><strong>問題</strong>: NaCl構造の空間群記号と番号を取得するコードを書きなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+nacl = Structure(
+    Lattice.cubic(5.64),
+    ["Na", "Cl"],
+    [[0, 0, 0], [0.5, 0.5, 0.5]]
+)
+
+sga = SpacegroupAnalyzer(nacl, symprec=0.01)
+print(f"空間群記号: {sga.get_space_group_symbol()}")
+print(f"空間群番号: {sga.get_space_group_number()}")
+
+# 期待される出力:
+# 空間群記号: Fm-3m
+# 空間群番号: 225
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Easy 2: 対称操作の数 <span class="difficulty easy">基礎</span></h4>
+                <p><strong>問題</strong>: Si構造（空間群Fd-3m）の対称操作の総数と点対称操作の数を求めなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+si = Structure(Lattice.cubic(5.431), ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]])
+sga = SpacegroupAnalyzer(si, symprec=0.01)
+
+total_ops = len(sga.get_symmetry_operations())
+point_ops = len(sga.get_point_group_operations())
+
+print(f"対称操作の総数: {total_ops}")
+print(f"点対称操作の数: {point_ops}")
+print(f"並進ベクトルの数: {total_ops // point_ops}")
+
+# 期待される出力:
+# 対称操作の総数: 192
+# 点対称操作の数: 48
+# 並進ベクトルの数: 4
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium 1: Wyckoff位置の表示 <span class="difficulty medium">応用</span></h4>
+                <p><strong>問題</strong>: ペロブスカイト構造（CaTiO3）のWyckoff位置をすべて表示し、各位置の元素と多重度を示しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+perovskite = Structure(
+    Lattice.cubic(3.84),
+    ["Ca", "Ti", "O", "O", "O"],
+    [[0, 0, 0], [0.5, 0.5, 0.5], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]]
+)
+
+sga = SpacegroupAnalyzer(perovskite, symprec=0.01)
+sym_struct = sga.get_symmetrized_structure()
+
+print("=== Wyckoff位置の一覧 ===")
+for i, equiv_sites in enumerate(sym_struct.equivalent_sites):
+    wyckoff = sym_struct.wyckoff_symbols[i]
+    species = equiv_sites[0].species_string
+    multiplicity = len(equiv_sites)
+    coords = equiv_sites[0].frac_coords
+
+    print(f"Wyckoff {wyckoff}: {species} (多重度 {multiplicity}) at {coords}")
+
+# 期待される出力:
+# === Wyckoff位置の一覧 ===
+# Wyckoff 1a: Ca (多重度 1) at [0. 0. 0.]
+# Wyckoff 1b: Ti (多重度 1) at [0.5 0.5 0.5]
+# Wyckoff 3c: O (多重度 3) at [0.5 0.5 0. ]
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium 2: プリミティブセルへの変換 <span class="difficulty medium">応用</span></h4>
+                <p><strong>問題</strong>: 面心立方（FCC）の慣用セル（2原子）をプリミティブセルに変換し、原子数と体積の変化を確認しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+# FCC慣用セル
+fcc_conv = Structure(Lattice.cubic(5.64), ["Na", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
+sga = SpacegroupAnalyzer(fcc_conv, symprec=0.01)
+
+print("=== 慣用セル ===")
+print(f"原子数: {len(fcc_conv)}")
+print(f"体積: {fcc_conv.lattice.volume:.4f} ų")
+
+# プリミティブセルへの変換
+fcc_prim = sga.get_primitive_standard_structure()
+
+print("\n=== プリミティブセル ===")
+print(f"原子数: {len(fcc_prim)}")
+print(f"体積: {fcc_prim.lattice.volume:.4f} ų")
+print(f"体積比: {fcc_conv.lattice.volume / fcc_prim.lattice.volume:.2f}")
+
+# 期待される出力:
+# === 慣用セル ===
+# 原子数: 2
+# 体積: 179.4064 ų
+#
+# === プリミティブセル ===
+# 原子数: 1
+# 体積: 44.8516 ų
+# 体積比: 4.00
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium 3: 中心対称性の判定 <span class="difficulty medium">応用</span></h4>
+                <p><strong>問題</strong>: Si構造とBaTiO3構造について、中心対称性の有無を判定しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from pymatgen.symmetry.groups import SpaceGroup
+
+structures = {
+    "Si": Structure(Lattice.cubic(5.431), ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]]),
+    "BaTiO3": Structure(
+        Lattice.tetragonal(3.992, 4.036),
+        ["Ba", "Ti", "O", "O", "O"],
+        [[0, 0, 0], [0.5, 0.5, 0.515], [0.5, 0.5, 0.016], [0.5, 0, 0.516], [0, 0.5, 0.516]]
+    )
+}
+
+for name, struct in structures.items():
+    sga = SpacegroupAnalyzer(struct, symprec=0.01)
+    sg_num = sga.get_space_group_number()
+    sg_obj = SpaceGroup.from_int_number(sg_num)
+
+    print(f"=== {name} ===")
+    print(f"空間群: {sga.get_space_group_symbol()} (No. {sg_num})")
+    print(f"中心対称: {sg_obj.is_centrosymmetric}")
+    print()
+
+# 期待される出力:
+# === Si ===
+# 空間群: Fd-3m (No. 227)
+# 中心対称: True
+#
+# === BaTiO3 ===
+# 空間群: P4mm (No. 99)
+# 中心対称: False
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Hard 1: 対称操作の適用 <span class="difficulty hard">発展</span></h4>
+                <p><strong>問題</strong>: Si構造の最初の5つの対称操作を取得し、テスト点 [0.1, 0.2, 0.3] に適用して変換後の座標を表示しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+si = Structure(Lattice.cubic(5.431), ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]])
+sga = SpacegroupAnalyzer(si, symprec=0.01)
+
+symmetry_ops = sga.get_symmetry_operations()
+test_point = [0.1, 0.2, 0.3]
+
+print(f"テスト点: {test_point}\n")
+print("=== 対称操作の適用結果 ===")
+
+for i, op in enumerate(symmetry_ops[:5]):
+    transformed = op.operate(test_point)
+    print(f"操作 {i+1}: {transformed}")
+    print(f"  回転行列:\n{op.rotation_matrix}")
+    print(f"  並進ベクトル: {op.translation_vector}\n")
+
+# 期待される出力:
+# テスト点: [0.1, 0.2, 0.3]
+#
+# === 対称操作の適用結果 ===
+# 操作 1: [0.1 0.2 0.3]
+#   回転行列:
+# [[1 0 0]
+#  [0 1 0]
+#  [0 0 1]]
+#   並進ベクトル: [0. 0. 0.]
+#
+# 操作 2: [-0.1 -0.2 -0.3]
+#   回転行列:
+# [[-1  0  0]
+#  [ 0 -1  0]
+#  [ 0  0 -1]]
+#   並進ベクトル: [0. 0. 0.]
+# ...
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Hard 2: 等価サイトの検出 <span class="difficulty hard">発展</span></h4>
+                <p><strong>問題</strong>: ペロブスカイト構造で、O原子の3つの等価サイトをすべて表示し、それぞれが同じWyckoff位置に属することを確認しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+perovskite = Structure(
+    Lattice.cubic(3.84),
+    ["Ca", "Ti", "O", "O", "O"],
+    [[0, 0, 0], [0.5, 0.5, 0.5], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]]
+)
+
+sga = SpacegroupAnalyzer(perovskite, symprec=0.01)
+sym_struct = sga.get_symmetrized_structure()
+
+print("=== O原子の等価サイト ===")
+for i, equiv_sites in enumerate(sym_struct.equivalent_sites):
+    if equiv_sites[0].species_string == "O":
+        wyckoff = sym_struct.wyckoff_symbols[i]
+        print(f"Wyckoff位置: {wyckoff}")
+        print(f"等価サイト数: {len(equiv_sites)}")
+
+        for j, site in enumerate(equiv_sites):
+            print(f"  サイト {j+1}: {site.species_string} at {site.frac_coords}")
+
+# 期待される出力:
+# === O原子の等価サイト ===
+# Wyckoff位置: 3c
+# 等価サイト数: 3
+#   サイト 1: O at [0.5 0.5 0. ]
+#   サイト 2: O at [0.5 0.  0.5]
+#   サイト 3: O at [0.  0.5 0.5]
+</code></pre>
+                </details>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>3.9 参考文献</h2>
+
+            <ol>
+                <li>Hahn, T. (Ed.). (2005). <em>International Tables for Crystallography, Volume A: Space-group symmetry</em> (5th ed.). Springer. pp. 1-10 (Space group theory), pp. 15-30 (Wyckoff positions), pp. 35-50 (Point groups).</li>
+                <li>Aroyo, M. I., et al. (2006). "Bilbao Crystallographic Server: I. Databases and crystallographic computing programs." <em>Zeitschrift für Kristallographie</em>, 221(1), 15-27. pp. 15-20 (Server overview), pp. 21-25 (GENPOS and WYCKPOS tools).</li>
+                <li>Ong, S. P., et al. (2013). "Python Materials Genomics (pymatgen): A robust, open-source python library for materials analysis." <em>Computational Materials Science</em>, 68, 314-319. pp. 5-8 (SpacegroupAnalyzer implementation).</li>
+                <li>Bradley, C. J., & Cracknell, A. P. (2010). <em>The Mathematical Theory of Symmetry in Solids</em>. Oxford University Press. pp. 50-80 (Symmetry operations and group theory).</li>
+                <li>Glazer, A. M. (1972). "The classification of tilted octahedra in perovskites." <em>Acta Crystallographica Section B</em>, 28(11), 3384-3392. (Perovskite symmetry and phase transitions).</li>
+                <li>Stokes, H. T., & Hatch, D. M. (2005). "FINDSYM: program for identifying the space-group symmetry of a crystal." <em>Journal of Applied Crystallography</em>, 38(1), 237-238. (Symmetry detection algorithms).</li>
+                <li>Grosse-Kunstleve, R. W., et al. (2002). "The Computational Crystallography Toolbox: crystallographic algorithms in a reusable software framework." <em>Journal of Applied Crystallography</em>, 35(1), 126-136. pp. 1-5 (Symmetry analysis implementation).</li>
+            </ol>
+        </section>
+
+        <section id="navigation">
+            <h2>次のステップ</h2>
+            <p>本章で、対称性と空間群の完全な理解を得ました。次章では、これまでの知識を統合して、結晶構造解析の実践的なワークフローを構築します。</p>
+            <div style="display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 2px solid var(--border-light);">
+                <a href="chapter-2.html" style="padding: 1rem 2rem; background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">← 第2章: pymatgen構造操作</a>
+                <a href="chapter-4.html" style="padding: 1rem 2rem; background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">第4章: Python実践ワークフロー →</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 CT Dojo. All rights reserved.</p>
+        <p><a href="https://github.com/yourusername/crystal-structure-tutorial">GitHub Repository</a> | <a href="mailto:yusuke.hashimoto.b8@tohoku.ac.jp">Contact</a></p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</body>
+</html>

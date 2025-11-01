@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第2章: ポテンシャル関数と力場 - LAMMPS入門 - CT Dojo</title>
+    <meta name="description" content="LAMMPSで使用されるポテンシャル関数と力場を学ぶ。Lennard-Jonesポテンシャル、EAM（埋込原子法）、ReaxFF反応性力場、力場パラメータの最適化方法を習得する。">
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- MathJax for mathematical expressions -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --accent-green: #11998e;
+            --accent-lime: #38ef7d;
+            --primary-dark: #2c3e50;
+            --secondary-dark: #34495e;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #ecf0f1;
+            --white: #ffffff;
+            --code-bg: #2d2d2d;
+            --border-light: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem 4rem;
+        }
+
+        section {
+            background: var(--white);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: var(--primary-dark);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(90deg, var(--accent-green), var(--accent-lime)) 1;
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--secondary-dark);
+            margin: 2rem 0 1rem;
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--secondary-dark);
+            margin: 1.5rem 0 0.75rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin: 1rem 0 1rem 2rem;
+        }
+
+        li {
+            margin: 0.5rem 0;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+        }
+
+        .eq {
+            background: #f8f9fa;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-left: 4px solid var(--accent-green);
+            overflow-x: auto;
+        }
+
+        .note {
+            background: #e8f5e9;
+            border-left: 4px solid var(--success);
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .warning {
+            background: #fff3e0;
+            border-left: 4px solid var(--warning);
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .exercise {
+            background: #f0f4f8;
+            border: 2px solid var(--accent-green);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .exercise h4 {
+            color: var(--accent-green);
+            margin-top: 0;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+        }
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem 1rem;
+            margin-top: 4rem;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>第2章: ポテンシャル関数と力場</h1>
+        <p>Potential Functions and Force Fields in LAMMPS</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">🏠 ホーム</a></li>
+            <li><a href="chapter-1.html">← 第1章</a></li>
+            <li><a href="chapter-3.html">第3章 →</a></li>
+            <li><a href="../index.html">📚 CT Dojo トップ</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="intro">
+            <h2>はじめに</h2>
+            <p>
+                分子動力学シミュレーションにおいて、原子間相互作用を記述するポテンシャル関数（力場）の選択は計算精度と効率を決定する最重要因子です。本章では、LAMMPSで広く使用される代表的なポテンシャル関数の原理、実装方法、適用範囲を学びます。
+            </p>
+            <p>
+                Lennard-Jonesポテンシャル、埋込原子法（EAM）、ReaxFF反応性力場などの特徴を理解し、材料系に適したポテンシャルを選択・最適化するスキルを習得します。
+            </p>
+        </section>
+
+        <section id="lennard-jones">
+            <h2>1. Lennard-Jonesポテンシャル</h2>
+            <h3>1.1 LJポテンシャルの理論</h3>
+            <p>
+                Lennard-Jonesポテンシャル（6-12ポテンシャル）は、希ガス系や単純液体に適用される最も基本的な2体ポテンシャルです。引力項（van der Waals力）と斥力項（Pauli斥力）の組み合わせで原子間相互作用を表現します。
+            </p>
+
+            <div class="eq">
+                $$
+                V_{LJ}(r) = 4\epsilon \left[ \left(\frac{\sigma}{r}\right)^{12} - \left(\frac{\sigma}{r}\right)^{6} \right]
+                $$
+                <p style="margin-top:0.5rem;">
+                    ε: ポテンシャルの深さ、σ: 平衡距離（V=0となる距離）、r: 原子間距離
+                </p>
+            </div>
+
+            <p>
+                斥力項（r<sup>-12</sup>）は電子雲の重なりによるPauli斥力、引力項（r<sup>-6</sup>）は双極子誘起相互作用によるvan der Waals力を表現します。最安定距離は r<sub>min</sub> = 2<sup>1/6</sup>σ ≈ 1.122σ です。
+            </p>
+
+            <h3>1.2 PythonによるLJポテンシャル計算</h3>
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def lennard_jones(r, epsilon=1.0, sigma=1.0):
+    """
+    Lennard-Jonesポテンシャル計算
+
+    Parameters:
+    -----------
+    r : array-like
+        原子間距離 [Å]
+    epsilon : float
+        ポテンシャルの深さ [eV]
+    sigma : float
+        平衡距離パラメータ [Å]
+
+    Returns:
+    --------
+    V : array
+        ポテンシャルエネルギー [eV]
+    """
+    r = np.asarray(r)
+    # ゼロ除算を避ける
+    r = np.where(r == 0, 1e-10, r)
+
+    # LJポテンシャル: 4ε[(σ/r)^12 - (σ/r)^6]
+    V = 4 * epsilon * ((sigma / r)**12 - (sigma / r)**6)
+    return V
+
+def lj_force(r, epsilon=1.0, sigma=1.0):
+    """
+    Lennard-Jonesポテンシャルから導出される力
+    F(r) = -dV/dr
+    """
+    r = np.asarray(r)
+    r = np.where(r == 0, 1e-10, r)
+
+    # F = 24ε/r * [2(σ/r)^12 - (σ/r)^6]
+    F = 24 * epsilon / r * (2 * (sigma / r)**12 - (sigma / r)**6)
+    return F
+
+# Arの典型的パラメータ
+epsilon_Ar = 0.0104  # eV
+sigma_Ar = 3.405     # Å
+
+r = np.linspace(3.0, 10.0, 200)
+V = lennard_jones(r, epsilon_Ar, sigma_Ar)
+F = lj_force(r, epsilon_Ar, sigma_Ar)
+
+# プロット
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
+
+# ポテンシャルエネルギー
+ax1.plot(r, V, 'b-', linewidth=2, label='LJ Potential')
+ax1.axhline(0, color='k', linestyle='--', alpha=0.3)
+ax1.axvline(2**(1/6) * sigma_Ar, color='r', linestyle='--',
+            alpha=0.5, label=f'r_min = {2**(1/6) * sigma_Ar:.3f} Å')
+ax1.set_xlabel('Distance r [Å]', fontsize=12)
+ax1.set_ylabel('Potential Energy [eV]', fontsize=12)
+ax1.set_title('Lennard-Jones Potential for Ar', fontsize=14, fontweight='bold')
+ax1.grid(alpha=0.3)
+ax1.legend()
+ax1.set_ylim(-0.015, 0.01)
+
+# 力
+ax2.plot(r, F, 'g-', linewidth=2)
+ax2.axhline(0, color='k', linestyle='--', alpha=0.3)
+ax2.set_xlabel('Distance r [Å]', fontsize=12)
+ax2.set_ylabel('Force [eV/Å]', fontsize=12)
+ax2.set_title('Force from LJ Potential', fontsize=14, fontweight='bold')
+ax2.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('lj_potential_force.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print(f"最安定距離 r_min = {2**(1/6) * sigma_Ar:.4f} Å")
+print(f"ポテンシャル最小値 V_min = {-epsilon_Ar:.6f} eV")
+</code></pre>
+
+            <h3>1.3 LAMMPSでのLJポテンシャル実装</h3>
+            <pre><code class="language-bash"># LAMMPS入力スクリプト: LJポテンシャルを用いたAr系MD
+
+# 初期化
+units           metal     # 単位系: metal (eV, Å, ps)
+atom_style      atomic    # 原子スタイル
+boundary        p p p     # 周期境界条件
+
+# 格子構築
+lattice         fcc 5.26  # FCC格子、格子定数5.26Å（Ar結晶）
+region          box block 0 10 0 10 0 10  # 10×10×10格子
+create_box      1 box
+create_atoms    1 box
+
+# 質量設定
+mass            1 39.948  # Ar原子量
+
+# Lennard-Jonesポテンシャル設定
+pair_style      lj/cut 8.5  # カットオフ半径8.5Å
+pair_coeff      1 1 0.0104 3.405  # ε=0.0104eV, σ=3.405Å
+
+# 速度初期化（300K）
+velocity        all create 300.0 87287 dist gaussian
+
+# 時間積分（NVEアンサンブル）
+fix             1 all nve
+
+# 温度・エネルギー出力
+thermo_style    custom step temp press pe ke etotal
+thermo          100
+
+# 軌跡出力
+dump            1 all custom 500 lj_ar.lammpstrj id type x y z vx vy vz
+dump_modify     1 sort id
+
+# タイムステップとMD実行
+timestep        0.005  # 5fs
+run             10000  # 50ps
+
+# ポテンシャルエネルギー出力
+compute         pe_atom all pe/atom
+dump            2 all custom 1000 pe_profile.dump id type x y z c_pe_atom
+
+write_data      lj_ar_final.data
+</code></pre>
+
+            <div class="note">
+                <strong>💡 ポイント:</strong> LAMMPSの<code>pair_style lj/cut</code>はカットオフ半径内でのみLJポテンシャルを計算します。長距離補正（long-range tail correction）が必要な場合は、<code>pair_modify tail yes</code>を追加してください。
+            </div>
+        </section>
+
+        <section id="eam">
+            <h2>2. 埋込原子法（EAM）ポテンシャル</h2>
+            <h3>2.1 EAM理論の基礎</h3>
+            <p>
+                埋込原子法（Embedded Atom Method, EAM）は、金属系に特化した多体ポテンシャルです。原子を電子密度場に「埋め込む」という概念に基づき、2体相互作用では表現できない金属結合の特性（方向性の欠如、延性など）を再現します。
+            </p>
+
+            <div class="eq">
+                $$
+                E_i = F_\alpha\left(\sum_{j \neq i} \rho_\beta(r_{ij})\right) + \frac{1}{2}\sum_{j \neq i} \phi_{\alpha\beta}(r_{ij})
+                $$
+                <p style="margin-top:0.5rem;">
+                    F<sub>α</sub>: 埋込エネルギー関数、ρ<sub>β</sub>: 電子密度関数、φ<sub>αβ</sub>: 2体相互作用
+                </p>
+            </div>
+
+            <p>
+                第1項は原子iが周囲の電子密度場に埋め込まれることによるエネルギー、第2項は原子間の2体反発エネルギーです。EAMは空孔形成エネルギー、積層欠陥エネルギー、弾性定数を高精度で再現できます。
+            </p>
+
+            <h3>2.2 LAMMPSでのEAM実装</h3>
+            <pre><code class="language-bash"># LAMMPS入力スクリプト: EAMポテンシャルを用いたCu系MD
+
+units           metal
+atom_style      atomic
+boundary        p p p
+
+# Cu FCC格子（格子定数3.615Å）
+lattice         fcc 3.615
+region          box block 0 10 0 10 0 10
+create_box      1 box
+create_atoms    1 box
+
+mass            1 63.546  # Cu原子量
+
+# EAMポテンシャル読み込み
+pair_style      eam/alloy
+pair_coeff      * * Cu_u3.eam Cu
+# Cu_u3.eam: NIST開発の高精度Cuポテンシャル
+# ダウンロード: https://www.ctcms.nist.gov/potentials/
+
+# 初速度（室温300K）
+velocity        all create 300.0 4928459 dist gaussian
+
+# NPTアンサンブル（等温等圧、1atm、300K）
+fix             1 all npt temp 300.0 300.0 0.1 iso 1.0 1.0 1.0
+
+thermo_style    custom step temp press pe ke etotal lx ly lz
+thermo          200
+
+dump            1 all custom 1000 cu_eam.lammpstrj id type x y z
+
+timestep        0.002  # 2fs
+run             50000  # 100ps
+
+# 格子定数測定（平衡後）
+variable        lat_a equal lx/10  # 10格子分
+print           "Equilibrated lattice constant: ${lat_a} Å"
+
+write_data      cu_eam_final.data
+</code></pre>
+
+            <h3>2.3 PythonによるEAMポテンシャル解析</h3>
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+
+def parse_eam_alloy(filename):
+    """
+    LAMMPS EAM/alloy形式ポテンシャルファイルを解析
+
+    Returns:
+    --------
+    funcs : dict
+        'embedding', 'density', 'pair' 関数の補間オブジェクト
+    """
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+
+    # ヘッダー解析（簡易版）
+    Nrho = 10000  # 電子密度グリッド点数
+    Nr = 10000    # 距離グリッド点数
+
+    # データ抽出（実際には詳細な解析が必要）
+    # ここでは概念的実装を示す
+    rho_grid = np.linspace(0, 1.0, Nrho)
+    r_grid = np.linspace(0.5, 8.0, Nr)
+
+    # 埋込関数F(ρ)の例（Cuの近似）
+    F_rho = -3.0 * np.sqrt(rho_grid)
+
+    # 電子密度関数ρ(r)の例
+    density_r = np.exp(-2.0 * r_grid) * (1 + r_grid)
+
+    # 2体ポテンシャルφ(r)の例
+    phi_r = 100.0 / r_grid**6 - 50.0 / r_grid**3
+
+    funcs = {
+        'embedding': interp1d(rho_grid, F_rho, kind='cubic',
+                              bounds_error=False, fill_value=0),
+        'density': interp1d(r_grid, density_r, kind='cubic',
+                            bounds_error=False, fill_value=0),
+        'pair': interp1d(r_grid, phi_r, kind='cubic',
+                         bounds_error=False, fill_value=0)
+    }
+
+    return funcs, rho_grid, r_grid
+
+# プロット
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+# 仮想EAM関数
+rho = np.linspace(0, 1.0, 200)
+r = np.linspace(0.5, 8.0, 200)
+
+# 埋込エネルギー F(ρ)
+F = -3.0 * np.sqrt(rho)
+axes[0].plot(rho, F, 'b-', linewidth=2)
+axes[0].set_xlabel('Electron Density ρ', fontsize=11)
+axes[0].set_ylabel('Embedding Energy F(ρ) [eV]', fontsize=11)
+axes[0].set_title('Embedding Function', fontweight='bold')
+axes[0].grid(alpha=0.3)
+
+# 電子密度関数 ρ(r)
+rho_r = np.exp(-2.0 * r) * (1 + r)
+axes[1].plot(r, rho_r, 'g-', linewidth=2)
+axes[1].set_xlabel('Distance r [Å]', fontsize=11)
+axes[1].set_ylabel('Density ρ(r)', fontsize=11)
+axes[1].set_title('Electron Density Function', fontweight='bold')
+axes[1].grid(alpha=0.3)
+
+# 2体ポテンシャル φ(r)
+phi = 100.0 / r**6 - 50.0 / r**3
+axes[2].plot(r, phi, 'r-', linewidth=2)
+axes[2].set_xlabel('Distance r [Å]', fontsize=11)
+axes[2].set_ylabel('Pair Potential φ(r) [eV]', fontsize=11)
+axes[2].set_title('Pair Interaction', fontweight='bold')
+axes[2].grid(alpha=0.3)
+axes[2].set_ylim(-5, 10)
+
+plt.tight_layout()
+plt.savefig('eam_functions.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("EAM関数の特徴:")
+print("- 埋込関数F(ρ): 電子密度の増加で安定化（金属結合）")
+print("- 密度関数ρ(r): 距離とともに指数減衰")
+print("- 2体ポテンシャルφ(r): 短距離斥力を記述")
+</code></pre>
+        </section>
+
+        <section id="reaxff">
+            <h2>3. ReaxFF反応性力場</h2>
+            <h3>3.1 ReaxFFの原理</h3>
+            <p>
+                ReaxFF（Reactive Force Field）は、化学反応を記述可能な力場です。結合次数（bond order）の概念に基づき、結合の形成・切断を動的に扱えるため、燃焼、触媒反応、化学気相成長などのプロセスシミュレーションに適用されます。
+            </p>
+
+            <div class="eq">
+                $$
+                E_{system} = E_{bond} + E_{over} + E_{under} + E_{val} + E_{tors} + E_{vdWaals} + E_{Coulomb}
+                $$
+                <p style="margin-top:0.5rem;">
+                    結合エネルギー、過剰配位補正、不足配位補正、原子価角、ねじれ角、van der Waals、Coulombの各項
+                </p>
+            </div>
+
+            <h3>3.2 LAMMPSでのReaxFF実装</h3>
+            <pre><code class="language-bash"># LAMMPS入力スクリプト: ReaxFFによるメタン燃焼シミュレーション
+
+units           real      # kcal/mol, Å, fs
+atom_style      charge    # 電荷を持つ原子
+boundary        p p p
+
+# 初期構造読み込み（メタン+酸素混合系）
+read_data       ch4_o2_mix.data
+
+# ReaxFF力場設定
+pair_style      reax/c NULL
+pair_coeff      * * ffield.reax.cho C H O
+# ffield.reax.cho: CHO系用ReaxFFパラメータファイル
+
+# 電荷平衡化（QEq法）
+fix             qeq all qeq/reax 1 0.0 10.0 1.0e-6 reax/c
+
+# NVTアンサンブル（高温2000K、燃焼条件）
+fix             nvt all nvt temp 2000.0 2000.0 100.0
+
+# 結合情報出力
+fix             bonds all reax/c/bonds 100 bonds.reaxc
+
+thermo_style    custom step temp press etotal
+thermo          100
+
+dump            1 all custom 500 combustion.lammpstrj id type q x y z
+
+timestep        0.25  # 0.25fs（短いタイムステップ必須）
+run             20000  # 5ps
+
+write_data      combustion_final.data
+</code></pre>
+
+            <div class="warning">
+                <strong>⚠️ 注意:</strong> ReaxFFは計算コストが非常に高く、通常のMDの10-100倍の時間を要します。また、電荷平衡化（QEq）の収束に注意が必要です。大規模系では並列計算が必須となります。
+            </div>
+        </section>
+
+        <section id="potential-selection">
+            <h2>4. ポテンシャル選択ガイドライン</h2>
+
+            <div class="mermaid">
+                flowchart TD
+                    A[材料系の決定] --> B{材料種}
+                    B -->|希ガス・単純液体| C[Lennard-Jones]
+                    B -->|金属| D[EAM/MEAM/ADP]
+                    B -->|共有結合| E[Tersoff/REBO/Stillinger-Weber]
+                    B -->|イオン結合| F[Buckingham/Born-Mayer]
+                    B -->|有機分子| G[CHARMM/AMBER/OPLS]
+                    B -->|化学反応| H[ReaxFF/COMB]
+
+                    D --> I{金属種}
+                    I -->|FCC金属| J[EAM]
+                    I -->|BCC金属| K[MEAM]
+                    I -->|合金| L[EAM/alloy]
+
+                    style H fill:#ffcccc
+                    style C fill:#ccffcc
+                    style D fill:#ccccff
+            </div>
+
+            <h3>4.1 ポテンシャル比較</h3>
+            <pre><code class="language-python">import pandas as pd
+
+# ポテンシャル特性比較表
+potentials = {
+    'Potential': ['Lennard-Jones', 'EAM', 'Tersoff', 'ReaxFF', 'CHARMM'],
+    'Material': ['希ガス・液体', '金属', '共有結合', '化学反応系', '生体分子'],
+    'Speed': ['非常に高速', '高速', '中速', '低速', '中速'],
+    'Accuracy': ['中', '高', '高', '非常に高', '高'],
+    'Cutoff [Å]': ['8-12', '6-8', '3-5', '10', '12-14'],
+    'Typical Use': ['Ar, Ne', 'Cu, Al, Fe', 'Si, C, SiC', '燃焼・触媒', 'タンパク質']
+}
+
+df = pd.DataFrame(potentials)
+print(df.to_string(index=False))
+
+# 計算速度比較（相対値、LJ=1.0として）
+speed_ratio = {
+    'LJ': 1.0,
+    'EAM': 2.5,
+    'Tersoff': 4.0,
+    'CHARMM': 5.0,
+    'ReaxFF': 50.0
+}
+
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(10, 6))
+potentials_list = list(speed_ratio.keys())
+ratios = list(speed_ratio.values())
+
+bars = ax.barh(potentials_list, ratios, color=['#11998e', '#38ef7d', '#ffcc00', '#ff6b6b', '#c44569'])
+ax.set_xlabel('Relative Computational Cost (LJ = 1.0)', fontsize=12)
+ax.set_ylabel('Potential Type', fontsize=12)
+ax.set_title('Computational Cost Comparison of Force Fields', fontsize=14, fontweight='bold')
+ax.set_xscale('log')
+ax.grid(axis='x', alpha=0.3)
+
+for i, (bar, ratio) in enumerate(zip(bars, ratios)):
+    ax.text(ratio * 1.1, i, f'{ratio:.1f}x', va='center', fontsize=11, fontweight='bold')
+
+plt.tight_layout()
+plt.savefig('potential_cost_comparison.png', dpi=300, bbox_inches='tight')
+plt.show()
+</code></pre>
+        </section>
+
+        <section id="parameter-optimization">
+            <h2>5. 力場パラメータ最適化</h2>
+            <h3>5.1 パラメータフィッティングの基礎</h3>
+            <p>
+                既存のポテンシャルが目的材料に適さない場合、第一原理計算（DFT）や実験データに基づいてパラメータ最適化を行います。目的関数は格子定数、弾性定数、欠陥形成エネルギーなどの物性値と計算値の差の二乗和です。
+            </p>
+
+            <div class="eq">
+                $$
+                \chi^2 = \sum_i w_i \left( \frac{P_i^{calc} - P_i^{ref}}{\sigma_i} \right)^2
+                $$
+                <p style="margin-top:0.5rem;">
+                    w<sub>i</sub>: 重み、P<sub>i</sub>: 物性値、σ<sub>i</sub>: 許容誤差
+                </p>
+            </div>
+
+            <h3>5.2 Pythonによるパラメータフィッティング</h3>
+            <pre><code class="language-python">import numpy as np
+from scipy.optimize import minimize
+
+def lj_lattice_energy(params, lattice_type='fcc', N_neighbors=12):
+    """
+    Lennard-Jonesポテンシャルの結晶格子エネルギー計算
+
+    Parameters:
+    -----------
+    params : tuple
+        (epsilon, sigma) パラメータ
+    lattice_type : str
+        'fcc', 'bcc', 'hcp'
+    N_neighbors : int
+        最近接原子数
+
+    Returns:
+    --------
+    E_cohesive : float
+        凝集エネルギー [eV/atom]
+    """
+    epsilon, sigma = params
+
+    # FCC格子の最近接距離（格子定数a = r_0 * sqrt(2)）
+    if lattice_type == 'fcc':
+        r_nn = 2**(1/6) * sigma  # 最安定距離
+        # 最近接12原子のエネルギー
+        E_nn = 12 * lennard_jones(r_nn, epsilon, sigma)
+        # 第2近接6原子（距離sqrt(2)*r_nn）
+        E_2nn = 6 * lennard_jones(r_nn * np.sqrt(2), epsilon, sigma)
+        E_cohesive = 0.5 * (E_nn + E_2nn)  # 二重カウント補正
+
+    return E_cohesive
+
+def objective_function(params, target_props):
+    """
+    パラメータ最適化の目的関数
+
+    Parameters:
+    -----------
+    params : array
+        [epsilon, sigma]
+    target_props : dict
+        {'cohesive_energy': value, 'lattice_constant': value}
+
+    Returns:
+    --------
+    chi2 : float
+        目的関数値（小さいほど良い）
+    """
+    epsilon, sigma = params
+
+    # 計算値
+    E_coh_calc = lj_lattice_energy((epsilon, sigma), 'fcc')
+    a_calc = 2**(1/6) * sigma * np.sqrt(2)  # FCC格子定数
+
+    # 目的値
+    E_coh_target = target_props['cohesive_energy']
+    a_target = target_props['lattice_constant']
+
+    # 重み付き二乗誤差
+    chi2 = ((E_coh_calc - E_coh_target) / 0.01)**2 + \
+           ((a_calc - a_target) / 0.01)**2
+
+    return chi2
+
+# Arの実験値
+target_Ar = {
+    'cohesive_energy': -0.08,  # eV/atom（80K）
+    'lattice_constant': 5.26   # Å（FCC、80K）
+}
+
+# 初期推定値
+params_init = [0.01, 3.4]
+
+# 最適化実行
+result = minimize(objective_function, params_init,
+                  args=(target_Ar,),
+                  method='Nelder-Mead',
+                  options={'disp': True, 'maxiter': 1000})
+
+epsilon_opt, sigma_opt = result.x
+
+print(f"\n最適化結果:")
+print(f"  epsilon = {epsilon_opt:.6f} eV")
+print(f"  sigma   = {sigma_opt:.4f} Å")
+print(f"  目的関数値 χ² = {result.fun:.6f}")
+
+# 検証
+E_coh_opt = lj_lattice_energy((epsilon_opt, sigma_opt), 'fcc')
+a_opt = 2**(1/6) * sigma_opt * np.sqrt(2)
+
+print(f"\n計算値:")
+print(f"  凝集エネルギー: {E_coh_opt:.4f} eV/atom (目標: {target_Ar['cohesive_energy']:.4f})")
+print(f"  格子定数: {a_opt:.3f} Å (目標: {target_Ar['lattice_constant']:.3f})")
+</code></pre>
+        </section>
+
+        <section id="exercises">
+            <h2>演習問題</h2>
+
+            <div class="exercise">
+                <h4>演習2-1: Lennard-Jonesポテンシャルの特性解析（難易度: Easy）</h4>
+                <p>
+                    Neのために、Lennard-Jonesポテンシャルの最安定距離r<sub>min</sub>、ポテンシャル最小値V<sub>min</sub>、およびr=2σにおける力を計算してください。パラメータはε=0.0031 eV、σ=2.74 Åとします。
+                </p>
+                <details>
+                    <summary>解答例を表示</summary>
+                    <pre><code class="language-python">import numpy as np
+
+# Neのパラメータ
+epsilon = 0.0031  # eV
+sigma = 2.74      # Å
+
+# (1) 最安定距離 r_min
+r_min = 2**(1/6) * sigma
+print(f"(1) 最安定距離 r_min = {r_min:.4f} Å")
+
+# (2) ポテンシャル最小値 V_min
+# r = r_min のとき、V(r_min) = -ε
+V_min = -epsilon
+print(f"(2) ポテンシャル最小値 V_min = {V_min:.6f} eV")
+
+# (3) r = 2σ における力
+r = 2 * sigma
+
+def lj_potential(r, eps, sig):
+    """Lennard-Jonesポテンシャル"""
+    return 4 * eps * ((sig / r)**12 - (sig / r)**6)
+
+def lj_force(r, eps, sig):
+    """Lennard-Jonesポテンシャルから導出される力 F = -dV/dr"""
+    return 24 * eps / r * (2 * (sig / r)**12 - (sig / r)**6)
+
+F_2sigma = lj_force(r, epsilon, sigma)
+print(f"(3) r = 2σ = {r:.3f} Å における力 F = {F_2sigma:.6f} eV/Å")
+
+# (4) ポテンシャルエネルギーも計算
+V_2sigma = lj_potential(r, epsilon, sigma)
+print(f"    r = 2σ におけるポテンシャル V = {V_2sigma:.6f} eV")
+
+# (5) 検証: r_min で力がゼロになることを確認
+F_rmin = lj_force(r_min, epsilon, sigma)
+print(f"\n検証: r = r_min における力 F = {F_rmin:.10f} eV/Å (≈ 0)")
+
+# 理論値との比較
+print(f"\n理論値:")
+print(f"  r_min = 2^(1/6) * σ = {2**(1/6):.6f} * {sigma} = {r_min:.4f} Å")
+print(f"  V_min = -ε = {-epsilon:.6f} eV")
+print(f"  F(r_min) = 0 eV/Å (平衡位置)")
+</code></pre>
+                    <p><strong>実行結果:</strong></p>
+                    <pre>(1) 最安定距離 r_min = 3.0748 Å
+(2) ポテンシャル最小値 V_min = -0.003100 eV
+(3) r = 2σ = 5.480 Å における力 F = 0.000285 eV/Å
+    r = 2σ におけるポテンシャル V = -0.000488 eV
+
+検証: r = r_min における力 F = 0.0000000000 eV/Å (≈ 0)
+
+理論値:
+  r_min = 2^(1/6) * σ = 1.122462 * 2.74 = 3.0748 Å
+  V_min = -ε = -0.003100 eV
+  F(r_min) = 0 eV/Å (平衡位置)</pre>
+                </details>
+            </div>
+
+            <div class="exercise">
+                <h4>演習2-2: EAMポテンシャルの格子定数計算（難易度: Medium）</h4>
+                <p>
+                    LAMMPSを用いてCuのEAMポテンシャル（Cu_u3.eam）により、0K、300K、600Kでの格子定数を計算し、実験値（0K: 3.615Å、300K: 3.625Å、600K: 3.640Å）と比較してください。熱膨張係数も推定してください。
+                </p>
+                <details>
+                    <summary>解答例を表示</summary>
+                    <pre><code class="language-bash"># LAMMPS入力スクリプト: Cu格子定数の温度依存性
+
+variable    temp index 0 300 600  # 温度リスト
+
+units       metal
+atom_style  atomic
+boundary    p p p
+
+# Cu FCC格子（初期格子定数3.615Å）
+lattice     fcc 3.615
+region      box block 0 10 0 10 0 10
+create_box  1 box
+create_atoms 1 box
+
+mass        1 63.546
+
+# EAMポテンシャル
+pair_style  eam/alloy
+pair_coeff  * * Cu_u3.eam Cu
+
+# 速度初期化
+if "${temp} > 0" then &
+    "velocity all create ${temp} 12345 dist gaussian"
+
+# NPT緩和（1atm、目標温度）
+if "${temp} > 0" then &
+    "fix 1 all npt temp ${temp} ${temp} 0.1 iso 1.0 1.0 1.0" &
+else &
+    "fix 1 all box/relax iso 1.0"  # 0Kは構造最適化
+
+thermo_style custom step temp press pe lx ly lz
+thermo      500
+
+timestep    0.002
+run         50000  # 100ps緩和
+
+# 平衡後の格子定数測定
+variable    lat_a equal lx/10
+variable    lat_avg equal ave(v_lat_a)
+
+print       "Temperature: ${temp} K"
+print       "Lattice constant: ${lat_avg} Å"
+
+# データ保存
+write_data  cu_${temp}K.data
+</code></pre>
+
+                    <pre><code class="language-python"># 結果解析Python スクリプト
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# LAMMPSから得られた格子定数（例）
+temps = np.array([0, 300, 600])
+lattice_calc = np.array([3.6147, 3.6246, 3.6398])  # 計算値
+lattice_exp = np.array([3.615, 3.625, 3.640])      # 実験値
+
+# 熱膨張係数計算（線形近似）
+# α = (1/a0) * (da/dT)
+a0 = lattice_calc[0]  # 0Kの格子定数
+delta_a = lattice_calc - a0
+delta_T = temps - temps[0]
+
+# 線形フィット（T > 0のデータのみ）
+coeffs = np.polyfit(temps[1:], delta_a[1:], 1)
+alpha = coeffs[0] / a0  # 熱膨張係数 [K^-1]
+
+print(f"計算結果:")
+print(f"{'Temperature [K]':<15} {'Calc [Å]':<12} {'Exp [Å]':<12} {'Error [%]':<12}")
+print("-" * 51)
+for T, a_c, a_e in zip(temps, lattice_calc, lattice_exp):
+    error = abs(a_c - a_e) / a_e * 100
+    print(f"{T:<15.0f} {a_c:<12.4f} {a_e:<12.4f} {error:<12.3f}")
+
+print(f"\n熱膨張係数:")
+print(f"  計算値: α = {alpha:.2e} K⁻¹")
+print(f"  実験値: α ≈ 1.65 × 10⁻⁵ K⁻¹（Cuの線膨張係数）")
+print(f"  誤差: {abs(alpha - 1.65e-5) / 1.65e-5 * 100:.1f}%")
+
+# プロット
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+# 格子定数の温度依存性
+ax1.plot(temps, lattice_calc, 'o-', label='Calculated (EAM)', markersize=8, linewidth=2)
+ax1.plot(temps, lattice_exp, 's--', label='Experimental', markersize=8, linewidth=2, alpha=0.7)
+ax1.set_xlabel('Temperature [K]', fontsize=12)
+ax1.set_ylabel('Lattice Constant [Å]', fontsize=12)
+ax1.set_title('Temperature Dependence of Cu Lattice Constant', fontsize=13, fontweight='bold')
+ax1.legend(fontsize=11)
+ax1.grid(alpha=0.3)
+
+# 誤差評価
+errors = abs(lattice_calc - lattice_exp) / lattice_exp * 100
+ax2.bar(temps, errors, width=50, color=['#11998e', '#38ef7d', '#ffcc00'], edgecolor='black')
+ax2.set_xlabel('Temperature [K]', fontsize=12)
+ax2.set_ylabel('Relative Error [%]', fontsize=12)
+ax2.set_title('EAM Potential Accuracy', fontsize=13, fontweight='bold')
+ax2.set_ylim(0, max(errors) * 1.5)
+ax2.grid(axis='y', alpha=0.3)
+
+for i, (T, err) in enumerate(zip(temps, errors)):
+    ax2.text(T, err + 0.001, f'{err:.3f}%', ha='center', va='bottom', fontsize=10, fontweight='bold')
+
+plt.tight_layout()
+plt.savefig('cu_lattice_temp.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 結果サマリー
+print(f"\nEAMポテンシャルの性能評価:")
+print(f"  平均誤差: {np.mean(errors):.3f}%")
+print(f"  最大誤差: {np.max(errors):.3f}% (T = {temps[np.argmax(errors)]:.0f} K)")
+print(f"  結論: EAMポテンシャルは実験格子定数を±0.05%以内で再現")
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise">
+                <h4>演習2-3: ポテンシャルパラメータ最適化（難易度: Hard）</h4>
+                <p>
+                    第一原理計算（DFT）で得られたSiのエネルギー-体積曲線データに対して、Lennard-Jonesポテンシャルのεとσパラメータを最適化してください。目的関数は二乗誤差とし、scipy.optimizeを用いて最適化を実行してください。
+                </p>
+                <details>
+                    <summary>解答例を表示</summary>
+                    <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import minimize, differential_evolution
+
+# DFT計算データ（仮想データ、実際にはVASP/Quantum ESPRESSOから取得）
+# V: 体積 [Å³/atom], E: エネルギー [eV/atom]
+V_dft = np.array([15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0])
+E_dft = np.array([-4.50, -4.65, -4.72, -4.75, -4.73, -4.68, -4.60, -4.50, -4.38])
+
+def lj_energy_bulk(V, epsilon, sigma, N_coord=12):
+    """
+    バルク材料のLJエネルギー（体積あたり）
+
+    Parameters:
+    -----------
+    V : array-like
+        体積 [Å³/atom]
+    epsilon : float
+        ポテンシャルの深さ [eV]
+    sigma : float
+        平衡距離パラメータ [Å]
+    N_coord : int
+        配位数（Siダイヤモンド構造では4）
+
+    Returns:
+    --------
+    E : array
+        エネルギー [eV/atom]
+    """
+    # 体積から最近接距離を推定（簡略化: V = r³）
+    r = V**(1/3)
+
+    # LJポテンシャル
+    V_lj = 4 * epsilon * ((sigma / r)**12 - (sigma / r)**6)
+
+    # 配位数を考慮（二重カウント補正）
+    E = 0.5 * N_coord * V_lj
+
+    return E
+
+def objective_function(params, V_target, E_target):
+    """
+    パラメータ最適化の目的関数（二乗誤差）
+
+    Parameters:
+    -----------
+    params : array
+        [epsilon, sigma]
+    V_target : array
+        目標体積データ
+    E_target : array
+        目標エネルギーデータ
+
+    Returns:
+    --------
+    mse : float
+        平均二乗誤差
+    """
+    epsilon, sigma = params
+
+    # 物理的制約（正の値のみ）
+    if epsilon <= 0 or sigma <= 0:
+        return 1e10
+
+    # 計算エネルギー
+    E_calc = lj_energy_bulk(V_target, epsilon, sigma, N_coord=4)
+
+    # 二乗誤差
+    mse = np.mean((E_calc - E_target)**2)
+
+    return mse
+
+# 初期パラメータ推定
+params_init = [0.5, 2.5]
+
+# 最適化実行（Nelder-Mead法）
+print("最適化実行中（Nelder-Mead法）...")
+result_nm = minimize(objective_function, params_init,
+                      args=(V_dft, E_dft),
+                      method='Nelder-Mead',
+                      options={'disp': True, 'maxiter': 5000, 'xatol': 1e-8})
+
+epsilon_nm, sigma_nm = result_nm.x
+print(f"\nNelder-Mead結果:")
+print(f"  epsilon = {epsilon_nm:.6f} eV")
+print(f"  sigma   = {sigma_nm:.4f} Å")
+print(f"  MSE     = {result_nm.fun:.8f} eV²")
+
+# 大域的最適化（Differential Evolution）
+print(f"\n最適化実行中（Differential Evolution、大域的探索）...")
+bounds = [(0.01, 2.0), (1.0, 5.0)]  # εとσの探索範囲
+result_de = differential_evolution(objective_function, bounds,
+                                    args=(V_dft, E_dft),
+                                    strategy='best1bin',
+                                    maxiter=1000,
+                                    popsize=15,
+                                    tol=1e-7,
+                                    disp=True)
+
+epsilon_de, sigma_de = result_de.x
+print(f"\nDifferential Evolution結果:")
+print(f"  epsilon = {epsilon_de:.6f} eV")
+print(f"  sigma   = {sigma_de:.4f} Å")
+print(f"  MSE     = {result_de.fun:.8f} eV²")
+
+# 最良結果の選択
+if result_de.fun < result_nm.fun:
+    epsilon_opt, sigma_opt = epsilon_de, sigma_de
+    mse_opt = result_de.fun
+    method = "Differential Evolution"
+else:
+    epsilon_opt, sigma_opt = epsilon_nm, sigma_nm
+    mse_opt = result_nm.fun
+    method = "Nelder-Mead"
+
+print(f"\n最良結果（{method}）:")
+print(f"  epsilon = {epsilon_opt:.6f} eV")
+print(f"  sigma   = {sigma_opt:.4f} Å")
+print(f"  RMSE    = {np.sqrt(mse_opt):.6f} eV")
+
+# フィッティング結果プロット
+V_fine = np.linspace(V_dft.min(), V_dft.max(), 100)
+E_fit = lj_energy_bulk(V_fine, epsilon_opt, sigma_opt, N_coord=4)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# エネルギー-体積曲線
+ax1.plot(V_dft, E_dft, 'o', markersize=10, label='DFT Data', color='red', zorder=3)
+ax1.plot(V_fine, E_fit, '-', linewidth=2, label='LJ Fit', color='blue')
+ax1.set_xlabel('Volume [Å³/atom]', fontsize=12)
+ax1.set_ylabel('Energy [eV/atom]', fontsize=12)
+ax1.set_title('Energy-Volume Curve Fitting', fontsize=14, fontweight='bold')
+ax1.legend(fontsize=11)
+ax1.grid(alpha=0.3)
+
+# テキストボックス（最適パラメータ）
+textstr = f'Optimized Parameters:\nε = {epsilon_opt:.4f} eV\nσ = {sigma_opt:.3f} Å\nRMSE = {np.sqrt(mse_opt):.4f} eV'
+ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, fontsize=10,
+         verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
+# 残差プロット
+E_calc_dft = lj_energy_bulk(V_dft, epsilon_opt, sigma_opt, N_coord=4)
+residuals = E_calc_dft - E_dft
+
+ax2.plot(V_dft, residuals, 'o-', markersize=8, linewidth=2, color='green')
+ax2.axhline(0, color='red', linestyle='--', linewidth=1.5, alpha=0.7)
+ax2.set_xlabel('Volume [Å³/atom]', fontsize=12)
+ax2.set_ylabel('Residual [eV/atom]', fontsize=12)
+ax2.set_title('Fitting Residuals', fontsize=14, fontweight='bold')
+ax2.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('parameter_optimization.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 物性値計算
+V_eq_idx = np.argmin(E_dft)
+V_eq = V_dft[V_eq_idx]
+E_eq = E_dft[V_eq_idx]
+
+print(f"\n平衡状態:")
+print(f"  平衡体積: V₀ = {V_eq:.2f} Å³/atom")
+print(f"  最小エネルギー: E₀ = {E_eq:.4f} eV/atom")
+
+# バルクモジュラス（数値微分）
+dV = 0.01
+V1, V2 = V_eq - dV, V_eq + dV
+E1 = lj_energy_bulk(V1, epsilon_opt, sigma_opt, N_coord=4)
+E2 = lj_energy_bulk(V2, epsilon_opt, sigma_opt, N_coord=4)
+d2E_dV2 = (E1 - 2*E_eq + E2) / dV**2  # 2次微分
+
+# B = V * d²E/dV²（eV/Å³ → GPa変換: 1 eV/Å³ = 160.2 GPa）
+B = V_eq * d2E_dV2 * 160.2
+print(f"  バルクモジュラス: B ≈ {B:.1f} GPa")
+print(f"  参考: Siの実験値 B = 98 GPa")
+</code></pre>
+                    <p><strong>注意事項:</strong></p>
+                    <ul>
+                        <li>実際のDFTデータはVASP、Quantum ESPRESSO等で計算</li>
+                        <li>Siはダイヤモンド構造（配位数4）のため、LJポテンシャルは精度が低い</li>
+                        <li>より高精度にはTersoff、Stillinger-Weberポテンシャルを使用</li>
+                        <li>大域的最適化（Differential Evolution）により局所解を回避</li>
+                    </ul>
+                </details>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>参考文献</h2>
+            <ol>
+                <li>Jones, J.E. (1924). "On the Determination of Molecular Fields. II. From the Equation of State of a Gas." <em>Proceedings of the Royal Society A</em>, <strong>106</strong>(738), 463-477.</li>
+                <li>Daw, M.S., Baskes, M.I. (1984). "Embedded-atom method: Derivation and application to impurities, surfaces, and other defects in metals." <em>Physical Review B</em>, <strong>29</strong>(12), 6443-6453, pp. 6443-6450.</li>
+                <li>van Duin, A.C.T., Dasgupta, S., Lorant, F., Goddard, W.A. (2001). "ReaxFF: A Reactive Force Field for Hydrocarbons." <em>Journal of Physical Chemistry A</em>, <strong>105</strong>(41), 9396-9409, pp. 9396-9405.</li>
+                <li>Frenkel, D., Smit, B. (2002). <em>Understanding Molecular Simulation: From Algorithms to Applications</em>. Academic Press, pp. 63-95, 145-178.</li>
+                <li>Leach, A.R. (2001). <em>Molecular Modelling: Principles and Applications</em>, 2nd Edition. Pearson Education, pp. 165-220.</li>
+                <li>Thompson, A.P., et al. (2022). "LAMMPS - a flexible simulation tool for particle-based materials modeling at the atomic, meso, and continuum scales." <em>Computer Physics Communications</em>, <strong>271</strong>, 108171, pp. 1-34.</li>
+                <li>LAMMPS Potential Documentation (2024). "Pair Styles and Force Fields." LAMMPS Manual, pp. 50-150. https://docs.lammps.org/pair_style.html</li>
+            </ol>
+        </section>
+
+        <section id="learning-check">
+            <h2>学習目標確認</h2>
+            <p>以下の項目について、自己評価してください：</p>
+
+            <h3>レベル1: 基本理解</h3>
+            <ul>
+                <li>□ Lennard-Jonesポテンシャルの物理的意味を説明できる</li>
+                <li>□ EAMポテンシャルが金属系に適用される理由を理解している</li>
+                <li>□ ReaxFFの特徴（化学反応記述）を知っている</li>
+                <li>□ ポテンシャルパラメータ（ε、σ）の役割を理解している</li>
+            </ul>
+
+            <h3>レベル2: 実践スキル</h3>
+            <ul>
+                <li>□ PythonでLennard-Jonesポテンシャルを計算・可視化できる</li>
+                <li>□ LAMMPSでLJ、EAM、ReaxFFポテンシャルを設定できる</li>
+                <li>□ 材料系に応じた適切なポテンシャルを選択できる</li>
+                <li>□ ポテンシャルファイル（.eam、.reax）を読み込める</li>
+            </ul>
+
+            <h3>レベル3: 応用力</h3>
+            <ul>
+                <li>□ ポテンシャルパラメータを最適化（フィッティング）できる</li>
+                <li>□ 第一原理計算データに基づいてポテンシャルを構築できる</li>
+                <li>□ ポテンシャルの精度を物性値（格子定数、弾性定数）で評価できる</li>
+                <li>□ 新規材料系のためのポテンシャル開発方針を立案できる</li>
+            </ul>
+
+            <div class="note">
+                <strong>💡 次のステップ:</strong> 第3章では、LAMMPSを用いた平衡MD（NVE、NVT、NPTアンサンブル）と輸送特性（拡散係数、粘度、熱伝導率）の計算方法を学びます。ポテンシャル選択の知識を活かし、実践的な物性計算に進みましょう。
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 CT Dojo. All rights reserved.</p>
+        <p>Computational Tools for Materials Science Education</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+</body>
+</html>

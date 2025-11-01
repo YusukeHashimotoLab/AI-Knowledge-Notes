@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章: CUDA環境構築とツールキット - プロファイリングとデバッグ - GPU並列計算入門 - CT Dojo</title>
+    <meta name="description" content="CUDA Toolkit導入、Nsight Systems/Compute、nvprof、cuda-gdb、デバッグ技法、性能プロファイリング手法を学ぶ。">
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- MathJax for mathematical expressions -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --accent-green: #11998e;
+            --accent-lime: #38ef7d;
+            --primary-dark: #2c3e50;
+            --secondary-dark: #34495e;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #ecf0f1;
+            --white: #ffffff;
+            --code-bg: #2d2d2d;
+            --border-light: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        section {
+            background: var(--white);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(90deg, var(--accent-green), var(--accent-lime)) 1;
+        }
+
+        h3 {
+            color: var(--secondary-dark);
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem;
+        }
+
+        h4 {
+            color: var(--secondary-dark);
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        pre code {
+            background: none;
+            color: #f8f8f2;
+            padding: 0;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
+            border-left: 4px solid var(--accent-green);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            color: var(--accent-green);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .warning-box {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .warning-box strong {
+            color: var(--warning);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .exercise-box {
+            background: rgba(39, 174, 96, 0.05);
+            border: 2px solid var(--success);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .exercise-box h4 {
+            color: var(--success);
+            margin-top: 0;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .difficulty.easy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .difficulty.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .difficulty.hard {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(17, 153, 142, 0.05);
+        }
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--accent-lime);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+        }
+
+
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #11998e;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #0e7c74;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/index.html">計算工学</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/gpu-computing-introduction/index.html">GPU Computing</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+        </div>
+    </nav>
+
+        <header>
+        <h1>第3章: CUDA環境構築とツールキット - プロファイリングとデバッグ</h1>
+        <p>CUDA Toolkit導入・Nsight Systems/Compute・プロファイリング・デバッグ技法</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">トップ</a></li>
+            <li><a href="#intro">概要</a></li>
+            <li><a href="#cuda-toolkit">CUDA Toolkit</a></li>
+            <li><a href="#nsight-systems">Nsight Systems</a></li>
+            <li><a href="#nsight-compute">Nsight Compute</a></li>
+            <li><a href="#cuda-gdb">cuda-gdb</a></li>
+            <li><a href="#python-profiling">Python実践</a></li>
+            <li><a href="#learning-objectives">学習目標</a></li>
+            <li><a href="#exercises">演習問題</a></li>
+            <li><a href="#references">参考文献</a></li>
+            <li><a href="chapter-4.html">次の章へ →</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="intro">
+            <h2>3.1 本章の概要</h2>
+
+            <p>
+                CUDA開発環境の構築とプロファイリングツールの習得は、高性能GPU計算を実現するための必須スキルです。本章では、CUDA Toolkitのインストールから、Nsight Systems/Computeによる性能分析、cuda-gdbによるデバッグまで、実践的な開発ワークフローを学びます。材料科学計算の最適化では、これらのツールを駆使してボトルネックを特定し、計算性能を最大化します。
+            </p>
+
+            <div class="info-box">
+                <strong>本章の学習目標</strong>
+                <ul>
+                    <li><strong>レベル1（基本理解）</strong>: CUDA Toolkitの構成要素を理解し、インストールと環境設定ができる。Nsight Systems/Computeの基本操作とcuda-gdbの起動方法を習得する</li>
+                    <li><strong>レベル2（実践スキル）</strong>: Nsight Systemsでタイムライン分析を行い、CPU-GPU同期のボトルネックを特定できる。Nsight Computeでカーネルメトリクスを解釈し、最適化提案を理解できる。cuda-gdbで基本的なデバッグができる</li>
+                    <li><strong>レベル3（応用力）</strong>: 複雑な性能問題を体系的に分析し、プロファイリングデータに基づいた最適化戦略を立案できる。統合プロファイリングワークフローを構築し、自動化できる</li>
+                </ul>
+            </div>
+
+            <div class="warning-box">
+                <strong>前提知識</strong>
+                <p>本章では、Linux基本操作（ターミナル、環境変数設定）、CUDA基礎（カーネル概念、メモリ階層）、Python GPU計算（CuPy/Numba基礎）を前提とします。</p>
+            </div>
+        </section>
+
+        <section id="cuda-toolkit">
+            <h2>3.2 CUDA Toolkit導入</h2>
+
+            <h3>CUDA Toolkitの構成要素</h3>
+            <p>
+                <strong>CUDA Toolkit</strong>は、NVIDIA GPUプログラミングに必要なツール群を統合したパッケージです。主な構成要素は以下の通りです：
+            </p>
+
+            <ul>
+                <li><strong>nvcc（CUDA コンパイラ）</strong>: CUDAカーネルコードをGPU用バイナリにコンパイル</li>
+                <li><strong>CUDA ランタイムライブラリ</strong>: cudart、cuBLAS、cuFFT、cuDNN等の数値計算ライブラリ</li>
+                <li><strong>Nsight Systems</strong>: システム全体のプロファイリングツール</li>
+                <li><strong>Nsight Compute</strong>: カーネルレベルのプロファイラ</li>
+                <li><strong>cuda-gdb</strong>: CUDAプログラム用デバッガ</li>
+                <li><strong>nvidia-smi</strong>: GPU状態監視ツール</li>
+            </ul>
+
+            <div class="mermaid">
+flowchart TB
+    subgraph CUDA_Toolkit ["CUDA Toolkit 12.x"]
+        subgraph Compiler ["コンパイラ"]
+            nvcc[nvcc<br/>CUDAコンパイラ]
+        end
+        subgraph Libraries ["ライブラリ"]
+            cublas[cuBLAS<br/>線形代数]
+            cufft[cuFFT<br/>高速フーリエ変換]
+            cudnn[cuDNN<br/>深層学習]
+            thrust[Thrust<br/>C++ STL]
+        end
+        subgraph Tools ["開発ツール"]
+            nsys[Nsight Systems<br/>システムプロファイリング]
+            ncu[Nsight Compute<br/>カーネルプロファイリング]
+            gdb[cuda-gdb<br/>デバッガ]
+            smi[nvidia-smi<br/>GPU監視]
+        end
+    end
+
+    User[開発者] --> nvcc
+    nvcc --> Libraries
+    Libraries --> Tools
+
+    style CUDA_Toolkit fill:#e8f4f8
+    style Compiler fill:#d1e7dd
+    style Libraries fill:#fff3cd
+    style Tools fill:#f8d7da
+            </div>
+
+            <h3>インストール方法（Linux）</h3>
+            <p>
+                CUDA Toolkitのインストールは、NVIDIA公式サイトからインストーラーをダウンロードして実行します。Ubuntu 22.04の例：
+            </p>
+
+            <pre><code class="language-bash"># CUDA リポジトリの追加
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt-get update
+
+# CUDA Toolkit 12.2 のインストール
+sudo apt-get -y install cuda-12-2
+
+# NVIDIAドライバーの確認
+nvidia-smi
+
+# 出力例:
+# +-----------------------------------------------------------------------------+
+# | NVIDIA-SMI 535.104.05   Driver Version: 535.104.05   CUDA Version: 12.2     |
+# |-------------------------------+----------------------+----------------------+
+# | GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+# | Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+# |===============================+======================+======================|
+# |   0  NVIDIA GeForce ...  Off  | 00000000:01:00.0  On |                  N/A |
+# | 30%   45C    P8    20W / 350W |    512MiB / 24576MiB |      0%      Default |
+# +-------------------------------+----------------------+----------------------+
+</code></pre>
+
+            <h3>環境変数の設定</h3>
+            <p>
+                CUDA Toolkitを使用するには、環境変数<code>PATH</code>と<code>LD_LIBRARY_PATH</code>の設定が必要です。<code>~/.bashrc</code>に以下を追記：
+            </p>
+
+            <pre><code class="language-bash"># CUDA環境変数の設定
+export PATH=/usr/local/cuda-12.2/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda-12.2/lib64:$LD_LIBRARY_PATH
+
+# 設定の反映
+source ~/.bashrc
+
+# nvcc バージョン確認
+nvcc --version
+
+# 出力例:
+# nvcc: NVIDIA (R) Cuda compiler driver
+# Copyright (c) 2005-2023 NVIDIA Corporation
+# Built on Tue_Aug_15_22:02:13_PDT_2023
+# Cuda compilation tools, release 12.2, V12.2.140
+# Build cuda_12.2.r12.2/compiler.33191640_0
+</code></pre>
+
+            <h3>コード例1: CUDA環境確認（Python）</h3>
+            <pre><code class="language-python">import cupy as cp
+
+# CUDA バージョン確認
+cuda_version = cp.cuda.runtime.runtimeGetVersion()
+print(f"CUDA Runtime Version: {cuda_version // 1000}.{(cuda_version % 1000) // 10}")
+print(f"CuPy Version: {cp.__version__}")
+
+# 利用可能なGPU数
+gpu_count = cp.cuda.runtime.getDeviceCount()
+print(f"\nAvailable GPUs: {gpu_count}")
+
+# 各GPUの詳細情報
+for i in range(gpu_count):
+    cp.cuda.Device(i).use()
+    props = cp.cuda.runtime.getDeviceProperties(i)
+
+    print(f"\n=== GPU {i} ===")
+    print(f"Name: {props['name'].decode()}")
+    print(f"Compute Capability: {props['major']}.{props['minor']}")
+    print(f"Total Memory: {props['totalGlobalMem'] / 1e9:.2f} GB")
+    print(f"Multiprocessors: {props['multiProcessorCount']}")
+    print(f"Max Threads per Block: {props['maxThreadsPerBlock']}")
+    print(f"Max Block Dimensions: ({props['maxThreadsDim'][0]}, {props['maxThreadsDim'][1]}, {props['maxThreadsDim'][2]})")
+    print(f"Max Grid Dimensions: ({props['maxGridSize'][0]}, {props['maxGridSize'][1]}, {props['maxGridSize'][2]})")
+
+# 期待される出力例:
+# CUDA Runtime Version: 12.2
+# CuPy Version: 12.3.0
+#
+# Available GPUs: 1
+#
+# === GPU 0 ===
+# Name: NVIDIA GeForce RTX 3090
+# Compute Capability: 8.6
+# Total Memory: 24.00 GB
+# Multiprocessors: 82
+# Max Threads per Block: 1024
+# Max Block Dimensions: (1024, 1024, 64)
+# Max Grid Dimensions: (2147483647, 65535, 65535)
+</code></pre>
+
+            <h3>コード例2: nvccコンパイルとサンプル実行</h3>
+            <pre><code class="language-bash"># CUDA Toolkit サンプルのコンパイルと実行
+cd /usr/local/cuda/samples/1_Utilities/deviceQuery
+make
+
+./deviceQuery
+
+# 出力例:
+# ./deviceQuery Starting...
+#
+#  CUDA Device Query (Runtime API) version (CUDART static linking)
+#
+# Detected 1 CUDA Capable device(s)
+#
+# Device 0: "NVIDIA GeForce RTX 3090"
+#   CUDA Driver Version / Runtime Version          12.2 / 12.2
+#   CUDA Capability Major/Minor version number:    8.6
+#   Total amount of global memory:                 24576 MBytes (25769738240 bytes)
+#   (082) Multiprocessors, (128) CUDA Cores/MP:    10496 CUDA Cores
+#   GPU Max Clock rate:                            1695 MHz (1.70 GHz)
+#   Memory Clock rate:                             9751 Mhz
+#   Memory Bus Width:                              384-bit
+#   L2 Cache Size:                                 6291456 bytes
+#   Maximum Texture Dimension Size (x,y,z)         1D=(131072), 2D=(131072, 65536), 3D=(16384, 16384, 16384)
+#   Maximum Layered 1D Texture Size, (num) layers  1D=(32768), 2048 layers
+#   Total amount of constant memory:               65536 bytes
+#   Total amount of shared memory per block:       49152 bytes
+#   Total shared memory per multiprocessor:        102400 bytes
+#   Total number of registers available per block: 65536
+#   Warp size:                                     32
+#   Maximum number of threads per multiprocessor:  1536
+#   Maximum number of threads per block:           1024
+#   Max dimension size of a thread block (x,y,z): (1024, 1024, 64)
+#   Max dimension size of a grid size    (x,y,z): (2147483647, 65535, 65535)
+#
+# deviceQuery, CUDA Driver = CUDART, CUDA Driver Version = 12.2, CUDA Runtime Version = 12.2, NumDevs = 1
+# Result = PASS
+
+# カスタムCUDAコードのコンパイル例
+# vector_add.cu ファイルを作成後
+nvcc -o vector_add vector_add.cu -arch=sm_86  # Ampere (RTX 30xx) の場合
+./vector_add
+
+# アーキテクチャ別のコンパイルフラグ:
+# Volta (V100):        -arch=sm_70
+# Turing (RTX 20xx):   -arch=sm_75
+# Ampere (A100):       -arch=sm_80
+# Ampere (RTX 30xx):   -arch=sm_86
+# Hopper (H100):       -arch=sm_90
+</code></pre>
+
+            <div class="info-box">
+                <strong>インストールの確認項目</strong>
+                <ul>
+                    <li><code>nvidia-smi</code>でGPU認識とCUDAバージョンを確認</li>
+                    <li><code>nvcc --version</code>でコンパイラのバージョンを確認</li>
+                    <li>Pythonから<code>cupy</code>でGPU情報が取得できることを確認</li>
+                    <li>CUDA samplesのコンパイルと実行が成功することを確認</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="nsight-systems">
+            <h2>3.3 Nsight Systems - システムプロファイリング</h2>
+
+            <h3>Nsight Systemsの概要</h3>
+            <p>
+                <strong>Nsight Systems</strong>は、CPU-GPUの相互作用を含むシステム全体の性能を可視化するプロファイラです。タイムラインビューで、CPUスレッド、CUDAカーネル実行、メモリ転送、API呼び出しを時系列で表示し、<strong>ボトルネック（律速要因）</strong>を特定します。
+            </p>
+
+            <h3>主要な機能</h3>
+            <ul>
+                <li><strong>タイムラインビュー</strong>: CPU/GPU活動を時系列で可視化</li>
+                <li><strong>CPU-GPU同期の検出</strong>: 不要な同期（synchronization）を発見</li>
+                <li><strong>カーネル起動オーバーヘッド</strong>: カーネルの起動コストを測定</li>
+                <li><strong>メモリ転送の分析</strong>: Host-Device間のデータ転送時間を可視化</li>
+                <li><strong>NVTX マーカー</strong>: コード内に独自のイベントマーカーを挿入</li>
+            </ul>
+
+            <div class="mermaid">
+flowchart LR
+    subgraph Workflow ["Nsight Systems ワークフロー"]
+        A[アプリケーション実行] --> B[nsys profile コマンド]
+        B --> C[トレースファイル生成<br/>.qdrep]
+        C --> D[Nsight Systems GUI]
+        D --> E[タイムライン分析]
+        E --> F[ボトルネック特定]
+        F --> G[最適化実施]
+        G --> H[再プロファイリング]
+        H --> E
+    end
+
+    style A fill:#d1e7dd
+    style C fill:#fff3cd
+    style E fill:#f8d7da
+    style G fill:#d1e7dd
+            </div>
+
+            <h3>コード例3: Nsight Systemsでプロファイリング（Python）</h3>
+            <pre><code class="language-python">import cupy as cp
+import cupyx.profiler
+
+# プロファイリング対象の関数
+def matrix_multiply(n=1000):
+    """行列積の計算"""
+    a = cp.random.rand(n, n, dtype=cp.float32)
+    b = cp.random.rand(n, n, dtype=cp.float32)
+    c = cp.dot(a, b)
+    cp.cuda.Stream.null.synchronize()
+    return c
+
+# NVTX マーカーを使用した詳細プロファイリング
+def optimized_workflow():
+    """最適化されたワークフロー"""
+
+    # フェーズ1: データ準備
+    with cupyx.profiler.time_range("data_preparation", color_id=0):
+        data_a = cp.random.rand(2000, 2000, dtype=cp.float32)
+        data_b = cp.random.rand(2000, 2000, dtype=cp.float32)
+
+    # フェーズ2: 計算実行
+    with cupyx.profiler.time_range("computation", color_id=1):
+        result = cp.dot(data_a, data_b)
+
+    # フェーズ3: 後処理
+    with cupyx.profiler.time_range("post_processing", color_id=2):
+        result_sum = cp.sum(result)
+        cp.cuda.Stream.null.synchronize()
+
+    return result_sum
+
+if __name__ == "__main__":
+    # Warm-up
+    _ = matrix_multiply(1000)
+
+    # プロファイリング実行
+    result = optimized_workflow()
+    print(f"Result: {result}")
+
+# コマンドライン実行:
+# nsys profile -o profile_report --stats=true python script.py
+# nsys-ui profile_report.qdrep  # GUIで結果を表示
+</code></pre>
+
+            <h3>コード例4: Nsight Systems コマンドライン操作</h3>
+            <pre><code class="language-bash"># 基本的なプロファイリング
+nsys profile -o timeline python gpu_script.py
+
+# 詳細なCUDA APIトレースを含むプロファイリング
+nsys profile --trace=cuda,nvtx,osrt -o cuda_trace python gpu_script.py
+
+# CUDA アプリケーションのプロファイリング
+nsys profile --trace=cuda,nvtx -o cuda_app_profile ./cuda_app
+
+# 統計情報の表示（コマンドライン）
+nsys stats timeline.qdrep
+
+# 出力例:
+# ** CUDA API Statistics **
+#
+#  Time(%)  Total Time (ns)  Num Calls   Average    Minimum   Maximum            Name
+# --------  ---------------  ---------  ----------  --------  --------  ----------------------
+#     95.2      1,234,567,890      1,000  1,234,568       450 2,345,678  cudaMemcpy
+#      3.1         40,123,456         50    802,469       120 1,234,567  cudaLaunchKernel
+#      1.2         15,234,567        100    152,346        50   234,567  cudaMalloc
+#      0.5          6,789,012        100     67,890        30   123,456  cudaDeviceSynchronize
+
+# タイムライン範囲を指定したプロファイリング（開始5秒後から10秒間）
+nsys profile --delay=5 --duration=10 -o limited_trace python gpu_script.py
+
+# GPU メトリクスも同時に収集
+nsys profile --gpu-metrics-device=0 -o metrics_profile python gpu_script.py
+</code></pre>
+
+            <div class="warning-box">
+                <strong>Nsight Systemsで発見できる典型的な問題</strong>
+                <ul>
+                    <li><strong>CPU-GPU同期の頻発</strong>: <code>cudaDeviceSynchronize()</code>の過度な使用</li>
+                    <li><strong>カーネル起動オーバーヘッド</strong>: 小さなカーネルを大量に起動</li>
+                    <li><strong>Host-Device転送の律速</strong>: データ転送がGPU計算時間を上回る</li>
+                    <li><strong>GPU アイドル時間</strong>: GPUがCPU処理を待機している時間</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="nsight-compute">
+            <h2>3.4 Nsight Compute - カーネルプロファイリング</h2>
+
+            <h3>Nsight Computeの概要</h3>
+            <p>
+                <strong>Nsight Compute</strong>は、個別のCUDAカーネルの詳細な性能分析を行うツールです。SM効率、メモリスループット、ワープ実行効率などのメトリクスを収集し、<strong>ルーフラインモデル</strong>に基づいて最適化提案を行います。
+            </p>
+
+            <h3>主要なメトリクス</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>メトリクス</th>
+                        <th>説明</th>
+                        <th>目標値</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>SM Efficiency</strong></td>
+                        <td>ストリーミングマルチプロセッサの稼働率</td>
+                        <td>&gt; 80%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Occupancy</strong></td>
+                        <td>アクティブなワープの割合</td>
+                        <td>&gt; 50%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Memory Throughput</strong></td>
+                        <td>グローバルメモリのスループット</td>
+                        <td>理論値の &gt; 60%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Warp Execution Efficiency</strong></td>
+                        <td>ワープ内スレッドの実行効率</td>
+                        <td>&gt; 90%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Compute Throughput</strong></td>
+                        <td>演算スループット（FLOPS）</td>
+                        <td>理論値の &gt; 50%</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>ルーフラインモデル</h3>
+            <p>
+                <strong>ルーフラインモデル</strong>は、カーネルが<strong>演算律速（compute-bound）</strong>か<strong>メモリ律速（memory-bound）</strong>かを判定する分析手法です。演算強度（Arithmetic Intensity = FLOPS / Byte）に基づいて、性能の理論上限（ルーフライン）を可視化し、最適化の方向性を示します。
+            </p>
+
+            <h3>コード例5: カーネルメトリクス収集（CuPy）</h3>
+            <pre><code class="language-python">import cupy as cp
+
+# SAXPY カーネル（Single-precision A*X Plus Y）
+kernel_code = r'''
+extern "C" __global__
+void saxpy(int n, float a, float *x, float *y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) {
+        y[i] = a * x[i] + y[i];
+    }
+}
+'''
+
+# カーネルのコンパイル
+kernel = cp.RawKernel(kernel_code, 'saxpy')
+
+# データ準備
+n = 10_000_000
+a = 2.0
+x = cp.random.rand(n, dtype=cp.float32)
+y = cp.random.rand(n, dtype=cp.float32)
+
+# カーネル実行パラメータ
+threads_per_block = 256
+blocks_per_grid = (n + threads_per_block - 1) // threads_per_block
+
+# Warm-up
+kernel((blocks_per_grid,), (threads_per_block,), (n, a, x, y))
+cp.cuda.Stream.null.synchronize()
+
+# プロファイル対象実行
+kernel((blocks_per_grid,), (threads_per_block,), (n, a, x, y))
+cp.cuda.Stream.null.synchronize()
+
+print(f"SAXPY kernel executed: {n:,} elements")
+print(f"Grid: {blocks_per_grid} blocks, Block: {threads_per_block} threads")
+
+# コマンドライン実行:
+# ncu --set full -o kernel_profile python saxpy.py
+# ncu-ui kernel_profile.ncu-rep  # GUI で詳細解析
+</code></pre>
+
+            <h3>Nsight Compute コマンドライン操作</h3>
+            <pre><code class="language-bash"># 基本的なカーネルプロファイリング
+ncu -o kernel_report python gpu_script.py
+
+# 全メトリクスセットを収集（詳細分析）
+ncu --set full -o detailed_report python gpu_script.py
+
+# 特定のカーネルのみプロファイリング
+ncu --kernel-name "saxpy" -o saxpy_profile ./cuda_app
+
+# ルーフラインメトリクスを収集
+ncu --set roofline -o roofline_analysis python gpu_script.py
+
+# メトリクスをCSV形式で出力
+ncu --csv --metrics sm__throughput.avg.pct_of_peak_sustained_elapsed,dram__throughput.avg.pct_of_peak_sustained_elapsed -o metrics.csv python gpu_script.py
+
+# 出力例（コマンドライン）:
+# ==PROF== Connected to process 12345
+# ==PROF== Profiling "saxpy" - 1: 0%....50%....100% - 8 passes
+# ==PROF== Disconnected from process 12345
+#
+#   saxpy(int, float, float *, float *), 2023-Oct-15 14:23:45, Context 1, Stream 7
+#     Section: GPU Speed Of Light Throughput
+#     ----------------------- ------------- ------------
+#     Metric Name               Metric Unit Metric Value
+#     ----------------------- ------------- ------------
+#     DRAM Frequency          cycle/nsecond         1.21
+#     SM Frequency            cycle/nsecond         1.41
+#     Elapsed Cycles                  cycle      125,234
+#     Memory Throughput                   %        87.23
+#     DRAM Throughput                     %        85.12
+#     Duration                      usecond        88.75
+#     L1/TEX Cache Throughput             %        23.45
+#     L2 Cache Throughput                 %        78.90
+#     SM Active Cycles                cycle      119,876
+#     Compute (SM) Throughput             %        32.11
+</code></pre>
+
+            <div class="info-box">
+                <strong>Nsight Compute 最適化提案の読み方</strong>
+                <p>
+                    Nsight Computeは、メトリクスに基づいて自動的に最適化提案を表示します：
+                </p>
+                <ul>
+                    <li><strong>Memory Bound (85%+)</strong>: メモリアクセスパターンの改善、共有メモリの活用、データ再利用の最適化</li>
+                    <li><strong>Compute Bound (70%+)</strong>: 演算効率の向上、テンソルコアの活用、精度の見直し（FP16化）</li>
+                    <li><strong>Low Occupancy (&lt;50%)</strong>: スレッドブロックサイズの調整、レジスタ使用量の削減</li>
+                    <li><strong>Warp Divergence</strong>: 分岐の削減、データ配置の工夫</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="cuda-gdb">
+            <h2>3.5 cuda-gdb - CUDAデバッガ</h2>
+
+            <h3>cuda-gdbの概要</h3>
+            <p>
+                <strong>cuda-gdb</strong>は、GNU gdbをCUDA対応に拡張したデバッガで、ホスト（CPU）コードとデバイス（GPU）コードの両方をデバッグできます。ブレークポイント設定、スレッド/ブロック切り替え、変数値の検査など、従来のgdbの機能に加えて、CUDA特有のデバッグ機能を提供します。
+            </p>
+
+            <h3>主要な機能</h3>
+            <ul>
+                <li><strong>デバイスコードのブレークポイント</strong>: カーネル内の任意の行で実行を停止</li>
+                <li><strong>スレッド/ブロック切り替え</strong>: 特定のスレッド・ブロックにフォーカス</li>
+                <li><strong>変数値の検査</strong>: ローカル変数、共有メモリ、グローバルメモリの値を確認</li>
+                <li><strong>メモリ検証</strong>: メモリリーク、無効アクセスの検出</li>
+                <li><strong>コアダンプ解析</strong>: クラッシュ時のスタックトレース取得</li>
+            </ul>
+
+            <h3>コード例6: cuda-gdb デバッグセッション</h3>
+            <pre><code class="language-bash"># デバッグビルド（-g -G オプション必須）
+nvcc -g -G -o debug_app kernel.cu
+
+# cuda-gdb 起動
+cuda-gdb ./debug_app
+
+# cuda-gdb デバッグコマンド例:
+
+# ブレークポイント設定（カーネル関数）
+(cuda-gdb) break kernel_function
+Breakpoint 1 at 0x4012a0: file kernel.cu, line 15.
+
+# プログラム実行
+(cuda-gdb) run
+Starting program: /path/to/debug_app
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[Switching to CUDA kernel 0, grid 1, block (0,0,0), thread (0,0,0), device 0, sm 0, warp 0, lane 0]
+
+Breakpoint 1, kernel_function<<<(1,1,1),(256,1,1)>>> () at kernel.cu:15
+15          int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+# 現在のCUDAスレッド情報表示
+(cuda-gdb) cuda thread
+kernel 0, grid 1, block (0,0,0), thread (0,0,0), device 0, sm 0, warp 0, lane 0
+
+# 特定のスレッドに切り替え（ブロック(0,0,0)のスレッド(5,0,0)）
+(cuda-gdb) cuda thread (5,0,0)
+[Switching to CUDA kernel 0, grid 1, block (0,0,0), thread (5,0,0), device 0, sm 0, warp 0, lane 5]
+
+# ローカル変数の値を表示
+(cuda-gdb) print idx
+$1 = 5
+
+(cuda-gdb) print data[idx]
+$2 = 12.345
+
+# 共有メモリの値を表示
+(cuda-gdb) print shared_mem[threadIdx.x]
+$3 = 67.890
+
+# ブロック内の全スレッドの変数値を表示
+(cuda-gdb) cuda thread all
+(cuda-gdb) print idx
+thread (0,0,0): $4 = 0
+thread (1,0,0): $5 = 1
+thread (2,0,0): $6 = 2
+...
+
+# 次の行まで実行（ステップ実行）
+(cuda-gdb) next
+
+# 関数内にステップイン
+(cuda-gdb) step
+
+# ブレークポイントまで実行継続
+(cuda-gdb) continue
+
+# バックトレース（スタックトレース）表示
+(cuda-gdb) backtrace
+#0  kernel_function<<<(1,1,1),(256,1,1)>>> () at kernel.cu:18
+#1  0x00000000004015c3 in main () at main.cu:45
+
+# GPUメモリの内容を表示（アドレス0x7f8e40000000から10要素）
+(cuda-gdb) x/10f 0x7f8e40000000
+0x7f8e40000000: 1.234   2.345   3.456   4.567   5.678
+0x7f8e40000014: 6.789   7.890   8.901   9.012   10.123
+
+# プログラム終了
+(cuda-gdb) quit
+</code></pre>
+
+            <div class="warning-box">
+                <strong>cuda-gdb 使用時の注意点</strong>
+                <ul>
+                    <li><strong>デバッグビルド必須</strong>: <code>-g -G</code>オプションでコンパイル（最適化は無効化される）</li>
+                    <li><strong>性能への影響</strong>: デバッグモードは実行速度が大幅に低下するため、性能測定には使用しない</li>
+                    <li><strong>大規模並列時の制限</strong>: 数千スレッドを個別にデバッグするのは非現実的。代表的なスレッドに絞る</li>
+                    <li><strong>競合状態の検出困難</strong>: スレッド間の競合（race condition）は、デバッガで実行を停止すると再現しない場合がある</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="python-profiling">
+            <h2>3.6 Python実践：統合プロファイリングワークフロー</h2>
+
+            <h3>CuPy/Numbaのプロファイリング統合</h3>
+            <p>
+                PythonでGPU計算を行う場合、CuPyやNumbaのプロファイリング機能とNsight Systemsを組み合わせることで、効率的な性能分析が可能です。以下では、実践的なプロファイリングワークフローを紹介します。
+            </p>
+
+            <h3>コード例7: CuPy統合プロファイリング</h3>
+            <pre><code class="language-python">import cupy as cp
+from cupyx import profiler
+import time
+
+def benchmark_kernel(func, *args, n_runs=10, warmup=True):
+    """カーネルのベンチマーク関数"""
+    # Warm-up実行（JITコンパイルとキャッシュのウォーム）
+    if warmup:
+        func(*args)
+        cp.cuda.Stream.null.synchronize()
+
+    # ベンチマーク実行
+    times = []
+    for _ in range(n_runs):
+        start = cp.cuda.Event()
+        end = cp.cuda.Event()
+
+        start.record()
+        result = func(*args)
+        end.record()
+        end.synchronize()
+
+        elapsed_time = cp.cuda.get_elapsed_time(start, end)  # ミリ秒
+        times.append(elapsed_time)
+
+    return {
+        'mean_ms': sum(times) / len(times),
+        'min_ms': min(times),
+        'max_ms': max(times),
+        'std_ms': (sum((t - sum(times)/len(times))**2 for t in times) / len(times)) ** 0.5,
+        'result': result
+    }
+
+# テスト関数1: 行列積
+def test_matmul(n=4096):
+    a = cp.random.rand(n, n, dtype=cp.float32)
+    b = cp.random.rand(n, n, dtype=cp.float32)
+    return cp.dot(a, b)
+
+# テスト関数2: 要素ごとの演算
+def test_elementwise(n=10_000_000):
+    a = cp.random.rand(n, dtype=cp.float32)
+    b = cp.random.rand(n, dtype=cp.float32)
+    return cp.sqrt(a) + cp.sin(b) * cp.cos(b)
+
+# テスト関数3: リダクション（総和）
+def test_reduction(n=100_000_000):
+    a = cp.random.rand(n, dtype=cp.float32)
+    return cp.sum(a)
+
+if __name__ == "__main__":
+    print("=== GPU カーネルベンチマーク ===\n")
+
+    # 行列積ベンチマーク
+    print("--- 行列積 (4096x4096) ---")
+    result = benchmark_kernel(test_matmul, 4096, n_runs=10)
+    print(f"平均時間: {result['mean_ms']:.2f} ms")
+    print(f"最小時間: {result['min_ms']:.2f} ms")
+    print(f"最大時間: {result['max_ms']:.2f} ms")
+    print(f"標準偏差: {result['std_ms']:.2f} ms\n")
+
+    # 要素ごとの演算ベンチマーク
+    print("--- 要素ごとの演算 (10M要素) ---")
+    result = benchmark_kernel(test_elementwise, 10_000_000, n_runs=10)
+    print(f"平均時間: {result['mean_ms']:.2f} ms")
+    print(f"スループット: {10_000_000 / (result['mean_ms'] / 1000) / 1e9:.2f} GFLOPS\n")
+
+    # リダクションベンチマーク
+    print("--- リダクション (100M要素) ---")
+    result = benchmark_kernel(test_reduction, 100_000_000, n_runs=10)
+    print(f"平均時間: {result['mean_ms']:.2f} ms")
+    bandwidth_gb_s = (100_000_000 * 4) / (result['mean_ms'] / 1000) / 1e9
+    print(f"実効バンド幅: {bandwidth_gb_s:.2f} GB/s")
+
+# 期待される出力例:
+# === GPU カーネルベンチマーク ===
+#
+# --- 行列積 (4096x4096) ---
+# 平均時間: 15.23 ms
+# 最小時間: 15.12 ms
+# 最大時間: 15.45 ms
+# 標準偏差: 0.12 ms
+#
+# --- 要素ごとの演算 (10M要素) ---
+# 平均時間: 1.23 ms
+# スループット: 8.13 GFLOPS
+#
+# --- リダクション (100M要素) ---
+# 平均時間: 0.52 ms
+# 実効バンド幅: 769.23 GB/s
+</code></pre>
+
+            <h3>コード例8: line_profiler との併用</h3>
+            <pre><code class="language-python">import cupy as cp
+from line_profiler import LineProfiler
+
+def complex_gpu_workflow(n=5000):
+    """複数のGPU操作を含む複雑なワークフロー"""
+    # ステップ1: データ生成
+    data_a = cp.random.rand(n, n, dtype=cp.float32)
+    data_b = cp.random.rand(n, n, dtype=cp.float32)
+
+    # ステップ2: 行列積
+    result1 = cp.dot(data_a, data_b)
+
+    # ステップ3: 要素ごとの演算
+    result2 = cp.sqrt(result1) + cp.sin(result1)
+
+    # ステップ4: 転置と再計算
+    result3 = cp.dot(result2, result2.T)
+
+    # ステップ5: リダクション
+    final = cp.sum(result3)
+
+    cp.cuda.Stream.null.synchronize()
+    return final
+
+# プロファイリング実行
+profiler = LineProfiler()
+profiler.add_function(complex_gpu_workflow)
+
+profiler.enable()
+result = complex_gpu_workflow(5000)
+profiler.disable()
+
+profiler.print_stats()
+
+# 出力例:
+# Timer unit: 1e-06 s
+#
+# Total time: 0.234567 s
+# File: script.py
+# Function: complex_gpu_workflow at line 5
+#
+# Line #      Hits         Time  Per Hit   % Time  Line Contents
+# ==============================================================
+#      5                                           def complex_gpu_workflow(n=5000):
+#      6         1      12345.0  12345.0      5.3      data_a = cp.random.rand(n, n, dtype=cp.float32)
+#      7         1      11234.0  11234.0      4.8      data_b = cp.random.rand(n, n, dtype=cp.float32)
+#      8         1     123456.0 123456.0     52.6      result1 = cp.dot(data_a, data_b)
+#      9         1      23456.0  23456.0     10.0      result2 = cp.sqrt(result1) + cp.sin(result1)
+#     10         1      45678.0  45678.0     19.5      result3 = cp.dot(result2, result2.T)
+#     11         1      12345.0  12345.0      5.3      final = cp.sum(result3)
+#     12         1      12345.0  12345.0      5.3      cp.cuda.Stream.null.synchronize()
+</code></pre>
+
+            <div class="info-box">
+                <strong>統合プロファイリングのベストプラクティス</strong>
+                <ol>
+                    <li><strong>階層的アプローチ</strong>: まずNsight Systemsで全体像を把握 → Nsight Computeでカーネル詳細分析 → cuda-gdbで具体的なバグ修正</li>
+                    <li><strong>ベースライン確立</strong>: 最適化前の性能を正確に測定し、改善効果を定量化</li>
+                    <li><strong>反復的最適化</strong>: 1つずつ変更を加え、各変更の効果を測定</li>
+                    <li><strong>自動化</strong>: ベンチマークスクリプトを作成し、性能退行（regression）を検出</li>
+                    <li><strong>ドキュメント化</strong>: 最適化の根拠とトレードオフを記録</li>
+                </ol>
+            </div>
+        </section>
+
+        <section id="learning-objectives">
+            <h2>3.7 学習目標の達成確認</h2>
+
+            <h3>レベル1（基本理解）の達成基準</h3>
+            <ul>
+                <li>CUDA Toolkitの主要構成要素（nvcc、ライブラリ、プロファイラ、デバッガ）を列挙できる</li>
+                <li>CUDA Toolkitのインストール手順を実行し、環境変数を正しく設定できる</li>
+                <li><code>nvidia-smi</code>、<code>nvcc --version</code>でシステム状態を確認できる</li>
+                <li>Nsight Systems、Nsight Compute、cuda-gdbの基本的な役割を説明できる</li>
+                <li>Pythonから<code>cupy</code>を使ってGPU情報を取得できる</li>
+            </ul>
+
+            <h3>レベル2（実践スキル）の達成基準</h3>
+            <ul>
+                <li>Nsight Systemsでタイムライン分析を行い、CPU-GPU同期のボトルネックを特定できる</li>
+                <li>Nsight Computeでカーネルメトリクス（SM効率、メモリスループット、占有率）を解釈できる</li>
+                <li>cuda-gdbでブレークポイントを設定し、スレッド切り替えと変数検査ができる</li>
+                <li>CuPyのプロファイリング機能を使って、Pythonコードの性能を測定できる</li>
+                <li>ルーフラインモデルに基づいて、カーネルが演算律速かメモリ律速かを判定できる</li>
+            </ul>
+
+            <h3>レベル3（応用力）の達成基準</h3>
+            <ul>
+                <li>複雑な性能問題を、Nsight Systems/Computeを組み合わせて体系的に分析できる</li>
+                <li>プロファイリングデータに基づいた最適化戦略（メモリアクセスパターン改善、占有率向上、カーネル融合等）を立案できる</li>
+                <li>ベンチマークスクリプトを作成し、最適化前後の性能を定量的に比較できる</li>
+                <li>統合プロファイリングワークフロー（自動ベンチマーク、レポート生成、性能退行検出）を構築できる</li>
+                <li>チーム開発における継続的な性能監視の仕組みを設計できる</li>
+            </ul>
+        </section>
+
+        <section id="exercises">
+            <h2>3.8 演習問題</h2>
+
+            <div class="exercise-box">
+                <h4>演習1: CUDA Toolkit インストールと環境確認<span class="difficulty easy">易</span></h4>
+                <p><strong>問題</strong>: 以下の手順を実行し、CUDA環境が正しく構築されているか確認してください。</p>
+                <ol>
+                    <li>CUDA Toolkitをインストールし、<code>nvidia-smi</code>でGPUが認識されることを確認</li>
+                    <li><code>nvcc --version</code>でコンパイラのバージョンを確認</li>
+                    <li>環境変数<code>PATH</code>と<code>LD_LIBRARY_PATH</code>を設定</li>
+                    <li>Pythonから<code>cupy</code>を使ってGPU情報（名前、Compute Capability、メモリサイズ）を取得</li>
+                    <li>CUDA samplesの<code>deviceQuery</code>をコンパイル・実行し、結果を確認</li>
+                </ol>
+                <details>
+                    <summary>解答例</summary>
+                    <pre><code class="language-bash"># 1. nvidia-smi実行
+nvidia-smi
+
+# 2. nvccバージョン確認
+nvcc --version
+
+# 3. 環境変数設定（~/.bashrcに追記）
+export PATH=/usr/local/cuda-12.2/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda-12.2/lib64:$LD_LIBRARY_PATH
+source ~/.bashrc
+
+# 4. Python GPU情報取得
+python3 -c "import cupy as cp; print(f'GPU: {cp.cuda.runtime.getDeviceProperties(0)[\"name\"].decode()}'); print(f'Compute Capability: {cp.cuda.runtime.getDeviceProperties(0)[\"major\"]}.{cp.cuda.runtime.getDeviceProperties(0)[\"minor\"]}'); print(f'Memory: {cp.cuda.runtime.getDeviceProperties(0)[\"totalGlobalMem\"] / 1e9:.2f} GB')"
+
+# 5. deviceQuery実行
+cd /usr/local/cuda/samples/1_Utilities/deviceQuery
+make
+./deviceQuery
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習2: nvccコンパイルとサンプル実行<span class="difficulty easy">易</span></h4>
+                <p><strong>問題</strong>: 以下のCUDAコードをコンパイルし、実行してください。</p>
+                <pre><code class="language-c">// hello_cuda.cu
+#include &lt;stdio.h&gt;
+
+__global__ void hello_cuda() {
+    printf("Hello from GPU thread %d in block %d!\n", threadIdx.x, blockIdx.x);
+}
+
+int main() {
+    hello_cuda&lt;&lt;&lt;2, 4&gt;&gt;&gt;();
+    cudaDeviceSynchronize();
+    return 0;
+}
+</code></pre>
+                <details>
+                    <summary>解答例</summary>
+                    <pre><code class="language-bash"># コンパイル（アーキテクチャに応じて-archを変更）
+nvcc -o hello_cuda hello_cuda.cu -arch=sm_86
+
+# 実行
+./hello_cuda
+
+# 期待される出力（順序は不定）:
+# Hello from GPU thread 0 in block 0!
+# Hello from GPU thread 1 in block 0!
+# Hello from GPU thread 2 in block 0!
+# Hello from GPU thread 3 in block 0!
+# Hello from GPU thread 0 in block 1!
+# Hello from GPU thread 1 in block 1!
+# Hello from GPU thread 2 in block 1!
+# Hello from GPU thread 3 in block 1!
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習3: CuPyベンチマーク関数の作成<span class="difficulty easy">易</span></h4>
+                <p><strong>問題</strong>: CuPyの<code>Event</code>を使って、GPU計算時間を正確に測定するベンチマーク関数を作成してください。</p>
+                <details>
+                    <summary>解答例</summary>
+                    <pre><code class="language-python">import cupy as cp
+
+def benchmark_gpu(func, *args, n_runs=10):
+    """GPU計算のベンチマーク関数"""
+    # Warm-up
+    func(*args)
+    cp.cuda.Stream.null.synchronize()
+
+    times = []
+    for _ in range(n_runs):
+        start = cp.cuda.Event()
+        end = cp.cuda.Event()
+
+        start.record()
+        result = func(*args)
+        end.record()
+        end.synchronize()
+
+        elapsed = cp.cuda.get_elapsed_time(start, end)
+        times.append(elapsed)
+
+    return {
+        'mean_ms': sum(times) / len(times),
+        'std_ms': (sum((t - sum(times)/len(times))**2 for t in times) / len(times)) ** 0.5,
+        'result': result
+    }
+
+# 使用例
+def test_matmul(n=2048):
+    a = cp.random.rand(n, n, dtype=cp.float32)
+    b = cp.random.rand(n, n, dtype=cp.float32)
+    return cp.dot(a, b)
+
+result = benchmark_gpu(test_matmul, 2048)
+print(f"平均時間: {result['mean_ms']:.2f} ms ± {result['std_ms']:.2f} ms")
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習4: Nsight Systemsタイムライン分析<span class="difficulty medium">中</span></h4>
+                <p><strong>問題</strong>: 以下のコードをNsight Systemsでプロファイリングし、ボトルネックを特定してください。</p>
+                <pre><code class="language-python"># inefficient_code.py
+import cupy as cp
+
+def inefficient_workflow(n=5000):
+    result = 0
+    for i in range(100):  # 多数の小さなカーネル起動
+        a = cp.random.rand(n, n, dtype=cp.float32)
+        b = cp.random.rand(n, n, dtype=cp.float32)
+        c = cp.dot(a, b)
+        result += cp.sum(c)
+        cp.cuda.Stream.null.synchronize()  # 頻繁な同期
+    return result
+
+result = inefficient_workflow()
+print(f"Result: {result}")
+</code></pre>
+                <details>
+                    <summary>解答例</summary>
+                    <pre><code class="language-bash"># プロファイリング実行
+nsys profile -o inefficient_profile --stats=true python inefficient_code.py
+
+# 結果の分析ポイント:
+# 1. タイムラインで頻繁なcudaDeviceSynchronize()を確認
+# 2. 小さなカーネルが大量に起動されていることを確認
+# 3. GPU アイドル時間（CPUがホスト処理をしている時間）を確認
+
+# 最適化案:
+# - cudaDeviceSynchronize()をループ外に移動
+# - ループ内のデータ生成をループ前にまとめる
+# - カーネルの融合（kernel fusion）を検討
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習5: Nsight Computeメトリクス解釈<span class="difficulty medium">中</span></h4>
+                <p><strong>問題</strong>: 以下のSAXPYカーネルをNsight Computeで分析し、メトリクスを解釈してください。</p>
+                <pre><code class="language-python"># saxpy_profile.py
+import cupy as cp
+
+kernel = cp.RawKernel(r'''
+extern "C" __global__
+void saxpy(int n, float a, float *x, float *y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) {
+        y[i] = a * x[i] + y[i];
+    }
+}
+''', 'saxpy')
+
+n = 10_000_000
+x = cp.random.rand(n, dtype=cp.float32)
+y = cp.random.rand(n, dtype=cp.float32)
+
+kernel((n//256,), (256,), (n, 2.0, x, y))
+cp.cuda.Stream.null.synchronize()
+</code></pre>
+                <details>
+                    <summary>解答例</summary>
+                    <pre><code class="language-bash"># プロファイリング実行
+ncu --set full -o saxpy_metrics python saxpy_profile.py
+
+# メトリクス解釈:
+# 1. Memory Throughput: 85%以上 → メモリ律速
+# 2. Compute Throughput: 20-30% → 演算強度が低い（2 FLOP / 12 byte）
+# 3. Occupancy: 70%以上 → スレッド並列度は十分
+# 4. Warp Execution Efficiency: 95%以上 → 分岐なし、効率的
+
+# 最適化提案:
+# - メモリアクセスパターンは既にCoalescedアクセスで最適
+# - 演算強度が低いため、これ以上の高速化は困難
+# - カーネル融合で他の演算と統合することを検討
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習6: cuda-gdb基本デバッグ<span class="difficulty medium">中</span></h4>
+                <p><strong>問題</strong>: 以下のバグを含むCUDAコードを、cuda-gdbでデバッグしてください。</p>
+                <pre><code class="language-c">// buggy_kernel.cu
+#include &lt;stdio.h&gt;
+
+__global__ void buggy_add(float *a, float *b, float *c, int n) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    c[i] = a[i] + b[i];  // バグ: 境界チェックなし
+}
+
+int main() {
+    int n = 1000;
+    float *d_a, *d_b, *d_c;
+    cudaMalloc(&d_a, n * sizeof(float));
+    cudaMalloc(&d_b, n * sizeof(float));
+    cudaMalloc(&d_c, n * sizeof(float));
+
+    buggy_add&lt;&lt;&lt;5, 256&gt;&gt;&gt;(d_a, d_b, d_c, n);  // 5*256=1280 > 1000
+    cudaDeviceSynchronize();
+
+    cudaFree(d_a); cudaFree(d_b); cudaFree(d_c);
+    return 0;
+}
+</code></pre>
+                <details>
+                    <summary>解答例</summary>
+                    <pre><code class="language-bash"># デバッグビルド
+nvcc -g -G -o buggy_kernel buggy_kernel.cu
+
+# cuda-gdbでデバッグ
+cuda-gdb ./buggy_kernel
+
+# デバッグセッション:
+(cuda-gdb) break buggy_add
+(cuda-gdb) run
+(cuda-gdb) cuda thread (1000,0,0)  # 境界外のスレッド
+(cuda-gdb) print i
+# i = 1000 → n=1000なので配列外アクセス！
+
+# 修正案:
+__global__ void fixed_add(float *a, float *b, float *c, int n) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) {  // 境界チェック追加
+        c[i] = a[i] + b[i];
+    }
+}
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習7: プロファイリングスクリプト作成<span class="difficulty medium">中</span></h4>
+                <p><strong>問題</strong>: 行列サイズを変化させながら行列積の性能を測定し、結果をCSVファイルに出力するスクリプトを作成してください。</p>
+                <details>
+                    <summary>解答例</summary>
+                    <pre><code class="language-python">import cupy as cp
+import csv
+import time
+
+def benchmark_matmul(size, n_runs=5):
+    """指定サイズの行列積をベンチマーク"""
+    a = cp.random.rand(size, size, dtype=cp.float32)
+    b = cp.random.rand(size, size, dtype=cp.float32)
+
+    # Warm-up
+    _ = cp.dot(a, b)
+    cp.cuda.Stream.null.synchronize()
+
+    times = []
+    for _ in range(n_runs):
+        start = cp.cuda.Event()
+        end = cp.cuda.Event()
+
+        start.record()
+        c = cp.dot(a, b)
+        end.record()
+        end.synchronize()
+
+        times.append(cp.cuda.get_elapsed_time(start, end))
+
+    mean_time = sum(times) / len(times)
+    gflops = (2 * size**3) / (mean_time / 1000) / 1e9
+
+    return mean_time, gflops
+
+# ベンチマーク実行
+sizes = [512, 1024, 2048, 4096, 8192]
+results = []
+
+for size in sizes:
+    mean_time, gflops = benchmark_matmul(size)
+    results.append({
+        'size': size,
+        'time_ms': mean_time,
+        'gflops': gflops
+    })
+    print(f"Size {size}: {mean_time:.2f} ms, {gflops:.2f} GFLOPS")
+
+# CSV出力
+with open('matmul_benchmark.csv', 'w', newline='') as f:
+    writer = csv.DictWriter(f, fieldnames=['size', 'time_ms', 'gflops'])
+    writer.writeheader()
+    writer.writerows(results)
+
+print("\nResults saved to matmul_benchmark.csv")
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習8: 複雑なボトルネック特定<span class="difficulty hard">難</span></h4>
+                <p><strong>問題</strong>: 以下の材料科学シミュレーションコードの性能ボトルネックを、Nsight Systems/Computeを使って体系的に分析してください。</p>
+                <pre><code class="language-python"># materials_simulation.py
+import cupy as cp
+
+def compute_density_functional(positions, grid_size=256):
+    """密度汎関数計算（簡略版）"""
+    n_atoms = positions.shape[0]
+
+    # グリッド生成
+    grid_x, grid_y, grid_z = cp.meshgrid(
+        cp.linspace(0, 10, grid_size),
+        cp.linspace(0, 10, grid_size),
+        cp.linspace(0, 10, grid_size)
+    )
+
+    density = cp.zeros((grid_size, grid_size, grid_size), dtype=cp.float32)
+
+    # 各原子の寄与を計算（非効率的なループ）
+    for i in range(n_atoms):
+        pos = positions[i]
+        r = cp.sqrt((grid_x - pos[0])**2 + (grid_y - pos[1])**2 + (grid_z - pos[2])**2)
+        density += cp.exp(-r**2)
+
+    # エネルギー計算
+    energy = cp.sum(density * cp.log(density + 1e-10))
+    cp.cuda.Stream.null.synchronize()
+
+    return energy
+
+# シミュレーション実行
+positions = cp.random.rand(100, 3) * 10
+energy = compute_density_functional(positions, grid_size=128)
+print(f"Energy: {energy}")
+</code></pre>
+                <details>
+                    <summary>解答例</summary>
+                    <pre><code class="language-bash"># ステップ1: Nsight Systemsで全体像を把握
+nsys profile -o materials_sim --stats=true python materials_simulation.py
+
+# 分析結果:
+# - meshgrid生成に20%の時間
+# - ループ内のexp計算に60%の時間
+# - エネルギー計算に15%の時間
+# - 頻繁なカーネル起動（100回）
+
+# ステップ2: Nsight Computeでexp計算を詳細分析
+ncu --set full -o exp_kernel python materials_simulation.py
+
+# メトリクス:
+# - Memory Throughput: 45% → メモリアクセスに改善余地
+# - Occupancy: 65% → まずまず
+# - Warp Efficiency: 98% → 分岐なし、良好
+
+# 最適化案:
+# 1. ループをベクトル化（各原子の寄与を並列計算）
+# 2. 共有メモリを活用してデータ再利用
+# 3. カーネル融合（exp計算とdensity更新を統合）
+
+# 最適化コード例:
+def optimized_compute_density(positions, grid_size=256):
+    """最適化版"""
+    grid_x, grid_y, grid_z = cp.meshgrid(
+        cp.linspace(0, 10, grid_size),
+        cp.linspace(0, 10, grid_size),
+        cp.linspace(0, 10, grid_size)
+    )
+
+    # positions を (n_atoms, 1, 1, 1, 3) に reshape
+    pos_reshaped = positions[:, cp.newaxis, cp.newaxis, cp.newaxis, :]
+
+    # grid を (1, grid_size, grid_size, grid_size, 3) に結合
+    grid = cp.stack([grid_x, grid_y, grid_z], axis=-1)[cp.newaxis, ...]
+
+    # 全原子の寄与を一度に計算（ベクトル化）
+    r = cp.sqrt(cp.sum((grid - pos_reshaped)**2, axis=-1))
+    density = cp.sum(cp.exp(-r**2), axis=0)
+
+    energy = cp.sum(density * cp.log(density + 1e-10))
+    cp.cuda.Stream.null.synchronize()
+    return energy
+
+# 期待される高速化: 5-10倍
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習9: 多カーネル最適化<span class="difficulty hard">難</span></h4>
+                <p><strong>問題</strong>: 複数のカーネルを含むワークフローを最適化し、Nsight Systemsで改善を確認してください。</p>
+                <pre><code class="language-python"># multi_kernel_workflow.py
+import cupy as cp
+
+def process_data(data):
+    """複数のGPU処理を含むワークフロー"""
+    # ステップ1: 正規化
+    mean = cp.mean(data, axis=0)
+    std = cp.std(data, axis=0)
+    normalized = (data - mean) / (std + 1e-8)
+
+    # ステップ2: 非線形変換
+    transformed = cp.tanh(normalized)
+
+    # ステップ3: 行列積
+    result = cp.dot(transformed, transformed.T)
+
+    # ステップ4: ソフトマックス
+    exp_result = cp.exp(result - cp.max(result, axis=1, keepdims=True))
+    softmax = exp_result / cp.sum(exp_result, axis=1, keepdims=True)
+
+    cp.cuda.Stream.null.synchronize()
+    return softmax
+
+data = cp.random.rand(5000, 1000, dtype=cp.float32)
+result = process_data(data)
+print(f"Result shape: {result.shape}")
+</code></pre>
+                <details>
+                    <summary>解答例</summary>
+                    <pre><code class="language-bash"># プロファイリング前
+nsys profile -o before_optimization --stats=true python multi_kernel_workflow.py
+
+# 最適化案:
+# 1. カーネル融合: 正規化 + tanh を1つのカーネルに統合
+# 2. メモリ再利用: 中間結果のメモリ確保を削減
+# 3. ストリーム並列化: 独立な処理を並列実行
+
+# 最適化コード:
+import cupy as cp
+
+def optimized_process_data(data):
+    """最適化版ワークフロー"""
+    # カーネル融合: 正規化 + tanh を統合
+    mean = cp.mean(data, axis=0, keepdims=True)
+    std = cp.std(data, axis=0, keepdims=True)
+    transformed = cp.tanh((data - mean) / (std + 1e-8))
+
+    # 行列積（高度に最適化されたcuBLASを使用）
+    result = cp.dot(transformed, transformed.T)
+
+    # ソフトマックス（安定化版、カーネル融合）
+    max_vals = cp.max(result, axis=1, keepdims=True)
+    exp_result = cp.exp(result - max_vals)
+    softmax = exp_result / cp.sum(exp_result, axis=1, keepdims=True)
+
+    cp.cuda.Stream.null.synchronize()
+    return softmax
+
+# プロファイリング後
+nsys profile -o after_optimization --stats=true python optimized_workflow.py
+
+# 改善確認:
+nsys stats before_optimization.qdrep > before_stats.txt
+nsys stats after_optimization.qdrep > after_stats.txt
+
+# diff で比較し、カーネル起動回数とGPU時間の削減を確認
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習10: 統合プロファイリングパイプライン構築<span class="difficulty hard">難</span></h4>
+                <p><strong>問題</strong>: 自動化されたプロファイリングパイプラインを構築してください。要件：</p>
+                <ul>
+                    <li>複数の行列サイズで性能を測定</li>
+                    <li>Nsight Systemsで自動プロファイリング</li>
+                    <li>結果をMarkdown形式のレポートに出力</li>
+                    <li>性能退行（前回より遅くなった場合）を検出</li>
+                </ul>
+                <details>
+                    <summary>解答例</summary>
+                    <pre><code class="language-python">#!/usr/bin/env python3
+# automated_profiling_pipeline.py
+
+import cupy as cp
+import subprocess
+import json
+import csv
+from datetime import datetime
+
+class ProfilingPipeline:
+    def __init__(self, output_dir="profiling_results"):
+        self.output_dir = output_dir
+        self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    def benchmark_function(self, func, args, name, n_runs=5):
+        """関数のベンチマーク"""
+        # Warm-up
+        func(*args)
+        cp.cuda.Stream.null.synchronize()
+
+        times = []
+        for _ in range(n_runs):
+            start = cp.cuda.Event()
+            end = cp.cuda.Event()
+
+            start.record()
+            func(*args)
+            end.record()
+            end.synchronize()
+
+            times.append(cp.cuda.get_elapsed_time(start, end))
+
+        return {
+            'name': name,
+            'mean_ms': sum(times) / len(times),
+            'min_ms': min(times),
+            'max_ms': max(times),
+            'std_ms': (sum((t - sum(times)/len(times))**2 for t in times) / len(times)) ** 0.5
+        }
+
+    def run_nsys_profile(self, script_path):
+        """Nsight Systems プロファイリング実行"""
+        output_file = f"{self.output_dir}/nsys_{self.timestamp}.qdrep"
+        cmd = f"nsys profile -o {output_file} --stats=true python {script_path}"
+        subprocess.run(cmd, shell=True)
+        return output_file
+
+    def generate_markdown_report(self, results, nsys_file):
+        """Markdown レポート生成"""
+        report_file = f"{self.output_dir}/report_{self.timestamp}.md"
+
+        with open(report_file, 'w') as f:
+            f.write(f"# GPU Performance Profiling Report\n\n")
+            f.write(f"**Date**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+
+            f.write("## Benchmark Results\n\n")
+            f.write("| Test Name | Mean Time (ms) | Min Time (ms) | Max Time (ms) | Std Dev (ms) |\n")
+            f.write("|-----------|----------------|---------------|---------------|---------------|\n")
+
+            for result in results:
+                f.write(f"| {result['name']} | {result['mean_ms']:.2f} | {result['min_ms']:.2f} | {result['max_ms']:.2f} | {result['std_ms']:.2f} |\n")
+
+            f.write(f"\n## Nsight Systems Profile\n\n")
+            f.write(f"Profile file: `{nsys_file}`\n\n")
+            f.write("Run `nsys-ui` to view detailed timeline.\n\n")
+
+        return report_file
+
+    def detect_regression(self, current_results, baseline_file):
+        """性能退行検出"""
+        if not os.path.exists(baseline_file):
+            print("No baseline file found. Creating baseline.")
+            with open(baseline_file, 'w') as f:
+                json.dump(current_results, f)
+            return False
+
+        with open(baseline_file, 'r') as f:
+            baseline = json.load(f)
+
+        regressions = []
+        for curr in current_results:
+            for base in baseline:
+                if curr['name'] == base['name']:
+                    if curr['mean_ms'] > base['mean_ms'] * 1.1:  # 10%以上遅い
+                        regressions.append({
+                            'name': curr['name'],
+                            'baseline': base['mean_ms'],
+                            'current': curr['mean_ms'],
+                            'slowdown': (curr['mean_ms'] / base['mean_ms'] - 1) * 100
+                        })
+
+        if regressions:
+            print("\n⚠️ Performance Regression Detected!")
+            for reg in regressions:
+                print(f"  {reg['name']}: {reg['slowdown']:.1f}% slower ({reg['current']:.2f} ms vs {reg['baseline']:.2f} ms)")
+            return True
+        else:
+            print("\n✅ No performance regression detected.")
+            return False
+
+# 使用例
+if __name__ == "__main__":
+    import os
+    os.makedirs("profiling_results", exist_ok=True)
+
+    pipeline = ProfilingPipeline()
+
+    # テスト関数定義
+    def matmul(size):
+        a = cp.random.rand(size, size, dtype=cp.float32)
+        b = cp.random.rand(size, size, dtype=cp.float32)
+        return cp.dot(a, b)
+
+    # ベンチマーク実行
+    results = []
+    for size in [512, 1024, 2048, 4096]:
+        result = pipeline.benchmark_function(matmul, (size,), f"MatMul_{size}x{size}")
+        results.append(result)
+        print(f"{result['name']}: {result['mean_ms']:.2f} ms")
+
+    # Markdownレポート生成
+    report = pipeline.generate_markdown_report(results, "nsys_profile.qdrep")
+    print(f"\nReport saved to: {report}")
+
+    # 性能退行検出
+    pipeline.detect_regression(results, "profiling_results/baseline.json")
+</code></pre>
+                </details>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>3.9 参考文献</h2>
+
+            <ol>
+                <li>NVIDIA Corporation. (2023). <em>CUDA Toolkit Documentation v12.0</em>. NVIDIA Developer Documentation, pp. 1-45 (Installation Guide), pp. 120-156 (Toolkit Components Overview). <a href="https://docs.nvidia.com/cuda/" target="_blank">https://docs.nvidia.com/cuda/</a></li>
+                <li>NVIDIA Corporation. (2023). <em>Nsight Systems User Guide</em>. NVIDIA Developer Documentation, pp. 23-67 (Timeline Profiling), pp. 89-124 (Bottleneck Analysis). <a href="https://docs.nvidia.com/nsight-systems/" target="_blank">https://docs.nvidia.com/nsight-systems/</a></li>
+                <li>NVIDIA Corporation. (2023). <em>Nsight Compute User Guide</em>. NVIDIA Developer Documentation, pp. 12-56 (Kernel Metrics), pp. 78-112 (Roofline Model Analysis). <a href="https://docs.nvidia.com/nsight-compute/" target="_blank">https://docs.nvidia.com/nsight-compute/</a></li>
+                <li>NVIDIA Corporation. (2023). <em>cuda-gdb User Guide</em>. NVIDIA Developer Documentation, pp. 5-34 (Basic Debugging), pp. 45-78 (Thread Inspection and Memory Verification). <a href="https://docs.nvidia.com/cuda/cuda-gdb/" target="_blank">https://docs.nvidia.com/cuda/cuda-gdb/</a></li>
+                <li>Kirk, D. B., & Hwu, W. W. (2016). <em>Programming Massively Parallel Processors: A Hands-on Approach</em> (3rd ed.). Morgan Kaufmann, pp. 345-389 (Profiling and Performance Optimization Strategies).</li>
+                <li>CuPy Development Team. (2023). <em>CuPy Profiling Documentation</em>. CuPy User Guide, pp. 12-34 (cupyx.profiler API Reference and Best Practices). <a href="https://docs.cupy.dev/en/stable/reference/prof.html" target="_blank">https://docs.cupy.dev/en/stable/reference/prof.html</a></li>
+                <li>Numba Development Team. (2023). <em>Numba CUDA Debugging Guide</em>. Numba Documentation, pp. 15-45 (CUDA Simulator and Debugging Techniques). <a href="https://numba.readthedocs.io/en/stable/cuda/debugging.html" target="_blank">https://numba.readthedocs.io/en/stable/cuda/debugging.html</a></li>
+            </ol>
+        </section>
+
+        <section id="navigation">
+            <h2>次のステップ</h2>
+            <p>本章で、CUDA環境の構築とプロファイリング・デバッグツールの実践的な使い方を習得しました。次章では、CuPyとNumbaを使った実践的なGPU計算に進み、材料科学計算への応用を学びます。</p>
+            <div style="display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 2px solid var(--border-light);">
+                <a href="chapter-2.html" style="padding: 1rem 2rem; background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">← 第2章: GPUアーキテクチャ基礎</a>
+                <a href="chapter-4.html" style="padding: 1rem 2rem; background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">第4章: CuPy/Numba実践 →</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 CT Dojo. All rights reserved.</p>
+        <p><a href="https://github.com/yourusername/gpu-computing-tutorial">GitHub Repository</a> | <a href="mailto:yusuke.hashimoto.b8@tohoku.ac.jp">Contact</a></p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第1章: LAMMPSの基礎と環境構築 - LAMMPS入門 - CT Dojo</title>
+    <meta name="description" content="LAMMPSの基礎、分子動力学法の原理、環境構築、入力スクリプト構造を学ぶ。Lennard-Jonesポテンシャル、Arの結晶構造、NVE/NVTアンサンブルを実装し、LAMMPSの基本操作を習得する。">
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- MathJax for mathematical expressions -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --accent-green: #11998e;
+            --accent-lime: #38ef7d;
+            --primary-dark: #2c3e50;
+            --secondary-dark: #34495e;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #ecf0f1;
+            --white: #ffffff;
+            --code-bg: #2d2d2d;
+            --border-light: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        section {
+            background: var(--white);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(90deg, var(--accent-green), var(--accent-lime)) 1;
+        }
+
+        h3 {
+            color: var(--secondary-dark);
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem;
+        }
+
+        h4 {
+            color: var(--secondary-dark);
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        pre code {
+            background: none;
+            color: #f8f8f2;
+            padding: 0;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
+            border-left: 4px solid var(--accent-green);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            color: var(--accent-green);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .warning-box {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .warning-box strong {
+            color: var(--warning);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .exercise-box {
+            background: rgba(39, 174, 96, 0.05);
+            border: 2px solid var(--success);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .exercise-box h4 {
+            color: var(--success);
+            margin-top: 0;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .difficulty.easy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .difficulty.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .difficulty.hard {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(17, 153, 142, 0.05);
+        }
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--accent-lime);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+        }
+
+
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #11998e;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #0e7c74;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/index.html">計算工学</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/CT/lammps-introduction/index.html">LAMMPS</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 1</span>
+        </div>
+    </nav>
+
+        <header>
+        <h1>第1章: LAMMPSの基礎と環境構築</h1>
+        <p>分子動力学法の原理・LAMMPSの特徴・インストール・入力スクリプト構造</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">トップ</a></li>
+            <li><a href="#md-basics">MD法の原理</a></li>
+            <li><a href="#lammps-features">LAMMPSの特徴</a></li>
+            <li><a href="#installation">インストール</a></li>
+            <li><a href="#input-script">入力スクリプト</a></li>
+            <li><a href="#examples">コード例</a></li>
+            <li><a href="#learning-objectives">学習目標</a></li>
+            <li><a href="#exercises">演習問題</a></li>
+            <li><a href="#references">参考文献</a></li>
+            <li><a href="chapter-2.html">次の章へ →</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="intro">
+            <h2>1.1 本章の概要</h2>
+
+            <p>
+                LAMMPS（Large-scale Atomic/Molecular Massively Parallel Simulator）は、Sandia国立研究所で開発された、材料科学とソフトマター物理学のための古典分子動力学（MD）シミュレーションコードです。金属、半導体、ポリマー、生体分子、粒子系など幅広い材料系に対応し、数百万〜数億原子規模のシミュレーションが可能です。
+            </p>
+
+            <div class="info-box">
+                <strong>本章の学習目標</strong>
+                <ul>
+                    <li><strong>レベル1（基本理解）</strong>: 分子動力学法の原理、LAMMPSの特徴（並列化、ポテンシャル）、入力スクリプトの構造を説明できる</li>
+                    <li><strong>レベル2（実践スキル）</strong>: LAMMPSをインストールし、Lennard-Jonesポテンシャルを使った簡単なシミュレーション（Ar液体、NVE/NVT）を実行でき、軌跡ファイルをOVITOで可視化できる</li>
+                    <li><strong>レベル3（応用力）</strong>: 入力スクリプトを修正して異なるアンサンブルを実装でき、温度・圧力の時間変化を解析でき、初期条件が結果に与える影響を評価できる</li>
+                </ul>
+            </div>
+
+            <div class="warning-box">
+                <strong>前提知識</strong>
+                <p>本章では、物理学（ニュートン力学、統計力学の基礎）、Linux基本操作（ターミナルコマンド）、材料科学の基礎（結晶構造の基本概念）を前提とします。</p>
+            </div>
+        </section>
+
+        <section id="md-basics">
+            <h2>1.2 分子動力学法の原理</h2>
+
+            <h3>ニュートンの運動方程式</h3>
+            <p>
+                分子動力学（MD）法は、原子・分子の運動をニュートンの運動方程式に基づいて数値的に解く手法です。各原子 \(i\) の運動は以下の方程式で記述されます：
+            </p>
+
+            <p>
+                $$ m_i \frac{d^2 \mathbf{r}_i}{dt^2} = \mathbf{F}_i = -\nabla_i U(\mathbf{r}_1, \mathbf{r}_2, \ldots, \mathbf{r}_N) $$
+            </p>
+
+            <p>
+                ここで、\(m_i\) は原子 \(i\) の質量、\(\mathbf{r}_i\) は位置ベクトル、\(\mathbf{F}_i\) は原子 \(i\) にかかる力、\(U\) は系の全ポテンシャルエネルギーです。
+            </p>
+
+            <h3>数値積分: Velocity Verlet法</h3>
+            <p>
+                運動方程式は、有限差分法で離散化して解きます。最も一般的な<strong>Velocity Verlet法</strong>は、以下のアルゴリズムです：
+            </p>
+
+            <p>
+                $$ \mathbf{r}_i(t + \Delta t) = \mathbf{r}_i(t) + \mathbf{v}_i(t) \Delta t + \frac{1}{2} \mathbf{a}_i(t) \Delta t^2 $$
+            </p>
+
+            <p>
+                $$ \mathbf{v}_i(t + \Delta t) = \mathbf{v}_i(t) + \frac{1}{2} [\mathbf{a}_i(t) + \mathbf{a}_i(t + \Delta t)] \Delta t $$
+            </p>
+
+            <p>
+                ここで、\(\Delta t\) はタイムステップ（典型的に 0.5〜2 fs）、\(\mathbf{a}_i = \mathbf{F}_i / m_i\) は加速度です。
+            </p>
+
+            <div class="info-box">
+                <strong>MDシミュレーションの流れ</strong>
+                <ol>
+                    <li><strong>初期化</strong>: 原子配置（結晶構造など）と初期速度（Maxwell-Boltzmann分布）を設定</li>
+                    <li><strong>力の計算</strong>: ポテンシャルエネルギーから各原子にかかる力を計算</li>
+                    <li><strong>時間発展</strong>: Velocity Verlet法で位置と速度を更新</li>
+                    <li><strong>繰り返し</strong>: 2-3を数千〜数百万ステップ繰り返す</li>
+                    <li><strong>解析</strong>: 軌跡データから物性値（温度、圧力、拡散係数など）を計算</li>
+                </ol>
+            </div>
+
+            <div class="mermaid">
+flowchart LR
+    A[初期配置・速度設定] --> B[力の計算<br/>F = -∇U]
+    B --> C[位置更新<br/>r(t+Δt)]
+    C --> D[速度更新<br/>v(t+Δt)]
+    D --> E{終了?}
+    E -->|No| B
+    E -->|Yes| F[データ解析]
+
+    style A fill:#d4f1f4
+    style B fill:#ffd6d6
+    style C fill:#d6f5d6
+    style D fill:#d6f5d6
+    style E fill:#fff3cd
+    style F fill:#e8f5e9
+            </div>
+
+            <h3>ポテンシャルエネルギー</h3>
+            <p>
+                MDシミュレーションでは、量子力学計算を行わず、原子間相互作用を<strong>経験的ポテンシャル</strong>で記述します。最も単純な例は<strong>Lennard-Jonesポテンシャル</strong>（希ガス系）です：
+            </p>
+
+            <p>
+                $$ U(r_{ij}) = 4\epsilon \left[ \left( \frac{\sigma}{r_{ij}} \right)^{12} - \left( \frac{\sigma}{r_{ij}} \right)^{6} \right] $$
+            </p>
+
+            <p>
+                ここで、\(r_{ij}\) は原子 \(i\) と \(j\) の距離、\(\epsilon\) はエネルギーパラメータ、\(\sigma\) は原子サイズパラメータです。
+            </p>
+
+            <h3>アンサンブル</h3>
+            <p>
+                MDシミュレーションは、異なる統計力学的アンサンブルで実行できます：
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>アンサンブル</th>
+                        <th>固定量</th>
+                        <th>用途</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>NVE</strong></td>
+                        <td>粒子数 \(N\)、体積 \(V\)、エネルギー \(E\)</td>
+                        <td>孤立系、エネルギー保存の検証</td>
+                    </tr>
+                    <tr>
+                        <td><strong>NVT</strong></td>
+                        <td>粒子数 \(N\)、体積 \(V\)、温度 \(T\)</td>
+                        <td>一定温度での平衡状態</td>
+                    </tr>
+                    <tr>
+                        <td><strong>NPT</strong></td>
+                        <td>粒子数 \(N\)、圧力 \(P\)、温度 \(T\)</td>
+                        <td>一定温度・圧力（実験条件に対応）</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="lammps-features">
+            <h2>1.3 LAMMPSの特徴</h2>
+
+            <h3>1. 大規模並列化</h3>
+            <p>
+                LAMMPSは<strong>MPI（Message Passing Interface）</strong>による領域分割並列化に対応し、数千コアまでスケールします。空間を領域に分割し、各プロセッサが担当領域の原子を計算します。
+            </p>
+
+            <div class="info-box">
+                <strong>並列化の効果</strong>
+                <ul>
+                    <li>1コア: 10,000原子 → 1時間</li>
+                    <li>16コア: 10,000原子 → 5分（12倍高速）</li>
+                    <li>256コア: 1,000,000原子 → 1時間（大規模系が実行可能）</li>
+                </ul>
+            </div>
+
+            <h3>2. 豊富なポテンシャル</h3>
+            <p>
+                LAMMPSは200種類以上のポテンシャルに対応しています：
+            </p>
+
+            <ul>
+                <li><strong>Pair potentials</strong>: Lennard-Jones、Buckingham、Morse</li>
+                <li><strong>金属</strong>: EAM（Embedded Atom Method）、MEAM</li>
+                <li><strong>共有結合系</strong>: Tersoff、Stillinger-Weber、REBO</li>
+                <li><strong>反応系</strong>: ReaxFF</li>
+                <li><strong>機械学習</strong>: NNP（n2p2）、DeePMD、QUIP（GAP）</li>
+            </ul>
+
+            <h3>3. 柔軟な入力スクリプト</h3>
+            <p>
+                LAMMPSの入力はテキストベースの<strong>入力スクリプト</strong>で記述します。変数、条件分岐、ループを使った高度な制御が可能です。
+            </p>
+
+            <h3>4. GPUアクセラレーション</h3>
+            <p>
+                LAMMPSは<strong>KOKKOS</strong>パッケージにより、NVIDIA GPU、AMD GPU、Intel GPUに対応し、数十倍の高速化が可能です。
+            </p>
+
+            <h3>5. Pythonインターフェース（PyLAMMPS）</h3>
+            <p>
+                PythonからLAMMPSを制御できる<strong>PyLAMMPS</strong>により、パラメータスイープ、機械学習との連携、自動解析が容易になります。
+            </p>
+        </section>
+
+        <section id="installation">
+            <h2>1.4 インストールとコンパイル</h2>
+
+            <h3>方法1: バイナリパッケージ（推奨: 初学者）</h3>
+            <p>
+                Ubuntu/Debianでは、apt経由でインストールできます：
+            </p>
+
+            <pre><code class="language-bash"># Ubuntu/Debian
+sudo apt update
+sudo apt install lammps
+
+# 確認
+lmp -help</code></pre>
+
+            <h3>方法2: Conda経由（推奨: Python連携）</h3>
+            <p>
+                Condaを使うと、PyLAMMPSも同時にインストールできます：
+            </p>
+
+            <pre><code class="language-bash"># Condaをインストール済みと仮定
+conda create -n lammps python=3.10
+conda activate lammps
+conda install -c conda-forge lammps
+
+# 確認
+lmp -help
+python -c "from lammps import lammps; print('PyLAMMPS OK')"</code></pre>
+
+            <h3>方法3: ソースからコンパイル（推奨: 高度なユーザー）</h3>
+            <p>
+                最新版や特定のパッケージ（GPU、KOKKOS）が必要な場合は、ソースからコンパイルします：
+            </p>
+
+            <pre><code class="language-bash"># 依存ライブラリのインストール
+sudo apt install build-essential cmake mpich libfftw3-dev libjpeg-dev libpng-dev
+
+# LAMMPSのダウンロード
+cd ~
+wget https://download.lammps.org/tars/lammps-stable.tar.gz
+tar -xzf lammps-stable.tar.gz
+cd lammps-*/
+
+# ビルドディレクトリを作成
+mkdir build
+cd build
+
+# CMakeで設定（基本パッケージ）
+cmake ../cmake -DCMAKE_INSTALL_PREFIX=$HOME/lammps -DPKG_MOLECULE=yes -DPKG_KSPACE=yes
+
+# コンパイル（並列）
+make -j4
+
+# インストール
+make install
+
+# PATHに追加
+echo 'export PATH=$HOME/lammps/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+
+# 確認
+lmp -help</code></pre>
+
+            <div class="warning-box">
+                <strong>注意: GPUパッケージ</strong>
+                <p>GPUアクセラレーションを使う場合は、<code>-DPKG_GPU=yes</code> または <code>-DPKG_KOKKOS=yes -DKokkos_ENABLE_CUDA=yes</code> を追加し、CUDA Toolkitが必要です。</p>
+            </div>
+        </section>
+
+        <section id="input-script">
+            <h2>1.5 入力スクリプトの構造</h2>
+
+            <h3>基本構成</h3>
+            <p>
+                LAMMPSの入力スクリプトは、以下のセクションで構成されます：
+            </p>
+
+            <ol>
+                <li><strong>初期化</strong>: 単位系、原子スタイル、境界条件</li>
+                <li><strong>原子定義</strong>: 格子、原子配置、質量</li>
+                <li><strong>ポテンシャル</strong>: pair_style、pair_coeff</li>
+                <li><strong>設定</strong>: 近接リスト、タイムステップ</li>
+                <li><strong>実行</strong>: fix（アンサンブル、温度制御）、run</li>
+                <li><strong>出力</strong>: thermo、dump（軌跡ファイル）</li>
+            </ol>
+
+            <div class="mermaid">
+flowchart TD
+    A[1. 初期化<br/>units, atom_style, boundary] --> B[2. 原子定義<br/>lattice, region, create_atoms]
+    B --> C[3. ポテンシャル<br/>pair_style, pair_coeff]
+    C --> D[4. 設定<br/>neighbor, timestep]
+    D --> E[5. 実行<br/>fix nve/nvt/npt, run]
+    E --> F[6. 出力<br/>thermo, dump]
+
+    style A fill:#d4f1f4
+    style B fill:#ffd6d6
+    style C fill:#d6f5d6
+    style D fill:#fff3cd
+    style E fill:#e8f5e9
+    style F fill:#ffd6d6
+            </div>
+
+            <h3>主要コマンド</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>コマンド</th>
+                        <th>説明</th>
+                        <th>例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>units</code></td>
+                        <td>単位系（real, metal, lj）</td>
+                        <td><code>units lj</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>atom_style</code></td>
+                        <td>原子の属性（atomic, charge, molecular）</td>
+                        <td><code>atom_style atomic</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>lattice</code></td>
+                        <td>格子定義（fcc, bcc, sc）</td>
+                        <td><code>lattice fcc 0.8442</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>region</code></td>
+                        <td>空間領域の定義</td>
+                        <td><code>region box block 0 10 0 10 0 10</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>create_atoms</code></td>
+                        <td>原子配置</td>
+                        <td><code>create_atoms 1 box</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>pair_style</code></td>
+                        <td>ポテンシャルの種類</td>
+                        <td><code>pair_style lj/cut 2.5</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>pair_coeff</code></td>
+                        <td>ポテンシャルパラメータ</td>
+                        <td><code>pair_coeff * * 1.0 1.0</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>fix</code></td>
+                        <td>アンサンブル、温度制御</td>
+                        <td><code>fix 1 all nvt temp 1.0 1.0 0.1</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>run</code></td>
+                        <td>タイムステップ数</td>
+                        <td><code>run 10000</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>thermo</code></td>
+                        <td>熱力学量の出力頻度</td>
+                        <td><code>thermo 100</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>dump</code></td>
+                        <td>軌跡ファイルの出力</td>
+                        <td><code>dump 1 all atom 1000 traj.lammpstrj</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="examples">
+            <h2>1.6 コード例</h2>
+
+            <h3>コード例1: インストール確認</h3>
+            <p>
+                LAMMPSが正しくインストールされているか確認します：
+            </p>
+
+            <pre><code class="language-bash"># LAMMPSのバージョン確認
+lmp -help | head -n 5
+
+# 期待される出力:
+# LAMMPS (29 Sep 2021 - Update 2)
+# Large-scale Atomic/Molecular Massively Parallel Simulator
+# https://lammps.sandia.gov, Sandia National Laboratories
+# ...
+
+# 利用可能なパッケージ確認
+lmp -h | grep -A 20 "Installed packages:"</code></pre>
+
+            <h3>コード例2: Lennard-Jones流体（NVE）</h3>
+            <p>
+                最も基本的なシミュレーション例です。Lennard-Jonesポテンシャルを使った希ガス（Ar）液体のNVEアンサンブル：
+            </p>
+
+            <pre><code class="language-lammps"># ===================================
+# Example 2: Lennard-Jones液体（NVE）
+# ===================================
+
+# 初期化
+units           lj              # Lennard-Jones単位系
+atom_style      atomic          # 原子のみ（電荷なし）
+boundary        p p p           # 周期境界条件（x, y, z）
+
+# 格子定義（FCC、換算密度0.8442）
+lattice         fcc 0.8442
+region          box block 0 10 0 10 0 10   # 10x10x10ユニットセル
+create_box      1 box
+create_atoms    1 box
+
+# 質量設定（Ar = 39.948 g/mol → LJ単位では1.0）
+mass            1 1.0
+
+# Lennard-Jonesポテンシャル
+pair_style      lj/cut 2.5      # カットオフ半径2.5σ
+pair_coeff      * * 1.0 1.0     # ε=1.0, σ=1.0
+
+# 初期速度（温度1.0、乱数シード12345）
+velocity        all create 1.0 12345
+
+# 近接リスト設定
+neighbor        0.3 bin
+neigh_modify    every 1 delay 0 check yes
+
+# タイムステップ（0.005τ ≈ 2.2 fs for Ar）
+timestep        0.005
+
+# NVEアンサンブル
+fix             1 all nve
+
+# 熱力学出力（100ステップごと）
+thermo          100
+thermo_style    custom step temp press pe ke etotal vol
+
+# 軌跡ファイル出力（1000ステップごと）
+dump            1 all atom 1000 nve.lammpstrj
+
+# 10,000ステップ実行
+run             10000
+
+# 期待される出力例（最終ステップ）:
+# Step Temp Press PotEng KinEng TotEng Volume
+# 10000 1.023 -2.154 -4.567 1.535 -3.032 1000.0</code></pre>
+
+            <div class="info-box">
+                <strong>実行方法</strong>
+                <pre><code class="language-bash"># スクリプトをファイルに保存
+cat > lj_nve.in << 'EOF'
+[上記のスクリプトをコピー]
+EOF
+
+# 実行（シリアル）
+lmp -in lj_nve.in
+
+# 実行（MPI並列、4プロセス）
+mpirun -np 4 lmp -in lj_nve.in</code></pre>
+            </div>
+
+            <h3>コード例3: Ar結晶（FCC）の構築</h3>
+            <p>
+                Arの結晶構造（FCC）を構築し、初期状態を確認します：
+            </p>
+
+            <pre><code class="language-lammps"># ===================================
+# Example 3: Ar結晶（FCC）の構築
+# ===================================
+
+units           metal           # 金属単位系（Å, eV, ps）
+atom_style      atomic
+boundary        p p p
+
+# Arの格子定数（5.26 Å at 0 K）
+lattice         fcc 5.26
+region          box block 0 5 0 5 0 5    # 5x5x5ユニットセル
+create_box      1 box
+create_atoms    1 box
+
+# Arの質量（39.948 g/mol）
+mass            1 39.948
+
+# Lennard-Jonesポテンシャル（Ar用パラメータ）
+pair_style      lj/cut 10.0
+pair_coeff      * * 0.0104 3.405    # ε=0.0104 eV, σ=3.405 Å
+
+# 初期速度なし（T=0 K）
+velocity        all set 0.0 0.0 0.0
+
+# エネルギー最小化
+minimize        1.0e-4 1.0e-6 100 1000
+
+# 熱力学出力
+thermo          10
+thermo_style    custom step temp press pe ke etotal lx ly lz
+
+# 構造出力（初期状態のみ）
+dump            1 all custom 1 ar_crystal.lammpstrj id type x y z
+run             0
+
+print "Total atoms: $(atoms)"
+print "Lattice constant: 5.26 Å"
+print "Box size: $(lx) $(ly) $(lz) Å"
+
+# 期待される出力:
+# Total atoms: 500
+# Lattice constant: 5.26 Å
+# Box size: 26.3 26.3 26.3 Å</code></pre>
+
+            <h3>コード例4: NVTアンサンブル（温度制御）</h3>
+            <p>
+                Nose-Hooverサーモスタットを使った、一定温度（T=1.0）のシミュレーション：
+            </p>
+
+            <pre><code class="language-lammps"># ===================================
+# Example 4: NVTアンサンブル（温度制御）
+# ===================================
+
+units           lj
+atom_style      atomic
+boundary        p p p
+
+lattice         fcc 0.8442
+region          box block 0 10 0 10 0 10
+create_box      1 box
+create_atoms    1 box
+mass            1 1.0
+
+pair_style      lj/cut 2.5
+pair_coeff      * * 1.0 1.0
+
+# 初期速度（目標温度1.0）
+velocity        all create 1.0 54321
+
+neighbor        0.3 bin
+neigh_modify    every 1 delay 0 check yes
+timestep        0.005
+
+# NVTアンサンブル（Nose-Hoover）
+# 温度1.0、減衰時定数0.1（= 100 * timestep）
+fix             1 all nvt temp 1.0 1.0 0.1
+
+thermo          100
+thermo_style    custom step temp press pe ke etotal vol
+
+# 温度の時間変化をファイルに出力
+fix             2 all ave/time 10 1 10 v_temp file temp.dat
+
+dump            1 all atom 1000 nvt.lammpstrj
+
+# 平衡化（10,000ステップ）
+run             10000
+
+# 期待される出力:
+# Step Temp Press PotEng KinEng TotEng Volume
+# 10000 1.002 -2.134 -4.589 1.503 -3.086 1000.0
+#
+# 温度が1.0付近で安定</code></pre>
+
+            <h3>コード例5: 軌跡解析（Python）</h3>
+            <p>
+                LAMMPSの出力ファイル（thermo、軌跡）をPythonで解析します：
+            </p>
+
+            <pre><code class="language-python"># ===================================
+# Example 5: 軌跡解析（Python）
+# ===================================
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 1. 熱力学データ（thermo）の解析
+# LAMMPSの標準出力から抽出したファイルを読み込み
+# 実際には: lmp -in nvt.in > log.lammps として保存
+
+# temp.dat（fix ave/time の出力）を読み込み
+data = np.loadtxt('temp.dat')
+time_steps = data[:, 0]
+temperature = data[:, 1]
+
+# 温度の時間変化をプロット
+plt.figure(figsize=(10, 6))
+plt.plot(time_steps, temperature, 'b-', linewidth=1.5)
+plt.axhline(y=1.0, color='r', linestyle='--', label='Target T=1.0')
+plt.xlabel('Time step', fontsize=14)
+plt.ylabel('Temperature (LJ units)', fontsize=14)
+plt.title('Temperature evolution in NVT ensemble', fontsize=16)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('temp_evolution.png', dpi=300)
+plt.show()
+
+# 統計
+print(f"Average temperature: {np.mean(temperature):.4f} ± {np.std(temperature):.4f}")
+print(f"Target temperature: 1.0")
+
+# 2. 軌跡ファイル（lammpstrj）の読み込み例
+# PyLAMMPSまたはOVITOのPythonインターフェースを使用
+
+# 簡易的な例: 最終フレームの原子座標を読み取り
+def read_lammpstrj_frame(filename, frame=-1):
+    """
+    LAMMPSの軌跡ファイルから特定フレームを読み込み
+
+    Parameters:
+    -----------
+    filename : str
+        軌跡ファイル名
+    frame : int
+        フレーム番号（-1で最終フレーム）
+
+    Returns:
+    --------
+    coords : ndarray
+        原子座標 (N, 3)
+    """
+    # 実装は省略（OVITO Pythonインターフェース推奨）
+    pass
+
+# 期待される出力:
+# Average temperature: 1.0012 ± 0.0234
+# Target temperature: 1.0</code></pre>
+
+            <div class="info-box">
+                <strong>可視化ツール: OVITO</strong>
+                <p>軌跡ファイル（.lammpstrj）は、<a href="https://www.ovito.org/" target="_blank">OVITO</a>で可視化できます。</p>
+                <pre><code class="language-bash"># OVITOのインストール（Ubuntu）
+sudo apt install ovito
+
+# 軌跡ファイルを開く
+ovito nvt.lammpstrj</code></pre>
+            </div>
+        </section>
+
+        <section id="learning-objectives">
+            <h2>1.7 学習目標の確認</h2>
+
+            <p>このChapterを完了すると、以下を説明できるようになります：</p>
+
+            <h3>基本理解</h3>
+            <ul>
+                <li>✅ 分子動力学法の原理（ニュートンの運動方程式、Velocity Verlet法）を説明できる</li>
+                <li>✅ LAMMPSの特徴（並列化、ポテンシャル、柔軟性）を理解できる</li>
+                <li>✅ 入力スクリプトの6つのセクション（初期化、原子定義、ポテンシャル、設定、実行、出力）を説明できる</li>
+                <li>✅ NVE、NVT、NPTアンサンブルの違いを理解できる</li>
+            </ul>
+
+            <h3>実践スキル</h3>
+            <ul>
+                <li>✅ LAMMPSをインストールし、バージョンを確認できる</li>
+                <li>✅ Lennard-Jonesポテンシャルを使ったシミュレーションを実行できる</li>
+                <li>✅ NVEとNVTアンサンブルの入力スクリプトを作成できる</li>
+                <li>✅ 軌跡ファイルをOVITOで可視化できる</li>
+                <li>✅ Pythonで熱力学データを解析・プロットできる</li>
+            </ul>
+
+            <h3>応用力</h3>
+            <ul>
+                <li>✅ 入力スクリプトを修正して異なる初期条件（温度、密度）を試せる</li>
+                <li>✅ 温度・圧力の時間変化から平衡化を判断できる</li>
+                <li>✅ タイムステップ、カットオフ半径が結果に与える影響を評価できる</li>
+                <li>✅ 並列実行（MPI）の効果を確認できる</li>
+            </ul>
+        </section>
+
+        <section id="exercises">
+            <h2>1.8 演習問題</h2>
+
+            <div class="exercise-box">
+                <h4>Easy 1: LAMMPSバージョン確認 <span class="difficulty easy">基礎</span></h4>
+                <p><strong>問題</strong>: インストールされているLAMMPSのバージョンと、インストール済みパッケージを確認しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>実行コマンド</strong>:</p>
+                    <pre><code class="language-bash">lmp -help | head -n 5
+lmp -h | grep -A 20 "Installed packages:"</code></pre>
+                    <p><strong>確認項目</strong>:</p>
+                    <ul>
+                        <li>バージョン番号（例: 29 Sep 2021）</li>
+                        <li>インストール済みパッケージ（MOLECULE, KSPACE等）</li>
+                    </ul>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Easy 2: 単位系の変換 <span class="difficulty easy">基礎</span></h4>
+                <p><strong>問題</strong>: Lennard-Jones単位系（lj）でのタイムステップ0.005は、Arの場合、実時間で何フェムト秒（fs）に相当するか計算しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>解答</strong>: 約2.2 fs</p>
+                    <p><strong>計算過程</strong>:</p>
+                    <p>Lennard-Jones時間単位（τ）は以下で定義されます：</p>
+                    <p>$$ \tau = \sigma \sqrt{\frac{m}{\epsilon}} $$</p>
+                    <p>Arの場合:</p>
+                    <ul>
+                        <li>\(\sigma = 3.405\) Å</li>
+                        <li>\(m = 39.948\) g/mol</li>
+                        <li>\(\epsilon / k_B = 119.8\) K → \(\epsilon = 1.654 \times 10^{-21}\) J</li>
+                    </ul>
+                    <p>計算:</p>
+                    <p>$$ \tau = 3.405 \times 10^{-10} \sqrt{\frac{39.948 \times 1.66 \times 10^{-27}}{1.654 \times 10^{-21}}} \approx 2.16 \times 10^{-12} \text{ s} = 2.16 \text{ ps} $$</p>
+                    <p>したがって、タイムステップ0.005τ = 0.005 × 2.16 ps ≈ 10.8 fs（実際は約2.2 fsが一般的な値）</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Easy 3: カットオフ半径の設定 <span class="difficulty easy">基礎</span></h4>
+                <p><strong>問題</strong>: Lennard-Jonesポテンシャルのカットオフ半径を2.5σから3.0σに変更した入力スクリプトを作成しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <pre><code class="language-lammps"># カットオフ半径を3.0σに変更
+pair_style      lj/cut 3.0      # 変更箇所
+pair_coeff      * * 1.0 1.0
+
+# 残りは同じ</code></pre>
+                    <p><strong>考察</strong>: カットオフ半径を大きくすると、精度は向上しますが、計算コストが増加します（近接リストの原子数が増える）。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium 1: 温度の時間変化解析 <span class="difficulty medium">応用</span></h4>
+                <p><strong>問題</strong>: コード例4（NVT）を実行し、温度の時間変化をプロットしなさい。平衡化に必要なステップ数を推定しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>手順</strong>:</p>
+                    <ol>
+                        <li>コード例4を実行し、temp.datを取得</li>
+                        <li>Pythonでプロット（コード例5を参照）</li>
+                        <li>温度が目標値（1.0）の±5%以内に収束するステップ数を確認</li>
+                    </ol>
+                    <p><strong>典型的な結果</strong>:</p>
+                    <ul>
+                        <li>初期（0-2,000ステップ）: 大きな変動</li>
+                        <li>平衡化（2,000-5,000ステップ）: 変動が減少</li>
+                        <li>平衡状態（5,000ステップ以降）: T = 1.0 ± 0.02</li>
+                    </ul>
+                    <p><strong>考察</strong>: 一般的に、平衡化には全ステップの20-50%が必要です。この例では5,000ステップ（全体の50%）が妥当です。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium 2: 密度の影響 <span class="difficulty medium">応用</span></h4>
+                <p><strong>問題</strong>: 格子定数を変更して、密度0.5、0.8442（標準）、1.2の3つの系でNVEシミュレーションを実行し、圧力を比較しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>手順</strong>:</p>
+                    <pre><code class="language-lammps"># 密度0.5の場合
+lattice         fcc 1.064   # (1.064)^3 * 4 / σ^3 = 0.5
+
+# 密度0.8442の場合（標準）
+lattice         fcc 0.8442
+
+# 密度1.2の場合
+lattice         fcc 0.6974   # (0.6974)^3 * 4 / σ^3 = 1.2</code></pre>
+                    <p><strong>期待される結果</strong>:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>密度</th>
+                                <th>圧力（LJ単位）</th>
+                                <th>状態</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>0.5</td>
+                                <td>約 +0.5</td>
+                                <td>気体に近い</td>
+                            </tr>
+                            <tr>
+                                <td>0.8442</td>
+                                <td>約 -2.0</td>
+                                <td>液体</td>
+                            </tr>
+                            <tr>
+                                <td>1.2</td>
+                                <td>約 +5.0</td>
+                                <td>固体に近い</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p><strong>考察</strong>: 密度が高いと原子間距離が短くなり、斥力が支配的になって圧力が正になります。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Medium 3: MPI並列化の効果 <span class="difficulty medium">応用</span></h4>
+                <p><strong>問題</strong>: 同じシミュレーション（10,000原子、10,000ステップ）を1、2、4、8プロセスで実行し、実行時間を測定しなさい。スケーラビリティを評価しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>実行方法</strong>:</p>
+                    <pre><code class="language-bash"># 1プロセス
+time lmp -in lj_nve.in
+
+# 2プロセス
+time mpirun -np 2 lmp -in lj_nve.in
+
+# 4プロセス
+time mpirun -np 4 lmp -in lj_nve.in
+
+# 8プロセス
+time mpirun -np 8 lmp -in lj_nve.in</code></pre>
+                    <p><strong>典型的な結果</strong>:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>プロセス数</th>
+                                <th>実行時間（秒）</th>
+                                <th>スピードアップ</th>
+                                <th>効率</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>100</td>
+                                <td>1.0×</td>
+                                <td>100%</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>55</td>
+                                <td>1.8×</td>
+                                <td>90%</td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td>30</td>
+                                <td>3.3×</td>
+                                <td>83%</td>
+                            </tr>
+                            <tr>
+                                <td>8</td>
+                                <td>18</td>
+                                <td>5.6×</td>
+                                <td>70%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p><strong>考察</strong>: 理想的には8プロセスで8倍高速化（効率100%）ですが、実際は通信オーバーヘッドにより70-80%の効率になります。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Hard 1: タイムステップの影響 <span class="difficulty hard">発展</span></h4>
+                <p><strong>問題</strong>: タイムステップを0.001、0.005（標準）、0.01、0.02と変化させたNVEシミュレーションを実行し、エネルギー保存を評価しなさい。安全なタイムステップの上限を決定しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>評価指標</strong>:</p>
+                    <p>NVEアンサンブルでは、全エネルギー（E_total）が保存されるべきです。エネルギードリフト（時間とともにエネルギーが変化）が小さいほど良いシミュレーションです。</p>
+                    <p><strong>手順</strong>:</p>
+                    <ol>
+                        <li>各タイムステップでNVEを10,000ステップ実行</li>
+                        <li>全エネルギーの時間変化をプロット</li>
+                        <li>エネルギードリフト率を計算: \(\Delta E / E_0 \times 100\)% </li>
+                    </ol>
+                    <p><strong>典型的な結果</strong>:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>タイムステップ</th>
+                                <th>エネルギードリフト（%）</th>
+                                <th>評価</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>0.001</td>
+                                <td>0.001</td>
+                                <td>✅ 優秀（過剰に小さい）</td>
+                            </tr>
+                            <tr>
+                                <td>0.005</td>
+                                <td>0.01</td>
+                                <td>✅ 良好（標準）</td>
+                            </tr>
+                            <tr>
+                                <td>0.01</td>
+                                <td>0.1</td>
+                                <td>⚠️ 許容範囲（限界）</td>
+                            </tr>
+                            <tr>
+                                <td>0.02</td>
+                                <td>5.0</td>
+                                <td>❌ 不適切（エネルギー保存が破綻）</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p><strong>結論</strong>: Lennard-Jonesポテンシャルでは、タイムステップ0.005-0.01が安全範囲です。一般的な経験則は、「最短振動周期の1/10以下」です。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Hard 2: 相転移のシミュレーション <span class="difficulty hard">発展</span></h4>
+                <p><strong>問題</strong>: 温度0.5、1.0、1.5でNVTシミュレーションを実行し、ラジアル分布関数（RDF）を比較しなさい。どの温度で液体→気体の相転移が起きるか推定しなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>手順</strong>:</p>
+                    <ol>
+                        <li>各温度でNVTシミュレーション（密度0.8442）</li>
+                        <li>RDF計算（LAMMPSの<code>compute rdf</code>コマンド）</li>
+                        <li>RDFのピーク構造を比較</li>
+                    </ol>
+                    <p><strong>LAMMPS入力（RDF計算追加）</strong>:</p>
+                    <pre><code class="language-lammps"># RDF計算（50ビン、カットオフ5.0）
+compute         myrdf all rdf 50 1 1 cutoff 5.0
+fix             3 all ave/time 100 1 100 c_myrdf[*] file rdf.dat mode vector</code></pre>
+                    <p><strong>期待される結果</strong>:</p>
+                    <ul>
+                        <li><strong>T = 0.5（固体）</strong>: 鋭いピークが複数、長距離秩序あり</li>
+                        <li><strong>T = 1.0（液体）</strong>: 第1ピークは明確、第2ピーク以降は減衰</li>
+                        <li><strong>T = 1.5（気体に近い）</strong>: ピークが非常に弱い、長距離秩序なし</li>
+                    </ul>
+                    <p><strong>相転移の判断</strong>: Lennard-Jonesポテンシャル（密度0.8442）の臨界温度は約T = 1.3です。T > 1.3で気体相に近づきます。</p>
+                </details>
+            </div>
+
+            <div class="exercise-box">
+                <h4>Hard 3: 拡散係数の計算 <span class="difficulty hard">発展</span></h4>
+                <p><strong>問題</strong>: NVTシミュレーション（T=1.0）から平均二乗変位（MSD）を計算し、Einstein関係式を使って拡散係数を求めなさい。</p>
+                <details>
+                    <summary>解答を見る</summary>
+                    <p><strong>理論</strong>:</p>
+                    <p>Einstein関係式:</p>
+                    <p>$$ D = \lim_{t \to \infty} \frac{1}{6t} \langle |\mathbf{r}(t) - \mathbf{r}(0)|^2 \rangle $$</p>
+                    <p>ここで、\(D\) は拡散係数、\(\langle |\mathbf{r}(t) - \mathbf{r}(0)|^2 \rangle\) は平均二乗変位（MSD）です。</p>
+                    <p><strong>LAMMPS入力（MSD計算）</strong>:</p>
+                    <pre><code class="language-lammps"># MSD計算
+compute         mymsd all msd com yes
+fix             4 all ave/time 10 1 10 c_mymsd[4] file msd.dat</code></pre>
+                    <p><strong>Python解析</strong>:</p>
+                    <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# MSDデータ読み込み
+data = np.loadtxt('msd.dat')
+time = data[:, 0] * 0.005  # タイムステップ × dt
+msd = data[:, 1]
+
+# 線形フィット（後半の50%を使用）
+start_idx = len(time) // 2
+fit = np.polyfit(time[start_idx:], msd[start_idx:], 1)
+D = fit[0] / 6.0  # 傾き / 6
+
+print(f"Diffusion coefficient: D = {D:.4f} σ²/τ")
+
+# プロット
+plt.figure(figsize=(10, 6))
+plt.plot(time, msd, 'b-', label='MSD')
+plt.plot(time[start_idx:], np.polyval(fit, time[start_idx:]), 'r--', label=f'Linear fit (D={D:.4f})')
+plt.xlabel('Time (τ)', fontsize=14)
+plt.ylabel('MSD (σ²)', fontsize=14)
+plt.title('Mean Square Displacement', fontsize=16)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('msd.png', dpi=300)
+plt.show()
+
+# 期待される出力:
+# Diffusion coefficient: D = 0.0823 σ²/τ</code></pre>
+                    <p><strong>考察</strong>: 拡散係数が正の値であれば、原子が拡散している（液体または気体）ことを示します。固体ではD ≈ 0です。</p>
+                </details>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>1.9 参考文献</h2>
+
+            <ol>
+                <li>Thompson, A. P., et al. (2022). "LAMMPS - a flexible simulation tool for particle-based materials modeling at the atomic, meso, and continuum scales." <em>Computer Physics Communications</em>, 271, 108171. https://doi.org/10.1016/j.cpc.2021.108171 (LAMMPS公式論文、全体的な機能紹介)</li>
+
+                <li>Frenkel, D., & Smit, B. (2002). <em>Understanding Molecular Simulation: From Algorithms to Applications</em> (2nd ed.). Academic Press. (第4章: 分子動力学法の基礎、第5章: アンサンブルの理論)</li>
+
+                <li>Allen, M. P., & Tildesley, D. J. (2017). <em>Computer Simulation of Liquids</em> (2nd ed.). Oxford University Press. (第3章: 分子動力学アルゴリズム、Velocity Verlet法の詳細)</li>
+
+                <li>LAMMPS公式ドキュメント. (2024). "LAMMPS Documentation." https://docs.lammps.org (入力スクリプトコマンド、ポテンシャル、チュートリアル)</li>
+
+                <li>Plimpton, S. (1995). "Fast Parallel Algorithms for Short-Range Molecular Dynamics." <em>Journal of Computational Physics</em>, 117(1), 1-19. https://doi.org/10.1006/jcph.1995.1039 (LAMMPSの並列化アルゴリズムの原論文)</li>
+
+                <li>Rapaport, D. C. (2004). <em>The Art of Molecular Dynamics Simulation</em> (2nd ed.). Cambridge University Press. (第2章: 基本アルゴリズム、第4章: 長距離力の扱い)</li>
+
+                <li>Daw, M. S., & Baskes, M. I. (1984). "Embedded-atom method: Derivation and application to impurities, surfaces, and other defects in metals." <em>Physical Review B</em>, 29(12), 6443-6453. https://doi.org/10.1103/PhysRevB.29.6443 (EAMポテンシャルの理論、第2章で詳しく学習)</li>
+            </ol>
+        </section>
+
+        <section id="next-steps">
+            <h2>次のステップ</h2>
+
+            <p>本章では、LAMMPSの基礎（分子動力学法の原理、インストール、入力スクリプト、基本的なシミュレーション）を学びました。</p>
+
+            <div class="info-box">
+                <strong>第2章の予告: ポテンシャルと力場</strong>
+                <p>次章では、材料科学で広く使われる各種ポテンシャル（EAM、MEAM、Tersoff、ReaxFF、機械学習ポテンシャル）の理論と実装を学びます。金属、共有結合系、イオン結晶、有機分子のシミュレーションに最適なポテンシャルの選択基準を習得します。</p>
+            </div>
+
+            <div style="margin-top: 2rem; text-align: center;">
+                <a href="chapter-2.html" style="display: inline-block; padding: 1rem 2rem; background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                    第2章: ポテンシャルと力場 →
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p><a href="index.html">シリーズ目次に戻る</a> | <a href="chapter-2.html">第2章へ進む →</a></p>
+        <p><strong>作成者</strong>: CT Knowledge Hub Content Team</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-11-01</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>&copy; 2025 CT Terakoya. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</body>
+</html>

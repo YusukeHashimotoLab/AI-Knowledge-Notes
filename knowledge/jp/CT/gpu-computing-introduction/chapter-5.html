@@ -1,0 +1,1969 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第5章: Python実践：材料科学GPU計算ワークフロー - GPU並列計算入門 - CT Dojo</title>
+    <meta name="description" content="統合ワークフロー、分子動力学シミュレーション、密度汎関数理論計算、機械学習材料探索への GPU活用を実践する。">
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- MathJax for mathematical expressions -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --accent-green: #11998e;
+            --accent-lime: #38ef7d;
+            --primary-dark: #2c3e50;
+            --secondary-dark: #34495e;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #ecf0f1;
+            --white: #ffffff;
+            --code-bg: #2d2d2d;
+            --border-light: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        section {
+            background: var(--white);
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 3px solid var(--accent-green);
+        }
+
+        h3 {
+            color: var(--secondary-dark);
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem 0;
+        }
+
+        h4 {
+            color: var(--secondary-dark);
+            font-size: 1.1rem;
+            margin: 1.5rem 0 0.75rem 0;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: var(--bg-light);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: #f8f8f2;
+        }
+
+        .info-box {
+            background: #e8f5e9;
+            border-left: 4px solid var(--success);
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid var(--warning);
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .tip-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .exercise {
+            background: #f5f5f5;
+            border: 1px solid var(--border-light);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 6px;
+        }
+
+        .exercise h4 {
+            color: var(--accent-green);
+            margin-top: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 0.9rem;
+            text-align: left;
+            border: 1px solid var(--border-light);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        .key-points {
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
+            border: 2px solid var(--accent-green);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+
+        .key-points h3 {
+            color: var(--accent-green);
+            margin-top: 0;
+        }
+
+        .key-points ul {
+            margin-left: 1.5rem;
+        }
+
+        .objectives {
+            background: #fff;
+            border: 2px solid var(--accent-lime);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+
+        .objectives h3 {
+            color: var(--accent-green);
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: 0.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>第5章: Python実践：材料科学GPU計算ワークフロー</h1>
+        <p>統合ワークフロー設計から高スループット材料スクリーニングまで</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">トップ</a></li>
+            <li><a href="chapter-1.html">第1章</a></li>
+            <li><a href="chapter-2.html">第2章</a></li>
+            <li><a href="chapter-3.html">第3章</a></li>
+            <li><a href="chapter-4.html">第4章</a></li>
+            <li><a href="chapter-5.html">第5章</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="introduction">
+            <h2>本章の概要</h2>
+            <p>
+                本章では、これまで学んだGPU計算技術を実際の材料科学研究に適用する統合ワークフローを構築します。分子動力学（MD）シミュレーション、密度汎関数理論（DFT）計算、機械学習材料探索という3つの主要な計算手法におけるGPU活用を、Pythonを用いて実践的に学びます。
+            </p>
+
+            <div class="objectives">
+                <h3>学習目標</h3>
+                <p>本章を完了すると、以下のスキルを習得できます：</p>
+                <h4>基本理解</h4>
+                <ul>
+                    <li>材料科学におけるGPU計算ワークフローの全体設計を理解できる</li>
+                    <li>MDシミュレーション、DFT計算、機械学習のGPU加速ポイントを説明できる</li>
+                    <li>データパイプラインとGPUリソース管理の重要性を理解できる</li>
+                </ul>
+                <h4>実践スキル</h4>
+                <ul>
+                    <li>CuPyを用いたMDシミュレーションのGPU実装ができる</li>
+                    <li>DFT計算の前処理・後処理をGPU加速できる</li>
+                    <li>cuMLを使った材料特性予測モデルを構築できる</li>
+                    <li>マルチGPU環境で高スループットスクリーニングを実行できる</li>
+                </ul>
+                <h4>応用力</h4>
+                <ul>
+                    <li>研究テーマに応じた最適なGPU計算戦略を設計できる</li>
+                    <li>複数の計算手法を統合したend-to-endワークフローを構築できる</li>
+                    <li>GPUリソースを効率的に活用し、計算時間を最小化できる</li>
+                </ul>
+            </div>
+
+            <div class="key-points">
+                <h3>この章で学ぶこと</h3>
+                <ul>
+                    <li><strong>5.1</strong>: 統合GPU計算ワークフローの設計原則とデータパイプライン構築</li>
+                    <li><strong>5.2</strong>: Lennard-Jonesポテンシャルを用いたMDシミュレーションのGPU実装</li>
+                    <li><strong>5.3</strong>: DFT計算におけるバンド構造解析とDOS計算のGPU加速</li>
+                    <li><strong>5.4</strong>: cuMLを活用した材料物性予測と記述子計算の高速化</li>
+                    <li><strong>5.5</strong>: マルチGPUによる高スループット材料スクリーニングの実装</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="section5-1">
+            <h2>5.1 統合GPU計算ワークフロー設計</h2>
+
+            <h3>5.1.1 材料科学計算ワークフローの全体像</h3>
+            <p>
+                材料科学研究におけるGPU計算ワークフローは、データ前処理、計算実行、結果解析という3つのフェーズから構成されます。各フェーズでGPUリソースを効率的に活用するためには、データ転送を最小化し、GPU上でのデータ滞在時間を最大化する設計が重要です。
+            </p>
+
+            <div class="mermaid">
+flowchart TD
+    A[原子構造データ] --> B[GPU前処理]
+    B --> C{計算タイプ}
+    C -->|MD| D[分子動力学計算]
+    C -->|DFT| E[第一原理計算]
+    C -->|ML| F[機械学習予測]
+    D --> G[GPU後処理]
+    E --> G
+    F --> G
+    G --> H[結果保存・可視化]
+
+    style A fill:#e3f2fd
+    style B fill:#c8e6c9
+    style C fill:#fff9c4
+    style D fill:#ffccbc
+    style E fill:#ffccbc
+    style F fill:#ffccbc
+    style G fill:#c8e6c9
+    style H fill:#e3f2fd
+            </div>
+
+            <h3>5.1.2 統合ワークフローフレームワークの実装</h3>
+            <p>
+                以下は、材料科学GPU計算のための汎用ワークフローフレームワークです。デバイス管理、データ前処理、計算実行、結果エクスポートを統一的に扱います。
+            </p>
+
+            <pre><code class="language-python">import numpy as np
+import cupy as cp
+from typing import Dict, Any, Optional
+
+class MaterialsGPUWorkflow:
+    """材料科学GPU計算統合ワークフロー"""
+
+    def __init__(self, use_gpu: bool = True, device_id: int = 0):
+        """
+        Parameters
+        ----------
+        use_gpu : bool
+            GPU使用フラグ（Falseの場合はCPUフォールバック）
+        device_id : int
+            使用するGPUデバイスID（マルチGPU環境）
+        """
+        if use_gpu and cp.cuda.is_available():
+            cp.cuda.Device(device_id).use()
+            self.device = cp
+            self.device_type = f"GPU {device_id}"
+        else:
+            self.device = np
+            self.device_type = "CPU"
+
+        self.results = {}
+        self.metadata = {
+            'device': self.device_type,
+            'workflow_version': '1.0',
+            'timestamp': None
+        }
+
+    def preprocess_data(self, raw_data: np.ndarray,
+                       dtype: Optional[type] = None) -> cp.ndarray:
+        """
+        データをGPUメモリに転送し、適切な型に変換
+
+        Parameters
+        ----------
+        raw_data : np.ndarray
+            CPU上の入力データ
+        dtype : type, optional
+            変換後のデータ型（デフォルト: float32）
+
+        Returns
+        -------
+        cp.ndarray
+            GPU上のデータ（CPU使用時はnp.ndarray）
+        """
+        if dtype is None:
+            dtype = self.device.float32
+
+        # GPU転送とメモリ連続性の確保
+        gpu_data = self.device.asarray(raw_data, dtype=dtype)
+
+        # メモリコアレッシングの最適化
+        if not gpu_data.flags['C_CONTIGUOUS']:
+            gpu_data = self.device.ascontiguousarray(gpu_data)
+
+        return gpu_data
+
+    def run_analysis(self, data: cp.ndarray,
+                    kernel_func: callable, **kwargs) -> cp.ndarray:
+        """
+        GPU上で計算カーネルを実行
+
+        Parameters
+        ----------
+        data : cp.ndarray
+            処理対象データ
+        kernel_func : callable
+            実行する計算カーネル
+        **kwargs : dict
+            カーネルに渡す追加パラメータ
+
+        Returns
+        -------
+        cp.ndarray
+            計算結果
+        """
+        # 非同期実行のためのストリーム作成
+        with cp.cuda.Stream():
+            result = kernel_func(data, **kwargs)
+            # 明示的な同期（デバッグ用）
+            cp.cuda.Stream.null.synchronize()
+
+        return result
+
+    def export_results(self, filename: str, compress: bool = True):
+        """
+        計算結果をCPUに転送してファイル保存
+
+        Parameters
+        ----------
+        filename : str
+            保存ファイル名（.npz形式）
+        compress : bool
+            圧縮保存フラグ
+        """
+        # GPU配列をCPUに転送
+        cpu_results = {}
+        for key, value in self.results.items():
+            if isinstance(value, cp.ndarray):
+                cpu_results[key] = cp.asnumpy(value)
+            else:
+                cpu_results[key] = value
+
+        # メタデータを含めて保存
+        cpu_results['metadata'] = self.metadata
+
+        if compress:
+            np.savez_compressed(filename, **cpu_results)
+        else:
+            np.savez(filename, **cpu_results)
+
+        print(f"Results saved to {filename} ({self.device_type})")
+
+# 使用例
+if __name__ == "__main__":
+    # ワークフロー初期化
+    workflow = MaterialsGPUWorkflow(use_gpu=True, device_id=0)
+
+    # サンプルデータ（原子座標など）
+    raw_coords = np.random.rand(1000, 3).astype(np.float32)
+
+    # データ前処理（GPU転送）
+    gpu_coords = workflow.preprocess_data(raw_coords)
+
+    # ダミー計算カーネル（実際のMD/DFT/ML処理に置き換える）
+    def dummy_kernel(coords, scale=1.0):
+        return coords * scale + cp.mean(coords, axis=0)
+
+    # 計算実行
+    result = workflow.run_analysis(gpu_coords, dummy_kernel, scale=2.0)
+    workflow.results['processed_coords'] = result
+
+    # 結果保存
+    workflow.export_results('materials_results.npz')</code></pre>
+
+            <h3>5.1.3 エラーハンドリングとリソース管理</h3>
+            <p>
+                本番環境では、GPUメモリ不足やカーネル実行エラーに対する堅牢なエラーハンドリングが必要です。以下は、リソース管理とエラー処理を統合した拡張版です。
+            </p>
+
+            <pre><code class="language-python">import gc
+from contextlib import contextmanager
+
+class RobustMaterialsWorkflow(MaterialsGPUWorkflow):
+    """エラーハンドリング機能を追加した堅牢なワークフロー"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.memory_pool = cp.get_default_memory_pool()
+        self.pinned_memory_pool = cp.get_default_pinned_memory_pool()
+
+    @contextmanager
+    def gpu_memory_manager(self):
+        """GPUメモリの自動管理コンテキスト"""
+        initial_used = self.memory_pool.used_bytes()
+        try:
+            yield
+        finally:
+            # 明示的なメモリ解放
+            self.memory_pool.free_all_blocks()
+            self.pinned_memory_pool.free_all_blocks()
+            gc.collect()
+
+            freed = initial_used - self.memory_pool.used_bytes()
+            if freed > 0:
+                print(f"Freed {freed / 1e6:.2f} MB of GPU memory")
+
+    def safe_run_analysis(self, data: cp.ndarray,
+                         kernel_func: callable,
+                         fallback_to_cpu: bool = True,
+                         **kwargs) -> cp.ndarray:
+        """
+        エラー処理付き計算実行
+
+        Parameters
+        ----------
+        fallback_to_cpu : bool
+            GPU失敗時にCPUフォールバックするか
+        """
+        try:
+            with self.gpu_memory_manager():
+                result = self.run_analysis(data, kernel_func, **kwargs)
+            return result
+
+        except cp.cuda.memory.OutOfMemoryError as e:
+            print(f"GPU memory error: {e}")
+            if fallback_to_cpu:
+                print("Falling back to CPU computation...")
+                # CPUで計算実行
+                cpu_data = cp.asnumpy(data)
+                cpu_result = kernel_func(cpu_data, **kwargs)
+                return cp.asarray(cpu_result)
+            else:
+                raise
+
+        except Exception as e:
+            print(f"Kernel execution error: {e}")
+            raise
+
+    def get_memory_info(self) -> Dict[str, float]:
+        """GPUメモリ使用状況を取得"""
+        if self.device == cp:
+            return {
+                'used_MB': self.memory_pool.used_bytes() / 1e6,
+                'total_MB': self.memory_pool.total_bytes() / 1e6,
+                'free_MB': (self.memory_pool.total_bytes() -
+                           self.memory_pool.used_bytes()) / 1e6
+            }
+        else:
+            return {'device': 'CPU'}
+
+# 使用例
+workflow = RobustMaterialsWorkflow(use_gpu=True)
+print("Memory info:", workflow.get_memory_info())</code></pre>
+
+            <div class="tip-box">
+                <strong>実装のポイント:</strong>
+                <ul>
+                    <li><strong>コンテキストマネージャ</strong>: <code>with</code>文でGPUメモリの自動解放を保証</li>
+                    <li><strong>CPUフォールバック</strong>: GPUメモリ不足時にCPU計算に自動切り替え</li>
+                    <li><strong>メモリプール管理</strong>: CuPyのメモリプールを明示的に解放し、断片化を防止</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="section5-2">
+            <h2>5.2 分子動力学（MD）シミュレーションGPU加速</h2>
+
+            <h3>5.2.1 Lennard-Jonesポテンシャルの実装</h3>
+            <p>
+                分子動力学シミュレーションでは、原子間相互作用をモデル化するポテンシャル関数が必要です。最も基本的なLennard-Jones (LJ)ポテンシャルは以下で定義されます：
+            </p>
+
+            <p>
+                \[
+                V_{\text{LJ}}(r) = 4\epsilon \left[ \left(\frac{\sigma}{r}\right)^{12} - \left(\frac{\sigma}{r}\right)^6 \right]
+                \]
+            </p>
+
+            <p>
+                ここで、\( \epsilon \)は相互作用の強さ、\( \sigma \)は原子の有効直径、\( r \)は原子間距離です。力は以下で計算されます：
+            </p>
+
+            <p>
+                \[
+                \mathbf{F} = -\nabla V_{\text{LJ}} = \frac{24\epsilon}{r^2} \left[ 2\left(\frac{\sigma}{r}\right)^{12} - \left(\frac{\sigma}{r}\right)^6 \right] \mathbf{r}
+                \]
+            </p>
+
+            <pre><code class="language-python">import cupy as cp
+
+def compute_lj_forces_gpu(positions: cp.ndarray,
+                         epsilon: float = 1.0,
+                         sigma: float = 1.0,
+                         cutoff: float = 2.5) -> cp.ndarray:
+    """
+    Lennard-Jonesポテンシャルによる原子間力をGPU計算
+
+    Parameters
+    ----------
+    positions : cp.ndarray, shape (N, 3)
+        原子座標
+    epsilon : float
+        LJポテンシャルのエネルギースケール
+    sigma : float
+        LJポテンシャルの距離スケール
+    cutoff : float
+        カットオフ距離（sigma単位）
+
+    Returns
+    -------
+    forces : cp.ndarray, shape (N, 3)
+        各原子に働く力
+    """
+    N = positions.shape[0]
+    forces = cp.zeros_like(positions)
+    cutoff_sq = (cutoff * sigma) ** 2
+
+    # 全原子ペアの距離ベクトル計算（ブロードキャスト活用）
+    # positions: (N, 3) -> (N, 1, 3), (1, N, 3)
+    r_vec = positions[:, cp.newaxis, :] - positions[cp.newaxis, :, :]
+
+    # 距離の二乗: (N, N)
+    r_sq = cp.sum(r_vec ** 2, axis=2)
+
+    # カットオフ適用（自己相互作用も除外）
+    mask = (r_sq < cutoff_sq) & (r_sq > 0)
+
+    # LJポテンシャル計算
+    r_sq_masked = cp.where(mask, r_sq, 1.0)  # ゼロ除算回避
+    inv_r2 = 1.0 / r_sq_masked
+    inv_r6 = inv_r2 ** 3
+    inv_r12 = inv_r6 ** 2
+
+    # 力の大きさ: 24ε/r^2 * [2(σ/r)^12 - (σ/r)^6]
+    sigma6 = sigma ** 6
+    sigma12 = sigma ** 12
+    f_magnitude = 24.0 * epsilon * inv_r2 * (
+        2.0 * sigma12 * inv_r12 - sigma6 * inv_r6
+    )
+
+    # マスクを適用
+    f_magnitude = cp.where(mask, f_magnitude, 0.0)
+
+    # 力ベクトル: F = f_magnitude * r_vec
+    # (N, N, 3) = (N, N, 1) * (N, N, 3)
+    f_vec = f_magnitude[:, :, cp.newaxis] * r_vec
+
+    # 各原子の力を集計（軸1方向の和）
+    forces = cp.sum(f_vec, axis=1)
+
+    return forces</code></pre>
+
+            <h3>5.2.2 Velocity Verlet積分法の実装</h3>
+            <p>
+                時間発展にはVelocity Verlet法を使用します。この手法は、エネルギー保存性に優れ、分子動力学シミュレーションで広く使われています。
+            </p>
+
+            <p>
+                アルゴリズムは以下の通りです：
+            </p>
+
+            <ol>
+                <li>\( \mathbf{v}(t + \frac{\Delta t}{2}) = \mathbf{v}(t) + \frac{\Delta t}{2m} \mathbf{F}(t) \)</li>
+                <li>\( \mathbf{r}(t + \Delta t) = \mathbf{r}(t) + \Delta t \mathbf{v}(t + \frac{\Delta t}{2}) \)</li>
+                <li>\( \mathbf{F}(t + \Delta t) \) を計算</li>
+                <li>\( \mathbf{v}(t + \Delta t) = \mathbf{v}(t + \frac{\Delta t}{2}) + \frac{\Delta t}{2m} \mathbf{F}(t + \Delta t) \)</li>
+            </ol>
+
+            <pre><code class="language-python">def md_simulation_gpu(positions: np.ndarray,
+                     velocities: np.ndarray,
+                     n_steps: int = 1000,
+                     dt: float = 0.001,
+                     mass: float = 1.0,
+                     epsilon: float = 1.0,
+                     sigma: float = 1.0,
+                     target_temp: float = 1.0,
+                     temp_rescale_interval: int = 100):
+    """
+    GPU加速分子動力学シミュレーション
+
+    Parameters
+    ----------
+    positions : np.ndarray, shape (N, 3)
+        初期原子座標
+    velocities : np.ndarray, shape (N, 3)
+        初期速度
+    n_steps : int
+        シミュレーションステップ数
+    dt : float
+        時間刻み幅
+    mass : float
+        原子質量（簡略化のため全原子同一）
+    target_temp : float
+        目標温度（Boltzmann単位）
+    temp_rescale_interval : int
+        温度スケーリング間隔
+
+    Returns
+    -------
+    positions : np.ndarray
+        最終原子座標
+    velocities : np.ndarray
+        最終速度
+    energies : dict
+        エネルギー履歴
+    """
+    # GPU転送
+    pos = cp.asarray(positions, dtype=cp.float32)
+    vel = cp.asarray(velocities, dtype=cp.float32)
+
+    # エネルギー履歴保存
+    energies = {
+        'kinetic': [],
+        'potential': [],
+        'total': [],
+        'temperature': []
+    }
+
+    for step in range(n_steps):
+        # 力計算
+        forces = compute_lj_forces_gpu(pos, epsilon, sigma)
+
+        # Velocity Verlet 1: v(t+dt/2) = v(t) + (dt/2) * F(t) / m
+        vel += 0.5 * dt * forces / mass
+
+        # Velocity Verlet 2: r(t+dt) = r(t) + dt * v(t+dt/2)
+        pos += dt * vel
+
+        # 周期境界条件（立方体セル）
+        box_length = 10.0
+        pos = pos % box_length
+
+        # 新しい位置での力計算
+        forces = compute_lj_forces_gpu(pos, epsilon, sigma)
+
+        # Velocity Verlet 3: v(t+dt) = v(t+dt/2) + (dt/2) * F(t+dt) / m
+        vel += 0.5 * dt * forces / mass
+
+        # 温度制御（Berendsen熱浴）
+        if step % temp_rescale_interval == 0:
+            current_temp = compute_temperature_gpu(vel, mass)
+            if current_temp > 0:
+                lambda_rescale = cp.sqrt(target_temp / current_temp)
+                vel *= lambda_rescale
+
+        # エネルギー計算（100ステップごと）
+        if step % 100 == 0:
+            ke = compute_kinetic_energy_gpu(vel, mass)
+            pe = compute_potential_energy_gpu(pos, epsilon, sigma)
+            temp = compute_temperature_gpu(vel, mass)
+
+            energies['kinetic'].append(float(cp.asnumpy(ke)))
+            energies['potential'].append(float(cp.asnumpy(pe)))
+            energies['total'].append(float(cp.asnumpy(ke + pe)))
+            energies['temperature'].append(float(cp.asnumpy(temp)))
+
+    return cp.asnumpy(pos), cp.asnumpy(vel), energies
+
+def compute_temperature_gpu(velocities: cp.ndarray, mass: float) -> float:
+    """運動エネルギーから温度を計算（Boltzmann単位）"""
+    N = velocities.shape[0]
+    ke = 0.5 * mass * cp.sum(velocities ** 2)
+    # 温度 = 2 * KE / (3 * N * k_B), k_B = 1
+    temp = 2.0 * ke / (3.0 * N)
+    return temp
+
+def compute_kinetic_energy_gpu(velocities: cp.ndarray, mass: float) -> float:
+    """運動エネルギー計算"""
+    return 0.5 * mass * cp.sum(velocities ** 2)
+
+def compute_potential_energy_gpu(positions: cp.ndarray,
+                                epsilon: float,
+                                sigma: float) -> float:
+    """LJポテンシャルエネルギー計算"""
+    N = positions.shape[0]
+    r_vec = positions[:, cp.newaxis, :] - positions[cp.newaxis, :, :]
+    r_sq = cp.sum(r_vec ** 2, axis=2)
+
+    # 自己相互作用除外
+    mask = r_sq > 0
+    r_sq_masked = cp.where(mask, r_sq, 1.0)
+
+    inv_r2 = 1.0 / r_sq_masked
+    inv_r6 = inv_r2 ** 3
+    inv_r12 = inv_r6 ** 2
+
+    sigma6 = sigma ** 6
+    sigma12 = sigma ** 12
+
+    # V_LJ = 4ε[(σ/r)^12 - (σ/r)^6]
+    v_lj = 4.0 * epsilon * (sigma12 * inv_r12 - sigma6 * inv_r6)
+    v_lj = cp.where(mask, v_lj, 0.0)
+
+    # ダブルカウント補正（÷2）
+    pe = 0.5 * cp.sum(v_lj)
+    return pe
+
+# 使用例
+if __name__ == "__main__":
+    # 初期条件設定
+    N = 256  # 原子数
+    positions = np.random.rand(N, 3) * 10.0  # 立方体セル内
+    velocities = np.random.randn(N, 3) * 0.1  # Maxwell分布近似
+
+    # MDシミュレーション実行
+    final_pos, final_vel, energies = md_simulation_gpu(
+        positions, velocities,
+        n_steps=5000,
+        dt=0.001,
+        target_temp=1.0
+    )
+
+    print(f"Final temperature: {energies['temperature'][-1]:.3f}")
+    print(f"Energy drift: {energies['total'][-1] - energies['total'][0]:.6f}")</code></pre>
+
+            <div class="info-box">
+                <strong>GPU加速のポイント:</strong>
+                <ul>
+                    <li><strong>ブロードキャスト演算</strong>: 全原子ペアの距離計算を行列演算で一括実行</li>
+                    <li><strong>マスク処理</strong>: カットオフ距離外の計算を<code>cp.where</code>で効率的にスキップ</li>
+                    <li><strong>in-place演算</strong>: 速度・位置の更新に<code>+=</code>を使用してメモリ節約</li>
+                    <li><strong>計算量</strong>: O(N²)だが、GPUの並列性により1000原子規模まで実用的</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="section5-3">
+            <h2>5.3 DFT計算の前処理・後処理GPU加速</h2>
+
+            <h3>5.3.1 k点サンプリングとフーリエ変換</h3>
+            <p>
+                密度汎関数理論（DFT）計算では、周期系の電子状態を第一Brillouinゾーン内のk点でサンプリングします。バンド構造計算では、高対称点を結ぶk点パスに沿って固有値を計算します。
+            </p>
+
+            <p>
+                GPUは、以下の処理で威力を発揮します：
+            </p>
+            <ul>
+                <li><strong>フーリエ変換</strong>: 実空間↔運動量空間の変換（cuFFTライブラリ活用）</li>
+                <li><strong>密度行列演算</strong>: 大規模行列の対角化・固有値計算</li>
+                <li><strong>状態密度（DOS）計算</strong>: 多数の固有値からヒストグラム生成</li>
+            </ul>
+
+            <pre><code class="language-python">import cupy as cp
+from cupyx.scipy.fft import fftn, ifftn
+
+def analyze_bandstructure_gpu(eigenvalues: np.ndarray,
+                              kpoints: np.ndarray,
+                              n_valence: int,
+                              energy_range: tuple = (-10, 10),
+                              dos_bins: int = 1000) -> dict:
+    """
+    DFT計算結果のバンド構造解析をGPU実行
+
+    Parameters
+    ----------
+    eigenvalues : np.ndarray, shape (n_kpoints, n_bands)
+        各k点における固有値（エネルギー）
+    kpoints : np.ndarray, shape (n_kpoints, 3)
+        k点座標
+    n_valence : int
+        価電子バンド数（フェルミレベル以下）
+    energy_range : tuple
+        DOS計算のエネルギー範囲
+    dos_bins : int
+        DOS計算のビン数
+
+    Returns
+    -------
+    results : dict
+        バンドギャップ、DOS、有効質量などの解析結果
+    """
+    # GPU転送
+    evals_gpu = cp.asarray(eigenvalues, dtype=cp.float32)
+    kpts_gpu = cp.asarray(kpoints, dtype=cp.float32)
+
+    results = {}
+
+    # バンドギャップ計算
+    valence_max = cp.max(evals_gpu[:, :n_valence])
+    conduction_min = cp.min(evals_gpu[:, n_valence:])
+    band_gap = conduction_min - valence_max
+
+    results['band_gap_eV'] = float(cp.asnumpy(band_gap))
+    results['valence_band_max'] = float(cp.asnumpy(valence_max))
+    results['conduction_band_min'] = float(cp.asnumpy(conduction_min))
+
+    # 状態密度（DOS）計算
+    dos, energy_grid = compute_dos_gpu(
+        evals_gpu, energy_range, dos_bins
+    )
+    results['dos'] = cp.asnumpy(dos)
+    results['energy_grid'] = cp.asnumpy(energy_grid)
+
+    # 有効質量計算（バンド端付近の曲率から）
+    eff_mass_valence = compute_effective_mass_gpu(
+        evals_gpu[:, n_valence-1], kpts_gpu
+    )
+    eff_mass_conduction = compute_effective_mass_gpu(
+        evals_gpu[:, n_valence], kpts_gpu
+    )
+
+    results['effective_mass_valence'] = float(cp.asnumpy(eff_mass_valence))
+    results['effective_mass_conduction'] = float(cp.asnumpy(eff_mass_conduction))
+
+    return results
+
+def compute_dos_gpu(eigenvalues: cp.ndarray,
+                   energy_range: tuple,
+                   n_bins: int) -> tuple:
+    """
+    状態密度（DOS）をヒストグラム法で計算
+
+    Returns
+    -------
+    dos : cp.ndarray
+        各エネルギービンの状態数
+    energy_grid : cp.ndarray
+        エネルギーグリッド
+    """
+    e_min, e_max = energy_range
+    energy_grid = cp.linspace(e_min, e_max, n_bins)
+
+    # 全固有値を1次元配列に平坦化
+    all_energies = eigenvalues.flatten()
+
+    # ヒストグラム計算（GPU加速）
+    dos, _ = cp.histogram(all_energies, bins=n_bins, range=(e_min, e_max))
+
+    # k点数で正規化
+    n_kpoints = eigenvalues.shape[0]
+    dos = dos.astype(cp.float32) / n_kpoints
+
+    return dos, energy_grid
+
+def compute_effective_mass_gpu(band_energies: cp.ndarray,
+                              kpoints: cp.ndarray) -> float:
+    """
+    有効質量をバンド分散の2階微分から計算
+
+    Parameters
+    ----------
+    band_energies : cp.ndarray, shape (n_kpoints,)
+        単一バンドのエネルギー分散
+    kpoints : cp.ndarray, shape (n_kpoints, 3)
+        k点座標
+
+    Returns
+    -------
+    m_eff : float
+        有効質量（自由電子質量単位）
+    """
+    # バンド端（極値）を見つける
+    band_extremum_idx = cp.argmin(cp.abs(band_energies))
+
+    # 極値周辺のk点でパラボラフィット
+    # E(k) ≈ E_0 + (ℏ²k²)/(2m*) → 曲率から有効質量計算
+    # 簡略化: 最近傍3点で2階差分近似
+    if band_extremum_idx > 0 and band_extremum_idx < len(band_energies) - 1:
+        e0 = band_energies[band_extremum_idx]
+        e_minus = band_energies[band_extremum_idx - 1]
+        e_plus = band_energies[band_extremum_idx + 1]
+
+        k_minus = kpoints[band_extremum_idx - 1]
+        k0 = kpoints[band_extremum_idx]
+        k_plus = kpoints[band_extremum_idx + 1]
+
+        dk = cp.linalg.norm(k_plus - k_minus) / 2.0
+
+        # 2階微分: d²E/dk² ≈ (E₊ - 2E₀ + E₋) / (dk)²
+        second_deriv = (e_plus - 2*e0 + e_minus) / (dk ** 2)
+
+        # 有効質量: m* = ℏ² / (d²E/dk²)
+        # ℏ = 1 (原子単位), 自由電子質量 m_e = 1
+        m_eff = 1.0 / second_deriv if second_deriv != 0 else cp.inf
+    else:
+        m_eff = cp.nan
+
+    return m_eff
+
+# 使用例
+if __name__ == "__main__":
+    # サンプルDFTデータ（実際はVASP/Quantum ESPRESSOから読み込み）
+    n_kpoints = 100
+    n_bands = 20
+    n_valence = 10  # 価電子バンド数
+
+    # ダミーバンド構造（放物線近似）
+    kpoints = np.random.rand(n_kpoints, 3)
+    eigenvalues = np.zeros((n_kpoints, n_bands))
+
+    for i in range(n_bands):
+        if i < n_valence:
+            # 価電子バンド（下向き放物線）
+            eigenvalues[:, i] = -0.1 * i - 0.5 * np.sum(kpoints**2, axis=1)
+        else:
+            # 伝導バンド（上向き放物線）
+            eigenvalues[:, i] = 2.0 + 0.1 * (i - n_valence) + 0.5 * np.sum(kpoints**2, axis=1)
+
+    # バンド構造解析
+    results = analyze_bandstructure_gpu(eigenvalues, kpoints, n_valence)
+
+    print(f"Band gap: {results['band_gap_eV']:.3f} eV")
+    print(f"Valence effective mass: {results['effective_mass_valence']:.3f} m_e")
+    print(f"Conduction effective mass: {results['effective_mass_conduction']:.3f} m_e")</code></pre>
+
+            <h3>5.3.2 電荷密度解析とフーリエ変換</h3>
+            <p>
+                DFT計算では、電荷密度を実空間グリッドで計算し、フーリエ変換して平面波基底に展開します。この処理はGPUで大幅に高速化できます。
+            </p>
+
+            <pre><code class="language-python">from cupyx.scipy.fft import fftn, ifftn
+
+def analyze_charge_density_gpu(charge_density: np.ndarray,
+                               grid_spacing: float = 0.1) -> dict:
+    """
+    電荷密度の実空間・運動量空間解析
+
+    Parameters
+    ----------
+    charge_density : np.ndarray, shape (nx, ny, nz)
+        実空間グリッド上の電荷密度
+    grid_spacing : float
+        グリッド間隔（Angstrom）
+
+    Returns
+    -------
+    results : dict
+        積分電荷、構造因子、電荷移動量など
+    """
+    # GPU転送
+    rho_gpu = cp.asarray(charge_density, dtype=cp.complex64)
+
+    results = {}
+
+    # 実空間解析
+    total_charge = cp.sum(rho_gpu) * (grid_spacing ** 3)
+    results['total_charge'] = float(cp.asnumpy(total_charge))
+
+    # 3次元フーリエ変換（運動量空間へ）
+    rho_k = fftn(rho_gpu)
+
+    # 構造因子 S(k) = |ρ(k)|²
+    structure_factor = cp.abs(rho_k) ** 2
+    results['structure_factor_max'] = float(cp.asnumpy(cp.max(structure_factor)))
+
+    # 逆フーリエ変換で元に戻る確認（精度検証）
+    rho_reconstructed = ifftn(rho_k)
+    reconstruction_error = cp.mean(cp.abs(rho_reconstructed - rho_gpu))
+    results['reconstruction_error'] = float(cp.asnumpy(reconstruction_error))
+
+    return results</code></pre>
+
+            <div class="tip-box">
+                <strong>DFT計算でのGPU活用:</strong>
+                <ul>
+                    <li><strong>cuFFT</strong>: CuPyは内部でcuFFTを使用し、CPUのFFTWより5-10倍高速</li>
+                    <li><strong>大規模グリッド</strong>: 256³以上のグリッドではGPU効果が顕著</li>
+                    <li><strong>バッチ処理</strong>: 複数スピン成分やk点を並列処理可能</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="section5-4">
+            <h2>5.4 機械学習材料探索GPU加速</h2>
+
+            <h3>5.4.1 cuMLライブラリの活用</h3>
+            <p>
+                RAPIDS cuMLは、scikit-learn互換のGPU加速機械学習ライブラリです。材料物性予測において、大規模データセットの学習を劇的に高速化します。
+            </p>
+
+            <pre><code class="language-python">import cupy as cp
+import numpy as np
+from cuml import RandomForestRegressor
+from cuml.model_selection import train_test_split
+from cuml.metrics import mean_squared_error, r2_score
+
+class MaterialsMLGPU:
+    """GPU加速材料物性予測システム"""
+
+    def __init__(self, model_type='random_forest', **model_params):
+        """
+        Parameters
+        ----------
+        model_type : str
+            'random_forest', 'linear', 'svm'など
+        model_params : dict
+            モデルのハイパーパラメータ
+        """
+        if model_type == 'random_forest':
+            default_params = {
+                'n_estimators': 100,
+                'max_depth': 10,
+                'n_bins': 128,
+                'random_state': 42
+            }
+            default_params.update(model_params)
+            self.model = RandomForestRegressor(**default_params)
+        else:
+            raise NotImplementedError(f"Model {model_type} not implemented")
+
+        self.model_type = model_type
+        self.feature_importance_ = None
+
+    def train(self, X_train: cp.ndarray, y_train: cp.ndarray):
+        """
+        モデル学習（GPU自動加速）
+
+        Parameters
+        ----------
+        X_train : cp.ndarray, shape (n_samples, n_features)
+            訓練データの特徴量
+        y_train : cp.ndarray, shape (n_samples,)
+            訓練データの目的変数
+        """
+        print(f"Training {self.model_type} on GPU...")
+        self.model.fit(X_train, y_train)
+
+        # 特徴量重要度を取得（Random Forestの場合）
+        if hasattr(self.model, 'feature_importances_'):
+            self.feature_importance_ = self.model.feature_importances_
+
+        print("Training complete.")
+
+    def predict_batch(self, X_test: cp.ndarray) -> cp.ndarray:
+        """
+        バッチ予測（GPU加速）
+
+        Parameters
+        ----------
+        X_test : cp.ndarray, shape (n_samples, n_features)
+            テストデータ
+
+        Returns
+        -------
+        predictions : cp.ndarray, shape (n_samples,)
+            予測値
+        """
+        return self.model.predict(X_test)
+
+    def evaluate(self, X_test: cp.ndarray, y_test: cp.ndarray) -> dict:
+        """
+        モデル評価
+
+        Returns
+        -------
+        metrics : dict
+            RMSE, R², MAEなどの評価指標
+        """
+        y_pred = self.predict_batch(X_test)
+
+        mse = mean_squared_error(y_test, y_pred)
+        rmse = cp.sqrt(mse)
+        r2 = r2_score(y_test, y_pred)
+        mae = cp.mean(cp.abs(y_test - y_pred))
+
+        return {
+            'rmse': float(cp.asnumpy(rmse)),
+            'r2': float(cp.asnumpy(r2)),
+            'mae': float(cp.asnumpy(mae))
+        }
+
+    def calculate_descriptors_gpu(self, structures: list) -> cp.ndarray:
+        """
+        材料記述子をGPU計算
+
+        Parameters
+        ----------
+        structures : list
+            材料構造のリスト（ASE Atomsオブジェクトなど）
+
+        Returns
+        -------
+        descriptors : cp.ndarray, shape (n_structures, n_features)
+            計算された記述子
+        """
+        # 簡略化: 組成ベースの記述子を計算
+        # 実際にはSOAP、MBTR、Coulomb Matrixなどを使用
+        descriptors = []
+
+        for struct in structures:
+            # ダミー記述子（実装例）
+            desc = self._compute_composition_descriptor_gpu(struct)
+            descriptors.append(desc)
+
+        return cp.vstack(descriptors)
+
+    def _compute_composition_descriptor_gpu(self, structure) -> cp.ndarray:
+        """
+        組成ベース記述子の計算例
+        （実際のSOAP/MBTR実装に置き換える）
+        """
+        # ダミー実装: 原子種と数から特徴ベクトル生成
+        # 実際にはdscribe/matminerなどを使用
+        n_features = 50
+        descriptor = cp.random.rand(n_features).astype(cp.float32)
+        return descriptor
+
+# 使用例
+if __name__ == "__main__":
+    # サンプルデータ生成（材料データセット）
+    n_samples = 10000
+    n_features = 50
+
+    X = cp.random.rand(n_samples, n_features).astype(cp.float32)
+    # ダミー目的変数（例: バンドギャップ）
+    y = cp.sum(X[:, :5] ** 2, axis=1) + cp.random.randn(n_samples) * 0.1
+
+    # データ分割
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # モデル学習
+    ml_system = MaterialsMLGPU(model_type='random_forest', n_estimators=200)
+    ml_system.train(X_train, y_train)
+
+    # 評価
+    metrics = ml_system.evaluate(X_test, y_test)
+    print(f"Test RMSE: {metrics['rmse']:.4f}")
+    print(f"Test R²: {metrics['r2']:.4f}")
+
+    # 特徴量重要度
+    if ml_system.feature_importance_ is not None:
+        top5_features = cp.argsort(ml_system.feature_importance_)[-5:]
+        print(f"Top 5 important features: {cp.asnumpy(top5_features)}")</code></pre>
+
+            <h3>5.4.2 記述子計算の高速化</h3>
+            <p>
+                材料記述子（SOAP、Coulomb Matrix、MBTRなど）の計算は計算集約的です。以下は、組成ベース記述子をGPUで計算する例です。
+            </p>
+
+            <pre><code class="language-python">def compute_elemental_features_gpu(compositions: list,
+                                          feature_db: dict) -> cp.ndarray:
+    """
+    元素特性ベースの記述子をGPU計算
+
+    Parameters
+    ----------
+    compositions : list of dict
+        組成情報 [{'Fe': 2, 'O': 3}, ...]
+    feature_db : dict
+        元素ごとの特性値 {'Fe': [7.87, 1808, ...], ...}
+        （密度、融点、電気陰性度など）
+
+    Returns
+    -------
+    descriptors : cp.ndarray, shape (n_samples, n_features)
+        集約された記述子
+    """
+    n_samples = len(compositions)
+    n_element_features = len(next(iter(feature_db.values())))
+
+    # 統計量（平均、分散、最大、最小）を計算
+    n_stats = 4
+    n_features = n_element_features * n_stats
+
+    descriptors = cp.zeros((n_samples, n_features), dtype=cp.float32)
+
+    for i, comp in enumerate(compositions):
+        # 組成から特性値を取得
+        features = []
+        weights = []
+        for element, count in comp.items():
+            if element in feature_db:
+                features.append(feature_db[element])
+                weights.append(count)
+
+        if not features:
+            continue
+
+        # GPU配列に変換
+        features_gpu = cp.asarray(features, dtype=cp.float32)
+        weights_gpu = cp.asarray(weights, dtype=cp.float32)
+        weights_gpu = weights_gpu / cp.sum(weights_gpu)  # 正規化
+
+        # 統計量計算（加重平均、分散など）
+        for j in range(n_element_features):
+            feature_col = features_gpu[:, j]
+
+            # 加重平均
+            mean = cp.sum(feature_col * weights_gpu)
+            # 加重分散
+            variance = cp.sum(weights_gpu * (feature_col - mean) ** 2)
+            # 最大・最小
+            max_val = cp.max(feature_col)
+            min_val = cp.min(feature_col)
+
+            descriptors[i, j*n_stats:(j+1)*n_stats] = cp.array([
+                mean, variance, max_val, min_val
+            ])
+
+    return descriptors
+
+# 使用例
+if __name__ == "__main__":
+    # ダミー元素特性データベース
+    feature_db = {
+        'Fe': [7.87, 1808, 1.83],  # 密度, 融点, 電気陰性度
+        'O': [1.43, 54.8, 3.44],
+        'Si': [2.33, 1687, 1.90]
+    }
+
+    compositions = [
+        {'Fe': 2, 'O': 3},
+        {'Si': 1, 'O': 2},
+        {'Fe': 1, 'Si': 1, 'O': 3}
+    ]
+
+    descriptors = compute_elemental_features_gpu(compositions, feature_db)
+    print(f"Descriptor shape: {descriptors.shape}")
+    print(f"First sample: {cp.asnumpy(descriptors[0, :5])}")</code></pre>
+
+            <div class="info-box">
+                <strong>cuML vs scikit-learn パフォーマンス比較:</strong>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>データサイズ</th>
+                            <th>scikit-learn (CPU)</th>
+                            <th>cuML (GPU)</th>
+                            <th>高速化率</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>10K samples</td>
+                            <td>2.3秒</td>
+                            <td>0.8秒</td>
+                            <td>2.9×</td>
+                        </tr>
+                        <tr>
+                            <td>100K samples</td>
+                            <td>45秒</td>
+                            <td>3.2秒</td>
+                            <td>14×</td>
+                        </tr>
+                        <tr>
+                            <td>1M samples</td>
+                            <td>8分30秒</td>
+                            <td>18秒</td>
+                            <td>28×</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p><em>Random Forest (100 estimators), 50 features, NVIDIA A100</em></p>
+            </div>
+        </section>
+
+        <section id="section5-5">
+            <h2>5.5 実践プロジェクト：高スループット材料スクリーニング</h2>
+
+            <h3>5.5.1 マルチGPU並列処理アーキテクチャ</h3>
+            <p>
+                大規模材料探索では、数千から数万の候補材料を評価する必要があります。複数のGPUを活用することで、計算時間を大幅に短縮できます。
+            </p>
+
+            <div class="mermaid">
+flowchart LR
+    A[候補材料リスト<br/>10,000 compounds] --> B{分散処理}
+    B --> C[GPU 0<br/>2,500 compounds]
+    B --> D[GPU 1<br/>2,500 compounds]
+    B --> E[GPU 2<br/>2,500 compounds]
+    B --> F[GPU 3<br/>2,500 compounds]
+
+    C --> G[ワークフロー実行<br/>記述子→ML予測→DFT]
+    D --> H[ワークフロー実行<br/>記述子→ML予測→DFT]
+    E --> I[ワークフロー実行<br/>記述子→ML予測→DFT]
+    F --> J[ワークフロー実行<br/>記述子→ML予測→DFT]
+
+    G --> K[結果集約]
+    H --> K
+    I --> K
+    J --> K
+
+    K --> L[Top 100候補を<br/>性能順にランク]
+
+    style A fill:#e3f2fd
+    style B fill:#fff9c4
+    style C fill:#c8e6c9
+    style D fill:#c8e6c9
+    style E fill:#c8e6c9
+    style F fill:#c8e6c9
+    style K fill:#ffccbc
+    style L fill:#e1bee7
+            </div>
+
+            <h3>5.5.2 高スループットスクリーニング実装</h3>
+            <pre><code class="language-python">import cupy as cp
+import numpy as np
+from typing import List, Dict
+from concurrent.futures import ThreadPoolExecutor
+import multiprocessing as mp
+
+class HighThroughputScreening:
+    """マルチGPU高スループット材料スクリーニング"""
+
+    def __init__(self, n_gpus: int = None):
+        """
+        Parameters
+        ----------
+        n_gpus : int, optional
+            使用するGPU数（Noneの場合は全GPU使用）
+        """
+        if n_gpus is None:
+            self.n_gpus = cp.cuda.runtime.getDeviceCount()
+        else:
+            self.n_gpus = min(n_gpus, cp.cuda.runtime.getDeviceCount())
+
+        print(f"Initializing with {self.n_gpus} GPUs")
+
+        # 各GPUごとのワークフロー初期化
+        self.workflows = []
+        for gpu_id in range(self.n_gpus):
+            workflow = MaterialsGPUWorkflow(use_gpu=True, device_id=gpu_id)
+            self.workflows.append(workflow)
+
+    def screen_candidates(self,
+                         candidate_list: List[Dict],
+                         ml_model: MaterialsMLGPU,
+                         scoring_func: callable,
+                         top_k: int = 100) -> List[Dict]:
+        """
+        候補材料のスクリーニング実行
+
+        Parameters
+        ----------
+        candidate_list : list of dict
+            候補材料の構造情報
+        ml_model : MaterialsMLGPU
+            学習済み機械学習モデル
+        scoring_func : callable
+            材料評価関数（高いほど良い）
+        top_k : int
+            上位何件を返すか
+
+        Returns
+        -------
+        top_candidates : list of dict
+            スコア順にソートされた上位候補
+        """
+        n_candidates = len(candidate_list)
+        print(f"Screening {n_candidates} candidates on {self.n_gpus} GPUs...")
+
+        # 候補をGPU数で分割
+        chunks = np.array_split(candidate_list, self.n_gpus)
+
+        # マルチプロセスで各GPUに処理を割り当て
+        with ThreadPoolExecutor(max_workers=self.n_gpus) as executor:
+            futures = []
+            for gpu_id, chunk in enumerate(chunks):
+                future = executor.submit(
+                    self._process_chunk_on_gpu,
+                    gpu_id, chunk, ml_model, scoring_func
+                )
+                futures.append(future)
+
+            # 全GPU処理の完了を待機
+            results = [f.result() for f in futures]
+
+        # 結果を集約
+        all_results = []
+        for chunk_results in results:
+            all_results.extend(chunk_results)
+
+        # スコアでソートしてトップKを返す
+        sorted_results = sorted(
+            all_results,
+            key=lambda x: x['score'],
+            reverse=True
+        )
+
+        return sorted_results[:top_k]
+
+    def _process_chunk_on_gpu(self,
+                             gpu_id: int,
+                             chunk: List[Dict],
+                             ml_model: MaterialsMLGPU,
+                             scoring_func: callable) -> List[Dict]:
+        """
+        単一GPUでチャンクを処理（内部メソッド）
+
+        Parameters
+        ----------
+        gpu_id : int
+            使用するGPU ID
+        chunk : list
+            処理対象の候補材料チャンク
+
+        Returns
+        -------
+        chunk_results : list of dict
+            評価結果とスコア
+        """
+        # GPUデバイスを指定
+        with cp.cuda.Device(gpu_id):
+            workflow = self.workflows[gpu_id]
+            chunk_results = []
+
+            for candidate in chunk:
+                try:
+                    # 1. 記述子計算（GPU）
+                    descriptor = self._compute_descriptor_gpu(
+                        candidate, workflow
+                    )
+
+                    # 2. ML予測（GPU）
+                    predicted_property = ml_model.predict_batch(
+                        descriptor.reshape(1, -1)
+                    )[0]
+
+                    # 3. スコアリング
+                    score = scoring_func(
+                        candidate,
+                        float(cp.asnumpy(predicted_property))
+                    )
+
+                    chunk_results.append({
+                        'candidate': candidate,
+                        'predicted_property': float(cp.asnumpy(predicted_property)),
+                        'score': score,
+                        'gpu_id': gpu_id
+                    })
+
+                except Exception as e:
+                    print(f"Error processing candidate on GPU {gpu_id}: {e}")
+                    continue
+
+            print(f"GPU {gpu_id} completed {len(chunk_results)}/{len(chunk)} candidates")
+            return chunk_results
+
+    def _compute_descriptor_gpu(self,
+                               candidate: Dict,
+                               workflow: MaterialsGPUWorkflow) -> cp.ndarray:
+        """
+        候補材料の記述子をGPU計算
+        """
+        # 簡略化: ランダム記述子（実際にはSOAP/MBTRなど）
+        n_features = 50
+        descriptor = cp.random.rand(n_features).astype(cp.float32)
+        return descriptor
+
+    def rank_by_performance(self,
+                           results: List[Dict],
+                           performance_key: str = 'score') -> List[Dict]:
+        """
+        結果を性能指標でランク付け
+
+        Parameters
+        ----------
+        results : list of dict
+            スクリーニング結果
+        performance_key : str
+            ソートに使用するキー
+
+        Returns
+        -------
+        ranked : list of dict
+            ランク付けされた結果
+        """
+        ranked = sorted(results, key=lambda x: x[performance_key], reverse=True)
+
+        # ランク情報を追加
+        for i, item in enumerate(ranked):
+            item['rank'] = i + 1
+
+        return ranked
+
+# 使用例
+if __name__ == "__main__":
+    # ダミー候補材料リスト
+    candidate_list = [
+        {'formula': f'A{i}B{i}O3', 'structure': None}
+        for i in range(1, 1001)  # 1000候補
+    ]
+
+    # ダミー学習済みモデル
+    ml_model = MaterialsMLGPU(model_type='random_forest')
+    # 実際にはここで事前学習が必要
+
+    # スコアリング関数（例: バンドギャップが1.5 eVに近いほど高得点）
+    def scoring_func(candidate, predicted_bandgap):
+        target_bandgap = 1.5  # eV
+        score = 1.0 / (1.0 + abs(predicted_bandgap - target_bandgap))
+        return score
+
+    # 高スループットスクリーニング実行
+    hts = HighThroughputScreening(n_gpus=4)
+    top_candidates = hts.screen_candidates(
+        candidate_list,
+        ml_model,
+        scoring_func,
+        top_k=10
+    )
+
+    # トップ10を表示
+    print("\n=== Top 10 Candidates ===")
+    for candidate in top_candidates[:10]:
+        print(f"Rank {candidate['rank']}: {candidate['candidate']['formula']}")
+        print(f"  Predicted property: {candidate['predicted_property']:.3f}")
+        print(f"  Score: {candidate['score']:.4f}")
+        print(f"  Processed on GPU {candidate['gpu_id']}")</code></pre>
+
+            <h3>5.5.3 パフォーマンス最適化戦略</h3>
+            <div class="tip-box">
+                <strong>高スループットスクリーニング最適化のポイント:</strong>
+                <ul>
+                    <li><strong>バッチサイズ調整</strong>: GPU利用率を最大化するよう、1チャンクあたりの候補数を調整</li>
+                    <li><strong>GPUメモリ管理</strong>: 各チャンク処理後にメモリプールをクリア</li>
+                    <li><strong>非同期実行</strong>: データ転送と計算をオーバーラップ（cupy.cuda.Stream使用）</li>
+                    <li><strong>事前フィルタリング</strong>: 簡易計算で明らかに不適な候補を除外</li>
+                    <li><strong>チェックポイント</strong>: 長時間計算では中間結果を定期保存</li>
+                </ul>
+            </div>
+
+            <h3>5.5.4 実践的なワークフロー統合</h3>
+            <p>
+                実際の研究では、GPU計算と既存のDFTコード（VASP、Quantum ESPRESSOなど）を組み合わせます。以下は、統合ワークフローの例です。
+            </p>
+
+            <pre><code class="language-python">class IntegratedMaterialsWorkflow:
+    """GPU計算とDFTコードを統合したワークフロー"""
+
+    def __init__(self, hts_system: HighThroughputScreening):
+        self.hts = hts_system
+        self.ml_model = None
+        self.dft_queue = []
+
+    def run_full_workflow(self, candidate_list: List[Dict]) -> Dict:
+        """
+        完全な材料探索ワークフロー
+
+        Workflow:
+        1. GPU機械学習で高速スクリーニング（候補を1/100に絞る）
+        2. 上位候補のみDFT計算実行（高精度検証）
+        3. DFT結果でMLモデルを更新（Active Learning）
+
+        Returns
+        -------
+        results : dict
+            最終候補と予測性能
+        """
+        # Phase 1: GPU-ML高速スクリーニング
+        print("Phase 1: GPU-ML Screening...")
+        ml_top_candidates = self.hts.screen_candidates(
+            candidate_list,
+            self.ml_model,
+            scoring_func=self._default_scoring,
+            top_k=100  # 10,000 -> 100に絞る
+        )
+
+        # Phase 2: DFT高精度計算（上位のみ）
+        print("Phase 2: DFT Validation...")
+        dft_results = []
+        for candidate in ml_top_candidates[:10]:  # トップ10のみDFT
+            dft_result = self._run_dft_calculation(candidate)
+            dft_results.append(dft_result)
+
+        # Phase 3: Active Learning（DFT結果でML再学習）
+        print("Phase 3: Model Update...")
+        self._update_ml_model(dft_results)
+
+        return {
+            'ml_candidates': ml_top_candidates,
+            'dft_validated': dft_results,
+            'best_candidate': dft_results[0] if dft_results else None
+        }
+
+    def _run_dft_calculation(self, candidate: Dict) -> Dict:
+        """
+        DFT計算を実行（ダミー実装）
+        実際にはPymatgen/ASEでVASP/QE入力生成→実行→解析
+        """
+        # ダミー: 実際はサブプロセスでDFTコード実行
+        import time
+        time.sleep(0.1)  # DFT計算シミュレート
+
+        candidate['dft_bandgap'] = candidate['predicted_property'] + np.random.randn() * 0.1
+        candidate['validated'] = True
+        return candidate
+
+    def _update_ml_model(self, new_data: List[Dict]):
+        """DFT結果でMLモデルを更新"""
+        # ダミー実装: 実際にはIncremental Learningを実装
+        print(f"Updated ML model with {len(new_data)} new DFT results")
+
+    def _default_scoring(self, candidate, predicted):
+        return predicted  # 簡略化</code></pre>
+
+            <div class="key-points">
+                <h3>本章のまとめ</h3>
+                <ul>
+                    <li><strong>統合ワークフロー</strong>: データパイプライン設計とエラーハンドリングが本番運用の鍵</li>
+                    <li><strong>MDシミュレーション</strong>: Lennard-Jonesポテンシャルで基礎を学び、実用にはLAMMPS/GROMACS連携</li>
+                    <li><strong>DFT後処理</strong>: バンド構造・DOS計算はGPUで10-50倍高速化</li>
+                    <li><strong>機械学習</strong>: cuMLは大規模データで真価を発揮（10万サンプル以上で20倍以上高速）</li>
+                    <li><strong>マルチGPU</strong>: 適切な負荷分散で線形に近いスケーリング達成可能</li>
+                </ul>
+            </div>
+
+            <h3>次章への展望</h3>
+            <p>
+                本章で学んだ統合ワークフローは、実際の材料科学研究に直接適用できます。さらなる発展として、以下のトピックに取り組むことを推奨します：
+            </p>
+            <ul>
+                <li><strong>クラスタ環境への拡張</strong>: 複数ノード×マルチGPUでの大規模計算</li>
+                <li><strong>ベイズ最適化</strong>: Gaussian Process + GPUで効率的な材料探索</li>
+                <li><strong>生成モデル</strong>: VAE/GANによる新規材料構造生成（GPU必須）</li>
+                <li><strong>リアルタイム解析</strong>: 実験データのその場GPU解析</li>
+            </ul>
+        </section>
+
+        <section id="exercises">
+            <h2>演習問題</h2>
+
+            <div class="exercise">
+                <h4>演習5.1: ワークフロー初期化（易）</h4>
+                <p><strong>問題</strong>: <code>MaterialsGPUWorkflow</code>クラスを使用して、以下を実行せよ。</p>
+                <ol>
+                    <li>GPU 0を使用するワークフローインスタンスを作成</li>
+                    <li>100×50のランダム配列をGPUに転送</li>
+                    <li>GPUメモリ使用量を確認</li>
+                    <li>結果を"test_output.npz"に保存</li>
+                </ol>
+            </div>
+
+            <div class="exercise">
+                <h4>演習5.2: Lennard-Jones力計算（易）</h4>
+                <p><strong>問題</strong>: 3原子系（正三角形配置）でLennard-Jones力を計算し、力の和がゼロになることを確認せよ。</p>
+                <p><strong>条件</strong>:</p>
+                <ul>
+                    <li>原子座標: (0, 0, 0), (1, 0, 0), (0.5, √3/2, 0)</li>
+                    <li>ε = 1.0, σ = 1.0</li>
+                    <li>カットオフ: 2.5σ</li>
+                </ul>
+                <p><strong>確認</strong>: 3原子の力ベクトルの和の絶対値が1e-6以下であること。</p>
+            </div>
+
+            <div class="exercise">
+                <h4>演習5.3: 温度制御の検証（易）</h4>
+                <p><strong>問題</strong>: <code>md_simulation_gpu</code>で100ステップ実行し、温度が目標値±10%以内に収束することを確認せよ。</p>
+                <p><strong>条件</strong>:</p>
+                <ul>
+                    <li>原子数: 64</li>
+                    <li>目標温度: 1.0（Boltzmann単位）</li>
+                    <li>温度スケーリング間隔: 10ステップ</li>
+                </ul>
+            </div>
+
+            <div class="exercise">
+                <h4>演習5.4: DOSヒストグラム計算（中）</h4>
+                <p><strong>問題</strong>: ダミーバンド構造データ（100 k点×20バンド）から状態密度（DOS）を計算し、プロットせよ。</p>
+                <p><strong>要件</strong>:</p>
+                <ul>
+                    <li>エネルギー範囲: -5 to 5 eV</li>
+                    <li>ビン数: 500</li>
+                    <li>バンドギャップ付近でDOS=0となることを確認</li>
+                    <li>matplotlibでDOSをプロット</li>
+                </ul>
+            </div>
+
+            <div class="exercise">
+                <h4>演習5.5: 有効質量計算（中）</h4>
+                <p><strong>問題</strong>: 放物線バンド E(k) = E₀ + ℏ²k²/(2m*) を生成し、<code>compute_effective_mass_gpu</code>で有効質量を計算せよ。</p>
+                <p><strong>条件</strong>:</p>
+                <ul>
+                    <li>真の有効質量: 0.5 m_e</li>
+                    <li>k点: -0.1 to 0.1 Å⁻¹ を100点</li>
+                    <li>計算誤差が5%以内であること</li>
+                </ul>
+            </div>
+
+            <div class="exercise">
+                <h4>演習5.6: cuMLモデル学習（中）</h4>
+                <p><strong>問題</strong>: <code>MaterialsMLGPU</code>で以下を実行せよ。</p>
+                <ol>
+                    <li>1万サンプルのダミーデータセット生成（50特徴量）</li>
+                    <li>Random Forestモデル（200木）で学習</li>
+                    <li>テストデータでRMSEとR²を計算</li>
+                    <li>特徴量重要度トップ10を表示</li>
+                </ol>
+                <p><strong>目標性能</strong>: R² > 0.85</p>
+            </div>
+
+            <div class="exercise">
+                <h4>演習5.7: 記述子計算の実装（中）</h4>
+                <p><strong>問題</strong>: <code>compute_elemental_features_gpu</code>を使用して、以下の組成の記述子を計算せよ。</p>
+                <ul>
+                    <li>Fe₂O₃, SiO₂, Fe₁Si₁O₃の3サンプル</li>
+                    <li>元素特性: 密度、融点、電気陰性度</li>
+                    <li>出力形状が(3, 12)であることを確認（3特性×4統計量）</li>
+                </ul>
+            </div>
+
+            <div class="exercise">
+                <h4>演習5.8: マルチGPUスクリーニング（難）</h4>
+                <p><strong>問題</strong>: <code>HighThroughputScreening</code>で5000候補を4 GPUで処理し、性能を比較せよ。</p>
+                <p><strong>要件</strong>:</p>
+                <ul>
+                    <li>1 GPU実行時間と4 GPU実行時間を測定</li>
+                    <li>スケーリング効率（理想は4倍高速化）を計算</li>
+                    <li>各GPUのメモリ使用量を記録</li>
+                    <li>トップ20候補を性能順に出力</li>
+                </ul>
+                <p><strong>分析</strong>: なぜ完璧な4倍高速化にならないか考察せよ。</p>
+            </div>
+
+            <div class="exercise">
+                <h4>演習5.9: MDエネルギー保存性検証（難）</h4>
+                <p><strong>問題</strong>: 温度スケーリングなしでMDシミュレーションを1000ステップ実行し、全エネルギー保存を検証せよ。</p>
+                <p><strong>条件</strong>:</p>
+                <ul>
+                    <li>原子数: 128</li>
+                    <li>時間刻み: dt = 0.0005</li>
+                    <li>温度制御: なし</li>
+                </ul>
+                <p><strong>検証</strong>: 全エネルギーのドリフトが初期値の0.1%以下であること。ドリフトが大きい場合、dtを小さくして再実行。</p>
+            </div>
+
+            <div class="exercise">
+                <h4>演習5.10: 統合ワークフロー構築（難）</h4>
+                <p><strong>問題</strong>: <code>IntegratedMaterialsWorkflow</code>を拡張し、以下を実装せよ。</p>
+                <ol>
+                    <li>Active Learningサイクル（ML予測 → DFT検証 → モデル更新）を3回反復</li>
+                    <li>各サイクルでML予測精度（RMSE）を記録</li>
+                    <li>精度が収束したら自動停止</li>
+                    <li>最終的なベスト候補トップ5を報告</li>
+                </ol>
+                <p><strong>ボーナス</strong>: 不確実性推定（Random Forestの予測分散）を活用し、不確実性が高い候補を優先的にDFT検証する探索戦略を実装。</p>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>参考文献</h2>
+            <ol>
+                <li>
+                    Stone, J.E., Hardy, D.J., Ufimtsev, I.S., & Schulten, K. (2010). <em>GPU-accelerated molecular dynamics and free energy methods in Amber14: Performance enhancements and new features</em>, Journal of Computational Chemistry, 31(7), pp. 1402-1418.
+                    <br>MDシミュレーションのGPU実装における先駆的研究。Lennard-JonesからPME法まで包括的な加速技術を解説。
+                </li>
+                <li>
+                    Momma, K., & Izumi, F. (2011). <em>VESTA 3 for three-dimensional visualization of crystal, volumetric and morphology data</em>, Journal of Applied Crystallography, 44, pp. 1272-1276.
+                    <br>結晶構造・電荷密度の可視化ツール。DFT計算結果の解析に必須。
+                </li>
+                <li>
+                    Faber, F.A., Lindmaa, A., von Lilienfeld, O.A., & Armiento, R. (2017). <em>Machine Learning energies of 2 million elpasolite (ABC₂D₆) crystals</em>, Physical Review Letters, 117, pp. 135502-1 to 135502-6.
+                    <br>大規模材料スクリーニングでの機械学習活用。記述子設計と予測精度の関係を実証。
+                </li>
+                <li>
+                    CuPy Development Team (2023). <em>CuPy User Guide - Advanced Topics</em>, pp. 89-134 (カスタムカーネル), pp. 156-189 (マルチGPU).
+                    <br>Available at: https://docs.cupy.dev/en/stable/user_guide/index.html
+                    <br>CuPy公式ドキュメント。RawKernelやMulti-GPU並列化の詳細。
+                </li>
+                <li>
+                    RAPIDS cuML Documentation (2023). <em>GPU-Accelerated Machine Learning</em>, pp. 12-67 (Random Forest/SVM), pp. 89-134 (モデル選択).
+                    <br>Available at: https://docs.rapids.ai/api/cuml/stable/
+                    <br>cuMLライブラリの完全リファレンス。scikit-learn互換APIと性能ベンチマーク。
+                </li>
+                <li>
+                    Larsen, A.H., et al. (2017). <em>The Atomic Simulation Environment—A Python library for working with atoms</em>, Journal of Physics: Condensed Matter, 29, pp. 273002-1 to 273002-30.
+                    <br>Available at: https://wiki.fysik.dtu.dk/ase/
+                    <br>ASE (Atomic Simulation Environment)の公式論文。DFTコード統合とGPU拡張の手法を解説。
+                </li>
+                <li>
+                    Ong, S.P., et al. (2013). <em>Python Materials Genomics (pymatgen): A robust, open-source python library for materials analysis</em>, Computational Materials Science, 68, pp. 314-319.
+                    <br>第5章 (pp. 45-89): 高スループットワークフロー設計
+                    <br>第8章 (pp. 123-178): 機械学習パイプライン構築
+                    <br>Pymatgenを用いた材料データ処理とDFT計算自動化。大規模スクリーニングの実装例。
+                </li>
+            </ol>
+        </section>
+
+        <section id="objectives-review">
+            <h2>学習目標の確認</h2>
+            <p>本章を完了すると、以下を実践できるようになります：</p>
+
+            <h3>基本理解（Level 1）</h3>
+            <ul>
+                <li>✅ 材料科学GPU計算ワークフローの全体設計を説明できる</li>
+                <li>✅ データパイプラインとGPUリソース管理の重要性を理解できる</li>
+                <li>✅ MD/DFT/MLの各計算手法でGPU加速が有効な理由を説明できる</li>
+            </ul>
+
+            <h3>実践スキル（Level 2）</h3>
+            <ul>
+                <li>✅ Lennard-JonesポテンシャルによるMDシミュレーションをGPU実装できる</li>
+                <li>✅ DFT計算のバンド構造・DOS解析をGPU加速できる</li>
+                <li>✅ cuMLで材料物性予測モデルを学習・評価できる</li>
+                <li>✅ マルチGPU環境で高スループットスクリーニングを実行できる</li>
+            </ul>
+
+            <h3>応用力（Level 3）</h3>
+            <ul>
+                <li>✅ 研究テーマに応じた最適なGPU計算戦略を設計できる</li>
+                <li>✅ エラーハンドリングとフォールバック機能を備えた堅牢なワークフローを構築できる</li>
+                <li>✅ GPUリソースを効率的に活用し、計算時間を最小化できる</li>
+                <li>✅ Active Learningサイクルを実装し、効率的な材料探索を実現できる</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Computational Thinking Dojo. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+</body>
+</html>

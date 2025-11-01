@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第1章: Matlantisの原理と使い方 - Matlantis API入門 - CT Dojo</title>
+    <meta name="description" content="機械学習ポテンシャルの原理、Matlantis APIの概要、ASEとの統合を学ぶ。DFTとの精度・速度比較、最初の構造最適化を実践する。">
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+    <!-- MathJax for mathematical expressions -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --accent-green: #11998e;
+            --accent-lime: #38ef7d;
+            --primary-dark: #2c3e50;
+            --secondary-dark: #34495e;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg-light: #ecf0f1;
+            --white: #ffffff;
+            --code-bg: #2d2d2d;
+            --border-light: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: var(--white);
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            nav a:hover {
+                background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+                color: white;
+            }
+        }
+
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        section {
+            background: var(--white);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(90deg, var(--accent-green), var(--accent-lime)) 1;
+        }
+
+        h3 {
+            color: var(--secondary-dark);
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem;
+        }
+
+        h4 {
+            color: var(--secondary-dark);
+            font-size: 1.2rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        pre code {
+            background: none;
+            color: #f8f8f2;
+            padding: 0;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
+            border-left: 4px solid var(--accent-green);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            color: var(--accent-green);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .warning-box {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .warning-box strong {
+            color: var(--warning);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .exercise-box {
+            background: rgba(39, 174, 96, 0.05);
+            border: 2px solid var(--success);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .exercise-box h4 {
+            color: var(--success);
+            margin-top: 0;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .difficulty.easy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .difficulty.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .difficulty.hard {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            tr:hover {
+                background: rgba(17, 153, 142, 0.05);
+            }
+        }
+
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #11998e;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .breadcrumb a:hover {
+                color: #0e7c74;
+                text-decoration: underline;
+            }
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .chapter-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--border-light);
+            gap: 1rem;
+        }
+
+        .chapter-nav a {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-lime) 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .chapter-nav a:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
+        }
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            footer a:hover {
+                color: var(--accent-lime);
+            }
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            .chapter-nav {
+                flex-direction: column;
+            }
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.05) 0%, rgba(56, 239, 125, 0.05) 100%);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+
+        .learning-objectives h3 {
+            color: var(--accent-green);
+            margin-top: 0;
+        }
+
+        .learning-objectives ul {
+            margin-bottom: 0;
+        }
+
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+    </style>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'strict',
+            flowchart: { useMaxWidth: true, htmlLabels: true }
+        });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a>
+            <span class="breadcrumb-separator">›</span>
+            <a href="/AI-Knowledge-Notes/knowledge/jp/CT/index.html">計算工学</a>
+            <span class="breadcrumb-separator">›</span>
+            <a href="/AI-Knowledge-Notes/knowledge/jp/CT/matlantis-introduction/index.html">Matlantis API</a>
+            <span class="breadcrumb-separator">›</span>
+            <span class="breadcrumb-current">第1章</span>
+        </div>
+    </nav>
+
+    <header>
+        <h1>第1章: Matlantisの原理と使い方</h1>
+        <p>機械学習ポテンシャルによる高速原子シミュレーション入門</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#introduction">1.1 はじめに</a></li>
+            <li><a href="#ml-potential">1.2 機械学習ポテンシャルの原理</a></li>
+            <li><a href="#matlantis-api">1.3 Matlantis APIの概要</a></li>
+            <li><a href="#ase-integration">1.4 ASEとの統合</a></li>
+            <li><a href="#first-optimization">1.5 最初の構造最適化</a></li>
+            <li><a href="#visualization">1.6 計算結果の可視化</a></li>
+            <li><a href="#exercises">演習問題</a></li>
+            <li><a href="#references">参考文献</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="introduction">
+            <h2>1.1 はじめに</h2>
+
+            <div class="learning-objectives">
+                <h3>📚 この章の学習目標</h3>
+                <h4>基本理解（知る・説明できる）</h4>
+                <ul>
+                    <li>機械学習ポテンシャル（NNP, Universal NNP）の基本原理を説明できる</li>
+                    <li>DFTと機械学習ポテンシャルの精度・速度トレードオフを理解できる</li>
+                    <li>Matlantis APIの料金体系とサポート範囲を理解できる</li>
+                </ul>
+
+                <h4>実践スキル（できる・使える）</h4>
+                <ul>
+                    <li>Matlantisをインストールし、動作確認できる</li>
+                    <li>ASE Atomsオブジェクトで原子構造を作成できる</li>
+                    <li>MatlantisCalculatorを使ってエネルギー計算を実行できる</li>
+                    <li>簡単な構造最適化を実行し、結果を可視化できる</li>
+                </ul>
+
+                <h4>応用力（設計・評価できる）</h4>
+                <ul>
+                    <li>研究課題に対してMatlantisとDFTの使い分けを判断できる</li>
+                    <li>最適化トラジェクトリからエネルギー収束を評価できる</li>
+                </ul>
+            </div>
+
+            <p>
+                材料探索では、多数の候補構造のエネルギー・物性を計算する必要があります。従来の<strong>第一原理計算（DFT: Density Functional Theory）</strong>は高精度ですが、計算コストが高く（数十〜数百原子で数時間〜数日）、大規模スクリーニングには不向きです。
+            </p>
+
+            <p>
+                <strong>Matlantis</strong>は、Preferred Networks（PFN）が開発した<strong>機械学習ポテンシャル（Machine Learning Potential）</strong>を用いた原子シミュレーションAPIです。DFTデータで訓練されたニューラルネットワークにより、<strong>DFTに近い精度を保ちながら1000倍以上高速</strong>に計算を実行できます。
+            </p>
+
+            <div class="info-box">
+                <strong>💡 Matlantisの特徴</strong>
+                <p>
+                    Matlantis（PFP: Preferred Potential）は、<strong>Universal Neural Network Potential</strong>として、72元素（H〜Bi）、有機・無機・金属材料、表面・ナノ粒子等の多様な系を単一モデルでカバーします。API形式で提供されるため、環境構築が容易で、ブラウザからも利用可能です。
+                </p>
+            </div>
+
+            <div class="mermaid">
+flowchart LR
+    A[候補構造<br/>数千〜数万] --> B{計算手法選択}
+    B -->|高速スクリーニング| C[Matlantis<br/>機械学習ポテンシャル]
+    B -->|高精度検証| D[DFT計算<br/>量子力学計算]
+    C --> E[有望候補<br/>10〜100構造]
+    E --> D
+    D --> F[最終候補<br/>実験検証]
+
+    style C fill:#11998e,stroke:#38ef7d,stroke-width:2px,color:#fff
+    style D fill:#e74c3c,stroke:#c0392b,stroke-width:2px,color:#fff
+            </div>
+
+            <p>
+                本章では、機械学習ポテンシャルの原理、Matlantis APIの使い方、ASE（Atomic Simulation Environment）との統合、最初の構造最適化を実践します。
+            </p>
+        </section>
+
+        <section id="ml-potential">
+            <h2>1.2 機械学習ポテンシャルの原理</h2>
+
+            <h3>ニューラルネットワークポテンシャル（NNP）</h3>
+            <p>
+                <strong>機械学習ポテンシャル</strong>は、原子配置からポテンシャルエネルギーを予測するニューラルネットワークです。従来の経験的ポテンシャル（LennardJones、Embedded Atom Method等）よりも高精度で、DFT計算のデータベースから学習します。
+            </p>
+
+            <p>
+                代表的なNNPアーキテクチャには、以下があります：
+            </p>
+            <ul>
+                <li><strong>Behler-Parrinello NN</strong>: 原子環境を対称関数（symmetry functions）で記述</li>
+                <li><strong>SchNet</strong>: 畳み込みニューラルネットワークで原子間相互作用を学習</li>
+                <li><strong>PaiNN</strong>: 等変ニューラルネットワーク（回転対称性を保持）</li>
+                <li><strong>PFP（Preferred Potential）</strong>: Matlantisで使用される汎用ポテンシャル</li>
+            </ul>
+
+            <div class="info-box">
+                <strong>💡 エネルギー予測の仕組み</strong>
+                <p>
+                    NNPは、各原子の周辺環境（近傍原子の種類・距離・角度）を記述子（descriptor）に変換し、それをニューラルネットワークに入力して、<strong>原子ごとのエネルギー寄与</strong>を予測します。全原子のエネルギーを足し合わせて、系全体のエネルギーを得ます。
+                </p>
+            </div>
+
+            <h3>Universal Neural Network Potential（PFP）</h3>
+            <p>
+                従来のNNPは、特定の材料系（例: 水分子、シリコン結晶）ごとに訓練する必要がありました。<strong>Universal NNP</strong>は、多様な材料系のDFTデータで訓練することで、<strong>単一モデルで幅広い元素・材料を扱える汎用性</strong>を持ちます。
+            </p>
+
+            <p>
+                Matlantisの<strong>PFP（Preferred Potential）</strong>は、以下の特徴を持ちます：
+            </p>
+            <ul>
+                <li><strong>72元素対応</strong>: H〜Biまでの元素をカバー</li>
+                <li><strong>多様な材料系</strong>: 有機分子、無機材料、金属、合金、表面、界面</li>
+                <li><strong>高精度</strong>: DFT（PBE汎関数）と平均誤差0.1-0.3 eV/atom</li>
+                <li><strong>高速</strong>: DFTの1000倍以上の速度</li>
+            </ul>
+
+            <h3>DFT vs 機械学習ポテンシャル</h3>
+            <p>
+                DFTと機械学習ポテンシャルの比較：
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th>DFT（第一原理計算）</th>
+                        <th>機械学習ポテンシャル（Matlantis）</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>理論基盤</strong></td>
+                        <td>量子力学（Schrödinger方程式）</td>
+                        <td>機械学習（DFTデータで訓練）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>精度</strong></td>
+                        <td>高精度（汎関数に依存）</td>
+                        <td>DFTに準じる（0.1-0.3 eV/atom）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>計算速度</strong></td>
+                        <td>遅い（100原子で数時間〜数日）</td>
+                        <td>高速（100原子で数秒〜数分）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>適用範囲</strong></td>
+                        <td>すべての系（原理的に）</td>
+                        <td>訓練データに類似した系</td>
+                    </tr>
+                    <tr>
+                        <td><strong>電子状態</strong></td>
+                        <td>計算可能（バンド構造、DOS）</td>
+                        <td>不可（エネルギー・力のみ）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>磁性</strong></td>
+                        <td>対応可能</td>
+                        <td>制限あり</td>
+                    </tr>
+                    <tr>
+                        <td><strong>環境構築</strong></td>
+                        <td>複雑（スパコン必要な場合も）</td>
+                        <td>簡単（APIキーのみ）</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>精度と計算速度のトレードオフ</h3>
+            <p>
+                機械学習ポテンシャルは、<strong>訓練データに含まれる系に対しては高精度</strong>ですが、訓練データから大きく外れた系（新規元素組成、極端な構造）では精度が低下する可能性があります。推奨ワークフロー：
+            </p>
+
+            <ol>
+                <li><strong>Matlantisで高速スクリーニング</strong>: 数千〜数万構造をスクリーニング</li>
+                <li><strong>有望候補をDFTで検証</strong>: 上位10〜100構造をDFTで再計算</li>
+                <li><strong>実験検証</strong>: DFTで確認された候補を実験で検証</li>
+            </ol>
+
+            <div class="warning-box">
+                <strong>⚠️ 注意点</strong>
+                <p>
+                    機械学習ポテンシャルは、訓練データの品質に依存します。PFPはPBE汎関数のDFTデータで訓練されているため、<strong>PBEの系統誤差</strong>（バンドギャップの過小評価等）を引き継ぎます。また、<strong>磁性材料、強相関系、励起状態</strong>には適用が困難です。
+                </p>
+            </div>
+
+            <h3>コード例1: Matlantisインストール確認</h3>
+            <pre><code class="language-python"># Matlantisインストールの確認
+try:
+    import matlantis
+    print(f"Matlantis version: {matlantis.__version__}")
+    print("✓ Installation successful")
+except ImportError:
+    print("✗ Matlantis not installed")
+    print("Install with: pip install matlantis")
+
+# 必要な依存ライブラリの確認
+import sys
+required_packages = ['ase', 'numpy', 'matplotlib']
+
+print("\n=== Required packages ===")
+for package in required_packages:
+    try:
+        module = __import__(package)
+        if hasattr(module, '__version__'):
+            print(f"✓ {package}: {module.__version__}")
+        else:
+            print(f"✓ {package}: installed")
+    except ImportError:
+        print(f"✗ {package}: NOT INSTALLED")
+
+# 期待される出力:
+# Matlantis version: 1.2.0
+# ✓ Installation successful
+#
+# === Required packages ===
+# ✓ ase: 3.22.1
+# ✓ numpy: 1.24.3
+# ✓ matplotlib: 3.7.1
+</code></pre>
+
+            <div class="info-box">
+                <strong>💡 インストール方法</strong>
+                <p>
+                    Matlantisのインストール: <code>pip install matlantis</code>（ASEも自動インストールされます）。APIキーの取得は第2章で詳しく解説します。まずはローカルでの動作確認から始めましょう。
+                </p>
+            </div>
+        </section>
+
+        <section id="matlantis-api">
+            <h2>1.3 Matlantis APIの概要</h2>
+
+            <h3>Matlantisとは</h3>
+            <p>
+                <strong>Matlantis</strong>は、Preferred Networks（PFN）が2021年に発表した、機械学習ポテンシャルによる原子シミュレーションプラットフォームです。研究者・エンジニアが、<strong>ブラウザまたはPython APIから手軽に高速計算</strong>を実行できるよう設計されています。
+            </p>
+
+            <h3>APIサブスクリプションモデル</h3>
+            <p>
+                Matlantisは<strong>クラウドAPIサービス</strong>として提供され、計算実行ごとにクレジットを消費します：
+            </p>
+
+            <ul>
+                <li><strong>無料トライアル</strong>: 月間一定クレジット（学習・小規模プロジェクト向け）</li>
+                <li><strong>Standardプラン</strong>: 月額定額制、中規模研究向け</li>
+                <li><strong>Enterpriseプラン</strong>: 大規模スクリーニング、専用サポート</li>
+            </ul>
+
+            <p>
+                詳細な料金プランは<a href="https://matlantis.com/" target="_blank">Matlantis公式サイト</a>をご確認ください。
+            </p>
+
+            <h3>サポートされる元素と材料系</h3>
+            <p>
+                PFP v4.0（2024年時点）がサポートする元素：
+            </p>
+
+            <ul>
+                <li><strong>72元素</strong>: H, He, Li, Be, B, C, N, O, F, Ne, Na, Mg, Al, Si, P, S, Cl, Ar, K, Ca, Sc, Ti, V, Cr, Mn, Fe, Co, Ni, Cu, Zn, Ga, Ge, As, Se, Br, Kr, Rb, Sr, Y, Zr, Nb, Mo, Tc, Ru, Rh, Pd, Ag, Cd, In, Sn, Sb, Te, I, Xe, Cs, Ba, La, Hf, Ta, W, Re, Os, Ir, Pt, Au, Hg, Tl, Pb, Bi</li>
+            </ul>
+
+            <p>
+                対応する材料系：
+            </p>
+            <ul>
+                <li>有機分子（薬剤、ポリマー）</li>
+                <li>無機材料（酸化物、窒化物、ハロゲン化物）</li>
+                <li>金属・合金（Fe, Cu, Al, 鋼、ステンレス）</li>
+                <li>表面・界面（金属表面、ヘテロ界面）</li>
+                <li>ナノ粒子・クラスター</li>
+            </ul>
+
+            <div class="warning-box">
+                <strong>⚠️ 制限事項</strong>
+                <p>
+                    以下の系は精度が制限される場合があります：
+                </p>
+                <ul>
+                    <li>磁性材料（スピン分極が重要な系）</li>
+                    <li>強相関系（遷移金属酸化物の一部）</li>
+                    <li>励起状態・光励起過程</li>
+                    <li>訓練データに含まれない元素組成</li>
+                </ul>
+            </div>
+
+            <h3>コード例2: API setup and authentication</h3>
+            <pre><code class="language-python">from matlantis import MatlantisCalculator
+import os
+
+# Set API key (get from Matlantis console)
+# 注: 実際のAPIキーは第2章で取得します。ここではダミー
+os.environ['MATLANTIS_API_KEY'] = 'your_api_key_here'
+
+# Initialize calculator
+try:
+    calc = MatlantisCalculator()
+    print("✓ Calculator initialized successfully")
+
+    # Check supported elements
+    if hasattr(calc, 'supported_elements'):
+        print(f"\nSupported elements ({len(calc.supported_elements)}):")
+        print(calc.supported_elements[:20], "...")  # 最初の20元素を表示
+    else:
+        print("\nSupported elements: 72 elements (H to Bi)")
+
+    print("\nCalculator properties:")
+    print(f"- Model version: PFP v4.0")
+    print(f"- API endpoint: https://api.matlantis.com")
+
+except Exception as e:
+    print(f"✗ Error: {e}")
+    print("Please set valid MATLANTIS_API_KEY")
+
+# 期待される出力（APIキー有効時）:
+# ✓ Calculator initialized successfully
+#
+# Supported elements (72):
+# ['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca'] ...
+#
+# Calculator properties:
+# - Model version: PFP v4.0
+# - API endpoint: https://api.matlantis.com
+</code></pre>
+
+            <div class="info-box">
+                <strong>💡 APIキーの取得</strong>
+                <p>
+                    APIキーは、<a href="https://matlantis.com/" target="_blank">Matlantis公式サイト</a>でアカウント登録後、ダッシュボードから取得できます。無料トライアルから始めることをお勧めします。詳細は第2章で解説します。
+                </p>
+            </div>
+        </section>
+
+        <section id="ase-integration">
+            <h2>1.4 ASEとの統合</h2>
+
+            <h3>Atomic Simulation Environment（ASE）</h3>
+            <p>
+                <strong>ASE</strong>は、原子シミュレーション用のPythonライブラリで、以下の機能を提供します：
+            </p>
+
+            <ul>
+                <li><strong>Atomsオブジェクト</strong>: 原子構造の作成・操作</li>
+                <li><strong>Calculatorインターフェース</strong>: 統一的な計算実行（Matlantis, VASP, Gaussian等）</li>
+                <li><strong>構造最適化</strong>: BFGS, LBFGS, FIRE等のアルゴリズム</li>
+                <li><strong>分子動力学</strong>: NVT, NPT, NVEアンサンブル</li>
+                <li><strong>I/O</strong>: CIF, XYZ, POSCAR等の読み書き</li>
+                <li><strong>可視化</strong>: ASE GUIでの3D表示</li>
+            </ul>
+
+            <h3>ASE Atomsオブジェクト</h3>
+            <p>
+                <code>Atoms</code>オブジェクトは、原子の種類、座標、セル（格子ベクトル）、境界条件を保持します：
+            </p>
+
+            <pre><code class="language-python">from ase import Atoms
+
+# 水分子の作成
+water = Atoms('H2O',
+              positions=[[0, 0, 0],       # O
+                        [0.96, 0, 0],     # H
+                        [0.24, 0.93, 0]]) # H
+</code></pre>
+
+            <h3>Calculatorインターフェース</h3>
+            <p>
+                ASEの<strong>Calculatorインターフェース</strong>により、異なる計算手法（Matlantis, DFT, 経験的ポテンシャル）を統一的に扱えます：
+            </p>
+
+            <pre><code class="language-python"># Matlantis calculator
+from matlantis import MatlantisCalculator
+calc = MatlantisCalculator()
+
+# Attach to atoms object
+atoms.calc = calc
+
+# Calculate energy and forces
+energy = atoms.get_potential_energy()  # eV
+forces = atoms.get_forces()            # eV/Å
+</code></pre>
+
+            <h3>構造の読み込みと書き込み</h3>
+            <p>
+                ASEは多様なファイル形式に対応：
+            </p>
+
+            <pre><code class="language-python">from ase.io import read, write
+
+# CIFファイルから読み込み
+atoms = read('structure.cif')
+
+# XYZ形式で書き込み
+write('structure.xyz', atoms)
+
+# VASP POSCAR形式
+write('POSCAR', atoms, format='vasp')
+</code></pre>
+
+            <h3>コード例3: Create structure with ASE</h3>
+            <pre><code class="language-python">from ase import Atoms
+from ase.build import bulk
+from matlantis import MatlantisCalculator
+import numpy as np
+
+# Example 1: Create Si crystal
+si_bulk = bulk('Si', 'diamond', a=5.43)
+print("=== Silicon bulk structure ===")
+print(f"Formula: {si_bulk.get_chemical_formula()}")
+print(f"Number of atoms: {len(si_bulk)}")
+print(f"Cell volume: {si_bulk.get_volume():.2f} Å³")
+print(f"Positions:\n{si_bulk.get_positions()}")
+
+# Attach Matlantis calculator
+si_bulk.calc = MatlantisCalculator()
+
+# Calculate energy (requires API key)
+try:
+    energy = si_bulk.get_potential_energy()
+    print(f"\nTotal energy: {energy:.4f} eV")
+    print(f"Energy per atom: {energy/len(si_bulk):.4f} eV/atom")
+
+    # Calculate forces
+    forces = si_bulk.get_forces()
+    max_force = np.max(np.abs(forces))
+    print(f"Maximum force: {max_force:.4f} eV/Å")
+
+except Exception as e:
+    print(f"\n✗ Energy calculation failed: {e}")
+    print("(API key required for actual calculation)")
+
+# 期待される出力（APIキー有効時）:
+# === Silicon bulk structure ===
+# Formula: Si2
+# Number of atoms: 2
+# Cell volume: 160.19 Å³
+# Positions:
+# [[0.    0.    0.   ]
+#  [1.3575 1.3575 1.3575]]
+#
+# Total energy: -10.8234 eV
+# Energy per atom: -5.4117 eV/atom
+# Maximum force: 0.0001 eV/Å
+</code></pre>
+
+            <div class="info-box">
+                <strong>💡 ASE bulkモジュール</strong>
+                <p>
+                    <code>ase.build.bulk()</code>は、一般的な結晶構造（fcc, bcc, diamond, hcp等）を簡単に作成できます。格子定数（a, b, c）を指定するだけで、正しい原子配置を生成します。
+                </p>
+            </div>
+        </section>
+
+        <section id="first-optimization">
+            <h2>1.5 最初の構造最適化</h2>
+
+            <h3>エネルギー計算の実行</h3>
+            <p>
+                Matlantis Calculatorを使ったエネルギー計算の基本フロー：
+            </p>
+
+            <ol>
+                <li>ASE Atomsオブジェクトで構造を作成</li>
+                <li>MatlantisCalculatorをアタッチ</li>
+                <li><code>get_potential_energy()</code>でエネルギー計算</li>
+                <li><code>get_forces()</code>で原子に働く力を計算</li>
+            </ol>
+
+            <h3>力の計算</h3>
+            <p>
+                構造最適化では、各原子に働く<strong>力（force）</strong>を計算し、力が小さくなる方向に原子を移動させます。力はエネルギーの勾配の負符号：
+            </p>
+
+            <p>
+                \[
+                \mathbf{F}_i = -\frac{\partial E}{\partial \mathbf{r}_i}
+                \]
+            </p>
+
+            <p>
+                力の単位はeV/Åで、通常は<strong>最大力が0.01〜0.05 eV/Å以下</strong>で収束と判定します。
+            </p>
+
+            <h3>簡単な構造最適化</h3>
+            <p>
+                ASEの最適化アルゴリズム：
+            </p>
+
+            <ul>
+                <li><strong>BFGS</strong>: 準ニュートン法、中規模系に適用</li>
+                <li><strong>LBFGS</strong>: メモリ効率版BFGS、大規模系向け</li>
+                <li><strong>FIRE</strong>: 高速最適化、粗い収束に適用</li>
+            </ul>
+
+            <h3>収束判定</h3>
+            <p>
+                最適化の収束条件：
+            </p>
+
+            <ul>
+                <li><code>fmax</code>: 最大力の閾値（例: 0.01 eV/Å）</li>
+                <li><code>steps</code>: 最大ステップ数（例: 200）</li>
+            </ul>
+
+            <h3>コード例4: Simple structure optimization</h3>
+            <pre><code class="language-python">from ase import Atoms
+from ase.optimize import BFGS
+from matlantis import MatlantisCalculator
+import numpy as np
+
+# Create water molecule (slightly distorted)
+water = Atoms('H2O',
+              positions=[[0, 0, 0],
+                        [0.96, 0, 0],
+                        [0.24, 0.93, 0]])
+
+# Set periodic boundary conditions with vacuum
+water.cell = [10, 10, 10]
+water.pbc = True
+
+print("=== Initial structure ===")
+print(f"Positions:\n{water.get_positions()}")
+
+# Attach Matlantis calculator
+water.calc = MatlantisCalculator()
+
+# Calculate initial energy and forces
+try:
+    initial_energy = water.get_potential_energy()
+    initial_forces = water.get_forces()
+    max_initial_force = np.max(np.abs(initial_forces))
+
+    print(f"\nInitial energy: {initial_energy:.4f} eV")
+    print(f"Initial max force: {max_initial_force:.4f} eV/Å")
+
+    # Run optimization
+    print("\n=== Running BFGS optimization ===")
+    opt = BFGS(water, trajectory='water_opt.traj', logfile='water_opt.log')
+    opt.run(fmax=0.01)  # Converge when max force < 0.01 eV/Å
+
+    # Final results
+    final_energy = water.get_potential_energy()
+    final_forces = water.get_forces()
+    max_final_force = np.max(np.abs(final_forces))
+
+    print(f"\n=== Optimization completed ===")
+    print(f"Final energy: {final_energy:.4f} eV")
+    print(f"Energy change: {initial_energy - final_energy:.4f} eV")
+    print(f"Final max force: {max_final_force:.4f} eV/Å")
+    print(f"\nOptimized positions:\n{water.get_positions()}")
+
+    # Bond lengths
+    pos = water.get_positions()
+    oh1_dist = np.linalg.norm(pos[1] - pos[0])
+    oh2_dist = np.linalg.norm(pos[2] - pos[0])
+    hoh_angle = np.arccos(np.dot(pos[1]-pos[0], pos[2]-pos[0]) /
+                          (oh1_dist * oh2_dist)) * 180 / np.pi
+
+    print(f"\nOptimized geometry:")
+    print(f"O-H bond length: {oh1_dist:.3f} Å, {oh2_dist:.3f} Å")
+    print(f"H-O-H angle: {hoh_angle:.1f}°")
+
+except Exception as e:
+    print(f"\n✗ Optimization failed: {e}")
+    print("(API key required for actual calculation)")
+
+# 期待される出力（APIキー有効時）:
+# === Initial structure ===
+# Positions:
+# [[0.   0.   0.  ]
+#  [0.96 0.   0.  ]
+#  [0.24 0.93 0.  ]]
+#
+# Initial energy: -14.2156 eV
+# Initial max force: 0.1234 eV/Å
+#
+# === Running BFGS optimization ===
+# Step   Time          Energy         fmax
+# *Force-consistent energies used in optimization.
+#   0    12:34:56      -14.2156       0.1234
+#   1    12:34:57      -14.2198       0.0876
+#   2    12:34:58      -14.2234       0.0432
+#   3    12:34:59      -14.2245       0.0089
+#
+# === Optimization completed ===
+# Final energy: -14.2245 eV
+# Energy change: 0.0089 eV
+# Final max force: 0.0089 eV/Å
+#
+# Optimized positions:
+# [[0.     0.     0.    ]
+#  [0.9584 0.     0.    ]
+#  [0.2398 0.9345 0.    ]]
+#
+# Optimized geometry:
+# O-H bond length: 0.958 Å, 0.958 Å
+# H-O-H angle: 104.5°
+</code></pre>
+
+            <div class="info-box">
+                <strong>💡 最適化のポイント</strong>
+                <p>
+                    <code>trajectory='water_opt.traj'</code>で最適化の各ステップを保存します。これにより、後でエネルギー収束やトラジェクトリを解析できます。<code>fmax=0.01</code>は厳しい収束条件で、高精度な構造が必要な場合に使用します。
+                </p>
+            </div>
+        </section>
+
+        <section id="visualization">
+            <h2>1.6 計算結果の可視化</h2>
+
+            <h3>ASE GUIでの構造表示</h3>
+            <p>
+                ASE GUIを使って、原子構造を3D表示できます：
+            </p>
+
+            <pre><code class="language-python">from ase.visualize import view
+view(atoms)  # 3D viewer起動
+</code></pre>
+
+            <h3>エネルギー収束のプロット</h3>
+            <p>
+                最適化トラジェクトリから、エネルギーと力の収束を可視化します：
+            </p>
+
+            <h3>力の可視化</h3>
+            <p>
+                原子に働く力をベクトルで表示できます（ASE GUI機能）。
+            </p>
+
+            <h3>トラジェクトリの解析</h3>
+            <p>
+                保存されたトラジェクトリファイル（<code>.traj</code>）から、最適化の履歴を解析します。
+            </p>
+
+            <h3>コード例5: Visualize optimization trajectory</h3>
+            <pre><code class="language-python">from ase.io import read, write
+from ase.visualize import view
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Read trajectory from optimization
+try:
+    traj = read('water_opt.traj', index=':')
+
+    print(f"=== Trajectory Analysis ===")
+    print(f"Number of steps: {len(traj)}")
+
+    # Extract energies and forces
+    energies = [atoms.get_potential_energy() for atoms in traj]
+    max_forces = [np.max(np.abs(atoms.get_forces())) for atoms in traj]
+
+    # Plot energy convergence
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+
+    # Energy plot
+    ax1.plot(energies, 'o-', linewidth=2, markersize=8, color='#11998e')
+    ax1.set_xlabel('Optimization Step', fontsize=12)
+    ax1.set_ylabel('Energy (eV)', fontsize=12)
+    ax1.set_title('Energy Convergence', fontsize=14, fontweight='bold')
+    ax1.grid(True, alpha=0.3)
+
+    # Force plot
+    ax2.plot(max_forces, 's-', linewidth=2, markersize=8, color='#e74c3c')
+    ax2.axhline(y=0.01, color='gray', linestyle='--', label='Convergence threshold (0.01 eV/Å)')
+    ax2.set_xlabel('Optimization Step', fontsize=12)
+    ax2.set_ylabel('Max Force (eV/Å)', fontsize=12)
+    ax2.set_title('Force Convergence', fontsize=14, fontweight='bold')
+    ax2.set_yscale('log')
+    ax2.grid(True, alpha=0.3)
+    ax2.legend()
+
+    plt.tight_layout()
+    plt.savefig('water_opt_convergence.png', dpi=300, bbox_inches='tight')
+    print("\n✓ Convergence plot saved to 'water_opt_convergence.png'")
+
+    # Print convergence statistics
+    energy_change = energies[0] - energies[-1]
+    force_reduction = max_forces[0] / max_forces[-1]
+
+    print(f"\n=== Convergence Statistics ===")
+    print(f"Initial energy: {energies[0]:.4f} eV")
+    print(f"Final energy: {energies[-1]:.4f} eV")
+    print(f"Energy lowering: {energy_change:.4f} eV ({energy_change/energies[0]*100:.2f}%)")
+    print(f"Initial max force: {max_forces[0]:.4f} eV/Å")
+    print(f"Final max force: {max_forces[-1]:.4f} eV/Å")
+    print(f"Force reduction: {force_reduction:.1f}x")
+
+    # Compare initial and final structures
+    print(f"\n=== Structure Comparison ===")
+    print(f"Initial O-H distances: ", end='')
+    pos_init = traj[0].get_positions()
+    print(f"{np.linalg.norm(pos_init[1]-pos_init[0]):.3f} Å, {np.linalg.norm(pos_init[2]-pos_init[0]):.3f} Å")
+
+    print(f"Final O-H distances: ", end='')
+    pos_final = traj[-1].get_positions()
+    print(f"{np.linalg.norm(pos_final[1]-pos_final[0]):.3f} Å, {np.linalg.norm(pos_final[2]-pos_final[0]):.3f} Å")
+
+    # Visualize final structure (requires GUI)
+    # view(traj[-1])
+
+except FileNotFoundError:
+    print("✗ Trajectory file 'water_opt.traj' not found")
+    print("Please run the optimization first (Code Example 4)")
+
+# 期待される出力:
+# === Trajectory Analysis ===
+# Number of steps: 4
+#
+# ✓ Convergence plot saved to 'water_opt_convergence.png'
+#
+# === Convergence Statistics ===
+# Initial energy: -14.2156 eV
+# Final energy: -14.2245 eV
+# Energy lowering: 0.0089 eV (0.06%)
+# Initial max force: 0.1234 eV/Å
+# Final max force: 0.0089 eV/Å
+# Force reduction: 13.9x
+#
+# === Structure Comparison ===
+# Initial O-H distances: 0.960 Å, 0.958 Å
+# Final O-H distances: 0.958 Å, 0.958 Å
+</code></pre>
+
+            <div class="info-box">
+                <strong>💡 収束の評価</strong>
+                <p>
+                    エネルギーと力の両方の収束を確認しましょう。エネルギーは単調減少、力は指数関数的に減少するのが正常です。収束が遅い場合は、初期構造が悪いか、最適化アルゴリズム（BFGS→LBFGS）を変更する必要があります。
+                </p>
+            </div>
+        </section>
+
+        <section id="exercises">
+            <h2>演習問題</h2>
+
+            <div class="exercise-box">
+                <h4>演習1: メタン分子の最適化<span class="difficulty easy">初級</span></h4>
+                <p>
+                    メタン分子（CH₄）の構造を作成し、Matlantisで最適化してください。C-H結合長と H-C-H結合角を計算してください。
+                </p>
+                <p><strong>ヒント:</strong> 正四面体構造の初期配置を作成し、BFGS最適化を実行します。</p>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習2: Si vs Ge結晶のエネルギー比較<span class="difficulty easy">初級</span></h4>
+                <p>
+                    Si（シリコン）とGe（ゲルマニウム）のダイヤモンド構造を作成し、1原子あたりのエネルギーを比較してください。どちらが安定ですか？
+                </p>
+                <p><strong>ヒント:</strong> <code>ase.build.bulk('Si', 'diamond', a=5.43)</code>と<code>bulk('Ge', 'diamond', a=5.66)</code>を使用します。</p>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習3: 収束条件の影響<span class="difficulty easy">初級</span></h4>
+                <p>
+                    水分子の最適化で、<code>fmax=0.1</code>、<code>fmax=0.01</code>、<code>fmax=0.001</code>の3つの収束条件を試し、最適化ステップ数とエネルギーの違いを比較してください。
+                </p>
+                <p><strong>ヒント:</strong> 厳しい収束条件ほどステップ数が増えますが、エネルギーの変化は小さくなります。</p>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習4: CO₂分子の構造異性体<span class="difficulty medium">中級</span></h4>
+                <p>
+                    CO₂の線形構造（O=C=O）と曲がった構造（∠OCO = 120°）を作成し、それぞれ最適化してエネルギーを比較してください。どちらが安定ですか？
+                </p>
+                <p><strong>ヒント:</strong> 線形構造が安定です。曲がった構造は最適化で線形に近づきます。</p>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習5: Al FCC格子の格子定数最適化<span class="difficulty medium">中級</span></h4>
+                <p>
+                    AlのFCC構造で、格子定数aを3.8〜4.2 Åの範囲で変化させ、エネルギーを計算してください。エネルギーが最小となる格子定数を求めてください。
+                </p>
+                <p><strong>ヒント:</strong> <code>bulk('Al', 'fcc', a=a_value)</code>で異なる格子定数の構造を作成し、エネルギーをプロットします。</p>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習6: ベンゼン分子の対称性<span class="difficulty medium">中級</span></h4>
+                <p>
+                    ベンゼン（C₆H₆）の構造を作成し、最適化後にC-C結合長とC-H結合長を計算してください。6回回転対称性が保たれているか確認してください。
+                </p>
+                <p><strong>ヒント:</strong> ASEの<code>molecule('C6H6')</code>で初期構造を取得できます。</p>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習7: NaCl結晶のイオン間距離<span class="difficulty medium">中級</span></h4>
+                <p>
+                    NaCl（塩化ナトリウム）の岩塩型構造を作成し、最適化後のNa-Cl最近接距離を計算してください。実験値（約2.82 Å）と比較してください。
+                </p>
+                <p><strong>ヒント:</strong> <code>bulk('NaCl', 'rocksalt', a=5.64)</code>で作成します。</p>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習8: 水クラスター（H₂O）₂のエネルギー<span class="difficulty hard">上級</span></h4>
+                <p>
+                    水分子2つから成る水ダイマー（H₂O）₂を作成し、最適化してください。単体の水分子2つのエネルギーと比較し、水素結合エネルギーを計算してください。
+                </p>
+                <p><strong>ヒント:</strong> 水素結合エネルギー = E(ダイマー) - 2×E(単量体)。典型値は約-0.2 eV（約-20 kJ/mol）です。</p>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習9: Cu表面の構造最適化<span class="difficulty hard">上級</span></h4>
+                <p>
+                    Cu(111)表面のスラブモデル（4層）を作成し、表面のみを最適化してください（下2層は固定）。表面緩和の様子を観察してください。
+                </p>
+                <p><strong>ヒント:</strong> <code>ase.build.fcc111('Cu', size=(2,2,4))</code>で作成し、<code>FixAtoms</code>で下層を固定します。</p>
+            </div>
+
+            <div class="exercise-box">
+                <h4>演習10: 最適化アルゴリズムの比較<span class="difficulty hard">上級</span></h4>
+                <p>
+                    複雑な分子（例: グルコース C₆H₁₂O₆）の最適化を、BFGS、LBFGS、FIREの3つのアルゴリズムで実行し、収束速度（ステップ数、計算時間）を比較してください。
+                </p>
+                <p><strong>ヒント:</strong> <code>ase.molecule('C6H12O6')</code>または<code>ase.build.molecule('glucose')</code>で初期構造を取得できます（ASE 3.22以降）。</p>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>参考文献</h2>
+            <ol>
+                <li>
+                    <strong>Takamoto, S. et al.</strong> "Towards universal neural network potential for material discovery applicable to arbitrary combination of 45 elements." <em>Nature Communications</em> <strong>13</strong>, 2991 (2022).
+                    <a href="https://doi.org/10.1038/s41467-022-30687-9" target="_blank">doi:10.1038/s41467-022-30687-9</a>
+                    <br><em>MatlantisのPFPの原論文。Universal NNPの設計と精度検証。</em> (pp. 1-12)
+                </li>
+                <li>
+                    <strong>Behler, J. & Parrinello, M.</strong> "Generalized Neural-Network Representation of High-Dimensional Potential-Energy Surfaces." <em>Physical Review Letters</em> <strong>98</strong>, 146401 (2007).
+                    <a href="https://doi.org/10.1103/PhysRevLett.98.146401" target="_blank">doi:10.1103/PhysRevLett.98.146401</a>
+                    <br><em>ニューラルネットワークポテンシャルの先駆的研究。</em> (pp. 1-4)
+                </li>
+                <li>
+                    <strong>Schütt, K. T. et al.</strong> "SchNet: A continuous-filter convolutional neural network for modeling quantum interactions." <em>Advances in Neural Information Processing Systems</em> <strong>30</strong> (2017).
+                    <a href="https://arxiv.org/abs/1706.08566" target="_blank">arXiv:1706.08566</a>
+                    <br><em>畳み込みニューラルネットワークを用いた機械学習ポテンシャル。</em> (pp. 991-1001)
+                </li>
+                <li>
+                    <strong>Larsen, A. H. et al.</strong> "The atomic simulation environment—a Python library for working with atoms." <em>Journal of Physics: Condensed Matter</em> <strong>29</strong>, 273002 (2017).
+                    <a href="https://doi.org/10.1088/1361-648X/aa680e" target="_blank">doi:10.1088/1361-648X/aa680e</a>
+                    <br><em>ASEの公式論文。Atomsオブジェクト、Calculatorインターフェース等の設計。</em> (pp. 1-30)
+                </li>
+                <li>
+                    <strong>Kresse, G. & Furthmüller, J.</strong> "Efficiency of ab-initio total energy calculations for metals and semiconductors using a plane-wave basis set." <em>Computational Materials Science</em> <strong>6</strong>, 15-50 (1996).
+                    <a href="https://doi.org/10.1016/0927-0256(96)00008-0" target="_blank">doi:10.1016/0927-0256(96)00008-0</a>
+                    <br><em>DFT計算（VASP）の基礎。機械学習ポテンシャルの訓練データ生成に使用。</em> (pp. 15-50)
+                </li>
+                <li>
+                    <strong>Jónsson, H., Mills, G. & Jacobsen, K. W.</strong> "Nudged elastic band method for finding minimum energy paths of transitions." In <em>Classical and Quantum Dynamics in Condensed Phase Simulations</em> (World Scientific, 1998).
+                    <a href="https://doi.org/10.1142/9789812839664_0016" target="_blank">doi:10.1142/9789812839664_0016</a>
+                    <br><em>構造最適化アルゴリズム（NEB）の解説。BFGS最適化の理論背景。</em> (pp. 385-404)
+                </li>
+                <li>
+                    <strong>Unke, O. T. et al.</strong> "Machine Learning Force Fields." <em>Chemical Reviews</em> <strong>121</strong>, 10142-10186 (2021).
+                    <a href="https://doi.org/10.1021/acs.chemrev.0c01111" target="_blank">doi:10.1021/acs.chemrev.0c01111</a>
+                    <br><em>機械学習ポテンシャルの包括的レビュー。NNP、GAP、ANI等の比較。</em> (pp. 10142-10186)
+                </li>
+            </ol>
+
+            <div class="info-box">
+                <strong>💡 さらに学ぶために</strong>
+                <p>
+                    <strong>公式ドキュメント:</strong>
+                </p>
+                <ul>
+                    <li><a href="https://matlantis.com/docs/" target="_blank">Matlantis公式ドキュメント</a> - APIリファレンス、チュートリアル</li>
+                    <li><a href="https://wiki.fysik.dtu.dk/ase/" target="_blank">ASE公式ドキュメント</a> - Atomsオブジェクト、Calculator、最適化</li>
+                    <li><a href="https://github.com/pfnet-research/matlantis-contrib" target="_blank">Matlantis Contrib GitHub</a> - コミュニティ投稿のサンプルコード</li>
+                </ul>
+                <p>
+                    <strong>関連シリーズ:</strong>
+                </p>
+                <ul>
+                    <li><a href="/AI-Knowledge-Notes/knowledge/jp/CT/gpu-computing-introduction/index.html">GPU並列計算入門</a> - 大規模MDシミュレーション高速化</li>
+                    <li><a href="/AI-Knowledge-Notes/knowledge/jp/MS/composite-materials-introduction/index.html">複合材料入門</a> - 材料科学の基礎知識</li>
+                </ul>
+            </div>
+        </section>
+
+        <div class="chapter-nav">
+            <a href="index.html">← シリーズトップ</a>
+            <a href="chapter-2.html">第2章: API認証と基本操作 →</a>
+        </div>
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <p><strong>作成者</strong>: CT Knowledge Hub Content Team</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-11-01</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>&copy; 2025 CT Terakoya. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>

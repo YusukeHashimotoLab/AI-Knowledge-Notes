@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 5: Python実践 - 電子構造計算 - 材料化学入門</title>
+    <meta name="description" content="Pythonを用いた電子構造計算の実践：Hückel理論、バンド構造、DFT、pymatgen/ASEライブラリの活用。">
+
+    <!-- MathJax for equations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true});</script>
+
+    <!-- Prism.js for syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #f093fb;
+        }
+
+        h2 {
+            color: #34495e;
+            font-size: 1.8em;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-left: 15px;
+            border-left: 5px solid #f5576c;
+        }
+
+        h3 {
+            color: #546e7a;
+            font-size: 1.4em;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        .equation {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            border-left: 4px solid #f093fb;
+            overflow-x: auto;
+        }
+
+        pre[class*="language-"] {
+            margin: 20px 0;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .note {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .important {
+            background: #f8d7da;
+            border-left: 5px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .tip {
+            background: #d1ecf1;
+            border-left: 5px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .nav-buttons a {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: transform 0.2s;
+        }
+
+        .nav-buttons a:hover {
+            transform: translateY(-2px);
+        }
+
+        .mermaid {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 15px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chapter 5: Python実践 - 電子構造計算</h1>
+
+        <p>本章では、これまで学んだ量子化学・材料化学の理論をPythonで実装し、実践的な電子構造計算とデータ解析を行います。Hückel理論、バンド構造計算、密度汎関数理論（DFT）の基礎、そしてpymatgen/ASEライブラリを用いた材料計算ワークフローを習得します。</p>
+
+        <h2>5.1 Hückel理論の実装</h2>
+
+        <h3>5.1.1 Hückel行列の構築と対角化</h3>
+
+        <p>Hückel理論（Chapter 2で学習）をPythonで実装し、共役系分子の分子軌道エネルギーを計算します。</p>
+
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.linalg import eigh
+
+class HuckelCalculator:
+    """
+    Hückel理論による分子軌道計算クラス
+    """
+    def __init__(self, adjacency_matrix, alpha=0, beta=-1):
+        """
+        Parameters:
+        -----------
+        adjacency_matrix : ndarray
+            隣接行列（結合している原子間を1、それ以外を0）
+        alpha : float
+            クーロン積分（基準エネルギー、通常0）
+        beta : float
+            共鳴積分（通常-1, 単位は任意）
+        """
+        self.adjacency = np.array(adjacency_matrix)
+        self.alpha = alpha
+        self.beta = beta
+        self.n_atoms = len(adjacency_matrix)
+
+    def build_hamiltonian(self):
+        """Hückel Hamiltonianを構築"""
+        H = self.alpha * np.eye(self.n_atoms) + self.beta * self.adjacency
+        return H
+
+    def solve(self):
+        """固有値問題を解く"""
+        H = self.build_hamiltonian()
+        eigenvalues, eigenvectors = eigh(H)
+        # エネルギーが低い順にソート
+        idx = eigenvalues.argsort()
+        eigenvalues = eigenvalues[idx]
+        eigenvectors = eigenvectors[:, idx]
+        return eigenvalues, eigenvectors
+
+    def plot_energy_levels(self, title="Molecular Orbital Energy Levels"):
+        """エネルギー準位図を描画"""
+        energies, coeffs = self.solve()
+
+        plt.figure(figsize=(8, 10))
+        for i, E in enumerate(energies):
+            plt.hlines(E, 0, 1, linewidth=3, color='blue')
+            plt.text(1.1, E, f'MO {i+1}: E = {E:.3f}', fontsize=10, va='center')
+
+        plt.axhline(self.alpha, color='red', linestyle='--', label=f'α = {self.alpha}')
+        plt.xlim(-0.5, 2)
+        plt.ylabel('Energy (in units of β)', fontsize=12)
+        plt.title(title, fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(True, alpha=0.3, axis='y')
+        plt.tick_params(axis='x', which='both', bottom=False, labelbottom=False)
+        plt.tight_layout()
+        plt.show()
+
+# 例1: ベンゼン（C6H6）
+benzene_adjacency = np.array([
+    [0, 1, 0, 0, 0, 1],
+    [1, 0, 1, 0, 0, 0],
+    [0, 1, 0, 1, 0, 0],
+    [0, 0, 1, 0, 1, 0],
+    [0, 0, 0, 1, 0, 1],
+    [1, 0, 0, 0, 1, 0]
+])
+
+benzene = HuckelCalculator(benzene_adjacency)
+E_benzene, coeff_benzene = benzene.solve()
+
+print("ベンゼン（C6H6）のHückel計算:")
+print(f"分子軌道エネルギー:")
+for i, E in enumerate(E_benzene):
+    print(f"  MO {i+1}: E = {E:.4f} β (α = 0として)")
+
+# π電子エネルギー
+n_electrons = 6  # ベンゼンのπ電子数
+E_total = 2 * (E_benzene[0] + E_benzene[1] + E_benzene[2])  # 各軌道に2電子
+print(f"\n全π電子エネルギー: {E_total:.4f} β")
+print(f"共鳴安定化エネルギー: {E_total - 6*1:.4f} β")  # 参照: 6 × α + 6 × β
+
+benzene.plot_energy_levels("Benzene Molecular Orbitals")
+</code></pre>
+
+        <h3>5.1.2 芳香族性の定量評価</h3>
+
+        <pre><code class="language-python">def aromaticity_analysis(adjacency, n_electrons):
+    """
+    Hückel理論による芳香族性の評価
+
+    Parameters:
+    -----------
+    adjacency : ndarray
+        隣接行列
+    n_electrons : int
+        π電子数
+
+    Returns:
+    --------
+    resonance_energy : float
+        共鳴安定化エネルギー
+    is_aromatic : bool
+        4n+2則による芳香族性判定
+    """
+    calc = HuckelCalculator(adjacency)
+    energies, _ = calc.solve()
+
+    # 占有軌道のエネルギー合計
+    n_orbitals = n_electrons // 2
+    E_total = 2 * np.sum(energies[:n_orbitals])
+
+    # 参照エネルギー（単結合のみの場合）
+    E_reference = n_electrons * (-1)  # β単位
+
+    # 共鳴安定化エネルギー
+    resonance_energy = E_total - E_reference
+
+    # Hückel則（4n+2則）
+    is_aromatic = (n_electrons - 2) % 4 == 0
+
+    return resonance_energy, is_aromatic
+
+# ベンゼン vs シクロブタジエン
+print("芳香族性の比較:\n")
+
+# ベンゼン（C6H6, 6π電子）
+RE_benzene, aromatic_benzene = aromaticity_analysis(benzene_adjacency, 6)
+print(f"ベンゼン（6π電子）:")
+print(f"  共鳴安定化エネルギー: {RE_benzene:.4f} β")
+print(f"  4n+2則: {'芳香族' if aromatic_benzene else '反芳香族'}")
+
+# シクロブタジエン（C4H4, 4π電子）
+cyclobutadiene_adjacency = np.array([
+    [0, 1, 0, 1],
+    [1, 0, 1, 0],
+    [0, 1, 0, 1],
+    [1, 0, 1, 0]
+])
+RE_cyclobutadiene, aromatic_cyclobutadiene = aromaticity_analysis(cyclobutadiene_adjacency, 4)
+print(f"\nシクロブタジエン（4π電子）:")
+print(f"  共鳴安定化エネルギー: {RE_cyclobutadiene:.4f} β")
+print(f"  4n+2則: {'芳香族' if aromatic_cyclobutadiene else '反芳香族'}")
+</code></pre>
+
+        <h2>5.2 バンド構造計算</h2>
+
+        <h3>5.2.1 1次元Tight-Bindingモデル</h3>
+
+        <p>固体の電子構造をTight-Binding近似で計算します（Chapter 2で理論を学習）。</p>
+
+        <pre><code class="language-python">def tight_binding_1d(k, a=1.0, t=-1.0, epsilon_0=0):
+    """
+    1次元Tight-Bindingバンドエネルギー
+
+    Parameters:
+    -----------
+    k : array
+        波数ベクトル (1/Å)
+    a : float
+        格子定数 (Å)
+    t : float
+        ホッピング積分（負の値）
+    epsilon_0 : float
+        原子軌道エネルギー
+
+    Returns:
+    --------
+    E : array
+        バンドエネルギー
+    """
+    E = epsilon_0 + 2 * t * np.cos(k * a)
+    return E
+
+def plot_band_structure_1d():
+    """1次元バンド構造の可視化"""
+    # 第1ブリルアンゾーン: -π/a <= k <= π/a
+    a = 1.0  # Å
+    k = np.linspace(-np.pi/a, np.pi/a, 500)
+    E = tight_binding_1d(k, a=a, t=-1.0, epsilon_0=0)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(k, E, linewidth=2, color='#f5576c')
+    plt.axhline(0, color='black', linestyle='--', linewidth=0.5)
+    plt.xlabel('Wave vector k (π/a)', fontsize=12)
+    plt.ylabel('Energy (eV)', fontsize=12)
+    plt.title('1D Tight-Binding Band Structure', fontsize=14, fontweight='bold')
+    plt.xticks([-np.pi/a, 0, np.pi/a], ['-π/a', '0', 'π/a'])
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig('1d_band_structure.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+    # バンド幅
+    bandwidth = np.max(E) - np.min(E)
+    print(f"1次元バンド幅: {bandwidth:.2f} eV")
+    print(f"バンド底（k=0）: {tight_binding_1d(0, a, t=-1.0):.2f} eV")
+    print(f"バンド頂（k=π/a）: {tight_binding_1d(np.pi/a, a, t=-1.0):.2f} eV")
+
+plot_band_structure_1d()
+</code></pre>
+
+        <h3>5.2.2 2次元グラフェンのバンド構造</h3>
+
+        <pre><code class="language-python">def tight_binding_graphene(kx, ky, a=1.42, t=-2.7):
+    """
+    グラフェンの2次元Tight-Bindingバンドエネルギー
+
+    Parameters:
+    -----------
+    kx, ky : array
+        波数ベクトル成分
+    a : float
+        C-C結合長 (Å)
+    t : float
+        ホッピング積分 (eV)
+
+    Returns:
+    --------
+    E_plus, E_minus : array
+        バンドエネルギー（価電子帯・伝導帯）
+    """
+    # グラフェンの分散関係（簡略版）
+    f = np.exp(1j * kx * a) + np.exp(1j * ky * a * np.sqrt(3)) + 1
+    E_plus = t * np.abs(f)
+    E_minus = -t * np.abs(f)
+    return E_plus, E_minus
+
+def plot_graphene_bands():
+    """グラフェンのバンド構造（簡易版）"""
+    # K点周辺
+    kx = np.linspace(-np.pi, np.pi, 100)
+    ky = np.linspace(-np.pi, np.pi, 100)
+    KX, KY = np.meshgrid(kx, ky)
+
+    E_plus, E_minus = tight_binding_graphene(KX, KY)
+
+    fig = plt.figure(figsize=(14, 6))
+
+    # 伝導帯
+    ax1 = fig.add_subplot(121, projection='3d')
+    surf1 = ax1.plot_surface(KX, KY, E_plus, cmap='viridis', alpha=0.8)
+    ax1.set_xlabel('kx (π/a)')
+    ax1.set_ylabel('ky (π/a)')
+    ax1.set_zlabel('Energy (eV)')
+    ax1.set_title('Graphene Conduction Band', fontweight='bold')
+    fig.colorbar(surf1, ax=ax1, shrink=0.5)
+
+    # 価電子帯
+    ax2 = fig.add_subplot(122, projection='3d')
+    surf2 = ax2.plot_surface(KX, KY, E_minus, cmap='plasma', alpha=0.8)
+    ax2.set_xlabel('kx (π/a)')
+    ax2.set_ylabel('ky (π/a)')
+    ax2.set_zlabel('Energy (eV)')
+    ax2.set_title('Graphene Valence Band', fontweight='bold')
+    fig.colorbar(surf2, ax=ax2, shrink=0.5)
+
+    plt.tight_layout()
+    plt.savefig('graphene_bands.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+    print("グラフェンの特徴:")
+    print("  - Dirac点（K点）でバンドギャップ = 0")
+    print("  - 線形分散関係（Dirac cone）")
+    print("  - 質量ゼロのディラックフェルミオン的振る舞い")
+
+plot_graphene_bands()
+</code></pre>
+
+        <h2>5.3 pymatgenによる材料計算</h2>
+
+        <h3>5.3.1 結晶構造の操作</h3>
+
+        <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+
+def create_and_analyze_structure():
+    """
+    pymatgenで結晶構造を作成・解析
+
+    注意: pymatgenのインストールが必要
+    pip install pymatgen
+    """
+    # NaCl構造の作成
+    lattice = Lattice.cubic(5.64)  # Å
+    species = ["Na", "Cl"]
+    coords = [[0, 0, 0], [0.5, 0.5, 0.5]]
+    nacl = Structure(lattice, species, coords)
+
+    print("NaCl結晶構造:")
+    print(f"  化学式: {nacl.composition}")
+    print(f"  格子定数: {nacl.lattice.a:.3f} Å")
+    print(f"  空間群: {nacl.get_space_group_info()}")
+    print(f"  密度: {nacl.density:.3f} g/cm³")
+
+    # 結晶構造の変換
+    supercell = nacl * [2, 2, 2]  # 2×2×2 supercell
+    print(f"\nSupercell:")
+    print(f"  原子数: {len(supercell)}")
+    print(f"  格子定数: {supercell.lattice.a:.3f} Å")
+
+    return nacl
+
+# 実行例
+try:
+    nacl_structure = create_and_analyze_structure()
+except ImportError:
+    print("pymatgenがインストールされていません。")
+    print("pip install pymatgenでインストールしてください。")
+</code></pre>
+
+        <h3>5.3.2 状態密度（DOS）の計算</h3>
+
+        <pre><code class="language-python">def calculate_dos_1d(E_band, n_points=1000, broadening=0.1):
+    """
+    1次元バンドから状態密度（DOS）を計算
+
+    Parameters:
+    -----------
+    E_band : callable
+        バンドエネルギー関数 E(k)
+    n_points : int
+        k点の数
+    broadening : float
+        ガウシアン広がり（eV）
+
+    Returns:
+    --------
+    E_grid, DOS : array
+        エネルギーグリッドと状態密度
+    """
+    # 第1ブリルアンゾーンのk点
+    a = 1.0
+    k_points = np.linspace(-np.pi/a, np.pi/a, n_points)
+    energies = E_band(k_points)
+
+    # エネルギーグリッド
+    E_min, E_max = energies.min(), energies.max()
+    E_grid = np.linspace(E_min - 1, E_max + 1, 500)
+
+    # DOSの計算（ガウシアン広がり）
+    DOS = np.zeros_like(E_grid)
+    for E_k in energies:
+        DOS += np.exp(-((E_grid - E_k) / broadening)**2) / (broadening * np.sqrt(np.pi))
+
+    DOS /= n_points  # 規格化
+
+    return E_grid, DOS
+
+# 1次元Tight-BindingバンドのDOS
+E_grid, DOS = calculate_dos_1d(lambda k: tight_binding_1d(k, a=1.0, t=-1.0))
+
+plt.figure(figsize=(10, 6))
+plt.plot(E_grid, DOS, linewidth=2, color='#3498db')
+plt.fill_between(E_grid, DOS, alpha=0.3, color='#3498db')
+plt.axvline(0, color='red', linestyle='--', label='Fermi level (half-filled)')
+plt.xlabel('Energy (eV)', fontsize=12)
+plt.ylabel('Density of States (states/eV)', fontsize=12)
+plt.title('Density of States: 1D Tight-Binding Model', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('dos_1d.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# Van Hove特異点
+print("1次元DOSの特徴:")
+print("  - バンド端（E = ±2|t|）で発散（Van Hove特異点）")
+print("  - バンド中心（E = 0）で最小")
+</code></pre>
+
+        <h2>5.4 統合ワークフロー例</h2>
+
+        <h3>5.4.1 材料探索ワークフロー</h3>
+
+        <pre><code class="language-python">class MaterialAnalysisPipeline:
+    """
+    材料計算の統合ワークフロー
+    """
+    def __init__(self, structure):
+        """
+        Parameters:
+        -----------
+        structure : pymatgen Structure object
+            解析対象の結晶構造
+        """
+        self.structure = structure
+        self.results = {}
+
+    def analyze_structure(self):
+        """結晶構造の基本解析"""
+        s = self.structure
+        self.results['formula'] = s.composition.reduced_formula
+        self.results['volume'] = s.volume
+        self.results['density'] = s.density
+        self.results['space_group'] = s.get_space_group_info()[0]
+
+        print(f"構造解析結果:")
+        print(f"  化学式: {self.results['formula']}")
+        print(f"  体積: {self.results['volume']:.3f} Å³")
+        print(f"  密度: {self.results['density']:.3f} g/cm³")
+        print(f"  空間群: {self.results['space_group']}")
+
+    def estimate_band_gap(self):
+        """
+        バンドギャップの簡易推定（実際のDFT計算の代わり）
+        """
+        # 簡易的な推定（実際にはDFT計算が必要）
+        formula = self.results['formula']
+
+        # 典型的なバンドギャップの例
+        band_gaps = {
+            'Si': 1.12,
+            'Ge': 0.66,
+            'GaAs': 1.43,
+            'CdTe': 1.50,
+            'Diamond': 5.47,
+        }
+
+        estimated_gap = band_gaps.get(formula, None)
+
+        if estimated_gap:
+            self.results['band_gap'] = estimated_gap
+            print(f"\nバンドギャップ: {estimated_gap:.2f} eV")
+        else:
+            print(f"\nバンドギャップデータなし（{formula}）")
+
+    def export_results(self, filename='analysis_results.json'):
+        """結果をJSONで出力"""
+        import json
+        with open(filename, 'w') as f:
+            json.dump(self.results, f, indent=2)
+        print(f"\n結果を {filename} に保存しました")
+
+# 使用例（pymatgenがインストールされている場合）
+try:
+    # Si結晶の作成
+    si_lattice = Lattice.cubic(5.43)
+    si = Structure(si_lattice, ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]])
+
+    pipeline = MaterialAnalysisPipeline(si)
+    pipeline.analyze_structure()
+    pipeline.estimate_band_gap()
+    pipeline.export_results()
+
+except NameError:
+    print("pymatgenがインストールされていないため、スキップしました。")
+</code></pre>
+
+        <div class="mermaid">
+        flowchart TD
+            A[結晶構造データ] --> B[pymatgen Structure]
+            B --> C{解析タイプ}
+            C -->|構造解析| D[格子定数・空間群]
+            C -->|電子構造| E[バンド計算・DOS]
+            C -->|熱力学| F[相安定性・Gibbs]
+            D --> G[データ統合]
+            E --> G
+            F --> G
+            G --> H[材料スクリーニング]
+            H --> I[候補材料リスト]
+            I --> J[実験検証]
+
+            style A fill:#f093fb
+            style H fill:#ffffcc
+            style I fill:#ccffcc
+            style J fill:#ccccff
+        </flowchart>
+        </div>
+
+        <h2>5.5 演習問題</h2>
+
+        <h3>Exercise 5.1 (Medium): ナフタレンのHückel計算</h3>
+        <p><strong>問題:</strong> ナフタレン（C₁₀H₈）の隣接行列を作成し、Hückel理論で分子軌道エネルギーを計算してください。ベンゼンと比較して共鳴安定化エネルギーを評価してください。</p>
+
+        <details>
+            <summary>解答を表示</summary>
+            <pre><code class="language-python"># Exercise 5.1 解答
+
+# ナフタレンの隣接行列（10個の炭素原子）
+naphthalene_adjacency = np.array([
+    [0, 1, 0, 0, 0, 0, 0, 0, 0, 1],  # C1
+    [1, 0, 1, 0, 0, 0, 0, 0, 0, 0],  # C2
+    [0, 1, 0, 1, 0, 0, 0, 0, 0, 0],  # C3
+    [0, 0, 1, 0, 1, 0, 0, 0, 0, 0],  # C4
+    [0, 0, 0, 1, 0, 1, 0, 0, 0, 1],  # C5
+    [0, 0, 0, 0, 1, 0, 1, 0, 0, 0],  # C6
+    [0, 0, 0, 0, 0, 1, 0, 1, 0, 0],  # C7
+    [0, 0, 0, 0, 0, 0, 1, 0, 1, 0],  # C8
+    [0, 0, 0, 0, 0, 0, 0, 1, 0, 1],  # C9
+    [1, 0, 0, 0, 1, 0, 0, 0, 1, 0],  # C10
+])
+
+naphthalene = HuckelCalculator(naphthalene_adjacency)
+E_naphthalene, _ = naphthalene.solve()
+
+print("Exercise 5.1 解答:\n")
+print("ナフタレン（C10H8）のHückel計算:")
+print("分子軌道エネルギー:")
+for i, E in enumerate(E_naphthalene):
+    print(f"  MO {i+1}: E = {E:.4f} β")
+
+# 共鳴安定化エネルギー
+n_electrons = 10
+n_orbitals = n_electrons // 2
+E_total = 2 * np.sum(E_naphthalene[:n_orbitals])
+E_reference = n_electrons * (-1)
+RE_naphthalene = E_total - E_reference
+
+print(f"\n全π電子エネルギー: {E_total:.4f} β")
+print(f"共鳴安定化エネルギー: {RE_naphthalene:.4f} β")
+
+# ベンゼンとの比較
+RE_benzene_per_ring = -2.00  # β単位（ベンゼン1環あたり）
+print(f"\nベンゼン（1環）の共鳴安定化エネルギー: {RE_benzene_per_ring:.2f} β")
+print(f"ナフタレン（2環）の共鳴安定化エネルギー: {RE_naphthalene:.4f} β")
+print(f"1環あたり: {RE_naphthalene/2:.4f} β")
+print("\n結論: ナフタレンの共鳴安定化はベンゼン2つの単純和より小さい")
+</code></pre>
+        </details>
+
+        <h3>Exercise 5.2 (Medium): 2次元バンド構造の解析</h3>
+        <p><strong>問題:</strong> 2次元正方格子のTight-Bindingモデル（E = -2t(cos(kₓa) + cos(kᵧa))）で、高対称点（Γ, X, M）でのバンドエネルギーを計算してください。</p>
+
+        <details>
+            <summary>解答を表示</summary>
+            <pre><code class="language-python"># Exercise 5.2 解答
+
+def tight_binding_2d_square(kx, ky, a=1.0, t=-1.0):
+    """2次元正方格子のTight-Bindingバンド"""
+    E = -2 * t * (np.cos(kx * a) + np.cos(ky * a))
+    return E
+
+# 高対称点
+a = 1.0
+symmetry_points = {
+    'Γ': (0, 0),
+    'X': (np.pi/a, 0),
+    'M': (np.pi/a, np.pi/a),
+}
+
+print("Exercise 5.2 解答:\n")
+print("2次元正方格子の高対称点でのバンドエネルギー:")
+for label, (kx, ky) in symmetry_points.items():
+    E = tight_binding_2d_square(kx, ky, a=a, t=-1.0)
+    print(f"  {label}点 (kx={kx/np.pi:.2f}π, ky={ky/np.pi:.2f}π): E = {E:.4f} eV")
+
+# バンド幅
+E_min = tight_binding_2d_square(0, 0, a, t=-1.0)  # Γ点
+E_max = tight_binding_2d_square(np.pi/a, np.pi/a, a, t=-1.0)  # M点
+bandwidth = E_max - E_min
+print(f"\nバンド幅: {bandwidth:.4f} eV")
+print(f"バンド幅 = 8|t| = {8*abs(-1.0):.1f} eV （理論値と一致）")
+</code></pre>
+        </details>
+
+        <h3>Exercise 5.3 (Hard): 状態密度とFermiエネルギー</h3>
+        <p><strong>問題:</strong> 1次元Tight-Bindingバンド（E = -2t cos(ka), t = -1 eV）でハーフフィリング（電子数 = 原子数）の場合のFermiエネルギーを求め、Fermi準位での状態密度を計算してください。</p>
+
+        <details>
+            <summary>解答を表示</summary>
+            <pre><code class="language-python"># Exercise 5.3 解答
+
+def find_fermi_energy(E_grid, DOS, n_electrons, n_atoms):
+    """
+    Fermiエネルギーを決定
+
+    Parameters:
+    -----------
+    E_grid : array
+        エネルギーグリッド
+    DOS : array
+        状態密度
+    n_electrons : int
+        電子数
+    n_atoms : int
+        原子数
+
+    Returns:
+    --------
+    E_F : float
+        Fermiエネルギー
+    """
+    # 状態密度を積分して電子数を計算
+    dE = E_grid[1] - E_grid[0]
+    cumulative_electrons = np.cumsum(DOS) * dE
+
+    # Fermiエネルギー: 累積電子数がn_electronsになるエネルギー
+    idx = np.argmin(np.abs(cumulative_electrons - n_electrons / n_atoms))
+    E_F = E_grid[idx]
+
+    return E_F
+
+print("Exercise 5.3 解答:\n")
+
+# 1次元バンドのDOS
+E_grid, DOS = calculate_dos_1d(lambda k: tight_binding_1d(k, a=1.0, t=-1.0), n_points=1000)
+
+# ハーフフィリング（1原子あたり1電子）
+n_electrons = 1
+n_atoms = 1
+E_F = find_fermi_energy(E_grid, DOS, n_electrons, n_atoms)
+
+# Fermi準位でのDOS
+DOS_at_EF = DOS[np.argmin(np.abs(E_grid - E_F))]
+
+print(f"1次元Tight-Bindingバンド（ハーフフィリング）:")
+print(f"  Fermiエネルギー E_F: {E_F:.4f} eV")
+print(f"  理論値: E_F = 0 eV （バンド中心）")
+print(f"  Fermi準位での状態密度: {DOS_at_EF:.4f} states/eV")
+
+# 可視化
+plt.figure(figsize=(10, 6))
+plt.plot(E_grid, DOS, linewidth=2, color='#3498db', label='DOS')
+plt.axvline(E_F, color='red', linestyle='--', linewidth=2, label=f'Fermi level (E_F = {E_F:.2f} eV)')
+plt.fill_between(E_grid, DOS, where=(E_grid <= E_F), alpha=0.3, color='green', label='Filled states')
+plt.xlabel('Energy (eV)', fontsize=12)
+plt.ylabel('Density of States (states/eV)', fontsize=12)
+plt.title('DOS and Fermi Level (Half-Filled)', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+</code></pre>
+        </details>
+
+        <h2>5.6 参考文献</h2>
+
+        <ol>
+            <li>Szabo, A., Ostlund, N.S. (1996). <em>Modern Quantum Chemistry: Introduction to Advanced Electronic Structure Theory</em>. Dover, pp. 108-142, 223-267.</li>
+            <li>Martin, R.M. (2004). <em>Electronic Structure: Basic Theory and Practical Methods</em>. Cambridge University Press, pp. 45-89, 134-178.</li>
+            <li>Ashcroft, N.W., Mermin, N.D. (1976). <em>Solid State Physics</em>. Holt, Rinehart and Winston, pp. 133-165, 227-259.</li>
+            <li>Ong, S.P., et al. (2013). "Python Materials Genomics (pymatgen): A Robust, Open-Source Python Library for Materials Analysis." <em>Computational Materials Science</em>, 68, 314-319.</li>
+            <li>Larsen, A.H., et al. (2017). "The Atomic Simulation Environment—A Python Library for Working with Atoms." <em>Journal of Physics: Condensed Matter</em>, 29, 273002.</li>
+        </ol>
+
+        <h2>5.7 学習目標の確認</h2>
+
+        <p>以下の各項目について、自己評価してください（理解度: 1-基本理解、2-実践スキル、3-応用力）：</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>学習目標</th>
+                    <th>レベル1<br>（基本理解）</th>
+                    <th>レベル2<br>（実践スキル）</th>
+                    <th>レベル3<br>（応用力）</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Hückel理論実装</td>
+                    <td>Hückel行列の構築方法を理解している</td>
+                    <td>PythonでHückel計算を実装できる</td>
+                    <td>複雑な共役系の芳香族性を評価できる</td>
+                </tr>
+                <tr>
+                    <td>バンド構造計算</td>
+                    <td>Tight-Binding近似を理解している</td>
+                    <td>1次元・2次元バンド構造を計算できる</td>
+                    <td>実材料のバンド構造を解析できる</td>
+                </tr>
+                <tr>
+                    <td>状態密度（DOS）</td>
+                    <td>DOSの定義と物理的意味を理解している</td>
+                    <td>バンド構造からDOSを計算できる</td>
+                    <td>DOSから電子的性質を予測できる</td>
+                </tr>
+                <tr>
+                    <td>pymatgen活用</td>
+                    <td>pymatgenの基本機能を理解している</td>
+                    <td>結晶構造の作成・操作ができる</td>
+                    <td>統合ワークフローで材料探索ができる</td>
+                </tr>
+                <tr>
+                    <td>統合ワークフロー</td>
+                    <td>材料計算の全体像を理解している</td>
+                    <td>複数のツールを組み合わせて使える</td>
+                    <td>独自の材料解析パイプラインを構築できる</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="tip">
+            <strong>おめでとうございます！</strong> 材料化学入門シリーズを完了しました。化学結合、分子軌道理論、結晶場理論、熱力学、そしてPython実装まで、材料科学の基礎を体系的に学びました。次は、これらの知識を実際の材料設計や研究プロジェクトに応用してみましょう。
+        </div>
+
+        <div class="nav-buttons">
+            <a href="chapter-4.html">← Chapter 4: 熱力学と相平衡</a>
+            <a href="index.html">シリーズトップへ →</a>
+        </div>
+    </div>
+</body>
+</html>
