@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 4: 解析ツールとPython統合 - GROMACS入門</title>
+
+    <!-- MathJax 3.x -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+
+    <!-- Prism.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <style>
+        :root {
+            --ct-gradient-start: #11998e;
+            --ct-gradient-end: #38ef7d;
+            --text-primary: #2c3e50;
+            --text-secondary: #546e7a;
+            --bg-light: #f8f9fa;
+            --border-color: #e0e0e0;
+            --code-bg: #1e1e1e;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            line-height: 1.8;
+            color: var(--text-primary);
+            background: linear-gradient(135deg, var(--ct-gradient-start), var(--ct-gradient-end));
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        h1, h2, h3 {
+            background: linear-gradient(135deg, var(--ct-gradient-start), var(--ct-gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 2rem 0 1rem 0;
+        }
+
+        h1 { font-size: 2.5rem; border-bottom: 3px solid var(--ct-gradient-end); padding-bottom: 0.5rem; }
+        h2 { font-size: 2rem; margin-top: 3rem; }
+        h3 { font-size: 1.5rem; margin-top: 2rem; }
+
+        p { margin: 1rem 0; color: var(--text-secondary); }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            box-shadow: var(--shadow);
+        }
+
+        code {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(17,153,142,0.1), rgba(56,239,125,0.1));
+            border-left: 4px solid var(--ct-gradient-start);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            box-shadow: var(--shadow);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            box-shadow: var(--shadow);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--ct-gradient-start), var(--ct-gradient-end));
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: var(--bg-light);
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--border-color);
+        }
+
+        .btn {
+            padding: 0.8rem 2rem;
+            background: linear-gradient(135deg, var(--ct-gradient-start), var(--ct-gradient-end));
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--shadow);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 1.5rem; }
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.5rem; }
+            table { font-size: 0.9rem; }
+            .nav-buttons { flex-direction: column; gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chapter 4: 解析ツールとPython統合</h1>
+
+        <div class="info-box">
+            <strong>学習目標</strong>
+            <ul>
+                <li>GROMACS標準解析ツール（gmx rms, gmx rmsf, gmx hbond等）の使い方を習得する</li>
+                <li>MDAnalysisを使った高度な軌道解析手法を学ぶ</li>
+                <li>水素結合、二次構造、溶媒和構造の解析ができる</li>
+                <li>複数軌道の統合解析とバッチ処理を実装できる</li>
+            </ul>
+        </div>
+
+        <h2>4.1 GROMACS標準解析ツールの基礎</h2>
+
+        <p>
+        GROMACSには50種類以上の解析ツールが標準搭載されています。これらは<code>gmx</code>コマンドのサブコマンドとして実行されます。
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ツール</th>
+                    <th>機能</th>
+                    <th>出力</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>gmx rms</td>
+                    <td>RMSD計算（全体構造変化）</td>
+                    <td>XVGファイル（時間 vs RMSD）</td>
+                </tr>
+                <tr>
+                    <td>gmx rmsf</td>
+                    <td>RMSF計算（残基ごとの揺らぎ）</td>
+                    <td>XVGファイル（残基 vs RMSF）</td>
+                </tr>
+                <tr>
+                    <td>gmx hbond</td>
+                    <td>水素結合解析</td>
+                    <td>水素結合数、寿命、距離分布</td>
+                </tr>
+                <tr>
+                    <td>gmx sasa</td>
+                    <td>溶媒接触表面積（SASA）</td>
+                    <td>全体・残基ごとのSASA</td>
+                </tr>
+                <tr>
+                    <td>gmx gyrate</td>
+                    <td>回転半径（Rg）計算</td>
+                    <td>タンパク質のコンパクトさ</td>
+                </tr>
+                <tr>
+                    <td>gmx do_dssp</td>
+                    <td>二次構造解析（DSSP）</td>
+                    <td>α-helix、β-sheet比率の時間変化</td>
+                </tr>
+                <tr>
+                    <td>gmx rdf</td>
+                    <td>動径分布関数（RDF）</td>
+                    <td>原子間距離分布</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>4.1.1 RMSD・RMSF解析の実践</h3>
+
+        <pre><code class="language-bash"># RMSD計算（backboneを参照構造に重ね合わせ）
+echo "4 4" | gmx rms -s md_0_10.tpr -f md_0_10.xtc -o rmsd.xvg -tu ns
+
+# 説明：
+# 4 4 = Backbone Backbone（1つ目は重ね合わせ基準、2つ目はRMSD計算対象）
+# -tu ns = 時間単位をナノ秒に指定
+
+# Cα原子のRMSF計算
+echo "3" | gmx rmsf -s md_0_10.tpr -f md_0_10.xtc -o rmsf.xvg -res
+
+# 説明：
+# 3 = C-alpha（Cα原子のみ選択）
+# -res = 残基ごとに平均化
+
+# 結果をプロット（xmgrace使用）
+xmgrace rmsd.xvg
+xmgrace rmsf.xvg</code></pre>
+
+        <h3>4.1.2 水素結合解析</h3>
+
+        <p>
+        水素結合はタンパク質の安定性と構造維持に重要です。GROMACSでは幾何学的基準で水素結合を判定します：
+        </p>
+
+        <p>
+        \[
+        \text{水素結合条件: } r_{\text{D-A}} < 3.5 \text{ Å } \land \angle \text{D-H-A} > 150°
+        \]
+        </p>
+
+        <pre><code class="language-bash"># タンパク質内部の水素結合（主鎖間）
+echo "1 1" | gmx hbond -s md_0_10.tpr -f md_0_10.xtc -num hbnum.xvg -dist hbdist.xvg -ang hbang.xvg
+
+# タンパク質-水間の水素結合
+echo "1 12" | gmx hbond -s md_0_10.tpr -f md_0_10.xtc -num hbnum_protein_water.xvg
+
+# 説明：
+# 1 = Protein
+# 12 = Water
+# -num = 水素結合数の時間変化
+# -dist = ドナー-アクセプター距離分布
+# -ang = 結合角度分布</code></pre>
+
+        <h3>4.1.3 Pythonによる解析結果の可視化</h3>
+
+        <pre><code class="language-python">#!/usr/bin/env python3
+"""
+GROMACS XVG解析結果の統合可視化
+- RMSD, RMSF, 水素結合数を一括プロット
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def parse_xvg(xvg_file):
+    """XVGファイルをパース"""
+    time, values = [], []
+    with open(xvg_file, 'r') as f:
+        for line in f:
+            if line.startswith('#') or line.startswith('@'):
+                continue
+            parts = line.split()
+            if len(parts) >= 2:
+                time.append(float(parts[0]))
+                values.append(float(parts[1]))
+    return np.array(time), np.array(values)
+
+def plot_gromacs_analysis(rmsd_xvg, rmsf_xvg, hbond_xvg, output='gromacs_analysis.png'):
+    """
+    GROMACS解析結果の統合プロット
+    """
+    # データ読み込み
+    time_rmsd, rmsd = parse_xvg(rmsd_xvg)
+    resid, rmsf = parse_xvg(rmsf_xvg)
+    time_hb, hbonds = parse_xvg(hbond_xvg)
+
+    # 3x1サブプロット
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 12))
+
+    # RMSD
+    ax1.plot(time_rmsd, rmsd, 'b-', linewidth=2)
+    ax1.set_xlabel('Time (ns)', fontsize=12)
+    ax1.set_ylabel('RMSD (nm)', fontsize=12)
+    ax1.set_title('Backbone RMSD', fontsize=14, fontweight='bold')
+    ax1.grid(True, alpha=0.3)
+    ax1.text(0.02, 0.95, f'Mean: {rmsd.mean():.3f} ± {rmsd.std():.3f} nm',
+             transform=ax1.transAxes, verticalalignment='top',
+             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
+    # RMSF
+    ax2.plot(resid, rmsf, 'r-', linewidth=2)
+    ax2.set_xlabel('Residue Number', fontsize=12)
+    ax2.set_ylabel('RMSF (nm)', fontsize=12)
+    ax2.set_title('Per-Residue RMSF (Cα atoms)', fontsize=14, fontweight='bold')
+    ax2.grid(True, alpha=0.3)
+
+    # 高RMSF領域をハイライト
+    high_rmsf_threshold = rmsf.mean() + 2 * rmsf.std()
+    high_rmsf_mask = rmsf > high_rmsf_threshold
+    if np.any(high_rmsf_mask):
+        ax2.fill_between(resid, 0, rmsf, where=high_rmsf_mask,
+                         color='red', alpha=0.3, label='High flexibility')
+        ax2.legend()
+
+    # 水素結合数
+    ax3.plot(time_hb, hbonds, 'g-', linewidth=2)
+    ax3.set_xlabel('Time (ns)', fontsize=12)
+    ax3.set_ylabel('Number of H-bonds', fontsize=12)
+    ax3.set_title('Hydrogen Bonds vs Time', fontsize=14, fontweight='bold')
+    ax3.grid(True, alpha=0.3)
+    ax3.text(0.02, 0.95, f'Mean: {hbonds.mean():.1f} ± {hbonds.std():.1f}',
+             transform=ax3.transAxes, verticalalignment='top',
+             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
+    plt.tight_layout()
+    plt.savefig(output, dpi=300, bbox_inches='tight')
+    print(f"✅ 統合解析プロット保存: {output}")
+
+    # サマリーレポート
+    print(f"\n📊 解析サマリー:")
+    print(f"   RMSD: {rmsd.mean():.3f} ± {rmsd.std():.3f} nm")
+    print(f"   RMSF: {rmsf.mean():.3f} ± {rmsf.std():.3f} nm (最大: {rmsf.max():.3f} nm at residue {resid[rmsf.argmax()]:.0f})")
+    print(f"   水素結合: {hbonds.mean():.1f} ± {hbonds.std():.1f} 本")
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 4:
+        print("Usage: python gromacs_analysis.py rmsd.xvg rmsf.xvg hbnum.xvg")
+        sys.exit(1)
+
+    rmsd_xvg = sys.argv[1]
+    rmsf_xvg = sys.argv[2]
+    hbond_xvg = sys.argv[3]
+
+    plot_gromacs_analysis(rmsd_xvg, rmsf_xvg, hbond_xvg)</code></pre>
+
+        <h2>4.2 MDAnalysisによる高度な解析</h2>
+
+        <p>
+        <strong>MDAnalysis</strong>はPythonベースのMD解析ライブラリで、GROMACSツールでは困難な複雑な解析を可能にします。
+        NumPyライクなAPIで原子選択、軌道操作、カスタム計算ができます。
+        </p>
+
+        <h3>4.2.1 MDAnalysisの基本操作</h3>
+
+        <pre><code class="language-python">#!/usr/bin/env python3
+"""
+MDAnalysis基本操作
+- Universe構築、原子選択、軌道イテレーション
+"""
+import MDAnalysis as mda
+import numpy as np
+
+def mdanalysis_basics(topology, trajectory):
+    """
+    MDAnalysisの基本パターン
+    """
+    # Universeオブジェクト構築
+    u = mda.Universe(topology, trajectory)
+
+    print("📦 Universeオブジェクト情報:")
+    print(f"   原子数: {len(u.atoms)}")
+    print(f"   残基数: {len(u.residues)}")
+    print(f"   セグメント数: {len(u.segments)}")
+    print(f"   フレーム数: {len(u.trajectory)}")
+    print(f"   時間範囲: {u.trajectory[0].time:.2f} - {u.trajectory[-1].time:.2f} ps")
+
+    # 原子選択（GROMACS互換 + VMD風）
+    protein = u.select_atoms('protein')
+    backbone = u.select_atoms('backbone')
+    ca_atoms = u.select_atoms('protein and name CA')
+    water = u.select_atoms('resname SOL or resname TIP3')
+    ions = u.select_atoms('resname NA or resname CL')
+
+    print(f"\n🔍 原子選択:")
+    print(f"   タンパク質: {len(protein)} 原子")
+    print(f"   バックボーン: {len(backbone)} 原子")
+    print(f"   Cα原子: {len(ca_atoms)} 原子")
+    print(f"   水分子: {len(water)} 原子")
+    print(f"   イオン: {len(ions)} 原子")
+
+    # 軌道イテレーション
+    print(f"\n⏱️ 軌道イテレーション（最初の5フレーム）:")
+    for i, ts in enumerate(u.trajectory[:5]):
+        print(f"   Frame {i}: Time = {ts.time:.2f} ps, Box = {ts.dimensions[:3]}")
+
+    # 質量中心（Center of Mass）計算
+    protein_com = protein.center_of_mass()
+    print(f"\n📍 タンパク質質量中心 (最終フレーム): {protein_com}")
+
+    # 回転半径（Radius of Gyration）
+    protein_rg = protein.radius_of_gyration()
+    print(f"   回転半径 Rg: {protein_rg:.3f} Å")
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 3:
+        print("Usage: python mdanalysis_basics.py topology trajectory")
+        sys.exit(1)
+
+    mdanalysis_basics(sys.argv[1], sys.argv[2])</code></pre>
+
+        <h3>4.2.2 距離解析と動径分布関数（RDF）</h3>
+
+        <pre><code class="language-python">#!/usr/bin/env python3
+"""
+動径分布関数（RDF）の計算
+- タンパク質-水間のRDF
+- イオン-タンパク質間のRDF
+"""
+import MDAnalysis as mda
+from MDAnalysis.analysis import rdf
+import matplotlib.pyplot as plt
+import numpy as np
+
+def calculate_rdf(topology, trajectory, selection1, selection2,
+                  nbins=75, range_rdf=(0.0, 15.0), output='rdf.png'):
+    """
+    動径分布関数（RDF）を計算
+
+    Parameters
+    ----------
+    topology : str
+        トポロジーファイル
+    trajectory : str
+        軌道ファイル
+    selection1 : str
+        中心となる原子群の選択文字列
+    selection2 : str
+        周辺の原子群の選択文字列
+    nbins : int
+        ビンの数
+    range_rdf : tuple
+        RDFの計算範囲 (Å)
+    """
+    u = mda.Universe(topology, trajectory)
+
+    # 原子選択
+    group1 = u.select_atoms(selection1)
+    group2 = u.select_atoms(selection2)
+
+    print(f"📊 RDF計算:")
+    print(f"   中心グループ: {selection1} ({len(group1)} 原子)")
+    print(f"   周辺グループ: {selection2} ({len(group2)} 原子)")
+
+    # RDF計算
+    rdf_calc = rdf.InterRDF(group1, group2, nbins=nbins, range=range_rdf)
+    rdf_calc.run()
+
+    bins = rdf_calc.results.bins
+    rdf_values = rdf_calc.results.rdf
+
+    # プロット
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    ax.plot(bins, rdf_values, 'b-', linewidth=2, label=f'{selection1} - {selection2}')
+    ax.axhline(y=1.0, color='r', linestyle='--', linewidth=1, label='Bulk density')
+    ax.set_xlabel('Distance (Å)', fontsize=12)
+    ax.set_ylabel('g(r)', fontsize=12)
+    ax.set_title('Radial Distribution Function', fontsize=14, fontweight='bold')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(output, dpi=300, bbox_inches='tight')
+    print(f"✅ RDFプロット保存: {output}")
+
+    # ピーク検出
+    peaks = []
+    for i in range(1, len(rdf_values) - 1):
+        if rdf_values[i] > rdf_values[i-1] and rdf_values[i] > rdf_values[i+1]:
+            if rdf_values[i] > 1.5:  # 有意なピークのみ
+                peaks.append((bins[i], rdf_values[i]))
+
+    if peaks:
+        print(f"\n🔍 検出されたRDFピーク:")
+        for r, g_r in peaks[:3]:  # 最初の3ピーク
+            print(f"   r = {r:.2f} Å, g(r) = {g_r:.2f}")
+
+    return bins, rdf_values
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 4:
+        print("Usage: python rdf_analysis.py topology trajectory selection1 selection2")
+        print("  Example: python rdf_analysis.py md.tpr md.xtc 'protein' 'resname SOL and name OW'")
+        sys.exit(1)
+
+    topology = sys.argv[1]
+    trajectory = sys.argv[2]
+    sel1 = sys.argv[3]
+    sel2 = sys.argv[4]
+
+    calculate_rdf(topology, trajectory, sel1, sel2)</code></pre>
+
+        <h3>4.2.3 二次構造解析（DSSP統合）</h3>
+
+        <pre><code class="language-python">#!/usr/bin/env python3
+"""
+二次構造解析（DSSP）
+- α-helix、β-sheet、コイルの時間変化
+- 残基ごとの二次構造頻度
+"""
+import MDAnalysis as mda
+from MDAnalysis.analysis.dssp import DSSP
+import matplotlib.pyplot as plt
+import numpy as np
+
+def analyze_secondary_structure(topology, trajectory, output='dssp_analysis.png'):
+    """
+    二次構造の時間発展を解析
+
+    Parameters
+    ----------
+    topology : str
+        トポロジーファイル
+    trajectory : str
+        軌道ファイル
+
+    Note
+    ----
+    DSSPバイナリ（mkdssp）が必要: conda install -c salilab dssp
+    """
+    u = mda.Universe(topology, trajectory)
+
+    # DSSP解析実行
+    print("⏳ DSSP解析実行中...")
+    dssp = DSSP(u, executable='mkdssp')
+    dssp.run()
+
+    # 二次構造コード
+    # H = α-helix, E = β-sheet, C = Coil/Turn, その他
+    ss_codes = dssp.results.dssp
+
+    # フレームごとの二次構造比率
+    n_frames = len(ss_codes)
+    n_residues = len(ss_codes[0])
+
+    helix_fraction = []
+    sheet_fraction = []
+    coil_fraction = []
+
+    for frame in ss_codes:
+        helix_count = np.sum([c == 'H' for c in frame])
+        sheet_count = np.sum([c == 'E' for c in frame])
+        coil_count = n_residues - helix_count - sheet_count
+
+        helix_fraction.append(helix_count / n_residues * 100)
+        sheet_fraction.append(sheet_count / n_residues * 100)
+        coil_fraction.append(coil_count / n_residues * 100)
+
+    helix_fraction = np.array(helix_fraction)
+    sheet_fraction = np.array(sheet_fraction)
+    coil_fraction = np.array(coil_fraction)
+
+    # 時間軸
+    times = [ts.time for ts in u.trajectory] / 1000  # ps → ns
+
+    # プロット
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+
+    # 時間変化
+    ax1.plot(times, helix_fraction, 'r-', linewidth=2, label='α-Helix')
+    ax1.plot(times, sheet_fraction, 'b-', linewidth=2, label='β-Sheet')
+    ax1.plot(times, coil_fraction, 'g-', linewidth=2, label='Coil/Turn')
+    ax1.set_xlabel('Time (ns)', fontsize=12)
+    ax1.set_ylabel('Secondary Structure (%)', fontsize=12)
+    ax1.set_title('Secondary Structure vs Time', fontsize=14, fontweight='bold')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+
+    # 残基ごとの二次構造頻度（ヒートマップ）
+    # 各残基で最も頻繁な二次構造を計算
+    ss_matrix = np.zeros((n_residues, 3))  # helix, sheet, coil
+
+    for frame in ss_codes:
+        for i, code in enumerate(frame):
+            if code == 'H':
+                ss_matrix[i, 0] += 1
+            elif code == 'E':
+                ss_matrix[i, 1] += 1
+            else:
+                ss_matrix[i, 2] += 1
+
+    ss_matrix = ss_matrix / n_frames * 100  # パーセント
+
+    residue_numbers = np.arange(1, n_residues + 1)
+    ax2.plot(residue_numbers, ss_matrix[:, 0], 'r-', linewidth=2, label='α-Helix')
+    ax2.plot(residue_numbers, ss_matrix[:, 1], 'b-', linewidth=2, label='β-Sheet')
+    ax2.plot(residue_numbers, ss_matrix[:, 2], 'g-', linewidth=2, label='Coil/Turn')
+    ax2.set_xlabel('Residue Number', fontsize=12)
+    ax2.set_ylabel('Frequency (%)', fontsize=12)
+    ax2.set_title('Per-Residue Secondary Structure Frequency', fontsize=14, fontweight='bold')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(output, dpi=300, bbox_inches='tight')
+    print(f"✅ DSSP解析プロット保存: {output}")
+
+    # 統計
+    print(f"\n📊 二次構造統計（全フレーム平均）:")
+    print(f"   α-Helix: {helix_fraction.mean():.1f} ± {helix_fraction.std():.1f} %")
+    print(f"   β-Sheet: {sheet_fraction.mean():.1f} ± {sheet_fraction.std():.1f} %")
+    print(f"   Coil/Turn: {coil_fraction.mean():.1f} ± {coil_fraction.std():.1f} %")
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 3:
+        print("Usage: python dssp_analysis.py topology trajectory")
+        sys.exit(1)
+
+    analyze_secondary_structure(sys.argv[1], sys.argv[2])</code></pre>
+
+        <div class="mermaid">
+flowchart TD
+    A[MDトラジェクトリ<br/>md.xtc] --> B[GROMACS解析ツール]
+    A --> C[MDAnalysis]
+    B --> D[RMSD/RMSF<br/>水素結合<br/>SASA]
+    C --> E[RDF<br/>DSSP<br/>カスタム解析]
+    D --> F[統合可視化<br/>Matplotlib]
+    E --> F
+        </div>
+
+        <h2>4.3 複数軌道の統合解析</h2>
+
+        <p>
+        長時間MD（数百ns〜μs）では、複数の軌道ファイルを結合して解析する必要があります。
+        また、複数のレプリカ（独立実行）の統計解析も重要です。
+        </p>
+
+        <h3>4.3.1 軌道の結合</h3>
+
+        <pre><code class="language-bash"># 複数XTCファイルの結合
+gmx trjcat -f md_0_10.xtc md_10_20.xtc md_20_30.xtc -o md_0_30.xtc
+
+# 時間間隔を指定してフレーム削減（10 psごとにサンプリング）
+gmx trjconv -f md_0_30.xtc -o md_0_30_dt10.xtc -dt 10
+
+# PBC処理（周期境界条件の除去、タンパク質を中心に配置）
+echo "1 0" | gmx trjconv -s md.tpr -f md_0_30.xtc -o md_0_30_center.xtc -center -pbc mol -ur compact
+
+# 説明：
+# 1 = Protein（中心に配置するグループ）
+# 0 = System（出力するグループ）
+# -center = タンパク質を中心に
+# -pbc mol = 分子が分割されないようにPBC処理
+# -ur compact = コンパクトな単位セル表現</code></pre>
+
+        <h3>4.3.2 レプリカ間の統計解析</h3>
+
+        <pre><code class="language-python">#!/usr/bin/env python3
+"""
+複数レプリカMDの統計解析
+- レプリカごとのRMSD計算
+- レプリカ間の平均と標準偏差
+- 収束性の評価
+"""
+import MDAnalysis as mda
+from MDAnalysis.analysis import rms
+import matplotlib.pyplot as plt
+import numpy as np
+from pathlib import Path
+
+def analyze_replicas(topology_pattern, trajectory_pattern, n_replicas,
+                     equilibration_ns=2.0, output='replica_analysis.png'):
+    """
+    複数レプリカの統計解析
+
+    Parameters
+    ----------
+    topology_pattern : str
+        トポロジーファイルパターン（例: 'replica_{}.tpr'）
+    trajectory_pattern : str
+        軌道ファイルパターン（例: 'replica_{}.xtc'）
+    n_replicas : int
+        レプリカ数
+    equilibration_ns : float
+        除外する平衡化期間 (ns)
+    """
+    all_rmsd = []
+    all_times = []
+
+    print(f"📊 {n_replicas}レプリカの解析開始...")
+
+    for i in range(n_replicas):
+        topology = topology_pattern.format(i+1)
+        trajectory = trajectory_pattern.format(i+1)
+
+        if not Path(topology).exists() or not Path(trajectory).exists():
+            print(f"⚠️ Replica {i+1} のファイルが見つかりません: スキップ")
+            continue
+
+        u = mda.Universe(topology, trajectory)
+        ref = mda.Universe(topology, trajectory)
+
+        # RMSD計算
+        R = rms.RMSD(u, ref, select='backbone', groupselections=['backbone'])
+        R.run()
+
+        time = R.results.rmsd[:, 1] / 1000  # ps → ns
+        rmsd = R.results.rmsd[:, 2]  # Å
+
+        # 平衡化期間を除外
+        mask = time >= equilibration_ns
+        time_analysis = time[mask]
+        rmsd_analysis = rmsd[mask]
+
+        all_times.append(time_analysis)
+        all_rmsd.append(rmsd_analysis)
+
+        print(f"   Replica {i+1}: 平均RMSD = {rmsd_analysis.mean():.3f} ± {rmsd_analysis.std():.3f} Å")
+
+    # 統計解析（全レプリカの平均と標準偏差）
+    # 時間軸を揃える（最短のトラジェクトリに合わせる）
+    min_length = min([len(t) for t in all_times])
+    all_rmsd_aligned = np.array([r[:min_length] for r in all_rmsd])
+    time_aligned = all_times[0][:min_length]
+
+    mean_rmsd = all_rmsd_aligned.mean(axis=0)
+    std_rmsd = all_rmsd_aligned.std(axis=0)
+
+    # プロット
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+
+    # 各レプリカのRMSD
+    for i, (time, rmsd) in enumerate(zip(all_times, all_rmsd)):
+        ax1.plot(time, rmsd, alpha=0.5, linewidth=1, label=f'Replica {i+1}')
+
+    ax1.plot(time_aligned, mean_rmsd, 'k-', linewidth=3, label='Mean')
+    ax1.fill_between(time_aligned, mean_rmsd - std_rmsd, mean_rmsd + std_rmsd,
+                     color='gray', alpha=0.3, label='±1 SD')
+    ax1.set_xlabel('Time (ns)', fontsize=12)
+    ax1.set_ylabel('RMSD (Å)', fontsize=12)
+    ax1.set_title(f'RMSD Comparison ({n_replicas} Replicas)', fontsize=14, fontweight='bold')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+
+    # レプリカごとの平均RMSDの分布
+    replica_means = [r.mean() for r in all_rmsd]
+    replica_stds = [r.std() for r in all_rmsd]
+
+    ax2.bar(range(1, len(replica_means) + 1), replica_means, yerr=replica_stds,
+            capsize=5, color='steelblue', edgecolor='black', linewidth=1.5)
+    ax2.axhline(y=np.mean(replica_means), color='r', linestyle='--', linewidth=2,
+                label=f'Overall Mean: {np.mean(replica_means):.3f} Å')
+    ax2.set_xlabel('Replica Number', fontsize=12)
+    ax2.set_ylabel('Mean RMSD (Å)', fontsize=12)
+    ax2.set_title('Per-Replica Mean RMSD', fontsize=14, fontweight='bold')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3, axis='y')
+
+    plt.tight_layout()
+    plt.savefig(output, dpi=300, bbox_inches='tight')
+    print(f"✅ レプリカ解析プロット保存: {output}")
+
+    # 収束性評価（レプリカ間の標準偏差が小さいほど収束）
+    overall_mean = np.mean(replica_means)
+    overall_std = np.std(replica_means)
+
+    print(f"\n📊 レプリカ間統計:")
+    print(f"   レプリカ数: {len(replica_means)}")
+    print(f"   平均RMSD: {overall_mean:.3f} ± {overall_std:.3f} Å（レプリカ間SD）")
+    print(f"   収束判定: {'✅ 良好（SD < 0.5 Å）' if overall_std < 0.5 else '⚠️ 要注意（SD >= 0.5 Å）'}")
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 4:
+        print("Usage: python replica_analysis.py topology_pattern trajectory_pattern n_replicas")
+        print("  Example: python replica_analysis.py 'replica_{}.tpr' 'replica_{}.xtc' 5")
+        sys.exit(1)
+
+    topology_pattern = sys.argv[1]
+    trajectory_pattern = sys.argv[2]
+    n_replicas = int(sys.argv[3])
+
+    analyze_replicas(topology_pattern, trajectory_pattern, n_replicas)</code></pre>
+
+        <h2>4.4 演習問題</h2>
+
+        <h3>Exercise 4-1: GROMACS解析ツールの実行とプロット (Easy)</h3>
+
+        <p>
+        <strong>問題</strong>: 提供されたMDトラジェクトリから、RMSD、RMSF、水素結合数を計算し、
+        Pythonで3つの結果を1つのプロットに統合してください。
+        </p>
+
+        <details>
+            <summary><strong>解答例を表示</strong></summary>
+
+            <pre><code class="language-bash"># Step 1: GROMACS解析ツールの実行
+echo "4 4" | gmx rms -s md.tpr -f md.xtc -o rmsd.xvg -tu ns
+echo "3" | gmx rmsf -s md.tpr -f md.xtc -o rmsf.xvg -res
+echo "1 1" | gmx hbond -s md.tpr -f md.xtc -num hbnum.xvg
+
+# Step 2: 統合プロット作成
+python gromacs_analysis.py rmsd.xvg rmsf.xvg hbnum.xvg</code></pre>
+
+            <p><strong>評価基準</strong>:</p>
+            <ul>
+                <li>3つの解析が正しく実行されている ✅</li>
+                <li>XVGファイルが適切にパースされている ✅</li>
+                <li>プロットに平均値・標準偏差が表示されている ✅</li>
+            </ul>
+        </details>
+
+        <h3>Exercise 4-2: 動径分布関数（RDF）によるイオン配置解析 (Medium)</h3>
+
+        <p>
+        <strong>問題</strong>: タンパク質表面の荷電残基（ASP, GLU, LYS, ARG）とイオン（Na+, Cl-）間のRDFを計算し、
+        イオンがタンパク質表面に結合しているか（第1ピークが3.5 Å以下）を判定してください。
+        </p>
+
+        <details>
+            <summary><strong>解答例を表示</strong></summary>
+
+            <pre><code class="language-python">#!/usr/bin/env python3
+"""
+Exercise 4-2: イオン-タンパク質間RDF解析
+"""
+import MDAnalysis as mda
+from MDAnalysis.analysis import rdf
+import matplotlib.pyplot as plt
+import numpy as np
+
+def analyze_ion_binding(topology, trajectory, output='ion_rdf.png'):
+    """
+    イオンとタンパク質荷電残基間のRDF解析
+    """
+    u = mda.Universe(topology, trajectory)
+
+    # 荷電残基の選択
+    negative_res = u.select_atoms('resname ASP GLU and name OD* OE*')  # 負電荷
+    positive_res = u.select_atoms('resname LYS ARG and name NZ NH*')   # 正電荷
+
+    # イオンの選択
+    na_ions = u.select_atoms('resname NA and name NA')  # Na+
+    cl_ions = u.select_atoms('resname CL and name CL')  # Cl-
+
+    print("📊 イオン-タンパク質RDF解析:")
+    print(f"   負電荷残基: {len(negative_res)} 原子")
+    print(f"   正電荷残基: {len(positive_res)} 原子")
+    print(f"   Na+ イオン: {len(na_ions)} 個")
+    print(f"   Cl- イオン: {len(cl_ions)} 個")
+
+    # RDF計算
+    rdf_na_neg = rdf.InterRDF(na_ions, negative_res, nbins=75, range=(0.0, 15.0))
+    rdf_na_neg.run()
+
+    rdf_cl_pos = rdf.InterRDF(cl_ions, positive_res, nbins=75, range=(0.0, 15.0))
+    rdf_cl_pos.run()
+
+    # プロット
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    ax.plot(rdf_na_neg.results.bins, rdf_na_neg.results.rdf, 'b-', linewidth=2,
+            label='Na+ - 負電荷残基 (ASP, GLU)')
+    ax.plot(rdf_cl_pos.results.bins, rdf_cl_pos.results.rdf, 'r-', linewidth=2,
+            label='Cl- - 正電荷残基 (LYS, ARG)')
+    ax.axhline(y=1.0, color='gray', linestyle='--', linewidth=1)
+    ax.axvline(x=3.5, color='green', linestyle=':', linewidth=2,
+               label='結合判定閾値 (3.5 Å)')
+    ax.set_xlabel('Distance (Å)', fontsize=12)
+    ax.set_ylabel('g(r)', fontsize=12)
+    ax.set_title('Ion-Protein RDF', fontsize=14, fontweight='bold')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(output, dpi=300, bbox_inches='tight')
+    print(f"✅ イオンRDFプロット保存: {output}")
+
+    # 結合判定
+    first_peak_na = rdf_na_neg.results.bins[np.argmax(rdf_na_neg.results.rdf[:20])]
+    first_peak_cl = rdf_cl_pos.results.bins[np.argmax(rdf_cl_pos.results.rdf[:20])]
+
+    print(f"\n🔍 イオン結合解析:")
+    print(f"   Na+ 第1ピーク: {first_peak_na:.2f} Å")
+    print(f"   Na+ 結合: {'✅ あり' if first_peak_na < 3.5 else '❌ なし'}")
+    print(f"   Cl- 第1ピーク: {first_peak_cl:.2f} Å")
+    print(f"   Cl- 結合: {'✅ あり' if first_peak_cl < 3.5 else '❌ なし'}")
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 3:
+        print("Usage: python ex4_2.py topology trajectory")
+        sys.exit(1)
+
+    analyze_ion_binding(sys.argv[1], sys.argv[2])</code></pre>
+
+            <p><strong>評価基準</strong>:</p>
+            <ul>
+                <li>荷電残基が正しく選択されている（ASP/GLU負、LYS/ARG正）✅</li>
+                <li>RDFの第1ピーク位置が正確に検出されている ✅</li>
+                <li>3.5 Åの結合判定閾値が適切に適用されている ✅</li>
+            </ul>
+        </details>
+
+        <h3>Exercise 4-3: 複数レプリカの収束性評価とブートストラップ法 (Hard)</h3>
+
+        <p>
+        <strong>問題</strong>: 3レプリカのMDデータから、RMSD平均値の信頼区間（95%）をブートストラップ法で推定し、
+        レプリカ間の収束性を統計的に評価してください。
+        </p>
+
+        <details>
+            <summary><strong>解答例を表示</strong></summary>
+
+            <pre><code class="language-python">#!/usr/bin/env python3
+"""
+Exercise 4-3: ブートストラップ法による信頼区間推定
+"""
+import MDAnalysis as mda
+from MDAnalysis.analysis import rms
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import stats
+
+def bootstrap_confidence_interval(data, n_bootstrap=1000, confidence=0.95):
+    """
+    ブートストラップ法で信頼区間を推定
+
+    Parameters
+    ----------
+    data : ndarray
+        サンプルデータ（各レプリカの平均RMSD）
+    n_bootstrap : int
+        ブートストラップサンプル数
+    confidence : float
+        信頼水準（0.95 = 95%）
+
+    Returns
+    -------
+    mean : float
+        サンプル平均
+    ci_lower, ci_upper : float
+        信頼区間の下限・上限
+    """
+    bootstrap_means = []
+
+    for _ in range(n_bootstrap):
+        # リサンプリング（復元抽出）
+        resample = np.random.choice(data, size=len(data), replace=True)
+        bootstrap_means.append(resample.mean())
+
+    bootstrap_means = np.array(bootstrap_means)
+
+    # 信頼区間（パーセンタイル法）
+    alpha = 1 - confidence
+    ci_lower = np.percentile(bootstrap_means, alpha/2 * 100)
+    ci_upper = np.percentile(bootstrap_means, (1 - alpha/2) * 100)
+
+    return data.mean(), ci_lower, ci_upper
+
+def evaluate_replica_convergence(topologies, trajectories, equilibration_ns=2.0,
+                                  output='bootstrap_convergence.png'):
+    """
+    ブートストラップ法でレプリカ収束性を評価
+    """
+    replica_means = []
+
+    for i, (top, traj) in enumerate(zip(topologies, trajectories)):
+        u = mda.Universe(top, traj)
+        ref = mda.Universe(top, traj)
+
+        R = rms.RMSD(u, ref, select='backbone', groupselections=['backbone'])
+        R.run()
+
+        time = R.results.rmsd[:, 1] / 1000  # ps → ns
+        rmsd = R.results.rmsd[:, 2]  # Å
+
+        # 平衡化期間を除外
+        mask = time >= equilibration_ns
+        rmsd_analysis = rmsd[mask]
+
+        replica_means.append(rmsd_analysis.mean())
+        print(f"Replica {i+1}: 平均RMSD = {replica_means[-1]:.3f} Å")
+
+    replica_means = np.array(replica_means)
+
+    # ブートストラップ法で信頼区間推定
+    mean, ci_lower, ci_upper = bootstrap_confidence_interval(replica_means,
+                                                              n_bootstrap=10000,
+                                                              confidence=0.95)
+
+    print(f"\n📊 ブートストラップ信頼区間（95%）:")
+    print(f"   平均RMSD: {mean:.3f} Å")
+    print(f"   95% CI: [{ci_lower:.3f}, {ci_upper:.3f}] Å")
+    print(f"   CI幅: {ci_upper - ci_lower:.3f} Å")
+
+    # 収束性判定
+    convergence_criterion = 0.5  # CI幅が0.5 Å以下なら収束
+    is_converged = (ci_upper - ci_lower) < convergence_criterion
+
+    print(f"   収束判定: {'✅ 収束（CI幅 < 0.5 Å）' if is_converged else '⚠️ 未収束（CI幅 >= 0.5 Å）'}")
+
+    # 可視化
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # レプリカごとの平均RMSD
+    x = np.arange(1, len(replica_means) + 1)
+    ax.bar(x, replica_means, color='steelblue', edgecolor='black', linewidth=1.5,
+           label='Replica Mean RMSD')
+
+    # 全体平均と信頼区間
+    ax.axhline(y=mean, color='red', linestyle='--', linewidth=2, label='Overall Mean')
+    ax.axhspan(ci_lower, ci_upper, color='red', alpha=0.2, label='95% CI (Bootstrap)')
+
+    ax.set_xlabel('Replica Number', fontsize=12)
+    ax.set_ylabel('Mean RMSD (Å)', fontsize=12)
+    ax.set_title('Replica Convergence Analysis (Bootstrap Method)', fontsize=14, fontweight='bold')
+    ax.legend()
+    ax.grid(True, alpha=0.3, axis='y')
+
+    plt.tight_layout()
+    plt.savefig(output, dpi=300, bbox_inches='tight')
+    print(f"✅ 収束性プロット保存: {output}")
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 4:
+        print("Usage: python ex4_3.py topology1 trajectory1 topology2 trajectory2 topology3 trajectory3")
+        sys.exit(1)
+
+    topologies = [sys.argv[1], sys.argv[3], sys.argv[5]]
+    trajectories = [sys.argv[2], sys.argv[4], sys.argv[6]]
+
+    evaluate_replica_convergence(topologies, trajectories)</code></pre>
+
+            <p><strong>評価基準</strong>:</p>
+            <ul>
+                <li>ブートストラップリサンプリングが正しく実装されている ✅</li>
+                <li>95%信頼区間がパーセンタイル法で計算されている ✅</li>
+                <li>収束性がCI幅（< 0.5 Å）で適切に判定されている ✅</li>
+                <li>10,000サンプル以上のブートストラップで十分な精度 ✅</li>
+            </ul>
+        </details>
+
+        <h2>4.5 学習目標の確認</h2>
+
+        <div class="info-box">
+            <strong>レベル1: 基本理解</strong>
+            <ul>
+                <li>GROMACS解析ツール（gmx rms, gmx rmsf, gmx hbond等）の役割を説明できる</li>
+                <li>RMSD、RMSF、水素結合、RDFの物理的意味を理解している</li>
+                <li>MDAnalysisのUniverseオブジェクトと原子選択の仕組みを理解している</li>
+                <li>XVGファイルの形式とパース方法を知っている</li>
+                <li>DSSPによる二次構造分類（α-helix、β-sheet、コイル）を理解している</li>
+            </ul>
+
+            <strong>レベル2: 実践スキル</strong>
+            <ul>
+                <li>gmx rms、gmx rmsf、gmx hbondを実行し、結果を解釈できる</li>
+                <li>PythonでXVGファイルをパースし、Matplotlibでプロットできる</li>
+                <li>MDAnalysisで軌道をイテレーションし、カスタム解析ができる</li>
+                <li>RDFを計算し、ピーク位置から溶媒和構造を議論できる</li>
+                <li>複数レプリカの統計解析（平均、標準偏差）ができる</li>
+            </ul>
+
+            <strong>レベル3: 応用力</strong>
+            <ul>
+                <li>複数軌道の結合とPBC処理を適切に実行できる</li>
+                <li>レプリカ間の収束性をブートストラップ法で統計的に評価できる</li>
+                <li>DSSP解析から二次構造安定性を定量的に議論できる</li>
+                <li>イオン配置、タンパク質-リガンド相互作用などの高度な解析ができる</li>
+                <li>バッチ処理スクリプトで大規模MD解析を自動化できる</li>
+            </ul>
+        </div>
+
+        <h2>参考文献</h2>
+
+        <ol>
+            <li>Michaud-Agrawal, N., Denning, E. J., Woolf, T. B., & Beckstein, O. (2011). MDAnalysis: A toolkit for the analysis of molecular dynamics simulations. <em>Journal of Computational Chemistry</em>, 32(10), 2319-2327. <strong>pp. 2320-2325</strong>.</li>
+
+            <li>Gowers, R. J., Linke, M., Barnoud, J., Reddy, T. J. E., Melo, M. N., Seyler, S. L., ... & Beckstein, O. (2016). MDAnalysis: A Python package for the rapid analysis of molecular dynamics simulations. <em>Proceedings of the 15th Python in Science Conference</em>, 98-105. <strong>pp. 98-103</strong>.</li>
+
+            <li>Kabsch, W., & Sander, C. (1983). Dictionary of protein secondary structure: Pattern recognition of hydrogen‐bonded and geometrical features. <em>Biopolymers</em>, 22(12), 2577-2637. <strong>pp. 2577-2590</strong>.</li>
+
+            <li>Humphrey, W., Dalke, A., & Schulten, K. (1996). VMD: Visual molecular dynamics. <em>Journal of Molecular Graphics</em>, 14(1), 33-38. <strong>pp. 33-37</strong>.</li>
+
+            <li>McGibbon, R. T., Beauchamp, K. A., Harrigan, M. P., Klein, C., Swails, J. M., Hernández, C. X., ... & Pande, V. S. (2015). MDTraj: A modern open library for the analysis of molecular dynamics trajectories. <em>Biophysical Journal</em>, 109(8), 1528-1532. <strong>pp. 1528-1531</strong>.</li>
+
+            <li>Lemkul, J. A. (2019). From Proteins to Perturbed Hamiltonians: A Suite of Tutorials for the GROMACS-2018 Molecular Simulation Package. <em>Living Journal of Computational Molecular Science</em>, 1(1), 5068. <strong>pp. 25-40</strong>.</li>
+
+            <li>Efron, B., & Tibshirani, R. J. (1994). An Introduction to the Bootstrap. <em>Chapman and Hall/CRC</em>. <strong>pp. 45-60</strong>.</li>
+        </ol>
+
+        <div class="nav-buttons">
+            <a href="chapter-3.html" class="btn">← Chapter 3: 平衡化とプロダクションMD</a>
+            <a href="chapter-5.html" class="btn">Chapter 5: 実践ワークフロー →</a>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+</body>
+</html>
