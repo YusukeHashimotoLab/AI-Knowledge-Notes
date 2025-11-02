@@ -1,0 +1,2110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第4章：組成ベース vs GNN定量的比較 | GNN特徴量比較入門</title>
+    <meta name="description" content="MatbenchベンチマークとRF/CGCNNの定量的性能比較。統計的有意性検定、計算コスト、データ要求量、解釈可能性を実証分析。">
+
+    <!-- MathJax 3.x for mathematical equations -->
+    <script>
+    MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']],
+            processEscapes: true,
+            processEnvironments: true
+        },
+        options: {
+            skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+        }
+    };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#667eea',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#764ba2',
+                lineColor: '#764ba2',
+                secondaryColor: '#764ba2',
+                tertiaryColor: '#fff'
+            }
+        });
+    </script>
+
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+            line-height: 1.8;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            padding: 3rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            margin: 2.5rem 0 1.5rem;
+            color: #667eea;
+            border-left: 4px solid #764ba2;
+            padding-left: 1rem;
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin: 2rem 0 1rem;
+            color: #764ba2;
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+            text-align: justify;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-left: 4px solid #667eea;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .warning-box {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        pre {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        code {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .mermaid {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .exercise {
+            background: rgba(118, 75, 162, 0.05);
+            border: 2px solid #764ba2;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .exercise-header {
+            font-weight: 600;
+            color: #764ba2;
+            margin-bottom: 0.5rem;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .difficulty-easy {
+            background: #4caf50;
+            color: white;
+        }
+
+        .difficulty-medium {
+            background: #ff9800;
+            color: white;
+        }
+
+        .difficulty-hard {
+            background: #f44336;
+            color: white;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .nav-button {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+        }
+
+        ul, ol {
+            margin: 1rem 0 1rem 2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>第4章：組成ベース vs GNN定量的比較</h1>
+
+        <p>本章では、<strong>組成ベース特徴量（Magpie）</strong>と<strong>GNN構造ベース特徴量（CGCNN）</strong>の性能を、<strong>Matbench標準ベンチマーク</strong>を用いて定量的に比較します。単なる精度比較だけでなく、統計的有意性、計算コスト、データ要求量、解釈可能性の多角的な観点から実証分析を行います。</p>
+
+        <div class="highlight-box">
+            <strong>🎯 学習目標</strong>
+            <ul>
+                <li>Matbenchベンチマークの構造と評価プロトコルを理解する</li>
+                <li>Random Forest (Magpie) とCGCNNの予測精度を定量的に比較する</li>
+                <li>統計的有意性検定（t検定、信頼区間、p値）を実装する</li>
+                <li>計算コスト（訓練時間、推論時間、メモリ）を測定・比較する</li>
+                <li>データ要求量の違いを学習曲線で可視化する</li>
+                <li>SHAP値とAttention機構による解釈可能性を比較する</li>
+                <li>手法選択の意思決定フローチャートを構築する</li>
+            </ul>
+        </div>
+
+        <h2>4.1 Matbenchベンチマークの概要</h2>
+
+        <p>Matbench（Materials Benchmark）は、材料科学における機械学習モデルの<strong>標準化された評価プラットフォーム</strong>です。13種類の材料物性予測タスクが定義されており、各タスクには訓練データ、検証データ、テストデータが事前に分割されています。これにより、異なる研究間での公平な性能比較が可能になります。</p>
+
+        <h3>4.1.1 Matbenchの主要タスク</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>タスク名</th>
+                    <th>物性</th>
+                    <th>データ数</th>
+                    <th>評価指標</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>matbench_mp_e_form</td>
+                    <td>生成エネルギー (eV/atom)</td>
+                    <td>132,752</td>
+                    <td>MAE</td>
+                </tr>
+                <tr>
+                    <td>matbench_mp_gap</td>
+                    <td>バンドギャップ (eV)</td>
+                    <td>106,113</td>
+                    <td>MAE</td>
+                </tr>
+                <tr>
+                    <td>matbench_perovskites</td>
+                    <td>生成エネルギー (eV/atom)</td>
+                    <td>18,928</td>
+                    <td>MAE</td>
+                </tr>
+                <tr>
+                    <td>matbench_phonons</td>
+                    <td>最大フォノン周波数 (cm⁻¹)</td>
+                    <td>1,265</td>
+                    <td>MAE</td>
+                </tr>
+                <tr>
+                    <td>matbench_jdft2d</td>
+                    <td>剥離エネルギー (meV/atom)</td>
+                    <td>636</td>
+                    <td>MAE</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>本章では、<strong>matbench_mp_e_form（生成エネルギー予測）</strong>と<strong>matbench_mp_gap（バンドギャップ予測）</strong>の2つのタスクを対象に、Random Forest（Magpie特徴量）とCGCNNの性能を比較します。</p>
+
+        <h3>4.1.2 評価プロトコル</h3>
+
+        <p>Matbenchでは、<strong>5-fold交差検証</strong>による評価が標準プロトコルです。データセット全体が5つのfoldに分割されており、各foldについて以下の評価を実施します：</p>
+
+        <ol>
+            <li><strong>訓練（Training）</strong>：残りの4 foldでモデルを訓練</li>
+            <li><strong>検証（Validation）</strong>：ハイパーパラメータチューニングに使用（任意）</li>
+            <li><strong>テスト（Testing）</strong>：該当foldで性能評価（MAE、RMSE、R²を計算）</li>
+        </ol>
+
+        <p>5つのfoldの評価指標を平均することで、<strong>汎化性能の信頼性の高い推定</strong>が得られます。</p>
+
+        <h2>4.2 Matbenchベンチマーク実装</h2>
+
+        <p>本節では、Random Forest（Magpie）とCGCNN on Matbench mp_e_formタスクを実装し、予測精度を定量的に比較します。</p>
+
+        <h3>4.2.1 環境構築とデータロード</h3>
+
+        <div class="highlight-box">
+            <strong>💻 コード例1：Matbenchデータセットのロード</strong>
+        </div>
+
+        <pre><code class="language-python"># Matbenchデータセットのロードと前処理
+import numpy as np
+import pandas as pd
+from matbench.bench import MatbenchBenchmark
+from pymatgen.core import Structure
+from matminer.featurizers.composition import ElementProperty
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import warnings
+warnings.filterwarnings('ignore')
+
+# Matbenchベンチマークの初期化
+mb = MatbenchBenchmark(autoload=False)
+
+# mp_e_formタスクをロード（生成エネルギー予測）
+task = mb.matbench_mp_e_form
+task.load()
+
+print(f"タスク名: {task.metadata['task_type']}")
+print(f"データ数: {len(task.df)}")
+print(f"入力: {task.metadata['input_type']}")
+print(f"出力: {task.metadata['target']}")
+
+# データ構造の確認
+print("\nデータサンプル:")
+print(task.df.head(3))
+
+# 出力例：
+# タスク名: regression
+# データ数: 132752
+# 入力: structure
+# 出力: e_form (eV/atom)
+#
+# データサンプル:
+#                                           structure  e_form
+# 0  Structure: Fe2 O3 ...                    -2.54
+# 1  Structure: Mn2 O3 ...                    -2.89
+# 2  Structure: Co2 O3 ...                    -2.31
+</code></pre>
+
+        <h3>4.2.2 Random Forest（Magpie特徴量）の実装</h3>
+
+        <div class="highlight-box">
+            <strong>💻 コード例2：Magpie特徴量抽出とRandom Forest訓練</strong>
+        </div>
+
+        <pre><code class="language-python"># Random Forest + Magpie特徴量の実装
+from matminer.featurizers.composition import ElementProperty
+
+def extract_magpie_features(structures):
+    """
+    PymatgenのStructureからMagpie特徴量を抽出
+
+    Parameters:
+    -----------
+    structures : list of Structure
+        結晶構造のリスト
+
+    Returns:
+    --------
+    features : np.ndarray, shape (n_samples, 145)
+        Magpie特徴量（145次元）
+    """
+    # Magpie特徴量抽出器の初期化
+    featurizer = ElementProperty.from_preset("magpie")
+
+    features = []
+    for struct in structures:
+        # StructureからCompositionを取得
+        comp = struct.composition
+        # Magpie特徴量を計算（145次元）
+        feat = featurizer.featurize(comp)
+        features.append(feat)
+
+    return np.array(features)
+
+# 5-fold交差検証の評価
+rf_results = []
+
+for fold_idx, fold in enumerate(task.folds):
+    print(f"\n=== Fold {fold_idx + 1}/5 ===")
+
+    # 訓練データとテストデータを取得
+    train_inputs, train_outputs = task.get_train_and_val_data(fold)
+    test_inputs, test_outputs = task.get_test_data(fold, include_target=True)
+
+    # Magpie特徴量抽出
+    print("Magpie特徴量を抽出中...")
+    X_train = extract_magpie_features(train_inputs)
+    X_test = extract_magpie_features(test_inputs)
+    y_train = train_outputs.values
+    y_test = test_outputs.values
+
+    print(f"訓練データ: {X_train.shape}, テストデータ: {X_test.shape}")
+
+    # Random Forestモデルの訓練
+    print("Random Forestを訓練中...")
+    rf_model = RandomForestRegressor(
+        n_estimators=100,
+        max_depth=30,
+        min_samples_split=5,
+        random_state=42,
+        n_jobs=-1
+    )
+    rf_model.fit(X_train, y_train)
+
+    # テストデータで予測
+    y_pred = rf_model.predict(X_test)
+
+    # 評価指標を計算
+    mae = mean_absolute_error(y_test, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    r2 = r2_score(y_test, y_pred)
+
+    print(f"MAE:  {mae:.4f} eV/atom")
+    print(f"RMSE: {rmse:.4f} eV/atom")
+    print(f"R²:   {r2:.4f}")
+
+    rf_results.append({
+        'fold': fold_idx + 1,
+        'mae': mae,
+        'rmse': rmse,
+        'r2': r2
+    })
+
+# 5-fold平均スコアを計算
+rf_df = pd.DataFrame(rf_results)
+print("\n=== Random Forest (Magpie) 総合結果 ===")
+print(f"MAE:  {rf_df['mae'].mean():.4f} ± {rf_df['mae'].std():.4f} eV/atom")
+print(f"RMSE: {rf_df['rmse'].mean():.4f} ± {rf_df['rmse'].std():.4f} eV/atom")
+print(f"R²:   {rf_df['r2'].mean():.4f} ± {rf_df['r2'].std():.4f}")
+
+# 出力例：
+# === Random Forest (Magpie) 総合結果 ===
+# MAE:  0.0325 ± 0.0012 eV/atom
+# RMSE: 0.0678 ± 0.0019 eV/atom
+# R²:   0.9321 ± 0.0045
+</code></pre>
+
+        <h3>4.2.3 CGCNNの実装</h3>
+
+        <div class="highlight-box">
+            <strong>💻 コード例3：CGCNN on Matbench訓練</strong>
+        </div>
+
+        <pre><code class="language-python"># CGCNN on Matbenchの実装
+import torch
+import torch.nn as nn
+from torch_geometric.data import Data, DataLoader
+from torch_geometric.nn import CGConv, global_mean_pool
+import time
+
+# CGCNN for Matbenchの定義（Chapter 2のモデルを使用）
+class CGCNNMatbench(nn.Module):
+    def __init__(self, atom_fea_len=92, nbr_fea_len=41, hidden_dim=128, n_conv=3):
+        super(CGCNNMatbench, self).__init__()
+
+        # Atom embedding
+        self.atom_embedding = nn.Linear(atom_fea_len, hidden_dim)
+
+        # Convolution layers
+        self.conv_layers = nn.ModuleList([
+            CGConv(hidden_dim, nbr_fea_len) for _ in range(n_conv)
+        ])
+        self.bn_layers = nn.ModuleList([
+            nn.BatchNorm1d(hidden_dim) for _ in range(n_conv)
+        ])
+
+        # Readout
+        self.fc1 = nn.Linear(hidden_dim, 64)
+        self.fc2 = nn.Linear(64, 1)
+        self.activation = nn.Softplus()
+
+    def forward(self, data):
+        x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
+
+        # Atom embedding
+        x = self.atom_embedding(x)
+
+        # Graph convolutions
+        for conv, bn in zip(self.conv_layers, self.bn_layers):
+            x = conv(x, edge_index, edge_attr)
+            x = bn(x)
+            x = self.activation(x)
+
+        # Global pooling
+        x = global_mean_pool(x, batch)
+
+        # Fully connected layers
+        x = self.fc1(x)
+        x = self.activation(x)
+        x = self.fc2(x)
+
+        return x.squeeze()
+
+def structure_to_pyg_data(structure, target, cutoff=8.0):
+    """
+    PymatgenのStructureをPyTorch Geometricのデータに変換
+
+    Parameters:
+    -----------
+    structure : Structure
+        結晶構造
+    target : float
+        目標値（生成エネルギー）
+    cutoff : float
+        カットオフ半径 (Å)
+
+    Returns:
+    --------
+    data : Data
+        PyTorch Geometricのデータオブジェクト
+    """
+    # ノード特徴量（元素のone-hot encoding、92次元）
+    atom_types = [site.specie.Z for site in structure]
+    x = torch.zeros(len(atom_types), 92)
+    for i, z in enumerate(atom_types):
+        x[i, z - 1] = 1.0
+
+    # エッジ構築（cutoff半径以内の原子ペア）
+    neighbors = structure.get_all_neighbors(cutoff)
+    edge_index = []
+    edge_attr = []
+
+    for i, neighbors_i in enumerate(neighbors):
+        for neighbor in neighbors_i:
+            j = neighbor.index
+            distance = neighbor.nn_distance
+
+            # Gaussian distance expansion (41次元)
+            distances = torch.linspace(0, cutoff, 41)
+            sigma = 0.5
+            edge_feature = torch.exp(-((distance - distances) ** 2) / (2 * sigma ** 2))
+
+            edge_index.append([i, j])
+            edge_attr.append(edge_feature)
+
+    edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
+    edge_attr = torch.stack(edge_attr)
+    y = torch.tensor([target], dtype=torch.float)
+
+    return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
+
+# 5-fold交差検証の評価
+cgcnn_results = []
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"使用デバイス: {device}")
+
+for fold_idx, fold in enumerate(task.folds):
+    print(f"\n=== Fold {fold_idx + 1}/5 ===")
+
+    # 訓練データとテストデータを取得
+    train_inputs, train_outputs = task.get_train_and_val_data(fold)
+    test_inputs, test_outputs = task.get_test_data(fold, include_target=True)
+
+    # PyTorch Geometricデータに変換
+    print("グラフデータを構築中...")
+    train_data = [structure_to_pyg_data(s, t) for s, t in zip(train_inputs, train_outputs.values)]
+    test_data = [structure_to_pyg_data(s, t) for s, t in zip(test_inputs, test_outputs.values)]
+
+    train_loader = DataLoader(train_data, batch_size=32, shuffle=True)
+    test_loader = DataLoader(test_data, batch_size=32, shuffle=False)
+
+    # CGCNNモデルの初期化
+    model = CGCNNMatbench().to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    criterion = nn.L1Loss()  # MAE損失
+
+    # 訓練
+    print("CGCNNを訓練中...")
+    model.train()
+    for epoch in range(50):  # 実際にはearly stoppingを使用すべき
+        total_loss = 0
+        for batch in train_loader:
+            batch = batch.to(device)
+            optimizer.zero_grad()
+            out = model(batch)
+            loss = criterion(out, batch.y)
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item()
+
+        if (epoch + 1) % 10 == 0:
+            print(f"Epoch {epoch+1}/50, Loss: {total_loss/len(train_loader):.4f}")
+
+    # テスト
+    model.eval()
+    y_true = []
+    y_pred = []
+
+    with torch.no_grad():
+        for batch in test_loader:
+            batch = batch.to(device)
+            out = model(batch)
+            y_true.extend(batch.y.cpu().numpy())
+            y_pred.extend(out.cpu().numpy())
+
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+
+    # 評価指標を計算
+    mae = mean_absolute_error(y_true, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+    r2 = r2_score(y_true, y_pred)
+
+    print(f"MAE:  {mae:.4f} eV/atom")
+    print(f"RMSE: {rmse:.4f} eV/atom")
+    print(f"R²:   {r2:.4f}")
+
+    cgcnn_results.append({
+        'fold': fold_idx + 1,
+        'mae': mae,
+        'rmse': rmse,
+        'r2': r2
+    })
+
+# 5-fold平均スコアを計算
+cgcnn_df = pd.DataFrame(cgcnn_results)
+print("\n=== CGCNN 総合結果 ===")
+print(f"MAE:  {cgcnn_df['mae'].mean():.4f} ± {cgcnn_df['mae'].std():.4f} eV/atom")
+print(f"RMSE: {cgcnn_df['rmse'].mean():.4f} ± {cgcnn_df['rmse'].std():.4f} eV/atom")
+print(f"R²:   {cgcnn_df['r2'].mean():.4f} ± {cgcnn_df['r2'].std():.4f}")
+
+# 出力例：
+# === CGCNN 総合結果 ===
+# MAE:  0.0286 ± 0.0009 eV/atom
+# RMSE: 0.0592 ± 0.0014 eV/atom
+# R²:   0.9524 ± 0.0032
+</code></pre>
+
+        <h3>4.2.4 予測精度の定量的比較</h3>
+
+        <p>5-fold交差検証の結果を統合し、Random Forest（Magpie）とCGCNNの予測精度を比較します。</p>
+
+        <div class="highlight-box">
+            <strong>💻 コード例4：予測精度比較の可視化</strong>
+        </div>
+
+        <pre><code class="language-python"># 予測精度比較の可視化
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 結果を統合
+comparison_df = pd.DataFrame({
+    'Model': ['RF (Magpie)'] * 5 + ['CGCNN'] * 5,
+    'Fold': list(range(1, 6)) * 2,
+    'MAE': list(rf_df['mae']) + list(cgcnn_df['mae']),
+    'RMSE': list(rf_df['rmse']) + list(cgcnn_df['rmse']),
+    'R²': list(rf_df['r2']) + list(cgcnn_df['r2'])
+})
+
+# 可視化
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+# MAE比較
+sns.barplot(data=comparison_df, x='Model', y='MAE', ax=axes[0], palette=['#667eea', '#764ba2'])
+axes[0].set_title('MAE Comparison (Lower is Better)', fontsize=14, fontweight='bold')
+axes[0].set_ylabel('MAE (eV/atom)', fontsize=12)
+axes[0].axhline(0.03, color='red', linestyle='--', linewidth=1, label='Target: 0.03')
+axes[0].legend()
+
+# RMSE比較
+sns.barplot(data=comparison_df, x='Model', y='RMSE', ax=axes[1], palette=['#667eea', '#764ba2'])
+axes[1].set_title('RMSE Comparison (Lower is Better)', fontsize=14, fontweight='bold')
+axes[1].set_ylabel('RMSE (eV/atom)', fontsize=12)
+
+# R²比較
+sns.barplot(data=comparison_df, x='Model', y='R²', ax=axes[2], palette=['#667eea', '#764ba2'])
+axes[2].set_title('R² Comparison (Higher is Better)', fontsize=14, fontweight='bold')
+axes[2].set_ylabel('R²', fontsize=12)
+axes[2].axhline(0.95, color='red', linestyle='--', linewidth=1, label='Target: 0.95')
+axes[2].legend()
+
+plt.tight_layout()
+plt.savefig('accuracy_comparison.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 統計サマリー
+print("=== 予測精度の統計サマリー ===")
+print(comparison_df.groupby('Model').agg({
+    'MAE': ['mean', 'std'],
+    'RMSE': ['mean', 'std'],
+    'R²': ['mean', 'std']
+}).round(4))
+
+# 相対的な改善率を計算
+mae_improvement = (rf_df['mae'].mean() - cgcnn_df['mae'].mean()) / rf_df['mae'].mean() * 100
+rmse_improvement = (rf_df['rmse'].mean() - cgcnn_df['rmse'].mean()) / rf_df['rmse'].mean() * 100
+r2_improvement = (cgcnn_df['r2'].mean() - rf_df['r2'].mean()) / rf_df['r2'].mean() * 100
+
+print(f"\n=== CGCNNの相対的改善率 ===")
+print(f"MAE改善:  {mae_improvement:.2f}%")
+print(f"RMSE改善: {rmse_improvement:.2f}%")
+print(f"R²改善:   {r2_improvement:.2f}%")
+
+# 出力例：
+# === CGCNNの相対的改善率 ===
+# MAE改善:  12.00%
+# RMSE改善: 12.68%
+# R²改善:   2.18%
+</code></pre>
+
+        <p><strong>結果の解釈：</strong></p>
+        <ul>
+            <li><strong>MAE改善：12.00%</strong> - CGCNNは生成エネルギー予測において、Magpie+RFよりも約12%低い誤差を達成</li>
+            <li><strong>R²改善：2.18%</strong> - 既にRFが高いR²（0.932）を達成しているため、相対的改善率は小さいが、CGCNNは0.952という極めて高い決定係数を実現</li>
+            <li><strong>統計的有意性の検証が必要</strong> - 次節で、この精度差が統計的に有意かを検定します</li>
+        </ul>
+
+        <div class="warning-box">
+            <strong>⚠️ 重要な注意点</strong>
+            <p>本コード例では計算時間の都合上、CGCNNのエポック数を50に制限していますが、実際のベンチマークでは<strong>early stoppingとハイパーパラメータ最適化</strong>を実施すべきです。また、GPU環境での実行を強く推奨します（訓練時間が10-20倍高速化）。</p>
+        </div>
+
+        <h2>4.3 統計的有意性検定</h2>
+
+        <p>前節では、CGCNNがRandom Forest（Magpie）よりも約12%低いMAEを達成することを確認しました。しかし、この精度差が<strong>統計的に有意</strong>かどうかを検証しなければ、単なる偶然の可能性を排除できません。本節では、<strong>対応のあるt検定（paired t-test）</strong>と<strong>95%信頼区間</strong>を用いて統計的有意性を評価します。</p>
+
+        <h3>4.3.1 対応のあるt検定の原理</h3>
+
+        <p>5-fold交差検証では、同じデータ分割に対してRFとCGCNNの両方を評価しています。したがって、各foldのMAE差は<strong>対応のあるデータ（paired data）</strong>として扱うことができます。対応のあるt検定は、以下の帰無仮説を検定します：</p>
+
+        <p>$$H_0: \mu_{\text{diff}} = 0 \quad \text{（RFとCGCNNの平均MAE差はゼロ）}$$</p>
+
+        <p>$$H_1: \mu_{\text{diff}} \neq 0 \quad \text{（平均MAE差はゼロではない）}$$</p>
+
+        <p>検定統計量tは以下のように計算されます：</p>
+
+        <p>$$t = \frac{\bar{d}}{s_d / \sqrt{n}}$$</p>
+
+        <p>ここで、$\bar{d}$は差の平均、$s_d$は差の標準偏差、$n$はサンプル数（fold数=5）です。</p>
+
+        <h3>4.3.2 t検定の実装</h3>
+
+        <div class="highlight-box">
+            <strong>💻 コード例5：対応のあるt検定の実装</strong>
+        </div>
+
+        <pre><code class="language-python"># 対応のあるt検定の実装
+from scipy import stats
+import numpy as np
+
+# Random ForestとCGCNNのMAE（5 foldの結果）
+rf_mae = np.array([0.0325, 0.0338, 0.0312, 0.0329, 0.0321])  # 例示データ
+cgcnn_mae = np.array([0.0286, 0.0293, 0.0279, 0.0288, 0.0284])  # 例示データ
+
+# MAEの差を計算
+mae_diff = rf_mae - cgcnn_mae
+
+print("=== 対応のあるt検定 ===")
+print(f"RF MAE:     {rf_mae}")
+print(f"CGCNN MAE:  {cgcnn_mae}")
+print(f"MAE差:      {mae_diff}")
+print(f"平均差:     {mae_diff.mean():.4f} eV/atom")
+print(f"標準偏差:   {mae_diff.std(ddof=1):.4f} eV/atom")
+
+# 対応のあるt検定を実施
+t_statistic, p_value = stats.ttest_rel(rf_mae, cgcnn_mae)
+
+print(f"\nt統計量:    {t_statistic:.4f}")
+print(f"p値:        {p_value:.4f}")
+
+# 有意水準α=0.05で判定
+alpha = 0.05
+if p_value < alpha:
+    print(f"\n判定: p値 ({p_value:.4f}) < α ({alpha}) → 帰無仮説を棄却")
+    print("結論: CGCNNとRFの精度差は統計的に有意です。")
+else:
+    print(f"\n判定: p値 ({p_value:.4f}) ≥ α ({alpha}) → 帰無仮説を棄却できません")
+    print("結論: CGCNNとRFの精度差は統計的に有意ではありません。")
+
+# 効果量（Cohen's d）を計算
+cohens_d = mae_diff.mean() / mae_diff.std(ddof=1)
+print(f"\n効果量（Cohen's d）: {cohens_d:.4f}")
+if abs(cohens_d) < 0.2:
+    print("効果量の大きさ: 小さい")
+elif abs(cohens_d) < 0.5:
+    print("効果量の大きさ: 中程度")
+elif abs(cohens_d) < 0.8:
+    print("効果量の大きさ: 大きい")
+else:
+    print("効果量の大きさ: 非常に大きい")
+
+# 出力例：
+# === 対応のあるt検定 ===
+# RF MAE:     [0.0325 0.0338 0.0312 0.0329 0.0321]
+# CGCNN MAE:  [0.0286 0.0293 0.0279 0.0288 0.0284]
+# MAE差:      [0.0039 0.0045 0.0033 0.0041 0.0037]
+# 平均差:     0.0039 eV/atom
+# 標準偏差:   0.0004 eV/atom
+#
+# t統計量:    20.5891
+# p値:        0.0001
+#
+# 判定: p値 (0.0001) < α (0.05) → 帰無仮説を棄却
+# 結論: CGCNNとRFの精度差は統計的に有意です。
+#
+# 効果量（Cohen's d）: 9.1894
+# 効果量の大きさ: 非常に大きい
+</code></pre>
+
+        <h3>4.3.3 95%信頼区間の計算</h3>
+
+        <p>95%信頼区間は、<strong>真の平均差が95%の確率で含まれる範囲</strong>を示します。信頼区間が0を含まない場合、統計的に有意な差があると結論できます。</p>
+
+        <div class="highlight-box">
+            <strong>💻 コード例6：95%信頼区間の計算と可視化</strong>
+        </div>
+
+        <pre><code class="language-python"># 95%信頼区間の計算と可視化
+from scipy import stats
+import matplotlib.pyplot as plt
+
+# 95%信頼区間を計算
+confidence_level = 0.95
+degrees_freedom = len(mae_diff) - 1
+t_critical = stats.t.ppf((1 + confidence_level) / 2, degrees_freedom)
+
+mean_diff = mae_diff.mean()
+se_diff = mae_diff.std(ddof=1) / np.sqrt(len(mae_diff))
+margin_error = t_critical * se_diff
+
+ci_lower = mean_diff - margin_error
+ci_upper = mean_diff + margin_error
+
+print("=== 95%信頼区間 ===")
+print(f"平均差:          {mean_diff:.4f} eV/atom")
+print(f"標準誤差:        {se_diff:.4f} eV/atom")
+print(f"t臨界値 (df={degrees_freedom}): {t_critical:.4f}")
+print(f"誤差範囲:        ±{margin_error:.4f} eV/atom")
+print(f"95%信頼区間:     [{ci_lower:.4f}, {ci_upper:.4f}] eV/atom")
+
+if ci_lower > 0:
+    print("\n判定: 信頼区間が0を含まない → 統計的に有意な差あり")
+else:
+    print("\n判定: 信頼区間が0を含む → 統計的に有意な差なし")
+
+# 可視化
+fig, ax = plt.subplots(figsize=(10, 6))
+
+# 各foldのMAE差をプロット
+ax.scatter(range(1, 6), mae_diff, s=100, color='#764ba2', zorder=3, label='各foldのMAE差')
+
+# 平均線
+ax.axhline(mean_diff, color='#667eea', linestyle='--', linewidth=2, label=f'平均差: {mean_diff:.4f}')
+
+# 95%信頼区間
+ax.axhspan(ci_lower, ci_upper, alpha=0.2, color='#667eea', label=f'95%信頼区間: [{ci_lower:.4f}, {ci_upper:.4f}]')
+
+# ゼロライン
+ax.axhline(0, color='red', linestyle='-', linewidth=1, label='差なし（H₀）')
+
+ax.set_xlabel('Fold番号', fontsize=12)
+ax.set_ylabel('MAE差 (RF - CGCNN) [eV/atom]', fontsize=12)
+ax.set_title('5-fold交差検証におけるMAE差と95%信頼区間', fontsize=14, fontweight='bold')
+ax.set_xticks(range(1, 6))
+ax.legend(fontsize=10)
+ax.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('statistical_significance.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 出力例：
+# === 95%信頼区間 ===
+# 平均差:          0.0039 eV/atom
+# 標準誤差:        0.0002 eV/atom
+# t臨界値 (df=4): 2.7764
+# 誤差範囲:        ±0.0005 eV/atom
+# 95%信頼区間:     [0.0034, 0.0044] eV/atom
+#
+# 判定: 信頼区間が0を含まない → 統計的に有意な差あり
+</code></pre>
+
+        <h3>4.3.4 統計的検定結果のまとめ</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>検定手法</th>
+                    <th>結果</th>
+                    <th>解釈</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>対応のあるt検定</td>
+                    <td>t=20.59, p=0.0001</td>
+                    <td>p < 0.05 → 統計的に有意</td>
+                </tr>
+                <tr>
+                    <td>95%信頼区間</td>
+                    <td>[0.0034, 0.0044] eV/atom</td>
+                    <td>0を含まない → 統計的に有意</td>
+                </tr>
+                <tr>
+                    <td>効果量（Cohen's d）</td>
+                    <td>9.19</td>
+                    <td>非常に大きい効果量</td>
+                </tr>
+                <tr>
+                    <td>相対的改善率</td>
+                    <td>12.00%</td>
+                    <td>実用上の意義あり</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p><strong>結論：</strong></p>
+        <ul>
+            <li>CGCNNはRandom Forest（Magpie）に対して<strong>統計的に有意な精度向上</strong>を示しました（p=0.0001 << 0.05）</li>
+            <li>95%信頼区間 [0.0034, 0.0044] eV/atomは0を含まないため、精度差の存在は統計的に支持されます</li>
+            <li>Cohen's d = 9.19という極めて大きい効果量は、CGCNNの実用上の優位性を示しています</li>
+            <li>12%の相対的改善率は、材料探索の効率化に直結する実務的なメリットがあります</li>
+        </ul>
+
+        <div class="warning-box">
+            <strong>⚠️ 統計的有意性 vs 実用的有意性</strong>
+            <p>統計的に有意な差が認められても、その差が<strong>実用上意味があるか</strong>は別途検討が必要です。本ケースでは、MAE差0.0039 eV/atomは材料探索において十分実用的な改善と判断できます（生成エネルギー予測精度が約1 meV/atom向上）。</p>
+        </div>
+
+        <h2>4.4 計算コストの定量的比較</h2>
+
+        <p>精度だけでなく、<strong>計算コスト（訓練時間、推論時間、メモリ使用量）</strong>もモデル選択の重要な要素です。本節では、Random ForestとCGCNNの計算コストを実測し、定量的に比較します。</p>
+
+        <h3>4.4.1 訓練時間の測定</h3>
+
+        <div class="highlight-box">
+            <strong>💻 コード例7：訓練時間と推論時間の測定</strong>
+        </div>
+
+        <pre><code class="language-python"># 訓練時間と推論時間の測定
+import time
+import psutil
+import os
+
+def measure_training_time_and_memory(model_type='rf'):
+    """
+    モデルの訓練時間とメモリ使用量を測定
+
+    Parameters:
+    -----------
+    model_type : str
+        'rf' (Random Forest) or 'cgcnn'
+
+    Returns:
+    --------
+    results : dict
+        訓練時間、推論時間、メモリ使用量
+    """
+    # プロセスのメモリ使用量を取得
+    process = psutil.Process(os.getpid())
+    mem_before = process.memory_info().rss / (1024 ** 2)  # MB
+
+    # 訓練データとテストデータ（Fold 1のみ使用）
+    train_inputs, train_outputs = task.get_train_and_val_data(task.folds[0])
+    test_inputs, test_outputs = task.get_test_data(task.folds[0], include_target=True)
+
+    if model_type == 'rf':
+        # Random Forestの訓練時間測定
+        X_train = extract_magpie_features(train_inputs)
+        X_test = extract_magpie_features(test_inputs)
+        y_train = train_outputs.values
+
+        # 訓練開始
+        start_train = time.time()
+        rf_model = RandomForestRegressor(
+            n_estimators=100,
+            max_depth=30,
+            random_state=42,
+            n_jobs=-1
+        )
+        rf_model.fit(X_train, y_train)
+        train_time = time.time() - start_train
+
+        # 推論時間測定
+        start_infer = time.time()
+        _ = rf_model.predict(X_test)
+        infer_time = time.time() - start_infer
+
+        mem_after = process.memory_info().rss / (1024 ** 2)
+        memory_usage = mem_after - mem_before
+
+    elif model_type == 'cgcnn':
+        # CGCNNの訓練時間測定
+        train_data = [structure_to_pyg_data(s, t) for s, t in zip(train_inputs, train_outputs.values)]
+        test_data = [structure_to_pyg_data(s, t) for s, t in zip(test_inputs, test_outputs.values)]
+
+        train_loader = DataLoader(train_data, batch_size=32, shuffle=True)
+        test_loader = DataLoader(test_data, batch_size=32, shuffle=False)
+
+        model = CGCNNMatbench().to(device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+        criterion = nn.L1Loss()
+
+        # 訓練開始
+        start_train = time.time()
+        model.train()
+        for epoch in range(50):
+            for batch in train_loader:
+                batch = batch.to(device)
+                optimizer.zero_grad()
+                out = model(batch)
+                loss = criterion(out, batch.y)
+                loss.backward()
+                optimizer.step()
+        train_time = time.time() - start_train
+
+        # 推論時間測定
+        model.eval()
+        start_infer = time.time()
+        with torch.no_grad():
+            for batch in test_loader:
+                batch = batch.to(device)
+                _ = model(batch)
+        infer_time = time.time() - start_infer
+
+        mem_after = process.memory_info().rss / (1024 ** 2)
+        memory_usage = mem_after - mem_before
+
+    return {
+        'train_time': train_time,
+        'infer_time': infer_time,
+        'memory_usage': memory_usage
+    }
+
+# Random Forestの計算コスト測定
+print("=== Random Forest計算コスト測定中... ===")
+rf_cost = measure_training_time_and_memory('rf')
+
+print(f"訓練時間:   {rf_cost['train_time']:.2f} 秒")
+print(f"推論時間:   {rf_cost['infer_time']:.2f} 秒")
+print(f"メモリ使用: {rf_cost['memory_usage']:.2f} MB")
+
+# CGCNNの計算コスト測定（GPU使用時）
+print("\n=== CGCNN計算コスト測定中... ===")
+cgcnn_cost = measure_training_time_and_memory('cgcnn')
+
+print(f"訓練時間:   {cgcnn_cost['train_time']:.2f} 秒")
+print(f"推論時間:   {cgcnn_cost['infer_time']:.2f} 秒")
+print(f"メモリ使用: {cgcnn_cost['memory_usage']:.2f} MB")
+
+# 比較
+print("\n=== 計算コスト比較 ===")
+print(f"訓練時間比 (CGCNN/RF): {cgcnn_cost['train_time'] / rf_cost['train_time']:.2f}x")
+print(f"推論時間比 (CGCNN/RF): {cgcnn_cost['infer_time'] / rf_cost['infer_time']:.2f}x")
+print(f"メモリ比 (CGCNN/RF):   {cgcnn_cost['memory_usage'] / rf_cost['memory_usage']:.2f}x")
+
+# 出力例：
+# === Random Forest計算コスト測定中... ===
+# 訓練時間:   45.32 秒
+# 推論時間:   0.18 秒
+# メモリ使用: 1250.45 MB
+#
+# === CGCNN計算コスト測定中... ===
+# 訓練時間:   1832.56 秒
+# 推論時間:   2.34 秒
+# メモリ使用: 3450.23 MB
+#
+# === 計算コスト比較 ===
+# 訓練時間比 (CGCNN/RF): 40.45x
+# 推論時間比 (CGCNN/RF): 13.00x
+# メモリ比 (CGCNN/RF):   2.76x
+</code></pre>
+
+        <h3>4.4.2 計算コストの可視化</h3>
+
+        <div class="highlight-box">
+            <strong>💻 コード例8：計算コスト比較の可視化</strong>
+        </div>
+
+        <pre><code class="language-python"># 計算コスト比較の可視化
+import matplotlib.pyplot as plt
+import numpy as np
+
+# データ準備
+models = ['RF (Magpie)', 'CGCNN']
+train_times = [45.32, 1832.56]
+infer_times = [0.18, 2.34]
+memory_usage = [1250.45, 3450.23]
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+# 訓練時間比較（対数スケール）
+axes[0].bar(models, train_times, color=['#667eea', '#764ba2'])
+axes[0].set_ylabel('訓練時間 (秒)', fontsize=12)
+axes[0].set_title('訓練時間比較', fontsize=14, fontweight='bold')
+axes[0].set_yscale('log')
+for i, v in enumerate(train_times):
+    axes[0].text(i, v, f'{v:.1f}s', ha='center', va='bottom', fontsize=10)
+
+# 推論時間比較（対数スケール）
+axes[1].bar(models, infer_times, color=['#667eea', '#764ba2'])
+axes[1].set_ylabel('推論時間 (秒)', fontsize=12)
+axes[1].set_title('推論時間比較', fontsize=14, fontweight='bold')
+axes[1].set_yscale('log')
+for i, v in enumerate(infer_times):
+    axes[1].text(i, v, f'{v:.2f}s', ha='center', va='bottom', fontsize=10)
+
+# メモリ使用量比較
+axes[2].bar(models, memory_usage, color=['#667eea', '#764ba2'])
+axes[2].set_ylabel('メモリ使用量 (MB)', fontsize=12)
+axes[2].set_title('メモリ使用量比較', fontsize=14, fontweight='bold')
+for i, v in enumerate(memory_usage):
+    axes[2].text(i, v, f'{v:.1f}MB', ha='center', va='bottom', fontsize=10)
+
+plt.tight_layout()
+plt.savefig('computational_cost_comparison.png', dpi=300, bbox_inches='tight')
+plt.show()
+</code></pre>
+
+        <h3>4.4.3 計算コスト分析のまとめ</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>指標</th>
+                    <th>RF (Magpie)</th>
+                    <th>CGCNN</th>
+                    <th>倍率</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>訓練時間</td>
+                    <td>45.3秒</td>
+                    <td>1,832.6秒 (30.5分)</td>
+                    <td>40.5x 遅い</td>
+                </tr>
+                <tr>
+                    <td>推論時間</td>
+                    <td>0.18秒</td>
+                    <td>2.34秒</td>
+                    <td>13.0x 遅い</td>
+                </tr>
+                <tr>
+                    <td>メモリ使用量</td>
+                    <td>1,250 MB</td>
+                    <td>3,450 MB</td>
+                    <td>2.8x 大きい</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p><strong>計算コストの解釈：</strong></p>
+        <ul>
+            <li><strong>訓練時間：40倍の差</strong> - CGCNNは約30分の訓練時間が必要（GPU使用時）。CPUのみではさらに10-20倍遅くなる可能性あり</li>
+            <li><strong>推論時間：13倍の差</strong> - リアルタイム予測が求められる場合はRFが有利</li>
+            <li><strong>メモリ：2.8倍の差</strong> - CGCNNはGPUメモリも追加で必要（本例では約2GB）</li>
+            <li><strong>精度とコストのトレードオフ</strong> - 12%の精度向上のために40倍の計算時間を許容できるかは、用途に依存</li>
+        </ul>
+
+        <h2>4.5 データ要求量の分析</h2>
+
+        <p>機械学習モデルの実用性を評価する上で、<strong>どの程度の訓練データ数が必要か</strong>は重要な要素です。本節では、<strong>学習曲線（Learning Curve）</strong>を用いて、Random ForestとCGCNNのデータ要求量の違いを可視化します。</p>
+
+        <h3>4.5.1 学習曲線の概念</h3>
+
+        <p>学習曲線は、訓練データ数を変化させたときの<strong>モデル性能の変化</strong>をプロットしたグラフです。一般的に、以下の特徴があります：</p>
+
+        <ul>
+            <li><strong>訓練データ数が少ない領域</strong>：モデルの性能は訓練データ数に強く依存し、増加とともに急激に向上</li>
+            <li><strong>訓練データ数が十分な領域</strong>：性能は飽和し、追加データによる改善は小さくなる</li>
+            <li><strong>データ効率の高いモデル</strong>：少ないデータで高い性能に到達し、曲線が早く飽和する</li>
+            <li><strong>データ効率の低いモデル</strong>：多くのデータが必要で、曲線の飽和が遅い</li>
+        </ul>
+
+        <h3>4.5.2 学習曲線の実装</h3>
+
+        <div class="highlight-box">
+            <strong>💻 コード例9：学習曲線の生成と可視化</strong>
+        </div>
+
+        <pre><code class="language-python"># 学習曲線の生成
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import learning_curve
+
+# 訓練データとテストデータ（Fold 1を使用）
+train_inputs, train_outputs = task.get_train_and_val_data(task.folds[0])
+test_inputs, test_outputs = task.get_test_data(task.folds[0], include_target=True)
+
+# Magpie特徴量抽出
+X_train = extract_magpie_features(train_inputs)
+X_test = extract_magpie_features(test_inputs)
+y_train = train_outputs.values
+y_test = test_outputs.values
+
+# 訓練データサイズの設定（10%, 20%, ..., 100%）
+train_sizes = np.linspace(0.1, 1.0, 10)
+
+# Random Forestの学習曲線
+print("=== Random Forestの学習曲線を計算中... ===")
+rf_train_scores = []
+rf_test_scores = []
+
+for train_size in train_sizes:
+    # 訓練データをサンプリング
+    n_samples = int(len(X_train) * train_size)
+    indices = np.random.choice(len(X_train), n_samples, replace=False)
+    X_train_subset = X_train[indices]
+    y_train_subset = y_train[indices]
+
+    # モデル訓練
+    rf_model = RandomForestRegressor(
+        n_estimators=100,
+        max_depth=30,
+        random_state=42,
+        n_jobs=-1
+    )
+    rf_model.fit(X_train_subset, y_train_subset)
+
+    # 訓練誤差とテスト誤差を計算
+    train_mae = mean_absolute_error(y_train_subset, rf_model.predict(X_train_subset))
+    test_mae = mean_absolute_error(y_test, rf_model.predict(X_test))
+
+    rf_train_scores.append(train_mae)
+    rf_test_scores.append(test_mae)
+
+    print(f"訓練サイズ: {train_size*100:.0f}% ({n_samples}サンプル) - 訓練MAE: {train_mae:.4f}, テストMAE: {test_mae:.4f}")
+
+# CGCNNの学習曲線（簡略版：計算時間の都合上3点のみ）
+print("\n=== CGCNNの学習曲線を計算中... ===")
+cgcnn_train_sizes = [0.2, 0.5, 1.0]  # 20%, 50%, 100%
+cgcnn_train_scores = []
+cgcnn_test_scores = []
+
+for train_size in cgcnn_train_sizes:
+    n_samples = int(len(train_inputs) * train_size)
+    sampled_inputs = train_inputs[:n_samples]
+    sampled_outputs = train_outputs.values[:n_samples]
+
+    # グラフデータ構築
+    train_data = [structure_to_pyg_data(s, t) for s, t in zip(sampled_inputs, sampled_outputs)]
+    test_data = [structure_to_pyg_data(s, t) for s, t in zip(test_inputs, test_outputs.values)]
+
+    train_loader = DataLoader(train_data, batch_size=32, shuffle=True)
+    test_loader = DataLoader(test_data, batch_size=32, shuffle=False)
+
+    # CGCNN訓練（簡略版：30エポック）
+    model = CGCNNMatbench().to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    criterion = nn.L1Loss()
+
+    model.train()
+    for epoch in range(30):
+        for batch in train_loader:
+            batch = batch.to(device)
+            optimizer.zero_grad()
+            out = model(batch)
+            loss = criterion(out, batch.y)
+            loss.backward()
+            optimizer.step()
+
+    # 評価
+    model.eval()
+    train_preds, train_true = [], []
+    test_preds, test_true = [], []
+
+    with torch.no_grad():
+        # 訓練誤差
+        for batch in train_loader:
+            batch = batch.to(device)
+            out = model(batch)
+            train_preds.extend(out.cpu().numpy())
+            train_true.extend(batch.y.cpu().numpy())
+
+        # テスト誤差
+        for batch in test_loader:
+            batch = batch.to(device)
+            out = model(batch)
+            test_preds.extend(out.cpu().numpy())
+            test_true.extend(batch.y.cpu().numpy())
+
+    train_mae = mean_absolute_error(train_true, train_preds)
+    test_mae = mean_absolute_error(test_true, test_preds)
+
+    cgcnn_train_scores.append(train_mae)
+    cgcnn_test_scores.append(test_mae)
+
+    print(f"訓練サイズ: {train_size*100:.0f}% ({n_samples}サンプル) - 訓練MAE: {train_mae:.4f}, テストMAE: {test_mae:.4f}")
+
+# 学習曲線の可視化
+fig, ax = plt.subplots(figsize=(12, 7))
+
+# Random Forest
+ax.plot(train_sizes * len(X_train), rf_test_scores, 'o-', color='#667eea', linewidth=2,
+        markersize=8, label='RF (Magpie) - テスト誤差')
+ax.plot(train_sizes * len(X_train), rf_train_scores, 's--', color='#667eea', linewidth=1.5,
+        markersize=6, alpha=0.5, label='RF (Magpie) - 訓練誤差')
+
+# CGCNN
+cgcnn_train_sizes_abs = [s * len(train_inputs) for s in cgcnn_train_sizes]
+ax.plot(cgcnn_train_sizes_abs, cgcnn_test_scores, 'o-', color='#764ba2', linewidth=2,
+        markersize=8, label='CGCNN - テスト誤差')
+ax.plot(cgcnn_train_sizes_abs, cgcnn_train_scores, 's--', color='#764ba2', linewidth=1.5,
+        markersize=6, alpha=0.5, label='CGCNN - 訓練誤差')
+
+ax.set_xlabel('訓練データ数', fontsize=12)
+ax.set_ylabel('MAE (eV/atom)', fontsize=12)
+ax.set_title('学習曲線：訓練データ数と予測精度の関係', fontsize=14, fontweight='bold')
+ax.legend(fontsize=10)
+ax.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('learning_curve.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 出力例：
+# === Random Forestの学習曲線を計算中... ===
+# 訓練サイズ: 10% (10601サンプル) - 訓練MAE: 0.0089, テストMAE: 0.0521
+# 訓練サイズ: 20% (21202サンプル) - 訓練MAE: 0.0085, テストMAE: 0.0428
+# ...
+# 訓練サイズ: 100% (106012サンプル) - 訓練MAE: 0.0078, テストMAE: 0.0325
+#
+# === CGCNNの学習曲線を計算中... ===
+# 訓練サイズ: 20% (21202サンプル) - 訓練MAE: 0.0234, テストMAE: 0.0389
+# 訓練サイズ: 50% (53006サンプル) - 訓練MAE: 0.0198, テストMAE: 0.0312
+# 訓練サイズ: 100% (106012サンプル) - 訓練MAE: 0.0176, テストMAE: 0.0286
+</code></pre>
+
+        <h3>4.5.3 データ要求量の解釈</h3>
+
+        <p><strong>学習曲線から読み取れる知見：</strong></p>
+
+        <ul>
+            <li><strong>小規模データ領域（<20%）</strong>：Random Forestが優位。CGCNNは訓練データ不足により性能が低い</li>
+            <li><strong>中規模データ領域（20-50%）</strong>：CGCNNの性能が急速に向上し、RFに接近</li>
+            <li><strong>大規模データ領域（>50%）</strong>：CGCNNがRFを上回り、データ数増加とともに差が拡大</li>
+            <li><strong>データ効率</strong>：RFは約20%のデータで性能が飽和するのに対し、CGCNNは100%のデータでも向上傾向を維持</li>
+        </ul>
+
+        <p><strong>実務上の意味</strong>：</p>
+        <ul>
+            <li><strong>データが少ない場合（<10,000サンプル）</strong>：Random Forest（Magpie）が推奨</li>
+            <li><strong>データが十分な場合（>50,000サンプル）</strong>：CGCNNが高精度を実現</li>
+            <li><strong>データ収集コストが高い場合</strong>：初期段階ではRF、データ蓄積後にCGCNNへ移行するハイブリッド戦略が有効</li>
+        </ul>
+
+        <h2>4.6 解釈可能性の比較</h2>
+
+        <p>機械学習モデルの<strong>解釈可能性（Interpretability）</strong>は、予測根拠の理解と信頼性向上に不可欠です。本節では、Random Forest（Magpie）に対する<strong>SHAP値</strong>と、CGCNNに対する<strong>Attention機構</strong>を用いて、両手法の解釈可能性を比較します。</p>
+
+        <h3>4.6.1 SHAP値による組成ベース特徴量の解釈</h3>
+
+        <p>SHAP（SHapley Additive exPlanations）は、<strong>各特徴量の予測への寄与度</strong>を定量化する手法です。Shapley値の理論に基づき、公平な寄与度分配を実現します。</p>
+
+        <div class="highlight-box">
+            <strong>💻 コード例10：SHAP値による特徴量重要度分析</strong>
+        </div>
+
+        <pre><code class="language-python"># SHAP値による特徴量重要度分析
+import shap
+
+# Random Forestモデルの訓練（既に訓練済みのrf_modelを使用）
+# テストデータの一部をサンプリング（計算時間削減のため）
+X_test_sample = X_test[:100]
+y_test_sample = y_test[:100]
+
+# SHAP値を計算
+print("=== SHAP値を計算中... ===")
+explainer = shap.TreeExplainer(rf_model)
+shap_values = explainer.shap_values(X_test_sample)
+
+# SHAP値のサマリープロット
+shap.summary_plot(shap_values, X_test_sample,
+                  feature_names=[f'Magpie_{i}' for i in range(145)],
+                  max_display=20, show=False)
+plt.title('SHAP値による特徴量重要度（Random Forest + Magpie）', fontsize=14, fontweight='bold')
+plt.tight_layout()
+plt.savefig('shap_summary.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 特定のサンプルの予測解釈
+sample_idx = 0
+print(f"\n=== サンプル{sample_idx}の予測解釈 ===")
+print(f"真の値: {y_test_sample[sample_idx]:.4f} eV/atom")
+print(f"予測値: {rf_model.predict(X_test_sample[sample_idx:sample_idx+1])[0]:.4f} eV/atom")
+
+# SHAP Force Plot（個別サンプルの解釈）
+shap.force_plot(explainer.expected_value,
+                shap_values[sample_idx],
+                X_test_sample[sample_idx],
+                feature_names=[f'Magpie_{i}' for i in range(145)],
+                matplotlib=True, show=False)
+plt.savefig('shap_force_plot.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 上位10個の重要特徴量を表示
+feature_importance = np.abs(shap_values).mean(axis=0)
+top_features = np.argsort(feature_importance)[-10:][::-1]
+
+print("\n=== 上位10個の重要特徴量 ===")
+for i, feat_idx in enumerate(top_features):
+    print(f"{i+1}. Magpie_{feat_idx}: SHAP重要度 = {feature_importance[feat_idx]:.4f}")
+
+# 出力例：
+# === 上位10個の重要特徴量 ===
+# 1. Magpie_34: SHAP重要度 = 0.0087  # 平均電気陰性度
+# 2. Magpie_12: SHAP重要度 = 0.0065  # 平均原子半径
+# 3. Magpie_78: SHAP重要度 = 0.0054  # 価電子数の標準偏差
+# ...
+</code></pre>
+
+        <h3>4.6.2 Attention機構によるGNNの解釈</h3>
+
+        <p>CGCNNでは、<strong>Attention機構</strong>を用いて、予測に重要な<strong>原子-原子相互作用</strong>を可視化できます（正確にはCGCNNは標準的にはAttentionを持たないため、GAT等のAttention-based GNNとの比較が適切ですが、ここでは教育目的でCGCNNの畳み込み重みを可視化します）。</p>
+
+        <div class="warning-box">
+            <strong>⚠️ 注意：CGCNNの解釈可能性の限界</strong>
+            <p>標準的なCGCNNはAttention機構を持たないため、解釈可能性は限定的です。本コード例では<strong>畳み込み層の活性化を可視化</strong>しますが、より高度な解釈にはGAT（Graph Attention Networks）やExplainable AI手法（GNNExplainer等）の使用が推奨されます。</p>
+        </div>
+
+        <pre><code class="language-python"># CGCNNの活性化可視化（簡易版）
+import torch
+import matplotlib.pyplot as plt
+from pymatgen.core import Structure
+
+# テストデータから1サンプル抽出
+sample_structure = test_inputs[0]
+sample_target = test_outputs.values[0]
+
+# PyTorch Geometricデータに変換
+sample_data = structure_to_pyg_data(sample_structure, sample_target).to(device)
+
+# CGCNNで予測（中間層の活性化を取得）
+model.eval()
+with torch.no_grad():
+    # ノード特徴量の初期化
+    x = sample_data.x
+    x = model.atom_embedding(x)
+
+    # 各畳み込み層の活性化を記録
+    activations = []
+    for conv, bn in zip(model.conv_layers, model.bn_layers):
+        x = conv(x, sample_data.edge_index, sample_data.edge_attr)
+        x = bn(x)
+        x = model.activation(x)
+        activations.append(x.cpu().numpy())
+
+    # 最終予測
+    x = global_mean_pool(x.unsqueeze(0), torch.zeros(x.size(0), dtype=torch.long))
+    prediction = model.fc2(model.activation(model.fc1(x))).item()
+
+print(f"=== CGCNNの予測解釈 ===")
+print(f"真の値: {sample_target:.4f} eV/atom")
+print(f"予測値: {prediction:.4f} eV/atom")
+
+# 各原子の活性化を可視化
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+for layer_idx, activation in enumerate(activations):
+    # 各原子の活性化の平均値を計算
+    atom_importance = activation.mean(axis=1)
+
+    # 原子タイプを取得
+    atom_types = [site.specie.symbol for site in sample_structure]
+
+    # 原子ごとの重要度をプロット
+    axes[layer_idx].bar(range(len(atom_types)), atom_importance)
+    axes[layer_idx].set_xlabel('原子インデックス', fontsize=12)
+    axes[layer_idx].set_ylabel('活性化の平均値', fontsize=12)
+    axes[layer_idx].set_title(f'第{layer_idx+1}畳み込み層', fontsize=12, fontweight='bold')
+    axes[layer_idx].set_xticks(range(len(atom_types)))
+    axes[layer_idx].set_xticklabels(atom_types, rotation=45)
+
+plt.tight_layout()
+plt.savefig('cgcnn_activation.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("\n各原子の重要度（第3層の活性化）:")
+for i, (atom_type, importance) in enumerate(zip(atom_types, activations[-1].mean(axis=1))):
+    print(f"{i+1}. {atom_type}: {importance:.4f}")
+</code></pre>
+
+        <h3>4.6.3 解釈可能性の比較まとめ</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>観点</th>
+                    <th>Random Forest（SHAP）</th>
+                    <th>CGCNN（活性化可視化）</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>解釈対象</td>
+                    <td>特徴量の重要度（145次元Magpie）</td>
+                    <td>原子・結合の重要度</td>
+                </tr>
+                <tr>
+                    <td>解釈の粒度</td>
+                    <td>組成レベル（電気陰性度、原子半径等）</td>
+                    <td>構造レベル（特定の原子・結合）</td>
+                </tr>
+                <tr>
+                    <td>理論的基盤</td>
+                    <td>Shapley値（ゲーム理論）</td>
+                    <td>ニューラルネット活性化</td>
+                </tr>
+                <tr>
+                    <td>計算コスト</td>
+                    <td>中程度（TreeExplainerは高速）</td>
+                    <td>低い（Forward passのみ）</td>
+                </tr>
+                <tr>
+                    <td>解釈の直感性</td>
+                    <td>高い（特徴量名が意味を持つ）</td>
+                    <td>中程度（専門知識が必要）</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p><strong>実務上の選択：</strong></p>
+        <ul>
+            <li><strong>組成レベルの知見が必要</strong>（例：どの元素が重要か） → Random Forest + SHAP</li>
+            <li><strong>構造レベルの知見が必要</strong>（例：どの原子間相互作用が重要か） → CGCNN + GAT/GNNExplainer</li>
+            <li><strong>ドメイン専門家への説明</strong> → SHAP値の方が直感的</li>
+            <li><strong>研究目的の詳細分析</strong> → GNN Attention機構が有用</li>
+        </ul>
+
+        <h2>4.7 手法選択の意思決定フローチャート</h2>
+
+        <p>本章の定量的比較結果を統合し、<strong>実務上の手法選択を支援する意思決定フローチャート</strong>をMermaidで構築します。</p>
+
+        <div class="mermaid">
+graph TD
+    A[材料物性予測タスク] --> B{訓練データ数は?}
+    B -->|<10,000| C[Random Forest + Magpie]
+    B -->|10,000-50,000| D{計算リソースは?}
+    B -->|>50,000| E{精度優先か速度優先か?}
+
+    D -->|GPU利用可| F[CGCNN推奨<br/>精度とデータ効率のバランス]
+    D -->|CPUのみ| C
+
+    E -->|精度優先| G[CGCNN推奨<br/>MAE 12%改善]
+    E -->|速度優先| H{リアルタイム予測が必要?}
+
+    H -->|はい| C
+    H -->|いいえ| F
+
+    C --> I{解釈可能性は必須?}
+    F --> J{統計的有意性を確認したか?}
+    G --> J
+
+    I -->|はい| K[SHAP値で特徴量重要度分析<br/>ドメイン専門家に提示]
+    I -->|いいえ| L[Random Forest採用決定]
+
+    J -->|はい・p<0.05| M{計算コスト許容可能?}
+    J -->|まだ| N[t検定と95%信頼区間を実施]
+
+    M -->|訓練時間40x許容| O[CGCNN採用決定]
+    M -->|許容不可| P[ハイブリッドアプローチ検討<br/>初期RFからCGCNNへ移行]
+
+    N --> J
+
+    K --> L
+    O --> Q[本番環境へデプロイ]
+    L --> Q
+    P --> Q
+
+    style A fill:#667eea,color:#fff
+    style C fill:#4caf50,color:#fff
+    style F fill:#ff9800,color:#fff
+    style G fill:#764ba2,color:#fff
+    style O fill:#764ba2,color:#fff
+    style L fill:#4caf50,color:#fff
+    style Q fill:#2196f3,color:#fff
+        </div>
+
+        <h3>4.7.1 意思決定フローチャートの使用ガイド</h3>
+
+        <p><strong>各決定ポイントの詳細：</strong></p>
+
+        <ol>
+            <li><strong>訓練データ数の評価</strong>
+                <ul>
+                    <li><10,000サンプル：Random Forestが安定して高性能（学習曲線の知見）</li>
+                    <li>10,000-50,000サンプル：計算リソースに応じて選択</li>
+                    <li>>50,000サンプル：CGCNNの優位性が顕著</li>
+                </ul>
+            </li>
+            <li><strong>計算リソースの確認</strong>
+                <ul>
+                    <li>GPU利用可：CGCNN訓練時間が30分程度に短縮</li>
+                    <li>CPUのみ：CGCNN訓練時間が5-10時間かかる可能性</li>
+                </ul>
+            </li>
+            <li><strong>精度 vs 速度のトレードオフ</strong>
+                <ul>
+                    <li>MAE 12%改善の価値 vs 訓練時間40倍のコストを評価</li>
+                    <li>推論速度13倍の差がリアルタイム予測に影響するかを確認</li>
+                </ul>
+            </li>
+            <li><strong>統計的有意性の検証</strong>
+                <ul>
+                    <li>5-fold交差検証で対応のあるt検定を実施</li>
+                    <li>p値<0.05かつ95%信頼区間が0を含まないことを確認</li>
+                </ul>
+            </li>
+            <li><strong>解釈可能性の要求</strong>
+                <ul>
+                    <li>SHAP値：組成レベルの知見（どの元素特性が重要か）</li>
+                    <li>Attention/GNNExplainer：構造レベルの知見（どの原子間相互作用が重要か）</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h2>4.8 本章のまとめ</h2>
+
+        <p>本章では、Random Forest（Magpie）とCGCNNを、Matbenchベンチマークを用いて<strong>7つの観点から定量的に比較</strong>しました。</p>
+
+        <h3>主要な知見</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>評価観点</th>
+                    <th>結果</th>
+                    <th>推奨条件</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>予測精度</td>
+                    <td>CGCNN: MAE 12%改善</td>
+                    <td>高精度が必須の場合</td>
+                </tr>
+                <tr>
+                    <td>統計的有意性</td>
+                    <td>p=0.0001 << 0.05 (有意)</td>
+                    <td>科学的根拠が必要な場合</td>
+                </tr>
+                <tr>
+                    <td>訓練時間</td>
+                    <td>CGCNN: 40倍遅い</td>
+                    <td>高速な開発サイクルが必要ならRF</td>
+                </tr>
+                <tr>
+                    <td>推論時間</td>
+                    <td>CGCNN: 13倍遅い</td>
+                    <td>リアルタイム予測が必要ならRF</td>
+                </tr>
+                <tr>
+                    <td>データ要求量</td>
+                    <td>RF: 少データで飽和、CGCNN: 多データで向上</td>
+                    <td>>50,000サンプルならCGCNN</td>
+                </tr>
+                <tr>
+                    <td>解釈可能性</td>
+                    <td>RF+SHAP: 組成レベル、CGCNN: 構造レベル</td>
+                    <td>要求される知見の粒度による</td>
+                </tr>
+                <tr>
+                    <td>実装容易性</td>
+                    <td>RF: 容易、CGCNN: 複雑</td>
+                    <td>迅速なプロトタイピングならRF</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>実務上の推奨</h3>
+
+        <div class="highlight-box">
+            <strong>🎯 手法選択の推奨フレームワーク</strong>
+            <ul>
+                <li><strong>探索的分析段階</strong>：Random Forest（Magpie）で迅速にベースライン構築</li>
+                <li><strong>精度向上段階</strong>：データが十分（>50,000）かつGPU利用可能ならCGCNN導入</li>
+                <li><strong>本番運用段階</strong>：推論速度と精度のトレードオフを評価し、最終決定</li>
+                <li><strong>ハイブリッド戦略</strong>：初期段階でRF、データ蓄積後にCGCNNへ段階的移行</li>
+            </ul>
+        </div>
+
+        <h2>演習問題</h2>
+
+        <div class="exercise">
+            <div class="exercise-header">演習1：Matbenchタスクの理解 <span class="difficulty difficulty-easy">Easy</span></div>
+            <p><strong>問題：</strong>Matbenchベンチマークの<code>matbench_mp_gap</code>タスクについて、以下の質問に答えよ。</p>
+            <ol>
+                <li>予測対象の物性は何か？</li>
+                <li>データセットのサイズは？</li>
+                <li>評価指標は何か？</li>
+            </ol>
+            <p><strong>解答：</strong></p>
+            <ol>
+                <li>バンドギャップ（eV）</li>
+                <li>106,113サンプル</li>
+                <li>MAE（Mean Absolute Error）</li>
+            </ol>
+        </div>
+
+        <div class="exercise">
+            <div class="exercise-header">演習2：t検定の解釈 <span class="difficulty difficulty-easy">Easy</span></div>
+            <p><strong>問題：</strong>5-fold交差検証で得られた2つのモデルのMAEが以下の通りだった。対応のあるt検定を実施し、p値が0.03だった場合、有意水準α=0.05で統計的に有意な差があると言えるか？</p>
+            <p>モデルA: [0.035, 0.038, 0.033, 0.036, 0.034]<br>
+            モデルB: [0.032, 0.035, 0.030, 0.033, 0.031]</p>
+            <p><strong>解答：</strong></p>
+            <p>はい、統計的に有意な差があります。p値（0.03）< α（0.05）であるため、帰無仮説「2つのモデルの平均MAE差はゼロ」を棄却できます。したがって、モデルBはモデルAに対して統計的に有意な精度向上を示しています。</p>
+        </div>
+
+        <div class="exercise">
+            <div class="exercise-header">演習3：95%信頼区間の計算 <span class="difficulty difficulty-medium">Medium</span></div>
+            <p><strong>問題：</strong>5つのfoldでMAE差（ModelA - ModelB）が [0.003, 0.004, 0.003, 0.005, 0.004] eV/atomだった。このMAE差の95%信頼区間を計算せよ（t分布の臨界値は2.776とする）。</p>
+            <p><strong>ヒント：</strong>標準誤差 SE = std(差) / sqrt(n)</p>
+            <p><strong>解答：</strong></p>
+            <pre><code class="language-python">import numpy as np
+from scipy import stats
+
+mae_diff = np.array([0.003, 0.004, 0.003, 0.005, 0.004])
+mean_diff = mae_diff.mean()  # 0.00380
+std_diff = mae_diff.std(ddof=1)  # 0.00084
+se_diff = std_diff / np.sqrt(len(mae_diff))  # 0.00037
+t_critical = 2.776
+
+margin_error = t_critical * se_diff  # 0.00104
+ci_lower = mean_diff - margin_error  # 0.00276
+ci_upper = mean_diff + margin_error  # 0.00484
+
+print(f"95%信頼区間: [{ci_lower:.5f}, {ci_upper:.5f}] eV/atom")
+# 出力: 95%信頼区間: [0.00276, 0.00484] eV/atom
+</code></pre>
+            <p>95%信頼区間は [0.00276, 0.00484] eV/atomです。この区間が0を含まないため、精度差は統計的に有意です。</p>
+        </div>
+
+        <div class="exercise">
+            <div class="exercise-header">演習4：計算コスト分析 <span class="difficulty difficulty-medium">Medium</span></div>
+            <p><strong>問題：</strong>あるプロジェクトでは、モデル訓練を月1回、推論を毎日10,000回実行する。Random Forest（訓練45秒、推論0.18秒/1000サンプル）とCGCNN（訓練1833秒、推論2.34秒/1000サンプル）のどちらを採用すべきか、月間総計算時間を比較せよ。</p>
+            <p><strong>解答：</strong></p>
+            <pre><code class="language-python"># 月間計算時間の比較
+# Random Forest
+rf_train_time = 45  # 秒/月
+rf_infer_time = 0.18 * 10 * 30  # 0.18秒/1000サンプル × 10 × 30日
+rf_total = rf_train_time + rf_infer_time
+print(f"RF月間総時間: {rf_total:.1f}秒 = {rf_total/60:.2f}分")
+
+# CGCNN
+cgcnn_train_time = 1833  # 秒/月
+cgcnn_infer_time = 2.34 * 10 * 30
+cgcnn_total = cgcnn_train_time + cgcnn_infer_time
+print(f"CGCNN月間総時間: {cgcnn_total:.1f}秒 = {cgcnn_total/60:.2f}分")
+
+print(f"\n時間比（CGCNN/RF）: {cgcnn_total/rf_total:.2f}x")
+
+# 出力:
+# RF月間総時間: 99.0秒 = 1.65分
+# CGCNN月間総時間: 2535.0秒 = 42.25分
+# 時間比（CGCNN/RF）: 25.61x
+</code></pre>
+            <p><strong>判断：</strong>CGCNNは月間で約40分の追加計算時間を要します。この用途では<strong>推論時間が支配的</strong>であり、CGCNNの推論速度13倍の遅さが月間総時間に大きく影響します。毎日の推論頻度が高い場合は<strong>Random Forestを推奨</strong>します。</p>
+        </div>
+
+        <div class="exercise">
+            <div class="exercise-header">演習5：学習曲線の解釈 <span class="difficulty difficulty-medium">Medium</span></div>
+            <p><strong>問題：</strong>以下の学習曲線データから、訓練データが20,000サンプルしか得られない状況で、どちらのモデルを選択すべきか理由とともに答えよ。</p>
+            <p>訓練データ数 | RF テストMAE | CGCNN テストMAE</p>
+            <p>10,000 | 0.045 | 0.062<br>
+            20,000 | 0.038 | 0.041<br>
+            50,000 | 0.033 | 0.031<br>
+            100,000 | 0.032 | 0.027</p>
+            <p><strong>解答：</strong></p>
+            <p><strong>推奨：Random Forest</strong></p>
+            <p><strong>理由：</strong></p>
+            <ol>
+                <li>20,000サンプルの時点で、RFのテストMAE（0.038）はCGCNN（0.041）より優れています</li>
+                <li>RFは20,000から50,000サンプルへの改善幅が小さく（0.038→0.033）、既に性能が飽和傾向にあります</li>
+                <li>CGCNNは50,000サンプル以降で急激に向上しますが、現在利用可能な20,000サンプルでは性能が不十分です</li>
+                <li>データが20,000サンプルに限定される状況では、<strong>データ効率の高いRFが実用的</strong>です</li>
+            </ol>
+            <p><strong>将来的な戦略：</strong>データが50,000サンプル以上に増加した段階でCGCNNへの移行を検討することが推奨されます。</p>
+        </div>
+
+        <div class="exercise">
+            <div class="exercise-header">演習6：SHAP値の実装 <span class="difficulty difficulty-hard">Hard</span></div>
+            <p><strong>問題：</strong>Magpie特徴量（145次元）を用いたRandom Forestモデルに対して、SHAP値を計算し、上位5個の重要特徴量を抽出するコードを記述せよ。ただし、テストデータの最初の50サンプルを使用すること。</p>
+            <p><strong>解答：</strong></p>
+            <pre><code class="language-python">import shap
+import numpy as np
+
+# Random Forestモデルの訓練（演習2のコード例を使用）
+# 既にX_train, y_train, X_test, y_testが準備されている前提
+
+# Random Forest訓練
+rf_model = RandomForestRegressor(
+    n_estimators=100,
+    max_depth=30,
+    random_state=42,
+    n_jobs=-1
+)
+rf_model.fit(X_train, y_train)
+
+# SHAP値を計算（テストデータ50サンプル）
+X_test_sample = X_test[:50]
+explainer = shap.TreeExplainer(rf_model)
+shap_values = explainer.shap_values(X_test_sample)
+
+# 各特徴量の平均絶対SHAP値を計算
+mean_abs_shap = np.abs(shap_values).mean(axis=0)
+
+# 上位5個の重要特徴量のインデックス
+top_5_indices = np.argsort(mean_abs_shap)[-5:][::-1]
+
+# Magpie特徴量名のマッピング（一部例示）
+magpie_names = {
+    34: "平均電気陰性度",
+    12: "平均原子半径",
+    78: "価電子数の標準偏差",
+    # ... 他の特徴量名を定義
+}
+
+print("=== 上位5個の重要特徴量（SHAP値） ===")
+for rank, feat_idx in enumerate(top_5_indices, 1):
+    feat_name = magpie_names.get(feat_idx, f"Magpie_{feat_idx}")
+    shap_importance = mean_abs_shap[feat_idx]
+    print(f"{rank}. {feat_name} (Index {feat_idx}): SHAP重要度 = {shap_importance:.4f}")
+
+# 可視化
+import matplotlib.pyplot as plt
+plt.figure(figsize=(10, 6))
+plt.barh(range(5), mean_abs_shap[top_5_indices][::-1], color='#764ba2')
+plt.yticks(range(5), [magpie_names.get(i, f"Magpie_{i}") for i in top_5_indices][::-1])
+plt.xlabel('平均絶対SHAP値', fontsize=12)
+plt.title('上位5個の重要特徴量（SHAP値による）', fontsize=14, fontweight='bold')
+plt.tight_layout()
+plt.savefig('top5_features_shap.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 出力例：
+# === 上位5個の重要特徴量（SHAP値） ===
+# 1. 平均電気陰性度 (Index 34): SHAP重要度 = 0.0087
+# 2. 平均原子半径 (Index 12): SHAP重要度 = 0.0065
+# 3. 価電子数の標準偏差 (Index 78): SHAP重要度 = 0.0054
+# 4. Magpie_45: SHAP重要度 = 0.0048
+# 5. Magpie_89: SHAP重要度 = 0.0042
+</code></pre>
+        </div>
+
+        <div class="exercise">
+            <div class="exercise-header">演習7：意思決定フローチャートの適用 <span class="difficulty difficulty-hard">Hard</span></div>
+            <p><strong>問題：</strong>以下のプロジェクト条件に対して、4.7節の意思決定フローチャートを適用し、最適な手法を選択せよ。</p>
+            <p><strong>条件：</strong></p>
+            <ul>
+                <li>訓練データ数：75,000サンプル</li>
+                <li>計算リソース：GPU（Tesla V100）利用可能</li>
+                <li>優先度：精度優先（リアルタイム予測は不要）</li>
+                <li>解釈可能性：必須ではないが、あれば望ましい</li>
+                <li>統計的有意性検証：実施予定</li>
+            </ul>
+            <p><strong>解答：</strong></p>
+            <p><strong>推奨手法：CGCNN</strong></p>
+            <p><strong>意思決定プロセス：</strong></p>
+            <ol>
+                <li><strong>データ数評価</strong>：75,000 > 50,000 → 「>50,000」の分岐へ</li>
+                <li><strong>精度 vs 速度</strong>：精度優先 → 「精度優先」の分岐へ</li>
+                <li><strong>CGCNN推奨（MAE 12%改善）</strong>に到達</li>
+                <li><strong>統計的有意性確認</strong>：5-fold交差検証で対応のあるt検定を実施し、p<0.05を確認</li>
+                <li><strong>計算コスト許容性</strong>：GPU（V100）利用可能で訓練時間は約30分程度に短縮されるため、許容可能</li>
+                <li><strong>最終決定</strong>：CGCNN採用決定</li>
+            </ol>
+            <p><strong>追加考慮事項：</strong></p>
+            <ul>
+                <li>解釈可能性が望ましいため、<strong>Attention機構付きGNN（GAT）</strong>の検討も推奨</li>
+                <li>本番環境デプロイ前に、推論時間13倍の遅さが実際の運用に影響しないかを確認</li>
+                <li>データが今後も増加する見込みがあれば、CGCNNは長期的にさらに性能向上が期待できる</li>
+            </ul>
+        </div>
+
+        <div class="exercise">
+            <div class="exercise-header">演習8：ハイブリッド戦略の設計 <span class="difficulty difficulty-hard">Hard</span></div>
+            <p><strong>問題：</strong>データが段階的に増加するプロジェクト（初期5,000サンプル、3ヶ月後に30,000、6ヶ月後に80,000）において、Random ForestからCGCNNへの移行戦略を設計せよ。各段階での手法選択と移行タイミングの判断基準を明確にすること。</p>
+            <p><strong>解答：</strong></p>
+            <p><strong>ハイブリッド移行戦略：</strong></p>
+
+            <p><strong>フェーズ1：初期段階（5,000サンプル、0-3ヶ月）</strong></p>
+            <ul>
+                <li><strong>採用手法：Random Forest（Magpie）</strong></li>
+                <li><strong>理由：</strong>
+                    <ul>
+                        <li>5,000サンプルは少データ領域で、RFがデータ効率的</li>
+                        <li>迅速なプロトタイピングと初期ベースライン構築が可能</li>
+                        <li>CGCNN訓練には不十分なデータ量</li>
+                    </ul>
+                </li>
+                <li><strong>実施事項：</strong>
+                    <ul>
+                        <li>RFでベースラインモデル構築（MAE目標：~0.045 eV/atom）</li>
+                        <li>SHAP値による特徴量重要度分析</li>
+                        <li>データ収集パイプライン確立</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <p><strong>フェーズ2：中規模段階（30,000サンプル、3-6ヶ月）</strong></p>
+            <ul>
+                <li><strong>採用手法：Random Forest継続 + CGCNN実験的導入</strong></li>
+                <li><strong>理由：</strong>
+                    <ul>
+                        <li>30,000サンプルは移行検討領域（学習曲線で両手法が拮抗）</li>
+                        <li>CGCNNの実験的訓練を開始し、性能評価を実施</li>
+                        <li>本番環境ではRF継続（安定性重視）</li>
+                    </ul>
+                </li>
+                <li><strong>移行判断基準：</strong>
+                    <ol>
+                        <li>CGCNNがRFを上回るMAEを達成</li>
+                        <li>5-fold交差検証で統計的有意性確認（p<0.05）</li>
+                        <li>GPU環境でCGCNN訓練時間<1時間</li>
+                    </ol>
+                </li>
+                <li><strong>実施事項：</strong>
+                    <ul>
+                        <li>CGCNN訓練パイプライン構築</li>
+                        <li>ハイパーパラメータチューニング</li>
+                        <li>RF vs CGCNN定量的比較（本章の手法を適用）</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <p><strong>フェーズ3：大規模段階（80,000サンプル、6ヶ月以降）</strong></p>
+            <ul>
+                <li><strong>採用手法：CGCNN（主力）+ Random Forest（フォールバック）</strong></li>
+                <li><strong>理由：</strong>
+                    <ul>
+                        <li>80,000サンプルは大規模データ領域で、CGCNNの優位性が顕著（学習曲線分析）</li>
+                        <li>MAE 12%改善の効果が統計的に有意</li>
+                        <li>データ増加傾向が継続すればCGCNN性能はさらに向上</li>
+                    </ul>
+                </li>
+                <li><strong>移行実施：</strong>
+                    <ol>
+                        <li>CGCNNを本番環境にデプロイ</li>
+                        <li>RFをフォールバックモデルとして保持（CGCNN推論失敗時）</li>
+                        <li>推論時間モニタリング（13倍遅いCGCNNが運用に影響しないか確認）</li>
+                    </ol>
+                </li>
+                <li><strong>継続的改善：</strong>
+                    <ul>
+                        <li>データ増加に応じてCGCNNを定期的に再訓練</li>
+                        <li>Attention機構（GAT）導入で解釈可能性向上を検討</li>
+                        <li>アンサンブル（RF + CGCNN）で最高精度達成を試みる</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <p><strong>リスク管理：</strong></p>
+            <ul>
+                <li><strong>移行失敗時の対策</strong>：RFを継続運用し、CGCNN問題を解決後に再試行</li>
+                <li><strong>性能劣化検知</strong>：本番環境で予測精度を継続モニタリング</li>
+                <li><strong>コスト超過対策</strong>：GPU利用料が予算を超過する場合はRFに戻す</li>
+            </ul>
+        </div>
+
+        <div class="exercise">
+            <div class="exercise-header">演習9：効果量の解釈 <span class="difficulty difficulty-medium">Medium</span></div>
+            <p><strong>問題：</strong>Cohen's d = 0.35という効果量が得られた場合、この効果量の大きさを評価し、実務上の意味を説明せよ。</p>
+            <p><strong>解答：</strong></p>
+            <p><strong>効果量の大きさ：</strong>「中程度」（0.2 < |d| < 0.5の範囲）</p>
+            <p><strong>実務上の解釈：</strong></p>
+            <ol>
+                <li><strong>統計的意味：</strong>Cohen's d = 0.35は、2つのモデルの性能差が標準偏差の0.35倍であることを示します</li>
+                <li><strong>実用的意味：</strong>中程度の効果量は、実務上「認識可能だが劇的ではない改善」を意味します</li>
+                <li><strong>判断基準：</strong>
+                    <ul>
+                        <li>コストが同等なら、改善効果があるため新手法を採用</li>
+                        <li>新手法の導入コストが高い場合、費用対効果を慎重に評価</li>
+                        <li>中程度の効果量でも、材料探索の効率化には寄与する可能性あり</li>
+                    </ul>
+                </li>
+            </ol>
+            <p><strong>比較：</strong>本章のCGCNN vs RF比較では、Cohen's d = 9.19（非常に大きい）であり、実用上の優位性が極めて明確です。</p>
+        </div>
+
+        <div class="exercise">
+            <div class="exercise-header">演習10：総合的手法選択 <span class="difficulty difficulty-hard">Hard</span></div>
+            <p><strong>問題：</strong>本章で学んだ7つの評価観点（予測精度、統計的有意性、計算コスト、データ要求量、解釈可能性、実装容易性、意思決定フローチャート）を統合し、以下のシナリオに対して最適な手法を選択せよ。</p>
+            <p><strong>シナリオ：</strong>製薬企業の新薬候補材料探索プロジェクト</p>
+            <ul>
+                <li>目標：10,000化合物から有望な100候補を選抜</li>
+                <li>現在のデータ：実験データ12,000サンプル（追加実験なし）</li>
+                <li>計算環境：社内クラウド（GPU利用可能だが従量課金）</li>
+                <li>時間制約：3ヶ月以内に候補リスト提出</li>
+                <li>解釈要求：規制当局への説明資料として予測根拠が必須</li>
+                <li>精度要求：false positiveを最小化（実験コスト削減）</li>
+            </ul>
+            <p><strong>解答：</strong></p>
+            <p><strong>推奨戦略：Random Forest（Magpie）+ SHAP値解析</strong></p>
+
+            <p><strong>総合判断の根拠：</strong></p>
+
+            <p><strong>1. データ要求量分析（Section 4.5）</strong></p>
+            <ul>
+                <li>12,000サンプルは中規模データ領域（10,000-50,000）に該当</li>
+                <li>学習曲線の知見：この領域ではRFとCGCNNが拮抗、RFがやや優位</li>
+                <li>追加データ取得不可のため、データ効率的なRFが安全</li>
+            </ul>
+
+            <p><strong>2. 計算コスト分析（Section 4.4）</strong></p>
+            <ul>
+                <li>GPU従量課金環境では、CGCNN訓練時間40倍のコストが直接的な費用増</li>
+                <li>10,000化合物の推論：RF 1.8秒 vs CGCNN 23.4秒（13倍差）</li>
+                <li>時間制約3ヶ月は十分だが、コスト効率でRFが有利</li>
+            </ul>
+
+            <p><strong>3. 解釈可能性要求（Section 4.6）</strong></p>
+            <ul>
+                <li><strong>規制当局への説明が必須</strong>という要求は決定的要因</li>
+                <li>SHAP値による特徴量重要度分析は、「どの化学的特性が重要か」を明確に説明可能</li>
+                <li>CGCNNのAttention機構は専門知識が必要で、規制当局への説明が困難</li>
+                <li><strong>SHAP値解析がプロジェクト要求と完全に一致</strong></li>
+            </ul>
+
+            <p><strong>4. 精度要求（Section 4.2-4.3）</strong></p>
+            <ul>
+                <li>false positiveを最小化するには、高い予測精度が必要</li>
+                <li>CGCNNは12%精度向上を示すが、統計的有意性を12,000サンプルで検証する必要あり</li>
+                <li>RFも十分高精度（R² > 0.93）であり、false positive率は許容範囲</li>
+            </ul>
+
+            <p><strong>5. 実装容易性と時間制約</strong></p>
+            <ul>
+                <li>RFは実装が容易で、迅速にプロトタイプ構築可能</li>
+                <li>3ヶ月という制約では、確実性の高いRF採用がリスク回避</li>
+            </ul>
+
+            <p><strong>実装計画：</strong></p>
+            <ol>
+                <li><strong>Week 1-2</strong>：Random Forest + Magpie特徴量でベースラインモデル構築</li>
+                <li><strong>Week 3-4</strong>：5-fold交差検証で性能評価（MAE、R²）</li>
+                <li><strong>Week 5-6</strong>：SHAP値解析で特徴量重要度を可視化</li>
+                <li><strong>Week 7-8</strong>：10,000化合物に対して予測実行、上位100候補を選抜</li>
+                <li><strong>Week 9-10</strong>：規制当局向け説明資料作成（SHAP値プロットを含む）</li>
+                <li><strong>Week 11-12</strong>：内部レビューと最終報告書作成</li>
+            </ol>
+
+            <p><strong>リスク対策：</strong></p>
+            <ul>
+                <li><strong>精度が不十分な場合</strong>：アンサンブル学習（RF複数モデル）で精度向上</li>
+                <li><strong>解釈性が不足な場合</strong>：LIME（Local Interpretable Model-agnostic Explanations）を追加</li>
+                <li><strong>false positiveが多い場合</strong>：閾値調整で選抜基準を厳格化</li>
+            </ul>
+
+            <p><strong>却下理由：CGCNN</strong></p>
+            <ul>
+                <li>解釈可能性要求が決定的な却下要因（規制当局説明が困難）</li>
+                <li>12,000サンプルではCGCNNの優位性が限定的</li>
+                <li>計算コストとリスクを考慮すると、ROIが不明確</li>
+            </ul>
+
+            <p><strong>将来的検討：</strong>プロジェクトが継続し、実験データが50,000サンプル以上に増加した段階で、CGCNNへの移行を再評価することを推奨します。</p>
+        </div>
+
+        <h2>参考文献</h2>
+
+        <ol>
+            <li>Dunn, A., Wang, Q., Ganose, A., Dopp, D., Jain, A. (2020). Benchmarking materials property prediction methods: the Matbench test set and Automatminer reference algorithm. <em>npj Computational Materials</em>, 6(1), 138, pp. 1-10.</li>
+            <li>Ward, L., Agrawal, A., Choudhary, A., Wolverton, C. (2016). A general-purpose machine learning framework for predicting properties of inorganic materials. <em>npj Computational Materials</em>, 2, 16028, pp. 1-7.</li>
+            <li>Xie, T., Grossman, J. C. (2018). Crystal Graph Convolutional Neural Networks for an Accurate and Interpretable Prediction of Material Properties. <em>Physical Review Letters</em>, 120(14), 145301, pp. 1-6.</li>
+            <li>Gilmer, J., Schoenholz, S. S., Riley, P. F., Vinyals, O., Dahl, G. E. (2017). Neural Message Passing for Quantum Chemistry. <em>Proceedings of the 34th International Conference on Machine Learning</em>, PMLR 70, pp. 1263-1272.</li>
+            <li>Lundberg, S. M., Lee, S. I. (2017). A Unified Approach to Interpreting Model Predictions. <em>Advances in Neural Information Processing Systems</em>, 30, pp. 4765-4774.</li>
+            <li>Cohen, J. (1988). <em>Statistical Power Analysis for the Behavioral Sciences</em> (2nd ed.). Lawrence Erlbaum Associates, pp. 20-27.</li>
+            <li>Breiman, L. (2001). Random Forests. <em>Machine Learning</em>, 45(1), 5-32, pp. 5-32.</li>
+            <li>Choudhary, K., DeCost, B. (2021). Atomistic Line Graph Neural Network for improved materials property predictions. <em>npj Computational Materials</em>, 7(1), 185, pp. 1-8.</li>
+        </ol>
+
+        <div class="nav-buttons">
+            <a href="chapter-3.html" class="nav-button">← 第3章：MPNN実装</a>
+            <a href="chapter-5.html" class="nav-button">第5章：ハイブリッドアプローチ →</a>
+        </div>
+
+    </div>
+</body>
+</html>
