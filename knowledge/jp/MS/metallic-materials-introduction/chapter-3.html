@@ -158,11 +158,197 @@ tau = orowan_stress(G_Al, b_Al, L)
 print(f"Al-Cu合金（θ'析出）: r={r_theta_prime}nm, f={f_theta_prime*100}%")
 print(f"  粒子間隔 L = {L:.1f} nm")
 print(f"  Orowan応力 τ = {tau:.1f} MPa")</code></pre></div>
+            <h3>3.3.2 析出粒子サイズと強度の関係</h3>
+            <p>析出強化の効果は粒子サイズに強く依存します。最適な析出サイズが存在し、過時効により強度が低下します。</p>
+            <div class="code-example"><h4>コード例4: 時効時間と強度の関係（析出粒子成長シミュレーション）</h4><pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def particle_growth(t, r0, k):
+    """LSW理論（粒子成長則）
+    r³ - r₀³ = kt
+    Parameters: t(hour時効時間), r0(nm初期半径), k(nm³/h成長速度定数)
+    Returns: r(nm)"""
+    return (r0**3 + k * t)**(1/3)
+
+def precipitation_strength_model(r, f, G, b, r_critical=30):
+    """析出強化モデル（最適サイズ考慮）
+    Parameters: r(nm), f(体積分率), G(GPa), b(nm), r_critical(nm臨界サイズ)
+    Returns: Delta_sigma(MPa)"""
+    L = r * np.sqrt(2 * np.pi / (3 * f))
+    tau_orowan = (G * 1000 * b) / L
+
+    # せん断機構への遷移（粒子が小さい場合）
+    if isinstance(r, np.ndarray):
+        shear_factor = np.where(r < r_critical,
+                                1.0 - (r / r_critical)**0.5,
+                                1.0)
+    else:
+        shear_factor = 1.0 - (r / r_critical)**0.5 if r < r_critical else 1.0
+
+    return tau_orowan * shear_factor * 3.06  # Taylor因子
+
+# Al-Cu合金の時効処理シミュレーション
+r0 = 2  # nm（初期核サイズ）
+k = 15  # nm³/h（180℃での成長速度定数）
+f = 0.03  # 体積分率
+G_Al = 26  # GPa
+b_Al = 0.286  # nm
+
+time_range = np.logspace(-1, 3, 100)  # 0.1～1000時間
+r_values = particle_growth(time_range, r0, k)
+strength_values = precipitation_strength_model(r_values, f, G_Al, b_Al, r_critical=25)
+
+# ピーク時効時間の検出
+peak_idx = np.argmax(strength_values)
+peak_time = time_range[peak_idx]
+peak_strength = strength_values[peak_idx]
+peak_radius = r_values[peak_idx]
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+
+# 左図：時効曲線（強度 vs 時間）
+ax1.plot(time_range, strength_values, 'b-', linewidth=2.5)
+ax1.axvline(peak_time, color='r', linestyle='--', linewidth=2, label=f'ピーク時効 ({peak_time:.1f}h)')
+ax1.axhline(peak_strength, color='r', linestyle='--', linewidth=1, alpha=0.5)
+ax1.plot(peak_time, peak_strength, 'ro', markersize=12)
+ax1.set_xlabel('時効時間 (hour)', fontsize=12, fontweight='bold')
+ax1.set_ylabel('析出強化 Δσ (MPa)', fontsize=12, fontweight='bold')
+ax1.set_title('Al-Cu合金の時効曲線（180℃）', fontsize=14, fontweight='bold')
+ax1.set_xscale('log')
+ax1.legend(fontsize=11)
+ax1.grid(True, alpha=0.3, which='both')
+ax1.annotate(f'ピーク強度\n{peak_strength:.0f} MPa',
+             xy=(peak_time, peak_strength),
+             xytext=(peak_time*3, peak_strength-50),
+             fontsize=11, fontweight='bold',
+             arrowprops=dict(arrowstyle='->', lw=2, color='red'))
+
+# 右図：粒子サイズ vs 強度
+ax2.plot(r_values, strength_values, 'b-', linewidth=2.5)
+ax2.plot(peak_radius, peak_strength, 'ro', markersize=12, label=f'最適サイズ: {peak_radius:.1f}nm')
+ax2.axvline(25, color='g', linestyle='--', linewidth=1.5, alpha=0.7, label='臨界サイズ（Orowan→せん断遷移）')
+ax2.set_xlabel('析出粒子半径 (nm)', fontsize=12, fontweight='bold')
+ax2.set_ylabel('析出強化 Δσ (MPa)', fontsize=12, fontweight='bold')
+ax2.set_title('粒子サイズと強度の関係', fontsize=14, fontweight='bold')
+ax2.legend(fontsize=11)
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('aging_curve_particle_growth.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("=" * 70)
+print("Al-Cu合金 時効処理解析結果（180℃）")
+print("=" * 70)
+print(f"\nピーク時効条件:")
+print(f"  時効時間: {peak_time:.1f} 時間")
+print(f"  粒子半径: {peak_radius:.1f} nm")
+print(f"  析出強化: {peak_strength:.0f} MPa")
+print(f"\n過時効（1000時間）:")
+print(f"  粒子半径: {r_values[-1]:.1f} nm")
+print(f"  析出強化: {strength_values[-1]:.0f} MPa （{(1-strength_values[-1]/peak_strength)*100:.1f}%低下）")
+print(f"\n結論:")
+print(f"  最適な時効時間は約{peak_time:.0f}時間（ピーク時効）")
+print(f"  過度な時効は粒子粗大化により強度低下を招く")
+print("=" * 70)</code></pre></div>
         </section>
         <section class="section">
             <h2>3.4 加工硬化</h2>
             <p>加工硬化（work hardening）は、塑性変形により転位密度が増加し、転位同士の相互作用で強度が上昇する現象です。</p>
             <div class="equation-block"><p><strong>加工硬化による強度増加：</strong></p>$$\Delta\sigma_{wh} = \alpha G b \sqrt{\rho}$$<p>$\alpha$: 定数（約0.3）、$\rho$: 転位密度（m^-2）</p></div>
+            <h3>3.4.1 転位密度と強度の関係</h3>
+            <p>塑性変形により転位密度は急激に増加します。焼きなまし材では10⁸～10¹⁰ m⁻²、冷間加工材では10¹²～10¹⁶ m⁻²に達します。</p>
+            <div class="code-example"><h4>コード例5: 転位密度の推定（X線回折ピーク幅解析）</h4><pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def williamson_hall_plot(two_theta, beta, wavelength=0.15406):
+    """Williamson-Hall法による転位密度推定
+    β cosθ = Kλ/D + 4ε sinθ
+    Parameters: two_theta(deg), beta(rad半値幅), wavelength(nm CuKα)
+    Returns: strain(ε), crystallite_size(D nm)"""
+    theta_rad = np.deg2rad(two_theta / 2)
+    beta_cos_theta = beta * np.cos(theta_rad)
+    four_sin_theta = 4 * np.sin(theta_rad)
+
+    # 線形フィッティング
+    coeffs = np.polyfit(four_sin_theta, beta_cos_theta, 1)
+    strain = coeffs[0]  # 格子ひずみ
+    crystallite_size = 0.9 * wavelength / coeffs[1]  # 結晶子サイズ（nm）
+
+    return strain, crystallite_size
+
+def dislocation_density_from_strain(strain, b=0.286e-9):
+    """格子ひずみから転位密度を推定
+    ρ ≈ (ε/b)²
+    Parameters: strain(無次元), b(mバーガースベクトル)
+    Returns: rho(m⁻²)"""
+    return (strain / b)**2
+
+# 実験データ（例：冷間圧延した鋼のXRDピーク）
+# (110), (200), (211), (220)ピーク
+two_theta_exp = np.array([44.7, 65.0, 82.3, 99.1])  # deg
+beta_exp = np.array([0.0045, 0.0052, 0.0061, 0.0070])  # rad（半値幅）
+
+strain, D = williamson_hall_plot(two_theta_exp, beta_exp)
+rho = dislocation_density_from_strain(strain, b=0.248e-9)  # 鋼のバーガースベクトル
+
+theta_rad = np.deg2rad(two_theta_exp / 2)
+beta_cos_theta = beta_exp * np.cos(theta_rad)
+four_sin_theta = 4 * np.sin(theta_rad)
+
+# フィッティング直線
+fit_line = np.polyval([strain, 0.9 * 0.15406 / D], four_sin_theta)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+
+# Williamson-Hallプロット
+ax1.plot(four_sin_theta, beta_cos_theta, 'ro', markersize=10, label='実験データ')
+ax1.plot(four_sin_theta, fit_line, 'b-', linewidth=2, label=f'フィット\nε={strain:.4f}, D={D:.1f}nm')
+ax1.set_xlabel('4 sinθ', fontsize=12, fontweight='bold')
+ax1.set_ylabel('β cosθ', fontsize=12, fontweight='bold')
+ax1.set_title('Williamson-Hall プロット', fontsize=14, fontweight='bold')
+ax1.legend(fontsize=11)
+ax1.grid(True, alpha=0.3)
+
+# 転位密度と加工度の関係（模式図）
+rolling_reduction = np.array([0, 10, 20, 30, 40, 50, 60, 70, 80])  # %
+rho_typical = 1e10 * np.exp(rolling_reduction / 20)  # 典型的な関係（経験式）
+
+ax2.semilogy(rolling_reduction, rho_typical, 'b-', linewidth=2.5, marker='o', markersize=8)
+ax2.axhline(rho, color='r', linestyle='--', linewidth=2, label=f'測定値: {rho:.2e} m⁻²')
+ax2.set_xlabel('圧延加工度 (%)', fontsize=12, fontweight='bold')
+ax2.set_ylabel('転位密度 ρ (m⁻²)', fontsize=12, fontweight='bold')
+ax2.set_title('加工度と転位密度の関係', fontsize=14, fontweight='bold')
+ax2.legend(fontsize=11)
+ax2.grid(True, alpha=0.3, which='both')
+
+plt.tight_layout()
+plt.savefig('williamson_hall_dislocation_density.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 強度予測
+G_steel = 80e9  # Pa
+b_steel = 0.248e-9  # m
+alpha = 0.3
+Delta_sigma_wh = alpha * G_steel * b_steel * np.sqrt(rho) / 1e6  # MPa
+
+print("=" * 70)
+print("Williamson-Hall解析による転位密度推定")
+print("=" * 70)
+print(f"\nXRD解析結果:")
+print(f"  格子ひずみ ε = {strain:.4f}")
+print(f"  結晶子サイズ D = {D:.1f} nm")
+print(f"\n転位密度推定:")
+print(f"  ρ = (ε/b)² = ({strain:.4f}/{b_steel*1e9:.3f}nm)²")
+print(f"    = {rho:.2e} m⁻²")
+print(f"\n加工硬化による強度増加予測:")
+print(f"  Δσ = αGb√ρ")
+print(f"     = {alpha} × {G_steel/1e9:.0f}GPa × {b_steel*1e9:.3f}nm × √({rho:.2e})")
+print(f"     = {Delta_sigma_wh:.0f} MPa")
+print(f"\n結論:")
+print(f"  冷間加工により転位密度が{rho:.1e} m⁻²に増加")
+print(f"  加工硬化により約{Delta_sigma_wh:.0f}MPaの強度向上")
+print("=" * 70)</code></pre></div>
             <div class="code-example"><h4>コード例4: 加工硬化曲線のフィッティング</h4><pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
