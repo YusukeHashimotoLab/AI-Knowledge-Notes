@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第1章：分子表現とRDKit基礎 - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>分子表現とRDKit基礎</h1>
+            <p class="subtitle"></p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 25-30分</span>
+                <span class="meta-item">📊 難易度: 入門</span>
+                <span class="meta-item">💻 コード例: 10個</span>
+                <span class="meta-item">📝 演習問題: 4問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>第1章：分子表現とRDKit基礎</h1>
+<h2>この章で学ぶこと</h2>
+<p>この章では、ケモインフォマティクスの基礎として、分子の計算機表現とRDKitによる分子操作の基本を学びます。</p>
+<h3>学習目標</h3>
+<ul>
+<li>✅ ケモインフォマティクスの定義と応用分野を説明できる</li>
+<li>✅ SMILES、InChI、分子グラフなど主要な分子表現法を理解している</li>
+<li>✅ RDKitで分子を読み込み、描画、編集できる</li>
+<li>✅ 部分構造検索（SMARTS）を実行できる</li>
+<li>✅ 医薬品データベースから分子情報を取得・処理できる</li>
+</ul>
+<hr />
+<h2>1.1 ケモインフォマティクスとは何か</h2>
+<h3>定義</h3>
+<p><strong>ケモインフォマティクス（Chemoinformatics）</strong>は、化学とデータサイエンスを融合した学問分野であり、計算機を用いて化学情報を管理・分析・予測する技術の総称です。</p>
+<div class="mermaid">
+flowchart TD
+    A[ケモインフォマティクス] --> B[化学]
+    A --> C[情報科学]
+    A --> D[データサイエンス]
+    A --> E[機械学習]
+
+    B --> F[有機化学]
+    B --> G[医薬化学]
+    B --> H[材料化学]
+
+    C --> I[分子表現]
+    C --> J[データベース]
+    C --> K[アルゴリズム]
+
+    style A fill:#4CAF50,color:#fff
+</div>
+
+<h3>応用分野</h3>
+<p>ケモインフォマティクスは、以下の分野で広く活用されています：</p>
+<ol>
+<li>
+<p><strong>創薬（Drug Discovery）</strong>
+   - 新薬候補分子の設計と最適化
+   - 仮想スクリーニングによる候補化合物の絞り込み
+   - ADMET（吸収・分布・代謝・排泄・毒性）予測
+   - 副作用予測と薬物相互作用解析</p>
+</li>
+<li>
+<p><strong>有機材料開発</strong>
+   - 有機半導体材料の設計
+   - 有機EL材料の発光特性予測
+   - 導電性高分子の設計
+   - 色素増感太陽電池の材料探索</p>
+</li>
+<li>
+<p><strong>触媒設計</strong>
+   - 有機触媒の活性予測
+   - 配位子設計と最適化
+   - 反応条件の最適化
+   - 選択性の予測</p>
+</li>
+<li>
+<p><strong>高分子設計</strong>
+   - ポリマー物性予測
+   - モノマー組成の最適化
+   - 熱的性質の予測
+   - 機械的性質の予測</p>
+</li>
+</ol>
+<h3>マテリアルズ・インフォマティクス（MI）との違い</h3>
+<table>
+<thead>
+<tr>
+<th>項目</th>
+<th>ケモインフォマティクス（CI）</th>
+<th>マテリアルズ・インフォマティクス（MI）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>対象</strong></td>
+<td>分子（有機化合物、医薬品）</td>
+<td>材料全般（無機材料、合金、セラミックス）</td>
+</tr>
+<tr>
+<td><strong>表現法</strong></td>
+<td>SMILES、InChI、分子グラフ</td>
+<td>結晶構造、組成、微細構造</td>
+</tr>
+<tr>
+<td><strong>記述子</strong></td>
+<td>分子記述子、指紋</td>
+<td>組成記述子、構造記述子</td>
+</tr>
+<tr>
+<td><strong>応用</strong></td>
+<td>創薬、有機材料、触媒</td>
+<td>合金、セラミックス、電池材料</td>
+</tr>
+<tr>
+<td><strong>相補性</strong></td>
+<td>有機材料開発では両者が融合</td>
+<td>有機-無機ハイブリッド材料</td>
+</tr>
+</tbody>
+</table>
+<h3>歴史的背景</h3>
+<div class="mermaid">
+timeline
+    title ケモインフォマティクスの歴史
+    1960年代 : 初期の分子表現法（WLN）
+    1970年代 : SMILES記法の開発（David Weininger）
+    1980年代 : 3D QSAR手法の確立
+    1990年代 : ハイスループットスクリーニング（HTS）の普及
+    2000年代 : 大規模化学データベース（PubChem、ChEMBL）
+    2010年代 : 機械学習の本格導入
+    2020年代 : 深層学習・GNN・Transformerの応用
+</div>
+
+<p><strong>1970年代 - SMILES誕生</strong>:
+David Weiningerが開発したSMILES（Simplified Molecular Input Line Entry System）は、分子を文字列で表現する革新的手法として、ケモインフォマティクスの基盤となりました。</p>
+<p><strong>2000年代 - データ爆発</strong>:
+PubChem（2004年）、ChEMBL（2009年）など大規模データベースの登場により、データ駆動型の分子設計が可能になりました。</p>
+<p><strong>2020年代 - AI革命</strong>:
+Graph Neural Networks（GNN）、Transformerなど深層学習手法の導入により、従来不可能だった複雑な構造-活性相関の予測が可能になっています。</p>
+<hr />
+<h2>1.2 分子表現法の基礎</h2>
+<p>計算機で分子を扱うには、適切な表現法が必要です。ここでは主要な4つの表現法を学びます。</p>
+<h3>1.2.1 SMILES記法</h3>
+<p><strong>SMILES（Simplified Molecular Input Line Entry System）</strong>は、分子構造を文字列で表現する線形記法です。</p>
+<h4>基本ルール</h4>
+<table>
+<thead>
+<tr>
+<th>記号</th>
+<th>意味</th>
+<th>例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C, N, O, S, P</td>
+<td>原子</td>
+<td>C（炭素）、N（窒素）</td>
+</tr>
+<tr>
+<td>-</td>
+<td>単結合（通常省略）</td>
+<td>C-C → CC</td>
+</tr>
+<tr>
+<td>=</td>
+<td>二重結合</td>
+<td>C=C</td>
+</tr>
+<tr>
+<td>#</td>
+<td>三重結合</td>
+<td>C#C</td>
+</tr>
+<tr>
+<td>( )</td>
+<td>分岐</td>
+<td>CC(C)C</td>
+</tr>
+<tr>
+<td>[ ]</td>
+<td>原子の詳細指定</td>
+<td>[CH3]</td>
+</tr>
+<tr>
+<td>@</td>
+<td>立体化学</td>
+<td>C[C@H]N</td>
+</tr>
+</tbody>
+</table>
+<h4>具体例</h4>
+<pre><code class="language-python"># 代表的な分子のSMILES
+
+分子名         SMILES          説明
+----------------------------------------------
+メタン         C               最も単純な炭化水素
+エタノール     CCO             C-C-O の直鎖構造
+酢酸           CC(=O)O         カルボン酸（分岐あり）
+ベンゼン       c1ccccc1        芳香環（小文字は芳香族）
+トルエン       Cc1ccccc1       ベンゼンにメチル基
+アスピリン     CC(=O)Oc1ccccc1C(=O)O  解熱鎮痛剤
+カフェイン     CN1C=NC2=C1C(=O)N(C(=O)N2C)C  覚醒作用
+</code></pre>
+<h4>コード例1: SMILESから分子を作成</h4>
+<pre><code class="language-python"># RDKitのインストール（初回のみ）
+# conda install -c conda-forge rdkit
+# pip install rdkit  # pip経由も可能
+
+from rdkit import Chem
+from rdkit.Chem import Draw
+
+# SMILESから分子オブジェクトを作成
+smiles = &quot;CCO&quot;  # エタノール
+mol = Chem.MolFromSmiles(smiles)
+
+# 分子の基本情報
+print(f&quot;分子式: {Chem.rdMolDescriptors.CalcMolFormula(mol)}&quot;)
+print(f&quot;分子量: {Chem.rdMolDescriptors.CalcExactMolWt(mol):.2f}&quot;)
+print(f&quot;原子数: {mol.GetNumAtoms()}&quot;)
+print(f&quot;結合数: {mol.GetNumBonds()}&quot;)
+
+# 分子の描画
+img = Draw.MolToImage(mol, size=(300, 300))
+img.save(&quot;ethanol.png&quot;)
+</code></pre>
+<p><strong>出力例:</strong></p>
+<pre><code>分子式: C2H6O
+分子量: 46.04
+原子数: 3
+結合数: 2
+</code></pre>
+<h4>コード例2: 複数分子の一括描画</h4>
+<pre><code class="language-python">from rdkit import Chem
+from rdkit.Chem import Draw
+
+# 主要な医薬品のSMILES
+drugs = {
+    &quot;Aspirin&quot;: &quot;CC(=O)Oc1ccccc1C(=O)O&quot;,
+    &quot;Ibuprofen&quot;: &quot;CC(C)Cc1ccc(cc1)C(C)C(=O)O&quot;,
+    &quot;Caffeine&quot;: &quot;CN1C=NC2=C1C(=O)N(C(=O)N2C)C&quot;,
+    &quot;Paracetamol&quot;: &quot;CC(=O)Nc1ccc(O)cc1&quot;
+}
+
+# 分子オブジェクトのリストを作成
+mols = [Chem.MolFromSmiles(smi) for smi in drugs.values()]
+legends = list(drugs.keys())
+
+# グリッド表示
+img = Draw.MolsToGridImage(
+    mols,
+    molsPerRow=2,
+    subImgSize=(300, 300),
+    legends=legends
+)
+img.save(&quot;common_drugs.png&quot;)
+</code></pre>
+<h3>1.2.2 InChI/InChIKey</h3>
+<p><strong>InChI（International Chemical Identifier）</strong>は、IUPACが標準化した分子識別子です。</p>
+<h4>InChI vs SMILES</h4>
+<table>
+<thead>
+<tr>
+<th>項目</th>
+<th>SMILES</th>
+<th>InChI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>一意性</strong></td>
+<td>同じ分子に複数のSMILES</td>
+<td>同じ分子に1つのInChI</td>
+</tr>
+<tr>
+<td><strong>人間の読みやすさ</strong></td>
+<td>比較的読みやすい</td>
+<td>読みにくい</td>
+</tr>
+<tr>
+<td><strong>標準化</strong></td>
+<td>非標準</td>
+<td>IUPAC標準</td>
+</tr>
+<tr>
+<td><strong>用途</strong></td>
+<td>分子入力、可視化</td>
+<td>データベース検索、識別</td>
+</tr>
+</tbody>
+</table>
+<h4>コード例3: InChIとInChIKeyの生成</h4>
+<pre><code class="language-python">from rdkit import Chem
+
+# SMILESから分子を作成
+smiles = &quot;CC(=O)Oc1ccccc1C(=O)O&quot;  # アスピリン
+mol = Chem.MolFromSmiles(smiles)
+
+# InChIを生成
+inchi = Chem.MolToInchi(mol)
+print(f&quot;InChI: {inchi}&quot;)
+
+# InChIKey（固定長27文字のハッシュ値）
+inchi_key = Chem.MolToInchiKey(mol)
+print(f&quot;InChIKey: {inchi_key}&quot;)
+
+# InChIからSMILESへ変換
+mol_from_inchi = Chem.MolFromInchi(inchi)
+smiles_regenerated = Chem.MolToSmiles(mol_from_inchi)
+print(f&quot;再生成SMILES: {smiles_regenerated}&quot;)
+</code></pre>
+<p><strong>出力例:</strong></p>
+<pre><code>InChI: InChI=1S/C9H8O4/c1-6(10)13-8-5-3-2-4-7(8)9(11)12/h2-5H,1H3,(H,11,12)
+InChIKey: BSYNRYMUTXBXSQ-UHFFFAOYSA-N
+再生成SMILES: CC(=O)Oc1ccccc1C(=O)O
+</code></pre>
+<h3>1.2.3 分子グラフ</h3>
+<p>分子は<strong>グラフ構造</strong>として表現できます：
+- <strong>ノード（頂点）</strong>: 原子
+- <strong>エッジ（辺）</strong>: 化学結合</p>
+<div class="mermaid">
+flowchart LR
+    C1((C)) --|単結合| C2((C))
+    C2 --|単結合| O((O))
+
+    style C1 fill:#4CAF50,color:#fff
+    style C2 fill:#4CAF50,color:#fff
+    style O fill:#F44336,color:#fff
+</div>
+
+<h4>コード例4: 分子グラフの解析</h4>
+<pre><code class="language-python">from rdkit import Chem
+import networkx as nx
+
+# SMILESから分子を作成
+smiles = &quot;CCO&quot;  # エタノール
+mol = Chem.MolFromSmiles(smiles)
+
+# NetworkXグラフに変換
+G = nx.Graph()
+
+# ノード（原子）を追加
+for atom in mol.GetAtoms():
+    G.add_node(
+        atom.GetIdx(),
+        symbol=atom.GetSymbol(),
+        degree=atom.GetDegree()
+    )
+
+# エッジ（結合）を追加
+for bond in mol.GetBonds():
+    G.add_edge(
+        bond.GetBeginAtomIdx(),
+        bond.GetEndAtomIdx(),
+        bond_type=str(bond.GetBondType())
+    )
+
+# グラフの基本情報
+print(f&quot;ノード数（原子数）: {G.number_of_nodes()}&quot;)
+print(f&quot;エッジ数（結合数）: {G.number_of_edges()}&quot;)
+print(f&quot;次数中心性: {nx.degree_centrality(G)}&quot;)
+
+# 各原子の情報
+for idx, data in G.nodes(data=True):
+    print(f&quot;原子 {idx}: {data['symbol']}, 次数 {data['degree']}&quot;)
+</code></pre>
+<p><strong>出力例:</strong></p>
+<pre><code>ノード数（原子数）: 3
+エッジ数（結合数）: 2
+次数中心性: {0: 0.5, 1: 1.0, 2: 0.5}
+原子 0: C, 次数 1
+原子 1: C, 次数 2
+原子 2: O, 次数 1
+</code></pre>
+<h3>1.2.4 3D構造と立体化学</h3>
+<p>分子の3D構造は、生物活性や物性に大きく影響します。</p>
+<h4>コード例5: 3D構造の生成と可視化</h4>
+<pre><code class="language-python">from rdkit import Chem
+from rdkit.Chem import AllChem
+from rdkit.Chem import PyMol
+
+# SMILESから分子を作成
+smiles = &quot;CC(C)Cc1ccc(cc1)C(C)C(=O)O&quot;  # イブプロフェン
+mol = Chem.MolFromSmiles(smiles)
+
+# 3D座標を生成（ETKDG法）
+AllChem.EmbedMolecule(mol, randomSeed=42)
+
+# 分子力場で最適化（MMFF94）
+AllChem.MMFFOptimizeMolecule(mol)
+
+# 3D構造の保存（mol2形式）
+writer = Chem.rdmolfiles.MolToMol2Block(mol)
+with open(&quot;ibuprofen_3d.mol2&quot;, &quot;w&quot;) as f:
+    f.write(writer)
+
+print(&quot;3D構造を生成しました&quot;)
+
+# 原子座標の取得
+conf = mol.GetConformer()
+for i, atom in enumerate(mol.GetAtoms()):
+    pos = conf.GetAtomPosition(i)
+    print(
+        f&quot;{atom.GetSymbol()} {i}: &quot;
+        f&quot;({pos.x:.3f}, {pos.y:.3f}, {pos.z:.3f})&quot;
+    )
+</code></pre>
+<p><strong>Column: 立体化学の重要性</strong></p>
+<p>鏡像異性体（エナンチオマー）は、同じ分子式・構造式を持つが、3D構造が鏡像関係にあります。</p>
+<p><strong>例：サリドマイド事件</strong>
+- (R)-サリドマイド：鎮静作用（有効）
+- (S)-サリドマイド：催奇形性（有害）</p>
+<p>立体化学の正確な表現は、創薬において生死を分ける重要性を持ちます。</p>
+<hr />
+<h2>1.3 RDKitの基本操作</h2>
+<p>RDKit（<strong>R</strong>apidly <strong>D</strong>eveloping <strong>Kit</strong>）は、ケモインフォマティクスのための最も広く使われているPythonライブラリです。</p>
+<h3>環境構築</h3>
+<h4>Option 1: Anaconda（推奨）</h4>
+<pre><code class="language-bash"># 仮想環境の作成
+conda create -n cheminf python=3.11
+
+# 環境のアクティベーション
+conda activate cheminf
+
+# RDKitのインストール
+conda install -c conda-forge rdkit
+
+# 追加ライブラリ
+conda install -c conda-forge mordred pandas matplotlib \
+  seaborn scikit-learn
+</code></pre>
+<h4>Option 2: Google Colab（インストール不要）</h4>
+<pre><code class="language-python"># Google Colabでは以下を実行
+!pip install rdkit mordred
+</code></pre>
+<h3>1.3.1 分子の読み込みと描画</h3>
+<h4>コード例6: 多様な入力形式からの読み込み</h4>
+<pre><code class="language-python">from rdkit import Chem
+from rdkit.Chem import Draw
+
+# 方法1: SMILESから
+mol1 = Chem.MolFromSmiles(&quot;c1ccccc1&quot;)
+
+# 方法2: InChIから
+mol2 = Chem.MolFromInchi(
+    &quot;InChI=1S/C6H6/c1-2-4-6-5-3-1/h1-6H&quot;
+)
+
+# 方法3: MOLファイルから
+# mol3 = Chem.MolFromMolFile(&quot;benzene.mol&quot;)
+
+# 方法4: SMARTS（部分構造パターン）から
+pattern = Chem.MolFromSmarts(&quot;c1ccccc1&quot;)
+
+# 描画オプションの設定
+from rdkit.Chem.Draw import IPythonConsole
+IPythonConsole.ipython_useSVG = True  # SVG形式で高画質
+
+# 原子番号を表示
+for atom in mol1.GetAtoms():
+    atom.SetProp(&quot;atomLabel&quot;, str(atom.GetIdx()))
+
+img = Draw.MolToImage(mol1, size=(400, 400))
+img.save(&quot;benzene_labeled.png&quot;)
+</code></pre>
+<h3>1.3.2 部分構造検索（SMARTS）</h3>
+<p><strong>SMARTS（SMILES ARbitrary Target Specification）</strong>は、部分構造を柔軟に記述するためのパターンマッチング言語です。</p>
+<h4>主要なSMARTSパターン</h4>
+<table>
+<thead>
+<tr>
+<th>パターン</th>
+<th>説明</th>
+<th>例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[#6]</code></td>
+<td>炭素原子</td>
+<td>任意の炭素</td>
+</tr>
+<tr>
+<td><code>[OH]</code></td>
+<td>ヒドロキシル基</td>
+<td>アルコール、フェノール</td>
+</tr>
+<tr>
+<td><code>C(=O)O</code></td>
+<td>カルボキシル基</td>
+<td>カルボン酸</td>
+</tr>
+<tr>
+<td><code>c1ccccc1</code></td>
+<td>ベンゼン環</td>
+<td>芳香環</td>
+</tr>
+<tr>
+<td><code>[$([NX3;H2])]</code></td>
+<td>1級アミン</td>
+<td>RNH₂</td>
+</tr>
+</tbody>
+</table>
+<h4>コード例7: 部分構造検索</h4>
+<pre><code class="language-python">from rdkit import Chem
+from rdkit.Chem import Draw
+
+# 検索対象の分子リスト
+molecules = {
+    &quot;Aspirin&quot;: &quot;CC(=O)Oc1ccccc1C(=O)O&quot;,
+    &quot;Ibuprofen&quot;: &quot;CC(C)Cc1ccc(cc1)C(C)C(=O)O&quot;,
+    &quot;Paracetamol&quot;: &quot;CC(=O)Nc1ccc(O)cc1&quot;,
+    &quot;Benzene&quot;: &quot;c1ccccc1&quot;
+}
+
+# 検索パターン（カルボン酸）
+pattern = Chem.MolFromSmarts(&quot;C(=O)[OH]&quot;)
+
+# 各分子でパターンマッチング
+for name, smiles in molecules.items():
+    mol = Chem.MolFromSmiles(smiles)
+    if mol.HasSubstructMatch(pattern):
+        # マッチした原子のインデックス
+        matches = mol.GetSubstructMatches(pattern)
+        print(f&quot;{name}: カルボン酸を含む（マッチ: {matches}）&quot;)
+    else:
+        print(f&quot;{name}: カルボン酸を含まない&quot;)
+
+# マッチ箇所をハイライト表示
+mol_highlight = Chem.MolFromSmiles(molecules[&quot;Aspirin&quot;])
+matches = mol_highlight.GetSubstructMatches(pattern)
+img = Draw.MolToImage(
+    mol_highlight,
+    highlightAtoms=[atom for match in matches for atom in match]
+)
+img.save(&quot;aspirin_highlighted.png&quot;)
+</code></pre>
+<p><strong>出力例:</strong></p>
+<pre><code>Aspirin: カルボン酸を含む（マッチ: ((7, 8, 9),)）
+Ibuprofen: カルボン酸を含む（マッチ: ((12, 13, 14),)）
+Paracetamol: カルボン酸を含まない
+Benzene: カルボン酸を含まない
+</code></pre>
+<h3>1.3.3 分子の編集と変換</h3>
+<h4>コード例8: 官能基の追加と削除</h4>
+<pre><code class="language-python">from rdkit import Chem
+from rdkit.Chem import AllChem
+
+# ベンゼンから始める
+mol = Chem.MolFromSmiles(&quot;c1ccccc1&quot;)
+
+# 編集可能な分子オブジェクトに変換
+mol_edit = Chem.RWMol(mol)
+
+# 新しい原子（酸素）を追加
+new_atom_idx = mol_edit.AddAtom(Chem.Atom(8))  # 8 = 酸素
+
+# 既存の炭素（インデックス0）と新しい酸素を結合
+mol_edit.AddBond(0, new_atom_idx, Chem.BondType.SINGLE)
+
+# 水素を追加して分子を完成
+final_mol = mol_edit.GetMol()
+final_mol = Chem.AddHs(final_mol)
+
+# SMILES を取得
+smiles_final = Chem.MolToSmiles(Chem.RemoveHs(final_mol))
+print(f&quot;生成された分子: {smiles_final}&quot;)
+# 出力: c1ccccc1O （フェノール）
+
+# 描画
+img = Draw.MolToImage(Chem.RemoveHs(final_mol))
+img.save(&quot;phenol.png&quot;)
+</code></pre>
+<hr />
+<h2>1.4 ケーススタディ：医薬品データベース検索</h2>
+<p>実際のデータベースから医薬品情報を取得し、分子構造を分析します。</p>
+<h3>データベースの種類</h3>
+<table>
+<thead>
+<tr>
+<th>データベース</th>
+<th>説明</th>
+<th>データ数</th>
+<th>アクセス</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ChEMBL</strong></td>
+<td>生物活性分子データ</td>
+<td>210万+</td>
+<td><a href="https://www.ebi.ac.uk/chembl/">ebi.ac.uk/chembl</a></td>
+</tr>
+<tr>
+<td><strong>PubChem</strong></td>
+<td>化合物データベース</td>
+<td>1億1千万+</td>
+<td><a href="https://pubchem.ncbi.nlm.nih.gov/">pubchem.ncbi.nlm.nih.gov</a></td>
+</tr>
+<tr>
+<td><strong>DrugBank</strong></td>
+<td>承認医薬品データ</td>
+<td>14,000+</td>
+<td><a href="https://go.drugbank.com/">drugbank.com</a></td>
+</tr>
+<tr>
+<td><strong>ZINC</strong></td>
+<td>市販化合物</td>
+<td>10億+</td>
+<td><a href="https://zinc15.docking.org/">zinc15.docking.org</a></td>
+</tr>
+</tbody>
+</table>
+<h3>コード例9: ChEMBLからのデータ取得</h3>
+<pre><code class="language-python"># chembl_webresource_clientのインストール
+# pip install chembl_webresource_client
+
+from chembl_webresource_client.new_client import new_client
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+import pandas as pd
+
+# ターゲット（標的タンパク質）の検索
+target = new_client.target
+target_query = target.search('EGFR')  # 上皮成長因子受容体
+targets = list(target_query)
+
+# 最初のターゲットIDを取得
+chembl_id = targets[0]['target_chembl_id']
+print(f&quot;ターゲットID: {chembl_id}&quot;)
+
+# 該当ターゲットに対するアッセイデータを取得
+activity = new_client.activity
+activities = activity.filter(
+    target_chembl_id=chembl_id,
+    type=&quot;IC50&quot;,
+    relation=&quot;=&quot;
+).filter(assay_type=&quot;B&quot;)
+
+# データフレームに変換
+df = pd.DataFrame.from_dict(activities)
+
+# SMILES列が存在する場合
+if 'canonical_smiles' in df.columns:
+    # 有効なSMILESのみを保持
+    df['mol'] = df['canonical_smiles'].apply(
+        Chem.MolFromSmiles
+    )
+    df = df[df['mol'].notna()]
+
+    # 分子記述子を計算
+    df['MW'] = df['mol'].apply(
+        Descriptors.MolWt
+    )
+    df['LogP'] = df['mol'].apply(
+        Descriptors.MolLogP
+    )
+
+    print(f&quot;\n取得した化合物数: {len(df)}&quot;)
+    print(df[['canonical_smiles', 'MW', 'LogP']].head())
+</code></pre>
+<h3>コード例10: SMILES検証とサニタイゼーション</h3>
+<pre><code class="language-python">from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+def validate_and_sanitize_smiles(smiles_list):
+    &quot;&quot;&quot;
+    SMILESリストを検証し、サニタイズする
+
+    Parameters:
+    -----------
+    smiles_list : list
+        SMILESのリスト
+
+    Returns:
+    --------
+    valid_smiles : list
+        有効なSMILESのリスト
+    invalid_smiles : list
+        無効なSMILESのリスト
+    &quot;&quot;&quot;
+    valid_smiles = []
+    invalid_smiles = []
+
+    for smi in smiles_list:
+        try:
+            # SMILESから分子を作成
+            mol = Chem.MolFromSmiles(smi)
+
+            if mol is None:
+                invalid_smiles.append(smi)
+                continue
+
+            # サニタイゼーション（化学的妥当性チェック）
+            Chem.SanitizeMol(mol)
+
+            # 標準化されたSMILESを取得
+            canonical = Chem.MolToSmiles(mol)
+            valid_smiles.append(canonical)
+
+        except Exception as e:
+            print(f&quot;エラー: {smi} - {e}&quot;)
+            invalid_smiles.append(smi)
+
+    return valid_smiles, invalid_smiles
+
+# テストデータ
+test_smiles = [
+    &quot;CCO&quot;,                      # 有効
+    &quot;c1ccccc1&quot;,                 # 有効
+    &quot;CC(=O)Oc1ccccc1C(=O)O&quot;,   # 有効（アスピリン）
+    &quot;C1CC&quot;,                     # 無効（開環）
+    &quot;INVALID&quot;,                  # 無効
+    &quot;CC(C)(C)c1ccc(O)cc1&quot;      # 有効（BHT）
+]
+
+valid, invalid = validate_and_sanitize_smiles(test_smiles)
+
+print(f&quot;有効: {len(valid)} 件&quot;)
+print(f&quot;無効: {len(invalid)} 件&quot;)
+print(&quot;\n有効なSMILES:&quot;)
+for smi in valid:
+    mol = Chem.MolFromSmiles(smi)
+    print(f&quot;  {smi} - MW: {Descriptors.MolWt(mol):.2f}&quot;)
+</code></pre>
+<p><strong>出力例:</strong></p>
+<pre><code>有効: 4 件
+無効: 2 件
+
+有効なSMILES:
+  CCO - MW: 46.07
+  c1ccccc1 - MW: 78.11
+  CC(=O)Oc1ccccc1C(=O)O - MW: 180.16
+  CC(C)(C)c1ccc(O)cc1 - MW: 150.22
+</code></pre>
+<hr />
+<h2>演習問題</h2>
+<h3>演習1: 基本的な分子操作</h3>
+<p>以下の分子のSMILESを作成し、RDKitで描画してください：
+1. プロパノール（C₃H₇OH）
+2. トルエン（メチルベンゼン）
+3. アセトアミノフェン（パラセタモール）</p>
+<details>
+<summary>解答例</summary>
+
+
+<pre><code class="language-python">from rdkit import Chem
+from rdkit.Chem import Draw
+
+smiles_dict = {
+    &quot;Propanol&quot;: &quot;CCCO&quot;,
+    &quot;Toluene&quot;: &quot;Cc1ccccc1&quot;,
+    &quot;Acetaminophen&quot;: &quot;CC(=O)Nc1ccc(O)cc1&quot;
+}
+
+mols = [Chem.MolFromSmiles(smi) for smi in smiles_dict.values()]
+legends = list(smiles_dict.keys())
+
+img = Draw.MolsToGridImage(
+    mols,
+    molsPerRow=3,
+    subImgSize=(300, 300),
+    legends=legends
+)
+img.save(&quot;exercise1.png&quot;)
+</code></pre>
+
+</details>
+
+<h3>演習2: 部分構造検索</h3>
+<p>以下の官能基を含む分子を、サンプルデータセットから検索してください：
+- ヒドロキシル基（-OH）
+- アミノ基（-NH₂）
+- ニトロ基（-NO₂）</p>
+<details>
+<summary>解答例</summary>
+
+
+<pre><code class="language-python">from rdkit import Chem
+
+# サンプル分子
+molecules = {
+    &quot;Ethanol&quot;: &quot;CCO&quot;,
+    &quot;Aniline&quot;: &quot;c1ccccc1N&quot;,
+    &quot;Nitrobenzene&quot;: &quot;c1ccc(cc1)[N+](=O)[O-]&quot;,
+    &quot;Phenol&quot;: &quot;c1ccc(cc1)O&quot;,
+    &quot;Benzoic acid&quot;: &quot;c1ccc(cc1)C(=O)O&quot;
+}
+
+# 検索パターン
+patterns = {
+    &quot;Hydroxyl&quot;: &quot;[OH]&quot;,
+    &quot;Amino&quot;: &quot;[NH2]&quot;,
+    &quot;Nitro&quot;: &quot;[N+](=O)[O-]&quot;
+}
+
+# 検索実行
+for func_group, smarts in patterns.items():
+    pattern = Chem.MolFromSmarts(smarts)
+    print(f&quot;\n{func_group}基を含む分子:&quot;)
+
+    for name, smiles in molecules.items():
+        mol = Chem.MolFromSmiles(smiles)
+        if mol.HasSubstructMatch(pattern):
+            print(f&quot;  - {name}&quot;)
+</code></pre>
+
+
+**出力例:**
+
+<pre><code>Hydroxyl基を含む分子:
+  - Ethanol
+  - Phenol
+  - Benzoic acid
+
+Amino基を含む分子:
+  - Aniline
+
+Nitro基を含む分子:
+  - Nitrobenzene
+</code></pre>
+
+</details>
+
+<h3>演習3: 分子記述子の計算</h3>
+<p>RDKitを使用して、以下の分子記述子を計算してください：
+- 分子量（Molecular Weight）
+- logP（脂溶性）
+- TPSA（極性表面積）
+- 回転可能結合数</p>
+<details>
+<summary>解答例</summary>
+
+
+<pre><code class="language-python">from rdkit import Chem
+from rdkit.Chem import Descriptors
+import pandas as pd
+
+# サンプル医薬品
+drugs = {
+    &quot;Aspirin&quot;: &quot;CC(=O)Oc1ccccc1C(=O)O&quot;,
+    &quot;Ibuprofen&quot;: &quot;CC(C)Cc1ccc(cc1)C(C)C(=O)O&quot;,
+    &quot;Paracetamol&quot;: &quot;CC(=O)Nc1ccc(O)cc1&quot;
+}
+
+# 記述子計算
+data = []
+for name, smiles in drugs.items():
+    mol = Chem.MolFromSmiles(smiles)
+    data.append({
+        'Name': name,
+        'MW': Descriptors.MolWt(mol),
+        'LogP': Descriptors.MolLogP(mol),
+        'TPSA': Descriptors.TPSA(mol),
+        'RotBonds': Descriptors.NumRotatableBonds(mol)
+    })
+
+df = pd.DataFrame(data)
+print(df.to_string(index=False))
+</code></pre>
+
+
+**出力例:**
+
+<pre><code>        Name      MW  LogP  TPSA  RotBonds
+     Aspirin  180.16  1.19 63.60         3
+   Ibuprofen  206.28  3.50 37.30         4
+ Paracetamol  151.16  0.46 49.33         1
+</code></pre>
+
+</details>
+
+<h3>演習4: PubChemからのデータ取得</h3>
+<p>PubChemのREST APIを使用して、特定の化合物（例: カフェイン）の情報を取得し、構造を描画してください。</p>
+<details>
+<summary>解答例</summary>
+
+
+<pre><code class="language-python">import requests
+from rdkit import Chem
+from rdkit.Chem import Draw
+
+# PubChemのREST API（化合物名から検索）
+compound_name = &quot;caffeine&quot;
+url = f&quot;https://pubchem.ncbi.nlm.nih.gov/rest/pug/&quot; \
+      f&quot;compound/name/{compound_name}/property/&quot; \
+      f&quot;CanonicalSMILES,MolecularWeight,IUPACName/JSON&quot;
+
+response = requests.get(url)
+data = response.json()
+
+# データの取得
+properties = data['PropertyTable']['Properties'][0]
+smiles = properties['CanonicalSMILES']
+mw = properties['MolecularWeight']
+iupac = properties.get('IUPACName', 'N/A')
+
+print(f&quot;化合物名: {compound_name}&quot;)
+print(f&quot;IUPAC名: {iupac}&quot;)
+print(f&quot;SMILES: {smiles}&quot;)
+print(f&quot;分子量: {mw}&quot;)
+
+# 構造描画
+mol = Chem.MolFromSmiles(smiles)
+img = Draw.MolToImage(mol, size=(400, 400))
+img.save(f&quot;{compound_name}_structure.png&quot;)
+</code></pre>
+
+
+**出力例:**
+
+<pre><code>化合物名: caffeine
+IUPAC名: 1,3,7-trimethylpurine-2,6-dione
+SMILES: CN1C=NC2=C1C(=O)N(C(=O)N2C)C
+分子量: 194.19
+</code></pre>
+
+</details>
+
+<hr />
+<h2>まとめ</h2>
+<p>この章では、以下を学びました：</p>
+<h3>学習した内容</h3>
+<ol>
+<li>
+<p><strong>ケモインフォマティクスの定義</strong>
+   - 化学×データサイエンスの融合分野
+   - 創薬、有機材料、触媒、高分子への応用</p>
+</li>
+<li>
+<p><strong>分子表現法</strong>
+   - SMILES: 線形文字列表現
+   - InChI/InChIKey: 標準化された識別子
+   - 分子グラフ: ノードとエッジ
+   - 3D構造: 立体化学の重要性</p>
+</li>
+<li>
+<p><strong>RDKitの基本操作</strong>
+   - 分子の読み込みと描画
+   - 部分構造検索（SMARTS）
+   - 分子の編集と変換</p>
+</li>
+<li>
+<p><strong>実践：医薬品データベース検索</strong>
+   - ChEMBL/PubChemからのデータ取得
+   - SMILES検証とサニタイゼーション</p>
+</li>
+</ol>
+<h3>次のステップ</h3>
+<p>第2章では、分子記述子の計算とQSAR/QSPRモデリングを学びます。</p>
+<p><strong><a href="./chapter-2.html">第2章：QSAR/QSPR入門 - 物性予測の基礎 →</a></strong></p>
+<hr />
+<h2>参考文献</h2>
+<ol>
+<li>Weininger, D. (1988). "SMILES, a chemical language and information system." <em>Journal of Chemical Information and Computer Sciences</em>, 28(1), 31-36. DOI: 10.1021/ci00057a005</li>
+<li>Heller, S. et al. (2015). "InChI, the IUPAC International Chemical Identifier." <em>Journal of Cheminformatics</em>, 7, 23. DOI: 10.1186/s13321-015-0068-4</li>
+<li>Landrum, G. (2024). "RDKit: Open-source cheminformatics." <a href="https://www.rdkit.org/">rdkit.org</a></li>
+<li>Gaulton, A. et al. (2017). "The ChEMBL database in 2017." <em>Nucleic Acids Research</em>, 45(D1), D945-D954. DOI: 10.1093/nar/gkw1074</li>
+</ol>
+<hr />
+<p><strong><a href="./index.html">← シリーズトップへ</a></strong> | <strong><a href="./chapter-2.html">第2章へ →</a></strong></p><div class="navigation">
+    <a href="index.html" class="nav-button">シリーズ目次に戻る</a>
+    <a href="chapter-2.html" class="nav-button">次の章 →</a>
+</div>
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-17</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

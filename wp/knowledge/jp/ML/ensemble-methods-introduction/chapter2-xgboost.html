@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第2章：XGBoost - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>第2章：XGBoost</h1>
+            <p class="subtitle">勾配ブースティングの最適化実装 - 高速で正確な予測モデル</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 25-30分</span>
+                <span class="meta-item">📊 難易度: 中級</span>
+                <span class="meta-item">💻 コード例: 9個</span>
+                <span class="meta-item">📝 演習問題: 5問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+<h2>学習目標</h2>
+<p>この章を読むことで、以下を習得できます：</p>
+<ul>
+<li>✅ XGBoostの原理と正則化技術を理解する</li>
+<li>✅ ハイパーパラメータの役割と調整方法を習得する</li>
+<li>✅ xgboostライブラリで効率的な訓練を実行できる</li>
+<li>✅ 特徴量重要度を解釈し、モデルを改善できる</li>
+<li>✅ GPU加速とパラメータチューニング戦略を実践できる</li>
+</ul>
+
+<hr>
+
+<h2>2.1 XGBoostの原理</h2>
+
+<h3>XGBoostとは</h3>
+<p><strong>XGBoost（eXtreme Gradient Boosting）</strong>は、勾配ブースティング決定木の高速で効率的な実装です。</p>
+
+<blockquote>
+<p>「XGBoostは多くのKaggleコンペティションで優勝モデルとして使用されています。」</p>
+</blockquote>
+
+<h3>主要な特徴</h3>
+
+<table>
+<thead>
+<tr>
+<th>特徴</th>
+<th>説明</th>
+<th>利点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>正則化</strong></td>
+<td>L1/L2正則化による過学習防止</td>
+<td>汎化性能向上</td>
+</tr>
+<tr>
+<td><strong>木の剪定</strong></td>
+<td>max_depth後の枝刈り</td>
+<td>効率的な学習</td>
+</tr>
+<tr>
+<td><strong>並列処理</strong></td>
+<td>列（特徴量）単位の並列化</td>
+<td>高速な訓練</td>
+</tr>
+<tr>
+<td><strong>欠損値処理</strong></td>
+<td>自動で最適な方向を学習</td>
+<td>前処理不要</td>
+</tr>
+</tbody>
+</table>
+
+<h3>XGBoostの目的関数</h3>
+
+<p>XGBoostは以下の目的関数を最小化します：</p>
+
+<p>$$
+\mathcal{L} = \sum_{i=1}^{n} l(y_i, \hat{y}_i) + \sum_{k=1}^{K} \Omega(f_k)
+$$</p>
+
+<ul>
+<li>$l$: 損失関数（二乗誤差、対数損失など）</li>
+<li>$\Omega(f_k)$: 正則化項（木の複雑さペナルティ）</li>
+</ul>
+
+<p>正則化項：</p>
+
+<p>$$
+\Omega(f) = \gamma T + \frac{1}{2}\lambda \sum_{j=1}^{T} w_j^2
+$$</p>
+
+<ul>
+<li>$T$: 葉の数</li>
+<li>$w_j$: 葉の重み</li>
+<li>$\gamma$: 葉数のペナルティ</li>
+<li>$\lambda$: L2正則化係数</li>
+</ul>
+
+<h3>基本的な実装</h3>
+
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+import xgboost as xgb
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, classification_report
+
+# サンプルデータ生成
+X, y = make_classification(
+    n_samples=1000,
+    n_features=20,
+    n_informative=15,
+    n_redundant=5,
+    random_state=42
+)
+
+# 訓練・テストデータ分割
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# XGBoostモデルの構築
+model = xgb.XGBClassifier(
+    n_estimators=100,
+    max_depth=3,
+    learning_rate=0.1,
+    random_state=42
+)
+
+# 訓練
+model.fit(X_train, y_train)
+
+# 予測
+y_pred = model.predict(X_test)
+
+# 評価
+accuracy = accuracy_score(y_test, y_pred)
+print("=== XGBoostの基本性能 ===")
+print(f"精度: {accuracy:.3f}")
+print(f"\n詳細レポート:")
+print(classification_report(y_test, y_pred))
+</code></pre>
+
+<p><strong>出力</strong>：</p>
+<pre><code>=== XGBoostの基本性能 ===
+精度: 0.935
+
+詳細レポート:
+              precision    recall  f1-score   support
+
+           0       0.94      0.93      0.93       102
+           1       0.93      0.94      0.93        98
+
+    accuracy                           0.93       200
+   macro avg       0.93      0.93      0.93       200
+weighted avg       0.93      0.93      0.93       200
+</code></pre>
+
+<hr>
+
+<h2>2.2 ハイパーパラメータ</h2>
+
+<h3>主要なハイパーパラメータ</h3>
+
+<table>
+<thead>
+<tr>
+<th>パラメータ</th>
+<th>説明</th>
+<th>推奨範囲</th>
+<th>デフォルト</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>learning_rate (eta)</strong></td>
+<td>学習率、各木の寄与を縮小</td>
+<td>0.01 - 0.3</td>
+<td>0.3</td>
+</tr>
+<tr>
+<td><strong>max_depth</strong></td>
+<td>木の最大深さ</td>
+<td>3 - 10</td>
+<td>6</td>
+</tr>
+<tr>
+<td><strong>n_estimators</strong></td>
+<td>木の数</td>
+<td>100 - 1000</td>
+<td>100</td>
+</tr>
+<tr>
+<td><strong>subsample</strong></td>
+<td>各木で使用する行の割合</td>
+<td>0.5 - 1.0</td>
+<td>1.0</td>
+</tr>
+<tr>
+<td><strong>colsample_bytree</strong></td>
+<td>各木で使用する列の割合</td>
+<td>0.5 - 1.0</td>
+<td>1.0</td>
+</tr>
+<tr>
+<td><strong>gamma</strong></td>
+<td>分岐の最小損失減少</td>
+<td>0 - 5</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>reg_alpha</strong></td>
+<td>L1正則化（重みの絶対値）</td>
+<td>0 - 1</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>reg_lambda</strong></td>
+<td>L2正則化（重みの二乗）</td>
+<td>0 - 1</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+
+<h3>パラメータの影響を可視化</h3>
+
+<pre><code class="language-python">import matplotlib.pyplot as plt
+from sklearn.model_selection import cross_val_score
+
+# データ準備
+X, y = make_classification(
+    n_samples=1000,
+    n_features=20,
+    n_informative=15,
+    random_state=42
+)
+
+# learning_rateの影響
+learning_rates = [0.01, 0.05, 0.1, 0.2, 0.3]
+lr_scores = []
+
+for lr in learning_rates:
+    model = xgb.XGBClassifier(
+        learning_rate=lr,
+        n_estimators=100,
+        max_depth=3,
+        random_state=42
+    )
+    scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+    lr_scores.append(scores.mean())
+
+# max_depthの影響
+max_depths = [2, 3, 4, 5, 6, 8, 10]
+depth_scores = []
+
+for depth in max_depths:
+    model = xgb.XGBClassifier(
+        max_depth=depth,
+        n_estimators=100,
+        learning_rate=0.1,
+        random_state=42
+    )
+    scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+    depth_scores.append(scores.mean())
+
+# 可視化
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+axes[0].plot(learning_rates, lr_scores, marker='o', linewidth=2)
+axes[0].set_xlabel('Learning Rate', fontsize=12)
+axes[0].set_ylabel('Cross-Validation Accuracy', fontsize=12)
+axes[0].set_title('Learning Rate vs Accuracy', fontsize=14)
+axes[0].grid(True, alpha=0.3)
+
+axes[1].plot(max_depths, depth_scores, marker='s', linewidth=2, color='orange')
+axes[1].set_xlabel('Max Depth', fontsize=12)
+axes[1].set_ylabel('Cross-Validation Accuracy', fontsize=12)
+axes[1].set_title('Max Depth vs Accuracy', fontsize=14)
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("=== パラメータ調整結果 ===")
+print(f"最適learning_rate: {learning_rates[np.argmax(lr_scores)]}")
+print(f"最適max_depth: {max_depths[np.argmax(depth_scores)]}")
+</code></pre>
+
+<h3>subsampleとcolsampleの効果</h3>
+
+<pre><code class="language-python"># subsampleとcolsample_bytreeの組み合わせ
+subsample_values = [0.5, 0.7, 0.9, 1.0]
+colsample_values = [0.5, 0.7, 0.9, 1.0]
+
+results = []
+
+for sub in subsample_values:
+    for col in colsample_values:
+        model = xgb.XGBClassifier(
+            subsample=sub,
+            colsample_bytree=col,
+            n_estimators=100,
+            max_depth=3,
+            learning_rate=0.1,
+            random_state=42
+        )
+        scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+        results.append({
+            'subsample': sub,
+            'colsample': col,
+            'accuracy': scores.mean()
+        })
+
+# 結果の可視化
+df_results = pd.DataFrame(results)
+pivot_table = df_results.pivot(
+    index='subsample',
+    columns='colsample',
+    values='accuracy'
+)
+
+import seaborn as sns
+plt.figure(figsize=(10, 8))
+sns.heatmap(pivot_table, annot=True, fmt='.3f', cmap='YlGnBu',
+            cbar_kws={'label': 'Accuracy'})
+plt.title('Subsample vs Colsample_bytree', fontsize=14)
+plt.xlabel('Colsample_bytree', fontsize=12)
+plt.ylabel('Subsample', fontsize=12)
+plt.tight_layout()
+plt.show()
+
+print("\n=== 最適な組み合わせ ===")
+best_idx = df_results['accuracy'].idxmax()
+print(f"subsample: {df_results.loc[best_idx, 'subsample']}")
+print(f"colsample_bytree: {df_results.loc[best_idx, 'colsample']}")
+print(f"精度: {df_results.loc[best_idx, 'accuracy']:.3f}")
+</code></pre>
+
+<hr>
+
+<h2>2.3 実装と訓練</h2>
+
+<h3>DMatrix形式での効率的な訓練</h3>
+
+<pre><code class="language-python">import xgboost as xgb
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+
+# データ読み込み
+data = load_breast_cancer()
+X, y = data.data, data.target
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# DMatrix形式に変換（高速化）
+dtrain = xgb.DMatrix(X_train, label=y_train)
+dtest = xgb.DMatrix(X_test, label=y_test)
+
+# パラメータ設定
+params = {
+    'objective': 'binary:logistic',
+    'max_depth': 3,
+    'learning_rate': 0.1,
+    'eval_metric': 'logloss'
+}
+
+# 訓練（評価セット付き）
+evals = [(dtrain, 'train'), (dtest, 'test')]
+num_rounds = 100
+
+print("=== XGBoost訓練（DMatrix形式）===")
+model = xgb.train(
+    params,
+    dtrain,
+    num_boost_round=num_rounds,
+    evals=evals,
+    early_stopping_rounds=10,
+    verbose_eval=20
+)
+
+print(f"\n最適な反復回数: {model.best_iteration}")
+print(f"最良スコア: {model.best_score:.4f}")
+</code></pre>
+
+<h3>Early Stoppingによる過学習防止</h3>
+
+<pre><code class="language-python">from sklearn.model_selection import train_test_split
+
+# 検証セットを含む分割
+X_train_full, X_test, y_train_full, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+X_train, X_val, y_train, y_val = train_test_split(
+    X_train_full, y_train_full, test_size=0.2, random_state=42
+)
+
+# XGBoostモデル（sklearn API）
+model = xgb.XGBClassifier(
+    n_estimators=1000,
+    max_depth=3,
+    learning_rate=0.1,
+    random_state=42
+)
+
+# Early Stopping付き訓練
+model.fit(
+    X_train, y_train,
+    eval_set=[(X_train, y_train), (X_val, y_val)],
+    early_stopping_rounds=20,
+    verbose=50
+)
+
+# テストセットでの評価
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+
+print("\n=== Early Stopping結果 ===")
+print(f"使用された木の数: {model.best_iteration}")
+print(f"検証精度: {accuracy:.3f}")
+
+# 学習曲線の可視化
+results = model.evals_result()
+
+plt.figure(figsize=(12, 5))
+
+plt.subplot(1, 2, 1)
+plt.plot(results['validation_0']['logloss'], label='Train')
+plt.plot(results['validation_1']['logloss'], label='Validation')
+plt.axvline(x=model.best_iteration, color='r', linestyle='--',
+            label=f'Best iteration: {model.best_iteration}')
+plt.xlabel('Number of Trees')
+plt.ylabel('Log Loss')
+plt.title('Learning Curve with Early Stopping')
+plt.legend()
+plt.grid(True, alpha=0.3)
+
+plt.subplot(1, 2, 2)
+plt.plot(results['validation_0']['logloss'][-100:], label='Train (last 100)')
+plt.plot(results['validation_1']['logloss'][-100:], label='Validation (last 100)')
+plt.xlabel('Number of Trees')
+plt.ylabel('Log Loss')
+plt.title('Learning Curve (Detail)')
+plt.legend()
+plt.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+
+<h3>Cross-Validationによる性能評価</h3>
+
+<pre><code class="language-python">import xgboost as xgb
+
+# DMatrix形式でのデータ
+dtrain = xgb.DMatrix(X, label=y)
+
+# パラメータ設定
+params = {
+    'objective': 'binary:logistic',
+    'max_depth': 3,
+    'learning_rate': 0.1,
+    'eval_metric': 'logloss'
+}
+
+# Cross-Validation
+cv_results = xgb.cv(
+    params,
+    dtrain,
+    num_boost_round=200,
+    nfold=5,
+    metrics='logloss',
+    early_stopping_rounds=20,
+    seed=42,
+    verbose_eval=50
+)
+
+print("\n=== Cross-Validation結果 ===")
+print(f"最適な反復回数: {len(cv_results)}")
+print(f"訓練 log loss: {cv_results['train-logloss-mean'].iloc[-1]:.4f}")
+print(f"検証 log loss: {cv_results['test-logloss-mean'].iloc[-1]:.4f}")
+print(f"標準偏差: {cv_results['test-logloss-std'].iloc[-1]:.4f}")
+
+# CV結果の可視化
+plt.figure(figsize=(10, 6))
+plt.plot(cv_results['train-logloss-mean'], label='Train')
+plt.plot(cv_results['test-logloss-mean'], label='Test')
+plt.fill_between(
+    range(len(cv_results)),
+    cv_results['test-logloss-mean'] - cv_results['test-logloss-std'],
+    cv_results['test-logloss-mean'] + cv_results['test-logloss-std'],
+    alpha=0.2
+)
+plt.xlabel('Number of Trees')
+plt.ylabel('Log Loss')
+plt.title('Cross-Validation Learning Curve')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+</code></pre>
+
+<hr>
+
+<h2>2.4 特徴量重要度</h2>
+
+<h3>重要度の種類</h3>
+
+<table>
+<thead>
+<tr>
+<th>タイプ</th>
+<th>説明</th>
+<th>解釈</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>gain</strong></td>
+<td>その特徴量による損失の平均改善量</td>
+<td>予測精度への寄与</td>
+</tr>
+<tr>
+<td><strong>weight</strong></td>
+<td>特徴量が分岐に使用された回数</td>
+<td>使用頻度</td>
+</tr>
+<tr>
+<td><strong>cover</strong></td>
+<td>分岐でカバーされたサンプル数</td>
+<td>影響範囲</td>
+</tr>
+</tbody>
+</table>
+
+<h3>特徴量重要度の計算と可視化</h3>
+
+<pre><code class="language-python">import xgboost as xgb
+from sklearn.datasets import load_breast_cancer
+import matplotlib.pyplot as plt
+
+# データ読み込み
+data = load_breast_cancer()
+X, y = data.data, data.target
+feature_names = data.feature_names
+
+# モデル訓練
+model = xgb.XGBClassifier(
+    n_estimators=100,
+    max_depth=3,
+    learning_rate=0.1,
+    random_state=42
+)
+model.fit(X, y)
+
+# 3つの重要度タイプを取得
+importance_gain = model.get_booster().get_score(importance_type='gain')
+importance_weight = model.get_booster().get_score(importance_type='weight')
+importance_cover = model.get_booster().get_score(importance_type='cover')
+
+# 可視化
+fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+
+# Gain
+xgb.plot_importance(model, importance_type='gain', max_num_features=10,
+                    ax=axes[0], title='Feature Importance (Gain)')
+axes[0].set_xlabel('Gain')
+
+# Weight
+xgb.plot_importance(model, importance_type='weight', max_num_features=10,
+                    ax=axes[1], title='Feature Importance (Weight)')
+axes[1].set_xlabel('Weight')
+
+# Cover
+xgb.plot_importance(model, importance_type='cover', max_num_features=10,
+                    ax=axes[2], title='Feature Importance (Cover)')
+axes[2].set_xlabel('Cover')
+
+plt.tight_layout()
+plt.show()
+
+# 数値で確認
+print("=== Top 10特徴量（Gain基準）===")
+importance_dict = model.get_booster().get_score(importance_type='gain')
+sorted_features = sorted(importance_dict.items(), key=lambda x: x[1], reverse=True)
+for i, (feature, score) in enumerate(sorted_features[:10], 1):
+    feature_idx = int(feature.replace('f', ''))
+    print(f"{i}. {feature_names[feature_idx]}: {score:.2f}")
+</code></pre>
+
+<h3>SHAP値による詳細分析</h3>
+
+<pre><code class="language-python">import shap
+import xgboost as xgb
+import matplotlib.pyplot as plt
+
+# モデル訓練
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+model = xgb.XGBClassifier(n_estimators=100, max_depth=3, random_state=42)
+model.fit(X_train, y_train)
+
+# SHAP値の計算
+explainer = shap.TreeExplainer(model)
+shap_values = explainer.shap_values(X_test)
+
+# SHAP Summary Plot
+plt.figure(figsize=(12, 8))
+shap.summary_plot(shap_values, X_test, feature_names=feature_names,
+                  show=False)
+plt.title('SHAP Summary Plot', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# SHAP Feature Importance
+plt.figure(figsize=(10, 6))
+shap.summary_plot(shap_values, X_test, feature_names=feature_names,
+                  plot_type='bar', show=False)
+plt.title('SHAP Feature Importance', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+print("=== SHAP値による重要度分析 ===")
+print("各特徴量の平均絶対SHAP値（Top 5）:")
+shap_importance = np.abs(shap_values).mean(axis=0)
+top_indices = np.argsort(shap_importance)[-5:][::-1]
+for idx in top_indices:
+    print(f"{feature_names[idx]}: {shap_importance[idx]:.4f}")
+</code></pre>
+
+<hr>
+
+<h2>2.5 実践最適化</h2>
+
+<h3>GPU加速</h3>
+
+<pre><code class="language-python">import xgboost as xgb
+import time
+
+# データ準備（大規模データ）
+X, y = make_classification(
+    n_samples=100000,
+    n_features=50,
+    n_informative=40,
+    random_state=42
+)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# CPU訓練
+start_time = time.time()
+model_cpu = xgb.XGBClassifier(
+    n_estimators=100,
+    max_depth=5,
+    learning_rate=0.1,
+    tree_method='hist',  # CPUでの高速化
+    random_state=42
+)
+model_cpu.fit(X_train, y_train)
+cpu_time = time.time() - start_time
+
+# GPU訓練（GPUが利用可能な場合）
+try:
+    start_time = time.time()
+    model_gpu = xgb.XGBClassifier(
+        n_estimators=100,
+        max_depth=5,
+        learning_rate=0.1,
+        tree_method='gpu_hist',  # GPU加速
+        random_state=42
+    )
+    model_gpu.fit(X_train, y_train)
+    gpu_time = time.time() - start_time
+
+    print("=== GPU vs CPU性能比較 ===")
+    print(f"CPU訓練時間: {cpu_time:.2f}秒")
+    print(f"GPU訓練時間: {gpu_time:.2f}秒")
+    print(f"速度向上: {cpu_time/gpu_time:.2f}x")
+except Exception as e:
+    print("=== CPU訓練結果 ===")
+    print(f"訓練時間: {cpu_time:.2f}秒")
+    print(f"GPU利用不可: {str(e)}")
+
+# 性能評価
+y_pred = model_cpu.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print(f"\nテスト精度: {accuracy:.3f}")
+</code></pre>
+
+<h3>グリッドサーチによるハイパーパラメータ最適化</h3>
+
+<pre><code class="language-python">from sklearn.model_selection import GridSearchCV
+import xgboost as xgb
+
+# データ準備
+X, y = make_classification(
+    n_samples=2000,
+    n_features=20,
+    n_informative=15,
+    random_state=42
+)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# パラメータグリッド
+param_grid = {
+    'max_depth': [3, 5, 7],
+    'learning_rate': [0.01, 0.1, 0.3],
+    'n_estimators': [50, 100, 200],
+    'subsample': [0.7, 0.9, 1.0],
+    'colsample_bytree': [0.7, 0.9, 1.0]
+}
+
+# グリッドサーチ
+model = xgb.XGBClassifier(random_state=42)
+
+grid_search = GridSearchCV(
+    model,
+    param_grid,
+    cv=5,
+    scoring='accuracy',
+    n_jobs=-1,
+    verbose=2
+)
+
+print("=== グリッドサーチ実行中 ===")
+grid_search.fit(X_train, y_train)
+
+# 最適パラメータ
+print("\n=== 最適パラメータ ===")
+print(grid_search.best_params_)
+print(f"\n最良CV精度: {grid_search.best_score_:.3f}")
+
+# テストセットでの評価
+y_pred = grid_search.predict(X_test)
+test_accuracy = accuracy_score(y_test, y_pred)
+print(f"テスト精度: {test_accuracy:.3f}")
+
+# 上位5つの組み合わせ
+cv_results = pd.DataFrame(grid_search.cv_results_)
+top_5 = cv_results.nlargest(5, 'mean_test_score')[
+    ['params', 'mean_test_score', 'std_test_score']
+]
+print("\n=== Top 5パラメータ組み合わせ ===")
+for i, row in top_5.iterrows():
+    print(f"\n{i+1}. スコア: {row['mean_test_score']:.4f} (±{row['std_test_score']:.4f})")
+    print(f"   パラメータ: {row['params']}")
+</code></pre>
+
+<h3>ベイズ最適化による効率的な探索</h3>
+
+<pre><code class="language-python">from sklearn.model_selection import cross_val_score
+from scipy.stats import uniform, randint
+
+# ランダムサーチ（ベイズ最適化の代替）
+from sklearn.model_selection import RandomizedSearchCV
+
+# パラメータ分布
+param_distributions = {
+    'max_depth': randint(3, 10),
+    'learning_rate': uniform(0.01, 0.29),
+    'n_estimators': randint(50, 300),
+    'subsample': uniform(0.6, 0.4),
+    'colsample_bytree': uniform(0.6, 0.4),
+    'gamma': uniform(0, 5),
+    'reg_alpha': uniform(0, 1),
+    'reg_lambda': uniform(0, 1)
+}
+
+# ランダムサーチ
+model = xgb.XGBClassifier(random_state=42)
+
+random_search = RandomizedSearchCV(
+    model,
+    param_distributions,
+    n_iter=50,  # 試行回数
+    cv=5,
+    scoring='accuracy',
+    n_jobs=-1,
+    random_state=42,
+    verbose=1
+)
+
+print("=== ランダムサーチ実行中 ===")
+random_search.fit(X_train, y_train)
+
+# 最適パラメータ
+print("\n=== 最適パラメータ（ランダムサーチ）===")
+print(random_search.best_params_)
+print(f"\n最良CV精度: {random_search.best_score_:.3f}")
+
+# テスト精度
+y_pred = random_search.predict(X_test)
+test_accuracy = accuracy_score(y_test, y_pred)
+print(f"テスト精度: {test_accuracy:.3f}")
+
+# 探索過程の可視化
+cv_results = pd.DataFrame(random_search.cv_results_)
+
+plt.figure(figsize=(12, 5))
+
+plt.subplot(1, 2, 1)
+plt.scatter(range(len(cv_results)), cv_results['mean_test_score'],
+            alpha=0.6, edgecolors='black')
+plt.axhline(y=random_search.best_score_, color='r', linestyle='--',
+            label=f'Best: {random_search.best_score_:.3f}')
+plt.xlabel('Iteration')
+plt.ylabel('CV Score')
+plt.title('Random Search Progress')
+plt.legend()
+plt.grid(True, alpha=0.3)
+
+plt.subplot(1, 2, 2)
+sorted_scores = sorted(cv_results['mean_test_score'])
+plt.plot(sorted_scores, linewidth=2)
+plt.xlabel('Rank')
+plt.ylabel('CV Score')
+plt.title('Sorted CV Scores')
+plt.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+
+<hr>
+
+<h2>2.6 本章のまとめ</h2>
+
+<h3>学んだこと</h3>
+
+<ol>
+<li><p><strong>XGBoostの原理</strong></p>
+<ul>
+<li>勾配ブースティングの最適化実装</li>
+<li>正則化による過学習防止</li>
+<li>効率的な木の剪定アルゴリズム</li>
+</ul></li>
+
+<li><p><strong>ハイパーパラメータ</strong></p>
+<ul>
+<li>learning_rate: 学習の安定性と速度</li>
+<li>max_depth: モデルの複雑さ制御</li>
+<li>subsample/colsample: ランダム性導入</li>
+<li>gamma, reg_alpha, reg_lambda: 正則化</li>
+</ul></li>
+
+<li><p><strong>実装と訓練</strong></p>
+<ul>
+<li>DMatrix形式での効率的な処理</li>
+<li>Early Stoppingによる自動最適化</li>
+<li>Cross-Validationでの堅牢な評価</li>
+</ul></li>
+
+<li><p><strong>特徴量重要度</strong></p>
+<ul>
+<li>gain, weight, coverの3種類</li>
+<li>SHAP値による詳細な解釈</li>
+<li>モデル改善への活用</li>
+</ul></li>
+
+<li><p><strong>実践最適化</strong></p>
+<ul>
+<li>GPU加速による高速化</li>
+<li>グリッドサーチとランダムサーチ</li>
+<li>効率的なパラメータ探索戦略</li>
+</ul></li>
+</ol>
+
+<h3>XGBoost活用のベストプラクティス</h3>
+
+<table>
+<thead>
+<tr>
+<th>原則</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>小さいlearning_rate</strong></td>
+<td>0.01-0.1で安定した学習、n_estimatorsを増やす</td>
+</tr>
+<tr>
+<td><strong>Early Stopping活用</strong></td>
+<td>過学習防止と訓練時間短縮</td>
+</tr>
+<tr>
+<td><strong>subsample導入</strong></td>
+<td>0.7-0.9でランダム性と汎化性能向上</td>
+</tr>
+<tr>
+<td><strong>特徴量重要度確認</strong></td>
+<td>不要な特徴量削除でモデル簡素化</td>
+</tr>
+<tr>
+<td><strong>CV評価</strong></td>
+<td>堅牢な性能評価とパラメータ選択</td>
+</tr>
+</tbody>
+</table>
+
+<h3>次の章へ</h3>
+
+<p>第3章では、<strong>LightGBM</strong>を学びます：</p>
+<ul>
+<li>Leaf-wiseアルゴリズム</li>
+<li>カテゴリカル変数の直接処理</li>
+<li>超高速訓練の実現</li>
+<li>XGBoostとの比較</li>
+</ul>
+
+<hr>
+
+<h2>演習問題</h2>
+
+<h3>問題1（難易度：easy）</h3>
+<p>XGBoostの正則化項 $\Omega(f) = \gamma T + \frac{1}{2}\lambda \sum_{j=1}^{T} w_j^2$ において、各項の意味を説明してください。</p>
+
+<details>
+<summary>解答例</summary>
+
+<p><strong>解答</strong>：</p>
+
+<ul>
+<li><p><strong>$\gamma T$</strong>: 葉の数に対するペナルティ</p>
+<ul>
+<li>$\gamma$: 葉数のペナルティ係数</li>
+<li>$T$: 木の葉の数</li>
+<li>効果: 葉が多いほどペナルティが増加し、木が複雑になりすぎるのを防ぐ</li>
+</ul></li>
+
+<li><p><strong>$\frac{1}{2}\lambda \sum_{j=1}^{T} w_j^2$</strong>: 葉の重みに対するL2正則化</p>
+<ul>
+<li>$\lambda$: L2正則化係数</li>
+<li>$w_j$: 各葉の重み（予測値）</li>
+<li>効果: 重みが大きくなりすぎるのを防ぎ、滑らかな予測を促進</li>
+</ul></li>
+</ul>
+
+<p>これらの正則化により、XGBoostは過学習を防ぎ、汎化性能を向上させます。</p>
+
+</details>
+
+<h3>問題2（難易度：medium）</h3>
+<p>以下のデータに対してXGBoostモデルを訓練し、Early Stoppingを使用して最適な木の数を見つけてください。</p>
+
+<pre><code class="language-python">from sklearn.datasets import load_diabetes
+from sklearn.model_selection import train_test_split
+
+data = load_diabetes()
+X, y = data.data, data.target
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+</code></pre>
+
+<details>
+<summary>解答例</summary>
+
+<pre><code class="language-python">import xgboost as xgb
+from sklearn.datasets import load_diabetes
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
+
+# データ読み込み
+data = load_diabetes()
+X, y = data.data, data.target
+
+# データ分割（訓練、検証、テスト）
+X_train_full, X_test, y_train_full, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+X_train, X_val, y_train, y_val = train_test_split(
+    X_train_full, y_train_full, test_size=0.2, random_state=42
+)
+
+# XGBoostモデル（回帰）
+model = xgb.XGBRegressor(
+    n_estimators=1000,
+    max_depth=3,
+    learning_rate=0.05,
+    random_state=42
+)
+
+# Early Stopping付き訓練
+model.fit(
+    X_train, y_train,
+    eval_set=[(X_train, y_train), (X_val, y_val)],
+    early_stopping_rounds=50,
+    verbose=100
+)
+
+# 結果
+print("\n=== Early Stopping結果 ===")
+print(f"最適な木の数: {model.best_iteration}")
+print(f"訓練時のRMSE: {model.best_score:.2f}")
+
+# テストセットでの評価
+y_pred = model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print(f"\nテストセット性能:")
+print(f"MSE: {mse:.2f}")
+print(f"RMSE: {np.sqrt(mse):.2f}")
+print(f"R²: {r2:.3f}")
+
+# 学習曲線の可視化
+import matplotlib.pyplot as plt
+
+results = model.evals_result()
+plt.figure(figsize=(10, 6))
+plt.plot(results['validation_0']['rmse'], label='Train')
+plt.plot(results['validation_1']['rmse'], label='Validation')
+plt.axvline(x=model.best_iteration, color='r', linestyle='--',
+            label=f'Best: {model.best_iteration}')
+plt.xlabel('Number of Trees')
+plt.ylabel('RMSE')
+plt.title('Early Stopping - Learning Curve')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+</code></pre>
+
+</details>
+
+<h3>問題3（難易度：medium）</h3>
+<p>learning_rateとn_estimatorsの関係を説明し、最適な組み合わせを選ぶ戦略を述べてください。</p>
+
+<details>
+<summary>解答例</summary>
+
+<p><strong>解答</strong>：</p>
+
+<p><strong>learning_rateとn_estimatorsの関係</strong>：</p>
+
+<ul>
+<li><strong>learning_rate（学習率）</strong>: 各木の寄与を縮小する係数
+<ul>
+<li>小さい値（0.01-0.05）: 安定した学習、過学習しにくい</li>
+<li>大きい値（0.2-0.3）: 高速な学習、過学習リスク</li>
+</ul></li>
+
+<li><strong>n_estimators（木の数）</strong>: アンサンブルする木の総数
+<ul>
+<li>多い（500-1000）: 複雑なパターン学習、計算コスト大</li>
+<li>少ない（50-100）: 高速、単純なモデル</li>
+</ul></li>
+</ul>
+
+<p><strong>トレードオフ</strong>：</p>
+<ul>
+<li>learning_rateを小さくすると、同じ性能に到達するためにn_estimatorsを増やす必要がある</li>
+<li>目安: <code>learning_rate × n_estimators ≈ 一定</code></li>
+</ul>
+
+<p><strong>最適化戦略</strong>：</p>
+
+<ol>
+<li><p><strong>初期探索</strong>（速度重視）</p>
+<ul>
+<li>learning_rate = 0.1, n_estimators = 100</li>
+<li>ベースライン性能を確認</li>
+</ul></li>
+
+<li><p><strong>Early Stopping活用</strong></p>
+<ul>
+<li>learning_rate = 0.05, n_estimators = 1000（大きめ）</li>
+<li>Early Stoppingで最適な木の数を自動決定</li>
+</ul></li>
+
+<li><p><strong>精密調整</strong>（精度重視）</p>
+<ul>
+<li>learning_rate = 0.01, n_estimators = 500-2000</li>
+<li>最終モデルで最高精度を追求</li>
+</ul></li>
+
+<li><p><strong>本番環境</strong>（バランス）</p>
+<ul>
+<li>learning_rate = 0.03-0.05</li>
+<li>Early Stoppingで決定されたn_estimators使用</li>
+</ul></li>
+</ol>
+
+<p><strong>実装例</strong>：</p>
+<pre><code class="language-python"># 戦略1: 速度重視
+model_fast = xgb.XGBClassifier(learning_rate=0.1, n_estimators=100)
+
+# 戦略2: Early Stopping（推奨）
+model_auto = xgb.XGBClassifier(learning_rate=0.05, n_estimators=1000)
+model_auto.fit(X_train, y_train, eval_set=[(X_val, y_val)],
+               early_stopping_rounds=50)
+
+# 戦略3: 精度重視
+model_accurate = xgb.XGBClassifier(learning_rate=0.01, n_estimators=1500)
+</code></pre>
+
+</details>
+
+<h3>問題4（難易度：hard）</h3>
+<p>以下のデータに対してグリッドサーチを実行し、最適なハイパーパラメータを見つけてください。探索すべきパラメータとその範囲も提案してください。</p>
+
+<pre><code class="language-python">from sklearn.datasets import make_classification
+
+X, y = make_classification(n_samples=5000, n_features=30, n_informative=20, random_state=42)
+</code></pre>
+
+<details>
+<summary>解答例</summary>
+
+<pre><code class="language-python">import xgboost as xgb
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import accuracy_score, classification_report
+import pandas as pd
+
+# データ生成
+X, y = make_classification(
+    n_samples=5000,
+    n_features=30,
+    n_informative=20,
+    random_state=42
+)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# パラメータグリッド（段階的探索）
+# フェーズ1: 主要パラメータの粗探索
+param_grid_phase1 = {
+    'max_depth': [3, 5, 7],
+    'learning_rate': [0.01, 0.1, 0.3],
+    'n_estimators': [100, 200],
+    'subsample': [0.8, 1.0],
+    'colsample_bytree': [0.8, 1.0]
+}
+
+model = xgb.XGBClassifier(random_state=42)
+
+print("=== フェーズ1: 粗探索 ===")
+grid_search_phase1 = GridSearchCV(
+    model,
+    param_grid_phase1,
+    cv=5,
+    scoring='accuracy',
+    n_jobs=-1,
+    verbose=1
+)
+
+grid_search_phase1.fit(X_train, y_train)
+print(f"\nフェーズ1最適パラメータ: {grid_search_phase1.best_params_}")
+print(f"フェーズ1最良CV精度: {grid_search_phase1.best_score_:.4f}")
+
+# フェーズ2: 正則化パラメータの精密調整
+best_params = grid_search_phase1.best_params_
+
+param_grid_phase2 = {
+    'max_depth': [best_params['max_depth']],
+    'learning_rate': [best_params['learning_rate']],
+    'n_estimators': [best_params['n_estimators']],
+    'subsample': [best_params['subsample']],
+    'colsample_bytree': [best_params['colsample_bytree']],
+    'gamma': [0, 0.1, 0.5, 1],
+    'reg_alpha': [0, 0.1, 0.5],
+    'reg_lambda': [1, 1.5, 2]
+}
+
+print("\n=== フェーズ2: 正則化調整 ===")
+grid_search_phase2 = GridSearchCV(
+    model,
+    param_grid_phase2,
+    cv=5,
+    scoring='accuracy',
+    n_jobs=-1,
+    verbose=1
+)
+
+grid_search_phase2.fit(X_train, y_train)
+print(f"\nフェーズ2最適パラメータ: {grid_search_phase2.best_params_}")
+print(f"フェーズ2最良CV精度: {grid_search_phase2.best_score_:.4f}")
+
+# テストセットでの最終評価
+final_model = grid_search_phase2.best_estimator_
+y_pred = final_model.predict(X_test)
+test_accuracy = accuracy_score(y_test, y_pred)
+
+print("\n=== 最終モデル性能 ===")
+print(f"テスト精度: {test_accuracy:.4f}")
+print(f"\n分類レポート:")
+print(classification_report(y_test, y_pred))
+
+# 探索結果の分析
+cv_results = pd.DataFrame(grid_search_phase2.cv_results_)
+top_10 = cv_results.nlargest(10, 'mean_test_score')[
+    ['params', 'mean_test_score', 'std_test_score']
+]
+
+print("\n=== Top 10パラメータ組み合わせ ===")
+for i, row in top_10.iterrows():
+    print(f"\n{i+1}. CV精度: {row['mean_test_score']:.4f} (±{row['std_test_score']:.4f})")
+    print(f"   gamma: {row['params']['gamma']}")
+    print(f"   reg_alpha: {row['params']['reg_alpha']}")
+    print(f"   reg_lambda: {row['params']['reg_lambda']}")
+
+# 可視化: パラメータの影響
+import matplotlib.pyplot as plt
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+for ax, param in zip(axes, ['gamma', 'reg_alpha', 'reg_lambda']):
+    param_values = cv_results['param_' + param].values
+    scores = cv_results['mean_test_score'].values
+
+    ax.scatter(param_values, scores, alpha=0.6, edgecolors='black')
+    ax.set_xlabel(param, fontsize=12)
+    ax.set_ylabel('CV Accuracy', fontsize=12)
+    ax.set_title(f'Impact of {param}', fontsize=14)
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+
+<p><strong>推奨パラメータ範囲</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>パラメータ</th>
+<th>初期探索</th>
+<th>精密調整</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>max_depth</td>
+<td>3, 5, 7</td>
+<td>±1範囲</td>
+</tr>
+<tr>
+<td>learning_rate</td>
+<td>0.01, 0.1, 0.3</td>
+<td>最適値周辺</td>
+</tr>
+<tr>
+<td>n_estimators</td>
+<td>100, 200</td>
+<td>Early Stopping推奨</td>
+</tr>
+<tr>
+<td>subsample</td>
+<td>0.8, 1.0</td>
+<td>0.7-1.0</td>
+</tr>
+<tr>
+<td>colsample_bytree</td>
+<td>0.8, 1.0</td>
+<td>0.7-1.0</td>
+</tr>
+<tr>
+<td>gamma</td>
+<td>-</td>
+<td>0, 0.1, 0.5, 1</td>
+</tr>
+<tr>
+<td>reg_alpha</td>
+<td>-</td>
+<td>0, 0.1, 0.5</td>
+</tr>
+<tr>
+<td>reg_lambda</td>
+<td>-</td>
+<td>1, 1.5, 2</td>
+</tr>
+</tbody>
+</table>
+
+</details>
+
+<h3>問題5（難易度：hard）</h3>
+<p>XGBoostにおける特徴量重要度のgain, weight, coverの違いを説明し、それぞれをどのような場面で使用すべきか述べてください。</p>
+
+<details>
+<summary>解答例</summary>
+
+<p><strong>解答</strong>：</p>
+
+<p><strong>3つの重要度指標</strong>：</p>
+
+<ol>
+<li><p><strong>Gain（利得）</strong></p>
+<ul>
+<li>定義: その特徴量による損失関数の平均改善量</li>
+<li>計算: 分岐時の損失減少の合計を、その特徴量の使用回数で割った値</li>
+<li>意味: 予測精度への直接的な寄与度</li>
+<li>数式: $\text{Gain}_f = \sum_{t \in \text{splits}(f)} \Delta L_t / |\text{splits}(f)|$</li>
+</ul></li>
+
+<li><p><strong>Weight（重み）</strong></p>
+<ul>
+<li>定義: その特徴量が分岐に使用された回数</li>
+<li>計算: 全ての木でその特徴量が分岐に使われた総回数</li>
+<li>意味: モデル構築における使用頻度</li>
+<li>数式: $\text{Weight}_f = |\text{splits}(f)|$</li>
+</ul></li>
+
+<li><p><strong>Cover（カバレッジ）</strong></p>
+<ul>
+<li>定義: 分岐でカバーされたサンプル数の合計</li>
+<li>計算: その特徴量で分岐した際に影響を受けたサンプル数の合計</li>
+<li>意味: 特徴量が影響するデータの範囲</li>
+<li>数式: $\text{Cover}_f = \sum_{t \in \text{splits}(f)} n_t$（$n_t$は分岐のサンプル数）</li>
+</ul></li>
+</ol>
+
+<p><strong>使い分けガイドライン</strong>：</p>
+
+<table>
+<thead>
+<tr>
+<th>場面</th>
+<th>推奨指標</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>特徴選択</td>
+<td>Gain</td>
+<td>精度への寄与が直接的にわかる</td>
+</tr>
+<tr>
+<td>モデル解釈</td>
+<td>Gain</td>
+<td>ビジネス価値を説明しやすい</td>
+</tr>
+<tr>
+<td>計算効率化</td>
+<td>Weight</td>
+<td>頻繁に使う特徴を優先的に計算</td>
+</tr>
+<tr>
+<td>データ影響範囲</td>
+<td>Cover</td>
+<td>どれだけのサンプルに影響するか</td>
+</tr>
+<tr>
+<td>不均衡データ</td>
+<td>Cover</td>
+<td>少数クラスへの影響を評価</td>
+</tr>
+<tr>
+<td>一般的な用途</td>
+<td>Gain</td>
+<td>最も解釈しやすく実用的</td>
+</tr>
+</tbody>
+</table>
+
+<p><strong>実装例</strong>：</p>
+<pre><code class="language-python">import xgboost as xgb
+from sklearn.datasets import load_breast_cancer
+import matplotlib.pyplot as plt
+
+# データ読み込み
+data = load_breast_cancer()
+X, y = data.data, data.target
+
+# モデル訓練
+model = xgb.XGBClassifier(n_estimators=100, max_depth=3, random_state=42)
+model.fit(X, y)
+
+# 3つの重要度を取得
+importance_gain = model.get_booster().get_score(importance_type='gain')
+importance_weight = model.get_booster().get_score(importance_type='weight')
+importance_cover = model.get_booster().get_score(importance_type='cover')
+
+# Top 5を比較
+print("=== Top 5特徴量の比較 ===\n")
+
+for imp_type, imp_dict in [('Gain', importance_gain),
+                            ('Weight', importance_weight),
+                            ('Cover', importance_cover)]:
+    print(f"{imp_type}基準:")
+    sorted_features = sorted(imp_dict.items(), key=lambda x: x[1], reverse=True)
+    for i, (feature, score) in enumerate(sorted_features[:5], 1):
+        feature_idx = int(feature.replace('f', ''))
+        print(f"  {i}. {data.feature_names[feature_idx]}: {score:.2f}")
+    print()
+
+# 可視化: 3つの重要度の相関
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+# Gain vs Weight
+common_features = set(importance_gain.keys()) & set(importance_weight.keys())
+gain_vals = [importance_gain[f] for f in common_features]
+weight_vals = [importance_weight[f] for f in common_features]
+
+axes[0].scatter(weight_vals, gain_vals, alpha=0.6, edgecolors='black')
+axes[0].set_xlabel('Weight')
+axes[0].set_ylabel('Gain')
+axes[0].set_title('Gain vs Weight')
+axes[0].grid(True, alpha=0.3)
+
+# Gain vs Cover
+cover_vals = [importance_cover[f] for f in common_features]
+
+axes[1].scatter(cover_vals, gain_vals, alpha=0.6, edgecolors='black', color='orange')
+axes[1].set_xlabel('Cover')
+axes[1].set_ylabel('Gain')
+axes[1].set_title('Gain vs Cover')
+axes[1].grid(True, alpha=0.3)
+
+# Weight vs Cover
+axes[2].scatter(weight_vals, cover_vals, alpha=0.6, edgecolors='black', color='green')
+axes[2].set_xlabel('Weight')
+axes[2].set_ylabel('Cover')
+axes[2].set_title('Weight vs Cover')
+axes[2].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+
+<p><strong>結論</strong>：</p>
+<ul>
+<li>一般的には<strong>Gain</strong>を使用（予測精度への寄与が明確）</li>
+<li>計算効率やデータ構造の分析には<strong>Weight</strong>や<strong>Cover</strong>も有用</li>
+<li>複数の指標を組み合わせて総合的に判断することが重要</li>
+</ul>
+
+</details>
+
+<hr>
+
+<h2>参考文献</h2>
+
+<ol>
+<li>Chen, T., & Guestrin, C. (2016). XGBoost: A Scalable Tree Boosting System. <em>Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining</em>.</li>
+<li>Chen, T., He, T., Benesty, M., et al. (2023). <em>XGBoost Documentation</em>. https://xgboost.readthedocs.io/</li>
+<li>Hastie, T., Tibshirani, R., & Friedman, J. (2009). <em>The Elements of Statistical Learning</em> (2nd ed.). Springer.</li>
+<li>Lundberg, S. M., & Lee, S. I. (2017). A Unified Approach to Interpreting Model Predictions. <em>Advances in Neural Information Processing Systems</em>.</li>
+</ol>
+
+<div class="navigation">
+    <a href="chapter1-gradient-boosting.html" class="nav-button">← 前の章: 勾配ブースティング基礎</a>
+    <a href="chapter3-lightgbm.html" class="nav-button">次の章: LightGBM →</a>
+</div>
+
+    </main>
+
+    <footer>
+        <p><strong>作成者</strong>: AI Terakoya Content Team</p>
+        <p><strong>監修</strong>: Dr. Yusuke Hashimoto（東北大学）</p>
+        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-21</p>
+        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>
