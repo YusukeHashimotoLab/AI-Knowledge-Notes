@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>平衡熱力学と相転移 | 基礎数理道場 - AI Terakoya</title>
+    <meta name="description" content="熱力学の法則からGibbs自由エネルギー、化学ポテンシャル、相図、Clausius-Clapeyron式、臨界現象、Landau理論まで、材料の相転移を定量的に解析します。35の実装例付き。">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .subtitle { opacity: 0.9; margin-bottom: 1rem; }
+        .series-meta { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9rem; margin-top: 1rem; }
+        .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+        .back-link { display: inline-block; margin-bottom: 2rem; padding: 0.5rem 1rem; background: white; color: #667eea; text-decoration: none; border-radius: 6px; font-weight: 600; }
+        .intro { background: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .intro h2 { color: #667eea; margin-bottom: 1rem; }
+        .objectives { background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0; }
+        .objectives h3 { color: #667eea; margin-bottom: 1rem; font-size: 1.1rem; }
+        .objectives ul { margin-left: 1.5rem; }
+        .objectives li { margin: 0.5rem 0; }
+        .chapters { display: grid; gap: 1.5rem; margin-bottom: 2rem; }
+        .chapter-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.3s, box-shadow 0.3s; }
+        .chapter-card:hover { transform: translateY(-4px); box-shadow: 0 4px 16px rgba(102,126,234,0.2); }
+        .chapter-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; }
+        .chapter-number { font-size: 0.9rem; opacity: 0.9; }
+        .chapter-title { font-size: 1.3rem; font-weight: 600; margin: 0.5rem 0; }
+        .chapter-body { padding: 1.5rem; }
+        .chapter-desc { color: #666; margin-bottom: 1rem; line-height: 1.7; }
+        .chapter-topics { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+        .topic-tag { background: #e7f3ff; color: #004085; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; }
+        .chapter-meta { display: flex; gap: 1rem; margin: 1rem 0; padding: 1rem; background: #f8f9fa; border-radius: 6px; }
+        .meta-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.9rem; }
+        .chapter-link { display: inline-block; padding: 0.6rem 1.5rem; background: #667eea; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; transition: background 0.3s; }
+        .chapter-link:hover { background: #764ba2; }
+        .prereq { background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem 1.5rem; margin: 2rem 0; border-radius: 4px; }
+        .prereq h3 { color: #856404; margin-bottom: 0.5rem; }
+        footer { background: #2c3e50; color: white; text-align: center; padding: 2rem 1rem; margin-top: 3rem; }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.5rem; }
+            .series-meta { font-size: 0.8rem; gap: 1rem; }
+            .chapter-header { padding: 1rem; }
+            .chapter-title { font-size: 1.1rem; }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/FM/index.html">基礎数理</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/FM/equilibrium-thermodynamics/index.html">Equilibrium Thermodynamics</a>
+        </div>
+    </nav>
+
+        <header>
+        <h1>🔥 平衡熱力学と相転移</h1>
+        <p class="subtitle">Equilibrium Thermodynamics and Phase Transitions for Materials Science</p>
+        <div class="series-meta">
+            <span>📚 5章</span>
+            <span>💻 35コード例</span>
+            <span>⏱️ 90-110分</span>
+            <span>📊 中級</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <a href="../index.html" class="back-link">← 基礎数理道場トップ</a>
+
+        <div class="intro">
+            <h2>🎯 シリーズ概要</h2>
+            <p>
+                平衡熱力学は、材料の相平衡、相転移、化学反応平衡を理解するための基礎理論です。
+                本シリーズでは、熱力学の法則から、Gibbs自由エネルギー、化学ポテンシャル、相図、Clausius-Clapeyron式、
+                臨界現象、Landau理論まで、理論と実装（Python/NumPy）をペアで学び、材料の相転移を定量的に解析します。
+            </p>
+
+            <div class="objectives">
+                <h3>📋 学習目標</h3>
+                <ul>
+                    <li>熱力学の基本法則とGibbs自由エネルギーを理解できる</li>
+                    <li>相平衡とClausius-Clapeyron式を用いて相図を計算できる</li>
+                    <li>1次相転移と2次相転移の違いを理解できる</li>
+                    <li>Landau理論を用いて相転移を記述できる</li>
+                    <li>材料の相図をPythonで計算し、可視化できる</li>
+                </ul>
+            </div>
+
+            <div class="prereq">
+                <h3>📖 前提知識</h3>
+                <p>微積分の基礎と熱力学の初歩的な知識があれば学習可能です。Pythonの基本的な使い方を理解していることが望ましいです。</p>
+            </div>
+        </div>
+
+        <div class="chapters">
+            <div class="chapter-card">
+                <div class="chapter-header">
+                    <div class="chapter-number">第1章</div>
+                    <div class="chapter-title">熱力学の法則と熱力学関数</div>
+                </div>
+                <div class="chapter-body">
+                    <p class="chapter-desc">
+                        熱力学第0法則から第3法則までの基本法則を学び、内部エネルギー・エンタルピー・Helmholtz自由エネルギー・Gibbs自由エネルギーの定義と物理的意味を理解します。
+                        各熱力学ポテンシャルから熱力学量を導出し、Pythonで可視化します。
+                    </p>
+                    <div class="chapter-topics">
+                        <span class="topic-tag">熱力学の法則</span>
+                        <span class="topic-tag">内部エネルギー</span>
+                        <span class="topic-tag">エンタルピー</span>
+                        <span class="topic-tag">Helmholtz自由エネルギー</span>
+                        <span class="topic-tag">Gibbs自由エネルギー</span>
+                        <span class="topic-tag">Legendre変換</span>
+                    </div>
+                    <div class="chapter-meta">
+                        <span class="meta-item">💻 7コード例</span>
+                        <span class="meta-item">⏱️ 18-22分</span>
+                    </div>
+                    <a href="chapter-1.html" class="chapter-link">第1章を読む →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <div class="chapter-header">
+                    <div class="chapter-number">第2章</div>
+                    <div class="chapter-title">相平衡とGibbs相律</div>
+                </div>
+                <div class="chapter-body">
+                    <p class="chapter-desc">
+                        相平衡の条件（温度・圧力・化学ポテンシャルの等しさ）を学び、Gibbs相律を導出します。
+                        Clausius-Clapeyron式を用いて蒸気圧曲線を計算し、一成分系の相図をPythonで作成します。
+                    </p>
+                    <div class="chapter-topics">
+                        <span class="topic-tag">相平衡条件</span>
+                        <span class="topic-tag">Gibbs相律</span>
+                        <span class="topic-tag">Clausius-Clapeyron式</span>
+                        <span class="topic-tag">蒸気圧曲線</span>
+                        <span class="topic-tag">相図</span>
+                        <span class="topic-tag">三重点</span>
+                    </div>
+                    <div class="chapter-meta">
+                        <span class="meta-item">💻 7コード例</span>
+                        <span class="meta-item">⏱️ 18-22分</span>
+                    </div>
+                    <a href="chapter-2.html" class="chapter-link">第2章を読む →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <div class="chapter-header">
+                    <div class="chapter-number">第3章</div>
+                    <div class="chapter-title">化学ポテンシャルと相図</div>
+                </div>
+                <div class="chapter-body">
+                    <p class="chapter-desc">
+                        化学ポテンシャルの定義と物理的意味を学び、多成分系の相平衡を理解します。
+                        van der Waals状態方程式、二元系・三元系相図、lever ruleを扱い、材料科学における相図をPythonで計算・可視化します。
+                    </p>
+                    <div class="chapter-topics">
+                        <span class="topic-tag">化学ポテンシャル</span>
+                        <span class="topic-tag">van der Waals方程式</span>
+                        <span class="topic-tag">二元系相図</span>
+                        <span class="topic-tag">共晶系</span>
+                        <span class="topic-tag">lever rule</span>
+                        <span class="topic-tag">固溶体</span>
+                    </div>
+                    <div class="chapter-meta">
+                        <span class="meta-item">💻 7コード例</span>
+                        <span class="meta-item">⏱️ 18-22分</span>
+                    </div>
+                    <a href="chapter-3.html" class="chapter-link">第3章を読む →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <div class="chapter-header">
+                    <div class="chapter-number">第4章</div>
+                    <div class="chapter-title">相転移の分類とLandau理論</div>
+                </div>
+                <div class="chapter-body">
+                    <p class="chapter-desc">
+                        1次相転移と2次相転移の違い、秩序パラメータの概念を学びます。
+                        Landau理論を用いて相転移を記述し、臨界現象とスケーリング理論をPythonで実装します。
+                    </p>
+                    <div class="chapter-topics">
+                        <span class="topic-tag">1次相転移</span>
+                        <span class="topic-tag">2次相転移</span>
+                        <span class="topic-tag">秩序パラメータ</span>
+                        <span class="topic-tag">Landau理論</span>
+                        <span class="topic-tag">臨界点</span>
+                        <span class="topic-tag">対称性の破れ</span>
+                    </div>
+                    <div class="chapter-meta">
+                        <span class="meta-item">💻 7コード例</span>
+                        <span class="meta-item">⏱️ 18-22分</span>
+                    </div>
+                    <a href="chapter-4.html" class="chapter-link">第4章を読む →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <div class="chapter-header">
+                    <div class="chapter-number">第5章</div>
+                    <div class="chapter-title">臨界現象とスケーリング理論</div>
+                </div>
+                <div class="chapter-body">
+                    <p class="chapter-desc">
+                        臨界点近傍の物理現象、臨界指数、対応状態原理を学びます。
+                        Ising模型と繰り込み群の初歩、普遍性クラスの概念を理解し、スケーリング則をPythonで検証します。
+                    </p>
+                    <div class="chapter-topics">
+                        <span class="topic-tag">臨界現象</span>
+                        <span class="topic-tag">臨界指数</span>
+                        <span class="topic-tag">対応状態原理</span>
+                        <span class="topic-tag">繰り込み群</span>
+                        <span class="topic-tag">普遍性クラス</span>
+                        <span class="topic-tag">スケーリング則</span>
+                    </div>
+                    <div class="chapter-meta">
+                        <span class="meta-item">💻 7コード例</span>
+                        <span class="meta-item">⏱️ 18-22分</span>
+                    </div>
+                    <a href="chapter-5.html" class="chapter-link">第5章を読む →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 AI Terakoya - Fundamentals of Mathematics & Physics Dojo</p>
+        <p style="margin-top: 0.5rem;">Licensed under CC BY 4.0</p>
+    </footer>
+</body>
+</html>

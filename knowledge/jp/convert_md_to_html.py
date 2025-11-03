@@ -37,7 +37,7 @@ SERIES = [
     "materials-property-mapping-introduction"
 ]
 
-BASE_PATH = Path("/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/knowledge/jp/MI")
+BASE_PATH = Path("/wp/knowledge/jp/MI")
 
 # HTML template header
 HTML_HEADER_TEMPLATE = '''<!DOCTYPE html>

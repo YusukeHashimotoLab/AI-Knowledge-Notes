@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>非平衡統計力学 | 基礎数理道場 - AI Terakoya</title>
+    <meta name="description" content="Boltzmann方程式とH定理、Master方程式、Langevin方程式、Fokker-Planck方程式、線形応答理論とゆらぎ散逸定理を学び、化学反応や拡散過程への応用をPythonで実装します。35の実装例付き。">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .subtitle { opacity: 0.9; margin-bottom: 1rem; }
+        .series-meta { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9rem; margin-top: 1rem; }
+        .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+        .back-link { display: inline-block; margin-bottom: 2rem; padding: 0.5rem 1rem; background: white; color: #667eea; text-decoration: none; border-radius: 6px; font-weight: 600; }
+        .intro { background: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .intro h2 { color: #667eea; margin-bottom: 1rem; }
+        .objectives { background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0; }
+        .objectives h3 { color: #667eea; margin-bottom: 1rem; font-size: 1.1rem; }
+        .objectives ul { margin-left: 1.5rem; }
+        .objectives li { margin: 0.5rem 0; }
+        .chapters { display: grid; gap: 1.5rem; margin-bottom: 2rem; }
+        .chapter-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.3s, box-shadow 0.3s; }
+        .chapter-card:hover { transform: translateY(-4px); box-shadow: 0 4px 16px rgba(102,126,234,0.2); }
+        .chapter-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; }
+        .chapter-number { font-size: 0.9rem; opacity: 0.9; }
+        .chapter-title { font-size: 1.3rem; font-weight: 600; margin: 0.5rem 0; }
+        .chapter-body { padding: 1.5rem; }
+        .chapter-desc { color: #666; margin-bottom: 1rem; line-height: 1.7; }
+        .chapter-topics { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+        .topic-tag { background: #e7f3ff; color: #004085; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; }
+        .chapter-meta { display: flex; gap: 1rem; margin: 1rem 0; padding: 1rem; background: #f8f9fa; border-radius: 6px; }
+        .meta-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.9rem; }
+        .chapter-link { display: inline-block; padding: 0.6rem 1.5rem; background: #667eea; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; transition: background 0.3s; }
+        .chapter-link:hover { background: #764ba2; }
+        .prereq { background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem 1.5rem; margin: 2rem 0; border-radius: 4px; }
+        .prereq h3 { color: #856404; margin-bottom: 0.5rem; }
+        footer { background: #2c3e50; color: white; text-align: center; padding: 2rem 1rem; margin-top: 3rem; }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.5rem; }
+            .series-meta { font-size: 0.8rem; gap: 1rem; }
+            .chapter-header { padding: 1rem; }
+            .chapter-title { font-size: 1.1rem; }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/FM/index.html">基礎数理</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/FM/non-equilibrium-statistical-mechanics/index.html">Non Equilibrium Statistical Mechanics</a>
+        </div>
+    </nav>
+
+        <header>
+        <h1>⚡ 非平衡統計力学</h1>
+        <p class="subtitle">Non-Equilibrium Statistical Mechanics for Materials Processes</p>
+        <div class="series-meta">
+            <span>📚 5章</span>
+            <span>💻 35コード例</span>
+            <span>⏱️ 90-110分</span>
+            <span>📊 中級</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <a href="../index.html" class="back-link">← 基礎数理道場トップ</a>
+
+        <div class="intro">
+            <h2>🎯 シリーズ概要</h2>
+            <p>
+                非平衡統計力学は、材料プロセスにおける拡散、反応、緩和現象を微視的に記述する理論です。
+                本シリーズでは、Boltzmann方程式とH定理、Master方程式、Langevin方程式、Fokker-Planck方程式、
+                線形応答理論とゆらぎ散逸定理を学び、化学反応や拡散過程への応用をPythonで実装します。
+            </p>
+
+            <div class="objectives">
+                <h3>📋 学習目標</h3>
+                <ul>
+                    <li>Boltzmann方程式とH定理を理解し、気体の緩和過程を計算できる</li>
+                    <li>Master方程式を用いて確率過程を記述できる</li>
+                    <li>Langevin方程式とFokker-Planck方程式を理解し、Brownian運動をシミュレーションできる</li>
+                    <li>線形応答理論とゆらぎ散逸定理を理解できる</li>
+                    <li>化学反応と拡散過程の動力学をPythonで実装できる</li>
+                </ul>
+            </div>
+
+            <div class="prereq">
+                <h3>📖 前提知識</h3>
+                <p>統計力学と確率論の基礎知識が必要です。Pythonの基本的な使い方を理解していることが望ましいです。</p>
+            </div>
+        </div>
+
+        <div class="chapters">
+            <div class="chapter-card">
+                <div class="chapter-header">
+                    <div class="chapter-number">第1章</div>
+                    <div class="chapter-title">Boltzmann方程式とH定理</div>
+                </div>
+                <div class="chapter-body">
+                    <p class="chapter-desc">
+                        分布関数の時間発展を記述するBoltzmann方程式を導出し、H定理によるエントロピー増大則を理解します。
+                        衝突項の扱いと緩和時間近似を学び、気体分子の緩和過程をPythonで数値シミュレーションします。
+                    </p>
+                    <div class="chapter-topics">
+                        <span class="topic-tag">Boltzmann方程式</span>
+                        <span class="topic-tag">H定理</span>
+                        <span class="topic-tag">衝突項</span>
+                        <span class="topic-tag">緩和時間近似</span>
+                        <span class="topic-tag">エントロピー増大</span>
+                        <span class="topic-tag">分布関数</span>
+                    </div>
+                    <div class="chapter-meta">
+                        <span class="meta-item">💻 7コード例</span>
+                        <span class="meta-item">⏱️ 18-22分</span>
+                    </div>
+                    <a href="chapter-1.html" class="chapter-link">第1章を読む →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <div class="chapter-header">
+                    <div class="chapter-number">第2章</div>
+                    <div class="chapter-title">Master方程式と確率過程</div>
+                </div>
+                <div class="chapter-body">
+                    <p class="chapter-desc">
+                        確率論的記述の基礎となるMaster方程式を導出し、遷移確率と詳細つり合いの概念を理解します。
+                        Random walkやBirth-death processなどの基本的な確率過程をPythonで実装し、統計的性質を解析します。
+                    </p>
+                    <div class="chapter-topics">
+                        <span class="topic-tag">Master方程式</span>
+                        <span class="topic-tag">遷移確率</span>
+                        <span class="topic-tag">詳細つり合い</span>
+                        <span class="topic-tag">Random walk</span>
+                        <span class="topic-tag">Birth-death過程</span>
+                        <span class="topic-tag">Markov過程</span>
+                    </div>
+                    <div class="chapter-meta">
+                        <span class="meta-item">💻 7コード例</span>
+                        <span class="meta-item">⏱️ 18-22分</span>
+                    </div>
+                    <a href="chapter-2.html" class="chapter-link">第2章を読む →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <div class="chapter-header">
+                    <div class="chapter-number">第3章</div>
+                    <div class="chapter-title">Langevin方程式とBrownian運動</div>
+                </div>
+                <div class="chapter-body">
+                    <p class="chapter-desc">
+                        熱浴中の粒子の運動を記述するLangevin方程式を導出し、対応するFokker-Planck方程式を理解します。
+                        Euler-Maruyama法による数値解法を実装し、Brownian運動の統計的性質（平均二乗変位、拡散係数）をPythonで検証します。
+                    </p>
+                    <div class="chapter-topics">
+                        <span class="topic-tag">Langevin方程式</span>
+                        <span class="topic-tag">Fokker-Planck方程式</span>
+                        <span class="topic-tag">Brownian運動</span>
+                        <span class="topic-tag">Euler-Maruyama法</span>
+                        <span class="topic-tag">拡散係数</span>
+                        <span class="topic-tag">平均二乗変位</span>
+                    </div>
+                    <div class="chapter-meta">
+                        <span class="meta-item">💻 7コード例</span>
+                        <span class="meta-item">⏱️ 18-22分</span>
+                    </div>
+                    <a href="chapter-3.html" class="chapter-link">第3章を読む →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <div class="chapter-header">
+                    <div class="chapter-number">第4章</div>
+                    <div class="chapter-title">線形応答理論とゆらぎ散逸定理</div>
+                </div>
+                <div class="chapter-body">
+                    <p class="chapter-desc">
+                        外場に対する系の応答を記述する線形応答理論を学びます。
+                        Green-Kubo公式とOnsager reciprocityを理解し、fluctuation-dissipation theoremを導出します。輸送係数の計算手法をPythonで実装します。
+                    </p>
+                    <div class="chapter-topics">
+                        <span class="topic-tag">線形応答理論</span>
+                        <span class="topic-tag">Green-Kubo公式</span>
+                        <span class="topic-tag">ゆらぎ散逸定理</span>
+                        <span class="topic-tag">Onsager reciprocity</span>
+                        <span class="topic-tag">輸送係数</span>
+                        <span class="topic-tag">相関関数</span>
+                    </div>
+                    <div class="chapter-meta">
+                        <span class="meta-item">💻 7コード例</span>
+                        <span class="meta-item">⏱️ 18-22分</span>
+                    </div>
+                    <a href="chapter-4.html" class="chapter-link">第4章を読む →</a>
+                </div>
+            </div>
+
+            <div class="chapter-card">
+                <div class="chapter-header">
+                    <div class="chapter-number">第5章</div>
+                    <div class="chapter-title">化学反応と拡散過程の動力学</div>
+                </div>
+                <div class="chapter-body">
+                    <p class="chapter-desc">
+                        非平衡統計力学の材料プロセスへの応用を学びます。
+                        化学反応速度論、拡散方程式の解法、結晶成長dynamics、相分離kineticsの理論的枠組みを理解し、実践的な材料プロセスシミュレーションをPythonで実装します。
+                    </p>
+                    <div class="chapter-topics">
+                        <span class="topic-tag">化学反応速度論</span>
+                        <span class="topic-tag">拡散方程式</span>
+                        <span class="topic-tag">結晶成長</span>
+                        <span class="topic-tag">相分離kinetics</span>
+                        <span class="topic-tag">Cahn-Hilliard方程式</span>
+                        <span class="topic-tag">材料プロセス</span>
+                    </div>
+                    <div class="chapter-meta">
+                        <span class="meta-item">💻 7コード例</span>
+                        <span class="meta-item">⏱️ 18-22分</span>
+                    </div>
+                    <a href="chapter-5.html" class="chapter-link">第5章を読む →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 AI Terakoya - Fundamentals of Mathematics & Physics Dojo</p>
+        <p style="margin-top: 0.5rem;">Licensed under CC BY 4.0</p>
+    </footer>
+</body>
+</html>

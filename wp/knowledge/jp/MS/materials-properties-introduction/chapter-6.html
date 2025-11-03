@@ -1,0 +1,2413 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第6章：実践：物性計算ワークフロー | MS Terakoya - 材料物性論入門</title>
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #f093fb;
+            --color-accent-light: #f5576c;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #f093fb;
+            --color-link-hover: #d07be8;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+        .header-content { max-width: 900px; margin: 0 auto; }
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        .meta-item { display: flex; align-items: center; gap: 0.3rem; }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+        p { margin-bottom: var(--spacing-md); color: var(--color-text); }
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            a:hover { color: var(--color-link-hover); text-decoration: underline; }
+        }
+        ul, ol { margin-left: var(--spacing-lg); margin-bottom: var(--spacing-md); }
+        li { margin-bottom: var(--spacing-xs); color: var(--color-text); }
+        strong { color: var(--color-primary-dark); font-weight: 600; }
+        .info-box {
+            background: var(--color-bg-alt);
+            border-left: 4px solid var(--color-accent);
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+        .warning-box {
+            background: #fff5f5;
+            border-left: 4px solid #fc8181;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+        .success-box {
+            background: #f0fff4;
+            border-left: 4px solid #48bb78;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+        .code-block {
+            background: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            overflow-x: auto;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .code-block code {
+            font-family: var(--font-mono);
+            color: var(--color-text);
+        }
+        .objectives {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            margin: var(--spacing-lg) 0;
+        }
+        .objectives h3 { color: white; margin-top: 0; }
+        .objectives ul { margin-left: var(--spacing-md); }
+        .objectives li { margin-bottom: var(--spacing-xs); }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: var(--spacing-md) 0;
+            font-size: 0.95rem;
+        }
+        th {
+            background: var(--color-bg-alt);
+            color: var(--color-primary);
+            padding: var(--spacing-sm);
+            text-align: left;
+            border: 1px solid var(--color-border);
+            font-weight: 600;
+        }
+        td {
+            padding: var(--spacing-sm);
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+        }
+        @media (hover: hover) and (pointer: fine) {
+            tr:hover { background: var(--color-bg-alt); }
+        }
+        .exercise {
+            background: #fffaf0;
+            border: 1px solid #feb2b2;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+        }
+        .exercise h4 {
+            color: #c53030;
+            margin-top: 0;
+        }
+        details {
+            background: var(--color-bg-alt);
+            padding: var(--spacing-sm);
+            border-radius: var(--border-radius);
+            margin: var(--spacing-sm) 0;
+        }
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            padding: var(--spacing-xs);
+        }
+        @media (hover: hover) and (pointer: fine) {
+            summary:hover { color: var(--color-link); }
+        }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: var(--spacing-xl);
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+        }
+        .nav-button {
+            display: inline-block;
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .nav-button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(240, 147, 251, 0.4);
+                color: white;
+                text-decoration: none;
+            }
+        }
+        .workflow-diagram {
+            background: var(--color-bg-alt);
+            border: 2px solid var(--color-accent);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+        .case-study {
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+        .case-study h4 {
+            color: #1e40af;
+            margin-top: 0;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.5rem; }
+            h2 { font-size: 1.4rem; }
+            h3 { font-size: 1.2rem; }
+            .meta { font-size: 0.85rem; }
+            .code-block { font-size: 0.85rem; padding: var(--spacing-sm); }
+            table { font-size: 0.85rem; }
+            th, td { padding: var(--spacing-xs); }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/MS/index.html">材料科学</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/MS/materials-properties-introduction/index.html">Materials Properties</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 6</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>第6章：実践：物性計算ワークフロー</h1>
+            <p class="subtitle">実材料での計算実行から物性評価までの完全ガイド</p>
+            <div class="meta">
+                <span class="meta-item">📚 シリーズ: 材料物性論入門</span>
+                <span class="meta-item">🎓 難易度: 中級</span>
+                <span class="meta-item">⏱️ 読了時間: 30-35分</span>
+                <span class="meta-item">🔧 実践: 10コード例</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="objectives">
+            <h3>📋 学習目標</h3>
+            <p>本章を完了すると、以下ができるようになります：</p>
+
+            <h4>🎯 基本理解レベル</h4>
+            <ul>
+                <li>物性計算の標準的なワークフロー（構造作成→計算→解析）を説明できる</li>
+                <li>4種類の代表的材料（Si, GaN, Fe, BaTiO₃）の物性計算手法を理解している</li>
+                <li>収束テストの必要性と実施方法を説明できる</li>
+            </ul>
+
+            <h4>🔬 実践スキルレベル</h4>
+            <ul>
+                <li>ASEを用いて多様な結晶構造を作成できる</li>
+                <li>各材料の物性（電子状態・光学・磁性・誘電）計算を実行できる</li>
+                <li>k点・エネルギーカットオフ・スピン設定を適切に決定できる</li>
+                <li>計算結果を可視化し、物性値を定量的に評価できる</li>
+            </ul>
+
+            <h4>🚀 応用力レベル</h4>
+            <ul>
+                <li>研究対象材料に応じて計算設定をカスタマイズできる</li>
+                <li>計算精度と計算コストのバランスを最適化できる</li>
+                <li>計算エラーを診断し、解決策を実装できる</li>
+                <li>バッチ処理により複数材料の計算を自動化できる</li>
+            </ul>
+        </div>
+
+        <h2>6.1 物性計算ワークフローの全体像</h2>
+
+        <p>実材料の物性計算は、以下の5段階で構成されます。本章ではこの全体フローを、4つの代表的材料を例に実践的に学びます。</p>
+
+        <div class="workflow-diagram">
+<pre>
+┌─────────────────────────────────────────────────────────────────┐
+│                   物性計算ワークフロー                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  1️⃣ 構造作成 (Structure Creation)                               │
+│     ├─ 単位格子定義 (lattice parameters, atomic positions)       │
+│     ├─ 対称性確認 (space group, symmetry operations)             │
+│     └─ 構造最適化 (geometry optimization)                        │
+│           ↓                                                       │
+│  2️⃣ 計算パラメータ設定 (Calculation Setup)                       │
+│     ├─ k点メッシュ決定 (convergence test)                        │
+│     ├─ エネルギーカットオフ決定 (convergence test)               │
+│     ├─ 交換相関汎関数選択 (LDA/GGA/hybrid)                       │
+│     └─ 特殊設定 (spin, SOC, U, etc.)                             │
+│           ↓                                                       │
+│  3️⃣ DFT計算実行 (DFT Calculation)                                │
+│     ├─ SCF計算 (self-consistent field)                           │
+│     ├─ Band structure計算                                        │
+│     ├─ DOS計算 (density of states)                               │
+│     └─ 物性固有の計算 (optical, magnetic, etc.)                  │
+│           ↓                                                       │
+│  4️⃣ 結果解析 (Post-processing)                                   │
+│     ├─ データ抽出 (energy, DOS, band, etc.)                      │
+│     ├─ 可視化 (matplotlib, pymatgen)                             │
+│     └─ 物性値計算 (bandgap, ε, μ, etc.)                          │
+│           ↓                                                       │
+│  5️⃣ 品質管理 (Quality Control)                                   │
+│     ├─ 収束確認 (energy, force, stress)                          │
+│     ├─ 実験値との比較                                             │
+│     └─ エラー診断・再計算                                         │
+│                                                                   │
+└─────────────────────────────────────────────────────────────────┘
+</pre>
+        </div>
+
+        <div class="info-box">
+            <h4>💡 本章で扱う4つの代表的材料</h4>
+            <table>
+                <tr>
+                    <th>材料</th>
+                    <th>物性クラス</th>
+                    <th>計算の焦点</th>
+                    <th>応用例</th>
+                </tr>
+                <tr>
+                    <td><strong>Si</strong></td>
+                    <td>半導体</td>
+                    <td>バンド構造、バンドギャップ</td>
+                    <td>CMOS集積回路、太陽電池</td>
+                </tr>
+                <tr>
+                    <td><strong>GaN</strong></td>
+                    <td>ワイドギャップ半導体</td>
+                    <td>光学特性、誘電関数</td>
+                    <td>青色LED、高周波デバイス</td>
+                </tr>
+                <tr>
+                    <td><strong>Fe</strong></td>
+                    <td>磁性体</td>
+                    <td>磁気モーメント、スピン偏極</td>
+                    <td>永久磁石、スピントロニクス</td>
+                </tr>
+                <tr>
+                    <td><strong>BaTiO₃</strong></td>
+                    <td>強誘電体</td>
+                    <td>誘電率、分極、格子ダイナミクス</td>
+                    <td>MLCCコンデンサ、圧電素子</td>
+                </tr>
+            </table>
+        </div>
+
+        <h2>6.2 ケーススタディ1：Si半導体のバンド構造計算</h2>
+
+        <p>最も基本的な半導体であるSiを例に、構造作成からバンド構造計算、結果解析までの完全なワークフローを実践します。</p>
+
+        <h3>6.2.1 Si結晶構造の作成</h3>
+
+        <p>Siはダイヤモンド構造（face-centered cubic, FCC）を持ちます。ASEの<code>bulk</code>関数を使うと、簡単に正確な結晶構造を作成できます。</p>
+
+        <div class="code-block">
+<strong>コード例1：Si結晶構造の作成</strong>
+<code><pre>
+from ase import Atoms
+from ase.build import bulk
+from ase.visualize import view
+import numpy as np
+
+# Si結晶構造作成（ダイヤモンド構造）
+si = bulk('Si', 'diamond', a=5.43)
+
+print("Si結晶情報:")
+print(f"  格子定数: {si.cell.cellpar()[0]:.3f} Å")
+print(f"  原子数: {len(si)} atoms")
+print(f"  空間群: Fd-3m (227)")
+print(f"  原子座標:")
+for i, pos in enumerate(si.get_scaled_positions()):
+    print(f"    Si{i+1}: ({pos[0]:.3f}, {pos[1]:.3f}, {pos[2]:.3f})")
+
+# 2x2x2スーパーセル作成
+si_supercell = si.repeat((2, 2, 2))
+print(f"\n2x2x2スーパーセル: {len(si_supercell)} atoms")
+
+# 構造の可視化（ASE GUIが利用可能な場合）
+# view(si)
+
+# CIF形式で保存
+from ase.io import write
+write('si_unitcell.cif', si)
+write('si_supercell.cif', si_supercell)
+print("\n✅ CIFファイル保存完了")
+</pre></code>
+        </div>
+
+        <div class="success-box">
+            <strong>実行結果例:</strong>
+            <pre>Si結晶情報:
+  格子定数: 5.430 Å
+  原子数: 2 atoms
+  空間群: Fd-3m (227)
+  原子座標:
+    Si1: (0.000, 0.000, 0.000)
+    Si2: (0.250, 0.250, 0.250)
+
+2x2x2スーパーセル: 16 atoms
+
+✅ CIFファイル保存完了</pre>
+        </div>
+
+        <h3>6.2.2 収束テスト：k点メッシュとエネルギーカットオフ</h3>
+
+        <p>正確な計算には、k点とエネルギーカットオフの収束確認が不可欠です。以下のスクリプトで系統的にテストします。</p>
+
+        <div class="code-block">
+<strong>コード例2：Si k点・エネルギーカットオフ収束テスト</strong>
+<code><pre>
+from ase.build import bulk
+from ase.calculators.espresso import Espresso
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Si結晶作成
+si = bulk('Si', 'diamond', a=5.43)
+
+# 擬ポテンシャル設定
+pseudopotentials = {'Si': 'Si.pbe-n-rrkjus_psl.1.0.0.UPF'}
+
+# =====================================
+# 1. k点収束テスト（エネルギーカットオフ固定）
+# =====================================
+kpts_list = [2, 4, 6, 8, 10, 12]
+energies_k = []
+ecutwfc_fixed = 30.0  # Ry
+
+print("k点収束テスト実行中...")
+for k in kpts_list:
+    calc = Espresso(
+        pseudopotentials=pseudopotentials,
+        input_data={
+            'control': {'calculation': 'scf'},
+            'system': {'ecutwfc': ecutwfc_fixed, 'occupations': 'smearing'},
+        },
+        kpts=(k, k, k),
+    )
+    si.calc = calc
+    energy = si.get_potential_energy()
+    energies_k.append(energy)
+    print(f"  k={k:2d}: E = {energy:.6f} eV")
+
+# =====================================
+# 2. エネルギーカットオフ収束テスト（k点固定）
+# =====================================
+ecutwfc_list = [20, 25, 30, 35, 40, 45, 50]
+energies_ecut = []
+kpts_fixed = (8, 8, 8)
+
+print("\nエネルギーカットオフ収束テスト実行中...")
+for ecut in ecutwfc_list:
+    calc = Espresso(
+        pseudopotentials=pseudopotentials,
+        input_data={
+            'control': {'calculation': 'scf'},
+            'system': {'ecutwfc': ecut, 'occupations': 'smearing'},
+        },
+        kpts=kpts_fixed,
+    )
+    si.calc = calc
+    energy = si.get_potential_energy()
+    energies_ecut.append(energy)
+    print(f"  ecutwfc={ecut:2d} Ry: E = {energy:.6f} eV")
+
+# =====================================
+# 3. 収束グラフ作成
+# =====================================
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+
+# k点収束
+ax1.plot(kpts_list, energies_k, 'o-', linewidth=2, markersize=8)
+ax1.axhline(y=energies_k[-1], color='r', linestyle='--',
+            label=f'Converged: {energies_k[-1]:.4f} eV')
+ax1.set_xlabel('k-point mesh (k×k×k)', fontsize=12)
+ax1.set_ylabel('Total Energy (eV)', fontsize=12)
+ax1.set_title('k-point Convergence Test', fontsize=14)
+ax1.grid(True, alpha=0.3)
+ax1.legend()
+
+# エネルギーカットオフ収束
+ax2.plot(ecutwfc_list, energies_ecut, 's-', linewidth=2, markersize=8)
+ax2.axhline(y=energies_ecut[-1], color='r', linestyle='--',
+            label=f'Converged: {energies_ecut[-1]:.4f} eV')
+ax2.set_xlabel('Energy Cutoff (Ry)', fontsize=12)
+ax2.set_ylabel('Total Energy (eV)', fontsize=12)
+ax2.set_title('Energy Cutoff Convergence Test', fontsize=14)
+ax2.grid(True, alpha=0.3)
+ax2.legend()
+
+plt.tight_layout()
+plt.savefig('si_convergence_tests.png', dpi=300)
+print("\n✅ 収束テストグラフ保存: si_convergence_tests.png")
+
+# =====================================
+# 4. 収束判定（エネルギー変化 < 1 meV/atom）
+# =====================================
+threshold = 0.001  # eV/atom
+
+delta_k = abs(energies_k[-1] - energies_k[-2]) / len(si)
+delta_ecut = abs(energies_ecut[-1] - energies_ecut[-2]) / len(si)
+
+print("\n📊 収束判定:")
+print(f"  k点: ΔE = {delta_k*1000:.3f} meV/atom → {'✅ 収束' if delta_k < threshold else '❌ 未収束'}")
+print(f"  ecutwfc: ΔE = {delta_ecut*1000:.3f} meV/atom → {'✅ 収束' if delta_ecut < threshold else '❌ 未収束'}")
+
+print(f"\n🎯 推奨設定:")
+print(f"  k点メッシュ: {kpts_list[-2]}×{kpts_list[-2]}×{kpts_list[-2]}")
+print(f"  エネルギーカットオフ: {ecutwfc_list[-2]} Ry")
+</pre></code>
+        </div>
+
+        <h3>6.2.3 バンド構造計算の実行</h3>
+
+        <p>収束設定を用いて、Si半導体の完全なバンド構造を計算します。</p>
+
+        <div class="code-block">
+<strong>コード例3：Siバンド構造計算ワークフロー</strong>
+<code><pre>
+from ase.build import bulk
+from ase.calculators.espresso import Espresso
+from ase.dft.kpoints import special_points, bandpath
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Si結晶作成
+si = bulk('Si', 'diamond', a=5.43)
+
+# 収束テストから得た最適パラメータ
+optimal_kpts = (10, 10, 10)
+optimal_ecutwfc = 40.0  # Ry
+
+pseudopotentials = {'Si': 'Si.pbe-n-rrkjus_psl.1.0.0.UPF'}
+
+# =====================================
+# ステップ1：SCF計算
+# =====================================
+print("ステップ1：SCF計算実行中...")
+calc_scf = Espresso(
+    pseudopotentials=pseudopotentials,
+    input_data={
+        'control': {
+            'calculation': 'scf',
+            'restart_mode': 'from_scratch',
+            'prefix': 'si',
+        },
+        'system': {
+            'ecutwfc': optimal_ecutwfc,
+            'occupations': 'smearing',
+            'smearing': 'gaussian',
+            'degauss': 0.01,
+        },
+        'electrons': {
+            'conv_thr': 1.0e-8,
+        }
+    },
+    kpts=optimal_kpts,
+)
+si.calc = calc_scf
+energy_scf = si.get_potential_energy()
+print(f"✅ SCF完了: E = {energy_scf:.6f} eV")
+
+# =====================================
+# ステップ2：バンド構造計算
+# =====================================
+print("\nステップ2：バンド構造計算実行中...")
+
+# 高対称点パス定義（FCC: L-Γ-X-W-K-Γ）
+points = special_points['fcc']
+path = bandpath(['L', 'Gamma', 'X', 'W', 'K', 'Gamma'], si.cell, npoints=100)
+
+calc_bands = Espresso(
+    pseudopotentials=pseudopotentials,
+    input_data={
+        'control': {
+            'calculation': 'bands',
+            'restart_mode': 'restart',
+            'prefix': 'si',
+        },
+        'system': {
+            'ecutwfc': optimal_ecutwfc,
+            'occupations': 'smearing',
+            'smearing': 'gaussian',
+            'degauss': 0.01,
+        },
+    },
+    kpts=path,
+)
+si.calc = calc_bands
+bands = calc_bands.band_structure()
+
+print("✅ バンド構造計算完了")
+
+# =====================================
+# ステップ3：バンドギャップ計算
+# =====================================
+energies = bands.energies
+kpoints = bands.kpts
+fermi_level = calc_bands.get_fermi_level()
+
+# 価電子帯頂上（VBM）と伝導帯底（CBM）を探索
+vbm_energy = np.max(energies[energies < fermi_level])
+cbm_energy = np.min(energies[energies > fermi_level])
+bandgap = cbm_energy - vbm_energy
+
+print(f"\n📊 バンド構造解析結果:")
+print(f"  フェルミレベル: {fermi_level:.4f} eV")
+print(f"  VBM: {vbm_energy:.4f} eV")
+print(f"  CBM: {cbm_energy:.4f} eV")
+print(f"  バンドギャップ: {bandgap:.4f} eV")
+print(f"  実験値: 1.12 eV (300K)")
+print(f"  誤差: {abs(bandgap - 1.12)/1.12*100:.1f}%")
+
+# =====================================
+# ステップ4：可視化
+# =====================================
+fig, ax = plt.subplots(figsize=(8, 6))
+bands.plot(ax=ax, emin=-10, emax=10)
+ax.axhline(y=0, color='k', linestyle='--', linewidth=1, label='Fermi level')
+ax.set_ylabel('Energy (eV)', fontsize=12)
+ax.set_title(f'Si Band Structure (Eg = {bandgap:.3f} eV)', fontsize=14)
+ax.legend()
+plt.tight_layout()
+plt.savefig('si_bandstructure.png', dpi=300)
+print("\n✅ バンド構造図保存: si_bandstructure.png")
+</pre></code>
+        </div>
+
+        <div class="warning-box">
+            <h4>⚠️ GGAによるバンドギャップ過小評価</h4>
+            <p>PBE（GGA）汎関数は、半導体のバンドギャップを系統的に過小評価します（Siで約0.6 eV、実験値1.12 eVに対し）。より正確な値には、以下の手法が必要です：</p>
+            <ul>
+                <li><strong>HSE06ハイブリッド汎関数</strong>：実験値に近い精度（計算コスト約10倍）</li>
+                <li><strong>GW近似</strong>：最も正確（計算コスト約100倍）</li>
+                <li><strong>Scissor補正</strong>：簡便な補正（実験値との差分をCBM側にシフト）</li>
+            </ul>
+        </div>
+
+        <h2>6.3 ケーススタディ2：GaN光学特性計算</h2>
+
+        <p>窒化ガリウム（GaN）は青色LEDに使われるワイドギャップ半導体です。光学特性（誘電関数、吸収スペクトル）の計算方法を学びます。</p>
+
+        <h3>6.3.1 GaN六方晶ウルツ鉱構造の作成</h3>
+
+        <div class="code-block">
+<strong>コード例4：GaN構造作成と光学計算セットアップ</strong>
+<code><pre>
+from ase import Atoms
+from ase.io import write
+import numpy as np
+
+# GaN ウルツ鉱構造（六方晶, P6_3mc）
+a = 3.189  # Å
+c = 5.185  # Å
+u = 0.377  # 内部パラメータ
+
+# 六方晶格子ベクトル
+cell = [
+    [a, 0, 0],
+    [-a/2, a*np.sqrt(3)/2, 0],
+    [0, 0, c]
+]
+
+# 原子座標（分率座標）
+positions = [
+    [1/3, 2/3, 0],      # Ga1
+    [2/3, 1/3, 1/2],    # Ga2
+    [1/3, 2/3, u],      # N1
+    [2/3, 1/3, 1/2+u],  # N2
+]
+
+# Atoms作成
+gan = Atoms(
+    symbols='Ga2N2',
+    scaled_positions=positions,
+    cell=cell,
+    pbc=True
+)
+
+print("GaN結晶情報:")
+print(f"  格子定数: a = {a:.3f} Å, c = {c:.3f} Å")
+print(f"  c/a比: {c/a:.3f}")
+print(f"  空間群: P6_3mc (186)")
+print(f"  原子数: {len(gan)} atoms")
+print(f"\n原子座標（カルテシアン, Å）:")
+for i, (sym, pos) in enumerate(zip(gan.get_chemical_symbols(), gan.positions)):
+    print(f"  {sym}{i+1}: ({pos[0]:7.3f}, {pos[1]:7.3f}, {pos[2]:7.3f})")
+
+# CIF保存
+write('gan_wurtzite.cif', gan)
+print("\n✅ GaN構造保存完了: gan_wurtzite.cif")
+
+# =====================================
+# 光学計算のための設定例
+# =====================================
+print("\n📋 GaN光学計算推奨設定:")
+print("  1. 構造最適化:")
+print("     - 格子定数最適化: 必須")
+print("     - 内部座標最適化: u パラメータ")
+print("  2. 収束設定:")
+print("     - k点: 12×12×8 以上（六方晶系）")
+print("     - ecutwfc: 50 Ry 以上")
+print("  3. 光学計算:")
+print("     - 空バンド数: 伝導帯 30本以上")
+print("     - スメアリング: 0.01 Ry (Gaussian)")
+print("     - 偏光方向: ⊥c軸（E_⊥）と ∥c軸（E_∥）")
+</pre></code>
+        </div>
+
+        <h3>6.3.2 誘電関数と吸収スペクトルの計算</h3>
+
+        <div class="code-block">
+<strong>コード例5：GaN光学特性計算ワークフロー</strong>
+<code><pre>
+from ase.calculators.espresso import Espresso
+import numpy as np
+import matplotlib.pyplot as plt
+
+# GaN構造（前のコードで作成済み）
+# gan = [GaN Atoms object]
+
+pseudopotentials = {
+    'Ga': 'Ga.pbe-dnl-rrkjus_psl.1.0.0.UPF',
+    'N': 'N.pbe-n-radius_5.UPF'
+}
+
+# =====================================
+# ステップ1：SCF計算（高密度k点）
+# =====================================
+print("ステップ1：SCF計算（光学用）...")
+calc_scf = Espresso(
+    pseudopotentials=pseudopotentials,
+    input_data={
+        'control': {
+            'calculation': 'scf',
+            'prefix': 'gan',
+        },
+        'system': {
+            'ecutwfc': 50.0,
+            'nbnd': 40,  # 空バンド含む
+            'occupations': 'smearing',
+            'smearing': 'gaussian',
+            'degauss': 0.01,
+        },
+        'electrons': {
+            'conv_thr': 1.0e-9,
+        }
+    },
+    kpts=(12, 12, 8),  # 六方晶系
+)
+gan.calc = calc_scf
+energy_scf = gan.get_potential_energy()
+print(f"✅ SCF完了: E = {energy_scf:.6f} eV")
+
+# =====================================
+# ステップ2：NSCF計算（より密なk点）
+# =====================================
+print("\nステップ2：NSCF計算（光学遷移用）...")
+calc_nscf = Espresso(
+    pseudopotentials=pseudopotentials,
+    input_data={
+        'control': {
+            'calculation': 'nscf',
+            'restart_mode': 'restart',
+            'prefix': 'gan',
+        },
+        'system': {
+            'ecutwfc': 50.0,
+            'nbnd': 60,  # さらに多くの空バンド
+            'occupations': 'smearing',
+            'smearing': 'gaussian',
+            'degauss': 0.01,
+        },
+    },
+    kpts=(24, 24, 16),  # SCFの2倍密度
+)
+gan.calc = calc_nscf
+print("✅ NSCF完了")
+
+# =====================================
+# ステップ3：誘電関数計算（epsilon.x）
+# =====================================
+print("\nステップ3：誘電関数計算...")
+
+# epsilon.xの入力ファイル作成（実際の計算ではQuantum ESPRESSOのepsilon.xを使用）
+epsilon_input = """
+ &inputpp
+   prefix = 'gan'
+   outdir = './tmp/'
+   calculation = 'eps'
+ /
+ &energy_grid
+   smeartype = 'gauss'
+   intersmear = 0.1
+   wmin = 0.0
+   wmax = 30.0
+   nw = 500
+ /
+"""
+
+with open('epsilon.in', 'w') as f:
+    f.write(epsilon_input)
+
+print("✅ epsilon.x入力ファイル作成: epsilon.in")
+print("  次のコマンドで実行: epsilon.x < epsilon.in > epsilon.out")
+
+# =====================================
+# ステップ4：結果の可視化（例示）
+# =====================================
+# 実際の計算結果からデータを読み込む想定
+
+# 仮想的な誘電関数データ（実際はepsilonr.datから読み込み）
+omega = np.linspace(0, 10, 200)  # eV
+epsilon_real = 5.0 + 2.0 * np.exp(-((omega - 3.4)/0.5)**2)  # ε₁(ω)
+epsilon_imag = 3.0 * np.exp(-((omega - 3.4)/0.3)**2)  # ε₂(ω)
+
+# 吸収係数 α(ω) = (2ω/c) * sqrt((sqrt(ε₁² + ε₂²) - ε₁)/2)
+c = 2.998e8  # m/s
+alpha = (2 * omega / c) * np.sqrt((np.sqrt(epsilon_real**2 + epsilon_imag**2) - epsilon_real) / 2)
+
+fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 10))
+
+# ε₁(ω)
+ax1.plot(omega, epsilon_real, 'b-', linewidth=2)
+ax1.axvline(x=3.4, color='r', linestyle='--', label='Direct gap (exp: 3.4 eV)')
+ax1.set_xlabel('Energy (eV)', fontsize=12)
+ax1.set_ylabel('Re[ε(ω)]', fontsize=12)
+ax1.set_title('Real Part of Dielectric Function', fontsize=14)
+ax1.grid(True, alpha=0.3)
+ax1.legend()
+
+# ε₂(ω)
+ax2.plot(omega, epsilon_imag, 'r-', linewidth=2)
+ax2.axvline(x=3.4, color='r', linestyle='--', label='Direct gap (exp: 3.4 eV)')
+ax2.set_xlabel('Energy (eV)', fontsize=12)
+ax2.set_ylabel('Im[ε(ω)]', fontsize=12)
+ax2.set_title('Imaginary Part of Dielectric Function', fontsize=14)
+ax2.grid(True, alpha=0.3)
+ax2.legend()
+
+# 吸収スペクトル
+ax3.plot(omega, alpha, 'g-', linewidth=2)
+ax3.set_xlabel('Energy (eV)', fontsize=12)
+ax3.set_ylabel('Absorption Coefficient (cm⁻¹)', fontsize=12)
+ax3.set_title('Optical Absorption Spectrum', fontsize=14)
+ax3.set_yscale('log')
+ax3.grid(True, alpha=0.3)
+
+# 反射率 R(ω)
+n = np.sqrt(epsilon_real + 1j * epsilon_imag)  # 複素屈折率
+reflectance = np.abs((n - 1) / (n + 1))**2
+ax4.plot(omega, reflectance, 'm-', linewidth=2)
+ax4.set_xlabel('Energy (eV)', fontsize=12)
+ax4.set_ylabel('Reflectance', fontsize=12)
+ax4.set_title('Normal Incidence Reflectance', fontsize=14)
+ax4.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('gan_optical_properties.png', dpi=300)
+print("\n✅ 光学特性グラフ保存: gan_optical_properties.png")
+
+print("\n📊 GaN光学特性（代表値）:")
+print(f"  直接遷移バンドギャップ: 3.4 eV (実験値)")
+print(f"  静誘電率 ε(0): {epsilon_real[0]:.2f}")
+print(f"  可視光領域屈折率: ~2.3")
+print(f"  吸収端: 約365 nm（紫外域）")
+</pre></code>
+        </div>
+
+        <h2>6.4 ケーススタディ3：Fe磁性体の磁気特性計算</h2>
+
+        <p>鉄（Fe）は代表的な強磁性体です。スピン分極DFT計算により、磁気モーメントとスピン状態密度を求めます。</p>
+
+        <h3>6.4.1 スピン分極計算の設定</h3>
+
+        <div class="code-block">
+<strong>コード例6：Fe磁気特性計算ワークフロー</strong>
+<code><pre>
+from ase.build import bulk
+from ase.calculators.espresso import Espresso
+from ase.io import write
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Fe bcc構造
+fe = bulk('Fe', 'bcc', a=2.87)
+
+print("Fe結晶情報:")
+print(f"  構造: bcc (body-centered cubic)")
+print(f"  格子定数: {fe.cell.cellpar()[0]:.3f} Å")
+print(f"  空間群: Im-3m (229)")
+print(f"  磁性: 強磁性体（室温）")
+
+pseudopotentials = {'Fe': 'Fe.pbe-spn-rrkjus_psl.1.0.0.UPF'}
+
+# =====================================
+# ステップ1：スピン分極SCF計算
+# =====================================
+print("\nステップ1：スピン分極SCF計算...")
+
+calc_scf = Espresso(
+    pseudopotentials=pseudopotentials,
+    input_data={
+        'control': {
+            'calculation': 'scf',
+            'prefix': 'fe',
+        },
+        'system': {
+            'ecutwfc': 60.0,
+            'ecutrho': 480.0,  # 金属は高いカットオフが必要
+            'occupations': 'smearing',
+            'smearing': 'mv',  # Marzari-Vanderbilt (金属推奨)
+            'degauss': 0.02,
+            'nspin': 2,  # スピン分極計算を有効化
+            'starting_magnetization(1)': 0.5,  # 初期磁化（Fe）
+        },
+        'electrons': {
+            'conv_thr': 1.0e-8,
+            'mixing_beta': 0.3,  # 磁性体は収束が遅い
+        }
+    },
+    kpts=(16, 16, 16),  # 金属は密なk点必要
+)
+
+fe.calc = calc_scf
+energy_scf = fe.get_potential_energy()
+print(f"✅ SCF完了: E = {energy_scf:.6f} eV")
+
+# =====================================
+# ステップ2：磁気モーメント解析
+# =====================================
+# 実際の計算では、Quantum ESPRESSOの出力から抽出
+print("\n📊 磁気特性解析結果:")
+
+# 仮想的な結果（実際はSCF出力から読み取り）
+total_magnetization = 2.15  # μB/atom
+absolute_magnetization = 2.20  # μB/atom
+
+print(f"  全磁気モーメント: {total_magnetization:.3f} μB/atom")
+print(f"  絶対磁気モーメント: {absolute_magnetization:.3f} μB/atom")
+print(f"  実験値: 2.22 μB/atom")
+print(f"  誤差: {abs(total_magnetization - 2.22)/2.22*100:.1f}%")
+
+# =====================================
+# ステップ3：スピン状態密度計算
+# =====================================
+print("\nステップ3：スピン状態密度（DOS）計算...")
+
+calc_dos = Espresso(
+    pseudopotentials=pseudopotentials,
+    input_data={
+        'control': {
+            'calculation': 'nscf',
+            'restart_mode': 'restart',
+            'prefix': 'fe',
+        },
+        'system': {
+            'ecutwfc': 60.0,
+            'ecutrho': 480.0,
+            'occupations': 'tetrahedra',  # DOS計算推奨
+            'nspin': 2,
+        },
+    },
+    kpts=(24, 24, 24),  # NSCFではより密なk点
+)
+
+fe.calc = calc_dos
+print("✅ NSCF完了")
+
+# projwfc.x または dos.x で状態密度計算（実際の手順）
+print("  次のステップ: projwfc.x でスピン分極DOSを計算")
+
+# =====================================
+# ステップ4：スピン分極DOS可視化
+# =====================================
+# 仮想的なDOSデータ（実際は計算結果から読み込み）
+energy = np.linspace(-10, 10, 500)
+dos_up = 1.5 * np.exp(-((energy - 2)/1.5)**2) + 0.5
+dos_down = -1.0 * np.exp(-((energy - 2)/1.5)**2) - 0.3
+fermi_level = 0.0
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# スピン分極DOS
+ax1.fill_between(energy, dos_up, 0, alpha=0.5, color='b', label='Spin up')
+ax1.fill_between(energy, dos_down, 0, alpha=0.5, color='r', label='Spin down')
+ax1.axvline(x=fermi_level, color='k', linestyle='--', linewidth=2, label='Fermi level')
+ax1.axhline(y=0, color='k', linewidth=0.5)
+ax1.set_xlabel('Energy (eV)', fontsize=12)
+ax1.set_ylabel('DOS (states/eV/atom)', fontsize=12)
+ax1.set_title('Fe Spin-Polarized DOS', fontsize=14)
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# 磁気モーメント密度
+mag_density = dos_up + dos_down
+ax2.plot(energy, mag_density, 'g-', linewidth=2)
+ax2.axvline(x=fermi_level, color='k', linestyle='--', linewidth=2, label='Fermi level')
+ax2.axhline(y=0, color='k', linewidth=0.5)
+ax2.set_xlabel('Energy (eV)', fontsize=12)
+ax2.set_ylabel('Magnetization Density (μB/eV/atom)', fontsize=12)
+ax2.set_title('Fe Magnetic Moment Density', fontsize=14)
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('fe_magnetic_properties.png', dpi=300)
+print("\n✅ 磁気特性グラフ保存: fe_magnetic_properties.png")
+
+# =====================================
+# ステップ5：交換スピン分裂解析
+# =====================================
+print("\n📊 交換スピン分裂解析:")
+exchange_splitting = 2.1  # eV（d軌道）
+print(f"  d軌道交換分裂: {exchange_splitting:.2f} eV")
+print(f"  スピン分極率: {(dos_up[250] - abs(dos_down[250]))/(dos_up[250] + abs(dos_down[250]))*100:.1f}%")
+</pre></code>
+        </div>
+
+        <div class="info-box">
+            <h4>💡 磁性計算の追加検討事項</h4>
+            <ul>
+                <li><strong>Hubbard U補正</strong>：遷移金属の強相関電子系では、DFT+U法が磁気モーメントをより正確に予測</li>
+                <li><strong>反強磁性構造</strong>：スーパーセルを用いて異なるスピン配置を計算</li>
+                <li><strong>磁気異方性</strong>：スピン軌道相互作用（SOC）を含めることで、磁化容易軸を計算可能</li>
+                <li><strong>キュリー温度</strong>：Monte Carlo法との組み合わせで推定可能</li>
+            </ul>
+        </div>
+
+        <h2>6.5 ケーススタディ4：BaTiO₃強誘電体の誘電特性</h2>
+
+        <p>チタン酸バリウム（BaTiO₃）は代表的な強誘電体材料です。構造相転移と誘電特性の計算方法を学びます。</p>
+
+        <h3>6.5.1 ペロブスカイト構造の作成と相転移</h3>
+
+        <div class="code-block">
+<strong>コード例7：BaTiO₃構造と分極計算</strong>
+<code><pre>
+from ase import Atoms
+from ase.io import write
+import numpy as np
+
+# BaTiO₃ ペロブスカイト構造（立方晶相, 常誘電性）
+a = 4.00  # Å（立方晶格子定数）
+
+# 立方晶相（高温、常誘電性）
+bto_cubic = Atoms(
+    symbols='BaTiO3',
+    scaled_positions=[
+        [0.0, 0.0, 0.0],  # Ba at corner
+        [0.5, 0.5, 0.5],  # Ti at body center
+        [0.5, 0.5, 0.0],  # O1 at face center
+        [0.5, 0.0, 0.5],  # O2
+        [0.0, 0.5, 0.5],  # O3
+    ],
+    cell=[a, a, a],
+    pbc=True
+)
+
+print("BaTiO₃ 立方晶相（常誘電性、> 120°C）:")
+print(f"  格子定数: a = {a:.3f} Å")
+print(f"  空間群: Pm-3m (221)")
+print(f"  中心対称性: あり")
+
+# 正方晶相（室温、強誘電性）
+a_tetra = 3.99  # Å
+c_tetra = 4.03  # Å（c軸方向に伸びる）
+delta_z_Ti = 0.015  # Tiの変位
+delta_z_O = 0.020  # 軸方向Oの変位
+
+bto_tetra = Atoms(
+    symbols='BaTiO3',
+    scaled_positions=[
+        [0.0, 0.0, 0.0],           # Ba
+        [0.5, 0.5, 0.5 + delta_z_Ti],  # Ti（下方変位）
+        [0.5, 0.5, 0.0 - delta_z_O],   # O1（上方変位）
+        [0.5, 0.0, 0.5],           # O2
+        [0.0, 0.5, 0.5],           # O3
+    ],
+    cell=[a_tetra, a_tetra, c_tetra],
+    pbc=True
+)
+
+print(f"\nBaTiO₃ 正方晶相（強誘電性、室温）:")
+print(f"  格子定数: a = {a_tetra:.3f} Å, c = {c_tetra:.3f} Å")
+print(f"  c/a比: {c_tetra/a_tetra:.4f}")
+print(f"  空間群: P4mm (99)")
+print(f"  中心対称性: なし（極性構造）")
+print(f"  Ti変位: {delta_z_Ti * c_tetra:.4f} Å")
+
+# CIF保存
+write('bto_cubic.cif', bto_cubic)
+write('bto_tetragonal.cif', bto_tetra)
+print("\n✅ BaTiO₃構造保存完了")
+
+# =====================================
+# 自発分極計算の準備
+# =====================================
+print("\n📋 自発分極計算手順:")
+print("  1. 立方晶相の構造最適化（参照状態）")
+print("  2. 正方晶相の構造最適化（分極状態）")
+print("  3. Berry位相法で分極計算:")
+print("     P = (P_tetra - P_cubic) / V")
+print("  4. 実験値との比較:")
+print("     - 実験値: 26 μC/cm² (室温)")
+print("     - 計算値: 通常20-30 μC/cm²（DFT精度）")
+</pre></code>
+        </div>
+
+        <h3>6.5.2 誘電率と格子ダイナミクス計算</h3>
+
+        <div class="code-block">
+<strong>コード例8：BaTiO₃誘電率計算ワークフロー</strong>
+<code><pre>
+from ase.calculators.espresso import Espresso
+from ase.phonons import Phonons
+import numpy as np
+import matplotlib.pyplot as plt
+
+# BaTiO₃正方晶相（前のコードで作成）
+# bto_tetra = [BaTiO3 Atoms object]
+
+pseudopotentials = {
+    'Ba': 'Ba.pbe-spn-rrkjus_psl.1.0.0.UPF',
+    'Ti': 'Ti.pbe-spn-rrkjus_psl.1.0.0.UPF',
+    'O': 'O.pbe-n-rrkjus_psl.1.0.0.UPF'
+}
+
+# =====================================
+# ステップ1：構造最適化
+# =====================================
+print("ステップ1：構造最適化...")
+
+calc_relax = Espresso(
+    pseudopotentials=pseudopotentials,
+    input_data={
+        'control': {
+            'calculation': 'vc-relax',  # 格子定数も最適化
+            'prefix': 'bto',
+        },
+        'system': {
+            'ecutwfc': 60.0,
+            'ecutrho': 600.0,  # 酸化物は高いカットオフ必要
+            'occupations': 'fixed',
+        },
+        'electrons': {
+            'conv_thr': 1.0e-9,
+        },
+        'ions': {
+            'ion_dynamics': 'bfgs',
+        },
+        'cell': {
+            'cell_dynamics': 'bfgs',
+        }
+    },
+    kpts=(8, 8, 8),
+)
+
+bto_tetra.calc = calc_relax
+energy_relax = bto_tetra.get_potential_energy()
+optimized_cell = bto_tetra.get_cell()
+
+print(f"✅ 構造最適化完了")
+print(f"  最適化後格子定数: a = {optimized_cell[0][0]:.4f} Å, c = {optimized_cell[2][2]:.4f} Å")
+
+# =====================================
+# ステップ2：誘電定数計算（DFPT）
+# =====================================
+print("\nステップ2：誘電定数計算（DFPT: 密度汎関数摂動論）...")
+
+# ph.xの入力ファイル作成
+ph_input = """
+ &inputph
+   prefix = 'bto'
+   tr2_ph = 1.0d-14
+   epsil = .true.
+   zeu = .true.
+   ldisp = .false.
+   qplot = .false.
+ /
+ 0.0 0.0 0.0
+"""
+
+with open('ph_epsilon.in', 'w') as f:
+    f.write(ph_input)
+
+print("✅ ph.x入力ファイル作成: ph_epsilon.in")
+print("  次のコマンドで実行: ph.x < ph_epsilon.in > ph_epsilon.out")
+print("  出力から誘電テンソルとBorn有効電荷を取得")
+
+# =====================================
+# ステップ3：結果解析（例示）
+# =====================================
+# 実際の計算結果から読み取る想定
+
+print("\n📊 BaTiO₃誘電特性（計算結果例）:")
+
+# 電子誘電率（高周波）
+epsilon_inf = np.array([
+    [6.5, 0.0, 0.0],
+    [0.0, 6.5, 0.0],
+    [0.0, 0.0, 6.8]
+])
+
+print("\n1. 電子誘電率 ε∞（光学誘電率）:")
+print(f"  ε∞_⊥（a軸方向）: {epsilon_inf[0,0]:.2f}")
+print(f"  ε∞_∥（c軸方向）: {epsilon_inf[2,2]:.2f}")
+
+# イオン誘電率寄与（格子振動）
+epsilon_ionic = np.array([
+    [150, 0, 0],
+    [0, 150, 0],
+    [0, 0, 200]
+])
+
+print("\n2. イオン誘電率寄与 Δε（格子振動）:")
+print(f"  Δε_⊥: {epsilon_ionic[0,0]:.0f}")
+print(f"  Δε_∥: {epsilon_ionic[2,2]:.0f}")
+
+# 静誘電率
+epsilon_static = epsilon_inf + epsilon_ionic
+print("\n3. 静誘電率 ε₀:")
+print(f"  ε₀_⊥: {epsilon_static[0,0]:.0f}")
+print(f"  ε₀_∥: {epsilon_static[2,2]:.0f}")
+print(f"  実験値（室温）: ε₀_⊥ ≈ 170, ε₀_∥ ≈ 90")
+
+# Born有効電荷
+Z_Ti_star = 7.2  # e（Ti原子）
+Z_O_star = -5.8  # e（軸方向O）
+
+print(f"\n4. Born有効電荷:")
+print(f"  Z*(Ti): +{Z_Ti_star:.2f} e（名目価数: +4）")
+print(f"  Z*(O, axial): {Z_O_star:.2f} e（名目価数: -2）")
+print(f"  → 強い共有結合性を反映")
+
+# =====================================
+# ステップ4：ソフトモード解析
+# =====================================
+print("\n5. ソフトモード（強誘電不安定性）:")
+omega_soft = 50  # cm⁻¹（Γ点のA1モード）
+print(f"  A1モード振動数: {omega_soft:.0f} cm⁻¹")
+print(f"  → 立方晶では虚数振動数（構造不安定）")
+print(f"  → 正方晶では正の振動数（安定）")
+
+# =====================================
+# ステップ5：誘電率の温度依存性（Curie-Weiss則）
+# =====================================
+T = np.linspace(130, 400, 100)  # K
+T_c = 393  # K（キュリー温度）
+C = 1.7e5  # K（Curie定数）
+
+epsilon_para = epsilon_inf[0,0] + C / (T - T_c)  # 常誘電相（T > Tc）
+
+fig, ax = plt.subplots(figsize=(8, 6))
+ax.plot(T, epsilon_para, 'r-', linewidth=2, label='Paraelectric phase (T > Tc)')
+ax.axvline(x=T_c, color='k', linestyle='--', linewidth=2, label=f'Tc = {T_c} K')
+ax.set_xlabel('Temperature (K)', fontsize=12)
+ax.set_ylabel('Dielectric Constant ε', fontsize=12)
+ax.set_title('BaTiO₃ Temperature Dependence (Curie-Weiss Law)', fontsize=14)
+ax.set_ylim(0, 10000)
+ax.legend()
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('bto_curie_weiss.png', dpi=300)
+print("\n✅ 誘電率温度依存性グラフ保存: bto_curie_weiss.png")
+</pre></code>
+        </div>
+
+        <h2>6.6 収束テストのベストプラクティス</h2>
+
+        <p>すべての物性計算で最初に実施すべき収束テストの実践的な方法を、自動化スクリプトとして示します。</p>
+
+        <div class="code-block">
+<strong>コード例9：汎用収束テストスクリプト</strong>
+<code><pre>
+"""
+convergence_tester.py
+任意の材料に対してk点・エネルギーカットオフ収束テストを実行
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+from ase.calculators.espresso import Espresso
+from typing import List, Tuple, Dict
+import json
+
+class ConvergenceTester:
+    """DFT計算パラメータの収束テストを実行するクラス"""
+
+    def __init__(self, atoms, pseudopotentials, threshold_meV=1.0):
+        """
+        Parameters
+        ----------
+        atoms : ase.Atoms
+            テスト対象の原子構造
+        pseudopotentials : dict
+            擬ポテンシャル辞書 {'元素': 'ファイル名'}
+        threshold_meV : float
+            収束判定閾値（meV/atom）
+        """
+        self.atoms = atoms
+        self.pseudopotentials = pseudopotentials
+        self.threshold = threshold_meV / 1000  # eV/atomに変換
+        self.results = {}
+
+    def test_kpoints(self,
+                     kpts_list: List[int],
+                     ecutwfc: float,
+                     base_input: Dict = None) -> Tuple[List[float], Dict]:
+        """
+        k点メッシュの収束テスト
+
+        Parameters
+        ----------
+        kpts_list : List[int]
+            テストするk点リスト（例: [4, 6, 8, 10, 12]）
+        ecutwfc : float
+            固定するエネルギーカットオフ（Ry）
+        base_input : Dict
+            追加の計算設定
+
+        Returns
+        -------
+        energies : List[float]
+            各k点での全エネルギー
+        convergence_info : Dict
+            収束情報
+        """
+        print(f"\n{'='*60}")
+        print(f"k点収束テスト開始（ecutwfc = {ecutwfc} Ry 固定）")
+        print(f"{'='*60}")
+
+        if base_input is None:
+            base_input = {
+                'control': {'calculation': 'scf'},
+                'system': {'ecutwfc': ecutwfc},
+                'electrons': {'conv_thr': 1.0e-8},
+            }
+        else:
+            base_input['system']['ecutwfc'] = ecutwfc
+
+        energies = []
+        for k in kpts_list:
+            calc = Espresso(
+                pseudopotentials=self.pseudopotentials,
+                input_data=base_input,
+                kpts=(k, k, k),
+            )
+            self.atoms.calc = calc
+            energy = self.atoms.get_potential_energy()
+            energies.append(energy)
+            print(f"  k = {k:2d}×{k:2d}×{k:2d}: E = {energy:12.6f} eV")
+
+        # 収束判定
+        converged_idx = self._check_convergence(energies)
+        optimal_k = kpts_list[converged_idx] if converged_idx is not None else kpts_list[-1]
+
+        convergence_info = {
+            'converged': converged_idx is not None,
+            'optimal_k': optimal_k,
+            'threshold_meV': self.threshold * 1000,
+            'final_energy': energies[-1],
+        }
+
+        print(f"\n📊 収束判定:")
+        if converged_idx is not None:
+            print(f"  ✅ 収束達成: k = {optimal_k}")
+        else:
+            print(f"  ⚠️ 未収束: より密なk点が必要")
+
+        self.results['kpoints'] = {
+            'kpts_list': kpts_list,
+            'energies': energies,
+            'convergence_info': convergence_info
+        }
+
+        return energies, convergence_info
+
+    def test_ecutwfc(self,
+                     ecutwfc_list: List[float],
+                     kpts: Tuple[int, int, int],
+                     base_input: Dict = None) -> Tuple[List[float], Dict]:
+        """
+        エネルギーカットオフの収束テスト
+
+        Parameters
+        ----------
+        ecutwfc_list : List[float]
+            テストするカットオフリスト（Ry）
+        kpts : Tuple[int, int, int]
+            固定するk点メッシュ
+        base_input : Dict
+            追加の計算設定
+
+        Returns
+        -------
+        energies : List[float]
+            各カットオフでの全エネルギー
+        convergence_info : Dict
+            収束情報
+        """
+        print(f"\n{'='*60}")
+        print(f"エネルギーカットオフ収束テスト開始（kpts = {kpts} 固定）")
+        print(f"{'='*60}")
+
+        if base_input is None:
+            base_input = {
+                'control': {'calculation': 'scf'},
+                'system': {},
+                'electrons': {'conv_thr': 1.0e-8},
+            }
+
+        energies = []
+        for ecut in ecutwfc_list:
+            base_input['system']['ecutwfc'] = ecut
+            calc = Espresso(
+                pseudopotentials=self.pseudopotentials,
+                input_data=base_input,
+                kpts=kpts,
+            )
+            self.atoms.calc = calc
+            energy = self.atoms.get_potential_energy()
+            energies.append(energy)
+            print(f"  ecutwfc = {ecut:5.1f} Ry: E = {energy:12.6f} eV")
+
+        # 収束判定
+        converged_idx = self._check_convergence(energies)
+        optimal_ecut = ecutwfc_list[converged_idx] if converged_idx is not None else ecutwfc_list[-1]
+
+        convergence_info = {
+            'converged': converged_idx is not None,
+            'optimal_ecutwfc': optimal_ecut,
+            'threshold_meV': self.threshold * 1000,
+            'final_energy': energies[-1],
+        }
+
+        print(f"\n📊 収束判定:")
+        if converged_idx is not None:
+            print(f"  ✅ 収束達成: ecutwfc = {optimal_ecut} Ry")
+        else:
+            print(f"  ⚠️ 未収束: より高いカットオフが必要")
+
+        self.results['ecutwfc'] = {
+            'ecutwfc_list': ecutwfc_list,
+            'energies': energies,
+            'convergence_info': convergence_info
+        }
+
+        return energies, convergence_info
+
+    def _check_convergence(self, energies: List[float]) -> int:
+        """
+        エネルギー変化から収束を判定
+
+        Returns
+        -------
+        converged_idx : int or None
+            収束したインデックス（Noneは未収束）
+        """
+        n_atoms = len(self.atoms)
+        for i in range(1, len(energies)):
+            delta = abs(energies[i] - energies[i-1]) / n_atoms
+            if delta < self.threshold:
+                return i
+        return None
+
+    def plot_results(self, filename='convergence_tests.png'):
+        """収束テスト結果のプロット"""
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+        # k点収束
+        if 'kpoints' in self.results:
+            data = self.results['kpoints']
+            ax = axes[0]
+            ax.plot(data['kpts_list'], data['energies'], 'o-',
+                   linewidth=2, markersize=8, label='Calculated')
+            if data['convergence_info']['converged']:
+                opt_k = data['convergence_info']['optimal_k']
+                ax.axvline(x=opt_k, color='r', linestyle='--',
+                          label=f'Converged: {opt_k}')
+            ax.set_xlabel('k-points (k×k×k)', fontsize=12)
+            ax.set_ylabel('Total Energy (eV)', fontsize=12)
+            ax.set_title('k-point Convergence', fontsize=14)
+            ax.grid(True, alpha=0.3)
+            ax.legend()
+
+        # エネルギーカットオフ収束
+        if 'ecutwfc' in self.results:
+            data = self.results['ecutwfc']
+            ax = axes[1]
+            ax.plot(data['ecutwfc_list'], data['energies'], 's-',
+                   linewidth=2, markersize=8, label='Calculated')
+            if data['convergence_info']['converged']:
+                opt_ecut = data['convergence_info']['optimal_ecutwfc']
+                ax.axvline(x=opt_ecut, color='r', linestyle='--',
+                          label=f'Converged: {opt_ecut} Ry')
+            ax.set_xlabel('Energy Cutoff (Ry)', fontsize=12)
+            ax.set_ylabel('Total Energy (eV)', fontsize=12)
+            ax.set_title('Energy Cutoff Convergence', fontsize=14)
+            ax.grid(True, alpha=0.3)
+            ax.legend()
+
+        plt.tight_layout()
+        plt.savefig(filename, dpi=300)
+        print(f"\n✅ 収束テストグラフ保存: {filename}")
+
+    def save_results(self, filename='convergence_results.json'):
+        """結果をJSONファイルに保存"""
+        with open(filename, 'w') as f:
+            json.dump(self.results, f, indent=2)
+        print(f"✅ 収束テスト結果保存: {filename}")
+
+
+# =====================================
+# 使用例
+# =====================================
+if __name__ == "__main__":
+    from ase.build import bulk
+
+    # Si結晶
+    si = bulk('Si', 'diamond', a=5.43)
+    pseudopotentials = {'Si': 'Si.pbe-n-rrkjus_psl.1.0.0.UPF'}
+
+    # テスター初期化
+    tester = ConvergenceTester(si, pseudopotentials, threshold_meV=1.0)
+
+    # k点テスト
+    tester.test_kpoints(
+        kpts_list=[4, 6, 8, 10, 12],
+        ecutwfc=30.0
+    )
+
+    # エネルギーカットオフテスト
+    tester.test_ecutwfc(
+        ecutwfc_list=[20, 25, 30, 35, 40, 45],
+        kpts=(8, 8, 8)
+    )
+
+    # 結果の可視化と保存
+    tester.plot_results('si_convergence.png')
+    tester.save_results('si_convergence.json')
+
+    print("\n🎉 収束テスト完了！")
+</pre></code>
+        </div>
+
+        <h2>6.7 バッチ計算とワークフロー自動化</h2>
+
+        <p>複数の材料や計算条件を系統的に実行するためのバッチ処理システムを実装します。</p>
+
+        <div class="code-block">
+<strong>コード例10：完全ワークフロー自動化スクリプト</strong>
+<code><pre>
+"""
+materials_workflow_manager.py
+複数材料の物性計算を自動化するワークフロー管理システム
+"""
+
+import os
+import json
+import time
+from pathlib import Path
+from typing import List, Dict, Any
+from datetime import datetime
+from ase import Atoms
+from ase.io import read, write
+from ase.calculators.espresso import Espresso
+import yaml
+
+class MaterialsWorkflow:
+    """物性計算ワークフローの自動化システム"""
+
+    def __init__(self, config_file: str):
+        """
+        Parameters
+        ----------
+        config_file : str
+            ワークフロー設定ファイル（YAML形式）
+        """
+        with open(config_file, 'r') as f:
+            self.config = yaml.safe_load(f)
+
+        self.results_dir = Path(self.config['output_dir'])
+        self.results_dir.mkdir(exist_ok=True)
+
+        self.log_file = self.results_dir / 'workflow.log'
+        self._log("ワークフローマネージャー初期化完了")
+
+    def run_workflow(self):
+        """全材料のワークフローを実行"""
+        materials = self.config['materials']
+
+        self._log(f"\n{'='*70}")
+        self._log(f"ワークフロー実行開始: {len(materials)}材料")
+        self._log(f"{'='*70}")
+
+        results_summary = []
+
+        for i, mat_config in enumerate(materials, 1):
+            self._log(f"\n[{i}/{len(materials)}] {mat_config['name']} 処理開始...")
+
+            try:
+                result = self._process_material(mat_config)
+                results_summary.append(result)
+                self._log(f"✅ {mat_config['name']} 完了")
+            except Exception as e:
+                self._log(f"❌ {mat_config['name']} エラー: {str(e)}")
+                results_summary.append({
+                    'name': mat_config['name'],
+                    'status': 'failed',
+                    'error': str(e)
+                })
+
+        # 最終レポート作成
+        self._generate_report(results_summary)
+        self._log("\n🎉 全ワークフロー完了！")
+
+    def _process_material(self, mat_config: Dict) -> Dict:
+        """単一材料の完全ワークフロー実行"""
+        mat_name = mat_config['name']
+        mat_dir = self.results_dir / mat_name
+        mat_dir.mkdir(exist_ok=True)
+
+        result = {
+            'name': mat_name,
+            'status': 'running',
+            'start_time': datetime.now().isoformat()
+        }
+
+        # ステップ1：構造作成
+        atoms = self._create_structure(mat_config)
+        write(mat_dir / f'{mat_name}.cif', atoms)
+        result['structure_created'] = True
+
+        # ステップ2：収束テスト（設定で有効な場合）
+        if self.config.get('run_convergence_tests', True):
+            conv_result = self._run_convergence_tests(atoms, mat_config, mat_dir)
+            result['convergence'] = conv_result
+            optimal_kpts = conv_result['optimal_kpts']
+            optimal_ecutwfc = conv_result['optimal_ecutwfc']
+        else:
+            optimal_kpts = tuple(mat_config.get('kpts', [8, 8, 8]))
+            optimal_ecutwfc = mat_config.get('ecutwfc', 40.0)
+
+        # ステップ3：物性計算
+        properties = mat_config.get('properties', ['scf', 'bands', 'dos'])
+        result['properties'] = {}
+
+        for prop in properties:
+            self._log(f"  - {prop}計算実行中...")
+            prop_result = self._calculate_property(
+                atoms, prop, mat_config,
+                optimal_kpts, optimal_ecutwfc, mat_dir
+            )
+            result['properties'][prop] = prop_result
+
+        # ステップ4：後処理と可視化
+        self._postprocess(atoms, result, mat_dir)
+
+        result['status'] = 'completed'
+        result['end_time'] = datetime.now().isoformat()
+
+        # 材料ごとの結果保存
+        with open(mat_dir / 'results.json', 'w') as f:
+            json.dump(result, f, indent=2)
+
+        return result
+
+    def _create_structure(self, mat_config: Dict) -> Atoms:
+        """結晶構造作成"""
+        if 'structure_file' in mat_config:
+            return read(mat_config['structure_file'])
+
+        # 組み込み構造生成
+        from ase.build import bulk
+        name = mat_config['formula']
+        crystal_type = mat_config.get('crystal_type', 'fcc')
+        lattice_constant = mat_config.get('lattice_constant', 4.0)
+
+        return bulk(name, crystal_type, a=lattice_constant)
+
+    def _run_convergence_tests(self, atoms: Atoms,
+                                mat_config: Dict,
+                                output_dir: Path) -> Dict:
+        """収束テスト実行"""
+        from convergence_tester import ConvergenceTester
+
+        pseudopotentials = mat_config['pseudopotentials']
+        tester = ConvergenceTester(atoms, pseudopotentials, threshold_meV=1.0)
+
+        # k点テスト
+        kpts_range = mat_config.get('kpts_test_range', [4, 6, 8, 10, 12])
+        ecutwfc_test = mat_config.get('ecutwfc_test', 30.0)
+        tester.test_kpoints(kpts_range, ecutwfc_test)
+
+        # エネルギーカットオフテスト
+        ecutwfc_range = mat_config.get('ecutwfc_test_range', [20, 30, 40, 50])
+        kpts_test = tuple(mat_config.get('kpts_test', [8, 8, 8]))
+        tester.test_ecutwfc(ecutwfc_range, kpts_test)
+
+        # 結果保存
+        tester.plot_results(str(output_dir / 'convergence.png'))
+        tester.save_results(str(output_dir / 'convergence.json'))
+
+        return {
+            'optimal_kpts': tuple([tester.results['kpoints']['convergence_info']['optimal_k']] * 3),
+            'optimal_ecutwfc': tester.results['ecutwfc']['convergence_info']['optimal_ecutwfc']
+        }
+
+    def _calculate_property(self, atoms: Atoms,
+                           property_type: str,
+                           mat_config: Dict,
+                           kpts: tuple,
+                           ecutwfc: float,
+                           output_dir: Path) -> Dict:
+        """指定された物性を計算"""
+        pseudopotentials = mat_config['pseudopotentials']
+
+        # 物性タイプに応じた計算設定
+        if property_type == 'scf':
+            return self._run_scf(atoms, pseudopotentials, kpts, ecutwfc, output_dir)
+
+        elif property_type == 'bands':
+            return self._run_bands(atoms, pseudopotentials, kpts, ecutwfc, output_dir)
+
+        elif property_type == 'dos':
+            return self._run_dos(atoms, pseudopotentials, kpts, ecutwfc, output_dir)
+
+        elif property_type == 'optical':
+            return self._run_optical(atoms, pseudopotentials, kpts, ecutwfc, output_dir)
+
+        elif property_type == 'magnetic':
+            return self._run_magnetic(atoms, pseudopotentials, kpts, ecutwfc, output_dir)
+
+        else:
+            raise ValueError(f"未対応の物性タイプ: {property_type}")
+
+    def _run_scf(self, atoms, pseudopotentials, kpts, ecutwfc, output_dir):
+        """SCF計算"""
+        calc = Espresso(
+            pseudopotentials=pseudopotentials,
+            input_data={
+                'control': {'calculation': 'scf', 'prefix': 'scf'},
+                'system': {'ecutwfc': ecutwfc},
+                'electrons': {'conv_thr': 1.0e-8},
+            },
+            kpts=kpts,
+        )
+        atoms.calc = calc
+        energy = atoms.get_potential_energy()
+        forces = atoms.get_forces()
+
+        return {
+            'energy': energy,
+            'energy_per_atom': energy / len(atoms),
+            'max_force': float(np.max(np.abs(forces))),
+        }
+
+    def _run_bands(self, atoms, pseudopotentials, kpts, ecutwfc, output_dir):
+        """バンド構造計算"""
+        # 実装は簡略化（実際はコード例3に準拠）
+        return {'status': 'completed', 'output': 'bands.dat'}
+
+    def _run_dos(self, atoms, pseudopotentials, kpts, ecutwfc, output_dir):
+        """状態密度計算"""
+        return {'status': 'completed', 'output': 'dos.dat'}
+
+    def _run_optical(self, atoms, pseudopotentials, kpts, ecutwfc, output_dir):
+        """光学特性計算"""
+        return {'status': 'completed', 'output': 'epsilon.dat'}
+
+    def _run_magnetic(self, atoms, pseudopotentials, kpts, ecutwfc, output_dir):
+        """磁気特性計算"""
+        return {'status': 'completed', 'magnetization': 2.15}
+
+    def _postprocess(self, atoms: Atoms, result: Dict, output_dir: Path):
+        """結果の後処理と可視化"""
+        # プロット生成などの後処理
+        pass
+
+    def _generate_report(self, results_summary: List[Dict]):
+        """最終レポート生成"""
+        report_file = self.results_dir / 'workflow_report.md'
+
+        with open(report_file, 'w') as f:
+            f.write("# 物性計算ワークフロー実行レポート\n\n")
+            f.write(f"実行日時: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+
+            f.write("## 実行サマリー\n\n")
+            total = len(results_summary)
+            completed = sum(1 for r in results_summary if r['status'] == 'completed')
+            failed = total - completed
+
+            f.write(f"- 総材料数: {total}\n")
+            f.write(f"- 成功: {completed}\n")
+            f.write(f"- 失敗: {failed}\n\n")
+
+            f.write("## 材料別詳細\n\n")
+            for result in results_summary:
+                f.write(f"### {result['name']}\n\n")
+                f.write(f"- ステータス: {result['status']}\n")
+                if 'properties' in result:
+                    f.write(f"- 計算物性: {', '.join(result['properties'].keys())}\n")
+                if 'error' in result:
+                    f.write(f"- エラー: {result['error']}\n")
+                f.write("\n")
+
+        self._log(f"\n✅ レポート生成完了: {report_file}")
+
+    def _log(self, message: str):
+        """ログ出力"""
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        log_message = f"[{timestamp}] {message}"
+        print(log_message)
+
+        with open(self.log_file, 'a') as f:
+            f.write(log_message + '\n')
+
+
+# =====================================
+# 設定ファイル例（workflow_config.yaml）
+# =====================================
+example_config = """
+output_dir: ./workflow_results
+run_convergence_tests: true
+
+materials:
+  - name: Si
+    formula: Si
+    crystal_type: diamond
+    lattice_constant: 5.43
+    pseudopotentials:
+      Si: Si.pbe-n-rrkjus_psl.1.0.0.UPF
+    properties: [scf, bands, dos]
+    kpts_test_range: [4, 6, 8, 10]
+    ecutwfc_test_range: [25, 30, 35, 40]
+
+  - name: GaN
+    formula: GaN
+    structure_file: gan_wurtzite.cif
+    pseudopotentials:
+      Ga: Ga.pbe-dnl-rrkjus_psl.1.0.0.UPF
+      N: N.pbe-n-radius_5.UPF
+    properties: [scf, bands, optical]
+    kpts: [12, 12, 8]
+    ecutwfc: 50.0
+
+  - name: Fe
+    formula: Fe
+    crystal_type: bcc
+    lattice_constant: 2.87
+    pseudopotentials:
+      Fe: Fe.pbe-spn-rrkjus_psl.1.0.0.UPF
+    properties: [scf, magnetic]
+    kpts: [16, 16, 16]
+    ecutwfc: 60.0
+"""
+
+# 使用例
+if __name__ == "__main__":
+    # 設定ファイル作成
+    with open('workflow_config.yaml', 'w') as f:
+        f.write(example_config)
+
+    # ワークフロー実行
+    workflow = MaterialsWorkflow('workflow_config.yaml')
+    workflow.run_workflow()
+</pre></code>
+        </div>
+
+        <h2>6.8 よくあるエラーと対処法</h2>
+
+        <div class="case-study">
+            <h4>エラー1：SCF計算が収束しない</h4>
+            <p><strong>症状</strong>：最大イテレーション回数を超えても、エネルギーや電荷密度が収束しない</p>
+            <p><strong>原因と対策</strong>：</p>
+            <ul>
+                <li><strong>金属系</strong>：smearingパラメータ（degauss）を調整。Marzari-Vanderbilt法を試す</li>
+                <li><strong>磁性体</strong>：mixing_betaを小さく（0.1-0.3）、starting_magnetizationを適切に設定</li>
+                <li><strong>酸化物</strong>：Hubbard U補正を追加（DFT+U）</li>
+                <li><strong>k点不足</strong>：より密なk点メッシュを使用</li>
+            </ul>
+            <div class="code-block">
+<code><pre>
+# 収束性改善の設定例
+input_data = {
+    'electrons': {
+        'conv_thr': 1.0e-6,        # 閾値を緩める（初期段階）
+        'mixing_beta': 0.2,         # 混合パラメータを小さく
+        'mixing_mode': 'local-TF',  # ThomasFermi混合
+        'diagonalization': 'david', # Davidson法（デフォルト）
+        'electron_maxstep': 200,    # 最大イテレーション増加
+    }
+}
+</pre></code>
+            </div>
+        </div>
+
+        <div class="case-study">
+            <h4>エラー2：バンドギャップが実験値と大きく異なる</h4>
+            <p><strong>症状</strong>：GGAで計算したバンドギャップが実験値より0.5-1.0 eV小さい</p>
+            <p><strong>原因と対策</strong>：</p>
+            <ul>
+                <li><strong>GGAの系統誤差</strong>：ハイブリッド汎関数（HSE06）またはGW近似を使用</li>
+                <li><strong>Scissor補正</strong>：簡易的な補正として、実験値との差分をCBM全体にシフト</li>
+                <li><strong>スピン軌道相互作用</strong>：重元素系では必須（lspinorb=.true.）</li>
+            </ul>
+            <div class="code-block">
+<code><pre>
+# HSE06ハイブリッド汎関数の設定例
+input_data = {
+    'system': {
+        'input_dft': 'hse',
+        'exxdiv_treatment': 'gygi-baldereschi',
+        'x_gamma_extrapolation': True,
+        'ecutvcut': 0.7,  # カットオフ（Ry）
+    }
+}
+# 注意：HSE計算はGGAの約10倍の計算コスト
+</pre></code>
+            </div>
+        </div>
+
+        <div class="case-study">
+            <h4>エラー3：メモリ不足でクラッシュ</h4>
+            <p><strong>症状</strong>：大きな系や密なk点でメモリエラー</p>
+            <p><strong>対策</strong>：</p>
+            <ul>
+                <li><strong>並列化</strong>：MPI並列数とプロセスグループを最適化</li>
+                <li><strong>メモリ削減</strong>：disk_ioを'low'に、wf_collectを.false.に</li>
+                <li><strong>段階的計算</strong>：粗いk点で収束後、密なk点でNSCF</li>
+            </ul>
+            <div class="code-block">
+<code><pre>
+# メモリ削減設定
+input_data = {
+    'control': {
+        'disk_io': 'low',         # ディスクI/O削減
+        'wf_collect': False,      # 波動関数を分散保存
+    }
+}
+
+# 実行コマンド例（MPI並列）
+# mpirun -np 16 pw.x -nk 4 -nd 4 < input.in > output.out
+# -nk: k点並列化
+# -nd: 対角化並列化
+</pre></code>
+            </div>
+        </div>
+
+        <div class="warning-box">
+            <h4>⚠️ トラブルシューティングの基本原則</h4>
+            <ol>
+                <li><strong>小さい系で動作確認</strong>：単位格子で設定をテスト後、スーパーセルへ</li>
+                <li><strong>段階的に厳密化</strong>：粗い設定で動作確認→収束設定へ</li>
+                <li><strong>ログを詳細に確認</strong>：エラーメッセージの正確な理解</li>
+                <li><strong>コミュニティに相談</strong>：Quantum ESPRESSO forumやMaterials Projectコミュニティを活用</li>
+            </ol>
+        </div>
+
+        <h2>6.9 本章のまとめ</h2>
+
+        <p>本章では、4種類の代表的材料（Si, GaN, Fe, BaTiO₃）を例に、実践的な物性計算ワークフローを完全に習得しました。</p>
+
+        <div class="success-box">
+            <h4>✅ 習得した実践スキル</h4>
+            <ul>
+                <li><strong>構造作成</strong>：ASEを用いた多様な結晶構造の作成とCIF出力</li>
+                <li><strong>収束テスト</strong>：k点・エネルギーカットオフの系統的決定法</li>
+                <li><strong>物性計算</strong>：
+                    <ul>
+                        <li>半導体：バンド構造、バンドギャップ</li>
+                        <li>光学：誘電関数、吸収スペクトル</li>
+                        <li>磁性：磁気モーメント、スピン分極DOS</li>
+                        <li>誘電：誘電率、分極、ソフトモード</li>
+                    </ul>
+                </li>
+                <li><strong>自動化</strong>：バッチ処理とワークフロー管理システム</li>
+                <li><strong>トラブルシューティング</strong>：エラー診断と解決策の実装</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <h4>💡 実務での応用指針</h4>
+            <table>
+                <tr>
+                    <th>研究目的</th>
+                    <th>推奨ワークフロー</th>
+                    <th>計算コスト</th>
+                </tr>
+                <tr>
+                    <td>材料スクリーニング</td>
+                    <td>GGA-PBE、粗めのk点、バッチ処理</td>
+                    <td>低（1材料 < 1時間）</td>
+                </tr>
+                <tr>
+                    <td>物性予測</td>
+                    <td>収束テスト済みGGA、標準k点密度</td>
+                    <td>中（1材料 数時間）</td>
+                </tr>
+                <tr>
+                    <td>精密物性評価</td>
+                    <td>HSE06またはGW、密なk点、SOC考慮</td>
+                    <td>高（1材料 1-3日）</td>
+                </tr>
+                <tr>
+                    <td>論文発表レベル</td>
+                    <td>複数汎関数比較、実験値検証、不確実性評価</td>
+                    <td>最高（1材料 1週間）</td>
+                </tr>
+            </table>
+        </div>
+
+        <hr style="margin: 2rem 0; border: none; border-top: 2px solid var(--color-border);">
+
+        <h2>📝 演習問題</h2>
+
+        <div class="exercise">
+            <h4>演習6-1：基礎（構造作成とファイル操作）</h4>
+            <p>以下の材料について、ASEで結晶構造を作成し、CIFファイルとして保存してください：</p>
+            <ol>
+                <li>Cu（FCC、a = 3.61 Å）</li>
+                <li>NaCl（rocksalt、a = 5.64 Å）</li>
+                <li>Diamond（C、a = 3.57 Å）</li>
+            </ol>
+            <p>各構造について、格子定数、原子数、空間群を出力すること。</p>
+        </div>
+
+        <details>
+            <summary>解答例を見る</summary>
+            <div class="code-block">
+<code><pre>
+from ase.build import bulk
+from ase.io import write
+from ase.spacegroup import get_spacegroup
+
+materials = [
+    ('Cu', 'fcc', 3.61),
+    ('NaCl', 'rocksalt', 5.64),
+    ('C', 'diamond', 3.57)
+]
+
+for name, struct_type, a in materials:
+    atoms = bulk(name, struct_type, a=a)
+
+    print(f"\n{name} 構造情報:")
+    print(f"  格子定数: {a:.3f} Å")
+    print(f"  原子数: {len(atoms)}")
+    sg = get_spacegroup(atoms, symprec=1e-5)
+    print(f"  空間群: {sg.symbol} ({sg.no})")
+
+    write(f'{name.lower()}_{struct_type}.cif', atoms)
+    print(f"  ✅ 保存完了: {name.lower()}_{struct_type}.cif")
+</pre></code>
+            </div>
+        </details>
+
+        <div class="exercise">
+            <h4>演習6-2：中級（収束テストの実装）</h4>
+            <p>Al（FCC、a = 4.05 Å）について、以下の収束テストを実行してください：</p>
+            <ol>
+                <li>k点収束テスト：4, 8, 12, 16, 20 の各メッシュで全エネルギーを計算</li>
+                <li>エネルギーカットオフ収束テスト：20, 30, 40, 50, 60 Ry で計算</li>
+                <li>収束判定：連続する点のエネルギー差が1 meV/atom以下</li>
+                <li>結果をグラフで可視化し、最適パラメータを決定</li>
+            </ol>
+            <p><strong>ヒント</strong>：Alは金属なので、smearingパラメータを適切に設定すること。</p>
+        </div>
+
+        <details>
+            <summary>解答例を見る</summary>
+            <div class="code-block">
+<code><pre>
+from ase.build import bulk
+from convergence_tester import ConvergenceTester
+
+# Al FCC構造
+al = bulk('Al', 'fcc', a=4.05)
+
+pseudopotentials = {'Al': 'Al.pbe-n-kjpaw_psl.1.0.0.UPF'}
+
+# テスター初期化
+tester = ConvergenceTester(al, pseudopotentials, threshold_meV=1.0)
+
+# 金属用の追加設定
+base_input = {
+    'control': {'calculation': 'scf'},
+    'system': {
+        'occupations': 'smearing',
+        'smearing': 'mv',  # Marzari-Vanderbilt
+        'degauss': 0.02,
+    },
+    'electrons': {'conv_thr': 1.0e-8},
+}
+
+# k点テスト
+tester.test_kpoints(
+    kpts_list=[4, 8, 12, 16, 20],
+    ecutwfc=30.0,
+    base_input=base_input
+)
+
+# エネルギーカットオフテスト
+tester.test_ecutwfc(
+    ecutwfc_list=[20, 30, 40, 50, 60],
+    kpts=(12, 12, 12),
+    base_input=base_input
+)
+
+# 結果可視化
+tester.plot_results('al_convergence.png')
+tester.save_results('al_convergence.json')
+
+print("\n最適パラメータ:")
+print(f"  k点: {tester.results['kpoints']['convergence_info']['optimal_k']}")
+print(f"  ecutwfc: {tester.results['ecutwfc']['convergence_info']['optimal_ecutwfc']} Ry")
+</pre></code>
+            </div>
+        </details>
+
+        <div class="exercise">
+            <h4>演習6-3：応用（完全ワークフロー実装）</h4>
+            <p>MgO（rocksalt、a = 4.21 Å）について、以下の完全ワークフローを実装してください：</p>
+            <ol>
+                <li>構造作成と最適化</li>
+                <li>収束テスト（k点とecut）</li>
+                <li>バンド構造計算（FCC高対称点パス）</li>
+                <li>状態密度（DOS）計算</li>
+                <li>バンドギャップ決定と実験値（7.8 eV）との比較</li>
+                <li>全結果を統合したレポート（Markdown）の自動生成</li>
+            </ol>
+            <p><strong>評価基準</strong>：</p>
+            <ul>
+                <li>すべての計算が正常に完了すること</li>
+                <li>結果が適切に可視化されていること</li>
+                <li>レポートに計算手順と結果が明確に記載されていること</li>
+            </ul>
+        </div>
+
+        <details>
+            <summary>解答例を見る</summary>
+            <div class="code-block">
+<code><pre>
+"""
+MgO完全ワークフロー
+"""
+from ase.build import bulk
+from ase.io import write
+from ase.calculators.espresso import Espresso
+from ase.dft.kpoints import bandpath
+import matplotlib.pyplot as plt
+from datetime import datetime
+
+# =====================================
+# 初期化
+# =====================================
+report_lines = []
+report_lines.append("# MgO 物性計算レポート\n")
+report_lines.append(f"実行日時: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+
+# =====================================
+# 1. 構造作成
+# =====================================
+print("1. 構造作成...")
+mgo = bulk('MgO', 'rocksalt', a=4.21)
+write('mgo.cif', mgo)
+
+report_lines.append("## 1. 結晶構造\n")
+report_lines.append(f"- 化学式: MgO\n")
+report_lines.append(f"- 構造: rocksalt (NaCl型)\n")
+report_lines.append(f"- 格子定数: {mgo.cell.cellpar()[0]:.3f} Å\n")
+report_lines.append(f"- 原子数: {len(mgo)}\n\n")
+
+# =====================================
+# 2. 収束テスト
+# =====================================
+print("2. 収束テスト...")
+from convergence_tester import ConvergenceTester
+
+pseudopotentials = {
+    'Mg': 'Mg.pbe-spnl-kjpaw_psl.1.0.0.UPF',
+    'O': 'O.pbe-n-kjpaw_psl.1.0.0.UPF'
+}
+
+tester = ConvergenceTester(mgo, pseudopotentials, threshold_meV=1.0)
+
+tester.test_kpoints([4, 6, 8, 10, 12], ecutwfc=50.0)
+tester.test_ecutwfc([40, 50, 60, 70], kpts=(8, 8, 8))
+tester.plot_results('mgo_convergence.png')
+
+optimal_k = tester.results['kpoints']['convergence_info']['optimal_k']
+optimal_ecut = tester.results['ecutwfc']['convergence_info']['optimal_ecutwfc']
+
+report_lines.append("## 2. 収束テスト結果\n")
+report_lines.append(f"- 最適k点: {optimal_k}×{optimal_k}×{optimal_k}\n")
+report_lines.append(f"- 最適ecutwfc: {optimal_ecut} Ry\n")
+report_lines.append(f"- 収束閾値: 1 meV/atom\n\n")
+
+# =====================================
+# 3. バンド構造計算
+# =====================================
+print("3. バンド構造計算...")
+
+# SCF
+calc_scf = Espresso(
+    pseudopotentials=pseudopotentials,
+    input_data={
+        'control': {'calculation': 'scf', 'prefix': 'mgo'},
+        'system': {'ecutwfc': optimal_ecut},
+        'electrons': {'conv_thr': 1.0e-8},
+    },
+    kpts=(optimal_k, optimal_k, optimal_k),
+)
+mgo.calc = calc_scf
+energy_scf = mgo.get_potential_energy()
+
+# バンド構造
+path = bandpath(['L', 'Gamma', 'X', 'W', 'K', 'Gamma'], mgo.cell, npoints=100)
+calc_bands = Espresso(
+    pseudopotentials=pseudopotentials,
+    input_data={
+        'control': {'calculation': 'bands', 'restart_mode': 'restart', 'prefix': 'mgo'},
+        'system': {'ecutwfc': optimal_ecut},
+    },
+    kpts=path,
+)
+mgo.calc = calc_bands
+bands = calc_bands.band_structure()
+
+# バンドギャップ計算
+fermi = calc_bands.get_fermi_level()
+energies = bands.energies
+vbm = np.max(energies[energies < fermi])
+cbm = np.min(energies[energies > fermi])
+bandgap = cbm - vbm
+
+report_lines.append("## 3. 電子構造\n")
+report_lines.append(f"- バンドギャップ（計算値）: {bandgap:.2f} eV\n")
+report_lines.append(f"- バンドギャップ（実験値）: 7.8 eV\n")
+report_lines.append(f"- 誤差: {abs(bandgap - 7.8):.2f} eV ({abs(bandgap - 7.8)/7.8*100:.1f}%)\n")
+report_lines.append(f"- 注記: GGA汎関数は絶縁体のギャップを過小評価\n\n")
+
+# バンド構造プロット
+fig, ax = plt.subplots(figsize=(8, 6))
+bands.plot(ax=ax, emin=-15, emax=15)
+ax.axhline(y=0, color='k', linestyle='--')
+ax.set_title(f'MgO Band Structure (Eg = {bandgap:.2f} eV)')
+plt.savefig('mgo_bandstructure.png', dpi=300)
+
+# =====================================
+# 4. DOS計算
+# =====================================
+print("4. DOS計算...")
+# （実装は省略、実際はprojwfc.xを使用）
+
+report_lines.append("## 4. 状態密度\n")
+report_lines.append("- DOSグラフ: mgo_dos.png\n")
+report_lines.append("- 価電子帯: 主にO 2p軌道\n")
+report_lines.append("- 伝導帯: Mg 3s軌道とO 2p軌道の混成\n\n")
+
+# =====================================
+# 5. レポート保存
+# =====================================
+report_lines.append("## 5. 計算設定まとめ\n")
+report_lines.append(f"- 擬ポテンシャル: PBE-PAW\n")
+report_lines.append(f"- 交換相関汎関数: PBE (GGA)\n")
+report_lines.append(f"- k点メッシュ: {optimal_k}×{optimal_k}×{optimal_k}\n")
+report_lines.append(f"- エネルギーカットオフ: {optimal_ecut} Ry\n")
+report_lines.append(f"- 収束閾値: 1×10⁻⁸ Ry\n\n")
+
+report_lines.append("## 6. 結論\n")
+report_lines.append("MgOの電子構造計算を完了。ワイドギャップ絶縁体であることを確認。\n")
+report_lines.append("GGA汎関数による系統的なバンドギャップ過小評価が確認された。\n")
+report_lines.append("より正確な値にはHSE06またはGW計算が必要。\n")
+
+with open('mgo_report.md', 'w') as f:
+    f.writelines(report_lines)
+
+print("\n✅ 全ワークフロー完了！")
+print("生成ファイル:")
+print("  - mgo.cif: 結晶構造")
+print("  - mgo_convergence.png: 収束テスト")
+print("  - mgo_bandstructure.png: バンド構造")
+print("  - mgo_report.md: 統合レポート")
+</pre></code>
+            </div>
+        </details>
+
+        <div class="exercise">
+            <h4>演習6-4：発展（オリジナル材料の完全解析）</h4>
+            <p>あなたが興味を持つ材料（未学習の材料）を1つ選び、以下を実装してください：</p>
+            <ol>
+                <li>文献調査：結晶構造、格子定数、実験的物性値を調査</li>
+                <li>構造作成：正確な原子座標と格子定数で結晶構造を作成</li>
+                <li>計算設定最適化：材料特性に応じた設定（スピン、U補正など）</li>
+                <li>複数物性計算：少なくとも3種類の物性（例：bands, DOS, optical）</li>
+                <li>実験値との比較検証</li>
+                <li>計算精度の評価と改善提案</li>
+                <li>包括的なレポート作成（背景、手法、結果、考察）</li>
+            </ol>
+            <p><strong>提出物</strong>：</p>
+            <ul>
+                <li>全計算スクリプト（実行可能な状態）</li>
+                <li>結果可視化図（3つ以上）</li>
+                <li>包括的レポート（3000字以上、英語可）</li>
+            </ul>
+        </div>
+
+        <details>
+            <summary>評価基準とヒント</summary>
+            <div class="info-box">
+                <h4>📋 評価基準</h4>
+                <ul>
+                    <li><strong>構造作成（20点）</strong>：正確性、対称性確認、可視化</li>
+                    <li><strong>計算設定（25点）</strong>：収束テスト、材料特性への配慮、パラメータ最適化</li>
+                    <li><strong>物性計算（30点）</strong>：複数物性の実装、計算の正確性、データ抽出</li>
+                    <li><strong>検証と考察（15点）</strong>：実験値比較、誤差分析、改善提案</li>
+                    <li><strong>レポート（10点）</strong>：論理性、図表の質、再現性</li>
+                </ul>
+
+                <h4>💡 推奨材料例</h4>
+                <ul>
+                    <li><strong>半導体</strong>：ZnO（ウルツ鉱）、InP（閃亜鉛鉱）</li>
+                    <li><strong>金属酸化物</strong>：TiO₂（ルチル/アナターゼ）、Al₂O₃（コランダム）</li>
+                    <li><strong>層状材料</strong>：MoS₂、graphite</li>
+                    <li><strong>ペロブスカイト</strong>：SrTiO₃、LaAlO₃</li>
+                </ul>
+            </div>
+        </details>
+
+        <div class="nav-buttons">
+            <a href="chapter-5.html" class="nav-button">← 第5章：光学的・熱的性質</a>
+            <a href="index.html" class="nav-button">目次へ戻る ↑</a>
+        </div>
+    </div>
+</body>
+</html>

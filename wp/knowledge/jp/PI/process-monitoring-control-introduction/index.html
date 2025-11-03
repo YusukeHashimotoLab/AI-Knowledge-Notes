@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="プロセスモニタリング・制御入門シリーズ - SPCから実時間監視システムまで完全ガイド">
+    <title>プロセスモニタリング・制御入門シリーズ v1.0 - PI Knowledge Hub</title>
+
+    <!-- CSS Styling -->
+        <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.8; color: #333; background: #f5f5f5;
+        }
+        header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; padding: 2rem 1rem; text-align: center;
+        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .subtitle { opacity: 0.9; font-size: 1.1rem; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 2rem; padding: 0.5rem 1rem;
+            background: white; color: #11998e; text-decoration: none;
+            border-radius: 6px; font-weight: 600;
+        }
+        .content-box {
+            background: white; padding: 2rem; border-radius: 12px;
+            margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #11998e; margin: 2rem 0 1rem 0;
+            padding-bottom: 0.5rem; border-bottom: 3px solid #11998e;
+        }
+        h3 { color: #2c3e50; margin: 1.5rem 0 1rem 0; }
+        h4 { color: #2c3e50; margin: 1rem 0 0.5rem 0; }
+        p { margin-bottom: 1rem; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+        pre {
+            background: #1e1e1e; color: #d4d4d4; padding: 1.5rem;
+            border-radius: 8px; overflow-x: auto; margin: 1rem 0;
+            border-left: 4px solid #11998e;
+        }
+        code {
+            font-family: 'Courier New', monospace; font-size: 0.9rem;
+        }
+        .key-point {
+            background: #e8f5e9; padding: 1rem; border-radius: 6px;
+            border-left: 4px solid #4caf50; margin: 1rem 0;
+        }
+        .tech-note {
+            background: #e3f2fd; padding: 1rem; border-radius: 6px;
+            border-left: 4px solid #2196f3; margin: 1rem 0;
+        }
+        .formula {
+            background: #f0f7ff; padding: 1rem; border-radius: 6px;
+            margin: 1rem 0; overflow-x: auto;
+        }
+        table {
+            width: 100%; border-collapse: collapse; margin: 1rem 0;
+        }
+        th, td {
+            border: 1px solid #ddd; padding: 0.75rem; text-align: left;
+        }
+        th {
+            background: #11998e; color: white; font-weight: 600;
+        }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .nav-buttons {
+            display: flex; justify-content: space-between; margin-top: 3rem;
+        }
+        .nav-buttons a {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; text-decoration: none; border-radius: 6px;
+            font-weight: 600;
+        }
+        footer {
+            background: #2c3e50; color: white; text-align: center;
+            padding: 2rem 1rem; margin-top: 4rem;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.6rem; }
+            .container { padding: 0 0.5rem; }
+            pre { padding: 1rem; }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mermaidCodeBlocks = document.querySelectorAll('pre.codehilite code.language-mermaid, pre code.language-mermaid');
+
+            mermaidCodeBlocks.forEach(function(codeBlock) {
+                const pre = codeBlock.parentElement;
+                const mermaidCode = codeBlock.textContent;
+
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = mermaidCode.trim();
+
+                pre.parentNode.replaceChild(mermaidDiv, pre);
+            });
+
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+                mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+            }
+        });
+    </script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/PI/index.html">プロセス・インフォマティクス</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/PI/process-monitoring-control-introduction/index.html">Process Monitoring Control</a>
+        </div>
+    </nav>
+
+        <header>
+        <div class="container">
+            <h1>📊 プロセスモニタリング・制御入門シリーズ v1.0</h1>
+            <div class="meta">
+                <span>📖 読了時間: 120-150分</span>
+                <span>📊 レベル: 初級〜中級</span>
+                <span>💻 コード例: 40個</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1 id="v10">プロセスモニタリング・制御入門シリーズ v1.0</h1>
+<p><strong>統計的プロセス管理（SPC）からリアルタイム監視システムまで - 完全実践ガイド</strong></p>
+
+<h2 id="_1">シリーズ概要</h2>
+<p>このシリーズは、プロセス産業におけるモニタリングと制御の基礎から実践まで、段階的に学べる全5章構成の教育コンテンツです。センサーデータの取得、統計的プロセス管理（SPC）、異常検知、PID制御、そして実時間監視システムの構築まで、包括的にカバーします。</p>
+
+<p><strong>特徴:</strong><br />
+- ✅ <strong>実践重視</strong>: 40個の実行可能なPythonコード例<br />
+- ✅ <strong>体系的構成</strong>: 基礎から応用まで段階的に学べる5章構成<br />
+- ✅ <strong>産業応用</strong>: 化学プラント、製造プロセスの実例を豊富に提供<br />
+- ✅ <strong>最新技術</strong>: 機械学習による異常検知、リアルタイムダッシュボード構築</p>
+
+<p><strong>総学習時間</strong>: 120-150分（コード実行と演習を含む）</p>
+
+<hr />
+
+<h2 id="_2">学習の進め方</h2>
+
+<h3 id="_3">推奨学習順序</h3>
+
+<div class="mermaid">
+flowchart TD
+    A[第1章: プロセスモニタリングの基礎] --> B[第2章: 統計的プロセス管理SPC]
+    B --> C[第3章: 異常検知とプロセス監視]
+    C --> D[第4章: フィードバック制御とPID制御]
+    D --> E[第5章: 実時間プロセス監視システムの実践]
+
+    style A fill:#e8f5e9
+    style B fill:#c8e6c9
+    style C fill:#a5d6a7
+    style D fill:#81c784
+    style E fill:#66bb6a
+</div>
+
+<p><strong>初学者の方（プロセス制御を初めて学ぶ）:</strong><br />
+- 第1章 → 第2章 → 第3章 → 第4章 → 第5章<br />
+- 所要時間: 120-150分</p>
+
+<p><strong>Python経験者（データ分析の基礎知識あり）:</strong><br />
+- 第2章 → 第3章 → 第4章 → 第5章<br />
+- 所要時間: 90-120分</p>
+
+<p><strong>制御エンジニア（制御理論の知識あり）:</strong><br />
+- 第1章（軽く確認） → 第3章 → 第5章<br />
+- 所要時間: 60-80分</p>
+
+<hr />
+
+<h2 id="_4">各章の詳細</h2>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-1.html">第1章：プロセスモニタリングの基礎とセンサーデータ取得</a></h3>
+    <div class="chapter-meta">
+        <span>📖 読了時間: 20-25分</span>
+        <span>💻 コード例: 8個</span>
+        <span>📊 難易度: 入門</span>
+    </div>
+
+    <h4>学習内容</h4>
+    <ol>
+        <li><strong>プロセスモニタリングの基礎</strong>
+            <ul>
+                <li>モニタリングの目的と重要性</li>
+                <li>プロセス産業におけるセンサーの役割</li>
+                <li>SCADAシステムとDCS（Distributed Control System）の概要</li>
+            </ul>
+        </li>
+        <li><strong>センサーの種類とデータ取得</strong>
+            <ul>
+                <li>温度・圧力・流量・液面センサーの特性</li>
+                <li>サンプリング理論とナイキスト定理</li>
+                <li>A/D変換と測定精度</li>
+            </ul>
+        </li>
+        <li><strong>時系列データの基本処理</strong>
+            <ul>
+                <li>Pandasによる時系列データハンドリング</li>
+                <li>データロギングとバッファリング</li>
+                <li>リサンプリングと補間</li>
+            </ul>
+        </li>
+        <li><strong>データ品質評価</strong>
+            <ul>
+                <li>欠損値とノイズの検出</li>
+                <li>センサードリフトの診断</li>
+                <li>外れ値の識別と処理</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>学習目標</h4>
+    <ul>
+        <li>✅ プロセスモニタリングの基本概念を説明できる</li>
+        <li>✅ センサーデータの特性とサンプリング理論を理解する</li>
+        <li>✅ Pythonで時系列センサーデータを処理できる</li>
+        <li>✅ データ品質評価の基本手法を適用できる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-1.html">第1章を読む →</a></strong></p>
+</div>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-2.html">第2章：統計的プロセス管理（SPC: Statistical Process Control）</a></h3>
+    <div class="chapter-meta">
+        <span>📖 読了時間: 25-30分</span>
+        <span>💻 コード例: 8個</span>
+        <span>📊 難易度: 入門〜中級</span>
+    </div>
+
+    <h4>学習内容</h4>
+    <ol>
+        <li><strong>SPCの基礎理論</strong>
+            <ul>
+                <li>統計的プロセス管理の目的と歴史</li>
+                <li>偶然原因と異常原因の違い</li>
+                <li>管理状態と規格値の区別</li>
+            </ul>
+        </li>
+        <li><strong>シューハート管理図</strong>
+            <ul>
+                <li>X̄-R管理図（平均値-範囲管理図）</li>
+                <li>I-MR管理図（個別値-移動範囲管理図）</li>
+                <li>3シグマ管理限界の計算</li>
+            </ul>
+        </li>
+        <li><strong>プロセス能力分析</strong>
+            <ul>
+                <li>Cp, Cpk指数の計算と解釈</li>
+                <li>工程能力評価の実践</li>
+                <li>規格との関係性</li>
+            </ul>
+        </li>
+        <li><strong>高度なSPC手法</strong>
+            <ul>
+                <li>CUSUM（累積和）管理図</li>
+                <li>EWMA（指数加重移動平均）管理図</li>
+                <li>多変量管理図（Hotelling's T²）</li>
+            </ul>
+        </li>
+        <li><strong>SPC異常判定ルール</strong>
+            <ul>
+                <li>ウェスタンエレクトリックルール</li>
+                <li>ラン検定とトレンド検出</li>
+                <li>アラーム生成システムの設計</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>学習目標</h4>
+    <ul>
+        <li>✅ SPCの基本理論と管理図の種類を理解する</li>
+        <li>✅ 管理図を作成し管理限界を計算できる</li>
+        <li>✅ プロセス能力指数（Cp, Cpk）を計算・評価できる</li>
+        <li>✅ CUSUM、EWMA等の高度な管理図を実装できる</li>
+        <li>✅ 異常判定ルールを適用しアラームシステムを設計できる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-2.html">第2章を読む →</a></strong></p>
+</div>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-3.html">第3章：異常検知とプロセス監視</a></h3>
+    <div class="chapter-meta">
+        <span>📖 読了時間: 25-30分</span>
+        <span>💻 コード例: 8個</span>
+        <span>📊 難易度: 中級</span>
+    </div>
+
+    <h4>学習内容</h4>
+    <ol>
+        <li><strong>異常検知の基礎</strong>
+            <ul>
+                <li>異常検知の目的と種類（点異常、文脈異常、集団異常）</li>
+                <li>教師あり vs 教師なし異常検知</li>
+                <li>評価指標（Precision, Recall, F1スコア）</li>
+            </ul>
+        </li>
+        <li><strong>統計的異常検知手法</strong>
+            <ul>
+                <li>閾値ベース異常検知</li>
+                <li>Zスコア法と修正Zスコア法</li>
+                <li>ホテリングのT²統計量</li>
+            </ul>
+        </li>
+        <li><strong>機械学習による異常検知</strong>
+            <ul>
+                <li>Isolation Forest（孤立の森）</li>
+                <li>One-Class SVM（正常運転モデリング）</li>
+                <li>Local Outlier Factor（LOF）</li>
+            </ul>
+        </li>
+        <li><strong>深層学習による時系列異常検知</strong>
+            <ul>
+                <li>Autoencoderによる再構成誤差法</li>
+                <li>LSTMによる時系列異常検知</li>
+                <li>異常スコアの計算と閾値設定</li>
+            </ul>
+        </li>
+        <li><strong>アラームマネジメント</strong>
+            <ul>
+                <li>アラーム優先順位付け</li>
+                <li>誤報削減テクニック</li>
+                <li>アラームフラッド（洪水）の防止</li>
+                <li>根本原因分析</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>学習目標</h4>
+    <ul>
+        <li>✅ 異常検知の種類と評価指標を理解する</li>
+        <li>✅ 統計的手法で異常を検出できる</li>
+        <li>✅ 機械学習アルゴリズムを異常検知に適用できる</li>
+        <li>✅ LSTMとAutoencoderで時系列異常検知ができる</li>
+        <li>✅ 効果的なアラームマネジメントシステムを設計できる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-3.html">第3章を読む →</a></strong></p>
+</div>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-4.html">第4章：フィードバック制御とPID制御</a></h3>
+    <div class="chapter-meta">
+        <span>📖 読了時間: 25-30分</span>
+        <span>💻 コード例: 8個</span>
+        <span>📊 難易度: 中級</span>
+    </div>
+
+    <h4>学習内容</h4>
+    <ol>
+        <li><strong>フィードバック制御の基礎</strong>
+            <ul>
+                <li>制御系の基本構成（設定値、制御量、操作量）</li>
+                <li>フィードバック制御の原理</li>
+                <li>伝達関数と動的システム</li>
+            </ul>
+        </li>
+        <li><strong>1次系のステップ応答</strong>
+            <ul>
+                <li>1次遅れ系の特性</li>
+                <li>時定数とゲインの理解</li>
+                <li>実プロセスへの適用例</li>
+            </ul>
+        </li>
+        <li><strong>PID制御器の設計</strong>
+            <ul>
+                <li>比例（P）制御の原理と残留偏差</li>
+                <li>積分（I）制御による定常偏差除去</li>
+                <li>微分（D）制御による応答改善</li>
+                <li>PID制御器の実装</li>
+            </ul>
+        </li>
+        <li><strong>PID制御器のチューニング</strong>
+            <ul>
+                <li>ジーグラー・ニコルス法（限界感度法、ステップ応答法）</li>
+                <li>チューニングパラメータの調整</li>
+                <li>制御性能の評価（オーバーシュート、整定時間）</li>
+            </ul>
+        </li>
+        <li><strong>実用的な制御問題</strong>
+            <ul>
+                <li>積分ワインドアップとアンチワインドアップ対策</li>
+                <li>操作量の飽和処理</li>
+                <li>カスケード制御の基礎</li>
+                <li>フィードフォワード制御との組み合わせ</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>学習目標</h4>
+    <ul>
+        <li>✅ フィードバック制御の基本原理を説明できる</li>
+        <li>✅ PID制御器の各要素（P, I, D）の役割を理解する</li>
+        <li>✅ Pythonで1次系とPID制御器をシミュレートできる</li>
+        <li>✅ ジーグラー・ニコルス法でPIDパラメータを決定できる</li>
+        <li>✅ 実用的な制御問題（ワインドアップ等）に対処できる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-4.html">第4章を読む →</a></strong></p>
+</div>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-5.html">第5章：実時間プロセス監視システムの実践</a></h3>
+    <div class="chapter-meta">
+        <span>📖 読了時間: 30-35分</span>
+        <span>💻 コード例: 8個</span>
+        <span>📊 難易度: 中級〜上級</span>
+    </div>
+
+    <h4>学習内容</h4>
+    <ol>
+        <li><strong>リアルタイム監視システムのアーキテクチャ</strong>
+            <ul>
+                <li>システム全体設計（データ収集、処理、可視化）</li>
+                <li>データストリーミングとバッファリング</li>
+                <li>マイクロサービスアーキテクチャ</li>
+            </ul>
+        </li>
+        <li><strong>Plotly Dashによるダッシュボード設計</strong>
+            <ul>
+                <li>Dashの基本構造とコンポーネント</li>
+                <li>リアルタイムグラフの実装</li>
+                <li>コールバックとインタラクティブ機能</li>
+            </ul>
+        </li>
+        <li><strong>WebSocketによるデータストリーミング</strong>
+            <ul>
+                <li>WebSocketの基礎と双方向通信</li>
+                <li>リアルタイムデータ配信の実装</li>
+                <li>クライアント-サーバー連携</li>
+            </ul>
+        </li>
+        <li><strong>マルチチャート監視インターフェース</strong>
+            <ul>
+                <li>複数プロセス変数の同時表示</li>
+                <li>トレンドチャートとゲージ表示</li>
+                <li>アラーム表示とステータスインジケータ</li>
+            </ul>
+        </li>
+        <li><strong>統合監視システムの構築</strong>
+            <ul>
+                <li>履歴データベース連携</li>
+                <li>KPI計算とレポーティング</li>
+                <li>通知システム（メール、Slack連携）</li>
+                <li>ケーススタディ: 化学プラント監視システム</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>学習目標</h4>
+    <ul>
+        <li>✅ リアルタイム監視システムのアーキテクチャを設計できる</li>
+        <li>✅ Plotly Dashでインタラクティブなダッシュボードを構築できる</li>
+        <li>✅ WebSocketでリアルタイムデータストリーミングを実装できる</li>
+        <li>✅ マルチチャート監視インターフェースを開発できる</li>
+        <li>✅ 完全な統合監視システムを構築できる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-5.html">第5章を読む →</a></strong></p>
+</div>
+
+<hr />
+
+<h2 id="_5">全体の学習成果</h2>
+
+<p>このシリーズを完了すると、以下のスキルと知識を習得できます：</p>
+
+<h3>知識レベル（Understanding）</h3>
+
+<ul>
+<li>✅ プロセスモニタリングと制御の基本原理を説明できる</li>
+<li>✅ SPCの理論と管理図の種類を理解している</li>
+<li>✅ 異常検知手法（統計的、機械学習、深層学習）を知っている</li>
+<li>✅ PID制御の理論とチューニング方法を理解している</li>
+<li>✅ リアルタイム監視システムのアーキテクチャを理解している</li>
+</ul>
+
+<h3>実践スキル（Doing）</h3>
+
+<ul>
+<li>✅ センサーデータの取得と前処理ができる</li>
+<li>✅ 管理図（X̄-R, I-MR, CUSUM, EWMA）を作成・評価できる</li>
+<li>✅ 機械学習と深層学習で異常検知モデルを構築できる</li>
+<li>✅ PID制御器を実装しチューニングできる</li>
+<li>✅ Plotly Dashでリアルタイムダッシュボードを構築できる</li>
+<li>✅ アラームマネジメントシステムを設計できる</li>
+</ul>
+
+<h3>応用力（Applying）</h3>
+
+<ul>
+<li>✅ 完全なプロセス監視システムを設計・実装できる</li>
+<li>✅ 実プロセスに適したSPCと異常検知手法を選択できる</li>
+<li>✅ 制御システムの性能評価と改善ができる</li>
+<li>✅ プロセスエンジニアとして実務に対応できる</li>
+</ul>
+
+<hr />
+
+<h2 id="faq">FAQ（よくある質問）</h2>
+
+<h3>Q1: 制御理論の知識がなくても理解できますか？</h3>
+
+<p><strong>A</strong>: はい。第4章では制御の基礎から説明しています。高度な数学は最小限に抑え、Pythonシミュレーションを通じて直感的に理解できるよう設計されています。</p>
+
+<h3>Q2: このシリーズとPI入門シリーズの違いは何ですか？</h3>
+
+<p><strong>A</strong>: PI入門シリーズは「プロセスモデリングと最適化」に焦点を当てるのに対し、本シリーズは「リアルタイムモニタリングと制御」に焦点を当てます。両者は補完関係にあり、組み合わせることで包括的なPI知識を習得できます。</p>
+
+<h3>Q3: 実際のプラントに適用できますか？</h3>
+
+<p><strong>A</strong>: はい。本シリーズのコード例は教育目的ですが、実プロセスへの適用を想定した実践的な内容です。第5章では実際の化学プラント監視システムのケーススタディを扱います。</p>
+
+<h3>Q4: どの程度のPythonスキルが必要ですか？</h3>
+
+<p><strong>A</strong>: Pythonの基本文法、Pandas/NumPyの基礎、Matplotlibによる可視化の経験があることが望ましいです。機械学習の経験は第3章で役立ちますが、必須ではありません。</p>
+
+<h3>Q5: 次に何を学ぶべきですか？</h3>
+
+<p><strong>A</strong>: 以下のトピックを推奨します：<br />
+- <strong>モデル予測制御（MPC）</strong>: 多変数制御の高度な手法<br />
+- <strong>実験計画法（DOE）</strong>: 効率的なプロセス最適化<br />
+- <strong>デジタルツイン</strong>: 仮想プロセスモデルの構築<br />
+- <strong>強化学習制御</strong>: AIによる適応制御</p>
+
+<hr />
+
+<h2 id="_6">次のステップ</h2>
+
+<h3>シリーズ完了後の推奨アクション</h3>
+
+<p><strong>Immediate（1週間以内）:</strong><br />
+1. ✅ 第5章の統合監視システムをGitHubに公開<br />
+2. ✅ 自社プロセスへの適用可能性を評価<br />
+3. ✅ SPC管理図を実データで試作</p>
+
+<p><strong>Short-term（1-3ヶ月）:</strong><br />
+1. ✅ 実プロセスデータでソフトセンサー構築<br />
+2. ✅ 異常検知モデルの実装とチューニング<br />
+3. ✅ リアルタイムダッシュボードの本格導入<br />
+4. ✅ MPC（モデル予測制御）の学習</p>
+
+<p><strong>Long-term（6ヶ月以上）:</strong><br />
+1. ✅ プロセス全体の統合監視・制御システム構築<br />
+2. ✅ デジタルツインの開発<br />
+3. ✅ 学会発表や論文執筆<br />
+4. ✅ プロセス制御エンジニアとしてのキャリア構築</p>
+
+<hr />
+
+<h2 id="_7">フィードバックとサポート</h2>
+
+<h3>このシリーズについて</h3>
+
+<p>このシリーズは、東北大学 Dr. Yusuke Hashimotoのもと、PI Knowledge Hubプロジェクトの一環として作成されました。</p>
+
+<p><strong>作成日</strong>: 2025年10月25日<br />
+<strong>バージョン</strong>: 1.0</p>
+
+<h3>フィードバックをお待ちしています</h3>
+
+<p>このシリーズを改善するため、皆様のフィードバックをお待ちしています：</p>
+
+<ul>
+<li><strong>誤字・脱字・技術的誤り</strong>: GitHubリポジトリのIssueで報告してください</li>
+<li><strong>改善提案</strong>: 新しいトピック、追加して欲しいコード例等</li>
+<li><strong>質問</strong>: 理解が難しかった部分、追加説明が欲しい箇所</li>
+<li><strong>成功事例</strong>: このシリーズで学んだことを使ったプロジェクト</li>
+</ul>
+
+<p><strong>連絡先</strong>: yusuke.hashimoto.b8@tohoku.ac.jp</p>
+
+<hr />
+
+<h2 id="_8">ライセンスと利用規約</h2>
+
+<p>このシリーズは <strong>CC BY 4.0</strong>（Creative Commons Attribution 4.0 International）ライセンスのもとで公開されています。</p>
+
+<p><strong>可能なこと:</strong><br />
+- ✅ 自由な閲覧・ダウンロード<br />
+- ✅ 教育目的での利用（授業、勉強会等）<br />
+- ✅ 改変・二次創作（翻訳、要約等）</p>
+
+<p><strong>条件:</strong><br />
+- 📌 著者のクレジット表示が必要<br />
+- 📌 改変した場合はその旨を明記<br />
+- 📌 商業利用の場合は事前に連絡</p>
+
+<p>詳細: <a href="https://creativecommons.org/licenses/by/4.0/deed.ja">CC BY 4.0ライセンス全文</a></p>
+
+<hr />
+
+<h2 id="_9">さあ、始めましょう！</h2>
+
+<p>準備はできましたか？ 第1章から始めて、プロセスモニタリング・制御の世界への旅を始めましょう！</p>
+
+<p><strong><a href="./chapter-1.html">第1章: プロセスモニタリングの基礎とセンサーデータ取得 →</a></strong></p>
+
+<hr />
+
+<p><strong>更新履歴</strong></p>
+
+<ul>
+<li><strong>2025-10-25</strong>: v1.0 初版公開</li>
+</ul>
+
+<hr />
+
+<p><strong>あなたのプロセスモニタリング・制御学習の旅はここから始まります！</strong></p>
+
+        <div class="nav-buttons">
+            <a href="../index.html" class="nav-button">← プロセス・インフォマティクス道場トップに戻る</a>
+        </div>
+    </main>
+
+    
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+<footer>
+        <div class="container">
+            <p>&copy; 2025 PI Knowledge Hub - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

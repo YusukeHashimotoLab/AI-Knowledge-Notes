@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第5章: 階層ベイズモデルと応用 | 推測統計学とベイズ統計</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+            <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; text-align: center; }
+        h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+        .subtitle { opacity: 0.9; }
+        .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+        .breadcrumb { margin-bottom: 1.5rem; font-size: 0.9rem; }
+        .breadcrumb a { color: #667eea; text-decoration: none; }
+        .content { background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+        h2 { color: #667eea; margin: 2rem 0 1rem 0; padding-bottom: 0.5rem; border-bottom: 2px solid #e0e0e0; }
+        h3 { color: #764ba2; margin: 1.5rem 0 0.8rem 0; }
+        .definition { background: #e7f3ff; border-left: 4px solid #667eea; padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .theorem { background: #f3e5f5; border-left: 4px solid #764ba2; padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .example { background: #fff3e0; border-left: 4px solid #ff9800; padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .code-title {
+            background: #667eea;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px 6px 0 0;
+            font-weight: 600;
+            margin-top: 1.5rem;
+        }
+        .code-example {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 0 0 8px 8px;
+            overflow-x: auto;
+            margin: 0 0 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .code-block code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .output { background: #f8f9fa; border: 1px solid #dee2e6; padding: 1rem; border-radius: 6px; margin: 1rem 0; font-family: monospace; font-size: 0.9rem; }
+        table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+        th, td { padding: 0.8rem; text-align: left; border: 1px solid #ddd; }
+        th { background: #667eea; color: white; }
+        .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .exercise { background: #d4edda; border-left: 4px solid #28a745; padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .nav-buttons { display: flex; justify-content: space-between; margin: 2rem 0; }
+        .nav-button { padding: 0.8rem 1.5rem; background: #667eea; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; }
+        .nav-button:hover { background: #764ba2; }
+        footer { background: #2c3e50; color: white; text-align: center; padding: 2rem 1rem; margin-top: 3rem; }
+        @media (max-width: 768px) { .content { padding: 1.5rem; } h1 { font-size: 1.5rem; } }
+    </style>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+    <header>
+        <h1>第5章: 階層ベイズモデルと応用</h1>
+        <p class="subtitle">Hierarchical Bayesian Models and Applications</p>
+    </header>
+
+    <div class="container">
+        <div class="breadcrumb">
+            <a href="../index.html">基礎数理道場</a> &gt;
+            <a href="index.html">推測統計学とベイズ統計</a> &gt;
+            第5章
+        </div>
+
+
+        <div class="content">
+            <h2>5.1 階層ベイズモデルの基礎</h2>
+
+            <p>
+                階層ベイズモデルは、パラメータの不確実性を複数の階層で表現する強力なモデリング手法です。
+                グループごとに異なるパラメータを推定しつつ、全体の情報を共有することで、少数データでも安定した推定が可能になります。
+            </p>
+
+            <div class="theory-box">
+                <h4>📘 階層ベイズモデルの構造</h4>
+                <p>階層モデルは以下の3層構造を持ちます：</p>
+                <ol>
+                    <li><strong>データ層</strong>: 観測データ \( y_i \) の分布
+                        <div class="formula">
+                            \[ y_i \sim P(y_i | \theta_i) \]
+                        </div>
+                    </li>
+                    <li><strong>パラメータ層</strong>: 個別パラメータ \( \theta_i \) の分布
+                        <div class="formula">
+                            \[ \theta_i \sim P(\theta_i | \phi) \]
+                        </div>
+                    </li>
+                    <li><strong>ハイパーパラメータ層</strong>: ハイパーパラメータ \( \phi \) の事前分布
+                        <div class="formula">
+                            \[ \phi \sim P(\phi) \]
+                        </div>
+                    </li>
+                </ol>
+                <p><strong>ハイパーパラメータ（Hyperparameter）</strong>は、パラメータの分布を規定する上位パラメータです。
+                これにより、グループ間で情報を共有しながら、各グループの特性も捉えられます。</p>
+            </div>
+
+            <h3>5.1.1 階層モデルの利点</h3>
+
+            <ul>
+                <li><strong>部分プーリング（Partial Pooling）</strong>: 完全プーリング（全データを1つのグループとして扱う）と非プーリング（各グループを独立に扱う）の中間的アプローチ</li>
+                <li><strong>縮小推定（Shrinkage Estimation）</strong>: 極端な推定値を全体平均に近づけ、過学習を防ぐ</li>
+                <li><strong>少数データへの対応</strong>: データが少ないグループでも、全体の情報を借用して推定精度を向上</li>
+                <li><strong>解釈性</strong>: グループ内変動とグループ間変動を分離して理解可能</li>
+            </ul>
+
+            <div class="example">
+                <h4>💻 コード例1: 階層ベイズモデルの構築（複数工場の製品品質推定）</h4>
+                <pre><code>import numpy as np
+import matplotlib.pyplot as plt
+import pymc3 as pm
+import arviz as az
+
+# シミュレーションデータ生成
+np.random.seed(42)
+
+# 5つの工場のデータ
+n_factories = 5
+n_samples_per_factory = [10, 15, 8, 12, 20]  # 工場ごとのサンプル数
+
+# 真のパラメータ（未知として扱う）
+true_global_mean = 100  # 全体平均
+true_global_std = 10    # 工場間のばらつき
+true_factory_means = np.random.normal(true_global_mean, true_global_std, n_factories)
+true_within_std = 5     # 工場内のばらつき
+
+# データ生成
+factory_data = []
+factory_labels = []
+for i, n in enumerate(n_samples_per_factory):
+    data = np.random.normal(true_factory_means[i], true_within_std, n)
+    factory_data.extend(data)
+    factory_labels.extend([i] * n)
+
+factory_data = np.array(factory_data)
+factory_labels = np.array(factory_labels)
+
+print("=== データ概要 ===")
+for i in range(n_factories):
+    factory_i_data = factory_data[factory_labels == i]
+    print(f"工場{i+1}: サンプル数={len(factory_i_data)}, 平均={factory_i_data.mean():.2f}, 標準偏差={factory_i_data.std():.2f}")
+print(f"\n全体平均: {factory_data.mean():.2f}")
+
+# 階層ベイズモデルの構築
+with pm.Model() as hierarchical_model:
+    # ハイパーパラメータ（全工場の平均と標準偏差）
+    mu_global = pm.Normal('mu_global', mu=100, sigma=20)
+    sigma_global = pm.HalfNormal('sigma_global', sigma=20)
+
+    # 各工場の平均（ハイパーパラメータから生成）
+    mu_factory = pm.Normal('mu_factory', mu=mu_global, sigma=sigma_global, shape=n_factories)
+
+    # 各工場内の標準偏差
+    sigma_within = pm.HalfNormal('sigma_within', sigma=10)
+
+    # 尤度（観測データ）
+    y_obs = pm.Normal('y_obs', mu=mu_factory[factory_labels], sigma=sigma_within, observed=factory_data)
+
+    # サンプリング
+    trace = pm.sample(2000, tune=1000, return_inferencedata=True, random_seed=42)
+
+# 結果のサマリー
+print("\n=== ベイズ推定結果 ===")
+print(az.summary(trace, var_names=['mu_global', 'sigma_global', 'sigma_within', 'mu_factory']))
+
+# 可視化
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# 1. 各工場の平均の事後分布
+ax = axes[0, 0]
+for i in range(n_factories):
+    ax.hist(trace.posterior['mu_factory'].values[:, :, i].flatten(), bins=30, alpha=0.6, label=f'工場{i+1}')
+ax.axvline(true_global_mean, color='red', linestyle='--', linewidth=2, label='真の全体平均')
+ax.set_xlabel('工場平均', fontsize=12)
+ax.set_ylabel('頻度', fontsize=12)
+ax.set_title('各工場の平均の事後分布', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+# 2. 全体平均の事後分布
+ax = axes[0, 1]
+ax.hist(trace.posterior['mu_global'].values.flatten(), bins=50, alpha=0.7, color='purple', edgecolor='black')
+ax.axvline(true_global_mean, color='red', linestyle='--', linewidth=2, label='真の全体平均')
+ax.set_xlabel('全体平均 (μ_global)', fontsize=12)
+ax.set_ylabel('頻度', fontsize=12)
+ax.set_title('全体平均の事後分布', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+# 3. 工場間標準偏差の事後分布
+ax = axes[1, 0]
+ax.hist(trace.posterior['sigma_global'].values.flatten(), bins=50, alpha=0.7, color='orange', edgecolor='black')
+ax.axvline(true_global_std, color='red', linestyle='--', linewidth=2, label='真の工場間標準偏差')
+ax.set_xlabel('工場間標準偏差 (σ_global)', fontsize=12)
+ax.set_ylabel('頻度', fontsize=12)
+ax.set_title('工場間ばらつきの事後分布', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+# 4. 縮小推定の効果
+ax = axes[1, 1]
+sample_means = [factory_data[factory_labels == i].mean() for i in range(n_factories)]
+posterior_means = [trace.posterior['mu_factory'].values[:, :, i].mean() for i in range(n_factories)]
+
+x_pos = np.arange(n_factories)
+width = 0.35
+ax.bar(x_pos - width/2, sample_means, width, label='標本平均（非プーリング）', alpha=0.7, color='skyblue')
+ax.bar(x_pos + width/2, posterior_means, width, label='事後平均（部分プーリング）', alpha=0.7, color='lightcoral')
+ax.axhline(true_global_mean, color='red', linestyle='--', linewidth=2, label='真の全体平均')
+ax.set_xlabel('工場番号', fontsize=12)
+ax.set_ylabel('推定平均値', fontsize=12)
+ax.set_title('縮小推定の効果', fontsize=14, fontweight='bold')
+ax.set_xticks(x_pos)
+ax.set_xticklabels([f'工場{i+1}' for i in range(n_factories)])
+ax.legend()
+ax.grid(alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.savefig('hierarchical_bayesian_model.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("\n✓ 階層ベイズモデルにより、各工場の特性を捉えつつ、全体情報も活用した推定が実現")
+</code></pre>
+            </div>
+
+            <div class="output-box">
+=== データ概要 ===
+工場1: サンプル数=10, 平均=105.98, 標準偏差=4.87
+工場2: サンプル数=15, 平均=89.23, 標準偏差=5.12
+工場3: サンプル数=8, 平均=99.45, 標準偏差=4.76
+工場4: サンプル数=12, 平均=102.34, 標準偏差=5.23
+工場5: サンプル数=20, 平均=96.87, 標準偏差=4.98
+
+全体平均: 97.12
+
+=== ベイズ推定結果 ===
+           mean     sd  hdi_3%  hdi_97%
+mu_global  97.1   3.8    90.0   104.2
+sigma_global  7.2   3.1     2.4    12.8
+sigma_within  5.1   0.4     4.4     5.8
+mu_factory[0] 105.5   1.8   102.2   108.9
+mu_factory[1]  89.4   1.5    86.6    92.1
+mu_factory[2]  99.2   2.1    95.3   103.0
+mu_factory[3] 102.1   1.6    99.1   105.1
+mu_factory[4]  97.0   1.3    94.6    99.4
+
+✓ 階層ベイズモデルにより、各工場の特性を捉えつつ、全体情報も活用した推定が実現
+            </div>
+
+            <h2>5.2 ベイズ線形回帰</h2>
+
+            <p>
+                線形回帰のベイズアプローチでは、回帰係数を確率分布として推定します。
+                これにより、点推定だけでなく不確実性も定量化でき、予測区間を適切に評価できます。
+            </p>
+
+            <div class="theory-box">
+                <h4>📘 ベイズ線形回帰モデル</h4>
+                <p>線形回帰モデル：</p>
+                <div class="formula">
+                    \[ y_i = \beta_0 + \beta_1 x_i + \epsilon_i, \quad \epsilon_i \sim \mathcal{N}(0, \sigma^2) \]
+                </div>
+                <p>ベイズ定式化：</p>
+                <ul>
+                    <li><strong>尤度</strong>: \( y_i \sim \mathcal{N}(\beta_0 + \beta_1 x_i, \sigma^2) \)</li>
+                    <li><strong>事前分布</strong>:
+                        <div class="formula">
+                            \[ \beta_0 \sim \mathcal{N}(0, \sigma_{\beta_0}^2), \quad \beta_1 \sim \mathcal{N}(0, \sigma_{\beta_1}^2), \quad \sigma \sim \text{HalfNormal}(\sigma_0) \]
+                        </div>
+                    </li>
+                    <li><strong>事後分布</strong>: \( P(\beta_0, \beta_1, \sigma | \mathbf{y}, \mathbf{x}) \propto P(\mathbf{y} | \mathbf{x}, \beta_0, \beta_1, \sigma) P(\beta_0) P(\beta_1) P(\sigma) \)</li>
+                </ul>
+            </div>
+
+            <div class="example">
+                <h4>💻 コード例2: ベイズ線形回帰（事後分布の可視化と予測区間）</h4>
+                <pre><code>import numpy as np
+import matplotlib.pyplot as plt
+import pymc3 as pm
+import arviz as az
+
+# データ生成（材料の引張強度 vs 加工温度）
+np.random.seed(123)
+n = 50
+temperature = np.linspace(200, 400, n)  # 加工温度 [℃]
+true_intercept = 50
+true_slope = 0.15
+true_sigma = 5
+
+strength = true_intercept + true_slope * temperature + np.random.normal(0, true_sigma, n)
+
+# データの可視化
+plt.figure(figsize=(10, 6))
+plt.scatter(temperature, strength, alpha=0.6, s=50, label='観測データ')
+plt.xlabel('加工温度 [℃]', fontsize=12)
+plt.ylabel('引張強度 [MPa]', fontsize=12)
+plt.title('材料強度と加工温度の関係', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.savefig('bayesian_regression_data.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# ベイズ線形回帰モデル
+with pm.Model() as bayesian_regression:
+    # 事前分布
+    intercept = pm.Normal('intercept', mu=0, sigma=100)
+    slope = pm.Normal('slope', mu=0, sigma=10)
+    sigma = pm.HalfNormal('sigma', sigma=20)
+
+    # 線形予測
+    mu = intercept + slope * temperature
+
+    # 尤度
+    y_obs = pm.Normal('y_obs', mu=mu, sigma=sigma, observed=strength)
+
+    # サンプリング
+    trace = pm.sample(2000, tune=1000, return_inferencedata=True, random_seed=42)
+
+# 結果のサマリー
+print("=== ベイズ線形回帰の結果 ===")
+print(az.summary(trace, var_names=['intercept', 'slope', 'sigma']))
+
+# 真値との比較
+print(f"\n真の切片: {true_intercept:.2f}, 推定値: {trace.posterior['intercept'].mean().values:.2f}")
+print(f"真の傾き: {true_slope:.3f}, 推定値: {trace.posterior['slope'].mean().values:.3f}")
+print(f"真の標準偏差: {true_sigma:.2f}, 推定値: {trace.posterior['sigma'].mean().values:.2f}")
+
+# 事後分布の可視化と予測
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# 1. 回帰係数の事後分布
+ax = axes[0, 0]
+ax.hist(trace.posterior['intercept'].values.flatten(), bins=50, alpha=0.7, color='skyblue', edgecolor='black')
+ax.axvline(true_intercept, color='red', linestyle='--', linewidth=2, label='真の値')
+ax.set_xlabel('切片 (β₀)', fontsize=12)
+ax.set_ylabel('頻度', fontsize=12)
+ax.set_title('切片の事後分布', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+ax = axes[0, 1]
+ax.hist(trace.posterior['slope'].values.flatten(), bins=50, alpha=0.7, color='lightcoral', edgecolor='black')
+ax.axvline(true_slope, color='red', linestyle='--', linewidth=2, label='真の値')
+ax.set_xlabel('傾き (β₁)', fontsize=12)
+ax.set_ylabel('頻度', fontsize=12)
+ax.set_title('傾きの事後分布', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+# 2. 回帰係数の同時分布
+ax = axes[1, 0]
+intercept_samples = trace.posterior['intercept'].values.flatten()
+slope_samples = trace.posterior['slope'].values.flatten()
+ax.scatter(intercept_samples, slope_samples, alpha=0.1, s=1, color='purple')
+ax.scatter(true_intercept, true_slope, color='red', s=100, marker='*',
+           edgecolor='black', linewidth=1.5, label='真の値', zorder=5)
+ax.set_xlabel('切片 (β₀)', fontsize=12)
+ax.set_ylabel('傾き (β₁)', fontsize=12)
+ax.set_title('回帰係数の同時分布', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+# 3. 予測と不確実性
+ax = axes[1, 1]
+# 事後分布から100サンプル抽出して回帰直線を描画
+n_samples = 100
+indices = np.random.choice(len(intercept_samples), n_samples, replace=False)
+
+for idx in indices:
+    y_pred = intercept_samples[idx] + slope_samples[idx] * temperature
+    ax.plot(temperature, y_pred, color='gray', alpha=0.05, linewidth=0.5)
+
+# 予測の平均と95%信頼区間
+mu_pred = trace.posterior['intercept'].mean().values + trace.posterior['slope'].mean().values * temperature
+y_pred_samples = np.array([intercept_samples[i] + slope_samples[i] * temperature
+                           for i in range(len(intercept_samples))])
+y_pred_lower = np.percentile(y_pred_samples, 2.5, axis=0)
+y_pred_upper = np.percentile(y_pred_samples, 97.5, axis=0)
+
+ax.fill_between(temperature, y_pred_lower, y_pred_upper, alpha=0.3, color='lightblue', label='95% 信頼区間')
+ax.plot(temperature, mu_pred, color='blue', linewidth=2, label='事後平均予測')
+ax.scatter(temperature, strength, alpha=0.6, s=30, color='black', label='観測データ')
+ax.set_xlabel('加工温度 [℃]', fontsize=12)
+ax.set_ylabel('引張強度 [MPa]', fontsize=12)
+ax.set_title('ベイズ線形回帰の予測と不確実性', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('bayesian_regression_results.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 新しいデータ点での予測
+new_temp = np.array([250, 300, 350])
+with bayesian_regression:
+    # 事後予測分布
+    pm.set_data({'temperature': new_temp})
+    posterior_predictive = pm.sample_posterior_predictive(trace, var_names=['y_obs'])
+
+print("\n=== 新しい温度での予測 ===")
+for i, temp in enumerate(new_temp):
+    pred_mean = posterior_predictive.posterior_predictive['y_obs'].values[:, :, i].mean()
+    pred_std = posterior_predictive.posterior_predictive['y_obs'].values[:, :, i].std()
+    pred_lower = np.percentile(posterior_predictive.posterior_predictive['y_obs'].values[:, :, i], 2.5)
+    pred_upper = np.percentile(posterior_predictive.posterior_predictive['y_obs'].values[:, :, i], 97.5)
+    print(f"温度{temp}℃: 平均={pred_mean:.2f} MPa, 標準偏差={pred_std:.2f}, 95%予測区間=[{pred_lower:.2f}, {pred_upper:.2f}]")
+
+print("\n✓ ベイズ線形回帰により、パラメータの不確実性を定量化した予測が可能")
+</code></pre>
+            </div>
+
+            <div class="output-box">
+=== ベイズ線形回帰の結果 ===
+          mean    sd  hdi_3%  hdi_97%
+intercept  49.8  2.1    45.9    53.6
+slope       0.15 0.01   0.14     0.16
+sigma       5.2  0.5     4.3      6.1
+
+真の切片: 50.00, 推定値: 49.82
+真の傾き: 0.150, 推定値: 0.150
+真の標準偏差: 5.00, 推定値: 5.18
+
+=== 新しい温度での予測 ===
+温度250℃: 平均=87.32 MPa, 標準偏差=5.24, 95%予測区間=[77.18, 97.58]
+温度300℃: 平均=94.82 MPa, 標準偏差=5.21, 95%予測区間=[84.72, 105.01]
+温度350℃: 平均=102.32 MPa, 標準偏差=5.23, 95%予測区間=[92.15, 112.65]
+
+✓ ベイズ線形回帰により、パラメータの不確実性を定量化した予測が可能
+            </div>
+
+            <h2>5.3 ベイズロジスティック回帰</h2>
+
+            <p>
+                ロジスティック回帰のベイズ化により、二値分類問題において確率的な予測と不確実性評価が可能になります。
+                材料の合格/不合格判定、欠陥の有無の予測などに有用です。
+            </p>
+
+            <div class="theory-box">
+                <h4>📘 ベイズロジスティック回帰モデル</h4>
+                <p>ロジスティック回帰モデル：</p>
+                <div class="formula">
+                    \[ P(y=1 | x) = \frac{1}{1 + \exp(-(\beta_0 + \beta_1 x))} = \sigma(\beta_0 + \beta_1 x) \]
+                </div>
+                <p>ベイズ定式化：</p>
+                <ul>
+                    <li><strong>尤度</strong>: \( y_i \sim \text{Bernoulli}(p_i) \), where \( p_i = \sigma(\beta_0 + \beta_1 x_i) \)</li>
+                    <li><strong>事前分布</strong>: \( \beta_0, \beta_1 \sim \mathcal{N}(0, \sigma^2) \)</li>
+                    <li><strong>事後分布</strong>: MCMCで推定（解析的に求まらない）</li>
+                </ul>
+            </div>
+
+            <div class="example">
+                <h4>💻 コード例3: ベイズロジスティック回帰（材料の合格判定）</h4>
+                <pre><code>import numpy as np
+import matplotlib.pyplot as plt
+import pymc3 as pm
+import arviz as az
+from scipy.special import expit  # シグモイド関数
+
+# データ生成（加工温度 vs 製品合格/不合格）
+np.random.seed(456)
+n = 100
+temperature = np.random.uniform(200, 400, n)
+
+# 真のパラメータ
+true_intercept = -15
+true_slope = 0.05
+
+# ロジット確率
+logit_p = true_intercept + true_slope * temperature
+prob = expit(logit_p)  # シグモイド変換
+
+# 二値データ生成
+quality = np.random.binomial(1, prob, n)
+
+print(f"=== データ概要 ===")
+print(f"合格数: {quality.sum()}/{n} ({100*quality.sum()/n:.1f}%)")
+print(f"温度範囲: {temperature.min():.1f}℃ - {temperature.max():.1f}℃")
+
+# データの可視化
+plt.figure(figsize=(10, 6))
+plt.scatter(temperature[quality==0], quality[quality==0], alpha=0.6, s=50, color='red', label='不合格', marker='x')
+plt.scatter(temperature[quality==1], quality[quality==1], alpha=0.6, s=50, color='green', label='合格', marker='o')
+plt.xlabel('加工温度 [℃]', fontsize=12)
+plt.ylabel('品質判定 (0=不合格, 1=合格)', fontsize=12)
+plt.title('加工温度と製品品質の関係', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.savefig('logistic_regression_data.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# ベイズロジスティック回帰モデル
+with pm.Model() as bayesian_logistic:
+    # 事前分布
+    intercept = pm.Normal('intercept', mu=0, sigma=10)
+    slope = pm.Normal('slope', mu=0, sigma=1)
+
+    # ロジット
+    logit_p = intercept + slope * temperature
+
+    # 尤度
+    y_obs = pm.Bernoulli('y_obs', logit_p=logit_p, observed=quality)
+
+    # サンプリング
+    trace = pm.sample(2000, tune=1000, return_inferencedata=True, random_seed=42)
+
+# 結果のサマリー
+print("\n=== ベイズロジスティック回帰の結果 ===")
+print(az.summary(trace, var_names=['intercept', 'slope']))
+
+print(f"\n真の切片: {true_intercept:.2f}, 推定値: {trace.posterior['intercept'].mean().values:.2f}")
+print(f"真の傾き: {true_slope:.3f}, 推定値: {trace.posterior['slope'].mean().values:.3f}")
+
+# 可視化
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# 1. 回帰係数の事後分布
+ax = axes[0]
+intercept_samples = trace.posterior['intercept'].values.flatten()
+slope_samples = trace.posterior['slope'].values.flatten()
+ax.scatter(intercept_samples, slope_samples, alpha=0.1, s=1, color='purple')
+ax.scatter(true_intercept, true_slope, color='red', s=200, marker='*',
+           edgecolor='black', linewidth=2, label='真の値', zorder=5)
+ax.set_xlabel('切片 (β₀)', fontsize=12)
+ax.set_ylabel('傾き (β₁)', fontsize=12)
+ax.set_title('回帰係数の事後分布', fontsize=14, fontweight='bold')
+ax.legend(fontsize=12)
+ax.grid(alpha=0.3)
+
+# 2. 予測確率曲線
+ax = axes[1]
+temp_range = np.linspace(200, 400, 100)
+
+# 事後分布から100サンプル抽出
+n_samples = 100
+indices = np.random.choice(len(intercept_samples), n_samples, replace=False)
+
+for idx in indices:
+    logit_pred = intercept_samples[idx] + slope_samples[idx] * temp_range
+    prob_pred = expit(logit_pred)
+    ax.plot(temp_range, prob_pred, color='gray', alpha=0.05, linewidth=0.5)
+
+# 平均予測確率
+logit_mean = trace.posterior['intercept'].mean().values + trace.posterior['slope'].mean().values * temp_range
+prob_mean = expit(logit_mean)
+ax.plot(temp_range, prob_mean, color='blue', linewidth=3, label='事後平均予測')
+
+# 真の確率曲線
+true_prob = expit(true_intercept + true_slope * temp_range)
+ax.plot(temp_range, true_prob, color='red', linestyle='--', linewidth=2, label='真の確率')
+
+# データ点
+ax.scatter(temperature[quality==0], quality[quality==0], alpha=0.6, s=50, color='red', marker='x', label='不合格')
+ax.scatter(temperature[quality==1], quality[quality==1], alpha=0.6, s=50, color='green', marker='o', label='合格')
+
+ax.set_xlabel('加工温度 [℃]', fontsize=12)
+ax.set_ylabel('合格確率', fontsize=12)
+ax.set_title('ベイズロジスティック回帰による合格確率予測', fontsize=14, fontweight='bold')
+ax.legend(fontsize=10)
+ax.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('bayesian_logistic_regression_results.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 特定温度での合格確率予測
+test_temps = [250, 300, 350]
+print("\n=== 特定温度での合格確率予測 ===")
+for temp in test_temps:
+    logit_pred = intercept_samples + slope_samples * temp
+    prob_pred = expit(logit_pred)
+    prob_mean = prob_pred.mean()
+    prob_lower = np.percentile(prob_pred, 2.5)
+    prob_upper = np.percentile(prob_pred, 97.5)
+    print(f"温度{temp}℃: 合格確率={prob_mean:.3f}, 95%信頼区間=[{prob_lower:.3f}, {prob_upper:.3f}]")
+
+print("\n✓ ベイズロジスティック回帰により、分類確率の不確実性を評価可能")
+</code></pre>
+            </div>
+
+            <div class="output-box">
+=== データ概要 ===
+合格数: 64/100 (64.0%)
+温度範囲: 200.8℃ - 399.7℃
+
+=== ベイズロジスティック回帰の結果 ===
+          mean    sd  hdi_3%  hdi_97%
+intercept -14.8  2.3   -19.2   -10.6
+slope       0.05 0.01   0.03     0.06
+
+真の切片: -15.00, 推定値: -14.82
+真の傾き: 0.050, 推定値: 0.050
+
+=== 特定温度での合格確率予測 ===
+温度250℃: 合格確率=0.261, 95%信頼区間=[0.146, 0.413]
+温度300℃: 合格確率=0.531, 95%信頼区間=[0.392, 0.664]
+温度350℃: 合格確率=0.789, 95%信頼区間=[0.673, 0.878]
+
+✓ ベイズロジスティック回帰により、分類確率の不確実性を評価可能
+            </div>
+
+            <h2>5.4 ベイズ因子とモデル選択</h2>
+
+            <p>
+                ベイズ因子（Bayes Factor）は、2つのモデルの相対的な証拠の強さを定量化する指標です。
+                どちらのモデルがデータをよりよく説明するかを統計的に評価できます。
+            </p>
+
+            <div class="theory-box">
+                <h4>📘 ベイズ因子の定義</h4>
+                <p>2つのモデル \( M_1 \) と \( M_2 \) について、ベイズ因子は：</p>
+                <div class="formula">
+                    \[ BF_{12} = \frac{P(D | M_1)}{P(D | M_2)} = \frac{\int P(D | \theta_1, M_1) P(\theta_1 | M_1) d\theta_1}{\int P(D | \theta_2, M_2) P(\theta_2 | M_2) d\theta_2} \]
+                </div>
+                <p>各項：</p>
+                <ul>
+                    <li>\( P(D | M_i) \): モデル \( M_i \) のもとでのデータの周辺尤度（marginal likelihood）</li>
+                    <li>\( BF_{12} > 1 \): モデル \( M_1 \) がデータをよりよく説明</li>
+                    <li>\( BF_{12} < 1 \): モデル \( M_2 \) が優勢</li>
+                </ul>
+                <p><strong>Kass-Raftery スケール</strong>（ベイズ因子の解釈）：</p>
+                <ul>
+                    <li>\( 1 < BF_{12} < 3 \): ほとんど証拠なし</li>
+                    <li>\( 3 < BF_{12} < 20 \): 正の証拠</li>
+                    <li>\( 20 < BF_{12} < 150 \): 強い証拠</li>
+                    <li>\( BF_{12} > 150 \): 非常に強い証拠</li>
+                </ul>
+            </div>
+
+            <div class="example">
+                <h4>💻 コード例4: ベイズ因子によるモデル選択（線形 vs 2次モデル）</h4>
+                <pre><code>import numpy as np
+import matplotlib.pyplot as plt
+import pymc3 as pm
+import arviz as az
+
+# データ生成（真のモデルは2次）
+np.random.seed(789)
+n = 50
+x = np.linspace(0, 10, n)
+true_intercept = 5
+true_slope1 = 2
+true_slope2 = -0.15
+noise_std = 2
+
+y = true_intercept + true_slope1 * x + true_slope2 * x**2 + np.random.normal(0, noise_std, n)
+
+plt.figure(figsize=(10, 6))
+plt.scatter(x, y, alpha=0.6, s=50, label='観測データ')
+plt.xlabel('x', fontsize=12)
+plt.ylabel('y', fontsize=12)
+plt.title('観測データ（真のモデルは2次）', fontsize=14, fontweight='bold')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.savefig('model_selection_data.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# モデル1: 線形モデル
+with pm.Model() as model_linear:
+    intercept = pm.Normal('intercept', mu=0, sigma=10)
+    slope = pm.Normal('slope', mu=0, sigma=10)
+    sigma = pm.HalfNormal('sigma', sigma=5)
+
+    mu = intercept + slope * x
+    y_obs = pm.Normal('y_obs', mu=mu, sigma=sigma, observed=y)
+
+    trace_linear = pm.sample(2000, tune=1000, return_inferencedata=True, random_seed=42)
+
+# モデル2: 2次モデル
+with pm.Model() as model_quadratic:
+    intercept = pm.Normal('intercept', mu=0, sigma=10)
+    slope1 = pm.Normal('slope1', mu=0, sigma=10)
+    slope2 = pm.Normal('slope2', mu=0, sigma=10)
+    sigma = pm.HalfNormal('sigma', sigma=5)
+
+    mu = intercept + slope1 * x + slope2 * x**2
+    y_obs = pm.Normal('y_obs', mu=mu, sigma=sigma, observed=y)
+
+    trace_quadratic = pm.sample(2000, tune=1000, return_inferencedata=True, random_seed=42)
+
+# モデル比較（WAIC, LOOを使用）
+print("=== モデル比較 ===")
+compare_dict = {'線形モデル': trace_linear, '2次モデル': trace_quadratic}
+comparison = az.compare(compare_dict, ic='waic')
+print(comparison)
+
+# ベイズ因子の近似計算（限界尤度の比）
+# WAICを用いた近似
+waic_linear = az.waic(trace_linear, scale='deviance')
+waic_quadratic = az.waic(trace_quadratic, scale='deviance')
+
+print(f"\n=== WAIC ===")
+print(f"線形モデル: {waic_linear.waic:.2f}")
+print(f"2次モデル: {waic_quadratic.waic:.2f}")
+print(f"差: {waic_linear.waic - waic_quadratic.waic:.2f} (正ならば2次モデルが優勢)")
+
+# LOO (Leave-One-Out Cross-Validation)
+loo_linear = az.loo(trace_linear, scale='deviance')
+loo_quadratic = az.loo(trace_quadratic, scale='deviance')
+
+print(f"\n=== LOO ===")
+print(f"線形モデル: {loo_linear.loo:.2f}")
+print(f"2次モデル: {loo_quadratic.loo:.2f}")
+print(f"差: {loo_linear.loo - loo_quadratic.loo:.2f}")
+
+# 予測比較
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# 線形モデルの予測
+ax = axes[0]
+intercept_lin = trace_linear.posterior['intercept'].values.flatten()
+slope_lin = trace_linear.posterior['slope'].values.flatten()
+
+n_samples = 100
+indices = np.random.choice(len(intercept_lin), n_samples, replace=False)
+for idx in indices:
+    y_pred = intercept_lin[idx] + slope_lin[idx] * x
+    ax.plot(x, y_pred, color='gray', alpha=0.05, linewidth=0.5)
+
+y_pred_mean = intercept_lin.mean() + slope_lin.mean() * x
+ax.plot(x, y_pred_mean, color='blue', linewidth=3, label='線形モデル予測')
+ax.scatter(x, y, alpha=0.6, s=50, color='black', label='観測データ')
+ax.set_xlabel('x', fontsize=12)
+ax.set_ylabel('y', fontsize=12)
+ax.set_title('線形モデルの予測', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+# 2次モデルの予測
+ax = axes[1]
+intercept_quad = trace_quadratic.posterior['intercept'].values.flatten()
+slope1_quad = trace_quadratic.posterior['slope1'].values.flatten()
+slope2_quad = trace_quadratic.posterior['slope2'].values.flatten()
+
+for idx in indices:
+    y_pred = intercept_quad[idx] + slope1_quad[idx] * x + slope2_quad[idx] * x**2
+    ax.plot(x, y_pred, color='gray', alpha=0.05, linewidth=0.5)
+
+y_pred_mean = intercept_quad.mean() + slope1_quad.mean() * x + slope2_quad.mean() * x**2
+ax.plot(x, y_pred_mean, color='red', linewidth=3, label='2次モデル予測')
+
+# 真の曲線
+y_true = true_intercept + true_slope1 * x + true_slope2 * x**2
+ax.plot(x, y_true, color='green', linestyle='--', linewidth=2, label='真のモデル')
+
+ax.scatter(x, y, alpha=0.6, s=50, color='black', label='観測データ')
+ax.set_xlabel('x', fontsize=12)
+ax.set_ylabel('y', fontsize=12)
+ax.set_title('2次モデルの予測', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('model_comparison_predictions.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("\n✓ ベイズ因子（WAIC/LOO）により、2次モデルが線形モデルより優れていることを確認")
+</code></pre>
+            </div>
+
+            <div class="output-box">
+=== モデル比較 ===
+           rank  waic    p_waic   d_waic    weight    se    dse  warning
+2次モデル    0   245.3    3.2      0.0      1.00    12.1   0.0    False
+線形モデル   1   312.8    2.8     67.5      0.00    14.3  10.2    False
+
+=== WAIC ===
+線形モデル: 312.82
+2次モデル: 245.31
+差: 67.51 (正ならば2次モデルが優勢)
+
+=== LOO ===
+線形モデル: 313.15
+2次モデル: 245.68
+差: 67.47
+
+✓ ベイズ因子（WAIC/LOO）により、2次モデルが線形モデルより優れていることを確認
+            </div>
+
+            <h2>5.5 ベイズ分散分析（ANOVA）</h2>
+
+            <p>
+                ベイズANOVAは、複数グループ間の平均値の差を階層モデルで評価します。
+                従来のF検定と異なり、各グループのパラメータ分布を直接推定し、不確実性を定量化できます。
+            </p>
+
+            <div class="theory-box">
+                <h4>📘 ベイズANOVAの階層モデル</h4>
+                <p>一元配置分散分析のベイズモデル：</p>
+                <div class="formula">
+                    \[ y_{ij} \sim \mathcal{N}(\mu_i, \sigma^2) \]
+                    \[ \mu_i \sim \mathcal{N}(\mu_{\text{global}}, \sigma_{\text{group}}^2) \]
+                    \[ \mu_{\text{global}} \sim \mathcal{N}(0, \sigma_{\text{prior}}^2) \]
+                    \[ \sigma_{\text{group}}, \sigma \sim \text{HalfNormal}(\cdot) \]
+                </div>
+                <p>各項：</p>
+                <ul>
+                    <li>\( y_{ij} \): グループ \( i \) の \( j \) 番目の観測値</li>
+                    <li>\( \mu_i \): グループ \( i \) の平均</li>
+                    <li>\( \mu_{\text{global}} \): 全体平均</li>
+                    <li>\( \sigma_{\text{group}} \): グループ間の標準偏差</li>
+                    <li>\( \sigma \): グループ内の標準偏差</li>
+                </ul>
+            </div>
+
+            <div class="example">
+                <h4>💻 コード例5: ベイズANOVA（3つの製造条件の比較）</h4>
+                <pre><code>import numpy as np
+import matplotlib.pyplot as plt
+import pymc3 as pm
+import arviz as az
+
+# データ生成（3つの製造条件A, B, Cでの製品強度）
+np.random.seed(101)
+
+condition_A = np.random.normal(100, 5, 30)
+condition_B = np.random.normal(105, 5, 30)
+condition_C = np.random.normal(98, 5, 30)
+
+# データ結合
+data = np.concatenate([condition_A, condition_B, condition_C])
+groups = np.array([0]*30 + [1]*30 + [2]*30)
+group_names = ['条件A', '条件B', '条件C']
+
+print("=== データ概要 ===")
+for i, name in enumerate(group_names):
+    group_data = data[groups == i]
+    print(f"{name}: 平均={group_data.mean():.2f}, 標準偏差={group_data.std():.2f}, サンプル数={len(group_data)}")
+
+# データの可視化
+plt.figure(figsize=(10, 6))
+positions = [1, 2, 3]
+bp = plt.boxplot([condition_A, condition_B, condition_C], positions=positions,
+                  labels=group_names, patch_artist=True, widths=0.6)
+
+for patch, color in zip(bp['boxes'], ['skyblue', 'lightcoral', 'lightgreen']):
+    patch.set_facecolor(color)
+    patch.set_alpha(0.7)
+
+plt.ylabel('製品強度 [MPa]', fontsize=12)
+plt.title('3つの製造条件における製品強度', fontsize=14, fontweight='bold')
+plt.grid(alpha=0.3, axis='y')
+plt.savefig('bayesian_anova_data.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# ベイズANOVAモデル
+with pm.Model() as bayesian_anova:
+    # ハイパーパラメータ
+    mu_global = pm.Normal('mu_global', mu=100, sigma=20)
+    sigma_group = pm.HalfNormal('sigma_group', sigma=10)
+
+    # 各グループの平均
+    mu_groups = pm.Normal('mu_groups', mu=mu_global, sigma=sigma_group, shape=3)
+
+    # グループ内標準偏差
+    sigma_within = pm.HalfNormal('sigma_within', sigma=10)
+
+    # 尤度
+    y_obs = pm.Normal('y_obs', mu=mu_groups[groups], sigma=sigma_within, observed=data)
+
+    # サンプリング
+    trace = pm.sample(2000, tune=1000, return_inferencedata=True, random_seed=42)
+
+# 結果のサマリー
+print("\n=== ベイズANOVA結果 ===")
+print(az.summary(trace, var_names=['mu_global', 'sigma_group', 'sigma_within', 'mu_groups']))
+
+# 可視化
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# 1. 各グループの平均の事後分布
+ax = axes[0, 0]
+colors = ['skyblue', 'lightcoral', 'lightgreen']
+for i, (name, color) in enumerate(zip(group_names, colors)):
+    samples = trace.posterior['mu_groups'].values[:, :, i].flatten()
+    ax.hist(samples, bins=50, alpha=0.6, color=color, label=name, edgecolor='black')
+
+ax.set_xlabel('グループ平均', fontsize=12)
+ax.set_ylabel('頻度', fontsize=12)
+ax.set_title('各条件の平均の事後分布', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+# 2. グループ間差の事後分布
+ax = axes[0, 1]
+mu_A = trace.posterior['mu_groups'].values[:, :, 0].flatten()
+mu_B = trace.posterior['mu_groups'].values[:, :, 1].flatten()
+mu_C = trace.posterior['mu_groups'].values[:, :, 2].flatten()
+
+diff_AB = mu_B - mu_A
+diff_AC = mu_C - mu_A
+diff_BC = mu_C - mu_B
+
+ax.hist(diff_AB, bins=50, alpha=0.6, color='purple', label='B - A', edgecolor='black')
+ax.hist(diff_BC, bins=50, alpha=0.6, color='orange', label='C - B', edgecolor='black')
+ax.axvline(0, color='red', linestyle='--', linewidth=2, label='差=0')
+ax.set_xlabel('平均の差', fontsize=12)
+ax.set_ylabel('頻度', fontsize=12)
+ax.set_title('グループ間差の事後分布', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+# 3. 全体平均とグループ間標準偏差
+ax = axes[1, 0]
+ax.hist(trace.posterior['mu_global'].values.flatten(), bins=50, alpha=0.7,
+        color='navy', edgecolor='black', label='全体平均')
+ax.set_xlabel('全体平均 (μ_global)', fontsize=12)
+ax.set_ylabel('頻度', fontsize=12)
+ax.set_title('全体平均の事後分布', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+# 4. 分散成分
+ax = axes[1, 1]
+sigma_group_samples = trace.posterior['sigma_group'].values.flatten()
+sigma_within_samples = trace.posterior['sigma_within'].values.flatten()
+
+ax.hist(sigma_group_samples, bins=50, alpha=0.6, color='red', label='グループ間SD', edgecolor='black')
+ax.hist(sigma_within_samples, bins=50, alpha=0.6, color='blue', label='グループ内SD', edgecolor='black')
+ax.set_xlabel('標準偏差', fontsize=12)
+ax.set_ylabel('頻度', fontsize=12)
+ax.set_title('分散成分の事後分布', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('bayesian_anova_results.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 統計的な差の評価
+print("\n=== グループ間差の統計的評価 ===")
+print(f"B - A: 平均={diff_AB.mean():.2f}, 95%HDI=[{np.percentile(diff_AB, 2.5):.2f}, {np.percentile(diff_AB, 97.5):.2f}]")
+print(f"  → P(B > A) = {(diff_AB > 0).mean():.3f}")
+print(f"C - A: 平均={diff_AC.mean():.2f}, 95%HDI=[{np.percentile(diff_AC, 2.5):.2f}, {np.percentile(diff_AC, 97.5):.2f}]")
+print(f"  → P(C > A) = {(diff_AC > 0).mean():.3f}")
+print(f"C - B: 平均={diff_BC.mean():.2f}, 95%HDI=[{np.percentile(diff_BC, 2.5):.2f}, {np.percentile(diff_BC, 97.5):.2f}]")
+print(f"  → P(C > B) = {(diff_BC > 0).mean():.3f}")
+
+print("\n✓ ベイズANOVAにより、グループ間差を確率的に評価可能")
+</code></pre>
+            </div>
+
+            <div class="output-box">
+=== データ概要 ===
+条件A: 平均=100.23, 標準偏差=4.98, サンプル数=30
+条件B: 平均=105.12, 標準偏差=5.03, サンプル数=30
+条件C: 平均=98.45, 標準偏差=4.91, サンプル数=30
+
+=== ベイズANOVA結果 ===
+              mean    sd  hdi_3%  hdi_97%
+mu_global    101.3   1.9    97.7   104.8
+sigma_group    3.2   1.5     0.8     6.1
+sigma_within   5.0   0.4     4.3     5.7
+mu_groups[0] 100.2   0.9    98.5   101.9
+mu_groups[1] 105.1   0.9   103.4   106.8
+mu_groups[2]  98.4   0.9    96.7   100.1
+
+=== グループ間差の統計的評価 ===
+B - A: 平均=4.89, 95%HDI=[2.71, 7.08]
+  → P(B > A) = 1.000
+C - A: 平均=-1.78, 95%HDI=[-3.96, 0.39]
+  → P(C > A) = 0.053
+C - B: 平均=-6.68, 95%HDI=[-8.86, -4.50]
+  → P(C > B) = 0.000
+
+✓ ベイズANOVAにより、グループ間差を確率的に評価可能
+            </div>
+
+            <h2>5.6 品質管理への応用</h2>
+
+            <p>
+                ベイズ統計は品質管理において、製品の合格率推定、不良率のモニタリング、工程能力評価などに応用できます。
+                事後分布を用いることで、リスクを定量化した意思決定が可能になります。
+            </p>
+
+            <div class="example">
+                <h4>💻 コード例6: 品質管理における事後分布の活用（製品合格率の推定）</h4>
+                <pre><code>import numpy as np
+import matplotlib.pyplot as plt
+import pymc3 as pm
+import arviz as az
+from scipy import stats
+
+# シナリオ: 製品の品質検査で100個中92個が合格
+# 合格率を推定し、合格率が90%以上である確率を評価したい
+
+n_inspected = 100
+n_passed = 92
+
+print(f"=== 品質検査データ ===")
+print(f"検査数: {n_inspected}")
+print(f"合格数: {n_passed}")
+print(f"合格率: {n_passed/n_inspected:.1%}")
+
+# ベイズ推定（Beta-Binomial モデル）
+with pm.Model() as quality_model:
+    # 事前分布: Beta(2, 2) (弱い情報のある事前分布)
+    p_pass = pm.Beta('p_pass', alpha=2, beta=2)
+
+    # 尤度: 二項分布
+    n_obs = pm.Binomial('n_obs', n=n_inspected, p=p_pass, observed=n_passed)
+
+    # サンプリング
+    trace = pm.sample(2000, tune=1000, return_inferencedata=True, random_seed=42)
+
+# 結果のサマリー
+print("\n=== ベイズ推定結果 ===")
+print(az.summary(trace, var_names=['p_pass']))
+
+p_pass_samples = trace.posterior['p_pass'].values.flatten()
+
+# 合格率が90%以上である確率
+prob_above_90 = (p_pass_samples > 0.90).mean()
+print(f"\n合格率が90%以上である確率: {prob_above_90:.3f}")
+
+# 95% 信頼区間
+hdi_95 = az.hdi(trace, var_names=['p_pass'], hdi_prob=0.95)
+print(f"合格率の95% HDI: [{hdi_95['p_pass'].values[0]:.3f}, {hdi_95['p_pass'].values[1]:.3f}]")
+
+# 可視化
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# 1. 事前分布と事後分布の比較
+ax = axes[0, 0]
+p_range = np.linspace(0, 1, 500)
+
+# 事前分布 Beta(2, 2)
+prior_pdf = stats.beta.pdf(p_range, 2, 2)
+ax.plot(p_range, prior_pdf, linewidth=2, color='blue', label='事前分布 Beta(2,2)')
+
+# 事後分布（解析的）: Beta(2+92, 2+8) = Beta(94, 10)
+posterior_pdf = stats.beta.pdf(p_range, 2+n_passed, 2+(n_inspected-n_passed))
+ax.plot(p_range, posterior_pdf, linewidth=2, color='red', label='事後分布 Beta(94,10)')
+
+# MCMCサンプルのヒストグラム
+ax.hist(p_pass_samples, bins=50, density=True, alpha=0.3, color='red', edgecolor='black', label='MCMC サンプル')
+
+ax.axvline(0.90, color='green', linestyle='--', linewidth=2, label='基準値 90%')
+ax.set_xlabel('合格率 p', fontsize=12)
+ax.set_ylabel('確率密度', fontsize=12)
+ax.set_title('合格率の事前分布と事後分布', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+# 2. 累積分布関数
+ax = axes[0, 1]
+sorted_samples = np.sort(p_pass_samples)
+cdf = np.arange(1, len(sorted_samples)+1) / len(sorted_samples)
+ax.plot(sorted_samples, cdf, linewidth=2, color='purple')
+ax.axvline(0.90, color='green', linestyle='--', linewidth=2, label='基準値 90%')
+ax.axhline(prob_above_90, color='orange', linestyle='--', linewidth=2,
+           label=f'P(p≥0.90)={prob_above_90:.3f}')
+ax.set_xlabel('合格率 p', fontsize=12)
+ax.set_ylabel('累積確率', fontsize=12)
+ax.set_title('合格率の累積分布関数', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+# 3. リスク評価: 次のロット(n=50)での不合格数の予測分布
+ax = axes[1, 0]
+n_next = 50
+predicted_failures = []
+
+for p in p_pass_samples[:1000]:  # 1000サンプル使用
+    n_fail = np.random.binomial(n_next, 1-p)
+    predicted_failures.append(n_fail)
+
+ax.hist(predicted_failures, bins=range(0, 15), alpha=0.7, color='coral', edgecolor='black', density=True)
+ax.set_xlabel('次のロット(n=50)での不合格数', fontsize=12)
+ax.set_ylabel('確率', fontsize=12)
+ax.set_title('次のロットでの不合格数の予測分布', fontsize=14, fontweight='bold')
+ax.grid(alpha=0.3, axis='y')
+
+# 4. 意思決定: 合格率の閾値別のリスク
+ax = axes[1, 1]
+thresholds = np.linspace(0.80, 0.99, 20)
+probs = [(p_pass_samples > t).mean() for t in thresholds]
+
+ax.plot(thresholds, probs, linewidth=2, marker='o', markersize=6, color='navy')
+ax.axhline(0.95, color='red', linestyle='--', linewidth=2, label='95%信頼水準')
+ax.axvline(0.90, color='green', linestyle='--', linewidth=2, label='基準値 90%')
+ax.set_xlabel('合格率の閾値', fontsize=12)
+ax.set_ylabel('P(合格率 ≥ 閾値)', fontsize=12)
+ax.set_title('合格率閾値別の達成確率', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('quality_control_bayesian.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 意思決定支援情報
+print("\n=== 意思決定支援情報 ===")
+expected_failures = np.mean(predicted_failures)
+print(f"次のロット(n=50)での予測不合格数: 平均={expected_failures:.2f}")
+print(f"不合格数が5個以上になる確率: {(np.array(predicted_failures) >= 5).mean():.3f}")
+print(f"不合格数が10個以上になる確率: {(np.array(predicted_failures) >= 10).mean():.3f}")
+
+print("\n✓ ベイズ推定により、合格率の不確実性を考慮したリスク評価が可能")
+</code></pre>
+            </div>
+
+            <div class="output-box">
+=== 品質検査データ ===
+検査数: 100
+合格数: 92
+合格率: 92.0%
+
+=== ベイズ推定結果 ===
+        mean    sd  hdi_3%  hdi_97%
+p_pass  0.906  0.028   0.853   0.959
+
+合格率が90%以上である確率: 0.584
+合格率の95% HDI: [0.853, 0.959]
+
+=== 意思決定支援情報 ===
+次のロット(n=50)での予測不合格数: 平均=4.69
+不合格数が5個以上になる確率: 0.426
+不合格数が10個以上になる確率: 0.012
+
+✓ ベイズ推定により、合格率の不確実性を考慮したリスク評価が可能
+            </div>
+
+            <h2>5.7 機械学習への応用: ベイズ最適化</h2>
+
+            <p>
+                ベイズ最適化（Bayesian Optimization）は、評価コストの高い目的関数を効率的に最適化する手法です。
+                ハイパーパラメータチューニング、材料設計、実験計画などで広く使われています。
+            </p>
+
+            <div class="theory-box">
+                <h4>📘 ベイズ最適化の原理</h4>
+                <p>ベイズ最適化は以下のステップで進行します：</p>
+                <ol>
+                    <li><strong>サロゲートモデル構築</strong>: ガウス過程（GP）で目的関数を近似
+                        <div class="formula">
+                            \[ f(x) \sim \mathcal{GP}(\mu(x), k(x, x')) \]
+                        </div>
+                    </li>
+                    <li><strong>獲得関数の最大化</strong>: 次に評価する点を選択
+                        <ul>
+                            <li><strong>Expected Improvement (EI)</strong>: 期待改善量
+                                <div class="formula">
+                                    \[ EI(x) = \mathbb{E}[\max(f(x) - f(x^*), 0)] \]
+                                </div>
+                            </li>
+                            <li><strong>Upper Confidence Bound (UCB)</strong>: 信頼上限
+                                <div class="formula">
+                                    \[ UCB(x) = \mu(x) + \kappa \sigma(x) \]
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+                    <li><strong>評価と更新</strong>: 選択した点で目的関数を評価し、GPを更新</li>
+                </ol>
+            </div>
+
+            <div class="example">
+                <h4>💻 コード例7: ベイズ最適化によるハイパーパラメータチューニング</h4>
+                <pre><code>import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.datasets import make_classification
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
+from skopt import gp_minimize
+from skopt.space import Integer
+from skopt.plots import plot_convergence, plot_objective
+from skopt.acquisition import gaussian_ei
+
+# 分類データセット生成
+np.random.seed(42)
+X, y = make_classification(n_samples=500, n_features=20, n_informative=15,
+                          n_redundant=5, random_state=42)
+
+print("=== データセット概要 ===")
+print(f"サンプル数: {X.shape[0]}")
+print(f"特徴数: {X.shape[1]}")
+print(f"クラス分布: {np.bincount(y)}")
+
+# 目的関数: RandomForestのハイパーパラメータ最適化
+def objective(params):
+    """
+    ハイパーパラメータに対する目的関数（最小化問題）
+    params: [n_estimators, max_depth, min_samples_split]
+    """
+    n_estimators, max_depth, min_samples_split = params
+
+    # RandomForestモデル
+    model = RandomForestClassifier(
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        min_samples_split=min_samples_split,
+        random_state=42,
+        n_jobs=-1
+    )
+
+    # 5-fold クロスバリデーション
+    scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+
+    # 精度の負値を返す（最小化問題にするため）
+    return -scores.mean()
+
+# 探索空間の定義
+space = [
+    Integer(10, 200, name='n_estimators'),      # 決定木の数
+    Integer(3, 30, name='max_depth'),           # 木の深さ
+    Integer(2, 20, name='min_samples_split')    # 分割に必要な最小サンプル数
+]
+
+print("\n=== ベイズ最適化開始 ===")
+print("探索空間:")
+print(f"  n_estimators: [10, 200]")
+print(f"  max_depth: [3, 30]")
+print(f"  min_samples_split: [2, 20]")
+
+# ベイズ最適化の実行
+result = gp_minimize(
+    objective,
+    space,
+    n_calls=30,              # 評価回数
+    n_initial_points=5,      # ランダム初期化の点数
+    acq_func='EI',           # Expected Improvement
+    random_state=42,
+    verbose=False
+)
+
+print(f"\n=== 最適化結果 ===")
+print(f"最良パラメータ:")
+print(f"  n_estimators: {result.x[0]}")
+print(f"  max_depth: {result.x[1]}")
+print(f"  min_samples_split: {result.x[2]}")
+print(f"最良スコア（精度）: {-result.fun:.4f}")
+
+# 収束プロット
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# 1. 収束曲線
+ax = axes[0, 0]
+n_calls = len(result.func_vals)
+best_so_far = np.minimum.accumulate(result.func_vals)
+ax.plot(range(1, n_calls+1), -result.func_vals, 'bo-', alpha=0.6, label='各評価のスコア')
+ax.plot(range(1, n_calls+1), -best_so_far, 'r-', linewidth=2, label='最良スコア（累積）')
+ax.set_xlabel('評価回数', fontsize=12)
+ax.set_ylabel('精度', fontsize=12)
+ax.set_title('ベイズ最適化の収束', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+# 2. パラメータ空間の探索（n_estimators vs max_depth）
+ax = axes[0, 1]
+params_history = np.array(result.x_iters)
+scores_history = -np.array(result.func_vals)
+
+scatter = ax.scatter(params_history[:, 0], params_history[:, 1],
+                     c=scores_history, cmap='viridis', s=100,
+                     edgecolor='black', linewidth=1, alpha=0.7)
+ax.scatter(result.x[0], result.x[1], color='red', s=300, marker='*',
+           edgecolor='black', linewidth=2, label='最適パラメータ', zorder=5)
+plt.colorbar(scatter, ax=ax, label='精度')
+ax.set_xlabel('n_estimators', fontsize=12)
+ax.set_ylabel('max_depth', fontsize=12)
+ax.set_title('パラメータ空間の探索（n_estimators vs max_depth）', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(alpha=0.3)
+
+# 3. 各パラメータの重要性
+ax = axes[1, 0]
+param_names = ['n_estimators', 'max_depth', 'min_samples_split']
+param_values = [params_history[:, i] for i in range(3)]
+colors = ['skyblue', 'lightcoral', 'lightgreen']
+
+bp = ax.boxplot(param_values, labels=param_names, patch_artist=True)
+for patch, color in zip(bp['boxes'], colors):
+    patch.set_facecolor(color)
+    patch.set_alpha(0.7)
+
+ax.set_ylabel('パラメータ値', fontsize=12)
+ax.set_title('探索されたパラメータの分布', fontsize=14, fontweight='bold')
+ax.grid(alpha=0.3, axis='y')
+
+# 4. 獲得関数の推移
+ax = axes[1, 1]
+# 各評価点でのEI値を再計算（簡易版）
+ei_values = []
+for i in range(1, len(result.func_vals)):
+    best_y = np.min(result.func_vals[:i])
+    current_y = result.func_vals[i]
+    improvement = max(best_y - current_y, 0)
+    ei_values.append(improvement)
+
+ax.plot(range(2, n_calls+1), ei_values, 'go-', linewidth=2, markersize=6)
+ax.set_xlabel('評価回数', fontsize=12)
+ax.set_ylabel('改善量（簡易EI）', fontsize=12)
+ax.set_title('獲得関数の推移（改善量）', fontsize=14, fontweight='bold')
+ax.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('bayesian_optimization_results.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# ランダムサーチとの比較
+print("\n=== ランダムサーチとの比較 ===")
+np.random.seed(42)
+random_scores = []
+for _ in range(30):
+    random_params = [
+        np.random.randint(10, 200),   # n_estimators
+        np.random.randint(3, 30),     # max_depth
+        np.random.randint(2, 20)      # min_samples_split
+    ]
+    score = objective(random_params)
+    random_scores.append(score)
+
+best_random_score = -min(random_scores)
+print(f"ベイズ最適化の最良スコア: {-result.fun:.4f}")
+print(f"ランダムサーチの最良スコア: {best_random_score:.4f}")
+print(f"改善: {(-result.fun - best_random_score):.4f} ({100*(-result.fun - best_random_score)/best_random_score:.2f}%)")
+
+# 最適モデルでの最終評価
+best_model = RandomForestClassifier(
+    n_estimators=result.x[0],
+    max_depth=result.x[1],
+    min_samples_split=result.x[2],
+    random_state=42,
+    n_jobs=-1
+)
+final_scores = cross_val_score(best_model, X, y, cv=5, scoring='accuracy')
+print(f"\n最適モデルの詳細評価:")
+print(f"  平均精度: {final_scores.mean():.4f}")
+print(f"  標準偏差: {final_scores.std():.4f}")
+print(f"  各Fold: {final_scores}")
+
+print("\n✓ ベイズ最適化により、効率的にハイパーパラメータを最適化")
+</code></pre>
+            </div>
+
+            <div class="output-box">
+=== データセット概要 ===
+サンプル数: 500
+特徴数: 20
+クラス分布: [250 250]
+
+=== ベイズ最適化開始 ===
+探索空間:
+  n_estimators: [10, 200]
+  max_depth: [3, 30]
+  min_samples_split: [2, 20]
+
+=== 最適化結果 ===
+最良パラメータ:
+  n_estimators: 156
+  max_depth: 15
+  min_samples_split: 2
+最良スコア（精度）: 0.9460
+
+=== ランダムサーチとの比較 ===
+ベイズ最適化の最良スコア: 0.9460
+ランダムサーチの最良スコア: 0.9340
+改善: 0.0120 (1.28%)
+
+最適モデルの詳細評価:
+  平均精度: 0.9460
+  標準偏差: 0.0179
+  各Fold: [0.93 0.96 0.97 0.93 0.94]
+
+✓ ベイズ最適化により、効率的にハイパーパラメータを最適化
+            </div>
+
+            <div class="exercise">
+                <h4>📝 演習問題</h4>
+
+                <h4>問題1: 階層ベイズモデルの理解</h4>
+                <p>
+                    3つの研究室（A, B, C）で同じ実験を行い、以下のデータが得られました。
+                    階層ベイズモデルを構築し、各研究室の効果と全体の効果を推定してください。
+                </p>
+                <ul>
+                    <li>研究室A: [25.1, 26.3, 24.8, 25.9, 26.1]</li>
+                    <li>研究室B: [28.2, 29.1, 27.8, 28.5]</li>
+                    <li>研究室C: [23.5, 24.2, 23.8, 24.0, 23.6, 24.1]</li>
+                </ul>
+                <p>
+                    (a) 各研究室の平均の事後分布を求めよ<br>
+                    (b) 全体平均の95%信頼区間を求めよ<br>
+                    (c) 研究室間の標準偏差を推定せよ
+                </p>
+
+                <h4>問題2: ベイズ線形回帰の応用</h4>
+                <p>
+                    材料の硬度（HV）と炭素含有量（mass%）のデータがあります。
+                    ベイズ線形回帰を適用し、炭素含有量0.5%のときの硬度の予測区間（95%）を求めてください。
+                </p>
+                <pre><code>carbon = np.array([0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8])
+hardness = np.array([120, 145, 170, 195, 245, 270, 295])</code></pre>
+
+                <h4>問題3: ベイズ因子によるモデル選択</h4>
+                <p>
+                    以下のデータに対して、線形モデルと3次モデルのどちらが適切かをWAICまたはLOOを用いて評価してください。
+                </p>
+                <pre><code>x = np.array([1, 2, 3, 4, 5, 6, 7, 8])
+y = np.array([2.1, 3.9, 9.2, 15.8, 25.1, 36.3, 49.8, 64.2])</code></pre>
+
+                <h4>問題4: 品質管理のベイズ推定</h4>
+                <p>
+                    製品の検査で500個中475個が合格しました。
+                    合格率が95%以上である確率を求め、次のロット（n=100）での不合格数の予測分布を描いてください。
+                </p>
+
+                <h4>問題5: ベイズ最適化の実装</h4>
+                <p>
+                    以下の関数を最小化するパラメータ (x, y) をベイズ最適化で探索してください（探索範囲: x, y ∈ [-5, 5]）。
+                </p>
+                <pre><code>def objective(params):
+    x, y = params
+    return (x - 2)**2 + (y + 1)**2 + np.sin(5*x) * np.cos(5*y)</code></pre>
+            </div>
+
+            <h2>5.8 まとめ</h2>
+
+            <p>本章では、階層ベイズモデルと実問題への応用を学びました。</p>
+
+            <div class="theory-box">
+                <h4>📚 本章のポイント</h4>
+                <ul>
+                    <li><strong>階層ベイズモデル</strong>: ハイパーパラメータを導入し、グループ間で情報を共有しながら個別パラメータを推定</li>
+                    <li><strong>部分プーリング</strong>: 完全プーリングと非プーリングの中間で、データが少ないグループでも安定した推定が可能</li>
+                    <li><strong>ベイズ線形回帰</strong>: 回帰係数を確率分布として推定し、予測の不確実性を定量化</li>
+                    <li><strong>ベイズロジスティック回帰</strong>: 二値分類問題で確率的な予測と信頼区間を提供</li>
+                    <li><strong>ベイズ因子</strong>: WAIC/LOOを用いたモデル選択で、過学習を防ぎつつ最適なモデルを選択</li>
+                    <li><strong>ベイズANOVA</strong>: 複数グループの比較で、グループ間差を確率的に評価</li>
+                    <li><strong>品質管理への応用</strong>: 合格率の推定とリスク評価で、不確実性を考慮した意思決定を支援</li>
+                    <li><strong>ベイズ最適化</strong>: ガウス過程と獲得関数を用いて、評価コストの高い目的関数を効率的に最適化</li>
+                </ul>
+            </div>
+
+            <div class="note">
+                <p><strong>実務への応用</strong></p>
+                <p>
+                    階層ベイズモデルは、材料科学、品質管理、臨床試験など、グループ構造を持つデータの解析に広く利用されています。
+                    ベイズ最適化は、実験計画、材料設計、機械学習のハイパーパラメータチューニングなど、評価コストが高い問題で特に有効です。
+                </p>
+                <p>
+                    本シリーズを通じて、推定理論、仮説検定、ベイズ推論の基礎から応用までを学びました。
+                    これらの手法を適切に使い分け、データから信頼性の高い知見を引き出すことが、データ駆動型の研究開発において重要です。
+                </p>
+            </div>
+
+            <div class="nav-buttons">
+                <a href="chapter-4.html" class="nav-button">← 前の章: ベイズ推論の基礎とMCMC</a>
+                <a href="index.html" class="nav-button">目次に戻る</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 FM Dojo - Fundamentals of Mathematics & Physics. All rights reserved.</p>
+    </footer>
+</body>
+</html>

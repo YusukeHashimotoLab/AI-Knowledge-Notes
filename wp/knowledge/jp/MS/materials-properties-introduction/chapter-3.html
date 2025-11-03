@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章：第一原理計算入門（DFT基礎） | MS Terakoya - 材料物性論入門</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #f093fb;
+            --color-accent-light: #f5576c;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #f093fb;
+            --color-link-hover: #d07be8;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            a:hover {
+                color: var(--color-link-hover);
+                text-decoration: underline;
+            }
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .info-box {
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .warning-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .success-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .exercise-box {
+            background-color: var(--color-bg-alt);
+            border: 2px solid var(--color-accent);
+            padding: var(--spacing-md);
+            margin: var(--spacing-lg) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .exercise-box h4 {
+            color: var(--color-accent-light);
+            margin-top: 0;
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+            gap: var(--spacing-md);
+        }
+
+        .nav-button {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+            flex: 1;
+            max-width: 250px;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .nav-button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                text-decoration: none;
+            }
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            .nav-button {
+                max-width: 100%;
+            }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'strict'
+        });
+    </script>
+
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                ignoreHtmlClass: 'mermaid'
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/MS/index.html">材料科学</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/MS/materials-properties-introduction/index.html">Materials Properties</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>第3章：第一原理計算入門（DFT基礎）</h1>
+            <p class="subtitle">密度汎関数理論で材料の電子状態を解く</p>
+            <div class="meta">
+                <span class="meta-item">📖 35-40分</span>
+                <span class="meta-item">💻 12コード例</span>
+                <span class="meta-item">📊 難易度: 上級</span>
+                <span class="meta-item">🎯 学習目標: 3つ</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2>この章で学ぶこと</h2>
+        <div class="info-box">
+            <h3>学習目標（3レベル）</h3>
+            <h4>基本レベル</h4>
+            <ul>
+                <li>DFTの基本原理（Hohenberg-Kohn定理、Kohn-Sham方程式）を説明できる</li>
+                <li>交換相関汎関数（LDA, GGA, hybrid）の違いを理解できる</li>
+                <li>DFT計算の基本的なワークフローを説明できる</li>
+            </ul>
+            <h4>中級レベル</h4>
+            <ul>
+                <li>ASE/Pymatgenを使って結晶構造を作成し、DFT計算の入力を準備できる</li>
+                <li>VASP入力ファイル（INCAR, POSCAR, KPOINTS, POTCAR）の役割を理解できる</li>
+                <li>k点メッシュとカットオフエネルギーの収束テストを実施できる</li>
+            </ul>
+            <h4>上級レベル</h4>
+            <ul>
+                <li>材料の特性に応じて適切な汎関数を選択できる</li>
+                <li>疑擬ポテンシャルとPAW法の違いを理解し、適切に使い分けられる</li>
+                <li>実際の研究で使えるDFT計算ワークフローを構築できる</li>
+            </ul>
+        </div>
+
+        <h2>第一原理計算とは</h2>
+        <p>第一原理計算（First-principles calculation）は、経験的パラメータを用いず、量子力学の基本原理から出発して材料の性質を予測する計算手法です。実験的に未知の材料の物性を理論的に予測できるため、材料開発の強力なツールとなっています。</p>
+
+        <h3>多体Schrödinger方程式の困難</h3>
+        <p>理想的には、$N$個の電子と$M$個の原子核からなる系の全波動関数$\Psi(\mathbf{r}_1, \ldots, \mathbf{r}_N, \mathbf{R}_1, \ldots, \mathbf{R}_M)$を解くべきです：</p>
+
+        $$
+        \hat{H}\Psi = E\Psi
+        $$
+
+        <p>しかし、多体系のSchrödinger方程式を厳密に解くことは、計算量の観点から不可能です。例えば、100個の電子を持つ系では、$3N = 300$次元の偏微分方程式を解く必要があります。</p>
+
+        <h3>Born-Oppenheimer近似</h3>
+        <p>原子核の質量は電子の約1,000倍以上重いため、電子は原子核の運動に瞬時に追随すると仮定できます（断熱近似）。これにより、電子と原子核の運動を分離できます：</p>
+
+        $$
+        \Psi(\mathbf{r}_i, \mathbf{R}_\alpha) = \psi(\mathbf{r}_i; \mathbf{R}_\alpha) \chi(\mathbf{R}_\alpha)
+        $$
+
+        <p>原子核位置$\{\mathbf{R}_\alpha\}$を固定して、電子系のSchrödinger方程式を解けば良いことになります。</p>
+
+        <h2>密度汎関数理論（DFT）の基礎</h2>
+
+        <h3>Hohenberg-Kohn定理（1964年）</h3>
+        <p>DFTの基礎は、Hohenberg と Kohn による2つの定理です：</p>
+
+        <div class="info-box">
+            <h4>第1定理：一意性定理</h4>
+            <p>外部ポテンシャル$V_{\text{ext}}(\mathbf{r})$（原子核からのクーロンポテンシャル）は、電子密度$n(\mathbf{r})$によって一意に決まる（定数の差を除く）。</p>
+            <p><strong>物理的意味</strong>：電子密度がわかれば、系の全ての物理量が決まる。</p>
+        </div>
+
+        <div class="info-box">
+            <h4>第2定理：変分原理</h4>
+            <p>基底状態エネルギーは、電子密度の汎関数$E[n]$であり、真の基底状態密度で最小値を取る：</p>
+            $$
+            E_0 = \min_{n} E[n]
+            $$
+            <p><strong>物理的意味</strong>：電子密度を変分パラメータとして、エネルギーを最小化できる。</p>
+        </div>
+
+        <p>この定理により、多体波動関数$\Psi(\mathbf{r}_1, \ldots, \mathbf{r}_N)$（$3N$次元）の代わりに、電子密度$n(\mathbf{r})$（3次元）を扱えるようになります。計算量の劇的な削減です。</p>
+
+        <h3>Kohn-Sham方程式（1965年）</h3>
+        <p>Hohenberg-Kohn定理は存在定理ですが、実際にどうやって$E[n]$を求めるかは示していません。Kohn と Sham は、相互作用する多電子系を、同じ密度を持つ「非相互作用系」に写像するアイデアを提案しました。</p>
+
+        <p>電子密度$n(\mathbf{r})$は、$N$個のKohn-Sham軌道$\{\phi_i(\mathbf{r})\}$を使って表されます：</p>
+
+        $$
+        n(\mathbf{r}) = \sum_{i=1}^N |\phi_i(\mathbf{r})|^2
+        $$
+
+        <p>各軌道は、Kohn-Sham方程式を満たします：</p>
+
+        $$
+        \left[ -\frac{\hbar^2}{2m}\nabla^2 + V_{\text{eff}}(\mathbf{r}) \right] \phi_i(\mathbf{r}) = \varepsilon_i \phi_i(\mathbf{r})
+        $$
+
+        <p>ここで、有効ポテンシャル$V_{\text{eff}}$は：</p>
+
+        $$
+        V_{\text{eff}}(\mathbf{r}) = V_{\text{ext}}(\mathbf{r}) + V_{\text{H}}(\mathbf{r}) + V_{\text{xc}}(\mathbf{r})
+        $$
+
+        <ul>
+            <li><strong>$V_{\text{ext}}$</strong>: 外部ポテンシャル（原子核からのクーロンポテンシャル）</li>
+            <li><strong>$V_{\text{H}}$</strong>: Hartreeポテンシャル（電子間の古典的クーロン相互作用）</li>
+            <li><strong>$V_{\text{xc}}$</strong>: 交換相関ポテンシャル（量子力学的効果を全て含む）</li>
+        </ul>
+
+        <h3>交換相関エネルギー：DFTの心臓部</h3>
+        <p>交換相関エネルギー$E_{\text{xc}}[n]$は、DFTにおける唯一の近似部分です。交換（exchange）と相関（correlation）の効果を含みます：</p>
+
+        <ul>
+            <li><strong>交換エネルギー</strong>：Pauli排他律による同種スピンの電子間反発の低減</li>
+            <li><strong>相関エネルギー</strong>：電子間相互作用による運動の相関</li>
+        </ul>
+
+        <p>交換相関ポテンシャルは、$E_{\text{xc}}[n]$の汎関数微分で得られます：</p>
+
+        $$
+        V_{\text{xc}}(\mathbf{r}) = \frac{\delta E_{\text{xc}}[n]}{\delta n(\mathbf{r})}
+        $$
+
+        <h2>交換相関汎関数の種類</h2>
+
+        <h3>LDA（Local Density Approximation）</h3>
+        <p>最も単純な近似。各点$\mathbf{r}$での交換相関エネルギー密度が、密度$n(\mathbf{r})$の一様電子ガスのそれに等しいと仮定します：</p>
+
+        $$
+        E_{\text{xc}}^{\text{LDA}}[n] = \int n(\mathbf{r}) \varepsilon_{\text{xc}}(n(\mathbf{r})) d\mathbf{r}
+        $$
+
+        <p><strong>特徴</strong>：</p>
+        <ul>
+            <li>計算コストが低い</li>
+            <li>密度がゆっくり変化する系（金属）で良い精度</li>
+            <li>バンドギャップを過小評価する傾向</li>
+            <li>弱い相互作用（van der Waals力）を記述できない</li>
+        </ul>
+
+        <h3>GGA（Generalized Gradient Approximation）</h3>
+        <p>密度$n(\mathbf{r})$だけでなく、その勾配$\nabla n(\mathbf{r})$も考慮します：</p>
+
+        $$
+        E_{\text{xc}}^{\text{GGA}}[n] = \int n(\mathbf{r}) \varepsilon_{\text{xc}}(n(\mathbf{r}), |\nabla n(\mathbf{r})|) d\mathbf{r}
+        $$
+
+        <p><strong>代表的なGGA汎関数</strong>：</p>
+        <ul>
+            <li><strong>PBE</strong>（Perdew-Burke-Ernzerhof）: 固体物性計算で最も広く使われる</li>
+            <li><strong>PW91</strong>: PBEの前身</li>
+            <li><strong>BLYP</strong>: 分子系でよく使われる</li>
+        </ul>
+
+        <p><strong>特徴</strong>：</p>
+        <ul>
+            <li>LDAより原子間結合距離や結合エネルギーが改善</li>
+            <li>分子系・表面系で高精度</li>
+            <li>計算コストはLDAとほぼ同等</li>
+            <li>バンドギャップの過小評価は依然として存在</li>
+        </ul>
+
+        <h3>Hybrid汎関数</h3>
+        <p>Hartree-Fock交換（厳密交換）を一部混ぜる方法。バンドギャップの精度を改善します：</p>
+
+        $$
+        E_{\text{xc}}^{\text{hybrid}} = aE_{\text{x}}^{\text{HF}} + (1-a)E_{\text{x}}^{\text{DFT}} + E_{\text{c}}^{\text{DFT}}
+        $$
+
+        <p><strong>代表的なhybrid汎関数</strong>：</p>
+        <ul>
+            <li><strong>PBE0</strong>: HF交換を25%混合（$a=0.25$）</li>
+            <li><strong>HSE06</strong>: 短距離のみHF交換を使用（計算コスト削減）</li>
+            <li><strong>B3LYP</strong>: 分子系で広く使用</li>
+        </ul>
+
+        <p><strong>特徴</strong>：</p>
+        <ul>
+            <li>バンドギャップを正確に予測</li>
+            <li>半導体・絶縁体に有効</li>
+            <li>計算コストが高い（GGAの5-10倍）</li>
+        </ul>
+
+        <div class="mermaid">
+graph TD
+    A[交換相関汎関数] --> B[LDA]
+    A --> C[GGA]
+    A --> D[Hybrid]
+    A --> E[メタGGA]
+
+    B --> B1[最速/低精度]
+    C --> C1[標準/高精度]
+    D --> D1[高精度/高コスト]
+    E --> E1[研究用/最高精度]
+
+    style A fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+    style C fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style D fill:#fff3cd,stroke:#ffc107,stroke-width:2px
+</div>
+
+        <h2>疑擬ポテンシャルとPAW法</h2>
+
+        <h3>全電子計算の困難</h3>
+        <p>原子の内殻電子（1s, 2s, 2pなど）は：</p>
+        <ul>
+            <li>化学結合にほとんど寄与しない</li>
+            <li>原子核近傍で急激に振動する波動関数を持つ</li>
+            <li>記述に多数の平面波基底が必要（計算コスト大）</li>
+        </ul>
+
+        <h3>疑擬ポテンシャル（Pseudopotential）</h3>
+        <p>内殻電子の効果を「疑擬ポテンシャル」で置き換え、価電子のみを明示的に扱う方法です。</p>
+
+        <div class="info-box">
+            <h4>疑擬ポテンシャルの条件</h4>
+            <ul>
+                <li>カットオフ半径$r_c$の外側で、全電子波動関数と一致</li>
+                <li>全電子系と同じ散乱特性を持つ</li>
+                <li>ノルム保存性：電荷が保存される</li>
+            </ul>
+        </div>
+
+        <p><strong>種類</strong>：</p>
+        <ul>
+            <li><strong>ノルム保存型</strong>（Norm-conserving）：精度が高いが転送性に課題</li>
+            <li><strong>ウルトラソフト型</strong>（Ultrasoft）：転送性が良いが複雑</li>
+            <li><strong>PAW法</strong>（Projector Augmented Wave）：現在の標準</li>
+        </ul>
+
+        <h3>PAW（Projector Augmented Wave）法</h3>
+        <p>PAW法は、全電子波動関数と疑擬波動関数を厳密に関係づける変換を導入します：</p>
+
+        $$
+        |\psi\rangle = |\tilde{\psi}\rangle + \sum_i (|\phi_i\rangle - |\tilde{\phi}_i\rangle) \langle\tilde{p}_i|\tilde{\psi}\rangle
+        $$
+
+        <ul>
+            <li>$|\tilde{\psi}\rangle$：疑擬波動関数（計算で扱う）</li>
+            <li>$|\psi\rangle$：全電子波動関数（物理量計算で使用）</li>
+        </ul>
+
+        <p><strong>PAWの利点</strong>：</p>
+        <ul>
+            <li>全電子計算に近い精度</li>
+            <li>計算コストは疑擬ポテンシャル並み</li>
+            <li>VASPの標準手法</li>
+        </ul>
+
+        <h2>k点サンプリング</h2>
+
+        <h3>Blochの定理と周期境界条件</h3>
+        <p>結晶は周期構造を持つため、Blochの定理が成り立ちます：</p>
+
+        $$
+        \psi_{n\mathbf{k}}(\mathbf{r}) = e^{i\mathbf{k}\cdot\mathbf{r}} u_{n\mathbf{k}}(\mathbf{r})
+        $$
+
+        <p>ここで、$u_{n\mathbf{k}}(\mathbf{r})$は格子周期関数です。波動関数は波数ベクトル$\mathbf{k}$でラベル付けされます。</p>
+
+        <h3>Brillouinゾーンとk点メッシュ</h3>
+        <p>第一Brillouinゾーン内の$\mathbf{k}$点で、Kohn-Sham方程式を解く必要があります。実際には、有限個のk点でサンプリングします。</p>
+
+        <p><strong>Monkhorst-Packメッシュ</strong>：</p>
+        <p>Brillouinゾーンを等間隔で分割：</p>
+
+        $$
+        \mathbf{k} = \frac{n_1}{N_1}\mathbf{b}_1 + \frac{n_2}{N_2}\mathbf{b}_2 + \frac{n_3}{N_3}\mathbf{b}_3
+        $$
+
+        <p>$N_1 \times N_2 \times N_3$のメッシュ密度を指定します。</p>
+
+        <div class="warning-box">
+            <h4>k点収束テストの重要性</h4>
+            <p>k点メッシュが粗いと、エネルギーや物性値が収束しません。特に金属は密なメッシュが必要です（半導体より3-4倍密）。目安：</p>
+            <ul>
+                <li>半導体：4×4×4 〜 8×8×8</li>
+                <li>金属：12×12×12 〜 16×16×16</li>
+                <li>表面・2次元系：k_z方向は粗くて良い（例：8×8×1）</li>
+            </ul>
+        </div>
+
+        <h2>平面波基底とカットオフエネルギー</h2>
+
+        <h3>平面波展開</h3>
+        <p>周期系では、Kohn-Sham軌道を平面波で展開できます：</p>
+
+        $$
+        \phi_{n\mathbf{k}}(\mathbf{r}) = \sum_{\mathbf{G}} c_{n\mathbf{k}}(\mathbf{G}) e^{i(\mathbf{k}+\mathbf{G})\cdot\mathbf{r}}
+        $$
+
+        <p>$\mathbf{G}$は逆格子ベクトルです。原理的には無限和ですが、実際には有限項で打ち切ります。</p>
+
+        <h3>カットオフエネルギー$E_{\text{cut}}$</h3>
+        <p>波数$|\mathbf{k}+\mathbf{G}|$に対応する運動エネルギー：</p>
+
+        $$
+        E = \frac{\hbar^2}{2m}|\mathbf{k}+\mathbf{G}|^2
+        $$
+
+        <p>が$E_{\text{cut}}$以下の平面波のみを使用します：</p>
+
+        $$
+        \frac{\hbar^2}{2m}|\mathbf{k}+\mathbf{G}|^2 < E_{\text{cut}}
+        $$
+
+        <p><strong>典型的な値</strong>：</p>
+        <ul>
+            <li>PAW：400-600 eV（元素による）</li>
+            <li>Ultrasoft PP：30-50 Ry（約400-680 eV）</li>
+        </ul>
+
+        <div class="warning-box">
+            <h4>カットオフエネルギー収束テスト</h4>
+            <p>エネルギーがカットオフの増加に対して収束するまでテストします。目標：</p>
+            <ul>
+                <li>全エネルギー：1 meV/atom 以下の変化</li>
+                <li>格子定数：0.01 Å 以下の変化</li>
+            </ul>
+        </div>
+
+        <h2>Pythonで学ぶDFT：ASE/Pymatgen入門</h2>
+
+        <h3>ASE（Atomic Simulation Environment）の基礎</h3>
+        <p>ASEは、原子構造の操作とDFT計算のセットアップを統一的に扱えるPythonライブラリです。</p>
+
+        <pre><code class="language-python">
+import numpy as np
+from ase import Atoms
+from ase.build import bulk, surface, molecule
+from ase.visualize import view
+import matplotlib.pyplot as plt
+
+# 1. 結晶構造の作成
+# Si（ダイヤモンド構造）
+si = bulk('Si', 'diamond', a=5.43)
+print("Si 結晶構造:")
+print(si)
+print(f"格子定数: {si.cell[0,0]:.3f} Å")
+print(f"原子数: {len(si)}")
+
+# 2. 様々な結晶構造の作成
+structures = {
+    'Al (FCC)': bulk('Al', 'fcc', a=4.05),
+    'Fe (BCC)': bulk('Fe', 'bcc', a=2.87),
+    'Cu (FCC)': bulk('Cu', 'fcc', a=3.61),
+    'GaAs (zincblende)': bulk('GaAs', 'zincblende', a=5.65)
+}
+
+for name, struct in structures.items():
+    print(f"\n{name}:")
+    print(f"  格子定数: {struct.cell[0,0]:.3f} Å")
+    print(f"  原子数: {len(struct)}")
+    print(f"  化学式: {struct.get_chemical_formula()}")
+
+# 3. 表面構造の作成
+# Si(111) 表面
+si_surface = surface('Si', (1,1,1), layers=4, vacuum=10.0)
+print(f"\nSi(111) 表面:")
+print(f"  原子数: {len(si_surface)}")
+print(f"  セルサイズ: {si_surface.cell.lengths()}")
+
+# 4. 分子構造の作成
+h2o = molecule('H2O')
+print(f"\nH2O 分子:")
+print(f"  原子数: {len(h2o)}")
+for i, atom in enumerate(h2o):
+    print(f"  {atom.symbol}: {atom.position}")
+</code></pre>
+
+        <h3>結晶構造の詳細情報取得</h3>
+
+        <pre><code class="language-python">
+from ase.build import bulk
+import numpy as np
+
+# Si結晶の詳細解析
+si = bulk('Si', 'diamond', a=5.43)
+
+# セル情報
+print("セル行列:")
+print(si.cell)
+print(f"\nセル体積: {si.get_volume():.3f} Å³")
+
+# 原子位置（分数座標）
+print("\n原子の分数座標:")
+scaled_pos = si.get_scaled_positions()
+for i, pos in enumerate(scaled_pos):
+    print(f"  原子{i}: ({pos[0]:.4f}, {pos[1]:.4f}, {pos[2]:.4f})")
+
+# 原子位置（デカルト座標）
+print("\n原子のデカルト座標 [Å]:")
+for i, pos in enumerate(si.positions):
+    print(f"  原子{i}: ({pos[0]:.4f}, {pos[1]:.4f}, {pos[2]:.4f})")
+
+# 原子間距離計算
+from ase.neighborlist import NeighborList, natural_cutoffs
+
+cutoffs = natural_cutoffs(si)
+nl = NeighborList(cutoffs, self_interaction=False, bothways=True)
+nl.update(si)
+
+print("\n最近接原子間距離:")
+for i in range(len(si)):
+    indices, offsets = nl.get_neighbors(i)
+    for j, offset in zip(indices, offsets):
+        dist = si.get_distance(i, j, mic=True)
+        print(f"  原子{i} - 原子{j}: {dist:.4f} Å")
+    break  # 最初の原子のみ表示
+</code></pre>
+
+        <h3>Pymatgenで結晶構造を操作</h3>
+
+        <pre><code class="language-python">
+from pymatgen.core import Structure, Lattice
+import numpy as np
+
+# 1. 格子定数から結晶構造を作成
+# Si（ダイヤモンド構造）
+lattice = Lattice.cubic(5.43)
+si_struct = Structure(
+    lattice,
+    ["Si", "Si"],
+    [[0.00, 0.00, 0.00],
+     [0.25, 0.25, 0.25]]
+)
+
+print("Si 結晶構造 (Pymatgen):")
+print(si_struct)
+
+# 2. 対称性解析
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+analyzer = SpacegroupAnalyzer(si_struct)
+print(f"\n空間群: {analyzer.get_space_group_symbol()}")
+print(f"空間群番号: {analyzer.get_space_group_number()}")
+print(f"点群: {analyzer.get_point_group_symbol()}")
+
+# 3. 原始格子への変換
+primitive = analyzer.get_primitive_standard_structure()
+print(f"\n原始格子の原子数: {len(primitive)}")
+print(f"慣用格子の原子数: {len(si_struct)}")
+
+# 4. 複合材料：GaAs
+gaas_struct = Structure(
+    Lattice.cubic(5.65),
+    ["Ga", "As"],
+    [[0.00, 0.00, 0.00],
+     [0.25, 0.25, 0.25]]
+)
+print("\nGaAs 結晶構造:")
+print(gaas_struct)
+print(f"空間群: {SpacegroupAnalyzer(gaas_struct).get_space_group_symbol()}")
+</code></pre>
+
+        <h3>ASEとPymatgenの相互変換</h3>
+
+        <pre><code class="language-python">
+from ase.build import bulk
+from pymatgen.io.ase import AseAtomsAdaptor
+
+# ASE → Pymatgen
+si_ase = bulk('Si', 'diamond', a=5.43)
+adaptor = AseAtomsAdaptor()
+si_pmg = adaptor.get_structure(si_ase)
+
+print("ASE から Pymatgen への変換:")
+print(si_pmg)
+
+# Pymatgen → ASE
+si_ase_back = adaptor.get_atoms(si_pmg)
+print("\nPymatgen から ASE への変換:")
+print(si_ase_back)
+
+# 両方の利点を活用
+# ASE: 計算セットアップに便利
+# Pymatgen: 対称性解析、Materials Project連携に強力
+</code></pre>
+
+        <h2>VASP入力ファイルの作成</h2>
+
+        <h3>VASPの4つの入力ファイル</h3>
+        <p>VASPには4つの主要な入力ファイルがあります：</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ファイル名</th>
+                    <th>内容</th>
+                    <th>作成方法</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>INCAR</strong></td>
+                    <td>計算パラメータ（汎関数、k点、収束条件など）</td>
+                    <td>手動またはPymatgen</td>
+                </tr>
+                <tr>
+                    <td><strong>POSCAR</strong></td>
+                    <td>原子構造（格子定数、原子位置）</td>
+                    <td>ASE/Pymatgenから自動生成</td>
+                </tr>
+                <tr>
+                    <td><strong>KPOINTS</strong></td>
+                    <td>k点メッシュ設定</td>
+                    <td>手動またはPymatgen</td>
+                </tr>
+                <tr>
+                    <td><strong>POTCAR</strong></td>
+                    <td>疑擬ポテンシャル（PAW）</td>
+                    <td>VASP付属ファイルをコピー</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>POSCAR（原子構造ファイル）</h3>
+
+        <pre><code class="language-python">
+from ase.build import bulk
+from ase.io import write
+
+# Si結晶のPOSCARファイル作成
+si = bulk('Si', 'diamond', a=5.43)
+
+# 2×2×2のスーパーセルに拡大
+si_supercell = si.repeat((2, 2, 2))
+
+# POSCARファイルに書き出し
+write('POSCAR', si_supercell, format='vasp')
+
+print("POSCARファイルを作成しました")
+print(f"原子数: {len(si_supercell)}")
+
+# POSCARファイルの内容を表示
+with open('POSCAR', 'r') as f:
+    print("\nPOSCAR の内容:")
+    print(f.read())
+</code></pre>
+
+        <p>生成されるPOSCARファイルの形式：</p>
+
+        <pre><code>
+Si16
+1.0
+   10.8600000000    0.0000000000    0.0000000000
+    0.0000000000   10.8600000000    0.0000000000
+    0.0000000000    0.0000000000   10.8600000000
+Si
+16
+Direct
+  0.0000000000  0.0000000000  0.0000000000
+  0.1250000000  0.1250000000  0.1250000000
+  ...
+</code></pre>
+
+        <h3>INCARファイルの作成</h3>
+
+        <pre><code class="language-python">
+# INCARファイルのテンプレート生成
+
+def create_incar(calculation_type='scf', system_name='Si',
+                 functional='PBE', encut=400, ismear=0, sigma=0.05):
+    """
+    VASP INCARファイルを生成
+
+    Parameters:
+    -----------
+    calculation_type : str
+        'scf' (一点計算), 'relax' (構造最適化), 'band' (バンド構造)
+    functional : str
+        'PBE', 'LDA', 'PBE0', 'HSE06'
+    encut : float
+        カットオフエネルギー [eV]
+    ismear : int
+        スメアリング法（0: Gaussian, 1: Methfessel-Paxton, -5: tetrahedron）
+    sigma : float
+        スメアリング幅 [eV]
+    """
+
+    incar_content = f"""SYSTEM = {system_name}
+
+# Electronic structure
+ENCUT = {encut}         # カットオフエネルギー [eV]
+PREC = Accurate         # 精度（Normal, Accurate, High）
+LREAL = Auto            # 実空間射影（Auto推奨）
+
+# Exchange-correlation
+GGA = PE                # PBE汎関数（LDAの場合は削除）
+
+# SCF convergence
+EDIFF = 1E-6            # 電子状態収束条件 [eV]
+NELM = 100              # 最大SCF iteration
+
+# Smearing（金属・半導体で異なる設定）
+ISMEAR = {ismear}       # スメアリング法
+SIGMA = {sigma}         # スメアリング幅 [eV]
+
+# Parallelization
+NCORE = 4               # コア並列数（システム依存）
+"""
+
+    # 構造最適化の場合
+    if calculation_type == 'relax':
+        incar_content += """
+# Structure relaxation
+IBRION = 2              # イオン緩和アルゴリズム（2: CG, 1: RMM-DIIS）
+NSW = 100               # 最大イオンステップ
+ISIF = 3                # セルとイオン位置を最適化
+EDIFFG = -0.01          # 力の収束条件 [eV/Å]
+"""
+
+    # バンド計算の場合
+    elif calculation_type == 'band':
+        incar_content += """
+# Band structure calculation
+ICHARG = 11             # 電荷密度を読み込み
+LORBIT = 11             # 射影DOS計算
+"""
+
+    return incar_content
+
+# SCF計算用INCARを生成
+incar_scf = create_incar(calculation_type='scf', system_name='Si bulk')
+with open('INCAR', 'w') as f:
+    f.write(incar_scf)
+
+print("INCAR ファイルを作成しました:")
+print(incar_scf)
+</code></pre>
+
+        <h3>KPOINTSファイルの作成</h3>
+
+        <pre><code class="language-python">
+# KPOINTSファイル生成
+
+def create_kpoints(kpts=(8, 8, 8), shift=(0, 0, 0), mode='Monkhorst-Pack'):
+    """
+    VASP KPOINTSファイルを生成
+
+    Parameters:
+    -----------
+    kpts : tuple
+        k点メッシュ (nx, ny, nz)
+    shift : tuple
+        メッシュのシフト（通常は(0,0,0)）
+    mode : str
+        'Monkhorst-Pack' or 'Gamma'
+    """
+
+    kpoints_content = f"""Automatic mesh
+0
+{mode}
+{kpts[0]} {kpts[1]} {kpts[2]}
+{shift[0]} {shift[1]} {shift[2]}
+"""
+    return kpoints_content
+
+# 8×8×8 Monkhorst-Pack メッシュ
+kpoints_dense = create_kpoints(kpts=(8, 8, 8))
+with open('KPOINTS', 'w') as f:
+    f.write(kpoints_dense)
+
+print("KPOINTS ファイルを作成しました:")
+print(kpoints_dense)
+
+# Gamma点中心メッシュ（金属に推奨）
+kpoints_gamma = create_kpoints(kpts=(12, 12, 12), mode='Gamma')
+print("\nGamma点中心メッシュ:")
+print(kpoints_gamma)
+</code></pre>
+
+        <h3>Pymatgenを使った入力ファイル一括生成</h3>
+
+        <pre><code class="language-python">
+from pymatgen.io.vasp.inputs import Incar, Kpoints, Poscar
+from pymatgen.core import Structure
+from pymatgen.io.vasp.sets import MPRelaxSet
+
+# 1. PymatgenでSi構造を作成
+si_struct = Structure.from_file('POSCAR')  # または直接作成
+
+# 2. Materials Project標準設定で入力ファイル一式を生成
+# （研究コミュニティで広く使われる標準設定）
+mp_set = MPRelaxSet(si_struct)
+
+# 3. ファイル書き出し
+mp_set.write_input('vasp_calc/')  # vasp_calc/ ディレクトリに全ファイル作成
+
+print("VASP入力ファイル一式を vasp_calc/ に作成しました")
+print("含まれるファイル: INCAR, POSCAR, KPOINTS, POTCAR（コピー必要）")
+
+# 4. 個別にカスタマイズ
+custom_incar = Incar({
+    'SYSTEM': 'Si bulk',
+    'ENCUT': 520,
+    'ISMEAR': 0,
+    'SIGMA': 0.05,
+    'EDIFF': 1e-6,
+    'PREC': 'Accurate'
+})
+
+custom_kpoints = Kpoints.gamma_automatic(kpts=(10, 10, 10))
+
+# 書き出し
+custom_incar.write_file('vasp_calc/INCAR')
+custom_kpoints.write_file('vasp_calc/KPOINTS')
+</code></pre>
+
+        <h2>k点とカットオフエネルギーの収束テスト</h2>
+
+        <h3>収束テストの戦略</h3>
+
+        <pre><code class="language-python">
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 収束テストのシミュレーション
+# （実際のVASP計算結果を模擬）
+
+# 1. k点収束テスト
+k_values = np.array([2, 4, 6, 8, 10, 12, 14, 16])
+# 収束する総エネルギー（ダミーデータ）
+energy_k = -5.4 + 0.1 * np.exp(-k_values/4) + np.random.normal(0, 0.001, len(k_values))
+
+# 2. カットオフエネルギー収束テスト
+encut_values = np.array([200, 250, 300, 350, 400, 450, 500, 550, 600])
+# 収束する総エネルギー（ダミーデータ）
+energy_encut = -5.4 - 0.05 * np.exp(-(encut_values-200)/100) + np.random.normal(0, 0.001, len(encut_values))
+
+# プロット
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# k点収束
+ax1.plot(k_values, energy_k, 'o-', markersize=8, linewidth=2, color='#f093fb')
+ax1.axhline(y=energy_k[-1], color='red', linestyle='--', label='収束値')
+ax1.fill_between(k_values, energy_k[-1]-0.001, energy_k[-1]+0.001,
+                  alpha=0.2, color='red', label='±1 meV 範囲')
+ax1.set_xlabel('k点メッシュ (k×k×k)', fontsize=12)
+ax1.set_ylabel('全エネルギー [eV/atom]', fontsize=12)
+ax1.set_title('k点収束テスト', fontsize=14, fontweight='bold')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# カットオフエネルギー収束
+ax2.plot(encut_values, energy_encut, 's-', markersize=8, linewidth=2, color='#f5576c')
+ax2.axhline(y=energy_encut[-1], color='red', linestyle='--', label='収束値')
+ax2.fill_between(encut_values, energy_encut[-1]-0.001, energy_encut[-1]+0.001,
+                  alpha=0.2, color='red', label='±1 meV 範囲')
+ax2.set_xlabel('カットオフエネルギー [eV]', fontsize=12)
+ax2.set_ylabel('全エネルギー [eV/atom]', fontsize=12)
+ax2.set_title('カットオフエネルギー収束テスト', fontsize=14, fontweight='bold')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('convergence_tests.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 収束判定
+print("=== 収束テスト結果 ===")
+print(f"\nk点収束:")
+for i in range(1, len(k_values)):
+    diff = abs(energy_k[i] - energy_k[i-1]) * 1000  # meV
+    status = "✓" if diff < 1.0 else "✗"
+    print(f"  k={k_values[i]:2d}: ΔE = {diff:.3f} meV {status}")
+
+print(f"\nカットオフエネルギー収束:")
+for i in range(1, len(encut_values)):
+    diff = abs(energy_encut[i] - energy_encut[i-1]) * 1000  # meV
+    status = "✓" if diff < 1.0 else "✗"
+    print(f"  ENCUT={encut_values[i]:3d} eV: ΔE = {diff:.3f} meV {status}")
+</code></pre>
+
+        <h3>実践的な収束テストスクリプト</h3>
+
+        <pre><code class="language-python">
+import os
+import numpy as np
+from ase.build import bulk
+from ase.io import write
+
+def run_convergence_test(structure, test_type='kpoints',
+                          k_range=None, encut_range=None):
+    """
+    収束テストを実行するためのディレクトリ構造とファイルを準備
+
+    Parameters:
+    -----------
+    structure : ase.Atoms
+        テストする結晶構造
+    test_type : str
+        'kpoints' または 'encut'
+    k_range : list
+        テストするk点メッシュのリスト（例：[4, 6, 8, 10, 12]）
+    encut_range : list
+        テストするカットオフエネルギーのリスト [eV]
+    """
+
+    if test_type == 'kpoints' and k_range is not None:
+        print("=== k点収束テスト準備 ===")
+        for k in k_range:
+            dirname = f'ktest_{k}x{k}x{k}'
+            os.makedirs(dirname, exist_ok=True)
+
+            # POSCAR作成
+            write(f'{dirname}/POSCAR', structure, format='vasp')
+
+            # KPOINTS作成
+            with open(f'{dirname}/KPOINTS', 'w') as f:
+                f.write(f"""Automatic mesh
+0
+Monkhorst-Pack
+{k} {k} {k}
+0 0 0
+""")
+
+            # INCAR作成（共通設定）
+            with open(f'{dirname}/INCAR', 'w') as f:
+                f.write("""SYSTEM = k-point convergence test
+ENCUT = 400
+ISMEAR = 0
+SIGMA = 0.05
+EDIFF = 1E-6
+PREC = Accurate
+""")
+
+            print(f"  {dirname}/ 作成完了")
+
+    elif test_type == 'encut' and encut_range is not None:
+        print("=== カットオフエネルギー収束テスト準備 ===")
+        for encut in encut_range:
+            dirname = f'encut_{encut}'
+            os.makedirs(dirname, exist_ok=True)
+
+            write(f'{dirname}/POSCAR', structure, format='vasp')
+
+            with open(f'{dirname}/KPOINTS', 'w') as f:
+                f.write("""Automatic mesh
+0
+Monkhorst-Pack
+8 8 8
+0 0 0
+""")
+
+            with open(f'{dirname}/INCAR', 'w') as f:
+                f.write(f"""SYSTEM = ENCUT convergence test
+ENCUT = {encut}
+ISMEAR = 0
+SIGMA = 0.05
+EDIFF = 1E-6
+PREC = Accurate
+""")
+
+            print(f"  {dirname}/ 作成完了")
+
+# 使用例
+si = bulk('Si', 'diamond', a=5.43)
+
+# k点収束テスト用ディレクトリ作成
+run_convergence_test(si, test_type='kpoints',
+                      k_range=[4, 6, 8, 10, 12, 14])
+
+# カットオフ収束テスト用ディレクトリ作成
+run_convergence_test(si, test_type='encut',
+                      encut_range=[300, 350, 400, 450, 500, 550, 600])
+
+print("\n全てのテストディレクトリを作成しました")
+print("次のステップ: 各ディレクトリでVASPを実行してください")
+</code></pre>
+
+        <h2>DFT計算のワークフロー</h2>
+
+        <div class="mermaid">
+flowchart TD
+    A[結晶構造準備] --> B[入力ファイル作成]
+    B --> C{収束テスト<br/>k点・ENCUT}
+    C -->|未収束| B
+    C -->|収束| D[SCF計算]
+    D --> E[構造最適化]
+    E --> F{構造変化<br/>小さい?}
+    F -->|No| E
+    F -->|Yes| G[物性計算]
+    G --> H[バンド構造]
+    G --> I[状態密度]
+    G --> J[電荷密度]
+    H --> K[結果解析]
+    I --> K
+    J --> K
+    K --> L[論文・報告]
+
+    style A fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+    style D fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style G fill:#fff3cd,stroke:#ffc107,stroke-width:2px
+    style L fill:#d4edda,stroke:#28a745,stroke-width:2px
+</div>
+
+        <h3>標準的なDFT計算手順</h3>
+
+        <pre><code class="language-python">
+# DFT計算の標準ワークフロー（擬似コード）
+
+def dft_workflow(material_name, structure):
+    """
+    標準的なDFT計算ワークフロー
+    """
+
+    print(f"=== {material_name} のDFT計算ワークフロー ===\n")
+
+    # Step 1: 収束テスト
+    print("Step 1: 収束テスト")
+    print("  1-1. k点メッシュ収束テスト")
+    print("       → 最適k点: 8×8×8 と判定")
+    print("  1-2. カットオフエネルギー収束テスト")
+    print("       → 最適ENCUT: 450 eV と判定")
+
+    # Step 2: 構造最適化
+    print("\nStep 2: 構造最適化（IBRION=2, ISIF=3）")
+    print("  - 初期構造: 実験値")
+    print("  - 最適化後:")
+    print("    格子定数: 5.43 → 5.47 Å（+0.7%、PBEの過大評価）")
+    print("    原子位置: 変化なし（高対称性）")
+
+    # Step 3: 静的計算（高精度）
+    print("\nStep 3: 静的計算（一点計算、NSW=0）")
+    print("  - 最適化構造で高精度SCF")
+    print("  - 電荷密度・波動関数を保存")
+
+    # Step 4: バンド構造計算
+    print("\nStep 4: バンド構造計算（ICHARG=11）")
+    print("  - 高対称点パス: Γ-X-W-K-Γ-L")
+    print("  - 間接バンドギャップ: 0.65 eV（実験値1.12 eVを過小評価）")
+
+    # Step 5: 状態密度計算
+    print("\nStep 5: 状態密度計算（LORBIT=11）")
+    print("  - 密なk点メッシュ: 16×16×16")
+    print("  - 射影DOS（原子・軌道分解）")
+
+    # Step 6: 結果解析
+    print("\nStep 6: 結果解析")
+    print("  - バンド図プロット")
+    print("  - DOSプロット")
+    print("  - 実験値との比較")
+
+    return {
+        'optimal_k': (8, 8, 8),
+        'optimal_encut': 450,
+        'lattice_constant': 5.47,
+        'band_gap': 0.65
+    }
+
+# 実行例
+si = bulk('Si', 'diamond', a=5.43)
+results = dft_workflow('Silicon', si)
+
+print(f"\n=== 計算結果サマリ ===")
+for key, value in results.items():
+    print(f"  {key}: {value}")
+</code></pre>
+
+        <h2>まとめ</h2>
+
+        <div class="success-box">
+            <h3>この章で学んだこと</h3>
+            <h4>理論的理解</h4>
+            <ul>
+                <li>DFTは多体Schrödinger方程式を電子密度で解く理論</li>
+                <li>Hohenberg-Kohn定理：電子密度が全ての物理量を決定</li>
+                <li>Kohn-Sham方程式：非相互作用系への写像で計算可能に</li>
+                <li>交換相関汎関数（LDA, GGA, hybrid）が唯一の近似部分</li>
+            </ul>
+
+            <h4>実践的スキル</h4>
+            <ul>
+                <li>ASE/Pymatgenで結晶構造を作成・操作できる</li>
+                <li>VASP入力ファイル（INCAR, POSCAR, KPOINTS）を作成できる</li>
+                <li>k点メッシュとカットオフエネルギーの収束テストを実施できる</li>
+                <li>DFT計算の標準ワークフローを理解した</li>
+            </ul>
+
+            <h4>次章への準備</h4>
+            <ul>
+                <li>第4章では、DFT計算結果から電気的・磁気的性質を計算します</li>
+                <li>電気伝導、Hall効果、磁化などの具体的な物性値の計算方法を学びます</li>
+            </ul>
+        </div>
+
+        <h2>演習問題</h2>
+
+        <div class="exercise-box">
+            <h4>演習1：基礎理論（難易度：★☆☆）</h4>
+            <p><strong>問題</strong>：以下の記述の正誤を判定し、誤りがあれば訂正してください。</p>
+            <ol>
+                <li>DFTでは、電子密度$n(\mathbf{r})$は3次元関数であるため、多体波動関数より扱いやすい。</li>
+                <li>Kohn-Sham方程式は、相互作用する多電子系を厳密に解く方程式である。</li>
+                <li>GGA汎関数は、密度勾配も考慮するため、常にLDAより高精度である。</li>
+                <li>PAW法は、疑擬ポテンシャル法の一種で、全電子計算に近い精度を達成する。</li>
+            </ol>
+
+            <p><strong>解答のポイント</strong>：</p>
+            <ol>
+                <li>正しい。$3N$次元 → 3次元への劇的な削減。</li>
+                <li>誤り。Kohn-Sham方程式は「非相互作用系への写像」。交換相関汎関数$E_{\text{xc}}$が近似。</li>
+                <li>誤り。多くの場合GGAが優れるが、密度が一様に近い系（単純金属）ではLDAも良い。</li>
+                <li>正しい。PAWは全電子波動関数を復元する変換を持つ。</li>
+            </ol>
+        </div>
+
+        <div class="exercise-box">
+            <h4>演習2：汎関数の選択（難易度：★★☆）</h4>
+            <p><strong>問題</strong>：以下の系に対して最適な交換相関汎関数を選び、理由を説明してください。</p>
+            <ol>
+                <li>Siバルク（半導体）のバンドギャップ計算</li>
+                <li>Cu金属の格子定数最適化</li>
+                <li>TiO₂（酸化チタン）の電子状態計算</li>
+                <li>有機分子の結合エネルギー計算</li>
+            </ol>
+
+            <p><strong>推奨解答</strong>：</p>
+            <ol>
+                <li>HSE06（hybrid）：GGAではバンドギャップを約50%過小評価するため。</li>
+                <li>PBE（GGA）：金属は電子密度が滑らかで、GGAで十分高精度。計算コストも低い。</li>
+                <li>PBE+U または HSE06：Tiのd軌道の強相関効果を考慮する必要がある。</li>
+                <li>B3LYP（hybrid）：分子系で広く検証されている。ただしPBEも可。</li>
+            </ol>
+        </div>
+
+        <div class="exercise-box">
+            <h4>演習3：Pythonコーディング（難易度：★★☆）</h4>
+            <p><strong>問題</strong>：以下の結晶構造をASEで作成し、POSCAR形式で保存するコードを書いてください。</p>
+            <ol>
+                <li>GaN（ウルツ鉱構造、a=3.19 Å, c=5.19 Å）</li>
+                <li>Fe（BCC構造、a=2.87 Å）</li>
+                <li>Al₂O₃（コランダム構造、Materials Projectからダウンロード）</li>
+            </ol>
+
+            <p><strong>ヒント</strong>：</p>
+            <ul>
+                <li>GaNはウルツ鉱構造（wurtzite）</li>
+                <li>FeはBCC（body-centered cubic）</li>
+                <li>Materials Projectへのアクセスには<code>pymatgen.ext.matproj</code>を使用</li>
+            </ul>
+        </div>
+
+        <div class="exercise-box">
+            <h4>演習4：収束テストの解析（難易度：★★☆）</h4>
+            <p><strong>問題</strong>：以下のk点収束テスト結果を解析し、最適なk点メッシュを推奨してください。</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>k点メッシュ</th>
+                        <th>全エネルギー [eV/atom]</th>
+                        <th>計算時間 [分]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>4×4×4</td><td>-5.3421</td><td>2</td></tr>
+                    <tr><td>6×6×6</td><td>-5.3998</td><td>5</td></tr>
+                    <tr><td>8×8×8</td><td>-5.4125</td><td>12</td></tr>
+                    <tr><td>10×10×10</td><td>-5.4138</td><td>25</td></tr>
+                    <tr><td>12×12×12</td><td>-5.4141</td><td>45</td></tr>
+                    <tr><td>14×14×14</td><td>-5.4142</td><td>75</td></tr>
+                </tbody>
+            </table>
+
+            <p><strong>考察ポイント</strong>：</p>
+            <ul>
+                <li>1 meV/atom（0.001 eV/atom）を収束基準とする</li>
+                <li>計算コストと精度のバランスを考慮</li>
+                <li>金属か半導体かで判断が変わる</li>
+            </ul>
+
+            <p><strong>推奨解答</strong>：</p>
+            <p>8×8×8 〜 10×10×10 を推奨。理由：</p>
+            <ul>
+                <li>8×8×8: 6×6×6から1.27 meV/atom改善（収束に近い）</li>
+                <li>10×10×10: 8×8×8から0.13 meV/atom改善（ほぼ収束）</li>
+                <li>12×12×12以上: 計算コストに見合う改善なし</li>
+                <li>半導体なら8×8×8、金属なら10×10×10を推奨</li>
+            </ul>
+        </div>
+
+        <div class="exercise-box">
+            <h4>演習5：INCAR設定の最適化（難易度：★★★）</h4>
+            <p><strong>問題</strong>：以下の計算目的に対して、最適なINCARパラメータを設定してください。</p>
+            <ol>
+                <li>金属Alの格子定数最適化</li>
+                <li>半導体GaAsのバンドギャップ計算（HSE06）</li>
+                <li>磁性体Feの磁気モーメント計算</li>
+            </ol>
+
+            <p><strong>推奨解答</strong>：</p>
+
+            <p>1. 金属Alの格子定数最適化:</p>
+            <pre><code>
+SYSTEM = Al lattice optimization
+ENCUT = 400
+PREC = Accurate
+GGA = PE
+ISMEAR = 1          # Methfessel-Paxton（金属に最適）
+SIGMA = 0.2         # やや大きめのスメアリング
+IBRION = 2          # CG法
+ISIF = 3            # セル形状も最適化
+EDIFF = 1E-6
+EDIFFG = -0.01
+NSW = 50
+</code></pre>
+
+            <p>2. 半導体GaAsのバンドギャップ計算（HSE06）:</p>
+            <pre><code>
+SYSTEM = GaAs band gap (HSE06)
+ENCUT = 450
+PREC = Accurate
+LHFCALC = .TRUE.    # Hybrid汎関数有効化
+HFSCREEN = 0.2      # HSE06のスクリーニングパラメータ
+ISMEAR = 0          # Gaussian（半導体）
+SIGMA = 0.05        # 小さめのスメアリング
+EDIFF = 1E-7        # 高精度収束
+ALGO = Damped       # HSE06に推奨
+TIME = 0.4
+</code></pre>
+
+            <p>3. 磁性体Feの磁気モーメント計算:</p>
+            <pre><code>
+SYSTEM = Fe magnetic moment
+ENCUT = 400
+PREC = Accurate
+GGA = PE
+ISMEAR = 1
+SIGMA = 0.2
+ISPIN = 2           # スピン分極計算
+MAGMOM = 2.0        # 初期磁気モーメント（Fe: 約2.2 μB）
+LORBIT = 11         # 磁気モーメント射影
+EDIFF = 1E-6
+</code></pre>
+        </div>
+
+        <div class="exercise-box">
+            <h4>演習6：実践課題（難易度：★★★）</h4>
+            <p><strong>問題</strong>：以下の手順で、実際にDFT計算の準備を行ってください。</p>
+            <ol>
+                <li>ASEを使ってダイヤモンド構造のSi結晶（2×2×2スーパーセル）を作成</li>
+                <li>VASP入力ファイル（INCAR, POSCAR, KPOINTS）を生成</li>
+                <li>k点収束テスト用のディレクトリ構造（k=4,6,8,10,12）を作成</li>
+                <li>各ディレクトリの設定ファイルを確認し、計算準備が整っているか検証</li>
+            </ol>
+
+            <p><strong>評価基準</strong>：</p>
+            <ul>
+                <li>POSCARファイルが正しいVASP形式であるか</li>
+                <li>INCARの設定が半導体Siに適しているか（ISMEAR=0など）</li>
+                <li>k点メッシュが各ディレクトリで正しく設定されているか</li>
+                <li>ディレクトリ構造が整理され、追跡可能か</li>
+            </ul>
+        </div>
+
+        <h2>参考文献</h2>
+        <ol>
+            <li>Hohenberg, P., & Kohn, W. (1964). "Inhomogeneous Electron Gas". Physical Review, 136(3B), B864.</li>
+            <li>Kohn, W., & Sham, L. J. (1965). "Self-Consistent Equations Including Exchange and Correlation Effects". Physical Review, 140(4A), A1133.</li>
+            <li>Perdew, J. P., Burke, K., & Ernzerhof, M. (1996). "Generalized Gradient Approximation Made Simple". Physical Review Letters, 77, 3865.</li>
+            <li>Blöchl, P. E. (1994). "Projector augmented-wave method". Physical Review B, 50, 17953.</li>
+            <li>Sholl, D., & Steckel, J. A. (2011). "Density Functional Theory: A Practical Introduction". Wiley.</li>
+            <li>ASE documentation: https://wiki.fysik.dtu.dk/ase/</li>
+            <li>Pymatgen documentation: https://pymatgen.org/</li>
+            <li>VASP manual: https://www.vasp.at/wiki/index.php/The_VASP_Manual</li>
+        </ol>
+
+        <div class="navigation">
+            <a href="chapter-2.html" class="nav-button">← 第2章：結晶場理論</a>
+            <a href="chapter-4.html" class="nav-button">第4章：電気的・磁気的性質 →</a>
+        </div>
+    </main>
+
+    <footer>
+        <p><strong>Materials Properties Introduction Series - Chapter 3</strong></p>
+        <p>Density Functional Theory (DFT) Basics for Materials Science</p>
+        <p>&copy; 2025 MS Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

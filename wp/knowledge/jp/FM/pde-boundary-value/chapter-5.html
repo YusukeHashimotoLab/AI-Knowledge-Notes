@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第5章: 数値解法と有限要素法 | 微積分とベクトル解析入門</title>
+    <meta name="description" content="数値解法と有限要素法：有限差分法、有限要素法、時間積分スキーム、安定性と収束性、メッシュ生成を学び、プロセスシミュレーションへの応用を実装します。">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; text-align: center; }
+        h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+        .subtitle { opacity: 0.9; }
+        .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+        .breadcrumb { margin-bottom: 1.5rem; font-size: 0.9rem; }
+        .breadcrumb a { color: #667eea; text-decoration: none; }
+        .content { background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+        h2 { color: #667eea; margin: 2rem 0 1rem 0; padding-bottom: 0.5rem; border-bottom: 2px solid #e0e0e0; }
+        h3 { color: #764ba2; margin: 1.5rem 0 0.8rem 0; }
+        .definition { background: #e7f3ff; border-left: 4px solid #667eea; padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .theorem { background: #f3e5f5; border-left: 4px solid #764ba2; padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .example { background: #fff3e0; border-left: 4px solid #ff9800; padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .code-title {
+            background: #667eea;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px 6px 0 0;
+            font-weight: 600;
+            margin-top: 1.5rem;
+        }
+        .code-example {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 0 0 8px 8px;
+            overflow-x: auto;
+            margin: 0 0 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .code-block code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .output { background: #f8f9fa; border: 1px solid #dee2e6; padding: 1rem; border-radius: 6px; margin: 1rem 0; font-family: monospace; font-size: 0.9rem; }
+        table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+        th, td { padding: 0.8rem; text-align: left; border: 1px solid #ddd; }
+        th { background: #667eea; color: white; }
+        .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .exercise { background: #d4edda; border-left: 4px solid #28a745; padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 4px; }
+        .nav-buttons { display: flex; justify-content: space-between; margin: 2rem 0; }
+        .nav-button { padding: 0.8rem 1.5rem; background: #667eea; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; }
+        .nav-button:hover { background: #764ba2; }
+        footer { background: #2c3e50; color: white; text-align: center; padding: 2rem 1rem; margin-top: 3rem; }
+        @media (max-width: 768px) { .content { padding: 1.5rem; } h1 { font-size: 1.5rem; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>第5章: 数値解法と有限要素法</h1>
+        <p class="subtitle">Numerical Methods and Finite Element Method</p>
+    </header>
+
+    <div class="container">
+        <div class="breadcrumb">
+            <a href="../index.html">基礎数理道場</a> &gt;
+            <a href="index.html">偏微分方程式と境界値問題</a> &gt;
+            第5章
+        </div>
+
+        <div class="content">
+            <h2>🎯 学習目標</h2>
+            <ul>
+                <li>有限差分法（FDM）の基礎と様々なスキームを理解する</li>
+                <li>有限要素法（FEM）の理論と実装を習得する</li>
+                <li>時間積分スキーム（陽解法・陰解法）の特性を学ぶ</li>
+                <li>安定性解析と収束性の理論的基礎を理解する</li>
+                <li>メッシュ生成と要素の選択を学ぶ</li>
+                <li>2次元・3次元問題への拡張を理解する</li>
+                <li>スパース行列の効率的な扱い方を習得する</li>
+                <li>プロセスシミュレーション（熱処理、反応拡散）への応用を実装する</li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <h2>📖 数値解法の基礎</h2>
+
+            <div class="theorem">
+                <h3>数値解法の分類</h3>
+                <p><strong>有限差分法（Finite Difference Method, FDM）</strong>:</p>
+                <ul>
+                    <li>微分を差分近似で置き換える</li>
+                    <li>構造格子で実装が容易</li>
+                    <li>複雑形状への適用が困難</li>
+                </ul>
+                <p><strong>有限要素法（Finite Element Method, FEM）</strong>:</p>
+                <ul>
+                    <li>変分原理に基づく弱形式を利用</li>
+                    <li>非構造格子で複雑形状に対応</li>
+                    <li>要素内での補間が高精度</li>
+                </ul>
+                <p><strong>有限体積法（Finite Volume Method, FVM）</strong>:</p>
+                <ul>
+                    <li>保存則を積分形式で扱う</li>
+                    <li>流体力学で広く使用</li>
+                    <li>質量・エネルギー保存が厳密</li>
+                </ul>
+            </div>
+
+            <div class="theorem">
+                <h3>安定性と収束性</h3>
+                <p><strong>安定性（Stability）</strong>: 数値誤差が時間発展で発散しない条件</p>
+                <p><strong>CFL条件（Courant-Friedrichs-Lewy）</strong>: 波動方程式の安定性条件</p>
+                <p>\[
+                C = c \frac{\Delta t}{\Delta x} \leq C_{\text{max}}
+                \]</p>
+                <p><strong>収束性（Convergence）</strong>: メッシュ幅 \(\Delta x \to 0\) で真の解に近づく性質</p>
+                <p><strong>一貫性（Consistency）</strong>: 差分式が微分方程式に収束する性質</p>
+                <p><strong>Laxの等価定理</strong>: 一貫性 + 安定性 ⇒ 収束性</p>
+            </div>
+
+            <h2>まとめ</h2>
+            <ul>
+                <li><strong>有限差分法</strong>は実装が容易だが、複雑形状への適用が困難。FTCS, BTCS, Crank-Nicolsonの特性を理解することが重要</li>
+                <li><strong>有限要素法</strong>は変分原理に基づき、非構造格子で複雑形状に対応。線形三角形要素が基本</li>
+                <li><strong>安定性と収束性</strong>は数値解法の信頼性を保証する基本概念。CFL条件やLaxの等価定理が重要</li>
+                <li><strong>適応的メッシュ細分化</strong>により、効率的に高精度解が得られる</li>
+                <li><strong>時間依存問題</strong>は半離散化後、陽解法または陰解法で時間積分する</li>
+                <li><strong>非線形問題</strong>はNewton-Raphson法などの反復法で解く</li>
+                <li><strong>スパース行列</strong>の効率的な扱いが大規模問題の鍵</li>
+                <li>プロセスシミュレーション（焼入れ、熱応力）など、材料科学への実用的応用が豊富</li>
+            </ul>
+
+            <div class="nav-buttons">
+                <a href="chapter-4.html" class="nav-button">← 第4章: 変分法と最適化</a>
+                <a href="index.html" class="nav-button">シリーズTOPへ</a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 AI Terakoya - 基礎数理道場</p>
+    </footer>
+</body>
+</html>

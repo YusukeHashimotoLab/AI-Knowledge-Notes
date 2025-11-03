@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第5章: 量子化学計算の実践 | 量子化学入門</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background: #f5f5f5;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .subtitle { opacity: 0.9; font-size: 1.1rem; }
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .content-box {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #667eea;
+            margin: 2rem 0 1rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid #667eea;
+        }
+        h3 {
+            color: #764ba2;
+            margin: 1.5rem 0 1rem 0;
+        }
+        .theory-box {
+            background: #f8f9ff;
+            padding: 1.5rem;
+            border-left: 4px solid #667eea;
+            margin: 1.5rem 0;
+        }
+        .code-example {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        .code-comment { color: #6a9955; }
+        .code-keyword { color: #569cd6; }
+        .code-string { color: #ce9178; }
+        .code-function { color: #dcdcaa; }
+        .code-number { color: #b5cea8; }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 2rem 0;
+        }
+        .nav-button {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: transform 0.3s;
+        }
+        .nav-button:hover { transform: translateY(-2px); }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+        .exercise {
+            background: #fff9e6;
+            padding: 1.5rem;
+            border-left: 4px solid #ffc107;
+            margin: 1.5rem 0;
+        }
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 2rem 1rem;
+            margin-top: 4rem;
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/MI/index.html">マテリアルズ・インフォマティクス</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/MI/quantum-chemistry-introduction/index.html">Quantum Chemistry</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 5</span>
+        </div>
+    </nav>
+
+        <header>
+        <h1>第5章: 量子化学計算の実践</h1>
+        <p class="subtitle">Practical Quantum Chemistry Calculations</p>
+    </header>
+
+    <div class="container">
+        <div class="nav-buttons">
+            <a href="chapter-4.html" class="nav-button">← 第4章: 密度汎関数理論</a>
+            <a href="index.html" class="nav-button">目次に戻る</a>
+        </div>
+
+        <div class="content-box">
+            <h2>5.1 PySCFによる分子計算</h2>
+
+            <div class="theory-box">
+                <h3>📚 PySCFとは</h3>
+                <p><strong>PySCF (Python-based Simulations of Chemistry Framework)</strong>は、量子化学計算のためのオープンソースPythonライブラリです。</p>
+                <ul>
+                    <li><strong>Hartree-Fock法</strong>: RHF, UHF, ROHF</li>
+                    <li><strong>DFT</strong>: 多様な交換相関汎関数（LDA, GGA, hybrid）</li>
+                    <li><strong>Post-HF法</strong>: MP2, CCSD, CI</li>
+                    <li><strong>励起状態</strong>: TD-DFT, EOM-CCSD</li>
+                    <li><strong>固体計算</strong>: PBC (Periodic Boundary Conditions)</li>
+                </ul>
+            </div>
+
+            <h3>水分子のHartree-Fock計算</h3>
+            <p>PySCFで水分子（H₂O）のエネルギーと分子軌道を計算します。</p>
+
+            <div class="code-example">
+<span class="code-keyword">import</span> numpy <span class="code-keyword">as</span> np
+<span class="code-keyword">import</span> matplotlib.pyplot <span class="code-keyword">as</span> plt
+<span class="code-keyword">from</span> scipy.linalg <span class="code-keyword">import</span> eigh
+
+<span class="code-comment"># PySCF互換のミニマル実装（デモ用）</span>
+<span class="code-keyword">class</span> <span class="code-function">WaterMoleculeHF</span>:
+    <span class="code-string">"""水分子のHartree-Fock計算（簡易版）"""</span>
+    <span class="code-keyword">def</span> <span class="code-function">__init__</span>(self, basis=<span class="code-string">'sto-3g'</span>):
+        <span class="code-comment"># 水分子の構造（O-H距離0.96Å, H-O-H角104.5°）</span>
+        self.atoms = [
+            (<span class="code-string">'O'</span>, [<span class="code-number">0.0</span>, <span class="code-number">0.0</span>, <span class="code-number">0.0</span>]),
+            (<span class="code-string">'H'</span>, [<span class="code-number">0.0</span>, <span class="code-number">0.757</span>, <span class="code-number">0.587</span>]),
+            (<span class="code-string">'H'</span>, [<span class="code-number">0.0</span>, -<span class="code-number">0.757</span>, <span class="code-number">0.587</span>])
+        ]
+        self.n_electrons = <span class="code-number">10</span>  <span class="code-comment"># 8(O) + 1(H) + 1(H)</span>
+        self.n_basis = <span class="code-number">7</span>      <span class="code-comment"># STO-3G: O(5) + H(1) + H(1)</span>
+
+    <span class="code-keyword">def</span> <span class="code-function">compute_integrals</span>(self):
+        <span class="code-string">"""積分行列の計算（簡易版）"""</span>
+        <span class="code-comment"># 重なり積分行列（対角化で単位行列に近い形）</span>
+        S = np.eye(self.n_basis)
+        <span class="code-keyword">for</span> i <span class="code-keyword">in</span> range(self.n_basis):
+            <span class="code-keyword">for</span> j <span class="code-keyword">in</span> range(i+<span class="code-number">1</span>, self.n_basis):
+                S[i,j] = S[j,i] = <span class="code-number">0.2</span> * np.exp(-<span class="code-number">0.5</span> * (i-j)**<span class="code-number">2</span>)
+
+        <span class="code-comment"># コアハミルトニアン（運動エネルギー + 核-電子引力）</span>
+        H_core = -np.diag([<span class="code-number">20.0</span>, <span class="code-number">15.0</span>, <span class="code-number">15.0</span>, <span class="code-number">15.0</span>, <span class="code-number">15.0</span>, <span class="code-number">7.0</span>, <span class="code-number">7.0</span>])
+
+        <span class="code-comment"># 2電子積分（簡易版）</span>
+        g = np.zeros((self.n_basis, self.n_basis, self.n_basis, self.n_basis))
+        <span class="code-keyword">for</span> i <span class="code-keyword">in</span> range(self.n_basis):
+            <span class="code-keyword">for</span> j <span class="code-keyword">in</span> range(self.n_basis):
+                g[i,i,j,j] = <span class="code-number">10.0</span> / (i+j+<span class="code-number">2</span>)
+                g[i,j,i,j] = <span class="code-number">8.0</span> / (i+j+<span class="code-number">3</span>)
+
+        <span class="code-keyword">return</span> S, H_core, g
+
+    <span class="code-keyword">def</span> <span class="code-function">build_fock</span>(self, P, H_core, g):
+        <span class="code-string">"""Fock行列の構築"""</span>
+        F = H_core.copy()
+        <span class="code-keyword">for</span> i <span class="code-keyword">in</span> range(self.n_basis):
+            <span class="code-keyword">for</span> j <span class="code-keyword">in</span> range(self.n_basis):
+                <span class="code-keyword">for</span> k <span class="code-keyword">in</span> range(self.n_basis):
+                    <span class="code-keyword">for</span> l <span class="code-keyword">in</span> range(self.n_basis):
+                        F[i,j] += P[k,l] * (g[i,j,k,l] - <span class="code-number">0.5</span> * g[i,k,j,l])
+        <span class="code-keyword">return</span> F
+
+    <span class="code-keyword">def</span> <span class="code-function">run_scf</span>(self, max_iter=<span class="code-number">30</span>, conv=<span class="code-number">1e-6</span>):
+        <span class="code-string">"""SCF計算"""</span>
+        S, H_core, g = self.compute_integrals()
+
+        <span class="code-comment"># 初期密度行列</span>
+        P = np.zeros((self.n_basis, self.n_basis))
+        E_old = <span class="code-number">0.0</span>
+        energies = []
+
+        <span class="code-keyword">for</span> iteration <span class="code-keyword">in</span> range(max_iter):
+            <span class="code-comment"># Fock行列構築</span>
+            F = self.build_fock(P, H_core, g)
+
+            <span class="code-comment"># 一般化固有値問題</span>
+            epsilon, C = eigh(F, S)
+
+            <span class="code-comment"># 密度行列更新（10電子 = 5占有軌道）</span>
+            n_occ = self.n_electrons // <span class="code-number">2</span>
+            P_new = <span class="code-number">2</span> * C[:, :n_occ] @ C[:, :n_occ].T
+
+            <span class="code-comment"># エネルギー計算</span>
+            E_elec = np.sum(P_new * (H_core + F)) / <span class="code-number">2</span>
+            E_nuc = <span class="code-number">9.0</span>  <span class="code-comment"># 核間反発（簡易値）</span>
+            E_total = E_elec + E_nuc
+            energies.append(E_total)
+
+            <span class="code-comment"># 収束判定</span>
+            <span class="code-keyword">if</span> np.abs(E_total - E_old) < conv:
+                <span class="code-keyword">print</span>(<span class="code-string">f"SCF収束: {iteration+1}反復"</span>)
+                <span class="code-keyword">break</span>
+
+            E_old = E_total
+            P = P_new
+
+        <span class="code-keyword">return</span> E_total, epsilon, C, energies
+
+<span class="code-comment"># 水分子のHF計算実行</span>
+h2o = WaterMoleculeHF()
+E_total, epsilon, C, energies = h2o.run_scf()
+
+<span class="code-comment"># 可視化</span>
+fig, axes = plt.subplots(<span class="code-number">2</span>, <span class="code-number">2</span>, figsize=(<span class="code-number">12</span>, <span class="code-number">10</span>))
+
+<span class="code-comment"># (1) SCF収束</span>
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].plot(energies, <span class="code-string">'o-'</span>, linewidth=<span class="code-number">2</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].set_xlabel(<span class="code-string">'Iteration'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].set_ylabel(<span class="code-string">'Energy (Hartree)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].set_title(<span class="code-string">'SCF Convergence'</span>, fontsize=<span class="code-number">14</span>, fontweight=<span class="code-string">'bold'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].grid(<span class="code-keyword">True</span>, alpha=<span class="code-number">0.3</span>)
+
+<span class="code-comment"># (2) 軌道エネルギー準位</span>
+n_occ = h2o.n_electrons // <span class="code-number">2</span>
+colors = [<span class="code-string">'blue'</span> <span class="code-keyword">if</span> i < n_occ <span class="code-keyword">else</span> <span class="code-string">'red'</span> <span class="code-keyword">for</span> i <span class="code-keyword">in</span> range(h2o.n_basis)]
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].barh(range(h2o.n_basis), epsilon, color=colors, alpha=<span class="code-number">0.7</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].axvline(<span class="code-number">0</span>, color=<span class="code-string">'black'</span>, linestyle=<span class="code-string">'--'</span>, alpha=<span class="code-number">0.5</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].set_xlabel(<span class="code-string">'Energy (Hartree)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].set_ylabel(<span class="code-string">'Orbital Index'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].set_title(<span class="code-string">'Orbital Energy Levels'</span>, fontsize=<span class="code-number">14</span>, fontweight=<span class="code-string">'bold'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].legend([<span class="code-string">'Occupied'</span>, <span class="code-string">'Virtual'</span>], loc=<span class="code-string">'best'</span>)
+
+<span class="code-comment"># (3) HOMO-LUMO係数</span>
+homo_idx = n_occ - <span class="code-number">1</span>
+lumo_idx = n_occ
+x = np.arange(h2o.n_basis)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].bar(x - <span class="code-number">0.2</span>, C[:, homo_idx], width=<span class="code-number">0.4</span>, label=<span class="code-string">'HOMO'</span>, alpha=<span class="code-number">0.8</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].bar(x + <span class="code-number">0.2</span>, C[:, lumo_idx], width=<span class="code-number">0.4</span>, label=<span class="code-string">'LUMO'</span>, alpha=<span class="code-number">0.8</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_xlabel(<span class="code-string">'Basis Function'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_ylabel(<span class="code-string">'Coefficient'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_title(<span class="code-string">'HOMO-LUMO Molecular Orbitals'</span>, fontsize=<span class="code-number">14</span>, fontweight=<span class="code-string">'bold'</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].legend()
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].grid(<span class="code-keyword">True</span>, alpha=<span class="code-number">0.3</span>, axis=<span class="code-string">'y'</span>)
+
+<span class="code-comment"># (4) 計算結果サマリー</span>
+axes[<span class="code-number">1</span>,<span class="code-number">1</span>].axis(<span class="code-string">'off'</span>)
+summary = <span class="code-string">f"""
+H₂O Hartree-Fock Calculation
+
+Total Energy:  {E_total:.6f} Hartree
+               {E_total * 27.211:.2f} eV
+
+HOMO Energy:   {epsilon[homo_idx]:.6f} Hartree
+LUMO Energy:   {epsilon[lumo_idx]:.6f} Hartree
+HOMO-LUMO Gap: {(epsilon[lumo_idx] - epsilon[homo_idx]) * 27.211:.2f} eV
+
+Basis Set:     STO-3G
+Electrons:     {h2o.n_electrons}
+Basis Funcs:   {h2o.n_basis}
+"""</span>
+axes[<span class="code-number">1</span>,<span class="code-number">1</span>].text(<span class="code-number">0.1</span>, <span class="code-number">0.5</span>, summary, fontsize=<span class="code-number">11</span>, family=<span class="code-string">'monospace'</span>,
+                   verticalalignment=<span class="code-string">'center'</span>)
+
+plt.tight_layout()
+plt.savefig(<span class="code-string">'water_hf_calculation.png'</span>, dpi=<span class="code-number">150</span>, bbox_inches=<span class="code-string">'tight'</span>)
+plt.show()
+
+<span class="code-keyword">print</span>(<span class="code-string">f"H₂O Total Energy: {E_total:.6f} Hartree"</span>)
+<span class="code-keyword">print</span>(<span class="code-string">f"HOMO-LUMO Gap: {(epsilon[lumo_idx] - epsilon[homo_idx]) * 27.211:.2f} eV"</span>)
+</div>
+
+            <h3>DFT計算との比較</h3>
+            <p>同じ水分子をDFT（B3LYP汎関数）で計算し、HF法と比較します。</p>
+
+            <div class="code-example">
+<span class="code-keyword">class</span> <span class="code-function">WaterMoleculeDFT</span>(WaterMoleculeHF):
+    <span class="code-string">"""水分子のDFT計算（B3LYP簡易版）"""</span>
+    <span class="code-keyword">def</span> <span class="code-function">__init__</span>(self, functional=<span class="code-string">'b3lyp'</span>):
+        <span class="code-keyword">super</span>().__init__()
+        self.functional = functional
+
+    <span class="code-keyword">def</span> <span class="code-function">xc_energy</span>(self, rho):
+        <span class="code-string">"""交換相関エネルギー（B3LYP近似）"""</span>
+        <span class="code-comment"># LDA exchange</span>
+        C_x = (<span class="code-number">3</span>/<span class="code-number">4</span>) * (<span class="code-number">3</span>/np.pi)**(<span class="code-number">1</span>/<span class="code-number">3</span>)
+        E_x_lda = -C_x * rho**(<span class="code-number">4</span>/<span class="code-number">3</span>)
+
+        <span class="code-comment"># GGA correction (gradient approximation)</span>
+        E_x_gga = E_x_lda * (<span class="code-number">1.0</span> + <span class="code-number">0.1</span> * rho**(<span class="code-number">1</span>/<span class="code-number">3</span>))
+
+        <span class="code-comment"># B3LYP mixing (20% HF + 80% DFT)</span>
+        E_xc = <span class="code-number">0.8</span> * E_x_gga
+
+        <span class="code-keyword">return</span> E_xc
+
+    <span class="code-keyword">def</span> <span class="code-function">build_fock_dft</span>(self, P, H_core, g):
+        <span class="code-string">"""Kohn-Sham Fock行列"""</span>
+        F = H_core.copy()
+
+        <span class="code-comment"># Coulomb + Exchange</span>
+        <span class="code-keyword">for</span> i <span class="code-keyword">in</span> range(self.n_basis):
+            <span class="code-keyword">for</span> j <span class="code-keyword">in</span> range(self.n_basis):
+                <span class="code-keyword">for</span> k <span class="code-keyword">in</span> range(self.n_basis):
+                    <span class="code-keyword">for</span> l <span class="code-keyword">in</span> range(self.n_basis):
+                        <span class="code-comment"># Coulomb</span>
+                        F[i,j] += P[k,l] * g[i,j,k,l]
+                        <span class="code-comment"># Exchange (20% HF for B3LYP)</span>
+                        F[i,j] -= <span class="code-number">0.2</span> * P[k,l] * g[i,k,j,l]
+
+        <span class="code-comment"># XC potential (simplified)</span>
+        rho = np.diag(P)
+        V_xc = self.xc_energy(rho + <span class="code-number">1e-10</span>)
+        F += np.diag(V_xc)
+
+        <span class="code-keyword">return</span> F
+
+    <span class="code-keyword">def</span> <span class="code-function">run_dft</span>(self, max_iter=<span class="code-number">30</span>, conv=<span class="code-number">1e-6</span>):
+        <span class="code-string">"""DFT-SCF計算"""</span>
+        S, H_core, g = self.compute_integrals()
+        P = np.zeros((self.n_basis, self.n_basis))
+        E_old = <span class="code-number">0.0</span>
+        energies = []
+
+        <span class="code-keyword">for</span> iteration <span class="code-keyword">in</span> range(max_iter):
+            F = self.build_fock_dft(P, H_core, g)
+            epsilon, C = eigh(F, S)
+
+            n_occ = self.n_electrons // <span class="code-number">2</span>
+            P_new = <span class="code-number">2</span> * C[:, :n_occ] @ C[:, :n_occ].T
+
+            E_elec = np.sum(P_new * (H_core + F)) / <span class="code-number">2</span>
+            E_nuc = <span class="code-number">9.0</span>
+            E_total = E_elec + E_nuc
+            energies.append(E_total)
+
+            <span class="code-keyword">if</span> np.abs(E_total - E_old) < conv:
+                <span class="code-keyword">print</span>(<span class="code-string">f"DFT-SCF収束: {iteration+1}反復"</span>)
+                <span class="code-keyword">break</span>
+
+            E_old = E_total
+            P = P_new
+
+        <span class="code-keyword">return</span> E_total, epsilon, C, energies
+
+<span class="code-comment"># DFT計算実行</span>
+h2o_dft = WaterMoleculeDFT()
+E_dft, eps_dft, C_dft, energies_dft = h2o_dft.run_dft()
+
+<span class="code-comment"># HF vs DFT 比較</span>
+<span class="code-keyword">print</span>(<span class="code-string">f"\n=== H₂O Energy Comparison ==="</span>)
+<span class="code-keyword">print</span>(<span class="code-string">f"HF  Energy: {E_total:.6f} Hartree"</span>)
+<span class="code-keyword">print</span>(<span class="code-string">f"DFT Energy: {E_dft:.6f} Hartree"</span>)
+<span class="code-keyword">print</span>(<span class="code-string">f"Difference: {(E_dft - E_total)*1000:.2f} mHartree"</span>)
+
+n_occ = h2o.n_electrons // <span class="code-number">2</span>
+homo_hf = epsilon[n_occ-<span class="code-number">1</span>]
+lumo_hf = epsilon[n_occ]
+homo_dft = eps_dft[n_occ-<span class="code-number">1</span>]
+lumo_dft = eps_dft[n_occ]
+
+<span class="code-keyword">print</span>(<span class="code-string">f"\nHOMO-LUMO Gap:"</span>)
+<span class="code-keyword">print</span>(<span class="code-string">f"HF:  {(lumo_hf - homo_hf)*27.211:.2f} eV"</span>)
+<span class="code-keyword">print</span>(<span class="code-string">f"DFT: {(lumo_dft - homo_dft)*27.211:.2f} eV"</span>)
+</div>
+
+            <h2>5.2 構造最適化と振動解析</h2>
+
+            <div class="theory-box">
+                <h3>📚 ポテンシャルエネルギー曲面</h3>
+                <p><strong>構造最適化</strong>は、ポテンシャルエネルギー曲面（PES）上で最小エネルギー構造を探索する過程です。</p>
+                <p>エネルギー勾配:</p>
+                <p>\[
+                \mathbf{g}_I = -\frac{\partial E}{\partial \mathbf{R}_I}
+                \]</p>
+                <p>力が0になる点（\(\mathbf{g}_I = 0\)）が安定構造です。</p>
+            </div>
+
+            <h3>水素分子の結合距離最適化</h3>
+            <p>H₂分子の結合距離を最適化し、平衡構造とエネルギーを求めます。</p>
+
+            <div class="code-example">
+<span class="code-keyword">from</span> scipy.optimize <span class="code-keyword">import</span> minimize
+
+<span class="code-keyword">def</span> <span class="code-function">h2_energy</span>(R):
+    <span class="code-string">"""H₂分子のエネルギー（Morse potential近似）"""</span>
+    D_e = <span class="code-number">4.75</span>  <span class="code-comment"># eV</span>
+    alpha = <span class="code-number">1.44</span>  <span class="code-comment"># Å⁻¹</span>
+    R_e = <span class="code-number">0.741</span>  <span class="code-comment"># Å</span>
+
+    E = D_e * ((<span class="code-number">1</span> - np.exp(-alpha * (R - R_e)))**<span class="code-number">2</span> - <span class="code-number">1</span>)
+    <span class="code-keyword">return</span> E
+
+<span class="code-keyword">def</span> <span class="code-function">h2_gradient</span>(R):
+    <span class="code-string">"""エネルギー勾配"""</span>
+    D_e = <span class="code-number">4.75</span>
+    alpha = <span class="code-number">1.44</span>
+    R_e = <span class="code-number">0.741</span>
+
+    exp_term = np.exp(-alpha * (R - R_e))
+    dE_dR = <span class="code-number">2</span> * D_e * alpha * (<span class="code-number">1</span> - exp_term) * exp_term
+    <span class="code-keyword">return</span> dE_dR
+
+<span class="code-comment"># 構造最適化（初期値: R=1.0Å）</span>
+result = minimize(h2_energy, x0=[<span class="code-number">1.0</span>], method=<span class="code-string">'BFGS'</span>, jac=h2_gradient)
+
+R_opt = result.x[<span class="code-number">0</span>]
+E_opt = result.fun
+
+<span class="code-keyword">print</span>(<span class="code-string">f"最適化結果:"</span>)
+<span class="code-keyword">print</span>(<span class="code-string">f"  平衡距離: {R_opt:.4f} Å"</span>)
+<span class="code-keyword">print</span>(<span class="code-string">f"  結合エネルギー: {E_opt:.4f} eV"</span>)
+
+<span class="code-comment"># ポテンシャル曲線とPES</span>
+R_range = np.linspace(<span class="code-number">0.3</span>, <span class="code-number">3.0</span>, <span class="code-number">100</span>)
+E_range = [h2_energy(r) <span class="code-keyword">for</span> r <span class="code-keyword">in</span> R_range]
+
+fig, axes = plt.subplots(<span class="code-number">2</span>, <span class="code-number">2</span>, figsize=(<span class="code-number">12</span>, <span class="code-number">10</span>))
+
+<span class="code-comment"># (1) ポテンシャルエネルギー曲線</span>
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].plot(R_range, E_range, <span class="code-string">'b-'</span>, linewidth=<span class="code-number">2</span>, label=<span class="code-string">'Morse Potential'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].plot(R_opt, E_opt, <span class="code-string">'ro'</span>, markersize=<span class="code-number">10</span>, label=<span class="code-string">f'Minimum: {R_opt:.3f}Å'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].axhline(<span class="code-number">0</span>, color=<span class="code-string">'k'</span>, linestyle=<span class="code-string">'--'</span>, alpha=<span class="code-number">0.3</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].set_xlabel(<span class="code-string">'H-H Distance (Å)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].set_ylabel(<span class="code-string">'Energy (eV)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].set_title(<span class="code-string">'H₂ Potential Energy Curve'</span>, fontsize=<span class="code-number">14</span>, fontweight=<span class="code-string">'bold'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].legend()
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].grid(<span class="code-keyword">True</span>, alpha=<span class="code-number">0.3</span>)
+
+<span class="code-comment"># (2) エネルギー勾配</span>
+gradient_range = [h2_gradient(r) <span class="code-keyword">for</span> r <span class="code-keyword">in</span> R_range]
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].plot(R_range, gradient_range, <span class="code-string">'g-'</span>, linewidth=<span class="code-number">2</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].axhline(<span class="code-number">0</span>, color=<span class="code-string">'r'</span>, linestyle=<span class="code-string">'--'</span>, linewidth=<span class="code-number">2</span>, label=<span class="code-string">'Zero gradient'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].plot(R_opt, <span class="code-number">0</span>, <span class="code-string">'ro'</span>, markersize=<span class="code-number">10</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].set_xlabel(<span class="code-string">'H-H Distance (Å)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].set_ylabel(<span class="code-string">'dE/dR (eV/Å)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].set_title(<span class="code-string">'Energy Gradient'</span>, fontsize=<span class="code-number">14</span>, fontweight=<span class="code-string">'bold'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].legend()
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].grid(<span class="code-keyword">True</span>, alpha=<span class="code-number">0.3</span>)
+
+<span class="code-comment"># (3) 振動エネルギー準位</span>
+<span class="code-comment"># Morse振動子の準位</span>
+omega = <span class="code-number">4401.2</span>  <span class="code-comment"># cm⁻¹ (H₂振動数)</span>
+D_e_cm = D_e * <span class="code-number">8065.5</span>  <span class="code-comment"># eV → cm⁻¹</span>
+n_max = <span class="code-keyword">int</span>(D_e_cm / omega)
+
+n_levels = np.arange(<span class="code-number">0</span>, min(n_max, <span class="code-number">15</span>))
+E_vib = omega * (n_levels + <span class="code-number">0.5</span>) - omega**<span class="code-number">2</span> * (n_levels + <span class="code-number">0.5</span>)**<span class="code-number">2</span> / (<span class="code-number">4</span> * D_e_cm)
+
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].barh(n_levels, E_vib / <span class="code-number">8065.5</span>, height=<span class="code-number">0.8</span>, alpha=<span class="code-number">0.7</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_ylabel(<span class="code-string">'Vibrational Quantum Number (n)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_xlabel(<span class="code-string">'Energy (eV)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_title(<span class="code-string">'Vibrational Energy Levels'</span>, fontsize=<span class="code-number">14</span>, fontweight=<span class="code-string">'bold'</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].grid(<span class="code-keyword">True</span>, alpha=<span class="code-number">0.3</span>, axis=<span class="code-string">'x'</span>)
+
+<span class="code-comment"># (4) 最適化サマリー</span>
+axes[<span class="code-number">1</span>,<span class="code-number">1</span>].axis(<span class="code-string">'off'</span>)
+summary = <span class="code-string">f"""
+H₂ Geometry Optimization
+
+Equilibrium Distance:  {R_opt:.4f} Å
+Bond Energy:           {-E_opt:.4f} eV
+                       {-E_opt * 96.485:.1f} kJ/mol
+
+Vibrational Frequency: {omega:.1f} cm⁻¹
+Zero-Point Energy:     {E_vib[0] / 8065.5:.4f} eV
+
+Optimization Method:   BFGS
+Convergence:           {result.success}
+Iterations:            {result.nit}
+"""</span>
+axes[<span class="code-number">1</span>,<span class="code-number">1</span>].text(<span class="code-number">0.1</span>, <span class="code-number">0.5</span>, summary, fontsize=<span class="code-number">11</span>, family=<span class="code-string">'monospace'</span>,
+                   verticalalignment=<span class="code-string">'center'</span>)
+
+plt.tight_layout()
+plt.savefig(<span class="code-string">'h2_geometry_optimization.png'</span>, dpi=<span class="code-number">150</span>, bbox_inches=<span class="code-string">'tight'</span>)
+plt.show()
+</div>
+
+            <h2>5.3 励起状態計算（TD-DFT）</h2>
+
+            <div class="theory-box">
+                <h3>📚 時間依存密度汎関数理論</h3>
+                <p><strong>TD-DFT (Time-Dependent DFT)</strong>は、励起状態の電子構造を計算する手法です。</p>
+                <p>線形応答理論に基づき、基底状態からの励起エネルギーを求めます:</p>
+                <p>\[
+                \omega_n = E_n - E_0
+                \]</p>
+                <p>吸収スペクトル、発光スペクトル、光化学反応の解析に使われます。</p>
+            </div>
+
+            <h3>エチレン分子の励起状態</h3>
+            <p>エチレン（C₂H₄）のπ→π*遷移を計算し、紫外吸収スペクトルを予測します。</p>
+
+            <div class="code-example">
+<span class="code-keyword">class</span> <span class="code-function">EthyleneTDDFT</span>:
+    <span class="code-string">"""エチレン分子のTD-DFT計算（簡易版）"""</span>
+    <span class="code-keyword">def</span> <span class="code-function">__init__</span>(self):
+        self.n_occ = <span class="code-number">6</span>  <span class="code-comment"># 占有軌道数</span>
+        self.n_virt = <span class="code-number">4</span>  <span class="code-comment"># 仮想軌道数</span>
+
+        <span class="code-comment"># 軌道エネルギー（実験値近似、Hartree単位）</span>
+        self.epsilon_occ = np.array([-<span class="code-number">0.8</span>, -<span class="code-number">0.7</span>, -<span class="code-number">0.6</span>, -<span class="code-number">0.5</span>, -<span class="code-number">0.4</span>, -<span class="code-number">0.35</span>])
+        self.epsilon_virt = np.array([<span class="code-number">0.1</span>, <span class="code-number">0.2</span>, <span class="code-number">0.3</span>, <span class="code-number">0.4</span>])
+
+    <span class="code-keyword">def</span> <span class="code-function">compute_excitations</span>(self):
+        <span class="code-string">"""一電子励起エネルギー"""</span>
+        excitations = []
+
+        <span class="code-keyword">for</span> i, e_occ <span class="code-keyword">in</span> enumerate(self.epsilon_occ):
+            <span class="code-keyword">for</span> a, e_virt <span class="code-keyword">in</span> enumerate(self.epsilon_virt):
+                omega = e_virt - e_occ
+                <span class="code-comment"># 振動子強度（簡易近似）</span>
+                f = <span class="code-number">0.1</span> * np.exp(-<span class="code-number">2</span> * (i + a))
+                excitations.append({
+                    <span class="code-string">'from'</span>: i,
+                    <span class="code-string">'to'</span>: a,
+                    <span class="code-string">'energy_hartree'</span>: omega,
+                    <span class="code-string">'energy_eV'</span>: omega * <span class="code-number">27.211</span>,
+                    <span class="code-string">'wavelength_nm'</span>: <span class="code-number">1239.8</span> / (omega * <span class="code-number">27.211</span>),
+                    <span class="code-string">'oscillator_strength'</span>: f
+                })
+
+        <span class="code-keyword">return</span> sorted(excitations, key=<span class="code-keyword">lambda</span> x: x[<span class="code-string">'energy_eV'</span>])
+
+    <span class="code-keyword">def</span> <span class="code-function">absorption_spectrum</span>(self, excitations, lambda_range):
+        <span class="code-string">"""吸収スペクトルの計算"""</span>
+        spectrum = np.zeros_like(lambda_range)
+
+        <span class="code-keyword">for</span> exc <span class="code-keyword">in</span> excitations:
+            <span class="code-comment"># Lorentzian broadening</span>
+            gamma = <span class="code-number">20</span>  <span class="code-comment"># nm (半値幅)</span>
+            lambda_0 = exc[<span class="code-string">'wavelength_nm'</span>]
+            f = exc[<span class="code-string">'oscillator_strength'</span>]
+
+            spectrum += f * (gamma / <span class="code-number">2</span>) / ((lambda_range - lambda_0)**<span class="code-number">2</span> + (gamma / <span class="code-number">2</span>)**<span class="code-number">2</span>)
+
+        <span class="code-keyword">return</span> spectrum
+
+<span class="code-comment"># TD-DFT計算実行</span>
+ethylene = EthyleneTDDFT()
+excitations = ethylene.compute_excitations()
+
+<span class="code-comment"># 主要な励起状態（振動子強度 > 0.01）</span>
+major_exc = [exc <span class="code-keyword">for</span> exc <span class="code-keyword">in</span> excitations <span class="code-keyword">if</span> exc[<span class="code-string">'oscillator_strength'</span>] > <span class="code-number">0.01</span>]
+
+<span class="code-keyword">print</span>(<span class="code-string">"主要な励起状態:"</span>)
+<span class="code-keyword">for</span> i, exc <span class="code-keyword">in</span> enumerate(major_exc[:<span class="code-number">5</span>], <span class="code-number">1</span>):
+    <span class="code-keyword">print</span>(<span class="code-string">f"{i}. {exc['energy_eV']:.2f} eV ({exc['wavelength_nm']:.1f} nm) "</span>
+          <span class="code-string">f"[{exc['from']}→{exc['to']}] f={exc['oscillator_strength']:.3f}"</span>)
+
+<span class="code-comment"># スペクトル計算</span>
+lambda_range = np.linspace(<span class="code-number">100</span>, <span class="code-number">400</span>, <span class="code-number">500</span>)
+spectrum = ethylene.absorption_spectrum(excitations, lambda_range)
+
+<span class="code-comment"># 可視化</span>
+fig, axes = plt.subplots(<span class="code-number">2</span>, <span class="code-number">2</span>, figsize=(<span class="code-number">12</span>, <span class="code-number">10</span>))
+
+<span class="code-comment"># (1) 軌道エネルギーダイアグラム</span>
+y_occ = np.arange(ethylene.n_occ)
+y_virt = np.arange(ethylene.n_virt) + ethylene.n_occ + <span class="code-number">1</span>
+
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].barh(y_occ, ethylene.epsilon_occ * <span class="code-number">27.211</span>,
+                height=<span class="code-number">0.6</span>, color=<span class="code-string">'blue'</span>, alpha=<span class="code-number">0.7</span>, label=<span class="code-string">'Occupied'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].barh(y_virt, ethylene.epsilon_virt * <span class="code-number">27.211</span>,
+                height=<span class="code-number">0.6</span>, color=<span class="code-string">'red'</span>, alpha=<span class="code-number">0.7</span>, label=<span class="code-string">'Virtual'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].axvline(<span class="code-number">0</span>, color=<span class="code-string">'k'</span>, linestyle=<span class="code-string">'--'</span>, alpha=<span class="code-number">0.3</span>)
+
+<span class="code-comment"># π→π*遷移の矢印</span>
+homo = ethylene.n_occ - <span class="code-number">1</span>
+lumo = ethylene.n_occ + <span class="code-number">1</span>
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].annotate(<span class="code-string">''</span>, xy=(ethylene.epsilon_virt[<span class="code-number">0</span>]*<span class="code-number">27.211</span>, lumo),
+                    xytext=(ethylene.epsilon_occ[-<span class="code-number">1</span>]*<span class="code-number">27.211</span>, homo),
+                    arrowprops=<span class="code-keyword">dict</span>(arrowstyle=<span class="code-string">'->'</span>, lw=<span class="code-number">2</span>, color=<span class="code-string">'green'</span>))
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].text(-<span class="code-number">5</span>, (homo+lumo)/<span class="code-number">2</span>, <span class="code-string">'π→π*'</span>, fontsize=<span class="code-number">12</span>, color=<span class="code-string">'green'</span>,
+                fontweight=<span class="code-string">'bold'</span>)
+
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].set_xlabel(<span class="code-string">'Energy (eV)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].set_ylabel(<span class="code-string">'Orbital Index'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].set_title(<span class="code-string">'Molecular Orbital Diagram'</span>, fontsize=<span class="code-number">14</span>, fontweight=<span class="code-string">'bold'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].legend()
+
+<span class="code-comment"># (2) 励起エネルギースペクトル（スティックスペクトル）</span>
+energies = [exc[<span class="code-string">'energy_eV'</span>] <span class="code-keyword">for</span> exc <span class="code-keyword">in</span> major_exc]
+intensities = [exc[<span class="code-string">'oscillator_strength'</span>] <span class="code-keyword">for</span> exc <span class="code-keyword">in</span> major_exc]
+
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].stem(energies, intensities, basefmt=<span class="code-string">' '</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].set_xlabel(<span class="code-string">'Excitation Energy (eV)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].set_ylabel(<span class="code-string">'Oscillator Strength'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].set_title(<span class="code-string">'Excitation Spectrum'</span>, fontsize=<span class="code-number">14</span>, fontweight=<span class="code-string">'bold'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].grid(<span class="code-keyword">True</span>, alpha=<span class="code-number">0.3</span>)
+
+<span class="code-comment"># (3) UV-Vis吸収スペクトル</span>
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].plot(lambda_range, spectrum, <span class="code-string">'b-'</span>, linewidth=<span class="code-number">2</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].fill_between(lambda_range, spectrum, alpha=<span class="code-number">0.3</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_xlabel(<span class="code-string">'Wavelength (nm)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_ylabel(<span class="code-string">'Absorbance (a.u.)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_title(<span class="code-string">'UV-Vis Absorption Spectrum'</span>, fontsize=<span class="code-number">14</span>, fontweight=<span class="code-string">'bold'</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_xlim(<span class="code-number">100</span>, <span class="code-number">400</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].grid(<span class="code-keyword">True</span>, alpha=<span class="code-number">0.3</span>)
+
+<span class="code-comment"># 主要ピーク位置を注釈</span>
+max_idx = np.argmax(spectrum)
+max_lambda = lambda_range[max_idx]
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].annotate(<span class="code-string">f'{max_lambda:.1f} nm'</span>,
+                    xy=(max_lambda, spectrum[max_idx]),
+                    xytext=(max_lambda+<span class="code-number">50</span>, spectrum[max_idx]*<span class="code-number">0.8</span>),
+                    arrowprops=<span class="code-keyword">dict</span>(arrowstyle=<span class="code-string">'->'</span>, color=<span class="code-string">'red'</span>),
+                    fontsize=<span class="code-number">11</span>, color=<span class="code-string">'red'</span>, fontweight=<span class="code-string">'bold'</span>)
+
+<span class="code-comment"># (4) 励起状態サマリー</span>
+axes[<span class="code-number">1</span>,<span class="code-number">1</span>].axis(<span class="code-string">'off'</span>)
+summary = <span class="code-string">f"""
+C₂H₄ TD-DFT Excitation Analysis
+
+Lowest Excitation:
+  Energy: {major_exc[0]['energy_eV']:.2f} eV
+  Wavelength: {major_exc[0]['wavelength_nm']:.1f} nm
+  Type: π → π*
+  f: {major_exc[0]['oscillator_strength']:.3f}
+
+Max Absorption:
+  λmax: {max_lambda:.1f} nm
+  Region: {'UV-C' if max_lambda < 280 else 'UV-B' if max_lambda < 315 else 'UV-A'}
+
+Total Excitations: {len(excitations)}
+Major (f>0.01): {len(major_exc)}
+"""</span>
+axes[<span class="code-number">1</span>,<span class="code-number">1</span>].text(<span class="code-number">0.1</span>, <span class="code-number">0.5</span>, summary, fontsize=<span class="code-number">11</span>, family=<span class="code-string">'monospace'</span>,
+                   verticalalignment=<span class="code-string">'center'</span>)
+
+plt.tight_layout()
+plt.savefig(<span class="code-string">'ethylene_tddft.png'</span>, dpi=<span class="code-number">150</span>, bbox_inches=<span class="code-string">'tight'</span>)
+plt.show()
+</div>
+
+            <h2>5.4 固体バンド計算</h2>
+
+            <div class="theory-box">
+                <h3>📚 周期境界条件とBloch定理</h3>
+                <p>固体は周期的な結晶構造を持ちます。<strong>Bloch定理</strong>により、波動関数は:</p>
+                <p>\[
+                \psi_{n\mathbf{k}}(\mathbf{r}) = e^{i\mathbf{k}\cdot\mathbf{r}} u_{n\mathbf{k}}(\mathbf{r})
+                \]</p>
+                <p>ここで\(u_{n\mathbf{k}}\)は格子周期関数です。\(\mathbf{k}\)は波数ベクトルで、<strong>バンド構造</strong>\(E_n(\mathbf{k})\)を定義します。</p>
+            </div>
+
+            <h3>1次元周期ポテンシャルのバンド構造</h3>
+            <p>Kronig-Penneyモデルで1次元固体のバンドギャップを計算します。</p>
+
+            <div class="code-example">
+<span class="code-keyword">class</span> <span class="code-function">KronigPenney1D</span>:
+    <span class="code-string">"""1次元周期ポテンシャル（Kronig-Penneyモデル）"""</span>
+    <span class="code-keyword">def</span> <span class="code-function">__init__</span>(self, a=<span class="code-number">1.0</span>, V0=<span class="code-number">10.0</span>, N_pw=<span class="code-number">21</span>):
+        self.a = a        <span class="code-comment"># 格子定数</span>
+        self.V0 = V0      <span class="code-comment"># ポテンシャル深さ</span>
+        self.N_pw = N_pw  <span class="code-comment"># 平面波数</span>
+
+    <span class="code-keyword">def</span> <span class="code-function">potential</span>(self, x):
+        <span class="code-string">"""周期ポテンシャル（コサイン型）"""</span>
+        <span class="code-keyword">return</span> -self.V0 * np.cos(<span class="code-number">2</span> * np.pi * x / self.a)
+
+    <span class="code-keyword">def</span> <span class="code-function">hamiltonian_matrix</span>(self, k):
+        <span class="code-string">"""k点でのハミルトニアン行列"""</span>
+        <span class="code-comment"># 平面波基底: exp(i(k + n*G)x), G = 2π/a</span>
+        G = <span class="code-number">2</span> * np.pi / self.a
+        n_indices = np.arange(-self.N_pw // <span class="code-number">2</span>, self.N_pw // <span class="code-number">2</span> + <span class="code-number">1</span>)
+
+        H = np.zeros((self.N_pw, self.N_pw), dtype=complex)
+
+        <span class="code-keyword">for</span> i, n_i <span class="code-keyword">in</span> enumerate(n_indices):
+            <span class="code-keyword">for</span> j, n_j <span class="code-keyword">in</span> enumerate(n_indices):
+                k_i = k + n_i * G
+                k_j = k + n_j * G
+
+                <span class="code-keyword">if</span> i == j:
+                    <span class="code-comment"># 運動エネルギー</span>
+                    H[i,j] = <span class="code-number">0.5</span> * k_i**<span class="code-number">2</span>
+                <span class="code-keyword">elif</span> abs(n_i - n_j) == <span class="code-number">1</span>:
+                    <span class="code-comment"># ポテンシャル（第一近接のみ）</span>
+                    H[i,j] = -self.V0 / <span class="code-number">2</span>
+
+        <span class="code-keyword">return</span> H
+
+    <span class="code-keyword">def</span> <span class="code-function">compute_bands</span>(self, k_points):
+        <span class="code-string">"""バンド構造計算"""</span>
+        bands = []
+
+        <span class="code-keyword">for</span> k <span class="code-keyword">in</span> k_points:
+            H = self.hamiltonian_matrix(k)
+            eigenvalues = eigh(H, eigvals_only=<span class="code-keyword">True</span>)
+            bands.append(eigenvalues)
+
+        <span class="code-keyword">return</span> np.array(bands)
+
+<span class="code-comment"># バンド構造計算</span>
+kp = KronigPenney1D(a=<span class="code-number">1.0</span>, V0=<span class="code-number">5.0</span>, N_pw=<span class="code-number">21</span>)
+
+<span class="code-comment"># 第1ブリルアンゾーン: -π/a ≤ k ≤ π/a</span>
+k_points = np.linspace(-np.pi/kp.a, np.pi/kp.a, <span class="code-number">100</span>)
+bands = kp.compute_bands(k_points)
+
+<span class="code-comment"># バンドギャップ検出</span>
+<span class="code-keyword">def</span> <span class="code-function">find_band_gap</span>(bands):
+    <span class="code-string">"""直接バンドギャップを検出"""</span>
+    valence_band_max = np.max(bands[:, :<span class="code-number">11</span>])  <span class="code-comment"># 下位バンド</span>
+    conduction_band_min = np.min(bands[:, <span class="code-number">11</span>:])  <span class="code-comment"># 上位バンド</span>
+    gap = conduction_band_min - valence_band_max
+    <span class="code-keyword">return</span> gap, valence_band_max, conduction_band_min
+
+gap, vbm, cbm = find_band_gap(bands)
+
+<span class="code-comment"># 可視化</span>
+fig, axes = plt.subplots(<span class="code-number">2</span>, <span class="code-number">2</span>, figsize=(<span class="code-number">12</span>, <span class="code-number">10</span>))
+
+<span class="code-comment"># (1) 周期ポテンシャル</span>
+x = np.linspace(<span class="code-number">0</span>, <span class="code-number">3</span>*kp.a, <span class="code-number">500</span>)
+V = kp.potential(x)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].plot(x, V, <span class="code-string">'b-'</span>, linewidth=<span class="code-number">2</span>)
+<span class="code-keyword">for</span> i <span class="code-keyword">in</span> range(<span class="code-number">4</span>):
+    axes[<span class="code-number">0</span>,<span class="code-number">0</span>].axvline(i*kp.a, color=<span class="code-string">'gray'</span>, linestyle=<span class="code-string">'--'</span>, alpha=<span class="code-number">0.5</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].set_xlabel(<span class="code-string">'Position x/a'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].set_ylabel(<span class="code-string">'Potential V(x)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].set_title(<span class="code-string">'Periodic Potential'</span>, fontsize=<span class="code-number">14</span>, fontweight=<span class="code-string">'bold'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].grid(<span class="code-keyword">True</span>, alpha=<span class="code-number">0.3</span>)
+
+<span class="code-comment"># (2) バンド構造</span>
+<span class="code-keyword">for</span> n <span class="code-keyword">in</span> range(min(<span class="code-number">10</span>, bands.shape[<span class="code-number">1</span>])):
+    color = <span class="code-string">'blue'</span> <span class="code-keyword">if</span> n < <span class="code-number">5</span> <span class="code-keyword">else</span> <span class="code-string">'red'</span>
+    axes[<span class="code-number">0</span>,<span class="code-number">1</span>].plot(k_points * kp.a / np.pi, bands[:, n], color=color, linewidth=<span class="code-number">2</span>)
+
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].axhline(vbm, color=<span class="code-string">'blue'</span>, linestyle=<span class="code-string">'--'</span>, alpha=<span class="code-number">0.5</span>, label=<span class="code-string">'VBM'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].axhline(cbm, color=<span class="code-string">'red'</span>, linestyle=<span class="code-string">'--'</span>, alpha=<span class="code-number">0.5</span>, label=<span class="code-string">'CBM'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].axvline(<span class="code-number">0</span>, color=<span class="code-string">'black'</span>, linestyle=<span class="code-string">'-'</span>, alpha=<span class="code-number">0.3</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].set_xlabel(<span class="code-string">'Wave Vector (k/π/a)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].set_ylabel(<span class="code-string">'Energy (a.u.)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].set_title(<span class="code-string">'Band Structure'</span>, fontsize=<span class="code-number">14</span>, fontweight=<span class="code-string">'bold'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].set_xlim(-<span class="code-number">1</span>, <span class="code-number">1</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].legend()
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].grid(<span class="code-keyword">True</span>, alpha=<span class="code-number">0.3</span>)
+
+<span class="code-comment"># バンドギャップ領域をハイライト</span>
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].fill_between([-<span class="code-number">1</span>, <span class="code-number">1</span>], vbm, cbm, alpha=<span class="code-number">0.2</span>, color=<span class="code-string">'yellow'</span>)
+
+<span class="code-comment"># (3) 状態密度（DOS）</span>
+energy_bins = np.linspace(bands.min(), bands.max(), <span class="code-number">200</span>)
+dos, _ = np.histogram(bands.flatten(), bins=energy_bins, density=<span class="code-keyword">True</span>)
+
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].plot(dos, energy_bins[:-<span class="code-number">1</span>], <span class="code-string">'b-'</span>, linewidth=<span class="code-number">2</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].fill_betweenx(energy_bins[:-<span class="code-number">1</span>], dos, alpha=<span class="code-number">0.3</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].axhline(vbm, color=<span class="code-string">'blue'</span>, linestyle=<span class="code-string">'--'</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].axhline(cbm, color=<span class="code-string">'red'</span>, linestyle=<span class="code-string">'--'</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_xlabel(<span class="code-string">'Density of States'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_ylabel(<span class="code-string">'Energy (a.u.)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_title(<span class="code-string">'Density of States (DOS)'</span>, fontsize=<span class="code-number">14</span>, fontweight=<span class="code-string">'bold'</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].grid(<span class="code-keyword">True</span>, alpha=<span class="code-number">0.3</span>)
+
+<span class="code-comment"># (4) 計算結果サマリー</span>
+axes[<span class="code-number">1</span>,<span class="code-number">1</span>].axis(<span class="code-string">'off'</span>)
+summary = <span class="code-string">f"""
+1D Periodic Crystal Band Structure
+
+Lattice Constant: {kp.a:.2f}
+Potential Depth:  {kp.V0:.2f}
+Plane Waves:      {kp.N_pw}
+
+Band Gap:         {gap:.4f} a.u.
+                  {gap * 27.211:.2f} eV
+
+VBM:              {vbm:.4f} a.u.
+CBM:              {cbm:.4f} a.u.
+
+Material Type:    {'Insulator' if gap > 0.2 else 'Semiconductor'}
+"""</span>
+axes[<span class="code-number">1</span>,<span class="code-number">1</span>].text(<span class="code-number">0.1</span>, <span class="code-number">0.5</span>, summary, fontsize=<span class="code-number">11</span>, family=<span class="code-string">'monospace'</span>,
+                   verticalalignment=<span class="code-string">'center'</span>)
+
+plt.tight_layout()
+plt.savefig(<span class="code-string">'band_structure_1d.png'</span>, dpi=<span class="code-number">150</span>, bbox_inches=<span class="code-string">'tight'</span>)
+plt.show()
+
+<span class="code-keyword">print</span>(<span class="code-string">f"\nバンドギャップ: {gap * 27.211:.2f} eV"</span>)
+<span class="code-keyword">print</span>(<span class="code-string">f"材料タイプ: {'絶縁体' if gap > 0.2 else '半導体'}"</span>)
+</div>
+
+            <div class="exercise">
+                <h3>🎯 演習問題</h3>
+                <ol>
+                    <li><strong>メタン（CH₄）のHF計算</strong>: 正四面体構造のメタン分子でHF-SCF計算を実装し、全エネルギーと分子軌道を求めよ。</li>
+                    <li><strong>CO₂の構造最適化</strong>: CO₂分子のC=O結合距離と∠OCO角度を最適化し、赤外活性な振動モードを計算せよ。</li>
+                    <li><strong>ベンゼンの励起状態</strong>: ベンゼンのπ→π*遷移をTD-DFTで計算し、紫外吸収スペクトルを予測せよ。</li>
+                    <li><strong>シリコンのバンド構造</strong>: ダイヤモンド構造シリコンのバンドギャップを計算し、実験値（1.1 eV）と比較せよ。</li>
+                    <li><strong>反応経路探索</strong>: H₂ + F → HF + H反応の遷移状態を探索し、活性化エネルギーを求めよ。</li>
+                </ol>
+            </div>
+
+            <h2>5.5 材料科学への応用</h2>
+
+            <div class="theory-box">
+                <h3>📚 第一原理計算の材料応用</h3>
+                <p>量子化学計算は、実験に先立つ<strong>材料スクリーニング</strong>、<strong>反応機構解明</strong>、<strong>物性予測</strong>に不可欠です。</p>
+                <ul>
+                    <li><strong>触媒設計</strong>: 吸着エネルギー、反応障壁の計算</li>
+                    <li><strong>電池材料</strong>: 電極電位、イオン拡散係数</li>
+                    <li><strong>半導体</strong>: バンドギャップ、キャリア移動度</li>
+                    <li><strong>光学材料</strong>: 吸収スペクトル、非線形光学応答</li>
+                    <li><strong>機械学習ポテンシャル</strong>: DFTデータで訓練、高速MD</li>
+                </ul>
+            </div>
+
+            <h3>触媒表面吸着エネルギー</h3>
+            <p>金属表面へのCO吸着を計算し、触媒活性を評価します。</p>
+
+            <div class="code-example">
+<span class="code-keyword">class</span> <span class="code-function">MetalSurfaceAdsorption</span>:
+    <span class="code-string">"""金属表面吸着エネルギー計算（簡易モデル）"""</span>
+    <span class="code-keyword">def</span> <span class="code-function">__init__</span>(self, metal=<span class="code-string">'Pt'</span>):
+        self.metal = metal
+        <span class="code-comment"># 金属の仕事関数（eV）</span>
+        self.work_functions = {<span class="code-string">'Pt'</span>: <span class="code-number">5.65</span>, <span class="code-string">'Pd'</span>: <span class="code-number">5.12</span>, <span class="code-string">'Cu'</span>: <span class="code-number">4.65</span>, <span class="code-string">'Au'</span>: <span class="code-number">5.1</span>}
+        self.phi = self.work_functions.get(metal, <span class="code-number">5.0</span>)
+
+    <span class="code-keyword">def</span> <span class="code-function">lennard_jones</span>(self, r, epsilon, sigma):
+        <span class="code-string">"""Lennard-Jonesポテンシャル"""</span>
+        <span class="code-keyword">return</span> <span class="code-number">4</span> * epsilon * ((sigma/r)**<span class="code-number">12</span> - (sigma/r)**<span class="code-number">6</span>)
+
+    <span class="code-keyword">def</span> <span class="code-function">adsorption_energy</span>(self, z, molecule=<span class="code-string">'CO'</span>):
+        <span class="code-string">"""吸着エネルギーの計算"""</span>
+        <span class="code-comment"># LJ パラメータ（金属-CO）</span>
+        epsilon = <span class="code-number">0.5</span>  <span class="code-comment"># eV</span>
+        sigma = <span class="code-number">2.5</span>    <span class="code-comment"># Å</span>
+
+        <span class="code-comment"># 吸着エネルギー = LJ + 静電相互作用</span>
+        E_vdw = self.lennard_jones(z, epsilon, sigma)
+        E_elec = -<span class="code-number">0.3</span> * self.phi * np.exp(-z / <span class="code-number">2.0</span>)
+
+        <span class="code-keyword">return</span> E_vdw + E_elec
+
+    <span class="code-keyword">def</span> <span class="code-function">find_optimal_height</span>(self):
+        <span class="code-string">"""最適吸着高さの探索"""</span>
+        z_range = np.linspace(<span class="code-number">1.5</span>, <span class="code-number">6.0</span>, <span class="code-number">200</span>)
+        E_ads = [self.adsorption_energy(z) <span class="code-keyword">for</span> z <span class="code-keyword">in</span> z_range]
+
+        min_idx = np.argmin(E_ads)
+        z_opt = z_range[min_idx]
+        E_opt = E_ads[min_idx]
+
+        <span class="code-keyword">return</span> z_opt, E_opt, z_range, E_ads
+
+<span class="code-comment"># 複数金属の比較</span>
+metals = [<span class="code-string">'Pt'</span>, <span class="code-string">'Pd'</span>, <span class="code-string">'Cu'</span>, <span class="code-string">'Au'</span>]
+results = {}
+
+<span class="code-keyword">for</span> metal <span class="code-keyword">in</span> metals:
+    surface = MetalSurfaceAdsorption(metal)
+    z_opt, E_opt, z_range, E_ads = surface.find_optimal_height()
+    results[metal] = {<span class="code-string">'z'</span>: z_opt, <span class="code-string">'E'</span>: E_opt, <span class="code-string">'curve'</span>: (z_range, E_ads)}
+    <span class="code-keyword">print</span>(<span class="code-string">f"{metal}: z = {z_opt:.2f} Å, E_ads = {E_opt:.3f} eV"</span>)
+
+<span class="code-comment"># 可視化</span>
+fig, axes = plt.subplots(<span class="code-number">2</span>, <span class="code-number">2</span>, figsize=(<span class="code-number">12</span>, <span class="code-number">10</span>))
+
+<span class="code-comment"># (1) 吸着エネルギー曲線</span>
+colors = {<span class="code-string">'Pt'</span>: <span class="code-string">'blue'</span>, <span class="code-string">'Pd'</span>: <span class="code-string">'green'</span>, <span class="code-string">'Cu'</span>: <span class="code-string">'orange'</span>, <span class="code-string">'Au'</span>: <span class="code-string">'gold'</span>}
+<span class="code-keyword">for</span> metal, data <span class="code-keyword">in</span> results.items():
+    z_range, E_ads = data[<span class="code-string">'curve'</span>]
+    axes[<span class="code-number">0</span>,<span class="code-number">0</span>].plot(z_range, E_ads, color=colors[metal], linewidth=<span class="code-number">2</span>, label=metal)
+    axes[<span class="code-number">0</span>,<span class="code-number">0</span>].plot(data[<span class="code-string">'z'</span>], data[<span class="code-string">'E'</span>], <span class="code-string">'o'</span>, color=colors[metal], markersize=<span class="code-number">8</span>)
+
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].axhline(<span class="code-number">0</span>, color=<span class="code-string">'k'</span>, linestyle=<span class="code-string">'--'</span>, alpha=<span class="code-number">0.3</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].set_xlabel(<span class="code-string">'Distance from Surface (Å)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].set_ylabel(<span class="code-string">'Adsorption Energy (eV)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].set_title(<span class="code-string">'CO Adsorption on Metal Surfaces'</span>, fontsize=<span class="code-number">14</span>, fontweight=<span class="code-string">'bold'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].legend()
+axes[<span class="code-number">0</span>,<span class="code-number">0</span>].grid(<span class="code-keyword">True</span>, alpha=<span class="code-number">0.3</span>)
+
+<span class="code-comment"># (2) 吸着エネルギーの比較</span>
+metal_names = list(results.keys())
+E_ads_values = [-results[m][<span class="code-string">'E'</span>] <span class="code-keyword">for</span> m <span class="code-keyword">in</span> metal_names]  <span class="code-comment"># 正の値で表示</span>
+bar_colors = [colors[m] <span class="code-keyword">for</span> m <span class="code-keyword">in</span> metal_names]
+
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].bar(metal_names, E_ads_values, color=bar_colors, alpha=<span class="code-number">0.7</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].set_ylabel(<span class="code-string">'|E_ads| (eV)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].set_title(<span class="code-string">'Adsorption Energy Comparison'</span>, fontsize=<span class="code-number">14</span>, fontweight=<span class="code-string">'bold'</span>)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].grid(<span class="code-keyword">True</span>, alpha=<span class="code-number">0.3</span>, axis=<span class="code-string">'y'</span>)
+
+<span class="code-comment"># 最強吸着をハイライト</span>
+max_idx = np.argmax(E_ads_values)
+axes[<span class="code-number">0</span>,<span class="code-number">1</span>].text(max_idx, E_ads_values[max_idx] + <span class="code-number">0.05</span>, <span class="code-string">'Strongest'</span>,
+                ha=<span class="code-string">'center'</span>, fontsize=<span class="code-number">10</span>, fontweight=<span class="code-string">'bold'</span>)
+
+<span class="code-comment"># (3) 仕事関数 vs 吸着エネルギー</span>
+phi_values = [MetalSurfaceAdsorption(m).phi <span class="code-keyword">for</span> m <span class="code-keyword">in</span> metal_names]
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].scatter(phi_values, E_ads_values, s=<span class="code-number">150</span>, c=bar_colors, alpha=<span class="code-number">0.7</span>)
+
+<span class="code-keyword">for</span> i, metal <span class="code-keyword">in</span> enumerate(metal_names):
+    axes[<span class="code-number">1</span>,<span class="code-number">0</span>].annotate(metal, (phi_values[i], E_ads_values[i]),
+                        xytext=(<span class="code-number">5</span>, <span class="code-number">5</span>), textcoords=<span class="code-string">'offset points'</span>,
+                        fontsize=<span class="code-number">11</span>, fontweight=<span class="code-string">'bold'</span>)
+
+<span class="code-comment"># 線形フィット</span>
+z = np.polyfit(phi_values, E_ads_values, <span class="code-number">1</span>)
+p = np.poly1d(z)
+phi_fit = np.linspace(min(phi_values), max(phi_values), <span class="code-number">100</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].plot(phi_fit, p(phi_fit), <span class="code-string">'r--'</span>, alpha=<span class="code-number">0.5</span>, label=<span class="code-string">f'y = {z[0]:.2f}x + {z[1]:.2f}'</span>)
+
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_xlabel(<span class="code-string">'Work Function (eV)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_ylabel(<span class="code-string">'|E_ads| (eV)'</span>, fontsize=<span class="code-number">12</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].set_title(<span class="code-string">'Work Function vs Adsorption Energy'</span>, fontsize=<span class="code-number">14</span>, fontweight=<span class="code-string">'bold'</span>)
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].legend()
+axes[<span class="code-number">1</span>,<span class="code-number">0</span>].grid(<span class="code-keyword">True</span>, alpha=<span class="code-number">0.3</span>)
+
+<span class="code-comment"># (4) 触媒活性サマリー</span>
+axes[<span class="code-number">1</span>,<span class="code-number">1</span>].axis(<span class="code-string">'off'</span>)
+best_metal = metal_names[max_idx]
+summary = <span class="code-string">f"""
+CO Adsorption on Metal Surfaces
+
+Best Catalyst: {best_metal}
+  E_ads:       {-results[best_metal]['E']:.3f} eV
+  Height:      {results[best_metal]['z']:.2f} Å
+  Work Func:   {MetalSurfaceAdsorption(best_metal).phi:.2f} eV
+
+Ranking (by |E_ads|):
+"""</span>
+<span class="code-keyword">for</span> i, m <span class="code-keyword">in</span> enumerate(sorted(metal_names, key=<span class="code-keyword">lambda</span> x: -results[x][<span class="code-string">'E'</span>]), <span class="code-number">1</span>):
+    summary += <span class="code-string">f"  {i}. {m:3s}  {-results[m]['E']:.3f} eV\n"</span>
+
+axes[<span class="code-number">1</span>,<span class="code-number">1</span>].text(<span class="code-number">0.1</span>, <span class="code-number">0.5</span>, summary, fontsize=<span class="code-number">11</span>, family=<span class="code-string">'monospace'</span>,
+                   verticalalignment=<span class="code-string">'center'</span>)
+
+plt.tight_layout()
+plt.savefig(<span class="code-string">'catalyst_adsorption.png'</span>, dpi=<span class="code-number">150</span>, bbox_inches=<span class="code-string">'tight'</span>)
+plt.show()
+</div>
+
+            <h2>まとめ</h2>
+            <p>本章では、量子化学計算の実践的手法を学びました:</p>
+            <ul>
+                <li><strong>PySCFによる分子計算</strong>: HF法とDFTで水分子の電子状態を計算</li>
+                <li><strong>構造最適化</strong>: エネルギー勾配に基づく平衡構造の探索</li>
+                <li><strong>振動解析</strong>: 調和振動子近似による振動スペクトル予測</li>
+                <li><strong>TD-DFT</strong>: 励起状態計算とUV-Vis吸収スペクトル</li>
+                <li><strong>バンド計算</strong>: 周期系のBloch定理と固体電子構造</li>
+                <li><strong>材料応用</strong>: 触媒、電池、半導体への実用的応用</li>
+            </ul>
+            <p>これらの手法は、<strong>Materials Informatics</strong>において、機械学習と組み合わせることで、高速な材料スクリーニングと物性予測を可能にします。第一原理計算で生成された高精度データは、機械学習ポテンシャルの訓練、記述子の設計、予測モデルの構築に活用されます。</p>
+        </div>
+
+        <div class="nav-buttons">
+            <a href="chapter-4.html" class="nav-button">← 第4章: 密度汎関数理論</a>
+            <a href="index.html" class="nav-button">目次に戻る</a>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 AI Terakoya - Quantum Chemistry for Materials Science</p>
+        <p>Materials Informatics Education Series</p>
+    </footer>
+</body>
+</html>

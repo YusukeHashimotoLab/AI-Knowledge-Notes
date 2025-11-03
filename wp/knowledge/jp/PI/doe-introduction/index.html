@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="実験計画法（DOE）入門シリーズ - 直交表から応答曲面法、タグチメソッドまで完全実践ガイド">
+    <title>実験計画法（DOE）入門シリーズ v1.0 - PI Knowledge Hub</title>
+
+    <!-- CSS Styling -->
+        <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.8; color: #333; background: #f5f5f5;
+        }
+        header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; padding: 2rem 1rem; text-align: center;
+        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .subtitle { opacity: 0.9; font-size: 1.1rem; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 2rem; padding: 0.5rem 1rem;
+            background: white; color: #11998e; text-decoration: none;
+            border-radius: 6px; font-weight: 600;
+        }
+        .content-box {
+            background: white; padding: 2rem; border-radius: 12px;
+            margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #11998e; margin: 2rem 0 1rem 0;
+            padding-bottom: 0.5rem; border-bottom: 3px solid #11998e;
+        }
+        h3 { color: #2c3e50; margin: 1.5rem 0 1rem 0; }
+        h4 { color: #2c3e50; margin: 1rem 0 0.5rem 0; }
+        p { margin-bottom: 1rem; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+        pre {
+            background: #1e1e1e; color: #d4d4d4; padding: 1.5rem;
+            border-radius: 8px; overflow-x: auto; margin: 1rem 0;
+            border-left: 4px solid #11998e;
+        }
+        code {
+            font-family: 'Courier New', monospace; font-size: 0.9rem;
+        }
+        .key-point {
+            background: #e8f5e9; padding: 1rem; border-radius: 6px;
+            border-left: 4px solid #4caf50; margin: 1rem 0;
+        }
+        .tech-note {
+            background: #e3f2fd; padding: 1rem; border-radius: 6px;
+            border-left: 4px solid #2196f3; margin: 1rem 0;
+        }
+        .formula {
+            background: #f0f7ff; padding: 1rem; border-radius: 6px;
+            margin: 1rem 0; overflow-x: auto;
+        }
+        table {
+            width: 100%; border-collapse: collapse; margin: 1rem 0;
+        }
+        th, td {
+            border: 1px solid #ddd; padding: 0.75rem; text-align: left;
+        }
+        th {
+            background: #11998e; color: white; font-weight: 600;
+        }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .nav-buttons {
+            display: flex; justify-content: space-between; margin-top: 3rem;
+        }
+        .nav-buttons a {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; text-decoration: none; border-radius: 6px;
+            font-weight: 600;
+        }
+        footer {
+            background: #2c3e50; color: white; text-align: center;
+            padding: 2rem 1rem; margin-top: 4rem;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.6rem; }
+            .container { padding: 0 0.5rem; }
+            pre { padding: 1rem; }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mermaidCodeBlocks = document.querySelectorAll('pre.codehilite code.language-mermaid, pre code.language-mermaid');
+
+            mermaidCodeBlocks.forEach(function(codeBlock) {
+                const pre = codeBlock.parentElement;
+                const mermaidCode = codeBlock.textContent;
+
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = mermaidCode.trim();
+
+                pre.parentNode.replaceChild(mermaidDiv, pre);
+            });
+
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+                mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+            }
+        });
+    </script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/PI/index.html">プロセス・インフォマティクス</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/PI/doe-introduction/index.html">Doe</a>
+        </div>
+    </nav>
+
+        <header>
+        <div class="container">
+            <h1>🧪 実験計画法（DOE）入門シリーズ v1.0</h1>
+            <div class="meta">
+                <span>📖 読了時間: 120-150分</span>
+                <span>📊 レベル: 初級〜中級</span>
+                <span>💻 コード例: 40個</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1 id="doev10">実験計画法（DOE）入門シリーズ v1.0</h1>
+<p><strong>直交表から応答曲面法、タグチメソッドまで - プロセス最適化のための完全実践ガイド</strong></p>
+
+<h2 id="_1">シリーズ概要</h2>
+<p>このシリーズは、プロセス産業における実験計画法（Design of Experiments; DOE）の基礎から実践まで、段階的に学べる全5章構成の教育コンテンツです。直交表による要因探索、応答曲面法（RSM）による最適化、タグチメソッドによるロバスト設計まで、包括的にカバーします。</p>
+
+<p><strong>特徴:</strong><br />
+- ✅ <strong>実践重視</strong>: 40個の実行可能なPythonコード例<br />
+- ✅ <strong>体系的構成</strong>: 基礎から応用まで段階的に学べる5章構成<br />
+- ✅ <strong>産業応用</strong>: 化学プラント、製造プロセスの実例を豊富に提供<br />
+- ✅ <strong>自動化</strong>: Pythonによる実験計画生成と解析の完全自動化</p>
+
+<p><strong>総学習時間</strong>: 120-150分（コード実行と演習を含む）</p>
+
+<hr />
+
+<h2 id="_2">学習の進め方</h2>
+
+<h3 id="_3">推奨学習順序</h3>
+
+<div class="mermaid">
+flowchart TD
+    A[第1章: DOE基礎と直交表] --> B[第2章: 要因配置実験と分散分析]
+    B --> C[第3章: 応答曲面法RSM]
+    C --> D[第4章: タグチメソッド]
+    D --> E[第5章: Python自動化]
+
+    style A fill:#e8f5e9
+    style B fill:#c8e6c9
+    style C fill:#a5d6a7
+    style D fill:#81c784
+    style E fill:#66bb6a
+</div>
+
+<p><strong>初学者の方（DOEを初めて学ぶ）:</strong><br />
+- 第1章 → 第2章 → 第3章 → 第4章 → 第5章<br />
+- 所要時間: 120-150分</p>
+
+<p><strong>統計学経験者（分散分析の知識あり）:</strong><br />
+- 第2章 → 第3章 → 第4章 → 第5章<br />
+- 所要時間: 90-120分</p>
+
+<p><strong>実践スキル強化（DOEの概念を知っている）:</strong><br />
+- 第3章（RSM） → 第4章（タグチ） → 第5章（自動化）<br />
+- 所要時間: 60-80分</p>
+
+<hr />
+
+<h2 id="_4">各章の詳細</h2>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-1.html">第1章：実験計画法の基礎と直交表</a></h3>
+    <div class="chapter-meta">
+        <span>📖 読了時間: 20-25分</span>
+        <span>💻 コード例: 8個</span>
+        <span>📊 難易度: 入門</span>
+    </div>
+
+    <h4>学習内容</h4>
+    <ol>
+        <li><strong>実験計画法（DOE）の基礎</strong>
+            <ul>
+                <li>DOEの目的と歴史</li>
+                <li>従来の一変数実験との違い</li>
+                <li>DOEの3原則：反復、無作為化、ブロック化</li>
+            </ul>
+        </li>
+        <li><strong>一元配置・二元配置実験</strong>
+            <ul>
+                <li>一元配置実験（One-way ANOVA）</li>
+                <li>二元配置実験（Two-way ANOVA）</li>
+                <li>交互作用の概念</li>
+            </ul>
+        </li>
+        <li><strong>直交表の基礎</strong>
+            <ul>
+                <li>直交表とは何か（L8, L16, L27等）</li>
+                <li>直交表の性質と利点</li>
+                <li>因子の割り付け方</li>
+            </ul>
+        </li>
+        <li><strong>主効果図と交互作用図</strong>
+            <ul>
+                <li>主効果の可視化</li>
+                <li>交互作用の解釈</li>
+                <li>最適条件の探索</li>
+            </ul>
+        </li>
+        <li><strong>化学反応収率最適化ケーススタディ</strong>
+            <ul>
+                <li>温度・圧力・触媒量の3因子実験</li>
+                <li>直交表L8を用いた実験設計</li>
+                <li>結果の解析と最適条件の決定</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>学習目標</h4>
+    <ul>
+        <li>✅ DOEの基本概念と利点を説明できる</li>
+        <li>✅ 一元配置・二元配置実験を実施できる</li>
+        <li>✅ 直交表を用いた実験計画を設計できる</li>
+        <li>✅ 主効果図と交互作用図を作成・解釈できる</li>
+        <li>✅ 化学プロセスの最適条件を探索できる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-1.html">第1章を読む →</a></strong></p>
+</div>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-2.html">第2章：要因配置実験と分散分析</a></h3>
+    <div class="chapter-meta">
+        <span>📖 読了時間: 25-30分</span>
+        <span>💻 コード例: 8個</span>
+        <span>📊 難易度: 入門〜中級</span>
+    </div>
+
+    <h4>学習内容</h4>
+    <ol>
+        <li><strong>完全要因配置実験（Full Factorial Design）</strong>
+            <ul>
+                <li>2³デザイン（3因子2水準）</li>
+                <li>実験回数の計算</li>
+                <li>全ての交互作用の評価</li>
+            </ul>
+        </li>
+        <li><strong>一部実施要因配置実験（Fractional Factorial Design）</strong>
+            <ul>
+                <li>実験回数削減の原理</li>
+                <li>分解能（Resolution）の概念</li>
+                <li>交絡（Confounding）の理解</li>
+            </ul>
+        </li>
+        <li><strong>分散分析（ANOVA: Analysis of Variance）</strong>
+            <ul>
+                <li>一元配置分散分析（One-way ANOVA with F-test）</li>
+                <li>二元配置分散分析（Two-way ANOVA with interaction）</li>
+                <li>F値とp値の解釈</li>
+            </ul>
+        </li>
+        <li><strong>多重比較検定</strong>
+            <ul>
+                <li>Tukey HSD検定</li>
+                <li>Bonferroni補正</li>
+                <li>Box plotによる視覚化</li>
+            </ul>
+        </li>
+        <li><strong>分散成分の分解</strong>
+            <ul>
+                <li>総平方和の分解</li>
+                <li>寄与率の計算</li>
+                <li>重要因子の特定</li>
+            </ul>
+        </li>
+        <li><strong>ケーススタディ：触媒活性に影響する因子探索</strong>
+            <ul>
+                <li>4因子（温度、圧力、触媒濃度、反応時間）の評価</li>
+                <li>フラクショナルデザインの適用</li>
+                <li>主要因子と交互作用の解析</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>学習目標</h4>
+    <ul>
+        <li>✅ 完全要因配置実験と一部実施実験を使い分けられる</li>
+        <li>✅ 分散分析（ANOVA）を実施しF検定を行える</li>
+        <li>✅ 多重比較検定で水準間の有意差を評価できる</li>
+        <li>✅ 分散成分の寄与率を計算し重要因子を特定できる</li>
+        <li>✅ 実プロセスで因子探索実験を設計・解析できる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-2.html">第2章を読む →</a></strong></p>
+</div>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-3.html">第3章：応答曲面法（RSM: Response Surface Methodology）</a></h3>
+    <div class="chapter-meta">
+        <span>📖 読了時間: 25-30分</span>
+        <span>💻 コード例: 8個</span>
+        <span>📊 難易度: 中級</span>
+    </div>
+
+    <h4>学習内容</h4>
+    <ol>
+        <li><strong>応答曲面法の基礎</strong>
+            <ul>
+                <li>RSMの目的と適用場面</li>
+                <li>2段階アプローチ（スクリーニング→最適化）</li>
+                <li>曲面モデルの必要性</li>
+            </ul>
+        </li>
+        <li><strong>中心複合計画（CCD: Central Composite Design）</strong>
+            <ul>
+                <li>要因点、軸点、中心点の配置</li>
+                <li>回転可能性（Rotatability）</li>
+                <li>α値の決定</li>
+            </ul>
+        </li>
+        <li><strong>Box-Behnken計画</strong>
+            <ul>
+                <li>3水準計画の設計</li>
+                <li>CCDとの比較</li>
+                <li>実験回数の削減</li>
+            </ul>
+        </li>
+        <li><strong>2次多項式モデルのフィッティング</strong>
+            <ul>
+                <li>線形項、2次項、交互作用項</li>
+                <li>最小二乗法による係数推定</li>
+                <li>モデルの有意性検定</li>
+            </ul>
+        </li>
+        <li><strong>応答曲面の可視化</strong>
+            <ul>
+                <li>3D応答曲面プロット</li>
+                <li>等高線プロット（Contour plot）</li>
+                <li>最適条件の探索</li>
+            </ul>
+        </li>
+        <li><strong>モデルの妥当性検証</strong>
+            <ul>
+                <li>決定係数（R², Adjusted R²）</li>
+                <li>RMSE（Root Mean Square Error）</li>
+                <li>残差分析</li>
+            </ul>
+        </li>
+        <li><strong>ケーススタディ：蒸留塔操作条件最適化</strong>
+            <ul>
+                <li>還流比と加熱量の2因子最適化</li>
+                <li>製品純度と収率の同時最適化</li>
+                <li>scipy.optimizeによる最適解探索</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>学習目標</h4>
+    <ul>
+        <li>✅ RSMの原理と適用場面を理解する</li>
+        <li>✅ CCDとBox-Behnken計画を設計できる</li>
+        <li>✅ 2次多項式モデルをフィッティングできる</li>
+        <li>✅ 3D応答曲面と等高線プロットを作成できる</li>
+        <li>✅ scipy.optimizeで最適条件を探索できる</li>
+        <li>✅ モデルの妥当性を統計的に評価できる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-3.html">第3章を読む →</a></strong></p>
+</div>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-4.html">第4章：タグチメソッドとロバスト設計</a></h3>
+    <div class="chapter-meta">
+        <span>📖 読了時間: 25-30分</span>
+        <span>💻 コード例: 8個</span>
+        <span>📊 難易度: 中級</span>
+    </div>
+
+    <h4>学習内容</h4>
+    <ol>
+        <li><strong>タグチメソッドの基礎</strong>
+            <ul>
+                <li>品質工学の考え方</li>
+                <li>ロバスト設計の目的</li>
+                <li>従来のDOEとの違い</li>
+            </ul>
+        </li>
+        <li><strong>制御因子と誤差因子</strong>
+            <ul>
+                <li>因子の分類（制御因子、誤差因子、信号因子）</li>
+                <li>内側配列と外側配列</li>
+                <li>直積実験の設計</li>
+            </ul>
+        </li>
+        <li><strong>SN比（Signal-to-Noise Ratio）</strong>
+            <ul>
+                <li>望目特性のSN比（目標値あり）</li>
+                <li>望小特性のSN比（小さいほど良い）</li>
+                <li>望大特性のSN比（大きいほど良い）</li>
+            </ul>
+        </li>
+        <li><strong>パラメータ設計</strong>
+            <ul>
+                <li>SN比の最大化による最適条件決定</li>
+                <li>感度の調整</li>
+                <li>確認実験の実施</li>
+            </ul>
+        </li>
+        <li><strong>損失関数</strong>
+            <ul>
+                <li>品質損失の定量化</li>
+                <li>社会的損失の考え方</li>
+                <li>タグチ損失関数の計算</li>
+            </ul>
+        </li>
+        <li><strong>ケーススタディ：射出成形プロセスのロバスト設計</strong>
+            <ul>
+                <li>制御因子（温度、圧力、時間）の最適化</li>
+                <li>誤差因子（材料ロット、環境温度）の影響評価</li>
+                <li>製品寸法のばらつき最小化</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>学習目標</h4>
+    <ul>
+        <li>✅ タグチメソッドの目的と特徴を説明できる</li>
+        <li>✅ 制御因子と誤差因子を適切に分類できる</li>
+        <li>✅ 3種類のSN比を計算できる</li>
+        <li>✅ パラメータ設計により最適条件を決定できる</li>
+        <li>✅ 損失関数で品質損失を定量化できる</li>
+        <li>✅ 実プロセスでロバスト設計を実施できる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-4.html">第4章を読む →</a></strong></p>
+</div>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-5.html">第5章：Pythonによる実験計画と解析自動化</a></h3>
+    <div class="chapter-meta">
+        <span>📖 読了時間: 30-35分</span>
+        <span>💻 コード例: 8個</span>
+        <span>📊 難易度: 中級〜上級</span>
+    </div>
+
+    <h4>学習内容</h4>
+    <ol>
+        <li><strong>pyDOE3ライブラリの活用</strong>
+            <ul>
+                <li>各種実験計画の自動生成</li>
+                <li>直交表の生成と検証</li>
+                <li>CCDとBox-Behnken計画の生成</li>
+            </ul>
+        </li>
+        <li><strong>実験結果の自動解析パイプライン</strong>
+            <ul>
+                <li>データ読み込みから結果出力まで</li>
+                <li>分散分析の自動化</li>
+                <li>モデルフィッティングと評価</li>
+            </ul>
+        </li>
+        <li><strong>インタラクティブな応答曲面可視化</strong>
+            <ul>
+                <li>Plotlyによる3Dプロット</li>
+                <li>スライダー付き対話的グラフ</li>
+                <li>複数応答の同時可視化</li>
+            </ul>
+        </li>
+        <li><strong>実験計画レポート自動生成</strong>
+            <ul>
+                <li>実験計画書の自動作成</li>
+                <li>解析結果の自動レポート</li>
+                <li>HTML/PDF出力</li>
+            </ul>
+        </li>
+        <li><strong>Monte Carloシミュレーションによるロバスト性評価</strong>
+            <ul>
+                <li>不確実性の考慮</li>
+                <li>確率的評価</li>
+                <li>信頼区間の推定</li>
+            </ul>
+        </li>
+        <li><strong>多目的最適化（Pareto frontier）</strong>
+            <ul>
+                <li>複数の目的関数の同時最適化</li>
+                <li>パレート最適解の探索</li>
+                <li>トレードオフ分析</li>
+            </ul>
+        </li>
+        <li><strong>完全なDOEワークフロー統合例</strong>
+            <ul>
+                <li>実験計画 → 実施 → 解析 → 最適化</li>
+                <li>化学プロセスの総合最適化プロジェクト</li>
+                <li>再利用可能なPythonスクリプト</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>学習目標</h4>
+    <ul>
+        <li>✅ pyDOE3で各種実験計画を自動生成できる</li>
+        <li>✅ 実験データの解析パイプラインを構築できる</li>
+        <li>✅ Plotlyで対話的な応答曲面を作成できる</li>
+        <li>✅ 実験計画書と解析レポートを自動生成できる</li>
+        <li>✅ Monte Carloシミュレーションでロバスト性評価ができる</li>
+        <li>✅ 多目的最適化でパレート解を探索できる</li>
+        <li>✅ 完全なDOEワークフローを自動化できる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-5.html">第5章を読む →</a></strong></p>
+</div>
+
+<hr />
+
+<h2 id="_5">全体の学習成果</h2>
+
+<p>このシリーズを完了すると、以下のスキルと知識を習得できます：</p>
+
+<h3>知識レベル（Understanding）</h3>
+
+<ul>
+<li>✅ DOEの基本原理と歴史的背景を説明できる</li>
+<li>✅ 直交表、要因配置実験、RSM、タグチメソッドの特徴を理解している</li>
+<li>✅ 分散分析（ANOVA）の理論と統計的検定を理解している</li>
+<li>✅ ロバスト設計の考え方とSN比の意味を理解している</li>
+</ul>
+
+<h3>実践スキル（Doing）</h3>
+
+<ul>
+<li>✅ 目的に応じた実験計画（直交表、CCD、Box-Behnken等）を設計できる</li>
+<li>✅ 分散分析と多重比較検定を実施できる</li>
+<li>✅ 2次多項式モデルをフィッティングし応答曲面を作成できる</li>
+<li>✅ SN比を計算しロバスト条件を決定できる</li>
+<li>✅ Pythonで実験計画生成から解析まで自動化できる</li>
+<li>✅ 多目的最適化でパレート最適解を探索できる</li>
+</ul>
+
+<h3>応用力（Applying）</h3>
+
+<ul>
+<li>✅ 実プロセスで効率的な実験を計画・実施できる</li>
+<li>✅ 統計的に妥当な結論を導き最適条件を決定できる</li>
+<li>✅ ロバスト設計により製品ばらつきを最小化できる</li>
+<li>✅ プロセスエンジニアとして実験計画業務に対応できる</li>
+</ul>
+
+<hr />
+
+<h2 id="faq">FAQ（よくある質問）</h2>
+
+<h3>Q1: DOEと機械学習による最適化の違いは何ですか？</h3>
+
+<p><strong>A</strong>: DOEは少ない実験回数で効率的に因子の影響を評価し、統計的に妥当な最適条件を求める手法です。機械学習は大量のデータから複雑なパターンを学習しますが、実験回数が限られる場合はDOEが有効です。両者を組み合わせることも可能です。</p>
+
+<h3>Q2: 統計学の知識がなくても理解できますか？</h3>
+
+<p><strong>A</strong>: 基本的な統計（平均、分散、仮説検定の概念）を理解していることが望ましいです。本シリーズでは必要な統計的概念を説明しますが、F検定やp値の解釈には統計の基礎知識が役立ちます。</p>
+
+<h3>Q3: 直交表とRSMはどのように使い分けますか？</h3>
+
+<p><strong>A</strong>: 直交表は因子のスクリーニング（重要因子の特定）に適しており、RSMは重要因子が判明した後の最適化に適しています。典型的には、直交表で因子を絞り込んだ後、RSMで詳細な最適化を行います。</p>
+
+<h3>Q4: タグチメソッドはどのような場合に使いますか？</h3>
+
+<p><strong>A</strong>: 製品や工程のばらつきを最小化したい場合に有効です。例えば、材料ロットや環境条件の変動があっても安定した品質を維持したい場合に、タグチメソッドのロバスト設計が適しています。</p>
+
+<h3>Q5: 実際のプラントでDOEを適用する際の注意点は？</h3>
+
+<p><strong>A</strong>: 安全性、コスト、操業への影響を考慮することが重要です。フラクショナルデザインで実験回数を削減したり、シミュレーションで事前評価したりすることを推奨します。また、現場オペレーターとの連携も不可欠です。</p>
+
+<h3>Q6: このシリーズの次に何を学ぶべきですか？</h3>
+
+<p><strong>A</strong>: 以下のトピックを推奨します：<br />
+- <strong>ベイズ最適化</strong>: 少数の実験で効率的に最適化<br />
+- <strong>混合物実験計画</strong>: 配合比率の最適化<br />
+- <strong>モデル予測制御（MPC）</strong>: 最適化と制御の統合<br />
+- <strong>機械学習との融合</strong>: サロゲートモデルとアクティブラーニング</p>
+
+<hr />
+
+<h2 id="_6">次のステップ</h2>
+
+<h3>シリーズ完了後の推奨アクション</h3>
+
+<p><strong>Immediate（1週間以内）:</strong><br />
+1. ✅ 自社プロセスで直交表実験を試行<br />
+2. ✅ 分散分析スクリプトをテンプレート化<br />
+3. ✅ 第5章のコードをGitHubに公開</p>
+
+<p><strong>Short-term（1-3ヶ月）:</strong><br />
+1. ✅ RSMを用いた実プロセス最適化プロジェクト<br />
+2. ✅ タグチメソッドによるロバスト設計の実施<br />
+3. ✅ 実験計画自動化ツールの開発<br />
+4. ✅ ベイズ最適化の学習</p>
+
+<p><strong>Long-term（6ヶ月以上）:</strong><br />
+1. ✅ プロセス全体の統合最適化システム構築<br />
+2. ✅ 機械学習とDOEの融合手法開発<br />
+3. ✅ 学会発表や論文執筆<br />
+4. ✅ プロセス最適化エンジニアとしてのキャリア構築</p>
+
+<hr />
+
+<h2 id="_7">フィードバックとサポート</h2>
+
+<h3>このシリーズについて</h3>
+
+<p>このシリーズは、東北大学 Dr. Yusuke Hashimotoのもと、PI Knowledge Hubプロジェクトの一環として作成されました。</p>
+
+<p><strong>作成日</strong>: 2025年10月26日<br />
+<strong>バージョン</strong>: 1.0</p>
+
+<h3>フィードバックをお待ちしています</h3>
+
+<p>このシリーズを改善するため、皆様のフィードバックをお待ちしています：</p>
+
+<ul>
+<li><strong>誤字・脱字・技術的誤り</strong>: GitHubリポジトリのIssueで報告してください</li>
+<li><strong>改善提案</strong>: 新しいトピック、追加して欲しいコード例等</li>
+<li><strong>質問</strong>: 理解が難しかった部分、追加説明が欲しい箇所</li>
+<li><strong>成功事例</strong>: このシリーズで学んだことを使ったプロジェクト</li>
+</ul>
+
+<p><strong>連絡先</strong>: yusuke.hashimoto.b8@tohoku.ac.jp</p>
+
+<hr />
+
+<h2 id="_8">ライセンスと利用規約</h2>
+
+<p>このシリーズは <strong>CC BY 4.0</strong>（Creative Commons Attribution 4.0 International）ライセンスのもとで公開されています。</p>
+
+<p><strong>可能なこと:</strong><br />
+- ✅ 自由な閲覧・ダウンロード<br />
+- ✅ 教育目的での利用（授業、勉強会等）<br />
+- ✅ 改変・二次創作（翻訳、要約等）</p>
+
+<p><strong>条件:</strong><br />
+- 📌 著者のクレジット表示が必要<br />
+- 📌 改変した場合はその旨を明記<br />
+- 📌 商業利用の場合は事前に連絡</p>
+
+<p>詳細: <a href="https://creativecommons.org/licenses/by/4.0/deed.ja">CC BY 4.0ライセンス全文</a></p>
+
+<hr />
+
+<h2 id="_9">さあ、始めましょう！</h2>
+
+<p>準備はできましたか？ 第1章から始めて、実験計画法（DOE）の世界への旅を始めましょう！</p>
+
+<p><strong><a href="./chapter-1.html">第1章: 実験計画法の基礎と直交表 →</a></strong></p>
+
+<hr />
+
+<p><strong>更新履歴</strong></p>
+
+<ul>
+<li><strong>2025-10-26</strong>: v1.0 初版公開</li>
+</ul>
+
+<hr />
+
+<p><strong>あなたのDOE学習の旅はここから始まります！</strong></p>
+
+        <div class="nav-buttons">
+            <a href="../index.html" class="nav-button">← プロセス・インフォマティクス道場トップに戻る</a>
+        </div>
+    </main>
+
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+<footer>
+        <div class="container">
+            <p>&copy; 2025 PI Knowledge Hub - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

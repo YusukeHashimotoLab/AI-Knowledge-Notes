@@ -204,7 +204,7 @@ def main():
     parser.add_argument('--domain', help='特定ドメインのみ処理 (MI, MS, etc.)')
     args = parser.parse_args()
 
-    base_dir = Path('/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/knowledge/jp')
+    base_dir = Path('/wp/knowledge/jp')
 
     if not base_dir.exists():
         print(f"Error: Base directory not found: {base_dir}")

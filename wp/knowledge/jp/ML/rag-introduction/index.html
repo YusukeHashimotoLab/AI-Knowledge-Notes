@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RAG入門シリーズ - 検索拡張生成の理論と実装完全ガイド">
+    <title>RAG入門シリーズ v1.0 - AI Terakoya</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #3498db;
+            --link-hover: #2980b9;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+        .container { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        header .container { padding: 0 1.5rem; }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; font-weight: 700; }
+        .meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-top: 1rem;
+        }
+        .meta span { display: inline-flex; align-items: center; gap: 0.3rem; }
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--primary-color);
+        }
+        h3 { font-size: 1.4rem; margin-top: 2rem; margin-bottom: 0.8rem; color: var(--primary-color); }
+        h4 { font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: 0.6rem; color: var(--primary-color); }
+        p { margin-bottom: 1.2rem; }
+        a { color: var(--link-color); text-decoration: none; transition: color 0.2s; }
+        a:hover { color: var(--link-hover); text-decoration: underline; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1.2rem; }
+        li { margin-bottom: 0.5rem; }
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 3rem 0;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        .nav-button:hover {
+            background: var(--link-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--border-color);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            h1 { font-size: 1.6rem; }
+            h2 { font-size: 1.4rem; }
+            .meta { font-size: 0.85rem; }
+        }
+    
+        .feedback-notice {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 3rem auto;
+            max-width: 900px;
+        }
+
+        .feedback-notice h3 {
+            color: #856404;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .feedback-notice p {
+            color: #856404;
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .feedback-options {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .feedback-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .feedback-button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/jp/index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/ML/index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/jp/ML/rag-introduction/index.html">Rag</a>
+        </div>
+    </nav>
+
+        <header>
+        <div class="container">
+            <h1>🔍 RAG入門シリーズ v1.0</h1>
+            <p style="font-size: 1.1rem; margin-top: 0.5rem; opacity: 0.95;">検索拡張生成の理論と実装</p>
+            <div class="meta">
+                <span>📖 総学習時間: 120-150分</span>
+                <span>📊 レベル: 中級-上級</span>
+                <span>🎯 コースID: ML-D09</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <p><strong>RAG（Retrieval-Augmented Generation）の基礎から本番運用まで、理論と実装を体系的にマスター</strong></p>
+
+        <h2>シリーズ概要</h2>
+        <p>このシリーズは、RAGシステムの構築に必要な知識を実装コード付きで学べる全4章構成の中級-上級教育コンテンツです。</p>
+
+        <p><strong>特徴:</strong></p>
+        <ul>
+            <li>✅ <strong>実装ファースト</strong>: 21個以上の動くコード例で実践的に学習</li>
+            <li>✅ <strong>段階的学習</strong>: 基礎から本番運用まで体系的にカバー</li>
+            <li>✅ <strong>最新技術</strong>: OpenAI、Langchain、FAISS、Chroma、Pinecone等を活用</li>
+            <li>✅ <strong>実用的応用</strong>: チャンキング戦略からプロダクション最適化まで</li>
+        </ul>
+
+        <h2>各章の詳細</h2>
+
+        <h3><a href="./chapter1-rag-basics.html">第1章：RAGの基礎</a></h3>
+        <p><strong>難易度</strong>: 中級 | <strong>学習時間</strong>: 30-35分 | <strong>コード例</strong>: 6個</p>
+        <h4>学習内容</h4>
+        <ol>
+            <li>RAGとは何か - アーキテクチャと動作原理</li>
+            <li>ドキュメント処理 - ローダーとパーサー</li>
+            <li>チャンキング戦略 - 固定長、文境界、セマンティック</li>
+            <li>メタデータ管理 - フィルタリングと検索精度向上</li>
+            <li>実践: 基本的なRAGパイプライン構築</li>
+        </ol>
+        <p><strong><a href="./chapter1-rag-basics.html">第1章を読む →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter2-embeddings.html">第2章：エンベディングと検索</a></h3>
+        <p><strong>難易度</strong>: 中級 | <strong>学習時間</strong>: 30-35分 | <strong>コード例</strong>: 6個</p>
+        <h4>学習内容</h4>
+        <ol>
+            <li>ベクトルエンベディング - テキストの意味表現</li>
+            <li>類似度検索 - コサイン類似度、ユークリッド距離</li>
+            <li>FAISS - 高速類似度検索エンジン</li>
+            <li>Chroma - ベクトルDBの実装</li>
+            <li>Pinecone - クラウドベクトルDB</li>
+            <li>実践: 各ベクトルDBでの検索実装</li>
+        </ol>
+        <p><strong><a href="./chapter2-embeddings.html">第2章を読む →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter3-advanced-rag.html">第3章：高度なRAGテクニック</a></h3>
+        <p><strong>難易度</strong>: 上級 | <strong>学習時間</strong>: 30-35分 | <strong>コード例</strong>: 5個</p>
+        <h4>学習内容</h4>
+        <ol>
+            <li>クエリ最適化 - Query Decomposition、HyDE</li>
+            <li>リランキング - Cross-Encoder、MMRアルゴリズム</li>
+            <li>ハイブリッド検索 - キーワード検索とベクトル検索の融合</li>
+            <li>コンテキスト圧縮 - トークン削減と品質向上</li>
+            <li>実践: 高度な検索パイプライン構築</li>
+        </ol>
+        <p><strong><a href="./chapter3-advanced-rag.html">第3章を読む →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter4-production.html">第4章：プロダクション環境への展開</a></h3>
+        <p><strong>難易度</strong>: 上級 | <strong>学習時間</strong>: 30-40分 | <strong>コード例</strong>: 6個</p>
+        <h4>学習内容</h4>
+        <ol>
+            <li>システムアーキテクチャ - マイクロサービス設計</li>
+            <li>パフォーマンス最適化 - キャッシング、バッチ処理</li>
+            <li>モニタリングと評価 - メトリクス設計、A/Bテスト</li>
+            <li>スケーラビリティ - 分散処理、負荷分散</li>
+            <li>セキュリティ - アクセス制御、データプライバシー</li>
+            <li>実践: 本番環境RAGシステム構築</li>
+        </ol>
+        <p><strong><a href="./chapter4-production.html">第4章を読む →</a></strong></p>
+
+        <hr>
+
+        <h2>前提知識</h2>
+        <h3>必須（Must Have）</h3>
+        <ul>
+            <li>✅ Python中級 - クラス、非同期処理の理解</li>
+            <li>✅ 機械学習基礎 - エンベディング、類似度の概念</li>
+            <li>✅ 自然言語処理入門 - トークン化、テキスト前処理</li>
+        </ul>
+
+        <h3>推奨（Nice to Have）</h3>
+        <ul>
+            <li>🔵 LLM基礎 - GPT、プロンプトエンジニアリング</li>
+            <li>🔵 データベース基礎 - SQL、NoSQL</li>
+            <li>🔵 Web API開発 - REST、FastAPI</li>
+        </ul>
+
+        <h2>使用技術</h2>
+        <ul>
+            <li><strong>OpenAI API</strong> - GPT-4、Embeddings API</li>
+            <li><strong>Langchain 0.1+</strong> - RAGフレームワーク</li>
+            <li><strong>FAISS</strong> - ベクトル類似度検索</li>
+            <li><strong>ChromaDB</strong> - ベクトルデータベース</li>
+            <li><strong>Pinecone</strong> - クラウドベクトルDB</li>
+            <li><strong>Sentence-Transformers</strong> - エンベディング生成</li>
+        </ul>
+
+        <h2>学習の流れ</h2>
+        <ol>
+            <li><strong>第1章</strong>: RAGの基本概念とドキュメント処理を理解</li>
+            <li><strong>第2章</strong>: ベクトルエンベディングと検索技術を習得</li>
+            <li><strong>第3章</strong>: 検索精度を高める高度なテクニックを学習</li>
+            <li><strong>第4章</strong>: 本番環境でのシステム構築と運用を実践</li>
+        </ol>
+
+        <div class="nav-buttons">
+            <a href="../index.html" class="nav-button">← MLシリーズ一覧に戻る</a>
+            <a href="./chapter1-rag-basics.html" class="nav-button">第1章を始める →</a>
+        </div>
+
+        <hr>
+        <p><strong>更新履歴</strong></p>
+        <ul>
+            <li><strong>2025-10-25</strong>: v1.0 初版公開</li>
+        </ul>
+    </main>
+
+
+        <div class="feedback-notice">
+            <h3>⚠️ コンテンツの品質向上にご協力ください</h3>
+            <p>このコンテンツはAIを活用して作成されています。誤りや改善点を見つけられた場合は、以下の方法でご報告ください：</p>
+            <div class="feedback-options">
+                <a href="https://forms.gle/9GfVBa2Qa7Uy9taQA" target="_blank" class="feedback-button">
+                    📝 修正依頼フォーム
+                </a>
+                <a href="mailto:yusuke.hashimoto.d8@tohoku.ac.jp" class="feedback-button">
+                    ✉️ メールで連絡
+                </a>
+            </div>
+        </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>
