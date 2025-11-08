@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 2: DFT Calculation Automation (VASP, Quantum ESPRESSO) - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+
+
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/en/index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/high-throughput-computing-introduction/index.html">High Throughput Computing</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>Chapter 2: DFT Calculation Automation (VASP, Quantum ESPRESSO)</h1>
+            <p class="subtitle"></p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading time: 20-25 min</span>
+                <span class="meta-item">📊 Level: Intermediate to Advanced</span>
+                <span class="meta-item">💻 Code examples: 6</span>
+                <span class="meta-item">📝 Exercises: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>Chapter 2: DFT Calculation Automation (VASP, Quantum ESPRESSO)</h1>
+<p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #7b2cbf; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">Learn the fundamentals of automation from input generation to execution management using ASE and pymatgen to reduce errors.</p>
+<p class="chapter-supplement" style="margin: 0.75rem 0 1.5rem 0; padding: 0.75rem 1rem; background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%); border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 0.95rem; line-height: 1.7; color: #4a5568;"><strong>💡 Note:</strong> Templatize input generation to fill only differences. Also prepare restart procedures for handling failures.</p>
+
+
+
+
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will be able to:</p>
+<ul>
+<li>✅ Automatically execute DFT calculations using ASE</li>
+<li>✅ Auto-generate input files for VASP and Quantum ESPRESSO</li>
+<li>✅ Use pymatgen's InputSet for standardized configurations</li>
+<li>✅ Detect errors and perform automatic restarts</li>
+<li>✅ Automate convergence checks for structural optimization</li>
+</ul>
+<hr />
+<h2>2.1 ASE (Atomic Simulation Environment) Basics</h2>
+<h3>What is ASE?</h3>
+<p><strong>ASE (Atomic Simulation Environment)</strong> is a Python library for atomic-scale simulations.</p>
+<p><strong>Features</strong>:
+- ✅ Support for diverse calculation codes (VASP, QE, LAMMPS, etc.)
+- ✅ Unified interface for structure generation and manipulation
+- ✅ Tools for analyzing calculation results
+- ✅ MIT License (open source)</p>
+<h3>Installation</h3>
+<pre><code class="language-bash"># conda environment recommended
+conda create -n ht_computing python=3.10
+conda activate ht_computing
+
+# Install ASE
+pip install ase
+
+# Additional packages
+pip install numpy scipy matplotlib
+</code></pre>
+<h3>Basic Structure Generation</h3>
+<pre><code class="language-python">from ase import Atoms
+from ase.build import bulk, molecule
+import numpy as np
+
+# Example 1: Bulk crystal generation
+si = bulk('Si', 'diamond', a=5.43)
+print(f&quot;Si crystal: {len(si)} atoms&quot;)
+print(f&quot;Lattice constant: {si.cell.cellpar()}&quot;)
+
+# Example 2: Molecule generation
+h2o = molecule('H2O')
+print(f&quot;H2O molecule: {len(h2o)} atoms&quot;)
+
+# Example 3: Custom structure
+# LiCoO2 (layered structure)
+a = 2.82
+c = 14.05
+positions = [
+    [0, 0, 0],       # Li
+    [0, 0, 0.5*c],   # Co
+    [1/3, 2/3, 0.25*c],  # O
+    [2/3, 1/3, 0.75*c],  # O
+]
+atoms = Atoms('LiCoO2',
+              positions=positions,
+              cell=[a, a, c, 90, 90, 120],
+              pbc=True)
+
+print(f&quot;LiCoO2: {atoms.get_chemical_formula()}&quot;)
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Si crystal: 2 atoms
+Lattice constant: [5.43 5.43 5.43 90.  90.  90. ]
+H2O molecule: 3 atoms
+LiCoO2: LiCoO2
+</code></pre>
+<h3>Structure Visualization</h3>
+<pre><code class="language-python">from ase.visualize import view
+
+# 3D visualization (launches GUI)
+view(si)
+
+# Save to file
+from ase.io import write
+
+# Save in CIF format
+write('si_structure.cif', si)
+
+# POSCAR format (for VASP)
+write('POSCAR', si, format='vasp')
+
+# XYZ format
+write('structure.xyz', si)
+</code></pre>
+<hr />
+<h2>2.2 VASP Automation</h2>
+<h3>VASP Interface Configuration</h3>
+<pre><code class="language-python">from ase.calculators.vasp import Vasp
+
+# VASP calculator configuration
+calc = Vasp(
+    # Basic settings
+    xc='PBE',           # Exchange-correlation functional
+    encut=520,          # Energy cutoff (eV)
+
+    # k-point settings
+    kpts=(8, 8, 8),     # Monkhorst-Pack grid
+    gamma=True,         # Gamma-centered
+
+    # Electronic structure
+    ismear=0,           # Gaussian smearing
+    sigma=0.05,         # Smearing width (eV)
+
+    # Convergence criteria
+    ediff=1e-5,         # Energy convergence (eV)
+
+    # Parallelization
+    ncore=4,            # Improve parallel efficiency
+
+    # Output control
+    lwave=False,        # Do not save WAVECAR
+    lcharg=False,       # Do not save CHGCAR
+)
+</code></pre>
+<h3>Structural Optimization Automation</h3>
+<pre><code class="language-python">from ase.optimize import BFGS
+from ase.calculators.vasp import Vasp
+from ase.io import read, write
+import os
+
+def relax_structure(atoms, output_dir='relaxation'):
+    &quot;&quot;&quot;
+    Automatically execute structural optimization
+
+    Parameters:
+    -----------
+    atoms : ase.Atoms
+        Structure to optimize
+    output_dir : str
+        Output directory
+
+    Returns:
+    --------
+    relaxed_atoms : ase.Atoms
+        Optimized structure
+    &quot;&quot;&quot;
+    # Create output directory
+    os.makedirs(output_dir, exist_ok=True)
+    os.chdir(output_dir)
+
+    # VASP calculator configuration
+    calc = Vasp(
+        xc='PBE',
+        encut=520,
+        kpts=(8, 8, 8),
+        ediff=1e-5,
+        ibrion=2,       # Structural optimization algorithm
+        nsw=100,        # Maximum ionic steps
+        isif=3,         # Also optimize cell shape
+        ediffg=-0.01,   # Force convergence criterion (eV/Å)
+    )
+
+    atoms.calc = calc
+
+    # Execute optimization
+    print(f&quot;Starting structural optimization: {atoms.get_chemical_formula()}&quot;)
+
+    try:
+        # Optimize with BFGS algorithm
+        optimizer = BFGS(atoms, trajectory='optimization.traj')
+        optimizer.run(fmax=0.01)  # Maximum force below 0.01 eV/Å
+
+        print(&quot;Structural optimization completed&quot;)
+        print(f&quot;Final energy: {atoms.get_potential_energy():.3f} eV&quot;)
+
+        # Save optimized structure
+        write('CONTCAR', atoms, format='vasp')
+
+        return atoms
+
+    except Exception as e:
+        print(f&quot;Error occurred: {e}&quot;)
+        return None
+
+    finally:
+        os.chdir('..')
+
+# Usage example
+si = bulk('Si', 'diamond', a=5.43)
+relaxed_si = relax_structure(si, output_dir='si_relaxation')
+</code></pre>
+<h3>INCAR File Auto-Generation</h3>
+<pre><code class="language-python">def generate_incar(calculation_type='relax'):
+    &quot;&quot;&quot;
+    Generate INCAR settings according to calculation type
+
+    Parameters:
+    -----------
+    calculation_type : str
+        One of 'relax', 'static', 'band', 'dos'
+
+    Returns:
+    --------
+    incar_dict : dict
+        Dictionary of INCAR settings
+    &quot;&quot;&quot;
+    # Common settings
+    base_settings = {
+        'SYSTEM': 'Automated calculation',
+        'PREC': 'Accurate',
+        'ENCUT': 520,
+        'EDIFF': 1e-5,
+        'ISMEAR': 0,
+        'SIGMA': 0.05,
+        'LREAL': False,
+        'LWAVE': False,
+        'LCHARG': False,
+    }
+
+    # Calculation-type-specific settings
+    if calculation_type == 'relax':
+        specific = {
+            'IBRION': 2,      # CG method
+            'NSW': 100,       # Maximum ionic steps
+            'ISIF': 3,        # Cell shape optimization
+            'EDIFFG': -0.01,  # Force convergence
+        }
+
+    elif calculation_type == 'static':
+        specific = {
+            'IBRION': -1,     # No ionic relaxation
+            'NSW': 0,
+            'LCHARG': True,   # Save charge density
+        }
+
+    elif calculation_type == 'band':
+        specific = {
+            'IBRION': -1,
+            'NSW': 0,
+            'ICHARG': 11,     # Read charge density
+            'LORBIT': 11,     # DOS and bands
+        }
+
+    elif calculation_type == 'dos':
+        specific = {
+            'IBRION': -1,
+            'NSW': 0,
+            'ICHARG': 11,
+            'LORBIT': 11,
+            'NEDOS': 2001,    # DOS resolution
+        }
+
+    else:
+        raise ValueError(f&quot;Unknown calculation type: {calculation_type}&quot;)
+
+    # Combine settings
+    incar_dict = {**base_settings, **specific}
+
+    return incar_dict
+
+# Usage example
+relax_incar = generate_incar('relax')
+print(&quot;INCAR for structural optimization:&quot;)
+for key, value in relax_incar.items():
+    print(f&quot;{key} = {value}&quot;)
+</code></pre>
+<h3>Automatic K-point Configuration</h3>
+<pre><code class="language-python">from ase.dft.kpoints import monkhorst_pack
+import numpy as np
+
+def auto_kpoints(atoms, kpt_density=1000):
+    &quot;&quot;&quot;
+    Automatically set k-point density according to cell size
+
+    Parameters:
+    -----------
+    atoms : ase.Atoms
+        Structure
+    kpt_density : float
+        k-point density (number of k-points per 1/Å³)
+
+    Returns:
+    --------
+    kpts : tuple
+        k-point grid (nx, ny, nz)
+    &quot;&quot;&quot;
+    # Reciprocal lattice vector lengths
+    cell = atoms.get_cell()
+    reciprocal_cell = cell.reciprocal()
+    lengths = np.linalg.norm(reciprocal_cell, axis=1)
+
+    # Calculate k-point numbers
+    kpts = []
+    for length in lengths:
+        # Calculate required divisions from k-point density
+        n = max(1, int(np.ceil(kpt_density / length)))
+        kpts.append(n)
+
+    return tuple(kpts)
+
+# Usage example
+si = bulk('Si', 'diamond', a=5.43)
+kpts = auto_kpoints(si, kpt_density=1000)
+print(f&quot;k-point grid for Si: {kpts}&quot;)  # e.g., (12, 12, 12)
+
+# Large cell
+supercell = si * (2, 2, 2)
+kpts_super = auto_kpoints(supercell, kpt_density=1000)
+print(f&quot;k-point for supercell: {kpts_super}&quot;)  # e.g., (6, 6, 6)
+</code></pre>
+<hr />
+<h2>2.3 Quantum ESPRESSO Automation</h2>
+<h3>QE Calculator Configuration</h3>
+<pre><code class="language-python">from ase.calculators.espresso import Espresso
+
+# Quantum ESPRESSO calculator
+calc_qe = Espresso(
+    # Executable path
+    command='pw.x -in PREFIX.pwi &gt; PREFIX.pwo',
+
+    # Pseudopotentials
+    pseudopotentials={
+        'Si': 'Si.pbe-n-kjpaw_psl.1.0.0.UPF',
+        'O': 'O.pbe-n-kjpaw_psl.1.0.0.UPF',
+    },
+    pseudo_dir='/path/to/pseudopotentials',
+
+    # Input parameters
+    input_data={
+        'control': {
+            'calculation': 'relax',
+            'restart_mode': 'from_scratch',
+            'prefix': 'pwscf',
+            'outdir': './tmp',
+            'pseudo_dir': '/path/to/pseudopotentials',
+        },
+        'system': {
+            'ecutwfc': 60,      # Wavefunction cutoff (Ry)
+            'ecutrho': 480,     # Charge density cutoff
+            'occupations': 'smearing',
+            'smearing': 'gaussian',
+            'degauss': 0.01,
+        },
+        'electrons': {
+            'conv_thr': 1e-8,   # Convergence criterion
+            'mixing_beta': 0.7,
+        },
+        'ions': {
+            'ion_dynamics': 'bfgs',
+        },
+    },
+
+    # k-point
+    kpts=(8, 8, 8),
+    koffset=(0, 0, 0),
+)
+</code></pre>
+<h3>QE Input File Template</h3>
+<pre><code class="language-python">def generate_qe_input(atoms, calculation='relax'):
+    &quot;&quot;&quot;
+    Generate Quantum ESPRESSO input file
+
+    Parameters:
+    -----------
+    atoms : ase.Atoms
+        Structure to calculate
+    calculation : str
+        'relax', 'scf', 'nscf', 'bands'
+
+    Returns:
+    --------
+    input_str : str
+        Input file content
+    &quot;&quot;&quot;
+    from ase.io.espresso import write_espresso_in
+
+    # Calculation-type-specific settings
+    if calculation == 'relax':
+        input_data = {
+            'control': {
+                'calculation': 'relax',
+                'restart_mode': 'from_scratch',
+            },
+            'system': {
+                'ecutwfc': 60,
+                'ecutrho': 480,
+            },
+            'electrons': {
+                'conv_thr': 1e-8,
+            },
+            'ions': {
+                'ion_dynamics': 'bfgs',
+            },
+        }
+
+    elif calculation == 'scf':
+        input_data = {
+            'control': {
+                'calculation': 'scf',
+            },
+            'system': {
+                'ecutwfc': 60,
+                'ecutrho': 480,
+            },
+            'electrons': {
+                'conv_thr': 1e-8,
+            },
+        }
+
+    elif calculation == 'bands':
+        input_data = {
+            'control': {
+                'calculation': 'bands',
+            },
+            'system': {
+                'ecutwfc': 60,
+                'ecutrho': 480,
+                'nbnd': 20,  # Number of bands
+            },
+            'electrons': {
+                'conv_thr': 1e-8,
+            },
+        }
+
+    # Write input file
+    write_espresso_in(
+        'pw.in',
+        atoms,
+        input_data=input_data,
+        pseudopotentials={el: f&quot;{el}.pbe.UPF&quot; for el in set(atoms.get_chemical_symbols())},
+        kpts=(8, 8, 8),
+    )
+
+    with open('pw.in', 'r') as f:
+        input_str = f.read()
+
+    return input_str
+
+# Usage example
+si = bulk('Si', 'diamond', a=5.43)
+qe_input = generate_qe_input(si, calculation='relax')
+print(qe_input)
+</code></pre>
+<hr />
+<h2>2.4 Advanced Automation with pymatgen</h2>
+<h3>Using InputSet</h3>
+<p>pymatgen provides standardized calculation configurations used in Materials Project.</p>
+<pre><code class="language-python">from pymatgen.core import Structure
+from pymatgen.io.vasp.sets import MPRelaxSet, MPStaticSet
+
+# Load structure (from CIF file)
+structure = Structure.from_file(&quot;LiCoO2.cif&quot;)
+
+# Materials Project standard structural optimization settings
+relax_set = MPRelaxSet(structure)
+
+# Auto-generate INCAR, KPOINTS, POTCAR
+relax_set.write_input(&quot;relax_calculation&quot;)
+
+# Directory contents:
+# relax_calculation/
+#   ├── INCAR
+#   ├── POSCAR
+#   ├── KPOINTS
+#   └── POTCAR
+
+# Static calculation settings (after structural optimization)
+static_set = MPStaticSet(structure)
+static_set.write_input(&quot;static_calculation&quot;)
+</code></pre>
+<h3>Custom InputSet</h3>
+<pre><code class="language-python">from pymatgen.io.vasp.sets import DictSet
+
+# Custom settings
+custom_incar = {
+    &quot;ENCUT&quot;: 600,      # Higher accuracy than default
+    &quot;EDIFF&quot;: 1e-6,
+    &quot;ISMEAR&quot;: -5,      # Tetrahedron method
+    &quot;LORBIT&quot;: 11,
+    &quot;LWAVE&quot;: False,
+    &quot;LCHARG&quot;: True,
+}
+
+# Create custom InputSet
+custom_set = DictSet(
+    structure,
+    config_dict={
+        &quot;INCAR&quot;: custom_incar,
+        &quot;KPOINTS&quot;: {&quot;reciprocal_density&quot;: 200},  # k-point density
+    }
+)
+
+custom_set.write_input(&quot;custom_calculation&quot;)
+</code></pre>
+<h3>Error Detection and Restart</h3>
+<pre><code class="language-python">from pymatgen.io.vasp.outputs import Vasprun, Outcar
+from pymatgen.io.vasp.sets import MPRelaxSet
+import os
+
+def check_convergence(directory):
+    &quot;&quot;&quot;
+    Check convergence of VASP calculation
+
+    Returns:
+    --------
+    status : str
+        'converged', 'not_converged', 'error'
+    &quot;&quot;&quot;
+    try:
+        # Read vasprun.xml
+        vasprun = Vasprun(os.path.join(directory, &quot;vasprun.xml&quot;))
+
+        if vasprun.converged:
+            return 'converged'
+        else:
+            return 'not_converged'
+
+    except Exception as e:
+        print(f&quot;Error: {e}&quot;)
+        return 'error'
+
+def auto_restart(directory, max_attempts=3):
+    &quot;&quot;&quot;
+    Automatically restart non-converged calculations
+
+    Parameters:
+    -----------
+    directory : str
+        Calculation directory
+    max_attempts : int
+        Maximum retry attempts
+    &quot;&quot;&quot;
+    for attempt in range(max_attempts):
+        status = check_convergence(directory)
+
+        if status == 'converged':
+            print(&quot;Calculation converged&quot;)
+            return True
+
+        elif status == 'not_converged':
+            print(f&quot;Not converged. Retry {attempt+1}/{max_attempts}&quot;)
+
+            # Relax settings
+            # Example: Lower energy cutoff, increase smearing
+            modify_incar(directory, {'ENCUT': 450, 'SIGMA': 0.1})
+
+            # Restart
+            restart_calculation(directory)
+
+        elif status == 'error':
+            print(&quot;Fatal error. Skipping&quot;)
+            return False
+
+    print(&quot;Maximum retry attempts reached&quot;)
+    return False
+
+def modify_incar(directory, new_params):
+    &quot;&quot;&quot;Modify INCAR file&quot;&quot;&quot;
+    from pymatgen.io.vasp.inputs import Incar
+
+    incar_file = os.path.join(directory, &quot;INCAR&quot;)
+    incar = Incar.from_file(incar_file)
+
+    # Update parameters
+    for key, value in new_params.items():
+        incar[key] = value
+
+    # Save
+    incar.write_file(incar_file)
+    print(f&quot;INCAR updated: {new_params}&quot;)
+
+def restart_calculation(directory):
+    &quot;&quot;&quot;Re-execute calculation&quot;&quot;&quot;
+    import subprocess
+
+    # Copy CONTCAR to POSCAR
+    os.system(f&quot;cp {directory}/CONTCAR {directory}/POSCAR&quot;)
+
+    # Re-run VASP
+    os.chdir(directory)
+    subprocess.run([&quot;mpirun&quot;, &quot;-np&quot;, &quot;48&quot;, &quot;vasp_std&quot;])
+    os.chdir(&quot;..&quot;)
+</code></pre>
+<hr />
+<h2>2.5 Batch Processing</h2>
+<h3>Automatic Calculation of Multiple Materials</h3>
+<pre><code class="language-python">import os
+from pymatgen.core import Structure
+from pymatgen.io.vasp.sets import MPRelaxSet
+
+def batch_relax(structure_files, output_root='calculations'):
+    &quot;&quot;&quot;
+    Batch structural optimization of multiple structures
+
+    Parameters:
+    -----------
+    structure_files : list
+        List of CIF files
+    output_root : str
+        Output root directory
+    &quot;&quot;&quot;
+    os.makedirs(output_root, exist_ok=True)
+
+    for cif_file in structure_files:
+        # Load structure
+        structure = Structure.from_file(cif_file)
+        formula = structure.composition.reduced_formula
+
+        print(f&quot;Processing: {formula}&quot;)
+
+        # Output directory
+        calc_dir = os.path.join(output_root, formula)
+
+        # Create InputSet
+        relax_set = MPRelaxSet(structure)
+        relax_set.write_input(calc_dir)
+
+        # Create job script
+        create_job_script(calc_dir, formula)
+
+        # Submit job (for SLURM)
+        os.chdir(calc_dir)
+        os.system(&quot;sbatch job.sh&quot;)
+        os.chdir(&quot;../..&quot;)
+
+        print(f&quot;  → Job submitted: {calc_dir}&quot;)
+
+def create_job_script(directory, jobname):
+    &quot;&quot;&quot;Create SLURM job script&quot;&quot;&quot;
+    script = f&quot;&quot;&quot;#!/bin/bash
+#SBATCH --job-name={jobname}
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=48
+#SBATCH --time=24:00:00
+#SBATCH --partition=standard
+
+module load vasp/6.3.0
+
+mpirun -np 48 vasp_std
+&quot;&quot;&quot;
+
+    with open(os.path.join(directory, &quot;job.sh&quot;), 'w') as f:
+        f.write(script)
+
+# Usage example
+cif_files = [
+    &quot;LiCoO2.cif&quot;,
+    &quot;LiNiO2.cif&quot;,
+    &quot;LiMnO2.cif&quot;,
+    &quot;LiFePO4.cif&quot;,
+]
+
+batch_relax(cif_files, output_root='battery_materials')
+</code></pre>
+<hr />
+<h2>2.6 Exercises</h2>
+<h3>Problem 1 (Difficulty: easy)</h3>
+<p><strong>Problem</strong>: Use ASE to generate NaCl (rock salt structure) crystal and save it to a POSCAR file. The lattice constant is 5.64 Å.</p>
+<details>
+<summary>Hint</summary>
+
+Use the `ase.build.bulk` function. Specify 'rocksalt' for the crystal structure.
+
+</details>
+
+<details>
+<summary>Solution</summary>
+
+
+<pre><code class="language-python">from ase.build import bulk
+from ase.io import write
+
+# Generate NaCl crystal
+nacl = bulk('NaCl', 'rocksalt', a=5.64)
+
+# Save POSCAR
+write('POSCAR_NaCl', nacl, format='vasp')
+
+print(f&quot;NaCl: {nacl.get_chemical_formula()}&quot;)
+print(f&quot;Number of atoms: {len(nacl)}&quot;)
+print(f&quot;Cell parameters: {nacl.cell.cellpar()}&quot;)
+</code></pre>
+
+
+**Output**:
+
+<pre><code>NaCl: NaCl
+Number of atoms: 2
+Cell parameters: [5.64 5.64 5.64 90.  90.  90. ]
+</code></pre>
+
+
+</details>
+
+<h3>Problem 2 (Difficulty: medium)</h3>
+<p><strong>Problem</strong>: Use pymatgen's MPRelaxSet to generate input files for structural optimization of Li₂O (Li2O.cif). Additionally, change the k-point density to 2000.</p>
+<details>
+<summary>Hint</summary>
+
+Use user_incar_settings and user_kpoints_settings of `MPRelaxSet`.
+
+</details>
+
+<details>
+<summary>Solution</summary>
+
+
+<pre><code class="language-python">from pymatgen.core import Structure
+from pymatgen.io.vasp.sets import MPRelaxSet
+
+# Load structure
+structure = Structure.from_file(&quot;Li2O.cif&quot;)
+
+# Customize k-point density
+relax_set = MPRelaxSet(
+    structure,
+    user_kpoints_settings={&quot;reciprocal_density&quot;: 2000}
+)
+
+# Generate input files
+relax_set.write_input(&quot;li2o_relax&quot;)
+
+print(&quot;Input files generated: li2o_relax/&quot;)
+print(f&quot;k-point settings:&quot;)
+with open(&quot;li2o_relax/KPOINTS&quot;, 'r') as f:
+    print(f.read())
+</code></pre>
+
+
+</details>
+
+<h3>Problem 3 (Difficulty: hard)</h3>
+<p><strong>Problem</strong>: Set up automatic calculations for 100 oxides (in CIF format) with the following conditions:</p>
+<ol>
+<li>Structural optimization with Materials Project standard settings</li>
+<li>k-point density of 1500</li>
+<li>Create a directory for each material</li>
+<li>Auto-generate SLURM job scripts</li>
+<li>Error handling (skip if loading fails)</li>
+</ol>
+<details>
+<summary>Hint</summary>
+
+Refer to the batch processing code example and add error handling.
+
+</details>
+
+<details>
+<summary>Solution</summary>
+
+
+<pre><code class="language-python">import os
+from pymatgen.core import Structure
+from pymatgen.io.vasp.sets import MPRelaxSet
+from glob import glob
+
+def batch_process_oxides(cif_directory, output_root='oxide_calculations'):
+    &quot;&quot;&quot;
+    Batch process 100 oxides
+    &quot;&quot;&quot;
+    # CIF file list
+    cif_files = glob(os.path.join(cif_directory, &quot;*.cif&quot;))
+    print(f&quot;Number of CIF files: {len(cif_files)}&quot;)
+
+    os.makedirs(output_root, exist_ok=True)
+
+    success_count = 0
+    error_count = 0
+
+    for cif_file in cif_files:
+        try:
+            # Load structure
+            structure = Structure.from_file(cif_file)
+            formula = structure.composition.reduced_formula
+
+            # Process only oxides
+            if 'O' not in structure.composition.elements:
+                print(f&quot;Skip (not an oxide): {formula}&quot;)
+                continue
+
+            print(f&quot;Processing ({success_count+1}): {formula}&quot;)
+
+            # Output directory
+            calc_dir = os.path.join(output_root, formula)
+
+            # Create InputSet (k-point density 1500)
+            relax_set = MPRelaxSet(
+                structure,
+                user_kpoints_settings={&quot;reciprocal_density&quot;: 1500}
+            )
+            relax_set.write_input(calc_dir)
+
+            # Create job script
+            create_slurm_script(calc_dir, formula)
+
+            success_count += 1
+
+        except Exception as e:
+            print(f&quot;Error: {cif_file} - {e}&quot;)
+            error_count += 1
+            continue
+
+    print(f&quot;\nCompleted:&quot;)
+    print(f&quot;  Success: {success_count}&quot;)
+    print(f&quot;  Failed: {error_count}&quot;)
+
+def create_slurm_script(directory, jobname):
+    &quot;&quot;&quot;SLURM job script&quot;&quot;&quot;
+    script = f&quot;&quot;&quot;#!/bin/bash
+#SBATCH --job-name={jobname}
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=48
+#SBATCH --time=24:00:00
+#SBATCH --partition=standard
+#SBATCH --output=slurm-%j.out
+#SBATCH --error=slurm-%j.err
+
+# Environment setup
+module load intel/2021.2
+module load vasp/6.3.0
+
+# Execute VASP
+mpirun -np 48 vasp_std
+
+# Convergence check
+if grep -q &quot;reached required accuracy&quot; OUTCAR; then
+    echo &quot;Convergence success&quot;
+    exit 0
+else
+    echo &quot;Convergence failed&quot;
+    exit 1
+fi
+&quot;&quot;&quot;
+
+    with open(os.path.join(directory, &quot;job.sh&quot;), 'w') as f:
+        f.write(script)
+
+# Execute
+batch_process_oxides(&quot;oxide_cifs&quot;, output_root=&quot;oxide_ht_calculations&quot;)
+</code></pre>
+
+
+**Output example**:
+
+<pre><code>Number of CIF files: 100
+Processing (1): Li2O
+Processing (2): Na2O
+Skip (not an oxide): LiCl
+Processing (3): MgO
+...
+Completed:
+  Success: 95
+  Failed: 5
+</code></pre>
+
+
+</details>
+
+<hr />
+<h2>2.7 Summary</h2>
+<p>In this chapter, we learned DFT calculation automation using ASE and pymatgen.</p>
+<p><strong>Key Points</strong>:</p>
+<ol>
+<li><strong>ASE</strong>: Unified interface for manipulating diverse calculation codes</li>
+<li><strong>VASP automation</strong>: Auto-generation of INCAR, KPOINTS, POTCAR</li>
+<li><strong>QE automation</strong>: Input file templates</li>
+<li><strong>pymatgen InputSet</strong>: Materials Project standard settings</li>
+<li><strong>Error handling</strong>: Convergence check and automatic restart</li>
+<li><strong>Batch processing</strong>: Batch calculations for multiple materials</li>
+</ol>
+<p><strong>Next Steps</strong>:</p>
+<p>In Chapter 3, we will learn about <strong>job scheduling and parallelization</strong>. You will master SLURM script creation, large-scale parallel computing with MPI, and efficient management techniques for 1000-material scale calculations.</p>
+<p><strong><a href="./chapter-3.html">Chapter 3: Job Scheduling and Parallelization →</a></strong></p>
+<hr />
+<h2>References</h2>
+<ol>
+<li>
+<p>Larsen, A. H., et al. (2017). "The atomic simulation environment—a Python library for working with atoms." <em>Journal of Physics: Condensed Matter</em>, 29(27), 273002.</p>
+</li>
+<li>
+<p>Ong, S. P., et al. (2013). "Python Materials Genomics (pymatgen): A robust, open-source python library for materials analysis." <em>Computational Materials Science</em>, 68, 314-319.</p>
+</li>
+<li>
+<p>Kresse, G., &amp; Furthmüller, J. (1996). "Efficient iterative schemes for ab initio total-energy calculations using a plane-wave basis set." <em>Physical Review B</em>, 54(16), 11169.</p>
+</li>
+<li>
+<p>Giannozzi, P., et al. (2009). "QUANTUM ESPRESSO: a modular and open-source software project for quantum simulations of materials." <em>Journal of Physics: Condensed Matter</em>, 21(39), 395502.</p>
+</li>
+</ol>
+<hr />
+<p><strong>License</strong>: CC BY 4.0
+<strong>Created</strong>: 2025-10-17
+<strong>Author</strong>: Dr. Yusuke Hashimoto, Tohoku University</p><div class="navigation">
+    <a href="chapter-1.html" class="nav-button">← Previous Chapter</a>
+    <a href="index.html" class="nav-button">Back to Series Index</a>
+    <a href="chapter-3.html" class="nav-button">Next Chapter →</a>
+</div>
+    </main>
+
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is for educational, research, and informational purposes only, and does not provide professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+            <li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material is subject to change, update, or discontinuation without notice.</li>
+            <li>The copyright and license of this content follow the specified terms (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+        </ul>
+    </section>
+
+<footer>
+        <p><strong>Author</strong>: AI Terakoya Content Team</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-17</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

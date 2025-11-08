@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3: Molecular Dynamics (MD) Simulation - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+
+
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/en/index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/computational-materials-basics-introduction/index.html">Computational Materials Basics</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>Chapter 3: Molecular Dynamics (MD) Simulation</h1>
+            <p class="subtitle">Calculation of Atomic Motion and Thermodynamic Properties</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 20-25 minutes</span>
+                <span class="meta-item">📊 Difficulty: Intermediate</span>
+                <span class="meta-item">💻 Code Examples: 7</span>
+                <span class="meta-item">📝 Exercises: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>Chapter 3: Molecular Dynamics (MD) Simulation</h1>
+<p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #7b2cbf; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">Understand the relationship between equations of motion and potentials, and grasp the basics of temperature and pressure control.</p>
+<p class="chapter-supplement" style="margin: 0.75rem 0 1.5rem 0; padding: 0.75rem 1rem; background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%); border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 0.95rem; line-height: 1.7; color: #4a5568;"><strong>💡 Note:</strong> Temperature is an indicator of motion intensity, pressure is an indicator of packing density. Differences in control methods reflect differences in "how to create the environment."</p>
+
+
+
+
+<h2>Learning Objectives</h2>
+<p>By completing this chapter, you will be able to:
+- Understand the basic principles of MD simulation (Newton's equations of motion, time integration)
+- Understand the concepts of force fields and potentials
+- Explain the differences between statistical ensembles (NVE, NVT, NPT)
+- Execute basic MD simulations using LAMMPS
+- Understand the differences between Ab Initio MD (AIMD) and Classical MD</p>
+<hr />
+<h2>3.1 Basic Principles of Molecular Dynamics</h2>
+<h3>Newton's Equations of Motion</h3>
+<p>The core of MD simulation is <strong>Newton's equations of motion</strong> from classical mechanics:</p>
+<p>$$
+m_i \frac{d^2 \mathbf{r}_i}{dt^2} = \mathbf{F}_i = -\nabla_i U(\mathbf{r}_1, \mathbf{r}_2, \ldots, \mathbf{r}_N)
+$$</p>
+<ul>
+<li>$m_i$: Mass of atom $i$</li>
+<li>$\mathbf{r}_i$: Position of atom $i$</li>
+<li>$\mathbf{F}_i$: Force acting on atom $i$</li>
+<li>$U(\mathbf{r}_1, \ldots, \mathbf{r}_N)$: Potential energy</li>
+</ul>
+<h3>MD Simulation Procedure</h3>
+<div class="mermaid">
+flowchart TD
+    A[Set initial positions and velocities] --> B[Calculate forces: F = -∇U]
+    B --> C[Update positions and velocities: Time integration]
+    C --> D[Calculate physical quantities: T, P, E, etc.]
+    D --> E{Time finished?}
+    E -->|No| B
+    E -->|Yes| F[Data analysis and visualization]
+
+    style A fill:#e3f2fd
+    style F fill:#c8e6c9
+</div>
+
+<p><strong>Time step</strong>: Typically $\Delta t = 0.5$-$2$ fs (femtosecond, $10^{-15}$ seconds)</p>
+<hr />
+<h2>3.2 Time Integration Algorithms</h2>
+<h3>Verlet Method (Most Basic)</h3>
+<p>Taylor expansion of position:</p>
+<p>$$
+\mathbf{r}(t + \Delta t) = \mathbf{r}(t) + \mathbf{v}(t)\Delta t + \frac{1}{2}\mathbf{a}(t)\Delta t^2 + O(\Delta t^3)
+$$</p>
+<p>$$
+\mathbf{r}(t - \Delta t) = \mathbf{r}(t) - \mathbf{v}(t)\Delta t + \frac{1}{2}\mathbf{a}(t)\Delta t^2 + O(\Delta t^3)
+$$</p>
+<p>Adding these two equations:</p>
+<p>$$
+\mathbf{r}(t + \Delta t) = 2\mathbf{r}(t) - \mathbf{r}(t - \Delta t) + \mathbf{a}(t)\Delta t^2
+$$</p>
+<p><strong>Features</strong>:
+- ✅ Simple, memory efficient
+- ✅ Preserves time-reversal symmetry
+- ❌ Velocity does not appear explicitly</p>
+<h3>Velocity Verlet Method (Most Commonly Used)</h3>
+<p>$$
+\mathbf{r}(t + \Delta t) = \mathbf{r}(t) + \mathbf{v}(t)\Delta t + \frac{1}{2}\mathbf{a}(t)\Delta t^2
+$$</p>
+<p>$$
+\mathbf{v}(t + \Delta t) = \mathbf{v}(t) + \frac{1}{2}[\mathbf{a}(t) + \mathbf{a}(t + \Delta t)]\Delta t
+$$</p>
+<p><strong>Features</strong>:
+- ✅ Updates position and velocity simultaneously
+- ✅ Good energy conservation
+- ✅ Most widely used</p>
+<h3>Leap-frog Method</h3>
+<p>$$
+\mathbf{v}(t + \frac{\Delta t}{2}) = \mathbf{v}(t - \frac{\Delta t}{2}) + \mathbf{a}(t)\Delta t
+$$</p>
+<p>$$
+\mathbf{r}(t + \Delta t) = \mathbf{r}(t) + \mathbf{v}(t + \frac{\Delta t}{2})\Delta t
+$$</p>
+<p>Position and velocity are staggered by half a time step, moving like "stepping stones."</p>
+<h3>Python Implementation Example</h3>
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def lennard_jones(r, epsilon=1.0, sigma=1.0):
+    &quot;&quot;&quot;Lennard-Jones potential&quot;&quot;&quot;
+    return 4 * epsilon * ((sigma/r)**12 - (sigma/r)**6)
+
+def lj_force(r, epsilon=1.0, sigma=1.0):
+    &quot;&quot;&quot;Force from Lennard-Jones potential&quot;&quot;&quot;
+    return 24 * epsilon * (2*(sigma/r)**13 - (sigma/r)**7) / r
+
+def velocity_verlet_md(N_steps=1000, dt=0.001):
+    &quot;&quot;&quot;
+    1D MD simulation using Velocity Verlet method
+    Two Lennard-Jones particles
+    &quot;&quot;&quot;
+    # Initial conditions
+    r = np.array([0.0, 2.0])  # Position
+    v = np.array([0.5, -0.5])  # Velocity
+    m = np.array([1.0, 1.0])  # Mass
+
+    # History arrays
+    r_history = np.zeros((N_steps, 2))
+    v_history = np.zeros((N_steps, 2))
+    E_history = np.zeros(N_steps)
+
+    for step in range(N_steps):
+        # Calculate force
+        r12 = r[1] - r[0]
+        F = lj_force(abs(r12))
+        a = np.array([-F/m[0], F/m[1]])  # Acceleration
+
+        # Update position
+        r = r + v * dt + 0.5 * a * dt**2
+
+        # Calculate new force
+        r12_new = r[1] - r[0]
+        F_new = lj_force(abs(r12_new))
+        a_new = np.array([-F_new/m[0], F_new/m[1]])
+
+        # Update velocity
+        v = v + 0.5 * (a + a_new) * dt
+
+        # Energy calculation
+        KE = 0.5 * np.sum(m * v**2)
+        PE = lennard_jones(abs(r12_new))
+        E_total = KE + PE
+
+        # Store
+        r_history[step] = r
+        v_history[step] = v
+        E_history[step] = E_total
+
+    return r_history, v_history, E_history
+
+# Run simulation
+r_hist, v_hist, E_hist = velocity_verlet_md(N_steps=5000, dt=0.001)
+
+# Plot
+fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+time = np.arange(len(r_hist)) * 0.001
+
+# Position
+axes[0,0].plot(time, r_hist[:, 0], label='Particle 1')
+axes[0,0].plot(time, r_hist[:, 1], label='Particle 2')
+axes[0,0].set_xlabel('Time')
+axes[0,0].set_ylabel('Position')
+axes[0,0].set_title('Particle Positions')
+axes[0,0].legend()
+axes[0,0].grid(alpha=0.3)
+
+# Velocity
+axes[0,1].plot(time, v_hist[:, 0], label='Particle 1')
+axes[0,1].plot(time, v_hist[:, 1], label='Particle 2')
+axes[0,1].set_xlabel('Time')
+axes[0,1].set_ylabel('Velocity')
+axes[0,1].set_title('Particle Velocities')
+axes[0,1].legend()
+axes[0,1].grid(alpha=0.3)
+
+# Energy conservation
+axes[1,0].plot(time, E_hist)
+axes[1,0].set_xlabel('Time')
+axes[1,0].set_ylabel('Total Energy')
+axes[1,0].set_title('Energy Conservation (NVE)')
+axes[1,0].grid(alpha=0.3)
+
+# Phase space trajectory
+axes[1,1].plot(r_hist[:, 0] - r_hist[:, 1], v_hist[:, 0], alpha=0.5)
+axes[1,1].set_xlabel('Relative Position')
+axes[1,1].set_ylabel('Velocity 1')
+axes[1,1].set_title('Phase Space Trajectory')
+axes[1,1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('md_verlet.png', dpi=150)
+plt.show()
+
+print(f&quot;Energy fluctuation: {np.std(E_hist):.6f} (ideally close to 0)&quot;)
+</code></pre>
+<p><strong>Execution result</strong>: Energy fluctuation &lt; $10^{-6}$ (good energy conservation)</p>
+<hr />
+<h2>3.3 Force Fields and Potentials</h2>
+<h3>Lennard-Jones Potential</h3>
+<p>The most basic two-body potential:</p>
+<p>$$
+U_{\text{LJ}}(r) = 4\epsilon \left[\left(\frac{\sigma}{r}\right)^{12} - \left(\frac{\sigma}{r}\right)^6\right]
+$$</p>
+<ul>
+<li>$\epsilon$: Depth of potential (binding energy)</li>
+<li>$\sigma$: Equilibrium distance scale</li>
+<li>$r^{-12}$: Short-range repulsion (Pauli repulsion)</li>
+<li>$r^{-6}$: Long-range attraction (van der Waals force)</li>
+</ul>
+<p><strong>Applications</strong>: Noble gases (Ar, Ne), coarse-grained models</p>
+<h3>Many-body Potentials</h3>
+<p><strong>Embedded Atom Method (EAM)</strong> - For metals:</p>
+<p>$$
+U_{\text{EAM}} = \sum_i F_i(\rho_i) + \frac{1}{2}\sum_{i \neq j} \phi_{ij}(r_{ij})
+$$</p>
+<ul>
+<li>$F_i(\rho_i)$: Embedding energy (function of electron density $\rho_i$)</li>
+<li>$\phi_{ij}(r_{ij})$: Pair potential</li>
+</ul>
+<p><strong>Tersoff/Brenner</strong> - For covalent systems (C, Si, Ge):</p>
+<p>$$
+U_{\text{Tersoff}} = \sum_i \sum_{j&gt;i} [f_R(r_{ij}) - b_{ij} f_A(r_{ij})]
+$$</p>
+<p>$b_{ij}$ is the bond order, dependent on the surrounding environment.</p>
+<h3>Water Force Field</h3>
+<p><strong>TIP3P</strong> (3-point charge model):
+- O atom has negative charge $-0.834e$
+- Each H atom has positive charge $+0.417e$
+- Lennard-Jones potential (O-O interactions only)</p>
+<p><strong>Features</strong>:
+- ✅ Computationally fast
+- ✅ Reproduces liquid water density and diffusion coefficient
+- ❌ Ice structure is inaccurate</p>
+<hr />
+<h2>3.4 Statistical Ensembles</h2>
+<h3>NVE (Microcanonical) Ensemble</h3>
+<p><strong>Conditions</strong>: Number of particles $N$, volume $V$, energy $E$ are constant (isolated system)</p>
+<p><strong>Implementation</strong>: Time integration only (no thermostat)</p>
+<p><strong>Applications</strong>:
+- Energy conservation tests
+- Fundamental theoretical research</p>
+<h3>NVT (Canonical) Ensemble</h3>
+<p><strong>Conditions</strong>: Number of particles $N$, volume $V$, temperature $T$ are constant (in contact with heat bath)</p>
+<p><strong>Nosé-Hoover Thermostat</strong>:</p>
+<p>$$
+\frac{d\mathbf{r}_i}{dt} = \mathbf{v}_i
+$$</p>
+<p>$$
+\frac{d\mathbf{v}_i}{dt} = \frac{\mathbf{F}_i}{m_i} - \zeta \mathbf{v}_i
+$$</p>
+<p>$$
+\frac{d\zeta}{dt} = \frac{1}{Q}\left(\sum_i m_i v_i^2 - 3NkT\right)
+$$</p>
+<ul>
+<li>$\zeta$: Thermostat variable (acts like a friction coefficient)</li>
+<li>$Q$: "Mass" of thermostat (controls relaxation time)</li>
+</ul>
+<p><strong>Applications</strong>:
+- Calculation of thermodynamic quantities in equilibrium states
+- Study of phase transitions</p>
+<h3>NPT (Isothermal-Isobaric) Ensemble</h3>
+<p><strong>Conditions</strong>: Number of particles $N$, pressure $P$, temperature $T$ are constant (heat bath + pressure bath)</p>
+<p><strong>Parrinello-Rahman Method</strong>: Cell shape and size can vary</p>
+<p><strong>Applications</strong>:
+- Direct comparison with experimental conditions
+- Calculation of lattice constants
+- Phase transitions (solid-liquid, etc.)</p>
+<h3>Comparison Table</h3>
+<table>
+<thead>
+<tr>
+<th>Ensemble</th>
+<th>Conserved</th>
+<th>Fluctuates</th>
+<th>Applications</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NVE</td>
+<td>$N, V, E$</td>
+<td>$T, P$</td>
+<td>Isolated system, validation</td>
+</tr>
+<tr>
+<td>NVT</td>
+<td>$N, V, T$</td>
+<td>$E, P$</td>
+<td>Thermal equilibrium</td>
+</tr>
+<tr>
+<td>NPT</td>
+<td>$N, P, T$</td>
+<td>$E, V$</td>
+<td>Experimental conditions</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>3.5 Practice with LAMMPS</h2>
+<h3>What is LAMMPS?</h3>
+<p><strong>LAMMPS</strong> (Large-scale Atomic/Molecular Massively Parallel Simulator):
+- Developed by Sandia National Laboratory
+- Open source, free
+- Optimized for parallel computing (capable of billions of atoms scale)</p>
+<h3>Example 1: Ar Gas Equilibration (NVT)</h3>
+<pre><code class="language-bash"># LAMMPS input file: ar_nvt.in
+
+# Initial setup
+units lj                    # Lennard-Jones unit system
+atom_style atomic
+dimension 3
+boundary p p p              # Periodic boundary conditions
+
+# Create system
+region box block 0 10 0 10 0 10
+create_box 1 box
+create_atoms 1 random 100 12345 box
+
+# Set mass
+mass 1 1.0
+
+# Potential
+pair_style lj/cut 2.5
+pair_coeff 1 1 1.0 1.0 2.5  # epsilon, sigma, cutoff
+
+# Initial velocity (corresponding to temperature 1.0)
+velocity all create 1.0 87287 dist gaussian
+
+# NVT setup (Nosé-Hoover)
+fix 1 all nvt temp 1.0 1.0 0.1
+
+# Time step
+timestep 0.005
+
+# Thermodynamic output
+thermo 100
+thermo_style custom step temp press pe ke etotal vol density
+
+# Save trajectory
+dump 1 all custom 1000 ar_nvt.lammpstrj id type x y z vx vy vz
+
+# Run
+run 10000
+
+# Finish
+write_data ar_nvt_final.data
+</code></pre>
+<p><strong>Execution</strong>:</p>
+<pre><code class="language-bash">lammps -in ar_nvt.in
+</code></pre>
+<h3>Example 2: Controlling LAMMPS from Python</h3>
+<pre><code class="language-python">from lammps import lammps
+import numpy as np
+import matplotlib.pyplot as plt
+
+# LAMMPS instance
+lmp = lammps()
+
+# Execute input file
+lmp.file('ar_nvt.in')
+
+# Extract thermodynamic data
+temps = lmp.extract_compute(&quot;thermo_temp&quot;, 0, 0)
+press = lmp.extract_compute(&quot;thermo_press&quot;, 0, 0)
+
+print(f&quot;Equilibrium temperature: {temps:.3f} (target: 1.0)&quot;)
+print(f&quot;Equilibrium pressure: {press:.3f}&quot;)
+
+# Calculate radial distribution function (RDF)
+lmp.command(&quot;compute myRDF all rdf 100&quot;)
+lmp.command(&quot;fix 2 all ave/time 100 1 100 c_myRDF[*] file ar_rdf.dat mode vector&quot;)
+lmp.command(&quot;run 5000&quot;)
+
+# Load and plot RDF
+rdf_data = np.loadtxt('ar_rdf.dat')
+r = rdf_data[:, 1]
+g_r = rdf_data[:, 2]
+
+plt.figure(figsize=(8, 6))
+plt.plot(r, g_r, linewidth=2)
+plt.xlabel('r (σ)', fontsize=12)
+plt.ylabel('g(r)', fontsize=12)
+plt.title('Radial Distribution Function (Ar gas)', fontsize=14)
+plt.grid(alpha=0.3)
+plt.savefig('ar_rdf.png', dpi=150)
+plt.show()
+
+lmp.close()
+</code></pre>
+<hr />
+<h3>Example 3: MD Simulation of Water Molecules (TIP3P)</h3>
+<pre><code class="language-bash"># water_nvt.in
+
+units real                  # Real unit system (Å, fs, kcal/mol)
+atom_style full
+dimension 3
+boundary p p p
+
+# Read data file (216 water molecules)
+read_data water_box.data
+
+# TIP3P water model
+pair_style lj/cut/coul/long 10.0
+pair_coeff 1 1 0.102 3.188   # O-O
+pair_coeff * 2 0.0 0.0       # H atoms have no LJ
+kspace_style pppm 1e-4       # Long-range Coulomb (Ewald sum)
+
+# Bonds and angles
+bond_style harmonic
+bond_coeff 1 450.0 0.9572    # O-H bond
+angle_style harmonic
+angle_coeff 1 55.0 104.52    # H-O-H angle
+
+# SHAKE constraint (fix O-H bonds)
+fix shake all shake 0.0001 20 0 b 1 a 1
+
+# NVT (300K)
+fix 1 all nvt temp 300.0 300.0 100.0
+
+# Time step
+timestep 1.0  # 1 fs
+
+# Output
+thermo 100
+dump 1 all custom 1000 water.lammpstrj id mol type x y z
+
+# Run (100 ps)
+run 100000
+</code></pre>
+<p><strong>Calculation of Diffusion Coefficient</strong>:</p>
+<pre><code class="language-python">import numpy as np
+from MDAnalysis import Universe
+import matplotlib.pyplot as plt
+
+# Load trajectory
+u = Universe('water_box.data', 'water.lammpstrj', format='LAMMPSDUMP')
+
+# Select oxygen atoms only
+oxygens = u.select_atoms('type 1')
+
+# Calculate mean square displacement (MSD)
+n_frames = len(u.trajectory)
+msd = np.zeros(n_frames)
+
+for i, ts in enumerate(u.trajectory):
+    if i == 0:
+        r0 = oxygens.positions.copy()
+    dr = oxygens.positions - r0
+    msd[i] = np.mean(np.sum(dr**2, axis=1))
+
+# Time axis (fs)
+time = np.arange(n_frames) * 1.0
+
+# Plot
+plt.figure(figsize=(8, 6))
+plt.plot(time/1000, msd, linewidth=2)
+plt.xlabel('Time (ps)', fontsize=12)
+plt.ylabel('MSD (Å²)', fontsize=12)
+plt.title('Mean Square Displacement (H₂O)', fontsize=14)
+plt.grid(alpha=0.3)
+plt.savefig('water_msd.png', dpi=150)
+plt.show()
+
+# Calculate diffusion coefficient (Einstein relation)
+# MSD = 6Dt → D = slope / 6
+slope = np.polyfit(time[len(time)//2:], msd[len(time)//2:], 1)[0]
+D = slope / 6 / 1000  # Å²/ps → 10⁻⁵ cm²/s
+print(f&quot;Diffusion coefficient: {D:.2f} × 10⁻⁵ cm²/s&quot;)
+print(f&quot;Experimental value: 2.30 × 10⁻⁵ cm²/s (300K)&quot;)
+</code></pre>
+<hr />
+<h2>3.6 Ab Initio MD (AIMD)</h2>
+<h3>Classical MD vs Ab Initio MD</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Classical MD</th>
+<th>Ab Initio MD</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Force Calculation</strong></td>
+<td>Empirical potential (force field)</td>
+<td>DFT calculation (first-principles)</td>
+</tr>
+<tr>
+<td><strong>Accuracy</strong></td>
+<td>Depends on force field</td>
+<td>Quantum mechanically accurate</td>
+</tr>
+<tr>
+<td><strong>Computational Cost</strong></td>
+<td>Low ($\sim$1 ns/day)</td>
+<td>Extremely high ($\sim$10 ps/day)</td>
+</tr>
+<tr>
+<td><strong>System Size</strong></td>
+<td>Millions of atoms</td>
+<td>Hundreds of atoms</td>
+</tr>
+<tr>
+<td><strong>Applications</strong></td>
+<td>Large systems, long times</td>
+<td>Chemical reactions, electronic states</td>
+</tr>
+</tbody>
+</table>
+<h3>Born-Oppenheimer MD (BOMD)</h3>
+<p>Execute DFT calculation at each time step:</p>
+<pre><code>1. Give atomic configuration R(t)
+2. Calculate ground state energy E(R(t)) by DFT
+3. Calculate force F = -∇E
+4. Calculate R(t+Δt) by Newton's equation
+5. Return to 1
+</code></pre>
+<h3>AIMD Implementation Example with GPAW</h3>
+<pre><code class="language-python">from ase import Atoms
+from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
+from ase.md.verlet import VelocityVerlet
+from ase import units
+from gpaw import GPAW, PW
+
+# Create water molecule
+h2o = Atoms('H2O',
+            positions=[[0.00, 0.00, 0.00],
+                       [0.96, 0.00, 0.00],
+                       [0.24, 0.93, 0.00]])
+h2o.center(vacuum=5.0)
+
+# DFT calculator (instead of force field)
+calc = GPAW(mode=PW(400),
+            xc='PBE',
+            txt='h2o_aimd.txt')
+
+h2o.calc = calc
+
+# Initial velocity (300K)
+MaxwellBoltzmannDistribution(h2o, temperature_K=300)
+
+# Velocity Verlet MD
+dyn = VelocityVerlet(h2o, timestep=1.0*units.fs,
+                     trajectory='h2o_aimd.traj')
+
+# Run for 10 ps (actually takes very long time)
+def print_energy(a=h2o):
+    epot = a.get_potential_energy()
+    ekin = a.get_kinetic_energy()
+    print(f&quot;Time: {dyn.get_time()/units.fs:.1f} fs, &quot;
+          f&quot;Epot: {epot:.3f} eV, &quot;
+          f&quot;Ekin: {ekin:.3f} eV, &quot;
+          f&quot;Etot: {epot+ekin:.3f} eV&quot;)
+
+dyn.attach(print_energy, interval=10)
+dyn.run(100)  # 100 steps = 100 fs
+</code></pre>
+<p><strong>Applications</strong>:
+- Study of chemical reactions
+- Mechanisms of phase transitions
+- Novel materials without existing force fields</p>
+<hr />
+<h2>3.7 Chapter Summary</h2>
+<h3>What We Learned</h3>
+<ol>
+<li>
+<p><strong>Basic Principles of MD</strong>
+   - Newton's equations of motion
+   - Time integration algorithms (Verlet, Velocity Verlet, Leap-frog)
+   - Energy conservation law</p>
+</li>
+<li>
+<p><strong>Force Fields and Potentials</strong>
+   - Lennard-Jones (noble gases)
+   - EAM (metals)
+   - Tersoff/Brenner (covalent systems)
+   - TIP3P (water)</p>
+</li>
+<li>
+<p><strong>Statistical Ensembles</strong>
+   - NVE (microcanonical)
+   - NVT (canonical, Nosé-Hoover thermostat)
+   - NPT (isothermal-isobaric, Parrinello-Rahman)</p>
+</li>
+<li>
+<p><strong>Practice with LAMMPS</strong>
+   - Creating input files
+   - Equilibration simulations
+   - Radial distribution function, diffusion coefficient</p>
+</li>
+<li>
+<p><strong>Ab Initio MD</strong>
+   - Differences from Classical MD
+   - Born-Oppenheimer MD
+   - Implementation with GPAW</p>
+</li>
+</ol>
+<h3>Key Points</h3>
+<ul>
+<li>MD is based on classical mechanics</li>
+<li>Time step is about 1 fs</li>
+<li>Statistical ensembles reproduce experimental conditions</li>
+<li>Force field choice determines accuracy</li>
+<li>AIMD has high accuracy but high computational cost</li>
+</ul>
+<h3>To the Next Chapter</h3>
+<p>In Chapter 4, we will learn about lattice vibrations (phonons) and calculation of thermodynamic properties.</p>
+<hr />
+<h2>Exercises</h2>
+<h3>Problem 1 (Difficulty: easy)</h3>
+<p>Explain the differences between the Velocity Verlet method and the Leap-frog method.</p>
+<details>
+<summary>Sample Answer</summary>
+
+**Velocity Verlet Method**:
+- Updates position $\mathbf{r}$ and velocity $\mathbf{v}$ at the same time $t$
+- Velocity uses average of current and next time accelerations
+- Thermodynamic quantities (temperature, kinetic energy) can be directly calculated
+
+**Leap-frog Method**:
+- Position $\mathbf{r}(t)$ and velocity $\mathbf{v}(t+\Delta t/2)$ are staggered by half a time step
+- Updates alternately like "stepping stones"
+- Velocity interpolation needed to calculate thermodynamic quantities
+
+**Both methods**:
+- Equivalent energy conservation
+- Second-order accuracy ($O(\Delta t^2)$)
+- Possess time-reversal symmetry
+
+</details>
+
+<h3>Problem 2 (Difficulty: medium)</h3>
+<p>Explain when to use NVT ensemble versus NPT ensemble, with specific examples.</p>
+<details>
+<summary>Sample Answer</summary>
+
+**NVT Ensemble (N, V, T constant)**:
+
+**Use cases**:
+- Thermodynamic properties of solids (specific heat, thermal expansion coefficient)
+- Structure factor, radial distribution function of liquids
+- Surface/interface simulations (fixed volume)
+- When studying behavior at specific density
+
+**Specific examples**:
+- Atomic vibrations in Si crystal at 300K
+- Structural fluctuations of proteins in aqueous solution
+- Transport properties of lithium-ion battery electrolytes
+
+**NPT Ensemble (N, P, T constant)**:
+
+**Use cases**:
+- Direct comparison with experimental conditions (1 atm, room temperature, etc.)
+- Phase transitions (solid-liquid, liquid-gas)
+- Calculation of lattice constants
+- Temperature and pressure dependence of density
+
+**Specific examples**:
+- Density calculation of liquid water at 1 atm, 300K
+- Structural changes of materials under high pressure
+- Calculation of thermal expansion coefficient
+- Ice melting simulation
+
+**Decision criteria**:
+- Experiments at constant pressure → NPT
+- Theoretical research with fixed density → NVT
+- Study of phase transitions → NPT (observe volume changes)
+
+</details>
+
+<h3>Problem 3 (Difficulty: hard)</h3>
+<p>Estimate the computational cost difference between Classical MD and Ab Initio MD for a 100-atom system. Assume that DFT calculation takes 1 second per MD step.</p>
+<details>
+<summary>Sample Answer</summary>
+
+**Assumptions**:
+- System: 100 atoms
+- Time step: $\Delta t = 1$ fs
+- DFT calculation: 1 second per step
+
+**Classical MD**:
+
+Force calculation: Force field (analytical formula)
+- Lennard-Jones case: $O(N^2)$ or $O(N)$ (using cutoff)
+- Calculation time per step: $\sim 10^{-3}$ seconds (100 atoms)
+
+**Simulation time**:
+- 1 ns (nanosecond) = $10^6$ fs = $10^6$ steps
+- Total calculation time: $10^6 \times 10^{-3}$ seconds = 1000 seconds ≈ **17 minutes**
+
+**Ab Initio MD (AIMD)**:
+
+Force calculation: DFT (SCF calculation)
+- Calculation time per step: 1 second (assumption)
+
+**Simulation time**:
+- 10 ps (picosecond) = $10^4$ fs = $10^4$ steps
+- Total calculation time: $10^4 \times 1$ seconds = 10000 seconds ≈ **2.8 hours**
+
+**Comparison**:
+
+| Item | Classical MD | AIMD |
+|-----|-------------|-----|
+| Calculation time per step | 0.001 sec | 1 sec |
+| Reachable time | 1 ns (17 min) | 10 ps (2.8 hours) |
+| **Time scale ratio** | **100x longer** | - |
+| **Computational cost ratio** | 1 | **1000x** |
+
+**Conclusion**:
+- AIMD is about 1000x slower per step
+- For the same calculation time, Classical MD can simulate 100x longer times
+- AIMD is applicable to chemical reactions (ps-ns scale)
+- Diffusion processes (ns scale and beyond) require Classical MD
+
+**Practical strategy**:
+1. Short time simulation with AIMD (10-100 ps)
+2. Train force field (Machine Learning Potential) from AIMD results
+3. Long time simulation with Classical MD using MLP (ns-μs)
+
+→ We will learn about MLP in detail in Chapter 5!
+
+</details>
+
+<hr />
+<h2>Data License and Citation</h2>
+<h3>Software and Force Fields Used</h3>
+<ol>
+<li>
+<p><strong>LAMMPS - Molecular Dynamics Simulator</strong> (GPL v2)
+   - Large-scale parallel MD calculation software
+   - URL: https://www.lammps.org/
+   - Citation: Thompson, A. P., et al. (2022). <em>Comp. Phys. Comm.</em>, 271, 108171.</p>
+</li>
+<li>
+<p><strong>ASE Molecular Dynamics Module</strong> (LGPL v2.1+)
+   - Python MD library
+   - URL: https://wiki.fysik.dtu.dk/ase/ase/md.html</p>
+</li>
+<li>
+<p><strong>Force Field Database</strong>
+   - <strong>TIP3P water model</strong>: Jorgensen, W. L., et al. (1983). <em>J. Chem. Phys.</em>, 79, 926.
+   - <strong>EAM metal potential</strong>: OpenKIM Repository (CDDL License)</p>
+<ul>
+<li>URL: https://openkim.org/</li>
+<li><strong>Tersoff Si potential</strong>: Tersoff, J. (1988). <em>Phys. Rev. B</em>, 38, 9902.</li>
+</ul>
+</li>
+</ol>
+<h3>Sources of Standard Parameters</h3>
+<ul>
+<li><strong>Time step</strong>: 1-2 fs (standard literature value)</li>
+<li><strong>Nosé-Hoover thermostat</strong>: Nosé, S. (1984). <em>J. Chem. Phys.</em>, 81, 511.</li>
+<li><strong>Parrinello-Rahman barostat</strong>: Parrinello, M., &amp; Rahman, A. (1981). <em>J. Appl. Phys.</em>, 52, 7182.</li>
+</ul>
+<hr />
+<h2>Code Reproducibility Checklist</h2>
+<h3>Environment Setup</h3>
+<pre><code class="language-bash"># LAMMPS installation (Anaconda recommended)
+conda create -n md-sim python=3.11
+conda activate md-sim
+conda install -c conda-forge lammps
+conda install numpy matplotlib MDAnalysis
+
+# Version check
+lmp -v  # LAMMPS 23Jun2022 or later
+python -c &quot;import lammps; print(lammps.__version__)&quot;
+</code></pre>
+<h3>Hardware Requirements</h3>
+<table>
+<thead>
+<tr>
+<th>System Size</th>
+<th>Memory</th>
+<th>CPU Time (10 ps)</th>
+<th>Recommended Cores</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>100 atoms (Ar)</td>
+<td>~100 MB</td>
+<td>~1 min</td>
+<td>1 core</td>
+</tr>
+<tr>
+<td>1,000 atoms (water)</td>
+<td>~500 MB</td>
+<td>~10 min</td>
+<td>2-4 cores</td>
+</tr>
+<tr>
+<td>10,000 atoms (protein)</td>
+<td>~2 GB</td>
+<td>~2 hours</td>
+<td>8-16 cores</td>
+</tr>
+<tr>
+<td>100,000 atoms (nanoparticle)</td>
+<td>~10 GB</td>
+<td>~20 hours</td>
+<td>32-64 cores</td>
+</tr>
+</tbody>
+</table>
+<h3>Calculation Time Estimation</h3>
+<pre><code class="language-python"># Simple estimation formula
+N_atoms = 1000
+N_steps = 100000
+timestep = 1.0  # fs
+time_per_step = N_atoms * 1e-5  # seconds (rough estimate)
+total_time = N_steps * time_per_step / 60  # minutes
+print(f&quot;Estimated calculation time: {total_time:.1f} minutes&quot;)
+</code></pre>
+<h3>Troubleshooting</h3>
+<p><strong>Problem</strong>: <code>ERROR: Unknown pair style</code>
+<strong>Solution</strong>:</p>
+<pre><code class="language-bash"># Install additional LAMMPS packages
+conda install -c conda-forge lammps-packages
+</code></pre>
+<p><strong>Problem</strong>: Energy divergence (NaN)
+<strong>Solution</strong>:</p>
+<pre><code class="language-bash"># Reduce time step
+timestep 0.5  # 1.0 → 0.5 fs
+
+# Or check for overlapping initial configuration
+minimize 1.0e-4 1.0e-6 1000 10000
+</code></pre>
+<p><strong>Problem</strong>: Temperature does not converge to target value
+<strong>Solution</strong>:</p>
+<pre><code class="language-bash"># Adjust damping parameter of thermostat
+fix 1 all nvt temp 300.0 300.0 100.0  # (100.0 = 100*timestep)
+# Change 100x → 10x (stronger coupling)
+fix 1 all nvt temp 300.0 300.0 10.0
+</code></pre>
+<hr />
+<h2>Practical Pitfalls and Countermeasures</h2>
+<h3>1. Incorrect Time Step Selection</h3>
+<p><strong>Pitfall</strong>: Time step too large causing energy divergence</p>
+<pre><code class="language-python"># ❌ Too large: 2 fs for system containing hydrogen atoms
+timestep 2.0  # Cannot capture O-H vibration (~10 fs period)
+
+# ✅ Recommended values:
+# - Heavy atoms only: 2 fs
+# - Including hydrogen: 0.5-1 fs
+# - Chemical reactions: 0.25 fs
+timestep 0.5
+</code></pre>
+<p><strong>Validation method</strong>:</p>
+<pre><code class="language-python"># Energy conservation check (NVE)
+fix 1 all nve
+run 10000
+variable E_drift equal abs((etotal[10000]-etotal[1])/etotal[1])
+if &quot;${E_drift} &gt; 0.001&quot; then &quot;print 'WARNING: Energy drift &gt; 0.1%'&quot;
+</code></pre>
+<h3>2. Insufficient Equilibration Time</h3>
+<p><strong>Pitfall</strong>: Starting production calculation without equilibration</p>
+<pre><code class="language-bash"># ❌ Insufficient: Start statistics immediately
+fix 1 all nvt temp 300.0 300.0 100.0
+run 1000  # 1 ps (insufficient)
+# Start statistics here → non-equilibrium state
+
+# ✅ Recommended: Sufficient equilibration
+# 1. Energy relaxation
+minimize 1.0e-4 1.0e-6 1000 10000
+
+# 2. Temperature equilibration (10-50 ps)
+fix 1 all nvt temp 300.0 300.0 100.0
+run 50000  # 50 ps
+
+# 3. Start statistics collection
+reset_timestep 0
+run 100000  # 100 ps
+</code></pre>
+<p><strong>Equilibration criteria</strong>:
+- Temperature fluctuation &lt; ±5%
+- Energy fluctuation &lt; ±1%
+- Pressure fluctuation &lt; ±10%</p>
+<h3>3. Misuse of Periodic Boundary Conditions</h3>
+<p><strong>Pitfall</strong>: Molecules cut across periodic boundaries</p>
+<pre><code class="language-python"># ❌ Wrong: Cell size too small
+region box block 0 5 0 5 0 5  # 5 Å × 5 Å × 5 Å
+# Water molecule (~3 Å) crosses boundaries
+
+# ✅ Correct: More than 3 times molecular size
+region box block 0 15 0 15 0 15  # 15 Å × 15 Å × 15 Å
+</code></pre>
+<p><strong>Validation</strong>:</p>
+<pre><code class="language-bash"># Relationship between cutoff distance and cell size
+# Cell size &gt; 2 × cutoff distance
+pair_style lj/cut 10.0  # Cutoff 10 Å
+# → Cell size &gt; 20 Å required
+</code></pre>
+<h3>4. Confusion of Unit Systems</h3>
+<p><strong>Pitfall</strong>: Mixing LAMMPS unit systems</p>
+<pre><code class="language-bash"># ❌ Confusion: Mixing real and metal
+units real  # Energy: kcal/mol
+pair_coeff 1 1 1.0 3.4  # LJ-epsilon = 1.0 kcal/mol
+
+# Changing to metal midway (dangerous!)
+units metal  # Energy: eV
+
+# ✅ Correct: Unified in one unit system
+units real
+# Set all parameters in real units
+</code></pre>
+<p><strong>Major unit systems</strong>:
+| Unit System | Energy | Distance | Time | Applications |
+|-------|-----------|-----|------|-----|
+| real | kcal/mol | Å | fs | Biomolecules |
+| metal | eV | Å | ps | Metals, materials |
+| si | J | m | s | Education |
+| lj | ε | σ | τ | Theory |</p>
+<h3>5. Incorrect Force Field Parameters</h3>
+<p><strong>Pitfall</strong>: Wrong units or values for force field parameters</p>
+<pre><code class="language-bash"># ❌ Wrong: Inaccurate TIP3P water parameters
+pair_coeff 1 1 0.102 3.188  # O-O (wrong: mixing kcal/mol and Å)
+
+# ✅ Correct: Accurate literature values
+# TIP3P (Jorgensen 1983, real units):
+pair_coeff 1 1 0.1521 3.1507  # ε=0.1521 kcal/mol, σ=3.1507 Å
+bond_coeff 1 450.0 0.9572     # k=450 kcal/mol/Å², r0=0.9572 Å
+angle_coeff 1 55.0 104.52     # k=55 kcal/mol/rad², θ0=104.52°
+</code></pre>
+<hr />
+<h2>Quality Assurance Checklist</h2>
+<h3>MD Simulation Validity Verification</h3>
+<h4>Energy Conservation (NVE)</h4>
+<ul>
+<li>[ ] Total energy drift &lt; 0.1% / ns</li>
+<li>[ ] Kinetic and potential energy interconvert</li>
+<li>[ ] Temperature fluctuations follow Maxwell distribution</li>
+</ul>
+<h4>Temperature Control (NVT)</h4>
+<ul>
+<li>[ ] Average temperature within ±2% of target</li>
+<li>[ ] Standard deviation of temperature matches theoretical value (√(2T²/3N))</li>
+<li>[ ] Temperature time series is stationary (no trend)</li>
+</ul>
+<h4>Pressure Control (NPT)</h4>
+<ul>
+<li>[ ] Average pressure within ±10% of target</li>
+<li>[ ] Volume has reached equilibrium (fluctuation &lt; 1%)</li>
+<li>[ ] Density within ±5% of experimental value</li>
+</ul>
+<h4>Structural Validity</h4>
+<ul>
+<li>[ ] Radial distribution function (RDF) agrees with experiment/literature</li>
+<li>[ ] Coordination number is chemically reasonable</li>
+<li>[ ] Bond length and angle distributions within expected range</li>
+</ul>
+<h4>Dynamic Properties</h4>
+<ul>
+<li>[ ] Mean square displacement (MSD) is linear in time (diffusive regime)</li>
+<li>[ ] Diffusion coefficient within ±50% of experimental value</li>
+<li>[ ] Velocity autocorrelation function decays properly</li>
+</ul>
+<h3>Numerical Calculation Sanity</h3>
+<ul>
+<li>[ ] No atoms flying out of system</li>
+<li>[ ] No abnormal energy values (NaN, Inf)</li>
+<li>[ ] Force magnitude is reasonable (&lt; 10 eV/Å)</li>
+<li>[ ] Minimum interatomic distance is reasonable (&gt; 0.8 Å)</li>
+</ul>
+<h3>MD-Specific Quality Checks</h3>
+<h4>Statistical Accuracy</h4>
+<ul>
+<li>[ ] Sampling time is at least 10 times correlation time</li>
+<li>[ ] Error evaluation by block averaging method</li>
+<li>[ ] Reproducibility confirmed with multiple independent runs</li>
+</ul>
+<h4>System Size Effects</h4>
+<ul>
+<li>[ ] Cell size is at least twice the cutoff</li>
+<li>[ ] System size dependence checked (if possible)</li>
+<li>[ ] Finite size effects are negligible</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ol>
+<li>
+<p>Frenkel, D., &amp; Smit, B. (2001). <em>Understanding Molecular Simulation: From Algorithms to Applications</em> (2nd ed.). Academic Press.</p>
+</li>
+<li>
+<p>Haile, J. M. (1992). <em>Molecular Dynamics Simulation: Elementary Methods</em>. Wiley-Interscience.</p>
+</li>
+<li>
+<p>Plimpton, S. (1995). "Fast Parallel Algorithms for Short-Range Molecular Dynamics." <em>Journal of Computational Physics</em>, 117(1), 1-19.
+   DOI: <a href="https://doi.org/10.1006/jcph.1995.1039">10.1006/jcph.1995.1039</a></p>
+</li>
+<li>
+<p>LAMMPS Documentation: https://docs.lammps.org/</p>
+</li>
+<li>ASE-MD Documentation: https://wiki.fysik.dtu.dk/ase/ase/md.html</li>
+</ol>
+<hr />
+<h2>Author Information</h2>
+<p><strong>Author</strong>: MI Knowledge Hub Content Team
+<strong>Created</strong>: 2025-10-17
+<strong>Version</strong>: 1.0
+<strong>Series</strong>: Introduction to Computational Materials Science v1.0</p>
+<p><strong>License</strong>: Creative Commons BY-NC-SA 4.0</p><div class="navigation">
+    <a href="chapter-2.html" class="nav-button">← Previous Chapter</a>
+    <a href="index.html" class="nav-button">Back to Series Index</a>
+    <a href="chapter-4.html" class="nav-button">Next Chapter →</a>
+</div>
+    </main>
+
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided for educational, research, and informational purposes only, and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The authors and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+            <li>To the maximum extent permitted by applicable law, the authors and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content are subject to the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+        </ul>
+    </section>
+
+<footer>
+        <p><strong>Author</strong>: AI Terakoya Content Team</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-17</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

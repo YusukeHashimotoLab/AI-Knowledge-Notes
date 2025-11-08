@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Learning入門シリーズ v1.0 - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        .chapter-card {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .chapter-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .chapter-title {
+            font-size: 1.3rem;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .chapter-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+            font-size: 0.85rem;
+            color: var(--color-text-light);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .info-box {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background-color: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            border-radius: 4px;
+        }
+
+        .success-box {
+            background-color: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            border-radius: 4px;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/en/index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/active-learning-introduction/index.html">Active Learning</a>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>Active Learning入門シリーズ v1.0</h1>
+            <p class="subtitle">少ない実験で最適解を見つける戦略的探索</p>
+            <div class="meta">
+                <span class="meta-item">📖 総学習時間: 100-120分</span>
+                <span class="meta-item">📊 Difficulty: Intermediate〜Advanced</span>
+                <span class="meta-item">💻 Code Examples: 28個</span>
+                <span class="meta-item">📝 Exercises: 12問</span>
+                <span class="meta-item">📋 ケーススタディ: 5個</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2>シリーズ概要</h2>
+
+        <p>このシリーズは、Active Learningを初めて学ぶ方から、実践的なMaterials Explorationスキルを身につけたい方まで、段階的に学べる全4章構成の教育コンテンツです。</p>
+
+        <p>Active Learningは、限られた実験回数で最も情報価値の高いデータを能動的に選択するMachine Learning手法です。Materials Explorationにおいて、どのサンプルをNextに測定すべきかを賢く決定することで、Random Samplingの10分の1以下の実験回数で目標性能を達成できます。トヨタのCatalyst開発では実験回数を80%削減、MITのバッテリーMaterials Explorationでは開発速度を10倍向上させた実績があります。</p>
+
+        <h3>なぜこのシリーズが必要か</h3>
+
+        <div class="info-box">
+            <p><strong>背景と課題</strong>: Materials Scienceにおける最大の課題は、探索空間の広大さと実験コストの高さです。Exampleえば、Catalystスクリーニングでは数万の候補材料があり、1サンプルの評価に数日から数週間を要します。すべてのサンプルを測定することは物理的・経済的に不可能です。従来のRandom Samplingでは、貴重な実験リソースを低情報価値のサンプルに浪費してしまいます。</p>
+        </div>
+
+        <p><strong>このシリーズで学べること</strong>: 本シリーズでは、Active Learningの理論から実践まで、実行可能なCode ExamplesとMaterials Scienceのケーススタディを通じて体系的に学習します。Query Strategies（データ選択戦略）、Uncertainty Estimation手法、Acquisition Functionの設計、実験装置との自動連携まで、実務で即戦力となるスキルを習得できます。</p>
+
+        <p><strong>特徴:</strong></p>
+        <ul>
+            <li>✅ <strong>実践重視</strong>: 28個の実行可能なCode Examples、5つの詳細なケーススタディ</li>
+            <li>✅ <strong>段階的構成</strong>: 基礎からApplicationまで4章で包括的にカバー</li>
+            <li>✅ <strong>Materials Science特化</strong>: 一般的なML理論ではなく、Materials ExplorationへのApplicationに焦点</li>
+            <li>✅ <strong>最新ツール</strong>: modAL、GPyTorch、BoTorchなど業界標準ツールを網羅</li>
+            <li>✅ <strong>理論とImplementation</strong>: Formulaによる定式化とPythonImplementationを両立</li>
+            <li>✅ <strong>ロボティクス連携</strong>: 自動実験装置との統合手法を解説</li>
+        </ul>
+
+        <p><strong>対象者</strong>:</p>
+        <ul>
+            <li>大学院生・研究者（効率的なMaterials Explorationを学びたい方）</li>
+            <li>企業R&Dエンジニア（実験回数とコストを削減したい方）</li>
+            <li>データサイエンティスト（Active Learningの理論と実践を学びたい方）</li>
+            <li>Bayesian Optimization経験者（より高度な探索戦略を習得したい方）</li>
+        </ul>
+
+        <h2>学習の進め方</h2>
+
+        <h3>推奨学習順序</h3>
+
+        <div class="mermaid">
+flowchart TD
+    A[第1章: Active Learningの必要性] --> B[第2章: Uncertainty Estimation手法]
+    B --> C[第3章: Acquisition Function設計]
+    C --> D[第4章: Materials ExplorationへのApplication]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+</div>
+
+        <p><strong>初学者の方（Active Learningをまったく知らない）:</strong></p>
+        <ul>
+            <li>第1章 → 第2章 → 第3章 → 第4章（全章推奨）</li>
+            <li>所要時間: 100-120分</li>
+            <li>Previous提知識: Machine Learning基礎、Bayesian Optimization入門</li>
+        </ul>
+
+        <p><strong>Intermediate者の方（Bayesian Optimizationの経験あり）:</strong></p>
+        <ul>
+            <li>第2章 → 第3章 → 第4章</li>
+            <li>所要時間: 70-90分</li>
+            <li>第1章はスキップ可能</li>
+        </ul>
+
+        <p><strong>実践的スキル強化（理論よりImplementation重視）:</strong></p>
+        <ul>
+            <li>第3章（集中学習） → 第4章</li>
+            <li>所要時間: 50-70分</li>
+            <li>理論は必要に応じて第2章を参照</li>
+        </ul>
+
+        <h3>学習フローチャート</h3>
+
+        <div class="mermaid">
+flowchart TD
+    Start[学習開始] --> Q1{Bayesian Optimizationの経験は?}
+    Q1 -->|初めて| PreBO[Previous提: BO入門シリーズ]
+    Q1 -->|経験あり| Q2{Active Learningの経験は?}
+
+    PreBO --> Ch1
+    Q2 -->|初めて| Ch1[第1章から開始]
+    Q2 -->|基礎知識あり| Ch2[第2章から開始]
+    Q2 -->|Implementation経験あり| Ch3[第3章から開始]
+
+    Ch1 --> Ch2[第2章へ]
+    Ch2 --> Ch3[第3章へ]
+    Ch3 --> Ch4[第4章へ]
+    Ch4 --> Complete[シリーズ完了]
+
+    Complete --> Next[Nextのステップ]
+    Next --> Project[独自プロジェクト]
+    Next --> Robotic[ロボティクス実験自動化へ]
+    Next --> Community[研究コミュニティ参加]
+
+    style Start fill:#4CAF50,color:#fff
+    style Complete fill:#2196F3,color:#fff
+    style Next fill:#FF9800,color:#fff
+</div>
+
+        <h2>各章の詳細</h2>
+
+        <div class="chapter-card">
+            <h3 class="chapter-title">Chapter 1: The Need for Active Learning</h3>
+            <div class="chapter-meta">
+                <span>📖 Reading Time: 20-25分</span>
+                <span>📊 Difficulty: Intermediate</span>
+                <span>💻 Code Examples: 6-8個</span>
+            </div>
+
+            <h4>Learning Content</h4>
+            <ul>
+                <li><strong>Active Learningとは何か</strong>: Definition、Passive Learning vs Active Learning、適用分野</li>
+                <li><strong>Query Strategiesの基礎</strong>: Uncertainty Sampling、Diversity Sampling、Expected Model Change、Query-by-Committee</li>
+                <li><strong>Exploration vs Exploitation</strong>: トレードオフ、ε-greedyアプローチ、UCB</li>
+                <li><strong>ケーススタディ：Catalyst活性予測</strong>: Random Sampling vs Active Learning</li>
+            </ul>
+
+            <h4>Learning Objectives</h4>
+            <ul>
+                <li>✅ Active LearningのDefinitionとAdvantagesをExplanationできる</li>
+                <li>✅ Query Strategiesの4つの主要手法を理解している</li>
+                <li>✅ Exploration and ExploitationのトレードオフをExplanationできる</li>
+                <li>✅ Materials Scienceにおける成功事Exampleを3つ以上挙げられる</li>
+                <li>✅ Random Samplingとの定量的比較ができる</li>
+            </ul>
+
+            <p><strong><a href="./chapter-1.html">第1章を読む →</a></strong></p>
+        </div>
+
+        <div class="chapter-card">
+            <h3 class="chapter-title">Chapter 2: Uncertainty Estimation Techniques</h3>
+            <div class="chapter-meta">
+                <span>📖 Reading Time: 25-30分</span>
+                <span>📊 Difficulty: Intermediate〜Advanced</span>
+                <span>💻 Code Examples: 7-9個</span>
+            </div>
+
+            <h4>Learning Content</h4>
+            <ul>
+                <li><strong>Ensemble法によるUncertainty Estimation</strong>: Bagging/Boosting、予測分散の計算、Random Forest/LightGBMでのImplementation</li>
+                <li><strong>Dropout法によるUncertainty Estimation</strong>: MC Dropout、Neural Networkでの不確実性、Bayesian Neural Networks</li>
+                <li><strong>Gaussian Process (GP) による不確実性</strong>: GPの基礎、カーネル関数、予測平均と予測分散、GPyTorchでのImplementation</li>
+                <li><strong>ケーススタディ：Band Gap予測</strong>: 3つの手法の比較、実験回数削減効果の検証</li>
+            </ul>
+
+            <h4>Learning Objectives</h4>
+            <ul>
+                <li>✅ 3つのUncertainty Estimation手法のPrincipleを理解している</li>
+                <li>✅ Ensemble法（Random Forest）をImplementationできる</li>
+                <li>✅ MC DropoutをNeural Networkに適用できる</li>
+                <li>✅ Gaussian Processで予測分散を計算できる</li>
+                <li>✅ 手法の使い分け基準をExplanationできる</li>
+            </ul>
+
+            <h4>Uncertainty Estimationのフロー</h4>
+            <div class="mermaid">
+flowchart TD
+    A[訓練データ] --> B{モデル選択}
+    B -->|Ensemble| C[Random Forest/LightGBM]
+    B -->|Deep Learning| D[MC Dropout]
+    B -->|GP| E[Gaussian Process]
+
+    C --> F[予測分散を計算]
+    D --> F
+    E --> F
+
+    F --> G[不確実性が高いサンプルを選択]
+    G --> H[Experiment Execution]
+    H --> A
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style G fill:#e8f5e9
+</div>
+
+            <p><strong><a href="./chapter-2.html">第2章を読む →</a></strong></p>
+        </div>
+
+        <div class="chapter-card">
+            <h3 class="chapter-title">Chapter 3: Acquisition Function Design</h3>
+            <div class="chapter-meta">
+                <span>📖 Reading Time: 25-30分</span>
+                <span>📊 Difficulty: Intermediate〜Advanced</span>
+                <span>💻 Code Examples: 6-8個</span>
+            </div>
+
+            <h4>Learning Content</h4>
+            <ul>
+                <li><strong>Acquisition Functionの基礎</strong>: Expected Improvement (EI)、Probability of Improvement (PI)、Upper Confidence Bound (UCB)、Thompson Sampling</li>
+                <li><strong>多目的Acquisition Function</strong>: Pareto最適性、Expected Hypervolume Improvement、複数物性の同時最適化</li>
+                <li><strong>制約付きAcquisition Function</strong>: Synthesizability制約、コスト制約、Constrained Expected Improvement</li>
+                <li><strong>ケーススタディ：熱電Materials Exploration</strong>: ZT値最大化、多目的最適化、Synthesizabilityを考慮した探索</li>
+            </ul>
+
+            <h4>Learning Objectives</h4>
+            <ul>
+                <li>✅ 4つの主要Acquisition Functionの特徴を理解している</li>
+                <li>✅ Expected ImprovementをImplementationできる</li>
+                <li>✅ 多目的最適化にPareto最適性を適用できる</li>
+                <li>✅ 制約条件をAcquisition Functionに組み込める</li>
+                <li>✅ Acquisition Functionの選択基準をExplanationできる</li>
+            </ul>
+
+            <h4>Acquisition Functionの比較</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Acquisition Function</th>
+                        <th>特徴</th>
+                        <th>探索傾向</th>
+                        <th>計算コスト</th>
+                        <th>推奨用途</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>EI</td>
+                        <td>改善期待値</td>
+                        <td>バランス</td>
+                        <td>中</td>
+                        <td>一般的な最適化</td>
+                    </tr>
+                    <tr>
+                        <td>PI</td>
+                        <td>改善確率</td>
+                        <td>活用重視</td>
+                        <td>低</td>
+                        <td>高速探索</td>
+                    </tr>
+                    <tr>
+                        <td>UCB</td>
+                        <td>信頼上限</td>
+                        <td>探索重視</td>
+                        <td>低</td>
+                        <td>広範囲探索</td>
+                    </tr>
+                    <tr>
+                        <td>Thompson</td>
+                        <td>確率的</td>
+                        <td>バランス</td>
+                        <td>中</td>
+                        <td>並列実験</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p><strong><a href="./chapter-3.html">第3章を読む →</a></strong></p>
+        </div>
+
+        <div class="chapter-card">
+            <h3 class="chapter-title">Chapter 4: Applications and Practice in Materials Exploration</h3>
+            <div class="chapter-meta">
+                <span>📖 Reading Time: 25-30分</span>
+                <span>📊 Difficulty: Advanced</span>
+                <span>💻 Code Examples: 6-8個</span>
+            </div>
+
+            <h4>Learning Content</h4>
+            <ul>
+                <li><strong>Active Learning × Bayesian Optimization</strong>: Bayesian Optimizationとの統合、BoTorchによるImplementation、連続空間 vs 離散空間</li>
+                <li><strong>Active Learning × 高スループット計算</strong>: DFT Calculationの効率化、計算コストを考慮した優先順位付け、Batch Active Learning</li>
+                <li><strong>Active Learning × 実験ロボット</strong>: クローズドループ最適化、自律実験システム、フィードバックループの設計</li>
+                <li><strong>実世界Applicationとキャリアパス</strong>: トヨタ、MIT、Citrine Informaticsの事Example、キャリアパス</li>
+            </ul>
+
+            <h4>Learning Objectives</h4>
+            <ul>
+                <li>✅ Active LearningとベイズOの統合手法を理解している</li>
+                <li>✅ 高スループット計算に最適化を適用できる</li>
+                <li>✅ クローズドループシステムを設計できる</li>
+                <li>✅ 産業Application事Example5つから実践的知識を得る</li>
+                <li>✅ キャリアパスを具体的に描ける</li>
+            </ul>
+
+            <h4>クローズドループ最適化</h4>
+            <div class="mermaid">
+flowchart LR
+    A[候補提案< br>Active Learning] --> B[Experiment Execution< br>ロボット]
+    B --> C[測定・評価< br>センサー]
+    C --> D[データ蓄積< br>データベース]
+    D --> E[モデル更新< br>Machine Learning]
+    E --> F[Acquisition Function評価< br>Next候補選定]
+    F --> A
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+    style E fill:#ffebee
+    style F fill:#fce4ec
+</div>
+
+            <p><strong><a href="./chapter-4.html">第4章を読む →</a></strong></p>
+        </div>
+
+        <h2>全体の学習成果</h2>
+
+        <p>このシリーズを完了すると、以下のスキルと知識を習得できます：</p>
+
+        <h3>知識レベル（Understanding）</h3>
+        <ul>
+            <li>✅ Active LearningのDefinitionと理論的基礎をExplanationできる</li>
+            <li>✅ Query Strategies 4種の特徴と使い分けを理解している</li>
+            <li>✅ Uncertainty Estimation手法3種（Ensemble, Dropout, GP）を比較できる</li>
+            <li>✅ Acquisition Functionの設計Principleを理解している</li>
+            <li>✅ 実世界での成功事Exampleを5つ以上詳述できる</li>
+        </ul>
+
+        <h3>実践スキル（Doing）</h3>
+        <ul>
+            <li>✅ modALで基本的なActive LearningをImplementationできる</li>
+            <li>✅ Uncertainty Estimation手法を3種類Implementationできる</li>
+            <li>✅ Acquisition Functionをカスタマイズできる</li>
+            <li>✅ 実材料データに最適化を適用し、結果を評価できる</li>
+            <li>✅ クローズドループシステムを構築できる</li>
+        </ul>
+
+        <h3>Application力（Applying）</h3>
+        <ul>
+            <li>✅ 新しいMaterials Exploration問題に適切な戦略を選択できる</li>
+            <li>✅ 実験装置との自動連携を設計できる</li>
+            <li>✅ 産業界での導入事Exampleを評価し、自分の研究に適用できる</li>
+            <li>✅ 多目的・制約付き最適化に対応できる</li>
+        </ul>
+
+        <h2>FAQ（よくある質問）</h2>
+
+        <h3>Q1: Bayesian Optimizationとの違いは何ですか？</h3>
+        <p><strong>A</strong>: Active LearningとBayesian Optimizationは密接に関連していますが、焦点が異なります：</p>
+        <ul>
+            <li><strong>Active Learning</strong>: 目標はMachine Learningモデルの効率的学習、焦点はどのデータをNextに取得すべきか（Query Strategy）</li>
+            <li><strong>Bayesian Optimization</strong>: 目標は目的関数の最大化/最小化、焦点は最適解の探索（Exploration-Exploitation）</li>
+        </ul>
+        <p><strong>共通点</strong>: どちらも「不確実性を活用した賢いサンプリング」を行います。Bayesian OptimizationはActive Learningの特殊ケースと見なせます。</p>
+
+        <h3>Q2: Machine Learningの経験が少なくても理解できますか？</h3>
+        <p><strong>A</strong>: 基本的なMachine Learningの知識（線形回帰、決定木、交差検証など）があれば理解できます。ただし、以下のPrevious提知識を推奨します：</p>
+        <ul>
+            <li><strong>必須</strong>: 教師あり学習の基礎、Python基礎（NumPy、pandas）、基本的な統計学</li>
+            <li><strong>推奨</strong>: Bayesian Optimization入門シリーズ、scikit-learnの使用経験</li>
+        </ul>
+
+        <h3>Q3: どのUncertainty Estimation手法を選ぶべきですか？</h3>
+        <p><strong>A</strong>: 問題の特性とリソースに応じて選択します：</p>
+        <ul>
+            <li><strong>Ensemble法（Random Forest）</strong>: ✅ Implementationが簡単、計算コスト中程度、表形式データに強い ⚠️ 高Next元には不向き</li>
+            <li><strong>MC Dropout</strong>: ✅ Deep Learningモデルに適用可能、既存NNに容易に統合 ⚠️ 計算コストやや高い</li>
+            <li><strong>Gaussian Process</strong>: ✅ 不確実性の定量化が厳密、少ないデータで高精度 ⚠️ 大規模データには不向き</li>
+        </ul>
+        <p><strong>推奨</strong>: まずEnsemble法で試し、必要に応じてGPやDropoutに移行。</p>
+
+        <h3>Q4: 実験装置がなくても学べますか？</h3>
+        <p><strong>A</strong>: <strong>学べます</strong>。本シリーズでは、シミュレーションデータで基礎を学習し、公開データセット（Materials Project等）で実践し、クローズドループの概念とCode Examplesを習得します。将来、実験装置を使用する際にすぐApplicationできる知識が身につきます。</p>
+
+        <h3>Q5: 産業Applicationでの実績はありますか？</h3>
+        <p><strong>A</strong>: 多数の成功事Exampleがあります：</p>
+        <ul>
+            <li><strong>トヨタ</strong>: Catalyst反応条件最適化、実験回数80%削減（1,000回 → 200回）</li>
+            <li><strong>MIT</strong>: Li-ionバッテリー電解質探索、開発速度10倍向上</li>
+            <li><strong>BASF</strong>: プロセス条件最適化、年間3,000万ユーロのコスト削減</li>
+            <li><strong>Citrine Informatics</strong>: Active Learning専門スタートアップ、50社以上の顧客</li>
+        </ul>
+
+        <h2>Previous提知識と関連シリーズ</h2>
+
+        <h3>Previous提知識</h3>
+        <p><strong>必須</strong>:</p>
+        <ul>
+            <li>Python基礎: 変数、関数、クラス、NumPy、pandas</li>
+            <li>Machine Learning基礎: 教師あり学習、交差検証、過学習</li>
+            <li>基本的な統計学: 正規分布、平均、分散、標準偏差</li>
+        </ul>
+
+        <p><strong>強く推奨</strong>:</p>
+        <ul>
+            <li>Bayesian Optimization入門: Gaussian Process、Acquisition Function、Exploration-Exploitation</li>
+        </ul>
+
+        <h3>学習パス全体図</h3>
+        <div class="mermaid">
+flowchart TD
+    Pre1[Previous提: Python基礎] --> Pre2[Previous提: MI入門]
+    Pre2 --> Pre3[Previous提: Bayesian Optimization入門]
+    Pre3 --> Current[Active Learning入門]
+
+    Current --> Next1[Next: ロボティクス実験自動化]
+    Current --> Next2[Next: 強化学習入門]
+    Current --> Next3[Application: 実Materials Explorationプロジェクト]
+
+    Next1 --> Advanced[Advanced: 自律実験システム]
+    Next2 --> Advanced
+    Next3 --> Advanced
+
+    style Pre1 fill:#e3f2fd
+    style Pre2 fill:#e3f2fd
+    style Pre3 fill:#fff3e0
+    style Current fill:#4CAF50,color:#fff
+    style Next1 fill:#f3e5f5
+    style Next2 fill:#f3e5f5
+    style Next3 fill:#f3e5f5
+    style Advanced fill:#ffebee
+</div>
+
+        <h2>主要ツール</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ツール名</th>
+                    <th>用途</th>
+                    <th>License</th>
+                    <th>インストール</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>modAL</td>
+                    <td>Active Learning専用ライブラリ</td>
+                    <td>MIT</td>
+                    <td><code>pip install modAL-python</code></td>
+                </tr>
+                <tr>
+                    <td>scikit-learn</td>
+                    <td>Machine Learning基盤</td>
+                    <td>BSD-3</td>
+                    <td><code>pip install scikit-learn</code></td>
+                </tr>
+                <tr>
+                    <td>GPyTorch</td>
+                    <td>Gaussian Process（GPU対応）</td>
+                    <td>MIT</td>
+                    <td><code>pip install gpytorch</code></td>
+                </tr>
+                <tr>
+                    <td>BoTorch</td>
+                    <td>Bayesian Optimization（PyTorch）</td>
+                    <td>MIT</td>
+                    <td><code>pip install botorch</code></td>
+                </tr>
+                <tr>
+                    <td>pandas</td>
+                    <td>データ管理</td>
+                    <td>BSD-3</td>
+                    <td><code>pip install pandas</code></td>
+                </tr>
+                <tr>
+                    <td>matplotlib</td>
+                    <td>可視化</td>
+                    <td>PSF</td>
+                    <td><code>pip install matplotlib</code></td>
+                </tr>
+                <tr>
+                    <td>numpy</td>
+                    <td>数値計算</td>
+                    <td>BSD-3</td>
+                    <td><code>pip install numpy</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Nextのステップ</h2>
+
+        <div class="success-box">
+            <h3>シリーズ完了後の推奨アクション</h3>
+            <p><strong>Immediate（1-2週間以内）:</strong></p>
+            <ul>
+                <li>✅ GitHubにポートフォリオを作成</li>
+                <li>✅ modALを使ったCatalyst探索プロジェクトをImplementation</li>
+                <li>✅ LinkedInプロフィールに「Active Learning」スキルを追加</li>
+                <li>✅ Qiita/Zennで学習記事を執筆</li>
+            </ul>
+
+            <p><strong>Short-term（1-3ヶ月）:</strong></p>
+            <ul>
+                <li>✅ ロボティクス実験自動化入門シリーズに進む</li>
+                <li>✅ 独自のMaterials Explorationプロジェクトを実行</li>
+                <li>✅ 日本Materials Science会の勉強会に参加</li>
+                <li>✅ Kaggleコンペ（Materials Science）に参加</li>
+                <li>✅ クローズドループシステムを構築</li>
+            </ul>
+        </div>
+
+        <h2>さあ、始めましょう！</h2>
+
+        <p>準備はできましたか？ 第1章から始めて、Active LearningでMaterials Explorationを革新する旅を始めましょう！</p>
+
+        <p style="font-size: 1.2rem; font-weight: bold; text-align: center; margin: var(--spacing-lg) 0;">
+            <a href="./chapter-1.html">第1章: Active Learningの必要性 →</a>
+        </p>
+    </main>
+
+    
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するCode Examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等no warranty。</li>
+            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、Creatorおよび東北大学は一切のnot responsible。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、Creatorおよび東北大学はnot responsible。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツのCopyright・Licenseは明記された条件(Example: CC BY 4.0)に従います。当該Licenseは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+<footer>
+        <p><strong>Creator</strong>: AI Terakoya Content Team</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-18</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

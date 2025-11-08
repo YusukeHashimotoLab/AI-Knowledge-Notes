@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bayesian Optimization・Active LearningBeginnerシリーズ v1.0 - MI Knowledge Hub</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        .chapter-list {
+            display: grid;
+            gap: var(--spacing-md);
+            margin: var(--spacing-lg) 0;
+        }
+
+        .chapter-card {
+            background: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .chapter-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--box-shadow);
+        }
+
+        .chapter-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .chapter-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+            font-size: 0.85rem;
+            color: var(--color-text-light);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .chapter-description {
+            font-size: 0.95rem;
+            color: var(--color-text);
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/en/index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/bayesian-optimization-introduction/index.html">Bayesian Optimization</a>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>Bayesian Optimization・Active LearningBeginnerシリーズ v1.0</h1>
+            <p class="subtitle">効率的材料explorationで拓く次世代材料開発の未来</p>
+            <div class="meta">
+                <span class="meta-item">📖 総Reading Time: 100-120分</span>
+                <span class="meta-item">📊 Difficulty: Beginner〜Intermediate</span>
+                <span class="meta-item">💻 Code Examples: 32個</span>
+                <span class="meta-item">📝 Exercises: 12問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2>Series Overview</h2>
+        <p>このシリーズは、Bayesian OptimizationとActive Learningを初めて学ぶ方から、実践的な材料explorationスキルを身につけたい方まで、段階的に学べる全4章構成の教育コンテンツです。</p>
+
+        <p>Bayesian Optimizationは、限られた実験回数で最適な材料やプロセス条件を発見するための最も効率的なexploration手法です。従来のrandom searchや網羅的explorationでは数千回の実験が必要だった材料開発を、わずか数十回の実験で達成できる革新的技術として、近年、Li-ion battery、catalyst、alloy、organic semiconductorなど、あらゆる材料分野で急速に普及しています。</p>
+
+        <h3>なぜこのシリーズが必要か</h3>
+        <p><strong>背景と課題</strong>: 材料開発における最大の課題は、search spaceの広大さです。例えば、5元素系alloyの組成optimizationでは10<sup>10</sup>通り以上の候補があり、すべてを試すことは物理的に不可能です。従来のrandom searchや経験則に頼った手法では、開発期間が数年から十年に及び、コストも膨大になります。</p>
+
+        <p><strong>このシリーズで学べること</strong>: 本シリーズでは、Bayesian OptimizationとActive Learningの理論から実践まで、実行可能なCode Examplesと材料科学のケーススタディを通じて体系的に学習します。search spaceの効率的なexploration方法、不確実性をexploitationした次実験の提案、制約条件や多目的optimizationへの対応、実験装置との自動連携まで、実務で即戦力となるスキルを習得できます。</p>
+
+        <h2>全4章の内容</h2>
+
+        <div class="chapter-list">
+            <a href="./chapter-1.html" class="chapter-card">
+                <div class="chapter-title">Chapter 1: Why Optimization is Essential for Materials Discovery</div>
+                <div class="chapter-meta">
+                    <span>📖 20-30分</span>
+                    <span>💻 6個</span>
+                    <span>📝 3問</span>
+                    <span>📊 Beginner</span>
+                </div>
+                <div class="chapter-description">
+                    材料explorationにおけるsearch spaceの広大さ、従来手法の限界、Bayesian Optimizationの成功事例を学びます。combinatorial explosionの問題から、実験回数95%削減の実績まで、具体的なケーススタディとともに理解を深めます。
+                </div>
+            </a>
+
+            <a href="./chapter-2.html" class="chapter-card">
+                <div class="chapter-title">Chapter 2: Theory of Bayesian Optimization</div>
+                <div class="chapter-meta">
+                    <span>📖 25-30分</span>
+                    <span>💻 10個</span>
+                    <span>📝 3問</span>
+                    <span>📊 Beginner</span>
+                </div>
+                <div class="chapter-description">
+                    Gaussian Process回帰、Acquisition Function（EI、UCB、PI）、explorationとexploitationのトレードオフなど、Bayesian Optimizationの理論的基礎を学びます。数式と実装コードで、不確実性の定量化とそのexploitation方法を習得します。
+                </div>
+            </a>
+
+            <a href="./chapter-3.html" class="chapter-card">
+                <div class="chapter-title">Chapter 3: Practice: Application to Materials Discovery</div>
+                <div class="chapter-meta">
+                    <span>📖 25-30分</span>
+                    <span>💻 12個</span>
+                    <span>📝 3問</span>
+                    <span>📊 Intermediate</span>
+                </div>
+                <div class="chapter-description">
+                    Materials Projectからのデータ取得、MLモデルとの統合、制約付き・多目的optimization、バッチBayesian Optimizationなど、実践的なPython実装を学びます。Li-ion batterycathode materialの完全実装例も提供します。
+                </div>
+            </a>
+
+            <a href="./chapter-4.html" class="chapter-card">
+                <div class="chapter-title">Chapter 4: Active Learning Strategies</div>
+                <div class="chapter-meta">
+                    <span>📖 20-25分</span>
+                    <span>💻 8個</span>
+                    <span>📝 3問</span>
+                    <span>📊 Intermediate</span>
+                </div>
+                <div class="chapter-description">
+                    不確実性サンプリング、多様性サンプリング、クローズドループoptimizationなど、Active Learning戦略を学びます。Berkeley A-Lab、RoboRXNなど、実世界の自律実験システムの成功事例も紹介します。
+                </div>
+            </a>
+        </div>
+
+        <h2>対象者</h2>
+        <ul>
+            <li>材料科学の学部生・大学院生（効率的な実験計画を学びたい方）</li>
+            <li>企業のR&Dエンジニア（開発期間とコストを削減したい方）</li>
+            <li>データサイエンティスト（材料科学への応用を目指す方）</li>
+            <li>計算化学者（実験とシミュレーションの融合に興味がある方）</li>
+        </ul>
+
+        <h2>前提知識</h2>
+        <p><strong>必須</strong>:</p>
+        <ul>
+            <li>Python基礎（変数、関数、リスト、辞書、NumPy配列）</li>
+            <li>基本的な統計学（正規分布、平均、分散、標準偏差）</li>
+        </ul>
+
+        <p><strong>推奨</strong>:</p>
+        <ul>
+            <li>機械学習基礎（overfitting、generalization performance、cross-validation）</li>
+            <li>optimization理論（gradient descent、局所最適解の概念）</li>
+        </ul>
+
+        <h2>主要ツール</h2>
+        <ul>
+            <li><strong>scikit-optimize</strong>: 基本的なBayesian Optimization</li>
+            <li><strong>BoTorch</strong>: PyTorchベースの高度なoptimization</li>
+            <li><strong>Ax</strong>: Meta開発のA/Bテスト対応optimization</li>
+            <li><strong>GPyOpt</strong>: 学術研究向けBayesian Optimization</li>
+        </ul>
+
+        <h2>学習パス</h2>
+        <p><strong>初学者の方</strong>（Bayesian Optimizationをまったく知らない）:<br>
+        第1章 → 第2章 → 第3章 → 第4章（全章推奨）<br>
+        所要時間: 100-120分</p>
+
+        <p><strong>Intermediate者の方</strong>（optimization理論の経験あり）:<br>
+        第2章 → 第3章 → 第4章<br>
+        所要時間: 70-90分</p>
+
+        <p><strong>実践的スキル強化</strong>（理論より実装重視）:<br>
+        第3章（集中学習） → 第4章<br>
+        所要時間: 50-70分</p>
+
+        <h2>次のステップ</h2>
+        <p>シリーズ完了後の推奨学習:</p>
+        <ul>
+            <li><strong>ロボティクス実験自動化Beginner</strong>: クローズドループoptimizationの実装</li>
+            <li><strong>強化学習Beginner</strong>: マルチステップoptimization</li>
+            <li><strong>GNNBeginner</strong>: 分子・材料のグラフ表現</li>
+        </ul>
+
+        <h2>さあ、始めましょう！</h2>
+        <p>準備はできましたか？ 第1章から始めて、Bayesian Optimizationで材料explorationを革新する旅を始めましょう！</p>
+
+        <p><a href="./chapter-1.html" style="display: inline-block; padding: 1rem 2rem; background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; border-radius: var(--border-radius); font-weight: 600; text-decoration: none; margin-top: 1rem;">第1章を読む →</a></p>
+    </main>
+
+    
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するCode Examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+<footer>
+        <div class="container">
+            <p>&copy; 2025 MI Knowledge Hub - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

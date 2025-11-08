@@ -1,0 +1,1850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3: PyTorch Geometric Practice - Implementing Molecular and Material Property Prediction - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+
+
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/en/index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/gnn-introduction/index.html">Gnn</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>Chapter 3: PyTorch Geometric Practice - Implementing Molecular and Material Property Prediction</h1>
+            <p class="subtitle">Building and Evaluating Graph Neural Networks with Real Data</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 20-25 min</span>
+                <span class="meta-item">📊 Difficulty: Intermediate</span>
+                <span class="meta-item">💻 Code Examples: 0</span>
+                <span class="meta-item">📝 Exercises: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>Chapter 3: PyTorch Geometric Practice - Implementing Molecular and Material Property Prediction</h1>
+<p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #7b2cbf; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">This chapter provides hands-on experience with PyG from data preparation to model training and evaluation. A troubleshooting checklist is included for handling unstable training.</p>
+<p class="chapter-supplement" style="margin: 0.75rem 0 1.5rem 0; padding: 0.75rem 1rem; background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%); border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 0.95rem; line-height: 1.7; color: #4a5568;"><strong>💡 Note:</strong> Start with small graphs and few epochs to verify functionality → then scale up batch size and layer depth. Begin with a conservative learning rate.</p>
+
+
+
+
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will be able to:
+- Set up a PyTorch Geometric environment and master GNN libraries
+- Implement molecular property prediction models with the QM9 dataset
+- Execute crystal property prediction with Materials Project data
+- Apply model training best practices
+- Visualize prediction results and evaluate performance</p>
+<p><strong>Reading Time</strong>: 25-30 minutes
+<strong>Code Examples</strong>: 10
+<strong>Exercises</strong>: 3</p>
+<hr />
+<h2>3.1 Environment Setup: Installing PyTorch Geometric</h2>
+<h3>3.1.1 What is PyTorch Geometric?</h3>
+<p><strong>PyTorch Geometric (PyG)</strong> is a specialized library for graph neural networks built on PyTorch.</p>
+<p><strong>Key Features</strong>:
+- 🚀 <strong>High Performance</strong>: Efficient GPU-accelerated graph processing
+- 📦 <strong>Rich Model Collection</strong>: Over 30 models including GCN, GAT, GraphSAGE, SchNet
+- 🧪 <strong>Built-in Datasets</strong>: QM9, ZINC, OGB (Open Graph Benchmark) included
+- 🛠️ <strong>Flexibility</strong>: Easy implementation of custom layers and models</p>
+<h3>3.1.2 Installation Procedure</h3>
+<p><strong>Option 1: Conda Environment (Recommended)</strong></p>
+<pre><code class="language-bash"># 1. Create Python 3.9+ environment
+conda create -n gnn-env python=3.10
+conda activate gnn-env
+
+# 2. Install PyTorch (CUDA version recommended)
+# CPU version:
+conda install pytorch torchvision torchaudio cpuonly -c pytorch
+
+# GPU version (CUDA 11.8):
+conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
+
+# 3. Install PyTorch Geometric
+conda install pyg -c pyg
+
+# 4. Additional libraries
+pip install rdkit matplotlib seaborn pandas scikit-learn
+</code></pre>
+<p><strong>Option 2: pip Installation</strong></p>
+<pre><code class="language-bash"># 1. Create virtual environment
+python -m venv gnn-env
+source gnn-env/bin/activate  # macOS/Linux
+# gnn-env\Scripts\activate  # Windows
+
+# 2. Install PyTorch
+pip install torch torchvision torchaudio
+
+# 3. Install PyTorch Geometric
+pip install torch-geometric
+
+# 4. Dependencies
+pip install torch-scatter torch-sparse torch-cluster -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+
+# 5. Additional libraries
+pip install rdkit matplotlib seaborn pandas scikit-learn
+</code></pre>
+<p><strong>Option 3: Google Colab (No Installation Required)</strong></p>
+<pre><code class="language-python"># Run in Google Colab
+!pip install torch-geometric
+!pip install rdkit
+</code></pre>
+<h3>3.1.3 Installation Verification</h3>
+<pre><code class="language-python">import torch
+import torch_geometric
+from torch_geometric.data import Data
+from rdkit import Chem
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+print(&quot;===== Installation Verification =====&quot;)
+print(f&quot;PyTorch version: {torch.__version__}&quot;)
+print(f&quot;PyTorch Geometric version: {torch_geometric.__version__}&quot;)
+print(f&quot;CUDA available: {torch.cuda.is_available()}&quot;)
+if torch.cuda.is_available():
+    print(f&quot;CUDA version: {torch.version.cuda}&quot;)
+    print(f&quot;GPU: {torch.cuda.get_device_name(0)}&quot;)
+
+# Create a simple graph for testing
+edge_index = torch.tensor([[0, 1, 1, 2],
+                           [1, 0, 2, 1]], dtype=torch.long)
+x = torch.tensor([[-1], [0], [1]], dtype=torch.float)
+data = Data(x=x, edge_index=edge_index)
+
+print(f&quot;\nTest graph created successfully!&quot;)
+print(f&quot;Number of nodes: {data.num_nodes}&quot;)
+print(f&quot;Number of edges: {data.num_edges}&quot;)
+print(&quot;✅ PyTorch Geometric environment setup complete!&quot;)
+</code></pre>
+<p><strong>Expected Output</strong>:</p>
+<pre><code>===== Installation Verification =====
+PyTorch version: 2.0.0
+PyTorch Geometric version: 2.3.0
+CUDA available: True
+CUDA version: 11.8
+GPU: NVIDIA GeForce RTX 3090
+
+Test graph created successfully!
+Number of nodes: 3
+Number of edges: 4
+✅ PyTorch Geometric environment setup complete!
+</code></pre>
+<h3>3.1.4 Troubleshooting</h3>
+<table>
+<thead>
+<tr>
+<th>Error</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ImportError: No module named 'torch_geometric'</code></td>
+<td>PyG not installed</td>
+<td><code>pip install torch-geometric</code></td>
+</tr>
+<tr>
+<td><code>OSError: [WinError 126] DLL load error</code> (Windows)</td>
+<td>Missing C++ redistributables</td>
+<td>Install Microsoft Visual C++ Redistributable</td>
+</tr>
+<tr>
+<td><code>RuntimeError: CUDA out of memory</code></td>
+<td>Insufficient GPU memory</td>
+<td>Reduce batch size, use CPU version of PyTorch</td>
+</tr>
+<tr>
+<td><code>ImportError: cannot import name 'Data'</code></td>
+<td>Version mismatch</td>
+<td>Check PyTorch and PyG version compatibility</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>3.2 PyTorch Geometric Basics: Data Structures and DataLoader</h2>
+<h3>3.2.1 Data Object Structure</h3>
+<p>In PyTorch Geometric, graphs are represented as <code>Data</code> objects.</p>
+<pre><code class="language-python">from torch_geometric.data import Data
+import torch
+
+# Representing ethanol molecule (C2H5OH) as a graph
+# C: Carbon (nodes 0, 1)
+# O: Oxygen (node 2)
+# H: Hydrogen (nodes 3-7)
+
+# Node features (using atomic numbers)
+x = torch.tensor([
+    [6],   # C (carbon)
+    [6],   # C (carbon)
+    [8],   # O (oxygen)
+    [1],   # H (hydrogen)
+    [1],   # H (hydrogen)
+    [1],   # H (hydrogen)
+    [1],   # H (hydrogen)
+    [1],   # H (hydrogen)
+], dtype=torch.float)
+
+# Edge index (bond connections)
+# Each bond is bidirectional (undirected graph)
+edge_index = torch.tensor([
+    [0, 1, 1, 0, 0, 2, 2, 0, 0, 3, 3, 0, 1, 4, 4, 1, 1, 5, 5, 1, 2, 6, 6, 2],
+    [1, 0, 2, 2, 3, 0, 0, 3, 4, 1, 1, 4, 5, 1, 1, 5, 6, 2, 2, 6, 7, 2, 2, 7]
+], dtype=torch.long)
+
+# Edge features (bond type: 1=single bond)
+edge_attr = torch.ones(edge_index.size(1), 1)
+
+# Molecule-level features (target variable)
+y = torch.tensor([[156.0]], dtype=torch.float)  # Boiling point (°C)
+
+# Create Data object
+ethanol = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
+
+print(&quot;===== Graph Representation of Ethanol =====&quot;)
+print(f&quot;Number of nodes (atoms): {ethanol.num_nodes}&quot;)
+print(f&quot;Number of edges (bonds×2): {ethanol.num_edges}&quot;)
+print(f&quot;Node feature shape: {ethanol.x.shape}&quot;)
+print(f&quot;Edge index shape: {ethanol.edge_index.shape}&quot;)
+print(f&quot;Target variable (boiling point): {ethanol.y.item()} °C&quot;)
+
+# Basic graph statistics
+print(f&quot;\n===== Graph Statistics =====&quot;)
+print(f&quot;Average degree (bonds): {ethanol.num_edges / ethanol.num_nodes:.2f}&quot;)
+print(f&quot;Isolated nodes: {ethanol.contains_isolated_nodes()}&quot;)
+print(f&quot;Self-loops: {ethanol.contains_self_loops()}&quot;)
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>===== Graph Representation of Ethanol =====
+Number of nodes (atoms): 8
+Number of edges (bonds×2): 24
+Node feature shape: torch.Size([8, 1])
+Edge index shape: torch.Size([2, 24])
+Target variable (boiling point): 156.0 °C
+
+===== Graph Statistics =====
+Average degree (bonds): 3.00
+Isolated nodes: False
+Self-loops: False
+</code></pre>
+<h3>3.2.2 Converting from RDKit to Graphs</h3>
+<p>RDKit can create molecular objects from SMILES (string representations of molecules).</p>
+<pre><code class="language-python">from rdkit import Chem
+from rdkit.Chem import Draw
+from torch_geometric.data import Data
+import torch
+
+def mol_to_graph(smiles):
+    &quot;&quot;&quot;
+    Create PyTorch Geometric Data object from SMILES string
+
+    Parameters:
+    -----------
+    smiles : str
+        SMILES representation of molecule
+
+    Returns:
+    --------
+    data : torch_geometric.data.Data
+        Graph data
+    &quot;&quot;&quot;
+    # Create molecule object from SMILES
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+
+    # Node features (atom properties)
+    atom_features = []
+    for atom in mol.GetAtoms():
+        # One-hot encoding of atom type (C, N, O, F, other)
+        atom_type = [0] * 5
+        if atom.GetAtomicNum() == 6:    # C
+            atom_type[0] = 1
+        elif atom.GetAtomicNum() == 7:  # N
+            atom_type[1] = 1
+        elif atom.GetAtomicNum() == 8:  # O
+            atom_type[2] = 1
+        elif atom.GetAtomicNum() == 9:  # F
+            atom_type[3] = 1
+        else:
+            atom_type[4] = 1
+
+        # Add formal charge and aromaticity
+        formal_charge = atom.GetFormalCharge()
+        is_aromatic = int(atom.GetIsAromatic())
+
+        atom_features.append(atom_type + [formal_charge, is_aromatic])
+
+    x = torch.tensor(atom_features, dtype=torch.float)
+
+    # Edge index (bond connections)
+    edge_indices = []
+    for bond in mol.GetBonds():
+        i = bond.GetBeginAtomIdx()
+        j = bond.GetEndAtomIdx()
+        edge_indices += [[i, j], [j, i]]  # Bidirectional for undirected graph
+
+    edge_index = torch.tensor(edge_indices, dtype=torch.long).t().contiguous()
+
+    data = Data(x=x, edge_index=edge_index)
+    return data, mol
+
+# Test: Convert several molecules to graphs
+smiles_list = [
+    (&quot;C&quot;, &quot;Methane&quot;),
+    (&quot;CCO&quot;, &quot;Ethanol&quot;),
+    (&quot;c1ccccc1&quot;, &quot;Benzene&quot;),
+    (&quot;CC(=O)O&quot;, &quot;Acetic acid&quot;),
+]
+
+print(&quot;===== SMILES to Graph Conversion =====&quot;)
+for smiles, name in smiles_list:
+    data, mol = mol_to_graph(smiles)
+    print(f&quot;\n{name} ({smiles}):&quot;)
+    print(f&quot;  Nodes: {data.num_nodes}&quot;)
+    print(f&quot;  Edges: {data.num_edges}&quot;)
+    print(f&quot;  Node feature dimension: {data.x.shape[1]}&quot;)
+
+# Visualize molecular structures
+import matplotlib.pyplot as plt
+from rdkit.Chem import Draw
+
+fig, axes = plt.subplots(1, 4, figsize=(16, 4))
+for i, (smiles, name) in enumerate(smiles_list):
+    _, mol = mol_to_graph(smiles)
+    img = Draw.MolToImage(mol, size=(300, 300))
+    axes[i].imshow(img)
+    axes[i].set_title(f&quot;{name}\n{smiles}&quot;, fontsize=12)
+    axes[i].axis('off')
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<h3>3.2.3 Using DataLoader</h3>
+<p>To batch process multiple graphs, use <code>DataLoader</code>.</p>
+<pre><code class="language-python">from torch_geometric.data import Data, DataLoader
+import torch
+
+# Create sample dataset (10 molecules)
+dataset = []
+for i in range(10):
+    num_nodes = torch.randint(5, 15, (1,)).item()  # 5-14 atoms
+    x = torch.randn(num_nodes, 7)  # Node features (7-dimensional)
+
+    # Generate random edges
+    edge_index = torch.randint(0, num_nodes, (2, num_nodes * 2))
+
+    # Target variable (e.g., HOMO-LUMO gap)
+    y = torch.randn(1)
+
+    data = Data(x=x, edge_index=edge_index, y=y)
+    dataset.append(data)
+
+# Create DataLoader (batch size=4)
+loader = DataLoader(dataset, batch_size=4, shuffle=True)
+
+print(&quot;===== DataLoader Usage =====&quot;)
+print(f&quot;Dataset size: {len(dataset)}&quot;)
+print(f&quot;Number of batches: {len(loader)}&quot;)
+
+# Check first batch
+for batch in loader:
+    print(f&quot;\nFirst batch:&quot;)
+    print(f&quot;  Molecules in batch: {batch.num_graphs}&quot;)
+    print(f&quot;  Total nodes: {batch.num_nodes}&quot;)
+    print(f&quot;  Total edges: {batch.num_edges}&quot;)
+    print(f&quot;  Node feature shape: {batch.x.shape}&quot;)
+    print(f&quot;  Batch index: {batch.batch}&quot;)
+    print(f&quot;  Target variable shape: {batch.y.shape}&quot;)
+    break
+</code></pre>
+<p><strong>Sample Output</strong>:</p>
+<pre><code>===== DataLoader Usage =====
+Dataset size: 10
+Number of batches: 3
+
+First batch:
+  Molecules in batch: 4
+  Total nodes: 38
+  Total edges: 76
+  Node feature shape: torch.Size([38, 7])
+  Batch index: tensor([0, 0, 0, ..., 3, 3, 3])
+  Target variable shape: torch.Size([4, 1])
+</code></pre>
+<p><strong>Important</strong>: The <code>batch</code> tensor indicates which molecule each node belongs to (0, 0, 0, 1, 1, 2, 2, 2, 3, ...).</p>
+<hr />
+<h2>3.3 Molecular Property Prediction with QM9 Dataset</h2>
+<h3>3.3.1 Overview of QM9 Dataset</h3>
+<p><strong>QM9</strong> is a quantum chemistry dataset of 134,000 small organic molecules.</p>
+<p><strong>Included Properties</strong>:
+- HOMO (Highest Occupied Molecular Orbital energy)
+- LUMO (Lowest Unoccupied Molecular Orbital energy)
+- Band gap (HOMO-LUMO gap)
+- Dipole moment
+- Internal energy
+- Enthalpy, free energy, heat capacity, etc.</p>
+<h3>3.3.2 Loading the QM9 Dataset</h3>
+<pre><code class="language-python">from torch_geometric.datasets import QM9
+import torch
+
+# Download dataset (first time only, ~1GB)
+dataset = QM9(root='./data/QM9')
+
+print(&quot;===== QM9 Dataset =====&quot;)
+print(f&quot;Number of molecules: {len(dataset)}&quot;)
+print(f&quot;Node feature dimension: {dataset.num_node_features}&quot;)
+print(f&quot;Edge feature dimension: {dataset.num_edge_features}&quot;)
+print(f&quot;Number of target variables: {dataset.num_classes}&quot;)
+
+# Check first molecule
+data = dataset[0]
+print(f&quot;\nFirst molecule:&quot;)
+print(f&quot;  Atoms: {data.num_nodes}&quot;)
+print(f&quot;  Bonds: {data.num_edges // 2}&quot;)
+print(f&quot;  Node features: {data.x.shape}&quot;)
+print(f&quot;  Edge features: {data.edge_attr.shape}&quot;)
+print(f&quot;  Target variables (19 types): {data.y.shape}&quot;)
+
+# Display some target variables
+target_names = ['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve',
+                'U0', 'U', 'H', 'G', 'Cv']
+print(f&quot;\nKey property values:&quot;)
+for i, name in enumerate(target_names):
+    print(f&quot;  {name}: {data.y[0, i].item():.4f}&quot;)
+</code></pre>
+<h3>3.3.3 Implementing Graph Convolutional Network (GCN)</h3>
+<pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.nn import GCNConv, global_mean_pool
+
+class GCN_QM9(torch.nn.Module):
+    &quot;&quot;&quot;
+    Graph Convolutional Network for QM9 molecular property prediction
+
+    Architecture:
+    - 3 GCNConv layers
+    - Global mean pooling
+    - 2 fully connected layers
+    &quot;&quot;&quot;
+    def __init__(self, num_node_features, num_classes, hidden_channels=64):
+        super(GCN_QM9, self).__init__()
+
+        # GCN layers
+        self.conv1 = GCNConv(num_node_features, hidden_channels)
+        self.conv2 = GCNConv(hidden_channels, hidden_channels)
+        self.conv3 = GCNConv(hidden_channels, hidden_channels)
+
+        # Fully connected layers
+        self.lin1 = torch.nn.Linear(hidden_channels, hidden_channels // 2)
+        self.lin2 = torch.nn.Linear(hidden_channels // 2, num_classes)
+
+    def forward(self, x, edge_index, batch):
+        &quot;&quot;&quot;
+        Parameters:
+        -----------
+        x : torch.Tensor (num_nodes, num_node_features)
+            Node features
+        edge_index : torch.Tensor (2, num_edges)
+            Edge index
+        batch : torch.Tensor (num_nodes,)
+            Batch index
+
+        Returns:
+        --------
+        out : torch.Tensor (batch_size, num_classes)
+            Predictions
+        &quot;&quot;&quot;
+        # GCN layer 1 (convolution + activation + dropout)
+        x = self.conv1(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=0.2, training=self.training)
+
+        # GCN layer 2
+        x = self.conv2(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=0.2, training=self.training)
+
+        # GCN layer 3
+        x = self.conv3(x, edge_index)
+        x = F.relu(x)
+
+        # Global pooling (aggregate node features to molecule level)
+        x = global_mean_pool(x, batch)
+
+        # Fully connected layers
+        x = self.lin1(x)
+        x = F.relu(x)
+        x = F.dropout(x, p=0.3, training=self.training)
+
+        x = self.lin2(x)
+        return x
+
+# Instantiate model
+model = GCN_QM9(
+    num_node_features=dataset.num_node_features,
+    num_classes=1,  # Predict only HOMO-LUMO gap
+    hidden_channels=64
+)
+
+print(&quot;===== GCN Model =====&quot;)
+print(model)
+print(f&quot;\nNumber of parameters: {sum(p.numel() for p in model.parameters()):,}&quot;)
+</code></pre>
+<h3>3.3.4 Model Training</h3>
+<pre><code class="language-python">from torch_geometric.loader import DataLoader
+from sklearn.model_selection import train_test_split
+import time
+
+# Reduce dataset size (for speed, normally use all data)
+dataset = dataset[:10000]
+
+# Set only HOMO-LUMO gap (index=4) as target variable
+for data in dataset:
+    data.y = data.y[:, 4:5]  # shape: (1, 1)
+
+# Split data (80% train, 10% val, 10% test)
+train_dataset = dataset[:8000]
+val_dataset = dataset[8000:9000]
+test_dataset = dataset[9000:]
+
+# Create DataLoaders
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+# Device setup (GPU if available, otherwise CPU)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = model.to(device)
+
+# Loss function and optimizer
+criterion = torch.nn.MSELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
+
+# Training function
+def train(model, loader, optimizer, criterion, device):
+    model.train()
+    total_loss = 0
+
+    for data in loader:
+        data = data.to(device)
+        optimizer.zero_grad()
+
+        # Forward pass
+        out = model(data.x, data.edge_index, data.batch)
+        loss = criterion(out, data.y)
+
+        # Backward pass
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item() * data.num_graphs
+
+    return total_loss / len(loader.dataset)
+
+# Validation function
+def evaluate(model, loader, criterion, device):
+    model.eval()
+    total_loss = 0
+
+    with torch.no_grad():
+        for data in loader:
+            data = data.to(device)
+            out = model(data.x, data.edge_index, data.batch)
+            loss = criterion(out, data.y)
+            total_loss += loss.item() * data.num_graphs
+
+    return total_loss / len(loader.dataset)
+
+# Training loop
+epochs = 50
+train_losses = []
+val_losses = []
+best_val_loss = float('inf')
+
+print(&quot;===== Training Started =====&quot;)
+start_time = time.time()
+
+for epoch in range(1, epochs + 1):
+    train_loss = train(model, train_loader, optimizer, criterion, device)
+    val_loss = evaluate(model, val_loader, criterion, device)
+
+    train_losses.append(train_loss)
+    val_losses.append(val_loss)
+
+    # Save best model
+    if val_loss &lt; best_val_loss:
+        best_val_loss = val_loss
+        torch.save(model.state_dict(), 'best_model_qm9.pt')
+
+    if epoch % 10 == 0:
+        print(f&quot;Epoch {epoch:03d}, &quot;
+              f&quot;Train Loss: {train_loss:.4f}, &quot;
+              f&quot;Val Loss: {val_loss:.4f}&quot;)
+
+training_time = time.time() - start_time
+print(f&quot;\nTraining complete! Time elapsed: {training_time:.2f}s&quot;)
+
+# Load best model
+model.load_state_dict(torch.load('best_model_qm9.pt'))
+
+# Evaluate on test data
+test_loss = evaluate(model, test_loader, criterion, device)
+test_mae = test_loss ** 0.5  # Use RMSE as MAE approximation
+
+print(f&quot;\n===== Test Performance =====&quot;)
+print(f&quot;Test Loss (MSE): {test_loss:.4f}&quot;)
+print(f&quot;Test MAE (approx): {test_mae:.4f} eV&quot;)
+</code></pre>
+<h3>3.3.5 Visualizing Learning Curves</h3>
+<pre><code class="language-python">import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.plot(train_losses, label='Train Loss', linewidth=2)
+ax.plot(val_losses, label='Validation Loss', linewidth=2)
+ax.set_xlabel('Epoch', fontsize=12)
+ax.set_ylabel('Loss (MSE)', fontsize=12)
+ax.set_title('GCN Learning Curves (QM9 HOMO-LUMO Gap Prediction)', fontsize=14)
+ax.legend(fontsize=11)
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+# Prediction vs Actual plot
+model.eval()
+all_preds = []
+all_targets = []
+
+with torch.no_grad():
+    for data in test_loader:
+        data = data.to(device)
+        out = model(data.x, data.edge_index, data.batch)
+        all_preds.append(out.cpu().numpy())
+        all_targets.append(data.y.cpu().numpy())
+
+all_preds = np.concatenate(all_preds)
+all_targets = np.concatenate(all_targets)
+
+fig, ax = plt.subplots(figsize=(8, 8))
+ax.scatter(all_targets, all_preds, alpha=0.6, s=10)
+ax.plot([all_targets.min(), all_targets.max()],
+        [all_targets.min(), all_targets.max()],
+        'r--', lw=2, label='Perfect prediction')
+ax.set_xlabel('Actual (eV)', fontsize=12)
+ax.set_ylabel('Predicted (eV)', fontsize=12)
+ax.set_title('HOMO-LUMO Gap Prediction Results', fontsize=14)
+ax.legend(fontsize=11)
+ax.grid(True, alpha=0.3)
+
+# Calculate R² score
+from sklearn.metrics import r2_score
+r2 = r2_score(all_targets, all_preds)
+mae = np.mean(np.abs(all_targets - all_preds))
+
+ax.text(0.05, 0.95, f'R² = {r2:.3f}\nMAE = {mae:.3f} eV',
+        transform=ax.transAxes, fontsize=12, verticalalignment='top',
+        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
+plt.tight_layout()
+plt.show()
+
+print(f&quot;===== Final Performance =====&quot;)
+print(f&quot;R² score: {r2:.4f}&quot;)
+print(f&quot;MAE: {mae:.4f} eV&quot;)
+</code></pre>
+<hr />
+<h2>3.4 Crystal Property Prediction with Materials Project Data</h2>
+<h3>3.4.1 Graph Representation of Crystal Structures</h3>
+<p>Crystals have periodic structures and require different handling than molecules.</p>
+<pre><code class="language-python">from pymatgen.core import Structure
+from pymatgen.ext.matproj import MPRester
+import torch
+from torch_geometric.data import Data
+
+def structure_to_graph(structure, cutoff=5.0):
+    &quot;&quot;&quot;
+    Convert pymatgen Structure object to graph
+
+    Parameters:
+    -----------
+    structure : pymatgen.core.Structure
+        Crystal structure
+    cutoff : float
+        Distance cutoff for creating edges (Å)
+
+    Returns:
+    --------
+    data : torch_geometric.data.Data
+        Graph data
+    &quot;&quot;&quot;
+    # Node features (atomic numbers)
+    atomic_numbers = [site.specie.Z for site in structure]
+    x = torch.tensor(atomic_numbers, dtype=torch.float).view(-1, 1)
+
+    # Edge index and edge features (interatomic distances)
+    edge_indices = []
+    edge_attrs = []
+
+    for i, site_i in enumerate(structure):
+        for j, site_j in enumerate(structure):
+            if i != j:
+                distance = structure.get_distance(i, j)
+                if distance &lt; cutoff:
+                    edge_indices.append([i, j])
+                    edge_attrs.append([distance])
+
+    edge_index = torch.tensor(edge_indices, dtype=torch.long).t().contiguous()
+    edge_attr = torch.tensor(edge_attrs, dtype=torch.float)
+
+    data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+    return data
+
+# Retrieve Li compounds from Materials Project (sample)
+# Note: Requires API key in practice
+# API_KEY = &quot;your_api_key_here&quot;
+# with MPRester(API_KEY) as mpr:
+#     entries = mpr.query(
+#         criteria={&quot;elements&quot;: {&quot;$all&quot;: [&quot;Li&quot;]}, &quot;nelements&quot;: 2},
+#         properties=[&quot;structure&quot;, &quot;band_gap&quot;]
+#     )
+
+# Sample data (LiCl crystal)
+from pymatgen.core import Lattice, Structure
+
+# LiCl rocksalt structure
+lattice = Lattice.cubic(5.14)  # Lattice constant
+species = [&quot;Li&quot;, &quot;Li&quot;, &quot;Li&quot;, &quot;Li&quot;, &quot;Cl&quot;, &quot;Cl&quot;, &quot;Cl&quot;, &quot;Cl&quot;]
+coords = [
+    [0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5],
+    [0.5, 0, 0], [0, 0.5, 0], [0, 0, 0.5], [0.5, 0.5, 0.5]
+]
+structure = Structure(lattice, species, coords)
+
+# Convert to graph
+data = structure_to_graph(structure, cutoff=4.0)
+
+print(&quot;===== Graph Representation of LiCl Crystal =====&quot;)
+print(f&quot;Number of nodes (atoms): {data.num_nodes}&quot;)
+print(f&quot;Number of edges (atom pairs with distance &lt; 4.0Å): {data.num_edges}&quot;)
+print(f&quot;Node features: {data.x}&quot;)
+print(f&quot;\nEdge feature (distance) statistics:&quot;)
+print(f&quot;  Min distance: {data.edge_attr.min().item():.2f} Å&quot;)
+print(f&quot;  Max distance: {data.edge_attr.max().item():.2f} Å&quot;)
+print(f&quot;  Mean distance: {data.edge_attr.mean().item():.2f} Å&quot;)
+</code></pre>
+<h3>3.4.2 Crystal Property Prediction Model (Crystal Graph Convolutional Network)</h3>
+<pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.nn import GCNConv, global_add_pool
+
+class CGCN(torch.nn.Module):
+    &quot;&quot;&quot;
+    Crystal Graph Convolutional Network
+    Predicts band gap of crystals
+    &quot;&quot;&quot;
+    def __init__(self, num_node_features=1, hidden_channels=64):
+        super(CGCN, self).__init__()
+
+        # Node embedding layer
+        self.embedding = torch.nn.Linear(num_node_features, hidden_channels)
+
+        # GCN layers (use SchNet etc. for edge features)
+        self.conv1 = GCNConv(hidden_channels, hidden_channels)
+        self.conv2 = GCNConv(hidden_channels, hidden_channels)
+        self.conv3 = GCNConv(hidden_channels, hidden_channels)
+
+        # Fully connected layers
+        self.lin1 = torch.nn.Linear(hidden_channels, hidden_channels // 2)
+        self.lin2 = torch.nn.Linear(hidden_channels // 2, 1)
+
+    def forward(self, x, edge_index, edge_attr, batch):
+        # Node embedding
+        x = self.embedding(x)
+        x = F.relu(x)
+
+        # GCN layers
+        x = self.conv1(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=0.2, training=self.training)
+
+        x = self.conv2(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=0.2, training=self.training)
+
+        x = self.conv3(x, edge_index)
+        x = F.relu(x)
+
+        # Global pooling (aggregate to crystal level)
+        x = global_add_pool(x, batch)
+
+        # Fully connected layers
+        x = self.lin1(x)
+        x = F.relu(x)
+        x = self.lin2(x)
+
+        return x
+
+# Instantiate model
+model_crystal = CGCN(num_node_features=1, hidden_channels=128)
+
+print(&quot;===== Crystal Graph Convolutional Network =====&quot;)
+print(model_crystal)
+print(f&quot;\nNumber of parameters: {sum(p.numel() for p in model_crystal.parameters()):,}&quot;)
+</code></pre>
+<h3>3.4.3 Training Demo with Mock Data</h3>
+<pre><code class="language-python"># Create mock dataset (use Materials Project data in practice)
+crystal_dataset = []
+
+for i in range(200):
+    num_atoms = torch.randint(4, 12, (1,)).item()
+    x = torch.randint(1, 20, (num_atoms, 1)).float()  # Atomic numbers
+
+    # Random edges (assume filtered by distance)
+    edge_index = torch.randint(0, num_atoms, (2, num_atoms * 4))
+    edge_attr = torch.rand(num_atoms * 4, 1) * 5.0  # Distance (0-5Å)
+
+    # Band gap (simulated as function of atomic number)
+    y = (x.mean() / 10.0 + torch.randn(1) * 0.5).clamp(0, 10)
+
+    data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
+    crystal_dataset.append(data)
+
+# Split data
+train_crystals = crystal_dataset[:160]
+test_crystals = crystal_dataset[160:]
+
+train_loader_crystal = DataLoader(train_crystals, batch_size=16, shuffle=True)
+test_loader_crystal = DataLoader(test_crystals, batch_size=16, shuffle=False)
+
+# Training (simplified)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model_crystal = model_crystal.to(device)
+optimizer = torch.optim.Adam(model_crystal.parameters(), lr=0.001)
+criterion = torch.nn.MSELoss()
+
+print(&quot;===== Crystal Band Gap Prediction Training =====&quot;)
+for epoch in range(1, 51):
+    model_crystal.train()
+    total_loss = 0
+
+    for data in train_loader_crystal:
+        data = data.to(device)
+        optimizer.zero_grad()
+        out = model_crystal(data.x, data.edge_index, data.edge_attr, data.batch)
+        loss = criterion(out, data.y)
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item() * data.num_graphs
+
+    if epoch % 10 == 0:
+        train_loss = total_loss / len(train_crystals)
+        print(f&quot;Epoch {epoch:03d}, Train Loss: {train_loss:.4f}&quot;)
+
+# Test evaluation
+model_crystal.eval()
+test_preds = []
+test_targets = []
+
+with torch.no_grad():
+    for data in test_loader_crystal:
+        data = data.to(device)
+        out = model_crystal(data.x, data.edge_index, data.edge_attr, data.batch)
+        test_preds.append(out.cpu().numpy())
+        test_targets.append(data.y.cpu().numpy())
+
+test_preds = np.concatenate(test_preds)
+test_targets = np.concatenate(test_targets)
+
+test_mae = np.mean(np.abs(test_targets - test_preds))
+test_r2 = r2_score(test_targets, test_preds)
+
+print(f&quot;\n===== Test Performance =====&quot;)
+print(f&quot;MAE: {test_mae:.4f} eV&quot;)
+print(f&quot;R²: {test_r2:.4f}&quot;)
+</code></pre>
+<hr />
+<h2>3.5 Training Best Practices</h2>
+<h3>3.5.1 Learning Rate Scheduling</h3>
+<pre><code class="language-python">from torch.optim.lr_scheduler import ReduceLROnPlateau
+
+# Dynamically adjust learning rate
+scheduler = ReduceLROnPlateau(
+    optimizer,
+    mode='min',
+    factor=0.5,     # Reduce learning rate by half
+    patience=10,    # Adjust after 10 epochs without improvement
+    verbose=True
+)
+
+# Use in training loop
+for epoch in range(epochs):
+    train_loss = train(model, train_loader, optimizer, criterion, device)
+    val_loss = evaluate(model, val_loader, criterion, device)
+
+    # Adjust learning rate based on validation loss
+    scheduler.step(val_loss)
+</code></pre>
+<h3>3.5.2 Early Stopping</h3>
+<pre><code class="language-python">class EarlyStopping:
+    &quot;&quot;&quot;
+    Early Stopping class
+    Stop training when validation loss stops improving
+    &quot;&quot;&quot;
+    def __init__(self, patience=20, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.best_loss = None
+        self.early_stop = False
+
+    def __call__(self, val_loss):
+        if self.best_loss is None:
+            self.best_loss = val_loss
+        elif val_loss &gt; self.best_loss - self.min_delta:
+            self.counter += 1
+            if self.counter &gt;= self.patience:
+                self.early_stop = True
+        else:
+            self.best_loss = val_loss
+            self.counter = 0
+
+# Usage example
+early_stopping = EarlyStopping(patience=20)
+
+for epoch in range(epochs):
+    train_loss = train(model, train_loader, optimizer, criterion, device)
+    val_loss = evaluate(model, val_loader, criterion, device)
+
+    early_stopping(val_loss)
+    if early_stopping.early_stop:
+        print(f&quot;Early stopping at epoch {epoch}&quot;)
+        break
+</code></pre>
+<h3>3.5.3 Data Augmentation (Graph Perturbation)</h3>
+<pre><code class="language-python">import torch
+from torch_geometric.utils import dropout_edge
+
+def augment_graph(data, drop_edge_prob=0.1, noise_scale=0.01):
+    &quot;&quot;&quot;
+    Graph data augmentation
+
+    Parameters:
+    -----------
+    data : Data
+        Original graph
+    drop_edge_prob : float
+        Probability of dropping edges
+    noise_scale : float
+        Scale of noise added to node features
+
+    Returns:
+    --------
+    augmented_data : Data
+        Augmented graph
+    &quot;&quot;&quot;
+    # Edge dropout
+    edge_index, edge_mask = dropout_edge(data.edge_index, p=drop_edge_prob)
+
+    # Add noise to node features
+    noise = torch.randn_like(data.x) * noise_scale
+    x = data.x + noise
+
+    augmented_data = Data(x=x, edge_index=edge_index, y=data.y)
+    return augmented_data
+
+# Usage example
+original = dataset[0]
+augmented = augment_graph(original, drop_edge_prob=0.15)
+
+print(f&quot;Original edges: {original.num_edges}&quot;)
+print(f&quot;Augmented edges: {augmented.num_edges}&quot;)
+</code></pre>
+<hr />
+<h2>3.6 Model Performance Evaluation and Visualization</h2>
+<h3>3.6.1 Computing Evaluation Metrics</h3>
+<pre><code class="language-python">from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import numpy as np
+
+def evaluate_regression(y_true, y_pred):
+    &quot;&quot;&quot;
+    Calculate evaluation metrics for regression model
+    &quot;&quot;&quot;
+    mae = mean_absolute_error(y_true, y_pred)
+    mse = mean_squared_error(y_true, y_pred)
+    rmse = np.sqrt(mse)
+    r2 = r2_score(y_true, y_pred)
+
+    # Mean Absolute Percentage Error
+    mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100
+
+    return {
+        'MAE': mae,
+        'MSE': mse,
+        'RMSE': rmse,
+        'R²': r2,
+        'MAPE': mape
+    }
+
+# Usage example
+metrics = evaluate_regression(test_targets, test_preds)
+
+print(&quot;===== Evaluation Metrics =====&quot;)
+for name, value in metrics.items():
+    print(f&quot;{name}: {value:.4f}&quot;)
+</code></pre>
+<h3>3.6.2 Residual Plots</h3>
+<pre><code class="language-python">import matplotlib.pyplot as plt
+
+def plot_residuals(y_true, y_pred):
+    &quot;&quot;&quot;
+    Residual plot
+    &quot;&quot;&quot;
+    residuals = y_true - y_pred
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # Residuals vs Predicted
+    axes[0].scatter(y_pred, residuals, alpha=0.6, s=20)
+    axes[0].axhline(y=0, color='r', linestyle='--', lw=2)
+    axes[0].set_xlabel('Predicted', fontsize=12)
+    axes[0].set_ylabel('Residuals (Actual - Predicted)', fontsize=12)
+    axes[0].set_title('Residual Plot', fontsize=14)
+    axes[0].grid(True, alpha=0.3)
+
+    # Residual histogram
+    axes[1].hist(residuals, bins=30, alpha=0.7, edgecolor='black')
+    axes[1].set_xlabel('Residuals', fontsize=12)
+    axes[1].set_ylabel('Frequency', fontsize=12)
+    axes[1].set_title('Residual Distribution', fontsize=14)
+    axes[1].axvline(x=0, color='r', linestyle='--', lw=2)
+    axes[1].grid(True, alpha=0.3, axis='y')
+
+    plt.tight_layout()
+    plt.show()
+
+# Usage example
+plot_residuals(test_targets, test_preds)
+</code></pre>
+<h3>3.6.3 Model Comparison</h3>
+<pre><code class="language-python">import pandas as pd
+import matplotlib.pyplot as plt
+
+# Compare performance of multiple models
+models_performance = {
+    'GCN (3 layers)': {'MAE': 0.32, 'R²': 0.88, 'Time': 45.2},
+    'GAT (2 layers)': {'MAE': 0.28, 'R²': 0.91, 'Time': 62.8},
+    'SchNet': {'MAE': 0.25, 'R²': 0.93, 'Time': 89.5},
+    'MPNN': {'MAE': 0.30, 'R²': 0.90, 'Time': 55.1},
+}
+
+df = pd.DataFrame(models_performance).T
+
+# Plot
+fig, axes = plt.subplots(1, 3, figsize=(16, 4))
+
+# MAE comparison
+df['MAE'].plot(kind='bar', ax=axes[0], color='steelblue')
+axes[0].set_ylabel('MAE (eV)', fontsize=12)
+axes[0].set_title('Mean Absolute Error (lower is better)', fontsize=13)
+axes[0].tick_params(axis='x', rotation=45)
+axes[0].grid(True, alpha=0.3, axis='y')
+
+# R² comparison
+df['R²'].plot(kind='bar', ax=axes[1], color='forestgreen')
+axes[1].set_ylabel('R² Score', fontsize=12)
+axes[1].set_title('Coefficient of Determination (higher is better)', fontsize=13)
+axes[1].tick_params(axis='x', rotation=45)
+axes[1].grid(True, alpha=0.3, axis='y')
+axes[1].set_ylim(0.8, 1.0)
+
+# Training time comparison
+df['Time'].plot(kind='bar', ax=axes[2], color='coral')
+axes[2].set_ylabel('Training Time (seconds)', fontsize=12)
+axes[2].set_title('Computational Cost', fontsize=13)
+axes[2].tick_params(axis='x', rotation=45)
+axes[2].grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<hr />
+<h2>3.7 Troubleshooting</h2>
+<h3>3.7.1 Common Errors and Solutions</h3>
+<table>
+<thead>
+<tr>
+<th>Error</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RuntimeError: CUDA out of memory</code></td>
+<td>Insufficient GPU memory</td>
+<td>Reduce batch size, downsize model, use CPU</td>
+</tr>
+<tr>
+<td><code>AssertionError: edge_index not contiguous</code></td>
+<td>Edge index memory layout</td>
+<td><code>edge_index = edge_index.t().contiguous()</code></td>
+</tr>
+<tr>
+<td><code>ValueError: too many values to unpack</code></td>
+<td>Missing Data object attributes</td>
+<td>Verify <code>x</code>, <code>edge_index</code>, <code>batch</code> are correctly set</td>
+</tr>
+<tr>
+<td><code>RuntimeError: Expected all tensors on same device</code></td>
+<td>Tensor device mismatch</td>
+<td>Verify <code>data = data.to(device)</code></td>
+</tr>
+</tbody>
+</table>
+<h3>3.7.2 Debugging Checklist</h3>
+<pre><code class="language-python"># Check data
+print(f&quot;Number of nodes: {data.num_nodes}&quot;)
+print(f&quot;Number of edges: {data.num_edges}&quot;)
+print(f&quot;Isolated nodes: {data.contains_isolated_nodes()}&quot;)
+print(f&quot;Self-loops: {data.contains_self_loops()}&quot;)
+
+# Check tensor shapes
+print(f&quot;x.shape: {data.x.shape}&quot;)
+print(f&quot;edge_index.shape: {data.edge_index.shape}&quot;)
+print(f&quot;y.shape: {data.y.shape}&quot;)
+
+# Check device
+print(f&quot;x device: {data.x.device}&quot;)
+print(f&quot;edge_index device: {data.edge_index.device}&quot;)
+
+# Check edge index range
+print(f&quot;max edge index: {data.edge_index.max().item()}&quot;)
+print(f&quot;num_nodes: {data.num_nodes}&quot;)
+assert data.edge_index.max().item() &lt; data.num_nodes, &quot;Edge index exceeds node count&quot;
+</code></pre>
+<hr />
+<h2>3.8 Chapter Summary</h2>
+<h3>What We Learned</h3>
+<ol>
+<li>
+<p><strong>PyTorch Geometric Environment Setup</strong>
+   - Three methods: Conda, pip, Google Colab
+   - Version compatibility verification and troubleshooting</p>
+</li>
+<li>
+<p><strong>Understanding Data Structures</strong>
+   - Data object structure (x, edge_index, batch)
+   - Graph conversion from RDKit
+   - Batch processing with DataLoader</p>
+</li>
+<li>
+<p><strong>Practice with QM9 Dataset</strong>
+   - 134,000 molecule quantum chemistry dataset
+   - GCN model implementation and training
+   - HOMO-LUMO gap prediction (target MAE &lt; 0.5 eV)</p>
+</li>
+<li>
+<p><strong>Crystal Property Prediction</strong>
+   - Graph representation of Materials Project crystal data
+   - Crystal Graph Convolutional Network
+   - Band gap prediction</p>
+</li>
+<li>
+<p><strong>Training Best Practices</strong>
+   - Learning rate scheduling
+   - Early Stopping
+   - Data augmentation (graph perturbation)</p>
+</li>
+<li>
+<p><strong>Evaluation and Visualization</strong>
+   - Metrics: MAE, MSE, R², etc.
+   - Residual plots
+   - Model performance comparison</p>
+</li>
+</ol>
+<h3>Key Takeaways</h3>
+<ul>
+<li>✅ PyTorch Geometric is ideal for GNN implementation in materials and molecules</li>
+<li>✅ QM9 is an excellent benchmark for beginners in molecular property prediction</li>
+<li>✅ Graph preprocessing (checking isolated nodes, self-loops) is crucial</li>
+<li>✅ In batch processing, the <code>batch</code> tensor indicates each node's membership</li>
+<li>✅ Learning rate scheduling and Early Stopping prevent overfitting</li>
+</ul>
+<h3>Next Chapter</h3>
+<p>In Chapter 4, we will explore advanced GNN techniques:
+- Graph pooling (hierarchical representation)
+- Leveraging edge features
+- Incorporating 3D geometric information (SchNet, DimeNet)
+- Equivariant GNNs (E(3)-equivariant)
+- Interpretability with GNNExplainer</p>
+<p><strong><a href="./chapter-4.html">Chapter 4: Advanced GNN Techniques →</a></strong></p>
+<hr />
+<h2>Exercises</h2>
+<h3>Exercise 1 (Difficulty: easy)</h3>
+<p>List three main attributes contained in a PyTorch Geometric Data object and explain the role of each.</p>
+<details>
+<summary>Hint</summary>
+
+Consider attributes that store information about nodes, edges, and batches.
+
+</details>
+
+<details>
+<summary>Solution</summary>
+
+**Three Main Attributes**:
+
+1. **`x` (Node features)**
+   - Shape: `(num_nodes, num_node_features)`
+   - Role: Stores features of each node (atom)
+   - Examples: Atomic number, electronegativity, formal charge, etc.
+
+2. **`edge_index` (Edge index)**
+   - Shape: `(2, num_edges)`
+   - Role: Graph connectivity (adjacency list format)
+   - Example: `[[0, 1], [1, 2]]` → Node 0 connects to node 1
+
+3. **`batch` (Batch index)**
+   - Shape: `(num_nodes,)`
+   - Role: Indicates which graph each node belongs to
+   - Example: `[0, 0, 1, 1, 2]` → Nodes 0,1 belong to graph 0, nodes 2,3 to graph 1
+
+**Additional Important Attributes**:
+- `edge_attr`: Edge features (bond type, distance, etc.)
+- `y`: Target variable (molecular properties, crystal properties)
+
+</details>
+
+<hr />
+<h3>Exercise 2 (Difficulty: medium)</h3>
+<p>A GCN model trained on the QM9 dataset achieved an MAE of 0.8 eV. Propose three specific approaches to improve performance.</p>
+<details>
+<summary>Hint</summary>
+
+Consider model architecture, hyperparameters, and data preprocessing from three perspectives.
+
+</details>
+
+<details>
+<summary>Solution</summary>
+
+**Approach 1: Model Architecture Improvement**
+
+
+<pre><code class="language-python"># Use GAT layers (learn important bonds with attention mechanism)
+from torch_geometric.nn import GATConv
+
+class ImprovedGNN(torch.nn.Module):
+    def __init__(self, num_node_features, hidden_channels=128):
+        super().__init__()
+        # GAT layers (heads=8)
+        self.conv1 = GATConv(num_node_features, hidden_channels, heads=8)
+        self.conv2 = GATConv(hidden_channels * 8, hidden_channels, heads=8)
+        self.conv3 = GATConv(hidden_channels * 8, hidden_channels, heads=1)
+        # Increase layers (3 → 4)
+        self.conv4 = GCNConv(hidden_channels, hidden_channels)
+</code></pre>
+
+
+**Expected Improvement**: MAE 0.8 eV → 0.5-0.6 eV
+
+---
+
+**Approach 2: Leveraging Edge Features**
+
+
+<pre><code class="language-python"># Incorporate edge features (bond types)
+from torch_geometric.nn import NNConv
+
+class EdgeFeaturesGNN(torch.nn.Module):
+    def __init__(self, num_node_features, num_edge_features, hidden_channels=64):
+        super().__init__()
+        # NNConv: Consider edge features
+        nn = torch.nn.Sequential(
+            torch.nn.Linear(num_edge_features, hidden_channels * hidden_channels),
+            torch.nn.ReLU()
+        )
+        self.conv1 = NNConv(num_node_features, hidden_channels, nn, aggr='mean')
+</code></pre>
+
+
+**Expected Improvement**: MAE 0.8 eV → 0.6-0.7 eV
+
+---
+
+**Approach 3: Data Normalization and Augmentation**
+
+
+<pre><code class="language-python"># Standardize target variables
+y_mean = train_dataset.data.y.mean(dim=0)
+y_std = train_dataset.data.y.std(dim=0)
+
+for data in train_dataset:
+    data.y = (data.y - y_mean) / y_std
+
+# Data augmentation (graph perturbation)
+def augment_graph(data):
+    # Edge dropout
+    edge_index, _ = dropout_edge(data.edge_index, p=0.1)
+    # Add noise
+    x = data.x + torch.randn_like(data.x) * 0.01
+    return Data(x=x, edge_index=edge_index, y=data.y)
+
+# Double training data
+augmented_train = [augment_graph(data) for data in train_dataset]
+train_dataset = train_dataset + augmented_train
+</code></pre>
+
+
+**Expected Improvement**: MAE 0.8 eV → 0.7 eV
+
+---
+
+**Optimal Strategy**: Combine Approach 1 (model improvement) and Approach 2 (edge features) to target MAE 0.4-0.5 eV.
+
+</details>
+
+<hr />
+<h3>Exercise 3 (Difficulty: hard)</h3>
+<p>The following code produces an error. Identify the cause and fix it.</p>
+<pre><code class="language-python"># Code with error
+model = GCN_QM9(num_node_features=11, num_classes=1)
+device = torch.device('cuda')
+model = model.to(device)
+
+for data in train_loader:
+    optimizer.zero_grad()
+    out = model(data.x, data.edge_index, data.batch)
+    loss = criterion(out, data.y)
+    loss.backward()
+    optimizer.step()
+</code></pre>
+<p><strong>Error Message</strong>:</p>
+<pre><code>RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!
+</code></pre>
+<details>
+<summary>Hint</summary>
+
+The model and data are not on the same device.
+
+</details>
+
+<details>
+<summary>Solution</summary>
+
+**Cause**:
+The model has been moved to the `cuda` device, but the `data` object remains on `cpu`. In PyTorch, all tensors must be on the same device.
+
+**Fixed Code**:
+
+
+<pre><code class="language-python">model = GCN_QM9(num_node_features=11, num_classes=1)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = model.to(device)
+
+for data in train_loader:
+    # Move data to GPU (Important!)
+    data = data.to(device)
+
+    optimizer.zero_grad()
+    out = model(data.x, data.edge_index, data.batch)
+    loss = criterion(out, data.y)
+    loss.backward()
+    optimizer.step()
+</code></pre>
+
+
+**Key Points**:
+1. `data = data.to(device)` moves all tensors in `data` (`x`, `edge_index`, `batch`, `y`) to GPU at once
+2. Use `torch.cuda.is_available()` to check GPU availability (avoids errors in CPU-only environments)
+3. Move data to device **at the beginning** of the training loop
+
+**Debugging Check**:
+
+<pre><code class="language-python"># Check device
+print(f&quot;Model device: {next(model.parameters()).device}&quot;)
+print(f&quot;Data x device: {data.x.device}&quot;)
+print(f&quot;Data edge_index device: {data.edge_index.device}&quot;)
+</code></pre>
+
+
+</details>
+
+<hr />
+<h2>References</h2>
+<ol>
+<li>
+<p>Fey, M., &amp; Lenssen, J. E. (2019). "Fast Graph Representation Learning with PyTorch Geometric." <em>ICLR Workshop on Representation Learning on Graphs and Manifolds</em>.
+   GitHub: https://github.com/pyg-team/pytorch_geometric
+   <em>Official PyTorch Geometric paper. Design philosophy and implementation details.</em></p>
+</li>
+<li>
+<p>Ramakrishnan, R., et al. (2014). "Quantum chemistry structures and properties of 134 kilo molecules." <em>Scientific Data</em>, 1, 140022.
+   DOI: <a href="https://doi.org/10.1038/sdata.2014.22">10.1038/sdata.2014.22</a>
+   <em>Official QM9 dataset paper. Quantum chemistry calculations for 134,000 molecules.</em></p>
+</li>
+<li>
+<p>Xie, T., &amp; Grossman, J. C. (2018). "Crystal Graph Convolutional Neural Networks for an Accurate and Interpretable Prediction of Material Properties." <em>Physical Review Letters</em>, 120(14), 145301.
+   DOI: <a href="https://doi.org/10.1103/PhysRevLett.120.145301">10.1103/PhysRevLett.120.145301</a>
+   <em>Original paper on Crystal Graph Convolutional Networks (CGCN). Application to crystal property prediction.</em></p>
+</li>
+<li>
+<p>Gilmer, J., et al. (2017). "Neural Message Passing for Quantum Chemistry." <em>ICML 2017</em>.
+   URL: https://arxiv.org/abs/1704.01212
+   <em>Theory of Message Passing Neural Networks (MPNN). Achieved high accuracy on QM9.</em></p>
+</li>
+<li>
+<p>PyTorch Geometric Documentation. (2024). "Introduction by Example."
+   URL: https://pytorch-geometric.readthedocs.io/en/latest/get_started/introduction.html
+   <em>Official PyTorch Geometric tutorial. Basic usage examples.</em></p>
+</li>
+<li>
+<p>RDKit Documentation. (2024). "Getting Started with the RDKit in Python."
+   URL: https://www.rdkit.org/docs/GettingStartedInPython.html
+   <em>Official RDKit documentation. How to create molecular objects from SMILES.</em></p>
+</li>
+</ol>
+<hr />
+<p><strong>Created</strong>: 2025-10-17
+<strong>Version</strong>: 1.0
+<strong>Template</strong>: chapter-template-v2.0
+<strong>Author</strong>: GNN Introduction Series Project</p><div class="navigation">
+    <a href="chapter-2.html" class="nav-button">← Previous Chapter</a>
+    <a href="index.html" class="nav-button">Back to Series Index</a>
+    <a href="chapter-4.html" class="nav-button">Next Chapter →</a>
+</div>
+    </main>
+
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided for educational, research, and informational purposes only and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links or third-party data, tools, or libraries.</li>
+            <li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content are subject to the stated terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+        </ul>
+    </section>
+
+<footer>
+        <p><strong>Author</strong>: AI Terakoya Content Team</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-17</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

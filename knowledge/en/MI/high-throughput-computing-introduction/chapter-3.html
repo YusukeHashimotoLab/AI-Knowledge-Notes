@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3: Job Scheduling and Parallelization (SLURM, PBS) - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+
+
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/en/index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/high-throughput-computing-introduction/index.html">High Throughput Computing</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>Chapter 3: Job Scheduling and Parallelization (SLURM, PBS)</h1>
+            <p class="subtitle"></p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 25-30 min</span>
+                <span class="meta-item">📊 Difficulty: Advanced</span>
+                <span class="meta-item">💻 Code Examples: 5-6</span>
+                <span class="meta-item">📝 Exercises: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>Chapter 3: Job Scheduling and Parallelization (SLURM, PBS)</h1>
+<p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #7b2cbf; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">Understand dependency management and reproducibility design in FireWorks/AiiDA. Also cover essential logging and observability concepts.</p>
+<p class="chapter-supplement" style="margin: 0.75rem 0 1.5rem 0; padding: 0.75rem 1rem; background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%); border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 0.95rem; line-height: 1.7; color: #4a5568;"><strong>💡 Note:</strong> Visualize the overall picture with DAG (flowcharts). Determining where to save intermediate artifacts speeds up recovery.</p>
+
+
+
+
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will master the following:</p>
+<ul>
+<li>✅ Create SLURM scripts and submit jobs</li>
+<li>✅ Evaluate MPI parallel computing efficiency</li>
+<li>✅ Write job management scripts in Python</li>
+<li>✅ Design parallel computations for 1000-material scale</li>
+<li>✅ Perform tuning through benchmarking</li>
+</ul>
+<hr />
+<h2>3.1 Job Scheduler Fundamentals</h2>
+<h3>SLURM vs PBS vs Torque</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>SLURM</th>
+<th>PBS Pro</th>
+<th>Torque</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Developer</td>
+<td>SchedMD</td>
+<td>Altair</td>
+<td>Adaptive Computing</td>
+</tr>
+<tr>
+<td>License</td>
+<td>GPL (partial commercial)</td>
+<td>Commercial</td>
+<td>Open Source</td>
+</tr>
+<tr>
+<td>Adoption</td>
+<td>TSUBAME, many TOP500</td>
+<td>NASA, DOE national labs</td>
+<td>Many universities</td>
+</tr>
+<tr>
+<td>Commands</td>
+<td><code>sbatch</code>, <code>squeue</code></td>
+<td><code>qsub</code>, <code>qstat</code></td>
+<td><code>qsub</code>, <code>qstat</code></td>
+</tr>
+<tr>
+<td>Recommended Use</td>
+<td>Large-scale HPC</td>
+<td>Enterprise</td>
+<td>Small to medium HPC</td>
+</tr>
+</tbody>
+</table>
+<h3>SLURM Basic Concepts</h3>
+<div class="mermaid">
+flowchart TD
+    A[User] -->|sbatch| B[Job Queue]
+    B --> C{Scheduler}
+    C -->|Resource Allocation| D[Compute Node 1]
+    C -->|Resource Allocation| E[Compute Node 2]
+    C -->|Resource Allocation| F[Compute Node N]
+
+    D --> G[Job Completion]
+    E --> G
+    F --> G
+
+    style C fill:#4ecdc4
+</div>
+
+<p><strong>Key Commands</strong>:</p>
+<pre><code class="language-bash"># Submit job
+sbatch job.sh
+
+# Check job status
+squeue -u username
+
+# Cancel job
+scancel job_id
+
+# Node information
+sinfo
+
+# Job details
+scontrol show job job_id
+</code></pre>
+<hr />
+<h2>3.2 Creating SLURM Scripts</h2>
+<h3>Basic SLURM Script</h3>
+<pre><code class="language-bash">#!/bin/bash
+#SBATCH --job-name=vasp_relax       # Job name
+#SBATCH --output=slurm-%j.out       # Standard output (%j=job ID)
+#SBATCH --error=slurm-%j.err        # Standard error
+#SBATCH --nodes=1                   # Number of nodes
+#SBATCH --ntasks-per-node=48        # MPI processes per node
+#SBATCH --cpus-per-task=1           # Threads per task
+#SBATCH --time=24:00:00             # Time limit (24 hours)
+#SBATCH --partition=standard        # Partition (queue)
+#SBATCH --account=project_name      # Project name
+
+# Environment setup
+module purge
+module load intel/2021.2
+module load vasp/6.3.0
+
+# Working directory
+cd $SLURM_SUBMIT_DIR
+
+# Run VASP
+echo &quot;Job started: $(date)&quot;
+echo &quot;Host: $(hostname)&quot;
+echo &quot;Number of nodes: $SLURM_JOB_NUM_NODES&quot;
+echo &quot;Number of processes: $SLURM_NTASKS&quot;
+
+mpirun -np $SLURM_NTASKS vasp_std
+
+echo &quot;Job finished: $(date)&quot;
+</code></pre>
+<h3>Parallel Execution with Array Jobs</h3>
+<p><strong>Parallel computation of 100 materials</strong>:</p>
+<pre><code class="language-bash">#!/bin/bash
+#SBATCH --job-name=vasp_array
+#SBATCH --output=logs/slurm-%A_%a.out  # %A=array job ID, %a=task ID
+#SBATCH --error=logs/slurm-%A_%a.err
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=48
+#SBATCH --time=24:00:00
+#SBATCH --array=1-100%10              # Tasks 1-100, max 10 concurrent
+
+# Environment setup
+module load vasp/6.3.0
+
+# Load material list
+MATERIAL_LIST=&quot;materials.txt&quot;
+MATERIAL=$(sed -n &quot;${SLURM_ARRAY_TASK_ID}p&quot; $MATERIAL_LIST)
+
+echo &quot;Processing: TaskID=${SLURM\_ARRAY\_TASK\_ID}, Material=${MATERIAL}&quot;
+
+# Working directory
+WORK_DIR=&quot;calculations/${MATERIAL}&quot;
+cd $WORK_DIR
+
+# Run VASP
+mpirun -np 48 vasp_std
+
+# Convergence check
+if grep -q &quot;reached required accuracy&quot; OUTCAR; then
+    echo &quot;SUCCESS: ${MATERIAL}&quot; &gt;&gt; ../completed.log
+else
+    echo &quot;FAILED: ${MATERIAL}&quot; &gt;&gt; ../failed.log
+fi
+</code></pre>
+<p><strong>Example materials.txt</strong>:</p>
+<pre><code>LiCoO2
+LiNiO2
+LiMnO2
+LiFePO4
+...(100 lines)
+</code></pre>
+<h3>Job Chains with Dependencies</h3>
+<pre><code class="language-bash"># Step 1: Structure relaxation
+JOB1=$(sbatch --parsable relax.sh)
+echo &quot;Relaxation job ID: $JOB1&quot;
+
+# Step 2: Static calculation (run after relaxation)
+JOB2=$(sbatch --parsable --dependency=afterok:$JOB1 static.sh)
+echo &quot;Static calculation job ID: $JOB2&quot;
+
+# Step 3: Band structure (run after static calculation)
+JOB3=$(sbatch --parsable --dependency=afterok:$JOB2 band.sh)
+echo &quot;Band structure job ID: $JOB3&quot;
+
+# Step 4: Data analysis (run after all complete)
+sbatch --dependency=afterok:$JOB3 analysis.sh
+</code></pre>
+<hr />
+<h2>3.3 MPI Parallel Computing</h2>
+<h3>Types of Parallelization</h3>
+<pre><code class="language-python"># 1. Task Parallelism (Recommended: High-throughput computing)
+# Compute 100 materials simultaneously on 100 nodes
+# Scaling efficiency: 100%
+
+# 2. Data Parallelism (VASP: KPAR setting)
+# Divide k-points into 4 groups
+INCAR: KPAR = 4
+# Scaling efficiency: 80-90%
+
+# 3. MPI Parallelism (inter-process communication)
+# Distribute 1 calculation across 48 cores
+mpirun -np 48 vasp_std
+# Scaling efficiency: 50-70%
+</code></pre>
+<h3>Measuring Scaling Efficiency</h3>
+<pre><code class="language-python">import subprocess
+import time
+import numpy as np
+import matplotlib.pyplot as plt
+
+def benchmark_scaling(structure, core_counts=[1, 2, 4, 8, 16, 32, 48]):
+    &quot;&quot;&quot;
+    Benchmark parallelization efficiency
+
+    Parameters:
+    -----------
+    structure : str
+        Test structure
+    core_counts : list
+        Core counts to test
+
+    Returns:
+    --------
+    efficiency : dict
+        Efficiency for each core count
+    &quot;&quot;&quot;
+    timings = {}
+
+    for n_cores in core_counts:
+        # Run VASP
+        start = time.time()
+
+        result = subprocess.run(
+            [f&quot;mpirun -np {n_cores} vasp_std&quot;],
+            shell=True,
+            cwd=f&quot;benchmark_{n_cores}cores&quot;
+        )
+
+        elapsed = time.time() - start
+        timings[n_cores] = elapsed
+
+        print(f&quot;{n_cores} cores: {elapsed:.1f} seconds&quot;)
+
+    # Calculate efficiency
+    base_time = timings[1]
+    efficiency = {}
+
+    for n_cores, t in timings.items():
+        ideal_time = base_time / n_cores
+        actual_speedup = base_time / t
+        ideal_speedup = n_cores
+
+        eff = (actual_speedup / ideal_speedup) * 100
+        efficiency[n_cores] = eff
+
+    return efficiency, timings
+
+# Plot results
+def plot_scaling(efficiency, timings):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    cores = list(timings.keys())
+    times = list(timings.values())
+    effs = [efficiency[c] for c in cores]
+
+    # Speedup
+    ax1.plot(cores, [timings[1]/t for t in times], 'o-', label='Actual')
+    ax1.plot(cores, cores, '--', label='Ideal (linear)')
+    ax1.set_xlabel('Number of Cores')
+    ax1.set_ylabel('Speedup')
+    ax1.set_xscale('log', base=2)
+    ax1.set_yscale('log', base=2)
+    ax1.legend()
+    ax1.grid(True)
+
+    # Efficiency
+    ax2.plot(cores, effs, 'o-', color='green')
+    ax2.axhline(y=80, color='red', linestyle='--', label='80% target')
+    ax2.set_xlabel('Number of Cores')
+    ax2.set_ylabel('Parallelization Efficiency (%)')
+    ax2.set_xscale('log', base=2)
+    ax2.legend()
+    ax2.grid(True)
+
+    plt.tight_layout()
+    plt.savefig('scaling_benchmark.png', dpi=300)
+    plt.show()
+</code></pre>
+<h3>Optimizing VASP Parallelization Parameters</h3>
+<pre><code class="language-python">def optimize_vasp_parallelization(n_kpoints, n_bands, n_cores=48):
+    &quot;&quot;&quot;
+    Optimize VASP parallelization parameters
+
+    Parameters:
+    -----------
+    n_kpoints : int
+        Number of k-points
+    n_bands : int
+        Number of bands
+    n_cores : int
+        Available cores
+
+    Returns:
+    --------
+    params : dict
+        Optimal parameters
+    &quot;&quot;&quot;
+    # KPAR: k-point parallelism (most efficient)
+    # Power of 2, divisor of k-point count
+    kpar_options = [1, 2, 4, 8, 16]
+    valid_kpar = [k for k in kpar_options if n_kpoints % k == 0 and k &lt;= n_cores]
+
+    # NCORE: band parallelism
+    # Typically 4-8 is optimal
+    ncore = min(4, n_cores // max(valid_kpar))
+
+    # Recommended settings
+    recommended = {
+        'KPAR': max(valid_kpar),
+        'NCORE': ncore,
+        'cores_per_kpar_group': n_cores // max(valid_kpar),
+    }
+
+    print(&quot;Recommended parallelization parameters:&quot;)
+    print(f&quot;  KPAR = {recommended['KPAR']} (k-point parallelism)&quot;)
+    print(f&quot;  NCORE = {recommended['NCORE']} (band parallelism)&quot;)
+    print(f&quot;  {recommended['cores_per_kpar_group']} cores per KPAR group&quot;)
+
+    return recommended
+
+# Usage example
+params = optimize_vasp_parallelization(n_kpoints=64, n_bands=200, n_cores=48)
+# Recommended:
+#   KPAR = 16 (k-point parallelism)
+#   NCORE = 3 (band parallelism)
+#   3 cores per KPAR group
+</code></pre>
+<hr />
+<h2>3.4 Job Management with Python</h2>
+<h3>Job Submission and Monitoring</h3>
+<pre><code class="language-python">import subprocess
+import time
+import re
+
+class SLURMJobManager:
+    &quot;&quot;&quot;SLURM job management class&quot;&quot;&quot;
+
+    def submit_job(self, script_path):
+        &quot;&quot;&quot;
+        Submit a job
+
+        Returns:
+        --------
+        job_id : int
+            Job ID
+        &quot;&quot;&quot;
+        result = subprocess.run(
+            ['sbatch', script_path],
+            capture_output=True,
+            text=True
+        )
+
+        # Extract ID from &quot;Submitted batch job 12345&quot;
+        match = re.search(r'(\d+)', result.stdout)
+        if match:
+            job_id = int(match.group(1))
+            print(f&quot;Job submitted: ID={job_id}&quot;)
+            return job_id
+        else:
+            raise RuntimeError(f&quot;Job submission failed: {result.stderr}&quot;)
+
+    def get_job_status(self, job_id):
+        &quot;&quot;&quot;
+        Get job status
+
+        Returns:
+        --------
+        status : str
+            'PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'
+        &quot;&quot;&quot;
+        result = subprocess.run(
+            ['squeue', '-j', str(job_id), '-h', '-o', '%T'],
+            capture_output=True,
+            text=True
+        )
+
+        if result.stdout.strip():
+            return result.stdout.strip()
+        else:
+            # Not in queue → completed or failed
+            result = subprocess.run(
+                ['sacct', '-j', str(job_id), '-X', '-n', '-o', 'State'],
+                capture_output=True,
+                text=True
+            )
+            return result.stdout.strip()
+
+    def wait_for_completion(self, job_id, check_interval=60):
+        &quot;&quot;&quot;
+        Wait for job completion
+
+        Parameters:
+        -----------
+        job_id : int
+            Job ID
+        check_interval : int
+            Check interval (seconds)
+        &quot;&quot;&quot;
+        while True:
+            status = self.get_job_status(job_id)
+
+            if status in ['COMPLETED', 'FAILED', 'CANCELLED']:
+                print(f&quot;Job {job_id}: {status}&quot;)
+                return status
+
+            print(f&quot;Job {job_id}: {status}...waiting&quot;)
+            time.sleep(check_interval)
+
+    def submit_array_job(self, script_path, n_tasks, max_concurrent=10):
+        &quot;&quot;&quot;
+        Submit array job
+
+        Parameters:
+        -----------
+        n_tasks : int
+            Number of tasks
+        max_concurrent : int
+            Maximum concurrent tasks
+        &quot;&quot;&quot;
+        result = subprocess.run(
+            ['sbatch', f'--array=1-{n_tasks}%{max_concurrent}', script_path],
+            capture_output=True,
+            text=True
+        )
+
+        match = re.search(r'(\d+)', result.stdout)
+        if match:
+            job_id = int(match.group(1))
+            print(f&quot;Array job submitted: ID={job_id}, Tasks={n_tasks}&quot;)
+            return job_id
+        else:
+            raise RuntimeError(f&quot;Submission failed: {result.stderr}&quot;)
+
+# Usage example
+manager = SLURMJobManager()
+
+# Single job
+job_id = manager.submit_job('relax.sh')
+status = manager.wait_for_completion(job_id)
+
+# Array job
+array_id = manager.submit_array_job('array_job.sh', n_tasks=100, max_concurrent=20)
+</code></pre>
+<h3>Large-Scale Job Management (1000 Materials)</h3>
+<pre><code class="language-python">import os
+from pathlib import Path
+import json
+
+def manage_large_scale_calculation(materials, batch_size=100):
+    &quot;&quot;&quot;
+    Efficiently manage 1000 materials
+
+    Parameters:
+    -----------
+    materials : list
+        List of materials
+    batch_size : int
+        Batch size
+    &quot;&quot;&quot;
+    manager = SLURMJobManager()
+    n_materials = len(materials)
+
+    print(f&quot;Total materials: {n_materials}&quot;)
+    print(f&quot;Batch size: {batch_size}&quot;)
+
+    # Divide into batches
+    n_batches = (n_materials + batch_size - 1) // batch_size
+    print(f&quot;Number of batches: {n_batches}&quot;)
+
+    job_ids = []
+
+    for batch_idx in range(n_batches):
+        start_idx = batch_idx * batch_size
+        end_idx = min((batch_idx + 1) * batch_size, n_materials)
+        batch_materials = materials[start_idx:end_idx]
+
+        print(f&quot;\nBatch {batch_idx+1}/{n_batches}&quot;)
+        print(f&quot;  Materials: {len(batch_materials)}&quot;)
+
+        # Create material list for batch
+        list_file = f&quot;batch_{batch_idx+1}_materials.txt&quot;
+        with open(list_file, 'w') as f:
+            for mat in batch_materials:
+                f.write(f&quot;{mat}\n&quot;)
+
+        # Submit array job
+        job_id = manager.submit_array_job(
+            'vasp_array.sh',
+            n_tasks=len(batch_materials),
+            max_concurrent=20
+        )
+
+        job_ids.append(job_id)
+
+    # Monitor progress
+    print(&quot;\nMonitoring progress...&quot;)
+    completed = 0
+
+    while completed &lt; len(job_ids):
+        time.sleep(300)  # Check every 5 minutes
+
+        for i, job_id in enumerate(job_ids):
+            status = manager.get_job_status(job_id)
+
+            if status == 'COMPLETED' and i not in completed_jobs:
+                completed += 1
+                print(f&quot;Batch {i+1} completed ({completed}/{len(job_ids)})&quot;)
+
+    print(&quot;All batches completed!&quot;)
+
+# Usage example
+materials = [f&quot;material_{i:04d}&quot; for i in range(1, 1001)]
+manage_large_scale_calculation(materials, batch_size=100)
+</code></pre>
+<hr />
+<h2>3.5 Exercises</h2>
+<h3>Problem 1 (Difficulty: easy)</h3>
+<p><strong>Problem</strong>: Create a SLURM script with the following conditions:</p>
+<ul>
+<li>Job name: <code>si_bandgap</code></li>
+<li>Number of nodes: 2</li>
+<li>Processes per node: 24</li>
+<li>Time limit: 12 hours</li>
+<li>Partition: <code>gpu</code></li>
+</ul>
+<details>
+<summary>Solution</summary>
+
+
+<pre><code class="language-bash">#!/bin/bash
+#SBATCH --job-name=si_bandgap
+#SBATCH --output=slurm-%j.out
+#SBATCH --error=slurm-%j.err
+#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=24
+#SBATCH --time=12:00:00
+#SBATCH --partition=gpu
+
+module load vasp/6.3.0
+
+cd $SLURM_SUBMIT_DIR
+
+mpirun -np 48 vasp_std
+</code></pre>
+
+
+</details>
+
+<h3>Problem 2 (Difficulty: medium)</h3>
+<p><strong>Problem</strong>: Create an array job for 50 structure relaxation calculations, with 10 running concurrently.</p>
+<details>
+<summary>Solution</summary>
+
+
+<pre><code class="language-bash">#!/bin/bash
+#SBATCH --job-name=relax_array
+#SBATCH --output=logs/slurm-%A_%a.out
+#SBATCH --error=logs/slurm-%A_%a.err
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=48
+#SBATCH --time=24:00:00
+#SBATCH --array=1-50%10
+
+module load vasp/6.3.0
+
+MATERIAL=$(sed -n &quot;${SLURM_ARRAY_TASK_ID}p&quot; materials.txt)
+
+cd calculations/${MATERIAL}
+
+mpirun -np 48 vasp_std
+</code></pre>
+
+
+</details>
+
+<h3>Problem 3 (Difficulty: hard)</h3>
+<p><strong>Problem</strong>: Create a Python script to manage VASP calculations for 1000 materials. Requirements:</p>
+<ol>
+<li>Process in batches of 50 materials</li>
+<li>20 tasks running concurrently per batch</li>
+<li>Log completed and failed tasks</li>
+<li>Automatically retry failed tasks</li>
+</ol>
+<details>
+<summary>Solution</summary>
+
+
+<pre><code class="language-python">import os
+import time
+import json
+from pathlib import Path
+
+class HighThroughputManager:
+    def __init__(self, materials, batch_size=50, max_concurrent=20):
+        self.materials = materials
+        self.batch_size = batch_size
+        self.max_concurrent = max_concurrent
+        self.manager = SLURMJobManager()
+
+        self.results = {
+            'completed': [],
+            'failed': [],
+            'retry': []
+        }
+
+    def run_batch(self, batch_materials, batch_id):
+        &quot;&quot;&quot;Run batch&quot;&quot;&quot;
+        # Create material list
+        list_file = f&quot;batch_{batch_id}.txt&quot;
+        with open(list_file, 'w') as f:
+            for mat in batch_materials:
+                f.write(f&quot;{mat}\n&quot;)
+
+        # Submit job
+        job_id = self.manager.submit_array_job(
+            'vasp_array.sh',
+            n_tasks=len(batch_materials),
+            max_concurrent=self.max_concurrent
+        )
+
+        # Wait for completion
+        status = self.manager.wait_for_completion(job_id)
+
+        # Check results
+        self.check_results(batch_materials, batch_id)
+
+    def check_results(self, batch_materials, batch_id):
+        &quot;&quot;&quot;Check results&quot;&quot;&quot;
+        for mat in batch_materials:
+            outcar = f&quot;calculations/{mat}/OUTCAR&quot;
+
+            if not os.path.exists(outcar):
+                self.results['failed'].append(mat)
+                continue
+
+            with open(outcar, 'r') as f:
+                content = f.read()
+                if 'reached required accuracy' in content:
+                    self.results['completed'].append(mat)
+                else:
+                    self.results['failed'].append(mat)
+
+        # Save log
+        with open(f'batch_{batch_id}_results.json', 'w') as f:
+            json.dump(self.results, f, indent=2)
+
+    def retry_failed(self, max_retries=2):
+        &quot;&quot;&quot;Retry failed tasks&quot;&quot;&quot;
+        for retry_count in range(max_retries):
+            if not self.results['failed']:
+                break
+
+            print(f&quot;\nRetry {retry_count+1}/{max_retries}&quot;)
+            print(f&quot;  Failed tasks: {len(self.results['failed'])}&quot;)
+
+            failed_materials = self.results['failed'].copy()
+            self.results['failed'] = []
+
+            self.run_batch(failed_materials, f'retry_{retry_count+1}')
+
+    def execute_all(self):
+        &quot;&quot;&quot;Execute all materials&quot;&quot;&quot;
+        n_batches = (len(self.materials) + self.batch_size - 1) // self.batch_size
+
+        for batch_idx in range(n_batches):
+            start = batch_idx * self.batch_size
+            end = min((batch_idx + 1) * self.batch_size, len(self.materials))
+            batch_materials = self.materials[start:end]
+
+            print(f&quot;\nBatch {batch_idx+1}/{n_batches}&quot;)
+            self.run_batch(batch_materials, batch_idx+1)
+
+        # Retry
+        self.retry_failed(max_retries=2)
+
+        # Final report
+        print(&quot;\nFinal results:&quot;)
+        print(f&quot;  Completed: {len(self.results['completed'])}&quot;)
+        print(f&quot;  Failed: {len(self.results['failed'])}&quot;)
+
+        return self.results
+
+# Execute
+materials = [f&quot;material_{i:04d}&quot; for i in range(1, 1001)]
+manager = HighThroughputManager(materials, batch_size=50, max_concurrent=20)
+results = manager.execute_all()
+</code></pre>
+
+
+</details>
+
+<hr />
+<h2>3.6 Summary</h2>
+<p><strong>Key Points</strong>:</p>
+<ol>
+<li><strong>SLURM</strong>: Widely used job scheduler for large-scale HPC</li>
+<li><strong>Array Jobs</strong>: Efficiently execute many materials in parallel</li>
+<li><strong>MPI Parallelism</strong>: Measure and optimize scaling efficiency</li>
+<li><strong>Python Management</strong>: Automate and monitor large-scale calculations</li>
+</ol>
+<p><strong>Next Steps</strong>:</p>
+<p>In Chapter 4, we will learn about <strong>workflow management with FireWorks and AiiDA</strong>.</p>
+<p><strong><a href="./chapter-4.html">Chapter 4: Data Management and Post-Processing →</a></strong></p>
+<hr />
+<p><strong>License</strong>: CC BY 4.0
+<strong>Date Created</strong>: 2025-10-17
+<strong>Author</strong>: Dr. Yusuke Hashimoto, Tohoku University</p><div class="navigation">
+    <a href="chapter-2.html" class="nav-button">← Previous Chapter</a>
+    <a href="index.html" class="nav-button">Return to Series Index</a>
+    <a href="chapter-4.html" class="nav-button">Next Chapter →</a>
+</div>
+    </main>
+
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantee, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, or libraries.</li>
+            <li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material is subject to change, update, or discontinuation without notice.</li>
+            <li>The copyright and license of this content shall be subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+        </ul>
+    </section>
+
+<footer>
+        <p><strong>Author</strong>: AI Terakoya Content Team</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Date Created</strong>: 2025-10-17</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

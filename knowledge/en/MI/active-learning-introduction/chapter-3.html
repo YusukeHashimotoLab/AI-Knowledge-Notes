@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3: Acquisition Function Design - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="/AI-Knowledge-Notes/knowledge/en/index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/active-learning-introduction/index.html">Active Learning</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>Chapter 3: Acquisition Function Design</h1>
+            <p class="subtitle">Expected Improvement・UCB・多目的最適化</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 25-30分</span>
+                <span class="meta-item">📊 Difficulty: Intermediate〜Advanced</span>
+                <span class="meta-item">💻 Code Examples: 7個</span>
+                <span class="meta-item">📝 Exercises: 3問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>Chapter 3: Acquisition Function Design</h1>
+<p><strong>Expected Improvement・UCB・多目的最適化</strong></p>
+<h2>Learning Objectives</h2>
+<p>この章を読むことで、以下を習得できます：</p>
+<ul>
+<li>✅ 4つの主要Acquisition Functionの特徴を理解している</li>
+<li>✅ Expected ImprovementをImplementationできる</li>
+<li>✅ 多目的最適化にPareto最適性を適用できる"</li>
+<li>✅ 制約条件をAcquisition Functionに組み込める</li>
+<li>✅ Acquisition Functionの選択基準をExplanationできる</li>
+</ul>
+<p><strong>Reading Time</strong>: 25-30分
+<strong>Code Examples</strong>: 7個
+<strong>Exercises</strong>: 3問</p>
+<hr />
+<h2>3.1 Acquisition Functionの基礎</h2>
+<h3>Acquisition Functionとは</h3>
+<p><strong>Definition</strong>: Nextにどのサンプルを取得すべきかを決定するスコア関数</p>
+<p><strong>Formula</strong>:
+$$
+x^* = \arg\max_{x \in \mathcal{X}} \alpha(x | \mathcal{D})
+$$</p>
+<ul>
+<li>$\alpha(x | \mathcal{D})$: Acquisition Function</li>
+<li>$\mathcal{X}$: 探索空間</li>
+<li>$\mathcal{D}$: これまでに取得したデータ</li>
+</ul>
+<h3>主要な4つのAcquisition Function</h3>
+<h4>1. Expected Improvement (EI)</h4>
+<p><strong>Principle</strong>: 現在の最良値からの改善期待値</p>
+<p><strong>Formula</strong>:
+$$
+\text{EI}(x) = \mathbb{E}[\max(f(x) - f^*, 0)]
+$$</p>
+<p>$$
+= \begin{cases}
+(\mu(x) - f^*)\Phi(Z) + \sigma(x)\phi(Z) &amp; \text{if } \sigma(x) &gt; 0 \
+0 &amp; \text{if } \sigma(x) = 0
+\end{cases}
+$$</p>
+<p>ここで、
+$$
+Z = \frac{\mu(x) - f^*}{\sigma(x)}
+$$</p>
+<ul>
+<li>$f^*$: 現在の最良値</li>
+<li>$\mu(x)$: 予測平均</li>
+<li>$\sigma(x)$: 予測標準偏差</li>
+<li>$\Phi(\cdot)$: 標準正規分布の累積分布関数</li>
+<li>$\phi(\cdot)$: 標準正規分布の確率密度関数</li>
+</ul>
+<p><strong>Code Examples1: Expected ImprovementのImplementation</strong></p>
+<pre>__PROTECTED_CODE_0__</pre>
+<h4>2. Probability of Improvement (PI)</h4>
+<p><strong>Principle</strong>: 現在の最良値を改善する確率</p>
+<p><strong>Formula</strong>:
+$$
+\text{PI}(x) = P(f(x) \geq f^* + \xi)
+$$</p>
+<p>$$
+= \Phi\left(\frac{\mu(x) - f^* - \xi}{\sigma(x)}\right)
+$$</p>
+<ul>
+<li>$\xi$: 改善の閾値（通常0.01）</li>
+</ul>
+<p><strong>Code Examples2: Probability of ImprovementのImplementation</strong></p>
+<pre>__PROTECTED_CODE_1__</pre>
+<h4>3. Upper Confidence Bound (UCB)</h4>
+<p><strong>Principle</strong>: 予測平均 + 不確実性ボーナス</p>
+<p><strong>Formula</strong>:
+$$
+\text{UCB}(x) = \mu(x) + \kappa \sigma(x)
+$$</p>
+<ul>
+<li>$\kappa$: 探索パラメータ（通常1.0〜3.0）</li>
+</ul>
+<p><strong>Code Examples3: UCBのImplementation</strong></p>
+<pre>__PROTECTED_CODE_2__</pre>
+<h4>4. Thompson Sampling</h4>
+<p><strong>Principle</strong>: Gaussian Processからサンプリングして最大値を選択</p>
+<p><strong>Formula</strong>:
+$$
+f(x) \sim \mathcal{GP}(\mu(x), k(x, x'))
+$$</p>
+<p>$$
+x^* = \arg\max_{x \in \mathcal{X}} f(x)
+$$</p>
+<p><strong>Code Examples4: Thompson SamplingのImplementation</strong></p>
+<pre>__PROTECTED_CODE_3__</pre>
+<hr />
+<h2>3.2 多目的Acquisition Function</h2>
+<h3>Pareto最適性</h3>
+<p><strong>Definition</strong>: 1つの目的を改善するために他の目的を犠牲にしない解</p>
+<p><strong>Formula</strong>:
+$$
+x^* \text{ is Pareto optimal} \iff \nexists x : f_i(x) \geq f_i(x^*) \ \forall i \land f_j(x) &gt; f_j(x^*) \ \text{for some } j
+$$</p>
+<h3>Expected Hypervolume Improvement (EHVI)</h3>
+<p><strong>Principle</strong>: ハイパーボリュームの期待改善量を最大化</p>
+<p><strong>Formula</strong>:
+$$
+\text{EHVI}(x) = \mathbb{E}[HV(\mathcal{P} \cup {f(x)}) - HV(\mathcal{P})]
+$$</p>
+<ul>
+<li>$HV(\cdot)$: ハイパーボリューム</li>
+<li>$\mathcal{P}$: 現在のPareto集合</li>
+</ul>
+<p><strong>Code Examples5: 多目的最適化のImplementation（BoTorch）</strong></p>
+<pre>__PROTECTED_CODE_4__</pre>
+<hr />
+<h2>3.3 制約付きAcquisition Function</h2>
+<h3>制約条件の扱い</h3>
+<p><strong>Example</strong>: Synthesizability制約、コスト制約</p>
+<p><strong>Formula</strong>:
+$$
+x^* = \arg\max_{x \in \mathcal{X}} \alpha(x | \mathcal{D}) \cdot P_c(x)
+$$</p>
+<ul>
+<li>$P_c(x)$: 制約条件を満たす確率</li>
+</ul>
+<p><strong>Constrained Expected Improvement</strong>:
+$$
+\text{CEI}(x) = \text{EI}(x) \cdot P(c(x) \leq 0)
+$$</p>
+<hr />
+<h2>3.4 ケーススタディ：熱電Materials Exploration</h2>
+<h3>問題設定</h3>
+<p><strong>目標</strong>: 熱電性能指数ZT値の最大化</p>
+<p><strong>ZT値</strong>:
+$$
+ZT = \frac{S^2 \sigma T}{\kappa}
+$$</p>
+<ul>
+<li>$S$: Seebeck係数</li>
+<li>$\sigma$: 電気伝導度</li>
+<li>$T$: 絶対温度</li>
+<li>$\kappa$: 熱伝導度</li>
+</ul>
+<p><strong>課題</strong>: 3つの物性を同時に最適化（多目的最適化）</p>
+<hr />
+<h2>本章のまとめ</h2>
+<h3>Acquisition Functionの比較表</h3>
+<table>
+<thead>
+<tr>
+<th>Acquisition Function</th>
+<th>特徴</th>
+<th>探索傾向</th>
+<th>計算コスト</th>
+<th>推奨用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EI</td>
+<td>改善期待値</td>
+<td>バランス</td>
+<td>低</td>
+<td>一般的な最適化</td>
+</tr>
+<tr>
+<td>PI</td>
+<td>改善確率</td>
+<td>活用重視</td>
+<td>低</td>
+<td>高速探索</td>
+</tr>
+<tr>
+<td>UCB</td>
+<td>信頼上限</td>
+<td>探索重視</td>
+<td>低</td>
+<td>広範囲探索</td>
+</tr>
+<tr>
+<td>Thompson</td>
+<td>確率的</td>
+<td>バランス</td>
+<td>中</td>
+<td>並列実験</td>
+</tr>
+</tbody>
+</table>
+<h3>Nextの章へ</h3>
+<p>第4章では、<strong>Materials ExplorationへのApplicationと実践</strong>を学びます：
+- Active Learning × Bayesian Optimization
+- Active Learning × 高スループット計算
+- Active Learning × 実験ロボット
+- 実世界Applicationとキャリアパス</p>
+<p><strong><a href="./chapter-4.html">Chapter 4: Applications and Practice in Materials Exploration →</a></strong></p>
+<hr />
+<h2>Exercises</h2>
+<p>（省略：Exercisesの詳細Implementation）</p>
+<hr />
+<h2>Reference文献</h2>
+<ol>
+<li>
+<p>Jones, D. R. et al. (1998). "Efficient Global Optimization of Expensive Black-Box Functions." <em>Journal of Global Optimization</em>, 13(4), 455-492.</p>
+</li>
+<li>
+<p>Daulton, S. et al. (2020). "Differentiable Expected Hypervolume Improvement for Parallel Multi-Objective Bayesian Optimization." <em>NeurIPS</em>.</p>
+</li>
+</ol>
+<hr />
+<h2>ナビゲーション</h2>
+<h3>Previousの章</h3>
+<p><strong><a href="./chapter-2.html">← Chapter 2: Uncertainty Estimation Techniques</a></strong></p>
+<h3>Nextの章</h3>
+<p><strong><a href="./chapter-4.html">Chapter 4: Applications and Practice in Materials Exploration →</a></strong></p>
+<h3>シリーズ目Next</h3>
+<p><strong><a href="./index.html">← シリーズ目Nextに戻る</a></strong></p>
+<hr />
+<p><strong>Nextの章で実践的なApplicationを学びましょう！</strong></p><div class="navigation">
+    <a href="chapter-2.html" class="nav-button">← Previousの章</a>
+    <a href="index.html" class="nav-button">シリーズ目Nextに戻る</a>
+    <a href="chapter-4.html" class="nav-button">Nextの章 →</a>
+</div>
+    </main>
+
+    
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するCode Examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等no warranty。</li>
+            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、Creatorおよび東北大学は一切のnot responsible。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、Creatorおよび東北大学はnot responsible。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツのCopyright・Licenseは明記された条件(Example: CC BY 4.0)に従います。当該Licenseは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+<footer>
+        <p><strong>Creator</strong>: AI Terakoya Content Team</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-18</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>
