@@ -482,7 +482,7 @@ from matminer.featurizers.composition import ElementProperty
 from matminer.featurizers.conversions import StrToComposition
 import joblib
 
-# Prepare sample data（形成エネルギー予測）
+# Prepare sample data (formation energy prediction)
 data = pd.DataFrame({
     'composition': ['Fe2O3', 'Al2O3', 'TiO2', 'SiO2', 'MgO',
                     'CaO', 'Na2O', 'K2O', 'ZnO', 'CuO'],
@@ -490,57 +490,57 @@ data = pd.DataFrame({
                          -6.3, -4.2, -3.6, -3.6, -1.6]  # eV/atom
 })
 
-# 1. 化学組成を文字列からCompositionオブジェクトへ変換
+# 1. Convert chemical composition from string to Composition object
 str_to_comp = StrToComposition(target_col_id='composition_obj')
 data = str_to_comp.featurize_dataframe(data, 'composition')
 
-# 2. パイプラインの構築
-# Pipeline構文: [('名前', オブジェクト), ...]のタプルリスト
+# 2. Build pipeline
+# Pipeline syntax: list of tuples [('name', object), ...]
 pipeline = Pipeline([
-    ('scaler', StandardScaler()),           # 特徴量の標準化
-    ('model', RandomForestRegressor(       # ランダムフォレスト回帰
+    ('scaler', StandardScaler()),           # Feature scaling
+    ('model', RandomForestRegressor(       # Random Forest regression
         n_estimators=100,
         max_depth=10,
         random_state=42
     ))
 ])
 
-# 3. 特徴量生成（パイプライン外で実行）
+# 3. Feature generation (executed outside pipeline)
 featurizer = ElementProperty.from_preset('magpie')
 data = featurizer.featurize_dataframe(data, 'composition_obj')
 
-# 4. 特徴量とターゲットの分離
+# 4. Separate features and target
 feature_cols = featurizer.feature_labels()
 X = data[feature_cols]
 y = data['formation_energy']
 
-# 5. 訓練/テストデータ分割
+# 5. Train/test data split
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-# 6. パイプラインの訓練
+# 6. Train pipeline
 pipeline.fit(X_train, y_train)
 
-# 7. 性能評価
+# 7. Performance evaluation
 train_score = pipeline.score(X_train, y_train)
 test_score = pipeline.score(X_test, y_test)
 
 print(f"Training Data R² Score: {train_score:.4f}")
 print(f"Test Data R² Score: {test_score:.4f}")
 
-# 8. クロスバリデーション
+# 8. Cross-validation
 cv_scores = cross_val_score(
     pipeline, X_train, y_train,
     cv=5, scoring='r2'
 )
-print(f"\n5-Fold CV平均R²: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+print(f"\n5-Fold CV Average R²: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
 
-# 9. パイプラインの保存
+# 9. Save pipeline
 joblib.dump(pipeline, 'formation_energy_model.pkl')
 print("\nSaved model toformation_energy_model.pkl")
 
-# 10. パイプラインの読み込みと使用
+# 10. Load and use pipeline
 loaded_pipeline = joblib.load('formation_energy_model.pkl')
 predictions = loaded_pipeline.predict(X_test)
 print(f"\nPrediction Examples（First 3 Samples）:")
@@ -552,33 +552,33 @@ for i in range(min(3, len(predictions))):
             <div class="info-box">
                 <h4>💡 make_pipeline vs Pipeline</h4>
                 <p>
-                    <code>make_pipeline</code>を使用すると、各ステップに自動で名前が付与され、より簡潔に記述できます：
+                    Using <code>make_pipeline</code>, each step is automatically named, allowing for more concise notation:
                 </p>
                 <pre><code class="language-python">from sklearn.pipeline import make_pipeline
 
-# 自動命名版（名前は 'standardscaler', 'randomforestregressor' 等）
+# Auto-naming version (names are 'standardscaler', 'randomforestregressor', etc.)
 pipeline = make_pipeline(
     StandardScaler(),
     RandomForestRegressor(n_estimators=100, random_state=42)
 )
 
-# 手動命名版（任意の名前を指定可能）
+# Manual naming version (arbitrary names can be specified)
 pipeline = Pipeline([
     ('scaling', StandardScaler()),
     ('rf_model', RandomForestRegressor(n_estimators=100, random_state=42))
 ])
 </code></pre>
                 <p>
-                    <strong>Selection Criteria</strong>: ハイパーパラメータ最適化で特定ステップにアクセスする場合は<code>Pipeline</code>（名前を明示）、シンプルなワークフローには<code>make_pipeline</code>が推奨されます。
+                    <strong>Selection Criteria</strong>: For hyperparameter optimization where specific steps need to be accessed, <code>Pipeline</code> (explicit naming) is recommended; for simple workflows, <code>make_pipeline</code> is preferred.
                 </p>
             </div>
 
             <h3>4.1.3 Integrating Featurizer into Pipeline</h3>
             <p>
-                matminerのFeaturizerをscikit-learnパイプラインに直接統合するには、<code>DFMLAdaptor</code>クラスを使用します（matminer 0.7.4以降）。
+                To directly integrate matminer's Featurizer into a scikit-learn pipeline, use the <code>DFMLAdaptor</code> class (matminer 0.7.4 and later).
             </p>
 
-            <pre><code class="language-python"># Featurizerをパイプラインに統合する方法
+            <pre><code class="language-python"># How to integrate Featurizer into pipeline
 
 from matminer.featurizers.base import MultipleFeaturizer
 from matminer.featurizers.composition import (
@@ -586,42 +586,42 @@ from matminer.featurizers.composition import (
 )
 from matminer.utils.pipeline import DFMLAdaptor
 
-# 複数のFeaturizerを統合
+# Integrate multiple Featurizers
 multi_featurizer = MultipleFeaturizer([
     ElementProperty.from_preset('magpie'),
     Stoichiometry(),
     ValenceOrbital()
 ])
 
-# DFMLAdaptorでscikit-learn互換にする
+# Make scikit-learn compatible with DFMLAdaptor
 featurizer_step = DFMLAdaptor(
     multi_featurizer,
     input_cols=['composition_obj'],
-    ignore_cols=['composition', 'formation_energy']  # Generate features対象外の列
+    ignore_cols=['composition', 'formation_energy']  # Columns excluded from feature generation
 )
 
-# パイプライン構築
+# Build pipeline
 full_pipeline = Pipeline([
     ('featurize', featurizer_step),
     ('scale', StandardScaler()),
     ('model', RandomForestRegressor(n_estimators=100, random_state=42))
 ])
 
-# データフレーム全体を入力として訓練可能
+# Can train with entire dataframe as input
 full_pipeline.fit(data, data['formation_energy'])
 </code></pre>
 
             <div class="warning-box">
                 <h4>⚠️ Watch Out for Data Leakage</h4>
                 <p>
-                    クロスバリデーション時、Featurizerがデータセット全体の統計量（例: 平均値）を使用する場合、データリークが発生します。これを防ぐには：
+                    During cross-validation, if the Featurizer uses statistics from the entire dataset (e.g., mean values), data leakage can occur. To prevent this:
                 </p>
                 <ul>
-                    <li><strong>Method 1</strong>: Featurizer適用後にパイプライン構築（推奨）</li>
-                    <li><strong>Method 2</strong>: カスタムTransformerでfit時のみ統計量計算</li>
+                    <li><strong>Method 1</strong>: Build pipeline after applying Featurizer (recommended)</li>
+                    <li><strong>Method 2</strong>: Calculate statistics only during fit with custom Transformer</li>
                 </ul>
                 <p>
-                    本シリーズでは簡潔性のため、方法1（Featurizer適用後にパイプライン構築）を採用します。
+                    For simplicity in this series, we adopt Method 1 (building pipeline after applying Featurizer).
                 </p>
             </div>
         </section>
@@ -632,22 +632,22 @@ full_pipeline.fit(data, data['formation_energy'])
 
             <h3>4.2.1 Main Machine Learning Models</h3>
             <p>
-                組成ベース特徴量を用いた材料特性予測では、以下の3つのモデルが広く使用されています：
+                For material property prediction using composition-based features, the following three models are widely used:
             </p>
 
             <table class="hyperparameter-table">
                 <thead>
                     <tr>
-                        <th>モデル</th>
-                        <th>特徴</th>
-                        <th>主要ハイパーパラメータ</th>
-                        <th>推奨範囲</th>
+                        <th>Model</th>
+                        <th>Characteristics</th>
+                        <th>Key Hyperparameters</th>
+                        <th>Recommended Range</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td><strong>Random Forest</strong></td>
-                        <td>決定木のアンサンブル、過学習に強い、特徴量重要度取得可能</td>
+                        <td>Ensemble of decision trees, robust to overfitting, can obtain feature importance</td>
                         <td>
                             <code>n_estimators</code><br>
                             <code>max_depth</code><br>
@@ -661,7 +661,7 @@ full_pipeline.fit(data, data['formation_energy'])
                     </tr>
                     <tr>
                         <td><strong>Gradient Boosting</strong><br>(XGBoost/LightGBM)</td>
-                        <td>逐次的に誤差を修正、高精度、過学習リスクあり</td>
+                        <td>Sequentially corrects errors, high accuracy, risk of overfitting</td>
                         <td>
                             <code>learning_rate</code><br>
                             <code>n_estimators</code><br>
@@ -675,7 +675,7 @@ full_pipeline.fit(data, data['formation_energy'])
                     </tr>
                     <tr>
                         <td><strong>Neural Network</strong><br>(MLP)</td>
-                        <td>非線形関係の学習、大規模データで有効、学習時間長い</td>
+                        <td>Learns nonlinear relationships, effective with large-scale data, long training time</td>
                         <td>
                             <code>hidden_layer_sizes</code><br>
                             <code>activation</code><br>
@@ -692,7 +692,7 @@ full_pipeline.fit(data, data['formation_energy'])
 
             <h3>4.2.2 Random Forest Regression</h3>
             <p>
-                Random Forestは、複数の決定木の予測を平均化することで、高い予測精度と過学習耐性を実現します。材料科学では特徴量重要度分析にも頻繁に使用されます。
+                Random Forest achieves high prediction accuracy and overfitting resistance by averaging predictions from multiple decision trees. In materials science, it is also frequently used for feature importance analysis.
             </p>
 
             <div class="colab-badge">
@@ -701,22 +701,22 @@ full_pipeline.fit(data, data['formation_energy'])
                 </a>
             </div>
 
-            <pre><code class="language-python"># Code Example2: Random Forest回帰（ハイパーパラメータ最適化含む）
+            <pre><code class="language-python"># Code Example2: Random Forest regression (including hyperparameter optimization)
 
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, cross_val_score
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 
-# Previous Chapterで生成した特徴量を使用（X_train, X_test, y_train, y_test）
+# Use features generated in Previous Chapter (X_train, X_test, y_train, y_test)
 
-# 1. ベースラインモデル（デフォルトパラメータ）
+# 1. Baseline model (default parameters)
 rf_baseline = RandomForestRegressor(random_state=42)
 rf_baseline.fit(X_train, y_train)
 baseline_score = rf_baseline.score(X_test, y_test)
-print(f"ベースラインモデル R² スコア: {baseline_score:.4f}")
+print(f"Baseline Model R² Score: {baseline_score:.4f}")
 
-# 2. ハイパーパラメータグリッドサーチ
+# 2. Hyperparameter grid search
 param_grid = {
     'n_estimators': [100, 200, 300],
     'max_depth': [10, 20, 30, None],
@@ -728,81 +728,81 @@ rf_model = RandomForestRegressor(random_state=42)
 grid_search = GridSearchCV(
     rf_model,
     param_grid,
-    cv=5,                    # 5-fold クロスバリデーション
-    scoring='r2',            # R²スコアで評価
-    n_jobs=-1,               # 全CPUコアを使用
+    cv=5,                    # 5-fold cross-validation
+    scoring='r2',            # Evaluate with R² score
+    n_jobs=-1,               # Use all CPU cores
     verbose=1
 )
 
-# GridSearch実行
-print("\nGridSearchCV実行中...")
+# Execute GridSearch
+print("\nRunning GridSearchCV...")
 grid_search.fit(X_train, y_train)
 
-# 最適パラメータ
-print(f"\n最適パラメータ: {grid_search.best_params_}")
-print(f"CV最良スコア: {grid_search.best_score_:.4f}")
+# Optimal parameters
+print(f"\nOptimal Parameters: {grid_search.best_params_}")
+print(f"Best CV Score: {grid_search.best_score_:.4f}")
 
-# 3. 最適モデルでの評価
+# 3. Evaluate with optimal model
 best_rf = grid_search.best_estimator_
 y_pred_train = best_rf.predict(X_train)
 y_pred_test = best_rf.predict(X_test)
 
-# 評価指標の計算
+# Calculate evaluation metrics
 def evaluate_model(y_true, y_pred, dataset_name):
     mae = mean_absolute_error(y_true, y_pred)
     rmse = np.sqrt(mean_squared_error(y_true, y_pred))
     r2 = r2_score(y_true, y_pred)
 
-    print(f"\n{dataset_name} 評価結果:")
+    print(f"\n{dataset_name} Evaluation Results:")
     print(f"  MAE:  {mae:.4f}")
     print(f"  RMSE: {rmse:.4f}")
     print(f"  R²:   {r2:.4f}")
 
     return mae, rmse, r2
 
-train_metrics = evaluate_model(y_train, y_pred_train, "訓練データ")
-test_metrics = evaluate_model(y_test, y_pred_test, "テストデータ")
+train_metrics = evaluate_model(y_train, y_pred_train, "Training Data")
+test_metrics = evaluate_model(y_test, y_pred_test, "Test Data")
 
-# 4. 特徴量重要度の可視化
+# 4. Visualize feature importance
 feature_importance = best_rf.feature_importances_
 importance_df = pd.DataFrame({
     'feature': feature_cols,
     'importance': feature_importance
 }).sort_values('importance', ascending=False)
 
-print("\n上位10特徴量:")
+print("\nTop 10 Features:")
 print(importance_df.head(10).to_string(index=False))
 
-# 可視化
+# Visualization
 plt.figure(figsize=(10, 6))
 plt.barh(importance_df.head(10)['feature'],
          importance_df.head(10)['importance'])
-plt.xlabel('重要度')
-plt.title('Random Forest 特徴量重要度（上位10）')
+plt.xlabel('Importance')
+plt.title('Random Forest Feature Importance (Top 10)')
 plt.gca().invert_yaxis()
 plt.tight_layout()
 plt.savefig('rf_feature_importance.png', dpi=150)
-print("\n特徴量重要度グラフを rf_feature_importance.png ")
+print("\nSaved feature importance graph to rf_feature_importance.png")
 
-# 5. Predicted Value vs Actual Valueプロット
+# 5. Predicted Value vs Actual Value plot
 plt.figure(figsize=(8, 8))
 plt.scatter(y_test, y_pred_test, alpha=0.6, edgecolors='k', linewidth=0.5)
 plt.plot([y_test.min(), y_test.max()],
          [y_test.min(), y_test.max()],
-         'r--', lw=2, label='理想的な予測')
+         'r--', lw=2, label='Ideal prediction')
 plt.xlabel('Actual Value (eV/atom)')
 plt.ylabel('Predicted Value (eV/atom)')
-plt.title(f'Random Forest予測性能\nR² = {test_metrics[2]:.4f}')
+plt.title(f'Random Forest Prediction Performance\nR² = {test_metrics[2]:.4f}')
 plt.legend()
 plt.grid(alpha=0.3)
 plt.tight_layout()
 plt.savefig('rf_prediction_plot.png', dpi=150)
-print("予測プロットを rf_prediction_plot.png ")
+print("Saved prediction plot to rf_prediction_plot.png")
 </code></pre>
 
             <h3>4.2.3 Gradient Boosting (XGBoost)</h3>
             <p>
-                Gradient Boostingは、弱学習器（浅い決定木）を逐次的に追加し、各ステップで前のモデルの誤差を修正する手法です。XGBoostは高速化と正則化を実装した実装で、Kaggleコンペティションで頻繁に優勝しています。
+                Gradient Boosting is a method that sequentially adds weak learners (shallow decision trees), correcting the errors of the previous model at each step. XGBoost is an implementation with optimizations for speed and regularization, frequently winning Kaggle competitions.
             </p>
 
             <div class="colab-badge">
@@ -811,31 +811,31 @@ print("予測プロットを rf_prediction_plot.png ")
                 </a>
             </div>
 
-            <pre><code class="language-python"># Code Example3: Gradient Boosting実装（XGBoost）
+            <pre><code class="language-python"># Code Example3: Gradient Boosting implementation (XGBoost)
 
-# XGBoostのインストール（Google Colabでは不要）
+# XGBoost installation (not required in Google Colab)
 # !pip install xgboost
 
 import xgboost as xgb
 from sklearn.model_selection import RandomizedSearchCV
 from scipy.stats import uniform, randint
 
-# 1. XGBoost用のデータセット作成（高速化のため）
+# 1. Create dataset for XGBoost (for speed optimization)
 dtrain = xgb.DMatrix(X_train, label=y_train)
 dtest = xgb.DMatrix(X_test, label=y_test)
 
-# 2. ベースラインモデル
+# 2. Baseline model
 params_baseline = {
     'objective': 'reg:squarederror',
     'eval_metric': 'rmse',
-    'eta': 0.1,                     # 学習率
+    'eta': 0.1,                     # Learning rate
     'max_depth': 6,
     'subsample': 0.8,
     'colsample_bytree': 0.8,
     'seed': 42
 }
 
-# 訓練（early stopping使用）
+# Training (using early stopping)
 evals = [(dtrain, 'train'), (dtest, 'test')]
 bst_baseline = xgb.train(
     params_baseline,
@@ -846,11 +846,11 @@ bst_baseline = xgb.train(
     verbose_eval=False
 )
 
-print(f"ベースライン最良イテレーション: {bst_baseline.best_iteration}")
-print(f"テストRMSE: {bst_baseline.best_score:.4f}")
+print(f"Baseline best iteration: {bst_baseline.best_iteration}")
+print(f"Test RMSE: {bst_baseline.best_score:.4f}")
 
-# 3. RandomizedSearchCVでハイパーパラメータ最適化
-# XGBoostRegressorを使用（scikit-learn互換）
+# 3. Hyperparameter optimization with RandomizedSearchCV
+# Use XGBRegressor (scikit-learn compatible)
 xgb_model = xgb.XGBRegressor(
     objective='reg:squarederror',
     eval_metric='rmse',
@@ -870,7 +870,7 @@ param_distributions = {
 random_search = RandomizedSearchCV(
     xgb_model,
     param_distributions,
-    n_iter=50,                # 50回ランダムサンプリング
+    n_iter=50,                # 50 random samplings
     cv=5,
     scoring='r2',
     n_jobs=-1,
@@ -878,57 +878,57 @@ random_search = RandomizedSearchCV(
     random_state=42
 )
 
-print("\nRandomizedSearchCV実行中...")
+print("\nRunning RandomizedSearchCV...")
 random_search.fit(X_train, y_train)
 
-print(f"\n最適パラメータ: {random_search.best_params_}")
-print(f"CV最良R²スコア: {random_search.best_score_:.4f}")
+print(f"\nOptimal Parameters: {random_search.best_params_}")
+print(f"Best CV R² Score: {random_search.best_score_:.4f}")
 
-# 4. 最適モデルでの評価
+# 4. Evaluate with optimal model
 best_xgb = random_search.best_estimator_
 y_pred_test_xgb = best_xgb.predict(X_test)
-xgb_metrics = evaluate_model(y_test, y_pred_test_xgb, "XGBoost テストデータ")
+xgb_metrics = evaluate_model(y_test, y_pred_test_xgb, "XGBoost Test Data")
 
-# 5. 特徴量重要度（Gain基準）
+# 5. Feature importance (Gain metric)
 xgb_importance = best_xgb.get_booster().get_score(importance_type='gain')
 importance_df_xgb = pd.DataFrame({
     'feature': list(xgb_importance.keys()),
     'importance': list(xgb_importance.values())
 }).sort_values('importance', ascending=False)
 
-print("\nXGBoost 上位10特徴量 (Gain):")
+print("\nXGBoost Top 10 Features (Gain):")
 print(importance_df_xgb.head(10).to_string(index=False))
 
-# 6. 学習曲線の可視化
+# 6. Visualize learning curve
 evals_result = best_xgb.evals_result()
 plt.figure(figsize=(10, 6))
-plt.plot(evals_result['validation_0']['rmse'], label='訓練RMSE')
-plt.xlabel('イテレーション')
+plt.plot(evals_result['validation_0']['rmse'], label='Training RMSE')
+plt.xlabel('Iteration')
 plt.ylabel('RMSE')
-plt.title('XGBoost学習曲線')
+plt.title('XGBoost Learning Curve')
 plt.legend()
 plt.grid(alpha=0.3)
 plt.tight_layout()
 plt.savefig('xgb_learning_curve.png', dpi=150)
-print("\n学習曲線を xgb_learning_curve.png ")
+print("\nSaved learning curve to xgb_learning_curve.png")
 </code></pre>
 
             <div class="tip-box">
                 <h4>💡 GridSearchCV vs RandomizedSearchCV</h4>
                 <p>
-                    <strong>GridSearchCV</strong>: 全パラメータ組み合わせを網羅的に探索（計算コスト高）
+                    <strong>GridSearchCV</strong>: Exhaustively searches all parameter combinations (high computational cost)
                 </p>
                 <p>
-                    <strong>RandomizedSearchCV</strong>: ランダムサンプリングで効率的に探索（推奨）
+                    <strong>RandomizedSearchCV</strong>: Efficiently searches through random sampling (recommended)
                 </p>
                 <p>
-                    <strong>When to Use</strong>: パラメータ空間が広い場合（XGBoost等）はRandomizedSearchCV、狭い場合（Random Forest等）はGridSearchCVが適切です。
+                    <strong>When to Use</strong>: RandomizedSearchCV is appropriate when the parameter space is wide (e.g., XGBoost), GridSearchCV when narrow (e.g., Random Forest).
                 </p>
             </div>
 
             <h3>4.2.4 Neural Network (MLP Regressor)</h3>
             <p>
-                多層パーセプトロン（MLP）は、複数の隠れ層を持つニューラルネットワークです。非線形関係の学習に優れ、大規模データセットで高い性能を発揮します。
+                Multi-layer Perceptron (MLP) is a neural network with multiple hidden layers. It excels at learning nonlinear relationships and demonstrates high performance on large-scale datasets.
             </p>
 
             <div class="colab-badge">
@@ -943,31 +943,31 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import validation_curve
 
-# 1. データの標準化（MLPでは必須）
+# 1. Data standardization (required for MLP)
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-# 2. ベースラインMLP
+# 2. Baseline MLP
 mlp_baseline = MLPRegressor(
-    hidden_layer_sizes=(100,),      # 隠れ層1層、100ユニット
+    hidden_layer_sizes=(100,),      # 1 hidden layer, 100 units
     activation='relu',
     solver='adam',
-    alpha=0.0001,                   # L2正則化係数
+    alpha=0.0001,                   # L2 regularization coefficient
     batch_size='auto',
     learning_rate_init=0.001,
     max_iter=500,
     random_state=42,
-    early_stopping=True,            # 検証損失が改善しない場合停止
+    early_stopping=True,            # Stop if validation loss doesn't improve
     validation_fraction=0.1,
     verbose=False
 )
 
 mlp_baseline.fit(X_train_scaled, y_train)
-print(f"ベースラインMLP 訓練完了（{mlp_baseline.n_iter_}イテレーション）")
-print(f"テストR²スコア: {mlp_baseline.score(X_test_scaled, y_test):.4f}")
+print(f"Baseline MLP training complete ({mlp_baseline.n_iter_} iterations)")
+print(f"Test R² Score: {mlp_baseline.score(X_test_scaled, y_test):.4f}")
 
-# 3. ハイパーパラメータグリッドサーチ
+# 3. Hyperparameter grid search
 param_grid_mlp = {
     'hidden_layer_sizes': [(50,), (100,), (100, 50), (150, 100, 50)],
     'activation': ['relu', 'tanh'],
@@ -986,38 +986,38 @@ mlp_model = MLPRegressor(
 grid_search_mlp = GridSearchCV(
     mlp_model,
     param_grid_mlp,
-    cv=3,                           # MLPは時間がかかるため3-fold
+    cv=3,                           # 3-fold because MLP is time-consuming
     scoring='r2',
     n_jobs=-1,
     verbose=1
 )
 
-print("\nMLP GridSearchCV実行中...")
+print("\nRunning MLP GridSearchCV...")
 grid_search_mlp.fit(X_train_scaled, y_train)
 
-print(f"\n最適パラメータ: {grid_search_mlp.best_params_}")
-print(f"CV最良R²スコア: {grid_search_mlp.best_score_:.4f}")
+print(f"\nOptimal Parameters: {grid_search_mlp.best_params_}")
+print(f"Best CV R² Score: {grid_search_mlp.best_score_:.4f}")
 
-# 4. 最適モデルでの評価
+# 4. Evaluate with optimal model
 best_mlp = grid_search_mlp.best_estimator_
 y_pred_test_mlp = best_mlp.predict(X_test_scaled)
-mlp_metrics = evaluate_model(y_test, y_pred_test_mlp, "MLP テストデータ")
+mlp_metrics = evaluate_model(y_test, y_pred_test_mlp, "MLP Test Data")
 
-# 5. 損失曲線の可視化
+# 5. Visualize loss curve
 plt.figure(figsize=(10, 6))
-plt.plot(best_mlp.loss_curve_, label='訓練損失')
+plt.plot(best_mlp.loss_curve_, label='Training Loss')
 if hasattr(best_mlp, 'validation_scores_'):
-    plt.plot(best_mlp.validation_scores_, label='検証スコア')
-plt.xlabel('イテレーション')
-plt.ylabel('損失 / スコア')
-plt.title('MLP学習曲線')
+    plt.plot(best_mlp.validation_scores_, label='Validation Score')
+plt.xlabel('Iteration')
+plt.ylabel('Loss / Score')
+plt.title('MLP Learning Curve')
 plt.legend()
 plt.grid(alpha=0.3)
 plt.tight_layout()
 plt.savefig('mlp_loss_curve.png', dpi=150)
-print("\n損失曲線を mlp_loss_curve.png ")
+print("\nSaved loss curve to mlp_loss_curve.png")
 
-# 6. 隠れ層サイズの影響を調査（Validation Curve）
+# 6. Investigate hidden layer size effects (Validation Curve)
 train_scores, valid_scores = validation_curve(
     MLPRegressor(activation='relu', alpha=0.001, random_state=42, max_iter=500),
     X_train_scaled, y_train,
@@ -1030,31 +1030,31 @@ train_scores, valid_scores = validation_curve(
 
 plt.figure(figsize=(10, 6))
 plt.plot(['(50,)', '(100,)', '(150,)', '(100,50)', '(150,100)'],
-         train_scores.mean(axis=1), 'o-', label='訓練スコア')
+         train_scores.mean(axis=1), 'o-', label='Training Score')
 plt.plot(['(50,)', '(100,)', '(150,)', '(100,50)', '(150,100)'],
-         valid_scores.mean(axis=1), 's-', label='検証スコア')
-plt.xlabel('隠れ層サイズ')
-plt.ylabel('R²スコア')
-plt.title('MLPの隠れ層サイズとモデル性能')
+         valid_scores.mean(axis=1), 's-', label='Validation Score')
+plt.xlabel('Hidden Layer Size')
+plt.ylabel('R² Score')
+plt.title('MLP Hidden Layer Size and Model Performance')
 plt.legend()
 plt.grid(alpha=0.3)
 plt.tight_layout()
 plt.savefig('mlp_validation_curve.png', dpi=150)
-print("Validation Curveを mlp_validation_curve.png ")
+print("Saved Validation Curve to mlp_validation_curve.png")
 </code></pre>
 
-            <h3>4.2.5 学習曲線分析</h3>
+            <h3>4.2.5 Learning Curve Analysis</h3>
             <p>
-                学習曲線（Learning Curve）は、訓練データ量と予測性能の関係を可視化し、過学習・未学習の診断に使用します。
+                A Learning Curve visualizes the relationship between training data volume and prediction performance, used to diagnose overfitting and underfitting.
             </p>
 
             <div class="mermaid">
                 graph TD
-                A[学習曲線分析] --> B{訓練スコア vs 検証スコア}
-                B -->|訓練↑検証↑| C[良好な汎化性能]
-                B -->|訓練↑検証↓| D[過学習<br/>モデル簡素化]
-                B -->|訓練↓検証↓| E[未学習<br/>モデル複雑化]
-                B -->|両方収束| F[データ追加で改善期待]
+                A[Learning Curve Analysis] --> B{Training Score vs Validation Score}
+                B -->|Train↑Val↑| C[Good Generalization]
+                B -->|Train↑Val↓| D[Overfitting<br/>Simplify Model]
+                B -->|Train↓Val↓| E[Underfitting<br/>Complexify Model]
+                B -->|Both Converge| F[Expect Improvement<br/>with More Data]
                 style C fill:#c8e6c9
                 style D fill:#ffccbc
                 style E fill:#ffe0b2
@@ -1067,7 +1067,7 @@ print("Validation Curveを mlp_validation_curve.png ")
                 </a>
             </div>
 
-            <pre><code class="language-python"># Code Example5: 学習曲線分析（learning_curve関数）
+            <pre><code class="language-python"># Code Example5: Learning curve analysis (learning_curve function)
 
 from sklearn.model_selection import learning_curve
 import matplotlib.pyplot as plt
@@ -1076,26 +1076,26 @@ import numpy as np
 def plot_learning_curve(estimator, X, y, title, cv=5, n_jobs=-1,
                         train_sizes=np.linspace(0.1, 1.0, 10)):
     """
-    学習曲線を描画する関数
+    Function to plot learning curve
 
     Parameters:
     -----------
     estimator : scikit-learn estimator
-        評価対象のモデル
+        Model to evaluate
     X : array-like, shape (n_samples, n_features)
-        特徴量
+        Features
     y : array-like, shape (n_samples,)
-        ターゲット
+        Target
     title : str
-        グラフタイトル
+        Graph title
     cv : int
-        クロスバリデーションのfold数
+        Number of cross-validation folds
     train_sizes : array-like
-        訓練データのサンプリング比率
+        Training data sampling ratios
     """
     plt.figure(figsize=(10, 6))
 
-    # learning_curve関数で訓練/検証スコアを計算
+    # Calculate training/validation scores with learning_curve function
     train_sizes_abs, train_scores, valid_scores = learning_curve(
         estimator, X, y,
         train_sizes=train_sizes,
@@ -1105,13 +1105,13 @@ def plot_learning_curve(estimator, X, y, title, cv=5, n_jobs=-1,
         verbose=0
     )
 
-    # 平均と標準偏差を計算
+    # Calculate mean and standard deviation
     train_scores_mean = train_scores.mean(axis=1)
     train_scores_std = train_scores.std(axis=1)
     valid_scores_mean = valid_scores.mean(axis=1)
     valid_scores_std = valid_scores.std(axis=1)
 
-    # プロット
+    # Plot
     plt.fill_between(train_sizes_abs,
                      train_scores_mean - train_scores_std,
                      train_scores_mean + train_scores_std,
@@ -1122,12 +1122,12 @@ def plot_learning_curve(estimator, X, y, title, cv=5, n_jobs=-1,
                      alpha=0.1, color='red')
 
     plt.plot(train_sizes_abs, train_scores_mean, 'o-', color='blue',
-             label='訓練スコア')
+             label='Training Score')
     plt.plot(train_sizes_abs, valid_scores_mean, 's-', color='red',
-             label='クロスバリデーションスコア')
+             label='Cross-Validation Score')
 
-    plt.xlabel('訓練サンプル数')
-    plt.ylabel('R²スコア')
+    plt.xlabel('Number of Training Samples')
+    plt.ylabel('R² Score')
     plt.title(title)
     plt.legend(loc='best')
     plt.grid(alpha=0.3)
@@ -1135,7 +1135,7 @@ def plot_learning_curve(estimator, X, y, title, cv=5, n_jobs=-1,
 
     return plt
 
-# 複数モデルの学習曲線を比較
+# Compare learning curves of multiple models
 models = {
     'Random Forest': RandomForestRegressor(n_estimators=100, max_depth=20,
                                            random_state=42),
@@ -1146,7 +1146,7 @@ models = {
 }
 
 for model_name, model in models.items():
-    # MLPの場合は標準化が必要
+    # Standardization required for MLP
     if model_name == 'MLP':
         X_current = X_train_scaled
         y_current = y_train
@@ -1156,19 +1156,19 @@ for model_name, model in models.items():
 
     plot_learning_curve(
         model, X_current, y_current,
-        title=f'{model_name} 学習曲線',
+        title=f'{model_name} Learning Curve',
         cv=5
     )
     plt.savefig(f'learning_curve_{model_name.replace(" ", "_").lower()}.png',
                 dpi=150)
-    print(f"{model_name} の学習曲線を保存しました")
+    print(f"Saved learning curve for {model_name}")
 
-# 診断ガイド
-print("\n【学習曲線の診断ガイド】")
-print("1. 訓練スコア高・検証スコア低 → 過学習（モデル簡素化、正則化強化）")
-print("2. 訓練スコア低・検証スコア低 → 未学習（モデル複雑化、特徴量追加）")
-print("3. 両スコア高位で収束 → 良好（これ以上データ追加しても改善小）")
-print("4. 両スコア上昇傾向 → データ追加で改善期待")
+# Diagnostic guide
+print("\n[Learning Curve Diagnostic Guide]")
+print("1. High training / Low validation → Overfitting (simplify model, strengthen regularization)")
+print("2. Low training / Low validation → Underfitting (complexify model, add features)")
+print("3. Both scores converge high → Good (little improvement expected from more data)")
+print("4. Both scores increasing → Expect improvement with more data")
 </code></pre>
         </section>
 
@@ -1176,32 +1176,32 @@ print("4. 両スコア上昇傾向 → データ追加で改善期待")
         <section id="composition-vs-gnn">
             <h2>4.3 Composition-Based vs GNN Performance Comparison</h2>
 
-            <h3>4.3.1 Matbench v0.1ベンチマーク</h3>
+            <h3>4.3.1 Matbench v0.1 Benchmark</h3>
             <p>
-                <a href="https://matbench.materialsproject.org/" target="_blank">Matbench v0.1</a>は、材料特性予測の標準ベンチマークで、13個のタスク（形成エネルギー、バンドギャップ、弾性率等）で構成されています。各タスクは数千～数万のデータポイントを含み、公平な性能比較が可能です。
+                <a href="https://matbench.materialsproject.org/" target="_blank">Matbench v0.1</a> is a standard benchmark for material property prediction, consisting of 13 tasks (formation energy, band gap, elastic modulus, etc.). Each task contains thousands to tens of thousands of data points, enabling fair performance comparisons.
             </p>
 
             <div class="info-box">
-                <h4>📊 Matbench v0.1の特徴</h4>
+                <h4>📊 Features of Matbench v0.1</h4>
                 <ul>
-                    <li><strong>13タスク</strong>: 形成エネルギー、バンドギャップ、誘電率、体積弾性率、剪断弾性率等</li>
-                    <li><strong>統一データ分割</strong>: 5-fold CV、事前定義された訓練/テスト分割</li>
-                    <li><strong>多様な入力</strong>: 組成のみ（9タスク）、構造必須（4タスク）</li>
-                    <li><strong>公開リーダーボード</strong>: 最新アルゴリズムの性能を比較可能</li>
+                    <li><strong>13 Tasks</strong>: Formation energy, band gap, dielectric constant, bulk modulus, shear modulus, etc.</li>
+                    <li><strong>Unified Data Split</strong>: 5-fold CV, predefined train/test splits</li>
+                    <li><strong>Diverse Inputs</strong>: Composition only (9 tasks), structure required (4 tasks)</li>
+                    <li><strong>Public Leaderboard</strong>: Can compare performance of latest algorithms</li>
                 </ul>
             </div>
 
-            <h3>4.3.2 組成ベース vs GNN性能詳細</h3>
+            <h3>4.3.2 Composition-Based vs GNN Performance Details</h3>
             <p>
-                以下の表は、Matbenchベンチマークでの組成ベースモデル（Magpie、ElemNet）とGNNモデル（CGCNN、MEGNet、ALIGNN）の性能比較です。
+                The following table compares the performance of composition-based models (Magpie, ElemNet) and GNN models (CGCNN, MEGNet, ALIGNN) on the Matbench benchmark.
             </p>
 
             <table class="benchmark-table">
                 <thead>
                     <tr>
-                        <th>タスク</th>
-                        <th>サンプル数</th>
-                        <th>評価指標</th>
+                        <th>Task</th>
+                        <th>Sample Count</th>
+                        <th>Evaluation Metric</th>
                         <th>Magpie + RF</th>
                         <th>ElemNet</th>
                         <th>CGCNN</th>
@@ -1211,7 +1211,7 @@ print("4. 両スコア上昇傾向 → データ追加で改善期待")
                 </thead>
                 <tbody>
                     <tr>
-                        <td><strong>形成エネルギー</strong><br>(matbench_mp_e_form)</td>
+                        <td><strong>Formation Energy</strong><br>(matbench_mp_e_form)</td>
                         <td>132,752</td>
                         <td>MAE (eV/atom)</td>
                         <td>0.082</td>
@@ -1221,7 +1221,7 @@ print("4. 両スコア上昇傾向 → データ追加で改善期待")
                         <td class="best-score">0.047</td>
                     </tr>
                     <tr>
-                        <td><strong>バンドギャップ</strong><br>(matbench_mp_gap)</td>
+                        <td><strong>Band Gap</strong><br>(matbench_mp_gap)</td>
                         <td>106,113</td>
                         <td>MAE (eV)</td>
                         <td>0.42</td>
@@ -1231,7 +1231,7 @@ print("4. 両スコア上昇傾向 → データ追加で改善期待")
                         <td class="best-score">0.25</td>
                     </tr>
                     <tr>
-                        <td><strong>体積弾性率</strong><br>(matbench_mp_bulk_modulus)</td>
+                        <td><strong>Bulk Modulus</strong><br>(matbench_mp_bulk_modulus)</td>
                         <td>10,987</td>
                         <td>MAE (log10(GPa))</td>
                         <td>0.082</td>
@@ -1241,7 +1241,7 @@ print("4. 両スコア上昇傾向 → データ追加で改善期待")
                         <td class="best-score">0.059</td>
                     </tr>
                     <tr>
-                        <td><strong>剪断弾性率</strong><br>(matbench_mp_shear_modulus)</td>
+                        <td><strong>Shear Modulus</strong><br>(matbench_mp_shear_modulus)</td>
                         <td>10,987</td>
                         <td>MAE (log10(GPa))</td>
                         <td>0.092</td>
@@ -1251,7 +1251,7 @@ print("4. 両スコア上昇傾向 → データ追加で改善期待")
                         <td class="best-score">0.067</td>
                     </tr>
                     <tr>
-                        <td><strong>誘電率</strong><br>(matbench_dielectric)</td>
+                        <td><strong>Dielectric Constant</strong><br>(matbench_dielectric)</td>
                         <td>4,764</td>
                         <td>MAE (log10)</td>
                         <td>0.29</td>
@@ -1261,7 +1261,7 @@ print("4. 両スコア上昇傾向 → データ追加で改善期待")
                         <td class="best-score">0.19</td>
                     </tr>
                     <tr>
-                        <td><strong>ペロブスカイト形成</strong><br>(matbench_perovskites)</td>
+                        <td><strong>Perovskite Formation</strong><br>(matbench_perovskites)</td>
                         <td>18,928</td>
                         <td>ROCAUC</td>
                         <td>0.91</td>
@@ -1271,7 +1271,7 @@ print("4. 両スコア上昇傾向 → データ追加で改善期待")
                         <td class="best-score">0.95</td>
                     </tr>
                     <tr>
-                        <td><strong>フォノン周波数</strong><br>(matbench_phonons)</td>
+                        <td><strong>Phonon Frequency</strong><br>(matbench_phonons)</td>
                         <td>1,265</td>
                         <td>MAE (cm⁻¹)</td>
                         <td>89.5</td>
@@ -1284,87 +1284,87 @@ print("4. 両スコア上昇傾向 → データ追加で改善期待")
             </table>
 
             <div class="info-box">
-                <h4>🔍 性能差の要因分析</h4>
+                <h4>🔍 Analysis of Performance Difference Factors</h4>
                 <p>
-                    <strong>組成ベースが有利な場合</strong>:
+                    <strong>When composition-based is advantageous</strong>:
                 </p>
                 <ul>
-                    <li><strong>ペロブスカイト形成</strong>: 化学組成の規則性が支配的（ElemNet: ROCAUC 0.94）</li>
-                    <li><strong>小規模データセット</strong>: GNNは大量データを要求、組成ベースは数百サンプルで学習可能</li>
+                    <li><strong>Perovskite Formation</strong>: Chemical composition regularity is dominant (ElemNet: ROCAUC 0.94)</li>
+                    <li><strong>Small-scale Datasets</strong>: GNNs require large amounts of data, composition-based can learn from hundreds of samples</li>
                 </ul>
                 <p>
-                    <strong>GNNが有利な場合</strong>:
+                    <strong>When GNN is advantageous</strong>:
                 </p>
                 <ul>
-                    <li><strong>形成エネルギー</strong>: 結晶構造（配位数、結合距離）が重要（ALIGNN: MAE 0.047 vs ElemNet: 0.065）</li>
-                    <li><strong>機械的性質</strong>: 弾性率は結晶対称性に強く依存</li>
-                    <li><strong>フォノン周波数</strong>: 原子配置が直接影響</li>
+                    <li><strong>Formation Energy</strong>: Crystal structure (coordination number, bond distance) is important (ALIGNN: MAE 0.047 vs ElemNet: 0.065)</li>
+                    <li><strong>Mechanical Properties</strong>: Elastic modulus strongly depends on crystal symmetry</li>
+                    <li><strong>Phonon Frequency</strong>: Atomic arrangement directly affects</li>
                 </ul>
             </div>
 
-            <h3>4.3.3 使い分け基準</h3>
+            <h3>4.3.3 Selection Criteria</h3>
             <p>
-                組成ベースとGNNベースモデルの選択基準を以下に示します：
+                The following shows selection criteria for composition-based and GNN-based models:
             </p>
 
             <table>
                 <thead>
                     <tr>
-                        <th>基準</th>
-                        <th>組成ベース推奨</th>
-                        <th>GNN推奨</th>
+                        <th>Criterion</th>
+                        <th>Composition-Based Recommended</th>
+                        <th>GNN Recommended</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td><strong>データサイズ</strong></td>
-                        <td>小規模（&lt;1,000サンプル）</td>
-                        <td>大規模（&gt;10,000サンプル）</td>
+                        <td><strong>Data Size</strong></td>
+                        <td>Small-scale (&lt;1,000 samples)</td>
+                        <td>Large-scale (&gt;10,000 samples)</td>
                     </tr>
                     <tr>
-                        <td><strong>結晶構造</strong></td>
-                        <td>未知・未決定</td>
-                        <td>既知・高精度</td>
+                        <td><strong>Crystal Structure</strong></td>
+                        <td>Unknown/Undetermined</td>
+                        <td>Known/High-precision</td>
                     </tr>
                     <tr>
-                        <td><strong>計算コスト</strong></td>
-                        <td>CPUで秒単位</td>
-                        <td>GPUで分～時間単位</td>
+                        <td><strong>Computational Cost</strong></td>
+                        <td>Seconds on CPU</td>
+                        <td>Minutes to hours on GPU</td>
                     </tr>
                     <tr>
-                        <td><strong>解釈可能性</strong></td>
-                        <td>特徴量重要度が直感的</td>
-                        <td>ブラックボックス性強い</td>
+                        <td><strong>Interpretability</strong></td>
+                        <td>Feature importance is intuitive</td>
+                        <td>Strong black-box nature</td>
                     </tr>
                     <tr>
-                        <td><strong>予測精度</strong></td>
-                        <td>GNNの85-95%</td>
-                        <td>最高精度</td>
+                        <td><strong>Prediction Accuracy</strong></td>
+                        <td>85-95% of GNN</td>
+                        <td>Highest accuracy</td>
                     </tr>
                     <tr>
-                        <td><strong>探索フェーズ</strong></td>
-                        <td>初期スクリーニング</td>
-                        <td>最終候補の精密評価</td>
+                        <td><strong>Search Phase</strong></td>
+                        <td>Initial screening</td>
+                        <td>Precise evaluation of final candidates</td>
                     </tr>
                 </tbody>
             </table>
 
             <div class="tip-box">
-                <h4>💡 実務での推奨ワークフロー</h4>
+                <h4>💡 Recommended Workflow in Practice</h4>
                 <ol>
-                    <li><strong>Phase 1 - 初期スクリーニング</strong>: 組成ベースモデルで10万候補を1,000候補に絞る（CPUで数分）</li>
-                    <li><strong>Phase 2 - 構造最適化</strong>: 1,000候補の結晶構造をDFT緩和計算（数日）</li>
-                    <li><strong>Phase 3 - 精密予測</strong>: GNNで100候補を選定（GPUで数時間）</li>
-                    <li><strong>Phase 4 - 実験検証</strong>: 最終10候補を合成・測定</li>
+                    <li><strong>Phase 1 - Initial Screening</strong>: Narrow down 100,000 candidates to 1,000 with composition-based model (minutes on CPU)</li>
+                    <li><strong>Phase 2 - Structure Optimization</strong>: DFT relaxation calculation of crystal structures for 1,000 candidates (several days)</li>
+                    <li><strong>Phase 3 - Precise Prediction</strong>: Select 100 candidates with GNN (several hours on GPU)</li>
+                    <li><strong>Phase 4 - Experimental Validation</strong>: Synthesize and measure final 10 candidates</li>
                 </ol>
                 <p>
-                    このハイブリッドアプローチにより、計算コストを抑えつつ高精度な材料探索が実現できます。
+                    This hybrid approach enables high-accuracy material discovery while controlling computational costs.
                 </p>
             </div>
 
-            <h3>4.3.4 Matbenchベンチマーク実行例</h3>
+            <h3>4.3.4 Matbench Benchmark Execution Example</h3>
             <p>
-                Matbenchベンチマークを実際に実行し、組成ベースモデルの性能を評価します。
+                We execute the Matbench benchmark and evaluate the performance of composition-based models.
             </p>
 
             <div class="colab-badge">
@@ -1373,9 +1373,9 @@ print("4. 両スコア上昇傾向 → データ追加で改善期待")
                 </a>
             </div>
 
-            <pre><code class="language-python"># Code Example6: Matbenchベンチマーク評価
+            <pre><code class="language-python"># Code Example6: Matbench benchmark evaluation
 
-# Matbenchのインストール
+# Matbench installation
 # !pip install matbench
 
 from matbench.bench import MatbenchBenchmark
@@ -1386,34 +1386,34 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 import pandas as pd
 
-# 1. Matbenchベンチマークの初期化
+# 1. Initialize Matbench benchmark
 mb = MatbenchBenchmark(
     autoload=False,
     subset=[
-        'matbench_mp_e_form',        # 形成エネルギー
-        'matbench_mp_gap',           # バンドギャップ
-        'matbench_perovskites'       # ペロブスカイト形成
+        'matbench_mp_e_form',        # Formation energy
+        'matbench_mp_gap',           # Band gap
+        'matbench_perovskites'       # Perovskite formation
     ]
 )
 
-# 2. データセットのロード
+# 2. Load datasets
 for task in mb.tasks:
     task.load()
     print(f"\n{task.dataset_name}:")
-    print(f"  サンプル数: {len(task.df)}")
-    print(f"  ターゲット: {task.metadata['target']}")
-    print(f"  タスクタイプ: {task.metadata['task_type']}")
+    print(f"  Sample count: {len(task.df)}")
+    print(f"  Target: {task.metadata['target']}")
+    print(f"  Task type: {task.metadata['task_type']}")
 
-# 3. 組成ベースモデルの構築と評価
+# 3. Build and evaluate composition-based model
 def evaluate_composition_model(task):
     """
-    組成ベースモデル（Magpie + RandomForest）でMatbenchタスクを評価
+    Evaluate Matbench task with composition-based model (Magpie + RandomForest)
     """
-    # 化学組成の変換
+    # Convert chemical composition
     str_to_comp = StrToComposition(target_col_id='composition_obj')
     task.df = str_to_comp.featurize_dataframe(task.df, 'composition')
 
-    # Magpie特徴量の生成
+    # Generate Magpie features
     featurizer = ElementProperty.from_preset('magpie')
     task.df = featurizer.featurize_dataframe(task.df, 'composition_obj')
 
@@ -1442,57 +1442,57 @@ def evaluate_composition_model(task):
         ('model', model)
     ])
 
-    # Matbench標準の5-fold CVで評価
+    # Evaluate with Matbench standard 5-fold CV
     for fold_idx, fold in enumerate(task.folds):
-        # 訓練/テストデータ取得
+        # Get train/test data
         train_inputs, train_outputs = task.get_train_and_val_data(fold)
         X_train = train_inputs[feature_cols]
         y_train = train_outputs
 
-        # モデル訓練
+        # Train model
         pipeline.fit(X_train, y_train)
 
-        # テストデータで予測
+        # Predict on test data
         test_inputs, test_outputs = task.get_test_data(fold,
                                                         include_target=True)
         X_test = test_inputs[feature_cols]
         predictions = pipeline.predict(X_test)
 
-        # 予測結果を記録
+        # Record predictions
         task.record(fold, predictions)
 
-        print(f"  Fold {fold_idx + 1} 完了")
+        print(f"  Fold {fold_idx + 1} complete")
 
-    # 全体スコアの計算
+    # Calculate overall scores
     scores = task.scores
-    print(f"\n{task.dataset_name} 評価結果:")
+    print(f"\n{task.dataset_name} Evaluation Results:")
     for metric, values in scores.items():
         print(f"  {metric}: {values['mean']:.4f} ± {values['std']:.4f}")
 
     return scores
 
-# 4. 全タスクで評価実行
+# 4. Execute evaluation on all tasks
 results = {}
 for task in mb.tasks:
     print(f"\n{'='*60}")
-    print(f"評価中: {task.dataset_name}")
+    print(f"Evaluating: {task.dataset_name}")
     print('='*60)
     scores = evaluate_composition_model(task)
     results[task.dataset_name] = scores
 
-# 5. 結果のサマリー表示
+# 5. Display results summary
 print("\n" + "="*60)
-print("全タスク評価結果サマリー")
+print("All Tasks Evaluation Results Summary")
 print("="*60)
 for dataset_name, scores in results.items():
     print(f"\n{dataset_name}:")
     for metric, values in scores.items():
         print(f"  {metric}: {values['mean']:.4f} ± {values['std']:.4f}")
 
-# 6. 結果をMatbench公式フォーマットで保存
+# 6. Save results in Matbench official format
 mb.to_file('matbench_composition_results.json')
-print("\n結果を matbench_composition_results.json ")
-print("公式リーダーボードへの提出が可能です: https://matbench.materialsproject.org/")
+print("\nSaved results to matbench_composition_results.json")
+print("Can be submitted to official leaderboard: https://matbench.materialsproject.org/")
 </code></pre>
         </section>
 
@@ -1500,15 +1500,15 @@ print("公式リーダーボードへの提出が可能です: https://matbench.
         <section id="model-interpretability">
             <h2>4.4 Model Interpretability (SHAP)</h2>
 
-            <h3>4.4.1 SHAPの基礎理論</h3>
+            <h3>4.4.1 SHAP Foundational Theory</h3>
             <p>
-                SHAP（SHapley Additive exPlanations）は、ゲーム理論のShapley値を機械学習に応用した解釈手法です。各特徴量がPredicted Valueに与える貢献度を定量化し、ブラックボックスモデルの意思決定を説明可能にします。
+                SHAP (SHapley Additive exPlanations) is an interpretation method that applies Shapley values from game theory to machine learning. It quantifies the contribution of each feature to predicted values, making black-box model decisions explainable.
             </p>
 
             <div class="info-box">
-                <h4>📐 SHAP値の定義</h4>
+                <h4>📐 Definition of SHAP Values</h4>
                 <p>
-                    特徴量 $i$ のSHAP値 $\phi_i$ は、以下のShapley値として定義されます：
+                    The SHAP value $\phi_i$ for feature $i$ is defined as the following Shapley value:
                 </p>
                 <p>
                     $$
@@ -1516,58 +1516,58 @@ print("公式リーダーボードへの提出が可能です: https://matbench.
                     $$
                 </p>
                 <p>
-                    ここで、$F$ は全特徴量の集合、$S$ は特徴量の部分集合、$f(S)$ は特徴量集合 $S$ を使用したPredicted Valueです。
+                    Where $F$ is the set of all features, $S$ is a subset of features, and $f(S)$ is the predicted value using feature set $S$.
                 </p>
                 <p>
-                    <strong>直感的解釈</strong>: 特徴量 $i$ を追加することでPredicted Valueがどれだけ変化するかを、全ての可能な特徴量組み合わせで平均化した値。
+                    <strong>Intuitive Interpretation</strong>: The value averaged over all possible feature combinations of how much the predicted value changes when feature $i$ is added.
                 </p>
             </div>
 
-            <h3>4.4.2 特徴量重要度 vs SHAP</h3>
+            <h3>4.4.2 Feature Importance vs SHAP</h3>
             <p>
-                Random Forestの特徴量重要度とSHAPの違いを理解することが重要です：
+                It is important to understand the differences between Random Forest feature importance and SHAP:
             </p>
 
             <table>
                 <thead>
                     <tr>
-                        <th>比較項目</th>
-                        <th>特徴量重要度（Feature Importance）</th>
-                        <th>SHAP値</th>
+                        <th>Comparison Item</th>
+                        <th>Feature Importance</th>
+                        <th>SHAP Value</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td><strong>定義</strong></td>
-                        <td>不純度（Gini）減少の平均</td>
-                        <td>Predicted Valueへの貢献度（Shapley値）</td>
+                        <td><strong>Definition</strong></td>
+                        <td>Average impurity (Gini) decrease</td>
+                        <td>Contribution to predicted value (Shapley value)</td>
                     </tr>
                     <tr>
-                        <td><strong>解釈</strong></td>
-                        <td>グローバル（全体的な重要度）</td>
-                        <td>ローカル（個別サンプルの貢献度）</td>
+                        <td><strong>Interpretation</strong></td>
+                        <td>Global (overall importance)</td>
+                        <td>Local (individual sample contribution)</td>
                     </tr>
                     <tr>
-                        <td><strong>方向性</strong></td>
-                        <td>なし（重要度のみ）</td>
-                        <td>あり（正/負の貢献）</td>
+                        <td><strong>Directionality</strong></td>
+                        <td>None (importance only)</td>
+                        <td>Yes (positive/negative contribution)</td>
                     </tr>
                     <tr>
-                        <td><strong>計算コスト</strong></td>
-                        <td>低（訓練時に計算）</td>
-                        <td>高（予測ごとに計算）</td>
+                        <td><strong>Computational Cost</strong></td>
+                        <td>Low (calculated during training)</td>
+                        <td>High (calculated per prediction)</td>
                     </tr>
                     <tr>
-                        <td><strong>理論保証</strong></td>
-                        <td>なし（ヒューリスティック）</td>
-                        <td>あり（公理的基礎）</td>
+                        <td><strong>Theoretical Guarantee</strong></td>
+                        <td>None (heuristic)</td>
+                        <td>Yes (axiomatic foundation)</td>
                     </tr>
                 </tbody>
             </table>
 
-            <h3>4.4.3 SHAP実装と可視化</h3>
+            <h3>4.4.3 SHAP Implementation and Visualization</h3>
             <p>
-                SHAPライブラリを使用して、Random ForestSaved model toSHAP解析します。
+                We analyze Random Forest models using the SHAP library.
             </p>
 
             <div class="colab-badge">
@@ -1576,46 +1576,46 @@ print("公式リーダーボードへの提出が可能です: https://matbench.
                 </a>
             </div>
 
-            <pre><code class="language-python"># Code Example7: SHAP解釈（summary_plot、dependence_plot）
+            <pre><code class="language-python"># Code Example7: SHAP interpretation (summary_plot, dependence_plot)
 
-# SHAPのインストール
+# SHAP installation
 # !pip install shap
 
 import shap
 import matplotlib.pyplot as plt
 import numpy as np
 
-# 訓練済みSaved model to使用（前のセクションで訓練したbest_rf）
-# X_test, y_test も前のセクションから継続
+# Use trained model (best_rf trained in previous section)
+# X_test, y_test also continue from previous section
 
-# 1. SHAP Explainerの作成（Tree Explainer for Random Forest）
+# 1. Create SHAP Explainer (Tree Explainer for Random Forest)
 explainer = shap.TreeExplainer(best_rf)
 
-# 2. SHAP値の計算（全テストデータ）
-print("SHAP値計算中...")
+# 2. Calculate SHAP values (all test data)
+print("Calculating SHAP values...")
 shap_values = explainer.shap_values(X_test)
-print(f"SHAP値のshape: {shap_values.shape}")  # (n_samples, n_features)
+print(f"SHAP values shape: {shap_values.shape}")  # (n_samples, n_features)
 
-# 3. Summary Plot（全体的な特徴量重要度と分布）
+# 3. Summary Plot (overall feature importance and distribution)
 plt.figure(figsize=(10, 8))
 shap.summary_plot(shap_values, X_test, feature_names=feature_cols,
                   show=False, max_display=20)
 plt.tight_layout()
 plt.savefig('shap_summary_plot.png', dpi=150, bbox_inches='tight')
-print("\nSummary Plotを shap_summary_plot.png ")
+print("\nSaved Summary Plot to shap_summary_plot.png")
 plt.close()
 
-# 4. Summary Plot（棒グラフ版：平均絶対SHAP値）
+# 4. Summary Plot (bar chart version: mean absolute SHAP values)
 plt.figure(figsize=(10, 8))
 shap.summary_plot(shap_values, X_test, feature_names=feature_cols,
                   plot_type='bar', show=False, max_display=20)
 plt.tight_layout()
 plt.savefig('shap_summary_bar.png', dpi=150, bbox_inches='tight')
-print("Summary Plot（棒グラフ）を shap_summary_bar.png ")
+print("Saved Summary Plot (bar chart) to shap_summary_bar.png")
 plt.close()
 
-# 5. Dependence Plot（特定特徴量の詳細分析）
-# 最も重要な特徴量を取得
+# 5. Dependence Plot (detailed analysis of specific feature)
+# Get most important feature
 shap_importance = np.abs(shap_values).mean(axis=0)
 top_feature_idx = np.argmax(shap_importance)
 top_feature_name = feature_cols[top_feature_idx]
@@ -1631,41 +1631,41 @@ shap.dependence_plot(
 plt.tight_layout()
 plt.savefig(f'shap_dependence_{top_feature_name}.png',
             dpi=150, bbox_inches='tight')
-print(f"\nDependence Plot（{top_feature_name}）を保存しました")
+print(f"\nSaved Dependence Plot ({top_feature_name})")
 plt.close()
 
-# 6. Force Plot（個別サンプルの予測説明）
-# JavaScriptベースのため、Jupyter環境推奨
+# 6. Force Plot (individual sample prediction explanation)
+# JavaScript-based, recommended for Jupyter environment
 shap.initjs()
 
-# 最初のテストサンプルの予測を説明
+# Explain prediction for first test sample
 sample_idx = 0
 shap_values_sample = shap_values[sample_idx, :]
 base_value = explainer.expected_value
 prediction = best_rf.predict(X_test.iloc[[sample_idx]])[0]
 
-print(f"\nサンプル#{sample_idx}の予測説明:")
-print(f"  基準値（平均予測）: {base_value:.4f}")
+print(f"\nPrediction explanation for Sample #{sample_idx}:")
+print(f"  Base value (mean prediction): {base_value:.4f}")
 print(f"  Predicted Value: {prediction:.4f}")
 print(f"  Actual Value: {y_test.iloc[sample_idx]:.4f}")
 
-# Force Plotの表示（Jupyter環境）
+# Display Force Plot (Jupyter environment)
 # shap.force_plot(base_value, shap_values_sample, X_test.iloc[sample_idx, :],
 #                 feature_names=feature_cols)
 
-# 7. 特徴量別の平均絶対SHAP値ランキング
+# 7. Mean absolute SHAP value ranking by feature
 shap_df = pd.DataFrame({
     'feature': feature_cols,
     'mean_abs_shap': np.abs(shap_values).mean(axis=0)
 }).sort_values('mean_abs_shap', ascending=False)
 
-print("\n上位20特徴量（平均絶対SHAP値）:")
+print("\nTop 20 Features (mean absolute SHAP value):")
 print(shap_df.head(20).to_string(index=False))
 
-# 8. 部分依存プロット（Partial Dependence Plot）との比較
+# 8. Comparison with Partial Dependence Plot
 from sklearn.inspection import partial_dependence, PartialDependenceDisplay
 
-# 上位3特徴量の部分依存プロットを作成
+# Create partial dependence plots for top 3 features
 top_3_features = shap_df.head(3)['feature'].tolist()
 top_3_indices = [feature_cols.index(f) for f in top_3_features]
 
@@ -1676,42 +1676,42 @@ for i, (feature_idx, feature_name) in enumerate(zip(top_3_indices, top_3_feature
     )
     axes[i].plot(pd_result['grid_values'][0], pd_result['average'][0])
     axes[i].set_xlabel(feature_name)
-    axes[i].set_ylabel('部分依存')
+    axes[i].set_ylabel('Partial Dependence')
     axes[i].grid(alpha=0.3)
 
 plt.tight_layout()
 plt.savefig('partial_dependence_plots.png', dpi=150)
-print("\n部分依存プロットを partial_dependence_plots.png ")
+print("\nSaved partial dependence plots to partial_dependence_plots.png")
 
-# 9. SHAP値の統計的サマリー
-print("\nSHAP値の統計:")
-print(f"  全特徴量の平均絶対SHAP値: {np.abs(shap_values).mean():.4f}")
-print(f"  最大SHAP値: {shap_values.max():.4f}")
-print(f"  最小SHAP値: {shap_values.min():.4f}")
+# 9. Statistical summary of SHAP values
+print("\nSHAP Value Statistics:")
+print(f"  Mean absolute SHAP value across all features: {np.abs(shap_values).mean():.4f}")
+print(f"  Maximum SHAP value: {shap_values.max():.4f}")
+print(f"  Minimum SHAP value: {shap_values.min():.4f}")
 
-# 正の貢献と負の貢献を分離
+# Separate positive and negative contributions
 positive_shap = shap_values[shap_values > 0].sum()
 negative_shap = shap_values[shap_values < 0].sum()
-print(f"  正の貢献合計: {positive_shap:.4f}")
-print(f"  負の貢献合計: {negative_shap:.4f}")
+print(f"  Total positive contribution: {positive_shap:.4f}")
+print(f"  Total negative contribution: {negative_shap:.4f}")
 </code></pre>
 
-            <h3>4.4.4 SHAP解析の実践的解釈</h3>
+            <h3>4.4.4 Practical Interpretation of SHAP Analysis</h3>
             <p>
-                SHAPの各可視化手法の解釈方法を説明します：
+                We explain interpretation methods for each SHAP visualization technique:
             </p>
 
             <div class="mermaid">
                 graph TB
-                A[SHAP可視化手法] --> B[Summary Plot]
+                A[SHAP Visualization Methods] --> B[Summary Plot]
                 A --> C[Dependence Plot]
                 A --> D[Force Plot]
                 A --> E[Waterfall Plot]
 
-                B --> B1[全特徴量の重要度<br/>色=特徴量値]
-                C --> C1[特徴量値とSHAP値の関係<br/>相互作用の可視化]
-                D --> D2[個別予測の要因分解<br/>基準値からの変化]
-                E --> E1[予測の積み上げグラフ<br/>累積的な貢献]
+                B --> B1[Importance of all features<br/>Color=Feature value]
+                C --> C1[Relationship between feature value and SHAP value<br/>Interaction visualization]
+                D --> D2[Factor decomposition of individual predictions<br/>Change from base value]
+                E --> E1[Stacked graph of predictions<br/>Cumulative contribution]
 
                 style B fill:#e3f2fd
                 style C fill:#fff3e0
@@ -1720,15 +1720,15 @@ print(f"  負の貢献合計: {negative_shap:.4f}")
             </mermaid>
 
             <div class="tip-box">
-                <h4>💡 SHAP解析のベストプラクティス</h4>
+                <h4>💡 Best Practices for SHAP Analysis</h4>
                 <ol>
-                    <li><strong>Summary Plot</strong>: 全体傾向の把握に最適。赤（高値）が予測を上げるか下げるかを確認</li>
-                    <li><strong>Dependence Plot</strong>: 非線形関係の発見。閾値効果や飽和効果を特定</li>
-                    <li><strong>Force Plot</strong>: 個別予測の説明。異常値や予測外れの原因分析</li>
-                    <li><strong>部分依存プロットとの併用</strong>: SHAPは局所的、PDPは大域的な特徴量効果を可視化</li>
+                    <li><strong>Summary Plot</strong>: Optimal for understanding overall trends. Check whether red (high values) increase or decrease predictions</li>
+                    <li><strong>Dependence Plot</strong>: Discover nonlinear relationships. Identify threshold effects and saturation effects</li>
+                    <li><strong>Force Plot</strong>: Explain individual predictions. Analyze causes of outliers and prediction errors</li>
+                    <li><strong>Use with Partial Dependence Plots</strong>: SHAP visualizes local effects, PDP visualizes global feature effects</li>
                 </ol>
                 <p>
-                    <strong>材料科学での応用例</strong>: 形成エネルギー予測で「電気陰性度の差」が高SHAP値を示す場合、イオン結合性が安定性に寄与していることを示唆します。
+                    <strong>Application Example in Materials Science</strong>: If "electronegativity difference" shows high SHAP values in formation energy prediction, it suggests that ionic bonding contributes to stability.
                 </p>
             </div>
         </section>
@@ -1739,26 +1739,26 @@ print(f"  負の貢献合計: {negative_shap:.4f}")
 
             <!-- Easy Exercises -->
             <div class="exercise">
-                <h4>演習1（Easy）: パイプライン構築</h4>
+                <h4>Exercise 1 (Easy): Building a Pipeline</h4>
                 <p>
-                    Magpie特徴量、StandardScaler、RandomForestRegressorを含むscikit-learnパイプラインを構築し、クロスバリデーションスコア（5-fold、R²）を計算してください。
+                    Build a scikit-learn pipeline including Magpie features, StandardScaler, and RandomForestRegressor, and calculate the cross-validation score (5-fold, R²).
                 </p>
                 <details>
-                    <summary>解答例を表示</summary>
+                    <summary>Show sample solution</summary>
                     <pre><code class="language-python">from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import cross_val_score
 from matminer.featurizers.composition import ElementProperty
 
-# Generate features（パイプライン外）
+# Generate features (outside pipeline)
 featurizer = ElementProperty.from_preset('magpie')
 data = featurizer.featurize_dataframe(data, 'composition_obj')
 
 X = data[featurizer.feature_labels()]
 y = data['target']
 
-# パイプライン構築
+# Build pipeline
 pipeline = Pipeline([
     ('scaler', StandardScaler()),
     ('model', RandomForestRegressor(n_estimators=100, random_state=42))
@@ -1772,31 +1772,31 @@ print(f"5-Fold CV R²: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
             </div>
 
             <div class="exercise">
-                <h4>演習2（Easy）: 基本モデル訓練</h4>
+                <h4>Exercise 2 (Easy): Basic Model Training</h4>
                 <p>
-                    XGBoostRegressorをデフォルトパラメータで訓練し、訓練/テストデータのMAE、RMSE、R²を計算してください。
+                    Train XGBoostRegressor with default parameters and calculate MAE, RMSE, and R² for training/test data.
                 </p>
                 <details>
-                    <summary>解答例を表示</summary>
+                    <summary>Show sample solution</summary>
                     <pre><code class="language-python">import xgboost as xgb
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import numpy as np
 
-# モデル訓練
+# Train model
 xgb_model = xgb.XGBRegressor(random_state=42)
 xgb_model.fit(X_train, y_train)
 
-# 予測
+# Predict
 y_pred_train = xgb_model.predict(X_train)
 y_pred_test = xgb_model.predict(X_test)
 
-# 評価指標
-print("訓練データ:")
+# Evaluation metrics
+print("Training Data:")
 print(f"  MAE:  {mean_absolute_error(y_train, y_pred_train):.4f}")
 print(f"  RMSE: {np.sqrt(mean_squared_error(y_train, y_pred_train)):.4f}")
 print(f"  R²:   {r2_score(y_train, y_pred_train):.4f}")
 
-print("\nテストデータ:")
+print("\nTest Data:")
 print(f"  MAE:  {mean_absolute_error(y_test, y_pred_test):.4f}")
 print(f"  RMSE: {np.sqrt(mean_squared_error(y_test, y_pred_test)):.4f}")
 print(f"  R²:   {r2_score(y_test, y_pred_test):.4f}")
@@ -1805,21 +1805,21 @@ print(f"  R²:   {r2_score(y_test, y_pred_test):.4f}")
             </div>
 
             <div class="exercise">
-                <h4>演習3（Easy）: クロスバリデーション実装</h4>
+                <h4>Exercise 3 (Easy): Cross-Validation Implementation</h4>
                 <p>
-                    MLPRegressorに対して3-fold クロスバリデーションを実行し、各foldのR²スコアと平均を表示してください。
+                    Execute 3-fold cross-validation on MLPRegressor and display R² scores for each fold and the average.
                 </p>
                 <details>
-                    <summary>解答例を表示</summary>
+                    <summary>Show sample solution</summary>
                     <pre><code class="language-python">from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import cross_validate
 from sklearn.preprocessing import StandardScaler
 
-# データ標準化
+# Data standardization
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
-# MLPモデル
+# MLP model
 mlp = MLPRegressor(hidden_layer_sizes=(100,), max_iter=500, random_state=42)
 
 # 3-fold CV
@@ -1830,13 +1830,13 @@ cv_results = cross_validate(
     return_train_score=True
 )
 
-print("各foldのスコア:")
+print("Scores for each fold:")
 for i, (train_score, test_score) in enumerate(zip(
     cv_results['train_score'], cv_results['test_score']
 )):
-    print(f"  Fold {i+1}: 訓練R²={train_score:.4f}, テストR²={test_score:.4f}")
+    print(f"  Fold {i+1}: Train R²={train_score:.4f}, Test R²={test_score:.4f}")
 
-print(f"\n平均テストR²: {cv_results['test_score'].mean():.4f} "
+print(f"\nAverage Test R²: {cv_results['test_score'].mean():.4f} "
       f"± {cv_results['test_score'].std():.4f}")
 </code></pre>
                 </details>
@@ -1844,12 +1844,12 @@ print(f"\n平均テストR²: {cv_results['test_score'].mean():.4f} "
 
             <!-- Medium Exercises -->
             <div class="exercise">
-                <h4>演習4（Medium）: GridSearch最適化</h4>
+                <h4>Exercise 4 (Medium): GridSearch Optimization</h4>
                 <p>
-                    Random Forestのハイパーパラメータ（n_estimators、max_depth、min_samples_split）をGridSearchCVで最適化し、最適パラメータとCV最良スコアを表示してください。
+                    Optimize Random Forest hyperparameters (n_estimators, max_depth, min_samples_split) with GridSearchCV and display optimal parameters and best CV score.
                 </p>
                 <details>
-                    <summary>解答例を表示</summary>
+                    <summary>Show sample solution</summary>
                     <pre><code class="language-python">from sklearn.model_selection import GridSearchCV
 
 param_grid = {
@@ -1865,23 +1865,23 @@ grid_search = GridSearchCV(
 
 grid_search.fit(X_train, y_train)
 
-print(f"最適パラメータ: {grid_search.best_params_}")
-print(f"CV最良R²スコア: {grid_search.best_score_:.4f}")
+print(f"Optimal Parameters: {grid_search.best_params_}")
+print(f"Best CV R² Score: {grid_search.best_score_:.4f}")
 
-# テストデータで評価
+# Evaluate on test data
 test_score = grid_search.best_estimator_.score(X_test, y_test)
-print(f"テストR²スコア: {test_score:.4f}")
+print(f"Test R² Score: {test_score:.4f}")
 </code></pre>
                 </details>
             </div>
 
             <div class="exercise">
-                <h4>演習5（Medium）: 学習曲線解釈</h4>
+                <h4>Exercise 5 (Medium): Learning Curve Interpretation</h4>
                 <p>
-                    学習曲線を描画し、過学習・未学習の判定を行ってください。訓練データサイズを10%, 30%, 50%, 70%, 100%で変化させます。
+                    Draw learning curves and diagnose overfitting/underfitting. Vary training data size at 10%, 30%, 50%, 70%, and 100%.
                 </p>
                 <details>
-                    <summary>解答例を表示</summary>
+                    <summary>Show sample solution</summary>
                     <pre><code class="language-python">from sklearn.model_selection import learning_curve
 import matplotlib.pyplot as plt
 
@@ -1895,27 +1895,27 @@ train_sizes, train_scores, valid_scores = learning_curve(
 )
 
 plt.figure(figsize=(10, 6))
-plt.plot(train_sizes, train_scores.mean(axis=1), 'o-', label='訓練スコア')
-plt.plot(train_sizes, valid_scores.mean(axis=1), 's-', label='検証スコア')
-plt.xlabel('訓練サンプル数')
-plt.ylabel('R²スコア')
-plt.title('学習曲線')
+plt.plot(train_sizes, train_scores.mean(axis=1), 'o-', label='Training Score')
+plt.plot(train_sizes, valid_scores.mean(axis=1), 's-', label='Validation Score')
+plt.xlabel('Number of Training Samples')
+plt.ylabel('R² Score')
+plt.title('Learning Curve')
 plt.legend()
 plt.grid(alpha=0.3)
 
-# 診断
+# Diagnosis
 final_train_score = train_scores.mean(axis=1)[-1]
 final_valid_score = valid_scores.mean(axis=1)[-1]
 gap = final_train_score - final_valid_score
 
 if gap > 0.1:
-    diagnosis = "過学習の可能性（訓練スコア >> 検証スコア）"
+    diagnosis = "Possibility of overfitting（Training Score >> Validation Score）"
 elif final_valid_score < 0.7:
-    diagnosis = "未学習の可能性（両スコアとも低い）"
+    diagnosis = "Possibility of underfitting（Both scores are low）"
 else:
-    diagnosis = "良好な汎化性能"
+    diagnosis = "Good generalization performance"
 
-plt.text(0.5, 0.1, f"診断: {diagnosis}",
+plt.text(0.5, 0.1, f"Diagnosis: {diagnosis}",
          transform=plt.gca().transAxes, fontsize=12,
          bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 plt.tight_layout()
@@ -1925,22 +1925,22 @@ plt.show()
             </div>
 
             <div class="exercise">
-                <h4>演習6（Medium）: SHAP値計算とランキング</h4>
+                <h4>Exercise 6 (Medium): SHAP Value Calculation and Ranking</h4>
                 <p>
-                    訓練済みRandom ForestモデルのSHAP値を計算し、平均絶対SHAP値の上位10特徴量をランキング表示してください。
+                    Calculate SHAP values for a trained Random Forest model and display ranking of top 10 features by mean absolute SHAP value.
                 </p>
                 <details>
-                    <summary>解答例を表示</summary>
+                    <summary>Show sample solution</summary>
                     <pre><code class="language-python">import shap
 import numpy as np
 
-# TreeExplainerの作成
+# Create TreeExplainer
 explainer = shap.TreeExplainer(best_rf)
 
-# SHAP値計算
+# Calculate SHAP values
 shap_values = explainer.shap_values(X_test)
 
-# 平均絶対SHAP値でランキング
+# Mean Absolute SHAP Valuefor ranking
 shap_importance = np.abs(shap_values).mean(axis=0)
 feature_names = X_test.columns.tolist()
 
@@ -1949,14 +1949,14 @@ shap_df = pd.DataFrame({
     'mean_abs_shap': shap_importance
 }).sort_values('mean_abs_shap', ascending=False)
 
-print("上位10特徴量（平均絶対SHAP値）:")
+print("Top 10 Features (mean absolute SHAP value):")
 print(shap_df.head(10).to_string(index=False))
 
-# 可視化
+# Visualization
 plt.figure(figsize=(10, 6))
 plt.barh(shap_df.head(10)['feature'], shap_df.head(10)['mean_abs_shap'])
-plt.xlabel('平均絶対SHAP値')
-plt.title('特徴量重要度（SHAP）')
+plt.xlabel('Mean Absolute SHAP Value')
+plt.title('Feature Importance (SHAP)')
 plt.gca().invert_yaxis()
 plt.tight_layout()
 plt.show()
@@ -1965,18 +1965,18 @@ plt.show()
             </div>
 
             <div class="exercise">
-                <h4>演習7（Medium）: モデル性能比較</h4>
+                <h4>Exercise 7 (Medium): Model Performance Comparison</h4>
                 <p>
-                    Random Forest、XGBoost、MLPの3Saved model to同じデータセットで訓練し、MAE、RMSE、R²を比較表として出力してください。
+                    Train three models (Random Forest, XGBoost, MLP) on the same dataset and output MAE, RMSE, and R² as a comparison table.
                 </p>
                 <details>
-                    <summary>解答例を表示</summary>
+                    <summary>Show sample solution</summary>
                     <pre><code class="language-python">from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
 import xgboost as xgb
 from sklearn.preprocessing import StandardScaler
 
-# モデル定義
+# Define models
 models = {
     'Random Forest': RandomForestRegressor(n_estimators=200, max_depth=20,
                                            random_state=42),
@@ -1986,11 +1986,11 @@ models = {
                         random_state=42)
 }
 
-# 評価結果を格納
+# Store evaluation results
 results = []
 
 for model_name, model in models.items():
-    # MLPの場合は標準化
+    # Standardize for MLP
     if model_name == 'MLP':
         scaler = StandardScaler()
         X_train_current = scaler.fit_transform(X_train)
@@ -1999,11 +1999,11 @@ for model_name, model in models.items():
         X_train_current = X_train
         X_test_current = X_test
 
-    # 訓練と予測
+    # Train and predict
     model.fit(X_train_current, y_train)
     y_pred = model.predict(X_test_current)
 
-    # 評価指標
+    # Evaluation metrics
     mae = mean_absolute_error(y_test, y_pred)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     r2 = r2_score(y_test, y_pred)
@@ -2015,30 +2015,30 @@ for model_name, model in models.items():
         'R²': r2
     })
 
-# 結果表示
+# Display results
 results_df = pd.DataFrame(results)
-print("\nモデル性能比較:")
+print("\nModel Performance Comparison:")
 print(results_df.to_string(index=False))
 
-# 最良Saved model to強調
+# Highlight best model
 best_model_idx = results_df['R²'].idxmax()
-print(f"\n最良モデル: {results_df.loc[best_model_idx, 'Model']}")
+print(f"\nBest Model: {results_df.loc[best_model_idx, 'Model']}")
 </code></pre>
                 </details>
             </div>
 
             <!-- Hard Exercises -->
             <div class="exercise">
-                <h4>演習8（Hard）: アンサンブル手法（Stacking）</h4>
+                <h4>Exercise 8 (Hard): Ensemble Method (Stacking)</h4>
                 <p>
-                    Random Forest、XGBoost、MLPをベースモデルとし、LinearRegressionをメタモデルとするStackingRegressorを実装してください。単一モデルより性能が向上するか検証してください。
+                    Implement StackingRegressor with Random Forest, XGBoost, and MLP as base models and LinearRegression as meta-model. Verify if performance improves over single models.
                 </p>
                 <details>
-                    <summary>解答例を表示</summary>
+                    <summary>Show sample solution</summary>
                     <pre><code class="language-python">from sklearn.ensemble import StackingRegressor
 from sklearn.linear_model import LinearRegression
 
-# ベースモデルの定義
+# Define base models
 base_models = [
     ('rf', RandomForestRegressor(n_estimators=200, max_depth=20,
                                  random_state=42)),
@@ -2051,56 +2051,56 @@ base_models = [
     ]))
 ]
 
-# メタモデル
+# Meta-model
 meta_model = LinearRegression()
 
-# StackingRegressorの構築
+# Build StackingRegressor
 stacking_model = StackingRegressor(
     estimators=base_models,
     final_estimator=meta_model,
     cv=5
 )
 
-# 訓練
-print("Stackingモデル訓練中...")
+# Train
+print("Training Stacking model...")
 stacking_model.fit(X_train, y_train)
 
-# 評価
+# Evaluation
 y_pred_stacking = stacking_model.predict(X_test)
 stacking_mae = mean_absolute_error(y_test, y_pred_stacking)
 stacking_rmse = np.sqrt(mean_squared_error(y_test, y_pred_stacking))
 stacking_r2 = r2_score(y_test, y_pred_stacking)
 
-print("\nStacking モデル性能:")
+print("\nStacking Model Performance:")
 print(f"  MAE:  {stacking_mae:.4f}")
 print(f"  RMSE: {stacking_rmse:.4f}")
 print(f"  R²:   {stacking_r2:.4f}")
 
-# 単一モデルとの比較
-print("\n性能改善率（vs Random Forest）:")
-rf_r2 = 0.85  # 前の演習結果を仮定
+# Comparison with single models
+print("\nPerformance Improvement Rate (vs Random Forest):")
+rf_r2 = 0.85  # Assume previous exercise results
 improvement = (stacking_r2 - rf_r2) / rf_r2 * 100
-print(f"  R²改善: {improvement:.2f}%")
+print(f"  R² Improvement: {improvement:.2f}%")
 </code></pre>
                 </details>
             </div>
 
             <div class="exercise">
-                <h4>演習9（Hard）: Matbenchベンチマーク再現</h4>
+                <h4>Exercise 9 (Hard): Matbench Benchmark Reproduction</h4>
                 <p>
-                    Matbenchのmatbench_mp_e_form（形成エネルギー）タスクで、組成ベースSaved model to訓練し、公式リーダーボードのフォーマットで結果を保存してください。
+                    Train a composition-based model on Matbench's matbench_mp_e_form (formation energy) task and save results in official leaderboard format.
                 </p>
                 <details>
-                    <summary>解答例を表示</summary>
+                    <summary>Show sample solution</summary>
                     <pre><code class="language-python">from matbench.bench import MatbenchBenchmark
 
-# Matbenchベンチマークの初期化
+# Initialize Matbench benchmark
 mb = MatbenchBenchmark(autoload=False, subset=['matbench_mp_e_form'])
 
 for task in mb.tasks:
     task.load()
 
-    # 化学組成変換とMagpie特徴量生成
+    # Convert chemical composition and generate Magpie features
     str_to_comp = StrToComposition(target_col_id='composition_obj')
     task.df = str_to_comp.featurize_dataframe(task.df, 'composition')
 
@@ -2109,14 +2109,14 @@ for task in mb.tasks:
 
     feature_cols = featurizer.feature_labels()
 
-    # パイプライン
+    # Pipeline
     pipeline = Pipeline([
         ('scaler', StandardScaler()),
         ('model', RandomForestRegressor(n_estimators=300, max_depth=30,
                                         min_samples_split=5, random_state=42))
     ])
 
-    # 5-fold CVで評価
+    # Evaluation with 5-fold CV
     for fold_idx, fold in enumerate(task.folds):
         train_inputs, train_outputs = task.get_train_and_val_data(fold)
         X_train_fold = train_inputs[feature_cols]
@@ -2129,48 +2129,48 @@ for task in mb.tasks:
         predictions = pipeline.predict(X_test_fold)
 
         task.record(fold, predictions)
-        print(f"Fold {fold_idx + 1} 完了")
+        print(f"Fold {fold_idx + 1} completed")
 
-    # スコア表示
+    # Display scores
     scores = task.scores
     for metric, values in scores.items():
         print(f"{metric}: {values['mean']:.4f} ± {values['std']:.4f}")
 
-# 結果保存
+# Save results
 mb.to_file('matbench_eform_results.json')
-print("\n結果を matbench_eform_results.json ")
+print("\nSaved results to matbench_eform_results.json ")
 </code></pre>
                 </details>
             </div>
 
             <div class="exercise">
-                <h4>演習10（Hard）: カスタム評価指標（MAPE）</h4>
+                <h4>Exercise 10 (Hard): Custom Evaluation Metric (MAPE)</h4>
                 <p>
-                    Mean Absolute Percentage Error（MAPE）をカスタム評価指標として実装し、GridSearchCVで使用してください。MAPEは以下の式で定義されます：<br>
+                    Implement Mean Absolute Percentage Error (MAPE) as a custom evaluation metric and use it with GridSearchCV. MAPE is defined by the following formula:<br>
                     $$\text{MAPE} = \frac{100}{n} \sum_{i=1}^{n} \left| \frac{y_i - \hat{y}_i}{y_i} \right|$$
                 </p>
                 <details>
-                    <summary>解答例を表示</summary>
+                    <summary>Show sample solution</summary>
                     <pre><code class="language-python">from sklearn.metrics import make_scorer
 
 def mean_absolute_percentage_error(y_true, y_pred):
     """
-    MAPE（Mean Absolute Percentage Error）を計算
+    MAPE（Mean Absolute Percentage Error） calculation
 
-    注意: y_true に0が含まれる場合はエラー回避のため小さい値を追加
+    Note: Add small value to avoid errors when y_true contains 0
     """
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
 
-    # 0除算回避
+    # Avoid division by zero
     epsilon = 1e-10
     return np.mean(np.abs((y_true - y_pred) / (y_true + epsilon))) * 100
 
-# scikit-learn scorerに変換
+# Convert to scikit-learn scorer
 mape_scorer = make_scorer(mean_absolute_percentage_error,
-                          greater_is_better=False)  # MAPEは小さいほど良い
+                          greater_is_better=False)  # Lower MAPE is better
 
-# GridSearchCVでカスタム評価指標を使用
+# Use custom evaluation metric with GridSearchCV
 param_grid = {
     'n_estimators': [100, 200],
     'max_depth': [10, 20]
@@ -2180,20 +2180,20 @@ grid_search = GridSearchCV(
     RandomForestRegressor(random_state=42),
     param_grid,
     cv=5,
-    scoring=mape_scorer,  # カスタム評価指標
+    scoring=mape_scorer,  # Custom evaluation metric
     n_jobs=-1,
     verbose=1
 )
 
 grid_search.fit(X_train, y_train)
 
-print(f"最適パラメータ: {grid_search.best_params_}")
-print(f"CV最良MAPEスコア: {-grid_search.best_score_:.4f}%")  # 負を反転
+print(f"Optimal Parameters: {grid_search.best_params_}")
+print(f"Best CV MAPE Score: {-grid_search.best_score_:.4f}%")  # Invert negative
 
-# テストデータで評価
+# Evaluate on test data
 y_pred_test = grid_search.best_estimator_.predict(X_test)
 test_mape = mean_absolute_percentage_error(y_test, y_pred_test)
-print(f"テストMAPE: {test_mape:.4f}%")
+print(f"Test MAPE: {test_mape:.4f}%")
 </code></pre>
                 </details>
             </div>
@@ -2201,32 +2201,32 @@ print(f"テストMAPE: {test_mape:.4f}%")
 
         <!-- Learning Check -->
         <section id="learning-check">
-            <h2>学習目標達成度チェック</h2>
+            <h2>Learning Objectives Achievement Check</h2>
             <div class="info-box">
-                <h4>以下の項目を自己評価してください（3段階: 初級/中級/上級）</h4>
+                <h4>Self-evaluate the following items (3 levels: Beginner/Intermediate/Advanced)</h4>
 
-                <h4>初級レベル（基本理解）</h4>
+                <h4>Beginner Level (Basic Understanding)</h4>
                 <ul>
-                    <li>scikit-learnパイプラインの構築と保存/読み込みができる</li>
-                    <li>Random Forest、XGBoost、MLPの特徴と使い分けを説明できる</li>
-                    <li>組成ベースとGNNベースモデルの性能差を理解している</li>
-                    <li>クロスバリデーションの目的と実装方法を理解している</li>
+                    <li>Can build, save, and load scikit-learn pipelines</li>
+                    <li>Can explain characteristics and use cases of Random Forest, XGBoost, and MLP</li>
+                    <li>Understand performance differences between composition-based and GNN-based models</li>
+                    <li>Understand purpose and implementation of cross-validation</li>
                 </ul>
 
-                <h4>中級レベル（実践スキル）</h4>
+                <h4>Intermediate Level (Practical Skills)</h4>
                 <ul>
-                    <li>GridSearchCVでハイパーパラメータを最適化できる</li>
-                    <li>学習曲線から過学習/未学習を診断できる</li>
-                    <li>SHAP値を計算し、特徴量重要度を解釈できる</li>
-                    <li>複数モデルの性能を定量的に比較できる</li>
+                    <li>Can optimize hyperparameters with GridSearchCV</li>
+                    <li>Can diagnose overfitting/underfitting from learning curves</li>
+                    <li>Can calculate SHAP values and interpret feature importance</li>
+                    <li>Can quantitatively compare performance of multiple models</li>
                 </ul>
 
-                <h4>上級レベル（応用力）</h4>
+                <h4>Advanced Level (Applied Skills)</h4>
                 <ul>
-                    <li>StackingRegressorでアンサンブルSaved model to構築できる</li>
-                    <li>Matbenchベンチマークで評価し、結果を公式フォーマットで保存できる</li>
-                    <li>カスタム評価指標を実装し、GridSearchCVに統合できる</li>
-                    <li>SHAPのDependence PlotとPartial Dependence Plotを使い分けられる</li>
+                    <li>Can build ensemble models with StackingRegressor</li>
+                    <li>Can evaluate on Matbench benchmark and save results in official format</li>
+                    <li>Can implement custom evaluation metrics and integrate with GridSearchCV</li>
+                    <li>Can distinguish when to use SHAP Dependence Plot vs Partial Dependence Plot</li>
                 </ul>
             </div>
         </section>
@@ -2235,36 +2235,36 @@ print(f"テストMAPE: {test_mape:.4f}%")
         <section id="summary">
             <h2>Summary</h2>
             <p>
-                本章では、組成ベース特徴量を機械学習モデルと統合し、材料特性を高精度に予測する実践的手法を学びました。主要なポイントを振り返ります：
+                In this chapter, we learned practical methods for integrating composition-based features with machine learning models to predict material properties with high accuracy. Let's review the key points:
             </p>
 
-            <h3>重要ポイント</h3>
+            <h3>Key Points</h3>
             <ul>
-                <li><strong>scikit-learnパイプライン</strong>: 特徴量生成・前処理・モデル訓練を統合し、再現性を確保</li>
-                <li><strong>モデル選択</strong>: Random Forest（解釈性重視）、XGBoost（精度重視）、MLP（大規模データ）の使い分け</li>
-                <li><strong>ハイパーパラメータ最適化</strong>: GridSearchCV（網羅的）とRandomizedSearchCV（効率的）の選択</li>
-                <li><strong>学習曲線分析</strong>: 過学習/未学習の診断とデータ追加効果の予測</li>
-                <li><strong>組成 vs GNN</strong>: Matbenchで組成ベースはGNNの85-95%の精度を実現、計算コストは1/100以下</li>
-                <li><strong>SHAP解釈</strong>: 予測の要因を定量化し、物理的洞察を獲得</li>
+                <li><strong>scikit-learn Pipelines</strong>: Integrate feature generation, preprocessing, and model training to ensure reproducibility</li>
+                <li><strong>Model Selection</strong>: Distinguish use cases for Random Forest (interpretability-focused), XGBoost (accuracy-focused), and MLP (large-scale data)</li>
+                <li><strong>Hyperparameter Optimization</strong>: Choose between GridSearchCV (exhaustive) and RandomizedSearchCV (efficient)</li>
+                <li><strong>Learning Curve Analysis</strong>: Diagnose overfitting/underfitting and predict effects of adding data</li>
+                <li><strong>Composition vs GNN</strong>: On Matbench, composition-based achieves 85-95% of GNN accuracy with <1/100 computational cost</li>
+                <li><strong>SHAP Interpretation</strong>: Quantify prediction factors and gain physical insights</li>
             </ul>
 
-            <h3>実務での活用指針</h3>
+            <h3>Practical Application Guidelines</h3>
             <div class="tip-box">
-                <h4>推奨ワークフロー</h4>
+                <h4>Recommended Workflow</h4>
                 <ol>
-                    <li><strong>初期探索</strong>: 組成ベースモデルで10⁵候補を10³候補に絞る（数分）</li>
-                    <li><strong>構造最適化</strong>: 選定候補のDFT構造緩和（数日）</li>
-                    <li><strong>精密予測</strong>: GNNで最終候補を選定（数時間）</li>
-                    <li><strong>実験検証</strong>: 上位10-20候補を合成・測定</li>
+                    <li><strong>Initial Exploration</strong>: Narrow down 10⁵ candidates to 10³ with composition-based model (minutes)</li>
+                    <li><strong>Structure Optimization</strong>: DFT structure relaxation of selected candidates (days)</li>
+                    <li><strong>Precise Prediction</strong>: Select final candidates with GNN (hours)</li>
+                    <li><strong>Experimental Validation</strong>: Synthesize and measure top 10-20 candidates</li>
                 </ol>
                 <p>
-                    このハイブリッドアプローチにより、<strong>計算コストを90%削減</strong>しつつ、高精度な材料探索が実現できます。
+                    This hybrid approach enables high-accuracy material discovery while <strong>reducing computational cost by 90%</strong>.
                 </p>
             </div>
 
-            <h3>次のステップ</h3>
+            <h3>Next Steps</h3>
             <p>
-                第5章では、実際の材料探索プロジェクトに組成ベース特徴量を適用し、新規材料の発見から実験検証までのエンドツーエンドワークフローを学びます。Materials Projectデータベースとの統合、能動学習による効率化、不確実性定量化など、より実践的な内容に進みます。
+                In Chapter 5, we will learn end-to-end workflows from discovery of new materials to experimental validation by applying composition-based features to actual material discovery projects. We will proceed to more practical content including integration with the Materials Project database, efficiency through active learning, and uncertainty quantification.
             </p>
         </section>
 
@@ -2275,51 +2275,51 @@ print(f"テストMAPE: {test_mape:.4f}%")
                 <li>
                     Ward, L., Agrawal, A., Choudhary, A., & Wolverton, C. (2016). "A general-purpose machine learning framework for predicting properties of inorganic materials." <em>npj Computational Materials</em>, 2, 16028, pp. 4-6.
                     <a href="https://doi.org/10.1038/npjcompumats.2016.28" target="_blank">https://doi.org/10.1038/npjcompumats.2016.28</a>
-                    <br><small>（Magpie特徴量の性能ベンチマーク、Random Forestとの統合手法を詳述）</small>
+                    <br><small>(Details Magpie feature performance benchmarks and integration methods with Random Forest)</small>
                 </li>
                 <li>
                     Jha, D., Ward, L., Paul, A., Liao, W., Choudhary, A., Wolverton, C., & Agrawal, A. (2018). "ElemNet: Deep Learning the Chemistry of Materials From Only Elemental Composition." <em>Scientific Reports</em>, 8, 17593, pp. 6-9.
                     <a href="https://doi.org/10.1038/s41598-018-35934-y" target="_blank">https://doi.org/10.1038/s41598-018-35934-y</a>
-                    <br><small>（組成のみから高精度予測を実現したニューラルネットワーク、Matbenchベンチマーク性能）</small>
+                    <br><small>(Neural network achieving high-accuracy predictions from composition only, Matbench benchmark performance)</small>
                 </li>
                 <li>
                     Dunn, A., Wang, Q., Ganose, A., Dopp, D., & Jain, A. (2020). "Benchmarking materials property prediction methods: the Matbench test set and Automatminer reference algorithm." <em>npj Computational Materials</em>, 6, 138, pp. 1-10.
                     <a href="https://doi.org/10.1038/s41524-020-00406-3" target="_blank">https://doi.org/10.1038/s41524-020-00406-3</a>
-                    <br><small>（Matbench v0.1の設計思想、13タスクの詳細、標準評価プロトコル）</small>
+                    <br><small>(Matbench v0.1 design philosophy, details of 13 tasks, standard evaluation protocol)</small>
                 </li>
                 <li>
                     scikit-learn Documentation: Pipeline and GridSearchCV.
                     <a href="https://scikit-learn.org/stable/" target="_blank">https://scikit-learn.org/stable/</a>
-                    <br><small>（パイプライン構築、ハイパーパラメータ最適化、学習曲線の公式ドキュメント）</small>
+                    <br><small>(Official documentation for pipeline construction, hyperparameter optimization, and learning curves)</small>
                 </li>
                 <li>
                     XGBoost Documentation.
                     <a href="https://xgboost.readthedocs.io/" target="_blank">https://xgboost.readthedocs.io/</a>
-                    <br><small>（XGBoostのパラメータチューニング、早期停止、特徴量重要度の詳細）</small>
+                    <br><small>(Details on XGBoost parameter tuning, early stopping, and feature importance)</small>
                 </li>
                 <li>
                     Lundberg, S.M., & Lee, S.I. (2017). "A Unified Approach to Interpreting Model Predictions." <em>Advances in Neural Information Processing Systems (NeurIPS)</em>, pp. 4765-4774.
                     <a href="https://arxiv.org/abs/1705.07874" target="_blank">https://arxiv.org/abs/1705.07874</a>
-                    <br><small>（SHAP原論文、Shapley値の理論的基礎とTreeExplainerアルゴリズム）</small>
+                    <br><small>(SHAP original paper, theoretical foundation of Shapley values and TreeExplainer algorithm)</small>
                 </li>
                 <li>
                     matminer Tutorials: Machine Learning Integration.
                     <a href="https://hackingmaterials.lbl.gov/matminer/" target="_blank">https://hackingmaterials.lbl.gov/matminer/</a>
-                    <br><small>（matminerとscikit-learn統合の実践例、DFMLAdaptorの使用法、ベストプラクティス）</small>
+                    <br><small>（matminerand scikit-learn integration examples, DFMLAdaptor usage, best practices）</small>
                 </li>
             </ol>
         </section>
 
         <!-- Navigation -->
         <nav class="navigation">
-            <a href="chapter-3.html" class="nav-button">← 第3章: 元素特性データベースとFeaturizer</a>
-            <a href="index.html" class="nav-button">目次へ</a>
-            <a href="chapter-5.html" class="nav-button">第5章: 実践的材料探索 →</a>
+            <a href="chapter-3.html" class="nav-button">← Chapter 3: Element Property Database and Featurizer</a>
+            <a href="index.html" class="nav-button">Back to Contents</a>
+            <a href="chapter-5.html" class="nav-button">Chapter 5: Practical Materials Discovery →</a>
         </nav>
     </div>
 
     <footer style="text-align: center; padding: 2rem 0; margin-top: 3rem; border-top: 1px solid var(--border-color);">
-        <p>&copy; 2025 組成ベース特徴量入門シリーズ | AI Terakoya Knowledge Base</p>
+        <p>&copy; 2025 Composition-Based Features Introduction Series | AI Terakoya Knowledge Base</p>
     </footer>
 </body>
 </html>
