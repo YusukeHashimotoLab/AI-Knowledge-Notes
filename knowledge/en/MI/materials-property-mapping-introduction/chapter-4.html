@@ -1,0 +1,2766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 4: Practical Materials Mapping with GNN + Dimensionality Reduction - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+
+
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../MI/index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="../../MI/materials-property-mapping-introduction/index.html">Materials Property Mapping</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 4</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>Chapter</h1>
+            <p class="subtitle"></p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 20-25 minutes</span>
+                <span class="meta-item">📊 Difficulty: Beginner</span>
+                <span class="meta-item">💻 Code Examples: 0</span>
+                <span class="meta-item">📝 Exercises: 0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+<h1>Chapter 4: Practical Guide - Materials Mapping with GNN + Dimensionality Reduction</h1>
+<h2>Overview</h2>
+<p>In this chapter, we will build a practical materials space mapping system that combines GNN-based representation learning (Chapter 3) with dimensionality reduction techniques (Chapter 2). We will collect real data from the Materials Project API and implement an end-to-end pipeline.</p>
+<h3>Learning Objectives</h3>
+<ul>
+<li>Collect real data using the Materials Project API</li>
+<li>Build a GNN training pipeline</li>
+<li>Visualize trained GNN embeddings using dimensionality reduction</li>
+<li>Implement an interactive materials exploration system</li>
+<li>Apply to real materials design tasks</li>
+</ul>
+<h2>4.1 Environment Setup and Data Collection</h2>
+<h3>Code Example 1: Installing Required Libraries</h3>
+<pre><code class="language-python"># Install required libraries (run once at first time)
+&quot;&quot;&quot;
+!pip install pymatgen
+!pip install mp-api
+!pip install torch torchvision torchaudio
+!pip install torch-geometric
+!pip install torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+!pip install umap-learn
+!pip install plotly
+!pip install bokeh
+!pip install scikit-learn
+!pip install pandas matplotlib seaborn
+!pip install tqdm
+&quot;&quot;&quot;
+
+# Import
+import warnings
+warnings.filterwarnings('ignore')
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch_geometric.data import Data, Dataset, DataLoader
+
+import umap
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.cluster import KMeans
+
+from tqdm import tqdm
+import json
+import pickle
+from pathlib import Path
+
+print(&quot;All libraries imported successfully!&quot;)
+print(f&quot;PyTorch version: {torch.__version__}&quot;)
+print(f&quot;CUDA available: {torch.cuda.is_available()}&quot;)
+</code></pre>
+<h3>Code Example 2: Materials Project API Setup and Data Collection</h3>
+<pre><code class="language-python">from mp_api.client import MPRester
+from pymatgen.core import Structure
+import warnings
+warnings.filterwarnings('ignore')
+
+# API key setup (environment variable or direct specification)
+# MP_API_KEY = &quot;your_api_key_here&quot;  # Get from https://next-gen.materialsproject.org/api
+# Note: It is recommended to read from environment variables in actual projects
+
+def fetch_materials_data(api_key, criteria, properties, max_materials=1000):
+    &quot;&quot;&quot;
+    Fetch materials data from Materials Project API
+
+    Parameters:
+    -----------
+    api_key : str
+        Materials Project API key
+    criteria : dict
+        Search criteria
+    properties : list
+        List of properties to fetch
+    max_materials : int
+        Maximum number of materials to fetch
+
+    Returns:
+    --------
+    materials_df : pd.DataFrame
+        Materials data
+    structures : list
+        List of crystal structures
+    &quot;&quot;&quot;
+    with MPRester(api_key) as mpr:
+        # Fetch data
+        docs = mpr.materials.summary.search(
+            **criteria,
+            fields=properties,
+            num_chunks=10,
+            chunk_size=100
+        )
+
+        # Limit to maximum number
+        docs = docs[:max_materials]
+
+        print(f&quot;Number of materials fetched: {len(docs)}&quot;)
+
+        # Convert to DataFrame
+        data_dict = {prop: [] for prop in properties}
+        data_dict['material_id'] = []
+        data_dict['formula'] = []
+        structures = []
+
+        for doc in tqdm(docs, desc=&quot;Processing data&quot;):
+            try:
+                data_dict['material_id'].append(doc.material_id)
+                data_dict['formula'].append(str(doc.formula_pretty))
+
+                for prop in properties:
+                    if prop == 'structure':
+                        structures.append(doc.structure)
+                    else:
+                        value = getattr(doc, prop, None)
+                        data_dict[prop].append(value)
+
+            except Exception as e:
+                print(f&quot;Error processing {doc.material_id}: {e}&quot;)
+                continue
+
+        materials_df = pd.DataFrame(data_dict)
+        materials_df = materials_df.dropna()  # Remove rows with missing values
+
+        print(f&quot;Number of valid materials: {len(materials_df)}&quot;)
+
+        return materials_df, structures
+
+
+# Usage example (substitute with dummy data - uncomment if you have an actual API key)
+# criteria = {
+#     &quot;band_gap&quot;: (0.5, 5.0),  # Band gap 0.5-5.0 eV
+#     &quot;is_stable&quot;: True,       # Only stable materials
+#     &quot;nelements&quot;: (2, 3)      # 2-3 element systems
+# }
+#
+# properties = [
+#     &quot;material_id&quot;, &quot;formula_pretty&quot;, &quot;structure&quot;,
+#     &quot;band_gap&quot;, &quot;formation_energy_per_atom&quot;, &quot;density&quot;,
+#     &quot;energy_above_hull&quot;, &quot;volume&quot;
+# ]
+#
+# materials_df, structures = fetch_materials_data(
+#     api_key=MP_API_KEY,
+#     criteria=criteria,
+#     properties=properties,
+#     max_materials=1000
+# )
+
+# Generate dummy data (if API key is not available)
+print(&quot;\nGenerating dummy data...&quot;)
+from pymatgen.core import Lattice, Structure
+
+np.random.seed(42)
+n_materials = 1000
+
+materials_df = pd.DataFrame({
+    'material_id': [f'mp-{1000+i}' for i in range(n_materials)],
+    'formula': [f'Material_{i}' for i in range(n_materials)],
+    'band_gap': np.random.exponential(2.0, n_materials),
+    'formation_energy_per_atom': np.random.normal(-1.5, 0.8, n_materials),
+    'density': np.random.normal(5.0, 1.5, n_materials).clip(0.1),
+    'energy_above_hull': np.random.exponential(0.05, n_materials),
+    'volume': np.random.normal(50, 15, n_materials).clip(10)
+})
+
+# Generate dummy crystal structures
+structures = []
+for i in range(n_materials):
+    lattice = Lattice.cubic(4.0 + np.random.rand())
+    n_atoms = np.random.randint(2, 8)
+    species = np.random.choice(['Li', 'Na', 'K', 'O', 'S', 'Cl', 'F'], n_atoms)
+    coords = np.random.rand(n_atoms, 3)
+    structure = Structure(lattice, species, coords)
+    structures.append(structure)
+
+print(f&quot;Generated {n_materials} dummy materials data&quot;)
+print(&quot;\nFirst 5 rows of materials data:&quot;)
+print(materials_df.head())
+</code></pre>
+<p><strong>Output Example</strong>:</p>
+<pre><code>Generated 1000 dummy materials data
+
+First 5 rows of materials data:
+  material_id      formula  band_gap  formation_energy_per_atom  density  energy_above_hull  volume
+0     mp-1000  Material_0  1.234567                  -1.678901    4.567             0.012345  45.678
+1     mp-1001  Material_1  2.345678                  -1.234567    5.678             0.023456  50.789
+2     mp-1002  Material_2  0.987654                  -2.012345    3.456             0.001234  48.901
+3     mp-1003  Material_3  3.456789                  -0.987654    6.789             0.034567  52.345
+4     mp-1004  Material_4  1.876543                  -1.456789    4.890             0.009876  47.234
+</code></pre>
+<h3>Code Example 3: Exploratory Data Analysis</h3>
+<pre><code class="language-python">import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Basic statistics
+print(&quot;Basic statistics of materials data:&quot;)
+print(materials_df.describe())
+
+# Distribution of properties
+fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+axes = axes.ravel()
+
+properties_to_plot = [
+    'band_gap', 'formation_energy_per_atom', 'density',
+    'energy_above_hull', 'volume'
+]
+
+for idx, prop in enumerate(properties_to_plot):
+    axes[idx].hist(materials_df[prop], bins=50, alpha=0.7,
+                   edgecolor='black', color='steelblue')
+    axes[idx].set_xlabel(prop.replace('_', ' ').title(), fontsize=12, fontweight='bold')
+    axes[idx].set_ylabel('Frequency', fontsize=12, fontweight='bold')
+    axes[idx].set_title(f'Distribution of {prop.replace(&quot;_&quot;, &quot; &quot;).title()}',
+                        fontsize=14, fontweight='bold')
+    axes[idx].grid(True, alpha=0.3)
+
+# Hide the last subplot
+axes[-1].axis('off')
+
+plt.tight_layout()
+plt.savefig('materials_data_distributions.png', dpi=300, bbox_inches='tight')
+print(&quot;\nSaved property distributions to materials_data_distributions.png&quot;)
+plt.show()
+
+# Correlation matrix
+correlation_matrix = materials_df[properties_to_plot].corr()
+
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, fmt='.3f', cmap='RdBu_r',
+            center=0, square=True, linewidths=1, cbar_kws={&quot;shrink&quot;: 0.8})
+plt.title('Correlation Matrix of Material Properties',
+          fontsize=16, fontweight='bold', pad=20)
+plt.tight_layout()
+plt.savefig('materials_correlation_matrix.png', dpi=300, bbox_inches='tight')
+print(&quot;Saved correlation matrix to materials_correlation_matrix.png&quot;)
+plt.show()
+</code></pre>
+<h2>4.2 Graph Dataset Construction</h2>
+<h3>Code Example 4: Crystal Structure to Graph Conversion (Optimized Version)</h3>
+<pre><code class="language-python">import torch
+from torch_geometric.data import Data
+from pymatgen.core import Structure
+from pymatgen.core.periodic_table import Element
+import numpy as np
+
+class MaterialGraphConverter:
+    &quot;&quot;&quot;Class to convert crystal structures to graphs&quot;&quot;&quot;
+
+    def __init__(self, cutoff=5.0, max_neighbors=12):
+        self.cutoff = cutoff
+        self.max_neighbors = max_neighbors
+
+        # Define atomic properties (element symbol → feature vector)
+        self._build_atom_features()
+
+    def _build_atom_features(self):
+        &quot;&quot;&quot;Build atom properties dictionary&quot;&quot;&quot;
+        # Pre-calculate properties for common elements
+        common_elements = [
+            'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
+            'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca',
+            'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn',
+            'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', 'Y', 'Zr'
+        ]
+
+        self.atom_features = {}
+
+        for symbol in common_elements:
+            try:
+                element = Element(symbol)
+
+                features = [
+                    element.Z / 100.0,  # Normalized atomic number
+                    element.atomic_mass / 200.0,  # Normalized atomic mass
+                    element.X if element.X is not None else 0.0,  # Electronegativity
+                    element.atomic_radius if element.atomic_radius is not None else 0.0,  # Atomic radius
+                    element.group if element.group is not None else 0.0,  # Group
+                    element.row if element.row is not None else 0.0,  # Period
+                ]
+
+                self.atom_features[symbol] = features
+
+            except Exception as e:
+                print(f&quot;Warning: Could not process element {symbol}: {e}&quot;)
+                self.atom_features[symbol] = [0.0] * 6
+
+    def get_atom_features(self, species):
+        &quot;&quot;&quot;Get feature vector from element symbol&quot;&quot;&quot;
+        symbol = str(species)
+        if symbol in self.atom_features:
+            return self.atom_features[symbol]
+        else:
+            # Unknown elements get zero vector
+            return [0.0] * 6
+
+    def structure_to_graph(self, structure, target=None):
+        &quot;&quot;&quot;
+        Convert pymatgen Structure to PyTorch Geometric Data
+
+        Parameters:
+        -----------
+        structure : pymatgen.Structure
+            Crystal structure
+        target : float, optional
+            Target value (for property prediction)
+
+        Returns:
+        --------
+        data : torch_geometric.data.Data
+            Graph data
+        &quot;&quot;&quot;
+        # Node features
+        node_features = []
+        for site in structure:
+            features = self.get_atom_features(site.specie)
+            node_features.append(features)
+
+        node_features = torch.tensor(node_features, dtype=torch.float)
+
+        # Edge construction
+        all_neighbors = structure.get_all_neighbors(self.cutoff)
+        edge_index = []
+        edge_attr = []
+
+        for i, neighbors in enumerate(all_neighbors):
+            # Sort by distance and take up to max_neighbors
+            neighbors = sorted(neighbors, key=lambda x: x.nn_distance)[:self.max_neighbors]
+
+            for neighbor in neighbors:
+                j = neighbor.index
+                distance = neighbor.nn_distance
+
+                edge_index.append([i, j])
+                edge_attr.append([distance])
+
+        # Handle case with no edges
+        if len(edge_index) == 0:
+            edge_index = torch.zeros((2, 0), dtype=torch.long)
+            edge_attr = torch.zeros((0, 1), dtype=torch.float)
+        else:
+            edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
+            edge_attr = torch.tensor(edge_attr, dtype=torch.float)
+
+        # Create Data object
+        data = Data(x=node_features, edge_index=edge_index, edge_attr=edge_attr)
+
+        if target is not None:
+            data.y = torch.tensor([target], dtype=torch.float)
+
+        return data
+
+
+# Instantiate and test
+converter = MaterialGraphConverter(cutoff=5.0, max_neighbors=12)
+
+# Test with first material
+test_structure = structures[0]
+test_target = materials_df.iloc[0]['band_gap']
+test_graph = converter.structure_to_graph(test_structure, test_target)
+
+print(&quot;Graph conversion test:&quot;)
+print(f&quot;Number of nodes: {test_graph.num_nodes}&quot;)
+print(f&quot;Number of edges: {test_graph.num_edges}&quot;)
+print(f&quot;Node feature dimension: {test_graph.x.shape[1]}&quot;)
+print(f&quot;Target value: {test_graph.y.item():.3f}&quot;)
+</code></pre>
+<h3>Code Example 5: Custom Dataset Class</h3>
+<pre><code class="language-python">from torch_geometric.data import Dataset, Data
+import torch
+from tqdm import tqdm
+import pickle
+
+class MaterialsDataset(Dataset):
+    &quot;&quot;&quot;
+    Materials dataset
+
+    Parameters:
+    -----------
+    structures : list
+        List of pymatgen.Structure
+    targets : array-like
+        Target values
+    converter : MaterialGraphConverter
+        Graph converter
+    root : str
+        Data save directory
+    transform : callable, optional
+        Data transformation function
+    pre_transform : callable, optional
+        Pre-processing function
+    &quot;&quot;&quot;
+
+    def __init__(self, structures, targets, converter,
+                 root='data/materials', transform=None, pre_transform=None):
+        self.structures = structures
+        self.targets = targets
+        self.converter = converter
+
+        super().__init__(root, transform, pre_transform)
+
+    @property
+    def raw_file_names(self):
+        return []
+
+    @property
+    def processed_file_names(self):
+        return [f'data_{i}.pt' for i in range(len(self.structures))]
+
+    def download(self):
+        pass
+
+    def process(self):
+        &quot;&quot;&quot;Convert structures to graphs and save&quot;&quot;&quot;
+        for idx in tqdm(range(len(self.structures)), desc=&quot;Converting to graphs&quot;):
+            structure = self.structures[idx]
+            target = self.targets[idx]
+
+            # Convert to graph
+            data = self.converter.structure_to_graph(structure, target)
+
+            if self.pre_transform is not None:
+                data = self.pre_transform(data)
+
+            # Save
+            torch.save(data, self.processed_paths[idx])
+
+    def len(self):
+        return len(self.structures)
+
+    def get(self, idx):
+        data = torch.load(self.processed_paths[idx])
+        return data
+
+
+# Create dataset
+print(&quot;Creating dataset...&quot;)
+
+# Target property (band gap)
+targets = materials_df['band_gap'].values
+
+# Instantiate dataset
+dataset = MaterialsDataset(
+    structures=structures,
+    targets=targets,
+    converter=converter,
+    root='data/materials_dataset'
+)
+
+print(f&quot;\nDataset creation complete!&quot;)
+print(f&quot;Dataset size: {len(dataset)}&quot;)
+print(f&quot;Sample data:&quot;)
+print(dataset[0])
+</code></pre>
+<p><strong>Output Example</strong>:</p>
+<pre><code>Converting to graphs: 100%|██████████| 1000/1000 [00:15&lt;00:00, 63.42it/s]
+
+Dataset creation complete!
+Dataset size: 1000
+Sample data:
+Data(x=[5, 6], edge_index=[2, 48], edge_attr=[48, 1], y=[1])
+</code></pre>
+<h3>Code Example 6: Dataset Splitting and DataLoader</h3>
+<pre><code class="language-python">from torch_geometric.loader import DataLoader
+from sklearn.model_selection import train_test_split
+import torch
+
+# Split dataset indices
+train_idx, temp_idx = train_test_split(
+    range(len(dataset)), test_size=0.3, random_state=42
+)
+val_idx, test_idx = train_test_split(
+    temp_idx, test_size=0.5, random_state=42
+)
+
+# Create subsets
+train_dataset = dataset[train_idx]
+val_dataset = dataset[val_idx]
+test_dataset = dataset[test_idx]
+
+print(f&quot;Data split:&quot;)
+print(f&quot;  Training data: {len(train_dataset)}&quot;)
+print(f&quot;  Validation data: {len(val_dataset)}&quot;)
+print(f&quot;  Test data: {len(test_dataset)}&quot;)
+
+# Create DataLoaders
+batch_size = 32
+
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+# Test DataLoader
+batch = next(iter(train_loader))
+print(f&quot;\nBatch data:&quot;)
+print(f&quot;  Batch size: {batch.num_graphs}&quot;)
+print(f&quot;  Total nodes: {batch.num_nodes}&quot;)
+print(f&quot;  Total edges: {batch.num_edges}&quot;)
+print(f&quot;  Node feature shape: {batch.x.shape}&quot;)
+print(f&quot;  Target shape: {batch.y.shape}&quot;)
+</code></pre>
+<p><strong>Output Example</strong>:</p>
+<pre><code>Data split:
+  Training data: 700
+  Validation data: 150
+  Test data: 150
+
+Batch data:
+  Batch size: 32
+  Total nodes: 168
+  Total edges: 1568
+  Node feature shape: torch.Size([168, 6])
+  Target shape: torch.Size([32, 1])
+</code></pre>
+<h2>4.3 GNN Model Training</h2>
+<h3>Code Example 7: Improved CGCNN Model</h3>
+<pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch_geometric.nn import MessagePassing, global_mean_pool, global_add_pool, global_max_pool
+
+class ImprovedCGConv(MessagePassing):
+    &quot;&quot;&quot;Improved CGCNN convolution layer&quot;&quot;&quot;
+
+    def __init__(self, node_dim, edge_dim, hidden_dim=128):
+        super().__init__(aggr='add')
+
+        self.node_dim = node_dim
+        self.edge_dim = edge_dim
+        self.hidden_dim = hidden_dim
+
+        # Edge network
+        self.edge_network = nn.Sequential(
+            nn.Linear(2 * node_dim + edge_dim, hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
+            nn.Softplus(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
+            nn.Softplus()
+        )
+
+        # Gate network
+        self.gate_network = nn.Sequential(
+            nn.Linear(2 * node_dim + edge_dim, hidden_dim),
+            nn.Sigmoid()
+        )
+
+        # Node update network
+        self.node_update = nn.Sequential(
+            nn.Linear(node_dim + hidden_dim, hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
+            nn.Softplus(),
+            nn.Linear(hidden_dim, hidden_dim)
+        )
+
+    def forward(self, x, edge_index, edge_attr):
+        return self.propagate(edge_index, x=x, edge_attr=edge_attr)
+
+    def message(self, x_i, x_j, edge_attr):
+        &quot;&quot;&quot;Message function&quot;&quot;&quot;
+        # Concatenate source, target, and edge features
+        z = torch.cat([x_i, x_j, edge_attr], dim=1)
+
+        # Gating mechanism
+        gate = self.gate_network(z)
+        message = self.edge_network(z)
+
+        return gate * message
+
+    def update(self, aggr_out, x):
+        &quot;&quot;&quot;Node update&quot;&quot;&quot;
+        combined = torch.cat([x, aggr_out], dim=1)
+        return self.node_update(combined)
+
+
+class ImprovedCGCNN(nn.Module):
+    &quot;&quot;&quot;Improved CGCNN model&quot;&quot;&quot;
+
+    def __init__(self, node_dim, edge_dim, hidden_dim=128,
+                 num_conv=4, dropout=0.2, pooling='mean'):
+        super().__init__()
+
+        self.node_dim = node_dim
+        self.edge_dim = edge_dim
+        self.hidden_dim = hidden_dim
+        self.num_conv = num_conv
+        self.pooling = pooling
+
+        # Input embedding
+        self.node_embedding = nn.Sequential(
+            nn.Linear(node_dim, hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
+            nn.Softplus()
+        )
+
+        # CGConv layers
+        self.conv_layers = nn.ModuleList([
+            ImprovedCGConv(hidden_dim, edge_dim, hidden_dim)
+            for _ in range(num_conv)
+        ])
+
+        # Batch Normalization
+        self.bn_layers = nn.ModuleList([
+            nn.BatchNorm1d(hidden_dim)
+            for _ in range(num_conv)
+        ])
+
+        # Dropout
+        self.dropout = nn.Dropout(dropout)
+
+        # Pooling
+        if pooling == 'mean':
+            self.pool = global_mean_pool
+        elif pooling == 'add':
+            self.pool = global_add_pool
+        elif pooling == 'max':
+            self.pool = global_max_pool
+        else:
+            raise ValueError(f&quot;Unknown pooling: {pooling}&quot;)
+
+        # Output network
+        self.fc = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.BatchNorm1d(hidden_dim // 2),
+            nn.Softplus(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim // 2, hidden_dim // 4),
+            nn.BatchNorm1d(hidden_dim // 4),
+            nn.Softplus(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim // 4, 1)
+        )
+
+    def forward(self, data, return_embedding=False):
+        &quot;&quot;&quot;
+        Forward pass
+
+        Parameters:
+        -----------
+        data : torch_geometric.data.Batch
+            Batch data
+        return_embedding : bool
+            Whether to return embedding
+
+        Returns:
+        --------
+        out : Tensor
+            Predictions
+        embedding : Tensor (optional)
+            Graph embedding
+        &quot;&quot;&quot;
+        x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
+
+        # Input embedding
+        x = self.node_embedding(x)
+
+        # Apply CGConv layers
+        for conv, bn in zip(self.conv_layers, self.bn_layers):
+            x_new = conv(x, edge_index, edge_attr)
+            x_new = bn(x_new)
+            x_new = F.softplus(x_new)
+            x_new = self.dropout(x_new)
+
+            # Residual connection
+            x = x + x_new
+
+        # Graph-level pooling
+        graph_embedding = self.pool(x, batch)
+
+        # Output
+        out = self.fc(graph_embedding)
+
+        if return_embedding:
+            return out, graph_embedding
+        else:
+            return out
+
+
+# Model instantiation
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+model = ImprovedCGCNN(
+    node_dim=6,
+    edge_dim=1,
+    hidden_dim=128,
+    num_conv=4,
+    dropout=0.2,
+    pooling='mean'
+).to(device)
+
+print(f&quot;Total model parameters: {sum(p.numel() for p in model.parameters()):,}&quot;)
+
+# Test
+batch = next(iter(train_loader)).to(device)
+predictions, embeddings = model(batch, return_embedding=True)
+
+print(f&quot;\nPrediction shape: {predictions.shape}&quot;)
+print(f&quot;Embedding shape: {embeddings.shape}&quot;)
+</code></pre>
+<h3>Code Example 8: Training Loop (with Early Stopping)</h3>
+<pre><code class="language-python">import torch
+import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+import numpy as np
+from tqdm import tqdm
+import time
+
+class EarlyStopping:
+    &quot;&quot;&quot;Early Stopping class&quot;&quot;&quot;
+
+    def __init__(self, patience=20, delta=0.001, path='best_model.pt'):
+        self.patience = patience
+        self.delta = delta
+        self.path = path
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        self.val_loss_min = np.Inf
+
+    def __call__(self, val_loss, model):
+        score = -val_loss
+
+        if self.best_score is None:
+            self.best_score = score
+            self.save_checkpoint(val_loss, model)
+        elif score &lt; self.best_score + self.delta:
+            self.counter += 1
+            if self.counter &gt;= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.save_checkpoint(val_loss, model)
+            self.counter = 0
+
+    def save_checkpoint(self, val_loss, model):
+        torch.save(model.state_dict(), self.path)
+        self.val_loss_min = val_loss
+
+
+def train_epoch(model, loader, criterion, optimizer, device):
+    &quot;&quot;&quot;Train one epoch&quot;&quot;&quot;
+    model.train()
+    total_loss = 0
+    total_samples = 0
+
+    for batch in loader:
+        batch = batch.to(device)
+
+        optimizer.zero_grad()
+        predictions = model(batch)
+        loss = criterion(predictions, batch.y)
+
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item() * batch.num_graphs
+        total_samples += batch.num_graphs
+
+    return total_loss / total_samples
+
+
+def validate_epoch(model, loader, criterion, device):
+    &quot;&quot;&quot;Validate one epoch&quot;&quot;&quot;
+    model.eval()
+    total_loss = 0
+    total_samples = 0
+
+    with torch.no_grad():
+        for batch in loader:
+            batch = batch.to(device)
+
+            predictions = model(batch)
+            loss = criterion(predictions, batch.y)
+
+            total_loss += loss.item() * batch.num_graphs
+            total_samples += batch.num_graphs
+
+    return total_loss / total_samples
+
+
+# Training setup
+criterion = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
+scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5,
+                              patience=10, verbose=True)
+early_stopping = EarlyStopping(patience=30, delta=0.001,
+                               path='best_cgcnn_model.pt')
+
+# Training loop
+num_epochs = 200
+train_losses = []
+val_losses = []
+
+print(&quot;Starting training...&quot;)
+start_time = time.time()
+
+for epoch in range(num_epochs):
+    # Train
+    train_loss = train_epoch(model, train_loader, criterion, optimizer, device)
+    train_losses.append(train_loss)
+
+    # Validate
+    val_loss = validate_epoch(model, val_loader, criterion, device)
+    val_losses.append(val_loss)
+
+    # Learning rate scheduler
+    scheduler.step(val_loss)
+
+    # Early Stopping
+    early_stopping(val_loss, model)
+
+    if (epoch + 1) % 10 == 0:
+        elapsed_time = time.time() - start_time
+        print(f&quot;Epoch [{epoch+1}/{num_epochs}] - &quot;
+              f&quot;Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f} - &quot;
+              f&quot;Time: {elapsed_time:.1f}s&quot;)
+
+    if early_stopping.early_stop:
+        print(f&quot;Early stopping at epoch {epoch+1}&quot;)
+        break
+
+total_time = time.time() - start_time
+print(f&quot;\nTraining complete! Total time: {total_time/60:.1f} minutes&quot;)
+
+# Load best model
+model.load_state_dict(torch.load('best_cgcnn_model.pt'))
+print(f&quot;Loaded best model (Val Loss: {early_stopping.val_loss_min:.4f})&quot;)
+</code></pre>
+<p><strong>Output Example</strong>:</p>
+<pre><code>Starting training...
+Epoch [10/200] - Train Loss: 1.2345, Val Loss: 1.3456 - Time: 15.3s
+Epoch [20/200] - Train Loss: 0.9876, Val Loss: 1.1234 - Time: 30.7s
+Epoch [30/200] - Train Loss: 0.7654, Val Loss: 1.0123 - Time: 46.1s
+Epoch [40/200] - Train Loss: 0.6543, Val Loss: 0.9876 - Time: 61.5s
+Epoch [50/200] - Train Loss: 0.5678, Val Loss: 0.9654 - Time: 76.9s
+Early stopping at epoch 85
+
+Training complete! Total time: 2.3 minutes
+Loaded best model (Val Loss: 0.9234)
+</code></pre>
+<h3>Code Example 9: Training Curve Visualization</h3>
+<pre><code class="language-python">import matplotlib.pyplot as plt
+import numpy as np
+
+# Training curve
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+# Loss curve
+epochs = range(1, len(train_losses) + 1)
+ax1.plot(epochs, train_losses, label='Train Loss', linewidth=2, color='blue')
+ax1.plot(epochs, val_losses, label='Validation Loss', linewidth=2, color='red')
+ax1.set_xlabel('Epoch', fontsize=14, fontweight='bold')
+ax1.set_ylabel('MSE Loss', fontsize=14, fontweight='bold')
+ax1.set_title('Training and Validation Loss', fontsize=16, fontweight='bold')
+ax1.legend(fontsize=12)
+ax1.grid(True, alpha=0.3)
+
+# Log scale
+ax2.semilogy(epochs, train_losses, label='Train Loss', linewidth=2, color='blue')
+ax2.semilogy(epochs, val_losses, label='Validation Loss', linewidth=2, color='red')
+ax2.set_xlabel('Epoch', fontsize=14, fontweight='bold')
+ax2.set_ylabel('MSE Loss (log scale)', fontsize=14, fontweight='bold')
+ax2.set_title('Training Curve (Log Scale)', fontsize=16, fontweight='bold')
+ax2.legend(fontsize=12)
+ax2.grid(True, alpha=0.3, which='both')
+
+plt.tight_layout()
+plt.savefig('training_curve.png', dpi=300, bbox_inches='tight')
+print(&quot;Saved training curve to training_curve.png&quot;)
+plt.show()
+</code></pre>
+<h3>Code Example 10: Evaluation on Test Data</h3>
+<pre><code class="language-python">from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import matplotlib.pyplot as plt
+import numpy as np
+
+def evaluate_model(model, loader, device):
+    &quot;&quot;&quot;Evaluate model&quot;&quot;&quot;
+    model.eval()
+
+    all_predictions = []
+    all_targets = []
+
+    with torch.no_grad():
+        for batch in loader:
+            batch = batch.to(device)
+
+            predictions = model(batch)
+
+            all_predictions.append(predictions.cpu().numpy())
+            all_targets.append(batch.y.cpu().numpy())
+
+    predictions = np.concatenate(all_predictions, axis=0).flatten()
+    targets = np.concatenate(all_targets, axis=0).flatten()
+
+    return predictions, targets
+
+
+# Evaluate on test data
+test_predictions, test_targets = evaluate_model(model, test_loader, device)
+
+# Calculate evaluation metrics
+mae = mean_absolute_error(test_targets, test_predictions)
+rmse = np.sqrt(mean_squared_error(test_targets, test_predictions))
+r2 = r2_score(test_targets, test_predictions)
+
+print(&quot;Evaluation on test data:&quot;)
+print(f&quot;  MAE:  {mae:.4f}&quot;)
+print(f&quot;  RMSE: {rmse:.4f}&quot;)
+print(f&quot;  R²:   {r2:.4f}&quot;)
+
+# Plot predictions vs actual values
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+# Scatter plot
+ax1.scatter(test_targets, test_predictions, alpha=0.6, s=50,
+            edgecolors='black', linewidth=0.5, color='steelblue')
+
+# Ideal line
+min_val = min(test_targets.min(), test_predictions.min())
+max_val = max(test_targets.max(), test_predictions.max())
+ax1.plot([min_val, max_val], [min_val, max_val],
+         'r--', linewidth=2, label='Ideal')
+
+ax1.set_xlabel('True Band Gap (eV)', fontsize=14, fontweight='bold')
+ax1.set_ylabel('Predicted Band Gap (eV)', fontsize=14, fontweight='bold')
+ax1.set_title(f'Predictions vs True Values\nR²={r2:.3f}, MAE={mae:.3f}',
+              fontsize=16, fontweight='bold')
+ax1.legend(fontsize=12)
+ax1.grid(True, alpha=0.3)
+
+# Residual plot
+residuals = test_predictions - test_targets
+ax2.scatter(test_targets, residuals, alpha=0.6, s=50,
+            edgecolors='black', linewidth=0.5, color='coral')
+ax2.axhline(y=0, color='r', linestyle='--', linewidth=2)
+
+ax2.set_xlabel('True Band Gap (eV)', fontsize=14, fontweight='bold')
+ax2.set_ylabel('Residuals (eV)', fontsize=14, fontweight='bold')
+ax2.set_title('Residual Plot', fontsize=16, fontweight='bold')
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('test_evaluation.png', dpi=300, bbox_inches='tight')
+print(&quot;\nSaved evaluation results to test_evaluation.png&quot;)
+plt.show()
+</code></pre>
+<h2>4.4 Embedding Extraction and Dimensionality Reduction</h2>
+<h3>Code Example 11: Extracting Embeddings from All Data</h3>
+<pre><code class="language-python">def extract_all_embeddings(model, dataset, device, batch_size=64):
+    &quot;&quot;&quot;
+    Extract embeddings from entire dataset
+
+    Parameters:
+    -----------
+    model : nn.Module
+        Trained model
+    dataset : Dataset
+        Dataset
+    device : torch.device
+        Device
+    batch_size : int
+        Batch size
+
+    Returns:
+    --------
+    embeddings : np.ndarray
+        Embedding vectors
+    targets : np.ndarray
+        Target values
+    &quot;&quot;&quot;
+    model.eval()
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
+    all_embeddings = []
+    all_targets = []
+
+    with torch.no_grad():
+        for batch in tqdm(loader, desc=&quot;Extracting embeddings&quot;):
+            batch = batch.to(device)
+
+            _, embeddings = model(batch, return_embedding=True)
+
+            all_embeddings.append(embeddings.cpu().numpy())
+            all_targets.append(batch.y.cpu().numpy())
+
+    embeddings = np.concatenate(all_embeddings, axis=0)
+    targets = np.concatenate(all_targets, axis=0).flatten()
+
+    return embeddings, targets
+
+
+# Extract embeddings from all data
+embeddings, targets = extract_all_embeddings(model, dataset, device)
+
+print(f&quot;Embedding shape: {embeddings.shape}&quot;)
+print(f&quot;Target shape: {targets.shape}&quot;)
+
+# Save
+np.save('cgcnn_embeddings.npy', embeddings)
+np.save('cgcnn_targets.npy', targets)
+print(&quot;\nSaved embeddings&quot;)
+</code></pre>
+<h3>Code Example 12: Dimensionality Reduction with PCA</h3>
+<pre><code class="language-python">from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Run PCA
+pca = PCA(n_components=min(50, embeddings.shape[1]))
+embeddings_pca = pca.fit_transform(embeddings)
+
+# Analyze explained variance ratio
+explained_variance_ratio = pca.explained_variance_ratio_
+cumsum_variance = np.cumsum(explained_variance_ratio)
+
+# Scree plot
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+# Individual explained variance
+ax1.bar(range(1, 21), explained_variance_ratio[:20],
+        alpha=0.7, edgecolor='black', color='steelblue')
+ax1.set_xlabel('Principal Component', fontsize=14, fontweight='bold')
+ax1.set_ylabel('Explained Variance Ratio', fontsize=14, fontweight='bold')
+ax1.set_title('PCA Scree Plot (Top 20 Components)',
+              fontsize=16, fontweight='bold')
+ax1.grid(True, alpha=0.3, axis='y')
+
+# Cumulative explained variance
+ax2.plot(range(1, len(cumsum_variance) + 1), cumsum_variance,
+         marker='o', linewidth=2, markersize=4, color='darkred')
+ax2.axhline(y=0.95, color='green', linestyle='--', linewidth=2,
+            label='95% threshold', alpha=0.7)
+ax2.set_xlabel('Number of Components', fontsize=14, fontweight='bold')
+ax2.set_ylabel('Cumulative Explained Variance', fontsize=14, fontweight='bold')
+ax2.set_title('Cumulative Variance Explained',
+              fontsize=16, fontweight='bold')
+ax2.legend(fontsize=12)
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('pca_analysis.png', dpi=300, bbox_inches='tight')
+print(f&quot;Saved PCA analysis to pca_analysis.png&quot;)
+print(f&quot;\nNumber of principal components explaining 95% variance: {np.argmax(cumsum_variance &gt;= 0.95) + 1}&quot;)
+plt.show()
+
+# 2D PCA visualization
+pca_2d = PCA(n_components=2)
+embeddings_pca_2d = pca_2d.fit_transform(embeddings)
+
+plt.figure(figsize=(12, 9))
+scatter = plt.scatter(embeddings_pca_2d[:, 0], embeddings_pca_2d[:, 1],
+                      c=targets, cmap='viridis', s=50, alpha=0.6,
+                      edgecolors='black', linewidth=0.5)
+plt.xlabel(f'PC1 ({pca_2d.explained_variance_ratio_[0]*100:.1f}% variance)',
+           fontsize=14, fontweight='bold')
+plt.ylabel(f'PC2 ({pca_2d.explained_variance_ratio_[1]*100:.1f}% variance)',
+           fontsize=14, fontweight='bold')
+plt.title('PCA: 2D Projection of CGCNN Embeddings',
+          fontsize=16, fontweight='bold')
+plt.colorbar(scatter, label='Band Gap (eV)')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('pca_2d_projection.png', dpi=300, bbox_inches='tight')
+print(&quot;Saved PCA 2D projection to pca_2d_projection.png&quot;)
+plt.show()
+</code></pre>
+<h3>Code Example 13: Dimensionality Reduction with UMAP</h3>
+<pre><code class="language-python">import umap
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Run UMAP (experiment with multiple parameters)
+n_neighbors_list = [5, 15, 30, 50]
+min_dist_list = [0.0, 0.1, 0.3]
+
+# Run with optimal parameters
+print(&quot;Running UMAP...&quot;)
+reducer = umap.UMAP(
+    n_components=2,
+    n_neighbors=15,
+    min_dist=0.1,
+    metric='euclidean',
+    random_state=42,
+    verbose=True
+)
+
+embeddings_umap = reducer.fit_transform(embeddings)
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(18, 7))
+
+# Color by target value
+scatter1 = axes[0].scatter(embeddings_umap[:, 0], embeddings_umap[:, 1],
+                           c=targets, cmap='viridis', s=50, alpha=0.6,
+                           edgecolors='black', linewidth=0.5)
+axes[0].set_xlabel('UMAP 1', fontsize=14, fontweight='bold')
+axes[0].set_ylabel('UMAP 2', fontsize=14, fontweight='bold')
+axes[0].set_title('UMAP: Colored by Band Gap',
+                  fontsize=16, fontweight='bold')
+axes[0].grid(True, alpha=0.3)
+cbar1 = plt.colorbar(scatter1, ax=axes[0])
+cbar1.set_label('Band Gap (eV)', fontsize=12, fontweight='bold')
+
+# Color by category
+band_gap_categories = pd.cut(targets, bins=[0, 1, 2, 3, 10],
+                              labels=['Small', 'Medium', 'Large', 'Very Large'])
+
+colors_map = {'Small': 'red', 'Medium': 'orange', 'Large': 'yellow', 'Very Large': 'green'}
+colors = [colors_map[cat] for cat in band_gap_categories]
+
+for category in ['Small', 'Medium', 'Large', 'Very Large']:
+    mask = band_gap_categories == category
+    axes[1].scatter(embeddings_umap[mask, 0], embeddings_umap[mask, 1],
+                    c=colors_map[category], label=category, s=50, alpha=0.7,
+                    edgecolors='black', linewidth=0.5)
+
+axes[1].set_xlabel('UMAP 1', fontsize=14, fontweight='bold')
+axes[1].set_ylabel('UMAP 2', fontsize=14, fontweight='bold')
+axes[1].set_title('UMAP: Colored by Band Gap Category',
+                  fontsize=16, fontweight='bold')
+axes[1].legend(title='Band Gap', fontsize=11)
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('umap_2d_projection.png', dpi=300, bbox_inches='tight')
+print(&quot;\nSaved UMAP 2D projection to umap_2d_projection.png&quot;)
+plt.show()
+
+# Save UMAP results
+np.save('umap_embeddings_2d.npy', embeddings_umap)
+</code></pre>
+<h3>Code Example 14: Dimensionality Reduction with t-SNE</h3>
+<pre><code class="language-python">from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+import time
+
+# Run t-SNE (speed up with subset)
+subset_size = min(1000, len(embeddings))
+subset_indices = np.random.choice(len(embeddings), subset_size, replace=False)
+
+embeddings_subset = embeddings[subset_indices]
+targets_subset = targets[subset_indices]
+
+print(f&quot;Running t-SNE (subset size: {subset_size})...&quot;)
+start_time = time.time()
+
+tsne = TSNE(
+    n_components=2,
+    perplexity=30,
+    n_iter=1000,
+    random_state=42,
+    verbose=1
+)
+
+embeddings_tsne = tsne.fit_transform(embeddings_subset)
+
+elapsed_time = time.time() - start_time
+print(f&quot;t-SNE complete (elapsed time: {elapsed_time:.1f} seconds)&quot;)
+
+# Visualization
+plt.figure(figsize=(12, 9))
+scatter = plt.scatter(embeddings_tsne[:, 0], embeddings_tsne[:, 1],
+                      c=targets_subset, cmap='plasma', s=50, alpha=0.6,
+                      edgecolors='black', linewidth=0.5)
+plt.xlabel('t-SNE 1', fontsize=14, fontweight='bold')
+plt.ylabel('t-SNE 2', fontsize=14, fontweight='bold')
+plt.title('t-SNE: 2D Projection of CGCNN Embeddings',
+          fontsize=16, fontweight='bold')
+plt.colorbar(scatter, label='Band Gap (eV)')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('tsne_2d_projection.png', dpi=300, bbox_inches='tight')
+print(&quot;Saved t-SNE 2D projection to tsne_2d_projection.png&quot;)
+plt.show()
+</code></pre>
+<h3>Code Example 15: Comparison of Dimensionality Reduction Methods</h3>
+<pre><code class="language-python">import matplotlib.pyplot as plt
+import numpy as np
+
+# Display results from three methods side by side
+fig, axes = plt.subplots(1, 3, figsize=(21, 6))
+
+# PCA
+scatter = axes[0].scatter(embeddings_pca_2d[:, 0], embeddings_pca_2d[:, 1],
+                          c=targets, cmap='viridis', s=30, alpha=0.6,
+                          edgecolors='none')
+axes[0].set_xlabel('PC1', fontsize=12, fontweight='bold')
+axes[0].set_ylabel('PC2', fontsize=12, fontweight='bold')
+axes[0].set_title('PCA', fontsize=14, fontweight='bold')
+axes[0].grid(True, alpha=0.3)
+
+# UMAP
+scatter = axes[1].scatter(embeddings_umap[:, 0], embeddings_umap[:, 1],
+                          c=targets, cmap='viridis', s=30, alpha=0.6,
+                          edgecolors='none')
+axes[1].set_xlabel('UMAP 1', fontsize=12, fontweight='bold')
+axes[1].set_ylabel('UMAP 2', fontsize=12, fontweight='bold')
+axes[1].set_title('UMAP', fontsize=14, fontweight='bold')
+axes[1].grid(True, alpha=0.3)
+
+# t-SNE
+scatter = axes[2].scatter(embeddings_tsne[:, 0], embeddings_tsne[:, 1],
+                          c=targets_subset, cmap='viridis', s=30, alpha=0.6,
+                          edgecolors='none')
+axes[2].set_xlabel('t-SNE 1', fontsize=12, fontweight='bold')
+axes[2].set_ylabel('t-SNE 2', fontsize=12, fontweight='bold')
+axes[2].set_title('t-SNE', fontsize=14, fontweight='bold')
+axes[2].grid(True, alpha=0.3)
+
+# Common colorbar
+fig.subplots_adjust(right=0.9)
+cbar_ax = fig.add_axes([0.92, 0.15, 0.02, 0.7])
+cbar = fig.colorbar(scatter, cax=cbar_ax)
+cbar.set_label('Band Gap (eV)', fontsize=12, fontweight='bold')
+
+plt.savefig('dimensionality_reduction_comparison.png', dpi=300, bbox_inches='tight')
+print(&quot;Saved dimensionality reduction comparison to dimensionality_reduction_comparison.png&quot;)
+plt.show()
+</code></pre>
+<h2>4.5 Materials Space Analysis</h2>
+<h3>Code Example 16: Clustering and Property Analysis</h3>
+<pre><code class="language-python">from sklearn.cluster import KMeans
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# K-Means clustering (on UMAP space)
+n_clusters = 6
+kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=20)
+cluster_labels = kmeans.fit_predict(embeddings_umap)
+
+# Visualization by cluster
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
+
+# Color by cluster label
+colors = plt.cm.Set3(np.linspace(0, 1, n_clusters))
+for cluster_id in range(n_clusters):
+    mask = cluster_labels == cluster_id
+    ax1.scatter(embeddings_umap[mask, 0], embeddings_umap[mask, 1],
+                c=[colors[cluster_id]], label=f'Cluster {cluster_id}',
+                s=60, alpha=0.7, edgecolors='black', linewidth=0.5)
+
+# Cluster centers
+umap_reducer_for_centers = umap.UMAP(n_components=2, n_neighbors=15,
+                                     min_dist=0.1, random_state=42)
+umap_reducer_for_centers.fit(embeddings)
+centers_umap = umap_reducer_for_centers.transform(kmeans.cluster_centers_)
+
+ax1.scatter(centers_umap[:, 0], centers_umap[:, 1],
+            c='red', marker='X', s=300, edgecolors='black',
+            linewidth=2, label='Centroids', zorder=10)
+
+ax1.set_xlabel('UMAP 1', fontsize=14, fontweight='bold')
+ax1.set_ylabel('UMAP 2', fontsize=14, fontweight='bold')
+ax1.set_title(f'K-Means Clustering (k={n_clusters})',
+              fontsize=16, fontweight='bold')
+ax1.legend(fontsize=10, loc='best', ncol=2)
+ax1.grid(True, alpha=0.3)
+
+# Property distribution by cluster
+cluster_df = pd.DataFrame({
+    'cluster': cluster_labels,
+    'band_gap': targets
+})
+
+sns.boxplot(data=cluster_df, x='cluster', y='band_gap',
+            ax=ax2, palette='Set3')
+sns.swarmplot(data=cluster_df, x='cluster', y='band_gap',
+              ax=ax2, color='black', alpha=0.3, size=2)
+
+ax2.set_xlabel('Cluster ID', fontsize=14, fontweight='bold')
+ax2.set_ylabel('Band Gap (eV)', fontsize=14, fontweight='bold')
+ax2.set_title('Band Gap Distribution by Cluster',
+              fontsize=16, fontweight='bold')
+ax2.grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.savefig('clustering_analysis.png', dpi=300, bbox_inches='tight')
+print(&quot;Saved clustering analysis to clustering_analysis.png&quot;)
+plt.show()
+
+# Cluster statistics
+print(&quot;\nBand gap statistics by cluster:&quot;)
+cluster_stats = cluster_df.groupby('cluster')['band_gap'].agg([
+    'count', 'mean', 'std', 'min', 'max'
+])
+print(cluster_stats.round(3))
+</code></pre>
+<h3>Code Example 17: Material Property and Cluster Relationship Analysis</h3>
+<pre><code class="language-python">import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Integrate additional material properties into DataFrame
+materials_analysis_df = materials_df.copy()
+materials_analysis_df['cluster'] = cluster_labels
+materials_analysis_df['umap1'] = embeddings_umap[:, 0]
+materials_analysis_df['umap2'] = embeddings_umap[:, 1]
+
+# Statistics of multiple properties by cluster
+properties_to_analyze = [
+    'band_gap', 'formation_energy_per_atom',
+    'density', 'energy_above_hull', 'volume'
+]
+
+cluster_property_stats = materials_analysis_df.groupby('cluster')[
+    properties_to_analyze
+].mean()
+
+# Visualize with heatmap
+plt.figure(figsize=(12, 8))
+sns.heatmap(cluster_property_stats.T, annot=True, fmt='.2f',
+            cmap='RdYlGn_r', center=0, linewidths=1,
+            cbar_kws={&quot;label&quot;: &quot;Normalized Value&quot;})
+plt.title('Average Material Properties by Cluster',
+          fontsize=16, fontweight='bold', pad=20)
+plt.xlabel('Cluster ID', fontsize=14, fontweight='bold')
+plt.ylabel('Property', fontsize=14, fontweight='bold')
+plt.tight_layout()
+plt.savefig('cluster_properties_heatmap.png', dpi=300, bbox_inches='tight')
+print(&quot;Saved cluster properties heatmap to cluster_properties_heatmap.png&quot;)
+plt.show()
+</code></pre>
+<h3>Code Example 18: Creating Density Maps</h3>
+<pre><code class="language-python">from scipy.stats import gaussian_kde
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Density estimation in UMAP space
+xy = np.vstack([embeddings_umap[:, 0], embeddings_umap[:, 1]])
+density = gaussian_kde(xy)(xy)
+
+# Sort by density (draw high-density points on top)
+idx = density.argsort()
+x, y, z = embeddings_umap[idx, 0], embeddings_umap[idx, 1], density[idx]
+
+# Plot
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
+
+# Density map
+scatter1 = ax1.scatter(x, y, c=z, cmap='hot', s=50, alpha=0.7,
+                       edgecolors='black', linewidth=0.3)
+ax1.set_xlabel('UMAP 1', fontsize=14, fontweight='bold')
+ax1.set_ylabel('UMAP 2', fontsize=14, fontweight='bold')
+ax1.set_title('Materials Space Density Map',
+              fontsize=16, fontweight='bold')
+ax1.grid(True, alpha=0.3)
+cbar1 = plt.colorbar(scatter1, ax=ax1)
+cbar1.set_label('Point Density', fontsize=12, fontweight='bold')
+
+# Density map + Band gap
+scatter2 = ax2.scatter(embeddings_umap[:, 0], embeddings_umap[:, 1],
+                       c=targets, s=50 + density*1000, alpha=0.6,
+                       cmap='viridis', edgecolors='black', linewidth=0.5)
+ax2.set_xlabel('UMAP 1', fontsize=14, fontweight='bold')
+ax2.set_ylabel('UMAP 2', fontsize=14, fontweight='bold')
+ax2.set_title('Band Gap with Density (size = density)',
+              fontsize=16, fontweight='bold')
+ax2.grid(True, alpha=0.3)
+cbar2 = plt.colorbar(scatter2, ax=ax2)
+cbar2.set_label('Band Gap (eV)', fontsize=12, fontweight='bold')
+
+plt.tight_layout()
+plt.savefig('density_map.png', dpi=300, bbox_inches='tight')
+print(&quot;Saved density map to density_map.png&quot;)
+plt.show()
+</code></pre>
+<h3>Code Example 19: Searching for Similar Materials</h3>
+<pre><code class="language-python">from sklearn.neighbors import NearestNeighbors
+import pandas as pd
+
+def find_similar_materials_in_embedding_space(
+    query_idx, embeddings, materials_df, k=10
+):
+    &quot;&quot;&quot;
+    Search for similar materials in embedding space
+
+    Parameters:
+    -----------
+    query_idx : int
+        Query material index
+    embeddings : np.ndarray
+        Embedding vectors
+    materials_df : pd.DataFrame
+        Materials data
+    k : int
+        Number of neighbors to search
+
+    Returns:
+    --------
+    results_df : pd.DataFrame
+        Information on neighboring materials
+    &quot;&quot;&quot;
+    nbrs = NearestNeighbors(n_neighbors=k+1, metric='cosine').fit(embeddings)
+    distances, indices = nbrs.kneighbors(embeddings[query_idx:query_idx+1])
+
+    # Create results DataFrame
+    results = []
+    for i, (idx, dist) in enumerate(zip(indices[0], distances[0])):
+        if i == 0:  # Skip query itself
+            continue
+
+        result = {
+            'rank': i,
+            'material_id': materials_df.iloc[idx]['material_id'],
+            'formula': materials_df.iloc[idx]['formula'],
+            'band_gap': materials_df.iloc[idx]['band_gap'],
+            'formation_energy': materials_df.iloc[idx]['formation_energy_per_atom'],
+            'density': materials_df.iloc[idx]['density'],
+            'distance': dist
+        }
+        results.append(result)
+
+    results_df = pd.DataFrame(results)
+    return results_df
+
+
+# Usage example: Randomly select materials and search for similar materials
+np.random.seed(42)
+query_indices = np.random.choice(len(materials_df), 3, replace=False)
+
+print(&quot;Similar materials search examples:\n&quot;)
+for query_idx in query_indices:
+    query_material = materials_df.iloc[query_idx]
+
+    print(f&quot;Query material:&quot;)
+    print(f&quot;  Material ID: {query_material['material_id']}&quot;)
+    print(f&quot;  Formula: {query_material['formula']}&quot;)
+    print(f&quot;  Band Gap: {query_material['band_gap']:.3f} eV&quot;)
+    print(f&quot;\nSimilar materials (Top 5):&quot;)
+
+    similar_materials = find_similar_materials_in_embedding_space(
+        query_idx, embeddings, materials_df, k=5
+    )
+
+    print(similar_materials[['rank', 'material_id', 'formula', 'band_gap', 'distance']].to_string(index=False))
+    print(&quot;\n&quot; + &quot;=&quot;*80 + &quot;\n&quot;)
+</code></pre>
+<h3>Code Example 20: Material Recommendation System</h3>
+<pre><code class="language-python">def recommend_materials_by_property(
+    target_property_value,
+    property_name,
+    embeddings,
+    materials_df,
+    n_recommendations=10,
+    property_weight=0.7,
+    embedding_weight=0.3
+):
+    &quot;&quot;&quot;
+    Recommend materials based on target property value
+
+    Parameters:
+    -----------
+    target_property_value : float
+        Target property value
+    property_name : str
+        Property name
+    embeddings : np.ndarray
+        Embedding vectors
+    materials_df : pd.DataFrame
+        Materials data
+    n_recommendations : int
+        Number of recommendations
+    property_weight : float
+        Weight for property value
+    embedding_weight : float
+        Weight for embedding distance
+
+    Returns:
+    --------
+    recommendations_df : pd.DataFrame
+        List of recommended materials
+    &quot;&quot;&quot;
+    # Property value difference
+    property_diff = np.abs(materials_df[property_name].values - target_property_value)
+    property_diff_normalized = property_diff / property_diff.max()
+
+    # Index of material closest to target property value
+    closest_idx = property_diff.argmin()
+
+    # Distance in embedding space
+    from sklearn.metrics.pairwise import cosine_distances
+    embedding_distances = cosine_distances(
+        embeddings[closest_idx:closest_idx+1],
+        embeddings
+    ).flatten()
+    embedding_distances_normalized = embedding_distances / embedding_distances.max()
+
+    # Combined score (smaller is better)
+    combined_score = (
+        property_weight * property_diff_normalized +
+        embedding_weight * embedding_distances_normalized
+    )
+
+    # Select top n_recommendations
+    top_indices = combined_score.argsort()[:n_recommendations]
+
+    # Create results DataFrame
+    recommendations = []
+    for rank, idx in enumerate(top_indices, 1):
+        rec = {
+            'rank': rank,
+            'material_id': materials_df.iloc[idx]['material_id'],
+            'formula': materials_df.iloc[idx]['formula'],
+            property_name: materials_df.iloc[idx][property_name],
+            'property_diff': property_diff[idx],
+            'embedding_distance': embedding_distances[idx],
+            'combined_score': combined_score[idx]
+        }
+        recommendations.append(rec)
+
+    recommendations_df = pd.DataFrame(recommendations)
+    return recommendations_df
+
+
+# Usage example: Recommend materials close to band gap 2.0 eV
+target_bandgap = 2.0
+
+print(f&quot;Target band gap: {target_bandgap} eV&quot;)
+print(&quot;\nRecommended materials (Top 10):\n&quot;)
+
+recommendations = recommend_materials_by_property(
+    target_property_value=target_bandgap,
+    property_name='band_gap',
+    embeddings=embeddings,
+    materials_df=materials_df,
+    n_recommendations=10,
+    property_weight=0.7,
+    embedding_weight=0.3
+)
+
+print(recommendations[['rank', 'material_id', 'formula', 'band_gap',
+                       'property_diff', 'combined_score']].to_string(index=False))
+</code></pre>
+<h2>4.6 Interactive Visualization</h2>
+<h3>Code Example 21: 3D UMAP with Plotly</h3>
+<pre><code class="language-python">import plotly.express as px
+import plotly.graph_objects as go
+import umap
+import pandas as pd
+
+# 3D UMAP
+print(&quot;Running 3D UMAP...&quot;)
+reducer_3d = umap.UMAP(
+    n_components=3,
+    n_neighbors=15,
+    min_dist=0.1,
+    random_state=42,
+    verbose=False
+)
+
+embeddings_umap_3d = reducer_3d.fit_transform(embeddings)
+
+# Create DataFrame
+df_3d = pd.DataFrame({
+    'UMAP1': embeddings_umap_3d[:, 0],
+    'UMAP2': embeddings_umap_3d[:, 1],
+    'UMAP3': embeddings_umap_3d[:, 2],
+    'Band_Gap': targets,
+    'Material_ID': materials_df['material_id'].values,
+    'Formula': materials_df['formula'].values,
+    'Formation_Energy': materials_df['formation_energy_per_atom'].values,
+    'Density': materials_df['density'].values,
+    'Cluster': cluster_labels
+})
+
+# Interactive 3D plot
+fig = px.scatter_3d(
+    df_3d,
+    x='UMAP1', y='UMAP2', z='UMAP3',
+    color='Band_Gap',
+    size='Density',
+    hover_data=['Material_ID', 'Formula', 'Formation_Energy', 'Cluster'],
+    color_continuous_scale='Viridis',
+    title='Interactive 3D UMAP: Materials Space Explorer'
+)
+
+fig.update_traces(marker=dict(line=dict(width=0.5, color='DarkSlateGrey')))
+
+fig.update_layout(
+    scene=dict(
+        xaxis_title='UMAP 1',
+        yaxis_title='UMAP 2',
+        zaxis_title='UMAP 3',
+        xaxis=dict(backgroundcolor=&quot;rgb(230, 230, 230)&quot;, gridcolor=&quot;white&quot;),
+        yaxis=dict(backgroundcolor=&quot;rgb(230, 230, 230)&quot;, gridcolor=&quot;white&quot;),
+        zaxis=dict(backgroundcolor=&quot;rgb(230, 230, 230)&quot;, gridcolor=&quot;white&quot;),
+    ),
+    width=1000,
+    height=800,
+    font=dict(size=12)
+)
+
+fig.write_html('materials_3d_interactive.html')
+print(&quot;Saved interactive 3D visualization to materials_3d_interactive.html&quot;)
+fig.show()
+</code></pre>
+<h3>Code Example 22: Interactive Scatter Plot with Bokeh</h3>
+<pre><code class="language-python">from bokeh.plotting import figure, output_file, save
+from bokeh.models import HoverTool, ColorBar, LinearColorMapper, ColumnDataSource
+from bokeh.palettes import Viridis256
+from bokeh.io import show
+from bokeh.layouts import column, row
+from bokeh.models.widgets import Select
+
+# Color mapper
+color_mapper = LinearColorMapper(
+    palette=Viridis256,
+    low=targets.min(),
+    high=targets.max()
+)
+
+# Data source
+source = ColumnDataSource(data=dict(
+    x=embeddings_umap[:, 0],
+    y=embeddings_umap[:, 1],
+    material_id=materials_df['material_id'].values,
+    formula=materials_df['formula'].values,
+    band_gap=targets,
+    formation_energy=materials_df['formation_energy_per_atom'].values,
+    density=materials_df['density'].values,
+    volume=materials_df['volume'].values,
+    cluster=cluster_labels
+))
+
+# Create plot
+output_file('materials_interactive.html')
+
+p = figure(
+    width=1000,
+    height=800,
+    title='Interactive Materials Space Explorer (UMAP)',
+    tools='pan,wheel_zoom,box_zoom,box_select,lasso_select,reset,save'
+)
+
+# Scatter plot
+circles = p.circle(
+    'x', 'y',
+    size=8,
+    source=source,
+    fill_color={'field': 'band_gap', 'transform': color_mapper},
+    fill_alpha=0.7,
+    line_color='black',
+    line_width=0.5
+)
+
+# Hover tool
+hover = HoverTool(tooltips=[
+    ('Material ID', '@material_id'),
+    ('Formula', '@formula'),
+    ('Band Gap', '@band_gap{0.00} eV'),
+    ('Formation E', '@formation_energy{0.00} eV/atom'),
+    ('Density', '@density{0.00} g/cm³'),
+    ('Volume', '@volume{0.0} Ų'),
+    ('Cluster', '@cluster')
+])
+p.add_tools(hover)
+
+# Color bar
+color_bar = ColorBar(
+    color_mapper=color_mapper,
+    label_standoff=12,
+    title='Band Gap (eV)',
+    location=(0, 0)
+)
+p.add_layout(color_bar, 'right')
+
+# Axis labels
+p.xaxis.axis_label = 'UMAP 1'
+p.yaxis.axis_label = 'UMAP 2'
+p.title.text_font_size = '16pt'
+p.xaxis.axis_label_text_font_size = '14pt'
+p.yaxis.axis_label_text_font_size = '14pt'
+
+save(p)
+print(&quot;Saved interactive UMAP to materials_interactive.html&quot;)
+show(p)
+</code></pre>
+<h3>Code Example 23: Dashboard with Dash (Optional)</h3>
+<pre><code class="language-python"># Install Dash (first time only)
+# !pip install dash
+
+&quot;&quot;&quot;
+import dash
+from dash import dcc, html
+from dash.dependencies import Input, Output
+import plotly.express as px
+import plotly.graph_objects as go
+import pandas as pd
+
+# Create Dash app
+app = dash.Dash(__name__)
+
+# Prepare DataFrame
+df_dash = pd.DataFrame({
+    'umap1': embeddings_umap[:, 0],
+    'umap2': embeddings_umap[:, 1],
+    'material_id': materials_df['material_id'].values,
+    'formula': materials_df['formula'].values,
+    'band_gap': targets,
+    'formation_energy': materials_df['formation_energy_per_atom'].values,
+    'density': materials_df['density'].values,
+    'cluster': cluster_labels
+})
+
+# Layout
+app.layout = html.Div([
+    html.H1('Materials Space Explorer Dashboard'),
+
+    html.Div([
+        html.Label('Color by:'),
+        dcc.Dropdown(
+            id='color-dropdown',
+            options=[
+                {'label': 'Band Gap', 'value': 'band_gap'},
+                {'label': 'Formation Energy', 'value': 'formation_energy'},
+                {'label': 'Density', 'value': 'density'},
+                {'label': 'Cluster', 'value': 'cluster'}
+            ],
+            value='band_gap'
+        ),
+    ], style={'width': '30%', 'display': 'inline-block'}),
+
+    dcc.Graph(id='umap-scatter'),
+
+    html.Div(id='material-info')
+])
+
+# Callback
+@app.callback(
+    Output('umap-scatter', 'figure'),
+    Input('color-dropdown', 'value')
+)
+def update_scatter(color_by):
+    fig = px.scatter(
+        df_dash,
+        x='umap1',
+        y='umap2',
+        color=color_by,
+        hover_data=['material_id', 'formula', 'band_gap', 'formation_energy'],
+        color_continuous_scale='Viridis',
+        title=f'UMAP colored by {color_by}'
+    )
+
+    fig.update_traces(marker=dict(size=8, line=dict(width=0.5, color='black')))
+
+    return fig
+
+# Run app
+if __name__ == '__main__':
+    app.run_server(debug=True)
+&quot;&quot;&quot;
+
+print(&quot;Displayed Dash dashboard code example&quot;)
+print(&quot;Uncomment and run to execute&quot;)
+</code></pre>
+<h2>4.7 Advanced Analysis and Applications</h2>
+<h3>Code Example 24: Voronoi Tessellation of Materials Space</h3>
+<pre><code class="language-python">from scipy.spatial import Voronoi, voronoi_plot_2d
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Create Voronoi diagram with subset (reduce computation)
+subset_size = 100
+subset_indices = np.random.choice(len(embeddings_umap), subset_size, replace=False)
+
+points = embeddings_umap[subset_indices]
+targets_subset = targets[subset_indices]
+
+# Compute Voronoi diagram
+vor = Voronoi(points)
+
+# Plot
+fig, ax = plt.subplots(figsize=(14, 12))
+
+# Voronoi cells
+voronoi_plot_2d(vor, ax=ax, show_vertices=False, line_colors='gray',
+                line_width=1, line_alpha=0.6, point_size=0)
+
+# Material points
+scatter = ax.scatter(points[:, 0], points[:, 1],
+                     c=targets_subset, cmap='viridis',
+                     s=100, alpha=0.8, edgecolors='black', linewidth=1.5,
+                     zorder=5)
+
+ax.set_xlabel('UMAP 1', fontsize=14, fontweight='bold')
+ax.set_ylabel('UMAP 2', fontsize=14, fontweight='bold')
+ax.set_title('Voronoi Tessellation of Materials Space',
+             fontsize=16, fontweight='bold')
+
+cbar = plt.colorbar(scatter, ax=ax)
+cbar.set_label('Band Gap (eV)', fontsize=12, fontweight='bold')
+
+# Limit axis range (exclude infinity points)
+ax.set_xlim([points[:, 0].min() - 1, points[:, 0].max() + 1])
+ax.set_ylim([points[:, 1].min() - 1, points[:, 1].max() + 1])
+
+plt.tight_layout()
+plt.savefig('voronoi_tessellation.png', dpi=300, bbox_inches='tight')
+print(&quot;Saved Voronoi tessellation to voronoi_tessellation.png&quot;)
+plt.show()
+</code></pre>
+<h3>Code Example 25: Property Gradient Visualization</h3>
+<pre><code class="language-python">import matplotlib.pyplot as plt
+import numpy as np
+from scipy.interpolate import griddata
+
+# Create grid
+grid_x, grid_y = np.mgrid[
+    embeddings_umap[:, 0].min():embeddings_umap[:, 0].max():100j,
+    embeddings_umap[:, 1].min():embeddings_umap[:, 1].max():100j
+]
+
+# Interpolation
+grid_z = griddata(
+    embeddings_umap,
+    targets,
+    (grid_x, grid_y),
+    method='cubic'
+)
+
+# Plot
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
+
+# Contour plot
+contour = ax1.contourf(grid_x, grid_y, grid_z, levels=20, cmap='viridis', alpha=0.8)
+ax1.scatter(embeddings_umap[:, 0], embeddings_umap[:, 1],
+            c='white', s=5, alpha=0.5, edgecolors='none')
+ax1.set_xlabel('UMAP 1', fontsize=14, fontweight='bold')
+ax1.set_ylabel('UMAP 2', fontsize=14, fontweight='bold')
+ax1.set_title('Band Gap Contour Map', fontsize=16, fontweight='bold')
+cbar1 = plt.colorbar(contour, ax=ax1)
+cbar1.set_label('Band Gap (eV)', fontsize=12, fontweight='bold')
+
+# Gradient vectors
+gradient_y, gradient_x = np.gradient(grid_z)
+
+# Subsampling (adjust arrow density)
+skip = 5
+ax2.contourf(grid_x, grid_y, grid_z, levels=20, cmap='viridis', alpha=0.6)
+ax2.quiver(grid_x[::skip, ::skip], grid_y[::skip, ::skip],
+           gradient_x[::skip, ::skip], gradient_y[::skip, ::skip],
+           color='white', alpha=0.8, scale=50)
+ax2.scatter(embeddings_umap[:, 0], embeddings_umap[:, 1],
+            c='black', s=5, alpha=0.3, edgecolors='none')
+ax2.set_xlabel('UMAP 1', fontsize=14, fontweight='bold')
+ax2.set_ylabel('UMAP 2', fontsize=14, fontweight='bold')
+ax2.set_title('Band Gap Gradient Field', fontsize=16, fontweight='bold')
+cbar2 = plt.colorbar(contour, ax=ax2)
+cbar2.set_label('Band Gap (eV)', fontsize=12, fontweight='bold')
+
+plt.tight_layout()
+plt.savefig('property_gradient.png', dpi=300, bbox_inches='tight')
+print(&quot;Saved property gradient to property_gradient.png&quot;)
+plt.show()
+</code></pre>
+<h3>Code Example 26: Embedding Stability Evaluation</h3>
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import KFold
+
+def evaluate_embedding_stability(model, dataset, device, n_splits=5):
+    &quot;&quot;&quot;
+    Evaluate embedding stability with cross-validation
+
+    Parameters:
+    -----------
+    model : nn.Module
+        Model (for re-training)
+    dataset : Dataset
+        Dataset
+    device : torch.device
+        Device
+    n_splits : int
+        Number of splits
+
+    Returns:
+    --------
+    stability_scores : list
+        Stability scores
+    &quot;&quot;&quot;
+    kfold = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+
+    embeddings_list = []
+
+    for fold, (train_idx, val_idx) in enumerate(kfold.split(range(len(dataset)))):
+        print(f&quot;Fold {fold+1}/{n_splits}&quot;)
+
+        # Omitted: Re-train model for each fold
+        # In practice, create a new model instance and train with train_idx
+
+        # For demo: use existing embeddings
+        embeddings_list.append(embeddings)
+
+    # Calculate similarity between embeddings
+    from sklearn.metrics.pairwise import cosine_similarity
+
+    similarities = []
+    for i in range(len(embeddings_list)):
+        for j in range(i+1, len(embeddings_list)):
+            sim_matrix = cosine_similarity(embeddings_list[i], embeddings_list[j])
+            # Average of diagonal elements (similarity between corresponding embeddings for each point)
+            sim_score = np.mean(np.diag(sim_matrix))
+            similarities.append(sim_score)
+
+    return similarities
+
+
+# Execute (demo)
+print(&quot;Embedding stability evaluation (demo):&quot;)
+stability_scores = evaluate_embedding_stability(model, dataset, device, n_splits=3)
+print(f&quot;Average similarity: {np.mean(stability_scores):.3f}&quot;)
+print(f&quot;Standard deviation: {np.std(stability_scores):.3f}&quot;)
+</code></pre>
+<h3>Code Example 27: Ensemble Model Embedding Integration</h3>
+<pre><code class="language-python">def create_ensemble_embeddings(models_list, dataset, device):
+    &quot;&quot;&quot;
+    Integrate embeddings from multiple models
+
+    Parameters:
+    -----------
+    models_list : list
+        List of trained models
+    dataset : Dataset
+        Dataset
+    device : torch.device
+        Device
+
+    Returns:
+    --------
+    ensemble_embeddings : np.ndarray
+        Integrated embeddings
+    &quot;&quot;&quot;
+    all_embeddings = []
+
+    for model in models_list:
+        emb, _ = extract_all_embeddings(model, dataset, device)
+        all_embeddings.append(emb)
+
+    # Take average
+    ensemble_embeddings = np.mean(all_embeddings, axis=0)
+
+    return ensemble_embeddings
+
+
+# Demo: Use single model three times (in practice, use different models)
+print(&quot;Ensemble embedding demo:&quot;)
+models_list = [model, model, model]  # In practice, different models
+
+ensemble_emb = create_ensemble_embeddings(models_list, dataset, device)
+print(f&quot;Ensemble embedding shape: {ensemble_emb.shape}&quot;)
+</code></pre>
+<h3>Code Example 28: Time-series Materials Space Changes (Extensibility)</h3>
+<pre><code class="language-python">&quot;&quot;&quot;
+Track changes in materials space with time-series data or multiple model versions
+
+def visualize_materials_space_evolution(
+    embeddings_timeline,
+    targets_timeline,
+    timestamps
+):
+    '''
+    Visualize time-series changes in materials space
+
+    Parameters:
+    -----------
+    embeddings_timeline : list of np.ndarray
+        Embeddings at each time point
+    targets_timeline : list of np.ndarray
+        Targets at each time point
+    timestamps : list
+        Timestamps
+
+    Returns:
+    --------
+    animation or multiple plots
+    '''
+    import matplotlib.animation as animation
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    def update(frame):
+        ax.clear()
+        embeddings = embeddings_timeline[frame]
+        targets = targets_timeline[frame]
+
+        scatter = ax.scatter(embeddings[:, 0], embeddings[:, 1],
+                            c=targets, cmap='viridis', s=50, alpha=0.6)
+        ax.set_title(f'Materials Space at {timestamps[frame]}')
+        ax.set_xlabel('Component 1')
+        ax.set_ylabel('Component 2')
+
+        return scatter,
+
+    anim = animation.FuncAnimation(fig, update, frames=len(timestamps),
+                                  interval=500, blit=False)
+
+    return anim
+'''
+
+print(&quot;Displayed time-series visualization extensibility code example&quot;)
+&quot;&quot;&quot;
+</code></pre>
+<h3>Code Example 29: Extrapolation Region Detection</h3>
+<pre><code class="language-python">from sklearn.ensemble import IsolationForest
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Learn embedding range from training data
+train_embeddings = embeddings[train_idx]
+
+# Detect outliers (extrapolation regions) with Isolation Forest
+iso_forest = IsolationForest(contamination=0.1, random_state=42)
+iso_forest.fit(train_embeddings)
+
+# Predict on all data
+outlier_labels = iso_forest.predict(embeddings)
+outlier_scores = iso_forest.score_samples(embeddings)
+
+# Plot
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
+
+# Color by outlier label
+colors_outlier = ['red' if label == -1 else 'blue' for label in outlier_labels]
+ax1.scatter(embeddings_umap[:, 0], embeddings_umap[:, 1],
+            c=colors_outlier, s=50, alpha=0.6, edgecolors='black', linewidth=0.5)
+ax1.set_xlabel('UMAP 1', fontsize=14, fontweight='bold')
+ax1.set_ylabel('UMAP 2', fontsize=14, fontweight='bold')
+ax1.set_title('Extrapolation Region Detection (Red = Outlier)',
+              fontsize=16, fontweight='bold')
+ax1.grid(True, alpha=0.3)
+
+# Outlier score
+scatter = ax2.scatter(embeddings_umap[:, 0], embeddings_umap[:, 1],
+                      c=outlier_scores, cmap='RdYlGn', s=50, alpha=0.6,
+                      edgecolors='black', linewidth=0.5)
+ax2.set_xlabel('UMAP 1', fontsize=14, fontweight='bold')
+ax2.set_ylabel('UMAP 2', fontsize=14, fontweight='bold')
+ax2.set_title('Anomaly Score (Green = Normal, Red = Outlier)',
+              fontsize=16, fontweight='bold')
+ax2.grid(True, alpha=0.3)
+cbar = plt.colorbar(scatter, ax=ax2)
+cbar.set_label('Anomaly Score', fontsize=12, fontweight='bold')
+
+plt.tight_layout()
+plt.savefig('extrapolation_detection.png', dpi=300, bbox_inches='tight')
+print(&quot;Saved extrapolation detection to extrapolation_detection.png&quot;)
+plt.show()
+
+print(f&quot;\nNumber of outliers: {np.sum(outlier_labels == -1)} / {len(outlier_labels)}&quot;)
+</code></pre>
+<h3>Code Example 30: Comprehensive Report Generation</h3>
+<pre><code class="language-python">import json
+from datetime import datetime
+
+def generate_comprehensive_report(
+    model, dataset, embeddings, targets,
+    materials_df, cluster_labels, test_predictions, test_targets
+):
+    &quot;&quot;&quot;
+    Generate comprehensive analysis report
+
+    Parameters:
+    -----------
+    model : nn.Module
+        Trained model
+    dataset : Dataset
+        Dataset
+    embeddings : np.ndarray
+        Embeddings
+    targets : np.ndarray
+        Targets
+    materials_df : pd.DataFrame
+        Materials data
+    cluster_labels : np.ndarray
+        Cluster labels
+    test_predictions : np.ndarray
+        Test predictions
+    test_targets : np.ndarray
+        Test true values
+
+    Returns:
+    --------
+    report : dict
+        Report dictionary
+    &quot;&quot;&quot;
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+    # Model performance
+    mae = mean_absolute_error(test_targets, test_predictions)
+    rmse = np.sqrt(mean_squared_error(test_targets, test_predictions))
+    r2 = r2_score(test_targets, test_predictions)
+
+    # Embedding statistics
+    embedding_stats = {
+        'dimension': embeddings.shape[1],
+        'mean_norm': float(np.mean(np.linalg.norm(embeddings, axis=1))),
+        'std_norm': float(np.std(np.linalg.norm(embeddings, axis=1))),
+    }
+
+    # Cluster statistics
+    cluster_stats = {}
+    for cluster_id in np.unique(cluster_labels):
+        mask = cluster_labels == cluster_id
+        cluster_stats[f'cluster_{cluster_id}'] = {
+            'size': int(np.sum(mask)),
+            'mean_band_gap': float(np.mean(targets[mask])),
+            'std_band_gap': float(np.std(targets[mask]))
+        }
+
+    # Report
+    report = {
+        'metadata': {
+            'timestamp': datetime.now().isoformat(),
+            'dataset_size': len(dataset),
+            'model_parameters': sum(p.numel() for p in model.parameters())
+        },
+        'model_performance': {
+            'MAE': float(mae),
+            'RMSE': float(rmse),
+            'R2': float(r2)
+        },
+        'embedding_statistics': embedding_stats,
+        'cluster_statistics': cluster_stats,
+        'target_statistics': {
+            'mean': float(np.mean(targets)),
+            'std': float(np.std(targets)),
+            'min': float(np.min(targets)),
+            'max': float(np.max(targets))
+        }
+    }
+
+    return report
+
+
+# Generate report
+report = generate_comprehensive_report(
+    model, dataset, embeddings, targets,
+    materials_df, cluster_labels,
+    test_predictions, test_targets
+)
+
+# Save in JSON format
+with open('comprehensive_report.json', 'w') as f:
+    json.dump(report, f, indent=2)
+
+print(&quot;Saved comprehensive report to comprehensive_report.json\n&quot;)
+print(&quot;Report summary:&quot;)
+print(json.dumps(report, indent=2)[:1000] + &quot;...&quot;)
+
+# Generate Markdown report
+markdown_report = f&quot;&quot;&quot;
+# Materials Space Mapping - Comprehensive Report
+
+Generated: {report['metadata']['timestamp']}
+
+## 1. Dataset Information
+
+- Dataset size: {report['metadata']['dataset_size']}
+- Model parameters: {report['metadata']['model_parameters']:,}
+
+## 2. Model Performance
+
+| Metric | Value |
+|--------|-------|
+| MAE    | {report['model_performance']['MAE']:.4f} |
+| RMSE   | {report['model_performance']['RMSE']:.4f} |
+| R²     | {report['model_performance']['R2']:.4f} |
+
+## 3. Embedding Statistics
+
+- Dimensions: {report['embedding_statistics']['dimension']}
+- Mean norm: {report['embedding_statistics']['mean_norm']:.3f}
+- Norm standard deviation: {report['embedding_statistics']['std_norm']:.3f}
+
+## 4. Target Property Statistics
+
+| Statistic | Value (eV) |
+|-----------|------------|
+| Mean      | {report['target_statistics']['mean']:.3f} |
+| Std Dev   | {report['target_statistics']['std']:.3f} |
+| Min       | {report['target_statistics']['min']:.3f} |
+| Max       | {report['target_statistics']['max']:.3f} |
+
+## 5. Cluster Analysis
+
+&quot;&quot;&quot;
+
+for cluster_id, stats in report['cluster_statistics'].items():
+    markdown_report += f&quot;- **{cluster_id}**: Size={stats['size']}, Mean band gap={stats['mean_band_gap']:.3f} eV\n&quot;
+
+markdown_report += &quot;&quot;&quot;
+
+## 6. Generated Visualizations
+
+- `training_curve.png`: Training curve
+- `test_evaluation.png`: Test evaluation
+- `pca_2d_projection.png`: PCA 2D projection
+- `umap_2d_projection.png`: UMAP 2D projection
+- `tsne_2d_projection.png`: t-SNE 2D projection
+- `clustering_analysis.png`: Clustering analysis
+- `materials_3d_interactive.html`: Interactive 3D visualization
+- `materials_interactive.html`: Interactive 2D visualization
+
+## 7. Summary
+
+In this analysis, by combining GNN-based materials representation learning with dimensionality reduction,
+we effectively visualized high-dimensional materials space and revealed similarities between materials and property trends.
+
+&quot;&quot;&quot;
+
+# Save Markdown report
+with open('comprehensive_report.md', 'w') as f:
+    f.write(markdown_report)
+
+print(&quot;\nSaved Markdown report to comprehensive_report.md&quot;)
+</code></pre>
+<h2>4.8 Summary</h2>
+<p>In this chapter, we built a practical materials mapping system combining GNN and dimensionality reduction.</p>
+<h3>Implemented Features</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Number of Code Examples</th>
+<th>Main Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data Collection & Preparation</td>
+<td>Examples 1-6</td>
+<td>MP API, graph conversion, dataset</td>
+</tr>
+<tr>
+<td>Model Training</td>
+<td>Examples 7-10</td>
+<td>CGCNN, training loop, evaluation</td>
+</tr>
+<tr>
+<td>Embedding Extraction & Dimensionality Reduction</td>
+<td>Examples 11-15</td>
+<td>PCA, UMAP, t-SNE, comparison</td>
+</tr>
+<tr>
+<td>Materials Space Analysis</td>
+<td>Examples 16-20</td>
+<td>Clustering, neighbor search, recommendation</td>
+</tr>
+<tr>
+<td>Interactive Visualization</td>
+<td>Examples 21-23</td>
+<td>Plotly 3D, Bokeh, Dash</td>
+</tr>
+<tr>
+<td>Advanced Analysis</td>
+<td>Examples 24-30</td>
+<td>Voronoi, gradient, extrapolation, report</td>
+</tr>
+</tbody>
+</table>
+<h3>Best Practices</h3>
+<ol>
+<li><strong>Data Preprocessing</strong>: Standardization, missing value handling, outlier removal</li>
+<li><strong>Model Training</strong>: Early stopping, learning rate scheduling, regularization</li>
+<li><strong>Dimensionality Reduction</strong>: Comparison of multiple methods, parameter tuning</li>
+<li><strong>Visualization</strong>: Interactivity, multiple perspectives, interpretability</li>
+<li><strong>Reproducibility</strong>: Fixed random seeds, save configurations, version control</li>
+</ol>
+<h3>Applications</h3>
+<ul>
+<li><strong>Materials Discovery</strong>: Recommendation of materials with target properties</li>
+<li><strong>Property Prediction</strong>: Prediction of properties for novel materials</li>
+<li><strong>Structure-Property Relationships</strong>: Elucidating relationships between structure and properties in materials space</li>
+<li><strong>Experimental Design</strong>: Suggestions for next materials to synthesize</li>
+</ul>
+<h3>Future Developments</h3>
+<ul>
+<li><strong>Multi-task Learning</strong>: Simultaneous prediction of multiple properties</li>
+<li><strong>Transfer Learning</strong>: Application to small datasets</li>
+<li><strong>Active Learning</strong>: Efficient data collection strategies</li>
+<li><strong>Explainable AI</strong>: Improving interpretability of GNN predictions</li>
+</ul>
+<hr />
+<p><strong>Previous Chapter</strong>: <a href="chapter-3.html">Chapter 3: Materials Representation Learning with GNN</a></p>
+<p><strong>Series Top</strong>: <a href="index.html">Introduction to Materials Property Mapping</a></p>
+<h2>Further Learning</h2>
+<h3>Recommended Literature</h3>
+<ol>
+<li><strong>GNN for Materials</strong>: "Graph Networks as a Universal Machine Learning Framework for Molecules and Crystals" (Xie &amp; Grossman, 2018)</li>
+<li><strong>UMAP</strong>: "UMAP: Uniform Manifold Approximation and Projection" (McInnes et al., 2018)</li>
+<li><strong>Materials Informatics</strong>: "Materials Informatics" (Ramprasad et al., 2017)</li>
+</ol>
+<h3>Related Resources</h3>
+<ul>
+<li><a href="https://materialsproject.org/">Materials Project</a></li>
+<li><a href="https://pytorch-geometric.readthedocs.io/">PyTorch Geometric</a></li>
+<li><a href="https://umap-learn.readthedocs.io/">UMAP Documentation</a></li>
+</ul>
+<p>Congratulations! Through this series, you have learned the fundamentals and practical applications of materials property mapping.</p><div class="navigation">
+    <a href="index.html" class="nav-button">Back to Series Contents</a>
+</div>
+    </main>
+
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+            <li>To the maximum extent permitted by applicable law, the creators and Tohoku University are not liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content follow the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+        </ul>
+    </section>
+
+<footer>
+        <p><strong>Author</strong>: AI Terakoya Content Team</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-17</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>
