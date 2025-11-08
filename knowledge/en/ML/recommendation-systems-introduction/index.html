@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="推薦システム入門 Series - 協調フィルタリングから深層学習推薦までの実践完全ガイド">
+    <title>推薦システム入門 Series v1.0 - AI Terakoya</title>
+
+    <!-- CSS Styling -->
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #3498db;
+            --link-hover: #2980b9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header .container {
+            padding: 0 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-top: 1rem;
+        }
+
+        .meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Typography */
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            color: var(--primary-color);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.6rem;
+            color: var(--primary-color);
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+        }
+
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--link-hover);
+            text-decoration: underline;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1.2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Code blocks */
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            display: block;
+        }
+
+        thead {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        tbody {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 0.8rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        /* Blockquotes */
+        blockquote {
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: #666;
+        }
+
+        /* Images */
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        /* Mermaid diagrams */
+        .mermaid {
+            text-align: center;
+            margin: 2rem 0;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Details/Summary (for exercises) */
+        details {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary-color);
+            padding: 0.5rem;
+        }
+
+        summary:hover {
+            color: var(--secondary-color);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--border-color);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        /* Navigation buttons */
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 3rem 0;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .nav-button:hover {
+            background: var(--link-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+
+            table {
+                font-size: 0.9rem;
+            }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        // Mermaid.js Converter - Converts markdown-style mermaid code blocks to renderable divs
+        document.addEventListener('DOMContentLoaded', function() {
+            // Find all code blocks with class="language-mermaid"
+            const mermaidCodeBlocks = document.querySelectorAll('pre.codehilite code.language-mermaid, pre code.language-mermaid');
+
+            mermaidCodeBlocks.forEach(function(codeBlock) {
+                const pre = codeBlock.parentElement;
+                const mermaidCode = codeBlock.textContent;
+
+                // Create a new div with mermaid class
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = mermaidCode.trim();
+
+                // Replace the pre element with the new div
+                pre.parentNode.replaceChild(mermaidDiv, pre);
+            });
+
+            // Re-initialize mermaid after conversion
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+                mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+            }
+        });
+    </script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Recommendation Systems</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="container">
+            <h1>🎯 推薦システム入門 Series v1.0</h1>
+            <p style="font-size: 1.1rem; margin-top: 0.5rem; opacity: 0.95;">協調フィルタリングから深層学習推薦まで</p>
+            <div class="meta">
+                <span>📖 Total Learning Time: 5-6 hours</span>
+                <span>📊 Level: Intermediate to Advanced</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <p><strong>推薦システムの基礎から、協調フィルタリング、行列 minutes解、深層学習ベースの推薦手法まで、パーソナライゼーションの実装方法を学びます</strong></p>
+
+        <h2 id="overview">Series Overview</h2>
+        <p>この Seriesは、推薦システム（Recommendation Systems）の理論と実装を基礎から段階的に学べる全4 Chapter構成の実践的教育コンテンツです。</p>
+
+        <p><strong>推薦システム</strong>は、ユーザーの嗜好や行動履歴に基づいて、最適な商品・コンテンツ・情報を提案するMachine Learning技術です。協調フィルタリングによるユーザー・アイテム間の類似性 minutes析、行列 minutes解（SVD、ALS）による潜在因子の抽出、コンテンツベースフィルタリングによる特徴量マッチング、ハイブリッド手法による複数アルゴリズムの統合、深層学習（Neural Collaborative Filtering、DeepFM、Two-Tower Model）による高度なパーソナライゼーション、これらの技術はAmazon、Netflix、YouTube、Spotifyといった世界的プラットフォームで実用化されており、eコマース、動画配信、音楽ストリーミング、ニュース配信など、あらゆる minutes野でRequiredのスキルとなっています。評価指標（RMSE、Precision@K、nDCG）の理解、コールドスタート問題への対処、A/Bテストによる推薦精度の検証など、実務で必要な実践的Knowledgeを提供します。</p>
+
+        <p><strong>特徴:</strong></p>
+        <ul>
+            <li>✅ <strong>理論から実践まで</strong>: 推薦アルゴリズムの基礎から最新の深層学習手法まで体系的に学習</li>
+            <li>✅ <strong>実装重視</strong>: 35以上の実行可能なPython/scikit-learn/PyTorchCode Examples</li>
+            <li>✅ <strong>実務指向</strong>: Netflix、Amazon、YouTubeの実例に基づく実践的な推薦手法</li>
+            <li>✅ <strong>最新技術準拠</strong>: 協調フィルタリング、行列 minutes解、深層学習推薦の最新手法</li>
+            <li>✅ <strong>実用的応用</strong>: eコマース、動画配信、音楽推薦、ニュース配信の実装</li>
+        </ul>
+
+        <p><strong>Total Learning Time</strong>: 5-6 hours（コード実行と演習を含む）</p>
+
+        <h2 id="learning">How to Learn</h2>
+
+        <h3>Recommended Learning Order</h3>
+
+        <div class="mermaid">
+graph TD
+    A[Chapter 1 Chapter: 推薦システムの基礎] --> B[Chapter 2 Chapter: 協調フィルタリング]
+    B --> C[Chapter 3 Chapter: コンテンツベース・ハイブリッド]
+    C --> D[Chapter 4 Chapter: 深層学習推薦]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+</div>
+
+        <p><strong>Beginner learnerの方（推薦システム (No knowledge)）:</strong><br>
+        - Chapter 1 Chapter → Chapter 2 Chapter → Chapter 3 Chapter → Chapter 4 Chapter（All chapters recommended）<br>
+        - Duration hours: 5-6 hours</p>
+
+        <p><strong>Intermediate learnerの方（Machine Learning (with experience)）:</strong><br>
+        - Chapter 1 Chapter → Chapter 2 Chapter → Chapter 4 Chapter<br>
+        - Duration hours: 4-5 hours</p>
+
+        <p><strong>Focused Topic Enhancement:</strong><br>
+        - 推薦システム基礎・評価指標: Chapter 1 Chapter（Focused study）<br>
+        - 協調フィルタリング・行列 minutes解: Chapter 2 Chapter（Focused study）<br>
+        - コンテンツベース・ハイブリッド推薦: Chapter 3 Chapter（Focused study）<br>
+        - 深層学習推薦: Chapter 4 Chapter（Focused study）<br>
+        - Duration hours: 70-90 minutes/ Chapter</p>
+
+        <h2 id="chapters">Chapter Details</h2>
+
+        <h3><a href="./chapter1-recommendation-basics.html">Chapter 1 Chapter：推薦システムの基礎</a></h3>
+        <p><strong>Difficulty</strong>: Intermediate<br>
+        <strong>Reading Time</strong>: 70-80 minutes<br>
+        <strong>Code Examples</strong>: 8</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>推薦システムとは</strong> - 定義、ビジネス価値、主要な応用 minutes野</li>
+            <li><strong>推薦タスクの種類</strong> - 評価予測、ランキング、Top-N推薦</li>
+            <li><strong>評価指標</strong> - RMSE、MAE、Precision@K、Recall@K、nDCG</li>
+            <li><strong>データセット構造</strong> - ユーザー-アイテム行列、暗黙的・明示的フィードバック</li>
+            <li><strong>コールドスタート問題</strong> - 新規ユーザー・新規アイテムへの対処法</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ 推薦システムの基本概念とビジネス価値を理解する</li>
+            <li>✅ 推薦タスクの種類を説明できる</li>
+            <li>✅ 主要な評価指標を計算・解釈できる</li>
+            <li>✅ ユーザー-アイテム行列の構造を理解する</li>
+            <li>✅ コールドスタート問題とその対処法を説明できる</li>
+        </ul>
+
+        <p><strong><a href="./chapter1-recommendation-basics.html">Chapter 1 ChapterRead →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter2-collaborative-filtering.html">Chapter 2: Collaborative Filtering</a></h3>
+        <p><strong>Difficulty</strong>: Intermediate<br>
+        <strong>Reading Time</strong>: 80-90 minutes<br>
+        <strong>Code Examples</strong>: 10</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>協調フィルタリングの原理</strong> - ユーザー間・アイテム間の類似性</li>
+            <li><strong>User-based CF</strong> - ユーザー類似度、近傍選択、評価予測</li>
+            <li><strong>Item-based CF</strong> - アイテム類似度、スケーラビリティ</li>
+            <li><strong>行列 minutes解（SVD）</strong> - 潜在因子モデル、次元削減、評価予測</li>
+            <li><strong>ALS（Alternating Least Squares）</strong> - 暗黙的フィードバックへの対応</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ 協調フィルタリングの原理を理解する</li>
+            <li>✅ User-based CFとItem-based CFを実装できる</li>
+            <li>✅ 類似度計算（コサイン類似度、ピアソン相関）を実装できる</li>
+            <li>✅ SVDによる行列 minutes解を実装できる</li>
+            <li>✅ ALSアルゴリズムを理解し実装できる</li>
+        </ul>
+
+        <p><strong><a href="./chapter2-collaborative-filtering.html">Chapter 2 ChapterRead →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter3-content-based-hybrid.html">Chapter 3 Chapter：コンテンツベース・ハイブリッド</a></h3>
+        <p><strong>Difficulty</strong>: Intermediate<br>
+        <strong>Reading Time</strong>: 70-80 minutes<br>
+        <strong>Code Examples</strong>: 9</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>コンテンツベースフィルタリング</strong> - アイテム特徴量、TF-IDF、プロファイル構築</li>
+            <li><strong>特徴量エンジニアリング</strong> - カテゴリカル特徴、テキスト特徴、数値特徴</li>
+            <li><strong>ハイブリッド推薦</strong> - 協調フィルタリング + コンテンツベースの統合</li>
+            <li><strong>重み付け統合</strong> - 線形結合、スイッチング、カスケード</li>
+            <li><strong>コールドスタート対策</strong> - コンテンツ情報の活用</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ コンテンツベースフィルタリングの原理を理解する</li>
+            <li>✅ TF-IDFによる特徴量抽出を実装できる</li>
+            <li>✅ ユーザープロファイルを構築できる</li>
+            <li>✅ ハイブリッド推薦手法を実装できる</li>
+            <li>✅ コールドスタート問題に対処できる</li>
+        </ul>
+
+        <p><strong><a href="./chapter3-content-based-hybrid.html">Chapter 3 ChapterRead →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter4-deep-learning-recommendation.html">Chapter 4 Chapter：深層学習推薦</a></h3>
+        <p><strong>Difficulty</strong>: Advanced<br>
+        <strong>Reading Time</strong>: 80-90 minutes<br>
+        <strong>Code Examples</strong>: 10</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>Neural Collaborative Filtering（NCF）</strong> - MLP、GMF、NeuMF</li>
+            <li><strong>Embedding層</strong> - ユーザー・アイテムの distributed表現学習</li>
+            <li><strong>DeepFM</strong> - FM + Deep Neural Network、特徴量相互作用</li>
+            <li><strong>Two-Tower Model</strong> - ユーザータワー・アイテムタワー、効率的な推論</li>
+            <li><strong>Transformer推薦</strong> - Self-Attention、シーケンス推薦</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ Neural Collaborative Filteringの仕組みを理解する</li>
+            <li>✅ Embedding層を使った推薦モデルを実装できる</li>
+            <li>✅ DeepFMモデルを実装できる</li>
+            <li>✅ Two-Tower Modelを実装できる</li>
+            <li>✅ Transformerベースの推薦モデルを理解する</li>
+        </ul>
+
+        <p><strong><a href="./chapter4-deep-learning-recommendation.html">Chapter 4 ChapterRead →</a></strong></p>
+
+        <hr>
+
+        <h2 id="outcomes">Overall Learning Outcomes</h2>
+
+        <p>この Seriesを完了すると、以下のスキルとKnowledgeを習得できます：</p>
+
+        <h3>KnowledgeLevel（Understanding）</h3>
+        <ul>
+            <li>✅ 推薦システムの基本概念と評価指標を説明できる</li>
+            <li>✅ 協調フィルタリング・コンテンツベース・ハイブリッド手法の違いを理解している</li>
+            <li>✅ 行列 minutes解（SVD、ALS）の原理を説明できる</li>
+            <li>✅ 深層学習推薦（NCF、DeepFM、Two-Tower）の仕組みを理解している</li>
+            <li>✅ コールドスタート問題とその対処法を説明できる</li>
+        </ul>
+
+        <h3>Practical Skills（Doing）</h3>
+        <ul>
+            <li>✅ User-based CF、Item-based CFを実装できる</li>
+            <li>✅ SVD、ALSによる行列 minutes解を実装できる</li>
+            <li>✅ コンテンツベースフィルタリングを実装できる</li>
+            <li>✅ ハイブリッド推薦システムを構築できる</li>
+            <li>✅ PyTorchで深層学習推薦モデルを実装できる</li>
+        </ul>
+
+        <h3>Application Ability（Applying）</h3>
+        <ul>
+            <li>✅ 適切な推薦アルゴリズムを選択できる</li>
+            <li>✅ 推薦システムの評価と改善ができる</li>
+            <li>✅ コールドスタート問題に対処できる</li>
+            <li>✅ eコマース・動画配信・音楽推薦に応用できる</li>
+            <li>✅ A/Bテストによる推薦精度の検証ができる</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="prerequisites">Prerequisites</h2>
+
+        <p>この Seriesを効果的に学習するために、以下のKnowledgeがあることが望ましいです：</p>
+
+        <h3>Required（Must Have）</h3>
+        <ul>
+            <li>✅ <strong>Python基礎</strong>: 変数、関数、クラス、NumPy/pandas</li>
+            <li>✅ <strong>Machine Learningの基礎</strong>: 教師あり学習、評価指標、交差検証</li>
+            <li>✅ <strong>線形代数の基礎</strong>: 行列演算、内積、ノルム</li>
+            <li>✅ <strong>統計の基礎</strong>: 平均、 distributed、相関係数</li>
+            <li>✅ <strong>scikit-learn基礎</strong>: モデル学習、評価の基本</li>
+        </ul>
+
+        <h3>Recommended（Nice to Have）</h3>
+        <ul>
+            <li>💡 <strong>PyTorch基礎</strong>: テンソル操作、モデル定義、学習ループ（Chapter 4 Chapterのため）</li>
+            <li>💡 <strong>自然言語処理基礎</strong>: TF-IDF、単語埋め込み（Chapter 3 Chapterのため）</li>
+            <li>💡 <strong>深層学習基礎</strong>: ニューラルネットワーク、損失関数、最適化（Chapter 4 Chapterのため）</li>
+            <li>💡 <strong>スパース行列</strong>: scipy.sparse の使い方</li>
+            <li>💡 <strong>データ可視化</strong>: matplotlib、seaborn</li>
+        </ul>
+
+        <p><strong>Recommended Prior Learning</strong>:</p>
+        <ul>
+            <li>📚 <a href="../machine-learning-basics/">Machine Learning入門 Series</a> - ML基礎Knowledge</li>
+            <!-- コンテンツ準備中 <li>📚 <a href="../python-for-ml/">PythonMachine Learning実践</a> - scikit-learn、pandas</li>
+            <li>📚 <a href="../linear-algebra-for-ml/">Machine Learningのための線形代数</a> - 行列演算</li>
+            <!-- コンテンツ準備中 <li>📚 <a href="../deep-learning-basics/">深層学習入門</a> - ニューラルネットワーク（Chapter 4 Chapterのため）</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="tech">Technologies and Tools Used</h2>
+
+        <h3>Main Libraries</h3>
+        <ul>
+            <li><strong>NumPy 1.24+</strong> - 行列演算、数値計算</li>
+            <li><strong>pandas 2.0+</strong> - データ操作、 minutes析</li>
+            <li><strong>scikit-learn 1.3+</strong> - Machine Learning、評価指標</li>
+            <li><strong>scipy 1.11+</strong> - スパース行列、最適化</li>
+            <li><strong>PyTorch 2.0+</strong> - 深層学習推薦モデル</li>
+            <li><strong>Surprise 1.1+</strong> - 協調フィルタリング特化ライブラリ</li>
+            <li><strong>implicit 0.7+</strong> - 暗黙的フィードバック推薦</li>
+        </ul>
+
+        <h3>Development Environment</h3>
+        <ul>
+            <li><strong>Python 3.8+</strong> - プログラミング言語</li>
+            <li><strong>Jupyter Notebook</strong> - インタラクティブDevelopment Environment</li>
+            <li><strong>matplotlib 3.7+</strong> - データ可視化</li>
+            <li><strong>seaborn 0.12+</strong> - 統計的可視化</li>
+        </ul>
+
+        <h3>データセット（Recommended）</h3>
+        <ul>
+            <li><strong>MovieLens</strong> - 映画評価データセット（100K, 1M, 20M）</li>
+            <li><strong>Amazon Reviews</strong> - 商品レビューデータセット</li>
+            <li><strong>Last.fm</strong> - 音楽リスニング履歴</li>
+            <li><strong>Netflix Prize</strong> - 映画推薦コンペティションデータ</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="start">Let's Get Started！</h2>
+        <p>Are you ready？ Chapter 1 ChapterStart with 、推薦システム and master the techniques！</p>
+
+        <p><strong><a href="./chapter1-recommendation-basics.html">Chapter 1 Chapter: 推薦システムの基礎 →</a></strong></p>
+
+        <hr>
+
+        <h2 id="next">Next Steps</h2>
+
+        <p>After completing this series, we recommend proceeding to the following topics：</p>
+
+        <h3>Advanced Learning</h3>
+        <ul>
+            <li>📚 <strong>シーケンス推薦</strong>: RNN、LSTM、Transformer-based推薦</li>
+            <li>📚 <strong>コンテキスト推薦</strong>:  hours、場所、デバイスを考慮した推薦</li>
+            <li>📚 <strong>Graph Neural Networks推薦</strong>: GNN、GraphSAGE</li>
+            <li>📚 <strong>強化学習推薦</strong>: バンディット、長期報酬最適化</li>
+        </ul>
+
+        <h3>Related Series</h3>
+        <ul>
+            <li>🎯 <a href="../natural-language-processing/">自然言語処理入門</a> - テキスト特徴量抽出</li>
+            <li>🎯 <a href="../deep-learning-advanced/">深層学習応用</a> - Transformer、Attention</li>
+            <li>🎯 <a href="../graph-neural-networks/">Graph Neural Networks</a> - GNN推薦</li>
+        </ul>
+
+        <h3>Practical Projects</h3>
+        <ul>
+            <li>🚀 映画推薦システム - MovieLensデータでのエンドツーエンド実装</li>
+            <li>🚀 eコマース推薦エンジン - 商品推薦とA/Bテスト</li>
+            <li>🚀 音楽プレイリスト生成 - シーケンス推薦の応用</li>
+            <li>🚀 ニュース記事推薦 - コンテンツベース + 協調フィルタリング</li>
+        </ul>
+
+        <hr>
+
+        <p><strong>Update History</strong></p>
+        <ul>
+            <li><strong>2025-10-21</strong>: v1.0 初版公開</li>
+        </ul>
+
+        <hr>
+
+        <p><strong>Your 推薦システムの旅はここから始まります！</strong></p>
+
+    </main>
+
+    
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+            <li>To the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+        </ul>
+    </section>
+
+<footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

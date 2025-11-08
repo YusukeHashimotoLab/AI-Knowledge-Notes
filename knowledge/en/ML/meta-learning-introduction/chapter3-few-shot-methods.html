@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3 Chapter：Few-Shot学習手法 - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-body); line-height: 1.7; color: var(--color-text); background-color: var(--color-bg); font-size: 16px; }
+        header { background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; padding: var(--spacing-xl) var(--spacing-md); margin-bottom: var(--spacing-xl); box-shadow: var(--box-shadow); }
+        .header-content { max-width: 900px; margin: 0 auto; }
+        h1 { font-size: 2rem; font-weight: 700; margin-bottom: var(--spacing-sm); line-height: 1.2; }
+        .subtitle { font-size: 1.1rem; opacity: 0.95; font-weight: 400; margin-bottom: var(--spacing-md); }
+        .meta { display: flex; flex-wrap: wrap; gap: var(--spacing-md); font-size: 0.9rem; opacity: 0.9; }
+        .meta-item { display: flex; align-items: center; gap: 0.3rem; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 var(--spacing-md) var(--spacing-xl); }
+        h2 { font-size: 1.75rem; color: var(--color-primary); margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-xs); border-bottom: 3px solid var(--color-accent); }
+        h3 { font-size: 1.4rem; color: var(--color-primary); margin-top: var(--spacing-lg); margin-bottom: var(--spacing-sm); }
+        h4 { font-size: 1.1rem; color: var(--color-primary-dark); margin-top: var(--spacing-md); margin-bottom: var(--spacing-sm); }
+        p { margin-bottom: var(--spacing-md); color: var(--color-text); }
+        a { color: var(--color-link); text-decoration: none; transition: color 0.2s; }
+        a:hover { color: var(--color-link-hover); text-decoration: underline; }
+        ul, ol { margin-left: var(--spacing-lg); margin-bottom: var(--spacing-md); }
+        li { margin-bottom: var(--spacing-xs); color: var(--color-text); }
+        pre { background-color: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); overflow-x: auto; margin-bottom: var(--spacing-md); font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.5; }
+        code { font-family: var(--font-mono); font-size: 0.9em; background-color: var(--color-code-bg); padding: 0.2em 0.4em; border-radius: 3px; }
+        pre code { background-color: transparent; padding: 0; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: var(--spacing-md); font-size: 0.95rem; }
+        th, td { border: 1px solid var(--color-border); padding: var(--spacing-sm); text-align: left; }
+        th { background-color: var(--color-bg-alt); font-weight: 600; color: var(--color-primary); }
+        blockquote { border-left: 4px solid var(--color-accent); padding-left: var(--spacing-md); margin: var(--spacing-md) 0; color: var(--color-text-light); font-style: italic; background-color: var(--color-bg-alt); padding: var(--spacing-md); border-radius: var(--border-radius); }
+        .mermaid { text-align: center; margin: var(--spacing-lg) 0; background-color: var(--color-bg-alt); padding: var(--spacing-md); border-radius: var(--border-radius); }
+        details { background-color: var(--color-bg-alt); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); margin-bottom: var(--spacing-md); }
+        summary { cursor: pointer; font-weight: 600; color: var(--color-primary); user-select: none; padding: var(--spacing-xs); margin: calc(-1 * var(--spacing-md)); padding: var(--spacing-md); border-radius: var(--border-radius); }
+        summary:hover { background-color: rgba(123, 44, 191, 0.1); }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border); }
+        .navigation { display: flex; justify-content: space-between; gap: var(--spacing-md); margin: var(--spacing-xl) 0; padding-top: var(--spacing-lg); border-top: 2px solid var(--color-border); }
+        .nav-button { flex: 1; padding: var(--spacing-md); background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; border-radius: var(--border-radius); text-align: center; font-weight: 600; transition: transform 0.2s, box-shadow 0.2s; box-shadow: var(--box-shadow); }
+        .nav-button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); text-decoration: none; }
+        footer { margin-top: var(--spacing-xl); padding: var(--spacing-lg) var(--spacing-md); background-color: var(--color-bg-alt); border-top: 1px solid var(--color-border); text-align: center; font-size: 0.9rem; color: var(--color-text-light); }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+        .project-box { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 50%); border-radius: var(--border-radius); padding: var(--spacing-lg); margin: var(--spacing-lg) 0; box-shadow: var(--box-shadow); }
+        @media (max-width: 768px) { h1 { font-size: 1.5rem; } h2 { font-size: 1.4rem; } h3 { font-size: 1.2rem; } .meta { font-size: 0.85rem; } .navigation { flex-direction: column; } table { font-size: 0.85rem; } th, td { padding: var(--spacing-xs); } }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+    <script>
+        MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']], processEscapes: true, processEnvironments: true },
+            options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'], ignoreHtmlClass: 'mermaid' }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/meta-learning-introduction/index.html">Meta Learning</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>Chapter 3 Chapter：Few-Shot学習手法</h1>
+            <p class="subtitle">メトリック学習に基づく少数サンプル classificationアーキテクチャ</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 32 minutes</span>
+                <span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
+                <span class="meta-item">💻 Code Examples: 8</span>
+                <span class="meta-item">📝 Exercises: 4問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+<h2>Learning Objectives</h2>
+<p>この ChapterReadことで、以下を習得できます：</p>
+<ul>
+<li>✅ Siamese Networksによるペア学習とContrastive Lossを理解できる</li>
+<li>✅ Prototypical Networksのプロトタイプベース classificationを実装できる</li>
+<li>✅ Matching NetworksのAttention機構を活用した classificationを実装できる</li>
+<li>✅ Relation Networksの学習可能な距離メトリックを理解できる</li>
+<li>✅ Few-Shot学習手法の比較実験を設計・実施できる</li>
+</ul>
+
+<h2>1. Siamese Networks</h2>
+
+<h3>1.1 ペア学習の原理</h3>
+
+<p>Siamese Networks（シャムネットワーク）は、2つの入力を同じネットワーク（重み共有）で処理し、その類似度を学習するアーキテクチャです。Few-Shot学習において、サンプル間の関係性を直接学習する基本的な手法です。</p>
+
+<div class="mermaid">
+graph LR
+    A[画像1] --> B[CNN]
+    C[画像2] --> D[CNN]
+    B --> E[埋め込み1]
+    D --> F[埋め込み2]
+    E --> G[距離計算]
+    F --> G
+    G --> H[類似度スコア]
+
+    style B fill:#9d4edd
+    style D fill:#9d4edd
+    style G fill:#3182ce
+</div>
+
+<p><strong>主要な特徴：</strong></p>
+<ul>
+<li><strong>重み共有：</strong> 2つの入力に同じネットワークを適用することで、一貫した特徴空間を学習</li>
+<li><strong>ペア単位学習：</strong> 2つのサンプルが同じクラスか異なるクラスかを直接学習</li>
+<li><strong>計量学習：</strong> 意味的に類似したサンプルは近く、異なるサンプルは遠く配置</li>
+</ul>
+
+<h3>1.2 Contrastive Loss</h3>
+
+<p>Contrastive Lossは、同じクラスのペアは近く、異なるクラスのペアは遠くなるように学習する損失関数です。</p>
+
+<p><strong>数式定義：</strong></p>
+$$
+\mathcal{L}(x_1, x_2, y) = y \cdot d(x_1, x_2)^2 + (1-y) \cdot \max(0, m - d(x_1, x_2))^2
+$$
+
+<p>ここで：</p>
+<ul>
+<li>$d(x_1, x_2)$ はユークリッド距離</li>
+<li>$y \in \{0, 1\}$ はラベル（1=同じクラス、0=異なるクラス）</li>
+<li>$m$ はマージン（異なるクラス間の最小距離）</li>
+</ul>
+
+<h3>1.3 画像ペアでの類似度学習</h3>
+
+<pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class SiameseNetwork(nn.Module):
+    """Siamese Network実装"""
+
+    def __init__(self, input_channels=3, embedding_dim=128):
+        super(SiameseNetwork, self).__init__()
+
+        # 共有される特徴抽出器
+        self.encoder = nn.Sequential(
+            # Conv Block 1
+            nn.Conv2d(input_channels, 64, 3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+
+            # Conv Block 2
+            nn.Conv2d(64, 128, 3, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+
+            # Conv Block 3
+            nn.Conv2d(128, 256, 3, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+
+            nn.Flatten(),
+        )
+
+        # 全結合層で埋め込み空間へ
+        self.fc = nn.Sequential(
+            nn.Linear(256 * 8 * 8, 512),
+            nn.ReLU(inplace=True),
+            nn.Linear(512, embedding_dim)
+        )
+
+    def forward_one(self, x):
+        """1つの入力を埋め込み空間へ変換"""
+        x = self.encoder(x)
+        x = self.fc(x)
+        return F.normalize(x, p=2, dim=1)  # L2正規化
+
+    def forward(self, x1, x2):
+        """ペア入力を処理"""
+        emb1 = self.forward_one(x1)
+        emb2 = self.forward_one(x2)
+        return emb1, emb2
+
+class ContrastiveLoss(nn.Module):
+    """Contrastive Loss実装"""
+
+    def __init__(self, margin=1.0):
+        super(ContrastiveLoss, self).__init__()
+        self.margin = margin
+
+    def forward(self, emb1, emb2, label):
+        """
+        Args:
+            emb1, emb2: 埋め込みベクトル (batch_size, embedding_dim)
+            label: ラベル (1=同じクラス, 0=異なるクラス)
+        """
+        # ユークリッド距離
+        distance = F.pairwise_distance(emb1, emb2, p=2)
+
+        # Contrastive Loss
+        loss_positive = label * torch.pow(distance, 2)
+        loss_negative = (1 - label) * torch.pow(
+            torch.clamp(self.margin - distance, min=0.0), 2
+        )
+
+        loss = torch.mean(loss_positive + loss_negative)
+        return loss
+
+# 学習例
+def train_siamese(model, train_loader, num_epochs=10):
+    """Siamese Networkの学習"""
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
+
+    criterion = ContrastiveLoss(margin=1.0)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+    for epoch in range(num_epochs):
+        model.train()
+        total_loss = 0
+
+        for batch_idx, (img1, img2, labels) in enumerate(train_loader):
+            img1, img2, labels = img1.to(device), img2.to(device), labels.to(device)
+
+            # Forward
+            emb1, emb2 = model(img1, img2)
+            loss = criterion(emb1, emb2, labels.float())
+
+            # Backward
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            total_loss += loss.item()
+
+        avg_loss = total_loss / len(train_loader)
+        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}")
+
+# 使用例
+model = SiameseNetwork(input_channels=3, embedding_dim=128)
+print(f"Total parameters: {sum(p.numel() for p in model.parameters()):,}")
+</code></pre>
+
+<h2>2. Prototypical Networks</h2>
+
+<h3>2.1 プロトタイプ（クラス中心）の計算</h3>
+
+<p>Prototypical Networksは、各クラスの「プロトタイプ」（代表的な埋め込みベクトル）を計算し、新しいサンプルを最も近いプロトタイプのクラスに classificationします。</p>
+
+<div class="mermaid">
+graph TB
+    subgraph Support Set
+        A1[クラスA サンプル1] --> E1[エンコーダ]
+        A2[クラスA サンプル2] --> E2[エンコーダ]
+        B1[クラスB サンプル1] --> E3[エンコーダ]
+        B2[クラスB サンプル2] --> E4[エンコーダ]
+    end
+
+    E1 --> PA[プロトタイプA<br/>平均]
+    E2 --> PA
+    E3 --> PB[プロトタイプB<br/>平均]
+    E4 --> PB
+
+    Q[Query] --> EQ[エンコーダ]
+    EQ --> D[距離計算]
+    PA --> D
+    PB --> D
+    D --> C[ classification]
+
+    style PA fill:#9d4edd
+    style PB fill:#9d4edd
+    style D fill:#3182ce
+</div>
+
+<p><strong>プロトタイプの定義：</strong></p>
+$$
+c_k = \frac{1}{|S_k|} \sum_{(x_i, y_i) \in S_k} f_\theta(x_i)
+$$
+
+<p>ここで：</p>
+<ul>
+<li>$c_k$ はクラス$k$のプロトタイプ</li>
+<li>$S_k$ はクラス$k$のサポートセット</li>
+<li>$f_\theta$ はエンコーダネットワーク</li>
+</ul>
+
+<h3>2.2 ユークリッド距離ベースの classification</h3>
+
+<p>クエリサンプル$x$のクラス確率はsoftmaxで計算されます：</p>
+
+$$
+P(y=k|x) = \frac{\exp(-d(f_\theta(x), c_k))}{\sum_{k'} \exp(-d(f_\theta(x), c_{k'}))}
+$$
+
+<h3>2.3 PyTorch実装</h3>
+
+<pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class PrototypicalNetwork(nn.Module):
+    """Prototypical Network実装"""
+
+    def __init__(self, input_channels=3, hidden_dim=64):
+        super(PrototypicalNetwork, self).__init__()
+
+        # 特徴抽出器（4層CNNブロック）
+        def conv_block(in_channels, out_channels):
+            return nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, 3, padding=1),
+                nn.BatchNorm2d(out_channels),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(2)
+            )
+
+        self.encoder = nn.Sequential(
+            conv_block(input_channels, hidden_dim),
+            conv_block(hidden_dim, hidden_dim),
+            conv_block(hidden_dim, hidden_dim),
+            conv_block(hidden_dim, hidden_dim),
+            nn.Flatten()
+        )
+
+    def forward(self, support_images, support_labels, query_images, n_way, k_shot):
+        """
+        Args:
+            support_images: (n_way * k_shot, C, H, W)
+            support_labels: (n_way * k_shot,)
+            query_images: (n_query, C, H, W)
+            n_way: クラス数
+            k_shot: クラスあたりのサンプル数
+        """
+        # サポートセットとクエリセットの埋め込み
+        support_embeddings = self.encoder(support_images)
+        query_embeddings = self.encoder(query_images)
+
+        # プロトタイプの計算（各クラスの平均）
+        prototypes = self.compute_prototypes(
+            support_embeddings, support_labels, n_way
+        )
+
+        # クエリとプロトタイプ間の距離を計算
+        distances = self.euclidean_distance(query_embeddings, prototypes)
+
+        # 負の距離をlogitsとして使用
+        logits = -distances
+        return logits
+
+    def compute_prototypes(self, embeddings, labels, n_way):
+        """各クラスのプロトタイプを計算"""
+        prototypes = torch.zeros(n_way, embeddings.size(1), device=embeddings.device)
+
+        for k in range(n_way):
+            # クラスkに属するサンプルのマスク
+            mask = (labels == k)
+            # クラスkのサンプルの平均を計算
+            prototypes[k] = embeddings[mask].mean(dim=0)
+
+        return prototypes
+
+    def euclidean_distance(self, x, y):
+        """
+        ユークリッド距離の計算
+        Args:
+            x: (n_query, d)
+            y: (n_way, d)
+        Returns:
+            distances: (n_query, n_way)
+        """
+        n = x.size(0)
+        m = y.size(0)
+        d = x.size(1)
+
+        # ブロードキャストで効率的に計算
+        x = x.unsqueeze(1).expand(n, m, d)  # (n, m, d)
+        y = y.unsqueeze(0).expand(n, m, d)  # (n, m, d)
+
+        return torch.pow(x - y, 2).sum(2)  # (n, m)
+
+def train_prototypical(model, train_loader, num_epochs=100, n_way=5, k_shot=1):
+    """Prototypical Networkの学習"""
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    criterion = nn.CrossEntropyLoss()
+
+    for epoch in range(num_epochs):
+        model.train()
+        total_loss = 0
+        total_acc = 0
+
+        for batch_idx, (support_imgs, support_labels, query_imgs, query_labels) in enumerate(train_loader):
+            support_imgs = support_imgs.to(device)
+            support_labels = support_labels.to(device)
+            query_imgs = query_imgs.to(device)
+            query_labels = query_labels.to(device)
+
+            # Forward
+            logits = model(support_imgs, support_labels, query_imgs, n_way, k_shot)
+            loss = criterion(logits, query_labels)
+
+            # 精度計算
+            pred = logits.argmax(dim=1)
+            acc = (pred == query_labels).float().mean()
+
+            # Backward
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            total_loss += loss.item()
+            total_acc += acc.item()
+
+        avg_loss = total_loss / len(train_loader)
+        avg_acc = total_acc / len(train_loader)
+
+        if (epoch + 1) % 10 == 0:
+            print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}, Acc: {avg_acc:.4f}")
+
+# 使用例
+model = PrototypicalNetwork(input_channels=3, hidden_dim=64)
+print(f"Model architecture:\n{model}")
+</code></pre>
+
+<h2>3. Matching Networks</h2>
+
+<h3>3.1 Attention機構の活用</h3>
+
+<p>Matching Networksは、クエリサンプルとサポートセットの各サンプル間でAttention機構を使用し、加重平均でクラス確率を計算します。これにより、サポートセット全体のコンテキストを考慮した classificationが可能になります。</p>
+
+<div class="mermaid">
+graph TB
+    subgraph Support Set
+        S1[サポート1] --> ES1[埋め込み]
+        S2[サポート2] --> ES2[埋め込み]
+        S3[サポート3] --> ES3[埋め込み]
+    end
+
+    Q[クエリ] --> EQ[埋め込み + LSTM]
+
+    EQ --> A1[Attention<br/>重み1]
+    EQ --> A2[Attention<br/>重み2]
+    EQ --> A3[Attention<br/>重み3]
+
+    ES1 --> A1
+    ES2 --> A2
+    ES3 --> A3
+
+    A1 --> W[加重平均]
+    A2 --> W
+    A3 --> W
+
+    W --> P[予測]
+
+    style EQ fill:#9d4edd
+    style W fill:#3182ce
+</div>
+
+<h3>3.2 Full Context Embeddings</h3>
+
+<p>Matching Networksの重要な特徴は、サポートセット全体のコンテキストを考慮した埋め込みを生成することです。これはLSTMなどの系列モデルで実現されます。</p>
+
+<p><strong>Attention重みの計算：</strong></p>
+$$
+a(x, x_i) = \frac{\exp(c(\hat{x}, \hat{x}_i))}{\sum_j \exp(c(\hat{x}, \hat{x}_j))}
+$$
+
+<p><strong>予測 minutes布：</strong></p>
+$$
+P(y|x, S) = \sum_{i=1}^k a(x, x_i) y_i
+$$
+
+<h3>3.3 実装と評価</h3>
+
+<pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class MatchingNetwork(nn.Module):
+    """Matching Network実装"""
+
+    def __init__(self, input_channels=3, hidden_dim=64, lstm_layers=1):
+        super(MatchingNetwork, self).__init__()
+
+        # 特徴抽出器（CNNエンコーダ）
+        self.encoder = nn.Sequential(
+            self._conv_block(input_channels, hidden_dim),
+            self._conv_block(hidden_dim, hidden_dim),
+            self._conv_block(hidden_dim, hidden_dim),
+            self._conv_block(hidden_dim, hidden_dim),
+        )
+
+        # 埋め込み次元を計算
+        self.embedding_dim = hidden_dim * 5 * 5
+
+        # Full Context Embeddings用のLSTM
+        self.lstm = nn.LSTM(
+            input_size=self.embedding_dim,
+            hidden_size=self.embedding_dim,
+            num_layers=lstm_layers,
+            bidirectional=True,
+            batch_first=True
+        )
+
+        # 双方向LSTMの出力を元の次元に変換
+        self.fc = nn.Linear(self.embedding_dim * 2, self.embedding_dim)
+
+    def _conv_block(self, in_channels, out_channels):
+        """CNNブロック"""
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2)
+        )
+
+    def encode(self, x):
+        """画像を埋め込みベクトルに変換"""
+        batch_size = x.size(0)
+        x = self.encoder(x)
+        x = x.view(batch_size, -1)
+        return x
+
+    def full_context_embeddings(self, embeddings):
+        """
+        LSTMでサポートセット全体のコンテキストを考慮
+        Args:
+            embeddings: (batch_size, seq_len, embedding_dim)
+        """
+        output, _ = self.lstm(embeddings)
+        output = self.fc(output)
+        return output
+
+    def attention(self, query_emb, support_emb):
+        """
+        Attention重みを計算
+        Args:
+            query_emb: (n_query, embedding_dim)
+            support_emb: (n_support, embedding_dim)
+        Returns:
+            attention_weights: (n_query, n_support)
+        """
+        # コサイン類似度を計算
+        query_norm = F.normalize(query_emb, p=2, dim=1)
+        support_norm = F.normalize(support_emb, p=2, dim=1)
+
+        similarities = torch.mm(query_norm, support_norm.t())
+
+        # Softmaxでattention重みに変換
+        attention_weights = F.softmax(similarities, dim=1)
+        return attention_weights
+
+    def forward(self, support_images, support_labels, query_images, n_way):
+        """
+        Args:
+            support_images: (n_way * k_shot, C, H, W)
+            support_labels: (n_way * k_shot,) one-hot encoded
+            query_images: (n_query, C, H, W)
+        """
+        # 埋め込みを計算
+        support_emb = self.encode(support_images)  # (n_support, emb_dim)
+        query_emb = self.encode(query_images)      # (n_query, emb_dim)
+
+        # Full Context Embeddings（サポートセットのみ）
+        support_emb_context = self.full_context_embeddings(
+            support_emb.unsqueeze(0)  # (1, n_support, emb_dim)
+        ).squeeze(0)  # (n_support, emb_dim)
+
+        # Attention重みを計算
+        attention_weights = self.attention(query_emb, support_emb_context)
+
+        # One-hotラベルに変換
+        support_labels_one_hot = F.one_hot(support_labels, n_way).float()
+
+        # Attention重み付き予測
+        predictions = torch.mm(attention_weights, support_labels_one_hot)
+
+        return predictions
+
+# 学習関数
+def train_matching(model, train_loader, num_epochs=100, n_way=5):
+    """Matching Networkの学習"""
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    criterion = nn.CrossEntropyLoss()
+
+    for epoch in range(num_epochs):
+        model.train()
+        total_loss = 0
+        total_acc = 0
+
+        for batch_idx, (support_imgs, support_labels, query_imgs, query_labels) in enumerate(train_loader):
+            support_imgs = support_imgs.to(device)
+            support_labels = support_labels.to(device)
+            query_imgs = query_imgs.to(device)
+            query_labels = query_labels.to(device)
+
+            # Forward
+            predictions = model(support_imgs, support_labels, query_imgs, n_way)
+            loss = criterion(predictions, query_labels)
+
+            # 精度計算
+            pred = predictions.argmax(dim=1)
+            acc = (pred == query_labels).float().mean()
+
+            # Backward
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            total_loss += loss.item()
+            total_acc += acc.item()
+
+        avg_loss = total_loss / len(train_loader)
+        avg_acc = total_acc / len(train_loader)
+
+        if (epoch + 1) % 10 == 0:
+            print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}, Acc: {avg_acc:.4f}")
+
+# 使用例
+model = MatchingNetwork(input_channels=3, hidden_dim=64)
+</code></pre>
+
+<h2>4. Relation Networks</h2>
+
+<h3>4.1 学習可能な距離メトリック</h3>
+
+<p>Relation Networksは、固定的なユークリッド距離やコサイン類似度の代わりに、学習可能なニューラルネットワークで類似度を計算します。これにより、タスク固有の最適な距離関数を学習できます。</p>
+
+<div class="mermaid">
+graph TB
+    S[サポート] --> ES[特徴抽出器]
+    Q[クエリ] --> EQ[特徴抽出器]
+
+    ES --> C[結合<br/>Concatenation]
+    EQ --> C
+
+    C --> R[関係モジュール<br/>CNN]
+    R --> SC[類似度スコア]
+
+    style ES fill:#9d4edd
+    style EQ fill:#9d4edd
+    style R fill:#3182ce
+</div>
+
+<p><strong>関係スコアの計算：</strong></p>
+$$
+r_{i,j} = g_\phi(\text{concat}(f_\theta(x_i), f_\theta(x_j)))
+$$
+
+<p>ここで：</p>
+<ul>
+<li>$f_\theta$ は特徴抽出器</li>
+<li>$g_\phi$ は関係モジュール（学習可能なCNN）</li>
+<li>$r_{i,j}$ はサンプル$i$と$j$の類似度スコア</li>
+</ul>
+
+<h3>4.2 CNNベースの関係モジュール</h3>
+
+<p>関係モジュールは、結合された特徴ベクトルから類似度スコアを出力する畳み込みネットワークです。</p>
+
+<h3>4.3 実装例</h3>
+
+<pre><code class="language-python">import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class RelationNetwork(nn.Module):
+    """Relation Network実装"""
+
+    def __init__(self, input_channels=3, feature_dim=64):
+        super(RelationNetwork, self).__init__()
+
+        # 特徴抽出器（エンコーダ）
+        self.encoder = nn.Sequential(
+            self._conv_block(input_channels, feature_dim),
+            self._conv_block(feature_dim, feature_dim),
+            self._conv_block(feature_dim, feature_dim),
+            self._conv_block(feature_dim, feature_dim),
+        )
+
+        # 関係モジュール（結合された特徴から類似度を計算）
+        self.relation_module = nn.Sequential(
+            self._conv_block(feature_dim * 2, feature_dim),
+            self._conv_block(feature_dim, feature_dim),
+            nn.Flatten(),
+            nn.Linear(feature_dim * 5 * 5, 256),
+            nn.ReLU(inplace=True),
+            nn.Linear(256, 1),
+            nn.Sigmoid()  # 類似度スコアを[0, 1]に正規化
+        )
+
+    def _conv_block(self, in_channels, out_channels):
+        """CNNブロック"""
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2)
+        )
+
+    def forward(self, support_images, query_images, n_way, k_shot):
+        """
+        Args:
+            support_images: (n_way * k_shot, C, H, W)
+            query_images: (n_query, C, H, W)
+        """
+        # 特徴抽出
+        support_features = self.encoder(support_images)  # (n_support, D, H, W)
+        query_features = self.encoder(query_images)      # (n_query, D, H, W)
+
+        n_support = support_features.size(0)
+        n_query = query_features.size(0)
+        D, H, W = support_features.size(1), support_features.size(2), support_features.size(3)
+
+        # サポートセットのプロトタイプを計算（各クラスの平均）
+        support_features_proto = support_features.view(n_way, k_shot, D, H, W).mean(dim=1)
+
+        # クエリとプロトタイプのペアを作成
+        # クエリ特徴を拡張: (n_query, n_way, D, H, W)
+        query_features_ext = query_features.unsqueeze(1).repeat(1, n_way, 1, 1, 1)
+
+        # プロトタイプ特徴を拡張: (n_query, n_way, D, H, W)
+        support_features_ext = support_features_proto.unsqueeze(0).repeat(n_query, 1, 1, 1, 1)
+
+        # 特徴を結合
+        relation_pairs = torch.cat([query_features_ext, support_features_ext], dim=2)
+        relation_pairs = relation_pairs.view(-1, D * 2, H, W)
+
+        # 関係スコアを計算
+        relation_scores = self.relation_module(relation_pairs).view(n_query, n_way)
+
+        return relation_scores
+
+class MSELoss4RelationNetwork(nn.Module):
+    """Relation Network用のMSE Loss"""
+
+    def forward(self, relation_scores, labels, n_way):
+        """
+        Args:
+            relation_scores: (n_query, n_way)
+            labels: (n_query,)
+        """
+        # One-hotラベルを作成
+        one_hot_labels = F.one_hot(labels, n_way).float()
+
+        # MSE Loss
+        loss = F.mse_loss(relation_scores, one_hot_labels)
+        return loss
+
+# 学習関数
+def train_relation(model, train_loader, num_epochs=100, n_way=5, k_shot=1):
+    """Relation Networkの学習"""
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    criterion = MSELoss4RelationNetwork()
+
+    for epoch in range(num_epochs):
+        model.train()
+        total_loss = 0
+        total_acc = 0
+
+        for batch_idx, (support_imgs, support_labels, query_imgs, query_labels) in enumerate(train_loader):
+            support_imgs = support_imgs.to(device)
+            query_imgs = query_imgs.to(device)
+            query_labels = query_labels.to(device)
+
+            # Forward
+            relation_scores = model(support_imgs, query_imgs, n_way, k_shot)
+            loss = criterion(relation_scores, query_labels, n_way)
+
+            # 精度計算
+            pred = relation_scores.argmax(dim=1)
+            acc = (pred == query_labels).float().mean()
+
+            # Backward
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            total_loss += loss.item()
+            total_acc += acc.item()
+
+        avg_loss = total_loss / len(train_loader)
+        avg_acc = total_acc / len(train_loader)
+
+        if (epoch + 1) % 10 == 0:
+            print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}, Acc: {avg_acc:.4f}")
+
+# 使用例
+model = RelationNetwork(input_channels=3, feature_dim=64)
+print(f"Total parameters: {sum(p.numel() for p in model.parameters()):,}")
+</code></pre>
+
+<h2>5. 実践：手法の比較実験</h2>
+
+<h3>5.1 miniImageNetデータセット</h3>
+
+<p>miniImageNetは、ImageNetのサブセットで、Few-Shot学習のベンチマークとして広く使用されています。</p>
+
+<p><strong>データセット構成：</strong></p>
+<table>
+<thead>
+<tr>
+<th> minutes割</th>
+<th>クラス数</th>
+<th>クラスあたりサンプル数</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Train</td>
+<td>64</td>
+<td>600</td>
+<td>Meta-Learningの訓練</td>
+</tr>
+<tr>
+<td>Validation</td>
+<td>16</td>
+<td>600</td>
+<td>ハイパーパラメータ調整</td>
+</tr>
+<tr>
+<td>Test</td>
+<td>20</td>
+<td>600</td>
+<td>最終性能評価</td>
+</tr>
+</tbody>
+</table>
+
+<h3>5.2 5-way 1-shot/5-shot評価</h3>
+
+<pre><code class="language-python">import torch
+import numpy as np
+from torch.utils.data import DataLoader
+
+def evaluate_few_shot(model, test_loader, n_way=5, k_shot=1, n_query=15, n_episodes=600):
+    """
+    Few-Shot学習モデルの評価
+
+    Args:
+        model: 評価するモデル（Prototypical, Matching, Relationのいずれか）
+        test_loader: テストデータローダー
+        n_way: クラス数
+        k_shot: サポートセットのサンプル数
+        n_query: クエリセットのサンプル数
+        n_episodes: 評価エピソード数
+    """
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
+    model.eval()
+
+    accuracies = []
+
+    with torch.no_grad():
+        for episode in range(n_episodes):
+            # エピソードデータをサンプリング
+            support_imgs, support_labels, query_imgs, query_labels = next(iter(test_loader))
+
+            support_imgs = support_imgs.to(device)
+            support_labels = support_labels.to(device)
+            query_imgs = query_imgs.to(device)
+            query_labels = query_labels.to(device)
+
+            # モデルによって異なる推論方法
+            if hasattr(model, 'relation_module'):  # Relation Network
+                predictions = model(support_imgs, query_imgs, n_way, k_shot)
+                pred_labels = predictions.argmax(dim=1)
+            else:  # Prototypical or Matching Network
+                logits = model(support_imgs, support_labels, query_imgs, n_way, k_shot)
+                pred_labels = logits.argmax(dim=1)
+
+            # 精度計算
+            acc = (pred_labels == query_labels).float().mean().item()
+            accuracies.append(acc)
+
+            if (episode + 1) % 100 == 0:
+                current_avg = np.mean(accuracies)
+                current_std = np.std(accuracies)
+                print(f"Episode [{episode+1}/{n_episodes}], "
+                      f"Acc: {current_avg:.4f} ± {1.96 * current_std / np.sqrt(len(accuracies)):.4f}")
+
+    # 最終結果（95%信頼区間）
+    mean_acc = np.mean(accuracies)
+    std_acc = np.std(accuracies)
+    confidence_interval = 1.96 * std_acc / np.sqrt(n_episodes)
+
+    return mean_acc, confidence_interval
+
+# データローダー設定の例
+class FewShotDataLoader:
+    """Few-Shot学習用のデータローダー"""
+
+    def __init__(self, dataset, n_way=5, k_shot=1, n_query=15):
+        self.dataset = dataset
+        self.n_way = n_way
+        self.k_shot = k_shot
+        self.n_query = n_query
+
+    def sample_episode(self):
+        """1エピソード minutesのデータをサンプリング"""
+        # n_wayクラスをランダムに選択
+        classes = np.random.choice(len(self.dataset.classes), self.n_way, replace=False)
+
+        support_imgs = []
+        support_labels = []
+        query_imgs = []
+        query_labels = []
+
+        for i, cls in enumerate(classes):
+            # クラスからk_shot + n_queryサンプルを選択
+            cls_samples = self.dataset.get_samples_by_class(cls)
+            indices = np.random.choice(len(cls_samples), self.k_shot + self.n_query, replace=False)
+
+            # サポートセット
+            support_imgs.extend([cls_samples[idx] for idx in indices[:self.k_shot]])
+            support_labels.extend([i] * self.k_shot)
+
+            # クエリセット
+            query_imgs.extend([cls_samples[idx] for idx in indices[self.k_shot:]])
+            query_labels.extend([i] * self.n_query)
+
+        return (torch.stack(support_imgs), torch.tensor(support_labels),
+                torch.stack(query_imgs), torch.tensor(query_labels))
+</code></pre>
+
+<h3>5.3 精度比較と考察</h3>
+
+<pre><code class="language-python"># 各手法の比較実験
+import pandas as pd
+import matplotlib.pyplot as plt
+
+def compare_few_shot_methods(test_loader, n_way=5, k_shot_list=[1, 5]):
+    """複数のFew-Shot学習手法を比較"""
+
+    results = []
+
+    for k_shot in k_shot_list:
+        print(f"\n{'='*50}")
+        print(f"{n_way}-way {k_shot}-shot evaluation")
+        print(f"{'='*50}\n")
+
+        # Prototypical Network
+        print("Evaluating Prototypical Network...")
+        proto_model = PrototypicalNetwork(input_channels=3, hidden_dim=64)
+        proto_acc, proto_ci = evaluate_few_shot(proto_model, test_loader, n_way, k_shot)
+        results.append({
+            'Method': 'Prototypical',
+            'Setting': f'{n_way}-way {k_shot}-shot',
+            'Accuracy': proto_acc,
+            'CI': proto_ci
+        })
+        print(f"Prototypical Network: {proto_acc:.4f} ± {proto_ci:.4f}\n")
+
+        # Matching Network
+        print("Evaluating Matching Network...")
+        match_model = MatchingNetwork(input_channels=3, hidden_dim=64)
+        match_acc, match_ci = evaluate_few_shot(match_model, test_loader, n_way, k_shot)
+        results.append({
+            'Method': 'Matching',
+            'Setting': f'{n_way}-way {k_shot}-shot',
+            'Accuracy': match_acc,
+            'CI': match_ci
+        })
+        print(f"Matching Network: {match_acc:.4f} ± {match_ci:.4f}\n")
+
+        # Relation Network
+        print("Evaluating Relation Network...")
+        relation_model = RelationNetwork(input_channels=3, feature_dim=64)
+        relation_acc, relation_ci = evaluate_few_shot(relation_model, test_loader, n_way, k_shot)
+        results.append({
+            'Method': 'Relation',
+            'Setting': f'{n_way}-way {k_shot}-shot',
+            'Accuracy': relation_acc,
+            'CI': relation_ci
+        })
+        print(f"Relation Network: {relation_acc:.4f} ± {relation_ci:.4f}\n")
+
+    return pd.DataFrame(results)
+
+# 結果の可視化
+def plot_comparison(results_df):
+    """比較結果を可視化"""
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # 1-shotと5-shotで minutes離
+    settings = results_df['Setting'].unique()
+    x = np.arange(len(results_df['Method'].unique()))
+    width = 0.35
+
+    for i, setting in enumerate(settings):
+        data = results_df[results_df['Setting'] == setting]
+        accuracies = data['Accuracy'].values
+        cis = data['CI'].values
+
+        ax.bar(x + i * width, accuracies, width,
+               yerr=cis, label=setting, capsize=5)
+
+    ax.set_xlabel('Method')
+    ax.set_ylabel('Accuracy')
+    ax.set_title('Few-Shot Learning Methods Comparison on miniImageNet')
+    ax.set_xticks(x + width / 2)
+    ax.set_xticklabels(results_df['Method'].unique())
+    ax.legend()
+    ax.grid(axis='y', alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('few_shot_comparison.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+# 実行例
+# results_df = compare_few_shot_methods(test_loader, n_way=5, k_shot_list=[1, 5])
+# plot_comparison(results_df)
+</code></pre>
+
+<p><strong>典型的な結果（miniImageNet）：</strong></p>
+
+<table>
+<thead>
+<tr>
+<th>手法</th>
+<th>5-way 1-shot</th>
+<th>5-way 5-shot</th>
+<th>主な特徴</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prototypical Networks</td>
+<td>49.42% ± 0.78%</td>
+<td>68.20% ± 0.66%</td>
+<td>シンプルで効率的</td>
+</tr>
+<tr>
+<td>Matching Networks</td>
+<td>46.60% ± 0.78%</td>
+<td>60.00% ± 0.71%</td>
+<td>Attention機構</td>
+</tr>
+<tr>
+<td>Relation Networks</td>
+<td>50.44% ± 0.82%</td>
+<td>65.32% ± 0.70%</td>
+<td>学習可能な距離</td>
+</tr>
+</tbody>
+</table>
+
+<h3>5.4 考察と手法選択のガイドライン</h3>
+
+<p><strong>Prototypical Networks</strong></p>
+<ul>
+<li><strong>長所：</strong> 実装がシンプル、計算効率が良い、多くのタスクで高精度</li>
+<li><strong>短所：</strong> 固定的なユークリッド距離に依存</li>
+<li><strong>Recommended用途：</strong> ベースライン手法として、リソースが限られた環境</li>
+</ul>
+
+<p><strong>Matching Networks</strong></p>
+<ul>
+<li><strong>長所：</strong> Attention機構でサポートセット全体を考慮</li>
+<li><strong>短所：</strong> LSTMによる計算コストが高い</li>
+<li><strong>Recommended用途：</strong> サポートセット間の関係性が重要なタスク</li>
+</ul>
+
+<p><strong>Relation Networks</strong></p>
+<ul>
+<li><strong>長所：</strong> タスク固有の最適な距離関数を学習可能</li>
+<li><strong>短所：</strong> パラメータ数が多く、学習に hoursがかかる</li>
+<li><strong>Recommended用途：</strong> 複雑な類似度が必要なタスク、十 minutesなデータがある場合</li>
+</ul>
+
+<blockquote>
+<p><strong>実践的なアドバイス：</strong> 新しいタスクでは、まずPrototypical Networksをベースラインとして試し、性能が不十 minutesな場合にRelation Networksを検討するのが効率的です。</p>
+</blockquote>
+
+<h2>Exercises</h2>
+
+<details>
+<summary><strong>演習1：Siamese Networkの改良</strong></summary>
+<p>提供されたSiamese NetworkにTriplet Lossを実装し、Contrastive Lossとの性能を比較してください。Triplet Lossは、アンカー、ポジティブ、ネガティブの3つのサンプルを使用します。</p>
+
+<pre><code class="language-python">class TripletLoss(nn.Module):
+    def __init__(self, margin=1.0):
+        super(TripletLoss, self).__init__()
+        self.margin = margin
+
+    def forward(self, anchor, positive, negative):
+        # TODO: Triplet Lossを実装
+        # ヒント: L = max(0, d(a,p) - d(a,n) + margin)
+        pass
+</code></pre>
+</details>
+
+<details>
+<summary><strong>演習2：Prototypical Networksの拡張</strong></summary>
+<p>Prototypical Networksを拡張し、各クラスのプロトタイプを単純な平均ではなく、Attention機構を使った加重平均で計算してください。これにより、ノイズの多いサンプルの影響を減らせます。</p>
+
+<pre><code class="language-python">def compute_prototypes_with_attention(self, embeddings, labels, n_way):
+    """Attention機構を使ったプロトタイプ計算"""
+    # TODO: 実装
+    # ヒント: サンプル間の類似度に基づいてattention重みを計算
+    pass
+</code></pre>
+</details>
+
+<details>
+<summary><strong>演習3：マルチモーダルFew-Shot学習</strong></summary>
+<p>画像とテキストの両方を入力とするマルチモーダルPrototypical Networkを設計してください。画像にはCNN、テキストにはTransformerを使用し、両方の埋め込みを結合します。</p>
+
+<pre><code class="language-python">class MultimodalPrototypicalNetwork(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # TODO: 画像エンコーダとテキストエンコーダを定義
+        pass
+
+    def forward(self, images, texts):
+        # TODO: マルチモーダル埋め込みを計算
+        pass
+</code></pre>
+</details>
+
+<details>
+<summary><strong>演習4：Few-Shot学習の実アプリケーション</strong></summary>
+<p>医療画像診断のシナリオを想定し、限られた症例画像（各疾患5枚程度）から新しい疾患を classificationするシステムを設計してください。どの手法が最適か、その理由とともに説明してください。また、データ拡張やドメイン適応の戦略も考えてください。</p>
+</details>
+
+<h2>Summary</h2>
+
+<p>この Chapterでは、Few-Shot学習の主要な手法について学びました：</p>
+
+<ul>
+<li><strong>Siamese Networks：</strong> ペア学習とContrastive Lossによる類似度学習の基礎</li>
+<li><strong>Prototypical Networks：</strong> プロトタイプベースのシンプルで効果的な classification</li>
+<li><strong>Matching Networks：</strong> Attention機構によるコンテキスト考慮型 classification</li>
+<li><strong>Relation Networks：</strong> 学習可能な距離メトリックによる柔軟な類似度計算</li>
+</ul>
+
+<p>これらの手法は、それぞれ異なる強みを持ち、タスクやリソースに応じて選択できます。次 Chapterでは、これらの手法をより高度な最適化アルゴリズム（MAML等）と組み合わせる方法を学びます。</p>
+
+<div class="navigation">
+    <a href="chapter2-maml.html" class="nav-button">← Chapter 2: MAML</a>
+    <a href="chapter4-advanced-meta-learning.html" class="nav-button">Chapter 4 Chapter：応用Meta-Learning →</a>
+</div>
+
+</main>
+
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+            <li>To the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+        </ul>
+    </section>
+
+<footer>
+    <p>&copy; 2024 AI Terakoya. All rights reserved.</p>
+</footer>
+
+</body>
+</html>

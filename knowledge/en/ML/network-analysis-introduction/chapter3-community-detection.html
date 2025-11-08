@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3: Community Detection - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-body); line-height: 1.7; color: var(--color-text); background-color: var(--color-bg); font-size: 16px; }
+        header { background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; padding: var(--spacing-xl) var(--spacing-md); margin-bottom: var(--spacing-xl); box-shadow: var(--box-shadow); }
+        .header-content { max-width: 900px; margin: 0 auto; }
+        h1 { font-size: 2rem; font-weight: 700; margin-bottom: var(--spacing-sm); line-height: 1.2; }
+        .subtitle { font-size: 1.1rem; opacity: 0.95; font-weight: 400; margin-bottom: var(--spacing-md); }
+        .meta { display: flex; flex-wrap: wrap; gap: var(--spacing-md); font-size: 0.9rem; opacity: 0.9; }
+        .meta-item { display: flex; align-items: center; gap: 0.3rem; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 var(--spacing-md) var(--spacing-xl); }
+        h2 { font-size: 1.75rem; color: var(--color-primary); margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-xs); border-bottom: 3px solid var(--color-accent); }
+        h3 { font-size: 1.4rem; color: var(--color-primary); margin-top: var(--spacing-lg); margin-bottom: var(--spacing-sm); }
+        h4 { font-size: 1.1rem; color: var(--color-primary-dark); margin-top: var(--spacing-md); margin-bottom: var(--spacing-sm); }
+        p { margin-bottom: var(--spacing-md); color: var(--color-text); }
+        a { color: var(--color-link); text-decoration: none; transition: color 0.2s; }
+        a:hover { color: var(--color-link-hover); text-decoration: underline; }
+        ul, ol { margin-left: var(--spacing-lg); margin-bottom: var(--spacing-md); }
+        li { margin-bottom: var(--spacing-xs); color: var(--color-text); }
+        pre { background-color: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); overflow-x: auto; margin-bottom: var(--spacing-md); font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.5; }
+        code { font-family: var(--font-mono); font-size: 0.9em; background-color: var(--color-code-bg); padding: 0.2em 0.4em; border-radius: 3px; }
+        pre code { background-color: transparent; padding: 0; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: var(--spacing-md); font-size: 0.95rem; }
+        th, td { border: 1px solid var(--color-border); padding: var(--spacing-sm); text-align: left; }
+        th { background-color: var(--color-bg-alt); font-weight: 600; color: var(--color-primary); }
+        blockquote { border-left: 4px solid var(--color-accent); padding-left: var(--spacing-md); margin: var(--spacing-md) 0; color: var(--color-text-light); font-style: italic; background-color: var(--color-bg-alt); padding: var(--spacing-md); border-radius: var(--border-radius); }
+        .mermaid { text-align: center; margin: var(--spacing-lg) 0; background-color: var(--color-bg-alt); padding: var(--spacing-md); border-radius: var(--border-radius); }
+        details { background-color: var(--color-bg-alt); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-md); margin-bottom: var(--spacing-md); }
+        summary { cursor: pointer; font-weight: 600; color: var(--color-primary); user-select: none; padding: var(--spacing-xs); margin: calc(-1 * var(--spacing-md)); padding: var(--spacing-md); border-radius: var(--border-radius); }
+        summary:hover { background-color: rgba(123, 44, 191, 0.1); }
+        details[open] summary { margin-bottom: var(--spacing-md); border-bottom: 1px solid var(--color-border); }
+        .navigation { display: flex; justify-content: space-between; gap: var(--spacing-md); margin: var(--spacing-xl) 0; padding-top: var(--spacing-lg); border-top: 2px solid var(--color-border); }
+        .nav-button { flex: 1; padding: var(--spacing-md); background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%); color: white; border-radius: var(--border-radius); text-align: center; font-weight: 600; transition: transform 0.2s, box-shadow 0.2s; box-shadow: var(--box-shadow); }
+        .nav-button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); text-decoration: none; }
+        footer { margin-top: var(--spacing-xl); padding: var(--spacing-lg) var(--spacing-md); background-color: var(--color-bg-alt); border-top: 1px solid var(--color-border); text-align: center; font-size: 0.9rem; color: var(--color-text-light); }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+        @media (max-width: 768px) { h1 { font-size: 1.5rem; } h2 { font-size: 1.4rem; } h3 { font-size: 1.2rem; } .meta { font-size: 0.85rem; } .navigation { flex-direction: column; } table { font-size: 0.85rem; } th, td { padding: var(--spacing-xs); } }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+    <script>
+        MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']], processEscapes: true, processEnvironments: true },
+            options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'], ignoreHtmlClass: 'mermaid' }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/network-analysis-introduction/index.html">Network Analysis</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>Chapter 3: Community Detection</h1>
+            <p class="subtitle">モジュラリティ最適化とラベル伝播 - Louvain法、Label Propagationの理論と実装</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 25-30 minutes</span>
+                <span class="meta-item">📊 Difficulty: Intermediate</span>
+                <span class="meta-item">💻 Code Examples: 8</span>
+                <span class="meta-item">📝 Exercises: 5問</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+<h2>Learning Objectives</h2>
+<p>この ChapterReadことで、以下を習得できます：</p>
+<ul>
+<li>✅ コミュニティ検出の基本概念とモジュラリティを理解する</li>
+<li>✅ Louvain法の階層的最適化アルゴリズムを実装する</li>
+<li>✅ Label Propagationの原理と高速性の秘密を学ぶ</li>
+<li>✅ 主要なコミュニティ検出手法（Girvan-Newman、Infomap、スペクトラルクラスタリング）を比較する</li>
+<li>✅ 実データでのコミュニティ minutes析と可視化を実践する</li>
+</ul>
+
+<h2>1. コミュニティ検出の基礎</h2>
+
+<h3>1.1 コミュニティとは</h3>
+
+<p>ネットワークにおける<strong>コミュニティ（Community）</strong>とは、内部の結合が密で、外部との結合が疎なノードの集まりです。ソーシャルネットワークでの友人グループ、生物学的ネットワークでの機能モジュール、Webページのトピックグループなど、様々な minutes野で重要な構造を表します。</p>
+
+<div class="mermaid">
+graph LR
+    subgraph C1["コミュニティ1"]
+        A1((A))---A2((B))
+        A2---A3((C))
+        A3---A1
+    end
+    subgraph C2["コミュニティ2"]
+        B1((D))---B2((E))
+        B2---B3((F))
+        B3---B1
+    end
+    A2-.弱い結合.-B1
+</div>
+
+<h3>1.2 モジュラリティ（Modularity）</h3>
+
+<p><strong>モジュラリティ</strong>は、コミュニティ構造の品質を測る最も重要な指標です。ネットワークが与えられたコミュニティ minutes割に対して、どれだけ明確なコミュニティ構造を持つかを定量化します：</p>
+
+$$Q = \frac{1}{2m} \sum_{i,j} \left[ A_{ij} - \frac{k_i k_j}{2m} \right] \delta(c_i, c_j)$$
+
+<p>ここで：</p>
+<ul>
+<li>$A_{ij}$: 隣接行列の要素（エッジの存在）</li>
+<li>$k_i, k_j$: ノード$i, j$の次数</li>
+<li>$m$: エッジ総数</li>
+<li>$c_i, c_j$: ノード$i, j$のコミュニティ</li>
+<li>$\delta(c_i, c_j)$: 同じコミュニティなら1、異なれば0</li>
+</ul>
+
+<blockquote>
+<strong>直感的理解：</strong> モジュラリティは「実際のエッジ数」と「ランダムネットワークでの期待値」の差を測ります。値の範囲は-0.5〜1.0で、0.3以上なら明確なコミュニティ構造を持つとされます。
+</blockquote>
+
+<h3>1.3 評価指標</h3>
+
+<pre><code class="language-python">import networkx as nx
+import numpy as np
+from networkx.algorithms import community
+
+# サンプルネットワークの作成（Karate Clubデータセット）
+G = nx.karate_club_graph()
+
+# Ground truthのコミュニティ（実際のクラブ minutes裂）
+ground_truth = {
+    frozenset([n for n in G.nodes() if G.nodes[n]['club'] == 'Mr. Hi']),
+    frozenset([n for n in G.nodes() if G.nodes[n]['club'] == 'Officer'])
+}
+
+# Louvain法でコミュニティ検出
+detected_communities = community.louvain_communities(G, seed=42)
+
+# モジュラリティの計算
+modularity = community.modularity(G, detected_communities)
+print(f"モジュラリティ: {modularity:.4f}")
+
+# NMI（Normalized Mutual Information）の計算
+from sklearn.metrics import normalized_mutual_info_score
+
+# コミュニティをラベル配列に変換
+def communities_to_labels(communities, n_nodes):
+    labels = np.zeros(n_nodes, dtype=int)
+    for i, comm in enumerate(communities):
+        for node in comm:
+            labels[node] = i
+    return labels
+
+gt_labels = communities_to_labels(ground_truth, len(G))
+detected_labels = communities_to_labels(detected_communities, len(G))
+
+nmi = normalized_mutual_info_score(gt_labels, detected_labels)
+print(f"NMI: {nmi:.4f}")
+
+# カバレッジとパフォーマンス
+coverage = community.coverage(G, detected_communities)
+performance = community.performance(G, detected_communities)
+print(f"カバレッジ: {coverage:.4f}")
+print(f"パフォーマンス: {performance:.4f}")
+</code></pre>
+
+<details>
+<summary>主要な評価指標の解説</summary>
+<table>
+<thead>
+<tr>
+<th>指標</th>
+<th>説明</th>
+<th>範囲</th>
+<th>利点/欠点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>モジュラリティ(Q)</strong></td>
+<td>コミュニティ内エッジの密度</td>
+<td>-0.5〜1.0</td>
+<td>最も一般的／解像度限界問題</td>
+</tr>
+<tr>
+<td><strong>NMI</strong></td>
+<td>正解との一致度（情報量）</td>
+<td>0〜1</td>
+<td>Ground truth必要</td>
+</tr>
+<tr>
+<td><strong>カバレッジ</strong></td>
+<td>コミュニティ内エッジの割合</td>
+<td>0〜1</td>
+<td>直感的／コミュニティ間エッジ無視</td>
+</tr>
+<tr>
+<td><strong>パフォーマンス</strong></td>
+<td>正確に classificationされたペアの割合</td>
+<td>0〜1</td>
+<td>バランス良い</td>
+</tr>
+</tbody>
+</table>
+</details>
+
+<h2>2. Louvain法</h2>
+
+<h3>2.1 アルゴリズムの仕組み</h3>
+
+<p>Louvain法は、モジュラリティを貪欲に最適化する階層的アルゴリズムです。2段階の反復プロセスで構成されます：</p>
+
+<div class="mermaid">
+graph TD
+    A[初期化: 各ノードが独自コミュニティ] --> B[フェーズ1: ローカル最適化]
+    B --> C{モジュラリティ<br/>改善あり?}
+    C -->|Yes| B
+    C -->|No| D[フェーズ2: ネットワーク縮約]
+    D --> E{1つの<br/>コミュニティ?}
+    E -->|No| B
+    E -->|Yes| F[完了]
+</div>
+
+<p><strong>フェーズ1（ローカル最適化）：</strong></p>
+<ol>
+<li>各ノードを順番に処理</li>
+<li>隣接コミュニティへの移動を試行</li>
+<li>モジュラリティが最大になる移動を採用</li>
+<li>改善がなくなるまで繰り返す</li>
+</ol>
+
+<p>モジュラリティの変化量 $\Delta Q$ は効率的に計算できます：</p>
+
+$$\Delta Q = \left[ \frac{\Sigma_{in} + k_{i,in}}{2m} - \left( \frac{\Sigma_{tot} + k_i}{2m} \right)^2 \right] - \left[ \frac{\Sigma_{in}}{2m} - \left( \frac{\Sigma_{tot}}{2m} \right)^2 - \left( \frac{k_i}{2m} \right)^2 \right]$$
+
+<h3>2.2 階層的コミュニティ検出</h3>
+
+<p><strong>フェーズ2（ネットワーク縮約）：</strong></p>
+<ul>
+<li>各コミュニティを1つのスーパーノードに縮約</li>
+<li>コミュニティ間のエッジを集約</li>
+<li>新しいネットワークでフェーズ1を実行</li>
+</ul>
+
+<pre><code class="language-python">import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+
+def visualize_louvain_hierarchy(G):
+    """Louvain法の階層構造を可視化"""
+    # 各階層でのコミュニティ検出
+    communities_level0 = [{i} for i in G.nodes()]  # Level0: 別ノード
+    communities_level1 = community.louvain_communities(G, seed=42, resolution=1.0)
+
+    # より粗いコミュニティ（解像度を下げる）
+    communities_level2 = community.louvain_communities(G, seed=42, resolution=0.5)
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+    levels = [communities_level0, communities_level1, communities_level2]
+    titles = ['Level0\n(別ノード)', 'Level1\n(細かいコミュニティ)', 'Level2\n(粗いコミュニティ)']
+
+    for ax, comms, title in zip(axes, levels, titles):
+        pos = nx.spring_layout(G, seed=42)
+
+        # コミュニティごとに色 minutesけ
+        colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8']
+        node_colors = []
+        for node in G.nodes():
+            for i, comm in enumerate(comms):
+                if node in comm:
+                    node_colors.append(colors[i % len(colors)])
+                    break
+
+        nx.draw_networkx_nodes(G, pos, node_color=node_colors,
+                               node_size=300, ax=ax)
+        nx.draw_networkx_edges(G, pos, alpha=0.2, ax=ax)
+        nx.draw_networkx_labels(G, pos, font_size=8, ax=ax)
+
+        ax.set_title(title, fontsize=12, fontweight='bold')
+        ax.axis('off')
+
+    plt.tight_layout()
+    plt.savefig('louvain_hierarchy.png', dpi=150, bbox_inches='tight')
+    print(f"階層数: {len(levels)}")
+    for i, comms in enumerate(levels):
+        print(f"Level{i}: {len(comms)}のコミュニティ")
+
+# 実行
+G = nx.karate_club_graph()
+visualize_louvain_hierarchy(G)
+</code></pre>
+
+<h3>2.3 NetworkX/python-louvain実装</h3>
+
+<pre><code class="language-python">import community as community_louvain  # python-louvain
+import networkx as nx
+
+# サンプルネットワーク（Les Miserables共起ネットワーク）
+G = nx.les_miserables_graph()
+
+# --- NetworkX組み込みのLouvain ---
+communities_nx = community.louvain_communities(G, seed=42)
+modularity_nx = community.modularity(G, communities_nx)
+
+print(f"NetworkX Louvain:")
+print(f"  コミュニティ数: {len(communities_nx)}")
+print(f"  モジュラリティ: {modularity_nx:.4f}")
+
+# --- python-louvainパッケージ（より詳細な情報を取得） ---
+# 最良の minutes割を取得
+partition = community_louvain.best_partition(G)
+
+# 階層構造全体を取得
+dendro = community_louvain.generate_dendrogram(G)
+print(f"\npython-louvain:")
+print(f"  階層Level数: {len(dendro)}")
+
+# 各Levelのコミュニティ数
+for level in range(len(dendro)):
+    partition_at_level = community_louvain.partition_at_level(dendro, level)
+    num_communities = len(set(partition_at_level.values()))
+    mod = community_louvain.modularity(partition_at_level, G)
+    print(f"  Level{level}: {num_communities}のコミュニティ, Q={mod:.4f}")
+
+# 解像度パラメータの効果
+resolutions = [0.5, 1.0, 1.5, 2.0]
+print(f"\n解像度パラメータの影響:")
+for res in resolutions:
+    partition_res = community_louvain.best_partition(G, resolution=res)
+    num_comm = len(set(partition_res.values()))
+    mod = community_louvain.modularity(partition_res, G)
+    print(f"  resolution={res}: {num_comm}のコミュニティ, Q={mod:.4f}")
+</code></pre>
+
+<blockquote>
+<strong>計算量：</strong> Louvain法の hours計算量は$O(n \log n)$で、大規模ネットワーク（数百万ノード）にも適用可能です。python-louvainパッケージは特に高速な実装を提供しています。
+</blockquote>
+
+<h2>3. Label Propagation</h2>
+
+<h3>3.1 ラベル伝播アルゴリズム</h3>
+
+<p>Label Propagation（ラベル伝播法）は、極めてシンプルで高速なコミュニティ検出手法です。基本的なアイデアは「多数決」：</p>
+
+<ol>
+<li><strong>初期化：</strong> 各ノードに一意のラベルを割り当て</li>
+<li><strong>伝播：</strong> 各ノードが隣接ノードの多数派ラベルを採用</li>
+<li><strong>収束：</strong> ラベルが変化しなくなるまで繰り返す</li>
+</ol>
+
+<div class="mermaid">
+graph LR
+    subgraph "ステップ0: 初期化"
+        A0((A:1))
+        B0((B:2))
+        C0((C:3))
+        D0((D:4))
+        A0---B0---C0---D0
+    end
+</div>
+
+<div class="mermaid">
+graph LR
+    subgraph "ステップ1: 伝播"
+        A1((A:1))
+        B1((B:1))
+        C1((C:2))
+        D1((D:3))
+        A1---B1---C1---D1
+    end
+</div>
+
+<div class="mermaid">
+graph LR
+    subgraph "ステップ2: 収束"
+        A2((A:1))
+        B2((B:1))
+        C2((C:1))
+        D2((D:1))
+        A2---B2---C2---D2
+    end
+</div>
+
+<h3>3.2 高速性と精度のトレードオフ</h3>
+
+<p>Label Propagationの最大の利点は<strong>線形 hours計算量 $O(m)$</strong>（$m$はエッジ数）です。しかし、いくつかの課題もあります：</p>
+
+<table>
+<thead>
+<tr>
+<th>特徴</th>
+<th>利点</th>
+<th>欠点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>計算速度</strong></td>
+<td>非常に高速（線形 hours）</td>
+<td>-</td>
+</tr>
+<tr>
+<td><strong>スケーラビリティ</strong></td>
+<td>数千万ノードのネットワークも処理可能</td>
+<td>-</td>
+</tr>
+<tr>
+<td><strong>安定性</strong></td>
+<td>-</td>
+<td>結果が実行ごとに変わる（非決定的）</td>
+</tr>
+<tr>
+<td><strong>品質</strong></td>
+<td>-</td>
+<td>Louvain法より低いモジュラリティ</td>
+</tr>
+<tr>
+<td><strong>収束性</strong></td>
+<td>-</td>
+<td>振動する場合がある</td>
+</tr>
+</tbody>
+</table>
+
+<h3>3.3 実装例</h3>
+
+<pre><code class="language-python">import networkx as nx
+import numpy as np
+from collections import Counter
+
+def label_propagation_manual(G, max_iter=100, seed=None):
+    """Label Propagationの手動実装（教育目的）"""
+    if seed is not None:
+        np.random.seed(seed)
+
+    # 初期化: 各ノードに一意のラベル
+    labels = {node: i for i, node in enumerate(G.nodes())}
+    nodes = list(G.nodes())
+
+    for iteration in range(max_iter):
+        # ノードの処理順序をランダム化
+        np.random.shuffle(nodes)
+        changed = False
+
+        for node in nodes:
+            # 隣接ノードのラベルを収集
+            neighbor_labels = [labels[neighbor] for neighbor in G.neighbors(node)]
+
+            if not neighbor_labels:
+                continue
+
+            # 最頻ラベルを採用（同数の場合はランダム選択）
+            label_counts = Counter(neighbor_labels)
+            max_count = max(label_counts.values())
+            most_common = [label for label, count in label_counts.items()
+                          if count == max_count]
+            new_label = np.random.choice(most_common)
+
+            if labels[node] != new_label:
+                labels[node] = new_label
+                changed = True
+
+        if not changed:
+            print(f"収束: {iteration + 1}回の反復")
+            break
+
+    # ラベルをコミュニティセットに変換
+    communities = {}
+    for node, label in labels.items():
+        if label not in communities:
+            communities[label] = set()
+        communities[label].add(node)
+
+    return list(communities.values())
+
+# テストと比較
+G = nx.karate_club_graph()
+
+# 手動実装
+communities_manual = label_propagation_manual(G, seed=42)
+mod_manual = community.modularity(G, communities_manual)
+
+# NetworkX組み込み
+communities_nx = list(community.label_propagation_communities(G))
+mod_nx = community.modularity(G, communities_nx)
+
+print("Label Propagation結果比較:")
+print(f"手動実装: {len(communities_manual)}のコミュニティ, Q={mod_manual:.4f}")
+print(f"NetworkX: {len(communities_nx)}のコミュニティ, Q={mod_nx:.4f}")
+
+# 複数回実行して安定性を確認
+print("\n安定性テスト（10回実行）:")
+modularities = []
+for i in range(10):
+    comms = label_propagation_manual(G, seed=i)
+    mod = community.modularity(G, comms)
+    modularities.append(mod)
+    print(f"  実行{i+1}: Q={mod:.4f}, コミュニティ数={len(comms)}")
+
+print(f"平均モジュラリティ: {np.mean(modularities):.4f} ± {np.std(modularities):.4f}")
+</code></pre>
+
+<blockquote>
+<strong>実践的アドバイス：</strong> Label Propagationは初期探索や超大規模ネットワークに有効です。より高品質な結果が必要な場合は、Label Propagationの結果をLouvain法の初期値として使用する「ハイブリッドアプローチ」が効果的です。
+</blockquote>
+
+<h2>4. その他のコミュニティ検出手法</h2>
+
+<h3>4.1 Girvan-Newman法（エッジ媒介性ベース）</h3>
+
+<p>Girvan-Newman法は、コミュニティ間を結ぶエッジを除去していく階層的手法です：</p>
+
+<ol>
+<li>全エッジのエッジ媒介中心性を計算</li>
+<li>最大媒介中心性のエッジを除去</li>
+<li>モジュラリティを計算</li>
+<li>全てのエッジが除去されるまで繰り返す</li>
+<li>最大モジュラリティの minutes割を採用</li>
+</ol>
+
+<pre><code class="language-python">import networkx as nx
+from networkx.algorithms.community import girvan_newman
+
+G = nx.karate_club_graph()
+
+# Girvan-Newman法（階層全体を生成）
+communities_generator = girvan_newman(G)
+
+# 異なる minutes割Levelを取得
+modularities = []
+all_partitions = []
+
+for i, communities in enumerate(communities_generator):
+    partition = tuple(sorted(communities, key=len, reverse=True))
+    all_partitions.append(partition)
+
+    # モジュラリティを計算
+    mod = community.modularity(G, partition)
+    modularities.append(mod)
+
+    print(f" minutes割{i+1}: {len(partition)}のコミュニティ, Q={mod:.4f}")
+
+    # 10 minutes割まで確認
+    if i >= 9:
+        break
+
+# 最適 minutes割を選択
+best_idx = np.argmax(modularities)
+best_partition = all_partitions[best_idx]
+print(f"\n最適 minutes割: Level{best_idx+1}, Q={modularities[best_idx]:.4f}")
+</code></pre>
+
+<p><strong>計算量：</strong> $O(m^2 n)$ - 大規模ネットワークには不向きですが、小規模ネットワークで解釈可能な階層構造を提供します。</p>
+
+<h3>4.2 Infomap</h3>
+
+<p>Infomapは、ランダムウォークの符号化問題としてコミュニティ検出を定式化します。コミュニティ内を長く滞在するランダムウォークを効率的に記述できる minutes割を探します。</p>
+
+<pre><code class="language-python">try:
+    import infomap
+    has_infomap = True
+except ImportError:
+    has_infomap = False
+    print("infomap未インストール: pip install infomap")
+
+if has_infomap:
+    # Infomapの実行
+    im = infomap.Infomap("--two-level --directed")
+
+    # ネットワークを追加（無向グラフの場合は両方向に追加）
+    for u, v in G.edges():
+        im.add_link(u, v)
+        im.add_link(v, u)
+
+    # クラスタリング実行
+    im.run()
+
+    # 結果を取得
+    communities_infomap = {}
+    for node in im.tree:
+        if node.is_leaf:
+            module_id = node.module_id
+            node_id = node.node_id
+            if module_id not in communities_infomap:
+                communities_infomap[module_id] = set()
+            communities_infomap[module_id].add(node_id)
+
+    communities_infomap = list(communities_infomap.values())
+    mod_infomap = community.modularity(G, communities_infomap)
+
+    print(f"\nInfomap:")
+    print(f"  コミュニティ数: {len(communities_infomap)}")
+    print(f"  モジュラリティ: {mod_infomap:.4f}")
+    print(f"  Codelength: {im.codelength:.4f}")
+</code></pre>
+
+<h3>4.3 スペクトラルクラスタリング</h3>
+
+<p>スペクトラルクラスタリングは、グラフラプラシアンの固有ベクトルを用いてコミュニティを検出します：</p>
+
+<pre><code class="language-python">from sklearn.cluster import SpectralClustering
+import numpy as np
+
+# 隣接行列を取得
+A = nx.to_numpy_array(G)
+
+# 異なるコミュニティ数で試行
+for n_clusters in [2, 3, 4, 5]:
+    sc = SpectralClustering(
+        n_clusters=n_clusters,
+        affinity='precomputed',
+        assign_labels='kmeans',
+        random_state=42
+    )
+
+    labels = sc.fit_predict(A)
+
+    # ラベルをコミュニティセットに変換
+    communities_spectral = [set() for _ in range(n_clusters)]
+    for node, label in enumerate(labels):
+        communities_spectral[label].add(node)
+
+    mod = community.modularity(G, communities_spectral)
+    print(f"スペクトラルクラスタリング (k={n_clusters}): Q={mod:.4f}")
+</code></pre>
+
+<details>
+<summary>手法比較の詳細</summary>
+<table>
+<thead>
+<tr>
+<th>手法</th>
+<th> hours計算量</th>
+<th>品質</th>
+<th>決定性</th>
+<th>適用場面</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Louvain</strong></td>
+<td>$O(n \log n)$</td>
+<td>高</td>
+<td>準決定的</td>
+<td>一般的な用途、大規模ネットワーク</td>
+</tr>
+<tr>
+<td><strong>Label Propagation</strong></td>
+<td>$O(m)$</td>
+<td>中</td>
+<td>非決定的</td>
+<td>超大規模ネットワーク、初期探索</td>
+</tr>
+<tr>
+<td><strong>Girvan-Newman</strong></td>
+<td>$O(m^2 n)$</td>
+<td>中〜高</td>
+<td>決定的</td>
+<td>小規模ネットワーク、階層構造の可視化</td>
+</tr>
+<tr>
+<td><strong>Infomap</strong></td>
+<td>$O(m)$</td>
+<td>高</td>
+<td>準決定的</td>
+<td>フロー情報が重要な場合</td>
+</tr>
+<tr>
+<td><strong>スペクトラル</strong></td>
+<td>$O(n^3)$</td>
+<td>中</td>
+<td>決定的</td>
+<td>コミュニティ数が既知の場合</td>
+</tr>
+</tbody>
+</table>
+</details>
+
+<h2>5. 実践: ソーシャルネットワークのコミュニティ minutes析</h2>
+
+<h3>5.1 Facebookネットワーク例</h3>
+
+<pre><code class="language-python">import networkx as nx
+import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
+
+# Facebook SNAPデータセット（ego-Facebook）の代替: Zachary's Karate Clubで詳細 minutes析
+G = nx.karate_club_graph()
+
+print(f"ネットワーク情報:")
+print(f"  ノード数: {G.number_of_nodes()}")
+print(f"  エッジ数: {G.number_of_edges()}")
+print(f"  平均次数: {2 * G.number_of_edges() / G.number_of_nodes():.2f}")
+print(f"  密度: {nx.density(G):.4f}")
+
+# Ground truth（実際のクラブ minutes裂）
+ground_truth = []
+for club in ['Mr. Hi', 'Officer']:
+    comm = {n for n in G.nodes() if G.nodes[n]['club'] == club}
+    ground_truth.append(comm)
+
+print(f"\nGround truth: {len(ground_truth)}のグループ")
+
+# 各手法でコミュニティ検出
+results = {}
+
+# 1. Louvain
+communities_louvain = community.louvain_communities(G, seed=42)
+results['Louvain'] = communities_louvain
+
+# 2. Label Propagation
+communities_lp = list(community.label_propagation_communities(G))
+results['Label Propagation'] = communities_lp
+
+# 3. Greedy Modularity（高速な代替手法）
+communities_greedy = community.greedy_modularity_communities(G)
+results['Greedy Modularity'] = communities_greedy
+
+# 4. Girvan-Newman（最適 minutes割のみ）
+gn_generator = girvan_newman(G)
+gn_modularities = []
+gn_partitions = []
+for partition in gn_generator:
+    gn_partitions.append(partition)
+    gn_modularities.append(community.modularity(G, partition))
+    if len(gn_partitions) >= 10:  # 最初の10 minutes割のみ評価
+        break
+best_gn = gn_partitions[np.argmax(gn_modularities)]
+results['Girvan-Newman'] = best_gn
+
+print("\nコミュニティ検出結果:")
+for method, comms in results.items():
+    mod = community.modularity(G, comms)
+
+    # Ground truthとのNMIを計算
+    gt_labels = communities_to_labels(ground_truth, len(G))
+    detected_labels = communities_to_labels(comms, len(G))
+    nmi = normalized_mutual_info_score(gt_labels, detected_labels)
+
+    print(f"{method:20s}: {len(comms):2d}, Q={mod:.4f}, NMI={nmi:.4f}")
+</code></pre>
+
+<h3>5.2 手法の比較</h3>
+
+<pre><code class="language-python">import matplotlib.pyplot as plt
+from sklearn.metrics import adjusted_rand_score
+
+# 包括的な比較 minutes析
+def comprehensive_comparison(G, ground_truth, results):
+    """複数の評価指標で手法を比較"""
+    metrics = {
+        'Modularity': [],
+        'NMI': [],
+        'ARI': [],  # Adjusted Rand Index
+        'Coverage': [],
+        'Communities': [],
+        'Runtime': []
+    }
+
+    methods = list(results.keys())
+    gt_labels = communities_to_labels(ground_truth, len(G))
+
+    import time
+
+    for method in methods:
+        comms = results[method]
+        detected_labels = communities_to_labels(comms, len(G))
+
+        # メトリクスを計算
+        metrics['Modularity'].append(community.modularity(G, comms))
+        metrics['NMI'].append(normalized_mutual_info_score(gt_labels, detected_labels))
+        metrics['ARI'].append(adjusted_rand_score(gt_labels, detected_labels))
+        metrics['Coverage'].append(community.coverage(G, comms))
+        metrics['Communities'].append(len(comms))
+
+    # 可視化
+    fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+    axes = axes.flatten()
+
+    for i, (metric, values) in enumerate(list(metrics.items())[:5]):
+        ax = axes[i]
+        bars = ax.bar(methods, values, color=['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A'])
+        ax.set_ylabel(metric, fontsize=11, fontweight='bold')
+        ax.set_xticklabels(methods, rotation=45, ha='right')
+        ax.grid(axis='y', alpha=0.3)
+
+        # 値をバーの上に表示
+        for bar in bars:
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., height,
+                   f'{height:.3f}', ha='center', va='bottom', fontsize=9)
+
+    # 最後のサブプロットを削除
+    fig.delaxes(axes[5])
+
+    plt.tight_layout()
+    plt.savefig('community_comparison.png', dpi=150, bbox_inches='tight')
+    print("比較図を保存: community_comparison.png")
+
+# 実行
+comprehensive_comparison(G, ground_truth, results)
+</code></pre>
+
+<h3>5.3 コミュニティの可視化と解釈</h3>
+
+<pre><code class="language-python">import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+
+def visualize_communities(G, communities, title, ground_truth=None):
+    """コミュニティを美しく可視化"""
+    fig, ax = plt.subplots(figsize=(12, 10))
+
+    # レイアウト計算
+    pos = nx.spring_layout(G, seed=42, k=0.5, iterations=50)
+
+    # カラーマップ
+    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+              '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B195', '#C06C84']
+
+    # ノードの色付け
+    node_colors = []
+    node_to_comm = {}
+    for i, comm in enumerate(communities):
+        for node in comm:
+            node_colors.append(colors[i % len(colors)])
+            node_to_comm[node] = i
+
+    # エッジの描画（コミュニティ内/間で色 minutesけ）
+    edges_within = []
+    edges_between = []
+    for u, v in G.edges():
+        if node_to_comm[u] == node_to_comm[v]:
+            edges_within.append((u, v))
+        else:
+            edges_between.append((u, v))
+
+    # コミュニティ内エッジ（濃い色）
+    nx.draw_networkx_edges(G, pos, edgelist=edges_within,
+                           width=2, alpha=0.6, edge_color='#2C3E50', ax=ax)
+
+    # コミュニティ間エッジ（薄い色、点線）
+    nx.draw_networkx_edges(G, pos, edgelist=edges_between,
+                           width=1, alpha=0.3, edge_color='#95A5A6',
+                           style='dashed', ax=ax)
+
+    # ノード描画
+    nx.draw_networkx_nodes(G, pos, node_color=node_colors,
+                           node_size=500, alpha=0.9,
+                           edgecolors='white', linewidths=2, ax=ax)
+
+    # ラベル
+    nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold', ax=ax)
+
+    # 凡例
+    legend_elements = [mpatches.Patch(facecolor=colors[i % len(colors)],
+                                      label=f'Community {i+1} ({len(comm)} nodes)')
+                      for i, comm in enumerate(communities)]
+    ax.legend(handles=legend_elements, loc='upper left',
+             framealpha=0.9, fontsize=10)
+
+    ax.set_title(title, fontsize=16, fontweight='bold', pad=20)
+    ax.axis('off')
+
+    # メトリクス表示
+    mod = community.modularity(G, communities)
+    info_text = f"Modularity: {mod:.4f}\n"
+    info_text += f"Communities: {len(communities)}\n"
+    info_text += f"Intra-edges: {len(edges_within)}\n"
+    info_text += f"Inter-edges: {len(edges_between)}"
+
+    ax.text(0.02, 0.98, info_text, transform=ax.transAxes,
+           fontsize=11, verticalalignment='top',
+           bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+
+    return fig
+
+# 各手法の結果を可視化
+for method, comms in results.items():
+    fig = visualize_communities(G, comms, f"Community Detection: {method}")
+    plt.savefig(f'community_{method.replace(" ", "_").lower()}.png',
+                dpi=150, bbox_inches='tight')
+    plt.close()
+
+print("全ての可視化を保存しました")
+</code></pre>
+
+<blockquote>
+<strong>解釈のポイント：</strong>
+<ul>
+<li><strong>モジュラリティ：</strong> 0.3以上なら明確なコミュニティ構造</li>
+<li><strong>コミュニティサイズ：</strong> 極端に小さい/大きいコミュニティは要注意</li>
+<li><strong>エッジ比率：</strong> コミュニティ間エッジが多い場合、境界が曖昧</li>
+<li><strong>Ground truthとの一致：</strong> NMI/ARIで既知の構造との対応を確認</li>
+</ul>
+</blockquote>
+
+<h2>Exercises</h2>
+
+<details>
+<summary>問題1: モジュラリティの理解</summary>
+<p><strong>問題：</strong> 以下のネットワークで、コミュニティ minutes割 C1 = {A, B} と C2 = {C, D} のモジュラリティを手計算してください。</p>
+<pre>
+A -- B
+|    |
+C -- D
+</pre>
+<p><strong>ヒント：</strong> $Q = \frac{1}{2m} \sum_{ij} [A_{ij} - \frac{k_i k_j}{2m}] \delta(c_i, c_j)$ を使用</p>
+</details>
+
+<details>
+<summary>問題2: Louvain法の実装</summary>
+<p><strong>問題：</strong> フェーズ1のローカル最適化において、ノード移動による $\Delta Q$ を効率的に計算する関数を実装してください。</p>
+<pre><code class="language-python">def compute_delta_Q(G, node, current_comm, new_comm, m):
+    """
+    ノードを current_comm から new_comm に移動した時の
+    モジュラリティ変化量を計算
+
+    Parameters:
+    -----------
+    G : NetworkX graph
+    node : int
+        移動するノード
+    current_comm : set
+        現在のコミュニティ
+    new_comm : set
+        移動先のコミュニティ
+    m : int
+        エッジ総数
+
+    Returns:
+    --------
+    delta_Q : float
+        モジュラリティの変化量
+    """
+    # ここに実装
+    pass
+</code></pre>
+</details>
+
+<details>
+<summary>問題3: Label Propagationの収束性</summary>
+<p><strong>問題：</strong> Label Propagationが収束しない（振動する）ケースを構築し、その理由を説明してください。また、収束を保証する改善策を提案してください。</p>
+</details>
+
+<details>
+<summary>問題4: 解像度限界問題</summary>
+<p><strong>問題：</strong> モジュラリティ最適化には「解像度限界（resolution limit）」問題があります。小さなコミュニティが検出できない例を作成し、解像度パラメータで改善できることを示してください。</p>
+<pre><code class="language-python">import networkx as nx
+from networkx.algorithms import community
+
+# 複数の小さなクリークを持つネットワークを作成
+# 解像度パラメータを変えて結果を比較
+</code></pre>
+</details>
+
+<details>
+<summary>問題5: 重み付きネットワークのコミュニティ検出</summary>
+<p><strong>問題：</strong> エッジに重みがあるネットワークで、重みを考慮したLouvain法を適用してください。重みの有無で結果がどう変わるか minutes析してください。</p>
+<pre><code class="language-python">import networkx as nx
+
+# 重み付きネットワークの作成
+G = nx.karate_club_graph()
+
+# ランダムに重みを付与
+import random
+for u, v in G.edges():
+    G[u][v]['weight'] = random.uniform(0.1, 2.0)
+
+# 重みありとなしでコミュニティ検出を比較
+</code></pre>
+</details>
+
+<h2>Summary</h2>
+
+<p>この Chapterでは、ネットワークにおけるコミュニティ検出の理論と実践を学びました：</p>
+
+<ul>
+<li>✅ <strong>モジュラリティ：</strong> コミュニティ構造の品質を定量化する標準的指標</li>
+<li>✅ <strong>Louvain法：</strong> 階層的な貪欲最適化による高品質・高速な検出</li>
+<li>✅ <strong>Label Propagation：</strong> 線形 hoursの超高速アルゴリズム（トレードオフあり）</li>
+<li>✅ <strong>その他の手法：</strong> Girvan-Newman、Infomap、スペクトラルクラスタリング</li>
+<li>✅ <strong>実践：</strong> 手法の比較、可視化、解釈の方法</li>
+</ul>
+
+<blockquote>
+<strong>Next Steps：</strong> 次 Chapterでは、ネットワークの動的な性質を扱います。 hours発展するネットワークの minutes析、リンク予測、ネットワークの成長モデルについて学びます。
+</blockquote>
+
+<div class="navigation">
+    <a href="chapter2-centrality.html" class="nav-button">← Chapter 2 Chapter: 中心性指標</a>
+    <a href="index.html" class="nav-button">Back to Contents</a>
+    <a href="chapter4-dynamic-networks.html" class="nav-button">Chapter 4 Chapter: 動的Network Analysis →</a>
+</div>
+
+    </main>
+
+    
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+            <li>To the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+        </ul>
+    </section>
+
+<footer>
+        <p>&copy; 2024 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

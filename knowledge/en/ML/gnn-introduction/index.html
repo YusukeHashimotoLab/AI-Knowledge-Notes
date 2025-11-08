@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Graph Neural Networks (GNN) Introduction Series - グラフ構造データの表現学習とその応用完全ガイド">
+    <title>Graph Neural Networks (GNN) Introduction Series v1.0 - AI Terakoya</title>
+
+    <!-- CSS Styling -->
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #3498db;
+            --link-hover: #2980b9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header .container {
+            padding: 0 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-top: 1rem;
+        }
+
+        .meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Typography */
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            color: var(--primary-color);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.6rem;
+            color: var(--primary-color);
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+        }
+
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--link-hover);
+            text-decoration: underline;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1.2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Code blocks */
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            display: block;
+        }
+
+        thead {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        tbody {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 0.8rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        /* Blockquotes */
+        blockquote {
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: #666;
+        }
+
+        /* Images */
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        /* Mermaid diagrams */
+        .mermaid {
+            text-align: center;
+            margin: 2rem 0;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Details/Summary (for exercises) */
+        details {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary-color);
+            padding: 0.5rem;
+        }
+
+        summary:hover {
+            color: var(--secondary-color);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--border-color);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        /* Navigation buttons */
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 3rem 0;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .nav-button:hover {
+            background: var(--link-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+
+            table {
+                font-size: 0.9rem;
+            }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        // Mermaid.js Converter - Converts markdown-style mermaid code blocks to renderable divs
+        document.addEventListener('DOMContentLoaded', function() {
+            // Find all code blocks with class="language-mermaid"
+            const mermaidCodeBlocks = document.querySelectorAll('pre.codehilite code.language-mermaid, pre code.language-mermaid');
+
+            mermaidCodeBlocks.forEach(function(codeBlock) {
+                const pre = codeBlock.parentElement;
+                const mermaidCode = codeBlock.textContent;
+
+                // Create a new div with mermaid class
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = mermaidCode.trim();
+
+                // Replace the pre element with the new div
+                pre.parentNode.replaceChild(mermaidDiv, pre);
+            });
+
+            // Re-initialize mermaid after conversion
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+                mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+            }
+        });
+    </script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Gnn</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="container">
+            <h1>🕸️ Graph Neural Networks (GNN) Introduction Series v1.0</h1>
+            <p style="font-size: 1.1rem; margin-top: 0.5rem; opacity: 0.95;">グラフ構造データの表現学習とその応用</p>
+            <div class="meta">
+                <span>📖 Total Learning Time: 120-150 minutes</span>
+                <span>📊 Level: Advanced</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <p><strong>ソーシャルネットワーク・ minutes子構造・Knowledgeグラフを扱う次世代深層学習技術を基礎から体系的にマスター</strong></p>
+
+        <h2 id="overview">Series Overview</h2>
+        <p>この Seriesは、Graph Neural Networks（GNN）の理論と実装を基礎から段階的に学べる全5 Chapter構成の実践的教育コンテンツです。</p>
+
+        <p><strong>Graph Neural Networks（Graph Neural Networks, GNN）</strong>は、グラフ構造データに対する深層学習手法です。ソーシャルネットワーク、 minutes子構造、交通ネットワーク、Knowledgeグラフなど、ノードとエッジで表現される関係性データから特徴を学習します。Graph Convolutional Networks（GCN）によるスペクトルグラフ理論の応用、メッセージパッシングフレームワークによる近傍情報の集約、Graph Attention Networks（GAT）による重要度の学習、これらの技術は創薬・推薦システム・交通最適化・Knowledge推論など、幅広い minutes野で革新をもたらしています。Google、Facebook、Amazonといった企業が実用化しているグラフ学習の基盤技術を理解し、実装できるようになります。グラフ理論の基礎からGraph Transformerまで、体系的なKnowledgeを提供します。</p>
+
+        <p><strong>特徴:</strong></p>
+        <ul>
+            <li>✅ <strong>理論から実装まで</strong>: グラフ理論の基礎から最新のGraph Transformerまで体系的に学習</li>
+            <li>✅ <strong>実装重視</strong>: 40以上の実行可能なPyTorch/PyG/DGLCode Examples、実践的なテクニック</li>
+            <li>✅ <strong>直感的理解</strong>: グラフ可視化、メッセージパッシングの動作可視化で原理を理解</li>
+            <li>✅ <strong>最新技術準拠</strong>: PyTorch Geometric、DGL（Deep Graph Library）を使った実装</li>
+            <li>✅ <strong>実用的応用</strong>: ノード classification・グラフ classification・リンク予測・創薬など実践的なタスクへの適用</li>
+        </ul>
+
+        <p><strong>Total Learning Time</strong>: 120-150 minutes（コード実行と演習を含む）</p>
+
+        <h2 id="learning">How to Learn</h2>
+
+        <h3>Recommended Learning Order</h3>
+
+        <div class="mermaid">
+graph TD
+    A[Chapter 1 Chapter: グラフとグラフ表現学習の基礎] --> B[Chapter 2 Chapter: Graph Convolutional Networks]
+    B --> C[Chapter 3 Chapter: メッセージパッシングとGNN]
+    C --> D[Chapter 4 Chapter: Graph Attention Networks]
+    D --> E[Chapter 5 Chapter: GNNの応用]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+    style E fill:#fce4ec
+</div>
+
+        <p><strong>Beginner learnerの方（GNN (No knowledge)）:</strong><br>
+        - Chapter 1 Chapter → Chapter 2 Chapter → Chapter 3 Chapter → Chapter 4 Chapter → Chapter 5 Chapter（All chapters recommended）<br>
+        - Duration hours: 120-150 minutes</p>
+
+        <p><strong>Intermediate learnerの方（グラフ理論 (with experience)）:</strong><br>
+        - Chapter 2 Chapter → Chapter 3 Chapter → Chapter 4 Chapter → Chapter 5 Chapter<br>
+        - Duration hours: 90-110 minutes</p>
+
+        <p><strong>Focused Topic Enhancement:</strong><br>
+        - グラフ理論: Chapter 1 Chapter（Focused study）<br>
+        - GCN理論: Chapter 2 Chapter（Focused study）<br>
+        - メッセージパッシング: Chapter 3 Chapter（Focused study）<br>
+        - GAT/Graph Transformer: Chapter 4 Chapter（Focused study）<br>
+        - Duration hours: 25-30 minutes/ Chapter</p>
+
+        <h2 id="chapters">Chapter Details</h2>
+
+        <h3><a href="./chapter1-graph-basics.html">Chapter 1 Chapter：グラフとグラフ表現学習の基礎</a></h3>
+        <p><strong>Difficulty</strong>: Advanced<br>
+        <strong>Reading Time</strong>: 25-30 minutes<br>
+        <strong>Code Examples</strong>: 8</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>グラフ理論の基礎</strong> - ノード、エッジ、隣接行列、次数行列</li>
+            <li><strong>グラフの種類</strong> - 有向グラフ、無向グラフ、重み付きグラフ、異種グラフ</li>
+            <li><strong>グラフ表現方法</strong> - 隣接行列、隣接リスト、エッジリスト</li>
+            <li><strong>ノード埋め込み</strong> - DeepWalk、Node2Vec、グラフ表現学習の目的</li>
+            <li><strong>グラフの可視化</strong> - NetworkX、PyTorchでのグラフ構築</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ グラフ理論の基本概念を理解する</li>
+            <li>✅ グラフの数学的表現を説明できる</li>
+            <li>✅ 隣接行列と次数行列を構築できる</li>
+            <li>✅ ノード埋め込みの役割を理解する</li>
+            <li>✅ NetworkXでグラフを可視化できる</li>
+        </ul>
+
+        <p><strong><a href="./chapter1-graph-basics.html">Chapter 1 ChapterRead →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter2-gcn.html">Chapter 2 Chapter：Graph Convolutional Networks（GCN）</a></h3>
+        <p><strong>Difficulty</strong>: Advanced<br>
+        <strong>Reading Time</strong>: 25-30 minutes<br>
+        <strong>Code Examples</strong>: 8</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>スペクトルグラフ理論</strong> - ラプラシアン行列、固有値 minutes解、グラフフーリエ変換</li>
+            <li><strong>GCNの原理</strong> - 畳み込みのグラフへの拡張、近傍情報の集約</li>
+            <li><strong>GCNレイヤーの定式化</strong> - 対称正規化、活性化関数</li>
+            <li><strong>PyTorch Geometricによる実装</strong> - GCNConv、データの準備</li>
+            <li><strong>ノード classificationへの応用</strong> - Cora/CiteSeerデータセット、論文 classification</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ スペクトルグラフ理論の基礎を理解する</li>
+            <li>✅ GCNの畳み込み演算を説明できる</li>
+            <li>✅ ラプラシアン行列の役割を理解する</li>
+            <li>✅ PyTorch GeometricでGCNを実装できる</li>
+            <li>✅ ノード classificationタスクを解決できる</li>
+        </ul>
+
+        <p><strong><a href="./chapter2-gcn.html">Chapter 2 ChapterRead →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter3-message-passing.html">Chapter 3 Chapter：メッセージパッシングとGNN</a></h3>
+        <p><strong>Difficulty</strong>: Advanced<br>
+        <strong>Reading Time</strong>: 25-30 minutes<br>
+        <strong>Code Examples</strong>: 9</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>メッセージパッシングフレームワーク</strong> - Message・Aggregate・Update</li>
+            <li><strong>GraphSAGE</strong> - サンプリングと集約、スケーラブルな学習</li>
+            <li><strong>Graph Isomorphism Network (GIN)</strong> - 表現力の理論的保証</li>
+            <li><strong>エッジ特徴の利用</strong> - エッジ畳み込み、関係性の学習</li>
+            <li><strong>Over-smoothing問題</strong> - 深いGNNの課題と解決策</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ メッセージパッシングフレームワークを理解する</li>
+            <li>✅ GraphSAGEの集約手法を説明できる</li>
+            <li>✅ GINの表現力の強さを理解する</li>
+            <li>✅ エッジ特徴を活用したGNNを実装できる</li>
+            <li>✅ Over-smoothing問題に対処できる</li>
+        </ul>
+
+        <p><strong><a href="./chapter3-message-passing.html">Chapter 3 ChapterRead →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter4-gat.html">Chapter 4 Chapter：Graph Attention Networks（GAT）</a></h3>
+        <p><strong>Difficulty</strong>: Advanced<br>
+        <strong>Reading Time</strong>: 30-35 minutes<br>
+        <strong>Code Examples</strong>: 8</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>Attention機構の復習</strong> - Self-attention、Query・Key・Value</li>
+            <li><strong>GATの原理</strong> - グラフ上のAttention、近傍の重要度学習</li>
+            <li><strong>Multi-head Attention</strong> - 複数のAttentionヘッド、表現力の向上</li>
+            <li><strong>Graph Transformer</strong> - Transformer のグラフへの応用</li>
+            <li><strong>位置エンコーディング</strong> - ラプラシアン固有ベクトル、構造情報の注入</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ GATのAttention機構を理解する</li>
+            <li>✅ Attention係数の計算方法を説明できる</li>
+            <li>✅ Multi-head Attentionの利点を理解する</li>
+            <li>✅ Graph Transformerの仕組みを説明できる</li>
+            <li>✅ PyTorch GeometricでGATを実装できる</li>
+        </ul>
+
+        <p><strong><a href="./chapter4-gat.html">Chapter 4 ChapterRead →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter5-applications.html">Chapter 5: GNN Applications</a></h3>
+        <p><strong>Difficulty</strong>: Advanced<br>
+        <strong>Reading Time</strong>: 25-30 minutes<br>
+        <strong>Code Examples</strong>: 7</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>ノード classification</strong> - 論文 classification、ソーシャルNetwork Analysis</li>
+            <li><strong>グラフ classification</strong> -  minutes子の性質予測、タンパク質機能予測</li>
+            <li><strong>リンク予測</strong> - 推薦システム、Knowledgeグラフ補完</li>
+            <li><strong>創薬への応用</strong> -  minutes子生成、薬物-標的相互作用予測</li>
+            <li><strong>KnowledgeグラフとGNN</strong> - エンティティ埋め込み、関係推論</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ 各タスクの問題設定を理解する</li>
+            <li>✅ ノード classificationモデルを実装できる</li>
+            <li>✅ グラフ classificationでPooling手法を活用できる</li>
+            <li>✅ リンク予測の評価指標を理解する</li>
+            <li>✅ 創薬・Knowledgeグラフへの応用を理解する</li>
+        </ul>
+
+        <p><strong><a href="./chapter5-applications.html">Chapter 5 ChapterRead →</a></strong></p>
+
+        <hr>
+
+        <h2 id="outcomes">Overall Learning Outcomes</h2>
+
+        <p>この Seriesを完了すると、以下のスキルとKnowledgeを習得できます：</p>
+
+        <h3>KnowledgeLevel（Understanding）</h3>
+        <ul>
+            <li>✅ グラフ理論とGNNの理論的基礎を説明できる</li>
+            <li>✅ GCN・GraphSAGE・GIN・GATの仕組みを理解している</li>
+            <li>✅ メッセージパッシングフレームワークを説明できる</li>
+            <li>✅ Attention機構のグラフへの応用を理解している</li>
+            <li>✅ 各GNNアーキテクチャの使い minutesけを説明できる</li>
+        </ul>
+
+        <h3>Practical Skills（Doing）</h3>
+        <ul>
+            <li>✅ PyTorch Geometric/DGLでGNNを実装できる</li>
+            <li>✅ ノード classification・グラフ classification・リンク予測を解決できる</li>
+            <li>✅ NetworkXでグラフデータを操作・可視化できる</li>
+            <li>✅ GATでAttention機構を実装できる</li>
+            <li>✅ 創薬・推薦システムへGNNを応用できる</li>
+        </ul>
+
+        <h3>Application Ability（Applying）</h3>
+        <ul>
+            <li>✅ タスクに応じて適切なGNNアーキテクチャを選択できる</li>
+            <li>✅ グラフデータを実務で活用できる</li>
+            <li>✅ Over-smoothing問題に対処できる</li>
+            <li>✅ 最新のGraph Transformer技術を理解し活用できる</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="prerequisites">Prerequisites</h2>
+
+        <p>この Seriesを効果的に学習するために、以下のKnowledgeがあることが望ましいです：</p>
+
+        <h3>Required（Must Have）</h3>
+        <ul>
+            <li>✅ <strong>Python基礎</strong>: 変数、関数、クラス、ループ、条件 branching</li>
+            <li>✅ <strong>NumPy基礎</strong>: 配列操作、行列演算、線形代数の基本</li>
+            <li>✅ <strong>深層学習の基礎</strong>: ニューラルネットワーク、誤差逆伝播、勾配降下法</li>
+            <li>✅ <strong>PyTorch基礎</strong>: テンソル操作、nn.Module、DatasetとDataLoader</li>
+            <li>✅ <strong>線形代数の基礎</strong>: 行列演算、固有値・固有ベクトル、対角化</li>
+            <li>✅ <strong>グラフ理論の基礎</strong>: ノード、エッジ、隣接行列（Recommended）</li>
+        </ul>
+
+        <h3>Recommended（Nice to Have）</h3>
+        <ul>
+            <li>💡 <strong>CNN基礎</strong>: 畳み込み演算の概念（GCN理解のため）</li>
+            <li>💡 <strong>Attention機構</strong>: Self-attention、Transformer（GAT理解のため）</li>
+            <li>💡 <strong>最適化アルゴリズム</strong>: Adam、学習率スケジューリング</li>
+            <li>💡 <strong>NetworkX</strong>: グラフデータ操作ライブラリの基本</li>
+            <li>💡 <strong>GPU環境</strong>: CUDAの基本的な理解</li>
+        </ul>
+
+        <p><strong>Recommended Prior Learning</strong>:</p>
+        <ul>
+            <!-- コンテンツ準備中 <li>📚 <a href="../deep-learning-basics/">深層学習の基礎 Series</a> - ニューラルネットワークの基本</li>
+            <li>📚 <a href="../pytorch-introduction/">PyTorch入門 Series</a> - PyTorchの基本操作</li>
+            <li>📚 <a href="../linear-algebra-for-ml/">Machine Learningのための線形代数</a> - 行列演算、固有値 minutes解</li>
+            <li>📚 <a href="../transformer-introduction/">Transformer入門 Series</a> - Attention機構（Recommended）</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="tech">Technologies and Tools Used</h2>
+
+        <h3>Main Libraries</h3>
+        <ul>
+            <li><strong>PyTorch 2.0+</strong> - 深層学習フレームワーク</li>
+            <li><strong>PyTorch Geometric 2.3+</strong> - Graph Neural Networksライブラリ</li>
+            <li><strong>DGL (Deep Graph Library) 1.1+</strong> - グラフ深層学習フレームワーク</li>
+            <li><strong>NetworkX 3.1+</strong> - グラフ構築・操作・可視化</li>
+            <li><strong>NumPy 1.24+</strong> - 数値計算</li>
+            <li><strong>Matplotlib 3.7+</strong> - 可視化</li>
+            <li><strong>scikit-learn 1.3+</strong> - 評価指標、前処理</li>
+            <li><strong>RDKit 2023+</strong> -  minutes子データ処理（創薬応用）</li>
+        </ul>
+
+        <h3>Development Environment</h3>
+        <ul>
+            <li><strong>Python 3.8+</strong> - プログラミング言語</li>
+            <li><strong>Jupyter Notebook / Lab</strong> - 対話的Development Environment</li>
+            <li><strong>Google Colab</strong> - GPU環境（無料で利用可能）</li>
+            <li><strong>CUDA 11.8+ / cuDNN</strong> - GPU高速化（Recommended）</li>
+        </ul>
+
+        <h3>データセット</h3>
+        <ul>
+            <li><strong>Cora / CiteSeer</strong> - 論文引用ネットワーク（ノード classification）</li>
+            <li><strong>PubMed</strong> - 医学論文引用ネットワーク</li>
+            <li><strong>MUTAG / PROTEINS</strong> -  minutes子データセット（グラフ classification）</li>
+            <li><strong>Zachary's Karate Club</strong> - ソーシャルネットワーク（可視化・学習）</li>
+            <li><strong>OGB (Open Graph Benchmark)</strong> - グラフ学習ベンチマーク</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="start">Let's Get Started！</h2>
+        <p>Are you ready？ Chapter 1 ChapterStart with 、Graph Neural Networks and master the techniques！</p>
+
+        <p><strong><a href="./chapter1-graph-basics.html">Chapter 1 Chapter: グラフとグラフ表現学習の基礎 →</a></strong></p>
+
+        <hr>
+
+        <h2 id="next">Next Steps</h2>
+
+        <p>After completing this series, we recommend proceeding to the following topics：</p>
+
+        <h3>Advanced Learning</h3>
+        <ul>
+            <li>📚 <strong>Graph Transformer</strong>: Transformer のグラフへの本格的な応用</li>
+            <li>📚 <strong>Temporal Graph Networks</strong>:  hours発展するグラフの学習</li>
+            <li>📚 <strong>Heterogeneous Graphs</strong>: 異種Graph Neural Networks</li>
+            <li>📚 <strong>Graph Generation</strong>: グラフGenerative Models、 minutes子生成</li>
+        </ul>
+
+        <h3>Related Series</h3>
+        <ul>
+            <li>🎯 <a href="../knowledge-graph/">Knowledgeグラフとエンティティ埋め込み</a> - Knowledge推論、関係抽出</li>
+            <li>🎯 <a href="../recommender-systems/">推薦システム入門</a> - グラフベース推薦、協調フィルタリング</li>
+            <li>🎯 <a href="../drug-discovery-ai/">AI創薬入門</a> -  minutes子生成、薬物-標的相互作用予測</li>
+        </ul>
+
+        <h3>Practical Projects</h3>
+        <ul>
+            <li>🚀 論文推薦システム - 引用ネットワークとGNN</li>
+            <li>🚀  minutes子性質予測 - グラフ classificationによる毒性・活性予測</li>
+            <li>🚀 ソーシャルNetwork Analysis - コミュニティ検出、影響力予測</li>
+            <li>🚀 Knowledgeグラフ補完 - リンク予測によるKnowledge推論</li>
+        </ul>
+
+        <hr>
+
+        <p><strong>Update History</strong></p>
+        <ul>
+            <li><strong>2025-10-21</strong>: v1.0 初版公開</li>
+        </ul>
+
+        <hr>
+
+        <p><strong>Your Graph Neural Networkslearning journey starts here！</strong></p>
+
+    </main>
+
+    
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+            <li>To the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+        </ul>
+    </section>
+
+<footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Meta-Learning Introduction Series - MAML・Few-Shot Learning・転移学習完全ガイド">
+    <title>Meta-Learning Introduction Series v1.0 - AI Terakoya</title>
+
+    <!-- CSS Styling -->
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #3498db;
+            --link-hover: #2980b9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header .container {
+            padding: 0 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-top: 1rem;
+        }
+
+        .meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Typography */
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            color: var(--primary-color);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.6rem;
+            color: var(--primary-color);
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+        }
+
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--link-hover);
+            text-decoration: underline;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1.2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Code blocks */
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            display: block;
+        }
+
+        thead {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        tbody {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 0.8rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        /* Blockquotes */
+        blockquote {
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: #666;
+        }
+
+        /* Images */
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        /* Mermaid diagrams */
+        .mermaid {
+            text-align: center;
+            margin: 2rem 0;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Details/Summary (for exercises) */
+        details {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary-color);
+            padding: 0.5rem;
+        }
+
+        summary:hover {
+            color: var(--secondary-color);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--border-color);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        /* Navigation buttons */
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 3rem 0;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .nav-button:hover {
+            background: var(--link-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+
+            table {
+                font-size: 0.9rem;
+            }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        // Mermaid.js Converter - Converts markdown-style mermaid code blocks to renderable divs
+        document.addEventListener('DOMContentLoaded', function() {
+            // Find all code blocks with class="language-mermaid"
+            const mermaidCodeBlocks = document.querySelectorAll('pre.codehilite code.language-mermaid, pre code.language-mermaid');
+
+            mermaidCodeBlocks.forEach(function(codeBlock) {
+                const pre = codeBlock.parentElement;
+                const mermaidCode = codeBlock.textContent;
+
+                // Create a new div with mermaid class
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = mermaidCode.trim();
+
+                // Replace the pre element with the new div
+                pre.parentNode.replaceChild(mermaidDiv, pre);
+            });
+
+            // Re-initialize mermaid after conversion
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+                mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+            }
+        });
+    </script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Meta Learning</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="container">
+            <h1>🧠 Meta-Learning Introduction Series v1.0</h1>
+            <p style="font-size: 1.1rem; margin-top: 0.5rem; opacity: 0.95;">MAML・Few-Shot Learning・転移学習</p>
+            <div class="meta">
+                <span>📖 Total Learning Time: 80-100 minutes</span>
+                <span>📊 Level: Advanced</span>
+                <span>🎯 コースID: ML-P04</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <p><strong>Learning to Learn - 少量データで効率的に学習するMeta-Learningの技術を体系的にマスター</strong></p>
+
+        <h2 id="overview">Series Overview</h2>
+        <p>この Seriesは、Meta-Learning（Meta-Learning）の理論と実装を基礎から段階的に学べる全4 Chapter構成の実践的教育コンテンツです。</p>
+
+        <p><strong>Meta-Learning</strong>は、「学習することを学習する（Learning to Learn）」というパラダイムであり、少量のデータから効率的に新しいタスクに適応する能力を獲得する技術です。MAML（Model-Agnostic Meta-Learning）による高速適応、Few-Shot Learningによる少数例学習、転移学習による事前Knowledgeの活用、Domain Adaptationによるドメイン間のKnowledge転移を習得することで、データが限られた実世界の問題に対応できる先進的なAIシステムを構築できます。Meta-Learningの原理から、MAML実装、Prototypical Networks、転移学習戦略まで、体系的なKnowledgeを提供します。</p>
+
+        <p><strong>特徴:</strong></p>
+        <ul>
+            <li>✅ <strong>理論と実装の融合</strong>: Meta-Learningの数理的基礎から実装まで段階的に学習</li>
+            <li>✅ <strong>実装重視</strong>: 25以上の実行可能なPyTorchCode Examples、実践的なテクニック</li>
+            <li>✅ <strong>最新手法網羅</strong>: MAML、Prototypical Networks、Matching Networks、Relation Networks</li>
+            <li>✅ <strong>転移学習完全ガイド</strong>: ファインチューニング戦略、Domain Adaptation、Knowledge蒸留</li>
+            <li>✅ <strong>実用的応用</strong>: Few-Shot classification・画像認識・ドメイン適応など実践的なタスクへの適用</li>
+        </ul>
+
+        <p><strong>Total Learning Time</strong>: 80-100 minutes（コード実行と演習を含む）</p>
+
+        <h2 id="learning">How to Learn</h2>
+
+        <h3>Recommended Learning Order</h3>
+
+        <div class="mermaid">
+graph TD
+    A[Chapter 1 Chapter: Meta-Learningの基礎] --> B[Chapter 2 Chapter: MAML]
+    B --> C[Chapter 3 Chapter: Few-Shot Learning手法]
+    C --> D[Chapter 4 Chapter: 転移学習とDomain Adaptation]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+</div>
+
+        <p><strong>Beginner learnerの方（Meta-Learning (No knowledge)）:</strong><br>
+        - Chapter 1 Chapter → Chapter 2 Chapter → Chapter 3 Chapter → Chapter 4 Chapter（All chapters recommended）<br>
+        - Duration hours: 80-100 minutes</p>
+
+        <p><strong>Intermediate learnerの方（転移学習・深層学習 (with experience)）:</strong><br>
+        - Chapter 1 Chapter（概要）→ Chapter 2 Chapter → Chapter 3 Chapter → Chapter 4 Chapter<br>
+        - Duration hours: 60-75 minutes</p>
+
+        <p><strong>Focused Topic Enhancement:</strong><br>
+        - MAML実装: Chapter 2 Chapter（Focused study）<br>
+        - Few-Shot手法: Chapter 3 Chapter（Focused study）<br>
+        - 転移学習: Chapter 4 Chapter（Focused study）<br>
+        - Duration hours: 20-25 minutes/ Chapter</p>
+
+        <h2 id="chapters">Chapter Details</h2>
+
+        <h3><a href="./chapter1-meta-learning-basics.html">Chapter 1: Meta-Learning Fundamentals</a></h3>
+        <p><strong>Difficulty</strong>: Advanced<br>
+        <strong>Reading Time</strong>: 20-25 minutes<br>
+        <strong>Code Examples</strong>: 6</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>Learning to Learnの概念</strong> - Meta-Learningのパラダイム、タスク minutes布</li>
+            <li><strong>Meta-Learningの classification</strong> - Metric-based、Model-based、Optimization-based</li>
+            <li><strong>Few-Shot問題設定</strong> - N-way K-shot、Support Set、Query Set</li>
+            <li><strong>評価プロトコル</strong> - エピソード学習、メタ訓練とメタテスト</li>
+            <li><strong>実世界での応用</strong> - データが限られたシナリオでの活用</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ Meta-Learningの基本概念と動機を理解する</li>
+            <li>✅ 3つのMeta-Learningアプローチを説明できる</li>
+            <li>✅ Few-Shot問題の設定を理解する</li>
+            <li>✅ エピソード学習のプロトコルを実装できる</li>
+            <li>✅ Meta-Learningが有効な問題領域を特定できる</li>
+        </ul>
+
+        <p><strong><a href="./chapter1-meta-learning-basics.html">Chapter 1 ChapterRead →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter2-maml.html">Chapter 2: MAML (Model-Agnostic Meta-Learning)</a></h3>
+        <p><strong>Difficulty</strong>: Advanced<br>
+        <strong>Reading Time</strong>: 20-25 minutes<br>
+        <strong>Code Examples</strong>: 7</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>MAMLの原理</strong> - 初期パラメータの最適化、高速適応</li>
+            <li><strong>二段階勾配</strong> - Inner Loop（タスク適応）、Outer Loop（メタ最適化）</li>
+            <li><strong>PyTorch実装</strong> - 高階微 minutes、計算グラフ、効率的な実装</li>
+            <li><strong>First-Order MAML (FOMAML)</strong> - 計算効率の向上</li>
+            <li><strong>MAML++とバリエーション</strong> - Multi-Step Loss、学習率適応</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ MAMLのアルゴリズムを数理的に理解する</li>
+            <li>✅ 二段階勾配の計算方法を説明できる</li>
+            <li>✅ PyTorchでMAMLを実装できる</li>
+            <li>✅ FOMAMLとの違いを理解する</li>
+            <li>✅ MAMLを新しいタスクに適用できる</li>
+        </ul>
+
+        <p><strong><a href="./chapter2-maml.html">Chapter 2 ChapterRead →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter3-few-shot-methods.html">Chapter 3: Few-Shot Learning手法</a></h3>
+        <p><strong>Difficulty</strong>: Advanced<br>
+        <strong>Reading Time</strong>: 20-25 minutes<br>
+        <strong>Code Examples</strong>: 6</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>Prototypical Networks</strong> - クラスプロトタイプ、埋め込み空間での距離</li>
+            <li><strong>Matching Networks</strong> - Attention機構、Full Context Embeddings</li>
+            <li><strong>Relation Networks</strong> - 学習可能な関係モジュール、類似度学習</li>
+            <li><strong>Siamese Networks</strong> - 対照学習、ペアワイズ比較</li>
+            <li><strong>手法の比較と選択</strong> - タスク特性に応じた手法選択</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ Prototypical Networksの原理を理解する</li>
+            <li>✅ Matching Networksのアーキテクチャを説明できる</li>
+            <li>✅ Relation Networksの利点を理解する</li>
+            <li>✅ Siamese Networksを実装できる</li>
+            <li>✅ 各手法を適切に使い minutesけられる</li>
+        </ul>
+
+        <p><strong><a href="./chapter3-few-shot-methods.html">Chapter 3 ChapterRead →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter4-transfer-domain-adaptation.html">Chapter 4 Chapter：転移学習とDomain Adaptation</a></h3>
+        <p><strong>Difficulty</strong>: Advanced<br>
+        <strong>Reading Time</strong>: 20-25 minutes<br>
+        <strong>Code Examples</strong>: 6</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>ファインチューニング戦略</strong> - 全層更新・部 minutes更新、学習率設定、Gradual Unfreezing</li>
+            <li><strong>Domain Adversarial Neural Networks</strong> - ドメイン不変特徴の学習</li>
+            <li><strong>Knowledge蒸留</strong> - Teacher-Student、Response-based、Feature-based</li>
+            <li><strong>Self-Supervised Learning</strong> - SimCLR、MoCo、事前学習の強化</li>
+            <li><strong>実践的なベストプラクティス</strong> - データ選択、正則化、評価</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ 効果的なファインチューニング戦略を選択できる</li>
+            <li>✅ Domain Adversarial学習の原理を理解する</li>
+            <li>✅ Knowledge蒸留でモデルを圧縮できる</li>
+            <li>✅ Self-Supervised Learningを活用できる</li>
+            <li>✅ 実務で転移学習を適切に適用できる</li>
+        </ul>
+
+        <p><strong><a href="./chapter4-transfer-domain-adaptation.html">Chapter 4 ChapterRead →</a></strong></p>
+
+        <hr>
+
+        <h2 id="outcomes">Overall Learning Outcomes</h2>
+
+        <p>この Seriesを完了すると、以下のスキルとKnowledgeを習得できます：</p>
+
+        <h3>KnowledgeLevel（Understanding）</h3>
+        <ul>
+            <li>✅ Meta-Learningの原理とLearning to Learnの概念を説明できる</li>
+            <li>✅ MAMLの二段階最適化プロセスを理解している</li>
+            <li>✅ 各Few-Shot Learning手法の特徴と違いを説明できる</li>
+            <li>✅ 転移学習とDomain Adaptationの戦略を理解している</li>
+            <li>✅ Meta-Learningが有効な問題領域を特定できる</li>
+        </ul>
+
+        <h3>Practical Skills（Doing）</h3>
+        <ul>
+            <li>✅ PyTorchでMAMLを実装できる</li>
+            <li>✅ Prototypical NetworksでFew-Shot classificationを実装できる</li>
+            <li>✅ Domain AdversarialでKnowledge転移を実装できる</li>
+            <li>✅ 適切なファインチューニング戦略を実行できる</li>
+            <li>✅ Knowledge蒸留でモデルを圧縮できる</li>
+        </ul>
+
+        <h3>Application Ability（Applying）</h3>
+        <ul>
+            <li>✅ データが限られたタスクに最適なMeta-Learning手法を選択できる</li>
+            <li>✅ 新しいドメインへのKnowledge転移を設計できる</li>
+            <li>✅ Few-Shot学習を実世界の問題に適用できる</li>
+            <li>✅ 効率的な転移学習パイプラインを構築できる</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="prerequisites">Prerequisites</h2>
+
+        <p>この Seriesを効果的に学習するために、以下のKnowledgeがあることが望ましいです：</p>
+
+        <h3>Required（Must Have）</h3>
+        <ul>
+            <li>✅ <strong>深層学習の理解</strong>: ニューラルネットワーク、誤差逆伝播、最適化アルゴリズム</li>
+            <li>✅ <strong>CNN基礎</strong>: 畳み込みニューラルネットワーク、画像 classification</li>
+            <li>✅ <strong>PyTorchIntermediate</strong>: テンソル操作、自動微 minutes、カスタムモデル構築</li>
+            <li>✅ <strong>数学的基礎</strong>: 微積 minutes、線形代数、最適化理論</li>
+            <li>✅ <strong>PythonAdvanced</strong>: クラス、デコレータ、関数型プログラミング</li>
+        </ul>
+
+        <h3>Recommended（Nice to Have）</h3>
+        <ul>
+            <li>💡 <strong>転移学習の経験</strong>: 事前学習モデル、ファインチューニング</li>
+            <li>💡 <strong>正則化手法</strong>: Dropout、Batch Normalization、Weight Decay</li>
+            <li>💡 <strong>高階微 minutes</strong>: 二階微 minutes、Hessian行列、計算グラフ</li>
+            <li>💡 <strong>評価指標</strong>: 精度、F1スコア、ROC曲線</li>
+        </ul>
+
+        <p><strong>Recommended Prior Learning</strong>:</p>
+        <ul>
+            <li>📚 <a href="../neural-networks-introduction/">ML-B04: ニューラルネットワーク入門</a> - 深層学習の基礎</li>
+            <li>📚 <a href="../cnn-introduction/">ML-A01: CNN入門 Series</a> - 畳み込みニューラルネットワーク</li>
+            <li>📚 <a href="../model-evaluation-introduction/">ML-I02: モデル評価入門</a> - 評価指標と検証手法</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="tech">Technologies and Tools Used</h2>
+
+        <h3>Main Libraries</h3>
+        <ul>
+            <li><strong>PyTorch 2.0+</strong> - 深層学習フレームワーク、高階微 minutes</li>
+            <li><strong>learn2learn 0.2+</strong> - Meta-Learning専用ライブラリ</li>
+            <li><strong>torchvision 0.15+</strong> - 画像処理、データセット</li>
+            <li><strong>NumPy 1.24+</strong> - 数値計算</li>
+            <li><strong>Matplotlib 3.7+</strong> - 可視化</li>
+            <li><strong>scikit-learn 1.3+</strong> - 評価指標、データ前処理</li>
+            <li><strong>tqdm 4.65+</strong> - プログレスバー</li>
+        </ul>
+
+        <h3>Development Environment</h3>
+        <ul>
+            <li><strong>Python 3.8+</strong> - プログラミング言語</li>
+            <li><strong>Jupyter Notebook / Lab</strong> - 対話的Development Environment</li>
+            <li><strong>Google Colab</strong> - GPU環境（無料で利用可能）</li>
+            <li><strong>CUDA 11.8+ / cuDNN</strong> - GPU高速化（Recommended）</li>
+        </ul>
+
+        <h3>データセット</h3>
+        <ul>
+            <li><strong>Omniglot</strong> - Few-Shot学習の標準ベンチマーク</li>
+            <li><strong>miniImageNet</strong> - 画像Few-Shot学習データセット</li>
+            <li><strong>CIFAR-100</strong> - 多クラス画像 classification</li>
+            <li><strong>CUB-200</strong> - 鳥類200種のFine-grained classification</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="start">Let's Get Started！</h2>
+        <p>Are you ready？ Chapter 1 ChapterStart with 、Meta-Learning and master the techniques！</p>
+
+        <p><strong><a href="./chapter1-meta-learning-basics.html">Chapter 1 Chapter: Meta-Learningの基礎 →</a></strong></p>
+
+        <hr>
+
+        <h2 id="next">Next Steps</h2>
+
+        <p>After completing this series, we recommend proceeding to the following topics：</p>
+
+        <h3>Advanced Learning</h3>
+        <ul>
+            <li>📚 <strong>Neural Architecture Search (NAS)</strong>: Meta-Learningを用いたアーキテクチャ探索</li>
+            <li>📚 <strong>Continual Learning</strong>: 破滅的忘却を防ぐ継続学習</li>
+            <li>📚 <strong>Multi-Task Learning</strong>: 複数タスクの同時学習</li>
+            <li>📚 <strong>Meta-Reinforcement Learning</strong>: 強化学習へのMeta-Learning適用</li>
+        </ul>
+
+        <h3>Related Series</h3>
+        <ul>
+            <li>🎯 <a href="../computer-vision-introduction/">ML-A04: Computer Vision入門</a> - 画像認識の応用</li>
+            <li>🎯 <a href="../model-interpretability-introduction/">ML-P01: Model Interpretability Introduction</a> - AIの説明可能性</li>
+            <li>🎯 <a href="../automl-introduction/">ML-P03: AutoML入門</a> - 自動Machine Learning</li>
+        </ul>
+
+        <h3>Practical Projects</h3>
+        <ul>
+            <li>🚀 Few-Shot画像 classification - 新しいクラスへの高速適応</li>
+            <li>🚀 医療画像診断 - 少数の症例からの学習</li>
+            <li>🚀 Anomaly Detectionシステム - 少数の異常例での検知</li>
+            <li>🚀 別化推薦 - ユーザー固有の嗜好への適応</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="navigation">ナビゲーション</h2>
+
+        <div class="nav-buttons">
+            <a href="../index.html" class="nav-button">← ML Series一覧に戻る</a>
+            <a href="./chapter1-meta-learning-basics.html" class="nav-button">Chapter 1 Chapterを始める →</a>
+        </div>
+
+        <hr>
+
+        <p><strong>Update History</strong></p>
+        <ul>
+            <li><strong>2025-10-23</strong>: v1.0 初版公開</li>
+        </ul>
+
+        <hr>
+
+        <p><strong>Your メタlearning journey starts here！</strong></p>
+
+    </main>
+
+    
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+            <li>To the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+        </ul>
+    </section>
+
+<footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>
