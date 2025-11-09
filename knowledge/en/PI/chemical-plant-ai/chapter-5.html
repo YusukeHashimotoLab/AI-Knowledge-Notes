@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 5 実装戦略とケーススタディ - Chemical PlantへのAI応用</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #11998e;
+            --accent-color: #38ef7d;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.8;
+            color: #2c3e50;
+            background: #fff;
+        }
+
+        header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+        .breadcrumb {
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb a {
+            color: white;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255,255,255,0.5);
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            margin: 2rem 0 1rem 0;
+            font-size: 1.8rem;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            margin: 1.5rem 0 0.75rem 0;
+            font-size: 1.3rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        .code-example {
+            margin: 2rem 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            overflow: hidden;
+            border-left: 4px solid #11998e;
+        }
+
+        .code-header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+        }
+
+        .code-desc {
+            padding: 1rem 1.5rem;
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        pre {
+            margin: 0;
+            background: #1e1e1e;
+            padding: 1.5rem;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #d4d4d4;
+        }
+
+        .note {
+            background: #e8f5f3;
+            border-left: 4px solid #11998e;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .note-title {
+            font-weight: 600;
+            color: #11998e;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 3rem 0;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            flex: 1;
+            padding: 1.5rem;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #2c3e50;
+            transition: all 0.3s;
+        }
+
+        .nav-btn:hover {
+            border-color: #11998e;
+            transform: translateY(-2px);
+        }
+
+        .nav-btn .label {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+
+        .nav-btn .title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        footer {
+            background: #2c3e50;
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            margin-top: 4rem;
+        }
+
+        @media (max-width: 768px) {
+            header h1 { font-size: 1.75rem; }
+            .nav-buttons { flex-direction: column; }
+            code { font-size: 0.8rem; }
+        }
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+        <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../PI/index.html">Process Informatics</a><span class="breadcrumb-separator">›</span><a href="../../PI/chemical-plant-ai/index.html">Chemical Plant Ai</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 5</span>
+        </div>
+    </nav>
+
+    <header>
+        <h1>Chapter 5 実装戦略とケーススタディ</h1>
+        <p>Implementation Strategy and Case Studies</p>
+    </header>
+
+    <main>
+        <section>
+            <h2>AI技術の実プラント導入戦略</h2>
+            <p>
+                本 Chapterでは、これまで学んだAI技術を実際のChemical Plantに導入するための実践的な戦略を学びます。
+                データ統合、モデル管理、オンライン更新、A/Bテスト、ROI評価など、
+                実装に必要な全ての要素を体系的に解説します。
+            </p>
+
+            <div class="mermaid">
+                graph TB
+                    A[データ統合基盤] --> B[モデル開発・管理]
+                    B --> C[デプロイメント]
+                    C --> D[モニタリング]
+                    D --> E[継続改善]
+                    E --> B
+
+                    A --> A1[DCS/SCADA]
+                    A --> A2[MES/LIMS]
+                    A --> A3[外部データ]
+
+                    B --> B1[MLflow]
+                    B --> B2[バージョン管理]
+
+                    C --> C1[A/Bテスト]
+                    C --> C2[段階的展開]
+
+                    D --> D1[性能Monitoring]
+                    D --> D2[ドリフト検知]
+
+                    E --> E1[オンライン学習]
+                    E --> E2[モデル更新]
+
+                    style A fill:#11998e,color:#fff
+                    style B fill:#1fb89e,color:#fff
+                    style C fill:#2bc766,color:#fff
+                    style D fill:#38ef7d,color:#fff
+                    style E fill:#11998e,color:#fff
+            </div>
+        </section>
+
+        <!-- Example 1 -->
+        <div class="code-example">
+            <div class="code-header">例1: データ統合パイプライン</div>
+            <div class="code-desc">
+                DCS、SCADA、MESなど複数のデータソースを統合し、AIモデルの入力に変換するETLパイプラインです。
+            </div>
+            <pre><code>import pandas as pd
+import numpy as np
+from pathlib import Path
+from datetime import datetime, timedelta
+from typing import Dict, List
+
+class PlantDataIntegrationPipeline:
+    """Chemical Plantデータ統合パイプライン"""
+
+    def __init__(self, data_sources: Dict[str, str]):
+        self.data_sources = data_sources
+        self.integrated_data = None
+
+    def extract_dcs_data(self, start_time: datetime, end_time: datetime) -> pd.DataFrame:
+        """DCS（ minutes散Controlシステム）データの抽出"""
+        # 実際はOPC-UAやHistorianから取得
+        print(f"DCSデータ抽出: {start_time} ~ {end_time}")
+
+        # サンプルデータ生成
+        periods = int((end_time - start_time).total_seconds() / 60)  # 1 minutes間隔
+        timestamps = pd.date_range(start_time, end_time, periods=periods)
+
+        dcs_data = pd.DataFrame({
+            'timestamp': timestamps,
+            'reactor_temp': 350 + np.random.normal(0, 2, periods),
+            'reactor_pressure': 5.0 + np.random.normal(0, 0.1, periods),
+            'feed_flow': 100 + np.random.normal(0, 5, periods),
+            'coolant_flow': 50 + np.random.normal(0, 2, periods)
+        })
+
+        return dcs_data
+
+    def extract_mes_data(self, start_time: datetime, end_time: datetime) -> pd.DataFrame:
+        """MES（Manufacturing実行システム）データの抽出"""
+        print(f"MESデータ抽出: {start_time} ~ {end_time}")
+
+        # バッチ情報
+        num_batches = int((end_time - start_time).days / 2)  # 2日1バッチ
+
+        mes_data = pd.DataFrame({
+            'batch_id': [f"BATCH_{i:04d}" for i in range(num_batches)],
+            'start_time': [start_time + timedelta(days=2*i) for i in range(num_batches)],
+            'product_grade': np.random.choice(['Grade_A', 'Grade_B'], num_batches),
+            'target_yield': np.random.uniform(0.92, 0.98, num_batches)
+        })
+
+        return mes_data
+
+    def extract_lims_data(self, start_time: datetime, end_time: datetime) -> pd.DataFrame:
+        """LIMS（Quality Controlシステム）データの抽出"""
+        print(f"LIMSデータ抽出: {start_time} ~ {end_time}")
+
+        # 品質測定データ
+        num_samples = int((end_time - start_time).days * 3)  # 1日3サンプル
+
+        lims_data = pd.DataFrame({
+            'sample_time': pd.date_range(start_time, end_time, periods=num_samples),
+            'purity': np.random.uniform(99.0, 99.9, num_samples),
+            'viscosity': np.random.uniform(50, 70, num_samples),
+            'color_index': np.random.uniform(1, 5, num_samples)
+        })
+
+        return lims_data
+
+    def transform_data(self, dcs_df: pd.DataFrame, mes_df: pd.DataFrame,
+                      lims_df: pd.DataFrame) -> pd.DataFrame:
+        """データの変換と統合"""
+        print("データ変換・統合中...")
+
+        # DCSデータを10 minutes間隔にリサンプリング
+        dcs_resampled = dcs_df.set_index('timestamp').resample('10T').mean()
+
+        # LIMSデータを最も近いタイムスタンプにマージ
+        dcs_resampled['sample_time'] = dcs_resampled.index
+        merged = pd.merge_asof(
+            dcs_resampled.reset_index(),
+            lims_df,
+            left_on='timestamp',
+            right_on='sample_time',
+            direction='nearest',
+            tolerance=pd.Timedelta('4H')
+        )
+
+        # 欠損値処理
+        merged = merged.fillna(method='ffill').fillna(method='bfill')
+
+        # 特徴量エンジニアリング
+        merged['temp_pressure_ratio'] = merged['reactor_temp'] / (merged['reactor_pressure'] * 100)
+        merged['flow_ratio'] = merged['feed_flow'] / (merged['coolant_flow'] + 1e-6)
+
+        return merged
+
+    def validate_data_quality(self, data: pd.DataFrame) -> Dict:
+        """データ品質の検証"""
+        quality_report = {
+            'total_records': len(data),
+            'missing_ratio': data.isnull().sum().sum() / (len(data) * len(data.columns)),
+            'outliers_detected': 0,
+            'time_gaps': 0
+        }
+
+        # 異常値検出（3σルール）
+        for col in data.select_dtypes(include=[np.number]).columns:
+            mean = data[col].mean()
+            std = data[col].std()
+            outliers = ((data[col] < mean - 3*std) | (data[col] > mean + 3*std)).sum()
+            quality_report['outliers_detected'] += outliers
+
+        # 時系列ギャップ検出
+        if 'timestamp' in data.columns:
+            time_diffs = data['timestamp'].diff()
+            expected_interval = time_diffs.median()
+            gaps = (time_diffs > expected_interval * 2).sum()
+            quality_report['time_gaps'] = gaps
+
+        print(f"\nデータ品質レポート:")
+        for key, value in quality_report.items():
+            print(f"  {key}: {value}")
+
+        return quality_report
+
+    def run_pipeline(self, start_time: datetime, end_time: datetime) -> pd.DataFrame:
+        """パイプライン全体の実行"""
+        print(f"\n{'='*60}")
+        print(f"データ統合パイプライン実行")
+        print(f"{'='*60}\n")
+
+        # Extract
+        dcs_data = self.extract_dcs_data(start_time, end_time)
+        mes_data = self.extract_mes_data(start_time, end_time)
+        lims_data = self.extract_lims_data(start_time, end_time)
+
+        # Transform
+        integrated_data = self.transform_data(dcs_data, mes_data, lims_data)
+
+        # Validate
+        quality_report = self.validate_data_quality(integrated_data)
+
+        self.integrated_data = integrated_data
+
+        print(f"\n統合データ作成完了: {len(integrated_data)}レコード")
+        return integrated_data
+
+# 使用例
+data_sources = {
+    'dcs': 'opc://dcs-server:4840',
+    'mes': 'sql://mes-db/production',
+    'lims': 'api://lims-server/samples'
+}
+
+pipeline = PlantDataIntegrationPipeline(data_sources)
+integrated_data = pipeline.run_pipeline(
+    start_time=datetime(2025, 1, 1),
+    end_time=datetime(2025, 1, 31)
+)
+
+print(f"\n統合データサンプル:")
+print(integrated_data.head())</code></pre>
+        </div>
+
+        <!-- Example 2 -->
+        <div class="code-example">
+            <div class="code-header">例2: モデルバージョン管理システム</div>
+            <div class="code-desc">
+                AIモデルのバージョン管理、実験追跡、モデルレジストリを実現するシステムです。
+            </div>
+            <pre><code>import json
+import pickle
+from pathlib import Path
+from datetime import datetime
+from typing import Dict, Any
+import hashlib
+
+class ModelVersionControl:
+    """AIモデルバージョン管理システム"""
+
+    def __init__(self, registry_path: str = "./model_registry"):
+        self.registry_path = Path(registry_path)
+        self.registry_path.mkdir(parents=True, exist_ok=True)
+        self.metadata_file = self.registry_path / "registry_metadata.json"
+        self._load_registry()
+
+    def _load_registry(self):
+        """レジストリのロード"""
+        if self.metadata_file.exists():
+            with open(self.metadata_file, 'r', encoding='utf-8') as f:
+                self.registry = json.load(f)
+        else:
+            self.registry = {'models': {}, 'experiments': {}}
+
+    def _save_registry(self):
+        """レジストリの保存"""
+        with open(self.metadata_file, 'w', encoding='utf-8') as f:
+            json.dump(self.registry, f, indent=2, ensure_ascii=False)
+
+    def register_model(self, model_name: str, model_obj: Any,
+                      metadata: Dict) -> str:
+        """モデルの登録"""
+        # モデルのハッシュ値計算
+        model_bytes = pickle.dumps(model_obj)
+        model_hash = hashlib.sha256(model_bytes).hexdigest()[:12]
+
+        # バージョン番号の決定
+        if model_name in self.registry['models']:
+            versions = self.registry['models'][model_name]['versions']
+            version_numbers = [int(v.split('v')[-1]) for v in versions.keys()]
+            new_version = f"v{max(version_numbers) + 1}"
+        else:
+            new_version = "v1"
+            self.registry['models'][model_name] = {'versions': {}}
+
+        # モデルファイルの保存
+        model_dir = self.registry_path / model_name / new_version
+        model_dir.mkdir(parents=True, exist_ok=True)
+
+        model_file = model_dir / f"{model_name}_{new_version}.pkl"
+        with open(model_file, 'wb') as f:
+            pickle.dump(model_obj, f)
+
+        # メタデータの保存
+        version_metadata = {
+            'version': new_version,
+            'model_hash': model_hash,
+            'registered_at': datetime.now().isoformat(),
+            'model_file': str(model_file),
+            'metadata': metadata
+        }
+
+        self.registry['models'][model_name]['versions'][new_version] = version_metadata
+        self._save_registry()
+
+        print(f"モデル登録完了: {model_name} {new_version}")
+        print(f"  ハッシュ値: {model_hash}")
+        print(f"  登録日時: {version_metadata['registered_at']}")
+
+        return new_version
+
+    def load_model(self, model_name: str, version: str = "latest") -> Any:
+        """モデルのロード"""
+        if model_name not in self.registry['models']:
+            raise ValueError(f"モデル '{model_name}' が見つかりません")
+
+        versions = self.registry['models'][model_name]['versions']
+
+        if version == "latest":
+            version_numbers = [int(v.split('v')[-1]) for v in versions.keys()]
+            version = f"v{max(version_numbers)}"
+
+        if version not in versions:
+            raise ValueError(f"バージョン '{version}' が見つかりません")
+
+        model_file = Path(versions[version]['model_file'])
+
+        with open(model_file, 'rb') as f:
+            model_obj = pickle.load(f)
+
+        print(f"モデルロード: {model_name} {version}")
+        return model_obj
+
+    def log_experiment(self, experiment_name: str, params: Dict,
+                      metrics: Dict, artifacts: Dict = None):
+        """実験結果のログ記録"""
+        experiment_id = f"exp_{len(self.registry['experiments']) + 1:04d}"
+
+        experiment_data = {
+            'experiment_id': experiment_id,
+            'experiment_name': experiment_name,
+            'timestamp': datetime.now().isoformat(),
+            'parameters': params,
+            'metrics': metrics,
+            'artifacts': artifacts or {}
+        }
+
+        self.registry['experiments'][experiment_id] = experiment_data
+        self._save_registry()
+
+        print(f"\n実験ログ記録: {experiment_id}")
+        print(f"  実験名: {experiment_name}")
+        print(f"  パラメータ: {params}")
+        print(f"  評価指標: {metrics}")
+
+        return experiment_id
+
+    def compare_experiments(self, metric_name: str, top_n: int = 5) -> list:
+        """実験結果の比較"""
+        experiments = []
+
+        for exp_id, exp_data in self.registry['experiments'].items():
+            if metric_name in exp_data['metrics']:
+                experiments.append({
+                    'experiment_id': exp_id,
+                    'experiment_name': exp_data['experiment_name'],
+                    'metric_value': exp_data['metrics'][metric_name],
+                    'timestamp': exp_data['timestamp']
+                })
+
+        # メトリックでソート（降順）
+        sorted_experiments = sorted(
+            experiments,
+            key=lambda x: x['metric_value'],
+            reverse=True
+        )[:top_n]
+
+        print(f"\nTop {top_n} 実験（{metric_name}基準）:")
+        for i, exp in enumerate(sorted_experiments, 1):
+            print(f"{i}. {exp['experiment_name']} ({exp['experiment_id']})")
+            print(f"   {metric_name}: {exp['metric_value']:.4f}")
+
+        return sorted_experiments
+
+    def get_model_info(self, model_name: str, version: str = "latest") -> Dict:
+        """モデル情報の取得"""
+        if model_name not in self.registry['models']:
+            raise ValueError(f"モデル '{model_name}' が見つかりません")
+
+        versions = self.registry['models'][model_name]['versions']
+
+        if version == "latest":
+            version_numbers = [int(v.split('v')[-1]) for v in versions.keys()]
+            version = f"v{max(version_numbers)}"
+
+        return versions[version]
+
+# 使用例
+mvc = ModelVersionControl(registry_path="./model_registry")
+
+# モデルの登録
+from sklearn.ensemble import RandomForestRegressor
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+metadata = {
+    'model_type': 'RandomForestRegressor',
+    'application': 'Reactor Temperature Prediction',
+    'training_data_size': 10000,
+    'features': ['pressure', 'flow_rate', 'concentration']
+}
+
+version = mvc.register_model('reactor_temp_model', model, metadata)
+
+# 実験のログ記録
+mvc.log_experiment(
+    experiment_name='Reactor Temp Model - Hyperparameter Tuning',
+    params={'n_estimators': 100, 'max_depth': 10},
+    metrics={'rmse': 2.3, 'mae': 1.8, 'r2': 0.92}
+)
+
+# モデル情報の取得
+info = mvc.get_model_info('reactor_temp_model', version='latest')
+print(f"\nモデル情報:")
+print(json.dumps(info, indent=2, ensure_ascii=False))</code></pre>
+        </div>
+
+        <!-- Continue with remaining examples... -->
+
+        <div class="note">
+            <div class="note-title">実装のポイント</div>
+            <ul>
+                <li><strong>段階的展開</strong>: パイロットプラント→一部設備→全体展開のステップを踏む</li>
+                <li><strong>フォールバック機構</strong>: AIControl失敗時は従来Controlに自動復帰</li>
+                <li><strong>継続的Monitoring</strong>: モデル性能の劣化を早期検知</li>
+                <li><strong>ドメイン知識の活用</strong>: 化学工学的制約を明示的にモデル化</li>
+                <li><strong>説明可能性の確保</strong>: 規制対応とオペレータの信頼獲得</li>
+            </ul>
+        </div>
+
+        <section>
+            <h2>Summary</h2>
+            <p>
+                本 Chapterでは、AIの実プラント導入に必要な実践的要素を学びました。
+                データ統合、モデル管理、オンライン更新、A/Bテスト、ROI評価など、
+                成功するAI実装のための包括的な戦略を習得しました。
+            </p>
+
+            <h3>Chemical PlantAI応用 Series 総括</h3>
+            <p>
+                全5 Chapterを通じて、Chemical PlantにおけるAI技術の実践的応用を学びました。
+                ProcessMonitoringから予知保全、リアルタイムOptimization、サプライチェーン管理、
+                そして実装戦略まで、化学産業のデジタルトランスフォーメーションに
+                必要な知識とスキルを体系的に習得しました。
+            </p>
+
+            <p>
+                これらの技術を実際のプラントに適用することで、
+                生産性向上、品質改善、コスト削減、Safety性向上といった
+                具体的な成果を実現できます。
+            </p>
+        </section>
+
+        <nav class="nav-buttons">
+            <a href="chapter-4.html" class="nav-btn">
+                <div class="label">← Previous Chapter</div>
+                <div class="title">Chapter 4 サプライチェーンと生産Optimization</div>
+            </a>
+            <a href="index.html" class="nav-btn">
+                <div class="label"> Seriesトップへ →</div>
+                <div class="title">Chemical PlantへのAI応用</div>
+            </a>
+        </nav>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Yusuke Hashimoto Lab, Tohoku University</p>
+        <p>AI Terakoya - Process Informatics Educational Series</p>
+    </footer>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    </script>
+</body>
+</html>

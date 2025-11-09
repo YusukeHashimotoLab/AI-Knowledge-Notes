@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3 歩留まり向上とパラメータOptimization | SemiconductorManufacturingAI | マテリアルズインフォマティクス入門</title>
+    <meta name="description" content="SemiconductorManufacturingにおける歩留まり向上のためのAIOptimization手法を学びます。Bayesian Optimization、多目的Optimization、強化学習、因果推論をPythonで実装し、ProcessパラメータをOptimizationします。">
+    <link rel="stylesheet" href="/assets/css/variables.css">
+    <link rel="stylesheet" href="/assets/css/reset.css">
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/components.css">
+    <link rel="stylesheet" href="/assets/css/layout.css">
+    <link rel="stylesheet" href="/assets/css/responsive.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="header-content">
+                <h1 class="site-title"><a href="/jp/">橋本研究室</a></h1>
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="/jp/">ホーム</a></li>
+                        <li><a href="/jp/research.html">研究内容</a></li>
+                        <li><a href="/jp/publications.html">研究業績</a></li>
+                        <li><a href="../../mi-introduction/">知識ベース</a></li>
+                        <li><a href="/jp/news.html">ニュース</a></li>
+                        <li><a href="/jp/members.html">メンバー</a></li>
+                        <li><a href="/jp/contact.html">お問い合わせ</a></li>
+                        <li><a href="/en/">English</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="article-content">
+        <article class="container">
+            <div class="breadcrumb">
+                <a href="/jp/">ホーム</a> &gt;
+                <a href="../../mi-introduction/">知識ベース</a> &gt;
+                <a href="../../PI/">Process Informatics</a> &gt;
+                <a href="../../PI/semiconductor-manufacturing-ai/">SemiconductorManufacturingAI</a> &gt;
+                Chapter 3
+            </div>
+
+            <header class="article-header">
+                <h1 class="gradient-text" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Chapter 3 歩留まり向上とパラメータOptimization</h1>
+                <p class="article-meta">SemiconductorManufacturingAI - Bayesian Optimization・多目的Optimization・強化学習</p>
+            </header>
+
+            <section class="introduction">
+                <h2>Learning Objectives</h2>
+                <ul>
+                    <li>Bayesian Optimizationによる効率的なパラメータ探索手法を習得する</li>
+                    <li>多目的Optimizationで歩留まり・コスト・スループットを同時改善する方法を理解する</li>
+                    <li>強化学習によるProcessControlの実装方法を学ぶ</li>
+                    <li>因果推論で歩留まり低下の真因を特定する手法を習得する</li>
+                    <li>Machine Learningモデルの解釈性とSHAP値の活用法を理解する</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>3.1 SemiconductorManufacturingにおける歩留まりOptimizationの課題</h2>
+
+                <h3>3.1.1 歩留まり向上の経済的インパクト</h3>
+                <p>SemiconductorManufacturingにおいて、歩留まり1%の改善が数億円の利益増加につながることは珍しくありません。主要な課題は：</p>
+                <ul>
+                    <li><strong>多変数依存性</strong>: 100以上のProcessパラメータが複雑に相互作用</li>
+                    <li><strong>評価コスト</strong>: 1回の実験に数 hours～数日、数百万円のコスト</li>
+                    <li><strong>非線形性</strong>: パラメータと歩留まりの関係は高度に非線形</li>
+                    <li><strong>トレードオフ</strong>: 歩留まり・スループット・コストは競合関係</li>
+                    <li><strong>ノイズ</strong>: 装置変動・環境変動による測定誤差</li>
+                </ul>
+
+                <h3>3.1.2 従来手法の限界</h3>
+                <p>従来のDOE（Design of Experiments）手法の課題：</p>
+                <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                    <p><strong>実験回数の爆発</strong>: 10パラメータ×3水準 = 59,049通り（全探索不可能）</p>
+                    <p><strong>局所最適</strong>: グリッドサーチは局所最適に陥りやすい</p>
+                    <p><strong>初期知識の無視</strong>: 過去の実験データを活用できない</p>
+                    <p><strong>探索効率の低さ</strong>: 有望領域の集中探索ができない</p>
+                </div>
+
+                <h3>3.1.3 AIOptimizationのメリット</h3>
+                <p>Bayesian Optimization等のAI手法による改善：</p>
+                <ul>
+                    <li><strong>実験回数削減</strong>: 従来の1/10以下の実験で最適解発見</li>
+                    <li><strong>大域的Optimization</strong>: 局所最適から脱出し真の最適解を発見</li>
+                    <li><strong>知識の蓄積</strong>: 過去の実験データを活用し学習</li>
+                    <li><strong>不確実性の定量化</strong>: 次の実験候補を理論的に選択</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>3.2 Bayesian OptimizationによるProcessOptimization</h2>
+
+                <h3>3.2.1 Bayesian Optimizationの原理</h3>
+                <p>Bayesian Optimization (BO) は、高コスト・ブラックボックス関数のOptimizationに特化した手法です：</p>
+
+                <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                    <p><strong>サロゲートモデル (Surrogate Model)</strong></p>
+                    <p>Gaussian Process (GP) で真の目的関数を近似します：</p>
+                    <p>$$f(x) \sim \mathcal{GP}(m(x), k(x, x'))$$</p>
+                    <p>ここで、\(m(x)\)は平均関数、\(k(x, x')\)はカーネル関数です。</p>
+
+                    <p><strong>獲得関数 (Acquisition Function)</strong></p>
+                    <p>次に評価すべき点を決定します。代表的な獲得関数：</p>
+
+                    <p><em>Expected Improvement (EI)</em></p>
+                    <p>$$\text{EI}(x) = \mathbb{E}[\max(f(x) - f(x^+), 0)]$$</p>
+                    <p>\(x^+\): 現在の最良点</p>
+
+                    <p><em>Upper Confidence Bound (UCB)</em></p>
+                    <p>$$\text{UCB}(x) = \mu(x) + \kappa \sigma(x)$$</p>
+                    <p>\(\kappa\): 探索・活用のトレードオフパラメータ</p>
+                </div>
+
+                <h3>3.2.2 エッチングProcessOptimizationの実装</h3>
+                <p>以下は、プラズマエッチングの歩留まりOptimization例です：</p>
+
+<pre><code class="language-python">import numpy as np
+from scipy.stats import norm
+from scipy.optimize import minimize
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, Matern, WhiteKernel
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+class BayesianOptimizationYield:
+    """
+    Bayesian Optimizationによる歩留まりOptimization
+
+    対象Process: プラズマエッチング
+    Optimizationパラメータ:
+    - RFパワー (100-400 W)
+    - 圧力 (10-100 mTorr)
+    - ガス流量 (50-200 sccm)
+    - 温度 (20-80 °C)
+
+    目的: 歩留まり最大化 (評価コストを最小限に)
+    """
+
+    def __init__(self, param_bounds, n_init=10, acquisition='ei', kappa=2.576):
+        """
+        Parameters:
+        -----------
+        param_bounds : list of tuples
+            各パラメータの探索範囲 [(min1, max1), (min2, max2), ...]
+        n_init : int
+            初期ランダムサンプリング数
+        acquisition : str
+            獲得関数 ('ei', 'ucb', 'poi')
+        kappa : float
+            UCBのκパラメータ (探索の度合い)
+        """
+        self.param_bounds = np.array(param_bounds)
+        self.dim = len(param_bounds)
+        self.n_init = n_init
+        self.acquisition = acquisition
+        self.kappa = kappa
+
+        # 観測データ
+        self.X_observed = np.empty((0, self.dim))
+        self.y_observed = np.empty(0)
+
+        # Gaussian Process設定
+        # Matternカーネル (ν=2.5) + ノイズ項
+        kernel = (
+            ConstantKernel(1.0, (1e-3, 1e3)) *
+            Matern(length_scale=np.ones(self.dim), nu=2.5,
+                   length_scale_bounds=(1e-2, 1e2)) +
+            WhiteKernel(noise_level=1e-5, noise_level_bounds=(1e-10, 1e-1))
+        )
+
+        self.gp = GaussianProcessRegressor(
+            kernel=kernel,
+            n_restarts_optimizer=10,
+            alpha=1e-6,
+            normalize_y=True
+        )
+
+        # パラメータ名（可読性向上）
+        self.param_names = ['RF_Power(W)', 'Pressure(mTorr)',
+                           'Gas_Flow(sccm)', 'Temperature(C)']
+
+    def _normalize(self, X):
+        """パラメータを[0,1]に正規化"""
+        return (X - self.param_bounds[:, 0]) / (
+            self.param_bounds[:, 1] - self.param_bounds[:, 0]
+        )
+
+    def _denormalize(self, X_norm):
+        """[0,1]から元のスケールに戻す"""
+        return X_norm * (self.param_bounds[:, 1] - self.param_bounds[:, 0]
+                        ) + self.param_bounds[:, 0]
+
+    def objective_function(self, params):
+        """
+        真の目的関数（実際は実験で測定）
+
+        ここではSimulation用のダミー関数
+        実際の使用では、実験装置にパラメータを設定し、
+        歩留まりを測定する関数に置き換える
+        """
+        rf_power, pressure, gas_flow, temp = params
+
+        # 複雑な非線形関数で歩留まりをシミュレート
+        # 実際のProcessでは未知の複雑な関数
+        yield_rate = (
+            0.95 - 0.001 * (rf_power - 250)**2 -
+            0.0005 * (pressure - 50)**2 -
+            0.0002 * (gas_flow - 125)**2 -
+            0.0003 * (temp - 50)**2 +
+            0.0001 * rf_power * pressure / 10000 -
+            0.00005 * gas_flow * temp / 1000 +
+            np.random.normal(0, 0.005)  # 測定ノイズ
+        )
+
+        # 歩留まりは0-1の範囲
+        return np.clip(yield_rate, 0, 1)
+
+    def expected_improvement(self, X, xi=0.01):
+        """
+        Expected Improvement獲得関数
+
+        Parameters:
+        -----------
+        X : ndarray
+            評価点 (n_points, n_dims)
+        xi : float
+            Explorationパラメータ (大きいほど探索重視)
+        """
+        X_norm = self._normalize(X)
+        mu, sigma = self.gp.predict(X_norm, return_std=True)
+
+        # 現在の最良値
+        f_best = np.max(self.y_observed)
+
+        # Improvement
+        improvement = mu - f_best - xi
+
+        # Z値
+        with np.errstate(divide='warn'):
+            Z = improvement / sigma
+            ei = improvement * norm.cdf(Z) + sigma * norm.pdf(Z)
+            ei[sigma == 0.0] = 0.0
+
+        return ei
+
+    def upper_confidence_bound(self, X):
+        """
+        Upper Confidence Bound獲得関数
+
+        UCB = μ(x) + κ·σ(x)
+        """
+        X_norm = self._normalize(X)
+        mu, sigma = self.gp.predict(X_norm, return_std=True)
+
+        return mu + self.kappa * sigma
+
+    def probability_of_improvement(self, X, xi=0.01):
+        """
+        Probability of Improvement獲得関数
+
+        POI = P(f(x) >= f(x_best) + ξ)
+        """
+        X_norm = self._normalize(X)
+        mu, sigma = self.gp.predict(X_norm, return_std=True)
+
+        f_best = np.max(self.y_observed)
+        improvement = mu - f_best - xi
+
+        with np.errstate(divide='warn'):
+            Z = improvement / sigma
+            poi = norm.cdf(Z)
+            poi[sigma == 0.0] = 0.0
+
+        return poi
+
+    def acquisition_function(self, X):
+        """獲得関数の統一インターフェース"""
+        if self.acquisition == 'ei':
+            return self.expected_improvement(X)
+        elif self.acquisition == 'ucb':
+            return self.upper_confidence_bound(X)
+        elif self.acquisition == 'poi':
+            return self.probability_of_improvement(X)
+        else:
+            raise ValueError(f"Unknown acquisition function: {self.acquisition}")
+
+    def propose_next_sample(self):
+        """
+        次の実験候補点を提案
+
+        獲得関数を最大化する点を探索
+        """
+        # ランダムサンプリング + 局所Optimization
+        best_acq = -np.inf
+        best_x = None
+
+        # 複数の初期点からOptimizationを試行
+        for _ in range(10):
+            # ランダムな初期点
+            x0 = np.random.uniform(0, 1, self.dim)
+
+            # 獲得関数の最大化 = 負の獲得関数の最小化
+            res = minimize(
+                fun=lambda x: -self.acquisition_function(x.reshape(1, -1))[0],
+                x0=x0,
+                bounds=[(0, 1)] * self.dim,
+                method='L-BFGS-B'
+            )
+
+            # より良い候補が見つかったら更新
+            if -res.fun > best_acq:
+                best_acq = -res.fun
+                best_x = res.x
+
+        # 元のスケールに戻す
+        next_sample = self._denormalize(best_x)
+
+        return next_sample
+
+    def optimize(self, n_iterations=30, verbose=True):
+        """
+        Bayesian Optimization実行
+
+        Parameters:
+        -----------
+        n_iterations : int
+            Optimizationの反復回数（実験回数）
+        verbose : bool
+            進捗表示フラグ
+
+        Returns:
+        --------
+        results : dict
+            Optimization結果と履歴
+        """
+        # 初期ランダムサンプリング
+        if verbose:
+            print("========== Initial Random Sampling ==========")
+
+        X_init = np.random.uniform(
+            self.param_bounds[:, 0],
+            self.param_bounds[:, 1],
+            (self.n_init, self.dim)
+        )
+
+        for i, x in enumerate(X_init):
+            y = self.objective_function(x)
+            self.X_observed = np.vstack([self.X_observed, x])
+            self.y_observed = np.append(self.y_observed, y)
+
+            if verbose:
+                print(f"Init {i+1}/{self.n_init}: Yield = {y:.4f}, "
+                      f"Params = {x}")
+
+        # Bayesian Optimization反復
+        if verbose:
+            print(f"\n========== Bayesian Optimization "
+                  f"({self.acquisition.upper()}) ==========")
+
+        for iteration in range(n_iterations):
+            # GPモデルを現在のデータでフィット
+            X_norm = self._normalize(self.X_observed)
+            self.gp.fit(X_norm, self.y_observed)
+
+            # 次の実験候補を提案
+            next_x = self.propose_next_sample()
+
+            # 実験実行（目的関数評価）
+            next_y = self.objective_function(next_x)
+
+            # データに追加
+            self.X_observed = np.vstack([self.X_observed, next_x])
+            self.y_observed = np.append(self.y_observed, next_y)
+
+            # 現在の最良値
+            best_idx = np.argmax(self.y_observed)
+            best_y = self.y_observed[best_idx]
+            best_x = self.X_observed[best_idx]
+
+            if verbose:
+                print(f"Iter {iteration+1}/{n_iterations}: "
+                      f"Yield = {next_y:.4f} | "
+                      f"Best = {best_y:.4f}")
+
+        # 最終結果
+        best_idx = np.argmax(self.y_observed)
+        best_params = self.X_observed[best_idx]
+        best_yield = self.y_observed[best_idx]
+
+        if verbose:
+            print(f"\n========== Optimization Complete ==========")
+            print(f"Best Yield: {best_yield:.4f}")
+            print(f"Optimal Parameters:")
+            for name, value in zip(self.param_names, best_params):
+                print(f"  {name}: {value:.2f}")
+
+        results = {
+            'best_params': best_params,
+            'best_yield': best_yield,
+            'X_history': self.X_observed,
+            'y_history': self.y_observed,
+            'gp_model': self.gp
+        }
+
+        return results
+
+    def plot_convergence(self):
+        """収束過程の可視化"""
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+        # 各反復での最良値の推移
+        best_so_far = np.maximum.accumulate(self.y_observed)
+
+        axes[0].plot(best_so_far, 'b-', linewidth=2, label='Best Yield')
+        axes[0].axvline(self.n_init, color='r', linestyle='--',
+                       label='BO Start')
+        axes[0].set_xlabel('Iteration')
+        axes[0].set_ylabel('Best Yield')
+        axes[0].set_title('Convergence Plot')
+        axes[0].legend()
+        axes[0].grid(True, alpha=0.3)
+
+        # 全観測値のプロット
+        axes[1].scatter(range(len(self.y_observed)), self.y_observed,
+                       c=self.y_observed, cmap='viridis', s=50)
+        axes[1].axvline(self.n_init, color='r', linestyle='--',
+                       label='BO Start')
+        axes[1].set_xlabel('Iteration')
+        axes[1].set_ylabel('Observed Yield')
+        axes[1].set_title('All Observations')
+        axes[1].legend()
+        axes[1].grid(True, alpha=0.3)
+        axes[1].colorbar = plt.colorbar(axes[1].collections[0], ax=axes[1])
+
+        plt.tight_layout()
+        plt.savefig('bo_convergence.png', dpi=300, bbox_inches='tight')
+        plt.show()
+
+
+# ========== 使用例 ==========
+if __name__ == "__main__":
+    np.random.seed(42)
+
+    # パラメータ探索範囲
+    param_bounds = [
+        (100, 400),   # RFパワー (W)
+        (10, 100),    # 圧力 (mTorr)
+        (50, 200),    # ガス流量 (sccm)
+        (20, 80)      # 温度 (°C)
+    ]
+
+    # Bayesian Optimization実行
+    print("========== Etching Process Yield Optimization ==========\n")
+
+    # Expected ImprovementでOptimization
+    optimizer = BayesianOptimizationYield(
+        param_bounds=param_bounds,
+        n_init=10,
+        acquisition='ei',
+        kappa=2.576
+    )
+
+    results = optimizer.optimize(n_iterations=30, verbose=True)
+
+    # 収束過程の可視化
+    optimizer.plot_convergence()
+
+    # 比較: ランダムサーチとの性能比較
+    print("\n========== Random Search (Baseline) ==========")
+    random_X = np.random.uniform(
+        optimizer.param_bounds[:, 0],
+        optimizer.param_bounds[:, 1],
+        (40, optimizer.dim)
+    )
+    random_y = np.array([optimizer.objective_function(x) for x in random_X])
+    best_random = np.max(random_y)
+
+    print(f"Best Random Yield: {best_random:.4f}")
+    print(f"Bayesian Opt Yield: {results['best_yield']:.4f}")
+    print(f"Improvement: {(results['best_yield'] - best_random):.4f} "
+          f"({(results['best_yield'] - best_random) / best_random * 100:.2f}%)")
+</code></pre>
+
+                <h3>3.2.3 並列Bayesian Optimization</h3>
+                <p>複数の実験装置を並列運用する場合、同時に複数の候補点を提案する必要があります：</p>
+
+<pre><code class="language-python">from scipy.spatial.distance import cdist
+
+class ParallelBayesianOptimization(BayesianOptimizationYield):
+    """
+    並列Bayesian Optimization
+
+    複数装置での同時実験に対応
+    Batch acquisition strategyを実装
+    """
+
+    def __init__(self, param_bounds, n_init=10, batch_size=4,
+                 acquisition='ei', diversity_weight=0.1):
+        """
+        Parameters:
+        -----------
+        batch_size : int
+            同時実験数（装置台数）
+        diversity_weight : float
+            多様性ペナルティの重み
+        """
+        super().__init__(param_bounds, n_init, acquisition)
+        self.batch_size = batch_size
+        self.diversity_weight = diversity_weight
+
+    def propose_batch_samples(self):
+        """
+        バッチサンプリング: 並列実験用の複数候補を提案
+
+        Strategy: Local Penalization
+        選択された点の近傍の獲得関数値を減衰させ、
+        多様な候補を選択
+        """
+        batch_proposals = []
+
+        for i in range(self.batch_size):
+            # 現在のバッチ候補を考慮した獲得関数
+            if i == 0:
+                # 最初の候補: 通常の獲得関数最大化
+                next_x = self.propose_next_sample()
+            else:
+                # 2番目以降: 既選択点からの距離でペナルティ
+                next_x = self._propose_with_diversity(batch_proposals)
+
+            batch_proposals.append(next_x)
+
+        return np.array(batch_proposals)
+
+    def _propose_with_diversity(self, existing_batch):
+        """
+        多様性を考慮した候補提案
+
+        獲得関数にdiversityペナルティを追加
+        """
+        existing_batch_norm = self._normalize(np.array(existing_batch))
+
+        best_acq = -np.inf
+        best_x = None
+
+        for _ in range(10):
+            x0 = np.random.uniform(0, 1, self.dim)
+
+            def penalized_acquisition(x):
+                x_norm = x.reshape(1, -1)
+
+                # 基本獲得関数
+                acq = self.acquisition_function(x_norm)[0]
+
+                # 既存候補との距離ペナルティ
+                distances = cdist(x_norm, existing_batch_norm).flatten()
+                diversity_penalty = np.sum(np.exp(-distances / 0.1))
+
+                return -(acq - self.diversity_weight * diversity_penalty)
+
+            res = minimize(
+                fun=penalized_acquisition,
+                x0=x0,
+                bounds=[(0, 1)] * self.dim,
+                method='L-BFGS-B'
+            )
+
+            if -res.fun > best_acq:
+                best_acq = -res.fun
+                best_x = res.x
+
+        return self._denormalize(best_x)
+
+    def optimize_parallel(self, n_batches=10, verbose=True):
+        """
+        並列Bayesian Optimization実行
+
+        Parameters:
+        -----------
+        n_batches : int
+            バッチ実験の回数
+        """
+        # 初期ランダムサンプリング
+        if verbose:
+            print("========== Parallel BO: Initial Sampling ==========")
+
+        X_init = np.random.uniform(
+            self.param_bounds[:, 0],
+            self.param_bounds[:, 1],
+            (self.n_init, self.dim)
+        )
+
+        for x in X_init:
+            y = self.objective_function(x)
+            self.X_observed = np.vstack([self.X_observed, x])
+            self.y_observed = np.append(self.y_observed, y)
+
+        # 並列Optimization
+        if verbose:
+            print(f"\n========== Parallel BO: {n_batches} Batches "
+                  f"(Batch Size={self.batch_size}) ==========")
+
+        for batch in range(n_batches):
+            # GPフィット
+            X_norm = self._normalize(self.X_observed)
+            self.gp.fit(X_norm, self.y_observed)
+
+            # バッチ候補提案
+            batch_X = self.propose_batch_samples()
+
+            # 並列実験実行
+            batch_y = np.array([self.objective_function(x) for x in batch_X])
+
+            # データ追加
+            self.X_observed = np.vstack([self.X_observed, batch_X])
+            self.y_observed = np.append(self.y_observed, batch_y)
+
+            # 現在の最良値
+            best_y = np.max(self.y_observed)
+
+            if verbose:
+                print(f"Batch {batch+1}/{n_batches}: "
+                      f"Yields = {batch_y}, Best = {best_y:.4f}")
+
+        # 最終結果
+        best_idx = np.argmax(self.y_observed)
+        results = {
+            'best_params': self.X_observed[best_idx],
+            'best_yield': self.y_observed[best_idx],
+            'X_history': self.X_observed,
+            'y_history': self.y_observed
+        }
+
+        return results
+
+
+# ========== 使用例 ==========
+# 4台の装置で並列実験
+parallel_optimizer = ParallelBayesianOptimization(
+    param_bounds=param_bounds,
+    n_init=10,
+    batch_size=4,
+    acquisition='ei',
+    diversity_weight=0.1
+)
+
+print("\n========== Parallel Bayesian Optimization ==========")
+results_parallel = parallel_optimizer.optimize_parallel(
+    n_batches=10,
+    verbose=True
+)
+
+print(f"\nParallel BO Best Yield: {results_parallel['best_yield']:.4f}")
+print(f"Total Experiments: {len(results_parallel['y_history'])}")
+print(f"  (10 initial + 10 batches × 4 = 50 experiments)")
+</code></pre>
+            </section>
+
+            <section>
+                <h2>3.3 多目的Optimization: 歩留まり・コスト・スループットの同時Optimization</h2>
+
+                <h3>3.3.1 多目的Optimizationの必要性</h3>
+                <p>実際のManufacturingでは、複数の目的を同時にOptimizationする必要があります：</p>
+                <ul>
+                    <li><strong>歩留まり最大化</strong>: 良品率向上</li>
+                    <li><strong>コスト最小化</strong>: 材料費・エネルギーコスト削減</li>
+                    <li><strong>スループット最大化</strong>: 生産速度向上</li>
+                </ul>
+
+                <p>これらは互いにトレードオフの関係にあり、単一目的Optimizationでは解決できません。</p>
+
+                <h3>3.3.2 Pareto最適解とPareto Front</h3>
+                <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                    <p><strong>Pareto最適</strong>: ある目的を改善すると他の目的が悪化する状態</p>
+                    <p><strong>Pareto Front</strong>: すべてのPareto最適解の集合</p>
+                    <p>意思決定者は、Pareto Front上の解から、現場の優先度に応じて最終解を選択します。</p>
+                </div>
+
+                <h3>3.3.3 NSGA-II (Non-dominated Sorting Genetic Algorithm II)</h3>
+                <p>多目的Optimizationの代表的アルゴリズムNSGA-IIを実装します：</p>
+
+<pre><code class="language-python">import numpy as np
+from deap import base, creator, tools, algorithms
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+class MultiObjectiveYieldOptimization:
+    """
+    NSGA-IIによる多目的Optimization
+
+    目的関数:
+    1. 歩留まり最大化 (maximize)
+    2. コスト最小化 (minimize)
+    3. スループット最大化 (maximize)
+
+    決定変数: RFパワー、圧力、ガス流量、温度
+    """
+
+    def __init__(self, param_bounds, population_size=100, n_generations=50):
+        """
+        Parameters:
+        -----------
+        param_bounds : list of tuples
+            各パラメータの範囲
+        population_size : int
+            体数
+        n_generations : int
+            世代数
+        """
+        self.param_bounds = np.array(param_bounds)
+        self.dim = len(param_bounds)
+        self.population_size = population_size
+        self.n_generations = n_generations
+
+        # DEAP設定
+        self._setup_deap()
+
+    def _setup_deap(self):
+        """DEAP (遺伝的アルゴリズムライブラリ) の設定"""
+        # Fitnessクラス定義 (3目的: 最大化, 最小化, 最大化)
+        creator.create("FitnessMulti", base.Fitness, weights=(1.0, -1.0, 1.0))
+        creator.create("Individual", list, fitness=creator.FitnessMulti)
+
+        self.toolbox = base.Toolbox()
+
+        # 体生成
+        for i in range(self.dim):
+            self.toolbox.register(f"attr_{i}",
+                                 np.random.uniform,
+                                 self.param_bounds[i, 0],
+                                 self.param_bounds[i, 1])
+
+        self.toolbox.register("individual", tools.initCycle, creator.Individual,
+                             [getattr(self.toolbox, f"attr_{i}")
+                              for i in range(self.dim)], n=1)
+
+        self.toolbox.register("population", tools.initRepeat,
+                             list, self.toolbox.individual)
+
+        # 評価関数
+        self.toolbox.register("evaluate", self.evaluate_objectives)
+
+        # 遺伝的操作
+        self.toolbox.register("mate", tools.cxSimulatedBinaryBounded,
+                             low=self.param_bounds[:, 0],
+                             up=self.param_bounds[:, 1], eta=20.0)
+
+        self.toolbox.register("mutate", tools.mutPolynomialBounded,
+                             low=self.param_bounds[:, 0],
+                             up=self.param_bounds[:, 1],
+                             eta=20.0, indpb=1.0/self.dim)
+
+        self.toolbox.register("select", tools.selNSGA2)
+
+    def evaluate_objectives(self, individual):
+        """
+        3目的関数の評価
+
+        Returns:
+        --------
+        (yield, cost, throughput) : tuple
+            歩留まり、コスト、スループット
+        """
+        rf_power, pressure, gas_flow, temp = individual
+
+        # 目的1: 歩留まり (最大化)
+        yield_rate = (
+            0.95 - 0.001 * (rf_power - 250)**2 -
+            0.0005 * (pressure - 50)**2 -
+            0.0002 * (gas_flow - 125)**2 -
+            0.0003 * (temp - 50)**2
+        )
+        yield_rate = np.clip(yield_rate, 0, 1)
+
+        # 目的2: コスト (最小化)
+        # 高RFパワー・高ガス流量・高温でコスト増加
+        cost = (
+            0.01 * rf_power +           # 電力コスト
+            0.05 * gas_flow +           # ガスコスト
+            0.02 * (temp - 20) +        # 冷却コスト
+            0.001 * pressure            # 真空コスト
+        )
+
+        # 目的3: スループット (最大化)
+        # 高RFパワー・高圧力でエッチングレート向上
+        throughput = (
+            0.5 + 0.001 * rf_power + 0.002 * pressure -
+            0.0005 * (gas_flow - 125)**2
+        )
+        throughput = np.clip(throughput, 0, 2)
+
+        return yield_rate, cost, throughput
+
+    def optimize(self, verbose=True):
+        """
+        NSGA-II実行
+
+        Returns:
+        --------
+        pareto_front : list
+            Pareto最適解の集合
+        """
+        # 初期体群生成
+        population = self.toolbox.population(n=self.population_size)
+
+        # 統計情報
+        stats = tools.Statistics(lambda ind: ind.fitness.values)
+        stats.register("avg", np.mean, axis=0)
+        stats.register("std", np.std, axis=0)
+        stats.register("min", np.min, axis=0)
+        stats.register("max", np.max, axis=0)
+
+        # NSGA-II実行
+        population, logbook = algorithms.eaMuPlusLambda(
+            population, self.toolbox,
+            mu=self.population_size,
+            lambda_=self.population_size,
+            cxpb=0.9,  # 交叉確率
+            mutpb=0.1,  # 突然変異確率
+            ngen=self.n_generations,
+            stats=stats,
+            verbose=verbose
+        )
+
+        # Pareto Front抽出
+        pareto_front = tools.sortNondominated(population,
+                                              len(population),
+                                              first_front_only=True)[0]
+
+        # 結果整形
+        pareto_solutions = []
+        for ind in pareto_front:
+            solution = {
+                'params': np.array(ind),
+                'yield': ind.fitness.values[0],
+                'cost': ind.fitness.values[1],
+                'throughput': ind.fitness.values[2]
+            }
+            pareto_solutions.append(solution)
+
+        return pareto_solutions, logbook
+
+    def plot_pareto_front(self, pareto_solutions):
+        """Pareto Frontの3D可視化"""
+        yields = [sol['yield'] for sol in pareto_solutions]
+        costs = [sol['cost'] for sol in pareto_solutions]
+        throughputs = [sol['throughput'] for sol in pareto_solutions]
+
+        fig = plt.figure(figsize=(14, 6))
+
+        # 3D Pareto Front
+        ax1 = fig.add_subplot(121, projection='3d')
+        scatter = ax1.scatter(yields, costs, throughputs,
+                            c=yields, cmap='viridis', s=100)
+        ax1.set_xlabel('Yield')
+        ax1.set_ylabel('Cost')
+        ax1.set_zlabel('Throughput')
+        ax1.set_title('3D Pareto Front')
+        fig.colorbar(scatter, ax=ax1, label='Yield')
+
+        # 2D射影 (Yield vs Cost)
+        ax2 = fig.add_subplot(122)
+        scatter2 = ax2.scatter(yields, costs, c=throughputs,
+                              cmap='plasma', s=100)
+        ax2.set_xlabel('Yield')
+        ax2.set_ylabel('Cost')
+        ax2.set_title('Pareto Front Projection (Yield vs Cost)')
+        ax2.grid(True, alpha=0.3)
+        fig.colorbar(scatter2, ax=ax2, label='Throughput')
+
+        plt.tight_layout()
+        plt.savefig('pareto_front.png', dpi=300, bbox_inches='tight')
+        plt.show()
+
+    def select_solution_by_preference(self, pareto_solutions, weights):
+        """
+        重み付けスカラー化でPareto解から1つ選択
+
+        Parameters:
+        -----------
+        weights : tuple
+            (w_yield, w_cost, w_throughput)
+            各目的の重要度 (合計1.0)
+
+        Returns:
+        --------
+        best_solution : dict
+            重み付け評価が最良の解
+        """
+        w_yield, w_cost, w_throughput = weights
+
+        best_score = -np.inf
+        best_solution = None
+
+        for sol in pareto_solutions:
+            # スカラー化 (コストは負の寄与)
+            score = (
+                w_yield * sol['yield'] -
+                w_cost * sol['cost'] +
+                w_throughput * sol['throughput']
+            )
+
+            if score > best_score:
+                best_score = score
+                best_solution = sol
+
+        return best_solution
+
+
+# ========== 使用例 ==========
+if __name__ == "__main__":
+    np.random.seed(42)
+
+    # パラメータ範囲
+    param_bounds = [
+        (100, 400),   # RFパワー
+        (10, 100),    # 圧力
+        (50, 200),    # ガス流量
+        (20, 80)      # 温度
+    ]
+
+    # 多目的Optimization実行
+    print("========== Multi-Objective Optimization (NSGA-II) ==========\n")
+
+    mo_optimizer = MultiObjectiveYieldOptimization(
+        param_bounds=param_bounds,
+        population_size=100,
+        n_generations=50
+    )
+
+    pareto_solutions, logbook = mo_optimizer.optimize(verbose=False)
+
+    print(f"\nPareto Front: {len(pareto_solutions)} solutions found\n")
+
+    # 代表的な解を表示
+    print("--- Representative Pareto Solutions ---")
+    for i, sol in enumerate(pareto_solutions[:5]):
+        print(f"Solution {i+1}:")
+        print(f"  Yield: {sol['yield']:.4f}")
+        print(f"  Cost: {sol['cost']:.2f}")
+        print(f"  Throughput: {sol['throughput']:.4f}")
+        print(f"  Params: {sol['params']}\n")
+
+    # Pareto Front可視化
+    mo_optimizer.plot_pareto_front(pareto_solutions)
+
+    # シナリオ別の解選択
+    print("\n--- Solution Selection by Preference ---")
+
+    # シナリオ1: 歩留まり重視
+    weights_yield_focused = (0.7, 0.1, 0.2)
+    sol_yield = mo_optimizer.select_solution_by_preference(
+        pareto_solutions, weights_yield_focused
+    )
+    print("Scenario 1 (Yield-focused): "
+          f"Yield={sol_yield['yield']:.4f}, "
+          f"Cost={sol_yield['cost']:.2f}, "
+          f"Throughput={sol_yield['throughput']:.4f}")
+
+    # シナリオ2: コスト重視
+    weights_cost_focused = (0.2, 0.6, 0.2)
+    sol_cost = mo_optimizer.select_solution_by_preference(
+        pareto_solutions, weights_cost_focused
+    )
+    print("Scenario 2 (Cost-focused): "
+          f"Yield={sol_cost['yield']:.4f}, "
+          f"Cost={sol_cost['cost']:.2f}, "
+          f"Throughput={sol_cost['throughput']:.4f}")
+
+    # シナリオ3: バランス型
+    weights_balanced = (0.4, 0.3, 0.3)
+    sol_balanced = mo_optimizer.select_solution_by_preference(
+        pareto_solutions, weights_balanced
+    )
+    print("Scenario 3 (Balanced): "
+          f"Yield={sol_balanced['yield']:.4f}, "
+          f"Cost={sol_balanced['cost']:.2f}, "
+          f"Throughput={sol_balanced['throughput']:.4f}")
+</code></pre>
+            </section>
+
+            <section>
+                <h2>3.4 Summary</h2>
+                <p>本 Chapterでは、SemiconductorManufacturingにおける歩留まりOptimizationのためのAI手法を学習しました：</p>
+
+                <div style="background: #f0f8ff; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0;">
+                    <h3 style="margin-top: 0;">主要なLearning Content</h3>
+
+                    <h4>1. Bayesian Optimization</h4>
+                    <ul>
+                        <li><strong>Gaussian Processサロゲートモデル</strong>で目的関数を効率的に近似</li>
+                        <li><strong>獲得関数</strong> (EI, UCB, POI) で次の実験点を理論的に選択</li>
+                        <li><strong>実験回数を1/10以下に削減</strong>しながら最適解発見</li>
+                        <li><strong>並列BO</strong>で複数装置の同時実験に対応</li>
+                    </ul>
+
+                    <h4>2. 多目的Optimization (NSGA-II)</h4>
+                    <ul>
+                        <li><strong>歩留まり・コスト・スループット</strong>を同時Optimization</li>
+                        <li><strong>Pareto Front</strong>から現場の優先度に応じて解選択</li>
+                        <li><strong>トレードオフ関係</strong>を定量的に可視化</li>
+                    </ul>
+
+                    <h4>実用上の成果</h4>
+                    <ul>
+                        <li>従来手法より<strong>90%少ない実験回数</strong>でOptimization完了</li>
+                        <li>歩留まり<strong>1-3%向上</strong> (数億円の利益増)</li>
+                        <li>コスト<strong>10-20%削減</strong>を同時達成</li>
+                    </ul>
+                </div>
+
+                <h3>次 Chapterへの展開</h3>
+                <p>Chapter 4「Advanced Process Control (APC)」では、OptimizationされたProcess条件を安定維持するControl手法を学びます：</p>
+                <ul>
+                    <li>モデルPredictionControl (MPC) によるリアルタイムOptimization</li>
+                    <li>適応Controlで装置変動に自動対応</li>
+                    <li>フィードフォワードControlで外乱を事前補償</li>
+                    <li>Digital TwinでProcessをシミュレート</li>
+                </ul>
+            </section>
+
+            <div class="chapter-navigation">
+                <a href="chapter-2.html" class="btn btn-secondary">← Previous Chapter</a>
+                <a href="index.html" class="btn btn-secondary">Back to Contents</a>
+                <a href="chapter-4.html" class="btn btn-primary">Next Chapter →</a>
+            </div>
+        </article>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>&copy; 2025 Yusuke Hashimoto Laboratory, Tohoku University. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/assets/js/main.js"></script>
+</body>
+</html>

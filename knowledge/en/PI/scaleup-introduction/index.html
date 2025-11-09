@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Scale-up・スケールダウン入門 Series - 相似則の理解からMachine LearningPredictionまで完全ガイド">
+    <title>Scale-up・スケールダウン入門 Series v1.0 - PI Knowledge Hub</title>
+
+    <!-- CSS Styling -->
+        <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.8; color: #333; background: #f5f5f5;
+        }
+        header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; padding: 2rem 1rem; text-align: center;
+        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .subtitle { opacity: 0.9; font-size: 1.1rem; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 2rem; padding: 0.5rem 1rem;
+            background: white; color: #11998e; text-decoration: none;
+            border-radius: 6px; font-weight: 600;
+        }
+        .content-box {
+            background: white; padding: 2rem; border-radius: 12px;
+            margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #11998e; margin: 2rem 0 1rem 0;
+            padding-bottom: 0.5rem; border-bottom: 3px solid #11998e;
+        }
+        h3 { color: #2c3e50; margin: 1.5rem 0 1rem 0; }
+        h4 { color: #2c3e50; margin: 1rem 0 0.5rem 0; }
+        p { margin-bottom: 1rem; }
+        ul, ol { margin-left: 2rem; margin-bottom: 1rem; }
+        li { margin-bottom: 0.5rem; }
+        pre {
+            background: #1e1e1e; color: #d4d4d4; padding: 1.5rem;
+            border-radius: 8px; overflow-x: auto; margin: 1rem 0;
+            border-left: 4px solid #11998e;
+        }
+        code {
+            font-family: 'Courier New', monospace; font-size: 0.9rem;
+        }
+        .key-point {
+            background: #e8f5e9; padding: 1rem; border-radius: 6px;
+            border-left: 4px solid #4caf50; margin: 1rem 0;
+        }
+        .tech-note {
+            background: #e3f2fd; padding: 1rem; border-radius: 6px;
+            border-left: 4px solid #2196f3; margin: 1rem 0;
+        }
+        .formula {
+            background: #f0f7ff; padding: 1rem; border-radius: 6px;
+            margin: 1rem 0; overflow-x: auto;
+        }
+        table {
+            width: 100%; border-collapse: collapse; margin: 1rem 0;
+        }
+        th, td {
+            border: 1px solid #ddd; padding: 0.75rem; text-align: left;
+        }
+        th {
+            background: #11998e; color: white; font-weight: 600;
+        }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .nav-buttons {
+            display: flex; justify-content: space-between; margin-top: 3rem;
+        }
+        .nav-buttons a {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; text-decoration: none; border-radius: 6px;
+            font-weight: 600;
+        }
+        footer {
+            background: #2c3e50; color: white; text-align: center;
+            padding: 2rem 1rem; margin-top: 4rem;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.6rem; }
+            .container { padding: 0 0.5rem; }
+            pre { padding: 1rem; }
+        }
+    
+        
+    
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mermaidCodeBlocks = document.querySelectorAll('pre.codehilite code.language-mermaid, pre code.language-mermaid');
+
+            mermaidCodeBlocks.forEach(function(codeBlock) {
+                const pre = codeBlock.parentElement;
+                const mermaidCode = codeBlock.textContent;
+
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = mermaidCode.trim();
+
+                pre.parentNode.replaceChild(mermaidDiv, pre);
+            });
+
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+                mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+            }
+        });
+    </script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../PI/index.html">Process Informatics</a><span class="breadcrumb-separator">›</span><a href="../../PI/scaleup-introduction/index.html">Scaleup</a>
+        </div>
+    </nav>
+
+        <header>
+        <div class="container">
+            <h1>⚗️ Scale-up・スケールダウン入門 Series v1.0</h1>
+            <div class="meta">
+                <span>📖 Reading Time: 140-170 minutes</span>
+                <span>📊 Level: Intermediate to Advanced</span>
+                <span>💻 Code Examples: 35</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1 id="v10">Scale-up・スケールダウン入門 Series v1.0</h1>
+<p><strong>相似則の理解からMachine LearningPredictionまで - ラボスケールから商業プラントへの完全実践ガイド</strong></p>
+
+<h2 id="_1">Series Overview</h2>
+<p>この Seriesは、化学ProcessのScale-up・スケールダウンの基礎から実践まで、段階的に学べる全5 Chapter構成の教育コンテンツです。相似則の理論、無次元数の活用、伝熱・物質移動スケーリング、反応・混合スケーリング、そしてMachine LearningによるScale-upPredictionまで、包括的にカバーします。</p>
+
+<p><strong>特徴:</strong><br />
+- ✅ <strong>実践重視</strong>: 35の実行可能なPythonCode Examples<br />
+- ✅ <strong>体系的構成</strong>: 基礎理論から最新AI手法まで段階的に学べる5 Chapter構成<br />
+- ✅ <strong>産業応用</strong>: パイロットプラント設計、商業プラントOptimizationのExample<br />
+- ✅ <strong>最新技術</strong>: Machine Learning・ディープラーニングによるScale-upPrediction</p>
+
+<p><strong>Total Learning Time</strong>: 140-170 minutes（コード実行と演習を含む）</p>
+
+<hr />
+
+<h2 id="_2">How to Learn</h2>
+
+<h3 id="_3">Recommended Learning Order</h3>
+
+<div class="mermaid">
+flowchart TD
+    A[Chapter 1: スケーリング理論の基礎] --> B[Chapter 2: 無次元数とScale-up則]
+    B --> C[Chapter 3: 伝熱・物質移動のスケーリング]
+    C --> D[Chapter 4: 反応器・混合のスケーリング]
+    D --> E[Chapter 5: Machine LearningによるScale-upPrediction]
+
+    style A fill:#e8f5e9
+    style B fill:#c8e6c9
+    style C fill:#a5d6a7
+    style D fill:#81c784
+    style E fill:#66bb6a
+</div>
+
+<p><strong>初学者の方（スケーリングを初めて学ぶ）:</strong><br />
+- Chapter 1 → Chapter 2 → Chapter 3 → Chapter 4 → Chapter 5<br />
+- 所要 hours: 140-170 minutes</p>
+
+<p><strong>化学工学経験者（基礎知識あり）:</strong><br />
+- Chapter 1（軽く確認） → Chapter 2 → Chapter 3 → Chapter 4 → Chapter 5<br />
+- 所要 hours: 110-140 minutes</p>
+
+<p><strong>Scale-up経験者（実務経験あり）:</strong><br />
+- Chapter 3 → Chapter 4 → Chapter 5<br />
+- 所要 hours: 80-100 minutes</p>
+
+<hr />
+
+<h2 id="_4">Chapter Details</h2>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-1.html">Chapter 1：スケーリング理論の基礎</a></h3>
+    <div class="chapter-meta">
+        <span>📖 Reading Time: 25-30 minutes</span>
+        <span>💻 Code Examples: 7</span>
+        <span>📊 Difficulty: Intermediate</span>
+    </div>
+
+    <h4>Learning Content</h4>
+    <ol>
+        <li><strong>相似則の基礎</strong>
+            <ul>
+                <li>幾何学的相似（geometric similarity）</li>
+                <li>運動学的相似（kinematic similarity）</li>
+                <li>動力学的相似（dynamic similarity）</li>
+                <li>スケール因子とスケーリング則</li>
+            </ul>
+        </li>
+        <li><strong>べき乗則スケーリング</strong>
+            <ul>
+                <li>長さ・面積・体積のスケーリング関係</li>
+                <li>パワー則（power law）の理論</li>
+                <li>Scale-up係数の計算</li>
+            </ul>
+        </li>
+        <li><strong>装置サイジング計算</strong>
+            <ul>
+                <li>反応器のScale-up設計</li>
+                <li>熱交換器の面積計算</li>
+                <li>タンクと配管のサイジング</li>
+            </ul>
+        </li>
+        <li><strong>スケールダウンOptimization</strong>
+            <ul>
+                <li>スケールダウン比の決定</li>
+                <li>パイロットプラント設計</li>
+                <li>実験計画とデータ取得</li>
+            </ul>
+        </li>
+        <li><strong>経済性のスケーリング</strong>
+            <ul>
+                <li>6/10則（six-tenths rule）</li>
+                <li>設備コストの推算</li>
+                <li>経済的最適スケールの決定</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>Learning Objectives</h4>
+    <ul>
+        <li>✅ 相似則の3つの種類を理解し、適用できる</li>
+        <li>✅ スケール因子を計算し、装置サイジングができる</li>
+        <li>✅ べき乗則を用いてScale-up設計ができる</li>
+        <li>✅ パイロットプラントの設計とOptimizationができる</li>
+        <li>✅ 経済性を考慮したスケーリング計算ができる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-1.html">Chapter 1を読む →</a></strong></p>
+</div>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-2.html">Chapter 2：無次元数とScale-up則</a></h3>
+    <div class="chapter-meta">
+        <span>📖 Reading Time: 28-33 minutes</span>
+        <span>💻 Code Examples: 7</span>
+        <span>📊 Difficulty: Intermediate to Advanced</span>
+    </div>
+
+    <h4>Learning Content</h4>
+    <ol>
+        <li><strong>主要な無次元数</strong>
+            <ul>
+                <li>レイノルズ数（Re）- 慣性力 vs 粘性力</li>
+                <li>フルード数（Fr）- 慣性力 vs 重力</li>
+                <li>ウェーバー数（We）- 慣性力 vs 表面張力</li>
+                <li>ペクレ数（Pe）- 移流 vs 拡散</li>
+            </ul>
+        </li>
+        <li><strong>相似則の適用</strong>
+            <ul>
+                <li>完全相似と不完全相似</li>
+                <li>支配的な無次元数の選択</li>
+                <li>無次元数の保持とScale-up</li>
+            </ul>
+        </li>
+        <li><strong>Buckingham π定理</strong>
+            <ul>
+                <li>次元解析の理論</li>
+                <li>無次元群の導出</li>
+                <li>実験データの整理</li>
+            </ul>
+        </li>
+        <li><strong>Scale-up規準の設定</strong>
+            <ul>
+                <li>定幾何Scale-up（constant geometry）</li>
+                <li>定Re数Scale-up</li>
+                <li>定パワー密度Scale-up</li>
+                <li>規準の選択ガイドライン</li>
+            </ul>
+        </li>
+        <li><strong>混合 hoursのスケーリング</strong>
+            <ul>
+                <li>混合 hoursの無次元化</li>
+                <li>Scale-up時の混合 hoursPrediction</li>
+                <li>撹拌動力の計算</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>Learning Objectives</h4>
+    <ul>
+        <li>✅ 主要な無次元数を理解し、計算できる</li>
+        <li>✅ 支配的な無次元数を判断し、相似則を適用できる</li>
+        <li>✅ Buckingham π定理を用いて無次元数を導出できる</li>
+        <li>✅ 適切なScale-up規準を選択できる</li>
+        <li>✅ 混合 hoursと撹拌動力のスケーリングができる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-2.html">Chapter 2を読む →</a></strong></p>
+</div>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-3.html">Chapter 3：伝熱・物質移動のスケーリング</a></h3>
+    <div class="chapter-meta">
+        <span>📖 Reading Time: 28-33 minutes</span>
+        <span>💻 Code Examples: 7</span>
+        <span>📊 Difficulty: Intermediate to Advanced</span>
+    </div>
+
+    <h4>Learning Content</h4>
+    <ol>
+        <li><strong>伝熱のスケーリング</strong>
+            <ul>
+                <li>ヌッセルト数（Nu）- 対流伝熱</li>
+                <li>プラントル数（Pr）- 運動量拡散 vs 熱拡散</li>
+                <li>熱交換器のScale-up</li>
+                <li>反応器の温度Controlとスケーリング</li>
+            </ul>
+        </li>
+        <li><strong>物質移動のスケーリング</strong>
+            <ul>
+                <li>シャーウッド数（Sh）- 物質移動</li>
+                <li>シュミット数（Sc）- 運動量拡散 vs 物質拡散</li>
+                <li>物質移動係数のスケーリング</li>
+                <li>多相系での物質移動</li>
+            </ul>
+        </li>
+        <li><strong>表面積/体積比の効果</strong>
+            <ul>
+                <li>S/V比のスケーリング（∝ L⁻¹）</li>
+                <li>伝熱・冷却能力の変化</li>
+                <li>Scale-up時の熱暴走リスク</li>
+            </ul>
+        </li>
+        <li><strong>境界層のスケーリング</strong>
+            <ul>
+                <li>層流境界層と乱流境界層</li>
+                <li>境界層厚さのスケーリング</li>
+                <li>伝熱・物質移動係数への影響</li>
+            </ul>
+        </li>
+        <li><strong>多相系のスケーリング</strong>
+            <ul>
+                <li>気液反応器のScale-up</li>
+                <li>液液抽出塔のスケーリング</li>
+                <li>固液系撹拌槽のスケーリング</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>Learning Objectives</h4>
+    <ul>
+        <li>✅ 伝熱・物質移動の無次元数を理解し活用できる</li>
+        <li>✅ 熱交換器と反応器の伝熱スケーリングができる</li>
+        <li>✅ S/V比の変化が及ぼす影響を評価できる</li>
+        <li>✅ 境界層理論をスケーリングに適用できる</li>
+        <li>✅ 多相系のScale-up設計ができる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-3.html">Chapter 3を読む →</a></strong></p>
+</div>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-4.html">Chapter 4：反応器・混合のスケーリング</a></h3>
+    <div class="chapter-meta">
+        <span>📖 Reading Time: 28-33 minutes</span>
+        <span>💻 Code Examples: 7</span>
+        <span>📊 Difficulty: Intermediate to Advanced</span>
+    </div>
+
+    <h4>Learning Content</h4>
+    <ol>
+        <li><strong>反応器のスケーリング理論</strong>
+            <ul>
+                <li>ダムケラー数（Da）- 反応速度 vs 移動速度</li>
+                <li>滞留 hours minutes布（RTD）のスケーリング</li>
+                <li>完全混合からの偏差</li>
+            </ul>
+        </li>
+        <li><strong>バッチ反応器のScale-up</strong>
+            <ul>
+                <li>反応 hoursの保持</li>
+                <li>温度Controlの課題</li>
+                <li>混合性能の維持</li>
+            </ul>
+        </li>
+        <li><strong>連続撹拌槽（CSTR）のScale-up</strong>
+            <ul>
+                <li>完全混合条件の維持</li>
+                <li>撹拌動力密度の設定</li>
+                <li>多段CSTRのスケーリング</li>
+            </ul>
+        </li>
+        <li><strong>混合性能のスケーリング</strong>
+            <ul>
+                <li>マクロ混合とミクロ混合</li>
+                <li>混合 hoursのスケール依存性</li>
+                <li>競争・逐次反応系での混合効果</li>
+                <li>撹拌翼形状の選択</li>
+            </ul>
+        </li>
+        <li><strong>ケーススタディ: 実ProcessのScale-up</strong>
+            <ul>
+                <li>ラボデータからのパイロット設計</li>
+                <li>パイロットデータからの商業プラント設計</li>
+                <li>Scale-upトラブル事例と対策</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>Learning Objectives</h4>
+    <ul>
+        <li>✅ 反応器の無次元数を理解し、スケーリングに活用できる</li>
+        <li>✅ バッチ反応器の最適Scale-up設計ができる</li>
+        <li>✅ CSTRのスケーリング計算と性能Predictionができる</li>
+        <li>✅ 混合性能を考慮したScale-upができる</li>
+        <li>✅ 実ProcessのScale-up戦略を立案できる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-4.html">Chapter 4を読む →</a></strong></p>
+</div>
+
+<div class="chapter-card">
+    <h3 class="chapter-title"><a href="./chapter-5.html">Chapter 5：Machine LearningによるScale-upPrediction</a></h3>
+    <div class="chapter-meta">
+        <span>Reading Time: 31-41 minutes</span>
+        <span>💻 Code Examples: 7</span>
+        <span>📊 Difficulty: Advanced</span>
+    </div>
+
+    <h4>Learning Content</h4>
+    <ol>
+        <li><strong>データ駆動型Scale-upの概要</strong>
+            <ul>
+                <li>従来手法の限界とMachine Learningの利点</li>
+                <li>Scale-upデータの特性</li>
+                <li>特徴量エンジニアリング</li>
+            </ul>
+        </li>
+        <li><strong>教師あり学習によるScale-upPrediction</strong>
+            <ul>
+                <li>Random Forest回帰モデル</li>
+                <li>Gradient Boosting（XGBoost, LightGBM）</li>
+                <li>Neural NetworkによるPrediction</li>
+                <li>アンサンブル学習の活用</li>
+            </ul>
+        </li>
+        <li><strong>転移学習とドメイン適応</strong>
+            <ul>
+                <li>少数データでのScale-upPrediction</li>
+                <li>類似Processからの知識転移</li>
+                <li>Transfer Learningの実装</li>
+            </ul>
+        </li>
+        <li><strong>物理制約付きMachine Learning</strong>
+            <ul>
+                <li>Physics-Informed Neural Networks (PINN)</li>
+                <li>無次元数を特徴量とした学習</li>
+                <li>物理法則との整合性確保</li>
+            </ul>
+        </li>
+        <li><strong>Bayesian OptimizationによるScale-up実験計画</strong>
+            <ul>
+                <li>実験コスト最小化</li>
+                <li>探索と活用のバランス</li>
+                <li>パイロット実験の効率化</li>
+                <li>不確実性の定量化</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>Learning Objectives</h4>
+    <ul>
+        <li>✅ Machine LearningをScale-upPredictionに適用できる</li>
+        <li>✅ 教師あり学習モデルを構築・評価できる</li>
+        <li>✅ 転移学習で少数データからPredictionできる</li>
+        <li>✅ 物理制約を組み込んだMachine Learningモデルを実装できる</li>
+        <li>✅ Bayesian Optimizationで実験計画を効率化できる</li>
+    </ul>
+
+    <p><strong><a href="./chapter-5.html">Chapter 5を読む →</a></strong></p>
+</div>
+
+<hr />
+
+<h2 id="_5">Overall Learning Outcomes</h2>
+
+<p>この Seriesを完了すると、以下のスキルと知識を習得できます：</p>
+
+<h3>知識Level（Understanding）</h3>
+
+<ul>
+<li>✅ 相似則（幾何学的・運動学的・動力学的）を理解している</li>
+<li>✅ 主要な無次元数とその物理的意味を理解している</li>
+<li>✅ 伝熱・物質移動のスケーリング理論を理解している</li>
+<li>✅ 反応器と混合系のスケーリング原理を理解している</li>
+<li>✅ Machine LearningによるScale-upPredictionの可能性を理解している</li>
+</ul>
+
+<h3>実践スキル（Doing）</h3>
+
+<ul>
+<li>✅ スケール因子を計算し、装置サイジングができる</li>
+<li>✅ 無次元数を用いた相似則の適用ができる</li>
+<li>✅ 伝熱・物質移動係数のスケーリング計算ができる</li>
+<li>✅ 反応器・混合槽のScale-up設計ができる</li>
+<li>✅ Machine LearningモデルでScale-upPredictionができる</li>
+<li>✅ Bayesian Optimizationで実験計画をOptimizationできる</li>
+</ul>
+
+<h3>応用力（Applying）</h3>
+
+<ul>
+<li>✅ ラボデータからパイロットプラントを設計できる</li>
+<li>✅ パイロットデータから商業プラントをScale-upできる</li>
+<li>✅ Scale-upリスクを評価し、対策を立案できる</li>
+<li>✅ 経済性を考慮した最適スケールを決定できる</li>
+<li>✅ ProcessエンジニアとしてScale-upプロジェクトをリードできる</li>
+</ul>
+
+<hr />
+
+<h2 id="faq">FAQ（よくある質問）</h2>
+
+<h3>Q1: 化学工学の予備知識はどの程度必要ですか？</h3>
+
+<p><strong>A</strong>: 流体力学、伝熱、物質移動の基礎知識があることが望ましいです。無次元数の概念と反応工学の基礎（滞留 hours、収率など）を理解していると、スムーズに学習できます。</p>
+
+<h3>Q2: Scale-upとスケールダウンの違いは何ですか？</h3>
+
+<p><strong>A</strong>: Scale-upは小規模（ラボ、パイロット）から大規模（商業プラント）への拡大、スケールダウンはその逆です。スケールダウンはパイロット実験の設計や、商業プラントデータからラボ実験条件を決定する際に重要です。</p>
+
+<h3>Q3: Machine Learningを使わずにScale-upはできますか？</h3>
+
+<p><strong>A</strong>: はい、できます。第1〜4 Chapterで学ぶ相似則と無次元数に基づく従来手法は、長年の実績があり、多くの産業で標準的に使用されています。Chapter 5のMachine Learning手法は、データが豊富な場合やより高精度なPredictionが必要な場合の追加ツールです。</p>
+
+<h3>Q4: どのPythonライブラリが必要ですか？</h3>
+
+<p><strong>A</strong>: 主にNumPy、SciPy、Pandas、Matplotlib、Seabornを使用します。Machine Learningには scikit-learn、XGBoost、LightGBM、TensorFlow/PyTorchを推奨します。第1〜4 Chapterは基本的な科学計算ライブラリのみで実行可能です。</p>
+
+<h3>Q5: 次に何を学ぶべきですか？</h3>
+
+<p><strong>A</strong>: 以下のトピックを推奨します：<br />
+- <strong>Processモデリング</strong>: CFDSimulationとDigital Twin<br />
+- <strong>ProcessControl</strong>: スケール変化に伴うControl系設計<br />
+- <strong>Process Safety</strong>: Scale-up時のSafety性評価（HAZOP、リスクアセスメント）<br />
+- <strong>Design of Experiments（DOE）</strong>: パイロット実験の効率的設計</p>
+
+<hr />
+
+<h2 id="_6">Next Steps</h2>
+
+<h3> Series完了後の推奨アクション</h3>
+
+<p><strong>Immediate（1週間以内）:</strong><br />
+1. ✅ 第1〜2 ChapterのCode Examplesを実行し、スケール計算に習熟<br />
+2. ✅ 自社ProcessのScale-up課題を評価<br />
+3. ✅ 主要な無次元数を計算し、支配的因子を特定</p>
+
+<p><strong>Short-term（1-3ヶ月）:</strong><br />
+1. ✅ パイロットプラント設計プロジェクトを立ち上げ<br />
+2. ✅ 伝熱・物質移動のスケーリング計算を実践<br />
+3. ✅ Scale-up実験計画を策定<br />
+4. ✅ Machine Learningモデルの構築とデータ収集</p>
+
+<p><strong>Long-term（6ヶ月以上）:</strong><br />
+1. ✅ 商業プラントのScale-up実行<br />
+2. ✅ Scale-upデータベースの構築<br />
+3. ✅ 学会発表や論文執筆<br />
+4. ✅ Scale-upエンジニアとしてのキャリア構築</p>
+
+<hr />
+
+<h2 id="_7">フィードバックとサポート</h2>
+
+<h3>この Seriesについて</h3>
+
+<p>この Seriesは、東北大学 Dr. Yusuke Hashimotoのもと、PI Knowledge Hubプロジェクトの一環として作成されました。</p>
+
+<p><strong>作成日</strong>: 2025年10月26日<br />
+<strong>バージョン</strong>: 1.0</p>
+
+<h3>フィードバックをお待ちしています</h3>
+
+<p>この Seriesを改善するため、皆様のフィードバックをお待ちしています：</p>
+
+<ul>
+<li><strong>誤字・脱字・技術的誤り</strong>: GitHubリポジトリのIssueで報告してください</li>
+<li><strong>改善提案</strong>: 新しいトピック、追加して欲しいCode Examples等</li>
+<li><strong>質問</strong>: 理解が難しかった部 minutes、追加説明が欲しい箇所</li>
+<li><strong>成功事例</strong>: この Seriesで学んだことを使ったプロジェクト</li>
+</ul>
+
+<p><strong>連絡先</strong>: yusuke.hashimoto.b8@tohoku.ac.jp</p>
+
+<hr />
+
+<h2 id="_8">ライセンスと利用規約</h2>
+
+<p>この Seriesは <strong>CC BY 4.0</strong>（Creative Commons Attribution 4.0 International）ライセンスのもとで公開されています。</p>
+
+<p><strong>可能なこと:</strong><br />
+- ✅ 自由な閲覧・ダウンロード<br />
+- ✅ 教育目的での利用（授業、勉強会等）<br />
+- ✅ 改変・二次創作（翻訳、要約等）</p>
+
+<p><strong>条件:</strong><br />
+- 📌 著者のクレジット表示が必要<br />
+- 📌 改変した場合はその旨を明記<br />
+- 📌 商業利用の場合は事前に連絡</p>
+
+<p>詳細: <a href="https://creativecommons.org/licenses/by/4.0/deed.ja">CC BY 4.0ライセンス全文</a></p>
+
+<hr />
+
+<h2 id="_9">Let's Get Started！</h2>
+
+<p>準備はできましたか？ Chapter 1から始めて、Scale-up・スケールダウンの世界への旅を始めましょう！</p>
+
+<p><strong><a href="./chapter-1.html">Chapter 1: スケーリング理論の基礎 →</a></strong></p>
+
+<hr />
+
+<p><strong>Update History</strong></p>
+
+<ul>
+<li><strong>2025-10-26</strong>: v1.0 初版公開</li>
+</ul>
+
+<hr />
+
+<p><strong>あなたのScale-up学習の旅はここから始まります！</strong></p>
+
+        <div class="nav-buttons">
+            <a href="../index.html" class="nav-button">← Process Informatics道場トップに戻る</a>
+        </div>
+    </main>
+
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するCode Examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・Safety性等いかなる保証もしません。</li>
+            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・Safety性について、作成者および東北大学は一切の責任を負いません。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+<footer>
+        <div class="container">
+            <p>&copy; 2025 PI Knowledge Hub - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>
