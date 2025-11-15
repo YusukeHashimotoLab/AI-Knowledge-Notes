@@ -1,40 +1,45 @@
 ---
-title: "AI Terakoya - Materials Informatics Knowledge Hub"
-subtitle: "Learning Platform for Data-Driven Materials Development"
-description: "Comprehensive learning hub offering four introductory series: Materials Informatics (MI), Nanomaterials (NM), Process Informatics (PI), and Machine Learning Potentials (MLP)"
-version: "1.0"
-total_series: 4
-total_chapters: 16
-total_reading_time: "355-460 minutes"
-total_code_examples: 115
-created_at: "2025-10-17"
+title: "AI Terakoya - English Knowledge Hub"
+subtitle: "Comprehensive Learning Platform for Materials Science & Data Science"
+description: "Complete learning hub offering 5 specialized Dojos: Fundamentals of Mathematics (FM), Materials Informatics (MI), Machine Learning (ML), Materials Science (MS), and Process Informatics (PI)"
+version: "2.0"
+total_dojos: 5
+total_series: 109
+total_chapters: 480
+total_code_examples: 1500+
+created_at: "2025-01-15"
+updated_at: "2025-11-15"
 author: "Dr. Yusuke Hashimoto, Tohoku University"
 license: "CC BY 4.0"
-keywords: ["Materials Informatics", "Machine Learning", "Materials Science", "Nanomaterials", "Process Optimization", "Molecular Simulation", "Python", "Education"]
+keywords: ["Materials Science", "Machine Learning", "Process Informatics", "Mathematics", "Physics", "Data Science", "Python", "Education"]
 ---
 
-# AI Terakoya - Materials Informatics Knowledge Hub
+# AI Terakoya - English Knowledge Hub
 
-**Learning Platform for Data-Driven Materials Development**
+**Comprehensive Learning Platform for Materials Science & Data Science**
 
 ---
 
 ## 🏫 Welcome to AI Terakoya
 
-"Terakoya" were educational institutions for common people during Japan's Edo period. The modern "AI Terakoya" is a comprehensive learning platform for the convergence of materials science and data science.
+"Terakoya" were educational institutions for common people during Japan's Edo period. The modern "AI Terakoya" is a comprehensive learning platform bridging materials science, data science, mathematics, and physics.
 
 **Features of AI Terakoya:**
-- ✅ **Four Specialized Series**: Comprehensive coverage of MI, NM, PI, and MLP
-- ✅ **Gradual Learning**: Systematic progression from beginner to advanced across 16 chapters
-- ✅ **Practice-Oriented**: 115 executable code examples
-- ✅ **Industrial Applications**: 20+ real-world case studies
-- ✅ **Career Support**: Concrete career paths and learning roadmaps
+- ✅ **5 Specialized Dojos**: 109 series across FM, MI, ML, MS, and PI domains
+- ✅ **480 Comprehensive Chapters**: Systematic progression from fundamentals to advanced topics
+- ✅ **1500+ Code Examples**: All executable with detailed explanations
+- ✅ **Industry Applications**: 100+ real-world case studies
+- ✅ **Complete Curriculum**: From mathematical foundations to industrial deployment
 
-**Total Learning Time**: 355-460 minutes (approximately 6-8 hours)
+**Platform Statistics:**
+- 📚 109 Learning Series
+- 📖 480 Complete Chapters
+- 💻 1500+ Python Code Examples
+- 🎯 5 Specialized Learning Domains
 
 ---
 
-## 📚 Four Introduction Series
+## 🎓 Five Learning Dojos
 
 ### 📘 Materials Informatics (MI) Introduction
 
@@ -62,90 +67,120 @@ Foundational series for learning AI/machine learning applications across materia
 - Databases: Materials Project API
 - Visualization: matplotlib, seaborn
 
-**[📘 Go to MI Introduction Series →](./mi-introduction/index.html)**
+**[📘 Go to MI Dojo →](./MI/index.html)**
 
 ---
 
-### 📗 Nanomaterials (NM) Introduction
+### 📐 Fundamentals of Mathematics & Physics (FM) Dojo
 
-**Nanomaterials Introduction Series**
+**Mathematical and Physical Foundations for Materials Science**
 
-Learning Nanomaterial Science through Python Practice
-
-**Overview**:
-- 🎯 **Target Areas**: Nanoparticles, carbon nanotubes, graphene, quantum dots
-- 📊 **Difficulty**: Beginner to Intermediate
-- ⏱️ **Learning Time**: 90-120 minutes (4 chapters)
-- 💻 **Code Examples**: 30-35 (all executable)
-- 🔬 **Applications**: CNT composites, quantum dot luminescence, gold nanoparticle catalysts, nanomedicine
-
-**Key Learning Content**:
-1. Definition of nanoscale and size effects, quantum confinement effects
-2. Synthesis methods (bottom-up/top-down) and characterization (TEM, SEM, XRD, UV-Vis)
-3. Property prediction using 5 regression models
-4. Nanomaterial design with Bayesian optimization
-5. Molecular dynamics (MD) data analysis
-6. Prediction interpretation with SHAP analysis
-
-**Tools Used**:
-- Python: scikit-learn, LightGBM, scikit-optimize, SHAP
-- Analysis: pandas, numpy, scipy
-- Visualization: matplotlib, seaborn
-
-**[📗 Go to NM Introduction Series →](./nm-introduction/index.html)**
-
----
-
-### 📙 Process Informatics (PI) Introduction
-
-**Process Informatics Introduction Series**
-
-The Future of Chemical Process Optimization through Data
+Complete curriculum covering calculus, linear algebra, quantum mechanics, statistical mechanics, and more.
 
 **Overview**:
-- 🎯 **Target Areas**: Chemical process optimization, digital twins, quality control
+- 🎯 **Target Areas**: Mathematics, Physics, Quantum Theory, Statistical Mechanics
 - 📊 **Difficulty**: Beginner to Advanced
-- ⏱️ **Learning Time**: 90-120 minutes (4 chapters)
-- 💻 **Code Examples**: 35 (all executable)
-- 🔬 **Applications**: Catalytic processes, polymerization reaction control, distillation column optimization, bioprocesses
+- 📚 **Series Count**: 14 comprehensive series
+- 💻 **Code Examples**: 200+ Python implementations
+- 🔬 **Applications**: Quantum simulations, statistical analysis, vector calculus
 
-**Key Learning Content**:
-1. History of chemical process development and limitations of traditional methods (1-3 years for scale-up)
-2. Types of process data (temperature, pressure, flow rate, yield, selectivity)
-3. 6 machine learning models (Linear Regression, Random Forest, LightGBM, SVR, time series analysis, Bayesian optimization)
-4. Multi-objective optimization (yield vs. cost)
-5. Grid Search/Bayesian Optimization
-6. 5 industrial case studies (yield improvement 70%→85%, etc.)
+**Key Topics**:
+1. Calculus & Vector Analysis
+2. Linear Algebra & Matrix Theory
+3. Probability & Stochastic Processes
+4. Quantum Mechanics (5 chapters)
+5. Classical & Quantum Statistical Mechanics
+6. Quantum Field Theory Introduction
+7. Equilibrium Thermodynamics
 
-**Tools Used**:
-- Python: scikit-learn, LightGBM, Prophet, ARIMA
-- Optimization: scipy.optimize, scikit-optimize
-- Visualization: matplotlib, seaborn
-
-**[📙 Go to PI Introduction Series →](./pi-introduction/index.html)**
+**[📐 Go to FM Dojo →](./FM/index.html)**
 
 ---
 
-### 📕 Machine Learning Potentials (MLP) Introduction
+### 🤖 Machine Learning (ML) Dojo
 
-**Machine Learning Potential Introduction Series**
+**Comprehensive Machine Learning Curriculum**
 
-Next-Generation Simulation Combining Quantum Accuracy with Classical Speed
+Complete ML education from fundamentals to advanced topics including deep learning, NLP, computer vision, and specialized techniques.
 
 **Overview**:
-- 🎯 **Target Areas**: Molecular simulation acceleration, reaction pathway exploration, catalyst design
-- 📊 **Difficulty**: Beginner to Advanced
-- ⏱️ **Learning Time**: 85-100 minutes (4 chapters)
-- 💻 **Code Examples**: 15 (all executable)
-- 🔬 **Applications**: Cu catalyst CO₂ reduction, Li-ion battery electrolytes, protein folding, GaN semiconductors
+- 🎯 **Target Areas**: ML Algorithms, Deep Learning, NLP, Computer Vision, Time Series
+- 📊 **Difficulty**: Beginner to Expert
+- 📚 **Series Count**: 31 comprehensive series
+- 💻 **Code Examples**: 500+ implementations
+- 🔬 **Applications**: Image classification, NLP, recommendation systems, anomaly detection
 
-**Key Learning Content**:
-1. History of molecular simulation (DFT vs classical MD vs MLP)
-2. Machine learning approximation of potential energy surfaces
-3. MLP training with SchNetPack (MD17 dataset, MAE < 1 kcal/mol)
-4. MLP-MD execution (50,000× speedup over DFT)
-5. Calculation of vibrational spectra, diffusion coefficients, radial distribution functions (RDF)
-6. Efficient data collection with Active Learning
+**Key Topics**:
+1. ML Fundamentals & Mathematics
+2. CNN, RNN, Transformer Architectures
+3. Natural Language Processing
+4. Computer Vision & Object Detection
+5. Time Series Analysis
+6. Reinforcement Learning
+7. Generative Models (VAE, GAN, Diffusion)
+8. Graph Neural Networks
+9. Model Interpretability (SHAP, LIME)
+10. MLOps & Deployment
+
+**[🤖 Go to ML Dojo →](./ML/index.html)**
+
+---
+
+### ⚗️ Materials Science (MS) Dojo
+
+**Complete Materials Science & Engineering Curriculum**
+
+Comprehensive coverage of materials characterization, processing, properties, and advanced materials systems.
+
+**Overview**:
+- 🎯 **Target Areas**: Materials Characterization, Processing, Properties, Advanced Materials
+- 📊 **Difficulty**: Beginner to Advanced
+- 📚 **Series Count**: 20 comprehensive series
+- 💻 **Code Examples**: 400+ Python implementations
+- 🔬 **Applications**: XRD analysis, spectroscopy, mechanical testing, 3D printing
+
+**Key Topics**:
+1. Crystallography & XRD Analysis
+2. Electron Microscopy (SEM, TEM)
+3. Spectroscopy (IR, Raman, UV-Vis, XPS)
+4. Mechanical Testing
+5. Materials Processing & Heat Treatment
+6. Metallic, Ceramic, Polymer Materials
+7. Composite Materials
+8. 3D Printing & Additive Manufacturing
+9. Thin Film & Nanotechnology
+10. Materials Thermodynamics
+
+**[⚗️ Go to MS Dojo →](./MS/index.html)**
+
+---
+
+### 📙 Process Informatics (PI) Dojo
+
+**Data-Driven Process Optimization & Control**
+
+Complete curriculum for chemical and manufacturing process optimization using data science and machine learning.
+
+**Overview**:
+- 🎯 **Target Areas**: Process Optimization, Quality Control, Digital Twins, Scale-up
+- 📊 **Difficulty**: Beginner to Advanced
+- 📚 **Series Count**: 20 comprehensive series
+- 💻 **Code Examples**: 300+ implementations
+- 🔬 **Applications**: Chemical plants, pharmaceuticals, semiconductors, food processing
+
+**Key Topics**:
+1. Process Data Analysis & Monitoring
+2. Process Control Fundamentals
+3. Process Optimization Methods
+4. Design of Experiments (DOE)
+5. Bayesian Optimization
+6. Digital Twin Development
+7. Quality Assurance & Control
+8. Scale-up Strategies
+9. AI Agents for Process Control
+10. Industry-Specific Applications (Chemical, Pharma, Semiconductor, Food)
+
+**[📙 Go to PI Dojo →](./PI/index.html)**
 
 **Tools Used**:
 - Python: PyTorch, SchNetPack, ASE

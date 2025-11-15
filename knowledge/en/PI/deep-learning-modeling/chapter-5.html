@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Chapter 5：強化学習によるProcessControlOptimization - DQN、PPO、DDPGの実装と応用">
-    <title>Chapter 5：強化学習によるProcessControlOptimization - Deep LearningによるProcessモデリング | PI Terakoya</title>
+    <meta name="description" content="Chapter 5: Process Control Optimization with Reinforcement Learning - Implementation and Applications of DQN, PPO, DDPG">
+    <title>Chapter 5: Process Control Optimization with Reinforcement Learning - Deep Learning Process Modeling | PI Terakoya</title>
 
         <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -85,9 +85,9 @@
             .container { padding: 0 0.5rem; }
             pre { padding: 1rem; }
         }
-    
-        
-    
+
+
+
         /* Breadcrumb styles */
         .breadcrumb {
             background: #f7fafc;
@@ -138,37 +138,37 @@
 
         <header>
         <div class="container">
-            <h1>Chapter 5：強化学習によるProcessControlOptimization</h1>
-            <p class="subtitle">MDPからDDPGまで - 自律的なProcessControlの実現</p>
+            <h1>Chapter 5: Process Control Optimization with Reinforcement Learning</h1>
+            <p class="subtitle">From MDP to DDPG - Realizing Autonomous Process Control</p>
             <div class="meta">
                 <span class="meta">📖 Reading Time: 40-45 minutes</span>
                 <span class="meta">💡 Difficulty: Advanced</span>
-                <span class="meta">🔬 Example: 反応器Control・Optimization</span>
+                <span class="meta">🔬 Examples: Reactor Control & Optimization</span>
             </div>
         </div>
     </header>
 
     <main class="container">
         <section>
-            <h2>5.1 強化学習の基礎とQ-Learning</h2>
+            <h2>5.1 Fundamentals of Reinforcement Learning and Q-Learning</h2>
 
-            <p>強化学習は、環境との相互作用を通じて最適な行動方策を学習します。ProcessControlでは、Agent（Controlシステム）が状態（温度・圧力など）を観測し、行動（バルブ開度など）を選択して、報酬（品質・コスト）を最大化します。</p>
+            <p>Reinforcement learning learns optimal action policies through interaction with the environment. In process control, an agent (control system) observes states (temperature, pressure, etc.), selects actions (valve opening, etc.), and maximizes rewards (quality, cost).</p>
 
             <div class="info-box">
-                <p><strong>💡 強化学習の基本要素</strong></p>
+                <p><strong>💡 Basic Elements of Reinforcement Learning</strong></p>
                 <ul>
-                    <li><strong>状態（State）</strong>: Processの現在の状態（温度、圧力、濃度など）</li>
-                    <li><strong>行動（Action）</strong>: Agentが取る操作（加熱、冷却、流量調整など）</li>
-                    <li><strong>報酬（Reward）</strong>: 行動の良し悪しを評価する指標（品質、コスト、Safety性）</li>
-                    <li><strong>方策（Policy）</strong>: 状態から行動への写像 \(\pi(a|s)\)</li>
+                    <li><strong>State</strong>: Current state of the process (temperature, pressure, concentration, etc.)</li>
+                    <li><strong>Action</strong>: Operations the agent takes (heating, cooling, flow adjustment, etc.)</li>
+                    <li><strong>Reward</strong>: Metric evaluating action quality (quality, cost, safety)</li>
+                    <li><strong>Policy</strong>: Mapping from states to actions \(\pi(a|s)\)</li>
                 </ul>
             </div>
 
-            <p>Bellman方程式（Q-Learning）：</p>
+            <p>Bellman Equation (Q-Learning):</p>
 
             <p>$$Q(s, a) \leftarrow Q(s, a) + \alpha [r + \gamma \max_{a'} Q(s', a') - Q(s, a)]$$</p>
 
-            <h3>例1: 簡易反応器Control（離散Q-Learning）</h3>
+            <h3>Example 1: Simple Reactor Control (Discrete Q-Learning)</h3>
 
             <pre><code class="language-python">import numpy as np
 import torch
@@ -177,74 +177,74 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
 class SimpleReactorEnv:
-    """簡易化学反応器環境"""
+    """Simplified chemical reactor environment"""
 
     def __init__(self):
-        # 状態: 温度 [300-500K] を10段階に離散化
-        self.temperature = 400.0  # 初期温度
-        self.target_temp = 420.0  # 目標温度
-        self.dt = 1.0  #  hoursステップ [min]
+        # State: Temperature [300-500K] discretized into 10 levels
+        self.temperature = 400.0  # Initial temperature
+        self.target_temp = 420.0  # Target temperature
+        self.dt = 1.0  # Time step [min]
 
-        # 行動: 0=冷却(-5K), 1=維持(0K), 2=加熱(+5K)
+        # Actions: 0=cooling(-5K), 1=maintain(0K), 2=heating(+5K)
         self.actions = [-5, 0, 5]
         self.n_actions = len(self.actions)
 
     def reset(self):
-        """環境のリセット"""
+        """Reset environment"""
         self.temperature = np.random.uniform(350, 450)
         return self._get_state()
 
     def _get_state(self):
-        """状態を離散化（10段階）"""
+        """Discretize state (10 levels)"""
         state = int((self.temperature - 300) / 20)
         return max(0, min(9, state))
 
     def step(self, action):
-        """1ステップ実行
+        """Execute one step
 
         Returns:
-            state: 次の状態
-            reward: 報酬
-            done: エピソード終了フラグ
+            state: Next state
+            reward: Reward
+            done: Episode termination flag
         """
-        # 温度変化
+        # Temperature change
         temp_change = self.actions[action]
         self.temperature += temp_change
 
-        # 外乱（熱損失）
+        # Disturbance (heat loss)
         heat_loss = 0.1 * (self.temperature - 300)
         self.temperature -= heat_loss
 
-        # 温度制約
+        # Temperature constraints
         self.temperature = np.clip(self.temperature, 300, 500)
 
-        # 報酬計算
+        # Reward calculation
         temp_error = abs(self.temperature - self.target_temp)
-        reward = -temp_error  # 目標温度に近いほど高報酬
+        reward = -temp_error  # Higher reward for closer to target temperature
 
-        # ボーナス: 目標温度±5K以内
+        # Bonus: Within target temperature ±5K
         if temp_error < 5:
             reward += 10
 
-        # ペナルティ: 温度範囲外
+        # Penalty: Outside temperature range
         if self.temperature <= 310 or self.temperature >= 490:
             reward -= 50
 
         next_state = self._get_state()
-        done = False  # 継続的Control
+        done = False  # Continuous control
 
         return next_state, reward, done
 
-# Q-LearningAgent
+# Q-Learning Agent
 class QLearningAgent:
-    """表形式Q-Learning"""
+    """Tabular Q-Learning"""
 
     def __init__(self, n_states=10, n_actions=3, alpha=0.1, gamma=0.95, epsilon=0.1):
         """
         Args:
-            alpha: 学習率
-            gamma: 割引率
-            epsilon: ε-greedy探索率
+            alpha: Learning rate
+            gamma: Discount factor
+            epsilon: ε-greedy exploration rate
         """
         self.n_states = n_states
         self.n_actions = n_actions
@@ -252,24 +252,24 @@ class QLearningAgent:
         self.gamma = gamma
         self.epsilon = epsilon
 
-        # Q-table初期化
+        # Q-table initialization
         self.q_table = defaultdict(lambda: np.zeros(n_actions))
 
     def choose_action(self, state):
-        """ε-greedy方策で行動選択"""
+        """Action selection with ε-greedy policy"""
         if np.random.rand() < self.epsilon:
-            return np.random.randint(self.n_actions)  # 探索
+            return np.random.randint(self.n_actions)  # Exploration
         else:
-            return np.argmax(self.q_table[state])  # 活用
+            return np.argmax(self.q_table[state])  # Exploitation
 
     def update(self, state, action, reward, next_state):
-        """Q値を更新"""
+        """Update Q-value"""
         current_q = self.q_table[state][action]
         max_next_q = np.max(self.q_table[next_state])
         new_q = current_q + self.alpha * (reward + self.gamma * max_next_q - current_q)
         self.q_table[state][action] = new_q
 
-# 訓練
+# Training
 env = SimpleReactorEnv()
 agent = QLearningAgent(n_states=10, n_actions=3)
 
@@ -280,7 +280,7 @@ for episode in range(n_episodes):
     state = env.reset()
     total_reward = 0
 
-    for step in range(100):  # 各エピソード100ステップ
+    for step in range(100):  # 100 steps per episode
         action = agent.choose_action(state)
         next_state, reward, done = env.step(action)
 
@@ -295,7 +295,7 @@ for episode in range(n_episodes):
         avg_reward = np.mean(episode_rewards[-100:])
         print(f'Episode {episode+1}, Avg Reward: {avg_reward:.2f}')
 
-# 学習済み方策のテスト
+# Test learned policy
 env_test = SimpleReactorEnv()
 state = env_test.reset()
 
@@ -309,7 +309,7 @@ for step in range(50):
     temperatures.append(env_test.temperature)
     actions_taken.append(action)
 
-# 可視化
+# Visualization
 plt.figure(figsize=(12, 4))
 
 plt.subplot(1, 2, 1)
@@ -333,7 +333,7 @@ plt.tight_layout()
 
 print(f"\nFinal temperature: {temperatures[-1]:.2f}K (Target: {env_test.target_temp}K)")
 
-# 出力例:
+# Sample Output:
 # Episode 100, Avg Reward: -234.56
 # Episode 200, Avg Reward: -123.45
 # Episode 300, Avg Reward: -67.89
@@ -345,18 +345,18 @@ print(f"\nFinal temperature: {temperatures[-1]:.2f}K (Target: {env_test.target_t
         </section>
 
         <section>
-            <h2>5.2 Deep Q-Network（DQN）</h2>
+            <h2>5.2 Deep Q-Network (DQN)</h2>
 
-            <p>DQNは、Q-tableをニューラルネットワークで近似します。高次元の状態空間（多変数Process）に対応できます。</p>
+            <p>DQN approximates the Q-table with a neural network, enabling handling of high-dimensional state spaces (multivariate processes).</p>
 
-            <h3>例2: DQNによる反応器Control</h3>
+            <h3>Example 2: Reactor Control with DQN</h3>
 
             <pre><code class="language-python">import torch.nn.functional as F
 from collections import deque
 import random
 
 class QNetwork(nn.Module):
-    """Q-Network（状態価値関数の近似）"""
+    """Q-Network (approximation of state-action value function)"""
 
     def __init__(self, state_dim, action_dim, hidden_dim=128):
         super(QNetwork, self).__init__()
@@ -370,7 +370,7 @@ class QNetwork(nn.Module):
         Args:
             state: [batch, state_dim]
         Returns:
-            q_values: [batch, action_dim] 各行動のQ値
+            q_values: [batch, action_dim] Q-values for each action
         """
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
@@ -378,17 +378,17 @@ class QNetwork(nn.Module):
         return q_values
 
 class ReplayBuffer:
-    """経験再生バッファ"""
+    """Experience replay buffer"""
 
     def __init__(self, capacity=10000):
         self.buffer = deque(maxlen=capacity)
 
     def push(self, state, action, reward, next_state, done):
-        """経験を保存"""
+        """Store experience"""
         self.buffer.append((state, action, reward, next_state, done))
 
     def sample(self, batch_size):
-        """ランダムサンプリング"""
+        """Random sampling"""
         batch = random.sample(self.buffer, batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
 
@@ -415,7 +415,7 @@ class DQNAgent:
         self.epsilon_end = epsilon_end
         self.epsilon_decay = epsilon_decay
 
-        # Q-Network（メイン）
+        # Q-Network (main)
         self.q_network = QNetwork(state_dim, action_dim)
         # Target Network
         self.target_network = QNetwork(state_dim, action_dim)
@@ -425,7 +425,7 @@ class DQNAgent:
         self.replay_buffer = ReplayBuffer(capacity=10000)
 
     def choose_action(self, state):
-        """ε-greedyで行動選択"""
+        """ε-greedy action selection"""
         if np.random.rand() < self.epsilon:
             return np.random.randint(self.action_dim)
 
@@ -435,25 +435,25 @@ class DQNAgent:
             return q_values.argmax().item()
 
     def train(self, batch_size=64):
-        """ミニバッチ学習"""
+        """Mini-batch training"""
         if len(self.replay_buffer) < batch_size:
             return 0.0
 
-        # サンプリング
+        # Sampling
         states, actions, rewards, next_states, dones = self.replay_buffer.sample(batch_size)
 
-        # 現在のQ値
+        # Current Q-values
         current_q = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze()
 
-        # 目標Q値（Target Networkを使用）
+        # Target Q-values (using Target Network)
         with torch.no_grad():
             max_next_q = self.target_network(next_states).max(1)[0]
             target_q = rewards + self.gamma * max_next_q * (1 - dones)
 
-        # Loss計算
+        # Loss calculation
         loss = F.mse_loss(current_q, target_q)
 
-        # 更新
+        # Update
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -461,25 +461,25 @@ class DQNAgent:
         return loss.item()
 
     def update_target_network(self):
-        """Target Networkの更新"""
+        """Update Target Network"""
         self.target_network.load_state_dict(self.q_network.state_dict())
 
     def decay_epsilon(self):
-        """εを減衰"""
+        """Decay ε"""
         self.epsilon = max(self.epsilon_end, self.epsilon * self.epsilon_decay)
 
-# 連続状態の反応器環境
+# Continuous state reactor environment
 class ContinuousReactorEnv:
-    """連続状態空間の反応器"""
+    """Reactor with continuous state space"""
 
     def __init__(self):
-        self.state_dim = 4  # 温度、圧力、濃度、流量
-        self.action_dim = 5  # 5段階の加熱Control
+        self.state_dim = 4  # Temperature, pressure, concentration, flow rate
+        self.action_dim = 5  # 5-level heating control
 
         self.reset()
 
     def reset(self):
-        # ランダム初期状態
+        # Random initial state
         self.temperature = np.random.uniform(350, 450)
         self.pressure = np.random.uniform(4, 6)
         self.concentration = np.random.uniform(0.5, 0.9)
@@ -488,7 +488,7 @@ class ContinuousReactorEnv:
         return self._get_state()
 
     def _get_state(self):
-        """状態ベクトル（正規化）"""
+        """State vector (normalized)"""
         return np.array([
             (self.temperature - 400) / 100,
             (self.pressure - 5) / 2,
@@ -497,27 +497,27 @@ class ContinuousReactorEnv:
         ], dtype=np.float32)
 
     def step(self, action):
-        # 行動: 0=-10K, 1=-5K, 2=0K, 3=+5K, 4=+10K
+        # Action: 0=-10K, 1=-5K, 2=0K, 3=+5K, 4=+10K
         temp_change = (action - 2) * 5
 
-        # 状態遷移
+        # State transition
         self.temperature += temp_change - 0.1 * (self.temperature - 350)
         self.pressure = 5 + 0.01 * (self.temperature - 400)
         self.concentration = 0.8 - 0.0005 * abs(self.temperature - 420)
         self.flow_rate = 100 + np.random.randn() * 5
 
-        # 制約
+        # Constraints
         self.temperature = np.clip(self.temperature, 300, 500)
         self.pressure = np.clip(self.pressure, 1, 10)
         self.concentration = np.clip(self.concentration, 0, 1)
 
-        # 報酬: 目標温度420K、高濃度を維持
+        # Reward: Target temperature 420K, maintain high concentration
         temp_reward = -abs(self.temperature - 420)
         conc_reward = 100 * self.concentration
 
         reward = temp_reward + conc_reward
 
-        # エネルギーコストペナルティ
+        # Energy cost penalty
         energy_cost = -0.1 * abs(temp_change)
         reward += energy_cost
 
@@ -526,7 +526,7 @@ class ContinuousReactorEnv:
 
         return next_state, reward, done
 
-# DQN訓練
+# DQN Training
 env = ContinuousReactorEnv()
 agent = DQNAgent(state_dim=4, action_dim=5, lr=0.0005)
 
@@ -544,10 +544,10 @@ for episode in range(n_episodes):
         action = agent.choose_action(state)
         next_state, reward, done = env.step(action)
 
-        # 経験を保存
+        # Store experience
         agent.replay_buffer.push(state, action, reward, next_state, done)
 
-        # 学習
+        # Training
         loss = agent.train(batch_size)
 
         total_reward += reward
@@ -556,7 +556,7 @@ for episode in range(n_episodes):
     episode_rewards.append(total_reward)
     agent.decay_epsilon()
 
-    # Target Network更新
+    # Target Network update
     if (episode + 1) % target_update_freq == 0:
         agent.update_target_network()
 
@@ -564,7 +564,7 @@ for episode in range(n_episodes):
         avg_reward = np.mean(episode_rewards[-50:])
         print(f'Episode {episode+1}, Avg Reward: {avg_reward:.2f}, Epsilon: {agent.epsilon:.4f}')
 
-# 出力例:
+# Sample Output:
 # Episode 50, Avg Reward: 45.67, Epsilon: 0.6065
 # Episode 100, Avg Reward: 62.34, Epsilon: 0.3679
 # Episode 150, Avg Reward: 73.89, Epsilon: 0.2231
@@ -575,14 +575,14 @@ for episode in range(n_episodes):
         </section>
 
         <section>
-            <h2>5.3 Policy Gradient（REINFORCE）</h2>
+            <h2>5.3 Policy Gradient (REINFORCE)</h2>
 
-            <p>方策勾配法は、方策を直接Optimizationします。連続的な行動空間や確率的な方策が必要な場合に有効です。</p>
+            <p>Policy gradient methods directly optimize the policy, effective for continuous action spaces or when stochastic policies are needed.</p>
 
-            <h3>例3: REINFORCEアルゴリズム実装</h3>
+            <h3>Example 3: REINFORCE Algorithm Implementation</h3>
 
             <pre><code class="language-python">class PolicyNetwork(nn.Module):
-    """方策ネットワーク（確率的方策）"""
+    """Policy network (stochastic policy)"""
 
     def __init__(self, state_dim, action_dim, hidden_dim=128):
         super(PolicyNetwork, self).__init__()
@@ -596,7 +596,7 @@ for episode in range(n_episodes):
         Args:
             state: [batch, state_dim]
         Returns:
-            action_probs: [batch, action_dim] 行動確率 minutes布
+            action_probs: [batch, action_dim] action probability distribution
         """
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
@@ -605,47 +605,47 @@ for episode in range(n_episodes):
         return action_probs
 
 class REINFORCEAgent:
-    """REINFORCE（モンテカルロ方策勾配）"""
+    """REINFORCE (Monte Carlo policy gradient)"""
 
     def __init__(self, state_dim, action_dim, lr=0.001, gamma=0.99):
         self.policy = PolicyNetwork(state_dim, action_dim)
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=lr)
         self.gamma = gamma
 
-        # エピソード記憶
+        # Episode memory
         self.saved_log_probs = []
         self.rewards = []
 
     def choose_action(self, state):
-        """方策からサンプリング"""
+        """Sample from policy"""
         state_tensor = torch.FloatTensor(state).unsqueeze(0)
         action_probs = self.policy(state_tensor)
 
-        # 確率 minutes布からサンプリング
+        # Sample from probability distribution
         dist = torch.distributions.Categorical(action_probs)
         action = dist.sample()
 
-        # log確率を保存（後で勾配計算に使用）
+        # Save log probability (for gradient calculation later)
         self.saved_log_probs.append(dist.log_prob(action))
 
         return action.item()
 
     def update(self):
-        """エピソード終了後に方策を更新"""
+        """Update policy after episode ends"""
         R = 0
         policy_loss = []
         returns = []
 
-        # 累積報酬を計算（逆順）
+        # Calculate cumulative reward (reverse order)
         for r in reversed(self.rewards):
             R = r + self.gamma * R
             returns.insert(0, R)
 
-        # 正規化
+        # Normalization
         returns = torch.FloatTensor(returns)
         returns = (returns - returns.mean()) / (returns.std() + 1e-8)
 
-        # 方策勾配
+        # Policy gradient
         for log_prob, R in zip(self.saved_log_probs, returns):
             policy_loss.append(-log_prob * R)
 
@@ -654,13 +654,13 @@ class REINFORCEAgent:
         loss.backward()
         self.optimizer.step()
 
-        # クリア
+        # Clear
         self.saved_log_probs.clear()
         self.rewards.clear()
 
         return loss.item()
 
-# REINFORCE訓練
+# REINFORCE Training
 env = ContinuousReactorEnv()
 agent = REINFORCEAgent(state_dim=4, action_dim=5, lr=0.001)
 
@@ -679,7 +679,7 @@ for episode in range(n_episodes):
         total_reward += reward
         state = next_state
 
-    # エピソード終了後に更新
+    # Update after episode ends
     loss = agent.update()
     episode_rewards.append(total_reward)
 
@@ -687,7 +687,7 @@ for episode in range(n_episodes):
         avg_reward = np.mean(episode_rewards[-50:])
         print(f'Episode {episode+1}, Avg Reward: {avg_reward:.2f}')
 
-# 学習済み方策のテスト
+# Test learned policy
 state = env.reset()
 temperatures = []
 
@@ -699,7 +699,7 @@ for step in range(50):
 print(f"\nFinal temperature: {temperatures[-1]:.2f}K")
 print(f"Temperature stability (std): {np.std(temperatures[-20:]):.2f}K")
 
-# 出力例:
+# Sample Output:
 # Episode 50, Avg Reward: 52.34
 # Episode 100, Avg Reward: 67.89
 # Episode 150, Avg Reward: 75.67
@@ -715,19 +715,19 @@ print(f"Temperature stability (std): {np.std(temperatures[-20:]):.2f}K")
         </section>
 
         <section>
-            <h2>5.4 Actor-Critic法</h2>
+            <h2>5.4 Actor-Critic Methods</h2>
 
-            <p>Actor-Criticは方策（Actor）と価値関数（Critic）を同時に学習します。REINFORCEの高 minutes散問題を改善できます。</p>
+            <p>Actor-Critic learns both policy (Actor) and value function (Critic) simultaneously, improving the high variance problem of REINFORCE.</p>
 
-            <h3>例4: Advantage Actor-Critic（A2C）</h3>
+            <h3>Example 4: Advantage Actor-Critic (A2C)</h3>
 
             <pre><code class="language-python">class ActorCriticNetwork(nn.Module):
-    """Actor-Critic統合ネットワーク"""
+    """Actor-Critic integrated network"""
 
     def __init__(self, state_dim, action_dim, hidden_dim=128):
         super(ActorCriticNetwork, self).__init__()
 
-        # 共有層
+        # Shared layers
         self.shared = nn.Sequential(
             nn.Linear(state_dim, hidden_dim),
             nn.ReLU(),
@@ -735,17 +735,17 @@ print(f"Temperature stability (std): {np.std(temperatures[-20:]):.2f}K")
             nn.ReLU()
         )
 
-        # Actor（方策）
+        # Actor (policy)
         self.actor = nn.Linear(hidden_dim, action_dim)
 
-        # Critic（価値関数）
+        # Critic (value function)
         self.critic = nn.Linear(hidden_dim, 1)
 
     def forward(self, state):
         """
         Returns:
-            action_probs: 行動確率 minutes布
-            state_value: 状態価値
+            action_probs: action probability distribution
+            state_value: state value
         """
         shared_features = self.shared(state)
 
@@ -766,7 +766,7 @@ class A2CAgent:
         self.entropy_coef = entropy_coef
 
     def choose_action(self, state):
-        """方策からサンプリング"""
+        """Sample from policy"""
         state_tensor = torch.FloatTensor(state).unsqueeze(0)
         action_probs, _ = self.ac_network(state_tensor)
 
@@ -776,14 +776,14 @@ class A2CAgent:
         return action.item(), dist.log_prob(action), dist.entropy()
 
     def update(self, state, action_log_prob, reward, next_state, done, entropy):
-        """1ステップごとに更新（オンライン学習）"""
+        """Update per step (online learning)"""
         state_tensor = torch.FloatTensor(state).unsqueeze(0)
         next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0)
 
-        # 現在の状態価値
+        # Current state value
         _, value = self.ac_network(state_tensor)
 
-        # 次の状態価値（Target）
+        # Next state value (Target)
         with torch.no_grad():
             _, next_value = self.ac_network(next_state_tensor)
             target_value = reward + self.gamma * next_value * (1 - done)
@@ -791,26 +791,26 @@ class A2CAgent:
         # Advantage
         advantage = target_value - value
 
-        # Actor loss（方策勾配）
+        # Actor loss (policy gradient)
         actor_loss = -action_log_prob * advantage.detach()
 
-        # Critic loss（TD誤差）
+        # Critic loss (TD error)
         critic_loss = F.mse_loss(value, target_value)
 
-        # Entropy bonus（探索促進）
+        # Entropy bonus (exploration promotion)
         entropy_loss = -self.entropy_coef * entropy
 
-        # 合計loss
+        # Total loss
         total_loss = actor_loss + critic_loss + entropy_loss
 
-        # 更新
+        # Update
         self.optimizer.zero_grad()
         total_loss.backward()
         self.optimizer.step()
 
         return total_loss.item()
 
-# A2C訓練
+# A2C Training
 env = ContinuousReactorEnv()
 agent = A2CAgent(state_dim=4, action_dim=5, lr=0.0005, entropy_coef=0.01)
 
@@ -825,7 +825,7 @@ for episode in range(n_episodes):
         action, log_prob, entropy = agent.choose_action(state)
         next_state, reward, done = env.step(action)
 
-        # オンライン更新
+        # Online update
         loss = agent.update(state, log_prob, reward, next_state, done, entropy)
 
         total_reward += reward
@@ -837,7 +837,7 @@ for episode in range(n_episodes):
         avg_reward = np.mean(episode_rewards[-50:])
         print(f'Episode {episode+1}, Avg Reward: {avg_reward:.2f}')
 
-# 出力例:
+# Sample Output:
 # Episode 50, Avg Reward: 68.45
 # Episode 100, Avg Reward: 77.89
 # Episode 150, Avg Reward: 82.34
@@ -847,21 +847,21 @@ for episode in range(n_episodes):
 </code></pre>
 
             <div class="tip-box">
-                <p><strong>💡 Actor-Criticの利点</strong></p>
+                <p><strong>💡 Advantages of Actor-Critic</strong></p>
                 <ul>
-                    <li><strong>低 minutes散</strong>: Criticによるベースライン補正で学習安定</li>
-                    <li><strong>オンライン学習</strong>: 1ステップごとに更新可能</li>
-                    <li><strong>サンプル効率</strong>: REINFORCEより少ないサンプルで学習</li>
+                    <li><strong>Low variance</strong>: Learning stability through baseline correction by Critic</li>
+                    <li><strong>Online learning</strong>: Can update per step</li>
+                    <li><strong>Sample efficiency</strong>: Learns with fewer samples than REINFORCE</li>
                 </ul>
             </div>
         </section>
 
         <section>
-            <h2>5.5 Proximal Policy Optimization（PPO）</h2>
+            <h2>5.5 Proximal Policy Optimization (PPO)</h2>
 
-            <p>PPOは方策の更新幅を制限することで、学習の安定性を向上させます。現在の最先端手法の一つです。</p>
+            <p>PPO improves learning stability by limiting the update range of the policy. It is one of the current state-of-the-art methods.</p>
 
-            <h3>例5: PPOによる連続Control</h3>
+            <h3>Example 5: Continuous Control with PPO</h3>
 
             <pre><code class="language-python">class PPOAgent:
     """Proximal Policy Optimization Agent"""
@@ -875,7 +875,7 @@ for episode in range(n_episodes):
         self.epochs = epochs
         self.batch_size = batch_size
 
-        # 経験バッファ
+        # Experience buffer
         self.states = []
         self.actions = []
         self.log_probs = []
@@ -884,7 +884,7 @@ for episode in range(n_episodes):
         self.values = []
 
     def choose_action(self, state):
-        """行動選択"""
+        """Action selection"""
         state_tensor = torch.FloatTensor(state).unsqueeze(0)
         action_probs, value = self.actor_critic(state_tensor)
 
@@ -895,7 +895,7 @@ for episode in range(n_episodes):
         return action.item(), log_prob.detach(), value.detach()
 
     def store_transition(self, state, action, log_prob, reward, done, value):
-        """経験を保存"""
+        """Store experience"""
         self.states.append(state)
         self.actions.append(action)
         self.log_probs.append(log_prob)
@@ -904,8 +904,8 @@ for episode in range(n_episodes):
         self.values.append(value)
 
     def update(self):
-        """PPO更新（バッチ学習）"""
-        # Advantage計算
+        """PPO update (batch learning)"""
+        # Advantage calculation
         returns = []
         advantages = []
         R = 0
@@ -920,14 +920,14 @@ for episode in range(n_episodes):
         advantages = returns - values
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        # Tensor変換
+        # Tensor conversion
         states = torch.FloatTensor(np.array(self.states))
         actions = torch.LongTensor(self.actions)
         old_log_probs = torch.stack(self.log_probs)
 
-        # PPO更新（複数エポック）
+        # PPO update (multiple epochs)
         for _ in range(self.epochs):
-            # 新しい方策で評価
+            # Evaluate with new policy
             action_probs, new_values = self.actor_critic(states)
             dist = torch.distributions.Categorical(action_probs)
             new_log_probs = dist.log_prob(actions)
@@ -947,13 +947,13 @@ for episode in range(n_episodes):
             # Total loss
             loss = actor_loss + 0.5 * critic_loss - 0.01 * entropy
 
-            # 更新
+            # Update
             self.optimizer.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(self.actor_critic.parameters(), 0.5)
             self.optimizer.step()
 
-        # バッファクリア
+        # Clear buffer
         self.states.clear()
         self.actions.clear()
         self.log_probs.clear()
@@ -961,12 +961,12 @@ for episode in range(n_episodes):
         self.dones.clear()
         self.values.clear()
 
-# PPO訓練
+# PPO Training
 env = ContinuousReactorEnv()
 agent = PPOAgent(state_dim=4, action_dim=5, lr=0.0003)
 
 n_episodes = 200
-update_interval = 10  # 10エピソードごとに更新
+update_interval = 10  # Update every 10 episodes
 episode_rewards = []
 
 for episode in range(n_episodes):
@@ -984,7 +984,7 @@ for episode in range(n_episodes):
 
     episode_rewards.append(total_reward)
 
-    # 定期的に更新
+    # Periodic update
     if (episode + 1) % update_interval == 0:
         agent.update()
 
@@ -992,7 +992,7 @@ for episode in range(n_episodes):
         avg_reward = np.mean(episode_rewards[-50:])
         print(f'Episode {episode+1}, Avg Reward: {avg_reward:.2f}')
 
-# 出力例:
+# Sample Output:
 # Episode 50, Avg Reward: 74.56
 # Episode 100, Avg Reward: 83.45
 # Episode 150, Avg Reward: 86.78
@@ -1001,14 +1001,14 @@ for episode in range(n_episodes):
         </section>
 
         <section>
-            <h2>5.6 Deep Deterministic Policy Gradient（DDPG）</h2>
+            <h2>5.6 Deep Deterministic Policy Gradient (DDPG)</h2>
 
-            <p>DDPGは連続的な行動空間に対応した手法です。反応器の温度Controlなど、連続値の操作量をOptimizationできます。</p>
+            <p>DDPG is a method for continuous action spaces. It can optimize continuous manipulated variables such as reactor temperature control.</p>
 
-            <h3>例6: DDPGによる温度Control</h3>
+            <h3>Example 6: Temperature Control with DDPG</h3>
 
             <pre><code class="language-python">class ContinuousActorNetwork(nn.Module):
-    """連続行動のためのActor"""
+    """Actor for continuous actions"""
 
     def __init__(self, state_dim, action_dim, hidden_dim=128, action_bound=1.0):
         super(ContinuousActorNetwork, self).__init__()
@@ -1021,7 +1021,7 @@ for episode in range(n_episodes):
     def forward(self, state):
         """
         Returns:
-            action: [-action_bound, action_bound]の連続値
+            action: continuous value in [-action_bound, action_bound]
         """
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
@@ -1029,7 +1029,7 @@ for episode in range(n_episodes):
         return action
 
 class ContinuousCriticNetwork(nn.Module):
-    """Q値関数（状態-行動ペア）"""
+    """Q-value function (state-action pair)"""
 
     def __init__(self, state_dim, action_dim, hidden_dim=128):
         super(ContinuousCriticNetwork, self).__init__()
@@ -1059,19 +1059,19 @@ class DDPGAgent:
                  gamma=0.99, tau=0.001, action_bound=10.0):
         """
         Args:
-            tau: soft updateのパラメータ
-            action_bound: 行動の最大値（温度変化の最大幅 [K]）
+            tau: soft update parameter
+            action_bound: maximum action value (max temperature change [K])
         """
         self.gamma = gamma
         self.tau = tau
         self.action_bound = action_bound
 
-        # Actor（メインとターゲット）
+        # Actor (main and target)
         self.actor = ContinuousActorNetwork(state_dim, action_dim, action_bound=action_bound)
         self.actor_target = ContinuousActorNetwork(state_dim, action_dim, action_bound=action_bound)
         self.actor_target.load_state_dict(self.actor.state_dict())
 
-        # Critic（メインとターゲット）
+        # Critic (main and target)
         self.critic = ContinuousCriticNetwork(state_dim, action_dim)
         self.critic_target = ContinuousCriticNetwork(state_dim, action_dim)
         self.critic_target.load_state_dict(self.critic.state_dict())
@@ -1080,24 +1080,24 @@ class DDPGAgent:
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=lr_actor)
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=lr_critic)
 
-        # 経験再生
+        # Experience replay
         self.replay_buffer = ReplayBuffer(capacity=100000)
 
-        # Ornstein-Uhlenbeckノイズ（探索用）
+        # Ornstein-Uhlenbeck noise (for exploration)
         self.noise_sigma = 2.0
         self.noise_theta = 0.15
         self.noise_mu = 0.0
         self.noise_state = 0.0
 
     def choose_action(self, state, add_noise=True):
-        """行動選択（ノイズ付き探索）"""
+        """Action selection (with noise exploration)"""
         state_tensor = torch.FloatTensor(state).unsqueeze(0)
 
         with torch.no_grad():
             action = self.actor(state_tensor).squeeze().numpy()
 
         if add_noise:
-            # Ornstein-Uhlenbeckノイズ
+            # Ornstein-Uhlenbeck noise
             self.noise_state += self.noise_theta * (self.noise_mu - self.noise_state) + \
                                self.noise_sigma * np.random.randn()
             action += self.noise_state
@@ -1106,14 +1106,14 @@ class DDPGAgent:
         return action
 
     def train(self, batch_size=64):
-        """DDPG更新"""
+        """DDPG update"""
         if len(self.replay_buffer) < batch_size:
             return 0.0, 0.0
 
-        # サンプリング
+        # Sampling
         states, actions, rewards, next_states, dones = self.replay_buffer.sample(batch_size)
 
-        # Critic更新
+        # Critic update
         with torch.no_grad():
             next_actions = self.actor_target(next_states)
             target_q = self.critic_target(next_states, next_actions)
@@ -1126,7 +1126,7 @@ class DDPGAgent:
         critic_loss.backward()
         self.critic_optimizer.step()
 
-        # Actor更新
+        # Actor update
         predicted_actions = self.actor(states)
         actor_loss = -self.critic(states, predicted_actions).mean()
 
@@ -1145,13 +1145,13 @@ class DDPGAgent:
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(self.tau * local_param.data + (1.0 - self.tau) * target_param.data)
 
-# 連続行動の環境
+# Continuous action environment
 class ContinuousActionReactorEnv:
-    """連続行動空間の反応器"""
+    """Reactor with continuous action space"""
 
     def __init__(self):
         self.state_dim = 4
-        self.action_dim = 1  # 温度変化量 [-10, +10] K
+        self.action_dim = 1  # Temperature change [-10, +10] K
         self.reset()
 
     def reset(self):
@@ -1170,7 +1170,7 @@ class ContinuousActionReactorEnv:
         ], dtype=np.float32)
 
     def step(self, action):
-        # 連続的な温度変化
+        # Continuous temperature change
         temp_change = float(action[0])  # [-10, +10] K
 
         self.temperature += temp_change - 0.1 * (self.temperature - 350)
@@ -1181,7 +1181,7 @@ class ContinuousActionReactorEnv:
         self.pressure = np.clip(self.pressure, 1, 10)
         self.concentration = np.clip(self.concentration, 0, 1)
 
-        # 報酬
+        # Reward
         temp_reward = -abs(self.temperature - 420)
         conc_reward = 100 * self.concentration
         energy_cost = -0.5 * abs(temp_change)
@@ -1190,7 +1190,7 @@ class ContinuousActionReactorEnv:
 
         return self._get_state(), reward, False
 
-# DDPG訓練
+# DDPG Training
 env = ContinuousActionReactorEnv()
 agent = DDPGAgent(state_dim=4, action_dim=1, action_bound=10.0)
 
@@ -1214,7 +1214,7 @@ for episode in range(n_episodes):
 
     episode_rewards.append(total_reward)
 
-    # ノイズ減衰
+    # Noise decay
     agent.noise_sigma *= 0.995
 
     if (episode + 1) % 50 == 0:
@@ -1223,7 +1223,7 @@ for episode in range(n_episodes):
 
 print(f"\nFinal 10 episodes avg reward: {np.mean(episode_rewards[-10:]):.2f}")
 
-# 出力例:
+# Sample Output:
 # Episode 50, Avg Reward: 72.34, Noise: 1.6098
 # Episode 100, Avg Reward: 81.56, Noise: 1.2958
 # Episode 150, Avg Reward: 85.89, Noise: 1.0431
@@ -1233,40 +1233,40 @@ print(f"\nFinal 10 episodes avg reward: {np.mean(episode_rewards[-10:]):.2f}")
 </code></pre>
 
             <div class="success-box">
-                <p><strong>✅ DDPGの利点</strong></p>
+                <p><strong>✅ Advantages of DDPG</strong></p>
                 <ul>
-                    <li><strong>連続Control</strong>: 温度・流量など連続値の操作量を直接Optimization</li>
-                    <li><strong>決定論的方策</strong>: 同じ状態で同じ行動（再現性）</li>
-                    <li><strong>オフポリシー学習</strong>: 経験再生によるサンプル効率</li>
+                    <li><strong>Continuous control</strong>: Directly optimizes continuous manipulated variables like temperature and flow rate</li>
+                    <li><strong>Deterministic policy</strong>: Same action for same state (reproducibility)</li>
+                    <li><strong>Off-policy learning</strong>: Sample efficiency through experience replay</li>
                 </ul>
             </div>
         </section>
 
         <section>
-            <h2>5.7 マルチAgent強化学習</h2>
+            <h2>5.7 Multi-Agent Reinforcement Learning</h2>
 
-            <p> minutes散型ProcessControlでは、複数のAgent（各反応器のControlシステム）が協調してOptimizationします。</p>
+            <p>In distributed process control, multiple agents (control systems for each reactor) cooperate to optimize.</p>
 
-            <h3>例7: 協調型マルチAgentControl</h3>
+            <h3>Example 7: Cooperative Multi-Agent Control</h3>
 
             <pre><code class="language-python">class MultiAgentReactorEnv:
-    """3つの連結反応器システム"""
+    """Three interconnected reactor system"""
 
     def __init__(self):
         self.n_agents = 3
-        self.state_dim = 2  # 各反応器の温度・濃度
-        self.action_dim = 3  # 冷却/維持/加熱
+        self.state_dim = 2  # Temperature and concentration for each reactor
+        self.action_dim = 3  # Cooling/maintain/heating
 
         self.reset()
 
     def reset(self):
-        # 各反応器の初期状態
+        # Initial state for each reactor
         self.temperatures = np.random.uniform(350, 450, self.n_agents)
         self.concentrations = np.random.uniform(0.5, 0.9, self.n_agents)
         return self._get_states()
 
     def _get_states(self):
-        """各Agentの状態"""
+        """State for each agent"""
         states = []
         for i in range(self.n_agents):
             state = np.array([
@@ -1279,39 +1279,39 @@ print(f"\nFinal 10 episodes avg reward: {np.mean(episode_rewards[-10:]):.2f}")
     def step(self, actions):
         """
         Args:
-            actions: [n_agents] 各Agentの行動
+            actions: [n_agents] action for each agent
 
         Returns:
-            states: 次状態
-            rewards: 各Agentの報酬
-            done: 終了フラグ
+            states: next states
+            rewards: reward for each agent
+            done: termination flag
         """
         temp_changes = [(a - 1) * 5 for a in actions]  # -5, 0, +5 K
 
-        # 各反応器の更新 + 熱交換
+        # Update each reactor + heat exchange
         for i in range(self.n_agents):
-            # 自身のControl
+            # Self control
             self.temperatures[i] += temp_changes[i]
 
-            # 隣接反応器との熱交換
+            # Heat exchange with adjacent reactor
             if i > 0:
                 heat_exchange = 0.1 * (self.temperatures[i-1] - self.temperatures[i])
                 self.temperatures[i] += heat_exchange
 
-            # 反応進行
+            # Reaction progress
             self.concentrations[i] = 0.8 - 0.001 * abs(self.temperatures[i] - 420)
 
-            # 制約
+            # Constraints
             self.temperatures[i] = np.clip(self.temperatures[i], 300, 500)
             self.concentrations[i] = np.clip(self.concentrations[i], 0, 1)
 
-        # 各Agentの報酬
+        # Reward for each agent
         rewards = []
         for i in range(self.n_agents):
             temp_reward = -abs(self.temperatures[i] - 420)
             conc_reward = 50 * self.concentrations[i]
 
-            # 協調ボーナス: 全反応器の濃度が高い
+            # Cooperation bonus: high concentration across all reactors
             global_conc = np.mean(self.concentrations)
             cooperation_bonus = 20 * global_conc
 
@@ -1320,17 +1320,17 @@ print(f"\nFinal 10 episodes avg reward: {np.mean(episode_rewards[-10:]):.2f}")
 
         return self._get_states(), rewards, False
 
-# 独立Q-Learning（各Agentが独自に学習）
+# Independent Q-Learning (each agent learns independently)
 class MultiAgentQLearning:
-    """マルチAgentQ-Learning"""
+    """Multi-Agent Q-Learning"""
 
     def __init__(self, n_agents, state_dim, action_dim):
         self.n_agents = n_agents
-        # 各Agent用のDQN
+        # DQN for each agent
         self.agents = [DQNAgent(state_dim, action_dim, lr=0.0005) for _ in range(n_agents)]
 
     def choose_actions(self, states):
-        """全Agentの行動を選択"""
+        """Select actions for all agents"""
         actions = []
         for i, state in enumerate(states):
             action = self.agents[i].choose_action(state)
@@ -1338,21 +1338,21 @@ class MultiAgentQLearning:
         return actions
 
     def train(self, states, actions, rewards, next_states):
-        """各Agentを独立に訓練"""
+        """Train each agent independently"""
         losses = []
         for i in range(self.n_agents):
-            # 経験を保存
+            # Store experience
             self.agents[i].replay_buffer.push(
                 states[i], actions[i], rewards[i], next_states[i], False
             )
 
-            # 訓練
+            # Training
             loss = self.agents[i].train(batch_size=32)
             losses.append(loss)
 
         return np.mean(losses)
 
-# マルチAgent訓練
+# Multi-agent training
 env = MultiAgentReactorEnv()
 ma_agent = MultiAgentQLearning(n_agents=3, state_dim=2, action_dim=3)
 
@@ -1374,7 +1374,7 @@ for episode in range(n_episodes):
 
     episode_rewards.append(total_rewards.sum())
 
-    # εとTarget Network更新
+    # ε and Target Network update
     for agent in ma_agent.agents:
         agent.decay_epsilon()
 
@@ -1386,7 +1386,7 @@ for episode in range(n_episodes):
         avg_reward = np.mean(episode_rewards[-50:])
         print(f'Episode {episode+1}, Avg Total Reward: {avg_reward:.2f}')
 
-# テスト: 協調動作の確認
+# Test: Verify cooperative behavior
 states = env.reset()
 temps = [[], [], []]
 
@@ -1397,7 +1397,7 @@ for step in range(50):
     for i in range(3):
         temps[i].append(env.temperatures[i])
 
-# 可視化
+# Visualization
 plt.figure(figsize=(10, 4))
 for i in range(3):
     plt.plot(temps[i], label=f'Reactor {i+1}')
@@ -1412,7 +1412,7 @@ plt.tight_layout()
 print(f"\nFinal temperatures: {[temps[i][-1] for i in range(3)]}")
 print(f"Final concentrations: {env.concentrations}")
 
-# 出力例:
+# Sample Output:
 # Episode 50, Avg Total Reward: 567.89
 # Episode 100, Avg Total Reward: 789.01
 # Episode 150, Avg Total Reward: 876.54
@@ -1426,20 +1426,20 @@ print(f"Final concentrations: {env.concentrations}")
         </section>
 
         <section>
-            <h2>5.8 Safe RL（Safety制約付き強化学習）</h2>
+            <h2>5.8 Safe RL (Safety-Constrained Reinforcement Learning)</h2>
 
-            <p>Process産業ではSafety性が最優先です。制約条件（温度上限、圧力範囲）を満たしながらOptimizationします。</p>
+            <p>Safety is the top priority in the process industry. Optimize while satisfying constraints (temperature limits, pressure ranges).</p>
 
-            <h3>例8: 制約付きPPO（CPO概念）</h3>
+            <h3>Example 8: Constrained PPO (CPO Concept)</h3>
 
             <pre><code class="language-python">class SafeReactorEnv:
-    """Safety制約付き反応器環境"""
+    """Reactor environment with safety constraints"""
 
     def __init__(self):
         self.state_dim = 4
         self.action_dim = 5
 
-        # Safety制約
+        # Safety constraints
         self.temp_min = 320  # K
         self.temp_max = 480  # K
         self.pressure_max = 8  # bar
@@ -1464,43 +1464,43 @@ print(f"Final concentrations: {env.concentrations}")
     def step(self, action):
         temp_change = (action - 2) * 5
 
-        # 状態更新
+        # State update
         self.temperature += temp_change - 0.1 * (self.temperature - 350)
         self.pressure = 5 + 0.02 * (self.temperature - 400)
         self.concentration = 0.8 - 0.0005 * abs(self.temperature - 420)
 
-        # 制約チェック（違反前に制限）
+        # Constraint check (limit before violation)
         self.temperature = np.clip(self.temperature, self.temp_min, self.temp_max)
         self.pressure = np.clip(self.pressure, 1, self.pressure_max)
 
-        # 報酬
+        # Reward
         temp_reward = -abs(self.temperature - 420)
         conc_reward = 100 * self.concentration
 
         reward = temp_reward + conc_reward
 
-        # 制約コスト（違反時に大きなペナルティ）
+        # Constraint cost (large penalty for violation)
         cost = 0.0
         if self.temperature < self.temp_min + 10 or self.temperature > self.temp_max - 10:
-            cost = 100  # 制約マージン違反
+            cost = 100  # Constraint margin violation
         if self.pressure > self.pressure_max - 1:
             cost += 100
 
         return self._get_state(), reward, cost, False
 
 class SafePPOAgent:
-    """Safety制約付きPPO（簡易版）"""
+    """Safety-Constrained PPO (Simplified)"""
 
     def __init__(self, state_dim, action_dim, lr=0.0003, cost_limit=20):
         """
         Args:
-            cost_limit: エピソード当たりの許容コスト上限
+            cost_limit: allowable cost limit per episode
         """
         self.actor_critic = ActorCriticNetwork(state_dim, action_dim)
         self.optimizer = torch.optim.Adam(self.actor_critic.parameters(), lr=lr)
         self.cost_limit = cost_limit
 
-        # コスト用Critic
+        # Cost critic
         self.cost_critic = nn.Sequential(
             nn.Linear(state_dim, 128),
             nn.ReLU(),
@@ -1508,7 +1508,7 @@ class SafePPOAgent:
         )
         self.cost_optimizer = torch.optim.Adam(self.cost_critic.parameters(), lr=lr)
 
-        # バッファ
+        # Buffer
         self.states = []
         self.actions = []
         self.log_probs = []
@@ -1535,8 +1535,8 @@ class SafePPOAgent:
         self.values.append(value)
 
     def update(self):
-        """Safety制約を考慮した更新"""
-        # Advantage計算
+        """Update considering safety constraints"""
+        # Advantage calculation
         returns = []
         cost_returns = []
         R = 0
@@ -1555,23 +1555,23 @@ class SafePPOAgent:
         advantages = returns - values
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        # コスト制約チェック
+        # Cost constraint check
         total_cost = sum(self.costs)
 
         states = torch.FloatTensor(np.array(self.states))
         actions = torch.LongTensor(self.actions)
         old_log_probs = torch.stack(self.log_probs)
 
-        # 通常のPPO更新（ただしコストが上限を超えていたら学習率を下げる）
+        # Normal PPO update (but reduce learning rate if cost exceeds limit)
         action_probs, new_values = self.actor_critic(states)
         dist = torch.distributions.Categorical(action_probs)
         new_log_probs = dist.log_prob(actions)
 
         ratio = torch.exp(new_log_probs - old_log_probs)
 
-        # コスト制約違反時は更新を抑制
+        # Suppress updates when cost constraint is violated
         if total_cost > self.cost_limit:
-            penalty_factor = 0.1  # 学習を遅くする
+            penalty_factor = 0.1  # Slow down learning
             advantages = advantages * penalty_factor
 
         surr1 = ratio * advantages
@@ -1586,7 +1586,7 @@ class SafePPOAgent:
         loss.backward()
         self.optimizer.step()
 
-        # クリア
+        # Clear
         self.states.clear()
         self.actions.clear()
         self.log_probs.clear()
@@ -1596,7 +1596,7 @@ class SafePPOAgent:
 
         return total_cost
 
-# Safe RL訓練
+# Safe RL Training
 env = SafeReactorEnv()
 agent = SafePPOAgent(state_dim=4, action_dim=5, cost_limit=50)
 
@@ -1617,7 +1617,7 @@ for episode in range(n_episodes):
         total_reward += reward
         state = next_state
 
-    # 更新
+    # Update
     if (episode + 1) % 10 == 0:
         total_cost = agent.update()
         episode_costs.append(total_cost)
@@ -1631,7 +1631,7 @@ for episode in range(n_episodes):
 
 print(f"\nSafety violations (cost > {agent.cost_limit}): {sum(c > agent.cost_limit for c in episode_costs)}")
 
-# 出力例:
+# Sample Output:
 # Episode 50, Avg Reward: 78.45, Avg Cost: 67.89
 # Episode 100, Avg Reward: 83.56, Avg Cost: 42.34
 # Episode 150, Avg Reward: 85.67, Avg Cost: 28.76
@@ -1641,111 +1641,111 @@ print(f"\nSafety violations (cost > {agent.cost_limit}): {sum(c > agent.cost_lim
 </code></pre>
 
             <div class="warning-box">
-                <p><strong>⚠️ 産業実装時の注意点</strong></p>
+                <p><strong>⚠️ Notes for Industrial Implementation</strong></p>
                 <ul>
-                    <li><strong>Simulation検証</strong>: 実Processに適用前に十 minutesな検証</li>
-                    <li><strong>フェイルセーフ</strong>: RLが失敗時の古典Controlへのフォールバック</li>
-                    <li><strong>段階的導入</strong>: まずソフトセンサー、次にOptimization、最後にControl</li>
-                    <li><strong>人間のMonitoring</strong>: 完全自動化前に人間がMonitoring・介入可能に</li>
+                    <li><strong>Simulation validation</strong>: Thorough validation before application to real processes</li>
+                    <li><strong>Fail-safe</strong>: Fallback to classical control when RL fails</li>
+                    <li><strong>Gradual introduction</strong>: First soft sensors, then optimization, finally control</li>
+                    <li><strong>Human oversight</strong>: Enable human monitoring and intervention before full automation</li>
                 </ul>
             </div>
         </section>
 
         <section>
-            <h2>Learning Objectivesの確認</h2>
+            <h2>Learning Objectives Review</h2>
 
-            <p>この Chapterを完了すると、以下を実装・説明できるようになります：</p>
+            <p>Upon completing this chapter, you will be able to implement and explain the following:</p>
 
-            <h3>基本理解</h3>
+            <h3>Basic Understanding</h3>
             <ul>
-                <li>強化学習のMDP（マルコフ決定過程）とBellman方程式を説明できる</li>
-                <li>Q-Learning、Policy Gradient、Actor-Criticの違いを理解している</li>
-                <li>Experience ReplayとTarget Networkの役割を説明できる</li>
-                <li>連続行動空間と離散行動空間の違いを理解している</li>
+                <li>Explain MDP (Markov Decision Process) and Bellman equation in reinforcement learning</li>
+                <li>Understand differences between Q-Learning, Policy Gradient, and Actor-Critic</li>
+                <li>Explain roles of Experience Replay and Target Network</li>
+                <li>Understand differences between continuous and discrete action spaces</li>
             </ul>
 
-            <h3>実践スキル</h3>
+            <h3>Practical Skills</h3>
             <ul>
-                <li>Q-Learningで簡易ProcessControlを実装できる</li>
-                <li>DQNで高次元状態空間のControlを実装できる</li>
-                <li>REINFORCEとA2Cで方策勾配法を実装できる</li>
-                <li>PPOで安定した学習を実現できる</li>
-                <li>DDPGで連続Control（温度・流量）をOptimizationできる</li>
-                <li>マルチAgentRLで minutes散Controlを実装できる</li>
-                <li>制約付きRLでSafety性を考慮したControlができる</li>
+                <li>Implement simple process control with Q-Learning</li>
+                <li>Implement high-dimensional state space control with DQN</li>
+                <li>Implement policy gradient methods with REINFORCE and A2C</li>
+                <li>Achieve stable learning with PPO</li>
+                <li>Optimize continuous control (temperature, flow rate) with DDPG</li>
+                <li>Implement distributed control with multi-agent RL</li>
+                <li>Implement safety-aware control with constrained RL</li>
             </ul>
 
-            <h3>応用力</h3>
+            <h3>Applied Capabilities</h3>
             <ul>
-                <li>Processの特性に応じて適切なRL手法を選択できる</li>
-                <li>報酬関数を設計してProcess目標を定式化できる</li>
-                <li>Safety制約を満たしながら性能をOptimizationできる</li>
-                <li>Simulationから実Processへの適用戦略を立てられる</li>
+                <li>Select appropriate RL methods based on process characteristics</li>
+                <li>Design reward functions to formulate process objectives</li>
+                <li>Optimize performance while satisfying safety constraints</li>
+                <li>Develop strategies for transitioning from simulation to real processes</li>
             </ul>
         </section>
 
         <section>
-            <h2>RL手法比較表</h2>
+            <h2>RL Method Comparison Table</h2>
 
             <table>
                 <thead>
                     <tr>
-                        <th>手法</th>
-                        <th>行動空間</th>
-                        <th>学習方式</th>
-                        <th>サンプル効率</th>
-                        <th>安定性</th>
-                        <th>適用例</th>
+                        <th>Method</th>
+                        <th>Action Space</th>
+                        <th>Learning Type</th>
+                        <th>Sample Efficiency</th>
+                        <th>Stability</th>
+                        <th>Application Example</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td><strong>Q-Learning</strong></td>
-                        <td>離散</td>
-                        <td>オフポリシー</td>
-                        <td>高</td>
-                        <td>中</td>
-                        <td>簡易反応器Control</td>
+                        <td>Discrete</td>
+                        <td>Off-policy</td>
+                        <td>High</td>
+                        <td>Medium</td>
+                        <td>Simple reactor control</td>
                     </tr>
                     <tr>
                         <td><strong>DQN</strong></td>
-                        <td>離散</td>
-                        <td>オフポリシー</td>
-                        <td>高</td>
-                        <td>中</td>
-                        <td>多変数ProcessControl</td>
+                        <td>Discrete</td>
+                        <td>Off-policy</td>
+                        <td>High</td>
+                        <td>Medium</td>
+                        <td>Multivariate process control</td>
                     </tr>
                     <tr>
                         <td><strong>REINFORCE</strong></td>
-                        <td>離散/連続</td>
-                        <td>オンポリシー</td>
-                        <td>低</td>
-                        <td>低</td>
-                        <td>探索的Control</td>
+                        <td>Discrete/Continuous</td>
+                        <td>On-policy</td>
+                        <td>Low</td>
+                        <td>Low</td>
+                        <td>Exploratory control</td>
                     </tr>
                     <tr>
                         <td><strong>A2C</strong></td>
-                        <td>離散/連続</td>
-                        <td>オンポリシー</td>
-                        <td>中</td>
-                        <td>中</td>
-                        <td>リアルタイムControl</td>
+                        <td>Discrete/Continuous</td>
+                        <td>On-policy</td>
+                        <td>Medium</td>
+                        <td>Medium</td>
+                        <td>Real-time control</td>
                     </tr>
                     <tr>
                         <td><strong>PPO</strong></td>
-                        <td>離散/連続</td>
-                        <td>オンポリシー</td>
-                        <td>中</td>
-                        <td>高</td>
-                        <td>安定したOptimization</td>
+                        <td>Discrete/Continuous</td>
+                        <td>On-policy</td>
+                        <td>Medium</td>
+                        <td>High</td>
+                        <td>Stable optimization</td>
                     </tr>
                     <tr>
                         <td><strong>DDPG</strong></td>
-                        <td>連続</td>
-                        <td>オフポリシー</td>
-                        <td>高</td>
-                        <td>中</td>
-                        <td>温度・流量Control</td>
+                        <td>Continuous</td>
+                        <td>Off-policy</td>
+                        <td>High</td>
+                        <td>Medium</td>
+                        <td>Temperature/flow control</td>
                     </tr>
                 </tbody>
             </table>
@@ -1764,8 +1764,8 @@ print(f"\nSafety violations (cost > {agent.cost_limit}): {sum(c > agent.cost_lim
         </section>
 
         <div class="navigation">
-            <a href="chapter-4.html" class="nav-button">← Chapter 4：オートエンコーダ</a>
-            <a href="index.html" class="nav-button">Series Contentsへ</a>
+            <a href="chapter-4.html" class="nav-button">← Chapter 4: Autoencoders</a>
+            <a href="index.html" class="nav-button">Series Index</a>
         </div>
     </main>
 </body>

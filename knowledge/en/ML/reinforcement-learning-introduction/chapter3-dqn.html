@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 3 Chapter：Deep Q-Network (DQN) - AI Terakoya</title>
+    <title>Chapter 3: Deep Q-Network (DQN) - AI Terakoya</title>
 
     <style>
         :root {
@@ -98,9 +98,9 @@
         }
 
         @media (max-width: 768px) { h1 { font-size: 1.5rem; } h2 { font-size: 1.4rem; } h3 { font-size: 1.2rem; } .meta { font-size: 0.85rem; } .navigation { flex-direction: column; } table { font-size: 0.85rem; } th, td { padding: var(--spacing-xs); } }
-    
-        
-    
+
+
+
         /* Breadcrumb styles */
         .breadcrumb {
             background: #f7fafc;
@@ -161,13 +161,13 @@
 
         <header>
         <div class="header-content">
-            <h1>Chapter 3 Chapter：Deep Q-Network (DQN)</h1>
-            <p class="subtitle">Q学習からディープラーニングへ - Experience Replay、Target Network、アルゴリズム拡張</p>
+            <h1>Chapter 3: Deep Q-Network (DQN)</h1>
+            <p class="subtitle">From Q-Learning to Deep Learning - Experience Replay, Target Network, and Algorithm Extensions</p>
             <div class="meta">
                 <span class="meta-item">📖 Reading Time: 30-35 minutes</span>
                 <span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
                 <span class="meta-item">💻 Code Examples: 8</span>
-                <span class="meta-item">🎮 実装: CartPole、Atari</span>
+                <span class="meta-item">🎮 Implementations: CartPole, Atari</span>
             </div>
         </div>
     </header>
@@ -175,40 +175,40 @@
     <main class="container">
 
 <h2>Learning Objectives</h2>
-<p>この ChapterReadことで、以下を習得できます：</p>
+<p>After reading this chapter, you will be able to:</p>
 <ul>
-<li>✅ 表形式Q学習の限界とディープラーニング適用の必要性を理解する</li>
-<li>✅ DQNの基本アーキテクチャ（CNN for Atari）を実装できる</li>
-<li>✅ Experience Replayの役割と実装方法を習得する</li>
-<li>✅ Target Networkによる学習安定化の仕組みを理解する</li>
-<li>✅ Double DQNとDueling DQNのアルゴリズム改善を実装できる</li>
-<li>✅ CartPole環境でのDQN学習を実装できる</li>
-<li>✅ Atari Pong環境での画像ベース強化学習を実装できる</li>
-<li>✅ DQNの性能評価と学習曲線の minutes析ができる</li>
+<li>✅ Understand the limitations of tabular Q-learning and the necessity of applying deep learning</li>
+<li>✅ Implement the basic DQN architecture (CNN for Atari)</li>
+<li>✅ Master the role and implementation of Experience Replay</li>
+<li>✅ Understand the learning stabilization mechanism by Target Network</li>
+<li>✅ Implement algorithm improvements of Double DQN and Dueling DQN</li>
+<li>✅ Implement DQN learning in CartPole environment</li>
+<li>✅ Implement image-based reinforcement learning in Atari Pong environment</li>
+<li>✅ Perform DQN performance evaluation and learning curve analysis</li>
 </ul>
 
 <hr>
 
-<h2>3.1 Q学習の限界とDQNの必要性</h2>
+<h2>3.1 Limitations of Q-Learning and the Need for DQN</h2>
 
-<h3>表形式Q学習の限界</h3>
+<h3>Limitations of Tabular Q-Learning</h3>
 
-<p>Chapter 2 Chapterで学んだ表形式Q学習は、状態と行動が離散的かつ少数の場合に有効ですが、現実的な問題では以下の制約があります：</p>
+<p>Tabular Q-learning learned in Chapter 2 is effective when states and actions are discrete and few, but has the following constraints for realistic problems:</p>
 
 <blockquote>
-<p>「状態空間が大きい、あるいは連続的な場合、全ての状態-行動ペアをテーブルで管理することは計算的に不可能である」</p>
+<p>"When the state space is large or continuous, it is computationally impossible to manage all state-action pairs with a table"</p>
 </blockquote>
 
-<h3>スケーラビリティの問題</h3>
+<h3>Scalability Issues</h3>
 
 <table>
 <thead>
 <tr>
-<th>環境</th>
-<th>状態空間</th>
-<th>行動空間</th>
-<th>Qテーブルサイズ</th>
-<th>実現可能性</th>
+<th>Environment</th>
+<th>State Space</th>
+<th>Action Space</th>
+<th>Q-Table Size</th>
+<th>Feasibility</th>
 </tr>
 </thead>
 <tbody>
@@ -217,48 +217,48 @@
 <td>16</td>
 <td>4</td>
 <td>64</td>
-<td>✅ 可能</td>
+<td>✅ Possible</td>
 </tr>
 <tr>
 <td><strong>CartPole</strong></td>
-<td>連続（4次元）</td>
+<td>Continuous (4D)</td>
 <td>2</td>
-<td>無限大</td>
-<td>❌ 離散化必要</td>
+<td>Infinite</td>
+<td>❌ Discretization needed</td>
 </tr>
 <tr>
-<td><strong>Atari（84×84 RGB）</strong></td>
+<td><strong>Atari (84×84 RGB)</strong></td>
 <td>$256^{84 \times 84 \times 3}$</td>
 <td>4-18</td>
-<td>天文学的数字</td>
-<td>❌ 不可能</td>
+<td>Astronomical</td>
+<td>❌ Impossible</td>
 </tr>
 <tr>
-<td><strong>囲碁（19×19）</strong></td>
+<td><strong>Go (19×19)</strong></td>
 <td>$3^{361}$ ≈ $10^{172}$</td>
 <td>361</td>
 <td>$10^{174}$</td>
-<td>❌ 不可能</td>
+<td>❌ Impossible</td>
 </tr>
 </tbody>
 </table>
 
-<h3>DQNによる解決アプローチ</h3>
+<h3>DQN Solution Approach</h3>
 
-<p><strong>Deep Q-Network (DQN)</strong>は、Q関数をニューラルネットワークで近似することで、高次元・連続状態空間での学習を可能にします。</p>
+<p><strong>Deep Q-Network (DQN)</strong> enables learning in high-dimensional and continuous state spaces by approximating the Q-function with a neural network.</p>
 
 <div class="mermaid">
 graph TB
-    subgraph "表形式Q学習"
-        S1[状態 s1] --> Q1[Q-table]
-        S2[状態 s2] --> Q1
-        S3[状態 s3] --> Q1
-        Q1 --> A1[Q値]
+    subgraph "Tabular Q-Learning"
+        S1[State s1] --> Q1[Q-table]
+        S2[State s2] --> Q1
+        S3[State s3] --> Q1
+        Q1 --> A1[Q-values]
     end
 
     subgraph "DQN"
-        S4[状態 s<br/>画像・連続値] --> NN[Q-Network<br/>θパラメータ]
-        NN --> A2[Q値<br/>全行動 minutes]
+        S4[State s<br/>image/continuous] --> NN[Q-Network<br/>θ parameters]
+        NN --> A2[Q-values<br/>for all actions]
     end
 
     style Q1 fill:#fff3e0
@@ -266,61 +266,61 @@ graph TB
     style A2 fill:#e8f5e9
 </div>
 
-<h3>Q関数の近似</h3>
+<h3>Q-Function Approximation</h3>
 
-<p>表形式Q学習では各$(s, a)$ペアごとにQ値を保存しますが、DQNでは以下のように関数近似します：</p>
+<p>While tabular Q-learning stores Q-values for each $(s, a)$ pair, DQN approximates functions as follows:</p>
 
 <p>$$
 Q(s, a) \approx Q(s, a; \theta)
 $$</p>
 
-<p>ここで：</p>
+<p>Where:</p>
 <ul>
-<li>$Q(s, a; \theta)$：パラメータ$\theta$を持つニューラルネットワーク</li>
-<li>入力：状態$s$（画像、ベクトルなど）</li>
-<li>出力：各行動$a$に対するQ値</li>
+<li>$Q(s, a; \theta)$: Neural network with parameters $\theta$</li>
+<li>Input: State $s$ (image, vector, etc.)</li>
+<li>Output: Q-values for each action $a$</li>
 </ul>
 
-<h3>ディープラーニングの利点</h3>
+<h3>Advantages of Deep Learning</h3>
 
 <ol>
-<li><strong>汎化能力</strong>：未経験の状態に対しても推論可能</li>
-<li><strong>特徴抽出</strong>：CNNなどで自動的に有用な特徴を学習</li>
-<li><strong>メモリ効率</strong>：パラメータ数 ≪ 状態空間サイズ</li>
-<li><strong>連続状態対応</strong>：離散化不要で精度維持</li>
+<li><strong>Generalization ability</strong>: Can infer even for unexperienced states</li>
+<li><strong>Feature extraction</strong>: Automatically learns useful features with CNN, etc.</li>
+<li><strong>Memory efficiency</strong>: Number of parameters ≪ State space size</li>
+<li><strong>Continuous state support</strong>: Maintains accuracy without discretization</li>
 </ol>
 
-<h3>ナイーブなDQNの問題点</h3>
+<h3>Problems with Naive DQN</h3>
 
-<p>しかし、単純にニューラルネットワークでQ学習を行うと以下の問題が発生します：</p>
+<p>However, simply performing Q-learning with neural networks causes the following problems:</p>
 
 <table>
 <thead>
 <tr>
-<th>問題</th>
-<th>原因</th>
-<th>解決策</th>
+<th>Problem</th>
+<th>Cause</th>
+<th>Solution</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>学習の不安定性</strong></td>
-<td>データの相関性</td>
+<td><strong>Learning instability</strong></td>
+<td>Data correlation</td>
 <td>Experience Replay</td>
 </tr>
 <tr>
-<td><strong>発散・振動</strong></td>
-<td>ターゲットの非定常性</td>
+<td><strong>Divergence/oscillation</strong></td>
+<td>Non-stationarity of targets</td>
 <td>Target Network</td>
 </tr>
 <tr>
-<td><strong>過大評価</strong></td>
-<td>MaxバイアスQ値</td>
+<td><strong>Overestimation</strong></td>
+<td>Max bias in Q-values</td>
 <td>Double DQN</td>
 </tr>
 <tr>
-<td><strong>非効率な表現</strong></td>
-<td>価値と優位性の混同</td>
+<td><strong>Inefficient representation</strong></td>
+<td>Confusion of value and advantage</td>
 <td>Dueling DQN</td>
 </tr>
 </tbody>
@@ -328,64 +328,64 @@ $$</p>
 
 <hr>
 
-<h2>3.2 DQNの基本アーキテクチャ</h2>
+<h2>3.2 Basic DQN Architecture</h2>
 
-<h3>DQNの全体構造</h3>
+<h3>Overall DQN Structure</h3>
 
-<p>DQNは以下の3つの主要コンポーネントで構成されます：</p>
+<p>DQN consists of three main components:</p>
 
 <div class="mermaid">
 graph LR
-    ENV[環境] -->|状態 s| QN[Q-Network]
-    QN -->|Q値| AGENT[エージェント]
-    AGENT -->|行動 a| ENV
-    AGENT -->|経験 tuple| REPLAY[Experience Replay Buffer]
-    REPLAY -->|ミニバッチ| TRAIN[学習プロセス]
-    TRAIN -->|勾配更新| QN
-    TARGET[Target Network] -.->|ターゲットQ値| TRAIN
-    QN -.->|定期コピー| TARGET
+    ENV[Environment] -->|state s| QN[Q-Network]
+    QN -->|Q-values| AGENT[Agent]
+    AGENT -->|action a| ENV
+    AGENT -->|experience tuple| REPLAY[Experience Replay Buffer]
+    REPLAY -->|mini-batch| TRAIN[Training Process]
+    TRAIN -->|gradient update| QN
+    TARGET[Target Network] -.->|target Q-values| TRAIN
+    QN -.->|periodic copy| TARGET
 
     style QN fill:#e3f2fd
     style REPLAY fill:#fff3e0
     style TARGET fill:#e8f5e9
 </div>
 
-<h3>DQNアルゴリズム（概要）</h3>
+<h3>DQN Algorithm (Overview)</h3>
 
-<p><strong>アルゴリズム 3.1: DQN</strong></p>
+<p><strong>Algorithm 3.1: DQN</strong></p>
 <ol>
-<li>Q-Network $Q(s, a; \theta)$ とTarget Network $Q(s, a; \theta^-)$ を初期化</li>
-<li>Experience Replay Buffer $\mathcal{D}$ を初期化</li>
-<li>各エピソードについて：
+<li>Initialize Q-Network $Q(s, a; \theta)$ and Target Network $Q(s, a; \theta^-)$</li>
+<li>Initialize Experience Replay Buffer $\mathcal{D}$</li>
+<li>For each episode:
 <ul>
-<li>初期状態$s_0$を観測</li>
-<li>各タイムステップ$t$について：
+<li>Observe initial state $s_0$</li>
+<li>For each timestep $t$:
 <ol>
-<li>$\epsilon$-greedy法で行動$a_t$を選択</li>
-<li>行動を実行し、報酬$r_t$と次状態$s_{t+1}$を観測</li>
-<li>遷移$(s_t, a_t, r_t, s_{t+1})$を$\mathcal{D}$に保存</li>
-<li>$\mathcal{D}$からミニバッチをサンプリング</li>
-<li>ターゲット値を計算：$y_j = r_j + \gamma \max_{a'} Q(s_{j+1}, a'; \theta^-)$</li>
-<li>損失関数を最小化：$L(\theta) = (y_j - Q(s_j, a_j; \theta))^2$</li>
-<li>$C$ステップごとに：$\theta^- \leftarrow \theta$</li>
+<li>Select action $a_t$ using $\epsilon$-greedy method</li>
+<li>Execute action and observe reward $r_t$ and next state $s_{t+1}$</li>
+<li>Store transition $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$</li>
+<li>Sample mini-batch from $\mathcal{D}$</li>
+<li>Compute target value: $y_j = r_j + \gamma \max_{a'} Q(s_{j+1}, a'; \theta^-)$</li>
+<li>Minimize loss function: $L(\theta) = (y_j - Q(s_j, a_j; \theta))^2$</li>
+<li>Every $C$ steps: $\theta^- \leftarrow \theta$</li>
 </ol>
 </li>
 </ul>
 </li>
 </ol>
 
-<h3>Atari用CNNアーキテクチャ</h3>
+<h3>CNN Architecture for Atari</h3>
 
-<p>DQNの元論文では、Atariゲーム用に以下のCNNアーキテクチャを使用しました：</p>
+<p>In the original DQN paper, the following CNN architecture was used for Atari games:</p>
 
 <table>
 <thead>
 <tr>
-<th>レイヤー</th>
-<th>入力</th>
-<th>フィルタ/ユニット</th>
-<th>出力</th>
-<th>活性化</th>
+<th>Layer</th>
+<th>Input</th>
+<th>Filters/Units</th>
+<th>Output</th>
+<th>Activation</th>
 </tr>
 </thead>
 <tbody>
@@ -441,40 +441,40 @@ graph LR
 </tbody>
 </table>
 
-<h3>実装例1: DQN Network（Atari用CNN）</h3>
+<h3>Implementation Example 1: DQN Network (CNN for Atari)</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-print("=== DQN Network アーキテクチャ ===\n")
+print("=== DQN Network Architecture ===\n")
 
 class DQN(nn.Module):
-    """Atari用のDQN（CNNベース）"""
+    """DQN for Atari (CNN-based)"""
 
     def __init__(self, n_actions, input_channels=4):
         super(DQN, self).__init__()
 
-        # 畳み込み層（画像特徴抽出）
+        # Convolutional layers (image feature extraction)
         self.conv1 = nn.Conv2d(input_channels, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
 
-        # Flatten後のサイズを計算（84x84入力の場合 -> 7x7x64 = 3136）
+        # Calculate size after flatten (for 84x84 input -> 7x7x64 = 3136)
         conv_output_size = 7 * 7 * 64
 
-        # 全結合層
+        # Fully connected layers
         self.fc1 = nn.Linear(conv_output_size, 512)
         self.fc2 = nn.Linear(512, n_actions)
 
     def forward(self, x):
         """
         Args:
-            x: 状態画像 [batch, channels, height, width]
+            x: State image [batch, channels, height, width]
         Returns:
-            Q値 [batch, n_actions]
+            Q-values [batch, n_actions]
         """
-        # CNNで特徴抽出
+        # Feature extraction with CNN
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
@@ -482,7 +482,7 @@ class DQN(nn.Module):
         # Flatten
         x = x.view(x.size(0), -1)
 
-        # 全結合層でQ値を出力
+        # Output Q-values with fully connected layers
         x = F.relu(self.fc1(x))
         q_values = self.fc2(x)
 
@@ -490,7 +490,7 @@ class DQN(nn.Module):
 
 
 class SimpleDQN(nn.Module):
-    """CartPole用のシンプルなDQN（全結合層のみ）"""
+    """Simple DQN for CartPole (fully connected only)"""
 
     def __init__(self, state_dim, action_dim, hidden_dim=128):
         super(SimpleDQN, self).__init__()
@@ -502,9 +502,9 @@ class SimpleDQN(nn.Module):
     def forward(self, x):
         """
         Args:
-            x: 状態ベクトル [batch, state_dim]
+            x: State vector [batch, state_dim]
         Returns:
-            Q値 [batch, action_dim]
+            Q-values [batch, action_dim]
         """
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
@@ -512,47 +512,47 @@ class SimpleDQN(nn.Module):
         return q_values
 
 
-# テスト実行
-print("--- Atari用DQN（CNN）---")
+# Test execution
+print("--- Atari DQN (CNN) ---")
 atari_dqn = DQN(n_actions=4, input_channels=4)
-dummy_state = torch.randn(2, 4, 84, 84)  # バッチサイズ2
+dummy_state = torch.randn(2, 4, 84, 84)  # Batch size 2
 q_values = atari_dqn(dummy_state)
-print(f"入力形状: {dummy_state.shape}")
-print(f"出力Q値形状: {q_values.shape}")
-print(f"総パラメータ数: {sum(p.numel() for p in atari_dqn.parameters()):,}")
-print(f"Q値の例: {q_values[0].detach().numpy()}\n")
+print(f"Input shape: {dummy_state.shape}")
+print(f"Output Q-values shape: {q_values.shape}")
+print(f"Total parameters: {sum(p.numel() for p in atari_dqn.parameters()):,}")
+print(f"Q-values example: {q_values[0].detach().numpy()}\n")
 
-print("--- CartPole用SimpleDQN（全結合）---")
+print("--- CartPole SimpleDQN (Fully Connected) ---")
 cartpole_dqn = SimpleDQN(state_dim=4, action_dim=2, hidden_dim=128)
-dummy_state = torch.randn(2, 4)  # バッチサイズ2
+dummy_state = torch.randn(2, 4)  # Batch size 2
 q_values = cartpole_dqn(dummy_state)
-print(f"入力形状: {dummy_state.shape}")
-print(f"出力Q値形状: {q_values.shape}")
-print(f"総パラメータ数: {sum(p.numel() for p in cartpole_dqn.parameters()):,}")
-print(f"Q値の例: {q_values[0].detach().numpy()}\n")
+print(f"Input shape: {dummy_state.shape}")
+print(f"Output Q-values shape: {q_values.shape}")
+print(f"Total parameters: {sum(p.numel() for p in cartpole_dqn.parameters()):,}")
+print(f"Q-values example: {q_values[0].detach().numpy()}\n")
 
-# ネットワーク構造の確認
-print("--- Atari DQN レイヤー詳細 ---")
+# Check network structure
+print("--- Atari DQN Layer Details ---")
 for name, module in atari_dqn.named_children():
     print(f"{name}: {module}")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>=== DQN Network アーキテクチャ ===
+<p><strong>Output</strong>:</p>
+<pre><code>=== DQN Network Architecture ===
 
---- Atari用DQN（CNN）---
-入力形状: torch.Size([2, 4, 84, 84])
-出力Q値形状: torch.Size([2, 4])
-総パラメータ数: 1,686,532
-Q値の例: [-0.123  0.456 -0.234  0.789]
+--- Atari DQN (CNN) ---
+Input shape: torch.Size([2, 4, 84, 84])
+Output Q-values shape: torch.Size([2, 4])
+Total parameters: 1,686,532
+Q-values example: [-0.123  0.456 -0.234  0.789]
 
---- CartPole用SimpleDQN（全結合）---
-入力形状: torch.Size([2, 4])
-出力Q値形状: torch.Size([2, 2])
-総パラメータ数: 17,538
-Q値の例: [0.234 -0.156]
+--- CartPole SimpleDQN (Fully Connected) ---
+Input shape: torch.Size([2, 4])
+Output Q-values shape: torch.Size([2, 2])
+Total parameters: 17,538
+Q-values example: [0.234 -0.156]
 
---- Atari DQN レイヤー詳細 ---
+--- Atari DQN Layer Details ---
 conv1: Conv2d(4, 32, kernel_size=(8, 8), stride=(4, 4))
 conv2: Conv2d(32, 64, kernel_size=(4, 4), stride=(2, 2))
 conv3: Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1))
@@ -564,57 +564,57 @@ fc2: Linear(in_features=512, out_features=4, bias=True)
 
 <h2>3.3 Experience Replay</h2>
 
-<h3>Experience Replayの必要性</h3>
+<h3>Need for Experience Replay</h3>
 
-<p>強化学習では、エージェントが環境と相互作用して得たデータを直接学習に使用すると、以下の問題が発生します：</p>
+<p>In reinforcement learning, when data obtained from the agent's interaction with the environment is directly used for learning, the following problems occur:</p>
 
 <blockquote>
-<p>「連続的に収集されるデータは hours的に強く相関しており、そのまま学習すると過学習や学習の不安定性を引き起こす」</p>
+<p>"Consecutively collected data is strongly correlated temporally, and learning directly from it causes overfitting and learning instability"</p>
 </blockquote>
 
-<h3>データ相関の問題</h3>
+<h3>Data Correlation Issues</h3>
 
 <table>
 <thead>
 <tr>
-<th>問題</th>
-<th>説明</th>
-<th>影響</th>
+<th>Problem</th>
+<th>Explanation</th>
+<th>Impact</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong> hours的相関</strong></td>
-<td>連続データが似た状態・行動</td>
-<td>勾配の偏りで学習不安定</td>
+<td><strong>Temporal correlation</strong></td>
+<td>Consecutive data with similar states/actions</td>
+<td>Learning instability from gradient bias</td>
 </tr>
 <tr>
-<td><strong>非i.i.d.性</strong></td>
-<td>独立同 minutes布の仮定が破綻</td>
-<td>SGDの前提条件違反</td>
+<td><strong>Non-i.i.d.</strong></td>
+<td>Independent identical distribution assumption breaks</td>
+<td>Violation of SGD assumptions</td>
 </tr>
 <tr>
-<td><strong>破滅的忘却</strong></td>
-<td>新データで過去のKnowledgeを忘れる</td>
-<td>学習効率低下</td>
+<td><strong>Catastrophic forgetting</strong></td>
+<td>Forgetting past knowledge with new data</td>
+<td>Reduced learning efficiency</td>
 </tr>
 </tbody>
 </table>
 
-<h3>Replay Bufferの仕組み</h3>
+<h3>Replay Buffer Mechanism</h3>
 
-<p>Experience Replayは、過去の経験$(s, a, r, s')$を<strong>Replay Buffer</strong>に蓄積し、ランダムサンプリングして学習します。</p>
+<p>Experience Replay stores past experiences $(s, a, r, s')$ in a <strong>Replay Buffer</strong> and learns from random sampling.</p>
 
 <div class="mermaid">
 graph TB
-    subgraph "経験の収集"
-        ENV[環境] -->|遷移| EXP[経験 tuple<br/>s,a,r,s']
-        EXP -->|保存| BUFFER[Replay Buffer<br/>容量N]
+    subgraph "Experience Collection"
+        ENV[Environment] -->|transition| EXP[Experience tuple<br/>s,a,r,s']
+        EXP -->|store| BUFFER[Replay Buffer<br/>capacity N]
     end
 
-    subgraph "学習プロセス"
-        BUFFER -->|ランダム<br/>サンプリング| BATCH[ミニバッチ<br/>サイズB]
-        BATCH -->|学習| NETWORK[Q-Network]
+    subgraph "Learning Process"
+        BUFFER -->|random<br/>sampling| BATCH[Mini-batch<br/>size B]
+        BATCH -->|train| NETWORK[Q-Network]
     end
 
     style BUFFER fill:#fff3e0
@@ -622,49 +622,49 @@ graph TB
     style NETWORK fill:#e8f5e9
 </div>
 
-<h3>Replay Bufferの利点</h3>
+<h3>Benefits of Replay Buffer</h3>
 
 <ol>
-<li><strong>相関の除去</strong>：ランダムサンプリングで hours的相関を打破</li>
-<li><strong>データ効率</strong>：同じ経験を複数回再利用</li>
-<li><strong>学習安定化</strong>：i.i.d.近似で勾配 minutes散を低減</li>
-<li><strong>オフポリシー学習</strong>：古い方策のデータも有効活用</li>
+<li><strong>Decorrelation</strong>: Break temporal correlation through random sampling</li>
+<li><strong>Data efficiency</strong>: Reuse same experience multiple times</li>
+<li><strong>Learning stabilization</strong>: Reduce gradient variance with i.i.d. approximation</li>
+<li><strong>Off-policy learning</strong>: Effectively utilize data from old policies</li>
 </ol>
 
-<h3>実装例2: Replay Buffer実装</h3>
+<h3>Implementation Example 2: Replay Buffer Implementation</h3>
 
 <pre><code class="language-python">import numpy as np
 import random
 from collections import deque, namedtuple
 
-print("=== Experience Replay Buffer 実装 ===\n")
+print("=== Experience Replay Buffer Implementation ===\n")
 
-# 経験を格納するためのnamed tuple
+# Named tuple for storing experiences
 Transition = namedtuple('Transition', ('state', 'action', 'reward', 'next_state', 'done'))
 
 class ReplayBuffer:
-    """経験を保存・サンプリングするReplay Buffer"""
+    """Replay Buffer for storing and sampling experiences"""
 
     def __init__(self, capacity):
         """
         Args:
-            capacity: バッファの最大容量
+            capacity: Maximum buffer capacity
         """
         self.buffer = deque(maxlen=capacity)
         self.capacity = capacity
 
     def push(self, state, action, reward, next_state, done):
-        """経験をバッファに追加"""
+        """Add experience to buffer"""
         self.buffer.append(Transition(state, action, reward, next_state, done))
 
     def sample(self, batch_size):
-        """ミニバッチをランダムサンプリング"""
+        """Random sampling of mini-batch"""
         transitions = random.sample(self.buffer, batch_size)
 
-        # Transitionのリストをバッチに変換
+        # Convert list of Transitions to batch
         batch = Transition(*zip(*transitions))
 
-        # NumPy配列に変換
+        # Convert to NumPy arrays
         states = np.array(batch.state)
         actions = np.array(batch.action)
         rewards = np.array(batch.reward)
@@ -674,84 +674,84 @@ class ReplayBuffer:
         return states, actions, rewards, next_states, dones
 
     def __len__(self):
-        """現在のバッファサイズ"""
+        """Current buffer size"""
         return len(self.buffer)
 
 
-# テスト実行
-print("--- Replay Bufferのテスト ---")
+# Test execution
+print("--- Replay Buffer Test ---")
 buffer = ReplayBuffer(capacity=1000)
 
-# ダミー経験を追加
-print("経験を追加中...")
+# Add dummy experiences
+print("Adding experiences...")
 for i in range(150):
     state = np.random.randn(4)
     action = np.random.randint(0, 2)
     reward = np.random.randn()
     next_state = np.random.randn(4)
-    done = (i % 20 == 19)  # 20ステップごとに終了
+    done = (i % 20 == 19)  # Terminate every 20 steps
 
     buffer.push(state, action, reward, next_state, done)
 
-print(f"バッファサイズ: {len(buffer)}/{buffer.capacity}")
+print(f"Buffer size: {len(buffer)}/{buffer.capacity}")
 
-# サンプリングのテスト
+# Sampling test
 batch_size = 32
 states, actions, rewards, next_states, dones = buffer.sample(batch_size)
 
-print(f"\n--- サンプリング結果（バッチサイズ={batch_size}）---")
-print(f"states形状: {states.shape}")
-print(f"actions形状: {actions.shape}")
-print(f"rewards形状: {rewards.shape}")
-print(f"next_states形状: {next_states.shape}")
-print(f"dones形状: {dones.shape}")
-print(f"\nサンプルデータ:")
+print(f"\n--- Sampling Results (batch_size={batch_size}) ---")
+print(f"states shape: {states.shape}")
+print(f"actions shape: {actions.shape}")
+print(f"rewards shape: {rewards.shape}")
+print(f"next_states shape: {next_states.shape}")
+print(f"dones shape: {dones.shape}")
+print(f"\nSample data:")
 print(f"  state[0]: {states[0]}")
 print(f"  action[0]: {actions[0]}")
 print(f"  reward[0]: {rewards[0]:.3f}")
 print(f"  done[0]: {dones[0]}")
 
-# 相関性の確認
-print("\n--- データ相関性の確認 ---")
-print("連続データ（相関あり）:")
+# Check correlation
+print("\n--- Data Correlation Check ---")
+print("Consecutive data (correlated):")
 for i in range(5):
     trans = list(buffer.buffer)[i]
     print(f"  step {i}: action={trans.action}, reward={trans.reward:.3f}")
 
-print("\nランダムサンプリング（相関除去）:")
+print("\nRandom sampling (decorrelated):")
 for i in range(5):
     print(f"  sample {i}: action={actions[i]}, reward={rewards[i]:.3f}")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>=== Experience Replay Buffer 実装 ===
+<p><strong>Output</strong>:</p>
+<pre><code>=== Experience Replay Buffer Implementation ===
 
---- Replay Bufferのテスト ---
-経験を追加中...
-バッファサイズ: 150/1000
+--- Replay Buffer Test ---
+Adding experiences...
+Buffer size: 150/1000
 
---- サンプリング結果（バッチサイズ=32）---
-states形状: (32, 4)
-actions形状: (32,)
-rewards形状: (32,)
-next_states形状: (32, 4)
-dones形状: (32,)
+--- Sampling Results (batch_size=32) ---
+states shape: (32, 4)
+actions shape: (32,)
+rewards shape: (32,)
+next_states shape: (32, 4)
+dones shape: (32,)
 
-サンプルデータ:
+Sample data:
   state[0]: [ 0.234 -1.123  0.567 -0.234]
   action[0]: 1
   reward[0]: 0.456
   done[0]: False
 
---- データ相関性の確認 ---
-連続データ（相関あり）:
+--- Data Correlation Check ---
+Consecutive data (correlated):
   step 0: action=0, reward=0.234
   step 1: action=1, reward=-0.123
   step 2: action=0, reward=0.567
   step 3: action=1, reward=-0.345
   step 4: action=0, reward=0.789
 
-ランダムサンプリング（相関除去）:
+Random sampling (decorrelated):
   sample 0: action=1, reward=0.456
   sample 1: action=0, reward=-0.234
   sample 2: action=1, reward=0.123
@@ -759,31 +759,31 @@ dones形状: (32,)
   sample 4: action=1, reward=0.234
 </code></pre>
 
-<h3>Replay Bufferのハイパーパラメータ</h3>
+<h3>Replay Buffer Hyperparameters</h3>
 
 <table>
 <thead>
 <tr>
-<th>パラメータ</th>
-<th>一般的な値</th>
-<th>説明</th>
+<th>Parameter</th>
+<th>Typical Value</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Buffer容量</strong></td>
+<td><strong>Buffer capacity</strong></td>
 <td>10,000 ~ 1,000,000</td>
-<td>保存できる最大経験数</td>
+<td>Maximum number of experiences to store</td>
 </tr>
 <tr>
 <td><strong>Batch Size</strong></td>
 <td>32 ~ 256</td>
-<td>1回の学習で使うサンプル数</td>
+<td>Number of samples used per training step</td>
 </tr>
 <tr>
-<td><strong>開始タイミング</strong></td>
-<td>1,000 ~ 10,000ステップ</td>
-<td>学習開始前の経験蓄積数</td>
+<td><strong>Start timing</strong></td>
+<td>1,000 ~ 10,000 steps</td>
+<td>Number of experiences accumulated before learning starts</td>
 </tr>
 </tbody>
 </table>
@@ -792,97 +792,97 @@ dones形状: (32,)
 
 <h2>3.4 Target Network</h2>
 
-<h3>Target Networkの必要性</h3>
+<h3>Need for Target Network</h3>
 
-<p>DQNでは、TD誤差を最小化するために以下の損失関数を使用します：</p>
+<p>In DQN, the following loss function is used to minimize TD error:</p>
 
 <p>$$
 L(\theta) = \mathbb{E}_{(s,a,r,s') \sim \mathcal{D}} \left[ \left( r + \gamma \max_{a'} Q(s', a'; \theta) - Q(s, a; \theta) \right)^2 \right]
 $$</p>
 
-<p>しかし、この式では<strong>ターゲット値とQ-Networkの両方が同じパラメータ$\theta$に依存</strong>しています。これにより以下の問題が発生します：</p>
+<p>However, in this equation, <strong>both the target value and Q-Network depend on the same parameter $\theta$</strong>. This causes the following problem:</p>
 
 <blockquote>
-<p>「Q値の更新がターゲット値を動かし、ターゲット値の変化が再びQ値を変化させる、という追いかけっこが発生し、学習が不安定になる」</p>
+<p>"A chase occurs where updating Q-values moves the target value, and the change in target value changes Q-values again, leading to learning instability"</p>
 </blockquote>
 
 <div class="mermaid">
 graph LR
-    Q[Q-Network θ] -->|Q値更新| TARGET[ターゲット値]
-    TARGET -->|損失計算| LOSS[損失L]
-    LOSS -->|勾配更新| Q
+    Q[Q-Network θ] -->|Q-value update| TARGET[Target value]
+    TARGET -->|loss calculation| LOSS[Loss L]
+    LOSS -->|gradient update| Q
 
     style Q fill:#e3f2fd
     style TARGET fill:#ffcccc
     style LOSS fill:#fff3e0
 </div>
 
-<h3>Target Networkによる安定化</h3>
+<h3>Stabilization by Target Network</h3>
 
-<p>Target Networkは、<strong>Q値計算用のネットワークとターゲット値計算用のネットワークを minutes離</strong>することで学習を安定化させます。</p>
+<p>Target Network stabilizes learning by <strong>separating the network for Q-value calculation from the network for target value calculation</strong>.</p>
 
 <p>$$
 L(\theta) = \mathbb{E}_{(s,a,r,s') \sim \mathcal{D}} \left[ \left( r + \gamma \max_{a'} Q(s', a'; \theta^-) - Q(s, a; \theta) \right)^2 \right]
 $$</p>
 
-<p>ここで：</p>
+<p>Where:</p>
 <ul>
-<li>$\theta$：Q-Network（学習される）</li>
-<li>$\theta^-$：Target Network（定期的にコピー）</li>
+<li>$\theta$: Q-Network (being trained)</li>
+<li>$\theta^-$: Target Network (periodically copied)</li>
 </ul>
 
-<h3>Target Networkの更新方法</h3>
+<h3>Target Network Update Methods</h3>
 
-<h4>Hard Update（DQN）</h4>
+<h4>Hard Update (DQN)</h4>
 
-<p>$C$ステップごとに完全コピー：</p>
+<p>Complete copy every $C$ steps:</p>
 
 <p>$$
 \theta^- \leftarrow \theta \quad \text{every } C \text{ steps}
 $$</p>
 
 <ul>
-<li>利点：シンプルで実装が容易</li>
-<li>欠点：更新時にターゲットが急激に変化</li>
-<li>一般的な$C$：1,000 ~ 10,000ステップ</li>
+<li>Advantage: Simple and easy to implement</li>
+<li>Disadvantage: Target changes abruptly during update</li>
+<li>Typical $C$: 1,000 ~ 10,000 steps</li>
 </ul>
 
-<h4>Soft Update（DDPG等）</h4>
+<h4>Soft Update (DDPG etc.)</h4>
 
-<p>毎ステップで少しずつ更新：</p>
+<p>Gradual update every step:</p>
 
 <p>$$
 \theta^- \leftarrow \tau \theta + (1 - \tau) \theta^-
 $$</p>
 
 <ul>
-<li>利点：滑らかな更新で安定性向上</li>
-<li>欠点：ハイパーパラメータ調整が重要</li>
-<li>一般的な$\tau$：0.001 ~ 0.01</li>
+<li>Advantage: Improved stability with smooth updates</li>
+<li>Disadvantage: Hyperparameter tuning is critical</li>
+<li>Typical $\tau$: 0.001 ~ 0.01</li>
 </ul>
 
-<h3>実装例3: Target Networkの更新</h3>
+<h3>Implementation Example 3: Target Network Update</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import copy
 
-print("=== Target Network 実装 ===\n")
+print("=== Target Network Implementation ===\n")
 
 class DQNAgent:
-    """Target Networkを持つDQNエージェント"""
+    """DQN agent with Target Network"""
 
     def __init__(self, state_dim, action_dim, hidden_dim=128):
-        # Q-Network（学習用）
+        # Q-Network (for learning)
         self.q_network = SimpleDQN(state_dim, action_dim, hidden_dim)
 
-        # Target Network（ターゲット値計算用）
+        # Target Network (for target value calculation)
         self.target_network = SimpleDQN(state_dim, action_dim, hidden_dim)
 
-        # Target Networkを初期化（Q-Networkのコピー）
+        # Initialize Target Network (copy of Q-Network)
         self.target_network.load_state_dict(self.q_network.state_dict())
 
-        # Target Networkは勾配計算不要
+        # Target Network doesn't need gradient calculation
         for param in self.target_network.parameters():
             param.requires_grad = False
 
@@ -890,81 +890,81 @@ class DQNAgent:
         self.update_counter = 0
 
     def hard_update_target_network(self, update_interval=1000):
-        """Hard Update: Cステップごとに完全コピー"""
+        """Hard Update: Complete copy every C steps"""
         self.update_counter += 1
 
         if self.update_counter % update_interval == 0:
             self.target_network.load_state_dict(self.q_network.state_dict())
-            print(f"  [Hard Update] Target Network更新（step {self.update_counter}）")
+            print(f"  [Hard Update] Target Network updated (step {self.update_counter})")
 
     def soft_update_target_network(self, tau=0.005):
-        """Soft Update: 毎ステップで少しずつ更新"""
+        """Soft Update: Gradual update every step"""
         for target_param, q_param in zip(self.target_network.parameters(),
                                           self.q_network.parameters()):
             target_param.data.copy_(tau * q_param.data + (1 - tau) * target_param.data)
 
     def compute_td_target(self, rewards, next_states, dones, gamma=0.99):
         """
-        TD目標値の計算（Target Networkを使用）
+        Calculate TD target value (using Target Network)
 
         Args:
             rewards: [batch_size]
             next_states: [batch_size, state_dim]
             dones: [batch_size]
-            gamma: 割引率
+            gamma: Discount factor
         """
         with torch.no_grad():
-            # Target NetworkでQ値を計算
+            # Calculate Q-values with Target Network
             next_q_values = self.target_network(next_states)
             max_next_q = next_q_values.max(dim=1)[0]
 
-            # 終端状態では次状態の価値を0にする
+            # Set next state value to 0 for terminal states
             max_next_q = max_next_q * (1 - dones)
 
-            # TD目標値: r + γ * max Q(s', a')
+            # TD target value: r + γ * max Q(s', a')
             td_target = rewards + gamma * max_next_q
 
         return td_target
 
 
-# テスト実行
-print("--- Target Network初期化 ---")
+# Test execution
+print("--- Target Network Initialization ---")
 agent = DQNAgent(state_dim=4, action_dim=2)
 
-# パラメータの一致確認
+# Check parameter matching
 q_params = list(agent.q_network.parameters())[0].data.flatten()[:5]
 target_params = list(agent.target_network.parameters())[0].data.flatten()[:5]
 print(f"Q-Network params: {q_params.numpy()}")
 print(f"Target Network params: {target_params.numpy()}")
-print(f"パラメータ一致: {torch.allclose(q_params, target_params)}\n")
+print(f"Parameters match: {torch.allclose(q_params, target_params)}\n")
 
-# Hard Updateのテスト
-print("--- Hard Update テスト ---")
+# Hard Update test
+print("--- Hard Update Test ---")
 for step in range(1, 3001):
-    # ダミー学習（パラメータ変化）
+    # Dummy learning (parameter change)
     dummy_loss = torch.randn(1, requires_grad=True).sum()
     agent.optimizer.zero_grad()
     dummy_loss.backward()
     agent.optimizer.step()
 
-    # Target Network更新
+    # Target Network update
     agent.hard_update_target_network(update_interval=1000)
 
-# パラメータの差異確認
+# Check parameter differences
 q_params = list(agent.q_network.parameters())[0].data.flatten()[:5]
 target_params = list(agent.target_network.parameters())[0].data.flatten()[:5]
-print(f"\n最終状態:")
+print(f"\nFinal state:")
 print(f"Q-Network params: {q_params.numpy()}")
 print(f"Target Network params: {target_params.numpy()}")
-print(f"パラメータ一致: {torch.allclose(q_params, target_params)}\n")
+print(f"Parameters match: {torch.allclose(q_params, target_params)}\n")
 
-# Soft Updateのテスト
-print("--- Soft Update テスト ---")
+# Soft Update test
+print("--- Soft Update Test ---")
 agent2 = DQNAgent(state_dim=4, action_dim=2)
 initial_target = list(agent2.target_network.parameters())[0].data.flatten()[0].item()
 
 for step in range(100):
-    # ダミー学習
+    # Dummy learning
     dummy_loss = torch.randn(1, requires_grad=True).sum()
     agent2.optimizer.zero_grad()
     dummy_loss.backward()
@@ -976,72 +976,72 @@ for step in range(100):
 final_target = list(agent2.target_network.parameters())[0].data.flatten()[0].item()
 final_q = list(agent2.q_network.parameters())[0].data.flatten()[0].item()
 
-print(f"初期Target値: {initial_target:.6f}")
-print(f"最終Target値: {final_target:.6f}")
-print(f"最終Q値: {final_q:.6f}")
-print(f"Targetの変化: {abs(final_target - initial_target):.6f}")
-print(f"Q-Targetの差: {abs(final_q - final_target):.6f}")
+print(f"Initial Target value: {initial_target:.6f}")
+print(f"Final Target value: {final_target:.6f}")
+print(f"Final Q value: {final_q:.6f}")
+print(f"Target change: {abs(final_target - initial_target):.6f}")
+print(f"Q-Target difference: {abs(final_q - final_target):.6f}")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>=== Target Network 実装 ===
+<p><strong>Output</strong>:</p>
+<pre><code>=== Target Network Implementation ===
 
---- Target Network初期化 ---
+--- Target Network Initialization ---
 Q-Network params: [ 0.123 -0.234  0.456 -0.567  0.789]
 Target Network params: [ 0.123 -0.234  0.456 -0.567  0.789]
-パラメータ一致: True
+Parameters match: True
 
---- Hard Update テスト ---
-  [Hard Update] Target Network更新（step 1000）
-  [Hard Update] Target Network更新（step 2000）
-  [Hard Update] Target Network更新（step 3000）
+--- Hard Update Test ---
+  [Hard Update] Target Network updated (step 1000)
+  [Hard Update] Target Network updated (step 2000)
+  [Hard Update] Target Network updated (step 3000)
 
-最終状態:
+Final state:
 Q-Network params: [ 0.234 -0.345  0.567 -0.678  0.890]
 Target Network params: [ 0.234 -0.345  0.567 -0.678  0.890]
-パラメータ一致: True
+Parameters match: True
 
---- Soft Update テスト ---
-初期Target値: 0.123456
-最終Target値: 0.234567
-最終Q値: 0.345678
-Targetの変化: 0.111111
-Q-Targetの差: 0.111111
+--- Soft Update Test ---
+Initial Target value: 0.123456
+Final Target value: 0.234567
+Final Q value: 0.345678
+Target change: 0.111111
+Q-Target difference: 0.111111
 </code></pre>
 
-<h3>Hard vs Soft Updateの比較</h3>
+<h3>Hard vs Soft Update Comparison</h3>
 
 <table>
 <thead>
 <tr>
-<th>項目</th>
+<th>Item</th>
 <th>Hard Update</th>
 <th>Soft Update</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>更新頻度</strong></td>
-<td>1,000~10,000ステップごと</td>
-<td>毎ステップ</td>
+<td><strong>Update frequency</strong></td>
+<td>Every 1,000~10,000 steps</td>
+<td>Every step</td>
 </tr>
 <tr>
-<td><strong>更新方法</strong></td>
-<td>完全コピー</td>
-<td>指数移動平均</td>
+<td><strong>Update method</strong></td>
+<td>Complete copy</td>
+<td>Exponential moving average</td>
 </tr>
 <tr>
-<td><strong>安定性</strong></td>
-<td>更新時に急激変化</td>
-<td>滑らかに変化</td>
+<td><strong>Stability</strong></td>
+<td>Abrupt change during update</td>
+<td>Smooth change</td>
 </tr>
 <tr>
-<td><strong>実装</strong></td>
-<td>シンプル</td>
-<td>やや複雑</td>
+<td><strong>Implementation</strong></td>
+<td>Simple</td>
+<td>Somewhat complex</td>
 </tr>
 <tr>
-<td><strong>適用例</strong></td>
+<td><strong>Application examples</strong></td>
 <td>DQN, Rainbow</td>
 <td>DDPG, TD3, SAC</td>
 </tr>
@@ -1050,55 +1050,55 @@ Q-Targetの差: 0.111111
 
 <hr>
 
-<h2>3.5 DQNアルゴリズムの拡張</h2>
+<h2>3.5 DQN Algorithm Extensions</h2>
 
 <h3>3.5.1 Double DQN</h3>
 
-<h4>Q値の過大評価問題</h4>
+<h4>Q-Value Overestimation Problem</h4>
 
-<p>標準DQNでは、TD目標値の計算で同じネットワークを使って行動選択と評価を行います：</p>
+<p>In standard DQN, the same network is used for both action selection and evaluation when calculating TD target values:</p>
 
 <p>$$
 y = r + \gamma \max_{a'} Q(s', a'; \theta^-)
 $$</p>
 
-<p>この$\max$演算により、Q値が<strong>系統的に過大評価</strong>される問題があります。</p>
+<p>This $\max$ operation causes a problem where Q-values are <strong>systematically overestimated</strong>.</p>
 
 <blockquote>
-<p>「ノイズや推定誤差により、たまたま大きなQ値を持つ行動が選ばれ、実際よりも高い価値が伝播していく」</p>
+<p>"Due to noise and estimation errors, actions that happen to have large Q-values are selected, and values higher than reality are propagated"</p>
 </blockquote>
 
-<h4>Double DQNの解決策</h4>
+<h4>Double DQN Solution</h4>
 
-<p>Double DQNは、<strong>行動の選択</strong>と<strong>Q値の評価</strong>を別のネットワークで行います：</p>
+<p>Double DQN performs <strong>action selection</strong> and <strong>Q-value evaluation</strong> with separate networks:</p>
 
 <p>$$
 y = r + \gamma Q\left(s', \arg\max_{a'} Q(s', a'; \theta), \theta^-\right)
 $$</p>
 
-<p>手順：</p>
+<p>Procedure:</p>
 <ol>
-<li>Q-Network $\theta$で最適行動を選択：$a^* = \arg\max_{a'} Q(s', a'; \theta)$</li>
-<li>Target Network $\theta^-$でその行動のQ値を評価：$Q(s', a^*; \theta^-)$</li>
+<li>Select optimal action with Q-Network $\theta$: $a^* = \arg\max_{a'} Q(s', a'; \theta)$</li>
+<li>Evaluate Q-value of that action with Target Network $\theta^-$: $Q(s', a^*; \theta^-)$</li>
 </ol>
 
-<h4>実装例4: Double DQN</h4>
+<h4>Implementation Example 4: Double DQN</h4>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-print("=== Double DQN vs 標準DQN ===\n")
+print("=== Double DQN vs Standard DQN ===\n")
 
 def compute_standard_dqn_target(q_network, target_network,
                                  rewards, next_states, dones, gamma=0.99):
-    """標準DQNのターゲット計算"""
+    """Standard DQN target calculation"""
     with torch.no_grad():
-        # Target Networkで次状態のQ値を計算し、最大値を取得
+        # Calculate Q-values for next state with Target Network and take maximum
         next_q_values = target_network(next_states)
         max_next_q = next_q_values.max(dim=1)[0]
 
-        # TD目標値
+        # TD target value
         target = rewards + gamma * max_next_q * (1 - dones)
 
     return target
@@ -1106,118 +1106,118 @@ def compute_standard_dqn_target(q_network, target_network,
 
 def compute_double_dqn_target(q_network, target_network,
                                rewards, next_states, dones, gamma=0.99):
-    """Double DQNのターゲット計算"""
+    """Double DQN target calculation"""
     with torch.no_grad():
-        # Q-Networkで最適行動を選択
+        # Select optimal action with Q-Network
         next_q_values_online = q_network(next_states)
         best_actions = next_q_values_online.argmax(dim=1)
 
-        # Target Networkでその行動のQ値を評価
+        # Evaluate Q-value of that action with Target Network
         next_q_values_target = target_network(next_states)
         max_next_q = next_q_values_target.gather(1, best_actions.unsqueeze(1)).squeeze(1)
 
-        # TD目標値
+        # TD target value
         target = rewards + gamma * max_next_q * (1 - dones)
 
     return target
 
 
-# テスト実行
-print("--- ネットワークの準備 ---")
+# Test execution
+print("--- Network Preparation ---")
 q_net = SimpleDQN(state_dim=4, action_dim=3)
 target_net = SimpleDQN(state_dim=4, action_dim=3)
 target_net.load_state_dict(q_net.state_dict())
 
-# ダミーデータ
+# Dummy data
 batch_size = 5
 states = torch.randn(batch_size, 4)
 next_states = torch.randn(batch_size, 4)
 rewards = torch.tensor([1.0, -1.0, 0.5, 0.0, 2.0])
 dones = torch.tensor([0.0, 0.0, 0.0, 1.0, 0.0])
 
-# Q-Networkとターゲットに意図的な差を作る
+# Intentionally create difference between Q-Network and Target
 with torch.no_grad():
     for param in q_net.parameters():
         param.add_(torch.randn_like(param) * 0.1)
 
-print("--- 次状態のQ値 minutes布 ---")
+print("--- Next State Q-Value Distribution ---")
 with torch.no_grad():
     q_values_online = q_net(next_states)
     q_values_target = target_net(next_states)
 
 for i in range(min(3, batch_size)):
-    print(f"サンプル{i}:")
-    print(f"  Q-Network Q値: {q_values_online[i].numpy()}")
-    print(f"  Target Network Q値: {q_values_target[i].numpy()}")
-    print(f"  Q-Netで選ぶ行動: {q_values_online[i].argmax().item()}")
-    print(f"  Targetで選ぶ行動: {q_values_target[i].argmax().item()}")
+    print(f"Sample {i}:")
+    print(f"  Q-Network Q-values: {q_values_online[i].numpy()}")
+    print(f"  Target Network Q-values: {q_values_target[i].numpy()}")
+    print(f"  Action selected by Q-Net: {q_values_online[i].argmax().item()}")
+    print(f"  Action selected by Target: {q_values_target[i].argmax().item()}")
 
-# ターゲット値の比較
+# Compare target values
 target_standard = compute_standard_dqn_target(q_net, target_net, rewards, next_states, dones)
 target_double = compute_double_dqn_target(q_net, target_net, rewards, next_states, dones)
 
-print("\n--- ターゲット値の比較 ---")
-print(f"報酬: {rewards.numpy()}")
-print(f"標準DQN目標: {target_standard.numpy()}")
-print(f"Double DQN目標: {target_double.numpy()}")
-print(f"差 minutes: {(target_standard - target_double).numpy()}")
-print(f"平均差 minutes: {(target_standard - target_double).abs().mean().item():.4f}")
+print("\n--- Target Value Comparison ---")
+print(f"Rewards: {rewards.numpy()}")
+print(f"Standard DQN target: {target_standard.numpy()}")
+print(f"Double DQN target: {target_double.numpy()}")
+print(f"Difference: {(target_standard - target_double).numpy()}")
+print(f"Average difference: {(target_standard - target_double).abs().mean().item():.4f}")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>=== Double DQN vs 標準DQN ===
+<p><strong>Output</strong>:</p>
+<pre><code>=== Double DQN vs Standard DQN ===
 
---- ネットワークの準備 ---
---- 次状態のQ値 minutes布 ---
-サンプル0:
-  Q-Network Q値: [ 0.234  0.567 -0.123]
-  Target Network Q値: [ 0.123  0.456 -0.234]
-  Q-Netで選ぶ行動: 1
-  Targetで選ぶ行動: 1
-サンプル1:
-  Q-Network Q値: [-0.345  0.123  0.789]
-  Target Network Q値: [-0.234  0.234  0.567]
-  Q-Netで選ぶ行動: 2
-  Targetで選ぶ行動: 2
-サンプル2:
-  Q-Network Q値: [ 0.456 -0.234  0.123]
-  Target Network Q値: [ 0.345 -0.123  0.234]
-  Q-Netで選ぶ行動: 0
-  Targetで選ぶ行動: 0
+--- Network Preparation ---
+--- Next State Q-Value Distribution ---
+Sample 0:
+  Q-Network Q-values: [ 0.234  0.567 -0.123]
+  Target Network Q-values: [ 0.123  0.456 -0.234]
+  Action selected by Q-Net: 1
+  Action selected by Target: 1
+Sample 1:
+  Q-Network Q-values: [-0.345  0.123  0.789]
+  Target Network Q-values: [-0.234  0.234  0.567]
+  Action selected by Q-Net: 2
+  Action selected by Target: 2
+Sample 2:
+  Q-Network Q-values: [ 0.456 -0.234  0.123]
+  Target Network Q-values: [ 0.345 -0.123  0.234]
+  Action selected by Q-Net: 0
+  Action selected by Target: 0
 
---- ターゲット値の比較 ---
-報酬: [ 1.  -1.   0.5  0.   2. ]
-標準DQN目標: [ 1.452 -0.439  0.842  0.000  2.567]
-Double DQN目標: [ 1.456 -0.437  0.841  0.000  2.563]
-差 minutes: [-0.004 -0.002  0.001  0.000  0.004]
-平均差 minutes: 0.0022
+--- Target Value Comparison ---
+Rewards: [ 1.  -1.   0.5  0.   2. ]
+Standard DQN target: [ 1.452 -0.439  0.842  0.000  2.567]
+Double DQN target: [ 1.456 -0.437  0.841  0.000  2.563]
+Difference: [-0.004 -0.002  0.001  0.000  0.004]
+Average difference: 0.0022
 </code></pre>
 
 <h3>3.5.2 Dueling DQN</h3>
 
-<h4>価値関数の minutes解</h4>
+<h4>Decomposition of Value Function</h4>
 
-<p>Dueling DQNは、Q値を<strong>状態価値$V(s)$</strong>と<strong>優位性関数$A(s, a)$</strong>に minutes解します：</p>
+<p>Dueling DQN decomposes Q-values into <strong>state value $V(s)$</strong> and <strong>advantage function $A(s, a)$</strong>:</p>
 
 <p>$$
 Q(s, a) = V(s) + A(s, a)
 $$</p>
 
-<p>ここで：</p>
+<p>Where:</p>
 <ul>
-<li>$V(s)$：状態$s$自体の価値（行動によらない）</li>
-<li>$A(s, a)$：状態$s$で行動$a$を選ぶ優位性（相対的な良さ）</li>
+<li>$V(s)$: Value of state $s$ itself (independent of action)</li>
+<li>$A(s, a)$: Advantage of choosing action $a$ in state $s$ (relative goodness)</li>
 </ul>
 
 <blockquote>
-<p>「多くの状態では、どの行動を選んでも価値が大きく変わらない。Dueling構造により、そのような状態でのV(s)を効率的に学習できる」</p>
+<p>"In many states, the value doesn't change much regardless of which action is chosen. The Dueling structure allows efficient learning of V(s) in such states"</p>
 </blockquote>
 
-<h4>Dueling Networkアーキテクチャ</h4>
+<h4>Dueling Network Architecture</h4>
 
 <div class="mermaid">
 graph TB
-    INPUT[入力状態 s] --> FEATURE[特徴抽出<br/>共通層]
+    INPUT[Input state s] --> FEATURE[Feature extraction<br/>shared layers]
 
     FEATURE --> VALUE_STREAM[Value Stream]
     FEATURE --> ADV_STREAM[Advantage Stream]
@@ -1225,7 +1225,7 @@ graph TB
     VALUE_STREAM --> V[V s]
     ADV_STREAM --> A[A s,a]
 
-    V --> AGGREGATION[集約層]
+    V --> AGGREGATION[Aggregation layer]
     A --> AGGREGATION
 
     AGGREGATION --> Q[Q s,a = V s + A s,a - mean A]
@@ -1236,48 +1236,48 @@ graph TB
     style Q fill:#c8e6c9
 </div>
 
-<h4>集約方法</h4>
+<h4>Aggregation Methods</h4>
 
-<p>単純な足し算では一意性が保証されないため、以下の制約を導入します：</p>
+<p>Simple addition doesn't guarantee uniqueness, so the following constraint is introduced:</p>
 
 <p>$$
 Q(s, a; \theta, \alpha, \beta) = V(s; \theta, \beta) + \left( A(s, a; \theta, \alpha) - \frac{1}{|\mathcal{A}|} \sum_{a'} A(s, a'; \theta, \alpha) \right)
 $$</p>
 
-<p>または、より安定した方法：</p>
+<p>Or a more stable method:</p>
 
 <p>$$
 Q(s, a; \theta, \alpha, \beta) = V(s; \theta, \beta) + \left( A(s, a; \theta, \alpha) - \max_{a'} A(s, a'; \theta, \alpha) \right)
 $$</p>
 
-<h4>実装例5: Dueling DQN Network</h4>
+<h4>Implementation Example 5: Dueling DQN Network</h4>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-print("=== Dueling DQN アーキテクチャ ===\n")
+print("=== Dueling DQN Architecture ===\n")
 
 class DuelingDQN(nn.Module):
-    """Dueling DQN: V(s)とA(s,a)に minutes解"""
+    """Dueling DQN: Decompose into V(s) and A(s,a)"""
 
     def __init__(self, state_dim, action_dim, hidden_dim=128):
         super(DuelingDQN, self).__init__()
 
-        # 共通特徴抽出層
+        # Shared feature extraction layer
         self.feature = nn.Sequential(
             nn.Linear(state_dim, hidden_dim),
             nn.ReLU()
         )
 
-        # Value Stream: V(s)を出力
+        # Value Stream: outputs V(s)
         self.value_stream = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, 1)
         )
 
-        # Advantage Stream: A(s,a)を出力
+        # Advantage Stream: outputs A(s,a)
         self.advantage_stream = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
@@ -1287,34 +1287,34 @@ class DuelingDQN(nn.Module):
     def forward(self, x):
         """
         Args:
-            x: 状態 [batch, state_dim]
+            x: State [batch, state_dim]
         Returns:
-            Q値 [batch, action_dim]
+            Q-values [batch, action_dim]
         """
-        # 共通特徴抽出
+        # Shared feature extraction
         features = self.feature(x)
 
-        # V(s)とA(s,a)を計算
+        # Calculate V(s) and A(s,a)
         value = self.value_stream(features)  # [batch, 1]
         advantage = self.advantage_stream(features)  # [batch, action_dim]
 
         # Q(s,a) = V(s) + (A(s,a) - mean(A(s,a)))
-        # 平均を引くことで一意性を保証
+        # Subtract mean to guarantee uniqueness
         q_values = value + (advantage - advantage.mean(dim=1, keepdim=True))
 
         return q_values
 
     def get_value_advantage(self, x):
-        """V(s)とA(s,a)を別に取得（ minutes析用）"""
+        """Get V(s) and A(s,a) separately (for analysis)"""
         features = self.feature(x)
         value = self.value_stream(features)
         advantage = self.advantage_stream(features)
         return value, advantage
 
 
-# 標準DQNとの比較
+# Comparison with standard DQN
 class StandardDQN(nn.Module):
-    """標準DQN（比較用）"""
+    """Standard DQN (for comparison)"""
 
     def __init__(self, state_dim, action_dim, hidden_dim=128):
         super(StandardDQN, self).__init__()
@@ -1331,131 +1331,131 @@ class StandardDQN(nn.Module):
         return self.network(x)
 
 
-# テスト実行
-print("--- ネットワークの比較 ---")
+# Test execution
+print("--- Network Comparison ---")
 state_dim, action_dim = 4, 3
 
 dueling_dqn = DuelingDQN(state_dim, action_dim)
 standard_dqn = StandardDQN(state_dim, action_dim)
 
-# パラメータ数の比較
+# Compare parameter counts
 dueling_params = sum(p.numel() for p in dueling_dqn.parameters())
 standard_params = sum(p.numel() for p in standard_dqn.parameters())
 
-print(f"Dueling DQNパラメータ数: {dueling_params:,}")
-print(f"標準DQNパラメータ数: {standard_params:,}")
+print(f"Dueling DQN parameters: {dueling_params:,}")
+print(f"Standard DQN parameters: {standard_params:,}")
 
-# 推論テスト
+# Inference test
 dummy_states = torch.randn(3, state_dim)
 
-print("\n--- Dueling DQNの内部表現 ---")
+print("\n--- Dueling DQN Internal Representation ---")
 with torch.no_grad():
     q_values = dueling_dqn(dummy_states)
     value, advantage = dueling_dqn.get_value_advantage(dummy_states)
 
 for i in range(3):
-    print(f"\n状態{i}:")
+    print(f"\nState {i}:")
     print(f"  V(s): {value[i].item():.3f}")
     print(f"  A(s,a): {advantage[i].numpy()}")
-    print(f"  A平均: {advantage[i].mean().item():.3f}")
+    print(f"  A mean: {advantage[i].mean().item():.3f}")
     print(f"  Q(s,a): {q_values[i].numpy()}")
-    print(f"  最適行動: {q_values[i].argmax().item()}")
+    print(f"  Optimal action: {q_values[i].argmax().item()}")
 
-# 行動の価値差の可視化
-print("\n--- 価値関数の minutes解の効果 ---")
-print("Duelingでは、V(s)が状態の基本価値を、A(s,a)が行動の相対的優位性を表す")
-print("\n例: 全行動が似た価値を持つ状態")
+# Visualize action value differences
+print("\n--- Effect of Value Function Decomposition ---")
+print("In Dueling, V(s) represents basic state value, A(s,a) represents relative action advantage")
+print("\nExample: State where all actions have similar values")
 dummy_state = torch.randn(1, state_dim)
 with torch.no_grad():
     v, a = dueling_dqn.get_value_advantage(dummy_state)
     q = dueling_dqn(dummy_state)
 
-print(f"V(s) = {v[0].item():.3f} (状態自体の価値)")
-print(f"A(s,a) = {a[0].numpy()} (行動の優位性)")
-print(f"Q(s,a) = {q[0].numpy()} (最終Q値)")
-print(f"行動間のQ値差: {q[0].max().item() - q[0].min().item():.3f}")
+print(f"V(s) = {v[0].item():.3f} (state value itself)")
+print(f"A(s,a) = {a[0].numpy()} (action advantage)")
+print(f"Q(s,a) = {q[0].numpy()} (final Q-values)")
+print(f"Q-value difference between actions: {q[0].max().item() - q[0].min().item():.3f}")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>=== Dueling DQN アーキテクチャ ===
+<p><strong>Output</strong>:</p>
+<pre><code>=== Dueling DQN Architecture ===
 
---- ネットワークの比較 ---
-Dueling DQNパラメータ数: 18,051
-標準DQNパラメータ数: 17,539
+--- Network Comparison ---
+Dueling DQN parameters: 18,051
+Standard DQN parameters: 17,539
 
---- Dueling DQNの内部表現 ---
+--- Dueling DQN Internal Representation ---
 
-状態0:
+State 0:
   V(s): 0.123
   A(s,a): [ 0.234 -0.123  0.456]
-  A平均: 0.189
+  A mean: 0.189
   Q(s,a): [ 0.168 -0.189  0.390]
-  最適行動: 2
+  Optimal action: 2
 
-状態1:
+State 1:
   V(s): -0.234
   A(s,a): [-0.045  0.123 -0.234]
-  A平均: -0.052
+  A mean: -0.052
   Q(s,a): [-0.227 -0.059 -0.416]
-  最適行動: 1
+  Optimal action: 1
 
-状態2:
+State 2:
   V(s): 0.456
   A(s,a): [ 0.123  0.089 -0.045]
-  A平均: 0.056
+  A mean: 0.056
   Q(s,a): [ 0.523  0.489  0.355]
-  最適行動: 0
+  Optimal action: 0
 
---- 価値関数の minutes解の効果 ---
-Duelingでは、V(s)が状態の基本価値を、A(s,a)が行動の相対的優位性を表す
+--- Effect of Value Function Decomposition ---
+In Dueling, V(s) represents basic state value, A(s,a) represents relative action advantage
 
-例: 全行動が似た価値を持つ状態
-V(s) = 0.234 (状態自体の価値)
-A(s,a) = [ 0.045 -0.023  0.012] (行動の優位性)
-Q(s,a) = [ 0.252  0.184  0.219] (最終Q値)
-行動間のQ値差: 0.068
+Example: State where all actions have similar values
+V(s) = 0.234 (state value itself)
+A(s,a) = [ 0.045 -0.023  0.012] (action advantage)
+Q(s,a) = [ 0.252  0.184  0.219] (final Q-values)
+Q-value difference between actions: 0.068
 </code></pre>
 
-<h3>DQN拡張手法のSummary</h3>
+<h3>Summary of DQN Extension Methods</h3>
 
 <table>
 <thead>
 <tr>
-<th>手法</th>
-<th>解決する問題</th>
-<th>主要アイデア</th>
-<th>計算コスト</th>
+<th>Method</th>
+<th>Problem Solved</th>
+<th>Key Idea</th>
+<th>Computational Cost</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><strong>DQN</strong></td>
-<td>高次元状態空間</td>
-<td>ニューラルネットワークでQ関数近似</td>
-<td>基準</td>
+<td>High-dimensional state space</td>
+<td>Approximate Q-function with neural network</td>
+<td>Baseline</td>
 </tr>
 <tr>
 <td><strong>Experience Replay</strong></td>
-<td>データ相関</td>
-<td>過去経験をバッファに保存・再利用</td>
-<td>+メモリ</td>
+<td>Data correlation</td>
+<td>Store and reuse past experiences in buffer</td>
+<td>+Memory</td>
 </tr>
 <tr>
 <td><strong>Target Network</strong></td>
-<td>学習不安定性</td>
-<td>ターゲット計算用の固定ネットワーク</td>
-<td>+2倍メモリ</td>
+<td>Learning instability</td>
+<td>Fixed network for target calculation</td>
+<td>+2x memory</td>
 </tr>
 <tr>
 <td><strong>Double DQN</strong></td>
-<td>Q値過大評価</td>
-<td>行動選択と評価を minutes離</td>
+<td>Q-value overestimation</td>
+<td>Separate action selection and evaluation</td>
 <td>≈DQN</td>
 </tr>
 <tr>
 <td><strong>Dueling DQN</strong></td>
-<td>価値推定の非効率</td>
-<td>V(s)とA(s,a)を minutes離学習</td>
+<td>Inefficient value estimation</td>
+<td>Separate learning of V(s) and A(s,a)</td>
 <td>≈DQN</td>
 </tr>
 </tbody>
@@ -1463,21 +1463,21 @@ Q(s,a) = [ 0.252  0.184  0.219] (最終Q値)
 
 <hr>
 
-<h2>3.6 実装: CartPoleでのDQN学習</h2>
+<h2>3.6 Implementation: DQN Learning on CartPole</h2>
 
-<h3>CartPole環境の説明</h3>
+<h3>CartPole Environment Description</h3>
 
-<p><strong>CartPole-v1</strong>は、倒立振子を制御する古典的な強化学習タスクです。</p>
+<p><strong>CartPole-v1</strong> is a classic reinforcement learning task to control an inverted pendulum.</p>
 
 <ul>
-<li><strong>状態</strong>: 4次元連続値（カート位置、カート速度、ポール角度、ポール角速度）</li>
-<li><strong>行動</strong>: 2つの離散行動（左に押す、右に押す）</li>
-<li><strong>報酬</strong>: 各ステップ+1（ポールが倒れるまで）</li>
-<li><strong>終了条件</strong>: ポール角度が±12°以上、カート位置が±2.4以上、500ステップ到達</li>
-<li><strong>成功基準</strong>: 100エピソードの平均報酬が475以上</li>
+<li><strong>State</strong>: 4-dimensional continuous values (cart position, cart velocity, pole angle, pole angular velocity)</li>
+<li><strong>Action</strong>: 2 discrete actions (push left, push right)</li>
+<li><strong>Reward</strong>: +1 per step (until pole falls)</li>
+<li><strong>Termination condition</strong>: Pole angle ±12° or more, cart position ±2.4 or more, 500 steps reached</li>
+<li><strong>Success criterion</strong>: Average reward of 100 episodes is 475 or more</li>
 </ul>
 
-<h3>実装例6: CartPole DQN完全実装</h3>
+<h3>Implementation Example 6: CartPole DQN Complete Implementation</h3>
 
 <pre><code class="language-python">import gym
 import torch
@@ -1488,9 +1488,9 @@ import random
 from collections import deque
 import matplotlib.pyplot as plt
 
-print("=== CartPole DQN 完全実装 ===\n")
+print("=== CartPole DQN Complete Implementation ===\n")
 
-# ハイパーパラメータ
+# Hyperparameters
 GAMMA = 0.99
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 64
@@ -1520,7 +1520,7 @@ class ReplayBuffer:
 
 
 class DQNNetwork(nn.Module):
-    """CartPole用DQN"""
+    """DQN for CartPole"""
     def __init__(self, state_dim, action_dim):
         super(DQNNetwork, self).__init__()
         self.fc1 = nn.Linear(state_dim, 128)
@@ -1534,13 +1534,13 @@ class DQNNetwork(nn.Module):
 
 
 class DQNAgent:
-    """DQNエージェント"""
+    """DQN Agent"""
     def __init__(self, state_dim, action_dim):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.epsilon = EPSILON_START
 
-        # Q-NetworkとTarget Network
+        # Q-Network and Target Network
         self.q_network = DQNNetwork(state_dim, action_dim)
         self.target_network = DQNNetwork(state_dim, action_dim)
         self.target_network.load_state_dict(self.q_network.state_dict())
@@ -1549,7 +1549,7 @@ class DQNAgent:
         self.buffer = ReplayBuffer(BUFFER_SIZE)
 
     def select_action(self, state, training=True):
-        """ε-greedy法で行動選択"""
+        """Action selection with ε-greedy"""
         if training and random.random() < self.epsilon:
             return random.randrange(self.action_dim)
         else:
@@ -1559,32 +1559,32 @@ class DQNAgent:
                 return q_values.argmax().item()
 
     def train_step(self):
-        """1回の学習ステップ"""
+        """Single training step"""
         if len(self.buffer) < BATCH_SIZE:
             return None
 
-        # ミニバッチサンプリング
+        # Mini-batch sampling
         states, actions, rewards, next_states, dones = self.buffer.sample(BATCH_SIZE)
 
-        # Tensorに変換
+        # Convert to tensors
         states = torch.FloatTensor(states)
         actions = torch.LongTensor(actions)
         rewards = torch.FloatTensor(rewards)
         next_states = torch.FloatTensor(next_states)
         dones = torch.FloatTensor(dones)
 
-        # 現在のQ値
+        # Current Q-values
         current_q = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
 
-        # ターゲットQ値（Double DQN）
+        # Target Q-values (Double DQN)
         with torch.no_grad():
-            # Q-Networkで行動選択
+            # Action selection with Q-Network
             next_actions = self.q_network(next_states).argmax(1)
-            # Target Networkで評価
+            # Evaluation with Target Network
             next_q = self.target_network(next_states).gather(1, next_actions.unsqueeze(1)).squeeze(1)
             target_q = rewards + GAMMA * next_q * (1 - dones)
 
-        # 損失計算と最適化
+        # Loss calculation and optimization
         loss = nn.MSELoss()(current_q, target_q)
         self.optimizer.zero_grad()
         loss.backward()
@@ -1593,16 +1593,16 @@ class DQNAgent:
         return loss.item()
 
     def update_target_network(self):
-        """Target Networkの更新"""
+        """Update Target Network"""
         self.target_network.load_state_dict(self.q_network.state_dict())
 
     def decay_epsilon(self):
-        """εの減衰"""
+        """Decay ε"""
         self.epsilon = max(EPSILON_END, self.epsilon * EPSILON_DECAY)
 
 
-# 学習実行
-print("--- CartPole学習開始 ---")
+# Training execution
+print("--- CartPole Training Started ---")
 env = gym.make('CartPole-v1')
 agent = DQNAgent(state_dim=4, action_dim=2)
 
@@ -1611,17 +1611,17 @@ losses = []
 
 for episode in range(NUM_EPISODES):
     state = env.reset()
-    if isinstance(state, tuple):  # gym>=0.26対応
+    if isinstance(state, tuple):  # gym>=0.26 compatibility
         state = state[0]
 
     episode_reward = 0
     episode_loss = []
 
     for t in range(500):
-        # 行動選択
+        # Action selection
         action = agent.select_action(state)
 
-        # 環境ステップ
+        # Environment step
         result = env.step(action)
         if len(result) == 5:  # gym>=0.26
             next_state, reward, terminated, truncated, _ = result
@@ -1629,10 +1629,10 @@ for episode in range(NUM_EPISODES):
         else:
             next_state, reward, done, _ = result
 
-        # バッファに保存
+        # Store in buffer
         agent.buffer.push(state, action, reward, next_state, float(done))
 
-        # 学習
+        # Training
         loss = agent.train_step()
         if loss is not None:
             episode_loss.append(loss)
@@ -1643,18 +1643,18 @@ for episode in range(NUM_EPISODES):
         if done:
             break
 
-    # Target Network更新
+    # Target Network update
     if episode % TARGET_UPDATE_FREQ == 0:
         agent.update_target_network()
 
-    # εの減衰
+    # ε decay
     agent.decay_epsilon()
 
     episode_rewards.append(episode_reward)
     avg_loss = np.mean(episode_loss) if episode_loss else 0
     losses.append(avg_loss)
 
-    # 進捗表示
+    # Progress display
     if (episode + 1) % 50 == 0:
         avg_reward = np.mean(episode_rewards[-100:])
         print(f"Episode {episode + 1}/{NUM_EPISODES} | "
@@ -1664,19 +1664,19 @@ for episode in range(NUM_EPISODES):
 
 env.close()
 
-# 結果の可視化
-print("\n--- 学習結果 ---")
+# Visualize results
+print("\n--- Training Results ---")
 final_avg = np.mean(episode_rewards[-100:])
-print(f"最終100エピソード平均報酬: {final_avg:.2f}")
-print(f"成功基準（475以上）: {'達成' if final_avg >= 475 else '未達成'}")
-print(f"最大報酬: {max(episode_rewards)}")
-print(f"最終ε値: {agent.epsilon:.4f}")
+print(f"Final 100 episodes average reward: {final_avg:.2f}")
+print(f"Success criterion (475 or more): {'Achieved' if final_avg >= 475 else 'Not achieved'}")
+print(f"Maximum reward: {max(episode_rewards)}")
+print(f"Final ε value: {agent.epsilon:.4f}")
 </code></pre>
 
-<p><strong>出力例</strong>：</p>
-<pre><code>=== CartPole DQN 完全実装 ===
+<p><strong>Output Example</strong>:</p>
+<pre><code>=== CartPole DQN Complete Implementation ===
 
---- CartPole学習開始 ---
+--- CartPole Training Started ---
 Episode 50/500 | Avg Reward: 22.34 | Epsilon: 0.606 | Loss: 0.0234
 Episode 100/500 | Avg Reward: 45.67 | Epsilon: 0.367 | Loss: 0.0189
 Episode 150/500 | Avg Reward: 98.23 | Epsilon: 0.223 | Loss: 0.0156
@@ -1688,38 +1688,38 @@ Episode 400/500 | Avg Reward: 482.34 | Epsilon: 0.018 | Loss: 0.0042
 Episode 450/500 | Avg Reward: 493.56 | Epsilon: 0.011 | Loss: 0.0038
 Episode 500/500 | Avg Reward: 497.23 | Epsilon: 0.010 | Loss: 0.0035
 
---- 学習結果 ---
-最終100エピソード平均報酬: 497.23
-成功基準（475以上）: 達成
-最大報酬: 500.00
-最終ε値: 0.0100
+--- Training Results ---
+Final 100 episodes average reward: 497.23
+Success criterion (475 or more): Achieved
+Maximum reward: 500.00
+Final ε value: 0.0100
 </code></pre>
 
 <hr>
 
-<h2>3.7 実装: Atari Pongでの画像ベース学習</h2>
+<h2>3.7 Implementation: Image-Based Learning on Atari Pong</h2>
 
-<h3>Atari環境の前処理</h3>
+<h3>Atari Environment Preprocessing</h3>
 
-<p>Atariゲームの画像（210×160 RGB）を直接使うと計算コストが高いため、以下の前処理を行います：</p>
+<p>Using Atari game images (210×160 RGB) directly is computationally expensive, so the following preprocessing is performed:</p>
 
 <ol>
-<li><strong>グレースケール変換</strong>：RGB → グレー（計算量1/3）</li>
-<li><strong>リサイズ</strong>：210×160 → 84×84</li>
-<li><strong>フレームスタック</strong>：過去4フレームを積み重ね（動きを捉える）</li>
-<li><strong>正規化</strong>：ピクセル値を[0, 255] → [0, 1]</li>
+<li><strong>Grayscale conversion</strong>: RGB → Gray (1/3 computation)</li>
+<li><strong>Resize</strong>: 210×160 → 84×84</li>
+<li><strong>Frame stacking</strong>: Stack past 4 frames (capture motion)</li>
+<li><strong>Normalization</strong>: Pixel values from [0, 255] → [0, 1]</li>
 </ol>
 
-<h3>実装例7: Atari前処理とFrame Stacking</h3>
+<h3>Implementation Example 7: Atari Preprocessing and Frame Stacking</h3>
 
 <pre><code class="language-python">import numpy as np
 import cv2
 from collections import deque
 
-print("=== Atari環境の前処理 ===\n")
+print("=== Atari Environment Preprocessing ===\n")
 
 class AtariPreprocessor:
-    """Atariゲーム用の前処理"""
+    """Preprocessing for Atari games"""
 
     def __init__(self, frame_stack=4):
         self.frame_stack = frame_stack
@@ -1727,43 +1727,43 @@ class AtariPreprocessor:
 
     def preprocess_frame(self, frame):
         """
-        1フレームの前処理
+        Preprocess a single frame
 
         Args:
-            frame: 元画像 [210, 160, 3] (RGB)
+            frame: Original image [210, 160, 3] (RGB)
         Returns:
-            processed: 処理済み画像 [84, 84]
+            processed: Processed image [84, 84]
         """
-        # グレースケール変換
+        # Grayscale conversion
         gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
-        # リサイズ 84x84
+        # Resize to 84x84
         resized = cv2.resize(gray, (84, 84), interpolation=cv2.INTER_AREA)
 
-        # 正規化 [0, 1]
+        # Normalize to [0, 1]
         normalized = resized / 255.0
 
         return normalized
 
     def reset(self, initial_frame):
-        """エピソード開始時のリセット"""
+        """Reset at episode start"""
         processed = self.preprocess_frame(initial_frame)
 
-        # 最初のフレームを4回積み重ね
+        # Stack the first frame 4 times
         for _ in range(self.frame_stack):
             self.frames.append(processed)
 
         return self.get_stacked_frames()
 
     def step(self, frame):
-        """新しいフレームを追加"""
+        """Add new frame"""
         processed = self.preprocess_frame(frame)
         self.frames.append(processed)
         return self.get_stacked_frames()
 
     def get_stacked_frames(self):
         """
-        スタックされたフレームを取得
+        Get stacked frames
 
         Returns:
             stacked: [4, 84, 84]
@@ -1771,79 +1771,79 @@ class AtariPreprocessor:
         return np.array(self.frames)
 
 
-# テスト実行
-print("--- 前処理のテスト ---")
+# Test execution
+print("--- Preprocessing Test ---")
 
-# ダミー画像（210×160 RGB）
+# Dummy image (210×160 RGB)
 dummy_frame = np.random.randint(0, 256, (210, 160, 3), dtype=np.uint8)
-print(f"元画像形状: {dummy_frame.shape}")
-print(f"元画像データ型: {dummy_frame.dtype}")
-print(f"ピクセル値範囲: [{dummy_frame.min()}, {dummy_frame.max()}]")
+print(f"Original image shape: {dummy_frame.shape}")
+print(f"Original image dtype: {dummy_frame.dtype}")
+print(f"Pixel value range: [{dummy_frame.min()}, {dummy_frame.max()}]")
 
 preprocessor = AtariPreprocessor(frame_stack=4)
 
-# リセット
+# Reset
 stacked = preprocessor.reset(dummy_frame)
-print(f"\nリセット後:")
-print(f"スタック形状: {stacked.shape}")
-print(f"データ型: {stacked.dtype}")
-print(f"値範囲: [{stacked.min():.3f}, {stacked.max():.3f}]")
+print(f"\nAfter reset:")
+print(f"Stack shape: {stacked.shape}")
+print(f"Data type: {stacked.dtype}")
+print(f"Value range: [{stacked.min():.3f}, {stacked.max():.3f}]")
 
-# 新フレーム追加
+# Add new frames
 for i in range(3):
     new_frame = np.random.randint(0, 256, (210, 160, 3), dtype=np.uint8)
     stacked = preprocessor.step(new_frame)
-    print(f"\nステップ{i+1}後:")
-    print(f"  スタック形状: {stacked.shape}")
+    print(f"\nAfter step {i+1}:")
+    print(f"  Stack shape: {stacked.shape}")
 
-# メモリ使用量の比較
-original_size = dummy_frame.nbytes * 4  # 4フレーム minutes
+# Memory usage comparison
+original_size = dummy_frame.nbytes * 4  # 4 frames
 processed_size = stacked.nbytes
-print(f"\n--- メモリ使用量 ---")
-print(f"元画像（4フレーム）: {original_size / 1024:.2f} KB")
-print(f"前処理後: {processed_size / 1024:.2f} KB")
-print(f"削減率: {(1 - processed_size / original_size) * 100:.1f}%")
+print(f"\n--- Memory Usage ---")
+print(f"Original images (4 frames): {original_size / 1024:.2f} KB")
+print(f"After preprocessing: {processed_size / 1024:.2f} KB")
+print(f"Reduction rate: {(1 - processed_size / original_size) * 100:.1f}%")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>=== Atari環境の前処理 ===
+<p><strong>Output</strong>:</p>
+<pre><code>=== Atari Environment Preprocessing ===
 
---- 前処理のテスト ---
-元画像形状: (210, 160, 3)
-元画像データ型: uint8
-ピクセル値範囲: [0, 255]
+--- Preprocessing Test ---
+Original image shape: (210, 160, 3)
+Original image dtype: uint8
+Pixel value range: [0, 255]
 
-リセット後:
-スタック形状: (4, 84, 84)
-データ型: float64
-値範囲: [0.000, 1.000]
+After reset:
+Stack shape: (4, 84, 84)
+Data type: float64
+Value range: [0.000, 1.000]
 
-ステップ1後:
-  スタック形状: (4, 84, 84)
+After step 1:
+  Stack shape: (4, 84, 84)
 
-ステップ2後:
-  スタック形状: (4, 84, 84)
+After step 2:
+  Stack shape: (4, 84, 84)
 
-ステップ3後:
-  スタック形状: (4, 84, 84)
+After step 3:
+  Stack shape: (4, 84, 84)
 
---- メモリ使用量 ---
-元画像（4フレーム）: 403.20 KB
-前処理後: 225.79 KB
-削減率: 44.0%
+--- Memory Usage ---
+Original images (4 frames): 403.20 KB
+After preprocessing: 225.79 KB
+Reduction rate: 44.0%
 </code></pre>
 
-<h3>実装例8: Atari Pong DQN学習（簡略版）</h3>
+<h3>Implementation Example 8: Atari Pong DQN Learning (Simplified Version)</h3>
 
 <pre><code class="language-python">import gym
 import torch
 import torch.nn as nn
 import numpy as np
 
-print("=== Atari Pong DQN 学習フレームワーク ===\n")
+print("=== Atari Pong DQN Learning Framework ===\n")
 
 class AtariDQN(nn.Module):
-    """Atari用CNN-DQN"""
+    """CNN-DQN for Atari"""
     def __init__(self, n_actions):
         super(AtariDQN, self).__init__()
 
@@ -1863,18 +1863,18 @@ class AtariDQN(nn.Module):
         )
 
     def forward(self, x):
-        # 入力: [batch, 4, 84, 84]
+        # Input: [batch, 4, 84, 84]
         x = self.conv(x)
         x = x.view(x.size(0), -1)
         return self.fc(x)
 
 
 class PongDQNAgent:
-    """Pong用DQNエージェント"""
+    """DQN agent for Pong"""
 
     def __init__(self, n_actions):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print(f"使用デバイス: {self.device}")
+        print(f"Using device: {self.device}")
 
         self.q_network = AtariDQN(n_actions).to(self.device)
         self.target_network = AtariDQN(n_actions).to(self.device)
@@ -1884,7 +1884,7 @@ class PongDQNAgent:
         self.preprocessor = AtariPreprocessor(frame_stack=4)
 
     def select_action(self, state, epsilon=0.1):
-        """ε-greedy行動選択"""
+        """ε-greedy action selection"""
         if np.random.random() < epsilon:
             return np.random.randint(self.q_network.fc[-1].out_features)
 
@@ -1894,7 +1894,7 @@ class PongDQNAgent:
             return q_values.argmax().item()
 
     def compute_loss(self, batch):
-        """損失計算（Double DQN）"""
+        """Loss calculation (Double DQN)"""
         states, actions, rewards, next_states, dones = batch
 
         states = torch.FloatTensor(states).to(self.device)
@@ -1903,10 +1903,10 @@ class PongDQNAgent:
         next_states = torch.FloatTensor(next_states).to(self.device)
         dones = torch.FloatTensor(dones).to(self.device)
 
-        # 現在のQ値
+        # Current Q-values
         current_q = self.q_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
 
-        # Double DQNターゲット
+        # Double DQN target
         with torch.no_grad():
             next_actions = self.q_network(next_states).argmax(1)
             next_q = self.target_network(next_states).gather(1, next_actions.unsqueeze(1)).squeeze(1)
@@ -1915,33 +1915,33 @@ class PongDQNAgent:
         return nn.MSELoss()(current_q, target_q)
 
 
-# 簡易テスト
-print("--- Pong DQNエージェント初期化 ---")
-agent = PongDQNAgent(n_actions=6)  # Pongは6つの行動
+# Simple test
+print("--- Pong DQN Agent Initialization ---")
+agent = PongDQNAgent(n_actions=6)  # Pong has 6 actions
 
-print(f"\nネットワーク構造:")
+print(f"\nNetwork structure:")
 print(agent.q_network)
 
-print(f"\n総パラメータ数: {sum(p.numel() for p in agent.q_network.parameters()):,}")
+print(f"\nTotal parameters: {sum(p.numel() for p in agent.q_network.parameters()):,}")
 
-# ダミー状態で推論テスト
+# Inference test with dummy state
 dummy_state = np.random.randn(4, 84, 84).astype(np.float32)
 action = agent.select_action(dummy_state, epsilon=0.0)
-print(f"\n推論テスト:")
-print(f"入力状態形状: {dummy_state.shape}")
-print(f"選択された行動: {action}")
+print(f"\nInference test:")
+print(f"Input state shape: {dummy_state.shape}")
+print(f"Selected action: {action}")
 
-print("\n[実際の学習では、約100万フレーム（数 hours〜数日）の訓練が必要です]")
-print("[Pongで人間Levelに到達するには、報酬が-21から+21に改善するまで学習します]")
+print("\n[Actual training requires about 1 million frames (several hours to days)]")
+print("[To reach human level in Pong, training continues until reward improves from -21 to +21]")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>=== Atari Pong DQN 学習フレームワーク ===
+<p><strong>Output</strong>:</p>
+<pre><code>=== Atari Pong DQN Learning Framework ===
 
-使用デバイス: cpu
---- Pong DQNエージェント初期化 ---
+Using device: cpu
+--- Pong DQN Agent Initialization ---
 
-ネットワーク構造:
+Network structure:
 AtariDQN(
   (conv): Sequential(
     (0): Conv2d(4, 32, kernel_size=(8, 8), stride=(4, 4))
@@ -1958,144 +1958,144 @@ AtariDQN(
   )
 )
 
-総パラメータ数: 1,686,086
+Total parameters: 1,686,086
 
-推論テスト:
-入力状態形状: (4, 84, 84)
-選択された行動: 3
+Inference test:
+Input state shape: (4, 84, 84)
+Selected action: 3
 
-[実際の学習では、約100万フレーム（数 hours〜数日）の訓練が必要です]
-[Pongで人間Levelに到達するには、報酬が-21から+21に改善するまで学習します]
+[Actual training requires about 1 million frames (several hours to days)]
+[To reach human level in Pong, training continues until reward improves from -21 to +21]
 </code></pre>
 
 <hr>
 
 <h2>Summary</h2>
 
-<p>本 Chapterでは、Deep Q-Network（DQN）について学びました：</p>
+<p>In this chapter, we learned about Deep Q-Network (DQN):</p>
 
-<h3>重要ポイント</h3>
+<h3>Key Points</h3>
 
 <ol>
-<li><strong>Q学習の限界</strong>：
+<li><strong>Limitations of Q-Learning</strong>:
 <ul>
-<li>表形式Q学習は高次元・連続状態空間に対応不可</li>
-<li>ニューラルネットワークによる関数近似が必要</li>
+<li>Tabular Q-learning cannot handle high-dimensional and continuous state spaces</li>
+<li>Function approximation with neural networks is necessary</li>
 </ul>
 </li>
-<li><strong>DQNの基本構成</strong>：
+<li><strong>Basic DQN Components</strong>:
 <ul>
-<li>Q-Network：Q(s, a; θ)を近似</li>
-<li>Experience Replay：データ相関を除去</li>
-<li>Target Network：学習を安定化</li>
+<li>Q-Network: Approximates Q(s, a; θ)</li>
+<li>Experience Replay: Removes data correlation</li>
+<li>Target Network: Stabilizes learning</li>
 </ul>
 </li>
-<li><strong>アルゴリズム拡張</strong>：
+<li><strong>Algorithm Extensions</strong>:
 <ul>
-<li>Double DQN：Q値過大評価を抑制</li>
-<li>Dueling DQN：V(s)とA(s,a)を minutes離</li>
+<li>Double DQN: Suppresses Q-value overestimation</li>
+<li>Dueling DQN: Separates V(s) and A(s,a)</li>
 </ul>
 </li>
-<li><strong>実装のポイント</strong>：
+<li><strong>Implementation Points</strong>:
 <ul>
-<li>CartPole：連続状態の基本的なDQN学習</li>
-<li>Atari：画像前処理とCNNアーキテクチャ</li>
+<li>CartPole: Basic DQN learning with continuous states</li>
+<li>Atari: Image preprocessing and CNN architecture</li>
 </ul>
 </li>
 </ol>
 
-<h3>ハイパーパラメータのベストプラクティス</h3>
+<h3>Hyperparameter Best Practices</h3>
 
 <table>
 <thead>
 <tr>
-<th>パラメータ</th>
+<th>Parameter</th>
 <th>CartPole</th>
 <th>Atari</th>
-<th>説明</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>学習率</strong></td>
+<td><strong>Learning rate</strong></td>
 <td>1e-3</td>
 <td>1e-4 ~ 2.5e-4</td>
-<td>AdamRecommended</td>
+<td>Adam recommended</td>
 </tr>
 <tr>
-<td><strong>γ（割引率）</strong></td>
+<td><strong>γ (discount factor)</strong></td>
 <td>0.99</td>
 <td>0.99</td>
-<td>標準値</td>
+<td>Standard value</td>
 </tr>
 <tr>
-<td><strong>Buffer容量</strong></td>
+<td><strong>Buffer capacity</strong></td>
 <td>10,000</td>
 <td>100,000 ~ 1,000,000</td>
-<td>タスクの複雑さに応じて</td>
+<td>According to task complexity</td>
 </tr>
 <tr>
 <td><strong>Batch Size</strong></td>
 <td>32 ~ 64</td>
 <td>32</td>
-<td>小さいほど学習不安定</td>
+<td>Smaller means more unstable learning</td>
 </tr>
 <tr>
-<td><strong>ε減衰</strong></td>
+<td><strong>ε decay</strong></td>
 <td>0.995</td>
-<td>1.0 → 0.1（100万ステップ）</td>
-<td>線形減衰も可</td>
+<td>1.0 → 0.1 (1M steps)</td>
+<td>Linear decay also possible</td>
 </tr>
 <tr>
-<td><strong>Target更新頻度</strong></td>
-<td>10エピソード</td>
-<td>10,000ステップ</td>
-<td>環境により調整</td>
+<td><strong>Target update frequency</strong></td>
+<td>10 episodes</td>
+<td>10,000 steps</td>
+<td>Adjust by environment</td>
 </tr>
 </tbody>
 </table>
 
-<h3>DQNの限界と今後の発展</h3>
+<h3>Limitations of DQN and Future Developments</h3>
 
-<p>DQNは画期的な手法ですが、以下の課題があります：</p>
+<p>DQN is a groundbreaking method, but has the following challenges:</p>
 
 <ul>
-<li><strong>サンプル効率</strong>：大量の経験が必要（数百万フレーム）</li>
-<li><strong>離散行動のみ</strong>：連続行動空間には対応不可</li>
-<li><strong>過大評価バイアス</strong>：Double DQNでも完全には解決せず</li>
+<li><strong>Sample efficiency</strong>: Requires large amounts of experience (millions of frames)</li>
+<li><strong>Discrete actions only</strong>: Cannot handle continuous action spaces</li>
+<li><strong>Overestimation bias</strong>: Not completely solved even with Double DQN</li>
 </ul>
 
-<p>これらを改善する手法として、Chapter 4 Chapter以降で以下を学びます：</p>
+<p>Methods to improve these issues will be learned in Chapter 4 and beyond:</p>
 
 <ul>
-<li><strong>Policy Gradient</strong>：連続行動空間への対応</li>
-<li><strong>Actor-Critic</strong>：価値ベースと方策ベースの融合</li>
-<li><strong>Rainbow DQN</strong>：複数の改善手法の統合</li>
+<li><strong>Policy Gradient</strong>: Handling continuous action spaces</li>
+<li><strong>Actor-Critic</strong>: Fusion of value-based and policy-based methods</li>
+<li><strong>Rainbow DQN</strong>: Integration of multiple improvement techniques</li>
 </ul>
 
 <details>
 <summary><strong>Exercises</strong></summary>
 
-<h4>問1: Experience Replayの効果</h4>
-<p>Experience Replayを使わない場合と使う場合で、CartPoleの学習曲線を比較してください。相関データがどのように学習に影響するか考察してください。</p>
+<h4>Exercise 1: Effects of Experience Replay</h4>
+<p>Compare learning curves on CartPole with and without Experience Replay. Consider how correlated data affects learning.</p>
 
-<h4>問2: Target Networkの更新頻度</h4>
-<p>Target Networkの更新頻度（C = 1, 10, 100, 1000）を変えて実験し、学習の安定性への影響を minutes析してください。</p>
+<h4>Exercise 2: Target Network Update Frequency</h4>
+<p>Experiment with different Target Network update frequencies (C = 1, 10, 100, 1000) and analyze the impact on learning stability.</p>
 
-<h4>問3: Double DQNの効果測定</h4>
-<p>標準DQNとDouble DQNで、Q値の推定誤差を比較してください。過大評価がどの程度抑制されるか定量評価してください。</p>
+<h4>Exercise 3: Double DQN Effect Measurement</h4>
+<p>Compare Q-value estimation errors between standard DQN and Double DQN. Quantitatively evaluate how much overestimation is suppressed.</p>
 
-<h4>問4: Dueling Architectureの可視化</h4>
-<p>Dueling DQNのV(s)とA(s,a)の値を可視化し、どのような状態でV(s)が支配的になるか、A(s,a)が重要になるか minutes析してください。</p>
+<h4>Exercise 4: Dueling Architecture Visualization</h4>
+<p>Visualize V(s) and A(s,a) values in Dueling DQN and analyze in which states V(s) is dominant and when A(s,a) is important.</p>
 
-<h4>問5: ハイパーパラメータチューニング</h4>
-<p>学習率、バッファサイズ、バッチサイズを変えて実験し、最適な設定を見つけてください。グリッドサーチまたはランダムサーチを実装してください。</p>
+<h4>Exercise 5: Hyperparameter Tuning</h4>
+<p>Experiment with different learning rates, buffer sizes, and batch sizes to find optimal settings. Implement grid search or random search.</p>
 
 </details>
 
 <div class="navigation">
-    <a href="chapter2-q-learning.html" class="nav-button">← Chapter 2 Chapter: Q学習とTD法</a>
-    <a href="chapter4-policy-gradient.html" class="nav-button">Chapter 4 Chapter: Policy Gradient →</a>
+    <a href="chapter2-q-learning.html" class="nav-button">← Chapter 2: Q-Learning and TD Methods</a>
+    <a href="chapter4-policy-gradient.html" class="nav-button">Chapter 4: Policy Gradient →</a>
 </div>
 
 </main>
@@ -2105,17 +2105,17 @@ AtariDQN(
         <h3>Disclaimer</h3>
         <ul>
             <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
-            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
-            <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
-            <li>To the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
-            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
-            <li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operational safety, etc.</li>
+            <li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+            <li>The author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content, to the maximum extent permitted by applicable law.</li>
+            <li>The content of this material is subject to change, update, or discontinuation without notice.</li>
+            <li>The copyright and license of this content shall be in accordance with the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
         </ul>
     </section>
 
 <footer>
     <p>&copy; 2025 AI Terakoya. All rights reserved.</p>
-    <p>Reinforcement Learning Introduction Series - Chapter 3 Chapter：Deep Q-Network (DQN)</p>
+    <p>Reinforcement Learning Introduction Series - Chapter 3: Deep Q-Network (DQN)</p>
 </footer>
 
 </body>

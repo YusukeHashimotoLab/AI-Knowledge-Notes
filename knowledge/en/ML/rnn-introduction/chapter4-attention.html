@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 4 Chapter：Attention機構 - AI Terakoya</title>
+    <title>Chapter 4: Attention Mechanism - AI Terakoya</title>
 
     <style>
         :root {
@@ -99,9 +99,9 @@
 
         .project-box { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 50%); border-radius: var(--border-radius); padding: var(--spacing-lg); margin: var(--spacing-lg) 0; box-shadow: var(--box-shadow); }
         @media (max-width: 768px) { h1 { font-size: 1.5rem; } h2 { font-size: 1.4rem; } h3 { font-size: 1.2rem; } .meta { font-size: 0.85rem; } .navigation { flex-direction: column; } table { font-size: 0.85rem; } th, td { padding: var(--spacing-xs); } }
-    
-        
-    
+
+
+
         /* Breadcrumb styles */
         .breadcrumb {
             background: #f7fafc;
@@ -156,19 +156,19 @@
 <body>
             <nav class="breadcrumb">
         <div class="breadcrumb-content">
-            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/rnn-introduction/index.html">Rnn</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 4</span>
+            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/rnn-introduction/index.html">RNN</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 4</span>
         </div>
     </nav>
 
         <header>
         <div class="header-content">
-            <h1>Chapter 4 Chapter：Attention機構</h1>
-            <p class="subtitle">系列変換タスクを革新したAttentionメカニズムの理論と実装</p>
+            <h1>Chapter 4: Attention Mechanism</h1>
+            <p class="subtitle">Theory and implementation of the attention mechanism that revolutionized sequence transformation tasks</p>
             <div class="meta">
-                <span class="meta-item">📖 Reading Time: 23 minutes</span>
-                <span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
-                <span class="meta-item">💻 Code Examples: 8</span>
-                <span class="meta-item">📝 Exercises: 6問</span>
+                <span class="meta-item">📖 Reading time: 23 minutes</span>
+                <span class="meta-item">📊 Level: Intermediate to Advanced</span>
+                <span class="meta-item">💻 Code examples: 8</span>
+                <span class="meta-item">📝 Exercises: 6</span>
             </div>
         </div>
     </header>
@@ -176,133 +176,133 @@
     <main class="container">
 
 <h2>Learning Objectives</h2>
-<p>この ChapterReadことで、以下を習得できます：</p>
+<p>By reading this chapter, you will be able to:</p>
 <ul>
-<li>✅ Attention機構の必要性と理論的背景を理解できる</li>
-<li>✅ Bahdanau Attention（Additive Attention）の仕組みを実装できる</li>
-<li>✅ Luong Attention（Multiplicative Attention）の数学的定義を理解できる</li>
-<li>✅ Attention重みの可視化でモデルの挙動を解釈できる</li>
-<li>✅ Seq2SeqモデルにAttentionを組み込むことができる</li>
-<li>✅ Self-Attentionの基礎概念を理解できる（Transformer準備）</li>
-<li>✅ AttentionベースのNMTシステムを構築できる</li>
+<li>✅ Understand the necessity and theoretical background of attention mechanisms</li>
+<li>✅ Implement Bahdanau Attention (Additive Attention)</li>
+<li>✅ Understand the mathematical definition of Luong Attention (Multiplicative Attention)</li>
+<li>✅ Interpret model behavior through attention weight visualization</li>
+<li>✅ Integrate attention into Seq2Seq models</li>
+<li>✅ Understand the fundamental concepts of Self-Attention (preparation for Transformer)</li>
+<li>✅ Build attention-based NMT systems</li>
 </ul>
 
 <hr>
 
-<h2>4.1 Attentionの必要性</h2>
+<h2>4.1 The Necessity of Attention</h2>
 
-<h3>Context Vectorのボトルネック問題</h3>
+<h3>The Bottleneck Problem of Context Vectors</h3>
 
-<p>Chapter 3 Chapterで学んだEncoder-Decoderモデルでは、入力系列全体を固定長のContext Vector（文脈ベクトル）に圧縮していました。この設計には以下の深刻な問題があります：</p>
+<p>In the Encoder-Decoder model we learned in Chapter 3, the entire input sequence was compressed into a fixed-length Context Vector. This design has the following serious problems:</p>
 
 <table>
 <thead>
 <tr>
-<th>問題</th>
-<th>詳細</th>
-<th>影響</th>
+<th>Problem</th>
+<th>Details</th>
+<th>Impact</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>情報ボトルネック</strong></td>
-<td>長い系列を固定長ベクトルに圧縮</td>
-<td>情報損失、長文での性能低下</td>
+<td><strong>Information Bottleneck</strong></td>
+<td>Compressing long sequences into fixed-length vectors</td>
+<td>Information loss, performance degradation on long texts</td>
 </tr>
 <tr>
-<td><strong>長距離依存の困難</strong></td>
-<td>系列の始めと終わりの関連付けが困難</td>
-<td>長文翻訳の精度低下</td>
+<td><strong>Long-Range Dependency Difficulty</strong></td>
+<td>Difficult to associate the beginning and end of a sequence</td>
+<td>Reduced accuracy in long sentence translation</td>
 </tr>
 <tr>
-<td><strong>一様な重要度</strong></td>
-<td>全単語を同じ重みで扱う</td>
-<td>重要な単語を強調できない</td>
+<td><strong>Uniform Importance</strong></td>
+<td>Treating all words with the same weight</td>
+<td>Unable to emphasize important words</td>
 </tr>
 <tr>
-<td><strong>解釈性の欠如</strong></td>
-<td>モデルの判断根拠が不明</td>
-<td>デバッグや改善が困難</td>
+<td><strong>Lack of Interpretability</strong></td>
+<td>Model's decision rationale unclear</td>
+<td>Difficult to debug and improve</td>
 </tr>
 </tbody>
 </table>
 
-<h3>Attentionによる解決策</h3>
+<h3>Solution Through Attention</h3>
 
-<p>Attention機構は、Decoderが各時刻で「入力系列のどの部 minutesに注目すべきか」を動的に学習します。固定長のContext Vectorではなく、各時刻で異なるContext Vectorを計算することで上記の問題を解決します。</p>
+<p>The attention mechanism enables the Decoder to dynamically learn "which part of the input sequence to focus on" at each time step. By computing different Context Vectors at each time step instead of a fixed-length Context Vector, it solves the above problems.</p>
 
 <div class="mermaid">
 graph TB
-    subgraph "従来のSeq2Seq（固定Context）"
-        A1[入力: I love AI] --> E1[Encoder]
-        E1 --> C1[固定Context Vector]
+    subgraph "Traditional Seq2Seq (Fixed Context)"
+        A1[Input: I love AI] --> E1[Encoder]
+        E1 --> C1[Fixed Context Vector]
         C1 --> D1[Decoder]
-        D1 --> O1[出力: 私はAIが好き]
+        D1 --> O1[Output: I love AI]
 
         style C1 fill:#e74c3c,color:#fff
     end
 
-    subgraph "Attention付きSeq2Seq（動的Context）"
-        A2[入力: I love AI] --> E2[Encoder]
+    subgraph "Seq2Seq with Attention (Dynamic Context)"
+        A2[Input: I love AI] --> E2[Encoder]
         E2 --> H1[hidden states]
-        H1 --> ATT[Attention機構]
+        H1 --> ATT[Attention Mechanism]
         D2[Decoder state] --> ATT
-        ATT --> C2[動的Context t=1]
-        ATT --> C3[動的Context t=2]
-        ATT --> C4[動的Context t=3]
+        ATT --> C2[Dynamic Context t=1]
+        ATT --> C3[Dynamic Context t=2]
+        ATT --> C4[Dynamic Context t=3]
         C2 --> D2
         C3 --> D2
         C4 --> D2
-        D2 --> O2[出力: 私はAIが好き]
+        D2 --> O2[Output: I love AI]
 
         style ATT fill:#27ae60,color:#fff
     end
 </div>
 
 <blockquote>
-<p><strong>重要</strong>: Attentionは「どこを見るべきか」を学習する機構です。人間が文 ChapterReadときに重要な部 minutesに注意を払うのと同じように、モデルも入力系列の重要な部 minutesに重みを置きます。</p>
+<p><strong>Important</strong>: Attention is a mechanism that learns "where to look." Just as humans pay attention to important parts when reading a sentence, the model also places weight on important parts of the input sequence.</p>
 </blockquote>
 
 <hr>
 
-<h2>4.2 Bahdanau Attention（Additive Attention）</h2>
+<h2>4.2 Bahdanau Attention (Additive Attention)</h2>
 
-<h3>4.2.1 基本概念とアーキテクチャ</h3>
+<h3>4.2.1 Basic Concept and Architecture</h3>
 
-<p>Bahdanau Attention（2014年提案）は、最初に広く採用されたAttention機構です。Additive Attentionとも呼ばれ、EncoderとDecoderの隠れ状態を加算的に組み合わせます。</p>
+<p>Bahdanau Attention (proposed in 2014) was the first widely adopted attention mechanism. Also called Additive Attention, it combines Encoder and Decoder hidden states additively.</p>
 
-<h4>数学的定義</h4>
+<h4>Mathematical Definition</h4>
 
-<p>時刻 $t$ におけるAttention重みの計算：</p>
+<p>Computing attention weights at time step $t$:</p>
 
-<p><strong>ステップ1: Alignment Score（アライメントスコア）</strong></p>
+<p><strong>Step 1: Alignment Score</strong></p>
 $$
 e_{ti} = v_a^\top \tanh(W_a s_{t-1} + U_a h_i)
 $$
 
-<p>ここで：</p>
+<p>Where:</p>
 <ul>
-<li>$s_{t-1}$: Decoderの前時刻の隠れ状態（Query）</li>
-<li>$h_i$: Encoderの $i$ 番目の隠れ状態（Key）</li>
-<li>$W_a, U_a$: 学習可能な重み行列</li>
-<li>$v_a$: 学習可能な重みベクトル</li>
+<li>$s_{t-1}$: Decoder's hidden state at the previous time step (Query)</li>
+<li>$h_i$: Encoder's $i$-th hidden state (Key)</li>
+<li>$W_a, U_a$: Learnable weight matrices</li>
+<li>$v_a$: Learnable weight vector</li>
 </ul>
 
-<p><strong>ステップ2: Attention Weight（注意重み）</strong></p>
+<p><strong>Step 2: Attention Weight</strong></p>
 $$
 \alpha_{ti} = \frac{\exp(e_{ti})}{\sum_{j=1}^{T_x} \exp(e_{tj})}
 $$
 
-<p>Softmax関数により、全時刻の重みの合計が1になるように正規化されます。</p>
+<p>The softmax function normalizes so that the sum of weights over all time steps equals 1.</p>
 
-<p><strong>ステップ3: Context Vector（文脈ベクトル）</strong></p>
+<p><strong>Step 3: Context Vector</strong></p>
 $$
 c_t = \sum_{i=1}^{T_x} \alpha_{ti} h_i
 $$
 
-<p>Attention重みを使ってEncoder隠れ状態の重み付き和を計算します。</p>
+<p>The weighted sum of Encoder hidden states is computed using attention weights.</p>
 
-<h3>4.2.2 PyTorchによる実装</h3>
+<h3>4.2.2 PyTorch Implementation</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -311,60 +311,60 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class BahdanauAttention(nn.Module):
-    """Bahdanau Attention（Additive Attention）の実装"""
+    """Implementation of Bahdanau Attention (Additive Attention)"""
 
     def __init__(self, hidden_size):
         super(BahdanauAttention, self).__init__()
         self.hidden_size = hidden_size
 
-        # Attention用のパラメータ
-        self.W_a = nn.Linear(hidden_size, hidden_size, bias=False)  # Decoder用
-        self.U_a = nn.Linear(hidden_size, hidden_size, bias=False)  # Encoder用
-        self.v_a = nn.Linear(hidden_size, 1, bias=False)            # スカラー変換
+        # Attention parameters
+        self.W_a = nn.Linear(hidden_size, hidden_size, bias=False)  # For Decoder
+        self.U_a = nn.Linear(hidden_size, hidden_size, bias=False)  # For Encoder
+        self.v_a = nn.Linear(hidden_size, 1, bias=False)            # Scalar transformation
 
     def forward(self, decoder_hidden, encoder_outputs):
         """
         Args:
-            decoder_hidden: Decoderの隠れ状態 [batch, hidden_size]
-            encoder_outputs: Encoderの全隠れ状態 [batch, seq_len, hidden_size]
+            decoder_hidden: Decoder's hidden state [batch, hidden_size]
+            encoder_outputs: All Encoder hidden states [batch, seq_len, hidden_size]
 
         Returns:
             context: Context vector [batch, hidden_size]
-            attention_weights: Attention重み [batch, seq_len]
+            attention_weights: Attention weights [batch, seq_len]
         """
         batch_size = encoder_outputs.size(0)
         seq_len = encoder_outputs.size(1)
 
-        # Decoder hiddenを各時刻で繰り返し [batch, seq_len, hidden_size]
+        # Repeat decoder hidden for each time step [batch, seq_len, hidden_size]
         decoder_hidden = decoder_hidden.unsqueeze(1).repeat(1, seq_len, 1)
 
-        # Alignment score計算: e_ti = v_a^T * tanh(W_a * s_t + U_a * h_i)
+        # Alignment score calculation: e_ti = v_a^T * tanh(W_a * s_t + U_a * h_i)
         energy = torch.tanh(self.W_a(decoder_hidden) + self.U_a(encoder_outputs))
         alignment_scores = self.v_a(energy).squeeze(-1)  # [batch, seq_len]
 
-        # Softmaxで正規化してAttention weight取得
+        # Normalize with Softmax to get attention weights
         attention_weights = F.softmax(alignment_scores, dim=1)  # [batch, seq_len]
 
-        # Context vector計算: c_t = Σ α_ti * h_i
+        # Context vector calculation: c_t = Σ α_ti * h_i
         context = torch.bmm(attention_weights.unsqueeze(1), encoder_outputs)
         context = context.squeeze(1)  # [batch, hidden_size]
 
         return context, attention_weights
 
 
-# デモンストレーション
-print("=== Bahdanau Attention デモ ===\n")
+# Demonstration
+print("=== Bahdanau Attention Demo ===\n")
 
-# パラメータ設定
+# Parameter settings
 batch_size = 2
 seq_len = 5
 hidden_size = 8
 
-# ダミーデータ生成
+# Generate dummy data
 encoder_outputs = torch.randn(batch_size, seq_len, hidden_size)
 decoder_hidden = torch.randn(batch_size, hidden_size)
 
-# Attention適用
+# Apply attention
 attention = BahdanauAttention(hidden_size)
 context, weights = attention(decoder_hidden, encoder_outputs)
 
@@ -374,12 +374,12 @@ print(f"Context vector shape: {context.shape}")
 print(f"Attention weights shape: {weights.shape}")
 print(f"\nAttention weights (batch 0):")
 print(weights[0].detach().numpy())
-print(f"合計: {weights[0].sum().item():.4f} (Should be 1.0)")
+print(f"Sum: {weights[0].sum().item():.4f} (Should be 1.0)")
 
-# Attention重みの可視化
+# Visualize attention weights
 fig, ax = plt.subplots(1, 1, figsize=(10, 4))
 
-# 1バッチ目のAttention重みをヒートマップ表示
+# Display attention weights of first batch as bar chart
 weights_np = weights[0].detach().numpy()
 positions = np.arange(seq_len)
 
@@ -391,7 +391,7 @@ ax.set_xticks(positions)
 ax.set_xticklabels([f't={i+1}' for i in positions])
 ax.grid(axis='y', alpha=0.3)
 
-# 値をバーの上に表示
+# Display values on bars
 for i, v in enumerate(weights_np):
     ax.text(i, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=9)
 
@@ -399,8 +399,8 @@ plt.tight_layout()
 plt.show()
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>=== Bahdanau Attention デモ ===
+<p><strong>Output</strong>:</p>
+<pre><code>=== Bahdanau Attention Demo ===
 
 Encoder outputs shape: torch.Size([2, 5, 8])
 Decoder hidden shape: torch.Size([2, 8])
@@ -409,82 +409,82 @@ Attention weights shape: torch.Size([2, 5])
 
 Attention weights (batch 0):
 [0.178 0.245 0.198 0.156 0.223]
-合計: 1.0000 (Should be 1.0)
+Sum: 1.0000 (Should be 1.0)
 </code></pre>
 
 <hr>
 
-<h2>4.3 Luong Attention（Multiplicative Attention）</h2>
+<h2>4.3 Luong Attention (Multiplicative Attention)</h2>
 
-<h3>4.3.1 BahdanauとLuongの違い</h3>
+<h3>4.3.1 Differences Between Bahdanau and Luong</h3>
 
-<p>Luong Attention（2015年提案）は、Bahdanauと異なるアプローチでAlignment Scoreを計算します。</p>
+<p>Luong Attention (proposed in 2015) calculates alignment scores using a different approach from Bahdanau.</p>
 
 <table>
 <thead>
 <tr>
-<th>特性</th>
+<th>Characteristic</th>
 <th>Bahdanau Attention</th>
 <th>Luong Attention</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>提案年</strong></td>
-<td>2014年</td>
-<td>2015年</td>
+<td><strong>Proposal Year</strong></td>
+<td>2014</td>
+<td>2015</td>
 </tr>
 <tr>
-<td><strong>別名</strong></td>
+<td><strong>Alternative Name</strong></td>
 <td>Additive Attention</td>
 <td>Multiplicative Attention</td>
 </tr>
 <tr>
-<td><strong>Score計算</strong></td>
+<td><strong>Score Calculation</strong></td>
 <td>$v_a^\top \tanh(W_a s_t + U_a h_i)$</td>
 <td>$s_t^\top W_a h_i$ (general)</td>
 </tr>
 <tr>
-<td><strong>Decoder状態</strong></td>
-<td>前時刻の状態 $s_{t-1}$ を使用</td>
-<td>現在の状態 $s_t$ を使用</td>
+<td><strong>Decoder State</strong></td>
+<td>Uses previous state $s_{t-1}$</td>
+<td>Uses current state $s_t$</td>
 </tr>
 <tr>
-<td><strong>計算コスト</strong></td>
-<td>やや高い（tanh演算）</td>
-<td>低い（内積のみ）</td>
+<td><strong>Computational Cost</strong></td>
+<td>Somewhat high (tanh operation)</td>
+<td>Low (dot product only)</td>
 </tr>
 <tr>
-<td><strong>性能</strong></td>
-<td>小規模データで優位</td>
-<td>大規模データで優位</td>
+<td><strong>Performance</strong></td>
+<td>Advantage on small-scale data</td>
+<td>Advantage on large-scale data</td>
 </tr>
 </tbody>
 </table>
 
-<h3>4.3.2 Luong Attentionの3つのスコア関数</h3>
+<h3>4.3.2 Three Scoring Functions of Luong Attention</h3>
 
-<p>Luongは3種類のAlignment Score計算方法を提案しました：</p>
+<p>Luong proposed three methods for calculating alignment scores:</p>
 
-<p><strong>1. Dot（内積）</strong></p>
+<p><strong>1. Dot (Inner Product)</strong></p>
 $$
 \text{score}(s_t, h_i) = s_t^\top h_i
 $$
 
-<p><strong>2. General（一般化内積）</strong></p>
+<p><strong>2. General (Generalized Inner Product)</strong></p>
 $$
 \text{score}(s_t, h_i) = s_t^\top W_a h_i
 $$
 
-<p><strong>3. Concat（連結）</strong></p>
+<p><strong>3. Concat (Concatenation)</strong></p>
 $$
 \text{score}(s_t, h_i) = v_a^\top \tanh(W_a [s_t; h_i])
 $$
 
-<h3>4.3.3 実装とBahdanauとの比較</h3>
+<h3>4.3.3 Implementation and Comparison with Bahdanau</h3>
 
 <pre><code class="language-python">class LuongAttention(nn.Module):
-    """Luong Attention（Multiplicative Attention）の実装"""
+    """Implementation of Luong Attention (Multiplicative Attention)"""
 
     def __init__(self, hidden_size, score_type='general'):
         super(LuongAttention, self).__init__()
@@ -497,7 +497,7 @@ $$
             self.W_a = nn.Linear(hidden_size * 2, hidden_size, bias=False)
             self.v_a = nn.Linear(hidden_size, 1, bias=False)
         elif score_type == 'dot':
-            pass  # パラメータ不要
+            pass  # No parameters needed
         else:
             raise ValueError(f"Unknown score_type: {score_type}")
 
@@ -536,20 +536,20 @@ $$
             energy = torch.tanh(self.W_a(concat))
             alignment_scores = self.v_a(energy).squeeze(-1)
 
-        # Softmaxで正規化
+        # Normalize with Softmax
         attention_weights = F.softmax(alignment_scores, dim=1)
 
-        # Context vector計算
+        # Context vector calculation
         context = torch.bmm(attention_weights.unsqueeze(1), encoder_outputs)
         context = context.squeeze(1)
 
         return context, attention_weights
 
 
-# 3つのスコア関数の比較
-print("\n=== Luong Attention 3つのスコア関数の比較 ===\n")
+# Comparison of three scoring functions
+print("\n=== Luong Attention: Comparison of 3 Scoring Functions ===\n")
 
-# ダミーデータ
+# Dummy data
 batch_size = 1
 seq_len = 6
 hidden_size = 4
@@ -570,7 +570,7 @@ for idx, score_type in enumerate(score_types):
     print(f"  Weights: {results[score_type]}")
     print(f"  Sum: {results[score_type].sum():.4f}\n")
 
-    # 可視化
+    # Visualization
     ax = axes[idx]
     positions = np.arange(seq_len)
     ax.bar(positions, results[score_type], color='#7b2cbf', alpha=0.7, edgecolor='black')
@@ -582,7 +582,7 @@ for idx, score_type in enumerate(score_types):
     ax.set_ylim([0, max(results[score_type]) * 1.2])
     ax.grid(axis='y', alpha=0.3)
 
-    # 値表示
+    # Display values
     for i, v in enumerate(results[score_type]):
         ax.text(i, v + 0.005, f'{v:.3f}', ha='center', va='bottom', fontsize=8)
 
@@ -591,7 +591,7 @@ plt.suptitle('Luong Attention: Score Function Comparison',
 plt.tight_layout()
 plt.show()
 
-# BahdanauとLuongの比較
+# Comparison of Bahdanau and Luong
 print("\n=== Bahdanau vs Luong Attention ===\n")
 
 bahdanau_attn = BahdanauAttention(hidden_size)
@@ -631,8 +631,8 @@ plt.tight_layout()
 plt.show()
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>=== Luong Attention 3つのスコア関数の比較 ===
+<p><strong>Output</strong>:</p>
+<pre><code>=== Luong Attention: Comparison of 3 Scoring Functions ===
 
 DOT score:
   Weights: [0.142 0.189 0.165 0.178 0.154 0.172]
@@ -649,11 +649,11 @@ CONCAT score:
 
 <hr>
 
-<h2>4.4 Attention重みの可視化と解釈</h2>
+<h2>4.4 Visualization and Interpretation of Attention Weights</h2>
 
-<h3>4.4.1 翻訳タスクでのAttention可視化</h3>
+<h3>4.4.1 Attention Visualization in Translation Tasks</h3>
 
-<p>Attentionの最大の利点の1つは、モデルがどの入力単語に注目して出力を生成したかを視覚的に確認できることです。</p>
+<p>One of the major advantages of attention is that you can visually confirm which input words the model focused on to generate the output.</p>
 
 <pre><code class="language-python">import matplotlib.pyplot as plt
 import seaborn as sns
@@ -661,25 +661,25 @@ import seaborn as sns
 def visualize_attention(attention_weights, source_tokens, target_tokens,
                        title='Attention Visualization'):
     """
-    Attention重みをヒートマップで可視化
+    Visualize attention weights as a heatmap
 
     Args:
-        attention_weights: [target_len, source_len] のAttention重み行列
-        source_tokens: 入力単語リスト
-        target_tokens: 出力単語リスト
-        title: グラフのタイトル
+        attention_weights: Attention weight matrix [target_len, source_len]
+        source_tokens: List of input words
+        target_tokens: List of output words
+        title: Graph title
     """
     fig, ax = plt.subplots(figsize=(10, 8))
 
-    # ヒートマップ描画
+    # Draw heatmap
     sns.heatmap(attention_weights,
                 xticklabels=source_tokens,
                 yticklabels=target_tokens,
                 cmap='YlOrRd',
                 cbar_kws={'label': 'Attention Weight'},
                 ax=ax,
-                annot=True,  # 値を表示
-                fmt='.3f',   # 小数点3桁
+                annot=True,  # Display values
+                fmt='.3f',   # 3 decimal places
                 linewidths=0.5,
                 linecolor='gray')
 
@@ -691,81 +691,81 @@ def visualize_attention(attention_weights, source_tokens, target_tokens,
     plt.show()
 
 
-# 機械翻訳の例（英語→日本語）
+# Machine translation example (English to Japanese)
 print("=== Attention Visualization Example: Machine Translation ===\n")
 
-# 例: "I love deep learning" → "私は深層学習が好きです"
+# Example: "I love deep learning" → "I love deep learning"
 source_tokens = ['I', 'love', 'deep', 'learning', '<EOS>']
-target_tokens = ['私は', '深層', '学習が', '好きです', '<EOS>']
+target_tokens = ['I', 'deep', 'learning', 'love', '<EOS>']
 
-# 模擬的なAttention重み行列（実際のモデルから取得する値）
-# 各行が各出力トークン生成時のAttention minutes布を表す
+# Mock attention weight matrix (values obtained from actual model)
+# Each row represents the attention distribution when generating each output token
 attention_matrix = np.array([
-    [0.82, 0.05, 0.03, 0.05, 0.05],  # "私は" を生成時 → "I" に強く注目
-    [0.05, 0.08, 0.70, 0.12, 0.05],  # "深層" を生成時 → "deep" に強く注目
-    [0.03, 0.05, 0.15, 0.72, 0.05],  # "学習が" を生成時 → "learning" に強く注目
-    [0.05, 0.75, 0.08, 0.07, 0.05],  # "好きです" を生成時 → "love" に強く注目
-    [0.05, 0.05, 0.05, 0.05, 0.80],  # "<EOS>" を生成時 → "<EOS>" に強く注目
+    [0.82, 0.05, 0.03, 0.05, 0.05],  # When generating "I" → Strong focus on "I"
+    [0.05, 0.08, 0.70, 0.12, 0.05],  # When generating "deep" → Strong focus on "deep"
+    [0.03, 0.05, 0.15, 0.72, 0.05],  # When generating "learning" → Strong focus on "learning"
+    [0.05, 0.75, 0.08, 0.07, 0.05],  # When generating "love" → Strong focus on "love"
+    [0.05, 0.05, 0.05, 0.05, 0.80],  # When generating "<EOS>" → Strong focus on "<EOS>"
 ])
 
 visualize_attention(attention_matrix, source_tokens, target_tokens,
                    title='Attention Weights: English → Japanese Translation')
 
-# より複雑な例
-print("\n=== 長文翻訳でのAttentionパターン ===\n")
+# More complex example
+print("\n=== Attention Patterns in Long Sentence Translation ===\n")
 
 source_long = ['The', 'cat', 'sat', 'on', 'the', 'mat', '<EOS>']
-target_long = ['その', '猫が', 'マットの', '上に', '座った', '<EOS>']
+target_long = ['The', 'cat', 'on', 'the', 'mat', 'sat', '<EOS>']
 
-# 語順が異なる場合のAttention
+# Attention when word order differs
 attention_long = np.array([
-    [0.65, 0.10, 0.05, 0.05, 0.10, 0.03, 0.02],  # "その" → "The"
-    [0.10, 0.70, 0.05, 0.05, 0.05, 0.03, 0.02],  # "猫が" → "cat"
-    [0.05, 0.05, 0.05, 0.05, 0.10, 0.68, 0.02],  # "マットの" → "mat"
-    [0.05, 0.05, 0.10, 0.75, 0.02, 0.02, 0.01],  # "上に" → "on"
-    [0.05, 0.10, 0.70, 0.05, 0.05, 0.03, 0.02],  # "座った" → "sat"
+    [0.65, 0.10, 0.05, 0.05, 0.10, 0.03, 0.02],  # "The" → "The"
+    [0.10, 0.70, 0.05, 0.05, 0.05, 0.03, 0.02],  # "cat" → "cat"
+    [0.05, 0.05, 0.05, 0.05, 0.10, 0.68, 0.02],  # "mat" → "mat"
+    [0.05, 0.05, 0.10, 0.75, 0.02, 0.02, 0.01],  # "on" → "on"
+    [0.05, 0.10, 0.70, 0.05, 0.05, 0.03, 0.02],  # "sat" → "sat"
     [0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.88],  # "<EOS>" → "<EOS>"
 ])
 
 visualize_attention(attention_long, source_long, target_long,
                    title='Attention Weights: Word Order Reordering (EN→JA)')
 
-print("可視化から観察できるポイント:")
-print("✓ 対角線に近い minutes布: 語順が近い言語対（英独など）")
-print("✓ 非対角線の minutes布: 語順が異なる言語対（英日など）")
-print("✓ 複数単語への minutes散: 1対多、多対1の単語対応")
-print("✓ EOS記号への集中: 文末処理の明確化")
+print("Observable points from visualization:")
+print("✓ Distribution close to diagonal: Language pairs with similar word order (e.g., English-German)")
+print("✓ Off-diagonal distribution: Language pairs with different word order (e.g., English-Japanese)")
+print("✓ Distribution across multiple words: One-to-many, many-to-one word correspondences")
+print("✓ Concentration on EOS symbol: Clear sentence-final processing")
 </code></pre>
 
-<h3>4.4.2 Attention重みの統計 minutes析</h3>
+<h3>4.4.2 Statistical Analysis of Attention Weights</h3>
 
 <pre><code class="language-python">def analyze_attention_statistics(attention_weights):
-    """Attention重みの統計的特性を minutes析"""
+    """Analyze statistical properties of attention weights"""
 
     print("=== Attention Statistics Analysis ===\n")
 
-    # エントロピー計算（集中度の指標）
+    # Entropy calculation (measure of concentration)
     epsilon = 1e-10
     entropy = -np.sum(attention_weights * np.log(attention_weights + epsilon), axis=1)
 
-    # 最大重み
+    # Maximum weights
     max_weights = np.max(attention_weights, axis=1)
 
-    # 有効な注目位置数（重み > 閾値）
+    # Number of effective attention positions (weight > threshold)
     threshold = 0.1
     effective_positions = np.sum(attention_weights > threshold, axis=1)
 
-    print(f"各時刻のエントロピー: {entropy}")
-    print(f"  平均: {entropy.mean():.4f}, 標準偏差: {entropy.std():.4f}")
-    print(f"\n各時刻の最大重み: {max_weights}")
-    print(f"  平均: {max_weights.mean():.4f}, 標準偏差: {max_weights.std():.4f}")
-    print(f"\n有効注目位置数（重み > {threshold}）: {effective_positions}")
-    print(f"  平均: {effective_positions.mean():.2f}")
+    print(f"Entropy at each time step: {entropy}")
+    print(f"  Mean: {entropy.mean():.4f}, Std Dev: {entropy.std():.4f}")
+    print(f"\nMaximum weight at each time step: {max_weights}")
+    print(f"  Mean: {max_weights.mean():.4f}, Std Dev: {max_weights.std():.4f}")
+    print(f"\nNumber of effective attention positions (weight > {threshold}): {effective_positions}")
+    print(f"  Mean: {effective_positions.mean():.2f}")
 
-    # 可視化
+    # Visualization
     fig, axes = plt.subplots(1, 3, figsize=(15, 4))
 
-    # エントロピー
+    # Entropy
     axes[0].plot(entropy, marker='o', color='#7b2cbf', linewidth=2, markersize=8)
     axes[0].set_xlabel('Target Position', fontsize=11, fontweight='bold')
     axes[0].set_ylabel('Entropy', fontsize=11, fontweight='bold')
@@ -773,7 +773,7 @@ print("✓ EOS記号への集中: 文末処理の明確化")
                      fontsize=12, fontweight='bold')
     axes[0].grid(alpha=0.3)
 
-    # 最大重み
+    # Maximum weight
     axes[1].plot(max_weights, marker='s', color='#e74c3c', linewidth=2, markersize=8)
     axes[1].set_xlabel('Target Position', fontsize=11, fontweight='bold')
     axes[1].set_ylabel('Max Weight', fontsize=11, fontweight='bold')
@@ -781,7 +781,7 @@ print("✓ EOS記号への集中: 文末処理の明確化")
                      fontsize=12, fontweight='bold')
     axes[1].grid(alpha=0.3)
 
-    # 有効位置数
+    # Number of effective positions
     axes[2].bar(range(len(effective_positions)), effective_positions,
                color='#27ae60', alpha=0.7, edgecolor='black')
     axes[2].set_xlabel('Target Position', fontsize=11, fontweight='bold')
@@ -793,36 +793,36 @@ print("✓ EOS記号への集中: 文末処理の明確化")
     plt.tight_layout()
     plt.show()
 
-#  minutes析実行
+# Run analysis
 analyze_attention_statistics(attention_long)
 </code></pre>
 
-<p><strong>出力</strong>：</p>
+<p><strong>Output</strong>:</p>
 <pre><code>=== Attention Statistics Analysis ===
 
-各時刻のエントロピー: [1.086 0.897 0.935 0.735 0.901 0.412]
-  平均: 0.8277, 標準偏差: 0.2194
+Entropy at each time step: [1.086 0.897 0.935 0.735 0.901 0.412]
+  Mean: 0.8277, Std Dev: 0.2194
 
-各時刻の最大重み: [0.65 0.70 0.68 0.75 0.70 0.88]
-  平均: 0.7267, 標準偏差: 0.0737
+Maximum weight at each time step: [0.65 0.70 0.68 0.75 0.70 0.88]
+  Mean: 0.7267, Std Dev: 0.0737
 
-有効注目位置数（重み > 0.1）: [4 3 2 2 3 1]
-  平均: 2.50
+Number of effective attention positions (weight > 0.1): [4 3 2 2 3 1]
+  Mean: 2.50
 </code></pre>
 
 <blockquote>
-<p><strong>解釈ガイド</strong>:<br>
-・<strong>低エントロピー</strong>: 特定位置への強い集中（文末のEOS生成時など）<br>
-・<strong>高エントロピー</strong>: 複数位置への minutes散（複合語や句の処理時など）<br>
-・<strong>高最大重み</strong>: 明確な対応関係（1対1の単語翻訳など）<br>
-・<strong>有効位置数</strong>: 文脈情報の広がり（多いほど広範な文脈利用）</p>
+<p><strong>Interpretation Guide</strong>:<br>
+• <strong>Low Entropy</strong>: Strong concentration on specific position (e.g., when generating EOS at sentence end)<br>
+• <strong>High Entropy</strong>: Distribution across multiple positions (e.g., when processing compound words or phrases)<br>
+• <strong>High Maximum Weight</strong>: Clear correspondence relationship (e.g., one-to-one word translation)<br>
+• <strong>Number of Effective Positions</strong>: Spread of contextual information (more indicates broader context utilization)</p>
 </blockquote>
 
 <hr>
 
-<h2>4.5 Attention付きSeq2Seqモデルの実装</h2>
+<h2>4.5 Implementation of Seq2Seq Model with Attention</h2>
 
-<h3>4.5.1 完全なEncoder-Decoder with Attention</h3>
+<h3>4.5.1 Complete Encoder-Decoder with Attention</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -830,7 +830,7 @@ import torch.optim as optim
 import random
 
 class AttentionEncoder(nn.Module):
-    """Attention用のEncoder（隠れ状態を全て保存）"""
+    """Encoder for Attention (saving all hidden states)"""
 
     def __init__(self, input_size, hidden_size, num_layers=1):
         super(AttentionEncoder, self).__init__()
@@ -855,7 +855,7 @@ class AttentionEncoder(nn.Module):
 
 
 class AttentionDecoder(nn.Module):
-    """Attention機構を持つDecoder"""
+    """Decoder with Attention mechanism"""
 
     def __init__(self, output_size, hidden_size, attention_type='bahdanau', num_layers=1):
         super(AttentionDecoder, self).__init__()
@@ -865,7 +865,7 @@ class AttentionDecoder(nn.Module):
 
         self.embedding = nn.Embedding(output_size, hidden_size)
 
-        # Attention機構
+        # Attention mechanism
         if attention_type == 'bahdanau':
             self.attention = BahdanauAttention(hidden_size)
         elif attention_type == 'luong':
@@ -873,11 +873,11 @@ class AttentionDecoder(nn.Module):
         else:
             raise ValueError(f"Unknown attention type: {attention_type}")
 
-        # GRU入力 = embedding + context
+        # GRU input = embedding + context
         self.gru = nn.GRU(hidden_size * 2, hidden_size, num_layers,
                          batch_first=True)
 
-        # 出力層
+        # Output layer
         self.out = nn.Linear(hidden_size, output_size)
 
     def forward(self, input_token, hidden, encoder_outputs):
@@ -894,25 +894,25 @@ class AttentionDecoder(nn.Module):
         # Embedding
         embedded = self.embedding(input_token)  # [batch, 1, hidden_size]
 
-        # Attention計算（最後の層のhiddenを使用）
+        # Attention calculation (using last layer hidden)
         query = hidden[-1]  # [batch, hidden_size]
         context, attention_weights = self.attention(query, encoder_outputs)
 
-        # Context vectorとembeddingを結合
+        # Combine context vector and embedding
         context = context.unsqueeze(1)  # [batch, 1, hidden_size]
         gru_input = torch.cat([embedded, context], dim=2)  # [batch, 1, hidden*2]
 
         # GRU
         gru_output, hidden = self.gru(gru_input, hidden)
 
-        # 出力
+        # Output
         output = self.out(gru_output.squeeze(1))  # [batch, output_size]
 
         return output, hidden, attention_weights
 
 
 class Seq2SeqWithAttention(nn.Module):
-    """Attention付きSeq2Seqモデル"""
+    """Seq2Seq model with Attention"""
 
     def __init__(self, encoder, decoder, device):
         super(Seq2SeqWithAttention, self).__init__()
@@ -925,7 +925,7 @@ class Seq2SeqWithAttention(nn.Module):
         Args:
             source: [batch, source_len]
             target: [batch, target_len]
-            teacher_forcing_ratio: Teacher forcingを使う確率
+            teacher_forcing_ratio: Probability of using teacher forcing
         Returns:
             outputs: [batch, target_len, output_size]
             all_attention_weights: [batch, target_len, source_len]
@@ -934,17 +934,17 @@ class Seq2SeqWithAttention(nn.Module):
         target_len = target.size(1)
         target_vocab_size = self.decoder.output_size
 
-        # 出力とAttention重みを保存
+        # Store outputs and attention weights
         outputs = torch.zeros(batch_size, target_len, target_vocab_size).to(self.device)
         all_attention_weights = torch.zeros(batch_size, target_len, source.size(1)).to(self.device)
 
         # Encoder
         encoder_outputs, hidden = self.encoder(source)
 
-        # Decoder初期入力（<SOS>トークン）
+        # Decoder initial input (<SOS> token)
         decoder_input = target[:, 0].unsqueeze(1)  # [batch, 1]
 
-        # Decoder各時刻
+        # Decoder at each time step
         for t in range(1, target_len):
             output, hidden, attention_weights = self.decoder(
                 decoder_input, hidden, encoder_outputs
@@ -963,10 +963,10 @@ class Seq2SeqWithAttention(nn.Module):
         return outputs, all_attention_weights
 
 
-# モデル構築とテスト
+# Model construction and testing
 print("=== Seq2Seq with Attention Model Test ===\n")
 
-# パラメータ
+# Parameters
 INPUT_VOCAB = 100
 OUTPUT_VOCAB = 100
 HIDDEN_SIZE = 128
@@ -976,12 +976,12 @@ TARGET_LEN = 12
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# モデル初期化
+# Model initialization
 encoder = AttentionEncoder(INPUT_VOCAB, HIDDEN_SIZE).to(device)
 decoder = AttentionDecoder(OUTPUT_VOCAB, HIDDEN_SIZE, attention_type='bahdanau').to(device)
 model = Seq2SeqWithAttention(encoder, decoder, device).to(device)
 
-# ダミーデータ
+# Dummy data
 source = torch.randint(0, INPUT_VOCAB, (BATCH_SIZE, SOURCE_LEN)).to(device)
 target = torch.randint(0, OUTPUT_VOCAB, (BATCH_SIZE, TARGET_LEN)).to(device)
 
@@ -992,16 +992,16 @@ print(f"Input shape: {source.shape}")
 print(f"Target shape: {target.shape}")
 print(f"Output shape: {outputs.shape}")
 print(f"Attention weights shape: {attention_weights.shape}")
-print(f"\nモデルパラメータ数: {sum(p.numel() for p in model.parameters()):,}")
+print(f"\nModel parameter count: {sum(p.numel() for p in model.parameters()):,}")
 
-# 1サンプルのAttention重みを可視化
+# Visualize attention weights of one sample
 sample_attention = attention_weights[0].detach().cpu().numpy()
 print(f"\nSample attention weights (target_len={TARGET_LEN}, source_len={SOURCE_LEN}):")
 print(f"Shape: {sample_attention.shape}")
-print(f"各時刻の合計: {sample_attention.sum(axis=1)}")  # 全て1.0になるはず
+print(f"Sum at each time step: {sample_attention.sum(axis=1)}")  # Should all be 1.0
 </code></pre>
 
-<p><strong>出力</strong>：</p>
+<p><strong>Output</strong>:</p>
 <pre><code>=== Seq2Seq with Attention Model Test ===
 
 Input shape: torch.Size([4, 10])
@@ -1009,17 +1009,17 @@ Target shape: torch.Size([4, 12])
 Output shape: torch.Size([4, 12, 100])
 Attention weights shape: torch.Size([4, 12, 10])
 
-モデルパラメータ数: 49,700
+Model parameter count: 49,700
 
 Sample attention weights (target_len=12, source_len=10):
 Shape: (12, 10)
-各時刻の合計: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]
+Sum at each time step: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]
 </code></pre>
 
-<h3>4.5.2 訓練と評価の実装</h3>
+<h3>4.5.2 Implementation of Training and Evaluation</h3>
 
 <pre><code class="language-python">def train_attention_model(model, train_loader, optimizer, criterion, device, clip=1.0):
-    """Attention付きSeq2Seqの訓練"""
+    """Training Seq2Seq with Attention"""
     model.train()
     epoch_loss = 0
 
@@ -1031,7 +1031,7 @@ Shape: (12, 10)
         # Forward pass
         outputs, _ = model(source, target, teacher_forcing_ratio=0.5)
 
-        # Loss計算（<SOS>トークンを除く）
+        # Loss calculation (excluding <SOS> token)
         output_dim = outputs.shape[-1]
         outputs_flat = outputs[:, 1:].reshape(-1, output_dim)
         target_flat = target[:, 1:].reshape(-1)
@@ -1041,7 +1041,7 @@ Shape: (12, 10)
         # Backward pass
         loss.backward()
 
-        # Gradient clipping（勾配爆発防止）
+        # Gradient clipping (prevent gradient explosion)
         torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
 
         optimizer.step()
@@ -1052,7 +1052,7 @@ Shape: (12, 10)
 
 
 def evaluate_attention_model(model, test_loader, criterion, device):
-    """Attention付きSeq2Seqの評価"""
+    """Evaluation of Seq2Seq with Attention"""
     model.eval()
     epoch_loss = 0
 
@@ -1060,7 +1060,7 @@ def evaluate_attention_model(model, test_loader, criterion, device):
         for source, target in test_loader:
             source, target = source.to(device), target.to(device)
 
-            # Teacher forcingなしで評価
+            # Evaluate without teacher forcing
             outputs, _ = model(source, target, teacher_forcing_ratio=0.0)
 
             output_dim = outputs.shape[-1]
@@ -1073,10 +1073,10 @@ def evaluate_attention_model(model, test_loader, criterion, device):
     return epoch_loss / len(test_loader)
 
 
-# 簡易デモ
+# Simple demo
 print("\n=== Training Demo (Simplified) ===\n")
 
-# ダミーデータローダー
+# Dummy data loader
 class DummyDataset(torch.utils.data.Dataset):
     def __init__(self, num_samples, source_len, target_len, vocab_size):
         self.num_samples = num_samples
@@ -1095,95 +1095,95 @@ class DummyDataset(torch.utils.data.Dataset):
 train_dataset = DummyDataset(100, SOURCE_LEN, TARGET_LEN, OUTPUT_VOCAB)
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=8, shuffle=True)
 
-# 訓練設定
+# Training configuration
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-criterion = nn.CrossEntropyLoss(ignore_index=0)  # Padding無視
+criterion = nn.CrossEntropyLoss(ignore_index=0)  # Ignore padding
 
-# 数エポック訓練
+# Train for a few epochs
 num_epochs = 3
 for epoch in range(num_epochs):
     train_loss = train_attention_model(model, train_loader, optimizer, criterion, device)
     print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {train_loss:.4f}")
 
-print("\n訓練完了！")
+print("\nTraining complete!")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
+<p><strong>Output</strong>:</p>
 <pre><code>=== Training Demo (Simplified) ===
 
 Epoch [1/3], Train Loss: 4.5342
 Epoch [2/3], Train Loss: 4.4187
 Epoch [3/3], Train Loss: 4.3256
 
-訓練完了！
+Training complete!
 </code></pre>
 
 <hr>
 
-<h2>4.6 Self-Attention入門（Transformer準備）</h2>
+<h2>4.6 Introduction to Self-Attention (Preparation for Transformer)</h2>
 
-<h3>4.6.1 Self-Attentionとは</h3>
+<h3>4.6.1 What is Self-Attention</h3>
 
-<p>これまでのAttentionは、EncoderとDecoder間の関係を学習していました。<strong>Self-Attention</strong>は、同じ系列内の要素間の関係を学習する機構です。</p>
+<p>The attention we've seen so far learned the relationship between Encoder and Decoder. <strong>Self-Attention</strong> is a mechanism that learns relationships between elements within the same sequence.</p>
 
 <table>
 <thead>
 <tr>
-<th>特性</th>
+<th>Characteristic</th>
 <th>Encoder-Decoder Attention</th>
 <th>Self-Attention</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>注目対象</strong></td>
-<td>異なる系列間（Source→Target）</td>
-<td>同じ系列内（Self→Self）</td>
+<td><strong>Target of Attention</strong></td>
+<td>Between different sequences (Source→Target)</td>
+<td>Within the same sequence (Self→Self)</td>
 </tr>
 <tr>
-<td><strong>用途</strong></td>
-<td>翻訳、要約などの変換タスク</td>
-<td>文脈理解、特徴抽出</td>
+<td><strong>Use Case</strong></td>
+<td>Translation, summarization, etc. (transformation tasks)</td>
+<td>Context understanding, feature extraction</td>
 </tr>
 <tr>
 <td><strong>Query</strong></td>
-<td>Decoder状態</td>
-<td>系列内の各要素</td>
+<td>Decoder state</td>
+<td>Each element in sequence</td>
 </tr>
 <tr>
 <td><strong>Key/Value</strong></td>
-<td>Encoder状態</td>
-<td>系列内の全要素</td>
+<td>Encoder state</td>
+<td>All elements in sequence</td>
 </tr>
 <tr>
-<td><strong>代表例</strong></td>
+<td><strong>Representative Examples</strong></td>
 <td>Bahdanau/Luong Attention</td>
-<td>Transformer（BERT, GPT）</td>
+<td>Transformer (BERT, GPT)</td>
 </tr>
 </tbody>
 </table>
 
-<h3>4.6.2 Query, Key, Valueの概念</h3>
+<h3>4.6.2 The Concept of Query, Key, and Value</h3>
 
-<p>Self-Attentionは、各単語を3つの異なる役割で表現します：</p>
+<p>Self-Attention represents each word in three different roles:</p>
 
 <ul>
-<li><strong>Query（Q）</strong>: 「私は何を探しているか？」- 注目する側</li>
-<li><strong>Key（K）</strong>: 「私は何を提供できるか？」- 注目される側</li>
-<li><strong>Value（V）</strong>: 「私の実際の内容は何か？」- 取得される情報</li>
+<li><strong>Query (Q)</strong>: "What am I looking for?" - The attending side</li>
+<li><strong>Key (K)</strong>: "What can I provide?" - The attended side</li>
+<li><strong>Value (V)</strong>: "What is my actual content?" - The retrieved information</li>
 </ul>
 
-<p>Attention計算の数式：</p>
+<p>Attention calculation formula:</p>
 $$
 \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^\top}{\sqrt{d_k}}\right) V
 $$
 
-<p>ここで $d_k$ はKeyの次元数で、スケーリング係数として使用されます。</p>
+<p>Where $d_k$ is the dimensionality of the Key, used as a scaling factor.</p>
 
-<h3>4.6.3 Self-Attentionの実装</h3>
+<h3>4.6.3 Implementation of Self-Attention</h3>
 
 <pre><code class="language-python">class SelfAttention(nn.Module):
-    """Self-Attention機構の実装（Scaled Dot-Product Attention）"""
+    """Implementation of Self-Attention mechanism (Scaled Dot-Product Attention)"""
 
     def __init__(self, embed_size, heads=1):
         super(SelfAttention, self).__init__()
@@ -1193,12 +1193,12 @@ $$
 
         assert self.head_dim * heads == embed_size, "Embed size must be divisible by heads"
 
-        # Query, Key, Valueの線形変換
+        # Linear transformations for Query, Key, Value
         self.query = nn.Linear(embed_size, embed_size, bias=False)
         self.key = nn.Linear(embed_size, embed_size, bias=False)
         self.value = nn.Linear(embed_size, embed_size, bias=False)
 
-        # 出力の線形変換
+        # Output linear transformation
         self.fc_out = nn.Linear(embed_size, embed_size)
 
     def forward(self, x, mask=None):
@@ -1213,12 +1213,12 @@ $$
         batch_size = x.size(0)
         seq_len = x.size(1)
 
-        # Q, K, Vの生成
+        # Generate Q, K, V
         Q = self.query(x)  # [batch, seq_len, embed_size]
         K = self.key(x)
         V = self.value(x)
 
-        # Multi-head用に minutes割: [batch, seq_len, heads, head_dim]
+        # Split for multi-head: [batch, seq_len, heads, head_dim]
         Q = Q.view(batch_size, seq_len, self.heads, self.head_dim).transpose(1, 2)
         K = K.view(batch_size, seq_len, self.heads, self.head_dim).transpose(1, 2)
         V = V.view(batch_size, seq_len, self.heads, self.head_dim).transpose(1, 2)
@@ -1228,38 +1228,38 @@ $$
         # Q @ K^T: [batch, heads, seq_len, seq_len]
         scores = torch.matmul(Q, K.transpose(-2, -1)) / np.sqrt(self.head_dim)
 
-        # Maskingがある場合適用
+        # Apply masking if present
         if mask is not None:
             scores = scores.masked_fill(mask == 0, float('-inf'))
 
-        # Softmaxで正規化
+        # Normalize with Softmax
         attention_weights = F.softmax(scores, dim=-1)
 
-        # Valueとの重み付き和
+        # Weighted sum with Value
         out = torch.matmul(attention_weights, V)  # [batch, heads, seq_len, head_dim]
 
-        # Headsを結合
+        # Concatenate heads
         out = out.transpose(1, 2).contiguous().view(batch_size, seq_len, self.embed_size)
 
-        # 最終的な線形変換
+        # Final linear transformation
         output = self.fc_out(out)
 
         return output, attention_weights
 
 
-# Self-Attention デモ
+# Self-Attention Demo
 print("=== Self-Attention Demo ===\n")
 
-# パラメータ
+# Parameters
 batch_size = 2
 seq_len = 6
 embed_size = 8
 num_heads = 2
 
-# ダミー入力（文 Chapterの埋め込み表現を想定）
+# Dummy input (assuming sentence embedding representation)
 x = torch.randn(batch_size, seq_len, embed_size)
 
-# Self-Attention適用
+# Apply Self-Attention
 self_attn = SelfAttention(embed_size, heads=num_heads)
 output, attn_weights = self_attn(x)
 
@@ -1268,7 +1268,7 @@ print(f"Output shape: {output.shape}")
 print(f"Attention weights shape: {attn_weights.shape}")
 print(f"  → [batch, heads, seq_len, seq_len]")
 
-# 1つのヘッドのAttention重みを可視化
+# Visualize attention weights of one head
 sample_attn = attn_weights[0, 0].detach().numpy()  # 1st batch, 1st head
 
 fig, ax = plt.subplots(figsize=(8, 7))
@@ -1290,12 +1290,12 @@ ax.set_title('Self-Attention Weights Visualization\n(Head 1)',
 plt.tight_layout()
 plt.show()
 
-print("\n各位置が他の位置にどれだけ注目しているかを表す行列")
-print("対角成 minutes: 自 minutes自身への注目度")
-print("非対角成 minutes: 他の位置への注目度")
+print("\nMatrix showing how much each position attends to other positions")
+print("Diagonal components: Attention to self")
+print("Off-diagonal components: Attention to other positions")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
+<p><strong>Output</strong>:</p>
 <pre><code>=== Self-Attention Demo ===
 
 Input shape: torch.Size([2, 6, 8])
@@ -1303,24 +1303,24 @@ Output shape: torch.Size([2, 6, 8])
 Attention weights shape: torch.Size([2, 2, 6, 6])
   → [batch, heads, seq_len, seq_len]
 
-各位置が他の位置にどれだけ注目しているかを表す行列
-対角成 minutes: 自 minutes自身への注目度
-非対角成 minutes: 他の位置への注目度
+Matrix showing how much each position attends to other positions
+Diagonal components: Attention to self
+Off-diagonal components: Attention to other positions
 </code></pre>
 
-<h3>4.6.4 Self-Attentionの応用例</h3>
+<h3>4.6.4 Application Examples of Self-Attention</h3>
 
 <pre><code class="language-python">def demonstrate_self_attention_patterns():
-    """Self-Attentionの典型的なパターンを可視化"""
+    """Visualize typical patterns of Self-Attention"""
 
-    print("\n=== Self-Attention典型パターン ===\n")
+    print("\n=== Typical Self-Attention Patterns ===\n")
 
     seq_len = 8
     tokens = ['The', 'cat', 'sat', 'on', 'the', 'mat', 'today', '.']
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 12))
 
-    # パターン1: 局所的注意（近隣の単語に注目）
+    # Pattern 1: Local attention (focus on neighboring words)
     local_attn = np.zeros((seq_len, seq_len))
     for i in range(seq_len):
         for j in range(seq_len):
@@ -1331,22 +1331,22 @@ Attention weights shape: torch.Size([2, 2, 6, 6])
     sns.heatmap(local_attn, ax=axes[0, 0], cmap='Reds',
                 xticklabels=tokens, yticklabels=tokens,
                 cbar_kws={'label': 'Weight'}, annot=True, fmt='.2f', linewidths=0.5)
-    axes[0, 0].set_title('Pattern 1: Local Attention\n(近隣単語への注目)',
+    axes[0, 0].set_title('Pattern 1: Local Attention\n(Focus on neighboring words)',
                         fontsize=12, fontweight='bold')
 
-    # パターン2: グローバル注意（特定の重要単語に注目）
+    # Pattern 2: Global attention (focus on specific important words)
     global_attn = np.ones((seq_len, seq_len)) * 0.05
-    global_attn[:, 1] = 0.4  # "cat"に強く注目
-    global_attn[:, 5] = 0.3  # "mat"にも注目
+    global_attn[:, 1] = 0.4  # Strong focus on "cat"
+    global_attn[:, 5] = 0.3  # Also focus on "mat"
     global_attn = global_attn / global_attn.sum(axis=1, keepdims=True)
 
     sns.heatmap(global_attn, ax=axes[0, 1], cmap='Blues',
                 xticklabels=tokens, yticklabels=tokens,
                 cbar_kws={'label': 'Weight'}, annot=True, fmt='.2f', linewidths=0.5)
-    axes[0, 1].set_title('Pattern 2: Global Attention\n(重要単語への集中)',
+    axes[0, 1].set_title('Pattern 2: Global Attention\n(Concentration on important words)',
                         fontsize=12, fontweight='bold')
 
-    # パターン3: 構文構造（主語-動詞-目的語の関係）
+    # Pattern 3: Syntactic structure (subject-verb-object relationships)
     syntax_attn = np.eye(seq_len) * 0.3
     syntax_attn[1, 2] = 0.4  # cat → sat
     syntax_attn[2, 1] = 0.4  # sat → cat
@@ -1357,85 +1357,85 @@ Attention weights shape: torch.Size([2, 2, 6, 6])
     sns.heatmap(syntax_attn, ax=axes[1, 0], cmap='Greens',
                 xticklabels=tokens, yticklabels=tokens,
                 cbar_kws={'label': 'Weight'}, annot=True, fmt='.2f', linewidths=0.5)
-    axes[1, 0].set_title('Pattern 3: Syntactic Attention\n(構文構造の関係)',
+    axes[1, 0].set_title('Pattern 3: Syntactic Attention\n(Syntactic structural relationships)',
                         fontsize=12, fontweight='bold')
 
-    # パターン4: 位置的注意（文の前半/後半への注目）
+    # Pattern 4: Positional attention (focus on first/second half of sentence)
     position_attn = np.zeros((seq_len, seq_len))
     for i in range(seq_len):
         if i < seq_len // 2:
-            position_attn[i, :seq_len//2] = 1.0  # 前半は前半に注目
+            position_attn[i, :seq_len//2] = 1.0  # First half focuses on first half
         else:
-            position_attn[i, seq_len//2:] = 1.0  # 後半は後半に注目
+            position_attn[i, seq_len//2:] = 1.0  # Second half focuses on second half
     position_attn = position_attn / position_attn.sum(axis=1, keepdims=True)
 
     sns.heatmap(position_attn, ax=axes[1, 1], cmap='Purples',
                 xticklabels=tokens, yticklabels=tokens,
                 cbar_kws={'label': 'Weight'}, annot=True, fmt='.2f', linewidths=0.5)
-    axes[1, 1].set_title('Pattern 4: Positional Attention\n(位置的な注目パターン)',
+    axes[1, 1].set_title('Pattern 4: Positional Attention\n(Positional attention pattern)',
                         fontsize=12, fontweight='bold')
 
-    plt.suptitle('Self-Attention: 典型的な注目パターンの可視化',
+    plt.suptitle('Self-Attention: Visualization of Typical Attention Patterns',
                 fontsize=16, fontweight='bold', y=1.00)
     plt.tight_layout()
     plt.show()
 
-    print("実際のTransformerモデルは、これらのパターンを自動的に学習します")
-    print("異なるAttention Headが異なる言語的特徴を捉えます：")
-    print("  Head 1: 構文関係（主語-述語など）")
-    print("  Head 2: 意味的類似性（関連する単語）")
-    print("  Head 3: 位置情報（近い単語、遠い単語）")
-    print("  ...など")
+    print("Actual Transformer models automatically learn these patterns")
+    print("Different Attention Heads capture different linguistic features:")
+    print("  Head 1: Syntactic relationships (subject-predicate, etc.)")
+    print("  Head 2: Semantic similarity (related words)")
+    print("  Head 3: Positional information (near words, far words)")
+    print("  ...etc.")
 
 demonstrate_self_attention_patterns()
 </code></pre>
 
 <hr>
 
-<h2>4.7 Summaryと発展トピック</h2>
+<h2>4.7 Summary and Advanced Topics</h2>
 
-<h3>本 Chapterで学んだこと</h3>
+<h3>What We Learned in This Chapter</h3>
 
 <table>
 <thead>
 <tr>
-<th>トピック</th>
-<th>重要ポイント</th>
+<th>Topic</th>
+<th>Key Points</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Attentionの必要性</strong></td>
-<td>固定長Context Vectorのボトルネック解消</td>
+<td><strong>Necessity of Attention</strong></td>
+<td>Resolving fixed-length Context Vector bottleneck</td>
 </tr>
 <tr>
 <td><strong>Bahdanau Attention</strong></td>
-<td>加算的スコア計算、初期のAttention機構</td>
+<td>Additive score calculation, early attention mechanism</td>
 </tr>
 <tr>
 <td><strong>Luong Attention</strong></td>
-<td>乗算的スコア計算、計算効率の向上</td>
+<td>Multiplicative score calculation, improved computational efficiency</td>
 </tr>
 <tr>
-<td><strong>Attention可視化</strong></td>
-<td>モデル解釈性の向上、デバッグ支援</td>
+<td><strong>Attention Visualization</strong></td>
+<td>Improved model interpretability, debugging support</td>
 </tr>
 <tr>
 <td><strong>Self-Attention</strong></td>
-<td>系列内関係の学習、Transformerの基礎</td>
+<td>Learning intra-sequence relationships, foundation of Transformer</td>
 </tr>
 <tr>
-<td><strong>実装テクニック</strong></td>
-<td>Teacher Forcing、Gradient Clipping</td>
+<td><strong>Implementation Techniques</strong></td>
+<td>Teacher Forcing, Gradient Clipping</td>
 </tr>
 </tbody>
 </table>
 
-<h3>発展トピック</h3>
+<h3>Advanced Topics</h3>
 
 <details>
 <summary><strong>Multi-Head Attention</strong></summary>
-<p>複数のAttention Headを並列に使用し、異なる表現部 minutes空間から情報を取得します。Transformerの中核的コンポーネントで、次 Chapterで詳しく学びます。</p>
+<p>Uses multiple Attention Heads in parallel to obtain information from different representational subspaces. A core component of Transformer, which we'll learn in detail in the next chapter.</p>
 <pre><code>MultiHead(Q,K,V) = Concat(head_1, ..., head_h)W^O
 where head_i = Attention(QW_i^Q, KW_i^K, VW_i^V)
 </code></pre>
@@ -1443,121 +1443,121 @@ where head_i = Attention(QW_i^Q, KW_i^K, VW_i^V)
 
 <details>
 <summary><strong>Sparse Attention</strong></summary>
-<p>計算量を削減するため、全ての位置に注目する代わりに、特定のパターン（局所、ストライド、グローバル）のみに注目します。Longformer、BigBirdなどで使用されています。</p>
+<p>To reduce computational cost, instead of attending to all positions, it only attends to specific patterns (local, strided, global). Used in Longformer, BigBird, etc.</p>
 </details>
 
 <details>
 <summary><strong>Cross-Attention</strong></summary>
-<p>2つの異なる系列間のAttentionで、画像キャプション生成（画像→テキスト）やマルチモーダル学習で活用されます。</p>
+<p>Attention between two different sequences, used in image captioning (image→text) and multimodal learning.</p>
 </details>
 
 <details>
 <summary><strong>Attention Interpretability</strong></summary>
-<p>Attentionが実際に「解釈可能」かどうかは議論があります。最近の研究では、Attentionは必ずしもモデルの判断根拠を正確に反映しないことが示されています。</p>
+<p>There is debate about whether Attention is actually "interpretable." Recent research has shown that Attention does not necessarily accurately reflect the model's decision rationale.</p>
 </details>
 
 <h3>Exercises</h3>
 
 <div class="project-box">
-<h4>演習 4.1: Attention機構の比較実験</h4>
-<p><strong>課題</strong>: Bahdanau AttentionとLuong Attentionを同じデータセットで訓練し、性能を比較してください。</p>
-<p><strong>評価項目</strong>:</p>
+<h4>Exercise 4.1: Comparative Experiment on Attention Mechanisms</h4>
+<p><strong>Task</strong>: Train Bahdanau Attention and Luong Attention on the same dataset and compare their performance.</p>
+<p><strong>Evaluation Criteria</strong>:</p>
 <ul>
-<li>翻訳精度（BLEU score）</li>
-<li>訓練 hours</li>
-<li>メモリ使用量</li>
-<li>Attention重みの minutes布の違い</li>
+<li>Translation accuracy (BLEU score)</li>
+<li>Training time</li>
+<li>Memory usage</li>
+<li>Differences in attention weight distribution</li>
 </ul>
 </div>
 
 <div class="project-box">
-<h4>演習 4.2: Attention可視化ツールの開発</h4>
-<p><strong>課題</strong>: インタラクティブなAttention可視化ツールを作成してください。</p>
-<p><strong>機能要件</strong>:</p>
+<h4>Exercise 4.2: Development of Attention Visualization Tool</h4>
+<p><strong>Task</strong>: Create an interactive attention visualization tool.</p>
+<p><strong>Functional Requirements</strong>:</p>
 <ul>
-<li>任意の文に対するAttention重み表示</li>
-<li>複数のヘッドの比較表示</li>
-<li>層ごとのAttentionパターン表示</li>
-<li>統計情報（エントロピー、集中度）の計算</li>
+<li>Display attention weights for arbitrary sentences</li>
+<li>Comparative display of multiple heads</li>
+<li>Display attention patterns for each layer</li>
+<li>Calculate statistics (entropy, concentration)</li>
 </ul>
 </div>
 
 <div class="project-box">
-<h4>演習 4.3: Self-Attentionによる文 classification</h4>
-<p><strong>課題</strong>: Self-Attentionを使った感情 minutes析モデルを実装してください。</p>
-<p><strong>データ</strong>: IMDBレビューデータセット</p>
-<p><strong>アーキテクチャ</strong>: Embedding → Self-Attention → Pooling → FC</p>
+<h4>Exercise 4.3: Sentence Classification Using Self-Attention</h4>
+<p><strong>Task</strong>: Implement a sentiment analysis model using Self-Attention.</p>
+<p><strong>Data</strong>: IMDB review dataset</p>
+<p><strong>Architecture</strong>: Embedding → Self-Attention → Pooling → FC</p>
 </div>
 
 <div class="project-box">
-<h4>演習 4.4: 長文翻訳でのAttention minutes析</h4>
-<p><strong>課題</strong>: 系列長を変えて、Attentionの挙動を minutes析してください。</p>
-<p><strong>実験</strong>:</p>
+<h4>Exercise 4.4: Attention Analysis in Long Sentence Translation</h4>
+<p><strong>Task</strong>: Vary sequence length and analyze attention behavior.</p>
+<p><strong>Experiment</strong>:</p>
 <ul>
-<li>短文（5-10単語）</li>
-<li>中文（20-30単語）</li>
-<li>長文（50-100単語）</li>
+<li>Short sentences (5-10 words)</li>
+<li>Medium sentences (20-30 words)</li>
+<li>Long sentences (50-100 words)</li>
 </ul>
-<p>各ケースでのAttention minutes布のエントロピーと翻訳精度を比較してください。</p>
+<p>Compare attention distribution entropy and translation accuracy for each case.</p>
 </div>
 
 <div class="project-box">
-<h4>演習 4.5: Attention Dropout</h4>
-<p><strong>課題</strong>: Attention重みにDropoutを適用する実装を追加し、汎化性能への影響を調査してください。</p>
-<p><strong>比較</strong>: Dropout率 0%, 10%, 20%, 30%での性能比較</p>
+<h4>Exercise 4.5: Attention Dropout</h4>
+<p><strong>Task</strong>: Add implementation to apply Dropout to attention weights and investigate the impact on generalization performance.</p>
+<p><strong>Comparison</strong>: Performance comparison at Dropout rates of 0%, 10%, 20%, 30%</p>
 </div>
 
 <div class="project-box">
-<h4>演習 4.6: Multi-Head Attentionのプロトタイプ</h4>
-<p><strong>課題</strong>: Single-head Self-AttentionをMulti-head版に拡張してください。</p>
-<p><strong>実装</strong>:</p>
+<h4>Exercise 4.6: Multi-Head Attention Prototype</h4>
+<p><strong>Task</strong>: Extend single-head Self-Attention to a multi-head version.</p>
+<p><strong>Implementation</strong>:</p>
 <ul>
-<li>複数のAttention Headの並列計算</li>
-<li>各Headの出力の結合</li>
-<li>各Headが学習する特徴の可視化</li>
+<li>Parallel computation of multiple Attention Heads</li>
+<li>Concatenation of outputs from each Head</li>
+<li>Visualization of features learned by each Head</li>
 </ul>
 </div>
 
 <hr>
 
-<h3>次 Chapter予告</h3>
+<h3>Next Chapter Preview</h3>
 
-<p>Chapter 5 Chapterでは、Attention機構を発展させた<strong>Transformer</strong>アーキテクチャを学びます。TransformerはRNNを完全に排除し、Self-AttentionとPosition Encodingのみで系列処理を実現します。BERT、GPT、T5などの最先端モデルの基盤技術です。</p>
+<p>In Chapter 5, we'll learn the <strong>Transformer</strong> architecture, which evolved from the attention mechanism. Transformer completely eliminates RNNs and achieves sequence processing using only Self-Attention and Position Encoding. It is the foundational technology for cutting-edge models such as BERT, GPT, and T5.</p>
 
 <blockquote>
-<p><strong>次 Chapterのトピック</strong>:<br>
-・Transformerの全体アーキテクチャ<br>
-・Multi-Head Attention<br>
-・Position Encoding<br>
-・Feed-Forward Network<br>
-・Layer NormalizationとResidual Connection<br>
-・EncoderとDecoderの詳細<br>
-・実装：ミニTransformerによる機械翻訳</p>
+<p><strong>Topics in the Next Chapter</strong>:<br>
+• Overall Transformer architecture<br>
+• Multi-Head Attention<br>
+• Position Encoding<br>
+• Feed-Forward Network<br>
+• Layer Normalization and Residual Connection<br>
+• Details of Encoder and Decoder<br>
+• Implementation: Machine translation with mini-Transformer</p>
 </blockquote>
 
         <div class="navigation">
-            <a href="chapter3-seq2seq.html" class="nav-button">← Chapter 3 Chapter: Seq2Seqモデル</a>
-            <a href="chapter5-transformer.html" class="nav-button">Chapter 5 Chapter: Transformerアーキテクチャ →</a>
+            <a href="chapter3-seq2seq.html" class="nav-button">← Chapter 3: Seq2Seq Model</a>
+            <a href="chapter5-transformer.html" class="nav-button">Chapter 5: Transformer Architecture →</a>
         </div>
 
     </main>
 
-    
+
     <section class="disclaimer">
         <h3>Disclaimer</h3>
         <ul>
             <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
-            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
-            <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
-            <li>To the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
-            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
-            <li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+            <li>Even if direct, indirect, incidental, special, consequential, or punitive damages arise from the use, execution, or interpretation of this content, to the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable.</li>
+            <li>The content may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
         </ul>
     </section>
 
 <footer>
         <p>&copy; 2025 AI Terakoya. All rights reserved.</p>
-        <p>Chapter 4 Chapter：Attention機構 | RNN入門 Series</p>
+        <p>Chapter 4: Attention Mechanism | RNN Introduction Series</p>
     </footer>
 
 </body>

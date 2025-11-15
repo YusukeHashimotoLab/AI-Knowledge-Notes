@@ -335,9 +335,9 @@
                 padding: var(--spacing-xs);
             }
         }
-    
-        
-    
+
+
+
         /* Breadcrumb styles */
         .breadcrumb {
             background: #f7fafc;
@@ -409,12 +409,12 @@
         <header>
         <div class="header-content">
             <h1>Chapter 2: MAML - Model-Agnostic Meta-Learning</h1>
-            <p class="subtitle">勾配ベースのMeta-Learningの最重要手法</p>
+            <p class="subtitle">The Most Important Approach in Gradient-Based Meta-Learning</p>
             <div class="meta">
                 <span class="meta-item">📖 Reading Time: 30-35 minutes</span>
                 <span class="meta-item">📊 Difficulty: Intermediate-Advanced</span>
                 <span class="meta-item">💻 Code Examples: 8</span>
-                <span class="meta-item">📝 Exercises: 3問</span>
+                <span class="meta-item">📝 Exercises: 3</span>
             </div>
         </div>
     </header>
@@ -422,82 +422,82 @@
     <main class="container">
 
 <h2>Learning Objectives</h2>
-<p>この ChapterReadことで、以下を習得できます：</p>
+<p>By reading this chapter, you will be able to:</p>
 <ul>
-<li>✅ MAMLの原理と二段階最適化を理解する</li>
-<li>✅ 勾配の勾配（Second-order derivatives）の計算方法を習得する</li>
-<li>✅ PyTorchとhigherライブラリでMAMLを実装できる</li>
-<li>✅ First-order MAML (FOMAML)の効率化を理解する</li>
-<li>✅ Reptileアルゴリズムの実装と比較ができる</li>
-<li>✅ Omniglot Few-Shot classificationでMAMLを実践できる</li>
+<li>✅ Understand MAML principles and two-level optimization</li>
+<li>✅ Master the computation of second-order derivatives (gradients of gradients)</li>
+<li>✅ Implement MAML in PyTorch using the higher library</li>
+<li>✅ Understand the efficiency of First-order MAML (FOMAML)</li>
+<li>✅ Implement and compare the Reptile algorithm</li>
+<li>✅ Practice MAML on Omniglot few-shot classification</li>
 </ul>
 
 <hr>
 
-<h2>2.1 MAMLの原理</h2>
+<h2>2.1 MAML Principles</h2>
 
-<h3>Model-Agnostic Meta-Learning概要</h3>
+<h3>Model-Agnostic Meta-Learning Overview</h3>
 
-<p><strong>MAML (Model-Agnostic Meta-Learning)</strong>は、Chelsea Finnらによって2017年に提案された勾配ベースのMeta-Learningアルゴリズムです。</p>
+<p><strong>MAML (Model-Agnostic Meta-Learning)</strong> is a gradient-based meta-learning algorithm proposed by Chelsea Finn et al. in 2017.</p>
 
 <blockquote>
-<p>「少数のデータからの勾配更新で素早く適応できる、良い初期パラメータを学習する」</p>
+<p>"Learn good initial parameters that can quickly adapt to new tasks with few gradient update steps from limited data"</p>
 </blockquote>
 
-<h3>MAMLの核心的アイデア</h3>
+<h3>Core Idea of MAML</h3>
 
-<p>MAMLは以下の問いに答えます：</p>
+<p>MAML answers the following question:</p>
 <ul>
-<li><strong>問い</strong>：どのような初期パラメータ $\theta$ を選べば、新しいタスク $\mathcal{T}_i$ に対して、わずかな勾配ステップで高い性能を達成できるか？</li>
-<li><strong>答え</strong>：複数のタスクで「勾配降下後の性能」を最大化するパラメータを学習する</li>
+<li><strong>Question</strong>: What initial parameters $\theta$ should we choose so that we can achieve high performance on a new task $\mathcal{T}_i$ with just a few gradient steps?</li>
+<li><strong>Answer</strong>: Learn parameters that maximize "performance after gradient descent" across multiple tasks</li>
 </ul>
 
-<h3>二段階最適化（Inner/Outer Loop）</h3>
+<h3>Two-Level Optimization (Inner/Outer Loop)</h3>
 
-<p>MAMLは以下の2つのループからなります：</p>
+<p>MAML consists of the following two loops:</p>
 
 <table>
 <thead>
 <tr>
-<th>ループ</th>
-<th>目的</th>
-<th>データ</th>
-<th>更新対象</th>
+<th>Loop</th>
+<th>Purpose</th>
+<th>Data</th>
+<th>Update Target</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><strong>Inner Loop</strong></td>
-<td>タスク適応</td>
-<td>サポートセット $\mathcal{D}^{tr}_i$</td>
-<td>タスク固有パラメータ $\theta'_i$</td>
+<td>Task adaptation</td>
+<td>Support set $\mathcal{D}^{tr}_i$</td>
+<td>Task-specific parameters $\theta'_i$</td>
 </tr>
 <tr>
 <td><strong>Outer Loop</strong></td>
-<td>Meta-Learning</td>
-<td>クエリセット $\mathcal{D}^{test}_i$</td>
-<td>メタパラメータ $\theta$</td>
+<td>Meta-learning</td>
+<td>Query set $\mathcal{D}^{test}_i$</td>
+<td>Meta-parameters $\theta$</td>
 </tr>
 </tbody>
 </table>
 
-<h3>MAMLの動作フロー</h3>
+<h3>MAML Workflow</h3>
 
 <div class="mermaid">
 graph TD
-    A[メタパラメータ θ] --> B[タスク1: θ → θ'₁]
-    A --> C[タスク2: θ → θ'₂]
-    A --> D[タスクN: θ → θ'ₙ]
+    A[Meta-parameters θ] --> B[Task 1: θ → θ'₁]
+    A --> C[Task 2: θ → θ'₂]
+    A --> D[Task N: θ → θ'ₙ]
 
-    B --> E[クエリセットで評価 L₁]
-    C --> F[クエリセットで評価 L₂]
-    D --> G[クエリセットで評価 Lₙ]
+    B --> E[Evaluate on query set L₁]
+    C --> F[Evaluate on query set L₂]
+    D --> G[Evaluate on query set Lₙ]
 
-    E --> H[メタ損失 = 平均]
+    E --> H[Meta-loss = Average]
     F --> H
     G --> H
 
-    H --> I[θを更新]
+    H --> I[Update θ]
     I --> A
 
     style A fill:#e3f2fd
@@ -508,49 +508,49 @@ graph TD
     style I fill:#c8e6c9
 </div>
 
-<h3>勾配の勾配（Second-order derivatives）</h3>
+<h3>Second-order Derivatives (Gradients of Gradients)</h3>
 
-<p>MAMLの特徴は<strong>勾配の勾配</strong>を計算することです。</p>
+<p>MAML's characteristic is computing <strong>gradients of gradients</strong>.</p>
 
-<p><strong>Inner Loop（一次勾配）</strong>：</p>
+<p><strong>Inner Loop (first-order gradient)</strong>:</p>
 <p>$$
 \theta'_i = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{tr}(f_\theta)
 $$</p>
 
-<p><strong>Outer Loop（二次勾配）</strong>：</p>
+<p><strong>Outer Loop (second-order gradient)</strong>:</p>
 <p>$$
 \theta \leftarrow \theta - \beta \nabla_\theta \sum_{\mathcal{T}_i \sim p(\mathcal{T})} \mathcal{L}_{\mathcal{T}_i}^{test}(f_{\theta'_i})
 $$</p>
 
-<p>ここで、$\theta'_i$ は $\theta$ の関数なので、以下のように展開されます：</p>
+<p>Here, $\theta'_i$ is a function of $\theta$, so it expands as follows:</p>
 
 <p>$$
 \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{test}(f_{\theta'_i}) = \nabla_{\theta'_i} \mathcal{L}_{\mathcal{T}_i}^{test}(f_{\theta'_i}) \cdot \nabla_\theta \theta'_i
 $$</p>
 
 <blockquote>
-<p><strong>重要</strong>：この二次微 minutesが計算コストの主な要因ですが、適応能力を高めます。</p>
+<p><strong>Important</strong>: This second-order derivative is the main computational cost, but it enhances adaptation capability.</p>
 </blockquote>
 
-<h3>MAMLの視覚的理解</h3>
+<h3>Visual Understanding of MAML</h3>
 
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 
-# 2次元パラメータ空間でのMAMLのイメージ
+# MAML visualization in 2D parameter space
 fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
-# 左図：通常の学習
+# Left plot: Standard learning
 ax1 = axes[0]
 theta_init = np.array([0, 0])
 task1_opt = np.array([3, 1])
 task2_opt = np.array([1, 3])
 task3_opt = np.array([-2, 2])
 
-ax1.scatter(*theta_init, s=200, c='red', marker='X', label='ランダム初期化', zorder=5)
+ax1.scatter(*theta_init, s=200, c='red', marker='X', label='Random initialization', zorder=5)
 ax1.scatter(*task1_opt, s=100, c='blue', marker='o', alpha=0.7)
 ax1.scatter(*task2_opt, s=100, c='blue', marker='o', alpha=0.7)
-ax1.scatter(*task3_opt, s=100, c='blue', marker='o', alpha=0.7, label='タスク最適解')
+ax1.scatter(*task3_opt, s=100, c='blue', marker='o', alpha=0.7, label='Task optimal solution')
 
 for opt in [task1_opt, task2_opt, task3_opt]:
     ax1.arrow(theta_init[0], theta_init[1],
@@ -561,25 +561,25 @@ ax1.set_xlim(-4, 4)
 ax1.set_ylim(-1, 4)
 ax1.set_xlabel('θ₁')
 ax1.set_ylabel('θ₂')
-ax1.set_title('通常の学習：タスクごとにゼロから学習', fontsize=13)
+ax1.set_title('Standard Learning: Learn each task from scratch', fontsize=13)
 ax1.legend()
 ax1.grid(True, alpha=0.3)
 
-# 右図：MAML
+# Right plot: MAML
 ax2 = axes[1]
 maml_init = np.array([0.7, 2])
 
-ax2.scatter(*maml_init, s=200, c='green', marker='X', label='MAML初期化', zorder=5)
+ax2.scatter(*maml_init, s=200, c='green', marker='X', label='MAML initialization', zorder=5)
 ax2.scatter(*task1_opt, s=100, c='blue', marker='o', alpha=0.7)
 ax2.scatter(*task2_opt, s=100, c='blue', marker='o', alpha=0.7)
-ax2.scatter(*task3_opt, s=100, c='blue', marker='o', alpha=0.7, label='タスク最適解')
+ax2.scatter(*task3_opt, s=100, c='blue', marker='o', alpha=0.7, label='Task optimal solution')
 
 for opt in [task1_opt, task2_opt, task3_opt]:
     ax2.arrow(maml_init[0], maml_init[1],
               opt[0]-maml_init[0]*0.7, opt[1]-maml_init[1]*0.7,
               head_width=0.2, head_length=0.2, fc='green', ec='green', alpha=0.5)
 
-# 中心領域を強調
+# Highlight central region
 circle = plt.Circle(maml_init, 1.5, color='green', fill=False, linestyle='--', linewidth=2)
 ax2.add_patch(circle)
 
@@ -587,56 +587,56 @@ ax2.set_xlim(-4, 4)
 ax2.set_ylim(-1, 4)
 ax2.set_xlabel('θ₁')
 ax2.set_ylabel('θ₂')
-ax2.set_title('MAML：全タスクに近い位置から開始', fontsize=13)
+ax2.set_title('MAML: Start from position close to all tasks', fontsize=13)
 ax2.legend()
 ax2.grid(True, alpha=0.3)
 
 plt.tight_layout()
 plt.show()
 
-print("=== MAML の直感的理解 ===")
-print("✓ 通常の学習: 各タスクをゼロから学習（遠い）")
-print("✓ MAML: 全タスクの「中心」に位置する初期化を学習")
-print("✓ 結果: わずかな勾配ステップで各タスクに適応可能")
+print("=== Intuitive Understanding of MAML ===")
+print("✓ Standard learning: Learn each task from scratch (far away)")
+print("✓ MAML: Learn initialization positioned at the 'center' of all tasks")
+print("✓ Result: Can adapt to each task with just a few gradient steps")
 </code></pre>
 
 <hr>
 
-<h2>2.2 MAMLアルゴリズム</h2>
+<h2>2.2 MAML Algorithm</h2>
 
-<h3>数式による定義</h3>
+<h3>Mathematical Definition</h3>
 
-<p><strong>Meta-Learningの目的</strong>：</p>
+<p><strong>Meta-learning objective</strong>:</p>
 
 <p>$$
 \min_\theta \sum_{\mathcal{T}_i \sim p(\mathcal{T})} \mathcal{L}_{\mathcal{T}_i}^{test}(f_{\theta'_i})
 $$</p>
 
-<p>ここで、$\theta'_i$ はタスク $\mathcal{T}_i$ に対する適応後パラメータ：</p>
+<p>where $\theta'_i$ is the adapted parameter for task $\mathcal{T}_i$:</p>
 
 <p>$$
 \theta'_i = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{tr}(f_\theta)
 $$</p>
 
-<p><strong>記号の意味</strong>：</p>
+<p><strong>Symbol meanings</strong>:</p>
 <ul>
-<li>$\theta$: メタパラメータ（学習対象）</li>
-<li>$\theta'_i$: タスク $i$ に適応したパラメータ</li>
-<li>$\alpha$: Inner Loop学習率（タスク適応）</li>
-<li>$\beta$: Outer Loop学習率（Meta-Learning）</li>
-<li>$\mathcal{L}_{\mathcal{T}_i}^{tr}$: タスク $i$ のサポートセット損失</li>
-<li>$\mathcal{L}_{\mathcal{T}_i}^{test}$: タスク $i$ のクエリセット損失</li>
+<li>$\theta$: Meta-parameters (to be learned)</li>
+<li>$\theta'_i$: Parameters adapted to task $i$</li>
+<li>$\alpha$: Inner Loop learning rate (task adaptation)</li>
+<li>$\beta$: Outer Loop learning rate (meta-learning)</li>
+<li>$\mathcal{L}_{\mathcal{T}_i}^{tr}$: Support set loss for task $i$</li>
+<li>$\mathcal{L}_{\mathcal{T}_i}^{test}$: Query set loss for task $i$</li>
 </ul>
 
-<h3>Inner Loop: タスク適応</h3>
+<h3>Inner Loop: Task Adaptation</h3>
 
-<p>各タスク $\mathcal{T}_i$ に対して、サポートセット $\mathcal{D}^{tr}_i$ を使って勾配降下：</p>
+<p>For each task $\mathcal{T}_i$, perform gradient descent using support set $\mathcal{D}^{tr}_i$:</p>
 
 <p>$$
 \theta'_i = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{tr}(f_\theta)
 $$</p>
 
-<p>複数ステップの場合（$K$ ステップ）：</p>
+<p>For multiple steps (with $K$ steps):</p>
 
 <p>$$
 \begin{aligned}
@@ -646,40 +646,40 @@ $$</p>
 \end{aligned}
 $$</p>
 
-<h3>Outer Loop: メタパラメータ更新</h3>
+<h3>Outer Loop: Meta-parameter Update</h3>
 
-<p>適応後のパラメータ $\theta'_i$ でクエリセット $\mathcal{D}^{test}_i$ を評価し、メタ損失を計算：</p>
+<p>Evaluate adapted parameters $\theta'_i$ on query set $\mathcal{D}^{test}_i$ to compute meta-loss:</p>
 
 <p>$$
 \mathcal{L}_{\text{meta}}(\theta) = \frac{1}{N} \sum_{i=1}^N \mathcal{L}_{\mathcal{T}_i}^{test}(f_{\theta'_i})
 $$</p>
 
-<p>メタパラメータの更新：</p>
+<p>Update meta-parameters:</p>
 
 <p>$$
 \theta \leftarrow \theta - \beta \nabla_\theta \mathcal{L}_{\text{meta}}(\theta)
 $$</p>
 
-<h3>アルゴリズムの擬似コード</h3>
+<h3>Algorithm Pseudocode</h3>
 
 <pre><code>Algorithm: MAML
 
-Require: p(T): タスク minutes布
-Require: α, β: Inner/Outer Loop 学習率
+Require: p(T): Task distribution
+Require: α, β: Inner/Outer Loop learning rates
 
-1: ランダムに θ を初期化
+1: Randomly initialize θ
 2: while not converged do
 3:     B ← Sample batch of tasks {T_i} ~ p(T)
 4:     for all T_i ∈ B do
-5:         # Inner Loop: タスク適応
+5:         # Inner Loop: Task adaptation
 6:         D_i^tr, D_i^test ← Sample support/query sets from T_i
 7:         θ'_i ← θ - α ∇_θ L_{T_i}^tr(f_θ)
 8:
-9:         # Query セットで損失を計算
+9:         # Compute loss on query set
 10:        L_i ← L_{T_i}^test(f_{θ'_i})
 11:    end for
 12:
-13:    # Outer Loop: Meta-Learning
+13:    # Outer Loop: Meta-learning
 14:    θ ← θ - β ∇_θ Σ L_i
 15: end while
 16: return θ
@@ -687,63 +687,63 @@ Require: α, β: Inner/Outer Loop 学習率
 
 <h3>First-order MAML (FOMAML)</h3>
 
-<p><strong>課題</strong>：二次微 minutesの計算コストが高い</p>
+<p><strong>Challenge</strong>: High computational cost of second-order derivatives</p>
 
-<p><strong>解決策</strong>：二次微 minutes項を無視する近似</p>
+<p><strong>Solution</strong>: Approximation by ignoring second-order derivative terms</p>
 
-<p>FOMAML では、以下のように近似します：</p>
+<p>FOMAML approximates as follows:</p>
 
 <p>$$
 \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{test}(f_{\theta'_i}) \approx \nabla_{\theta'_i} \mathcal{L}_{\mathcal{T}_i}^{test}(f_{\theta'_i})
 $$</p>
 
-<p>つまり、$\nabla_\theta \theta'_i$ の項を無視します。</p>
+<p>That is, the $\nabla_\theta \theta'_i$ term is ignored.</p>
 
 <table>
 <thead>
 <tr>
-<th>比較項目</th>
+<th>Comparison</th>
 <th>MAML</th>
 <th>FOMAML</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>勾配計算</strong></td>
-<td>二次微 minutes</td>
-<td>一次微 minutesのみ</td>
+<td><strong>Gradient computation</strong></td>
+<td>Second-order derivatives</td>
+<td>First-order only</td>
 </tr>
 <tr>
-<td><strong>計算コスト</strong></td>
-<td>高い</td>
-<td>低い（約50%削減）</td>
+<td><strong>Computational cost</strong></td>
+<td>High</td>
+<td>Low (approx. 50% reduction)</td>
 </tr>
 <tr>
-<td><strong>メモリ使用量</strong></td>
-<td>多い</td>
-<td>少ない</td>
+<td><strong>Memory usage</strong></td>
+<td>High</td>
+<td>Low</td>
 </tr>
 <tr>
-<td><strong>性能</strong></td>
-<td>最高</td>
-<td>わずかに劣る（実用的）</td>
+<td><strong>Performance</strong></td>
+<td>Best</td>
+<td>Slightly lower (practical)</td>
 </tr>
 </tbody>
 </table>
 
 <blockquote>
-<p><strong>実践的には</strong>、FOMAMLで十 minutesな性能が得られることが多く、広く使われています。</p>
+<p><strong>In practice</strong>, FOMAML often achieves sufficient performance and is widely used.</p>
 </blockquote>
 
 <hr>
 
-<h2>2.3 PyTorchによるMAML実装</h2>
+<h2>2.3 MAML Implementation in PyTorch</h2>
 
-<h3>higher ライブラリの活用</h3>
+<h3>Using the higher Library</h3>
 
-<p><strong>higher</strong> は、PyTorchで高次微 minutesを扱うための便利なライブラリです。MAMLの実装に最適です。</p>
+<p><strong>higher</strong> is a convenient library for handling higher-order derivatives in PyTorch. It's ideal for MAML implementation.</p>
 
-<pre><code class="language-python"># higherのインストール
+<pre><code class="language-python"># Install higher
 # pip install higher
 
 import torch
@@ -752,15 +752,15 @@ import torch.optim as optim
 import higher
 import numpy as np
 
-# デバイス設定
+# Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 </code></pre>
 
-<h3>シンプルなモデル定義</h3>
+<h3>Simple Model Definition</h3>
 
 <pre><code class="language-python">class SimpleMLP(nn.Module):
-    """Few-Shot学習用のシンプルなMLP"""
+    """Simple MLP for Few-Shot learning"""
     def __init__(self, input_size=1, hidden_size=40, output_size=1):
         super(SimpleMLP, self).__init__()
         self.net = nn.Sequential(
@@ -774,24 +774,24 @@ print(f"Using device: {device}")
     def forward(self, x):
         return self.net(x)
 
-# モデルのインスタンス化
+# Instantiate model
 model = SimpleMLP().to(device)
 print(f"Model parameters: {sum(p.numel() for p in model.parameters())}")
 </code></pre>
 
-<h3>タスク生成関数</h3>
+<h3>Task Generation Function</h3>
 
 <pre><code class="language-python">def generate_sinusoid_task(amplitude=None, phase=None, n_samples=10):
     """
-    正弦波回帰タスクを生成
+    Generate sinusoid regression task
 
     Args:
-        amplitude: 振幅（Noneの場合はランダム）
-        phase: 位相（Noneの場合はランダム）
-        n_samples: サンプル数
+        amplitude: Amplitude (random if None)
+        phase: Phase (random if None)
+        n_samples: Number of samples
 
     Returns:
-        x, y: 入力と出力のペア
+        x, y: Input and output pairs
     """
     if amplitude is None:
         amplitude = np.random.uniform(0.1, 5.0)
@@ -806,7 +806,7 @@ print(f"Model parameters: {sum(p.numel() for p in model.parameters())}")
 
     return x, y, amplitude, phase
 
-# タスク例の可視化
+# Visualize task examples
 import matplotlib.pyplot as plt
 
 fig, axes = plt.subplots(2, 3, figsize=(15, 8))
@@ -826,99 +826,99 @@ for i, ax in enumerate(axes.flat):
 plt.tight_layout()
 plt.show()
 
-print("=== タスク minutes布 ===")
-print("各タスクは異なる振幅と位相を持つ正弦波")
-print("目標: 少数のサンプルから新しい正弦波に適応")
+print("=== Task Distribution ===")
+print("Each task is a sine wave with different amplitude and phase")
+print("Goal: Adapt to new sine waves from few samples")
 </code></pre>
 
-<h3>Inner Loop実装</h3>
+<h3>Inner Loop Implementation</h3>
 
 <pre><code class="language-python">def inner_loop(model, x_support, y_support, inner_lr=0.01, inner_steps=1):
     """
-    Inner Loop: タスク適応
+    Inner Loop: Task adaptation
 
     Args:
-        model: PyTorchモデル
-        x_support: サポートセット入力
-        y_support: サポートセット出力
-        inner_lr: Inner Loop学習率
-        inner_steps: 適応ステップ数
+        model: PyTorch model
+        x_support: Support set input
+        y_support: Support set output
+        inner_lr: Inner Loop learning rate
+        inner_steps: Adaptation step count
 
     Returns:
-        task_loss: サポートセット損失
+        task_loss: Support set loss
     """
     criterion = nn.MSELoss()
 
-    # 予測と損失計算
+    # Prediction and loss calculation
     predictions = model(x_support)
     task_loss = criterion(predictions, y_support)
 
-    # 勾配計算
+    # Gradient computation
     task_grad = torch.autograd.grad(
         task_loss,
         model.parameters(),
-        create_graph=True  # 二次微 minutesのために必要
+        create_graph=True  # Needed for second-order derivatives
     )
 
-    # 手動で勾配降下（inner_stepsが1の場合）
+    # Manual gradient descent (when inner_steps is 1)
     adapted_params = []
     for param, grad in zip(model.parameters(), task_grad):
         adapted_params.append(param - inner_lr * grad)
 
     return task_loss, adapted_params
 
-# Inner Loop の動作確認
-print("\n=== Inner Loop テスト ===")
+# Test Inner Loop
+print("\n=== Inner Loop Test ===")
 x_sup, y_sup, _, _ = generate_sinusoid_task(n_samples=5)
 loss, adapted = inner_loop(model, x_sup, y_sup)
 print(f"Support loss: {loss.item():.4f}")
 print(f"Adapted parameters: {len(adapted)} tensors")
 </code></pre>
 
-<h3>Outer Loop実装</h3>
+<h3>Outer Loop Implementation</h3>
 
 <pre><code class="language-python">def outer_loop(model, tasks, inner_lr=0.01, inner_steps=1):
     """
-    Outer Loop: Meta-Learning
+    Outer Loop: Meta-learning
 
     Args:
-        model: PyTorchモデル
-        tasks: タスクのリスト [(x_sup, y_sup, x_qry, y_qry), ...]
-        inner_lr: Inner Loop学習率
-        inner_steps: 適応ステップ数
+        model: PyTorch model
+        tasks: List of tasks [(x_sup, y_sup, x_qry, y_qry), ...]
+        inner_lr: Inner Loop learning rate
+        inner_steps: Adaptation step count
 
     Returns:
-        meta_loss: メタ損失（平均クエリ損失）
+        meta_loss: Meta-loss (average query loss)
     """
     criterion = nn.MSELoss()
     meta_loss = 0.0
 
     for x_support, y_support, x_query, y_query in tasks:
-        # Inner Loop: タスク適応（higherを使用）
+        # Inner Loop: Task adaptation (using higher)
         with higher.innerloop_ctx(
             model,
             optim.SGD(model.parameters(), lr=inner_lr),
             copy_initial_weights=False
         ) as (fmodel, diffopt):
 
-            # Inner Loop更新
+            # Inner Loop update
             for _ in range(inner_steps):
                 support_loss = criterion(fmodel(x_support), y_support)
                 diffopt.step(support_loss)
 
-            # クエリセットで評価
+            # Evaluate on query set
             query_pred = fmodel(x_query)
             query_loss = criterion(query_pred, y_query)
 
             meta_loss += query_loss
 
-    # タスク数で平均
+    # Average over tasks
     meta_loss = meta_loss / len(tasks)
 
     return meta_loss
 
-# Outer Loop の動作確認
-print("\n=== Outer Loop テスト ===")
+# Test Outer Loop
+print("\n=== Outer Loop Test ===")
 test_tasks = []
 for _ in range(4):
     x_s, y_s, _, _ = generate_sinusoid_task(n_samples=5)
@@ -929,27 +929,27 @@ meta_loss = outer_loop(model, test_tasks)
 print(f"Meta loss: {meta_loss.item():.4f}")
 </code></pre>
 
-<h3>エピソード学習ループ</h3>
+<h3>Episode Training Loop</h3>
 
 <pre><code class="language-python">def train_maml(model, n_iterations=10000, tasks_per_batch=4,
                k_shot=5, q_query=10, inner_lr=0.01, outer_lr=0.001,
                inner_steps=1, eval_interval=500):
     """
-    MAML学習ループ
+    MAML training loop
 
     Args:
-        model: PyTorchモデル
-        n_iterations: 学習イテレーション数
-        tasks_per_batch: バッチあたりのタスク数
-        k_shot: サポートセットのサンプル数
-        q_query: クエリセットのサンプル数
-        inner_lr: Inner Loop学習率
-        outer_lr: Outer Loop学習率
-        inner_steps: Inner Loop更新ステップ数
-        eval_interval: 評価間隔
+        model: PyTorch model
+        n_iterations: Number of training iterations
+        tasks_per_batch: Tasks per batch
+        k_shot: Support set sample count
+        q_query: Query set sample count
+        inner_lr: Inner Loop learning rate
+        outer_lr: Outer Loop learning rate
+        inner_steps: Inner Loop update steps
+        eval_interval: Evaluation interval
 
     Returns:
-        losses: 損失履歴
+        losses: Loss history
     """
     meta_optimizer = optim.Adam(model.parameters(), lr=outer_lr)
     criterion = nn.MSELoss()
@@ -959,12 +959,12 @@ print(f"Meta loss: {meta_loss.item():.4f}")
     for iteration in range(n_iterations):
         meta_optimizer.zero_grad()
 
-        # タスクバッチの生成
+        # Generate task batch
         tasks = []
         for _ in range(tasks_per_batch):
-            # サポートセット
+            # Support set
             x_support, y_support, amp, phase = generate_sinusoid_task(n_samples=k_shot)
-            # クエリセット（同じタスクから）
+            # Query set (from same task)
             x_query, y_query, _, _ = generate_sinusoid_task(
                 amplitude=amp, phase=phase, n_samples=q_query
             )
@@ -973,19 +973,19 @@ print(f"Meta loss: {meta_loss.item():.4f}")
         # Outer Loop
         meta_loss = outer_loop(model, tasks, inner_lr, inner_steps)
 
-        # メタパラメータ更新
+        # Meta-parameter update
         meta_loss.backward()
         meta_optimizer.step()
 
         losses.append(meta_loss.item())
 
-        # 定期的な評価
+        # Periodic evaluation
         if (iteration + 1) % eval_interval == 0:
             print(f"Iteration {iteration+1}/{n_iterations}, Meta Loss: {meta_loss.item():.4f}")
 
     return losses
 
-# MAML学習の実行
+# Run MAML training
 print("\n=== MAML Training ===")
 model = SimpleMLP().to(device)
 
@@ -1001,7 +1001,7 @@ losses = train_maml(
     eval_interval=1000
 )
 
-# 損失曲線の可視化
+# Visualize loss curve
 plt.figure(figsize=(10, 5))
 plt.plot(losses, alpha=0.7)
 plt.xlabel('Iteration')
@@ -1011,38 +1011,38 @@ plt.grid(True, alpha=0.3)
 plt.yscale('log')
 plt.show()
 
-print("\n✓ MAML学習完了")
-print(f"✓ 最終メタ損失: {losses[-1]:.4f}")
+print("\n✓ MAML training complete")
+print(f"✓ Final meta-loss: {losses[-1]:.4f}")
 </code></pre>
 
-<h3>学習済みモデルの評価</h3>
+<h3>Evaluating the Trained Model</h3>
 
 <pre><code class="language-python">def evaluate_maml(model, n_test_tasks=5, k_shot=5, inner_lr=0.01, inner_steps=5):
     """
-    学習済みMAMLモデルを評価
+    Evaluate trained MAML model
 
     Args:
-        model: 学習済みモデル
-        n_test_tasks: テストタスク数
-        k_shot: サポートセットのサンプル数
-        inner_lr: 適応時の学習率
-        inner_steps: 適応ステップ数
+        model: Trained model
+        n_test_tasks: Number of test tasks
+        k_shot: Support set sample count
+        inner_lr: Adaptation learning rate
+        inner_steps: Adaptation step count
     """
     criterion = nn.MSELoss()
 
     fig, axes = plt.subplots(2, 3, figsize=(16, 10))
 
     for idx, ax in enumerate(axes.flat[:n_test_tasks]):
-        # 新しいテストタスク生成
+        # Generate new test task
         x_support, y_support, amp, phase = generate_sinusoid_task(n_samples=k_shot)
         x_test = torch.linspace(-5, 5, 100).unsqueeze(1).to(device)
         y_test = amp * np.sin(x_test.cpu().numpy() + phase)
 
-        # 適応前の予測
+        # Prediction before adaptation
         with torch.no_grad():
             y_pred_before = model(x_test).cpu().numpy()
 
-        # Inner Loop: タスク適応
+        # Inner Loop: Task adaptation
         adapted_model = SimpleMLP().to(device)
         adapted_model.load_state_dict(model.state_dict())
         optimizer = optim.SGD(adapted_model.parameters(), lr=inner_lr)
@@ -1053,11 +1053,11 @@ print(f"✓ 最終メタ損失: {losses[-1]:.4f}")
             loss.backward()
             optimizer.step()
 
-        # 適応後の予測
+        # Prediction after adaptation
         with torch.no_grad():
             y_pred_after = adapted_model(x_test).cpu().numpy()
 
-        # 可視化
+        # Visualization
         ax.scatter(x_support.cpu(), y_support.cpu(),
                   label=f'{k_shot}-shot support', s=80, zorder=3, color='red')
         ax.plot(x_test.cpu(), y_test, 'k--',
@@ -1073,7 +1073,7 @@ print(f"✓ 最終メタ損失: {losses[-1]:.4f}")
         ax.legend(fontsize=9)
         ax.grid(True, alpha=0.3)
 
-    # 最後のサブプロットを削除
+    # Remove last subplot if not needed
     if n_test_tasks < 6:
         fig.delaxes(axes.flat[5])
 
@@ -1081,139 +1081,139 @@ print(f"✓ 最終メタ損失: {losses[-1]:.4f}")
     plt.show()
 
     print("\n=== MAML Evaluation ===")
-    print(f"✓ {n_test_tasks}の新しいタスクでテスト")
+    print(f"✓ Tested on {n_test_tasks} new tasks")
     print(f"✓ {k_shot}-shot learning with {inner_steps} gradient steps")
-    print("✓ 青線: 適応前（Meta-Learningの初期化）")
-    print("✓ 緑線: 適応後（わずかなデータで学習）")
+    print("✓ Blue line: Before adaptation (meta-learned initialization)")
+    print("✓ Green line: After adaptation (learned from few data)")
 
-# 評価の実行
+# Run evaluation
 evaluate_maml(model, n_test_tasks=5, k_shot=5, inner_steps=5)
 </code></pre>
 
 <hr>
 
-<h2>2.4 Reptileアルゴリズム</h2>
+<h2>2.4 Reptile Algorithm</h2>
 
-<h3>MAMLの簡略版</h3>
+<h3>Simplified Version of MAML</h3>
 
-<p><strong>Reptile</strong>は、OpenAIによって提案されたMAMLの簡易版です。</p>
+<p><strong>Reptile</strong> is a simplified version of MAML proposed by OpenAI.</p>
 
 <blockquote>
-<p>「二次微 minutesを使わずに、一次微 minutesのみでMeta-Learningを実現」</p>
+<p>"Achieve meta-learning with only first-order derivatives, without using second-order derivatives"</p>
 </blockquote>
 
-<h3>MAMLとReptileの違い</h3>
+<h3>Differences Between MAML and Reptile</h3>
 
 <table>
 <thead>
 <tr>
-<th>項目</th>
+<th>Item</th>
 <th>MAML</th>
 <th>Reptile</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>勾配計算</strong></td>
-<td>二次微 minutes（勾配の勾配）</td>
-<td>一次微 minutesのみ</td>
+<td><strong>Gradient computation</strong></td>
+<td>Second-order (gradients of gradients)</td>
+<td>First-order only</td>
 </tr>
 <tr>
-<td><strong>更新式</strong></td>
+<td><strong>Update rule</strong></td>
 <td>$\theta \leftarrow \theta - \beta \nabla_\theta \mathcal{L}_{\text{meta}}$</td>
 <td>$\theta \leftarrow \theta + \epsilon (\theta' - \theta)$</td>
 </tr>
 <tr>
-<td><strong>計算コスト</strong></td>
-<td>高い</td>
-<td>低い（約70%削減）</td>
+<td><strong>Computational cost</strong></td>
+<td>High</td>
+<td>Low (approx. 70% reduction)</td>
 </tr>
 <tr>
-<td><strong>実装の簡単さ</strong></td>
-<td>複雑（higherが必要）</td>
-<td>シンプル</td>
+<td><strong>Implementation simplicity</strong></td>
+<td>Complex (needs higher)</td>
+<td>Simple</td>
 </tr>
 <tr>
-<td><strong>性能</strong></td>
-<td>理論的に最適</td>
-<td>実用的に十 minutes</td>
+<td><strong>Performance</strong></td>
+<td>Theoretically optimal</td>
+<td>Practically sufficient</td>
 </tr>
 </tbody>
 </table>
 
-<h3>Reptileの更新式</h3>
+<h3>Reptile Update Rule</h3>
 
-<p>Reptileは以下のシンプルな更新を行います：</p>
+<p>Reptile performs the following simple update:</p>
 
 <p>$$
 \theta \leftarrow \theta + \epsilon (\theta'_i - \theta)
 $$</p>
 
-<p>ここで：</p>
+<p>where:</p>
 <ul>
-<li>$\theta$: メタパラメータ</li>
-<li>$\theta'_i$: タスク $i$ で $K$ ステップ学習後のパラメータ</li>
-<li>$\epsilon$: Meta-Learning率</li>
+<li>$\theta$: Meta-parameters</li>
+<li>$\theta'_i$: Parameters after $K$ steps of learning on task $i$</li>
+<li>$\epsilon$: Meta-learning rate</li>
 </ul>
 
-<p><strong>直感的理解</strong>：適応後のパラメータ方向にメタパラメータを移動</p>
+<p><strong>Intuitive understanding</strong>: Move meta-parameters toward the direction of adapted parameters</p>
 
-<h3>Reptileアルゴリズム</h3>
+<h3>Reptile Algorithm</h3>
 
 <pre><code>Algorithm: Reptile
 
-Require: p(T): タスク minutes布
+Require: p(T): Task distribution
 Require: α: Inner learning rate
 Require: ε: Meta learning rate (Outer)
 
-1: ランダムに θ を初期化
+1: Randomly initialize θ
 2: while not converged do
-3:     T_i ~ p(T)  # タスクをサンプル
+3:     T_i ~ p(T)  # Sample task
 4:     D_i ← Sample data from T_i
 5:
-6:     # タスクで通常の学習
+6:     # Standard learning on task
 7:     θ' ← θ
 8:     for k = 1 to K do
 9:         θ' ← θ' - α ∇_{θ'} L_{T_i}(f_{θ'})
 10:    end for
 11:
-12:    # メタパラメータを適応方向に移動
+12:    # Move meta-parameters in adaptation direction
 13:    θ ← θ + ε(θ' - θ)
 14: end while
 15: return θ
 </code></pre>
 
-<h3>Reptile実装</h3>
+<h3>Reptile Implementation</h3>
 
 <pre><code class="language-python">def train_reptile(model, n_iterations=5000, k_shot=10,
                   inner_lr=0.01, meta_lr=0.1, inner_steps=5,
                   eval_interval=500):
     """
-    Reptile アルゴリズム
+    Reptile algorithm
 
     Args:
-        model: PyTorchモデル
-        n_iterations: 学習イテレーション数
-        k_shot: タスクごとのサンプル数
-        inner_lr: Inner Loop学習率
-        meta_lr: Meta-Learning率
-        inner_steps: タスクごとの学習ステップ数
-        eval_interval: 評価間隔
+        model: PyTorch model
+        n_iterations: Number of training iterations
+        k_shot: Samples per task
+        inner_lr: Inner Loop learning rate
+        meta_lr: Meta learning rate
+        inner_steps: Learning steps per task
+        eval_interval: Evaluation interval
 
     Returns:
-        losses: 損失履歴
+        losses: Loss history
     """
     criterion = nn.MSELoss()
     losses = []
 
     for iteration in range(n_iterations):
-        # メタパラメータのコピー
+        # Copy meta-parameters
         meta_params = [p.clone() for p in model.parameters()]
 
-        # 新しいタスクをサンプル
+        # Sample new task
         x_task, y_task, _, _ = generate_sinusoid_task(n_samples=k_shot)
 
-        # タスクで通常の学習（Inner Loop）
+        # Standard learning on task (Inner Loop)
         optimizer = optim.SGD(model.parameters(), lr=inner_lr)
 
         for step in range(inner_steps):
@@ -1225,22 +1225,22 @@ Require: ε: Meta learning rate (Outer)
 
         losses.append(loss.item())
 
-        # メタ更新: θ ← θ + ε(θ' - θ)
+        # Meta update: θ ← θ + ε(θ' - θ)
         with torch.no_grad():
             for meta_param, task_param in zip(meta_params, model.parameters()):
                 meta_param.add_(task_param - meta_param, alpha=meta_lr)
 
-            # モデルパラメータを更新
+            # Update model parameters
             for param, meta_param in zip(model.parameters(), meta_params):
                 param.copy_(meta_param)
 
-        # 定期的な評価
+        # Periodic evaluation
         if (iteration + 1) % eval_interval == 0:
             print(f"Iteration {iteration+1}/{n_iterations}, Loss: {loss.item():.4f}")
 
     return losses
 
-# Reptile学習の実行
+# Run Reptile training
 print("\n=== Reptile Training ===")
 reptile_model = SimpleMLP().to(device)
 
@@ -1254,7 +1254,7 @@ reptile_losses = train_reptile(
     eval_interval=1000
 )
 
-# 損失曲線の可視化
+# Visualize loss curve
 plt.figure(figsize=(10, 5))
 plt.plot(reptile_losses, alpha=0.7, color='purple')
 plt.xlabel('Iteration')
@@ -1264,16 +1264,16 @@ plt.grid(True, alpha=0.3)
 plt.yscale('log')
 plt.show()
 
-print("\n✓ Reptile学習完了")
-print(f"✓ 最終損失: {reptile_losses[-1]:.4f}")
+print("\n✓ Reptile training complete")
+print(f"✓ Final loss: {reptile_losses[-1]:.4f}")
 </code></pre>
 
-<h3>MAMLとReptileの比較</h3>
+<h3>Comparing MAML and Reptile</h3>
 
-<pre><code class="language-python"># MAMLとReptileの性能比較
+<pre><code class="language-python"># Performance comparison of MAML and Reptile
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-# 損失曲線の比較
+# Loss curve comparison
 ax1 = axes[0]
 ax1.plot(losses, label='MAML', alpha=0.7, linewidth=2)
 ax1.plot(reptile_losses, label='Reptile', alpha=0.7, linewidth=2)
@@ -1284,15 +1284,15 @@ ax1.legend()
 ax1.grid(True, alpha=0.3)
 ax1.set_yscale('log')
 
-# 適応速度の比較
+# Adaptation speed comparison
 ax2 = axes[1]
 
-# テストタスク生成
+# Generate test task
 x_support, y_support, amp, phase = generate_sinusoid_task(n_samples=5)
 x_test = torch.linspace(-5, 5, 100).unsqueeze(1).to(device)
 y_test = amp * np.sin(x_test.cpu().numpy() + phase)
 
-# MAML適応
+# MAML adaptation
 maml_errors = []
 adapted_maml = SimpleMLP().to(device)
 adapted_maml.load_state_dict(model.state_dict())
@@ -1309,7 +1309,7 @@ for step in range(10):
     loss.backward()
     optimizer_maml.step()
 
-# Reptile適応
+# Reptile adaptation
 reptile_errors = []
 adapted_reptile = SimpleMLP().to(device)
 adapted_reptile.load_state_dict(reptile_model.state_dict())
@@ -1339,37 +1339,37 @@ plt.tight_layout()
 plt.show()
 
 print("\n=== MAML vs Reptile ===")
-print(f"MAML - 初期誤差: {maml_errors[0]:.4f}, 最終誤差: {maml_errors[-1]:.4f}")
-print(f"Reptile - 初期誤差: {reptile_errors[0]:.4f}, 最終誤差: {reptile_errors[-1]:.4f}")
-print("\n✓ 両手法とも高速適応が可能")
-print("✓ MAMLはわずかに良い初期化を提供")
-print("✓ Reptileは実装がシンプルで計算効率が高い")
+print(f"MAML - Initial error: {maml_errors[0]:.4f}, Final error: {maml_errors[-1]:.4f}")
+print(f"Reptile - Initial error: {reptile_errors[0]:.4f}, Final error: {reptile_errors[-1]:.4f}")
+print("\n✓ Both methods enable fast adaptation")
+print("✓ MAML provides slightly better initialization")
+print("✓ Reptile is simpler to implement and computationally efficient")
 </code></pre>
 
 <hr>
 
-<h2>2.5 実践: Omniglot Few-Shot classification</h2>
+<h2>2.5 Practice: Omniglot Few-Shot Classification</h2>
 
-<h3>Omniglotデータセット</h3>
+<h3>Omniglot Dataset</h3>
 
-<p><strong>Omniglot</strong>は、Few-Shot学習のベンチマークとして広く使われるデータセットです。</p>
+<p><strong>Omniglot</strong> is a widely used benchmark for few-shot learning.</p>
 
 <ul>
-<li>50種類の言語から1,623種類の文字</li>
-<li>各文字につき20枚の手書き画像</li>
-<li>「MNISTの転置版」と呼ばれる</li>
+<li>1,623 character types from 50 languages</li>
+<li>20 handwritten images per character</li>
+<li>Called the "transpose of MNIST"</li>
 </ul>
 
-<h3>5-way 1-shot タスク</h3>
+<h3>5-way 1-shot Task</h3>
 
-<p><strong>タスク設定</strong>：</p>
+<p><strong>Task setting</strong>:</p>
 <ul>
-<li><strong>5-way</strong>: 5クラス classification</li>
-<li><strong>1-shot</strong>: 各クラス1枚のサンプルのみ</li>
-<li><strong>目標</strong>: サポートセット5枚から学習し、クエリセットを classification</li>
+<li><strong>5-way</strong>: 5-class classification</li>
+<li><strong>1-shot</strong>: Only 1 sample per class</li>
+<li><strong>Goal</strong>: Learn from 5 support set images and classify query set</li>
 </ul>
 
-<h3>データ準備</h3>
+<h3>Data Preparation</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -1380,9 +1380,9 @@ from PIL import Image
 import numpy as np
 import os
 
-# Omniglot用の畳み込みネットワーク
+# Convolutional network for Omniglot
 class OmniglotCNN(nn.Module):
-    """Omniglot用の4層CNN"""
+    """4-layer CNN for Omniglot"""
     def __init__(self, n_way=5):
         super(OmniglotCNN, self).__init__()
         self.features = nn.Sequential(
@@ -1419,42 +1419,42 @@ class OmniglotCNN(nn.Module):
         x = self.classifier(x)
         return x
 
-# モデルのインスタンス化
+# Instantiate model
 omniglot_model = OmniglotCNN(n_way=5).to(device)
 print(f"\n=== Omniglot Model ===")
 print(f"Parameters: {sum(p.numel() for p in omniglot_model.parameters()):,}")
 print(f"Architecture: 4-layer CNN + Linear classifier")
 </code></pre>
 
-<h3>Few-Shotタスク生成</h3>
+<h3>Few-Shot Task Generation</h3>
 
 <pre><code class="language-python">class OmniglotTaskGenerator:
-    """Omniglot用のFew-Shotタスク生成"""
+    """Few-Shot task generator for Omniglot"""
 
     def __init__(self, n_way=5, k_shot=1, q_query=15):
         """
         Args:
-            n_way: クラス数
-            k_shot: サポートセットのサンプル数
-            q_query: クエリセットのサンプル数
+            n_way: Number of classes
+            k_shot: Support set sample count
+            q_query: Query set sample count
         """
         self.n_way = n_way
         self.k_shot = k_shot
         self.q_query = q_query
 
-        # ダミーデータ生成（実際にはOmniglotデータセットを使用）
-        # ここでは28x28の画像を生成
-        self.n_classes = 100  # 簡略化のため100クラス
+        # Generate dummy data (actual implementation would use Omniglot dataset)
+        # Here we generate 28x28 images
+        self.n_classes = 100  # Simplified to 100 classes
         self.images_per_class = 20
 
     def generate_task(self):
         """
-        N-way K-shot タスクを生成
+        Generate N-way K-shot task
 
         Returns:
             support_x, support_y, query_x, query_y
         """
-        # ランダムにNのクラスを選択
+        # Randomly select N classes
         selected_classes = np.random.choice(
             self.n_classes, self.n_way, replace=False
         )
@@ -1463,21 +1463,21 @@ print(f"Architecture: 4-layer CNN + Linear classifier")
         query_x, query_y = [], []
 
         for class_idx, class_id in enumerate(selected_classes):
-            # 各クラスから画像をサンプル
+            # Sample images from each class
             n_samples = self.k_shot + self.q_query
 
-            # ダミー画像生成（実際にはデータセットから読み込み）
+            # Generate dummy images (actual implementation would read from dataset)
             images = torch.randn(n_samples, 1, 28, 28)
 
-            # サポートセット
+            # Support set
             support_x.append(images[:self.k_shot])
             support_y.extend([class_idx] * self.k_shot)
 
-            # クエリセット
+            # Query set
             query_x.append(images[self.k_shot:])
             query_y.extend([class_idx] * self.q_query)
 
-        # テンソルに変換
+        # Convert to tensors
         support_x = torch.cat(support_x, dim=0).to(device)
         support_y = torch.LongTensor(support_y).to(device)
         query_x = torch.cat(query_x, dim=0).to(device)
@@ -1485,7 +1485,7 @@ print(f"Architecture: 4-layer CNN + Linear classifier")
 
         return support_x, support_y, query_x, query_y
 
-# タスク生成器のテスト
+# Test task generator
 task_gen = OmniglotTaskGenerator(n_way=5, k_shot=1, q_query=15)
 sup_x, sup_y, qry_x, qry_y = task_gen.generate_task()
 
@@ -1496,29 +1496,29 @@ print(f"Support labels: {sup_y.cpu().numpy()}")
 print(f"Query labels distribution: {np.bincount(qry_y.cpu().numpy())}")
 </code></pre>
 
-<h3>MAMLとReptileの比較実験</h3>
+<h3>Comparison Experiment: MAML vs Reptile</h3>
 
 <pre><code class="language-python">def train_meta_learning(model, algorithm='maml', n_iterations=1000,
                        n_way=5, k_shot=1, q_query=15,
                        inner_lr=0.01, outer_lr=0.001, inner_steps=5,
                        eval_interval=100):
     """
-    Meta-Learningトレーニング（MAMLまたはReptile）
+    Meta-learning training (MAML or Reptile)
 
     Args:
-        model: PyTorchモデル
-        algorithm: 'maml' または 'reptile'
-        n_iterations: 学習イテレーション数
+        model: PyTorch model
+        algorithm: 'maml' or 'reptile'
+        n_iterations: Number of training iterations
         n_way: N-way classification
-        k_shot: K-shot学習
-        q_query: クエリセットサイズ
-        inner_lr: Inner Loop学習率
-        outer_lr: Outer Loop学習率
-        inner_steps: Inner Loop更新ステップ数
-        eval_interval: 評価間隔
+        k_shot: K-shot learning
+        q_query: Query set size
+        inner_lr: Inner Loop learning rate
+        outer_lr: Outer Loop learning rate
+        inner_steps: Inner Loop update steps
+        eval_interval: Evaluation interval
 
     Returns:
-        train_accs, val_accs: 精度履歴
+        train_accs, val_accs: Accuracy history
     """
     task_gen = OmniglotTaskGenerator(n_way=n_way, k_shot=k_shot, q_query=q_query)
     criterion = nn.CrossEntropyLoss()
@@ -1529,11 +1529,11 @@ print(f"Query labels distribution: {np.bincount(qry_y.cpu().numpy())}")
     train_accs = []
 
     for iteration in range(n_iterations):
-        # タスク生成
+        # Generate task
         support_x, support_y, query_x, query_y = task_gen.generate_task()
 
         if algorithm == 'maml':
-            # MAML更新
+            # MAML update
             meta_optimizer.zero_grad()
 
             with higher.innerloop_ctx(
@@ -1551,7 +1551,7 @@ print(f"Query labels distribution: {np.bincount(qry_y.cpu().numpy())}")
                 query_pred = fmodel(query_x)
                 query_loss = criterion(query_pred, query_y)
 
-                # 精度計算
+                # Accuracy calculation
                 accuracy = (query_pred.argmax(1) == query_y).float().mean()
                 train_accs.append(accuracy.item())
 
@@ -1560,7 +1560,7 @@ print(f"Query labels distribution: {np.bincount(qry_y.cpu().numpy())}")
                 meta_optimizer.step()
 
         elif algorithm == 'reptile':
-            # Reptile更新
+            # Reptile update
             meta_params = [p.clone() for p in model.parameters()]
 
             # Inner Loop
@@ -1571,13 +1571,13 @@ print(f"Query labels distribution: {np.bincount(qry_y.cpu().numpy())}")
                 loss.backward()
                 optimizer.step()
 
-            # 精度計算
+            # Accuracy calculation
             with torch.no_grad():
                 query_pred = model(query_x)
                 accuracy = (query_pred.argmax(1) == query_y).float().mean()
                 train_accs.append(accuracy.item())
 
-            # メタ更新
+            # Meta update
             with torch.no_grad():
                 for meta_param, task_param in zip(meta_params, model.parameters()):
                     meta_param.add_(task_param - meta_param, alpha=outer_lr)
@@ -1585,7 +1585,7 @@ print(f"Query labels distribution: {np.bincount(qry_y.cpu().numpy())}")
                 for param, meta_param in zip(model.parameters(), meta_params):
                     param.copy_(meta_param)
 
-        # 定期的な評価
+        # Periodic evaluation
         if (iteration + 1) % eval_interval == 0:
             avg_acc = np.mean(train_accs[-eval_interval:])
             print(f"{algorithm.upper()} - Iter {iteration+1}/{n_iterations}, "
@@ -1593,7 +1593,7 @@ print(f"Query labels distribution: {np.bincount(qry_y.cpu().numpy())}")
 
     return train_accs
 
-# MAMLで学習
+# Train with MAML
 print("\n=== Training MAML on Omniglot ===")
 maml_model = OmniglotCNN(n_way=5).to(device)
 maml_accs = train_meta_learning(
@@ -1609,7 +1609,7 @@ maml_accs = train_meta_learning(
     eval_interval=200
 )
 
-# Reptileで学習
+# Train with Reptile
 print("\n=== Training Reptile on Omniglot ===")
 reptile_model_omniglot = OmniglotCNN(n_way=5).to(device)
 reptile_accs = train_meta_learning(
@@ -1626,12 +1626,12 @@ reptile_accs = train_meta_learning(
 )
 </code></pre>
 
-<h3>収束性と精度評価</h3>
+<h3>Convergence and Accuracy Evaluation</h3>
 
-<pre><code class="language-python"># 結果の可視化
+<pre><code class="language-python"># Visualize results
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-# 精度曲線
+# Accuracy curves
 ax1 = axes[0]
 window = 50
 maml_smooth = np.convolve(maml_accs, np.ones(window)/window, mode='valid')
@@ -1646,7 +1646,7 @@ ax1.legend()
 ax1.grid(True, alpha=0.3)
 ax1.set_ylim([0, 1])
 
-# 最終性能の比較
+# Final performance comparison
 ax2 = axes[1]
 final_window = 100
 maml_final = np.mean(maml_accs[-final_window:])
@@ -1662,7 +1662,7 @@ ax2.set_title('Final Performance Comparison', fontsize=14)
 ax2.set_ylim([0, 1])
 ax2.grid(True, alpha=0.3, axis='y')
 
-# 値をバーの上に表示
+# Display values on bars
 for bar, acc in zip(bars, accuracies):
     height = bar.get_height()
     ax2.text(bar.get_x() + bar.get_width()/2., height + 0.02,
@@ -1678,59 +1678,59 @@ print(f"\n✓ 5-way 1-shot classification on Omniglot")
 print(f"✓ Random baseline: 20% (1/5)")
 print(f"✓ Both methods significantly outperform random")
 
-# 統計的比較
+# Statistical comparison
 from scipy import stats
 t_stat, p_value = stats.ttest_ind(maml_accs[-final_window:],
                                     reptile_accs[-final_window:])
-print(f"\n統計的検定 (t-test):")
+print(f"\nStatistical test (t-test):")
 print(f"  t-statistic: {t_stat:.3f}")
 print(f"  p-value: {p_value:.3f}")
 if p_value < 0.05:
-    print(f"  → 有意差あり（p < 0.05）")
+    print(f"  → Significant difference (p < 0.05)")
 else:
-    print(f"  → 有意差なし（p >= 0.05）")
+    print(f"  → No significant difference (p >= 0.05)")
 </code></pre>
 
 <hr>
 
-<h2>2.6 本 ChapterのSummary</h2>
+<h2>2.6 Chapter Summary</h2>
 
-<h3>学んだこと</h3>
+<h3>What We Learned</h3>
 
 <ol>
-<li><p><strong>MAMLの原理</strong></p>
+<li><p><strong>MAML Principles</strong></p>
 <ul>
-<li>少数データからの高速適応を実現する初期パラメータを学習</li>
-<li>二段階最適化: Inner Loop（タスク適応）とOuter Loop（Meta-Learning）</li>
-<li>勾配の勾配（二次微 minutes）により強力な適応能力を獲得</li>
+<li>Learn initial parameters that enable fast adaptation from limited data</li>
+<li>Two-level optimization: Inner Loop (task adaptation) and Outer Loop (meta-learning)</li>
+<li>Achieve powerful adaptation capability through second-order derivatives (gradients of gradients)</li>
 </ul></li>
 
-<li><p><strong>MAMLアルゴリズム</strong></p>
+<li><p><strong>MAML Algorithm</strong></p>
 <ul>
 <li>Inner Loop: $\theta'_i = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{tr}(f_\theta)$</li>
 <li>Outer Loop: $\theta \leftarrow \theta - \beta \nabla_\theta \sum \mathcal{L}_{\mathcal{T}_i}^{test}(f_{\theta'_i})$</li>
-<li>FOMAML: 一次微 minutesのみで効率化</li>
+<li>FOMAML: Efficiency through first-order derivatives only</li>
 </ul></li>
 
-<li><p><strong>PyTorch実装</strong></p>
+<li><p><strong>PyTorch Implementation</strong></p>
 <ul>
-<li>higherライブラリで二次微 minutesを簡単に実装</li>
-<li>エピソード学習ループの構築</li>
-<li>正弦波回帰タスクでの動作確認</li>
+<li>Easy implementation of second-order derivatives with the higher library</li>
+<li>Building episode learning loops</li>
+<li>Validation on sinusoid regression tasks</li>
 </ul></li>
 
-<li><p><strong>Reptileアルゴリズム</strong></p>
+<li><p><strong>Reptile Algorithm</strong></p>
 <ul>
-<li>一次微 minutesのみでMeta-Learningを実現</li>
-<li>更新式: $\theta \leftarrow \theta + \epsilon (\theta' - \theta)$</li>
-<li>実装がシンプルで計算効率が高い</li>
+<li>Achieve meta-learning with first-order derivatives only</li>
+<li>Update rule: $\theta \leftarrow \theta + \epsilon (\theta' - \theta)$</li>
+<li>Simple implementation with high computational efficiency</li>
 </ul></li>
 
-<li><p><strong>Omniglot実験</strong></p>
+<li><p><strong>Omniglot Experiments</strong></p>
 <ul>
-<li>5-way 1-shot classificationタスク</li>
-<li>MAMLとReptileの性能比較</li>
-<li>両手法ともランダムベースラインを大きく上回る</li>
+<li>5-way 1-shot classification task</li>
+<li>Performance comparison of MAML and Reptile</li>
+<li>Both methods significantly outperform random baseline</li>
 </ul></li>
 </ol>
 
@@ -1739,173 +1739,173 @@ else:
 <table>
 <thead>
 <tr>
-<th>項目</th>
+<th>Item</th>
 <th>MAML</th>
 <th>Reptile</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>理論的基盤</strong></td>
-<td>二次微 minutesによる最適化</td>
-<td>一次微 minutesの方向へ移動</td>
+<td><strong>Theoretical foundation</strong></td>
+<td>Second-order derivative optimization</td>
+<td>Move in first-order derivative direction</td>
 </tr>
 <tr>
-<td><strong>計算コスト</strong></td>
-<td>高い（二次微 minutes）</td>
-<td>低い（一次微 minutesのみ）</td>
+<td><strong>Computational cost</strong></td>
+<td>High (second-order derivatives)</td>
+<td>Low (first-order only)</td>
 </tr>
 <tr>
-<td><strong>メモリ使用量</strong></td>
-<td>多い</td>
-<td>少ない</td>
+<td><strong>Memory usage</strong></td>
+<td>High</td>
+<td>Low</td>
 </tr>
 <tr>
-<td><strong>実装の複雑さ</strong></td>
-<td>複雑（higherが必要）</td>
-<td>シンプル</td>
+<td><strong>Implementation complexity</strong></td>
+<td>Complex (needs higher)</td>
+<td>Simple</td>
 </tr>
 <tr>
-<td><strong>性能</strong></td>
-<td>理論的に最適</td>
-<td>実用的に十 minutes</td>
+<td><strong>Performance</strong></td>
+<td>Theoretically optimal</td>
+<td>Practically sufficient</td>
 </tr>
 <tr>
-<td><strong>適用範囲</strong></td>
-<td>任意のモデル</td>
-<td>任意のモデル</td>
+<td><strong>Applicability</strong></td>
+<td>Any model</td>
+<td>Any model</td>
 </tr>
 <tr>
-<td><strong>Recommended用途</strong></td>
-<td>最高性能が必要な場合</td>
-<td>効率重視の場合</td>
+<td><strong>Recommended use</strong></td>
+<td>When best performance needed</td>
+<td>When efficiency is priority</td>
 </tr>
 </tbody>
 </table>
 
-<h3>実践的ガイドライン</h3>
+<h3>Practical Guidelines</h3>
 
 <table>
 <thead>
 <tr>
-<th>状況</th>
-<th>Recommended手法</th>
-<th>理由</th>
+<th>Situation</th>
+<th>Recommended Approach</th>
+<th>Reason</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>研究・ベンチマーク</td>
+<td>Research/Benchmarks</td>
 <td>MAML</td>
-<td>最高性能を追求</td>
+<td>Pursue best performance</td>
 </tr>
 <tr>
-<td>プロトタイピング</td>
+<td>Prototyping</td>
 <td>Reptile</td>
-<td>実装が簡単</td>
+<td>Easy to implement</td>
 </tr>
 <tr>
-<td>計算資源制約</td>
+<td>Resource constraints</td>
 <td>FOMAML/Reptile</td>
-<td>効率的</td>
+<td>Efficient</td>
 </tr>
 <tr>
-<td>大規模モデル</td>
+<td>Large-scale models</td>
 <td>Reptile</td>
-<td>メモリ効率</td>
+<td>Memory efficient</td>
 </tr>
 <tr>
-<td>少数ステップ適応</td>
+<td>Few-step adaptation</td>
 <td>MAML</td>
-<td>より良い初期化</td>
+<td>Better initialization</td>
 </tr>
 </tbody>
 </table>
 
-<h3>Next Chapterへ</h3>
+<h3>To the Next Chapter</h3>
 
-<p>Chapter 3 Chapterでは、<strong>Prototypical Networks</strong>を学びます：</p>
+<p>In Chapter 3, we will learn about <strong>Prototypical Networks</strong>:</p>
 <ul>
-<li>埋め込み空間でのプロトタイプ学習</li>
-<li>距離ベースの classification</li>
-<li>実装とMAMLとの比較</li>
+<li>Prototype learning in embedding space</li>
+<li>Distance-based classification</li>
+<li>Implementation and comparison with MAML</li>
 </ul>
 
 <hr>
 
 <h2>Exercises</h2>
 
-<h3>問題1（Difficulty：medium）</h3>
-<p>MAMLとReptileの更新式の違いを数式で説明し、なぜReptileの方が計算効率が良いのか述べてください。</p>
+<h3>Problem 1 (Difficulty: medium)</h3>
+<p>Explain the differences in update rules between MAML and Reptile using mathematical formulas, and describe why Reptile is more computationally efficient.</p>
 
 <details>
-<summary>解答例</summary>
+<summary>Sample Answer</summary>
 
-<p><strong>解答</strong>：</p>
+<p><strong>Answer</strong>:</p>
 
-<p><strong>MAML更新式</strong>：</p>
+<p><strong>MAML update rule</strong>:</p>
 <p>$$
 \theta \leftarrow \theta - \beta \nabla_\theta \sum_{\mathcal{T}_i} \mathcal{L}_{\mathcal{T}_i}^{test}(f_{\theta'_i})
 $$</p>
 
-<p>ここで、$\theta'_i = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{tr}(f_\theta)$ なので、$\theta'_i$ は $\theta$ の関数です。</p>
+<p>Here, since $\theta'_i = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{tr}(f_\theta)$, $\theta'_i$ is a function of $\theta$.</p>
 
-<p>したがって、$\nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{test}(f_{\theta'_i})$ を計算するには<strong>連鎖律</strong>が必要：</p>
+<p>Therefore, computing $\nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{test}(f_{\theta'_i})$ requires the <strong>chain rule</strong>:</p>
 <p>$$
 \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{test}(f_{\theta'_i}) = \nabla_{\theta'_i} \mathcal{L}_{\mathcal{T}_i}^{test} \cdot \nabla_\theta \theta'_i
 $$</p>
 
-<p>この $\nabla_\theta \theta'_i$ の計算が<strong>二次微 minutes</strong>であり、計算コストが高い。</p>
+<p>Computing this $\nabla_\theta \theta'_i$ is a <strong>second-order derivative</strong> with high computational cost.</p>
 
-<p><strong>Reptile更新式</strong>：</p>
+<p><strong>Reptile update rule</strong>:</p>
 <p>$$
 \theta \leftarrow \theta + \epsilon (\theta'_i - \theta)
 $$</p>
 
-<p>この式は<strong>単純な重み付き平均</strong>であり、微 minutes計算は不要です。</p>
+<p>This formula is a <strong>simple weighted average</strong> requiring no derivative computation.</p>
 
-<p><strong>計算効率の違い</strong>：</p>
+<p><strong>Computational efficiency differences</strong>:</p>
 
 <table>
 <thead>
 <tr>
-<th>項目</th>
+<th>Item</th>
 <th>MAML</th>
 <th>Reptile</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>勾配計算</td>
-<td>$\nabla_\theta \nabla_{\theta'} \mathcal{L}$（二次）</td>
-<td>$\nabla_\theta \mathcal{L}$（一次のみ）</td>
+<td>Gradient computation</td>
+<td>$\nabla_\theta \nabla_{\theta'} \mathcal{L}$ (second-order)</td>
+<td>$\nabla_\theta \mathcal{L}$ (first-order only)</td>
 </tr>
 <tr>
-<td>計算グラフ</td>
-<td>Inner Loopの履歴を保持</td>
-<td>不要</td>
+<td>Computational graph</td>
+<td>Must retain Inner Loop history</td>
+<td>Not needed</td>
 </tr>
 <tr>
-<td>メモリ使用量</td>
-<td>高い（中間勾配を保存）</td>
-<td>低い</td>
+<td>Memory usage</td>
+<td>High (store intermediate gradients)</td>
+<td>Low</td>
 </tr>
 <tr>
-<td>計算 hours</td>
-<td>約2倍</td>
-<td>基準</td>
+<td>Computational time</td>
+<td>Approx. 2x</td>
+<td>Baseline</td>
 </tr>
 </tbody>
 </table>
 
-<p><strong>結論</strong>：Reptileは二次微 minutesを計算せず、単純なパラメータ更新のみなので、約50-70%の計算コスト削減を実現します。</p>
+<p><strong>Conclusion</strong>: Reptile achieves approximately 50-70% computational cost reduction by computing no second-order derivatives and only performing simple parameter updates.</p>
 
 </details>
 
-<h3>問題2（Difficulty：hard）</h3>
-<p>以下のコードは、MAMLのInner Loopを実装しようとしていますが、誤りがあります。問題点を指摘し、正しいコードを書いてください。</p>
+<h3>Problem 2 (Difficulty: hard)</h3>
+<p>The following code attempts to implement MAML's Inner Loop but contains errors. Identify the problems and write correct code.</p>
 
-<pre><code class="language-python"># 誤ったコード
+<pre><code class="language-python"># Incorrect code
 def wrong_inner_loop(model, x_support, y_support, inner_lr=0.01):
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr=inner_lr)
@@ -1920,115 +1920,115 @@ def wrong_inner_loop(model, x_support, y_support, inner_lr=0.01):
 </code></pre>
 
 <details>
-<summary>解答例</summary>
+<summary>Sample Answer</summary>
 
-<p><strong>問題点</strong>：</p>
+<p><strong>Problems</strong>:</p>
 
 <ol>
-<li><strong>計算グラフが切断される</strong>: <code>optimizer.step()</code> を使うと、パラメータが更新されますが、Outer Loopで必要な二次微 minutesのための計算グラフが保持されません。</li>
-<li><strong>higherライブラリ未使用</strong>: MAMLでは、Inner Loopの更新を追跡し、Outer Loopで二次微 minutesを計算する必要があります。</li>
+<li><strong>Computational graph is disconnected</strong>: Using <code>optimizer.step()</code> updates parameters but doesn't preserve the computational graph needed for second-order derivatives in the Outer Loop.</li>
+<li><strong>Not using higher library</strong>: MAML needs to track Inner Loop updates and compute second-order derivatives in the Outer Loop.</li>
 </ol>
 
-<p><strong>正しい実装</strong>：</p>
+<p><strong>Correct implementation</strong>:</p>
 
 <pre><code class="language-python">import higher
 
 def correct_inner_loop(model, x_support, y_support, x_query, y_query,
                        inner_lr=0.01, inner_steps=1):
     """
-    MAMLのInner Loop（正しい実装）
+    MAML Inner Loop (correct implementation)
 
     Args:
-        model: PyTorchモデル
-        x_support: サポートセット入力
-        y_support: サポートセット出力
-        x_query: クエリセット入力
-        y_query: クエリセット出力
-        inner_lr: Inner Loop学習率
-        inner_steps: 適応ステップ数
+        model: PyTorch model
+        x_support: Support set input
+        y_support: Support set output
+        x_query: Query set input
+        y_query: Query set output
+        inner_lr: Inner Loop learning rate
+        inner_steps: Adaptation step count
 
     Returns:
-        query_loss: クエリセット損失（勾配が追跡される）
+        query_loss: Query set loss (with tracked gradients)
     """
     criterion = nn.MSELoss()
 
-    # higherを使用してInner Loopを実装
+    # Implement Inner Loop using higher
     with higher.innerloop_ctx(
         model,
         optim.SGD(model.parameters(), lr=inner_lr),
         copy_initial_weights=False,
-        track_higher_grads=True  # 二次微 minutesを追跡
+        track_higher_grads=True  # Track second-order derivatives
     ) as (fmodel, diffopt):
 
-        # Inner Loop: タスク適応
+        # Inner Loop: Task adaptation
         for _ in range(inner_steps):
             support_pred = fmodel(x_support)
             support_loss = criterion(support_pred, y_support)
             diffopt.step(support_loss)
 
-        # クエリセットで評価（勾配が追跡される）
+        # Evaluate on query set (gradients tracked)
         query_pred = fmodel(x_query)
         query_loss = criterion(query_pred, y_query)
 
     return query_loss
 
-# 使用例
+# Usage example
 model = SimpleMLP().to(device)
 meta_optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# タスク生成
+# Generate task
 x_sup, y_sup, amp, phase = generate_sinusoid_task(n_samples=5)
 x_qry, y_qry, _, _ = generate_sinusoid_task(
     amplitude=amp, phase=phase, n_samples=10
 )
 
-# MAML更新
+# MAML update
 meta_optimizer.zero_grad()
 query_loss = correct_inner_loop(model, x_sup, y_sup, x_qry, y_qry)
-query_loss.backward()  # 二次微 minutesが計算される
+query_loss.backward()  # Second-order derivatives computed
 meta_optimizer.step()
 
 print(f"✓ Query loss: {query_loss.item():.4f}")
-print("✓ 二次微 minutesが正しく計算されました")
+print("✓ Second-order derivatives computed correctly")
 </code></pre>
 
-<p><strong>重要なポイント</strong>：</p>
+<p><strong>Key points</strong>:</p>
 <ul>
-<li><code>higher.innerloop_ctx</code>を使用して、Inner Loopの更新を追跡</li>
-<li><code>track_higher_grads=True</code>で二次微 minutesを有効化</li>
-<li><code>fmodel</code>は元のmodelのコピーで、勾配が追跡される</li>
-<li>Outer Loopで<code>query_loss.backward()</code>を呼ぶと、メタパラメータに対する勾配が計算される</li>
+<li>Use <code>higher.innerloop_ctx</code> to track Inner Loop updates</li>
+<li>Enable second-order derivatives with <code>track_higher_grads=True</code></li>
+<li><code>fmodel</code> is a copy of the original model with tracked gradients</li>
+<li>Calling <code>query_loss.backward()</code> in Outer Loop computes gradients with respect to meta-parameters</li>
 </ul>
 
 </details>
 
-<h3>問題3（Difficulty：hard）</h3>
-<p>5-way 5-shot Omniglot classificationタスクで、MAMLとReptileの性能を比較する実験を設計してください。以下を含めること：</p>
+<h3>Problem 3 (Difficulty: hard)</h3>
+<p>Design an experiment to compare MAML and Reptile performance on 5-way 5-shot Omniglot classification task. Include:</p>
 <ul>
-<li>データ minutes割（訓練/検証/テスト）</li>
-<li>ハイパーパラメータ設定</li>
-<li>評価指標</li>
-<li>期待される結果</li>
+<li>Data split (train/validation/test)</li>
+<li>Hyperparameter settings</li>
+<li>Evaluation metrics</li>
+<li>Expected results</li>
 </ul>
 
 <details>
-<summary>解答例</summary>
+<summary>Sample Answer</summary>
 
-<p><strong>実験設計</strong>：</p>
+<p><strong>Experiment design</strong>:</p>
 
-<p><strong>1. データ minutes割</strong>：</p>
+<p><strong>1. Data split</strong>:</p>
 <ul>
-<li><strong>訓練用文字</strong>: 1,200文字（メタ訓練）</li>
-<li><strong>検証用文字</strong>: 200文字（ハイパーパラメータ調整）</li>
-<li><strong>テスト用文字</strong>: 223文字（最終評価）</li>
+<li><strong>Training characters</strong>: 1,200 characters (meta-training)</li>
+<li><strong>Validation characters</strong>: 200 characters (hyperparameter tuning)</li>
+<li><strong>Test characters</strong>: 223 characters (final evaluation)</li>
 </ul>
 
-<p><strong>2. ハイパーパラメータ</strong>：</p>
+<p><strong>2. Hyperparameters</strong>:</p>
 
 <table>
 <thead>
 <tr>
-<th>パラメータ</th>
+<th>Parameter</th>
 <th>MAML</th>
 <th>Reptile</th>
 </tr>
@@ -2062,15 +2062,15 @@ print("✓ 二次微 minutesが正しく計算されました")
 </tbody>
 </table>
 
-<p><strong>3. 評価指標</strong>：</p>
+<p><strong>3. Evaluation metrics</strong>:</p>
 <ul>
-<li><strong>精度</strong>: 正解率（Accuracy）</li>
-<li><strong>収束速度</strong>: 目標精度（例: 95%）到達までのイテレーション数</li>
-<li><strong>適応速度</strong>: テストタスクでの少数ステップ後の精度向上</li>
-<li><strong>計算効率</strong>: イテレーションあたりの実行 hours</li>
+<li><strong>Accuracy</strong>: Correct classification rate</li>
+<li><strong>Convergence speed</strong>: Iterations to reach target accuracy (e.g., 95%)</li>
+<li><strong>Adaptation speed</strong>: Accuracy improvement after few steps on test tasks</li>
+<li><strong>Computational efficiency</strong>: Execution time per iteration</li>
 </ul>
 
-<p><strong>実装コード</strong>：</p>
+<p><strong>Implementation code</strong>:</p>
 
 <pre><code class="language-python">import time
 import numpy as np
@@ -2078,14 +2078,14 @@ import matplotlib.pyplot as plt
 
 def comprehensive_comparison(n_iterations=5000, n_way=5, k_shot=5):
     """
-    MAMLとReptileの包括的比較実験
+    Comprehensive comparison experiment of MAML and Reptile
     """
     results = {
         'maml': {'train_acc': [], 'val_acc': [], 'time': []},
         'reptile': {'train_acc': [], 'val_acc': [], 'time': []}
     }
 
-    # MAML学習
+    # MAML training
     print("=== Training MAML ===")
     maml_model = OmniglotCNN(n_way=n_way).to(device)
     start_time = time.time()
@@ -2100,7 +2100,7 @@ def comprehensive_comparison(n_iterations=5000, n_way=5, k_shot=5):
     results['maml']['train_acc'] = maml_train_acc
     results['maml']['time'] = maml_time
 
-    # Reptile学習
+    # Reptile training
     print("\n=== Training Reptile ===")
     reptile_model = OmniglotCNN(n_way=n_way).to(device)
     start_time = time.time()
@@ -2115,7 +2115,7 @@ def comprehensive_comparison(n_iterations=5000, n_way=5, k_shot=5):
     results['reptile']['train_acc'] = reptile_train_acc
     results['reptile']['time'] = reptile_time
 
-    # テストセットでの評価
+    # Test set evaluation
     print("\n=== Test Set Evaluation ===")
 
     def evaluate_test(model, n_test_tasks=100):
@@ -2125,7 +2125,7 @@ def comprehensive_comparison(n_iterations=5000, n_way=5, k_shot=5):
         for _ in range(n_test_tasks):
             support_x, support_y, query_x, query_y = task_gen.generate_task()
 
-            # 適応
+            # Adaptation
             optimizer = optim.SGD(model.parameters(), lr=0.01)
             for _ in range(5):
                 optimizer.zero_grad()
@@ -2133,7 +2133,7 @@ def comprehensive_comparison(n_iterations=5000, n_way=5, k_shot=5):
                 loss.backward()
                 optimizer.step()
 
-            # 評価
+            # Evaluation
             with torch.no_grad():
                 pred = model(query_x)
                 acc = (pred.argmax(1) == query_y).float().mean()
@@ -2144,10 +2144,10 @@ def comprehensive_comparison(n_iterations=5000, n_way=5, k_shot=5):
     maml_test_acc, maml_test_std = evaluate_test(maml_model)
     reptile_test_acc, reptile_test_std = evaluate_test(reptile_model)
 
-    # 結果の可視化
+    # Visualize results
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
-    # 学習曲線
+    # Learning curves
     ax1 = axes[0, 0]
     window = 100
     maml_smooth = np.convolve(maml_train_acc, np.ones(window)/window, mode='valid')
@@ -2160,7 +2160,7 @@ def comprehensive_comparison(n_iterations=5000, n_way=5, k_shot=5):
     ax1.legend()
     ax1.grid(True, alpha=0.3)
 
-    # テスト精度
+    # Test accuracy
     ax2 = axes[0, 1]
     methods = ['MAML', 'Reptile']
     test_accs = [maml_test_acc, reptile_test_acc]
@@ -2178,7 +2178,7 @@ def comprehensive_comparison(n_iterations=5000, n_way=5, k_shot=5):
         ax2.text(bar.get_x() + bar.get_width()/2., height + 0.02,
                 f'{acc:.3f}', ha='center', va='bottom', fontsize=11, fontweight='bold')
 
-    # 計算 hours
+    # Computational time
     ax3 = axes[1, 0]
     times = [maml_time, reptile_time]
     bars = ax3.bar(methods, times, color=['#1f77b4', '#ff7f0e'],
@@ -2192,7 +2192,7 @@ def comprehensive_comparison(n_iterations=5000, n_way=5, k_shot=5):
         ax3.text(bar.get_x() + bar.get_width()/2., height + 5,
                 f'{t:.1f}s', ha='center', va='bottom', fontsize=11, fontweight='bold')
 
-    # サマリーテーブル
+    # Summary table
     ax4 = axes[1, 1]
     ax4.axis('off')
 
@@ -2225,7 +2225,7 @@ def comprehensive_comparison(n_iterations=5000, n_way=5, k_shot=5):
     plt.tight_layout()
     plt.show()
 
-    # 結果レポート
+    # Results report
     print("\n" + "="*60)
     print("COMPREHENSIVE COMPARISON RESULTS")
     print("="*60)
@@ -2244,50 +2244,50 @@ def comprehensive_comparison(n_iterations=5000, n_way=5, k_shot=5):
 
     return results
 
-# 実験実行
+# Run experiment
 results = comprehensive_comparison(n_iterations=2000, n_way=5, k_shot=5)
 </code></pre>
 
-<p><strong>4. 期待される結果</strong>：</p>
+<p><strong>4. Expected results</strong>:</p>
 
 <table>
 <thead>
 <tr>
-<th>メトリック</th>
+<th>Metric</th>
 <th>MAML</th>
 <th>Reptile</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>テスト精度</td>
+<td>Test accuracy</td>
 <td>95-98%</td>
 <td>94-97%</td>
 </tr>
 <tr>
-<td>収束速度</td>
-<td>やや速い</td>
-<td>やや遅い</td>
+<td>Convergence speed</td>
+<td>Slightly faster</td>
+<td>Slightly slower</td>
 </tr>
 <tr>
-<td>計算 hours</td>
-<td>基準</td>
-<td>50-70%削減</td>
+<td>Computational time</td>
+<td>Baseline</td>
+<td>50-70% reduction</td>
 </tr>
 <tr>
-<td>メモリ使用量</td>
-<td>高い</td>
-<td>低い</td>
+<td>Memory usage</td>
+<td>High</td>
+<td>Low</td>
 </tr>
 </tbody>
 </table>
 
-<p><strong>結論</strong>：</p>
+<p><strong>Conclusion</strong>:</p>
 <ul>
-<li>MAMLはわずかに高い精度を達成するが、計算コストが高い</li>
-<li>Reptileは実用的に十 minutesな精度を達成し、効率的</li>
-<li>5-shotの場合、差は1-shotより小さくなる傾向</li>
-<li>実務ではReptile、研究ではMAMLがRecommendedされる</li>
+<li>MAML achieves slightly higher accuracy but with higher computational cost</li>
+<li>Reptile achieves practically sufficient accuracy efficiently</li>
+<li>In 5-shot case, the difference tends to be smaller than in 1-shot</li>
+<li>Reptile is recommended for practical use, MAML for research</li>
 </ul>
 
 </details>
@@ -2305,29 +2305,29 @@ results = comprehensive_comparison(n_iterations=2000, n_way=5, k_shot=5)
 </ol>
 
 <div class="navigation">
-    <a href="chapter1-intro.html" class="nav-button">← Chapter 1 Chapter: Meta-Learning Introduction</a>
-    <a href="chapter3-prototypical-networks.html" class="nav-button">Next Chapter: Prototypical Networks →</a>
+    <a href="chapter1-meta-learning-basics.html" class="nav-button">← Chapter 1: Introduction to Meta-Learning</a>
+    <a href="chapter3-few-shot-methods.html" class="nav-button">Next Chapter: Prototypical Networks →</a>
 </div>
 
     </main>
 
-    
+
     <section class="disclaimer">
         <h3>Disclaimer</h3>
         <ul>
-            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
-            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
-            <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
-            <li>To the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>This content is provided for educational, research, and informational purposes only and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The author and Tohoku University assume no responsibility for external links, third-party data, tools, libraries, or their content, availability, or safety.</li>
+            <li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
             <li>The content of this material may be changed, updated, or discontinued without notice.</li>
-            <li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+            <li>Copyright and licensing of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
         </ul>
     </section>
 
 <footer>
-        <p><strong>作成 learner</strong>: AI Terakoya Content Team</p>
-        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-23</p>
-        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p><strong>Author</strong>: AI Terakoya Content Team</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-23</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
         <p>© 2025 AI Terakoya. All rights reserved.</p>
     </footer>
 </body>

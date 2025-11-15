@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Chapter 5：実 hoursProcessMonitoringシステムの実践 - リアルタイムダッシュボード構築とシステム統合">
-    <title>Chapter 5：実 hoursProcessMonitoringシステムの実践 - PI Terakoya</title>
+    <meta name="description" content="Chapter 5: Real-time Process Monitoring Systems in Practice - Building Real-time Dashboards and System Integration">
+    <title>Chapter 5: Real-time Process Monitoring Systems in Practice - PI Terakoya</title>
 
         <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -85,9 +85,9 @@
             .container { padding: 0 0.5rem; }
             pre { padding: 1rem; }
         }
-    
-        
-    
+
+
+
         /* Breadcrumb styles */
         .breadcrumb {
             background: #f7fafc;
@@ -141,8 +141,8 @@
 
         <header>
         <div class="container">
-            <h1>Chapter 5：実 hoursProcessMonitoringシステムの実践</h1>
-            <p class="subtitle">リアルタイムダッシュボード構築から統合Monitoringシステムまで</p>
+            <h1>Chapter 5: Real-time Process Monitoring Systems in Practice</h1>
+            <p class="subtitle">From Building Real-time Dashboards to Integrated Monitoring Systems</p>
             <div class="meta">
                 <span class="meta">📖 Reading Time: 30-35 minutes</span>
                 <span class="meta">📊 Difficulty: Intermediate to Advanced</span>
@@ -155,52 +155,52 @@
 
 <div class="learning-objectives">
 <h2>Learning Objectives</h2>
-<p>この Chapterを読むことで、以下を習得できます：</p>
+<p>By reading this chapter, you will master the following:</p>
 <ul>
-<li>✅ リアルタイムMonitoringシステムのアーキテクチャを設計できる</li>
-<li>✅ Plotlyでインタラクティブなダッシュボードレイアウトを構築できる</li>
-<li>✅ シミュレートされたリアルタイムデータストリーミングを実装できる</li>
-<li>✅ マルチチャートMonitoringインターフェース（温度、圧力、流量）を開発できる</li>
-<li>✅ アラーム通知システムを設計・実装できる</li>
-<li>✅ 履歴データ minutes析とKPI計算ができる</li>
-<li>✅ Process状態を有限状態機械で可視化できる</li>
-<li>✅ 完全な統合Monitoringシステム（化学反応器のExample）を構築できる</li>
+<li>✅ Design the architecture of real-time monitoring systems</li>
+<li>✅ Build interactive dashboard layouts with Plotly</li>
+<li>✅ Implement simulated real-time data streaming</li>
+<li>✅ Develop multi-chart monitoring interfaces (temperature, pressure, flow rate)</li>
+<li>✅ Design and implement alarm notification systems</li>
+<li>✅ Perform historical data analysis and KPI calculations</li>
+<li>✅ Visualize process states with finite state machines</li>
+<li>✅ Build a complete integrated monitoring system (chemical reactor case study)</li>
 </ul>
 </div>
 
 <hr />
 
-<h2>5.1 リアルタイムMonitoringシステムのアーキテクチャ</h2>
+<h2>5.1 Architecture of Real-time Monitoring Systems</h2>
 
-<h3>システム全体設計</h3>
+<h3>Overall System Design</h3>
 
-<p>実 hoursProcessMonitoringシステムは、データ収集、処理、可視化、保存の4つの主要コンポーネントから構成されます。</p>
+<p>Real-time process monitoring systems consist of four main components: data collection, processing, visualization, and storage.</p>
 
 <div class="mermaid">
 graph TB
-    subgraph "データ収集層"
-        A[センサー] --> B[PLC/DCS]
-        B --> C[OPC UAサーバー]
+    subgraph "Data Collection Layer"
+        A[Sensors] --> B[PLC/DCS]
+        B --> C[OPC UA Server]
     end
 
-    subgraph "データ処理層"
-        C --> D[データストリーミング]
-        D --> E[リアルタイム処理]
-        E --> F[異常検知]
-        E --> G[Controlループ]
+    subgraph "Data Processing Layer"
+        C --> D[Data Streaming]
+        D --> E[Real-time Processing]
+        E --> F[Anomaly Detection]
+        E --> G[Control Loop]
     end
 
-    subgraph "可視化層"
-        F --> H[ダッシュボード]
+    subgraph "Visualization Layer"
+        F --> H[Dashboard]
         G --> H
-        E --> I[アラームシステム]
+        E --> I[Alarm System]
         I --> H
     end
 
-    subgraph "データ保存層"
-        E --> J[Historianデータベース]
+    subgraph "Data Storage Layer"
+        E --> J[Historian Database]
         F --> J
-        J --> K[履歴 minutes析]
+        J --> K[Historical Analysis]
     end
 
     style A fill:#e8f5e9
@@ -216,47 +216,47 @@ graph TB
     style K fill:#dcedc8
 </div>
 
-<h3>リアルタイムデータフロー</h3>
+<h3>Real-time Data Flow</h3>
 
-<p>Monitoringシステムでは、以下のデータフローが連続的に実行されます：</p>
+<p>In monitoring systems, the following data flow is executed continuously:</p>
 
 <ol>
-<li><strong>データ取得</strong>: センサー → PLC → データ収集サーバー（1秒〜1 minutes間隔）</li>
-<li><strong>バッファリング</strong>: dequeやリングバッファでメモリ効率的に保持</li>
-<li><strong>リアルタイム処理</strong>: 統計計算、異常検知、Controlループ実行</li>
-<li><strong>可視化更新</strong>: グラフ、ゲージ、アラーム表示（1秒〜10秒間隔）</li>
-<li><strong>データベース保存</strong>: 長期保存用Historian（1 minutes〜1 hours間隔）</li>
+<li><strong>Data Acquisition</strong>: Sensors → PLC → Data Collection Server (1 second to 1 minute intervals)</li>
+<li><strong>Buffering</strong>: Memory-efficient storage with deque or ring buffers</li>
+<li><strong>Real-time Processing</strong>: Statistical calculations, anomaly detection, control loop execution</li>
+<li><strong>Visualization Update</strong>: Graphs, gauges, alarm displays (1 to 10 second intervals)</li>
+<li><strong>Database Storage</strong>: Long-term storage in Historian (1 minute to 1 hour intervals)</li>
 </ol>
 
 <hr />
 
-<h2>5.2 Code Examples：リアルタイムMonitoringシステムの実装</h2>
+<h2>5.2 Code Examples: Implementing Real-time Monitoring Systems</h2>
 
 <div class="code-example">
-<h4>Code Examples1: Plotlyによるリアルタイムダッシュボードレイアウト設計</h4>
+<h4>Code Example 1: Real-time Dashboard Layout Design with Plotly</h4>
 
-<p><strong>目的</strong>: Plotlyを使って、ProcessMonitoring用のダッシュボードレイアウトを設計する（静的デモンストレーション）。</p>
+<p><strong>Purpose</strong>: Design a dashboard layout for process monitoring using Plotly (static demonstration).</p>
 
 <pre><code class="language-python">import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
 import pandas as pd
 
-# Simulationデータ生成
+# Generate simulation data
 np.random.seed(42)
 time_points = 100
 time = pd.date_range('2025-01-01 00:00:00', periods=time_points, freq='1min')
 
-# Process変数データ
+# Process variable data
 temperature = 175 + np.random.normal(0, 2, time_points) + 3 * np.sin(np.linspace(0, 4*np.pi, time_points))
 pressure = 1.5 + np.random.normal(0, 0.05, time_points)
 flow_rate = 50 + np.random.normal(0, 3, time_points)
 
-# ダッシュボードレイアウトの作成
-# 4つのサブプロットを配置: 温度トレンド、圧力トレンド、流量トレンド、温度ゲージ
+# Create dashboard layout
+# Arrange 4 subplots: temperature trend, pressure trend, flow rate trend, temperature gauge
 fig = make_subplots(
     rows=2, cols=2,
-    subplot_titles=('反応器温度トレンド', '圧力トレンド', '流量トレンド', '現在温度'),
+    subplot_titles=('Reactor Temperature Trend', 'Pressure Trend', 'Flow Rate Trend', 'Current Temperature'),
     specs=[
         [{"type": "scatter"}, {"type": "scatter"}],
         [{"type": "scatter"}, {"type": "indicator"}]
@@ -265,13 +265,13 @@ fig = make_subplots(
     horizontal_spacing=0.1
 )
 
-# 温度トレンド（左上）
+# Temperature trend (upper left)
 fig.add_trace(
     go.Scatter(
         x=time,
         y=temperature,
         mode='lines',
-        name='温度',
+        name='Temperature',
         line=dict(color='#11998e', width=2),
         fill='tozeroy',
         fillcolor='rgba(17, 153, 142, 0.1)'
@@ -279,45 +279,45 @@ fig.add_trace(
     row=1, col=1
 )
 
-# 管理限界線の追加
+# Add control limit lines
 fig.add_hline(y=175, line_dash="dash", line_color="red",
-              annotation_text="目標値", row=1, col=1)
+              annotation_text="Target Value", row=1, col=1)
 fig.add_hrect(y0=173, y1=177, fillcolor="green", opacity=0.1,
               line_width=0, row=1, col=1)
 
-# 圧力トレンド（右上）
+# Pressure trend (upper right)
 fig.add_trace(
     go.Scatter(
         x=time,
         y=pressure,
         mode='lines',
-        name='圧力',
+        name='Pressure',
         line=dict(color='#f59e0b', width=2)
     ),
     row=1, col=2
 )
 fig.add_hline(y=1.5, line_dash="dash", line_color="red", row=1, col=2)
 
-# 流量トレンド（左下）
+# Flow rate trend (lower left)
 fig.add_trace(
     go.Scatter(
         x=time,
         y=flow_rate,
         mode='lines',
-        name='流量',
+        name='Flow Rate',
         line=dict(color='#7b2cbf', width=2)
     ),
     row=2, col=1
 )
 fig.add_hline(y=50, line_dash="dash", line_color="red", row=2, col=1)
 
-# 温度ゲージ（右下）
+# Temperature gauge (lower right)
 current_temp = temperature[-1]
 fig.add_trace(
     go.Indicator(
         mode="gauge+number+delta",
         value=current_temp,
-        title={'text': "反応器温度 (°C)"},
+        title={'text': "Reactor Temperature (°C)"},
         delta={'reference': 175, 'increasing': {'color': "red"}, 'decreasing': {'color': "blue"}},
         gauge={
             'axis': {'range': [None, 200]},
@@ -337,17 +337,17 @@ fig.add_trace(
     row=2, col=2
 )
 
-# レイアウト設定
-fig.update_xaxes(title_text="時刻", row=1, col=1)
-fig.update_xaxes(title_text="時刻", row=1, col=2)
-fig.update_xaxes(title_text="時刻", row=2, col=1)
+# Layout settings
+fig.update_xaxes(title_text="Time", row=1, col=1)
+fig.update_xaxes(title_text="Time", row=1, col=2)
+fig.update_xaxes(title_text="Time", row=2, col=1)
 
-fig.update_yaxes(title_text="温度 (°C)", row=1, col=1)
-fig.update_yaxes(title_text="圧力 (MPa)", row=1, col=2)
-fig.update_yaxes(title_text="流量 (m³/h)", row=2, col=1)
+fig.update_yaxes(title_text="Temperature (°C)", row=1, col=1)
+fig.update_yaxes(title_text="Pressure (MPa)", row=1, col=2)
+fig.update_yaxes(title_text="Flow Rate (m³/h)", row=2, col=1)
 
 fig.update_layout(
-    title_text="ProcessMonitoringダッシュボード - 化学反応器",
+    title_text="Process Monitoring Dashboard - Chemical Reactor",
     title_font_size=20,
     title_x=0.5,
     height=800,
@@ -355,35 +355,35 @@ fig.update_layout(
     template="plotly_white"
 )
 
-# HTMLとして保存（ブラウザで表示可能）
+# Save as HTML (viewable in browser)
 fig.write_html("process_monitoring_dashboard.html")
-print("ダッシュボードを 'process_monitoring_dashboard.html' に保存しました。")
-print("ブラウザで開いて確認してください。")
+print("Dashboard saved to 'process_monitoring_dashboard.html'.")
+print("Open it in your browser to view.")
 
-# 統計サマリー
-print("\n=== 現在のProcess状態 ===")
-print(f"反応器温度: {current_temp:.2f} °C (目標: 175°C)")
-print(f"圧力: {pressure[-1]:.3f} MPa (目標: 1.5 MPa)")
-print(f"流量: {flow_rate[-1]:.2f} m³/h (目標: 50 m³/h)")
+# Statistics summary
+print("\n=== Current Process Status ===")
+print(f"Reactor Temperature: {current_temp:.2f} °C (Target: 175°C)")
+print(f"Pressure: {pressure[-1]:.3f} MPa (Target: 1.5 MPa)")
+print(f"Flow Rate: {flow_rate[-1]:.2f} m³/h (Target: 50 m³/h)")
 
-# アラーム状態チェック
-temp_alarm = "正常" if 173 <= current_temp <= 177 else "警告"
-pressure_alarm = "正常" if 1.45 <= pressure[-1] <= 1.55 else "警告"
-flow_alarm = "正常" if 45 <= flow_rate[-1] <= 55 else "警告"
+# Check alarm status
+temp_alarm = "Normal" if 173 <= current_temp <= 177 else "Warning"
+pressure_alarm = "Normal" if 1.45 <= pressure[-1] <= 1.55 else "Warning"
+flow_alarm = "Normal" if 45 <= flow_rate[-1] <= 55 else "Warning"
 
-print(f"\n=== アラーム状態 ===")
-print(f"温度: {temp_alarm}")
-print(f"圧力: {pressure_alarm}")
-print(f"流量: {flow_alarm}")
+print(f"\n=== Alarm Status ===")
+print(f"Temperature: {temp_alarm}")
+print(f"Pressure: {pressure_alarm}")
+print(f"Flow Rate: {flow_alarm}")
 </code></pre>
 
-<p><strong>解説</strong>: このコードは、Plotlyを使ってProcessMonitoringダッシュボードのレイアウトを設計します。トレンドチャート（時系列データ）とゲージ（現在値）を組み合わせることで、オペレータが直感的にProcess状態を把握できるインターフェースを構築できます。実際のProcessでは、これをWebアプリケーションとして展開します。</p>
+<p><strong>Explanation</strong>: This code designs a process monitoring dashboard layout using Plotly. By combining trend charts (time-series data) with gauges (current values), it creates an interface that allows operators to intuitively grasp the process status. In actual processes, this is deployed as a web application.</p>
 </div>
 
 <div class="code-example">
-<h4>Code Examples2: シミュレートされたリアルタイムデータストリーミング</h4>
+<h4>Code Example 2: Simulated Real-time Data Streaming</h4>
 
-<p><strong>目的</strong>: dequeバッファを使って、リアルタイムデータストリーミングをシミュレートする。</p>
+<p><strong>Purpose</strong>: Simulate real-time data streaming using a deque buffer.</p>
 
 <pre><code class="language-python">import numpy as np
 import pandas as pd
@@ -391,67 +391,67 @@ from collections import deque
 import matplotlib.pyplot as plt
 import time
 
-# 日本語フォント設定
+# Japanese font settings
 plt.rcParams['font.sans-serif'] = ['Hiragino Sans', 'Arial']
 plt.rcParams['axes.unicode_minus'] = False
 
 class RealTimeDataStream:
     """
-    リアルタイムデータストリーミングシミュレーター
+    Real-time data streaming simulator
 
     Parameters:
     -----------
     buffer_size : int
-        データバッファのサイズ
+        Data buffer size
     sampling_interval : float
-        サンプリング間隔（秒）
+        Sampling interval (seconds)
     """
 
     def __init__(self, buffer_size=100, sampling_interval=1.0):
         self.buffer_size = buffer_size
         self.sampling_interval = sampling_interval
 
-        # データバッファ（固定長キュー）
+        # Data buffers (fixed-length queues)
         self.time_buffer = deque(maxlen=buffer_size)
         self.temp_buffer = deque(maxlen=buffer_size)
         self.pressure_buffer = deque(maxlen=buffer_size)
         self.flow_buffer = deque(maxlen=buffer_size)
 
-        # 開始時刻
+        # Start time
         self.start_time = pd.Timestamp.now()
         self.iteration = 0
 
     def generate_sensor_data(self):
-        """センサーデータの生成（実際はPLC/DCSから取得）"""
+        """Generate sensor data (in practice, acquired from PLC/DCS)"""
         elapsed = self.iteration * self.sampling_interval
 
-        # 反応器温度（周期変動 + ノイズ）
+        # Reactor temperature (periodic variation + noise)
         temp_base = 175.0
         temp_variation = 3.0 * np.sin(2 * np.pi * elapsed / 300)
         temp_noise = np.random.normal(0, 0.8)
         temperature = temp_base + temp_variation + temp_noise
 
-        # 圧力（わずかな変動）
+        # Pressure (slight variation)
         pressure = 1.5 + np.random.normal(0, 0.02)
 
-        # 流量（ステップ変化をシミュレート）
+        # Flow rate (simulate step changes)
         if elapsed < 60:
             flow_base = 50.0
         elif elapsed < 120:
-            flow_base = 55.0  # 60秒で流量増加
+            flow_base = 55.0  # Increase flow rate at 60 seconds
         else:
-            flow_base = 50.0  # 120秒で元に戻る
+            flow_base = 50.0  # Return to original at 120 seconds
 
         flow_rate = flow_base + np.random.normal(0, 2.0)
 
         return temperature, pressure, flow_rate
 
     def update(self):
-        """データストリームの更新"""
+        """Update data stream"""
         current_time = self.start_time + pd.Timedelta(seconds=self.iteration * self.sampling_interval)
         temp, pressure, flow = self.generate_sensor_data()
 
-        # バッファに追加
+        # Add to buffers
         self.time_buffer.append(current_time)
         self.temp_buffer.append(temp)
         self.pressure_buffer.append(pressure)
@@ -462,7 +462,7 @@ class RealTimeDataStream:
         return current_time, temp, pressure, flow
 
     def get_statistics(self):
-        """バッファ内データの統計量"""
+        """Statistics of buffered data"""
         if len(self.temp_buffer) == 0:
             return None
 
@@ -480,81 +480,81 @@ class RealTimeDataStream:
         return stats
 
 
-# リアルタイムストリーミングのデモンストレーション
-print("=== リアルタイムデータストリーミング開始 ===")
-print("180秒間のデータ収集を行います...\n")
+# Real-time streaming demonstration
+print("=== Real-time Data Streaming Started ===")
+print("Collecting data for 180 seconds...\n")
 
 stream = RealTimeDataStream(buffer_size=200, sampling_interval=1.0)
 
-# データ収集（180秒間、1秒ごと）
-duration = 180  # 秒
+# Data collection (180 seconds, every 1 second)
+duration = 180  # seconds
 for i in range(duration):
     timestamp, temp, pressure, flow = stream.update()
 
-    # 10秒ごとに進捗表示
+    # Display progress every 10 seconds
     if (i + 1) % 10 == 0:
         stats = stream.get_statistics()
         print(f"[{timestamp.strftime('%H:%M:%S')}] "
-              f"温度: {temp:.2f}°C (平均: {stats['temp_mean']:.2f}°C) | "
-              f"圧力: {pressure:.3f} MPa | "
-              f"流量: {flow:.2f} m³/h")
+              f"Temp: {temp:.2f}°C (Mean: {stats['temp_mean']:.2f}°C) | "
+              f"Pressure: {pressure:.3f} MPa | "
+              f"Flow: {flow:.2f} m³/h")
 
-    # 実際のリアルタイムシステムではtime.sleep()を使用
-    # ここでは高速化のためスキップ
+    # In actual real-time systems, use time.sleep()
+    # Skipped here for speed
 
-print("\nデータ収集完了！\n")
+print("\nData collection complete!\n")
 
-# 収集データの可視化
+# Visualize collected data
 fig, axes = plt.subplots(3, 1, figsize=(14, 12))
 
-# 温度トレンド
+# Temperature trend
 axes[0].plot(list(stream.time_buffer), list(stream.temp_buffer),
-             color='#11998e', linewidth=1.5, label='温度')
-axes[0].axhline(y=175, color='red', linestyle='--', linewidth=2, label='目標値')
-axes[0].fill_between(list(stream.time_buffer), 173, 177, alpha=0.15, color='green', label='管理範囲')
-axes[0].set_ylabel('温度 (°C)', fontsize=12)
-axes[0].set_title('リアルタイムストリーミングデータ - 反応器温度', fontsize=14, fontweight='bold')
+             color='#11998e', linewidth=1.5, label='Temperature')
+axes[0].axhline(y=175, color='red', linestyle='--', linewidth=2, label='Target Value')
+axes[0].fill_between(list(stream.time_buffer), 173, 177, alpha=0.15, color='green', label='Control Range')
+axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+axes[0].set_title('Real-time Streaming Data - Reactor Temperature', fontsize=14, fontweight='bold')
 axes[0].legend()
 axes[0].grid(alpha=0.3)
 
-# 圧力トレンド
+# Pressure trend
 axes[1].plot(list(stream.time_buffer), list(stream.pressure_buffer),
-             color='#f59e0b', linewidth=1.5, label='圧力')
-axes[1].axhline(y=1.5, color='red', linestyle='--', linewidth=2, label='目標値')
-axes[1].set_ylabel('圧力 (MPa)', fontsize=12)
-axes[1].set_title('圧力トレンド', fontsize=14, fontweight='bold')
+             color='#f59e0b', linewidth=1.5, label='Pressure')
+axes[1].axhline(y=1.5, color='red', linestyle='--', linewidth=2, label='Target Value')
+axes[1].set_ylabel('Pressure (MPa)', fontsize=12)
+axes[1].set_title('Pressure Trend', fontsize=14, fontweight='bold')
 axes[1].legend()
 axes[1].grid(alpha=0.3)
 
-# 流量トレンド
+# Flow rate trend
 axes[2].plot(list(stream.time_buffer), list(stream.flow_buffer),
-             color='#7b2cbf', linewidth=1.5, label='流量')
-axes[2].axhline(y=50, color='red', linestyle='--', linewidth=2, label='目標値')
-axes[2].axvline(x=list(stream.time_buffer)[60], color='orange', linestyle=':', alpha=0.5, label='流量変化')
+             color='#7b2cbf', linewidth=1.5, label='Flow Rate')
+axes[2].axhline(y=50, color='red', linestyle='--', linewidth=2, label='Target Value')
+axes[2].axvline(x=list(stream.time_buffer)[60], color='orange', linestyle=':', alpha=0.5, label='Flow Change')
 axes[2].axvline(x=list(stream.time_buffer)[120], color='orange', linestyle=':', alpha=0.5)
-axes[2].set_xlabel('時刻', fontsize=12)
-axes[2].set_ylabel('流量 (m³/h)', fontsize=12)
-axes[2].set_title('流量トレンド', fontsize=14, fontweight='bold')
+axes[2].set_xlabel('Time', fontsize=12)
+axes[2].set_ylabel('Flow Rate (m³/h)', fontsize=12)
+axes[2].set_title('Flow Rate Trend', fontsize=14, fontweight='bold')
 axes[2].legend()
 axes[2].grid(alpha=0.3)
 
 plt.tight_layout()
 plt.show()
 
-# 最終統計
+# Final statistics
 final_stats = stream.get_statistics()
-print("=== 最終統計 ===")
+print("=== Final Statistics ===")
 for key, value in final_stats.items():
     print(f"  {key}: {value:.2f}")
 </code></pre>
 
-<p><strong>解説</strong>: このコードは、dequeを使った効率的なデータバッファリングを実装しています。固定長キュー（deque）は、古いデータを自動的に削除しながら新しいデータを追加するため、メモリ効率的なリアルタイム処理に最適です。実際のProcessでは、PLC/DCSから連続的にデータを取得し、このようなバッファリングを行います。</p>
+<p><strong>Explanation</strong>: This code implements efficient data buffering using deque. Fixed-length queues (deque) are ideal for memory-efficient real-time processing as they automatically remove old data while adding new data. In actual processes, data is continuously acquired from PLC/DCS with this type of buffering.</p>
 </div>
 
 <div class="code-example">
-<h4>Code Examples3: マルチチャートMonitoringインターフェース</h4>
+<h4>Code Example 3: Multi-chart Monitoring Interface</h4>
 
-<p><strong>目的</strong>: 複数のProcess変数を同時にモニタリングする包括的なMonitoringインターフェースを構築する。</p>
+<p><strong>Purpose</strong>: Build a comprehensive monitoring interface for simultaneous monitoring of multiple process variables.</p>
 
 <pre><code class="language-python">import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -563,14 +563,14 @@ import pandas as pd
 
 class ProcessMonitoringInterface:
     """
-    マルチチャートProcessMonitoringインターフェース
+    Multi-chart process monitoring interface
 
     Parameters:
     -----------
     process_name : str
-        Process名
+        Process name
     variables : list of dict
-        Monitoring変数のリスト（name, unit, target, range）
+        List of monitoring variables (name, unit, target, range)
     """
 
     def __init__(self, process_name, variables):
@@ -580,20 +580,20 @@ class ProcessMonitoringInterface:
 
     def create_monitoring_dashboard(self, time_data, variable_data):
         """
-        Monitoringダッシュボードの作成
+        Create monitoring dashboard
 
         Parameters:
         -----------
         time_data : array-like
-             hoursデータ
+            Time data
         variable_data : dict
-            変数名をキーとしたデータ辞書
+            Data dictionary with variable names as keys
 
         Returns:
         --------
         fig : plotly.graph_objects.Figure
         """
-        # サブプロット構成（変数数に応じて動的に配置）
+        # Subplot configuration (dynamically arranged based on number of variables)
         n_rows = int(np.ceil(self.n_vars / 2))
         n_cols = 2 if self.n_vars > 1 else 1
 
@@ -605,14 +605,14 @@ class ProcessMonitoringInterface:
             horizontal_spacing=0.1
         )
 
-        # 各変数のトレンドチャートを追加
+        # Add trend chart for each variable
         for idx, var in enumerate(self.variables):
             row = idx // 2 + 1
             col = idx % 2 + 1
 
             data = variable_data[var['name']]
 
-            # トレンドライン
+            # Trend line
             fig.add_trace(
                 go.Scatter(
                     x=time_data,
@@ -624,17 +624,17 @@ class ProcessMonitoringInterface:
                 row=row, col=col
             )
 
-            # 目標値ライン
+            # Target value line
             if 'target' in var:
                 fig.add_hline(
                     y=var['target'],
                     line_dash="dash",
                     line_color="red",
-                    annotation_text=f"目標: {var['target']}",
+                    annotation_text=f"Target: {var['target']}",
                     row=row, col=col
                 )
 
-            # 管理範囲
+            # Control range
             if 'range' in var:
                 lower, upper = var['range']
                 fig.add_hrect(
@@ -644,13 +644,13 @@ class ProcessMonitoringInterface:
                     row=row, col=col
                 )
 
-            # 軸ラベル
-            fig.update_xaxes(title_text="時刻", row=row, col=col)
+            # Axis labels
+            fig.update_xaxes(title_text="Time", row=row, col=col)
             fig.update_yaxes(title_text=f"{var['name']} ({var['unit']})", row=row, col=col)
 
-        # 全体レイアウト
+        # Overall layout
         fig.update_layout(
-            title_text=f"{self.process_name} - マルチ変数Monitoringダッシュボード",
+            title_text=f"{self.process_name} - Multi-variable Monitoring Dashboard",
             title_font_size=20,
             title_x=0.5,
             height=300 * n_rows,
@@ -661,79 +661,79 @@ class ProcessMonitoringInterface:
         return fig
 
 
-# Monitoringインターフェースの構築例
-# 化学反応器のMonitoring変数定義
+# Example of building monitoring interface
+# Define monitoring variables for chemical reactor
 variables = [
-    {'name': '反応器温度', 'unit': '°C', 'target': 175, 'range': (173, 177), 'color': '#11998e'},
-    {'name': 'ジャケット温度', 'unit': '°C', 'target': 165, 'range': (163, 167), 'color': '#f59e0b'},
-    {'name': '反応器圧力', 'unit': 'MPa', 'target': 1.5, 'range': (1.45, 1.55), 'color': '#7b2cbf'},
-    {'name': '原料流量', 'unit': 'm³/h', 'target': 50, 'range': (48, 52), 'color': '#e63946'},
-    {'name': '冷却水流量', 'unit': 'm³/h', 'target': 100, 'range': (95, 105), 'color': '#06a77d'},
+    {'name': 'Reactor Temperature', 'unit': '°C', 'target': 175, 'range': (173, 177), 'color': '#11998e'},
+    {'name': 'Jacket Temperature', 'unit': '°C', 'target': 165, 'range': (163, 167), 'color': '#f59e0b'},
+    {'name': 'Reactor Pressure', 'unit': 'MPa', 'target': 1.5, 'range': (1.45, 1.55), 'color': '#7b2cbf'},
+    {'name': 'Feed Flow Rate', 'unit': 'm³/h', 'target': 50, 'range': (48, 52), 'color': '#e63946'},
+    {'name': 'Cooling Water Flow', 'unit': 'm³/h', 'target': 100, 'range': (95, 105), 'color': '#06a77d'},
     {'name': 'pH', 'unit': '-', 'target': 7.0, 'range': (6.8, 7.2), 'color': '#ff006e'}
 ]
 
-# データ生成（24 hours、1 minutes間隔）
+# Generate data (24 hours, 1 minute interval)
 np.random.seed(42)
 n_points = 1440
 time_data = pd.date_range('2025-01-01 00:00:00', periods=n_points, freq='1min')
 
-# 各変数のデータ生成
+# Generate data for each variable
 variable_data = {}
 
-# 反応器温度
-variable_data['反応器温度'] = 175 + np.random.normal(0, 1.5, n_points) + \
+# Reactor temperature
+variable_data['Reactor Temperature'] = 175 + np.random.normal(0, 1.5, n_points) + \
                               2 * np.sin(2 * np.pi * np.arange(n_points) / 360)
 
-# ジャケット温度
-variable_data['ジャケット温度'] = 165 + np.random.normal(0, 1.2, n_points) + \
+# Jacket temperature
+variable_data['Jacket Temperature'] = 165 + np.random.normal(0, 1.2, n_points) + \
                                  1.5 * np.sin(2 * np.pi * np.arange(n_points) / 360)
 
-# 反応器圧力
-variable_data['反応器圧力'] = 1.5 + np.random.normal(0, 0.02, n_points)
+# Reactor pressure
+variable_data['Reactor Pressure'] = 1.5 + np.random.normal(0, 0.02, n_points)
 
-# 原料流量
-variable_data['原料流量'] = 50 + np.random.normal(0, 1.5, n_points)
+# Feed flow rate
+variable_data['Feed Flow Rate'] = 50 + np.random.normal(0, 1.5, n_points)
 
-# 冷却水流量
-variable_data['冷却水流量'] = 100 + np.random.normal(0, 2.5, n_points)
+# Cooling water flow
+variable_data['Cooling Water Flow'] = 100 + np.random.normal(0, 2.5, n_points)
 
 # pH
 variable_data['pH'] = 7.0 + np.random.normal(0, 0.15, n_points)
 
-# Monitoringインターフェースの作成
+# Create monitoring interface
 interface = ProcessMonitoringInterface(
-    process_name="化学反応器 R-101",
+    process_name="Chemical Reactor R-101",
     variables=variables
 )
 
 fig = interface.create_monitoring_dashboard(time_data, variable_data)
 
-# HTMLとして保存
+# Save as HTML
 fig.write_html("multi_variable_monitoring_dashboard.html")
-print("マルチ変数Monitoringダッシュボードを保存しました。")
+print("Multi-variable monitoring dashboard saved.")
 
-# 現在の状態サマリー
-print("\n=== 現在のProcess状態（最新値） ===")
+# Current status summary
+print("\n=== Current Process Status (Latest Values) ===")
 for var in variables:
     latest_value = variable_data[var['name']][-1]
     target = var.get('target', None)
-    status = "正常"
+    status = "Normal"
 
     if target and 'range' in var:
         lower, upper = var['range']
         if not (lower <= latest_value <= upper):
-            status = "警告"
+            status = "Warning"
 
-    print(f"{var['name']:<15}: {latest_value:>7.2f} {var['unit']:<5} (目標: {target}) - {status}")
+    print(f"{var['name']:<20}: {latest_value:>7.2f} {var['unit']:<5} (Target: {target}) - {status}")
 </code></pre>
 
-<p><strong>解説</strong>: このマルチチャートMonitoringインターフェースは、Processの複数の変数を同時にMonitoringできるダッシュボードを動的に生成します。各変数に対して目標値と管理範囲を可視化することで、オペレータが一目でProcess状態を把握できます。実際のプラントでは、数十〜数百の変数をMonitoringします。</p>
+<p><strong>Explanation</strong>: This multi-chart monitoring interface dynamically generates a dashboard that can monitor multiple process variables simultaneously. By visualizing target values and control ranges for each variable, operators can grasp the process status at a glance. In actual plants, dozens to hundreds of variables are monitored.</p>
 </div>
 
 <div class="code-example">
-<h4>Code Examples4: アラーム通知システムの実装</h4>
+<h4>Code Example 4: Implementing an Alarm Notification System</h4>
 
-<p><strong>目的</strong>: 重要度Level別のアラーム通知システムを構築し、アラームログを管理する。</p>
+<p><strong>Purpose</strong>: Build an alarm notification system with severity levels and manage alarm logs.</p>
 
 <pre><code class="language-python">import pandas as pd
 import numpy as np
@@ -741,20 +741,20 @@ from datetime import datetime
 from enum import Enum
 
 class AlarmSeverity(Enum):
-    """アラーム重要度Level"""
-    INFO = 1      # 情報
-    WARNING = 2   # 警告
-    ALARM = 3     # アラーム
-    CRITICAL = 4  # 緊急
+    """Alarm severity levels"""
+    INFO = 1      # Information
+    WARNING = 2   # Warning
+    ALARM = 3     # Alarm
+    CRITICAL = 4  # Critical
 
 class AlarmManager:
     """
-    Processアラーム管理システム
+    Process alarm management system
 
     Parameters:
     -----------
     alarm_rules : list of dict
-        アラームルールのリスト
+        List of alarm rules
     """
 
     def __init__(self, alarm_rules):
@@ -764,17 +764,17 @@ class AlarmManager:
 
     def check_alarms(self, process_data):
         """
-        アラーム状態のチェック
+        Check alarm conditions
 
         Parameters:
         -----------
         process_data : dict
-            Process変数の現在値
+            Current values of process variables
 
         Returns:
         --------
         new_alarms : list
-            新規発生アラーム
+            Newly triggered alarms
         """
         new_alarms = []
         current_time = datetime.now()
@@ -786,13 +786,13 @@ class AlarmManager:
             if value is None:
                 continue
 
-            # アラーム条件のチェック
+            # Check alarm condition
             alarm_triggered = self._evaluate_condition(value, rule)
 
             alarm_id = f"{variable}_{rule['name']}"
 
             if alarm_triggered:
-                # アラーム発生
+                # Alarm triggered
                 if alarm_id not in self.active_alarms:
                     alarm = {
                         'id': alarm_id,
@@ -810,7 +810,7 @@ class AlarmManager:
                     self.alarm_history.append(alarm.copy())
                     new_alarms.append(alarm)
             else:
-                # アラーム復帰
+                # Alarm cleared
                 if alarm_id in self.active_alarms:
                     alarm = self.active_alarms.pop(alarm_id)
                     alarm['cleared_time'] = current_time
@@ -819,7 +819,7 @@ class AlarmManager:
         return new_alarms
 
     def _evaluate_condition(self, value, rule):
-        """アラーム条件の評価"""
+        """Evaluate alarm condition"""
         condition = rule['condition']
         threshold = rule['threshold']
 
@@ -838,7 +838,7 @@ class AlarmManager:
             return False
 
     def acknowledge_alarm(self, alarm_id):
-        """アラームの確認"""
+        """Acknowledge alarm"""
         if alarm_id in self.active_alarms:
             self.active_alarms[alarm_id]['acknowledged'] = True
             return True
@@ -846,12 +846,12 @@ class AlarmManager:
 
     def get_active_alarms(self, severity=None):
         """
-        アクティブアラームの取得
+        Get active alarms
 
         Parameters:
         -----------
         severity : AlarmSeverity or None
-            重要度でフィルタリング
+            Filter by severity
 
         Returns:
         --------
@@ -862,13 +862,13 @@ class AlarmManager:
         if severity:
             alarms = [a for a in alarms if a['severity'] == severity]
 
-        # 重要度で降順ソート
+        # Sort by severity in descending order
         alarms.sort(key=lambda x: x['severity'].value, reverse=True)
 
         return alarms
 
     def get_alarm_statistics(self):
-        """アラーム統計の取得"""
+        """Get alarm statistics"""
         total_alarms = len(self.alarm_history)
         active_count = len(self.active_alarms)
         acknowledged_count = sum(1 for a in self.active_alarms.values() if a['acknowledged'])
@@ -889,39 +889,39 @@ class AlarmManager:
         return stats
 
 
-# アラームルールの定義
+# Define alarm rules
 alarm_rules = [
     {
-        'variable': '反応器温度',
-        'name': '高温警告',
+        'variable': 'Reactor Temperature',
+        'name': 'High Temperature Warning',
         'severity': AlarmSeverity.WARNING,
         'condition': 'greater_than',
         'threshold': 177
     },
     {
-        'variable': '反応器温度',
-        'name': '高温アラーム',
+        'variable': 'Reactor Temperature',
+        'name': 'High Temperature Alarm',
         'severity': AlarmSeverity.ALARM,
         'condition': 'greater_than',
         'threshold': 180
     },
     {
-        'variable': '反応器温度',
-        'name': '低温警告',
+        'variable': 'Reactor Temperature',
+        'name': 'Low Temperature Warning',
         'severity': AlarmSeverity.WARNING,
         'condition': 'less_than',
         'threshold': 173
     },
     {
-        'variable': '反応器圧力',
-        'name': '圧力異常',
+        'variable': 'Reactor Pressure',
+        'name': 'Pressure Abnormal',
         'severity': AlarmSeverity.CRITICAL,
         'condition': 'out_of_range',
         'threshold': (1.4, 1.6)
     },
     {
-        'variable': '原料流量',
-        'name': '流量偏差',
+        'variable': 'Feed Flow Rate',
+        'name': 'Flow Deviation',
         'severity': AlarmSeverity.WARNING,
         'condition': 'deviation',
         'target': 50,
@@ -929,28 +929,28 @@ alarm_rules = [
     }
 ]
 
-# アラームマネージャーの初期化
+# Initialize alarm manager
 alarm_mgr = AlarmManager(alarm_rules)
 
-# Simulation: 1 hoursのProcess運転
+# Simulation: 1 hour of process operation
 np.random.seed(42)
-n_samples = 60  # 1 minutesごと、60 minutes間
+n_samples = 60  # Every 1 minute, for 60 minutes
 
-print("=== ProcessアラームMonitoringシステム ===\n")
-print("1 hoursのSimulationを開始します...\n")
+print("=== Process Alarm Monitoring System ===\n")
+print("Starting 1-hour simulation...\n")
 
 for i in range(n_samples):
-    # ProcessデータのSimulation
+    # Simulate process data
     process_data = {
-        '反応器温度': 175 + np.random.normal(0, 2) + 5 * np.sin(2 * np.pi * i / 60),
-        '反応器圧力': 1.5 + np.random.normal(0, 0.05),
-        '原料流量': 50 + np.random.normal(0, 3)
+        'Reactor Temperature': 175 + np.random.normal(0, 2) + 5 * np.sin(2 * np.pi * i / 60),
+        'Reactor Pressure': 1.5 + np.random.normal(0, 0.05),
+        'Feed Flow Rate': 50 + np.random.normal(0, 3)
     }
 
-    # アラームチェック
+    # Check alarms
     new_alarms = alarm_mgr.check_alarms(process_data)
 
-    # 新規アラームの表示
+    # Display new alarms
     if new_alarms:
         for alarm in new_alarms:
             severity_color = {
@@ -963,127 +963,127 @@ for i in range(n_samples):
 
             print(f"[{alarm['timestamp'].strftime('%H:%M:%S')}] {icon} {alarm['severity'].name}: "
                   f"{alarm['variable']} - {alarm['name']} "
-                  f"(値: {alarm['value']:.2f})")
+                  f"(Value: {alarm['value']:.2f})")
 
-# 最終統計
+# Final statistics
 print("\n" + "="*60)
-print("=== アラーム統計サマリー ===")
+print("=== Alarm Statistics Summary ===")
 stats = alarm_mgr.get_alarm_statistics()
 
-print(f"\n総アラーム数: {stats['total_alarms']}")
-print(f"アクティブアラーム: {stats['active_alarms']}")
-print(f"  - 未確認: {stats['unacknowledged_alarms']}")
-print(f"  - 確認済み: {stats['acknowledged_alarms']}")
+print(f"\nTotal Alarms: {stats['total_alarms']}")
+print(f"Active Alarms: {stats['active_alarms']}")
+print(f"  - Unacknowledged: {stats['unacknowledged_alarms']}")
+print(f"  - Acknowledged: {stats['acknowledged_alarms']}")
 
-print("\n重要度別内訳:")
+print("\nBreakdown by Severity:")
 for severity, count in stats['severity_breakdown'].items():
-    print(f"  {severity:<10}: {count:>3}件")
+    print(f"  {severity:<10}: {count:>3} alarms")
 
-# アクティブアラームの一覧
+# List of active alarms
 active_alarms = alarm_mgr.get_active_alarms()
 if active_alarms:
-    print("\n=== 現在のアクティブアラーム ===")
+    print("\n=== Current Active Alarms ===")
     for alarm in active_alarms:
         duration = (datetime.now() - alarm['timestamp']).total_seconds()
-        ack_status = "確認済み" if alarm['acknowledged'] else "未確認"
+        ack_status = "Acknowledged" if alarm['acknowledged'] else "Unacknowledged"
         print(f"  - [{alarm['severity'].name}] {alarm['variable']}: {alarm['name']} "
-              f"({duration:.0f}秒継続中, {ack_status})")
+              f"({duration:.0f}s duration, {ack_status})")
 else:
-    print("\n現在アクティブなアラームはありません。")
+    print("\nNo active alarms currently.")
 
-# アラーム履歴のDataFrame化
+# Convert alarm history to DataFrame
 if alarm_mgr.alarm_history:
     df_alarms = pd.DataFrame(alarm_mgr.alarm_history)
     df_alarms['severity_name'] = df_alarms['severity'].apply(lambda x: x.name)
 
-    print("\n=== アラーム履歴トップ10 ===")
+    print("\n=== Alarm History Top 10 ===")
     print(df_alarms[['timestamp', 'variable', 'name', 'severity_name', 'value']].head(10).to_string(index=False))
 </code></pre>
 
-<p><strong>期待される出力</strong>:</p>
-<pre><code>=== ProcessアラームMonitoringシステム ===
+<p><strong>Expected Output</strong>:</p>
+<pre><code>=== Process Alarm Monitoring System ===
 
-1 hoursのSimulationを開始します...
+Starting 1-hour simulation...
 
-[14:23:12] 🟡 WARNING: 反応器温度 - 高温警告 (値: 178.45)
-[14:31:45] 🟡 WARNING: 原料流量 - 流量偏差 (値: 56.23)
-[14:42:18] 🔴 CRITICAL: 反応器圧力 - 圧力異常 (値: 1.62)
+[14:23:12] 🟡 WARNING: Reactor Temperature - High Temperature Warning (Value: 178.45)
+[14:31:45] 🟡 WARNING: Feed Flow Rate - Flow Deviation (Value: 56.23)
+[14:42:18] 🔴 CRITICAL: Reactor Pressure - Pressure Abnormal (Value: 1.62)
 
 ============================================================
-=== アラーム統計サマリー ===
+=== Alarm Statistics Summary ===
 
-総アラーム数: 8
-アクティブアラーム: 2
-  - 未確認: 2
-  - 確認済み: 0
+Total Alarms: 8
+Active Alarms: 2
+  - Unacknowledged: 2
+  - Acknowledged: 0
 
-重要度別内訳:
-  INFO      :   0件
-  WARNING   :   5件
-  ALARM     :   1件
-  CRITICAL  :   2件
+Breakdown by Severity:
+  INFO      :   0 alarms
+  WARNING   :   5 alarms
+  ALARM     :   1 alarms
+  CRITICAL  :   2 alarms
 
-=== 現在のアクティブアラーム ===
-  - [CRITICAL] 反応器圧力: 圧力異常 (123秒継続中, 未確認)
-  - [WARNING] 反応器温度: 高温警告 (89秒継続中, 未確認)
+=== Current Active Alarms ===
+  - [CRITICAL] Reactor Pressure: Pressure Abnormal (123s duration, Unacknowledged)
+  - [WARNING] Reactor Temperature: High Temperature Warning (89s duration, Unacknowledged)
 </code></pre>
 
-<p><strong>解説</strong>: このアラームシステムは、Process変数を連続的にMonitoringし、異常状態を重要度Level別に通知します。アラーム履歴の記録、確認（Acknowledgement）機能、統計レポートにより、オペレータが効率的にアラームを管理できます。実際のプラントでは、メール通知やSlack連携も実装します。</p>
+<p><strong>Explanation</strong>: This alarm system continuously monitors process variables and notifies abnormal conditions by severity level. With alarm history recording, acknowledgement functionality, and statistical reports, operators can manage alarms efficiently. In actual plants, email notifications and Slack integration are also implemented.</p>
 </div>
 
 <div class="code-example">
-<h4>Code Examples5: 履歴データトレンド minutes析とパターン検出</h4>
+<h4>Code Example 5: Historical Data Trend Analysis and Pattern Detection</h4>
 
-<p><strong>目的</strong>: 履歴データから傾向を minutes析し、ピーク・谷・トレンドを自動検出する。</p>
+<p><strong>Purpose</strong>: Analyze trends from historical data and automatically detect peaks, valleys, and trends.</p>
 
 <pre><code class="language-python">import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks, savgol_filter
 
-# 日本語フォント設定
+# Japanese font settings
 plt.rcParams['font.sans-serif'] = ['Hiragino Sans', 'Arial']
 plt.rcParams['axes.unicode_minus'] = False
 
 def analyze_historical_trends(time_data, values, variable_name):
     """
-    履歴データのトレンド minutes析
+    Historical data trend analysis
 
     Parameters:
     -----------
     time_data : array-like
-         hoursデータ
+        Time data
     values : array-like
-        変数値
+        Variable values
     variable_name : str
-        変数名
+        Variable name
 
     Returns:
     --------
     analysis : dict
-         minutes析結果
+        Analysis results
     """
-    # 移動平均でトレンド抽出
-    window_size = 60  # 60ポイント移動平均
+    # Extract trend with moving average
+    window_size = 60  # 60-point moving average
     trend = pd.Series(values).rolling(window=window_size, center=True).mean().values
 
-    # Savitzky-Golayフィルタで平滑化
+    # Smooth with Savitzky-Golay filter
     if len(values) > 51:
         smoothed = savgol_filter(values, window_length=51, polyorder=3)
     else:
         smoothed = values
 
-    # ピーク検出
+    # Peak detection
     peaks, peak_props = find_peaks(smoothed, prominence=1.5, distance=30)
     valleys, valley_props = find_peaks(-smoothed, prominence=1.5, distance=30)
 
-    # 統計量
+    # Statistics
     mean_value = np.mean(values)
     std_value = np.std(values)
     max_value = np.max(values)
     min_value = np.min(values)
 
-    # トレンド傾き（最小二乗法）
+    # Trend slope (least squares method)
     x = np.arange(len(values))
     slope = np.polyfit(x, values, 1)[0]
 
@@ -1107,116 +1107,116 @@ def analyze_historical_trends(time_data, values, variable_name):
     return analysis
 
 
-# 履歴データ生成（7日間、1 hours間隔）
+# Generate historical data (7 days, 1 hour interval)
 np.random.seed(42)
 n_days = 7
 n_points = n_days * 24
 time_data = pd.date_range('2025-01-01', periods=n_points, freq='1h')
 
-# 反応器温度データ（日周期変動 + トレンド + ノイズ）
+# Reactor temperature data (daily cycle + trend + noise)
 base_temp = 175
-daily_cycle = 5 * np.sin(2 * np.pi * np.arange(n_points) / 24)  # 日周期
-weekly_trend = 3 * np.sin(2 * np.pi * np.arange(n_points) / (7*24))  # 週周期
+daily_cycle = 5 * np.sin(2 * np.pi * np.arange(n_points) / 24)  # Daily cycle
+weekly_trend = 3 * np.sin(2 * np.pi * np.arange(n_points) / (7*24))  # Weekly cycle
 noise = np.random.normal(0, 1.2, n_points)
 temperature = base_temp + daily_cycle + weekly_trend + noise
 
-# トレンド minutes析実行
-analysis = analyze_historical_trends(time_data, temperature, '反応器温度')
+# Execute trend analysis
+analysis = analyze_historical_trends(time_data, temperature, 'Reactor Temperature')
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(3, 1, figsize=(16, 12))
 
-# 元データとトレンド
-axes[0].plot(time_data, temperature, 'b-', linewidth=0.8, alpha=0.5, label='生データ')
-axes[0].plot(time_data, analysis['smoothed'], 'r-', linewidth=2, label='平滑化データ')
-axes[0].plot(time_data, analysis['trend'], 'g--', linewidth=2, label='トレンド（移動平均）')
+# Original data and trend
+axes[0].plot(time_data, temperature, 'b-', linewidth=0.8, alpha=0.5, label='Raw Data')
+axes[0].plot(time_data, analysis['smoothed'], 'r-', linewidth=2, label='Smoothed Data')
+axes[0].plot(time_data, analysis['trend'], 'g--', linewidth=2, label='Trend (Moving Average)')
 axes[0].scatter(time_data[analysis['peaks']], analysis['peak_values'],
-                color='red', s=80, marker='^', label='ピーク', zorder=5)
+                color='red', s=80, marker='^', label='Peaks', zorder=5)
 axes[0].scatter(time_data[analysis['valleys']], analysis['valley_values'],
-                color='blue', s=80, marker='v', label='谷', zorder=5)
-axes[0].axhline(y=analysis['mean'], color='black', linestyle='--', alpha=0.5, label='平均値')
-axes[0].set_ylabel('温度 (°C)', fontsize=12)
-axes[0].set_title('履歴データトレンド minutes析 - 反応器温度（7日間）', fontsize=14, fontweight='bold')
+                color='blue', s=80, marker='v', label='Valleys', zorder=5)
+axes[0].axhline(y=analysis['mean'], color='black', linestyle='--', alpha=0.5, label='Mean Value')
+axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+axes[0].set_title('Historical Data Trend Analysis - Reactor Temperature (7 days)', fontsize=14, fontweight='bold')
 axes[0].legend(loc='upper right')
 axes[0].grid(alpha=0.3)
 
-# ヒストグラム（ minutes布 minutes析）
+# Histogram (distribution analysis)
 axes[1].hist(temperature, bins=30, color='#11998e', alpha=0.7, edgecolor='black')
 axes[1].axvline(x=analysis['mean'], color='red', linestyle='--', linewidth=2,
-                label=f"平均: {analysis['mean']:.2f}°C")
+                label=f"Mean: {analysis['mean']:.2f}°C")
 axes[1].axvline(x=analysis['mean'] + analysis['std'], color='orange', linestyle=':',
                 linewidth=2, label=f"±1σ: {analysis['std']:.2f}°C")
 axes[1].axvline(x=analysis['mean'] - analysis['std'], color='orange', linestyle=':', linewidth=2)
-axes[1].set_xlabel('温度 (°C)', fontsize=12)
-axes[1].set_ylabel('頻度', fontsize=12)
-axes[1].set_title('温度 minutes布', fontsize=13, fontweight='bold')
+axes[1].set_xlabel('Temperature (°C)', fontsize=12)
+axes[1].set_ylabel('Frequency', fontsize=12)
+axes[1].set_title('Temperature Distribution', fontsize=13, fontweight='bold')
 axes[1].legend()
 axes[1].grid(alpha=0.3)
 
-# 日次統計（ボックスプロット）
+# Daily statistics (box plot)
 df_temp = pd.DataFrame({'timestamp': time_data, 'temperature': temperature})
 df_temp['day'] = df_temp['timestamp'].dt.day
 daily_data = [df_temp[df_temp['day'] == day]['temperature'].values for day in range(1, n_days+1)]
 
-bp = axes[2].boxplot(daily_data, labels=[f'{i+1}日' for i in range(n_days)],
+bp = axes[2].boxplot(daily_data, labels=[f'Day {i+1}' for i in range(n_days)],
                       patch_artist=True, showmeans=True)
 
 for patch in bp['boxes']:
     patch.set_facecolor('#11998e')
     patch.set_alpha(0.6)
 
-axes[2].set_xlabel('日', fontsize=12)
-axes[2].set_ylabel('温度 (°C)', fontsize=12)
-axes[2].set_title('日次温度 minutes布（ボックスプロット）', fontsize=13, fontweight='bold')
+axes[2].set_xlabel('Day', fontsize=12)
+axes[2].set_ylabel('Temperature (°C)', fontsize=12)
+axes[2].set_title('Daily Temperature Distribution (Box Plot)', fontsize=13, fontweight='bold')
 axes[2].grid(alpha=0.3, axis='y')
 
 plt.tight_layout()
 plt.show()
 
-#  minutes析結果のサマリー
-print("=== 履歴データトレンド minutes析結果 ===\n")
-print(f"変数: {analysis['variable']}")
-print(f"期間: {time_data[0]} ～ {time_data[-1]} ({n_days}日間)")
-print(f"\n統計量:")
-print(f"  平均値: {analysis['mean']:.2f} °C")
-print(f"  標準偏差: {analysis['std']:.2f} °C")
-print(f"  最大値: {analysis['max']:.2f} °C")
-print(f"  最小値: {analysis['min']:.2f} °C")
-print(f"  範囲: {analysis['max'] - analysis['min']:.2f} °C")
+# Analysis results summary
+print("=== Historical Data Trend Analysis Results ===\n")
+print(f"Variable: {analysis['variable']}")
+print(f"Period: {time_data[0]} to {time_data[-1]} ({n_days} days)")
+print(f"\nStatistics:")
+print(f"  Mean: {analysis['mean']:.2f} °C")
+print(f"  Std Dev: {analysis['std']:.2f} °C")
+print(f"  Max: {analysis['max']:.2f} °C")
+print(f"  Min: {analysis['min']:.2f} °C")
+print(f"  Range: {analysis['max'] - analysis['min']:.2f} °C")
 
-print(f"\nトレンド:")
-print(f"  傾き: {analysis['slope']:.4f} °C/ hours")
-print(f"  7日間の変化: {analysis['slope'] * n_points:.2f} °C")
+print(f"\nTrend:")
+print(f"  Slope: {analysis['slope']:.4f} °C/hour")
+print(f"  7-day change: {analysis['slope'] * n_points:.2f} °C")
 
-print(f"\nパターン検出:")
-print(f"  ピーク数: {analysis['n_peaks']}")
-print(f"  谷の数: {analysis['n_valleys']}")
+print(f"\nPattern Detection:")
+print(f"  Number of peaks: {analysis['n_peaks']}")
+print(f"  Number of valleys: {analysis['n_valleys']}")
 
 if analysis['n_peaks'] > 0:
-    print(f"  平均ピーク値: {np.mean(analysis['peak_values']):.2f} °C")
+    print(f"  Average peak value: {np.mean(analysis['peak_values']):.2f} °C")
 if analysis['n_valleys'] > 0:
-    print(f"  平均谷値: {np.mean(analysis['valley_values']):.2f} °C")
+    print(f"  Average valley value: {np.mean(analysis['valley_values']):.2f} °C")
 
-# 異常期間の検出（±3σ範囲外）
+# Detect abnormal periods (outside ±3σ range)
 outliers = np.abs(temperature - analysis['mean']) > 3 * analysis['std']
 outlier_count = np.sum(outliers)
 
-print(f"\n異常検出:")
-print(f"  ±3σ範囲外のポイント: {outlier_count} ({outlier_count/len(temperature)*100:.2f}%)")
+print(f"\nAnomaly Detection:")
+print(f"  Points outside ±3σ range: {outlier_count} ({outlier_count/len(temperature)*100:.2f}%)")
 
 if outlier_count > 0:
     outlier_times = time_data[outliers]
-    print(f"  最初の異常時刻: {outlier_times[0]}")
-    print(f"  最後の異常時刻: {outlier_times[-1]}")
+    print(f"  First anomaly time: {outlier_times[0]}")
+    print(f"  Last anomaly time: {outlier_times[-1]}")
 </code></pre>
 
-<p><strong>解説</strong>: 履歴データ minutes析は、Processの長期的な傾向を把握し、異常パターンを検出するために重要です。このコードは、移動平均によるトレンド抽出、Savitzky-Golayフィルタによる平滑化、ピーク・谷の自動検出を実装しています。ボックスプロットによる日次比較は、周期的なパターンや異常日を特定するのに有効です。</p>
+<p><strong>Explanation</strong>: Historical data analysis is important for understanding long-term process trends and detecting abnormal patterns. This code implements trend extraction with moving averages, smoothing with Savitzky-Golay filters, and automatic detection of peaks and valleys. Box plots for daily comparisons are effective for identifying periodic patterns and abnormal days.</p>
 </div>
 
 <div class="code-example">
-<h4>Code Examples6: KPI計算とダッシュボード表示</h4>
+<h4>Code Example 6: KPI Calculation and Dashboard Display</h4>
 
-<p><strong>目的</strong>: Process産業で使用される主要KPI（OEE、稼働率、品質率）を計算し、可視化する。</p>
+<p><strong>Purpose</strong>: Calculate and visualize key KPIs (OEE, availability, quality rate) used in process industries.</p>
 
 <pre><code class="language-python">import numpy as np
 import pandas as pd
@@ -1225,13 +1225,13 @@ from plotly.subplots import make_subplots
 
 class ProcessKPICalculator:
     """
-    ProcessKPI計算システム
+    Process KPI calculation system
 
-    主要KPI:
-    - OEE (Overall Equipment Effectiveness): 設備総合効率
-    - 可用率 (Availability)
-    - 性能稼働率 (Performance)
-    - 品質率 (Quality)
+    Key KPIs:
+    - OEE (Overall Equipment Effectiveness)
+    - Availability
+    - Performance
+    - Quality
     """
 
     def __init__(self, planned_production_time, ideal_cycle_time):
@@ -1239,45 +1239,45 @@ class ProcessKPICalculator:
         Parameters:
         -----------
         planned_production_time : float
-            計画稼働 hours（ minutes）
+            Planned operating time (minutes)
         ideal_cycle_time : float
-            理想サイクルタイム（ minutes/）
+            Ideal cycle time (minutes/unit)
         """
         self.planned_production_time = planned_production_time
         self.ideal_cycle_time = ideal_cycle_time
 
     def calculate_availability(self, actual_production_time):
         """
-        可用率 = 実稼働 hours / 計画稼働 hours
+        Availability = Actual Operating Time / Planned Operating Time
 
         Parameters:
         -----------
         actual_production_time : float
-            実稼働 hours（ minutes）
+            Actual operating time (minutes)
 
         Returns:
         --------
         availability : float
-            可用率（0-1）
+            Availability (0-1)
         """
         availability = actual_production_time / self.planned_production_time
         return min(availability, 1.0)
 
     def calculate_performance(self, actual_output, actual_production_time):
         """
-        性能稼働率 = (理想サイクルタイム × 実生産量) / 実稼働 hours
+        Performance = (Ideal Cycle Time × Actual Output) / Actual Operating Time
 
         Parameters:
         -----------
         actual_output : int
-            実生産量（）
+            Actual production quantity (units)
         actual_production_time : float
-            実稼働 hours（ minutes）
+            Actual operating time (minutes)
 
         Returns:
         --------
         performance : float
-            性能稼働率（0-1）
+            Performance (0-1)
         """
         ideal_production_time = self.ideal_cycle_time * actual_output
         performance = ideal_production_time / actual_production_time
@@ -1285,19 +1285,19 @@ class ProcessKPICalculator:
 
     def calculate_quality(self, actual_output, good_output):
         """
-        品質率 = 良品数 / 総生産量
+        Quality = Good Units / Total Production
 
         Parameters:
         -----------
         actual_output : int
-            総生産量（）
+            Total production (units)
         good_output : int
-            良品数（）
+            Good units (units)
 
         Returns:
         --------
         quality : float
-            品質率（0-1）
+            Quality rate (0-1)
         """
         if actual_output == 0:
             return 0.0
@@ -1307,21 +1307,21 @@ class ProcessKPICalculator:
 
     def calculate_oee(self, actual_production_time, actual_output, good_output):
         """
-        OEE = 可用率 × 性能稼働率 × 品質率
+        OEE = Availability × Performance × Quality
 
         Parameters:
         -----------
         actual_production_time : float
-            実稼働 hours（ minutes）
+            Actual operating time (minutes)
         actual_output : int
-            実生産量（）
+            Actual production (units)
         good_output : int
-            良品数（）
+            Good units (units)
 
         Returns:
         --------
         oee_metrics : dict
-            OEEとその構成要素
+            OEE and its components
         """
         availability = self.calculate_availability(actual_production_time)
         performance = self.calculate_performance(actual_output, actual_production_time)
@@ -1339,25 +1339,25 @@ class ProcessKPICalculator:
         return metrics
 
 
-# KPI計算例
-# Chemical Plantの1週間のデータ
-planned_time = 7 * 24 * 60  # 7日間（ minutes）
-ideal_cycle_time = 2.0  # 理想サイクルタイム（ minutes/バッチ）
+# KPI calculation example
+# 1 week of data for chemical plant
+planned_time = 7 * 24 * 60  # 7 days (minutes)
+ideal_cycle_time = 2.0  # Ideal cycle time (minutes/batch)
 
 kpi_calc = ProcessKPICalculator(planned_time, ideal_cycle_time)
 
-# 週次データ
+# Weekly data
 week_data = {
-    '月曜': {'actual_time': 22*60, 'output': 620, 'good': 598},
-    '火曜': {'actual_time': 23*60, 'output': 680, 'good': 672},
-    '水曜': {'actual_time': 21*60, 'output': 610, 'good': 595},
-    '木曜': {'actual_time': 23*60, 'output': 685, 'good': 678},
-    '金曜': {'actual_time': 22*60, 'output': 650, 'good': 640},
-    '土曜': {'actual_time': 18*60, 'output': 520, 'good': 512},
-    '日曜': {'actual_time': 15*60, 'output': 430, 'good': 425}
+    'Monday': {'actual_time': 22*60, 'output': 620, 'good': 598},
+    'Tuesday': {'actual_time': 23*60, 'output': 680, 'good': 672},
+    'Wednesday': {'actual_time': 21*60, 'output': 610, 'good': 595},
+    'Thursday': {'actual_time': 23*60, 'output': 685, 'good': 678},
+    'Friday': {'actual_time': 22*60, 'output': 650, 'good': 640},
+    'Saturday': {'actual_time': 18*60, 'output': 520, 'good': 512},
+    'Sunday': {'actual_time': 15*60, 'output': 430, 'good': 425}
 }
 
-# 日次KPI計算
+# Calculate daily KPIs
 daily_kpis = {}
 for day, data in week_data.items():
     kpis = kpi_calc.calculate_oee(
@@ -1367,10 +1367,10 @@ for day, data in week_data.items():
     )
     daily_kpis[day] = kpis
 
-# KPIダッシュボードの作成
+# Create KPI dashboard
 fig = make_subplots(
     rows=2, cols=2,
-    subplot_titles=('日次OEE推移', 'OEE構成要素', '週次OEE', '生産量と良品率'),
+    subplot_titles=('Daily OEE Trend', 'OEE Components', 'Weekly OEE', 'Production and Quality'),
     specs=[
         [{"type": "scatter"}, {"type": "bar"}],
         [{"type": "indicator"}, {"type": "scatter"}]
@@ -1385,7 +1385,7 @@ availability_values = [daily_kpis[day]['Availability'] * 100 for day in days]
 performance_values = [daily_kpis[day]['Performance'] * 100 for day in days]
 quality_values = [daily_kpis[day]['Quality'] * 100 for day in days]
 
-# 日次OEE推移（左上）
+# Daily OEE trend (upper left)
 fig.add_trace(
     go.Scatter(
         x=days,
@@ -1398,34 +1398,34 @@ fig.add_trace(
     row=1, col=1
 )
 fig.add_hline(y=85, line_dash="dash", line_color="green",
-              annotation_text="目標: 85%", row=1, col=1)
+              annotation_text="Target: 85%", row=1, col=1)
 fig.add_hline(y=60, line_dash="dash", line_color="orange",
-              annotation_text="最低基準: 60%", row=1, col=1)
+              annotation_text="Minimum: 60%", row=1, col=1)
 
-# OEE構成要素（右上）
+# OEE components (upper right)
 fig.add_trace(
-    go.Bar(x=days, y=availability_values, name='可用率',
+    go.Bar(x=days, y=availability_values, name='Availability',
            marker_color='#11998e'),
     row=1, col=2
 )
 fig.add_trace(
-    go.Bar(x=days, y=performance_values, name='性能稼働率',
+    go.Bar(x=days, y=performance_values, name='Performance',
            marker_color='#f59e0b'),
     row=1, col=2
 )
 fig.add_trace(
-    go.Bar(x=days, y=quality_values, name='品質率',
+    go.Bar(x=days, y=quality_values, name='Quality',
            marker_color='#7b2cbf'),
     row=1, col=2
 )
 
-# 週次OEE（左下）
+# Weekly OEE (lower left)
 weekly_oee = np.mean(oee_values)
 fig.add_trace(
     go.Indicator(
         mode="gauge+number+delta",
         value=weekly_oee,
-        title={'text': "週次OEE (%)"},
+        title={'text': "Weekly OEE (%)"},
         delta={'reference': 85, 'increasing': {'color': "green"}, 'decreasing': {'color': "red"}},
         gauge={
             'axis': {'range': [None, 100]},
@@ -1445,7 +1445,7 @@ fig.add_trace(
     row=2, col=1
 )
 
-# 生産量と良品率（右下）
+# Production and quality (lower right)
 output_values = [week_data[day]['output'] for day in days]
 good_values = [week_data[day]['good'] for day in days]
 
@@ -1454,7 +1454,7 @@ fig.add_trace(
         x=days,
         y=output_values,
         mode='lines+markers',
-        name='総生産量',
+        name='Total Production',
         line=dict(color='#11998e', width=2),
         yaxis='y'
     ),
@@ -1466,24 +1466,24 @@ fig.add_trace(
         x=days,
         y=good_values,
         mode='lines+markers',
-        name='良品数',
+        name='Good Units',
         line=dict(color='#4caf50', width=2),
         yaxis='y'
     ),
     row=2, col=2
 )
 
-# レイアウト設定
-fig.update_xaxes(title_text="曜日", row=1, col=1)
-fig.update_xaxes(title_text="曜日", row=1, col=2)
-fig.update_xaxes(title_text="曜日", row=2, col=2)
+# Layout settings
+fig.update_xaxes(title_text="Day", row=1, col=1)
+fig.update_xaxes(title_text="Day", row=1, col=2)
+fig.update_xaxes(title_text="Day", row=2, col=2)
 
 fig.update_yaxes(title_text="OEE (%)", row=1, col=1)
-fig.update_yaxes(title_text="割合 (%)", row=1, col=2)
-fig.update_yaxes(title_text="生産量 (バッチ)", row=2, col=2)
+fig.update_yaxes(title_text="Percentage (%)", row=1, col=2)
+fig.update_yaxes(title_text="Production (batches)", row=2, col=2)
 
 fig.update_layout(
-    title_text="ProcessKPIダッシュボード - 週次レポート",
+    title_text="Process KPI Dashboard - Weekly Report",
     title_font_size=20,
     title_x=0.5,
     height=900,
@@ -1492,17 +1492,17 @@ fig.update_layout(
 )
 
 fig.write_html("kpi_dashboard.html")
-print("KPIダッシュボードを保存しました。\n")
+print("KPI dashboard saved.\n")
 
-# KPIレポート
-print("=== 週次KPIレポート ===\n")
-print(f"{'曜日':<8} {'OEE':>7} {'可用率':>7} {'性能':>7} {'品質':>7} {'生産量':>8} {'良品':>8}")
+# KPI report
+print("=== Weekly KPI Report ===\n")
+print(f"{'Day':<10} {'OEE':>7} {'Avail.':>7} {'Perf.':>7} {'Quality':>7} {'Output':>8} {'Good':>8}")
 print("-" * 65)
 
 for day in days:
     kpi = daily_kpis[day]
     data = week_data[day]
-    print(f"{day:<8} "
+    print(f"{day:<10} "
           f"{kpi['OEE']*100:>6.1f}% "
           f"{kpi['Availability']*100:>6.1f}% "
           f"{kpi['Performance']*100:>6.1f}% "
@@ -1511,97 +1511,97 @@ for day in days:
           f"{data['good']:>7}")
 
 print("-" * 65)
-print(f"週次平均: {weekly_oee:>5.1f}%\n")
+print(f"Weekly Average: {weekly_oee:>5.1f}%\n")
 
-# 改善提案
-print("=== 改善提案 ===")
+# Improvement suggestions
+print("=== Improvement Suggestions ===")
 avg_availability = np.mean(availability_values)
 avg_performance = np.mean(performance_values)
 avg_quality = np.mean(quality_values)
 
 bottleneck = min([
-    ('可用率', avg_availability),
-    ('性能稼働率', avg_performance),
-    ('品質率', avg_quality)
+    ('Availability', avg_availability),
+    ('Performance', avg_performance),
+    ('Quality', avg_quality)
 ], key=lambda x: x[1])
 
-print(f"最大のボトルネック: {bottleneck[0]} ({bottleneck[1]:.1f}%)")
+print(f"Main Bottleneck: {bottleneck[0]} ({bottleneck[1]:.1f}%)")
 
-if bottleneck[0] == '可用率':
-    print("  → 設備停止 hoursの削減、予知保全の導入を検討")
-elif bottleneck[0] == '性能稼働率':
-    print("  → ProcessOptimization、ボトルネック工程の改善を検討")
+if bottleneck[0] == 'Availability':
+    print("  → Consider reducing downtime, implementing predictive maintenance")
+elif bottleneck[0] == 'Performance':
+    print("  → Consider process optimization, improving bottleneck operations")
 else:
-    print("  → Quality Control強化、不良原因の特定と対策を検討")
+    print("  → Consider strengthening quality control, identifying and addressing defect causes")
 
-# OEEクラス minutes類
+# OEE classification
 if weekly_oee >= 85:
-    oee_class = "世界クラス"
+    oee_class = "World Class"
 elif weekly_oee >= 60:
-    oee_class = "平均的"
+    oee_class = "Average"
 else:
-    oee_class = "改善が必要"
+    oee_class = "Needs Improvement"
 
-print(f"\nOEE評価: {oee_class} (目標: 85%以上)")
+print(f"\nOEE Rating: {oee_class} (Target: 85% or higher)")
 </code></pre>
 
-<p><strong>期待される出力</strong>:</p>
-<pre><code>=== 週次KPIレポート ===
+<p><strong>Expected Output</strong>:</p>
+<pre><code>=== Weekly KPI Report ===
 
-曜日        OEE   可用率   性能   品質   生産量     良品
+Day          OEE   Avail.   Perf. Quality   Output     Good
 -----------------------------------------------------------------
-月曜       84.4%  91.7%  93.5%  96.5%     620     598
-火曜       91.2%  95.8%  97.1%  98.8%     680     672
-水曜       82.1%  87.5%  95.2%  97.5%     610     595
-木曜       91.8%  95.8%  97.5%  99.0%     685     678
-金曜       87.9%  91.7%  97.2%  98.5%     650     640
-土曜       85.2%  75.0%  96.3%  98.5%     520     512
-日曜       83.6%  62.5%  95.3%  98.8%     430     425
+Monday      84.4%  91.7%  93.5%  96.5%     620     598
+Tuesday     91.2%  95.8%  97.1%  98.8%     680     672
+Wednesday   82.1%  87.5%  95.2%  97.5%     610     595
+Thursday    91.8%  95.8%  97.5%  99.0%     685     678
+Friday      87.9%  91.7%  97.2%  98.5%     650     640
+Saturday    85.2%  75.0%  96.3%  98.5%     520     512
+Sunday      83.6%  62.5%  95.3%  98.8%     430     425
 -----------------------------------------------------------------
-週次平均:  86.6%
+Weekly Average:  86.6%
 
-=== 改善提案 ===
-最大のボトルネック: 可用率 (85.7%)
-  → 設備停止 hoursの削減、予知保全の導入を検討
+=== Improvement Suggestions ===
+Main Bottleneck: Availability (85.7%)
+  → Consider reducing downtime, implementing predictive maintenance
 
-OEE評価: 世界クラス (目標: 85%以上)
+OEE Rating: World Class (Target: 85% or higher)
 </code></pre>
 
-<p><strong>解説</strong>: OEE（設備総合効率）は、Manufacturing業・Process産業で最も重要なKPIの一つです。可用率、性能稼働率、品質率の3要素で構成され、設備の総合的な生産性を評価します。このコードは、日次・週次のOEE計算、可視化、ボトルネック minutes析、改善提案までを自動化しています。</p>
+<p><strong>Explanation</strong>: OEE (Overall Equipment Effectiveness) is one of the most important KPIs in manufacturing and process industries. Composed of three elements - availability, performance, and quality - it evaluates the overall productivity of equipment. This code automates daily/weekly OEE calculations, visualization, bottleneck analysis, and improvement suggestions.</p>
 </div>
 
 <div class="code-example">
-<h4>Code Examples7: Process状態の可視化（有限状態機械）</h4>
+<h4>Code Example 7: Process State Visualization (Finite State Machine)</h4>
 
-<p><strong>目的</strong>: Processの運転状態を有限状態機械でモデル化し、状態遷移を可視化する。</p>
+<p><strong>Purpose</strong>: Model process operational states with a finite state machine and visualize state transitions.</p>
 
 <pre><code class="language-python">import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from enum import Enum
 
-# 日本語フォント設定
+# Japanese font settings
 plt.rcParams['font.sans-serif'] = ['Hiragino Sans', 'Arial']
 plt.rcParams['axes.unicode_minus'] = False
 
 class ProcessState(Enum):
-    """Process運転状態"""
-    STOPPED = 0      # 停止
-    STARTUP = 1      # 起動中
-    RUNNING = 2      # 定常運転
-    SHUTDOWN = 3     # 停止操作中
-    ALARM = 4        # アラーム状態
-    MAINTENANCE = 5  # メンテナンス
+    """Process operational states"""
+    STOPPED = 0      # Stopped
+    STARTUP = 1      # Starting up
+    RUNNING = 2      # Normal operation
+    SHUTDOWN = 3     # Shutting down
+    ALARM = 4        # Alarm state
+    MAINTENANCE = 5  # Maintenance
 
 class ProcessStateMachine:
     """
-    Process状態機械
+    Process state machine
 
-    状態遷移ルール:
+    State transition rules:
     STOPPED → STARTUP → RUNNING
     RUNNING → SHUTDOWN → STOPPED
-    ANY → ALARM (アラーム発生時)
-    ALARM → 前の状態 (アラーム復帰時)
+    ANY → ALARM (when alarm occurs)
+    ALARM → previous state (when alarm clears)
     STOPPED ↔ MAINTENANCE
     """
 
@@ -1610,59 +1610,59 @@ class ProcessStateMachine:
         self.previous_state = None
         self.state_history = [(pd.Timestamp.now(), initial_state)]
 
-        # 状態遷移ルール
+        # State transition rules
         self.transitions = {
             ProcessState.STOPPED: [ProcessState.STARTUP, ProcessState.MAINTENANCE],
             ProcessState.STARTUP: [ProcessState.RUNNING, ProcessState.ALARM],
             ProcessState.RUNNING: [ProcessState.SHUTDOWN, ProcessState.ALARM],
             ProcessState.SHUTDOWN: [ProcessState.STOPPED, ProcessState.ALARM],
-            ProcessState.ALARM: [],  # アラームからは任意の状態に復帰可能
+            ProcessState.ALARM: [],  # Can return to any state from alarm
             ProcessState.MAINTENANCE: [ProcessState.STOPPED]
         }
 
     def transition(self, new_state, timestamp=None):
         """
-        状態遷移
+        State transition
 
         Parameters:
         -----------
         new_state : ProcessState
-            新しい状態
+            New state
         timestamp : pd.Timestamp or None
-            遷移時刻
+            Transition time
 
         Returns:
         --------
         success : bool
-            遷移の成功/失敗
+            Success/failure of transition
         """
         if timestamp is None:
             timestamp = pd.Timestamp.now()
 
-        # アラーム状態への遷移は常に許可
+        # Transition to alarm state always allowed
         if new_state == ProcessState.ALARM:
             self.previous_state = self.current_state
             self.current_state = new_state
             self.state_history.append((timestamp, new_state))
             return True
 
-        # アラーム状態からの復帰
+        # Return from alarm state
         if self.current_state == ProcessState.ALARM:
             self.current_state = new_state
             self.state_history.append((timestamp, new_state))
             return True
 
-        # 通常の状態遷移ルールチェック
+        # Check normal state transition rules
         if new_state in self.transitions[self.current_state]:
             self.current_state = new_state
             self.state_history.append((timestamp, new_state))
             return True
 
-        # 不正な遷移
+        # Invalid transition
         return False
 
     def get_state_duration(self):
-        """現在の状態の継続 hours（秒）"""
+        """Duration of current state (seconds)"""
         if len(self.state_history) < 2:
             return 0
 
@@ -1673,7 +1673,7 @@ class ProcessStateMachine:
         return duration
 
     def get_state_statistics(self):
-        """状態別の統計情報"""
+        """Statistics by state"""
         if len(self.state_history) < 2:
             return {}
 
@@ -1693,45 +1693,45 @@ class ProcessStateMachine:
         return stats
 
 
-# Process状態機械のSimulation
-print("=== Process状態機械Simulation ===\n")
+# Process state machine simulation
+print("=== Process State Machine Simulation ===\n")
 
-# 初期化
+# Initialization
 state_machine = ProcessStateMachine(initial_state=ProcessState.STOPPED)
 
-# 1日間のProcess運転Simulation
+# 1-day process operation simulation
 start_time = pd.Timestamp('2025-01-01 00:00:00')
 
-# 状態遷移シナリオ
+# State transition scenario
 transitions_scenario = [
     (start_time + pd.Timedelta(hours=0), ProcessState.STOPPED),
     (start_time + pd.Timedelta(hours=1), ProcessState.STARTUP),
     (start_time + pd.Timedelta(hours=2), ProcessState.RUNNING),
-    (start_time + pd.Timedelta(hours=8), ProcessState.ALARM),      # アラーム発生
-    (start_time + pd.Timedelta(hours=8.5), ProcessState.RUNNING),  # アラーム復帰
+    (start_time + pd.Timedelta(hours=8), ProcessState.ALARM),      # Alarm occurs
+    (start_time + pd.Timedelta(hours=8.5), ProcessState.RUNNING),  # Alarm clears
     (start_time + pd.Timedelta(hours=16), ProcessState.SHUTDOWN),
     (start_time + pd.Timedelta(hours=17), ProcessState.STOPPED),
     (start_time + pd.Timedelta(hours=18), ProcessState.MAINTENANCE),
     (start_time + pd.Timedelta(hours=22), ProcessState.STOPPED),
 ]
 
-# 状態遷移実行
+# Execute state transitions
 for timestamp, new_state in transitions_scenario[1:]:
     success = state_machine.transition(new_state, timestamp)
     if success:
         print(f"[{timestamp.strftime('%H:%M')}] {state_machine.current_state.name}")
     else:
-        print(f"[{timestamp.strftime('%H:%M')}] 不正な遷移: → {new_state.name}")
+        print(f"[{timestamp.strftime('%H:%M')}] Invalid transition: → {new_state.name}")
 
-# 状態履歴の可視化
+# Visualize state history
 df_history = pd.DataFrame(state_machine.state_history, columns=['timestamp', 'state'])
 df_history['state_code'] = df_history['state'].apply(lambda x: x.value)
 df_history['state_name'] = df_history['state'].apply(lambda x: x.name)
 
-# Ganttチャート風の可視化
+# Gantt chart-style visualization
 fig, ax = plt.subplots(figsize=(16, 6))
 
-# 状態ごとに色を定義
+# Define colors for each state
 state_colors = {
     ProcessState.STOPPED: '#gray',
     ProcessState.STARTUP: '#ffeb3b',
@@ -1741,7 +1741,7 @@ state_colors = {
     ProcessState.MAINTENANCE: '#2196f3'
 }
 
-# 各状態期間をバーで表示
+# Display each state period as a bar
 for i in range(len(df_history) - 1):
     start = df_history.iloc[i]['timestamp']
     end = df_history.iloc[i + 1]['timestamp']
@@ -1749,7 +1749,7 @@ for i in range(len(df_history) - 1):
 
     ax.barh(
         0,
-        width=(end - start).total_seconds() / 3600,  #  hours単位
+        width=(end - start).total_seconds() / 3600,  # In hours
         left=(start - start_time).total_seconds() / 3600,
         height=0.5,
         color=state_colors[state],
@@ -1758,50 +1758,50 @@ for i in range(len(df_history) - 1):
         label=state.name if i == 0 or df_history.iloc[i-1]['state'] != state else ""
     )
 
-    # 状態名をバーの中央に表示
+    # Display state name in center of bar
     duration = (end - start).total_seconds() / 3600
-    if duration > 0.5:  # 30 minutes以上の状態のみラベル表示
+    if duration > 0.5:  # Only label states longer than 30 minutes
         mid_point = (start - start_time).total_seconds() / 3600 + duration / 2
         ax.text(mid_point, 0, state.name, ha='center', va='center',
                 fontsize=11, fontweight='bold', color='white')
 
-# 凡例（重複を除去）
+# Legend (remove duplicates)
 handles, labels = ax.get_legend_handles_labels()
 by_label = dict(zip(labels, handles))
 ax.legend(by_label.values(), by_label.keys(), loc='upper right', fontsize=10)
 
-ax.set_xlabel('時刻（時）', fontsize=12)
+ax.set_xlabel('Time (hours)', fontsize=12)
 ax.set_yticks([])
 ax.set_xlim(0, 24)
-ax.set_title('Process状態遷移タイムライン（24 hours）', fontsize=14, fontweight='bold')
+ax.set_title('Process State Transition Timeline (24 hours)', fontsize=14, fontweight='bold')
 ax.grid(alpha=0.3, axis='x')
 
 plt.tight_layout()
 plt.show()
 
-# 統計情報
-print("\n=== 状態統計 ===")
+# Statistics
+print("\n=== State Statistics ===")
 stats = state_machine.get_state_statistics()
 
-print(f"\n{'状態':<15} {'回数':>6} {'合計 hours':>10} {'平均 hours':>10}")
+print(f"\n{'State':<15} {'Count':>6} {'Total Time':>12} {'Avg Time':>12}")
 print("-" * 50)
 
 for state_name, stat in stats.items():
     total_hours = stat['total_duration'] / 3600
     avg_hours = stat['avg_duration'] / 3600
-    print(f"{state_name:<15} {stat['count']:>6}回 "
+    print(f"{state_name:<15} {stat['count']:>6} times "
           f"{total_hours:>9.2f} hours {avg_hours:>9.2f} hours")
 
-# 稼働率計算
-total_time = 24  #  hours
+# Calculate availability
+total_time = 24  # hours
 running_time = stats.get('RUNNING', {}).get('total_duration', 0) / 3600
 availability = running_time / total_time * 100
 
-print(f"\n稼働率: {availability:.1f}% ({running_time:.2f} hours / {total_time} hours)")
+print(f"\nAvailability: {availability:.1f}% ({running_time:.2f} hours / {total_time} hours)")
 </code></pre>
 
-<p><strong>期待される出力</strong>:</p>
-<pre><code>=== Process状態機械Simulation ===
+<p><strong>Expected Output</strong>:</p>
+<pre><code>=== Process State Machine Simulation ===
 
 [01:00] STARTUP
 [02:00] RUNNING
@@ -1812,27 +1812,27 @@ print(f"\n稼働率: {availability:.1f}% ({running_time:.2f} hours / {total_time
 [18:00] MAINTENANCE
 [22:00] STOPPED
 
-=== 状態統計 ===
+=== State Statistics ===
 
-状態                回数     合計 hours     平均 hours
+State              Count   Total Time     Avg Time
 --------------------------------------------------
-STOPPED             2回      5.00 hours      2.50 hours
-STARTUP             1回      1.00 hours      1.00 hours
-RUNNING             2回     13.50 hours      6.75 hours
-ALARM               1回      0.50 hours      0.50 hours
-SHUTDOWN            1回      1.00 hours      1.00 hours
-MAINTENANCE         1回      4.00 hours      4.00 hours
+STOPPED             2 times      5.00 hours      2.50 hours
+STARTUP             1 times      1.00 hours      1.00 hours
+RUNNING             2 times     13.50 hours      6.75 hours
+ALARM               1 times      0.50 hours      0.50 hours
+SHUTDOWN            1 times      1.00 hours      1.00 hours
+MAINTENANCE         1 times      4.00 hours      4.00 hours
 
-稼働率: 56.2% (13.50 hours / 24 hours)
+Availability: 56.2% (13.50 hours / 24 hours)
 </code></pre>
 
-<p><strong>解説</strong>: 有限状態機械（FSM）は、Processの運転状態を明確にモデル化し、状態遷移を管理する強力なツールです。このコードは、Processの起動、定常運転、停止、アラーム、メンテナンスの各状態と、それらの間の遷移ルールを実装しています。タイムラインの可視化により、オペレータがProcessの運転履歴を直感的に把握できます。</p>
+<p><strong>Explanation</strong>: Finite state machines (FSM) are a powerful tool for clearly modeling process operational states and managing state transitions. This code implements startup, normal operation, shutdown, alarm, and maintenance states along with transition rules between them. Timeline visualization allows operators to intuitively understand process operation history.</p>
 </div>
 
 <div class="code-example">
-<h4>Code Examples8: 完全な統合Monitoringシステム - 化学反応器ケーススタディ</h4>
+<h4>Code Example 8: Complete Integrated Monitoring System - Chemical Reactor Case Study</h4>
 
-<p><strong>目的</strong>: これまで学んだ全ての要素を統合し、化学反応器の完全なMonitoringシステムを構築する。</p>
+<p><strong>Purpose</strong>: Integrate all elements learned so far to build a complete monitoring system for a chemical reactor.</p>
 
 <pre><code class="language-python">import numpy as np
 import pandas as pd
@@ -1843,142 +1843,142 @@ from datetime import datetime
 
 class IntegratedProcessMonitoringSystem:
     """
-    統合ProcessMonitoringシステム
+    Integrated process monitoring system
 
-    機能:
-    - リアルタイムデータ収集
-    - マルチ変数トレンドMonitoring
-    - アラーム管理
-    - KPI計算
-    - 状態管理
+    Functions:
+    - Real-time data collection
+    - Multi-variable trend monitoring
+    - Alarm management
+    - KPI calculation
+    - State management
     """
 
     def __init__(self, process_name):
         self.process_name = process_name
 
-        # データバッファ（1 hours minutes、1秒間隔）
+        # Data buffers (1 hour, 1 second interval)
         self.buffer_size = 3600
         self.time_buffer = deque(maxlen=self.buffer_size)
         self.data_buffers = {
-            '反応器温度': deque(maxlen=self.buffer_size),
-            'ジャケット温度': deque(maxlen=self.buffer_size),
-            '反応器圧力': deque(maxlen=self.buffer_size),
-            '原料流量': deque(maxlen=self.buffer_size),
-            '生成物濃度': deque(maxlen=self.buffer_size)
+            'Reactor Temperature': deque(maxlen=self.buffer_size),
+            'Jacket Temperature': deque(maxlen=self.buffer_size),
+            'Reactor Pressure': deque(maxlen=self.buffer_size),
+            'Feed Flow Rate': deque(maxlen=self.buffer_size),
+            'Product Concentration': deque(maxlen=self.buffer_size)
         }
 
-        # アラームシステム
+        # Alarm system
         self.active_alarms = []
 
-        # KPIデータ
+        # KPI data
         self.kpi_data = {
             'production_count': 0,
             'good_count': 0,
             'running_time': 0
         }
 
-        # Process状態
+        # Process state
         self.process_state = 'RUNNING'
         self.iteration = 0
 
     def generate_process_data(self):
-        """Processデータの生成（実際はPLC/DCSから取得）"""
+        """Generate process data (in practice, acquired from PLC/DCS)"""
         elapsed = self.iteration
 
-        # 反応器温度（目標175°C）
+        # Reactor temperature (target 175°C)
         temp_base = 175.0
         temp_noise = np.random.normal(0, 1.2)
-        temp_disturbance = 3 * np.sin(2 * np.pi * elapsed / 300)  # 5 minutes周期
+        temp_disturbance = 3 * np.sin(2 * np.pi * elapsed / 300)  # 5-minute cycle
         reactor_temp = temp_base + temp_noise + temp_disturbance
 
-        # ジャケット温度（反応器温度より低い）
+        # Jacket temperature (lower than reactor temperature)
         jacket_temp = reactor_temp - 10 + np.random.normal(0, 0.8)
 
-        # 圧力（目標1.5 MPa）
+        # Pressure (target 1.5 MPa)
         pressure = 1.5 + np.random.normal(0, 0.03)
 
-        # 原料流量（目標50 m³/h）
+        # Feed flow rate (target 50 m³/h)
         flow_rate = 50 + np.random.normal(0, 2.5)
 
-        # 生成物濃度（目標80%）
+        # Product concentration (target 80%)
         concentration = 80 + np.random.normal(0, 3) - 0.5 * (reactor_temp - 175)
 
         return {
-            '反応器温度': reactor_temp,
-            'ジャケット温度': jacket_temp,
-            '反応器圧力': pressure,
-            '原料流量': flow_rate,
-            '生成物濃度': concentration
+            'Reactor Temperature': reactor_temp,
+            'Jacket Temperature': jacket_temp,
+            'Reactor Pressure': pressure,
+            'Feed Flow Rate': flow_rate,
+            'Product Concentration': concentration
         }
 
     def check_process_alarms(self, data):
-        """Processアラームのチェック"""
+        """Check process alarms"""
         alarms = []
 
-        # 温度アラーム
-        if data['反応器温度'] > 180:
-            alarms.append({'severity': 'CRITICAL', 'variable': '反応器温度',
-                          'message': '高温アラーム', 'value': data['反応器温度']})
-        elif data['反応器温度'] > 177:
-            alarms.append({'severity': 'WARNING', 'variable': '反応器温度',
-                          'message': '高温警告', 'value': data['反応器温度']})
-        elif data['反応器温度'] < 173:
-            alarms.append({'severity': 'WARNING', 'variable': '反応器温度',
-                          'message': '低温警告', 'value': data['反応器温度']})
+        # Temperature alarms
+        if data['Reactor Temperature'] > 180:
+            alarms.append({'severity': 'CRITICAL', 'variable': 'Reactor Temperature',
+                          'message': 'High Temperature Alarm', 'value': data['Reactor Temperature']})
+        elif data['Reactor Temperature'] > 177:
+            alarms.append({'severity': 'WARNING', 'variable': 'Reactor Temperature',
+                          'message': 'High Temperature Warning', 'value': data['Reactor Temperature']})
+        elif data['Reactor Temperature'] < 173:
+            alarms.append({'severity': 'WARNING', 'variable': 'Reactor Temperature',
+                          'message': 'Low Temperature Warning', 'value': data['Reactor Temperature']})
 
-        # 圧力アラーム
-        if data['反応器圧力'] > 1.6 or data['反応器圧力'] < 1.4:
-            alarms.append({'severity': 'CRITICAL', 'variable': '反応器圧力',
-                          'message': '圧力異常', 'value': data['反応器圧力']})
+        # Pressure alarms
+        if data['Reactor Pressure'] > 1.6 or data['Reactor Pressure'] < 1.4:
+            alarms.append({'severity': 'CRITICAL', 'variable': 'Reactor Pressure',
+                          'message': 'Pressure Abnormal', 'value': data['Reactor Pressure']})
 
-        # 濃度アラーム
-        if data['生成物濃度'] < 75:
-            alarms.append({'severity': 'WARNING', 'variable': '生成物濃度',
-                          'message': '品質低下', 'value': data['生成物濃度']})
+        # Concentration alarms
+        if data['Product Concentration'] < 75:
+            alarms.append({'severity': 'WARNING', 'variable': 'Product Concentration',
+                          'message': 'Quality Degradation', 'value': data['Product Concentration']})
 
         self.active_alarms = alarms
         return alarms
 
     def update(self):
-        """システムの更新（1秒ごとに呼び出される）"""
+        """System update (called every second)"""
         current_time = datetime.now()
         data = self.generate_process_data()
 
-        # データバッファに追加
+        # Add to data buffers
         self.time_buffer.append(current_time)
         for var, value in data.items():
             self.data_buffers[var].append(value)
 
-        # アラームチェック
+        # Check alarms
         alarms = self.check_process_alarms(data)
 
-        # KPI更新
-        self.kpi_data['running_time'] += 1  # 秒
+        # Update KPIs
+        self.kpi_data['running_time'] += 1  # seconds
 
         self.iteration += 1
 
         return data, alarms
 
     def create_integrated_dashboard(self):
-        """統合ダッシュボードの作成"""
+        """Create integrated dashboard"""
         if len(self.time_buffer) < 10:
             return None
 
-        # データをnumpy配列に変換
+        # Convert data to numpy arrays
         time_array = list(self.time_buffer)
-        reactor_temp = np.array(list(self.data_buffers['反応器温度']))
-        jacket_temp = np.array(list(self.data_buffers['ジャケット温度']))
-        pressure = np.array(list(self.data_buffers['反応器圧力']))
-        flow_rate = np.array(list(self.data_buffers['原料流量']))
-        concentration = np.array(list(self.data_buffers['生成物濃度']))
+        reactor_temp = np.array(list(self.data_buffers['Reactor Temperature']))
+        jacket_temp = np.array(list(self.data_buffers['Jacket Temperature']))
+        pressure = np.array(list(self.data_buffers['Reactor Pressure']))
+        flow_rate = np.array(list(self.data_buffers['Feed Flow Rate']))
+        concentration = np.array(list(self.data_buffers['Product Concentration']))
 
-        # サブプロットの作成
+        # Create subplots
         fig = make_subplots(
             rows=3, cols=2,
             subplot_titles=(
-                '反応器温度トレンド', 'ジャケット温度トレンド',
-                '反応器圧力トレンド', '原料流量トレンド',
-                '生成物濃度トレンド', '現在のProcess状態'
+                'Reactor Temperature Trend', 'Jacket Temperature Trend',
+                'Reactor Pressure Trend', 'Feed Flow Rate Trend',
+                'Product Concentration Trend', 'Current Process Status'
             ),
             specs=[
                 [{"type": "scatter"}, {"type": "scatter"}],
@@ -1989,54 +1989,54 @@ class IntegratedProcessMonitoringSystem:
             horizontal_spacing=0.12
         )
 
-        # 反応器温度
+        # Reactor temperature
         fig.add_trace(
             go.Scatter(x=time_array, y=reactor_temp, mode='lines',
-                      name='反応器温度', line=dict(color='#11998e', width=2)),
+                      name='Reactor Temperature', line=dict(color='#11998e', width=2)),
             row=1, col=1
         )
         fig.add_hline(y=175, line_dash="dash", line_color="red", row=1, col=1)
         fig.add_hrect(y0=173, y1=177, fillcolor="green", opacity=0.1,
                       line_width=0, row=1, col=1)
 
-        # ジャケット温度
+        # Jacket temperature
         fig.add_trace(
             go.Scatter(x=time_array, y=jacket_temp, mode='lines',
-                      name='ジャケット温度', line=dict(color='#f59e0b', width=2)),
+                      name='Jacket Temperature', line=dict(color='#f59e0b', width=2)),
             row=1, col=2
         )
 
-        # 圧力
+        # Pressure
         fig.add_trace(
             go.Scatter(x=time_array, y=pressure, mode='lines',
-                      name='圧力', line=dict(color='#7b2cbf', width=2)),
+                      name='Pressure', line=dict(color='#7b2cbf', width=2)),
             row=2, col=1
         )
         fig.add_hline(y=1.5, line_dash="dash", line_color="red", row=2, col=1)
 
-        # 流量
+        # Flow rate
         fig.add_trace(
             go.Scatter(x=time_array, y=flow_rate, mode='lines',
-                      name='流量', line=dict(color='#e63946', width=2)),
+                      name='Flow Rate', line=dict(color='#e63946', width=2)),
             row=2, col=2
         )
         fig.add_hline(y=50, line_dash="dash", line_color="red", row=2, col=2)
 
-        # 濃度
+        # Concentration
         fig.add_trace(
             go.Scatter(x=time_array, y=concentration, mode='lines',
-                      name='濃度', line=dict(color='#06a77d', width=2)),
+                      name='Concentration', line=dict(color='#06a77d', width=2)),
             row=3, col=1
         )
         fig.add_hline(y=80, line_dash="dash", line_color="red", row=3, col=1)
 
-        # Process状態インジケータ
+        # Process status indicator
         current_temp = reactor_temp[-1]
         fig.add_trace(
             go.Indicator(
                 mode="gauge+number",
                 value=current_temp,
-                title={'text': "反応器温度 (°C)"},
+                title={'text': "Reactor Temperature (°C)"},
                 gauge={
                     'axis': {'range': [None, 200]},
                     'bar': {'color': "#11998e"},
@@ -2055,15 +2055,15 @@ class IntegratedProcessMonitoringSystem:
             row=3, col=2
         )
 
-        # 軸ラベル
-        fig.update_yaxes(title_text="温度 (°C)", row=1, col=1)
-        fig.update_yaxes(title_text="温度 (°C)", row=1, col=2)
-        fig.update_yaxes(title_text="圧力 (MPa)", row=2, col=1)
-        fig.update_yaxes(title_text="流量 (m³/h)", row=2, col=2)
-        fig.update_yaxes(title_text="濃度 (%)", row=3, col=1)
+        # Axis labels
+        fig.update_yaxes(title_text="Temperature (°C)", row=1, col=1)
+        fig.update_yaxes(title_text="Temperature (°C)", row=1, col=2)
+        fig.update_yaxes(title_text="Pressure (MPa)", row=2, col=1)
+        fig.update_yaxes(title_text="Flow Rate (m³/h)", row=2, col=2)
+        fig.update_yaxes(title_text="Concentration (%)", row=3, col=1)
 
         fig.update_layout(
-            title_text=f"{self.process_name} - 統合Monitoringダッシュボード",
+            title_text=f"{self.process_name} - Integrated Monitoring Dashboard",
             title_font_size=20,
             title_x=0.5,
             height=1000,
@@ -2074,27 +2074,27 @@ class IntegratedProcessMonitoringSystem:
         return fig
 
 
-# 統合Monitoringシステムのデモンストレーション
-print("=== 統合ProcessMonitoringシステム ===")
-print("化学反応器 R-101 Monitoringシステム起動\n")
+# Integrated monitoring system demonstration
+print("=== Integrated Process Monitoring System ===")
+print("Chemical Reactor R-101 Monitoring System Starting\n")
 
-# システム初期化
-monitoring_system = IntegratedProcessMonitoringSystem("化学反応器 R-101")
+# System initialization
+monitoring_system = IntegratedProcessMonitoringSystem("Chemical Reactor R-101")
 
-# 10 minutes間のSimulation（600秒）
-print("10 minutes間のProcessMonitoringを開始します...\n")
+# 10-minute simulation (600 seconds)
+print("Starting 10-minute process monitoring...\n")
 
 alarm_count = 0
 for i in range(600):
     data, alarms = monitoring_system.update()
 
-    # 30秒ごとに状態表示
+    # Display status every 30 seconds
     if (i + 1) % 30 == 0:
-        print(f"[{i+1:>3}秒] "
-              f"温度: {data['反応器温度']:>6.2f}°C | "
-              f"圧力: {data['反応器圧力']:>5.3f} MPa | "
-              f"濃度: {data['生成物濃度']:>5.2f}% | "
-              f"アラーム: {len(alarms)}件")
+        print(f"[{i+1:>3}s] "
+              f"Temp: {data['Reactor Temperature']:>6.2f}°C | "
+              f"Pressure: {data['Reactor Pressure']:>5.3f} MPa | "
+              f"Conc: {data['Product Concentration']:>5.2f}% | "
+              f"Alarms: {len(alarms)}")
 
         if alarms:
             for alarm in alarms:
@@ -2102,169 +2102,169 @@ for i in range(600):
                 print(f"  {severity_icon} {alarm['variable']}: {alarm['message']} ({alarm['value']:.2f})")
             alarm_count += len(alarms)
 
-print("\nProcessMonitoring完了！\n")
+print("\nProcess monitoring complete!\n")
 
-# 統合ダッシュボードの生成
+# Generate integrated dashboard
 fig = monitoring_system.create_integrated_dashboard()
 if fig:
     fig.write_html("integrated_monitoring_system.html")
-    print("統合ダッシュボードを 'integrated_monitoring_system.html' に保存しました。\n")
+    print("Integrated dashboard saved to 'integrated_monitoring_system.html'.\n")
 
-# 最終統計
-print("=== Process統計サマリー ===")
-print(f"Monitoring hours: {monitoring_system.kpi_data['running_time']} 秒 (10 minutes)")
-print(f"総アラーム数: {alarm_count}件")
+# Final statistics
+print("=== Process Statistics Summary ===")
+print(f"Monitoring Time: {monitoring_system.kpi_data['running_time']} seconds (10 minutes)")
+print(f"Total Alarms: {alarm_count}")
 
-# 各変数の統計
-print("\n変数統計:")
+# Statistics for each variable
+print("\nVariable Statistics:")
 for var_name, buffer in monitoring_system.data_buffers.items():
     data_array = np.array(list(buffer))
-    print(f"  {var_name:<15}: 平均 {np.mean(data_array):>7.2f}, "
-          f"標準偏差 {np.std(data_array):>5.2f}, "
-          f"最大 {np.max(data_array):>7.2f}, "
-          f"最小 {np.min(data_array):>7.2f}")
+    print(f"  {var_name:<25}: Mean {np.mean(data_array):>7.2f}, "
+          f"Std Dev {np.std(data_array):>5.2f}, "
+          f"Max {np.max(data_array):>7.2f}, "
+          f"Min {np.min(data_array):>7.2f}")
 
-print("\nシステム正常終了。")
+print("\nSystem terminated normally.")
 </code></pre>
 
-<p><strong>解説</strong>: このコードは、本 Chapterで学んだ全ての要素（リアルタイムデータ収集、マルチ変数Monitoring、アラーム管理、KPI計算、ダッシュボード可視化）を統合した完全なProcessMonitoringシステムです。化学反応器を例に、実際のプラントで使用されるMonitoringシステムの構成を実装しています。実運用では、このシステムをWebアプリケーション（Dash, Streamlit等）として展開し、複数のオペレータがリアルタイムでアクセスできるようにします。</p>
+<p><strong>Explanation</strong>: This code integrates all elements learned in this chapter (real-time data collection, multi-variable monitoring, alarm management, KPI calculation, dashboard visualization) into a complete process monitoring system. Using a chemical reactor as an example, it implements the configuration of monitoring systems used in actual plants. In real operation, this system is deployed as a web application (Dash, Streamlit, etc.) so multiple operators can access it in real-time.</p>
 </div>
 
 <hr />
 
-<h2>5.3 本 ChapterのSummary</h2>
+<h2>5.3 Chapter Summary</h2>
 
-<h3>学んだこと</h3>
+<h3>What We Learned</h3>
 
 <ol>
-<li><strong>リアルタイムMonitoringシステムのアーキテクチャ</strong>
+<li><strong>Real-time Monitoring System Architecture</strong>
     <ul>
-        <li>データ収集層、処理層、可視化層、保存層の4層構造</li>
-        <li>データフロー: センサー → バッファリング → 処理 → 可視化 → 保存</li>
-        <li>システム設計の原則とスケーラビリティ</li>
+        <li>Four-layer structure: data collection, processing, visualization, and storage layers</li>
+        <li>Data flow: Sensors → Buffering → Processing → Visualization → Storage</li>
+        <li>System design principles and scalability</li>
     </ul>
 </li>
-<li><strong>ダッシュボード設計と可視化</strong>
+<li><strong>Dashboard Design and Visualization</strong>
     <ul>
-        <li>Plotlyによるインタラクティブなダッシュボード構築</li>
-        <li>トレンドチャート、ゲージ、インジケータの効果的な配置</li>
-        <li>オペレータ向けUIデザインの原則</li>
+        <li>Building interactive dashboards with Plotly</li>
+        <li>Effective placement of trend charts, gauges, and indicators</li>
+        <li>UI design principles for operators</li>
     </ul>
 </li>
-<li><strong>リアルタイムデータ処理</strong>
+<li><strong>Real-time Data Processing</strong>
     <ul>
-        <li>dequeによる効率的なデータバッファリング</li>
-        <li>ストリーミングデータの統計処理</li>
-        <li>リアルタイム異常検知</li>
+        <li>Efficient data buffering with deque</li>
+        <li>Statistical processing of streaming data</li>
+        <li>Real-time anomaly detection</li>
     </ul>
 </li>
-<li><strong>アラーム管理システム</strong>
+<li><strong>Alarm Management System</strong>
     <ul>
-        <li>重要度Level別のアラーム minutes類（INFO, WARNING, ALARM, CRITICAL）</li>
-        <li>アラーム履歴管理とアクノリッジメント</li>
-        <li>アラームフラッド防止戦略</li>
+        <li>Alarm classification by severity level (INFO, WARNING, ALARM, CRITICAL)</li>
+        <li>Alarm history management and acknowledgement</li>
+        <li>Alarm flood prevention strategies</li>
     </ul>
 </li>
-<li><strong>KPIとProcess minutes析</strong>
+<li><strong>KPIs and Process Analysis</strong>
     <ul>
-        <li>OEE（設備総合効率）の計算と評価</li>
-        <li>履歴データトレンド minutes析とパターン検出</li>
-        <li>ボトルネック minutes析と改善提案</li>
+        <li>OEE (Overall Equipment Effectiveness) calculation and evaluation</li>
+        <li>Historical data trend analysis and pattern detection</li>
+        <li>Bottleneck analysis and improvement suggestions</li>
     </ul>
 </li>
-<li><strong>統合Monitoringシステム</strong>
+<li><strong>Integrated Monitoring System</strong>
     <ul>
-        <li>全機能を統合した完全なシステム構築</li>
-        <li>化学反応器の実践的なケーススタディ</li>
-        <li>実運用への展開戦略</li>
+        <li>Building a complete system integrating all functions</li>
+        <li>Practical case study of a chemical reactor</li>
+        <li>Deployment strategy for real operations</li>
     </ul>
 </li>
 </ol>
 
-<h3>重要なポイント</h3>
+<h3>Key Points</h3>
 
 <ul>
-<li><strong>データバッファリング</strong>: dequeを使った固定長キューで、メモリ効率的なリアルタイム処理を実現</li>
-<li><strong>アラーム設計</strong>: 重要度 minutes類と適切な閾値設定で、オペレータの負担を軽減</li>
-<li><strong>KPI可視化</strong>: OEEとその構成要素を視覚的に表示し、改善機会を明確化</li>
-<li><strong>統合ダッシュボード</strong>: 複数の変数を同時にMonitoringできるインターフェースで、Process全体を俯瞰</li>
-<li><strong>スケーラビリティ</strong>: モジュール化された設計で、変数追加や機能拡張が容易</li>
+<li><strong>Data Buffering</strong>: Using deque for fixed-length queues enables memory-efficient real-time processing</li>
+<li><strong>Alarm Design</strong>: Severity classification and appropriate threshold settings reduce operator burden</li>
+<li><strong>KPI Visualization</strong>: Visual display of OEE and its components clarifies improvement opportunities</li>
+<li><strong>Integrated Dashboard</strong>: Interfaces that can monitor multiple variables simultaneously provide an overview of the entire process</li>
+<li><strong>Scalability</strong>: Modular design makes it easy to add variables and extend functionality</li>
 </ul>
 
-<h3>実務での応用</h3>
+<h3>Practical Applications</h3>
 
-<p>本 Chapterで学んだMonitoringシステムは、以下のような実Processで活用できます：</p>
+<p>The monitoring systems learned in this chapter can be applied to real processes such as:</p>
 <ul>
-<li><strong>Chemical Plant</strong>: 反応器、蒸留塔、熱交換器の統合Monitoring</li>
-<li><strong>製薬プラント</strong>: GMP準拠の記録管理とアラームシステム</li>
-<li><strong>Foodプラント</strong>: HACCP対応の温度・pH管理</li>
-<li><strong>SemiconductorManufacturing</strong>: クリーンルーム環境の精密Monitoring</li>
-<li><strong>発電プラント</strong>: ボイラー、タービンの効率Monitoring</li>
+<li><strong>Chemical Plants</strong>: Integrated monitoring of reactors, distillation columns, heat exchangers</li>
+<li><strong>Pharmaceutical Plants</strong>: GMP-compliant record management and alarm systems</li>
+<li><strong>Food Plants</strong>: HACCP-compliant temperature and pH management</li>
+<li><strong>Semiconductor Manufacturing</strong>: Precision monitoring of cleanroom environments</li>
+<li><strong>Power Plants</strong>: Efficiency monitoring of boilers and turbines</li>
 </ul>
 
 <h3>Next Steps</h3>
 
-<p> Seriesを完了したあなたは、以下のスキルを習得しました：</p>
+<p>Having completed this series, you have acquired the following skills:</p>
 <ul>
-<li>✅ Processモニタリングの基礎知識と実装能力</li>
-<li>✅ 統計的Process管理（SPC）の実践スキル</li>
-<li>✅ Machine Learning・Deep Learningによる異常検知</li>
-<li>✅ PIDControlの理論と実装</li>
-<li>✅ リアルタイムMonitoringシステムの構築能力</li>
+<li>✅ Fundamental knowledge and implementation capability in process monitoring</li>
+<li>✅ Practical skills in Statistical Process Control (SPC)</li>
+<li>✅ Anomaly detection using machine learning and deep learning</li>
+<li>✅ Theory and implementation of PID control</li>
+<li>✅ Capability to build real-time monitoring systems</li>
 </ul>
 
-<p><strong>さらなる学習のために:</strong></p>
+<p><strong>For Further Learning:</strong></p>
 <ol>
-<li><strong>モデルPredictionControl（MPC）</strong>: 多変数Controlの高度な手法</li>
-<li><strong>Digital Twin</strong>: Processの仮想モデル構築とPredictionSimulation</li>
-<li><strong>強化学習Control</strong>: AIによる適応的ProcessControl</li>
-<li><strong>ソフトセンサー開発</strong>: Machine Learningによる困難な変数の推定</li>
-<li><strong>クラウド統合</strong>: AWS/Azure/GCPとの連携とビッグデータ minutes析</li>
+<li><strong>Model Predictive Control (MPC)</strong>: Advanced methods for multivariable control</li>
+<li><strong>Digital Twin</strong>: Building virtual process models and predictive simulation</li>
+<li><strong>Reinforcement Learning Control</strong>: Adaptive process control using AI</li>
+<li><strong>Soft Sensor Development</strong>: Estimation of difficult variables using machine learning</li>
+<li><strong>Cloud Integration</strong>: Integration with AWS/Azure/GCP and big data analysis</li>
 </ol>
 
 <div class="navigation">
     <a href="chapter-4.html" class="nav-button">← Previous Chapter</a>
-    <a href="index.html" class="nav-button">Series Contentsに戻る</a>
+    <a href="index.html" class="nav-button">Return to Series Table of Contents</a>
 </div>
 
 <hr />
 
-<h2> Series完了おめでとうございます！</h2>
+<h2>Congratulations on Completing the Series!</h2>
 
-<p>あなたは「Processモニタリング・Control入門 Series v1.0」の全5 Chapterを完了しました。センサーデータの取得から、統計的Process管理、異常検知、PIDControl、そしてリアルタイムMonitoringシステムの構築まで、Processエンジニアリングの包括的な知識とスキルを習得しました。</p>
+<p>You have completed all 5 chapters of the "Introduction to Process Monitoring and Control Series v1.0". From sensor data acquisition to statistical process control, anomaly detection, PID control, and building real-time monitoring systems, you have acquired comprehensive knowledge and skills in process engineering.</p>
 
-<p><strong>この知識を活かして、Next Stepsへ進みましょう：</strong></p>
+<p><strong>Use this knowledge to move on to the next steps:</strong></p>
 <ul>
-<li>✅ 自社Processへの適用を検討する</li>
-<li>✅ 学んだコードをGitHubで公開・共有する</li>
-<li>✅ 実データでソフトセンサーやダッシュボードを構築する</li>
-<li>✅ ProcessControlエンジニアとしてのキャリアを発展させる</li>
+<li>✅ Consider application to your company's processes</li>
+<li>✅ Publish and share learned code on GitHub</li>
+<li>✅ Build soft sensors and dashboards with real data</li>
+<li>✅ Develop your career as a process control engineer</li>
 </ul>
 
-<p><strong>あなたのフィードバックをお待ちしています！</strong><br />
-この Seriesの改善提案、質問、成功事例などがあれば、ぜひお知らせください。</p>
+<p><strong>We look forward to your feedback!</strong><br />
+If you have suggestions for improving this series, questions, or success stories, please let us know.</p>
 
-<p><strong>連絡先</strong>: yusuke.hashimoto.b8@tohoku.ac.jp</p>
+<p><strong>Contact</strong>: yusuke.hashimoto.b8@tohoku.ac.jp</p>
 
     </main>
 
-    
+
     <section class="disclaimer">
-        <h3>免責事項</h3>
+        <h3>Disclaimer</h3>
         <ul>
-            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
-            <li>本コンテンツおよび付随するCode Examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・Safety性等いかなる保証もしません。</li>
-            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・Safety性について、作成者および東北大学は一切の責任を負いません。</li>
-            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
-            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
-            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, or libraries.</li>
+            <li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content are subject to the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
         </ul>
     </section>
 
 <footer>
-        <p><strong>作成者</strong>: PI Knowledge Hub - Dr. Yusuke Hashimoto, Tohoku University</p>
-        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-26</p>
-        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p><strong>Author</strong>: PI Knowledge Hub - Dr. Yusuke Hashimoto, Tohoku University</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-26</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
         <p>&copy; 2025 PI Terakoya. All rights reserved.</p>
     </footer>
 </body>

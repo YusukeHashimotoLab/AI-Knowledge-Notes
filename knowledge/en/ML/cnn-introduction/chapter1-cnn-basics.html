@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 1: CNN Fundamentals & Convolutional Layers - AI Terakoya</title>
+    <title>Chapter 1: Fundamentals of CNN and Convolutional Layers - AI Terakoya</title>
 
     <style>
         :root {
@@ -335,9 +335,9 @@
                 padding: var(--spacing-xs);
             }
         }
-    
-        
-    
+
+
+
         /* Breadcrumb styles */
         .breadcrumb {
             background: #f7fafc;
@@ -408,13 +408,13 @@
 
         <header>
         <div class="header-content">
-            <h1>Chapter 1: CNN Fundamentals & Convolutional Layers</h1>
-            <p class="subtitle">画像認識の革命 - 畳み込みニューラルネットワークの基本原理を理解する</p>
+            <h1>Chapter 1: Fundamentals of CNN and Convolutional Layers</h1>
+            <p class="subtitle">Revolution in Image Recognition - Understanding the Basic Principles of Convolutional Neural Networks</p>
             <div class="meta">
                 <span class="meta-item">📖 Reading Time: 25-30 minutes</span>
                 <span class="meta-item">📊 Difficulty: Beginner to Intermediate</span>
                 <span class="meta-item">💻 Code Examples: 11</span>
-                <span class="meta-item">📝 Exercises: 5問</span>
+                <span class="meta-item">📝 Exercises: 5</span>
             </div>
         </div>
     </header>
@@ -422,117 +422,117 @@
     <main class="container">
 
 <h2>Learning Objectives</h2>
-<p>この ChapterReadことで、以下を習得できます：</p>
+<p>By reading this chapter, you will master the following:</p>
 <ul>
-<li>✅ 画像認識における従来手法の課題とCNNの優位性を理解する</li>
-<li>✅ 畳み込み演算の数学的定義と計算プロセスを習得する</li>
-<li>✅ ストライド、パディング、カーネルサイズの役割を理解する</li>
-<li>✅ 特徴マップと受容野の概念を説明できる</li>
-<li>✅ PyTorchでConv2d層を実装し、パラメータを計算できる</li>
-<li>✅ フィルタの可視化と特徴抽出の仕組みを理解する</li>
+<li>✅ Understand the challenges of traditional image recognition methods and the advantages of CNNs</li>
+<li>✅ Master the mathematical definition and computational process of convolution operations</li>
+<li>✅ Understand the roles of stride, padding, and kernel size</li>
+<li>✅ Explain the concepts of feature maps and receptive fields</li>
+<li>✅ Implement Conv2d layers in PyTorch and calculate parameters</li>
+<li>✅ Understand filter visualization and feature extraction mechanisms</li>
 </ul>
 
 <hr>
 
-<h2>1.1 画像認識の課題とCNNの登場</h2>
+<h2>1.1 Challenges in Image Recognition and the Emergence of CNNs</h2>
 
-<h3>従来の画像認識手法の限界</h3>
+<h3>Limitations of Traditional Image Recognition Methods</h3>
 
-<p><strong>全結合ニューラルネットワーク（Fully Connected Network）</strong>を画像認識に使用する場合、深刻な問題が発生します。</p>
+<p>When using <strong>Fully Connected Networks</strong> for image recognition, serious problems arise.</p>
 
 <blockquote>
-<p>「画像は空間構造を持つ2次元データである。この構造を無視すると、膨大なパラメータと過学習を招く。」</p>
+<p>"Images are two-dimensional data with spatial structure. Ignoring this structure leads to an explosion of parameters and overfitting."</p>
 </blockquote>
 
-<h4>問題1：パラメータ数の爆発</h4>
+<h4>Problem 1: Explosion of Parameter Count</h4>
 
-<p>例えば、224×224ピクセルのカラー画像（RGB）を全結合層に入力する場合：</p>
+<p>For example, when inputting a 224×224 pixel color image (RGB) to a fully connected layer:</p>
 
 <ul>
-<li>入力次元数：$224 \times 224 \times 3 = 150,528$</li>
-<li>隠れ層が1,000ニューロンの場合：$150,528 \times 1,000 = 150,528,000$ パラメータ</li>
-<li>これはChapter 1層だけで1億5千万以上のパラメータ！</li>
+<li>Input dimensions: $224 \times 224 \times 3 = 150,528$</li>
+<li>If hidden layer has 1,000 neurons: $150,528 \times 1,000 = 150,528,000$ parameters</li>
+<li>That's over 150 million parameters in just the first layer!</li>
 </ul>
 
-<h4>問題2：位置不変性の欠如</h4>
+<h4>Problem 2: Lack of Translation Invariance</h4>
 
-<p>全結合層では、画像内のオブジェクトの位置が少し変わるだけで、全く異なる入力として扱われます。</p>
+<p>In fully connected layers, even a slight change in object position within an image is treated as a completely different input.</p>
 
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 
-# 簡単な例：5×5画像で「猫」の特徴（耳）を表現
+# Simple example: Representing "cat" features (ears) in a 5×5 image
 original = np.zeros((5, 5))
-original[0, 1] = 1  # 左耳
-original[0, 3] = 1  # 右耳
-original[2, 2] = 1  # 鼻
+original[0, 1] = 1  # Left ear
+original[0, 3] = 1  # Right ear
+original[2, 2] = 1  # Nose
 
-# 1ピクセル右に移動
+# Shifted 1 pixel to the right
 shifted = np.zeros((5, 5))
-shifted[0, 2] = 1  # 左耳
-shifted[0, 4] = 1  # 右耳
-shifted[2, 3] = 1  # 鼻
+shifted[0, 2] = 1  # Left ear
+shifted[0, 4] = 1  # Right ear
+shifted[2, 3] = 1  # Nose
 
-print("元の画像を平坦化:", original.flatten())
-print("移動後の画像を平坦化:", shifted.flatten())
-print(f"ユークリッド距離: {np.linalg.norm(original.flatten() - shifted.flatten()):.2f}")
+print("Original image flattened:", original.flatten())
+print("Shifted image flattened:", shifted.flatten())
+print(f"Euclidean distance: {np.linalg.norm(original.flatten() - shifted.flatten()):.2f}")
 
-# 全結合層では、この2つは完全に異なる入力として扱われる
-print("\n結論: 全結合層では位置の微小な変化に対応できない")
+# In fully connected layers, these two are treated as completely different inputs
+print("\nConclusion: Fully connected layers cannot handle minor positional changes")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>元の画像を平坦化: [0. 1. 0. 1. 0. 0. 0. 0. 0. 0. 0. 0. 1. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
-移動後の画像を平坦化: [0. 0. 1. 0. 1. 0. 0. 0. 0. 0. 0. 0. 0. 1. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
-ユークリッド距離: 2.45
+<p><strong>Output</strong>:</p>
+<pre><code>Original image flattened: [0. 1. 0. 1. 0. 0. 0. 0. 0. 0. 0. 0. 1. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+Shifted image flattened: [0. 0. 1. 0. 1. 0. 0. 0. 0. 0. 0. 0. 0. 1. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+Euclidean distance: 2.45
 
-結論: 全結合層では位置の微小な変化に対応できない
+Conclusion: Fully connected layers cannot handle minor positional changes
 </code></pre>
 
-<h3>CNNの3つの重要な性質</h3>
+<h3>Three Important Properties of CNNs</h3>
 
-<p><strong>畳み込みニューラルネットワーク（Convolutional Neural Network, CNN）</strong>は、画像の空間構造を活用する以下の性質を持ちます：</p>
+<p><strong>Convolutional Neural Networks (CNNs)</strong> leverage the spatial structure of images with the following properties:</p>
 
 <table>
 <thead>
 <tr>
-<th>性質</th>
-<th>説明</th>
-<th>効果</th>
+<th>Property</th>
+<th>Explanation</th>
+<th>Effect</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>局所接続性</strong></td>
-<td>各ニューロンは入力の小さな領域のみに接続</td>
-<td>パラメータ数の削減</td>
+<td><strong>Local Connectivity</strong></td>
+<td>Each neuron connects only to a small region of the input</td>
+<td>Reduction in parameter count</td>
 </tr>
 <tr>
-<td><strong>重み共有</strong></td>
-<td>同じフィルタを画像全体で使用</td>
-<td>位置不変性の獲得</td>
+<td><strong>Weight Sharing</strong></td>
+<td>Same filter used across the entire image</td>
+<td>Acquisition of translation invariance</td>
 </tr>
 <tr>
-<td><strong>階層的特徴学習</strong></td>
-<td>低Level→高Level特徴を段階的に抽出</td>
-<td>複雑なパターン認識</td>
+<td><strong>Hierarchical Feature Learning</strong></td>
+<td>Progressively extracts low-level to high-level features</td>
+<td>Complex pattern recognition</td>
 </tr>
 </tbody>
 </table>
 
-<h3>CNNの全体構造</h3>
+<h3>Overall Structure of CNNs</h3>
 
 <div class="mermaid">
 graph LR
-    A[入力画像<br/>28×28×1] --> B[Conv層<br/>26×26×32]
-    B --> C[活性化<br/>ReLU]
-    C --> D[プーリング<br/>13×13×32]
-    D --> E[Conv層<br/>11×11×64]
-    E --> F[活性化<br/>ReLU]
-    F --> G[プーリング<br/>5×5×64]
-    G --> H[平坦化<br/>1600]
-    H --> I[全結合層<br/>128]
-    I --> J[出力層<br/>10クラス]
+    A[Input Image<br/>28×28×1] --> B[Conv Layer<br/>26×26×32]
+    B --> C[Activation<br/>ReLU]
+    C --> D[Pooling<br/>13×13×32]
+    D --> E[Conv Layer<br/>11×11×64]
+    E --> F[Activation<br/>ReLU]
+    F --> G[Pooling<br/>5×5×64]
+    G --> H[Flatten<br/>1600]
+    H --> I[FC Layer<br/>128]
+    I --> J[Output Layer<br/>10 classes]
 
     style A fill:#e3f2fd
     style B fill:#fff3e0
@@ -548,33 +548,33 @@ graph LR
 
 <hr>
 
-<h2>1.2 畳み込み演算の基礎</h2>
+<h2>1.2 Fundamentals of Convolution Operations</h2>
 
-<h3>畳み込み演算とは</h3>
+<h3>What is Convolution?</h3>
 
-<p><strong>畳み込み（Convolution）</strong>は、フィルタ（カーネル）を画像上でスライドさせながら、要素ごとの積和演算を行う操作です。</p>
+<p><strong>Convolution</strong> is an operation where a filter (kernel) is slid across an image while performing element-wise multiplication and summation.</p>
 
-<h4>数学的定義</h4>
+<h4>Mathematical Definition</h4>
 
-<p>2次元の離散畳み込みは以下のように定義されます：</p>
+<p>Two-dimensional discrete convolution is defined as follows:</p>
 
 $$
 (I * K)(i, j) = \sum_{m}\sum_{n} I(i+m, j+n) \cdot K(m, n)
 $$
 
-<p>ここで：</p>
+<p>Where:</p>
 <ul>
-<li>$I$: 入力画像（Input）</li>
-<li>$K$: カーネル（Kernel）またはフィルタ（Filter）</li>
-<li>$(i, j)$: 出力位置</li>
-<li>$(m, n)$: カーネル内の位置</li>
+<li>$I$: Input image</li>
+<li>$K$: Kernel or Filter</li>
+<li>$(i, j)$: Output position</li>
+<li>$(m, n)$: Position within kernel</li>
 </ul>
 
-<h4>具体例：3×3カーネルによる畳み込み</h4>
+<h4>Concrete Example: Convolution with 3×3 Kernel</h4>
 
 <pre><code class="language-python">import numpy as np
 
-# 入力画像（5×5）
+# Input image (5×5)
 image = np.array([
     [1, 2, 3, 0, 1],
     [4, 5, 6, 1, 2],
@@ -583,7 +583,7 @@ image = np.array([
     [2, 3, 4, 5, 6]
 ])
 
-# エッジ検出カーネル（3×3）
+# Edge detection kernel (3×3)
 kernel = np.array([
     [-1, -1, -1],
     [-1,  8, -1],
@@ -592,124 +592,124 @@ kernel = np.array([
 
 def manual_convolution(image, kernel):
     """
-    手動で畳み込み演算を実行
+    Manually execute convolution operation
     """
     img_h, img_w = image.shape
     ker_h, ker_w = kernel.shape
 
-    # 出力サイズの計算
+    # Calculate output size
     out_h = img_h - ker_h + 1
     out_w = img_w - ker_w + 1
 
     output = np.zeros((out_h, out_w))
 
-    # 畳み込み演算
+    # Convolution operation
     for i in range(out_h):
         for j in range(out_w):
-            # 画像の部 minutes領域を切り出し
+            # Extract image region
             region = image[i:i+ker_h, j:j+ker_w]
-            # 要素ごとの積の合計
+            # Sum of element-wise products
             output[i, j] = np.sum(region * kernel)
 
     return output
 
-# 畳み込み実行
+# Execute convolution
 result = manual_convolution(image, kernel)
 
-print("入力画像 (5×5):")
+print("Input image (5×5):")
 print(image)
-print("\nカーネル (3×3, エッジ検出):")
+print("\nKernel (3×3, edge detection):")
 print(kernel)
-print("\n出力 (3×3):")
+print("\nOutput (3×3):")
 print(result)
 
-# 詳細な計算例（左上の位置）
-print("\n=== 計算例（位置 [0, 0]）===")
+# Detailed calculation example (top-left position)
+print("\n=== Calculation Example (Position [0, 0]) ===")
 region = image[0:3, 0:3]
-print("画像の部 minutes領域:")
+print("Image region:")
 print(region)
-print("\nカーネル:")
+print("\nKernel:")
 print(kernel)
-print("\n要素ごとの積:")
+print("\nElement-wise product:")
 print(region * kernel)
-print(f"\n合計: {np.sum(region * kernel)}")
+print(f"\nSum: {np.sum(region * kernel)}")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>入力画像 (5×5):
+<p><strong>Output</strong>:</p>
+<pre><code>Input image (5×5):
 [[1 2 3 0 1]
  [4 5 6 1 2]
  [7 8 9 2 3]
  [1 2 3 4 5]
  [2 3 4 5 6]]
 
-カーネル (3×3, エッジ検出):
+Kernel (3×3, edge detection):
 [[-1 -1 -1]
  [-1  8 -1]
  [-1 -1 -1]]
 
-出力 (3×3):
+Output (3×3):
 [[-13. -15. -12.]
  [ -8.  -9.  -6.]
  [ -5.  -6.   0.]]
 
-=== 計算例（位置 [0, 0]）===
-画像の部 minutes領域:
+=== Calculation Example (Position [0, 0]) ===
+Image region:
 [[1 2 3]
  [4 5 6]
  [7 8 9]]
 
-カーネル:
+Kernel:
 [[-1 -1 -1]
  [-1  8 -1]
  [-1 -1 -1]]
 
-要素ごとの積:
+Element-wise product:
 [[-1 -2 -3]
  [-4 40 -6]
  [-7 -8 -9]]
 
-合計: -13
+Sum: -13
 </code></pre>
 
-<h3>フィルタとカーネル</h3>
+<h3>Filters and Kernels</h3>
 
-<p><strong>カーネル（Kernel）</strong>と<strong>フィルタ（Filter）</strong>は、多くの場合同じ意味で使われますが、厳密には：</p>
+<p><strong>Kernel</strong> and <strong>Filter</strong> are often used interchangeably, but strictly speaking:</p>
 
 <ul>
-<li><strong>カーネル</strong>: 2次元の重み配列（例：3×3行列）</li>
-<li><strong>フィルタ</strong>: 全チャネルにわたるカーネルの集合（例：3×3×3のRGB画像用フィルタ）</li>
+<li><strong>Kernel</strong>: A 2D weight array (e.g., 3×3 matrix)</li>
+<li><strong>Filter</strong>: A collection of kernels across all channels (e.g., 3×3×3 filter for RGB images)</li>
 </ul>
 
-<h4>代表的なカーネルの例</h4>
+<h4>Examples of Representative Kernels</h4>
 
 <pre><code class="language-python">import matplotlib.pyplot as plt
 from scipy import signal
 
-# 各種カーネルの定義
+# Define various kernels
 kernels = {
-    "恒等変換": np.array([[0, 0, 0],
+    "Identity": np.array([[0, 0, 0],
                        [0, 1, 0],
                        [0, 0, 0]]),
 
-    "エッジ検出（縦）": np.array([[-1, 0, 1],
+    "Edge Detection (Vertical)": np.array([[-1, 0, 1],
                               [-2, 0, 2],
-                              [-1, 0, 1]]),  # Sobelフィルタ
+                              [-1, 0, 1]]),  # Sobel filter
 
-    "エッジ検出（横）": np.array([[-1, -2, -1],
+    "Edge Detection (Horizontal)": np.array([[-1, -2, -1],
                               [ 0,  0,  0],
                               [ 1,  2,  1]]),
 
-    "平滑化（blur）": np.array([[1, 1, 1],
+    "Smoothing (blur)": np.array([[1, 1, 1],
                             [1, 1, 1],
                             [1, 1, 1]]) / 9,
 
-    "シャープ化": np.array([[ 0, -1,  0],
+    "Sharpening": np.array([[ 0, -1,  0],
                          [-1,  5, -1],
                          [ 0, -1,  0]])
 }
 
-# テスト画像（簡単なパターン）
+# Test image (simple pattern)
 test_image = np.array([
     [0, 0, 0, 0, 0, 0, 0],
     [0, 255, 255, 255, 255, 0, 0],
@@ -719,12 +719,12 @@ test_image = np.array([
     [0, 0, 0, 0, 0, 0, 0]
 ], dtype=float)
 
-# 各カーネルの効果を可視化
+# Visualize effects of each kernel
 fig, axes = plt.subplots(2, 3, figsize=(12, 8))
 axes = axes.flatten()
 
 axes[0].imshow(test_image, cmap='gray')
-axes[0].set_title('元画像')
+axes[0].set_title('Original Image')
 axes[0].axis('off')
 
 for idx, (name, kernel) in enumerate(kernels.items(), 1):
@@ -734,247 +734,247 @@ for idx, (name, kernel) in enumerate(kernels.items(), 1):
     axes[idx].axis('off')
 
 plt.tight_layout()
-print("カーネルの効果を可視化しました")
+print("Visualized kernel effects")
 </code></pre>
 
-<h3>ストライドとパディング</h3>
+<h3>Stride and Padding</h3>
 
-<h4>ストライド（Stride）</h4>
+<h4>Stride</h4>
 
-<p><strong>ストライド</strong>は、カーネルを移動させる際のステップ幅です。</p>
+<p><strong>Stride</strong> is the step size when moving the kernel.</p>
 
 <ul>
-<li>ストライド = 1: カーネルを1ピクセルずつ移動（標準）</li>
-<li>ストライド = 2: カーネルを2ピクセルずつ移動（出力サイズが半 minutesに）</li>
+<li>Stride = 1: Kernel moves 1 pixel at a time (standard)</li>
+<li>Stride = 2: Kernel moves 2 pixels at a time (output size halved)</li>
 </ul>
 
-<p>出力サイズの計算式：</p>
+<p>Output size calculation formula:</p>
 
 $$
-\text{出力サイズ} = \left\lfloor \frac{\text{入力サイズ} - \text{カーネルサイズ}}{\text{ストライド}} \right\rfloor + 1
+\text{Output Size} = \left\lfloor \frac{\text{Input Size} - \text{Kernel Size}}{\text{Stride}} \right\rfloor + 1
 $$
 
-<h4>パディング（Padding）</h4>
+<h4>Padding</h4>
 
-<p><strong>パディング</strong>は、入力画像の周囲に値（通常は0）を追加する操作です。</p>
+<p><strong>Padding</strong> is the operation of adding values (typically 0) around the input image.</p>
 
 <table>
 <thead>
 <tr>
-<th>パディングの種類</th>
-<th>説明</th>
-<th>用途</th>
+<th>Padding Type</th>
+<th>Explanation</th>
+<th>Use Case</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><strong>Valid</strong></td>
-<td>パディングなし</td>
-<td>出力サイズを縮小したい場合</td>
+<td>No padding</td>
+<td>When reducing output size</td>
 </tr>
 <tr>
 <td><strong>Same</strong></td>
-<td>出力サイズ = 入力サイズになるように調整</td>
-<td>空間サイズを維持したい場合</td>
+<td>Adjusted so output size = input size</td>
+<td>When maintaining spatial size</td>
 </tr>
 <tr>
 <td><strong>Full</strong></td>
-<td>カーネル全体が画像と重なるように</td>
-<td>境界情報を最大限利用したい場合</td>
+<td>So that entire kernel overlaps with image</td>
+<td>When maximizing use of boundary information</td>
 </tr>
 </tbody>
 </table>
 
-<p>Sameパディングのパディング量の計算：</p>
+<p>Padding amount calculation for Same padding:</p>
 
 $$
-\text{パディング} = \frac{\text{カーネルサイズ} - 1}{2}
+\text{Padding} = \frac{\text{Kernel Size} - 1}{2}
 $$
 
 <pre><code class="language-python">def calculate_output_size(input_size, kernel_size, stride, padding):
     """
-    畳み込み演算後の出力サイズを計算
+    Calculate output size after convolution operation
 
     Parameters:
     -----------
     input_size : int
-        入力の高さまたは幅
+        Input height or width
     kernel_size : int
-        カーネルの高さまたは幅
+        Kernel height or width
     stride : int
-        ストライド
+        Stride
     padding : int
-        パディング量
+        Padding amount
 
     Returns:
     --------
-    int : 出力サイズ
+    int : Output size
     """
     return (input_size + 2 * padding - kernel_size) // stride + 1
 
-# 様々な設定での出力サイズを計算
-print("=== 出力サイズの計算例 ===\n")
+# Calculate output sizes for various configurations
+print("=== Output Size Calculation Examples ===\n")
 
 configurations = [
-    (28, 3, 1, 0, "Valid（パディングなし）"),
-    (28, 3, 1, 1, "Same（サイズ維持）"),
-    (28, 5, 2, 2, "ストライド2、パディング2"),
-    (32, 3, 1, 1, "32×32画像、3×3カーネル"),
+    (28, 3, 1, 0, "Valid (no padding)"),
+    (28, 3, 1, 1, "Same (maintain size)"),
+    (28, 5, 2, 2, "Stride 2, Padding 2"),
+    (32, 3, 1, 1, "32×32 image, 3×3 kernel"),
 ]
 
 for input_size, kernel_size, stride, padding, description in configurations:
     output_size = calculate_output_size(input_size, kernel_size, stride, padding)
     print(f"{description}")
-    print(f"  入力: {input_size}×{input_size}")
-    print(f"  カーネル: {kernel_size}×{kernel_size}, ストライド: {stride}, パディング: {padding}")
-    print(f"  → 出力: {output_size}×{output_size}\n")
+    print(f"  Input: {input_size}×{input_size}")
+    print(f"  Kernel: {kernel_size}×{kernel_size}, Stride: {stride}, Padding: {padding}")
+    print(f"  → Output: {output_size}×{output_size}\n")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>=== 出力サイズの計算例 ===
+<p><strong>Output</strong>:</p>
+<pre><code>=== Output Size Calculation Examples ===
 
-Valid（パディングなし）
-  入力: 28×28
-  カーネル: 3×3, ストライド: 1, パディング: 0
-  → 出力: 26×26
+Valid (no padding)
+  Input: 28×28
+  Kernel: 3×3, Stride: 1, Padding: 0
+  → Output: 26×26
 
-Same（サイズ維持）
-  入力: 28×28
-  カーネル: 3×3, ストライド: 1, パディング: 1
-  → 出力: 28×28
+Same (maintain size)
+  Input: 28×28
+  Kernel: 3×3, Stride: 1, Padding: 1
+  → Output: 28×28
 
-ストライド2、パディング2
-  入力: 28×28
-  カーネル: 5×5, ストライド: 2, パディング: 2
-  → 出力: 14×14
+Stride 2, Padding 2
+  Input: 28×28
+  Kernel: 5×5, Stride: 2, Padding: 2
+  → Output: 14×14
 
-32×32画像、3×3カーネル
-  入力: 32×32
-  カーネル: 3×3, ストライド: 1, パディング: 1
-  → 出力: 32×32
+32×32 image, 3×3 kernel
+  Input: 32×32
+  Kernel: 3×3, Stride: 1, Padding: 1
+  → Output: 32×32
 </code></pre>
 
 <hr>
 
-<h2>1.3 特徴マップと受容野</h2>
+<h2>1.3 Feature Maps and Receptive Fields</h2>
 
-<h3>特徴マップ（Feature Map）</h3>
+<h3>Feature Maps</h3>
 
-<p><strong>特徴マップ</strong>は、畳み込み演算の出力結果です。各フィルタは異なる特徴（エッジ、テクスチャなど）を検出し、それぞれの特徴マップを生成します。</p>
+<p><strong>Feature maps</strong> are the output results of convolution operations. Each filter detects different features (edges, textures, etc.) and generates respective feature maps.</p>
 
 <ul>
-<li>入力チャネル数 = $C_{in}$</li>
-<li>出力チャネル数 = $C_{out}$（フィルタ数）</li>
-<li>各フィルタのサイズ = $K \times K \times C_{in}$</li>
+<li>Number of input channels = $C_{in}$</li>
+<li>Number of output channels = $C_{out}$ (number of filters)</li>
+<li>Size of each filter = $K \times K \times C_{in}$</li>
 </ul>
 
-<h4>多チャネル畳み込みの計算</h4>
+<h4>Multi-Channel Convolution Calculation</h4>
 
-<p>カラー画像（RGB、3チャネル）の場合：</p>
+<p>For color images (RGB, 3 channels):</p>
 
 $$
-\text{出力}(i, j) = \sum_{c=1}^{3} \sum_{m}\sum_{n} I_c(i+m, j+n) \cdot K_c(m, n) + b
+\text{Output}(i, j) = \sum_{c=1}^{3} \sum_{m}\sum_{n} I_c(i+m, j+n) \cdot K_c(m, n) + b
 $$
 
-<p>ここで $b$ はバイアス項です。</p>
+<p>Where $b$ is the bias term.</p>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
-# RGB画像（バッチサイズ1、3チャネル、28×28）
+# RGB image (batch size 1, 3 channels, 28×28)
 input_image = torch.randn(1, 3, 28, 28)
 
-# 畳み込み層の定義
-# 入力: 3チャネル（RGB）
-# 出力: 16チャネル（16の特徴マップ）
-# カーネルサイズ: 3×3
+# Define convolutional layer
+# Input: 3 channels (RGB)
+# Output: 16 channels (16 feature maps)
+# Kernel size: 3×3
 conv_layer = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, padding=1)
 
-# 順伝播
+# Forward pass
 output = conv_layer(input_image)
 
-print(f"入力サイズ: {input_image.shape}")
-print(f"  → [バッチ, チャネル, 高さ, 幅] = [1, 3, 28, 28]")
-print(f"\n畳み込み層のパラメータ:")
-print(f"  入力チャネル: 3")
-print(f"  出力チャネル: 16")
-print(f"  カーネルサイズ: 3×3")
-print(f"  パディング: 1 (Sameパディング)")
-print(f"\n出力サイズ: {output.shape}")
-print(f"  → [バッチ, チャネル, 高さ, 幅] = [1, 16, 28, 28]")
+print(f"Input size: {input_image.shape}")
+print(f"  → [Batch, Channel, Height, Width] = [1, 3, 28, 28]")
+print(f"\nConvolutional layer parameters:")
+print(f"  Input channels: 3")
+print(f"  Output channels: 16")
+print(f"  Kernel size: 3×3")
+print(f"  Padding: 1 (Same padding)")
+print(f"\nOutput size: {output.shape}")
+print(f"  → [Batch, Channel, Height, Width] = [1, 16, 28, 28]")
 
-# パラメータ数の計算
+# Calculate parameter count
 weight_params = 3 * 16 * 3 * 3  # in_ch × out_ch × k_h × k_w
-bias_params = 16  # 各出力チャネルに1つ
+bias_params = 16  # One per output channel
 total_params = weight_params + bias_params
 
-print(f"\nパラメータ数:")
-print(f"  重み: {weight_params:,} (= 3 × 16 × 3 × 3)")
-print(f"  バイアス: {bias_params}")
-print(f"  合計: {total_params:,}")
+print(f"\nParameter count:")
+print(f"  Weights: {weight_params:,} (= 3 × 16 × 3 × 3)")
+print(f"  Bias: {bias_params}")
+print(f"  Total: {total_params:,}")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>入力サイズ: torch.Size([1, 3, 28, 28])
-  → [バッチ, チャネル, 高さ, 幅] = [1, 3, 28, 28]
+<p><strong>Output</strong>:</p>
+<pre><code>Input size: torch.Size([1, 3, 28, 28])
+  → [Batch, Channel, Height, Width] = [1, 3, 28, 28]
 
-畳み込み層のパラメータ:
-  入力チャネル: 3
-  出力チャネル: 16
-  カーネルサイズ: 3×3
-  パディング: 1 (Sameパディング)
+Convolutional layer parameters:
+  Input channels: 3
+  Output channels: 16
+  Kernel size: 3×3
+  Padding: 1 (Same padding)
 
-出力サイズ: torch.Size([1, 16, 28, 28])
-  → [バッチ, チャネル, 高さ, 幅] = [1, 16, 28, 28]
+Output size: torch.Size([1, 16, 28, 28])
+  → [Batch, Channel, Height, Width] = [1, 16, 28, 28]
 
-パラメータ数:
-  重み: 432 (= 3 × 16 × 3 × 3)
-  バイアス: 16
-  合計: 448
+Parameter count:
+  Weights: 432 (= 3 × 16 × 3 × 3)
+  Bias: 16
+  Total: 448
 </code></pre>
 
-<h3>受容野（Receptive Field）</h3>
+<h3>Receptive Field</h3>
 
-<p><strong>受容野</strong>は、ある出力ニューロンが「見ている」入力画像の領域です。CNNでは層を重ねるごとに受容野が拡大します。</p>
+<p>The <strong>receptive field</strong> is the region of the input image that a particular output neuron "sees". In CNNs, the receptive field expands as layers are stacked.</p>
 
-<h4>受容野のサイズ計算</h4>
+<h4>Receptive Field Size Calculation</h4>
 
-<p>受容野サイズ $R$ の計算式（ストライド1、パディングありの場合）：</p>
+<p>Receptive field size $R$ calculation formula (with stride 1 and padding):</p>
 
 $$
 R_l = R_{l-1} + (K_l - 1)
 $$
 
-<p>ここで：</p>
+<p>Where:</p>
 <ul>
-<li>$R_l$: Chapter  $l$ 層の受容野サイズ</li>
-<li>$K_l$: Chapter  $l$ 層のカーネルサイズ</li>
-<li>$R_0 = 1$（入力層）</li>
+<li>$R_l$: Receptive field size at layer $l$</li>
+<li>$K_l$: Kernel size at layer $l$</li>
+<li>$R_0 = 1$ (input layer)</li>
 </ul>
 
 <pre><code class="language-python">def calculate_receptive_field(layers_info):
     """
-    CNNの受容野サイズを計算
+    Calculate CNN receptive field size
 
     Parameters:
     -----------
     layers_info : list of tuples
-        各層の (カーネルサイズ, ストライド) のリスト
+        List of (kernel_size, stride) for each layer
 
     Returns:
     --------
-    list : 各層の受容野サイズ
+    list : Receptive field size for each layer
     """
-    receptive_fields = [1]  # 入力層
+    receptive_fields = [1]  # Input layer
 
     for kernel_size, stride in layers_info:
-        # 簡略化した計算（ストライド1の場合）
+        # Simplified calculation (for stride 1)
         rf = receptive_fields[-1] + (kernel_size - 1)
         receptive_fields.append(rf)
 
     return receptive_fields
 
-# VGG風のネットワーク構成
+# VGG-style network configuration
 vgg_layers = [
     (3, 1),  # Conv1
     (3, 1),  # Conv2
@@ -986,10 +986,10 @@ vgg_layers = [
 
 receptive_fields = calculate_receptive_field(vgg_layers)
 
-print("=== 受容野の拡大過程 ===\n")
-print("層                受容野サイズ")
+print("=== Receptive Field Expansion Process ===\n")
+print("Layer                Receptive Field Size")
 print("-" * 35)
-print(f"入力層            {receptive_fields[0]}×{receptive_fields[0]}")
+print(f"Input layer            {receptive_fields[0]}×{receptive_fields[0]}")
 
 layer_names = ["Conv1 (3×3)", "Conv2 (3×3)", "MaxPool (2×2)",
                "Conv3 (3×3)", "Conv4 (3×3)", "MaxPool (2×2)"]
@@ -997,15 +997,15 @@ layer_names = ["Conv1 (3×3)", "Conv2 (3×3)", "MaxPool (2×2)",
 for i, name in enumerate(layer_names, 1):
     print(f"{name:18}{receptive_fields[i]:2}×{receptive_fields[i]:2}")
 
-print(f"\n最終的な受容野: {receptive_fields[-1]}×{receptive_fields[-1]} ピクセル")
+print(f"\nFinal receptive field: {receptive_fields[-1]}×{receptive_fields[-1]} pixels")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>=== 受容野の拡大過程 ===
+<p><strong>Output</strong>:</p>
+<pre><code>=== Receptive Field Expansion Process ===
 
-層                受容野サイズ
+Layer                Receptive Field Size
 -----------------------------------
-入力層             1×1
+Input layer             1×1
 Conv1 (3×3)        3×3
 Conv2 (3×3)        5×5
 MaxPool (2×2)      6×6
@@ -1013,14 +1013,14 @@ Conv3 (3×3)        8×8
 Conv4 (3×3)       10×10
 MaxPool (2×2)     11×11
 
-最終的な受容野: 11×11 ピクセル
+Final receptive field: 11×11 pixels
 </code></pre>
 
-<h4>受容野の可視化</h4>
+<h4>Receptive Field Visualization</h4>
 
 <div class="mermaid">
 graph TD
-    subgraph "入力画像"
+    subgraph "Input Image"
     A1[" "]
     A2[" "]
     A3[" "]
@@ -1028,16 +1028,16 @@ graph TD
     A5[" "]
     end
 
-    subgraph "Conv1: 3×3カーネル"
-    B1[受容野: 3×3]
+    subgraph "Conv1: 3×3 Kernel"
+    B1[Receptive field: 3×3]
     end
 
-    subgraph "Conv2: 3×3カーネル"
-    C1[受容野: 5×5]
+    subgraph "Conv2: 3×3 Kernel"
+    C1[Receptive field: 5×5]
     end
 
-    subgraph "Conv3: 3×3カーネル"
-    D1[受容野: 7×7]
+    subgraph "Conv3: 3×3 Kernel"
+    D1[Receptive field: 7×7]
     end
 
     A1 --> B1
@@ -1052,93 +1052,93 @@ graph TD
 </div>
 
 <blockquote>
-<p><strong>重要</strong>: 深いネットワークほど大きな受容野を持ち、広範囲の情報を統合できます。これが深層学習の強力な特徴抽出能力の源泉です。</p>
+<p><strong>Important</strong>: Deeper networks have larger receptive fields and can integrate information from wider areas. This is the source of deep learning's powerful feature extraction capability.</p>
 </blockquote>
 
 <hr>
 
-<h2>1.4 PyTorchでの畳み込み層の実装</h2>
+<h2>1.4 Implementing Convolutional Layers in PyTorch</h2>
 
-<h3>Conv2dの基本的な使い方</h3>
+<h3>Basic Usage of Conv2d</h3>
 
-<p>PyTorchでは<code>torch.nn.Conv2d</code>クラスを使用して畳み込み層を定義します。</p>
+<p>In PyTorch, we use the <code>torch.nn.Conv2d</code> class to define convolutional layers.</p>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
-# Conv2dの基本構文
+# Basic Conv2d syntax
 conv = nn.Conv2d(
-    in_channels=3,      # 入力チャネル数（RGBなら3）
-    out_channels=64,    # 出力チャネル数（フィルタ数）
-    kernel_size=3,      # カーネルサイズ（3×3）
-    stride=1,           # ストライド
-    padding=1,          # パディング
-    bias=True           # バイアス項を使用するか
+    in_channels=3,      # Number of input channels (3 for RGB)
+    out_channels=64,    # Number of output channels (number of filters)
+    kernel_size=3,      # Kernel size (3×3)
+    stride=1,           # Stride
+    padding=1,          # Padding
+    bias=True           # Whether to use bias term
 )
 
-# ダミー入力（バッチサイズ8、RGB画像、224×224）
+# Dummy input (batch size 8, RGB image, 224×224)
 x = torch.randn(8, 3, 224, 224)
 
-# 順伝播
+# Forward pass
 output = conv(x)
 
-print("=== Conv2dの動作確認 ===\n")
-print(f"入力サイズ: {x.shape}")
-print(f"  [バッチ, チャネル, 高さ, 幅] = [{x.shape[0]}, {x.shape[1]}, {x.shape[2]}, {x.shape[3]}]")
-print(f"\n出力サイズ: {output.shape}")
-print(f"  [バッチ, チャネル, 高さ, 幅] = [{output.shape[0]}, {output.shape[1]}, {output.shape[2]}, {output.shape[3]}]")
+print("=== Conv2d Operation Verification ===\n")
+print(f"Input size: {x.shape}")
+print(f"  [Batch, Channel, Height, Width] = [{x.shape[0]}, {x.shape[1]}, {x.shape[2]}, {x.shape[3]}]")
+print(f"\nOutput size: {output.shape}")
+print(f"  [Batch, Channel, Height, Width] = [{output.shape[0]}, {output.shape[1]}, {output.shape[2]}, {output.shape[3]}]")
 
-# パラメータの詳細
-print(f"\nパラメータ詳細:")
-print(f"  重みのサイズ: {conv.weight.shape}")
-print(f"  → [出力ch, 入力ch, 高さ, 幅] = [{conv.weight.shape[0]}, {conv.weight.shape[1]}, {conv.weight.shape[2]}, {conv.weight.shape[3]}]")
-print(f"  バイアスのサイズ: {conv.bias.shape}")
-print(f"  → [出力ch] = [{conv.bias.shape[0]}]")
+# Parameter details
+print(f"\nParameter details:")
+print(f"  Weight size: {conv.weight.shape}")
+print(f"  → [Output ch, Input ch, Height, Width] = [{conv.weight.shape[0]}, {conv.weight.shape[1]}, {conv.weight.shape[2]}, {conv.weight.shape[3]}]")
+print(f"  Bias size: {conv.bias.shape}")
+print(f"  → [Output ch] = [{conv.bias.shape[0]}]")
 
-# パラメータ数
+# Parameter count
 total_params = conv.weight.numel() + conv.bias.numel()
-print(f"\n総パラメータ数: {total_params:,}")
-print(f"  計算式: (3 × 64 × 3 × 3) + 64 = {total_params:,}")
+print(f"\nTotal parameter count: {total_params:,}")
+print(f"  Formula: (3 × 64 × 3 × 3) + 64 = {total_params:,}")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>=== Conv2dの動作確認 ===
+<p><strong>Output</strong>:</p>
+<pre><code>=== Conv2d Operation Verification ===
 
-入力サイズ: torch.Size([8, 3, 224, 224])
-  [バッチ, チャネル, 高さ, 幅] = [8, 3, 224, 224]
+Input size: torch.Size([8, 3, 224, 224])
+  [Batch, Channel, Height, Width] = [8, 3, 224, 224]
 
-出力サイズ: torch.Size([8, 64, 224, 224])
-  [バッチ, チャネル, 高さ, 幅] = [8, 64, 224, 224]
+Output size: torch.Size([8, 64, 224, 224])
+  [Batch, Channel, Height, Width] = [8, 64, 224, 224]
 
-パラメータ詳細:
-  重みのサイズ: torch.Size([64, 3, 3, 3])
-  → [出力ch, 入力ch, 高さ, 幅] = [64, 3, 3, 3]
-  バイアスのサイズ: torch.Size([64])
-  → [出力ch] = [64]
+Parameter details:
+  Weight size: torch.Size([64, 3, 3, 3])
+  → [Output ch, Input ch, Height, Width] = [64, 3, 3, 3]
+  Bias size: torch.Size([64])
+  → [Output ch] = [64]
 
-総パラメータ数: 1,792
-  計算式: (3 × 64 × 3 × 3) + 64 = 1,792
+Total parameter count: 1,792
+  Formula: (3 × 64 × 3 × 3) + 64 = 1,792
 </code></pre>
 
-<h3>パラメータ数の計算式</h3>
+<h3>Parameter Count Calculation Formula</h3>
 
-<p>畳み込み層のパラメータ数は以下の式で計算されます：</p>
+<p>The parameter count for convolutional layers is calculated by the following formula:</p>
 
 $$
-\text{パラメータ数} = (C_{in} \times K_h \times K_w \times C_{out}) + C_{out}
+\text{Parameter Count} = (C_{in} \times K_h \times K_w \times C_{out}) + C_{out}
 $$
 
-<p>ここで：</p>
+<p>Where:</p>
 <ul>
-<li>$C_{in}$: 入力チャネル数</li>
-<li>$C_{out}$: 出力チャネル数（フィルタ数）</li>
-<li>$K_h, K_w$: カーネルの高さと幅</li>
-<li>最後の $C_{out}$ はバイアス項</li>
+<li>$C_{in}$: Number of input channels</li>
+<li>$C_{out}$: Number of output channels (number of filters)</li>
+<li>$K_h, K_w$: Kernel height and width</li>
+<li>The last $C_{out}$ is for bias terms</li>
 </ul>
 
 <pre><code class="language-python">def calculate_conv_params(in_channels, out_channels, kernel_size, bias=True):
     """
-    畳み込み層のパラメータ数を計算
+    Calculate parameter count for convolutional layer
     """
     if isinstance(kernel_size, int):
         kernel_h = kernel_w = kernel_size
@@ -1150,119 +1150,119 @@ $$
 
     return weight_params + bias_params
 
-# 様々な設定でのパラメータ数を計算
-print("=== 畳み込み層のパラメータ数比較 ===\n")
+# Calculate parameter counts for various configurations
+print("=== Convolutional Layer Parameter Count Comparison ===\n")
 
 configs = [
-    (3, 32, 3, "Chapter 1層（RGB → 32チャネル）"),
-    (32, 64, 3, "Chapter 2層（32 → 64チャネル）"),
-    (64, 128, 3, "Chapter 3層（64 → 128チャネル）"),
-    (128, 256, 3, "Chapter 4層（128 → 256チャネル）"),
-    (3, 64, 7, "大きなカーネル（7×7）"),
-    (512, 512, 3, "深い層（512 → 512チャネル）"),
+    (3, 32, 3, "Layer 1 (RGB → 32 channels)"),
+    (32, 64, 3, "Layer 2 (32 → 64 channels)"),
+    (64, 128, 3, "Layer 3 (64 → 128 channels)"),
+    (128, 256, 3, "Layer 4 (128 → 256 channels)"),
+    (3, 64, 7, "Large kernel (7×7)"),
+    (512, 512, 3, "Deep layer (512 → 512 channels)"),
 ]
 
 for in_ch, out_ch, k_size, description in configs:
     params = calculate_conv_params(in_ch, out_ch, k_size)
     print(f"{description}")
-    print(f"  設定: {in_ch}ch → {out_ch}ch, カーネル{k_size}×{k_size}")
-    print(f"  パラメータ数: {params:,}\n")
+    print(f"  Configuration: {in_ch}ch → {out_ch}ch, Kernel{k_size}×{k_size}")
+    print(f"  Parameter count: {params:,}\n")
 
-# 全結合層との比較
-print("=== 全結合層との比較 ===\n")
+# Comparison with fully connected layer
+print("=== Comparison with Fully Connected Layer ===\n")
 fc_input = 224 * 224 * 3
 fc_output = 1000
 fc_params = fc_input * fc_output + fc_output
 
-print(f"全結合層（224×224×3 → 1000）:")
-print(f"  パラメータ数: {fc_params:,}")
+print(f"Fully connected layer (224×224×3 → 1000):")
+print(f"  Parameter count: {fc_params:,}")
 
 conv_params = calculate_conv_params(3, 64, 3)
-print(f"\n畳み込み層（3ch → 64ch, 3×3）:")
-print(f"  パラメータ数: {conv_params:,}")
-print(f"\n削減率: {(1 - conv_params/fc_params)*100:.2f}%")
+print(f"\nConvolutional layer (3ch → 64ch, 3×3):")
+print(f"  Parameter count: {conv_params:,}")
+print(f"\nReduction rate: {(1 - conv_params/fc_params)*100:.2f}%")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>=== 畳み込み層のパラメータ数比較 ===
+<p><strong>Output</strong>:</p>
+<pre><code>=== Convolutional Layer Parameter Count Comparison ===
 
-Chapter 1層（RGB → 32チャネル）
-  設定: 3ch → 32ch, カーネル3×3
-  パラメータ数: 896
+Layer 1 (RGB → 32 channels)
+  Configuration: 3ch → 32ch, Kernel3×3
+  Parameter count: 896
 
-Chapter 2層（32 → 64チャネル）
-  設定: 32ch → 64ch, カーネル3×3
-  パラメータ数: 18,496
+Layer 2 (32 → 64 channels)
+  Configuration: 32ch → 64ch, Kernel3×3
+  Parameter count: 18,496
 
-Chapter 3層（64 → 128チャネル）
-  設定: 64ch → 128ch, カーネル3×3
-  パラメータ数: 73,856
+Layer 3 (64 → 128 channels)
+  Configuration: 64ch → 128ch, Kernel3×3
+  Parameter count: 73,856
 
-Chapter 4層（128 → 256チャネル）
-  設定: 128ch → 256ch, カーネル3×3
-  パラメータ数: 295,168
+Layer 4 (128 → 256 channels)
+  Configuration: 128ch → 256ch, Kernel3×3
+  Parameter count: 295,168
 
-大きなカーネル（7×7）
-  設定: 3ch → 64ch, カーネル7×7
-  パラメータ数: 9,472
+Large kernel (7×7)
+  Configuration: 3ch → 64ch, Kernel7×7
+  Parameter count: 9,472
 
-深い層（512 → 512チャネル）
-  設定: 512ch → 512ch, カーネル3×3
-  パラメータ数: 2,359,808
+Deep layer (512 → 512 channels)
+  Configuration: 512ch → 512ch, Kernel3×3
+  Parameter count: 2,359,808
 
-=== 全結合層との比較 ===
+=== Comparison with Fully Connected Layer ===
 
-全結合層（224×224×3 → 1000）:
-  パラメータ数: 150,529,000
+Fully connected layer (224×224×3 → 1000):
+  Parameter count: 150,529,000
 
-畳み込み層（3ch → 64ch, 3×3）:
-  パラメータ数: 1,792
+Convolutional layer (3ch → 64ch, 3×3):
+  Parameter count: 1,792
 
-削減率: 100.00%
+Reduction rate: 100.00%
 </code></pre>
 
-<h3>畳み込みフィルタの可視化</h3>
+<h3>Convolutional Filter Visualization</h3>
 
 <pre><code class="language-python">import matplotlib.pyplot as plt
 import torch.nn as nn
 
-# 畳み込み層を定義
+# Define convolutional layer
 conv_layer = nn.Conv2d(1, 8, kernel_size=3, padding=1)
 
-# 学習済みのフィルタを可視化（ここではランダム初期値）
+# Visualize trained filters (here using random initialization)
 filters = conv_layer.weight.data.cpu().numpy()
 
-# 8のフィルタを2行4列で表示
+# Display 8 filters in 2 rows × 4 columns
 fig, axes = plt.subplots(2, 4, figsize=(12, 6))
 axes = axes.flatten()
 
 for i in range(8):
-    # filters[i, 0]はChapter i番目のフィルタ（1チャネル目）
+    # filters[i, 0] is the i-th filter (1st channel)
     axes[i].imshow(filters[i, 0], cmap='gray')
-    axes[i].set_title(f'フィルタ {i+1}')
+    axes[i].set_title(f'Filter {i+1}')
     axes[i].axis('off')
 
-plt.suptitle('畳み込みフィルタの可視化（3×3カーネル）', fontsize=16)
+plt.suptitle('Convolutional Filter Visualization (3×3 kernel)', fontsize=16)
 plt.tight_layout()
-print("フィルタを可視化しました（ランダム初期値）")
-print("学習後は、エッジ検出やテクスチャ検出などの特徴を持つフィルタに変化します")
+print("Visualized filters (random initialization)")
+print("After training, filters evolve to have features like edge detection and texture detection")
 </code></pre>
 
 <hr>
 
-<h2>1.5 活性化関数：ReLU</h2>
+<h2>1.5 Activation Function: ReLU</h2>
 
-<h3>なぜ活性化関数が必要か</h3>
+<h3>Why Activation Functions Are Needed</h3>
 
-<p>畳み込み演算は線形変換です。活性化関数を使わないと、複数の層を重ねても単なる線形変換の組み合わせになり、複雑なパターンを学習できません。</p>
+<p>Convolution operations are linear transformations. Without activation functions, stacking multiple layers would simply be a combination of linear transformations, unable to learn complex patterns.</p>
 
 <blockquote>
-<p>活性化関数は<strong>非線形性</strong>を導入し、ネットワークに複雑な関数を近似する能力を与えます。</p>
+<p>Activation functions introduce <strong>non-linearity</strong>, giving the network the ability to approximate complex functions.</p>
 </blockquote>
 
-<h3>ReLU（Rectified Linear Unit）</h3>
+<h3>ReLU (Rectified Linear Unit)</h3>
 
-<p>CNNで最も一般的に使用される活性化関数は<strong>ReLU</strong>です。</p>
+<p>The most commonly used activation function in CNNs is <strong>ReLU</strong>.</p>
 
 $$
 \text{ReLU}(x) = \max(0, x) = \begin{cases}
@@ -1271,31 +1271,31 @@ x & \text{if } x > 0 \\
 \end{cases}
 $$
 
-<h4>ReLUの利点</h4>
+<h4>Advantages of ReLU</h4>
 
 <table>
 <thead>
 <tr>
-<th>利点</th>
-<th>説明</th>
+<th>Advantage</th>
+<th>Explanation</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>計算効率</strong></td>
-<td>単純なmax演算のみ</td>
+<td><strong>Computational Efficiency</strong></td>
+<td>Only simple max operation</td>
 </tr>
 <tr>
-<td><strong>勾配消失の軽減</strong></td>
-<td>正の領域で勾配が1（SigmoidやTanhより優れる）</td>
+<td><strong>Mitigates Vanishing Gradients</strong></td>
+<td>Gradient is 1 in positive region (better than Sigmoid or Tanh)</td>
 </tr>
 <tr>
-<td><strong>スパース性</strong></td>
-<td>負の値を0にすることで、スパースな表現を生成</td>
+<td><strong>Sparsity</strong></td>
+<td>Setting negative values to 0 creates sparse representations</td>
 </tr>
 <tr>
-<td><strong>生物学的妥当性</strong></td>
-<td>神経細胞の発火パターンに類似</td>
+<td><strong>Biological Plausibility</strong></td>
+<td>Similar to neuron firing patterns</td>
 </tr>
 </tbody>
 </table>
@@ -1305,7 +1305,7 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
 
-# 各種活性化関数の比較
+# Comparison of various activation functions
 x = np.linspace(-3, 3, 100)
 
 # ReLU
@@ -1320,7 +1320,7 @@ tanh = np.tanh(x)
 # Leaky ReLU
 leaky_relu = np.where(x > 0, x, 0.1 * x)
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 
 axes[0, 0].plot(x, relu, 'b-', linewidth=2)
@@ -1348,33 +1348,33 @@ axes[1, 1].axhline(y=0, color='k', linewidth=0.5)
 axes[1, 1].axvline(x=0, color='k', linewidth=0.5)
 
 plt.tight_layout()
-print("活性化関数の形状を比較しました")
+print("Compared activation function shapes")
 
-# PyTorchでの使用例
-print("\n=== PyTorchでの活性化関数の使用 ===\n")
+# Usage example in PyTorch
+print("\n=== Using Activation Functions in PyTorch ===\n")
 
 x_tensor = torch.tensor([-2.0, -1.0, 0.0, 1.0, 2.0])
 
 relu_layer = nn.ReLU()
-print(f"入力: {x_tensor.numpy()}")
+print(f"Input: {x_tensor.numpy()}")
 print(f"ReLU: {relu_layer(x_tensor).numpy()}")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>活性化関数の形状を比較しました
+<p><strong>Output</strong>:</p>
+<pre><code>Compared activation function shapes
 
-=== PyTorchでの活性化関数の使用 ===
+=== Using Activation Functions in PyTorch ===
 
-入力: [-2. -1.  0.  1.  2.]
+Input: [-2. -1.  0.  1.  2.]
 ReLU: [0. 0. 0. 1. 2.]
 </code></pre>
 
-<h3>Conv + ReLUのパターン</h3>
+<h3>Conv + ReLU Pattern</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
-# 標準的なConv-ReLUブロック
+# Standard Conv-ReLU block
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(ConvBlock, self).__init__()
@@ -1386,36 +1386,36 @@ class ConvBlock(nn.Module):
         x = self.relu(x)
         return x
 
-# 使用例
+# Usage example
 block = ConvBlock(3, 64)
 x = torch.randn(1, 3, 224, 224)
 output = block(x)
 
-print(f"入力サイズ: {x.shape}")
-print(f"出力サイズ: {output.shape}")
-print(f"\n処理の流れ:")
-print(f"  1. Conv2d(3 → 64, 3×3) でフィルタリング")
-print(f"  2. ReLU()で非線形変換")
-print(f"  → 特徴マップ内の負の値が0になる")
+print(f"Input size: {x.shape}")
+print(f"Output size: {output.shape}")
+print(f"\nProcessing flow:")
+print(f"  1. Conv2d(3 → 64, 3×3) filtering")
+print(f"  2. ReLU() non-linear transformation")
+print(f"  → Negative values in feature map become 0")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>入力サイズ: torch.Size([1, 3, 224, 224])
-出力サイズ: torch.Size([1, 64, 224, 224])
+<p><strong>Output</strong>:</p>
+<pre><code>Input size: torch.Size([1, 3, 224, 224])
+Output size: torch.Size([1, 64, 224, 224])
 
-処理の流れ:
-  1. Conv2d(3 → 64, 3×3) でフィルタリング
-  2. ReLU()で非線形変換
-  → 特徴マップ内の負の値が0になる
+Processing flow:
+  1. Conv2d(3 → 64, 3×3) filtering
+  2. ReLU() non-linear transformation
+  → Negative values in feature map become 0
 </code></pre>
 
 <hr>
 
-<h2>1.6 実践：手書き数字認識（MNIST）</h2>
+<h2>1.6 Practice: Handwritten Digit Recognition (MNIST)</h2>
 
-<h3>シンプルなCNNの構築</h3>
+<h3>Building a Simple CNN</h3>
 
-<p>MNISTデータセット（28×28のグレースケール手書き数字画像）を classificationする基本的なCNNを実装します。</p>
+<p>We will implement a basic CNN to classify the MNIST dataset (28×28 grayscale handwritten digit images).</p>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -1423,18 +1423,18 @@ import torch.nn.functional as F
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
-# シンプルなCNNモデル
+# Simple CNN model
 class SimpleCNN(nn.Module):
     def __init__(self):
         super(SimpleCNN, self).__init__()
-        # 畳み込み層1: 1ch → 32ch, 3×3カーネル
+        # Convolutional layer 1: 1ch → 32ch, 3×3 kernel
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
-        # 畳み込み層2: 32ch → 64ch, 3×3カーネル
+        # Convolutional layer 2: 32ch → 64ch, 3×3 kernel
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        # 全結合層
+        # Fully connected layers
         self.fc1 = nn.Linear(64 * 7 * 7, 128)
         self.fc2 = nn.Linear(128, 10)
-        # その他
+        # Others
         self.pool = nn.MaxPool2d(2, 2)
         self.dropout = nn.Dropout(0.25)
 
@@ -1443,36 +1443,36 @@ class SimpleCNN(nn.Module):
         x = self.pool(F.relu(self.conv1(x)))  # 28×28 → 14×14
         # Conv2 → ReLU → MaxPool
         x = self.pool(F.relu(self.conv2(x)))  # 14×14 → 7×7
-        # 平坦化
+        # Flatten
         x = x.view(-1, 64 * 7 * 7)
-        # 全結合層
+        # Fully connected layers
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
         x = self.fc2(x)
         return x
 
-# モデルのインスタンス化
+# Model instantiation
 model = SimpleCNN()
 
-# モデル構造の表示
-print("=== SimpleCNN のアーキテクチャ ===\n")
+# Display model structure
+print("=== SimpleCNN Architecture ===\n")
 print(model)
 
-# パラメータ数の計算
+# Calculate parameter count
 total_params = sum(p.numel() for p in model.parameters())
 trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-print(f"\n総パラメータ数: {total_params:,}")
-print(f"学習可能パラメータ数: {trainable_params:,}")
+print(f"\nTotal parameters: {total_params:,}")
+print(f"Trainable parameters: {trainable_params:,}")
 
-# 各層のパラメータ数詳細
-print("\n=== 各層のパラメータ数 ===")
+# Parameter count details for each layer
+print("\n=== Parameter Count per Layer ===")
 for name, param in model.named_parameters():
     print(f"{name:20} {str(list(param.shape)):30} {param.numel():>10,} params")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>=== SimpleCNN のアーキテクチャ ===
+<p><strong>Output</strong>:</p>
+<pre><code>=== SimpleCNN Architecture ===
 
 SimpleCNN(
   (conv1): Conv2d(1, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
@@ -1483,10 +1483,10 @@ SimpleCNN(
   (dropout): Dropout(p=0.25, inplace=False)
 )
 
-総パラメータ数: 421,066
-学習可能パラメータ数: 421,066
+Total parameters: 421,066
+Trainable parameters: 421,066
 
-=== 各層のパラメータ数 ===
+=== Parameter Count per Layer ===
 conv1.weight         [32, 1, 3, 3]                         288 params
 conv1.bias           [32]                                   32 params
 conv2.weight         [64, 32, 3, 3]                     18,432 params
@@ -1497,31 +1497,31 @@ fc2.weight           [10, 128]                           1,280 params
 fc2.bias             [10]                                   10 params
 </code></pre>
 
-<h3>データの準備と学習</h3>
+<h3>Data Preparation and Training</h3>
 
 <pre><code class="language-python">import torch.optim as optim
 
-# データの前処理
+# Data preprocessing
 transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.1307,), (0.3081,))  # MNISTの平均・標準偏差
+    transforms.Normalize((0.1307,), (0.3081,))  # MNIST mean and std
 ])
 
-# データセットの読み込み（ダウンロードは初回のみ）
+# Load datasets (download only on first run)
 train_dataset = datasets.MNIST('./data', train=True, download=True, transform=transform)
 test_dataset = datasets.MNIST('./data', train=False, transform=transform)
 
-# データローダーの作成
+# Create data loaders
 train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=1000, shuffle=False)
 
-# 学習の設定
+# Training setup
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = SimpleCNN().to(device)
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 criterion = nn.CrossEntropyLoss()
 
-# 学習関数
+# Training function
 def train_epoch(model, train_loader, optimizer, criterion, device):
     model.train()
     running_loss = 0.0
@@ -1546,7 +1546,7 @@ def train_epoch(model, train_loader, optimizer, criterion, device):
     accuracy = 100. * correct / total
     return avg_loss, accuracy
 
-# 評価関数
+# Evaluation function
 def evaluate(model, test_loader, criterion, device):
     model.eval()
     test_loss = 0
@@ -1564,8 +1564,8 @@ def evaluate(model, test_loader, criterion, device):
     accuracy = 100. * correct / len(test_loader.dataset)
     return test_loss, accuracy
 
-# 学習実行（簡略版：3エポック）
-print("\n=== 学習開始 ===\n")
+# Execute training (simplified version: 3 epochs)
+print("\n=== Training Started ===\n")
 num_epochs = 3
 
 for epoch in range(num_epochs):
@@ -1576,11 +1576,11 @@ for epoch in range(num_epochs):
     print(f"  Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%")
     print(f"  Test Loss:  {test_loss:.4f}, Test Acc:  {test_acc:.2f}%\n")
 
-print("学習完了！")
+print("Training complete!")
 </code></pre>
 
-<p><strong>期待される出力</strong>：</p>
-<pre><code>=== 学習開始 ===
+<p><strong>Expected Output</strong>:</p>
+<pre><code>=== Training Started ===
 
 Epoch 1/3
   Train Loss: 0.2145, Train Acc: 93.52%
@@ -1594,18 +1594,18 @@ Epoch 3/3
   Train Loss: 0.0512, Train Acc: 98.42%
   Test Loss:  0.0401, Test Acc:  98.67%
 
-学習完了！
+Training complete!
 </code></pre>
 
-<h3>学習済みフィルタの可視化</h3>
+<h3>Visualizing Trained Filters</h3>
 
 <pre><code class="language-python">import matplotlib.pyplot as plt
 import numpy as np
 
-# Chapter 1層の畳み込みフィルタを可視化
+# Visualize first layer convolutional filters
 conv1_weights = model.conv1.weight.data.cpu().numpy()
 
-# 最初の16のフィルタを表示
+# Display first 16 filters
 fig, axes = plt.subplots(4, 8, figsize=(16, 8))
 axes = axes.flatten()
 
@@ -1614,36 +1614,36 @@ for i in range(min(32, len(axes))):
     axes[i].set_title(f'Filter {i+1}', fontsize=9)
     axes[i].axis('off')
 
-plt.suptitle('学習済み畳み込みフィルタ（Chapter 1層、32中32）', fontsize=16)
+plt.suptitle('Trained Convolutional Filters (Layer 1, 32 out of 32)', fontsize=16)
 plt.tight_layout()
-print("学習済みフィルタを可視化しました")
-print("各フィルタは、エッジ、曲線、コーナーなどの異なる特徴を検出するように学習されています")
+print("Visualized trained filters")
+print("Each filter has learned to detect different features such as edges, curves, and corners")
 </code></pre>
 
 <hr>
 
 <h2>Summary</h2>
 
-<p>この Chapterでは、CNNの基礎と畳み込み層について学習しました。</p>
+<p>In this chapter, we learned the fundamentals of CNNs and convolutional layers.</p>
 
-<h3>重要なポイント</h3>
+<h3>Key Points</h3>
 
 <ul>
-<li><strong>局所接続性と重み共有</strong>により、CNNはパラメータ数を大幅に削減</li>
-<li><strong>畳み込み演算</strong>は、フィルタを画像上でスライドさせて特徴を抽出</li>
-<li><strong>ストライドとパディング</strong>で出力サイズを制御</li>
-<li><strong>受容野</strong>は層を重ねるごとに拡大し、広範囲の情報を統合</li>
-<li><strong>ReLU活性化関数</strong>が非線形性を導入し、複雑なパターン学習を可能に</li>
+<li><strong>Local connectivity and weight sharing</strong> enable CNNs to drastically reduce parameter count</li>
+<li><strong>Convolution operations</strong> extract features by sliding filters across images</li>
+<li><strong>Stride and padding</strong> control output size</li>
+<li><strong>Receptive field</strong> expands with each layer, integrating information from wider areas</li>
+<li><strong>ReLU activation function</strong> introduces non-linearity, enabling complex pattern learning</li>
 </ul>
 
-<h3>次 Chapterの予告</h3>
+<h3>Preview of Next Chapter</h3>
 
-<p>Chapter 2 Chapterでは、以下のトピックを扱います：</p>
+<p>Chapter 2 will cover the following topics:</p>
 <ul>
-<li>プーリング層（MaxPooling、AveragePooling）</li>
-<li>バッチ正規化（Batch Normalization）</li>
-<li>Dropout による正則化</li>
-<li>代表的なCNNアーキテクチャ（VGG、ResNet）</li>
+<li>Pooling layers (MaxPooling, AveragePooling)</li>
+<li>Batch Normalization</li>
+<li>Regularization with Dropout</li>
+<li>Representative CNN architectures (VGG, ResNet)</li>
 </ul>
 
 <hr>
@@ -1651,92 +1651,92 @@ print("各フィルタは、エッジ、曲線、コーナーなどの異なる�
 <h2>Exercises</h2>
 
 <details>
-<summary><strong>演習1：出力サイズの計算</strong></summary>
+<summary><strong>Exercise 1: Output Size Calculation</strong></summary>
 
-<p><strong>問題</strong>：以下の畳み込み層の出力サイズを計算してください。</p>
+<p><strong>Problem</strong>: Calculate the output size for the following convolutional layer.</p>
 
 <ul>
-<li>入力: 64×64×3</li>
-<li>カーネル: 5×5</li>
-<li>ストライド: 2</li>
-<li>パディング: 2</li>
-<li>出力チャネル数: 128</li>
+<li>Input: 64×64×3</li>
+<li>Kernel: 5×5</li>
+<li>Stride: 2</li>
+<li>Padding: 2</li>
+<li>Output channels: 128</li>
 </ul>
 
-<p><strong>解答</strong>：</p>
-<pre><code># 出力サイズの計算
+<p><strong>Solution</strong>:</p>
+<pre><code># Calculate output size
 output_h = (64 + 2*2 - 5) // 2 + 1 = 32
 output_w = (64 + 2*2 - 5) // 2 + 1 = 32
 
-# 答え: 32×32×128
+# Answer: 32×32×128
 </code></pre>
 </details>
 
 <details>
-<summary><strong>演習2：パラメータ数の計算</strong></summary>
+<summary><strong>Exercise 2: Parameter Count Calculation</strong></summary>
 
-<p><strong>問題</strong>：以下のCNNのパラメータ数を計算してください。</p>
+<p><strong>Problem</strong>: Calculate the parameter count for the following CNN.</p>
 
 <ul>
-<li>Conv1: 3ch → 64ch, 7×7カーネル</li>
-<li>Conv2: 64ch → 128ch, 3×3カーネル</li>
-<li>Conv3: 128ch → 256ch, 3×3カーネル</li>
+<li>Conv1: 3ch → 64ch, 7×7 kernel</li>
+<li>Conv2: 64ch → 128ch, 3×3 kernel</li>
+<li>Conv3: 128ch → 256ch, 3×3 kernel</li>
 </ul>
 
-<p><strong>解答</strong>：</p>
-<pre><code># Conv1のパラメータ数
+<p><strong>Solution</strong>:</p>
+<pre><code># Conv1 parameters
 conv1_params = (3 * 64 * 7 * 7) + 64 = 9,472
 
-# Conv2のパラメータ数
+# Conv2 parameters
 conv2_params = (64 * 128 * 3 * 3) + 128 = 73,856
 
-# Conv3のパラメータ数
+# Conv3 parameters
 conv3_params = (128 * 256 * 3 * 3) + 256 = 295,168
 
-# 合計
+# Total
 total_params = 9,472 + 73,856 + 295,168 = 378,496
 </code></pre>
 </details>
 
 <details>
-<summary><strong>演習3：受容野の計算</strong></summary>
+<summary><strong>Exercise 3: Receptive Field Calculation</strong></summary>
 
-<p><strong>問題</strong>：以下の構成のCNNの最終的な受容野サイズを計算してください（全てストライド1、パディングあり）。</p>
+<p><strong>Problem</strong>: Calculate the final receptive field size for a CNN with the following configuration (all with stride 1 and padding).</p>
 
 <ul>
-<li>Conv1: 3×3カーネル</li>
-<li>Conv2: 3×3カーネル</li>
-<li>Conv3: 3×3カーネル</li>
-<li>Conv4: 3×3カーネル</li>
+<li>Conv1: 3×3 kernel</li>
+<li>Conv2: 3×3 kernel</li>
+<li>Conv3: 3×3 kernel</li>
+<li>Conv4: 3×3 kernel</li>
 </ul>
 
-<p><strong>解答</strong>：</p>
-<pre><code># 受容野の計算
-# R_0 = 1 (入力)
+<p><strong>Solution</strong>:</p>
+<pre><code># Receptive field calculation
+# R_0 = 1 (input)
 # R_1 = 1 + (3-1) = 3
 # R_2 = 3 + (3-1) = 5
 # R_3 = 5 + (3-1) = 7
 # R_4 = 7 + (3-1) = 9
 
-# 答え: 9×9ピクセル
+# Answer: 9×9 pixels
 </code></pre>
 </details>
 
 <details>
-<summary><strong>演習4：カスタムCNNの実装</strong></summary>
+<summary><strong>Exercise 4: Custom CNN Implementation</strong></summary>
 
-<p><strong>問題</strong>：以下の仕様のCNNをPyTorchで実装してください。</p>
+<p><strong>Problem</strong>: Implement a CNN in PyTorch with the following specifications.</p>
 
 <ul>
-<li>入力: 32×32×3（CIFAR-10形式）</li>
-<li>Conv1: 32フィルタ、3×3カーネル、ReLU</li>
+<li>Input: 32×32×3 (CIFAR-10 format)</li>
+<li>Conv1: 32 filters, 3×3 kernel, ReLU</li>
 <li>MaxPool: 2×2</li>
-<li>Conv2: 64フィルタ、3×3カーネル、ReLU</li>
+<li>Conv2: 64 filters, 3×3 kernel, ReLU</li>
 <li>MaxPool: 2×2</li>
-<li>全結合: 10クラス classification</li>
+<li>Fully connected: 10 class classification</li>
 </ul>
 
-<p><strong>解答例</strong>：</p>
+<p><strong>Solution Example</strong>:</p>
 <pre><code class="language-python">import torch.nn as nn
 import torch.nn.functional as F
 
@@ -1758,37 +1758,37 @@ class CustomCNN(nn.Module):
 </details>
 
 <details>
-<summary><strong>演習5：全結合層とCNNの比較</strong></summary>
+<summary><strong>Exercise 5: Comparison of Fully Connected Layers and CNNs</strong></summary>
 
-<p><strong>問題</strong>：224×224×3の画像を入力とする場合、以下の2つのアプローチでパラメータ数を比較してください。</p>
+<p><strong>Problem</strong>: For a 224×224×3 image input, compare parameter counts for the following two approaches.</p>
 
 <ul>
-<li>アプローチ1: 全結合層（入力→1000ユニット）</li>
-<li>アプローチ2: Conv層（3ch→64ch、3×3カーネル）を3層</li>
+<li>Approach 1: Fully connected layer (input → 1000 units)</li>
+<li>Approach 2: 3 Conv layers (3ch→64ch, 3×3 kernel)</li>
 </ul>
 
-<p><strong>解答</strong>：</p>
-<pre><code># アプローチ1: 全結合層
+<p><strong>Solution</strong>:</p>
+<pre><code># Approach 1: Fully connected layer
 fc_params = (224 * 224 * 3 * 1000) + 1000 = 150,529,000
 
-# アプローチ2: CNN（3層）
+# Approach 2: CNN (3 layers)
 conv1_params = (3 * 64 * 3 * 3) + 64 = 1,792
 conv2_params = (64 * 64 * 3 * 3) + 64 = 36,928
 conv3_params = (64 * 64 * 3 * 3) + 64 = 36,928
 cnn_total = 1,792 + 36,928 + 36,928 = 75,648
 
-# 削減率
+# Reduction rate
 reduction = (1 - 75,648/150,529,000) * 100 = 99.95%
 
-# CNNは全結合層の0.05%のパラメータで済む！
+# CNNs require only 0.05% of the parameters of fully connected layers!
 </code></pre>
 </details>
 
 <hr>
 
 <div class="navigation">
-    <a href="../index.html" class="nav-button">📚 コースBack to Contents</a>
-    <a href="chapter2-pooling-normalization.html" class="nav-button">Next Chapterへ：プーリングと正規化 →</a>
+    <a href="../index.html" class="nav-button">📚 Return to Course Index</a>
+    <a href="chapter2-architectures.html" class="nav-button">Next Chapter: CNN Architectures →</a>
 </div>
 
 </main>
@@ -1798,11 +1798,11 @@ reduction = (1 - 75,648/150,529,000) * 100 = 99.95%
         <h3>Disclaimer</h3>
         <ul>
             <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
-            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
-            <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
-            <li>To the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The authors and Tohoku University assume no responsibility for the content, availability, or safety of external links or third-party data, tools, or libraries.</li>
+            <li>To the maximum extent permitted by applicable law, the authors and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
             <li>The content of this material may be changed, updated, or discontinued without notice.</li>
-            <li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+            <li>The copyright and license of this content follow the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
         </ul>
     </section>
 

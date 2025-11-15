@@ -1,1 +1,1354 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Chapter 3 - AI Terakoya</title></head><body><nav><a href="../../index.html">Top</a> › <a href="../index.html">ML</a> › <a href="./index.html">Hyperparameter Tuning</a> › Ch3</nav><header><h1>Chapter 3: advanced-methods</h1><p><em>Full translation pending</em></p></header></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3: Advanced Tuning Methods - AI Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .mermaid {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        details {
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-primary);
+            user-select: none;
+            padding: var(--spacing-xs);
+            margin: calc(-1 * var(--spacing-md));
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        summary:hover {
+            background-color: rgba(123, 44, 191, 0.1);
+        }
+
+        details[open] summary {
+            margin-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+
+
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+
+    <!-- MathJax for LaTeX equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/hyperparameter-tuning-introduction/index.html">Hyperparameter Tuning</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="header-content">
+            <h1>Chapter 3: Advanced Tuning Methods</h1>
+            <p class="subtitle">Efficient Search with Hyperband, BOHB, and Population-based Training</p>
+            <div class="meta">
+                <span class="meta-item">📖 Reading Time: 25-30 minutes</span>
+                <span class="meta-item">📊 Difficulty: Intermediate-Advanced</span>
+                <span class="meta-item">💻 Code Examples: 6</span>
+                <span class="meta-item">🚀 Practical Methods</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will be able to:</p>
+<ul>
+<li>✅ Understand the principles of Successive Halving and Hyperband</li>
+<li>✅ Utilize BOHB's fusion of Bayesian optimization and Hyperband</li>
+<li>✅ Optimize parallel training with Population-based Training (PBT)</li>
+<li>✅ Understand the characteristics of major libraries including Hyperopt, SMAC, and Ax/BoTorch</li>
+<li>✅ Implement large-scale distributed tuning with Ray Tune</li>
+</ul>
+
+<hr>
+
+<h2>3.1 Hyperband</h2>
+
+<h3>Principles of Successive Halving</h3>
+
+<p><strong>Successive Halving</strong> is a method for efficiently allocating limited computational resources. The basic idea is as follows:</p>
+
+<ol>
+<li>Start training with many configurations using a small amount of resources</li>
+<li>Progressively eliminate poorly performing configurations (by half)</li>
+<li>Allocate more resources to the remaining promising configurations</li>
+</ol>
+
+<blockquote>
+<p><strong>Important</strong>: By eliminating poorly performing configurations early, computational costs can be significantly reduced.</p>
+</blockquote>
+
+<h3>Algorithm Flow</h3>
+
+<div class="mermaid">
+graph TD
+    A[Generate n random configurations] --> B[Evaluate each configuration with r resources]
+    B --> C{Select top n/2 by performance}
+    C --> D[Double the resources]
+    D --> E{Further select top n/4}
+    E --> F[Double the resources]
+    F --> G[The best configuration remains]
+
+    style A fill:#ffebee
+    style B fill:#fff3e0
+    style C fill:#e3f2fd
+    style D fill:#f3e5f5
+    style E fill:#e3f2fd
+    style F fill:#f3e5f5
+    style G fill:#c8e6c9
+</div>
+
+<h3>Hyperband Algorithm</h3>
+
+<p><strong>Hyperband</strong> runs Successive Halving with multiple different configurations to optimize resource allocation strategies.</p>
+
+<p>Parameters:</p>
+<ul>
+<li><strong>R</strong>: Maximum resources to allocate to one configuration (e.g., number of epochs)</li>
+<li><strong>η</strong>: Reduction rate at each round (typically 3 or 4)</li>
+</ul>
+
+<p>$$
+s_{\max} = \lfloor \log_\eta(R) \rfloor
+$$</p>
+
+<h3>Implementation in Optuna (HyperbandPruner)</h3>
+
+<pre><code class="language-python">import optuna
+from optuna.pruners import HyperbandPruner
+from sklearn.datasets import load_iris
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
+import numpy as np
+
+# Hyperband configuration
+pruner = HyperbandPruner(
+    min_resource=1,      # Minimum resources (epochs)
+    max_resource=100,    # Maximum resources
+    reduction_factor=3   # Reduction rate η
+)
+
+def objective(trial):
+    # Hyperparameter suggestions
+    n_estimators = trial.suggest_int('n_estimators', 10, 200)
+    max_depth = trial.suggest_int('max_depth', 2, 32)
+    min_samples_split = trial.suggest_int('min_samples_split', 2, 20)
+    min_samples_leaf = trial.suggest_int('min_samples_leaf', 1, 10)
+
+    # Data preparation
+    X, y = load_iris(return_X_y=True)
+
+    # Gradually increase n_estimators for evaluation (Hyperband compatible)
+    for step in range(1, 6):
+        # Number of trees according to current step
+        current_n_estimators = int(n_estimators * step / 5)
+
+        model = RandomForestClassifier(
+            n_estimators=current_n_estimators,
+            max_depth=max_depth,
+            min_samples_split=min_samples_split,
+            min_samples_leaf=min_samples_leaf,
+            random_state=42
+        )
+
+        # Cross-validation score
+        score = cross_val_score(model, X, y, cv=3, n_jobs=-1).mean()
+
+        # Report intermediate value to Optuna
+        trial.report(score, step)
+
+        # Pruning decision
+        if trial.should_prune():
+            raise optuna.TrialPruned()
+
+    return score
+
+# Study execution
+study = optuna.create_study(
+    direction='maximize',
+    pruner=pruner,
+    study_name='hyperband_example'
+)
+
+study.optimize(objective, n_trials=100, timeout=300)
+
+print("\n=== Hyperband Optimization Results ===")
+print(f"Best Score: {study.best_value:.4f}")
+print(f"Best Parameters: {study.best_params}")
+print(f"\nCompleted Trials: {len([t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE])}")
+print(f"Pruned Trials: {len([t for t in study.trials if t.state == optuna.trial.TrialState.PRUNED])}")
+</code></pre>
+
+<p><strong>Example Output</strong>:</p>
+<pre><code>=== Hyperband Optimization Results ===
+Best Score: 0.9733
+Best Parameters: {'n_estimators': 142, 'max_depth': 8, 'min_samples_split': 3, 'min_samples_leaf': 1}
+
+Completed Trials: 28
+Pruned Trials: 72
+</code></pre>
+
+<blockquote>
+<p><strong>Effect</strong>: Out of 100 trials, 72 were pruned early, significantly reducing computation time.</p>
+</blockquote>
+
+<hr>
+
+<h2>3.2 BOHB (Bayesian Optimization and HyperBand)</h2>
+
+<h3>Fusion of Hyperband and Bayesian Optimization</h3>
+
+<p><strong>BOHB</strong> is a method that combines Hyperband's efficient resource allocation with Bayesian optimization's intelligent search.</p>
+
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Strengths</th>
+<th>Weaknesses</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hyperband</strong></td>
+<td>Efficient resource allocation</td>
+<td>Random sampling</td>
+</tr>
+<tr>
+<td><strong>Bayesian Optimization</strong></td>
+<td>Intelligent search</td>
+<td>Allocates all resources</td>
+</tr>
+<tr>
+<td><strong>BOHB</strong></td>
+<td>Efficient + Intelligent search</td>
+<td>Complex implementation</td>
+</tr>
+</tbody>
+</table>
+
+<h3>BOHB Operating Principles</h3>
+
+<ol>
+<li>Manage resource allocation with the <strong>Hyperband framework</strong></li>
+<li>At each round, use <strong>TPE (Tree-structured Parzen Estimator)</strong> to propose hyperparameters</li>
+<li>Learn from past trial results and preferentially explore promising regions</li>
+</ol>
+
+<div class="mermaid">
+graph LR
+    A[Past trial data] --> B[Build TPE model]
+    B --> C[Propose promising configurations]
+    C --> D[Evaluate with Successive Halving]
+    D --> E[Feedback results]
+    E --> A
+
+    style A fill:#e3f2fd
+    style B fill:#f3e5f5
+    style C fill:#fff3e0
+    style D fill:#ffebee
+    style E fill:#e8f5e9
+</div>
+
+<h3>Implementation and Use Cases</h3>
+
+<pre><code class="language-python">import optuna
+from optuna.samplers import TPESampler
+from optuna.pruners import HyperbandPruner
+from sklearn.datasets import load_digits
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import cross_val_score
+
+# BOHB configuration (TPE + Hyperband)
+sampler = TPESampler(seed=42, n_startup_trials=10)
+pruner = HyperbandPruner(
+    min_resource=5,
+    max_resource=100,
+    reduction_factor=3
+)
+
+def objective_bohb(trial):
+    # Hyperparameter proposals (TPE selects intelligently)
+    hidden_layer_size = trial.suggest_int('hidden_layer_size', 50, 200)
+    alpha = trial.suggest_float('alpha', 1e-5, 1e-1, log=True)
+    learning_rate_init = trial.suggest_float('learning_rate_init', 1e-4, 1e-1, log=True)
+
+    X, y = load_digits(return_X_y=True)
+
+    # Hyperband: gradually increase max_iter
+    for step in range(1, 6):
+        max_iter = int(100 * step / 5)
+
+        model = MLPClassifier(
+            hidden_layer_sizes=(hidden_layer_size,),
+            alpha=alpha,
+            learning_rate_init=learning_rate_init,
+            max_iter=max_iter,
+            random_state=42
+        )
+
+        score = cross_val_score(model, X, y, cv=3, n_jobs=-1).mean()
+
+        trial.report(score, step)
+        if trial.should_prune():
+            raise optuna.TrialPruned()
+
+    return score
+
+# BOHB study
+study_bohb = optuna.create_study(
+    direction='maximize',
+    sampler=sampler,
+    pruner=pruner,
+    study_name='bohb_example'
+)
+
+study_bohb.optimize(objective_bohb, n_trials=50, timeout=180)
+
+print("\n=== BOHB Optimization Results ===")
+print(f"Best Score: {study_bohb.best_value:.4f}")
+print(f"Best Parameters:")
+for key, value in study_bohb.best_params.items():
+    print(f"  {key}: {value}")
+print(f"\nCompleted/Pruned: {len([t for t in study_bohb.trials if t.state == optuna.trial.TrialState.COMPLETE])}/{len([t for t in study_bohb.trials if t.state == optuna.trial.TrialState.PRUNED])}")
+</code></pre>
+
+<h3>Use Cases</h3>
+
+<ul>
+<li><strong>Neural Networks</strong>: Gradually increase the number of epochs</li>
+<li><strong>Ensemble Learning</strong>: Gradually increase the number of weak learners</li>
+<li><strong>Large-scale Data</strong>: Gradually increase the number of data samples</li>
+</ul>
+
+<hr>
+
+<h2>3.3 Population-based Training (PBT)</h2>
+
+<h3>Principles of PBT</h3>
+
+<p><strong>Population-based Training</strong> trains multiple models in parallel and periodically performs the following:</p>
+
+<ol>
+<li><strong>Exploit</strong>: Replace poorly performing models with well-performing ones</li>
+<li><strong>Explore</strong>: Perturb hyperparameters to try new configurations</li>
+</ol>
+
+<blockquote>
+<p><strong>Feature</strong>: The ability to dynamically adjust hyperparameters during training is the major difference from traditional methods.</p>
+</blockquote>
+
+<h3>PBT Workflow</h3>
+
+<div class="mermaid">
+graph TD
+    A[Initialize Population<br/>n models] --> B[Train each model in parallel]
+    B --> C{Periodic evaluation point}
+    C --> D[Identify poorly performing models]
+    D --> E[Copy weights from good models<br/>Exploit]
+    E --> F[Perturb hyperparameters<br/>Explore]
+    F --> G{Training complete?}
+    G -->|No| B
+    G -->|Yes| H[Select best model]
+
+    style A fill:#ffebee
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style E fill:#e3f2fd
+    style F fill:#e8f5e9
+    style H fill:#c8e6c9
+</div>
+
+<h3>Implementation with Ray Tune</h3>
+
+<pre><code class="language-python">from ray import tune
+from ray.tune.schedulers import PopulationBasedTraining
+import numpy as np
+
+def train_function(config):
+    """Training function (simulation)"""
+    # Initial configuration
+    learning_rate = config["lr"]
+    momentum = config["momentum"]
+
+    # Training simulation
+    for step in range(100):
+        # Dummy performance metric (actual model training in practice)
+        # Good performance when learning rate and momentum are in appropriate ranges
+        optimal_lr = 0.01
+        optimal_momentum = 0.9
+
+        score = 1.0 - (
+            abs(learning_rate - optimal_lr) / optimal_lr +
+            abs(momentum - optimal_momentum) / optimal_momentum
+        ) / 2
+
+        # Add noise to mimic realistic training
+        score += np.random.normal(0, 0.05)
+
+        # Report results to Ray Tune
+        tune.report(score=score, lr=learning_rate, momentum=momentum)
+
+# PBT scheduler configuration
+pbt_scheduler = PopulationBasedTraining(
+    time_attr="training_iteration",
+    metric="score",
+    mode="max",
+    perturbation_interval=10,  # Perturb every 10 iterations
+    hyperparam_mutations={
+        "lr": lambda: np.random.uniform(0.001, 0.1),
+        "momentum": lambda: np.random.uniform(0.8, 0.99)
+    }
+)
+
+# Ray Tune execution
+analysis = tune.run(
+    train_function,
+    name="pbt_example",
+    scheduler=pbt_scheduler,
+    num_samples=8,  # Run 8 models in parallel
+    config={
+        "lr": tune.uniform(0.001, 0.1),
+        "momentum": tune.uniform(0.8, 0.99)
+    },
+    stop={"training_iteration": 100},
+    verbose=1
+)
+
+print("\n=== PBT Optimization Results ===")
+best_config = analysis.get_best_config(metric="score", mode="max")
+print(f"Best Configuration:")
+print(f"  Learning Rate: {best_config['lr']:.4f}")
+print(f"  Momentum: {best_config['momentum']:.4f}")
+print(f"\nBest Score: {analysis.best_result['score']:.4f}")
+</code></pre>
+
+<h3>Combination with Parallel Training</h3>
+
+<p>The greatest advantage of PBT is its ability to fully utilize parallel computational resources:</p>
+
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Traditional Methods</th>
+<th>PBT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8 GPUs for 100 epochs</td>
+<td>Try 8 configurations sequentially<br/>800 epochs worth of time</td>
+<td>Train 8 configurations simultaneously<br/>100 epochs worth of time</td>
+</tr>
+<tr>
+<td>Dynamic adjustment</td>
+<td>Not possible</td>
+<td>Optimized during training</td>
+</tr>
+<tr>
+<td>Resource efficiency</td>
+<td>Poor configs run to completion</td>
+<td>Early convergence to good configs</td>
+</tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>3.4 Other Advanced Methods</h2>
+
+<h3>Hyperopt (TPE Implementation)</h3>
+
+<p><strong>Hyperopt</strong> is a popular library that implements Tree-structured Parzen Estimator (TPE).</p>
+
+<pre><code class="language-python">from hyperopt import fmin, tpe, hp, STATUS_OK, Trials
+from sklearn.datasets import load_breast_cancer
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import cross_val_score
+import numpy as np
+
+# Define search space
+space = {
+    'n_estimators': hp.quniform('n_estimators', 50, 300, 1),
+    'max_depth': hp.quniform('max_depth', 3, 15, 1),
+    'learning_rate': hp.loguniform('learning_rate', np.log(0.001), np.log(0.3)),
+    'subsample': hp.uniform('subsample', 0.5, 1.0),
+    'min_samples_split': hp.quniform('min_samples_split', 2, 20, 1)
+}
+
+# Data preparation
+X, y = load_breast_cancer(return_X_y=True)
+
+def objective_hyperopt(params):
+    """Objective function for Hyperopt"""
+    # Convert to integer types
+    params['n_estimators'] = int(params['n_estimators'])
+    params['max_depth'] = int(params['max_depth'])
+    params['min_samples_split'] = int(params['min_samples_split'])
+
+    model = GradientBoostingClassifier(**params, random_state=42)
+    score = cross_val_score(model, X, y, cv=5, n_jobs=-1).mean()
+
+    # Hyperopt minimizes, so return negative value
+    return {'loss': -score, 'status': STATUS_OK}
+
+# Optimization execution
+trials = Trials()
+best = fmin(
+    fn=objective_hyperopt,
+    space=space,
+    algo=tpe.suggest,  # TPE algorithm
+    max_evals=50,
+    trials=trials,
+    rstate=np.random.default_rng(42)
+)
+
+print("\n=== Hyperopt (TPE) Optimization Results ===")
+print("Best Parameters:")
+for key, value in best.items():
+    print(f"  {key}: {value}")
+print(f"\nBest Score: {-min(trials.losses()):.4f}")
+</code></pre>
+
+<h3>SMAC (Random Forest based)</h3>
+
+<p><strong>SMAC (Sequential Model-based Algorithm Configuration)</strong> uses random forests as surrogate models.</p>
+
+<p>Features:</p>
+<ul>
+<li>Strong with categorical variables and conditional parameters</li>
+<li>Excellent uncertainty estimation</li>
+<li>Robust to noisy objective functions</li>
+</ul>
+
+<h3>Ax/BoTorch (Facebook Research)</h3>
+
+<p><strong>Ax</strong> and <strong>BoTorch</strong> are next-generation Bayesian optimization frameworks developed by Facebook Research.</p>
+
+<pre><code class="language-python">from ax.service.ax_client import AxClient
+from sklearn.datasets import load_wine
+from sklearn.svm import SVC
+from sklearn.model_selection import cross_val_score
+
+# Create Ax client
+ax_client = AxClient()
+
+# Define search space
+ax_client.create_experiment(
+    name="svm_optimization",
+    parameters=[
+        {"name": "C", "type": "range", "bounds": [0.1, 100.0], "log_scale": True},
+        {"name": "gamma", "type": "range", "bounds": [0.0001, 1.0], "log_scale": True},
+        {"name": "kernel", "type": "choice", "values": ["rbf", "poly", "sigmoid"]}
+    ],
+    objective_name="accuracy",
+    minimize=False
+)
+
+# Data preparation
+X, y = load_wine(return_X_y=True)
+
+# Optimization loop
+for i in range(30):
+    # Propose next configuration
+    parameters, trial_index = ax_client.get_next_trial()
+
+    # Model evaluation
+    model = SVC(**parameters, random_state=42)
+    score = cross_val_score(model, X, y, cv=5, n_jobs=-1).mean()
+
+    # Report results
+    ax_client.complete_trial(trial_index=trial_index, raw_data=score)
+
+# Get best configuration
+best_parameters, metrics = ax_client.get_best_parameters()
+
+print("\n=== Ax/BoTorch Optimization Results ===")
+print("Best Parameters:")
+for key, value in best_parameters.items():
+    print(f"  {key}: {value}")
+print(f"\nBest Accuracy: {metrics[0]['accuracy']:.4f}")
+print(f"Confidence Interval: [{metrics[0]['accuracy'] - metrics[1]['accuracy']['accuracy']:.4f}, "
+      f"{metrics[0]['accuracy'] + metrics[1]['accuracy']['accuracy']:.4f}]")
+</code></pre>
+
+<h3>Method Comparison Table</h3>
+
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Surrogate Model</th>
+<th>Strengths</th>
+<th>Application Scenarios</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hyperopt (TPE)</strong></td>
+<td>Kernel density estimation</td>
+<td>Simple, fast</td>
+<td>General optimization</td>
+</tr>
+<tr>
+<td><strong>SMAC</strong></td>
+<td>Random Forest</td>
+<td>Conditional parameters</td>
+<td>Complex search spaces</td>
+</tr>
+<tr>
+<td><strong>Ax/BoTorch</strong></td>
+<td>Gaussian Process</td>
+<td>Uncertainty estimation, multi-task</td>
+<td>Research & experiments</td>
+</tr>
+<tr>
+<td><strong>Optuna</strong></td>
+<td>TPE/GP/CMA-ES</td>
+<td>Flexible, pruning</td>
+<td>Practical optimization</td>
+</tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>3.5 Practical Application: Large-scale Tuning with Ray Tune</h2>
+
+<h3>Ray Tune Setup</h3>
+
+<p><strong>Ray Tune</strong> is a unified framework for distributed hyperparameter tuning.</p>
+
+<pre><code class="language-python">import ray
+from ray import tune
+from ray.tune.schedulers import ASHAScheduler
+from ray.tune.search.bayesopt import BayesOptSearch
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+# Initialize Ray
+ray.init(ignore_reinit_error=True)
+
+# Data preparation
+X, y = make_classification(
+    n_samples=10000, n_features=20, n_informative=15,
+    n_redundant=5, random_state=42
+)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# PyTorch datasets
+train_dataset = TensorDataset(
+    torch.FloatTensor(X_train),
+    torch.LongTensor(y_train)
+)
+test_dataset = TensorDataset(
+    torch.FloatTensor(X_test),
+    torch.LongTensor(y_test)
+)
+
+def train_model(config):
+    """Training function for Ray Tune"""
+    # Model definition
+    model = nn.Sequential(
+        nn.Linear(20, config["hidden_size_1"]),
+        nn.ReLU(),
+        nn.Dropout(config["dropout"]),
+        nn.Linear(config["hidden_size_1"], config["hidden_size_2"]),
+        nn.ReLU(),
+        nn.Dropout(config["dropout"]),
+        nn.Linear(config["hidden_size_2"], 2)
+    )
+
+    # Optimizer
+    optimizer = optim.Adam(model.parameters(), lr=config["lr"])
+    criterion = nn.CrossEntropyLoss()
+
+    # Data loaders
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=config["batch_size"],
+        shuffle=True
+    )
+    test_loader = DataLoader(test_dataset, batch_size=256)
+
+    # Training loop
+    for epoch in range(50):
+        model.train()
+        for batch_X, batch_y in train_loader:
+            optimizer.zero_grad()
+            outputs = model(batch_X)
+            loss = criterion(outputs, batch_y)
+            loss.backward()
+            optimizer.step()
+
+        # Validation
+        model.eval()
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for batch_X, batch_y in test_loader:
+                outputs = model(batch_X)
+                _, predicted = torch.max(outputs.data, 1)
+                total += batch_y.size(0)
+                correct += (predicted == batch_y).sum().item()
+
+        accuracy = correct / total
+
+        # Report to Ray Tune
+        tune.report(accuracy=accuracy, epoch=epoch)
+
+# Search space
+search_space = {
+    "hidden_size_1": tune.choice([32, 64, 128, 256]),
+    "hidden_size_2": tune.choice([16, 32, 64, 128]),
+    "lr": tune.loguniform(1e-4, 1e-1),
+    "batch_size": tune.choice([32, 64, 128]),
+    "dropout": tune.uniform(0.1, 0.5)
+}
+
+print("=== Ray Tune Setup Complete ===")
+print(f"Search Space: {len(search_space)} dimensions")
+</code></pre>
+
+<h3>Utilizing PBT Scheduler</h3>
+
+<pre><code class="language-python">from ray.tune.schedulers import PopulationBasedTraining
+
+# PBT scheduler
+pbt = PopulationBasedTraining(
+    time_attr="epoch",
+    metric="accuracy",
+    mode="max",
+    perturbation_interval=5,
+    hyperparam_mutations={
+        "lr": lambda: 10 ** np.random.uniform(-4, -1),
+        "dropout": lambda: np.random.uniform(0.1, 0.5)
+    }
+)
+
+# Ray Tune execution (PBT)
+analysis_pbt = tune.run(
+    train_model,
+    name="pbt_neural_net",
+    scheduler=pbt,
+    num_samples=8,  # Run 8 models in parallel
+    config=search_space,
+    resources_per_trial={"cpu": 2, "gpu": 0},  # Change when using GPU
+    verbose=1
+)
+
+print("\n=== PBT Execution Results ===")
+best_trial_pbt = analysis_pbt.get_best_trial("accuracy", "max", "last")
+print(f"Best Accuracy: {best_trial_pbt.last_result['accuracy']:.4f}")
+print(f"Best Configuration:")
+for key, value in best_trial_pbt.config.items():
+    print(f"  {key}: {value}")
+</code></pre>
+
+<h3>Distributed Execution</h3>
+
+<p>Ray Tune supports distributed execution across multiple machines:</p>
+
+<pre><code class="language-python"># ASHA scheduler + Bayesian optimization
+from ray.tune.schedulers import ASHAScheduler
+from ray.tune.search.bayesopt import BayesOptSearch
+
+# ASHA scheduler (improved version of Hyperband)
+asha_scheduler = ASHAScheduler(
+    max_t=50,              # Maximum epochs
+    grace_period=5,        # Minimum epochs
+    reduction_factor=3     # Reduction rate
+)
+
+# Bayesian optimization searcher
+bayesopt = BayesOptSearch(
+    metric="accuracy",
+    mode="max"
+)
+
+# Distributed execution
+analysis_distributed = tune.run(
+    train_model,
+    name="distributed_tuning",
+    scheduler=asha_scheduler,
+    search_alg=bayesopt,
+    num_samples=100,  # 100 trials
+    config=search_space,
+    resources_per_trial={"cpu": 2},
+    verbose=1
+)
+
+print("\n=== Distributed Tuning Results ===")
+best_trial = analysis_distributed.get_best_trial("accuracy", "max", "last")
+print(f"Best Accuracy: {best_trial.last_result['accuracy']:.4f}")
+print(f"\nTrial Statistics:")
+print(f"  Completed Trials: {len(analysis_distributed.trials)}")
+print(f"  Average Accuracy: {np.mean([t.last_result['accuracy'] for t in analysis_distributed.trials if 'accuracy' in t.last_result]):.4f}")
+
+# Visualize results
+import pandas as pd
+
+df = analysis_distributed.results_df
+print(f"\n=== Top 5 Configurations ===")
+top5 = df.nlargest(5, 'accuracy')[['accuracy', 'config/hidden_size_1', 'config/lr', 'config/dropout']]
+print(top5)
+
+# Shutdown Ray
+ray.shutdown()
+</code></pre>
+
+<h3>Advantages of Ray Tune</h3>
+
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+<th>Benefits</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unified API</strong></td>
+<td>Multiple schedulers/searchers with unified interface</td>
+<td>Easy method switching</td>
+</tr>
+<tr>
+<td><strong>Distributed Execution</strong></td>
+<td>Automatic scaling across machines</td>
+<td>Large-scale exploration possible</td>
+</tr>
+<tr>
+<td><strong>Early Stopping</strong></td>
+<td>ASHA, Hyperband, Median, etc.</td>
+<td>Resource savings</td>
+</tr>
+<tr>
+<td><strong>Checkpointing</strong></td>
+<td>Interruption and resumption support</td>
+<td>Safety for long-running tasks</td>
+</tr>
+<tr>
+<td><strong>Visualization</strong></td>
+<td>TensorBoard integration</td>
+<td>Real-time monitoring</td>
+</tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>3.6 Chapter Summary</h2>
+
+<h3>What We Learned</h3>
+
+<ol>
+<li><p><strong>Hyperband</strong></p>
+<ul>
+<li>Efficient resource allocation with Successive Halving</li>
+<li>Early elimination of poorly performing configurations</li>
+<li>Easy implementation with Optuna</li>
+</ul></li>
+
+<li><p><strong>BOHB</strong></p>
+<ul>
+<li>Fusion of Hyperband and TPE</li>
+<li>Balances efficient resource allocation and intelligent search</li>
+<li>Especially effective for neural networks</li>
+</ul></li>
+
+<li><p><strong>Population-based Training</strong></p>
+<ul>
+<li>Dynamically adjusts hyperparameters during parallel training</li>
+<li>Balances Exploit and Explore</li>
+<li>Delivers true value in large-scale parallel environments</li>
+</ul></li>
+
+<li><p><strong>Other Methods</strong></p>
+<ul>
+<li>Hyperopt: Simple and fast TPE implementation</li>
+<li>SMAC: Strong with conditional parameters</li>
+<li>Ax/BoTorch: State-of-the-art Bayesian optimization</li>
+</ul></li>
+
+<li><p><strong>Ray Tune</strong></p>
+<ul>
+<li>Unified framework utilizing multiple methods</li>
+<li>Large-scale tuning in distributed environments</li>
+<li>Integration with practical tools</li>
+</ul></li>
+</ol>
+
+<h3>Method Selection Guidelines</h3>
+
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommended Method</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Limited compute resources</td>
+<td>Hyperband</td>
+<td>Efficient resource allocation</td>
+</tr>
+<tr>
+<td>Neural networks</td>
+<td>BOHB, PBT</td>
+<td>Progressive learning and dynamic adjustment</td>
+</tr>
+<tr>
+<td>Large-scale parallel environment</td>
+<td>PBT, Ray Tune</td>
+<td>Maximizes parallel resources</td>
+</tr>
+<tr>
+<td>Conditional parameters</td>
+<td>SMAC</td>
+<td>Handles complex search spaces</td>
+</tr>
+<tr>
+<td>Research & experiments</td>
+<td>Ax/BoTorch</td>
+<td>Cutting-edge methods and customizability</td>
+</tr>
+<tr>
+<td>Practical projects</td>
+<td>Optuna, Ray Tune</td>
+<td>Usability and proven track record</td>
+</tr>
+</tbody>
+</table>
+
+<h3>To the Next Chapter</h3>
+
+<p>In Chapter 4, we will learn <strong>practical optimization strategies</strong>:</p>
+<ul>
+<li>Best practices for search space design</li>
+<li>Optimization of parallelization and distributed execution</li>
+<li>Result analysis and visualization</li>
+<li>Deployment to production environments</li>
+</ul>
+
+<hr>
+
+<h2>References</h2>
+
+<ol>
+<li>Li, L., et al. (2018). "Hyperband: A Novel Bandit-Based Approach to Hyperparameter Optimization". <em>Journal of Machine Learning Research</em>, 18(185), 1-52.</li>
+<li>Falkner, S., Klein, A., & Hutter, F. (2018). "BOHB: Robust and Efficient Hyperparameter Optimization at Scale". <em>ICML 2018</em>.</li>
+<li>Jaderberg, M., et al. (2017). "Population Based Training of Neural Networks". <em>arXiv:1711.09846</em>.</li>
+<li>Liaw, R., et al. (2018). "Tune: A Research Platform for Distributed Model Selection and Training". <em>arXiv:1807.05118</em>.</li>
+<li>Bergstra, J., et al. (2013). "Making a Science of Model Search: Hyperparameter Optimization in Hundreds of Dimensions for Vision Architectures". <em>ICML 2013</em>.</li>
+</ol>
+
+<div class="navigation">
+    <a href="chapter2-bayesian-optimization.html" class="nav-button">← Previous Chapter: Bayesian Optimization</a>
+    <a href="chapter4-practical-strategies.html" class="nav-button">Next Chapter: Practical Optimization Strategies →</a>
+</div>
+
+    </main>
+
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, or libraries.</li>
+            <li>To the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content are subject to the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+        </ul>
+    </section>
+
+<footer>
+        <p><strong>Author</strong>: AI Terakoya Content Team</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-21</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>© 2025 AI Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

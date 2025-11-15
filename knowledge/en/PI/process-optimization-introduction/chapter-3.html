@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Chapter 3：多目的Optimizationとパレート最適 - ProcessOptimization入門 Series">
-    <title>Chapter 3：多目的Optimizationとパレート最適 - ProcessOptimization入門 | PI Terakoya</title>
+    <meta name="description" content="Chapter 3: Multi-Objective Optimization and Pareto Optimality - Process Optimization Introduction Series">
+    <title>Chapter 3: Multi-Objective Optimization and Pareto Optimality - Process Optimization Introduction | PI Terakoya</title>
 
         <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -85,9 +85,9 @@
             .container { padding: 0 0.5rem; }
             pre { padding: 1rem; }
         }
-    
-        
-    
+
+
+
         /* Breadcrumb styles */
         .breadcrumb {
             background: #f7fafc;
@@ -158,12 +158,12 @@
 
         <header>
         <div class="container">
-            <h1>Chapter 3：多目的Optimizationとパレート最適</h1>
-            <p class="subtitle">トレードオフ minutes析とパレートフロンティアの探索</p>
+            <h1>Chapter 3: Multi-Objective Optimization and Pareto Optimality</h1>
+            <p class="subtitle">Trade-off Analysis and Pareto Frontier Exploration</p>
             <div class="meta">
-                <span class="meta">📖 Reading Time: 25-30 minutes</span>
+                <span class="meta">📖 Reading time: 25-30 minutes</span>
                 <span class="meta">📊 Difficulty: Intermediate</span>
-                <span class="meta">💻 Code Examples: 9</span>
+                <span class="meta">💻 Code examples: 9</span>
             </div>
         </div>
     </header>
@@ -172,25 +172,25 @@
 
 <div class="learning-objectives">
 <h2>Learning Objectives</h2>
-<p>この Chapterを読むことで、以下を習得できます：</p>
+<p>By reading this chapter, you will master the following:</p>
 <ul>
-<li>✅ 多目的Optimization問題を定式化できる</li>
-<li>✅ パレート最適性の概念を理解する</li>
-<li>✅ 重み付け和法とε制約法を実装できる</li>
-<li>✅ パレートフロンティアを生成・可視化できる</li>
-<li>✅ トレードオフ minutes析と意思決定ができる</li>
+<li>✅ Formulate multi-objective optimization problems</li>
+<li>✅ Understand the concept of Pareto optimality</li>
+<li>✅ Implement weighted sum method and epsilon-constraint method</li>
+<li>✅ Generate and visualize Pareto frontiers</li>
+<li>✅ Perform trade-off analysis and decision making</li>
 </ul>
 </div>
 
 <hr />
 
-<h2>3.1 多目的Optimizationの基礎</h2>
+<h2>3.1 Fundamentals of Multi-Objective Optimization</h2>
 
-<h3>多目的Optimizationとは</h3>
+<h3>What is Multi-Objective Optimization</h3>
 
-<p><strong>多目的Optimization（Multi-objective Optimization）</strong>は、複数の目的関数を同時にOptimizationする問題です。化学Processでは、収率とエネルギーコスト、品質と生産速度など、相反する目的が存在します。</p>
+<p><strong>Multi-objective Optimization</strong> is the problem of optimizing multiple objective functions simultaneously. In chemical processes, conflicting objectives exist, such as yield vs energy cost, or quality vs production speed.</p>
 
-<p>一般的な多目的Optimization問題：</p>
+<p>General multi-objective optimization problem:</p>
 
 <p>$$
 \begin{aligned}
@@ -201,178 +201,178 @@
 \end{aligned}
 $$</p>
 
-<p>ここで：</p>
+<p>Where:</p>
 <ul>
-<li><strong>$\mathbf{f}(\mathbf{x})$</strong>: 目的関数ベクトル（$m$の目的関数）</li>
-<li><strong>$\mathbf{x}$</strong>: 決定変数ベクトル</li>
-<li><strong>パレート最適解</strong>: どの目的も悪化させずに他の目的を改善できない解</li>
+<li><strong>$\mathbf{f}(\mathbf{x})$</strong>: Objective function vector ($m$ objective functions)</li>
+<li><strong>$\mathbf{x}$</strong>: Decision variable vector</li>
+<li><strong>Pareto optimal solution</strong>: A solution where no objective can be improved without worsening another objective</li>
 </ul>
 
 <hr />
 
-<h3>Code Examples1: 多目的Optimization問題の定式化（化学反応器）</h3>
+<h3>Code Example 1: Formulation of Multi-Objective Optimization Problem (Chemical Reactor)</h3>
 
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 """
-化学反応器の多目的Optimization問題:
-目的1: 収率の最大化（→ 負値で最小化）
-目的2: エネルギーコストの最小化
+Multi-objective optimization problem for a chemical reactor:
+Objective 1: Maximize yield (→ minimize negative value)
+Objective 2: Minimize energy cost
 
-決定変数:
-x[0]: 反応温度 T [°C]  (範囲: 150-250)
-x[1]: 滞留 hours τ [min] (範囲: 10-60)
+Decision variables:
+x[0]: Reaction temperature T [°C]  (range: 150-250)
+x[1]: Residence time τ [min] (range: 10-60)
 """
 
 def objective_yield(x):
     """
-    目的関数1: 収率の最大化（負値で最小化に変換）
+    Objective function 1: Maximize yield (converted to minimization with negative value)
 
-    収率モデル: 温度と滞留 hoursの関数
-    最適条件付近でピークを持つガウス型
+    Yield model: Function of temperature and residence time
+    Gaussian-type with peak near optimal conditions
     """
     T, tau = x
     T_norm = (T - 200) / 50
     tau_norm = (tau - 35) / 25
 
-    # 収率 [%]
+    # Yield [%]
     yield_pct = 95 * np.exp(-0.5 * (T_norm**2 + tau_norm**2))
 
-    # 最大化 → 最小化に変換（負値）
+    # Convert maximization → minimization (negative value)
     return -yield_pct
 
 def objective_energy_cost(x):
     """
-    目的関数2: エネルギーコストの最小化
+    Objective function 2: Minimize energy cost
 
-    コスト = 温度に比例 + 滞留 hoursに比例
+    Cost = proportional to temperature + proportional to residence time
     """
     T, tau = x
 
-    # 加熱コスト（温度に2次比例）
+    # Heating cost (proportional to temperature squared)
     heating_cost = 0.02 * (T - 150)**2
 
-    #  hoursコスト（滞留 hoursに比例）
+    # Time cost (proportional to residence time)
     time_cost = 5 * tau
 
     return heating_cost + time_cost
 
-# グリッドの作成
+# Create grid
 T_range = np.linspace(150, 250, 100)
 tau_range = np.linspace(10, 60, 100)
 T_grid, tau_grid = np.meshgrid(T_range, tau_range)
 
-# 各目的関数の計算
-yield_grid = -objective_yield([T_grid, tau_grid])  # 正値に戻す
+# Calculate each objective function
+yield_grid = -objective_yield([T_grid, tau_grid])  # Convert back to positive
 cost_grid = objective_energy_cost([T_grid, tau_grid])
 
-# 可視化
+# Visualization
 fig = plt.figure(figsize=(14, 6))
 
-# 左図: 収率の3D表面
+# Left figure: Yield 3D surface
 ax1 = fig.add_subplot(121, projection='3d')
 surf1 = ax1.plot_surface(T_grid, tau_grid, yield_grid, cmap='Greens',
                          alpha=0.8, edgecolor='none')
-ax1.set_xlabel('温度 T [°C]', fontsize=10)
-ax1.set_ylabel('滞留 hours τ [min]', fontsize=10)
-ax1.set_zlabel('収率 [%]', fontsize=10)
-ax1.set_title('目的関数1: 収率最大化', fontsize=12, fontweight='bold')
+ax1.set_xlabel('Temperature T [°C]', fontsize=10)
+ax1.set_ylabel('Residence time τ [min]', fontsize=10)
+ax1.set_zlabel('Yield [%]', fontsize=10)
+ax1.set_title('Objective Function 1: Yield Maximization', fontsize=12, fontweight='bold')
 fig.colorbar(surf1, ax=ax1, shrink=0.5)
 
-# 右図: エネルギーコストの3D表面
+# Right figure: Energy cost 3D surface
 ax2 = fig.add_subplot(122, projection='3d')
 surf2 = ax2.plot_surface(T_grid, tau_grid, cost_grid, cmap='Reds',
                          alpha=0.8, edgecolor='none')
-ax2.set_xlabel('温度 T [°C]', fontsize=10)
-ax2.set_ylabel('滞留 hours τ [min]', fontsize=10)
-ax2.set_zlabel('コスト [$/h]', fontsize=10)
-ax2.set_title('目的関数2: エネルギーコスト最小化', fontsize=12, fontweight='bold')
+ax2.set_xlabel('Temperature T [°C]', fontsize=10)
+ax2.set_ylabel('Residence time τ [min]', fontsize=10)
+ax2.set_zlabel('Cost [$/h]', fontsize=10)
+ax2.set_title('Objective Function 2: Energy Cost Minimization', fontsize=12, fontweight='bold')
 fig.colorbar(surf2, ax=ax2, shrink=0.5)
 
 plt.tight_layout()
 plt.show()
 
-# 特定点での評価
+# Evaluation at specific points
 test_points = [
-    (180, 30, "低温・短 hours"),
-    (200, 35, "中温・中 hours"),
-    (220, 40, "高温・長 hours")
+    (180, 30, "Low temp, short time"),
+    (200, 35, "Medium temp, medium time"),
+    (220, 40, "High temp, long time")
 ]
 
 print("=" * 60)
-print("多目的Optimization問題: 化学反応器")
+print("Multi-Objective Optimization Problem: Chemical Reactor")
 print("=" * 60)
-print("目的1: 収率の最大化")
-print("目的2: エネルギーコストの最小化")
+print("Objective 1: Maximize yield")
+print("Objective 2: Minimize energy cost")
 print()
-print("異なる運転条件での評価:")
+print("Evaluation under different operating conditions:")
 print("-" * 60)
 
 for T, tau, desc in test_points:
     y = -objective_yield([T, tau])
     c = objective_energy_cost([T, tau])
     print(f"{desc}:")
-    print(f"  温度: {T}°C, 滞留 hours: {tau} min")
-    print(f"  収率: {y:.2f}%, コスト: ${c:.2f}/h")
+    print(f"  Temperature: {T}°C, Residence time: {tau} min")
+    print(f"  Yield: {y:.2f}%, Cost: ${c:.2f}/h")
     print()
 
-print("トレードオフ:")
-print("  高温・長 hours → 収率は高いが、コストも高い")
-print("  低温・短 hours → コストは低いが、収率も低い")
-print("  最適なバランスを見つける必要がある（パレート最適）")
+print("Trade-offs:")
+print("  High temp, long time → High yield but also high cost")
+print("  Low temp, short time → Low cost but also low yield")
+print("  Need to find optimal balance (Pareto optimal)")
 print("=" * 60)
 </code></pre>
 
-<p><strong>出力例:</strong></p>
+<p><strong>Output example:</strong></p>
 <pre><code>============================================================
-多目的Optimization問題: 化学反応器
+Multi-Objective Optimization Problem: Chemical Reactor
 ============================================================
-目的1: 収率の最大化
-目的2: エネルギーコストの最小化
+Objective 1: Maximize yield
+Objective 2: Minimize energy cost
 
-異なる運転条件での評価:
+Evaluation under different operating conditions:
 ------------------------------------------------------------
-低温・短 hours:
-  温度: 180°C, 滞留 hours: 30 min
-  収率: 83.53%, コスト: $168.00/h
+Low temp, short time:
+  Temperature: 180°C, Residence time: 30 min
+  Yield: 83.53%, Cost: $168.00/h
 
-中温・中 hours:
-  温度: 200°C, 滞留 hours: 35 min
-  収率: 95.00%, コスト: $225.00/h
+Medium temp, medium time:
+  Temperature: 200°C, Residence time: 35 min
+  Yield: 95.00%, Cost: $225.00/h
 
-高温・長 hours:
-  温度: 220°C, 滞留 hours: 40 min
-  収率: 83.53%, コスト: $298.00/h
+High temp, long time:
+  Temperature: 220°C, Residence time: 40 min
+  Yield: 83.53%, Cost: $298.00/h
 
-トレードオフ:
-  高温・長 hours → 収率は高いが、コストも高い
-  低温・短 hours → コストは低いが、収率も低い
-  最適なバランスを見つける必要がある（パレート最適）
+Trade-offs:
+  High temp, long time → High yield but also high cost
+  Low temp, short time → Low cost but also low yield
+  Need to find optimal balance (Pareto optimal)
 ============================================================
 </code></pre>
 
-<p><strong>解説:</strong> 多目的Optimizationでは、複数の目的が相反するため、単一の最適解は存在しません。代わりに、パレート最適解の集合（パレートフロンティア）を求めます。</p>
+<p><strong>Explanation:</strong> In multi-objective optimization, there is no single optimal solution because multiple objectives conflict. Instead, we find a set of Pareto optimal solutions (Pareto frontier).</p>
 
 <hr />
 
-<h3>Code Examples2: 重み付け和法（Weighted Sum Method）</h3>
+<h3>Code Example 2: Weighted Sum Method</h3>
 
 <pre><code class="language-python">import numpy as np
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 
 """
-重み付け和法:
-複数の目的関数を重み付けして単一の目的関数に変換
+Weighted sum method:
+Convert multiple objective functions into a single objective function by weighting
 
 f_combined(x) = w1 * f1(x) + w2 * f2(x)
 w1 + w2 = 1, w1, w2 >= 0
 """
 
 def objective_yield(x):
-    """収率（負値で最小化）"""
+    """Yield (negative value for minimization)"""
     T, tau = x
     T_norm = (T - 200) / 50
     tau_norm = (tau - 35) / 25
@@ -380,7 +380,7 @@ def objective_yield(x):
     return -yield_pct
 
 def objective_energy_cost(x):
-    """エネルギーコスト"""
+    """Energy cost"""
     T, tau = x
     heating_cost = 0.02 * (T - 150)**2
     time_cost = 5 * tau
@@ -388,32 +388,32 @@ def objective_energy_cost(x):
 
 def weighted_sum_objective(x, w1, w2):
     """
-    重み付け和による目的関数
+    Objective function by weighted sum
 
-    w1: 収率の重み
-    w2: コストの重み
+    w1: Weight for yield
+    w2: Weight for cost
     """
-    # 目的関数の正規化（スケールを合わせる）
-    f1 = objective_yield(x) / 100  # 収率を-1〜0程度に正規化
-    f2 = objective_energy_cost(x) / 500  # コストを0〜1程度に正規化
+    # Normalize objective functions (match scales)
+    f1 = objective_yield(x) / 100  # Normalize yield to approximately -1~0
+    f2 = objective_energy_cost(x) / 500  # Normalize cost to approximately 0~1
 
     return w1 * f1 + w2 * f2
 
-# 異なる重みの組み合わせでパレートフロンティアを生成
-weight_combinations = np.linspace(0, 1, 21)  # w1の値（w2 = 1 - w1）
+# Generate Pareto frontier with different weight combinations
+weight_combinations = np.linspace(0, 1, 21)  # Values of w1 (w2 = 1 - w1)
 pareto_solutions = []
 
 print("=" * 60)
-print("重み付け和法によるパレートフロンティア生成")
+print("Pareto Frontier Generation by Weighted Sum Method")
 print("=" * 60)
 
 for w1 in weight_combinations:
     w2 = 1 - w1
 
-    # 初期点
+    # Initial point
     x0 = np.array([200.0, 35.0])
 
-    # 境界条件
+    # Bounds
     bounds = [(150, 250), (10, 60)]
 
     # Optimization
@@ -434,37 +434,37 @@ for w1 in weight_combinations:
             'cost': cost_opt
         })
 
-# パレート解を配列に変換
+# Convert Pareto solutions to arrays
 pareto_yields = np.array([sol['yield'] for sol in pareto_solutions])
 pareto_costs = np.array([sol['cost'] for sol in pareto_solutions])
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
-# 左図: パレートフロンティア（目的空間）
+# Left figure: Pareto frontier (objective space)
 ax1 = axes[0]
 scatter = ax1.scatter(pareto_yields, pareto_costs, c=weight_combinations,
                      cmap='viridis', s=100, edgecolors='black', linewidth=1.5)
 ax1.plot(pareto_yields, pareto_costs, 'k--', alpha=0.5, linewidth=1)
 
-# 特定の重みの点を強調
+# Highlight specific weight points
 highlight_indices = [0, 10, 20]
 highlight_colors = ['red', 'yellow', 'blue']
-highlight_labels = ['w₁=0 (コスト重視)', 'w₁=0.5 (バランス)', 'w₁=1 (収率重視)']
+highlight_labels = ['w₁=0 (Cost priority)', 'w₁=0.5 (Balanced)', 'w₁=1 (Yield priority)']
 
 for idx, color, label in zip(highlight_indices, highlight_colors, highlight_labels):
     ax1.scatter([pareto_yields[idx]], [pareto_costs[idx]], color=color,
                s=250, marker='*', edgecolors='black', linewidth=2,
                label=label, zorder=5)
 
-ax1.set_xlabel('収率 [%]', fontsize=12)
-ax1.set_ylabel('エネルギーコスト [$/h]', fontsize=12)
-ax1.set_title('パレートフロンティア（目的空間）', fontsize=13, fontweight='bold')
+ax1.set_xlabel('Yield [%]', fontsize=12)
+ax1.set_ylabel('Energy Cost [$/h]', fontsize=12)
+ax1.set_title('Pareto Frontier (Objective Space)', fontsize=13, fontweight='bold')
 ax1.legend(fontsize=9)
 ax1.grid(alpha=0.3)
-cbar = plt.colorbar(scatter, ax=ax1, label='w₁（収率の重み）')
+cbar = plt.colorbar(scatter, ax=ax1, label='w₁ (Yield weight)')
 
-# 右図: パレート解（決定変数空間）
+# Right figure: Pareto solutions (decision variable space)
 ax2 = axes[1]
 pareto_T = np.array([sol['T'] for sol in pareto_solutions])
 pareto_tau = np.array([sol['tau'] for sol in pareto_solutions])
@@ -478,124 +478,124 @@ for idx, color, label in zip(highlight_indices, highlight_colors, highlight_labe
                s=250, marker='*', edgecolors='black', linewidth=2,
                label=label, zorder=5)
 
-ax2.set_xlabel('温度 T [°C]', fontsize=12)
-ax2.set_ylabel('滞留 hours τ [min]', fontsize=12)
-ax2.set_title('パレート解（決定変数空間）', fontsize=13, fontweight='bold')
+ax2.set_xlabel('Temperature T [°C]', fontsize=12)
+ax2.set_ylabel('Residence time τ [min]', fontsize=12)
+ax2.set_title('Pareto Solutions (Decision Variable Space)', fontsize=13, fontweight='bold')
 ax2.legend(fontsize=9)
 ax2.grid(alpha=0.3)
 
 plt.tight_layout()
 plt.show()
 
-# 結果の表示
-print(f"生成されたパレート解の数: {len(pareto_solutions)}")
+# Display results
+print(f"Number of Pareto solutions generated: {len(pareto_solutions)}")
 print()
-print("代表的なパレート解:")
+print("Representative Pareto solutions:")
 print("-" * 60)
 for idx, label in zip(highlight_indices, highlight_labels):
     sol = pareto_solutions[idx]
     print(f"{label}:")
-    print(f"  温度: {sol['T']:.2f}°C, 滞留 hours: {sol['tau']:.2f} min")
-    print(f"  収率: {sol['yield']:.2f}%, コスト: ${sol['cost']:.2f}/h")
+    print(f"  Temperature: {sol['T']:.2f}°C, Residence time: {sol['tau']:.2f} min")
+    print(f"  Yield: {sol['yield']:.2f}%, Cost: ${sol['cost']:.2f}/h")
     print()
 print("=" * 60)
 </code></pre>
 
-<p><strong>出力例:</strong></p>
+<p><strong>Output example:</strong></p>
 <pre><code>============================================================
-重み付け和法によるパレートフロンティア生成
+Pareto Frontier Generation by Weighted Sum Method
 ============================================================
-生成されたパレート解の数: 21
+Number of Pareto solutions generated: 21
 
-代表的なパレート解:
+Representative Pareto solutions:
 ------------------------------------------------------------
-w₁=0 (コスト重視):
-  温度: 150.00°C, 滞留 hours: 10.00 min
-  収率: 40.35%, コスト: $50.00/h
+w₁=0 (Cost priority):
+  Temperature: 150.00°C, Residence time: 10.00 min
+  Yield: 40.35%, Cost: $50.00/h
 
-w₁=0.5 (バランス):
-  温度: 197.85°C, 滞留 hours: 33.92 min
-  収率: 94.12%, コスト: $215.53/h
+w₁=0.5 (Balanced):
+  Temperature: 197.85°C, Residence time: 33.92 min
+  Yield: 94.12%, Cost: $215.53/h
 
-w₁=1 (収率重視):
-  温度: 200.00°C, 滞留 hours: 35.00 min
-  収率: 95.00%, コスト: $225.00/h
+w₁=1 (Yield priority):
+  Temperature: 200.00°C, Residence time: 35.00 min
+  Yield: 95.00%, Cost: $225.00/h
 
 ============================================================
 </code></pre>
 
-<p><strong>解説:</strong> 重み付け和法は、複数の目的関数を重み付けして単一の目的関数に変換します。重みを変化させることで、パレートフロンティア上の異なる解を得られます。</p>
+<p><strong>Explanation:</strong> The weighted sum method converts multiple objective functions into a single objective function by weighting. By varying the weights, different solutions on the Pareto frontier can be obtained.</p>
 
 <hr />
 
-<h3>Code Examples3: グリッド探索によるパレートフロンティア生成</h3>
+<h3>Code Example 3: Pareto Frontier Generation by Grid Search</h3>
 
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 
 """
-グリッド探索によるパレートフロンティアの直接計算:
-決定変数空間を網羅的に探索し、パレート最適解を抽出
+Direct calculation of Pareto frontier by grid search:
+Exhaustively search the decision variable space and extract Pareto optimal solutions
 """
 
 def is_pareto_optimal(costs, idx):
     """
-    パレート最適性の判定
+    Determine Pareto optimality
 
-    costs: すべての解の目的関数値の配列 (N x m)
-    idx: 判定する解のインデックス
+    costs: Array of objective function values for all solutions (N x m)
+    idx: Index of the solution to evaluate
 
-    Returns: パレート最適ならTrue
+    Returns: True if Pareto optimal
     """
-    # 対象の解
+    # Target solution
     target = costs[idx]
 
-    # 他のすべての解と比較
+    # Compare with all other solutions
     for i, other in enumerate(costs):
         if i == idx:
             continue
 
-        # other が target を優越（dominate）するか判定
-        # すべての目的でother <= target かつ少なくとも1つでother < target
+        # Determine if other dominates target
+        # other <= target in all objectives and other < target in at least one
         if np.all(other <= target) and np.any(other < target):
-            return False  # target は優越されている
+            return False  # target is dominated
 
-    return True  # パレート最適
+    return True  # Pareto optimal
 
-# グリッド探索
+# Grid search
 T_range = np.linspace(150, 250, 50)
 tau_range = np.linspace(10, 60, 50)
 T_grid, tau_grid = np.meshgrid(T_range, tau_range)
 
-# すべての点での目的関数値を計算
+# Calculate objective function values at all points
 all_solutions = []
 for i in range(len(T_range)):
     for j in range(len(tau_range)):
         T = T_grid[j, i]
         tau = tau_grid[j, i]
 
-        # 目的関数（両方とも最小化）
-        # 目的1: 収率の最大化 → 負値で最小化（さらに正値に戻して格納）
+        # Objective functions (both minimization)
+        # Objective 1: Maximize yield → minimize negative value (store as positive for later)
         T_norm = (T - 200) / 50
         tau_norm = (tau - 35) / 25
         yield_pct = 95 * np.exp(-0.5 * (T_norm**2 + tau_norm**2))
-        f1 = -yield_pct  # 最大化を最小化に変換
+        f1 = -yield_pct  # Convert maximization to minimization
 
-        # 目的2: エネルギーコスト
+        # Objective 2: Energy cost
         f2 = 0.02 * (T - 150)**2 + 5 * tau
 
         all_solutions.append({
             'T': T,
             'tau': tau,
-            'f1': f1,  # 負の収率
-            'f2': f2,  # コスト
-            'yield': yield_pct,  # 正の収率（可視化用）
+            'f1': f1,  # Negative yield
+            'f2': f2,  # Cost
+            'yield': yield_pct,  # Positive yield (for visualization)
         })
 
-# 目的関数値の配列
+# Array of objective function values
 costs = np.array([[sol['f1'], sol['f2']] for sol in all_solutions])
 
-# パレート最適解の抽出
+# Extract Pareto optimal solutions
 pareto_indices = []
 for i in range(len(all_solutions)):
     if is_pareto_optimal(costs, i):
@@ -604,64 +604,64 @@ for i in range(len(all_solutions)):
 pareto_solutions = [all_solutions[i] for i in pareto_indices]
 
 print("=" * 60)
-print("グリッド探索によるパレートフロンティア")
+print("Pareto Frontier by Grid Search")
 print("=" * 60)
-print(f"探索した解の総数: {len(all_solutions)}")
-print(f"パレート最適解の数: {len(pareto_solutions)}")
+print(f"Total number of solutions searched: {len(all_solutions)}")
+print(f"Number of Pareto optimal solutions: {len(pareto_solutions)}")
 print("=" * 60)
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
-# 左図: 目的空間でのパレートフロンティア
+# Left figure: Pareto frontier in objective space
 ax1 = axes[0]
 
-# すべての解
+# All solutions
 all_yields = [sol['yield'] for sol in all_solutions]
 all_costs_f2 = [sol['f2'] for sol in all_solutions]
 ax1.scatter(all_yields, all_costs_f2, s=10, alpha=0.3, color='gray',
-           label='実行可能解')
+           label='Feasible solutions')
 
-# パレート最適解
+# Pareto optimal solutions
 pareto_yields = [sol['yield'] for sol in pareto_solutions]
 pareto_costs = [sol['f2'] for sol in pareto_solutions]
 
-# パレート解をコストでソートして線でつなぐ
+# Sort Pareto solutions by cost and connect with line
 sorted_indices = np.argsort(pareto_costs)
 pareto_yields_sorted = [pareto_yields[i] for i in sorted_indices]
 pareto_costs_sorted = [pareto_costs[i] for i in sorted_indices]
 
 ax1.plot(pareto_yields_sorted, pareto_costs_sorted, 'r-', linewidth=3,
-        label='パレートフロンティア', zorder=3)
+        label='Pareto Frontier', zorder=3)
 ax1.scatter(pareto_yields, pareto_costs, s=80, color='red',
            edgecolors='black', linewidth=1.5, zorder=4,
-           label='パレート最適解')
+           label='Pareto optimal solutions')
 
-ax1.set_xlabel('収率 [%]', fontsize=12)
-ax1.set_ylabel('エネルギーコスト [$/h]', fontsize=12)
-ax1.set_title('目的空間でのパレートフロンティア', fontsize=13, fontweight='bold')
+ax1.set_xlabel('Yield [%]', fontsize=12)
+ax1.set_ylabel('Energy Cost [$/h]', fontsize=12)
+ax1.set_title('Pareto Frontier in Objective Space', fontsize=13, fontweight='bold')
 ax1.legend(fontsize=10)
 ax1.grid(alpha=0.3)
 
-# 右図: 決定変数空間でのパレート解
+# Right figure: Pareto solutions in decision variable space
 ax2 = axes[1]
 
-# すべての解
+# All solutions
 all_T = [sol['T'] for sol in all_solutions]
 all_tau = [sol['tau'] for sol in all_solutions]
 ax2.scatter(all_T, all_tau, s=10, alpha=0.3, color='gray',
-           label='実行可能解')
+           label='Feasible solutions')
 
-# パレート最適解
+# Pareto optimal solutions
 pareto_T = [sol['T'] for sol in pareto_solutions]
 pareto_tau = [sol['tau'] for sol in pareto_solutions]
 ax2.scatter(pareto_T, pareto_tau, s=80, color='red',
            edgecolors='black', linewidth=1.5, zorder=4,
-           label='パレート最適解')
+           label='Pareto optimal solutions')
 
-ax2.set_xlabel('温度 T [°C]', fontsize=12)
-ax2.set_ylabel('滞留 hours τ [min]', fontsize=12)
-ax2.set_title('決定変数空間でのパレート解', fontsize=13, fontweight='bold')
+ax2.set_xlabel('Temperature T [°C]', fontsize=12)
+ax2.set_ylabel('Residence time τ [min]', fontsize=12)
+ax2.set_title('Pareto Solutions in Decision Variable Space', fontsize=13, fontweight='bold')
 ax2.legend(fontsize=10)
 ax2.grid(alpha=0.3)
 
@@ -669,35 +669,35 @@ plt.tight_layout()
 plt.show()
 </code></pre>
 
-<p><strong>出力例:</strong></p>
+<p><strong>Output example:</strong></p>
 <pre><code>============================================================
-グリッド探索によるパレートフロンティア
+Pareto Frontier by Grid Search
 ============================================================
-探索した解の総数: 2500
-パレート最適解の数: 48
+Total number of solutions searched: 2500
+Number of Pareto optimal solutions: 48
 ============================================================
 </code></pre>
 
-<p><strong>解説:</strong> グリッド探索により、決定変数空間を網羅的に探索し、パレート最適解を抽出します。ある解が他の解に優越されない場合、その解はパレート最適です。</p>
+<p><strong>Explanation:</strong> Grid search exhaustively explores the decision variable space and extracts Pareto optimal solutions. If a solution is not dominated by any other solution, it is Pareto optimal.</p>
 
 <hr />
 
-<h3>Code Examples4: ε制約法（Epsilon-Constraint Method）</h3>
+<h3>Code Example 4: Epsilon-Constraint Method</h3>
 
 <pre><code class="language-python">import numpy as np
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 
 """
-ε制約法:
-1つの目的関数をOptimizationし、他の目的関数を制約条件として扱う
+Epsilon-constraint method:
+Optimize one objective function and treat other objective functions as constraints
 
 minimize: f1(x)
 subject to: f2(x) <= epsilon
 """
 
 def objective_yield(x):
-    """収率（負値で最小化）"""
+    """Yield (negative value for minimization)"""
     T, tau = x
     T_norm = (T - 200) / 50
     tau_norm = (tau - 35) / 25
@@ -705,38 +705,38 @@ def objective_yield(x):
     return -yield_pct
 
 def objective_energy_cost(x):
-    """エネルギーコスト"""
+    """Energy cost"""
     T, tau = x
     heating_cost = 0.02 * (T - 150)**2
     time_cost = 5 * tau
     return heating_cost + time_cost
 
 def constraint_cost(x, epsilon):
-    """コスト制約: cost <= epsilon"""
+    """Cost constraint: cost <= epsilon"""
     return objective_energy_cost(x) - epsilon
 
-# ε値の範囲（コスト上限）
+# Range of epsilon values (cost upper limit)
 epsilon_values = np.linspace(100, 350, 20)
 pareto_solutions = []
 
 print("=" * 60)
-print("ε制約法によるパレートフロンティア生成")
+print("Pareto Frontier Generation by Epsilon-Constraint Method")
 print("=" * 60)
 
 for eps in epsilon_values:
-    # 初期点
+    # Initial point
     x0 = np.array([200.0, 35.0])
 
-    # 境界条件
+    # Bounds
     bounds = [(150, 250), (10, 60)]
 
-    # 制約条件（コスト <= epsilon）
+    # Constraint (cost <= epsilon)
     constraints = {
         'type': 'ineq',
         'fun': lambda x: eps - objective_energy_cost(x)
     }
 
-    # Optimization（収率を最大化、コストは制約として扱う）
+    # Optimization (maximize yield, treat cost as constraint)
     result = minimize(objective_yield, x0, method='SLSQP',
                      bounds=bounds, constraints=constraints)
 
@@ -753,139 +753,139 @@ for eps in epsilon_values:
             'cost': cost_opt
         })
 
-# パレート解を配列に変換
+# Convert Pareto solutions to arrays
 pareto_yields = np.array([sol['yield'] for sol in pareto_solutions])
 pareto_costs = np.array([sol['cost'] for sol in pareto_solutions])
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
-# 左図: パレートフロンティア
+# Left figure: Pareto frontier
 ax1 = axes[0]
 ax1.plot(pareto_yields, pareto_costs, 'ro-', linewidth=2.5, markersize=8,
-        label='ε制約法による解', zorder=3)
+        label='Solutions by epsilon-constraint method', zorder=3)
 
-# ε値ごとの制約線
-for i, sol in enumerate(pareto_solutions[::4]):  # 4おきに表示
+# Constraint lines for each epsilon value
+for i, sol in enumerate(pareto_solutions[::4]):  # Display every 4th
     eps = sol['epsilon']
     ax1.axhline(y=eps, color='blue', linestyle='--', alpha=0.3, linewidth=1)
     ax1.text(40, eps + 5, f'ε={eps:.0f}', fontsize=8, color='blue')
 
-ax1.set_xlabel('収率 [%]', fontsize=12)
-ax1.set_ylabel('エネルギーコスト [$/h]', fontsize=12)
-ax1.set_title('ε制約法によるパレートフロンティア', fontsize=13, fontweight='bold')
+ax1.set_xlabel('Yield [%]', fontsize=12)
+ax1.set_ylabel('Energy Cost [$/h]', fontsize=12)
+ax1.set_title('Pareto Frontier by Epsilon-Constraint Method', fontsize=13, fontweight='bold')
 ax1.legend(fontsize=10)
 ax1.grid(alpha=0.3)
 
-# 右図: 運転条件の変化
+# Right figure: Change in operating conditions
 ax2 = axes[1]
 ax2.plot([sol['epsilon'] for sol in pareto_solutions],
         [sol['T'] for sol in pareto_solutions],
-        'go-', linewidth=2, markersize=6, label='温度 T')
+        'go-', linewidth=2, markersize=6, label='Temperature T')
 ax2.plot([sol['epsilon'] for sol in pareto_solutions],
         [sol['tau'] for sol in pareto_solutions],
-        'bs-', linewidth=2, markersize=6, label='滞留 hours τ')
+        'bs-', linewidth=2, markersize=6, label='Residence time τ')
 
-ax2.set_xlabel('ε (コスト上限) [$/h]', fontsize=12)
-ax2.set_ylabel('運転条件', fontsize=12)
-ax2.set_title('コスト制約と運転条件の関係', fontsize=13, fontweight='bold')
+ax2.set_xlabel('ε (Cost upper limit) [$/h]', fontsize=12)
+ax2.set_ylabel('Operating conditions', fontsize=12)
+ax2.set_title('Relationship between Cost Constraint and Operating Conditions', fontsize=13, fontweight='bold')
 ax2.legend(fontsize=10)
 ax2.grid(alpha=0.3)
 
 plt.tight_layout()
 plt.show()
 
-# 結果の表示
-print(f"生成されたパレート解の数: {len(pareto_solutions)}")
+# Display results
+print(f"Number of Pareto solutions generated: {len(pareto_solutions)}")
 print()
-print("代表的な解:")
+print("Representative solutions:")
 print("-" * 60)
 for i in [0, len(pareto_solutions)//2, -1]:
     sol = pareto_solutions[i]
     print(f"ε = {sol['epsilon']:.2f} $/h:")
-    print(f"  温度: {sol['T']:.2f}°C, 滞留 hours: {sol['tau']:.2f} min")
-    print(f"  収率: {sol['yield']:.2f}%, コスト: ${sol['cost']:.2f}/h")
+    print(f"  Temperature: {sol['T']:.2f}°C, Residence time: {sol['tau']:.2f} min")
+    print(f"  Yield: {sol['yield']:.2f}%, Cost: ${sol['cost']:.2f}/h")
     print()
 print("=" * 60)
 </code></pre>
 
-<p><strong>出力例:</strong></p>
+<p><strong>Output example:</strong></p>
 <pre><code>============================================================
-ε制約法によるパレートフロンティア生成
+Pareto Frontier Generation by Epsilon-Constraint Method
 ============================================================
-生成されたパレート解の数: 20
+Number of Pareto solutions generated: 20
 
-代表的な解:
+Representative solutions:
 ------------------------------------------------------------
 ε = 100.00 $/h:
-  温度: 162.25°C, 滞留 hours: 14.00 min
-  収率: 58.47%, コスト: $100.00/h
+  Temperature: 162.25°C, Residence time: 14.00 min
+  Yield: 58.47%, Cost: $100.00/h
 
 ε = 225.00 $/h:
-  温度: 200.00°C, 滞留 hours: 35.00 min
-  収率: 95.00%, コスト: $225.00/h
+  Temperature: 200.00°C, Residence time: 35.00 min
+  Yield: 95.00%, Cost: $225.00/h
 
 ε = 350.00 $/h:
-  温度: 200.00°C, 滞留 hours: 35.00 min
-  収率: 95.00%, コスト: $225.00/h
+  Temperature: 200.00°C, Residence time: 35.00 min
+  Yield: 95.00%, Cost: $225.00/h
 
 ============================================================
 </code></pre>
 
-<p><strong>解説:</strong> ε制約法は、1つの目的関数をOptimizationし、他の目的関数を制約条件として扱います。ε値を変化させることで、パレートフロンティア上の異なる解を得られます。</p>
+<p><strong>Explanation:</strong> The epsilon-constraint method optimizes one objective function and treats other objective functions as constraints. By varying the epsilon value, different solutions on the Pareto frontier can be obtained.</p>
 
 <hr />
 
-<h3>Code Examples5: 簡易遺伝的アルゴリズム（NSGA-II概念）</h3>
+<h3>Code Example 5: Simple Genetic Algorithm (NSGA-II Concept)</h3>
 
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 
 """
-簡易遺伝的アルゴリズムによる多目的Optimization:
-NSGA-II（Non-dominated Sorting Genetic Algorithm II）の概念を実装
+Multi-objective optimization by simple genetic algorithm:
+Implementing the concept of NSGA-II (Non-dominated Sorting Genetic Algorithm II)
 """
 
 def objective_functions(x):
     """
-    2つの目的関数を計算
+    Calculate two objective functions
 
-    Returns: [f1, f2]  (両方とも最小化)
+    Returns: [f1, f2]  (both minimization)
     """
     T, tau = x
 
-    # 目的1: 収率の最大化（負値で最小化）
+    # Objective 1: Maximize yield (minimize negative value)
     T_norm = (T - 200) / 50
     tau_norm = (tau - 35) / 25
     yield_pct = 95 * np.exp(-0.5 * (T_norm**2 + tau_norm**2))
     f1 = -yield_pct
 
-    # 目的2: エネルギーコスト
+    # Objective 2: Energy cost
     f2 = 0.02 * (T - 150)**2 + 5 * tau
 
     return np.array([f1, f2])
 
 def dominates(obj1, obj2):
     """
-    パレート優越の判定
+    Determine Pareto dominance
 
-    obj1 が obj2 を優越するか判定
-    （すべての目的でobj1 <= obj2 かつ少なくとも1つでobj1 < obj2）
+    Determine if obj1 dominates obj2
+    (obj1 <= obj2 in all objectives and obj1 < obj2 in at least one)
     """
     return np.all(obj1 <= obj2) and np.any(obj1 < obj2)
 
 def non_dominated_sorting(population_objs):
     """
-    非優越ソーティング
+    Non-dominated sorting
 
-    Returns: 各体のランク（0が最良）
+    Returns: Rank of each individual (0 is best)
     """
     n = len(population_objs)
     ranks = np.zeros(n, dtype=int)
     dominated_count = np.zeros(n, dtype=int)
     dominated_by = [[] for _ in range(n)]
 
-    # 優越関係を計算
+    # Calculate dominance relationships
     for i in range(n):
         for j in range(i + 1, n):
             if dominates(population_objs[i], population_objs[j]):
@@ -895,14 +895,14 @@ def non_dominated_sorting(population_objs):
                 dominated_by[j].append(i)
                 dominated_count[i] += 1
 
-    # ランク0（非優越フロント）を抽出
+    # Extract rank 0 (non-dominated front)
     front = []
     for i in range(n):
         if dominated_count[i] == 0:
             ranks[i] = 0
             front.append(i)
 
-    # 残りのランクを計算
+    # Calculate remaining ranks
     current_rank = 0
     while len(front) > 0:
         next_front = []
@@ -917,29 +917,29 @@ def non_dominated_sorting(population_objs):
 
     return ranks
 
-# 初期集団の生成（ランダム）
+# Generate initial population (random)
 np.random.seed(42)
 population_size = 100
 population = np.random.uniform([150, 10], [250, 60], (population_size, 2))
 
-# 各体の目的関数値を計算
+# Calculate objective function values for each individual
 population_objs = np.array([objective_functions(ind) for ind in population])
 
-# 非優越ソーティング
+# Non-dominated sorting
 ranks = non_dominated_sorting(population_objs)
 
-# ランク0（パレートフロント）の抽出
+# Extract rank 0 (Pareto front)
 pareto_front_indices = np.where(ranks == 0)[0]
 pareto_front = population[pareto_front_indices]
 pareto_front_objs = population_objs[pareto_front_indices]
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
-# 左図: 目的空間
+# Left figure: Objective space
 ax1 = axes[0]
 
-# すべての体（ランクごとに色 minutesけ）
+# All individuals (colored by rank)
 unique_ranks = np.unique(ranks)
 colors = plt.cm.viridis(np.linspace(0, 1, len(unique_ranks)))
 
@@ -949,18 +949,18 @@ for rank, color in zip(unique_ranks, colors):
                s=50, alpha=0.6, color=color, label=f'Rank {rank}',
                edgecolors='black', linewidth=0.5)
 
-# パレートフロント（ランク0）を強調
+# Emphasize Pareto front (rank 0)
 ax1.scatter(-pareto_front_objs[:, 0], pareto_front_objs[:, 1],
            s=150, color='red', marker='*', edgecolors='black', linewidth=2,
-           label='パレートフロント (Rank 0)', zorder=5)
+           label='Pareto Front (Rank 0)', zorder=5)
 
-ax1.set_xlabel('収率 [%]', fontsize=12)
-ax1.set_ylabel('エネルギーコスト [$/h]', fontsize=12)
-ax1.set_title('非優越ソーティング（目的空間）', fontsize=13, fontweight='bold')
+ax1.set_xlabel('Yield [%]', fontsize=12)
+ax1.set_ylabel('Energy Cost [$/h]', fontsize=12)
+ax1.set_title('Non-Dominated Sorting (Objective Space)', fontsize=13, fontweight='bold')
 ax1.legend(fontsize=9, loc='upper right')
 ax1.grid(alpha=0.3)
 
-# 右図: 決定変数空間
+# Right figure: Decision variable space
 ax2 = axes[1]
 
 for rank, color in zip(unique_ranks, colors):
@@ -971,106 +971,106 @@ for rank, color in zip(unique_ranks, colors):
 
 ax2.scatter(pareto_front[:, 0], pareto_front[:, 1],
            s=150, color='red', marker='*', edgecolors='black', linewidth=2,
-           label='パレートフロント (Rank 0)', zorder=5)
+           label='Pareto Front (Rank 0)', zorder=5)
 
-ax2.set_xlabel('温度 T [°C]', fontsize=12)
-ax2.set_ylabel('滞留 hours τ [min]', fontsize=12)
-ax2.set_title('非優越ソーティング（決定変数空間）', fontsize=13, fontweight='bold')
+ax2.set_xlabel('Temperature T [°C]', fontsize=12)
+ax2.set_ylabel('Residence time τ [min]', fontsize=12)
+ax2.set_title('Non-Dominated Sorting (Decision Variable Space)', fontsize=13, fontweight='bold')
 ax2.legend(fontsize=9, loc='upper right')
 ax2.grid(alpha=0.3)
 
 plt.tight_layout()
 plt.show()
 
-# 結果の表示
+# Display results
 print("=" * 60)
-print("簡易遺伝的アルゴリズム（非優越ソーティング）")
+print("Simple Genetic Algorithm (Non-Dominated Sorting)")
 print("=" * 60)
-print(f"集団サイズ: {population_size}")
-print(f"パレートフロント（ランク0）の体数: {len(pareto_front_indices)}")
+print(f"Population size: {population_size}")
+print(f"Number of individuals in Pareto front (rank 0): {len(pareto_front_indices)}")
 print()
-print(f"ランク minutes布:")
+print(f"Rank distribution:")
 for rank in unique_ranks:
     count = np.sum(ranks == rank)
-    print(f"  Rank {rank}: {count} 体")
+    print(f"  Rank {rank}: {count} individuals")
 print("=" * 60)
 </code></pre>
 
-<p><strong>出力例:</strong></p>
+<p><strong>Output example:</strong></p>
 <pre><code>============================================================
-簡易遺伝的アルゴリズム（非優越ソーティング）
+Simple Genetic Algorithm (Non-Dominated Sorting)
 ============================================================
-集団サイズ: 100
-パレートフロント（ランク0）の体数: 15
+Population size: 100
+Number of individuals in Pareto front (rank 0): 15
 
-ランク minutes布:
-  Rank 0: 15 体
-  Rank 1: 21 体
-  Rank 2: 19 体
-  Rank 3: 17 体
-  Rank 4: 13 体
-  Rank 5: 9 体
-  Rank 6: 4 体
-  Rank 7: 2 体
+Rank distribution:
+  Rank 0: 15 individuals
+  Rank 1: 21 individuals
+  Rank 2: 19 individuals
+  Rank 3: 17 individuals
+  Rank 4: 13 individuals
+  Rank 5: 9 individuals
+  Rank 6: 4 individuals
+  Rank 7: 2 individuals
 ============================================================
 </code></pre>
 
-<p><strong>解説:</strong> 非優越ソーティングは、集団をパレート優越関係に基づいてランク付けします。ランク0は非優越フロント（パレートフロント）であり、最良の解の集合です。</p>
+<p><strong>Explanation:</strong> Non-dominated sorting ranks the population based on Pareto dominance relationships. Rank 0 is the non-dominated front (Pareto front), which is the set of best solutions.</p>
 
 <hr />
 
-<h3>Code Examples6: パレート優越チェックと非優越ソート実装</h3>
+<h3>Code Example 6: Pareto Dominance Check and Non-Dominated Sort Implementation</h3>
 
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 """
-パレート優越の概念とアルゴリズム:
-1. パレート優越の判定
-2. 非優越解の抽出
-3. 優越関係の可視化
+Pareto dominance concept and algorithm:
+1. Determine Pareto dominance
+2. Extract non-dominated solutions
+3. Visualize dominance relationships
 """
 
 def pareto_dominance_check(sol_a, sol_b):
     """
-    パレート優越のチェック
+    Check Pareto dominance
 
     Returns:
-        1: sol_a が sol_b を優越
-       -1: sol_b が sol_a を優越
-        0: どちらも優越しない（非比較）
+        1: sol_a dominates sol_b
+       -1: sol_b dominates sol_a
+        0: Neither dominates (incomparable)
     """
-    # すべての目的でa <= b
+    # a <= b in all objectives
     all_better_or_equal = np.all(sol_a <= sol_b)
-    # 少なくとも1つの目的でa < b
+    # a < b in at least one objective
     at_least_one_better = np.any(sol_a < sol_b)
 
     if all_better_or_equal and at_least_one_better:
-        return 1  # a が b を優越
+        return 1  # a dominates b
 
-    # すべての目的でb <= a
+    # b <= a in all objectives
     all_better_or_equal_b = np.all(sol_b <= sol_a)
-    # 少なくとも1つの目的でb < a
+    # b < a in at least one objective
     at_least_one_better_b = np.any(sol_b < sol_a)
 
     if all_better_or_equal_b and at_least_one_better_b:
-        return -1  # b が a を優越
+        return -1  # b dominates a
 
-    return 0  # 非比較
+    return 0  # Incomparable
 
-# テストケースの作成
+# Create test cases
 test_solutions = [
     [2, 3],   # A
-    [1, 5],   # B (f1でAより良いが、f2で悪い)
-    [3, 2],   # C (f1でAより悪いが、f2で良い)
-    [2.5, 3.5], # D (Aに優越される)
-    [1, 3],   # E (Aを優越する)
+    [1, 5],   # B (better in f1 than A, but worse in f2)
+    [3, 2],   # C (worse in f1 than A, but better in f2)
+    [2.5, 3.5], # D (dominated by A)
+    [1, 3],   # E (dominates A)
 ]
 
 labels = ['A', 'B', 'C', 'D', 'E']
 
-# 優越関係のマトリックスを計算
+# Calculate dominance relationship matrix
 n = len(test_solutions)
 dominance_matrix = np.zeros((n, n), dtype=int)
 
@@ -1082,10 +1082,10 @@ for i in range(n):
                 np.array(test_solutions[j])
             )
 
-# 可視化
+# Visualization
 fig = plt.figure(figsize=(14, 6))
 
-# 左図: 目的空間での優越関係
+# Left figure: Dominance relationships in objective space
 ax1 = fig.add_subplot(121)
 
 colors = ['red', 'blue', 'green', 'orange', 'purple']
@@ -1095,22 +1095,22 @@ for i, (sol, label, color) in enumerate(zip(test_solutions, labels, colors)):
                linewidth=2, label=f'{label}: ({sol[0]}, {sol[1]})', zorder=5)
     ax1.text(sol[0] + 0.15, sol[1] + 0.15, label, fontsize=14, fontweight='bold')
 
-    # 優越される解への矢印
+    # Arrows to dominated solutions
     for j in range(n):
-        if dominance_matrix[i, j] == 1:  # i が j を優越
+        if dominance_matrix[i, j] == 1:  # i dominates j
             ax1.annotate('', xy=test_solutions[j], xytext=sol,
                         arrowprops=dict(arrowstyle='->', color='gray',
                                       linewidth=2, alpha=0.5))
 
-ax1.set_xlabel('目的関数 f₁（最小化）', fontsize=12)
-ax1.set_ylabel('目的関数 f₂（最小化）', fontsize=12)
-ax1.set_title('パレート優越関係の可視化', fontsize=13, fontweight='bold')
+ax1.set_xlabel('Objective function f₁ (minimize)', fontsize=12)
+ax1.set_ylabel('Objective function f₂ (minimize)', fontsize=12)
+ax1.set_title('Visualization of Pareto Dominance Relationships', fontsize=13, fontweight='bold')
 ax1.legend(fontsize=9, loc='upper right')
 ax1.grid(alpha=0.3)
 ax1.set_xlim(0.5, 4)
 ax1.set_ylim(1.5, 6)
 
-# 右図: 優越マトリックス
+# Right figure: Dominance matrix
 ax2 = fig.add_subplot(122)
 
 im = ax2.imshow(dominance_matrix, cmap='RdYlGn', vmin=-1, vmax=1, aspect='auto')
@@ -1119,11 +1119,11 @@ ax2.set_xticks(range(n))
 ax2.set_yticks(range(n))
 ax2.set_xticklabels(labels)
 ax2.set_yticklabels(labels)
-ax2.set_xlabel('解（列）', fontsize=12)
-ax2.set_ylabel('解（行）', fontsize=12)
-ax2.set_title('優越マトリックス\n(行が列を優越:+1, 列が行を優越:-1)', fontsize=12, fontweight='bold')
+ax2.set_xlabel('Solution (column)', fontsize=12)
+ax2.set_ylabel('Solution (row)', fontsize=12)
+ax2.set_title('Dominance Matrix\n(row dominates column:+1, column dominates row:-1)', fontsize=12, fontweight='bold')
 
-# セルに値を表示
+# Display values in cells
 for i in range(n):
     for j in range(n):
         if i == j:
@@ -1133,150 +1133,150 @@ for i in range(n):
         ax2.text(j, i, text, ha='center', va='center', fontsize=14, fontweight='bold')
 
 plt.colorbar(im, ax=ax2, ticks=[-1, 0, 1],
-            label='優越関係 (-1: 列優越, 0: 非比較, +1: 行優越)')
+            label='Dominance relationship (-1: column dominates, 0: incomparable, +1: row dominates)')
 
 plt.tight_layout()
 plt.show()
 
-# 非優越解の抽出
+# Extract non-dominated solutions
 non_dominated = []
 for i in range(n):
     is_dominated = False
     for j in range(n):
-        if i != j and dominance_matrix[j, i] == 1:  # j が i を優越
+        if i != j and dominance_matrix[j, i] == 1:  # j dominates i
             is_dominated = True
             break
     if not is_dominated:
         non_dominated.append(i)
 
-# 結果の表示
+# Display results
 print("=" * 60)
-print("パレート優越関係の minutes析")
+print("Pareto Dominance Relationship Analysis")
 print("=" * 60)
-print("解の一覧:")
+print("List of solutions:")
 for i, (sol, label) in enumerate(zip(test_solutions, labels)):
     print(f"  {label}: f1={sol[0]}, f2={sol[1]}")
 print()
 
-print("優越関係:")
+print("Dominance relationships:")
 for i in range(n):
     dominated_list = [labels[j] for j in range(n) if dominance_matrix[i, j] == 1]
     if dominated_list:
-        print(f"  {labels[i]} が優越する: {', '.join(dominated_list)}")
+        print(f"  {labels[i]} dominates: {', '.join(dominated_list)}")
 
 print()
-print("非優越解（パレート最適）:")
+print("Non-dominated solutions (Pareto optimal):")
 print(f"  {', '.join([labels[i] for i in non_dominated])}")
 print()
-print("解釈:")
-print("  - E: 最も良い（他のすべてを優越またはAを優越）")
-print("  - B, C: 非比較（お互いに優越しない）")
-print("  - A: Eに優越されるが、Dを優越")
-print("  - D: Aに優越される")
+print("Interpretation:")
+print("  - E: Best (dominates all others or dominates A)")
+print("  - B, C: Incomparable (do not dominate each other)")
+print("  - A: Dominated by E but dominates D")
+print("  - D: Dominated by A")
 print("=" * 60)
 </code></pre>
 
-<p><strong>出力例:</strong></p>
+<p><strong>Output example:</strong></p>
 <pre><code>============================================================
-パレート優越関係の minutes析
+Pareto Dominance Relationship Analysis
 ============================================================
-解の一覧:
+List of solutions:
   A: f1=2, f2=3
   B: f1=1, f2=5
   C: f1=3, f2=2
   D: f1=2.5, f2=3.5
   E: f1=1, f2=3
 
-優越関係:
-  A が優越する: D
-  E が優越する: A, D
+Dominance relationships:
+  A dominates: D
+  E dominates: A, D
 
-非優越解（パレート最適）:
+Non-dominated solutions (Pareto optimal):
   B, C, E
 
-解釈:
-  - E: 最も良い（他のすべてを優越またはAを優越）
-  - B, C: 非比較（お互いに優越しない）
-  - A: Eに優越されるが、Dを優越
-  - D: Aに優越される
+Interpretation:
+  - E: Best (dominates all others or dominates A)
+  - B, C: Incomparable (do not dominate each other)
+  - A: Dominated by E but dominates D
+  - D: Dominated by A
 ============================================================
 </code></pre>
 
-<p><strong>解説:</strong> パレート優越は、多目的Optimizationの基本概念です。ある解が他の解を優越するとは、すべての目的で少なくとも同等で、かつ少なくとも1つの目的で厳密に優れていることを意味します。</p>
+<p><strong>Explanation:</strong> Pareto dominance is a fundamental concept in multi-objective optimization. A solution dominates another if it is at least as good in all objectives and strictly better in at least one objective.</p>
 
 <hr />
 
-<h3>Code Examples7: 化学反応器の2目的Optimization（収率 vs 温度/エネルギー）</h3>
+<h3>Code Example 7: Two-Objective Optimization of Chemical Reactor (Yield vs Temperature/Energy)</h3>
 
 <pre><code class="language-python">import numpy as np
 from scipy.optimize import differential_evolution
 import matplotlib.pyplot as plt
 
 """
-化学反応器の実践的な2目的Optimization:
-目的1: 収率の最大化
-目的2: 運転温度の最小化（エネルギー効率）
+Practical two-objective optimization of a chemical reactor:
+Objective 1: Maximize yield
+Objective 2: Minimize operating temperature (energy efficiency)
 """
 
 def reactor_model(x):
     """
-    反応器モデル
+    Reactor model
 
-    x[0]: 温度 T [°C]
-    x[1]: 滞留 hours τ [min]
-    x[2]: 触媒濃度 C_cat [mol/L]
+    x[0]: Temperature T [°C]
+    x[1]: Residence time τ [min]
+    x[2]: Catalyst concentration C_cat [mol/L]
 
-    Returns: [収率 [%], 運転温度 [°C]]
+    Returns: [Yield [%], Operating temperature [°C]]
     """
     T, tau, C_cat = x
 
-    # 収率モデル（アレニウス型 + 触媒効果）
-    # 活性化エネルギー効果
-    k = np.exp(-(8000 / (T + 273)))  # 反応速度定数
+    # Yield model (Arrhenius-type + catalyst effect)
+    # Activation energy effect
+    k = np.exp(-(8000 / (T + 273)))  # Reaction rate constant
 
-    # 滞留 hours効果
+    # Residence time effect
     conversion = 1 - np.exp(-k * tau * C_cat)
 
-    # 選択率（高温で副反応により低下）
+    # Selectivity (decreases at high temperatures due to side reactions)
     selectivity = 1 - 0.001 * (T - 180)**2 / 100
 
-    # 総収率
+    # Total yield
     yield_pct = 100 * conversion * max(selectivity, 0.5)
 
     return np.array([yield_pct, T])
 
 def weighted_objective(x, weight):
     """
-    重み付け目的関数
+    Weighted objective function
 
-    weight: 収率の重み（0-1）、温度の重みは (1-weight)
+    weight: Weight for yield (0-1), weight for temperature is (1-weight)
     """
     yield_pct, T = reactor_model(x)
 
-    # 正規化
-    f1 = -yield_pct / 100  # 収率を最大化（負値で最小化）
-    f2 = (T - 150) / 100    # 温度を最小化（正規化）
+    # Normalization
+    f1 = -yield_pct / 100  # Maximize yield (minimize negative value)
+    f2 = (T - 150) / 100    # Minimize temperature (normalized)
 
     return weight * f1 + (1 - weight) * f2
 
-# 異なる重みでパレート解を生成
+# Generate Pareto solutions with different weights
 weights = np.linspace(0, 1, 15)
 pareto_solutions = []
 
 print("=" * 60)
-print("化学反応器の多目的Optimization")
+print("Multi-Objective Optimization of Chemical Reactor")
 print("=" * 60)
-print("目的1: 収率の最大化")
-print("目的2: 運転温度の最小化")
+print("Objective 1: Maximize yield")
+print("Objective 2: Minimize operating temperature")
 print()
 
-# 変数の境界
-bounds = [(150, 250),  # 温度 [°C]
-          (10, 60),     # 滞留 hours [min]
-          (0.1, 2.0)]   # 触媒濃度 [mol/L]
+# Variable bounds
+bounds = [(150, 250),  # Temperature [°C]
+          (10, 60),     # Residence time [min]
+          (0.1, 2.0)]   # Catalyst concentration [mol/L]
 
 for w in weights:
-    # differential_evolution（遺伝的アルゴリズム）でOptimization
+    # Optimize with differential_evolution (genetic algorithm)
     result = differential_evolution(
         lambda x: weighted_objective(x, w),
         bounds,
@@ -1299,35 +1299,35 @@ for w in weights:
             'T_objective': T_actual
         })
 
-print(f"生成されたパレート解の数: {len(pareto_solutions)}")
+print(f"Number of Pareto solutions generated: {len(pareto_solutions)}")
 print()
 
-# 可視化
+# Visualization
 fig = plt.figure(figsize=(14, 10))
 
-# 上段左: パレートフロンティア
+# Upper left: Pareto frontier
 ax1 = plt.subplot(2, 2, 1)
 yields = [sol['yield'] for sol in pareto_solutions]
 temps = [sol['T_objective'] for sol in pareto_solutions]
 
-ax1.plot(yields, temps, 'ro-', linewidth=2.5, markersize=8, label='パレートフロンティア')
+ax1.plot(yields, temps, 'ro-', linewidth=2.5, markersize=8, label='Pareto Frontier')
 
-# 特定の点を強調
+# Highlight specific points
 highlight_indices = [0, len(pareto_solutions)//2, -1]
-highlight_labels = ['低温重視', 'バランス', '収率重視']
+highlight_labels = ['Low temperature priority', 'Balanced', 'Yield priority']
 highlight_colors = ['blue', 'yellow', 'green']
 
 for idx, label, color in zip(highlight_indices, highlight_labels, highlight_colors):
     ax1.scatter([yields[idx]], [temps[idx]], s=300, color=color,
                marker='*', edgecolors='black', linewidth=2, label=label, zorder=5)
 
-ax1.set_xlabel('収率 [%]', fontsize=12)
-ax1.set_ylabel('運転温度 [°C]', fontsize=12)
-ax1.set_title('パレートフロンティア（収率 vs 温度）', fontsize=13, fontweight='bold')
+ax1.set_xlabel('Yield [%]', fontsize=12)
+ax1.set_ylabel('Operating Temperature [°C]', fontsize=12)
+ax1.set_title('Pareto Frontier (Yield vs Temperature)', fontsize=13, fontweight='bold')
 ax1.legend(fontsize=10)
 ax1.grid(alpha=0.3)
 
-# 上段右: 運転条件の minutes布
+# Upper right: Distribution of operating conditions
 ax2 = plt.subplot(2, 2, 2)
 T_vals = [sol['T'] for sol in pareto_solutions]
 tau_vals = [sol['tau'] for sol in pareto_solutions]
@@ -1336,32 +1336,32 @@ scatter = ax2.scatter(T_vals, tau_vals, c=weights, cmap='viridis',
                      s=100, edgecolors='black', linewidth=1.5)
 ax2.plot(T_vals, tau_vals, 'k--', alpha=0.5, linewidth=1)
 
-ax2.set_xlabel('温度 T [°C]', fontsize=12)
-ax2.set_ylabel('滞留 hours τ [min]', fontsize=12)
-ax2.set_title('最適運転条件の minutes布', fontsize=13, fontweight='bold')
+ax2.set_xlabel('Temperature T [°C]', fontsize=12)
+ax2.set_ylabel('Residence time τ [min]', fontsize=12)
+ax2.set_title('Distribution of Optimal Operating Conditions', fontsize=13, fontweight='bold')
 ax2.grid(alpha=0.3)
-plt.colorbar(scatter, ax=ax2, label='重み（収率重視）')
+plt.colorbar(scatter, ax=ax2, label='Weight (yield priority)')
 
-# 下段左: 触媒濃度の変化
+# Lower left: Change in catalyst concentration
 ax3 = plt.subplot(2, 2, 3)
 C_cat_vals = [sol['C_cat'] for sol in pareto_solutions]
 
 ax3.plot(yields, C_cat_vals, 'go-', linewidth=2.5, markersize=8)
-ax3.set_xlabel('収率 [%]', fontsize=12)
-ax3.set_ylabel('触媒濃度 [mol/L]', fontsize=12)
-ax3.set_title('収率と触媒濃度の関係', fontsize=13, fontweight='bold')
+ax3.set_xlabel('Yield [%]', fontsize=12)
+ax3.set_ylabel('Catalyst Concentration [mol/L]', fontsize=12)
+ax3.set_title('Relationship between Yield and Catalyst Concentration', fontsize=13, fontweight='bold')
 ax3.grid(alpha=0.3)
 
-# 下段右: 3変数の同時表示
+# Lower right: Simultaneous display of 3 variables
 ax4 = plt.subplot(2, 2, 4)
-ax4.plot(weights, T_vals, 'ro-', linewidth=2, markersize=6, label='温度 T [°C]')
+ax4.plot(weights, T_vals, 'ro-', linewidth=2, markersize=6, label='Temperature T [°C]')
 ax4_twin = ax4.twinx()
-ax4_twin.plot(weights, tau_vals, 'bs-', linewidth=2, markersize=6, label='滞留 hours τ [min]')
+ax4_twin.plot(weights, tau_vals, 'bs-', linewidth=2, markersize=6, label='Residence time τ [min]')
 
-ax4.set_xlabel('重み（収率重視）', fontsize=12)
-ax4.set_ylabel('温度 T [°C]', fontsize=12, color='red')
-ax4_twin.set_ylabel('滞留 hours τ [min]', fontsize=12, color='blue')
-ax4.set_title('重みと運転条件の関係', fontsize=13, fontweight='bold')
+ax4.set_xlabel('Weight (yield priority)', fontsize=12)
+ax4.set_ylabel('Temperature T [°C]', fontsize=12, color='red')
+ax4_twin.set_ylabel('Residence time τ [min]', fontsize=12, color='blue')
+ax4.set_title('Relationship between Weights and Operating Conditions', fontsize=13, fontweight='bold')
 ax4.legend(loc='upper left', fontsize=10)
 ax4_twin.legend(loc='upper right', fontsize=10)
 ax4.grid(alpha=0.3)
@@ -1369,86 +1369,86 @@ ax4.grid(alpha=0.3)
 plt.tight_layout()
 plt.show()
 
-# 詳細結果の表示
-print("代表的なパレート解:")
+# Display detailed results
+print("Representative Pareto solutions:")
 print("-" * 60)
 for idx, label in zip(highlight_indices, highlight_labels):
     sol = pareto_solutions[idx]
     print(f"{label}:")
-    print(f"  温度: {sol['T']:.2f}°C")
-    print(f"  滞留 hours: {sol['tau']:.2f} min")
-    print(f"  触媒濃度: {sol['C_cat']:.3f} mol/L")
-    print(f"  収率: {sol['yield']:.2f}%")
+    print(f"  Temperature: {sol['T']:.2f}°C")
+    print(f"  Residence time: {sol['tau']:.2f} min")
+    print(f"  Catalyst concentration: {sol['C_cat']:.3f} mol/L")
+    print(f"  Yield: {sol['yield']:.2f}%")
     print()
 
 print("=" * 60)
 </code></pre>
 
-<p><strong>出力例:</strong></p>
+<p><strong>Output example:</strong></p>
 <pre><code>============================================================
-化学反応器の多目的Optimization
+Multi-Objective Optimization of Chemical Reactor
 ============================================================
-目的1: 収率の最大化
-目的2: 運転温度の最小化
+Objective 1: Maximize yield
+Objective 2: Minimize operating temperature
 
-生成されたパレート解の数: 15
+Number of Pareto solutions generated: 15
 
-代表的なパレート解:
+Representative Pareto solutions:
 ------------------------------------------------------------
-低温重視:
-  温度: 150.00°C
-  滞留 hours: 60.00 min
-  触媒濃度: 2.000 mol/L
-  収率: 42.68%
+Low temperature priority:
+  Temperature: 150.00°C
+  Residence time: 60.00 min
+  Catalyst concentration: 2.000 mol/L
+  Yield: 42.68%
 
-バランス:
-  温度: 215.28°C
-  滞留 hours: 35.84 min
-  触媒濃度: 1.245 mol/L
-  収率: 89.47%
+Balanced:
+  Temperature: 215.28°C
+  Residence time: 35.84 min
+  Catalyst concentration: 1.245 mol/L
+  Yield: 89.47%
 
-収率重視:
-  温度: 232.15°C
-  滞留 hours: 38.92 min
-  触媒濃度: 1.567 mol/L
-  収率: 93.25%
+Yield priority:
+  Temperature: 232.15°C
+  Residence time: 38.92 min
+  Catalyst concentration: 1.567 mol/L
+  Yield: 93.25%
 
 ============================================================
 </code></pre>
 
-<p><strong>解説:</strong> 実際の化学反応器では、収率とエネルギーコスト（温度）のトレードオフが存在します。パレートフロンティアにより、異なる優先度に応じた最適運転条件を提示できます。</p>
+<p><strong>Explanation:</strong> In actual chemical reactors, there is a trade-off between yield and energy cost (temperature). The Pareto frontier can provide optimal operating conditions according to different priorities.</p>
 
 <hr />
 
-<h3>Code Examples8: TOPSIS法による意思決定</h3>
+<h3>Code Example 8: TOPSIS Method for Decision Making</h3>
 
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 
 """
-TOPSIS法 (Technique for Order of Preference by Similarity to Ideal Solution):
-パレートフロンティア上の解から最良の解を選択する多基準意思決定手法
+TOPSIS method (Technique for Order of Preference by Similarity to Ideal Solution):
+Multi-criteria decision making technique to select the best solution from the Pareto frontier
 """
 
 def topsis(solutions, weights, is_benefit):
     """
-    TOPSIS法の実装
+    Implementation of TOPSIS method
 
     Parameters:
-    solutions: 各解の目的関数値 (N x m)
-    weights: 各目的の重み (m,)
-    is_benefit: 各目的が利得型か (m,) True=大きい方が良い, False=小さい方が良い
+    solutions: Objective function values for each solution (N x m)
+    weights: Weight for each objective (m,)
+    is_benefit: Whether each objective is benefit type (m,) True=larger is better, False=smaller is better
 
     Returns:
-    scores: 各解のTOPSISスコア (N,)
+    scores: TOPSIS score for each solution (N,)
     """
-    # 1. 正規化
+    # 1. Normalization
     norm_solutions = solutions / np.sqrt(np.sum(solutions**2, axis=0))
 
-    # 2. 重み付け
+    # 2. Weighting
     weighted_solutions = norm_solutions * weights
 
-    # 3. 理想解と負理想解を決定
+    # 3. Determine ideal and anti-ideal solutions
     ideal_best = np.zeros(solutions.shape[1])
     ideal_worst = np.zeros(solutions.shape[1])
 
@@ -1460,19 +1460,19 @@ def topsis(solutions, weights, is_benefit):
             ideal_best[i] = np.min(weighted_solutions[:, i])
             ideal_worst[i] = np.max(weighted_solutions[:, i])
 
-    # 4. 理想解からの距離を計算
+    # 4. Calculate distance from ideal solutions
     dist_to_best = np.sqrt(np.sum((weighted_solutions - ideal_best)**2, axis=1))
     dist_to_worst = np.sqrt(np.sum((weighted_solutions - ideal_worst)**2, axis=1))
 
-    # 5. 類似度スコア
+    # 5. Similarity score
     scores = dist_to_worst / (dist_to_best + dist_to_worst)
 
     return scores
 
-# サンプルデータ：パレート解の目的関数値
-# 列1: 収率 [%] (大きい方が良い)
-# 列2: エネルギーコスト [$/h] (小さい方が良い)
-# 列3: 運転安定性スコア [0-10] (大きい方が良い)
+# Sample data: Objective function values of Pareto solutions
+# Column 1: Yield [%] (larger is better)
+# Column 2: Energy cost [$/h] (smaller is better)
+# Column 3: Operating stability score [0-10] (larger is better)
 pareto_solutions_data = np.array([
     [85, 180, 7.5],
     [90, 220, 8.0],
@@ -1484,44 +1484,44 @@ pareto_solutions_data = np.array([
     [94, 280, 6.5]
 ])
 
-# 意思決定者の選好
+# Decision maker's preferences
 scenarios = {
-    'バランス型': {
+    'Balanced': {
         'weights': np.array([0.4, 0.3, 0.3]),
         'is_benefit': np.array([True, False, True])
     },
-    '収率重視': {
+    'Yield priority': {
         'weights': np.array([0.6, 0.2, 0.2]),
         'is_benefit': np.array([True, False, True])
     },
-    'コスト重視': {
+    'Cost priority': {
         'weights': np.array([0.2, 0.6, 0.2]),
         'is_benefit': np.array([True, False, True])
     },
-    '安定性重視': {
+    'Stability priority': {
         'weights': np.array([0.2, 0.2, 0.6]),
         'is_benefit': np.array([True, False, True])
     }
 }
 
-# 各シナリオでTOPSIS minutes析
+# TOPSIS analysis for each scenario
 results = {}
 
 print("=" * 60)
-print("TOPSIS法による多基準意思決定")
+print("Multi-Criteria Decision Making by TOPSIS Method")
 print("=" * 60)
-print("パレート解の候補:")
+print("Pareto solution candidates:")
 print("-" * 60)
-print("ID | 収率[%] | コスト[$/h] | 安定性[0-10]")
+print("ID | Yield[%] | Cost[$/h] | Stability[0-10]")
 print("-" * 60)
 for i, sol in enumerate(pareto_solutions_data):
     print(f"{i+1:2d} | {sol[0]:7.1f} | {sol[1]:11.1f} | {sol[2]:12.1f}")
 print()
 
-# 可視化の準備
+# Preparation for visualization
 fig = plt.figure(figsize=(14, 10))
 
-# 上段: 各シナリオの結果
+# Top row: Results for each scenario
 for idx, (scenario_name, scenario_params) in enumerate(scenarios.items()):
     scores = topsis(pareto_solutions_data,
                    scenario_params['weights'],
@@ -1532,51 +1532,51 @@ for idx, (scenario_name, scenario_params) in enumerate(scenarios.items()):
         'best_idx': np.argmax(scores)
     }
 
-    print(f"シナリオ: {scenario_name}")
-    print(f"  重み: 収率={scenario_params['weights'][0]:.1f}, "
-          f"コスト={scenario_params['weights'][1]:.1f}, "
-          f"安定性={scenario_params['weights'][2]:.1f}")
-    print(f"  推奨解: ID {results[scenario_name]['best_idx'] + 1}")
+    print(f"Scenario: {scenario_name}")
+    print(f"  Weights: Yield={scenario_params['weights'][0]:.1f}, "
+          f"Cost={scenario_params['weights'][1]:.1f}, "
+          f"Stability={scenario_params['weights'][2]:.1f}")
+    print(f"  Recommended solution: ID {results[scenario_name]['best_idx'] + 1}")
     best_sol = pareto_solutions_data[results[scenario_name]['best_idx']]
-    print(f"    収率: {best_sol[0]:.1f}%, コスト: ${best_sol[1]:.1f}/h, 安定性: {best_sol[2]:.1f}")
-    print(f"    TOPSISスコア: {scores[results[scenario_name]['best_idx']]:.4f}")
+    print(f"    Yield: {best_sol[0]:.1f}%, Cost: ${best_sol[1]:.1f}/h, Stability: {best_sol[2]:.1f}")
+    print(f"    TOPSIS score: {scores[results[scenario_name]['best_idx']]:.4f}")
     print()
 
-    # サブプロット
+    # Subplot
     ax = plt.subplot(2, 2, idx + 1)
     bars = ax.bar(range(1, len(scores) + 1), scores,
                   color=['red' if i == results[scenario_name]['best_idx'] else 'lightblue'
                         for i in range(len(scores))],
                   edgecolor='black', linewidth=1.5)
 
-    ax.set_xlabel('解のID', fontsize=11)
-    ax.set_ylabel('TOPSISスコア', fontsize=11)
+    ax.set_xlabel('Solution ID', fontsize=11)
+    ax.set_ylabel('TOPSIS Score', fontsize=11)
     ax.set_title(f'{scenario_name}', fontsize=12, fontweight='bold')
     ax.set_xticks(range(1, len(scores) + 1))
     ax.grid(axis='y', alpha=0.3)
 
-    # 最良解を強調
+    # Emphasize best solution
     best_idx = results[scenario_name]['best_idx']
-    ax.text(best_idx + 1, scores[best_idx] + 0.02, '★ 最良',
+    ax.text(best_idx + 1, scores[best_idx] + 0.02, '★ Best',
             ha='center', fontsize=10, fontweight='bold', color='red')
 
 plt.tight_layout()
 plt.show()
 
 print("=" * 60)
-print("結論:")
-print("  意思決定者の選好（重み）に応じて、推奨される解が変化する")
-print("  TOPSIS法により、パレートフロンティア上の解を定量的にランク付けできる")
+print("Conclusion:")
+print("  The recommended solution changes according to the decision maker's preferences (weights)")
+print("  Solutions on the Pareto frontier can be quantitatively ranked by TOPSIS method")
 print("=" * 60)
 </code></pre>
 
-<p><strong>出力例:</strong></p>
+<p><strong>Output example:</strong></p>
 <pre><code>============================================================
-TOPSIS法による多基準意思決定
+Multi-Criteria Decision Making by TOPSIS Method
 ============================================================
-パレート解の候補:
+Pareto solution candidates:
 ------------------------------------------------------------
-ID | 収率[%] | コスト[$/h] | 安定性[0-10]
+ID | Yield[%] | Cost[$/h] | Stability[0-10]
 ------------------------------------------------------------
  1 |    85.0 |       180.0 |          7.5
  2 |    90.0 |       220.0 |          8.0
@@ -1587,74 +1587,74 @@ ID | 収率[%] | コスト[$/h] | 安定性[0-10]
  7 |    91.0 |       240.0 |          7.5
  8 |    94.0 |       280.0 |          6.5
 
-シナリオ: バランス型
-  重み: 収率=0.4, コスト=0.3, 安定性=0.3
-  推奨解: ID 6
-    収率: 88.0%, コスト: $200.0/h, 安定性: 8.2
-    TOPSISスコア: 0.6842
+Scenario: Balanced
+  Weights: Yield=0.4, Cost=0.3, Stability=0.3
+  Recommended solution: ID 6
+    Yield: 88.0%, Cost: $200.0/h, Stability: 8.2
+    TOPSIS score: 0.6842
 
-シナリオ: 収率重視
-  重み: 収率=0.6, コスト=0.2, 安定性=0.2
-  推奨解: ID 4
-    収率: 95.0%, コスト: $300.0/h, 安定性: 6.0
-    TOPSISスコア: 0.6521
+Scenario: Yield priority
+  Weights: Yield=0.6, Cost=0.2, Stability=0.2
+  Recommended solution: ID 4
+    Yield: 95.0%, Cost: $300.0/h, Stability: 6.0
+    TOPSIS score: 0.6521
 
-シナリオ: コスト重視
-  重み: 収率=0.2, コスト=0.6, 安定性=0.2
-  推奨解: ID 5
-    収率: 82.0%, コスト: $150.0/h, 安定性: 8.5
-    TOPSISスコア: 0.7234
+Scenario: Cost priority
+  Weights: Yield=0.2, Cost=0.6, Stability=0.2
+  Recommended solution: ID 5
+    Yield: 82.0%, Cost: $150.0/h, Stability: 8.5
+    TOPSIS score: 0.7234
 
-シナリオ: 安定性重視
-  重み: 収率=0.2, コスト=0.2, 安定性=0.6
-  推奨解: ID 5
-    収率: 82.0%, コスト: $150.0/h, 安定性: 8.5
-    TOPSISスコア: 0.7156
+Scenario: Stability priority
+  Weights: Yield=0.2, Cost=0.2, Stability=0.6
+  Recommended solution: ID 5
+    Yield: 82.0%, Cost: $150.0/h, Stability: 8.5
+    TOPSIS score: 0.7156
 
 ============================================================
-結論:
-  意思決定者の選好（重み）に応じて、推奨される解が変化する
-  TOPSIS法により、パレートフロンティア上の解を定量的にランク付けできる
+Conclusion:
+  The recommended solution changes according to the decision maker's preferences (weights)
+  Solutions on the Pareto frontier can be quantitatively ranked by TOPSIS method
 ============================================================
 </code></pre>
 
-<p><strong>解説:</strong> TOPSIS法は、理想解（すべての目的が最良）に最も近く、負理想解（すべての目的が最悪）から最も遠い解を選択します。意思決定者の選好を反映した解の選択が可能です。</p>
+<p><strong>Explanation:</strong> The TOPSIS method selects the solution that is closest to the ideal solution (best in all objectives) and farthest from the anti-ideal solution (worst in all objectives). It enables solution selection reflecting the decision maker's preferences.</p>
 
 <hr />
 
-<h3>Code Examples9: インタラクティブなパレートフロンティア（Plotly）</h3>
+<h3>Code Example 9: Interactive Pareto Frontier (Plotly)</h3>
 
 <pre><code class="language-python">import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 """
-Plotlyによるインタラクティブなパレートフロンティア可視化:
-スライダーで重みを調整し、リアルタイムで解を探索
+Interactive Pareto frontier visualization with Plotly:
+Adjust weights with sliders and explore solutions in real time
 """
 
-# パレート解のデータ生成
+# Generate Pareto solution data
 np.random.seed(42)
 n_solutions = 50
 
-# 模擬パレート解（収率 vs コスト）
+# Mock Pareto solutions (yield vs cost)
 yields = np.linspace(70, 95, n_solutions)
-# コストは収率に応じて増加（トレードオフ）
+# Cost increases with yield (trade-off)
 costs = 100 + 3 * (yields - 70)**1.5 + 10 * np.random.randn(n_solutions)
 
-# 3次元データを追加（例: 運転 hours）
+# Add 3D data (e.g., operating time)
 operation_time = 30 + 0.5 * (yields - 70) + 5 * np.random.randn(n_solutions)
 operation_time = np.clip(operation_time, 20, 50)
 
-# インタラクティブ可視化
+# Interactive visualization
 fig = make_subplots(
     rows=1, cols=2,
-    subplot_titles=('パレートフロンティア（収率 vs コスト）',
-                   '3次元ビュー（収率 vs コスト vs 運転 hours）'),
+    subplot_titles=('Pareto Frontier (Yield vs Cost)',
+                   '3D View (Yield vs Cost vs Operating Time)'),
     specs=[[{'type': 'scatter'}, {'type': 'scatter3d'}]]
 )
 
-# 左図: 2Dパレートフロンティア
+# Left figure: 2D Pareto frontier
 fig.add_trace(
     go.Scatter(
         x=yields,
@@ -1665,18 +1665,18 @@ fig.add_trace(
             color=yields,
             colorscale='Viridis',
             showscale=True,
-            colorbar=dict(title='収率 [%]', x=0.45),
+            colorbar=dict(title='Yield [%]', x=0.45),
             line=dict(width=1, color='black')
         ),
-        text=[f'収率: {y:.1f}%<br>コスト: ${c:.1f}/h'
+        text=[f'Yield: {y:.1f}%<br>Cost: ${c:.1f}/h'
               for y, c in zip(yields, costs)],
         hoverinfo='text',
-        name='パレート解'
+        name='Pareto solutions'
     ),
     row=1, col=1
 )
 
-# 右図: 3Dビュー
+# Right figure: 3D view
 fig.add_trace(
     go.Scatter3d(
         x=yields,
@@ -1690,183 +1690,183 @@ fig.add_trace(
             showscale=False,
             line=dict(width=1, color='black')
         ),
-        text=[f'収率: {y:.1f}%<br>コスト: ${c:.1f}/h<br>運転 hours: {t:.1f}h'
+        text=[f'Yield: {y:.1f}%<br>Cost: ${c:.1f}/h<br>Operating time: {t:.1f}h'
               for y, c, t in zip(yields, costs, operation_time)],
         hoverinfo='text',
-        name='パレート解 (3D)'
+        name='Pareto solutions (3D)'
     ),
     row=1, col=2
 )
 
-# レイアウト設定
-fig.update_xaxes(title_text='収率 [%]', row=1, col=1)
-fig.update_yaxes(title_text='エネルギーコスト [$/h]', row=1, col=1)
+# Layout settings
+fig.update_xaxes(title_text='Yield [%]', row=1, col=1)
+fig.update_yaxes(title_text='Energy Cost [$/h]', row=1, col=1)
 
 fig.update_layout(
-    title_text='インタラクティブなパレートフロンティア可視化',
+    title_text='Interactive Pareto Frontier Visualization',
     height=600,
     showlegend=False,
     scene=dict(
-        xaxis_title='収率 [%]',
-        yaxis_title='コスト [$/h]',
-        zaxis_title='運転 hours [h]'
+        xaxis_title='Yield [%]',
+        yaxis_title='Cost [$/h]',
+        zaxis_title='Operating time [h]'
     )
 )
 
-# HTML出力（Jupyter Notebookで表示可能）
+# HTML output (can be displayed in Jupyter Notebook)
 # fig.show()
 
-# HTMLファイルとして保存
-output_path = '/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/knowledge/jp/PI/process-optimization-introduction/pareto_interactive.html'
+# Save as HTML file
+output_path = '/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/knowledge/en/PI/process-optimization-introduction/pareto_interactive.html'
 fig.write_html(output_path)
 
 print("=" * 60)
-print("インタラクティブなパレートフロンティア")
+print("Interactive Pareto Frontier")
 print("=" * 60)
-print(f"生成されたパレート解: {n_solutions}")
+print(f"Generated Pareto solutions: {n_solutions} solutions")
 print()
-print("可視化の特徴:")
-print("  - マウスホバーで各解の詳細情報を表示")
-print("  - 3D回転により多次元のトレードオフを直感的に理解")
-print("  - カラースケールで収率を視覚化")
+print("Visualization features:")
+print("  - Display detailed information for each solution on mouse hover")
+print("  - Intuitively understand multi-dimensional trade-offs with 3D rotation")
+print("  - Visualize yield with color scale")
 print()
-print(f"インタラクティブな図はHTMLとして保存されました:")
+print(f"Interactive figure saved as HTML:")
 print(f"  {output_path}")
 print()
-print("Jupyter Notebookでは fig.show() で直接表示できます")
+print("In Jupyter Notebook, you can display directly with fig.show()")
 print("=" * 60)
 
-# 静的な可視化（参考）
+# Static visualization (reference)
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 fig = plt.figure(figsize=(14, 6))
 
-# 左図: 2D
+# Left figure: 2D
 ax1 = fig.add_subplot(121)
 scatter = ax1.scatter(yields, costs, c=yields, cmap='viridis',
                      s=80, edgecolors='black', linewidth=1)
-ax1.set_xlabel('収率 [%]', fontsize=12)
-ax1.set_ylabel('エネルギーコスト [$/h]', fontsize=12)
-ax1.set_title('パレートフロンティア (2D)', fontsize=13, fontweight='bold')
+ax1.set_xlabel('Yield [%]', fontsize=12)
+ax1.set_ylabel('Energy Cost [$/h]', fontsize=12)
+ax1.set_title('Pareto Frontier (2D)', fontsize=13, fontweight='bold')
 ax1.grid(alpha=0.3)
-plt.colorbar(scatter, ax=ax1, label='収率 [%]')
+plt.colorbar(scatter, ax=ax1, label='Yield [%]')
 
-# 右図: 3D
+# Right figure: 3D
 ax2 = fig.add_subplot(122, projection='3d')
 scatter = ax2.scatter(yields, costs, operation_time, c=yields, cmap='viridis',
                      s=80, edgecolors='black', linewidth=1)
-ax2.set_xlabel('収率 [%]', fontsize=10)
-ax2.set_ylabel('コスト [$/h]', fontsize=10)
-ax2.set_zlabel('運転 hours [h]', fontsize=10)
-ax2.set_title('パレートフロンティア (3D)', fontsize=13, fontweight='bold')
+ax2.set_xlabel('Yield [%]', fontsize=10)
+ax2.set_ylabel('Cost [$/h]', fontsize=10)
+ax2.set_zlabel('Operating time [h]', fontsize=10)
+ax2.set_title('Pareto Frontier (3D)', fontsize=13, fontweight='bold')
 
 plt.tight_layout()
 plt.show()
 </code></pre>
 
-<p><strong>出力例:</strong></p>
+<p><strong>Output example:</strong></p>
 <pre><code>============================================================
-インタラクティブなパレートフロンティア
+Interactive Pareto Frontier
 ============================================================
-生成されたパレート解: 50
+Generated Pareto solutions: 50 solutions
 
-可視化の特徴:
-  - マウスホバーで各解の詳細情報を表示
-  - 3D回転により多次元のトレードオフを直感的に理解
-  - カラースケールで収率を視覚化
+Visualization features:
+  - Display detailed information for each solution on mouse hover
+  - Intuitively understand multi-dimensional trade-offs with 3D rotation
+  - Visualize yield with color scale
 
-インタラクティブな図はHTMLとして保存されました:
-  /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/knowledge/jp/PI/process-optimization-introduction/pareto_interactive.html
+Interactive figure saved as HTML:
+  /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/knowledge/en/PI/process-optimization-introduction/pareto_interactive.html
 
-Jupyter Notebookでは fig.show() で直接表示できます
+In Jupyter Notebook, you can display directly with fig.show()
 ============================================================
 </code></pre>
 
-<p><strong>解説:</strong> Plotlyによるインタラクティブな可視化により、パレートフロンティアを直感的に探索できます。マウス操作で3D空間を回転させ、多次元のトレードオフを理解できます。</p>
+<p><strong>Explanation:</strong> Interactive visualization with Plotly allows intuitive exploration of the Pareto frontier. By rotating 3D space with mouse operations, multi-dimensional trade-offs can be understood.</p>
 
 <hr />
 
-<h2>3.2 本 ChapterのSummary</h2>
+<h2>3.2 Chapter Summary</h2>
 
-<h3>学んだこと</h3>
+<h3>What We Learned</h3>
 
 <ol>
-<li><strong>多目的Optimizationの基礎</strong>
+<li><strong>Fundamentals of Multi-Objective Optimization</strong>
 <ul>
-<li>多目的Optimization問題の定式化</li>
-<li>パレート優越とパレート最適性の概念</li>
-<li>パレートフロンティアの意味</li>
+<li>Formulation of multi-objective optimization problems</li>
+<li>Concepts of Pareto dominance and Pareto optimality</li>
+<li>Meaning of Pareto frontier</li>
 </ul>
 </li>
-<li><strong>スカラー化手法</strong>
+<li><strong>Scalarization Methods</strong>
 <ul>
-<li>重み付け和法によるパレート解の生成</li>
-<li>ε制約法の実装</li>
-<li>各手法の特性と使い minutesけ</li>
+<li>Generation of Pareto solutions by weighted sum method</li>
+<li>Implementation of epsilon-constraint method</li>
+<li>Characteristics and usage of each method</li>
 </ul>
 </li>
-<li><strong>進化的アルゴリズム</strong>
+<li><strong>Evolutionary Algorithms</strong>
 <ul>
-<li>非優越ソーティングの実装</li>
-<li>NSGA-IIの概念</li>
-<li>遺伝的アルゴリズムによるパレート解探索</li>
+<li>Implementation of non-dominated sorting</li>
+<li>Concept of NSGA-II</li>
+<li>Pareto solution search by genetic algorithms</li>
 </ul>
 </li>
-<li><strong>意思決定手法</strong>
+<li><strong>Decision Making Methods</strong>
 <ul>
-<li>TOPSIS法による解の選択</li>
-<li>意思決定者の選好反映</li>
-<li>インタラクティブな可視化</li>
+<li>Solution selection by TOPSIS method</li>
+<li>Reflection of decision maker's preferences</li>
+<li>Interactive visualization</li>
 </ul>
 </li>
 </ol>
 
-<h3>重要なポイント</h3>
+<h3>Key Points</h3>
 
 <ul>
-<li>多目的Optimizationでは、単一の最適解は存在せず、パレート最適解の集合が存在する</li>
-<li>重み付け和法は理解しやすいが、非凸なパレートフロンティアでは解を見逃す可能性がある</li>
-<li>ε制約法は、制約条件として扱う目的関数を明示的にコントロールできる</li>
-<li>NSGA-IIは、非優越ソーティングにより効率的にパレートフロンティアを探索する</li>
-<li>TOPSIS法により、意思決定者の選好に基づいて最良の解を選択できる</li>
+<li>In multi-objective optimization, there is no single optimal solution, but rather a set of Pareto optimal solutions</li>
+<li>Weighted sum method is easy to understand but may miss solutions with non-convex Pareto frontiers</li>
+<li>Epsilon-constraint method allows explicit control of objective functions treated as constraints</li>
+<li>NSGA-II efficiently explores the Pareto frontier through non-dominated sorting</li>
+<li>TOPSIS method enables selection of the best solution based on decision maker's preferences</li>
 </ul>
 
-<h3>Next Chapterへ</h3>
+<h3>To the Next Chapter</h3>
 
-<p>Chapter 4では、<strong>制約条件下でのOptimization</strong>を詳しく学びます：</p>
+<p>In Chapter 4, we will learn in detail about <strong>optimization under constraints</strong>:</p>
 <ul>
-<li>ラグランジュ乗数法とKKT条件</li>
-<li>ペナルティ法と障壁法</li>
-<li>逐次二次計画法（SQP）</li>
-<li>化学Processの制約条件（物質収支、エネルギー収支、Safety制約）</li>
-<li>CSTROptimizationと蒸留塔最適運転条件</li>
+<li>Lagrange multiplier method and KKT conditions</li>
+<li>Penalty method and barrier method</li>
+<li>Sequential quadratic programming (SQP)</li>
+<li>Constraints in chemical processes (material balance, energy balance, safety constraints)</li>
+<li>CSTR optimization and optimal operating conditions for distillation columns</li>
 </ul>
 
 <div class="navigation">
     <a href="chapter-2.html" class="nav-button">← Previous Chapter</a>
-    <a href="index.html" class="nav-button">Series Contentsに戻る</a>
+    <a href="index.html" class="nav-button">Return to Series Index</a>
     <a href="chapter-4.html" class="nav-button">Next Chapter →</a>
 </div>
     </main>
 
-    
+
     <section class="disclaimer">
-        <h3>免責事項</h3>
+        <h3>Disclaimer</h3>
         <ul>
-            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
-            <li>本コンテンツおよび付随するCode Examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・Safety性等いかなる保証もしません。</li>
-            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・Safety性について、作成者および東北大学は一切の責任を負いません。</li>
-            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
-            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
-            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+            <li>This content is provided for educational, research, and informational purposes only and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without warranties of any kind, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The authors and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, or libraries.</li>
+            <li>To the maximum extent permitted by applicable law, the authors and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content follow the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
         </ul>
     </section>
 
 <footer>
-        <p><strong>作成者</strong>: PI Knowledge Hub Content Team</p>
-        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-26</p>
-        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p><strong>Author</strong>: PI Knowledge Hub Content Team</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-26</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
         <p>&copy; 2025 PI Terakoya. All rights reserved.</p>
     </footer>
 </body>

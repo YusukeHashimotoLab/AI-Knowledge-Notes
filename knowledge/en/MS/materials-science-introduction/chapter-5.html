@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 5: Crystal Structure Visualization with Python - MS Terakoya</title>
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #f093fb;
+            --color-accent-light: #f5576c;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #f093fb;
+            --color-link-hover: #d07be8;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .learning-objectives {
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-accent);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .learning-objectives h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .breadcrumb {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        .breadcrumb a {
+            color: var(--color-link);
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .warning-box {
+            background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid #f59e0b;
+            margin: var(--spacing-md) 0;
+        }
+
+        .warning-box h4 {
+            margin-top: 0;
+            color: #d97706;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            margin: var(--spacing-xl) 0;
+            padding-top: var(--spacing-lg);
+            border-top: 2px solid var(--color-border);
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--box-shadow);
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "†";
+            position: absolute;
+            left: 0;
+        }
+
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: var(--spacing-xs);
+            }
+        }
+    </style>
+
+    <!-- Prism.js for syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Chapter 5: Crystal Structure Visualization with Python</h1>
+            <p class="subtitle">Utilizing pymatgen Library and Materials Project</p>
+            <div class="meta">
+                <span class="meta-item">=÷ Reading Time: 40-45 minutes</span>
+                <span class="meta-item">=  Difficulty: Intermediate to Advanced</span>
+                <span class="meta-item">=ª Code Examples: 6</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="breadcrumb">
+        <a href="../../index.html">AI Terakoya Top</a> &gt;
+        <a href="../index.html">MS Dojo</a> &gt;
+        <a href="index.html">Introduction to Materials Science</a> &gt;
+        Chapter 5
+    </div>
+
+    <main class="container">
+        <p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); border-left: 4px solid #f093fb; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">
+            pymatgen is a powerful Python library for materials science. It enables easy creation, manipulation, analysis, and visualization of crystal structures. This chapter covers everything from basic usage of pymatgen to practical materials analysis using the Materials Project database.
+        </p>
+
+        <div class="learning-objectives">
+            <h2>Learning Objectives</h2>
+            <p>By completing this chapter, you will be able to:</p>
+            <ul>
+                <li> Understand pymatgen installation and basic usage</li>
+                <li> Create Structure objects and manipulate crystal structures</li>
+                <li> Load crystal structures from CIF files and extract information</li>
+                <li> Retrieve materials data using the Materials Project API</li>
+                <li> Analyze crystal structures of representative materials (Si, Fe, AlÇOÉ)</li>
+                <li> Execute comprehensive workflows from structure visualization to property prediction</li>
+            </ul>
+        </div>
+
+        <hr>
+
+        <h2>5.1 Introduction to pymatgen</h2>
+
+        <h3>What is pymatgen?</h3>
+
+        <p><strong>pymatgen (Python Materials Genomics)</strong> is a comprehensive Python library for materials science.</p>
+
+        <p><strong>Main Features</strong>:</p>
+        <ul>
+            <li>Creation, manipulation, and analysis of crystal structures</li>
+            <li>I/O for various formats including CIF, POSCAR, XYZ</li>
+            <li>Analysis of crystal symmetry</li>
+            <li>Creation of phase diagrams</li>
+            <li>Access to Materials Project database</li>
+            <li>Setup for electronic structure calculations (VASP, Quantum Espresso, etc.)</li>
+        </ul>
+
+        <h3>Installation</h3>
+
+        <p>Easy installation using pip:</p>
+
+        <pre><code class="language-bash"># Basic installation
+pip install pymatgen
+
+# Complete version with visualization features
+pip install pymatgen[all]
+
+# Or, using conda
+conda install -c conda-forge pymatgen
+</code></pre>
+
+        <div class="warning-box">
+            <h4>† Important Notes</h4>
+            <p>pymatgen has many dependencies, so installation may take time. Using a virtual environment is recommended.</p>
+            <pre><code class="language-bash"># Creating a virtual environment (recommended)
+python -m venv pymatgen_env
+source pymatgen_env/bin/activate  # Windows: pymatgen_env\Scripts\activate
+pip install pymatgen
+</code></pre>
+        </div>
+
+        <h3>Code Example 1: Creating a Simple Cubic Lattice with pymatgen</h3>
+
+        <p>As a basic pymatgen operation, we will create a simple cubic lattice.</p>
+
+        <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+import numpy as np
+
+# Creating a simple cubic lattice
+# Lattice object: Define lattice vectors
+a = 3.0  # Lattice constant (≈)
+
+# Method 1: Create cubic lattice from lattice constant (simplest)
+lattice = Lattice.cubic(a)
+
+print("="*70)
+print("Creating Simple Cubic Lattice (pymatgen)")
+print("="*70)
+
+print(f"\n[Lattice Information]")
+print(f"Lattice constant a = {a} ≈")
+print(f"\nLattice vectors:")
+print(lattice.matrix)
+print(f"\nLattice volume: {lattice.volume:.4f} ≈≥")
+
+# Structure object: lattice + atomic positions
+# Specify atomic species and fractional coordinates
+species = ["Po"]  # Polonium (simple cubic example)
+coords = [[0, 0, 0]]  # One atom at the lattice origin
+
+structure = Structure(lattice, species, coords)
+
+print(f"\n[Crystal Structure Information]")
+print(f"Formula: {structure.composition.reduced_formula}")
+print(f"Number of atoms: {structure.num_sites}")
+print(f"Density: {structure.density:.4f} g/cm≥")
+
+# Display atomic positions
+print(f"\n[Atomic Positions]")
+for i, site in enumerate(structure.sites):
+    print(f"Atom {i+1}: {site.specie} @ {site.frac_coords} (fractional coordinates)")
+    print(f"        {site.specie} @ {site.coords} ≈ (Cartesian coordinates)")
+
+# Method 2: Create more complex lattice (FCC)
+print("\n" + "="*70)
+print("Creating Face-Centered Cubic (FCC) Lattice")
+print("="*70)
+
+# FCC lattice: atoms at vertices + face centers
+a_fcc = 3.615  # Copper lattice constant (≈)
+lattice_fcc = Lattice.cubic(a_fcc)
+
+# FCC structure atomic positions (fractional coordinates)
+# 1 vertex + 3 face centers = 4 atoms per unit cell
+species_fcc = ["Cu"] * 4
+coords_fcc = [
+    [0.0, 0.0, 0.0],  # Vertex
+    [0.5, 0.5, 0.0],  # xy face center
+    [0.5, 0.0, 0.5],  # xz face center
+    [0.0, 0.5, 0.5],  # yz face center
+]
+
+structure_fcc = Structure(lattice_fcc, species_fcc, coords_fcc)
+
+print(f"\n[FCC Structure Information (Copper)]")
+print(f"Formula: {structure_fcc.composition.reduced_formula}")
+print(f"Number of atoms: {structure_fcc.num_sites}")
+print(f"Density: {structure_fcc.density:.4f} g/cm≥ (measured: 8.96 g/cm≥)")
+print(f"Lattice volume: {structure_fcc.volume:.4f} ≈≥")
+
+# Calculate nearest neighbor distance
+print(f"\n[Nearest Neighbor Distance]")
+# Calculate distances of all atom pairs
+distances = []
+for i in range(len(structure_fcc)):
+    for j in range(i+1, len(structure_fcc)):
+        dist = structure_fcc.get_distance(i, j)
+        distances.append(dist)
+
+min_distance = min(distances)
+print(f"Nearest neighbor distance: {min_distance:.4f} ≈")
+print(f"Theoretical value: {a_fcc / np.sqrt(2):.4f} ≈ (face diagonal/2)")
+
+# Calculate coordination number (number of neighboring atoms around a specific atom)
+neighbors = structure_fcc.get_neighbors(structure_fcc[0], r=min_distance * 1.1)
+print(f"Coordination number: {len(neighbors)} (FCC theoretical value: 12)")
+
+print("\n" + "="*70)
+print("Advantages of pymatgen:")
+print("- Create complex crystal structures with a few lines of code")
+print("- Automatic handling of symmetry")
+print("- Automatic calculation of density, etc. from lattice parameters and atomic positions")
+print("- Easy access to geometric information like distances, angles, coordination numbers")
+</code></pre>
+
+        <p><strong>Explanation</strong>: In pymatgen, you define a lattice with a <code>Lattice</code> object and specify atomic positions with a <code>Structure</code> object to create a crystal structure. Using fractional coordinates (linear combinations of lattice vectors) allows manipulation while preserving symmetry.</p>
+
+        <hr>
+
+        <h2>5.2 Loading and Displaying Crystal Structures</h2>
+
+        <h3>What is a CIF File?</h3>
+
+        <p><strong>CIF (Crystallographic Information File)</strong> is the standard format for crystal structure data.</p>
+
+        <p><strong>CIF File Contents</strong>:</p>
+        <ul>
+            <li>Lattice parameters (a, b, c, ±, ≤, ≥)</li>
+            <li>Space group</li>
+            <li>Atomic species and coordinates</li>
+            <li>Symmetry operations</li>
+            <li>Other metadata</li>
+        </ul>
+
+        <p>CIF files can be downloaded for free from <a href="https://www.crystallography.net/cod/" target="_blank">Crystallography Open Database (COD)</a> and <a href="https://materialsproject.org/" target="_blank">Materials Project</a>.</p>
+
+        <h3>Code Example 2: Loading CIF Files and Displaying Structure Information</h3>
+
+        <p>Load a crystal structure from a CIF file and display detailed information.</p>
+
+        <pre><code class="language-python">from pymatgen.core import Structure
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+import numpy as np
+
+# Define CIF file content as string (in practice, load from file)
+# Example: CIF data for Silicon (Si)
+cif_data_si = """
+data_Si
+_cell_length_a    5.4310
+_cell_length_b    5.4310
+_cell_length_c    5.4310
+_cell_angle_alpha 90.0
+_cell_angle_beta  90.0
+_cell_angle_gamma 90.0
+_space_group_name_H-M_alt 'F d -3 m'
+_space_group_IT_number    227
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+Si1 Si 0.000 0.000 0.000
+Si2 Si 0.250 0.250 0.250
+"""
+
+# Load structure from CIF string
+# To load from actual file: Structure.from_file("structure.cif")
+from io import StringIO
+structure_si = Structure.from_str(cif_data_si, fmt="cif")
+
+print("="*70)
+print("Crystal Structure Loaded from CIF File (Silicon)")
+print("="*70)
+
+# Basic information
+print(f"\n[Basic Information]")
+print(f"Formula: {structure_si.composition.reduced_formula}")
+print(f"Chemical formula (Hill notation): {structure_si.composition.hill_formula}")
+print(f"Number of atoms per unit cell: {structure_si.num_sites}")
+print(f"Density: {structure_si.density:.4f} g/cm≥ (measured: 2.33 g/cm≥)")
+
+# Lattice information
+lattice = structure_si.lattice
+print(f"\n[Lattice Information]")
+print(f"Crystal system: Cubic")
+print(f"Lattice constants:")
+print(f"  a = {lattice.a:.4f} ≈")
+print(f"  b = {lattice.b:.4f} ≈")
+print(f"  c = {lattice.c:.4f} ≈")
+print(f"Lattice angles:")
+print(f"  ± = {lattice.alpha:.2f}∞")
+print(f"  ≤ = {lattice.beta:.2f}∞")
+print(f"  ≥ = {lattice.gamma:.2f}∞")
+print(f"Lattice volume: {lattice.volume:.4f} ≈≥")
+
+# Symmetry analysis
+sga = SpacegroupAnalyzer(structure_si)
+print(f"\n[Symmetry Information]")
+print(f"Space group symbol (Hermann-Mauguin): {sga.get_space_group_symbol()}")
+print(f"Space group number: {sga.get_space_group_number()}")
+print(f"Point group: {sga.get_point_group_symbol()}")
+print(f"Crystal system: {sga.get_crystal_system()}")
+
+# Display atomic positions
+print(f"\n[Atomic Positions (Within Unit Cell)]")
+for i, site in enumerate(structure_si.sites):
+    print(f"\nAtom {i+1}:")
+    print(f"  Element: {site.specie}")
+    print(f"  Fractional coordinates: {site.frac_coords}")
+    print(f"  Cartesian coordinates: {site.coords} ≈")
+
+# Convert to primitive cell
+primitive = structure_si.get_primitive_structure()
+print(f"\n[Conversion to Primitive Cell]")
+print(f"Number of atoms in original unit cell: {structure_si.num_sites}")
+print(f"Number of atoms in primitive cell: {primitive.num_sites}")
+print(f"Primitive cell volume: {primitive.volume:.4f} ≈≥")
+
+# Get conventional cell
+conventional = sga.get_conventional_standard_structure()
+print(f"\nNumber of atoms in conventional cell: {conventional.num_sites}")
+print(f"Conventional cell volume: {conventional.volume:.4f} ≈≥")
+
+# Calculate nearest neighbor distance
+print(f"\n[Nearest Neighbor Distance]")
+all_distances = []
+for i in range(len(structure_si)):
+    for j in range(i+1, len(structure_si)):
+        dist = structure_si.get_distance(i, j)
+        all_distances.append(dist)
+
+if all_distances:
+    min_dist = min(all_distances)
+    print(f"Nearest neighbor distance: {min_dist:.4f} ≈")
+    print(f"Theoretical value (diamond structure): {lattice.a * np.sqrt(3) / 4:.4f} ≈")
+
+# Coordination number
+neighbors = structure_si.get_neighbors(structure_si[0], r=min_dist * 1.1)
+print(f"Coordination number: {len(neighbors)} (diamond structure theoretical value: 4)")
+
+print("\n" + "="*70)
+print("Advantages of CIF files:")
+print("- Store and share crystal structures in standard format")
+print("- Complete information including lattice constants, space group, atomic positions")
+print("- Easy loading and analysis with pymatgen")
+print("- Available from databases (COD, Materials Project, etc.)")
+</code></pre>
+
+        <p><strong>Explanation</strong>: CIF files contain complete information about crystal structures. Using pymatgen, you can easily load structures from CIF files and extract information such as lattice constants, space group, and atomic positions. Using <code>SpacegroupAnalyzer</code> enables detailed symmetry analysis.</p>
+
+        <h3>Code Example 3: 3D Visualization of Crystal Structures (pymatgen + matplotlib)</h3>
+
+        <p>Visualize crystal structures created with pymatgen in 3D.</p>
+
+        <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+
+def visualize_structure_3d(structure, supercell=(1, 1, 1), show_bonds=True, bond_cutoff=3.0):
+    """
+    Visualize pymatgen structure in 3D
+
+    Parameters:
+    structure: pymatgen Structure object
+    supercell: Supercell size (tuple)
+    show_bonds: Whether to display bonds
+    bond_cutoff: Distance threshold for bond consideration (≈)
+    """
+    # Create supercell (visualize larger region)
+    structure_super = structure * supercell
+
+    # Create figure
+    fig = plt.figure(figsize=(12, 10))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Define colors for each element
+    element_colors = {
+        'Si': '#b8b8d0',  # Light purple
+        'Fe': '#e06633',  # Orange
+        'Al': '#a8a8a8',  # Gray
+        'O': '#ff0d0d',   # Red
+        'Cu': '#ffa500',  # Orange
+    }
+
+    # Sizes for each element
+    element_sizes = {
+        'Si': 200,
+        'Fe': 200,
+        'Al': 150,
+        'O': 100,
+        'Cu': 180,
+    }
+
+    # Plot atoms
+    for site in structure_super.sites:
+        element = str(site.specie)
+        color = element_colors.get(element, '#808080')  # Default gray
+        size = element_sizes.get(element, 150)
+
+        x, y, z = site.coords
+        ax.scatter(x, y, z, c=color, s=size, edgecolors='black',
+                  linewidth=1.5, alpha=0.8, depthshade=True, label=element)
+
+    # Draw bonds
+    if show_bonds:
+        drawn_bonds = set()  # Avoid duplicates
+        for i, site1 in enumerate(structure_super.sites):
+            neighbors = structure_super.get_neighbors(site1, r=bond_cutoff)
+            for neighbor in neighbors:
+                # Register pair as identifier (order-independent)
+                pair = tuple(sorted([i, structure_super.sites.index(neighbor.site)]))
+                if pair not in drawn_bonds:
+                    drawn_bonds.add(pair)
+                    x_vals = [site1.coords[0], neighbor.coords[0]]
+                    y_vals = [site1.coords[1], neighbor.coords[1]]
+                    z_vals = [site1.coords[2], neighbor.coords[2]]
+                    ax.plot(x_vals, y_vals, z_vals, 'k-', linewidth=0.8, alpha=0.3)
+
+    # Draw unit cell frame
+    lattice_vecs = structure.lattice.matrix
+    origin = np.array([0, 0, 0])
+
+    # Cube edges
+    vertices = [
+        origin,
+        lattice_vecs[0],
+        lattice_vecs[0] + lattice_vecs[1],
+        lattice_vecs[1],
+        lattice_vecs[2],
+        lattice_vecs[2] + lattice_vecs[0],
+        lattice_vecs[2] + lattice_vecs[0] + lattice_vecs[1],
+        lattice_vecs[2] + lattice_vecs[1]
+    ]
+
+    # Bottom edges
+    edges = [
+        (0, 1), (1, 2), (2, 3), (3, 0),  # Bottom face
+        (4, 5), (5, 6), (6, 7), (7, 4),  # Top face
+        (0, 4), (1, 5), (2, 6), (3, 7)   # Vertical edges
+    ]
+
+    for edge in edges:
+        v1, v2 = vertices[edge[0]], vertices[edge[1]]
+        ax.plot([v1[0], v2[0]], [v1[1], v2[1]], [v1[2], v2[2]],
+               'b-', linewidth=2, alpha=0.6)
+
+    # Axis labels
+    ax.set_xlabel('X (≈)', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Y (≈)', fontsize=12, fontweight='bold')
+    ax.set_zlabel('Z (≈)', fontsize=12, fontweight='bold')
+
+    # Title
+    formula = structure.composition.reduced_formula
+    ax.set_title(f'{formula} Crystal Structure ({supercell[0]}◊{supercell[1]}◊{supercell[2]} Supercell)',
+                fontsize=14, fontweight='bold', pad=20)
+
+    # Legend (remove duplicates)
+    handles, labels = ax.get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    ax.legend(by_label.values(), by_label.keys(), fontsize=11, loc='upper right')
+
+    # Adjust viewpoint
+    ax.view_init(elev=20, azim=45)
+    ax.set_box_aspect([1, 1, 1])
+
+    plt.tight_layout()
+    plt.show()
+
+# Create silicon diamond structure
+a_si = 5.431  # ≈
+lattice_si = Lattice.cubic(a_si)
+
+# Diamond structure atomic positions (FCC + internal atoms)
+species_si = ["Si"] * 8
+coords_si = [
+    [0.00, 0.00, 0.00],  # FCC vertex
+    [0.50, 0.50, 0.00],  # FCC face center
+    [0.50, 0.00, 0.50],
+    [0.00, 0.50, 0.50],
+    [0.25, 0.25, 0.25],  # Diamond internal
+    [0.75, 0.75, 0.25],
+    [0.75, 0.25, 0.75],
+    [0.25, 0.75, 0.75],
+]
+
+structure_si = Structure(lattice_si, species_si, coords_si)
+
+print("="*70)
+print("3D Visualization of Silicon (Si) Diamond Structure")
+print("="*70)
+print(f"Formula: {structure_si.composition.reduced_formula}")
+print(f"Lattice constant a = {a_si} ≈")
+print(f"Number of atoms per unit cell: {structure_si.num_sites}")
+print(f"Crystal structure: Diamond type (FCC + internal atoms)")
+print("\nDisplaying 3D plot...")
+
+# Visualization (2x2x2 supercell for better visibility)
+visualize_structure_3d(structure_si, supercell=(2, 2, 2), show_bonds=True, bond_cutoff=2.5)
+
+print("\n" + "="*70)
+print("Visualization points:")
+print("- Atoms represented as spheres")
+print("- Bonds represented as lines (pairs with distance below threshold)")
+print("- Unit cell frame displayed with blue lines")
+print("- Supercell makes periodic structure easier to understand")
+</code></pre>
+
+        <p><strong>Explanation</strong>: You can retrieve atomic coordinates from pymatgen's Structure object and visualize in 3D using matplotlib. Creating a supercell (structure with repeated unit cells) makes the crystal periodicity easier to understand. Displaying bonds also helps understand coordination structure.</p>
+
+        <hr>
+
+        <h2>5.3 Utilizing the Materials Project Database</h2>
+
+        <h3>What is Materials Project?</h3>
+
+        <p><strong>Materials Project</strong> is a materials database based on first-principles calculations.</p>
+
+        <p><strong>Main Features</strong>:</p>
+        <ul>
+            <li>Data for over 140,000 materials</li>
+            <li>Crystal structures, electronic structures, thermodynamic properties</li>
+            <li>Free access via API</li>
+            <li>Easy to use with pymatgen</li>
+        </ul>
+
+        <p><strong>Included Data</strong>:</p>
+        <ul>
+            <li>Crystal structures (CIF)</li>
+            <li>Band gaps</li>
+            <li>Formation energies</li>
+            <li>Elastic constants</li>
+            <li>Electronic density of states (DOS)</li>
+            <li>Band structures</li>
+        </ul>
+
+        <h3>Obtaining an API Key (Optional)</h3>
+
+        <p>To use the Materials Project API, create an account at <a href="https://materialsproject.org/" target="_blank">Materials Project</a> and obtain an API key (free).</p>
+
+        <ol>
+            <li>Visit <a href="https://materialsproject.org/" target="_blank">https://materialsproject.org/</a></li>
+            <li>Register an account (Sign Up)</li>
+            <li>Go to Dashboard í API í Generate API Key to obtain your key</li>
+        </ol>
+
+        <div class="warning-box">
+            <h4>† Method Without API Key</h4>
+            <p>The following code examples show methods that work without an API key by creating structures locally. In actual projects, using the API provides access to much more materials data.</p>
+        </div>
+
+        <h3>Code Example 4: Retrieving Materials Data with Materials Project API</h3>
+
+        <p>Retrieve materials data using the Materials Project API (examples with and without API key).</p>
+
+        <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.ext.matproj import MPRester
+import warnings
+warnings.filterwarnings('ignore')
+
+# Retrieving materials data using Materials Project API
+def get_material_from_mp(formula, api_key=None):
+    """
+    Retrieve materials data from Materials Project
+
+    Parameters:
+    formula: Chemical formula (e.g., "Si", "Fe", "Al2O3")
+    api_key: Materials Project API key (if None, use local data)
+
+    Returns:
+    structure: pymatgen Structure object
+    properties: Dictionary of material properties
+    """
+    if api_key is not None:
+        # With API key: Retrieve from Materials Project
+        try:
+            with MPRester(api_key) as mpr:
+                # Search by chemical formula
+                entries = mpr.get_entries(formula)
+
+                if not entries:
+                    print(f"Warning: No data found for {formula}")
+                    return None, None
+
+                # Select most stable structure (lowest energy)
+                entry = min(entries, key=lambda e: e.energy_per_atom)
+                structure = entry.structure
+
+                # Get material ID
+                material_id = entry.entry_id
+
+                # Get additional information
+                material_data = mpr.get_doc(material_id)
+
+                properties = {
+                    'formula': structure.composition.reduced_formula,
+                    'material_id': material_id,
+                    'energy_per_atom': entry.energy_per_atom,
+                    'band_gap': material_data.get('band_gap', 'N/A'),
+                    'density': structure.density,
+                    'space_group': material_data.get('space_group', 'N/A'),
+                }
+
+                return structure, properties
+
+        except Exception as e:
+            print(f"API retrieval error: {e}")
+            print("Using local data")
+
+    # Without API key or on error: Create structure locally
+    print(f"Creating {formula} structure using local data")
+
+    if formula == "Si":
+        # Silicon (diamond structure)
+        a = 5.431
+        lattice = Lattice.cubic(a)
+        species = ["Si"] * 8
+        coords = [
+            [0.00, 0.00, 0.00], [0.50, 0.50, 0.00],
+            [0.50, 0.00, 0.50], [0.00, 0.50, 0.50],
+            [0.25, 0.25, 0.25], [0.75, 0.75, 0.25],
+            [0.75, 0.25, 0.75], [0.25, 0.75, 0.75],
+        ]
+        structure = Structure(lattice, species, coords)
+        properties = {
+            'formula': 'Si',
+            'material_id': 'local',
+            'energy_per_atom': 'N/A',
+            'band_gap': 1.12,  # eV (measured value)
+            'density': structure.density,
+            'space_group': 'Fd-3m (227)',
+        }
+
+    elif formula == "Fe":
+        # Iron (BCC structure)
+        a = 2.866
+        lattice = Lattice.cubic(a)
+        species = ["Fe"] * 2
+        coords = [[0, 0, 0], [0.5, 0.5, 0.5]]
+        structure = Structure(lattice, species, coords)
+        properties = {
+            'formula': 'Fe',
+            'material_id': 'local',
+            'energy_per_atom': 'N/A',
+            'band_gap': 0.0,  # Metal
+            'density': structure.density,
+            'space_group': 'Im-3m (229)',
+        }
+
+    elif formula == "Al2O3":
+        # Alumina (corundum structure, simplified)
+        a = 4.759
+        c = 12.991
+        lattice = Lattice.hexagonal(a, c)
+        # Only basic atomic positions for simplification
+        species = ["Al", "Al", "O", "O", "O"]
+        coords = [
+            [0.0, 0.0, 0.352],
+            [0.0, 0.0, 0.148],
+            [0.306, 0.0, 0.25],
+            [0.0, 0.306, 0.25],
+            [0.694, 0.694, 0.25],
+        ]
+        structure = Structure(lattice, species, coords)
+        properties = {
+            'formula': 'Al2O3',
+            'material_id': 'local',
+            'energy_per_atom': 'N/A',
+            'band_gap': 8.8,  # eV (measured value)
+            'density': structure.density,
+            'space_group': 'R-3c (167)',
+        }
+
+    else:
+        print(f"Error: {formula} not available in local data")
+        return None, None
+
+    return structure, properties
+
+
+# Usage example
+print("="*70)
+print("Retrieving Materials Data from Materials Project")
+print("="*70)
+
+# Set API key (if you have one)
+# API_KEY = "your_api_key_here"  # Replace with your API key
+API_KEY = None  # When you don't have an API key
+
+# Retrieve multiple materials
+materials = ["Si", "Fe", "Al2O3"]
+
+for formula in materials:
+    print(f"\n{'='*70}")
+    print(f"[{formula}]")
+    print('='*70)
+
+    structure, props = get_material_from_mp(formula, api_key=API_KEY)
+
+    if structure is None:
+        continue
+
+    # Display structure information
+    print(f"\nFormula: {props['formula']}")
+    print(f"Material ID: {props['material_id']}")
+    print(f"Space group: {props['space_group']}")
+    print(f"Band gap: {props['band_gap']} eV")
+    print(f"Density: {props['density']:.4f} g/cm≥")
+
+    if props['energy_per_atom'] != 'N/A':
+        print(f"Energy per atom: {props['energy_per_atom']:.4f} eV/atom")
+
+    # Lattice information
+    lattice = structure.lattice
+    print(f"\nLattice constants:")
+    print(f"  a = {lattice.a:.4f} ≈")
+    print(f"  b = {lattice.b:.4f} ≈")
+    print(f"  c = {lattice.c:.4f} ≈")
+    print(f"Lattice volume: {lattice.volume:.4f} ≈≥")
+
+    # Number of atoms
+    print(f"\nNumber of atoms per unit cell: {structure.num_sites}")
+
+    # Atomic composition breakdown
+    composition = structure.composition
+    print(f"Atomic composition:")
+    for element, count in composition.items():
+        print(f"  {element}: {count}")
+
+print("\n" + "="*70)
+print("Utilizing Materials Project:")
+print("- Access to database of 140,000+ materials")
+print("- High-precision data based on first-principles calculations")
+print("- Physical properties such as band gap, formation energy")
+print("- Easy data retrieval and analysis with pymatgen")
+print("\nObtain API key at: https://materialsproject.org/")
+</code></pre>
+
+        <p><strong>Explanation</strong>: Using the Materials Project API, you can retrieve crystal structures and physical properties for materials from a vast database. Even without an API key, you can create structures locally for major materials. In actual projects, using the API enables efficient data collection.</p>
+
+        <hr>
+
+        <h2>5.4 Case Study: Structural Analysis of Representative Materials</h2>
+
+        <h3>Materials for Analysis</h3>
+
+        <p>We will analyze the crystal structures of three important materials in detail:</p>
+        <ul>
+            <li><strong>Silicon (Si)</strong>: Representative semiconductor material</li>
+            <li><strong>Iron (Fe)</strong>: Basic structural material</li>
+            <li><strong>Alumina (AlÇOÉ)</strong>: Representative ceramic material</li>
+        </ul>
+
+        <h3>Code Example 5: Comparing Crystal Structures of Multiple Materials (Si, Fe, AlÇOÉ)</h3>
+
+        <p>Create crystal structures for three materials and compare their properties.</p>
+
+        <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+import matplotlib.pyplot as plt
+import numpy as np
+
+def create_material_structures():
+    """
+    Create structures for Si, Fe, Al2O3 and compare properties
+    """
+    structures = {}
+
+    # 1. Silicon (Si) - Diamond structure
+    a_si = 5.431  # ≈
+    lattice_si = Lattice.cubic(a_si)
+    species_si = ["Si"] * 8
+    coords_si = [
+        [0.00, 0.00, 0.00], [0.50, 0.50, 0.00],
+        [0.50, 0.00, 0.50], [0.00, 0.50, 0.50],
+        [0.25, 0.25, 0.25], [0.75, 0.75, 0.25],
+        [0.75, 0.25, 0.75], [0.25, 0.75, 0.75],
+    ]
+    structure_si = Structure(lattice_si, species_si, coords_si)
+
+    # 2. Iron (Fe) - BCC structure
+    a_fe = 2.866  # ≈
+    lattice_fe = Lattice.cubic(a_fe)
+    species_fe = ["Fe"] * 2
+    coords_fe = [[0, 0, 0], [0.5, 0.5, 0.5]]
+    structure_fe = Structure(lattice_fe, species_fe, coords_fe)
+
+    # 3. Alumina (Al2O3) - Corundum structure (hexagonal)
+    a_al2o3 = 4.759  # ≈
+    c_al2o3 = 12.991  # ≈
+    lattice_al2o3 = Lattice.hexagonal(a_al2o3, c_al2o3)
+
+    # Corundum structure atomic positions (simplified version)
+    species_al2o3 = ["Al"] * 4 + ["O"] * 6
+    coords_al2o3 = [
+        # Al atoms
+        [0.0, 0.0, 0.352],
+        [0.667, 0.333, 0.019],
+        [0.333, 0.667, 0.685],
+        [0.0, 0.0, 0.148],
+        # O atoms
+        [0.306, 0.0, 0.25],
+        [0.0, 0.306, 0.25],
+        [0.694, 0.694, 0.25],
+        [0.973, 0.639, 0.917],
+        [0.361, 0.333, 0.917],
+        [0.639, 0.0, 0.583],
+    ]
+    structure_al2o3 = Structure(lattice_al2o3, species_al2o3, coords_al2o3)
+
+    structures = {
+        'Si': structure_si,
+        'Fe': structure_fe,
+        'Al2O3': structure_al2o3
+    }
+
+    return structures
+
+
+def analyze_structure(name, structure):
+    """
+    Detailed analysis of crystal structure
+    """
+    print(f"\n{'='*70}")
+    print(f"[Crystal Structure Analysis of {name}]")
+    print('='*70)
+
+    # Basic information
+    print(f"\nFormula: {structure.composition.reduced_formula}")
+    print(f"Chemical formula (Hill notation): {structure.composition.hill_formula}")
+    print(f"Number of atoms per unit cell: {structure.num_sites}")
+    print(f"Density: {structure.density:.4f} g/cm≥")
+
+    # Lattice information
+    lattice = structure.lattice
+    print(f"\n[Lattice Information]")
+    print(f"Lattice constants:")
+    print(f"  a = {lattice.a:.4f} ≈")
+    print(f"  b = {lattice.b:.4f} ≈")
+    print(f"  c = {lattice.c:.4f} ≈")
+    print(f"Lattice angles:")
+    print(f"  ± = {lattice.alpha:.2f}∞")
+    print(f"  ≤ = {lattice.beta:.2f}∞")
+    print(f"  ≥ = {lattice.gamma:.2f}∞")
+    print(f"Lattice volume: {lattice.volume:.4f} ≈≥")
+
+    # Symmetry analysis
+    try:
+        sga = SpacegroupAnalyzer(structure)
+        print(f"\n[Symmetry Information]")
+        print(f"Space group symbol: {sga.get_space_group_symbol()}")
+        print(f"Space group number: {sga.get_space_group_number()}")
+        print(f"Point group: {sga.get_point_group_symbol()}")
+        print(f"Crystal system: {sga.get_crystal_system()}")
+    except:
+        print("\nError occurred in symmetry analysis")
+
+    # Nearest neighbor distance and coordination number
+    print(f"\n[Geometric Information]")
+
+    # Calculate distances of all atom pairs
+    all_distances = []
+    for i in range(len(structure)):
+        for j in range(i+1, len(structure)):
+            dist = structure.get_distance(i, j)
+            all_distances.append(dist)
+
+    if all_distances:
+        min_dist = min(all_distances)
+        print(f"Nearest neighbor distance: {min_dist:.4f} ≈")
+
+        # Coordination number (for first atom)
+        neighbors = structure.get_neighbors(structure[0], r=min_dist * 1.2)
+        print(f"Coordination number (representative): {len(neighbors)}")
+
+    # Atomic composition breakdown
+    print(f"\n[Atomic Composition]")
+    composition = structure.composition
+    for element, count in composition.items():
+        atomic_percent = (count / structure.num_sites) * 100
+        print(f"  {element}: {count} atoms ({atomic_percent:.1f}%)")
+
+    # Packing fraction estimation (simplified)
+    print(f"\n[Packing Fraction Estimation]")
+    # Estimated atomic radii (≈)
+    atomic_radii = {
+        'Si': 1.17,
+        'Fe': 1.26,
+        'Al': 1.43,
+        'O': 0.66
+    }
+
+    total_atomic_volume = 0
+    for element, count in composition.items():
+        if str(element) in atomic_radii:
+            r = atomic_radii[str(element)]
+            atomic_vol = (4/3) * np.pi * r**3
+            total_atomic_volume += atomic_vol * count
+
+    cell_volume = lattice.volume
+    packing_fraction = total_atomic_volume / cell_volume
+
+    print(f"Total atomic volume: {total_atomic_volume:.4f} r")
+    print(f"Unit cell volume: {cell_volume:.4f} r")
+    print(f"Estimated packing fraction: {packing_fraction:.4f} ({packing_fraction*100:.2f}%)")
+
+    return {
+        'density': structure.density,
+        'volume': lattice.volume,
+        'num_atoms': structure.num_sites,
+        'packing_fraction': packing_fraction,
+        'min_distance': min_dist if all_distances else 0,
+    }
+
+
+# Create structures
+structures = create_material_structures()
+
+# Analyze each material
+analysis_results = {}
+for name, structure in structures.items():
+    results = analyze_structure(name, structure)
+    analysis_results[name] = results
+
+# Create comparison plot
+print("\n" + "="*70)
+print("Creating materials property comparison graph...")
+print("="*70)
+
+materials = list(analysis_results.keys())
+densities = [analysis_results[m]['density'] for m in materials]
+volumes = [analysis_results[m]['volume'] for m in materials]
+num_atoms = [analysis_results[m]['num_atoms'] for m in materials]
+packing_fractions = [analysis_results[m]['packing_fraction'] for m in materials]
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+colors = ['#b8b8d0', '#e06633', '#808080']
+
+# Density comparison
+ax1 = axes[0, 0]
+bars1 = ax1.bar(materials, densities, color=colors, edgecolor='black', linewidth=1.5, alpha=0.7)
+ax1.set_ylabel('Density (g/cm≥)', fontsize=12, fontweight='bold')
+ax1.set_title('Density Comparison', fontsize=13, fontweight='bold')
+ax1.grid(axis='y', alpha=0.3)
+for bar, val in zip(bars1, densities):
+    ax1.text(bar.get_x() + bar.get_width()/2, val + 0.2,
+            f'{val:.2f}', ha='center', fontsize=11, fontweight='bold')
+
+# Unit cell volume comparison
+ax2 = axes[0, 1]
+bars2 = ax2.bar(materials, volumes, color=colors, edgecolor='black', linewidth=1.5, alpha=0.7)
+ax2.set_ylabel('Unit Cell Volume (s)', fontsize=12, fontweight='bold')
+ax2.set_title('Unit Cell Volume Comparison', fontsize=13, fontweight='bold')
+ax2.grid(axis='y', alpha=0.3)
+for bar, val in zip(bars2, volumes):
+    ax2.text(bar.get_x() + bar.get_width()/2, val + 5,
+            f'{val:.1f}', ha='center', fontsize=11, fontweight='bold')
+
+# Number of atoms per unit cell
+ax3 = axes[1, 0]
+bars3 = ax3.bar(materials, num_atoms, color=colors, edgecolor='black', linewidth=1.5, alpha=0.7)
+ax3.set_ylabel('Number of Atoms', fontsize=12, fontweight='bold')
+ax3.set_title('Number of Atoms per Unit Cell', fontsize=13, fontweight='bold')
+ax3.grid(axis='y', alpha=0.3)
+for bar, val in zip(bars3, num_atoms):
+    ax3.text(bar.get_x() + bar.get_width()/2, val + 0.2,
+            f'{val}', ha='center', fontsize=11, fontweight='bold')
+
+# Packing fraction
+ax4 = axes[1, 1]
+bars4 = ax4.bar(materials, [pf*100 for pf in packing_fractions],
+               color=colors, edgecolor='black', linewidth=1.5, alpha=0.7)
+ax4.set_ylabel('Packing Fraction (%)', fontsize=12, fontweight='bold')
+ax4.set_title('Estimated Packing Fraction Comparison', fontsize=13, fontweight='bold')
+ax4.grid(axis='y', alpha=0.3)
+for bar, val in zip(bars4, packing_fractions):
+    ax4.text(bar.get_x() + bar.get_width()/2, val*100 + 1,
+            f'{val*100:.1f}%', ha='center', fontsize=11, fontweight='bold')
+
+plt.suptitle('Crystal Structure Comparison of Representative Materials (Si, Fe, AlÇOÉ)',
+            fontsize=15, fontweight='bold', y=0.995)
+plt.tight_layout()
+plt.show()
+
+print("\n" + "="*70)
+print("Comparison Summary:")
+print("="*70)
+print("\n[Silicon (Si)]")
+print("- Diamond structure (cubic)")
+print("- Semiconductor material (band gap 1.12 eV)")
+print("- Coordination number 4 (covalent bonding)")
+print("- Used in integrated circuits, solar cells")
+
+print("\n[Iron (Fe)]")
+print("- BCC structure (cubic)")
+print("- Metal (conductor)")
+print("- Coordination number 8")
+print("- Basic structural material (main component of steel)")
+
+print("\n[Alumina (AlÇOÉ)]")
+print("- Corundum structure (hexagonal)")
+print("- Insulator (band gap 8.8 eV)")
+print("- High-hardness ceramic")
+print("- Used in wear-resistant materials, abrasives, insulators")
+</code></pre>
+
+        <p><strong>Explanation</strong>: Using pymatgen, you can handle materials with different crystal systems (cubic, hexagonal) in a unified way. By calculating and comparing density, lattice volume, packing fraction, etc., you can quantitatively understand differences in material properties.</p>
+
+        <h3>Code Example 6: Comprehensive Workflow (Structure Loading í Analysis í Visualization í Property Prediction)</h3>
+
+        <p>Execute a comprehensive workflow for materials analysis using pymatgen.</p>
+
+        <pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from pymatgen.analysis.structure_matcher import StructureMatcher
+import matplotlib.pyplot as plt
+import numpy as np
+
+class MaterialAnalysisPipeline:
+    """
+    Class to execute comprehensive workflow for materials analysis
+    """
+
+    def __init__(self, structure, material_name="Unknown"):
+        """
+        Parameters:
+        structure: pymatgen Structure object
+        material_name: Material name
+        """
+        self.structure = structure
+        self.material_name = material_name
+        self.analysis_results = {}
+
+    def step1_basic_info(self):
+        """
+        Step 1: Extract basic information
+        """
+        print(f"\n{'='*70}")
+        print(f"Step 1: Extract Basic Information [{self.material_name}]")
+        print('='*70)
+
+        s = self.structure
+        lattice = s.lattice
+
+        self.analysis_results['basic'] = {
+            'formula': s.composition.reduced_formula,
+            'num_sites': s.num_sites,
+            'density': s.density,
+            'volume': lattice.volume,
+            'lattice_a': lattice.a,
+            'lattice_b': lattice.b,
+            'lattice_c': lattice.c,
+        }
+
+        print(f"Formula: {self.analysis_results['basic']['formula']}")
+        print(f"Number of atoms: {self.analysis_results['basic']['num_sites']}")
+        print(f"Density: {self.analysis_results['basic']['density']:.4f} g/cm≥")
+        print(f"Lattice volume: {self.analysis_results['basic']['volume']:.4f} s")
+
+        return self.analysis_results['basic']
+
+    def step2_symmetry_analysis(self):
+        """
+        Step 2: Analyze symmetry
+        """
+        print(f"\n{'='*70}")
+        print(f"Step 2: Analyze Symmetry")
+        print('='*70)
+
+        try:
+            sga = SpacegroupAnalyzer(self.structure)
+
+            self.analysis_results['symmetry'] = {
+                'space_group_symbol': sga.get_space_group_symbol(),
+                'space_group_number': sga.get_space_group_number(),
+                'point_group': sga.get_point_group_symbol(),
+                'crystal_system': sga.get_crystal_system(),
+            }
+
+            print(f"Space group: {self.analysis_results['symmetry']['space_group_symbol']} "
+                  f"(No. {self.analysis_results['symmetry']['space_group_number']})")
+            print(f"Point group: {self.analysis_results['symmetry']['point_group']}")
+            print(f"Crystal system: {self.analysis_results['symmetry']['crystal_system']}")
+
+        except Exception as e:
+            print(f"Symmetry analysis error: {e}")
+            self.analysis_results['symmetry'] = None
+
+        return self.analysis_results['symmetry']
+
+    def step3_geometric_analysis(self):
+        """
+        Step 3: Geometric analysis (distances, coordination numbers)
+        """
+        print(f"\n{'='*70}")
+        print(f"Step 3: Geometric Analysis")
+        print('='*70)
+
+        # Calculate nearest neighbor distance
+        all_distances = []
+        for i in range(len(self.structure)):
+            for j in range(i+1, len(self.structure)):
+                dist = self.structure.get_distance(i, j)
+                all_distances.append(dist)
+
+        if all_distances:
+            min_dist = min(all_distances)
+            avg_dist = np.mean(all_distances)
+
+            # Coordination number (for first atom)
+            neighbors = self.structure.get_neighbors(self.structure[0], r=min_dist * 1.2)
+            coordination_number = len(neighbors)
+
+            self.analysis_results['geometry'] = {
+                'min_distance': min_dist,
+                'avg_distance': avg_dist,
+                'coordination_number': coordination_number,
+            }
+
+            print(f"Nearest neighbor distance: {min_dist:.4f} ≈")
+            print(f"Average atomic distance: {avg_dist:.4f} ≈")
+            print(f"Coordination number (representative): {coordination_number}")
+
+        else:
+            self.analysis_results['geometry'] = None
+
+        return self.analysis_results['geometry']
+
+    def step4_predict_properties(self):
+        """
+        Step 4: Predict material properties (based on empirical rules)
+        """
+        print(f"\n{'='*70}")
+        print(f"Step 4: Material Property Prediction")
+        print('='*70)
+
+        predictions = {}
+
+        # Estimate mechanical properties from density (very simplified)
+        density = self.analysis_results['basic']['density']
+
+        if density < 3.0:
+            material_class = "Lightweight material"
+            strength_estimate = "Low to medium"
+        elif density < 6.0:
+            material_class = "Medium-weight material"
+            strength_estimate = "Medium to high"
+        else:
+            material_class = "Heavy material"
+            strength_estimate = "High"
+
+        predictions['material_class'] = material_class
+        predictions['strength_estimate'] = strength_estimate
+
+        # Estimate bonding nature from coordination number
+        if self.analysis_results['geometry']:
+            cn = self.analysis_results['geometry']['coordination_number']
+
+            if cn == 4:
+                bonding_type = "Covalent bonding (diamond type)"
+                expected_properties = "Semiconductor, hard, brittle"
+            elif cn == 6:
+                bonding_type = "Ionic bonding or octahedral coordination"
+                expected_properties = "Ceramic, hard, insulator"
+            elif cn in [8, 12]:
+                bonding_type = "Metallic bonding (high coordination)"
+                expected_properties = "Metal, ductile, conductive"
+            else:
+                bonding_type = "Unknown"
+                expected_properties = "Detailed analysis required"
+
+            predictions['bonding_type'] = bonding_type
+            predictions['expected_properties'] = expected_properties
+
+        print(f"Material classification: {predictions['material_class']}")
+        print(f"Estimated strength: {predictions['strength_estimate']}")
+
+        if 'bonding_type' in predictions:
+            print(f"Bonding nature: {predictions['bonding_type']}")
+            print(f"Expected properties: {predictions['expected_properties']}")
+
+        self.analysis_results['predictions'] = predictions
+        return predictions
+
+    def step5_visualize_summary(self):
+        """
+        Step 5: Visualize analysis results
+        """
+        print(f"\n{'='*70}")
+        print(f"Step 5: Visualize Analysis Results")
+        print('='*70)
+
+        # Summary plot
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+
+        # Lattice parameters
+        ax1 = axes[0, 0]
+        lattice_params = [
+            self.analysis_results['basic']['lattice_a'],
+            self.analysis_results['basic']['lattice_b'],
+            self.analysis_results['basic']['lattice_c']
+        ]
+        ax1.bar(['a', 'b', 'c'], lattice_params, color=['#1f77b4', '#ff7f0e', '#2ca02c'],
+               edgecolor='black', linewidth=1.5, alpha=0.7)
+        ax1.set_ylabel('Lattice Constant (≈)', fontsize=11, fontweight='bold')
+        ax1.set_title('Lattice Constants', fontsize=12, fontweight='bold')
+        ax1.grid(axis='y', alpha=0.3)
+
+        # Basic properties
+        ax2 = axes[0, 1]
+        properties = ['Atoms', 'Density\n(g/cm≥)', 'Volume\n(s)']
+        values = [
+            self.analysis_results['basic']['num_sites'],
+            self.analysis_results['basic']['density'],
+            self.analysis_results['basic']['volume']
+        ]
+        ax2.bar(properties, values, color=['#d62728', '#9467bd', '#8c564b'],
+               edgecolor='black', linewidth=1.5, alpha=0.7)
+        ax2.set_ylabel('Value', fontsize=11, fontweight='bold')
+        ax2.set_title('Basic Properties', fontsize=12, fontweight='bold')
+        ax2.grid(axis='y', alpha=0.3)
+
+        # Geometric information
+        ax3 = axes[1, 0]
+        if self.analysis_results['geometry']:
+            geom_labels = ['Nearest Dist.\n(≈)', 'Avg Dist.\n(≈)', 'Coord. No.']
+            geom_values = [
+                self.analysis_results['geometry']['min_distance'],
+                self.analysis_results['geometry']['avg_distance'],
+                self.analysis_results['geometry']['coordination_number']
+            ]
+            ax3.bar(geom_labels, geom_values, color=['#e377c2', '#7f7f7f', '#bcbd22'],
+                   edgecolor='black', linewidth=1.5, alpha=0.7)
+            ax3.set_ylabel('Value', fontsize=11, fontweight='bold')
+            ax3.set_title('Geometric Information', fontsize=12, fontweight='bold')
+            ax3.grid(axis='y', alpha=0.3)
+
+        # Summary text
+        ax4 = axes[1, 1]
+        ax4.axis('off')
+
+        summary_text = f"[{self.material_name} Analysis Summary]\n\n"
+        summary_text += f"Formula: {self.analysis_results['basic']['formula']}\n"
+
+        if self.analysis_results['symmetry']:
+            summary_text += f"Space group: {self.analysis_results['symmetry']['space_group_symbol']}\n"
+            summary_text += f"Crystal system: {self.analysis_results['symmetry']['crystal_system']}\n"
+
+        summary_text += f"\nDensity: {self.analysis_results['basic']['density']:.4f} g/cm≥\n"
+        summary_text += f"Unit cell volume: {self.analysis_results['basic']['volume']:.2f} s\n"
+
+        if self.analysis_results['geometry']:
+            summary_text += f"\nCoordination number: {self.analysis_results['geometry']['coordination_number']}\n"
+
+        if self.analysis_results['predictions']:
+            summary_text += f"\n[Predicted Properties]\n"
+            summary_text += f"{self.analysis_results['predictions']['material_class']}\n"
+            if 'expected_properties' in self.analysis_results['predictions']:
+                summary_text += f"{self.analysis_results['predictions']['expected_properties']}\n"
+
+        ax4.text(0.1, 0.9, summary_text, fontsize=11, verticalalignment='top',
+                fontfamily='monospace',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+
+        plt.suptitle(f'{self.material_name} Structure Analysis Results',
+                    fontsize=14, fontweight='bold')
+        plt.tight_layout()
+        plt.show()
+
+    def run_full_pipeline(self):
+        """
+        Execute all steps
+        """
+        print(f"\n{'#'*70}")
+        print(f"#  Material Analysis Pipeline Start: {self.material_name}")
+        print(f"{'#'*70}")
+
+        self.step1_basic_info()
+        self.step2_symmetry_analysis()
+        self.step3_geometric_analysis()
+        self.step4_predict_properties()
+        self.step5_visualize_summary()
+
+        print(f"\n{'#'*70}")
+        print(f"#  Analysis Complete: {self.material_name}")
+        print(f"{'#'*70}\n")
+
+        return self.analysis_results
+
+
+# Usage example: Silicon analysis
+a_si = 5.431
+lattice_si = Lattice.cubic(a_si)
+species_si = ["Si"] * 8
+coords_si = [
+    [0.00, 0.00, 0.00], [0.50, 0.50, 0.00],
+    [0.50, 0.00, 0.50], [0.00, 0.50, 0.50],
+    [0.25, 0.25, 0.25], [0.75, 0.75, 0.25],
+    [0.75, 0.25, 0.75], [0.25, 0.75, 0.75],
+]
+structure_si = Structure(lattice_si, species_si, coords_si)
+
+# Execute pipeline
+pipeline = MaterialAnalysisPipeline(structure_si, material_name="Silicon (Si)")
+results = pipeline.run_full_pipeline()
+
+print("\n" + "="*70)
+print("Advantages of Comprehensive Workflow:")
+print("="*70)
+print("- Systematic analysis (basic í symmetry í geometry í prediction í visualization)")
+print("- Reproducible procedures")
+print("- Same method applicable to multiple materials")
+print("- Automatic result visualization")
+print("- Property prediction based on empirical rules")
+</code></pre>
+
+        <p><strong>Explanation</strong>: By building a comprehensive workflow, you can execute materials analysis systematically and efficiently. From basic information extraction to symmetry analysis, geometric analysis, property prediction, and visualization, the entire sequence can be automated. This pipeline can be applied to new materials as well.</p>
+
+        <hr>
+
+        <h2>5.5 Troubleshooting</h2>
+
+        <h3>Common Errors and Solutions</h3>
+
+        <div class="warning-box">
+            <h4>† ImportError: No module named 'pymatgen'</h4>
+            <p><strong>Cause</strong>: pymatgen is not installed</p>
+            <p><strong>Solution</strong>:</p>
+            <pre><code class="language-bash">pip install pymatgen</code></pre>
+        </div>
+
+        <div class="warning-box">
+            <h4>† ValueError: The reduced_formula could not be parsed</h4>
+            <p><strong>Cause</strong>: Incorrect chemical formula notation</p>
+            <p><strong>Solution</strong>: Use correct notation for chemical formulas (e.g., "Al2O3", "SiO2")</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>† MPRestError: API key is not set</h4>
+            <p><strong>Cause</strong>: Materials Project API key not set</p>
+            <p><strong>Solution</strong>:</p>
+            <ol>
+                <li>Create account at <a href="https://materialsproject.org/" target="_blank">Materials Project</a></li>
+                <li>Obtain API key</li>
+                <li>Set in code: <code>MPRester("your_api_key")</code></li>
+            </ol>
+        </div>
+
+        <div class="warning-box">
+            <h4>† Visualization not displayed</h4>
+            <p><strong>Cause</strong>: matplotlib backend settings</p>
+            <p><strong>Solution</strong>:</p>
+            <pre><code class="language-python">import matplotlib
+matplotlib.use('TkAgg')  # Or Qt5Agg
+import matplotlib.pyplot as plt</code></pre>
+        </div>
+
+        <hr>
+
+        <h2>5.6 Chapter Summary</h2>
+
+        <h3>What You Learned</h3>
+
+        <ol>
+            <li><strong>Fundamentals of pymatgen</strong>
+                <ul>
+                    <li>Creating Lattice and Structure objects</li>
+                    <li>Handling fractional and Cartesian coordinates</li>
+                    <li>Automatic calculation of density, distances, coordination numbers</li>
+                </ul>
+            </li>
+            <li><strong>Using CIF Files</strong>
+                <ul>
+                    <li>Reading and writing structural data in standard format</li>
+                    <li>Extracting lattice constants, space groups, atomic positions</li>
+                    <li>Symmetry analysis (SpacegroupAnalyzer)</li>
+                </ul>
+            </li>
+            <li><strong>3D Visualization</strong>
+                <ul>
+                    <li>3D plotting of crystal structures using matplotlib</li>
+                    <li>Displaying periodic structures with supercells</li>
+                    <li>Visualizing atoms and bonds</li>
+                </ul>
+            </li>
+            <li><strong>Utilizing Materials Project</strong>
+                <ul>
+                    <li>Access to database of 140,000+ materials</li>
+                    <li>Retrieving materials data via API</li>
+                    <li>Physical properties like band gap, formation energy</li>
+                </ul>
+            </li>
+            <li><strong>Practical Materials Analysis</strong>
+                <ul>
+                    <li>Structural comparison of Si, Fe, AlÇOÉ</li>
+                    <li>Comprehensive workflow (structure í analysis í visualization í prediction)</li>
+                    <li>Property prediction based on empirical rules</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>Key Points</h3>
+
+        <ul>
+            <li>pymatgen is a <strong>comprehensive Python library for materials science</strong></li>
+            <li>Crystal structure creation, manipulation, and analysis possible with a few lines of code</li>
+            <li>CIF files are the standard format for crystal structures</li>
+            <li>Materials Project is a high-precision database based on first-principles calculations</li>
+            <li>Efficient materials analysis possible through systematic workflows</li>
+        </ul>
+
+        <h3>Next Steps</h3>
+
+        <p>You have completed this Introduction to Materials Science series. For future learning:</p>
+        <ul>
+            <li><strong>Electronic structure calculations</strong>: First-principles calculation software like VASP, Quantum Espresso</li>
+            <li><strong>Fusion with machine learning</strong>: Materials discovery through Materials Informatics</li>
+            <li><strong>Creating phase diagrams</strong>: Phase Diagram functionality in pymatgen</li>
+            <li><strong>Defect analysis</strong>: Modeling point defects, dislocations, grain boundaries</li>
+            <li><strong>Surface science</strong>: Surface structures and slab models</li>
+        </ul>
+
+        <h3>References</h3>
+
+        <ul>
+            <li><a href="https://pymatgen.org/" target="_blank">pymatgen Official Documentation</a></li>
+            <li><a href="https://materialsproject.org/" target="_blank">Materials Project</a></li>
+            <li><a href="https://www.crystallography.net/cod/" target="_blank">Crystallography Open Database (COD)</a></li>
+            <li><a href="https://wiki.materialsproject.org/Getting_Started" target="_blank">Materials Project Wiki</a></li>
+        </ul>
+
+        <div class="navigation">
+            <a href="chapter-4.html" class="nav-button">ê Previous Chapter: Relationship Between Material Properties and Structure</a>
+            <a href="index.html" class="nav-button">Series Contents</a>
+            <a href="../index.html" class="nav-button">MS Knowledge Base Top í</a>
+        </div>
+    </main>
+
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is for educational, research, and informational purposes only and does not provide professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The creator and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+            <li>Even if direct, indirect, incidental, special, consequential, or punitive damages arise from the use, execution, or interpretation of this content, to the maximum extent permitted by applicable law, the creator and Tohoku University are not liable.</li>
+            <li>The content of this material is subject to change, update, or discontinuation without notice.</li>
+            <li>The copyright and license of this content follow the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+        </ul>
+    </section>
+
+<footer>
+        <p><strong>Author</strong>: MS Knowledge Hub Content Team</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-25</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
+        <p>&copy; 2025 MS Terakoya. All rights reserved.</p>
+    </footer>
+</body>
+</html>

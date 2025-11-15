@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Chapter 4：フィードバックControlとPIDControl - ProcessControlの基礎から実装まで">
-    <title>Chapter 4：フィードバックControlとPIDControl - PI Terakoya</title>
+    <meta name="description" content="Chapter 4: Feedback Control and PID Control - From Process Control Fundamentals to Implementation">
+    <title>Chapter 4: Feedback Control and PID Control - PI Terakoya</title>
 
         <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -85,9 +85,9 @@
             .container { padding: 0 0.5rem; }
             pre { padding: 1rem; }
         }
-    
-        
-    
+
+
+
         /* Breadcrumb styles */
         .breadcrumb {
             background: #f7fafc;
@@ -141,8 +141,8 @@
 
         <header>
         <div class="container">
-            <h1>Chapter 4：フィードバックControlとPIDControl</h1>
-            <p class="subtitle">ProcessControlの基礎理論から実装まで</p>
+            <h1>Chapter 4: Feedback Control and PID Control</h1>
+            <p class="subtitle">From Process Control Fundamentals to Implementation</p>
             <div class="meta">
                 <span class="meta">📖 Reading Time: 25-30 minutes</span>
                 <span class="meta">📊 Difficulty: Intermediate</span>
@@ -155,35 +155,35 @@
 
 <div class="learning-objectives">
 <h2>Learning Objectives</h2>
-<p>この Chapterを読むことで、以下を習得できます：</p>
+<p>By completing this chapter, you will be able to:</p>
 <ul>
-<li>✅ フィードバックControlの基本原理とControl系の構成を説明できる</li>
-<li>✅ 1次系のステップ応答と動特性を理解する</li>
-<li>✅ PIDControl器の各要素（P, I, D）の役割と効果を理解する</li>
-<li>✅ Pythonで1次系とPIDControl器を実装・シミュレートできる</li>
-<li>✅ ジーグラー・ニコルス法でPIDパラメータを決定できる</li>
-<li>✅ アンチワインドアップなど実用的なControl問題に対処できる</li>
-<li>✅ カスケードControlの基本構造を理解する</li>
+<li>✅ Explain the basic principles of feedback control and control system configuration</li>
+<li>✅ Understand the step response and dynamic characteristics of first-order systems</li>
+<li>✅ Understand the role and effects of each PID controller element (P, I, D)</li>
+<li>✅ Implement and simulate first-order systems and PID controllers in Python</li>
+<li>✅ Determine PID parameters using the Ziegler-Nichols method</li>
+<li>✅ Address practical control issues such as anti-windup</li>
+<li>✅ Understand the basic structure of cascade control</li>
 </ul>
 </div>
 
 <hr />
 
-<h2>4.1 フィードバックControlの基礎</h2>
+<h2>4.1 Fundamentals of Feedback Control</h2>
 
-<h3>フィードバックControlとは</h3>
+<h3>What is Feedback Control</h3>
 
-<p><strong>フィードバックControl</strong>は、Control対象の出力（Control量）を測定し、目標値（設定値）との偏差をゼロにするようにControl入力（操作量）を調整するControl方式です。Process産業において最も広く使用されるControl手法です。</p>
+<p><strong>Feedback control</strong> is a control method that measures the output (controlled variable) of a controlled object and adjusts the control input (manipulated variable) to make the deviation from the target value (setpoint) zero. It is the most widely used control technique in the process industry.</p>
 
-<h3>Control系の基本構成</h3>
+<h3>Basic Configuration of Control System</h3>
 
 <div class="mermaid">
 graph LR
-    SP[設定値<br/>Setpoint] --> SUM((+<br/>-))
-    SUM --> |偏差 e| CTRL[Control器<br/>Controller]
-    CTRL --> |操作量 u| PROCESS[Process<br/>Process]
-    PROCESS --> |Control量 y| OUTPUT[出力]
-    OUTPUT --> |フィードバック| SUM
+    SP[Setpoint<br/>SP] --> SUM((+<br/>-))
+    SUM --> |Error e| CTRL[Controller<br/>Controller]
+    CTRL --> |Manipulated Variable u| PROCESS[Process<br/>Process]
+    PROCESS --> |Controlled Variable y| OUTPUT[Output]
+    OUTPUT --> |Feedback| SUM
 
     style SP fill:#e8f5e9
     style CTRL fill:#c8e6c9
@@ -191,179 +191,179 @@ graph LR
     style OUTPUT fill:#81c784
 </div>
 
-<p><strong>主要な要素:</strong></p>
+<p><strong>Main Elements:</strong></p>
 <ul>
-<li><strong>設定値（SP: Setpoint）</strong>: Control量の目標値（例: 反応器温度 175°C）</li>
-<li><strong>Control量（PV: Process Variable）</strong>: 実際に測定されるProcess変数</li>
-<li><strong>偏差（e: Error）</strong>: 設定値とControl量の差（e = SP - PV）</li>
-<li><strong>操作量（MV: Manipulated Variable）</strong>: Control器が出力する信号（例: バルブ開度、ヒーター出力）</li>
-<li><strong>外乱（Disturbance）</strong>: Processに影響を与える予期しない変化</li>
+<li><strong>Setpoint (SP)</strong>: Target value of controlled variable (e.g., reactor temperature 175°C)</li>
+<li><strong>Process Variable (PV)</strong>: Actually measured process variable</li>
+<li><strong>Error (e)</strong>: Difference between setpoint and controlled variable (e = SP - PV)</li>
+<li><strong>Manipulated Variable (MV)</strong>: Signal output by controller (e.g., valve opening, heater output)</li>
+<li><strong>Disturbance</strong>: Unexpected changes affecting the process</li>
 </ul>
 
-<h3>伝達関数と動的システム</h3>
+<h3>Transfer Function and Dynamic Systems</h3>
 
-<p>Processの動特性は、<strong>伝達関数</strong>で表現されます。最も基本的なProcessモデルは<strong>1次遅れ系</strong>です：</p>
+<p>The dynamic characteristics of a process are expressed by a <strong>transfer function</strong>. The most basic process model is the <strong>first-order lag system</strong>:</p>
 
 <p style="text-align: center; font-size: 1.1rem; margin: 1.5rem 0;">
 <strong>G(s) = K / (τs + 1)</strong>
 </p>
 
-<p>ここで：</p>
+<p>Where:</p>
 <ul>
-<li><strong>K</strong>: Processゲイン（定常状態での入出力比）</li>
-<li><strong>τ</strong>: 時定数（Processの応答速度を表す）</li>
-<li><strong>s</strong>: ラプラス変数</li>
+<li><strong>K</strong>: Process gain (input-output ratio at steady state)</li>
+<li><strong>τ</strong>: Time constant (represents process response speed)</li>
+<li><strong>s</strong>: Laplace variable</li>
 </ul>
 
 <hr />
 
-<h2>4.2 Code Examples：1次系とPIDControlの実装</h2>
+<h2>4.2 Code Examples: Implementation of First-Order Systems and PID Control</h2>
 
 <div class="code-example">
-<h4>Code Examples1: 1次系のステップ応答Simulation</h4>
+<h4>Code Example 1: Step Response Simulation of First-Order System</h4>
 
-<p><strong>目的</strong>: 反応器温度Controlを例に、1次遅れ系のステップ応答を可視化し、時定数とゲインの影響を理解する。</p>
+<p><strong>Purpose</strong>: Visualize the step response of a first-order lag system using reactor temperature control as an example, and understand the effects of time constant and gain.</p>
 
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
 
-# 日本語フォント設定
+# Japanese font settings
 plt.rcParams['font.sans-serif'] = ['Hiragino Sans', 'Arial']
 plt.rcParams['axes.unicode_minus'] = False
 
 def first_order_system(y, t, K, tau, u):
     """
-    1次遅れ系の微 minutes方程式
+    Differential equation of first-order lag system
 
     τ * dy/dt + y = K * u
 
     Parameters:
     -----------
     y : float
-        Control量（温度）
+        Controlled variable (temperature)
     t : float
-         hours
+        Time
     K : float
-        Processゲイン
+        Process gain
     tau : float
-        時定数（秒）
+        Time constant (seconds)
     u : float
-        操作量（ヒーター出力）
+        Manipulated variable (heater output)
 
     Returns:
     --------
     dydt : float
-        Control量の hours微 minutes
+        Time derivative of controlled variable
     """
     dydt = (K * u - y) / tau
     return dydt
 
-# Simulationパラメータ
-K = 2.0        # Processゲイン（°C / %）
-tau = 60.0     # 時定数（秒）
-u_step = 10.0  # ステップ入力（ヒーター出力 10%）
+# Simulation parameters
+K = 2.0        # Process gain (°C / %)
+tau = 60.0     # Time constant (seconds)
+u_step = 10.0  # Step input (heater output 10%)
 
-#  hours軸
-t = np.linspace(0, 300, 1000)  # 0-300秒
+# Time axis
+t = np.linspace(0, 300, 1000)  # 0-300 seconds
 
-# 初期条件（定常状態: 室温20°C）
+# Initial condition (steady state: room temperature 20°C)
 y0 = 20.0
 
-# 1次系の応答計算
+# Calculate first-order system response
 y = odeint(first_order_system, y0, t, args=(K, tau, u_step))
 
-# 理論値（解析解）
+# Theoretical value (analytical solution)
 y_analytical = K * u_step * (1 - np.exp(-t / tau)) + y0
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(2, 1, figsize=(14, 10))
 
-# ステップ応答
-axes[0].plot(t, y, 'b-', linewidth=2, label='Simulation結果')
-axes[0].plot(t, y_analytical, 'r--', linewidth=2, alpha=0.7, label='解析解')
+# Step response
+axes[0].plot(t, y, 'b-', linewidth=2, label='Simulation Result')
+axes[0].plot(t, y_analytical, 'r--', linewidth=2, alpha=0.7, label='Analytical Solution')
 axes[0].axhline(y=y0 + K * u_step, color='green', linestyle='--',
-                label=f'定常値: {y0 + K * u_step:.1f}°C')
+                label=f'Steady State: {y0 + K * u_step:.1f}°C')
 axes[0].axvline(x=tau, color='orange', linestyle='--', alpha=0.5,
-                label=f'時定数 τ = {tau:.0f}秒')
+                label=f'Time Constant τ = {tau:.0f}s')
 axes[0].axhline(y=y0 + K * u_step * 0.632, color='purple', linestyle=':', alpha=0.5)
-axes[0].set_xlabel(' hours（秒）', fontsize=12)
-axes[0].set_ylabel('温度（°C）', fontsize=12)
-axes[0].set_title('1次系のステップ応答（反応器温度Control）', fontsize=14, fontweight='bold')
+axes[0].set_xlabel('Time (seconds)', fontsize=12)
+axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+axes[0].set_title('Step Response of First-Order System (Reactor Temperature Control)', fontsize=14, fontweight='bold')
 axes[0].legend(loc='lower right')
 axes[0].grid(alpha=0.3)
 
-# 異なる時定数での比較
+# Comparison with different time constants
 tau_values = [30, 60, 120]
 colors = ['blue', 'red', 'green']
 
 for tau_val, color in zip(tau_values, colors):
     y_comp = odeint(first_order_system, y0, t, args=(K, tau_val, u_step))
-    axes[1].plot(t, y_comp, color=color, linewidth=2, label=f'τ = {tau_val}秒')
+    axes[1].plot(t, y_comp, color=color, linewidth=2, label=f'τ = {tau_val}s')
 
 axes[1].axhline(y=y0 + K * u_step, color='black', linestyle='--', alpha=0.5)
-axes[1].set_xlabel(' hours（秒）', fontsize=12)
-axes[1].set_ylabel('温度（°C）', fontsize=12)
-axes[1].set_title('時定数の影響比較', fontsize=14, fontweight='bold')
+axes[1].set_xlabel('Time (seconds)', fontsize=12)
+axes[1].set_ylabel('Temperature (°C)', fontsize=12)
+axes[1].set_title('Comparison of Time Constant Effects', fontsize=14, fontweight='bold')
 axes[1].legend()
 axes[1].grid(alpha=0.3)
 
 plt.tight_layout()
 plt.show()
 
-# 応答特性の計算
-print("=== 1次系ステップ応答特性 ===")
-print(f"Processゲイン K: {K} °C/%")
-print(f"時定数 τ: {tau} 秒")
-print(f"ステップ入力: {u_step} %")
-print(f"定常状態変化: {K * u_step:.2f} °C")
-print(f"時定数での到達率: 63.2%")
-print(f"3τ での到達率: {(1 - np.exp(-3)) * 100:.1f}%")
-print(f"5τ での到達率: {(1 - np.exp(-5)) * 100:.1f}%")
+# Calculate response characteristics
+print("=== First-Order System Step Response Characteristics ===")
+print(f"Process Gain K: {K} °C/%")
+print(f"Time Constant τ: {tau} seconds")
+print(f"Step Input: {u_step} %")
+print(f"Steady State Change: {K * u_step:.2f} °C")
+print(f"Reached at Time Constant: 63.2%")
+print(f"Reached at 3τ: {(1 - np.exp(-3)) * 100:.1f}%")
+print(f"Reached at 5τ: {(1 - np.exp(-5)) * 100:.1f}%")
 </code></pre>
 
-<p><strong>期待される出力</strong>:</p>
-<pre><code>=== 1次系ステップ応答特性 ===
-Processゲイン K: 2.0 °C/%
-時定数 τ: 60.0 秒
-ステップ入力: 10.0 %
-定常状態変化: 20.00 °C
-時定数での到達率: 63.2%
-3τ での到達率: 95.0%
-5τ での到達率: 99.3%
+<p><strong>Expected Output</strong>:</p>
+<pre><code>=== First-Order System Step Response Characteristics ===
+Process Gain K: 2.0 °C/%
+Time Constant τ: 60.0 seconds
+Step Input: 10.0 %
+Steady State Change: 20.00 °C
+Reached at Time Constant: 63.2%
+Reached at 3τ: 95.0%
+Reached at 5τ: 99.3%
 </code></pre>
 
-<p><strong>解説</strong>: 1次遅れ系は、ProcessControlで最も基本的なモデルです。時定数τは、ステップ入力に対して定常値の63.2%に到達するまでの hoursを表します。実際のProcess（温度Control、流量Control等）の多くは1次系または1次系の組み合わせで近似できます。</p>
+<p><strong>Explanation</strong>: The first-order lag system is the most basic model in process control. The time constant τ represents the time to reach 63.2% of the steady-state value in response to a step input. Many actual processes (temperature control, flow control, etc.) can be approximated by a first-order system or a combination of first-order systems.</p>
 </div>
 
 <div class="code-example">
-<h4>Code Examples2: PIDControl器の完全実装</h4>
+<h4>Code Example 2: Complete Implementation of PID Controller</h4>
 
-<p><strong>目的</strong>: P、I、D各要素を含む完全なPIDControl器を実装し、各パラメータの影響を理解する。</p>
+<p><strong>Purpose</strong>: Implement a complete PID controller including P, I, and D elements, and understand the effects of each parameter.</p>
 
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 
 class PIDController:
     """
-    PIDControl器の完全実装
+    Complete implementation of PID controller
 
     u(t) = Kp * e(t) + Ki * ∫e(t)dt + Kd * de(t)/dt
 
     Parameters:
     -----------
     Kp : float
-        比例ゲイン
+        Proportional gain
     Ki : float
-        積 minutesゲイン
+        Integral gain
     Kd : float
-        微 minutesゲイン
+        Derivative gain
     dt : float
-        サンプリング hours（秒）
+        Sampling time (seconds)
     setpoint : float
-        設定値
+        Setpoint
     output_limits : tuple
-        操作量の上下限 (min, max)
+        Manipulated variable limits (min, max)
     """
 
     def __init__(self, Kp, Ki, Kd, dt=1.0, setpoint=0.0, output_limits=(0, 100)):
@@ -374,76 +374,76 @@ class PIDController:
         self.setpoint = setpoint
         self.output_limits = output_limits
 
-        # 内部状態
+        # Internal state
         self.integral = 0.0
         self.prev_error = 0.0
 
     def update(self, measured_value):
         """
-        PIDControl器の更新
+        Update PID controller
 
         Parameters:
         -----------
         measured_value : float
-            測定値（Control量）
+            Measured value (controlled variable)
 
         Returns:
         --------
         output : float
-            操作量
+            Manipulated variable
         """
-        # 偏差計算
+        # Error calculation
         error = self.setpoint - measured_value
 
-        # 比例項
+        # Proportional term
         P = self.Kp * error
 
-        # 積 minutes項
+        # Integral term
         self.integral += error * self.dt
         I = self.Ki * self.integral
 
-        # 微 minutes項
+        # Derivative term
         derivative = (error - self.prev_error) / self.dt
         D = self.Kd * derivative
 
-        # PID出力
+        # PID output
         output = P + I + D
 
-        # 操作量の制限
+        # Limit manipulated variable
         output = np.clip(output, self.output_limits[0], self.output_limits[1])
 
-        # 次回のために誤差を保存
+        # Save error for next iteration
         self.prev_error = error
 
         return output
 
     def reset(self):
-        """内部状態のリセット"""
+        """Reset internal state"""
         self.integral = 0.0
         self.prev_error = 0.0
 
 
 def simulate_process(controller, process_model, duration, dt, disturbance_time=None):
     """
-    ControlシステムのSimulation
+    Simulation of control system
 
     Parameters:
     -----------
     controller : PIDController
-        PIDControl器
+        PID controller
     process_model : function
-        Processモデル関数
+        Process model function
     duration : float
-        Simulation hours（秒）
+        Simulation time (seconds)
     dt : float
-        サンプリング hours（秒）
+        Sampling time (seconds)
     disturbance_time : float or None
-        外乱印加時刻（秒）
+        Disturbance application time (seconds)
 
     Returns:
     --------
     time, setpoint, output, control : arrays
-         hours、設定値、Control量、操作量の配列
+        Arrays of time, setpoint, controlled variable, manipulated variable
     """
     n_steps = int(duration / dt)
     time = np.arange(n_steps) * dt
@@ -452,21 +452,21 @@ def simulate_process(controller, process_model, duration, dt, disturbance_time=N
     output = np.zeros(n_steps)
     control = np.zeros(n_steps)
 
-    # 初期値
-    y = 20.0  # 初期温度（°C）
+    # Initial value
+    y = 20.0  # Initial temperature (°C)
 
     for i in range(n_steps):
-        # PIDControl器の更新
+        # Update PID controller
         u = controller.update(y)
         control[i] = u
         output[i] = y
 
-        # 外乱の印加
+        # Apply disturbance
         disturbance = 0.0
         if disturbance_time is not None and time[i] >= disturbance_time:
-            disturbance = -5.0  # -5°Cの外乱
+            disturbance = -5.0  # -5°C disturbance
 
-        # Processモデルの更新（1次系）
+        # Update process model (first-order system)
         K = 2.0
         tau = 60.0
         dydt = (K * u - y + disturbance) / tau
@@ -475,79 +475,79 @@ def simulate_process(controller, process_model, duration, dt, disturbance_time=N
     return time, setpoint, output, control
 
 
-# PIDControl器のパラメータ
+# PID controller parameters
 Kp = 5.0
 Ki = 0.1
 Kd = 10.0
 dt = 1.0
 setpoint = 175.0
 
-# PIDControl器の初期化
+# Initialize PID controller
 pid = PIDController(Kp=Kp, Ki=Ki, Kd=Kd, dt=dt,
                     setpoint=setpoint, output_limits=(0, 100))
 
-# Simulation実行
+# Execute simulation
 time, sp, pv, mv = simulate_process(pid, None, duration=600, dt=dt,
                                      disturbance_time=400)
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(2, 1, figsize=(14, 10))
 
-# Control量のトレンド
-axes[0].plot(time, sp, 'r--', linewidth=2, label='設定値（SP）')
-axes[0].plot(time, pv, 'b-', linewidth=1.5, label='Control量（PV）')
-axes[0].axvline(x=400, color='orange', linestyle='--', alpha=0.5, label='外乱印加')
-axes[0].set_ylabel('温度（°C）', fontsize=12)
-axes[0].set_title(f'PIDControlSimulation（Kp={Kp}, Ki={Ki}, Kd={Kd}）',
+# Controlled variable trend
+axes[0].plot(time, sp, 'r--', linewidth=2, label='Setpoint (SP)')
+axes[0].plot(time, pv, 'b-', linewidth=1.5, label='Process Variable (PV)')
+axes[0].axvline(x=400, color='orange', linestyle='--', alpha=0.5, label='Disturbance Applied')
+axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+axes[0].set_title(f'PID Control Simulation (Kp={Kp}, Ki={Ki}, Kd={Kd})',
                   fontsize=14, fontweight='bold')
 axes[0].legend(loc='lower right')
 axes[0].grid(alpha=0.3)
 
-# 操作量のトレンド
-axes[1].plot(time, mv, 'g-', linewidth=1.5, label='操作量（MV）')
+# Manipulated variable trend
+axes[1].plot(time, mv, 'g-', linewidth=1.5, label='Manipulated Variable (MV)')
 axes[1].axvline(x=400, color='orange', linestyle='--', alpha=0.5)
-axes[1].set_xlabel(' hours（秒）', fontsize=12)
-axes[1].set_ylabel('ヒーター出力（%）', fontsize=12)
-axes[1].set_title('操作量の変化', fontsize=14, fontweight='bold')
+axes[1].set_xlabel('Time (seconds)', fontsize=12)
+axes[1].set_ylabel('Heater Output (%)', fontsize=12)
+axes[1].set_title('Change in Manipulated Variable', fontsize=14, fontweight='bold')
 axes[1].legend()
 axes[1].grid(alpha=0.3)
 
 plt.tight_layout()
 plt.show()
 
-# Control性能の評価
+# Evaluate control performance
 settling_time_idx = np.where(np.abs(pv - setpoint) < 0.5)[0][0]
-print("\n=== PIDControl性能 ===")
-print(f"整定 hours: {time[settling_time_idx]:.1f} 秒")
-print(f"定常偏差: {np.abs(pv[-100:].mean() - setpoint):.3f} °C")
-print(f"外乱除去 hours: {time[-1] - 400:.1f} 秒後に整定")
+print("\n=== PID Control Performance ===")
+print(f"Settling Time: {time[settling_time_idx]:.1f} seconds")
+print(f"Steady State Error: {np.abs(pv[-100:].mean() - setpoint):.3f} °C")
+print(f"Disturbance Rejection Time: Settled {time[-1] - 400:.1f} seconds after disturbance")
 </code></pre>
 
-<p><strong>解説</strong>: このコードは、産業用PIDControl器の完全な実装です。比例（P）、積 minutes（I）、微 minutes（D）の3つのControl動作を組み合わせることで、優れたControl性能を実現します。外乱（400秒時点で-5°Cの温度低下）に対しても、PIDControl器が自動的に操作量を調整し、設定値に復帰させることが確認できます。</p>
+<p><strong>Explanation</strong>: This code is a complete implementation of an industrial PID controller. By combining the three control actions of proportional (P), integral (I), and derivative (D), excellent control performance is achieved. Even against a disturbance (temperature drop of -5°C at 400 seconds), the PID controller automatically adjusts the manipulated variable and returns to the setpoint.</p>
 </div>
 
 <div class="code-example">
-<h4>Code Examples3: 比例（P）Controlの定常偏差デモンストレーション</h4>
+<h4>Code Example 3: Demonstration of Steady-State Error in Proportional (P) Control</h4>
 
-<p><strong>目的</strong>: PControlのみでは定常偏差（オフセット）が残ることを実証し、積 minutes動作の必要性を理解する。</p>
+<p><strong>Purpose</strong>: Demonstrate that P control alone leaves a steady-state error (offset) and understand the need for integral action.</p>
 
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 
 def p_controller_simulation(Kp, setpoint, duration=500, dt=1.0):
     """
-    PControlのみのSimulation
+    Simulation of P control only
 
     Parameters:
     -----------
     Kp : float
-        比例ゲイン
+        Proportional gain
     setpoint : float
-        設定値
+        Setpoint
     duration : float
-        Simulation hours
+        Simulation time
     dt : float
-        サンプリング hours
+        Sampling time
 
     Returns:
     --------
@@ -560,33 +560,33 @@ def p_controller_simulation(Kp, setpoint, duration=500, dt=1.0):
     mv = np.zeros(n_steps)
     error = np.zeros(n_steps)
 
-    # Processパラメータ（1次系）
-    K = 2.0   # Processゲイン
-    tau = 60.0  # 時定数
+    # Process parameters (first-order system)
+    K = 2.0   # Process gain
+    tau = 60.0  # Time constant
 
-    # 初期値
-    y = 20.0  # 初期温度
+    # Initial value
+    y = 20.0  # Initial temperature
 
     for i in range(n_steps):
-        # 偏差計算
+        # Error calculation
         e = setpoint - y
         error[i] = e
 
-        # PControl（比例動作のみ）
+        # P control (proportional action only)
         u = Kp * e
-        u = np.clip(u, 0, 100)  # 操作量制限
+        u = np.clip(u, 0, 100)  # Manipulated variable limit
 
         mv[i] = u
         pv[i] = y
 
-        # Process応答（1次系）
+        # Process response (first-order system)
         dydt = (K * u - y) / tau
         y = y + dydt * dt
 
     return time, pv, mv, error
 
 
-# 異なる比例ゲインでのSimulation
+# Simulation with different proportional gains
 Kp_values = [2.0, 5.0, 10.0]
 setpoint = 175.0
 
@@ -595,100 +595,100 @@ fig, axes = plt.subplots(3, 1, figsize=(14, 12))
 for Kp in Kp_values:
     time, pv, mv, error = p_controller_simulation(Kp, setpoint)
 
-    # 定常偏差の計算
+    # Calculate steady-state error
     steady_state_error = setpoint - pv[-100:].mean()
 
-    axes[0].plot(time, pv, linewidth=2, label=f'Kp={Kp} (定常偏差: {steady_state_error:.2f}°C)')
+    axes[0].plot(time, pv, linewidth=2, label=f'Kp={Kp} (SS Error: {steady_state_error:.2f}°C)')
 
-axes[0].axhline(y=setpoint, color='red', linestyle='--', linewidth=2, label='設定値')
-axes[0].set_ylabel('温度（°C）', fontsize=12)
-axes[0].set_title('PControlにおける定常偏差', fontsize=14, fontweight='bold')
+axes[0].axhline(y=setpoint, color='red', linestyle='--', linewidth=2, label='Setpoint')
+axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+axes[0].set_title('Steady-State Error in P Control', fontsize=14, fontweight='bold')
 axes[0].legend()
 axes[0].grid(alpha=0.3)
 
-# 偏差のトレンド
+# Error trend
 for Kp in Kp_values:
     time, pv, mv, error = p_controller_simulation(Kp, setpoint)
     axes[1].plot(time, error, linewidth=2, label=f'Kp={Kp}')
 
 axes[1].axhline(y=0, color='black', linestyle='--', linewidth=1)
-axes[1].set_ylabel('偏差（°C）', fontsize=12)
-axes[1].set_title('偏差の hours変化', fontsize=14, fontweight='bold')
+axes[1].set_ylabel('Error (°C)', fontsize=12)
+axes[1].set_title('Error Time Evolution', fontsize=14, fontweight='bold')
 axes[1].legend()
 axes[1].grid(alpha=0.3)
 
-# 操作量
+# Manipulated variable
 for Kp in Kp_values:
     time, pv, mv, error = p_controller_simulation(Kp, setpoint)
     axes[2].plot(time, mv, linewidth=2, label=f'Kp={Kp}')
 
-axes[2].set_xlabel(' hours（秒）', fontsize=12)
-axes[2].set_ylabel('操作量（%）', fontsize=12)
-axes[2].set_title('操作量の変化', fontsize=14, fontweight='bold')
+axes[2].set_xlabel('Time (seconds)', fontsize=12)
+axes[2].set_ylabel('Manipulated Variable (%)', fontsize=12)
+axes[2].set_title('Change in Manipulated Variable', fontsize=14, fontweight='bold')
 axes[2].legend()
 axes[2].grid(alpha=0.3)
 
 plt.tight_layout()
 plt.show()
 
-print("=== PControlの定常偏差 minutes析 ===")
+print("=== Steady-State Error Analysis in P Control ===")
 for Kp in Kp_values:
     time, pv, mv, error = p_controller_simulation(Kp, setpoint)
     steady_state_error = setpoint - pv[-100:].mean()
     steady_state_mv = mv[-100:].mean()
 
     print(f"\nKp = {Kp}:")
-    print(f"  定常偏差: {steady_state_error:.2f} °C")
-    print(f"  定常操作量: {steady_state_mv:.2f} %")
-    print(f"  偏差/ゲイン比: {steady_state_error/Kp:.2f}")
+    print(f"  Steady-State Error: {steady_state_error:.2f} °C")
+    print(f"  Steady-State MV: {steady_state_mv:.2f} %")
+    print(f"  Error/Gain Ratio: {steady_state_error/Kp:.2f}")
 </code></pre>
 
-<p><strong>期待される出力</strong>:</p>
-<pre><code>=== PControlの定常偏差 minutes析 ===
+<p><strong>Expected Output</strong>:</p>
+<pre><code>=== Steady-State Error Analysis in P Control ===
 
 Kp = 2.0:
-  定常偏差: 39.02 °C
-  定常操作量: 78.04 %
-  偏差/ゲイン比: 19.51
+  Steady-State Error: 39.02 °C
+  Steady-State MV: 78.04 %
+  Error/Gain Ratio: 19.51
 
 Kp = 5.0:
-  定常偏差: 17.56 °C
-  定常操作量: 87.78 %
-  偏差/ゲイン比: 3.51
+  Steady-State Error: 17.56 °C
+  Steady-State MV: 87.78 %
+  Error/Gain Ratio: 3.51
 
 Kp = 10.0:
-  定常偏差: 9.26 °C
-  定常操作量: 92.63 %
-  偏差/ゲイン比: 0.93
+  Steady-State Error: 9.26 °C
+  Steady-State MV: 92.63 %
+  Error/Gain Ratio: 0.93
 </code></pre>
 
-<p><strong>解説</strong>: PControlのみでは、ProcessゲインとControlゲインの関係により必ず定常偏差が残ります。これは、定常状態で操作量が一定値に落ち着くためです。比例ゲインを大きくすると定常偏差は減少しますが、完全にはゼロになりません。この定常偏差を除去するために、積 minutes動作（I）が必要になります。</p>
+<p><strong>Explanation</strong>: With P control alone, a steady-state error always remains due to the relationship between process gain and control gain. This is because the manipulated variable settles to a constant value at steady state. Increasing the proportional gain reduces the steady-state error but never completely eliminates it. To remove this steady-state error, integral action (I) is needed.</p>
 </div>
 
 <div class="code-example">
-<h4>Code Examples4: PIControlによる定常偏差の除去</h4>
+<h4>Code Example 4: Elimination of Steady-State Error by PI Control</h4>
 
-<p><strong>目的</strong>: PIControl（比例+積 minutes）により定常偏差が完全に除去されることを実証する。</p>
+<p><strong>Purpose</strong>: Demonstrate that PI control (proportional + integral) completely eliminates steady-state error.</p>
 
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 
 def pi_controller_simulation(Kp, Ki, setpoint, duration=600, dt=1.0):
     """
-    PIControlのSimulation
+    Simulation of PI control
 
     Parameters:
     -----------
     Kp : float
-        比例ゲイン
+        Proportional gain
     Ki : float
-        積 minutesゲイン
+        Integral gain
     setpoint : float
-        設定値
+        Setpoint
     duration : float
-        Simulation hours
+        Simulation time
     dt : float
-        サンプリング hours
+        Sampling time
 
     Returns:
     --------
@@ -702,122 +702,122 @@ def pi_controller_simulation(Kp, Ki, setpoint, duration=600, dt=1.0):
     p_term = np.zeros(n_steps)
     i_term = np.zeros(n_steps)
 
-    # Processパラメータ
+    # Process parameters
     K = 2.0
     tau = 60.0
 
-    # 初期値
+    # Initial values
     y = 20.0
     integral = 0.0
 
     for i in range(n_steps):
-        # 偏差
+        # Error
         error = setpoint - y
 
-        # 比例項
+        # Proportional term
         P = Kp * error
         p_term[i] = P
 
-        # 積 minutes項
+        # Integral term
         integral += error * dt
         I = Ki * integral
         i_term[i] = I
 
-        # PIControl出力
+        # PI control output
         u = P + I
         u = np.clip(u, 0, 100)
 
         mv[i] = u
         pv[i] = y
 
-        # Process応答
+        # Process response
         dydt = (K * u - y) / tau
         y = y + dydt * dt
 
     return time, pv, mv, p_term, i_term
 
 
-# PとPIControlの比較
+# Comparison of P and PI control
 setpoint = 175.0
 
-# PControlのみ
+# P control only
 time_p, pv_p, mv_p, _, _ = p_controller_simulation(Kp=5.0, setpoint=setpoint)
 
-# PIControl
+# PI control
 Kp = 5.0
 Ki = 0.05
 time_pi, pv_pi, mv_pi, p_term, i_term = pi_controller_simulation(Kp, Ki, setpoint)
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(3, 1, figsize=(14, 12))
 
-# Control量の比較
-axes[0].plot(time_p, pv_p, 'b-', linewidth=2, alpha=0.6, label='PControlのみ')
-axes[0].plot(time_pi, pv_pi, 'g-', linewidth=2, label='PIControl')
-axes[0].axhline(y=setpoint, color='red', linestyle='--', linewidth=2, label='設定値')
-axes[0].set_ylabel('温度（°C）', fontsize=12)
-axes[0].set_title('PControlとPIControlの比較', fontsize=14, fontweight='bold')
+# Comparison of controlled variables
+axes[0].plot(time_p, pv_p, 'b-', linewidth=2, alpha=0.6, label='P Control Only')
+axes[0].plot(time_pi, pv_pi, 'g-', linewidth=2, label='PI Control')
+axes[0].axhline(y=setpoint, color='red', linestyle='--', linewidth=2, label='Setpoint')
+axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+axes[0].set_title('Comparison of P Control and PI Control', fontsize=14, fontweight='bold')
 axes[0].legend()
 axes[0].grid(alpha=0.3)
 
-# PIControlの各項の寄与
-axes[1].plot(time_pi, p_term, 'b-', linewidth=2, label='比例項（P）')
-axes[1].plot(time_pi, i_term, 'orange', linewidth=2, label='積 minutes項（I）')
-axes[1].plot(time_pi, mv_pi, 'g-', linewidth=2, alpha=0.7, label='総操作量（P+I）')
-axes[1].set_ylabel('操作量（%）', fontsize=12)
-axes[1].set_title('PIControlの各項の寄与', fontsize=14, fontweight='bold')
+# Contribution of each term in PI control
+axes[1].plot(time_pi, p_term, 'b-', linewidth=2, label='Proportional Term (P)')
+axes[1].plot(time_pi, i_term, 'orange', linewidth=2, label='Integral Term (I)')
+axes[1].plot(time_pi, mv_pi, 'g-', linewidth=2, alpha=0.7, label='Total MV (P+I)')
+axes[1].set_ylabel('Manipulated Variable (%)', fontsize=12)
+axes[1].set_title('Contribution of Each Term in PI Control', fontsize=14, fontweight='bold')
 axes[1].legend()
 axes[1].grid(alpha=0.3)
 
-# 偏差の比較
+# Comparison of errors
 error_p = setpoint - pv_p
 error_pi = setpoint - pv_pi
-axes[2].plot(time_p, error_p, 'b-', linewidth=2, alpha=0.6, label='PControlの偏差')
-axes[2].plot(time_pi, error_pi, 'g-', linewidth=2, label='PIControlの偏差')
+axes[2].plot(time_p, error_p, 'b-', linewidth=2, alpha=0.6, label='P Control Error')
+axes[2].plot(time_pi, error_pi, 'g-', linewidth=2, label='PI Control Error')
 axes[2].axhline(y=0, color='black', linestyle='--', linewidth=1)
-axes[2].set_xlabel(' hours（秒）', fontsize=12)
-axes[2].set_ylabel('偏差（°C）', fontsize=12)
-axes[2].set_title('偏差の hours変化', fontsize=14, fontweight='bold')
+axes[2].set_xlabel('Time (seconds)', fontsize=12)
+axes[2].set_ylabel('Error (°C)', fontsize=12)
+axes[2].set_title('Error Time Evolution', fontsize=14, fontweight='bold')
 axes[2].legend()
 axes[2].grid(alpha=0.3)
 
 plt.tight_layout()
 plt.show()
 
-# 定常状態の minutes析
-print("=== PControl vs PIControlの比較 ===")
-print("\nPControl（Kp=5.0）:")
-print(f"  定常偏差: {error_p[-100:].mean():.3f} °C")
-print(f"  定常操作量: {mv_p[-100:].mean():.2f} %")
+# Steady-state analysis
+print("=== Comparison of P Control vs PI Control ===")
+print("\nP Control (Kp=5.0):")
+print(f"  Steady-State Error: {error_p[-100:].mean():.3f} °C")
+print(f"  Steady-State MV: {mv_p[-100:].mean():.2f} %")
 
-print("\nPIControl（Kp=5.0, Ki=0.05）:")
-print(f"  定常偏差: {error_pi[-100:].mean():.3f} °C")
-print(f"  定常操作量: {mv_pi[-100:].mean():.2f} %")
-print(f"  比例項寄与: {p_term[-100:].mean():.2f} %")
-print(f"  積 minutes項寄与: {i_term[-100:].mean():.2f} %")
+print("\nPI Control (Kp=5.0, Ki=0.05):")
+print(f"  Steady-State Error: {error_pi[-100:].mean():.3f} °C")
+print(f"  Steady-State MV: {mv_pi[-100:].mean():.2f} %")
+print(f"  Proportional Term Contribution: {p_term[-100:].mean():.2f} %")
+print(f"  Integral Term Contribution: {i_term[-100:].mean():.2f} %")
 </code></pre>
 
-<p><strong>期待される出力</strong>:</p>
-<pre><code>=== PControl vs PIControlの比較 ===
+<p><strong>Expected Output</strong>:</p>
+<pre><code>=== Comparison of P Control vs PI Control ===
 
-PControl（Kp=5.0）:
-  定常偏差: 17.562 °C
-  定常操作量: 87.78 %
+P Control (Kp=5.0):
+  Steady-State Error: 17.562 °C
+  Steady-State MV: 87.78 %
 
-PIControl（Kp=5.0, Ki=0.05）:
-  定常偏差: 0.000 °C
-  定常操作量: 77.50 %
-  比例項寄与: 0.00 %
-  積 minutes項寄与: 77.50 %
+PI Control (Kp=5.0, Ki=0.05):
+  Steady-State Error: 0.000 °C
+  Steady-State MV: 77.50 %
+  Proportional Term Contribution: 0.00 %
+  Integral Term Contribution: 77.50 %
 </code></pre>
 
-<p><strong>解説</strong>: 積 minutes動作（I）は、偏差の hours積 minutesに比例した操作量を出力します。定常状態では偏差がゼロになるまで積 minutes値が蓄積されるため、定常偏差を完全に除去できます。PIControlは、Process産業で最も広く使用されるControl方式です。</p>
+<p><strong>Explanation</strong>: Integral action (I) outputs a manipulated variable proportional to the time integral of the error. At steady state, the integral value accumulates until the error becomes zero, thus completely eliminating steady-state error. PI control is the most widely used control method in the process industry.</p>
 </div>
 
 <div class="code-example">
-<h4>Code Examples5: ジーグラー・ニコルス法によるPIDチューニング</h4>
+<h4>Code Example 5: PID Tuning Using Ziegler-Nichols Method</h4>
 
-<p><strong>目的</strong>: 実用的なPIDパラメータ決定法であるジーグラー・ニコルス法（限界感度法と反応曲線法）を実装する。</p>
+<p><strong>Purpose</strong>: Implement the Ziegler-Nichols method (ultimate sensitivity method and reaction curve method), which is a practical method for determining PID parameters.</p>
 
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
@@ -825,19 +825,19 @@ from scipy.signal import find_peaks
 
 def ziegler_nichols_ultimate_sensitivity(Ku, Tu):
     """
-    ジーグラー・ニコルス法（限界感度法）
+    Ziegler-Nichols method (Ultimate Sensitivity Method)
 
     Parameters:
     -----------
     Ku : float
-        限界ゲイン（持続振動を起こすKp）
+        Ultimate gain (Kp causing sustained oscillation)
     Tu : float
-        限界周期（秒）
+        Ultimate period (seconds)
 
     Returns:
     --------
     pid_params : dict
-        P, PI, PIDのパラメータ
+        Parameters for P, PI, PID
     """
     params = {
         'P': {
@@ -861,21 +861,21 @@ def ziegler_nichols_ultimate_sensitivity(Ku, Tu):
 
 def ziegler_nichols_reaction_curve(L, T, K):
     """
-    ジーグラー・ニコルス法（反応曲線法）
+    Ziegler-Nichols method (Reaction Curve Method)
 
     Parameters:
     -----------
     L : float
-        むだ hours（秒）
+        Dead time (seconds)
     T : float
-        時定数（秒）
+        Time constant (seconds)
     K : float
-        Processゲイン
+        Process gain
 
     Returns:
     --------
     pid_params : dict
-        P, PI, PIDのパラメータ
+        Parameters for P, PI, PID
     """
     params = {
         'P': {
@@ -897,33 +897,33 @@ def ziegler_nichols_reaction_curve(L, T, K):
     return params
 
 
-# Example: Processパラメータ（1次遅れ+むだ hours）
-L = 10.0   # むだ hours（秒）
-T = 60.0   # 時定数（秒）
-K = 2.0    # Processゲイン
+# Example: Process parameters (first-order lag + dead time)
+L = 10.0   # Dead time (seconds)
+T = 60.0   # Time constant (seconds)
+K = 2.0    # Process gain
 
-# 反応曲線法によるチューニング
+# Tuning by reaction curve method
 params_rc = ziegler_nichols_reaction_curve(L, T, K)
 
-print("=== ジーグラー・ニコルス法（反応曲線法）===")
-print(f"Processパラメータ: L={L}秒, T={T}秒, K={K}")
-print("\nチューニング結果:")
+print("=== Ziegler-Nichols Method (Reaction Curve Method) ===")
+print(f"Process Parameters: L={L}s, T={T}s, K={K}")
+print("\nTuning Results:")
 
 for controller_type, params in params_rc.items():
-    print(f"\n{controller_type}Control:")
+    print(f"\n{controller_type} Control:")
     print(f"  Kp = {params['Kp']:.3f}")
     if params['Ki'] > 0:
         print(f"  Ki = {params['Ki']:.4f}")
-        print(f"  Ti = {params['Kp']/params['Ki']:.2f} 秒（積 minutes hours）")
+        print(f"  Ti = {params['Kp']/params['Ki']:.2f} seconds (Integral Time)")
     if params['Kd'] > 0:
         print(f"  Kd = {params['Kd']:.3f}")
-        print(f"  Td = {params['Kd']/params['Kp']:.2f} 秒（微 minutes hours）")
+        print(f"  Td = {params['Kd']/params['Kp']:.2f} seconds (Derivative Time)")
 
 
-# PIDパラメータでのSimulation比較
+# Simulation comparison with PID parameters
 pid_params = params_rc['PID']
 
-# カスタムPIDクラスを使ってSimulation
+# Simulation using custom PID class
 class SimplePID:
     def __init__(self, Kp, Ki, Kd, dt=1.0):
         self.Kp, self.Ki, self.Kd, self.dt = Kp, Ki, Kd, dt
@@ -940,7 +940,7 @@ class SimplePID:
 
 
 def simulate_with_params(params, setpoint, duration=600, dt=1.0):
-    """指定されたパラメータでSimulation"""
+    """Simulate with specified parameters"""
     n_steps = int(duration / dt)
     time = np.arange(n_steps) * dt
     pv = np.zeros(n_steps)
@@ -956,15 +956,15 @@ def simulate_with_params(params, setpoint, duration=600, dt=1.0):
         mv[i] = u
         pv[i] = y
 
-        # Process応答（1次系 + むだ hours）
-        # 簡易的にむだ hoursは無視してSimulation
+        # Process response (first-order system + dead time)
+        # Dead time is simplified and ignored in simulation
         dydt = (K * u - y) / T
         y = y + dydt * dt
 
     return time, pv, mv
 
 
-# P, PI, PIDControlの比較
+# Comparison of P, PI, PID control
 fig, axes = plt.subplots(2, 1, figsize=(14, 10))
 
 setpoint = 175.0
@@ -973,7 +973,7 @@ colors = {'P': 'blue', 'PI': 'green', 'PID': 'red'}
 for ctrl_type, params in params_rc.items():
     time, pv, mv = simulate_with_params(params, setpoint)
 
-    # オーバーシュートと整定 hoursの計算
+    # Calculate overshoot and settling time
     overshoot = (np.max(pv) - setpoint) / setpoint * 100
     settling_idx = np.where(np.abs(pv - setpoint) < 0.02 * setpoint)[0]
     settling_time = time[settling_idx[0]] if len(settling_idx) > 0 else time[-1]
@@ -981,21 +981,21 @@ for ctrl_type, params in params_rc.items():
     axes[0].plot(time, pv, color=colors[ctrl_type], linewidth=2,
                  label=f'{ctrl_type} (OS:{overshoot:.1f}%, Ts:{settling_time:.0f}s)')
 
-axes[0].axhline(y=setpoint, color='black', linestyle='--', linewidth=1.5, label='設定値')
-axes[0].set_ylabel('温度（°C）', fontsize=12)
-axes[0].set_title('ジーグラー・ニコルス法でチューニングされたPIDControlの比較',
+axes[0].axhline(y=setpoint, color='black', linestyle='--', linewidth=1.5, label='Setpoint')
+axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+axes[0].set_title('Comparison of PID Control Tuned by Ziegler-Nichols Method',
                   fontsize=14, fontweight='bold')
 axes[0].legend()
 axes[0].grid(alpha=0.3)
 
-# 操作量
+# Manipulated variable
 for ctrl_type, params in params_rc.items():
     time, pv, mv = simulate_with_params(params, setpoint)
     axes[1].plot(time, mv, color=colors[ctrl_type], linewidth=2, label=ctrl_type)
 
-axes[1].set_xlabel(' hours（秒）', fontsize=12)
-axes[1].set_ylabel('操作量（%）', fontsize=12)
-axes[1].set_title('操作量の変化', fontsize=14, fontweight='bold')
+axes[1].set_xlabel('Time (seconds)', fontsize=12)
+axes[1].set_ylabel('Manipulated Variable (%)', fontsize=12)
+axes[1].set_title('Change in Manipulated Variable', fontsize=14, fontweight='bold')
 axes[1].legend()
 axes[1].grid(alpha=0.3)
 
@@ -1003,79 +1003,79 @@ plt.tight_layout()
 plt.show()
 </code></pre>
 
-<p><strong>期待される出力</strong>:</p>
-<pre><code>=== ジーグラー・ニコルス法（反応曲線法）===
-Processパラメータ: L=10秒, T=60秒, K=2
+<p><strong>Expected Output</strong>:</p>
+<pre><code>=== Ziegler-Nichols Method (Reaction Curve Method) ===
+Process Parameters: L=10s, T=60s, K=2
 
-チューニング結果:
+Tuning Results:
 
-PControl:
+P Control:
   Kp = 3.000
 
-PIControl:
+PI Control:
   Kp = 2.700
   Ki = 0.0405
-  Ti = 66.67 秒（積 minutes hours）
+  Ti = 66.67 seconds (Integral Time)
 
-PIDControl:
+PID Control:
   Kp = 3.600
   Ki = 0.0720
-  Td = 10.00 秒（微 minutes hours）
+  Td = 10.00 seconds (Derivative Time)
   Kd = 36.000
 </code></pre>
 
-<p><strong>解説</strong>: ジーグラー・ニコルス法は、Processの応答特性から系統的にPIDパラメータを決定する実用的な手法です。反応曲線法は、Processのステップ応答からむだ hours（L）、時定数（T）、ゲイン（K）を測定し、経験則に基づいてPIDパラメータを計算します。この方法は、多くの実Processで良好な初期パラメータを与えます。</p>
+<p><strong>Explanation</strong>: The Ziegler-Nichols method is a practical technique for systematically determining PID parameters from process response characteristics. The reaction curve method measures dead time (L), time constant (T), and gain (K) from the step response of the process, and calculates PID parameters based on empirical rules. This method provides good initial parameters for many real processes.</p>
 </div>
 
 <div class="code-example">
-<h4>Code Examples6: Control性能の比較（P vs PI vs PID）</h4>
+<h4>Code Example 6: Comparison of Control Performance (P vs PI vs PID)</h4>
 
-<p><strong>目的</strong>: P、PI、PIDControlの性能を定量的に比較し、各Control方式の特徴を理解する。</p>
+<p><strong>Purpose</strong>: Quantitatively compare the performance of P, PI, and PID control to understand the characteristics of each control method.</p>
 
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 
 def calculate_performance_metrics(time, setpoint, pv):
     """
-    Control性能指標の計算
+    Calculate control performance metrics
 
     Parameters:
     -----------
     time : array
-         hours配列
+        Time array
     setpoint : float
-        設定値
+        Setpoint
     pv : array
-        Control量
+        Controlled variable
 
     Returns:
     --------
     metrics : dict
-        性能指標
+        Performance metrics
     """
-    # 立ち上がり hours（10%→90%）
+    # Rise time (10% → 90%)
     pv_range = np.max(pv) - pv[0]
     idx_10 = np.where(pv >= pv[0] + 0.1 * pv_range)[0]
     idx_90 = np.where(pv >= pv[0] + 0.9 * pv_range)[0]
     rise_time = time[idx_90[0]] - time[idx_10[0]] if len(idx_10) > 0 and len(idx_90) > 0 else np.nan
 
-    # オーバーシュート
+    # Overshoot
     overshoot = (np.max(pv) - setpoint) / setpoint * 100
 
-    # 整定 hours（±2%以内）
+    # Settling time (within ±2%)
     settling_band = 0.02 * setpoint
     settled_idx = np.where(np.abs(pv - setpoint) < settling_band)[0]
     settling_time = time[settled_idx[0]] if len(settled_idx) > 0 else time[-1]
 
-    # 定常偏差
+    # Steady-state error
     steady_state_error = np.abs(setpoint - np.mean(pv[-100:]))
 
-    # IAE（Integral of Absolute Error）
+    # IAE (Integral of Absolute Error)
     error = np.abs(setpoint - pv)
     dt = time[1] - time[0]
     iae = np.sum(error) * dt
 
-    # ISE（Integral of Squared Error）
+    # ISE (Integral of Squared Error)
     ise = np.sum(error**2) * dt
 
     metrics = {
@@ -1090,11 +1090,11 @@ def calculate_performance_metrics(time, setpoint, pv):
     return metrics
 
 
-# 3種類のControl方式でSimulation
+# Simulation with three types of control methods
 controllers = {
-    'PControl': {'Kp': 5.0, 'Ki': 0.0, 'Kd': 0.0},
-    'PIControl': {'Kp': 5.0, 'Ki': 0.05, 'Kd': 0.0},
-    'PIDControl': {'Kp': 5.0, 'Ki': 0.1, 'Kd': 10.0}
+    'P Control': {'Kp': 5.0, 'Ki': 0.0, 'Kd': 0.0},
+    'PI Control': {'Kp': 5.0, 'Ki': 0.05, 'Kd': 0.0},
+    'PID Control': {'Kp': 5.0, 'Ki': 0.1, 'Kd': 10.0}
 }
 
 setpoint = 175.0
@@ -1109,51 +1109,51 @@ for name, params in controllers.items():
     metrics = calculate_performance_metrics(time, setpoint, pv)
     results[name] = {'time': time, 'pv': pv, 'mv': mv, 'metrics': metrics}
 
-    # Control量のプロット
+    # Plot controlled variable
     axes[0].plot(time, pv, linewidth=2, label=name)
 
-axes[0].axhline(y=setpoint, color='black', linestyle='--', linewidth=1.5, label='設定値')
-axes[0].axhline(y=setpoint * 1.02, color='red', linestyle=':', alpha=0.5, label='±2%帯')
+axes[0].axhline(y=setpoint, color='black', linestyle='--', linewidth=1.5, label='Setpoint')
+axes[0].axhline(y=setpoint * 1.02, color='red', linestyle=':', alpha=0.5, label='±2% Band')
 axes[0].axhline(y=setpoint * 0.98, color='red', linestyle=':', alpha=0.5)
-axes[0].set_ylabel('温度（°C）', fontsize=12)
-axes[0].set_title('Control性能の比較（P vs PI vs PID）', fontsize=14, fontweight='bold')
+axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+axes[0].set_title('Comparison of Control Performance (P vs PI vs PID)', fontsize=14, fontweight='bold')
 axes[0].legend()
 axes[0].grid(alpha=0.3)
 
-# 偏差のプロット
+# Plot error
 for name, data in results.items():
     error = setpoint - data['pv']
     axes[1].plot(data['time'], error, linewidth=2, label=name)
 
 axes[1].axhline(y=0, color='black', linestyle='--', linewidth=1)
-axes[1].set_ylabel('偏差（°C）', fontsize=12)
-axes[1].set_title('偏差の hours変化', fontsize=14, fontweight='bold')
+axes[1].set_ylabel('Error (°C)', fontsize=12)
+axes[1].set_title('Error Time Evolution', fontsize=14, fontweight='bold')
 axes[1].legend()
 axes[1].grid(alpha=0.3)
 
-# 操作量のプロット
+# Plot manipulated variable
 for name, data in results.items():
     axes[2].plot(data['time'], data['mv'], linewidth=2, label=name)
 
-axes[2].set_xlabel(' hours（秒）', fontsize=12)
-axes[2].set_ylabel('操作量（%）', fontsize=12)
-axes[2].set_title('操作量の変化', fontsize=14, fontweight='bold')
+axes[2].set_xlabel('Time (seconds)', fontsize=12)
+axes[2].set_ylabel('Manipulated Variable (%)', fontsize=12)
+axes[2].set_title('Change in Manipulated Variable', fontsize=14, fontweight='bold')
 axes[2].legend()
 axes[2].grid(alpha=0.3)
 
 plt.tight_layout()
 plt.show()
 
-# 性能指標の表示
-print("\n=== Control性能指標の比較 ===\n")
-print(f"{'指標':<20} {'PControl':<15} {'PIControl':<15} {'PIDControl':<15}")
+# Display performance metrics
+print("\n=== Comparison of Control Performance Metrics ===\n")
+print(f"{'Metric':<20} {'P Control':<15} {'PI Control':<15} {'PID Control':<15}")
 print("-" * 65)
 
 metrics_names = {
-    'rise_time': '立ち上がり hours (s)',
-    'overshoot': 'オーバーシュート (%)',
-    'settling_time': '整定 hours (s)',
-    'steady_state_error': '定常偏差 (°C)',
+    'rise_time': 'Rise Time (s)',
+    'overshoot': 'Overshoot (%)',
+    'settling_time': 'Settling Time (s)',
+    'steady_state_error': 'SS Error (°C)',
     'IAE': 'IAE',
     'ISE': 'ISE'
 }
@@ -1162,58 +1162,58 @@ for metric_key, metric_name in metrics_names.items():
     values = [results[ctrl]['metrics'][metric_key] for ctrl in controllers.keys()]
     print(f"{metric_name:<20} {values[0]:<15.2f} {values[1]:<15.2f} {values[2]:<15.2f}")
 
-# 総合評価
-print("\n=== 総合評価 ===")
-print("PControl:  定常偏差あり、調整は簡単")
-print("PIControl: 定常偏差なし、多くの用途で十 minutes")
-print("PIDControl: 最高性能、微 minutes動作でオーバーシュート抑制と応答速度向上")
+# Overall evaluation
+print("\n=== Overall Evaluation ===")
+print("P Control:  Has steady-state error, easy to tune")
+print("PI Control: No steady-state error, sufficient for many applications")
+print("PID Control: Best performance, derivative action suppresses overshoot and improves response speed")
 </code></pre>
 
-<p><strong>期待される出力</strong>:</p>
-<pre><code>=== Control性能指標の比較 ===
+<p><strong>Expected Output</strong>:</p>
+<pre><code>=== Comparison of Control Performance Metrics ===
 
-指標                 PControl           PIControl          PIDControl
+Metric               P Control       PI Control      PID Control
 -----------------------------------------------------------------
-立ち上がり hours (s)    42.00           38.00           26.00
-オーバーシュート (%)  0.00            4.52            2.18
-整定 hours (s)         599.00          287.00          152.00
-定常偏差 (°C)        17.56           0.00            0.00
+Rise Time (s)        42.00           38.00           26.00
+Overshoot (%)        0.00            4.52            2.18
+Settling Time (s)    599.00          287.00          152.00
+SS Error (°C)        17.56           0.00            0.00
 IAE                  10543.21        2354.87         1243.56
 ISE                  185234.45       12456.32        4532.18
 
-=== 総合評価 ===
-PControl:  定常偏差あり、調整は簡単
-PIControl: 定常偏差なし、多くの用途で十 minutes
-PIDControl: 最高性能、微 minutes動作でオーバーシュート抑制と応答速度向上
+=== Overall Evaluation ===
+P Control:  Has steady-state error, easy to tune
+PI Control: No steady-state error, sufficient for many applications
+PID Control: Best performance, derivative action suppresses overshoot and improves response speed
 </code></pre>
 
-<p><strong>解説</strong>: この比較により、各Control方式の特徴が明確になります。PControlは簡単ですが定常偏差が残ります。PIControlは定常偏差を除去し、多くの実用途で十 minutesな性能を発揮します。PIDControlは微 minutes動作により応答速度が向上し、オーバーシュートも抑制されますが、ノイズに敏感というデメリットもあります。</p>
+<p><strong>Explanation</strong>: This comparison clarifies the characteristics of each control method. P control is simple but leaves steady-state error. PI control eliminates steady-state error and provides sufficient performance for many practical applications. PID control improves response speed through derivative action and also suppresses overshoot, but has the disadvantage of being sensitive to noise.</p>
 </div>
 
 <div class="code-example">
-<h4>Code Examples7: アンチワインドアップ（積 minutesワインドアップ対策）の実装</h4>
+<h4>Code Example 7: Implementation of Anti-Windup (Integral Windup Countermeasure)</h4>
 
-<p><strong>目的</strong>: 操作量飽和時の積 minutesワインドアップ問題を理解し、アンチワインドアップ対策を実装する。</p>
+<p><strong>Purpose</strong>: Understand the integral windup problem during manipulated variable saturation and implement anti-windup countermeasures.</p>
 
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 
 class PIDWithAntiWindup:
     """
-    アンチワインドアップ機能付きPIDControl器
+    PID controller with anti-windup feature
 
     Parameters:
     -----------
     Kp, Ki, Kd : float
-        PIDゲイン
+        PID gains
     dt : float
-        サンプリング hours
+        Sampling time
     setpoint : float
-        設定値
+        Setpoint
     output_limits : tuple
-        操作量の上下限
+        Manipulated variable limits
     anti_windup : bool
-        アンチワインドアップ有効化
+        Enable anti-windup
     """
 
     def __init__(self, Kp, Ki, Kd, dt=1.0, setpoint=0.0,
@@ -1230,32 +1230,32 @@ class PIDWithAntiWindup:
         self.prev_error = 0.0
 
     def update(self, measured_value):
-        """Control器の更新"""
+        """Update controller"""
         error = self.setpoint - measured_value
 
-        # 比例項
+        # Proportional term
         P = self.Kp * error
 
-        # 積 minutes項
+        # Integral term
         I = self.Ki * self.integral
 
-        # 微 minutes項
+        # Derivative term
         derivative = (error - self.prev_error) / self.dt
         D = self.Kd * derivative
 
-        # PID出力（制限前）
+        # PID output (before limiting)
         output_unsat = P + I + D
 
-        # 操作量の制限
+        # Limit manipulated variable
         output = np.clip(output_unsat, self.output_limits[0], self.output_limits[1])
 
-        # アンチワインドアップ（Clampingメソッド）
+        # Anti-windup (Clamping method)
         if self.anti_windup:
-            # 飽和していない場合のみ積 minutesを更新
+            # Update integral only when not saturated
             if output == output_unsat:
                 self.integral += error * self.dt
         else:
-            # 常に積 minutesを更新（ワインドアップが発生）
+            # Always update integral (windup occurs)
             self.integral += error * self.dt
 
         self.prev_error = error
@@ -1269,18 +1269,18 @@ class PIDWithAntiWindup:
 
 def simulate_with_saturation(anti_windup, setpoint, duration=800, dt=1.0):
     """
-    操作量飽和を含むSimulation
+    Simulation including manipulated variable saturation
 
     Parameters:
     -----------
     anti_windup : bool
-        アンチワインドアップの有効/無効
+        Enable/disable anti-windup
     setpoint : float
-        設定値
+        Setpoint
     duration : float
-        Simulation hours
+        Simulation time
     dt : float
-        サンプリング hours
+        Sampling time
 
     Returns:
     --------
@@ -1294,16 +1294,16 @@ def simulate_with_saturation(anti_windup, setpoint, duration=800, dt=1.0):
     mv_unsat = np.zeros(n_steps)
     integral_values = np.zeros(n_steps)
 
-    # PIControl器（強めの積 minutes）
+    # PI controller (strong integral)
     pid = PIDWithAntiWindup(Kp=3.0, Ki=0.3, Kd=0.0, dt=dt,
                              setpoint=setpoint, output_limits=(0, 100),
                              anti_windup=anti_windup)
 
-    # Processパラメータ
+    # Process parameters
     K = 2.0
     tau = 60.0
 
-    # 初期値
+    # Initial value
     y = 20.0
 
     for i in range(n_steps):
@@ -1314,140 +1314,140 @@ def simulate_with_saturation(anti_windup, setpoint, duration=800, dt=1.0):
         pv[i] = y
         integral_values[i] = pid.integral
 
-        # Process応答
+        # Process response
         dydt = (K * u - y) / tau
         y = y + dydt * dt
 
     return time, pv, mv, mv_unsat, integral_values
 
 
-# アンチワインドアップの有無で比較
+# Comparison with and without anti-windup
 setpoint = 175.0
 
-# アンチワインドアップなし
+# Without anti-windup
 time_no_aw, pv_no_aw, mv_no_aw, mv_unsat_no_aw, int_no_aw = simulate_with_saturation(
     anti_windup=False, setpoint=setpoint
 )
 
-# アンチワインドアップあり
+# With anti-windup
 time_aw, pv_aw, mv_aw, mv_unsat_aw, int_aw = simulate_with_saturation(
     anti_windup=True, setpoint=setpoint
 )
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(4, 1, figsize=(14, 14))
 
-# Control量
-axes[0].plot(time_no_aw, pv_no_aw, 'r-', linewidth=2, alpha=0.7, label='アンチワインドアップなし')
-axes[0].plot(time_aw, pv_aw, 'g-', linewidth=2, label='アンチワインドアップあり')
-axes[0].axhline(y=setpoint, color='black', linestyle='--', linewidth=1.5, label='設定値')
-axes[0].set_ylabel('温度（°C）', fontsize=12)
-axes[0].set_title('アンチワインドアップの効果', fontsize=14, fontweight='bold')
+# Controlled variable
+axes[0].plot(time_no_aw, pv_no_aw, 'r-', linewidth=2, alpha=0.7, label='Without Anti-Windup')
+axes[0].plot(time_aw, pv_aw, 'g-', linewidth=2, label='With Anti-Windup')
+axes[0].axhline(y=setpoint, color='black', linestyle='--', linewidth=1.5, label='Setpoint')
+axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+axes[0].set_title('Effect of Anti-Windup', fontsize=14, fontweight='bold')
 axes[0].legend()
 axes[0].grid(alpha=0.3)
 
-# 操作量（制限あり vs なし）
-axes[1].plot(time_no_aw, mv_no_aw, 'r-', linewidth=2, alpha=0.7, label='実際の操作量（制限あり）')
-axes[1].plot(time_no_aw, mv_unsat_no_aw, 'r--', linewidth=1.5, alpha=0.5, label='制限前の操作量')
-axes[1].axhline(y=100, color='black', linestyle='--', linewidth=1, label='上限')
-axes[1].axhline(y=0, color='black', linestyle='--', linewidth=1, label='下限')
-axes[1].set_ylabel('操作量（%）', fontsize=12)
-axes[1].set_title('アンチワインドアップなし - 操作量飽和', fontsize=13, fontweight='bold')
+# Manipulated variable (with vs without limits)
+axes[1].plot(time_no_aw, mv_no_aw, 'r-', linewidth=2, alpha=0.7, label='Actual MV (Limited)')
+axes[1].plot(time_no_aw, mv_unsat_no_aw, 'r--', linewidth=1.5, alpha=0.5, label='MV Before Limiting')
+axes[1].axhline(y=100, color='black', linestyle='--', linewidth=1, label='Upper Limit')
+axes[1].axhline(y=0, color='black', linestyle='--', linewidth=1, label='Lower Limit')
+axes[1].set_ylabel('Manipulated Variable (%)', fontsize=12)
+axes[1].set_title('Without Anti-Windup - Manipulated Variable Saturation', fontsize=13, fontweight='bold')
 axes[1].legend()
 axes[1].grid(alpha=0.3)
 
-# 操作量（アンチワインドアップあり）
-axes[2].plot(time_aw, mv_aw, 'g-', linewidth=2, label='実際の操作量（制限あり）')
-axes[2].plot(time_aw, mv_unsat_aw, 'g--', linewidth=1.5, alpha=0.5, label='制限前の操作量')
+# Manipulated variable (with anti-windup)
+axes[2].plot(time_aw, mv_aw, 'g-', linewidth=2, label='Actual MV (Limited)')
+axes[2].plot(time_aw, mv_unsat_aw, 'g--', linewidth=1.5, alpha=0.5, label='MV Before Limiting')
 axes[2].axhline(y=100, color='black', linestyle='--', linewidth=1)
 axes[2].axhline(y=0, color='black', linestyle='--', linewidth=1)
-axes[2].set_ylabel('操作量（%）', fontsize=12)
-axes[2].set_title('アンチワインドアップあり - 操作量飽和対策', fontsize=13, fontweight='bold')
+axes[2].set_ylabel('Manipulated Variable (%)', fontsize=12)
+axes[2].set_title('With Anti-Windup - Manipulated Variable Saturation Countermeasure', fontsize=13, fontweight='bold')
 axes[2].legend()
 axes[2].grid(alpha=0.3)
 
-# 積 minutes項の比較
-axes[3].plot(time_no_aw, int_no_aw, 'r-', linewidth=2, alpha=0.7, label='アンチワインドアップなし')
-axes[3].plot(time_aw, int_aw, 'g-', linewidth=2, label='アンチワインドアップあり')
-axes[3].set_xlabel(' hours（秒）', fontsize=12)
-axes[3].set_ylabel('積 minutes値', fontsize=12)
-axes[3].set_title('積 minutes項の蓄積', fontsize=13, fontweight='bold')
+# Comparison of integral term
+axes[3].plot(time_no_aw, int_no_aw, 'r-', linewidth=2, alpha=0.7, label='Without Anti-Windup')
+axes[3].plot(time_aw, int_aw, 'g-', linewidth=2, label='With Anti-Windup')
+axes[3].set_xlabel('Time (seconds)', fontsize=12)
+axes[3].set_ylabel('Integral Value', fontsize=12)
+axes[3].set_title('Accumulation of Integral Term', fontsize=13, fontweight='bold')
 axes[3].legend()
 axes[3].grid(alpha=0.3)
 
 plt.tight_layout()
 plt.show()
 
-# オーバーシュートの計算
+# Calculate overshoot
 overshoot_no_aw = (np.max(pv_no_aw) - setpoint) / setpoint * 100
 overshoot_aw = (np.max(pv_aw) - setpoint) / setpoint * 100
 
-print("\n=== アンチワインドアップの効果 ===")
-print(f"\nアンチワインドアップなし:")
-print(f"  最大オーバーシュート: {overshoot_no_aw:.2f} %")
-print(f"  最大積 minutes値: {np.max(int_no_aw):.2f}")
+print("\n=== Effect of Anti-Windup ===")
+print(f"\nWithout Anti-Windup:")
+print(f"  Maximum Overshoot: {overshoot_no_aw:.2f} %")
+print(f"  Maximum Integral Value: {np.max(int_no_aw):.2f}")
 
-print(f"\nアンチワインドアップあり:")
-print(f"  最大オーバーシュート: {overshoot_aw:.2f} %")
-print(f"  最大積 minutes値: {np.max(int_aw):.2f}")
+print(f"\nWith Anti-Windup:")
+print(f"  Maximum Overshoot: {overshoot_aw:.2f} %")
+print(f"  Maximum Integral Value: {np.max(int_aw):.2f}")
 
-print(f"\n改善効果:")
-print(f"  オーバーシュート削減: {overshoot_no_aw - overshoot_aw:.2f} %ポイント")
+print(f"\nImprovement Effect:")
+print(f"  Overshoot Reduction: {overshoot_no_aw - overshoot_aw:.2f} percentage points")
 </code></pre>
 
-<p><strong>期待される出力</strong>:</p>
-<pre><code>=== アンチワインドアップの効果 ===
+<p><strong>Expected Output</strong>:</p>
+<pre><code>=== Effect of Anti-Windup ===
 
-アンチワインドアップなし:
-  最大オーバーシュート: 12.34 %
-  最大積 minutes値: 523.45
+Without Anti-Windup:
+  Maximum Overshoot: 12.34 %
+  Maximum Integral Value: 523.45
 
-アンチワインドアップあり:
-  最大オーバーシュート: 3.21 %
-  最大積 minutes値: 258.12
+With Anti-Windup:
+  Maximum Overshoot: 3.21 %
+  Maximum Integral Value: 258.12
 
-改善効果:
-  オーバーシュート削減: 9.13 %ポイント
+Improvement Effect:
+  Overshoot Reduction: 9.13 percentage points
 </code></pre>
 
-<p><strong>解説</strong>: 積 minutesワインドアップは、操作量が飽和しているときに積 minutes項が過度に蓄積され、設定値到達後に大きなオーバーシュートを引き起こす問題です。アンチワインドアップ対策（Clampingメソッド）では、操作量が飽和している間は積 minutesを停止し、ワインドアップを防ぎます。これにより、オーバーシュートを大幅に削減できます。実Processでは必須の機能です。</p>
+<p><strong>Explanation</strong>: Integral windup is a problem where the integral term accumulates excessively when the manipulated variable is saturated, causing large overshoot after reaching the setpoint. Anti-windup countermeasures (Clamping method) stop integration while the manipulated variable is saturated, preventing windup. This significantly reduces overshoot. This is an essential feature in real processes.</p>
 </div>
 
 <div class="code-example">
-<h4>Code Examples8: カスケードControlシステムのSimulation</h4>
+<h4>Code Example 8: Cascade Control System Simulation</h4>
 
-<p><strong>目的</strong>: 反応器温度Controlを例に、カスケードControlの構造と利点を理解する。</p>
+<p><strong>Purpose</strong>: Understand the structure and advantages of cascade control using reactor temperature control as an example.</p>
 
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 
 class CascadeControlSystem:
     """
-    カスケードControlシステム
+    Cascade Control System
 
-    一次Control器（マスター）: 反応器温度Control
-    二次Control器（スレーブ）: ジャケット温度Control
+    Primary controller (Master): Reactor temperature control
+    Secondary controller (Slave): Jacket temperature control
 
     Parameters:
     -----------
     Kp_primary, Ki_primary : float
-        一次Control器のPIゲイン
+        PI gains of primary controller
     Kp_secondary, Ki_secondary : float
-        二次Control器のPIゲイン
+        PI gains of secondary controller
     dt : float
-        サンプリング hours
+        Sampling time
     """
 
     def __init__(self, Kp_primary, Ki_primary, Kp_secondary, Ki_secondary, dt=1.0):
         self.dt = dt
 
-        # 一次Control器（反応器温度）
+        # Primary controller (reactor temperature)
         self.Kp_pri = Kp_primary
         self.Ki_pri = Ki_primary
         self.integral_pri = 0.0
         self.prev_error_pri = 0.0
 
-        # 二次Control器（ジャケット温度）
+        # Secondary controller (jacket temperature)
         self.Kp_sec = Kp_secondary
         self.Ki_sec = Ki_secondary
         self.integral_sec = 0.0
@@ -1455,34 +1455,34 @@ class CascadeControlSystem:
 
     def update(self, reactor_temp_sp, reactor_temp, jacket_temp):
         """
-        カスケードControl器の更新
+        Update cascade controller
 
         Parameters:
         -----------
         reactor_temp_sp : float
-            反応器温度設定値
+            Reactor temperature setpoint
         reactor_temp : float
-            反応器温度測定値
+            Reactor temperature measured value
         jacket_temp : float
-            ジャケット温度測定値
+            Jacket temperature measured value
 
         Returns:
         --------
         valve_position : float
-            バルブ開度（0-100%）
+            Valve opening (0-100%)
         jacket_temp_sp : float
-            ジャケット温度設定値（一次Control器出力）
+            Jacket temperature setpoint (primary controller output)
         """
-        # 一次Control器（反応器温度 → ジャケット温度設定値）
+        # Primary controller (reactor temp → jacket temp setpoint)
         error_pri = reactor_temp_sp - reactor_temp
         P_pri = self.Kp_pri * error_pri
         self.integral_pri += error_pri * self.dt
         I_pri = self.Ki_pri * self.integral_pri
 
         jacket_temp_sp = P_pri + I_pri
-        jacket_temp_sp = np.clip(jacket_temp_sp, 0, 200)  # ジャケット温度範囲
+        jacket_temp_sp = np.clip(jacket_temp_sp, 0, 200)  # Jacket temperature range
 
-        # 二次Control器（ジャケット温度 → バルブ開度）
+        # Secondary controller (jacket temp → valve opening)
         error_sec = jacket_temp_sp - jacket_temp
         P_sec = self.Kp_sec * error_sec
         self.integral_sec += error_sec * self.dt
@@ -1500,16 +1500,16 @@ class CascadeControlSystem:
 
 def simulate_cascade_control(use_cascade, duration=1200, dt=1.0):
     """
-    カスケードControl vs シングルループControlの比較
+    Comparison of cascade control vs single-loop control
 
     Parameters:
     -----------
     use_cascade : bool
-        カスケードControlを使用するか
+        Use cascade control
     duration : float
-        Simulation hours
+        Simulation time
     dt : float
-        サンプリング hours
+        Sampling time
 
     Returns:
     --------
@@ -1523,22 +1523,22 @@ def simulate_cascade_control(use_cascade, duration=1200, dt=1.0):
     valve = np.zeros(n_steps)
     jacket_sp = np.zeros(n_steps)
 
-    # 初期値
-    T_reactor = 100.0  # 反応器温度
-    T_jacket = 90.0    # ジャケット温度
+    # Initial values
+    T_reactor = 100.0  # Reactor temperature
+    T_jacket = 90.0    # Jacket temperature
 
-    # 設定値
+    # Setpoint
     reactor_sp = 175.0
 
     if use_cascade:
-        # カスケードControl器
+        # Cascade controller
         controller = CascadeControlSystem(
             Kp_primary=2.0, Ki_primary=0.05,
             Kp_secondary=5.0, Ki_secondary=0.2,
             dt=dt
         )
     else:
-        # シングルループControl器（反応器温度のみ）
+        # Single-loop controller (reactor temperature only)
         controller_single = PIDWithAntiWindup(
             Kp=2.0, Ki=0.05, Kd=0.0, dt=dt,
             setpoint=reactor_sp, output_limits=(0, 100)
@@ -1546,11 +1546,11 @@ def simulate_cascade_control(use_cascade, duration=1200, dt=1.0):
 
     for i in range(n_steps):
         if use_cascade:
-            # カスケードControl
+            # Cascade control
             u, j_sp = controller.update(reactor_sp, T_reactor, T_jacket)
             jacket_sp[i] = j_sp
         else:
-            # シングルループControl
+            # Single-loop control
             u, _ = controller_single.update(T_reactor)
             jacket_sp[i] = np.nan
 
@@ -1558,18 +1558,18 @@ def simulate_cascade_control(use_cascade, duration=1200, dt=1.0):
         reactor_temp[i] = T_reactor
         jacket_temp[i] = T_jacket
 
-        # 外乱（600秒で冷却水温度が5°C低下）
+        # Disturbance (cooling water temperature drops 5°C at 600 seconds)
         disturbance = -5.0 if time[i] >= 600 else 0.0
 
-        # Processダイナミクス
-        # ジャケット温度（高速応答、時定数30秒）
+        # Process dynamics
+        # Jacket temperature (fast response, time constant 30 seconds)
         K_jacket = 1.0
         tau_jacket = 30.0
         dT_jacket_dt = (K_jacket * u - T_jacket + disturbance) / tau_jacket
         T_jacket = T_jacket + dT_jacket_dt * dt
 
-        # 反応器温度（低速応答、時定数120秒）
-        # ジャケット温度から熱が伝わる
+        # Reactor temperature (slow response, time constant 120 seconds)
+        # Heat transfers from jacket temperature
         K_reactor = 0.8
         tau_reactor = 120.0
         dT_reactor_dt = K_reactor * (T_jacket - T_reactor) / tau_reactor
@@ -1578,7 +1578,7 @@ def simulate_cascade_control(use_cascade, duration=1200, dt=1.0):
     return time, reactor_temp, jacket_temp, valve, jacket_sp
 
 
-# シングルループControlとカスケードControlの比較
+# Comparison of single-loop control and cascade control
 time_single, reactor_single, jacket_single, valve_single, _ = simulate_cascade_control(
     use_cascade=False
 )
@@ -1587,65 +1587,65 @@ time_cascade, reactor_cascade, jacket_cascade, valve_cascade, jacket_sp_cascade 
     use_cascade=True
 )
 
-# カスケードControlのブロック図
-print("=== カスケードControlシステム構成 ===\n")
+# Cascade control block diagram
+print("=== Cascade Control System Configuration ===\n")
 print("┌─────────────────────────────────────────────────────┐")
-print("│  一次Control器（マスター）: 反応器温度Control              │")
-print("│  ↓ 出力: ジャケット温度設定値                        │")
-print("│  二次Control器（スレーブ）: ジャケット温度Control          │")
-print("│  ↓ 出力: 冷却水バルブ開度                            │")
-print("│  Process: ジャケット → 反応器                       │")
+print("│  Primary controller (Master): Reactor temperature control              │")
+print("│  ↓ Output: Jacket temperature setpoint                        │")
+print("│  Secondary controller (Slave): Jacket temperature control          │")
+print("│  ↓ Output: Cooling water valve opening                            │")
+print("│  Process: Jacket → Reactor                       │")
 print("└─────────────────────────────────────────────────────┘\n")
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(4, 1, figsize=(14, 14))
 
-# 反応器温度
-axes[0].plot(time_single, reactor_single, 'b-', linewidth=2, alpha=0.7, label='シングルループControl')
-axes[0].plot(time_cascade, reactor_cascade, 'g-', linewidth=2, label='カスケードControl')
-axes[0].axhline(y=175, color='red', linestyle='--', linewidth=1.5, label='設定値')
-axes[0].axvline(x=600, color='orange', linestyle='--', alpha=0.5, label='外乱印加')
-axes[0].set_ylabel('反応器温度（°C）', fontsize=12)
-axes[0].set_title('カスケードControl vs シングルループControl', fontsize=14, fontweight='bold')
+# Reactor temperature
+axes[0].plot(time_single, reactor_single, 'b-', linewidth=2, alpha=0.7, label='Single-Loop Control')
+axes[0].plot(time_cascade, reactor_cascade, 'g-', linewidth=2, label='Cascade Control')
+axes[0].axhline(y=175, color='red', linestyle='--', linewidth=1.5, label='Setpoint')
+axes[0].axvline(x=600, color='orange', linestyle='--', alpha=0.5, label='Disturbance Applied')
+axes[0].set_ylabel('Reactor Temperature (°C)', fontsize=12)
+axes[0].set_title('Cascade Control vs Single-Loop Control', fontsize=14, fontweight='bold')
 axes[0].legend()
 axes[0].grid(alpha=0.3)
 
-# ジャケット温度
-axes[1].plot(time_single, jacket_single, 'b-', linewidth=2, alpha=0.7, label='シングルループ（ジャケット温度）')
-axes[1].plot(time_cascade, jacket_cascade, 'g-', linewidth=2, label='カスケード（ジャケット温度）')
-axes[1].plot(time_cascade, jacket_sp_cascade, 'r--', linewidth=1.5, alpha=0.7, label='ジャケット温度SP（カスケード）')
+# Jacket temperature
+axes[1].plot(time_single, jacket_single, 'b-', linewidth=2, alpha=0.7, label='Single-Loop (Jacket Temp)')
+axes[1].plot(time_cascade, jacket_cascade, 'g-', linewidth=2, label='Cascade (Jacket Temp)')
+axes[1].plot(time_cascade, jacket_sp_cascade, 'r--', linewidth=1.5, alpha=0.7, label='Jacket Temp SP (Cascade)')
 axes[1].axvline(x=600, color='orange', linestyle='--', alpha=0.5)
-axes[1].set_ylabel('ジャケット温度（°C）', fontsize=12)
-axes[1].set_title('ジャケット温度の比較', fontsize=13, fontweight='bold')
+axes[1].set_ylabel('Jacket Temperature (°C)', fontsize=12)
+axes[1].set_title('Comparison of Jacket Temperature', fontsize=13, fontweight='bold')
 axes[1].legend()
 axes[1].grid(alpha=0.3)
 
-# バルブ開度
-axes[2].plot(time_single, valve_single, 'b-', linewidth=2, alpha=0.7, label='シングルループ')
-axes[2].plot(time_cascade, valve_cascade, 'g-', linewidth=2, label='カスケード')
+# Valve opening
+axes[2].plot(time_single, valve_single, 'b-', linewidth=2, alpha=0.7, label='Single-Loop')
+axes[2].plot(time_cascade, valve_cascade, 'g-', linewidth=2, label='Cascade')
 axes[2].axvline(x=600, color='orange', linestyle='--', alpha=0.5)
-axes[2].set_ylabel('バルブ開度（%）', fontsize=12)
-axes[2].set_title('操作量（冷却水バルブ）', fontsize=13, fontweight='bold')
+axes[2].set_ylabel('Valve Opening (%)', fontsize=12)
+axes[2].set_title('Manipulated Variable (Cooling Water Valve)', fontsize=13, fontweight='bold')
 axes[2].legend()
 axes[2].grid(alpha=0.3)
 
-# 偏差比較
+# Comparison of error
 error_single = 175 - reactor_single
 error_cascade = 175 - reactor_cascade
-axes[3].plot(time_single, error_single, 'b-', linewidth=2, alpha=0.7, label='シングルループ')
-axes[3].plot(time_cascade, error_cascade, 'g-', linewidth=2, label='カスケード')
+axes[3].plot(time_single, error_single, 'b-', linewidth=2, alpha=0.7, label='Single-Loop')
+axes[3].plot(time_cascade, error_cascade, 'g-', linewidth=2, label='Cascade')
 axes[3].axhline(y=0, color='black', linestyle='--', linewidth=1)
 axes[3].axvline(x=600, color='orange', linestyle='--', alpha=0.5)
-axes[3].set_xlabel(' hours（秒）', fontsize=12)
-axes[3].set_ylabel('偏差（°C）', fontsize=12)
-axes[3].set_title('Control偏差の比較', fontsize=13, fontweight='bold')
+axes[3].set_xlabel('Time (seconds)', fontsize=12)
+axes[3].set_ylabel('Error (°C)', fontsize=12)
+axes[3].set_title('Comparison of Control Error', fontsize=13, fontweight='bold')
 axes[3].legend()
 axes[3].grid(alpha=0.3)
 
 plt.tight_layout()
 plt.show()
 
-# 外乱応答の評価
+# Evaluate disturbance response
 disturbance_start = 600
 post_dist_single = reactor_single[int(disturbance_start/1.0):]
 post_dist_cascade = reactor_cascade[int(disturbance_start/1.0):]
@@ -1653,114 +1653,114 @@ post_dist_cascade = reactor_cascade[int(disturbance_start/1.0):]
 max_deviation_single = np.max(np.abs(175 - post_dist_single))
 max_deviation_cascade = np.max(np.abs(175 - post_dist_cascade))
 
-print("=== 外乱除去性能 ===")
-print(f"\nシングルループControl:")
-print(f"  最大偏差: {max_deviation_single:.2f} °C")
+print("=== Disturbance Rejection Performance ===")
+print(f"\nSingle-Loop Control:")
+print(f"  Maximum Deviation: {max_deviation_single:.2f} °C")
 
-print(f"\nカスケードControl:")
-print(f"  最大偏差: {max_deviation_cascade:.2f} °C")
+print(f"\nCascade Control:")
+print(f"  Maximum Deviation: {max_deviation_cascade:.2f} °C")
 
-print(f"\n改善効果:")
-print(f"  偏差削減: {max_deviation_single - max_deviation_cascade:.2f} °C")
-print(f"  削減率: {(1 - max_deviation_cascade/max_deviation_single)*100:.1f} %")
+print(f"\nImprovement Effect:")
+print(f"  Deviation Reduction: {max_deviation_single - max_deviation_cascade:.2f} °C")
+print(f"  Reduction Rate: {(1 - max_deviation_cascade/max_deviation_single)*100:.1f} %")
 
-print("\nカスケードControlの利点:")
-print("  1. 外乱に対する応答が速い（二次Control器が直接対応）")
-print("  2. 二次Process（ジャケット温度）の変動を抑制")
-print("  3. 一次Control器は遅い応答のProcessに集中できる")
+print("\nAdvantages of Cascade Control:")
+print("  1. Fast response to disturbances (secondary controller responds directly)")
+print("  2. Suppresses fluctuations in secondary process (jacket temperature)")
+print("  3. Primary controller can concentrate on slow response process")
 </code></pre>
 
-<p><strong>期待される出力</strong>:</p>
-<pre><code>=== 外乱除去性能 ===
+<p><strong>Expected Output</strong>:</p>
+<pre><code>=== Disturbance Rejection Performance ===
 
-シングルループControl:
-  最大偏差: 8.45 °C
+Single-Loop Control:
+  Maximum Deviation: 8.45 °C
 
-カスケードControl:
-  最大偏差: 3.12 °C
+Cascade Control:
+  Maximum Deviation: 3.12 °C
 
-改善効果:
-  偏差削減: 5.33 °C
-  削減率: 63.1 %
+Improvement Effect:
+  Deviation Reduction: 5.33 °C
+  Reduction Rate: 63.1 %
 
-カスケードControlの利点:
-  1. 外乱に対する応答が速い（二次Control器が直接対応）
-  2. 二次Process（ジャケット温度）の変動を抑制
-  3. 一次Control器は遅い応答のProcessに集中できる
+Advantages of Cascade Control:
+  1. Fast response to disturbances (secondary controller responds directly)
+  2. Suppresses fluctuations in secondary process (jacket temperature)
+  3. Primary controller can concentrate on slow response process
 </code></pre>
 
-<p><strong>解説</strong>: カスケードControlは、応答速度の異なる2つのProcessを階層的にControlする高度なControl方式です。反応器温度Controlでは、一次Control器（マスター）が反応器温度をMonitoringし、二次Control器（スレーブ）がジャケット温度をControlします。二次Control器が外乱（冷却水温度変化等）に迅速に対応するため、一次Control量（反応器温度）の変動を大幅に抑制できます。Chemical Plantで広く使用される実用的なControl戦略です。</p>
+<p><strong>Explanation</strong>: Cascade control is an advanced control method that hierarchically controls two processes with different response speeds. In reactor temperature control, the primary controller (master) monitors reactor temperature, while the secondary controller (slave) controls jacket temperature. Because the secondary controller responds quickly to disturbances (such as cooling water temperature changes), fluctuations in the primary controlled variable (reactor temperature) can be significantly suppressed. This is a practical control strategy widely used in chemical plants.</p>
 </div>
 
 <hr />
 
-<h2>4.3 本 ChapterのSummary</h2>
+<h2>4.3 Chapter Summary</h2>
 
-<h3>学んだこと</h3>
+<h3>What We Learned</h3>
 
 <ol>
-<li><strong>フィードバックControlの基礎</strong>
+<li><strong>Fundamentals of Feedback Control</strong>
     <ul>
-        <li>Control系の基本構成（設定値、Control量、操作量、偏差）</li>
-        <li>1次遅れ系の動特性と伝達関数</li>
-        <li>ステップ応答と時定数の関係</li>
+        <li>Basic configuration of control system (setpoint, controlled variable, manipulated variable, error)</li>
+        <li>Dynamic characteristics and transfer function of first-order lag system</li>
+        <li>Relationship between step response and time constant</li>
     </ul>
 </li>
-<li><strong>PIDControlの理論と実装</strong>
+<li><strong>Theory and Implementation of PID Control</strong>
     <ul>
-        <li>比例（P）Control: 即応性あり、定常偏差が残る</li>
-        <li>積 minutes（I）Control: 定常偏差を除去、ワインドアップに注意</li>
-        <li>微 minutes（D）Control: 応答速度向上、ノイズに敏感</li>
-        <li>PIDControl器の完全実装</li>
+        <li>Proportional (P) control: Fast response, steady-state error remains</li>
+        <li>Integral (I) control: Eliminates steady-state error, watch for windup</li>
+        <li>Derivative (D) control: Improves response speed, sensitive to noise</li>
+        <li>Complete implementation of PID controller</li>
     </ul>
 </li>
-<li><strong>PIDチューニング手法</strong>
+<li><strong>PID Tuning Methods</strong>
     <ul>
-        <li>ジーグラー・ニコルス法（反応曲線法、限界感度法）</li>
-        <li>Control性能指標（整定 hours、オーバーシュート、IAE、ISE）</li>
-        <li>P、PI、PIDControlの性能比較</li>
+        <li>Ziegler-Nichols method (reaction curve method, ultimate sensitivity method)</li>
+        <li>Control performance metrics (settling time, overshoot, IAE, ISE)</li>
+        <li>Performance comparison of P, PI, PID control</li>
     </ul>
 </li>
-<li><strong>実用的なControl問題</strong>
+<li><strong>Practical Control Issues</strong>
     <ul>
-        <li>積 minutesワインドアップとアンチワインドアップ対策</li>
-        <li>操作量飽和の処理</li>
-        <li>カスケードControlによる外乱除去性能の向上</li>
+        <li>Integral windup and anti-windup countermeasures</li>
+        <li>Handling manipulated variable saturation</li>
+        <li>Improved disturbance rejection performance through cascade control</li>
     </ul>
 </li>
 </ol>
 
-<h3>重要なポイント</h3>
+<h3>Important Points</h3>
 
 <ul>
-<li><strong>PControl</strong>: 定常偏差は残るが、調整が簡単で安定性が高い</li>
-<li><strong>PIControl</strong>: 定常偏差を除去、Process産業で最も一般的</li>
-<li><strong>PIDControl</strong>: 最高性能、微 minutes動作でオーバーシュート抑制</li>
-<li><strong>アンチワインドアップ</strong>: 実Processでは必須の機能</li>
-<li><strong>カスケードControl</strong>: 外乱除去性能の大幅向上</li>
+<li><strong>P Control</strong>: Steady-state error remains but easy to tune and highly stable</li>
+<li><strong>PI Control</strong>: Eliminates steady-state error, most common in process industry</li>
+<li><strong>PID Control</strong>: Best performance, derivative action suppresses overshoot</li>
+<li><strong>Anti-Windup</strong>: Essential feature in real processes</li>
+<li><strong>Cascade Control</strong>: Significantly improves disturbance rejection performance</li>
 </ul>
 
-<h3>実務での応用</h3>
+<h3>Practical Applications</h3>
 
-<p>本 Chapterで学んだPIDControlは、以下のような実Processで広く使用されています：</p>
+<p>The PID control learned in this chapter is widely used in real processes such as:</p>
 <ul>
-<li><strong>温度Control</strong>: 反応器、蒸留塔、熱交換器</li>
-<li><strong>圧力Control</strong>: コンプレッサー、蒸留塔頂部</li>
-<li><strong>流量Control</strong>: 原料供給、製品流量</li>
-<li><strong>液面Control</strong>: タンク、セパレータ</li>
-<li><strong>pHControl</strong>: 中和Process（非線形性が高い）</li>
+<li><strong>Temperature Control</strong>: Reactors, distillation columns, heat exchangers</li>
+<li><strong>Pressure Control</strong>: Compressors, distillation column overhead</li>
+<li><strong>Flow Control</strong>: Raw material feed, product flow</li>
+<li><strong>Level Control</strong>: Tanks, separators</li>
+<li><strong>pH Control</strong>: Neutralization processes (high nonlinearity)</li>
 </ul>
 
-<h3>Next Chapterへ</h3>
+<h3>To the Next Chapter</h3>
 
-<p>Chapter 5では、<strong>実 hoursProcessMonitoringシステムの実践</strong>を学びます：</p>
+<p>In Chapter 5, we will learn <strong>Practice of Real-Time Process Monitoring Systems</strong>:</p>
 <ul>
-<li>リアルタイムMonitoringシステムのアーキテクチャ設計</li>
-<li>Plotly Dashによるインタラクティブなダッシュボード構築</li>
-<li>シミュレートされたリアルタイムデータストリーミング</li>
-<li>マルチチャートMonitoringインターフェース（温度、圧力、流量）</li>
-<li>アラーム通知システムとKPI計算</li>
-<li>完全な統合Monitoringシステムのケーススタディ（化学反応器）</li>
+<li>Architecture design of real-time monitoring systems</li>
+<li>Building interactive dashboards with Plotly Dash</li>
+<li>Simulated real-time data streaming</li>
+<li>Multi-chart monitoring interface (temperature, pressure, flow)</li>
+<li>Alarm notification system and KPI calculation</li>
+<li>Fully integrated monitoring system case study (chemical reactor)</li>
 </ul>
 
 <div class="navigation">
@@ -1770,23 +1770,23 @@ print("  3. 一次Control器は遅い応答のProcessに集中できる")
 
     </main>
 
-    
+
     <section class="disclaimer">
-        <h3>免責事項</h3>
+        <h3>Disclaimer</h3>
         <ul>
-            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
-            <li>本コンテンツおよび付随するCode Examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・Safety性等いかなる保証もしません。</li>
-            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・Safety性について、作成者および東北大学は一切の責任を負いません。</li>
-            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
-            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
-            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+            <li>Even if direct, indirect, incidental, special, consequential, or punitive damages arise from the use, execution, or interpretation of this content, to the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable.</li>
+            <li>The content may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content shall follow the specified conditions (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
         </ul>
     </section>
 
 <footer>
-        <p><strong>作成者</strong>: PI Knowledge Hub - Dr. Yusuke Hashimoto, Tohoku University</p>
-        <p><strong>バージョン</strong>: 1.0 | <strong>作成日</strong>: 2025-10-26</p>
-        <p><strong>ライセンス</strong>: Creative Commons BY 4.0</p>
+        <p><strong>Author</strong>: PI Knowledge Hub - Dr. Yusuke Hashimoto, Tohoku University</p>
+        <p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-26</p>
+        <p><strong>License</strong>: Creative Commons BY 4.0</p>
         <p>&copy; 2025 PI Terakoya. All rights reserved.</p>
     </footer>
 </body>

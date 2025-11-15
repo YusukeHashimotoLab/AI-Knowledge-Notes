@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Chapter 3：異常検知と故障診断 - ProcessData Analysis実践 Series">
-    <title>Chapter 3：異常検知と故障診断 - ProcessData Analysis実践 | PI Knowledge Hub</title>
+    <meta name="description" content="Chapter 3: Anomaly Detection and Fault Diagnosis - Process Data Analysis Practical Series">
+    <title>Chapter 3: Anomaly Detection and Fault Diagnosis - Process Data Analysis | PI Knowledge Hub</title>
 
         <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -85,9 +85,9 @@
             .container { padding: 0 0.5rem; }
             pre { padding: 1rem; }
         }
-    
-        
-    
+
+
+
         /* Breadcrumb styles */
         .breadcrumb {
             background: #f7fafc;
@@ -136,95 +136,95 @@
 
         <header>
         <div class="container">
-            <h1>Chapter 3：異常検知と故障診断</h1>
+            <h1>Chapter 3: Anomaly Detection and Fault Diagnosis</h1>
             <p class="subtitle">Anomaly Detection and Fault Diagnosis for Process Systems</p>
             <div class="meta">
-                <span class="meta">📚 ProcessData Analysis実践 Series</span>
+                <span class="meta">📚 Process Data Analysis Practical Series</span>
                 <span class="meta">⏱️ Reading Time: 35-40 minutes</span>
                 <span class="meta">💻 Code Examples: 8</span>
-                <span class="meta">🎓 Difficulty: Intermediate～Advanced</span>
+                <span class="meta">🎓 Difficulty: Intermediate to Advanced</span>
             </div>
         </div>
     </header>
 
     <div class="container">
         <section>
-            <h2>3.1 イントロダクション</h2>
+            <h2>3.1 Introduction</h2>
             <p>
-                Chemical PlantのSafety性と生産性を維持するためには、異常の早期検知と故障原因の迅速な診断が不可欠です。
-                センサーデータから異常パターンを自動的に検出し、故障箇所を特定する技術は、プラント運転の高度化において重要な役割を果たします。
+                To maintain the safety and productivity of chemical plants, early detection of anomalies and rapid diagnosis of failure causes are essential.
+                Technologies that automatically detect anomalous patterns from sensor data and identify fault locations play a crucial role in advancing plant operations.
             </p>
 
             <p>
-                本 Chapterでは、統計的手法からMachine Learningアルゴリズム、Deep Learningまで、8つの実践的な異常検知・故障診断技術を実装します。
-                各手法の特性を理解し、Process特性に応じた適切なアプローチを選択できるようになります。
+                In this chapter, we will implement 8 practical anomaly detection and fault diagnosis techniques, ranging from statistical methods to machine learning algorithms and deep learning.
+                You will understand the characteristics of each method and become able to select the appropriate approach according to process characteristics.
             </p>
 
             <div class="callout callout-info">
-                <h4>📊 本 Chapterで学ぶこと</h4>
+                <h4>📊 What You Will Learn in This Chapter</h4>
                 <ul style="margin-bottom: 0;">
-                    <li>統計的異常検知（Z-score, Modified Z-score）</li>
-                    <li>Machine Learningによる異常検知（Isolation Forest, One-Class SVM）</li>
-                    <li>Deep Learningによる異常検知（Autoencoder, LSTM）</li>
-                    <li>故障 minutes類とアンサンブル手法</li>
-                    <li>根本原因 minutes析（Granger因果性検定）</li>
+                    <li>Statistical anomaly detection (Z-score, Modified Z-score)</li>
+                    <li>Machine learning-based anomaly detection (Isolation Forest, One-Class SVM)</li>
+                    <li>Deep learning-based anomaly detection (Autoencoder, LSTM)</li>
+                    <li>Fault classification and ensemble methods</li>
+                    <li>Root cause analysis (Granger causality test)</li>
                 </ul>
             </div>
         </section>
 
         <section>
-            <h2>3.2 統計的異常検知</h2>
+            <h2>3.2 Statistical Anomaly Detection</h2>
             <p>
-                統計的手法は解釈性が高く、計算コストが低いため、リアルタイムMonitoringに適しています。
-                正規 minutes布を仮定したZ-scoreベースの手法と、外れ値に頑健なModified Z-scoreを組み合わせることで、高精度な検知を実現します。
+                Statistical methods are suitable for real-time monitoring because of their high interpretability and low computational cost.
+                By combining Z-score-based methods assuming normal distribution with the robust Modified Z-score, we achieve high-precision detection.
             </p>
 
             <div class="example-box">
-                <h4>Example 1: 統計的異常検知（Z-score & Modified Z-score）</h4>
-                <p>標準的なZ-scoreと外れ値に頑健なModified Z-scoreを組み合わせた異常検知を実装します。</p>
+                <h4>Example 1: Statistical Anomaly Detection (Z-score & Modified Z-score)</h4>
+                <p>We implement anomaly detection combining standard Z-score and the robust Modified Z-score.</p>
                 <pre><code># ===================================
-# Example 1: 統計的異常検知
+# Example 1: Statistical Anomaly Detection
 # ===================================
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import stats
 
-# Processデータ生成（反応器温度、異常を含む）
+# Generate process data (reactor temperature, including anomalies)
 np.random.seed(42)
 n_samples = 500
 normal_data = np.random.normal(350, 2, n_samples)
 
-# 異常データを追加（3種類）
+# Add anomalous data (3 types)
 anomaly_indices = [50, 150, 250, 350, 450]
-normal_data[anomaly_indices] = [360, 340, 365, 335, 362]  # 異常値
+normal_data[anomaly_indices] = [360, 340, 365, 335, 362]  # Anomalous values
 
 df = pd.DataFrame({'temperature': normal_data})
 
 def detect_anomalies_zscore(data, threshold=3.0):
-    """標準Z-score法による異常検知"""
+    """Anomaly detection using standard Z-score method"""
     mean = data.mean()
     std = data.std()
     z_scores = np.abs((data - mean) / std)
     return z_scores > threshold, z_scores
 
 def detect_anomalies_modified_zscore(data, threshold=3.5):
-    """Modified Z-score法（中央値ベース、外れ値に頑健）"""
+    """Modified Z-score method (median-based, robust to outliers)"""
     median = data.median()
     mad = np.median(np.abs(data - median))
     modified_z_scores = 0.6745 * (data - median) / mad
     return np.abs(modified_z_scores) > threshold, modified_z_scores
 
-# 両手法を適用
+# Apply both methods
 is_anomaly_z, z_scores = detect_anomalies_zscore(df['temperature'])
 is_anomaly_mod, mod_z_scores = detect_anomalies_modified_zscore(df['temperature'])
 
-# 結果比較
-print("異常検知結果:")
-print(f"Z-score法: {is_anomaly_z.sum()}の異常を検出")
-print(f"Modified Z-score法: {is_anomaly_mod.sum()}の異常を検出")
+# Compare results
+print("Anomaly Detection Results:")
+print(f"Z-score method: Detected {is_anomaly_z.sum()} anomalies")
+print(f"Modified Z-score method: Detected {is_anomaly_mod.sum()} anomalies")
 
-# 検出精度の評価
+# Evaluate detection accuracy
 true_anomalies = np.zeros(n_samples, dtype=bool)
 true_anomalies[anomaly_indices] = True
 
@@ -238,71 +238,71 @@ fp_mod = np.sum(is_anomaly_mod & ~true_anomalies)
 precision_mod = tp_mod / is_anomaly_mod.sum() if is_anomaly_mod.sum() > 0 else 0
 recall_mod = tp_mod / true_anomalies.sum()
 
-print(f"\nZ-score法: Precision={precision_z:.2f}, Recall={recall_z:.2f}")
-print(f"Modified Z-score法: Precision={precision_mod:.2f}, Recall={recall_mod:.2f}")
+print(f"\nZ-score method: Precision={precision_z:.2f}, Recall={recall_z:.2f}")
+print(f"Modified Z-score method: Precision={precision_mod:.2f}, Recall={recall_mod:.2f}")
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(2, 1, figsize=(14, 8))
 
-axes[0].plot(df['temperature'], 'b-', alpha=0.6, label='データ')
+axes[0].plot(df['temperature'], 'b-', alpha=0.6, label='Data')
 axes[0].scatter(np.where(is_anomaly_z)[0], df.loc[is_anomaly_z, 'temperature'],
-                color='red', s=100, zorder=5, label=f'異常 (Z-score)')
+                color='red', s=100, zorder=5, label=f'Anomalies (Z-score)')
 axes[0].axhline(df['temperature'].mean() + 3*df['temperature'].std(),
-                color='r', linestyle='--', alpha=0.5, label='±3σ閾値')
+                color='r', linestyle='--', alpha=0.5, label='±3σ threshold')
 axes[0].axhline(df['temperature'].mean() - 3*df['temperature'].std(),
                 color='r', linestyle='--', alpha=0.5)
-axes[0].set_ylabel('温度 (°C)')
-axes[0].set_title('Z-score法')
+axes[0].set_ylabel('Temperature (°C)')
+axes[0].set_title('Z-score Method')
 axes[0].legend()
 axes[0].grid(True, alpha=0.3)
 
-axes[1].plot(df['temperature'], 'b-', alpha=0.6, label='データ')
+axes[1].plot(df['temperature'], 'b-', alpha=0.6, label='Data')
 axes[1].scatter(np.where(is_anomaly_mod)[0], df.loc[is_anomaly_mod, 'temperature'],
-                color='red', s=100, zorder=5, label='異常 (Modified Z-score)')
-axes[1].set_xlabel('サンプル')
-axes[1].set_ylabel('温度 (°C)')
-axes[1].set_title('Modified Z-score法（外れ値に頑健）')
+                color='red', s=100, zorder=5, label='Anomalies (Modified Z-score)')
+axes[1].set_xlabel('Sample')
+axes[1].set_ylabel('Temperature (°C)')
+axes[1].set_title('Modified Z-score Method (Robust to outliers)')
 axes[1].legend()
 axes[1].grid(True, alpha=0.3)
 
 plt.tight_layout()
 plt.savefig('statistical_anomaly_detection.png', dpi=300)
-print("\n結果: Modified Z-scoreが外れ値の影響を受けにくく、より正確")
+print("\nResult: Modified Z-score is less affected by outliers and more accurate")
 </code></pre>
             </div>
         </section>
 
         <section>
-            <h2>3.3 Machine Learningによる異常検知</h2>
+            <h2>3.3 Machine Learning-Based Anomaly Detection</h2>
             <p>
-                Machine Learningアルゴリズムは、高次元データや複雑な非線形パターンの検知に優れています。
-                教師なし学習により、正常データのみから異常を識別できる点が実用上の大きな利点です。
+                Machine learning algorithms excel at detecting high-dimensional data and complex nonlinear patterns.
+                Unsupervised learning that can identify anomalies from normal data only is a major practical advantage.
             </p>
 
             <div class="example-box">
-                <h4>Example 2: Isolation Forestによる異常検知</h4>
-                <p>ランダムフォレストベースの効率的な異常検知アルゴリズムを実装します。</p>
+                <h4>Example 2: Anomaly Detection with Isolation Forest</h4>
+                <p>We implement an efficient anomaly detection algorithm based on random forests.</p>
                 <pre><code># ===================================
 # Example 2: Isolation Forest
 # ===================================
 from sklearn.ensemble import IsolationForest
 
-# 多変量Processデータ生成
+# Generate multivariate process data
 np.random.seed(42)
 n_normal = 450
 n_anomaly = 50
 
-# 正常データ（温度、圧力、流量の相関あり）
+# Normal data (correlated temperature, pressure, and flow)
 normal_temp = np.random.normal(350, 3, n_normal)
 normal_pressure = 5 + 0.01 * normal_temp + np.random.normal(0, 0.2, n_normal)
 normal_flow = 100 + 0.5 * normal_temp + np.random.normal(0, 5, n_normal)
 
-# 異常データ（相関が崩れる）
+# Anomalous data (correlation breaks down)
 anomaly_temp = np.random.uniform(340, 370, n_anomaly)
 anomaly_pressure = np.random.uniform(4, 7, n_anomaly)
 anomaly_flow = np.random.uniform(80, 150, n_anomaly)
 
-# データ結合
+# Combine data
 X = np.column_stack([
     np.concatenate([normal_temp, anomaly_temp]),
     np.concatenate([normal_pressure, anomaly_pressure]),
@@ -313,9 +313,9 @@ y_true = np.concatenate([np.zeros(n_normal), np.ones(n_anomaly)])
 df_process = pd.DataFrame(X, columns=['temperature', 'pressure', 'flow'])
 df_process['is_anomaly_true'] = y_true
 
-# Isolation Forest訓練
+# Train Isolation Forest
 iso_forest = IsolationForest(
-    contamination=0.1,  # 期待される異常割合
+    contamination=0.1,  # Expected anomaly proportion
     random_state=42,
     n_estimators=100
 )
@@ -325,65 +325,65 @@ anomaly_scores = iso_forest.score_samples(X)
 df_process['anomaly_score'] = anomaly_scores
 df_process['is_anomaly_pred'] = predictions == -1
 
-# 評価
+# Evaluation
 from sklearn.metrics import classification_report, confusion_matrix
 
-print("Isolation Forest結果:")
-print(classification_report(y_true, predictions == -1, target_names=['正常', '異常']))
-print("\n混同行列:")
+print("Isolation Forest Results:")
+print(classification_report(y_true, predictions == -1, target_names=['Normal', 'Anomaly']))
+print("\nConfusion Matrix:")
 print(confusion_matrix(y_true, predictions == -1))
 
-# 可視化（3D散布図）
+# Visualization (3D scatter plot)
 from mpl_toolkits.mplot3d import Axes3D
 
 fig = plt.figure(figsize=(14, 6))
 ax1 = fig.add_subplot(121, projection='3d')
 ax2 = fig.add_subplot(122, projection='3d')
 
-# 真の異常
+# True anomalies
 scatter1 = ax1.scatter(df_process['temperature'], df_process['pressure'],
                        df_process['flow'], c=df_process['is_anomaly_true'],
                        cmap='RdYlGn_r', s=30, alpha=0.6)
-ax1.set_xlabel('温度 (°C)')
-ax1.set_ylabel('圧力 (MPa)')
-ax1.set_zlabel('流量 (m³/h)')
-ax1.set_title('真の異常ラベル')
+ax1.set_xlabel('Temperature (°C)')
+ax1.set_ylabel('Pressure (MPa)')
+ax1.set_zlabel('Flow (m³/h)')
+ax1.set_title('True Anomaly Labels')
 plt.colorbar(scatter1, ax=ax1)
 
-# 検出結果
+# Detection results
 scatter2 = ax2.scatter(df_process['temperature'], df_process['pressure'],
                        df_process['flow'], c=df_process['anomaly_score'],
                        cmap='RdYlGn', s=30, alpha=0.6)
-ax2.set_xlabel('温度 (°C)')
-ax2.set_ylabel('圧力 (MPa)')
-ax2.set_zlabel('流量 (m³/h)')
-ax2.set_title('Isolation Forest異常スコア')
+ax2.set_xlabel('Temperature (°C)')
+ax2.set_ylabel('Pressure (MPa)')
+ax2.set_zlabel('Flow (m³/h)')
+ax2.set_title('Isolation Forest Anomaly Score')
 plt.colorbar(scatter2, ax=ax2)
 
 plt.tight_layout()
 plt.savefig('isolation_forest.png', dpi=300)
-print("\n結果: 高次元空間での異常パターンを効率的に検出")
+print("\nResult: Efficiently detects anomalous patterns in high-dimensional space")
 </code></pre>
             </div>
 
             <div class="example-box">
-                <h4>Example 3: One-Class SVMによる新規性検知</h4>
-                <p>正常データの境界を学習し、未知の異常パターンを検出します。</p>
+                <h4>Example 3: Novelty Detection with One-Class SVM</h4>
+                <p>We learn the boundary of normal data and detect unknown anomalous patterns.</p>
                 <pre><code># ===================================
 # Example 3: One-Class SVM
 # ===================================
 from sklearn.svm import OneClassSVM
 from sklearn.preprocessing import StandardScaler
 
-# データの標準化（SVMには重要）
+# Standardize data (important for SVM)
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
-# One-Class SVM訓練
+# Train One-Class SVM
 oc_svm = OneClassSVM(
     kernel='rbf',
     gamma='auto',
-    nu=0.1  # 異常の上限割合
+    nu=0.1  # Upper bound on anomaly proportion
 )
 predictions_svm = oc_svm.fit_predict(X_scaled)
 decision_scores = oc_svm.decision_function(X_scaled)
@@ -391,14 +391,14 @@ decision_scores = oc_svm.decision_function(X_scaled)
 df_process['decision_score'] = decision_scores
 df_process['is_anomaly_svm'] = predictions_svm == -1
 
-# 評価
-print("\nOne-Class SVM結果:")
-print(classification_report(y_true, predictions_svm == -1, target_names=['正常', '異常']))
+# Evaluation
+print("\nOne-Class SVM Results:")
+print(classification_report(y_true, predictions_svm == -1, target_names=['Normal', 'Anomaly']))
 
-# 決定境界の可視化（2D投影）
+# Visualize decision boundary (2D projection)
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-# 温度-圧力平面
+# Temperature-Pressure plane
 xx, yy = np.meshgrid(np.linspace(X_scaled[:, 0].min()-1, X_scaled[:, 0].max()+1, 100),
                      np.linspace(X_scaled[:, 1].min()-1, X_scaled[:, 1].max()+1, 100))
 Z = oc_svm.decision_function(np.c_[xx.ravel(), yy.ravel(), np.zeros(xx.ravel().shape[0])])
@@ -407,55 +407,55 @@ Z = Z.reshape(xx.shape)
 axes[0].contourf(xx, yy, Z, levels=np.linspace(Z.min(), 0, 7), cmap='RdYlGn', alpha=0.3)
 axes[0].contour(xx, yy, Z, levels=[0], linewidths=2, colors='red')
 axes[0].scatter(X_scaled[y_true==0, 0], X_scaled[y_true==0, 1],
-                c='green', s=20, alpha=0.6, label='正常')
+                c='green', s=20, alpha=0.6, label='Normal')
 axes[0].scatter(X_scaled[y_true==1, 0], X_scaled[y_true==1, 1],
-                c='red', s=50, alpha=0.8, marker='x', label='異常')
-axes[0].set_xlabel('温度（標準化）')
-axes[0].set_ylabel('圧力（標準化）')
-axes[0].set_title('One-Class SVM決定境界')
+                c='red', s=50, alpha=0.8, marker='x', label='Anomaly')
+axes[0].set_xlabel('Temperature (standardized)')
+axes[0].set_ylabel('Pressure (standardized)')
+axes[0].set_title('One-Class SVM Decision Boundary')
 axes[0].legend()
 
-# 決定スコアの minutes布
-axes[1].hist(decision_scores[y_true==0], bins=30, alpha=0.6, label='正常', color='green')
-axes[1].hist(decision_scores[y_true==1], bins=30, alpha=0.6, label='異常', color='red')
-axes[1].axvline(0, color='black', linestyle='--', label='決定閾値')
-axes[1].set_xlabel('決定スコア')
-axes[1].set_ylabel('頻度')
-axes[1].set_title('決定スコア minutes布')
+# Distribution of decision scores
+axes[1].hist(decision_scores[y_true==0], bins=30, alpha=0.6, label='Normal', color='green')
+axes[1].hist(decision_scores[y_true==1], bins=30, alpha=0.6, label='Anomaly', color='red')
+axes[1].axvline(0, color='black', linestyle='--', label='Decision threshold')
+axes[1].set_xlabel('Decision Score')
+axes[1].set_ylabel('Frequency')
+axes[1].set_title('Decision Score Distribution')
 axes[1].legend()
 
 plt.tight_layout()
 plt.savefig('one_class_svm.png', dpi=300)
-print("\n結果: 正常データの境界を厳密にモデル化、新規異常に対応可能")
+print("\nResult: Rigorous modeling of normal data boundary, capable of handling novel anomalies")
 </code></pre>
             </div>
         </section>
 
         <section>
-            <h2>3.4 Deep Learningによる異常検知</h2>
+            <h2>3.4 Deep Learning-Based Anomaly Detection</h2>
             <p>
-                Deep Learningは、複雑な時空間パターンや高次元データの異常検知に威力を発揮します。
-                AutoencoderとLSTMを用いた2つのアプローチを実装します。
+                Deep learning demonstrates its power in detecting complex spatiotemporal patterns and anomalies in high-dimensional data.
+                We implement two approaches using Autoencoder and LSTM.
             </p>
 
             <div class="example-box">
-                <h4>Example 4: Autoencoderによる再構成誤差ベース異常検知</h4>
-                <p>正常データを圧縮・復元し、再構成誤差から異常を検出します。</p>
+                <h4>Example 4: Reconstruction Error-Based Anomaly Detection with Autoencoder</h4>
+                <p>We compress and restore normal data, detecting anomalies from reconstruction errors.</p>
                 <pre><code># ===================================
-# Example 4: Autoencoder異常検知
+# Example 4: Autoencoder Anomaly Detection
 # ===================================
 import tensorflow as tf
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
 
-# 正常データのみで訓練（教師なし学習）
+# Train only on normal data (unsupervised learning)
 X_train = X[y_true == 0]
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X)
 
-# Autoencoderモデル構築
+# Build Autoencoder model
 input_dim = X_train_scaled.shape[1]
-encoding_dim = 2  # 圧縮次元
+encoding_dim = 2  # Compressed dimension
 
 autoencoder = keras.Sequential([
     keras.layers.Dense(8, activation='relu', input_shape=(input_dim,)),
@@ -466,7 +466,7 @@ autoencoder = keras.Sequential([
 
 autoencoder.compile(optimizer='adam', loss='mse')
 
-# 訓練
+# Training
 history = autoencoder.fit(
     X_train_scaled, X_train_scaled,
     epochs=50,
@@ -475,97 +475,97 @@ history = autoencoder.fit(
     verbose=0
 )
 
-# 再構成誤差計算
+# Calculate reconstruction errors
 X_reconstructed = autoencoder.predict(X_test_scaled)
 reconstruction_errors = np.mean(np.square(X_test_scaled - X_reconstructed), axis=1)
 
-# 異常検知閾値（正常データの95パーセンタイル）
+# Anomaly detection threshold (95th percentile of normal data)
 threshold = np.percentile(reconstruction_errors[y_true==0], 95)
 predictions_ae = reconstruction_errors > threshold
 
-# 評価
-print("\nAutoencoder結果:")
-print(f"閾値: {threshold:.4f}")
-print(classification_report(y_true, predictions_ae, target_names=['正常', '異常']))
+# Evaluation
+print("\nAutoencoder Results:")
+print(f"Threshold: {threshold:.4f}")
+print(classification_report(y_true, predictions_ae, target_names=['Normal', 'Anomaly']))
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
-# 学習曲線
-axes[0, 0].plot(history.history['loss'], label='訓練損失')
-axes[0, 0].plot(history.history['val_loss'], label='検証損失')
-axes[0, 0].set_xlabel('エポック')
+# Learning curve
+axes[0, 0].plot(history.history['loss'], label='Training loss')
+axes[0, 0].plot(history.history['val_loss'], label='Validation loss')
+axes[0, 0].set_xlabel('Epoch')
 axes[0, 0].set_ylabel('MSE')
-axes[0, 0].set_title('Autoencoder学習曲線')
+axes[0, 0].set_title('Autoencoder Learning Curve')
 axes[0, 0].legend()
 axes[0, 0].grid(True, alpha=0.3)
 
-# 再構成誤差 minutes布
+# Reconstruction error distribution
 axes[0, 1].hist(reconstruction_errors[y_true==0], bins=30, alpha=0.6,
-                label='正常', color='green')
+                label='Normal', color='green')
 axes[0, 1].hist(reconstruction_errors[y_true==1], bins=30, alpha=0.6,
-                label='異常', color='red')
-axes[0, 1].axvline(threshold, color='black', linestyle='--', label='閾値')
-axes[0, 1].set_xlabel('再構成誤差')
-axes[0, 1].set_ylabel('頻度')
-axes[0, 1].set_title('再構成誤差 minutes布')
+                label='Anomaly', color='red')
+axes[0, 1].axvline(threshold, color='black', linestyle='--', label='Threshold')
+axes[0, 1].set_xlabel('Reconstruction Error')
+axes[0, 1].set_ylabel('Frequency')
+axes[0, 1].set_title('Reconstruction Error Distribution')
 axes[0, 1].legend()
 
-# 潜在空間（2次元エンコーディング）
+# Latent space (2D encoding)
 encoder_model = keras.Model(autoencoder.input,
                             autoencoder.get_layer('encoder').output)
 encoded = encoder_model.predict(X_test_scaled)
 
 axes[1, 0].scatter(encoded[y_true==0, 0], encoded[y_true==0, 1],
-                   c='green', s=20, alpha=0.6, label='正常')
+                   c='green', s=20, alpha=0.6, label='Normal')
 axes[1, 0].scatter(encoded[y_true==1, 0], encoded[y_true==1, 1],
-                   c='red', s=50, alpha=0.8, marker='x', label='異常')
-axes[1, 0].set_xlabel('潜在次元1')
-axes[1, 0].set_ylabel('潜在次元2')
-axes[1, 0].set_title('潜在空間表現')
+                   c='red', s=50, alpha=0.8, marker='x', label='Anomaly')
+axes[1, 0].set_xlabel('Latent Dimension 1')
+axes[1, 0].set_ylabel('Latent Dimension 2')
+axes[1, 0].set_title('Latent Space Representation')
 axes[1, 0].legend()
 axes[1, 0].grid(True, alpha=0.3)
 
-# ROC曲線
+# ROC curve
 from sklearn.metrics import roc_curve, auc
 fpr, tpr, _ = roc_curve(y_true, reconstruction_errors)
 roc_auc = auc(fpr, tpr)
 
 axes[1, 1].plot(fpr, tpr, label=f'ROC (AUC = {roc_auc:.2f})')
-axes[1, 1].plot([0, 1], [0, 1], 'k--', label='ランダム')
-axes[1, 1].set_xlabel('偽陽性率')
-axes[1, 1].set_ylabel('真陽性率')
-axes[1, 1].set_title('ROC曲線')
+axes[1, 1].plot([0, 1], [0, 1], 'k--', label='Random')
+axes[1, 1].set_xlabel('False Positive Rate')
+axes[1, 1].set_ylabel('True Positive Rate')
+axes[1, 1].set_title('ROC Curve')
 axes[1, 1].legend()
 axes[1, 1].grid(True, alpha=0.3)
 
 plt.tight_layout()
 plt.savefig('autoencoder_anomaly.png', dpi=300)
-print(f"\n結果: AUC={roc_auc:.3f}、高次元データの非線形パターンを学習")
+print(f"\nResult: AUC={roc_auc:.3f}, learns nonlinear patterns in high-dimensional data")
 </code></pre>
             </div>
 
             <div class="example-box">
-                <h4>Example 5: LSTMによる時系列異常検知</h4>
-                <p>時系列の hours的依存性を学習し、Prediction誤差から異常を検出します。</p>
+                <h4>Example 5: Time Series Anomaly Detection with LSTM</h4>
+                <p>We learn temporal dependencies in time series and detect anomalies from prediction errors.</p>
                 <pre><code># ===================================
-# Example 5: LSTM時系列異常検知
+# Example 5: LSTM Time Series Anomaly Detection
 # ===================================
 
-# 時系列データ生成（季節性+トレンド+異常）
+# Generate time series data (seasonality + trend + anomalies)
 np.random.seed(42)
 n_timesteps = 1000
 t = np.arange(n_timesteps)
 
-# 正常パターン
+# Normal pattern
 normal_series = 100 + 0.01*t + 10*np.sin(2*np.pi*t/50) + np.random.normal(0, 1, n_timesteps)
 
-# 異常を注入
+# Inject anomalies
 anomaly_ranges = [(200, 220), (500, 530), (800, 815)]
 for start, end in anomaly_ranges:
     normal_series[start:end] += np.random.uniform(15, 25, end-start)
 
-# シーケンスデータ作成
+# Create sequence data
 def create_sequences(data, seq_length=50):
     X, y = [], []
     for i in range(len(data) - seq_length):
@@ -577,14 +577,14 @@ seq_length = 50
 X_seq, y_seq = create_sequences(normal_series, seq_length)
 X_seq = X_seq.reshape((X_seq.shape[0], X_seq.shape[1], 1))
 
-# 訓練/テスト minutes割（異常を含まない部 minutesで訓練）
+# Train/test split (train on parts without anomalies)
 split_idx = 150 - seq_length
 X_train_lstm = X_seq[:split_idx]
 y_train_lstm = y_seq[:split_idx]
 X_test_lstm = X_seq
 y_test_lstm = y_seq
 
-# LSTMモデル構築
+# Build LSTM model
 lstm_model = keras.Sequential([
     keras.layers.LSTM(32, activation='relu', input_shape=(seq_length, 1)),
     keras.layers.Dense(16, activation='relu'),
@@ -593,7 +593,7 @@ lstm_model = keras.Sequential([
 
 lstm_model.compile(optimizer='adam', loss='mse')
 
-# 訓練
+# Training
 history_lstm = lstm_model.fit(
     X_train_lstm, y_train_lstm,
     epochs=30,
@@ -602,96 +602,96 @@ history_lstm = lstm_model.fit(
     verbose=0
 )
 
-# Predictionと誤差計算
+# Prediction and error calculation
 predictions_lstm = lstm_model.predict(X_test_lstm).flatten()
 prediction_errors = np.abs(y_test_lstm - predictions_lstm)
 
-# 異常閾値（訓練データの95パーセンタイル）
+# Anomaly threshold (95th percentile of training data)
 train_errors = prediction_errors[:split_idx]
 threshold_lstm = np.percentile(train_errors, 95)
 anomalies_lstm = prediction_errors > threshold_lstm
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(3, 1, figsize=(14, 10))
 
-# 元データ
-axes[0].plot(normal_series, 'b-', alpha=0.7, label='実測値')
+# Original data
+axes[0].plot(normal_series, 'b-', alpha=0.7, label='Actual values')
 for start, end in anomaly_ranges:
     axes[0].axvspan(start, end, color='red', alpha=0.2)
-axes[0].set_ylabel('Process値')
-axes[0].set_title('時系列データ（異常期間を赤で表示）')
+axes[0].set_ylabel('Process Value')
+axes[0].set_title('Time Series Data (Anomaly periods shown in red)')
 axes[0].legend()
 axes[0].grid(True, alpha=0.3)
 
-# Prediction vs 実測
-axes[1].plot(y_test_lstm, 'b-', alpha=0.5, label='実測値')
-axes[1].plot(predictions_lstm, 'g--', alpha=0.7, label='Prediction値')
-axes[1].set_ylabel('Process値')
-axes[1].set_title('LSTMPrediction結果')
+# Prediction vs actual
+axes[1].plot(y_test_lstm, 'b-', alpha=0.5, label='Actual values')
+axes[1].plot(predictions_lstm, 'g--', alpha=0.7, label='Predicted values')
+axes[1].set_ylabel('Process Value')
+axes[1].set_title('LSTM Prediction Results')
 axes[1].legend()
 axes[1].grid(True, alpha=0.3)
 
-# Prediction誤差と異常検知
-axes[2].plot(prediction_errors, 'k-', alpha=0.6, label='Prediction誤差')
-axes[2].axhline(threshold_lstm, color='red', linestyle='--', label=f'閾値={threshold_lstm:.2f}')
+# Prediction error and anomaly detection
+axes[2].plot(prediction_errors, 'k-', alpha=0.6, label='Prediction error')
+axes[2].axhline(threshold_lstm, color='red', linestyle='--', label=f'Threshold={threshold_lstm:.2f}')
 axes[2].fill_between(range(len(anomalies_lstm)), 0, prediction_errors,
-                     where=anomalies_lstm, color='red', alpha=0.3, label='検出異常')
-axes[2].set_xlabel('時刻')
-axes[2].set_ylabel('Prediction誤差')
-axes[2].set_title('LSTM異常検知結果')
+                     where=anomalies_lstm, color='red', alpha=0.3, label='Detected anomalies')
+axes[2].set_xlabel('Time')
+axes[2].set_ylabel('Prediction Error')
+axes[2].set_title('LSTM Anomaly Detection Results')
 axes[2].legend()
 axes[2].grid(True, alpha=0.3)
 
 plt.tight_layout()
 plt.savefig('lstm_anomaly.png', dpi=300)
-print("\n結果: 時系列パターンを学習、異常期間を高精度で検出")
+print("\nResult: Learns time series patterns, detects anomalous periods with high accuracy")
 </code></pre>
             </div>
         </section>
 
         <section>
-            <h2>3.5 故障 minutes類とアンサンブル手法</h2>
+            <h2>3.5 Fault Classification and Ensemble Methods</h2>
             <p>
-                異常を検出するだけでなく、故障の種類を minutes類することで、適切な対処法を迅速に決定できます。
-                Random Forestとアンサンブル投票による頑健な minutes類システムを構築します。
+                Not only detecting anomalies but also classifying fault types enables rapid determination of appropriate countermeasures.
+                We build a robust classification system using Random Forest and ensemble voting.
             </p>
 
             <div class="example-box">
-                <h4>Example 6: Random Forestによる故障 minutes類</h4>
-                <p>複数の故障タイプをMachine Learningで minutes類します。</p>
+                <h4>Example 6: Fault Classification with Random Forest</h4>
+                <p>We classify multiple fault types using machine learning.</p>
                 <pre><code># ===================================
-# Example 6: 故障 minutes類（Random Forest）
+# Example 6: Fault Classification (Random Forest)
 # ===================================
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 import seaborn as sns
 
-# 故障データ生成（4クラス：正常、センサー故障、Process異常、Control系異常）
+# Generate fault data (4 classes: normal, sensor fault, process fault, control fault)
 np.random.seed(42)
 n_per_class = 200
 
-# クラス0: 正常
+# Class 0: Normal
 normal = np.random.multivariate_normal([350, 5, 100], [[4, 0.1, 5], [0.1, 0.04, 0.5], [5, 0.5, 25]], n_per_class)
 
-# クラス1: センサー故障（ノイズ増大）
+# Class 1: Sensor fault (increased noise)
 sensor_fault = np.random.multivariate_normal([350, 5, 100], [[16, 0.1, 5], [0.1, 0.16, 0.5], [5, 0.5, 100]], n_per_class)
 
-# クラス2: Process異常（温度上昇）
+# Class 2: Process fault (temperature rise)
 process_fault = np.random.multivariate_normal([365, 5.5, 120], [[4, 0.2, 8], [0.2, 0.04, 0.6], [8, 0.6, 25]], n_per_class)
 
-# クラス3: Control系異常（変動パターン変化）
+# Class 3: Control fault (changed variation pattern)
 control_fault = np.random.multivariate_normal([350, 4.5, 90], [[9, -0.3, -10], [-0.3, 0.09, 2], [-10, 2, 64]], n_per_class)
 
-# データ統合
+# Combine data
 X_fault = np.vstack([normal, sensor_fault, process_fault, control_fault])
 y_fault = np.array([0]*n_per_class + [1]*n_per_class + [2]*n_per_class + [3]*n_per_class)
 
-# 訓練/テスト minutes割
+# Train/test split
 X_train_fault, X_test_fault, y_train_fault, y_test_fault = train_test_split(
     X_fault, y_fault, test_size=0.3, random_state=42, stratify=y_fault
 )
 
-# Random Forest訓練
+# Train Random Forest
 rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
 rf_classifier.fit(X_train_fault, y_train_fault)
 
@@ -699,147 +699,147 @@ rf_classifier.fit(X_train_fault, y_train_fault)
 y_pred_rf = rf_classifier.predict(X_test_fault)
 y_pred_proba = rf_classifier.predict_proba(X_test_fault)
 
-# 評価
-fault_names = ['正常', 'センサー故障', 'Process異常', 'Control系異常']
-print("\nRandom Forest故障 minutes類結果:")
+# Evaluation
+fault_names = ['Normal', 'Sensor Fault', 'Process Fault', 'Control Fault']
+print("\nRandom Forest Fault Classification Results:")
 print(classification_report(y_test_fault, y_pred_rf, target_names=fault_names))
 
-# 混同行列
+# Confusion matrix
 cm = confusion_matrix(y_test_fault, y_pred_rf)
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
 sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=fault_names,
             yticklabels=fault_names, ax=axes[0])
-axes[0].set_xlabel('Prediction')
-axes[0].set_ylabel('真値')
-axes[0].set_title('混同行列')
+axes[0].set_xlabel('Predicted')
+axes[0].set_ylabel('True')
+axes[0].set_title('Confusion Matrix')
 
-# 特徴重要度
+# Feature importance
 importances = rf_classifier.feature_importances_
-feature_names = ['温度', '圧力', '流量']
+feature_names = ['Temperature', 'Pressure', 'Flow']
 axes[1].barh(feature_names, importances, color='teal')
-axes[1].set_xlabel('重要度')
-axes[1].set_title('特徴重要度')
+axes[1].set_xlabel('Importance')
+axes[1].set_title('Feature Importance')
 
 plt.tight_layout()
 plt.savefig('fault_classification.png', dpi=300)
-print("\n結果: 複数の故障タイプを高精度で minutes類、特徴重要度から診断根拠を提示")
+print("\nResult: Classifies multiple fault types with high accuracy, provides diagnostic rationale from feature importance")
 </code></pre>
             </div>
 
             <div class="example-box">
-                <h4>Example 7: アンサンブル異常検知（投票方式）</h4>
-                <p>複数の異常検知手法を組み合わせ、頑健性を向上させます。</p>
+                <h4>Example 7: Ensemble Anomaly Detection (Voting)</h4>
+                <p>We combine multiple anomaly detection methods to improve robustness.</p>
                 <pre><code># ===================================
-# Example 7: アンサンブル異常検知
+# Example 7: Ensemble Anomaly Detection
 # ===================================
 
-# 複数の検知器を訓練（前述のデータを使用）
+# Train multiple detectors (using previously defined data)
 # 1. Isolation Forest
 iso_pred = (iso_forest.predict(X) == -1).astype(int)
 
 # 2. One-Class SVM
 svm_pred = (oc_svm.predict(X_scaled) == -1).astype(int)
 
-# 3. Autoencoder（再構成誤差）
+# 3. Autoencoder (reconstruction error)
 ae_pred = (reconstruction_errors > threshold).astype(int)
 
-# アンサンブル投票
+# Ensemble voting
 ensemble_votes = np.column_stack([iso_pred, svm_pred, ae_pred])
-ensemble_pred = (ensemble_votes.sum(axis=1) >= 2).astype(int)  # 多数決
+ensemble_pred = (ensemble_votes.sum(axis=1) >= 2).astype(int)  # Majority vote
 
-# 評価
+# Evaluation
 from sklearn.metrics import accuracy_score, f1_score
 
 methods = {
     'Isolation Forest': iso_pred,
     'One-Class SVM': svm_pred,
     'Autoencoder': ae_pred,
-    'アンサンブル（投票）': ensemble_pred
+    'Ensemble (Voting)': ensemble_pred
 }
 
-print("\nアンサンブル異常検知結果:")
-print(f"{'手法':<25} {'Accuracy':<10} {'F1-score':<10}")
+print("\nEnsemble Anomaly Detection Results:")
+print(f"{'Method':<25} {'Accuracy':<10} {'F1-score':<10}")
 print("-" * 45)
 for name, pred in methods.items():
     acc = accuracy_score(y_true, pred)
     f1 = f1_score(y_true, pred)
     print(f"{name:<25} {acc:.4f}     {f1:.4f}")
 
-# 別手法の一致度 minutes析
+# Agreement analysis between individual methods
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-# 投票数の minutes布
+# Distribution of votes
 vote_counts = ensemble_votes.sum(axis=1)
 axes[0].hist([vote_counts[y_true==0], vote_counts[y_true==1]],
-             bins=4, label=['正常', '異常'], color=['green', 'red'], alpha=0.6)
-axes[0].set_xlabel('検知器の投票数')
-axes[0].set_ylabel('頻度')
-axes[0].set_title('アンサンブル投票 minutes布')
+             bins=4, label=['Normal', 'Anomaly'], color=['green', 'red'], alpha=0.6)
+axes[0].set_xlabel('Number of Detector Votes')
+axes[0].set_ylabel('Frequency')
+axes[0].set_title('Ensemble Vote Distribution')
 axes[0].legend()
 axes[0].grid(True, alpha=0.3)
 
-# 手法間の相関
+# Correlation between methods
 method_matrix = np.column_stack([iso_pred, svm_pred, ae_pred, ensemble_pred])
 correlation = np.corrcoef(method_matrix.T)
 sns.heatmap(correlation, annot=True, fmt='.2f', cmap='coolwarm',
             xticklabels=['Iso Forest', 'SVM', 'AE', 'Ensemble'],
             yticklabels=['Iso Forest', 'SVM', 'AE', 'Ensemble'],
             ax=axes[1], vmin=-1, vmax=1)
-axes[1].set_title('検知手法間の相関')
+axes[1].set_title('Correlation Between Detection Methods')
 
 plt.tight_layout()
 plt.savefig('ensemble_anomaly.png', dpi=300)
-print("\n結果: アンサンブルにより、別手法の弱点を補完し精度向上")
+print("\nResult: Ensemble complements weaknesses of individual methods and improves accuracy")
 </code></pre>
             </div>
         </section>
 
         <section>
-            <h2>3.6 根本原因 minutes析</h2>
+            <h2>3.6 Root Cause Analysis</h2>
             <p>
-                異常が検出された際、その原因を特定することが重要です。
-                Granger因果性検定により、時系列データから変数間の因果関係を推定し、根本原因を絞り込みます。
+                When anomalies are detected, it is important to identify their causes.
+                The Granger causality test estimates causal relationships between variables from time series data, narrowing down root causes.
             </p>
 
             <div class="example-box">
-                <h4>Example 8: Granger因果性検定による根本原因 minutes析</h4>
-                <p>複数のProcess変数間の因果関係を minutes析し、故障の原因を特定します。</p>
+                <h4>Example 8: Root Cause Analysis with Granger Causality Test</h4>
+                <p>We analyze causal relationships among multiple process variables to identify fault causes.</p>
                 <pre><code># ===================================
-# Example 8: Granger因果性 minutes析
+# Example 8: Granger Causality Analysis
 # ===================================
 from statsmodels.tsa.stattools import grangercausalitytests
 
-# 因果関係を持つProcessデータ生成
+# Generate process data with causal relationships
 np.random.seed(42)
 n = 500
 
-# 原因変数（触媒温度）
+# Cause variable (catalyst temperature)
 catalyst_temp = np.zeros(n)
 catalyst_temp[0] = 300
 for i in range(1, n):
     catalyst_temp[i] = 0.95 * catalyst_temp[i-1] + 300 * 0.05 + np.random.normal(0, 1)
 
-# 触媒温度が反応速度に影響（遅延あり）
+# Catalyst temperature affects reaction rate (with delay)
 reaction_rate = np.zeros(n)
 for i in range(3, n):
     reaction_rate[i] = 50 + 0.3 * catalyst_temp[i-2] + np.random.normal(0, 2)
 
-# 反応速度が製品収率に影響
+# Reaction rate affects product yield
 product_yield = np.zeros(n)
 for i in range(2, n):
     product_yield[i] = 70 + 0.5 * reaction_rate[i-1] + np.random.normal(0, 1.5)
 
-# データフレーム作成
+# Create dataframe
 df_causal = pd.DataFrame({
     'catalyst_temp': catalyst_temp,
     'reaction_rate': reaction_rate,
     'product_yield': product_yield
 })
 
-# Granger因果性検定関数
+# Granger causality test function
 def granger_causality_matrix(data, variables, max_lag=5):
-    """変数間のGranger因果性をテストし、行列で表示"""
+    """Test Granger causality between variables and display as matrix"""
     df_results = pd.DataFrame(np.zeros((len(variables), len(variables))),
                               columns=variables, index=variables)
 
@@ -849,120 +849,120 @@ def granger_causality_matrix(data, variables, max_lag=5):
                 test_result = grangercausalitytests(
                     data[[r, c]], max_lag, verbose=False
                 )
-                # 各ラグでの最小p値を使用
+                # Use minimum p-value across lags
                 p_values = [test_result[lag][0]['ssr_ftest'][1] for lag in range(1, max_lag+1)]
                 min_p = np.min(p_values)
                 df_results.loc[r, c] = min_p
 
     return df_results
 
-# 因果性検定実施
+# Perform causality test
 variables = ['catalyst_temp', 'reaction_rate', 'product_yield']
 causality_matrix = granger_causality_matrix(df_causal[50:], variables, max_lag=5)
 
-print("\nGranger因果性検定結果（p値）:")
-print("列 → 行への因果関係を示す（p < 0.05で有意）")
+print("\nGranger Causality Test Results (p-values):")
+print("Column → Row indicates causality (significant if p < 0.05)")
 print(causality_matrix.round(4))
 
-# 有意な因果関係の抽出
-print("\n有意な因果関係（p < 0.05）:")
+# Extract significant causal relationships
+print("\nSignificant Causal Relationships (p < 0.05):")
 for cause in variables:
     for effect in variables:
         p_value = causality_matrix.loc[effect, cause]
         if p_value < 0.05 and cause != effect:
             print(f"  {cause} → {effect} (p={p_value:.4f})")
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
-# 時系列プロット
-axes[0, 0].plot(df_causal['catalyst_temp'], label='触媒温度')
-axes[0, 0].set_ylabel('温度 (°C)')
-axes[0, 0].set_title('触媒温度（原因変数）')
+# Time series plots
+axes[0, 0].plot(df_causal['catalyst_temp'], label='Catalyst Temperature')
+axes[0, 0].set_ylabel('Temperature (°C)')
+axes[0, 0].set_title('Catalyst Temperature (Cause Variable)')
 axes[0, 0].legend()
 axes[0, 0].grid(True, alpha=0.3)
 
-axes[0, 1].plot(df_causal['reaction_rate'], label='反応速度', color='orange')
-axes[0, 1].set_ylabel('速度 (mol/s)')
-axes[0, 1].set_title('反応速度（中間変数）')
+axes[0, 1].plot(df_causal['reaction_rate'], label='Reaction Rate', color='orange')
+axes[0, 1].set_ylabel('Rate (mol/s)')
+axes[0, 1].set_title('Reaction Rate (Intermediate Variable)')
 axes[0, 1].legend()
 axes[0, 1].grid(True, alpha=0.3)
 
-axes[1, 0].plot(df_causal['product_yield'], label='製品収率', color='green')
-axes[1, 0].set_xlabel('時刻')
-axes[1, 0].set_ylabel('収率 (%)')
-axes[1, 0].set_title('製品収率（結果変数）')
+axes[1, 0].plot(df_causal['product_yield'], label='Product Yield', color='green')
+axes[1, 0].set_xlabel('Time')
+axes[1, 0].set_ylabel('Yield (%)')
+axes[1, 0].set_title('Product Yield (Effect Variable)')
 axes[1, 0].legend()
 axes[1, 0].grid(True, alpha=0.3)
 
-# 因果性行列ヒートマップ
+# Causality matrix heatmap
 significance_matrix = (causality_matrix < 0.05).astype(int)
 sns.heatmap(significance_matrix, annot=causality_matrix.round(3), fmt='',
-            cmap='RdYlGn_r', cbar_kws={'label': '有意性'},
+            cmap='RdYlGn_r', cbar_kws={'label': 'Significance'},
             xticklabels=variables, yticklabels=variables,
             ax=axes[1, 1], vmin=0, vmax=1)
-axes[1, 1].set_title('因果関係マップ（緑=有意）')
-axes[1, 1].set_xlabel('原因 →')
-axes[1, 1].set_ylabel('← 結果')
+axes[1, 1].set_title('Causal Relationship Map (green=significant)')
+axes[1, 1].set_xlabel('Cause →')
+axes[1, 1].set_ylabel('← Effect')
 
 plt.tight_layout()
 plt.savefig('granger_causality.png', dpi=300)
 
-print("\n結果: 触媒温度 → 反応速度 → 製品収率の因果チェーンを特定")
-print("故障診断: 製品収率低下の根本原因は触媒温度異常の可能性が高い")
+print("\nResult: Identified causal chain: Catalyst temperature → Reaction rate → Product yield")
+print("Fault diagnosis: Root cause of product yield decline is likely catalyst temperature anomaly")
 </code></pre>
             </div>
         </section>
 
         <section>
-            <h2>3.7 実Processへの適用戦略</h2>
+            <h2>3.7 Strategy for Real Process Application</h2>
             <div class="callout callout-success">
-                <h4>💡 実装のベストプラクティス</h4>
+                <h4>💡 Best Practices for Implementation</h4>
                 <ul style="margin-bottom: 0;">
-                    <li><strong>段階的導入</strong>: 統計手法 → Machine Learning → Deep Learningの順で試す</li>
-                    <li><strong>閾値調整</strong>: False Alarmを減らすため、運転データで閾値をOptimization</li>
-                    <li><strong>アンサンブル活用</strong>: 複数手法の組み合わせで頑健性を向上</li>
-                    <li><strong>可視化重視</strong>: オペレーターが判断できるよう、検知理由を可視化</li>
-                    <li><strong>継続学習</strong>: Process変更に応じてモデルを定期的に再訓練</li>
+                    <li><strong>Phased Introduction</strong>: Try in order: statistical methods → machine learning → deep learning</li>
+                    <li><strong>Threshold Tuning</strong>: Optimize thresholds with operational data to reduce false alarms</li>
+                    <li><strong>Leverage Ensembles</strong>: Improve robustness by combining multiple methods</li>
+                    <li><strong>Emphasize Visualization</strong>: Visualize detection reasons so operators can make decisions</li>
+                    <li><strong>Continuous Learning</strong>: Retrain models regularly in response to process changes</li>
                 </ul>
             </div>
 
-            <h3>手法選択ガイド</h3>
+            <h3>Method Selection Guide</h3>
             <table>
                 <tr>
-                    <th style="width: 25%;">状況</th>
-                    <th style="width: 35%;">推奨手法</th>
-                    <th style="width: 40%;">理由</th>
+                    <th style="width: 25%;">Situation</th>
+                    <th style="width: 35%;">Recommended Method</th>
+                    <th style="width: 40%;">Reason</th>
                 </tr>
                 <tr>
-                    <td>単変量、リアルタイム</td>
+                    <td>Univariate, real-time</td>
                     <td>Z-score / Modified Z-score</td>
-                    <td>計算コスト低、解釈容易</td>
+                    <td>Low computational cost, easy to interpret</td>
                 </tr>
                 <tr>
-                    <td>多変量、非線形</td>
+                    <td>Multivariate, nonlinear</td>
                     <td>Isolation Forest</td>
-                    <td>高次元に強く、訓練高速</td>
+                    <td>Strong in high dimensions, fast training</td>
                 </tr>
                 <tr>
-                    <td>新規異常パターン</td>
+                    <td>Novel anomaly patterns</td>
                     <td>One-Class SVM</td>
-                    <td>境界学習により未知異常を検知</td>
+                    <td>Detects unknown anomalies by learning boundaries</td>
                 </tr>
                 <tr>
-                    <td>複雑な時空間パターン</td>
+                    <td>Complex spatiotemporal patterns</td>
                     <td>Autoencoder / LSTM</td>
-                    <td>高次元の潜在構造を学習</td>
+                    <td>Learns latent structures in high dimensions</td>
                 </tr>
                 <tr>
-                    <td>故障タイプ minutes類</td>
+                    <td>Fault type classification</td>
                     <td>Random Forest</td>
-                    <td> minutes類精度高、解釈可能</td>
+                    <td>High classification accuracy, interpretable</td>
                 </tr>
                 <tr>
-                    <td>根本原因 minutes析</td>
-                    <td>Granger因果性</td>
-                    <td>変数間の因果関係を推定</td>
+                    <td>Root cause analysis</td>
+                    <td>Granger Causality</td>
+                    <td>Estimates causal relationships between variables</td>
                 </tr>
             </table>
         </section>
@@ -970,28 +970,28 @@ print("故障診断: 製品収率低下の根本原因は触媒温度異常の�
         <section>
             <h2>3.8 Summary</h2>
             <p>
-                本 Chapterでは、統計手法からDeep Learningまで8つの異常検知・故障診断技術を実装しました。
-                各手法の特性を理解し、Process特性や運用条件に応じて適切に選択・組み合わせることで、
-                高精度な異常検知システムを構築できます。
+                In this chapter, we implemented 8 anomaly detection and fault diagnosis techniques ranging from statistical methods to deep learning.
+                By understanding the characteristics of each method and appropriately selecting and combining them according to process characteristics and operational conditions,
+                you can build a high-precision anomaly detection system.
             </p>
 
-            <h3>習得したスキル</h3>
+            <h3>Skills Acquired</h3>
             <ul>
-                <li>✅ 統計的手法（Z-score, Modified Z-score）による基本的な異常検知</li>
-                <li>✅ Isolation Forestによる高次元データの効率的な異常検知</li>
-                <li>✅ One-Class SVMによる新規性検知と決定境界の可視化</li>
-                <li>✅ Autoencoderによる再構成誤差ベースの異常検知</li>
-                <li>✅ LSTMによる時系列パターン学習とPrediction誤差ベース検知</li>
-                <li>✅ Random Forestによる故障タイプの多クラス minutes類</li>
-                <li>✅ アンサンブル投票による頑健な異常検知システム</li>
-                <li>✅ Granger因果性検定による根本原因 minutes析</li>
+                <li>✅ Basic anomaly detection using statistical methods (Z-score, Modified Z-score)</li>
+                <li>✅ Efficient anomaly detection in high-dimensional data with Isolation Forest</li>
+                <li>✅ Novelty detection and decision boundary visualization with One-Class SVM</li>
+                <li>✅ Reconstruction error-based anomaly detection with Autoencoder</li>
+                <li>✅ Time series pattern learning and prediction error-based detection with LSTM</li>
+                <li>✅ Multi-class classification of fault types with Random Forest</li>
+                <li>✅ Robust anomaly detection system through ensemble voting</li>
+                <li>✅ Root cause analysis with Granger causality test</li>
             </ul>
 
             <div class="callout callout-info">
                 <h4>📚 Next Steps</h4>
                 <p>
-                    Chapter 4では、ProcessOptimizationとソフトセンサー技術を学習します。
-                    Machine Learningモデルを用いた品質Prediction、リアルタイムOptimization、仮想センサーの構築などを実装します。
+                    In Chapter 4, we will learn process optimization and soft sensor techniques.
+                    We will implement quality prediction using machine learning models, real-time optimization, and construction of virtual sensors.
                 </p>
             </div>
         </section>
@@ -999,53 +999,53 @@ print("故障診断: 製品収率低下の根本原因は触媒温度異常の�
         <section>
             <h2>3.9 Exercises</h2>
 
-            <h4>演習1（基礎）: 統計的異常検知の比較</h4>
+            <h4>Exercise 1 (Basic): Comparison of Statistical Anomaly Detection</h4>
             <p>
-                Example 1のコードを修正し、正規 minutes布に従わないデータ（対数正規 minutes布など）に対する
-                Z-scoreとModified Z-scoreの性能を比較してください。どちらが頑健か説明してください。
+                Modify the code in Example 1 to compare the performance of Z-score and Modified Z-score
+                on data that does not follow a normal distribution (e.g., log-normal distribution). Explain which is more robust.
             </p>
 
-            <h4>演習2（Intermediate）: AutoencoderのアーキテクチャOptimization</h4>
+            <h4>Exercise 2 (Intermediate): Autoencoder Architecture Optimization</h4>
             <p>
-                Example 4のAutoencoderについて、以下の実験を行い、最適なアーキテクチャを決定してください：
+                For the Autoencoder in Example 4, conduct the following experiments to determine the optimal architecture:
             </p>
             <ul>
-                <li>エンコーディング次元を1, 2, 4, 8で比較</li>
-                <li>隠れ層の層数を1, 2, 3で比較</li>
-                <li>活性化関数（ReLU, tanh, ELU）を比較</li>
+                <li>Compare encoding dimensions of 1, 2, 4, and 8</li>
+                <li>Compare number of hidden layers: 1, 2, and 3</li>
+                <li>Compare activation functions (ReLU, tanh, ELU)</li>
             </ul>
 
-            <h4>演習3（Advanced）: ハイブリッド異常検知システム</h4>
+            <h4>Exercise 3 (Advanced): Hybrid Anomaly Detection System</h4>
             <p>
-                以下の要件を満たす実用的な異常検知システムを設計・実装してください：
+                Design and implement a practical anomaly detection system that meets the following requirements:
             </p>
             <ol>
-                <li>統計手法で1次スクリーニング（計算コスト削減）</li>
-                <li>疑わしいデータに対してMachine Learningで精密検査</li>
-                <li>異常検出時にGranger因果性で原因を推定</li>
-                <li>False Alarm率を5%以下に抑える閾値設定</li>
+                <li>Primary screening with statistical methods (reduce computational cost)</li>
+                <li>Detailed inspection with machine learning for suspicious data</li>
+                <li>Estimate causes with Granger causality when anomalies are detected</li>
+                <li>Set thresholds to keep false alarm rate below 5%</li>
             </ol>
 
             <div class="callout callout-tip">
-                <h4>💡 ヒント</h4>
+                <h4>💡 Hint</h4>
                 <p>
-                    演習3では、カスケード型の検知システムが効果的です。統計手法で高速スクリーニング後、
-                    疑わしいデータのみをDeep Learningで検証することで、計算コストと精度のバランスが取れます。
-                    ROC曲線を描いて最適な閾値を決定しましょう。
+                    For Exercise 3, a cascade detection system is effective. By performing high-speed screening with statistical methods
+                    and verifying only suspicious data with deep learning, you can balance computational cost and accuracy.
+                    Draw ROC curves to determine optimal thresholds.
                 </p>
             </div>
         </section>
 
         <div class="nav-buttons">
-            <a href="#" class="btn">← Chapter 2へ戻る</a>
-            <a href="#" class="btn" style="background: #ccc; cursor: not-allowed;">Chapter 4へ進む →</a>
+            <a href="#" class="btn">← Back to Chapter 2</a>
+            <a href="#" class="btn" style="background: #ccc; cursor: not-allowed;">Proceed to Chapter 4 →</a>
         </div>
 
         <footer>
             <p>&copy; 2025 Yusuke Hashimoto, Tohoku University. All rights reserved.</p>
             <p style="margin-top: 0.5rem;">
-                <a href="./index.html">Series Contents</a> |
-                <a href="../index.html">PIナレッジハブTOP</a>
+                <a href="./index.html">Series Table of Contents</a> |
+                <a href="../index.html">PI Knowledge Hub TOP</a>
             </p>
         </footer>
     </div>

@@ -335,9 +335,9 @@
                 padding: var(--spacing-xs);
             }
         }
-    
-        
-    
+
+
+
         /* Breadcrumb styles */
         .breadcrumb {
             background: #f7fafc;
@@ -388,12 +388,12 @@
         <header>
         <div class="header-content">
             <h1>Chapter 3: Object Detection</h1>
-            <p class="subtitle">Bounding Box、IoU、NMS、Two-Stage/One-Stage検出器、YOLO、実装と応用</p>
+            <p class="subtitle">Bounding Box, IoU, NMS, Two-Stage/One-Stage Detectors, YOLO, Implementation and Applications</p>
             <div class="meta">
                 <span class="meta-item">📖 Reading Time: 35-40 minutes</span>
                 <span class="meta-item">📊 Difficulty: Intermediate</span>
                 <span class="meta-item">💻 Code Examples: 8</span>
-                <span class="meta-item">📝 Exercises: 6問</span>
+                <span class="meta-item">📝 Exercises: 6</span>
             </div>
         </div>
     </header>
@@ -401,122 +401,122 @@
     <main class="container">
 
 <h2>Learning Objectives</h2>
-<p>この ChapterReadことで、以下を習得できます：</p>
+<p>By reading this chapter, you will master:</p>
 <ul>
-<li>✅ Bounding Boxの表現方法とIoUの計算方法を理解する</li>
-<li>✅ Non-Maximum Suppression (NMS)の原理と実装を習得する</li>
-<li>✅ 物体検出の評価指標（mAP、Precision-Recall）を理解する</li>
-<li>✅ Two-Stage検出器（R-CNN、Fast R-CNN、Faster R-CNN）の仕組みを説明できる</li>
-<li>✅ One-Stage検出器（YOLO、SSD、RetinaNet）の特徴を理解する</li>
-<li>✅ YOLOv8を使った実践的な物体検出を実装できる</li>
-<li>✅ カスタムデータセットで物体検出モデルを訓練できる</li>
-<li>✅ リアルタイム検出とトラッキングの応用を実装できる</li>
+<li>✅ Understanding Bounding Box representation methods and IoU calculation</li>
+<li>✅ Mastering the principles and implementation of Non-Maximum Suppression (NMS)</li>
+<li>✅ Understanding evaluation metrics for object detection (mAP, Precision-Recall)</li>
+<li>✅ Explaining the mechanisms of Two-Stage detectors (R-CNN, Fast R-CNN, Faster R-CNN)</li>
+<li>✅ Understanding the characteristics of One-Stage detectors (YOLO, SSD, RetinaNet)</li>
+<li>✅ Implementing practical object detection using YOLOv8</li>
+<li>✅ Training object detection models with custom datasets</li>
+<li>✅ Implementing real-time detection and tracking applications</li>
 </ul>
 
 <hr>
 
-<h2>3.1 物体検出の基礎</h2>
+<h2>3.1 Fundamentals of Object Detection</h2>
 
-<h3>物体検出とは</h3>
+<h3>What is Object Detection?</h3>
 
-<p>物体検出（Object Detection）は、画像内の複数の物体を検出し、それぞれの位置（Bounding Box）とクラスを予測するタスクです。画像 classificationが「画像全体に何が写っているか」を答えるのに対し、物体検出は「どこに何があるか」を答えます。</p>
+<p>Object Detection is the task of detecting multiple objects in an image and predicting their locations (Bounding Boxes) and classes. While image classification answers "what is in the entire image," object detection answers "where is what."</p>
 
 <blockquote>
-<p><strong>物体検出 = 位置特定（Localization）+  classification（Classification）</strong></p>
-<p>入力画像から、各物体の (x, y, width, height, class, confidence) を出力します。</p>
+<p><strong>Object Detection = Localization + Classification</strong></p>
+<p>From an input image, it outputs (x, y, width, height, class, confidence) for each object.</p>
 </blockquote>
 
-<h4>Bounding Boxの表現方法</h4>
+<h4>Bounding Box Representation Methods</h4>
 
-<p>Bounding Box（バウンディングボックス）は、物体を囲む矩形領域です。主に以下の4つの表現方法があります：</p>
+<p>A Bounding Box is a rectangular region that encloses an object. There are mainly four representation methods:</p>
 
 <table>
 <thead>
 <tr>
-<th>表現方法</th>
-<th>形式</th>
-<th>説明</th>
+<th>Representation</th>
+<th>Format</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><strong>XYXY</strong></td>
 <td>(x1, y1, x2, y2)</td>
-<td>左上座標と右下座標</td>
+<td>Top-left and bottom-right coordinates</td>
 </tr>
 <tr>
 <td><strong>XYWH</strong></td>
 <td>(x, y, w, h)</td>
-<td>左上座標と幅・高さ</td>
+<td>Top-left coordinates and width/height</td>
 </tr>
 <tr>
 <td><strong>CXCYWH</strong></td>
 <td>(cx, cy, w, h)</td>
-<td>中心座標と幅・高さ</td>
+<td>Center coordinates and width/height</td>
 </tr>
 <tr>
-<td><strong>正規化座標</strong></td>
-<td>(0~1に正規化)</td>
-<td>画像サイズで正規化した座標</td>
+<td><strong>Normalized Coordinates</strong></td>
+<td>(normalized to 0~1)</td>
+<td>Coordinates normalized by image size</td>
 </tr>
 </tbody>
 </table>
 
 <h3>IoU (Intersection over Union)</h3>
 
-<p>IoUは、予測Bounding Boxと正解Bounding Boxの重なり度合いを測る指標です。物体検出において最も重要な評価指標の一つです。</p>
+<p>IoU is a metric that measures the degree of overlap between predicted and ground truth Bounding Boxes. It is one of the most important evaluation metrics in object detection.</p>
 
 <blockquote>
-<p>IoU = (予測 ∩ 正解) / (予測 ∪ 正解) = 重なり面積 / 結合面積</p>
-<p>IoU = 0（重なりなし）～ 1（完全一致）の範囲を取ります。</p>
+<p>IoU = (Prediction ∩ Ground Truth) / (Prediction ∪ Ground Truth) = Intersection Area / Union Area</p>
+<p>IoU ranges from 0 (no overlap) to 1 (perfect match).</p>
 </blockquote>
 
 <details>
-<summary>Code Examples1：IoU計算の実装</summary>
+<summary>Code Example 1: IoU Calculation Implementation</summary>
 
 <pre><code class="language-python">import numpy as np
 
 def calculate_iou(box1, box2):
     """
-    IoU (Intersection over Union) を計算
+    Calculate IoU (Intersection over Union)
 
     Args:
-        box1, box2: [x1, y1, x2, y2] 形式のBounding Box
+        box1, box2: Bounding Boxes in [x1, y1, x2, y2] format
 
     Returns:
-        float: IoU値 (0~1)
+        float: IoU value (0~1)
     """
-    # 交差領域の座標を計算
+    # Calculate intersection area coordinates
     x1_inter = max(box1[0], box2[0])
     y1_inter = max(box1[1], box2[1])
     x2_inter = min(box1[2], box2[2])
     y2_inter = min(box1[3], box2[3])
 
-    # 交差領域の面積
+    # Intersection area
     inter_width = max(0, x2_inter - x1_inter)
     inter_height = max(0, y2_inter - y1_inter)
     intersection = inter_width * inter_height
 
-    # 各Boxの面積
+    # Area of each box
     box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
     box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
 
-    # 結合領域の面積
+    # Union area
     union = box1_area + box2_area - intersection
 
-    # IoU計算（ゼロ除算回避）
+    # Calculate IoU (avoid division by zero)
     iou = intersection / union if union > 0 else 0
 
     return iou
 
-# 使用例
-box_pred = [50, 50, 150, 150]   # 予測Box
-box_gt = [60, 60, 160, 160]     # 正解Box
+# Usage example
+box_pred = [50, 50, 150, 150]   # Predicted Box
+box_gt = [60, 60, 160, 160]     # Ground Truth Box
 
 iou = calculate_iou(box_pred, box_gt)
 print(f"IoU: {iou:.4f}")
 
-# 複数のBoxに対してIoUを計算
+# Calculate IoU for multiple boxes
 boxes_pred = np.array([
     [50, 50, 150, 150],
     [100, 100, 200, 200],
@@ -530,7 +530,7 @@ for i, box_pred in enumerate(boxes_pred):
     print(f"Box {i+1} IoU: {iou:.4f}")
 </code></pre>
 
-<p><strong>出力例：</strong></p>
+<p><strong>Output Example:</strong></p>
 <pre><code>IoU: 0.6806
 Box 1 IoU: 0.6806
 Box 2 IoU: 0.2537
@@ -541,62 +541,62 @@ Box 3 IoU: 0.7347
 
 <h3>Non-Maximum Suppression (NMS)</h3>
 
-<p>物体検出モデルは、同じ物体に対して複数のBounding Boxを予測することがあります。NMSは、重複した検出を除去し、最も信頼度の高いBoxのみを残す手法です。</p>
+<p>Object detection models may predict multiple Bounding Boxes for the same object. NMS is a technique that removes duplicate detections and keeps only the box with the highest confidence score.</p>
 
-<h4>NMSのアルゴリズム</h4>
+<h4>NMS Algorithm</h4>
 
 <ol>
-<li>信頼度スコアでBounding Boxを降順にソート</li>
-<li>最も信頼度の高いBoxを選択し、出力リストに追加</li>
-<li>残りのBoxのうち、選択したBoxとのIoUが閾値以上のものを削除</li>
-<li>残りのBoxに対してステップ2-3を繰り返す</li>
+<li>Sort Bounding Boxes in descending order by confidence score</li>
+<li>Select the box with highest confidence and add to output list</li>
+<li>Remove boxes from the remaining set whose IoU with the selected box is above a threshold</li>
+<li>Repeat steps 2-3 for remaining boxes</li>
 </ol>
 
 <details>
-<summary>Code Examples2：NMSの実装</summary>
+<summary>Code Example 2: NMS Implementation</summary>
 
 <pre><code class="language-python">import numpy as np
 
 def non_max_suppression(boxes, scores, iou_threshold=0.5):
     """
-    Non-Maximum Suppression (NMS) を実装
+    Implement Non-Maximum Suppression (NMS)
 
     Args:
         boxes: numpy array, shape (N, 4) [x1, y1, x2, y2]
-        scores: numpy array, shape (N,) 信頼度スコア
-        iou_threshold: float, IoU閾値
+        scores: numpy array, shape (N,) confidence scores
+        iou_threshold: float, IoU threshold
 
     Returns:
-        list: 残すべきBoxのインデックス
+        list: Indices of boxes to keep
     """
-    # Boxが空の場合
+    # If boxes is empty
     if len(boxes) == 0:
         return []
 
-    # float型に変換
+    # Convert to float32
     boxes = boxes.astype(np.float32)
 
-    # 各Boxの面積を計算
+    # Calculate area of each box
     x1 = boxes[:, 0]
     y1 = boxes[:, 1]
     x2 = boxes[:, 2]
     y2 = boxes[:, 3]
     areas = (x2 - x1) * (y2 - y1)
 
-    # スコアで降順にソート
+    # Sort by scores in descending order
     order = scores.argsort()[::-1]
 
     keep = []
 
     while len(order) > 0:
-        # 最も信頼度の高いBoxを選択
+        # Select box with highest confidence
         idx = order[0]
         keep.append(idx)
 
         if len(order) == 1:
             break
 
-        # 残りのBoxとのIoUを計算
+        # Calculate IoU with remaining boxes
         xx1 = np.maximum(x1[idx], x1[order[1:]])
         yy1 = np.maximum(y1[idx], y1[order[1:]])
         xx2 = np.minimum(x2[idx], x2[order[1:]])
@@ -609,13 +609,13 @@ def non_max_suppression(boxes, scores, iou_threshold=0.5):
         union = areas[idx] + areas[order[1:]] - intersection
         iou = intersection / union
 
-        # IoUが閾値未満のBoxのみ残す
+        # Keep only boxes with IoU below threshold
         inds = np.where(iou <= iou_threshold)[0]
         order = order[inds + 1]
 
     return keep
 
-# 使用例
+# Usage example
 boxes = np.array([
     [50, 50, 150, 150],
     [55, 55, 155, 155],
@@ -628,86 +628,86 @@ scores = np.array([0.9, 0.85, 0.88, 0.95, 0.92])
 
 keep_indices = non_max_suppression(boxes, scores, iou_threshold=0.5)
 
-print(f"元のBox数: {len(boxes)}")
-print(f"NMS後のBox数: {len(keep_indices)}")
-print(f"残すBoxのインデックス: {keep_indices}")
-print(f"\n残ったBoxes:")
+print(f"Original number of boxes: {len(boxes)}")
+print(f"Number of boxes after NMS: {len(keep_indices)}")
+print(f"Indices of kept boxes: {keep_indices}")
+print(f"\nKept Boxes:")
 for idx in keep_indices:
     print(f"  Box {idx}: {boxes[idx]}, Score: {scores[idx]:.2f}")
 </code></pre>
 
-<p><strong>出力例：</strong></p>
-<pre><code>元のBox数: 5
-NMS後のBox数: 2
-残すBoxのインデックス: [3, 2]
+<p><strong>Output Example:</strong></p>
+<pre><code>Original number of boxes: 5
+Number of boxes after NMS: 2
+Indices of kept boxes: [3, 2]
 
-残ったBoxes:
+Kept Boxes:
   Box 3: [200 200 300 300], Score: 0.95
   Box 2: [ 60  60 160 160], Score: 0.88
 </code></pre>
 
 </details>
 
-<h3>評価指標（mAP）</h3>
+<h3>Evaluation Metrics (mAP)</h3>
 
-<p>物体検出の性能評価には、<strong>mAP (mean Average Precision)</strong> が広く使われます。</p>
+<p><strong>mAP (mean Average Precision)</strong> is widely used for evaluating object detection performance.</p>
 
-<h4>主要な評価指標</h4>
+<h4>Main Evaluation Metrics</h4>
 
 <ul>
-<li><strong>Precision（適合率）</strong>：検出したもののうち、正解だった割合</li>
-<li><strong>Recall（再現率）</strong>：正解のうち、検出できた割合</li>
-<li><strong>AP (Average Precision)</strong>：1クラスに対するPrecision-Recall曲線の面積</li>
-<li><strong>mAP (mean Average Precision)</strong>：全クラスのAPの平均値</li>
+<li><strong>Precision</strong>: Ratio of correct predictions among all detections</li>
+<li><strong>Recall</strong>: Ratio of detected objects among all ground truth objects</li>
+<li><strong>AP (Average Precision)</strong>: Area under the Precision-Recall curve for one class</li>
+<li><strong>mAP (mean Average Precision)</strong>: Average of AP across all classes</li>
 </ul>
 
 <blockquote>
-<p><strong>mAP@0.5</strong>：IoU閾値0.5でのmAP</p>
-<p><strong>mAP@[0.5:0.95]</strong>：IoU閾値0.5～0.95（0.05刻み）の平均mAP（COCO評価）</p>
+<p><strong>mAP@0.5</strong>: mAP at IoU threshold 0.5</p>
+<p><strong>mAP@[0.5:0.95]</strong>: Average mAP over IoU thresholds from 0.5 to 0.95 in 0.05 increments (COCO evaluation)</p>
 </blockquote>
 
 <hr>
 
-<h2>3.2 Two-Stage検出器</h2>
+<h2>3.2 Two-Stage Detectors</h2>
 
-<h3>R-CNNファミリーの進化</h3>
+<h3>Evolution of the R-CNN Family</h3>
 
-<p>Two-Stage検出器は、「領域提案（Region Proposal）」と「 classification・位置調整」の2段階で物体検出を行います。</p>
+<p>Two-Stage detectors perform object detection in two stages: "Region Proposal" and "Classification & Localization Refinement."</p>
 
 <h4>R-CNN (2014)</h4>
 
 <ol>
-<li><strong>Selective Search</strong>で約2000の領域候補を抽出</li>
-<li>各領域をCNNで特徴抽出（AlexNet）</li>
-<li>SVMで classification、回帰で位置調整</li>
+<li>Extract ~2000 region candidates using <strong>Selective Search</strong></li>
+<li>Extract features from each region using CNN (AlexNet)</li>
+<li>Classify with SVM, refine location with regression</li>
 </ol>
 
-<p><strong>問題点</strong>：2000回のCNN処理が必要で非常に遅い（1画像に47秒）</p>
+<p><strong>Problem</strong>: Very slow due to 2000 CNN forward passes (47 seconds per image)</p>
 
 <h4>Fast R-CNN (2015)</h4>
 
 <ol>
-<li>画像全体を1回だけCNNで処理</li>
-<li>特徴マップから領域候補をRoI Poolingで抽出</li>
-<li>全結合層で classificationと位置調整を同時実行</li>
+<li>Process entire image once with CNN</li>
+<li>Extract region candidates from feature map using RoI Pooling</li>
+<li>Perform classification and localization simultaneously with fully connected layers</li>
 </ol>
 
-<p><strong>改善</strong>：R-CNNの約10倍高速化（1画像に2秒）</p>
+<p><strong>Improvement</strong>: ~10x faster than R-CNN (2 seconds per image)</p>
 
 <h4>Faster R-CNN (2015)</h4>
 
 <ol>
-<li><strong>RPN (Region Proposal Network)</strong>で領域候補を生成</li>
-<li>RoI Poolingで特徴抽出</li>
-<li> classificationと位置調整</li>
+<li>Generate region proposals with <strong>RPN (Region Proposal Network)</strong></li>
+<li>Extract features with RoI Pooling</li>
+<li>Perform classification and localization</li>
 </ol>
 
-<p><strong>改善</strong>：Selective Searchを不要にし、完全なEnd-to-Endの学習が可能に（1画像に0.2秒）</p>
+<p><strong>Improvement</strong>: Eliminates Selective Search, enables full end-to-end learning (0.2 seconds per image)</p>
 
-<h3>Faster R-CNNの実装</h3>
+<h3>Faster R-CNN Implementation</h3>
 
 <details>
-<summary>Code Examples3：Faster R-CNNでの物体検出（torchvision）</summary>
+<summary>Code Example 3: Object Detection with Faster R-CNN (torchvision)</summary>
 
 <pre><code class="language-python">import torch
 import torchvision
@@ -717,15 +717,15 @@ from PIL import Image, ImageDraw, ImageFont
 import requests
 from io import BytesIO
 
-# デバイス設定
+# Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# 事前学習済みFaster R-CNNモデルをロード
+# Load pre-trained Faster R-CNN model
 model = fasterrcnn_resnet50_fpn(pretrained=True)
 model = model.to(device)
 model.eval()
 
-# COCOクラス名（91クラス）
+# COCO class names (91 classes)
 COCO_CLASSES = [
     '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
     'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'N/A', 'stop sign',
@@ -743,172 +743,172 @@ COCO_CLASSES = [
 
 def detect_objects(image_path, threshold=0.5):
     """
-    Faster R-CNNで物体検出を実行
+    Perform object detection with Faster R-CNN
 
     Args:
-        image_path: 画像パスまたはURL
-        threshold: 信頼度閾値
+        image_path: Image path or URL
+        threshold: Confidence threshold
     """
-    # 画像読み込み
+    # Load image
     if image_path.startswith('http'):
         response = requests.get(image_path)
         img = Image.open(BytesIO(response.content)).convert('RGB')
     else:
         img = Image.open(image_path).convert('RGB')
 
-    # テンソルに変換
+    # Convert to tensor
     img_tensor = F.to_tensor(img).to(device)
 
-    # 推論
+    # Inference
     with torch.no_grad():
         predictions = model([img_tensor])[0]
 
-    # 結果をフィルタリング
+    # Filter results
     keep = predictions['scores'] > threshold
     boxes = predictions['boxes'][keep].cpu().numpy()
     labels = predictions['labels'][keep].cpu().numpy()
     scores = predictions['scores'][keep].cpu().numpy()
 
-    # 結果を描画
+    # Draw results
     draw = ImageDraw.Draw(img)
 
     for box, label, score in zip(boxes, labels, scores):
         x1, y1, x2, y2 = box
         class_name = COCO_CLASSES[label]
 
-        # Bounding Box描画
+        # Draw Bounding Box
         draw.rectangle([x1, y1, x2, y2], outline='red', width=3)
 
-        # ラベルとスコア描画
+        # Draw label and score
         text = f"{class_name}: {score:.2f}"
         draw.text((x1, y1 - 15), text, fill='red')
 
-    # 結果を表示
-    print(f"検出された物体数: {len(boxes)}")
+    # Display results
+    print(f"Number of detected objects: {len(boxes)}")
     for label, score in zip(labels, scores):
         print(f"  - {COCO_CLASSES[label]}: {score:.3f}")
 
     return img, boxes, labels, scores
 
-# 使用例
+# Usage example
 image_url = "https://images.unsplash.com/photo-1544568100-847a948585b9?w=800"
 result_img, boxes, labels, scores = detect_objects(image_url, threshold=0.7)
 
-# 画像を表示（Jupyter Notebookの場合）
+# Display image (for Jupyter Notebook)
 # display(result_img)
 
-# 画像を保存
+# Save image
 result_img.save('faster_rcnn_result.jpg')
-print("結果を faster_rcnn_result.jpg に保存しました")
+print("Results saved to faster_rcnn_result.jpg")
 </code></pre>
 
 </details>
 
 <h3>Feature Pyramid Networks (FPN)</h3>
 
-<p>FPNは、マルチスケールの特徴を効果的に利用するアーキテクチャです。異なるサイズの物体を検出するために、複数の解像度の特徴マップを組み合わせます。</p>
+<p>FPN is an architecture that effectively utilizes multi-scale features. It combines feature maps at multiple resolutions to detect objects of different sizes.</p>
 
 <blockquote>
-<p><strong>FPNの特徴</strong>：</p>
+<p><strong>FPN Features</strong>:</p>
 <ul>
-<li>ボトムアップパス：通常のCNNの順伝播</li>
-<li>トップダウンパス：高Level特徴を低解像度から高解像度へ伝播</li>
-<li>ラテラル接続：各Levelの特徴を結合</li>
+<li>Bottom-up pathway: Standard CNN forward pass</li>
+<li>Top-down pathway: Propagate high-level features from low to high resolution</li>
+<li>Lateral connections: Merge features at each level</li>
 </ul>
 </blockquote>
 
 <hr>
 
-<h2>3.3 One-Stage検出器</h2>
+<h2>3.3 One-Stage Detectors</h2>
 
-<h3>YOLOファミリー</h3>
+<h3>YOLO Family</h3>
 
-<p><strong>YOLO (You Only Look Once)</strong> は、画像を1回見るだけで物体検出を行う革新的なアプローチです。リアルタイム検出を実現し、Two-Stage検出器よりも高速です。</p>
+<p><strong>YOLO (You Only Look Once)</strong> is a revolutionary approach that performs object detection by looking at the image only once. It achieves real-time detection and is faster than Two-Stage detectors.</p>
 
-<h4>YOLOの基本原理</h4>
+<h4>Basic Principles of YOLO</h4>
 
 <ol>
-<li>画像をグリッド（例：13×13）に minutes割</li>
-<li>各グリッドセルがBounding Boxと信頼度を予測</li>
-<li>各Boxに対してクラス確率を予測</li>
-<li>NMSで重複を除去</li>
+<li>Divide image into a grid (e.g., 13×13)</li>
+<li>Each grid cell predicts Bounding Boxes and confidence</li>
+<li>Predict class probabilities for each box</li>
+<li>Remove duplicates with NMS</li>
 </ol>
 
-<h4>YOLOの進化</h4>
+<h4>Evolution of YOLO</h4>
 
 <table>
 <thead>
 <tr>
-<th>バージョン</th>
-<th>年</th>
-<th>主な改良点</th>
+<th>Version</th>
+<th>Year</th>
+<th>Main Improvements</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><strong>YOLOv1</strong></td>
 <td>2016</td>
-<td>One-Stage検出の提案、リアルタイム処理</td>
+<td>Proposed One-Stage detection, real-time processing</td>
 </tr>
 <tr>
 <td><strong>YOLOv2</strong></td>
 <td>2017</td>
-<td>Batch Normalization、Anchor Box導入</td>
+<td>Batch Normalization, introduced Anchor Boxes</td>
 </tr>
 <tr>
 <td><strong>YOLOv3</strong></td>
 <td>2018</td>
-<td>マルチスケール予測、Darknet-53</td>
+<td>Multi-scale predictions, Darknet-53</td>
 </tr>
 <tr>
 <td><strong>YOLOv4</strong></td>
 <td>2020</td>
-<td>CSPDarknet53、Mosaic augmentation</td>
+<td>CSPDarknet53, Mosaic augmentation</td>
 </tr>
 <tr>
 <td><strong>YOLOv5</strong></td>
 <td>2020</td>
-<td>PyTorch実装、使いやすさ向上</td>
+<td>PyTorch implementation, improved usability</td>
 </tr>
 <tr>
 <td><strong>YOLOv8</strong></td>
 <td>2023</td>
-<td>Anchor-free、改良されたアーキテクチャ</td>
+<td>Anchor-free, improved architecture</td>
 </tr>
 </tbody>
 </table>
 
 <details>
-<summary>Code Examples4：YOLOv8での物体検出</summary>
+<summary>Code Example 4: Object Detection with YOLOv8</summary>
 
 <pre><code class="language-python">from ultralytics import YOLO
 from PIL import Image
 import cv2
 import numpy as np
 
-# YOLOv8モデルをロード
-# サイズ: n (nano), s (small), m (medium), l (large), x (extra large)
-model = YOLO('yolov8n.pt')  # nanoモデル（最軽量）
+# Load YOLOv8 model
+# Sizes: n (nano), s (small), m (medium), l (large), x (extra large)
+model = YOLO('yolov8n.pt')  # nano model (lightest)
 
 def detect_with_yolo(image_path, conf_threshold=0.5):
     """
-    YOLOv8で物体検出を実行
+    Perform object detection with YOLOv8
 
     Args:
-        image_path: 画像パスまたはURL
-        conf_threshold: 信頼度閾値
+        image_path: Image path or URL
+        conf_threshold: Confidence threshold
     """
-    # 推論実行
+    # Run inference
     results = model(image_path, conf=conf_threshold)
 
-    # 結果を取得
+    # Get results
     result = results[0]
 
-    # 検出された物体の情報を表示
-    print(f"検出された物体数: {len(result.boxes)}")
+    # Display detected object information
+    print(f"Number of detected objects: {len(result.boxes)}")
 
     for box in result.boxes:
-        # クラスID、信頼度、座標を取得
+        # Get class ID, confidence, coordinates
         class_id = int(box.cls[0])
         confidence = float(box.conf[0])
         x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
@@ -916,48 +916,48 @@ def detect_with_yolo(image_path, conf_threshold=0.5):
         class_name = model.names[class_id]
         print(f"  - {class_name}: {confidence:.3f} at [{x1:.0f}, {y1:.0f}, {x2:.0f}, {y2:.0f}]")
 
-    # 結果画像を取得（アノテーション付き）
+    # Get result image (with annotations)
     annotated_img = result.plot()
 
     return annotated_img, result
 
-# 使用例1：画像ファイルから検出
+# Usage example 1: Detect from image file
 image_path = "path/to/your/image.jpg"
 annotated_img, result = detect_with_yolo(image_path, conf_threshold=0.5)
 
-# 結果を保存
+# Save results
 cv2.imwrite('yolov8_result.jpg', annotated_img)
-print("結果を yolov8_result.jpg に保存しました")
+print("Results saved to yolov8_result.jpg")
 
-# 使用例2：ビデオファイルまたはWebcamから検出
+# Usage example 2: Detect from video file or Webcam
 def detect_video(source=0, conf_threshold=0.5):
     """
-    ビデオまたはWebcamからリアルタイム検出
+    Real-time detection from video or Webcam
 
     Args:
-        source: ビデオファイルパスまたは0（Webcam）
-        conf_threshold: 信頼度閾値
+        source: Video file path or 0 (Webcam)
+        conf_threshold: Confidence threshold
     """
-    # ビデオストリームで推論
+    # Inference on video stream
     results = model(source, stream=True, conf=conf_threshold)
 
     for result in results:
-        # フレームごとに処理
+        # Process each frame
         annotated_frame = result.plot()
 
-        # 表示
+        # Display
         cv2.imshow('YOLOv8 Detection', annotated_frame)
 
-        # 'q'キーで終了
+        # Press 'q' to quit
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
     cv2.destroyAllWindows()
 
-# Webcamでリアルタイム検出（コメント解除して実行）
+# Real-time detection with Webcam (uncomment to run)
 # detect_video(source=0, conf_threshold=0.5)
 
-# ビデオファイルで検出
+# Detect from video file
 # detect_video(source='path/to/video.mp4', conf_threshold=0.5)
 </code></pre>
 
@@ -965,29 +965,29 @@ def detect_video(source=0, conf_threshold=0.5):
 
 <h3>SSD (Single Shot Detector)</h3>
 
-<p>SSDは、YOLOと同様にOne-Stage検出器ですが、複数のスケールの特徴マップから検出を行います。</p>
+<p>SSD is a One-Stage detector like YOLO but performs detection from feature maps at multiple scales.</p>
 
-<h4>SSDの特徴</h4>
+<h4>SSD Features</h4>
 
 <ul>
-<li><strong>マルチスケール特徴マップ</strong>：異なる解像度の層から検出</li>
-<li><strong>デフォルトボックス</strong>：各位置で複数のアスペクト比のBoxを予測</li>
-<li><strong>高速</strong>：YOLOv1より高速でmAPも高い</li>
+<li><strong>Multi-scale feature maps</strong>: Detect from layers at different resolutions</li>
+<li><strong>Default boxes</strong>: Predict boxes with multiple aspect ratios at each location</li>
+<li><strong>Fast</strong>: Faster than YOLOv1 with higher mAP</li>
 </ul>
 
 <h3>RetinaNet (Focal Loss)</h3>
 
-<p>RetinaNetは、<strong>Focal Loss</strong>を導入することで、クラス不均衡問題を解決しました。</p>
+<p>RetinaNet solved the class imbalance problem by introducing <strong>Focal Loss</strong>.</p>
 
-<h4>Focal Lossとは</h4>
+<h4>What is Focal Loss?</h4>
 
 <blockquote>
 <p>Focal Loss = -α(1-p_t)^γ log(p_t)</p>
-<p>簡単な例（背景など）の損失を小さくし、難しい例に集中して学習します。</p>
+<p>It reduces loss for easy examples (like background) and focuses learning on hard examples.</p>
 </blockquote>
 
 <details>
-<summary>Code Examples5：Focal Lossの実装</summary>
+<summary>Code Example 5: Focal Loss Implementation</summary>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -998,8 +998,8 @@ class FocalLoss(nn.Module):
     Focal Loss for Object Detection
 
     Args:
-        alpha: クラス重み（デフォルト: 0.25）
-        gamma: フォーカスパラメータ（デフォルト: 2.0）
+        alpha: Class weight (default: 0.25)
+        gamma: Focusing parameter (default: 2.0)
     """
     def __init__(self, alpha=0.25, gamma=2.0):
         super(FocalLoss, self).__init__()
@@ -1009,13 +1009,13 @@ class FocalLoss(nn.Module):
     def forward(self, predictions, targets):
         """
         Args:
-            predictions: (N, num_classes) 予測確率
-            targets: (N,) 正解ラベル
+            predictions: (N, num_classes) predicted probabilities
+            targets: (N,) ground truth labels
         """
         # Cross Entropy Loss
         ce_loss = F.cross_entropy(predictions, targets, reduction='none')
 
-        # p_tを計算（正解クラスの予測確率）
+        # Calculate p_t (predicted probability of correct class)
         p = torch.exp(-ce_loss)
 
         # Focal Loss
@@ -1023,15 +1023,15 @@ class FocalLoss(nn.Module):
 
         return focal_loss.mean()
 
-# 使用例
+# Usage example
 num_classes = 91  # COCO
 batch_size = 32
 
-# ダミーデータ
+# Dummy data
 predictions = torch.randn(batch_size, num_classes)
 targets = torch.randint(0, num_classes, (batch_size,))
 
-# 通常のCross Entropy Loss
+# Standard Cross Entropy Loss
 ce_loss = F.cross_entropy(predictions, targets)
 print(f"Cross Entropy Loss: {ce_loss.item():.4f}")
 
@@ -1040,47 +1040,47 @@ focal_loss_fn = FocalLoss(alpha=0.25, gamma=2.0)
 focal_loss = focal_loss_fn(predictions, targets)
 print(f"Focal Loss: {focal_loss.item():.4f}")
 
-# 簡単な例 vs 難しい例での損失比較
-easy_predictions = torch.tensor([[10.0, 0.0, 0.0]])  # 正解クラス0に高い確率
-hard_predictions = torch.tensor([[1.0, 0.9, 0.8]])   # 正解クラス0だが低い確率
+# Compare loss for easy vs hard examples
+easy_predictions = torch.tensor([[10.0, 0.0, 0.0]])  # High confidence for correct class 0
+hard_predictions = torch.tensor([[1.0, 0.9, 0.8]])   # Low confidence for correct class 0
 targets_test = torch.tensor([0])
 
 easy_loss = focal_loss_fn(easy_predictions, targets_test)
 hard_loss = focal_loss_fn(hard_predictions, targets_test)
 
-print(f"\n簡単な例の損失: {easy_loss.item():.4f}")
-print(f"難しい例の損失: {hard_loss.item():.4f}")
-print(f"難しい例の損失は簡単な例の {hard_loss.item() / easy_loss.item():.1f} 倍")
+print(f"\nEasy example loss: {easy_loss.item():.4f}")
+print(f"Hard example loss: {hard_loss.item():.4f}")
+print(f"Hard example loss is {hard_loss.item() / easy_loss.item():.1f}x the easy example loss")
 </code></pre>
 
 </details>
 
 <h3>EfficientDet</h3>
 
-<p>EfficientDetは、EfficientNetをバックボーンとし、BiFPN（Bi-directional Feature Pyramid Network）を使用した効率的な検出器です。</p>
+<p>EfficientDet is an efficient detector using EfficientNet as backbone and BiFPN (Bi-directional Feature Pyramid Network).</p>
 
 <ul>
-<li><strong>Compound Scaling</strong>：解像度、深さ、幅を同時にスケーリング</li>
-<li><strong>BiFPN</strong>：双方向の特徴融合</li>
-<li><strong>高効率</strong>：YOLOv3やRetinaNetよりも少ないパラメータで高精度</li>
+<li><strong>Compound Scaling</strong>: Scale resolution, depth, and width simultaneously</li>
+<li><strong>BiFPN</strong>: Bidirectional feature fusion</li>
+<li><strong>High efficiency</strong>: Higher accuracy with fewer parameters than YOLOv3 or RetinaNet</li>
 </ul>
 
 <hr>
 
-<h2>3.4 実装と訓練</h2>
+<h2>3.4 Implementation and Training</h2>
 
-<h3>COCOデータセット</h3>
+<h3>COCO Dataset</h3>
 
-<p>COCO (Common Objects in Context) は、物体検出の標準ベンチマークデータセットです。</p>
+<p>COCO (Common Objects in Context) is the standard benchmark dataset for object detection.</p>
 
 <ul>
-<li><strong>画像数</strong>：330K枚（train: 118K, val: 5K, test: 41K）</li>
-<li><strong>カテゴリ</strong>：80クラス（人、動物、乗り物、家具など）</li>
-<li><strong>アノテーション</strong>：Bounding Box、セグメンテーション、キーポイント</li>
+<li><strong>Number of images</strong>: 330K (train: 118K, val: 5K, test: 41K)</li>
+<li><strong>Categories</strong>: 80 classes (people, animals, vehicles, furniture, etc.)</li>
+<li><strong>Annotations</strong>: Bounding Boxes, segmentation, keypoints</li>
 </ul>
 
 <details>
-<summary>Code Examples6：PyTorch Object Detectionの訓練</summary>
+<summary>Code Example 6: Training PyTorch Object Detection</summary>
 
 <pre><code class="language-python">import torch
 import torchvision
@@ -1089,12 +1089,12 @@ from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torch.utils.data import DataLoader
 import torchvision.transforms as T
 
-# カスタムデータセットクラス
+# Custom dataset class
 class CustomObjectDetectionDataset(torch.utils.data.Dataset):
     """
-    カスタム物体検出データセット
+    Custom object detection dataset
 
-    画像とアノテーション（boxes, labels）を返す
+    Returns images and annotations (boxes, labels)
     """
     def __init__(self, image_paths, annotations, transforms=None):
         self.image_paths = image_paths
@@ -1105,15 +1105,15 @@ class CustomObjectDetectionDataset(torch.utils.data.Dataset):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
-        # 画像読み込み
+        # Load image
         from PIL import Image
         img = Image.open(self.image_paths[idx]).convert("RGB")
 
-        # アノテーション取得
+        # Get annotations
         boxes = self.annotations[idx]['boxes']  # [[x1,y1,x2,y2], ...]
         labels = self.annotations[idx]['labels']  # [1, 2, 1, ...]
 
-        # テンソルに変換
+        # Convert to tensors
         boxes = torch.as_tensor(boxes, dtype=torch.float32)
         labels = torch.as_tensor(labels, dtype=torch.int64)
 
@@ -1130,15 +1130,15 @@ class CustomObjectDetectionDataset(torch.utils.data.Dataset):
 
 def get_model(num_classes):
     """
-    Faster R-CNNモデルを構築
+    Build Faster R-CNN model
 
     Args:
-        num_classes: クラス数（背景 + 物体クラス）
+        num_classes: Number of classes (background + object classes)
     """
-    # 事前学習済みモデルをロード
+    # Load pre-trained model
     model = fasterrcnn_resnet50_fpn(pretrained=True)
 
-    #  classificationヘッドを置き換え
+    # Replace classification head
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
@@ -1146,7 +1146,7 @@ def get_model(num_classes):
 
 def train_one_epoch(model, optimizer, data_loader, device):
     """
-    1エポックの訓練
+    Train for one epoch
     """
     model.train()
     total_loss = 0
@@ -1155,11 +1155,11 @@ def train_one_epoch(model, optimizer, data_loader, device):
         images = [img.to(device) for img in images]
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
-        # 順伝播
+        # Forward pass
         loss_dict = model(images, targets)
         losses = sum(loss for loss in loss_dict.values())
 
-        # 逆伝播
+        # Backward pass
         optimizer.zero_grad()
         losses.backward()
         optimizer.step()
@@ -1168,11 +1168,11 @@ def train_one_epoch(model, optimizer, data_loader, device):
 
     return total_loss / len(data_loader)
 
-# 訓練設定
-num_classes = 3  # 背景 + 2クラス
+# Training configuration
+num_classes = 3  # background + 2 classes
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# モデル、オプティマイザ、スケジューラ
+# Model, optimizer, scheduler
 model = get_model(num_classes)
 model.to(device)
 
@@ -1189,8 +1189,8 @@ lr_scheduler = torch.optim.lr_scheduler.StepLR(
     gamma=0.1
 )
 
-# データセット（ダミー）
-# 実際には画像パスとアノテーションを用意
+# Dataset (dummy)
+# In practice, prepare image paths and annotations
 image_paths = ['img1.jpg', 'img2.jpg', 'img3.jpg']
 annotations = [
     {'boxes': [[10, 10, 50, 50]], 'labels': [1]},
@@ -1202,49 +1202,49 @@ annotations = [
 # dataset = CustomObjectDetectionDataset(image_paths, annotations, transforms)
 # data_loader = DataLoader(dataset, batch_size=2, shuffle=True, collate_fn=lambda x: tuple(zip(*x)))
 
-# 訓練ループ（実際のデータがある場合）
+# Training loop (if actual data is available)
 # num_epochs = 10
 # for epoch in range(num_epochs):
 #     train_loss = train_one_epoch(model, optimizer, data_loader, device)
 #     lr_scheduler.step()
 #     print(f"Epoch {epoch+1}/{num_epochs}, Loss: {train_loss:.4f}")
 
-# モデル保存
+# Save model
 # torch.save(model.state_dict(), 'object_detection_model.pth')
 
-print("訓練スクリプトの準備完了")
+print("Training script ready")
 </code></pre>
 
 </details>
 
-<h3>カスタムデータセットでの訓練</h3>
+<h3>Training with Custom Dataset</h3>
 
 <details>
-<summary>Code Examples7：YOLOv8でカスタムデータセット訓練</summary>
+<summary>Code Example 7: Training YOLOv8 with Custom Dataset</summary>
 
 <pre><code class="language-python">from ultralytics import YOLO
 import yaml
 import os
 
-# データセット設定ファイルを作成
+# Create dataset configuration file
 dataset_yaml = """
-# データセットのパス
-path: ./custom_dataset  # ルートディレクトリ
-train: images/train     # 訓練画像（pathからの相対パス）
-val: images/val         # 検証画像
+# Dataset path
+path: ./custom_dataset  # Root directory
+train: images/train     # Training images (relative to path)
+val: images/val         # Validation images
 
-# クラス定義
+# Class definitions
 names:
   0: cat
   1: dog
   2: bird
 """
 
-# dataset.yamlを保存
+# Save dataset.yaml
 with open('custom_dataset.yaml', 'w') as f:
     f.write(dataset_yaml)
 
-# ディレクトリ構造の例：
+# Directory structure example:
 # custom_dataset/
 # ├── images/
 # │   ├── train/
@@ -1256,63 +1256,63 @@ with open('custom_dataset.yaml', 'w') as f:
 # │       └── ...
 # └── labels/
 #     ├── train/
-#     │   ├── img1.txt  # YOLO形式（class x_center y_center width height）
+#     │   ├── img1.txt  # YOLO format (class x_center y_center width height)
 #     │   ├── img2.txt
 #     │   └── ...
 #     └── val/
 #         ├── img1.txt
 #         └── ...
 
-# YOLOv8モデルを初期化
-model = YOLO('yolov8n.pt')  # 事前学習済みweightsから開始
+# Initialize YOLOv8 model
+model = YOLO('yolov8n.pt')  # Start from pre-trained weights
 
-# 訓練実行
+# Run training
 results = model.train(
     data='custom_dataset.yaml',
     epochs=100,
     imgsz=640,
     batch=16,
     name='custom_yolo',
-    # その他のハイパーパラメータ
-    lr0=0.01,          # 初期学習率
-    momentum=0.937,     # SGDモメンタム
+    # Other hyperparameters
+    lr0=0.01,          # Initial learning rate
+    momentum=0.937,     # SGD momentum
     weight_decay=0.0005,
     warmup_epochs=3,
     patience=50,        # Early stopping
     # Data Augmentation
-    degrees=10.0,       # 回転
-    translate=0.1,      # 平行移動
-    scale=0.5,          # スケール
-    flipud=0.0,         # 上下反転
-    fliplr=0.5,         # 左右反転
+    degrees=10.0,       # Rotation
+    translate=0.1,      # Translation
+    scale=0.5,          # Scale
+    flipud=0.0,         # Vertical flip
+    fliplr=0.5,         # Horizontal flip
     mosaic=1.0,         # Mosaic augmentation
 )
 
-# 検証
+# Validation
 metrics = model.val()
 print(f"mAP50: {metrics.box.map50:.3f}")
 print(f"mAP50-95: {metrics.box.map:.3f}")
 
-# 推論
+# Inference
 results = model('path/to/test/image.jpg')
 
-# モデル保存（自動的に保存されるが、手動でも可能）
+# Save model (automatically saved, but can also save manually)
 # model.save('custom_yolo_best.pt')
 
-# モデルのエクスポート（ONNX, TensorRT, etc.）
+# Export model (ONNX, TensorRT, etc.)
 # model.export(format='onnx')
 
-print("\n訓練完了！")
+print("\nTraining complete!")
 print(f"Weights: runs/detect/custom_yolo/weights/best.pt")
 print(f"Metrics: runs/detect/custom_yolo/results.csv")
 </code></pre>
 
-<p><strong>アノテーションファイルの形式（YOLO）：</strong></p>
-<pre><code># img1.txt の例（各行が1つの物体）
+<p><strong>Annotation file format (YOLO):</strong></p>
+<pre><code># img1.txt example (each line is one object)
 0 0.5 0.5 0.3 0.2    # class=0, center=(0.5, 0.5), size=(0.3, 0.2)
 1 0.7 0.3 0.2 0.15   # class=1, center=(0.7, 0.3), size=(0.2, 0.15)
 
-# 座標は画像サイズで正規化（0~1）
+# Coordinates are normalized by image size (0~1)
 # class x_center y_center width height
 </code></pre>
 
@@ -1320,61 +1320,61 @@ print(f"Metrics: runs/detect/custom_yolo/results.csv")
 
 <hr>
 
-<h2>3.5 応用テクニック</h2>
+<h2>3.5 Advanced Techniques</h2>
 
 <h3>Anchor-Free Detection</h3>
 
-<p>従来の検出器はAnchor Box（事前定義のBox）に依存していましたが、Anchor-Freeアプローチはこれを不要にします。</p>
+<p>Traditional detectors rely on Anchor Boxes (pre-defined boxes), but Anchor-Free approaches eliminate this requirement.</p>
 
-<h4>主なAnchor-Free手法</h4>
+<h4>Main Anchor-Free Methods</h4>
 
 <ul>
-<li><strong>FCOS (Fully Convolutional One-Stage)</strong>：各ピクセルから物体中心までの距離を予測</li>
-<li><strong>CenterNet</strong>：物体の中心点を検出し、サイズと位置を回帰</li>
-<li><strong>YOLOv8</strong>：Anchor-Freeアプローチを採用</li>
+<li><strong>FCOS (Fully Convolutional One-Stage)</strong>: Predict distance from each pixel to object center</li>
+<li><strong>CenterNet</strong>: Detect object center points, regress size and location</li>
+<li><strong>YOLOv8</strong>: Adopts Anchor-Free approach</li>
 </ul>
 
 <blockquote>
-<p><strong>メリット</strong>：Anchorのハイパーパラメータチューニングが不要、より柔軟な検出</p>
+<p><strong>Benefits</strong>: No need for Anchor hyperparameter tuning, more flexible detection</p>
 </blockquote>
 
-<h3>物体追跡（Object Tracking）</h3>
+<h3>Object Tracking</h3>
 
-<p>物体追跡は、ビデオ内の物体を連続的に追跡するタスクです。検出器と組み合わせて使用します。</p>
+<p>Object Tracking is the task of continuously tracking objects across video frames. Used in combination with detectors.</p>
 
 <h4>SORT (Simple Online and Realtime Tracking)</h4>
 
 <ol>
-<li>フレームごとに物体検出</li>
-<li>Kalmanフィルタで次フレームの位置を予測</li>
-<li>Hungarian Algorithmで検出と追跡をマッチング</li>
+<li>Detect objects in each frame</li>
+<li>Predict next frame positions with Kalman filter</li>
+<li>Match detections to tracks using Hungarian Algorithm</li>
 </ol>
 
 <h4>DeepSORT</h4>
 
-<p>SORTに外観特徴（Deep features）を追加し、より堅牢な追跡を実現。</p>
+<p>Adds appearance features (Deep features) to SORT for more robust tracking.</p>
 
 <details>
-<summary>Code Examples8：YOLOv8 + 物体追跡</summary>
+<summary>Code Example 8: YOLOv8 + Object Tracking</summary>
 
 <pre><code class="language-python">from ultralytics import YOLO
 import cv2
 
-# YOLOv8モデルをロード
+# Load YOLOv8 model
 model = YOLO('yolov8n.pt')
 
 def track_objects_video(video_path, output_path='tracking_result.mp4'):
     """
-    ビデオで物体を検出・追跡
+    Detect and track objects in video
 
     Args:
-        video_path: 入力ビデオパス
-        output_path: 出力ビデオパス
+        video_path: Input video path
+        output_path: Output video path
     """
-    # ビデオキャプチャ
+    # Video capture
     cap = cv2.VideoCapture(video_path)
 
-    # 出力設定
+    # Output settings
     fps = int(cap.get(cv2.CAP_PROP_FPS))
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -1384,22 +1384,22 @@ def track_objects_video(video_path, output_path='tracking_result.mp4'):
 
     frame_count = 0
 
-    # 追跡モードで推論
+    # Inference in tracking mode
     results = model.track(video_path, stream=True, persist=True, conf=0.5)
 
     for result in results:
         frame_count += 1
 
-        # アノテーション付きフレーム
+        # Annotated frame
         annotated_frame = result.plot()
 
-        # トラッキングIDを表示
+        # Display tracking IDs
         if result.boxes.id is not None:
             for box, track_id in zip(result.boxes.xyxy, result.boxes.id):
                 x1, y1, x2, y2 = box.cpu().numpy()
                 track_id = int(track_id.cpu().numpy())
 
-                # トラッキングID描画
+                # Draw tracking ID
                 cv2.putText(
                     annotated_frame,
                     f"ID: {track_id}",
@@ -1410,10 +1410,10 @@ def track_objects_video(video_path, output_path='tracking_result.mp4'):
                     2
                 )
 
-        # フレームを書き込み
+        # Write frame
         out.write(annotated_frame)
 
-        # 表示
+        # Display
         cv2.imshow('Object Tracking', annotated_frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -1423,16 +1423,16 @@ def track_objects_video(video_path, output_path='tracking_result.mp4'):
     out.release()
     cv2.destroyAllWindows()
 
-    print(f"処理完了: {frame_count} フレーム")
-    print(f"出力: {output_path}")
+    print(f"Processing complete: {frame_count} frames")
+    print(f"Output: {output_path}")
 
-# 使用例
+# Usage example
 # track_objects_video('input_video.mp4', 'output_tracking.mp4')
 
-# Webcamでリアルタイム追跡
+# Real-time tracking with Webcam
 def track_webcam():
     """
-    Webcamでリアルタイム物体追跡
+    Real-time object tracking with Webcam
     """
     results = model.track(source=0, stream=True, persist=True, conf=0.5)
 
@@ -1445,54 +1445,54 @@ def track_webcam():
 
     cv2.destroyAllWindows()
 
-# リアルタイム追跡（コメント解除して実行）
+# Real-time tracking (uncomment to run)
 # track_webcam()
 
-print("物体追跡スクリプトの準備完了")
+print("Object tracking script ready")
 </code></pre>
 
 </details>
 
-<h3>マルチスケール検出</h3>
+<h3>Multi-Scale Detection</h3>
 
-<p>物体のサイズは画像によって大きく異なるため、マルチスケール検出が重要です。</p>
+<p>Multi-scale detection is important because object sizes vary greatly across images.</p>
 
-<h4>テクニック</h4>
+<h4>Techniques</h4>
 
 <ul>
-<li><strong>Image Pyramid</strong>：画像を複数のスケールでリサイズして検出</li>
-<li><strong>Feature Pyramid</strong>：複数の特徴マップLevelで検出（FPN）</li>
-<li><strong>Multi-scale Training</strong>：訓練時に異なるサイズの入力を使用</li>
+<li><strong>Image Pyramid</strong>: Resize image to multiple scales and detect</li>
+<li><strong>Feature Pyramid</strong>: Detect at multiple feature map levels (FPN)</li>
+<li><strong>Multi-scale Training</strong>: Use different input sizes during training</li>
 </ul>
 
-<h3>リアルタイム最適化</h3>
+<h3>Real-Time Optimization</h3>
 
-<h4>高速化テクニック</h4>
+<h4>Speed-Up Techniques</h4>
 
 <ul>
-<li><strong>モデルの軽量化</strong>：YOLOv8n, MobileNet-SSD</li>
-<li><strong>量子化</strong>：FP32 → FP16 → INT8</li>
-<li><strong>TensorRT</strong>：NVIDIAの推論最適化エンジン</li>
-<li><strong>ONNX Runtime</strong>：クロスプラットフォーム推論</li>
-<li><strong>解像度調整</strong>：入力画像サイズを小さく（例：640→416）</li>
+<li><strong>Model lightweighting</strong>: YOLOv8n, MobileNet-SSD</li>
+<li><strong>Quantization</strong>: FP32 → FP16 → INT8</li>
+<li><strong>TensorRT</strong>: NVIDIA inference optimization engine</li>
+<li><strong>ONNX Runtime</strong>: Cross-platform inference</li>
+<li><strong>Resolution adjustment</strong>: Reduce input image size (e.g., 640→416)</li>
 </ul>
 
 <blockquote>
-<p><strong>速度 vs 精度のトレードオフ</strong>：</p>
+<p><strong>Speed vs Accuracy Tradeoff</strong>:</p>
 <ul>
-<li>リアルタイム要求：YOLOv8n/s（30+ FPS）</li>
-<li>高精度要求：YOLOv8x, Faster R-CNN with FPN</li>
+<li>Real-time requirements: YOLOv8n/s (30+ FPS)</li>
+<li>High accuracy requirements: YOLOv8x, Faster R-CNN with FPN</li>
 </ul>
 </blockquote>
 
 <hr>
 
-<h2>練習問題</h2>
+<h2>Exercises</h2>
 
 <details>
-<summary>演習1：IoUとNMSの理解</summary>
+<summary>Exercise 1: Understanding IoU and NMS</summary>
 
-<p><strong>問題</strong>：以下のBounding Boxセットに対してIoUを計算し、NMSを適用してください。</p>
+<p><strong>Problem</strong>: Calculate IoU and apply NMS to the following set of Bounding Boxes.</p>
 
 <pre><code class="language-python">boxes = np.array([
     [100, 100, 200, 200],
@@ -1504,79 +1504,79 @@ scores = np.array([0.9, 0.85, 0.95, 0.8])
 </code></pre>
 
 <ul>
-<li>各BoxとBox 0のIoUを計算</li>
-<li>IoU閾値0.5でNMSを適用</li>
-<li>残るBoxを特定</li>
+<li>Calculate IoU of each box with Box 0</li>
+<li>Apply NMS with IoU threshold 0.5</li>
+<li>Identify which boxes remain</li>
 </ul>
 
 </details>
 
 <details>
-<summary>演習2：Faster R-CNNで検出</summary>
+<summary>Exercise 2: Detection with Faster R-CNN</summary>
 
-<p><strong>問題</strong>：事前学習済みFaster R-CNNを使って、複数の画像から特定クラス（例：person, car）のみを検出するスクリプトを作成してください。</p>
+<p><strong>Problem</strong>: Create a script that detects only specific classes (e.g., person, car) from multiple images using pre-trained Faster R-CNN.</p>
 
 <ul>
-<li>複数画像を読み込み</li>
-<li>指定クラスのみフィルタリング</li>
-<li>信頼度が0.7以上のもののみ表示</li>
-<li>検出数を集計</li>
+<li>Load multiple images</li>
+<li>Filter only specified classes</li>
+<li>Display only detections with confidence >= 0.7</li>
+<li>Aggregate detection counts</li>
 </ul>
 
 </details>
 
 <details>
-<summary>演習3：YOLOv8のモデルサイズ比較</summary>
+<summary>Exercise 3: YOLOv8 Model Size Comparison</summary>
 
-<p><strong>問題</strong>：YOLOv8の異なるサイズ（n, s, m, l）で同じ画像を検出し、精度と速度を比較してください。</p>
+<p><strong>Problem</strong>: Detect the same image with different YOLOv8 sizes (n, s, m, l) and compare accuracy and speed.</p>
 
 <ul>
-<li>各モデルで推論 hoursを測定</li>
-<li>検出された物体数を比較</li>
-<li>信頼度スコアの minutes布を minutes析</li>
-<li>どのモデルが最適か判断</li>
+<li>Measure inference time for each model</li>
+<li>Compare number of detected objects</li>
+<li>Analyze distribution of confidence scores</li>
+<li>Determine which model is optimal</li>
 </ul>
 
 </details>
 
 <details>
-<summary>演習4：カスタムデータセットの準備</summary>
+<summary>Exercise 4: Preparing Custom Dataset</summary>
 
-<p><strong>問題</strong>：独自の画像データセット（10枚以上）を用意し、YOLO形式のアノテーションファイルを作成してください。</p>
+<p><strong>Problem</strong>: Prepare your own image dataset (10+ images) and create YOLO format annotation files.</p>
 
 <ul>
-<li>LabelImgなどのツールでアノテーション作成</li>
-<li>YOLO形式（class x_center y_center width height）に変換</li>
-<li>train/valに minutes割（80/20）</li>
-<li>dataset.yamlを作成</li>
+<li>Create annotations using tools like LabelImg</li>
+<li>Convert to YOLO format (class x_center y_center width height)</li>
+<li>Split into train/val (80/20)</li>
+<li>Create dataset.yaml</li>
 </ul>
 
 </details>
 
 <details>
-<summary>演習5：物体追跡の実装</summary>
+<summary>Exercise 5: Object Tracking Implementation</summary>
 
-<p><strong>問題</strong>：ビデオファイルまたはWebcamから物体を追跡し、各物体の軌跡を描画してください。</p>
+<p><strong>Problem</strong>: Track objects from video file or Webcam and draw trajectory for each object.</p>
 
 <ul>
-<li>YOLOv8の追跡機能を使用</li>
-<li>各トラッキングIDの軌跡を保存</li>
-<li>軌跡を線で描画</li>
-<li>フレーム間でIDが安定しているか確認</li>
+<li>Use YOLOv8 tracking feature</li>
+<li>Save trajectory for each tracking ID</li>
+<li>Draw trajectories as lines</li>
+<li>Verify ID stability across frames</li>
 </ul>
 
 </details>
 
 <details>
-<summary>演習6：リアルタイム検出の最適化</summary>
+<summary>Exercise 6: Real-Time Detection Optimization</summary>
 
-<p><strong>問題</strong>：検出速度を最大化するために、モデルを最適化してください。</p>
+<p><strong>Problem</strong>: Optimize the model to maximize detection speed.</p>
 
 <ul>
-<li>YOLOv8をONNX形式にエクスポート</li>
-<li>異なる入力解像度（320, 416, 640）でFPSを測定</li>
-<li>信頼度閾値を調整して速度改善</li>
-<li>速度と精度のトレードオフを minutes析</li>
+<li>Export YOLOv8 to ONNX format</li>
+<li>Measure FPS at different input resolutions (320, 416, 640)</li>
+<li>Adjust confidence threshold to improve speed</li>
+<li>Analyze speed vs accuracy tradeoff</li>
 </ul>
 
 </details>
@@ -1585,20 +1585,20 @@ scores = np.array([0.9, 0.85, 0.95, 0.8])
 
 <h2>Summary</h2>
 
-<p>この Chapterでは、物体検出の基礎から実践までを学びました：</p>
+<p>In this chapter, we learned about object detection from fundamentals to practice:</p>
 
 <ul>
-<li>✅ <strong>物体検出の基礎</strong>：Bounding Box表現、IoU、NMS、評価指標（mAP）</li>
-<li>✅ <strong>Two-Stage検出器</strong>：R-CNN、Fast R-CNN、Faster R-CNN、FPNの進化と特徴</li>
-<li>✅ <strong>One-Stage検出器</strong>：YOLO、SSD、RetinaNet、EfficientDetの原理と比較</li>
-<li>✅ <strong>実装と訓練</strong>：PyTorch、YOLOv8を使った実践的な検出とカスタムデータセット訓練</li>
-<li>✅ <strong>応用テクニック</strong>：Anchor-free検出、物体追跡、マルチスケール検出、リアルタイム最適化</li>
+<li>✅ <strong>Object Detection Fundamentals</strong>: Bounding Box representation, IoU, NMS, evaluation metrics (mAP)</li>
+<li>✅ <strong>Two-Stage Detectors</strong>: Evolution and features of R-CNN, Fast R-CNN, Faster R-CNN, FPN</li>
+<li>✅ <strong>One-Stage Detectors</strong>: Principles and comparison of YOLO, SSD, RetinaNet, EfficientDet</li>
+<li>✅ <strong>Implementation and Training</strong>: Practical detection with PyTorch and YOLOv8, training with custom datasets</li>
+<li>✅ <strong>Advanced Techniques</strong>: Anchor-free detection, object tracking, multi-scale detection, real-time optimization</li>
 </ul>
 
-<p>次 Chapterでは、<strong>セマンティックセグメンテーション</strong>を学びます。ピクセルLevelの classification、U-Net、DeepLab、Mask R-CNNなど、より詳細な画像理解の手法を理解していきます。</p>
+<p>In the next chapter, we will learn about <strong>Semantic Segmentation</strong>. We will understand more detailed image understanding methods including pixel-level classification, U-Net, DeepLab, and Mask R-CNN.</p>
 
 <blockquote>
-<p><strong>重要なポイント</strong>：物体検出は、リアルタイム性と精度のトレードオフが重要です。アプリケーションの要件（速度優先 or 精度優先）に応じて、適切なモデルとパラメータを選択しましょう。</p>
+<p><strong>Key Point</strong>: In object detection, the tradeoff between real-time performance and accuracy is crucial. Select appropriate models and parameters based on application requirements (speed priority or accuracy priority).</p>
 </blockquote>
 
 <h2>References</h2>
@@ -1617,28 +1617,28 @@ scores = np.array([0.9, 0.85, 0.95, 0.8])
 </ul>
 
 <div class="navigation">
-    <a href="chapter2-cnn-architectures.html" class="nav-button">← Chapter 2 Chapter：CNNアーキテクチャ</a>
-    <a href="chapter4-semantic-segmentation.html" class="nav-button">Chapter 4 Chapter：セマンティックセグメンテーション →</a>
+    <a href="chapter2-cnn-architectures.html" class="nav-button">← Chapter 2: CNN Architectures</a>
+    <a href="chapter4-semantic-segmentation.html" class="nav-button">Chapter 4: Semantic Segmentation →</a>
 </div>
 
     </main>
 
-    
+
     <section class="disclaimer">
         <h3>Disclaimer</h3>
         <ul>
             <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
-            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
-            <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
-            <li>To the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The authors and Tohoku University assume no responsibility for the content, availability, or safety of external links or third-party data, tools, or libraries.</li>
+            <li>To the maximum extent permitted by applicable law, the authors and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
             <li>The content of this material may be changed, updated, or discontinued without notice.</li>
-            <li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+            <li>The copyright and license of this content follow the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
         </ul>
     </section>
 
 <footer>
         <p>&copy; 2025 AI Terakoya. All rights reserved.</p>
-        <p>このコンテンツは教育目的で作成されています。</p>
+        <p>This content is created for educational purposes.</p>
     </footer>
 </body>
 </html>

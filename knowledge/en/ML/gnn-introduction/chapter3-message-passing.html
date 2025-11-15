@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 3 Chapter：メッセージパッシングとGNN - AI Terakoya</title>
-
+<title>Chapter 3: Message Passing and GNN - AI Terakoya</title>
     <style>
         :root {
             --color-primary: #2c3e50;
@@ -161,13 +160,12 @@
 
         <header>
         <div class="header-content">
-            <h1>Chapter 3 Chapter：メッセージパッシングとGNN</h1>
-            <p class="subtitle">一般化されたGNNフレームワーク - GraphSAGE、GIN、PyTorch Geometric実装</p>
+<h1>Chapter 3: Message Passing and GNN</h1>            <p class="subtitle">Generalized GNN Framework - GraphSAGE, GIN, PyTorch Geometric Implementation</p>
             <div class="meta">
                 <span class="meta-item">📖 Reading Time: 25-30 minutes</span>
                 <span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
                 <span class="meta-item">💻 Code Examples: 8</span>
-                <span class="meta-item">📝 Exercises: 5問</span>
+                <span class="meta-item">📝 Exercises: 5</span>
             </div>
         </div>
     </header>
@@ -175,103 +173,101 @@
     <main class="container">
 
 <h2>Learning Objectives</h2>
-<p>この ChapterReadことで、以下を習得できます：</p>
+<p>By reading this chapter, you will master the following:</p>
 <ul>
-<li>✅ メッセージパッシングフレームワークの基本構造（Message、Aggregate、Update）を理解する</li>
-<li>✅ 一般化されたGNN（MPNN）の数学的定式化を習得する</li>
-<li>✅ GraphSAGEのサンプリングベース集約を実装できる</li>
-<li>✅ 各種Aggregator（Mean、Pool、LSTM）の特性を理解する</li>
-<li>✅ GIN（Graph Isomorphism Network）とWL testの関係を理解する</li>
-<li>✅ GNNの識別能力（Expressive Power）を評価できる</li>
-<li>✅ PyTorch Geometricでの効率的な実装方法を習得する</li>
-<li>✅ グラフ classificationタスクの実装とバッチ処理を実装できる</li>
+<li>✅ Understand the basic structure of the message passing framework (Message, Aggregate, Update)</li>
+<li>✅ Master the mathematical formulation of generalized GNN (MPNN)</li>
+<li>✅ Implement GraphSAGE's sampling-based aggregation</li>
+<li>✅ Understand the characteristics of various aggregators (Mean, Pool, LSTM)</li>
+<li>✅ Understand the relationship between GIN (Graph Isomorphism Network) and WL test</li>
+<li>✅ Evaluate the expressive power of GNNs</li>
+<li>✅ Master efficient implementation methods with PyTorch Geometric</li>
+<li>✅ Implement graph classification tasks and batch processing</li>
 </ul>
 
 <hr>
 
-<h2>3.1 メッセージパッシングフレームワーク</h2>
+<h2>3.1 Message Passing Framework</h2>
 
-<h3>メッセージパッシングの概念</h3>
+<h3>Concept of Message Passing</h3>
 
-<p><strong>メッセージパッシング（Message Passing）</strong>は、GNNにおける情報伝播を統一的に記述するフレームワークです。ノード間でメッセージを送受信し、集約することで特徴を更新します。</p>
+<p><strong>Message Passing</strong> is a framework that describes information propagation in GNNs in a unified manner. It updates features by sending and receiving messages between nodes and aggregating them.</p>
 
 <blockquote>
-<p>「メッセージパッシングフレームワークは、あらゆるGNNアーキテクチャを3つの基本操作（Message、Aggregate、Update）で記述する統一的な方法を提供する」</p>
+<p>"The message passing framework provides a unified way to describe any GNN architecture with three basic operations (Message, Aggregate, Update)"</p>
 </blockquote>
 
-<h3>3つの基本操作</h3>
+<h3>Three Basic Operations</h3>
 
-<p>メッセージパッシングは以下の3ステップで構成されます：</p>
+<p>Message passing consists of the following three steps:</p>
 
 <div class="mermaid">
 graph LR
-    A[1. Message<br/>メッセージ生成] --> B[2. Aggregate<br/>メッセージ集約]
-    B --> C[3. Update<br/>特徴更新]
-
+    A[1. Message<br/>Message generation] --> B[2. Aggregate<br/>Message aggregation]
+ B -->C[3. Update<br/>Featureupdate] 
     style A fill:#e3f2fd
     style B fill:#fff3e0
     style C fill:#e8f5e9
 </div>
 
-<h4>ステップ1: Message（メッセージ生成）</h4>
+<h4>Step 1: Message (Message Generation)</h4>
 
-<p>隣接ノードから中心ノードへ送信するメッセージを生成します：</p>
+<p>Generate messages to be sent from neighboring nodes to the center node:</p>
 
 <p>$$
 \mathbf{m}_{j \to i}^{(k)} = \text{MESSAGE}^{(k)}\left(\mathbf{h}_i^{(k-1)}, \mathbf{h}_j^{(k-1)}, \mathbf{e}_{ji}\right)
 $$</p>
 
-<p>ここで：</p>
+<p>Where:</p>
 <ul>
-<li>$\mathbf{m}_{j \to i}^{(k)}$：ノード$j$からノード$i$へのメッセージ</li>
-<li>$\mathbf{h}_i^{(k-1)}$：受信ノード$i$の前層の特徴</li>
-<li>$\mathbf{h}_j^{(k-1)}$：送信ノード$j$の前層の特徴</li>
-<li>$\mathbf{e}_{ji}$：エッジ$(j, i)$の特徴（optional）</li>
+<li>$\mathbf{m}_{j \to i}^{(k)}$: Message from node $j$ to node $i$</li>
+<li>$\mathbf{h}_i^{(k-1)}$: Previous layer features of receiving node $i$</li>
+<li>$\mathbf{h}_j^{(k-1)}$: Previous layer features of sending node $j$</li>
+<li>$\mathbf{e}_{ji}$: Edge $(j, i)$ features (optional)</li>
 </ul>
 
-<h4>ステップ2: Aggregate（メッセージ集約）</h4>
+<h4>Step 2: Aggregate (Message Aggregation)</h4>
 
-<p>受信した全メッセージを集約します：</p>
+<p>Aggregate all received messages:</p>
 
 <p>$$
 \mathbf{m}_i^{(k)} = \text{AGGREGATE}^{(k)}\left(\left\{\mathbf{m}_{j \to i}^{(k)} : j \in \mathcal{N}(i)\right\}\right)
 $$</p>
 
-<p>代表的な集約関数：</p>
+<p>Representative aggregation functions:</p>
 <ul>
 <li><strong>Sum</strong>: $\text{AGGREGATE} = \sum_{j \in \mathcal{N}(i)} \mathbf{m}_{j \to i}$</li>
 <li><strong>Mean</strong>: $\text{AGGREGATE} = \frac{1}{|\mathcal{N}(i)|} \sum_{j \in \mathcal{N}(i)} \mathbf{m}_{j \to i}$</li>
 <li><strong>Max</strong>: $\text{AGGREGATE} = \max_{j \in \mathcal{N}(i)} \mathbf{m}_{j \to i}$</li>
 </ul>
 
-<h4>ステップ3: Update（特徴更新）</h4>
+<h4>Step 3: Update (Feature Update)</h4>
 
-<p>集約されたメッセージと自身の情報を組み合わせて特徴を更新します：</p>
+<p>Update features by combining aggregated messages with own information:</p>
 
 <p>$$
 \mathbf{h}_i^{(k)} = \text{UPDATE}^{(k)}\left(\mathbf{h}_i^{(k-1)}, \mathbf{m}_i^{(k)}\right)
 $$</p>
 
-<h3>メッセージパッシングの可視化</h3>
+<h3>Visualization of Message Passing</h3>
 
 <div class="mermaid">
 graph TB
-    subgraph "ステップ1: Message"
-        N1[ノード v] --> M1[m<sub>1→v</sub>]
-        N2[ノード 1] --> M1
-        N3[ノード 2] --> M2[m<sub>2→v</sub>]
-        N4[ノード 3] --> M3[m<sub>3→v</sub>]
+    subgraph "Step1: Message"
+        N1[Node v] --> M1[m<sub>1→v</sub>]
+        N2[Node 1] --> M1
+        N3[Node 2] --> M2[m<sub>2→v</sub>]
+        N4[Node 3] --> M3[m<sub>3→v</sub>]
     end
 
-    subgraph "ステップ2: Aggregate"
+    subgraph "Step2: Aggregate"
         M1 --> AGG[Σ / Mean / Max]
         M2 --> AGG
         M3 --> AGG
-        AGG --> AM[集約メッセージ]
-    end
+ AGG -->AM[aggregationmessage]     end
 
-    subgraph "ステップ3: Update"
-        N1 --> UPD[UPDATE関数]
+    subgraph "Step3: Update"
+        N1 --> UPD[UPDATE Function]
         AM --> UPD
         UPD --> H[h<sub>v</sub><sup>(k)</sup>]
     end
@@ -284,16 +280,16 @@ graph TB
     style H fill:#c8e6c9
 </div>
 
-<h3>実装例1: 基本的なメッセージパッシング実装</h3>
+<h3>Implementation Example 1: Basic Message Passing Implementation</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-print("=== メッセージパッシングフレームワーク 基本実装 ===\n")
+print("=== Message Passing Framework Basic Implementation ===\n")
 
 class MessagePassingLayer(nn.Module):
-    """基本的なメッセージパッシング層"""
+    """Basic message passing layer"""
 
     def __init__(self, in_dim, out_dim, aggr='mean'):
         super(MessagePassingLayer, self).__init__()
@@ -301,32 +297,28 @@ class MessagePassingLayer(nn.Module):
         self.out_dim = out_dim
         self.aggr = aggr
 
-        # Message関数（線形変換）
-        self.message_nn = nn.Linear(in_dim, out_dim)
+ # Messagefunction（Linear transformation）         self.message_nn = nn.Linear(in_dim, out_dim)
 
-        # Update関数（線形変換 + 活性化）
-        self.update_nn = nn.Sequential(
+ # Updatefunction（Linear transformation + activation）         self.update_nn = nn.Sequential(
             nn.Linear(in_dim + out_dim, out_dim),
             nn.ReLU()
         )
 
     def message(self, h_j):
-        """メッセージ生成"""
+        """Message generation"""
         return self.message_nn(h_j)
 
     def aggregate(self, messages, edge_index, num_nodes):
-        """メッセージ集約"""
-        # edge_index[1]: 受信ノードのインデックス
-        target_nodes = edge_index[1]
+        """Message aggregation"""
+ # edge_index[1]: receiving nodeindex         target_nodes = edge_index[1]
 
-        # 各ノードへのメッセージを集約
-        aggregated = torch.zeros(num_nodes, self.out_dim)
+ # eachNode to messageaggregation         aggregated = torch.zeros(num_nodes, self.out_dim)
 
         if self.aggr == 'sum':
             aggregated.index_add_(0, target_nodes, messages)
         elif self.aggr == 'mean':
             aggregated.index_add_(0, target_nodes, messages)
-            # 次数で正規化
+            # Normalize by degree
             degree = torch.bincount(target_nodes, minlength=num_nodes).float()
             degree = degree.clamp(min=1).view(-1, 1)
             aggregated = aggregated / degree
@@ -340,22 +332,19 @@ class MessagePassingLayer(nn.Module):
         return aggregated
 
     def update(self, h_i, aggregated):
-        """特徴更新"""
-        combined = torch.cat([h_i, aggregated], dim=-1)
+ """Featureupdate"""         combined = torch.cat([h_i, aggregated], dim=-1)
         return self.update_nn(combined)
 
     def forward(self, x, edge_index):
         """
         Args:
-            x: ノード特徴 [num_nodes, in_dim]
-            edge_index: エッジインデックス [2, num_edges]
+            x: NodeFeature [num_nodes, in_dim]
+            edge_index: Edge index [2, num_edges]
         """
         num_nodes = x.size(0)
 
         # Step 1: Message
-        # edge_index[0]: 送信ノード
-        h_j = x[edge_index[0]]  # 送信ノードの特徴
-        messages = self.message(h_j)
+ # edge_index[0]: sending node  h_j = x[edge_index[0]] # sending nodeFeature         messages = self.message(h_j)
 
         # Step 2: Aggregate
         aggregated = self.aggregate(messages, edge_index, num_nodes)
@@ -366,78 +355,70 @@ class MessagePassingLayer(nn.Module):
         return h_new
 
 
-# テスト実行
-print("--- テストグラフの作成 ---")
-# 5ノードのグラフ
-num_nodes = 5
+# test execution print("--- Creating Test Graph ---")
+# 5NodeGraph num_nodes = 5
 in_dim = 4
 out_dim = 8
 
-# ノード特徴（ランダム初期化）
-x = torch.randn(num_nodes, in_dim)
-print(f"ノード特徴形状: {x.shape}")
+# NodeFeature（randomly initialized） x = torch.randn(num_nodes, in_dim)
+print(f"Node feature shape: {x.shape}")
 
-# エッジリスト（0→1, 1→2, 2→3, 3→4, 1→3）
-edge_index = torch.tensor([
-    [0, 1, 2, 3, 1],  # 送信ノード
-    [1, 2, 3, 4, 3]   # 受信ノード
-], dtype=torch.long)
-print(f"エッジインデックス形状: {edge_index.shape}")
-print(f"エッジ数: {edge_index.size(1)}\n")
+# edge list（0→1, 1→2, 2→3, 3→4, 1→3） edge_index = torch.tensor([
+ [0, 1, 2, 3, 1], # sending node  [1, 2, 3, 4, 3] # receiving node ], dtype=torch.long)
+print(f"Edge index shape: {edge_index.shape}")
+print(f"Number of edges: {edge_index.size(1)}\n")
 
-# メッセージパッシング層の作成と実行
-print("--- 各集約方法でのメッセージパッシング ---")
+# creating and executing message passing layer print("--- Message Passing with Each Aggregation Method ---")
 for aggr in ['sum', 'mean', 'max']:
-    print(f"\n{aggr.upper()} 集約:")
+    print(f"\n{aggr.upper()} Aggregation:")
     mp_layer = MessagePassingLayer(in_dim, out_dim, aggr=aggr)
     h_new = mp_layer(x, edge_index)
-    print(f"  出力形状: {h_new.shape}")
-    print(f"  出力値の範囲: [{h_new.min():.3f}, {h_new.max():.3f}]")
-    print(f"  各ノードの出力例:")
+    print(f"  Output shape: {h_new.shape}")
+    print(f"  Output value range: [{h_new.min():.3f}, {h_new.max():.3f}]")
+    print(f"  Output examples for each node:")
     for i in range(min(3, num_nodes)):
-        print(f"    ノード{i}: 平均={h_new[i].mean():.3f}, 標準偏差={h_new[i].std():.3f}")
+        print(f"    Node{i}: mean={h_new[i].mean():.3f}, std={h_new[i].std():.3f}")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>=== メッセージパッシングフレームワーク 基本実装 ===
+<p><strong>Output</strong>：</p><pre><code>=== Message Passing Framework Basic Implementation ===
 
---- テストグラフの作成 ---
-ノード特徴形状: torch.Size([5, 4])
-エッジインデックス形状: torch.Size([2, 5])
-エッジ数: 5
+--- Creating Test Graph ---
+Node feature shape: torch.Size([5, 4])
+Edge index shape: torch.Size([2, 5])
+Number of edges: 5
 
---- 各集約方法でのメッセージパッシング ---
+--- Message Passing with Each Aggregation Method ---
 
-SUM 集約:
-  出力形状: torch.Size([5, 8])
-  出力値の範囲: [-1.234, 2.456]
-  各ノードの出力例:
-    ノード0: 平均=0.123, 標準偏差=0.876
-    ノード1: 平均=0.234, 標準偏差=0.945
-    ノード2: 平均=-0.089, 標準偏差=0.823
+SUM Aggregation:
+  Output shape: torch.Size([5, 8])
+  Output value range: [-1.234, 2.456]
+  Output examples for each node:
+    Node0: mean=0.123, std=0.876
+    Node1: mean=0.234, std=0.945
+    Node2: mean=-0.089, std=0.823
 
-MEAN 集約:
-  出力形状: torch.Size([5, 8])
-  出力値の範囲: [-0.987, 1.876]
-  各ノードの出力例:
-    ノード0: 平均=0.098, 標準偏差=0.734
-    ノード1: 平均=0.187, 標準偏差=0.812
-    ノード2: 平均=-0.045, 標準偏差=0.698
+MEAN Aggregation:
+  Output shape: torch.Size([5, 8])
+  Output value range: [-0.987, 1.876]
+  Output examples for each node:
+    Node0: mean=0.098, std=0.734
+    Node1: mean=0.187, std=0.812
+    Node2: mean=-0.045, std=0.698
 
-MAX 集約:
-  出力形状: torch.Size([5, 8])
-  出力値の範囲: [-0.756, 2.123]
-  各ノードの出力例:
-    ノード0: 平均=0.156, 標準偏差=0.923
-    ノード1: 平均=0.267, 標準偏差=1.012
-    ノード2: 平均=0.034, 標準偏差=0.876
+MAX Aggregation:
+  Output shape: torch.Size([5, 8])
+  Output value range: [-0.756, 2.123]
+  Output examples for each node:
+    Node0: mean=0.156, std=0.923
+    Node1: mean=0.267, std=1.012
+    Node2: mean=0.034, std=0.876
 </code></pre>
 
-<h3>一般化されたGNN（MPNN）</h3>
+<h3>Generalized GNN (MPNN)</h3>
 
-<p><strong>Message Passing Neural Network (MPNN)</strong>は、多くのGNNアーキテクチャを統一的に記述するフレームワークです。</p>
+<p><strong>Message Passing Neural Network (MPNN)</strong> is a framework that describes many GNN architectures in a unified manner.</p>
 
-<p>MPNNの一般形式：</p>
+<p>General form of MPNN:</p>
 
 <p>$$
 \begin{align}
@@ -446,14 +427,14 @@ MAX 集約:
 \end{align}
 $$</p>
 
-<p>代表的なGNNのMPNN表現：</p>
+<p>MPNN representation of representative GNNs:</p>
 
 <table>
 <thead>
 <tr>
-<th>モデル</th>
-<th>MESSAGE関数 $M_k$</th>
-<th>UPDATE関数 $U_k$</th>
+<th>Model</th>
+<th>MESSAGE Function $M_k$</th>
+<th>UPDATE Function $U_k$</th>
 </tr>
 </thead>
 <tbody>
@@ -484,41 +465,37 @@ $$</p>
 
 <h2>3.2 GraphSAGE</h2>
 
-<h3>GraphSAGEの概要</h3>
+<h3>Overview of GraphSAGE</h3>
 
-<p><strong>GraphSAGE (SAmple and aggreGatE)</strong>は、大規模グラフに対応したサンプリングベースのGNNです。全近傍ではなく、固定数の近傍をサンプリングして集約します。</p>
+<p><strong>GraphSAGE (SAmple and aggreGatE)</strong> is a sampling-based GNN for large-scale graphs. Instead of using all neighbors, it samples and aggregates a fixed number of neighbors.</p>
 
 <blockquote>
-<p>「GraphSAGEは、近傍をサンプリングすることで、ミニバッチ学習を可能にし、大規模グラフへのスケーラビリティを実現する」</p>
+<p>"GraphSAGE enables mini-batch learning by sampling neighbors, achieving scalability to large-scale graphs"</p>
 </blockquote>
 
-<h3>サンプリングベースの集約</h3>
+<h3>Sampling-Based Aggregation</h3>
 
-<p>GraphSAGEの特徴：</p>
+<p>Features of GraphSAGE:</p>
 <ol>
-<li><strong>近傍サンプリング</strong>：各ノードの近傍から固定数をランダムサンプリング</li>
-<li><strong>多様なAggregator</strong>：Mean、Pool、LSTMなどの集約関数</li>
-<li><strong>Inductive学習</strong>：訓練時に見ていないノードにも適用可能</li>
-</ol>
+<li><strong>Neighbor sampling</strong>：randomly sampling fixed number of neighbors from each node</li><li><strong>Various Aggregators</strong>: Aggregation functions such as Mean, Pool, LSTM</li>
+<li><strong>Inductive learning</strong>：can apply to nodes not seen during training</li></ol>
 
 <div class="mermaid">
 graph TB
-    subgraph "標準GNN（全近傍）"
-        V1[中心ノード] --> N1[近傍1]
-        V1 --> N2[近傍2]
-        V1 --> N3[近傍3]
-        V1 --> N4[近傍4]
-        V1 --> N5[近傍5]
-        V1 --> N6[近傍6]
+    subgraph "Standard GNN (All Neighbors)"
+ V1[centerNode] -->N1[Neighbor1]         V1 --> N2[Neighbor2]
+        V1 --> N3[Neighbor3]
+        V1 --> N4[Neighbor4]
+        V1 --> N5[Neighbor5]
+        V1 --> N6[Neighbor6]
     end
 
-    subgraph "GraphSAGE（サンプリング）"
-        V2[中心ノード] --> S1[サンプル1]
-        V2 --> S2[サンプル2]
-        V2 --> S3[サンプル3]
-        N7[近傍4] -.x.- V2
-        N8[近傍5] -.x.- V2
-        N9[近傍6] -.x.- V2
+    subgraph "GraphSAGE (Sampling)"
+ V2[centerNode] -->S1[Sample1]         V2 --> S2[Sample2]
+        V2 --> S3[Sample3]
+        N7[Neighbor4] -.x.- V2
+        N8[Neighbor5] -.x.- V2
+        N9[Neighbor6] -.x.- V2
     end
 
     style V1 fill:#fff3e0
@@ -528,9 +505,9 @@ graph TB
     style S3 fill:#e3f2fd
 </div>
 
-<h3>GraphSAGEアルゴリズム</h3>
+<h3>GraphSAGE Algorithm</h3>
 
-<p>GraphSAGEの更新式：</p>
+<p>Update equations for GraphSAGE:</p>
 
 <p>$$
 \begin{align}
@@ -540,14 +517,13 @@ graph TB
 \end{align}
 $$</p>
 
-<p>ここで：</p>
+<p>Where:</p>
 <ul>
-<li>$\mathcal{S}_{\mathcal{N}(i)}$：ノード$i$の近傍からサンプリングされた部 minutes集合</li>
-<li>$\|$：特徴の連結（concatenation）</li>
-<li>最終行：L2正規化</li>
+<li>$\mathcal{S}_{\mathcal{N}(i)}$：Node$i$Neighbor from samplingpartset</li><li>$\|$: Feature concatenation</li>
+<li>Final line: L2 normalization</li>
 </ul>
 
-<h3>各種Aggregator</h3>
+<h3>Various Aggregators</h3>
 
 <h4>1. Mean Aggregator</h4>
 
@@ -555,7 +531,7 @@ $$</p>
 \text{AGGREGATE}_{\text{mean}} = \frac{1}{|\mathcal{S}_{\mathcal{N}(i)}|} \sum_{j \in \mathcal{S}_{\mathcal{N}(i)}} \mathbf{h}_j^{(k-1)}
 $$</p>
 
-<p>特徴：シンプルで効率的、GCNに近い動作</p>
+<p>Feature: Simple and efficient, behaves similar to GCN</p>
 
 <h4>2. Pool Aggregator</h4>
 
@@ -563,7 +539,7 @@ $$</p>
 \text{AGGREGATE}_{\text{pool}} = \max\left(\left\{\sigma\left(\mathbf{W}_{\text{pool}} \mathbf{h}_j^{(k-1)} + \mathbf{b}\right), \forall j \in \mathcal{S}_{\mathcal{N}(i)}\right\}\right)
 $$</p>
 
-<p>特徴：要素ごとのmax-pooling、非対称な近傍情報を捉える</p>
+<p>Feature: Element-wise max-pooling, captures asymmetric neighbor information</p>
 
 <h4>3. LSTM Aggregator</h4>
 
@@ -571,18 +547,18 @@ $$</p>
 \text{AGGREGATE}_{\text{LSTM}} = \text{LSTM}\left(\left[\mathbf{h}_j^{(k-1)}, \forall j \in \pi(\mathcal{S}_{\mathcal{N}(i)})\right]\right)
 $$</p>
 
-<p>ここで$\pi$はランダム順列。特徴：表現力が高いが、順列依存性に注意が必要</p>
+<p>Where $\pi$ is a random permutation. Feature: High expressive power but requires attention to permutation dependency</p>
 
-<h3>実装例2: GraphSAGE実装</h3>
+<h3>Implementation Example 2: GraphSAGE Implementation</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-print("\n=== GraphSAGE 実装 ===\n")
+print("\n=== GraphSAGE Implementation ===\n")
 
 class SAGEConv(nn.Module):
-    """GraphSAGE層"""
+    """GraphSAGE layer"""
 
     def __init__(self, in_dim, out_dim, aggr='mean'):
         super(SAGEConv, self).__init__()
@@ -590,8 +566,7 @@ class SAGEConv(nn.Module):
         self.out_dim = out_dim
         self.aggr = aggr
 
-        # 線形変換（自身の特徴 + 近傍の特徴を連結後）
-        if aggr == 'lstm':
+ # Linear transformation（ownFeature + NeighborFeatureconcatenationafter）         if aggr == 'lstm':
             self.lstm = nn.LSTM(in_dim, in_dim, batch_first=True)
             self.lin = nn.Linear(2 * in_dim, out_dim)
         elif aggr == 'pool':
@@ -601,7 +576,7 @@ class SAGEConv(nn.Module):
             self.lin = nn.Linear(2 * in_dim, out_dim)
 
     def aggregate_mean(self, h_neighbors, edge_index, num_nodes):
-        """Mean集約"""
+        """Mean aggregation"""
         target_nodes = edge_index[1]
         aggregated = torch.zeros(num_nodes, self.in_dim)
 
@@ -612,11 +587,10 @@ class SAGEConv(nn.Module):
         return aggregated / degree
 
     def aggregate_pool(self, h_neighbors, edge_index, num_nodes):
-        """Max-pooling集約"""
+        """Max-pooling aggregation"""
         target_nodes = edge_index[1]
 
-        # 各近傍特徴を変換
-        transformed = torch.relu(self.pool_nn(h_neighbors))
+ # eachNeighborFeaturetransformation         transformed = torch.relu(self.pool_nn(h_neighbors))
 
         # Max-pooling
         aggregated = torch.zeros(num_nodes, self.in_dim)
@@ -628,15 +602,14 @@ class SAGEConv(nn.Module):
         return aggregated
 
     def aggregate_lstm(self, h_neighbors, edge_index, num_nodes):
-        """LSTM集約"""
+        """LSTM aggregation"""
         target_nodes = edge_index[1]
         aggregated = torch.zeros(num_nodes, self.in_dim)
 
         for i in range(num_nodes):
             mask = (target_nodes == i)
             if mask.any():
-                # ランダム順列でLSTMに入力
-                neighbors = h_neighbors[mask]
+ # input to LSTM in random order                 neighbors = h_neighbors[mask]
                 perm = torch.randperm(neighbors.size(0))
                 neighbors = neighbors[perm].unsqueeze(0)
 
@@ -648,52 +621,45 @@ class SAGEConv(nn.Module):
     def forward(self, x, edge_index):
         num_nodes = x.size(0)
 
-        # 近傍特徴の取得
-        h_neighbors = x[edge_index[0]]
+ # Get neighbor features         h_neighbors = x[edge_index[0]]
 
-        # 集約
-        if self.aggr == 'mean':
+ # aggregation         if self.aggr == 'mean':
             h_neigh = self.aggregate_mean(h_neighbors, edge_index, num_nodes)
         elif self.aggr == 'pool':
             h_neigh = self.aggregate_pool(h_neighbors, edge_index, num_nodes)
         elif self.aggr == 'lstm':
             h_neigh = self.aggregate_lstm(h_neighbors, edge_index, num_nodes)
 
-        # 自身の特徴と連結
-        h_concat = torch.cat([x, h_neigh], dim=-1)
+ # ownFeature and concatenation         h_concat = torch.cat([x, h_neigh], dim=-1)
 
-        # 線形変換
+        # Linear transformation
         out = self.lin(h_concat)
 
-        # L2正規化
-        out = F.normalize(out, p=2, dim=-1)
+ # L2normalization         out = F.normalize(out, p=2, dim=-1)
 
         return out
 
 
 class GraphSAGE(nn.Module):
-    """GraphSAGEモデル（2層）"""
-
+ """GraphSAGEModel（2layer）""" 
     def __init__(self, in_dim, hidden_dim, out_dim, aggr='mean'):
         super(GraphSAGE, self).__init__()
         self.conv1 = SAGEConv(in_dim, hidden_dim, aggr)
         self.conv2 = SAGEConv(hidden_dim, out_dim, aggr)
 
     def forward(self, x, edge_index):
-        # Chapter 1層
+        # Layer 1
         h = self.conv1(x, edge_index)
         h = F.relu(h)
         h = F.dropout(h, p=0.5, training=self.training)
 
-        # Chapter 2層
+        # Layer 2
         h = self.conv2(h, edge_index)
 
         return h
 
 
-# テスト実行
-print("--- GraphSAGEモデルの作成 ---")
-num_nodes = 10
+# test execution print("--- Creating GraphSAGE Model ---") num_nodes = 10
 in_dim = 8
 hidden_dim = 16
 out_dim = 4
@@ -704,13 +670,11 @@ edge_index = torch.tensor([
     [1, 2, 3, 4, 5, 0, 1, 6, 7, 8]
 ], dtype=torch.long)
 
-print(f"ノード数: {num_nodes}")
-print(f"入力次元: {in_dim}")
-print(f"隠れ層次元: {hidden_dim}")
-print(f"出力次元: {out_dim}\n")
+print(f"Number of nodes: {num_nodes}") print(f"Input dimension: {in_dim}")
+print(f"Hidden layer dimension: {hidden_dim}")
+print(f"Output dimension: {out_dim}\n")
 
-# 各Aggregatorでテスト
-for aggr in ['mean', 'pool', 'lstm']:
+# eachAggregatortest for aggr in ['mean', 'pool', 'lstm']:
     print(f"--- {aggr.upper()} Aggregator ---")
     model = GraphSAGE(in_dim, hidden_dim, out_dim, aggr=aggr)
     model.eval()
@@ -718,76 +682,71 @@ for aggr in ['mean', 'pool', 'lstm']:
     with torch.no_grad():
         out = model(x, edge_index)
 
-    print(f"出力形状: {out.shape}")
-    print(f"出力L2ノルム: {out.norm(dim=-1)[:5].numpy()}")
-    print(f"出力値の範囲: [{out.min():.3f}, {out.max():.3f}]\n")
+    print(f"Output shape: {out.shape}")
+    print(f"Output L2 norm: {out.norm(dim=-1)[:5].numpy()}")
+    print(f"Output value range: [{out.min():.3f}, {out.max():.3f}]\n")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>
-=== GraphSAGE 実装 ===
+<p><strong>Output</strong>：</p><pre><code>
+=== GraphSAGE Implementation ===
 
---- GraphSAGEモデルの作成 ---
-ノード数: 10
-入力次元: 8
-隠れ層次元: 16
-出力次元: 4
+--- Creating GraphSAGE Model --- Number of nodes: 10 Input dimension: 8
+Hidden layer dimension: 16
+Output dimension: 4
 
 --- MEAN Aggregator ---
-出力形状: torch.Size([10, 4])
-出力L2ノルム: [1. 1. 1. 1. 1.]
-出力値の範囲: [-0.876, 0.923]
+Output shape: torch.Size([10, 4])
+Output L2 norm: [1. 1. 1. 1. 1.]
+Output value range: [-0.876, 0.923]
 
 --- POOL Aggregator ---
-出力形状: torch.Size([10, 4])
-出力L2ノルム: [1. 1. 1. 1. 1.]
-出力値の範囲: [-0.845, 0.891]
+Output shape: torch.Size([10, 4])
+Output L2 norm: [1. 1. 1. 1. 1.]
+Output value range: [-0.845, 0.891]
 
 --- LSTM Aggregator ---
-出力形状: torch.Size([10, 4])
-出力L2ノルム: [1. 1. 1. 1. 1.]
-出力値の範囲: [-0.912, 0.867]
+Output shape: torch.Size([10, 4])
+Output L2 norm: [1. 1. 1. 1. 1.]
+Output value range: [-0.912, 0.867]
 </code></pre>
 
 <hr>
 
 <h2>3.3 Graph Isomorphism Network (GIN)</h2>
 
-<h3>GINの動機：識別能力の向上</h3>
+<h3>Motivation for GIN: Improving Discriminative Power</h3>
 
-<p><strong>Graph Isomorphism Network (GIN)</strong>は、Weisfeiler-Lehman (WL) testと同等の識別能力を持つように設計されたGNNです。</p>
+<p><strong>Graph Isomorphism Network (GIN)</strong> is a GNN designed to have discriminative power equivalent to the Weisfeiler-Lehman (WL) test.</p>
 
 <blockquote>
-<p>「GINは、GNNが理論的に達成可能な最大の識別能力を持つ。つまり、GINで区別できないグラフは、WL testでも区別できない」</p>
+<p>"GIN has the maximum discriminative power theoretically achievable by GNNs. That is, graphs that GIN cannot distinguish cannot be distinguished by the WL test either"</p>
 </blockquote>
 
 <h3>Weisfeiler-Lehman (WL) Test</h3>
 
-<p><strong>WL test</strong>は、グラフ同型性を判定するヒューリスティックアルゴリズムです。多くの場合、グラフの同型性を効率的に判定できます。</p>
+<p><strong>WL test</strong> is a heuristic algorithm for determining graph isomorphism. It can efficiently determine graph isomorphism in many cases.</p>
 
-<p>WL testのアルゴリズム：</p>
+<p>WL test algorithm:</p>
 <ol>
-<li>各ノードに初期ラベルを割り当て</li>
-<li>各ノードのラベルを、自身のラベルと近傍のラベルの多重集合で更新</li>
-<li>ラベルをハッシュ化して新しいラベルとする</li>
-<li>収束するまで繰り返す</li>
+<li>assign initial labels to each node</li><li>for each node label, update with own label and neighbor labels multiple set</li><li>Hash the labels to create new labels</li>
+<li>Repeat until convergence</li>
 </ol>
 
 <div class="mermaid">
 graph TB
-    subgraph "反復1"
+    subgraph "Iteration1"
         A1[1] --- B1[1]
         A1 --- C1[1]
         B1 --- C1
     end
 
-    subgraph "反復2"
+    subgraph "Iteration2"
         A2[2] --- B2[3]
         A2 --- C2[3]
         B2 --- C2[2]
     end
 
-    subgraph "反復3"
+    subgraph "Iteration3"
         A3[4] --- B3[5]
         A3 --- C3[5]
         B3 --- C3[4]
@@ -802,24 +761,24 @@ graph TB
     style A3 fill:#e8f5e9
 </div>
 
-<h3>GINの定式化</h3>
+<h3>Formulation of GIN</h3>
 
-<p>GINの更新式：</p>
+<p>Update equation for GIN:</p>
 
 <p>$$
 \mathbf{h}_i^{(k)} = \text{MLP}^{(k)}\left(\left(1 + \epsilon^{(k)}\right) \cdot \mathbf{h}_i^{(k-1)} + \sum_{j \in \mathcal{N}(i)} \mathbf{h}_j^{(k-1)}\right)
 $$</p>
 
-<p>重要なポイント：</p>
+<p>Important points:</p>
 <ul>
-<li><strong>Sum集約</strong>：多重集合を保持できる唯一の単射的集約関数</li>
-<li><strong>$(1 + \epsilon)$係数</strong>：自身の特徴と近傍の特徴を区別</li>
-<li><strong>MLP</strong>：十 minutesな表現力を持つ更新関数</li>
+<li><strong>Sum aggregation</strong>: The only injective aggregation function that can preserve multisets</li>
+<li><strong>$(1 + \epsilon)$ coefficient</strong>: Distinguishes between own features and neighbor features</li>
+<li><strong>MLP</strong>: Update function with sufficient expressive power</li>
 </ul>
 
-<h3>なぜGINが最も識別能力が高いのか</h3>
+<h3>Why GIN Has the Highest Discriminative Power</h3>
 
-<p>GNNの識別能力は、以下の順序関係があります：</p>
+<p>The discriminative power of GNNs has the following order:</p>
 
 <p>$$
 \text{Sum} > \text{Mean} > \text{Max}
@@ -828,52 +787,49 @@ $$</p>
 <table>
 <thead>
 <tr>
-<th>集約関数</th>
-<th>多重集合の保持</th>
-<th>例</th>
+<th>Aggregation Function</th>
+<th>Multiset Preservation</th>
+<th>Example</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><strong>Sum</strong></td>
-<td>✅ 単射的（多重度を保持）</td>
+<td>✅ Injective (preserves multiplicity)</td>
 <td>$\{1, 1, 2\} \to 4 \neq 3 \leftarrow \{1, 2\}$</td>
 </tr>
 <tr>
 <td><strong>Mean</strong></td>
-<td>❌ 情報損失あり</td>
+<td>❌ Information loss</td>
 <td>$\{1, 1, 2\} \to 1.33 \neq 1.5 \leftarrow \{1, 2\}$</td>
 </tr>
 <tr>
 <td><strong>Max</strong></td>
-<td>❌ 最大値のみ保持</td>
+<td>❌ Preserves only maximum value</td>
 <td>$\{1, 1, 2\} \to 2 = 2 \leftarrow \{1, 2\}$ ⚠️</td>
 </tr>
 </tbody>
 </table>
 
-<h3>実装例3: GIN実装</h3>
-
+<h3>Implementation Example3: GINimplementation</h3>
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-print("\n=== Graph Isomorphism Network (GIN) 実装 ===\n")
+print("\n=== Graph Isomorphism Network (GIN) Implementation ===\n")
 
 class GINConv(nn.Module):
-    """GIN層"""
+    """GIN layer"""
 
     def __init__(self, in_dim, out_dim, epsilon=0.0, train_eps=False):
         super(GINConv, self).__init__()
 
-        # Epsilon（学習可能にするオプション）
-        if train_eps:
+ # Epsilon（learnable option）         if train_eps:
             self.epsilon = nn.Parameter(torch.Tensor([epsilon]))
         else:
             self.register_buffer('epsilon', torch.Tensor([epsilon]))
 
-        # MLP (2層)
-        self.mlp = nn.Sequential(
+ # MLP (2layer)         self.mlp = nn.Sequential(
             nn.Linear(in_dim, 2 * out_dim),
             nn.BatchNorm1d(2 * out_dim),
             nn.ReLU(),
@@ -883,8 +839,7 @@ class GINConv(nn.Module):
     def forward(self, x, edge_index):
         num_nodes = x.size(0)
 
-        # Sum集約
-        h_neighbors = x[edge_index[0]]
+ # Sum aggregation         h_neighbors = x[edge_index[0]]
         target_nodes = edge_index[1]
 
         aggregated = torch.zeros_like(x)
@@ -893,15 +848,13 @@ class GINConv(nn.Module):
         # (1 + epsilon) * h_i + sum(h_j)
         out = (1 + self.epsilon) * x + aggregated
 
-        # MLP適用
-        out = self.mlp(out)
+ # MLPapply         out = self.mlp(out)
 
         return out
 
 
 class GIN(nn.Module):
-    """GINモデル（グラフ classification用）"""
-
+ """GINModel（Graphclassificationfor）""" 
     def __init__(self, in_dim, hidden_dim, out_dim, num_layers=3,
                  dropout=0.5, train_eps=False):
         super(GIN, self).__init__()
@@ -909,104 +862,85 @@ class GIN(nn.Module):
         self.num_layers = num_layers
         self.dropout = dropout
 
-        # GIN層
+        # GIN layer
         self.convs = nn.ModuleList()
         self.batch_norms = nn.ModuleList()
 
-        # Chapter 1層
+        # Layer 1
         self.convs.append(GINConv(in_dim, hidden_dim, train_eps=train_eps))
         self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
 
-        # 中間層
+        # Middle layers
         for _ in range(num_layers - 2):
             self.convs.append(GINConv(hidden_dim, hidden_dim, train_eps=train_eps))
             self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
 
-        # 最終層
+        # Final layer
         self.convs.append(GINConv(hidden_dim, hidden_dim, train_eps=train_eps))
         self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
 
-        # グラフLevel classification用
-        self.graph_pred_linear = nn.Linear(hidden_dim, out_dim)
+ # Graphlevelclassificationfor         self.graph_pred_linear = nn.Linear(hidden_dim, out_dim)
 
     def forward(self, x, edge_index, batch=None):
-        # ノードLevelの更新
-        h = x
+ # Nodelevelupdate         h = x
         for i in range(self.num_layers):
             h = self.convs[i](h, edge_index)
             h = self.batch_norms[i](h)
             h = F.relu(h)
             h = F.dropout(h, p=self.dropout, training=self.training)
 
-        # グラフLevelのpooling（平均）
-        if batch is None:
-            # 単一グラフの場合
-            h_graph = h.mean(dim=0, keepdim=True)
+ # Graph-level pooling（mean）         if batch is None:
+ # singleGraphcase             h_graph = h.mean(dim=0, keepdim=True)
         else:
-            # バッチグラフの場合
-            num_graphs = batch.max().item() + 1
+ # batchGraphcase             num_graphs = batch.max().item() + 1
             h_graph = torch.zeros(num_graphs, h.size(1))
             for i in range(num_graphs):
                 mask = (batch == i)
                 h_graph[i] = h[mask].mean(dim=0)
 
-        #  classification
-        out = self.graph_pred_linear(h_graph)
+ # classification         out = self.graph_pred_linear(h_graph)
 
         return out
 
 
-# テスト実行
-print("--- GINモデルの作成 ---")
-in_dim = 10
+# test execution print("--- Creating GIN Model ---") in_dim = 10
 hidden_dim = 32
-out_dim = 5  # 5クラス classification
-num_layers = 3
+out_dim = 5 # 5Classclassification num_layers = 3
 
 model = GIN(in_dim, hidden_dim, out_dim, num_layers, train_eps=True)
-print(f"モデル構造:\n{model}\n")
-
-# 単一グラフでのテスト
-num_nodes = 20
+print(f"Modelstructure:\n{model}\n") 
+# singleGraphtest num_nodes = 20
 x = torch.randn(num_nodes, in_dim)
 edge_index = torch.randint(0, num_nodes, (2, 50))
 
-print("--- 単一グラフでの推論 ---")
+print("--- Inference on Single Graph ---")
 model.eval()
 with torch.no_grad():
     out = model(x, edge_index)
 
-print(f"入力ノード数: {num_nodes}")
-print(f"入力特徴次元: {in_dim}")
-print(f"出力形状: {out.shape}")
-print(f"出力（ロジット）: {out[0].numpy()}\n")
+print(f"Input number of nodes: {num_nodes}") print(f"Input feature dimension: {in_dim}")
+print(f"Output shape: {out.shape}")
+print(f"Output (logits): {out[0].numpy()}\n")
 
-# バッチグラフでのテスト
-print("--- バッチグラフでの推論 ---")
-# 3つのグラフをバッチ処理
-x_batch = torch.randn(50, in_dim)  # 合計50ノード
-edge_index_batch = torch.randint(0, 50, (2, 100))
-batch = torch.tensor([0]*15 + [1]*20 + [2]*15)  # グラフ1: 15ノード, グラフ2: 20ノード, グラフ3: 15ノード
+# batchGraphtest print("--- Inference on Batch Graphs ---")
+# 3 graphsbatch processing x_batch = torch.randn(50, in_dim) # sum50Node edge_index_batch = torch.randint(0, 50, (2, 100))
+batch = torch.tensor([0]*15 + [1]*20 + [2]*15)  # Graph1: 15Node, Graph2: 20Node, Graph3: 15Node
 
 with torch.no_grad():
     out_batch = model(x_batch, edge_index_batch, batch)
 
-print(f"バッチサイズ: 3")
-print(f"総ノード数: {x_batch.size(0)}")
-print(f"出力形状: {out_batch.shape}")
-print(f"各グラフの予測:")
+print(f"Batch size: 3")
+print(f"Total number of nodes: {x_batch.size(0)}") print(f"Output shape: {out_batch.shape}")
+print(f"Predictions for each graph:")
 for i in range(3):
     pred_class = out_batch[i].argmax().item()
-    print(f"  グラフ{i+1}: クラス {pred_class} (スコア={out_batch[i, pred_class]:.3f})")
+    print(f"  Graph{i+1}: Class {pred_class} (score={out_batch[i, pred_class]:.3f})")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>
-=== Graph Isomorphism Network (GIN) 実装 ===
+<p><strong>Output</strong>：</p><pre><code>
+=== Graph Isomorphism Network (GIN) Implementation ===
 
---- GINモデルの作成 ---
-モデル構造:
-GIN(
+--- Creating GIN Model --- Modelstructure: GIN(
   (convs): ModuleList(
     (0-2): 3 x GINConv(...)
   )
@@ -1016,35 +950,32 @@ GIN(
   (graph_pred_linear): Linear(in_features=32, out_features=5, bias=True)
 )
 
---- 単一グラフでの推論 ---
-入力ノード数: 20
-入力特徴次元: 10
-出力形状: torch.Size([1, 5])
-出力（ロジット）: [-0.234  0.567  0.123 -0.456  0.891]
+--- Inference on Single Graph ---
+Input number of nodes: 20 Input feature dimension: 10
+Output shape: torch.Size([1, 5])
+Output (logits): [-0.234  0.567  0.123 -0.456  0.891]
 
---- バッチグラフでの推論 ---
-バッチサイズ: 3
-総ノード数: 50
-出力形状: torch.Size([3, 5])
-各グラフの予測:
-  グラフ1: クラス 4 (スコア=0.723)
-  グラフ2: クラス 1 (スコア=0.845)
-  グラフ3: クラス 3 (スコア=0.612)
+--- Inference on Batch Graphs ---
+Batch size: 3
+Total number of nodes: 50 Output shape: torch.Size([3, 5])
+Predictions for each graph:
+  Graph1: Class 4 (score=0.723)
+  Graph2: Class 1 (score=0.845)
+  Graph3: Class 3 (score=0.612)
 </code></pre>
 
-<h3>GINとGCNの識別能力の比較</h3>
+<h3>Comparing Discriminative Power of GIN and GCN</h3>
 
-<p>以下は、GINとGCNが区別できるグラフの例です：</p>
-
+<p>following examples show graphs that GIN and GCN can distinguish：</p>
 <div class="mermaid">
 graph LR
-    subgraph "グラフA"
+    subgraph "GraphA"
         A1((1)) --- A2((2))
         A2 --- A3((3))
         A3 --- A1
     end
 
-    subgraph "グラフB"
+    subgraph "GraphB"
         B1((1)) --- B2((2))
         B2 --- B3((3))
         B3 --- B4((4))
@@ -1060,109 +991,96 @@ graph LR
     style B4 fill:#fff3e0
 </div>
 
-<p>結果：</p>
+<p>Results:</p>
 <ul>
-<li><strong>GIN</strong>：✅ グラフAとBを区別可能（ノード数が異なる）</li>
-<li><strong>GCN (Mean集約)</strong>：✅ グラフAとBを区別可能</li>
-</ul>
+<li><strong>GIN</strong>：✅ can distinguish Graph A and B（Number of nodesdifferent）</li><li><strong>GCN (Mean aggregation)</strong>：✅ can distinguish Graph A and B</li></ul>
 
-<p>より難しい例（同じノード数、次数 minutes布）：</p>
-
+<p>more difficult examples（same number of nodes, same degree distribution）：</p>
 <table>
 <thead>
 <tr>
-<th>モデル</th>
-<th>識別能力</th>
-<th>理由</th>
+<th>Model</th>
+<th>Discriminative Power</th>
+<th>Reason</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><strong>GIN</strong></td>
-<td>WL testと同等</td>
-<td>Sum集約 + MLPで多重集合を保持</td>
+<td>Equivalent to WL test</td>
+<td>Sum aggregation + MLP preserves multisets</td>
 </tr>
 <tr>
 <td><strong>GCN</strong></td>
-<td>WL testより弱い</td>
-<td>Mean集約で多重度情報が失われる</td>
+<td>Weaker than WL test</td>
+<td>Mean aggregation loses multiplicity information</td>
 </tr>
 <tr>
 <td><strong>GAT</strong></td>
-<td>WL testより弱い</td>
-<td>Attention重みで情報が平滑化される</td>
+<td>Weaker than WL test</td>
+<td>Information is smoothed by attention weights</td>
 </tr>
 </tbody>
 </table>
 
 <hr>
 
-<h2>3.4 PyTorch Geometricでの実装</h2>
+<h2>3.4 Implementation with PyTorch Geometric</h2>
 
-<h3>PyTorch Geometric (PyG) とは</h3>
+<h3>What is PyTorch Geometric (PyG)</h3>
 
-<p><strong>PyTorch Geometric</strong>は、Graph Neural Networks専用のPyTorchライブラリです。効率的なメッセージパッシング、豊富な事前実装レイヤー、データローダーを提供します。</p>
-
-<h3>PyGの主要コンポーネント</h3>
+<p><strong>PyTorch Geometric</strong>、PyTorch library specialized for Graph Neural Networks。efficient message passing、rich pre-implemented layers、provides data loaders。</p>
+<h3>Key Components of PyG</h3>
 
 <table>
 <thead>
 <tr>
-<th>コンポーネント</th>
-<th>説明</th>
-<th>例</th>
+<th>Component</th>
+<th>Description</th>
+<th>Example</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><strong>torch_geometric.data.Data</strong></td>
-<td>グラフデータ構造</td>
-<td><code>Data(x, edge_index)</code></td>
+<td>Graphdatastructure</td><td><code>Data(x, edge_index)</code></td>
 </tr>
 <tr>
 <td><strong>torch_geometric.nn.MessagePassing</strong></td>
-<td>メッセージパッシング基底クラス</td>
-<td>カスタムGNN層の実装</td>
+<td>Message passing base class</td><td>Custom GNN layer implementation</td>
 </tr>
 <tr>
 <td><strong>torch_geometric.nn.*Conv</strong></td>
-<td>事前実装GNN層</td>
+<td>Pre-implemented GNN layers</td>
 <td><code>GCNConv, SAGEConv, GINConv</code></td>
 </tr>
 <tr>
 <td><strong>torch_geometric.datasets</strong></td>
-<td>ベンチマークデータセット</td>
+<td>Benchmark datasets</td>
 <td><code>Cora, MUTAG, QM9</code></td>
 </tr>
 <tr>
 <td><strong>torch_geometric.loader.DataLoader</strong></td>
-<td>グラフバッチ処理</td>
-<td>ミニバッチ学習</td>
+<td>Graphbatch processing</td><td>Mini-batch learning</td>
 </tr>
 </tbody>
 </table>
 
-<h3>実装例4: PyGでのカスタムGNN層</h3>
+<h3>Implementation Example4: PyGcustomGNN layer</h3>
+<pre><code class="language-python"># Note: This example should be executed in an environment with PyTorch Geometric installed # pip install torch-geometric
 
-<pre><code class="language-python"># 注: この例はPyTorch Geometricがインストールされている環境で実行してください
-# pip install torch-geometric
+print("\n=== PyTorch Geometric Custom GNN Layer ===\n")
 
-print("\n=== PyTorch Geometric カスタムGNN層 ===\n")
-
-# PyGのインポート（デモ用の疑似コード）
+# PyG imports (demo pseudo-code)
 # from torch_geometric.nn import MessagePassing
 # from torch_geometric.utils import add_self_loops, degree
 
-# MessagePassing基底クラスを使ったカスタム層の疑似コード
-class CustomGNNLayer:
+# Pseudo-code for custom layer using MessagePassing base class class CustomGNNLayer:
     """
-    PyGのMessagePassingを継承したカスタムGNN層の例
-
-    MessagePassingクラスは以下のメソッドをオーバーライドします：
-    - message(): メッセージ生成
-    - aggregate(): メッセージ集約
-    - update(): ノード更新
-    """
+ Example of custom GNN layer inheriting from PyG MessagePassing 
+ Override the following methods of MessagePassing class：     - message(): Message generation
+    - aggregate(): Message aggregation
+ - update(): Nodeupdate     """
 
     def __init__(self, in_channels, out_channels):
         # super(CustomGNNLayer, self).__init__(aggr='add')
@@ -1176,134 +1094,114 @@ class CustomGNNLayer:
             x: [num_nodes, in_channels]
             edge_index: [2, num_edges]
         """
-        # 1. 線形変換
+        # 1. Linear transformation
         # x = self.lin(x)
 
-        # 2. セルフループの追加
+        # 2. Add self-loops
         # edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0))
 
-        # 3. 正規化（次数で正規化）
-        # row, col = edge_index
+ # 3. normalization（Normalize by degree）         # row, col = edge_index
         # deg = degree(col, x.size(0), dtype=x.dtype)
         # deg_inv_sqrt = deg.pow(-0.5)
         # norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
 
-        # 4. メッセージパッシング開始
+        # 4. Start message passing
         # return self.propagate(edge_index, x=x, norm=norm)
         pass
 
     def message(self, x_j, norm):
         """
-        メッセージ生成
+        Message generation
 
         Args:
-            x_j: 送信ノードの特徴 [num_edges, out_channels]
-            norm: 正規化係数 [num_edges]
+ x_j: sending nodeFeature [num_edges, out_channels]             norm: Normalization coefficients [num_edges]
         """
         # return norm.view(-1, 1) * x_j
         pass
 
     def aggregate(self, inputs, index):
         """
-        メッセージ集約（デフォルトは'add'なのでオーバーライド不要）
-        """
+ Message aggregation（default 'add', no override needed）         """
         # return torch_scatter.scatter(inputs, index, dim=0, reduce='add')
         pass
 
     def update(self, aggr_out):
         """
-        ノード更新
-
+ Nodeupdate 
         Args:
-            aggr_out: 集約されたメッセージ [num_nodes, out_channels]
+            aggr_out: Aggregated messages [num_nodes, out_channels]
         """
         # return aggr_out
         pass
 
-print("--- PyG MessagePassingクラスの構造 ---")
-print("""
-PyGのMessagePassingを使うと、以下のようにGNN層を実装できます：
+print("--- PyG MessagePassingClassstructure ---") print("""
+PyG's MessagePassing allows you to implement GNN layers as follows:
 
-1. __init__: aggr='add'/'mean'/'max'を指定
-2. forward: propagate()を呼び出してメッセージパッシング開始
-3. message: x_j (送信ノード) を使ってメッセージ生成
-4. aggregate: 自動的に実行（aggrで指定した方法）
-5. update: 集約後の処理（オプション）
+1. __init__: aggr='add'/'mean'/'max'Specify
+2. forward: propagate()Start message passing by calling
+3. message: x_j (sending node) used for message generation 4. aggregate: Automatically executed (method specified by aggr)
+5. update: Post-aggregation processing (optional)
 
-メリット:
-✅ 効率的なスパーステンソル演算
-✅ GPU最適化された集約操作
-✅ 自動的なバッチ処理
+Advantage:
+✅ Efficient sparse tensor operations
+✅ GPU-optimized aggregation operations
+✅ Automatic batch processing
 """)
 
-print("\n--- PyGのData構造 ---")
+print("\n--- PyG Data Structure ---")
 print("""
 from torch_geometric.data import Data
 
-# グラフの作成
-edge_index = torch.tensor([[0, 1, 1, 2],
+# Creating graph edge_index = torch.tensor([[0, 1, 1, 2],
                           [1, 0, 2, 1]], dtype=torch.long)
 x = torch.tensor([[-1], [0], [1]], dtype=torch.float)
 
 data = Data(x=x, edge_index=edge_index)
 
-属性:
-- data.x: ノード特徴行列 [num_nodes, num_features]
-- data.edge_index: エッジインデックス [2, num_edges]
-- data.edge_attr: エッジ特徴（オプション）
-- data.y: ラベル（ノードLevelまたはグラフLevel）
-- data.num_nodes: ノード数
-""")
+Attributes:
+- data.x: NodeFeaturematrix [num_nodes, num_features] - data.edge_index: Edge index [2, num_edges]
+- data.edge_attr: Edge features (optional)
+- data.y: labels（node level or graph level） - data.num_nodes: Number of nodes """)
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>
-=== PyTorch Geometric カスタムGNN層 ===
+<p><strong>Output</strong>：</p><pre><code>
+=== PyTorch Geometric Custom GNN Layer ===
 
---- PyG MessagePassingクラスの構造 ---
+--- PyG MessagePassingClassstructure --- 
+PyG's MessagePassing allows you to implement GNN layers as follows:
 
-PyGのMessagePassingを使うと、以下のようにGNN層を実装できます：
+1. __init__: aggr='add'/'mean'/'max'Specify
+2. forward: propagate()Start message passing by calling
+3. message: x_j (sending node) used for message generation 4. aggregate: Automatically executed (method specified by aggr)
+5. update: Post-aggregation processing (optional)
 
-1. __init__: aggr='add'/'mean'/'max'を指定
-2. forward: propagate()を呼び出してメッセージパッシング開始
-3. message: x_j (送信ノード) を使ってメッセージ生成
-4. aggregate: 自動的に実行（aggrで指定した方法）
-5. update: 集約後の処理（オプション）
-
-メリット:
-✅ 効率的なスパーステンソル演算
-✅ GPU最適化された集約操作
-✅ 自動的なバッチ処理
+Advantage:
+✅ Efficient sparse tensor operations
+✅ GPU-optimized aggregation operations
+✅ Automatic batch processing
 
 
---- PyGのData構造 ---
+--- PyG Data Structure ---
 
 from torch_geometric.data import Data
 
-# グラフの作成
-edge_index = torch.tensor([[0, 1, 1, 2],
+# Creating graph edge_index = torch.tensor([[0, 1, 1, 2],
                           [1, 0, 2, 1]], dtype=torch.long)
 x = torch.tensor([[-1], [0], [1]], dtype=torch.float)
 
 data = Data(x=x, edge_index=edge_index)
 
-属性:
-- data.x: ノード特徴行列 [num_nodes, num_features]
-- data.edge_index: エッジインデックス [2, num_edges]
-- data.edge_attr: エッジ特徴（オプション）
-- data.y: ラベル（ノードLevelまたはグラフLevel）
-- data.num_nodes: ノード数
-</code></pre>
+Attributes:
+- data.x: NodeFeaturematrix [num_nodes, num_features] - data.edge_index: Edge index [2, num_edges]
+- data.edge_attr: Edge features (optional)
+- data.y: labels（node level or graph level） - data.num_nodes: Number of nodes </code></pre>
 
-<h3>実装例5: PyGの事前実装層を使ったモデル</h3>
-
+<h3>Implementation Example5: Model using PyG pre-implemented layers</h3>
 <pre><code class="language-python">import torch
 import torch.nn.functional as F
 
-print("\n=== PyG事前実装層を使ったモデル（疑似コード） ===\n")
-
-# PyGの事前実装層を使った完全なモデルの例（疑似コード）
-class GNNModel:
+print("\n=== Model using PyG pre-implemented layers（pseudo-code） ===\n") 
+# Complete model example using PyG pre-implemented layers（pseudo-code） class GNNModel:
     """
     from torch_geometric.nn import GCNConv, SAGEConv, GINConv
     from torch_geometric.nn import global_mean_pool, global_max_pool
@@ -1312,19 +1210,16 @@ class GNNModel:
         def __init__(self, num_features, num_classes):
             super(GNNModel, self).__init__()
 
-            # GCN層
-            self.conv1 = GCNConv(num_features, 64)
+ # GCNlayer             self.conv1 = GCNConv(num_features, 64)
             self.conv2 = GCNConv(64, 64)
             self.conv3 = GCNConv(64, 64)
 
-            # グラフLevel classification用
-            self.lin = torch.nn.Linear(64, num_classes)
+ # Graphlevelclassificationfor             self.lin = torch.nn.Linear(64, num_classes)
 
         def forward(self, data):
             x, edge_index, batch = data.x, data.edge_index, data.batch
 
-            # GCN層の適用
-            x = self.conv1(x, edge_index)
+ # GCNlayerapply             x = self.conv1(x, edge_index)
             x = F.relu(x)
             x = F.dropout(x, training=self.training)
 
@@ -1334,119 +1229,95 @@ class GNNModel:
 
             x = self.conv3(x, edge_index)
 
-            # グラフLevelpooling
-            x = global_mean_pool(x, batch)
+ # Graph-level pooling             x = global_mean_pool(x, batch)
 
-            #  classification
-            x = self.lin(x)
+ # classification             x = self.lin(x)
 
             return F.log_softmax(x, dim=1)
     """
     pass
 
-print("--- PyGで使える主要なGNN層 ---\n")
+print("--- Main GNN Layers Available in PyG ---\n")
 
 layers_info = {
     "GCNConv": {
-        "説明": "Graph Convolutional Network層",
-        "集約": "Mean（次数正規化付きSum）",
-        "使い方": "GCNConv(in_channels, out_channels)"
+        "Description": "Graph Convolutional Network layer",
+ "aggregation": "Mean (Sum with degree normalization)",         "Usage": "GCNConv(in_channels, out_channels)"
     },
     "SAGEConv": {
-        "説明": "GraphSAGE層",
-        "集約": "Mean / LSTM / Max-pool",
-        "使い方": "SAGEConv(in_channels, out_channels, aggr='mean')"
+        "Description": "GraphSAGE layer",
+ "aggregation": "Mean / LSTM / Max-pool",         "Usage": "SAGEConv(in_channels, out_channels, aggr='mean')"
     },
     "GINConv": {
-        "説明": "Graph Isomorphism Network層",
-        "集約": "Sum",
-        "使い方": "GINConv(nn.Sequential(...))"
+        "Description": "Graph Isomorphism Network layer",
+ "aggregation": "Sum",         "Usage": "GINConv(nn.Sequential(...))"
     },
     "GATConv": {
-        "説明": "Graph Attention Network層",
-        "集約": "Attention重み付きSum",
-        "使い方": "GATConv(in_channels, out_channels, heads=8)"
+        "Description": "Graph Attention Network layer",
+ "aggregation": "Attention-weighted Sum",         "Usage": "GATConv(in_channels, out_channels, heads=8)"
     },
     "GATv2Conv": {
-        "説明": "GATv2（動的attention）",
-        "集約": "改善されたAttention",
-        "使い方": "GATv2Conv(in_channels, out_channels, heads=8)"
+        "Description": "GATv2 (dynamic attention)",
+ "aggregation": "Improved Attention",         "Usage": "GATv2Conv(in_channels, out_channels, heads=8)"
     }
 }
 
 for layer_name, info in layers_info.items():
     print(f"{layer_name}:")
-    print(f"  説明: {info['説明']}")
-    print(f"  集約: {info['集約']}")
-    print(f"  使い方: {info['使い方']}\n")
+    print(f"  Description: {info['Description']}")
+ print(f" Aggregation: {info['aggregation']}")     print(f"  Usage: {info['Usage']}\n")
 
-print("--- グラフLevelpooling関数 ---\n")
-
+print("--- Graph-level poolingfunction ---\n") 
 pooling_info = {
-    "global_mean_pool": "全ノードの平均",
-    "global_max_pool": "全ノードの最大値",
-    "global_add_pool": "全ノードの合計",
-    "GlobalAttention": "Attention重み付き和"
+ "global_mean_pool": "mean of all nodes",  "global_max_pool": "max value of all nodes",  "global_add_pool": "sum of all nodes",     "GlobalAttention": "Attention-weighted sum"
 }
 
 for func_name, desc in pooling_info.items():
     print(f"{func_name}: {desc}")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>
-=== PyG事前実装層を使ったモデル（疑似コード） ===
-
---- PyGで使える主要なGNN層 ---
+<p><strong>Output</strong>：</p><pre><code>
+=== Model using PyG pre-implemented layers（pseudo-code） === 
+--- Main GNN Layers Available in PyG ---
 
 GCNConv:
-  説明: Graph Convolutional Network層
-  集約: Mean（次数正規化付きSum）
-  使い方: GCNConv(in_channels, out_channels)
+  Description: Graph Convolutional Network layer
+  Aggregation: Mean (Sum with degree normalization)
+  Usage: GCNConv(in_channels, out_channels)
 
 SAGEConv:
-  説明: GraphSAGE層
-  集約: Mean / LSTM / Max-pool
-  使い方: SAGEConv(in_channels, out_channels, aggr='mean')
+  Description: GraphSAGE layer
+  Aggregation: Mean / LSTM / Max-pool
+  Usage: SAGEConv(in_channels, out_channels, aggr='mean')
 
 GINConv:
-  説明: Graph Isomorphism Network層
-  集約: Sum
-  使い方: GINConv(nn.Sequential(...))
+  Description: Graph Isomorphism Network layer
+  Aggregation: Sum
+  Usage: GINConv(nn.Sequential(...))
 
 GATConv:
-  説明: Graph Attention Network層
-  集約: Attention重み付きSum
-  使い方: GATConv(in_channels, out_channels, heads=8)
+  Description: Graph Attention Network layer
+  Aggregation: Attention-weighted Sum
+  Usage: GATConv(in_channels, out_channels, heads=8)
 
 GATv2Conv:
-  説明: GATv2（動的attention）
-  集約: 改善されたAttention
-  使い方: GATv2Conv(in_channels, out_channels, heads=8)
+  Description: GATv2 (dynamic attention)
+  Aggregation: Improved Attention
+  Usage: GATv2Conv(in_channels, out_channels, heads=8)
 
---- グラフLevelpooling関数 ---
-
-global_mean_pool: 全ノードの平均
-global_max_pool: 全ノードの最大値
-global_add_pool: 全ノードの合計
-GlobalAttention: Attention重み付き和
+--- Graph-level poolingfunction --- 
+global_mean_pool: mean of all nodes global_max_pool: max value of all nodes global_add_pool: sum of all nodes GlobalAttention: Attention-weighted sum
 </code></pre>
 
 <hr>
 
-<h2>3.5 実践：グラフ classificationタスク</h2>
-
-<h3>グラフ classificationの流れ</h3>
-
-<p>グラフ classificationは、グラフ全体を1つのクラスに classificationするタスクです。 minutes子の性質予測、ソーシャルネットワークの classificationなどに応用されます。</p>
-
+<h2>3.5 Practice：Graph classification task</h2>
+<h3>Graphclassificationflow</h3>
+<p>Graphclassification、task to classify entire graph into one class。molecular property prediction、social network classificationand other applications。</p>
 <div class="mermaid">
 graph LR
-    A[入力グラフ] --> B[GNN層<br/>ノードLevel特徴抽出]
-    B --> C[Graph Pooling<br/>グラフLevel表現]
-    C --> D[MLP<br/> classification器]
-    D --> E[クラス予測]
-
+ A[Input Graph] -->B[GNN layer<br/>node-level feature extraction]  B -->C[Graph Pooling<br/>graph-level representation]     C --> D[MLP<br/>Classifier]
+ D -->E[Classprediction] 
     style A fill:#e3f2fd
     style B fill:#fff3e0
     style C fill:#ffe0b2
@@ -1454,28 +1325,24 @@ graph LR
     style E fill:#e8f5e9
 </div>
 
-<h3>バッチ処理の仕組み</h3>
+<h3>Batch Processing Mechanism</h3>
 
-<p>複数のグラフを効率的に処理するため、PyGは独自のバッチング方式を使います：</p>
-
+<p>for efficient processing of multiple graphs、PyG uses unique batching method：</p>
 <ol>
-<li><strong>大きな1つのグラフとして連結</strong>：複数グラフを非連結グラフとして結合</li>
-<li><strong>batchベクトル</strong>：各ノードがどのグラフに属するかを記録</li>
-<li><strong>グラフLevelpooling</strong>：batchベクトルを使って各グラフの特徴を集約</li>
-</ol>
+<li><strong>concatenate as one large graph</strong>：combine multiple graphs as non-connected graph</li><li><strong>Batch vector</strong>：record which graph each node belongs to</li><li><strong>Graph-level pooling</strong>：aggregate features for each graph using batch vector</li></ol>
 
 <div class="mermaid">
 graph TB
-    subgraph "グラフ1 (3ノード)"
+    subgraph "Graph1 (3Node)"
         A1((0)) --- A2((1))
         A2 --- A3((2))
     end
 
-    subgraph "グラフ2 (2ノード)"
+    subgraph "Graph2 (2Node)"
         B1((3)) --- B2((4))
     end
 
-    subgraph "バッチテンソル"
+    subgraph "Batch Tensor"
         C[batch = 0,0,0,1,1]
     end
 
@@ -1493,39 +1360,29 @@ graph TB
     style C fill:#e8f5e9
 </div>
 
-<h3>実装例6: グラフ classificationの完全な実装</h3>
-
+<h3>Implementation Example6: Complete implementation of graph classification</h3>
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
-print("\n=== グラフ classificationタスクの完全実装 ===\n")
-
-# 簡易グラフデータセット
-class SimpleGraphDataset(Dataset):
-    """簡易的なグラフデータセット"""
-
+print("\n=== Complete implementation of graph classification task ===\n") 
+# simple graph dataset class SimpleGraphDataset(Dataset):
+ """simple graph dataset""" 
     def __init__(self, num_graphs=100):
         self.num_graphs = num_graphs
         self.graphs = []
 
-        # ランダムなグラフを生成
-        for i in range(num_graphs):
+ # random graph generation         for i in range(num_graphs):
             num_nodes = torch.randint(10, 30, (1,)).item()
             num_edges = torch.randint(15, 50, (1,)).item()
 
-            x = torch.randn(num_nodes, 8)  # 8次元特徴
-            edge_index = torch.randint(0, num_nodes, (2, num_edges))
+ x = torch.randn(num_nodes, 8) # 8dimensionFeature             edge_index = torch.randint(0, num_nodes, (2, num_edges))
 
-            # ラベル（グラフサイズで決定 - デモ用）
-            if num_nodes < 15:
-                y = 0  # 小グラフ
-            elif num_nodes < 20:
-                y = 1  # 中グラフ
-            else:
-                y = 2  # 大グラフ
-
+ # labels（determined by graph size - for demo）             if num_nodes < 15:
+ y = 0 # smallGraph             elif num_nodes < 20:
+ y = 1 # mediumGraph             else:
+ y = 2 # largeGraph 
             self.graphs.append({
                 'x': x,
                 'edge_index': edge_index,
@@ -1540,10 +1397,9 @@ class SimpleGraphDataset(Dataset):
         return self.graphs[idx]
 
 
-# バッチ処理用のcollate関数
+# Collate function for batch processing
 def collate_graphs(batch):
-    """複数グラフを1つのバッチに統合"""
-    batch_x = []
+ """multipleGraph1batchMerge"""     batch_x = []
     batch_edge_index = []
     batch_y = []
     batch_vec = []
@@ -1552,14 +1408,12 @@ def collate_graphs(batch):
     for i, graph in enumerate(batch):
         batch_x.append(graph['x'])
 
-        # エッジインデックスをオフセット
-        edge_index = graph['edge_index'] + node_offset
+ # Edge index offset         edge_index = graph['edge_index'] + node_offset
         batch_edge_index.append(edge_index)
 
         batch_y.append(graph['y'])
 
-        # このグラフのノードがどのグラフに属するか
-        batch_vec.extend([i] * graph['num_nodes'])
+ # which graph this graph node belongs to         batch_vec.extend([i] * graph['num_nodes'])
 
         node_offset += graph['num_nodes']
 
@@ -1571,28 +1425,24 @@ def collate_graphs(batch):
     }
 
 
-# グラフ classificationモデル
-class GraphClassifier(nn.Module):
-    """GINベースのグラフ classification器"""
-
+# GraphclassificationModel class GraphClassifier(nn.Module):
+ """GINbaseGraphclassificationdevice""" 
     def __init__(self, in_dim, hidden_dim, num_classes, num_layers=3):
         super(GraphClassifier, self).__init__()
 
-        # GIN層（前述のGINConvを使用）
-        self.convs = nn.ModuleList()
+ # GIN layer（using previously mentioned GINConv）         self.convs = nn.ModuleList()
         self.batch_norms = nn.ModuleList()
 
-        # Chapter 1層
+        # Layer 1
         self.convs.append(GINConv(in_dim, hidden_dim))
         self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
 
-        # 中間層
+        # Middle layers
         for _ in range(num_layers - 1):
             self.convs.append(GINConv(hidden_dim, hidden_dim))
             self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
 
-        # グラフLevel classification
-        self.classifier = nn.Sequential(
+ # Graphlevelclassification         self.classifier = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
             nn.Dropout(0.5),
@@ -1600,29 +1450,26 @@ class GraphClassifier(nn.Module):
         )
 
     def forward(self, x, edge_index, batch):
-        # ノードLevelGNN
-        h = x
+ # NodelevelGNN         h = x
         for conv, bn in zip(self.convs, self.batch_norms):
             h = conv(h, edge_index)
             h = bn(h)
             h = F.relu(h)
             h = F.dropout(h, p=0.3, training=self.training)
 
-        # グラフLevelpooling (mean)
-        num_graphs = batch.max().item() + 1
+ # Graph-level pooling (mean)         num_graphs = batch.max().item() + 1
         h_graph = torch.zeros(num_graphs, h.size(1))
 
         for i in range(num_graphs):
             mask = (batch == i)
             h_graph[i] = h[mask].mean(dim=0)
 
-        #  classification
-        out = self.classifier(h_graph)
+ # classification         out = self.classifier(h_graph)
 
         return out
 
 
-# 訓練関数
+# Training function
 def train_epoch(model, loader, optimizer, criterion):
     model.train()
     total_loss = 0
@@ -1646,7 +1493,7 @@ def train_epoch(model, loader, optimizer, criterion):
     return total_loss / len(loader), correct / total
 
 
-# 評価関数
+# Evaluation function
 def evaluate(model, loader, criterion):
     model.eval()
     total_loss = 0
@@ -1666,8 +1513,8 @@ def evaluate(model, loader, criterion):
     return total_loss / len(loader), correct / total
 
 
-# 実行
-print("--- データセットの作成 ---")
+# Execution
+print("--- Creating Dataset ---")
 dataset = SimpleGraphDataset(num_graphs=200)
 train_dataset = SimpleGraphDataset(num_graphs=150)
 test_dataset = SimpleGraphDataset(num_graphs=50)
@@ -1677,19 +1524,16 @@ train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True,
 test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False,
                          collate_fn=collate_graphs)
 
-print(f"訓練データ: {len(train_dataset)} グラフ")
-print(f"テストデータ: {len(test_dataset)} グラフ")
-print(f"バッチサイズ: 16\n")
+print(f"Training data: {len(train_dataset)} Graph")
+print(f"Test data: {len(test_dataset)} Graph")
+print(f"Batch size: 16\n")
 
-# モデルの作成
-model = GraphClassifier(in_dim=8, hidden_dim=32, num_classes=3, num_layers=3)
+# Creating model model = GraphClassifier(in_dim=8, hidden_dim=32, num_classes=3, num_layers=3)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = nn.CrossEntropyLoss()
 
-print(f"モデルパラメータ数: {sum(p.numel() for p in model.parameters()):,}\n")
-
-# 訓練
-print("--- 訓練開始 ---")
+print(f"Model parameter count: {sum(p.numel() for p in model.parameters()):,}\n") 
+# training print("--- Training Start ---")
 num_epochs = 5
 for epoch in range(num_epochs):
     train_loss, train_acc = train_epoch(model, train_loader, optimizer, criterion)
@@ -1699,21 +1543,18 @@ for epoch in range(num_epochs):
     print(f"  Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}")
     print(f"  Test Loss:  {test_loss:.4f}, Test Acc:  {test_acc:.4f}")
 
-print("\n訓練完了!")
+print("\nTraining complete!")
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>
-=== グラフ classificationタスクの完全実装 ===
+<p><strong>Output</strong>：</p><pre><code>
+=== Complete implementation of graph classification task === 
+--- Creating Dataset ---
+Training data: 150 Graph
+Test data: 50 Graph
+Batch size: 16
 
---- データセットの作成 ---
-訓練データ: 150 グラフ
-テストデータ: 50 グラフ
-バッチサイズ: 16
-
-モデルパラメータ数: 28,547
-
---- 訓練開始 ---
+Model parameter count: 28,547 
+--- Training Start ---
 Epoch 1/5:
   Train Loss: 1.0234, Train Acc: 0.4533
   Test Loss:  0.9876, Test Acc:  0.4800
@@ -1730,23 +1571,19 @@ Epoch 5/5:
   Train Loss: 0.5123, Train Acc: 0.8067
   Test Loss:  0.5678, Test Acc:  0.7800
 
-訓練完了!
+Training complete!
 </code></pre>
 
-<h3>実装例7: グラフプーリングの比較</h3>
-
+<h3>Implementation Example7: Graphpoolingcomparison</h3>
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
-print("\n=== グラフLevelプーリングの比較 ===\n")
-
+print("\n=== Graph-level poolingcomparison ===\n") 
 class GlobalPooling:
-    """各種グラフLevelプーリング関数"""
-
+ """variousGraph-level poolingfunction""" 
     @staticmethod
     def global_mean_pool(x, batch):
-        """平均プーリング"""
-        num_graphs = batch.max().item() + 1
+ """meanpooling"""         num_graphs = batch.max().item() + 1
         out = torch.zeros(num_graphs, x.size(1))
 
         for i in range(num_graphs):
@@ -1757,7 +1594,7 @@ class GlobalPooling:
 
     @staticmethod
     def global_max_pool(x, batch):
-        """最大値プーリング"""
+        """Max pooling"""
         num_graphs = batch.max().item() + 1
         out = torch.zeros(num_graphs, x.size(1))
 
@@ -1770,7 +1607,7 @@ class GlobalPooling:
 
     @staticmethod
     def global_add_pool(x, batch):
-        """合計プーリング"""
+        """Sum pooling"""
         num_graphs = batch.max().item() + 1
         out = torch.zeros(num_graphs, x.size(1))
 
@@ -1782,100 +1619,67 @@ class GlobalPooling:
 
     @staticmethod
     def global_attention_pool(x, batch, gate_nn):
-        """Attentionプーリング"""
+        """Attention pooling"""
         num_graphs = batch.max().item() + 1
         out = torch.zeros(num_graphs, x.size(1))
 
-        # Attention重みの計算
+        # Compute attention weights
         gate = gate_nn(x)  # [num_nodes, 1]
 
         for i in range(num_graphs):
             mask = (batch == i)
             if mask.any():
-                # Softmax正規化
+                # Softmax normalization
                 attn_weights = torch.softmax(gate[mask], dim=0)
-                # 重み付き和
+                # Weighted sum
                 out[i] = (x[mask] * attn_weights).sum(dim=0)
 
         return out
 
 
-# テストデータの作成
-print("--- テストデータの作成 ---")
-# 3つのグラフをバッチ化
-x = torch.randn(30, 16)  # 30ノード、16次元特徴
-batch = torch.tensor([0]*10 + [1]*12 + [2]*8)  # グラフ1: 10ノード, グラフ2: 12ノード, グラフ3: 8ノード
+# Creating test data print("--- Creating test data ---") # 3 graphs batching x = torch.randn(30, 16) # 30 nodes, 16-dimensional features batch = torch.tensor([0]*10 + [1]*12 + [2]*8)  # Graph 1: 10 nodes, Graph 2: 12 nodes, Graph 3: 8 nodes
 
-print(f"総ノード数: {x.size(0)}")
-print(f"特徴次元: {x.size(1)}")
-print(f"グラフ数: {batch.max().item() + 1}")
-print(f"各グラフのノード数: {[(batch == i).sum().item() for i in range(3)]}\n")
-
-# 各プーリング方法を比較
-print("--- 各プーリング方法の比較 ---\n")
+print(f"Total number of nodes: {x.size(0)}") print(f"Feature dimension: {x.size(1)}")
+print(f"Graphnumber: {batch.max().item() + 1}") print(f"eachGraphNumber of nodes: {[(batch == i).sum().item() for i in range(3)]}\n") 
+# eachpoolingmethodcomparison print("--- Comparison of Each Pooling Method ---\n")
 
 pooling = GlobalPooling()
 
 # Mean pooling
 mean_out = pooling.global_mean_pool(x, batch)
 print("Mean Pooling:")
-print(f"  出力形状: {mean_out.shape}")
-print(f"  グラフ1の特徴量平均: {mean_out[0].mean():.4f}")
-print(f"  グラフ2の特徴量平均: {mean_out[1].mean():.4f}")
-print(f"  グラフ3の特徴量平均: {mean_out[2].mean():.4f}\n")
-
+print(f"  Output shape: {mean_out.shape}")
+print(f" Graph1Featurequantitymean: {mean_out[0].mean():.4f}") print(f" Graph2Featurequantitymean: {mean_out[1].mean():.4f}") print(f" Graph3Featurequantitymean: {mean_out[2].mean():.4f}\n") 
 # Max pooling
 max_out = pooling.global_max_pool(x, batch)
 print("Max Pooling:")
-print(f"  出力形状: {max_out.shape}")
-print(f"  グラフ1の最大値: {max_out[0].max():.4f}")
-print(f"  グラフ2の最大値: {max_out[1].max():.4f}")
-print(f"  グラフ3の最大値: {max_out[2].max():.4f}\n")
-
+print(f"  Output shape: {max_out.shape}")
+print(f" Graph 1 max value: {max_out[0].max():.4f}") print(f" Graph 2 max value: {max_out[1].max():.4f}") print(f" Graph 3 max value: {max_out[2].max():.4f}\n") 
 # Add pooling
 add_out = pooling.global_add_pool(x, batch)
 print("Add (Sum) Pooling:")
-print(f"  出力形状: {add_out.shape}")
-print(f"  グラフ1の合計: {add_out[0].sum():.4f}")
-print(f"  グラフ2の合計: {add_out[1].sum():.4f}")
-print(f"  グラフ3の合計: {add_out[2].sum():.4f}\n")
-
+print(f"  Output shape: {add_out.shape}")
+print(f" Graph1sum: {add_out[0].sum():.4f}") print(f" Graph2sum: {add_out[1].sum():.4f}") print(f" Graph3sum: {add_out[2].sum():.4f}\n") 
 # Attention pooling
 gate_nn = nn.Linear(16, 1)
 attn_out = pooling.global_attention_pool(x, batch, gate_nn)
 print("Attention Pooling:")
-print(f"  出力形状: {attn_out.shape}")
-print(f"  グラフ1の特徴量平均: {attn_out[0].mean():.4f}")
-print(f"  グラフ2の特徴量平均: {attn_out[1].mean():.4f}")
-print(f"  グラフ3の特徴量平均: {attn_out[2].mean():.4f}\n")
-
-# プーリング方法の特性比較
-print("--- プーリング方法の特性 ---\n")
+print(f"  Output shape: {attn_out.shape}")
+print(f" Graph1Featurequantitymean: {attn_out[0].mean():.4f}") print(f" Graph2Featurequantitymean: {attn_out[1].mean():.4f}") print(f" Graph3Featurequantitymean: {attn_out[2].mean():.4f}\n") 
+# Comparison of pooling method characteristics
+print("--- Characteristics of Pooling Methods ---\n")
 properties = {
     "Mean": {
-        "特徴": "全ノードの平均",
-        "メリット": "安定、外れ値に強い",
-        "デメリット": "重要なノードが埋もれる",
-        "用途": "一般的なグラフ classification"
-    },
+ "Feature": "mean of all nodes",         "Advantage": "Stable, robust to outliers",
+ "Disadvantage": "important nodes may be buried",  "Use Case": "general graph classification"     },
     "Max": {
-        "特徴": "要素ごとの最大値",
-        "メリット": "重要な特徴を強調",
-        "デメリット": "外れ値に敏感",
-        "用途": "特徴的なノードが重要な場合"
-    },
+        "Feature": "Element-wise maximum",
+ "Advantage": "strongly emphasizes important features",  "Disadvantage": "Sensitive to outliers",  "Use Case": "case where specific nodes are important"     },
     "Sum": {
-        "特徴": "全ノードの合計",
-        "メリット": "グラフサイズの情報を保持",
-        "デメリット": "大きなグラフで値が大きくなる",
-        "用途": "GIN、グラフサイズが重要な場合"
-    },
+ "Feature": "sum of all nodes",  "Advantage": "preserves graph size information",  "Disadvantage": "values become large for large graphs",  "Use Case": "GIN、case where graph size is important"     },
     "Attention": {
-        "特徴": "学習可能な重み付き和",
-        "メリット": "重要なノードを自動選択",
-        "デメリット": "計算コスト高、過学習リスク",
-        "用途": "複雑なグラフ、解釈性が重要な場合"
-    }
+        "Feature": "Learnable weighted sum",
+ "Advantage": "automatically select important nodes",  "Disadvantage": "High computational cost, overfitting risk",  "Use Case": "complex graphs、case where interpretability is important"     }
 }
 
 for method, props in properties.items():
@@ -1885,121 +1689,78 @@ for method, props in properties.items():
     print()
 </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>
-=== グラフLevelプーリングの比較 ===
-
---- テストデータの作成 ---
-総ノード数: 30
-特徴次元: 16
-グラフ数: 3
-各グラフのノード数: [10, 12, 8]
-
---- 各プーリング方法の比較 ---
+<p><strong>Output</strong>：</p><pre><code>
+=== Graph-level poolingcomparison === 
+--- Creating test data --- Total number of nodes: 30 Feature dimension: 16
+Graphnumber: 3 eachGraphNumber of nodes: [10, 12, 8] 
+--- Comparison of Each Pooling Method ---
 
 Mean Pooling:
-  出力形状: torch.Size([3, 16])
-  グラフ1の特徴量平均: 0.0234
-  グラフ2の特徴量平均: -0.0567
-  グラフ3の特徴量平均: 0.0891
-
+  Output shape: torch.Size([3, 16])
+ Graph1Featurequantitymean: 0.0234  Graph2Featurequantitymean: -0.0567  Graph3Featurequantitymean: 0.0891 
 Max Pooling:
-  出力形状: torch.Size([3, 16])
-  グラフ1の最大値: 2.3456
-  グラフ2の最大値: 2.1234
-  グラフ3の最大値: 1.9876
-
+  Output shape: torch.Size([3, 16])
+ Graph 1 max value: 2.3456  Graph 2 max value: 2.1234  Graph 3 max value: 1.9876 
 Add (Sum) Pooling:
-  出力形状: torch.Size([3, 16])
-  グラフ1の合計: 3.7456
-  グラフ2の合計: -8.1234
-  グラフ3の合計: 11.3456
-
+  Output shape: torch.Size([3, 16])
+ Graph1sum: 3.7456  Graph2sum: -8.1234  Graph3sum: 11.3456 
 Attention Pooling:
-  出力形状: torch.Size([3, 16])
-  グラフ1の特徴量平均: 0.0345
-  グラフ2の特徴量平均: -0.0623
-  グラフ3の特徴量平均: 0.0712
-
---- プーリング方法の特性 ---
+  Output shape: torch.Size([3, 16])
+ Graph1Featurequantitymean: 0.0345  Graph2Featurequantitymean: -0.0623  Graph3Featurequantitymean: 0.0712 
+--- Characteristics of Pooling Methods ---
 
 Mean Pooling:
-  特徴: 全ノードの平均
-  メリット: 安定、外れ値に強い
-  デメリット: 重要なノードが埋もれる
-  用途: 一般的なグラフ classification
-
+ Feature: mean of all nodes   Advantage: Stable, robust to outliers
+ Disadvantage: important nodes may be buried  Use Case: general graph classification 
 Max Pooling:
-  特徴: 要素ごとの最大値
-  メリット: 重要な特徴を強調
-  デメリット: 外れ値に敏感
-  用途: 特徴的なノードが重要な場合
-
+  Feature: Element-wise maximum
+ Advantage: strongly emphasizes important features  Disadvantage: Sensitive to outliers  Use Case: case where specific nodes are important 
 Sum Pooling:
-  特徴: 全ノードの合計
-  メリット: グラフサイズの情報を保持
-  デメリット: 大きなグラフで値が大きくなる
-  用途: GIN、グラフサイズが重要な場合
-
+ Feature: sum of all nodes  Advantage: preserves graph size information  Disadvantage: values become large for large graphs  Use Case: GIN、case where graph size is important 
 Attention Pooling:
-  特徴: 学習可能な重み付き和
-  メリット: 重要なノードを自動選択
-  デメリット: 計算コスト高、過学習リスク
-  用途: 複雑なグラフ、解釈性が重要な場合
-</code></pre>
+  Feature: Learnable weighted sum
+ Advantage: automatically select important nodes  Disadvantage: High computational cost, overfitting risk  Use Case: complex graphs、case where interpretability is important </code></pre>
 
-<h3>実装例8: ミニバッチ学習の詳細</h3>
-
+<h3>Implementation Example8: Mini-batch learningdetailed</h3>
 <pre><code class="language-python">import torch
 
-print("\n=== グラフバッチ処理の詳細 ===\n")
-
+print("\n=== Graphbatch processingdetailed ===\n") 
 def visualize_batch_structure(graphs):
-    """バッチ処理の構造を可視化"""
+    """Visualize batch processing structure"""
 
-    print("--- 元のグラフ ---")
-    for i, graph in enumerate(graphs):
-        print(f"グラフ{i}: {graph['num_nodes']}ノード, {graph['edge_index'].size(1)}エッジ")
+ print("--- originalGraph ---")     for i, graph in enumerate(graphs):
+        print(f"Graph{i}: {graph['num_nodes']}Node, {graph['edge_index'].size(1)}edge")
 
-    # バッチ化
+    # Batching
     batch_x = []
     batch_edge_index = []
     batch_vec = []
     node_offset = 0
 
-    print("\n--- バッチ化プロセス ---")
+    print("\n--- Batching Process ---")
     for i, graph in enumerate(graphs):
-        print(f"\nグラフ{i}を追加:")
-        print(f"  現在のノードオフセット: {node_offset}")
-        print(f"  元のエッジインデックス: {graph['edge_index'][:, :3].tolist()}... (最初の3エッジ)")
-
-        # エッジインデックスのオフセット調整
-        adjusted_edges = graph['edge_index'] + node_offset
-        print(f"  調整後のエッジインデックス: {adjusted_edges[:, :3].tolist()}...")
-
+        print(f"\nGraph{i}:")
+ print(f" current node offset: {node_offset}")  print(f" original edge index: {graph['edge_index'][:, :3].tolist()}... (first 3 edges)") 
+ # Edge index offsetadjustment         adjusted_edges = graph['edge_index'] + node_offset
+ print(f" Adjusted edge index: {adjusted_edges[:, :3].tolist()}...") 
         batch_x.append(graph['x'])
         batch_edge_index.append(adjusted_edges)
         batch_vec.extend([i] * graph['num_nodes'])
 
         node_offset += graph['num_nodes']
 
-    # 統合
+    # Merge
     batched_x = torch.cat(batch_x, dim=0)
     batched_edge_index = torch.cat(batch_edge_index, dim=1)
     batched_batch = torch.tensor(batch_vec)
 
-    print("\n--- バッチ化結果 ---")
-    print(f"統合されたノード特徴: {batched_x.shape}")
-    print(f"統合されたエッジインデックス: {batched_edge_index.shape}")
-    print(f"batchベクトル: {batched_batch.tolist()}")
-    print(f"\nノード0〜4のグラフ帰属: {batched_batch[:5].tolist()}")
-    print(f"ノード5〜9のグラフ帰属: {batched_batch[5:10].tolist()}")
-
+    print("\n--- Batching Result ---")
+ print(f"MergeNodeFeature: {batched_x.shape}")  print(f"MergeEdge index: {batched_edge_index.shape}")     print(f"Batch vector: {batched_batch.tolist()}")
+ print(f"\nGraph assignment for nodes 0-4: {batched_batch[:5].tolist()}")  print(f"Graph assignment for nodes 5-9: {batched_batch[5:10].tolist()}") 
     return batched_x, batched_edge_index, batched_batch
 
 
-# テストグラフの作成
-graphs = [
+# Creating test graphs graphs = [
     {
         'x': torch.randn(5, 4),
         'edge_index': torch.tensor([[0, 1, 2, 3], [1, 2, 3, 4]]),
@@ -2019,223 +1780,157 @@ graphs = [
 
 batched_x, batched_edge_index, batched_batch = visualize_batch_structure(graphs)
 
-print("\n--- バッチからの復元 ---")
+print("\n--- Recovering from Batch ---")
 num_graphs = batched_batch.max().item() + 1
 for i in range(num_graphs):
     mask = (batched_batch == i)
-    print(f"\nグラフ{i}:")
-    print(f"  ノード数: {mask.sum().item()}")
-    print(f"  ノード特徴の形状: {batched_x[mask].shape}")
-    print(f"  特徴量の平均: {batched_x[mask].mean(dim=0)[:2].tolist()} (最初の2次元)")
-</code></pre>
+    print(f"\nGraph{i}:")
+ print(f" Number of nodes: {mask.sum().item()}")  print(f" NodeFeatureshapestate: {batched_x[mask].shape}")  print(f" Featurequantitymean: {batched_x[mask].mean(dim=0)[:2].tolist()} (first 2 dimensions)") </code></pre>
 
-<p><strong>出力</strong>：</p>
-<pre><code>
-=== グラフバッチ処理の詳細 ===
+<p><strong>Output</strong>：</p><pre><code>
+=== Graphbatch processingdetailed === 
+--- originalGraph --- Graph0: 5Node, 4edge
+Graph1: 3Node, 2edge
+Graph2: 4Node, 3edge
 
---- 元のグラフ ---
-グラフ0: 5ノード, 4エッジ
-グラフ1: 3ノード, 2エッジ
-グラフ2: 4ノード, 3エッジ
+--- Batching Process ---
 
---- バッチ化プロセス ---
+Graph0:
+ current node offset: 0  original edge index: [[0, 1, 2], [1, 2, 3]]... (first 3 edges)  Adjusted edge index: [[0, 1, 2], [1, 2, 3]]... 
+Graph1:
+ current node offset: 5  original edge index: [[0, 1], [1, 2]]... (first 3 edges)  Adjusted edge index: [[5, 6], [6, 7]]... 
+Graph2:
+ current node offset: 8  original edge index: [[0, 1, 2], [1, 2, 3]]... (first 3 edges)  Adjusted edge index: [[8, 9, 10], [9, 10, 11]]... 
+--- Batching Result ---
+MergeNodeFeature: torch.Size([12, 4]) MergeEdge index: torch.Size([2, 9]) Batch vector: [0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2]
 
-グラフ0を追加:
-  現在のノードオフセット: 0
-  元のエッジインデックス: [[0, 1, 2], [1, 2, 3]]... (最初の3エッジ)
-  調整後のエッジインデックス: [[0, 1, 2], [1, 2, 3]]...
+Graph assignment for nodes 0-4: [0, 0, 0, 0, 0] Graph assignment for nodes 5-9: [1, 1, 1, 2, 2] 
+--- Recovering from Batch ---
 
-グラフ1を追加:
-  現在のノードオフセット: 5
-  元のエッジインデックス: [[0, 1], [1, 2]]... (最初の3エッジ)
-  調整後のエッジインデックス: [[5, 6], [6, 7]]...
-
-グラフ2を追加:
-  現在のノードオフセット: 8
-  元のエッジインデックス: [[0, 1, 2], [1, 2, 3]]... (最初の3エッジ)
-  調整後のエッジインデックス: [[8, 9, 10], [9, 10, 11]]...
-
---- バッチ化結果 ---
-統合されたノード特徴: torch.Size([12, 4])
-統合されたエッジインデックス: torch.Size([2, 9])
-batchベクトル: [0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2]
-
-ノード0〜4のグラフ帰属: [0, 0, 0, 0, 0]
-ノード5〜9のグラフ帰属: [1, 1, 1, 2, 2]
-
---- バッチからの復元 ---
-
-グラフ0:
-  ノード数: 5
-  ノード特徴の形状: torch.Size([5, 4])
-  特徴量の平均: [0.123, -0.456] (最初の2次元)
-
-グラフ1:
-  ノード数: 3
-  ノード特徴の形状: torch.Size([3, 4])
-  特徴量の平均: [-0.234, 0.567] (最初の2次元)
-
-グラフ2:
-  ノード数: 4
-  ノード特徴の形状: torch.Size([4, 4])
-  特徴量の平均: [0.345, 0.123] (最初の2次元)
-</code></pre>
+Graph0:
+ Number of nodes: 5  NodeFeatureshapestate: torch.Size([5, 4])  Featurequantitymean: [0.123, -0.456] (first 2 dimensions) 
+Graph1:
+ Number of nodes: 3  NodeFeatureshapestate: torch.Size([3, 4])  Featurequantitymean: [-0.234, 0.567] (first 2 dimensions) 
+Graph2:
+ Number of nodes: 4  NodeFeatureshapestate: torch.Size([4, 4])  Featurequantitymean: [0.345, 0.123] (first 2 dimensions) </code></pre>
 
 <hr>
 
 <h2>Summary</h2>
 
-<p>この Chapterでは、GNNの核となる<strong>メッセージパッシングフレームワーク</strong>と、代表的なGNNアーキテクチャを学びました。</p>
+<p>In this chapter, we learned the core <strong>message passing framework</strong> of GNNs and representative GNN architectures.</p>
 
-<h3>重要なポイント</h3>
+<h3>Key Points</h3>
 
 <details>
-<summary><strong>1. メッセージパッシングの3ステップ</strong></summary>
+<summary><strong>1. Three Steps of Message Passing</strong></summary>
 <ul>
-<li><strong>Message</strong>: 隣接ノードからメッセージを生成</li>
-<li><strong>Aggregate</strong>: メッセージを集約（Sum / Mean / Max）</li>
-<li><strong>Update</strong>: 集約結果で特徴を更新</li>
-<li>このフレームワークで多くのGNNを統一的に記述できる</li>
+<li><strong>Message</strong>: message generation from neighboring connected nodes</li><li><strong>Aggregate</strong>: Aggregate messages (Sum / Mean / Max)</li>
+<li><strong>Update</strong>: aggregationresultFeatureupdate</li><li>Many GNNs can be described uniformly with this framework</li>
 </ul>
 </details>
 
 <details>
-<summary><strong>2. GraphSAGEのサンプリングベース集約</strong></summary>
+<summary><strong>2. Sampling-Based Aggregation in GraphSAGE</strong></summary>
 <ul>
-<li>近傍をサンプリングして固定サイズに</li>
-<li>大規模グラフへのスケーラビリティ</li>
-<li>Mean / Pool / LSTM Aggregatorの選択</li>
-<li>Inductive学習が可能</li>
+<li>Sample neighbors to fixed size</li>
+<li>scalability for large-scale graphs</li><li>Choice of Mean / Pool / LSTM Aggregator</li>
+<li>Enables inductive learning</li>
 </ul>
 </details>
 
 <details>
-<summary><strong>3. GINの最大識別能力</strong></summary>
-<ul>
-<li>Weisfeiler-Lehman testと同等の識別能力</li>
-<li>Sum集約が多重集合を保持する唯一の単射的集約</li>
-<li>$(1 + \epsilon)$係数で自身と近傍を区別</li>
-<li>MLPで十 minutesな表現力を確保</li>
+<summary><strong>3. GINMaximum Discriminative Power</strong></summary><ul>
+<li>Weisfeiler-Lehman test and equivalentDiscriminative Power</li><li>Sum aggregation is the only injective aggregation that preserves multisets</li>
+<li>$(1 + \epsilon)$ coefficient distinguishes between self and neighbors</li>
+<li>MLP ensures sufficient expressive power</li>
 </ul>
 </details>
 
 <details>
-<summary><strong>4. PyTorch Geometricでの効率的実装</strong></summary>
+<summary><strong>4. Efficient Implementation with PyTorch Geometric</strong></summary>
 <ul>
-<li>MessagePassing基底クラスで簡潔な実装</li>
-<li>事前実装レイヤー（GCNConv, SAGEConv, GINConv等）</li>
-<li>効率的なスパーステンソル演算</li>
-<li>グラフバッチ処理とDataLoader</li>
-</ul>
+<li>simple and clean implementation using MessagePassing base class</li><li>Pre-implemented layers (GCNConv, SAGEConv, GINConv, etc.)</li>
+<li>efficient sparse tensor operations</li><li>Graph batch processing and DataLoader</li></ul>
 </details>
 
 <details>
-<summary><strong>5. グラフ classificationの実装</strong></summary>
-<ul>
-<li>ノードLevelGNN → グラフLevelpooling →  classification器</li>
-<li>バッチ処理：複数グラフを非連結グラフとして統合</li>
-<li>グラフLevelpooling（Mean / Max / Sum / Attention）</li>
-<li>実用的な訓練・評価ループ</li>
+<summary><strong>5. Graphclassificationimplementation</strong></summary><ul>
+<li>NodelevelGNN → Graph-level pooling → classificationdevice</li><li>batch processing：merge multiple graphs as non-connected graph</li><li>Graph-level pooling（Mean / Max / Sum / Attention）</li><li>Practical training and evaluation loop</li>
 </ul>
 </details>
 
 <h3>Next Steps</h3>
 
-<p>次 Chapterでは、<strong>グラフアテンション機構</strong>について学びます：</p>
-<ul>
+<p>Next, <strong>Graph Attention Mechanism</strong>we will learn about：</p><ul>
 <li>Graph Attention Networks (GAT)</li>
-<li>Self-attention機構のグラフへの適用</li>
-<li>Multi-head attentionの効果</li>
-<li>Transformer for Graphs</li>
+<li>Applying self-attention mechanism to graphs</li><li>Effects of multi-head attention</li>
+<li>Transformers for Graphs</li>
 </ul>
 
 <hr>
 
-<h2>Exercises</h2>
-
+<h2>Exercise Questions</h2>
 <details>
-<summary><strong>演習1：メッセージパッシングの手計算</strong></summary>
-<p>以下のグラフで、1層のメッセージパッシング（Sum集約）を手計算してください。</p>
-<ul>
-<li>ノード0: $\mathbf{h}_0 = [1, 0]$</li>
-<li>ノード1: $\mathbf{h}_1 = [0, 1]$</li>
-<li>ノード2: $\mathbf{h}_2 = [1, 1]$</li>
-<li>エッジ: 0→1, 1→2, 2→0</li>
-<li>MESSAGE関数: 恒等写像</li>
-<li>UPDATE関数: $\mathbf{h}_i^{(1)} = \mathbf{h}_i^{(0)} + \mathbf{m}_i$</li>
+<summary><strong>Exercise 1: Hand Calculation of Message Passing</strong></summary>
+<p>Following graph、1-layer message passing（Sum aggregation）compute by hand。</p><ul>
+<li>Node0: $\mathbf{h}_0 = [1, 0]$</li>
+<li>Node1: $\mathbf{h}_1 = [0, 1]$</li>
+<li>Node2: $\mathbf{h}_2 = [1, 1]$</li>
+<li>edge: 0→1, 1→2, 2→0</li>
+<li>MESSAGE Function: identity mapping</li><li>UPDATE Function: $\mathbf{h}_i^{(1)} = \mathbf{h}_i^{(0)} + \mathbf{m}_i$</li>
 </ul>
-<p>各ノードの更新後の特徴$\mathbf{h}_i^{(1)}$を求めてください。</p>
+<p>feature after updating each node$\mathbf{h}_i^{(1)}$calculate。</p></details>
+
+<details>
+<summary><strong>Exercise 2: Aggregator Selection</strong></summary>
+<p>Choose the best aggregator for the following tasks and describe the reason：</p><ol>
+<li>SNS community detection (number of friends for each user is important)</li>
+<li>Molecular toxicity prediction (presence of specific functional groups is important)</li>
+<li>road network traffic flow prediction（average traffic volume is important）</li></ol>
+<p>Options: Sum, Mean, Max, LSTM</p>
 </details>
 
 <details>
-<summary><strong>演習2：Aggregatorの選択</strong></summary>
-<p>以下のタスクに最適なAggregatorを選び、理由を説明してください：</p>
-<ol>
-<li>SNSのコミュニティ検出（各ユーザーの友人数が重要）</li>
-<li> minutes子の毒性予測（特定の官能基の存在が重要）</li>
-<li>道路ネットワークの交通流予測（平均的な交通量が重要）</li>
-</ol>
-<p>選択肢: Sum, Mean, Max, LSTM</p>
-</details>
+<summary><strong>Exercise3：GIN Discriminative Power</strong></summary><p>For the following 2 graphs, answer whether GIN、GCN (Mean aggregation)、GAT (Maxaggregation) can distinguish them respectively：</p><ul>
+<li>Graph A: 3 nodes in triangular shape（each node degree2）</li><li>Graph B: 4 nodes in square shape（each node degree2）</li></ul>
+<p>All initial features are$[1]$ .</p></details>
 
 <details>
-<summary><strong>演習3：GINの識別能力</strong></summary>
-<p>以下の2つのグラフをGIN、GCN (Mean集約)、GAT (Max集約) がそれぞれ区別できるか答えてください：</p>
+<summary><strong>Exercise4：Graph pooling implementation</strong></summary><p>Implement attention-based graph pooling. Requirements:</p>
 <ul>
-<li>グラフA: 3ノードの三角形（各ノード次数2）</li>
-<li>グラフB: 4ノードの正方形（各ノード次数2）</li>
-</ul>
-<p>初期特徴は全て$[1]$とします。</p>
+<li>Compute attention score for each node pair</li><li>Normalize with Softmax</li>
+<li>Compute graph representation by weighted sum</li><li>Handle multiple graphs using batch vector</li></ul>
 </details>
 
 <details>
-<summary><strong>演習4：グラフプーリングの実装</strong></summary>
-<p>Attention-based graph pooling を実装してください。要件：</p>
-<ul>
-<li>各ノードに対してattentionスコアを計算</li>
-<li>Softmaxで正規化</li>
-<li>重み付き和でグラフ表現を計算</li>
-<li>batchベクトルを使って複数グラフに対応</li>
-</ul>
-</details>
-
-<details>
-<summary><strong>演習5：バッチ処理の設計</strong></summary>
-<p>3つのグラフ（5ノード、3ノード、7ノード）をバッチ化してください：</p>
-<ol>
-<li>統合後の総ノード数</li>
-<li>batchベクトルの中身</li>
-<li>各グラフのエッジインデックスのオフセット</li>
-</ol>
-<p>具体的な数値で答えてください。</p>
+<summary><strong>Exercise 5: Batch Processing Design</strong></summary>
+<p>3 graphs（5 nodes, 3 nodes, 7 nodes）after batching：</p><ol>
+<li>MergeafterTotal number of nodes</li><li>Contents of batch vector</li><li>Edge index offset for each graph</li></ol>
+<p>Answer with specific numbers.</p>
 </details>
 
 <hr>
 
 <div class="navigation">
-    <a href="chapter2-gcn-gat.html" class="nav-button">← Chapter 2 Chapter：GCNとGAT</a>
-    <a href="index.html" class="nav-button">Back to Contents</a>
-    <a href="chapter4-graph-attention.html" class="nav-button">Chapter 4: Graph Attention →</a>
-</div>
+    <a href="chapter2-gcn-gat.html" class="nav-button">← Chapter 2: GCN and GAT</a>
+    <a href="index.html" class="nav-button">Return to Table of Contents</a>
+<a href="chapter4-graph-attention.html" class="nav-button">Chapter 4: Graph Attention →</a></div>
 
     </main>
 
     
     <section class="disclaimer">
-        <h3>Disclaimer</h3>
-        <ul>
-            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
-            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
-            <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
-            <li>To the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<h3>Disclaimer</h3>        <ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li><li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>            <li>The authors and Tohoku University assume no responsibility for the content, availability, or safety of external links or third-party data, tools, or libraries.</li>
+            <li>To the maximum extent permitted by applicable law, the authors and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
             <li>The content of this material may be changed, updated, or discontinued without notice.</li>
-            <li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
-        </ul>
+<li>Copyright and license terms stated in content (Example: CC BY 4.0) should be followed. This license typically includes no-warranty clauses.</li>        </ul>
     </section>
 
 <footer>
         <p>&copy; 2025 AI Terakoya. All rights reserved.</p>
-        <p>Graph Neural Networks入門 Series - Chapter 3 Chapter：メッセージパッシングとGNN</p>
+        <p>Graph Neural Networks Introduction Series - Chapter 3: Message Passing and GNN</p>
     </footer>
 </body>
 </html>

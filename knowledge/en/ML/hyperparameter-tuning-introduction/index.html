@@ -2,35 +2,737 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hyperparameter Tuning Introduction Series - From Grid Search to Modern Bayesian Optimization">
     <title>Hyperparameter Tuning Introduction Series v1.0 - AI Terakoya</title>
-    <style>body{font-family:sans-serif;max-width:900px;margin:0 auto;padding:2rem}header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:2rem;margin-bottom:2rem}h1{font-size:2rem}h2{margin-top:2rem;border-bottom:3px solid #3498db}</style>
+
+    <!-- CSS Styling -->
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #3498db;
+            --link-hover: #2980b9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header .container {
+            padding: 0 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-top: 1rem;
+        }
+
+        .meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Typography */
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            color: var(--primary-color);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.6rem;
+            color: var(--primary-color);
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+        }
+
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--link-hover);
+            text-decoration: underline;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1.2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Code blocks */
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            display: block;
+        }
+
+        thead {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        tbody {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 0.8rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        /* Blockquotes */
+        blockquote {
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: #666;
+        }
+
+        /* Images */
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        /* Mermaid diagrams */
+        .mermaid {
+            text-align: center;
+            margin: 2rem 0;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Details/Summary (for exercises) */
+        details {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary-color);
+            padding: 0.5rem;
+        }
+
+        summary:hover {
+            color: var(--secondary-color);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--border-color);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        /* Navigation buttons */
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 3rem 0;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .nav-button:hover {
+            background: var(--link-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+
+            table {
+                font-size: 0.9rem;
+            }
+        }
+
+
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        // Mermaid.js Converter - Converts markdown-style mermaid code blocks to renderable divs
+        document.addEventListener('DOMContentLoaded', function() {
+            // Find all code blocks with class="language-mermaid"
+            const mermaidCodeBlocks = document.querySelectorAll('pre.codehilite code.language-mermaid, pre code.language-mermaid');
+
+            mermaidCodeBlocks.forEach(function(codeBlock) {
+                const pre = codeBlock.parentElement;
+                const mermaidCode = codeBlock.textContent;
+
+                // Create a new div with mermaid class
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = mermaidCode.trim();
+
+                // Replace the pre element with the new div
+                pre.parentNode.replaceChild(mermaidDiv, pre);
+            });
+
+            // Re-initialize mermaid after conversion
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+                mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+            }
+        });
+    </script>
 </head>
 <body>
-    <nav><a href="../../index.html">AI Terakoya Top</a> › <a href="../index.html">ML</a> › Hyperparameter Tuning</nav>
-    <header>
-        <h1>🎯 Hyperparameter Tuning Introduction Series v1.0</h1>
-        <p>From Grid Search to Bayesian Optimization</p>
-        <div>📖 4-5 hours | 📊 Intermediate-Advanced</div>
+            <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Hyperparameter Tuning</span>
+        </div>
+    </nav>
+
+        <header>
+        <div class="container">
+            <h1>🎯 Hyperparameter Tuning Introduction Series v1.0</h1>
+            <p style="font-size: 1.1rem; margin-top: 0.5rem; opacity: 0.95;">From Grid Search to Modern Bayesian Optimization</p>
+            <div class="meta">
+                <span>📖 Total Learning Time: 60-80 minutes</span>
+                <span>📊 Level: Intermediate</span>
+            </div>
+        </div>
     </header>
-    <main>
-        <h2>Series Overview</h2>
-        <p><strong>Hyperparameter Tuning</strong> is essential for maximizing model performance. Learn from basic grid search to advanced Bayesian optimization techniques.</p>
-        
-        <h2>Chapters</h2>
-        <h3><a href="./chapter1-tuning-basics.html">Chapter 1: Tuning Basics</a></h3>
-        <p>50-60 min | Grid search, random search, hyperparameter basics</p>
-        
-        <h3><a href="./chapter2-bayesian-optimization.html">Chapter 2: Bayesian Optimization</a></h3>
-        <p>60-70 min | Gaussian processes, acquisition functions, Optuna</p>
-        
-        <h3><a href="./chapter3-advanced-methods.html">Chapter 3: Advanced Methods</a></h3>
-        <p>60-70 min | Population-based training, hyperband, meta-learning</p>
-        
-        <h3><a href="./chapter4-practical-strategies.html">Chapter 4: Practical Strategies</a></h3>
-        <p>60-70 min | AutoML tools, early stopping, efficient search strategies</p>
-        
-        <p><strong><a href="./chapter1-tuning-basics.html">Start Chapter 1 →</a></strong></p>
+
+    <main class="container">
+        <p><strong>Optimization techniques to maximize model performance</strong></p>
+
+        <h2 id="overview">Series Overview</h2>
+        <p>This series is a practical educational content consisting of 4 comprehensive chapters that systematically teach hyperparameter tuning from fundamentals to advanced techniques.</p>
+
+        <p><strong>Hyperparameter Tuning</strong> is a crucial process for maximizing machine learning model performance. Proper hyperparameter selection can significantly improve accuracy even with the same algorithm. From classical grid search to modern Bayesian optimization and efficient search methods using Optuna, you will systematically master tuning techniques that can be immediately applied in practice.</p>
+
+        <p><strong>Features:</strong></p>
+        <ul>
+            <li>✅ <strong>From Fundamentals to Modern Methods</strong>: Systematic learning from grid search/random search to Bayesian optimization and population-based training</li>
+            <li>✅ <strong>Implementation-Focused</strong>: Over 25 executable Python code examples and Optuna practice</li>
+            <li>✅ <strong>Intuitive Understanding</strong>: Understand the operating principles of each optimization algorithm through visualization</li>
+            <li>✅ <strong>Optuna Utilization</strong>: Efficient tuning using the latest automatic optimization framework</li>
+            <li>✅ <strong>Practice-Oriented</strong>: Strategies ready for immediate practical use, including multi-objective optimization, early stopping, and distributed tuning</li>
+        </ul>
+
+        <p><strong>Total Learning Time</strong>: 60-80 minutes (including code execution and exercises)</p>
+
+        <h2 id="learning">How to Learn</h2>
+
+        <h3>Recommended Learning Order</h3>
+
+        <div class="mermaid">
+graph TD
+    A[Chapter 1: Hyperparameter Tuning Basics] --> B[Chapter 2: Bayesian Optimization and Optuna]
+    B --> C[Chapter 3: Advanced Optimization Methods]
+    C --> D[Chapter 4: Practical Tuning Strategies]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+</div>
+
+        <p><strong>For Beginners (completely new to hyperparameter tuning):</strong><br>
+        - Chapter 1 → Chapter 2 → Chapter 3 → Chapter 4 (all chapters recommended)<br>
+        - Duration: 60-80 minutes</p>
+
+        <p><strong>For Intermediate Learners (with grid search experience):</strong><br>
+        - Chapter 2 → Chapter 3 → Chapter 4<br>
+        - Duration: 45-60 minutes</p>
+
+        <p><strong>For Specific Topic Enhancement:</strong><br>
+        - Bayesian Optimization and Optuna: Chapter 2 (focused learning)<br>
+        - Multi-objective Optimization and Distributed Tuning: Chapter 4 (focused learning)<br>
+        - Duration: 15-20 minutes per chapter</p>
+
+        <h2 id="chapters">Chapter Details</h2>
+
+        <h3><a href="./chapter1-tuning-basics.html">Chapter 1: Hyperparameter Tuning Basics</a></h3>
+        <p><strong>Difficulty</strong>: Beginner to Intermediate<br>
+        <strong>Reading Time</strong>: 15-20 minutes<br>
+        <strong>Code Examples</strong>: 6</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>What are Hyperparameters</strong> - Differences from parameters, search space design</li>
+            <li><strong>Evaluation Metrics and Cross-Validation</strong> - Using K-Fold CV, Stratified K-Fold, and time series CV</li>
+            <li><strong>Grid Search</strong> - Exhaustive search, understanding computational cost</li>
+            <li><strong>Random Search</strong> - Probabilistic search, comparison with grid search</li>
+            <li><strong>Search Space Design</strong> - Handling continuous, discrete, and categorical parameters</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ Understand the differences between hyperparameters and parameters</li>
+            <li>✅ Select appropriate evaluation metrics and cross-validation methods</li>
+            <li>✅ Perform exhaustive parameter search with grid search</li>
+            <li>✅ Efficiently search with random search</li>
+            <li>✅ Properly design search spaces and manage computational costs</li>
+        </ul>
+
+        <p><strong><a href="./chapter1-tuning-basics.html">Read Chapter 1 →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter2-bayesian-optimization.html">Chapter 2: Bayesian Optimization and Optuna</a></h3>
+        <p><strong>Difficulty</strong>: Intermediate<br>
+        <strong>Reading Time</strong>: 15-20 minutes<br>
+        <strong>Code Examples</strong>: 7</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>Principles of Bayesian Optimization</strong> - Gaussian processes, acquisition functions, balancing exploration and exploitation</li>
+            <li><strong>TPE (Tree-structured Parzen Estimator)</strong> - Optuna's default algorithm</li>
+            <li><strong>Optuna Introduction</strong> - Basic concepts of Study, Trial, and Objective</li>
+            <li><strong>Defining Search Spaces</strong> - Using suggest_float, suggest_int, suggest_categorical</li>
+            <li><strong>Optuna Visualization</strong> - Optimization history, parameter importance, parallel coordinate plots</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ Understand the principles and advantages of Bayesian optimization</li>
+            <li>✅ Explain the operating mechanism of the TPE algorithm</li>
+            <li>✅ Efficiently optimize hyperparameters with Optuna</li>
+            <li>✅ Flexibly define search spaces and handle conditional parameters</li>
+            <li>✅ Analyze the optimization process using Optuna's visualization features</li>
+        </ul>
+
+        <p><strong><a href="./chapter2-bayesian-optimization.html">Read Chapter 2 →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter3-advanced-optimization.html">Chapter 3: Advanced Optimization Methods</a></h3>
+        <p><strong>Difficulty</strong>: Intermediate to Advanced<br>
+        <strong>Reading Time</strong>: 15-20 minutes<br>
+        <strong>Code Examples</strong>: 6</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>Hyperband</strong> - Efficient resource allocation through early stopping</li>
+            <li><strong>BOHB (Bayesian Optimization and HyperBand)</strong> - Combining Bayesian optimization with Hyperband</li>
+            <li><strong>Population-based Training (PBT)</strong> - Population-based dynamic optimization</li>
+            <li><strong>CMA-ES (Covariance Matrix Adaptation Evolution Strategy)</strong> - Optimization through evolutionary strategies</li>
+            <li><strong>Method Selection</strong> - Algorithm selection based on problem characteristics</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ Understand Hyperband's early stopping strategy</li>
+            <li>✅ Combine Bayesian optimization with Hyperband using BOHB</li>
+            <li>✅ Dynamically optimize with population-based training</li>
+            <li>✅ Explain the evolutionary strategy approach of CMA-ES</li>
+            <li>✅ Select optimal methods based on problem characteristics</li>
+        </ul>
+
+        <p><strong><a href="./chapter3-advanced-optimization.html">Read Chapter 3 →</a></strong></p>
+
+        <hr>
+
+        <h3><a href="./chapter4-practical-strategies.html">Chapter 4: Practical Tuning Strategies</a></h3>
+        <p><strong>Difficulty</strong>: Intermediate<br>
+        <strong>Reading Time</strong>: 15-20 minutes<br>
+        <strong>Code Examples</strong>: 6</p>
+
+        <h4>Learning Content</h4>
+        <ol>
+            <li><strong>Multi-objective Optimization</strong> - Trade-offs between accuracy and inference speed, Pareto optimal solutions</li>
+            <li><strong>Early Stopping</strong> - Pruning, MedianPruner, SuccessiveHalvingPruner</li>
+            <li><strong>Distributed Tuning</strong> - Parallel search, combination with distributed learning</li>
+            <li><strong>Warm Start</strong> - Utilizing past optimization results</li>
+            <li><strong>Practical Strategies</strong> - Managing time constraints, computational resources, and reproducibility</li>
+        </ol>
+
+        <h4>Learning Objectives</h4>
+        <ul>
+            <li>✅ Balance multiple metrics with multi-objective optimization</li>
+            <li>✅ Significantly reduce computation time with early stopping</li>
+            <li>✅ Execute large-scale searches with distributed tuning</li>
+            <li>✅ Leverage past knowledge with warm start</li>
+            <li>✅ Plan optimal tuning strategies within practical constraints</li>
+        </ul>
+
+        <p><strong><a href="./chapter4-practical-strategies.html">Read Chapter 4 →</a></strong></p>
+
+        <hr>
+
+        <h2 id="outcomes">Overall Learning Outcomes</h2>
+
+        <p>Upon completing this series, you will acquire the following skills and knowledge:</p>
+
+        <h3>Knowledge Level (Understanding)</h3>
+        <ul>
+            <li>✅ Explain the importance of hyperparameter tuning and its impact on model performance</li>
+            <li>✅ Understand the principles of grid search, random search, and Bayesian optimization</li>
+            <li>✅ Explain the operating mechanisms of Hyperband, BOHB, and population-based training</li>
+            <li>✅ Understand the trade-off between exploration and exploitation and achieve appropriate balance</li>
+            <li>✅ Understand the concepts of multi-objective optimization and Pareto optimal solutions</li>
+        </ul>
+
+        <h3>Practical Skills (Doing)</h3>
+        <ul>
+            <li>✅ Execute grid search and random search with scikit-learn</li>
+            <li>✅ Implement Bayesian optimization with Optuna and tune efficiently</li>
+            <li>✅ Utilize Hyperband and other advanced methods</li>
+            <li>✅ Optimize while reducing computation time with early stopping</li>
+            <li>✅ Execute parallel tuning in distributed environments</li>
+        </ul>
+
+        <h3>Application Ability (Applying)</h3>
+        <ul>
+            <li>✅ Select optimal tuning methods based on problem characteristics</li>
+            <li>✅ Plan effective optimization strategies within time and resource constraints</li>
+            <li>✅ Balance multiple metrics with multi-objective optimization</li>
+            <li>✅ Implement tuning in practice while maintaining reproducibility</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="prerequisites">Prerequisites</h2>
+
+        <p>To effectively learn this series, the following knowledge is desirable:</p>
+
+        <h3>Required (Must Have)</h3>
+        <ul>
+            <li>✅ <strong>Python Basics</strong>: Variables, functions, loops, conditional statements</li>
+            <li>✅ <strong>Machine Learning Fundamentals</strong>: Model training and evaluation flow (<a href="../ml-basics/">ML-A01</a>)</li>
+            <li>✅ <strong>Supervised Learning</strong>: Basic understanding of regression and classification models</li>
+            <li>✅ <strong>scikit-learn Basics</strong>: Model fit/predict, cross-validation</li>
+        </ul>
+
+        <h3>Recommended (Nice to Have)</h3>
+        <ul>
+            <li>💡 <strong>Neural Network Basics</strong>: Deep learning model tuning experience (<a href="../neural-network-basics/">ML-B01</a>)</li>
+            <li>💡 <strong>Statistics Fundamentals</strong>: Understanding of Bayesian statistics and probability distributions</li>
+            <li>💡 <strong>Feature Engineering</strong>: Experience with data preprocessing and feature design</li>
+            <li>💡 <strong>Matplotlib/Seaborn</strong>: Visualization of optimization processes</li>
+        </ul>
+
+        <p><strong>Recommended Prior Learning</strong>:</p>
+        <ul>
+            <li>📚 <a href="../ml-basics/">ML-A01: Machine Learning Basics Series</a> - Basic machine learning concepts</li>
+            <li>📚 <a href="../neural-network-basics/">ML-B01: Neural Network Basics Series</a> - Deep learning fundamentals</li>
+            <li>📚 <a href="../supervised-learning-introduction/">Supervised Learning Introduction Series</a> - Implementation of regression and classification models</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="tech">Technologies and Tools</h2>
+
+        <h3>Main Libraries</h3>
+        <ul>
+            <li><strong>Optuna 3.0+</strong> - Bayesian optimization and hyperparameter tuning</li>
+            <li><strong>scikit-learn 1.3+</strong> - Grid search, random search, machine learning models</li>
+            <li><strong>XGBoost 2.0+</strong> - Gradient boosting model optimization</li>
+            <li><strong>LightGBM 4.0+</strong> - Fast gradient boosting optimization</li>
+            <li><strong>Matplotlib 3.7+</strong> - Optimization process visualization</li>
+            <li><strong>plotly 5.0+</strong> - Interactive visualization for Optuna</li>
+        </ul>
+
+        <h3>Development Environment</h3>
+        <ul>
+            <li><strong>Python 3.8+</strong> - Programming language</li>
+            <li><strong>Jupyter Notebook / Lab</strong> - Interactive development environment</li>
+            <li><strong>Google Colab</strong> - Cloud environment (available for free)</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="start">Let's Get Started!</h2>
+        <p>Are you ready? Start with Chapter 1 and master hyperparameter tuning techniques!</p>
+
+        <p><strong><a href="./chapter1-tuning-basics.html">Chapter 1: Hyperparameter Tuning Basics →</a></strong></p>
+
+        <hr>
+
+        <h2 id="next">Next Steps</h2>
+
+        <p>After completing this series, we recommend advancing to the following topics:</p>
+
+        <h3>Deep Dive Learning</h3>
+        <ul>
+            <li>📚 <strong>AutoML</strong>: Automated machine learning with Auto-sklearn, TPOT, H2O AutoML</li>
+            <li>📚 <strong>Neural Architecture Search (NAS)</strong>: Architecture search for deep learning</li>
+            <li>📚 <strong>Meta-learning</strong>: Transfer learning utilizing past tuning experience</li>
+            <li>📚 <strong>Distributed Optimization</strong>: Large-scale parallel tuning with Ray Tune and Hyperopt</li>
+        </ul>
+
+        <h3>Related Series</h3>
+        <ul>
+            <li>🎯 <a href="../feature-engineering-introduction/">Feature Engineering Introduction</a> - Data preprocessing and feature design</li>
+            <li>🎯 <a href="../model-interpretation/">Machine Learning Interpretability</a> - SHAP, LIME, hyperparameter impact analysis</li>
+            <li>🎯 <a href="../advanced-ensemble/">Advanced Ensemble Learning</a> - Optimization of stacking and blending</li>
+        </ul>
+
+        <h3>Practical Projects</h3>
+        <ul>
+            <li>🚀 Image Classification Optimization - Hyperparameter tuning for ResNet and EfficientNet</li>
+            <li>🚀 Time Series Forecasting Optimization - Tuning strategies for LSTM and Transformers</li>
+            <li>🚀 Kaggle Competition - Optimization practice in real competitions</li>
+            <li>🚀 Production ML - Multi-objective optimization of inference speed and accuracy</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="navigation">Navigation</h2>
+
+        <div class="nav-buttons">
+            <a href="../" class="nav-button">← Back to ML Series List</a>
+            <a href="./chapter1-tuning-basics.html" class="nav-button">Chapter 1: Tuning Basics →</a>
+        </div>
+
+        <hr>
+
+        <p><strong>Update History</strong></p>
+        <ul>
+            <li><strong>2025-10-21</strong>: v1.0 Initial release</li>
+        </ul>
+
+        <hr>
+
+        <p><strong>Your hyperparameter tuning journey begins here!</strong></p>
+
     </main>
-    <footer><p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University | CC BY 4.0</p></footer>
+
+
+    <section class="disclaimer">
+        <h3>Disclaimer</h3>
+        <ul>
+            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranties, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+            <li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
+            <li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+        </ul>
+    </section>
+
+<footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
 </body>
 </html>

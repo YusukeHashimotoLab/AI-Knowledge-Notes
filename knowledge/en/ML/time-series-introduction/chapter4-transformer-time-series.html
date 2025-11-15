@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 4 Chapter：Transformerによる時系列予測 - AI Terakoya</title>
+    <title>Chapter 4: Time Series Forecasting with Transformers - AI Terakoya</title>
 
     <style>
         :root {
@@ -98,9 +98,9 @@
         }
 
         @media (max-width: 768px) { h1 { font-size: 1.5rem; } h2 { font-size: 1.4rem; } h3 { font-size: 1.2rem; } .meta { font-size: 0.85rem; } .navigation { flex-direction: column; } table { font-size: 0.85rem; } th, td { padding: var(--spacing-xs); } }
-    
-        
-    
+
+
+
         /* Breadcrumb styles */
         .breadcrumb {
             background: #f7fafc;
@@ -161,13 +161,13 @@
 
         <header>
         <div class="header-content">
-            <h1>Chapter 4 Chapter：Transformerによる時系列予測</h1>
-            <p class="subtitle">Temporal Fusion Transformer、Informer、長期予測への最先端アプローチ</p>
+            <h1>Chapter 4: Time Series Forecasting with Transformers</h1>
+            <p class="subtitle">Temporal Fusion Transformer, Informer, and State-of-the-Art Approaches to Long-Term Forecasting</p>
             <div class="meta">
                 <span class="meta-item">📖 Reading Time: 30-35 minutes</span>
                 <span class="meta-item">📊 Difficulty: Advanced</span>
                 <span class="meta-item">💻 Code Examples: 8</span>
-                <span class="meta-item">📝 Exercises: 5問</span>
+                <span class="meta-item">📝 Exercises: 5</span>
             </div>
         </div>
     </header>
@@ -175,35 +175,35 @@
     <main class="container">
 
 <h2>Learning Objectives</h2>
-<p>この ChapterReadことで、以下を習得できます：</p>
+<p>By completing this chapter, you will be able to:</p>
 <ul>
-<li>✅ 時系列データに対するTransformerのPositional Encodingを理解する</li>
-<li>✅ Temporal Attentionメカニズムの仕組みと実装方法を習得する</li>
-<li>✅ Multi-horizon予測の概念と実装を理解する</li>
-<li>✅ Temporal Fusion Transformer（TFT）の完全なアーキテクチャを理解する</li>
-<li>✅ Variable Selection NetworkとInterpretable Attentionを実装できる</li>
-<li>✅ InformerのProbSparse Attentionと長期予測手法を習得する</li>
-<li>✅ Autoformer、FEDformer、Patch TSTなどの最新モデルを理解する</li>
-<li>✅ pytorch-forecastingを用いた本格的な予測パイプラインを構築できる</li>
+<li>✅ Understand Positional Encoding for time series data with Transformers</li>
+<li>✅ Master the Temporal Attention mechanism and its implementation</li>
+<li>✅ Understand the concept and implementation of Multi-horizon forecasting</li>
+<li>✅ Comprehend the complete architecture of Temporal Fusion Transformer (TFT)</li>
+<li>✅ Implement Variable Selection Network and Interpretable Attention</li>
+<li>✅ Master Informer's ProbSparse Attention and long-term forecasting methods</li>
+<li>✅ Understand latest models like Autoformer, FEDformer, and Patch TST</li>
+<li>✅ Build production-grade forecasting pipelines using pytorch-forecasting</li>
 </ul>
 
 <hr>
 
-<h2>4.1 Transformer for 時系列</h2>
+<h2>4.1 Transformers for Time Series</h2>
 
-<h3>時系列におけるTransformerの適用</h3>
+<h3>Applying Transformers to Time Series</h3>
 
-<p><strong>Transformer</strong>は、元々自然言語処理のために設計されましたが、時系列予測においても強力なツールとなっています。Attention機構により、長期依存関係を効率的に捉えることができます。</p>
+<p><strong>Transformers</strong> were originally designed for natural language processing, but have become powerful tools for time series forecasting as well. The Attention mechanism enables efficient capture of long-term dependencies.</p>
 
 <blockquote>
-<p>「TransformerのSelf-Attentionは、時系列における任意の時点間の依存関係を直接的にモデル化できる。これはRNN/LSTMの逐次処理の制約を超える」</p>
+<p>"Transformer's Self-Attention can directly model dependencies between any time points in a series. This transcends the sequential processing constraints of RNN/LSTM"</p>
 </blockquote>
 
 <h3>Positional Encoding for Time</h3>
 
-<p>時系列データでは、 hours的な順序情報が極めて重要です。Transformerには再帰構造がないため、<strong>Positional Encoding</strong>で hours情報を明示的に注入する必要があります。</p>
+<p>For time series data, temporal ordering information is critically important. Since Transformers lack recurrent structure, we need to explicitly inject temporal information through <strong>Positional Encoding</strong>.</p>
 
-<h4>標準的なSinusoidal Encoding</h4>
+<h4>Standard Sinusoidal Encoding</h4>
 
 <p>$$
 \begin{align}
@@ -212,35 +212,35 @@ PE_{(pos, 2i+1)} &= \cos\left(\frac{pos}{10000^{2i/d_{model}}}\right)
 \end{align}
 $$</p>
 
-<p>ここで：</p>
+<p>Where:</p>
 <ul>
-<li>$pos$： hoursステップの位置</li>
-<li>$i$：次元のインデックス</li>
-<li>$d_{model}$：モデルの次元数</li>
+<li>$pos$: position of the time step</li>
+<li>$i$: dimension index</li>
+<li>$d_{model}$: model dimensionality</li>
 </ul>
 
-<h4>時系列特有のTemporal Encoding</h4>
+<h4>Time Series-Specific Temporal Encoding</h4>
 
-<p>時系列では、さらに以下の情報をエンコードすることが有効です：</p>
+<p>For time series, it's beneficial to encode additional information:</p>
 <ul>
-<li><strong>絶対時刻</strong>：時刻、日付、曜日、月など</li>
-<li><strong>相対位置</strong>：現在からの相対的な hours距離</li>
-<li><strong>周期性</strong>：日次、週次、年次などの周期パターン</li>
+<li><strong>Absolute time</strong>: hour, date, day of week, month, etc.</li>
+<li><strong>Relative position</strong>: temporal distance from the current time</li>
+<li><strong>Periodicity</strong>: daily, weekly, yearly cyclic patterns</li>
 </ul>
 
 <h3>Temporal Attention</h3>
 
-<p>時系列用のAttention機構では、通常のSelf-Attentionに加えて、 hours的な構造を考慮した工夫が施されます。</p>
+<p>Attention mechanisms for time series incorporate innovations that consider temporal structure in addition to standard Self-Attention.</p>
 
 <h4>Masked Temporal Attention</h4>
 
-<p>予測タスクでは、未来の情報を見てはいけないため、<strong>Causal Masking</strong>を適用します：</p>
+<p>For forecasting tasks, we must not look at future information, so we apply <strong>Causal Masking</strong>:</p>
 
 <p>$$
 \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}} + M\right)V
 $$</p>
 
-<p>ここで、マスク行列$M$は：</p>
+<p>Where the mask matrix $M$ is:</p>
 <p>$$
 M_{ij} = \begin{cases}
 0 & \text{if } i \geq j \\
@@ -250,7 +250,7 @@ $$</p>
 
 <h3>Multi-horizon Forecasting</h3>
 
-<p><strong>Multi-horizon forecasting</strong>は、複数の将来時点を同時に予測するタスクです。Transformerのdecoderを使い、autoregressive方式または直接予測方式で実装します。</p>
+<p><strong>Multi-horizon forecasting</strong> is the task of predicting multiple future time points simultaneously. It can be implemented using the Transformer decoder in autoregressive or direct prediction mode.</p>
 
 <div class="mermaid">
 graph LR
@@ -272,12 +272,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class PositionalEncoding(nn.Module):
-    """時系列用のPositional Encoding"""
+    """Positional Encoding for time series"""
 
     def __init__(self, d_model, max_len=5000):
         super().__init__()
 
-        # Positional encodingの計算
+        # Calculate positional encoding
         position = torch.arange(max_len).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2) *
                             (-np.log(10000.0) / d_model))
@@ -298,7 +298,7 @@ class PositionalEncoding(nn.Module):
 
 
 class TimeSeriesTransformer(nn.Module):
-    """時系列予測用のTransformer"""
+    """Transformer for time series forecasting"""
 
     def __init__(self, input_dim, d_model, nhead, num_encoder_layers,
                  num_decoder_layers, dim_feedforward, output_len, dropout=0.1):
@@ -329,7 +329,7 @@ class TimeSeriesTransformer(nn.Module):
         self.output_layer = nn.Linear(d_model, input_dim)
 
     def generate_square_subsequent_mask(self, sz):
-        """Causal maskの生成"""
+        """Generate causal mask"""
         mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(
             mask == 1, float(0.0))
@@ -338,8 +338,8 @@ class TimeSeriesTransformer(nn.Module):
     def forward(self, src, tgt):
         """
         Args:
-            src: (seq_len, batch_size, input_dim) - 過去データ
-            tgt: (output_len, batch_size, input_dim) - デコーダ入力
+            src: (seq_len, batch_size, input_dim) - past data
+            tgt: (output_len, batch_size, input_dim) - decoder input
         """
         # Embedding
         src = self.encoder_input_layer(src) * np.sqrt(self.d_model)
@@ -361,11 +361,11 @@ class TimeSeriesTransformer(nn.Module):
         return output
 
 
-# モデルの使用例
+# Model usage example
 def train_transformer_example():
-    """Transformerの訓練例"""
+    """Transformer training example"""
 
-    # 合成データ生成（サイン波 + ノイズ）
+    # Generate synthetic data (sine wave + noise)
     def generate_data(n_samples=1000, seq_len=50, output_len=10):
         X, y = [], []
         t = np.linspace(0, 100, n_samples + seq_len + output_len)
@@ -377,7 +377,7 @@ def train_transformer_example():
 
         return np.array(X), np.array(y)
 
-    # データ準備
+    # Prepare data
     X_train, y_train = generate_data(n_samples=800)
     X_test, y_test = generate_data(n_samples=200)
 
@@ -386,7 +386,7 @@ def train_transformer_example():
     X_test = torch.FloatTensor(X_test).unsqueeze(-1)
     y_test = torch.FloatTensor(y_test).unsqueeze(-1)
 
-    # モデル構築
+    # Build model
     model = TimeSeriesTransformer(
         input_dim=1,
         d_model=64,
@@ -401,7 +401,7 @@ def train_transformer_example():
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    # 訓練
+    # Training
     n_epochs = 50
     batch_size = 32
 
@@ -409,16 +409,16 @@ def train_transformer_example():
         model.train()
         total_loss = 0
 
-        # ミニバッチ訓練
+        # Mini-batch training
         for i in range(0, len(X_train), batch_size):
             batch_X = X_train[i:i+batch_size].transpose(0, 1)  # (seq_len, batch, 1)
             batch_y = y_train[i:i+batch_size].transpose(0, 1)  # (output_len, batch, 1)
 
-            # デコーダ入力（teacher forcing用）
-            # 最初のタイムステップはエンコーダの最後の値を使用
+            # Decoder input (for teacher forcing)
+            # First time step uses the last value from encoder
             decoder_input = torch.cat([
-                batch_X[-1:],  # 最後の値
-                batch_y[:-1]   # ターゲットの最初からn-1
+                batch_X[-1:],  # last value
+                batch_y[:-1]   # first n-1 targets
             ], dim=0)
 
             optimizer.zero_grad()
@@ -432,23 +432,23 @@ def train_transformer_example():
         if (epoch + 1) % 10 == 0:
             print(f'Epoch [{epoch+1}/{n_epochs}], Loss: {total_loss/len(X_train):.6f}')
 
-    # 評価
+    # Evaluation
     model.eval()
     with torch.no_grad():
-        # テストデータで予測（autoregressiveモード）
+        # Predict on test data (autoregressive mode)
         test_X = X_test[0:1].transpose(0, 1)  # (50, 1, 1)
 
-        # 初期デコーダ入力
+        # Initial decoder input
         decoder_input = test_X[-1:]  # (1, 1, 1)
         predictions = []
 
         for _ in range(10):
             output = model(test_X, decoder_input)
-            next_pred = output[-1:]  # 最後の予測
+            next_pred = output[-1:]  # last prediction
             predictions.append(next_pred.squeeze().item())
             decoder_input = torch.cat([decoder_input, next_pred], dim=0)
 
-        # 可視化
+        # Visualization
         plt.figure(figsize=(12, 5))
         plt.plot(range(50), X_test[0].numpy(), label='Input', marker='o')
         plt.plot(range(50, 60), y_test[0].numpy(), label='True Future', marker='s')
@@ -463,7 +463,7 @@ def train_transformer_example():
         plt.savefig('transformer_forecast.png', dpi=150, bbox_inches='tight')
         plt.close()
 
-        print(f"予測結果を保存しました: transformer_forecast.png")
+        print(f"Prediction results saved: transformer_forecast.png")
         print(f"MSE: {np.mean((np.array(predictions) - y_test[0].numpy().flatten())**2):.6f}")
 
 if __name__ == "__main__":
@@ -474,17 +474,17 @@ if __name__ == "__main__":
 
 <h2>4.2 Temporal Fusion Transformer (TFT)</h2>
 
-<h3>TFTの概要</h3>
+<h3>Overview of TFT</h3>
 
-<p><strong>Temporal Fusion Transformer (TFT)</strong>は、Google Researchが2021年に発表した時系列予測に特化したTransformerアーキテクチャです。解釈可能性と高精度を両立した設計が特徴です。</p>
+<p><strong>Temporal Fusion Transformer (TFT)</strong> is a Transformer architecture specialized for time series forecasting, published by Google Research in 2021. It features a design that balances interpretability with high accuracy.</p>
 
 <blockquote>
-<p>「TFTは、Variable Selection Network、LSTM-based Encoder-Decoder、Interpretable Multi-head Attentionを組み合わせることで、予測精度と解釈可能性を同時に実現する」</p>
+<p>"TFT achieves both forecasting accuracy and interpretability by combining Variable Selection Network, LSTM-based Encoder-Decoder, and Interpretable Multi-head Attention"</p>
 </blockquote>
 
 <h3>TFT Architecture</h3>
 
-<p>TFTは以下の主要コンポーネントで構成されます：</p>
+<p>TFT consists of the following main components:</p>
 
 <div class="mermaid">
 graph TB
@@ -512,20 +512,20 @@ graph TB
 
 <h3>Variable Selection Network</h3>
 
-<p><strong>Variable Selection Network (VSN)</strong>は、入力変数の重要度を学習し、自動的に特徴選択を行います。</p>
+<p><strong>Variable Selection Network (VSN)</strong> learns the importance of input variables and performs automatic feature selection.</p>
 
-<p>各変数$v_i$に対する重要度重み$w_i$を計算：</p>
+<p>Calculate importance weight $w_i$ for each variable $v_i$:</p>
 
 <p>$$
 \mathbf{w} = \text{Softmax}(\text{GRN}(\mathbf{v}_1, \ldots, \mathbf{v}_n))
 $$</p>
 
-<p>選択された変数：</p>
+<p>Selected variables:</p>
 <p>$$
 \mathbf{\xi} = \sum_{i=1}^{n} w_i \cdot \text{GRN}(\mathbf{v}_i)
 $$</p>
 
-<p>ここで、<strong>GRN (Gated Residual Network)</strong>は、以下の構造を持つブロックです：</p>
+<p>Where <strong>GRN (Gated Residual Network)</strong> is a block with the following structure:</p>
 
 <p>$$
 \text{GRN}(\mathbf{a}, \mathbf{c}) = \text{LayerNorm}(\mathbf{a} + \text{GLU}(\eta_1)) \\
@@ -535,13 +535,13 @@ $$</p>
 
 <h3>Interpretable Multi-head Attention</h3>
 
-<p>TFTのAttention機構は、各時点の重要度を可視化できるように設計されています：</p>
+<p>TFT's Attention mechanism is designed to visualize the importance of each time point:</p>
 
 <p>$$
 \text{Attention}(Q, K, V) = \text{Softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
 $$</p>
 
-<p>Attention weightsを平均化することで、各時点の重要度を解釈：</p>
+<p>Interpret the importance of each time point by averaging attention weights:</p>
 
 <p>$$
 \alpha_t = \frac{1}{H}\sum_{h=1}^{H} \text{Softmax}\left(\frac{Q_hK_h^T}{\sqrt{d_k}}\right)_{t,:}
@@ -549,7 +549,7 @@ $$</p>
 
 <h3>pytorch-forecasting Library</h3>
 
-<p><code>pytorch-forecasting</code>は、TFTを含む時系列予測モデルを簡単に使えるライブラリです。</p>
+<p><code>pytorch-forecasting</code> is a library that makes it easy to use time series forecasting models including TFT.</p>
 
 <pre><code class="language-python">import pandas as pd
 import numpy as np
@@ -561,19 +561,19 @@ from pytorch_lightning import Trainer
 import matplotlib.pyplot as plt
 
 def create_tft_example():
-    """TFTを使った予測例"""
+    """TFT forecasting example"""
 
-    # 合成データ生成
+    # Generate synthetic data
     np.random.seed(42)
     n_samples = 1000
 
     data = []
     for store_id in range(5):
         for day in range(n_samples):
-            # トレンド + 季節性 + ノイズ
+            # Trend + seasonality + noise
             trend = day * 0.1
-            seasonality = 10 * np.sin(2 * np.pi * day / 30)  # 月次周期
-            weekly = 5 * np.sin(2 * np.pi * day / 7)  # 週次周期
+            seasonality = 10 * np.sin(2 * np.pi * day / 30)  # monthly cycle
+            weekly = 5 * np.sin(2 * np.pi * day / 7)  # weekly cycle
             noise = np.random.normal(0, 2)
             store_effect = store_id * 5
 
@@ -590,9 +590,9 @@ def create_tft_example():
 
     df = pd.DataFrame(data)
 
-    # TimeSeriesDataSetの作成
-    max_encoder_length = 60  # 過去60日を使用
-    max_prediction_length = 20  # 20日先を予測
+    # Create TimeSeriesDataSet
+    max_encoder_length = 60  # use past 60 days
+    max_prediction_length = 20  # predict 20 days ahead
     training_cutoff = df["time_idx"].max() - max_prediction_length
 
     training = TimeSeriesDataSet(
@@ -629,7 +629,7 @@ def create_tft_example():
         train=False, batch_size=batch_size, num_workers=0
     )
 
-    # TFTモデルの構築
+    # Build TFT model
     tft = TemporalFusionTransformer.from_dataset(
         training,
         learning_rate=0.03,
@@ -637,15 +637,15 @@ def create_tft_example():
         attention_head_size=1,
         dropout=0.1,
         hidden_continuous_size=16,
-        output_size=7,  # quantile outputの数
+        output_size=7,  # number of quantile outputs
         loss=QuantileLoss(),
         log_interval=10,
         reduce_on_plateau_patience=4,
     )
 
-    print(f"TFTモデルのパラメータ数: {tft.size()/1e3:.1f}k")
+    print(f"TFT model parameters: {tft.size()/1e3:.1f}k")
 
-    # 訓練
+    # Training
     trainer = Trainer(
         max_epochs=30,
         accelerator="cpu",
@@ -661,13 +661,13 @@ def create_tft_example():
         val_dataloaders=val_dataloader,
     )
 
-    # 予測
+    # Prediction
     best_model = tft.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
-    # 最初のバッチで予測
+    # Predict on first batch
     predictions = best_model.predict(val_dataloader, return_x=True)
 
-    # 可視化
+    # Visualization
     for idx in range(min(3, len(predictions.output))):
         best_model.plot_prediction(
             predictions.x, predictions.output, idx=idx, add_loss_to_title=True
@@ -675,9 +675,9 @@ def create_tft_example():
         plt.savefig(f'tft_prediction_{idx}.png', dpi=150, bbox_inches='tight')
         plt.close()
 
-    print(f"予測結果を保存しました: tft_prediction_*.png")
+    print(f"Prediction results saved: tft_prediction_*.png")
 
-    # Variable importanceの可視化
+    # Visualize variable importance
     interpretation = best_model.interpret_output(predictions.output, reduction="sum")
 
     # Attention weights
@@ -693,7 +693,7 @@ def create_tft_example():
     plt.savefig('tft_attention.png', dpi=150, bbox_inches='tight')
     plt.close()
 
-    print(f"Attention weightsを保存しました: tft_attention.png")
+    print(f"Attention weights saved: tft_attention.png")
 
     # Variable importance
     importance = best_model.interpret_output(
@@ -710,31 +710,31 @@ if __name__ == "__main__":
 
 <h2>4.3 Informer</h2>
 
-<h3>Informerの動機</h3>
+<h3>Motivation for Informer</h3>
 
-<p><strong>Informer</strong>は、長期時系列予測（LSTF: Long Sequence Time-series Forecasting）のために設計されたTransformerです。標準的なTransformerの計算量とメモリ使用量の問題を解決します。</p>
+<p><strong>Informer</strong> is a Transformer designed for Long Sequence Time-series Forecasting (LSTF). It solves the computational and memory usage problems of standard Transformers.</p>
 
 <blockquote>
-<p>「標準的なTransformerのAttentionは$O(L^2)$の計算量を持つため、長い系列（例：1000ステップ以上）では実用的でない。InformerはProbSparse Attentionにより$O(L\log L)$に削減する」</p>
+<p>"Standard Transformer Attention has $O(L^2)$ computational complexity, making it impractical for long sequences (e.g., 1000+ steps). Informer reduces this to $O(L\log L)$ with ProbSparse Attention"</p>
 </blockquote>
 
 <h3>ProbSparse Attention</h3>
 
-<p><strong>ProbSparse Self-Attention</strong>は、重要なクエリのみを選択的に計算する効率的なAttention機構です。</p>
+<p><strong>ProbSparse Self-Attention</strong> is an efficient attention mechanism that selectively computes only important queries.</p>
 
 <h4>Query Sparsity Measurement</h4>
 
-<p>各クエリ$q_i$の「重要度」をスパース性で測定：</p>
+<p>Measure the "importance" of each query $q_i$ by its sparsity:</p>
 
 <p>$$
 M(q_i, K) = \ln \sum_{j=1}^{L_k} e^{\frac{q_i k_j^T}{\sqrt{d}}} - \frac{1}{L_k}\sum_{j=1}^{L_k}\frac{q_i k_j^T}{\sqrt{d}}
 $$</p>
 
-<p>この値が大きいほど、クエリは特定のキーに集中しており（スパース）、重要です。</p>
+<p>The larger this value, the more the query focuses on specific keys (sparse), making it important.</p>
 
 <h4>Top-u Selection</h4>
 
-<p>上位$u$のクエリのみでAttentionを計算：</p>
+<p>Compute Attention only for the top $u$ queries:</p>
 
 <p>$$
 \bar{Q} = \text{Top-}u(M(q_i, K))
@@ -744,22 +744,22 @@ $$</p>
 \text{ProbSparseAttention}(\bar{Q}, K, V) = \text{Softmax}\left(\frac{\bar{Q}K^T}{\sqrt{d}}\right)V
 $$</p>
 
-<p>他のクエリは平均値で埋める：</p>
+<p>Other queries are filled with the mean value:</p>
 <p>$$
 \text{Attention}(Q, K, V) = [\text{ProbSparseAttention}(\bar{Q}, K, V); \bar{V}]
 $$</p>
 
 <h3>Self-Attention Distilling</h3>
 
-<p>Informerは、エンコーダ層ごとに系列長を半 minutesにする<strong>Distilling操作</strong>を適用します：</p>
+<p>Informer applies a <strong>Distilling operation</strong> that halves the sequence length at each encoder layer:</p>
 
 <ol>
-<li>Self-Attention層を通過</li>
-<li>1D Convolution + Max Poolingで系列長を半 minutesに</li>
-<li>次の層へ</li>
+<li>Pass through Self-Attention layer</li>
+<li>Halve sequence length with 1D Convolution + Max Pooling</li>
+<li>Proceed to next layer</li>
 </ol>
 
-<p>これにより、$L \to L/2 \to L/4 \to \ldots$と系列長が減少し、メモリ効率が向上します。</p>
+<p>This reduces the sequence length as $L \to L/2 \to L/4 \to \ldots$, improving memory efficiency.</p>
 
 <div class="mermaid">
 graph LR
@@ -813,11 +813,11 @@ class ProbAttention(nn.Module):
         V = V.transpose(1, 2)
 
         # ProbSparse Attention
-        # サンプリング数
+        # Number of samples
         u = self.factor * int(np.ceil(np.log(L_q)))
         u = min(u, L_q)
 
-        # ランダムサンプリング（簡易版、本来はスパース性で選択）
+        # Random sampling (simplified version, should be selected by sparsity)
         Q_sample = Q[:, :, :u, :]
 
         # Attention scores
@@ -831,7 +831,7 @@ class ProbAttention(nn.Module):
         # Apply attention to values
         out_sample = torch.matmul(attn, V)  # (B, n_heads, u, d_k)
 
-        # 残りは平均値で埋める
+        # Fill rest with mean
         V_mean = V.mean(dim=2, keepdim=True).expand(-1, -1, L_q - u, -1)
         out = torch.cat([out_sample, V_mean], dim=2)
 
@@ -843,7 +843,7 @@ class ProbAttention(nn.Module):
 
 
 class Distilling(nn.Module):
-    """Distilling操作（系列長を半 minutesに）"""
+    """Distilling operation (halve sequence length)"""
 
     def __init__(self, d_model):
         super().__init__()
@@ -864,7 +864,7 @@ class Distilling(nn.Module):
 
 
 class InformerEncoder(nn.Module):
-    """Informerのエンコーダ"""
+    """Informer encoder"""
 
     def __init__(self, d_model, n_heads, d_ff, n_layers, dropout=0.1):
         super().__init__()
@@ -904,7 +904,7 @@ class InformerEncoder(nn.Module):
             new_x = ffn(x)
             x = self.norm_layers[2*i+1](x + new_x)
 
-            # Distilling（最後の層以外）
+            # Distilling (except for last layer)
             if i < len(self.distilling_layers):
                 x = self.distilling_layers[i](x)
 
@@ -912,40 +912,40 @@ class InformerEncoder(nn.Module):
 
 
 def test_informer():
-    """Informerのテスト"""
+    """Test Informer"""
 
-    # パラメータ
+    # Parameters
     batch_size = 4
-    seq_len = 96  # 長い系列
+    seq_len = 96  # long sequence
     d_model = 64
     n_heads = 4
     d_ff = 256
     n_layers = 3
 
-    # エンコーダ
+    # Encoder
     encoder = InformerEncoder(d_model, n_heads, d_ff, n_layers)
 
-    # ダミー入力
+    # Dummy input
     x = torch.randn(batch_size, seq_len, d_model)
 
     # Forward
     output, attns = encoder(x)
 
-    print(f"入力サイズ: {x.shape}")
-    print(f"出力サイズ: {output.shape}")
-    print(f"Attention weights数: {len(attns)}")
+    print(f"Input size: {x.shape}")
+    print(f"Output size: {output.shape}")
+    print(f"Number of attention weights: {len(attns)}")
 
-    # 系列長の減少を確認
-    print("\n層ごとの系列長:")
+    # Check sequence length reduction
+    print("\nSequence length per layer:")
     test_x = x
     for i, distill in enumerate(encoder.distilling_layers):
         test_x = distill(test_x)
         print(f"  Layer {i+1}: {test_x.shape[1]}")
 
-    # Attention weightsの可視化
+    # Visualize attention weights
     fig, axes = plt.subplots(1, len(attns), figsize=(15, 3))
     for i, attn in enumerate(attns):
-        # 最初のバッチ、最初のヘッドのattentionを表示
+        # Display attention for first batch, first head
         attn_map = attn[0, 0].detach().numpy()
         axes[i].imshow(attn_map, cmap='viridis', aspect='auto')
         axes[i].set_title(f'Layer {i+1}')
@@ -956,7 +956,7 @@ def test_informer():
     plt.savefig('informer_attention.png', dpi=150, bbox_inches='tight')
     plt.close()
 
-    print(f"\nAttention weightsを保存しました: informer_attention.png")
+    print(f"\nAttention weights saved: informer_attention.png")
 
 if __name__ == "__main__":
     test_informer()
@@ -964,41 +964,41 @@ if __name__ == "__main__":
 
 <hr>
 
-<h2>4.4 その他のTransformerモデル</h2>
+<h2>4.4 Other Transformer Models</h2>
 
 <h3>Autoformer</h3>
 
-<p><strong>Autoformer</strong>（2021）は、時系列の minutes解とAuto-Correlationメカニズムを導入したモデルです。</p>
+<p><strong>Autoformer</strong> (2021) is a model that introduces decomposition and Auto-Correlation mechanisms for time series.</p>
 
-<h4>主な特徴</h4>
+<h4>Key Features</h4>
 <ul>
-<li><strong>Series Decomposition Block</strong>：トレンドと季節成 minutesを minutes離</li>
-<li><strong>Auto-Correlation Mechanism</strong>：時系列の周期性を直接捉える</li>
-<li><strong>Progressive Decomposition</strong>：各層で minutes解を繰り返す</li>
+<li><strong>Series Decomposition Block</strong>: Separates trend and seasonal components</li>
+<li><strong>Auto-Correlation Mechanism</strong>: Directly captures periodicity in time series</li>
+<li><strong>Progressive Decomposition</strong>: Repeats decomposition at each layer</li>
 </ul>
 
 <h4>Auto-Correlation</h4>
 
-<p>従来のAttentionの代わりに、時系列の自己相関を利用：</p>
+<p>Instead of conventional Attention, uses autocorrelation of time series:</p>
 
 <p>$$
 \text{AutoCorr}(Q, K, V) = \text{Softmax}\left(\frac{\mathcal{R}_{Q,K}}{\tau}\right)V
 $$</p>
 
-<p>ここで、$\mathcal{R}_{Q,K}$は自己相関関数です。</p>
+<p>Where $\mathcal{R}_{Q,K}$ is the autocorrelation function.</p>
 
 <h3>FEDformer</h3>
 
-<p><strong>FEDformer</strong>（Frequency Enhanced Decomposed Transformer, 2022）は、周波数領域での処理を導入したモデルです。</p>
+<p><strong>FEDformer</strong> (Frequency Enhanced Decomposed Transformer, 2022) is a model that introduces processing in the frequency domain.</p>
 
-<h4>主な特徴</h4>
+<h4>Key Features</h4>
 <ul>
-<li><strong>Frequency Enhanced Block (FEB)</strong>：FFTを用いた周波数領域での処理</li>
-<li><strong>Seasonal-Trend Decomposition</strong>：周波数領域での minutes解</li>
-<li><strong>Fourier Enhanced Attention</strong>：周波数成 minutesに基づくAttention</li>
+<li><strong>Frequency Enhanced Block (FEB)</strong>: Processing in frequency domain using FFT</li>
+<li><strong>Seasonal-Trend Decomposition</strong>: Decomposition in frequency domain</li>
+<li><strong>Fourier Enhanced Attention</strong>: Attention based on frequency components</li>
 </ul>
 
-<h4>周波数領域処理</h4>
+<h4>Frequency Domain Processing</h4>
 
 <p>$$
 \hat{X} = \text{FFT}(X) \\
@@ -1008,48 +1008,48 @@ $$</p>
 
 <h3>Patch TST (PatchTST)</h3>
 
-<p><strong>PatchTST</strong>（2023）は、時系列をパッチに minutes割してTransformerに入力する新しいアプローチです。</p>
+<p><strong>PatchTST</strong> (2023) is a new approach that divides time series into patches and inputs them to a Transformer.</p>
 
-<h4>主な特徴</h4>
+<h4>Key Features</h4>
 <ul>
-<li><strong>Patching</strong>：連続する hoursステップをパッチとして扱う</li>
-<li><strong>Channel Independence</strong>：各変数を独立に処理</li>
-<li><strong>Efficient Architecture</strong>：パラメータ数と計算量を削減</li>
+<li><strong>Patching</strong>: Treats consecutive time steps as patches</li>
+<li><strong>Channel Independence</strong>: Processes each variable independently</li>
+<li><strong>Efficient Architecture</strong>: Reduces number of parameters and computation</li>
 </ul>
 
-<h4>Patching操作</h4>
+<h4>Patching Operation</h4>
 
-<p>長さ$L$の系列を、サイズ$P$のパッチ$N = L/P$に minutes割：</p>
+<p>Divide a sequence of length $L$ into $N = L/P$ patches of size $P$:</p>
 
 <p>$$
 X = [x_1, x_2, \ldots, x_L] \to [\mathbf{p}_1, \mathbf{p}_2, \ldots, \mathbf{p}_N]
 $$</p>
 
-<p>各パッチ$\mathbf{p}_i \in \mathbb{R}^P$をTransformerのトークンとして扱います。</p>
+<p>Treat each patch $\mathbf{p}_i \in \mathbb{R}^P$ as a token for the Transformer.</p>
 
 <h3>Model Comparison</h3>
 
 <table>
 <thead>
 <tr>
-<th>モデル</th>
-<th>主な特徴</th>
-<th>計算量</th>
-<th>長期予測</th>
-<th>解釈性</th>
+<th>Model</th>
+<th>Key Features</th>
+<th>Complexity</th>
+<th>Long-term</th>
+<th>Interpretability</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><strong>Vanilla Transformer</strong></td>
-<td>標準的なAttention</td>
+<td>Standard Attention</td>
 <td>$O(L^2)$</td>
 <td>△</td>
 <td>△</td>
 </tr>
 <tr>
 <td><strong>TFT</strong></td>
-<td>Variable Selection、解釈可能</td>
+<td>Variable Selection, interpretable</td>
 <td>$O(L^2)$</td>
 <td>〇</td>
 <td>◎</td>
@@ -1063,21 +1063,21 @@ $$</p>
 </tr>
 <tr>
 <td><strong>Autoformer</strong></td>
-<td>Auto-Correlation、 minutes解</td>
+<td>Auto-Correlation, decomposition</td>
 <td>$O(L\log L)$</td>
 <td>◎</td>
 <td>〇</td>
 </tr>
 <tr>
 <td><strong>FEDformer</strong></td>
-<td>周波数領域処理</td>
+<td>Frequency domain processing</td>
 <td>$O(L)$</td>
 <td>◎</td>
 <td>〇</td>
 </tr>
 <tr>
 <td><strong>PatchTST</strong></td>
-<td>Patching、効率的</td>
+<td>Patching, efficient</td>
 <td>$O((L/P)^2)$</td>
 <td>◎</td>
 <td>△</td>
@@ -1090,12 +1090,12 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
 def visualize_model_comparison():
-    """Transformerモデルの比較可視化"""
+    """Visualization comparing Transformer models"""
 
     models = ['Vanilla\nTransformer', 'TFT', 'Informer',
               'Autoformer', 'FEDformer', 'PatchTST']
 
-    # 性能指標（仮想的なスコア 0-10）
+    # Performance metrics (virtual scores 0-10)
     accuracy = [7, 8.5, 8, 8.5, 9, 8.5]
     efficiency = [4, 5, 8, 8, 9, 9]
     interpretability = [5, 9, 5, 7, 7, 4]
@@ -1124,14 +1124,14 @@ def visualize_model_comparison():
     plt.savefig('transformer_models_comparison.png', dpi=150, bbox_inches='tight')
     plt.close()
 
-    print("モデル比較グラフを保存しました: transformer_models_comparison.png")
+    print("Model comparison graph saved: transformer_models_comparison.png")
 
-    # 計算量の比較
+    # Computational complexity comparison
     fig, ax = plt.subplots(figsize=(10, 6))
 
     seq_lengths = np.arange(100, 2001, 100)
 
-    # 計算量（正規化）
+    # Computational cost (normalized)
     vanilla = (seq_lengths ** 2) / 1000
     informer = (seq_lengths * np.log(seq_lengths)) / 100
     fedformer = seq_lengths / 10
@@ -1158,7 +1158,7 @@ def visualize_model_comparison():
     plt.savefig('transformer_complexity.png', dpi=150, bbox_inches='tight')
     plt.close()
 
-    print("計算量比較グラフを保存しました: transformer_complexity.png")
+    print("Computational complexity graph saved: transformer_complexity.png")
 
 if __name__ == "__main__":
     visualize_model_comparison()
@@ -1166,22 +1166,22 @@ if __name__ == "__main__":
 
 <hr>
 
-<h2>4.5 Practical Projects</h2>
+<h2>4.5 Practical Project</h2>
 
 <h3>Multi-variate Forecasting with Exogenous Variables</h3>
 
-<p>実際のビジネス問題では、複数の時系列変数と外生変数を同時に扱う必要があります。ここでは、TFTを使った完全な予測パイプラインを構築します。</p>
+<p>In real business problems, we need to handle multiple time series variables and exogenous variables simultaneously. Here, we build a complete forecasting pipeline using TFT.</p>
 
-<h3>プロジェクト設定</h3>
+<h3>Project Setup</h3>
 
-<p><strong>タスク</strong>：小売店の売上予測</p>
+<p><strong>Task</strong>: Retail sales forecasting</p>
 
-<p><strong>データ</strong>：</p>
+<p><strong>Data</strong>:</p>
 <ul>
-<li><strong>Target</strong>：日次売上</li>
-<li><strong>Time-varying known</strong>：価格、プロモーション、曜日、祝日</li>
-<li><strong>Time-varying unknown</strong>：競合の活動、天候（予測困難）</li>
-<li><strong>Static</strong>：店舗カテゴリ、地域</li>
+<li><strong>Target</strong>: Daily sales</li>
+<li><strong>Time-varying known</strong>: Price, promotions, day of week, holidays</li>
+<li><strong>Time-varying unknown</strong>: Competitor activity, weather (difficult to forecast)</li>
+<li><strong>Static</strong>: Store category, region</li>
 </ul>
 
 <h3>Complete TFT Pipeline</h3>
@@ -1199,11 +1199,11 @@ import warnings
 warnings.filterwarnings('ignore')
 
 def generate_retail_data():
-    """小売売上データの生成"""
+    """Generate retail sales data"""
 
     np.random.seed(42)
 
-    # 店舗情報
+    # Store information
     stores = [
         {'store_id': 'A', 'category': 'urban', 'region': 'north'},
         {'store_id': 'B', 'category': 'urban', 'region': 'south'},
@@ -1213,37 +1213,37 @@ def generate_retail_data():
     ]
 
     data = []
-    n_days = 730  # 2年 minutes
+    n_days = 730  # 2 years
 
     for store in stores:
         store_id = store['store_id']
         base_sales = {'urban': 1000, 'suburban': 600, 'rural': 300}[store['category']]
 
         for day in range(n_days):
-            # 日付特徴
+            # Date features
             date = pd.Timestamp('2022-01-01') + pd.Timedelta(days=day)
             day_of_week = date.dayofweek
             month = date.month
             is_weekend = int(day_of_week >= 5)
-            is_holiday = int(month == 12 and date.day >= 20)  # 年末
+            is_holiday = int(month == 12 and date.day >= 20)  # end of year
 
-            # トレンド
+            # Trend
             trend = day * 0.5
 
-            # 季節性
+            # Seasonality
             yearly_season = 200 * np.sin(2 * np.pi * day / 365)
             weekly_season = 150 * (1 if day_of_week in [5, 6] else 0)
 
-            # 外生変数
+            # Exogenous variables
             price = 100 + np.random.normal(0, 5)
-            promotion = int(np.random.random() < 0.15)  # 15%の確率
+            promotion = int(np.random.random() < 0.15)  # 15% probability
             competitor_activity = np.random.normal(0.5, 0.2)
 
-            # 売上計算
+            # Calculate sales
             sales = base_sales + trend + yearly_season + weekly_season
-            sales *= (1 + 0.3 * promotion)  # プロモーション効果
-            sales *= (1 - 0.2 * competitor_activity)  # 競合の影響
-            sales *= (0.9 if day_of_week == 0 else 1.0)  # 月曜は低い
+            sales *= (1 + 0.3 * promotion)  # promotion effect
+            sales *= (1 - 0.2 * competitor_activity)  # competitor impact
+            sales *= (0.9 if day_of_week == 0 else 1.0)  # Monday is lower
             sales += np.random.normal(0, 50)
             sales = max(0, sales)
 
@@ -1267,17 +1267,17 @@ def generate_retail_data():
 
 
 def build_tft_forecaster():
-    """TFT予測器の構築と訓練"""
+    """Build and train TFT forecaster"""
 
-    # データ生成
-    print("データ生成中...")
+    # Generate data
+    print("Generating data...")
     df = generate_retail_data()
 
-    print(f"データサイズ: {len(df)} rows")
-    print(f"店舗数: {df['store_id'].nunique()}")
-    print(f"期間: {df['date'].min()} to {df['date'].max()}")
+    print(f"Data size: {len(df)} rows")
+    print(f"Number of stores: {df['store_id'].nunique()}")
+    print(f"Period: {df['date'].min()} to {df['date'].max()}")
 
-    # データセット作成
+    # Create dataset
     max_encoder_length = 60
     max_prediction_length = 30
     training_cutoff = df["time_idx"].max() - max_prediction_length
@@ -1326,10 +1326,10 @@ def build_tft_forecaster():
         train=False, batch_size=batch_size, num_workers=0
     )
 
-    print(f"\n訓練バッチ数: {len(train_dataloader)}")
-    print(f"検証バッチ数: {len(val_dataloader)}")
+    print(f"\nTraining batches: {len(train_dataloader)}")
+    print(f"Validation batches: {len(val_dataloader)}")
 
-    # TFTモデル
+    # TFT model
     tft = TemporalFusionTransformer.from_dataset(
         training,
         learning_rate=0.03,
@@ -1343,8 +1343,8 @@ def build_tft_forecaster():
         reduce_on_plateau_patience=4,
     )
 
-    print(f"\nTFTモデル構築完了")
-    print(f"パラメータ数: {tft.size()/1e3:.1f}k")
+    print(f"\nTFT model built")
+    print(f"Parameters: {tft.size()/1e3:.1f}k")
 
     # Callbacks
     early_stop_callback = EarlyStopping(
@@ -1373,24 +1373,24 @@ def build_tft_forecaster():
         enable_checkpointing=True,
     )
 
-    # 訓練
-    print("\n訓練開始...")
+    # Training
+    print("\nTraining started...")
     trainer.fit(
         tft,
         train_dataloaders=train_dataloader,
         val_dataloaders=val_dataloader,
     )
 
-    # ベストモデルのロード
+    # Load best model
     best_model = TemporalFusionTransformer.load_from_checkpoint(
         checkpoint_callback.best_model_path
     )
 
-    # 評価
-    print("\n評価中...")
+    # Evaluation
+    print("\nEvaluating...")
     predictions = best_model.predict(val_dataloader, return_x=True, return_y=True)
 
-    # メトリクス計算
+    # Calculate metrics
     actuals = predictions.y[0].cpu().numpy()
     preds = predictions.output['prediction'].cpu().numpy()
 
@@ -1398,12 +1398,12 @@ def build_tft_forecaster():
     rmse = np.sqrt(np.mean((actuals - preds) ** 2))
     mape = np.mean(np.abs((actuals - preds) / (actuals + 1e-8))) * 100
 
-    print(f"\n評価結果:")
+    print(f"\nEvaluation results:")
     print(f"  MAE: {mae:.2f}")
     print(f"  RMSE: {rmse:.2f}")
     print(f"  MAPE: {mape:.2f}%")
 
-    # 可視化
+    # Visualization
     visualize_predictions(best_model, predictions, df)
     visualize_interpretation(best_model, predictions)
 
@@ -1411,7 +1411,7 @@ def build_tft_forecaster():
 
 
 def visualize_predictions(model, predictions, df):
-    """予測結果の可視化"""
+    """Visualize prediction results"""
 
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
     axes = axes.flatten()
@@ -1419,21 +1419,21 @@ def visualize_predictions(model, predictions, df):
     for idx in range(min(4, len(predictions.output))):
         ax = axes[idx]
 
-        # データ取得
+        # Get data
         x = predictions.x
         y_true = predictions.y[0][idx].cpu().numpy()
         y_pred = predictions.output['prediction'][idx].cpu().numpy()
 
-        # 予測区間（quantiles）
+        # Prediction intervals (quantiles)
         quantiles = predictions.output['quantiles'][idx].cpu().numpy()
 
         time_steps = np.arange(len(y_true))
 
-        # プロット
+        # Plot
         ax.plot(time_steps, y_true, 'o-', label='Actual', color='#2d3748', linewidth=2)
         ax.plot(time_steps, y_pred, 's-', label='Predicted', color='#7b2cbf', linewidth=2)
 
-        # 予測区間（10%-90%）
+        # Prediction interval (10%-90%)
         ax.fill_between(
             time_steps,
             quantiles[:, 0],  # 10% quantile
@@ -1453,11 +1453,11 @@ def visualize_predictions(model, predictions, df):
     plt.savefig('tft_sales_predictions.png', dpi=150, bbox_inches='tight')
     plt.close()
 
-    print(f"予測結果を保存しました: tft_sales_predictions.png")
+    print(f"Prediction results saved: tft_sales_predictions.png")
 
 
 def visualize_interpretation(model, predictions):
-    """Variable ImportanceとAttentionの可視化"""
+    """Visualize Variable Importance and Attention"""
 
     interpretation = model.interpret_output(
         predictions.output, reduction="sum"
@@ -1494,82 +1494,82 @@ def visualize_interpretation(model, predictions):
     plt.savefig('tft_interpretation.png', dpi=150, bbox_inches='tight')
     plt.close()
 
-    print(f"解釈可能性の可視化を保存しました: tft_interpretation.png")
+    print(f"Interpretability visualization saved: tft_interpretation.png")
 
 
 if __name__ == "__main__":
     model, predictions, df = build_tft_forecaster()
 
     print("\n" + "="*60)
-    print("TFT予測パイプライン完了！")
+    print("TFT forecasting pipeline completed!")
     print("="*60)
 </code></pre>
 
 <h3>Production Deployment Considerations</h3>
 
-<p>本番環境へのデプロイ時には、以下の点に注意が必要です：</p>
+<p>When deploying to production, consider the following:</p>
 
-<h4>1. モデルの保存とロード</h4>
+<h4>1. Model Saving and Loading</h4>
 
-<pre><code class="language-python"># モデルの保存
+<pre><code class="language-python"># Save model
 model.save("tft_model.pt")
 
-# モデルのロード
+# Load model
 from pytorch_forecasting import TemporalFusionTransformer
 loaded_model = TemporalFusionTransformer.load_from_checkpoint("tft_model.pt")
 </code></pre>
 
-<h4>2. バッチ予測の最適化</h4>
+<h4>2. Batch Prediction Optimization</h4>
 
-<pre><code class="language-python"># 大規模データでの予測
+<pre><code class="language-python"># Prediction on large data
 predictions = model.predict(
     dataloader,
-    mode="raw",  # 生の出力を取得
-    return_index=True,  # インデックスも返す
-    trainer_kwargs={"accelerator": "gpu"}  # GPUを使用
+    mode="raw",  # get raw output
+    return_index=True,  # also return index
+    trainer_kwargs={"accelerator": "gpu"}  # use GPU
 )
 </code></pre>
 
-<h4>3. リアルタイム予測API</h4>
+<h4>3. Real-time Prediction API</h4>
 
 <pre><code class="language-python">from fastapi import FastAPI
 import torch
 
 app = FastAPI()
 
-# モデルをグローバルにロード
+# Load model globally
 model = TemporalFusionTransformer.load_from_checkpoint("tft_model.pt")
 model.eval()
 
 @app.post("/predict")
 async def predict(input_data: dict):
-    # データの前処理
+    # Preprocess data
     dataset = prepare_dataset(input_data)
     dataloader = dataset.to_dataloader(train=False, batch_size=1)
 
-    # 予測
+    # Predict
     with torch.no_grad():
         predictions = model.predict(dataloader)
 
     return {"predictions": predictions.tolist()}
 </code></pre>
 
-<h4>4. モニタリングとドリフト検出</h4>
+<h4>4. Monitoring and Drift Detection</h4>
 
 <ul>
-<li><strong>予測精度のモニタリング</strong>：定期的にMAE/RMSEを計算</li>
-<li><strong>データドリフト検出</strong>：入力 minutes布の変化を監視</li>
-<li><strong>再訓練トリガー</strong>：精度低下時に自動再訓練</li>
+<li><strong>Monitor prediction accuracy</strong>: Calculate MAE/RMSE regularly</li>
+<li><strong>Data drift detection</strong>: Monitor changes in input distribution</li>
+<li><strong>Retraining trigger</strong>: Automatic retraining when accuracy degrades</li>
 </ul>
 
 <hr>
 
-<h2>練習問題</h2>
+<h2>Practice Problems</h2>
 
 <details>
-<summary><strong>問題1：Positional Encoding</strong> - 時系列用のPositional Encodingを実装し、その役割を説明してください。</summary>
+<summary><strong>Problem 1: Positional Encoding</strong> - Implement Positional Encoding for time series and explain its role.</summary>
 
-<p><strong>解答例</strong>：</p>
+<p><strong>Sample Answer</strong>:</p>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -1593,7 +1593,7 @@ class TemporalPositionalEncoding(nn.Module):
     def forward(self, x):
         return x + self.pe[:, :x.size(1), :]
 
-# 可視化
+# Visualization
 pe = TemporalPositionalEncoding(d_model=128, max_len=100)
 encoding = pe.pe[0].numpy()
 
@@ -1607,22 +1607,22 @@ plt.tight_layout()
 plt.savefig('positional_encoding.png', dpi=150)
 plt.close()
 
-print("Positional Encodingは、系列の位置情報を注入する役割を持つ")
-print("異なる周波数のsin/cos波により、相対位置も捉えられる")
+print("Positional Encoding injects position information into the sequence")
+print("Different frequencies enable capture of both near and far positions")
 </code></pre>
 
-<p><strong>役割</strong>：</p>
+<p><strong>Role</strong>:</p>
 <ul>
-<li>Transformerには再帰構造がないため、位置情報を明示的に追加</li>
-<li>異なる周波数により、近い位置と遠い位置の両方を区別</li>
-<li>時系列では、絶対時刻や周期性も追加エンコード可能</li>
+<li>Since Transformers lack recurrent structure, position information must be explicitly added</li>
+<li>Different frequencies distinguish both near and far positions</li>
+<li>For time series, absolute time and periodicity can also be encoded</li>
 </ul>
 </details>
 
 <details>
-<summary><strong>問題2：TFTのVariable Selection</strong> - Variable Selection Networkの実装と、その利点を説明してください。</summary>
+<summary><strong>Problem 2: TFT Variable Selection</strong> - Implement Variable Selection Network and explain its advantages.</summary>
 
-<p><strong>解答例</strong>：</p>
+<p><strong>Sample Answer</strong>:</p>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -1642,7 +1642,7 @@ class GatedResidualNetwork(nn.Module):
             self.skip = None
 
     def forward(self, x):
-        # GRN計算
+        # GRN computation
         eta2 = torch.relu(self.fc1(x))
         eta1 = self.fc2(eta2)
         gate = torch.sigmoid(self.gate(eta2))
@@ -1663,34 +1663,34 @@ class VariableSelectionNetwork(nn.Module):
         super().__init__()
         self.input_dims = input_dims
 
-        # 各変数用のGRN
+        # GRN for each variable
         self.variable_grns = nn.ModuleList([
             GatedResidualNetwork(1, hidden_dim, output_dim, dropout)
             for _ in range(len(input_dims))
         ])
 
-        # 重み計算用のGRN
+        # GRN for weight calculation
         self.weight_grn = GatedResidualNetwork(
             sum(input_dims), hidden_dim, len(input_dims), dropout
         )
 
     def forward(self, variables):
         # variables: list of tensors
-        # 各変数を変換
+        # Transform each variable
         transformed = [grn(v.unsqueeze(-1)) for grn, v in
                       zip(self.variable_grns, variables)]
 
-        # 重み計算
+        # Calculate weights
         concat_vars = torch.cat(variables, dim=-1)
         weights = torch.softmax(self.weight_grn(concat_vars), dim=-1)
 
-        # 加重和
+        # Weighted sum
         output = sum(w.unsqueeze(-1) * t for w, t in
                     zip(weights.split(1, dim=-1), transformed))
 
         return output, weights
 
-# テスト
+# Test
 n_vars = 5
 batch_size = 32
 seq_len = 50
@@ -1707,25 +1707,25 @@ print(f"Weights shape: {weights.shape}")
 print(f"Variable importance: {weights[0, 0]}")
 </code></pre>
 
-<p><strong>利点</strong>：</p>
+<p><strong>Advantages</strong>:</p>
 <ul>
-<li>自動的に重要な変数を選択し、ノイズを削減</li>
-<li>解釈可能性：どの変数が重要かを可視化</li>
-<li>過学習の防止：不要な変数の影響を抑制</li>
+<li>Automatically selects important variables and reduces noise</li>
+<li>Interpretability: visualize which variables are important</li>
+<li>Prevent overfitting: suppress influence of unnecessary variables</li>
 </ul>
 </details>
 
 <details>
-<summary><strong>問題3：ProbSparse Attention</strong> - InformerのProbSparse Attentionの効率性を、標準的なAttentionと比較してください。</summary>
+<summary><strong>Problem 3: ProbSparse Attention</strong> - Compare the efficiency of Informer's ProbSparse Attention with standard Attention.</summary>
 
-<p><strong>解答例</strong>：</p>
+<p><strong>Sample Answer</strong>:</p>
 
 <pre><code class="language-python">import torch
 import time
 import matplotlib.pyplot as plt
 
 def standard_attention(Q, K, V):
-    """標準的なAttention O(L^2)"""
+    """Standard Attention O(L^2)"""
     d_k = Q.size(-1)
     scores = torch.matmul(Q, K.transpose(-2, -1)) / (d_k ** 0.5)
     attn = torch.softmax(scores, dim=-1)
@@ -1741,7 +1741,7 @@ def probsparse_attention(Q, K, V, factor=5):
     u = factor * int(np.ceil(np.log(L_q)))
     u = min(u, L_q)
 
-    # サンプリング（簡易版）
+    # Sampling (simplified)
     Q_sample = Q[:, :u, :]
 
     scores = torch.matmul(Q_sample, K.transpose(-2, -1)) / (d_k ** 0.5)
@@ -1749,13 +1749,13 @@ def probsparse_attention(Q, K, V, factor=5):
 
     out_sample = torch.matmul(attn, V)
 
-    # 残りは平均
+    # Fill rest with mean
     V_mean = V.mean(dim=1, keepdim=True).expand(-1, L_q - u, -1)
     output = torch.cat([out_sample, V_mean], dim=1)
 
     return output
 
-# ベンチマーク
+# Benchmark
 seq_lengths = [100, 200, 500, 1000, 1500, 2000]
 standard_times = []
 probsparse_times = []
@@ -1779,7 +1779,7 @@ for seq_len in seq_lengths:
     print(f"Seq={seq_len}: Standard={standard_times[-1]:.4f}s, "
           f"ProbSparse={probsparse_times[-1]:.4f}s")
 
-# 可視化
+# Visualization
 plt.figure(figsize=(10, 6))
 plt.plot(seq_lengths, standard_times, 'o-', label='Standard Attention', linewidth=2)
 plt.plot(seq_lengths, probsparse_times, 's-', label='ProbSparse Attention', linewidth=2)
@@ -1795,18 +1795,18 @@ speedup = [s/p for s, p in zip(standard_times, probsparse_times)]
 print(f"\nAverage speedup: {np.mean(speedup):.2f}x")
 </code></pre>
 
-<p><strong>比較結果</strong>：</p>
+<p><strong>Comparison Results</strong>:</p>
 <ul>
-<li>系列長が長いほど、ProbSparseの優位性が顕著</li>
-<li>$L=2000$では約5-10倍の高速化</li>
-<li>メモリ使用量も大幅に削減</li>
+<li>ProbSparse's advantage becomes more pronounced with longer sequences</li>
+<li>At $L=2000$, approximately 5-10x speedup</li>
+<li>Memory usage is also significantly reduced</li>
 </ul>
 </details>
 
 <details>
-<summary><strong>問題4：Multi-horizon Prediction</strong> - Autoregressiveモードと Direct モードの違いを実装し、比較してください。</summary>
+<summary><strong>Problem 4: Multi-horizon Prediction</strong> - Implement and compare Autoregressive mode and Direct mode.</summary>
 
-<p><strong>解答例</strong>：</p>
+<p><strong>Sample Answer</strong>:</p>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -1826,9 +1826,9 @@ class AutoregressivePredictor(nn.Module):
 
         for _ in range(n_steps):
             out, _ = self.rnn(x)
-            pred = self.fc(out[:, -1:, :])  # 最後のステップを予測
+            pred = self.fc(out[:, -1:, :])  # predict last step
             predictions.append(pred)
-            x = torch.cat([x, pred], dim=1)  # 予測を入力に追加
+            x = torch.cat([x, pred], dim=1)  # add prediction to input
 
         return torch.cat(predictions, dim=1)
 
@@ -1845,16 +1845,16 @@ class DirectPredictor(nn.Module):
     def forward(self, x):
         # x: (batch, seq_len, input_dim)
         out, _ = self.rnn(x)
-        pred = self.fc(out[:, -1, :])  # 全ステップを一度に予測
+        pred = self.fc(out[:, -1, :])  # predict all steps at once
         return pred.view(-1, self.n_steps, self.input_dim)
 
-# テストデータ
+# Test data
 def generate_test_data(n_samples=100):
     t = np.linspace(0, 10, n_samples)
     data = np.sin(t) + 0.1 * np.random.randn(n_samples)
     return torch.FloatTensor(data).unsqueeze(-1)
 
-# 訓練
+# Training
 seq_len = 20
 n_steps = 10
 data = generate_test_data(200)
@@ -1862,13 +1862,13 @@ data = generate_test_data(200)
 X_train = torch.stack([data[i:i+seq_len] for i in range(150)])
 y_train = torch.stack([data[i+seq_len:i+seq_len+n_steps] for i in range(150)])
 
-# モデル
+# Models
 auto_model = AutoregressivePredictor(1, 32)
 direct_model = DirectPredictor(1, 32, n_steps)
 
 criterion = nn.MSELoss()
 
-# Autoregressive訓練
+# Train Autoregressive
 optimizer = torch.optim.Adam(auto_model.parameters())
 for epoch in range(100):
     pred = auto_model(X_train, n_steps)
@@ -1877,7 +1877,7 @@ for epoch in range(100):
     loss.backward()
     optimizer.step()
 
-# Direct訓練
+# Train Direct
 optimizer = torch.optim.Adam(direct_model.parameters())
 for epoch in range(100):
     pred = direct_model(X_train)
@@ -1886,14 +1886,14 @@ for epoch in range(100):
     loss.backward()
     optimizer.step()
 
-# 評価
+# Evaluation
 X_test = X_train[0:1]
 y_test = y_train[0:1]
 
 auto_pred = auto_model(X_test, n_steps).detach().numpy()
 direct_pred = direct_model(X_test).detach().numpy()
 
-# 可視化
+# Visualization
 plt.figure(figsize=(12, 5))
 plt.plot(range(seq_len), X_test[0].numpy(), 'o-', label='Input')
 plt.plot(range(seq_len, seq_len+n_steps), y_test[0].numpy(), 's-', label='True')
@@ -1905,26 +1905,26 @@ plt.grid(True, alpha=0.3)
 plt.savefig('multihorizon_comparison.png', dpi=150)
 plt.close()
 
-print("Autoregressive: 逐次予測、誤差が蓄積")
-print("Direct: 一度に予測、並列計算可能")
+print("Autoregressive: Sequential prediction, error accumulation")
+print("Direct: Predict all at once, parallel computation possible")
 </code></pre>
 </details>
 
 <details>
-<summary><strong>問題5：Production Deployment</strong> - TFTモデルを本番環境にデプロイするための完全なパイプラインを設計してください。</summary>
+<summary><strong>Problem 5: Production Deployment</strong> - Design a complete pipeline for deploying a TFT model to production.</summary>
 
-<p><strong>解答例</strong>：</p>
+<p><strong>Sample Answer</strong>:</p>
 
 <pre><code class="language-python">"""
-本番環境デプロイパイプライン
+Production Deployment Pipeline
 
-1. モデルの保存とバージョン管理
-2. 推論APIの構築
-3. モニタリングとロギング
-4. 自動再訓練パイプライン
+1. Model saving and version management
+2. Inference API construction
+3. Monitoring and logging
+4. Automatic retraining pipeline
 """
 
-# 1. モデルの保存
+# 1. Model saving
 class ModelManager:
     def __init__(self, model_dir="models"):
         self.model_dir = model_dir
@@ -1941,7 +1941,7 @@ class ModelManager:
         latest = max(models, key=lambda x: int(x.split('v')[-1].split('.')[0]))
         return joblib.load(latest)
 
-# 2. FastAPI推論サーバー
+# 2. FastAPI inference server
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import pandas as pd
@@ -1967,11 +1967,11 @@ async def load_model():
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(request: PredictionRequest):
     try:
-        # データ準備
+        # Prepare data
         df = pd.DataFrame(request.historical_data)
         dataset = prepare_dataset(df, request.future_covariates)
 
-        # 予測
+        # Predict
         predictions = model.predict(dataset)
         interpretation = model.interpret_output(predictions)
 
@@ -1986,7 +1986,7 @@ async def predict(request: PredictionRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 3. モニタリング
+# 3. Monitoring
 import logging
 from prometheus_client import Counter, Histogram
 
@@ -2000,7 +2000,7 @@ async def monitor_requests(request, call_next):
     prediction_counter.inc()
     return response
 
-# 4. 自動再訓練
+# 4. Automatic retraining
 class AutoRetrainer:
     def __init__(self, threshold_mae=50.0):
         self.threshold_mae = threshold_mae
@@ -2013,13 +2013,13 @@ class AutoRetrainer:
             self.trigger_retraining()
 
     def trigger_retraining(self):
-        # 再訓練ジョブをスケジュール
+        # Schedule retraining job
         import subprocess
         subprocess.run(["python", "train_tft.py"])
 
-# 5. デプロイスクリプト
+# 5. Deployment script
 def deploy_pipeline():
-    # Docker化
+    # Dockerization
     dockerfile = """
     FROM python:3.9
     WORKDIR /app
@@ -2054,13 +2054,13 @@ if __name__ == "__main__":
     deploy_pipeline()
 </code></pre>
 
-<p><strong>デプロイ要素</strong>：</p>
+<p><strong>Deployment Components</strong>:</p>
 <ul>
-<li>モデルバージョン管理とロールバック機能</li>
-<li>高速な推論API（FastAPI）</li>
-<li>メトリクスモニタリング（Prometheus）</li>
-<li>自動再訓練パイプライン</li>
-<li>コンテナ化とオーケストレーション（Docker/K8s）</li>
+<li>Model version management and rollback functionality</li>
+<li>Fast inference API (FastAPI)</li>
+<li>Metrics monitoring (Prometheus)</li>
+<li>Automatic retraining pipeline</li>
+<li>Containerization and orchestration (Docker/K8s)</li>
 </ul>
 </details>
 
@@ -2068,7 +2068,7 @@ if __name__ == "__main__":
 
 <h2>References</h2>
 
-<h3>論文</h3>
+<h3>Papers</h3>
 <ul>
 <li>Vaswani et al. (2017). <em>Attention Is All You Need</em>. NeurIPS.</li>
 <li>Lim et al. (2021). <em>Temporal Fusion Transformers for Interpretable Multi-horizon Time Series Forecasting</em>. International Journal of Forecasting.</li>
@@ -2078,46 +2078,46 @@ if __name__ == "__main__":
 <li>Nie et al. (2023). <em>A Time Series is Worth 64 Words: Long-term Forecasting with Transformers</em>. ICLR (PatchTST).</li>
 </ul>
 
-<h3>書籍</h3>
+<h3>Books</h3>
 <ul>
 <li>Hyndman & Athanasopoulos. <em>Forecasting: Principles and Practice</em> (3rd edition).</li>
 <li>Nielsen, A. <em>Practical Time Series Analysis</em>. O'Reilly Media.</li>
 </ul>
 
-<h3>ライブラリとツール</h3>
+<h3>Libraries and Tools</h3>
 <ul>
-<li><a href="https://pytorch-forecasting.readthedocs.io/">PyTorch Forecasting</a> - TFT、N-BEATS等の実装</li>
-<li><a href="https://github.com/thuml/Autoformer">Autoformer GitHub</a> - 公式実装</li>
-<li><a href="https://github.com/MAZiqing/FEDformer">FEDformer GitHub</a> - 公式実装</li>
-<li><a href="https://github.com/yuqinie98/PatchTST">PatchTST GitHub</a> - 公式実装</li>
+<li><a href="https://pytorch-forecasting.readthedocs.io/">PyTorch Forecasting</a> - TFT, N-BEATS implementations</li>
+<li><a href="https://github.com/thuml/Autoformer">Autoformer GitHub</a> - Official implementation</li>
+<li><a href="https://github.com/MAZiqing/FEDformer">FEDformer GitHub</a> - Official implementation</li>
+<li><a href="https://github.com/yuqinie98/PatchTST">PatchTST GitHub</a> - Official implementation</li>
 </ul>
 
-<h3>オンラインリソース</h3>
+<h3>Online Resources</h3>
 <ul>
 <li><a href="https://huggingface.co/blog/time-series-transformers">HuggingFace Time Series Guide</a></li>
 <li><a href="https://towardsdatascience.com/temporal-fusion-transformer-for-time-series-forecasting-9e9b8c47f0a5">Temporal Fusion Transformer Tutorial</a></li>
-<li><a href="https://arxiv.org/abs/2310.06625">Time Series Transformers Survey</a> - 最新サーベイ論文</li>
+<li><a href="https://arxiv.org/abs/2310.06625">Time Series Transformers Survey</a> - Latest survey paper</li>
 </ul>
 
 <hr>
 
 <div class="navigation">
-    <a href="chapter3-deep-learning-time-series.html" class="nav-button">← Previous Chapter：深層学習による時系列予測</a>
-    <a href="chapter5-advanced-topics.html" class="nav-button">Next Chapter：発展的トピック →</a>
+    <a href="chapter3-deep-learning-time-series.html" class="nav-button">← Previous Chapter: Deep Learning for Time Series Forecasting</a>
+    <a href="chapter5-advanced-topics.html" class="nav-button">Next Chapter: Advanced Topics →</a>
 </div>
 
     </main>
 
-    
+
     <section class="disclaimer">
         <h3>Disclaimer</h3>
         <ul>
-            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
-            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
-            <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
-            <li>To the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+            <li>This content is provided for educational, research, and informational purposes only, and does not constitute professional advice (legal, accounting, technical warranties, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without warranties of any kind, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, functionality, or safety.</li>
+            <li>The author and Tohoku University accept no responsibility for the content, availability, or safety of external links, third-party data, tools, or libraries.</li>
+            <li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
             <li>The content of this material may be changed, updated, or discontinued without notice.</li>
-            <li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+            <li>The copyright and license of this content shall comply with specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
         </ul>
     </section>
 

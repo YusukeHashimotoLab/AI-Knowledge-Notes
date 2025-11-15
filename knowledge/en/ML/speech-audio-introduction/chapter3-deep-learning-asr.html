@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 3 Chapter：深層学習による音声認識 - AI Terakoya</title>
+    <title>Chapter 3: Speech Recognition with Deep Learning - AI Terakoya</title>
 
     <style>
         :root {
@@ -351,10 +351,10 @@
 
         <header>
         <div class="header-content">
-            <h1>Chapter 3 Chapter：深層学習による音声認識</h1>
-            <p class="subtitle">CTC、Attention、RNN-T、Whisperを用いた最新の音声認識技術</p>
+            <h1>Chapter 3: Speech Recognition with Deep Learning</h1>
+            <p class="subtitle">State-of-the-art Speech Recognition with CTC, Attention, RNN-T, and Whisper</p>
             <div class="meta">
-                <span class="meta-item">📚 音声・オーディオ処理入門</span>
+                <span class="meta-item">📚 Introduction to Speech and Audio Processing</span>
                 <span class="meta-item">⏱️ 60 minutes</span>
                 <span class="meta-item">🏷️ ML-D03</span>
             </div>
@@ -362,47 +362,47 @@
     </header>
 
     <div class="container">
-        <h2>What You Will Learn</h2>
-        <p>本 Chapterでは、深層学習による現代的な音声認識(ASR)技術を学びます。CTCやAttentionメカニズムなどの基本的なアプローチから、最新のWhisperモデルまで、実践的なCode Examplesとともに解説します。</p>
+        <h2>What You Will Learn in This Chapter</h2>
+        <p>This chapter introduces modern Automatic Speech Recognition (ASR) techniques using deep learning. We cover fundamental approaches such as CTC and Attention mechanisms, as well as state-of-the-art models like Whisper, with practical code examples.</p>
 
         <ul>
-            <li>CTC (Connectionist Temporal Classification)による学習と推論</li>
-            <li>Attention機構を用いたEncoder-Decoderモデル</li>
-            <li>RNN-Transducerによるストリーミング音声認識</li>
-            <li>OpenAI Whisperの活用と日本語音声認識</li>
-            <li>実践的なASRアプリケーションの構築</li>
+            <li>Training and inference with CTC (Connectionist Temporal Classification)</li>
+            <li>Encoder-Decoder models with Attention mechanism</li>
+            <li>Streaming speech recognition with RNN-Transducer</li>
+            <li>Utilizing OpenAI Whisper and Japanese speech recognition</li>
+            <li>Building practical ASR applications</li>
         </ul>
 
         <h2>1. CTC (Connectionist Temporal Classification)</h2>
 
-        <h3>1.1 CTCとは</h3>
-        <p>CTCは、入力と出力の長さが異なる系列変換問題において、明示的なアライメント情報なしに学習できる手法です。音声認識では、音響特徴量フレーム(入力)とテキスト(出力)の対応関係を自動的に学習します。</p>
+        <h3>1.1 What is CTC</h3>
+        <p>CTC is a method that can learn sequence-to-sequence transformations where input and output lengths differ, without requiring explicit alignment information. In speech recognition, it automatically learns the correspondence between acoustic feature frames (input) and text (output).</p>
 
-        <h4>CTCの主要概念</h4>
+        <h4>Key Concepts of CTC</h4>
         <ul>
-            <li><strong>Blank記号</strong>: 出力しない位置を表す特殊記号(通常は「-」)</li>
-            <li><strong>繰り返しの除去</strong>: 連続する同じ記号を1つにSummaryる</li>
-            <li><strong>多対一マッピング</strong>: 複数のフレームが同じ文字に対応可能</li>
-            <li><strong>条件付き独立性</strong>: 各時刻の出力は独立に生成される</li>
+            <li><strong>Blank symbol</strong>: A special symbol representing positions with no output (typically "-")</li>
+            <li><strong>Collapsing repeats</strong>: Merging consecutive identical symbols into one</li>
+            <li><strong>Many-to-one mapping</strong>: Multiple frames can correspond to the same character</li>
+            <li><strong>Conditional independence</strong>: Outputs at each time step are generated independently</li>
         </ul>
 
-        <h3>1.2 CTCの損失関数</h3>
-        <p>CTC損失は、全ての可能なアライメントパスの確率を周辺化することで計算されます。Forward-Backwardアルゴリズムを用いて効率的に計算できます。</p>
+        <h3>1.2 CTC Loss Function</h3>
+        <p>CTC loss is computed by marginalizing the probabilities of all possible alignment paths. It can be efficiently calculated using the Forward-Backward algorithm.</p>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 class CTCASRModel(nn.Module):
-    """CTC損失を用いた音声認識モデル"""
+    """Speech recognition model using CTC loss"""
 
     def __init__(self, input_dim=80, hidden_dim=256, num_classes=29, num_layers=3):
         """
         Args:
-            input_dim: 入力特徴量の次元数(MFCCやメルスペクトログラム)
-            hidden_dim: LSTM隠れ層の次元数
-            num_classes: 出力クラス数(アルファベット + blank)
-            num_layers: LSTMの層数
+            input_dim: inputfeatures dimensions(MFCC or Mel Spectrogram)
+            hidden_dim: Dimension of LSTM hidden layer
+            num_classes: Number of output classes (alphabet + blank)
+            num_layers: Number of LSTM layers
         """
         super(CTCASRModel, self).__init__()
 
@@ -415,19 +415,19 @@ class CTCASRModel(nn.Module):
             dropout=0.2
         )
 
-        # 双方向LSTMなので出力次元は2倍
+        # Output dimension is doubled due to bidirectional LSTM
         self.classifier = nn.Linear(hidden_dim * 2, num_classes)
 
     def forward(self, x, lengths):
         """
         Args:
             x: (batch, time, features)
-            lengths: 各サンプルの実際の長さ
+            lengths: Actual length of each sample
         Returns:
             log_probs: (time, batch, num_classes)
-            output_lengths: 各サンプルの出力長
+            output_lengths: Output length of each sample
         """
-        # PackedSequenceで可変長入力を効率的に処理
+        # Efficiently process variable-length inputs with PackedSequence
         packed = nn.utils.rnn.pack_padded_sequence(
             x, lengths.cpu(), batch_first=True, enforce_sorted=False
         )
@@ -437,32 +437,32 @@ class CTCASRModel(nn.Module):
             packed_output, batch_first=True
         )
 
-        # CTC用にlog softmax適用
+        # Apply log softmax for CTC
         logits = self.classifier(output)
         log_probs = F.log_softmax(logits, dim=-1)
 
-        # CTCは(T, N, C)の形式を期待
+        # CTC expects (T, N, C) format
         log_probs = log_probs.transpose(0, 1)
 
         return log_probs, output_lengths
 
 
-# 訓練例
+# Training example
 def train_ctc_model():
-    """CTC ASRモデルの訓練例"""
+    """CTC ASR model training example"""
 
-    # モデルとCTC損失の初期化
+    # Initialize model and CTC loss
     model = CTCASRModel(input_dim=80, hidden_dim=256, num_classes=29)
     ctc_loss = nn.CTCLoss(blank=0, zero_infinity=True)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-    # ダミーデータ(実際にはデータローダーから取得)
+    # Dummy data (in practice, obtained from data loader)
     batch_size = 4
     max_time = 100
     features = torch.randn(batch_size, max_time, 80)
     feature_lengths = torch.tensor([100, 95, 90, 85])
 
-    # ターゲットテキスト(数値化済み)
+    # Target text (numerically encoded)
     targets = torch.tensor([[1, 2, 3, 4], [5, 6, 7, 0], [8, 9, 10, 0], [11, 12, 0, 0]])
     target_lengths = torch.tensor([4, 3, 3, 2])
 
@@ -471,7 +471,7 @@ def train_ctc_model():
     # Forward pass
     log_probs, output_lengths = model(features, feature_lengths)
 
-    # CTC損失計算
+    # Calculate CTC loss
     loss = ctc_loss(log_probs, targets, output_lengths, target_lengths)
 
     # Backward pass
@@ -483,43 +483,43 @@ def train_ctc_model():
 
     return model
 
-# 実行例
+# Execution example
 if __name__ == "__main__":
     model = train_ctc_model()
-    print("✓ CTCモデルの訓練が完了しました")
+    print("✓ CTC model training completed")
 </code></pre>
 
-        <h3>1.3 CTCデコーディング</h3>
-        <p>訓練されたCTCモデルからテキストを得るには、デコーディング処理が必要です。主な手法には、Greedy Decodingとビームサーチがあります。</p>
+        <h3>1.3 CTC Decoding</h3>
+        <p>To obtain text from a trained CTC model, decoding is required. The main methods are Greedy Decoding and Beam Search.</p>
 
 <pre><code class="language-python">import numpy as np
 from collections import defaultdict
 
 class CTCDecoder:
-    """CTCデコーダー(Greedy & Beam Search)"""
+    """CTC Decoder (Greedy & Beam Search)"""
 
     def __init__(self, labels, blank_idx=0):
         """
         Args:
-            labels: 文字ラベルのリスト
-            blank_idx: ブランク記号のインデックス
+            labels: List of character labels
+            blank_idx: Index of blank symbol
         """
         self.labels = labels
         self.blank_idx = blank_idx
 
     def greedy_decode(self, log_probs):
         """
-        Greedy Decoding: 各時刻で最も確率の高いラベルを選択
+        Greedy Decoding: At each time step, the most probability HighSelect label
 
         Args:
-            log_probs: (time, num_classes) の対数確率
+            log_probs: (time, num_classes) log probabilities
         Returns:
-            decoded_text: デコードされたテキスト
+            decoded_text: Decoded text
         """
-        # 各時刻で最も確率の高いインデックスを取得
+        # At each time step, the most probability HighGet index
         best_path = torch.argmax(log_probs, dim=-1)
 
-        # 連続する重複とblankを除去
+        # Remove consecutive duplicates and blanks
         decoded = []
         prev_idx = self.blank_idx
 
@@ -533,18 +533,18 @@ class CTCDecoder:
 
     def beam_search_decode(self, log_probs, beam_width=10):
         """
-        Beam Search Decoding: より正確なデコーディング
+        Beam Search Decoding: More accurate decoding
 
         Args:
-            log_probs: (time, num_classes) の対数確率
-            beam_width: ビーム幅
+            log_probs: (time, num_classes) log probabilities
+            beam_width: Beam width
         Returns:
-            decoded_text: デコードされたテキスト
+            decoded_text: Decoded text
         """
         T, C = log_probs.shape
         log_probs = log_probs.cpu().numpy()
 
-        # ビーム: {sequence: probability}
+        # Beams: {sequence: probability}
         beams = {('', self.blank_idx): 0.0}  # (text, last_char): log_prob
 
         for t in range(T):
@@ -555,42 +555,42 @@ class CTCDecoder:
                     new_log_prob = log_prob + log_probs[t, c]
 
                     if c == self.blank_idx:
-                        # Blankの場合はテキストを変更しない
+                        # Do not modify text for blank
                         new_beams[(text, c)] = np.logaddexp(
                             new_beams[(text, c)], new_log_prob
                         )
                     else:
                         if c == last_char:
-                            # 前の文字と同じ場合は繰り返さない
+                            # Do not repeat if same as previous character
                             new_beams[(text, c)] = np.logaddexp(
                                 new_beams[(text, c)], new_log_prob
                             )
                         else:
-                            # 新しい文字を追加
+                            # Add new character
                             new_text = text + self.labels[c]
                             new_beams[(new_text, c)] = np.logaddexp(
                                 new_beams[(new_text, c)], new_log_prob
                             )
 
-            # 上位beam_widthのビームを保持
+            # Keep top beam_width beams
             beams = dict(sorted(new_beams.items(), key=lambda x: x[1], reverse=True)[:beam_width])
 
-        # 最も確率の高いビームを返す
+        # mostprobability HighReturn beam
         best_beam = max(beams.items(), key=lambda x: x[1])
         return best_beam[0][0]
 
 
-# デコーディング例
+# Decodingexample
 def decode_example():
-    """CTC デコーディングの実行例"""
+    """CTC decoding execution example"""
 
-    # アルファベット(0はblank)
+    # Alphabet (0 is blank)
     labels = ['-', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
               'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ' ', "'"]
 
     decoder = CTCDecoder(labels, blank_idx=0)
 
-    # ダミーの対数確率(実際はモデル出力)
+    # Dummy log probabilities (in practice, model output)
     T = 50
     C = len(labels)
     log_probs = torch.randn(T, C)
@@ -610,14 +610,14 @@ decode_example()
         <h2>2. Attention-based Models</h2>
 
         <h3>2.1 Listen, Attend and Spell (LAS)</h3>
-        <p>LASは、Encoder-DecoderアーキテクチャにAttentionメカニズムを組み合わせた音声認識モデルです。Encoderが音響特徴量を高Level表現に変換し、DecoderがAttentionで必要な情報に注目しながらテキストを生成します。</p>
+        <p>LAS is a speech recognition model that combines an Encoder-Decoder architecture with an Attention mechanism. The Encoder converts acoustic features into high-level representations, and the Decoder generates text while focusing on necessary information through Attention.</p>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 class ListenAttendSpell(nn.Module):
-    """Listen, Attend and Spell モデル"""
+    """Listen, Attend and Spell model"""
 
     def __init__(self, input_dim=80, encoder_hidden=256, decoder_hidden=512,
                  vocab_size=29, num_layers=3):
@@ -630,9 +630,9 @@ class ListenAttendSpell(nn.Module):
         """
         Args:
             inputs: (batch, time, features)
-            input_lengths: 各サンプルの長さ
-            targets: (batch, target_len) デコーダーのターゲット
-            teacher_forcing_ratio: Teacher Forcingの割合
+            input_lengths: Length of each sample
+            targets: (batch, target_len) Decoder target
+            teacher_forcing_ratio: Teacher forcing ratio
         """
         # Encoder
         encoder_outputs, encoder_lengths = self.encoder(inputs, input_lengths)
@@ -648,7 +648,7 @@ class ListenAttendSpell(nn.Module):
 
 
 class Listener(nn.Module):
-    """Encoder: 音響特徴量を高Level表現に変換"""
+    """Encoder: acousticfeatures to high-level representations"""
 
     def __init__(self, input_dim, hidden_dim, num_layers):
         super(Listener, self).__init__()
@@ -662,9 +662,9 @@ class Listener(nn.Module):
             dropout=0.2
         )
 
-        # Pyramidal LSTM:  hours方向を圧縮して計算効率を向上
+        # Pyramidal LSTM: Compress time dimension to improve computational efficiency
         self.pyramid_lstm = nn.LSTM(
-            hidden_dim * 4,  # 2つのフレームを結合 + 双方向
+            hidden_dim * 4,  # 2 frames combined + bidirectional
             hidden_dim,
             num_layers,
             batch_first=True,
@@ -676,16 +676,16 @@ class Listener(nn.Module):
         """
         Args:
             x: (batch, time, features)
-            lengths: 各サンプルの長さ
+            lengths: Length of each sample
         """
-        # Chapter 1層LSTM
+        # First layer LSTM
         packed = nn.utils.rnn.pack_padded_sequence(
             x, lengths.cpu(), batch_first=True, enforce_sorted=False
         )
         output, _ = self.lstm(packed)
         output, lengths = nn.utils.rnn.pad_packed_sequence(output, batch_first=True)
 
-        # Pyramidal: 2フレームを1つに結合して hoursを半 minutesに
+        # Pyramidal: Combine 2 frames into 1 to halve time
         batch, time, features = output.size()
         if time % 2 == 1:
             output = output[:, :-1, :]
@@ -694,7 +694,7 @@ class Listener(nn.Module):
         output = output.reshape(batch, time // 2, features * 2)
         lengths = lengths // 2
 
-        # Chapter 2層LSTM
+        # Second layer LSTM
         packed = nn.utils.rnn.pack_padded_sequence(
             output, lengths.cpu(), batch_first=True, enforce_sorted=False
         )
@@ -705,7 +705,7 @@ class Listener(nn.Module):
 
 
 class Speller(nn.Module):
-    """Decoder: Attentionを用いてテキストを生成"""
+    """Decoder: Generate text using Attention"""
 
     def __init__(self, encoder_dim, hidden_dim, vocab_size):
         super(Speller, self).__init__()
@@ -718,16 +718,16 @@ class Speller(nn.Module):
 
     def forward(self, encoder_outputs, encoder_lengths, targets, teacher_forcing_ratio=0.9):
         """
-        Teacher Forcing付き訓練
+        Training with Teacher Forcing
         """
         batch_size = encoder_outputs.size(0)
         max_len = targets.size(1)
 
-        # 初期状態
+        # Initial state
         hidden = torch.zeros(batch_size, self.lstm.hidden_size, device=encoder_outputs.device)
         cell = torch.zeros(batch_size, self.lstm.hidden_size, device=encoder_outputs.device)
 
-        # 開始トークン
+        # Start token
         input_token = torch.zeros(batch_size, dtype=torch.long, device=encoder_outputs.device)
 
         outputs = []
@@ -743,7 +743,7 @@ class Speller(nn.Module):
             lstm_input = torch.cat([embedded, context], dim=1)
             hidden, cell = self.lstm(lstm_input, (hidden, cell))
 
-            # 出力
+            # Output
             output = self.classifier(torch.cat([hidden, context], dim=1))
             outputs.append(output)
 
@@ -757,7 +757,7 @@ class Speller(nn.Module):
         return torch.stack(outputs, dim=1)
 
     def inference(self, encoder_outputs, encoder_lengths, max_len=100):
-        """推論時のデコーディング"""
+        """Decoding during inference"""
         batch_size = encoder_outputs.size(0)
 
         hidden = torch.zeros(batch_size, self.lstm.hidden_size, device=encoder_outputs.device)
@@ -779,7 +779,7 @@ class Speller(nn.Module):
 
             input_token = output.argmax(dim=1)
 
-            # 終了トークンで停止
+            # Stop at end token
             if (input_token == self.vocab_size - 1).all():
                 break
 
@@ -787,7 +787,7 @@ class Speller(nn.Module):
 
 
 class BahdanauAttention(nn.Module):
-    """Bahdanau Attentionメカニズム"""
+    """Bahdanau Attention mechanism"""
 
     def __init__(self, encoder_dim, decoder_dim):
         super(BahdanauAttention, self).__init__()
@@ -808,14 +808,14 @@ class BahdanauAttention(nn.Module):
         """
         batch_size, time_steps, _ = encoder_outputs.size()
 
-        # プロジェクション
+        # Projection
         encoder_proj = self.encoder_projection(encoder_outputs)  # (batch, time, decoder_dim)
         decoder_proj = self.decoder_projection(decoder_hidden).unsqueeze(1)  # (batch, 1, decoder_dim)
 
-        # Energy計算
+        # Energy computation
         energy = self.v(torch.tanh(encoder_proj + decoder_proj)).squeeze(-1)  # (batch, time)
 
-        # マスク(パディング部 minutesを無視)
+        # Mask (ignore padding)
         mask = torch.arange(time_steps, device=encoder_outputs.device).expand(
             batch_size, time_steps
         ) < encoder_lengths.unsqueeze(1)
@@ -831,9 +831,9 @@ class BahdanauAttention(nn.Module):
         return context, attention_weights
 
 
-# 使用例
+# Usage example
 def las_example():
-    """LASモデルの使用例"""
+    """LAS model usage example"""
 
     model = ListenAttendSpell(
         input_dim=80,
@@ -842,17 +842,17 @@ def las_example():
         vocab_size=29
     )
 
-    # ダミーデータ
+    # Dummy data
     batch_size = 4
     inputs = torch.randn(batch_size, 100, 80)
     input_lengths = torch.tensor([100, 95, 90, 85])
     targets = torch.randint(0, 29, (batch_size, 20))
 
-    # 訓練モード
+    # Training mode
     outputs = model(inputs, input_lengths, targets, teacher_forcing_ratio=0.9)
     print(f"Training output shape: {outputs.shape}")
 
-    # 推論モード
+    # Inference mode
     model.eval()
     with torch.no_grad():
         predictions = model(inputs, input_lengths, targets=None)
@@ -862,7 +862,7 @@ las_example()
 </code></pre>
 
         <h3>2.2 Transformer for ASR</h3>
-        <p>TransformerアーキテクチャをASRに適用することで、並列処理が可能になり、長距離依存関係をより効果的に捉えることができます。</p>
+        <p>Applying the Transformer architecture to ASR enables parallel processing and more effectively captures long-range dependencies.</p>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -875,7 +875,7 @@ class TransformerASR(nn.Module):
                  num_decoder_layers=6, dim_feedforward=2048, vocab_size=29, dropout=0.1):
         super(TransformerASR, self).__init__()
 
-        # 入力プロジェクション
+        # inputProjection
         self.input_projection = nn.Linear(input_dim, d_model)
 
         # Positional Encoding
@@ -892,14 +892,14 @@ class TransformerASR(nn.Module):
             batch_first=True
         )
 
-        # 出力層
+        # Output layer
         self.output_projection = nn.Linear(d_model, vocab_size)
 
-        # パラメータ
+        # Parameters
         self.d_model = d_model
         self.vocab_size = vocab_size
 
-        # Embedding (デコーダー入力用)
+        # Embedding (for decoder input)
         self.tgt_embedding = nn.Embedding(vocab_size, d_model)
 
     def forward(self, src, tgt, src_mask=None, tgt_mask=None,
@@ -910,14 +910,14 @@ class TransformerASR(nn.Module):
             tgt: (batch, tgt_len)
             src_mask: Encoder self-attention mask
             tgt_mask: Decoder self-attention mask (causal)
-            src_key_padding_mask: (batch, src_len) パディングマスク
-            tgt_key_padding_mask: (batch, tgt_len) パディングマスク
+            src_key_padding_mask: (batch, src_len) Padding mask
+            tgt_key_padding_mask: (batch, tgt_len) Padding mask
         """
-        # Encoder入力の準備
+        # Prepare encoder input
         src = self.input_projection(src) * math.sqrt(self.d_model)
         src = self.pos_encoder(src)
 
-        # Decoder入力の準備
+        # Prepare decoder input
         tgt_embedded = self.tgt_embedding(tgt) * math.sqrt(self.d_model)
         tgt_embedded = self.pos_encoder(tgt_embedded)
 
@@ -930,13 +930,13 @@ class TransformerASR(nn.Module):
             tgt_key_padding_mask=tgt_key_padding_mask
         )
 
-        # 出力プロジェクション
+        # OutputProjection
         output = self.output_projection(output)
 
         return output
 
     def generate_square_subsequent_mask(self, sz):
-        """Causal mask生成(未来の情報を見ないようにする)"""
+        """Generate causal mask (to prevent seeing future information)"""
         mask = torch.triu(torch.ones(sz, sz), diagonal=1).bool()
         return mask
 
@@ -948,7 +948,7 @@ class PositionalEncoding(nn.Module):
         super(PositionalEncoding, self).__init__()
         self.dropout = nn.Dropout(p=dropout)
 
-        # Positional encodingの事前計算
+        # Precompute positional encoding
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2).float() *
@@ -969,9 +969,9 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
 
 
-# 訓練例
+# Training example
 def train_transformer_asr():
-    """Transformer ASRの訓練例"""
+    """Transformer ASR training example"""
 
     model = TransformerASR(
         input_dim=80,
@@ -982,15 +982,15 @@ def train_transformer_asr():
         vocab_size=29
     )
 
-    criterion = nn.CrossEntropyLoss(ignore_index=0)  # 0はパディング
+    criterion = nn.CrossEntropyLoss(ignore_index=0)  # 0 is padding
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, betas=(0.9, 0.98))
 
-    # ダミーデータ
+    # Dummy data
     batch_size = 8
     src = torch.randn(batch_size, 100, 80)
     tgt = torch.randint(1, 29, (batch_size, 30))
 
-    # パディングマスク
+    # Padding mask
     src_key_padding_mask = torch.zeros(batch_size, 100).bool()
     tgt_key_padding_mask = torch.zeros(batch_size, 30).bool()
 
@@ -1002,7 +1002,7 @@ def train_transformer_asr():
                    src_key_padding_mask=src_key_padding_mask,
                    tgt_key_padding_mask=tgt_key_padding_mask[:, :-1])
 
-    # Loss計算
+    # Loss calculation
     loss = criterion(output.reshape(-1, model.vocab_size), tgt[:, 1:].reshape(-1))
 
     # Backward
@@ -1018,25 +1018,25 @@ train_transformer_asr()
 </code></pre>
 
         <h3>2.3 Joint CTC-Attention</h3>
-        <p>CTCとAttentionを組み合わせることで、それぞれの長所を活かすことができます。CTCはアライメントの学習を助け、Attentionは文脈情報を活用します。</p>
+        <p>By combining CTC and Attention, we can leverage the strengths of each. CTC helps learn alignment, while Attention utilizes contextual information.</p>
 
 <pre><code class="language-python">class JointCTCAttention(nn.Module):
-    """CTC と Attention を組み合わせたハイブリッドモデル"""
+    """Hybrid model combining CTC and Attention"""
 
     def __init__(self, input_dim=80, encoder_hidden=256, decoder_hidden=512,
                  vocab_size=29, num_layers=3, ctc_weight=0.3):
         super(JointCTCAttention, self).__init__()
 
-        # 共有Encoder
+        # Shared Encoder
         self.encoder = Listener(input_dim, encoder_hidden, num_layers)
 
-        # CTC用の classification器
+        # CTC classifier
         self.ctc_classifier = nn.Linear(encoder_hidden * 2, vocab_size)
 
         # Attention-based Decoder
         self.decoder = Speller(encoder_hidden * 2, decoder_hidden, vocab_size)
 
-        # CTC損失の重み
+        # CTC loss weight
         self.ctc_weight = ctc_weight
         self.ctc_loss = nn.CTCLoss(blank=0, zero_infinity=True)
 
@@ -1045,24 +1045,24 @@ train_transformer_asr()
         """
         Args:
             inputs: (batch, time, features)
-            input_lengths: 各サンプルの音響特徴量の長さ
-            targets: (batch, target_len) テキストターゲット
-            target_lengths: 各ターゲットの長さ(CTC用)
-            teacher_forcing_ratio: Teacher Forcingの割合
+            input_lengths: Length of acoustic features for each sample
+            targets: (batch, target_len) Text target
+            target_lengths: Length of each target (for CTC)
+            teacher_forcing_ratio: Teacher forcing ratio
         Returns:
-            ctc_loss: CTC損失
-            attention_loss: Attention損失
-            combined_loss: 組み合わせた損失
+            ctc_loss: CTC loss
+            attention_loss: Attention loss
+            combined_loss: Combined loss
         """
-        # Encoder (共有)
+        # Encoder (shared)
         encoder_outputs, encoder_lengths = self.encoder(inputs, input_lengths)
 
-        # CTC branching
+        # CTC branch
         ctc_logits = self.ctc_classifier(encoder_outputs)
         ctc_log_probs = F.log_softmax(ctc_logits, dim=-1)
         ctc_log_probs = ctc_log_probs.transpose(0, 1)  # (T, N, C)
 
-        # Attention branching
+        # Attention branch
         attention_outputs = self.decoder(encoder_outputs, encoder_lengths,
                                         targets, teacher_forcing_ratio)
 
@@ -1071,42 +1071,42 @@ train_transformer_asr()
     def compute_loss(self, ctc_log_probs, encoder_lengths, attention_outputs,
                      targets, target_lengths):
         """
-        損失の計算
+        Loss calculation
         """
-        # CTC損失
+        # CTC loss
         ctc_loss = self.ctc_loss(ctc_log_probs, targets, encoder_lengths, target_lengths)
 
-        # Attention損失 (Cross Entropy)
+        # Attention loss (Cross Entropy)
         attention_loss = F.cross_entropy(
             attention_outputs.reshape(-1, attention_outputs.size(-1)),
             targets.reshape(-1),
             ignore_index=0
         )
 
-        # 組み合わせた損失
+        # Combined loss
         combined_loss = self.ctc_weight * ctc_loss + (1 - self.ctc_weight) * attention_loss
 
         return ctc_loss, attention_loss, combined_loss
 
     def recognize(self, inputs, input_lengths, beam_width=10):
         """
-        推論: CTCとAttentionの両方を使用したデコーディング
+        Inference: Decoding using both CTC and Attention
         """
         self.eval()
         with torch.no_grad():
             # Encoder
             encoder_outputs, encoder_lengths = self.encoder(inputs, input_lengths)
 
-            # CTC branching (プレフィックスビームサーチ用)
+            # CTC branch (For prefix beam search)
             ctc_logits = self.ctc_classifier(encoder_outputs)
             ctc_probs = F.softmax(ctc_logits, dim=-1)
 
-            # Attention branching
+            # Attention branch
             attention_outputs = self.decoder.inference(encoder_outputs, encoder_lengths)
             attention_probs = F.softmax(attention_outputs, dim=-1)
 
-            # CTC と Attentionのスコアを組み合わせてデコード
-            # (実際にはより複雑なビームサーチアルゴリズムを使用)
+            # Decode by combining CTC and Attention scores
+            # (In practice, more complex beam search algorithms are used)
             combined_probs = (self.ctc_weight * ctc_probs[0] +
                             (1 - self.ctc_weight) * attention_probs)
 
@@ -1115,9 +1115,9 @@ train_transformer_asr()
             return predictions
 
 
-# 訓練例
+# Training example
 def train_joint_model():
-    """Joint CTC-Attention モデルの訓練"""
+    """Joint CTC-Attention model training"""
 
     model = JointCTCAttention(
         input_dim=80,
@@ -1129,7 +1129,7 @@ def train_joint_model():
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-    # ダミーデータ
+    # Dummy data
     batch_size = 4
     inputs = torch.randn(batch_size, 100, 80)
     input_lengths = torch.tensor([100, 95, 90, 85])
@@ -1141,7 +1141,7 @@ def train_joint_model():
         inputs, input_lengths, targets, target_lengths
     )
 
-    # 損失計算
+    # Calculate loss
     ctc_loss, attention_loss, combined_loss = model.compute_loss(
         ctc_log_probs, encoder_lengths, attention_outputs, targets, target_lengths
     )
@@ -1162,15 +1162,15 @@ train_joint_model()
 
         <h2>3. RNN-Transducer (RNN-T)</h2>
 
-        <h3>3.1 RNN-Tとは</h3>
-        <p>RNN-Transducerは、ストリーミング音声認識に適したモデルです。音響モデル(Encoder)、言語モデル(Prediction Network)、そしてJoint Networkの3つのコンポーネントから構成されます。CTCと異なり、言語モデルを明示的に組み込むことができます。</p>
+        <h3>3.1 What is RNN-T</h3>
+        <p>RNN-Transducer is a model suitable for streaming speech recognition. It consists of three components: an acoustic model (Encoder), a language model (Prediction Network), and a Joint Network. Unlike CTC, it can explicitly incorporate a language model.</p>
 
-        <h4>RNN-Tの特徴</h4>
+        <h4>Characteristics of RNN-T</h4>
         <ul>
-            <li><strong>ストリーミング対応</strong>: オンライン処理が可能</li>
-            <li><strong>言語モデル統合</strong>: Prediction Networkが言語情報を提供</li>
-            <li><strong>柔軟なアライメント</strong>: CTCより柔軟な出力タイミング</li>
-            <li><strong>Blank記号</strong>: 出力なし(待機)を表現可能</li>
+            <li><strong>Streaming support</strong>: Enables online processing</li>
+            <li><strong>Language model integration</strong>: Prediction Network provides linguistic information</li>
+            <li><strong>Flexible alignment</strong>: More flexible output timing than CTC</li>
+            <li><strong>Blank symbol</strong>: Can represent no output (waiting)</li>
         </ul>
 
 <pre><code class="language-python">import torch
@@ -1178,17 +1178,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class RNNTransducer(nn.Module):
-    """RNN-Transducer モデル"""
+    """RNN-Transducer model"""
 
     def __init__(self, input_dim=80, encoder_dim=256, pred_dim=256,
                  joint_dim=512, vocab_size=29, num_layers=3):
         """
         Args:
-            input_dim: 入力特徴量の次元
-            encoder_dim: Encoderの隠れ層次元
-            pred_dim: Prediction Networkの隠れ層次元
-            joint_dim: Joint Networkの隠れ層次元
-            vocab_size: 語彙サイズ(blank含む)
+            input_dim: input feature dimensions
+            encoder_dim: Encoder hidden layer dimension
+            pred_dim: Prediction Network hidden layer dimension
+            joint_dim: Joint Network hidden layer dimension
+            vocab_size: Vocabulary size (including blank)
         """
         super(RNNTransducer, self).__init__()
 
@@ -1198,11 +1198,11 @@ class RNNTransducer(nn.Module):
             encoder_dim,
             num_layers,
             batch_first=True,
-            bidirectional=False,  # ストリーミング用に単方向
+            bidirectional=False,  # Streaming for unidirectional
             dropout=0.2
         )
 
-        # Prediction Network (Language Model)
+        # Prediction Network (language model)
         self.embedding = nn.Embedding(vocab_size, pred_dim)
         self.prediction = nn.LSTM(
             pred_dim,
@@ -1221,10 +1221,10 @@ class RNNTransducer(nn.Module):
     def forward(self, inputs, input_lengths, targets, target_lengths):
         """
         Args:
-            inputs: (batch, time, features) 音響特徴量
-            input_lengths: 各サンプルの入力長
-            targets: (batch, target_len) ターゲットラベル
-            target_lengths: 各サンプルのターゲット長
+            inputs: (batch, time, features) acousticfeatures
+            input_lengths: Input length of each sample
+            targets: (batch, target_len) Target labels
+            target_lengths: Target length of each sample
         Returns:
             joint_output: (batch, time, target_len+1, vocab_size)
         """
@@ -1232,7 +1232,7 @@ class RNNTransducer(nn.Module):
         encoder_out, _ = self.encoder(inputs)  # (batch, time, encoder_dim)
 
         # Prediction Network
-        # 開始トークンを追加
+        # Start token add
         batch_size = targets.size(0)
         start_tokens = torch.zeros(batch_size, 1, dtype=torch.long, device=targets.device)
         pred_input = torch.cat([start_tokens, targets], dim=1)
@@ -1257,15 +1257,15 @@ class RNNTransducer(nn.Module):
             encoder_out, _ = self.encoder(inputs)
             time_steps = encoder_out.size(1)
 
-            # 初期化
+            # Initialization
             predictions = []
             pred_hidden = None
 
-            # 開始トークン
+            # Start token
             pred_input = torch.zeros(batch_size, 1, dtype=torch.long, device=inputs.device)
 
             for t in range(time_steps):
-                # 現在のエンコーダー出力
+                # Current encoder output
                 enc_t = encoder_out[:, t:t+1, :]  # (batch, 1, encoder_dim)
 
                 # Prediction Network
@@ -1275,11 +1275,11 @@ class RNNTransducer(nn.Module):
                 # Joint Network
                 joint_out = self.joint(enc_t, pred_out)  # (batch, 1, 1, vocab_size)
 
-                # 最も確率の高いトークンを選択
+                # mostprobability HighTokens select
                 prob = F.softmax(joint_out.squeeze(1).squeeze(1), dim=-1)
                 pred_token = prob.argmax(dim=-1)
 
-                # Blankでない場合のみ出力に追加
+                # Add to output only if not blank
                 if pred_token.item() != self.blank_idx:
                     predictions.append(pred_token.item())
                     pred_input = pred_token.unsqueeze(1)
@@ -1291,7 +1291,7 @@ class RNNTransducer(nn.Module):
 
 
 class JointNetwork(nn.Module):
-    """Joint Network: EncoderとPrediction Networkの出力を結合"""
+    """Joint Network: Combine outputs of Encoder and Prediction Network"""
 
     def __init__(self, encoder_dim, pred_dim, joint_dim, vocab_size):
         super(JointNetwork, self).__init__()
@@ -1308,25 +1308,25 @@ class JointNetwork(nn.Module):
         Returns:
             joint_out: (batch, time, target_len, vocab_size)
         """
-        # プロジェクション
+        # Projection
         enc_proj = self.encoder_proj(encoder_out)  # (batch, time, joint_dim)
         pred_proj = self.pred_proj(pred_out)  # (batch, target_len, joint_dim)
 
-        # ブロードキャストして加算
+        # Broadcast and add
         # (batch, time, 1, joint_dim) + (batch, 1, target_len, joint_dim)
         joint = torch.tanh(
             enc_proj.unsqueeze(2) + pred_proj.unsqueeze(1)
         )  # (batch, time, target_len, joint_dim)
 
-        # 出力プロジェクション
+        # OutputProjection
         output = self.output_proj(joint)  # (batch, time, target_len, vocab_size)
 
         return output
 
 
-# RNN-T Loss (簡易版)
+# RNN-T Loss (Simplified version)
 class RNNTLoss(nn.Module):
-    """RNN-T損失関数 (Forward-Backward アルゴリズム)"""
+    """RNN-T loss function (Forward-Backward algorithm)"""
 
     def __init__(self, blank_idx=0):
         super(RNNTLoss, self).__init__()
@@ -1340,20 +1340,20 @@ class RNNTLoss(nn.Module):
             input_lengths: (batch,)
             target_lengths: (batch,)
         """
-        # PyTorchのtorchaudio.functional.rnnt_lossを使用
-        # ここでは簡易的にCTC損失で代用
+        # Use PyTorch torchaudio.functional.rnnt_loss
+        # Here for simplicityCTC loss as approximation
         batch_size, time, _, vocab_size = logits.size()
 
         # Greedy path approximation
         log_probs = F.log_softmax(logits, dim=-1)
 
-        # 各時刻でのblankと非blankの確率を計算
+        # Calculate probabilities of blank and non-blank at each time step
         loss = 0
         for b in range(batch_size):
             for t in range(input_lengths[b]):
                 for u in range(target_lengths[b] + 1):
                     if u < target_lengths[b]:
-                        # 非blank: 正しいラベルの確率
+                        # Non-blank: probability of correct label
                         target_label = targets[b, u]
                         loss -= log_probs[b, t, u, target_label]
                     else:
@@ -1363,9 +1363,9 @@ class RNNTLoss(nn.Module):
         return loss / batch_size
 
 
-# 使用例
+# Usage example
 def train_rnnt():
-    """RNN-T モデルの訓練例"""
+    """RNN-T model training example"""
 
     model = RNNTransducer(
         input_dim=80,
@@ -1378,7 +1378,7 @@ def train_rnnt():
     criterion = RNNTLoss(blank_idx=0)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-    # ダミーデータ
+    # Dummy data
     batch_size = 4
     inputs = torch.randn(batch_size, 100, 80)
     input_lengths = torch.tensor([100, 95, 90, 85])
@@ -1398,7 +1398,7 @@ def train_rnnt():
 
     print(f"RNN-T Loss: {loss.item():.4f}")
 
-    # 推論例
+    # Inference example
     predictions = model.greedy_decode(inputs[:1], input_lengths[:1])
     print(f"Predicted tokens: {predictions}")
 
@@ -1407,142 +1407,142 @@ def train_rnnt():
 train_rnnt()
 </code></pre>
 
-        <h3>3.2 CTCとRNN-Tの比較</h3>
+        <h3>3.2 Comparison of CTC and RNN-T</h3>
 
         <table>
             <thead>
                 <tr>
-                    <th>特徴</th>
+                    <th>feature</th>
                     <th>CTC</th>
                     <th>RNN-Transducer</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td>言語モデル</td>
-                    <td>外部LMが必要</td>
-                    <td>Prediction Networkで内部統合</td>
+                    <td>language model</td>
+                    <td>External LM required</td>
+                    <td>Internally integrated in Prediction Network</td>
                 </tr>
                 <tr>
-                    <td>ストリーミング</td>
-                    <td>可能(単方向LSTM使用時)</td>
-                    <td>設計上ストリーミング対応</td>
+                    <td>Streaming</td>
+                    <td>Possible (when using unidirectional LSTM)</td>
+                    <td>Designed for streaming</td>
                 </tr>
                 <tr>
-                    <td>計算コスト</td>
-                    <td>低い</td>
-                    <td>やや高い(Joint Network)</td>
+                    <td>Computational Cost</td>
+                    <td>Low</td>
+                    <td>Somewhat high (Joint Network)</td>
                 </tr>
                 <tr>
-                    <td>精度</td>
-                    <td>中程度</td>
-                    <td>高い(言語モデル統合効果)</td>
+                    <td>accuracy</td>
+                    <td>Moderate</td>
+                    <td>High (language model integration effect)</td>
                 </tr>
                 <tr>
-                    <td>訓練の安定性</td>
-                    <td>比較的安定</td>
-                    <td>やや不安定な場合あり</td>
+                    <td>Training Stability</td>
+                    <td>Relatively stable</td>
+                    <td>Can be somewhat unstable</td>
                 </tr>
             </tbody>
         </table>
 
         <h2>4. Whisper</h2>
 
-        <h3>4.1 OpenAI Whisperとは</h3>
-        <p>Whisperは、OpenAIが開発した多言語音声認識モデルです。68万 hoursの多言語データで訓練されており、99言語の音声認識、音声翻訳、言語識別タスクに対応しています。</p>
+        <h3>4.1 What is OpenAI Whisper</h3>
+        <p>Whisper is a multilingual speech recognition model developed by OpenAI. Trained on 680,000 hours of multilingual data, it supports speech recognition, translation, and language identification tasks for 99 languages.</p>
 
-        <h4>Whisperの特徴</h4>
+        <h4>Characteristics of Whisper</h4>
         <ul>
-            <li><strong>多言語対応</strong>: 99言語をサポート</li>
-            <li><strong>ロバスト性</strong>: ノイズや訛りに強い</li>
-            <li><strong>ゼロショット性能</strong>: ファインチューニングなしで高精度</li>
-            <li><strong>多機能</strong>: 音声認識、翻訳、言語識別を統一的に処理</li>
-            <li><strong>複数のサイズ</strong>: tiny, base, small, medium, large</li>
+            <li><strong>Multilingual support</strong>: Supports 99 languages</li>
+            <li><strong>Robustness</strong>: Resistant to noise and accents</li>
+            <li><strong>Zero-shot performance</strong>: High accuracy without fine-tuning</li>
+            <li><strong>Multifunctional</strong>: Handles speech recognition, translation, and language identification uniformly</li>
+            <li><strong>Multiple sizes</strong>: tiny, base, small, medium, large</li>
         </ul>
 
 <pre><code class="language-python">import whisper
 import torch
 import numpy as np
 
-# Whisperモデルの基本的な使用
+# Basic Whisper model usage
 def basic_whisper_usage():
-    """Whisperの基本的な使い方"""
+    """Basic usage of Whisper"""
 
-    # モデルのロード (base, small, medium, large から選択)
+    # Load model (choose from base, small, medium, large)
     model = whisper.load_model("base")
 
-    print(f"モデルサイズ: {model.dims}")
-    print(f"対応言語数: {len(whisper.tokenizer.LANGUAGES)}")
+    print(f"Model size: {model.dims}")
+    print(f"Number of supported languages: {len(whisper.tokenizer.LANGUAGES)}")
 
-    # 音声ファイルの読み込みと文字起こし
+    # Load audio file and transcribe
     # audio = whisper.load_audio("audio.mp3")
     # audio = whisper.pad_or_trim(audio)
 
-    # ダミー音声(実際にはファイルから読み込み)
-    audio = np.random.randn(16000 * 10).astype(np.float32)  # 10秒の音声
+    # Dummy audio (in practice, loaded from file)
+    audio = np.random.randn(16000 * 10).astype(np.float32)  # 10seconds of audio
 
-    # メルスペクトログラムに変換
+    # Mel Spectrogram convert to
     mel = whisper.log_mel_spectrogram(torch.from_numpy(audio)).to(model.device)
 
-    # 言語検出
+    # Language detection
     _, probs = model.detect_language(mel)
     detected_language = max(probs, key=probs.get)
-    print(f"検出された言語: {detected_language} (確率: {probs[detected_language]:.2f})")
+    print(f"Detected language: {detected_language} (probability: {probs[detected_language]:.2f})")
 
-    # オプション設定
+    # Options configuration
     options = whisper.DecodingOptions(
-        language="ja",  # 日本語を指定
+        language="ja",  # Specify Japanese
         task="transcribe",  # transcribe or translate
-        fp16=False  # FP16を使用するか
+        fp16=False  # Whether to use FP16
     )
 
-    # デコーディング
+    # Decoding
     result = whisper.decode(model, mel, options)
 
-    print(f"文字起こし結果: {result.text}")
-    print(f"平均対数確率: {result.avg_logprob:.4f}")
-    print(f"圧縮率: {result.compression_ratio:.2f}")
+    print(f"Transcription result: {result.text}")
+    print(f"Average logprobability: {result.avg_logprob:.4f}")
+    print(f"Compression ratio: {result.compression_ratio:.2f}")
 
     return model, result
 
 
-# より高LevelなAPI
+# Higher-level API
 def transcribe_audio_file(audio_path, model_size="base"):
     """
-    音声ファイルを文字起こし
+    Transcribe audio file
 
     Args:
-        audio_path: 音声ファイルのパス
-        model_size: モデルサイズ (tiny, base, small, medium, large)
+        audio_path: Audio file path
+        model_size: Model size (tiny, base, small, medium, large)
     """
-    # モデルロード
+    # Load model
     model = whisper.load_model(model_size)
 
-    # 文字起こし
+    # Transcription
     result = model.transcribe(
         audio_path,
-        language="ja",  # 日本語
+        language="ja",  # Japanese
         task="transcribe",
-        verbose=True,  # 進捗表示
-        temperature=0.0,  # 温度(多様性の制御)
-        best_of=5,  # ビームサーチの候補数
-        beam_size=5,  # ビーム幅
-        patience=1.0,  # ビームサーチの忍耐度
-        length_penalty=1.0,  # 長さペナルティ
-        compression_ratio_threshold=2.4,  # 圧縮率の閾値
-        logprob_threshold=-1.0,  # 対数確率の閾値
-        no_speech_threshold=0.6  # 無音判定の閾値
+        verbose=True,  # Show progress
+        temperature=0.0,  # Temperature (diversity control)
+        best_of=5,  # Number of beam search candidates
+        beam_size=5,  # Beam width
+        patience=1.0,  # Beam search patience
+        length_penalty=1.0,  # Length penalty
+        compression_ratio_threshold=2.4,  # Compression ratio threshold
+        logprob_threshold=-1.0,  # Log probability threshold
+        no_speech_threshold=0.6  # No-speech threshold
     )
 
-    # 結果の表示
+    # Display results
     print("=" * 50)
-    print("文字起こし結果:")
+    print("Transcription result:")
     print("=" * 50)
     print(result["text"])
     print()
 
-    # セグメント単位の結果
-    print("セグメント詳細:")
+    # Results by segment
+    print("Segment details:")
     for segment in result["segments"]:
         start = segment["start"]
         end = segment["end"]
@@ -1552,20 +1552,20 @@ def transcribe_audio_file(audio_path, model_size="base"):
     return result
 
 
-# タイムスタンプ付き文字起こし
+# With timestampsTranscription
 def transcribe_with_timestamps(audio_path):
-    """タイムスタンプ付きで文字起こし"""
+    """With timestamps withTranscription"""
 
     model = whisper.load_model("base")
 
-    # word_timestamps=Trueで単語Levelのタイムスタンプを取得
+    # word_timestamps=True withGet word-level timestamps
     result = model.transcribe(
         audio_path,
         language="ja",
-        word_timestamps=True  # 単語Levelのタイムスタンプ
+        word_timestamps=True  # Word-level timestamps
     )
 
-    # 単語Levelの結果を表示
+    # Display word-level results
     for segment in result["segments"]:
         if "words" in segment:
             for word_info in segment["words"]:
@@ -1573,65 +1573,65 @@ def transcribe_with_timestamps(audio_path):
                 start = word_info["start"]
                 end = word_info["end"]
                 probability = word_info.get("probability", 0.0)
-                print(f"{word:15s} [{start:6.2f}s - {end:6.2f}s] (確率: {probability:.3f})")
+                print(f"{word:15s} [{start:6.2f}s - {end:6.2f}s] (probability: {probability:.3f})")
 
     return result
 
 
-# 多言語音声の処理
+# Multilingual audio processing
 def multilingual_transcription(audio_path):
-    """多言語音声の処理"""
+    """Multilingual audio processing"""
 
-    model = whisper.load_model("medium")  # 多言語には中型以上をRecommended
+    model = whisper.load_model("medium")  # Medium or larger recommended for multilingual
 
-    # 言語を自動検出
+    # Auto-detect language
     result = model.transcribe(
         audio_path,
         task="transcribe",
-        language=None  # 自動検出
+        language=None  # Auto-detect
     )
 
     detected_language = result["language"]
-    print(f"検出された言語: {detected_language}")
-    print(f"文字起こし: {result['text']}")
+    print(f"Detected language: {detected_language}")
+    print(f"Transcription: {result['text']}")
 
-    # 英語に翻訳
+    # Translate to English
     translation = model.transcribe(
         audio_path,
-        task="translate",  # 英語に翻訳
+        task="translate",  # Translate to English
         language=detected_language
     )
 
-    print(f"英訳: {translation['text']}")
+    print(f"English translation: {translation['text']}")
 
     return result, translation
 
 
-# 実行例
+# Execution example
 if __name__ == "__main__":
-    print("Whisper使用例")
+    print("Whisper usage examples")
     print("=" * 50)
 
-    # 基本的な使用法
+    # Basic usage
     model, result = basic_whisper_usage()
-    print("✓ 基本的な文字起こしが完了しました")
+    print("✓ basicTranscription completed")
 
-    # 注: 実際の音声ファイルを使う場合は以下のコメントを外す
+    # Note: Uncomment the following to use actual audio files
     # result = transcribe_audio_file("sample.mp3", model_size="base")
     # result = transcribe_with_timestamps("sample.mp3")
     # result, translation = multilingual_transcription("sample.mp3")
 </code></pre>
 
-        <h3>4.2 Whisperのアーキテクチャ</h3>
-        <p>WhisperはEncoder-Decoderアーキテクチャを採用しています。Encoderは音響特徴量を処理し、Decoderはテキストを生成します。どちらもTransformerベースです。</p>
+        <h3>4.2 Whisper architecture</h3>
+        <p>Whisper adopts an Encoder-Decoder architecture. The Encoder processes acoustic features, and the Decoder generates text. Both are Transformer-based.</p>
 
         <div class="mermaid">
 graph LR
-    A[音声入力] --> B[メルスペクトログラム]
+    A[audio input] --> B[Mel Spectrogram]
     B --> C[Encoder<br/>Transformer]
-    C --> D[音響表現]
+    C --> D[Acoustic Representation]
     D --> E[Decoder<br/>Transformer]
-    E --> F[テキスト出力]
+    E --> F[Text Output]
 
     style A fill:#e1f5ff
     style F fill:#e1f5ff
@@ -1643,10 +1643,10 @@ graph LR
 import torch.nn as nn
 from typing import Optional
 
-class WhisperArchitecture(nn.Module):
+class Whisperarchitecture(nn.Module):
     """
-    Whisperのアーキテクチャ概要
-    (実際のWhisperはより複雑ですが、主要な構造を示します)
+    Whisper architectureoverview
+    (Actual Whisper is more complex, but this shows the main structure)
     """
 
     def __init__(self,
@@ -1662,20 +1662,20 @@ class WhisperArchitecture(nn.Module):
                  n_text_layer=6):
         """
         Args:
-            n_mels: メルフィルタバンク数
-            n_audio_ctx: 音響コンテキスト長
-            n_audio_state: Encoderの状態次元
-            n_audio_head: Encoderのアテンションヘッド数
-            n_audio_layer: Encoderの層数
-            n_vocab: 語彙サイズ
-            n_text_ctx: テキストコンテキスト長
-            n_text_state: Decoderの状態次元
-            n_text_head: Decoderのアテンションヘッド数
-            n_text_layer: Decoderの層数
+            n_mels: Number of mel filter banks
+            n_audio_ctx: Audio context length
+            n_audio_state: Encoder state dimension
+            n_audio_head: Number of encoder attention heads
+            n_audio_layer: Number of encoder layers
+            n_vocab: Vocabulary size
+            n_text_ctx: Text context length
+            n_text_state: Decoder state dimension
+            n_text_head: Number of decoder attention heads
+            n_text_layer: Number of decoder layers
         """
         super().__init__()
 
-        # Encoder: 音響特徴量を処理
+        # Encoder: acousticfeatures process
         self.encoder = AudioEncoder(
             n_mels=n_mels,
             n_ctx=n_audio_ctx,
@@ -1684,7 +1684,7 @@ class WhisperArchitecture(nn.Module):
             n_layer=n_audio_layer
         )
 
-        # Decoder: テキストを生成
+        # Decoder: Generate text
         self.decoder = TextDecoder(
             n_vocab=n_vocab,
             n_ctx=n_text_ctx,
@@ -1696,8 +1696,8 @@ class WhisperArchitecture(nn.Module):
     def forward(self, mel, tokens):
         """
         Args:
-            mel: (batch, n_mels, time) メルスペクトログラム
-            tokens: (batch, seq_len) トークン
+            mel: (batch, n_mels, time) Mel Spectrogram
+            tokens: (batch, seq_len) Tokens
         """
         # Encoder
         audio_features = self.encoder(mel)
@@ -1714,7 +1714,7 @@ class AudioEncoder(nn.Module):
     def __init__(self, n_mels, n_ctx, n_state, n_head, n_layer):
         super().__init__()
 
-        # 畳み込み層で特徴抽出
+        # Convolutional layers with feature extraction
         self.conv1 = nn.Conv1d(n_mels, n_state, kernel_size=3, padding=1)
         self.conv2 = nn.Conv1d(n_state, n_state, kernel_size=3, stride=2, padding=1)
 
@@ -1785,7 +1785,7 @@ class TextDecoder(nn.Module):
 
         x = self.ln(x)
 
-        # Weight tying: token embeddingを再利用
+        # Weight tying: token embedding reuse
         logits = x @ self.token_embedding.weight.T
 
         return logits
@@ -1857,9 +1857,9 @@ class DecoderBlock(nn.Module):
         return x
 
 
-# アーキテクチャの概要表示
+# Display architecture overview
 def show_architecture_info():
-    """Whisperの各モデルサイズの情報"""
+    """Information about Whisper model sizes"""
 
     models_info = {
         "tiny": {
@@ -1899,7 +1899,7 @@ def show_architecture_info():
         }
     }
 
-    print("Whisper モデルサイズ比較")
+    print("Whisper Model sizecomparison")
     print("=" * 70)
     print(f"{'Model':<10} {'Parameters':<12} {'Layers':<10} {'State':<10} {'Heads':<10}")
     print("=" * 70)
@@ -1910,18 +1910,18 @@ def show_architecture_info():
               f"{info['n_state']:<10} {info['n_head']:<10}")
 
     print()
-    print("Recommended用途:")
-    print("- tiny/base: リアルタイム処理、リソース制約環境")
-    print("- small: バランス型、一般的な用途")
-    print("- medium/large: 高精度が必要な場合、多言語処理")
+    print("Recommended usage:")
+    print("- tiny/base: Real-time processing, resource-constrained environments")
+    print("- small: Balanced approach, general purpose")
+    print("- medium/large: High accuracy requirements, multilingual processing")
 
 show_architecture_info()
 </code></pre>
 
-        <h2>5. 実践的なASRシステム</h2>
+        <h2>5. Practical ASR Systems</h2>
 
-        <h3>5.1 Whisperのファインチューニング</h3>
-        <p>Whisperを特定のドメインや言語にファインチューニングすることで、さらに高い精度を実現できます。</p>
+        <h3>5.1 Fine-tuning Whisper</h3>
+        <p>By fine-tuning Whisper for specific domains or languages, even higher accuracy can be achieved.</p>
 
 <pre><code class="language-python">from transformers import WhisperProcessor, WhisperForConditionalGeneration
 from transformers import Seq2SeqTrainingArguments, Seq2SeqTrainer
@@ -1930,70 +1930,70 @@ import torch
 
 def finetune_whisper_japanese():
     """
-    日本語音声認識のためのWhisperファインチューニング
+    Whisper fine-tuning for Japanese speech recognition
     """
 
-    # モデルとプロセッサのロード
+    # Load model and processor
     model_name = "openai/whisper-small"
     processor = WhisperProcessor.from_pretrained(model_name, language="Japanese", task="transcribe")
     model = WhisperForConditionalGeneration.from_pretrained(model_name)
 
-    # 日本語に特化した設定
+    # Japanese-specific configuration
     model.config.forced_decoder_ids = processor.get_decoder_prompt_ids(
         language="Japanese",
         task="transcribe"
     )
     model.config.suppress_tokens = []
 
-    # データセットの準備(例: Common Voice Japanese)
+    # Prepare dataset (example: Common Voice Japanese)
     # dataset = load_dataset("mozilla-foundation/common_voice_11_0", "ja", split="train[:100]")
 
-    # ダミーデータセット(実際には上記のようなデータセットを使用)
+    # Dummy dataset (use actual datasets like the one above in practice)
     def prepare_dataset(batch):
-        """データセットの前処理"""
-        # 音声を16kHzにリサンプリング
+        """Dataset preprocessing"""
+        # Resample audio to 16kHz
         audio = batch["audio"]
 
-        # メルスペクトログラムに変換
+        # Convert to Mel Spectrogram
         batch["input_features"] = processor(
             audio["array"],
             sampling_rate=audio["sampling_rate"],
             return_tensors="pt"
         ).input_features[0]
 
-        # ラベルの準備
+        # Prepare labels
         batch["labels"] = processor.tokenizer(batch["sentence"]).input_ids
 
         return batch
 
-    # データセットに前処理を適用
+    # Apply preprocessing to dataset
     # dataset = dataset.map(prepare_dataset, remove_columns=dataset.column_names)
 
-    # データコレーター
+    # Data collator
     from dataclasses import dataclass
     from typing import Any, Dict, List, Union
 
     @dataclass
     class DataCollatorSpeechSeq2SeqWithPadding:
-        """音声データのコレーター"""
+        """Speech data collator"""
 
         processor: Any
 
         def __call__(self, features: List[Dict[str, Union[List[int], torch.Tensor]]]) -> Dict[str, torch.Tensor]:
-            # 入力特徴量をパディング
+            # Pad input features
             input_features = [{"input_features": feature["input_features"]} for feature in features]
             batch = self.processor.feature_extractor.pad(input_features, return_tensors="pt")
 
-            # ラベルをパディング
+            # Pad labels
             label_features = [{"input_ids": feature["labels"]} for feature in features]
             labels_batch = self.processor.tokenizer.pad(label_features, return_tensors="pt")
 
-            # パディングトークンを-100に置き換え(損失計算で無視される)
+            # Replace padding tokens with -100 (ignored in loss calculation)
             labels = labels_batch["input_ids"].masked_fill(
                 labels_batch.attention_mask.ne(1), -100
             )
 
-            # bos tokenが存在する場合は削除
+            # Remove bos token if present
             if (labels[:, 0] == self.processor.tokenizer.bos_token_id).all().cpu().item():
                 labels = labels[:, 1:]
 
@@ -2003,29 +2003,29 @@ def finetune_whisper_japanese():
 
     data_collator = DataCollatorSpeechSeq2SeqWithPadding(processor=processor)
 
-    # 評価メトリクス
+    # Evaluation metrics
     import evaluate
 
     metric = evaluate.load("wer")  # Word Error Rate
 
     def compute_metrics(pred):
-        """評価メトリクスの計算"""
+        """Calculate evaluation metrics"""
         pred_ids = pred.predictions
         label_ids = pred.label_ids
 
-        # -100を pad_token_id に置き換え
+        # Replace -100 with pad_token_id
         label_ids[label_ids == -100] = processor.tokenizer.pad_token_id
 
-        # デコード
+        # Decode
         pred_str = processor.tokenizer.batch_decode(pred_ids, skip_special_tokens=True)
         label_str = processor.tokenizer.batch_decode(label_ids, skip_special_tokens=True)
 
-        # WER計算
+        # Calculate WER
         wer = metric.compute(predictions=pred_str, references=label_str)
 
         return {"wer": wer}
 
-    # 訓練設定
+    # Training configuration
     training_args = Seq2SeqTrainingArguments(
         output_dir="./whisper-japanese",
         per_device_train_batch_size=8,
@@ -2039,7 +2039,7 @@ def finetune_whisper_japanese():
         logging_steps=100,
         generation_max_length=225,
         predict_with_generate=True,
-        fp16=True,  # 混合精度訓練
+        fp16=True,  # Mixed precision training
         push_to_hub=False,
         report_to=["tensorboard"],
         load_best_model_at_end=True,
@@ -2047,7 +2047,7 @@ def finetune_whisper_japanese():
         greater_is_better=False,
     )
 
-    # トレーナーの初期化
+    # Initialize trainer
     # trainer = Seq2SeqTrainer(
     #     model=model,
     #     args=training_args,
@@ -2058,24 +2058,24 @@ def finetune_whisper_japanese():
     #     tokenizer=processor.feature_extractor,
     # )
 
-    # 訓練開始
+    # Start training
     # trainer.train()
 
-    # モデルの保存
+    # Save model
     # model.save_pretrained("./whisper-japanese-finetuned")
     # processor.save_pretrained("./whisper-japanese-finetuned")
 
-    print("✓ ファインチューニング設定が完了しました")
-    print("実際の訓練にはCommon Voiceなどのデータセットを使用してください")
+    print("✓ Fine-tuning configuration completed")
+    print("Use datasets like Common Voice for actual training")
 
     return model, processor
 
-# 実行例
+# Execution example
 model, processor = finetune_whisper_japanese()
 </code></pre>
 
-        <h3>5.2 リアルタイム音声認識アプリケーション</h3>
-        <p>マイクからの音声入力をリアルタイムで文字起こしするアプリケーションを構築します。</p>
+        <h3>5.2 Real-time Speech Recognition Application</h3>
+        <p>Build an application that transcribes audio input from a microphone in real-time.</p>
 
 <pre><code class="language-python">import pyaudio
 import numpy as np
@@ -2085,52 +2085,52 @@ import threading
 from collections import deque
 
 class RealtimeASR:
-    """リアルタイム音声認識システム"""
+    """Real-time speech recognition system"""
 
     def __init__(self, model_name="base", language="ja"):
         """
         Args:
-            model_name: Whisperモデルのサイズ
-            language: 認識言語
+            model_name: Whisper model size
+            language: Recognition language
         """
-        # Whisperモデルのロード
-        print(f"Whisperモデル '{model_name}' を読み込み中...")
+        # Load Whisper model
+        print(f"Loading Whisper model '{model_name}'...")
         self.model = whisper.load_model(model_name)
         self.language = language
 
-        # 音声設定
-        self.RATE = 16000  # サンプリングレート
-        self.CHUNK = 1024  # バッファサイズ
-        self.CHANNELS = 1  # モノラル
+        # Audio settings
+        self.RATE = 16000  # Sampling rate
+        self.CHUNK = 1024  # Buffer size
+        self.CHANNELS = 1  # Mono
         self.FORMAT = pyaudio.paInt16
 
-        # 音声バッファ
+        # Audio buffer
         self.audio_queue = queue.Queue()
-        self.audio_buffer = deque(maxlen=30)  # 30秒 minutesのバッファ
+        self.audio_buffer = deque(maxlen=30)  # 30-second buffer
 
-        # PyAudioの初期化
+        # PyAudio initialization
         self.audio = pyaudio.PyAudio()
 
-        # 状態管理
+        # State management
         self.is_recording = False
         self.transcription_thread = None
 
-        print("✓ リアルタイムASRの初期化が完了しました")
+        print("✓ Real-time ASR initialization completed")
 
     def audio_callback(self, in_data, frame_count, time_info, status):
-        """音声入力コールバック"""
+        """Audio input callback"""
         if self.is_recording:
-            # 音声データをキューに追加
+            # Add audio data to queue
             audio_data = np.frombuffer(in_data, dtype=np.int16)
             self.audio_queue.put(audio_data)
 
         return (in_data, pyaudio.paContinue)
 
     def start_recording(self):
-        """録音開始"""
+        """Start recording"""
         self.is_recording = True
 
-        # 音声ストリームを開く
+        # Open audio stream
         self.stream = self.audio.open(
             format=self.FORMAT,
             channels=self.CHANNELS,
@@ -2142,14 +2142,14 @@ class RealtimeASR:
 
         self.stream.start_stream()
 
-        # 文字起こしスレッドを開始
+        # Start transcription thread
         self.transcription_thread = threading.Thread(target=self.transcribe_loop)
         self.transcription_thread.start()
 
-        print("🎤 録音を開始しました...")
+        print("🎤 Recording started...")
 
     def stop_recording(self):
-        """録音停止"""
+        """Stop recording"""
         self.is_recording = False
 
         if hasattr(self, 'stream'):
@@ -2159,14 +2159,14 @@ class RealtimeASR:
         if self.transcription_thread:
             self.transcription_thread.join()
 
-        print("⏹️  録音を停止しました")
+        print("⏹️  Recording stopped")
 
     def transcribe_loop(self):
-        """文字起こしループ"""
-        print("📝 文字起こしを開始...")
+        """Transcription loop"""
+        print("📝 Starting transcription...")
 
         while self.is_recording:
-            # 音声データを収集(1秒 minutes)
+            # Collect audio data (1 second worth)
             audio_chunks = []
             for _ in range(int(self.RATE / self.CHUNK)):
                 try:
@@ -2178,19 +2178,19 @@ class RealtimeASR:
             if not audio_chunks:
                 continue
 
-            # 音声データを結合
+            # Concatenate audio data
             audio_data = np.concatenate(audio_chunks)
             self.audio_buffer.append(audio_data)
 
-            # バッファから音声を取得(5秒 minutes)
+            # Get audio from buffer (5 seconds worth)
             if len(self.audio_buffer) >= 5:
-                # 最新の5秒 minutesを使用
+                # Use latest 5 seconds
                 audio_segment = np.concatenate(list(self.audio_buffer)[-5:])
 
-                # 正規化
+                # Normalize
                 audio_segment = audio_segment.astype(np.float32) / 32768.0
 
-                # 文字起こし
+                # Transcription
                 try:
                     result = self.model.transcribe(
                         audio_segment,
@@ -2203,52 +2203,52 @@ class RealtimeASR:
 
                     text = result["text"].strip()
                     if text:
-                        print(f"認識結果: {text}")
+                        print(f"Recognition result: {text}")
 
                 except Exception as e:
-                    print(f"エラー: {e}")
+                    print(f"Error: {e}")
 
     def __del__(self):
-        """クリーンアップ"""
+        """Cleanup"""
         if hasattr(self, 'audio'):
             self.audio.terminate()
 
 
-# 使用例
+# Usage example
 def realtime_asr_demo():
-    """リアルタイムASRのデモ"""
+    """Real-time ASR demo"""
 
-    # ASRシステムの初期化
+    # Initialize ASR system
     asr = RealtimeASR(model_name="base", language="ja")
 
     try:
-        # 録音開始
+        # Start recording
         asr.start_recording()
 
-        # 10秒間録音
+        # Record for 10 seconds
         import time
-        print("10秒間話してください...")
+        print("Please speak for 10 seconds...")
         time.sleep(10)
 
-        # 録音停止
+        # Stop recording
         asr.stop_recording()
 
     except KeyboardInterrupt:
-        print("\n中断されました")
+        print("\nInterrupted")
         asr.stop_recording()
 
-    print("✓ デモが完了しました")
+    print("✓ Demo completed")
 
 
-# バッチ処理版(ファイルから)
+# Batch processing version (from file)
 def batch_transcribe_with_speaker_diarization(audio_file):
     """
-    話 learner minutes離を含む音声認識
-    (pyannote.audioなどのライブラリを使用)
+    Speech recognition with speaker diarization
+    (using libraries like pyannote.audio)
     """
     import whisper
 
-    # Whisperで文字起こし
+    # Whisper transcription
     model = whisper.load_model("medium")
     result = model.transcribe(
         audio_file,
@@ -2256,15 +2256,15 @@ def batch_transcribe_with_speaker_diarization(audio_file):
         word_timestamps=True
     )
 
-    # 話 learner minutes離(ダミー実装)
-    # 実際にはpyannote.audioなどを使用
+    # Speaker diarization (dummy implementation)
+    # Use libraries like pyannote.audio in practice
     print("=" * 50)
-    print("文字起こし結果(話 learner付き):")
+    print("Transcription result (with speakers):")
     print("=" * 50)
 
     current_speaker = "Speaker 1"
     for i, segment in enumerate(result["segments"]):
-        # 簡易的な話 learner切り替え判定(実際には話 learner minutes離モデルを使用)
+        # Simple speaker switch detection (use actual speaker diarization model in practice)
         if i > 0 and segment["start"] - result["segments"][i-1]["end"] > 2.0:
             current_speaker = "Speaker 2" if current_speaker == "Speaker 1" else "Speaker 1"
 
@@ -2279,19 +2279,19 @@ def batch_transcribe_with_speaker_diarization(audio_file):
     return result
 
 
-# 注: 実際の実行には pyaudio のインストールが必要
+# Note: pyaudio installation is required for actual execution
 # pip install pyaudio
 #
-# macOSの場合:
+# For macOS:
 # brew install portaudio
 # pip install pyaudio
 
-print("リアルタイムASRシステムの実装例を表示しました")
-print("実行には 'pyaudio' のインストールが必要です")
+print("Real-time ASR system implementation example displayed")
+print("Requires 'pyaudio' installation for execution")
 </code></pre>
 
-        <h3>5.3 完全なASRアプリケーション</h3>
-        <p>Webインターフェースを持つ完全な音声認識アプリケーションを構築します。</p>
+        <h3>5.3 Complete ASR Application</h3>
+        <p>Build a complete speech recognition application with a web interface.</p>
 
 <pre><code class="language-python">import gradio as gr
 import whisper
@@ -2299,40 +2299,40 @@ import numpy as np
 from pathlib import Path
 
 class ASRApplication:
-    """Webベースの音声認識アプリケーション"""
+    """Web-based speech recognition application"""
 
     def __init__(self):
-        """アプリケーションの初期化"""
+        """Application initialization"""
         self.models = {}
         self.current_model = None
 
-        # 利用可能なモデル
+        # Available models
         self.available_models = {
-            "tiny": "最速(39M parameters)",
-            "base": "高速(74M parameters)",
-            "small": "バランス型(244M parameters)",
-            "medium": "高精度(769M parameters)",
-            "large": "最高精度(1550M parameters)"
+            "tiny": "Fastest (39M parameters)",
+            "base": "Fast (74M parameters)",
+            "small": "Balanced (244M parameters)",
+            "medium": "High accuracy (769M parameters)",
+            "large": "Highest accuracy (1550M parameters)"
         }
 
-        # 対応言語
+        # Supported languages
         self.languages = {
-            "自動検出": None,
-            "日本語": "ja",
-            "英語": "en",
-            "中国語": "zh",
-            "韓国語": "ko",
-            "スペイン語": "es",
-            "フランス語": "fr",
-            "ドイツ語": "de"
+            "Auto-detect": None,
+            "Japanese": "ja",
+            "English": "en",
+            "Chinese": "zh",
+            "Korean": "ko",
+            "Spanish": "es",
+            "French": "fr",
+            "German": "de"
         }
 
     def load_model(self, model_name):
-        """モデルのロード(キャッシュ付き)"""
+        """Load model (with caching)"""
         if model_name not in self.models:
-            print(f"モデル '{model_name}' を読み込み中...")
+            print(f"Loading model '{model_name}'...")
             self.models[model_name] = whisper.load_model(model_name)
-            print(f"✓ モデル '{model_name}' の読み込みが完了しました")
+            print(f"✓ Model '{model_name}' loading completed")
 
         self.current_model = self.models[model_name]
         return self.current_model
@@ -2340,25 +2340,25 @@ class ASRApplication:
     def transcribe_audio(self, audio_file, model_name, language, task,
                         include_timestamps, beam_size, temperature):
         """
-        音声ファイルを文字起こし
+        Transcribe audio file
 
         Args:
-            audio_file: 音声ファイルのパス
-            model_name: 使用するモデル
-            language: 認識言語
+            audio_file: Audio file path
+            model_name: Model to use
+            language: Recognition language
             task: transcribe or translate
-            include_timestamps: タイムスタンプを含めるか
-            beam_size: ビームサーチの幅
-            temperature: サンプリング温度
+            include_timestamps: Whether to include timestamps
+            beam_size: Beam search width
+            temperature: Sampling temperature
         """
         if audio_file is None:
-            return "音声ファイルをアップロードしてください", ""
+            return "Please upload an audio file", ""
 
         try:
-            # モデルのロード
+            # Load model
             model = self.load_model(model_name)
 
-            # 文字起こし
+            # Transcription
             result = model.transcribe(
                 audio_file,
                 language=self.languages.get(language),
@@ -2368,29 +2368,29 @@ class ASRApplication:
                 word_timestamps=include_timestamps
             )
 
-            # 基本的な文字起こし結果
+            # Basic transcription result
             transcription = result["text"]
 
-            # 詳細情報
+            # Detailed information
             details = self._format_details(result, include_timestamps)
 
             return transcription, details
 
         except Exception as e:
-            return f"エラーが発生しました: {str(e)}", ""
+            return f"An error occurred: {str(e)}", ""
 
     def _format_details(self, result, include_timestamps):
-        """詳細情報のフォーマット"""
+        """Format detailed information"""
         details = []
 
-        # 検出言語
+        # Detected language
         if "language" in result:
-            details.append(f"検出言語: {result['language']}")
+            details.append(f"Detected language: {result['language']}")
 
-        # セグメント情報
+        # Segment information
         if include_timestamps and "segments" in result:
             details.append("\n" + "=" * 50)
-            details.append("セグメント詳細:")
+            details.append("Segment details:")
             details.append("=" * 50)
 
             for i, segment in enumerate(result["segments"], 1):
@@ -2401,9 +2401,9 @@ class ASRApplication:
                 details.append(f"\n[{i}] {start:.2f}s - {end:.2f}s")
                 details.append(f"    {text}")
 
-                # 単語Levelのタイムスタンプ
+                # Word-level timestamps
                 if "words" in segment:
-                    details.append("    単語:")
+                    details.append("    Words:")
                     for word_info in segment["words"]:
                         word = word_info["word"]
                         w_start = word_info["start"]
@@ -2413,50 +2413,50 @@ class ASRApplication:
         return "\n".join(details)
 
     def create_interface(self):
-        """Gradio インターフェースの作成"""
+        """Create Gradio interface"""
 
-        with gr.Blocks(title="AI音声認識システム") as interface:
+        with gr.Blocks(title="AI Speech Recognition System") as interface:
             gr.Markdown(
                 """
-                # 🎙️ AI音声認識システム
+                # 🎙️ AI Speech Recognition System
 
-                Whisperを使用した高精度な音声認識システムです。
-                音声ファイルをアップロードするか、マイクで録音して文字起こしを行います。
+                High-accuracy speech recognition system using Whisper.
+                Upload an audio file or record with microphone to perform transcription.
                 """
             )
 
             with gr.Row():
                 with gr.Column(scale=1):
-                    # 入力コントロール
+                    # Input controls
                     audio_input = gr.Audio(
                         sources=["upload", "microphone"],
                         type="filepath",
-                        label="音声入力"
+                        label="Audio input"
                     )
 
                     model_selector = gr.Dropdown(
                         choices=list(self.available_models.keys()),
                         value="base",
-                        label="モデル選択",
-                        info="精度と速度のトレードオフを選択"
+                        label="Model selection",
+                        info="Select accuracy vs speed tradeoff"
                     )
 
                     language_selector = gr.Dropdown(
                         choices=list(self.languages.keys()),
-                        value="自動検出",
-                        label="言語"
+                        value="Auto-detect",
+                        label="Language"
                     )
 
                     task_selector = gr.Radio(
                         choices=["transcribe", "translate"],
                         value="transcribe",
-                        label="タスク",
-                        info="transcribe: 同じ言語で文字起こし / translate: 英語に翻訳"
+                        label="Task",
+                        info="transcribe: Transcription in same language / translate: Translate to English"
                     )
 
-                    with gr.Accordion("詳細設定", open=False):
+                    with gr.Accordion("Advanced settings", open=False):
                         include_timestamps = gr.Checkbox(
-                            label="タイムスタンプを含める",
+                            label="Include timestamps",
                             value=True
                         )
 
@@ -2465,8 +2465,8 @@ class ASRApplication:
                             maximum=10,
                             value=5,
                             step=1,
-                            label="ビームサイズ",
-                            info="大きいほど精度向上、計算 hours増加"
+                            label="Beam size",
+                            info="Larger values improve accuracy but increase computation time"
                         )
 
                         temperature = gr.Slider(
@@ -2474,27 +2474,27 @@ class ASRApplication:
                             maximum=1.0,
                             value=0.0,
                             step=0.1,
-                            label="温度",
-                            info="0: 決定的、>0: ランダム性あり"
+                            label="Temperature",
+                            info="0: Deterministic, >0: Adds randomness"
                         )
 
-                    transcribe_btn = gr.Button("文字起こし開始", variant="primary")
+                    transcribe_btn = gr.Button("Start transcription", variant="primary")
 
                 with gr.Column(scale=2):
-                    # 出力
+                    # Output
                     transcription_output = gr.Textbox(
-                        label="文字起こし結果",
+                        label="Transcription result",
                         lines=5,
                         max_lines=10
                     )
 
                     details_output = gr.Textbox(
-                        label="詳細情報",
+                        label="Detailed information",
                         lines=15,
                         max_lines=30
                     )
 
-            # イベントハンドラ
+            # Event handler
             transcribe_btn.click(
                 fn=self.transcribe_audio,
                 inputs=[
@@ -2509,193 +2509,193 @@ class ASRApplication:
                 outputs=[transcription_output, details_output]
             )
 
-            # 使用例
+            # Usage instructions
             gr.Markdown(
                 """
-                ## 使い方
+                ## How to Use
 
-                1. **音声入力**: ファイルをアップロードするか、マイクボタンで録音
-                2. **モデル選択**: 用途に応じてモデルサイズを選択
-                   - リアルタイム処理: tiny/base
-                   - 一般的な用途: small
-                   - 高精度が必要: medium/large
-                3. **言語選択**: 自動検出または特定の言語を選択
-                4. **文字起こし開始**: ボタンをクリックして処理開始
+                1. **Audio input**: Upload a file or record with microphone button
+                2. **Model selection**: Select model size based on your needs
+                   - Real-time processing: tiny/base
+                   - General use: small
+                   - High accuracy needed: medium/large
+                3. **Language selection**: Auto-detect or select specific language
+                4. **Start transcription**: Click button to begin processing
 
-                ## モデル情報
+                ## Model Information
 
-                | モデル | パラメータ数 | 速度 | 精度 | Recommended用途 |
-                |--------|--------------|------|------|----------|
-                | tiny   | 39M          | ★★★★★ | ★★☆☆☆ | リアルタイム処理 |
-                | base   | 74M          | ★★★★☆ | ★★★☆☆ | 高速処理 |
-                | small  | 244M         | ★★★☆☆ | ★★★★☆ | バランス型 |
-                | medium | 769M         | ★★☆☆☆ | ★★★★★ | 高精度 |
-                | large  | 1550M        | ★☆☆☆☆ | ★★★★★ | 最高精度 |
+                | Model | Parameters | Speed | Accuracy | Recommended Use |
+                |--------|------------|-------|----------|-----------------|
+                | tiny   | 39M        | ★★★★★ | ★★☆☆☆ | Real-time processing |
+                | base   | 74M        | ★★★★☆ | ★★★☆☆ | Fast processing |
+                | small  | 244M       | ★★★☆☆ | ★★★★☆ | Balanced |
+                | medium | 769M       | ★★☆☆☆ | ★★★★★ | High accuracy |
+                | large  | 1550M      | ★☆☆☆☆ | ★★★★★ | Highest accuracy |
                 """
             )
 
         return interface
 
     def launch(self, share=False):
-        """アプリケーションの起動"""
+        """Launch application"""
         interface = self.create_interface()
         interface.launch(share=share)
 
 
-# アプリケーションの実行
+# Execute application
 if __name__ == "__main__":
     app = ASRApplication()
 
     print("=" * 50)
-    print("AI音声認識システムを起動中...")
+    print("Starting AI Speech Recognition System...")
     print("=" * 50)
 
-    # アプリケーション起動
+    # Launch application
     # app.launch(share=False)
 
-    # 注: Gradioのインストールが必要
+    # Note: Gradio installation required
     # pip install gradio
 
-    print("✓ アプリケーションの設定が完了しました")
-    print("実行には 'gradio' のインストールが必要です")
-    print("インストール: pip install gradio")
+    print("✓ Application setup completed")
+    print("Requires 'gradio' installation for execution")
+    print("Install with: pip install gradio")
 </code></pre>
 
-        <h2>練習問題</h2>
+        <h2>Practice Problems</h2>
 
         <details>
-            <summary><strong>問題1: CTC損失の理解</strong></summary>
-            <p><strong>問題</strong>: CTCがアライメント情報なしで学習できる理由を説明し、Blankトークンの役割を述べてください。</p>
+            <summary><strong>Problem 1: Understanding CTC Loss</strong></summary>
+            <p><strong>Problem</strong>: Explain why CTC can learn without alignment information and describe the role of the Blank token.</p>
 
-            <p><strong>解答例</strong>:</p>
-            <p>CTCは全ての可能なアライメントパスの確率を周辺化することで、明示的なアライメント情報なしに学習できます。具体的には:</p>
+            <p><strong>Sample Answer</strong>:</p>
+            <p>CTC can learn without explicit alignment information by marginalizing the probabilities of all possible alignment paths. Specifically:</p>
             <ul>
-                <li><strong>多対一マッピング</strong>: 複数の音響フレームが同じ文字に対応可能</li>
-                <li><strong>Blankトークンの役割</strong>:
+                <li><strong>Many-to-one mapping</strong>: Multiple acoustic frames can correspond to the same character</li>
+                <li><strong>Role of Blank token</strong>:
                     <ul>
-                        <li>文字と文字の間の境界を表現</li>
-                        <li>同じ文字の連続を区別(例: "hello" → "hhe-ll-oo")</li>
-                        <li>出力がない位置を表現</li>
+                        <li>Represent boundaries between characters</li>
+                        <li>Distinguish consecutive identical characters (e.g., "hello" → "hhe-ll-oo")</li>
+                        <li>Represent positions with no output</li>
                     </ul>
                 </li>
-                <li><strong>Forward-Backwardアルゴリズム</strong>: 全てのパスを効率的に計算</li>
+                <li><strong>Forward-Backward algorithm</strong>: Efficiently compute all paths</li>
             </ul>
         </details>
 
         <details>
-            <summary><strong>問題2: AttentionメカニズムとCTCの違い</strong></summary>
-            <p><strong>問題</strong>: Attention-basedモデルとCTCベースのモデルの主な違いを、アーキテクチャと学習の観点から説明してください。</p>
+            <summary><strong>Problem 2: Differences Between Attention Mechanism and CTC</strong></summary>
+            <p><strong>Problem</strong>: Explain the main differences between Attention-based models and CTC-based models from the perspectives of architecture and learning.</p>
 
-            <p><strong>解答例</strong>:</p>
+            <p><strong>Sample Answer</strong>:</p>
 
             <table>
                 <thead>
                     <tr>
-                        <th>観点</th>
+                        <th>Aspect</th>
                         <th>CTC</th>
                         <th>Attention-based</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td>アーキテクチャ</td>
-                        <td>Encoder + 線形 classification器</td>
+                        <td>architecture</td>
+                        <td>Encoder + Linear classifier</td>
                         <td>Encoder + Attention + Decoder</td>
                     </tr>
                     <tr>
-                        <td>アライメント</td>
-                        <td>Monotonic(単調)</td>
-                        <td>柔軟(Attentionで決定)</td>
+                        <td>alignment</td>
+                        <td>Monotonic</td>
+                        <td>Flexible (determined by Attention)</td>
                     </tr>
                     <tr>
-                        <td>言語モデル</td>
-                        <td>条件付き独立(外部LM必要)</td>
-                        <td>Decoderに統合</td>
+                        <td>language model</td>
+                        <td>Conditional independence (external LM required)</td>
+                        <td>Integrated in Decoder</td>
                     </tr>
                     <tr>
-                        <td>計算コスト</td>
-                        <td>低い</td>
-                        <td>高い</td>
+                        <td>Computational Cost</td>
+                        <td>Low</td>
+                        <td>High</td>
                     </tr>
                     <tr>
-                        <td>長距離依存</td>
-                        <td>苦手</td>
-                        <td>得意</td>
+                        <td>Long-range Dependencies</td>
+                        <td>Weak</td>
+                        <td>Strong</td>
                     </tr>
                 </tbody>
             </table>
         </details>
 
         <details>
-            <summary><strong>問題3: RNN-Tの実装</strong></summary>
-            <p><strong>問題</strong>: RNN-Transducerの3つの主要コンポーネント(Encoder, Prediction Network, Joint Network)の役割を説明し、簡単な実装を示してください。</p>
+            <summary><strong>Problem 3: RNN-T Implementation</strong></summary>
+            <p><strong>Problem</strong>: Explain the roles of the three main components of RNN-Transducer (Encoder, Prediction Network, Joint Network) and show a simple implementation.</p>
 
-            <p><strong>解答</strong>: 本文中のRNN-Tの実装を参照してください。各コンポーネントの役割:</p>
+            <p><strong>Answer</strong>: Refer to the RNN-T implementation in the main text. Role of each component:</p>
             <ul>
-                <li><strong>Encoder (Transcription Network)</strong>: 音響特徴量を高Level表現に変換</li>
-                <li><strong>Prediction Network</strong>: 言語モデルとして機能、前の出力から次の予測を生成</li>
-                <li><strong>Joint Network</strong>: EncoderとPrediction Networkの出力を結合し、最終的な出力確率を計算</li>
+                <li><strong>Encoder (Transcription Network)</strong>: Converts acoustic features to high-level representations</li>
+                <li><strong>Prediction Network</strong>: Functions as a language model, generating next predictions from previous outputs</li>
+                <li><strong>Joint Network</strong>: Combines outputs from Encoder and Prediction Network to compute final output probabilities</li>
             </ul>
         </details>
 
         <details>
-            <summary><strong>問題4: Whisperのファインチューニング</strong></summary>
-            <p><strong>問題</strong>: Whisperを特定のドメイン(例: 医療、法律)にファインチューニングする際の主な考慮点を述べてください。</p>
+            <summary><strong>Problem 4: Fine-tuning Whisper</strong></summary>
+            <p><strong>Problem</strong>: Describe the main considerations when fine-tuning Whisper for specific domains (e.g., medical, legal).</p>
 
-            <p><strong>解答例</strong>:</p>
+            <p><strong>Sample Answer</strong>:</p>
             <ol>
-                <li><strong>データセット</strong>:
+                <li><strong>Dataset</strong>:
                     <ul>
-                        <li>ドメイン固有の音声データを収集</li>
-                        <li>専門用語の正確な転写</li>
-                        <li>多様な話 learnerと音響条件</li>
+                        <li>Collect domain-specific audio data</li>
+                        <li>Accurate transcription of technical terms</li>
+                        <li>Diverse speakers and acoustic conditions</li>
                     </ul>
                 </li>
-                <li><strong>語彙の拡張</strong>:
+                <li><strong>Vocabulary expansion</strong>:
                     <ul>
-                        <li>ドメイン固有の用語をトークナイザーに追加</li>
-                        <li>略語や専門表記の処理</li>
+                        <li>Add domain-specific terms to tokenizer</li>
+                        <li>Handle abbreviations and specialized notation</li>
                     </ul>
                 </li>
-                <li><strong>学習率と正則化</strong>:
+                <li><strong>Learning rate and regularization</strong>:
                     <ul>
-                        <li>低い学習率(1e-5程度)で慎重に学習</li>
-                        <li>過学習防止のためのドロップアウト</li>
+                        <li>Train carefully with low learning rate (around 1e-5)</li>
+                        <li>Dropout to prevent overfitting</li>
                     </ul>
                 </li>
-                <li><strong>評価</strong>:
+                <li><strong>Evaluation</strong>:
                     <ul>
-                        <li>ドメイン固有のテストセットでWER評価</li>
-                        <li>専門用語の認識精度を別に評価</li>
+                        <li>Evaluate WER on domain-specific test sets</li>
+                        <li>Evaluate recognition accuracy of technical terms separately</li>
                     </ul>
                 </li>
             </ol>
         </details>
 
         <details>
-            <summary><strong>問題5: リアルタイムASRの最適化</strong></summary>
-            <p><strong>問題</strong>: リアルタイム音声認識システムにおいて、レイテンシと精度のトレードオフを最適化する方法を3つ挙げてください。</p>
+            <summary><strong>Problem 5: Optimizing Real-time ASR</strong></summary>
+            <p><strong>Problem</strong>: List three methods to optimize the latency-accuracy tradeoff in real-time speech recognition systems.</p>
 
-            <p><strong>解答例</strong>:</p>
+            <p><strong>Sample Answer</strong>:</p>
             <ol>
-                <li><strong>モデルサイズの選択</strong>:
+                <li><strong>Model size selection</strong>:
                     <ul>
-                        <li>リアルタイム処理には軽量モデル(tiny/base)を使用</li>
-                        <li>必要に応じてモデル蒸留で小型化</li>
+                        <li>Use lightweight models (tiny/base) for real-time processing</li>
+                        <li>Use model distillation for downsizing if needed</li>
                     </ul>
                 </li>
-                <li><strong>ストリーミング処理</strong>:
+                <li><strong>Streaming processing</strong>:
                     <ul>
-                        <li>RNN-Tなどストリーミング対応アーキテクチャを使用</li>
-                        <li>チャンクサイズと認識精度のバランス調整</li>
-                        <li>ルックアヘッドの制限</li>
+                        <li>Use streaming-capable architectures like RNN-T</li>
+                        <li>Balance chunk size and recognition accuracy</li>
+                        <li>Limit lookahead</li>
                     </ul>
                 </li>
-                <li><strong>ハードウェア最適化</strong>:
+                <li><strong>Hardware optimization</strong>:
                     <ul>
-                        <li>GPU/TPUの活用</li>
-                        <li>量子化(INT8など)で推論を高速化</li>
-                        <li>バッチ処理の活用</li>
+                        <li>Utilize GPU/TPU</li>
+                        <li>Accelerate inference with quantization (e.g., INT8)</li>
+                        <li>Utilize batch processing</li>
                     </ul>
                 </li>
             </ol>
@@ -2703,17 +2703,17 @@ if __name__ == "__main__":
 
         <h2>Summary</h2>
 
-        <p>本 Chapterでは、深層学習による音声認識の主要技術を学びました:</p>
+        <p>In this chapter, we learned the main techniques for speech recognition using deep learning:</p>
 
         <ul>
-            <li><strong>CTC</strong>: アライメントフリーな学習を可能にし、シンプルで効率的</li>
-            <li><strong>Attention-based Models</strong>: 柔軟なアライメントと文脈情報の活用</li>
-            <li><strong>RNN-Transducer</strong>: ストリーミングASRに最適、言語モデル統合</li>
-            <li><strong>Whisper</strong>: 多言語対応、高いロバスト性、ゼロショット性能</li>
-            <li><strong>実践</strong>: ファインチューニング、リアルタイム処理、完全なアプリケーション</li>
+            <li><strong>CTC</strong>: Enables alignment-free learning, simple and efficient</li>
+            <li><strong>Attention-based Models</strong>: Flexible alignment and utilization of contextual information</li>
+            <li><strong>RNN-Transducer</strong>: Optimal for streaming ASR, language model integration</li>
+            <li><strong>Whisper</strong>: Multilingual support, high robustness, zero-shot performance</li>
+            <li><strong>Practice</strong>: Fine-tuning, real-time processing, complete applications</li>
         </ul>
 
-        <p>これらの技術を組み合わせることで、様々なシナリオに対応した高精度な音声認識システムを構築できます。次 Chapterでは、音声合成(TTS)と音声変換について学びます。</p>
+        <p>By combining these techniques, you can build highly accurate speech recognition systems for various scenarios. In the next chapter, we will learn about speech synthesis (TTS) and voice conversion.</p>
 
         <h2>References</h2>
 
@@ -2723,16 +2723,16 @@ if __name__ == "__main__":
             <li>Vaswani, A., et al. (2017). "Attention Is All You Need"</li>
             <li>Graves, A. (2012). "Sequence Transduction with Recurrent Neural Networks"</li>
             <li>Radford, A., et al. (2022). "Robust Speech Recognition via Large-Scale Weak Supervision" (Whisper paper)</li>
-            <li>Watanabe, S., et al. (2017). "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition"</li>
+            <li>Watanabe, S., et al. (2017). "Hybrid CTC/Attention architecture for End-to-End Speech Recognition"</li>
             <li>PyTorch Documentation: <a href="https://pytorch.org/docs/stable/nn.html#ctcloss">nn.CTCLoss</a></li>
             <li>OpenAI Whisper: <a href="https://github.com/openai/whisper">GitHub Repository</a></li>
             <li>Hugging Face Transformers: <a href="https://huggingface.co/docs/transformers/model_doc/whisper">Whisper Documentation</a></li>
         </ul>
 
         <div class="navigation">
-            <a href="chapter2-feature-extraction.html" class="nav-button">← Chapter 2 Chapter: 音響特徴量抽出</a>
-            <a href="index.html" class="nav-button">Back to Contents</a>
-            <a href="chapter4-tts-voice-conversion.html" class="nav-button">Chapter 4 Chapter: 音声合成と音声変換 →</a>
+            <a href="chapter2-feature-extraction.html" class="nav-button">← Chapter 2: Acoustic feature Extraction</a>
+            <a href="index.html" class="nav-button">Back to Table of Contents</a>
+            <a href="chapter4-tts-voice-conversion.html" class="nav-button">Chapter 4: Speech Synthesis and Voice Conversion →</a>
         </div>
     </div>
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 2 Chapter：LSTM・GRU - AI Terakoya</title>
+    <title>Chapter 2: LSTM and GRU - AI Terakoya</title>
 
     <style>
         :root {
@@ -335,9 +335,9 @@
                 padding: var(--spacing-xs);
             }
         }
-    
-        
-    
+
+
+
         /* Breadcrumb styles */
         .breadcrumb {
             background: #f7fafc;
@@ -402,19 +402,19 @@
 <body>
             <nav class="breadcrumb">
         <div class="breadcrumb-content">
-            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/rnn-introduction/index.html">Rnn</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+            <a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/rnn-introduction/index.html">RNN</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
         </div>
     </nav>
 
         <header>
         <div class="header-content">
-            <h1>Chapter 2 Chapter：LSTM・GRU（Long Short-Term Memory and Gated Recurrent Unit）</h1>
-            <p class="subtitle">長期依存関係を扱うゲート付きRNNアーキテクチャの理論と実装</p>
+            <h1>Chapter 2: LSTM and GRU (Long Short-Term Memory and Gated Recurrent Unit)</h1>
+            <p class="subtitle">Theory and implementation of gated RNN architectures for handling long-term dependencies</p>
             <div class="meta">
-                <span class="meta-item">📖 Reading Time: 25-30 minutes</span>
+                <span class="meta-item">📖 Reading time: 25-30 minutes</span>
                 <span class="meta-item">📊 Difficulty: Intermediate</span>
-                <span class="meta-item">💻 Code Examples: 8</span>
-                <span class="meta-item">📝 Exercises: 5問</span>
+                <span class="meta-item">💻 Code examples: 8</span>
+                <span class="meta-item">📝 Exercises: 5</span>
             </div>
         </div>
     </header>
@@ -422,49 +422,49 @@
     <main class="container">
 
 <h2>Learning Objectives</h2>
-<p>この ChapterReadことで、以下を習得できます：</p>
+<p>By reading this chapter, you will master the following:</p>
 <ul>
-<li>✅ Vanilla RNNの限界（勾配消失・爆発問題）を理解する</li>
-<li>✅ LSTMのセルステートとゲート機構（忘却・入力・出力ゲート）を説明できる</li>
-<li>✅ GRUのアーキテクチャとLSTMとの違いを理解する</li>
-<li>✅ PyTorchでLSTM・GRUを実装し、実際の問題に適用できる</li>
-<li>✅ 双方向RNN（Bidirectional RNN）の仕組みと利点を理解する</li>
-<li>✅ IMDb感情 minutes析タスクで実践的なLSTMモデルを構築できる</li>
+<li>✅ Understand the limitations of Vanilla RNN (vanishing and exploding gradient problems)</li>
+<li>✅ Explain LSTM's cell state and gate mechanisms (forget, input, and output gates)</li>
+<li>✅ Understand GRU architecture and its differences from LSTM</li>
+<li>✅ Implement LSTM and GRU in PyTorch and apply them to real-world problems</li>
+<li>✅ Understand the mechanism and advantages of Bidirectional RNN</li>
+<li>✅ Build practical LSTM models for IMDb sentiment analysis tasks</li>
 </ul>
 
 <hr>
 
-<h2>2.1 Vanilla RNNの限界</h2>
+<h2>2.1 Limitations of Vanilla RNN</h2>
 
-<h3>勾配消失・爆発問題</h3>
+<h3>Vanishing and Exploding Gradient Problems</h3>
 
-<p>Chapter 1 Chapterで学んだ標準的なRNN（Vanilla RNN）は、理論上は任意の長さの系列を扱えますが、実際には<strong>長期依存関係</strong>の学習が困難です。</p>
+<p>The standard RNN (Vanilla RNN) learned in Chapter 1 can theoretically handle sequences of arbitrary length, but in practice it struggles to learn <strong>long-term dependencies</strong>.</p>
 
-<p>RNNのBPTT（Backpropagation Through Time）では、時刻$t$での勾配は以下のように hoursをさかのぼって伝播します：</p>
+<p>In RNN's BPTT (Backpropagation Through Time), gradients at time $t$ propagate backward through time as follows:</p>
 
 $$
 \frac{\partial L}{\partial h_1} = \frac{\partial L}{\partial h_T} \prod_{t=2}^{T} \frac{\partial h_t}{\partial h_{t-1}}
 $$
 
-<p>この積の項が問題です：</p>
+<p>The product term is the problem:</p>
 
 <ul>
-<li><strong>勾配消失</strong>：$\left\|\frac{\partial h_t}{\partial h_{t-1}}\right\| < 1$ の場合、 hoursステップが増えると勾配が指数的に減少</li>
-<li><strong>勾配爆発</strong>：$\left\|\frac{\partial h_t}{\partial h_{t-1}}\right\| > 1$ の場合、勾配が指数的に増大</li>
+<li><strong>Vanishing gradients</strong>: When $\left\|\frac{\partial h_t}{\partial h_{t-1}}\right\| < 1$, gradients decrease exponentially as time steps increase</li>
+<li><strong>Exploding gradients</strong>: When $\left\|\frac{\partial h_t}{\partial h_{t-1}}\right\| > 1$, gradients increase exponentially</li>
 </ul>
 
 <blockquote>
-<p>「勾配消失により、Vanilla RNNは10ステップ以上の長期依存関係をほとんど学習できません」</p>
+<p>"Due to vanishing gradients, Vanilla RNN can barely learn long-term dependencies beyond 10 steps"</p>
 </blockquote>
 
-<h3>問題の可視化</h3>
+<h3>Visualizing the Problem</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Vanilla RNNで勾配の大きさを観察
+# Observe gradient magnitude in Vanilla RNN
 class SimpleRNN(nn.Module):
     def __init__(self, input_size, hidden_size):
         super(SimpleRNN, self).__init__()
@@ -475,14 +475,14 @@ class SimpleRNN(nn.Module):
         output, hidden = self.rnn(x)
         return output, hidden
 
-# モデル作成
+# Create model
 input_size = 10
 hidden_size = 20
 sequence_length = 50
 
 model = SimpleRNN(input_size, hidden_size)
 
-# ランダムな入力
+# Random input
 x = torch.randn(1, sequence_length, input_size, requires_grad=True)
 
 # Forward pass
@@ -492,41 +492,41 @@ loss = output.sum()
 # Backward pass
 loss.backward()
 
-# 各時刻の勾配ノルムを計算
+# Calculate gradient norm at each time step
 gradients = []
 for t in range(sequence_length):
     grad = x.grad[0, t, :].norm().item()
     gradients.append(grad)
 
-print("=== Vanilla RNNの勾配伝播 ===")
-print(f"初期時刻の勾配ノルム: {gradients[0]:.6f}")
-print(f"中間時刻の勾配ノルム: {gradients[25]:.6f}")
-print(f"最終時刻の勾配ノルム: {gradients[49]:.6f}")
-print(f"\n勾配の減衰率: {gradients[0] / gradients[49]:.2f}倍")
-print("→ 過去にさかのぼるほど勾配が小さくなる（勾配消失）")
+print("=== Gradient Propagation in Vanilla RNN ===")
+print(f"Gradient norm at initial time: {gradients[0]:.6f}")
+print(f"Gradient norm at middle time: {gradients[25]:.6f}")
+print(f"Gradient norm at final time: {gradients[49]:.6f}")
+print(f"\nGradient decay rate: {gradients[0] / gradients[49]:.2f}x")
+print("→ Gradients get smaller as we go back in time (vanishing gradients)")
 </code></pre>
 
-<h3>具体例：長期依存タスク</h3>
+<h3>Concrete Example: Long-Term Dependency Task</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
-# タスク: 系列の最初の要素を最後に予測する
+# Task: Predict the first element at the last time step
 def create_long_dependency_task(batch_size=32, seq_length=50):
     """
-    最初の時刻に重要な情報があり、最後でそれを使う必要があるタスク
-    例: [5, 0, 0, ..., 0] → 最後に5を予測
+    Task where important information is at the first time step and needs to be used at the end
+    Example: [5, 0, 0, ..., 0] → predict 5 at the end
     """
     x = torch.zeros(batch_size, seq_length, 10)
     targets = torch.randint(0, 10, (batch_size,))
 
-    # 最初の時刻に正解ラベルをエンコード
+    # Encode correct label at first time step
     for i in range(batch_size):
         x[i, 0, targets[i]] = 1.0
 
     return x, targets
 
-# Vanilla RNNで学習
+# Train with Vanilla RNN
 class VanillaRNNClassifier(nn.Module):
     def __init__(self, input_size, hidden_size, num_classes):
         super(VanillaRNNClassifier, self).__init__()
@@ -535,16 +535,16 @@ class VanillaRNNClassifier(nn.Module):
 
     def forward(self, x):
         output, hidden = self.rnn(x)
-        # 最後の時刻の出力を使用
+        # Use output at last time step
         logits = self.fc(output[:, -1, :])
         return logits
 
-# 実験
+# Experiment
 model = VanillaRNNClassifier(input_size=10, hidden_size=32, num_classes=10)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-# 訓練
+# Training
 num_epochs = 100
 for epoch in range(num_epochs):
     x, targets = create_long_dependency_task(batch_size=32, seq_length=50)
@@ -561,31 +561,31 @@ for epoch in range(num_epochs):
             logits_test = model(x_test)
             _, predicted = logits_test.max(1)
             accuracy = (predicted == targets_test).float().mean().item()
-            print(f"Epoch {epoch+1}: 精度 = {accuracy*100:.2f}%")
+            print(f"Epoch {epoch+1}: Accuracy = {accuracy*100:.2f}%")
 
-print("\n→ Vanilla RNNは長期依存関係を学習できず、精度が低い（ランダム予測と同程度）")
+print("\n→ Vanilla RNN cannot learn long-term dependencies and has low accuracy (similar to random prediction)")
 </code></pre>
 
-<h3>解決策：ゲート機構</h3>
+<h3>Solution: Gate Mechanisms</h3>
 
-<p>この問題を解決するために、<strong>LSTM（Long Short-Term Memory）</strong>と<strong>GRU（Gated Recurrent Unit）</strong>が提案されました。これらは<strong>ゲート機構</strong>により、情報の流れを制御し、長期依存関係を効果的に学習できます。</p>
+<p>To solve this problem, <strong>LSTM (Long Short-Term Memory)</strong> and <strong>GRU (Gated Recurrent Unit)</strong> were proposed. They can effectively learn long-term dependencies by controlling information flow through <strong>gate mechanisms</strong>.</p>
 
 <hr>
 
 <h2>2.2 LSTM (Long Short-Term Memory)</h2>
 
-<h3>LSTMの概要</h3>
+<h3>Overview of LSTM</h3>
 
-<p><strong>LSTM</strong>は、1997年にHochreiterとSchmidhuberによって提案された、ゲート付きRNNアーキテクチャです。Vanilla RNNの隠れ状態に加えて、<strong>セルステート（Cell State）</strong>という長期記憶を持つことが特徴です。</p>
+<p><strong>LSTM</strong> is a gated RNN architecture proposed by Hochreiter and Schmidhuber in 1997. It is characterized by having a <strong>cell state</strong> for long-term memory in addition to the hidden state of Vanilla RNN.</p>
 
 <div class="mermaid">
 graph LR
-    A["入力 x_t"] --> B["LSTM Cell"]
-    C["前の隠れ状態 h_{t-1}"] --> B
-    D["前のセルステート c_{t-1}"] --> B
+    A["Input x_t"] --> B["LSTM Cell"]
+    C["Previous hidden state h_{t-1}"] --> B
+    D["Previous cell state c_{t-1}"] --> B
 
-    B --> E["出力 h_t"]
-    B --> F["新しいセルステート c_t"]
+    B --> E["Output h_t"]
+    B --> F["New cell state c_t"]
 
     style A fill:#e1f5ff
     style B fill:#b3e5fc
@@ -594,136 +594,136 @@ graph LR
     style F fill:#ffeb3b
 </div>
 
-<h3>LSTMの4つのコンポーネント</h3>
+<h3>Four Components of LSTM</h3>
 
-<p>LSTMセルは、以下の4つの要素で構成されます：</p>
+<p>An LSTM cell consists of the following four elements:</p>
 
 <table>
 <thead>
 <tr>
-<th>ゲート</th>
-<th>役割</th>
-<th>数式</th>
+<th>Gate</th>
+<th>Role</th>
+<th>Formula</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>忘却ゲート</strong><br/>(Forget Gate)</td>
-<td>過去の記憶をどれだけ保持するか</td>
+<td><strong>Forget Gate</strong></td>
+<td>How much past memory to retain</td>
 <td>$f_t = \sigma(W_f [h_{t-1}, x_t] + b_f)$</td>
 </tr>
 <tr>
-<td><strong>入力ゲート</strong><br/>(Input Gate)</td>
-<td>新しい情報をどれだけ追加するか</td>
+<td><strong>Input Gate</strong></td>
+<td>How much new information to add</td>
 <td>$i_t = \sigma(W_i [h_{t-1}, x_t] + b_i)$</td>
 </tr>
 <tr>
-<td><strong>候補値</strong><br/>(Candidate Cell)</td>
-<td>追加する新しい情報の内容</td>
+<td><strong>Candidate Cell</strong></td>
+<td>Content of new information to add</td>
 <td>$\tilde{C}_t = \tanh(W_C [h_{t-1}, x_t] + b_C)$</td>
 </tr>
 <tr>
-<td><strong>出力ゲート</strong><br/>(Output Gate)</td>
-<td>セルステートからどれだけ出力するか</td>
+<td><strong>Output Gate</strong></td>
+<td>How much to output from cell state</td>
 <td>$o_t = \sigma(W_o [h_{t-1}, x_t] + b_o)$</td>
 </tr>
 </tbody>
 </table>
 
-<h3>LSTMの数学的定義</h3>
+<h3>Mathematical Definition of LSTM</h3>
 
-<p>LSTMの完全な更新式は以下の通りです：</p>
+<p>The complete LSTM update equations are as follows:</p>
 
 $$
 \begin{align}
-f_t &= \sigma(W_f [h_{t-1}, x_t] + b_f) \quad &\text{(忘却ゲート)} \\
-i_t &= \sigma(W_i [h_{t-1}, x_t] + b_i) \quad &\text{(入力ゲート)} \\
-\tilde{C}_t &= \tanh(W_C [h_{t-1}, x_t] + b_C) \quad &\text{(候補値)} \\
-C_t &= f_t \odot C_{t-1} + i_t \odot \tilde{C}_t \quad &\text{(セルステート更新)} \\
-o_t &= \sigma(W_o [h_{t-1}, x_t] + b_o) \quad &\text{(出力ゲート)} \\
-h_t &= o_t \odot \tanh(C_t) \quad &\text{(隠れ状態更新)}
+f_t &= \sigma(W_f [h_{t-1}, x_t] + b_f) \quad &\text{(Forget gate)} \\
+i_t &= \sigma(W_i [h_{t-1}, x_t] + b_i) \quad &\text{(Input gate)} \\
+\tilde{C}_t &= \tanh(W_C [h_{t-1}, x_t] + b_C) \quad &\text{(Candidate value)} \\
+C_t &= f_t \odot C_{t-1} + i_t \odot \tilde{C}_t \quad &\text{(Cell state update)} \\
+o_t &= \sigma(W_o [h_{t-1}, x_t] + b_o) \quad &\text{(Output gate)} \\
+h_t &= o_t \odot \tanh(C_t) \quad &\text{(Hidden state update)}
 \end{align}
 $$
 
-<p>ここで：</p>
+<p>Where:</p>
 <ul>
-<li>$\sigma$：シグモイド関数（0〜1の値を出力、ゲートの制御に使用）</li>
-<li>$\odot$：要素ごとの積（Hadamard積）</li>
-<li>$[h_{t-1}, x_t]$：ベクトルの連結</li>
-<li>$W_*, b_*$：学習可能なパラメータ</li>
+<li>$\sigma$: Sigmoid function (outputs values between 0 and 1, used for gate control)</li>
+<li>$\odot$: Element-wise product (Hadamard product)</li>
+<li>$[h_{t-1}, x_t]$: Vector concatenation</li>
+<li>$W_*, b_*$: Learnable parameters</li>
 </ul>
 
-<h3>セルステートの役割</h3>
+<h3>Role of Cell State</h3>
 
-<p>セルステート$C_t$は、情報のハイウェイとして機能します：</p>
+<p>The cell state $C_t$ functions as an information highway:</p>
 
 $$
 C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t
 $$
 
 <ul>
-<li>$f_t \odot C_{t-1}$：過去の記憶を選択的に保持（忘却ゲートで制御）</li>
-<li>$i_t \odot \tilde{C}_t$：新しい情報を選択的に追加（入力ゲートで制御）</li>
+<li>$f_t \odot C_{t-1}$: Selectively retain past memory (controlled by forget gate)</li>
+<li>$i_t \odot \tilde{C}_t$: Selectively add new information (controlled by input gate)</li>
 </ul>
 
 <blockquote>
-<p>「勾配はセルステートを通じて直接流れるため、勾配消失が起こりにくい！」</p>
+<p>"Gradients flow directly through the cell state, making vanishing gradients less likely!"</p>
 </blockquote>
 
-<h3>LSTMの手動実装</h3>
+<h3>Manual Implementation of LSTM</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 class LSTMCell(nn.Module):
-    """LSTMセルの手動実装（教育目的）"""
+    """Manual implementation of LSTM cell (for educational purposes)"""
     def __init__(self, input_size, hidden_size):
         super(LSTMCell, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
 
-        # 忘却ゲート
+        # Forget gate
         self.W_f = nn.Linear(input_size + hidden_size, hidden_size)
-        # 入力ゲート
+        # Input gate
         self.W_i = nn.Linear(input_size + hidden_size, hidden_size)
-        # 候補値
+        # Candidate value
         self.W_C = nn.Linear(input_size + hidden_size, hidden_size)
-        # 出力ゲート
+        # Output gate
         self.W_o = nn.Linear(input_size + hidden_size, hidden_size)
 
     def forward(self, x_t, h_prev, C_prev):
         """
-        x_t: (batch_size, input_size) - 現在の入力
-        h_prev: (batch_size, hidden_size) - 前の隠れ状態
-        C_prev: (batch_size, hidden_size) - 前のセルステート
+        x_t: (batch_size, input_size) - Current input
+        h_prev: (batch_size, hidden_size) - Previous hidden state
+        C_prev: (batch_size, hidden_size) - Previous cell state
         """
-        # 入力と隠れ状態を連結
+        # Concatenate input and hidden state
         combined = torch.cat([h_prev, x_t], dim=1)
 
-        # 忘却ゲート: どの情報を忘れるか
+        # Forget gate: which information to forget
         f_t = torch.sigmoid(self.W_f(combined))
 
-        # 入力ゲート: どの情報を追加するか
+        # Input gate: which information to add
         i_t = torch.sigmoid(self.W_i(combined))
 
-        # 候補値: 追加する情報の内容
+        # Candidate value: content of information to add
         C_tilde = torch.tanh(self.W_C(combined))
 
-        # セルステート更新
+        # Cell state update
         C_t = f_t * C_prev + i_t * C_tilde
 
-        # 出力ゲート: どの情報を出力するか
+        # Output gate: which information to output
         o_t = torch.sigmoid(self.W_o(combined))
 
-        # 隠れ状態更新
+        # Hidden state update
         h_t = o_t * torch.tanh(C_t)
 
         return h_t, C_t
 
 
 class ManualLSTM(nn.Module):
-    """複数時刻のLSTM処理"""
+    """LSTM processing over multiple time steps"""
     def __init__(self, input_size, hidden_size):
         super(ManualLSTM, self).__init__()
         self.hidden_size = hidden_size
@@ -735,28 +735,28 @@ class ManualLSTM(nn.Module):
         """
         batch_size, seq_length, _ = x.size()
 
-        # 初期状態
+        # Initial state
         if init_states is None:
             h_t = torch.zeros(batch_size, self.hidden_size).to(x.device)
             C_t = torch.zeros(batch_size, self.hidden_size).to(x.device)
         else:
             h_t, C_t = init_states
 
-        # 各時刻の出力を保存
+        # Store outputs at each time step
         outputs = []
 
-        # 系列を時刻ごとに処理
+        # Process sequence time step by time step
         for t in range(seq_length):
             h_t, C_t = self.cell(x[:, t, :], h_t, C_t)
             outputs.append(h_t.unsqueeze(1))
 
-        # 出力を連結
+        # Concatenate outputs
         outputs = torch.cat(outputs, dim=1)
 
         return outputs, (h_t, C_t)
 
 
-# 動作確認
+# Operation check
 batch_size = 4
 seq_length = 10
 input_size = 8
@@ -767,31 +767,31 @@ x = torch.randn(batch_size, seq_length, input_size)
 
 outputs, (h_final, C_final) = model(x)
 
-print("=== 手動実装LSTMの動作確認 ===")
-print(f"入力サイズ: {x.shape}")
-print(f"出力サイズ: {outputs.shape}")
-print(f"最終隠れ状態: {h_final.shape}")
-print(f"最終セルステート: {C_final.shape}")
+print("=== Manual LSTM Implementation Check ===")
+print(f"Input size: {x.shape}")
+print(f"Output size: {outputs.shape}")
+print(f"Final hidden state: {h_final.shape}")
+print(f"Final cell state: {C_final.shape}")
 </code></pre>
 
-<h3>PyTorchのnn.LSTMを使う</h3>
+<h3>Using PyTorch's nn.LSTM</h3>
 
-<p>実際の開発では、PyTorchの最適化された<code>nn.LSTM</code>を使用します：</p>
+<p>In actual development, we use PyTorch's optimized <code>nn.LSTM</code>:</p>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
-# PyTorchのLSTM
+# PyTorch's LSTM
 lstm = nn.LSTM(
-    input_size=10,      # 入力の次元数
-    hidden_size=20,     # 隠れ状態の次元数
-    num_layers=2,       # LSTMの層数
-    batch_first=True,   # (batch, seq, feature)の順序
-    dropout=0.2,        # 層間のDropout
-    bidirectional=False # 双方向かどうか
+    input_size=10,      # Input dimension
+    hidden_size=20,     # Hidden state dimension
+    num_layers=2,       # Number of LSTM layers
+    batch_first=True,   # (batch, seq, feature) order
+    dropout=0.2,        # Dropout between layers
+    bidirectional=False # Whether bidirectional
 )
 
-# ダミーデータ
+# Dummy data
 batch_size = 32
 seq_length = 15
 input_size = 10
@@ -801,24 +801,24 @@ x = torch.randn(batch_size, seq_length, input_size)
 # Forward pass
 output, (h_n, c_n) = lstm(x)
 
-print("=== PyTorch nn.LSTMの使用 ===")
-print(f"入力: {x.shape}")
-print(f"出力: {output.shape}  # (batch, seq, hidden_size)")
-print(f"最終隠れ状態: {h_n.shape}  # (num_layers, batch, hidden_size)")
-print(f"最終セルステート: {c_n.shape}  # (num_layers, batch, hidden_size)")
+print("=== Using PyTorch nn.LSTM ===")
+print(f"Input: {x.shape}")
+print(f"Output: {output.shape}  # (batch, seq, hidden_size)")
+print(f"Final hidden state: {h_n.shape}  # (num_layers, batch, hidden_size)")
+print(f"Final cell state: {c_n.shape}  # (num_layers, batch, hidden_size)")
 
-# パラメータ数の確認
+# Check number of parameters
 total_params = sum(p.numel() for p in lstm.parameters())
-print(f"\n総パラメータ数: {total_params:,}")
-print("→ 各層に4つのゲート（f, i, C, o）があるため、パラメータが多い")
+print(f"\nTotal parameters: {total_params:,}")
+print("→ Many parameters because each layer has 4 gates (f, i, C, o)")
 </code></pre>
 
-<h3>LSTMと長期依存関係</h3>
+<h3>LSTM and Long-Term Dependencies</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
-# 先ほどの長期依存タスクをLSTMで解く
+# Solve the previous long-term dependency task with LSTM
 class LSTMClassifier(nn.Module):
     def __init__(self, input_size, hidden_size, num_classes):
         super(LSTMClassifier, self).__init__()
@@ -827,11 +827,11 @@ class LSTMClassifier(nn.Module):
 
     def forward(self, x):
         output, (h_n, c_n) = self.lstm(x)
-        # 最後の時刻の出力を使用
+        # Use output at last time step
         logits = self.fc(output[:, -1, :])
         return logits
 
-# タスク作成関数（前と同じ）
+# Task creation function (same as before)
 def create_long_dependency_task(batch_size=32, seq_length=50):
     x = torch.zeros(batch_size, seq_length, 10)
     targets = torch.randint(0, 10, (batch_size,))
@@ -839,12 +839,12 @@ def create_long_dependency_task(batch_size=32, seq_length=50):
         x[i, 0, targets[i]] = 1.0
     return x, targets
 
-# LSTMで訓練
+# Train with LSTM
 model = LSTMClassifier(input_size=10, hidden_size=32, num_classes=10)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-print("=== LSTMで長期依存関係を学習 ===")
+print("=== Learning Long-Term Dependencies with LSTM ===")
 num_epochs = 100
 for epoch in range(num_epochs):
     x, targets = create_long_dependency_task(batch_size=32, seq_length=50)
@@ -861,98 +861,98 @@ for epoch in range(num_epochs):
             logits_test = model(x_test)
             _, predicted = logits_test.max(1)
             accuracy = (predicted == targets_test).float().mean().item()
-            print(f"Epoch {epoch+1}: 精度 = {accuracy*100:.2f}%")
+            print(f"Epoch {epoch+1}: Accuracy = {accuracy*100:.2f}%")
 
-print("\n→ LSTMは長期依存関係を効果的に学習でき、高精度を達成！")
+print("\n→ LSTM can effectively learn long-term dependencies and achieve high accuracy!")
 </code></pre>
 
 <hr>
 
 <h2>2.3 GRU (Gated Recurrent Unit)</h2>
 
-<h3>GRUの概要</h3>
+<h3>Overview of GRU</h3>
 
-<p><strong>GRU（Gated Recurrent Unit）</strong>は、2014年にChoらによって提案された、LSTMを簡略化したアーキテクチャです。LSTMより少ないパラメータで、同等以上の性能を発揮することが多いです。</p>
+<p><strong>GRU (Gated Recurrent Unit)</strong> is a simplified architecture of LSTM proposed by Cho et al. in 2014. It often achieves equal or better performance than LSTM with fewer parameters.</p>
 
-<h3>LSTMとGRUの違い</h3>
+<h3>Differences Between LSTM and GRU</h3>
 
 <table>
 <thead>
 <tr>
-<th>項目</th>
+<th>Item</th>
 <th>LSTM</th>
 <th>GRU</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>ゲート数</strong></td>
-<td>3つ（忘却、入力、出力）</td>
-<td>2つ（リセット、更新）</td>
+<td><strong>Number of gates</strong></td>
+<td>3 (forget, input, output)</td>
+<td>2 (reset, update)</td>
 </tr>
 <tr>
-<td><strong>状態</strong></td>
-<td>隠れ状態$h_t$とセルステート$C_t$</td>
-<td>隠れ状態$h_t$のみ</td>
+<td><strong>States</strong></td>
+<td>Hidden state $h_t$ and cell state $C_t$</td>
+<td>Hidden state $h_t$ only</td>
 </tr>
 <tr>
-<td><strong>パラメータ数</strong></td>
-<td>多い</td>
-<td>少ない（LSTMの約75%）</td>
+<td><strong>Parameters</strong></td>
+<td>More</td>
+<td>Fewer (about 75% of LSTM)</td>
 </tr>
 <tr>
-<td><strong>計算速度</strong></td>
-<td>やや遅い</td>
-<td>やや速い</td>
+<td><strong>Computation speed</strong></td>
+<td>Somewhat slower</td>
+<td>Somewhat faster</td>
 </tr>
 <tr>
-<td><strong>性能</strong></td>
-<td>タスクによる</td>
-<td>タスクによる（短い系列では有利）</td>
+<td><strong>Performance</strong></td>
+<td>Task dependent</td>
+<td>Task dependent (advantageous for short sequences)</td>
 </tr>
 </tbody>
 </table>
 
-<h3>GRUの数学的定義</h3>
+<h3>Mathematical Definition of GRU</h3>
 
-<p>GRUの更新式は以下の通りです：</p>
+<p>The GRU update equations are as follows:</p>
 
 $$
 \begin{align}
-r_t &= \sigma(W_r [h_{t-1}, x_t] + b_r) \quad &\text{(リセットゲート)} \\
-z_t &= \sigma(W_z [h_{t-1}, x_t] + b_z) \quad &\text{(更新ゲート)} \\
-\tilde{h}_t &= \tanh(W_h [r_t \odot h_{t-1}, x_t] + b_h) \quad &\text{(候補隠れ状態)} \\
-h_t &= (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t \quad &\text{(隠れ状態更新)}
+r_t &= \sigma(W_r [h_{t-1}, x_t] + b_r) \quad &\text{(Reset gate)} \\
+z_t &= \sigma(W_z [h_{t-1}, x_t] + b_z) \quad &\text{(Update gate)} \\
+\tilde{h}_t &= \tanh(W_h [r_t \odot h_{t-1}, x_t] + b_h) \quad &\text{(Candidate hidden state)} \\
+h_t &= (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t \quad &\text{(Hidden state update)}
 \end{align}
 $$
 
-<p>各ゲートの役割：</p>
+<p>Role of each gate:</p>
 <ul>
-<li><strong>リセットゲート$r_t$</strong>：過去の情報をどれだけ無視するか（0に近いと過去を無視）</li>
-<li><strong>更新ゲート$z_t$</strong>：過去と現在の情報をどの程度混ぜるか（0に近いと過去を保持、1に近いと新情報を採用）</li>
+<li><strong>Reset gate $r_t$</strong>: How much to ignore past information (ignores past when close to 0)</li>
+<li><strong>Update gate $z_t$</strong>: How much to mix past and present information (retains past when close to 0, adopts new information when close to 1)</li>
 </ul>
 
 <blockquote>
-<p>「GRUは更新ゲート$z_t$で、LSTMの忘却ゲートと入力ゲートを統合しています」</p>
+<p>"GRU integrates LSTM's forget gate and input gate with the update gate $z_t$"</p>
 </blockquote>
 
-<h3>GRUの手動実装</h3>
+<h3>Manual Implementation of GRU</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
 class GRUCell(nn.Module):
-    """GRUセルの手動実装"""
+    """Manual implementation of GRU cell"""
     def __init__(self, input_size, hidden_size):
         super(GRUCell, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
 
-        # リセットゲート
+        # Reset gate
         self.W_r = nn.Linear(input_size + hidden_size, hidden_size)
-        # 更新ゲート
+        # Update gate
         self.W_z = nn.Linear(input_size + hidden_size, hidden_size)
-        # 候補隠れ状態
+        # Candidate hidden state
         self.W_h = nn.Linear(input_size + hidden_size, hidden_size)
 
     def forward(self, x_t, h_prev):
@@ -960,27 +960,27 @@ class GRUCell(nn.Module):
         x_t: (batch_size, input_size)
         h_prev: (batch_size, hidden_size)
         """
-        # 入力と隠れ状態を連結
+        # Concatenate input and hidden state
         combined = torch.cat([h_prev, x_t], dim=1)
 
-        # リセットゲート
+        # Reset gate
         r_t = torch.sigmoid(self.W_r(combined))
 
-        # 更新ゲート
+        # Update gate
         z_t = torch.sigmoid(self.W_z(combined))
 
-        # 候補隠れ状態（リセットゲートで過去をフィルタリング）
+        # Candidate hidden state (filter past with reset gate)
         combined_reset = torch.cat([r_t * h_prev, x_t], dim=1)
         h_tilde = torch.tanh(self.W_h(combined_reset))
 
-        # 隠れ状態更新（更新ゲートで過去と現在を混合）
+        # Hidden state update (mix past and present with update gate)
         h_t = (1 - z_t) * h_prev + z_t * h_tilde
 
         return h_t
 
 
 class ManualGRU(nn.Module):
-    """複数時刻のGRU処理"""
+    """GRU processing over multiple time steps"""
     def __init__(self, input_size, hidden_size):
         super(ManualGRU, self).__init__()
         self.hidden_size = hidden_size
@@ -989,7 +989,7 @@ class ManualGRU(nn.Module):
     def forward(self, x, init_state=None):
         batch_size, seq_length, _ = x.size()
 
-        # 初期状態
+        # Initial state
         if init_state is None:
             h_t = torch.zeros(batch_size, self.hidden_size).to(x.device)
         else:
@@ -1005,25 +1005,25 @@ class ManualGRU(nn.Module):
         return outputs, h_t
 
 
-# 動作確認
+# Operation check
 model = ManualGRU(input_size=8, hidden_size=16)
 x = torch.randn(4, 10, 8)
 
 outputs, h_final = model(x)
 
-print("=== 手動実装GRUの動作確認 ===")
-print(f"入力: {x.shape}")
-print(f"出力: {outputs.shape}")
-print(f"最終隠れ状態: {h_final.shape}")
-print("→ GRUはセルステートがなく、隠れ状態のみ")
+print("=== Manual GRU Implementation Check ===")
+print(f"Input: {x.shape}")
+print(f"Output: {outputs.shape}")
+print(f"Final hidden state: {h_final.shape}")
+print("→ GRU has no cell state, only hidden state")
 </code></pre>
 
-<h3>PyTorchのnn.GRUを使う</h3>
+<h3>Using PyTorch's nn.GRU</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
-# PyTorchのGRU
+# PyTorch's GRU
 gru = nn.GRU(
     input_size=10,
     hidden_size=20,
@@ -1036,29 +1036,29 @@ gru = nn.GRU(
 x = torch.randn(32, 15, 10)
 output, h_n = gru(x)
 
-print("=== PyTorch nn.GRUの使用 ===")
-print(f"入力: {x.shape}")
-print(f"出力: {output.shape}")
-print(f"最終隠れ状態: {h_n.shape}")
+print("=== Using PyTorch nn.GRU ===")
+print(f"Input: {x.shape}")
+print(f"Output: {output.shape}")
+print(f"Final hidden state: {h_n.shape}")
 
-# LSTMとのパラメータ数比較
+# Parameter count comparison with LSTM
 lstm = nn.LSTM(input_size=10, hidden_size=20, num_layers=2, batch_first=True)
 gru_params = sum(p.numel() for p in gru.parameters())
 lstm_params = sum(p.numel() for p in lstm.parameters())
 
-print(f"\nGRU パラメータ数: {gru_params:,}")
-print(f"LSTM パラメータ数: {lstm_params:,}")
-print(f"差: {lstm_params - gru_params:,} (GRUの方が {(lstm_params/gru_params - 1)*100:.1f}% 少ない)")
+print(f"\nGRU parameters: {gru_params:,}")
+print(f"LSTM parameters: {lstm_params:,}")
+print(f"Difference: {lstm_params - gru_params:,} (GRU has {(lstm_params/gru_params - 1)*100:.1f}% fewer)")
 </code></pre>
 
-<h3>LSTMとGRUの性能比較</h3>
+<h3>Performance Comparison Between LSTM and GRU</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import time
 
 class SequenceClassifier(nn.Module):
-    """汎用系列 classification器"""
+    """Generic sequence classifier"""
     def __init__(self, input_size, hidden_size, num_classes, rnn_type='lstm'):
         super(SequenceClassifier, self).__init__()
 
@@ -1081,20 +1081,20 @@ class SequenceClassifier(nn.Module):
         logits = self.fc(output[:, -1, :])
         return logits
 
-# 比較実験
+# Comparison experiment
 def compare_models(seq_length=50):
-    print(f"\n=== 系列長={seq_length}での比較 ===")
+    print(f"\n=== Comparison with sequence length={seq_length} ===")
 
-    # モデル作成
+    # Create models
     lstm_model = SequenceClassifier(10, 32, 10, rnn_type='lstm')
     gru_model = SequenceClassifier(10, 32, 10, rnn_type='gru')
 
-    # データ生成
+    # Generate data
     x, targets = create_long_dependency_task(batch_size=32, seq_length=seq_length)
 
     criterion = nn.CrossEntropyLoss()
 
-    # LSTM訓練
+    # LSTM training
     optimizer_lstm = torch.optim.Adam(lstm_model.parameters(), lr=0.001)
     start = time.time()
     for _ in range(50):
@@ -1105,7 +1105,7 @@ def compare_models(seq_length=50):
         optimizer_lstm.step()
     lstm_time = time.time() - start
 
-    # GRU訓練
+    # GRU training
     optimizer_gru = torch.optim.Adam(gru_model.parameters(), lr=0.001)
     start = time.time()
     for _ in range(50):
@@ -1116,7 +1116,7 @@ def compare_models(seq_length=50):
         optimizer_gru.step()
     gru_time = time.time() - start
 
-    # 精度評価
+    # Accuracy evaluation
     x_test, targets_test = create_long_dependency_task(batch_size=100, seq_length=seq_length)
 
     with torch.no_grad():
@@ -1129,41 +1129,41 @@ def compare_models(seq_length=50):
         acc_lstm = (pred_lstm == targets_test).float().mean().item()
         acc_gru = (pred_gru == targets_test).float().mean().item()
 
-    print(f"LSTM - 精度: {acc_lstm*100:.2f}%, 訓練 hours: {lstm_time:.2f}秒")
-    print(f"GRU  - 精度: {acc_gru*100:.2f}%, 訓練 hours: {gru_time:.2f}秒")
+    print(f"LSTM - Accuracy: {acc_lstm*100:.2f}%, Training time: {lstm_time:.2f}s")
+    print(f"GRU  - Accuracy: {acc_gru*100:.2f}%, Training time: {gru_time:.2f}s")
 
-# 異なる系列長で比較
+# Compare at different sequence lengths
 compare_models(seq_length=20)
 compare_models(seq_length=50)
 compare_models(seq_length=100)
 
-print("\n→ 短い系列ではGRUが効率的、長い系列ではLSTMが有利な傾向")
+print("\n→ GRU tends to be more efficient for short sequences, LSTM advantageous for longer sequences")
 </code></pre>
 
 <hr>
 
-<h2>2.4 双方向RNN (Bidirectional RNN)</h2>
+<h2>2.4 Bidirectional RNN</h2>
 
-<h3>双方向RNNとは</h3>
+<h3>What is Bidirectional RNN?</h3>
 
-<p><strong>双方向RNN（Bidirectional RNN）</strong>は、系列を前から後ろ（順方向）と後ろから前（逆方向）の両方向から処理し、両方の情報を統合します。</p>
+<p><strong>Bidirectional RNN</strong> processes sequences from both forward (front to back) and backward (back to front) directions and integrates information from both directions.</p>
 
 <div class="mermaid">
 graph LR
-    A["x_1"] --> B["順方向<br/>→"]
+    A["x_1"] --> B["Forward<br/>→"]
     B --> C["x_2"]
-    C --> D["順方向<br/>→"]
+    C --> D["Forward<br/>→"]
     D --> E["x_3"]
 
-    E --> F["逆方向<br/>←"]
+    E --> F["Backward<br/>←"]
     F --> C
-    C --> G["逆方向<br/>←"]
+    C --> G["Backward<br/>←"]
     G --> A
 
     B --> H["h_1"]
     D --> I["h_2"]
-    F --> J["h_3 (逆)"]
-    G --> K["h_2 (逆)"]
+    F --> J["h_3 (backward)"]
+    G --> K["h_2 (backward)"]
 
     style B fill:#b3e5fc
     style D fill:#b3e5fc
@@ -1171,25 +1171,25 @@ graph LR
     style G fill:#ffab91
 </div>
 
-<h3>双方向RNNの利点</h3>
+<h3>Advantages of Bidirectional RNN</h3>
 
 <ul>
-<li><strong>文脈の完全な把握</strong>：各位置で、前後両方の文脈を考慮できる</li>
-<li><strong>品詞タグ付け</strong>：単語の前後を見て品詞を決定</li>
-<li><strong>感情 minutes析</strong>：文全体を見て感情を判断</li>
-<li><strong>機械翻訳</strong>：エンコーダとして使用</li>
+<li><strong>Complete context capture</strong>: Can consider both past and future context at each position</li>
+<li><strong>Part-of-speech tagging</strong>: Determine parts of speech by looking at before and after words</li>
+<li><strong>Sentiment analysis</strong>: Judge sentiment by looking at entire sentence</li>
+<li><strong>Machine translation</strong>: Use as encoder</li>
 </ul>
 
 <blockquote>
-<p>「双方向RNNは、時刻$t$での出力が未来の情報にも依存するため、リアルタイム処理には使えません。オフライン処理（全系列が利用可能）に適しています。」</p>
+<p>"Bidirectional RNN cannot be used for real-time processing because the output at time $t$ depends on future information. It is suitable for offline processing (when entire sequence is available)."</p>
 </blockquote>
 
-<h3>双方向LSTMの実装</h3>
+<h3>Implementation of Bidirectional LSTM</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
-# PyTorchでは bidirectional=True を指定するだけ
+# In PyTorch, just specify bidirectional=True
 class BidirectionalLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_classes):
         super(BidirectionalLSTM, self).__init__()
@@ -1198,43 +1198,43 @@ class BidirectionalLSTM(nn.Module):
             input_size,
             hidden_size,
             batch_first=True,
-            bidirectional=True  # 双方向を有効化
+            bidirectional=True  # Enable bidirectional
         )
 
-        # 双方向なので hidden_size * 2
+        # hidden_size * 2 because bidirectional
         self.fc = nn.Linear(hidden_size * 2, num_classes)
 
     def forward(self, x):
         # output: (batch, seq, hidden_size * 2)
         output, (h_n, c_n) = self.lstm(x)
 
-        # 最後の時刻の出力を使用
+        # Use output at last time step
         logits = self.fc(output[:, -1, :])
         return logits
 
-# 動作確認
+# Operation check
 model = BidirectionalLSTM(input_size=10, hidden_size=32, num_classes=10)
 x = torch.randn(4, 15, 10)
 
 logits = model(x)
 
-print("=== 双方向LSTMの動作確認 ===")
-print(f"入力: {x.shape}")
-print(f"出力: {logits.shape}")
+print("=== Bidirectional LSTM Operation Check ===")
+print(f"Input: {x.shape}")
+print(f"Output: {logits.shape}")
 
-# パラメータ数の比較
+# Parameter count comparison
 uni_lstm = nn.LSTM(10, 32, batch_first=True, bidirectional=False)
 bi_lstm = nn.LSTM(10, 32, batch_first=True, bidirectional=True)
 
 uni_params = sum(p.numel() for p in uni_lstm.parameters())
 bi_params = sum(p.numel() for p in bi_lstm.parameters())
 
-print(f"\n単方向LSTM: {uni_params:,} パラメータ")
-print(f"双方向LSTM: {bi_params:,} パラメータ")
-print(f"→ 双方向は約2倍のパラメータ数")
+print(f"\nUnidirectional LSTM: {uni_params:,} parameters")
+print(f"Bidirectional LSTM: {bi_params:,} parameters")
+print(f"→ Bidirectional has about 2x the parameters")
 </code></pre>
 
-<h3>双方向vs単方向の性能比較</h3>
+<h3>Performance Comparison: Bidirectional vs Unidirectional</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -1258,18 +1258,18 @@ class DirectionalClassifier(nn.Module):
         logits = self.fc(output[:, -1, :])
         return logits
 
-# 比較実験
+# Comparison experiment
 def compare_directionality():
-    print("\n=== 単方向 vs 双方向の比較 ===")
+    print("\n=== Unidirectional vs Bidirectional Comparison ===")
 
-    # モデル作成
+    # Create models
     uni_model = DirectionalClassifier(10, 32, 10, bidirectional=False)
     bi_model = DirectionalClassifier(10, 32, 10, bidirectional=True)
 
     criterion = nn.CrossEntropyLoss()
 
-    # 訓練
-    for model, name in [(uni_model, "単方向"), (bi_model, "双方向")]:
+    # Training
+    for model, name in [(uni_model, "Unidirectional"), (bi_model, "Bidirectional")]:
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
         for epoch in range(100):
@@ -1281,35 +1281,35 @@ def compare_directionality():
             loss.backward()
             optimizer.step()
 
-        # 評価
+        # Evaluation
         x_test, targets_test = create_long_dependency_task(batch_size=100, seq_length=50)
         with torch.no_grad():
             logits_test = model(x_test)
             _, predicted = logits_test.max(1)
             accuracy = (predicted == targets_test).float().mean().item()
 
-        print(f"{name}LSTM - 精度: {accuracy*100:.2f}%")
+        print(f"{name} LSTM - Accuracy: {accuracy*100:.2f}%")
 
 compare_directionality()
-print("\n→ このタスクでは情報が最初にあるため、双方向の優位性は小さい")
-print("  品詞タグ付けなど、前後文脈が重要なタスクでは双方向が有利")
+print("\n→ In this task, information is at the beginning, so bidirectional advantage is small")
+print("  Bidirectional is advantageous for tasks where both past and future context are important, such as part-of-speech tagging")
 </code></pre>
 
 <hr>
 
-<h2>2.5 実践：IMDb感情 minutes析</h2>
+<h2>2.5 Practice: IMDb Sentiment Analysis</h2>
 
-<h3>IMDbデータセット</h3>
+<h3>IMDb Dataset</h3>
 
-<p><strong>IMDb（Internet Movie Database）</strong>は、映画レビューの感情 minutes析データセットです：</p>
+<p><strong>IMDb (Internet Movie Database)</strong> is a sentiment analysis dataset of movie reviews:</p>
 
 <ul>
-<li>50,000件の映画レビュー（訓練25,000件、テスト25,000件）</li>
-<li>2クラス classification：肯定的（Positive）、否定的（Negative）</li>
-<li>各レビューは英語のテキスト</li>
+<li>50,000 movie reviews (25,000 training, 25,000 test)</li>
+<li>2-class classification: Positive, Negative</li>
+<li>Each review is English text</li>
 </ul>
 
-<h3>データ準備</h3>
+<h3>Data Preparation</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -1319,18 +1319,18 @@ from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
 from collections import Counter
 
-# トークナイザー
+# Tokenizer
 tokenizer = get_tokenizer('basic_english')
 
-# データセット読み込み
+# Load dataset
 train_iter = IMDB(split='train')
 
-# 語彙構築
+# Build vocabulary
 def yield_tokens(data_iter):
     for _, text in data_iter:
         yield tokenizer(text)
 
-# 語彙を構築（頻度上位10,000語）
+# Build vocabulary (top 10,000 most frequent words)
 vocab = build_vocab_from_iterator(
     yield_tokens(IMDB(split='train')),
     specials=['<unk>', '<pad>'],
@@ -1338,21 +1338,21 @@ vocab = build_vocab_from_iterator(
 )
 vocab.set_default_index(vocab['<unk>'])
 
-print("=== IMDbデータセットの準備 ===")
-print(f"語彙サイズ: {len(vocab)}")
-print(f"<pad>トークンのインデックス: {vocab['<pad>']}")
-print(f"<unk>トークンのインデックス: {vocab['<unk>']}")
+print("=== IMDb Dataset Preparation ===")
+print(f"Vocabulary size: {len(vocab)}")
+print(f"<pad> token index: {vocab['<pad>']}")
+print(f"<unk> token index: {vocab['<unk>']}")
 
-# サンプルのトークン化
+# Sample tokenization
 sample_text = "This movie is great!"
 tokens = tokenizer(sample_text)
 indices = [vocab[token] for token in tokens]
-print(f"\nサンプル: '{sample_text}'")
-print(f"トークン: {tokens}")
-print(f"インデックス: {indices}")
+print(f"\nSample: '{sample_text}'")
+print(f"Tokens: {tokens}")
+print(f"Indices: {indices}")
 </code></pre>
 
-<h3>データセットクラス</h3>
+<h3>Dataset Class</h3>
 
 <pre><code class="language-python">import torch
 from torch.utils.data import Dataset, DataLoader
@@ -1368,10 +1368,10 @@ class IMDbDataset(Dataset):
     def __getitem__(self, idx):
         label, text = self.data[idx]
 
-        # ラベルを数値に変換（neg=0, pos=1）
+        # Convert label to number (neg=0, pos=1)
         label = 1 if label == 'pos' else 0
 
-        # テキストをトークン化してインデックスに変換
+        # Tokenize text and convert to indices
         tokens = tokenizer(text)
         indices = [vocab[token] for token in tokens]
 
@@ -1379,17 +1379,17 @@ class IMDbDataset(Dataset):
 
 def collate_batch(batch):
     """
-    バッチ内の系列を同じ長さにパディング
+    Pad sequences in batch to same length
     """
     texts, labels = zip(*batch)
 
-    # パディング
+    # Padding
     texts_padded = pad_sequence(texts, batch_first=True, padding_value=vocab['<pad>'])
     labels = torch.stack(labels)
 
     return texts_padded, labels
 
-# データローダー作成
+# Create data loaders
 train_dataset = IMDbDataset(split='train')
 test_dataset = IMDbDataset(split='test')
 
@@ -1407,14 +1407,14 @@ test_loader = DataLoader(
     collate_fn=collate_batch
 )
 
-print("\n=== データローダーの確認 ===")
+print("\n=== Data Loader Check ===")
 texts, labels = next(iter(train_loader))
-print(f"バッチサイズ: {texts.shape[0]}")
-print(f"系列長（最長）: {texts.shape[1]}")
-print(f"ラベル: {labels[:5]}")
+print(f"Batch size: {texts.shape[0]}")
+print(f"Sequence length (max): {texts.shape[1]}")
+print(f"Labels: {labels[:5]}")
 </code></pre>
 
-<h3>LSTM感情 minutes析モデル</h3>
+<h3>LSTM Sentiment Analysis Model</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -1423,10 +1423,10 @@ class LSTMSentimentClassifier(nn.Module):
     def __init__(self, vocab_size, embedding_dim, hidden_dim, num_classes, num_layers=2, dropout=0.5):
         super(LSTMSentimentClassifier, self).__init__()
 
-        # 埋め込み層
+        # Embedding layer
         self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=vocab['<pad>'])
 
-        # LSTM層
+        # LSTM layer
         self.lstm = nn.LSTM(
             embedding_dim,
             hidden_dim,
@@ -1436,8 +1436,8 @@ class LSTMSentimentClassifier(nn.Module):
             bidirectional=True
         )
 
-        #  classification層
-        self.fc = nn.Linear(hidden_dim * 2, num_classes)  # 双方向なので *2
+        # Classification layer
+        self.fc = nn.Linear(hidden_dim * 2, num_classes)  # *2 because bidirectional
 
         # Dropout
         self.dropout = nn.Dropout(dropout)
@@ -1445,30 +1445,30 @@ class LSTMSentimentClassifier(nn.Module):
     def forward(self, text):
         # text: (batch, seq_len)
 
-        # 埋め込み: (batch, seq_len, embedding_dim)
+        # Embedding: (batch, seq_len, embedding_dim)
         embedded = self.dropout(self.embedding(text))
 
         # LSTM: output (batch, seq_len, hidden_dim * 2)
         output, (hidden, cell) = self.lstm(embedded)
 
-        # 最後の時刻の出力を使用
-        # または、順方向と逆方向の最終隠れ状態を連結
+        # Use output at last time step
+        # Or concatenate final hidden states of forward and backward
         # hidden: (num_layers * 2, batch, hidden_dim)
 
-        # 最終層の順方向と逆方向を連結
+        # Concatenate forward and backward of final layer
         hidden_forward = hidden[-2, :, :]
         hidden_backward = hidden[-1, :, :]
         hidden_concat = torch.cat([hidden_forward, hidden_backward], dim=1)
 
-        # Dropout +  classification
+        # Dropout + classification
         hidden_concat = self.dropout(hidden_concat)
         logits = self.fc(hidden_concat)
 
         return logits
 
-# モデル作成
+# Create model
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f"\n使用デバイス: {device}")
+print(f"\nUsing device: {device}")
 
 model = LSTMSentimentClassifier(
     vocab_size=len(vocab),
@@ -1482,16 +1482,16 @@ model = LSTMSentimentClassifier(
 print(model)
 
 total_params = sum(p.numel() for p in model.parameters())
-print(f"\n総パラメータ数: {total_params:,}")
+print(f"\nTotal parameters: {total_params:,}")
 </code></pre>
 
-<h3>訓練ループ</h3>
+<h3>Training Loop</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import torch.optim as optim
 
-# 損失関数とオプティマイザ
+# Loss function and optimizer
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
@@ -1509,7 +1509,7 @@ def train_epoch(model, loader, criterion, optimizer, device):
         loss = criterion(logits, labels)
 
         loss.backward()
-        # 勾配クリッピング（勾配爆発を防ぐ）
+        # Gradient clipping (prevent gradient explosion)
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
         optimizer.step()
 
@@ -1544,11 +1544,11 @@ def test_epoch(model, loader, criterion, device):
     epoch_acc = 100. * correct / total
     return epoch_loss, epoch_acc
 
-# 訓練実行
+# Execute training
 num_epochs = 5
 best_acc = 0
 
-print("\n=== 訓練開始 ===")
+print("\n=== Training Start ===")
 for epoch in range(num_epochs):
     train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
     test_loss, test_acc = test_epoch(model, test_loader, criterion, device)
@@ -1561,25 +1561,25 @@ for epoch in range(num_epochs):
         best_acc = test_acc
         torch.save(model.state_dict(), 'best_imdb_lstm.pth')
 
-print(f"\n訓練完了！ベスト精度: {best_acc:.2f}%")
+print(f"\nTraining complete! Best accuracy: {best_acc:.2f}%")
 </code></pre>
 
-<h3>推論と解釈</h3>
+<h3>Inference and Interpretation</h3>
 
 <pre><code class="language-python">import torch
 
 def predict_sentiment(model, text, vocab, tokenizer, device):
-    """単一テキストの感情を予測"""
+    """Predict sentiment of single text"""
     model.eval()
 
-    # トークン化
+    # Tokenize
     tokens = tokenizer(text)
     indices = [vocab[token] for token in tokens]
 
-    # テンソルに変換
+    # Convert to tensor
     text_tensor = torch.tensor(indices).unsqueeze(0).to(device)  # (1, seq_len)
 
-    # 予測
+    # Predict
     with torch.no_grad():
         logits = model(text_tensor)
         probs = torch.softmax(logits, dim=1)
@@ -1590,7 +1590,7 @@ def predict_sentiment(model, text, vocab, tokenizer, device):
 
     return sentiment, confidence
 
-# テスト
+# Test
 test_reviews = [
     "This movie is absolutely amazing! I loved every moment.",
     "Terrible film. Waste of time and money.",
@@ -1599,131 +1599,131 @@ test_reviews = [
     "Boring and predictable. Would not recommend."
 ]
 
-print("\n=== 感情 minutes析の予測結果 ===")
+print("\n=== Sentiment Analysis Prediction Results ===")
 for review in test_reviews:
     sentiment, confidence = predict_sentiment(model, review, vocab, tokenizer, device)
-    print(f"\nレビュー: {review}")
-    print(f"予測: {sentiment} (信頼度: {confidence*100:.2f}%)")
+    print(f"\nReview: {review}")
+    print(f"Prediction: {sentiment} (Confidence: {confidence*100:.2f}%)")
 </code></pre>
 
 <hr>
 
-<h2>2.6 LSTMとGRUの使い minutesけガイドライン</h2>
+<h2>2.6 Guidelines for Choosing Between LSTM and GRU</h2>
 
-<h3>選択基準</h3>
+<h3>Selection Criteria</h3>
 
 <table>
 <thead>
 <tr>
-<th>状況</th>
-<th>Recommended</th>
-<th>理由</th>
+<th>Situation</th>
+<th>Recommendation</th>
+<th>Reason</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>長い系列（>100）</td>
+<td>Long sequences (>100)</td>
 <td>LSTM</td>
-<td>セルステートで長期記憶を保持</td>
+<td>Cell state retains long-term memory</td>
 </tr>
 <tr>
-<td>短い系列（<50）</td>
+<td>Short sequences (<50)</td>
 <td>GRU</td>
-<td>パラメータが少なく効率的</td>
+<td>Fewer parameters, more efficient</td>
 </tr>
 <tr>
-<td>計算リソース制約</td>
+<td>Computational constraints</td>
 <td>GRU</td>
-<td>パラメータ数が約25%少ない</td>
+<td>About 25% fewer parameters</td>
 </tr>
 <tr>
-<td>高精度がRequired</td>
+<td>High accuracy essential</td>
 <td>LSTM</td>
-<td>表現力が高い</td>
+<td>Higher expressive power</td>
 </tr>
 <tr>
-<td>リアルタイム処理</td>
+<td>Real-time processing</td>
 <td>GRU</td>
-<td>計算が高速</td>
+<td>Faster computation</td>
 </tr>
 <tr>
-<td>前後文脈が必要</td>
-<td>双方向LSTM/GRU</td>
-<td>両方向の情報を活用</td>
+<td>Both contexts needed</td>
+<td>Bidirectional LSTM/GRU</td>
+<td>Utilizes information from both directions</td>
 </tr>
 <tr>
-<td>不明な場合</td>
-<td>両方試す</td>
-<td>タスク依存性が高い</td>
+<td>Uncertain</td>
+<td>Try both</td>
+<td>High task dependency</td>
 </tr>
 </tbody>
 </table>
 
-<h3>ハイパーパラメータの選び方</h3>
+<h3>Choosing Hyperparameters</h3>
 
 <ul>
-<li><strong>隠れ層のサイズ</strong>：64〜512（タスクの複雑さに応じて）</li>
-<li><strong>層数</strong>：1〜3層（深すぎると過学習のリスク）</li>
-<li><strong>Dropout</strong>：0.2〜0.5（過学習を防ぐ）</li>
-<li><strong>埋め込み次元</strong>：50〜300（語彙サイズに応じて）</li>
-<li><strong>学習率</strong>：0.0001〜0.001（AdamがRecommended）</li>
-<li><strong>バッチサイズ</strong>：32〜128（メモリに応じて）</li>
+<li><strong>Hidden layer size</strong>: 64-512 (depending on task complexity)</li>
+<li><strong>Number of layers</strong>: 1-3 layers (too deep risks overfitting)</li>
+<li><strong>Dropout</strong>: 0.2-0.5 (prevent overfitting)</li>
+<li><strong>Embedding dimension</strong>: 50-300 (depending on vocabulary size)</li>
+<li><strong>Learning rate</strong>: 0.0001-0.001 (Adam recommended)</li>
+<li><strong>Batch size</strong>: 32-128 (depending on memory)</li>
 </ul>
 
-<h3>実装のベストプラクティス</h3>
+<h3>Implementation Best Practices</h3>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
 class BestPracticeLSTM(nn.Module):
-    """ベストプラクティスを組み込んだLSTMモデル"""
+    """LSTM model incorporating best practices"""
     def __init__(self, vocab_size, embedding_dim, hidden_dim, num_classes):
         super(BestPracticeLSTM, self).__init__()
 
-        # 1. Embedding層にpadding_idxを指定
+        # 1. Specify padding_idx in Embedding layer
         self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
 
-        # 2. 双方向LSTM
+        # 2. Bidirectional LSTM
         self.lstm = nn.LSTM(
             embedding_dim,
             hidden_dim,
             num_layers=2,
             batch_first=True,
-            dropout=0.3,  # 層間Dropout
+            dropout=0.3,  # Inter-layer Dropout
             bidirectional=True
         )
 
-        # 3. Batch Normalization（オプション）
+        # 3. Batch Normalization (optional)
         self.batch_norm = nn.BatchNorm1d(hidden_dim * 2)
 
         # 4. Dropout
         self.dropout = nn.Dropout(0.5)
 
-        # 5.  classification層
+        # 5. Classification layer
         self.fc = nn.Linear(hidden_dim * 2, num_classes)
 
     def forward(self, x):
         embedded = self.dropout(self.embedding(x))
         output, (hidden, cell) = self.lstm(embedded)
 
-        # 順方向と逆方向の最終隠れ状態を連結
+        # Concatenate final hidden states of forward and backward
         hidden_concat = torch.cat([hidden[-2], hidden[-1]], dim=1)
 
-        # Batch Norm（オプション）
+        # Batch Norm (optional)
         hidden_concat = self.batch_norm(hidden_concat)
 
-        # Dropout +  classification
+        # Dropout + classification
         hidden_concat = self.dropout(hidden_concat)
         logits = self.fc(hidden_concat)
 
         return logits
 
-# 訓練時の注意点
+# Training considerations
 def train_with_best_practices(model, train_loader, num_epochs=10):
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    # 学習率スケジューラ
+    # Learning rate scheduler
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode='min', factor=0.5, patience=2
     )
@@ -1736,21 +1736,21 @@ def train_with_best_practices(model, train_loader, num_epochs=10):
             loss = criterion(logits, labels)
             loss.backward()
 
-            # 勾配クリッピング（Required）
+            # Gradient clipping (essential)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
 
             optimizer.step()
 
-        # 検証ロスで学習率を調整
+        # Adjust learning rate based on validation loss
         val_loss = evaluate(model, val_loader)
         scheduler.step(val_loss)
 
-print("=== ベストプラクティス ===")
-print("1. padding_idxを指定して<pad>を学習対象外に")
-print("2. 双方向LSTMで文脈を完全把握")
-print("3. Dropoutで過学習を防止")
-print("4. 勾配クリッピングで勾配爆発を防止")
-print("5. 学習率スケジューラで最適化を改善")
+print("=== Best Practices ===")
+print("1. Specify padding_idx to exclude <pad> from training")
+print("2. Bidirectional LSTM for complete context capture")
+print("3. Dropout to prevent overfitting")
+print("4. Gradient clipping to prevent gradient explosion")
+print("5. Learning rate scheduler to improve optimization")
 </code></pre>
 
 <hr>
@@ -1758,85 +1758,85 @@ print("5. 学習率スケジューラで最適化を改善")
 <h2>Exercises</h2>
 
 <details>
-<summary><strong>演習1：LSTMのゲート動作を観察</strong></summary>
+<summary><strong>Exercise 1: Observe LSTM Gate Operations</strong></summary>
 
-<p>LSTMの各ゲート（忘却、入力、出力）の値を可視化し、どのように情報を制御しているか確認してください。</p>
+<p>Visualize the values of each LSTM gate (forget, input, output) and observe how they control information.</p>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
-# TODO: LSTMCellを修正して、各ゲートの値を返すようにする
-# TODO: 簡単な系列データで各ゲートの値を時系列にプロット
-# ヒント: f_t, i_t, o_t の値を記録し、matplotlib でグラフ化
+# TODO: Modify LSTMCell to return values of each gate
+# TODO: Plot each gate's values over time for simple sequence data
+# Hint: Record f_t, i_t, o_t values and graph with matplotlib
 </code></pre>
 
 </details>
 
 <details>
-<summary><strong>演習2：GRUとLSTMの収束速度比較</strong></summary>
+<summary><strong>Exercise 2: Compare Convergence Speed of GRU and LSTM</strong></summary>
 
-<p>同じタスクでGRUとLSTMを訓練し、訓練曲線（損失と精度）を比較してください。</p>
+<p>Train GRU and LSTM on the same task and compare training curves (loss and accuracy).</p>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 
-# TODO: GRUとLSTMモデルを作成
-# TODO: 同じデータで訓練し、各エポックの損失と精度を記録
-# TODO: 訓練曲線をプロット
-# 評価指標: 収束速度、最終精度、訓練 hours
+# TODO: Create GRU and LSTM models
+# TODO: Train on same data and record loss and accuracy for each epoch
+# TODO: Plot training curves
+# Evaluation metrics: convergence speed, final accuracy, training time
 </code></pre>
 
 </details>
 
 <details>
-<summary><strong>演習3：双方向RNNの効果を検証</strong></summary>
+<summary><strong>Exercise 3: Verify Effect of Bidirectional RNN</strong></summary>
 
-<p>品詞タグ付けタスクで、単方向と双方向RNNの性能を比較してください。</p>
+<p>Compare performance of unidirectional and bidirectional RNN on part-of-speech tagging task.</p>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
-# TODO: 単方向と双方向のLSTMモデルを実装
-# TODO: 品詞タグ付けタスク（各単語の品詞を予測）で性能比較
-# ヒント: torchtext.datasets のUD_English などを使用
-# 前後の文脈が重要なタスクで双方向の優位性を確認
+# TODO: Implement unidirectional and bidirectional LSTM models
+# TODO: Compare performance on part-of-speech tagging task (predict part of speech for each word)
+# Hint: Use datasets like UD_English from torchtext.datasets
+# Verify bidirectional advantage on tasks where both past and future context are important
 </code></pre>
 
 </details>
 
 <details>
-<summary><strong>演習4：系列長と性能の関係</strong></summary>
+<summary><strong>Exercise 4: Relationship Between Sequence Length and Performance</strong></summary>
 
-<p>異なる系列長（10, 50, 100, 200）でLSTMとGRUの性能を比較し、どちらが長期依存に強いか確認してください。</p>
+<p>Compare LSTM and GRU performance at different sequence lengths (10, 50, 100, 200) and determine which is stronger at long-term dependencies.</p>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
-# TODO: 系列長を変えて長期依存タスクを生成
-# TODO: LSTMとGRUで精度を比較
-# TODO: 系列長 vs 精度のグラフを作成
-# どの系列長から性能差が顕著になるか minutes析
+# TODO: Generate long-term dependency tasks with varying sequence lengths
+# TODO: Compare accuracy with LSTM and GRU
+# TODO: Create graph of sequence length vs accuracy
+# Analyze at what sequence length performance differences become significant
 </code></pre>
 
 </details>
 
 <details>
-<summary><strong>演習5：IMDb感情 minutes析の改善</strong></summary>
+<summary><strong>Exercise 5: Improve IMDb Sentiment Analysis</strong></summary>
 
-<p>基本のLSTMモデルを改善し、テスト精度を向上させてください。</p>
+<p>Improve the basic LSTM model to increase test accuracy.</p>
 
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
-# TODO: 以下の手法を試してモデルを改善
-# 1. 事前学習済み埋め込み（GloVe, Word2Vec）を使用
-# 2. Attention機構を追加
-# 3. 層数やhidden_sizeを調整
-# 4. Data Augmentation（バックトランスレーション等）
-# 5. アンサンブル学習
+# TODO: Try the following methods to improve the model
+# 1. Use pre-trained embeddings (GloVe, Word2Vec)
+# 2. Add Attention mechanism
+# 3. Adjust number of layers and hidden_size
+# 4. Data Augmentation (back-translation, etc.)
+# 5. Ensemble learning
 
-# 目標: ベースラインから+2%以上の精度向上
+# Goal: Improve accuracy by +2% or more from baseline
 </code></pre>
 
 </details>
@@ -1845,27 +1845,27 @@ import torch.nn as nn
 
 <h2>Summary</h2>
 
-<p>この Chapterでは、LSTM・GRUとその応用について学びました。</p>
+<p>In this chapter, we learned about LSTM, GRU, and their applications.</p>
 
-<h3>重要ポイント</h3>
+<h3>Key Points</h3>
 
 <ul>
-<li><strong>Vanilla RNNの限界</strong>：勾配消失・爆発により長期依存関係の学習が困難</li>
-<li><strong>LSTM</strong>：セルステートとゲート機構（忘却・入力・出力）で長期記憶を実現</li>
-<li><strong>GRU</strong>：LSTMを簡略化、2つのゲート（リセット・更新）で効率的に動作</li>
-<li><strong>LSTMとGRUの違い</strong>：パラメータ数、計算速度、性能のトレードオフ</li>
-<li><strong>双方向RNN</strong>：前後両方向から処理し、文脈を完全に把握</li>
-<li><strong>実践</strong>：IMDb感情 minutes析で実際のNLPタスクに適用</li>
-<li><strong>ベストプラクティス</strong>：勾配クリッピング、Dropout、学習率スケジューリング</li>
+<li><strong>Vanilla RNN limitations</strong>: Difficulty learning long-term dependencies due to vanishing/exploding gradients</li>
+<li><strong>LSTM</strong>: Realizes long-term memory with cell state and gate mechanisms (forget, input, output)</li>
+<li><strong>GRU</strong>: Simplified LSTM, operates efficiently with 2 gates (reset, update)</li>
+<li><strong>LSTM vs GRU differences</strong>: Trade-offs in parameter count, computation speed, and performance</li>
+<li><strong>Bidirectional RNN</strong>: Processes from both directions to fully capture context</li>
+<li><strong>Practice</strong>: Applied to real-world NLP task with IMDb sentiment analysis</li>
+<li><strong>Best practices</strong>: Gradient clipping, Dropout, learning rate scheduling</li>
 </ul>
 
 <h3>Next Steps</h3>
 
-<p>次 Chapterでは、<strong>Sequence-to-Sequence（Seq2Seq）</strong>と<strong>Attention機構</strong>について学びます。機械翻訳や要約などの系列変換タスクにRequiredの技術を習得します。</p>
+<p>In the next chapter, we will learn about <strong>Sequence-to-Sequence (Seq2Seq)</strong> and <strong>Attention mechanisms</strong>. You will master techniques essential for sequence transformation tasks such as machine translation and summarization.</p>
 
 <div class="navigation">
-    <a href="chapter1-rnn-basics.html" class="nav-button">← Chapter 1 Chapter：RNNの基礎</a>
-    <a href="chapter3-seq2seq-attention.html" class="nav-button">Chapter 3 Chapter：Seq2SeqとAttention →</a>
+    <a href="chapter1-rnn-basics.html" class="nav-button">← Chapter 1: RNN Basics</a>
+    <a href="chapter3-seq2seq-attention.html" class="nav-button">Chapter 3: Seq2Seq and Attention →</a>
 </div>
 
 </main>
@@ -1874,12 +1874,12 @@ import torch.nn as nn
     <section class="disclaimer">
         <h3>Disclaimer</h3>
         <ul>
-            <li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
-            <li>This content and accompanying code examples are provided "AS IS" without warranty of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+            <li>This content is provided for educational, research, and informational purposes only and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+            <li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
             <li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
-            <li>To the maximum extent permitted by applicable law, the creators and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
-            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
-            <li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+            <li>Even if direct, indirect, incidental, special, consequential, or punitive damages arise from the use, execution, or interpretation of this content, the creators and Tohoku University shall not be liable to the maximum extent permitted by applicable law.</li>
+            <li>The content may be changed, updated, or discontinued without notice.</li>
+            <li>Copyright and license of this content follow the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
         </ul>
     </section>
 

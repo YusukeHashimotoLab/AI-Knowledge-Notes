@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Chapter 1：時系列Data Analysisの基礎 - ProcessData Analysis実践 Series">
-    <title>Chapter 1：時系列Data Analysisの基礎 - ProcessData Analysis実践 | PI Knowledge Hub</title>
+    <meta name="description" content="Chapter 1: Fundamentals of Time Series Data Analysis - Process Data Analysis Practice Series">
+    <title>Chapter 1: Fundamentals of Time Series Data Analysis - Process Data Analysis | PI Knowledge Hub</title>
 
         <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -85,9 +85,9 @@
             .container { padding: 0 0.5rem; }
             pre { padding: 1rem; }
         }
-    
-        
-    
+
+
+
         /* Breadcrumb styles */
         .breadcrumb {
             background: #f7fafc;
@@ -136,66 +136,63 @@
 
         <header>
         <div class="container">
-            <h1>Chapter 1：時系列Data Analysisの基礎</h1>
+            <h1>Chapter 1: Fundamentals of Time Series Data Analysis</h1>
             <p class="subtitle">Time Series Data Analysis Fundamentals for Process Data</p>
             <div class="meta">
-                <span class="meta">📚 ProcessData Analysis実践 Series</span>
+                <span class="meta">📚 Process Data Analysis Practice Series</span>
                 <span class="meta">⏱️ Reading Time: 30-35 minutes</span>
                 <span class="meta">💻 Code Examples: 10</span>
-                <span class="meta">🎓 Difficulty: Intermediate</span>
+                <span class="meta">🎓 Level: Intermediate</span>
             </div>
         </div>
     </header>
 
     <div class="container">
         <section>
-            <h2>1.1 イントロダクション</h2>
+            <h2>1.1 Introduction</h2>
             <p>
-                化学Processから得られるデータの大部 minutesは時系列データです。反応器の温度、蒸留塔の圧力、原料の流量など、
-                 hoursとともに変化するこれらのProcess変数を適切に解析することは、ProcessのOptimization、Quality Control、異常検知において極めて重要です。
+                The majority of data obtained from chemical processes is time series data. Appropriately analyzing these process variables that change over time - such as reactor temperature, distillation column pressure, and raw material flow rate - is critically important for process optimization, quality control, and anomaly detection.
             </p>
 
             <p>
-                本 Chapterでは、時系列データの基本的な特性理解から、統計的検定、Predictionモデル構築、変化点検知まで、
-                実践的な解析技術を10のPythonCode Examplesを通じて習得します。
+                In this chapter, we will master practical analysis techniques from understanding the basic characteristics of time series data to statistical testing, predictive model construction, and change point detection through 10 Python code examples.
             </p>
 
             <div class="callout callout-info">
-                <h4>📊 本 Chapterで学ぶこと</h4>
+                <h4>📊 What You Will Learn in This Chapter</h4>
                 <ul style="margin-bottom: 0;">
-                    <li>時系列データの前処理技術（欠損値補完、外れ値検知）</li>
-                    <li>定常性の検定とトレンド・季節性の minutes解</li>
-                    <li>自己相関 minutes析とARIMAモデリング</li>
-                    <li>変化点検知とパターンマッチング技術</li>
-                    <li>実Processデータへの適用方法</li>
+                    <li>Time series data preprocessing techniques (missing value imputation, outlier detection)</li>
+                    <li>Stationarity testing and trend/seasonality decomposition</li>
+                    <li>Autocorrelation analysis and ARIMA modeling</li>
+                    <li>Change point detection and pattern matching techniques</li>
+                    <li>Application methods to real process data</li>
                 </ul>
             </div>
         </section>
 
         <section>
-            <h2>1.2 時系列データの前処理</h2>
+            <h2>1.2 Time Series Data Preprocessing</h2>
             <p>
-                Processデータは、センサー故障、通信エラー、メンテナンス作業などにより欠損値や外れ値を含むことが一般的です。
-                適切な前処理は、後続の解析精度に直接影響します。
+                Process data commonly contains missing values and outliers due to sensor failures, communication errors, maintenance work, etc. Appropriate preprocessing directly affects the accuracy of subsequent analysis.
             </p>
 
             <div class="example-box">
-                <h4>Example 1: 欠損値の検出と補完</h4>
-                <p>線形補間、スプライン補間、前方補完など複数の手法を比較します。</p>
+                <h4>Example 1: Missing Value Detection and Imputation</h4>
+                <p>We compare multiple methods including linear interpolation, spline interpolation, and forward fill.</p>
                 <pre><code># ===================================
-# Example 1: 欠損値の検出と補完
+# Example 1: Missing Value Detection and Imputation
 # ===================================
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import interpolate
 
-# Simulationデータ生成（反応器温度）
+# Generate simulation data (reactor temperature)
 np.random.seed(42)
 time = pd.date_range('2025-01-01', periods=1000, freq='1min')
 temperature = 350 + 5 * np.sin(np.arange(1000) * 0.01) + np.random.normal(0, 0.5, 1000)
 
-# 欠損値を意図的に導入（5%）
+# Intentionally introduce missing values (5%)
 missing_indices = np.random.choice(1000, size=50, replace=False)
 temperature_missing = temperature.copy()
 temperature_missing[missing_indices] = np.nan
@@ -203,128 +200,127 @@ temperature_missing[missing_indices] = np.nan
 df = pd.DataFrame({'time': time, 'temperature': temperature_missing})
 df.set_index('time', inplace=True)
 
-print(f"欠損値数: {df['temperature'].isna().sum()} / {len(df)}")
-print(f"欠損率: {df['temperature'].isna().sum() / len(df) * 100:.2f}%")
+print(f"Number of missing values: {df['temperature'].isna().sum()} / {len(df)}")
+print(f"Missing rate: {df['temperature'].isna().sum() / len(df) * 100:.2f}%")
 
-# 補完手法の比較
+# Compare imputation methods
 methods = {
-    '線形補間': df['temperature'].interpolate(method='linear'),
-    'スプライン補間': df['temperature'].interpolate(method='spline', order=3),
-    '前方補完': df['temperature'].fillna(method='ffill'),
-    '移動平均補完': df['temperature'].fillna(df['temperature'].rolling(5, min_periods=1).mean())
+    'Linear Interpolation': df['temperature'].interpolate(method='linear'),
+    'Spline Interpolation': df['temperature'].interpolate(method='spline', order=3),
+    'Forward Fill': df['temperature'].fillna(method='ffill'),
+    'Moving Average Fill': df['temperature'].fillna(df['temperature'].rolling(5, min_periods=1).mean())
 }
 
-# 補完精度の評価（元データとの比較）
-print("\n補完誤差評価:")
+# Evaluate imputation accuracy (comparison with original data)
+print("\nImputation Error Evaluation:")
 for name, filled_data in methods.items():
     mae = np.mean(np.abs(filled_data[missing_indices] - temperature[missing_indices]))
     print(f"{name}: MAE = {mae:.4f}°C")
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(2, 2, figsize=(14, 8))
 for ax, (name, filled_data) in zip(axes.flatten(), methods.items()):
-    ax.plot(df.index[:200], temperature[:200], 'k-', alpha=0.3, label='真値')
+    ax.plot(df.index[:200], temperature[:200], 'k-', alpha=0.3, label='True Value')
     ax.plot(df.index[:200], filled_data[:200], 'b-', label=name)
     ax.scatter(df.index[missing_indices[:10]], filled_data[missing_indices[:10]],
-               color='red', s=50, zorder=5, label='補完値')
-    ax.set_xlabel('時刻')
-    ax.set_ylabel('温度 (°C)')
+               color='red', s=50, zorder=5, label='Imputed Value')
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Temperature (°C)')
     ax.legend()
     ax.grid(True, alpha=0.3)
 
 plt.tight_layout()
 plt.savefig('missing_value_imputation.png', dpi=300)
-print("\n結果: スプライン補間が最も精度が高い（MAE < 0.3°C）")
+print("\nResult: Spline interpolation has the highest accuracy (MAE < 0.3°C)")
 </code></pre>
             </div>
 
             <div class="example-box">
-                <h4>Example 2: 外れ値の検知と処理</h4>
-                <p>統計的手法（3σ法）とMachine Learning的手法（Isolation Forest）を組み合わせた堅牢な外れ値検知を実装します。</p>
+                <h4>Example 2: Outlier Detection and Processing</h4>
+                <p>We implement robust outlier detection combining statistical methods (3-sigma rule) and machine learning methods (Isolation Forest).</p>
                 <pre><code># ===================================
-# Example 2: 外れ値の検知と処理
+# Example 2: Outlier Detection and Processing
 # ===================================
 from sklearn.ensemble import IsolationForest
 from scipy import stats
 
-# Processデータ生成（圧力センサー、意図的な外れ値含む）
+# Generate process data (pressure sensor, including intentional outliers)
 np.random.seed(42)
 n_samples = 1000
 pressure = 5.0 + 0.3 * np.sin(np.arange(n_samples) * 0.02) + np.random.normal(0, 0.05, n_samples)
 
-# 外れ値を導入（センサー異常Simulation）
+# Introduce outliers (sensor anomaly simulation)
 outlier_indices = [100, 250, 500, 750]
-pressure[outlier_indices] = [8.5, 2.0, 9.2, 1.5]  # 異常値
+pressure[outlier_indices] = [8.5, 2.0, 9.2, 1.5]  # Anomalous values
 
 df_pressure = pd.DataFrame({
     'time': pd.date_range('2025-01-01', periods=n_samples, freq='1min'),
     'pressure': pressure
 })
 
-# 手法1: 3シグマ法（統計的手法）
+# Method 1: 3-sigma rule (statistical method)
 mean = df_pressure['pressure'].mean()
 std = df_pressure['pressure'].std()
 outliers_3sigma = (df_pressure['pressure'] < mean - 3*std) | (df_pressure['pressure'] > mean + 3*std)
 
-# 手法2: 四 minutes位範囲（IQR）法
+# Method 2: Interquartile Range (IQR) method
 Q1 = df_pressure['pressure'].quantile(0.25)
 Q3 = df_pressure['pressure'].quantile(0.75)
 IQR = Q3 - Q1
 outliers_iqr = (df_pressure['pressure'] < Q1 - 1.5*IQR) | (df_pressure['pressure'] > Q3 + 1.5*IQR)
 
-# 手法3: Isolation Forest（Machine Learning）
+# Method 3: Isolation Forest (machine learning)
 iso_forest = IsolationForest(contamination=0.01, random_state=42)
 outliers_iso = iso_forest.fit_predict(df_pressure[['pressure']]) == -1
 
-# 結果比較
-print("外れ値検知結果:")
-print(f"3シグマ法: {outliers_3sigma.sum()}")
-print(f"IQR法: {outliers_iqr.sum()}")
-print(f"Isolation Forest: {outliers_iso.sum()}")
+# Compare results
+print("Outlier Detection Results:")
+print(f"3-sigma rule: {outliers_3sigma.sum()} outliers")
+print(f"IQR method: {outliers_iqr.sum()} outliers")
+print(f"Isolation Forest: {outliers_iso.sum()} outliers")
 
-# 外れ値の処理（移動中央値で置換）
+# Process outliers (replace with moving median)
 df_pressure['pressure_cleaned'] = df_pressure['pressure'].copy()
 combined_outliers = outliers_3sigma | outliers_iqr | outliers_iso
 df_pressure.loc[combined_outliers, 'pressure_cleaned'] = df_pressure['pressure'].rolling(
     window=11, center=True, min_periods=1
 ).median()[combined_outliers]
 
-# 可視化
+# Visualization
 fig, ax = plt.subplots(figsize=(14, 5))
-ax.plot(df_pressure['time'], df_pressure['pressure'], 'k-', alpha=0.5, label='元データ')
+ax.plot(df_pressure['time'], df_pressure['pressure'], 'k-', alpha=0.5, label='Original Data')
 ax.scatter(df_pressure.loc[combined_outliers, 'time'],
            df_pressure.loc[combined_outliers, 'pressure'],
-           color='red', s=100, zorder=5, label='検出された外れ値')
+           color='red', s=100, zorder=5, label='Detected Outliers')
 ax.plot(df_pressure['time'], df_pressure['pressure_cleaned'], 'b-',
-        linewidth=2, label='クリーニング後')
-ax.set_xlabel('時刻')
-ax.set_ylabel('圧力 (MPa)')
+        linewidth=2, label='After Cleaning')
+ax.set_xlabel('Time')
+ax.set_ylabel('Pressure (MPa)')
 ax.legend()
 ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig('outlier_detection.png', dpi=300)
 
-print(f"\n処理結果: {combined_outliers.sum()}の外れ値を検出・修正")
+print(f"\nProcessing Result: Detected and corrected {combined_outliers.sum()} outliers")
 </code></pre>
             </div>
         </section>
 
         <section>
-            <h2>1.3 定常性の検定とトレンド minutes解</h2>
+            <h2>1.3 Stationarity Testing and Trend Decomposition</h2>
             <p>
-                多くの時系列解析手法は、データが「定常」であること（統計的性質が hoursによらず一定）を前提とします。
-                Processデータがこの条件を満たすかを検定し、必要に応じてトレンドや季節性を除去します。
+                Many time series analysis methods assume that the data is "stationary" (statistical properties are constant over time). We test whether process data meets this condition and remove trend or seasonality as necessary.
             </p>
 
             <div class="example-box">
-                <h4>Example 3: ADF検定とKPSS検定による定常性の評価</h4>
-                <p>Augmented Dickey-Fuller (ADF) 検定とKPSS検定を組み合わせて定常性を厳密に評価します。</p>
+                <h4>Example 3: Stationarity Evaluation Using ADF Test and KPSS Test</h4>
+                <p>We rigorously evaluate stationarity by combining the Augmented Dickey-Fuller (ADF) test and KPSS test.</p>
                 <pre><code># ===================================
-# Example 3: 定常性検定
+# Example 3: Stationarity Testing
 # ===================================
 from statsmodels.tsa.stattools import adfuller, kpss
 
-# 非定常データの生成（トレンド + 季節性 + ノイズ）
+# Generate non-stationary data (trend + seasonality + noise)
 np.random.seed(42)
 n = 500
 t = np.arange(n)
@@ -338,67 +334,67 @@ df_flow = pd.DataFrame({
     'flow_rate': flow_rate
 })
 
-def test_stationarity(timeseries, name='系列'):
-    """ADF検定とKPSS検定による定常性評価"""
+def test_stationarity(timeseries, name='Series'):
+    """Stationarity evaluation using ADF test and KPSS test"""
     print(f"\n{'='*60}")
-    print(f"{name}の定常性検定")
+    print(f"Stationarity Test for {name}")
     print(f"{'='*60}")
 
-    # ADF検定（帰無仮説: 単位根が存在 = 非定常）
+    # ADF test (null hypothesis: unit root exists = non-stationary)
     adf_result = adfuller(timeseries, autolag='AIC')
-    print(f"\nADF検定:")
-    print(f"  検定統計量: {adf_result[0]:.4f}")
-    print(f"  p値: {adf_result[1]:.4f}")
-    print(f"  臨界値:")
+    print(f"\nADF Test:")
+    print(f"  Test statistic: {adf_result[0]:.4f}")
+    print(f"  p-value: {adf_result[1]:.4f}")
+    print(f"  Critical values:")
     for key, value in adf_result[4].items():
         print(f"    {key}: {value:.4f}")
 
     if adf_result[1] < 0.05:
-        print(f"  → 結論: 定常（p < 0.05で単位根を棄却）")
+        print(f"  → Conclusion: Stationary (unit root rejected at p < 0.05)")
     else:
-        print(f"  → 結論: 非定常（単位根が存在する可能性）")
+        print(f"  → Conclusion: Non-stationary (unit root may exist)")
 
-    # KPSS検定（帰無仮説: 定常）
+    # KPSS test (null hypothesis: stationary)
     kpss_result = kpss(timeseries, regression='ct', nlags='auto')
-    print(f"\nKPSS検定:")
-    print(f"  検定統計量: {kpss_result[0]:.4f}")
-    print(f"  p値: {kpss_result[1]:.4f}")
-    print(f"  臨界値:")
+    print(f"\nKPSS Test:")
+    print(f"  Test statistic: {kpss_result[0]:.4f}")
+    print(f"  p-value: {kpss_result[1]:.4f}")
+    print(f"  Critical values:")
     for key, value in kpss_result[3].items():
         print(f"    {key}: {value:.4f}")
 
     if kpss_result[1] > 0.05:
-        print(f"  → 結論: 定常（p > 0.05で帰無仮説を棄却できず）")
+        print(f"  → Conclusion: Stationary (null hypothesis not rejected at p > 0.05)")
     else:
-        print(f"  → 結論: 非定常（定常性を棄却）")
+        print(f"  → Conclusion: Non-stationary (stationarity rejected)")
 
-    # 総合判定
-    print(f"\n総合判定:")
+    # Overall assessment
+    print(f"\nOverall Assessment:")
     if adf_result[1] < 0.05 and kpss_result[1] > 0.05:
-        print(f"  ✅ 定常系列")
+        print(f"  ✅ Stationary series")
     elif adf_result[1] >= 0.05 and kpss_result[1] <= 0.05:
-        print(f"  ❌ 非定常系列（差 minutes化が必要）")
+        print(f"  ❌ Non-stationary series (differencing required)")
     else:
-        print(f"  ⚠️ 判定不明瞭（両検定の結果が矛盾）")
+        print(f"  ⚠️ Ambiguous result (contradictory test results)")
 
-# 元データの検定
-test_stationarity(df_flow['flow_rate'], name='元の流量データ')
+# Test original data
+test_stationarity(df_flow['flow_rate'], name='Original Flow Rate Data')
 
-# 1階差 minutes後のデータ
+# Data after first-order differencing
 flow_diff = df_flow['flow_rate'].diff().dropna()
-test_stationarity(flow_diff, name='1階差 minutes後の流量データ')
+test_stationarity(flow_diff, name='First-Order Differenced Flow Rate Data')
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(2, 1, figsize=(14, 8))
 axes[0].plot(df_flow['time'], df_flow['flow_rate'])
-axes[0].set_title('元データ（非定常）')
-axes[0].set_ylabel('流量 (m³/h)')
+axes[0].set_title('Original Data (Non-stationary)')
+axes[0].set_ylabel('Flow Rate (m³/h)')
 axes[0].grid(True, alpha=0.3)
 
 axes[1].plot(df_flow['time'][1:], flow_diff)
-axes[1].set_title('1階差 minutes後（定常）')
-axes[1].set_xlabel('時刻')
-axes[1].set_ylabel('流量変化 (m³/h)')
+axes[1].set_title('After First-Order Differencing (Stationary)')
+axes[1].set_xlabel('Time')
+axes[1].set_ylabel('Flow Rate Change (m³/h)')
 axes[1].grid(True, alpha=0.3)
 
 plt.tight_layout()
@@ -407,23 +403,23 @@ plt.savefig('stationarity_test.png', dpi=300)
             </div>
 
             <div class="example-box">
-                <h4>Example 4: STL minutes解によるトレンド・季節性の抽出</h4>
-                <p>Seasonal-Trend decomposition using Loess (STL) で時系列を3成 minutesに minutes解します。</p>
+                <h4>Example 4: Trend and Seasonality Extraction Using STL Decomposition</h4>
+                <p>We decompose the time series into three components using Seasonal-Trend decomposition using Loess (STL).</p>
                 <pre><code># ===================================
-# Example 4: STL minutes解
+# Example 4: STL Decomposition
 # ===================================
 from statsmodels.tsa.seasonal import STL
 
-# 季節性を持つProcessデータ（反応器温度、日次変動あり）
+# Generate process data with seasonality (reactor temperature with daily variation)
 np.random.seed(42)
 n_days = 365
 hours_per_day = 24
 n = n_days * hours_per_day
 
 t = np.arange(n)
-trend = 300 + 0.01 * t  # 緩やかな上昇トレンド
-daily_seasonal = 5 * np.sin(2 * np.pi * t / 24)  # 日次変動
-weekly_seasonal = 2 * np.sin(2 * np.pi * t / (24*7))  # 週次変動
+trend = 300 + 0.01 * t  # Gradual upward trend
+daily_seasonal = 5 * np.sin(2 * np.pi * t / 24)  # Daily variation
+weekly_seasonal = 2 * np.sin(2 * np.pi * t / (24*7))  # Weekly variation
 noise = np.random.normal(0, 0.5, n)
 
 reactor_temp = trend + daily_seasonal + weekly_seasonal + noise
@@ -434,38 +430,38 @@ df_reactor = pd.DataFrame({
 })
 df_reactor.set_index('time', inplace=True)
 
-# STL minutes解
-stl = STL(df_reactor['temperature'], seasonal=24*7, period=24)  # 週次の季節性
+# STL decomposition
+stl = STL(df_reactor['temperature'], seasonal=24*7, period=24)  # Weekly seasonality
 result = stl.fit()
 
-# 結果の表示
-print("STL minutes解結果:")
-print(f"トレンド成 minutesの範囲: {result.trend.min():.2f} - {result.trend.max():.2f}°C")
-print(f"季節成 minutesの振幅: {result.seasonal.max() - result.seasonal.min():.2f}°C")
-print(f"残差の標準偏差: {result.resid.std():.4f}°C")
+# Display results
+print("STL Decomposition Results:")
+print(f"Trend component range: {result.trend.min():.2f} - {result.trend.max():.2f}°C")
+print(f"Seasonal component amplitude: {result.seasonal.max() - result.seasonal.min():.2f}°C")
+print(f"Residual standard deviation: {result.resid.std():.4f}°C")
 
-# 季節調整後の系列
+# Seasonally adjusted series
 seasonal_adjusted = df_reactor['temperature'] - result.seasonal
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(4, 1, figsize=(14, 10))
 
 axes[0].plot(df_reactor.index, df_reactor['temperature'], linewidth=0.5)
-axes[0].set_title('元データ')
-axes[0].set_ylabel('温度 (°C)')
+axes[0].set_title('Original Data')
+axes[0].set_ylabel('Temperature (°C)')
 
 axes[1].plot(result.trend.index, result.trend, color='orange')
-axes[1].set_title('トレンド成 minutes')
-axes[1].set_ylabel('温度 (°C)')
+axes[1].set_title('Trend Component')
+axes[1].set_ylabel('Temperature (°C)')
 
 axes[2].plot(result.seasonal.index, result.seasonal, color='green')
-axes[2].set_title('季節成 minutes（日次+週次）')
-axes[2].set_ylabel('温度変動 (°C)')
+axes[2].set_title('Seasonal Component (Daily + Weekly)')
+axes[2].set_ylabel('Temperature Variation (°C)')
 
 axes[3].plot(result.resid.index, result.resid, color='red', linewidth=0.5)
-axes[3].set_title('残差（ノイズ）')
-axes[3].set_xlabel('時刻')
-axes[3].set_ylabel('温度 (°C)')
+axes[3].set_title('Residual (Noise)')
+axes[3].set_xlabel('Time')
+axes[3].set_ylabel('Temperature (°C)')
 
 for ax in axes:
     ax.grid(True, alpha=0.3)
@@ -473,34 +469,33 @@ for ax in axes:
 plt.tight_layout()
 plt.savefig('stl_decomposition.png', dpi=300)
 
-print("\n結果: 季節調整により日次・週次変動を除去し、トレンドを抽出")
+print("\nResult: Seasonal adjustment removes daily and weekly variations and extracts trend")
 </code></pre>
             </div>
         </section>
 
         <section>
-            <h2>1.4 自己相関 minutes析とARIMAモデリング</h2>
+            <h2>1.4 Autocorrelation Analysis and ARIMA Modeling</h2>
             <p>
-                Processデータは過去の値と相関を持つことが一般的です（例：現在の温度は5 minutes前の温度と強い相関）。
-                自己相関を理解し、ARIMAモデルで将来の値をPredictionします。
+                Process data generally has correlations with past values (e.g., current temperature has a strong correlation with temperature 5 minutes ago). We understand autocorrelation and predict future values using ARIMA models.
             </p>
 
             <div class="example-box">
-                <h4>Example 5: ACF/PACFプロットとARIMAモデルの次数決定</h4>
-                <p>自己相関関数（ACF）と偏自己相関関数（PACF）からARIMAの最適次数を決定します。</p>
+                <h4>Example 5: ACF/PACF Plots and ARIMA Order Determination</h4>
+                <p>We determine the optimal ARIMA order from the Autocorrelation Function (ACF) and Partial Autocorrelation Function (PACF).</p>
                 <pre><code># ===================================
-# Example 5: ACF/PACFとARIMA次数決定
+# Example 5: ACF/PACF and ARIMA Order Determination
 # ===================================
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.arima.model import ARIMA
 import warnings
 warnings.filterwarnings('ignore')
 
-# ARProcess（AR(2)）のSimulation
+# Simulate AR process (AR(2))
 np.random.seed(42)
 n = 500
-ar_params = [0.7, -0.3]  # AR(2)係数
-concentration = [10.0, 10.5]  # 初期値
+ar_params = [0.7, -0.3]  # AR(2) coefficients
+concentration = [10.0, 10.5]  # Initial values
 
 for i in range(2, n):
     new_value = 10 + ar_params[0] * (concentration[i-1] - 10) + \
@@ -514,20 +509,20 @@ df_conc = pd.DataFrame({
 })
 df_conc.set_index('time', inplace=True)
 
-# ACF/PACFプロット
+# ACF/PACF plots
 fig, axes = plt.subplots(1, 2, figsize=(14, 4))
 plot_acf(df_conc['concentration'], lags=40, ax=axes[0])
-axes[0].set_title('自己相関関数 (ACF)')
+axes[0].set_title('Autocorrelation Function (ACF)')
 plot_pacf(df_conc['concentration'], lags=40, ax=axes[1])
-axes[1].set_title('偏自己相関関数 (PACF)')
+axes[1].set_title('Partial Autocorrelation Function (PACF)')
 plt.tight_layout()
 plt.savefig('acf_pacf.png', dpi=300)
 
-print("ACF/PACF解釈:")
-print("- PACFがlag=2で急激に減衰 → AR(2)が適切")
-print("- ACFが徐々に減衰 → ARProcessの特徴")
+print("ACF/PACF Interpretation:")
+print("- PACF decays sharply at lag=2 → AR(2) is appropriate")
+print("- ACF decays gradually → Characteristic of AR process")
 
-# グリッドサーチでARIMA次数を決定
+# Determine ARIMA order using grid search
 best_aic = np.inf
 best_order = None
 results_df = []
@@ -550,91 +545,90 @@ for p in range(0, 4):
                 continue
 
 results_df = pd.DataFrame(results_df).sort_values('AIC').head(10)
-print("\nAICによる最適モデル（上位10件）:")
+print("\nOptimal Models by AIC (Top 10):")
 print(results_df.to_string(index=False))
-print(f"\n最適次数: ARIMA{best_order}, AIC={best_aic:.2f}")
+print(f"\nOptimal order: ARIMA{best_order}, AIC={best_aic:.2f}")
 </code></pre>
             </div>
 
             <div class="example-box">
-                <h4>Example 6: ARIMAモデルによるPredictionと信頼区間</h4>
-                <p>OptimizationされたARIMAモデルで未来の値をPredictionし、95%信頼区間を可視化します。</p>
+                <h4>Example 6: ARIMA Forecasting and Confidence Intervals</h4>
+                <p>We forecast future values with an optimized ARIMA model and visualize 95% confidence intervals.</p>
                 <pre><code># ===================================
-# Example 6: ARIMAPredictionと信頼区間
+# Example 6: ARIMA Forecasting and Confidence Intervals
 # ===================================
 
-# 最適モデルで訓練
+# Train with optimal model
 train_size = int(0.8 * len(df_conc))
 train, test = df_conc[:train_size], df_conc[train_size:]
 
 model = ARIMA(train['concentration'], order=best_order)
 fitted_model = model.fit()
 
-# モデル診断
-print("\nモデル診断:")
+# Model diagnostics
+print("\nModel Diagnostics:")
 print(fitted_model.summary())
 
-# Prediction（テストデータ期間）
+# Forecasting (test data period)
 forecast_steps = len(test)
 forecast = fitted_model.forecast(steps=forecast_steps)
 forecast_df = fitted_model.get_forecast(steps=forecast_steps)
 forecast_ci = forecast_df.conf_int()
 
-# Prediction精度の評価
+# Evaluate forecast accuracy
 mae = np.mean(np.abs(test['concentration'].values - forecast.values))
 rmse = np.sqrt(np.mean((test['concentration'].values - forecast.values)**2))
 mape = np.mean(np.abs((test['concentration'].values - forecast.values) / test['concentration'].values)) * 100
 
-print(f"\nPrediction精度:")
+print(f"\nForecast Accuracy:")
 print(f"MAE: {mae:.4f} mol/L")
 print(f"RMSE: {rmse:.4f} mol/L")
 print(f"MAPE: {mape:.2f}%")
 
-# 可視化
+# Visualization
 fig, ax = plt.subplots(figsize=(14, 6))
-ax.plot(train.index, train['concentration'], label='訓練データ', color='blue')
-ax.plot(test.index, test['concentration'], label='実測値', color='green')
-ax.plot(test.index, forecast, label='Prediction値', color='red', linestyle='--')
+ax.plot(train.index, train['concentration'], label='Training Data', color='blue')
+ax.plot(test.index, test['concentration'], label='Actual Values', color='green')
+ax.plot(test.index, forecast, label='Forecast', color='red', linestyle='--')
 ax.fill_between(test.index,
                  forecast_ci.iloc[:, 0],
                  forecast_ci.iloc[:, 1],
-                 color='red', alpha=0.2, label='95%信頼区間')
-ax.set_xlabel('時刻')
-ax.set_ylabel('濃度 (mol/L)')
-ax.set_title(f'ARIMA{best_order}による濃度Prediction (MAPE={mape:.2f}%)')
+                 color='red', alpha=0.2, label='95% Confidence Interval')
+ax.set_xlabel('Time')
+ax.set_ylabel('Concentration (mol/L)')
+ax.set_title(f'Concentration Forecast Using ARIMA{best_order} (MAPE={mape:.2f}%)')
 ax.legend()
 ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig('arima_forecast.png', dpi=300)
 
-print("\n結果: ARIMA(2,0,0)モデルで高精度Prediction（MAPE < 2%）")
+print("\nResult: ARIMA(2,0,0) model achieves high-accuracy forecasting (MAPE < 2%)")
 </code></pre>
             </div>
         </section>
 
         <section>
-            <h2>1.5 指数平滑法による短期Prediction</h2>
+            <h2>1.5 Short-term Forecasting Using Exponential Smoothing</h2>
             <p>
-                トレンドや季節性を持つProcessデータに対しては、Holt-Winters法（三重指数平滑法）が効果的です。
-                ARIMAより計算コストが低く、リアルタイムPredictionに適しています。
+                For process data with trend or seasonality, the Holt-Winters method (triple exponential smoothing) is effective. It has lower computational cost than ARIMA and is suitable for real-time forecasting.
             </p>
 
             <div class="example-box">
-                <h4>Example 7: Holt-Winters法による季節性を考慮したPrediction</h4>
-                <p>加法モデルと乗法モデルを比較し、最適な平滑化パラメータを自動選択します。</p>
+                <h4>Example 7: Forecasting Considering Seasonality Using Holt-Winters Method</h4>
+                <p>We compare additive and multiplicative models and automatically select optimal smoothing parameters.</p>
                 <pre><code># ===================================
-# Example 7: Holt-Winters法
+# Example 7: Holt-Winters Method
 # ===================================
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
-# 季節性データ（生産量、週次パターンあり）
+# Generate seasonal data (production volume with weekly pattern)
 np.random.seed(42)
 n_weeks = 52
 n = n_weeks * 7
 t = np.arange(n)
 
 trend = 1000 + 2 * t
-weekly_pattern = 100 * np.sin(2 * np.pi * t / 7)  # 週次パターン
+weekly_pattern = 100 * np.sin(2 * np.pi * t / 7)  # Weekly pattern
 noise = np.random.normal(0, 20, n)
 
 production = trend + weekly_pattern + noise
@@ -645,11 +639,11 @@ df_prod = pd.DataFrame({
 })
 df_prod.set_index('time', inplace=True)
 
-# 訓練/テストデータ minutes割
+# Train/test data split
 train_size = int(0.9 * len(df_prod))
 train, test = df_prod[:train_size], df_prod[train_size:]
 
-# 加法モデル
+# Additive model
 model_add = ExponentialSmoothing(
     train['production'],
     trend='add',
@@ -658,7 +652,7 @@ model_add = ExponentialSmoothing(
 )
 fitted_add = model_add.fit()
 
-# 乗法モデル
+# Multiplicative model
 model_mul = ExponentialSmoothing(
     train['production'],
     trend='add',
@@ -667,79 +661,78 @@ model_mul = ExponentialSmoothing(
 )
 fitted_mul = model_mul.fit()
 
-# Prediction
+# Forecasting
 forecast_add = fitted_add.forecast(steps=len(test))
 forecast_mul = fitted_mul.forecast(steps=len(test))
 
-# 精度比較
+# Accuracy comparison
 mae_add = np.mean(np.abs(test['production'] - forecast_add))
 mae_mul = np.mean(np.abs(test['production'] - forecast_mul))
 
-print("Holt-Winters法の比較:")
-print(f"\n加法モデル:")
-print(f"  α (Level): {fitted_add.params['smoothing_level']:.4f}")
-print(f"  β (トレンド): {fitted_add.params['smoothing_trend']:.4f}")
-print(f"  γ (季節性): {fitted_add.params['smoothing_seasonal']:.4f}")
+print("Holt-Winters Method Comparison:")
+print(f"\nAdditive Model:")
+print(f"  α (level): {fitted_add.params['smoothing_level']:.4f}")
+print(f"  β (trend): {fitted_add.params['smoothing_trend']:.4f}")
+print(f"  γ (seasonality): {fitted_add.params['smoothing_seasonal']:.4f}")
 print(f"  MAE: {mae_add:.2f} units")
 
-print(f"\n乗法モデル:")
-print(f"  α (Level): {fitted_mul.params['smoothing_level']:.4f}")
-print(f"  β (トレンド): {fitted_mul.params['smoothing_trend']:.4f}")
-print(f"  γ (季節性): {fitted_mul.params['smoothing_seasonal']:.4f}")
+print(f"\nMultiplicative Model:")
+print(f"  α (level): {fitted_mul.params['smoothing_level']:.4f}")
+print(f"  β (trend): {fitted_mul.params['smoothing_trend']:.4f}")
+print(f"  γ (seasonality): {fitted_mul.params['smoothing_seasonal']:.4f}")
 print(f"  MAE: {mae_mul:.2f} units")
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(2, 1, figsize=(14, 10))
 
-axes[0].plot(train.index, train['production'], label='訓練データ', alpha=0.7)
-axes[0].plot(test.index, test['production'], label='実測値', color='green')
-axes[0].plot(test.index, forecast_add, label='加法モデルPrediction', color='red', linestyle='--')
-axes[0].set_ylabel('生産量 (units/day)')
-axes[0].set_title(f'Holt-Winters加法モデル (MAE={mae_add:.2f})')
+axes[0].plot(train.index, train['production'], label='Training Data', alpha=0.7)
+axes[0].plot(test.index, test['production'], label='Actual Values', color='green')
+axes[0].plot(test.index, forecast_add, label='Additive Model Forecast', color='red', linestyle='--')
+axes[0].set_ylabel('Production (units/day)')
+axes[0].set_title(f'Holt-Winters Additive Model (MAE={mae_add:.2f})')
 axes[0].legend()
 axes[0].grid(True, alpha=0.3)
 
-axes[1].plot(train.index, train['production'], label='訓練データ', alpha=0.7)
-axes[1].plot(test.index, test['production'], label='実測値', color='green')
-axes[1].plot(test.index, forecast_mul, label='乗法モデルPrediction', color='blue', linestyle='--')
-axes[1].set_xlabel('時刻')
-axes[1].set_ylabel('生産量 (units/day)')
-axes[1].set_title(f'Holt-Winters乗法モデル (MAE={mae_mul:.2f})')
+axes[1].plot(train.index, train['production'], label='Training Data', alpha=0.7)
+axes[1].plot(test.index, test['production'], label='Actual Values', color='green')
+axes[1].plot(test.index, forecast_mul, label='Multiplicative Model Forecast', color='blue', linestyle='--')
+axes[1].set_xlabel('Time')
+axes[1].set_ylabel('Production (units/day)')
+axes[1].set_title(f'Holt-Winters Multiplicative Model (MAE={mae_mul:.2f})')
 axes[1].legend()
 axes[1].grid(True, alpha=0.3)
 
 plt.tight_layout()
 plt.savefig('holtwinters.png', dpi=300)
 
-best_model = "加法" if mae_add < mae_mul else "乗法"
-print(f"\n結果: {best_model}モデルがより高精度")
+best_model = "Additive" if mae_add < mae_mul else "Multiplicative"
+print(f"\nResult: {best_model} model achieves higher accuracy")
 </code></pre>
             </div>
         </section>
 
         <section>
-            <h2>1.6 変化点検知</h2>
+            <h2>1.6 Change Point Detection</h2>
             <p>
-                Process条件の変更、触媒劣化、原料品質変化などにより、時系列データの統計的性質が急変することがあります。
-                変化点検知アルゴリズムでこれらの重要なイベントを自動検出します。
+                The statistical properties of time series data may change abruptly due to process condition changes, catalyst degradation, raw material quality changes, etc. Change point detection algorithms automatically detect these important events.
             </p>
 
             <div class="example-box">
-                <h4>Example 8: PELT法による複数変化点の検知</h4>
-                <p>Pruned Exact Linear Time (PELT) アルゴリズムで効率的に変化点を検出します。</p>
+                <h4>Example 8: Multiple Change Point Detection Using PELT Method</h4>
+                <p>We efficiently detect change points using the Pruned Exact Linear Time (PELT) algorithm.</p>
                 <pre><code># ===================================
-# Example 8: PELT法による変化点検知
+# Example 8: Change Point Detection Using PELT Method
 # ===================================
 import ruptures as rpt
 
-# 変化点を含むデータ生成（触媒劣化Simulation）
+# Generate data with change points (catalyst degradation simulation)
 np.random.seed(42)
 n_points = 1000
 
-# 3つのレジーム（正常 → 劣化開始 → 大幅劣化）
-regime1 = np.random.normal(95, 1, 400)  # 収率95%
-regime2 = np.random.normal(92, 1.5, 300)  # 収率92%
-regime3 = np.random.normal(88, 2, 300)  # 収率88%
+# Three regimes (normal → degradation start → significant degradation)
+regime1 = np.random.normal(95, 1, 400)  # Yield 95%
+regime2 = np.random.normal(92, 1.5, 300)  # Yield 92%
+regime3 = np.random.normal(88, 2, 300)  # Yield 88%
 
 yield_data = np.concatenate([regime1, regime2, regime3])
 
@@ -748,28 +741,28 @@ df_yield = pd.DataFrame({
     'yield': yield_data
 })
 
-# PELT法による変化点検知
-model = "l2"  # コスト関数（平均の変化を検知）
+# Change point detection using PELT method
+model = "l2"  # Cost function (detects mean changes)
 algo = rpt.Pelt(model=model, min_size=50, jump=5).fit(yield_data)
-changepoints = algo.predict(pen=10)  # ペナルティパラメータ
+changepoints = algo.predict(pen=10)  # Penalty parameter
 
-print("検出された変化点:")
+print("Detected Change Points:")
 for i, cp in enumerate(changepoints[:-1], 1):
     time_point = df_yield['time'].iloc[cp]
     mean_before = yield_data[max(0, cp-50):cp].mean()
     mean_after = yield_data[cp:min(len(yield_data), cp+50)].mean()
-    print(f"変化点{i}: 位置={cp}, 時刻={time_point}, 平均変化={mean_before:.2f}% → {mean_after:.2f}%")
+    print(f"Change point {i}: Position={cp}, Time={time_point}, Mean change={mean_before:.2f}% → {mean_after:.2f}%")
 
-# 可視化
+# Visualization
 fig, ax = plt.subplots(figsize=(14, 6))
-ax.plot(df_yield['time'], df_yield['yield'], linewidth=0.8, label='収率データ')
+ax.plot(df_yield['time'], df_yield['yield'], linewidth=0.8, label='Yield Data')
 
-# 変化点を垂直線で表示
+# Display change points with vertical lines
 for cp in changepoints[:-1]:
     ax.axvline(df_yield['time'].iloc[cp], color='red', linestyle='--',
-               linewidth=2, label='変化点' if cp == changepoints[0] else '')
+               linewidth=2, label='Change Point' if cp == changepoints[0] else '')
 
-# 各レジームの平均を表示
+# Display mean for each regime
 for i in range(len(changepoints)):
     start = 0 if i == 0 else changepoints[i-1]
     end = changepoints[i]
@@ -777,37 +770,37 @@ for i in range(len(changepoints)):
     ax.hlines(segment_mean, df_yield['time'].iloc[start], df_yield['time'].iloc[end-1],
               colors='blue', linestyles='dotted', linewidth=2)
 
-ax.set_xlabel('時刻')
-ax.set_ylabel('収率 (%)')
-ax.set_title('PELT法による触媒劣化の変化点検知')
+ax.set_xlabel('Time')
+ax.set_ylabel('Yield (%)')
+ax.set_title('Change Point Detection of Catalyst Degradation Using PELT Method')
 ax.legend()
 ax.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig('changepoint_pelt.png', dpi=300)
 
-print(f"\n結果: {len(changepoints)-1}の変化点を検出（真の変化点=2）")
+print(f"\nResult: Detected {len(changepoints)-1} change points (true change points = 2)")
 </code></pre>
             </div>
 
             <div class="example-box">
-                <h4>Example 9: Binary Segmentationによるオンライン変化点検知</h4>
-                <p>ストリーミングデータに適したBinary Segmentation法を実装します。</p>
+                <h4>Example 9: Online Change Point Detection Using Binary Segmentation</h4>
+                <p>We implement the Binary Segmentation method suitable for streaming data.</p>
                 <pre><code># ===================================
 # Example 9: Binary Segmentation
 # ===================================
 
-# Binary Segmentation法
+# Binary Segmentation method
 algo_bs = rpt.Binseg(model="l2", min_size=30).fit(yield_data)
-changepoints_bs = algo_bs.predict(n_bkps=3)  # 変化点数を指定
+changepoints_bs = algo_bs.predict(n_bkps=3)  # Specify number of change points
 
-print("\nBinary Segmentation結果:")
+print("\nBinary Segmentation Results:")
 for i, cp in enumerate(changepoints_bs[:-1], 1):
     time_point = df_yield['time'].iloc[cp]
-    print(f"変化点{i}: 位置={cp}, 時刻={time_point}")
+    print(f"Change point {i}: Position={cp}, Time={time_point}")
 
-# オンライン検知Simulation（ウィンドウベース）
+# Online detection simulation (window-based)
 def online_changepoint_detection(data, window_size=100, threshold=3.0):
-    """簡易オンライン変化点検知"""
+    """Simple online change point detection"""
     changepoints = []
 
     for i in range(window_size, len(data)):
@@ -816,188 +809,187 @@ def online_changepoint_detection(data, window_size=100, threshold=3.0):
         current_std = window[:window_size//2].std()
         recent_mean = window[window_size//2:].mean()
 
-        # Z-scoreによる検知
+        # Detection using Z-score
         z_score = abs(recent_mean - current_mean) / (current_std + 1e-10)
 
         if z_score > threshold:
             changepoints.append(i)
-            # 次の検知まで待機（連続検知を防ぐ）
+            # Wait before next detection (prevent consecutive detections)
             i += window_size // 2
 
     return changepoints
 
 online_cps = online_changepoint_detection(yield_data, window_size=100, threshold=2.5)
 
-print(f"\nオンライン検知結果: {len(online_cps)}の変化点")
+print(f"\nOnline Detection Results: {len(online_cps)} change points")
 for i, cp in enumerate(online_cps, 1):
-    print(f"変化点{i}: 位置={cp}, 時刻={df_yield['time'].iloc[cp]}")
+    print(f"Change point {i}: Position={cp}, Time={df_yield['time'].iloc[cp]}")
 
-# 比較可視化
+# Comparative visualization
 fig, axes = plt.subplots(2, 1, figsize=(14, 10))
 
 axes[0].plot(df_yield['time'], df_yield['yield'], linewidth=0.8)
 for cp in changepoints[:-1]:
     axes[0].axvline(df_yield['time'].iloc[cp], color='red', linestyle='--', alpha=0.7)
-axes[0].set_ylabel('収率 (%)')
-axes[0].set_title('PELT法（バッチ処理）')
+axes[0].set_ylabel('Yield (%)')
+axes[0].set_title('PELT Method (Batch Processing)')
 axes[0].grid(True, alpha=0.3)
 
 axes[1].plot(df_yield['time'], df_yield['yield'], linewidth=0.8)
 for cp in online_cps:
     axes[1].axvline(df_yield['time'].iloc[cp], color='blue', linestyle='--', alpha=0.7)
-axes[1].set_xlabel('時刻')
-axes[1].set_ylabel('収率 (%)')
-axes[1].set_title('オンライン検知（ウィンドウベース）')
+axes[1].set_xlabel('Time')
+axes[1].set_ylabel('Yield (%)')
+axes[1].set_title('Online Detection (Window-based)')
 axes[1].grid(True, alpha=0.3)
 
 plt.tight_layout()
 plt.savefig('changepoint_comparison.png', dpi=300)
 
-print("\n結果: オンライン検知はリアルタイム処理に適するが、感度調整が重要")
+print("\nResult: Online detection is suitable for real-time processing, but sensitivity tuning is crucial")
 </code></pre>
             </div>
         </section>
 
         <section>
-            <h2>1.7 パターンマッチングと類似度 minutes析</h2>
+            <h2>1.7 Pattern Matching and Similarity Analysis</h2>
             <p>
-                過去の異常パターンや理想的な運転パターンとの類似度を評価することで、Process状態の診断やOptimizationに活用できます。
-                Dynamic Time Warping (DTW) は hours軸のズレを許容した柔軟なマッチングを可能にします。
+                By evaluating similarity with past anomalous patterns or ideal operating patterns, we can utilize this for process state diagnosis and optimization. Dynamic Time Warping (DTW) enables flexible matching that tolerates time axis shifts.
             </p>
 
             <div class="example-box">
-                <h4>Example 10: Dynamic Time Warping (DTW) による運転パターンマッチング</h4>
-                <p>DTWで hoursスケールが異なるProcessパターン間の類似度を計算します。</p>
+                <h4>Example 10: Operating Pattern Matching Using Dynamic Time Warping (DTW)</h4>
+                <p>We calculate similarity between process patterns with different time scales using DTW.</p>
                 <pre><code># ===================================
 # Example 10: Dynamic Time Warping
 # ===================================
 from scipy.spatial.distance import euclidean
 from fastdtw import fastdtw
 
-# 理想的な起動パターン（基準）
+# Ideal startup pattern (reference)
 np.random.seed(42)
 t_ideal = np.linspace(0, 10, 100)
 ideal_pattern = 20 + 80 / (1 + np.exp(-0.8 * (t_ideal - 5))) + np.random.normal(0, 1, 100)
 
-# 実際の起動パターン（ hours軸がずれている）
-t_actual = np.linspace(0, 12, 120)  # 少し hoursがかかる
+# Actual startup pattern (time axis shifted)
+t_actual = np.linspace(0, 12, 120)  # Takes slightly longer
 actual_pattern = 20 + 80 / (1 + np.exp(-0.6 * (t_actual - 6))) + np.random.normal(0, 1.5, 120)
 
-# 異常な起動パターン
-t_abnormal = np.linspace(0, 15, 150)  # 大幅に遅い
+# Abnormal startup pattern
+t_abnormal = np.linspace(0, 15, 150)  # Significantly slower
 abnormal_pattern = 20 + 60 / (1 + np.exp(-0.4 * (t_abnormal - 8))) + np.random.normal(0, 2, 150)
 
-# DTW距離の計算
+# Calculate DTW distance
 distance_normal, path_normal = fastdtw(ideal_pattern, actual_pattern, dist=euclidean)
 distance_abnormal, path_abnormal = fastdtw(ideal_pattern, abnormal_pattern, dist=euclidean)
 
-# ユークリッド距離との比較（単純な比較のため、長さを揃える）
+# Comparison with Euclidean distance (align lengths for simple comparison)
 ideal_resampled = np.interp(np.linspace(0, 1, 120), np.linspace(0, 1, 100), ideal_pattern)
 euclidean_distance = np.sqrt(np.sum((ideal_resampled - actual_pattern)**2))
 
-print("パターンマッチング結果:")
-print(f"\n理想パターン vs 正常起動:")
-print(f"  DTW距離: {distance_normal:.2f}")
-print(f"  ユークリッド距離: {euclidean_distance:.2f}")
+print("Pattern Matching Results:")
+print(f"\nIdeal Pattern vs Normal Startup:")
+print(f"  DTW distance: {distance_normal:.2f}")
+print(f"  Euclidean distance: {euclidean_distance:.2f}")
 
-print(f"\n理想パターン vs 異常起動:")
-print(f"  DTW距離: {distance_abnormal:.2f}")
+print(f"\nIdeal Pattern vs Abnormal Startup:")
+print(f"  DTW distance: {distance_abnormal:.2f}")
 
-# 類似度スコア（0-100）
-max_possible_distance = 1000  # 正規化用
+# Similarity score (0-100)
+max_possible_distance = 1000  # For normalization
 similarity_normal = 100 * (1 - distance_normal / max_possible_distance)
 similarity_abnormal = 100 * (1 - distance_abnormal / max_possible_distance)
 
-print(f"\n類似度スコア:")
-print(f"  正常起動: {similarity_normal:.1f}/100")
-print(f"  異常起動: {similarity_abnormal:.1f}/100")
+print(f"\nSimilarity Score:")
+print(f"  Normal startup: {similarity_normal:.1f}/100")
+print(f"  Abnormal startup: {similarity_abnormal:.1f}/100")
 
-# 可視化
+# Visualization
 fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
-# パターン比較
-axes[0, 0].plot(t_ideal, ideal_pattern, 'b-', linewidth=2, label='理想パターン')
-axes[0, 0].plot(t_actual, actual_pattern, 'g--', linewidth=2, label='正常起動')
-axes[0, 0].set_xlabel(' hours (min)')
-axes[0, 0].set_ylabel('温度 (°C)')
-axes[0, 0].set_title(f'正常起動との比較 (DTW距離={distance_normal:.1f})')
+# Pattern comparison
+axes[0, 0].plot(t_ideal, ideal_pattern, 'b-', linewidth=2, label='Ideal Pattern')
+axes[0, 0].plot(t_actual, actual_pattern, 'g--', linewidth=2, label='Normal Startup')
+axes[0, 0].set_xlabel('Time (min)')
+axes[0, 0].set_ylabel('Temperature (°C)')
+axes[0, 0].set_title(f'Comparison with Normal Startup (DTW distance={distance_normal:.1f})')
 axes[0, 0].legend()
 axes[0, 0].grid(True, alpha=0.3)
 
-axes[0, 1].plot(t_ideal, ideal_pattern, 'b-', linewidth=2, label='理想パターン')
-axes[0, 1].plot(t_abnormal, abnormal_pattern, 'r--', linewidth=2, label='異常起動')
-axes[0, 1].set_xlabel(' hours (min)')
-axes[0, 1].set_ylabel('温度 (°C)')
-axes[0, 1].set_title(f'異常起動との比較 (DTW距離={distance_abnormal:.1f})')
+axes[0, 1].plot(t_ideal, ideal_pattern, 'b-', linewidth=2, label='Ideal Pattern')
+axes[0, 1].plot(t_abnormal, abnormal_pattern, 'r--', linewidth=2, label='Abnormal Startup')
+axes[0, 1].set_xlabel('Time (min)')
+axes[0, 1].set_ylabel('Temperature (°C)')
+axes[0, 1].set_title(f'Comparison with Abnormal Startup (DTW distance={distance_abnormal:.1f})')
 axes[0, 1].legend()
 axes[0, 1].grid(True, alpha=0.3)
 
-# DTWアライメントパス
+# DTW alignment path
 path_array_normal = np.array(path_normal)
 axes[1, 0].plot(path_array_normal[:, 0], path_array_normal[:, 1], 'g-', alpha=0.5)
-axes[1, 0].set_xlabel('理想パターン インデックス')
-axes[1, 0].set_ylabel('正常起動 インデックス')
-axes[1, 0].set_title('DTWアライメントパス（正常）')
+axes[1, 0].set_xlabel('Ideal Pattern Index')
+axes[1, 0].set_ylabel('Normal Startup Index')
+axes[1, 0].set_title('DTW Alignment Path (Normal)')
 axes[1, 0].grid(True, alpha=0.3)
 
 path_array_abnormal = np.array(path_abnormal)
 axes[1, 1].plot(path_array_abnormal[:, 0], path_array_abnormal[:, 1], 'r-', alpha=0.5)
-axes[1, 1].set_xlabel('理想パターン インデックス')
-axes[1, 1].set_ylabel('異常起動 インデックス')
-axes[1, 1].set_title('DTWアライメントパス（異常）')
+axes[1, 1].set_xlabel('Ideal Pattern Index')
+axes[1, 1].set_ylabel('Abnormal Startup Index')
+axes[1, 1].set_title('DTW Alignment Path (Abnormal)')
 axes[1, 1].grid(True, alpha=0.3)
 
 plt.tight_layout()
 plt.savefig('dtw_pattern_matching.png', dpi=300)
 
-# 判定
+# Assessment
 threshold = 70
-print(f"\n判定結果（閾値={threshold}）:")
-print(f"  正常起動: {'✅ 合格' if similarity_normal >= threshold else '❌ 不合格'}")
-print(f"  異常起動: {'✅ 合格' if similarity_abnormal >= threshold else '❌ 不合格'}")
+print(f"\nAssessment Results (Threshold={threshold}):")
+print(f"  Normal startup: {'✅ Pass' if similarity_normal >= threshold else '❌ Fail'}")
+print(f"  Abnormal startup: {'✅ Pass' if similarity_abnormal >= threshold else '❌ Fail'}")
 </code></pre>
             </div>
         </section>
 
         <section>
-            <h2>1.8 実践例：化学Processへの適用</h2>
+            <h2>1.8 Practical Example: Application to Chemical Processes</h2>
             <div class="callout callout-success">
-                <h4>💡 実Processデータ適用のポイント</h4>
+                <h4>💡 Key Points for Real Process Data Application</h4>
                 <ul style="margin-bottom: 0;">
-                    <li><strong>前処理の重要性</strong>: センサーデータは必ず外れ値・欠損値をチェック</li>
-                    <li><strong>定常性の確認</strong>: 非定常データへのARIMAは差 minutes化が必須</li>
-                    <li><strong>モデル選択</strong>: 季節性があればHolt-Winters、複雑な依存性にはARIMA</li>
-                    <li><strong>変化点検知</strong>: Process変更やメンテナンス記録と照合</li>
-                    <li><strong>DTWの活用</strong>: バッチProcessのQuality Controlに特に有効</li>
+                    <li><strong>Importance of Preprocessing</strong>: Always check sensor data for outliers and missing values</li>
+                    <li><strong>Stationarity Verification</strong>: Differencing is mandatory for ARIMA on non-stationary data</li>
+                    <li><strong>Model Selection</strong>: Holt-Winters for seasonality, ARIMA for complex dependencies</li>
+                    <li><strong>Change Point Detection</strong>: Cross-reference with process change and maintenance records</li>
+                    <li><strong>DTW Utilization</strong>: Particularly effective for batch process quality control</li>
                 </ul>
             </div>
 
-            <h3>典型的な適用例</h3>
+            <h3>Typical Application Examples</h3>
             <table>
                 <tr>
                     <th style="width: 25%;">Process</th>
-                    <th style="width: 35%;">課題</th>
-                    <th style="width: 40%;">推奨手法</th>
+                    <th style="width: 35%;">Issue</th>
+                    <th style="width: 40%;">Recommended Method</th>
                 </tr>
                 <tr>
-                    <td>連続蒸留</td>
-                    <td>塔頂温度の短期Prediction</td>
-                    <td>ARIMA(2,1,1) または Holt-Winters</td>
+                    <td>Continuous Distillation</td>
+                    <td>Short-term forecasting of column top temperature</td>
+                    <td>ARIMA(2,1,1) or Holt-Winters</td>
                 </tr>
                 <tr>
-                    <td>バッチ反応</td>
-                    <td>理想運転パターンとの比較</td>
-                    <td>DTW + 類似度スコアリング</td>
+                    <td>Batch Reaction</td>
+                    <td>Comparison with ideal operating pattern</td>
+                    <td>DTW + similarity scoring</td>
                 </tr>
                 <tr>
-                    <td>触媒Process</td>
-                    <td>劣化の早期検知</td>
-                    <td>PELT変化点検知 + トレンド minutes析</td>
+                    <td>Catalytic Process</td>
+                    <td>Early detection of degradation</td>
+                    <td>PELT change point detection + trend analysis</td>
                 </tr>
                 <tr>
-                    <td>季節変動あり</td>
-                    <td>需要Predictionと在庫Optimization</td>
-                    <td>STL minutes解 + Holt-Winters</td>
+                    <td>With Seasonal Variation</td>
+                    <td>Demand forecasting and inventory optimization</td>
+                    <td>STL decomposition + Holt-Winters</td>
                 </tr>
             </table>
         </section>
@@ -1005,26 +997,24 @@ print(f"  異常起動: {'✅ 合格' if similarity_abnormal >= threshold else '
         <section>
             <h2>1.9 Summary</h2>
             <p>
-                本 Chapterでは、Processデータの時系列解析における基礎技術を10のPythonCode Examplesを通じて実装しました。
-                これらの手法は、Processの理解、Prediction、異常検知の基盤となります。
+                In this chapter, we implemented fundamental techniques for time series analysis of process data through 10 Python code examples. These methods form the foundation for process understanding, forecasting, and anomaly detection.
             </p>
 
-            <h3>習得したスキル</h3>
+            <h3>Skills Acquired</h3>
             <ul>
-                <li>✅ 欠損値補完と外れ値検知による高品質データの準備</li>
-                <li>✅ ADF/KPSS検定による定常性の厳密な評価</li>
-                <li>✅ STL minutes解によるトレンド・季節性の minutes離</li>
-                <li>✅ ARIMAモデルによる統計的Predictionと精度評価</li>
-                <li>✅ Holt-Winters法による実用的な短期Prediction</li>
-                <li>✅ PELT/Binary Segmentationによる変化点の自動検知</li>
-                <li>✅ DTWによる hours軸変動に頑健なパターンマッチング</li>
+                <li>✅ Preparation of high-quality data through missing value imputation and outlier detection</li>
+                <li>✅ Rigorous stationarity evaluation using ADF/KPSS tests</li>
+                <li>✅ Separation of trend and seasonality using STL decomposition</li>
+                <li>✅ Statistical forecasting and accuracy evaluation using ARIMA models</li>
+                <li>✅ Practical short-term forecasting using Holt-Winters method</li>
+                <li>✅ Automatic change point detection using PELT/Binary Segmentation</li>
+                <li>✅ Pattern matching robust to time axis variation using DTW</li>
             </ul>
 
             <div class="callout callout-info">
                 <h4>📚 Next Steps</h4>
                 <p>
-                    Chapter 2では、複数のProcess変数を同時に扱う多変量解析手法を学習します。
-                    主成 minutes minutes析（PCA）、部 minutes最小二乗法（PLS）などを用いて、変数間の相関を活用した高度な解析を実装します。
+                    In Chapter 2, we will learn multivariate analysis methods that handle multiple process variables simultaneously. We will implement advanced analysis utilizing correlations between variables using Principal Component Analysis (PCA), Partial Least Squares (PLS), etc.
                 </p>
             </div>
         </section>
@@ -1032,50 +1022,48 @@ print(f"  異常起動: {'✅ 合格' if similarity_abnormal >= threshold else '
         <section>
             <h2>1.10 Exercises</h2>
 
-            <h4>演習1（基礎）: データ前処理</h4>
+            <h4>Exercise 1 (Basic): Data Preprocessing</h4>
             <p>
-                提供されたExample 1のコードを修正し、欠損率が15%の場合の各補完手法の精度を比較してください。
-                どの手法が最も頑健か、その理由とともに説明してください。
+                Modify the code from Example 1 and compare the accuracy of each imputation method when the missing rate is 15%. Explain which method is most robust and why.
             </p>
 
-            <h4>演習2（Intermediate）: ARIMA次数選択</h4>
+            <h4>Exercise 2 (Intermediate): ARIMA Order Selection</h4>
             <p>
-                Example 5のACF/PACFプロットから、以下の時系列Processの適切なARIMA次数を推定してください：
+                From the ACF/PACF plots in Example 5, estimate the appropriate ARIMA order for the following time series processes:
             </p>
             <ul>
-                <li>ACFが指数減衰、PACFがlag=1で切断 → ARIMA(?, ?, ?)</li>
-                <li>ACFがlag=1で切断、PACFが指数減衰 → ARIMA(?, ?, ?)</li>
+                <li>ACF decays exponentially, PACF cuts off at lag=1 → ARIMA(?, ?, ?)</li>
+                <li>ACF cuts off at lag=1, PACF decays exponentially → ARIMA(?, ?, ?)</li>
             </ul>
 
-            <h4>演習3（Advanced）: 変化点検知の実装</h4>
+            <h4>Exercise 3 (Advanced): Implementation of Change Point Detection</h4>
             <p>
-                Example 8のコードを応用し、以下の課題を解決してください：
+                Apply the code from Example 8 to solve the following tasks:
             </p>
             <ol>
-                <li>平均だけでなく minutes散の変化も検知できるように改良する</li>
-                <li>False Positive（誤検知）を減らすための適切なペナルティパラメータを決定する</li>
-                <li>検知遅延 hours（実際の変化点から検知までの hours）を評価する</li>
+                <li>Improve to detect not only mean changes but also variance changes</li>
+                <li>Determine appropriate penalty parameters to reduce False Positives (false detections)</li>
+                <li>Evaluate detection delay time (time from actual change point to detection)</li>
             </ol>
 
             <div class="callout callout-tip">
-                <h4>💡 ヒント</h4>
+                <h4>💡 Hint</h4>
                 <p>
-                    演習3では、<code>ruptures</code>ライブラリの異なるコスト関数（"rbf", "normal"など）を試してみましょう。
-                    また、Simulationデータで真の変化点が既知の場合、ROC曲線を描いて最適なペナルティを選択できます。
+                    For Exercise 3, try different cost functions ("rbf", "normal", etc.) in the <code>ruptures</code> library. Also, when true change points are known in simulation data, you can draw an ROC curve to select the optimal penalty.
                 </p>
             </div>
         </section>
 
         <div class="nav-buttons">
-            <a href="./index.html" class="btn">← Series Contentsへ</a>
-            <a href="#" class="btn" style="background: #ccc; cursor: not-allowed;">Chapter 2へ進む →</a>
+            <a href="./index.html" class="btn">← Back to Series Index</a>
+            <a href="#" class="btn" style="background: #ccc; cursor: not-allowed;">Proceed to Chapter 2 →</a>
         </div>
 
         <footer>
             <p>&copy; 2025 Yusuke Hashimoto, Tohoku University. All rights reserved.</p>
             <p style="margin-top: 0.5rem;">
-                <a href="./index.html">Series Contents</a> |
-                <a href="../index.html">PIナレッジハブTOP</a>
+                <a href="./index.html">Series Index</a> |
+                <a href="../index.html">PI Knowledge Hub TOP</a>
             </p>
         </footer>
     </div>
