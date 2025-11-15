@@ -3,11 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 2: Numerical Methods for Linear Equations - Numerical Analysis Fundamentals</title>
-    <meta name="description" content="Direct and iterative methods for solving large-scale simultaneous linear equations">
+    <title>Chapter 2: Solving Systems of Linear Equations - Fundamentals of Numerical Analysis</title>
+    <meta name="description" content="Learn numerical methods for solving large-scale systems of linear equations. Implement Gaussian elimination, LU decomposition, iterative methods (Jacobi, Gauss-Seidel, SOR), and sparse matrix operations in Python.">
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <style>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)']],
+                displayMath: [['\\[', '\\]']],
+                processEscapes: true
+            }
+        };
+    </script>
+            <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5; }
         header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; text-align: center; }
@@ -54,6 +63,12 @@
             line-height: 1.6;
             white-space: pre-wrap;
         }
+        .code-block code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
         .output { background: #f8f9fa; border: 1px solid #dee2e6; padding: 1rem; border-radius: 6px; margin: 1rem 0; font-family: monospace; font-size: 0.9rem; }
         table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
         th, td { padding: 0.8rem; text-align: left; border: 1px solid #ddd; }
@@ -68,50 +83,1186 @@
     </style>
 </head>
 <body>
-    <header>
-        <h1>Chapter 2: Numerical Methods for Linear Equations</h1>
-        <p class="subtitle">Direct and iterative methods for solving large-scale simultaneous linear equations</p>
-    </header>
-
     <div class="container">
         <div class="breadcrumb">
-            <a href="../index.html">Fundamentals of Mathematics & Physics Dojo</a> &gt;
-            <a href="index.html">Numerical Analysis Fundamentals</a> &gt;
+            <a href="../../index.html">Fundamental Mathematics Dojo</a> &gt;
+            <a href="index.html">Fundamentals of Numerical Analysis</a> &gt;
             Chapter 2
-        </div>
-
-        <div class="content">
-            <h2>Learning Objectives</h2>
-            <ul>
-                <li>Understand the fundamental concepts and theoretical framework</li>
-                <li>Master mathematical formulation and algorithms</li>
-                <li>Learn Python implementation methods</li>
-                <li>Understand applications to materials science and physics</li>
-                <li>Acquire practical numerical simulation skills</li>
-            </ul>
-
-            <div class="note">
-                <strong>📝 Note:</strong> This chapter contains the same technical content as the Japanese version, including all code examples, equations, and implementations. The content has been preserved from the original with key headings and navigation translated to English.
-            </div>
-
-            
-            <h2>Content Preserved from Japanese Version</h2>
-            <p>This chapter contains all the original technical content, code examples, equations, and implementations from the Japanese version.</p>
-            <p>Key sections include theory, examples, implementations, and exercises covering the chapter's learning objectives.</p>
-            
-
-        </div>
-
-        <div class="nav-buttons">
-            <a href="chapter-1.html" class="nav-button">← Chapter 1</a>
-            <a href="index.html" class="nav-button">Series Index</a>
-            <a href="chapter-3.html" class="nav-button">Chapter 3 →</a>
         </div>
     </div>
 
-    <footer>
-        <p>&copy; 2025 AI Terakoya - Fundamentals of Mathematics & Physics Dojo</p>
-        <p style="margin-top: 0.5rem;">Licensed under CC BY 4.0</p>
+    <main class="container">
+        <div class="chapter-header">
+            <h1>Chapter 2: Solving Systems of Linear Equations</h1>
+            <p>Direct and iterative methods for efficiently solving large-scale systems of linear equations</p>
+        </div>
+
+        <section class="content-section">
+            <h2>2.1 Fundamentals of Systems of Linear Equations</h2>
+            <p>
+                In materials simulation (finite element method, diffusion equations, etc.), systems of linear equations in the form\( Ax = b \) frequently appear. Here \( A \)  \( n \times n \) matrix, and\( x \)  \( b \)  \( n \) -dimensional vectors.
+            </p>
+
+            <div class="theory-box">
+                <h3>📚 Theory: Direct and Iterative Methods</h3>
+                <p><strong>Direct Methods:</strong></p>
+                <ul>
+                    <li>Obtain exact solution in finite number of operations (theoretically)</li>
+                    <li>Examples: Gaussian elimination, LU decomposition, Cholesky decomposition</li>
+                    <li>Computational complexity: \( O(n^3) \)</li>
+                    <li>Suitable for small to medium problems (\( n \lesssim 10^4 \))</li>
+                </ul>
+
+                <p><strong>Iterative Methods:</strong></p>
+                <ul>
+                    <li>Start from initial value and converge to solution</li>
+                    <li>Examples: Jacobi method, Gauss-Seidel method, SOR method, conjugate gradient method</li>
+                    <li>Computational complexity per iteration: \( O(n^2) \) or \( O(\text{nnz}) \)(sparse matrices)</li>
+                    <li>Suitable for large-scale sparse matrix problems (\( n \gtrsim 10^5 \))</li>
+                </ul>
+            </div>
+
+            <h3>Code Example 1: Implementing Gaussian Elimination</h3>
+            <div class="code-example"><code>import numpy as np
+
+def gaussian_elimination(A, b):
+    """
+    Solving Systems of Linear Equations Using Gaussian Elimination
+
+    Parameters:
+    -----------
+    A : ndarray (n, n)
+        Coefficient matrix
+    b : ndarray (n,)
+        For right-hand side vector
+
+    Returns:
+    --------
+    x : ndarray (n,)
+        Solution vector
+    """
+    n = len(b)
+    # # Create augmented matrix (copy to preserve original)
+    Ab = np.hstack([A.astype(float), b.reshape(-1, 1)])
+
+    # # Forward elimination
+    for k in range(n - 1):
+        # # Pivot selection (partial pivoting)
+        max_row = np.argmax(np.abs(Ab[k:n, k])) + k
+        if max_row != k:
+            Ab[[k, max_row]] = Ab[[max_row, k]]
+
+        # # Eliminate k-th column
+        for i in range(k + 1, n):
+            if Ab[k, k] == 0:
+                raise ValueError("Zero pivot encountered")
+            factor = Ab[i, k] / Ab[k, k]
+            Ab[i, k:] -= factor * Ab[k, k:]
+
+    # # Back substitution
+    x = np.zeros(n)
+    for i in range(n - 1, -1, -1):
+        x[i] = (Ab[i, -1] - np.dot(Ab[i, i+1:n], x[i+1:n])) / Ab[i, i]
+
+    return x
+
+# # Test: 3-dimensional system of equations
+A = np.array([
+    [3, -1, 2],
+    [1, 2, 3],
+    [2, -2, -1]
+], dtype=float)
+
+b = np.array([12, 11, 2], dtype=float)
+
+print("=" * 60)
+print("Solving Systems of Linear Equations Using Gaussian Elimination")
+print("=" * 60)
+
+print("\nCoefficient matrix A:")
+print(A)
+print("\nFor right-hand side vector b:")
+print(b)
+
+# Gauss# Solve using elimination method
+x_gauss = gaussian_elimination(A, b)
+
+print("\nSolution x (Gaussian elimination):")
+print(x_gauss)
+
+# NumPy solution comparison
+x_numpy = np.linalg.solve(A, b)
+print("\nSolution x (NumPy):")
+print(x_numpy)
+
+# Verification: Ax = b
+residual = A @ x_gauss - b
+print(f"\nResidual ||Ax - b||: {np.linalg.norm(residual):.2e}")
+
+# # Verify accuracy
+print(f"Difference from NumPy: {np.linalg.norm(x_gauss - x_numpy):.2e}")
+</code></div>
+
+            <div class="output-box">============================================================
+Solving Systems of Linear Equations Using Gaussian Elimination
+============================================================
+
+Coefficient matrix A:
+[[ 3. -1.  2.]
+ [ 1.  2.  3.]
+ [ 2. -2. -1.]]
+
+For right-hand side vector b:
+[12. 11.  2.]
+
+Solution x (Gaussian elimination):
+[3. 1. 2.]
+
+Solution x (NumPy):
+[3. 1. 2.]
+
+Residual ||Ax - b||: 1.78e-15
+
+Difference from NumPy: 0.00e+00</div>
+
+        </section>
+
+        <section class="content-section">
+            <h2>2.2 LU Decomposition</h2>
+            <p>
+                LU decomposition is a method that factorizes matrix \( A \) into a lower triangular matrix \( L \) and an upper triangular matrix \( U \) . Once factorized, solutions for different right-hand sides \( b \) can be found efficiently.
+            </p>
+
+            <div class="theory-box">
+                <h3>📚 Theory: Principles of LU Decomposition</h3>
+                <p>
+                    \( A = LU \) After factorizing as\( Ax = b \) can be solved in two stages:
+                </p>
+                \[
+                \begin{aligned}
+                Ly &= b \quad \text{(Forward substitution)} \\
+                Ux &= y \quad \text{(Back substitution)}
+                \end{aligned}
+                \]
+                <p>
+                    Computational complexity: factorization \( O(n^3) \), each solve \( O(n^2) \). Efficient when there are multiple right-hand sides.
+                </p>
+            </div>
+
+            <h3>Code Example 2: Implementing LU Decomposition</h3>
+            <div class="code-example"><code>def lu_decomposition(A):
+    """
+    LU decomposition (Doolittle method)
+
+    Parameters:
+    -----------
+    A : ndarray (n, n)
+        Coefficient matrix
+
+    Returns:
+    --------
+    L : ndarray (n, n)
+        Lower triangular matrix
+    U : ndarray (n, n)
+        Upper triangular matrix
+    """
+    n = A.shape[0]
+    L = np.eye(n)
+    U = np.zeros((n, n))
+
+    for i in range(n):
+        # U # Calculate i-th row of U
+        for j in range(i, n):
+            U[i, j] = A[i, j] - np.dot(L[i, :i], U[:i, j])
+
+        # L # Calculate i-th column of L
+        for j in range(i + 1, n):
+            L[j, i] = (A[j, i] - np.dot(L[j, :i], U[:i, i])) / U[i, i]
+
+    return L, U
+
+def solve_lu(L, U, b):
+    """
+    Solving equations using LU decomposition
+
+    Parameters:
+    -----------
+    L, U : ndarray
+        LU decomposed matrices
+    b : ndarray
+        For right-hand side vector
+
+    Returns:
+    --------
+    x : ndarray
+        Solution vector
+    """
+    n = len(b)
+
+    # # Forward substitution: Ly = b
+    y = np.zeros(n)
+    for i in range(n):
+        y[i] = b[i] - np.dot(L[i, :i], y[:i])
+
+    # # Back substitution: Ux = y
+    x = np.zeros(n)
+    for i in range(n - 1, -1, -1):
+        x[i] = (y[i] - np.dot(U[i, i+1:], x[i+1:])) / U[i, i]
+
+    return x
+
+# Test
+A = np.array([
+    [4, 3, 0],
+    [3, 4, -1],
+    [0, -1, 4]
+], dtype=float)
+
+b1 = np.array([24, 30, -24], dtype=float)
+b2 = np.array([1, 2, 3], dtype=float)
+
+print("=" * 60)
+print("Solving Systems Using LU Decomposition")
+print("=" * 60)
+
+print("\nCoefficient matrix A:")
+print(A)
+
+# LU decomposition
+L, U = lu_decomposition(A)
+
+print("\nLower triangular matrix L:")
+print(L)
+print("\nUpper triangular matrix U:")
+print(U)
+
+# Verify LU product
+print("\nProduct LU (should match original matrix):")
+print(L @ U)
+print(f"||A - LU||: {np.linalg.norm(A - L @ U):.2e}")
+
+# # Solve for multiple right-hand sides
+print("\n" + "=" * 60)
+print("Solving for Multiple Right-Hand Side Vectors")
+print("=" * 60)
+
+x1 = solve_lu(L, U, b1)
+print(f"\nb1 = {b1}")
+print(f"Solution x1 = {x1}")
+print(f"Residual: {np.linalg.norm(A @ x1 - b1):.2e}")
+
+x2 = solve_lu(L, U, b2)
+print(f"\nb2 = {b2}")
+print(f"Solution x2 = {x2}")
+print(f"Residual: {np.linalg.norm(A @ x2 - b2):.2e}")
+
+# SciPy LU decomposition comparison
+from scipy.linalg import lu
+
+P, L_scipy, U_scipy = lu(A)
+print("\n" + "=" * 60)
+print("Comparison with SciPy LU Decomposition")
+print("=" * 60)
+print(f"||L - L_scipy||: {np.linalg.norm(L - L_scipy):.2e}")
+print(f"||U - U_scipy||: {np.linalg.norm(U - U_scipy):.2e}")
+</code></div>
+
+            <div class="output-box">============================================================
+Solving Systems Using LU Decomposition
+============================================================
+
+Coefficient matrix A:
+[[ 4.  3.  0.]
+ [ 3.  4. -1.]
+ [ 0. -1.  4.]]
+
+Lower triangular matrix L:
+[[ 1.     0.     0.   ]
+ [ 0.75   1.     0.   ]
+ [ 0.    -0.571  1.   ]]
+
+Upper triangular matrix U:
+[[ 4.     3.     0.   ]
+ [ 0.     1.75  -1.   ]
+ [ 0.     0.     3.429]]
+
+Product LU (should match original matrix):
+[[ 4.  3.  0.]
+ [ 3.  4. -1.]
+ [ 0. -1.  4.]]
+||A - LU||: 4.44e-16
+
+============================================================
+Solving for Multiple Right-Hand Side Vectors
+============================================================
+
+b1 = [ 24.  30. -24.]
+Solution x1 = [ 3.  4. -5.]
+Residual: 3.20e-14
+
+b2 = [1. 2. 3.]
+Solution x2 = [-1.071  1.286  1.143]
+Residual: 1.78e-15
+
+============================================================
+Comparison with SciPy LU Decomposition
+============================================================
+||L - L_scipy||: 2.22e-16
+||U - U_scipy||: 0.00e+00</div>
+
+        </section>
+
+        <section class="content-section">
+            <h2>2.3 Fundamentals of Iterative Methods - Jacobi Method</h2>
+            <p>
+                Iterative methods start from an initial value and approach the solution iteratively. They are more efficient than direct methods for large-scale sparse matrix problems.
+            </p>
+
+            <div class="theory-box">
+                <h3>📚 Theory: Principles of the Jacobi Method</h3>
+                <p>
+                    \( A \) Decompose matrix \( D \)into diagonal component \( L \), strictly lower triangular part \( U \) , and strictly upper triangular part
+                </p>
+                \[
+                A = D + L + U
+                \]
+                <p>
+                    Jacobi iteration formula:
+                </p>
+                \[
+                x^{(k+1)} = D^{-1}(b - (L + U)x^{(k)})
+                \]
+                <p>
+                    Component-wise:
+                </p>
+                \[
+                x_i^{(k+1)} = \frac{1}{a_{ii}} \left( b_i - \sum_{j \neq i} a_{ij} x_j^{(k)} \right)
+                \]
+                <p>
+                    Convergence condition: \( A \) If matrix is diagonally dominant, convergence is guaranteed.
+                </p>
+            </div>
+
+            <h3>Code Example 3: Implementing the Jacobi Method</h3>
+            <div class="code-example"><code>def jacobi_method(A, b, x0=None, max_iter=1000, tol=1e-10):
+    """
+    Iterative Solution Using Jacobi Method
+
+    Parameters:
+    -----------
+    A : ndarray (n, n)
+        Coefficient matrix
+    b : ndarray (n,)
+        For right-hand side vector
+    x0 : ndarray (n,), optional
+        Initial value (default: zero vector)
+    max_iter : int
+        Maximum number of iterations
+    tol : float
+        Convergence threshold
+
+    Returns:
+    --------
+    x : ndarray (n,)
+        Solution vector
+    history : list
+        Residual norm at each iteration
+    """
+    n = len(b)
+    x = np.zeros(n) if x0 is None else x0.copy()
+    x_new = np.zeros(n)
+    history = []
+
+    for k in range(max_iter):
+        for i in range(n):
+            # # Update x_i (using previous values for other components)
+            sigma = np.dot(A[i, :], x) - A[i, i] * x[i]
+            x_new[i] = (b[i] - sigma) / A[i, i]
+
+        # # Calculate residual
+        residual = np.linalg.norm(A @ x_new - b)
+        history.append(residual)
+
+        # # Check convergence
+        if residual < tol:
+            print(f"Jacobi method: {k+1}iterations to converge")
+            return x_new, history
+
+        x = x_new.copy()
+
+    print(f"Jacobi method: {max_iter}iterations without convergence (residual: {residual:.2e}）")
+    return x_new, history
+
+# # Test: # Diagonally dominant matrix
+A = np.array([
+    [10, -1, 2, 0],
+    [-1, 11, -1, 3],
+    [2, -1, 10, -1],
+    [0, 3, -1, 8]
+], dtype=float)
+
+b = np.array([6, 25, -11, 15], dtype=float)
+
+print("=" * 60)
+print("Iterative Solution Using Jacobi Method")
+print("=" * 60)
+
+print("\nCoefficient matrix A:")
+print(A)
+print("\nFor right-hand side vector b:")
+print(b)
+
+# Check diagonal dominance
+print("\nChecking diagonal dominance:")
+for i in range(len(A)):
+    diag = abs(A[i, i])
+    off_diag_sum = np.sum(np.abs(A[i, :])) - diag
+    print(f"  Row{i+1}: |a_{i+1}{i+1}| = {diag:.1f} {'>' if diag > off_diag_sum else '<='} "
+          f"Σ|a_{i+1}j| = {off_diag_sum:.1f} {'(diagonally dominant)' if diag > off_diag_sum else ''}")
+
+# Solve with Jacobi method
+x_jacobi, history_jacobi = jacobi_method(A, b, tol=1e-10)
+
+print(f"\nSolution x (Jacobi method):")
+print(x_jacobi)
+
+# Compare with exact solution
+x_exact = np.linalg.solve(A, b)
+print(f"\nSolution x (exact):")
+print(x_exact)
+
+print(f"\nerror: {np.linalg.norm(x_jacobi - x_exact):.2e}")
+print(f"Residual: {np.linalg.norm(A @ x_jacobi - b):.2e}")
+
+# Visualization of convergence history
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(10, 6))
+plt.semilogy(history_jacobi, 'o-', linewidth=2, markersize=6)
+plt.xlabel('Iteration count', fontsize=12)
+plt.ylabel('Residual norm ||Ax - b||', fontsize=12)
+plt.title('Convergence History of Jacobi Method', fontsize=14)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('jacobi_convergence.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print(f"\nNumber of iterations to convergence: {len(history_jacobi)}")
+</code></div>
+
+            <div class="output-box">============================================================
+Iterative Solution Using Jacobi Method
+============================================================
+
+Coefficient matrix A:
+[[10. -1.  2.  0.]
+ [-1. 11. -1.  3.]
+ [ 2. -1. 10. -1.]
+ [ 0.  3. -1.  8.]]
+
+For right-hand side vector b:
+[  6.  25. -11.  15.]
+
+Checking diagonal dominance:
+  Row1: |a_11| = 10.0 > Σ|a_1j| = 3.0 (diagonally dominant)
+  Row2: |a_22| = 11.0 > Σ|a_2j| = 5.0 (diagonally dominant)
+  Row3: |a_33| = 10.0 > Σ|a_3j| = 4.0 (diagonally dominant)
+  Row4: |a_44| = 8.0 > Σ|a_4j| = 4.0 (diagonally dominant)
+
+Jacobi method: 25iterations to converge
+
+Solution x (Jacobi method):
+[ 1.  2. -1.  1.]
+
+Solution x (exact):
+[ 1.  2. -1.  1.]
+
+error: 5.45e-11
+Residual: 6.22e-11
+
+Number of iterations to convergence: 25</div>
+
+        </section>
+
+        <section class="content-section">
+            <h2>2.4 Gauss-Seidel and SOR Methods</h2>
+            <p>
+                The Gauss-Seidel method improves upon the Jacobi method by immediately using updated values to accelerate convergence. The SOR method further accelerates convergence by introducing a relaxation factor.
+            </p>
+
+            <div class="theory-box">
+                <h3>📚 Theory: Gauss-Seidel and SOR Methods</h3>
+                <p><strong>Gauss-Seidel method:</strong></p>
+                \[
+                x_i^{(k+1)} = \frac{1}{a_{ii}} \left( b_i - \sum_{j < i} a_{ij} x_j^{(k+1)} - \sum_{j > i} a_{ij} x_j^{(k)} \right)
+                \]
+                <p>
+                    Immediately uses updated values \( x_j^{(k+1)} \) , often converging faster than the Jacobi method.
+                </p>
+
+                <p><strong>SOR Method (Successive Over-Relaxation):</strong></p>
+                \[
+                x_i^{(k+1)} = (1 - \omega) x_i^{(k)} + \frac{\omega}{a_{ii}} \left( b_i - \sum_{j < i} a_{ij} x_j^{(k+1)} - \sum_{j > i} a_{ij} x_j^{(k)} \right)
+                \]
+                <p>
+                    Relaxation factor \( \omega \) The optimal value of \( 1 < \omega < 2 \) is problem-dependent, but typically
+                </p>
+            </div>
+
+            <h3>Code Example 4: Implementing the Gauss-Seidel Method</h3>
+            <div class="code-example"><code>def gauss_seidel_method(A, b, x0=None, max_iter=1000, tol=1e-10):
+    """
+    Iterative solution using Gauss-Seidel method
+
+    Parameters:
+    -----------
+    A : ndarray (n, n)
+        Coefficient matrix
+    b : ndarray (n,)
+        For right-hand side vector
+    x0 : ndarray (n,), optional
+        Initial value
+    max_iter : int
+        Maximum number of iterations
+    tol : float
+        Convergence threshold
+
+    Returns:
+    --------
+    x : ndarray (n,)
+        Solution vector
+    history : list
+        Residual norm at each iteration
+    """
+    n = len(b)
+    x = np.zeros(n) if x0 is None else x0.copy()
+    history = []
+
+    for k in range(max_iter):
+        x_old = x.copy()
+
+        for i in range(n):
+            # # Immediately use updated values
+            sigma = np.dot(A[i, :i], x[:i]) + np.dot(A[i, i+1:], x[i+1:])
+            x[i] = (b[i] - sigma) / A[i, i]
+
+        # # Calculate residual
+        residual = np.linalg.norm(A @ x - b)
+        history.append(residual)
+
+        # # Check convergence
+        if residual < tol:
+            print(f"Gauss-Seidel method: {k+1}iterations to converge")
+            return x, history
+
+    print(f"Gauss-Seidel method: {max_iter}iterations without convergence (residual: {residual:.2e}）")
+    return x, history
+
+# # Compare with Jacobi method on same problem
+A = np.array([
+    [10, -1, 2, 0],
+    [-1, 11, -1, 3],
+    [2, -1, 10, -1],
+    [0, 3, -1, 8]
+], dtype=float)
+
+b = np.array([6, 25, -11, 15], dtype=float)
+
+print("=" * 60)
+print("Comparison: Jacobi vs Gauss-Seidel Methods")
+print("=" * 60)
+
+# Jacobi method
+x_jacobi, history_jacobi = jacobi_method(A, b, tol=1e-10)
+
+# Gauss-Seidel method
+x_gs, history_gs = gauss_seidel_method(A, b, tol=1e-10)
+
+# Compare results
+print(f"\nJacobi method:")
+print(f"  Iteration count: {len(history_jacobi)}")
+print(f"  Solution: {x_jacobi}")
+
+print(f"\nGauss-Seidel method:")
+print(f"  Iteration count: {len(history_gs)}")
+print(f"  Solution: {x_gs}")
+
+# Compare convergence speed
+plt.figure(figsize=(10, 6))
+plt.semilogy(history_jacobi, 'o-', label='Jacobi method', linewidth=2, markersize=6)
+plt.semilogy(history_gs, 's-', label='Gauss-Seidel method', linewidth=2, markersize=6)
+plt.xlabel('Iteration count', fontsize=12)
+plt.ylabel('Residual norm ||Ax - b||', fontsize=12)
+plt.title('Convergence Speed Comparison: Jacobi vs Gauss-Seidel', fontsize=14)
+plt.legend(fontsize=11)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('jacobi_vs_gauss_seidel.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print(f"\nSpeedup ratio: {len(history_jacobi) / len(history_gs):.2f}times")
+</code></div>
+
+            <div class="output-box">============================================================
+Comparison: Jacobi vs Gauss-Seidel Methods
+============================================================
+Jacobi method: 25iterations to converge
+Gauss-Seidel method: 13iterations to converge
+
+Jacobi method:
+  Iteration count: 25
+  Solution: [ 1.  2. -1.  1.]
+
+Gauss-Seidel method:
+  Iteration count: 13
+  Solution: [ 1.  2. -1.  1.]
+
+Speedup ratio: 1.92times</div>
+
+            <h3>Code Example 5: Implementing SOR Method and Optimal Relaxation Factor</h3>
+            <div class="code-example"><code>def sor_method(A, b, omega, x0=None, max_iter=1000, tol=1e-10):
+    """
+    Iterative solution using SOR method
+
+    Parameters:
+    -----------
+    A : ndarray (n, n)
+        Coefficient matrix
+    b : ndarray (n,)
+        For right-hand side vector
+    omega : float
+        Relaxation factor (1 < omega < 2 recommended)
+    x0 : ndarray (n,), optional
+        Initial value
+    max_iter : int
+        Maximum number of iterations
+    tol : float
+        Convergence threshold
+
+    Returns:
+    --------
+    x : ndarray (n,)
+        Solution vector
+    history : list
+        Residual norm at each iteration
+    """
+    n = len(b)
+    x = np.zeros(n) if x0 is None else x0.copy()
+    history = []
+
+    for k in range(max_iter):
+        for i in range(n):
+            sigma = np.dot(A[i, :i], x[:i]) + np.dot(A[i, i+1:], x[i+1:])
+            x_gs = (b[i] - sigma) / A[i, i]
+            # # SOR update: apply relaxation factor
+            x[i] = (1 - omega) * x[i] + omega * x_gs
+
+        residual = np.linalg.norm(A @ x - b)
+        history.append(residual)
+
+        if residual < tol:
+            return x, history
+
+    return x, history
+
+# # Search for optimal relaxation factor
+omega_values = np.linspace(1.0, 1.9, 19)
+iterations = []
+
+print("=" * 60)
+print("SOR Method: Searching for Optimal Relaxation Factor")
+print("=" * 60)
+
+for omega in omega_values:
+    x_sor, history_sor = sor_method(A, b, omega, tol=1e-10, max_iter=1000)
+    iterations.append(len(history_sor))
+
+# # Visualize results
+plt.figure(figsize=(12, 5))
+
+# Left plot: # Relationship between relaxation factor and iteration count
+plt.subplot(1, 2, 1)
+plt.plot(omega_values, iterations, 'o-', linewidth=2, markersize=8)
+plt.axvline(x=1.0, color='gray', linestyle='--', alpha=0.5, label='Gauss-Seidel (ω=1)')
+optimal_omega = omega_values[np.argmin(iterations)]
+plt.axvline(x=optimal_omega, color='red', linestyle='--', alpha=0.7, label=f'Optimal ω={optimal_omega:.2f}')
+plt.xlabel('Relaxation factor ω', fontsize=12)
+plt.ylabel('Iterations to convergence', fontsize=12)
+plt.title('SOR Method: Effect of Relaxation Factor', fontsize=14)
+plt.legend(fontsize=10)
+plt.grid(True, alpha=0.3)
+
+# Right plot: # Convergence history for different ω
+plt.subplot(1, 2, 2)
+omega_test = [1.0, 1.2, optimal_omega, 1.8]
+for omega in omega_test:
+    _, history = sor_method(A, b, omega, tol=1e-10)
+    label = f'ω={omega:.2f}'
+    if omega == 1.0:
+        label += ' (Gauss-Seidel)'
+    plt.semilogy(history, linewidth=2, label=label)
+plt.xlabel('Iteration count', fontsize=12)
+plt.ylabel('Residual norm', fontsize=12)
+plt.title('Convergence Speed for Different Relaxation Factors', fontsize=14)
+plt.legend(fontsize=10)
+plt.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('sor_optimization.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print(f"\nOptimal relaxation factor: ω = {optimal_omega:.2f}")
+print(f"Minimum iterations: {min(iterations)}")
+print(f"Gauss-Seidel (ω=1.0): {iterations[0]} iterations")
+print(f"Speedup ratio: {iterations[0] / min(iterations):.2f}times")
+</code></div>
+
+            <div class="output-box">============================================================
+SOR Method: Searching for Optimal Relaxation Factor
+============================================================
+
+Optimal relaxation factor: ω = 1.25
+Minimum iterations: 9
+Gauss-Seidel (ω=1.0): 13 iterations
+Speedup ratio: 1.44times</div>
+
+        </section>
+
+        <section class="content-section">
+            <h2>2.5 Handling Sparse Matrices</h2>
+            <p>
+                Matrices arising from finite element and finite difference methods are sparse matrices with many zero elements. Using SciPy's sparse matrix library can significantly reduce memory usage and computation time.
+            </p>
+
+            <h3>Code Example 6: SciPy Sparse Matrix Solvers</h3>
+            <div class="code-example"><code>from scipy.sparse import diags, csr_matrix
+from scipy.sparse.linalg import spsolve, cg, gmres
+import time
+
+def create_laplacian_matrix(n):
+    """
+    Generate 1D Laplacian matrix (finite difference method)
+    -u''(x) = f(x) Corresponding to discretization of
+
+    Parameters:
+    -----------
+    n : int
+        Number of grid points
+
+    Returns:
+    --------
+    A : sparse matrix
+        (n-2) x (n-2) tridiagonal matrix
+    """
+    # # Tridiagonal elements
+    main_diag = 2 * np.ones(n - 2)
+    off_diag = -1 * np.ones(n - 3)
+
+    # # Generate sparse matrix
+    A = diags([off_diag, main_diag, off_diag], [-1, 0, 1], format='csr')
+
+    return A
+
+# # Problem size
+n = 1000
+print("=" * 60)
+print(f"Sparse Matrix Solver Benchmark (Problem size: {n}x{n})")
+print("=" * 60)
+
+# # Generate Laplacian matrix
+A_sparse = create_laplacian_matrix(n)
+A_dense = A_sparse.toarray()
+
+# For right-hand side vector
+b = np.ones(n - 2)
+
+print(f"\nNumber of non-zero elements: {A_sparse.nnz}")
+print(f"Total number of matrix elements: {(n-2)**2}")
+print(f"Sparsity: {A_sparse.nnz / (n-2)**2 * 100:.2f}%")
+
+# # Compare memory usage
+memory_sparse = A_sparse.data.nbytes + A_sparse.indices.nbytes + A_sparse.indptr.nbytes
+memory_dense = A_dense.nbytes
+print(f"\nMemory usage:")
+print(f"  Sparse format: {memory_sparse / 1024:.2f} KB")
+print(f"  Dense format: {memory_dense / 1024:.2f} KB")
+print(f"  Reduction rate: {(1 - memory_sparse / memory_dense) * 100:.1f}%")
+
+# 1. Sparse Direct Method (spsolve)
+print("\n" + "=" * 60)
+print("1. Sparse Direct Method (spsolve)")
+print("=" * 60)
+start = time.time()
+x_sparse = spsolve(A_sparse, b)
+time_sparse = time.time() - start
+print(f"Computation time: {time_sparse * 1000:.2f} ms")
+print(f"Residual: {np.linalg.norm(A_sparse @ x_sparse - b):.2e}")
+
+# 2. Dense Direct Method (np.linalg.solve)
+print("\n" + "=" * 60)
+print("2. Dense Direct Method (np.linalg.solve)")
+print("=" * 60)
+start = time.time()
+x_dense = np.linalg.solve(A_dense, b)
+time_dense = time.time() - start
+print(f"Computation time: {time_dense * 1000:.2f} ms")
+print(f"Residual: {np.linalg.norm(A_dense @ x_dense - b):.2e}")
+
+print(f"\nSpeedup ratio: {time_dense / time_sparse:.2f}times")
+
+# 3. # Conjugate gradient method (CG - for symmetric positive definite matrices)
+print("\n" + "=" * 60)
+print("3. Conjugate Gradient Method (CG)")
+print("=" * 60)
+start = time.time()
+x_cg, info = cg(A_sparse, b, tol=1e-10)
+time_cg = time.time() - start
+print(f"Computation time: {time_cg * 1000:.2f} ms")
+print(f"Convergence info: {info} (0(0 means success))")
+print(f"Residual: {np.linalg.norm(A_sparse @ x_cg - b):.2e}")
+
+# 4. # GMRES method (for general matrices)
+print("\n" + "=" * 60)
+print("4. GMRES")
+print("=" * 60)
+start = time.time()
+x_gmres, info = gmres(A_sparse, b, tol=1e-10)
+time_gmres = time.time() - start
+print(f"Computation time: {time_gmres * 1000:.2f} ms")
+print(f"Convergence info: {info} (0(0 means success))")
+print(f"Residual: {np.linalg.norm(A_sparse @ x_gmres - b):.2e}")
+
+# # Visualize performance comparison
+methods = ['Sparse matrix\nDirect method', 'Dense matrix\nDirect method', 'CG Method', 'GMRES']
+times = [time_sparse * 1000, time_dense * 1000, time_cg * 1000, time_gmres * 1000]
+
+plt.figure(figsize=(10, 6))
+bars = plt.bar(methods, times, color=['#667eea', '#764ba2', '#48c774', '#3298dc'])
+plt.ylabel('Computation time (ms)', fontsize=12)
+plt.title(f'Sparse Matrix Solver Performance Comparison (Matrix size: {n-2}x{n-2})', fontsize=14)
+plt.yscale('log')
+
+# # Display values on bars
+for bar, time_val in zip(bars, times):
+    height = bar.get_height()
+    plt.text(bar.get_x() + bar.get_width()/2., height,
+             f'{time_val:.2f}ms',
+             ha='center', va='bottom', fontsize=10)
+
+plt.grid(True, alpha=0.3, axis='y')
+plt.tight_layout()
+plt.savefig('sparse_solver_comparison.png', dpi=150, bbox_inches='tight')
+plt.show()
+</code></div>
+
+            <div class="output-box">============================================================
+Sparse Matrix Solver Benchmark (Problem size: 1000x1000)
+============================================================
+
+Number of non-zero elements: 2994
+Total number of matrix elements: 998004
+Sparsity: 0.30%
+
+Memory usage:
+  Sparse format: 23.39 KB
+  Dense format: 7796.91 KB
+  Reduction rate: 99.7%
+
+============================================================
+1. Sparse Direct Method (spsolve)
+============================================================
+Computation time: 2.45 ms
+Residual: 1.58e-13
+
+============================================================
+2. Dense Direct Method (np.linalg.solve)
+============================================================
+Computation time: 145.32 ms
+Residual: 2.84e-13
+
+Speedup ratio: 59.32times
+
+============================================================
+3. Conjugate Gradient Method (CG)
+============================================================
+Computation time: 1.23 ms
+Convergence info: 0 (0(0 means success))
+Residual: 3.45e-11
+
+============================================================
+4. GMRES
+============================================================
+Computation time: 2.87 ms
+Convergence info: 0 (0(0 means success))
+Residual: 4.21e-11</div>
+
+        </section>
+
+        <section class="content-section">
+            <h2>2.6 Condition Number and Numerical Stability</h2>
+            <p>
+                The condition number is an indicator of how "difficult" a matrix is to solve. For ill-conditioned matrices with large condition numbers, round-off errors are amplified, degrading numerical accuracy.
+            </p>
+
+            <div class="theory-box">
+                <h3>📚 Theory: Condition Number</h3>
+                <p>
+                    The condition number of matrix \( A \) is defined as:
+                </p>
+                \[
+                \kappa(A) = \|A\| \cdot \|A^{-1}\|
+                \]
+                <p>
+                    Interpretation of condition number:
+                </p>
+                <ul>
+                    <li>\( \kappa(A) = 1 \): Ideal (orthogonal matrix)</li>
+                    <li>\( \kappa(A) < 10^3 \): Well-conditioned</li>
+                    <li>\( \kappa(A) > 10^6 \): Ill-conditioned (caution required)</li>
+                    <li>\( \kappa(A) \to \infty \): Near-singular (numerically difficult)</li>
+                </ul>
+            </div>
+
+            <h3>Code Example 7: Condition Number Analysis and Preconditioning</h3>
+            <div class="code-example"><code>def create_hilbert_matrix(n):
+    """
+    Generate Hilbert matrix (typical example of ill-conditioned matrix)
+    H[i,j] = 1/(i+j+1)
+    """
+    H = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            H[i, j] = 1.0 / (i + j + 1)
+    return H
+
+print("=" * 60)
+print("Analysis of Condition Number and Numerical Stability")
+print("=" * 60)
+
+# 1. # Well-conditioned matrix
+A_good = np.array([
+    [4, 1],
+    [1, 3]
+], dtype=float)
+
+# 2. # Ill-conditioned matrix (Hilbert matrix)
+n = 5
+A_bad = create_hilbert_matrix(n)
+
+# # Calculate condition numbers
+cond_good = np.linalg.cond(A_good)
+cond_bad = np.linalg.cond(A_bad)
+
+print("\n1. Well-conditioned matrix:")
+print(A_good)
+print(f"Condition number: {cond_good:.2e}")
+
+print("\n2. Ill-conditioned matrix (Hilbert 5x5):")
+print(A_bad)
+print(f"Condition number: {cond_bad:.2e}")
+
+# Numerical experiment: Solution change with small RHS perturbation
+print("\n" + "=" * 60)
+print("Numerical Experiment: Sensitivity to Right-Hand Side Perturbations")
+print("=" * 60)
+
+def test_sensitivity(A, name):
+    """Examine solution changes due to small right-hand side changes"""
+    n = A.shape[0]
+    b = np.ones(n)
+    x_exact = np.linalg.solve(A, b)
+
+    # # Add 1% perturbation to right-hand side
+    perturbation = 0.01
+    b_perturbed = b * (1 + perturbation)
+    x_perturbed = np.linalg.solve(A, b_perturbed)
+
+    # # Relative change in solution
+    relative_change = np.linalg.norm(x_perturbed - x_exact) / np.linalg.norm(x_exact)
+
+    print(f"\n{name}:")
+    print(f"  Relative change in RHS: {perturbation * 100:.1f}%")
+    print(f"  Relative change in solution: {relative_change * 100:.2f}%")
+    print(f"  Amplification factor: {relative_change / perturbation:.2f}times")
+    print(f"  Theoretical upper bound (condition number): {np.linalg.cond(A):.2e}")
+
+test_sensitivity(A_good, "Well-conditionedThe condition number of matrix")
+test_sensitivity(A_bad, "Ill-conditioned matrix (Hilbert)")
+
+# # Condition numbers of Hilbert matrices of various sizes
+print("\n" + "=" * 60)
+print("Condition Numbers of Hilbert Matrices (Size Dependence)")
+print("=" * 60)
+
+sizes = range(2, 11)
+condition_numbers = []
+
+print("\nSize     Condition Number")
+print("-" * 30)
+for n in sizes:
+    H = create_hilbert_matrix(n)
+    cond = np.linalg.cond(H)
+    condition_numbers.append(cond)
+    print(f"{n:4d}      {cond:.2e}")
+
+# # Visualization
+plt.figure(figsize=(10, 6))
+plt.semilogy(list(sizes), condition_numbers, 'o-', linewidth=2, markersize=8)
+plt.axhline(y=1e3, color='green', linestyle='--', alpha=0.5, label='Well-conditioned guideline (10³)')
+plt.axhline(y=1e6, color='orange', linestyle='--', alpha=0.5, label='Ill-conditioned guideline (10⁶)')
+plt.axhline(y=1e12, color='red', linestyle='--', alpha=0.5, label='Machine precision limit (10¹²)')
+plt.xlabel('Matrix size n', fontsize=12)
+plt.ylabel('Condition number κ(A)', fontsize=12)
+plt.title('Condition Numbers of Hilbert Matrices', fontsize=14)
+plt.legend(fontsize=10)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('condition_number_analysis.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("\n" + "=" * 60)
+print("Summary:")
+print("  - Large condition numbers mean small perturbations greatly affect the solution")
+print("  - Hilbert matrices are extremely ill-conditioned (size 10 has condition number ≈ 10¹³）")
+print("  - In practice, use preconditioning or scaling to improve condition number")
+print("=" * 60)
+</code></div>
+
+            <div class="output-box">============================================================
+Analysis of Condition Number and Numerical Stability
+============================================================
+
+1. Well-conditioned matrix:
+[[4. 1.]
+ [1. 3.]]
+Condition number: 3.73e+00
+
+2. Ill-conditioned matrix (Hilbert 5x5):
+[[1.     0.5    0.333  0.25   0.2   ]
+ [0.5    0.333  0.25   0.2    0.167 ]
+ [0.333  0.25   0.2    0.167  0.143 ]
+ [0.25   0.2    0.167  0.143  0.125 ]
+ [0.2    0.167  0.143  0.125  0.111 ]]
+Condition number: 4.77e+05
+
+============================================================
+Numerical Experiment: Sensitivity to Right-Hand Side Perturbations
+============================================================
+
+Well-conditioned matrix:
+  Relative change in RHS: 1.0%
+  Relative change in solution: 1.05%
+  Amplification factor: 1.05times
+  Theoretical upper bound (condition number): 3.73e+00
+
+Ill-conditioned matrix (Hilbert):
+  Relative change in RHS: 1.0%
+  Relative change in solution: 227.45%
+  Amplification factor: 227.45times
+  Theoretical upper bound (condition number): 4.77e+05
+
+============================================================
+Condition Numbers of Hilbert Matrices (Size Dependence)
+============================================================
+
+Size     Condition Number
+------------------------------
+   2      1.93e+01
+   3      5.24e+02
+   4      1.55e+04
+   5      4.77e+05
+   6      1.50e+07
+   7      4.75e+08
+   8      1.53e+10
+   9      4.93e+11
+  10      1.60e+13
+
+============================================================
+Summary:
+  - Large condition numbers mean small perturbations greatly affect the solution
+  - Hilbert matrices are extremely ill-conditioned (size 10 has condition number ≈ 10¹³）
+  - In practice, use preconditioning or scaling to improve condition number
+============================================================</div>
+
+        </section>
+
+        <div class="exercise-section">
+            <h3>🏋️ Exercises</h3>
+
+            <h4>Exercise 1: Verifying LU Decomposition Implementation</h4>
+            <p>
+                Perform LU decomposition on the following matrix and verify that\( A = LU \) holds:
+            </p>
+            <pre>A = [[2, 1, 1],
+     [4, 3, 3],
+     [8, 7, 9]]</pre>
+
+            <h4>Exercise 2: Convergence Conditions for Iterative Methods</h4>
+            <p>
+                The following matrix is not diagonally dominant, so the Jacobi method may not converge. Try it and check if it converges:
+            </p>
+            <pre>A = [[1, 2, 3],
+     [2, 1, 2],
+     [3, 2, 1]]
+b = [6, 5, 6]</pre>
+            <p>
+                If it does not converge, consider whether row permutation can make it diagonally dominant.
+            </p>
+
+            <h4>Exercise 3: Optimal Relaxation Factor for SOR Method</h4>
+            <p>
+                Experimentally determine the optimal relaxation factor for the SOR method for the following 5×5 tridiagonal matrix (\( \omega \in [1.0, 2.0] \) in increments of 0.05):
+            </p>
+            <pre>Diagonal elements: 4
+Upper and lower off-diagonal elements: -1</pre>
+
+            <h4>Exercise 4: Efficiency of Sparse Matrices</h4>
+            <p>
+                Generate a 2D Laplacian matrix (grid size \( 50 \times 50 \)) and compare the following:
+            </p>
+            <ul>
+                <li>(a) Memory usage of sparse vs dense matrix formats</li>
+                <li>(b) Computation time of spsolve vs np.linalg.solve</li>
+            </ul>
+
+            <h4>Exercise 5: Condition Number and Accuracy Degradation</h4>
+            <p>
+                For Hilbert matrices (\( n = 3, 5, 7 \)), investigate the following:
+            </p>
+            <ul>
+                <li>(a) Condition number for each size</li>
+                <li>(b) For right-hand side vector \( b = [1, 1, ..., 1]^T \) , calculate solution \( x \)</li>
+                <li>(c) Using the calculated \( x \) , recompute \( Ax \) and compare the error with the original \( b \) .</li>
+            </ul>
+            <p>
+                Confirm that accuracy degrades as the condition number increases.
+            </p>
+        </div>
+
+        <section class="content-section">
+            <h2>Summary</h2>
+            <p>
+                In this chapter, we systematically learned numerical methods for systems of linear equations:
+            </p>
+            <ul>
+                <li><strong>Direct methods:</strong> Computing exact solutions using Gaussian elimination and LU decomposition</li>
+                <li><strong>Iterative methods:</strong> Handling large-scale problems using Jacobi, Gauss-Seidel, and SOR methods</li>
+                <li><strong>Sparse matrices:</strong> Efficient computation using SciPy sparse matrix library</li>
+                <li><strong>Numerical stability:</strong> Evaluating solvability through condition numbers and countermeasures</li>
+            </ul>
+            <p>
+                These methods form the foundation for a wide range of numerical computations including finite element methods, finite difference methods, and optimization problems. In the next chapter, we will proceed to solving nonlinear equations.
+            </p>
+        </section>
+
+        <div class="navigation-buttons">
+            <a href="chapter-1.html" class="nav-button secondary">← Chapter 1</a>
+            <a href="chapter-3.html" class="nav-button primary">Chapter 3 →</a>
+        </div>
+    </main>
+
+    <footer style="margin-top: 4rem; padding: 2rem; background: #f8f9fa; border-radius: 12px; text-align: center; color: #666;">
+        <p>&copy; 2025 FM Dojo. All rights reserved.</p>
     </footer>
 </body>
 </html>

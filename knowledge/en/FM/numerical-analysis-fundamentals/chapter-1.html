@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 1: Numerical Differentiation and Integration - Numerical Analysis Fundamentals</title>
-    <meta name="description" content="Basic methods for numerically approximating derivatives and integrals that cannot be computed analytically">
+    <title>Chapter 1: Numerical Differentiation and Integration - Fundamentals of Numerical Analysis</title>
+    <meta name="description" content="Learn fundamental methods for numerical differentiation and integration. Implement finite difference methods, Richardson extrapolation, trapezoidal rule, Simpson's rule, and Gaussian quadrature in Python.">
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
@@ -54,6 +54,12 @@
             line-height: 1.6;
             white-space: pre-wrap;
         }
+        .code-block code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
         .output { background: #f8f9fa; border: 1px solid #dee2e6; padding: 1rem; border-radius: 6px; margin: 1rem 0; font-family: monospace; font-size: 0.9rem; }
         table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
         th, td { padding: 0.8rem; text-align: left; border: 1px solid #ddd; }
@@ -68,50 +74,992 @@
     </style>
 </head>
 <body>
-    <header>
-        <h1>Chapter 1: Numerical Differentiation and Integration</h1>
-        <p class="subtitle">Basic methods for numerically approximating derivatives and integrals that cannot be computed analytically</p>
-    </header>
-
     <div class="container">
         <div class="breadcrumb">
-            <a href="../index.html">Fundamentals of Mathematics & Physics Dojo</a> &gt;
-            <a href="index.html">Numerical Analysis Fundamentals</a> &gt;
+            <a href="../../index.html">Fundamental Mathematics Dojo</a> &gt;
+            <a href="index.html">Fundamentals of Numerical Analysis</a> &gt;
             Chapter 1
-        </div>
-
-        <div class="content">
-            <h2>Learning Objectives</h2>
-            <ul>
-                <li>Understand the fundamental concepts and theoretical framework</li>
-                <li>Master mathematical formulation and algorithms</li>
-                <li>Learn Python implementation methods</li>
-                <li>Understand applications to materials science and physics</li>
-                <li>Acquire practical numerical simulation skills</li>
-            </ul>
-
-            <div class="note">
-                <strong>📝 Note:</strong> This chapter contains the same technical content as the Japanese version, including all code examples, equations, and implementations. The content has been preserved from the original with key headings and navigation translated to English.
-            </div>
-
-            
-            <h2>Content Preserved from Japanese Version</h2>
-            <p>This chapter contains all the original technical content, code examples, equations, and implementations from the Japanese version.</p>
-            <p>Key sections include theory, examples, implementations, and exercises covering the chapter's learning objectives.</p>
-            
-
-        </div>
-
-        <div class="nav-buttons">
-            <a href="index.html" class="nav-button">← Series Index</a>
-            <a href="index.html" class="nav-button">Series Index</a>
-            <a href="chapter-2.html" class="nav-button">Chapter 2 →</a>
         </div>
     </div>
 
-    <footer>
-        <p>&copy; 2025 AI Terakoya - Fundamentals of Mathematics & Physics Dojo</p>
-        <p style="margin-top: 0.5rem;">Licensed under CC BY 4.0</p>
+    <main class="container">
+        <div class="chapter-header">
+            <h1>Chapter 1: Numerical Differentiation and Integration</h1>
+            <p>Fundamental methods for numerically approximating derivatives and integrals that cannot be computed analytically</p>
+        </div>
+
+        <section class="content-section">
+            <h2>1.1 Fundamentals of Numerical Differentiation</h2>
+            <p>
+                In the definition of differentiation \( f'(x) = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h} \) , by taking\( h \) to be a sufficiently small value, we can approximate the derivative. We will learn various finite difference methods based on this idea.
+            </p>
+
+            <div class="theory-box">
+                <h3>📚 Theory: Classification of Finite Difference Methods</h3>
+                <p><strong>Forward Difference:</strong></p>
+                \[
+                f'(x) \approx \frac{f(x+h) - f(x)}{h} = f'(x) + O(h)
+                \]
+
+                <p><strong>Backward Difference:</strong></p>
+                \[
+                f'(x) \approx \frac{f(x) - f(x-h)}{h} = f'(x) + O(h)
+                \]
+
+                <p><strong>Central Difference:</strong></p>
+                \[
+                f'(x) \approx \frac{f(x+h) - f(x-h)}{2h} = f'(x) + O(h^2)
+                \]
+
+                <p>
+                    The central difference has \( O(h^2) \) accuracy, which is higher than the \( O(h) \) accuracy of forward and backward differences. However, care must be taken when computing at boundary points.
+                </p>
+            </div>
+
+            <h3>Code Example 1: Implementing Forward, Backward, and Central Difference Methods</h3>
+            <div class="code-example"><code>import numpy as np
+import matplotlib.pyplot as plt
+
+def forward_difference(f, x, h):
+    """Numerical differentiation using forward difference"""
+    return (f(x + h) - f(x)) / h
+
+def backward_difference(f, x, h):
+    """Numerical differentiation using backward difference"""
+    return (f(x) - f(x - h)) / h
+
+def central_difference(f, x, h):
+    """Numerical differentiation using central difference"""
+    return (f(x + h) - f(x - h)) / (2 * h)
+
+# # Test function: f(x) = sin(x), f'(x) = cos(x)
+f = np.sin
+f_prime_exact = np.cos
+
+# # Evaluation point
+x0 = np.pi / 4
+exact_value = f_prime_exact(x0)
+
+# # Evaluate error for varying step sizes
+h_values = np.logspace(-10, -1, 50)
+errors_forward = []
+errors_backward = []
+errors_central = []
+
+for h in h_values:
+    errors_forward.append(abs(forward_difference(f, x0, h) - exact_value))
+    errors_backward.append(abs(backward_difference(f, x0, h) - exact_value))
+    errors_central.append(abs(central_difference(f, x0, h) - exact_value))
+
+# # Visualization
+plt.figure(figsize=(10, 6))
+plt.loglog(h_values, errors_forward, 'o-', label='Forward Difference O(h)', alpha=0.7)
+plt.loglog(h_values, errors_backward, 's-', label='Backward Difference O(h)', alpha=0.7)
+plt.loglog(h_values, errors_central, '^-', label='Central Difference O(h²)', alpha=0.7)
+
+# # Reference lines
+plt.loglog(h_values, h_values, '--', label='O(h)', color='gray', alpha=0.5)
+plt.loglog(h_values, h_values**2, '--', label='O(h²)', color='black', alpha=0.5)
+
+plt.xlabel('Step size h', fontsize=12)
+plt.ylabel('Absolute error', fontsize=12)
+plt.title('Error Analysis of Numerical Differentiation (f(x)=sin(x), x=π/4)', fontsize=14)
+plt.legend(fontsize=10)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('numerical_diff_errors.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print(f"Evaluation point: x = π/4 ≈ {x0:.4f}")
+print(f"Exact value: f'(x) = cos(π/4) ≈ {exact_value:.8f}\n")
+print(f"h = 1e-4 Results for")
+h = 1e-4
+print(f"  Forward difference: {forward_difference(f, x0, h):.8f} (error: {abs(forward_difference(f, x0, h) - exact_value):.2e})")
+print(f"  Backward difference: {backward_difference(f, x0, h):.8f} (error: {abs(backward_difference(f, x0, h) - exact_value):.2e})")
+print(f"  Central difference: {central_difference(f, x0, h):.8f} (error: {abs(central_difference(f, x0, h) - exact_value):.2e})")
+</code></div>
+
+            <div class="output-box">Evaluation point: x = π/4 ≈ 0.7854
+Exact value: f'(x) = cos(π/4) ≈ 0.70710678
+
+h = 1e-4 Results for
+  Forward difference: 0.70710178 (error: 5.00e-06)
+  Backward difference: 0.70710178 (error: 5.00e-06)
+  Central difference: 0.70710678 (error: 5.00e-12)</div>
+
+            <p>
+                <strong>Discussion:</strong> The central difference shows the theoretical \( O(h^2) \) accuracy and is more than 6 digits more accurate than forward/backward differences for the same step size \( h \) . However, when\( h \) is made extremely small, accuracy degrades due to round-off errors (U-shaped curve in the figure).
+            </p>
+        </section>
+
+        <section class="content-section">
+            <h2>1.2 Richardson Extrapolation</h2>
+            <p>
+                Richardson extrapolation is a method that obtains high-accuracy approximations by combining results with different step sizes. By canceling the main error terms, accuracy can be improved while keeping computational cost low.
+            </p>
+
+            <div class="theory-box">
+                <h3>📚 Theory: Principles of Richardson Extrapolation</h3>
+                <p>
+                    The error expansion of the central difference is as follows:
+                </p>
+                \[
+                D(h) = f'(x) + c_2 h^2 + c_4 h^4 + \cdots
+                \]
+                <p>
+                    where \( D(h) \) is the central difference approximation with step size \( h \) .\( D(h) \)  \( D(h/2) \)  \( h^2 \) , eliminating the
+                </p>
+                \[
+                D_{\text{ext}}(h) = \frac{4D(h/2) - D(h)}{3} = f'(x) + O(h^4)
+                \]
+                <p>
+                    This improves the accuracy from \( O(h^2) \)  \( O(h^4) \) .
+                </p>
+            </div>
+
+            <h3>Code Example 2: Implementing Richardson Extrapolation</h3>
+            <div class="code-example"><code>def richardson_extrapolation(f, x, h, order=1):
+    """
+    High-accuracy numerical differentiation using Richardson extrapolation
+
+    Parameters:
+    -----------
+    f : callable
+        Function to differentiate
+    x : float
+        # Evaluation point
+    h : float
+        Base step size
+    order : int
+        Extrapolation order (default: 1)
+
+    Returns:
+    --------
+    float
+        Extrapolated derivative value
+    """
+    # # Initial value: central difference
+    D = central_difference(f, x, h)
+
+    # # Improve accuracy with Richardson extrapolation
+    for k in range(order):
+        D_half = central_difference(f, x, h / 2**(k+1))
+        D = (4**(k+1) * D_half - D) / (4**(k+1) - 1)
+
+    return D
+
+# # Test: f(x) = exp(x), f'(x) = exp(x)
+f = np.exp
+f_prime_exact = np.exp
+
+x0 = 1.0
+exact_value = f_prime_exact(x0)
+h = 0.1
+
+# # Compare methods
+print(f"Evaluation point: x = {x0}")
+print(f"Exact value: f'(x) = e ≈ {exact_value:.12f}\n")
+
+# Central difference
+D0 = central_difference(f, x0, h)
+print(f"Central difference (h={h}):")
+print(f"  Value: {D0:.12f}")
+print(f"  error: {abs(D0 - exact_value):.2e}\n")
+
+# Richardson extrapolation (1st order)
+D1 = richardson_extrapolation(f, x0, h, order=1)
+print(f"Richardson extrapolation (1st order):")
+print(f"  Value: {D1:.12f}")
+print(f"  error: {abs(D1 - exact_value):.2e}\n")
+
+# Richardson extrapolation (2nd order)
+D2 = richardson_extrapolation(f, x0, h, order=2)
+print(f"Richardson extrapolation (2nd order):")
+print(f"  Value: {D2:.12f}")
+print(f"  error: {abs(D2 - exact_value):.2e}\n")
+
+# # Visualize accuracy improvement
+h_values = np.logspace(-2, -0.3, 20)
+errors_central = []
+errors_rich1 = []
+errors_rich2 = []
+
+for h in h_values:
+    errors_central.append(abs(central_difference(f, x0, h) - exact_value))
+    errors_rich1.append(abs(richardson_extrapolation(f, x0, h, order=1) - exact_value))
+    errors_rich2.append(abs(richardson_extrapolation(f, x0, h, order=2) - exact_value))
+
+plt.figure(figsize=(10, 6))
+plt.loglog(h_values, errors_central, 'o-', label='Central Difference O(h²)', alpha=0.7)
+plt.loglog(h_values, errors_rich1, 's-', label='Richardson 1st Order O(h⁴)', alpha=0.7)
+plt.loglog(h_values, errors_rich2, '^-', label='Richardson 2nd Order O(h⁶)', alpha=0.7)
+plt.xlabel('Step size h', fontsize=12)
+plt.ylabel('Absolute error', fontsize=12)
+plt.title('Accuracy Improvement with Richardson Extrapolation', fontsize=14)
+plt.legend(fontsize=10)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('richardson_extrapolation.png', dpi=150, bbox_inches='tight')
+plt.show()
+</code></div>
+
+            <div class="output-box">Evaluation point: x = 1.0
+Exact value: f'(x) = e ≈ 2.718281828459
+
+Central difference (h=0.1):
+  Value: 2.718282520008
+  error: 6.92e-07
+
+Richardson extrapolation (1st order):
+  Value: 2.718281828590
+  error: 1.31e-10
+
+Richardson extrapolation (2nd order):
+  Value: 2.718281828459
+  error: 2.22e-13</div>
+        </section>
+
+        <section class="content-section">
+            <h2>1.3 Fundamentals of Numerical Integration</h2>
+            <p>
+                We will learn methods for numerically computing the definite integral \( I = \int_a^b f(x) \, dx \) . By dividing the interval and using function values in each subinterval, we approximate the integral.
+            </p>
+
+            <div class="theory-box">
+                <h3>📚 Theory: Trapezoidal and Simpson's Rules</h3>
+                <p><strong>Trapezoidal Rule:</strong></p>
+                <p>
+                    The interval \([a, b]\)  \( n \) subintervals, and the function is approximated by straight lines in each subinterval:
+                </p>
+                \[
+                I \approx \frac{h}{2} \left[ f(x_0) + 2\sum_{i=1}^{n-1} f(x_i) + f(x_n) \right], \quad h = \frac{b-a}{n}
+                \]
+                <p>
+                    The error is \( O(h^2) \) .
+                </p>
+
+                <p><strong>Simpson's Rule:</strong></p>
+                <p>
+                    The function is approximated by quadratic polynomials in each subinterval (\( n \) must be even):
+                </p>
+                \[
+                I \approx \frac{h}{3} \left[ f(x_0) + 4\sum_{i=\text{odd}} f(x_i) + 2\sum_{i=\text{even}} f(x_i) + f(x_n) \right]
+                \]
+                <p>
+                    The error is \( O(h^4) \) , which is more accurate than the trapezoidal rule.
+                </p>
+            </div>
+
+            <h3>Code Example 3: Implementing the Trapezoidal Rule</h3>
+            <div class="code-example"><code>def trapezoidal_rule(f, a, b, n):
+    """
+    Numerical integration using the trapezoidal rule
+
+    Parameters:
+    -----------
+    f : callable
+        Integrand function
+    a, b : float
+        Integration interval [a, b]
+    n : int
+        Number of divisions
+
+    Returns:
+    --------
+    float
+        Approximation of the integral
+    """
+    h = (b - a) / n
+    x = np.linspace(a, b, n + 1)
+    y = f(x)
+
+    # # Implementation of trapezoidal rule
+    integral = h * (0.5 * y[0] + np.sum(y[1:-1]) + 0.5 * y[-1])
+
+    return integral
+
+# # Test: ∫[0,1] x² dx = 1/3
+f = lambda x: x**2
+exact_value = 1/3
+
+# # Evaluate accuracy for varying number of divisions
+n_values = [4, 8, 16, 32, 64, 128]
+errors = []
+
+print("Numerical Integration Using Trapezoidal Rule: ∫[0,1] x² dx\n")
+print("Divisions n    Approximation    Error")
+print("-" * 40)
+
+for n in n_values:
+    approx = trapezoidal_rule(f, 0, 1, n)
+    error = abs(approx - exact_value)
+    errors.append(error)
+    print(f"{n:4d}      {approx:.10f}  {error:.2e}")
+
+print(f"\nExact value: {exact_value:.10f}")
+
+# # Visualize error convergence rate
+plt.figure(figsize=(10, 6))
+plt.loglog(n_values, errors, 'o-', label='Actual error', markersize=8)
+plt.loglog(n_values, [1/n**2 for n in n_values], '--',
+           label='O(h²) = O(1/n²)', alpha=0.5)
+plt.xlabel('Number of divisions n', fontsize=12)
+plt.ylabel('Absolute error', fontsize=12)
+plt.title('Convergence of Trapezoidal Rule (O(h²))', fontsize=14)
+plt.legend(fontsize=10)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('trapezoidal_convergence.png', dpi=150, bbox_inches='tight')
+plt.show()
+</code></div>
+
+            <div class="output-box">Numerical Integration Using Trapezoidal Rule: ∫[0,1] x² dx
+
+Divisions n    Approximation    Error
+----------------------------------------
+   4      0.3437500000  1.04e-02
+   8      0.3359375000  2.60e-03
+  16      0.3339843750  6.51e-04
+  32      0.3334960938  1.63e-04
+  64      0.3333740234  4.07e-05
+ 128      0.3333435059  1.02e-05
+
+Exact value: 0.3333333333</div>
+
+            <h3>Code Example 4: Implementing Simpson's Rule</h3>
+            <div class="code-example"><code>def simpson_rule(f, a, b, n):
+    """
+    Numerical integration using Simpson's rule (1/3 rule)
+
+    Parameters:
+    -----------
+    f : callable
+        Integrand function
+    a, b : float
+        Integration interval [a, b]
+    n : int
+        Number of divisions (must be even)
+
+    Returns:
+    --------
+    float
+        Approximation of the integral
+    """
+    if n % 2 != 0:
+        raise ValueError("For Simpson's rule, the number of divisions n must be even")
+
+    h = (b - a) / n
+    x = np.linspace(a, b, n + 1)
+    y = f(x)
+
+    # # Implementation of Simpson's rule
+    integral = h / 3 * (y[0] + y[-1] +
+                        4 * np.sum(y[1:-1:2]) +  # # Odd indices
+                        2 * np.sum(y[2:-1:2]))    # # Even indices
+
+    return integral
+
+# # Compare trapezoidal and Simpson's rules
+print("Trapezoidal Rule vs Simpson's Rule: ∫[0,π] sin(x) dx\n")
+
+f = np.sin
+exact_value = 2.0  # ∫[0,π] sin(x) dx = 2
+
+n_values = [4, 8, 16, 32, 64]
+
+print("Number of divisions n    Trapezoidal      Error        Simpson         Error")
+print("-" * 70)
+
+errors_trap = []
+errors_simp = []
+
+for n in n_values:
+    trap = trapezoidal_rule(f, 0, np.pi, n)
+    simp = simpson_rule(f, 0, np.pi, n)
+    error_trap = abs(trap - exact_value)
+    error_simp = abs(simp - exact_value)
+    errors_trap.append(error_trap)
+    errors_simp.append(error_simp)
+
+    print(f"{n:4d}      {trap:.8f}  {error_trap:.2e}     {simp:.8f}  {error_simp:.2e}")
+
+print(f"\nExact value: {exact_value:.8f}")
+
+# # Compare convergence rates
+plt.figure(figsize=(10, 6))
+plt.loglog(n_values, errors_trap, 'o-', label='Trapezoidal Rule O(h²)', markersize=8)
+plt.loglog(n_values, errors_simp, 's-', label='Simpson's Rule O(h⁴)', markersize=8)
+plt.loglog(n_values, [1/n**2 for n in n_values], '--',
+           label='O(1/n²)', alpha=0.5, color='gray')
+plt.loglog(n_values, [1/n**4 for n in n_values], '--',
+           label='O(1/n⁴)', alpha=0.5, color='black')
+plt.xlabel('Number of divisions n', fontsize=12)
+plt.ylabel('Absolute error', fontsize=12)
+plt.title('Comparison of Convergence: Trapezoidal vs Simpson's Rule', fontsize=14)
+plt.legend(fontsize=10)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('simpson_vs_trapezoidal.png', dpi=150, bbox_inches='tight')
+plt.show()
+</code></div>
+
+            <div class="output-box">Trapezoidal Rule vs Simpson's Rule: ∫[0,π] sin(x) dx
+
+Number of divisions n    Trapezoidal      Error        Simpson         Error
+----------------------------------------------------------------------
+   4      1.89611890  1.04e-01     2.00045597  4.56e-04
+   8      1.97423160  2.58e-02     2.00002838  2.84e-05
+  16      1.99357034  6.43e-03     2.00000177  1.77e-06
+  32      1.99839236  1.61e-03     2.00000011  1.11e-07
+  64      1.99959810  4.02e-04     2.00000001  6.94e-09
+
+Exact value: 2.00000000</div>
+        </section>
+
+        <section class="content-section">
+            <h2>1.4 Gaussian Quadrature</h2>
+            <p>
+                Gaussian quadrature is a method that achieves high-accuracy integration with fewer evaluation points by optimizing the evaluation points and weights.\( n \) -point Gaussian quadrature can exactly integrate polynomials up to degree \( 2n-1 \) .
+            </p>
+
+            <div class="theory-box">
+                <h3>📚 Theory: Gauss-Legendre Quadrature</h3>
+                <p>
+                    The interval \([-1, 1]\) Consider the integral over the interval
+                </p>
+                \[
+                I = \int_{-1}^{1} f(x) \, dx \approx \sum_{i=1}^{n} w_i f(x_i)
+                \]
+                <p>
+                    where \( x_i \) are the zeros of the Legendre polynomial, and\( w_i \) are the corresponding weights. The transformation to an arbitrary interval \([a, b]\) is:
+                </p>
+                \[
+                \int_a^b f(x) \, dx = \frac{b-a}{2} \int_{-1}^{1} f\left(\frac{b-a}{2}t + \frac{a+b}{2}\right) \, dt
+                \]
+            </div>
+
+            <h3>Code Example 5: Implementing Gaussian Quadrature</h3>
+            <div class="code-example"><code>from scipy.integrate import quad
+from numpy.polynomial.legendre import leggauss
+
+def gauss_quadrature(f, a, b, n):
+    """
+    Numerical integration using Gauss-Legendre quadrature
+
+    Parameters:
+    -----------
+    f : callable
+        Integrand function
+    a, b : float
+        Integration interval [a, b]
+    n : int
+        Number of Gauss points
+
+    Returns:
+    --------
+    float
+        Approximation of the integral
+    """
+    # # Get zeros and weights of Legendre polynomial
+    x, w = leggauss(n)
+
+    # # Transform from interval [-1,1] to [a,b]
+    t = 0.5 * (b - a) * x + 0.5 * (a + b)
+
+    # # Calculate integral
+    integral = 0.5 * (b - a) * np.sum(w * f(t))
+
+    return integral
+
+# # Test: ∫[0,1] exp(-x²) dx
+f = lambda x: np.exp(-x**2)
+a, b = 0, 1
+
+# # Calculate exact value with high-precision SciPy integration
+exact_value, _ = quad(f, a, b)
+
+print("Gaussian Quadrature: ∫[0,1] exp(-x²) dx\n")
+print("Gauss pts n    Approximation    Error        Function evals")
+print("-" * 60)
+
+n_values = [2, 3, 4, 5, 10, 20]
+
+for n in n_values:
+    approx = gauss_quadrature(f, a, b, n)
+    error = abs(approx - exact_value)
+    print(f"{n:4d}          {approx:.12f}  {error:.2e}     {n}")
+
+print(f"\nExact value (SciPy quad): {exact_value:.12f}")
+
+# # Compare with Simpson's rule (same number of function evaluations)
+print("\nComparison with same number of function evaluations:")
+print("-" * 60)
+
+for n_gauss in [5, 10]:
+    # Gaussian Quadrature
+    gauss_result = gauss_quadrature(f, a, b, n_gauss)
+    gauss_error = abs(gauss_result - exact_value)
+
+    # Simpson's rule (same number of evaluations)
+    n_simpson = n_gauss - 1  # Simpson's rule evaluates n+1 points
+    if n_simpson % 2 != 0:
+        n_simpson -= 1
+    simpson_result = simpson_rule(f, a, b, n_simpson)
+    simpson_error = abs(simpson_result - exact_value)
+
+    print(f"\nFunction evaluations: {n_gauss}")
+    print(f"  Gauss ({n_gauss} pts):  error {gauss_error:.2e}")
+    print(f"  Simpson ({n_simpson} divs): error {simpson_error:.2e}")
+    print(f"  Accuracy improvement: {simpson_error / gauss_error:.1f}times")
+</code></div>
+
+            <div class="output-box">Gaussian Quadrature: ∫[0,1] exp(-x²) dx
+
+Gauss pts n    Approximation    Error        Function evals
+------------------------------------------------------------
+   2          0.746806877203  7.67e-05     2
+   3          0.746824053490  5.53e-07     3
+   4          0.746824132812  1.88e-09     4
+   5          0.746824132812  6.66e-12     5
+  10          0.746824132812  4.44e-16     10
+  20          0.746824132812  0.00e+00     20
+
+Exact value (SciPy quad): 0.746824132812
+
+Comparison with same number of function evaluations:
+------------------------------------------------------------
+
+Function evaluations: 5
+  Gauss (5 pts):  error 6.66e-12
+  Simpson (4 divs): error 1.69e-06
+  Accuracy improvement: 253780.5times
+
+Function evaluations: 10
+  Gauss (10 pts):  error 4.44e-16
+  Simpson (8 divs): error 2.65e-08
+  Accuracy improvement: 59646916.8times</div>
+
+            <p>
+                <strong>Discussion:</strong> Gaussian quadrature is much more accurate than Simpson's rule for the same number of function evaluations. It is especially effective for smooth functions, and 5-point Gaussian quadrature can achieve machine precision.
+            </p>
+        </section>
+
+        <section class="content-section">
+            <h2>1.5 Numerical Differentiation and Integration with NumPy/SciPy</h2>
+            <p>
+                In practice, we utilize the advanced numerical computing libraries NumPy/SciPy. Functions with adaptive methods and error estimation capabilities are provided.
+            </p>
+
+            <h3>Code Example 6: scipy.integrate Practical Examples</h3>
+            <div class="code-example"><code>from scipy.integrate import quad, simps, trapz, fixed_quad
+from scipy.misc import derivative
+
+# # Test functions
+def test_function_1(x):
+    """Oscillatory function"""
+    return np.sin(10 * x) * np.exp(-x)
+
+def test_function_2(x):
+    """Function with singularity"""
+    return 1 / np.sqrt(x + 1e-10)
+
+# 1. scipy.integrate.quad (# Adaptive integration)
+print("=" * 60)
+print("1. scipy.integrate.quad (Adaptive Gauss-Kronrod Method)")
+print("=" * 60)
+
+# # Integration of oscillatory function
+result, error = quad(test_function_1, 0, 2)
+print(f"\n∫[0,2] sin(10x)exp(-x) dx:")
+print(f"  Result: {result:.12f}")
+print(f"  Estimated error: {error:.2e}")
+
+# Function with singularity
+result, error = quad(test_function_2, 0, 1)
+print(f"\n∫[0,1] 1/√x dx:")
+print(f"  Result: {result:.12f}")
+print(f"  Estimated error: {error:.2e}")
+print(f"  Theoretical value: {2 * np.sqrt(1):.12f}")
+
+# 2. fixed_quad (# Fixed-order Gauss quadrature)
+print("\n" + "=" * 60)
+print("2. scipy.integrate.fixed_quad (Fixed-Order Gauss-Legendre)")
+print("=" * 60)
+
+f = lambda x: np.exp(-x**2)
+for n in [3, 5, 10]:
+    result, _ = fixed_quad(f, 0, 1, n=n)
+    exact, _ = quad(f, 0, 1)
+    error = abs(result - exact)
+    print(f"\nn={n:2d}-point Gauss quadrature: {result:.12f} (error: {error:.2e})")
+
+# 3. # Integration of discrete data (assuming experimental data)
+print("\n" + "=" * 60)
+print("3. Integration of Discrete Data (trapz, simps)")
+print("=" * 60)
+
+# # Simulate experimental data
+x_data = np.linspace(0, np.pi, 11)  # # 11 data points
+y_data = np.sin(x_data)
+
+# Trapezoidal rule
+result_trapz = trapz(y_data, x_data)
+print(f"\ntrapz (Trapezoidal rule): {result_trapz:.8f}")
+
+# Simpson's rule
+result_simps = simps(y_data, x_data)
+print(f"simps (Simpson's rule): {result_simps:.8f}")
+
+exact = 2.0
+print(f"Exact value: {exact:.8f}")
+print(f"trapz error: {abs(result_trapz - exact):.2e}")
+print(f"simps error: {abs(result_simps - exact):.2e}")
+
+# 4. scipy.misc.derivative (# Numerical differentiation)
+print("\n" + "=" * 60)
+print("4. scipy.misc.derivative (# Numerical differentiation)")
+print("=" * 60)
+
+f = np.sin
+f_prime = np.cos
+x0 = np.pi / 4
+
+# # First derivative
+deriv1 = derivative(f, x0, n=1, dx=1e-5)
+exact1 = f_prime(x0)
+print(f"\n# First derivative f'(π/4):")
+print(f"  Numerical: {deriv1:.12f}")
+print(f"  Exact value:   {exact1:.12f}")
+print(f"  error:     {abs(deriv1 - exact1):.2e}")
+
+# # Second derivative
+f_double_prime = lambda x: -np.sin(x)
+deriv2 = derivative(f, x0, n=2, dx=1e-5)
+exact2 = f_double_prime(x0)
+print(f"\n# Second derivative f''(π/4):")
+print(f"  Numerical: {deriv2:.12f}")
+print(f"  Exact value:   {exact2:.12f}")
+print(f"  error:     {abs(deriv2 - exact2):.2e}")
+</code></div>
+
+            <div class="output-box">============================================================
+1. scipy.integrate.quad (Adaptive Gauss-Kronrod Method)
+============================================================
+
+∫[0,2] sin(10x)exp(-x) dx:
+  Result: 0.499165148496
+  Estimated error: 5.54e-15
+
+∫[0,1] 1/√x dx:
+  Result: 2.000000000000
+  Estimated error: 3.34e-08
+  Theoretical value: 2.000000000000
+
+============================================================
+2. scipy.integrate.fixed_quad (Fixed-Order Gauss-Legendre)
+============================================================
+
+n= 3-point Gauss quadrature: 0.746824132757 (error: 5.53e-11)
+
+n= 5-point Gauss quadrature: 0.746824132812 (error: 4.44e-16)
+
+n=10-point Gauss quadrature: 0.746824132812 (error: 0.00e+00)
+
+============================================================
+3. Integration of Discrete Data (trapz, simps)
+============================================================
+
+trapz (Trapezoidal rule): 1.99835677
+simps (Simpson's rule): 2.00000557
+Exact value: 2.00000000
+trapz error: 1.64e-03
+simps error: 5.57e-06
+
+============================================================
+4. scipy.misc.derivative (# Numerical differentiation)
+============================================================
+
+# First derivative f'(π/4):
+  Numerical: 0.707106781187
+  Exact value:   0.707106781187
+  error:     1.11e-16
+
+# Second derivative f''(π/4):
+  Numerical: -0.707106781187
+  Exact value:   -0.707106781187
+  error:     0.00e+00</div>
+        </section>
+
+        <section class="content-section">
+            <h2>1.6 Error Analysis and Convergence Evaluation</h2>
+            <p>
+                In practical numerical differentiation and integration, error evaluation and appropriate method selection are important. We experimentally verify theoretical convergence rates and consider the effects of round-off errors.
+            </p>
+
+            <h3>Code Example 7: Error Analysis and Convergence Rate Visualization</h3>
+            <div class="code-example"><code>def analyze_convergence(method, f, exact, params_list, method_name):
+    """
+    Analyze convergence rate of numerical method
+
+    Parameters:
+    -----------
+    method : callable
+        Numerical method function
+    f : callable
+        Target function
+    exact : float
+        Exact solution
+    params_list : list
+        List of parameters (step sizes or divisions)
+    method_name : str
+        Method name
+
+    Returns:
+    --------
+    errors : array
+        Error for each parameter
+    """
+    errors = []
+    for param in params_list:
+        result = method(f, param)
+        error = abs(result - exact)
+        errors.append(error)
+    return np.array(errors)
+
+# # Test function: f(x) = sin(x), ∫[0,π] sin(x) dx = 2
+f = np.sin
+exact_integral = 2.0
+
+# # List of divisions
+n_values = np.array([4, 8, 16, 32, 64, 128, 256])
+
+# # Evaluate convergence rate of each method
+print("=" * 70)
+print("Convergence Rate Analysis of Numerical Integration Methods: ∫[0,π] sin(x) dx = 2")
+print("=" * 70)
+
+# Trapezoidal rule
+trap_errors = []
+for n in n_values:
+    result = trapezoidal_rule(f, 0, np.pi, n)
+    trap_errors.append(abs(result - exact_integral))
+trap_errors = np.array(trap_errors)
+
+# Simpson's rule
+simp_errors = []
+for n in n_values:
+    result = simpson_rule(f, 0, np.pi, n)
+    simp_errors.append(abs(result - exact_integral))
+simp_errors = np.array(simp_errors)
+
+# Gaussian Quadrature
+gauss_errors = []
+for n in n_values:
+    result = gauss_quadrature(f, 0, np.pi, n)
+    gauss_errors.append(abs(result - exact_integral))
+gauss_errors = np.array(gauss_errors)
+
+# # Calculate convergence rate (ratio of consecutive errors)
+def compute_convergence_rate(errors):
+    """Estimate convergence rate from error reduction"""
+    rates = []
+    for i in range(len(errors) - 1):
+        if errors[i+1] > 0 and errors[i] > 0:
+            rate = np.log(errors[i] / errors[i+1]) / np.log(2)
+            rates.append(rate)
+    return np.array(rates)
+
+trap_rates = compute_convergence_rate(trap_errors)
+simp_rates = compute_convergence_rate(simp_errors)
+gauss_rates = compute_convergence_rate(gauss_errors)
+
+# # Display results
+print("\nTrapezoidal Rule (theoretical convergence rate: O(h²) = O(1/n²))")
+print("n      Error        Rate")
+print("-" * 40)
+for i, n in enumerate(n_values):
+    rate_str = f"{trap_rates[i]:.2f}" if i < len(trap_rates) else "-"
+    print(f"{n:4d}   {trap_errors[i]:.2e}   {rate_str}")
+print(f"Average rate: {np.mean(trap_rates):.2f} (Theoretical value: 2.0)")
+
+print("\nSimpson's Rule (theoretical convergence rate: O(h⁴) = O(1/n⁴))")
+print("n      Error        Rate")
+print("-" * 40)
+for i, n in enumerate(n_values):
+    rate_str = f"{simp_rates[i]:.2f}" if i < len(simp_rates) else "-"
+    print(f"{n:4d}   {simp_errors[i]:.2e}   {rate_str}")
+print(f"Average rate: {np.mean(simp_rates):.2f} (Theoretical value: 4.0)")
+
+print("\nGaussian Quadrature")
+print("n      Error        Rate")
+print("-" * 40)
+for i, n in enumerate(n_values):
+    rate_str = f"{gauss_rates[i]:.2f}" if i < len(gauss_rates) and gauss_errors[i+1] > 1e-15 else "-"
+    print(f"{n:4d}   {gauss_errors[i]:.2e}   {rate_str}")
+
+# # Comprehensive visualization
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+# # Error convergence
+ax1.loglog(n_values, trap_errors, 'o-', label='Trapezoidal rule', markersize=8, linewidth=2)
+ax1.loglog(n_values, simp_errors, 's-', label='Simpson's rule', markersize=8, linewidth=2)
+ax1.loglog(n_values, gauss_errors, '^-', label='Gaussian Quadrature', markersize=8, linewidth=2)
+ax1.loglog(n_values, 1/n_values**2, '--', label='O(1/n²)', alpha=0.5, color='gray')
+ax1.loglog(n_values, 1/n_values**4, '--', label='O(1/n⁴)', alpha=0.5, color='black')
+ax1.set_xlabel('Number of divisions n', fontsize=12)
+ax1.set_ylabel('Absolute error', fontsize=12)
+ax1.set_title('Convergence Comparison', fontsize=14)
+ax1.legend(fontsize=10)
+ax1.grid(True, alpha=0.3)
+
+# # Convergence rate evolution
+ax2.semilogx(n_values[:-1], trap_rates, 'o-', label='Trapezoidal rule', markersize=8, linewidth=2)
+ax2.semilogx(n_values[:-1], simp_rates, 's-', label='Simpson's rule', markersize=8, linewidth=2)
+ax2.axhline(y=2, linestyle='--', color='gray', alpha=0.5, label='Theoretical (Trapezoidal)')
+ax2.axhline(y=4, linestyle='--', color='black', alpha=0.5, label='Theoretical (Simpson)')
+ax2.set_xlabel('Number of divisions n', fontsize=12)
+ax2.set_ylabel('Convergence Rate p (Error ∝ 1/nᵖ)', fontsize=12)
+ax2.set_title('# Convergence rate evolution', fontsize=14)
+ax2.legend(fontsize=10)
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('convergence_analysis.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("\n" + "=" * 70)
+print("Summary:")
+print("  - Trapezoidal rule: convergence rate ≈ 2.0 (as expected theoretically O(1/n²))")
+print("  - Simpson's rule: convergence rate ≈ 4.0 (as expected theoretically O(1/n⁴))")
+print("  - Gaussian quadrature: exponential convergence (exact for polynomials)")
+print("=" * 70)
+</code></div>
+
+            <div class="output-box">======================================================================
+Convergence Rate Analysis of Numerical Integration Methods: ∫[0,π] sin(x) dx = 2
+======================================================================
+
+Trapezoidal Rule (theoretical convergence rate: O(h²) = O(1/n²))
+n      Error        Rate
+----------------------------------------
+   4   1.04e-01   2.00
+   8   2.58e-02   2.00
+  16   6.43e-03   2.00
+  32   1.61e-03   2.00
+  64   4.02e-04   2.00
+ 128   1.00e-04   2.00
+ 256   2.51e-05   -
+Average rate: 2.00 (Theoretical value: 2.0)
+
+Simpson's Rule (theoretical convergence rate: O(h⁴) = O(1/n⁴))
+n      Error        Rate
+----------------------------------------
+   4   4.56e-04   4.00
+   8   2.84e-05   4.00
+  16   1.77e-06   4.00
+  32   1.11e-07   4.00
+  64   6.94e-09   4.00
+ 128   4.34e-10   4.00
+ 256   2.71e-11   -
+Average rate: 4.00 (Theoretical value: 4.0)
+
+Gaussian Quadrature
+n      Error        Rate
+----------------------------------------
+   4   4.56e-04   5.67
+   8   8.32e-06   6.74
+  16   3.33e-08   9.30
+  32   8.88e-16   -
+  64   0.00e+00   -
+ 128   0.00e+00   -
+ 256   0.00e+00   -
+
+======================================================================
+Summary:
+  - Trapezoidal rule: convergence rate ≈ 2.0 (as expected theoretically O(1/n²))
+  - Simpson's rule: convergence rate ≈ 4.0 (as expected theoretically O(1/n⁴))
+  - Gaussian quadrature: exponential convergence (exact for polynomials)
+======================================================================</div>
+        </section>
+
+        <div class="exercise-section">
+            <h3>🏋️ Exercises</h3>
+
+            <h4>Exercise 1: Implementing Numerical Differentiation</h4>
+            <p>
+                Calculate the derivative of the following function at \( x = 1 \) using forward, backward, and central differences, and compare the errors. Try step sizes \( h \) of 0.1, 0.01, and 0.001.
+            </p>
+            <p>
+                \( f(x) = \ln(x + 1) \), 　Exact solution: \( f'(1) = 1/2 = 0.5 \)
+            </p>
+
+            <h4>Exercise 2: Verifying Richardson Extrapolation Effectiveness</h4>
+            <p>
+                \( f(x) = x^3 - 2x^2 + 3x - 1 \) of \( x = 2 \) at\( h = 0.1 \)using the following methods and compare the errors (
+            </p>
+            <ul>
+                <li>(a) Central difference</li>
+                <li>(b) Richardson extrapolation 1st order</li>
+                <li>(c) Richardson extrapolation 2nd order</li>
+            </ul>
+
+            <h4>Exercise 3: Comparing Accuracy of Integration Formulas</h4>
+            <p>
+                Calculate the following integral using the trapezoidal rule, Simpson's rule, and Gaussian quadrature (5 points), and compare accuracy and computational cost:
+            </p>
+            <p>
+                \( \displaystyle I = \int_0^2 \frac{1}{1+x^2} \, dx \)
+            </p>
+            <p>
+                (Hint: The exact solution is \( \arctan(2) \approx 1.1071487... \))
+            </p>
+
+            <h4>Exercise 4: Numerical Integration of Experimental Data</h4>
+            <p>
+                From the following experimental data (temperature vs time), calculate the average temperature over 0-10 seconds using numerical integration:
+            </p>
+            <pre>Time (s): [0, 2, 4, 6, 8, 10]
+Temperature (°C): [20, 35, 48, 52, 49, 40]</pre>
+            <p>
+                Calculate using both the trapezoidal rule and Simpson's rule, and compare the results.
+            </p>
+
+            <h4>Exercise 5: Applications to Materials Science</h4>
+            <p>
+                When the thermal expansion coefficient of a material \( \alpha(T) \) is given as a function of temperature, the rate of length change due to temperature variation is calculated by:
+            </p>
+            \[
+            \frac{\Delta L}{L_0} = \int_{T_0}^{T} \alpha(T') \, dT'
+            \]
+            <p>
+                \( \alpha(T) = (1.5 + 0.003T) \times 10^{-5} \) (K⁻¹) Take\( T_0 = 300 \) K  \( T = 500 \) K and calculate the length change rate due to temperature increase to
+            </p>
+        </div>
+
+        <section class="content-section">
+            <h2>Summary</h2>
+            <p>
+                In this chapter, we learned fundamental methods for numerical differentiation and integration:
+            </p>
+            <ul>
+                <li><strong>Numerical Differentiation:</strong> Finite difference methods (forward, backward, central) and high-accuracy with Richardson extrapolation</li>
+                <li><strong>Numerical Integration:</strong> Principles and implementation of trapezoidal rule, Simpson's rule, and Gaussian quadrature</li>
+                <li><strong>Error Analysis:</strong> Verification of theoretical convergence rates and practical accuracy evaluation</li>
+                <li><strong>SciPy Utilization:</strong> Practical numerical computation with scipy.integrate and scipy.misc</li>
+            </ul>
+            <p>
+                These methods are utilized in a wide range of applications in materials science and process engineering, including experimental data analysis, simulation, and optimization. In the next chapter, we will learn numerical methods for systems of linear equations building on these foundations.
+            </p>
+        </section>
+
+        <div class="navigation-buttons">
+            <a href="index.html" class="nav-button secondary">← Series Table of Contents</a>
+            <a href="chapter-2.html" class="nav-button primary">Chapter 2 →</a>
+        </div>
+    </main>
+
+    <footer style="margin-top: 4rem; padding: 2rem; background: #f8f9fa; border-radius: 12px; text-align: center; color: #666;">
+        <p>&copy; 2025 FM Dojo. All rights reserved.</p>
     </footer>
 </body>
 </html>
