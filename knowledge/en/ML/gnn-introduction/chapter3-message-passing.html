@@ -1,44 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Chapter 3: Message Passing and GNN - AI Terakoya</title>
-        <link rel="stylesheet" href="../../assets/css/knowledge-base.css">
-
-    <script type="module">
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
         mermaid.initialize({ startOnLoad: true, theme: 'default' });
     </script>
-    <script>
+<script>
         MathJax = {
             tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']], processEscapes: true, processEnvironments: true },
             options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'], ignoreHtmlClass: 'mermaid' }
         };
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
-            <nav class="breadcrumb">
-        <div class="breadcrumb-content">
-            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/gnn-introduction/index.html">Gnn</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
-        </div>
-    </nav>
-
-        <header>
-        <div class="header-content">
-<h1>Chapter 3: Message Passing and GNN</h1>            <p class="subtitle">Generalized GNN Framework - GraphSAGE, GIN, PyTorch Geometric Implementation</p>
-            <div class="meta">
-                <span class="meta-item">📖 Reading Time: 25-30 minutes</span>
-                <span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
-                <span class="meta-item">💻 Code Examples: 8</span>
-                <span class="meta-item">📝 Exercises: 5</span>
-            </div>
-        </div>
-    </header>
-
-    <main class="container">
-
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/gnn-introduction/index.html">Gnn</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+</div>
+</nav>
+<header>
+<div class="header-content">
+<h1>Chapter 3: Message Passing and GNN</h1> <p class="subtitle">Generalized GNN Framework - GraphSAGE, GIN, PyTorch Geometric Implementation</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 25-30 minutes</span>
+<span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
+<span class="meta-item">💻 Code Examples: 8</span>
+<span class="meta-item">📝 Exercises: 5</span>
+</div>
+</div>
+</header>
+<main class="container">
 <h2>Learning Objectives</h2>
 <p>By reading this chapter, you will master the following:</p>
 <ul>
@@ -51,40 +47,28 @@
 <li>✅ Master efficient implementation methods with PyTorch Geometric</li>
 <li>✅ Implement graph classification tasks and batch processing</li>
 </ul>
-
-<hr>
-
+<hr/>
 <h2>3.1 Message Passing Framework</h2>
-
 <h3>Concept of Message Passing</h3>
-
 <p><strong>Message Passing</strong> is a framework that describes information propagation in GNNs in a unified manner. It updates features by sending and receiving messages between nodes and aggregating them.</p>
-
 <blockquote>
 <p>"The message passing framework provides a unified way to describe any GNN architecture with three basic operations (Message, Aggregate, Update)"</p>
 </blockquote>
-
 <h3>Three Basic Operations</h3>
-
 <p>Message passing consists of the following three steps:</p>
-
 <div class="mermaid">
 graph LR
-    A[1. Message<br/>Message generation] --> B[2. Aggregate<br/>Message aggregation]
- B -->C[3. Update<br/>Featureupdate] 
+    A[1. Message<br/>Message generation] --&gt; B[2. Aggregate<br/>Message aggregation]
+ B --&gt;C[3. Update<br/>Featureupdate] 
     style A fill:#e3f2fd
     style B fill:#fff3e0
     style C fill:#e8f5e9
 </div>
-
 <h4>Step 1: Message (Message Generation)</h4>
-
 <p>Generate messages to be sent from neighboring nodes to the center node:</p>
-
 <p>$$
 \mathbf{m}_{j \to i}^{(k)} = \text{MESSAGE}^{(k)}\left(\mathbf{h}_i^{(k-1)}, \mathbf{h}_j^{(k-1)}, \mathbf{e}_{ji}\right)
 $$</p>
-
 <p>Where:</p>
 <ul>
 <li>$\mathbf{m}_{j \to i}^{(k)}$: Message from node $j$ to node $i$</li>
@@ -92,51 +76,42 @@ $$</p>
 <li>$\mathbf{h}_j^{(k-1)}$: Previous layer features of sending node $j$</li>
 <li>$\mathbf{e}_{ji}$: Edge $(j, i)$ features (optional)</li>
 </ul>
-
 <h4>Step 2: Aggregate (Message Aggregation)</h4>
-
 <p>Aggregate all received messages:</p>
-
 <p>$$
 \mathbf{m}_i^{(k)} = \text{AGGREGATE}^{(k)}\left(\left\{\mathbf{m}_{j \to i}^{(k)} : j \in \mathcal{N}(i)\right\}\right)
 $$</p>
-
 <p>Representative aggregation functions:</p>
 <ul>
 <li><strong>Sum</strong>: $\text{AGGREGATE} = \sum_{j \in \mathcal{N}(i)} \mathbf{m}_{j \to i}$</li>
 <li><strong>Mean</strong>: $\text{AGGREGATE} = \frac{1}{|\mathcal{N}(i)|} \sum_{j \in \mathcal{N}(i)} \mathbf{m}_{j \to i}$</li>
 <li><strong>Max</strong>: $\text{AGGREGATE} = \max_{j \in \mathcal{N}(i)} \mathbf{m}_{j \to i}$</li>
 </ul>
-
 <h4>Step 3: Update (Feature Update)</h4>
-
 <p>Update features by combining aggregated messages with own information:</p>
-
 <p>$$
 \mathbf{h}_i^{(k)} = \text{UPDATE}^{(k)}\left(\mathbf{h}_i^{(k-1)}, \mathbf{m}_i^{(k)}\right)
 $$</p>
-
 <h3>Visualization of Message Passing</h3>
-
 <div class="mermaid">
 graph TB
     subgraph "Step1: Message"
-        N1[Node v] --> M1[m<sub>1→v</sub>]
-        N2[Node 1] --> M1
-        N3[Node 2] --> M2[m<sub>2→v</sub>]
-        N4[Node 3] --> M3[m<sub>3→v</sub>]
+        N1[Node v] --&gt; M1[m<sub>1→v</sub>]
+        N2[Node 1] --&gt; M1
+        N3[Node 2] --&gt; M2[m<sub>2→v</sub>]
+        N4[Node 3] --&gt; M3[m<sub>3→v</sub>]
     end
 
     subgraph "Step2: Aggregate"
-        M1 --> AGG[Σ / Mean / Max]
-        M2 --> AGG
-        M3 --> AGG
- AGG -->AM[aggregationmessage]     end
+        M1 --&gt; AGG[Σ / Mean / Max]
+        M2 --&gt; AGG
+        M3 --&gt; AGG
+ AGG --&gt;AM[aggregationmessage]     end
 
     subgraph "Step3: Update"
-        N1 --> UPD[UPDATE Function]
-        AM --> UPD
-        UPD --> H[h<sub>v</sub><sup>(k)</sup>]
+        N1 --&gt; UPD[UPDATE Function]
+        AM --&gt; UPD
+        UPD --&gt; H[h<sub>v</sub><sup>(k)</sup>]
     end
 
     style M1 fill:#e3f2fd
@@ -146,9 +121,7 @@ graph TB
     style UPD fill:#e8f5e9
     style H fill:#c8e6c9
 </div>
-
 <h3>Implementation Example 1: Basic Message Passing Implementation</h3>
-
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -246,7 +219,6 @@ for aggr in ['sum', 'mean', 'max']:
     for i in range(min(3, num_nodes)):
         print(f"    Node{i}: mean={h_new[i].mean():.3f}, std={h_new[i].std():.3f}")
 </code></pre>
-
 <p><strong>Output</strong>：</p><pre><code>=== Message Passing Framework Basic Implementation ===
 
 --- Creating Test Graph ---
@@ -280,22 +252,16 @@ MAX Aggregation:
     Node1: mean=0.267, std=1.012
     Node2: mean=0.034, std=0.876
 </code></pre>
-
 <h3>Generalized GNN (MPNN)</h3>
-
 <p><strong>Message Passing Neural Network (MPNN)</strong> is a framework that describes many GNN architectures in a unified manner.</p>
-
 <p>General form of MPNN:</p>
-
 <p>$$
 \begin{align}
-\mathbf{m}_i^{(k+1)} &= \sum_{j \in \mathcal{N}(i)} M_k\left(\mathbf{h}_i^{(k)}, \mathbf{h}_j^{(k)}, \mathbf{e}_{ji}\right) \\
-\mathbf{h}_i^{(k+1)} &= U_k\left(\mathbf{h}_i^{(k)}, \mathbf{m}_i^{(k+1)}\right)
+\mathbf{m}_i^{(k+1)} &amp;= \sum_{j \in \mathcal{N}(i)} M_k\left(\mathbf{h}_i^{(k)}, \mathbf{h}_j^{(k)}, \mathbf{e}_{ji}\right) \\
+\mathbf{h}_i^{(k+1)} &amp;= U_k\left(\mathbf{h}_i^{(k)}, \mathbf{m}_i^{(k+1)}\right)
 \end{align}
 $$</p>
-
 <p>MPNN representation of representative GNNs:</p>
-
 <table>
 <thead>
 <tr>
@@ -327,39 +293,31 @@ $$</p>
 </tr>
 </tbody>
 </table>
-
-<hr>
-
+<hr/>
 <h2>3.2 GraphSAGE</h2>
-
 <h3>Overview of GraphSAGE</h3>
-
 <p><strong>GraphSAGE (SAmple and aggreGatE)</strong> is a sampling-based GNN for large-scale graphs. Instead of using all neighbors, it samples and aggregates a fixed number of neighbors.</p>
-
 <blockquote>
 <p>"GraphSAGE enables mini-batch learning by sampling neighbors, achieving scalability to large-scale graphs"</p>
 </blockquote>
-
 <h3>Sampling-Based Aggregation</h3>
-
 <p>Features of GraphSAGE:</p>
 <ol>
 <li><strong>Neighbor sampling</strong>：randomly sampling fixed number of neighbors from each node</li><li><strong>Various Aggregators</strong>: Aggregation functions such as Mean, Pool, LSTM</li>
 <li><strong>Inductive learning</strong>：can apply to nodes not seen during training</li></ol>
-
 <div class="mermaid">
 graph TB
     subgraph "Standard GNN (All Neighbors)"
- V1[centerNode] -->N1[Neighbor1]         V1 --> N2[Neighbor2]
-        V1 --> N3[Neighbor3]
-        V1 --> N4[Neighbor4]
-        V1 --> N5[Neighbor5]
-        V1 --> N6[Neighbor6]
+ V1[centerNode] --&gt;N1[Neighbor1]         V1 --&gt; N2[Neighbor2]
+        V1 --&gt; N3[Neighbor3]
+        V1 --&gt; N4[Neighbor4]
+        V1 --&gt; N5[Neighbor5]
+        V1 --&gt; N6[Neighbor6]
     end
 
     subgraph "GraphSAGE (Sampling)"
- V2[centerNode] -->S1[Sample1]         V2 --> S2[Sample2]
-        V2 --> S3[Sample3]
+ V2[centerNode] --&gt;S1[Sample1]         V2 --&gt; S2[Sample2]
+        V2 --&gt; S3[Sample3]
         N7[Neighbor4] -.x.- V2
         N8[Neighbor5] -.x.- V2
         N9[Neighbor6] -.x.- V2
@@ -371,53 +329,37 @@ graph TB
     style S2 fill:#e3f2fd
     style S3 fill:#e3f2fd
 </div>
-
 <h3>GraphSAGE Algorithm</h3>
-
 <p>Update equations for GraphSAGE:</p>
-
 <p>$$
 \begin{align}
-\mathbf{h}_{\mathcal{N}(i)}^{(k)} &= \text{AGGREGATE}_k\left(\left\{\mathbf{h}_j^{(k-1)}, \forall j \in \mathcal{S}_{\mathcal{N}(i)}\right\}\right) \\
-\mathbf{h}_i^{(k)} &= \sigma\left(\mathbf{W}^{(k)} \cdot \left[\mathbf{h}_i^{(k-1)} \| \mathbf{h}_{\mathcal{N}(i)}^{(k)}\right]\right) \\
-\mathbf{h}_i^{(k)} &= \frac{\mathbf{h}_i^{(k)}}{\|\mathbf{h}_i^{(k)}\|_2}
+\mathbf{h}_{\mathcal{N}(i)}^{(k)} &amp;= \text{AGGREGATE}_k\left(\left\{\mathbf{h}_j^{(k-1)}, \forall j \in \mathcal{S}_{\mathcal{N}(i)}\right\}\right) \\
+\mathbf{h}_i^{(k)} &amp;= \sigma\left(\mathbf{W}^{(k)} \cdot \left[\mathbf{h}_i^{(k-1)} \| \mathbf{h}_{\mathcal{N}(i)}^{(k)}\right]\right) \\
+\mathbf{h}_i^{(k)} &amp;= \frac{\mathbf{h}_i^{(k)}}{\|\mathbf{h}_i^{(k)}\|_2}
 \end{align}
 $$</p>
-
 <p>Where:</p>
 <ul>
 <li>$\mathcal{S}_{\mathcal{N}(i)}$：Node$i$Neighbor from samplingpartset</li><li>$\|$: Feature concatenation</li>
 <li>Final line: L2 normalization</li>
 </ul>
-
 <h3>Various Aggregators</h3>
-
 <h4>1. Mean Aggregator</h4>
-
 <p>$$
 \text{AGGREGATE}_{\text{mean}} = \frac{1}{|\mathcal{S}_{\mathcal{N}(i)}|} \sum_{j \in \mathcal{S}_{\mathcal{N}(i)}} \mathbf{h}_j^{(k-1)}
 $$</p>
-
 <p>Feature: Simple and efficient, behaves similar to GCN</p>
-
 <h4>2. Pool Aggregator</h4>
-
 <p>$$
 \text{AGGREGATE}_{\text{pool}} = \max\left(\left\{\sigma\left(\mathbf{W}_{\text{pool}} \mathbf{h}_j^{(k-1)} + \mathbf{b}\right), \forall j \in \mathcal{S}_{\mathcal{N}(i)}\right\}\right)
 $$</p>
-
 <p>Feature: Element-wise max-pooling, captures asymmetric neighbor information</p>
-
 <h4>3. LSTM Aggregator</h4>
-
 <p>$$
 \text{AGGREGATE}_{\text{LSTM}} = \text{LSTM}\left(\left[\mathbf{h}_j^{(k-1)}, \forall j \in \pi(\mathcal{S}_{\mathcal{N}(i)})\right]\right)
 $$</p>
-
 <p>Where $\pi$ is a random permutation. Feature: High expressive power but requires attention to permutation dependency</p>
-
 <h3>Implementation Example 2: GraphSAGE Implementation</h3>
-
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -553,7 +495,6 @@ print(f"Output dimension: {out_dim}\n")
     print(f"Output L2 norm: {out.norm(dim=-1)[:5].numpy()}")
     print(f"Output value range: [{out.min():.3f}, {out.max():.3f}]\n")
 </code></pre>
-
 <p><strong>Output</strong>：</p><pre><code>
 === GraphSAGE Implementation ===
 
@@ -576,29 +517,20 @@ Output shape: torch.Size([10, 4])
 Output L2 norm: [1. 1. 1. 1. 1.]
 Output value range: [-0.912, 0.867]
 </code></pre>
-
-<hr>
-
+<hr/>
 <h2>3.3 Graph Isomorphism Network (GIN)</h2>
-
 <h3>Motivation for GIN: Improving Discriminative Power</h3>
-
 <p><strong>Graph Isomorphism Network (GIN)</strong> is a GNN designed to have discriminative power equivalent to the Weisfeiler-Lehman (WL) test.</p>
-
 <blockquote>
 <p>"GIN has the maximum discriminative power theoretically achievable by GNNs. That is, graphs that GIN cannot distinguish cannot be distinguished by the WL test either"</p>
 </blockquote>
-
 <h3>Weisfeiler-Lehman (WL) Test</h3>
-
 <p><strong>WL test</strong> is a heuristic algorithm for determining graph isomorphism. It can efficiently determine graph isomorphism in many cases.</p>
-
 <p>WL test algorithm:</p>
 <ol>
 <li>assign initial labels to each node</li><li>for each node label, update with own label and neighbor labels multiple set</li><li>Hash the labels to create new labels</li>
 <li>Repeat until convergence</li>
 </ol>
-
 <div class="mermaid">
 graph TB
     subgraph "Iteration1"
@@ -619,38 +551,30 @@ graph TB
         B3 --- C3[4]
     end
 
-    A1 --> A2 --> A3
-    B1 --> B2 --> B3
-    C1 --> C2 --> C3
+    A1 --&gt; A2 --&gt; A3
+    B1 --&gt; B2 --&gt; B3
+    C1 --&gt; C2 --&gt; C3
 
     style A1 fill:#e3f2fd
     style A2 fill:#fff3e0
     style A3 fill:#e8f5e9
 </div>
-
 <h3>Formulation of GIN</h3>
-
 <p>Update equation for GIN:</p>
-
 <p>$$
 \mathbf{h}_i^{(k)} = \text{MLP}^{(k)}\left(\left(1 + \epsilon^{(k)}\right) \cdot \mathbf{h}_i^{(k-1)} + \sum_{j \in \mathcal{N}(i)} \mathbf{h}_j^{(k-1)}\right)
 $$</p>
-
 <p>Important points:</p>
 <ul>
 <li><strong>Sum aggregation</strong>: The only injective aggregation function that can preserve multisets</li>
 <li><strong>$(1 + \epsilon)$ coefficient</strong>: Distinguishes between own features and neighbor features</li>
 <li><strong>MLP</strong>: Update function with sufficient expressive power</li>
 </ul>
-
 <h3>Why GIN Has the Highest Discriminative Power</h3>
-
 <p>The discriminative power of GNNs has the following order:</p>
-
 <p>$$
-\text{Sum} > \text{Mean} > \text{Max}
+\text{Sum} &gt; \text{Mean} &gt; \text{Max}
 $$</p>
-
 <table>
 <thead>
 <tr>
@@ -677,7 +601,6 @@ $$</p>
 </tr>
 </tbody>
 </table>
-
 <h3>Implementation Example3: GINimplementation</h3>
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -803,7 +726,6 @@ for i in range(3):
     pred_class = out_batch[i].argmax().item()
     print(f"  Graph{i+1}: Class {pred_class} (score={out_batch[i, pred_class]:.3f})")
 </code></pre>
-
 <p><strong>Output</strong>：</p><pre><code>
 === Graph Isomorphism Network (GIN) Implementation ===
 
@@ -830,9 +752,7 @@ Predictions for each graph:
   Graph2: Class 1 (score=0.845)
   Graph3: Class 3 (score=0.612)
 </code></pre>
-
 <h3>Comparing Discriminative Power of GIN and GCN</h3>
-
 <p>following examples show graphs that GIN and GCN can distinguish：</p>
 <div class="mermaid">
 graph LR
@@ -857,11 +777,9 @@ graph LR
     style B3 fill:#fff3e0
     style B4 fill:#fff3e0
 </div>
-
 <p>Results:</p>
 <ul>
 <li><strong>GIN</strong>：✅ can distinguish Graph A and B（Number of nodesdifferent）</li><li><strong>GCN (Mean aggregation)</strong>：✅ can distinguish Graph A and B</li></ul>
-
 <p>more difficult examples（same number of nodes, same degree distribution）：</p>
 <table>
 <thead>
@@ -889,16 +807,11 @@ graph LR
 </tr>
 </tbody>
 </table>
-
-<hr>
-
+<hr/>
 <h2>3.4 Implementation with PyTorch Geometric</h2>
-
 <h3>What is PyTorch Geometric (PyG)</h3>
-
 <p><strong>PyTorch Geometric</strong>、PyTorch library specialized for Graph Neural Networks。efficient message passing、rich pre-implemented layers、provides data loaders。</p>
 <h3>Key Components of PyG</h3>
-
 <table>
 <thead>
 <tr>
@@ -932,7 +845,6 @@ graph LR
 </tr>
 </tbody>
 </table>
-
 <h3>Implementation Example4: PyGcustomGNN layer</h3>
 <pre><code class="language-python"># Note: This example should be executed in an environment with PyTorch Geometric installed # pip install torch-geometric
 
@@ -1030,7 +942,6 @@ Attributes:
 - data.edge_attr: Edge features (optional)
 - data.y: labels（node level or graph level） - data.num_nodes: Number of nodes """)
 </code></pre>
-
 <p><strong>Output</strong>：</p><pre><code>
 === PyTorch Geometric Custom GNN Layer ===
 
@@ -1062,7 +973,6 @@ Attributes:
 - data.x: NodeFeaturematrix [num_nodes, num_features] - data.edge_index: Edge index [2, num_edges]
 - data.edge_attr: Edge features (optional)
 - data.y: labels（node level or graph level） - data.num_nodes: Number of nodes </code></pre>
-
 <h3>Implementation Example5: Model using PyG pre-implemented layers</h3>
 <pre><code class="language-python">import torch
 import torch.nn.functional as F
@@ -1142,7 +1052,6 @@ pooling_info = {
 for func_name, desc in pooling_info.items():
     print(f"{func_name}: {desc}")
 </code></pre>
-
 <p><strong>Output</strong>：</p><pre><code>
 === Model using PyG pre-implemented layers（pseudo-code） === 
 --- Main GNN Layers Available in PyG ---
@@ -1175,29 +1084,24 @@ GATv2Conv:
 --- Graph-level poolingfunction --- 
 global_mean_pool: mean of all nodes global_max_pool: max value of all nodes global_add_pool: sum of all nodes GlobalAttention: Attention-weighted sum
 </code></pre>
-
-<hr>
-
+<hr/>
 <h2>3.5 Practice：Graph classification task</h2>
 <h3>Graphclassificationflow</h3>
 <p>Graphclassification、task to classify entire graph into one class。molecular property prediction、social network classificationand other applications。</p>
 <div class="mermaid">
 graph LR
- A[Input Graph] -->B[GNN layer<br/>node-level feature extraction]  B -->C[Graph Pooling<br/>graph-level representation]     C --> D[MLP<br/>Classifier]
- D -->E[Classprediction] 
+ A[Input Graph] --&gt;B[GNN layer<br/>node-level feature extraction]  B --&gt;C[Graph Pooling<br/>graph-level representation]     C --&gt; D[MLP<br/>Classifier]
+ D --&gt;E[Classprediction] 
     style A fill:#e3f2fd
     style B fill:#fff3e0
     style C fill:#ffe0b2
     style D fill:#f3e5f5
     style E fill:#e8f5e9
 </div>
-
 <h3>Batch Processing Mechanism</h3>
-
 <p>for efficient processing of multiple graphs、PyG uses unique batching method：</p>
 <ol>
 <li><strong>concatenate as one large graph</strong>：combine multiple graphs as non-connected graph</li><li><strong>Batch vector</strong>：record which graph each node belongs to</li><li><strong>Graph-level pooling</strong>：aggregate features for each graph using batch vector</li></ol>
-
 <div class="mermaid">
 graph TB
     subgraph "Graph1 (3Node)"
@@ -1213,11 +1117,11 @@ graph TB
         C[batch = 0,0,0,1,1]
     end
 
-    A1 -.-> C
-    A2 -.-> C
-    A3 -.-> C
-    B1 -.-> C
-    B2 -.-> C
+    A1 -.-&gt; C
+    A2 -.-&gt; C
+    A3 -.-&gt; C
+    B1 -.-&gt; C
+    B2 -.-&gt; C
 
     style A1 fill:#e3f2fd
     style A2 fill:#e3f2fd
@@ -1226,7 +1130,6 @@ graph TB
     style B2 fill:#fff3e0
     style C fill:#e8f5e9
 </div>
-
 <h3>Implementation Example6: Complete implementation of graph classification</h3>
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -1246,8 +1149,8 @@ print("\n=== Complete implementation of graph classification task ===\n")
 
  x = torch.randn(num_nodes, 8) # 8dimensionFeature             edge_index = torch.randint(0, num_nodes, (2, num_edges))
 
- # labels（determined by graph size - for demo）             if num_nodes < 15:
- y = 0 # smallGraph             elif num_nodes < 20:
+ # labels（determined by graph size - for demo）             if num_nodes &lt; 15:
+ y = 0 # smallGraph             elif num_nodes &lt; 20:
  y = 1 # mediumGraph             else:
  y = 2 # largeGraph 
             self.graphs.append({
@@ -1412,7 +1315,6 @@ for epoch in range(num_epochs):
 
 print("\nTraining complete!")
 </code></pre>
-
 <p><strong>Output</strong>：</p><pre><code>
 === Complete implementation of graph classification task === 
 --- Creating Dataset ---
@@ -1440,7 +1342,6 @@ Epoch 5/5:
 
 Training complete!
 </code></pre>
-
 <h3>Implementation Example7: Graphpoolingcomparison</h3>
 <pre><code class="language-python">import torch
 import torch.nn as nn
@@ -1555,7 +1456,6 @@ for method, props in properties.items():
         print(f"  {key}: {value}")
     print()
 </code></pre>
-
 <p><strong>Output</strong>：</p><pre><code>
 === Graph-level poolingcomparison === 
 --- Creating test data --- Total number of nodes: 30 Feature dimension: 16
@@ -1587,7 +1487,6 @@ Sum Pooling:
 Attention Pooling:
   Feature: Learnable weighted sum
  Advantage: automatically select important nodes  Disadvantage: High computational cost, overfitting risk  Use Case: complex graphs、case where interpretability is important </code></pre>
-
 <h3>Implementation Example8: Mini-batch learningdetailed</h3>
 <pre><code class="language-python">import torch
 
@@ -1653,7 +1552,6 @@ for i in range(num_graphs):
     mask = (batched_batch == i)
     print(f"\nGraph{i}:")
  print(f" Number of nodes: {mask.sum().item()}")  print(f" NodeFeatureshapestate: {batched_x[mask].shape}")  print(f" Featurequantitymean: {batched_x[mask].mean(dim=0)[:2].tolist()} (first 2 dimensions)") </code></pre>
-
 <p><strong>Output</strong>：</p><pre><code>
 === Graphbatch processingdetailed === 
 --- originalGraph --- Graph0: 5Node, 4edge
@@ -1680,15 +1578,10 @@ Graph1:
  Number of nodes: 3  NodeFeatureshapestate: torch.Size([3, 4])  Featurequantitymean: [-0.234, 0.567] (first 2 dimensions) 
 Graph2:
  Number of nodes: 4  NodeFeatureshapestate: torch.Size([4, 4])  Featurequantitymean: [0.345, 0.123] (first 2 dimensions) </code></pre>
-
-<hr>
-
+<hr/>
 <h2>Summary</h2>
-
 <p>In this chapter, we learned the core <strong>message passing framework</strong> of GNNs and representative GNN architectures.</p>
-
 <h3>Key Points</h3>
-
 <details>
 <summary><strong>1. Three Steps of Message Passing</strong></summary>
 <ul>
@@ -1696,7 +1589,6 @@ Graph2:
 <li><strong>Update</strong>: aggregationresultFeatureupdate</li><li>Many GNNs can be described uniformly with this framework</li>
 </ul>
 </details>
-
 <details>
 <summary><strong>2. Sampling-Based Aggregation in GraphSAGE</strong></summary>
 <ul>
@@ -1705,7 +1597,6 @@ Graph2:
 <li>Enables inductive learning</li>
 </ul>
 </details>
-
 <details>
 <summary><strong>3. GINMaximum Discriminative Power</strong></summary><ul>
 <li>Weisfeiler-Lehman test and equivalentDiscriminative Power</li><li>Sum aggregation is the only injective aggregation that preserves multisets</li>
@@ -1713,30 +1604,24 @@ Graph2:
 <li>MLP ensures sufficient expressive power</li>
 </ul>
 </details>
-
 <details>
 <summary><strong>4. Efficient Implementation with PyTorch Geometric</strong></summary>
 <ul>
 <li>simple and clean implementation using MessagePassing base class</li><li>Pre-implemented layers (GCNConv, SAGEConv, GINConv, etc.)</li>
 <li>efficient sparse tensor operations</li><li>Graph batch processing and DataLoader</li></ul>
 </details>
-
 <details>
 <summary><strong>5. Graphclassificationimplementation</strong></summary><ul>
 <li>NodelevelGNN → Graph-level pooling → classificationdevice</li><li>batch processing：merge multiple graphs as non-connected graph</li><li>Graph-level pooling（Mean / Max / Sum / Attention）</li><li>Practical training and evaluation loop</li>
 </ul>
 </details>
-
 <h3>Next Steps</h3>
-
 <p>Next, <strong>Graph Attention Mechanism</strong>we will learn about：</p><ul>
 <li>Graph Attention Networks (GAT)</li>
 <li>Applying self-attention mechanism to graphs</li><li>Effects of multi-head attention</li>
 <li>Transformers for Graphs</li>
 </ul>
-
-<hr>
-
+<hr/>
 <h2>Exercise Questions</h2>
 <details>
 <summary><strong>Exercise 1: Hand Calculation of Message Passing</strong></summary>
@@ -1748,7 +1633,6 @@ Graph2:
 <li>MESSAGE Function: identity mapping</li><li>UPDATE Function: $\mathbf{h}_i^{(1)} = \mathbf{h}_i^{(0)} + \mathbf{m}_i$</li>
 </ul>
 <p>feature after updating each node$\mathbf{h}_i^{(1)}$calculate。</p></details>
-
 <details>
 <summary><strong>Exercise 2: Aggregator Selection</strong></summary>
 <p>Choose the best aggregator for the following tasks and describe the reason：</p><ol>
@@ -1757,47 +1641,38 @@ Graph2:
 <li>road network traffic flow prediction（average traffic volume is important）</li></ol>
 <p>Options: Sum, Mean, Max, LSTM</p>
 </details>
-
 <details>
 <summary><strong>Exercise3：GIN Discriminative Power</strong></summary><p>For the following 2 graphs, answer whether GIN、GCN (Mean aggregation)、GAT (Maxaggregation) can distinguish them respectively：</p><ul>
 <li>Graph A: 3 nodes in triangular shape（each node degree2）</li><li>Graph B: 4 nodes in square shape（each node degree2）</li></ul>
 <p>All initial features are$[1]$ .</p></details>
-
 <details>
 <summary><strong>Exercise4：Graph pooling implementation</strong></summary><p>Implement attention-based graph pooling. Requirements:</p>
 <ul>
 <li>Compute attention score for each node pair</li><li>Normalize with Softmax</li>
 <li>Compute graph representation by weighted sum</li><li>Handle multiple graphs using batch vector</li></ul>
 </details>
-
 <details>
 <summary><strong>Exercise 5: Batch Processing Design</strong></summary>
 <p>3 graphs（5 nodes, 3 nodes, 7 nodes）after batching：</p><ol>
 <li>MergeafterTotal number of nodes</li><li>Contents of batch vector</li><li>Edge index offset for each graph</li></ol>
 <p>Answer with specific numbers.</p>
 </details>
-
-<hr>
-
+<hr/>
 <div class="navigation">
-    <a href="chapter2-gcn-gat.html" class="nav-button">← Chapter 2: GCN and GAT</a>
-    <a href="index.html" class="nav-button">Return to Table of Contents</a>
-<a href="chapter4-graph-attention.html" class="nav-button">Chapter 4: Graph Attention →</a></div>
-
-    </main>
-
-    
-    <section class="disclaimer">
-<h3>Disclaimer</h3>        <ul>
-<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li><li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>            <li>The authors and Tohoku University assume no responsibility for the content, availability, or safety of external links or third-party data, tools, or libraries.</li>
-            <li>To the maximum extent permitted by applicable law, the authors and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
-            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
-<li>Copyright and license terms stated in content (Example: CC BY 4.0) should be followed. This license typically includes no-warranty clauses.</li>        </ul>
-    </section>
-
+<a class="nav-button" href="chapter2-gcn-gat.html">← Chapter 2: GCN and GAT</a>
+<a class="nav-button" href="index.html">Return to Table of Contents</a>
+<a class="nav-button" href="chapter4-graph-attention.html">Chapter 4: Graph Attention →</a></div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3> <ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li><li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li> <li>The authors and Tohoku University assume no responsibility for the content, availability, or safety of external links or third-party data, tools, or libraries.</li>
+<li>To the maximum extent permitted by applicable law, the authors and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content of this material may be changed, updated, or discontinued without notice.</li>
+<li>Copyright and license terms stated in content (Example: CC BY 4.0) should be followed. This license typically includes no-warranty clauses.</li> </ul>
+</section>
 <footer>
-        <p>&copy; 2025 AI Terakoya. All rights reserved.</p>
-        <p>Graph Neural Networks Introduction Series - Chapter 3: Message Passing and GNN</p>
-    </footer>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+<p>Graph Neural Networks Introduction Series - Chapter 3: Message Passing and GNN</p>
+</footer>
 </body>
 </html>

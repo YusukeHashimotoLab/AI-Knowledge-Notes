@@ -1,46 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 4: Time Series Forecasting with Transformers - AI Terakoya</title>
-
-        <link rel="stylesheet" href="../../assets/css/knowledge-base.css">
-
-    <script type="module">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 4: Time Series Forecasting with Transformers - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
         mermaid.initialize({ startOnLoad: true, theme: 'default' });
     </script>
-    <script>
+<script>
         MathJax = {
             tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']], processEscapes: true, processEnvironments: true },
             options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'], ignoreHtmlClass: 'mermaid' }
         };
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
-            <nav class="breadcrumb">
-        <div class="breadcrumb-content">
-            <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/time-series-introduction/index.html">Time Series</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 4</span>
-        </div>
-    </nav>
-
-        <header>
-        <div class="header-content">
-            <h1>Chapter 4: Time Series Forecasting with Transformers</h1>
-            <p class="subtitle">Temporal Fusion Transformer, Informer, and State-of-the-Art Approaches to Long-Term Forecasting</p>
-            <div class="meta">
-                <span class="meta-item">📖 Reading Time: 30-35 minutes</span>
-                <span class="meta-item">📊 Difficulty: Advanced</span>
-                <span class="meta-item">💻 Code Examples: 8</span>
-                <span class="meta-item">📝 Exercises: 5</span>
-            </div>
-        </div>
-    </header>
-
-    <main class="container">
-
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/time-series-introduction/index.html">Time Series</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 4</span>
+</div>
+</nav>
+<header>
+<div class="header-content">
+<h1>Chapter 4: Time Series Forecasting with Transformers</h1>
+<p class="subtitle">Temporal Fusion Transformer, Informer, and State-of-the-Art Approaches to Long-Term Forecasting</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 30-35 minutes</span>
+<span class="meta-item">📊 Difficulty: Advanced</span>
+<span class="meta-item">💻 Code Examples: 8</span>
+<span class="meta-item">📝 Exercises: 5</span>
+</div>
+</div>
+</header>
+<main class="container">
 <h2>Learning Objectives</h2>
 <p>By completing this chapter, you will be able to:</p>
 <ul>
@@ -53,86 +48,63 @@
 <li>✅ Understand latest models like Autoformer, FEDformer, and Patch TST</li>
 <li>✅ Build production-grade forecasting pipelines using pytorch-forecasting</li>
 </ul>
-
-<hr>
-
+<hr/>
 <h2>4.1 Transformers for Time Series</h2>
-
 <h3>Applying Transformers to Time Series</h3>
-
 <p><strong>Transformers</strong> were originally designed for natural language processing, but have become powerful tools for time series forecasting as well. The Attention mechanism enables efficient capture of long-term dependencies.</p>
-
 <blockquote>
 <p>"Transformer's Self-Attention can directly model dependencies between any time points in a series. This transcends the sequential processing constraints of RNN/LSTM"</p>
 </blockquote>
-
 <h3>Positional Encoding for Time</h3>
-
 <p>For time series data, temporal ordering information is critically important. Since Transformers lack recurrent structure, we need to explicitly inject temporal information through <strong>Positional Encoding</strong>.</p>
-
 <h4>Standard Sinusoidal Encoding</h4>
-
 <p>$$
 \begin{align}
-PE_{(pos, 2i)} &= \sin\left(\frac{pos}{10000^{2i/d_{model}}}\right) \\
-PE_{(pos, 2i+1)} &= \cos\left(\frac{pos}{10000^{2i/d_{model}}}\right)
+PE_{(pos, 2i)} &amp;= \sin\left(\frac{pos}{10000^{2i/d_{model}}}\right) \\
+PE_{(pos, 2i+1)} &amp;= \cos\left(\frac{pos}{10000^{2i/d_{model}}}\right)
 \end{align}
 $$</p>
-
 <p>Where:</p>
 <ul>
 <li>$pos$: position of the time step</li>
 <li>$i$: dimension index</li>
 <li>$d_{model}$: model dimensionality</li>
 </ul>
-
 <h4>Time Series-Specific Temporal Encoding</h4>
-
 <p>For time series, it's beneficial to encode additional information:</p>
 <ul>
 <li><strong>Absolute time</strong>: hour, date, day of week, month, etc.</li>
 <li><strong>Relative position</strong>: temporal distance from the current time</li>
 <li><strong>Periodicity</strong>: daily, weekly, yearly cyclic patterns</li>
 </ul>
-
 <h3>Temporal Attention</h3>
-
 <p>Attention mechanisms for time series incorporate innovations that consider temporal structure in addition to standard Self-Attention.</p>
-
 <h4>Masked Temporal Attention</h4>
-
 <p>For forecasting tasks, we must not look at future information, so we apply <strong>Causal Masking</strong>:</p>
-
 <p>$$
 \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}} + M\right)V
 $$</p>
-
 <p>Where the mask matrix $M$ is:</p>
 <p>$$
 M_{ij} = \begin{cases}
-0 & \text{if } i \geq j \\
--\infty & \text{if } i < j
+0 &amp; \text{if } i \geq j \\
+-\infty &amp; \text{if } i &lt; j
 \end{cases}
 $$</p>
-
 <h3>Multi-horizon Forecasting</h3>
-
 <p><strong>Multi-horizon forecasting</strong> is the task of predicting multiple future time points simultaneously. It can be implemented using the Transformer decoder in autoregressive or direct prediction mode.</p>
-
 <div class="mermaid">
 graph LR
-    A[Past Context<br/>t-n...t] --> B[Encoder<br/>Self-Attention]
-    B --> C[Decoder<br/>Masked Attention]
-    C --> D[Multi-step Output<br/>t+1...t+h]
+    A[Past Context<br/>t-n...t] --&gt; B[Encoder<br/>Self-Attention]
+    B --&gt; C[Decoder<br/>Masked Attention]
+    C --&gt; D[Multi-step Output<br/>t+1...t+h]
 
     style A fill:#e3f2fd
     style B fill:#fff3e0
     style C fill:#e8f5e9
     style D fill:#f3e5f5
 </div>
-
 <h3>Vanilla Transformer Example</h3>
-
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import numpy as np
@@ -336,88 +308,65 @@ def train_transformer_example():
 if __name__ == "__main__":
     train_transformer_example()
 </code></pre>
-
-<hr>
-
+<hr/>
 <h2>4.2 Temporal Fusion Transformer (TFT)</h2>
-
 <h3>Overview of TFT</h3>
-
 <p><strong>Temporal Fusion Transformer (TFT)</strong> is a Transformer architecture specialized for time series forecasting, published by Google Research in 2021. It features a design that balances interpretability with high accuracy.</p>
-
 <blockquote>
 <p>"TFT achieves both forecasting accuracy and interpretability by combining Variable Selection Network, LSTM-based Encoder-Decoder, and Interpretable Multi-head Attention"</p>
 </blockquote>
-
 <h3>TFT Architecture</h3>
-
 <p>TFT consists of the following main components:</p>
-
 <div class="mermaid">
 graph TB
-    A[Input Variables] --> B[Variable Selection Network]
-    B --> C[Static Covariate Encoder]
-    B --> D[Temporal Processing]
+    A[Input Variables] --&gt; B[Variable Selection Network]
+    B --&gt; C[Static Covariate Encoder]
+    B --&gt; D[Temporal Processing]
 
-    D --> E[LSTM Encoder<br/>Past]
-    D --> F[LSTM Decoder<br/>Future]
+    D --&gt; E[LSTM Encoder<br/>Past]
+    D --&gt; F[LSTM Decoder<br/>Future]
 
-    C --> G[Context Vector]
-    E --> G
-    F --> G
+    C --&gt; G[Context Vector]
+    E --&gt; G
+    F --&gt; G
 
-    G --> H[Gated Residual Network]
-    H --> I[Multi-head Attention]
-    I --> J[Feed-Forward]
-    J --> K[Quantile Output]
+    G --&gt; H[Gated Residual Network]
+    H --&gt; I[Multi-head Attention]
+    I --&gt; J[Feed-Forward]
+    J --&gt; K[Quantile Output]
 
     style A fill:#e3f2fd
     style B fill:#fff3e0
     style I fill:#e8f5e9
     style K fill:#f3e5f5
 </div>
-
 <h3>Variable Selection Network</h3>
-
 <p><strong>Variable Selection Network (VSN)</strong> learns the importance of input variables and performs automatic feature selection.</p>
-
 <p>Calculate importance weight $w_i$ for each variable $v_i$:</p>
-
 <p>$$
 \mathbf{w} = \text{Softmax}(\text{GRN}(\mathbf{v}_1, \ldots, \mathbf{v}_n))
 $$</p>
-
 <p>Selected variables:</p>
 <p>$$
 \mathbf{\xi} = \sum_{i=1}^{n} w_i \cdot \text{GRN}(\mathbf{v}_i)
 $$</p>
-
 <p>Where <strong>GRN (Gated Residual Network)</strong> is a block with the following structure:</p>
-
 <p>$$
 \text{GRN}(\mathbf{a}, \mathbf{c}) = \text{LayerNorm}(\mathbf{a} + \text{GLU}(\eta_1)) \\
 \eta_1 = \mathbf{W}_1\eta_2 + \mathbf{b}_1 \\
 \eta_2 = \text{ELU}(\mathbf{W}_2\mathbf{a} + \mathbf{W}_3\mathbf{c} + \mathbf{b}_2)
 $$</p>
-
 <h3>Interpretable Multi-head Attention</h3>
-
 <p>TFT's Attention mechanism is designed to visualize the importance of each time point:</p>
-
 <p>$$
 \text{Attention}(Q, K, V) = \text{Softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
 $$</p>
-
 <p>Interpret the importance of each time point by averaging attention weights:</p>
-
 <p>$$
 \alpha_t = \frac{1}{H}\sum_{h=1}^{H} \text{Softmax}\left(\frac{Q_hK_h^T}{\sqrt{d_k}}\right)_{t,:}
 $$</p>
-
 <h3>pytorch-forecasting Library</h3>
-
 <p><code>pytorch-forecasting</code> is a library that makes it easy to use time series forecasting models including TFT.</p>
-
 <pre><code class="language-python">import pandas as pd
 import numpy as np
 import torch
@@ -463,7 +412,7 @@ def create_tft_example():
     training_cutoff = df["time_idx"].max() - max_prediction_length
 
     training = TimeSeriesDataSet(
-        df[lambda x: x.time_idx <= training_cutoff],
+        df[lambda x: x.time_idx &lt;= training_cutoff],
         time_idx="time_idx",
         target="value",
         group_ids=["store_id"],
@@ -572,78 +521,55 @@ def create_tft_example():
 if __name__ == "__main__":
     model, preds, importance = create_tft_example()
 </code></pre>
-
-<hr>
-
+<hr/>
 <h2>4.3 Informer</h2>
-
 <h3>Motivation for Informer</h3>
-
 <p><strong>Informer</strong> is a Transformer designed for Long Sequence Time-series Forecasting (LSTF). It solves the computational and memory usage problems of standard Transformers.</p>
-
 <blockquote>
 <p>"Standard Transformer Attention has $O(L^2)$ computational complexity, making it impractical for long sequences (e.g., 1000+ steps). Informer reduces this to $O(L\log L)$ with ProbSparse Attention"</p>
 </blockquote>
-
 <h3>ProbSparse Attention</h3>
-
 <p><strong>ProbSparse Self-Attention</strong> is an efficient attention mechanism that selectively computes only important queries.</p>
-
 <h4>Query Sparsity Measurement</h4>
-
 <p>Measure the "importance" of each query $q_i$ by its sparsity:</p>
-
 <p>$$
 M(q_i, K) = \ln \sum_{j=1}^{L_k} e^{\frac{q_i k_j^T}{\sqrt{d}}} - \frac{1}{L_k}\sum_{j=1}^{L_k}\frac{q_i k_j^T}{\sqrt{d}}
 $$</p>
-
 <p>The larger this value, the more the query focuses on specific keys (sparse), making it important.</p>
-
 <h4>Top-u Selection</h4>
-
 <p>Compute Attention only for the top $u$ queries:</p>
-
 <p>$$
 \bar{Q} = \text{Top-}u(M(q_i, K))
 $$</p>
-
 <p>$$
 \text{ProbSparseAttention}(\bar{Q}, K, V) = \text{Softmax}\left(\frac{\bar{Q}K^T}{\sqrt{d}}\right)V
 $$</p>
-
 <p>Other queries are filled with the mean value:</p>
 <p>$$
 \text{Attention}(Q, K, V) = [\text{ProbSparseAttention}(\bar{Q}, K, V); \bar{V}]
 $$</p>
-
 <h3>Self-Attention Distilling</h3>
-
 <p>Informer applies a <strong>Distilling operation</strong> that halves the sequence length at each encoder layer:</p>
-
 <ol>
 <li>Pass through Self-Attention layer</li>
 <li>Halve sequence length with 1D Convolution + Max Pooling</li>
 <li>Proceed to next layer</li>
 </ol>
-
 <p>This reduces the sequence length as $L \to L/2 \to L/4 \to \ldots$, improving memory efficiency.</p>
-
 <div class="mermaid">
 graph LR
-    A[Input L] --> B[ProbSparse Attn]
-    B --> C[Distilling<br/>L/2]
-    C --> D[ProbSparse Attn]
-    D --> E[Distilling<br/>L/4]
-    E --> F[...]
+    A[Input L] --&gt; B[ProbSparse Attn]
+    B --&gt; C[Distilling<br/>L/2]
+    C --&gt; D[ProbSparse Attn]
+    D --&gt; E[Distilling<br/>L/4]
+    E --&gt; F[...]
 
     style A fill:#e3f2fd
     style C fill:#fff3e0
     style E fill:#fff3e0
     style F fill:#e8f5e9
 </div>
-
 <h3>Informer Implementation</h3>
-
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -772,7 +698,7 @@ class InformerEncoder(nn.Module):
             x = self.norm_layers[2*i+1](x + new_x)
 
             # Distilling (except for last layer)
-            if i < len(self.distilling_layers):
+            if i &lt; len(self.distilling_layers):
                 x = self.distilling_layers[i](x)
 
         return x, attns
@@ -828,74 +754,51 @@ def test_informer():
 if __name__ == "__main__":
     test_informer()
 </code></pre>
-
-<hr>
-
+<hr/>
 <h2>4.4 Other Transformer Models</h2>
-
 <h3>Autoformer</h3>
-
 <p><strong>Autoformer</strong> (2021) is a model that introduces decomposition and Auto-Correlation mechanisms for time series.</p>
-
 <h4>Key Features</h4>
 <ul>
 <li><strong>Series Decomposition Block</strong>: Separates trend and seasonal components</li>
 <li><strong>Auto-Correlation Mechanism</strong>: Directly captures periodicity in time series</li>
 <li><strong>Progressive Decomposition</strong>: Repeats decomposition at each layer</li>
 </ul>
-
 <h4>Auto-Correlation</h4>
-
 <p>Instead of conventional Attention, uses autocorrelation of time series:</p>
-
 <p>$$
 \text{AutoCorr}(Q, K, V) = \text{Softmax}\left(\frac{\mathcal{R}_{Q,K}}{\tau}\right)V
 $$</p>
-
 <p>Where $\mathcal{R}_{Q,K}$ is the autocorrelation function.</p>
-
 <h3>FEDformer</h3>
-
 <p><strong>FEDformer</strong> (Frequency Enhanced Decomposed Transformer, 2022) is a model that introduces processing in the frequency domain.</p>
-
 <h4>Key Features</h4>
 <ul>
 <li><strong>Frequency Enhanced Block (FEB)</strong>: Processing in frequency domain using FFT</li>
 <li><strong>Seasonal-Trend Decomposition</strong>: Decomposition in frequency domain</li>
 <li><strong>Fourier Enhanced Attention</strong>: Attention based on frequency components</li>
 </ul>
-
 <h4>Frequency Domain Processing</h4>
-
 <p>$$
 \hat{X} = \text{FFT}(X) \\
 \hat{X}' = \text{FrequencyAttention}(\hat{X}) \\
 X' = \text{IFFT}(\hat{X}')
 $$</p>
-
 <h3>Patch TST (PatchTST)</h3>
-
 <p><strong>PatchTST</strong> (2023) is a new approach that divides time series into patches and inputs them to a Transformer.</p>
-
 <h4>Key Features</h4>
 <ul>
 <li><strong>Patching</strong>: Treats consecutive time steps as patches</li>
 <li><strong>Channel Independence</strong>: Processes each variable independently</li>
 <li><strong>Efficient Architecture</strong>: Reduces number of parameters and computation</li>
 </ul>
-
 <h4>Patching Operation</h4>
-
 <p>Divide a sequence of length $L$ into $N = L/P$ patches of size $P$:</p>
-
 <p>$$
 X = [x_1, x_2, \ldots, x_L] \to [\mathbf{p}_1, \mathbf{p}_2, \ldots, \mathbf{p}_N]
 $$</p>
-
 <p>Treat each patch $\mathbf{p}_i \in \mathbb{R}^P$ as a token for the Transformer.</p>
-
 <h3>Model Comparison</h3>
-
 <table>
 <thead>
 <tr>
@@ -951,7 +854,6 @@ $$</p>
 </tr>
 </tbody>
 </table>
-
 <pre><code class="language-python">import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
@@ -1030,19 +932,12 @@ def visualize_model_comparison():
 if __name__ == "__main__":
     visualize_model_comparison()
 </code></pre>
-
-<hr>
-
+<hr/>
 <h2>4.5 Practical Project</h2>
-
 <h3>Multi-variate Forecasting with Exogenous Variables</h3>
-
 <p>In real business problems, we need to handle multiple time series variables and exogenous variables simultaneously. Here, we build a complete forecasting pipeline using TFT.</p>
-
 <h3>Project Setup</h3>
-
 <p><strong>Task</strong>: Retail sales forecasting</p>
-
 <p><strong>Data</strong>:</p>
 <ul>
 <li><strong>Target</strong>: Daily sales</li>
@@ -1050,9 +945,7 @@ if __name__ == "__main__":
 <li><strong>Time-varying unknown</strong>: Competitor activity, weather (difficult to forecast)</li>
 <li><strong>Static</strong>: Store category, region</li>
 </ul>
-
 <h3>Complete TFT Pipeline</h3>
-
 <pre><code class="language-python">import pandas as pd
 import numpy as np
 import torch
@@ -1091,8 +984,8 @@ def generate_retail_data():
             date = pd.Timestamp('2022-01-01') + pd.Timedelta(days=day)
             day_of_week = date.dayofweek
             month = date.month
-            is_weekend = int(day_of_week >= 5)
-            is_holiday = int(month == 12 and date.day >= 20)  # end of year
+            is_weekend = int(day_of_week &gt;= 5)
+            is_holiday = int(month == 12 and date.day &gt;= 20)  # end of year
 
             # Trend
             trend = day * 0.5
@@ -1103,7 +996,7 @@ def generate_retail_data():
 
             # Exogenous variables
             price = 100 + np.random.normal(0, 5)
-            promotion = int(np.random.random() < 0.15)  # 15% probability
+            promotion = int(np.random.random() &lt; 0.15)  # 15% probability
             competitor_activity = np.random.normal(0.5, 0.2)
 
             # Calculate sales
@@ -1150,7 +1043,7 @@ def build_tft_forecaster():
     training_cutoff = df["time_idx"].max() - max_prediction_length
 
     training = TimeSeriesDataSet(
-        df[lambda x: x.time_idx <= training_cutoff],
+        df[lambda x: x.time_idx &lt;= training_cutoff],
         time_idx="time_idx",
         target="sales",
         group_ids=["store_id"],
@@ -1371,13 +1264,9 @@ if __name__ == "__main__":
     print("TFT forecasting pipeline completed!")
     print("="*60)
 </code></pre>
-
 <h3>Production Deployment Considerations</h3>
-
 <p>When deploying to production, consider the following:</p>
-
 <h4>1. Model Saving and Loading</h4>
-
 <pre><code class="language-python"># Save model
 model.save("tft_model.pt")
 
@@ -1385,9 +1274,7 @@ model.save("tft_model.pt")
 from pytorch_forecasting import TemporalFusionTransformer
 loaded_model = TemporalFusionTransformer.load_from_checkpoint("tft_model.pt")
 </code></pre>
-
 <h4>2. Batch Prediction Optimization</h4>
-
 <pre><code class="language-python"># Prediction on large data
 predictions = model.predict(
     dataloader,
@@ -1396,9 +1283,7 @@ predictions = model.predict(
     trainer_kwargs={"accelerator": "gpu"}  # use GPU
 )
 </code></pre>
-
 <h4>3. Real-time Prediction API</h4>
-
 <pre><code class="language-python">from fastapi import FastAPI
 import torch
 
@@ -1420,24 +1305,17 @@ async def predict(input_data: dict):
 
     return {"predictions": predictions.tolist()}
 </code></pre>
-
 <h4>4. Monitoring and Drift Detection</h4>
-
 <ul>
 <li><strong>Monitor prediction accuracy</strong>: Calculate MAE/RMSE regularly</li>
 <li><strong>Data drift detection</strong>: Monitor changes in input distribution</li>
 <li><strong>Retraining trigger</strong>: Automatic retraining when accuracy degrades</li>
 </ul>
-
-<hr>
-
+<hr/>
 <h2>Practice Problems</h2>
-
 <details>
 <summary><strong>Problem 1: Positional Encoding</strong> - Implement Positional Encoding for time series and explain its role.</summary>
-
 <p><strong>Sample Answer</strong>:</p>
-
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import numpy as np
@@ -1477,7 +1355,6 @@ plt.close()
 print("Positional Encoding injects position information into the sequence")
 print("Different frequencies enable capture of both near and far positions")
 </code></pre>
-
 <p><strong>Role</strong>:</p>
 <ul>
 <li>Since Transformers lack recurrent structure, position information must be explicitly added</li>
@@ -1485,12 +1362,9 @@ print("Different frequencies enable capture of both near and far positions")
 <li>For time series, absolute time and periodicity can also be encoded</li>
 </ul>
 </details>
-
 <details>
 <summary><strong>Problem 2: TFT Variable Selection</strong> - Implement Variable Selection Network and explain its advantages.</summary>
-
 <p><strong>Sample Answer</strong>:</p>
-
 <pre><code class="language-python">import torch
 import torch.nn as nn
 
@@ -1573,7 +1447,6 @@ print(f"Output shape: {output.shape}")
 print(f"Weights shape: {weights.shape}")
 print(f"Variable importance: {weights[0, 0]}")
 </code></pre>
-
 <p><strong>Advantages</strong>:</p>
 <ul>
 <li>Automatically selects important variables and reduces noise</li>
@@ -1581,12 +1454,9 @@ print(f"Variable importance: {weights[0, 0]}")
 <li>Prevent overfitting: suppress influence of unnecessary variables</li>
 </ul>
 </details>
-
 <details>
 <summary><strong>Problem 3: ProbSparse Attention</strong> - Compare the efficiency of Informer's ProbSparse Attention with standard Attention.</summary>
-
 <p><strong>Sample Answer</strong>:</p>
-
 <pre><code class="language-python">import torch
 import time
 import matplotlib.pyplot as plt
@@ -1661,7 +1531,6 @@ plt.close()
 speedup = [s/p for s, p in zip(standard_times, probsparse_times)]
 print(f"\nAverage speedup: {np.mean(speedup):.2f}x")
 </code></pre>
-
 <p><strong>Comparison Results</strong>:</p>
 <ul>
 <li>ProbSparse's advantage becomes more pronounced with longer sequences</li>
@@ -1669,12 +1538,9 @@ print(f"\nAverage speedup: {np.mean(speedup):.2f}x")
 <li>Memory usage is also significantly reduced</li>
 </ul>
 </details>
-
 <details>
 <summary><strong>Problem 4: Multi-horizon Prediction</strong> - Implement and compare Autoregressive mode and Direct mode.</summary>
-
 <p><strong>Sample Answer</strong>:</p>
-
 <pre><code class="language-python">import torch
 import torch.nn as nn
 import numpy as np
@@ -1776,12 +1642,9 @@ print("Autoregressive: Sequential prediction, error accumulation")
 print("Direct: Predict all at once, parallel computation possible")
 </code></pre>
 </details>
-
 <details>
 <summary><strong>Problem 5: Production Deployment</strong> - Design a complete pipeline for deploying a TFT model to production.</summary>
-
 <p><strong>Sample Answer</strong>:</p>
-
 <pre><code class="language-python">"""
 Production Deployment Pipeline
 
@@ -1875,7 +1738,7 @@ class AutoRetrainer:
     def check_performance(self, predictions, actuals):
         mae = np.mean(np.abs(predictions - actuals))
 
-        if mae > self.threshold_mae:
+        if mae &gt; self.threshold_mae:
             print(f"Performance degraded: MAE={mae:.2f}")
             self.trigger_retraining()
 
@@ -1920,7 +1783,6 @@ def deploy_pipeline():
 if __name__ == "__main__":
     deploy_pipeline()
 </code></pre>
-
 <p><strong>Deployment Components</strong>:</p>
 <ul>
 <li>Model version management and rollback functionality</li>
@@ -1930,11 +1792,8 @@ if __name__ == "__main__":
 <li>Containerization and orchestration (Docker/K8s)</li>
 </ul>
 </details>
-
-<hr>
-
+<hr/>
 <h2>References</h2>
-
 <h3>Papers</h3>
 <ul>
 <li>Vaswani et al. (2017). <em>Attention Is All You Need</em>. NeurIPS.</li>
@@ -1944,13 +1803,11 @@ if __name__ == "__main__":
 <li>Zhou et al. (2022). <em>FEDformer: Frequency Enhanced Decomposed Transformer for Long-term Series Forecasting</em>. ICML.</li>
 <li>Nie et al. (2023). <em>A Time Series is Worth 64 Words: Long-term Forecasting with Transformers</em>. ICLR (PatchTST).</li>
 </ul>
-
 <h3>Books</h3>
 <ul>
-<li>Hyndman & Athanasopoulos. <em>Forecasting: Principles and Practice</em> (3rd edition).</li>
+<li>Hyndman &amp; Athanasopoulos. <em>Forecasting: Principles and Practice</em> (3rd edition).</li>
 <li>Nielsen, A. <em>Practical Time Series Analysis</em>. O'Reilly Media.</li>
 </ul>
-
 <h3>Libraries and Tools</h3>
 <ul>
 <li><a href="https://pytorch-forecasting.readthedocs.io/">PyTorch Forecasting</a> - TFT, N-BEATS implementations</li>
@@ -1958,38 +1815,31 @@ if __name__ == "__main__":
 <li><a href="https://github.com/MAZiqing/FEDformer">FEDformer GitHub</a> - Official implementation</li>
 <li><a href="https://github.com/yuqinie98/PatchTST">PatchTST GitHub</a> - Official implementation</li>
 </ul>
-
 <h3>Online Resources</h3>
 <ul>
 <li><a href="https://huggingface.co/blog/time-series-transformers">HuggingFace Time Series Guide</a></li>
 <li><a href="https://towardsdatascience.com/temporal-fusion-transformer-for-time-series-forecasting-9e9b8c47f0a5">Temporal Fusion Transformer Tutorial</a></li>
 <li><a href="https://arxiv.org/abs/2310.06625">Time Series Transformers Survey</a> - Latest survey paper</li>
 </ul>
-
-<hr>
-
+<hr/>
 <div class="navigation">
-    <a href="chapter3-deep-learning-time-series.html" class="nav-button">← Previous Chapter: Deep Learning for Time Series Forecasting</a>
-    <a href="chapter5-advanced-topics.html" class="nav-button">Next Chapter: Advanced Topics →</a>
+<a class="nav-button" href="chapter3-deep-learning-time-series.html">← Previous Chapter: Deep Learning for Time Series Forecasting</a>
+<a class="nav-button" href="chapter5-advanced-topics.html">Next Chapter: Advanced Topics →</a>
 </div>
-
-    </main>
-
-
-    <section class="disclaimer">
-        <h3>Disclaimer</h3>
-        <ul>
-            <li>This content is provided for educational, research, and informational purposes only, and does not constitute professional advice (legal, accounting, technical warranties, etc.).</li>
-            <li>This content and accompanying code examples are provided "AS IS" without warranties of any kind, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, functionality, or safety.</li>
-            <li>The author and Tohoku University accept no responsibility for the content, availability, or safety of external links, third-party data, tools, or libraries.</li>
-            <li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
-            <li>The content of this material may be changed, updated, or discontinued without notice.</li>
-            <li>The copyright and license of this content shall comply with specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
-        </ul>
-    </section>
-
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided for educational, research, and informational purposes only, and does not constitute professional advice (legal, accounting, technical warranties, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without warranties of any kind, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, functionality, or safety.</li>
+<li>The author and Tohoku University accept no responsibility for the content, availability, or safety of external links, third-party data, tools, or libraries.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content of this material may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content shall comply with specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+</ul>
+</section>
 <footer>
-        <p>&copy; 2025 AI Terakoya. All rights reserved.</p>
-    </footer>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
 </body>
 </html>
