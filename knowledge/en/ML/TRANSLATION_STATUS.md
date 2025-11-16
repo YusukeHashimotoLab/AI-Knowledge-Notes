@@ -2,30 +2,7 @@
 
 ## Completed Translations
 
-### 1. ML Fundamentals Introduction (`ml-introduction`)
-**Location**: `/knowledge/en/ML/ml-introduction/`
-
-#### Fully Translated:
-- ✅ `index.html` - Series overview page with:
-  - Complete series description
-  - 4 chapter structure (Python → NumPy → Pandas → ML Overview)
-  - Learning paths (Complete Mastery, Fast Track, Focused)
-  - FAQ section
-  - Chapter cards with descriptions
-  - Navigation structure
-
-#### Chapter Files (Structure Ready, Awaiting Full Translation):
-The series includes chapters:
-1. `chapter1-python-basics.html` - Python Basics
-2. `chapter2-numpy-basics.html` - NumPy Basics
-3. `chapter3-pandas-basics.html` - Pandas Basics
-4. `chapter4-ml-overview.html` - Machine Learning Overview
-
-**Note**: The Japanese source also contains additional chapter files (chapter1-introduction, chapter2-fundamentals, chapter3-hands-on, chapter4-real-world) which appear to be an alternate structure.
-
----
-
-### 2. Supervised Learning Introduction (`supervised-learning-introduction`)
+### 1. Supervised Learning Introduction (`supervised-learning-introduction`)
 **Location**: `/knowledge/en/ML/supervised-learning-introduction/`
 
 #### Fully Translated:
@@ -45,7 +22,7 @@ The series includes chapters:
 
 ---
 
-### 3. Neural Networks Introduction (`neural-networks-introduction`)
+### 2. Neural Networks Introduction (`neural-networks-introduction`)
 **Location**: `/knowledge/en/ML/neural-networks-introduction/`
 
 #### Fully Translated:

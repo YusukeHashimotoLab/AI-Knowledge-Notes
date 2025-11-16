@@ -4,7 +4,7 @@ subtitle: "Comprehensive Learning Platform for Materials Science & Data Science"
 description: "Complete learning hub offering 5 specialized Dojos: Fundamentals of Mathematics (FM), Materials Informatics (MI), Machine Learning (ML), Materials Science (MS), and Process Informatics (PI)"
 version: "2.0"
 total_dojos: 5
-total_series: 109
+total_series: 107
 total_chapters: 480
 total_code_examples: 1500+
 created_at: "2025-01-15"
@@ -25,14 +25,14 @@ keywords: ["Materials Science", "Machine Learning", "Process Informatics", "Math
 "Terakoya" were educational institutions for common people during Japan's Edo period. The modern "AI Terakoya" is a comprehensive learning platform bridging materials science, data science, mathematics, and physics.
 
 **Features of AI Terakoya:**
-- ✅ **5 Specialized Dojos**: 109 series across FM, MI, ML, MS, and PI domains
+- ✅ **5 Specialized Dojos**: 107 series across FM, MI, ML, MS, and PI domains
 - ✅ **480 Comprehensive Chapters**: Systematic progression from fundamentals to advanced topics
 - ✅ **1500+ Code Examples**: All executable with detailed explanations
 - ✅ **Industry Applications**: 100+ real-world case studies
 - ✅ **Complete Curriculum**: From mathematical foundations to industrial deployment
 
 **Platform Statistics:**
-- 📚 109 Learning Series
+- 📚 107 Learning Series
 - 📖 480 Complete Chapters
 - 💻 1500+ Python Code Examples
 - 🎯 5 Specialized Learning Domains
@@ -187,7 +187,7 @@ Complete curriculum for chemical and manufacturing process optimization using da
 - Data: MD17 dataset
 - Visualization: matplotlib, TensorBoard
 
-**[📕 Go to MLP Introduction Series →](./mlp-introduction/index.html)**
+**[📕 Go to MLP Introduction Series →](./MI/mlp-introduction/index.html)**
 
 ---
 
@@ -795,10 +795,10 @@ Are you ready? Choose the series that suits you best and begin your journey into
 
 ### Recommended Starting Points
 
-**🔰 Complete Beginners** → Start with [📘 MI Introduction Series](./mi-introduction/index.html)
-**⚗️ Nanotech Interest** → Start with [📗 NM Introduction Series](./nm-introduction/index.html)
-**🏭 Chemical Engineering Background** → Start with [📙 PI Introduction Series](./pi-introduction/index.html)
-**🧪 Computational Chemistry Experience** → Start with [📕 MLP Introduction Series](./mlp-introduction/index.html)
+**🔰 Complete Beginners** → Start with [📘 MI Introduction Series](./MI/mi-introduction/index.html)
+**⚗️ Nanotech Interest** → Start with [📗 NM Introduction Series](./MI/nm-introduction/index.html)
+**🏭 Chemical Engineering Background** → Start with [📙 PI Introduction Series](./PI/pi-introduction/index.html)
+**🧪 Computational Chemistry Experience** → Start with [📕 MLP Introduction Series](./MI/mlp-introduction/index.html)
 
 ---
 
