@@ -1,13 +1,13 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 4: Composition-based vs GNN Quantitative Comparison | Introduction to GNN Feature Comparison</title>
-    <meta name="description" content="Quantitative performance comparison of RF/CGCNN using Matbench benchmark. Empirical analysis of statistical significance testing, computational cost, data requirements, and interpretability.">
-
-    <!-- MathJax 3.x for mathematical equations -->
-    <script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 4: Composition-based vs GNN Quantitative Comparison | Introduction to GNN Feature Comparison</title>
+<meta content="Quantitative performance comparison of RF/CGCNN using Matbench benchmark. Empirical analysis of statistical significance testing, computational cost, data requirements, and interpretability." name="description"/>
+<!-- MathJax 3.x for mathematical equations -->
+<script>
     MathJax = {
         tex: {
             inlineMath: [['$', '$'], ['\\(', '\\)']],
@@ -20,11 +20,10 @@
         }
     };
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-
-    <!-- Mermaid for diagrams -->
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-    <script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<!-- Mermaid for diagrams -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
         mermaid.initialize({
             startOnLoad: true,
             theme: 'default',
@@ -38,107 +37,95 @@
             }
         });
     </script>
-
-    <!-- Prism.js for syntax highlighting -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
-
-        <link rel="stylesheet" href="../../assets/css/knowledge-base.css">
+<!-- Prism.js for syntax highlighting -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
 </head>
-<body>
-    <div class="container">
-        <h1>Chapter 4: Composition-based vs GNN Quantitative Comparison</h1>
+<body><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a class="locale-link" href="../../../jp/MI/gnn-features-comparison-introduction/chapter-4.html">日本語</a>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
 
-        <p>In this chapter, we quantitatively compare the performance of <strong>composition-based features (Magpie)</strong> and <strong>GNN structure-based features (CGCNN)</strong> using the <strong>Matbench standard benchmark</strong>. We conduct empirical analysis from multiple perspectives including not only prediction accuracy, but also statistical significance, computational cost, data requirements, and interpretability.</p>
-
-        <div class="highlight-box">
-            <strong>🎯 Learning Objectives</strong>
-            <ul>
-                <li>Understand the structure and evaluation protocol of the Matbench benchmark</li>
-                <li>Quantitatively compare prediction accuracy of Random Forest (Magpie) and CGCNN</li>
-                <li>Implement statistical significance testing (t-test, confidence intervals, p-values)</li>
-                <li>Measure and compare computational cost (training time, inference time, memory)</li>
-                <li>Visualize differences in data requirements using learning curves</li>
-                <li>Compare interpretability using SHAP values and Attention mechanisms</li>
-                <li>Construct a decision flowchart for method selection</li>
-            </ul>
-        </div>
-
-        <h2>4.1 Overview of Matbench Benchmark</h2>
-
-        <p>Matbench (Materials Benchmark) is a <strong>standardized evaluation platform</strong> for machine learning models in materials science. It defines 13 material property prediction tasks, with training, validation, and test data pre-split for each task. This enables fair performance comparison across different research studies.</p>
-
-        <h3>4.1.1 Main Matbench Tasks</h3>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Task Name</th>
-                    <th>Property</th>
-                    <th>Data Size</th>
-                    <th>Evaluation Metric</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>matbench_mp_e_form</td>
-                    <td>Formation energy (eV/atom)</td>
-                    <td>132,752</td>
-                    <td>MAE</td>
-                </tr>
-                <tr>
-                    <td>matbench_mp_gap</td>
-                    <td>Band gap (eV)</td>
-                    <td>106,113</td>
-                    <td>MAE</td>
-                </tr>
-                <tr>
-                    <td>matbench_perovskites</td>
-                    <td>Formation energy (eV/atom)</td>
-                    <td>18,928</td>
-                    <td>MAE</td>
-                </tr>
-                <tr>
-                    <td>matbench_phonons</td>
-                    <td>Maximum phonon frequency (cm⁻¹)</td>
-                    <td>1,265</td>
-                    <td>MAE</td>
-                </tr>
-                <tr>
-                    <td>matbench_jdft2d</td>
-                    <td>Exfoliation energy (meV/atom)</td>
-                    <td>636</td>
-                    <td>MAE</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <p>In this chapter, we compare the performance of Random Forest (Magpie features) and CGCNN on two tasks: <strong>matbench_mp_e_form (formation energy prediction)</strong> and <strong>matbench_mp_gap (band gap prediction)</strong>.</p>
-
-        <h3>4.1.2 Evaluation Protocol</h3>
-
-        <p>In Matbench, <strong>5-fold cross-validation</strong> is the standard evaluation protocol. The entire dataset is split into 5 folds, and the following evaluation is performed for each fold:</p>
-
-        <ol>
-            <li><strong>Training</strong>: Train the model on the remaining 4 folds</li>
-            <li><strong>Validation</strong>: Use for hyperparameter tuning (optional)</li>
-            <li><strong>Testing</strong>: Evaluate performance on the corresponding fold (calculate MAE, RMSE, R²)</li>
-        </ol>
-
-        <p>By averaging the evaluation metrics across the 5 folds, we obtain a <strong>reliable estimate of generalization performance</strong>.</p>
-
-        <h2>4.2 Matbench Benchmark Implementation</h2>
-
-        <p>In this section, we implement Random Forest (Magpie) and CGCNN on the Matbench mp_e_form task and quantitatively compare their prediction accuracy.</p>
-
-        <h3>4.2.1 Environment Setup and Data Loading</h3>
-
-        <div class="highlight-box">
-            <strong>💻 Code Example 1: Loading Matbench Dataset</strong>
-        </div>
-
-        <pre><code class="language-python"># Load and preprocess Matbench dataset
+<div class="container">
+<h1>Chapter 4: Composition-based vs GNN Quantitative Comparison</h1>
+<p>In this chapter, we quantitatively compare the performance of <strong>composition-based features (Magpie)</strong> and <strong>GNN structure-based features (CGCNN)</strong> using the <strong>Matbench standard benchmark</strong>. We conduct empirical analysis from multiple perspectives including not only prediction accuracy, but also statistical significance, computational cost, data requirements, and interpretability.</p>
+<div class="highlight-box">
+<strong>🎯 Learning Objectives</strong>
+<ul>
+<li>Understand the structure and evaluation protocol of the Matbench benchmark</li>
+<li>Quantitatively compare prediction accuracy of Random Forest (Magpie) and CGCNN</li>
+<li>Implement statistical significance testing (t-test, confidence intervals, p-values)</li>
+<li>Measure and compare computational cost (training time, inference time, memory)</li>
+<li>Visualize differences in data requirements using learning curves</li>
+<li>Compare interpretability using SHAP values and Attention mechanisms</li>
+<li>Construct a decision flowchart for method selection</li>
+</ul>
+</div>
+<h2>4.1 Overview of Matbench Benchmark</h2>
+<p>Matbench (Materials Benchmark) is a <strong>standardized evaluation platform</strong> for machine learning models in materials science. It defines 13 material property prediction tasks, with training, validation, and test data pre-split for each task. This enables fair performance comparison across different research studies.</p>
+<h3>4.1.1 Main Matbench Tasks</h3>
+<table>
+<thead>
+<tr>
+<th>Task Name</th>
+<th>Property</th>
+<th>Data Size</th>
+<th>Evaluation Metric</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>matbench_mp_e_form</td>
+<td>Formation energy (eV/atom)</td>
+<td>132,752</td>
+<td>MAE</td>
+</tr>
+<tr>
+<td>matbench_mp_gap</td>
+<td>Band gap (eV)</td>
+<td>106,113</td>
+<td>MAE</td>
+</tr>
+<tr>
+<td>matbench_perovskites</td>
+<td>Formation energy (eV/atom)</td>
+<td>18,928</td>
+<td>MAE</td>
+</tr>
+<tr>
+<td>matbench_phonons</td>
+<td>Maximum phonon frequency (cm⁻¹)</td>
+<td>1,265</td>
+<td>MAE</td>
+</tr>
+<tr>
+<td>matbench_jdft2d</td>
+<td>Exfoliation energy (meV/atom)</td>
+<td>636</td>
+<td>MAE</td>
+</tr>
+</tbody>
+</table>
+<p>In this chapter, we compare the performance of Random Forest (Magpie features) and CGCNN on two tasks: <strong>matbench_mp_e_form (formation energy prediction)</strong> and <strong>matbench_mp_gap (band gap prediction)</strong>.</p>
+<h3>4.1.2 Evaluation Protocol</h3>
+<p>In Matbench, <strong>5-fold cross-validation</strong> is the standard evaluation protocol. The entire dataset is split into 5 folds, and the following evaluation is performed for each fold:</p>
+<ol>
+<li><strong>Training</strong>: Train the model on the remaining 4 folds</li>
+<li><strong>Validation</strong>: Use for hyperparameter tuning (optional)</li>
+<li><strong>Testing</strong>: Evaluate performance on the corresponding fold (calculate MAE, RMSE, R²)</li>
+</ol>
+<p>By averaging the evaluation metrics across the 5 folds, we obtain a <strong>reliable estimate of generalization performance</strong>.</p>
+<h2>4.2 Matbench Benchmark Implementation</h2>
+<p>In this section, we implement Random Forest (Magpie) and CGCNN on the Matbench mp_e_form task and quantitatively compare their prediction accuracy.</p>
+<h3>4.2.1 Environment Setup and Data Loading</h3>
+<div class="highlight-box">
+<strong>💻 Code Example 1: Loading Matbench Dataset</strong>
+</div>
+<pre><code class="language-python"># Load and preprocess Matbench dataset
 import numpy as np
 import pandas as pd
 from matbench.bench import MatbenchBenchmark
@@ -177,14 +164,11 @@ print(task.df.head(3))
 # 1  Structure: Mn2 O3 ...                    -2.89
 # 2  Structure: Co2 O3 ...                    -2.31
 </code></pre>
-
-        <h3>4.2.2 Random Forest (Magpie Features) Implementation</h3>
-
-        <div class="highlight-box">
-            <strong>💻 Code Example 2: Magpie Feature Extraction and Random Forest Training</strong>
-        </div>
-
-        <pre><code class="language-python"># Random Forest + Magpie features implementation
+<h3>4.2.2 Random Forest (Magpie Features) Implementation</h3>
+<div class="highlight-box">
+<strong>💻 Code Example 2: Magpie Feature Extraction and Random Forest Training</strong>
+</div>
+<pre><code class="language-python"># Random Forest + Magpie features implementation
 from matminer.featurizers.composition import ElementProperty
 
 def extract_magpie_features(structures):
@@ -276,14 +260,11 @@ print(f"R²:   {rf_df['r2'].mean():.4f} ± {rf_df['r2'].std():.4f}")
 # RMSE: 0.0678 ± 0.0019 eV/atom
 # R²:   0.9321 ± 0.0045
 </code></pre>
-
-        <h3>4.2.3 CGCNN Implementation</h3>
-
-        <div class="highlight-box">
-            <strong>💻 Code Example 3: CGCNN on Matbench Training</strong>
-        </div>
-
-        <pre><code class="language-python"># CGCNN on Matbench implementation
+<h3>4.2.3 CGCNN Implementation</h3>
+<div class="highlight-box">
+<strong>💻 Code Example 3: CGCNN on Matbench Training</strong>
+</div>
+<pre><code class="language-python"># CGCNN on Matbench implementation
 import torch
 import torch.nn as nn
 from torch_geometric.data import Data, DataLoader
@@ -468,16 +449,12 @@ print(f"R²:   {cgcnn_df['r2'].mean():.4f} ± {cgcnn_df['r2'].std():.4f}")
 # RMSE: 0.0592 ± 0.0014 eV/atom
 # R²:   0.9524 ± 0.0032
 </code></pre>
-
-        <h3>4.2.4 Quantitative Comparison of Prediction Accuracy</h3>
-
-        <p>We integrate the 5-fold cross-validation results and compare the prediction accuracy of Random Forest (Magpie) and CGCNN.</p>
-
-        <div class="highlight-box">
-            <strong>💻 Code Example 4: Visualization of Prediction Accuracy Comparison</strong>
-        </div>
-
-        <pre><code class="language-python"># Visualization of prediction accuracy comparison
+<h3>4.2.4 Quantitative Comparison of Prediction Accuracy</h3>
+<p>We integrate the 5-fold cross-validation results and compare the prediction accuracy of Random Forest (Magpie) and CGCNN.</p>
+<div class="highlight-box">
+<strong>💻 Code Example 4: Visualization of Prediction Accuracy Comparison</strong>
+</div>
+<pre><code class="language-python"># Visualization of prediction accuracy comparison
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -540,44 +517,30 @@ print(f"R² improvement:   {r2_improvement:.2f}%")
 # RMSE improvement: 12.68%
 # R² improvement:   2.18%
 </code></pre>
-
-        <p><strong>Interpretation of Results:</strong></p>
-        <ul>
-            <li><strong>MAE improvement: 12.00%</strong> - CGCNN achieves approximately 12% lower error than Magpie+RF in formation energy prediction</li>
-            <li><strong>R² improvement: 2.18%</strong> - Although RF already achieves a high R² (0.932), CGCNN achieves an extremely high coefficient of determination of 0.952, so the relative improvement rate is small</li>
-            <li><strong>Statistical significance testing is required</strong> - In the next section, we will test whether this accuracy difference is statistically significant</li>
-        </ul>
-
-        <div class="warning-box">
-            <strong>⚠️ Important Notes</strong>
-            <p>In this code example, for computational time constraints, the CGCNN epoch count is limited to 50, but in actual benchmarking, <strong>early stopping and hyperparameter optimization</strong> should be performed. Also, execution in a GPU environment is strongly recommended (training time is 10-20x faster).</p>
-        </div>
-
-        <h2>4.3 Statistical Significance Testing</h2>
-
-        <p>In the previous section, we confirmed that CGCNN achieves approximately 12% lower MAE than Random Forest (Magpie). However, to verify whether this accuracy difference is <strong>statistically significant</strong>, we cannot rule out the possibility that it is merely by chance. In this section, we evaluate statistical significance using <strong>paired t-test</strong> and <strong>95% confidence interval</strong>.</p>
-
-        <h3>4.3.1 Principle of Paired t-Test</h3>
-
-        <p>In 5-fold cross-validation, both RF and CGCNN are evaluated on the same data splits. Therefore, the MAE differences for each fold can be treated as <strong>paired data</strong>. The paired t-test tests the following null hypothesis:</p>
-
-        <p>$$H_0: \mu_{\text{diff}} = 0 \quad \text{(The average MAE difference between RF and CGCNN is zero)}$$</p>
-
-        <p>$$H_1: \mu_{\text{diff}} \neq 0 \quad \text{(The average MAE difference is not zero)}$$</p>
-
-        <p>The test statistic t is calculated as follows:</p>
-
-        <p>$$t = \frac{\bar{d}}{s_d / \sqrt{n}}$$</p>
-
-        <p>Where $\bar{d}$ is the mean of the differences, $s_d$ is the standard deviation of the differences, and $n$ is the sample size (number of folds = 5).</p>
-
-        <h3>4.3.2 t-Test Implementation</h3>
-
-        <div class="highlight-box">
-            <strong>💻 Code Example 5: Paired t-Test Implementation</strong>
-        </div>
-
-        <pre><code class="language-python"># Paired t-test implementation
+<p><strong>Interpretation of Results:</strong></p>
+<ul>
+<li><strong>MAE improvement: 12.00%</strong> - CGCNN achieves approximately 12% lower error than Magpie+RF in formation energy prediction</li>
+<li><strong>R² improvement: 2.18%</strong> - Although RF already achieves a high R² (0.932), CGCNN achieves an extremely high coefficient of determination of 0.952, so the relative improvement rate is small</li>
+<li><strong>Statistical significance testing is required</strong> - In the next section, we will test whether this accuracy difference is statistically significant</li>
+</ul>
+<div class="warning-box">
+<strong>⚠️ Important Notes</strong>
+<p>In this code example, for computational time constraints, the CGCNN epoch count is limited to 50, but in actual benchmarking, <strong>early stopping and hyperparameter optimization</strong> should be performed. Also, execution in a GPU environment is strongly recommended (training time is 10-20x faster).</p>
+</div>
+<h2>4.3 Statistical Significance Testing</h2>
+<p>In the previous section, we confirmed that CGCNN achieves approximately 12% lower MAE than Random Forest (Magpie). However, to verify whether this accuracy difference is <strong>statistically significant</strong>, we cannot rule out the possibility that it is merely by chance. In this section, we evaluate statistical significance using <strong>paired t-test</strong> and <strong>95% confidence interval</strong>.</p>
+<h3>4.3.1 Principle of Paired t-Test</h3>
+<p>In 5-fold cross-validation, both RF and CGCNN are evaluated on the same data splits. Therefore, the MAE differences for each fold can be treated as <strong>paired data</strong>. The paired t-test tests the following null hypothesis:</p>
+<p>$$H_0: \mu_{\text{diff}} = 0 \quad \text{(The average MAE difference between RF and CGCNN is zero)}$$</p>
+<p>$$H_1: \mu_{\text{diff}} \neq 0 \quad \text{(The average MAE difference is not zero)}$$</p>
+<p>The test statistic t is calculated as follows:</p>
+<p>$$t = \frac{\bar{d}}{s_d / \sqrt{n}}$$</p>
+<p>Where $\bar{d}$ is the mean of the differences, $s_d$ is the standard deviation of the differences, and $n$ is the sample size (number of folds = 5).</p>
+<h3>4.3.2 t-Test Implementation</h3>
+<div class="highlight-box">
+<strong>💻 Code Example 5: Paired t-Test Implementation</strong>
+</div>
+<pre><code class="language-python"># Paired t-test implementation
 from scipy import stats
 import numpy as np
 
@@ -603,8 +566,8 @@ print(f"p-value:     {p_value:.4f}")
 
 # Judge with significance level α=0.05
 alpha = 0.05
-if p_value < alpha:
-    print(f"\nJudgment: p-value ({p_value:.4f}) < α ({alpha}) → Reject null hypothesis")
+if p_value &lt; alpha:
+    print(f"\nJudgment: p-value ({p_value:.4f}) &lt; α ({alpha}) → Reject null hypothesis")
     print("Conclusion: The accuracy difference between CGCNN and RF is statistically significant.")
 else:
     print(f"\nJudgment: p-value ({p_value:.4f}) ≥ α ({alpha}) → Cannot reject null hypothesis")
@@ -613,11 +576,11 @@ else:
 # Calculate effect size (Cohen's d)
 cohens_d = mae_diff.mean() / mae_diff.std(ddof=1)
 print(f"\nEffect size (Cohen's d): {cohens_d:.4f}")
-if abs(cohens_d) < 0.2:
+if abs(cohens_d) &lt; 0.2:
     print("Effect size magnitude: Small")
-elif abs(cohens_d) < 0.5:
+elif abs(cohens_d) &lt; 0.5:
     print("Effect size magnitude: Medium")
-elif abs(cohens_d) < 0.8:
+elif abs(cohens_d) &lt; 0.8:
     print("Effect size magnitude: Large")
 else:
     print("Effect size magnitude: Very large")
@@ -633,22 +596,18 @@ else:
 # t-statistic: 20.5891
 # p-value:     0.0001
 #
-# Judgment: p-value (0.0001) < α (0.05) → Reject null hypothesis
+# Judgment: p-value (0.0001) &lt; α (0.05) → Reject null hypothesis
 # Conclusion: The accuracy difference between CGCNN and RF is statistically significant.
 #
 # Effect size (Cohen's d): 9.1894
 # Effect size magnitude: Very large
 </code></pre>
-
-        <h3>4.3.3 Calculation of 95% Confidence Interval</h3>
-
-        <p>The 95% confidence interval indicates the <strong>range that contains the true mean difference with 95% probability</strong>. If the confidence interval does not include zero, we can conclude that there is a statistically significant difference.</p>
-
-        <div class="highlight-box">
-            <strong>💻 Code Example 6: Calculation and Visualization of 95% Confidence Interval</strong>
-        </div>
-
-        <pre><code class="language-python"># Calculation and visualization of 95% confidence interval
+<h3>4.3.3 Calculation of 95% Confidence Interval</h3>
+<p>The 95% confidence interval indicates the <strong>range that contains the true mean difference with 95% probability</strong>. If the confidence interval does not include zero, we can conclude that there is a statistically significant difference.</p>
+<div class="highlight-box">
+<strong>💻 Code Example 6: Calculation and Visualization of 95% Confidence Interval</strong>
+</div>
+<pre><code class="language-python"># Calculation and visualization of 95% confidence interval
 from scipy import stats
 import matplotlib.pyplot as plt
 
@@ -671,7 +630,7 @@ print(f"t-critical (df={degrees_freedom}): {t_critical:.4f}")
 print(f"Margin of error:     ±{margin_error:.4f} eV/atom")
 print(f"95% CI:              [{ci_lower:.4f}, {ci_upper:.4f}] eV/atom")
 
-if ci_lower > 0:
+if ci_lower &gt; 0:
     print("\nJudgment: CI does not include 0 → Statistically significant difference exists")
 else:
     print("\nJudgment: CI includes 0 → No statistically significant difference")
@@ -712,65 +671,56 @@ plt.show()
 #
 # Judgment: CI does not include 0 → Statistically significant difference exists
 </code></pre>
-
-        <h3>4.3.4 Summary of Statistical Testing Results</h3>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Test Method</th>
-                    <th>Result</th>
-                    <th>Interpretation</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Paired t-test</td>
-                    <td>t=20.59, p=0.0001</td>
-                    <td>p < 0.05 → Statistically significant</td>
-                </tr>
-                <tr>
-                    <td>95% confidence interval</td>
-                    <td>[0.0034, 0.0044] eV/atom</td>
-                    <td>Does not include 0 → Statistically significant</td>
-                </tr>
-                <tr>
-                    <td>Effect size (Cohen's d)</td>
-                    <td>9.19</td>
-                    <td>Very large effect size</td>
-                </tr>
-                <tr>
-                    <td>Relative improvement rate</td>
-                    <td>12.00%</td>
-                    <td>Practical significance exists</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <p><strong>Conclusion:</strong></p>
-        <ul>
-            <li>CGCNN showed <strong>statistically significant accuracy improvement</strong> over Random Forest (Magpie) (p=0.0001 << 0.05)</li>
-            <li>The 95% confidence interval [0.0034, 0.0044] eV/atom does not include zero, so the existence of the accuracy difference is statistically supported</li>
-            <li>Cohen's d = 9.19, a very large effect size, indicates the practical superiority of CGCNN</li>
-            <li>The 12% relative improvement rate has practical merit directly related to improving the efficiency of materials discovery</li>
-        </ul>
-
-        <div class="warning-box">
-            <strong>⚠️ Statistical Significance vs Practical Significance</strong>
-            <p>Even if a statistically significant difference is recognized, it is necessary to separately consider whether that difference is <strong>practically meaningful</strong>. In this case, the MAE difference of 0.0039 eV/atom can be judged as a sufficiently practical improvement in materials discovery (prediction accuracy of formation energy improved by approximately 1 meV/atom).</p>
-        </div>
-
-        <h2>4.4 Quantitative Comparison of Computational Cost</h2>
-
-        <p>Not only accuracy, but also <strong>computational cost (training time, inference time, memory usage)</strong> is an important factor in model selection. In this section, we measure and quantitatively compare the computational cost of Random Forest and CGCNN.</p>
-
-        <h3>4.4.1 Measurement of Training Time</h3>
-
-        <div class="highlight-box">
-            <strong>💻 Code Example 7: Measurement of Training and Inference Time</strong>
-        </div>
-
-        <pre><code class="language-python"># Measurement of training and inference time
+<h3>4.3.4 Summary of Statistical Testing Results</h3>
+<table>
+<thead>
+<tr>
+<th>Test Method</th>
+<th>Result</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Paired t-test</td>
+<td>t=20.59, p=0.0001</td>
+<td>p &lt; 0.05 → Statistically significant</td>
+</tr>
+<tr>
+<td>95% confidence interval</td>
+<td>[0.0034, 0.0044] eV/atom</td>
+<td>Does not include 0 → Statistically significant</td>
+</tr>
+<tr>
+<td>Effect size (Cohen's d)</td>
+<td>9.19</td>
+<td>Very large effect size</td>
+</tr>
+<tr>
+<td>Relative improvement rate</td>
+<td>12.00%</td>
+<td>Practical significance exists</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Conclusion:</strong></p>
+<ul>
+<li>CGCNN showed <strong>statistically significant accuracy improvement</strong> over Random Forest (Magpie) (p=0.0001 &lt;&lt; 0.05)</li>
+<li>The 95% confidence interval [0.0034, 0.0044] eV/atom does not include zero, so the existence of the accuracy difference is statistically supported</li>
+<li>Cohen's d = 9.19, a very large effect size, indicates the practical superiority of CGCNN</li>
+<li>The 12% relative improvement rate has practical merit directly related to improving the efficiency of materials discovery</li>
+</ul>
+<div class="warning-box">
+<strong>⚠️ Statistical Significance vs Practical Significance</strong>
+<p>Even if a statistically significant difference is recognized, it is necessary to separately consider whether that difference is <strong>practically meaningful</strong>. In this case, the MAE difference of 0.0039 eV/atom can be judged as a sufficiently practical improvement in materials discovery (prediction accuracy of formation energy improved by approximately 1 meV/atom).</p>
+</div>
+<h2>4.4 Quantitative Comparison of Computational Cost</h2>
+<p>Not only accuracy, but also <strong>computational cost (training time, inference time, memory usage)</strong> is an important factor in model selection. In this section, we measure and quantitatively compare the computational cost of Random Forest and CGCNN.</p>
+<h3>4.4.1 Measurement of Training Time</h3>
+<div class="highlight-box">
+<strong>💻 Code Example 7: Measurement of Training and Inference Time</strong>
+</div>
+<pre><code class="language-python"># Measurement of training and inference time
 import time
 import psutil
 import os
@@ -903,14 +853,11 @@ print(f"Memory ratio (CGCNN/RF):         {cgcnn_cost['memory_usage'] / rf_cost['
 # Inference time ratio (CGCNN/RF): 13.00x
 # Memory ratio (CGCNN/RF):         2.76x
 </code></pre>
-
-        <h3>4.4.2 Visualization of Computational Cost</h3>
-
-        <div class="highlight-box">
-            <strong>💻 Code Example 8: Visualization of Computational Cost Comparison</strong>
-        </div>
-
-        <pre><code class="language-python"># Visualization of computational cost comparison
+<h3>4.4.2 Visualization of Computational Cost</h3>
+<div class="highlight-box">
+<strong>💻 Code Example 8: Visualization of Computational Cost Comparison</strong>
+</div>
+<pre><code class="language-python"># Visualization of computational cost comparison
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -949,70 +896,59 @@ plt.tight_layout()
 plt.savefig('computational_cost_comparison.png', dpi=300, bbox_inches='tight')
 plt.show()
 </code></pre>
-
-        <h3>4.4.3 Summary of Computational Cost Analysis</h3>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Metric</th>
-                    <th>RF (Magpie)</th>
-                    <th>CGCNN</th>
-                    <th>Ratio</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Training time</td>
-                    <td>45.3 sec</td>
-                    <td>1,832.6 sec (30.5 min)</td>
-                    <td>40.5x slower</td>
-                </tr>
-                <tr>
-                    <td>Inference time</td>
-                    <td>0.18 sec</td>
-                    <td>2.34 sec</td>
-                    <td>13.0x slower</td>
-                </tr>
-                <tr>
-                    <td>Memory usage</td>
-                    <td>1,250 MB</td>
-                    <td>3,450 MB</td>
-                    <td>2.8x larger</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <p><strong>Interpretation of Computational Cost:</strong></p>
-        <ul>
-            <li><strong>Training time: 40x difference</strong> - CGCNN requires approximately 30 minutes of training time (when using GPU). With CPU only, it could be 10-20x slower</li>
-            <li><strong>Inference time: 13x difference</strong> - RF is advantageous when real-time prediction is required</li>
-            <li><strong>Memory: 2.8x difference</strong> - CGCNN also requires additional GPU memory (approximately 2GB in this example)</li>
-            <li><strong>Accuracy-cost tradeoff</strong> - Whether the 40x computational time can be tolerated for a 12% accuracy improvement depends on the use case</li>
-        </ul>
-
-        <h2>4.5 Analysis of Data Requirements</h2>
-
-        <p>In evaluating the practicality of machine learning models, <strong>how much training data is required</strong> is an important factor. In this section, we visualize the difference in data requirements between Random Forest and CGCNN using <strong>learning curves</strong>.</p>
-
-        <h3>4.5.1 Concept of Learning Curves</h3>
-
-        <p>Learning curves are graphs that plot <strong>changes in model performance</strong> as the amount of training data varies. They typically have the following characteristics:</p>
-
-        <ul>
-            <li><strong>Small data region</strong>: Model performance strongly depends on the amount of training data and improves rapidly with increasing data</li>
-            <li><strong>Sufficient data region</strong>: Performance saturates and improvement from additional data becomes small</li>
-            <li><strong>Data-efficient models</strong>: Reach high performance with less data, with curves saturating early</li>
-            <li><strong>Data-inefficient models</strong>: Require more data, with late saturation of curves</li>
-        </ul>
-
-        <h3>4.5.2 Learning Curve Implementation</h3>
-
-        <div class="highlight-box">
-            <strong>💻 Code Example 9: Generation and Visualization of Learning Curves</strong>
-        </div>
-
-        <pre><code class="language-python"># Generation of learning curves
+<h3>4.4.3 Summary of Computational Cost Analysis</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>RF (Magpie)</th>
+<th>CGCNN</th>
+<th>Ratio</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Training time</td>
+<td>45.3 sec</td>
+<td>1,832.6 sec (30.5 min)</td>
+<td>40.5x slower</td>
+</tr>
+<tr>
+<td>Inference time</td>
+<td>0.18 sec</td>
+<td>2.34 sec</td>
+<td>13.0x slower</td>
+</tr>
+<tr>
+<td>Memory usage</td>
+<td>1,250 MB</td>
+<td>3,450 MB</td>
+<td>2.8x larger</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Interpretation of Computational Cost:</strong></p>
+<ul>
+<li><strong>Training time: 40x difference</strong> - CGCNN requires approximately 30 minutes of training time (when using GPU). With CPU only, it could be 10-20x slower</li>
+<li><strong>Inference time: 13x difference</strong> - RF is advantageous when real-time prediction is required</li>
+<li><strong>Memory: 2.8x difference</strong> - CGCNN also requires additional GPU memory (approximately 2GB in this example)</li>
+<li><strong>Accuracy-cost tradeoff</strong> - Whether the 40x computational time can be tolerated for a 12% accuracy improvement depends on the use case</li>
+</ul>
+<h2>4.5 Analysis of Data Requirements</h2>
+<p>In evaluating the practicality of machine learning models, <strong>how much training data is required</strong> is an important factor. In this section, we visualize the difference in data requirements between Random Forest and CGCNN using <strong>learning curves</strong>.</p>
+<h3>4.5.1 Concept of Learning Curves</h3>
+<p>Learning curves are graphs that plot <strong>changes in model performance</strong> as the amount of training data varies. They typically have the following characteristics:</p>
+<ul>
+<li><strong>Small data region</strong>: Model performance strongly depends on the amount of training data and improves rapidly with increasing data</li>
+<li><strong>Sufficient data region</strong>: Performance saturates and improvement from additional data becomes small</li>
+<li><strong>Data-efficient models</strong>: Reach high performance with less data, with curves saturating early</li>
+<li><strong>Data-inefficient models</strong>: Require more data, with late saturation of curves</li>
+</ul>
+<h3>4.5.2 Learning Curve Implementation</h3>
+<div class="highlight-box">
+<strong>💻 Code Example 9: Generation and Visualization of Learning Curves</strong>
+</div>
+<pre><code class="language-python"># Generation of learning curves
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import learning_curve
@@ -1159,38 +1095,28 @@ plt.show()
 # Training size: 50% (53006 samples) - Train MAE: 0.0198, Test MAE: 0.0312
 # Training size: 100% (106012 samples) - Train MAE: 0.0176, Test MAE: 0.0286
 </code></pre>
-
-        <h3>4.5.3 Interpretation of Data Requirements</h3>
-
-        <p><strong>Insights from learning curves:</strong></p>
-
-        <ul>
-            <li><strong>Small data region (<20%)</strong>: Random Forest is superior. CGCNN has low performance due to insufficient training data</li>
-            <li><strong>Medium data region (20-50%)</strong>: CGCNN performance improves rapidly and approaches RF</li>
-            <li><strong>Large data region (>50%)</strong>: CGCNN surpasses RF, with the gap widening as data increases</li>
-            <li><strong>Data efficiency</strong>: RF performance saturates at around 20% of data, while CGCNN maintains an upward trend even at 100% of data</li>
-        </ul>
-
-        <p><strong>Practical implications:</strong></p>
-        <ul>
-            <li><strong>When data is limited (<10,000 samples)</strong>: Random Forest (Magpie) is recommended</li>
-            <li><strong>When data is sufficient (>50,000 samples)</strong>: CGCNN achieves high accuracy</li>
-            <li><strong>When data collection cost is high</strong>: A hybrid strategy is effective - start with RF in the initial stage, then migrate to CGCNN after data accumulation</li>
-        </ul>
-
-        <h2>4.6 Comparison of Interpretability</h2>
-
-        <p>The <strong>interpretability</strong> of machine learning models is essential for understanding prediction rationale and improving reliability. In this section, we compare the interpretability of both methods using <strong>SHAP values</strong> for Random Forest (Magpie) and <strong>Attention mechanism</strong> for CGCNN.</p>
-
-        <h3>4.6.1 Interpretation of Composition-based Features using SHAP Values</h3>
-
-        <p>SHAP (SHapley Additive exPlanations) is a method that quantifies <strong>the contribution of each feature to the prediction</strong>. Based on Shapley value theory, it achieves fair distribution of contributions.</p>
-
-        <div class="highlight-box">
-            <strong>💻 Code Example 10: Feature Importance Analysis using SHAP Values</strong>
-        </div>
-
-        <pre><code class="language-python"># Feature importance analysis using SHAP values
+<h3>4.5.3 Interpretation of Data Requirements</h3>
+<p><strong>Insights from learning curves:</strong></p>
+<ul>
+<li><strong>Small data region (&lt;20%)</strong>: Random Forest is superior. CGCNN has low performance due to insufficient training data</li>
+<li><strong>Medium data region (20-50%)</strong>: CGCNN performance improves rapidly and approaches RF</li>
+<li><strong>Large data region (&gt;50%)</strong>: CGCNN surpasses RF, with the gap widening as data increases</li>
+<li><strong>Data efficiency</strong>: RF performance saturates at around 20% of data, while CGCNN maintains an upward trend even at 100% of data</li>
+</ul>
+<p><strong>Practical implications:</strong></p>
+<ul>
+<li><strong>When data is limited (&lt;10,000 samples)</strong>: Random Forest (Magpie) is recommended</li>
+<li><strong>When data is sufficient (&gt;50,000 samples)</strong>: CGCNN achieves high accuracy</li>
+<li><strong>When data collection cost is high</strong>: A hybrid strategy is effective - start with RF in the initial stage, then migrate to CGCNN after data accumulation</li>
+</ul>
+<h2>4.6 Comparison of Interpretability</h2>
+<p>The <strong>interpretability</strong> of machine learning models is essential for understanding prediction rationale and improving reliability. In this section, we compare the interpretability of both methods using <strong>SHAP values</strong> for Random Forest (Magpie) and <strong>Attention mechanism</strong> for CGCNN.</p>
+<h3>4.6.1 Interpretation of Composition-based Features using SHAP Values</h3>
+<p>SHAP (SHapley Additive exPlanations) is a method that quantifies <strong>the contribution of each feature to the prediction</strong>. Based on Shapley value theory, it achieves fair distribution of contributions.</p>
+<div class="highlight-box">
+<strong>💻 Code Example 10: Feature Importance Analysis using SHAP Values</strong>
+</div>
+<pre><code class="language-python"># Feature importance analysis using SHAP values
 import shap
 
 # Train Random Forest model (use already trained rf_model)
@@ -1242,17 +1168,13 @@ for i, feat_idx in enumerate(top_features):
 # 3. Magpie_78: SHAP importance = 0.0054  # Std dev of valence electrons
 # ...
 </code></pre>
-
-        <h3>4.6.2 GNN Interpretation using Attention Mechanism</h3>
-
-        <p>In CGCNN, <strong>Attention mechanisms</strong> can be used to visualize <strong>atom-atom interactions</strong> important for prediction (strictly speaking, standard CGCNN doesn't have Attention, so comparison with Attention-based GNNs like GAT is more appropriate, but here we visualize CGCNN convolution weights for educational purposes).</p>
-
-        <div class="warning-box">
-            <strong>⚠️ Note: Limitations of CGCNN Interpretability</strong>
-            <p>Standard CGCNN does not have an Attention mechanism, so interpretability is limited. In this code example, we <strong>visualize activations from convolution layers</strong>, but for more advanced interpretation, the use of GAT (Graph Attention Networks) or Explainable AI methods (GNNExplainer, etc.) is recommended.</p>
-        </div>
-
-        <pre><code class="language-python"># CGCNN activation visualization (simplified version)
+<h3>4.6.2 GNN Interpretation using Attention Mechanism</h3>
+<p>In CGCNN, <strong>Attention mechanisms</strong> can be used to visualize <strong>atom-atom interactions</strong> important for prediction (strictly speaking, standard CGCNN doesn't have Attention, so comparison with Attention-based GNNs like GAT is more appropriate, but here we visualize CGCNN convolution weights for educational purposes).</p>
+<div class="warning-box">
+<strong>⚠️ Note: Limitations of CGCNN Interpretability</strong>
+<p>Standard CGCNN does not have an Attention mechanism, so interpretability is limited. In this code example, we <strong>visualize activations from convolution layers</strong>, but for more advanced interpretation, the use of GAT (Graph Attention Networks) or Explainable AI methods (GNNExplainer, etc.) is recommended.</p>
+</div>
+<pre><code class="language-python"># CGCNN activation visualization (simplified version)
 import torch
 import matplotlib.pyplot as plt
 from pymatgen.core import Structure
@@ -1313,93 +1235,87 @@ print("\nImportance of each atom (Layer 3 activation):")
 for i, (atom_type, importance) in enumerate(zip(atom_types, activations[-1].mean(axis=1))):
     print(f"{i+1}. {atom_type}: {importance:.4f}")
 </code></pre>
-
-        <h3>4.6.3 Summary of Interpretability Comparison</h3>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Perspective</th>
-                    <th>Random Forest (SHAP)</th>
-                    <th>CGCNN (Activation Visualization)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Interpretation target</td>
-                    <td>Feature importance (145-dim Magpie)</td>
-                    <td>Atom/bond importance</td>
-                </tr>
-                <tr>
-                    <td>Interpretation granularity</td>
-                    <td>Composition level (electronegativity, atomic radius, etc.)</td>
-                    <td>Structure level (specific atoms/bonds)</td>
-                </tr>
-                <tr>
-                    <td>Theoretical foundation</td>
-                    <td>Shapley values (game theory)</td>
-                    <td>Neural network activation</td>
-                </tr>
-                <tr>
-                    <td>Computational cost</td>
-                    <td>Moderate (TreeExplainer is fast)</td>
-                    <td>Low (forward pass only)</td>
-                </tr>
-                <tr>
-                    <td>Interpretation intuitiveness</td>
-                    <td>High (feature names are meaningful)</td>
-                    <td>Moderate (requires domain knowledge)</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <p><strong>Practical selection:</strong></p>
-        <ul>
-            <li><strong>Composition-level insights needed</strong> (e.g., which elements are important) → Random Forest + SHAP</li>
-            <li><strong>Structure-level insights needed</strong> (e.g., which atom-atom interactions are important) → CGCNN + GAT/GNNExplainer</li>
-            <li><strong>Explanation to domain experts</strong> → SHAP values are more intuitive</li>
-            <li><strong>Detailed analysis for research purposes</strong> → GNN Attention mechanisms are useful</li>
-        </ul>
-
-        <h2>4.7 Decision Flowchart for Method Selection</h2>
-
-        <p>We integrate the quantitative comparison results from this chapter and construct a <strong>decision flowchart to support practical method selection</strong> using Mermaid.</p>
-
-        <div class="mermaid">
+<h3>4.6.3 Summary of Interpretability Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Perspective</th>
+<th>Random Forest (SHAP)</th>
+<th>CGCNN (Activation Visualization)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Interpretation target</td>
+<td>Feature importance (145-dim Magpie)</td>
+<td>Atom/bond importance</td>
+</tr>
+<tr>
+<td>Interpretation granularity</td>
+<td>Composition level (electronegativity, atomic radius, etc.)</td>
+<td>Structure level (specific atoms/bonds)</td>
+</tr>
+<tr>
+<td>Theoretical foundation</td>
+<td>Shapley values (game theory)</td>
+<td>Neural network activation</td>
+</tr>
+<tr>
+<td>Computational cost</td>
+<td>Moderate (TreeExplainer is fast)</td>
+<td>Low (forward pass only)</td>
+</tr>
+<tr>
+<td>Interpretation intuitiveness</td>
+<td>High (feature names are meaningful)</td>
+<td>Moderate (requires domain knowledge)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Practical selection:</strong></p>
+<ul>
+<li><strong>Composition-level insights needed</strong> (e.g., which elements are important) → Random Forest + SHAP</li>
+<li><strong>Structure-level insights needed</strong> (e.g., which atom-atom interactions are important) → CGCNN + GAT/GNNExplainer</li>
+<li><strong>Explanation to domain experts</strong> → SHAP values are more intuitive</li>
+<li><strong>Detailed analysis for research purposes</strong> → GNN Attention mechanisms are useful</li>
+</ul>
+<h2>4.7 Decision Flowchart for Method Selection</h2>
+<p>We integrate the quantitative comparison results from this chapter and construct a <strong>decision flowchart to support practical method selection</strong> using Mermaid.</p>
+<div class="mermaid">
 graph TD
-    A[Material Property Prediction Task] --> B{Training Data Size?}
-    B -->|<10,000| C[Random Forest + Magpie]
-    B -->|10,000-50,000| D{Computational Resources?}
-    B -->|>50,000| E{Accuracy or Speed Priority?}
+    A[Material Property Prediction Task] --&gt; B{Training Data Size?}
+    B --&gt;|&lt;10,000| C[Random Forest + Magpie]
+    B --&gt;|10,000-50,000| D{Computational Resources?}
+    B --&gt;|&gt;50,000| E{Accuracy or Speed Priority?}
 
-    D -->|GPU Available| F[CGCNN Recommended<br/>Balance of Accuracy and Data Efficiency]
-    D -->|CPU Only| C
+    D --&gt;|GPU Available| F[CGCNN Recommended<br/>Balance of Accuracy and Data Efficiency]
+    D --&gt;|CPU Only| C
 
-    E -->|Accuracy Priority| G[CGCNN Recommended<br/>12% MAE Improvement]
-    E -->|Speed Priority| H{Real-time Prediction Required?}
+    E --&gt;|Accuracy Priority| G[CGCNN Recommended<br/>12% MAE Improvement]
+    E --&gt;|Speed Priority| H{Real-time Prediction Required?}
 
-    H -->|Yes| C
-    H -->|No| F
+    H --&gt;|Yes| C
+    H --&gt;|No| F
 
-    C --> I{Interpretability Essential?}
-    F --> J{Statistical Significance Confirmed?}
-    G --> J
+    C --&gt; I{Interpretability Essential?}
+    F --&gt; J{Statistical Significance Confirmed?}
+    G --&gt; J
 
-    I -->|Yes| K[SHAP Value Feature Importance Analysis<br/>Present to Domain Experts]
-    I -->|No| L[Random Forest Adoption Decision]
+    I --&gt;|Yes| K[SHAP Value Feature Importance Analysis<br/>Present to Domain Experts]
+    I --&gt;|No| L[Random Forest Adoption Decision]
 
-    J -->|Yes・p<0.05| M{Computational Cost Acceptable?}
-    J -->|Not Yet| N[Perform t-test and 95% CI]
+    J --&gt;|Yes・p&lt;0.05| M{Computational Cost Acceptable?}
+    J --&gt;|Not Yet| N[Perform t-test and 95% CI]
 
-    M -->|40x Training Time Acceptable| O[CGCNN Adoption Decision]
-    M -->|Not Acceptable| P[Consider Hybrid Approach<br/>Migrate from Initial RF to CGCNN]
+    M --&gt;|40x Training Time Acceptable| O[CGCNN Adoption Decision]
+    M --&gt;|Not Acceptable| P[Consider Hybrid Approach<br/>Migrate from Initial RF to CGCNN]
 
-    N --> J
+    N --&gt; J
 
-    K --> L
-    O --> Q[Deploy to Production Environment]
-    L --> Q
-    P --> Q
+    K --&gt; L
+    O --&gt; Q[Deploy to Production Environment]
+    L --&gt; Q
+    P --&gt; Q
 
     style A fill:#667eea,color:#fff
     style C fill:#4caf50,color:#fff
@@ -1409,143 +1325,130 @@ graph TD
     style L fill:#4caf50,color:#fff
     style Q fill:#2196f3,color:#fff
         </div>
-
-        <h3>4.7.1 Usage Guide for Decision Flowchart</h3>
-
-        <p><strong>Details of each decision point:</strong></p>
-
-        <ol>
-            <li><strong>Evaluation of Training Data Size</strong>
-                <ul>
-                    <li><10,000 samples: Random Forest performs stably and well (insights from learning curves)</li>
-                    <li>10,000-50,000 samples: Choose according to computational resources</li>
-                    <li>>50,000 samples: CGCNN superiority is significant</li>
-                </ul>
-            </li>
-            <li><strong>Confirmation of Computational Resources</strong>
-                <ul>
-                    <li>GPU available: CGCNN training time reduced to about 30 minutes</li>
-                    <li>CPU only: CGCNN training time may take 5-10 hours</li>
-                </ul>
-            </li>
-            <li><strong>Accuracy vs Speed Tradeoff</strong>
-                <ul>
-                    <li>Evaluate the value of 12% MAE improvement vs the cost of 40x training time</li>
-                    <li>Check if 13x difference in inference speed affects real-time prediction</li>
-                </ul>
-            </li>
-            <li><strong>Verification of Statistical Significance</strong>
-                <ul>
-                    <li>Perform paired t-test with 5-fold cross-validation</li>
-                    <li>Confirm p-value<0.05 and 95% confidence interval does not include 0</li>
-                </ul>
-            </li>
-            <li><strong>Interpretability Requirements</strong>
-                <ul>
-                    <li>SHAP values: Composition-level insights (which element properties are important)</li>
-                    <li>Attention/GNNExplainer: Structure-level insights (which atom-atom interactions are important)</li>
-                </ul>
-            </li>
-        </ol>
-
-        <h2>4.8 Chapter Summary</h2>
-
-        <p>In this chapter, we quantitatively compared Random Forest (Magpie) and CGCNN from <strong>7 perspectives</strong> using the Matbench benchmark.</p>
-
-        <h3>Key Findings</h3>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Evaluation Aspect</th>
-                    <th>Result</th>
-                    <th>Recommended Conditions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Prediction accuracy</td>
-                    <td>CGCNN: 12% MAE improvement</td>
-                    <td>When high accuracy is essential</td>
-                </tr>
-                <tr>
-                    <td>Statistical significance</td>
-                    <td>p=0.0001 << 0.05 (significant)</td>
-                    <td>When scientific evidence is needed</td>
-                </tr>
-                <tr>
-                    <td>Training time</td>
-                    <td>CGCNN: 40x slower</td>
-                    <td>RF if fast development cycle needed</td>
-                </tr>
-                <tr>
-                    <td>Inference time</td>
-                    <td>CGCNN: 13x slower</td>
-                    <td>RF if real-time prediction needed</td>
-                </tr>
-                <tr>
-                    <td>Data requirements</td>
-                    <td>RF: Saturates with less data, CGCNN: Improves with more data</td>
-                    <td>CGCNN if >50,000 samples</td>
-                </tr>
-                <tr>
-                    <td>Interpretability</td>
-                    <td>RF+SHAP: Composition level, CGCNN: Structure level</td>
-                    <td>Depends on required insight granularity</td>
-                </tr>
-                <tr>
-                    <td>Implementation ease</td>
-                    <td>RF: Easy, CGCNN: Complex</td>
-                    <td>RF for rapid prototyping</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <h3>Practical Recommendations</h3>
-
-        <div class="highlight-box">
-            <strong>🎯 Recommended Framework for Method Selection</strong>
-            <ul>
-                <li><strong>Exploratory analysis stage</strong>: Quickly build baseline with Random Forest (Magpie)</li>
-                <li><strong>Accuracy improvement stage</strong>: Introduce CGCNN if data is sufficient (>50,000) and GPU is available</li>
-                <li><strong>Production operation stage</strong>: Make final decision after evaluating inference speed vs accuracy tradeoff</li>
-                <li><strong>Hybrid strategy</strong>: Start with RF in initial stage, gradually migrate to CGCNN after data accumulation</li>
-            </ul>
-        </div>
-
-        <h2>Exercises</h2>
-
-        <div class="exercise">
-            <div class="exercise-header">Exercise 1: Understanding Matbench Tasks <span class="difficulty difficulty-easy">Easy</span></div>
-            <p><strong>Problem:</strong> Answer the following questions about the Matbench benchmark <code>matbench_mp_gap</code> task.</p>
-            <ol>
-                <li>What property is being predicted?</li>
-                <li>What is the dataset size?</li>
-                <li>What is the evaluation metric?</li>
-            </ol>
-            <p><strong>Answer:</strong></p>
-            <ol>
-                <li>Band gap (eV)</li>
-                <li>106,113 samples</li>
-                <li>MAE (Mean Absolute Error)</li>
-            </ol>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-header">Exercise 2: Interpretation of t-Test <span class="difficulty difficulty-easy">Easy</span></div>
-            <p><strong>Problem:</strong> Two models were evaluated by 5-fold cross-validation with the following MAE values. A paired t-test was performed and the p-value was 0.03. Can we say there is a statistically significant difference at significance level α=0.05?</p>
-            <p>Model A: [0.035, 0.038, 0.033, 0.036, 0.034]<br>
+<h3>4.7.1 Usage Guide for Decision Flowchart</h3>
+<p><strong>Details of each decision point:</strong></p>
+<ol>
+<li><strong>Evaluation of Training Data Size</strong>
+<ul>
+<li>&lt;10,000 samples: Random Forest performs stably and well (insights from learning curves)</li>
+<li>10,000-50,000 samples: Choose according to computational resources</li>
+<li>&gt;50,000 samples: CGCNN superiority is significant</li>
+</ul>
+</li>
+<li><strong>Confirmation of Computational Resources</strong>
+<ul>
+<li>GPU available: CGCNN training time reduced to about 30 minutes</li>
+<li>CPU only: CGCNN training time may take 5-10 hours</li>
+</ul>
+</li>
+<li><strong>Accuracy vs Speed Tradeoff</strong>
+<ul>
+<li>Evaluate the value of 12% MAE improvement vs the cost of 40x training time</li>
+<li>Check if 13x difference in inference speed affects real-time prediction</li>
+</ul>
+</li>
+<li><strong>Verification of Statistical Significance</strong>
+<ul>
+<li>Perform paired t-test with 5-fold cross-validation</li>
+<li>Confirm p-value&lt;0.05 and 95% confidence interval does not include 0</li>
+</ul>
+</li>
+<li><strong>Interpretability Requirements</strong>
+<ul>
+<li>SHAP values: Composition-level insights (which element properties are important)</li>
+<li>Attention/GNNExplainer: Structure-level insights (which atom-atom interactions are important)</li>
+</ul>
+</li>
+</ol>
+<h2>4.8 Chapter Summary</h2>
+<p>In this chapter, we quantitatively compared Random Forest (Magpie) and CGCNN from <strong>7 perspectives</strong> using the Matbench benchmark.</p>
+<h3>Key Findings</h3>
+<table>
+<thead>
+<tr>
+<th>Evaluation Aspect</th>
+<th>Result</th>
+<th>Recommended Conditions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prediction accuracy</td>
+<td>CGCNN: 12% MAE improvement</td>
+<td>When high accuracy is essential</td>
+</tr>
+<tr>
+<td>Statistical significance</td>
+<td>p=0.0001 &lt;&lt; 0.05 (significant)</td>
+<td>When scientific evidence is needed</td>
+</tr>
+<tr>
+<td>Training time</td>
+<td>CGCNN: 40x slower</td>
+<td>RF if fast development cycle needed</td>
+</tr>
+<tr>
+<td>Inference time</td>
+<td>CGCNN: 13x slower</td>
+<td>RF if real-time prediction needed</td>
+</tr>
+<tr>
+<td>Data requirements</td>
+<td>RF: Saturates with less data, CGCNN: Improves with more data</td>
+<td>CGCNN if &gt;50,000 samples</td>
+</tr>
+<tr>
+<td>Interpretability</td>
+<td>RF+SHAP: Composition level, CGCNN: Structure level</td>
+<td>Depends on required insight granularity</td>
+</tr>
+<tr>
+<td>Implementation ease</td>
+<td>RF: Easy, CGCNN: Complex</td>
+<td>RF for rapid prototyping</td>
+</tr>
+</tbody>
+</table>
+<h3>Practical Recommendations</h3>
+<div class="highlight-box">
+<strong>🎯 Recommended Framework for Method Selection</strong>
+<ul>
+<li><strong>Exploratory analysis stage</strong>: Quickly build baseline with Random Forest (Magpie)</li>
+<li><strong>Accuracy improvement stage</strong>: Introduce CGCNN if data is sufficient (&gt;50,000) and GPU is available</li>
+<li><strong>Production operation stage</strong>: Make final decision after evaluating inference speed vs accuracy tradeoff</li>
+<li><strong>Hybrid strategy</strong>: Start with RF in initial stage, gradually migrate to CGCNN after data accumulation</li>
+</ul>
+</div>
+<h2>Exercises</h2>
+<div class="exercise">
+<div class="exercise-header">Exercise 1: Understanding Matbench Tasks <span class="difficulty difficulty-easy">Easy</span></div>
+<p><strong>Problem:</strong> Answer the following questions about the Matbench benchmark <code>matbench_mp_gap</code> task.</p>
+<ol>
+<li>What property is being predicted?</li>
+<li>What is the dataset size?</li>
+<li>What is the evaluation metric?</li>
+</ol>
+<p><strong>Answer:</strong></p>
+<ol>
+<li>Band gap (eV)</li>
+<li>106,113 samples</li>
+<li>MAE (Mean Absolute Error)</li>
+</ol>
+</div>
+<div class="exercise">
+<div class="exercise-header">Exercise 2: Interpretation of t-Test <span class="difficulty difficulty-easy">Easy</span></div>
+<p><strong>Problem:</strong> Two models were evaluated by 5-fold cross-validation with the following MAE values. A paired t-test was performed and the p-value was 0.03. Can we say there is a statistically significant difference at significance level α=0.05?</p>
+<p>Model A: [0.035, 0.038, 0.033, 0.036, 0.034]<br/>
             Model B: [0.032, 0.035, 0.030, 0.033, 0.031]</p>
-            <p><strong>Answer:</strong></p>
-            <p>Yes, there is a statistically significant difference. Since p-value (0.03) < α (0.05), we can reject the null hypothesis "the average MAE difference between the two models is zero". Therefore, Model B shows a statistically significant accuracy improvement over Model A.</p>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-header">Exercise 3: Calculation of 95% Confidence Interval <span class="difficulty difficulty-medium">Medium</span></div>
-            <p><strong>Problem:</strong> The MAE difference (ModelA - ModelB) across 5 folds was [0.003, 0.004, 0.003, 0.005, 0.004] eV/atom. Calculate the 95% confidence interval for this MAE difference (use t-distribution critical value of 2.776).</p>
-            <p><strong>Hint:</strong> Standard error SE = std(diff) / sqrt(n)</p>
-            <p><strong>Answer:</strong></p>
-            <pre><code class="language-python">import numpy as np
+<p><strong>Answer:</strong></p>
+<p>Yes, there is a statistically significant difference. Since p-value (0.03) &lt; α (0.05), we can reject the null hypothesis "the average MAE difference between the two models is zero". Therefore, Model B shows a statistically significant accuracy improvement over Model A.</p>
+</div>
+<div class="exercise">
+<div class="exercise-header">Exercise 3: Calculation of 95% Confidence Interval <span class="difficulty difficulty-medium">Medium</span></div>
+<p><strong>Problem:</strong> The MAE difference (ModelA - ModelB) across 5 folds was [0.003, 0.004, 0.003, 0.005, 0.004] eV/atom. Calculate the 95% confidence interval for this MAE difference (use t-distribution critical value of 2.776).</p>
+<p><strong>Hint:</strong> Standard error SE = std(diff) / sqrt(n)</p>
+<p><strong>Answer:</strong></p>
+<pre><code class="language-python">import numpy as np
 from scipy import stats
 
 mae_diff = np.array([0.003, 0.004, 0.003, 0.005, 0.004])
@@ -1561,14 +1464,13 @@ ci_upper = mean_diff + margin_error  # 0.00484
 print(f"95% CI: [{ci_lower:.5f}, {ci_upper:.5f}] eV/atom")
 # Output: 95% CI: [0.00276, 0.00484] eV/atom
 </code></pre>
-            <p>The 95% confidence interval is [0.00276, 0.00484] eV/atom. Since this interval does not include 0, the accuracy difference is statistically significant.</p>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-header">Exercise 4: Computational Cost Analysis <span class="difficulty difficulty-medium">Medium</span></div>
-            <p><strong>Problem:</strong> In a project, model training is performed once per month, and inference is performed 10,000 times daily. Compare the monthly total computational time between Random Forest (training 45 sec, inference 0.18 sec/1000 samples) and CGCNN (training 1833 sec, inference 2.34 sec/1000 samples) to determine which should be adopted.</p>
-            <p><strong>Answer:</strong></p>
-            <pre><code class="language-python"># Comparison of monthly computational time
+<p>The 95% confidence interval is [0.00276, 0.00484] eV/atom. Since this interval does not include 0, the accuracy difference is statistically significant.</p>
+</div>
+<div class="exercise">
+<div class="exercise-header">Exercise 4: Computational Cost Analysis <span class="difficulty difficulty-medium">Medium</span></div>
+<p><strong>Problem:</strong> In a project, model training is performed once per month, and inference is performed 10,000 times daily. Compare the monthly total computational time between Random Forest (training 45 sec, inference 0.18 sec/1000 samples) and CGCNN (training 1833 sec, inference 2.34 sec/1000 samples) to determine which should be adopted.</p>
+<p><strong>Answer:</strong></p>
+<pre><code class="language-python"># Comparison of monthly computational time
 # Random Forest
 rf_train_time = 45  # sec/month
 rf_infer_time = 0.18 * 10 * 30  # 0.18 sec/1000 samples × 10 × 30 days
@@ -1588,34 +1490,32 @@ print(f"\nTime ratio (CGCNN/RF): {cgcnn_total/rf_total:.2f}x")
 # CGCNN monthly total: 2535.0sec = 42.25min
 # Time ratio (CGCNN/RF): 25.61x
 </code></pre>
-            <p><strong>Judgment:</strong> CGCNN requires an additional approximately 40 minutes of monthly computational time. In this use case, <strong>inference time is dominant</strong>, and CGCNN's 13x slower inference speed significantly impacts monthly total time. When daily inference frequency is high, <strong>Random Forest is recommended</strong>.</p>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-header">Exercise 5: Interpretation of Learning Curve <span class="difficulty difficulty-medium">Medium</span></div>
-            <p><strong>Problem:</strong> From the following learning curve data, determine which model should be selected in a situation where only 20,000 training samples are available, and provide reasoning.</p>
-            <p>Training Data Size | RF Test MAE | CGCNN Test MAE</p>
-            <p>10,000 | 0.045 | 0.062<br>
-            20,000 | 0.038 | 0.041<br>
-            50,000 | 0.033 | 0.031<br>
+<p><strong>Judgment:</strong> CGCNN requires an additional approximately 40 minutes of monthly computational time. In this use case, <strong>inference time is dominant</strong>, and CGCNN's 13x slower inference speed significantly impacts monthly total time. When daily inference frequency is high, <strong>Random Forest is recommended</strong>.</p>
+</div>
+<div class="exercise">
+<div class="exercise-header">Exercise 5: Interpretation of Learning Curve <span class="difficulty difficulty-medium">Medium</span></div>
+<p><strong>Problem:</strong> From the following learning curve data, determine which model should be selected in a situation where only 20,000 training samples are available, and provide reasoning.</p>
+<p>Training Data Size | RF Test MAE | CGCNN Test MAE</p>
+<p>10,000 | 0.045 | 0.062<br/>
+            20,000 | 0.038 | 0.041<br/>
+            50,000 | 0.033 | 0.031<br/>
             100,000 | 0.032 | 0.027</p>
-            <p><strong>Answer:</strong></p>
-            <p><strong>Recommendation: Random Forest</strong></p>
-            <p><strong>Reasoning:</strong></p>
-            <ol>
-                <li>At 20,000 samples, RF's test MAE (0.038) is better than CGCNN (0.041)</li>
-                <li>RF has small improvement margin from 20,000 to 50,000 samples (0.038→0.033), already showing saturation tendency</li>
-                <li>CGCNN improves dramatically after 50,000 samples, but performance is insufficient with the currently available 20,000 samples</li>
-                <li>In situations limited to 20,000 samples, <strong>data-efficient RF is practical</strong></li>
-            </ol>
-            <p><strong>Future strategy:</strong> It is recommended to consider migration to CGCNN when data increases to over 50,000 samples.</p>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-header">Exercise 6: SHAP Value Implementation <span class="difficulty difficulty-hard">Hard</span></div>
-            <p><strong>Problem:</strong> Write code to calculate SHAP values for a Random Forest model using Magpie features (145 dimensions) and extract the top 5 important features. Use the first 50 samples of the test data.</p>
-            <p><strong>Answer:</strong></p>
-            <pre><code class="language-python">import shap
+<p><strong>Answer:</strong></p>
+<p><strong>Recommendation: Random Forest</strong></p>
+<p><strong>Reasoning:</strong></p>
+<ol>
+<li>At 20,000 samples, RF's test MAE (0.038) is better than CGCNN (0.041)</li>
+<li>RF has small improvement margin from 20,000 to 50,000 samples (0.038→0.033), already showing saturation tendency</li>
+<li>CGCNN improves dramatically after 50,000 samples, but performance is insufficient with the currently available 20,000 samples</li>
+<li>In situations limited to 20,000 samples, <strong>data-efficient RF is practical</strong></li>
+</ol>
+<p><strong>Future strategy:</strong> It is recommended to consider migration to CGCNN when data increases to over 50,000 samples.</p>
+</div>
+<div class="exercise">
+<div class="exercise-header">Exercise 6: SHAP Value Implementation <span class="difficulty difficulty-hard">Hard</span></div>
+<p><strong>Problem:</strong> Write code to calculate SHAP values for a Random Forest model using Magpie features (145 dimensions) and extract the top 5 important features. Use the first 50 samples of the test data.</p>
+<p><strong>Answer:</strong></p>
+<pre><code class="language-python">import shap
 import numpy as np
 
 # Train Random Forest model (assume Exercise 2 code example is used)
@@ -1674,240 +1574,218 @@ plt.show()
 # 4. Magpie_45: SHAP importance = 0.0048
 # 5. Magpie_89: SHAP importance = 0.0042
 </code></pre>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-header">Exercise 7: Application of Decision Flowchart <span class="difficulty difficulty-hard">Hard</span></div>
-            <p><strong>Problem:</strong> Apply the decision flowchart from Section 4.7 to the following project conditions and select the optimal method.</p>
-            <p><strong>Conditions:</strong></p>
-            <ul>
-                <li>Training data size: 75,000 samples</li>
-                <li>Computational resources: GPU (Tesla V100) available</li>
-                <li>Priority: Accuracy priority (real-time prediction not required)</li>
-                <li>Interpretability: Not essential but desirable</li>
-                <li>Statistical significance verification: Planned</li>
-            </ul>
-            <p><strong>Answer:</strong></p>
-            <p><strong>Recommended Method: CGCNN</strong></p>
-            <p><strong>Decision Process:</strong></p>
-            <ol>
-                <li><strong>Data size evaluation</strong>: 75,000 > 50,000 → Branch to ">50,000"</li>
-                <li><strong>Accuracy vs speed</strong>: Accuracy priority → Branch to "Accuracy Priority"</li>
-                <li><strong>Reach "CGCNN Recommended (12% MAE Improvement)"</strong></li>
-                <li><strong>Confirm statistical significance</strong>: Perform paired t-test with 5-fold cross-validation and confirm p<0.05</li>
-                <li><strong>Computational cost acceptability</strong>: With GPU (V100) available, training time is reduced to about 30 minutes, which is acceptable</li>
-                <li><strong>Final decision</strong>: CGCNN adoption decision</li>
-            </ol>
-            <p><strong>Additional considerations:</strong></p>
-            <ul>
-                <li>Since interpretability is desirable, consideration of <strong>Attention-based GNN (GAT)</strong> is also recommended</li>
-                <li>Before production environment deployment, confirm that 13x slower inference time does not affect actual operation</li>
-                <li>If data is expected to increase further in the future, CGCNN can be expected to improve performance even more in the long term</li>
-            </ul>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-header">Exercise 8: Design of Hybrid Strategy <span class="difficulty difficulty-hard">Hard</span></div>
-            <p><strong>Problem:</strong> Design a migration strategy from Random Forest to CGCNN for a project where data increases gradually (initial 5,000 samples, 30,000 after 3 months, 80,000 after 6 months). Clearly specify method selection at each stage and judgment criteria for migration timing.</p>
-            <p><strong>Answer:</strong></p>
-            <p><strong>Hybrid Migration Strategy:</strong></p>
-
-            <p><strong>Phase 1: Initial Stage (5,000 samples, 0-3 months)</strong></p>
-            <ul>
-                <li><strong>Adopted method: Random Forest (Magpie)</strong></li>
-                <li><strong>Reasoning:</strong>
-                    <ul>
-                        <li>5,000 samples is in the small data region, where RF is data-efficient</li>
-                        <li>Enables rapid prototyping and initial baseline construction</li>
-                        <li>Insufficient data volume for CGCNN training</li>
-                    </ul>
-                </li>
-                <li><strong>Implementation items:</strong>
-                    <ul>
-                        <li>Build baseline model with RF (MAE target: ~0.045 eV/atom)</li>
-                        <li>Feature importance analysis using SHAP values</li>
-                        <li>Establish data collection pipeline</li>
-                    </ul>
-                </li>
-            </ul>
-
-            <p><strong>Phase 2: Medium-scale Stage (30,000 samples, 3-6 months)</strong></p>
-            <ul>
-                <li><strong>Adopted method: Continue Random Forest + Experimental introduction of CGCNN</strong></li>
-                <li><strong>Reasoning:</strong>
-                    <ul>
-                        <li>30,000 samples is in the migration consideration region (both methods compete in learning curve)</li>
-                        <li>Begin experimental CGCNN training and conduct performance evaluation</li>
-                        <li>Continue RF in production environment (prioritize stability)</li>
-                    </ul>
-                </li>
-                <li><strong>Migration judgment criteria:</strong>
-                    <ol>
-                        <li>CGCNN achieves MAE exceeding RF</li>
-                        <li>Confirm statistical significance with 5-fold cross-validation (p<0.05)</li>
-                        <li>CGCNN training time <1 hour in GPU environment</li>
-                    </ol>
-                </li>
-                <li><strong>Implementation items:</strong>
-                    <ul>
-                        <li>Build CGCNN training pipeline</li>
-                        <li>Hyperparameter tuning</li>
-                        <li>Quantitative comparison of RF vs CGCNN (apply methods from this chapter)</li>
-                    </ul>
-                </li>
-            </ul>
-
-            <p><strong>Phase 3: Large-scale Stage (80,000 samples, 6 months onward)</strong></p>
-            <ul>
-                <li><strong>Adopted method: CGCNN (primary) + Random Forest (fallback)</strong></li>
-                <li><strong>Reasoning:</strong>
-                    <ul>
-                        <li>80,000 samples is in the large data region, where CGCNN superiority is significant (learning curve analysis)</li>
-                        <li>12% MAE improvement effect is statistically significant</li>
-                        <li>If data increase trend continues, CGCNN performance will improve further</li>
-                    </ul>
-                </li>
-                <li><strong>Migration implementation:</strong>
-                    <ol>
-                        <li>Deploy CGCNN to production environment</li>
-                        <li>Maintain RF as fallback model (for CGCNN inference failures)</li>
-                        <li>Monitor inference time (confirm 13x slower CGCNN doesn't affect operations)</li>
-                    </ol>
-                </li>
-                <li><strong>Continuous improvement:</strong>
-                    <ul>
-                        <li>Regularly retrain CGCNN as data increases</li>
-                        <li>Consider introducing Attention mechanism (GAT) to improve interpretability</li>
-                        <li>Attempt ensemble (RF + CGCNN) for highest accuracy</li>
-                    </ul>
-                </li>
-            </ul>
-
-            <p><strong>Risk Management:</strong></p>
-            <ul>
-                <li><strong>Migration failure countermeasure</strong>: Continue RF operation, retry CGCNN after resolving issues</li>
-                <li><strong>Performance degradation detection</strong>: Continuously monitor prediction accuracy in production environment</li>
-                <li><strong>Cost overrun countermeasure</strong>: Revert to RF if GPU usage fees exceed budget</li>
-            </ul>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-header">Exercise 9: Interpretation of Effect Size <span class="difficulty difficulty-medium">Medium</span></div>
-            <p><strong>Problem:</strong> If an effect size of Cohen's d = 0.35 is obtained, evaluate the magnitude of this effect size and explain its practical meaning.</p>
-            <p><strong>Answer:</strong></p>
-            <p><strong>Effect size magnitude:</strong> "Medium" (in the range 0.2 < |d| < 0.5)</p>
-            <p><strong>Practical interpretation:</strong></p>
-            <ol>
-                <li><strong>Statistical meaning:</strong> Cohen's d = 0.35 indicates that the performance difference between the two models is 0.35 times the standard deviation</li>
-                <li><strong>Practical meaning:</strong> A medium effect size means "recognizable but not dramatic improvement" in practice</li>
-                <li><strong>Judgment criteria:</strong>
-                    <ul>
-                        <li>If costs are equivalent, adopt new method as improvement effect exists</li>
-                        <li>If introduction cost of new method is high, carefully evaluate cost-effectiveness</li>
-                        <li>Even medium effect size may contribute to improving efficiency of materials discovery</li>
-                    </ul>
-                </li>
-            </ol>
-            <p><strong>Comparison:</strong> In this chapter's CGCNN vs RF comparison, Cohen's d = 9.19 (very large), making the practical superiority extremely clear.</p>
-        </div>
-
-        <div class="exercise">
-            <div class="exercise-header">Exercise 10: Comprehensive Method Selection <span class="difficulty difficulty-hard">Hard</span></div>
-            <p><strong>Problem:</strong> Integrate the 7 evaluation perspectives learned in this chapter (prediction accuracy, statistical significance, computational cost, data requirements, interpretability, implementation ease, decision flowchart) and select the optimal method for the following scenario.</p>
-            <p><strong>Scenario:</strong> Pharmaceutical company's new drug candidate material discovery project</p>
-            <ul>
-                <li>Objective: Select 100 promising candidates from 10,000 compounds</li>
-                <li>Current data: 12,000 experimental data samples (no additional experiments)</li>
-                <li>Computing environment: Internal cloud (GPU available but pay-per-use)</li>
-                <li>Time constraint: Submit candidate list within 3 months</li>
-                <li>Interpretation requirement: Prediction rationale essential for regulatory authority explanation materials</li>
-                <li>Accuracy requirement: Minimize false positives (reduce experimental costs)</li>
-            </ul>
-            <p><strong>Answer:</strong></p>
-            <p><strong>Recommended Strategy: Random Forest (Magpie) + SHAP Value Analysis</strong></p>
-
-            <p><strong>Basis for Comprehensive Judgment:</strong></p>
-
-            <p><strong>1. Data Requirements Analysis (Section 4.5)</strong></p>
-            <ul>
-                <li>12,000 samples falls into medium data region (10,000-50,000)</li>
-                <li>Learning curve insight: In this region, RF and CGCNN compete, with RF slightly advantageous</li>
-                <li>Since no additional data acquisition is possible, data-efficient RF is safe</li>
-            </ul>
-
-            <p><strong>2. Computational Cost Analysis (Section 4.4)</strong></p>
-            <ul>
-                <li>In GPU pay-per-use environment, CGCNN's 40x training time cost directly increases expenses</li>
-                <li>Inference for 10,000 compounds: RF 1.8 sec vs CGCNN 23.4 sec (13x difference)</li>
-                <li>3-month time constraint is sufficient, but RF is advantageous in cost efficiency</li>
-            </ul>
-
-            <p><strong>3. Interpretability Requirement (Section 4.6)</strong></p>
-            <ul>
-                <li><strong>Requirement for regulatory authority explanation is essential</strong> - this is a decisive factor</li>
-                <li>Feature importance analysis using SHAP values can clearly explain "which chemical properties are important"</li>
-                <li>CGCNN's Attention mechanism requires domain knowledge and is difficult to explain to regulatory authorities</li>
-                <li><strong>SHAP value analysis perfectly matches project requirements</strong></li>
-            </ul>
-
-            <p><strong>4. Accuracy Requirement (Section 4.2-4.3)</strong></p>
-            <ul>
-                <li>To minimize false positives, high prediction accuracy is needed</li>
-                <li>CGCNN shows 12% accuracy improvement, but statistical significance needs verification with 12,000 samples</li>
-                <li>RF also has sufficiently high accuracy (R² > 0.93), and false positive rate is acceptable</li>
-            </ul>
-
-            <p><strong>5. Implementation Ease and Time Constraint</strong></p>
-            <ul>
-                <li>RF is easy to implement and enables rapid prototype construction</li>
-                <li>With 3-month constraint, adopting RF with high certainty avoids risk</li>
-            </ul>
-
-            <p><strong>Implementation Plan:</strong></p>
-            <ol>
-                <li><strong>Week 1-2</strong>: Build baseline model with Random Forest + Magpie features</li>
-                <li><strong>Week 3-4</strong>: Evaluate performance with 5-fold cross-validation (MAE, R²)</li>
-                <li><strong>Week 5-6</strong>: Visualize feature importance using SHAP value analysis</li>
-                <li><strong>Week 7-8</strong>: Execute predictions on 10,000 compounds, select top 100 candidates</li>
-                <li><strong>Week 9-10</strong>: Create explanation materials for regulatory authorities (including SHAP value plots)</li>
-                <li><strong>Week 11-12</strong>: Internal review and final report creation</li>
-            </ol>
-
-            <p><strong>Risk Countermeasures:</strong></p>
-            <ul>
-                <li><strong>If accuracy is insufficient</strong>: Improve accuracy with ensemble learning (multiple RF models)</li>
-                <li><strong>If interpretability is insufficient</strong>: Add LIME (Local Interpretable Model-agnostic Explanations)</li>
-                <li><strong>If many false positives</strong>: Adjust threshold to tighten selection criteria</li>
-            </ul>
-
-            <p><strong>Rejection reason: CGCNN</strong></p>
-            <ul>
-                <li>Interpretability requirement is decisive rejection factor (difficult to explain to regulatory authorities)</li>
-                <li>With 12,000 samples, CGCNN superiority is limited</li>
-                <li>Considering computational cost and risk, ROI is unclear</li>
-            </ul>
-
-            <p><strong>Future consideration:</strong> If the project continues and experimental data increases to over 50,000 samples, it is recommended to re-evaluate migration to CGCNN.</p>
-        </div>
-
-        <h2>References</h2>
-
-        <ol>
-            <li>Dunn, A., Wang, Q., Ganose, A., Dopp, D., Jain, A. (2020). Benchmarking materials property prediction methods: the Matbench test set and Automatminer reference algorithm. <em>npj Computational Materials</em>, 6(1), 138, pp. 1-10.</li>
-            <li>Ward, L., Agrawal, A., Choudhary, A., Wolverton, C. (2016). A general-purpose machine learning framework for predicting properties of inorganic materials. <em>npj Computational Materials</em>, 2, 16028, pp. 1-7.</li>
-            <li>Xie, T., Grossman, J. C. (2018). Crystal Graph Convolutional Neural Networks for an Accurate and Interpretable Prediction of Material Properties. <em>Physical Review Letters</em>, 120(14), 145301, pp. 1-6.</li>
-            <li>Gilmer, J., Schoenholz, S. S., Riley, P. F., Vinyals, O., Dahl, G. E. (2017). Neural Message Passing for Quantum Chemistry. <em>Proceedings of the 34th International Conference on Machine Learning</em>, PMLR 70, pp. 1263-1272.</li>
-            <li>Lundberg, S. M., Lee, S. I. (2017). A Unified Approach to Interpreting Model Predictions. <em>Advances in Neural Information Processing Systems</em>, 30, pp. 4765-4774.</li>
-            <li>Cohen, J. (1988). <em>Statistical Power Analysis for the Behavioral Sciences</em> (2nd ed.). Lawrence Erlbaum Associates, pp. 20-27.</li>
-            <li>Breiman, L. (2001). Random Forests. <em>Machine Learning</em>, 45(1), 5-32, pp. 5-32.</li>
-            <li>Choudhary, K., DeCost, B. (2021). Atomistic Line Graph Neural Network for improved materials property predictions. <em>npj Computational Materials</em>, 7(1), 185, pp. 1-8.</li>
-        </ol>
-
-        <div class="nav-buttons">
-            <a href="chapter-3.html" class="nav-button">← Chapter 3: MPNN Implementation</a>
-            <a href="chapter-5.html" class="nav-button">Chapter 5: Hybrid Approach →</a>
-        </div>
-
-    </div>
+</div>
+<div class="exercise">
+<div class="exercise-header">Exercise 7: Application of Decision Flowchart <span class="difficulty difficulty-hard">Hard</span></div>
+<p><strong>Problem:</strong> Apply the decision flowchart from Section 4.7 to the following project conditions and select the optimal method.</p>
+<p><strong>Conditions:</strong></p>
+<ul>
+<li>Training data size: 75,000 samples</li>
+<li>Computational resources: GPU (Tesla V100) available</li>
+<li>Priority: Accuracy priority (real-time prediction not required)</li>
+<li>Interpretability: Not essential but desirable</li>
+<li>Statistical significance verification: Planned</li>
+</ul>
+<p><strong>Answer:</strong></p>
+<p><strong>Recommended Method: CGCNN</strong></p>
+<p><strong>Decision Process:</strong></p>
+<ol>
+<li><strong>Data size evaluation</strong>: 75,000 &gt; 50,000 → Branch to "&gt;50,000"</li>
+<li><strong>Accuracy vs speed</strong>: Accuracy priority → Branch to "Accuracy Priority"</li>
+<li><strong>Reach "CGCNN Recommended (12% MAE Improvement)"</strong></li>
+<li><strong>Confirm statistical significance</strong>: Perform paired t-test with 5-fold cross-validation and confirm p&lt;0.05</li>
+<li><strong>Computational cost acceptability</strong>: With GPU (V100) available, training time is reduced to about 30 minutes, which is acceptable</li>
+<li><strong>Final decision</strong>: CGCNN adoption decision</li>
+</ol>
+<p><strong>Additional considerations:</strong></p>
+<ul>
+<li>Since interpretability is desirable, consideration of <strong>Attention-based GNN (GAT)</strong> is also recommended</li>
+<li>Before production environment deployment, confirm that 13x slower inference time does not affect actual operation</li>
+<li>If data is expected to increase further in the future, CGCNN can be expected to improve performance even more in the long term</li>
+</ul>
+</div>
+<div class="exercise">
+<div class="exercise-header">Exercise 8: Design of Hybrid Strategy <span class="difficulty difficulty-hard">Hard</span></div>
+<p><strong>Problem:</strong> Design a migration strategy from Random Forest to CGCNN for a project where data increases gradually (initial 5,000 samples, 30,000 after 3 months, 80,000 after 6 months). Clearly specify method selection at each stage and judgment criteria for migration timing.</p>
+<p><strong>Answer:</strong></p>
+<p><strong>Hybrid Migration Strategy:</strong></p>
+<p><strong>Phase 1: Initial Stage (5,000 samples, 0-3 months)</strong></p>
+<ul>
+<li><strong>Adopted method: Random Forest (Magpie)</strong></li>
+<li><strong>Reasoning:</strong>
+<ul>
+<li>5,000 samples is in the small data region, where RF is data-efficient</li>
+<li>Enables rapid prototyping and initial baseline construction</li>
+<li>Insufficient data volume for CGCNN training</li>
+</ul>
+</li>
+<li><strong>Implementation items:</strong>
+<ul>
+<li>Build baseline model with RF (MAE target: ~0.045 eV/atom)</li>
+<li>Feature importance analysis using SHAP values</li>
+<li>Establish data collection pipeline</li>
+</ul>
+</li>
+</ul>
+<p><strong>Phase 2: Medium-scale Stage (30,000 samples, 3-6 months)</strong></p>
+<ul>
+<li><strong>Adopted method: Continue Random Forest + Experimental introduction of CGCNN</strong></li>
+<li><strong>Reasoning:</strong>
+<ul>
+<li>30,000 samples is in the migration consideration region (both methods compete in learning curve)</li>
+<li>Begin experimental CGCNN training and conduct performance evaluation</li>
+<li>Continue RF in production environment (prioritize stability)</li>
+</ul>
+</li>
+<li><strong>Migration judgment criteria:</strong>
+<ol>
+<li>CGCNN achieves MAE exceeding RF</li>
+<li>Confirm statistical significance with 5-fold cross-validation (p&lt;0.05)</li>
+<li>CGCNN training time &lt;1 hour in GPU environment</li>
+</ol>
+</li>
+<li><strong>Implementation items:</strong>
+<ul>
+<li>Build CGCNN training pipeline</li>
+<li>Hyperparameter tuning</li>
+<li>Quantitative comparison of RF vs CGCNN (apply methods from this chapter)</li>
+</ul>
+</li>
+</ul>
+<p><strong>Phase 3: Large-scale Stage (80,000 samples, 6 months onward)</strong></p>
+<ul>
+<li><strong>Adopted method: CGCNN (primary) + Random Forest (fallback)</strong></li>
+<li><strong>Reasoning:</strong>
+<ul>
+<li>80,000 samples is in the large data region, where CGCNN superiority is significant (learning curve analysis)</li>
+<li>12% MAE improvement effect is statistically significant</li>
+<li>If data increase trend continues, CGCNN performance will improve further</li>
+</ul>
+</li>
+<li><strong>Migration implementation:</strong>
+<ol>
+<li>Deploy CGCNN to production environment</li>
+<li>Maintain RF as fallback model (for CGCNN inference failures)</li>
+<li>Monitor inference time (confirm 13x slower CGCNN doesn't affect operations)</li>
+</ol>
+</li>
+<li><strong>Continuous improvement:</strong>
+<ul>
+<li>Regularly retrain CGCNN as data increases</li>
+<li>Consider introducing Attention mechanism (GAT) to improve interpretability</li>
+<li>Attempt ensemble (RF + CGCNN) for highest accuracy</li>
+</ul>
+</li>
+</ul>
+<p><strong>Risk Management:</strong></p>
+<ul>
+<li><strong>Migration failure countermeasure</strong>: Continue RF operation, retry CGCNN after resolving issues</li>
+<li><strong>Performance degradation detection</strong>: Continuously monitor prediction accuracy in production environment</li>
+<li><strong>Cost overrun countermeasure</strong>: Revert to RF if GPU usage fees exceed budget</li>
+</ul>
+</div>
+<div class="exercise">
+<div class="exercise-header">Exercise 9: Interpretation of Effect Size <span class="difficulty difficulty-medium">Medium</span></div>
+<p><strong>Problem:</strong> If an effect size of Cohen's d = 0.35 is obtained, evaluate the magnitude of this effect size and explain its practical meaning.</p>
+<p><strong>Answer:</strong></p>
+<p><strong>Effect size magnitude:</strong> "Medium" (in the range 0.2 &lt; |d| &lt; 0.5)</p>
+<p><strong>Practical interpretation:</strong></p>
+<ol>
+<li><strong>Statistical meaning:</strong> Cohen's d = 0.35 indicates that the performance difference between the two models is 0.35 times the standard deviation</li>
+<li><strong>Practical meaning:</strong> A medium effect size means "recognizable but not dramatic improvement" in practice</li>
+<li><strong>Judgment criteria:</strong>
+<ul>
+<li>If costs are equivalent, adopt new method as improvement effect exists</li>
+<li>If introduction cost of new method is high, carefully evaluate cost-effectiveness</li>
+<li>Even medium effect size may contribute to improving efficiency of materials discovery</li>
+</ul>
+</li>
+</ol>
+<p><strong>Comparison:</strong> In this chapter's CGCNN vs RF comparison, Cohen's d = 9.19 (very large), making the practical superiority extremely clear.</p>
+</div>
+<div class="exercise">
+<div class="exercise-header">Exercise 10: Comprehensive Method Selection <span class="difficulty difficulty-hard">Hard</span></div>
+<p><strong>Problem:</strong> Integrate the 7 evaluation perspectives learned in this chapter (prediction accuracy, statistical significance, computational cost, data requirements, interpretability, implementation ease, decision flowchart) and select the optimal method for the following scenario.</p>
+<p><strong>Scenario:</strong> Pharmaceutical company's new drug candidate material discovery project</p>
+<ul>
+<li>Objective: Select 100 promising candidates from 10,000 compounds</li>
+<li>Current data: 12,000 experimental data samples (no additional experiments)</li>
+<li>Computing environment: Internal cloud (GPU available but pay-per-use)</li>
+<li>Time constraint: Submit candidate list within 3 months</li>
+<li>Interpretation requirement: Prediction rationale essential for regulatory authority explanation materials</li>
+<li>Accuracy requirement: Minimize false positives (reduce experimental costs)</li>
+</ul>
+<p><strong>Answer:</strong></p>
+<p><strong>Recommended Strategy: Random Forest (Magpie) + SHAP Value Analysis</strong></p>
+<p><strong>Basis for Comprehensive Judgment:</strong></p>
+<p><strong>1. Data Requirements Analysis (Section 4.5)</strong></p>
+<ul>
+<li>12,000 samples falls into medium data region (10,000-50,000)</li>
+<li>Learning curve insight: In this region, RF and CGCNN compete, with RF slightly advantageous</li>
+<li>Since no additional data acquisition is possible, data-efficient RF is safe</li>
+</ul>
+<p><strong>2. Computational Cost Analysis (Section 4.4)</strong></p>
+<ul>
+<li>In GPU pay-per-use environment, CGCNN's 40x training time cost directly increases expenses</li>
+<li>Inference for 10,000 compounds: RF 1.8 sec vs CGCNN 23.4 sec (13x difference)</li>
+<li>3-month time constraint is sufficient, but RF is advantageous in cost efficiency</li>
+</ul>
+<p><strong>3. Interpretability Requirement (Section 4.6)</strong></p>
+<ul>
+<li><strong>Requirement for regulatory authority explanation is essential</strong> - this is a decisive factor</li>
+<li>Feature importance analysis using SHAP values can clearly explain "which chemical properties are important"</li>
+<li>CGCNN's Attention mechanism requires domain knowledge and is difficult to explain to regulatory authorities</li>
+<li><strong>SHAP value analysis perfectly matches project requirements</strong></li>
+</ul>
+<p><strong>4. Accuracy Requirement (Section 4.2-4.3)</strong></p>
+<ul>
+<li>To minimize false positives, high prediction accuracy is needed</li>
+<li>CGCNN shows 12% accuracy improvement, but statistical significance needs verification with 12,000 samples</li>
+<li>RF also has sufficiently high accuracy (R² &gt; 0.93), and false positive rate is acceptable</li>
+</ul>
+<p><strong>5. Implementation Ease and Time Constraint</strong></p>
+<ul>
+<li>RF is easy to implement and enables rapid prototype construction</li>
+<li>With 3-month constraint, adopting RF with high certainty avoids risk</li>
+</ul>
+<p><strong>Implementation Plan:</strong></p>
+<ol>
+<li><strong>Week 1-2</strong>: Build baseline model with Random Forest + Magpie features</li>
+<li><strong>Week 3-4</strong>: Evaluate performance with 5-fold cross-validation (MAE, R²)</li>
+<li><strong>Week 5-6</strong>: Visualize feature importance using SHAP value analysis</li>
+<li><strong>Week 7-8</strong>: Execute predictions on 10,000 compounds, select top 100 candidates</li>
+<li><strong>Week 9-10</strong>: Create explanation materials for regulatory authorities (including SHAP value plots)</li>
+<li><strong>Week 11-12</strong>: Internal review and final report creation</li>
+</ol>
+<p><strong>Risk Countermeasures:</strong></p>
+<ul>
+<li><strong>If accuracy is insufficient</strong>: Improve accuracy with ensemble learning (multiple RF models)</li>
+<li><strong>If interpretability is insufficient</strong>: Add LIME (Local Interpretable Model-agnostic Explanations)</li>
+<li><strong>If many false positives</strong>: Adjust threshold to tighten selection criteria</li>
+</ul>
+<p><strong>Rejection reason: CGCNN</strong></p>
+<ul>
+<li>Interpretability requirement is decisive rejection factor (difficult to explain to regulatory authorities)</li>
+<li>With 12,000 samples, CGCNN superiority is limited</li>
+<li>Considering computational cost and risk, ROI is unclear</li>
+</ul>
+<p><strong>Future consideration:</strong> If the project continues and experimental data increases to over 50,000 samples, it is recommended to re-evaluate migration to CGCNN.</p>
+</div>
+<h2>References</h2>
+<ol>
+<li>Dunn, A., Wang, Q., Ganose, A., Dopp, D., Jain, A. (2020). Benchmarking materials property prediction methods: the Matbench test set and Automatminer reference algorithm. <em>npj Computational Materials</em>, 6(1), 138, pp. 1-10.</li>
+<li>Ward, L., Agrawal, A., Choudhary, A., Wolverton, C. (2016). A general-purpose machine learning framework for predicting properties of inorganic materials. <em>npj Computational Materials</em>, 2, 16028, pp. 1-7.</li>
+<li>Xie, T., Grossman, J. C. (2018). Crystal Graph Convolutional Neural Networks for an Accurate and Interpretable Prediction of Material Properties. <em>Physical Review Letters</em>, 120(14), 145301, pp. 1-6.</li>
+<li>Gilmer, J., Schoenholz, S. S., Riley, P. F., Vinyals, O., Dahl, G. E. (2017). Neural Message Passing for Quantum Chemistry. <em>Proceedings of the 34th International Conference on Machine Learning</em>, PMLR 70, pp. 1263-1272.</li>
+<li>Lundberg, S. M., Lee, S. I. (2017). A Unified Approach to Interpreting Model Predictions. <em>Advances in Neural Information Processing Systems</em>, 30, pp. 4765-4774.</li>
+<li>Cohen, J. (1988). <em>Statistical Power Analysis for the Behavioral Sciences</em> (2nd ed.). Lawrence Erlbaum Associates, pp. 20-27.</li>
+<li>Breiman, L. (2001). Random Forests. <em>Machine Learning</em>, 45(1), 5-32, pp. 5-32.</li>
+<li>Choudhary, K., DeCost, B. (2021). Atomistic Line Graph Neural Network for improved materials property predictions. <em>npj Computational Materials</em>, 7(1), 185, pp. 1-8.</li>
+</ol>
+<div class="nav-buttons">
+<a class="nav-button" href="chapter-3.html">← Chapter 3: MPNN Implementation</a>
+<a class="nav-button" href="chapter-5.html">Chapter 5: Hybrid Approach →</a>
+</div>
+</div>
 </body>
 </html>
