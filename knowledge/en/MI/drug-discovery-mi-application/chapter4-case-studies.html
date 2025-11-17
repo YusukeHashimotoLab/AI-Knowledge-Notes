@@ -512,7 +512,7 @@ class RelationExtraction(nn.Module):
             # Relation classification
             relation_prob = self.relation_classifier(context)
 
-            if relation_prob.max() &gt; threshold:
+            if relation_prob.max() > threshold:
                 relation = relation_types[relation_prob.argmax()]
                 yield (e1, relation, e2, relation_prob.max())
 
@@ -711,10 +711,10 @@ batch.run(
 )
 
 # Output: PDB file + confidence score (pLDDT)
-# pLDDT &gt; 90: High confidence (equivalent to experimental structure)
+# pLDDT > 90: High confidence (equivalent to experimental structure)
 # pLDDT 70-90: Generally accurate (backbone reliable)
 # pLDDT 50-70: Low confidence (locally useful)
-# pLDDT &lt; 50: Low reliability (possible disordered region)
+# pLDDT < 50: Low reliability (possible disordered region)
 </code></pre>
 <p><strong>2. Integration into Drug Design</strong></p>
 <p>Example of structure-based drug discovery using AlphaFold structures:</p>
@@ -890,13 +890,17 @@ Latent space properties:
 - Random sampling generates novel molecules
 </code></pre>
 <p><strong>Implementation Example</strong>:</p>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
 import torch.nn as nn
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
 class MolecularVAE(nn.Module):
-    """Molecular generation VAE (SMILES string-based)"""
+    &quot;&quot;&quot;Molecular generation VAE (SMILES string-based)&quot;&quot;&quot;
 
     def __init__(self, vocab_size, latent_dim=128, max_len=120):
         super().__init__()
@@ -924,7 +928,7 @@ class MolecularVAE(nn.Module):
         self.output_layer = nn.Linear(256, vocab_size)
 
     def encode(self, x):
-        """SMILES → latent vector"""
+        &quot;&quot;&quot;SMILES → latent vector&quot;&quot;&quot;
         _, (h_n, _) = self.encoder(x)
         h = h_n[-1]  # Last hidden state
 
@@ -934,14 +938,14 @@ class MolecularVAE(nn.Module):
         return mu, logvar
 
     def reparameterize(self, mu, logvar):
-        """Reparameterization trick"""
+        &quot;&quot;&quot;Reparameterization trick&quot;&quot;&quot;
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         z = mu + eps * std
         return z
 
     def decode(self, z):
-        """Latent vector → SMILES"""
+        &quot;&quot;&quot;Latent vector → SMILES&quot;&quot;&quot;
         h = self.decoder_input(z).unsqueeze(0)
 
         # Autoregressively generate characters
@@ -965,7 +969,7 @@ class MolecularVAE(nn.Module):
         return recon_x, mu, logvar
 
     def generate(self, num_samples=10):
-        """Randomly generate novel molecules"""
+        &quot;&quot;&quot;Randomly generate novel molecules&quot;&quot;&quot;
         with torch.no_grad():
             # Sample from normal distribution
             z = torch.randn(num_samples, self.latent_dim)
@@ -979,7 +983,7 @@ class MolecularVAE(nn.Module):
             return smiles_list
 
     def interpolate(self, smiles1, smiles2, steps=10):
-        """Interpolate between two molecules"""
+        &quot;&quot;&quot;Interpolate between two molecules&quot;&quot;&quot;
         with torch.no_grad():
             # Encode
             z1, _ = self.encode(self.smiles_to_tensor(smiles1))
@@ -996,7 +1000,7 @@ class MolecularVAE(nn.Module):
 
 # Loss function
 def vae_loss(recon_x, x, mu, logvar):
-    """VAE loss = reconstruction error + KL divergence"""
+    &quot;&quot;&quot;VAE loss = reconstruction error + KL divergence&quot;&quot;&quot;
     # Reconstruction error (cross-entropy)
     recon_loss = nn.CrossEntropyLoss()(
         recon_x.view(-1, vocab_size),
@@ -1016,23 +1020,23 @@ model = MolecularVAE(vocab_size=50, latent_dim=128)
 
 # Generate novel molecules
 new_molecules = model.generate(num_samples=100)
-print("Generated molecules (SMILES):")
+print(&quot;Generated molecules (SMILES):&quot;)
 for i, smiles in enumerate(new_molecules[:5]):
-    print(f"{i+1}. {smiles}")
+    print(f&quot;{i+1}. {smiles}&quot;)
     mol = Chem.MolFromSmiles(smiles)
     if mol:
-        print(f"   Valid molecule: Yes, MW={Chem.Descriptors.MolWt(mol):.1f}")
+        print(f&quot;   Valid molecule: Yes, MW={Chem.Descriptors.MolWt(mol):.1f}&quot;)
     else:
-        print(f"   Valid molecule: No (invalid SMILES)")
+        print(f&quot;   Valid molecule: No (invalid SMILES)&quot;)
 
 # Molecular interpolation
-mol_A = "CC(C)Cc1ccc(cc1)C(C)C(O)=O"  # Ibuprofen
-mol_B = "CC(=O)Oc1ccccc1C(=O)O"  # Aspirin
+mol_A = &quot;CC(C)Cc1ccc(cc1)C(C)C(O)=O&quot;  # Ibuprofen
+mol_B = &quot;CC(=O)Oc1ccccc1C(=O)O&quot;  # Aspirin
 
 interpolated = model.interpolate(mol_A, mol_B, steps=10)
-print(f"\nInterpolated molecules between ibuprofen and aspirin:")
+print(f&quot;\nInterpolated molecules between ibuprofen and aspirin:&quot;)
 for i, smiles in enumerate(interpolated):
-    print(f"Step {i}: {smiles}")
+    print(f&quot;Step {i}: {smiles}&quot;)
 </code></pre>
 <p><strong>Output Example</strong>:</p>
 <pre><code>Generated molecules (SMILES):
@@ -1071,11 +1075,15 @@ Learning process:
 → Through repetition, generator creates increasingly realistic molecules
 </code></pre>
 <p><strong>Implementation Example (MolGAN)</strong>:</p>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
 import torch.nn as nn
 
 class MolGAN(nn.Module):
-    """Molecular generation GAN (graph-based)"""
+    &quot;&quot;&quot;Molecular generation GAN (graph-based)&quot;&quot;&quot;
 
     def __init__(self, latent_dim=128, num_atom_types=9, max_atoms=38):
         super().__init__()
@@ -1093,7 +1101,7 @@ class MolGAN(nn.Module):
         self.reward_network = PropertyPredictor(num_atom_types, max_atoms)
 
 class Generator(nn.Module):
-    """Generate molecular graphs from noise"""
+    &quot;&quot;&quot;Generate molecular graphs from noise&quot;&quot;&quot;
 
     def __init__(self, latent_dim, num_atom_types, max_atoms):
         super().__init__()
@@ -1113,13 +1121,13 @@ class Generator(nn.Module):
         self.edge_layer = nn.Linear(512, max_atoms * max_atoms)
 
     def forward(self, z):
-        """
+        &quot;&quot;&quot;
         z: (batch, latent_dim) noise vector
 
         Output:
         - nodes: (batch, max_atoms, num_atom_types) atom types (one-hot)
         - edges: (batch, max_atoms, max_atoms) adjacency matrix
-        """
+        &quot;&quot;&quot;
         h = self.fc_layers(z)
 
         # Node generation
@@ -1138,7 +1146,7 @@ class Generator(nn.Module):
         return nodes, edges
 
 class Discriminator(nn.Module):
-    """Judge whether molecular graph is real or fake"""
+    &quot;&quot;&quot;Judge whether molecular graph is real or fake&quot;&quot;&quot;
 
     def __init__(self, num_atom_types, max_atoms):
         super().__init__()
@@ -1157,12 +1165,12 @@ class Discriminator(nn.Module):
         )
 
     def forward(self, nodes, edges):
-        """
+        &quot;&quot;&quot;
         nodes: (batch, max_atoms, num_atom_types)
         edges: (batch, max_atoms, max_atoms)
 
         Output: (batch, 1) realness score (0-1)
-        """
+        &quot;&quot;&quot;
         # GCN layers
         h = self.gcn1(nodes, edges)
         h = torch.relu(h)
@@ -1178,7 +1186,7 @@ class Discriminator(nn.Module):
         return score
 
 class PropertyPredictor(nn.Module):
-    """Predict molecular properties (for reward calculation)"""
+    &quot;&quot;&quot;Predict molecular properties (for reward calculation)&quot;&quot;&quot;
 
     def __init__(self, num_atom_types, max_atoms):
         super().__init__()
@@ -1206,7 +1214,7 @@ class PropertyPredictor(nn.Module):
 
 # Loss function
 def gan_loss(real_molecules, generator, discriminator):
-    """GAN loss function"""
+    &quot;&quot;&quot;GAN loss function&quot;&quot;&quot;
     batch_size = real_molecules[0].size(0)
 
     # Discriminate real molecules
@@ -1237,7 +1245,7 @@ nodes, edges = model.generator(z)
 
 # Convert graph to SMILES (separate implementation needed)
 smiles_list = graph_to_smiles(nodes, edges)
-print("Generated molecules:")
+print(&quot;Generated molecules:&quot;)
 for smiles in smiles_list:
     print(smiles)
 </code></pre>
@@ -1249,11 +1257,15 @@ for smiles in smiles_list:
 <h3>4.3.4 Transformer-Based Molecular Generation</h3>
 <p><strong>Principle</strong>: Treat SMILES strings as natural language and generate with Transformer</p>
 <p><strong>Implementation Example</strong>:</p>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
 import torch.nn as nn
 
 class MolecularTransformer(nn.Module):
-    """Transformer-based molecular generation model"""
+    &quot;&quot;&quot;Transformer-based molecular generation model&quot;&quot;&quot;
 
     def __init__(self, vocab_size, d_model=512, nhead=8, num_layers=6, max_len=150):
         super().__init__()
@@ -1273,10 +1285,10 @@ class MolecularTransformer(nn.Module):
         self.output_layer = nn.Linear(d_model, vocab_size)
 
     def forward(self, tgt, memory):
-        """
+        &quot;&quot;&quot;
         tgt: (seq_len, batch) target sequence
         memory: (1, batch, d_model) condition (optional)
-        """
+        &quot;&quot;&quot;
         # Embedding + Positional Encoding
         tgt_emb = self.embedding(tgt) * math.sqrt(self.d_model)
         tgt_emb = self.pos_encoding(tgt_emb)
@@ -1291,7 +1303,7 @@ class MolecularTransformer(nn.Module):
         return logits
 
     def generate(self, start_token, max_len=100, temperature=1.0):
-        """Autoregressively generate molecules"""
+        &quot;&quot;&quot;Autoregressively generate molecules&quot;&quot;&quot;
         self.eval()
         with torch.no_grad():
             # Initial token
@@ -1321,7 +1333,7 @@ class MolecularTransformer(nn.Module):
 
 # Conditional generation (specify properties)
 class ConditionalMolecularTransformer(MolecularTransformer):
-    """Conditional molecular generation (specify desired properties)"""
+    &quot;&quot;&quot;Conditional molecular generation (specify desired properties)&quot;&quot;&quot;
 
     def __init__(self, vocab_size, num_properties=5, **kwargs):
         super().__init__(vocab_size, **kwargs)
@@ -1334,10 +1346,10 @@ class ConditionalMolecularTransformer(MolecularTransformer):
         )
 
     def generate_with_properties(self, target_properties, max_len=100):
-        """
+        &quot;&quot;&quot;
         target_properties: (num_properties,) desired property values
         Example: [logP=2.5, MW=350, TPSA=60, HBD=2, HBA=4]
-        """
+        &quot;&quot;&quot;
         # Encode properties
         property_emb = self.property_encoder(target_properties)
         memory = property_emb.unsqueeze(0).unsqueeze(0)  # (1, 1, d_model)
@@ -1377,7 +1389,7 @@ target_props = torch.tensor([
 
 # Conditional generation
 new_molecule = model.generate_with_properties(target_props)
-print(f"Generated molecule: {new_molecule}")
+print(f&quot;Generated molecule: {new_molecule}&quot;)
 
 # Verify actual properties
 mol = Chem.MolFromSmiles(new_molecule)
@@ -1386,10 +1398,10 @@ if mol:
     actual_MW = Descriptors.MolWt(mol)
     actual_TPSA = Descriptors.TPSA(mol)
 
-    print(f"Actual properties:")
-    print(f"  logP: {actual_logP:.2f} (target: 2.5)")
-    print(f"  MW: {actual_MW:.1f} (target: 350.0)")
-    print(f"  TPSA: {actual_TPSA:.1f} (target: 60.0)")
+    print(f&quot;Actual properties:&quot;)
+    print(f&quot;  logP: {actual_logP:.2f} (target: 2.5)&quot;)
+    print(f&quot;  MW: {actual_MW:.1f} (target: 350.0)&quot;)
+    print(f&quot;  TPSA: {actual_TPSA:.1f} (target: 60.0)&quot;)
 </code></pre>
 <p><strong>Transformer Advantages</strong>:
 - ✅ Stable learning even with long sequences
@@ -2048,7 +2060,7 @@ X, y = load_chembl_data()
 # Outlier removal
 mean = X.mean()
 std = X.std()
-X = X[(X &gt; mean - 3*std) &amp; (X &lt; mean + 3*std)]
+X = X[(X > mean - 3*std) & (X < mean + 3*std)]
 
 # Standardization
 scaler = StandardScaler()

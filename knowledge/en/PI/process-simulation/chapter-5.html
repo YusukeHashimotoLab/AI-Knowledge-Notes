@@ -314,23 +314,29 @@ print(f"Bottoms flow: {results['bottoms']['F']:.2f} kg/h")
 <h2>5.3 Parameter Sweep and Data Extraction</h2>
 <h3>Automating Large-Scale Case Studies</h3>
 <p>Scan ranges of design parameters to explore optimal operating conditions.</p>
-<pre><code class="language-python">"""
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+&quot;&quot;&quot;
 Example 3: Parameter Sweep and Data Extraction
 Parameter Sweep and Data Extraction
-"""
+&quot;&quot;&quot;
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
 class ParameterSweep:
-    """Parameter sweep automation"""
+    &quot;&quot;&quot;Parameter sweep automation&quot;&quot;&quot;
 
     def __init__(self, dwsim_interface):
         self.dwsim = dwsim_interface
         self.results = []
 
     def sweep_reflux_ratio(self, reflux_range):
-        """
+        &quot;&quot;&quot;
         Sweep reflux ratio and evaluate performance
 
         Args:
@@ -338,12 +344,12 @@ class ParameterSweep:
 
         Returns:
             DataFrame: Results data
-        """
+        &quot;&quot;&quot;
         for reflux in reflux_range:
-            print(f"Calculating reflux ratio = {reflux:.2f}...")
+            print(f&quot;Calculating reflux ratio = {reflux:.2f}...&quot;)
 
             # Set reflux ratio
-            column = self.dwsim.flowsheet.GetFlowsheetObject("Column-01")
+            column = self.dwsim.flowsheet.GetFlowsheetObject(&quot;Column-01&quot;)
             column.RefluxRatio = reflux
 
             try:
@@ -351,9 +357,9 @@ class ParameterSweep:
                 self.dwsim.calculate()
 
                 # Get results
-                dist_flow = self.dwsim.get_stream_property("Distillate", "MassFlow")
-                dist_comp = self.dwsim.get_stream_property("Distillate", "Composition")
-                btms_comp = self.dwsim.get_stream_property("Bottoms", "Composition")
+                dist_flow = self.dwsim.get_stream_property(&quot;Distillate&quot;, &quot;MassFlow&quot;)
+                dist_comp = self.dwsim.get_stream_property(&quot;Distillate&quot;, &quot;Composition&quot;)
+                btms_comp = self.dwsim.get_stream_property(&quot;Bottoms&quot;, &quot;Composition&quot;)
 
                 # Benzene purity in distillate
                 benzene_purity = dist_comp[0]  # Assuming Benzene is first
@@ -369,7 +375,7 @@ class ParameterSweep:
                 })
 
             except Exception as e:
-                print(f"  ⚠ Calculation failed: {e}")
+                print(f&quot;  ⚠ Calculation failed: {e}&quot;)
                 self.results.append({
                     'reflux_ratio': reflux,
                     'distillate_flow': np.nan,
@@ -380,7 +386,7 @@ class ParameterSweep:
         return pd.DataFrame(self.results)
 
     def plot_results(self, df):
-        """Plot results"""
+        &quot;&quot;&quot;Plot results&quot;&quot;&quot;
         fig, axes = plt.subplots(1, 3, figsize=(15, 4))
 
         # Distillate flow
@@ -422,42 +428,49 @@ print(df_results)
 sweep.plot_results(df_results)
 
 # Save as CSV
-df_results.to_csv("reflux_sweep_results.csv", index=False)
-print("Results saved to reflux_sweep_results.csv")
+df_results.to_csv(&quot;reflux_sweep_results.csv&quot;, index=False)
+print(&quot;Results saved to reflux_sweep_results.csv&quot;)
 </code></pre>
 <hr/>
 <h2>5.4 Data Analysis with pandas</h2>
 <h3>Statistical Analysis of Simulation Results</h3>
 <p>Leverage pandas to efficiently analyze large volumes of simulation results.</p>
-<pre><code class="language-python">"""
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+# - seaborn&gt;=0.12.0
+
+&quot;&quot;&quot;
 Example 4: Data Analysis with Pandas
 Simulation Result Analysis with pandas
-"""
+&quot;&quot;&quot;
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 class SimulationDataAnalyzer:
-    """Simulation data analysis tool"""
+    &quot;&quot;&quot;Simulation data analysis tool&quot;&quot;&quot;
 
     def __init__(self, csv_file=None):
-        """
+        &quot;&quot;&quot;
         Args:
             csv_file: Path to results CSV file
-        """
+        &quot;&quot;&quot;
         if csv_file:
             self.df = pd.read_csv(csv_file)
         else:
             self.df = None
 
     def load_multiple_sweeps(self, file_pattern):
-        """
+        &quot;&quot;&quot;
         Consolidate multiple sweep results
 
         Args:
-            file_pattern: File pattern (e.g., "sweep_*.csv")
-        """
+            file_pattern: File pattern (e.g., &quot;sweep_*.csv&quot;)
+        &quot;&quot;&quot;
         import glob
         files = glob.glob(file_pattern)
 
@@ -467,17 +480,17 @@ class SimulationDataAnalyzer:
             dfs.append(df)
 
         self.df = pd.concat(dfs, ignore_index=True)
-        print(f"Loaded {len(files)} files, {len(self.df)} total rows")
+        print(f&quot;Loaded {len(files)} files, {len(self.df)} total rows&quot;)
 
     def calculate_economics(self, product_price=1000,
                            energy_cost=0.05):
-        """
+        &quot;&quot;&quot;
         Calculate economic metrics
 
         Args:
             product_price: Product price [$/ton]
             energy_cost: Energy cost [$/kWh]
-        """
+        &quot;&quot;&quot;
         # Revenue
         self.df['revenue'] = (self.df['distillate_flow'] / 1000) * \
                             product_price * \
@@ -494,32 +507,32 @@ class SimulationDataAnalyzer:
     def find_optimal_condition(self, objective='profit',
                               constraint_col='benzene_purity',
                               constraint_val=0.95):
-        """
+        &quot;&quot;&quot;
         Find optimal condition
 
         Args:
             objective: Metric to maximize
             constraint_col: Constraint column
             constraint_val: Constraint value
-        """
+        &quot;&quot;&quot;
         # Only data satisfying constraints
         df_valid = self.df[self.df[constraint_col] &gt;= constraint_val]
 
         if len(df_valid) == 0:
-            print("No solutions satisfy the constraint")
+            print(&quot;No solutions satisfy the constraint&quot;)
             return None
 
         # Optimal solution
         optimal_idx = df_valid[objective].idxmax()
         optimal = df_valid.loc[optimal_idx]
 
-        print("\n=== Optimal Condition ===")
+        print(&quot;\n=== Optimal Condition ===&quot;)
         print(optimal)
 
         return optimal
 
     def sensitivity_analysis(self):
-        """Sensitivity analysis (correlation matrix)"""
+        &quot;&quot;&quot;Sensitivity analysis (correlation matrix)&quot;&quot;&quot;
         # Select only numeric columns
         numeric_cols = self.df.select_dtypes(include=[np.number]).columns
 
@@ -537,13 +550,13 @@ class SimulationDataAnalyzer:
         return corr_matrix
 
     def plot_pareto_front(self, obj1='benzene_purity', obj2='profit'):
-        """
+        &quot;&quot;&quot;
         Pareto front (trade-off curve)
 
         Args:
             obj1: Objective function 1
             obj2: Objective function 2
-        """
+        &quot;&quot;&quot;
         plt.figure(figsize=(8, 6))
         plt.scatter(self.df[obj1] * 100, self.df[obj2],
                    c=self.df['reflux_ratio'], cmap='viridis',
@@ -557,7 +570,7 @@ class SimulationDataAnalyzer:
         plt.show()
 
 # Usage example
-analyzer = SimulationDataAnalyzer("reflux_sweep_results.csv")
+analyzer = SimulationDataAnalyzer(&quot;reflux_sweep_results.csv&quot;)
 
 # Calculate economics
 df_econ = analyzer.calculate_economics(
@@ -582,22 +595,26 @@ analyzer.plot_pareto_front('benzene_purity', 'profit')
 <h2>5.5 Integration with scipy Optimization</h2>
 <h3>Coupling Simulators with Numerical Optimization</h3>
 <p>Combine scipy optimization algorithms with DWSIM to automatically search for optimal designs.</p>
-<pre><code class="language-python">"""
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+&quot;&quot;&quot;
 Example 5: Integration with scipy Optimization
 Integration of scipy Optimization with Simulator
-"""
+&quot;&quot;&quot;
 from scipy.optimize import minimize, differential_evolution
 import numpy as np
 
 class SimulatorOptimizer:
-    """Simulator-based optimization"""
+    &quot;&quot;&quot;Simulator-based optimization&quot;&quot;&quot;
 
     def __init__(self, dwsim_interface):
         self.dwsim = dwsim_interface
         self.eval_count = 0
 
     def objective_function(self, x):
-        """
+        &quot;&quot;&quot;
         Objective function: Profit maximization
 
         Args:
@@ -605,13 +622,13 @@ class SimulatorOptimizer:
 
         Returns:
             -profit (minimization problem)
-        """
+        &quot;&quot;&quot;
         reflux_ratio, feed_stage_ratio = x
         self.eval_count += 1
 
         try:
             # Set DWSIM parameters
-            column = self.dwsim.flowsheet.GetFlowsheetObject("Column-01")
+            column = self.dwsim.flowsheet.GetFlowsheetObject(&quot;Column-01&quot;)
             column.RefluxRatio = reflux_ratio
 
             # Feed stage (1 = top, 20 = bottom)
@@ -622,8 +639,8 @@ class SimulatorOptimizer:
             self.dwsim.calculate()
 
             # Get results
-            dist_flow = self.dwsim.get_stream_property("Distillate", "MassFlow")
-            dist_comp = self.dwsim.get_stream_property("Distillate", "Composition")
+            dist_flow = self.dwsim.get_stream_property(&quot;Distillate&quot;, &quot;MassFlow&quot;)
+            dist_comp = self.dwsim.get_stream_property(&quot;Distillate&quot;, &quot;Composition&quot;)
             reboiler_duty = column.ReboilerDuty / 1000  # kW
 
             # Calculate economics
@@ -637,16 +654,16 @@ class SimulatorOptimizer:
                 penalty = 1000 * (0.95 - dist_comp[0])
                 profit -= penalty
 
-            print(f"Eval {self.eval_count}: x={x}, profit=${profit:.2f}/h")
+            print(f&quot;Eval {self.eval_count}: x={x}, profit=${profit:.2f}/h&quot;)
 
             return -profit  # Maximize→Minimize
 
         except Exception as e:
-            print(f"  ⚠ Simulation failed: {e}")
+            print(f&quot;  ⚠ Simulation failed: {e}&quot;)
             return 1e6  # Penalty
 
     def optimize_local(self, x0):
-        """Local optimization"""
+        &quot;&quot;&quot;Local optimization&quot;&quot;&quot;
         bounds = [
             (1.5, 5.0),   # reflux_ratio
             (0.3, 0.7)    # feed_stage_ratio
@@ -663,7 +680,7 @@ class SimulatorOptimizer:
         return result
 
     def optimize_global(self):
-        """Global optimization"""
+        &quot;&quot;&quot;Global optimization&quot;&quot;&quot;
         bounds = [
             (1.5, 5.0),   # reflux_ratio
             (0.3, 0.7)    # feed_stage_ratio
@@ -687,12 +704,12 @@ optimizer = SimulatorOptimizer(dwsim)
 x0 = np.array([2.5, 0.5])
 
 # Local optimization
-print("=== Local Optimization ===")
+print(&quot;=== Local Optimization ===&quot;)
 result_local = optimizer.optimize_local(x0)
 
-print(f"\nOptimal reflux ratio: {result_local.x[0]:.4f}")
-print(f"Optimal feed stage: {int(20 * result_local.x[1])}")
-print(f"Maximum profit: ${-result_local.fun:.2f}/h")
+print(f&quot;\nOptimal reflux ratio: {result_local.x[0]:.4f}&quot;)
+print(f&quot;Optimal feed stage: {int(20 * result_local.x[1])}&quot;)
+print(f&quot;Maximum profit: ${-result_local.fun:.2f}/h&quot;)
 
 # (Global optimization takes time, execute as needed)
 # result_global = optimizer.optimize_global()
@@ -701,10 +718,16 @@ print(f"Maximum profit: ${-result_local.fun:.2f}/h")
 <h2>5.6 Machine Learning for Process Prediction</h2>
 <h3>Surrogate Models for Simulation Replacement</h3>
 <p>Instead of time-consuming simulations, use machine learning models for fast predictions.</p>
-<pre><code class="language-python">"""
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+&quot;&quot;&quot;
 Example 6: Machine Learning for Process Prediction
 Process Prediction with Machine Learning (Surrogate Model)
-"""
+&quot;&quot;&quot;
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -714,7 +737,7 @@ from sklearn.metrics import r2_score, mean_absolute_error
 import matplotlib.pyplot as plt
 
 class SurrogateModel:
-    """Simulation surrogate model"""
+    &quot;&quot;&quot;Simulation surrogate model&quot;&quot;&quot;
 
     def __init__(self):
         self.model = None
@@ -722,14 +745,14 @@ class SurrogateModel:
         self.scaler_y = StandardScaler()
 
     def train(self, df, features, target):
-        """
+        &quot;&quot;&quot;
         Train model
 
         Args:
             df: Simulation result data
             features: Input feature column names list
             target: Output target column name
-        """
+        &quot;&quot;&quot;
         X = df[features].values
         y = df[target].values.reshape(-1, 1)
 
@@ -760,9 +783,9 @@ class SurrogateModel:
         r2 = r2_score(y_test, y_pred)
         mae = mean_absolute_error(y_test, y_pred)
 
-        print(f"\n=== Model Performance ===")
-        print(f"R² score: {r2:.4f}")
-        print(f"MAE: {mae:.4f}")
+        print(f&quot;\n=== Model Performance ===&quot;)
+        print(f&quot;R² score: {r2:.4f}&quot;)
+        print(f&quot;MAE: {mae:.4f}&quot;)
 
         # Parity plot
         plt.figure(figsize=(6, 6))
@@ -781,7 +804,7 @@ class SurrogateModel:
         return r2, mae
 
     def predict(self, X_new):
-        """Predict with new conditions"""
+        &quot;&quot;&quot;Predict with new conditions&quot;&quot;&quot;
         X_scaled = self.scaler_X.transform(X_new)
         y_pred_scaled = self.model.predict(X_scaled)
         y_pred = self.scaler_y.inverse_transform(
@@ -790,7 +813,7 @@ class SurrogateModel:
         return y_pred.flatten()
 
     def feature_importance(self, feature_names):
-        """Feature importance"""
+        &quot;&quot;&quot;Feature importance&quot;&quot;&quot;
         importances = self.model.feature_importances_
         indices = np.argsort(importances)[::-1]
 
@@ -835,18 +858,23 @@ X_new = np.array([
 ])
 
 predictions = surrogate.predict(X_new)
-print("\n=== Predictions ===")
+print(&quot;\n=== Predictions ===&quot;)
 for i, pred in enumerate(predictions):
-    print(f"Condition {i+1}: Predicted purity = {pred:.4f}")
+    print(f&quot;Condition {i+1}: Predicted purity = {pred:.4f}&quot;)
 </code></pre>
 <hr/>
 <h2>5.7 Automated Report Generation</h2>
 <h3>Automatic Documentation of Results</h3>
 <p>Automatically convert simulation results into PDF reports or HTML dashboards.</p>
-<pre><code class="language-python">"""
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+&quot;&quot;&quot;
 Example 7: Automated Report Generation
 Automated Report Generation (HTML/PDF)
-"""
+&quot;&quot;&quot;
 import pandas as pd
 import matplotlib.pyplot as plt
 from jinja2 import Template
@@ -854,14 +882,14 @@ import base64
 from io import BytesIO
 
 class ReportGenerator:
-    """Automated simulation result report generation"""
+    &quot;&quot;&quot;Automated simulation result report generation&quot;&quot;&quot;
 
-    def __init__(self, title="Process Simulation Report"):
+    def __init__(self, title=&quot;Process Simulation Report&quot;):
         self.title = title
         self.sections = []
 
     def add_table(self, df, caption):
-        """Add data table"""
+        &quot;&quot;&quot;Add data table&quot;&quot;&quot;
         html_table = df.to_html(classes='table', index=False)
         self.sections.append({
             'type': 'table',
@@ -870,7 +898,7 @@ class ReportGenerator:
         })
 
     def add_plot(self, fig, caption):
-        """Add plot"""
+        &quot;&quot;&quot;Add plot&quot;&quot;&quot;
         # Encode figure to Base64
         buffer = BytesIO()
         fig.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
@@ -884,72 +912,72 @@ class ReportGenerator:
         })
 
     def add_text(self, text):
-        """Add text section"""
+        &quot;&quot;&quot;Add text section&quot;&quot;&quot;
         self.sections.append({
             'type': 'text',
             'content': text
         })
 
-    def generate_html(self, output_file="report.html"):
-        """Generate HTML report"""
+    def generate_html(self, output_file=&quot;report.html&quot;):
+        &quot;&quot;&quot;Generate HTML report&quot;&quot;&quot;
 
-        template_str = """
-<!DOCTYPE html>
-
-
+        template_str = &quot;&quot;&quot;
+&lt;!DOCTYPE html&gt;
 
 
-    <meta charset="utf-8"/>
-    <title>{{ title }}</title>
-        <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
 
 
-    <h1>{{ title }}</h1>
-    <p>Generated: {{ timestamp }}</p>
+    &lt;meta charset=&quot;utf-8&quot;/&gt;
+    &lt;title&gt;{{ title }}&lt;/title&gt;
+        &lt;link href=&quot;../../assets/css/knowledge-base.css&quot; rel=&quot;stylesheet&quot;/&gt;
+
+
+    &lt;h1&gt;{{ title }}&lt;/h1&gt;
+    &lt;p&gt;Generated: {{ timestamp }}&lt;/p&gt;
 
     {% for section in sections %}
         {% if section.type == 'table' %}
-            <h2>{{ section.caption }}</h2>
+            &lt;h2&gt;{{ section.caption }}&lt;/h2&gt;
             {{ section.content|safe }}
 
         {% elif section.type == 'plot' %}
-            <div class="plot">
-                <h2>{{ section.caption }}</h2>
-                <img src="data:image/png;base64,{{ section.content }}" style="max-width:100%;"/>
-            </div>
+            &lt;div class=&quot;plot&quot;&gt;
+                &lt;h2&gt;{{ section.caption }}&lt;/h2&gt;
+                &lt;img src=&quot;data:image/png;base64,{{ section.content }}&quot; style=&quot;max-width:100%;&quot;/&gt;
+            &lt;/div&gt;
 
         {% elif section.type == 'text' %}
-            <p>{{ section.content }}</p>
+            &lt;p&gt;{{ section.content }}&lt;/p&gt;
 
         {% endif %}
     {% endfor %}
 
 
 
-        """
+        &quot;&quot;&quot;
 
         template = Template(template_str)
 
         from datetime import datetime
         html_content = template.render(
             title=self.title,
-            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            timestamp=datetime.now().strftime(&quot;%Y-%m-%d %H:%M:%S&quot;),
             sections=self.sections
         )
 
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(html_content)
 
-        print(f"Report generated: {output_file}")
+        print(f&quot;Report generated: {output_file}&quot;)
 
 # Usage example
-report = ReportGenerator("Distillation Column Optimization Report")
+report = ReportGenerator(&quot;Distillation Column Optimization Report&quot;)
 
 # Add text
 report.add_text(
-    "This report summarizes the results of the distillation column "
-    "optimization study. The objective was to maximize benzene purity "
-    "while minimizing energy consumption."
+    &quot;This report summarizes the results of the distillation column &quot;
+    &quot;optimization study. The objective was to maximize benzene purity &quot;
+    &quot;while minimizing energy consumption.&quot;
 )
 
 # Add table
@@ -957,7 +985,7 @@ df_summary = pd.DataFrame({
     'Parameter': ['Reflux Ratio', 'Feed Stage', 'Benzene Purity', 'Reboiler Duty'],
     'Optimal Value': [3.2, 10, '96.5%', '1250 kW']
 })
-report.add_table(df_summary, "Optimal Operating Conditions")
+report.add_table(df_summary, &quot;Optimal Operating Conditions&quot;)
 
 # Add plot
 fig, ax = plt.subplots(figsize=(8, 5))
@@ -969,26 +997,31 @@ ax.set_ylabel('Benzene Purity [%]')
 ax.set_title('Purity vs Reflux Ratio')
 ax.grid(True, alpha=0.3)
 
-report.add_plot(fig, "Performance Curve")
+report.add_plot(fig, &quot;Performance Curve&quot;)
 
 # Generate HTML report
-report.generate_html("optimization_report.html")
-print("Open optimization_report.html in your browser")
+report.generate_html(&quot;optimization_report.html&quot;)
+print(&quot;Open optimization_report.html in your browser&quot;)
 </code></pre>
 <hr/>
 <h2>5.8 Complete Workflow: Simulation → Analysis → Optimization</h2>
 <h3>End-to-End Automation Pipeline</h3>
 <p>Build an automated workflow that integrates all steps.</p>
-<pre><code class="language-python">"""
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+&quot;&quot;&quot;
 Example 8: Complete Workflow - Simulation to Optimization
 Complete Workflow (Simulation → Analysis → Optimization → Report)
-"""
+&quot;&quot;&quot;
 import numpy as np
 import pandas as pd
 from datetime import datetime
 
 class AutomatedWorkflow:
-    """Fully automated workflow for process design"""
+    &quot;&quot;&quot;Fully automated workflow for process design&quot;&quot;&quot;
 
     def __init__(self, dwsim_interface):
         self.dwsim = dwsim_interface
@@ -996,29 +1029,29 @@ class AutomatedWorkflow:
         self.optimal_conditions = None
 
     def step1_initial_design(self):
-        """Step 1: Initial design (flowsheet construction)"""
-        print("\n=== Step 1: Initial Design ===")
+        &quot;&quot;&quot;Step 1: Initial design (flowsheet construction)&quot;&quot;&quot;
+        print(&quot;\n=== Step 1: Initial Design ===&quot;)
 
         # Build flowsheet (code from Example 2)
         builder = DistillationColumnBuilder(self.dwsim)
         self.flowsheet = builder.build_simple_distillation()
 
-        print("✓ Flowsheet created")
+        print(&quot;✓ Flowsheet created&quot;)
 
     def step2_parameter_sweep(self):
-        """Step 2: Parameter sweep"""
-        print("\n=== Step 2: Parameter Sweep ===")
+        &quot;&quot;&quot;Step 2: Parameter sweep&quot;&quot;&quot;
+        print(&quot;\n=== Step 2: Parameter Sweep ===&quot;)
 
         sweep = ParameterSweep(self.dwsim)
         reflux_range = np.linspace(1.5, 5.0, 20)
 
         self.df_sweep = sweep.sweep_reflux_ratio(reflux_range)
 
-        print(f"✓ Completed {len(self.df_sweep)} simulations")
+        print(f&quot;✓ Completed {len(self.df_sweep)} simulations&quot;)
 
     def step3_data_analysis(self):
-        """Step 3: Data analysis"""
-        print("\n=== Step 3: Data Analysis ===")
+        &quot;&quot;&quot;Step 3: Data analysis&quot;&quot;&quot;
+        print(&quot;\n=== Step 3: Data Analysis ===&quot;)
 
         analyzer = SimulationDataAnalyzer()
         analyzer.df = self.df_sweep
@@ -1036,11 +1069,11 @@ class AutomatedWorkflow:
             constraint_val=0.95
         )
 
-        print("✓ Analysis completed")
+        print(&quot;✓ Analysis completed&quot;)
 
     def step4_surrogate_model(self):
-        """Step 4: Surrogate model training"""
-        print("\n=== Step 4: Surrogate Model Training ===")
+        &quot;&quot;&quot;Step 4: Surrogate model training&quot;&quot;&quot;
+        print(&quot;\n=== Step 4: Surrogate Model Training ===&quot;)
 
         surrogate = SurrogateModel()
         features = ['reflux_ratio']
@@ -1049,11 +1082,11 @@ class AutomatedWorkflow:
         r2, mae = surrogate.train(self.df_economics, features, target)
         self.surrogate = surrogate
 
-        print(f"✓ Model trained (R²={r2:.3f})")
+        print(f&quot;✓ Model trained (R²={r2:.3f})&quot;)
 
     def step5_optimization(self):
-        """Step 5: Optimization"""
-        print("\n=== Step 5: Optimization ===")
+        &quot;&quot;&quot;Step 5: Optimization&quot;&quot;&quot;
+        print(&quot;\n=== Step 5: Optimization ===&quot;)
 
         # Surrogate model-based fast optimization
         def fast_objective(x):
@@ -1068,41 +1101,41 @@ class AutomatedWorkflow:
         )
 
         self.optimized_reflux = result.x[0]
-        print(f"✓ Optimal reflux ratio: {self.optimized_reflux:.4f}")
+        print(f&quot;✓ Optimal reflux ratio: {self.optimized_reflux:.4f}&quot;)
 
     def step6_verification(self):
-        """Step 6: Verification of optimal solution"""
-        print("\n=== Step 6: Verification ===")
+        &quot;&quot;&quot;Step 6: Verification of optimal solution&quot;&quot;&quot;
+        print(&quot;\n=== Step 6: Verification ===&quot;)
 
         # Execute detailed simulation at optimal condition
-        column = self.dwsim.flowsheet.GetFlowsheetObject("Column-01")
+        column = self.dwsim.flowsheet.GetFlowsheetObject(&quot;Column-01&quot;)
         column.RefluxRatio = self.optimized_reflux
 
         self.dwsim.calculate()
 
         # Get results
-        dist_comp = self.dwsim.get_stream_property("Distillate", "Composition")
+        dist_comp = self.dwsim.get_stream_property(&quot;Distillate&quot;, &quot;Composition&quot;)
         reboiler_duty = column.ReboilerDuty / 1000
 
-        print(f"✓ Verified benzene purity: {dist_comp[0]*100:.2f}%")
-        print(f"✓ Reboiler duty: {reboiler_duty:.1f} kW")
+        print(f&quot;✓ Verified benzene purity: {dist_comp[0]*100:.2f}%&quot;)
+        print(f&quot;✓ Reboiler duty: {reboiler_duty:.1f} kW&quot;)
 
     def step7_generate_report(self):
-        """Step 7: Report generation"""
-        print("\n=== Step 7: Report Generation ===")
+        &quot;&quot;&quot;Step 7: Report generation&quot;&quot;&quot;
+        print(&quot;\n=== Step 7: Report Generation ===&quot;)
 
-        report = ReportGenerator("Automated Process Design Report")
+        report = ReportGenerator(&quot;Automated Process Design Report&quot;)
 
         # Results summary
         report.add_text(
-            f"Automated workflow completed on {datetime.now().strftime('%Y-%m-%d')}. "
-            f"Optimal reflux ratio determined: {self.optimized_reflux:.4f}"
+            f&quot;Automated workflow completed on {datetime.now().strftime('%Y-%m-%d')}. &quot;
+            f&quot;Optimal reflux ratio determined: {self.optimized_reflux:.4f}&quot;
         )
 
         # Optimal condition table
         report.add_table(
             pd.DataFrame([self.optimal_conditions]),
-            "Optimal Operating Conditions"
+            &quot;Optimal Operating Conditions&quot;
         )
 
         # Plot
@@ -1116,17 +1149,17 @@ class AutomatedWorkflow:
         ax.legend()
         ax.grid(True, alpha=0.3)
 
-        report.add_plot(fig, "Profit vs Reflux Ratio")
+        report.add_plot(fig, &quot;Profit vs Reflux Ratio&quot;)
 
-        report.generate_html("automated_workflow_report.html")
+        report.generate_html(&quot;automated_workflow_report.html&quot;)
 
-        print("✓ Report generated")
+        print(&quot;✓ Report generated&quot;)
 
     def run_full_workflow(self):
-        """Execute complete workflow"""
-        print("="*50)
-        print("AUTOMATED PROCESS DESIGN WORKFLOW")
-        print("="*50)
+        &quot;&quot;&quot;Execute complete workflow&quot;&quot;&quot;
+        print(&quot;=&quot;*50)
+        print(&quot;AUTOMATED PROCESS DESIGN WORKFLOW&quot;)
+        print(&quot;=&quot;*50)
 
         start_time = datetime.now()
 
@@ -1141,13 +1174,13 @@ class AutomatedWorkflow:
 
             elapsed = (datetime.now() - start_time).total_seconds()
 
-            print("\n" + "="*50)
-            print("✓ WORKFLOW COMPLETED SUCCESSFULLY")
-            print(f"Total time: {elapsed:.1f} seconds")
-            print("="*50)
+            print(&quot;\n&quot; + &quot;=&quot;*50)
+            print(&quot;✓ WORKFLOW COMPLETED SUCCESSFULLY&quot;)
+            print(f&quot;Total time: {elapsed:.1f} seconds&quot;)
+            print(&quot;=&quot;*50)
 
         except Exception as e:
-            print(f"\n⚠ Workflow failed: {e}")
+            print(f&quot;\n⚠ Workflow failed: {e}&quot;)
             raise
 
 # Usage example (requires DWSIM interface)
@@ -1213,6 +1246,16 @@ class AutomatedWorkflow:
 <li>Please check the license of each software for commercial use</li>
 </ul>
 </div>
+<section>
+            <h2>References</h2>
+            <ol>
+                <li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+                <li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+                <li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+                <li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+            </ol>
+        </section>
+
 </main>
 <footer>
 <p>© 2025 PI Terakoya - Process Intelligence Education Platform</p>

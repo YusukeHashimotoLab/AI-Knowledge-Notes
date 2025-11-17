@@ -111,29 +111,35 @@
 <p>Control Limit: Calculated from SPE distribution of normal data</p>
 </div>
 <h3>5.2.2 MSPC Implementation Example</h3>
-<pre><code class="language-python">import numpy as np
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - seaborn&gt;=0.12.0
+
+import numpy as np
 from sklearn.decomposition import PCA
 from scipy.stats import chi2, f
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 class MultivariateSPC:
-    """
+    &quot;&quot;&quot;
     Multivariate Statistical Process Control (MSPC)
 
     PCA-based multivariate anomaly detection
     Anomaly detection using Hotelling's T² and SPE statistics
-    """
+    &quot;&quot;&quot;
 
     def __init__(self, n_components=None, confidence_level=0.99):
-        """
+        &quot;&quot;&quot;
         Parameters:
         -----------
         n_components : int or float
             Number of principal components (absolute number if int, cumulative variance ratio if float)
         confidence_level : float
             Confidence level (for setting control limits)
-        """
+        &quot;&quot;&quot;
         self.n_components = n_components
         self.confidence_level = confidence_level
         self.pca = None
@@ -143,14 +149,14 @@ class MultivariateSPC:
         self.std = None
 
     def fit(self, X_normal):
-        """
+        &quot;&quot;&quot;
         Train on normal data
 
         Parameters:
         -----------
         X_normal : ndarray
             Normal operation data (n_samples, n_features)
-        """
+        &quot;&quot;&quot;
         # Standardization
         self.mean = np.mean(X_normal, axis=0)
         self.std = np.std(X_normal, axis=0)
@@ -175,16 +181,16 @@ class MultivariateSPC:
         # Empirical quantile
         self.SPE_UCL = np.percentile(SPE_train, self.confidence_level * 100)
 
-        print(f"MSPC Model Trained:")
-        print(f"  Number of components: {k}")
-        print(f"  Explained variance: {np.sum(self.pca.explained_variance_ratio_):.4f}")
-        print(f"  T² UCL: {self.T2_UCL:.4f}")
-        print(f"  SPE UCL: {self.SPE_UCL:.4f}")
+        print(f&quot;MSPC Model Trained:&quot;)
+        print(f&quot;  Number of components: {k}&quot;)
+        print(f&quot;  Explained variance: {np.sum(self.pca.explained_variance_ratio_):.4f}&quot;)
+        print(f&quot;  T² UCL: {self.T2_UCL:.4f}&quot;)
+        print(f&quot;  SPE UCL: {self.SPE_UCL:.4f}&quot;)
 
         return self
 
     def detect(self, X):
-        """
+        &quot;&quot;&quot;
         Anomaly detection
 
         Parameters:
@@ -200,7 +206,7 @@ class MultivariateSPC:
             T² statistics (n_samples,)
         SPE_values : ndarray
             SPE statistics (n_samples,)
-        """
+        &quot;&quot;&quot;
         # Standardization
         X_scaled = (X - self.mean) / self.std
 
@@ -221,11 +227,11 @@ class MultivariateSPC:
         return is_anomaly, T2_values, SPE_values
 
     def contribution_plot(self, x_anomaly):
-        """
+        &quot;&quot;&quot;
         Variable contribution plot for anomalies
 
         Visualize which variables contribute to the anomaly
-        """
+        &quot;&quot;&quot;
         x_scaled = (x_anomaly - self.mean) / self.std
         t = self.pca.transform(x_scaled.reshape(1, -1))[0]
         x_reconstructed = self.pca.inverse_transform(t.reshape(1, -1))[0]
@@ -271,7 +277,7 @@ class MultivariateSPC:
         return spe_contribution, t2_contribution
 
     def plot_control_chart(self, T2_values, SPE_values, is_anomaly):
-        """Visualize MSPC control charts"""
+        &quot;&quot;&quot;Visualize MSPC control charts&quot;&quot;&quot;
         fig, axes = plt.subplots(2, 1, figsize=(14, 10))
 
         time = np.arange(len(T2_values))
@@ -283,8 +289,8 @@ class MultivariateSPC:
         axes[0].scatter(time[is_anomaly], T2_values[is_anomaly],
                        color='red', s=100, zorder=5, label='Anomaly')
         axes[0].set_xlabel('Sample')
-        axes[0].set_ylabel("Hotelling's T²")
-        axes[0].set_title("Hotelling's T² Control Chart")
+        axes[0].set_ylabel(&quot;Hotelling's T²&quot;)
+        axes[0].set_title(&quot;Hotelling's T² Control Chart&quot;)
         axes[0].legend()
         axes[0].grid(True, alpha=0.3)
 
@@ -306,7 +312,7 @@ class MultivariateSPC:
 
 
 # ========== Usage Example ==========
-if __name__ == "__main__":
+if __name__ == &quot;__main__&quot;:
     np.random.seed(42)
 
     # Generate simulation data
@@ -333,22 +339,22 @@ if __name__ == "__main__":
     y_true = np.array([0]*100 + [1]*100)  # 0=normal, 1=anomaly
 
     # MSPC training
-    print("========== MSPC Training ==========")
+    print(&quot;========== MSPC Training ==========&quot;)
     mspc = MultivariateSPC(n_components=0.95, confidence_level=0.99)
     mspc.fit(X_normal[:400])  # Training data
 
     # Anomaly detection
-    print("\n========== Anomaly Detection ==========")
+    print(&quot;\n========== Anomaly Detection ==========&quot;)
     is_anomaly, T2_values, SPE_values = mspc.detect(X_test)
 
     # Evaluation
     from sklearn.metrics import classification_report, confusion_matrix
 
-    print("\nClassification Report:")
+    print(&quot;\nClassification Report:&quot;)
     print(classification_report(y_true, is_anomaly.astype(int),
                                target_names=['Normal', 'Anomaly']))
 
-    print("\nConfusion Matrix:")
+    print(&quot;\nConfusion Matrix:&quot;)
     cm = confusion_matrix(y_true, is_anomaly.astype(int))
     print(cm)
 
@@ -356,26 +362,26 @@ if __name__ == "__main__":
     tp = cm[1, 1]
     fn = cm[1, 0]
     detection_rate = tp / (tp + fn)
-    print(f"\nDetection Rate: {detection_rate:.2%}")
+    print(f&quot;\nDetection Rate: {detection_rate:.2%}&quot;)
 
     # False alarm rate
     fp = cm[0, 1]
     tn = cm[0, 0]
     false_alarm_rate = fp / (fp + tn)
-    print(f"False Alarm Rate: {false_alarm_rate:.2%}")
+    print(f&quot;False Alarm Rate: {false_alarm_rate:.2%}&quot;)
 
     # Control chart visualization
     mspc.plot_control_chart(T2_values, SPE_values, is_anomaly)
 
     # Contribution analysis of anomaly samples
-    print("\n========== Contribution Analysis ==========")
+    print(&quot;\n========== Contribution Analysis ==========&quot;)
     anomaly_sample = X_test[is_anomaly][0]
     spe_contrib, t2_contrib = mspc.contribution_plot(anomaly_sample)
 
-    print(f"Top 3 SPE Contributors:")
+    print(f&quot;Top 3 SPE Contributors:&quot;)
     top_spe = np.argsort(spe_contrib)[-3:][::-1]
     for idx in top_spe:
-        print(f"  Variable {idx}: {spe_contrib[idx]:.4f}")
+        print(f&quot;  Variable {idx}: {spe_contrib[idx]:.4f}&quot;)
 </code></pre>
 <h3>5.2.3 Time-Series Support with Dynamic PCA (DPCA)</h3>
 <p>Dynamic PCA considers temporal correlations in processes to achieve more accurate anomaly detection:</p>
@@ -468,19 +474,23 @@ print(f"Anomaly Rate: {np.sum(is_anomaly_dpca) / len(is_anomaly_dpca):.2%}")
 <p>\(s \approx 1\): Anomaly, \(s \approx 0.5\): Normal</p>
 </div>
 <h3>5.3.2 Application to Semiconductor Processes</h3>
-<pre><code class="language-python">from sklearn.ensemble import IsolationForest
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+
+from sklearn.ensemble import IsolationForest
 from sklearn.metrics import roc_auc_score, precision_recall_curve
 import matplotlib.pyplot as plt
 
 class IsolationForestFDC:
-    """
+    &quot;&quot;&quot;
     Anomaly detection with Isolation Forest
 
     Detect anomalies from semiconductor process sensor data
-    """
+    &quot;&quot;&quot;
 
     def __init__(self, contamination=0.01, n_estimators=100, max_samples='auto'):
-        """
+        &quot;&quot;&quot;
         Parameters:
         -----------
         contamination : float
@@ -489,7 +499,7 @@ class IsolationForestFDC:
             Number of trees
         max_samples : int or 'auto'
             Number of samples per tree
-        """
+        &quot;&quot;&quot;
         self.contamination = contamination
         self.model = IsolationForest(
             contamination=contamination,
@@ -500,12 +510,12 @@ class IsolationForestFDC:
         )
 
     def fit(self, X_train):
-        """Train (mainly on normal data)"""
+        &quot;&quot;&quot;Train (mainly on normal data)&quot;&quot;&quot;
         self.model.fit(X_train)
         return self
 
     def detect(self, X_test):
-        """
+        &quot;&quot;&quot;
         Anomaly detection
 
         Returns:
@@ -514,7 +524,7 @@ class IsolationForestFDC:
             Anomaly labels (-1: anomaly, 1: normal)
         scores : ndarray
             Anomaly scores (more negative = more anomalous)
-        """
+        &quot;&quot;&quot;
         predictions = self.model.predict(X_test)
         scores = self.model.score_samples(X_test)
 
@@ -524,7 +534,7 @@ class IsolationForestFDC:
         return is_anomaly, scores
 
     def plot_anomaly_score_distribution(self, scores_normal, scores_anomaly):
-        """Visualize anomaly score distribution"""
+        &quot;&quot;&quot;Visualize anomaly score distribution&quot;&quot;&quot;
         plt.figure(figsize=(10, 6))
 
         plt.hist(scores_normal, bins=50, alpha=0.6, label='Normal', color='blue')
@@ -539,7 +549,7 @@ class IsolationForestFDC:
         plt.show()
 
     def plot_roc_and_pr_curves(self, y_true, scores):
-        """ROC curve and Precision-Recall curve"""
+        &quot;&quot;&quot;ROC curve and Precision-Recall curve&quot;&quot;&quot;
         from sklearn.metrics import roc_curve, auc
 
         fig, axes = plt.subplots(1, 2, figsize=(14, 6))
@@ -574,7 +584,7 @@ class IsolationForestFDC:
 
 
 # ========== Usage Example ==========
-if __name__ == "__main__":
+if __name__ == &quot;__main__&quot;:
     np.random.seed(42)
 
     # Simulation data
@@ -594,22 +604,22 @@ if __name__ == "__main__":
     y_test = np.array([0]*200 + [1]*50)  # 0=normal, 1=anomaly
 
     # Isolation Forest training
-    print("========== Isolation Forest Training ==========")
+    print(&quot;========== Isolation Forest Training ==========&quot;)
     if_fdc = IsolationForestFDC(contamination=0.05, n_estimators=100)
     if_fdc.fit(X_train)
 
     # Anomaly detection
-    print("\n========== Anomaly Detection ==========")
+    print(&quot;\n========== Anomaly Detection ==========&quot;)
     is_anomaly, scores = if_fdc.detect(X_test)
 
     # Evaluation
-    print("\nClassification Report:")
+    print(&quot;\nClassification Report:&quot;)
     print(classification_report(y_test, is_anomaly.astype(int),
                                target_names=['Normal', 'Anomaly']))
 
     # AUC-ROC
     roc_auc = roc_auc_score(y_test, -scores)
-    print(f"\nAUC-ROC: {roc_auc:.4f}")
+    print(f&quot;\nAUC-ROC: {roc_auc:.4f}&quot;)
 
     # Visualization
     scores_normal_test = scores[y_test == 0]
@@ -618,7 +628,7 @@ if __name__ == "__main__":
     if_fdc.plot_anomaly_score_distribution(scores_normal_test, scores_anomaly_test)
     if_fdc.plot_roc_and_pr_curves(y_test, scores)
 
-    print("\n========== Feature Importance Analysis ==========")
+    print(&quot;\n========== Feature Importance Analysis ==========&quot;)
     # Feature Importance (features with large variation in anomalous samples)
     anomaly_samples = X_test[y_test == 1]
     normal_samples = X_test[y_test == 0]
@@ -628,9 +638,9 @@ if __name__ == "__main__":
     importance = feature_std_anomaly / (feature_std_normal + 1e-6)
 
     top_features = np.argsort(importance)[-5:][::-1]
-    print("Top 5 Important Features:")
+    print(&quot;Top 5 Important Features:&quot;)
     for idx in top_features:
-        print(f"  Feature {idx}: Importance = {importance[idx]:.4f}")
+        print(f&quot;  Feature {idx}: Importance = {importance[idx]:.4f}&quot;)
 </code></pre>
 </section>
 <section>
@@ -638,21 +648,27 @@ if __name__ == "__main__":
 <h3>5.4.1 Principles of LSTM Autoencoder</h3>
 <p>Long Short-Term Memory (LSTM) is a type of RNN that can learn long-term dependencies in time-series data. It learns normal patterns with an Autoencoder structure and detects anomalies through reconstruction error:</p>
 <h3>5.4.2 LSTM-AE Implementation</h3>
-<pre><code class="language-python">import tensorflow as tf
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - tensorflow&gt;=2.13.0, &lt;2.16.0
+
+import tensorflow as tf
 from tensorflow.keras import layers, models
 import numpy as np
 import matplotlib.pyplot as plt
 
 class LSTMAutoencoderFDC:
-    """
+    &quot;&quot;&quot;
     Time-series anomaly detection with LSTM Autoencoder
 
     Learn normal patterns from sensor time-series data and
     detect anomalous time series
-    """
+    &quot;&quot;&quot;
 
     def __init__(self, sequence_length=50, n_features=10, latent_dim=20):
-        """
+        &quot;&quot;&quot;
         Parameters:
         -----------
         sequence_length : int
@@ -661,7 +677,7 @@ class LSTMAutoencoderFDC:
             Number of features (number of sensors)
         latent_dim : int
             Dimension of latent space
-        """
+        &quot;&quot;&quot;
         self.sequence_length = sequence_length
         self.n_features = n_features
         self.latent_dim = latent_dim
@@ -669,7 +685,7 @@ class LSTMAutoencoderFDC:
         self.threshold = None
 
     def build_model(self):
-        """Build LSTM Autoencoder"""
+        &quot;&quot;&quot;Build LSTM Autoencoder&quot;&quot;&quot;
         # Encoder
         encoder_inputs = layers.Input(shape=(self.sequence_length, self.n_features))
 
@@ -711,14 +727,14 @@ class LSTMAutoencoderFDC:
         return autoencoder
 
     def train(self, X_normal, epochs=50, batch_size=32, validation_split=0.2):
-        """
+        &quot;&quot;&quot;
         Train on normal time-series data
 
         Parameters:
         -----------
         X_normal : ndarray
             Normal data (n_samples, sequence_length, n_features)
-        """
+        &quot;&quot;&quot;
         if self.autoencoder is None:
             self.build_model()
 
@@ -748,33 +764,33 @@ class LSTMAutoencoderFDC:
         return history
 
     def calculate_reconstruction_errors(self, X):
-        """
+        &quot;&quot;&quot;
         Calculate reconstruction errors
 
         Returns:
         --------
         errors : ndarray
             MSE for each sample (n_samples,)
-        """
+        &quot;&quot;&quot;
         X_reconstructed = self.autoencoder.predict(X, verbose=0)
         errors = np.mean((X - X_reconstructed) ** 2, axis=(1, 2))
 
         return errors
 
     def set_threshold(self, X_normal, percentile=99):
-        """Set anomaly detection threshold"""
+        &quot;&quot;&quot;Set anomaly detection threshold&quot;&quot;&quot;
         errors = self.calculate_reconstruction_errors(X_normal)
         self.threshold = np.percentile(errors, percentile)
 
-        print(f"Threshold set: {self.threshold:.6f} "
-              f"({percentile}th percentile of normal data)")
+        print(f&quot;Threshold set: {self.threshold:.6f} &quot;
+              f&quot;({percentile}th percentile of normal data)&quot;)
 
         return self.threshold
 
     def detect_anomalies(self, X):
-        """Anomaly detection"""
+        &quot;&quot;&quot;Anomaly detection&quot;&quot;&quot;
         if self.threshold is None:
-            raise ValueError("Threshold not set. Run set_threshold() first.")
+            raise ValueError(&quot;Threshold not set. Run set_threshold() first.&quot;)
 
         errors = self.calculate_reconstruction_errors(X)
         is_anomaly = errors &gt; self.threshold
@@ -782,7 +798,7 @@ class LSTMAutoencoderFDC:
         return is_anomaly, errors
 
     def visualize_reconstruction(self, X_sample, sample_idx=0):
-        """Visualize reconstruction results"""
+        &quot;&quot;&quot;Visualize reconstruction results&quot;&quot;&quot;
         X_recon = self.autoencoder.predict(X_sample[sample_idx:sample_idx+1], verbose=0)[0]
         original = X_sample[sample_idx]
 
@@ -808,7 +824,7 @@ class LSTMAutoencoderFDC:
 
 
 # ========== Usage Example ==========
-if __name__ == "__main__":
+if __name__ == &quot;__main__&quot;:
     np.random.seed(42)
     tf.random.set_seed(42)
 
@@ -842,7 +858,7 @@ if __name__ == "__main__":
     y_test = np.array([0]*100 + [1]*100)
 
     # Build and train LSTM-AE
-    print("========== LSTM Autoencoder Training ==========")
+    print(&quot;========== LSTM Autoencoder Training ==========&quot;)
     lstm_ae = LSTMAutoencoderFDC(
         sequence_length=sequence_length,
         n_features=n_features,
@@ -850,30 +866,30 @@ if __name__ == "__main__":
     )
     lstm_ae.build_model()
 
-    print("\nModel Architecture:")
+    print(&quot;\nModel Architecture:&quot;)
     lstm_ae.autoencoder.summary()
 
     history = lstm_ae.train(X_train, epochs=30, batch_size=32)
 
     # Set threshold
-    print("\n========== Setting Threshold ==========")
+    print(&quot;\n========== Setting Threshold ==========&quot;)
     lstm_ae.set_threshold(X_normal[400:450], percentile=99)
 
     # Anomaly detection
-    print("\n========== Anomaly Detection ==========")
+    print(&quot;\n========== Anomaly Detection ==========&quot;)
     is_anomaly, errors = lstm_ae.detect_anomalies(X_test)
 
     # Evaluation
-    print("\nClassification Report:")
+    print(&quot;\nClassification Report:&quot;)
     print(classification_report(y_test, is_anomaly.astype(int),
                                target_names=['Normal', 'Anomaly']))
 
     # AUC-ROC
     auc_score = roc_auc_score(y_test, errors)
-    print(f"\nAUC-ROC: {auc_score:.4f}")
+    print(f&quot;\nAUC-ROC: {auc_score:.4f}&quot;)
 
     # Visualize reconstruction results
-    print("\n========== Reconstruction Visualization ==========")
+    print(&quot;\n========== Reconstruction Visualization ==========&quot;)
     # Normal sample
     lstm_ae.visualize_reconstruction(X_test[y_test == 0], sample_idx=0)
     # Anomalous sample
@@ -956,6 +972,16 @@ if __name__ == "__main__":
 <a class="btn btn-secondary" href="index.html">Back to Contents</a>
 </div>
 </article>
+<section>
+            <h2>References</h2>
+            <ol>
+                <li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+                <li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+                <li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+                <li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+            </ol>
+        </section>
+
 </main>
 <footer class="site-footer">
 <div class="container">

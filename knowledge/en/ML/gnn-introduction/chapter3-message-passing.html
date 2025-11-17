@@ -129,14 +129,18 @@ graph TB
     style H fill:#c8e6c9
 </div>
 <h3>Implementation Example 1: Basic Message Passing Implementation</h3>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-print("=== Message Passing Framework Basic Implementation ===\n")
+print(&quot;=== Message Passing Framework Basic Implementation ===\n&quot;)
 
 class MessagePassingLayer(nn.Module):
-    """Basic message passing layer"""
+    &quot;&quot;&quot;Basic message passing layer&quot;&quot;&quot;
 
     def __init__(self, in_dim, out_dim, aggr='mean'):
         super(MessagePassingLayer, self).__init__()
@@ -152,11 +156,11 @@ class MessagePassingLayer(nn.Module):
         )
 
     def message(self, h_j):
-        """Message generation"""
+        &quot;&quot;&quot;Message generation&quot;&quot;&quot;
         return self.message_nn(h_j)
 
     def aggregate(self, messages, edge_index, num_nodes):
-        """Message aggregation"""
+        &quot;&quot;&quot;Message aggregation&quot;&quot;&quot;
  # edge_index[1]: receiving nodeindex         target_nodes = edge_index[1]
 
  # eachNode to messageaggregation         aggregated = torch.zeros(num_nodes, self.out_dim)
@@ -179,15 +183,15 @@ class MessagePassingLayer(nn.Module):
         return aggregated
 
     def update(self, h_i, aggregated):
- """Featureupdate"""         combined = torch.cat([h_i, aggregated], dim=-1)
+ &quot;&quot;&quot;Featureupdate&quot;&quot;&quot;         combined = torch.cat([h_i, aggregated], dim=-1)
         return self.update_nn(combined)
 
     def forward(self, x, edge_index):
-        """
+        &quot;&quot;&quot;
         Args:
             x: NodeFeature [num_nodes, in_dim]
             edge_index: Edge index [2, num_edges]
-        """
+        &quot;&quot;&quot;
         num_nodes = x.size(0)
 
         # Step 1: Message
@@ -202,29 +206,29 @@ class MessagePassingLayer(nn.Module):
         return h_new
 
 
-# test execution print("--- Creating Test Graph ---")
+# test execution print(&quot;--- Creating Test Graph ---&quot;)
 # 5NodeGraph num_nodes = 5
 in_dim = 4
 out_dim = 8
 
 # NodeFeature（randomly initialized） x = torch.randn(num_nodes, in_dim)
-print(f"Node feature shape: {x.shape}")
+print(f&quot;Node feature shape: {x.shape}&quot;)
 
 # edge list（0→1, 1→2, 2→3, 3→4, 1→3） edge_index = torch.tensor([
  [0, 1, 2, 3, 1], # sending node  [1, 2, 3, 4, 3] # receiving node ], dtype=torch.long)
-print(f"Edge index shape: {edge_index.shape}")
-print(f"Number of edges: {edge_index.size(1)}\n")
+print(f&quot;Edge index shape: {edge_index.shape}&quot;)
+print(f&quot;Number of edges: {edge_index.size(1)}\n&quot;)
 
-# creating and executing message passing layer print("--- Message Passing with Each Aggregation Method ---")
+# creating and executing message passing layer print(&quot;--- Message Passing with Each Aggregation Method ---&quot;)
 for aggr in ['sum', 'mean', 'max']:
-    print(f"\n{aggr.upper()} Aggregation:")
+    print(f&quot;\n{aggr.upper()} Aggregation:&quot;)
     mp_layer = MessagePassingLayer(in_dim, out_dim, aggr=aggr)
     h_new = mp_layer(x, edge_index)
-    print(f"  Output shape: {h_new.shape}")
-    print(f"  Output value range: [{h_new.min():.3f}, {h_new.max():.3f}]")
-    print(f"  Output examples for each node:")
+    print(f&quot;  Output shape: {h_new.shape}&quot;)
+    print(f&quot;  Output value range: [{h_new.min():.3f}, {h_new.max():.3f}]&quot;)
+    print(f&quot;  Output examples for each node:&quot;)
     for i in range(min(3, num_nodes)):
-        print(f"    Node{i}: mean={h_new[i].mean():.3f}, std={h_new[i].std():.3f}")
+        print(f&quot;    Node{i}: mean={h_new[i].mean():.3f}, std={h_new[i].std():.3f}&quot;)
 </code></pre>
 <p><strong>Output</strong>：</p><pre><code>=== Message Passing Framework Basic Implementation ===
 
@@ -367,14 +371,18 @@ $$</p>
 $$</p>
 <p>Where $\pi$ is a random permutation. Feature: High expressive power but requires attention to permutation dependency</p>
 <h3>Implementation Example 2: GraphSAGE Implementation</h3>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-print("\n=== GraphSAGE Implementation ===\n")
+print(&quot;\n=== GraphSAGE Implementation ===\n&quot;)
 
 class SAGEConv(nn.Module):
-    """GraphSAGE layer"""
+    &quot;&quot;&quot;GraphSAGE layer&quot;&quot;&quot;
 
     def __init__(self, in_dim, out_dim, aggr='mean'):
         super(SAGEConv, self).__init__()
@@ -392,7 +400,7 @@ class SAGEConv(nn.Module):
             self.lin = nn.Linear(2 * in_dim, out_dim)
 
     def aggregate_mean(self, h_neighbors, edge_index, num_nodes):
-        """Mean aggregation"""
+        &quot;&quot;&quot;Mean aggregation&quot;&quot;&quot;
         target_nodes = edge_index[1]
         aggregated = torch.zeros(num_nodes, self.in_dim)
 
@@ -403,7 +411,7 @@ class SAGEConv(nn.Module):
         return aggregated / degree
 
     def aggregate_pool(self, h_neighbors, edge_index, num_nodes):
-        """Max-pooling aggregation"""
+        &quot;&quot;&quot;Max-pooling aggregation&quot;&quot;&quot;
         target_nodes = edge_index[1]
 
  # eachNeighborFeaturetransformation         transformed = torch.relu(self.pool_nn(h_neighbors))
@@ -418,7 +426,7 @@ class SAGEConv(nn.Module):
         return aggregated
 
     def aggregate_lstm(self, h_neighbors, edge_index, num_nodes):
-        """LSTM aggregation"""
+        &quot;&quot;&quot;LSTM aggregation&quot;&quot;&quot;
         target_nodes = edge_index[1]
         aggregated = torch.zeros(num_nodes, self.in_dim)
 
@@ -457,7 +465,7 @@ class SAGEConv(nn.Module):
 
 
 class GraphSAGE(nn.Module):
- """GraphSAGEModel（2layer）""" 
+ &quot;&quot;&quot;GraphSAGEModel（2layer）&quot;&quot;&quot; 
     def __init__(self, in_dim, hidden_dim, out_dim, aggr='mean'):
         super(GraphSAGE, self).__init__()
         self.conv1 = SAGEConv(in_dim, hidden_dim, aggr)
@@ -475,7 +483,7 @@ class GraphSAGE(nn.Module):
         return h
 
 
-# test execution print("--- Creating GraphSAGE Model ---") num_nodes = 10
+# test execution print(&quot;--- Creating GraphSAGE Model ---&quot;) num_nodes = 10
 in_dim = 8
 hidden_dim = 16
 out_dim = 4
@@ -486,21 +494,21 @@ edge_index = torch.tensor([
     [1, 2, 3, 4, 5, 0, 1, 6, 7, 8]
 ], dtype=torch.long)
 
-print(f"Number of nodes: {num_nodes}") print(f"Input dimension: {in_dim}")
-print(f"Hidden layer dimension: {hidden_dim}")
-print(f"Output dimension: {out_dim}\n")
+print(f&quot;Number of nodes: {num_nodes}&quot;) print(f&quot;Input dimension: {in_dim}&quot;)
+print(f&quot;Hidden layer dimension: {hidden_dim}&quot;)
+print(f&quot;Output dimension: {out_dim}\n&quot;)
 
 # eachAggregatortest for aggr in ['mean', 'pool', 'lstm']:
-    print(f"--- {aggr.upper()} Aggregator ---")
+    print(f&quot;--- {aggr.upper()} Aggregator ---&quot;)
     model = GraphSAGE(in_dim, hidden_dim, out_dim, aggr=aggr)
     model.eval()
 
     with torch.no_grad():
         out = model(x, edge_index)
 
-    print(f"Output shape: {out.shape}")
-    print(f"Output L2 norm: {out.norm(dim=-1)[:5].numpy()}")
-    print(f"Output value range: [{out.min():.3f}, {out.max():.3f}]\n")
+    print(f&quot;Output shape: {out.shape}&quot;)
+    print(f&quot;Output L2 norm: {out.norm(dim=-1)[:5].numpy()}&quot;)
+    print(f&quot;Output value range: [{out.min():.3f}, {out.max():.3f}]\n&quot;)
 </code></pre>
 <p><strong>Output</strong>：</p><pre><code>
 === GraphSAGE Implementation ===
@@ -609,14 +617,18 @@ $$</p>
 </tbody>
 </table>
 <h3>Implementation Example3: GINimplementation</h3>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-print("\n=== Graph Isomorphism Network (GIN) Implementation ===\n")
+print(&quot;\n=== Graph Isomorphism Network (GIN) Implementation ===\n&quot;)
 
 class GINConv(nn.Module):
-    """GIN layer"""
+    &quot;&quot;&quot;GIN layer&quot;&quot;&quot;
 
     def __init__(self, in_dim, out_dim, epsilon=0.0, train_eps=False):
         super(GINConv, self).__init__()
@@ -651,7 +663,7 @@ class GINConv(nn.Module):
 
 
 class GIN(nn.Module):
- """GINModel（Graphclassificationfor）""" 
+ &quot;&quot;&quot;GINModel（Graphclassificationfor）&quot;&quot;&quot; 
     def __init__(self, in_dim, hidden_dim, out_dim, num_layers=3,
                  dropout=0.5, train_eps=False):
         super(GIN, self).__init__()
@@ -700,38 +712,38 @@ class GIN(nn.Module):
         return out
 
 
-# test execution print("--- Creating GIN Model ---") in_dim = 10
+# test execution print(&quot;--- Creating GIN Model ---&quot;) in_dim = 10
 hidden_dim = 32
 out_dim = 5 # 5Classclassification num_layers = 3
 
 model = GIN(in_dim, hidden_dim, out_dim, num_layers, train_eps=True)
-print(f"Modelstructure:\n{model}\n") 
+print(f&quot;Modelstructure:\n{model}\n&quot;) 
 # singleGraphtest num_nodes = 20
 x = torch.randn(num_nodes, in_dim)
 edge_index = torch.randint(0, num_nodes, (2, 50))
 
-print("--- Inference on Single Graph ---")
+print(&quot;--- Inference on Single Graph ---&quot;)
 model.eval()
 with torch.no_grad():
     out = model(x, edge_index)
 
-print(f"Input number of nodes: {num_nodes}") print(f"Input feature dimension: {in_dim}")
-print(f"Output shape: {out.shape}")
-print(f"Output (logits): {out[0].numpy()}\n")
+print(f&quot;Input number of nodes: {num_nodes}&quot;) print(f&quot;Input feature dimension: {in_dim}&quot;)
+print(f&quot;Output shape: {out.shape}&quot;)
+print(f&quot;Output (logits): {out[0].numpy()}\n&quot;)
 
-# batchGraphtest print("--- Inference on Batch Graphs ---")
+# batchGraphtest print(&quot;--- Inference on Batch Graphs ---&quot;)
 # 3 graphsbatch processing x_batch = torch.randn(50, in_dim) # sum50Node edge_index_batch = torch.randint(0, 50, (2, 100))
 batch = torch.tensor([0]*15 + [1]*20 + [2]*15)  # Graph1: 15Node, Graph2: 20Node, Graph3: 15Node
 
 with torch.no_grad():
     out_batch = model(x_batch, edge_index_batch, batch)
 
-print(f"Batch size: 3")
-print(f"Total number of nodes: {x_batch.size(0)}") print(f"Output shape: {out_batch.shape}")
-print(f"Predictions for each graph:")
+print(f&quot;Batch size: 3&quot;)
+print(f&quot;Total number of nodes: {x_batch.size(0)}&quot;) print(f&quot;Output shape: {out_batch.shape}&quot;)
+print(f&quot;Predictions for each graph:&quot;)
 for i in range(3):
     pred_class = out_batch[i].argmax().item()
-    print(f"  Graph{i+1}: Class {pred_class} (score={out_batch[i, pred_class]:.3f})")
+    print(f&quot;  Graph{i+1}: Class {pred_class} (score={out_batch[i, pred_class]:.3f})&quot;)
 </code></pre>
 <p><strong>Output</strong>：</p><pre><code>
 === Graph Isomorphism Network (GIN) Implementation ===
@@ -981,12 +993,16 @@ Attributes:
 - data.edge_attr: Edge features (optional)
 - data.y: labels（node level or graph level） - data.num_nodes: Number of nodes </code></pre>
 <h3>Implementation Example5: Model using PyG pre-implemented layers</h3>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
 import torch.nn.functional as F
 
-print("\n=== Model using PyG pre-implemented layers（pseudo-code） ===\n") 
+print(&quot;\n=== Model using PyG pre-implemented layers（pseudo-code） ===\n&quot;) 
 # Complete model example using PyG pre-implemented layers（pseudo-code） class GNNModel:
-    """
+    &quot;&quot;&quot;
     from torch_geometric.nn import GCNConv, SAGEConv, GINConv
     from torch_geometric.nn import global_mean_pool, global_max_pool
 
@@ -1018,46 +1034,46 @@ print("\n=== Model using PyG pre-implemented layers（pseudo-code） ===\n")
  # classification             x = self.lin(x)
 
             return F.log_softmax(x, dim=1)
-    """
+    &quot;&quot;&quot;
     pass
 
-print("--- Main GNN Layers Available in PyG ---\n")
+print(&quot;--- Main GNN Layers Available in PyG ---\n&quot;)
 
 layers_info = {
-    "GCNConv": {
-        "Description": "Graph Convolutional Network layer",
- "aggregation": "Mean (Sum with degree normalization)",         "Usage": "GCNConv(in_channels, out_channels)"
+    &quot;GCNConv&quot;: {
+        &quot;Description&quot;: &quot;Graph Convolutional Network layer&quot;,
+ &quot;aggregation&quot;: &quot;Mean (Sum with degree normalization)&quot;,         &quot;Usage&quot;: &quot;GCNConv(in_channels, out_channels)&quot;
     },
-    "SAGEConv": {
-        "Description": "GraphSAGE layer",
- "aggregation": "Mean / LSTM / Max-pool",         "Usage": "SAGEConv(in_channels, out_channels, aggr='mean')"
+    &quot;SAGEConv&quot;: {
+        &quot;Description&quot;: &quot;GraphSAGE layer&quot;,
+ &quot;aggregation&quot;: &quot;Mean / LSTM / Max-pool&quot;,         &quot;Usage&quot;: &quot;SAGEConv(in_channels, out_channels, aggr='mean')&quot;
     },
-    "GINConv": {
-        "Description": "Graph Isomorphism Network layer",
- "aggregation": "Sum",         "Usage": "GINConv(nn.Sequential(...))"
+    &quot;GINConv&quot;: {
+        &quot;Description&quot;: &quot;Graph Isomorphism Network layer&quot;,
+ &quot;aggregation&quot;: &quot;Sum&quot;,         &quot;Usage&quot;: &quot;GINConv(nn.Sequential(...))&quot;
     },
-    "GATConv": {
-        "Description": "Graph Attention Network layer",
- "aggregation": "Attention-weighted Sum",         "Usage": "GATConv(in_channels, out_channels, heads=8)"
+    &quot;GATConv&quot;: {
+        &quot;Description&quot;: &quot;Graph Attention Network layer&quot;,
+ &quot;aggregation&quot;: &quot;Attention-weighted Sum&quot;,         &quot;Usage&quot;: &quot;GATConv(in_channels, out_channels, heads=8)&quot;
     },
-    "GATv2Conv": {
-        "Description": "GATv2 (dynamic attention)",
- "aggregation": "Improved Attention",         "Usage": "GATv2Conv(in_channels, out_channels, heads=8)"
+    &quot;GATv2Conv&quot;: {
+        &quot;Description&quot;: &quot;GATv2 (dynamic attention)&quot;,
+ &quot;aggregation&quot;: &quot;Improved Attention&quot;,         &quot;Usage&quot;: &quot;GATv2Conv(in_channels, out_channels, heads=8)&quot;
     }
 }
 
 for layer_name, info in layers_info.items():
-    print(f"{layer_name}:")
-    print(f"  Description: {info['Description']}")
- print(f" Aggregation: {info['aggregation']}")     print(f"  Usage: {info['Usage']}\n")
+    print(f&quot;{layer_name}:&quot;)
+    print(f&quot;  Description: {info['Description']}&quot;)
+ print(f&quot; Aggregation: {info['aggregation']}&quot;)     print(f&quot;  Usage: {info['Usage']}\n&quot;)
 
-print("--- Graph-level poolingfunction ---\n") 
+print(&quot;--- Graph-level poolingfunction ---\n&quot;) 
 pooling_info = {
- "global_mean_pool": "mean of all nodes",  "global_max_pool": "max value of all nodes",  "global_add_pool": "sum of all nodes",     "GlobalAttention": "Attention-weighted sum"
+ &quot;global_mean_pool&quot;: &quot;mean of all nodes&quot;,  &quot;global_max_pool&quot;: &quot;max value of all nodes&quot;,  &quot;global_add_pool&quot;: &quot;sum of all nodes&quot;,     &quot;GlobalAttention&quot;: &quot;Attention-weighted sum&quot;
 }
 
 for func_name, desc in pooling_info.items():
-    print(f"{func_name}: {desc}")
+    print(f&quot;{func_name}: {desc}&quot;)
 </code></pre>
 <p><strong>Output</strong>：</p><pre><code>
 === Model using PyG pre-implemented layers（pseudo-code） === 
@@ -1138,14 +1154,18 @@ graph TB
     style C fill:#e8f5e9
 </div>
 <h3>Implementation Example6: Complete implementation of graph classification</h3>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
-print("\n=== Complete implementation of graph classification task ===\n") 
+print(&quot;\n=== Complete implementation of graph classification task ===\n&quot;) 
 # simple graph dataset class SimpleGraphDataset(Dataset):
- """simple graph dataset""" 
+ &quot;&quot;&quot;simple graph dataset&quot;&quot;&quot; 
     def __init__(self, num_graphs=100):
         self.num_graphs = num_graphs
         self.graphs = []
@@ -1176,7 +1196,7 @@ print("\n=== Complete implementation of graph classification task ===\n")
 
 # Collate function for batch processing
 def collate_graphs(batch):
- """multipleGraph1batchMerge"""     batch_x = []
+ &quot;&quot;&quot;multipleGraph1batchMerge&quot;&quot;&quot;     batch_x = []
     batch_edge_index = []
     batch_y = []
     batch_vec = []
@@ -1203,7 +1223,7 @@ def collate_graphs(batch):
 
 
 # GraphclassificationModel class GraphClassifier(nn.Module):
- """GINbaseGraphclassificationdevice""" 
+ &quot;&quot;&quot;GINbaseGraphclassificationdevice&quot;&quot;&quot; 
     def __init__(self, in_dim, hidden_dim, num_classes, num_layers=3):
         super(GraphClassifier, self).__init__()
 
@@ -1291,7 +1311,7 @@ def evaluate(model, loader, criterion):
 
 
 # Execution
-print("--- Creating Dataset ---")
+print(&quot;--- Creating Dataset ---&quot;)
 dataset = SimpleGraphDataset(num_graphs=200)
 train_dataset = SimpleGraphDataset(num_graphs=150)
 test_dataset = SimpleGraphDataset(num_graphs=50)
@@ -1301,26 +1321,26 @@ train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True,
 test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False,
                          collate_fn=collate_graphs)
 
-print(f"Training data: {len(train_dataset)} Graph")
-print(f"Test data: {len(test_dataset)} Graph")
-print(f"Batch size: 16\n")
+print(f&quot;Training data: {len(train_dataset)} Graph&quot;)
+print(f&quot;Test data: {len(test_dataset)} Graph&quot;)
+print(f&quot;Batch size: 16\n&quot;)
 
 # Creating model model = GraphClassifier(in_dim=8, hidden_dim=32, num_classes=3, num_layers=3)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = nn.CrossEntropyLoss()
 
-print(f"Model parameter count: {sum(p.numel() for p in model.parameters()):,}\n") 
-# training print("--- Training Start ---")
+print(f&quot;Model parameter count: {sum(p.numel() for p in model.parameters()):,}\n&quot;) 
+# training print(&quot;--- Training Start ---&quot;)
 num_epochs = 5
 for epoch in range(num_epochs):
     train_loss, train_acc = train_epoch(model, train_loader, optimizer, criterion)
     test_loss, test_acc = evaluate(model, test_loader, criterion)
 
-    print(f"Epoch {epoch+1}/{num_epochs}:")
-    print(f"  Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}")
-    print(f"  Test Loss:  {test_loss:.4f}, Test Acc:  {test_acc:.4f}")
+    print(f&quot;Epoch {epoch+1}/{num_epochs}:&quot;)
+    print(f&quot;  Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}&quot;)
+    print(f&quot;  Test Loss:  {test_loss:.4f}, Test Acc:  {test_acc:.4f}&quot;)
 
-print("\nTraining complete!")
+print(&quot;\nTraining complete!&quot;)
 </code></pre>
 <p><strong>Output</strong>：</p><pre><code>
 === Complete implementation of graph classification task === 
@@ -1350,15 +1370,19 @@ Epoch 5/5:
 Training complete!
 </code></pre>
 <h3>Implementation Example7: Graphpoolingcomparison</h3>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
 import torch.nn as nn
 
-print("\n=== Graph-level poolingcomparison ===\n") 
+print(&quot;\n=== Graph-level poolingcomparison ===\n&quot;) 
 class GlobalPooling:
- """variousGraph-level poolingfunction""" 
+ &quot;&quot;&quot;variousGraph-level poolingfunction&quot;&quot;&quot; 
     @staticmethod
     def global_mean_pool(x, batch):
- """meanpooling"""         num_graphs = batch.max().item() + 1
+ &quot;&quot;&quot;meanpooling&quot;&quot;&quot;         num_graphs = batch.max().item() + 1
         out = torch.zeros(num_graphs, x.size(1))
 
         for i in range(num_graphs):
@@ -1369,7 +1393,7 @@ class GlobalPooling:
 
     @staticmethod
     def global_max_pool(x, batch):
-        """Max pooling"""
+        &quot;&quot;&quot;Max pooling&quot;&quot;&quot;
         num_graphs = batch.max().item() + 1
         out = torch.zeros(num_graphs, x.size(1))
 
@@ -1382,7 +1406,7 @@ class GlobalPooling:
 
     @staticmethod
     def global_add_pool(x, batch):
-        """Sum pooling"""
+        &quot;&quot;&quot;Sum pooling&quot;&quot;&quot;
         num_graphs = batch.max().item() + 1
         out = torch.zeros(num_graphs, x.size(1))
 
@@ -1394,7 +1418,7 @@ class GlobalPooling:
 
     @staticmethod
     def global_attention_pool(x, batch, gate_nn):
-        """Attention pooling"""
+        &quot;&quot;&quot;Attention pooling&quot;&quot;&quot;
         num_graphs = batch.max().item() + 1
         out = torch.zeros(num_graphs, x.size(1))
 
@@ -1412,55 +1436,55 @@ class GlobalPooling:
         return out
 
 
-# Creating test data print("--- Creating test data ---") # 3 graphs batching x = torch.randn(30, 16) # 30 nodes, 16-dimensional features batch = torch.tensor([0]*10 + [1]*12 + [2]*8)  # Graph 1: 10 nodes, Graph 2: 12 nodes, Graph 3: 8 nodes
+# Creating test data print(&quot;--- Creating test data ---&quot;) # 3 graphs batching x = torch.randn(30, 16) # 30 nodes, 16-dimensional features batch = torch.tensor([0]*10 + [1]*12 + [2]*8)  # Graph 1: 10 nodes, Graph 2: 12 nodes, Graph 3: 8 nodes
 
-print(f"Total number of nodes: {x.size(0)}") print(f"Feature dimension: {x.size(1)}")
-print(f"Graphnumber: {batch.max().item() + 1}") print(f"eachGraphNumber of nodes: {[(batch == i).sum().item() for i in range(3)]}\n") 
-# eachpoolingmethodcomparison print("--- Comparison of Each Pooling Method ---\n")
+print(f&quot;Total number of nodes: {x.size(0)}&quot;) print(f&quot;Feature dimension: {x.size(1)}&quot;)
+print(f&quot;Graphnumber: {batch.max().item() + 1}&quot;) print(f&quot;eachGraphNumber of nodes: {[(batch == i).sum().item() for i in range(3)]}\n&quot;) 
+# eachpoolingmethodcomparison print(&quot;--- Comparison of Each Pooling Method ---\n&quot;)
 
 pooling = GlobalPooling()
 
 # Mean pooling
 mean_out = pooling.global_mean_pool(x, batch)
-print("Mean Pooling:")
-print(f"  Output shape: {mean_out.shape}")
-print(f" Graph1Featurequantitymean: {mean_out[0].mean():.4f}") print(f" Graph2Featurequantitymean: {mean_out[1].mean():.4f}") print(f" Graph3Featurequantitymean: {mean_out[2].mean():.4f}\n") 
+print(&quot;Mean Pooling:&quot;)
+print(f&quot;  Output shape: {mean_out.shape}&quot;)
+print(f&quot; Graph1Featurequantitymean: {mean_out[0].mean():.4f}&quot;) print(f&quot; Graph2Featurequantitymean: {mean_out[1].mean():.4f}&quot;) print(f&quot; Graph3Featurequantitymean: {mean_out[2].mean():.4f}\n&quot;) 
 # Max pooling
 max_out = pooling.global_max_pool(x, batch)
-print("Max Pooling:")
-print(f"  Output shape: {max_out.shape}")
-print(f" Graph 1 max value: {max_out[0].max():.4f}") print(f" Graph 2 max value: {max_out[1].max():.4f}") print(f" Graph 3 max value: {max_out[2].max():.4f}\n") 
+print(&quot;Max Pooling:&quot;)
+print(f&quot;  Output shape: {max_out.shape}&quot;)
+print(f&quot; Graph 1 max value: {max_out[0].max():.4f}&quot;) print(f&quot; Graph 2 max value: {max_out[1].max():.4f}&quot;) print(f&quot; Graph 3 max value: {max_out[2].max():.4f}\n&quot;) 
 # Add pooling
 add_out = pooling.global_add_pool(x, batch)
-print("Add (Sum) Pooling:")
-print(f"  Output shape: {add_out.shape}")
-print(f" Graph1sum: {add_out[0].sum():.4f}") print(f" Graph2sum: {add_out[1].sum():.4f}") print(f" Graph3sum: {add_out[2].sum():.4f}\n") 
+print(&quot;Add (Sum) Pooling:&quot;)
+print(f&quot;  Output shape: {add_out.shape}&quot;)
+print(f&quot; Graph1sum: {add_out[0].sum():.4f}&quot;) print(f&quot; Graph2sum: {add_out[1].sum():.4f}&quot;) print(f&quot; Graph3sum: {add_out[2].sum():.4f}\n&quot;) 
 # Attention pooling
 gate_nn = nn.Linear(16, 1)
 attn_out = pooling.global_attention_pool(x, batch, gate_nn)
-print("Attention Pooling:")
-print(f"  Output shape: {attn_out.shape}")
-print(f" Graph1Featurequantitymean: {attn_out[0].mean():.4f}") print(f" Graph2Featurequantitymean: {attn_out[1].mean():.4f}") print(f" Graph3Featurequantitymean: {attn_out[2].mean():.4f}\n") 
+print(&quot;Attention Pooling:&quot;)
+print(f&quot;  Output shape: {attn_out.shape}&quot;)
+print(f&quot; Graph1Featurequantitymean: {attn_out[0].mean():.4f}&quot;) print(f&quot; Graph2Featurequantitymean: {attn_out[1].mean():.4f}&quot;) print(f&quot; Graph3Featurequantitymean: {attn_out[2].mean():.4f}\n&quot;) 
 # Comparison of pooling method characteristics
-print("--- Characteristics of Pooling Methods ---\n")
+print(&quot;--- Characteristics of Pooling Methods ---\n&quot;)
 properties = {
-    "Mean": {
- "Feature": "mean of all nodes",         "Advantage": "Stable, robust to outliers",
- "Disadvantage": "important nodes may be buried",  "Use Case": "general graph classification"     },
-    "Max": {
-        "Feature": "Element-wise maximum",
- "Advantage": "strongly emphasizes important features",  "Disadvantage": "Sensitive to outliers",  "Use Case": "case where specific nodes are important"     },
-    "Sum": {
- "Feature": "sum of all nodes",  "Advantage": "preserves graph size information",  "Disadvantage": "values become large for large graphs",  "Use Case": "GIN、case where graph size is important"     },
-    "Attention": {
-        "Feature": "Learnable weighted sum",
- "Advantage": "automatically select important nodes",  "Disadvantage": "High computational cost, overfitting risk",  "Use Case": "complex graphs、case where interpretability is important"     }
+    &quot;Mean&quot;: {
+ &quot;Feature&quot;: &quot;mean of all nodes&quot;,         &quot;Advantage&quot;: &quot;Stable, robust to outliers&quot;,
+ &quot;Disadvantage&quot;: &quot;important nodes may be buried&quot;,  &quot;Use Case&quot;: &quot;general graph classification&quot;     },
+    &quot;Max&quot;: {
+        &quot;Feature&quot;: &quot;Element-wise maximum&quot;,
+ &quot;Advantage&quot;: &quot;strongly emphasizes important features&quot;,  &quot;Disadvantage&quot;: &quot;Sensitive to outliers&quot;,  &quot;Use Case&quot;: &quot;case where specific nodes are important&quot;     },
+    &quot;Sum&quot;: {
+ &quot;Feature&quot;: &quot;sum of all nodes&quot;,  &quot;Advantage&quot;: &quot;preserves graph size information&quot;,  &quot;Disadvantage&quot;: &quot;values become large for large graphs&quot;,  &quot;Use Case&quot;: &quot;GIN、case where graph size is important&quot;     },
+    &quot;Attention&quot;: {
+        &quot;Feature&quot;: &quot;Learnable weighted sum&quot;,
+ &quot;Advantage&quot;: &quot;automatically select important nodes&quot;,  &quot;Disadvantage&quot;: &quot;High computational cost, overfitting risk&quot;,  &quot;Use Case&quot;: &quot;complex graphs、case where interpretability is important&quot;     }
 }
 
 for method, props in properties.items():
-    print(f"{method} Pooling:")
+    print(f&quot;{method} Pooling:&quot;)
     for key, value in props.items():
-        print(f"  {key}: {value}")
+        print(f&quot;  {key}: {value}&quot;)
     print()
 </code></pre>
 <p><strong>Output</strong>：</p><pre><code>
@@ -1495,14 +1519,18 @@ Attention Pooling:
   Feature: Learnable weighted sum
  Advantage: automatically select important nodes  Disadvantage: High computational cost, overfitting risk  Use Case: complex graphs、case where interpretability is important </code></pre>
 <h3>Implementation Example8: Mini-batch learningdetailed</h3>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
 
-print("\n=== Graphbatch processingdetailed ===\n") 
+import torch
+
+print(&quot;\n=== Graphbatch processingdetailed ===\n&quot;) 
 def visualize_batch_structure(graphs):
-    """Visualize batch processing structure"""
+    &quot;&quot;&quot;Visualize batch processing structure&quot;&quot;&quot;
 
- print("--- originalGraph ---")     for i, graph in enumerate(graphs):
-        print(f"Graph{i}: {graph['num_nodes']}Node, {graph['edge_index'].size(1)}edge")
+ print(&quot;--- originalGraph ---&quot;)     for i, graph in enumerate(graphs):
+        print(f&quot;Graph{i}: {graph['num_nodes']}Node, {graph['edge_index'].size(1)}edge&quot;)
 
     # Batching
     batch_x = []
@@ -1510,12 +1538,12 @@ def visualize_batch_structure(graphs):
     batch_vec = []
     node_offset = 0
 
-    print("\n--- Batching Process ---")
+    print(&quot;\n--- Batching Process ---&quot;)
     for i, graph in enumerate(graphs):
-        print(f"\nGraph{i}:")
- print(f" current node offset: {node_offset}")  print(f" original edge index: {graph['edge_index'][:, :3].tolist()}... (first 3 edges)") 
+        print(f&quot;\nGraph{i}:&quot;)
+ print(f&quot; current node offset: {node_offset}&quot;)  print(f&quot; original edge index: {graph['edge_index'][:, :3].tolist()}... (first 3 edges)&quot;) 
  # Edge index offsetadjustment         adjusted_edges = graph['edge_index'] + node_offset
- print(f" Adjusted edge index: {adjusted_edges[:, :3].tolist()}...") 
+ print(f&quot; Adjusted edge index: {adjusted_edges[:, :3].tolist()}...&quot;) 
         batch_x.append(graph['x'])
         batch_edge_index.append(adjusted_edges)
         batch_vec.extend([i] * graph['num_nodes'])
@@ -1527,9 +1555,9 @@ def visualize_batch_structure(graphs):
     batched_edge_index = torch.cat(batch_edge_index, dim=1)
     batched_batch = torch.tensor(batch_vec)
 
-    print("\n--- Batching Result ---")
- print(f"MergeNodeFeature: {batched_x.shape}")  print(f"MergeEdge index: {batched_edge_index.shape}")     print(f"Batch vector: {batched_batch.tolist()}")
- print(f"\nGraph assignment for nodes 0-4: {batched_batch[:5].tolist()}")  print(f"Graph assignment for nodes 5-9: {batched_batch[5:10].tolist()}") 
+    print(&quot;\n--- Batching Result ---&quot;)
+ print(f&quot;MergeNodeFeature: {batched_x.shape}&quot;)  print(f&quot;MergeEdge index: {batched_edge_index.shape}&quot;)     print(f&quot;Batch vector: {batched_batch.tolist()}&quot;)
+ print(f&quot;\nGraph assignment for nodes 0-4: {batched_batch[:5].tolist()}&quot;)  print(f&quot;Graph assignment for nodes 5-9: {batched_batch[5:10].tolist()}&quot;) 
     return batched_x, batched_edge_index, batched_batch
 
 
@@ -1553,12 +1581,12 @@ def visualize_batch_structure(graphs):
 
 batched_x, batched_edge_index, batched_batch = visualize_batch_structure(graphs)
 
-print("\n--- Recovering from Batch ---")
+print(&quot;\n--- Recovering from Batch ---&quot;)
 num_graphs = batched_batch.max().item() + 1
 for i in range(num_graphs):
     mask = (batched_batch == i)
-    print(f"\nGraph{i}:")
- print(f" Number of nodes: {mask.sum().item()}")  print(f" NodeFeatureshapestate: {batched_x[mask].shape}")  print(f" Featurequantitymean: {batched_x[mask].mean(dim=0)[:2].tolist()} (first 2 dimensions)") </code></pre>
+    print(f&quot;\nGraph{i}:&quot;)
+ print(f&quot; Number of nodes: {mask.sum().item()}&quot;)  print(f&quot; NodeFeatureshapestate: {batched_x[mask].shape}&quot;)  print(f&quot; Featurequantitymean: {batched_x[mask].mean(dim=0)[:2].tolist()} (first 2 dimensions)&quot;) </code></pre>
 <p><strong>Output</strong>：</p><pre><code>
 === Graphbatch processingdetailed === 
 --- originalGraph --- Graph0: 5Node, 4edge

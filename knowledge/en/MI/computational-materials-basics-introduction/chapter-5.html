@@ -200,7 +200,12 @@ $$</p>
 <hr/>
 <h2>5.3 Neural Network Potential Training (Practice)</h2>
 <h3>Example 1: NNP Training Using AMP (Water Molecule)</h3>
-<pre><code class="language-python">import numpy as np
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
 from ase.build import molecule
 from ase.calculators.emt import EMT
 from gpaw import GPAW, PW
@@ -211,9 +216,9 @@ import matplotlib.pyplot as plt
 
 # Step 1: Generate training data (MD simulation + DFT)
 def generate_training_data(n_samples=50):
-    """
+    &quot;&quot;&quot;
     DFT calculations for various water molecule configurations
-    """
+    &quot;&quot;&quot;
     from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
     from ase.md.verlet import VelocityVerlet
     from ase import units
@@ -239,15 +244,15 @@ def generate_training_data(n_samples=50):
         atoms_copy.get_potential_energy()  # Execute DFT calculation
         atoms_copy.get_forces()
         images.append(atoms_copy)
-        print(f"Sample {i+1}/{n_samples} collected")
+        print(f&quot;Sample {i+1}/{n_samples} collected&quot;)
 
     return images
 
-print("Generating training data...")
+print(&quot;Generating training data...&quot;)
 train_images = generate_training_data(n_samples=50)
 
 # Step 2: NNP training
-print("Training Neural Network Potential...")
+print(&quot;Training Neural Network Potential...&quot;)
 
 # Descriptor: Gaussian symmetry functions
 descriptor = Gaussian()
@@ -266,10 +271,10 @@ calc_nnp.train(images=train_images,
                energy_coefficient=1.0,
                force_coefficient=0.04)
 
-print("Training complete!")
+print(&quot;Training complete!&quot;)
 
 # Step 3: Accuracy evaluation on test data
-print("\nGenerating test data...")
+print(&quot;\nGenerating test data...&quot;)
 test_images = generate_training_data(n_samples=10)
 
 E_dft = []
@@ -331,9 +336,9 @@ plt.tight_layout()
 plt.savefig('nnp_accuracy.png', dpi=150)
 plt.show()
 
-print(f"\nNNP Accuracy:")
-print(f"Energy MAE: {mae_e:.4f} eV")
-print(f"Force MAE: {mae_f:.4f} eV/Å")
+print(f&quot;\nNNP Accuracy:&quot;)
+print(f&quot;Energy MAE: {mae_e:.4f} eV&quot;)
+print(f&quot;Force MAE: {mae_f:.4f} eV/Å&quot;)
 </code></pre>
 <p><strong>Target accuracy</strong>:
 - Energy: MAE &lt; 1 meV/atom
@@ -372,25 +377,29 @@ $$</p>
 - Use multiple models with different algorithms
 - Sample configurations with low agreement in predictions</p>
 <h3>Active Learning Implementation Example</h3>
-<pre><code class="language-python">import numpy as np
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
 from ase.md.langevin import Langevin
 from ase import units
 
 def active_learning_loop(initial_images, n_iterations=5, n_md_steps=1000):
-    """
+    &quot;&quot;&quot;
     Efficient training data generation using Active Learning
-    """
+    &quot;&quot;&quot;
     dataset = initial_images.copy()
 
     for iteration in range(n_iterations):
-        print(f"\n--- Iteration {iteration+1}/{n_iterations} ---")
+        print(f&quot;\n--- Iteration {iteration+1}/{n_iterations} ---&quot;)
 
         # Step 1: Train NNP
-        print("Training NNP...")
+        print(&quot;Training NNP...&quot;)
         nnp = train_nnp(dataset)  # AMP training as described above
 
         # Step 2: MD simulation with NNP
-        print("Running MD with NNP...")
+        print(&quot;Running MD with NNP...&quot;)
         h2o = dataset[0].copy()
         h2o.calc = nnp
 
@@ -414,17 +423,17 @@ def active_learning_loop(initial_images, n_iterations=5, n_md_steps=1000):
                 uncertain_images.append(atoms_copy)
                 uncertainties.append(uncertainty)
 
-        print(f"Found {len(uncertain_images)} uncertain configurations")
+        print(f&quot;Found {len(uncertain_images)} uncertain configurations&quot;)
 
         # Step 3: DFT calculations for high-uncertainty configurations
-        print("Running DFT for uncertain configurations...")
+        print(&quot;Running DFT for uncertain configurations...&quot;)
         for atoms in uncertain_images[:10]:  # Top 10
             atoms.calc = GPAW(mode=PW(300), xc='PBE', txt=None)
             atoms.get_potential_energy()
             atoms.get_forces()
             dataset.append(atoms)
 
-        print(f"Dataset size: {len(dataset)}")
+        print(f&quot;Dataset size: {len(dataset)}&quot;)
 
     return dataset, nnp
 
@@ -432,9 +441,9 @@ def active_learning_loop(initial_images, n_iterations=5, n_md_steps=1000):
 initial_data = generate_training_data(n_samples=20)
 final_dataset, final_nnp = active_learning_loop(initial_data, n_iterations=5)
 
-print(f"\nFinal dataset size: {len(final_dataset)}")
-print(f"vs. random sampling: 50-100 samples would be needed")
-print(f"Efficiency gain: {100/len(final_dataset):.1f}x")
+print(f&quot;\nFinal dataset size: {len(final_dataset)}&quot;)
+print(f&quot;vs. random sampling: 50-100 samples would be needed&quot;)
+print(f&quot;Efficiency gain: {100/len(final_dataset):.1f}x&quot;)
 </code></pre>
 <p><strong>Advantages of Active Learning</strong>:
 - Can reduce training data by 50-90%

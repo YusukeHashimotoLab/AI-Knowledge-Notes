@@ -92,13 +92,18 @@ graph LR
 </table>
 <h3>1.3 Evaluating Transferability</h3>
 <p>The success of transfer learning depends on the relationship between the source and target tasks:</p>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+# - torchvision&gt;=0.15.0
+
+import torch
 import torch.nn as nn
 from torchvision import models
 from scipy.stats import spearmanr
 
 def compute_transferability_score(source_features, target_features):
-    """
+    &quot;&quot;&quot;
     Compute transferability score
 
     Args:
@@ -107,7 +112,7 @@ def compute_transferability_score(source_features, target_features):
 
     Returns:
         transferability_score: Transferability score
-    """
+    &quot;&quot;&quot;
     # Calculate correlation coefficient between features
     correlation, _ = spearmanr(
         source_features.flatten(),
@@ -135,23 +140,28 @@ def compute_transferability_score(source_features, target_features):
 source_feats = torch.randn(100, 512)
 target_feats = torch.randn(100, 512)
 score = compute_transferability_score(source_feats, target_feats)
-print(f"Transferability Score: {score:.4f}")
+print(f&quot;Transferability Score: {score:.4f}&quot;)
 </code></pre>
 <h2>2. Fine-Tuning Strategies</h2>
 <h3>2.1 Full Layer vs Partial Layer Updates</h3>
 <p>The decision of which layers to update in a pre-trained model depends on the amount of data and task similarity:</p>
-<pre><code class="language-python">import torch.nn as nn
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+# - torchvision&gt;=0.15.0
+
+import torch.nn as nn
 from torchvision import models
 
 class TransferLearningModel(nn.Module):
     def __init__(self, num_classes, freeze_strategy='partial'):
-        """
+        &quot;&quot;&quot;
         Transfer learning model
 
         Args:
             num_classes: Number of classes for target task
             freeze_strategy: 'all', 'partial', 'none'
-        """
+        &quot;&quot;&quot;
         super().__init__()
         # Load ResNet50 pre-trained model
         self.backbone = models.resnet50(pretrained=True)
@@ -190,7 +200,7 @@ model_full = TransferLearningModel(num_classes=10, freeze_strategy='none')
 for name, model in [('Frozen', model_frozen), ('Partial', model_partial), ('Full', model_full)]:
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total = sum(p.numel() for p in model.parameters())
-    print(f"{name}: {trainable:,} / {total:,} parameters trainable")
+    print(f&quot;{name}: {trainable:,} / {total:,} parameters trainable&quot;)
 </code></pre>
 <h3>2.2 Discriminative Fine-Tuning</h3>
 <p>More effective fine-tuning is possible by setting different learning rates for each layer:</p>
@@ -254,12 +264,16 @@ graph TB
 </div>
 <h3>3.2 Domain Adversarial Neural Networks (DANN)</h3>
 <p>DANN uses adversarial training to ensure that the feature extractor learns domain-invariant representations:</p>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 class GradientReversalLayer(torch.autograd.Function):
-    """Gradient Reversal Layer (for DANN)"""
+    &quot;&quot;&quot;Gradient Reversal Layer (for DANN)&quot;&quot;&quot;
     @staticmethod
     def forward(ctx, x, alpha):
         ctx.alpha = alpha
@@ -341,11 +355,11 @@ def train_dann(model, source_loader, target_loader, epochs=50):
             optimizer.step()
 
         if (epoch + 1) % 10 == 0:
-            print(f"Epoch {epoch+1}: Loss = {loss.item():.4f}, Alpha = {alpha:.4f}")
+            print(f&quot;Epoch {epoch+1}: Loss = {loss.item():.4f}, Alpha = {alpha:.4f}&quot;)
 
 # Usage example
 model = DANN(num_classes=10)
-print("DANN model created with gradient reversal layer")
+print(&quot;DANN model created with gradient reversal layer&quot;)
 </code></pre>
 <h3>3.3 Maximum Mean Discrepancy (MMD)</h3>
 <p>MMD achieves domain adaptation by minimizing the distance between source and target distributions:</p>
@@ -438,19 +452,23 @@ graph LR
     style D fill:#c8e6c9
 </div>
 <h3>4.2 Implementation of Temperature-based Distillation</h3>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 class DistillationLoss(nn.Module):
     def __init__(self, temperature=3.0, alpha=0.7):
-        """
+        &quot;&quot;&quot;
         Knowledge distillation loss function
 
         Args:
             temperature: Temperature parameter for softmax
             alpha: Balance between hard loss and soft loss
-        """
+        &quot;&quot;&quot;
         super().__init__()
         self.temperature = temperature
         self.alpha = alpha
@@ -477,7 +495,7 @@ class DistillationLoss(nn.Module):
 
 # Define Teacher and Student models
 class TeacherModel(nn.Module):
-    """Large Teacher model"""
+    &quot;&quot;&quot;Large Teacher model&quot;&quot;&quot;
     def __init__(self, num_classes=10):
         super().__init__()
         self.features = nn.Sequential(
@@ -497,7 +515,7 @@ class TeacherModel(nn.Module):
         return self.features(x)
 
 class StudentModel(nn.Module):
-    """Lightweight Student model"""
+    &quot;&quot;&quot;Lightweight Student model&quot;&quot;&quot;
     def __init__(self, num_classes=10):
         super().__init__()
         self.features = nn.Sequential(
@@ -544,16 +562,16 @@ def train_distillation(teacher, student, train_loader, epochs=50):
             total_loss += loss.item()
 
         if (epoch + 1) % 10 == 0:
-            print(f"Epoch {epoch+1}: Loss = {total_loss/len(train_loader):.4f}")
+            print(f&quot;Epoch {epoch+1}: Loss = {total_loss/len(train_loader):.4f}&quot;)
 
 # Compare model sizes
 teacher = TeacherModel()
 student = StudentModel()
 teacher_params = sum(p.numel() for p in teacher.parameters())
 student_params = sum(p.numel() for p in student.parameters())
-print(f"Teacher: {teacher_params:,} parameters")
-print(f"Student: {student_params:,} parameters")
-print(f"Compression ratio: {teacher_params/student_params:.2f}x")
+print(f&quot;Teacher: {teacher_params:,} parameters&quot;)
+print(f&quot;Student: {student_params:,} parameters&quot;)
+print(f&quot;Compression ratio: {teacher_params/student_params:.2f}x&quot;)
 </code></pre>
 <h3>4.3 Combining with Meta-Learning</h3>
 <pre><code class="language-python">class MetaDistillation(nn.Module):
@@ -626,14 +644,20 @@ print("Meta-Distillation model initialized")
 <p><strong>Goal:</strong> Build a high-accuracy diagnostic model with a small amount of medical image data using a model pre-trained on ImageNet.</p>
 </div>
 <h3>5.1 Complete Transfer Learning Pipeline</h3>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+# - torchvision&gt;=0.15.0
+
+import torch
 import torch.nn as nn
 from torchvision import models, transforms
 from torch.utils.data import DataLoader, Dataset
 import numpy as np
 
 class MedicalImageDataset(Dataset):
-    """Medical image dataset"""
+    &quot;&quot;&quot;Medical image dataset&quot;&quot;&quot;
     def __init__(self, images, labels, transform=None):
         self.images = images
         self.labels = labels
@@ -679,7 +703,7 @@ class TransferLearningPipeline:
         self.model = self._create_model()
 
     def _create_model(self):
-        """Create and customize pre-trained model"""
+        &quot;&quot;&quot;Create and customize pre-trained model&quot;&quot;&quot;
         # ResNet50 (pre-trained on ImageNet)
         model = models.resnet50(pretrained=True)
 
@@ -702,7 +726,7 @@ class TransferLearningPipeline:
         return model.to(self.device)
 
     def train(self, train_data, val_data, epochs=50, use_distillation=False):
-        """
+        &quot;&quot;&quot;
         Execute training
 
         Args:
@@ -710,7 +734,7 @@ class TransferLearningPipeline:
             val_data: Validation data (images, labels)
             epochs: Number of epochs
             use_distillation: Whether to use knowledge distillation
-        """
+        &quot;&quot;&quot;
         # Data loaders
         train_dataset = MedicalImageDataset(*train_data, self.train_transform)
         val_dataset = MedicalImageDataset(*val_data, self.val_transform)
@@ -765,14 +789,14 @@ class TransferLearningPipeline:
             scheduler.step()
 
             if (epoch + 1) % 10 == 0:
-                print(f"Epoch {epoch+1}/{epochs}")
-                print(f"  Train Loss: {history['train_loss'][-1]:.4f}")
-                print(f"  Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+                print(f&quot;Epoch {epoch+1}/{epochs}&quot;)
+                print(f&quot;  Train Loss: {history['train_loss'][-1]:.4f}&quot;)
+                print(f&quot;  Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}&quot;)
 
         return history
 
     def _validate(self, val_loader, criterion):
-        """Validation"""
+        &quot;&quot;&quot;Validation&quot;&quot;&quot;
         self.model.eval()
         val_loss = 0.0
         correct = 0
@@ -795,7 +819,7 @@ class TransferLearningPipeline:
         return val_loss, val_acc
 
     def evaluate_transferability(self, source_data, target_data):
-        """Evaluate transferability"""
+        &quot;&quot;&quot;Evaluate transferability&quot;&quot;&quot;
         self.model.eval()
 
         def extract_features(data):
@@ -821,12 +845,12 @@ class TransferLearningPipeline:
 
         # Calculate MMD score
         score = compute_transferability_score(source_feats, target_feats)
-        print(f"Transferability Score: {score:.4f}")
+        print(f&quot;Transferability Score: {score:.4f}&quot;)
 
         return score
 
 # Usage example
-if __name__ == "__main__":
+if __name__ == &quot;__main__&quot;:
     # Dummy data (use actual medical image data in practice)
     num_samples = 1000
     train_images = np.random.randint(0, 255, (num_samples, 224, 224, 3), dtype=np.uint8)
@@ -838,15 +862,15 @@ if __name__ == "__main__":
     # Execute pipeline
     pipeline = TransferLearningPipeline(num_classes=3, device='cpu')
 
-    print("Starting transfer learning training...")
+    print(&quot;Starting transfer learning training...&quot;)
     history = pipeline.train(
         train_data=(train_images, train_labels),
         val_data=(val_images, val_labels),
         epochs=20
     )
 
-    print("\nTraining completed!")
-    print(f"Best validation accuracy: {max(history['val_acc']):.4f}")
+    print(&quot;\nTraining completed!&quot;)
+    print(f&quot;Best validation accuracy: {max(history['val_acc']):.4f}&quot;)
 </code></pre>
 <h2>Summary</h2>
 <p>In this chapter, we learned comprehensive transfer learning techniques:</p>

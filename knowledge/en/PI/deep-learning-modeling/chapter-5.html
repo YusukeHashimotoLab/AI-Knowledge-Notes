@@ -49,14 +49,20 @@
 <p>Bellman Equation (Q-Learning):</p>
 <p>$$Q(s, a) \leftarrow Q(s, a) + \alpha [r + \gamma \max_{a'} Q(s', a') - Q(s, a)]$$</p>
 <h3>Example 1: Simple Reactor Control (Discrete Q-Learning)</h3>
-<pre><code class="language-python">import numpy as np
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import numpy as np
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
 class SimpleReactorEnv:
-    """Simplified chemical reactor environment"""
+    &quot;&quot;&quot;Simplified chemical reactor environment&quot;&quot;&quot;
 
     def __init__(self):
         # State: Temperature [300-500K] discretized into 10 levels
@@ -69,23 +75,23 @@ class SimpleReactorEnv:
         self.n_actions = len(self.actions)
 
     def reset(self):
-        """Reset environment"""
+        &quot;&quot;&quot;Reset environment&quot;&quot;&quot;
         self.temperature = np.random.uniform(350, 450)
         return self._get_state()
 
     def _get_state(self):
-        """Discretize state (10 levels)"""
+        &quot;&quot;&quot;Discretize state (10 levels)&quot;&quot;&quot;
         state = int((self.temperature - 300) / 20)
         return max(0, min(9, state))
 
     def step(self, action):
-        """Execute one step
+        &quot;&quot;&quot;Execute one step
 
         Returns:
             state: Next state
             reward: Reward
             done: Episode termination flag
-        """
+        &quot;&quot;&quot;
         # Temperature change
         temp_change = self.actions[action]
         self.temperature += temp_change
@@ -116,15 +122,15 @@ class SimpleReactorEnv:
 
 # Q-Learning Agent
 class QLearningAgent:
-    """Tabular Q-Learning"""
+    &quot;&quot;&quot;Tabular Q-Learning&quot;&quot;&quot;
 
     def __init__(self, n_states=10, n_actions=3, alpha=0.1, gamma=0.95, epsilon=0.1):
-        """
+        &quot;&quot;&quot;
         Args:
             alpha: Learning rate
             gamma: Discount factor
             epsilon: ε-greedy exploration rate
-        """
+        &quot;&quot;&quot;
         self.n_states = n_states
         self.n_actions = n_actions
         self.alpha = alpha
@@ -135,14 +141,14 @@ class QLearningAgent:
         self.q_table = defaultdict(lambda: np.zeros(n_actions))
 
     def choose_action(self, state):
-        """Action selection with ε-greedy policy"""
+        &quot;&quot;&quot;Action selection with ε-greedy policy&quot;&quot;&quot;
         if np.random.rand() &lt; self.epsilon:
             return np.random.randint(self.n_actions)  # Exploration
         else:
             return np.argmax(self.q_table[state])  # Exploitation
 
     def update(self, state, action, reward, next_state):
-        """Update Q-value"""
+        &quot;&quot;&quot;Update Q-value&quot;&quot;&quot;
         current_q = self.q_table[state][action]
         max_next_q = np.max(self.q_table[next_state])
         new_q = current_q + self.alpha * (reward + self.gamma * max_next_q - current_q)
@@ -210,7 +216,7 @@ plt.grid(True, alpha=0.3)
 
 plt.tight_layout()
 
-print(f"\nFinal temperature: {temperatures[-1]:.2f}K (Target: {env_test.target_temp}K)")
+print(f&quot;\nFinal temperature: {temperatures[-1]:.2f}K (Target: {env_test.target_temp}K)&quot;)
 
 # Sample Output:
 # Episode 100, Avg Reward: -234.56
@@ -226,12 +232,16 @@ print(f"\nFinal temperature: {temperatures[-1]:.2f}K (Target: {env_test.target_t
 <h2>5.2 Deep Q-Network (DQN)</h2>
 <p>DQN approximates the Q-table with a neural network, enabling handling of high-dimensional state spaces (multivariate processes).</p>
 <h3>Example 2: Reactor Control with DQN</h3>
-<pre><code class="language-python">import torch.nn.functional as F
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch.nn.functional as F
 from collections import deque
 import random
 
 class QNetwork(nn.Module):
-    """Q-Network (approximation of state-action value function)"""
+    &quot;&quot;&quot;Q-Network (approximation of state-action value function)&quot;&quot;&quot;
 
     def __init__(self, state_dim, action_dim, hidden_dim=128):
         super(QNetwork, self).__init__()
@@ -241,29 +251,29 @@ class QNetwork(nn.Module):
         self.fc3 = nn.Linear(hidden_dim, action_dim)
 
     def forward(self, state):
-        """
+        &quot;&quot;&quot;
         Args:
             state: [batch, state_dim]
         Returns:
             q_values: [batch, action_dim] Q-values for each action
-        """
+        &quot;&quot;&quot;
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         q_values = self.fc3(x)
         return q_values
 
 class ReplayBuffer:
-    """Experience replay buffer"""
+    &quot;&quot;&quot;Experience replay buffer&quot;&quot;&quot;
 
     def __init__(self, capacity=10000):
         self.buffer = deque(maxlen=capacity)
 
     def push(self, state, action, reward, next_state, done):
-        """Store experience"""
+        &quot;&quot;&quot;Store experience&quot;&quot;&quot;
         self.buffer.append((state, action, reward, next_state, done))
 
     def sample(self, batch_size):
-        """Random sampling"""
+        &quot;&quot;&quot;Random sampling&quot;&quot;&quot;
         batch = random.sample(self.buffer, batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
 
@@ -279,7 +289,7 @@ class ReplayBuffer:
         return len(self.buffer)
 
 class DQNAgent:
-    """Deep Q-Network Agent"""
+    &quot;&quot;&quot;Deep Q-Network Agent&quot;&quot;&quot;
 
     def __init__(self, state_dim, action_dim, lr=0.001, gamma=0.99, epsilon_start=1.0,
                  epsilon_end=0.01, epsilon_decay=0.995):
@@ -300,7 +310,7 @@ class DQNAgent:
         self.replay_buffer = ReplayBuffer(capacity=10000)
 
     def choose_action(self, state):
-        """ε-greedy action selection"""
+        &quot;&quot;&quot;ε-greedy action selection&quot;&quot;&quot;
         if np.random.rand() &lt; self.epsilon:
             return np.random.randint(self.action_dim)
 
@@ -310,7 +320,7 @@ class DQNAgent:
             return q_values.argmax().item()
 
     def train(self, batch_size=64):
-        """Mini-batch training"""
+        &quot;&quot;&quot;Mini-batch training&quot;&quot;&quot;
         if len(self.replay_buffer) &lt; batch_size:
             return 0.0
 
@@ -336,16 +346,16 @@ class DQNAgent:
         return loss.item()
 
     def update_target_network(self):
-        """Update Target Network"""
+        &quot;&quot;&quot;Update Target Network&quot;&quot;&quot;
         self.target_network.load_state_dict(self.q_network.state_dict())
 
     def decay_epsilon(self):
-        """Decay ε"""
+        &quot;&quot;&quot;Decay ε&quot;&quot;&quot;
         self.epsilon = max(self.epsilon_end, self.epsilon * self.epsilon_decay)
 
 # Continuous state reactor environment
 class ContinuousReactorEnv:
-    """Reactor with continuous state space"""
+    &quot;&quot;&quot;Reactor with continuous state space&quot;&quot;&quot;
 
     def __init__(self):
         self.state_dim = 4  # Temperature, pressure, concentration, flow rate
@@ -363,7 +373,7 @@ class ContinuousReactorEnv:
         return self._get_state()
 
     def _get_state(self):
-        """State vector (normalized)"""
+        &quot;&quot;&quot;State vector (normalized)&quot;&quot;&quot;
         return np.array([
             (self.temperature - 400) / 100,
             (self.pressure - 5) / 2,
@@ -965,7 +975,7 @@ class DDPGAgent:
 
     def train(self, batch_size=64):
         """DDPG update"""
-        if len(self.replay_buffer) &lt; batch_size:
+        if len(self.replay_buffer) < batch_size:
             return 0.0, 0.0
 
         # Sampling
@@ -1147,7 +1157,7 @@ print(f"\nFinal 10 episodes avg reward: {np.mean(episode_rewards[-10:]):.2f}")
             self.temperatures[i] += temp_changes[i]
 
             # Heat exchange with adjacent reactor
-            if i &gt; 0:
+            if i > 0:
                 heat_exchange = 0.1 * (self.temperatures[i-1] - self.temperatures[i])
                 self.temperatures[i] += heat_exchange
 
@@ -1330,9 +1340,9 @@ print(f"Final concentrations: {env.concentrations}")
 
         # Constraint cost (large penalty for violation)
         cost = 0.0
-        if self.temperature &lt; self.temp_min + 10 or self.temperature &gt; self.temp_max - 10:
+        if self.temperature < self.temp_min + 10 or self.temperature > self.temp_max - 10:
             cost = 100  # Constraint margin violation
-        if self.pressure &gt; self.pressure_max - 1:
+        if self.pressure > self.pressure_max - 1:
             cost += 100
 
         return self._get_state(), reward, cost, False
@@ -1419,7 +1429,7 @@ class SafePPOAgent:
         ratio = torch.exp(new_log_probs - old_log_probs)
 
         # Suppress updates when cost constraint is violated
-        if total_cost &gt; self.cost_limit:
+        if total_cost > self.cost_limit:
             penalty_factor = 0.1  # Slow down learning
             advantages = advantages * penalty_factor
 
@@ -1478,7 +1488,7 @@ for episode in range(n_episodes):
         avg_cost = np.mean(episode_costs[-5:]) if episode_costs else 0
         print(f'Episode {episode+1}, Avg Reward: {avg_reward:.2f}, Avg Cost: {avg_cost:.2f}')
 
-print(f"\nSafety violations (cost &gt; {agent.cost_limit}): {sum(c &gt; agent.cost_limit for c in episode_costs)}")
+print(f"\nSafety violations (cost > {agent.cost_limit}): {sum(c > agent.cost_limit for c in episode_costs)}")
 
 # Sample Output:
 # Episode 50, Avg Reward: 78.45, Avg Cost: 67.89
@@ -1486,7 +1496,7 @@ print(f"\nSafety violations (cost &gt; {agent.cost_limit}): {sum(c &gt; agent.co
 # Episode 150, Avg Reward: 85.67, Avg Cost: 28.76
 # Episode 200, Avg Reward: 86.89, Avg Cost: 18.45
 #
-# Safety violations (cost &gt; 50): 4
+# Safety violations (cost > 50): 4
 </code></pre>
 <div class="warning-box">
 <p><strong>⚠️ Notes for Industrial Implementation</strong></p>

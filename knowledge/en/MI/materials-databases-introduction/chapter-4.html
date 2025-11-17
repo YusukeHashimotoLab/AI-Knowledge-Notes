@@ -365,11 +365,15 @@ print("PostgreSQL schema created successfully")
 </code></pre>
 <h3>4.3.2 Bulk Insert</h3>
 <p><strong>Code Example 7: Efficient Bulk Data Insertion</strong></p>
-<pre><code class="language-python">import pandas as pd
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+import pandas as pd
 from psycopg2.extras import execute_batch
 
 def bulk_insert_materials(df):
-    """Bulk insert from DataFrame"""
+    &quot;&quot;&quot;Bulk insert from DataFrame&quot;&quot;&quot;
     data = [
         (
             row['formula'],
@@ -388,7 +392,7 @@ def bulk_insert_materials(df):
     execute_batch(cursor, insert_query, data, page_size=1000)
     conn.commit()
 
-    print(f"{len(data)} records inserted")
+    print(f&quot;{len(data)} records inserted&quot;)
 
 # Usage example
 df = pd.DataFrame({
@@ -499,11 +503,15 @@ git push origin main
 <h2>4.5 Data Publication and DOI Acquisition</h2>
 <h3>4.5.1 Uploading to Zenodo</h3>
 <p><strong>Code Example 10: Publishing Data via Zenodo API</strong></p>
-<pre><code class="language-python">import requests
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - requests&gt;=2.31.0
+
+import requests
 import json
 
-ZENODO_TOKEN = "your_zenodo_token"
-ZENODO_URL = "https://zenodo.org/api/deposit/depositions"
+ZENODO_TOKEN = &quot;your_zenodo_token&quot;
+ZENODO_URL = &quot;https://zenodo.org/api/deposit/depositions&quot;
 
 def create_zenodo_deposit(
     title,
@@ -511,23 +519,23 @@ def create_zenodo_deposit(
     creators,
     keywords
 ):
-    """Create Zenodo deposit"""
+    &quot;&quot;&quot;Create Zenodo deposit&quot;&quot;&quot;
 
     headers = {
-        "Content-Type": "application/json"
+        &quot;Content-Type&quot;: &quot;application/json&quot;
     }
-    params = {"access_token": ZENODO_TOKEN}
+    params = {&quot;access_token&quot;: ZENODO_TOKEN}
 
     # Metadata
     data = {
-        "metadata": {
-            "title": title,
-            "upload_type": "dataset",
-            "description": description,
-            "creators": creators,
-            "keywords": keywords,
-            "access_right": "open",
-            "license": "cc-by-4.0"
+        &quot;metadata&quot;: {
+            &quot;title&quot;: title,
+            &quot;upload_type&quot;: &quot;dataset&quot;,
+            &quot;description&quot;: description,
+            &quot;creators&quot;: creators,
+            &quot;keywords&quot;: keywords,
+            &quot;access_right&quot;: &quot;open&quot;,
+            &quot;license&quot;: &quot;cc-by-4.0&quot;
         }
     }
 
@@ -544,66 +552,66 @@ def create_zenodo_deposit(
         deposition_id = deposition['id']
         bucket_url = deposition['links']['bucket']
 
-        print(f"Deposit created successfully: ID={deposition_id}")
+        print(f&quot;Deposit created successfully: ID={deposition_id}&quot;)
         return deposition_id, bucket_url
     else:
-        print(f"Error: {response.status_code}")
+        print(f&quot;Error: {response.status_code}&quot;)
         print(response.text)
         return None, None
 
 def upload_file_to_zenodo(bucket_url, file_path):
-    """Upload file"""
-    params = {"access_token": ZENODO_TOKEN}
+    &quot;&quot;&quot;Upload file&quot;&quot;&quot;
+    params = {&quot;access_token&quot;: ZENODO_TOKEN}
 
     with open(file_path, 'rb') as f:
         response = requests.put(
-            f"{bucket_url}/{os.path.basename(file_path)}",
+            f&quot;{bucket_url}/{os.path.basename(file_path)}&quot;,
             params=params,
             data=f
         )
 
     if response.status_code == 200:
-        print(f"File uploaded successfully: {file_path}")
+        print(f&quot;File uploaded successfully: {file_path}&quot;)
         return True
     else:
-        print(f"Upload error: {response.status_code}")
+        print(f&quot;Upload error: {response.status_code}&quot;)
         return False
 
 def publish_zenodo_deposit(deposition_id):
-    """Publish deposit (obtain DOI)"""
-    params = {"access_token": ZENODO_TOKEN}
-    url = f"{ZENODO_URL}/{deposition_id}/actions/publish"
+    &quot;&quot;&quot;Publish deposit (obtain DOI)&quot;&quot;&quot;
+    params = {&quot;access_token&quot;: ZENODO_TOKEN}
+    url = f&quot;{ZENODO_URL}/{deposition_id}/actions/publish&quot;
 
     response = requests.post(url, params=params)
 
     if response.status_code == 202:
         result = response.json()
         doi = result['doi']
-        print(f"Published successfully! DOI: {doi}")
+        print(f&quot;Published successfully! DOI: {doi}&quot;)
         return doi
     else:
-        print(f"Publication error: {response.status_code}")
+        print(f&quot;Publication error: {response.status_code}&quot;)
         return None
 
 # Usage example
 deposition_id, bucket_url = create_zenodo_deposit(
-    title="Materials Database - Experimental Data",
-    description="Experimental materials properties dataset",
+    title=&quot;Materials Database - Experimental Data&quot;,
+    description=&quot;Experimental materials properties dataset&quot;,
     creators=[
-        {"name": "Hashimoto, Yusuke",
-         "affiliation": "Tohoku University"}
+        {&quot;name&quot;: &quot;Hashimoto, Yusuke&quot;,
+         &quot;affiliation&quot;: &quot;Tohoku University&quot;}
     ],
-    keywords=["materials science", "database",
-              "properties"]
+    keywords=[&quot;materials science&quot;, &quot;database&quot;,
+              &quot;properties&quot;]
 )
 
 if deposition_id:
     # Upload file
-    upload_file_to_zenodo(bucket_url, "materials.db.gz")
+    upload_file_to_zenodo(bucket_url, &quot;materials.db.gz&quot;)
 
     # Publish (obtain DOI)
     doi = publish_zenodo_deposit(deposition_id)
-    print(f"\nDOI: https://doi.org/{doi}")
+    print(f&quot;\nDOI: https://doi.org/{doi}&quot;)
 </code></pre>
 <hr/>
 <h2>4.6 Practical Project</h2>
@@ -803,7 +811,7 @@ class BackupManager:
              if f.endswith('.db.gz')]
         )
 
-        if len(backups) &gt; self.max_backups:
+        if len(backups) > self.max_backups:
             to_delete = backups[:-self.max_backups]
             for backup in to_delete:
                 os.remove(
@@ -843,13 +851,17 @@ backup_mgr.list_backups()
 5. Prepare Zenodo metadata (publishing optional)</p>
 <details>
 <summary>Solution Example</summary>
-<pre><code class="language-python">import pandas as pd
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+import pandas as pd
 import sqlite3
 import json
 from datetime import datetime
 
 class ExperimentalDataPipeline:
-    """Experimental data publication pipeline"""
+    &quot;&quot;&quot;Experimental data publication pipeline&quot;&quot;&quot;
 
     def __init__(self, db_path='experimental_data.db'):
         self.db_path = db_path
@@ -857,7 +869,7 @@ class ExperimentalDataPipeline:
         self.setup_database()
 
     def setup_database(self):
-        """Database initialization"""
+        &quot;&quot;&quot;Database initialization&quot;&quot;&quot;
         cursor = self.conn.cursor()
 
         cursor.execute('''
@@ -886,13 +898,13 @@ class ExperimentalDataPipeline:
         self.conn.commit()
 
     def load_excel_data(self, file_path):
-        """Load data from Excel"""
+        &quot;&quot;&quot;Load data from Excel&quot;&quot;&quot;
         df = pd.read_excel(file_path)
-        print(f"Data loaded: {len(df)} records")
+        print(f&quot;Data loaded: {len(df)} records&quot;)
         return df
 
     def insert_data(self, df):
-        """Insert data"""
+        &quot;&quot;&quot;Insert data&quot;&quot;&quot;
         cursor = self.conn.cursor()
 
         for _, row in df.iterrows():
@@ -925,10 +937,10 @@ class ExperimentalDataPipeline:
             ))
 
         self.conn.commit()
-        print(f"{len(df)} records inserted")
+        print(f&quot;{len(df)} records inserted&quot;)
 
     def quality_check(self):
-        """Quality check"""
+        &quot;&quot;&quot;Quality check&quot;&quot;&quot;
         cursor = self.conn.cursor()
 
         # Data counts
@@ -945,42 +957,42 @@ class ExperimentalDataPipeline:
         ''')
         missing_unc = cursor.fetchone()[0]
 
-        print("=== Quality Report ===")
-        print(f"Experiments: {exp_count}")
-        print(f"Measurements: {meas_count}")
-        print(f"Missing uncertainty: {missing_unc}")
+        print(&quot;=== Quality Report ===&quot;)
+        print(f&quot;Experiments: {exp_count}&quot;)
+        print(f&quot;Measurements: {meas_count}&quot;)
+        print(f&quot;Missing uncertainty: {missing_unc}&quot;)
 
     def prepare_zenodo_metadata(self, output_file='zenodo_metadata.json'):
-        """Prepare Zenodo metadata"""
+        &quot;&quot;&quot;Prepare Zenodo metadata&quot;&quot;&quot;
         metadata = {
-            "title": "Experimental Materials Database",
-            "upload_type": "dataset",
-            "description": "Experimental data from lab measurements",
-            "creators": [
+            &quot;title&quot;: &quot;Experimental Materials Database&quot;,
+            &quot;upload_type&quot;: &quot;dataset&quot;,
+            &quot;description&quot;: &quot;Experimental data from lab measurements&quot;,
+            &quot;creators&quot;: [
                 {
-                    "name": "Your Name",
-                    "affiliation": "Your Institution"
+                    &quot;name&quot;: &quot;Your Name&quot;,
+                    &quot;affiliation&quot;: &quot;Your Institution&quot;
                 }
             ],
-            "keywords": [
-                "materials science",
-                "experimental data",
-                "properties"
+            &quot;keywords&quot;: [
+                &quot;materials science&quot;,
+                &quot;experimental data&quot;,
+                &quot;properties&quot;
             ],
-            "access_right": "open",
-            "license": "cc-by-4.0",
-            "version": "1.0",
-            "publication_date": datetime.now().strftime("%Y-%m-%d")
+            &quot;access_right&quot;: &quot;open&quot;,
+            &quot;license&quot;: &quot;cc-by-4.0&quot;,
+            &quot;version&quot;: &quot;1.0&quot;,
+            &quot;publication_date&quot;: datetime.now().strftime(&quot;%Y-%m-%d&quot;)
         }
 
         with open(output_file, 'w') as f:
             json.dump(metadata, f, indent=2)
 
-        print(f"Metadata saved: {output_file}")
+        print(f&quot;Metadata saved: {output_file}&quot;)
 
     def run(self, excel_file):
-        """Run pipeline"""
-        print("=== Experimental Data Publication Pipeline ===")
+        &quot;&quot;&quot;Run pipeline&quot;&quot;&quot;
+        print(&quot;=== Experimental Data Publication Pipeline ===&quot;)
 
         # Load data
         df = self.load_excel_data(excel_file)
@@ -998,11 +1010,11 @@ class ExperimentalDataPipeline:
         # Prepare Zenodo metadata
         self.prepare_zenodo_metadata()
 
-        print("\n=== Completed ===")
-        print("Next steps:")
-        print("1. Verify database")
-        print("2. Upload to Zenodo")
-        print("3. Obtain DOI")
+        print(&quot;\n=== Completed ===&quot;)
+        print(&quot;Next steps:&quot;)
+        print(&quot;1. Verify database&quot;)
+        print(&quot;2. Upload to Zenodo&quot;)
+        print(&quot;3. Obtain DOI&quot;)
 
 # Usage example (requires Excel file)
 # pipeline = ExperimentalDataPipeline()

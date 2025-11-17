@@ -437,14 +437,14 @@ print(f"Answer: {answer}")
     """
     try:
         # Validation
-        if not query or len(query) &lt; 2:
+        if not query or len(query) < 2:
             return {
                 "success": False,
                 "error": "Search query must be at least 2 characters",
                 "error_code": "INVALID_QUERY"
             }
 
-        if min_price and max_price and min_price &gt; max_price:
+        if min_price and max_price and min_price > max_price:
             return {
                 "success": False,
                 "error": "Minimum price exceeds maximum price",
@@ -481,7 +481,7 @@ class ToolExecutor:
         self.timeout = timeout
         self.logger = logging.getLogger(__name__)
 
-    def execute(self, tool_func: Callable, args: Dict[str, Any]) -&gt; Dict[str, Any]:
+    def execute(self, tool_func: Callable, args: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute tool safely
 
@@ -505,7 +505,7 @@ class ToolExecutor:
 
             except TimeoutError:
                 self.logger.warning(f"Tool execution timed out (attempt {attempt + 1})")
-                if attempt &lt; self.max_retries - 1:
+                if attempt < self.max_retries - 1:
                     time.sleep(2 ** attempt)  # Exponential backoff
                 else:
                     return {
@@ -526,7 +526,7 @@ class ToolExecutor:
             except Exception as e:
                 # Other errors
                 self.logger.error(f"Tool execution error: {str(e)} (attempt {attempt + 1})")
-                if attempt &lt; self.max_retries - 1:
+                if attempt < self.max_retries - 1:
                     time.sleep(2 ** attempt)
                 else:
                     return {
@@ -541,7 +541,7 @@ class ToolExecutor:
             "error_type": "max_retries"
         }
 
-    def _execute_with_timeout(self, func: Callable, args: Dict[str, Any]) -&gt; Any:
+    def _execute_with_timeout(self, func: Callable, args: Dict[str, Any]) -> Any:
         """Execute function with timeout"""
         import signal
 
@@ -566,7 +566,7 @@ executor = ToolExecutor(max_retries=3, timeout=10)
 def risky_api_call(param):
     """Unstable API call"""
     import random
-    if random.random() &lt; 0.3:
+    if random.random() < 0.3:
         raise ConnectionError("API connection error")
     return {"data": f"Result: {param}"}
 
@@ -576,18 +576,22 @@ print(result)
 <h2 id="external-api">External API Integration</h2>
 <h3>Practical API Integration Examples</h3>
 <h4>1. Weather API Integration (OpenWeatherMap)</h4>
-<pre><code class="language-python">import requests
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - requests&gt;=2.31.0
+
+import requests
 from typing import Dict, Optional
 
 class WeatherTool:
-    """Weather information retrieval tool"""
+    &quot;&quot;&quot;Weather information retrieval tool&quot;&quot;&quot;
 
     def __init__(self, api_key: str):
         self.api_key = api_key
-        self.base_url = "https://api.openweathermap.org/data/2.5/weather"
+        self.base_url = &quot;https://api.openweathermap.org/data/2.5/weather&quot;
 
-    def get_weather(self, location: str, unit: str = "metric") -&gt; Dict:
-        """
+    def get_weather(self, location: str, unit: str = &quot;metric&quot;) -&gt; Dict:
+        &quot;&quot;&quot;
         Get weather information for specified location
 
         Args:
@@ -596,13 +600,13 @@ class WeatherTool:
 
         Returns:
             Dictionary with weather information
-        """
+        &quot;&quot;&quot;
         try:
             params = {
-                "q": location,
-                "appid": self.api_key,
-                "units": unit,
-                "lang": "en"
+                &quot;q&quot;: location,
+                &quot;appid&quot;: self.api_key,
+                &quot;units&quot;: unit,
+                &quot;lang&quot;: &quot;en&quot;
             }
 
             response = requests.get(self.base_url, params=params, timeout=10)
@@ -611,64 +615,64 @@ class WeatherTool:
             data = response.json()
 
             return {
-                "success": True,
-                "location": data["name"],
-                "temperature": data["main"]["temp"],
-                "feels_like": data["main"]["feels_like"],
-                "humidity": data["main"]["humidity"],
-                "description": data["weather"][0]["description"],
-                "wind_speed": data["wind"]["speed"]
+                &quot;success&quot;: True,
+                &quot;location&quot;: data[&quot;name&quot;],
+                &quot;temperature&quot;: data[&quot;main&quot;][&quot;temp&quot;],
+                &quot;feels_like&quot;: data[&quot;main&quot;][&quot;feels_like&quot;],
+                &quot;humidity&quot;: data[&quot;main&quot;][&quot;humidity&quot;],
+                &quot;description&quot;: data[&quot;weather&quot;][0][&quot;description&quot;],
+                &quot;wind_speed&quot;: data[&quot;wind&quot;][&quot;speed&quot;]
             }
 
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
                 return {
-                    "success": False,
-                    "error": f"City '{location}' not found"
+                    &quot;success&quot;: False,
+                    &quot;error&quot;: f&quot;City '{location}' not found&quot;
                 }
             else:
                 return {
-                    "success": False,
-                    "error": f"API error: {str(e)}"
+                    &quot;success&quot;: False,
+                    &quot;error&quot;: f&quot;API error: {str(e)}&quot;
                 }
 
         except requests.exceptions.Timeout:
             return {
-                "success": False,
-                "error": "API request timed out"
+                &quot;success&quot;: False,
+                &quot;error&quot;: &quot;API request timed out&quot;
             }
 
         except Exception as e:
             return {
-                "success": False,
-                "error": f"Unexpected error: {str(e)}"
+                &quot;success&quot;: False,
+                &quot;error&quot;: f&quot;Unexpected error: {str(e)}&quot;
             }
 
 # Integration with agent
-weather_tool = WeatherTool(api_key="your-openweathermap-api-key")
+weather_tool = WeatherTool(api_key=&quot;your-openweathermap-api-key&quot;)
 
 tools = [
     {
-        "type": "function",
-        "function": {
-            "name": "get_weather",
-            "description": "Get current weather information for a specified location",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "location": {
-                        "type": "string",
-                        "description": "City name (e.g., Tokyo, Osaka)"
+        &quot;type&quot;: &quot;function&quot;,
+        &quot;function&quot;: {
+            &quot;name&quot;: &quot;get_weather&quot;,
+            &quot;description&quot;: &quot;Get current weather information for a specified location&quot;,
+            &quot;parameters&quot;: {
+                &quot;type&quot;: &quot;object&quot;,
+                &quot;properties&quot;: {
+                    &quot;location&quot;: {
+                        &quot;type&quot;: &quot;string&quot;,
+                        &quot;description&quot;: &quot;City name (e.g., Tokyo, Osaka)&quot;
                     }
                 },
-                "required": ["location"]
+                &quot;required&quot;: [&quot;location&quot;]
             }
         }
     }
 ]
 
 # During tool execution
-# result = weather_tool.get_weather("Tokyo")
+# result = weather_tool.get_weather(&quot;Tokyo&quot;)
 </code></pre>
 <h2 id="tool-chain">Tool Chains and Collaboration</h2>
 <h3>Coordinated Execution of Multiple Tools</h3>
@@ -733,7 +737,7 @@ class AgentWithToolChain:
             }
         ]
 
-    def search_company(self, company_name: str) -&gt; str:
+    def search_company(self, company_name: str) -> str:
         """Search stock symbol from company name (mock)"""
         mapping = {
             "Apple": "AAPL",
@@ -743,7 +747,7 @@ class AgentWithToolChain:
         symbol = mapping.get(company_name, "UNKNOWN")
         return json.dumps({"symbol": symbol})
 
-    def get_stock_price(self, symbol: str) -&gt; str:
+    def get_stock_price(self, symbol: str) -> str:
         """Get stock price (mock)"""
         prices = {
             "AAPL": {"current": 150.25, "previous": 148.50},
@@ -753,7 +757,7 @@ class AgentWithToolChain:
         data = prices.get(symbol, {"current": 0, "previous": 0})
         return json.dumps(data)
 
-    def calculate_change(self, current_price: float, previous_price: float) -&gt; str:
+    def calculate_change(self, current_price: float, previous_price: float) -> str:
         """Calculate price change rate"""
         change = current_price - previous_price
         change_percent = (change / previous_price) * 100
@@ -762,7 +766,7 @@ class AgentWithToolChain:
             "change_percent": round(change_percent, 2)
         })
 
-    def run(self, user_query: str, max_iterations: int = 10) -&gt; str:
+    def run(self, user_query: str, max_iterations: int = 10) -> str:
         """Execute agent (tool chain support)"""
         messages = [{"role": "user", "content": user_query}]
 
@@ -822,7 +826,7 @@ print(answer)
             "make_payment"
         ]
 
-    def requires_approval(self, tool_name: str) -&gt; bool:
+    def requires_approval(self, tool_name: str) -> bool:
         """Determine if tool requires approval"""
         import fnmatch
         for pattern in self.require_approval_for:
@@ -830,7 +834,7 @@ print(answer)
                 return True
         return False
 
-    def request_approval(self, tool_name: str, args: dict) -&gt; bool:
+    def request_approval(self, tool_name: str, args: dict) -> bool:
         """Request approval from user"""
         print(f"\n⚠️  Approval required")
         print(f"Tool: {tool_name}")
@@ -858,7 +862,7 @@ class RateLimiter:
         self.max_calls = max_calls_per_minute
         self.calls = defaultdict(list)
 
-    def allow_call(self, tool_name: str) -&gt; bool:
+    def allow_call(self, tool_name: str) -> bool:
         """Determine if call is allowed"""
         now = time.time()
         one_minute_ago = now - 60
@@ -866,10 +870,10 @@ class RateLimiter:
         # Filter calls within 1 minute
         self.calls[tool_name] = [
             t for t in self.calls[tool_name]
-            if t &gt; one_minute_ago
+            if t > one_minute_ago
         ]
 
-        if len(self.calls[tool_name]) &gt;= self.max_calls:
+        if len(self.calls[tool_name]) >= self.max_calls:
             return False
 
         self.calls[tool_name].append(now)

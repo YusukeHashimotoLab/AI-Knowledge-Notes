@@ -300,30 +300,30 @@ def create_owl_process_ontology():
             pass
 
         # Property definitions
-        class hasFlowRate(Equipment &gt;&gt; float, FunctionalProperty):
+        class hasFlowRate(Equipment >> float, FunctionalProperty):
             """Flow rate [m³/h]"""
             pass
 
-        class hasPressure(Equipment &gt;&gt; float):
+        class hasPressure(Equipment >> float):
             """Pressure [kPa]"""
             pass
 
-        class hasTemperature(Equipment &gt;&gt; float):
+        class hasTemperature(Equipment >> float):
             """Temperature [°C]"""
             pass
 
-        class isConnectedTo(Equipment &gt;&gt; Equipment):
+        class isConnectedTo(Equipment >> Equipment):
             """Connection relationship"""
             pass
 
         # Constraint definitions (OWL constraints)
         class HighPressureEquipment(Equipment):
-            """High pressure equipment (pressure &gt; 1000 kPa)"""
-            equivalent_to = [Equipment &amp; hasPressure.some(float &gt;= 1000.0)]
+            """High pressure equipment (pressure > 1000 kPa)"""
+            equivalent_to = [Equipment & hasPressure.some(float >= 1000.0)]
 
         class LowTemperatureEquipment(Equipment):
-            """Low temperature equipment (temperature &lt; 0°C)"""
-            equivalent_to = [Equipment &amp; hasTemperature.some(float &lt; 0.0)]
+            """Low temperature equipment (temperature < 0°C)"""
+            equivalent_to = [Equipment & hasTemperature.some(float < 0.0)]
 
         # Instance creation
         p101 = CentrifugalPump("P101")
@@ -482,43 +482,43 @@ def create_swrl_rules_ontology():
             pass
 
         # Properties
-        class hasPressure(Equipment &gt;&gt; float, FunctionalProperty):
+        class hasPressure(Equipment >> float, FunctionalProperty):
             pass
 
-        class hasTemperature(Equipment &gt;&gt; float, FunctionalProperty):
+        class hasTemperature(Equipment >> float, FunctionalProperty):
             pass
 
-        class hasAlarm(Equipment &gt;&gt; Alarm):
+        class hasAlarm(Equipment >> Alarm):
             """Alarm associated with equipment"""
             pass
 
-        class requiresMaintenance(Equipment &gt;&gt; bool, FunctionalProperty):
+        class requiresMaintenance(Equipment >> bool, FunctionalProperty):
             """Maintenance requirement"""
             pass
 
         # SWRL rule definitions
         # Rule 1: Generate high pressure alarm
-        # IF pressure &gt; 1000 kPa THEN generate high pressure alarm
+        # IF pressure > 1000 kPa THEN generate high pressure alarm
         rule1 = Imp()
         rule1.set_as_rule("""
             Equipment(?eq), hasPressure(?eq, ?p), greaterThan(?p, 1000)
-            -&gt; HighPressureAlarm(?alarm), hasAlarm(?eq, ?alarm)
+            -> HighPressureAlarm(?alarm), hasAlarm(?eq, ?alarm)
         """)
 
         # Rule 2: Generate high temperature alarm
-        # IF temperature &gt; 200°C THEN generate high temperature alarm
+        # IF temperature > 200°C THEN generate high temperature alarm
         rule2 = Imp()
         rule2.set_as_rule("""
             Equipment(?eq), hasTemperature(?eq, ?t), greaterThan(?t, 200)
-            -&gt; HighTemperatureAlarm(?alarm), hasAlarm(?eq, ?alarm)
+            -> HighTemperatureAlarm(?alarm), hasAlarm(?eq, ?alarm)
         """)
 
         # Rule 3: Maintenance requirement determination
-        # IF (pressure &gt; 1500 kPa) OR (temperature &gt; 250°C) THEN maintenance required
+        # IF (pressure > 1500 kPa) OR (temperature > 250°C) THEN maintenance required
         rule3 = Imp()
         rule3.set_as_rule("""
             Equipment(?eq), hasPressure(?eq, ?p), greaterThan(?p, 1500)
-            -&gt; requiresMaintenance(?eq, true)
+            -> requiresMaintenance(?eq, true)
         """)
 
         # Instance creation
@@ -630,32 +630,36 @@ SWRL Rules: Custom Inference Rule Definition
 <hr/>
 <h2>4.4 Process Safety Inference Rules</h2>
 <h3>Code Example 4: Process Safety Check Reasoning</h3>
-<pre><code class="language-python">from rdflib import Graph, Namespace, RDF, RDFS, Literal, URIRef
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+from rdflib import Graph, Namespace, RDF, RDFS, Literal, URIRef
 from rdflib.plugins.sparql import prepareQuery
 import pandas as pd
 
 # Process safety check reasoning system
 
-PROC = Namespace("http://example.org/process#")
-SAFE = Namespace("http://example.org/safety#")
+PROC = Namespace(&quot;http://example.org/process#&quot;)
+SAFE = Namespace(&quot;http://example.org/safety#&quot;)
 
 def create_safety_knowledge_graph():
-    """
+    &quot;&quot;&quot;
     Build process safety knowledge graph
 
     Returns:
         Graph: RDF graph
-    """
+    &quot;&quot;&quot;
     g = Graph()
-    g.bind("proc", PROC)
-    g.bind("safe", SAFE)
+    g.bind(&quot;proc&quot;, PROC)
+    g.bind(&quot;safe&quot;, SAFE)
 
     # Equipment data
     equipment_data = [
-        {"id": "V101", "type": "PressureVessel", "pressure": 2500, "temp": 180, "material": "CS"},
-        {"id": "V102", "type": "PressureVessel", "pressure": 1800, "temp": 250, "material": "SS316"},
-        {"id": "T201", "type": "StorageTank", "pressure": 150, "temp": 30, "material": "CS"},
-        {"id": "R301", "type": "Reactor", "pressure": 3000, "temp": 300, "material": "SS316L"},
+        {&quot;id&quot;: &quot;V101&quot;, &quot;type&quot;: &quot;PressureVessel&quot;, &quot;pressure&quot;: 2500, &quot;temp&quot;: 180, &quot;material&quot;: &quot;CS&quot;},
+        {&quot;id&quot;: &quot;V102&quot;, &quot;type&quot;: &quot;PressureVessel&quot;, &quot;pressure&quot;: 1800, &quot;temp&quot;: 250, &quot;material&quot;: &quot;SS316&quot;},
+        {&quot;id&quot;: &quot;T201&quot;, &quot;type&quot;: &quot;StorageTank&quot;, &quot;pressure&quot;: 150, &quot;temp&quot;: 30, &quot;material&quot;: &quot;CS&quot;},
+        {&quot;id&quot;: &quot;R301&quot;, &quot;type&quot;: &quot;Reactor&quot;, &quot;pressure&quot;: 3000, &quot;temp&quot;: 300, &quot;material&quot;: &quot;SS316L&quot;},
     ]
 
     for eq in equipment_data:
@@ -667,20 +671,20 @@ def create_safety_knowledge_graph():
 
     # Safety constraint rules (stored as knowledge)
     g.add((SAFE.Rule1, RDF.type, SAFE.SafetyRule))
-    g.add((SAFE.Rule1, RDFS.label, Literal("High Pressure Equipment Material Constraint")))
-    g.add((SAFE.Rule1, SAFE.condition, Literal("pressure &gt; 2000 kPa")))
-    g.add((SAFE.Rule1, SAFE.requirement, Literal("material must be stainless steel")))
+    g.add((SAFE.Rule1, RDFS.label, Literal(&quot;High Pressure Equipment Material Constraint&quot;)))
+    g.add((SAFE.Rule1, SAFE.condition, Literal(&quot;pressure &gt; 2000 kPa&quot;)))
+    g.add((SAFE.Rule1, SAFE.requirement, Literal(&quot;material must be stainless steel&quot;)))
 
     g.add((SAFE.Rule2, RDF.type, SAFE.SafetyRule))
-    g.add((SAFE.Rule2, RDFS.label, Literal("High Temperature Equipment Material Constraint")))
-    g.add((SAFE.Rule2, SAFE.condition, Literal("temperature &gt; 200°C")))
-    g.add((SAFE.Rule2, SAFE.requirement, Literal("material must be SS316 or higher")))
+    g.add((SAFE.Rule2, RDFS.label, Literal(&quot;High Temperature Equipment Material Constraint&quot;)))
+    g.add((SAFE.Rule2, SAFE.condition, Literal(&quot;temperature &gt; 200°C&quot;)))
+    g.add((SAFE.Rule2, SAFE.requirement, Literal(&quot;material must be SS316 or higher&quot;)))
 
     return g
 
 
 def infer_safety_violations(g):
-    """
+    &quot;&quot;&quot;
     Infer safety rule violations
 
     Parameters:
@@ -688,51 +692,51 @@ def infer_safety_violations(g):
 
     Returns:
         list: Violation list
-    """
+    &quot;&quot;&quot;
     violations = []
 
     # Rule 1: High pressure equipment (&gt;2000 kPa) must be stainless steel
-    query_high_pressure = prepareQuery("""
+    query_high_pressure = prepareQuery(&quot;&quot;&quot;
         SELECT ?eq ?pressure ?material
         WHERE {
             ?eq proc:hasPressure ?pressure .
             ?eq proc:hasMaterial ?material .
             FILTER (?pressure &gt; 2000)
-            FILTER (?material = "CS")
+            FILTER (?material = &quot;CS&quot;)
         }
-    """, initNs={"proc": PROC})
+    &quot;&quot;&quot;, initNs={&quot;proc&quot;: PROC})
 
     for row in g.query(query_high_pressure):
         violations.append({
             'equipment': str(row.eq).split('#')[-1],
             'rule': 'High Pressure Equipment Material Constraint',
             'severity': 'HIGH',
-            'description': f"Pressure {row.pressure} kPa but material is carbon steel (CS)",
-            'recommendation': "Consider changing to stainless steel (SS316 or higher)"
+            'description': f&quot;Pressure {row.pressure} kPa but material is carbon steel (CS)&quot;,
+            'recommendation': &quot;Consider changing to stainless steel (SS316 or higher)&quot;
         })
 
     # Rule 2: High temperature equipment (&gt;200°C) must be SS316 or higher
-    query_high_temp = prepareQuery("""
+    query_high_temp = prepareQuery(&quot;&quot;&quot;
         SELECT ?eq ?temp ?material
         WHERE {
             ?eq proc:hasTemperature ?temp .
             ?eq proc:hasMaterial ?material .
             FILTER (?temp &gt; 200)
-            FILTER (?material != "SS316" &amp;&amp; ?material != "SS316L")
+            FILTER (?material != &quot;SS316&quot; &amp;&amp; ?material != &quot;SS316L&quot;)
         }
-    """, initNs={"proc": PROC})
+    &quot;&quot;&quot;, initNs={&quot;proc&quot;: PROC})
 
     for row in g.query(query_high_temp):
         violations.append({
             'equipment': str(row.eq).split('#')[-1],
             'rule': 'High Temperature Equipment Material Constraint',
             'severity': 'MEDIUM',
-            'description': f"Temperature {row.temp}°C but material is {row.material}",
-            'recommendation': "Recommend changing to SS316 or higher"
+            'description': f&quot;Temperature {row.temp}°C but material is {row.material}&quot;,
+            'recommendation': &quot;Recommend changing to SS316 or higher&quot;
         })
 
     # Rule 3: Pressure vessel severe conditions (high pressure + high temperature)
-    query_severe = prepareQuery("""
+    query_severe = prepareQuery(&quot;&quot;&quot;
         SELECT ?eq ?pressure ?temp ?material
         WHERE {
             ?eq a proc:PressureVessel .
@@ -741,53 +745,53 @@ def infer_safety_violations(g):
             ?eq proc:hasMaterial ?material .
             FILTER (?pressure &gt; 2000 &amp;&amp; ?temp &gt; 200)
         }
-    """, initNs={"proc": PROC})
+    &quot;&quot;&quot;, initNs={&quot;proc&quot;: PROC})
 
     for row in g.query(query_severe):
-        if row.material == "CS":
+        if row.material == &quot;CS&quot;:
             violations.append({
                 'equipment': str(row.eq).split('#')[-1],
                 'rule': 'Severe Condition Equipment',
                 'severity': 'CRITICAL',
-                'description': f"High pressure ({row.pressure} kPa) + high temperature ({row.temp}°C) with carbon steel",
-                'recommendation': "Immediate replacement with SS316L required"
+                'description': f&quot;High pressure ({row.pressure} kPa) + high temperature ({row.temp}°C) with carbon steel&quot;,
+                'recommendation': &quot;Immediate replacement with SS316L required&quot;
             })
 
     return violations
 
 
 # Execution demo
-print("="*60)
-print("Process Safety Check: Reasoning-Based Violation Detection")
-print("="*60)
+print(&quot;=&quot;*60)
+print(&quot;Process Safety Check: Reasoning-Based Violation Detection&quot;)
+print(&quot;=&quot;*60)
 
 g = create_safety_knowledge_graph()
 
-print("\n[Safety Knowledge Graph]")
-print(f"  Number of triples: {len(g)}")
-print(f"  Number of equipment: {len(list(g.subjects(RDF.type, None)))}")
-print(f"  Number of safety rules: {len(list(g.subjects(RDF.type, SAFE.SafetyRule)))}")
+print(&quot;\n[Safety Knowledge Graph]&quot;)
+print(f&quot;  Number of triples: {len(g)}&quot;)
+print(f&quot;  Number of equipment: {len(list(g.subjects(RDF.type, None)))}&quot;)
+print(f&quot;  Number of safety rules: {len(list(g.subjects(RDF.type, SAFE.SafetyRule)))}&quot;)
 
 # Execute safety reasoning
 violations = infer_safety_violations(g)
 
-print(f"\n[Inference Results]")
-print(f"  Violations detected: {len(violations)} items")
+print(f&quot;\n[Inference Results]&quot;)
+print(f&quot;  Violations detected: {len(violations)} items&quot;)
 
 # Display violations by severity
 severity_order = {'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3}
 violations_sorted = sorted(violations, key=lambda x: severity_order[x['severity']])
 
-print("\n[Violation Details]")
+print(&quot;\n[Violation Details]&quot;)
 for i, v in enumerate(violations_sorted, 1):
-    print(f"\n{i}. [{v['severity']}] {v['equipment']} - {v['rule']}")
-    print(f"   Issue: {v['description']}")
-    print(f"   Recommendation: {v['recommendation']}")
+    print(f&quot;\n{i}. [{v['severity']}] {v['equipment']} - {v['rule']}&quot;)
+    print(f&quot;   Issue: {v['description']}&quot;)
+    print(f&quot;   Recommendation: {v['recommendation']}&quot;)
 
 # Convert to DataFrame
 if violations:
     df = pd.DataFrame(violations)
-    print("\n[Violation Summary (Table Format)]")
+    print(&quot;\n[Violation Summary (Table Format)]&quot;)
     print(df[['equipment', 'severity', 'rule']].to_string(index=False))
 </code></pre>
 <p><strong>Example Output:</strong></p>
@@ -851,11 +855,11 @@ def create_ontology_with_inconsistencies():
         AllDisjoint([Pump, Compressor])
 
         # Properties
-        class hasPressure(Equipment &gt;&gt; float, FunctionalProperty):
+        class hasPressure(Equipment >> float, FunctionalProperty):
             """FunctionalProperty: Can only have at most one value"""
             pass
 
-        class hasFlowRate(Equipment &gt;&gt; float):
+        class hasFlowRate(Equipment >> float):
             pass
 
         # Constraint: Pressure must be positive
@@ -933,7 +937,7 @@ def check_consistency(onto):
     for ind in onto.individuals():
         if hasattr(ind, 'hasPressure') and ind.hasPressure:
             pressure = ind.hasPressure[0]
-            if pressure &lt; 0:
+            if pressure < 0:
                 msg = f"  {ind.name}: Negative pressure {pressure} kPa (physically invalid)"
                 print(msg)
                 results['warnings'].append(msg)
@@ -1009,44 +1013,48 @@ Ontology Consistency Check
 <hr/>
 <h2>4.6 Fault Diagnosis System</h2>
 <h3>Code Example 6: Reasoning-Based Fault Diagnosis</h3>
-<pre><code class="language-python">from rdflib import Graph, Namespace, RDF, RDFS, Literal
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+from rdflib import Graph, Namespace, RDF, RDFS, Literal
 from rdflib.plugins.sparql import prepareQuery
 import pandas as pd
 
 # Reasoning-based fault diagnosis system
 
-PROC = Namespace("http://example.org/process#")
-DIAG = Namespace("http://example.org/diagnosis#")
+PROC = Namespace(&quot;http://example.org/process#&quot;)
+DIAG = Namespace(&quot;http://example.org/diagnosis#&quot;)
 
 def create_diagnostic_knowledge_base():
-    """
+    &quot;&quot;&quot;
     Build fault diagnosis knowledge base
 
     Returns:
         Graph: Diagnostic knowledge graph
-    """
+    &quot;&quot;&quot;
     g = Graph()
-    g.bind("proc", PROC)
-    g.bind("diag", DIAG)
+    g.bind(&quot;proc&quot;, PROC)
+    g.bind(&quot;diag&quot;, DIAG)
 
     # Failure mode definitions
     g.add((DIAG.CavitationFailure, RDF.type, DIAG.FailureMode))
-    g.add((DIAG.CavitationFailure, RDFS.label, Literal("Cavitation")))
-    g.add((DIAG.CavitationFailure, DIAG.symptom, Literal("Low flow")))
-    g.add((DIAG.CavitationFailure, DIAG.symptom, Literal("High vibration")))
-    g.add((DIAG.CavitationFailure, DIAG.rootCause, Literal("Insufficient suction pressure")))
+    g.add((DIAG.CavitationFailure, RDFS.label, Literal(&quot;Cavitation&quot;)))
+    g.add((DIAG.CavitationFailure, DIAG.symptom, Literal(&quot;Low flow&quot;)))
+    g.add((DIAG.CavitationFailure, DIAG.symptom, Literal(&quot;High vibration&quot;)))
+    g.add((DIAG.CavitationFailure, DIAG.rootCause, Literal(&quot;Insufficient suction pressure&quot;)))
 
     g.add((DIAG.SealLeakage, RDF.type, DIAG.FailureMode))
-    g.add((DIAG.SealLeakage, RDFS.label, Literal("Seal leakage")))
-    g.add((DIAG.SealLeakage, DIAG.symptom, Literal("Low pressure")))
-    g.add((DIAG.SealLeakage, DIAG.symptom, Literal("Liquid leak detection")))
-    g.add((DIAG.SealLeakage, DIAG.rootCause, Literal("Seal deterioration")))
+    g.add((DIAG.SealLeakage, RDFS.label, Literal(&quot;Seal leakage&quot;)))
+    g.add((DIAG.SealLeakage, DIAG.symptom, Literal(&quot;Low pressure&quot;)))
+    g.add((DIAG.SealLeakage, DIAG.symptom, Literal(&quot;Liquid leak detection&quot;)))
+    g.add((DIAG.SealLeakage, DIAG.rootCause, Literal(&quot;Seal deterioration&quot;)))
 
     g.add((DIAG.BearingFailure, RDF.type, DIAG.FailureMode))
-    g.add((DIAG.BearingFailure, RDFS.label, Literal("Bearing failure")))
-    g.add((DIAG.BearingFailure, DIAG.symptom, Literal("High vibration")))
-    g.add((DIAG.BearingFailure, DIAG.symptom, Literal("High temperature")))
-    g.add((DIAG.BearingFailure, DIAG.rootCause, Literal("Poor lubrication")))
+    g.add((DIAG.BearingFailure, RDFS.label, Literal(&quot;Bearing failure&quot;)))
+    g.add((DIAG.BearingFailure, DIAG.symptom, Literal(&quot;High vibration&quot;)))
+    g.add((DIAG.BearingFailure, DIAG.symptom, Literal(&quot;High temperature&quot;)))
+    g.add((DIAG.BearingFailure, DIAG.rootCause, Literal(&quot;Poor lubrication&quot;)))
 
     # Current equipment state (sensor data)
     g.add((PROC.P101, RDF.type, PROC.Pump))
@@ -1065,7 +1073,7 @@ def create_diagnostic_knowledge_base():
 
 
 def diagnose_faults(g):
-    """
+    &quot;&quot;&quot;
     Infer fault modes from symptoms
 
     Parameters:
@@ -1073,12 +1081,12 @@ def diagnose_faults(g):
 
     Returns:
         list: Diagnosis results
-    """
+    &quot;&quot;&quot;
     diagnoses = []
 
     # Diagnosis rule 1: Cavitation detection
     # Symptoms: Low flow (&lt;60% of rated) + High vibration (&gt;5 mm/s)
-    query_cavitation = prepareQuery("""
+    query_cavitation = prepareQuery(&quot;&quot;&quot;
         SELECT ?pump ?flowRate ?vibration
         WHERE {
             ?pump a proc:Pump .
@@ -1086,7 +1094,7 @@ def diagnose_faults(g):
             ?pump proc:hasVibration ?vibration .
             FILTER (?flowRate &lt; 30 &amp;&amp; ?vibration &gt; 5)
         }
-    """, initNs={"proc": PROC})
+    &quot;&quot;&quot;, initNs={&quot;proc&quot;: PROC})
 
     for row in g.query(query_cavitation):
         diagnoses.append({
@@ -1100,7 +1108,7 @@ def diagnose_faults(g):
 
     # Diagnosis rule 2: Seal leakage detection
     # Symptoms: Low pressure (&lt;80% of rated) + Leak detection
-    query_seal = prepareQuery("""
+    query_seal = prepareQuery(&quot;&quot;&quot;
         SELECT ?pump ?pressure ?leak
         WHERE {
             ?pump a proc:Pump .
@@ -1108,7 +1116,7 @@ def diagnose_faults(g):
             ?pump proc:hasLeakDetected ?leak .
             FILTER (?pressure &lt; 400 &amp;&amp; ?leak = true)
         }
-    """, initNs={"proc": PROC})
+    &quot;&quot;&quot;, initNs={&quot;proc&quot;: PROC})
 
     for row in g.query(query_seal):
         diagnoses.append({
@@ -1122,7 +1130,7 @@ def diagnose_faults(g):
 
     # Diagnosis rule 3: Bearing failure detection
     # Symptoms: High vibration + High temperature (&gt;80°C)
-    query_bearing = prepareQuery("""
+    query_bearing = prepareQuery(&quot;&quot;&quot;
         SELECT ?pump ?vibration ?temp
         WHERE {
             ?pump a proc:Pump .
@@ -1130,7 +1138,7 @@ def diagnose_faults(g):
             ?pump proc:hasTemperature ?temp .
             FILTER (?vibration &gt; 5 &amp;&amp; ?temp &gt; 80)
         }
-    """, initNs={"proc": PROC})
+    &quot;&quot;&quot;, initNs={&quot;proc&quot;: PROC})
 
     for row in g.query(query_bearing):
         diagnoses.append({
@@ -1146,18 +1154,18 @@ def diagnose_faults(g):
 
 
 # Execution demo
-print("="*60)
-print("Reasoning-Based Fault Diagnosis System")
-print("="*60)
+print(&quot;=&quot;*60)
+print(&quot;Reasoning-Based Fault Diagnosis System&quot;)
+print(&quot;=&quot;*60)
 
 g = create_diagnostic_knowledge_base()
 
-print("\n[Diagnostic Knowledge Base]")
-print(f"  Number of failure modes: {len(list(g.subjects(RDF.type, DIAG.FailureMode)))}")
-print(f"  Number of monitored equipment: {len(list(g.subjects(RDF.type, PROC.Pump)))}")
+print(&quot;\n[Diagnostic Knowledge Base]&quot;)
+print(f&quot;  Number of failure modes: {len(list(g.subjects(RDF.type, DIAG.FailureMode)))}&quot;)
+print(f&quot;  Number of monitored equipment: {len(list(g.subjects(RDF.type, PROC.Pump)))}&quot;)
 
 # Display equipment state
-print("\n[Current Equipment State]")
+print(&quot;\n[Current Equipment State]&quot;)
 for pump_uri in g.subjects(RDF.type, PROC.Pump):
     pump = str(pump_uri).split('#')[-1]
     flow = list(g.objects(pump_uri, PROC.hasFlowRate))[0] if list(g.objects(pump_uri, PROC.hasFlowRate)) else None
@@ -1165,27 +1173,27 @@ for pump_uri in g.subjects(RDF.type, PROC.Pump):
     pressure = list(g.objects(pump_uri, PROC.hasPressure))[0] if list(g.objects(pump_uri, PROC.hasPressure)) else None
     temp = list(g.objects(pump_uri, PROC.hasTemperature))[0] if list(g.objects(pump_uri, PROC.hasTemperature)) else None
 
-    print(f"\n  {pump}:")
-    print(f"    Flow: {flow} m³/h, Vibration: {vib} mm/s")
-    print(f"    Pressure: {pressure} kPa, Temperature: {temp}°C")
+    print(f&quot;\n  {pump}:&quot;)
+    print(f&quot;    Flow: {flow} m³/h, Vibration: {vib} mm/s&quot;)
+    print(f&quot;    Pressure: {pressure} kPa, Temperature: {temp}°C&quot;)
 
 # Execute fault diagnosis
 diagnoses = diagnose_faults(g)
 
-print(f"\n[Diagnosis Results]")
-print(f"  Detected faults: {len(diagnoses)} items")
+print(f&quot;\n[Diagnosis Results]&quot;)
+print(f&quot;  Detected faults: {len(diagnoses)} items&quot;)
 
 for i, diag in enumerate(diagnoses, 1):
-    print(f"\n{i}. {diag['equipment']} - {diag['failure_mode']}")
-    print(f"   Confidence: {diag['confidence']*100:.1f}%")
-    print(f"   Symptoms: {', '.join(diag['symptoms'])}")
-    print(f"   Root cause: {diag['root_cause']}")
-    print(f"   Recommended action: {diag['action']}")
+    print(f&quot;\n{i}. {diag['equipment']} - {diag['failure_mode']}&quot;)
+    print(f&quot;   Confidence: {diag['confidence']*100:.1f}%&quot;)
+    print(f&quot;   Symptoms: {', '.join(diag['symptoms'])}&quot;)
+    print(f&quot;   Root cause: {diag['root_cause']}&quot;)
+    print(f&quot;   Recommended action: {diag['action']}&quot;)
 
 # Convert to DataFrame
 if diagnoses:
     df = pd.DataFrame(diagnoses)
-    print("\n[Diagnosis Summary (Table Format)]")
+    print(&quot;\n[Diagnosis Summary (Table Format)]&quot;)
     print(df[['equipment', 'failure_mode', 'confidence', 'action']].to_string(index=False))
 </code></pre>
 <p><strong>Example Output:</strong></p>
@@ -1231,26 +1239,31 @@ equipment failure_mode  confidence                                      action
 <hr/>
 <h2>4.7 Anomaly Detection Applications</h2>
 <h3>Code Example 7: Knowledge Graph-Based Anomaly Detection</h3>
-<pre><code class="language-python">from rdflib import Graph, Namespace, RDF, RDFS, Literal
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+from rdflib import Graph, Namespace, RDF, RDFS, Literal
 from rdflib.plugins.sparql import prepareQuery
 import numpy as np
 import pandas as pd
 
 # Knowledge graph-based anomaly detection system
 
-PROC = Namespace("http://example.org/process#")
-ANOM = Namespace("http://example.org/anomaly#")
+PROC = Namespace(&quot;http://example.org/process#&quot;)
+ANOM = Namespace(&quot;http://example.org/anomaly#&quot;)
 
 def create_anomaly_detection_kb():
-    """
+    &quot;&quot;&quot;
     Build anomaly detection knowledge base
 
     Returns:
         Graph: RDF graph
-    """
+    &quot;&quot;&quot;
     g = Graph()
-    g.bind("proc", PROC)
-    g.bind("anom", ANOM)
+    g.bind(&quot;proc&quot;, PROC)
+    g.bind(&quot;anom&quot;, ANOM)
 
     # Normal operating range definitions
     g.add((PROC.Pump, RDF.type, RDFS.Class))
@@ -1263,16 +1276,16 @@ def create_anomaly_detection_kb():
 
     # Time series sensor data (pseudo stream)
     sensor_data = [
-        {"time": 0, "pump": "P101", "flow": 50.0, "pressure": 500.0, "vib": 2.5, "temp": 55.0},
-        {"time": 1, "pump": "P101", "flow": 48.0, "pressure": 495.0, "vib": 3.0, "temp": 56.0},
-        {"time": 2, "pump": "P101", "flow": 42.0, "pressure": 485.0, "vib": 5.2, "temp": 58.0},  # Anomaly start
-        {"time": 3, "pump": "P101", "flow": 35.0, "pressure": 470.0, "vib": 7.8, "temp": 62.0},  # Anomaly progression
-        {"time": 4, "pump": "P101", "flow": 30.0, "pressure": 450.0, "vib": 9.5, "temp": 68.0},  # Severe anomaly
+        {&quot;time&quot;: 0, &quot;pump&quot;: &quot;P101&quot;, &quot;flow&quot;: 50.0, &quot;pressure&quot;: 500.0, &quot;vib&quot;: 2.5, &quot;temp&quot;: 55.0},
+        {&quot;time&quot;: 1, &quot;pump&quot;: &quot;P101&quot;, &quot;flow&quot;: 48.0, &quot;pressure&quot;: 495.0, &quot;vib&quot;: 3.0, &quot;temp&quot;: 56.0},
+        {&quot;time&quot;: 2, &quot;pump&quot;: &quot;P101&quot;, &quot;flow&quot;: 42.0, &quot;pressure&quot;: 485.0, &quot;vib&quot;: 5.2, &quot;temp&quot;: 58.0},  # Anomaly start
+        {&quot;time&quot;: 3, &quot;pump&quot;: &quot;P101&quot;, &quot;flow&quot;: 35.0, &quot;pressure&quot;: 470.0, &quot;vib&quot;: 7.8, &quot;temp&quot;: 62.0},  # Anomaly progression
+        {&quot;time&quot;: 4, &quot;pump&quot;: &quot;P101&quot;, &quot;flow&quot;: 30.0, &quot;pressure&quot;: 450.0, &quot;vib&quot;: 9.5, &quot;temp&quot;: 68.0},  # Severe anomaly
     ]
 
     # Add sensor data to graph
     for data in sensor_data:
-        measurement_uri = PROC[f"Measurement_{data['pump']}_{data['time']}"]
+        measurement_uri = PROC[f&quot;Measurement_{data['pump']}_{data['time']}&quot;]
         g.add((measurement_uri, RDF.type, PROC.Measurement))
         g.add((measurement_uri, PROC.equipment, PROC[data['pump']]))
         g.add((measurement_uri, PROC.timestamp, Literal(data['time'])))
@@ -1285,7 +1298,7 @@ def create_anomaly_detection_kb():
 
 
 def detect_anomalies(g):
-    """
+    &quot;&quot;&quot;
     Detect anomalies using knowledge graph
 
     Parameters:
@@ -1293,7 +1306,7 @@ def detect_anomalies(g):
 
     Returns:
         list: Anomaly detection results
-    """
+    &quot;&quot;&quot;
     anomalies = []
 
     # Get normal ranges
@@ -1309,7 +1322,7 @@ def detect_anomalies(g):
         }
 
     # Check each measurement
-    query_measurements = prepareQuery("""
+    query_measurements = prepareQuery(&quot;&quot;&quot;
         SELECT ?measurement ?eq ?time ?flow ?pressure ?vib ?temp
         WHERE {
             ?measurement a proc:Measurement .
@@ -1321,7 +1334,7 @@ def detect_anomalies(g):
             ?measurement proc:temperature ?temp .
         }
         ORDER BY ?time
-    """, initNs={"proc": PROC})
+    &quot;&quot;&quot;, initNs={&quot;proc&quot;: PROC})
 
     for row in g.query(query_measurements):
         ranges = normal_ranges[PROC.Pump]
@@ -1331,29 +1344,29 @@ def detect_anomalies(g):
         # Flow check
         if row.flow &lt; ranges['flow_min']:
             deviation = ((ranges['flow_min'] - row.flow) / ranges['flow_min']) * 100
-            violations.append(f"Low flow (-{deviation:.1f}%)")
+            violations.append(f&quot;Low flow (-{deviation:.1f}%)&quot;)
             severity_score += deviation
         elif row.flow &gt; ranges['flow_max']:
             deviation = ((row.flow - ranges['flow_max']) / ranges['flow_max']) * 100
-            violations.append(f"High flow (+{deviation:.1f}%)")
+            violations.append(f&quot;High flow (+{deviation:.1f}%)&quot;)
             severity_score += deviation
 
         # Pressure check
         if row.pressure &lt; ranges['pressure_min']:
             deviation = ((ranges['pressure_min'] - row.pressure) / ranges['pressure_min']) * 100
-            violations.append(f"Low pressure (-{deviation:.1f}%)")
+            violations.append(f&quot;Low pressure (-{deviation:.1f}%)&quot;)
             severity_score += deviation
 
         # Vibration check
         if row.vib &gt; ranges['vib_max']:
             deviation = ((row.vib - ranges['vib_max']) / ranges['vib_max']) * 100
-            violations.append(f"High vibration (+{deviation:.1f}%)")
+            violations.append(f&quot;High vibration (+{deviation:.1f}%)&quot;)
             severity_score += deviation * 2  # Higher importance for vibration
 
         # Temperature check
         if row.temp &gt; ranges['temp_max']:
             deviation = ((row.temp - ranges['temp_max']) / ranges['temp_max']) * 100
-            violations.append(f"High temperature (+{deviation:.1f}%)")
+            violations.append(f&quot;High temperature (+{deviation:.1f}%)&quot;)
             severity_score += deviation
 
         # Record if anomaly exists
@@ -1376,49 +1389,49 @@ def detect_anomalies(g):
 
 
 # Execution demo
-print("="*60)
-print("Knowledge Graph-Based Anomaly Detection System")
-print("="*60)
+print(&quot;=&quot;*60)
+print(&quot;Knowledge Graph-Based Anomaly Detection System&quot;)
+print(&quot;=&quot;*60)
 
 g, sensor_data = create_anomaly_detection_kb()
 
-print("\n[System Overview]")
-print(f"  Monitoring targets: {len(list(g.subjects(PROC.equipment, None)))} measurement points")
-print(f"  Number of time series data: {len(sensor_data)}")
+print(&quot;\n[System Overview]&quot;)
+print(f&quot;  Monitoring targets: {len(list(g.subjects(PROC.equipment, None)))} measurement points&quot;)
+print(f&quot;  Number of time series data: {len(sensor_data)}&quot;)
 
-print("\n[Normal Operating Range]")
-print("  Flow: 45.0 - 55.0 m³/h")
-print("  Pressure: 480.0 - 520.0 kPa")
-print("  Vibration: &lt; 4.0 mm/s")
-print("  Temperature: &lt; 70.0 °C")
+print(&quot;\n[Normal Operating Range]&quot;)
+print(&quot;  Flow: 45.0 - 55.0 m³/h&quot;)
+print(&quot;  Pressure: 480.0 - 520.0 kPa&quot;)
+print(&quot;  Vibration: &lt; 4.0 mm/s&quot;)
+print(&quot;  Temperature: &lt; 70.0 °C&quot;)
 
 # Execute anomaly detection
 anomalies = detect_anomalies(g)
 
-print(f"\n[Anomaly Detection Results]")
-print(f"  Detected anomalies: {len(anomalies)}/{len(sensor_data)} measurement points")
+print(f&quot;\n[Anomaly Detection Results]&quot;)
+print(f&quot;  Detected anomalies: {len(anomalies)}/{len(sensor_data)} measurement points&quot;)
 
 # Display in time series
-print("\n[Time Series Anomaly Report]")
+print(&quot;\n[Time Series Anomaly Report]&quot;)
 for anom in anomalies:
-    print(f"\nTime {anom['timestamp']}: [{anom['severity']}] {anom['equipment']}")
-    print(f"  Anomaly score: {anom['score']:.1f}")
-    print(f"  Violation items: {', '.join(anom['violations'])}")
-    print(f"  Measurements: Flow={anom['flow']} m³/h, Pressure={anom['pressure']} kPa, "
-          f"Vibration={anom['vibration']} mm/s, Temperature={anom['temperature']}°C")
+    print(f&quot;\nTime {anom['timestamp']}: [{anom['severity']}] {anom['equipment']}&quot;)
+    print(f&quot;  Anomaly score: {anom['score']:.1f}&quot;)
+    print(f&quot;  Violation items: {', '.join(anom['violations'])}&quot;)
+    print(f&quot;  Measurements: Flow={anom['flow']} m³/h, Pressure={anom['pressure']} kPa, &quot;
+          f&quot;Vibration={anom['vibration']} mm/s, Temperature={anom['temperature']}°C&quot;)
 
 # Anomaly trend analysis
 if anomalies:
     df = pd.DataFrame(anomalies)
-    print("\n[Anomaly Trend Analysis]")
+    print(&quot;\n[Anomaly Trend Analysis]&quot;)
     print(df[['timestamp', 'severity', 'score', 'flow', 'vibration']].to_string(index=False))
 
     # Score trend
-    print(f"\nAnomaly score trend:")
-    print(f"  Minimum: {df['score'].min():.1f}")
-    print(f"  Maximum: {df['score'].max():.1f}")
-    print(f"  Average: {df['score'].mean():.1f}")
-    print(f"  Trend: {'Worsening' if df['score'].iloc[-1] &gt; df['score'].iloc[0] else 'Improving'}")
+    print(f&quot;\nAnomaly score trend:&quot;)
+    print(f&quot;  Minimum: {df['score'].min():.1f}&quot;)
+    print(f&quot;  Maximum: {df['score'].max():.1f}&quot;)
+    print(f&quot;  Average: {df['score'].mean():.1f}&quot;)
+    print(f&quot;  Trend: {'Worsening' if df['score'].iloc[-1] &gt; df['score'].iloc[0] else 'Improving'}&quot;)
 </code></pre>
 <p><strong>Example Output:</strong></p>
 <pre><code>============================================================
@@ -1548,6 +1561,16 @@ Anomaly score trend:
 <a class="nav-button" href="chapter-5.html">Next Chapter →</a>
 </div>
 </main>
+<section>
+            <h2>References</h2>
+            <ol>
+                <li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+                <li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+                <li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+                <li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+            </ol>
+        </section>
+
 <section class="disclaimer">
 <h3>Disclaimer</h3>
 <ul>

@@ -155,20 +155,25 @@
                         \]
                         <p>Where \(\theta\) is environment parameter, \(p(\Theta)\) is parameter distribution</p>
 </div>
-<pre><code class="language-python"># Domain Randomization Implementation
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+# Domain Randomization Implementation
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
 class RandomizedCSTREnv:
-    """CSTR environment with randomized parameters"""
+    &quot;&quot;&quot;CSTR environment with randomized parameters&quot;&quot;&quot;
     def __init__(self, randomize=True):
         self.randomize = randomize
         self.reset()
 
     def _sample_parameters(self):
-        """Random sampling of physical parameters"""
+        &quot;&quot;&quot;Random sampling of physical parameters&quot;&quot;&quot;
         if self.randomize:
             # Activation energy (±20% variation)
             self.Ea = np.random.uniform(40000, 60000)
@@ -205,14 +210,14 @@ class RandomizedCSTREnv:
         return self._get_observation()
 
     def _get_observation(self):
-        """Noisy observation"""
+        &quot;&quot;&quot;Noisy observation&quot;&quot;&quot;
         T, CA = self.state
         T_obs = T + np.random.normal(0, self.temp_noise)
         CA_obs = CA + np.random.normal(0, self.conc_noise)
         return np.array([T_obs, CA_obs])
 
     def step(self, action):
-        """Step with control delay"""
+        &quot;&quot;&quot;Step with control delay&quot;&quot;&quot;
         # Apply delayed action
         self.action_buffer.append(action)
         actual_action = self.action_buffer.pop(0)
@@ -256,7 +261,7 @@ class RandomizedCSTREnv:
 
 # Robust SAC learning
 class RobustSACAgent:
-    """SAC agent using domain randomization"""
+    &quot;&quot;&quot;SAC agent using domain randomization&quot;&quot;&quot;
     def __init__(self, obs_dim, action_dim):
         self.actor = nn.Sequential(
             nn.Linear(obs_dim, 128), nn.ReLU(),
@@ -273,7 +278,7 @@ class RobustSACAgent:
 train_env = RandomizedCSTREnv(randomize=True)
 agent = RobustSACAgent(obs_dim=2, action_dim=1)
 
-print("Training in randomized environment...")
+print(&quot;Training in randomized environment...&quot;)
 for episode in range(500):
     obs = train_env.reset()
     episode_reward = 0
@@ -288,13 +293,13 @@ for episode in range(500):
             break
 
     if episode % 100 == 0:
-        print(f"Episode {episode}, Reward: {episode_reward:.2f}")
-        print(f"  Env params: Ea={train_env.Ea:.0f}, V={train_env.V:.0f}, "
-              f"delay={train_env.control_delay}")
+        print(f&quot;Episode {episode}, Reward: {episode_reward:.2f}&quot;)
+        print(f&quot;  Env params: Ea={train_env.Ea:.0f}, V={train_env.V:.0f}, &quot;
+              f&quot;delay={train_env.control_delay}&quot;)
 
 # Evaluation: test in nominal environment (assuming real plant)
 test_env = RandomizedCSTREnv(randomize=False)
-print("\nTesting in nominal environment...")
+print(&quot;\nTesting in nominal environment...&quot;)
 
 obs = test_env.reset()
 test_reward = 0
@@ -309,8 +314,8 @@ for step in range(100):
     if done:
         break
 
-print(f"Test Reward: {test_reward:.2f}")
-print(f"Temp Mean: {np.mean(temps):.2f}K, Std: {np.std(temps):.2f}K")</code></pre>
+print(f&quot;Test Reward: {test_reward:.2f}&quot;)
+print(f&quot;Temp Mean: {np.mean(temps):.2f}K, Std: {np.std(temps):.2f}K&quot;)</code></pre>
 </div>
 </section>
 <section id="example2">
@@ -330,13 +335,18 @@ print(f"Temp Mean: {np.mean(temps):.2f}K, Std: {np.std(temps):.2f}K")</code></pr
                         B --&gt;|Constraint Violation| D[Safe Alternative Action]
                         D --&gt; C
                     </div>
-<pre><code class="language-python"># Safe Exploration: Safety Filter Implementation
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+# Safe Exploration: Safety Filter Implementation
 import numpy as np
 import torch
 import torch.nn as nn
 
 class SafetyConstraints:
-    """Safety constraints for CSTR"""
+    &quot;&quot;&quot;Safety constraints for CSTR&quot;&quot;&quot;
     def __init__(self):
         # Temperature constraints
         self.T_min = 310.0  # [K]
@@ -355,13 +365,13 @@ class SafetyConstraints:
         self.du_max = 20.0  # [kW/step]
 
     def is_safe_state(self, state):
-        """Check if state is safe"""
+        &quot;&quot;&quot;Check if state is safe&quot;&quot;&quot;
         T, CA = state
         return (self.T_min &lt;= T &lt;= self.T_max and
                 self.CA_min &lt;= CA &lt;= self.CA_max)
 
     def is_safe_action(self, state, action, prev_action):
-        """Check if action is safe"""
+        &quot;&quot;&quot;Check if action is safe&quot;&quot;&quot;
         # Control input range
         if not (self.u_min &lt;= action &lt;= self.u_max):
             return False
@@ -373,7 +383,7 @@ class SafetyConstraints:
         return True
 
     def project_to_safe(self, action, prev_action):
-        """Project action to safe region"""
+        &quot;&quot;&quot;Project action to safe region&quot;&quot;&quot;
         # Range constraint
         action = np.clip(action, self.u_min, self.u_max)
 
@@ -385,13 +395,13 @@ class SafetyConstraints:
         return action
 
 class ControlBarrierFunction:
-    """Safety assurance with Control Barrier Function (CBF)"""
+    &quot;&quot;&quot;Safety assurance with Control Barrier Function (CBF)&quot;&quot;&quot;
     def __init__(self, safety_constraints):
         self.constraints = safety_constraints
         self.alpha = 0.5  # Class K function gain
 
     def barrier_function(self, state):
-        """Barrier function h(x) &gt;= 0 is safe region"""
+        &quot;&quot;&quot;Barrier function h(x) &gt;= 0 is safe region&quot;&quot;&quot;
         T, CA = state
 
         # Temperature barrier (distance function)
@@ -406,7 +416,7 @@ class ControlBarrierFunction:
         return min(h_T_min, h_T_max, h_CA_min, h_CA_max)
 
     def safe_action(self, state, desired_action, env_model):
-        """Calculate safe action satisfying CBF constraint"""
+        &quot;&quot;&quot;Calculate safe action satisfying CBF constraint&quot;&quot;&quot;
         h = self.barrier_function(state)
 
         # Do nothing if in safe region
@@ -432,7 +442,7 @@ class ControlBarrierFunction:
                 return min(desired_action, 0)
 
 class SimpleCSTRModel:
-    """Simple prediction model for CSTR"""
+    &quot;&quot;&quot;Simple prediction model for CSTR&quot;&quot;&quot;
     def predict(self, state, action, dt=0.1):
         T, CA = state
         k = 1e10 * np.exp(-50000 / (8.314 * T))
@@ -476,7 +486,7 @@ base_agent = RobustSACAgent(obs_dim=2, action_dim=1)
 safe_agent = SafeRLAgent(base_agent, safety)
 env = RandomizedCSTREnv(randomize=False)
 
-print("Running with safety constraints...")
+print(&quot;Running with safety constraints...&quot;)
 state = env.reset()
 unsafe_count = 0
 
@@ -486,15 +496,15 @@ for step in range(200):
 
     if not safety.is_safe_state(state):
         unsafe_count += 1
-        print(f"Step {step}: UNSAFE STATE! T={state[0]:.1f}K, CA={state[1]:.3f}")
+        print(f&quot;Step {step}: UNSAFE STATE! T={state[0]:.1f}K, CA={state[1]:.3f}&quot;)
 
     state = next_state
 
     if done:
         break
 
-print(f"\nUnsafe states encountered: {unsafe_count} / {step+1}")
-print(f"Safety rate: {(1 - unsafe_count/(step+1))*100:.1f}%")</code></pre>
+print(f&quot;\nUnsafe states encountered: {unsafe_count} / {step+1}&quot;)
+print(f&quot;Safety rate: {(1 - unsafe_count/(step+1))*100:.1f}%&quot;)</code></pre>
 </div>
 </section>
 <section id="example3">
@@ -514,7 +524,12 @@ print(f"Safety rate: {(1 - unsafe_count/(step+1))*100:.1f}%")</code></pre>
                         \]
                         <p>First term: lower Q-values for out-of-distribution actions, second term: maintain Q-values for in-data actions</p>
 </div>
-<pre><code class="language-python"># Conservative Q-Learning (CQL) Implementation
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+# Conservative Q-Learning (CQL) Implementation
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -523,7 +538,7 @@ from collections import deque
 import random
 
 class CQLQNetwork(nn.Module):
-    """Q function for CQL"""
+    &quot;&quot;&quot;Q function for CQL&quot;&quot;&quot;
     def __init__(self, state_dim, action_dim):
         super().__init__()
         self.net = nn.Sequential(
@@ -537,7 +552,7 @@ class CQLQNetwork(nn.Module):
         return self.net(x)
 
 class CQLAgent:
-    """Conservative Q-Learning Agent"""
+    &quot;&quot;&quot;Conservative Q-Learning Agent&quot;&quot;&quot;
     def __init__(self, state_dim, action_dim, alpha=1.0):
         self.state_dim = state_dim
         self.action_dim = action_dim
@@ -564,7 +579,7 @@ class CQLAgent:
             return action.squeeze().numpy()
 
     def train_step(self, batch):
-        """CQL update"""
+        &quot;&quot;&quot;CQL update&quot;&quot;&quot;
         states, actions, rewards, next_states, dones = batch
 
         states_t = torch.FloatTensor(states)
@@ -645,13 +660,13 @@ def generate_offline_data(n_trajectories=100):
     return dataset
 
 # CQL learning
-print("Generating offline data...")
+print(&quot;Generating offline data...&quot;)
 offline_data = generate_offline_data(n_trajectories=200)
-print(f"Dataset size: {len(offline_data)}")
+print(f&quot;Dataset size: {len(offline_data)}&quot;)
 
 agent = CQLAgent(state_dim=2, action_dim=1, alpha=1.0)
 
-print("\nCQL training in progress...")
+print(&quot;\nCQL training in progress...&quot;)
 batch_size = 256
 for epoch in range(100):
     # Mini-batch sampling
@@ -669,11 +684,11 @@ for epoch in range(100):
     q_loss, cql_loss, p_loss = agent.train_step(batch_tuple)
 
     if epoch % 20 == 0:
-        print(f"Epoch {epoch}: Q_loss={q_loss:.3f}, CQL_loss={cql_loss:.3f}, "
-              f"Policy_loss={p_loss:.3f}")
+        print(f&quot;Epoch {epoch}: Q_loss={q_loss:.3f}, CQL_loss={cql_loss:.3f}, &quot;
+              f&quot;Policy_loss={p_loss:.3f}&quot;)
 
 # Test
-print("\nTesting CQL policy...")
+print(&quot;\nTesting CQL policy...&quot;)
 from example1 import RandomizedCSTREnv
 test_env = RandomizedCSTREnv(randomize=False)
 
@@ -688,7 +703,7 @@ for step in range(100):
     if done:
         break
 
-print(f"Test Reward: {total_reward:.2f}")</code></pre>
+print(f&quot;Test Reward: {total_reward:.2f}&quot;)</code></pre>
 </div>
 </section>
 <section id="example4">
@@ -710,27 +725,31 @@ print(f"Test Reward: {total_reward:.2f}")</code></pre>
                         D --&gt;|Satisfied| A
                         D --&gt;|Not Satisfied| C
                     </div>
-<pre><code class="language-python"># Human-in-the-Loop System Implementation
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+# Human-in-the-Loop System Implementation
 import numpy as np
 import time
 from datetime import datetime
 from enum import Enum
 
 class ControlMode(Enum):
-    """Control mode"""
-    AI_CONTROL = "AI"
-    HUMAN_OVERRIDE = "Human"
-    TRANSITION = "Transition"
+    &quot;&quot;&quot;Control mode&quot;&quot;&quot;
+    AI_CONTROL = &quot;AI&quot;
+    HUMAN_OVERRIDE = &quot;Human&quot;
+    TRANSITION = &quot;Transition&quot;
 
 class HumanOverrideSystem:
-    """Human intervention system"""
+    &quot;&quot;&quot;Human intervention system&quot;&quot;&quot;
     def __init__(self):
         self.mode = ControlMode.AI_CONTROL
         self.intervention_history = []
         self.confidence_threshold = 0.7
 
     def check_intervention_needed(self, state, ai_action, confidence):
-        """Check if intervention is needed"""
+        &quot;&quot;&quot;Check if intervention is needed&quot;&quot;&quot;
         T, CA = state
 
         # Trigger conditions
@@ -748,13 +767,13 @@ class HumanOverrideSystem:
         return False, []
 
     def request_human_action(self, state, ai_suggestion):
-        """Request action from operator (GUI/CLI in practice)"""
+        &quot;&quot;&quot;Request action from operator (GUI/CLI in practice)&quot;&quot;&quot;
         T, CA = state
-        print(f"\n{'='*60}")
-        print(f"Human Intervention Requested!")
-        print(f"Current State: T={T:.2f}K, CA={CA:.3f}mol/L")
-        print(f"AI Suggested Action: {ai_suggestion:.3f}")
-        print(f"{'='*60}")
+        print(f&quot;\n{'='*60}&quot;)
+        print(f&quot;Human Intervention Requested!&quot;)
+        print(f&quot;Current State: T={T:.2f}K, CA={CA:.3f}mol/L&quot;)
+        print(f&quot;AI Suggested Action: {ai_suggestion:.3f}&quot;)
+        print(f&quot;{'='*60}&quot;)
 
         # Simplified: simulate with rule-based
         # In practice, wait for operator input
@@ -771,11 +790,11 @@ class HumanOverrideSystem:
         return human_action, override
 
     def smooth_transition(self, from_action, to_action, alpha=0.3):
-        """Smooth control transition"""
+        &quot;&quot;&quot;Smooth control transition&quot;&quot;&quot;
         return alpha * to_action + (1 - alpha) * from_action
 
     def log_intervention(self, timestamp, state, ai_action, human_action, reason):
-        """Log intervention history"""
+        &quot;&quot;&quot;Log intervention history&quot;&quot;&quot;
         log_entry = {
             'timestamp': timestamp,
             'state': state.copy(),
@@ -786,34 +805,34 @@ class HumanOverrideSystem:
         self.intervention_history.append(log_entry)
 
     def generate_report(self):
-        """Generate intervention report"""
+        &quot;&quot;&quot;Generate intervention report&quot;&quot;&quot;
         if not self.intervention_history:
-            return "No interventions recorded."
+            return &quot;No interventions recorded.&quot;
 
-        report = "\n" + "="*60 + "\n"
-        report += "Human Intervention Report\n"
-        report += "="*60 + "\n"
-        report += f"Total interventions: {len(self.intervention_history)}\n\n"
+        report = &quot;\n&quot; + &quot;=&quot;*60 + &quot;\n&quot;
+        report += &quot;Human Intervention Report\n&quot;
+        report += &quot;=&quot;*60 + &quot;\n&quot;
+        report += f&quot;Total interventions: {len(self.intervention_history)}\n\n&quot;
 
         for i, entry in enumerate(self.intervention_history):
-            report += f"Intervention {i+1}:\n"
-            report += f"  Time: {entry['timestamp']}\n"
-            report += f"  State: T={entry['state'][0]:.2f}K, CA={entry['state'][1]:.3f}\n"
-            report += f"  AI action: {entry['ai_action']:.3f}\n"
-            report += f"  Human action: {entry['human_action']:.3f}\n"
-            report += f"  Reason: {', '.join(entry['reason'])}\n\n"
+            report += f&quot;Intervention {i+1}:\n&quot;
+            report += f&quot;  Time: {entry['timestamp']}\n&quot;
+            report += f&quot;  State: T={entry['state'][0]:.2f}K, CA={entry['state'][1]:.3f}\n&quot;
+            report += f&quot;  AI action: {entry['ai_action']:.3f}\n&quot;
+            report += f&quot;  Human action: {entry['human_action']:.3f}\n&quot;
+            report += f&quot;  Reason: {', '.join(entry['reason'])}\n\n&quot;
 
         return report
 
 class HITLController:
-    """Human-in-the-Loop control system"""
+    &quot;&quot;&quot;Human-in-the-Loop control system&quot;&quot;&quot;
     def __init__(self, ai_agent, override_system):
         self.ai_agent = ai_agent
         self.override_system = override_system
         self.prev_action = 0.0
 
     def select_action(self, state, confidence=1.0):
-        """Action selection considering human intervention"""
+        &quot;&quot;&quot;Action selection considering human intervention&quot;&quot;&quot;
         # AI suggestion
         ai_action = self.ai_agent.select_action(state)[0]
 
@@ -848,7 +867,7 @@ class HITLController:
 # Usage example
 from example1 import RobustSACAgent, RandomizedCSTREnv
 
-print("Launching Human-in-the-Loop system...")
+print(&quot;Launching Human-in-the-Loop system...&quot;)
 
 ai_agent = RobustSACAgent(obs_dim=2, action_dim=1)
 override_system = HumanOverrideSystem()
@@ -865,13 +884,13 @@ for step in range(50):
     action = controller.select_action(state, confidence)
     next_state, reward, done = env.step(action)
 
-    print(f"Step {step}: Mode={override_system.mode.value}, "
-          f"T={state[0]:.1f}K, Action={action:.3f}")
+    print(f&quot;Step {step}: Mode={override_system.mode.value}, &quot;
+          f&quot;T={state[0]:.1f}K, Action={action:.3f}&quot;)
 
     state = next_state
 
     if done:
-        print("Episode ended (abnormal state)")
+        print(&quot;Episode ended (abnormal state)&quot;)
         break
 
 # Generate report
@@ -888,13 +907,18 @@ print(override_system.generate_report())</code></pre>
                         By quantifying how confident AI predictions are, take conservative actions in situations with high uncertainty.
                         Estimate confidence intervals using Bayesian neural networks or ensemble methods.
                     </p>
-<pre><code class="language-python"># Uncertainty Quantification: Ensemble and Bayesian Approximation
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+# Uncertainty Quantification: Ensemble and Bayesian Approximation
 import torch
 import torch.nn as nn
 import numpy as np
 
 class EnsembleQNetwork:
-    """Ensemble of Q functions"""
+    &quot;&quot;&quot;Ensemble of Q functions&quot;&quot;&quot;
     def __init__(self, state_dim, action_dim, n_models=5):
         self.n_models = n_models
         self.models = [
@@ -909,7 +933,7 @@ class EnsembleQNetwork:
         ]
 
     def predict_with_uncertainty(self, state, action):
-        """Return prediction mean and uncertainty (standard deviation)"""
+        &quot;&quot;&quot;Return prediction mean and uncertainty (standard deviation)&quot;&quot;&quot;
         state_t = torch.FloatTensor(state).unsqueeze(0)
         action_t = torch.FloatTensor(action).unsqueeze(0)
         x = torch.cat([state_t, action_t], dim=-1)
@@ -926,7 +950,7 @@ class EnsembleQNetwork:
         return mean, std
 
     def train_step(self, batch):
-        """Train all models with different bootstrap samples"""
+        &quot;&quot;&quot;Train all models with different bootstrap samples&quot;&quot;&quot;
         states, actions, targets = batch
 
         losses = []
@@ -950,7 +974,7 @@ class EnsembleQNetwork:
         return np.mean(losses)
 
 class MCDropoutQNetwork(nn.Module):
-    """Monte Carlo Dropout (Bayesian approximation)"""
+    &quot;&quot;&quot;Monte Carlo Dropout (Bayesian approximation)&quot;&quot;&quot;
     def __init__(self, state_dim, action_dim, dropout_rate=0.1):
         super().__init__()
         self.net = nn.Sequential(
@@ -968,7 +992,7 @@ class MCDropoutQNetwork(nn.Module):
         return self.net(x)
 
     def predict_with_uncertainty(self, state, action, n_samples=20):
-        """Uncertainty estimation with MC Dropout"""
+        &quot;&quot;&quot;Uncertainty estimation with MC Dropout&quot;&quot;&quot;
         self.train()  # Enable Dropout
 
         state_t = torch.FloatTensor(state).unsqueeze(0)
@@ -985,7 +1009,7 @@ class MCDropoutQNetwork(nn.Module):
         return mean, std
 
 class UncertaintyAwareAgent:
-    """Agent considering uncertainty"""
+    &quot;&quot;&quot;Agent considering uncertainty&quot;&quot;&quot;
     def __init__(self, state_dim, action_dim, method='ensemble'):
         self.method = method
         if method == 'ensemble':
@@ -1000,7 +1024,7 @@ class UncertaintyAwareAgent:
         self.uncertainty_threshold = 0.5  # Uncertainty threshold
 
     def select_action(self, state):
-        """Action selection considering uncertainty"""
+        &quot;&quot;&quot;Action selection considering uncertainty&quot;&quot;&quot;
         with torch.no_grad():
             nominal_action = self.policy(torch.FloatTensor(state)).numpy()
 
@@ -1028,7 +1052,7 @@ class UncertaintyAwareAgent:
         return best_action, min_uncertainty
 
 # Demonstration
-print("Uncertainty Quantification Demo\n")
+print(&quot;Uncertainty Quantification Demo\n&quot;)
 
 # Ensemble method
 ensemble_agent = UncertaintyAwareAgent(state_dim=2, action_dim=1, method='ensemble')
@@ -1039,27 +1063,27 @@ test_states = [
     np.array([310.0, 2.5])   # Low temperature
 ]
 
-print("Ensemble Method:")
+print(&quot;Ensemble Method:&quot;)
 for i, state in enumerate(test_states):
     action, uncertainty = ensemble_agent.select_action(state)
-    print(f"State {i+1}: T={state[0]}K, CA={state[1]}")
-    print(f"  Action: {action[0]:.3f}, Uncertainty: {uncertainty:.3f}")
+    print(f&quot;State {i+1}: T={state[0]}K, CA={state[1]}&quot;)
+    print(f&quot;  Action: {action[0]:.3f}, Uncertainty: {uncertainty:.3f}&quot;)
 
     if uncertainty &gt; ensemble_agent.uncertainty_threshold:
-        print(f"  WARNING: High uncertainty! Consider human oversight.")
+        print(f&quot;  WARNING: High uncertainty! Consider human oversight.&quot;)
     print()
 
 # MC Dropout method
 mc_agent = UncertaintyAwareAgent(state_dim=2, action_dim=1, method='mcdropout')
 
-print("\nMC Dropout Method:")
+print(&quot;\nMC Dropout Method:&quot;)
 for i, state in enumerate(test_states):
     action, uncertainty = mc_agent.select_action(state)
-    print(f"State {i+1}: T={state[0]}K, CA={state[1]}")
-    print(f"  Action: {action[0]:.3f}, Uncertainty: {uncertainty:.3f}")
+    print(f&quot;State {i+1}: T={state[0]}K, CA={state[1]}&quot;)
+    print(f&quot;  Action: {action[0]:.3f}, Uncertainty: {uncertainty:.3f}&quot;)
 
     if uncertainty &gt; mc_agent.uncertainty_threshold:
-        print(f"  WARNING: High uncertainty!")
+        print(f&quot;  WARNING: High uncertainty!&quot;)
     print()</code></pre>
 </div>
 </section>
@@ -1073,13 +1097,18 @@ for i, state in enumerate(test_states):
                         Continuously monitor performance after deployment to detect plant aging and model drift.
                         Implement KPI monitoring, statistical testing, and anomaly detection.
                     </p>
-<pre><code class="language-python"># Performance Monitoring and Drift Detection System
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - scipy&gt;=1.11.0
+
+# Performance Monitoring and Drift Detection System
 import numpy as np
 from collections import deque
 from scipy import stats
 
 class PerformanceMonitor:
-    """Performance monitoring system"""
+    &quot;&quot;&quot;Performance monitoring system&quot;&quot;&quot;
     def __init__(self, window_size=100):
         self.window_size = window_size
 
@@ -1098,7 +1127,7 @@ class PerformanceMonitor:
         self.total_steps = 0
 
     def update(self, state, action, reward):
-        """Update KPI"""
+        &quot;&quot;&quot;Update KPI&quot;&quot;&quot;
         T, CA = state
         self.rewards.append(reward)
         self.temperatures.append(T)
@@ -1107,15 +1136,15 @@ class PerformanceMonitor:
         self.total_steps += 1
 
     def set_baseline(self):
-        """Set baseline performance"""
+        &quot;&quot;&quot;Set baseline performance&quot;&quot;&quot;
         if len(self.rewards) &gt;= self.window_size:
             self.baseline_reward_mean = np.mean(self.rewards)
             self.baseline_reward_std = np.std(self.rewards)
-            print(f"Baseline set: μ={self.baseline_reward_mean:.2f}, "
-                  f"σ={self.baseline_reward_std:.2f}")
+            print(f&quot;Baseline set: μ={self.baseline_reward_mean:.2f}, &quot;
+                  f&quot;σ={self.baseline_reward_std:.2f}&quot;)
 
     def detect_drift(self, alpha=0.05):
-        """Statistical drift detection (t-test)"""
+        &quot;&quot;&quot;Statistical drift detection (t-test)&quot;&quot;&quot;
         if self.baseline_reward_mean is None or len(self.rewards) &lt; 50:
             return False, None
 
@@ -1137,7 +1166,7 @@ class PerformanceMonitor:
         }
 
     def detect_anomaly(self, state, action):
-        """Anomaly detection (3-sigma rule)"""
+        &quot;&quot;&quot;Anomaly detection (3-sigma rule)&quot;&quot;&quot;
         if len(self.rewards) &lt; 30:
             return False
 
@@ -1166,50 +1195,50 @@ class PerformanceMonitor:
         return is_anomaly
 
     def generate_report(self):
-        """Generate monitoring report"""
+        &quot;&quot;&quot;Generate monitoring report&quot;&quot;&quot;
         if len(self.rewards) == 0:
-            return "No data collected."
+            return &quot;No data collected.&quot;
 
-        report = "\n" + "="*60 + "\n"
-        report += "Performance Monitoring Report\n"
-        report += "="*60 + "\n\n"
+        report = &quot;\n&quot; + &quot;=&quot;*60 + &quot;\n&quot;
+        report += &quot;Performance Monitoring Report\n&quot;
+        report += &quot;=&quot;*60 + &quot;\n\n&quot;
 
-        report += f"Total steps: {self.total_steps}\n"
-        report += f"Anomalies detected: {self.anomaly_count} "
-        report += f"({self.anomaly_count/self.total_steps*100:.2f}%)\n\n"
+        report += f&quot;Total steps: {self.total_steps}\n&quot;
+        report += f&quot;Anomalies detected: {self.anomaly_count} &quot;
+        report += f&quot;({self.anomaly_count/self.total_steps*100:.2f}%)\n\n&quot;
 
-        report += "KPI Statistics (last {} steps):\n".format(len(self.rewards))
-        report += f"  Reward: μ={np.mean(self.rewards):.2f}, "
-        report += f"σ={np.std(self.rewards):.2f}\n"
-        report += f"  Temperature: μ={np.mean(self.temperatures):.2f}K, "
-        report += f"σ={np.std(self.temperatures):.2f}K\n"
-        report += f"  Concentration: μ={np.mean(self.concentrations):.3f}, "
-        report += f"σ={np.std(self.concentrations):.3f}\n"
-        report += f"  Action: μ={np.mean(self.actions):.3f}, "
-        report += f"σ={np.std(self.actions):.3f}\n\n"
+        report += &quot;KPI Statistics (last {} steps):\n&quot;.format(len(self.rewards))
+        report += f&quot;  Reward: μ={np.mean(self.rewards):.2f}, &quot;
+        report += f&quot;σ={np.std(self.rewards):.2f}\n&quot;
+        report += f&quot;  Temperature: μ={np.mean(self.temperatures):.2f}K, &quot;
+        report += f&quot;σ={np.std(self.temperatures):.2f}K\n&quot;
+        report += f&quot;  Concentration: μ={np.mean(self.concentrations):.3f}, &quot;
+        report += f&quot;σ={np.std(self.concentrations):.3f}\n&quot;
+        report += f&quot;  Action: μ={np.mean(self.actions):.3f}, &quot;
+        report += f&quot;σ={np.std(self.actions):.3f}\n\n&quot;
 
         # Drift detection
         drift, drift_info = self.detect_drift()
         if drift:
-            report += "WARNING: Performance drift detected!\n"
-            report += f"  Current mean reward: {drift_info['current_mean']:.2f}\n"
-            report += f"  Baseline mean reward: {drift_info['baseline_mean']:.2f}\n"
-            report += f"  p-value: {drift_info['p_value']:.4f}\n"
+            report += &quot;WARNING: Performance drift detected!\n&quot;
+            report += f&quot;  Current mean reward: {drift_info['current_mean']:.2f}\n&quot;
+            report += f&quot;  Baseline mean reward: {drift_info['baseline_mean']:.2f}\n&quot;
+            report += f&quot;  p-value: {drift_info['p_value']:.4f}\n&quot;
         else:
-            report += "No significant drift detected.\n"
+            report += &quot;No significant drift detected.\n&quot;
 
-        report += "="*60 + "\n"
+        report += &quot;=&quot;*60 + &quot;\n&quot;
         return report
 
 class DriftDetector:
-    """More advanced drift detection (ADWIN)"""
+    &quot;&quot;&quot;More advanced drift detection (ADWIN)&quot;&quot;&quot;
     def __init__(self, delta=0.002):
         self.delta = delta
         self.window = deque()
         self.drift_detected = False
 
     def add_element(self, value):
-        """Add data point and check for drift"""
+        &quot;&quot;&quot;Add data point and check for drift&quot;&quot;&quot;
         self.window.append(value)
 
         # Simplified ADWIN: split window in half and compare means
@@ -1231,7 +1260,7 @@ class DriftDetector:
 # Demonstration
 from example1 import RandomizedCSTREnv, RobustSACAgent
 
-print("Launching performance monitoring system...\n")
+print(&quot;Launching performance monitoring system...\n&quot;)
 
 env = RandomizedCSTREnv(randomize=False)
 agent = RobustSACAgent(obs_dim=2, action_dim=1)
@@ -1239,7 +1268,7 @@ monitor = PerformanceMonitor(window_size=100)
 drift_detector = DriftDetector()
 
 # Phase 1: Normal operation (baseline setting)
-print("Phase 1: Setting baseline...")
+print(&quot;Phase 1: Setting baseline...&quot;)
 state = env.reset()
 
 for step in range(100):
@@ -1253,7 +1282,7 @@ for step in range(100):
 monitor.set_baseline()
 
 # Phase 2: Degradation simulation
-print("\nPhase 2: Simulating plant degradation...")
+print(&quot;\nPhase 2: Simulating plant degradation...&quot;)
 
 for step in range(200):
     action = agent.select_action(state)
@@ -1267,11 +1296,11 @@ for step in range(200):
 
     # Anomaly detection
     if monitor.detect_anomaly(state, action[0]):
-        print(f"Step {step+100}: Anomaly detected!")
+        print(f&quot;Step {step+100}: Anomaly detected!&quot;)
 
     # Drift detection
     if drift_detector.add_element(reward):
-        print(f"Step {step+100}: DRIFT DETECTED by ADWIN!")
+        print(f&quot;Step {step+100}: DRIFT DETECTED by ADWIN!&quot;)
 
     state = next_state if not done else env.reset()
 
@@ -1279,9 +1308,9 @@ for step in range(200):
     if step % 50 == 0:
         drift, info = monitor.detect_drift()
         if drift:
-            print(f"\nStep {step+100}: Statistical drift detected!")
-            print(f"  Current: {info['current_mean']:.2f}, "
-                  f"Baseline: {info['baseline_mean']:.2f}")
+            print(f&quot;\nStep {step+100}: Statistical drift detected!&quot;)
+            print(f&quot;  Current: {info['current_mean']:.2f}, &quot;
+                  f&quot;Baseline: {info['baseline_mean']:.2f}&quot;)
 
 # Final report
 print(monitor.generate_report())</code></pre>
@@ -1315,13 +1344,18 @@ print(monitor.generate_report())</code></pre>
                         L --&gt;|Yes| M[Alert + Retraining]
                         L --&gt;|No| A
                     </div>
-<pre><code class="language-python"># Integrated Deployment Framework
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+# Integrated Deployment Framework
 import numpy as np
 import torch
 from datetime import datetime
 
 class IntegratedDeploymentSystem:
-    """Fully integrated deployment system"""
+    &quot;&quot;&quot;Fully integrated deployment system&quot;&quot;&quot;
     def __init__(self, agent, env):
         # Components
         self.agent = agent
@@ -1353,7 +1387,7 @@ class IntegratedDeploymentSystem:
         self.emergency_stop = False
 
     def preprocess_observation(self, raw_obs):
-        """Preprocess sensor data"""
+        &quot;&quot;&quot;Preprocess sensor data&quot;&quot;&quot;
         # Outlier removal (simple)
         T, CA = raw_obs
         T = np.clip(T, 250, 450)
@@ -1361,13 +1395,13 @@ class IntegratedDeploymentSystem:
         return np.array([T, CA])
 
     def estimate_uncertainty(self, state, action):
-        """Estimate uncertainty"""
+        &quot;&quot;&quot;Estimate uncertainty&quot;&quot;&quot;
         q_mean, q_std = self.uncertainty_estimator.predict_with_uncertainty(
             state, action)
         return q_std
 
     def apply_safety_filter(self, state, action):
-        """Apply safety filter"""
+        &quot;&quot;&quot;Apply safety filter&quot;&quot;&quot;
         # Constraint projection
         safe_action = self.safety.project_to_safe(action, self.prev_action)
 
@@ -1377,7 +1411,7 @@ class IntegratedDeploymentSystem:
         return safe_action
 
     def check_human_override(self, state, action, uncertainty):
-        """Check for human intervention"""
+        &quot;&quot;&quot;Check for human intervention&quot;&quot;&quot;
         need_intervention, reasons = self.override_system.check_intervention_needed(
             state, action, confidence=1.0 - uncertainty)
 
@@ -1393,33 +1427,33 @@ class IntegratedDeploymentSystem:
         return action, False
 
     def monitor_performance(self, state, action, reward):
-        """Performance monitoring and drift detection"""
+        &quot;&quot;&quot;Performance monitoring and drift detection&quot;&quot;&quot;
         self.monitor.update(state, action, reward)
 
         # Anomaly detection
         if self.monitor.detect_anomaly(state, action):
-            print(f"  [MONITOR] Anomaly detected at step {self.monitor.total_steps}")
+            print(f&quot;  [MONITOR] Anomaly detected at step {self.monitor.total_steps}&quot;)
 
         # Drift detection
         if self.drift_detector.add_element(reward):
-            print(f"  [MONITOR] Performance drift detected!")
+            print(f&quot;  [MONITOR] Performance drift detected!&quot;)
             return True  # Retraining trigger
 
         # Periodic statistical drift check
         if self.monitor.total_steps % 100 == 0:
             drift, info = self.monitor.detect_drift()
             if drift:
-                print(f"  [MONITOR] Statistical drift: "
-                      f"current={info['current_mean']:.2f}, "
-                      f"baseline={info['baseline_mean']:.2f}")
+                print(f&quot;  [MONITOR] Statistical drift: &quot;
+                      f&quot;current={info['current_mean']:.2f}, &quot;
+                      f&quot;baseline={info['baseline_mean']:.2f}&quot;)
                 return True
 
         return False
 
     def control_loop(self, n_steps=500):
-        """Main control loop"""
-        print("Integrated Deployment System Launch\n")
-        print("="*60)
+        &quot;&quot;&quot;Main control loop&quot;&quot;&quot;
+        print(&quot;Integrated Deployment System Launch\n&quot;)
+        print(&quot;=&quot;*60)
 
         state = self.env.reset()
         state = self.preprocess_observation(state)
@@ -1434,12 +1468,12 @@ class IntegratedDeploymentSystem:
             state = next_state if not done else self.env.reset()
 
         self.monitor.set_baseline()
-        print("Baseline setting complete\n")
+        print(&quot;Baseline setting complete\n&quot;)
 
         # Main loop
         for step in range(n_steps):
             if self.emergency_stop:
-                print("Emergency stop!")
+                print(&quot;Emergency stop!&quot;)
                 break
 
             # 1. AI policy
@@ -1451,8 +1485,8 @@ class IntegratedDeploymentSystem:
             # Conservative when high uncertainty
             if uncertainty &gt; 0.5:
                 raw_action *= 0.5
-                print(f"  [UNCERTAINTY] High uncertainty ({uncertainty:.3f}), "
-                      f"conservative action")
+                print(f&quot;  [UNCERTAINTY] High uncertainty ({uncertainty:.3f}), &quot;
+                      f&quot;conservative action&quot;)
 
             # 3. Safety filter
             safe_action = self.apply_safety_filter(state, raw_action)
@@ -1469,30 +1503,30 @@ class IntegratedDeploymentSystem:
             need_retraining = self.monitor_performance(state, final_action, reward)
 
             if need_retraining:
-                print(f"  [SYSTEM] Retraining recommended")
+                print(f&quot;  [SYSTEM] Retraining recommended&quot;)
 
             # Periodic reporting
             if step % 100 == 0:
-                print(f"\nStep {step}:")
-                print(f"  State: T={state[0]:.2f}K, CA={state[1]:.3f}")
-                print(f"  Action: {final_action:.3f}, Uncertainty: {uncertainty:.3f}")
-                print(f"  Mode: {self.override_system.mode.value}")
-                print(f"  Anomalies: {self.monitor.anomaly_count}")
+                print(f&quot;\nStep {step}:&quot;)
+                print(f&quot;  State: T={state[0]:.2f}K, CA={state[1]:.3f}&quot;)
+                print(f&quot;  Action: {final_action:.3f}, Uncertainty: {uncertainty:.3f}&quot;)
+                print(f&quot;  Mode: {self.override_system.mode.value}&quot;)
+                print(f&quot;  Anomalies: {self.monitor.anomaly_count}&quot;)
 
             self.prev_action = final_action
             state = next_state if not done else self.env.reset()
 
         # Final report
-        print("\n" + "="*60)
-        print("Operation ended")
-        print("="*60)
+        print(&quot;\n&quot; + &quot;=&quot;*60)
+        print(&quot;Operation ended&quot;)
+        print(&quot;=&quot;*60)
         print(self.monitor.generate_report())
         print(self.override_system.generate_report())
 
 # Execution
 from example1 import RobustSACAgent, RandomizedCSTREnv
 
-print("Integrated Deployment System Demonstration\n")
+print(&quot;Integrated Deployment System Demonstration\n&quot;)
 
 env = RandomizedCSTREnv(randomize=True)
 agent = RobustSACAgent(obs_dim=2, action_dim=1)
@@ -1594,6 +1628,16 @@ system.control_loop(n_steps=300)</code></pre>
 </ul>
 </div>
 </article>
+<section>
+            <h2>References</h2>
+            <ol>
+                <li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+                <li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+                <li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+                <li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+            </ol>
+        </section>
+
 </main>
 <footer>
 <div class="footer-content">

@@ -46,38 +46,43 @@
 <h2>4.1 System Integration Architecture</h2>
 <p>Successful AI implementation requires robust data infrastructure and system integration.</p>
 <h3>💻 Code Example 1: Data Integration Framework</h3>
-<div class="code-example"><pre><code class="language-python">import numpy as np
+<div class="code-example"><pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+import numpy as np
 import pandas as pd
 from sqlalchemy import create_engine
 import redis
 
 class PlantDataIntegration:
-    """Integrate data from multiple sources"""
+    &quot;&quot;&quot;Integrate data from multiple sources&quot;&quot;&quot;
     
     def __init__(self):
         self.db_engine = create_engine('postgresql://localhost/plantdb')
         self.cache = redis.Redis(host='localhost', port=6379)
     
     def fetch_realtime_data(self, tag_list, time_window=3600):
-        """Fetch real-time process data"""
-        query = f"""
+        &quot;&quot;&quot;Fetch real-time process data&quot;&quot;&quot;
+        query = f&quot;&quot;&quot;
         SELECT timestamp, tag, value
         FROM process_data
         WHERE tag IN ({','.join(['%s']*len(tag_list))})
         AND timestamp &gt; NOW() - INTERVAL '{time_window} seconds'
         ORDER BY timestamp
-        """
+        &quot;&quot;&quot;
         df = pd.read_sql(query, self.db_engine, params=tag_list)
         return df.pivot(index='timestamp', columns='tag', values='value')
     
     def cache_predictions(self, model_name, predictions, ttl=300):
-        """Cache AI model predictions"""
-        key = f"predictions:{model_name}"
+        &quot;&quot;&quot;Cache AI model predictions&quot;&quot;&quot;
+        key = f&quot;predictions:{model_name}&quot;
         self.cache.setex(key, ttl, predictions.to_json())
     
     def get_cached_predictions(self, model_name):
-        """Retrieve cached predictions"""
-        key = f"predictions:{model_name}"
+        &quot;&quot;&quot;Retrieve cached predictions&quot;&quot;&quot;
+        key = f&quot;predictions:{model_name}&quot;
         data = self.cache.get(key)
         if data:
             return pd.read_json(data)
@@ -86,22 +91,26 @@ class PlantDataIntegration:
 # Example usage
 integration = PlantDataIntegration()
 data = integration.fetch_realtime_data(['T101', 'P201', 'F301'], time_window=7200)
-print(f"Retrieved {len(data)} data points")</code></pre></div>
+print(f&quot;Retrieved {len(data)} data points&quot;)</code></pre></div>
 <h2>4.2 Model Deployment and MLOps</h2>
 <p>Deploy AI models with version control, monitoring, and automated retraining.</p>
 <h3>💻 Code Example 2: Model Deployment Pipeline</h3>
-<div class="code-example"><pre><code class="language-python">import mlflow
+<div class="code-example"><pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - mlflow&gt;=2.4.0
+
+import mlflow
 import mlflow.sklearn
 from sklearn.ensemble import RandomForestRegressor
 
 class ModelDeployment:
-    """MLOps pipeline for chemical plant AI models"""
+    &quot;&quot;&quot;MLOps pipeline for chemical plant AI models&quot;&quot;&quot;
     
     def __init__(self, experiment_name='chemical_plant_ai'):
         mlflow.set_experiment(experiment_name)
     
     def train_and_register_model(self, X_train, y_train, model_name):
-        """Train, log, and register model"""
+        &quot;&quot;&quot;Train, log, and register model&quot;&quot;&quot;
         with mlflow.start_run():
             # Train model
             model = RandomForestRegressor(n_estimators=100)
@@ -124,16 +133,16 @@ class ModelDeployment:
             return model
     
     def load_production_model(self, model_name, version='latest'):
-        """Load model from registry"""
+        &quot;&quot;&quot;Load model from registry&quot;&quot;&quot;
         if version == 'latest':
-            model_uri = f"models:/{model_name}/Production"
+            model_uri = f&quot;models:/{model_name}/Production&quot;
         else:
-            model_uri = f"models:/{model_name}/{version}"
+            model_uri = f&quot;models:/{model_name}/{version}&quot;
         
         return mlflow.sklearn.load_model(model_uri)
     
     def monitor_model_performance(self, model, X_test, y_test):
-        """Monitor deployed model performance"""
+        &quot;&quot;&quot;Monitor deployed model performance&quot;&quot;&quot;
         predictions = model.predict(X_test)
         mae = np.mean(np.abs(predictions - y_test))
         rmse = np.sqrt(np.mean((predictions - y_test)**2))
@@ -151,7 +160,7 @@ deployment = ModelDeployment()
 model = deployment.train_and_register_model(X_train, y_train, 'reactor_temperature_predictor')
 # Monitor in production
 metrics = deployment.monitor_model_performance(model, X_test, y_test)
-print(f"Model Performance: MAE={metrics['MAE']:.2f}, RMSE={metrics['RMSE']:.2f}")</code></pre></div>
+print(f&quot;Model Performance: MAE={metrics['MAE']:.2f}, RMSE={metrics['RMSE']:.2f}&quot;)</code></pre></div>
 <h2>4.3 Case Study: Distillation Column Optimization</h2>
 <p>End-to-end implementation of AI-driven distillation optimization.</p>
 <h3>💻 Code Example 3: Distillation Optimization System</h3>
@@ -303,6 +312,16 @@ print(f"Net Benefit (5 years): ${roi['net_benefit']:,.0f}")</code></pre></div>
 <a class="nav-button" href="index.html">Series Overview →</a>
 </nav>
 </div>
+<section>
+            <h2>References</h2>
+            <ol>
+                <li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+                <li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+                <li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+                <li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+            </ol>
+        </section>
+
 <footer>
 <p>© 2025 AI Terakoya - Process Informatics Educational Series</p>
 <p><a href="https://github.com/yusukehashimoto" target="_blank">GitHub</a> | <a href="mailto:yusuke.hashimoto.b8@tohoku.ac.jp">Contact</a></p>

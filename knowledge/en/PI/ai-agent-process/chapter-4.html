@@ -154,14 +154,19 @@
                             O3' [Obs 3] --&gt; A3'[Actor 3]
                         end
                     </div>
-<pre><code class="language-python"># CTDE basic framework implementation
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+# CTDE basic framework implementation
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 
 class Actor(nn.Module):
-    """Actor for each agent (executable in distributed manner)"""
+    &quot;&quot;&quot;Actor for each agent (executable in distributed manner)&quot;&quot;&quot;
     def __init__(self, obs_dim, action_dim):
         super().__init__()
         self.net = nn.Sequential(
@@ -174,7 +179,7 @@ class Actor(nn.Module):
         return self.net(obs)
 
 class CentralizedCritic(nn.Module):
-    """Central Critic (used only during training)"""
+    &quot;&quot;&quot;Central Critic (used only during training)&quot;&quot;&quot;
     def __init__(self, state_dim, n_agents, action_dim):
         super().__init__()
         total_action_dim = n_agents * action_dim
@@ -190,7 +195,7 @@ class CentralizedCritic(nn.Module):
         return self.net(x)
 
 class CTDEAgent:
-    """CTDE learning agent"""
+    &quot;&quot;&quot;CTDE learning agent&quot;&quot;&quot;
     def __init__(self, n_agents, obs_dim, action_dim, state_dim):
         self.n_agents = n_agents
         self.actors = [Actor(obs_dim, action_dim) for _ in range(n_agents)]
@@ -200,7 +205,7 @@ class CTDEAgent:
         self.critic_opt = optim.Adam(self.critic.parameters(), lr=1e-3)
 
     def select_actions(self, observations):
-        """Execution time: Each agent selects actions independently"""
+        &quot;&quot;&quot;Execution time: Each agent selects actions independently&quot;&quot;&quot;
         actions = []
         for i, obs in enumerate(observations):
             with torch.no_grad():
@@ -210,7 +215,7 @@ class CTDEAgent:
         return np.array(actions)
 
     def train_step(self, batch):
-        """Training time: Update using central Critic"""
+        &quot;&quot;&quot;Training time: Update using central Critic&quot;&quot;&quot;
         states, obs, actions, rewards, next_states, next_obs, dones = batch
 
         # Critic update (TD error)
@@ -252,7 +257,7 @@ agent = CTDEAgent(n_agents=n_agents, obs_dim=4, action_dim=2, state_dim=12)
 # During execution, distributed (each agent uses only its own observation)
 observations = [np.random.randn(4) for _ in range(n_agents)]
 actions = agent.select_actions(observations)  # Distributed execution
-print(f"Actions in distributed execution: {actions.shape}")  # (3, 2)</code></pre>
+print(f&quot;Actions in distributed execution: {actions.shape}&quot;)  # (3, 2)</code></pre>
 </div>
 </section>
 <section id="example2">
@@ -265,7 +270,12 @@ print(f"Actions in distributed execution: {actions.shape}")  # (3, 2)</code></pr
                         The simplest multi-agent learning approach is where each agent independently performs Q-learning.
                         Other agents are treated as part of the environment, leading to non-stationarity issues, but the implementation is simple and practical in many cases.
                     </p>
-<pre><code class="language-python"># Independent Q-Learning implementation
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+# Independent Q-Learning implementation
 import numpy as np
 import torch
 import torch.nn as nn
@@ -274,7 +284,7 @@ from collections import deque
 import random
 
 class QNetwork(nn.Module):
-    """Independent Q-function for each agent"""
+    &quot;&quot;&quot;Independent Q-function for each agent&quot;&quot;&quot;
     def __init__(self, obs_dim, action_dim):
         super().__init__()
         self.net = nn.Sequential(
@@ -287,7 +297,7 @@ class QNetwork(nn.Module):
         return self.net(obs)
 
 class IQLAgent:
-    """Independent Q-Learning agent"""
+    &quot;&quot;&quot;Independent Q-Learning agent&quot;&quot;&quot;
     def __init__(self, obs_dim, action_dim, agent_id):
         self.agent_id = agent_id
         self.action_dim = action_dim
@@ -299,7 +309,7 @@ class IQLAgent:
         self.epsilon = 1.0
 
     def select_action(self, obs):
-        """ε-greedy action selection"""
+        &quot;&quot;&quot;ε-greedy action selection&quot;&quot;&quot;
         if random.random() &lt; self.epsilon:
             return np.random.randint(self.action_dim)
         else:
@@ -347,7 +357,7 @@ class IQLAgent:
 
 # Multi-agent environment simulation
 class MultiCSTREnv:
-    """Environment with 3 CSTRs connected in series"""
+    &quot;&quot;&quot;Environment with 3 CSTRs connected in series&quot;&quot;&quot;
     def __init__(self):
         self.n_agents = 3
         self.reset()
@@ -414,7 +424,7 @@ for episode in range(500):
             agent.update_target()
 
     if episode % 50 == 0:
-        print(f"Episode {episode}, Total Rewards: {sum(episode_rewards):.2f}")</code></pre>
+        print(f&quot;Episode {episode}, Total Rewards: {sum(episode_rewards):.2f}&quot;)</code></pre>
 </div>
 </section>
 <section id="example3">
@@ -437,13 +447,17 @@ for episode in range(500):
                         \frac{\partial Q_{tot}}{\partial Q_i} \geq 0, \quad \forall i
                         \]
                     </div>
-<pre><code class="language-python"># QMIX implementation
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+# QMIX implementation
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
 class AgentQNetwork(nn.Module):
-    """Q-function for each agent"""
+    &quot;&quot;&quot;Q-function for each agent&quot;&quot;&quot;
     def __init__(self, obs_dim, action_dim):
         super().__init__()
         self.net = nn.Sequential(
@@ -455,7 +469,7 @@ class AgentQNetwork(nn.Module):
         return self.net(obs)
 
 class QMixerNetwork(nn.Module):
-    """Mixing network that guarantees monotonicity"""
+    &quot;&quot;&quot;Mixing network that guarantees monotonicity&quot;&quot;&quot;
     def __init__(self, n_agents, state_dim):
         super().__init__()
         self.n_agents = n_agents
@@ -470,10 +484,10 @@ class QMixerNetwork(nn.Module):
         )
 
     def forward(self, agent_qs, state):
-        """
+        &quot;&quot;&quot;
         agent_qs: [batch, n_agents]
         state: [batch, state_dim]
-        """
+        &quot;&quot;&quot;
         batch_size = agent_qs.size(0)
         agent_qs = agent_qs.view(batch_size, 1, self.n_agents)
 
@@ -496,7 +510,7 @@ class QMixerNetwork(nn.Module):
         return q_tot.view(batch_size)
 
 class QMIX:
-    """QMIX learning algorithm"""
+    &quot;&quot;&quot;QMIX learning algorithm&quot;&quot;&quot;
     def __init__(self, n_agents, obs_dim, action_dim, state_dim):
         self.n_agents = n_agents
         self.agent_networks = [AgentQNetwork(obs_dim, action_dim)
@@ -519,7 +533,7 @@ class QMIX:
         self.optimizer = optim.Adam(params, lr=5e-4)
 
     def select_actions(self, observations, epsilon=0.05):
-        """Action selection for each agent"""
+        &quot;&quot;&quot;Action selection for each agent&quot;&quot;&quot;
         actions = []
         for i, obs in enumerate(observations):
             if torch.rand(1).item() &lt; epsilon:
@@ -531,7 +545,7 @@ class QMIX:
         return actions
 
     def train_step(self, batch):
-        """QMIX update"""
+        &quot;&quot;&quot;QMIX update&quot;&quot;&quot;
         states, obs_list, actions, rewards, next_states, next_obs_list, dones = batch
 
         # Current Q-values (each agent)
@@ -570,7 +584,7 @@ class QMIX:
 qmix = QMIX(n_agents=3, obs_dim=4, action_dim=5, state_dim=12)
 observations = [torch.randn(4) for _ in range(3)]
 actions = qmix.select_actions(observations)
-print(f"QMIX actions: {actions}")</code></pre>
+print(f&quot;QMIX actions: {actions}&quot;)</code></pre>
 </div>
 </section>
 <section id="example4">
@@ -592,12 +606,16 @@ print(f"QMIX actions: {actions}")</code></pre>
                         C --&gt;|aggregated| A2
                         C --&gt;|aggregated| A3
                     </div>
-<pre><code class="language-python"># Message passing mechanism implementation
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+# Message passing mechanism implementation
 import torch
 import torch.nn as nn
 
 class AttentionCommModule(nn.Module):
-    """Attention-based communication module"""
+    &quot;&quot;&quot;Attention-based communication module&quot;&quot;&quot;
     def __init__(self, hidden_dim, n_agents):
         super().__init__()
         self.n_agents = n_agents
@@ -612,10 +630,10 @@ class AttentionCommModule(nn.Module):
         self.value = nn.Linear(hidden_dim, hidden_dim)
 
     def forward(self, hidden_states):
-        """
+        &quot;&quot;&quot;
         hidden_states: [n_agents, hidden_dim]
         returns: [n_agents, hidden_dim] (hidden states after communication)
-        """
+        &quot;&quot;&quot;
         # Message generation
         messages = self.msg_encoder(hidden_states)  # [n_agents, hidden_dim]
 
@@ -634,7 +652,7 @@ class AttentionCommModule(nn.Module):
         return hidden_states + aggregated  # Residual connection
 
 class CommunicativeAgent(nn.Module):
-    """Agent capable of communication"""
+    &quot;&quot;&quot;Agent capable of communication&quot;&quot;&quot;
     def __init__(self, obs_dim, action_dim, hidden_dim, n_agents):
         super().__init__()
         self.obs_encoder = nn.Sequential(
@@ -647,10 +665,10 @@ class CommunicativeAgent(nn.Module):
         )
 
     def forward(self, observations, agent_idx):
-        """
+        &quot;&quot;&quot;
         observations: [n_agents, obs_dim]
         agent_idx: Index of this agent
-        """
+        &quot;&quot;&quot;
         # Encode each agent's observation
         hidden_states = self.obs_encoder(observations)
 
@@ -665,7 +683,7 @@ class CommunicativeAgent(nn.Module):
 
 # Multi-round communication
 class MultiRoundCommAgent(nn.Module):
-    """Agent performing multiple rounds of communication"""
+    &quot;&quot;&quot;Agent performing multiple rounds of communication&quot;&quot;&quot;
     def __init__(self, obs_dim, action_dim, hidden_dim, n_agents, n_comm_rounds=2):
         super().__init__()
         self.n_comm_rounds = n_comm_rounds
@@ -678,10 +696,10 @@ class MultiRoundCommAgent(nn.Module):
         self.policy = nn.Linear(hidden_dim, action_dim)
 
     def forward(self, observations):
-        """
+        &quot;&quot;&quot;
         observations: [n_agents, obs_dim]
         returns: [n_agents, action_dim]
-        """
+        &quot;&quot;&quot;
         hidden = torch.relu(self.obs_encoder(observations))
 
         # Multiple rounds of communication
@@ -703,13 +721,13 @@ agent = MultiRoundCommAgent(obs_dim, action_dim, hidden_dim, n_agents, n_comm_ro
 # Simulation
 observations = torch.randn(n_agents, obs_dim)
 actions = agent(observations)
-print(f"Actions after communication: {actions.shape}")  # [3, 5]
+print(f&quot;Actions after communication: {actions.shape}&quot;)  # [3, 5]
 
 # Using individual agent
 single_agent = CommunicativeAgent(obs_dim, action_dim, hidden_dim, n_agents)
 action_logits, comm_hidden = single_agent(observations, agent_idx=0)
-print(f"Agent 0 action: {torch.softmax(action_logits, dim=-1)}")
-print(f"Hidden state after communication: {comm_hidden.shape}")  # [3, 64]</code></pre>
+print(f&quot;Agent 0 action: {torch.softmax(action_logits, dim=-1)}&quot;)
+print(f&quot;Hidden state after communication: {comm_hidden.shape}&quot;)  # [3, 64]</code></pre>
 </div>
 </section>
 <section id="example5">
@@ -722,14 +740,19 @@ print(f"Hidden state after communication: {comm_hidden.shape}")  # [3, 64]</code
                         Implement a cooperative task where three continuous stirred-tank reactors (CSTR) are connected in series,
                         maximizing overall productivity while appropriately controlling the temperature of each reactor.
                     </p>
-<pre><code class="language-python"># Cooperative task: Synchronized control of 3 CSTRs
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+# Cooperative task: Synchronized control of 3 CSTRs
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
 class CooperativeCSTREnv:
-    """Cooperative environment with 3 CSTRs connected in series"""
+    &quot;&quot;&quot;Cooperative environment with 3 CSTRs connected in series&quot;&quot;&quot;
     def __init__(self):
         self.n_agents = 3
         self.dt = 0.1  # Time step [min]
@@ -746,7 +769,7 @@ class CooperativeCSTREnv:
         return self._get_observations()
 
     def _get_observations(self):
-        """Observation for each agent (local information + neighboring information)"""
+        &quot;&quot;&quot;Observation for each agent (local information + neighboring information)&quot;&quot;&quot;
         obs = []
         for i in range(self.n_agents):
             local = self.states[i].copy()
@@ -758,11 +781,11 @@ class CooperativeCSTREnv:
         return obs
 
     def step(self, actions):
-        """
+        &quot;&quot;&quot;
         actions: [n_agents, 2] = [[Q1, Tin1], [Q2, Tin2], [Q3, Tin3]]
         Q: Cooling flow rate [L/min] (0-50)
         Tin: Inlet temperature [K] (300-400)
-        """
+        &quot;&quot;&quot;
         rewards = []
 
         for i in range(self.n_agents):
@@ -859,9 +882,9 @@ for episode in range(100):
             break
 
     if episode % 10 == 0:
-        print(f"Episode {episode}, Total Reward: {episode_reward:.2f}")
-        print(f"  Final Temps: {[f'{s[0]:.1f}K' for s in env.states]}")
-        print(f"  Final Concs: {[f'{s[1]:.3f}mol/L' for s in env.states]}")</code></pre>
+        print(f&quot;Episode {episode}, Total Reward: {episode_reward:.2f}&quot;)
+        print(f&quot;  Final Temps: {[f'{s[0]:.1f}K' for s in env.states]}&quot;)
+        print(f&quot;  Final Concs: {[f'{s[1]:.3f}mol/L' for s in env.states]}&quot;)</code></pre>
 </div>
 </section>
 <section id="example6">
@@ -874,13 +897,18 @@ for episode in range(100):
                         A competitive scenario where multiple plants compete for limited utilities such as steam and cooling water.
                         Each agent needs to maximize its own production while coordinating under resource constraints.
                     </p>
-<pre><code class="language-python"># Competitive task: Utility allocation problem
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+# Competitive task: Utility allocation problem
 import numpy as np
 import torch
 import torch.nn as nn
 
 class CompetitiveUtilityEnv:
-    """Competition for limited utilities among multiple plants"""
+    &quot;&quot;&quot;Competition for limited utilities among multiple plants&quot;&quot;&quot;
     def __init__(self, n_plants=3):
         self.n_plants = n_plants
         self.total_steam = 500.0  # Total steam supply [kg/h]
@@ -895,7 +923,7 @@ class CompetitiveUtilityEnv:
         return self._get_observations()
 
     def _get_observations(self):
-        """Observation for each plant"""
+        &quot;&quot;&quot;Observation for each plant&quot;&quot;&quot;
         obs = []
         for i in range(self.n_plants):
             # Own state + resource availability information
@@ -912,10 +940,10 @@ class CompetitiveUtilityEnv:
         return obs
 
     def step(self, actions):
-        """
+        &quot;&quot;&quot;
         actions: [n_plants, 2] = [[steam_request, cooling_request], ...]
         Each value is normalized to 0-1
-        """
+        &quot;&quot;&quot;
         # Convert requests to real values
         steam_requests = actions[:, 0] * 200  # 0-200 kg/h
         cooling_requests = actions[:, 1] * 400  # 0-400 L/min
@@ -964,7 +992,7 @@ class CompetitiveUtilityEnv:
 
 # Nash Q-Learning (for competitive tasks)
 class NashQLearningAgent:
-    """Agent learning Nash equilibrium"""
+    &quot;&quot;&quot;Agent learning Nash equilibrium&quot;&quot;&quot;
     def __init__(self, obs_dim, action_dim, agent_id):
         self.agent_id = agent_id
         self.q_net = nn.Sequential(
@@ -976,7 +1004,7 @@ class NashQLearningAgent:
         self.epsilon = 0.3
 
     def select_action(self, obs):
-        """ε-greedy with Nash equilibrium consideration"""
+        &quot;&quot;&quot;ε-greedy with Nash equilibrium consideration&quot;&quot;&quot;
         if np.random.rand() &lt; self.epsilon:
             return np.random.rand(2)
         else:
@@ -985,7 +1013,7 @@ class NashQLearningAgent:
                 return torch.sigmoid(torch.randn(2)).numpy()
 
     def update_policy(self, obs, action, reward, next_obs):
-        """Q-learning update (simplified version)"""
+        &quot;&quot;&quot;Q-learning update (simplified version)&quot;&quot;&quot;
         # Implementation omitted (learning algorithm for competitive environment)
         pass
 
@@ -1008,11 +1036,11 @@ for episode in range(50):
         obs = next_obs
 
     if episode % 10 == 0:
-        print(f"\nEpisode {episode}")
-        print(f"  Individual Rewards: {[f'{r:.1f}' for r in episode_rewards]}")
-        print(f"  Productions: {[f'{s[0]:.1f}' for s in env.states]}")
-        print(f"  Steam Usage: {[f'{s[2]:.1f}' for s in env.states]} / {env.total_steam}")
-        print(f"  Cooling Usage: {[f'{s[3]:.1f}' for s in env.states]} / {env.total_cooling}")</code></pre>
+        print(f&quot;\nEpisode {episode}&quot;)
+        print(f&quot;  Individual Rewards: {[f'{r:.1f}' for r in episode_rewards]}&quot;)
+        print(f&quot;  Productions: {[f'{s[0]:.1f}' for s in env.states]}&quot;)
+        print(f&quot;  Steam Usage: {[f'{s[2]:.1f}' for s in env.states]} / {env.total_steam}&quot;)
+        print(f&quot;  Cooling Usage: {[f'{s[3]:.1f}' for s in env.states]} / {env.total_cooling}&quot;)</code></pre>
 </div>
 </section>
 <section id="example7">
@@ -1025,14 +1053,19 @@ for episode in range(50):
                         In real plants, both cooperative and competitive aspects exist.
                         Each plant needs to achieve its own production targets (competition) while also considering overall stability and efficiency (cooperation).
                     </p>
-<pre><code class="language-python"># Mixed task: Production system with coexisting cooperation and competition
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+# Mixed task: Production system with coexisting cooperation and competition
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
 class MixedCoopCompEnv:
-    """Complex environment with mixed cooperation and competition"""
+    &quot;&quot;&quot;Complex environment with mixed cooperation and competition&quot;&quot;&quot;
     def __init__(self, n_plants=3):
         self.n_plants = n_plants
         self.total_energy = 1000.0  # Total energy [kW]
@@ -1064,9 +1097,9 @@ class MixedCoopCompEnv:
         return obs
 
     def step(self, actions):
-        """
+        &quot;&quot;&quot;
         actions: [n_plants, 3] = [[energy_req, temp_setpoint, quality_target], ...]
-        """
+        &quot;&quot;&quot;
         # Energy allocation (competitive element)
         energy_requests = actions[:, 0] * 500
         total_energy_req = sum(energy_requests)
@@ -1131,7 +1164,7 @@ class MixedCoopCompEnv:
 
 # COMA (Counterfactual Multi-Agent Policy Gradient)
 class COMAAgent:
-    """COMA agent for mixed tasks"""
+    &quot;&quot;&quot;COMA agent for mixed tasks&quot;&quot;&quot;
     def __init__(self, n_agents, obs_dim, action_dim, state_dim):
         self.n_agents = n_agents
 
@@ -1179,12 +1212,12 @@ for episode in range(100):
             break
 
     if episode % 20 == 0:
-        print(f"\nEpisode {episode}")
-        print(f"  Individual Rewards: {[f'{r:.1f}' for r in episode_rewards]}")
-        print(f"  Productions: {[f'{s[0]:.1f}' for s in env.states]}")
-        print(f"  Targets: {env.production_targets}")
-        print(f"  Qualities: {[f'{s[3]:.2f}' for s in env.states]}")
-        print(f"  Total Energy Used: {sum(env.states[:, 2]):.1f} / {env.total_energy}")</code></pre>
+        print(f&quot;\nEpisode {episode}&quot;)
+        print(f&quot;  Individual Rewards: {[f'{r:.1f}' for r in episode_rewards]}&quot;)
+        print(f&quot;  Productions: {[f'{s[0]:.1f}' for s in env.states]}&quot;)
+        print(f&quot;  Targets: {env.production_targets}&quot;)
+        print(f&quot;  Qualities: {[f'{s[3]:.2f}' for s in env.states]}&quot;)
+        print(f&quot;  Total Energy Used: {sum(env.states[:, 2]):.1f} / {env.total_energy}&quot;)</code></pre>
 </div>
 </section>
 <section id="summary">
@@ -1252,6 +1285,16 @@ for episode in range(100):
 <p>Learn about ensuring safety when deploying reinforcement learning agents to actual plants, including sim-to-real transfer, uncertainty quantification, and human override mechanisms.</p>
 </div>
 </article>
+<section>
+            <h2>References</h2>
+            <ol>
+                <li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+                <li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+                <li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+                <li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+            </ol>
+        </section>
+
 </main>
 <footer>
 <div class="footer-content">

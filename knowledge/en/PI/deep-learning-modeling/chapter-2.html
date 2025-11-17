@@ -49,25 +49,30 @@
 <p>$$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$</p>
 <p>Here, \(Q\) (Query), \(K\) (Key), and \(V\) (Value) are linear transformations of the input.</p>
 <h3>Example 1: Scaled Dot-Product Attention Implementation</h3>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import math
 
 class ScaledDotProductAttention(nn.Module):
-    """Scaled Dot-Product Attention"""
+    &quot;&quot;&quot;Scaled Dot-Product Attention&quot;&quot;&quot;
 
     def __init__(self, temperature):
-        """
+        &quot;&quot;&quot;
         Args:
             temperature: Scaling factor (typically sqrt(d_k))
-        """
+        &quot;&quot;&quot;
         super(ScaledDotProductAttention, self).__init__()
         self.temperature = temperature
 
     def forward(self, q, k, v, mask=None):
-        """
+        &quot;&quot;&quot;
         Args:
             q: Query [batch, n_head, seq_len, d_k]
             k: Key [batch, n_head, seq_len, d_k]
@@ -76,7 +81,7 @@ class ScaledDotProductAttention(nn.Module):
         Returns:
             output: [batch, n_head, seq_len, d_v]
             attn: Attention weights [batch, n_head, seq_len, seq_len]
-        """
+        &quot;&quot;&quot;
         # Compute Q·K^T
         attn = torch.matmul(q, k.transpose(-2, -1)) / self.temperature
 
@@ -107,9 +112,9 @@ q = k = v = x.unsqueeze(1)  # [batch, 1, seq_len, d_model] (1 head)
 attention = ScaledDotProductAttention(temperature=math.sqrt(d_model))
 output, attn_weights = attention(q, k, v)
 
-print(f"Output shape: {output.shape}")  # [2, 1, 50, 64]
-print(f"Attention weights shape: {attn_weights.shape}")  # [2, 1, 50, 50]
-print(f"Attention weights sum (should be 1.0): {attn_weights[0, 0, 0, :].sum():.4f}")
+print(f&quot;Output shape: {output.shape}&quot;)  # [2, 1, 50, 64]
+print(f&quot;Attention weights shape: {attn_weights.shape}&quot;)  # [2, 1, 50, 50]
+print(f&quot;Attention weights sum (should be 1.0): {attn_weights[0, 0, 0, :].sum():.4f}&quot;)
 
 # Output example:
 # Output shape: torch.Size([2, 1, 50, 64])
@@ -124,15 +129,19 @@ print(f"Attention weights sum (should be 1.0): {attn_weights[0, 0, 0, :].sum():.
 <p>$$PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d_{model}}}\right)$$</p>
 <p>$$PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d_{model}}}\right)$$</p>
 <h3>Example 2: Positional Encoding Implementation</h3>
-<pre><code class="language-python">class PositionalEncoding(nn.Module):
-    """Sine wave-based positional encoding"""
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+
+class PositionalEncoding(nn.Module):
+    &quot;&quot;&quot;Sine wave-based positional encoding&quot;&quot;&quot;
 
     def __init__(self, d_model, max_len=5000):
-        """
+        &quot;&quot;&quot;
         Args:
             d_model: Model dimension
             max_len: Maximum sequence length
-        """
+        &quot;&quot;&quot;
         super(PositionalEncoding, self).__init__()
 
         # Pre-compute positional encoding
@@ -151,12 +160,12 @@ print(f"Attention weights sum (should be 1.0): {attn_weights[0, 0, 0, :].sum():.
         self.register_buffer('pe', pe)
 
     def forward(self, x):
-        """
+        &quot;&quot;&quot;
         Args:
             x: Input [batch, seq_len, d_model]
         Returns:
             x + pe: With positional information [batch, seq_len, d_model]
-        """
+        &quot;&quot;&quot;
         seq_len = x.size(1)
         x = x + self.pe[:, :seq_len, :]
         return x
@@ -173,8 +182,8 @@ process_data = torch.randn(batch_size, seq_len, d_model)
 pos_encoder = PositionalEncoding(d_model=d_model, max_len=5000)
 encoded_data = pos_encoder(process_data)
 
-print(f"Input shape: {process_data.shape}")
-print(f"Output shape: {encoded_data.shape}")
+print(f&quot;Input shape: {process_data.shape}&quot;)
+print(f&quot;Output shape: {encoded_data.shape}&quot;)
 
 # Visualize positional encoding
 import matplotlib.pyplot as plt
@@ -189,7 +198,7 @@ plt.title('Positional Encoding Pattern')
 plt.tight_layout()
 # plt.savefig('positional_encoding.png')
 
-print("Positional encoding visualization complete")
+print(&quot;Positional encoding visualization complete&quot;)
 
 # Output example:
 # Input shape: torch.Size([4, 100, 64])
@@ -802,7 +811,7 @@ def pretrain_model(model, data, epochs=50, mask_ratio=0.15):
 
         # Random masking
         masked_data = data.clone()
-        mask = torch.rand(data.shape[:2]) &lt; mask_ratio  # [batch, seq_len]
+        mask = torch.rand(data.shape[:2]) < mask_ratio  # [batch, seq_len]
 
         for b in range(data.size(0)):
             for t in range(data.size(1)):
@@ -901,11 +910,16 @@ for epoch in range(20):
 <h2>2.8 Attention Weight Visualization and Interpretation</h2>
 <p>A powerful advantage of Transformers is the ability to understand the model's prediction rationale by visualizing attention weights. In process control, we can understand which time steps and variables are important.</p>
 <h3>Example 8: Attention Visualization</h3>
-<pre><code class="language-python">import matplotlib.pyplot as plt
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - seaborn&gt;=0.12.0
+
+import matplotlib.pyplot as plt
 import seaborn as sns
 
 class InterpretableTransformer(nn.Module):
-    """Transformer that Returns Attention Weights"""
+    &quot;&quot;&quot;Transformer that Returns Attention Weights&quot;&quot;&quot;
 
     def __init__(self, n_features, d_model=128, n_head=4, n_layers=3):
         super(InterpretableTransformer, self).__init__()
@@ -923,13 +937,13 @@ class InterpretableTransformer(nn.Module):
         self.attention_weights = []  # Save attention weights
 
     def forward(self, x):
-        """
+        &quot;&quot;&quot;
         Args:
             x: [batch, seq_len, n_features]
         Returns:
             output: [batch, n_features]
             attention_maps: List of [batch, n_head, seq_len, seq_len]
-        """
+        &quot;&quot;&quot;
         x = self.embedding(x)
         x = self.pos_encoder(x)
 
@@ -946,14 +960,14 @@ class InterpretableTransformer(nn.Module):
 
 def visualize_attention(attention_weights, layer_idx=0, head_idx=0,
                        variable_names=None, save_path=None):
-    """Visualize attention weights as heatmap
+    &quot;&quot;&quot;Visualize attention weights as heatmap
 
     Args:
         attention_weights: List of attention maps
         layer_idx: Layer to visualize
         head_idx: Head to visualize
         variable_names: List of variable names
-    """
+    &quot;&quot;&quot;
     attn = attention_weights[layer_idx][0, head_idx].numpy()  # [seq_len, seq_len]
 
     plt.figure(figsize=(10, 8))
@@ -971,7 +985,7 @@ def visualize_attention(attention_weights, layer_idx=0, head_idx=0,
     plt.tight_layout()
     # plt.show()
 
-    print(f"Attention map visualized for Layer {layer_idx+1}, Head {head_idx+1}")
+    print(f&quot;Attention map visualized for Layer {layer_idx+1}, Head {head_idx+1}&quot;)
 
 # Usage example
 model = InterpretableTransformer(n_features=4, d_model=128, n_head=4, n_layers=3)
@@ -984,8 +998,8 @@ model.eval()
 with torch.no_grad():
     pred, attn_weights = model(sample_data)
 
-print(f"Prediction: {pred}")
-print(f"Number of attention layers: {len(attn_weights)}")
+print(f&quot;Prediction: {pred}&quot;)
+print(f&quot;Number of attention layers: {len(attn_weights)}&quot;)
 
 # Visualize attention for each layer
 for layer_idx in range(len(attn_weights)):
@@ -994,7 +1008,7 @@ for layer_idx in range(len(attn_weights)):
 
 # Analyze attention weights at specific time step
 def analyze_critical_timesteps(attention_weights, query_timestep=-1):
-    """Analyze which past time steps are focused on"""
+    &quot;&quot;&quot;Analyze which past time steps are focused on&quot;&quot;&quot;
     layer_idx = -1  # Final layer
     attn = attention_weights[layer_idx][0]  # [n_head, seq_len, seq_len]
 
@@ -1005,9 +1019,9 @@ def analyze_critical_timesteps(attention_weights, query_timestep=-1):
     top_k = 5
     top_values, top_indices = torch.topk(final_attn, k=top_k)
 
-    print(f"\nCritical timesteps for prediction (Top {top_k}):")
+    print(f&quot;\nCritical timesteps for prediction (Top {top_k}):&quot;)
     for i, (idx, val) in enumerate(zip(top_indices, top_values)):
-        print(f"  {i+1}. Time step {idx.item()}: weight = {val.item():.4f}")
+        print(f&quot;  {i+1}. Time step {idx.item()}: weight = {val.item():.4f}&quot;)
 
 analyze_critical_timesteps(attn_weights)
 

@@ -245,29 +245,33 @@ graph LR
 <hr/>
 <h2>3.3 Seq2Seq Implementation in PyTorch</h2>
 <h3>Implementation Example 1: Encoder Class</h3>
-<pre><code class="language-python">import torch
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f"Using device: {device}\n")
+print(f&quot;Using device: {device}\n&quot;)
 
 class Encoder(nn.Module):
-    """
+    &quot;&quot;&quot;
     Seq2Seq Encoder class
     Reads input sequence and compresses to fixed-length Context Vector
-    """
+    &quot;&quot;&quot;
     def __init__(self, input_dim, embedding_dim, hidden_dim, n_layers, dropout):
-        """
+        &quot;&quot;&quot;
         Args:
             input_dim: Input vocabulary size
             embedding_dim: Embedding dimension
             hidden_dim: LSTM hidden layer dimension
             n_layers: Number of LSTM layers
             dropout: Dropout rate
-        """
+        &quot;&quot;&quot;
         super(Encoder, self).__init__()
 
         self.hidden_dim = hidden_dim
@@ -288,14 +292,14 @@ class Encoder(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, src):
-        """
+        &quot;&quot;&quot;
         Args:
             src: Input sequence [batch_size, src_len]
 
         Returns:
             hidden: Hidden state [n_layers, batch_size, hidden_dim]
             cell: Cell state [n_layers, batch_size, hidden_dim]
-        """
+        &quot;&quot;&quot;
         # Embedding: [batch_size, src_len] -&gt; [batch_size, src_len, embedding_dim]
         embedded = self.dropout(self.embedding(src))
 
@@ -307,7 +311,7 @@ class Encoder(nn.Module):
         return hidden, cell
 
 # Encoder test
-print("=== Encoder Implementation Test ===")
+print(&quot;=== Encoder Implementation Test ===&quot;)
 input_dim = 5000      # Input vocabulary size
 embedding_dim = 256   # Embedding dimension
 hidden_dim = 512      # Hidden layer dimension
@@ -323,10 +327,10 @@ src = torch.randint(0, input_dim, (batch_size, src_len)).to(device)
 
 hidden, cell = encoder(src)
 
-print(f"Input shape: {src.shape}")
-print(f"Context Vector (hidden) shape: {hidden.shape}")
-print(f"Context Vector (cell) shape: {cell.shape}")
-print(f"\nNumber of parameters: {sum(p.numel() for p in encoder.parameters()):,}")
+print(f&quot;Input shape: {src.shape}&quot;)
+print(f&quot;Context Vector (hidden) shape: {hidden.shape}&quot;)
+print(f&quot;Context Vector (cell) shape: {cell.shape}&quot;)
+print(f&quot;\nNumber of parameters: {sum(p.numel() for p in encoder.parameters()):,}&quot;)
 </code></pre>
 <p><strong>Output</strong>:</p>
 <pre><code>Using device: cuda
@@ -367,7 +371,7 @@ Number of parameters: 4,466,688
             embedding_dim,
             hidden_dim,
             n_layers,
-            dropout=dropout if n_layers &gt; 1 else 0,
+            dropout=dropout if n_layers > 1 else 0,
             batch_first=True
         )
 
@@ -390,16 +394,16 @@ Number of parameters: 4,466,688
             hidden: Updated hidden state
             cell: Updated cell state
         """
-        # input: [batch_size] -&gt; [batch_size, 1]
+        # input: [batch_size] -> [batch_size, 1]
         input = input.unsqueeze(1)
 
-        # Embedding: [batch_size, 1] -&gt; [batch_size, 1, embedding_dim]
+        # Embedding: [batch_size, 1] -> [batch_size, 1, embedding_dim]
         embedded = self.dropout(self.embedding(input))
 
         # LSTM: output [batch_size, 1, hidden_dim]
         output, (hidden, cell) = self.lstm(embedded, (hidden, cell))
 
-        # Prediction: [batch_size, 1, hidden_dim] -&gt; [batch_size, output_dim]
+        # Prediction: [batch_size, 1, hidden_dim] -> [batch_size, output_dim]
         prediction = self.fc_out(output.squeeze(1))
 
         return prediction, hidden, cell
@@ -472,7 +476,7 @@ Number of parameters: 4,077,056
             outputs[:, t] = output
 
             # Determine Teacher Forcing
-            teacher_force = torch.rand(1).item() &lt; teacher_forcing_ratio
+            teacher_force = torch.rand(1).item() < teacher_forcing_ratio
 
             # Get most probable token
             top1 = output.argmax(1)
@@ -534,7 +538,7 @@ Trainable parameters: 8,543,744
         # Forward pass
         output = model(src, trg, teacher_forcing_ratio=0.5)
 
-        # Reshape output: [batch_size, trg_len, output_dim] -&gt; [batch_size * trg_len, output_dim]
+        # Reshape output: [batch_size, trg_len, output_dim] -> [batch_size * trg_len, output_dim]
         output_dim = output.shape[-1]
         output = output[:, 1:].reshape(-1, output_dim)  # Exclude <sos>
         trg = trg[:, 1:].reshape(-1)  # Exclude <sos>
