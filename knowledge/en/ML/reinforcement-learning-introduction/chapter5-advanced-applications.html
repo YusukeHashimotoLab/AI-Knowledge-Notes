@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -35,10 +34,8 @@
 </nav><div class="locale-switcher">
 <span class="current-locale">🌐 EN</span>
 <span class="locale-separator">|</span>
-
 <span class="locale-meta">Last sync: 2025-11-16</span>
 </div>
-
 <header>
 <div class="header-content">
 <h1>Chapter 5: Advanced RL Methods and Applications</h1>
@@ -52,6 +49,8 @@
 </div>
 </header>
 <main class="container">
+
+<p class="chapter-description">This chapter covers advanced topics in Advanced RL Methods and Applications. You will master parallel learning mechanism of A3C, actor-critic architecture of SAC, and fundamentals of multi-agent reinforcement learning.</p>
 <h2>Learning Objectives</h2>
 <p>By reading this chapter, you will be able to:</p>
 <ul>
@@ -159,22 +158,22 @@ import gymnasium as gym
 import numpy as np
 
 class A3CNetwork(nn.Module):
-    &quot;&quot;&quot;
+    """
     Actor-Critic shared network for A3C
 
     Architecture:
     - Shared layers: Feature extraction
     - Actor output: Action probability distribution
     - Critic output: State value function
-    &quot;&quot;&quot;
+    """
 
     def __init__(self, state_dim, action_dim, hidden_dim=128):
-        &quot;&quot;&quot;
+        """
         Args:
             state_dim: Dimension of state space
             action_dim: Dimension of action space
             hidden_dim: Dimension of hidden layers
-        &quot;&quot;&quot;
+        """
         super(A3CNetwork, self).__init__()
 
         # Shared feature extraction layer
@@ -188,7 +187,7 @@ class A3CNetwork(nn.Module):
         self.critic_head = nn.Linear(hidden_dim, 1)
 
     def forward(self, state):
-        &quot;&quot;&quot;
+        """
         Forward computation
 
         Args:
@@ -197,7 +196,7 @@ class A3CNetwork(nn.Module):
         Returns:
             action_probs: Action probability distribution (batch_size, action_dim)
             state_value: State value (batch_size, 1)
-        &quot;&quot;&quot;
+        """
         # Shared layers
         x = F.relu(self.shared_fc1(state))
         x = F.relu(self.shared_fc2(x))
@@ -213,19 +212,19 @@ class A3CNetwork(nn.Module):
 
 
 class A3CWorker:
-    &quot;&quot;&quot;
+    """
     A3C worker: Learns in an independent environment and updates the global network
 
     Features:
     - Asynchronous parameter updates
     - n-step returns calculation
     - Entropy Regularization
-    &quot;&quot;&quot;
+    """
 
     def __init__(self, worker_id, global_network, optimizer,
                  env_name='CartPole-v1', gamma=0.99,
                  max_steps=20, entropy_coef=0.01):
-        &quot;&quot;&quot;
+        """
         Args:
             worker_id: Worker ID
             global_network: Shared global network
@@ -234,7 +233,7 @@ class A3CWorker:
             gamma: Discount factor
             max_steps: Number of steps for n-step returns
             entropy_coef: Entropy regularization coefficient
-        &quot;&quot;&quot;
+        """
         self.worker_id = worker_id
         self.env = gym.make(env_name)
         self.global_network = global_network
@@ -249,7 +248,7 @@ class A3CWorker:
         self.local_network = A3CNetwork(state_dim, action_dim)
 
     def compute_returns(self, rewards, next_value, dones):
-        &quot;&quot;&quot;
+        """
         Compute n-step returns
 
         Args:
@@ -259,7 +258,7 @@ class A3CWorker:
 
         Returns:
             returns: Returns for each step
-        &quot;&quot;&quot;
+        """
         returns = []
         R = next_value
 
@@ -271,12 +270,12 @@ class A3CWorker:
         return returns
 
     def train_step(self):
-        &quot;&quot;&quot;
+        """
         Training for one episode
 
         Returns:
             total_reward: Total episode reward
-        &quot;&quot;&quot;
+        """
         # Global networkParameter Synchronization
         self.local_network.load_state_dict(self.global_network.state_dict())
 
@@ -330,7 +329,7 @@ class A3CWorker:
         return episode_reward
 
     def _update_global_network(self, states, actions, returns, values):
-        &quot;&quot;&quot;
+        """
         Update global network
 
         Args:
@@ -338,7 +337,7 @@ class A3CWorker:
             actions: List of actions
             returns: List of returns
             values: List of value estimates
-        &quot;&quot;&quot;
+        """
         states_tensor = torch.FloatTensor(states)
         actions_tensor = torch.LongTensor(actions)
         returns_tensor = torch.FloatTensor(returns)
@@ -382,7 +381,7 @@ class A3CWorker:
 
 
 def worker_process(worker_id, global_network, optimizer, num_episodes=100):
-    &quot;&quot;&quot;
+    """
     Worker process function (for parallel execution)
 
     Args:
@@ -390,21 +389,21 @@ def worker_process(worker_id, global_network, optimizer, num_episodes=100):
         global_network: Global network
         optimizer: Shared optimizer
         num_episodes: Number of episodes
-    &quot;&quot;&quot;
+    """
     worker = A3CWorker(worker_id, global_network, optimizer)
 
     for episode in range(num_episodes):
         reward = worker.train_step()
         if episode % 10 == 0:
-            print(f&quot;Worker {worker_id} - Episode {episode}, Reward: {reward:.2f}&quot;)
+            print(f"Worker {worker_id} - Episode {episode}, Reward: {reward:.2f}")
 
 
 # A3C training example (single-process version - for concept verification)
 def train_a3c_simple():
-    &quot;&quot;&quot;
+    """
     Simplified version of A3C training (no parallel processing)
     Actual A3C uses multiprocessing
-    &quot;&quot;&quot;
+    """
     env = gym.make('CartPole-v1')
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
@@ -425,17 +424,17 @@ def train_a3c_simple():
 
         if episode % 10 == 0:
             avg_reward = np.mean(rewards[-10:])
-            print(f&quot;Episode {episode}, Avg Reward: {avg_reward:.2f}&quot;)
+            print(f"Episode {episode}, Avg Reward: {avg_reward:.2f}")
 
     return global_network, rewards
 
 
 # Execution example
-if __name__ == &quot;__main__&quot;:
-    print(&quot;A3C Training (Simple Version)&quot;)
-    print(&quot;=&quot; * 50)
+if __name__ == "__main__":
+    print("A3C Training (Simple Version)")
+    print("=" * 50)
     model, rewards = train_a3c_simple()
-    print(f&quot;Training completed. Final avg reward: {np.mean(rewards[-10:]):.2f}&quot;)
+    print(f"Training completed. Final avg reward: {np.mean(rewards[-10:]):.2f}")
 </code></pre>
 <blockquote>
 <p><strong>A3C Implementation Notes</strong>: The full parallel version uses Python's<code>multiprocessing</code>, but the above is a simplified version demonstrating the concept.In actual A3C, multiple worker processes simultaneously update the global network. Entropy regularization promotes exploration, and gradient clipping stabilizes learning.</p>
@@ -533,25 +532,25 @@ from collections import deque
 import random
 
 class GaussianPolicy(nn.Module):
-    &quot;&quot;&quot;
+    """
     Gaussian policy network for SAC
 
     Architecture:
     - State input
     - Output: mean μ and standard deviation σ
     - Differentiable action sampling via Reparameterization Trick
-    &quot;&quot;&quot;
+    """
 
     def __init__(self, state_dim, action_dim, hidden_dim=256,
                  log_std_min=-20, log_std_max=2):
-        &quot;&quot;&quot;
+        """
         Args:
             state_dim: Dimension of state space
             action_dim: Dimension of action space
             hidden_dim: Dimension of hidden layers
             log_std_min: Minimum value of log standard deviation
             log_std_max: Maximum log standard deviation
-        &quot;&quot;&quot;
+        """
         super(GaussianPolicy, self).__init__()
 
         self.log_std_min = log_std_min
@@ -564,7 +563,7 @@ class GaussianPolicy(nn.Module):
         self.log_std = nn.Linear(hidden_dim, action_dim)
 
     def forward(self, state):
-        &quot;&quot;&quot;
+        """
         Forward computation
 
         Args:
@@ -573,7 +572,7 @@ class GaussianPolicy(nn.Module):
         Returns:
             mean: Mean of action distribution
             log_std: Log standard deviation of action distribution
-        &quot;&quot;&quot;
+        """
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
 
@@ -584,7 +583,7 @@ class GaussianPolicy(nn.Module):
         return mean, log_std
 
     def sample(self, state):
-        &quot;&quot;&quot;
+        """
         Action sampling via Reparameterization Trick
 
         Args:
@@ -593,7 +592,7 @@ class GaussianPolicy(nn.Module):
         Returns:
             action: Sampled action (after tanh squashing)
             log_prob: Log probability of the action
-        &quot;&quot;&quot;
+        """
         mean, log_std = self.forward(state)
         std = log_std.exp()
 
@@ -613,9 +612,9 @@ class GaussianPolicy(nn.Module):
 
 
 class QNetwork(nn.Module):
-    &quot;&quot;&quot;
+    """
     Q-Network for SAC (State-Action value function)
-    &quot;&quot;&quot;
+    """
 
     def __init__(self, state_dim, action_dim, hidden_dim=256):
         super(QNetwork, self).__init__()
@@ -625,7 +624,7 @@ class QNetwork(nn.Module):
         self.fc3 = nn.Linear(hidden_dim, 1)
 
     def forward(self, state, action):
-        &quot;&quot;&quot;
+        """
         Compute Q-value
 
         Args:
@@ -634,7 +633,7 @@ class QNetwork(nn.Module):
 
         Returns:
             q_value: Q-value (batch_size, 1)
-        &quot;&quot;&quot;
+        """
         x = torch.cat([state, action], dim=1)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
@@ -643,7 +642,7 @@ class QNetwork(nn.Module):
 
 
 class ReplayBuffer:
-    &quot;&quot;&quot;Experience Replay Buffer&quot;&quot;&quot;
+    """Experience Replay Buffer"""
 
     def __init__(self, capacity=100000):
         self.buffer = deque(maxlen=capacity)
@@ -667,7 +666,7 @@ class ReplayBuffer:
 
 
 class SAC:
-    &quot;&quot;&quot;
+    """
     Soft Actor-Critic Implementation
 
     Features:
@@ -675,12 +674,12 @@ class SAC:
     - Double Q-learning for stability
     - Automatic temperature tuning
     - Off-policy learning with replay buffer
-    &quot;&quot;&quot;
+    """
 
     def __init__(self, state_dim, action_dim,
                  lr=3e-4, gamma=0.99, tau=0.005, alpha=0.2,
                  automatic_entropy_tuning=True):
-        &quot;&quot;&quot;
+        """
         Args:
             state_dim: Dimension of state space
             action_dim: Dimension of action space
@@ -689,7 +688,7 @@ class SAC:
             tau: Target network update rate
             alpha: Entropy coefficient (when automatic_entropy_tuning=False)
             automatic_entropy_tuning: Automatic temperature tuningUse
-        &quot;&quot;&quot;
+        """
         self.gamma = gamma
         self.tau = tau
         self.alpha = alpha
@@ -722,7 +721,7 @@ class SAC:
         self.replay_buffer = ReplayBuffer()
 
     def select_action(self, state, evaluate=False):
-        &quot;&quot;&quot;
+        """
         Action selection
 
         Args:
@@ -731,7 +730,7 @@ class SAC:
 
         Returns:
             action: Selected action
-        &quot;&quot;&quot;
+        """
         state = torch.FloatTensor(state).unsqueeze(0)
 
         if evaluate:
@@ -745,12 +744,12 @@ class SAC:
         return action.cpu().numpy()[0]
 
     def update(self, batch_size=256):
-        &quot;&quot;&quot;
+        """
         SAC update step
 
         Args:
             batch_size: Batch size
-        &quot;&quot;&quot;
+        """
         if len(self.replay_buffer) &lt; batch_size:
             return
 
@@ -822,10 +821,10 @@ class SAC:
         self._soft_update(self.q_net2, self.target_q_net2)
 
     def _soft_update(self, source, target):
-        &quot;&quot;&quot;
+        """
         Soft update of target network
         θ_target = τ * θ_source + (1 - τ) * θ_target
-        &quot;&quot;&quot;
+        """
         for target_param, source_param in zip(target.parameters(), source.parameters()):
             target_param.data.copy_(
                 self.tau * source_param.data + (1 - self.tau) * target_param.data
@@ -834,7 +833,7 @@ class SAC:
 
 # SAC training example
 def train_sac():
-    &quot;&quot;&quot;SAC training execution example (Pendulum environment)&quot;&quot;&quot;
+    """SAC training execution example (Pendulum environment)"""
     import gymnasium as gym
 
     env = gym.make('Pendulum-v1')
@@ -871,16 +870,16 @@ def train_sac():
                 break
 
         if episode % 10 == 0:
-            print(f&quot;Episode {episode}, Reward: {episode_reward:.2f}, Alpha: {agent.alpha:.3f}&quot;)
+            print(f"Episode {episode}, Reward: {episode_reward:.2f}, Alpha: {agent.alpha:.3f}")
 
     return agent
 
 
-if __name__ == &quot;__main__&quot;:
-    print(&quot;SAC Training on Pendulum-v1&quot;)
-    print(&quot;=&quot; * 50)
+if __name__ == "__main__":
+    print("SAC Training on Pendulum-v1")
+    print("=" * 50)
     agent = train_sac()
-    print(&quot;Training completed!&quot;)
+    print("Training completed!")
 </code></pre>
 <blockquote>
 <p><strong>SAC Implementation Points</strong>: The reparameterization trick makes the policy differentiable, enabling efficient gradient-based optimization. Double Q-learning prevents overestimation, and automatic temperature tuning automatically optimizes the balance between exploration and exploitation. Tanh squashing ensures actions are bounded to a finite range.</p>
@@ -961,7 +960,7 @@ import gymnasium as gym
 from gymnasium import spaces
 
 class SimpleMultiAgentEnv(gym.Env):
-    &quot;&quot;&quot;
+    """
     Simple multi-agent environment
 
     Task: Multiple agents reach a goal position
@@ -969,15 +968,15 @@ class SimpleMultiAgentEnv(gym.Env):
     - Positive reward for getting closer to goal
     - Negative reward when agents are too close (collision avoidance)
     - Cooperative task (shared reward)
-    &quot;&quot;&quot;
+    """
 
     def __init__(self, n_agents=3, grid_size=10, max_steps=50):
-        &quot;&quot;&quot;
+        """
         Args:
             n_agents: Number of agents
             grid_size: Grid size
             max_steps: Maximum number of steps
-        &quot;&quot;&quot;
+        """
         super(SimpleMultiAgentEnv, self).__init__()
 
         self.n_agents = n_agents
@@ -999,7 +998,7 @@ class SimpleMultiAgentEnv(gym.Env):
         self.current_step = 0
 
     def reset(self, seed=None):
-        &quot;&quot;&quot;Reset environment&quot;&quot;&quot;
+        """Reset environment"""
         super().reset(seed=seed)
 
         # Randomly place agents
@@ -1013,7 +1012,7 @@ class SimpleMultiAgentEnv(gym.Env):
         return self._get_observations(), {}
 
     def step(self, actions):
-        &quot;&quot;&quot;
+        """
         Environment step
 
         Args:
@@ -1025,7 +1024,7 @@ class SimpleMultiAgentEnv(gym.Env):
             terminated: Termination flag
             truncated: Truncation flag
             info: Additional information
-        &quot;&quot;&quot;
+        """
         # Apply actions (move up, down, left, right)
         for i, action in enumerate(actions):
             if action == 0:  # Up
@@ -1050,7 +1049,7 @@ class SimpleMultiAgentEnv(gym.Env):
         return observations, rewards, terminated, truncated, {}
 
     def _get_observations(self):
-        &quot;&quot;&quot;Get observations for each agent&quot;&quot;&quot;
+        """Get observations for each agent"""
         observations = []
 
         for i in range(self.n_agents):
@@ -1072,7 +1071,7 @@ class SimpleMultiAgentEnv(gym.Env):
         return observations
 
     def _compute_rewards(self):
-        &quot;&quot;&quot;Compute rewards&quot;&quot;&quot;
+        """Compute rewards"""
         rewards = []
 
         for i in range(self.n_agents):
@@ -1100,7 +1099,7 @@ class SimpleMultiAgentEnv(gym.Env):
         return rewards
 
     def _is_done(self):
-        &quot;&quot;&quot;Check if all agents have reached the goal&quot;&quot;&quot;
+        """Check if all agents have reached the goal"""
         for i in range(self.n_agents):
             dist = np.linalg.norm(self.agent_positions[i] - self.goal_position)
             if dist &gt;= 0.5:
@@ -1108,7 +1107,7 @@ class SimpleMultiAgentEnv(gym.Env):
         return True
 
     def render(self):
-        &quot;&quot;&quot;Visualize environment&quot;&quot;&quot;
+        """Visualize environment"""
         plt.figure(figsize=(8, 8))
         plt.xlim(0, self.grid_size)
         plt.ylim(0, self.grid_size)
@@ -1135,14 +1134,14 @@ class SimpleMultiAgentEnv(gym.Env):
 
 
 class IndependentQLearning:
-    &quot;&quot;&quot;
+    """
     Independent Q-Learning for MARL
     Each agent runs Q-learning independently
-    &quot;&quot;&quot;
+    """
 
     def __init__(self, n_agents, state_dim, n_actions,
                  lr=0.1, gamma=0.99, epsilon=0.1):
-        &quot;&quot;&quot;
+        """
         Args:
             n_agents: Number of agents
             state_dim: Dimension of state space
@@ -1150,7 +1149,7 @@ class IndependentQLearning:
             lr: Learning rate
             gamma: Discount factor
             epsilon: ε-greedy exploration rate
-        &quot;&quot;&quot;
+        """
         self.n_agents = n_agents
         self.n_actions = n_actions
         self.lr = lr
@@ -1164,7 +1163,7 @@ class IndependentQLearning:
         ]
 
     def select_actions(self, observations):
-        &quot;&quot;&quot;ε-greedyAction selection&quot;&quot;&quot;
+        """ε-greedyAction selection"""
         actions = []
 
         for i in range(self.n_agents):
@@ -1180,7 +1179,7 @@ class IndependentQLearning:
         return actions
 
     def update(self, observations, actions, rewards, next_observations, done):
-        &quot;&quot;&quot;Q-valueupdate&quot;&quot;&quot;
+        """Q-valueupdate"""
         for i in range(self.n_agents):
             state_idx = self._discretize_state(observations[i])
             next_state_idx = self._discretize_state(next_observations[i])
@@ -1195,14 +1194,14 @@ class IndependentQLearning:
             )
 
     def _discretize_state(self, observation):
-        &quot;&quot;&quot;Discretize observation (simplified version)&quot;&quot;&quot;
+        """Discretize observation (simplified version)"""
         # In practice, use state hashing or function approximation
         return int(np.sum(np.abs(observation)) * 10) % 100
 
 
 # MARL training example
 def train_marl():
-    &quot;&quot;&quot;Multi-agent environment training&quot;&quot;&quot;
+    """Multi-agent environment training"""
     env = SimpleMultiAgentEnv(n_agents=3, grid_size=10)
     agent_controller = IndependentQLearning(
         n_agents=3,
@@ -1232,7 +1231,7 @@ def train_marl():
             observations = next_observations
 
         if episode % 10 == 0:
-            print(f&quot;Episode {episode}, Total Reward: {episode_reward:.2f}&quot;)
+            print(f"Episode {episode}, Total Reward: {episode_reward:.2f}")
 
     # Visualize final episode
     observations, _ = env.reset()
@@ -1241,11 +1240,11 @@ def train_marl():
     return agent_controller
 
 
-if __name__ == &quot;__main__&quot;:
-    print(&quot;Multi-Agent RL Training&quot;)
-    print(&quot;=&quot; * 50)
+if __name__ == "__main__":
+    print("Multi-Agent RL Training")
+    print("=" * 50)
     controller = train_marl()
-    print(&quot;Training completed!&quot;)
+    print("Training completed!")
 </code></pre>
 <blockquote>
 <p><strong>MARL Implementation Notes</strong>: Independent Q-Learning is the simplest MARL approach where each agent learns independently. More advanced methods include QMIX (centralized training and decentralized execution), MADDPG (Multi-Agent DDPG), and others. For cooperative tasks, shared rewards are effective, and introducing communication mechanisms improves performance.</p>
@@ -1385,24 +1384,24 @@ import matplotlib.pyplot as plt
 from collections import deque
 
 class TradingEnvironment:
-    &quot;&quot;&quot;
+    """
     Stock trading environment
 
     Features:
     - Decide actions based on past price history
     - Consider transaction costs
     - Manage held positions
-    &quot;&quot;&quot;
+    """
 
     def __init__(self, price_data, initial_balance=10000,
                  transaction_cost=0.001, window_size=20):
-        &quot;&quot;&quot;
+        """
         Args:
             price_data: Price data (DataFrame)
             initial_balance: Initial capital
             transaction_cost: Transaction cost (one-way)
             window_size: Historical window size to observe
-        &quot;&quot;&quot;
+        """
         self.price_data = price_data
         self.initial_balance = initial_balance
         self.transaction_cost = transaction_cost
@@ -1411,7 +1410,7 @@ class TradingEnvironment:
         self.reset()
 
     def reset(self):
-        &quot;&quot;&quot;Reset environment&quot;&quot;&quot;
+        """Reset environment"""
         self.current_step = self.window_size
         self.balance = self.initial_balance
         self.shares_held = 0
@@ -1421,12 +1420,12 @@ class TradingEnvironment:
         return self._get_observation()
 
     def _get_observation(self):
-        &quot;&quot;&quot;
+        """
         Get observation
 
         Returns:
             observation: Normalized version of [price history, shares held, cash balance]
-        &quot;&quot;&quot;
+        """
         # pastwindow_sizePrice change rate for
         window_data = self.price_data.iloc[
             self.current_step - self.window_size:self.current_step
@@ -1442,7 +1441,7 @@ class TradingEnvironment:
         return observation
 
     def step(self, action):
-        &quot;&quot;&quot;
+        """
         Environment step
 
         Args:
@@ -1453,7 +1452,7 @@ class TradingEnvironment:
             reward: reward
             done: Termination flag
             info: Additional information
-        &quot;&quot;&quot;
+        """
         current_price = self.price_data.iloc[self.current_step]['Close']
 
         # Execute action
@@ -1495,9 +1494,9 @@ class TradingEnvironment:
 
 
 class DQNTrader:
-    &quot;&quot;&quot;
+    """
     DQN-based trading agent
-    &quot;&quot;&quot;
+    """
 
     def __init__(self, state_dim, n_actions=3, lr=0.001, gamma=0.95):
         import torch
@@ -1523,7 +1522,7 @@ class DQNTrader:
         self.epsilon_min = 0.01
 
     def select_action(self, state, training=True):
-        &quot;&quot;&quot;ε-greedyAction selection&quot;&quot;&quot;
+        """ε-greedyAction selection"""
         import torch
 
         if training and np.random.rand() &lt; self.epsilon:
@@ -1535,7 +1534,7 @@ class DQNTrader:
             return q_values.argmax().item()
 
     def train(self, batch_size=32):
-        &quot;&quot;&quot;DQN update&quot;&quot;&quot;
+        """DQN update"""
         import torch
         import torch.nn.functional as F
 
@@ -1573,10 +1572,10 @@ class DQNTrader:
 
 # Trading bot training example
 def train_trading_bot():
-    &quot;&quot;&quot;
+    """
     Stock trading bot training
     （Demo: using random walk price data）
-    &quot;&quot;&quot;
+    """
     # Generate demo price data
     np.random.seed(42)
     dates = pd.date_range('2020-01-01', periods=500)
@@ -1612,9 +1611,9 @@ def train_trading_bot():
             state = next_state
 
         if episode % 10 == 0:
-            print(f&quot;Episode {episode}, Total Reward: {total_reward:.4f}, &quot;
-                  f&quot;Final Net Worth: ${info['net_worth']:.2f}, &quot;
-                  f&quot;Epsilon: {agent.epsilon:.3f}&quot;)
+            print(f"Episode {episode}, Total Reward: {total_reward:.4f}, "
+                  f"Final Net Worth: ${info['net_worth']:.2f}, "
+                  f"Epsilon: {agent.epsilon:.3f}")
 
     # Final evaluation
     state = env.reset()
@@ -1653,19 +1652,19 @@ def train_trading_bot():
 
     plt.tight_layout()
     plt.savefig('trading_bot_performance.png', dpi=150, bbox_inches='tight')
-    print(&quot;Performance chart saved as 'trading_bot_performance.png'&quot;)
+    print("Performance chart saved as 'trading_bot_performance.png'")
 
     final_return = (net_worths[-1] - env.initial_balance) / env.initial_balance * 100
-    print(f&quot;\nFinal Return: {final_return:.2f}%&quot;)
+    print(f"\nFinal Return: {final_return:.2f}%")
 
     return agent, env
 
 
-if __name__ == &quot;__main__&quot;:
-    print(&quot;RL Trading Bot Training&quot;)
-    print(&quot;=&quot; * 50)
+if __name__ == "__main__":
+    print("RL Trading Bot Training")
+    print("=" * 50)
     agent, env = train_trading_bot()
-    print(&quot;Training completed!&quot;)
+    print("Training completed!")
 </code></pre>
 <blockquote>
 <p><strong>Trading Application Notes</strong>: It is important to consider transaction costs, slippage, and market impact. To avoid overfitting to past data, perform backtests across multiple periods. In actual operation, risk management (position size limits, stop loss) must be incorporated.</p>
@@ -1718,9 +1717,9 @@ if __name__ == &quot;__main__&quot;:
 # - numpy&gt;=1.24.0, &lt;2.0.0
 # - optuna&gt;=3.2.0
 
-&quot;&quot;&quot;
+"""
 Practical RL training using Stable-Baselines3
-&quot;&quot;&quot;
+"""
 
 # Install (if needed)
 # !pip install stable-baselines3[extra]
@@ -1736,16 +1735,16 @@ import matplotlib.pyplot as plt
 
 # === Example 1: PPO for CartPole ===
 def train_ppo_cartpole():
-    &quot;&quot;&quot;
+    """
     PPOCartPoleEnvironmentTraining
 
     Features:
     - Vectorized environment for parallel training
     - Evaluation callback for monitoring
     - Model checkpointing
-    &quot;&quot;&quot;
-    print(&quot;Training PPO on CartPole-v1&quot;)
-    print(&quot;=&quot; * 50)
+    """
+    print("Training PPO on CartPole-v1")
+    print("=" * 50)
 
     # Vectorized environment (parallel training)
     env = make_vec_env('CartPole-v1', n_envs=4)
@@ -1766,7 +1765,7 @@ def train_ppo_cartpole():
         gae_lambda=0.95,       # GAE parameter
         clip_range=0.2,        # PPO clipping
         verbose=1,
-        tensorboard_log=&quot;./ppo_cartpole_tensorboard/&quot;
+        tensorboard_log="./ppo_cartpole_tensorboard/"
     )
 
     # Setup callbacks
@@ -1795,26 +1794,26 @@ def train_ppo_cartpole():
     mean_reward, std_reward = evaluate_policy(
         model, eval_env, n_eval_episodes=10
     )
-    print(f&quot;\nEvaluation: Mean Reward = {mean_reward:.2f} +/- {std_reward:.2f}&quot;)
+    print(f"\nEvaluation: Mean Reward = {mean_reward:.2f} +/- {std_reward:.2f}")
 
     # Save model
-    model.save(&quot;ppo_cartpole_final&quot;)
+    model.save("ppo_cartpole_final")
 
     return model
 
 
 # === Example 2: SAC for Continuous Control ===
 def train_sac_pendulum():
-    &quot;&quot;&quot;
+    """
     SAC Pendulum environment training (continuous action space)
 
     Features:
     - Maximum entropy RL
     - Off-policy learning
     - Automatic temperature tuning
-    &quot;&quot;&quot;
-    print(&quot;\nTraining SAC on Pendulum-v1&quot;)
-    print(&quot;=&quot; * 50)
+    """
+    print("\nTraining SAC on Pendulum-v1")
+    print("=" * 50)
 
     # Create environment
     env = gym.make('Pendulum-v1')
@@ -1833,7 +1832,7 @@ def train_sac_pendulum():
         gradient_steps=1,
         ent_coef='auto',       # Automatic entropy tuning
         verbose=1,
-        tensorboard_log=&quot;./sac_pendulum_tensorboard/&quot;
+        tensorboard_log="./sac_pendulum_tensorboard/"
     )
 
     # Training
@@ -1841,20 +1840,20 @@ def train_sac_pendulum():
 
     # Evaluation
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
-    print(f&quot;Evaluation: Mean Reward = {mean_reward:.2f} +/- {std_reward:.2f}&quot;)
+    print(f"Evaluation: Mean Reward = {mean_reward:.2f} +/- {std_reward:.2f}")
 
     # Save model
-    model.save(&quot;sac_pendulum_final&quot;)
+    model.save("sac_pendulum_final")
 
     return model
 
 
 # === Example 3: Custom Environment with SB3 ===
 class CustomGridWorld(gym.Env):
-    &quot;&quot;&quot;
+    """
     Custom grid world environment
     SB3-compatible Gym environment
-    &quot;&quot;&quot;
+    """
 
     def __init__(self, grid_size=5):
         super(CustomGridWorld, self).__init__()
@@ -1902,9 +1901,9 @@ class CustomGridWorld(gym.Env):
 
 
 def train_custom_env():
-    &quot;&quot;&quot;Custom environment DQN training&quot;&quot;&quot;
-    print(&quot;\nTraining DQN on Custom GridWorld&quot;)
-    print(&quot;=&quot; * 50)
+    """Custom environment DQN training"""
+    print("\nTraining DQN on Custom GridWorld")
+    print("=" * 50)
 
     # Custom environment
     env = CustomGridWorld(grid_size=5)
@@ -1928,19 +1927,19 @@ def train_custom_env():
 
     # Evaluation
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
-    print(f&quot;Evaluation: Mean Reward = {mean_reward:.2f} +/- {std_reward:.2f}&quot;)
+    print(f"Evaluation: Mean Reward = {mean_reward:.2f} +/- {std_reward:.2f}")
 
     return model
 
 
 # === Example 4: Loading and Using Trained Model ===
 def use_trained_model():
-    &quot;&quot;&quot;Load and use trained model&quot;&quot;&quot;
-    print(&quot;\nUsing Trained Model&quot;)
-    print(&quot;=&quot; * 50)
+    """Load and use trained model"""
+    print("\nUsing Trained Model")
+    print("=" * 50)
 
     # Load model
-    model = PPO.load(&quot;ppo_cartpole_final&quot;)
+    model = PPO.load("ppo_cartpole_final")
 
     # Execute environment
     env = gym.make('CartPole-v1', render_mode='rgb_array')
@@ -1957,16 +1956,16 @@ def use_trained_model():
         if terminated or truncated:
             break
 
-    print(f&quot;Episode reward: {total_reward}&quot;)
+    print(f"Episode reward: {total_reward}")
     env.close()
 
 
 # === Example 5: Hyperparameter Tuning with Optuna ===
 def hyperparameter_tuning():
-    &quot;&quot;&quot;
+    """
     Hyperparameter tuning using Optuna
     （Optional: requires optuna installation）
-    &quot;&quot;&quot;
+    """
     try:
         from stable_baselines3.common.env_util import make_vec_env
         import optuna
@@ -1974,7 +1973,7 @@ def hyperparameter_tuning():
         from optuna.samplers import TPESampler
 
         def objective(trial):
-            &quot;&quot;&quot;Optuna objective function&quot;&quot;&quot;
+            """Optuna objective function"""
             # Suggest hyperparameters
             lr = trial.suggest_loguniform('lr', 1e-5, 1e-3)
             gamma = trial.suggest_uniform('gamma', 0.9, 0.9999)
@@ -2008,19 +2007,19 @@ def hyperparameter_tuning():
 
         study.optimize(objective, n_trials=20, timeout=600)
 
-        print(&quot;\nBest hyperparameters:&quot;)
+        print("\nBest hyperparameters:")
         print(study.best_params)
-        print(f&quot;Best value: {study.best_value:.2f}&quot;)
+        print(f"Best value: {study.best_value:.2f}")
 
     except ImportError:
-        print(&quot;Optuna not installed. Skipping hyperparameter tuning.&quot;)
-        print(&quot;Install with: pip install optuna&quot;)
+        print("Optuna not installed. Skipping hyperparameter tuning.")
+        print("Install with: pip install optuna")
 
 
 # Main execution
-if __name__ == &quot;__main__&quot;:
-    print(&quot;Stable-Baselines3 Practical Examples&quot;)
-    print(&quot;=&quot; * 50)
+if __name__ == "__main__":
+    print("Stable-Baselines3 Practical Examples")
+    print("=" * 50)
 
     # Example 1: PPO
     ppo_model = train_ppo_cartpole()
@@ -2037,10 +2036,10 @@ if __name__ == &quot;__main__&quot;:
     # Example 5: Hyperparameter tuning (optional)
     # hyperparameter_tuning()
 
-    print(&quot;\n&quot; + &quot;=&quot; * 50)
-    print(&quot;All examples completed!&quot;)
-    print(&quot;Tensorboard logs saved. View with:&quot;)
-    print(&quot;  tensorboard --logdir ./ppo_cartpole_tensorboard/&quot;)
+    print("\n" + "=" * 50)
+    print("All examples completed!")
+    print("Tensorboard logs saved. View with:")
+    print("  tensorboard --logdir ./ppo_cartpole_tensorboard/")
 </code></pre>
 <blockquote>
 <p><strong>SB3 Practical Notes</strong>: Vectorized environments accelerate training, and callbacks make monitoring and evaluation during training easy. TensorBoard logs allow visualization of learning curves, and hyperparameter tuning is effective with Optuna. Custom environments can be easily integrated if they comply with the Gym API.</p>

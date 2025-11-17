@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -26,10 +25,8 @@
 </nav><div class="locale-switcher">
 <span class="current-locale">🌐 EN</span>
 <span class="locale-separator">|</span>
-
 <span class="locale-meta">Last sync: 2025-11-16</span>
 </div>
-
 <header>
 <div class="header-content">
 <h1>Chapter 3: Few-Shot Learning Methods</h1>
@@ -43,6 +40,8 @@
 </div>
 </header>
 <main class="container">
+
+<p class="chapter-description">This chapter covers Few. You will learn pair learning with Siamese Networks and learnable distance metrics in Relation Networks.</p>
 <h2>Learning Objectives</h2>
 <p>By reading this chapter, you will be able to:</p>
 <ul>
@@ -98,7 +97,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class SiameseNetwork(nn.Module):
-    &quot;&quot;&quot;Siamese Network Implementation&quot;&quot;&quot;
+    """Siamese Network Implementation"""
 
     def __init__(self, input_channels=3, embedding_dim=128):
         super(SiameseNetwork, self).__init__()
@@ -134,30 +133,30 @@ class SiameseNetwork(nn.Module):
         )
 
     def forward_one(self, x):
-        &quot;&quot;&quot;Transform a single input into embedding space&quot;&quot;&quot;
+        """Transform a single input into embedding space"""
         x = self.encoder(x)
         x = self.fc(x)
         return F.normalize(x, p=2, dim=1)  # L2 normalization
 
     def forward(self, x1, x2):
-        &quot;&quot;&quot;Process pair inputs&quot;&quot;&quot;
+        """Process pair inputs"""
         emb1 = self.forward_one(x1)
         emb2 = self.forward_one(x2)
         return emb1, emb2
 
 class ContrastiveLoss(nn.Module):
-    &quot;&quot;&quot;Contrastive Loss Implementation&quot;&quot;&quot;
+    """Contrastive Loss Implementation"""
 
     def __init__(self, margin=1.0):
         super(ContrastiveLoss, self).__init__()
         self.margin = margin
 
     def forward(self, emb1, emb2, label):
-        &quot;&quot;&quot;
+        """
         Args:
             emb1, emb2: Embedding vectors (batch_size, embedding_dim)
             label: Label (1=same class, 0=different class)
-        &quot;&quot;&quot;
+        """
         # Euclidean distance
         distance = F.pairwise_distance(emb1, emb2, p=2)
 
@@ -172,7 +171,7 @@ class ContrastiveLoss(nn.Module):
 
 # Training example
 def train_siamese(model, train_loader, num_epochs=10):
-    &quot;&quot;&quot;Train Siamese Network&quot;&quot;&quot;
+    """Train Siamese Network"""
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)
 
@@ -198,11 +197,11 @@ def train_siamese(model, train_loader, num_epochs=10):
             total_loss += loss.item()
 
         avg_loss = total_loss / len(train_loader)
-        print(f&quot;Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}&quot;)
+        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}")
 
 # Usage example
 model = SiameseNetwork(input_channels=3, embedding_dim=128)
-print(f&quot;Total parameters: {sum(p.numel() for p in model.parameters()):,}&quot;)
+print(f"Total parameters: {sum(p.numel() for p in model.parameters()):,}")
 </code></pre>
 <h2>2. Prototypical Networks</h2>
 <h3>2.1 Computing Prototypes (Class Centers)</h3>
@@ -259,7 +258,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class PrototypicalNetwork(nn.Module):
-    &quot;&quot;&quot;Prototypical Network Implementation&quot;&quot;&quot;
+    """Prototypical Network Implementation"""
 
     def __init__(self, input_channels=3, hidden_dim=64):
         super(PrototypicalNetwork, self).__init__()
@@ -282,14 +281,14 @@ class PrototypicalNetwork(nn.Module):
         )
 
     def forward(self, support_images, support_labels, query_images, n_way, k_shot):
-        &quot;&quot;&quot;
+        """
         Args:
             support_images: (n_way * k_shot, C, H, W)
             support_labels: (n_way * k_shot,)
             query_images: (n_query, C, H, W)
             n_way: Number of classes
             k_shot: Number of samples per class
-        &quot;&quot;&quot;
+        """
         # Embeddings for support set and query set
         support_embeddings = self.encoder(support_images)
         query_embeddings = self.encoder(query_images)
@@ -307,7 +306,7 @@ class PrototypicalNetwork(nn.Module):
         return logits
 
     def compute_prototypes(self, embeddings, labels, n_way):
-        &quot;&quot;&quot;Compute prototype for each class&quot;&quot;&quot;
+        """Compute prototype for each class"""
         prototypes = torch.zeros(n_way, embeddings.size(1), device=embeddings.device)
 
         for k in range(n_way):
@@ -319,14 +318,14 @@ class PrototypicalNetwork(nn.Module):
         return prototypes
 
     def euclidean_distance(self, x, y):
-        &quot;&quot;&quot;
+        """
         Calculate Euclidean distance
         Args:
             x: (n_query, d)
             y: (n_way, d)
         Returns:
             distances: (n_query, n_way)
-        &quot;&quot;&quot;
+        """
         n = x.size(0)
         m = y.size(0)
         d = x.size(1)
@@ -338,7 +337,7 @@ class PrototypicalNetwork(nn.Module):
         return torch.pow(x - y, 2).sum(2)  # (n, m)
 
 def train_prototypical(model, train_loader, num_epochs=100, n_way=5, k_shot=1):
-    &quot;&quot;&quot;Train Prototypical Network&quot;&quot;&quot;
+    """Train Prototypical Network"""
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)
 
@@ -376,11 +375,11 @@ def train_prototypical(model, train_loader, num_epochs=100, n_way=5, k_shot=1):
         avg_acc = total_acc / len(train_loader)
 
         if (epoch + 1) % 10 == 0:
-            print(f&quot;Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}, Acc: {avg_acc:.4f}&quot;)
+            print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}, Acc: {avg_acc:.4f}")
 
 # Usage example
 model = PrototypicalNetwork(input_channels=3, hidden_dim=64)
-print(f&quot;Model architecture:\n{model}&quot;)
+print(f"Model architecture:\n{model}")
 </code></pre>
 <h2>3. Matching Networks</h2>
 <h3>3.1 Utilizing Attention Mechanism</h3>
@@ -434,7 +433,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class MatchingNetwork(nn.Module):
-    &quot;&quot;&quot;Matching Network Implementation&quot;&quot;&quot;
+    """Matching Network Implementation"""
 
     def __init__(self, input_channels=3, hidden_dim=64, lstm_layers=1):
         super(MatchingNetwork, self).__init__()
@@ -463,7 +462,7 @@ class MatchingNetwork(nn.Module):
         self.fc = nn.Linear(self.embedding_dim * 2, self.embedding_dim)
 
     def _conv_block(self, in_channels, out_channels):
-        &quot;&quot;&quot;CNN block&quot;&quot;&quot;
+        """CNN block"""
         return nn.Sequential(
             nn.Conv2d(in_channels, out_channels, 3, padding=1),
             nn.BatchNorm2d(out_channels),
@@ -472,31 +471,31 @@ class MatchingNetwork(nn.Module):
         )
 
     def encode(self, x):
-        &quot;&quot;&quot;Convert image to embedding vector&quot;&quot;&quot;
+        """Convert image to embedding vector"""
         batch_size = x.size(0)
         x = self.encoder(x)
         x = x.view(batch_size, -1)
         return x
 
     def full_context_embeddings(self, embeddings):
-        &quot;&quot;&quot;
+        """
         Consider the context of the entire support set with LSTM
         Args:
             embeddings: (batch_size, seq_len, embedding_dim)
-        &quot;&quot;&quot;
+        """
         output, _ = self.lstm(embeddings)
         output = self.fc(output)
         return output
 
     def attention(self, query_emb, support_emb):
-        &quot;&quot;&quot;
+        """
         Calculate attention weights
         Args:
             query_emb: (n_query, embedding_dim)
             support_emb: (n_support, embedding_dim)
         Returns:
             attention_weights: (n_query, n_support)
-        &quot;&quot;&quot;
+        """
         # Calculate cosine similarity
         query_norm = F.normalize(query_emb, p=2, dim=1)
         support_norm = F.normalize(support_emb, p=2, dim=1)
@@ -508,12 +507,12 @@ class MatchingNetwork(nn.Module):
         return attention_weights
 
     def forward(self, support_images, support_labels, query_images, n_way):
-        &quot;&quot;&quot;
+        """
         Args:
             support_images: (n_way * k_shot, C, H, W)
             support_labels: (n_way * k_shot,) one-hot encoded
             query_images: (n_query, C, H, W)
-        &quot;&quot;&quot;
+        """
         # Compute embeddings
         support_emb = self.encode(support_images)  # (n_support, emb_dim)
         query_emb = self.encode(query_images)      # (n_query, emb_dim)
@@ -536,7 +535,7 @@ class MatchingNetwork(nn.Module):
 
 # Training function
 def train_matching(model, train_loader, num_epochs=100, n_way=5):
-    &quot;&quot;&quot;Train Matching Network&quot;&quot;&quot;
+    """Train Matching Network"""
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)
 
@@ -574,7 +573,7 @@ def train_matching(model, train_loader, num_epochs=100, n_way=5):
         avg_acc = total_acc / len(train_loader)
 
         if (epoch + 1) % 10 == 0:
-            print(f&quot;Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}, Acc: {avg_acc:.4f}&quot;)
+            print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}, Acc: {avg_acc:.4f}")
 
 # Usage example
 model = MatchingNetwork(input_channels=3, hidden_dim=64)
@@ -620,7 +619,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class RelationNetwork(nn.Module):
-    &quot;&quot;&quot;Relation Network Implementation&quot;&quot;&quot;
+    """Relation Network Implementation"""
 
     def __init__(self, input_channels=3, feature_dim=64):
         super(RelationNetwork, self).__init__()
@@ -645,7 +644,7 @@ class RelationNetwork(nn.Module):
         )
 
     def _conv_block(self, in_channels, out_channels):
-        &quot;&quot;&quot;CNN block&quot;&quot;&quot;
+        """CNN block"""
         return nn.Sequential(
             nn.Conv2d(in_channels, out_channels, 3, padding=1),
             nn.BatchNorm2d(out_channels),
@@ -654,11 +653,11 @@ class RelationNetwork(nn.Module):
         )
 
     def forward(self, support_images, query_images, n_way, k_shot):
-        &quot;&quot;&quot;
+        """
         Args:
             support_images: (n_way * k_shot, C, H, W)
             query_images: (n_query, C, H, W)
-        &quot;&quot;&quot;
+        """
         # Feature extraction
         support_features = self.encoder(support_images)  # (n_support, D, H, W)
         query_features = self.encoder(query_images)      # (n_query, D, H, W)
@@ -687,14 +686,14 @@ class RelationNetwork(nn.Module):
         return relation_scores
 
 class MSELoss4RelationNetwork(nn.Module):
-    &quot;&quot;&quot;MSE Loss for Relation Network&quot;&quot;&quot;
+    """MSE Loss for Relation Network"""
 
     def forward(self, relation_scores, labels, n_way):
-        &quot;&quot;&quot;
+        """
         Args:
             relation_scores: (n_query, n_way)
             labels: (n_query,)
-        &quot;&quot;&quot;
+        """
         # Create one-hot labels
         one_hot_labels = F.one_hot(labels, n_way).float()
 
@@ -704,7 +703,7 @@ class MSELoss4RelationNetwork(nn.Module):
 
 # Training function
 def train_relation(model, train_loader, num_epochs=100, n_way=5, k_shot=1):
-    &quot;&quot;&quot;Train Relation Network&quot;&quot;&quot;
+    """Train Relation Network"""
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)
 
@@ -741,11 +740,11 @@ def train_relation(model, train_loader, num_epochs=100, n_way=5, k_shot=1):
         avg_acc = total_acc / len(train_loader)
 
         if (epoch + 1) % 10 == 0:
-            print(f&quot;Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}, Acc: {avg_acc:.4f}&quot;)
+            print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}, Acc: {avg_acc:.4f}")
 
 # Usage example
 model = RelationNetwork(input_channels=3, feature_dim=64)
-print(f&quot;Total parameters: {sum(p.numel() for p in model.parameters()):,}&quot;)
+print(f"Total parameters: {sum(p.numel() for p in model.parameters()):,}")
 </code></pre>
 <h2>5. Practice: Comparative Experiments of Methods</h2>
 <h3>5.1 miniImageNet Dataset</h3>
@@ -792,7 +791,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 
 def evaluate_few_shot(model, test_loader, n_way=5, k_shot=1, n_query=15, n_episodes=600):
-    &quot;&quot;&quot;
+    """
     Evaluate Few-Shot learning model
 
     Args:
@@ -802,7 +801,7 @@ def evaluate_few_shot(model, test_loader, n_way=5, k_shot=1, n_query=15, n_episo
         k_shot: Number of samples in support set
         n_query: Number of samples in query set
         n_episodes: Number of evaluation episodes
-    &quot;&quot;&quot;
+    """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)
     model.eval()
@@ -834,8 +833,8 @@ def evaluate_few_shot(model, test_loader, n_way=5, k_shot=1, n_query=15, n_episo
             if (episode + 1) % 100 == 0:
                 current_avg = np.mean(accuracies)
                 current_std = np.std(accuracies)
-                print(f&quot;Episode [{episode+1}/{n_episodes}], &quot;
-                      f&quot;Acc: {current_avg:.4f} ± {1.96 * current_std / np.sqrt(len(accuracies)):.4f}&quot;)
+                print(f"Episode [{episode+1}/{n_episodes}], "
+                      f"Acc: {current_avg:.4f} ± {1.96 * current_std / np.sqrt(len(accuracies)):.4f}")
 
     # Final results (95% confidence interval)
     mean_acc = np.mean(accuracies)
@@ -846,7 +845,7 @@ def evaluate_few_shot(model, test_loader, n_way=5, k_shot=1, n_query=15, n_episo
 
 # Example data loader setup
 class FewShotDataLoader:
-    &quot;&quot;&quot;Data loader for Few-Shot learning&quot;&quot;&quot;
+    """Data loader for Few-Shot learning"""
 
     def __init__(self, dataset, n_way=5, k_shot=1, n_query=15):
         self.dataset = dataset
@@ -855,7 +854,7 @@ class FewShotDataLoader:
         self.n_query = n_query
 
     def sample_episode(self):
-        &quot;&quot;&quot;Sample data for one episode&quot;&quot;&quot;
+        """Sample data for one episode"""
         # Randomly select n_way classes
         classes = np.random.choice(len(self.dataset.classes), self.n_way, replace=False)
 
@@ -891,17 +890,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 def compare_few_shot_methods(test_loader, n_way=5, k_shot_list=[1, 5]):
-    &quot;&quot;&quot;Compare multiple Few-Shot learning methods&quot;&quot;&quot;
+    """Compare multiple Few-Shot learning methods"""
 
     results = []
 
     for k_shot in k_shot_list:
-        print(f&quot;\n{'='*50}&quot;)
-        print(f&quot;{n_way}-way {k_shot}-shot evaluation&quot;)
-        print(f&quot;{'='*50}\n&quot;)
+        print(f"\n{'='*50}")
+        print(f"{n_way}-way {k_shot}-shot evaluation")
+        print(f"{'='*50}\n")
 
         # Prototypical Network
-        print(&quot;Evaluating Prototypical Network...&quot;)
+        print("Evaluating Prototypical Network...")
         proto_model = PrototypicalNetwork(input_channels=3, hidden_dim=64)
         proto_acc, proto_ci = evaluate_few_shot(proto_model, test_loader, n_way, k_shot)
         results.append({
@@ -910,10 +909,10 @@ def compare_few_shot_methods(test_loader, n_way=5, k_shot_list=[1, 5]):
             'Accuracy': proto_acc,
             'CI': proto_ci
         })
-        print(f&quot;Prototypical Network: {proto_acc:.4f} ± {proto_ci:.4f}\n&quot;)
+        print(f"Prototypical Network: {proto_acc:.4f} ± {proto_ci:.4f}\n")
 
         # Matching Network
-        print(&quot;Evaluating Matching Network...&quot;)
+        print("Evaluating Matching Network...")
         match_model = MatchingNetwork(input_channels=3, hidden_dim=64)
         match_acc, match_ci = evaluate_few_shot(match_model, test_loader, n_way, k_shot)
         results.append({
@@ -922,10 +921,10 @@ def compare_few_shot_methods(test_loader, n_way=5, k_shot_list=[1, 5]):
             'Accuracy': match_acc,
             'CI': match_ci
         })
-        print(f&quot;Matching Network: {match_acc:.4f} ± {match_ci:.4f}\n&quot;)
+        print(f"Matching Network: {match_acc:.4f} ± {match_ci:.4f}\n")
 
         # Relation Network
-        print(&quot;Evaluating Relation Network...&quot;)
+        print("Evaluating Relation Network...")
         relation_model = RelationNetwork(input_channels=3, feature_dim=64)
         relation_acc, relation_ci = evaluate_few_shot(relation_model, test_loader, n_way, k_shot)
         results.append({
@@ -934,13 +933,13 @@ def compare_few_shot_methods(test_loader, n_way=5, k_shot_list=[1, 5]):
             'Accuracy': relation_acc,
             'CI': relation_ci
         })
-        print(f&quot;Relation Network: {relation_acc:.4f} ± {relation_ci:.4f}\n&quot;)
+        print(f"Relation Network: {relation_acc:.4f} ± {relation_ci:.4f}\n")
 
     return pd.DataFrame(results)
 
 # Visualize results
 def plot_comparison(results_df):
-    &quot;&quot;&quot;Visualize comparison results&quot;&quot;&quot;
+    """Visualize comparison results"""
     fig, ax = plt.subplots(figsize=(10, 6))
 
     # Separate 1-shot and 5-shot
