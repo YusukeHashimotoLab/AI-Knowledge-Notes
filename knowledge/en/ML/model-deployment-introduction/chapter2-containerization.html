@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 2: Containerization Technology - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 2: Containerization Technology - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/model-deployment-introduction/index.html">Model Deployment</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/ML/model-deployment-introduction/chapter2-containerization.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 2: Containerization Technology</h1>
+<p class="subtitle">Portability and Reproducibility of Machine Learning Models with Docker</p>
+<div class="meta">
+<span class="meta-item">📖 Reading time: 25-30 minutes</span>
+<span class="meta-item">📊 Difficulty: Beginner-Intermediate</span>
+<span class="meta-item">💻 Code examples: 8</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter covers Containerization Technology. You will learn fundamental concepts of Docker containers, Create Dockerfiles for machine learning models, and Efficiently containerize ML models.</p>
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will be able to:</p>
+<ul>
+<li>✅ Understand the fundamental concepts of Docker containers and their differences from virtual machines</li>
+<li>✅ Create Dockerfiles for machine learning models</li>
+<li>✅ Efficiently containerize ML models</li>
+<li>✅ Manage multiple services with Docker Compose</li>
+<li>✅ Build GPU-enabled ML containers</li>
+</ul>
+<hr/>
+<h2>2.1 Docker Fundamentals</h2>
+<h3>What is a Container</h3>
+<p><strong>Container</strong> is a technology that packages an application and its dependencies into an isolated environment.</p>
+<blockquote>
+<p>"Build once, Run anywhere" - Build it once, and it runs the same way everywhere</p>
+</blockquote>
+<h3>Docker vs Virtual Machines</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Docker Container</th>
+<th>Virtual Machine (VM)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Startup Time</strong></td>
+<td>Seconds</td>
+<td>Minutes</td>
+</tr>
+<tr>
+<td><strong>Resources</strong></td>
+<td>Lightweight (MBs)</td>
+<td>Heavy (GBs)</td>
+</tr>
+<tr>
+<td><strong>Isolation Level</strong></td>
+<td>Process-level</td>
+<td>Complete OS isolation</td>
+</tr>
+<tr>
+<td><strong>Performance</strong></td>
+<td>Near-native</td>
+<td>Has overhead</td>
+</tr>
+<tr>
+<td><strong>Portability</strong></td>
+<td>High</td>
+<td>Moderate</td>
+</tr>
+</tbody>
+</table>
+<div class="mermaid">
+graph TD
+    subgraph "Virtual Machine"
+        A1[App1] --&gt; B1[Guest OS1]
+        A2[App2] --&gt; B2[Guest OS2]
+        B1 --&gt; C[Hypervisor]
+        B2 --&gt; C
+        C --&gt; D[Host OS]
+        D --&gt; E[Physical Server]
+    end
+
+    subgraph "Docker Container"
+        F1[App1] --&gt; G[Docker Engine]
+        F2[App2] --&gt; G
+        G --&gt; H[Host OS]
+        H --&gt; I[Physical Server]
+    end
+
+    style A1 fill:#e3f2fd
+    style A2 fill:#e3f2fd
+    style F1 fill:#c8e6c9
+    style F2 fill:#c8e6c9
+</div>
+<h3>Basic Docker Commands</h3>
+<pre><code class="language-bash"># Check Docker version
+docker --version
+
+# List images
+docker images
+
+# List running containers
+docker ps
+
+# List all containers
+docker ps -a
+
+# Download image
+docker pull python:3.9-slim
+
+# Run container
+docker run -it python:3.9-slim bash
+
+# Stop container
+docker stop &lt;container_id&gt;
+
+# Remove container
+docker rm &lt;container_id&gt;
+
+# Remove image
+docker rmi &lt;image_id&gt;
+
+# Cleanup entire system
+docker system prune -a
+</code></pre>
+<h3>Relationship Between Images and Containers</h3>
+<p><strong>Image</strong>: Blueprint of the application (read-only)</p>
+<p><strong>Container</strong>: Executable instance created from an image</p>
+<div class="mermaid">
+graph LR
+    A[Dockerfile] --&gt;|docker build| B[Docker Image]
+    B --&gt;|docker run| C[Container 1]
+    B --&gt;|docker run| D[Container 2]
+    B --&gt;|docker run| E[Container 3]
+
+    style A fill:#ffebee
+    style B fill:#fff3e0
+    style C fill:#e8f5e9
+    style D fill:#e8f5e9
+    style E fill:#e8f5e9
+</div>
+<blockquote>
+<p><strong>Important</strong>: Multiple containers can be started from a single image. Each container is an independent environment.</p>
+</blockquote>
+<hr/>
+<h2>2.2 Creating a Dockerfile</h2>
+<h3>Selecting a Base Image</h3>
+<p>Representative base images for machine learning models:</p>
+<table>
+<thead>
+<tr>
+<th>Image</th>
+<th>Size</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>python:3.9-slim</code></td>
+<td>~120MB</td>
+<td>Lightweight Python environment</td>
+</tr>
+<tr>
+<td><code>python:3.9</code></td>
+<td>~900MB</td>
+<td>Full-featured Python environment</td>
+</tr>
+<tr>
+<td><code>nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04</code></td>
+<td>~2GB</td>
+<td>GPU inference</td>
+</tr>
+<tr>
+<td><code>nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04</code></td>
+<td>~4GB</td>
+<td>GPU development and training</td>
+</tr>
+</tbody>
+</table>
+<h3>Basic Dockerfile Structure</h3>
+<pre><code class="language-dockerfile"># Specify base image
+FROM python:3.9-slim
+
+# Set working directory
+WORKDIR /app
+
+# Update and install system packages
+RUN apt-get update &amp;&amp; apt-get install -y \
+    build-essential \
+    &amp;&amp; rm -rf /var/lib/apt/lists/*
+
+# Install Python packages
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Expose port
+EXPOSE 8000
+
+# Startup command
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+</code></pre>
+<h3>Multi-stage Build</h3>
+<p>A technique to reduce image size and improve security:</p>
+<pre><code class="language-dockerfile"># Stage 1: Build environment
+FROM python:3.9 as builder
+
+WORKDIR /build
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# Stage 2: Runtime environment (lightweight)
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Copy only necessary files from build stage
+COPY --from=builder /root/.local /root/.local
+COPY . .
+
+# Set PATH
+ENV PATH=/root/.local/bin:$PATH
+
+EXPOSE 8000
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+</code></pre>
+<blockquote>
+<p><strong>Effect</strong>: Multi-stage builds can reduce image size by 50-70%.</p>
+</blockquote>
+<h3>Optimization Techniques</h3>
+<h4>Leveraging Layer Cache</h4>
+<pre><code class="language-dockerfile"># ❌ Inefficient: Dependencies are reinstalled every time code changes
+FROM python:3.9-slim
+WORKDIR /app
+COPY . .
+RUN pip install -r requirements.txt
+
+# ✅ Efficient: Cache is used unless dependencies change
+FROM python:3.9-slim
+WORKDIR /app
+
+# Install dependencies first (changes infrequently)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy code later (changes frequently)
+COPY . .
+</code></pre>
+<h4>Excluding Unnecessary Files</h4>
+<p>Example .dockerignore file:</p>
+<pre><code class="language-plaintext"># .dockerignore
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.git
+.gitignore
+.env
+.venv
+venv/
+data/
+notebooks/
+tests/
+*.md
+Dockerfile
+docker-compose.yml
+</code></pre>
+<hr/>
+<h2>2.3 Containerizing ML Models</h2>
+<h3>Dockerfile for FastAPI + PyTorch</h3>
+<pre><code class="language-dockerfile"># Multi-stage build
+FROM python:3.9 as builder
+
+WORKDIR /build
+
+# Copy dependency file
+COPY requirements.txt .
+
+# Install dependencies
+RUN pip install --user --no-cache-dir \
+    torch==2.0.0 \
+    torchvision==0.15.0 \
+    fastapi==0.104.0 \
+    uvicorn[standard]==0.24.0 \
+    pydantic==2.5.0 \
+    pillow==10.1.0
+
+# Runtime environment
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Copy dependencies from build stage
+COPY --from=builder /root/.local /root/.local
+
+# Copy application code and model
+COPY app/ ./app/
+COPY models/ ./models/
+
+# Set environment variables
+ENV PATH=/root/.local/bin:$PATH \
+    PYTHONUNBUFFERED=1 \
+    MODEL_PATH=/app/models/model.pth
+
+# Create non-root user (improved security)
+RUN useradd -m -u 1000 appuser &amp;&amp; \
+    chown -R appuser:appuser /app
+
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8000/health')"
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+</code></pre>
+<h3>Example requirements.txt</h3>
+<pre><code class="language-plaintext"># requirements.txt
+torch==2.0.0
+torchvision==0.15.0
+fastapi==0.104.0
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pillow==10.1.0
+numpy==1.24.3
+python-multipart==0.0.6
+</code></pre>
+<h3>Building and Running Images</h3>
+<pre><code class="language-bash"># Build image
+docker build -t ml-api:v1.0 .
+
+# Display detailed build log
+docker build -t ml-api:v1.0 --progress=plain .
+
+# Build without cache
+docker build -t ml-api:v1.0 --no-cache .
+
+# Run container
+docker run -d \
+    --name ml-api \
+    -p 8000:8000 \
+    -v $(pwd)/models:/app/models \
+    ml-api:v1.0
+
+# Check logs
+docker logs ml-api
+
+# Display real-time logs
+docker logs -f ml-api
+
+# Execute command inside container
+docker exec -it ml-api bash
+
+# Stop and remove container
+docker stop ml-api
+docker rm ml-api
+</code></pre>
+<h3>Port Mapping</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-p 8000:8000</code></td>
+<td>Host:Container</td>
+<td>Host port 8000 to container port 8000</td>
+</tr>
+<tr>
+<td><code>-p 8080:8000</code></td>
+<td>Different ports</td>
+<td>Host port 8080 to container port 8000</td>
+</tr>
+<tr>
+<td><code>-p 127.0.0.1:8000:8000</code></td>
+<td>Localhost only</td>
+<td>Accessible only from localhost</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2>2.4 Orchestration with Docker Compose</h2>
+<h3>docker-compose.yml Configuration</h3>
+<p>Configuration file for integrated management of multiple services:</p>
+<pre><code class="language-yaml"># docker-compose.yml
+version: '3.8'
+
+services:
+  # FastAPI application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ml-api
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_PATH=/app/models/model.pth
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - ./models:/app/models:ro
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - ml-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis cache
+  redis:
+    image: redis:7-alpine
+    container_name: ml-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - ml-network
+    command: redis-server --appendonly yes
+
+networks:
+  ml-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+</code></pre>
+<h3>Example of Multiple Service Integration</h3>
+<pre><code class="language-yaml"># docker-compose.yml (extended version)
+version: '3.8'
+
+services:
+  # ML model inference API
+  ml-api:
+    build: ./api
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - DB_HOST=postgres
+    volumes:
+      - ./models:/app/models:ro
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - ml-network
+
+  # Cache layer
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    networks:
+      - ml-network
+
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=mluser
+      - POSTGRES_PASSWORD=mlpass
+      - POSTGRES_DB=mldb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - ml-network
+
+  # Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - ml-network
+
+networks:
+  ml-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  postgres-data:
+  prometheus-data:
+</code></pre>
+<h3>Volume Mounts</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Syntax</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bind Mount</strong></td>
+<td><code>./host/path:/container/path</code></td>
+<td>Code synchronization during development</td>
+</tr>
+<tr>
+<td><strong>Named Volume</strong></td>
+<td><code>volume-name:/container/path</code></td>
+<td>Persistent data storage</td>
+</tr>
+<tr>
+<td><strong>Read-only</strong></td>
+<td><code>./path:/path:ro</code></td>
+<td>Model files, etc.</td>
+</tr>
+</tbody>
+</table>
+<h3>Environment Variable Management</h3>
+<p>Example .env file:</p>
+<pre><code class="language-plaintext"># .env
+MODEL_PATH=/app/models/resnet50.pth
+REDIS_HOST=redis
+REDIS_PORT=6379
+LOG_LEVEL=INFO
+MAX_WORKERS=4
+</code></pre>
+<p>Usage in docker-compose.yml:</p>
+<pre><code class="language-yaml">services:
+  api:
+    env_file:
+      - .env
+    # Or specify individually
+    environment:
+      - MODEL_PATH=${MODEL_PATH}
+      - REDIS_HOST=${REDIS_HOST}
+</code></pre>
+<h3>Docker Compose Commands</h3>
+<pre><code class="language-bash"># Start services (background)
+docker-compose up -d
+
+# Start services (with logs)
+docker-compose up
+
+# Build and start services
+docker-compose up -d --build
+
+# Start only specific services
+docker-compose up -d api redis
+
+# Stop services
+docker-compose stop
+
+# Stop and remove services
+docker-compose down
+
+# Remove including volumes
+docker-compose down -v
+
+# Check logs
+docker-compose logs -f
+
+# Logs for specific service
+docker-compose logs -f api
+
+# Check service status
+docker-compose ps
+
+# Restart service
+docker-compose restart api
+</code></pre>
+<hr/>
+<h2>2.5 Hands-on: GPU-enabled ML Containers</h2>
+<h3>NVIDIA Docker Setup</h3>
+<p>Prerequisites:</p>
+<ul>
+<li>Machine with NVIDIA GPU</li>
+<li>NVIDIA driver installed</li>
+<li>NVIDIA Container Toolkit installed</li>
+</ul>
+<pre><code class="language-bash"># Install NVIDIA Container Toolkit
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | \
+    sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+
+# Restart Docker
+sudo systemctl restart docker
+
+# Verify GPU
+docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi
+</code></pre>
+<h3>Dockerfile Using CUDA Image</h3>
+<pre><code class="language-dockerfile"># Dockerfile for GPU inference
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+
+# Install Python
+RUN apt-get update &amp;&amp; apt-get install -y \
+    python3.10 \
+    python3-pip \
+    &amp;&amp; rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install PyTorch GPU version
+COPY requirements-gpu.txt .
+RUN pip3 install --no-cache-dir -r requirements-gpu.txt
+
+# Application code and model
+COPY app/ ./app/
+COPY models/ ./models/
+
+ENV PYTHONUNBUFFERED=1 \
+    CUDA_VISIBLE_DEVICES=0
+
+EXPOSE 8000
+
+CMD ["python3", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+</code></pre>
+<h3>requirements-gpu.txt</h3>
+<pre><code class="language-plaintext"># requirements-gpu.txt
+torch==2.0.0+cu118
+torchvision==0.15.0+cu118
+--extra-index-url https://download.pytorch.org/whl/cu118
+fastapi==0.104.0
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pillow==10.1.0
+numpy==1.24.3
+</code></pre>
+<h3>GPU Inference Implementation</h3>
+<p>Example app/main.py:</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - fastapi&gt;=0.100.0
+# - pillow&gt;=10.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+"""
+Example: Example app/main.py:
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Advanced
+Execution time: ~5 seconds
+Dependencies: None
+"""
+
+# app/main.py
+import torch
+from fastapi import FastAPI, File, UploadFile
+from PIL import Image
+import io
+
+app = FastAPI()
+
+# Check GPU availability
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
+
+# Load model
+model = torch.load("/app/models/model.pth", map_location=device)
+model.eval()
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "device": str(device),
+        "cuda_available": torch.cuda.is_available(),
+        "gpu_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None
+    }
+
+@app.post("/predict")
+async def predict(file: UploadFile = File(...)):
+    # Load image
+    image_bytes = await file.read()
+    image = Image.open(io.BytesIO(image_bytes))
+
+    # Preprocessing (omitted)
+    # tensor = preprocess(image)
+
+    # GPU inference
+    with torch.no_grad():
+        # tensor = tensor.to(device)
+        # output = model(tensor)
+        pass
+
+    return {"prediction": "result"}
+</code></pre>
+<h3>Using GPU with Docker Compose</h3>
+<pre><code class="language-yaml"># docker-compose-gpu.yml
+version: '3.8'
+
+services:
+  ml-api-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    container_name: ml-api-gpu
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+    restart: unless-stopped
+</code></pre>
+<p>Startup commands:</p>
+<pre><code class="language-bash"># Start GPU-enabled container
+docker-compose -f docker-compose-gpu.yml up -d
+
+# Check GPU usage
+docker exec ml-api-gpu nvidia-smi
+
+# Check logs
+docker-compose -f docker-compose-gpu.yml logs -f
+</code></pre>
+<h3>Performance Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Inference Time (1 image)</th>
+<th>Throughput (images/sec)</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CPU (8 cores)</strong></td>
+<td>150ms</td>
+<td>6.7</td>
+<td>python:3.9-slim</td>
+</tr>
+<tr>
+<td><strong>GPU (RTX 3090)</strong></td>
+<td>15ms</td>
+<td>66.7</td>
+<td>nvidia/cuda:11.8.0</td>
+</tr>
+<tr>
+<td><strong>Speedup</strong></td>
+<td>10x</td>
+<td>10x</td>
+<td>Batch size 1</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note</strong>: GPU throughput can be further improved by increasing batch size.</p>
+</blockquote>
+<hr/>
+<h2>2.6 Chapter Summary</h2>
+<h3>What We Learned</h3>
+<ol>
+<li><p><strong>Docker Fundamentals</strong></p>
+<ul>
+<li>Differences between containers and virtual machines</li>
+<li>Basic Docker commands</li>
+<li>Relationship between images and containers</li>
+</ul></li>
+<li><p><strong>Creating Dockerfiles</strong></p>
+<ul>
+<li>Selecting appropriate base images</li>
+<li>Optimization with multi-stage builds</li>
+<li>Leveraging layer cache</li>
+</ul></li>
+<li><p><strong>Containerizing ML Models</strong></p>
+<ul>
+<li>Dockerizing FastAPI + PyTorch</li>
+<li>Efficiency with .dockerignore</li>
+<li>Security and health checks</li>
+</ul></li>
+<li><p><strong>Docker Compose Orchestration</strong></p>
+<ul>
+<li>Integrated management of multiple services</li>
+<li>Managing volumes and environment variables</li>
+<li>Service dependencies</li>
+</ul></li>
+<li><p><strong>GPU-enabled ML Containers</strong></p>
+<ul>
+<li>Setting up NVIDIA Docker</li>
+<li>Using CUDA images</li>
+<li>10x performance compared to CPU</li>
+</ul></li>
+</ol>
+<h3>Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Principle</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Lightweight Images</strong></td>
+<td>Prioritize slim or alpine-based images</td>
+</tr>
+<tr>
+<td><strong>Layer Optimization</strong></td>
+<td>Place less frequently changed items first</td>
+</tr>
+<tr>
+<td><strong>Multi-stage Builds</strong></td>
+<td>Separate build and runtime environments</td>
+</tr>
+<tr>
+<td><strong>Non-root User</strong></td>
+<td>For improved security</td>
+</tr>
+<tr>
+<td><strong>.dockerignore</strong></td>
+<td>Exclude unnecessary files</td>
+</tr>
+<tr>
+<td><strong>Health Checks</strong></td>
+<td>Monitor service health</td>
+</tr>
+<tr>
+<td><strong>Environment Variables</strong></td>
+<td>Externalize configuration</td>
+</tr>
+</tbody>
+</table>
+<h3>Next Chapter</h3>
+<p>In Chapter 3, we will learn about <strong>Orchestration with Kubernetes</strong>:</p>
+<ul>
+<li>Basic Kubernetes concepts</li>
+<li>Creating Pods, Services, and Deployments</li>
+<li>Scaling and load balancing</li>
+<li>Managing ConfigMaps and Secrets</li>
+<li>Deployment to production environments</li>
+</ul>
+<div class="navigation">
+<a class="nav-button" href="chapter1-deployment-basics.html">← Previous Chapter: Deployment Basics</a>
+<a class="nav-button" href="chapter3-cloud-deployment.html">Next Chapter: Cloud Deployment →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided for educational, research, and informational purposes only and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, or operational safety.</li>
+<li>The creator and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the creator and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content of this material is subject to change, update, or discontinuation without notice.</li>
+<li>The copyright and license of this content are subject to the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Created by</strong>: AI Terakoya Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Date</strong>: 2025-10-23</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 5: Cloud HPC Utilization and Optimization - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 5: Cloud HPC Utilization and Optimization - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="/AI-Knowledge-Notes/knowledge/en/index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/high-throughput-computing-introduction/index.html">High Throughput Computing</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 5</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/MI/high-throughput-computing-introduction/chapter-5.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+
+<header>
+<div class="header-content">
+<h1>Chapter 5: Cloud HPC Utilization and Optimization</h1>
+<p class="subtitle"></p>
+<div class="meta">
+<span class="meta-item">📖 Reading time: 15-20 min</span>
+<span class="meta-item">📊 Difficulty: Intermediate~Advanced</span>
+<span class="meta-item">💻 Code examples: 5</span>
+<span class="meta-item">📝 Exercises: 0</span>
+</div>
+</div>
+</header>
+<main class="container">
+<h1>Chapter 5: Cloud HPC Utilization and Optimization</h1>
+<p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #7b2cbf; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">Learn the practice of data-based "reproducible research" using NOMAD and DVC. Master the principles of metadata design and publication.</p>
+<p class="chapter-supplement" style="margin: 0.75rem 0 1.5rem 0; padding: 0.75rem 1rem; background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%); border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 0.95rem; line-height: 1.7; color: #4a5568;"><strong>💡 Supplement:</strong> Recording "who, when, and how" data was created facilitates future verification. Perform anonymization and rights confirmation before publication.</p>
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will be able to:</p>
+<ul>
+<li>✅ Build AWS Parallel Cluster</li>
+<li>✅ Reduce costs by 50% with spot instances</li>
+<li>✅ Fully reproduce computational environments with Docker</li>
+<li>✅ Design and execute 10,000-material scale projects</li>
+<li>✅ Understand security and compliance</li>
+</ul>
+<hr/>
+<h2>5.1 Cloud HPC Options</h2>
+<h3>Major Cloud Provider Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Provider</th>
+<th>Features</th>
+<th>Initial Cost</th>
+<th>Recommended Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AWS Parallel Cluster</strong></td>
+<td>Amazon</td>
+<td>Largest scale, rich track record</td>
+<td>$0</td>
+<td>Large-scale HPC</td>
+</tr>
+<tr>
+<td><strong>Google Cloud HPC Toolkit</strong></td>
+<td>Google</td>
+<td>Strong AI/ML integration</td>
+<td>$0</td>
+<td>Machine learning integration</td>
+</tr>
+<tr>
+<td><strong>Azure CycleCloud</strong></td>
+<td>Microsoft</td>
+<td>Windows integration</td>
+<td>$0</td>
+<td>Enterprise</td>
+</tr>
+<tr>
+<td><strong>TSUBAME</strong></td>
+<td>Tokyo Tech</td>
+<td>Top in Japan, academic use</td>
+<td>Application-based</td>
+<td>Academic research</td>
+</tr>
+<tr>
+<td><strong>Fugaku</strong></td>
+<td>RIKEN</td>
+<td>World Top 500</td>
+<td>Application-based</td>
+<td>Ultra-large-scale computing</td>
+</tr>
+</tbody>
+</table>
+<h3>Cost Comparison (10,000 materials, 1 material = 12 CPU hours, 48 cores)</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Computing Time</th>
+<th>Cost</th>
+<th>Benefits</th>
+<th>Drawbacks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>On-premise HPC</td>
+<td>5,760,000 CPU hours</td>
+<td>$0 (existing facility)</td>
+<td>Free (within allocation)</td>
+<td>Wait time, limitations</td>
+</tr>
+<tr>
+<td>AWS On-demand</td>
+<td>Same as above</td>
+<td>$4,000-6,000</td>
+<td>Immediately available</td>
+<td>High cost</td>
+</tr>
+<tr>
+<td>AWS Spot</td>
+<td>Same as above</td>
+<td>$800-1,500</td>
+<td>70% cost reduction</td>
+<td>Interruption risk</td>
+</tr>
+<tr>
+<td>Google Cloud Preemptible</td>
+<td>Same as above</td>
+<td>$900-1,600</td>
+<td>Low cost</td>
+<td>24-hour limit</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2>5.2 AWS Parallel Cluster Setup</h2>
+<h3>Prerequisites</h3>
+<pre><code class="language-bash"># AWS CLI installation
+pip install awscli
+
+# AWS configuration
+aws configure
+# AWS Access Key ID: [YOUR_KEY]
+# AWS Secret Access Key: [YOUR_SECRET]
+# Default region: us-east-1
+# Default output format: json
+
+# Parallel Cluster CLI installation
+pip install aws-parallelcluster
+</code></pre>
+<h3>Cluster Configuration File</h3>
+<p><strong>config.yaml</strong>:</p>
+<pre><code class="language-yaml">Region: us-east-1
+Image:
+  Os: alinux2
+
+HeadNode:
+  InstanceType: c5.2xlarge  # 8 vCPU, 16 GB RAM
+  Networking:
+    SubnetId: subnet-12345678
+  Ssh:
+    KeyName: my-key-pair
+
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: c5-48xlarge
+          InstanceType: c5.24xlarge  # 96 vCPU
+          MinCount: 0
+          MaxCount: 100  # Maximum 100 nodes
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true  # High-speed network
+      Networking:
+        SubnetIds:
+          - subnet-12345678
+        PlacementGroup:
+          Enabled: true  # Low-latency placement
+
+SharedStorage:
+  - MountDir: /shared
+    Name: ebs-shared
+    StorageType: Ebs
+    EbsSettings:
+      VolumeType: gp3
+      Size: 1000  # 1 TB
+      Encrypted: true
+
+  - MountDir: /fsx
+    Name: lustre-fs
+    StorageType: FsxLustre
+    FsxLustreSettings:
+      StorageCapacity: 1200  # 1.2 TB
+      DeploymentType: SCRATCH_2
+</code></pre>
+<h3>Cluster Creation</h3>
+<pre><code class="language-bash"># Create cluster
+pcluster create-cluster \
+  --cluster-name vasp-cluster \
+  --cluster-configuration config.yaml
+
+# Check creation status
+pcluster describe-cluster --cluster-name vasp-cluster
+
+# SSH connection
+pcluster ssh --cluster-name vasp-cluster -i ~/.ssh/my-key-pair.pem
+</code></pre>
+<h3>VASP Environment Setup</h3>
+<pre><code class="language-bash"># After SSH connection to cluster
+
+# Intel OneAPI Toolkit (required for VASP compilation)
+wget https://registrationcenter-download.intel.com/...
+bash l_BaseKit_p_2023.0.0.25537_offline.sh
+
+# VASP compilation (license required)
+cd /shared
+tar -xzf vasp.6.3.0.tar.gz
+cd vasp.6.3.0
+
+# Edit makefile.include (for Intel compiler)
+cp arch/makefile.include.intel makefile.include
+
+# Compile
+make all
+
+# Place executable in shared directory
+cp bin/vasp_std /shared/bin/
+</code></pre>
+<hr/>
+<h2>5.3 Cost Optimization</h2>
+<h3>Utilizing Spot Instances</h3>
+<p><strong>Spot instances</strong> are surplus computing resources available at 60-90% discount from on-demand pricing.</p>
+<p><strong>config.yaml (Spot configuration)</strong>:</p>
+<pre><code class="language-yaml">Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: spot-queue
+      CapacityType: SPOT  # Spot instances
+      ComputeResources:
+        - Name: c5-spot
+          InstanceType: c5.24xlarge
+          MinCount: 0
+          MaxCount: 200
+          SpotPrice: 2.50  # Maximum bid price ($/hour)
+      Networking:
+        SubnetIds:
+          - subnet-12345678
+</code></pre>
+<p><strong>Spot Instance Best Practices</strong>:</p>
+<ol>
+<li><strong>Checkpoint</strong>: Save calculations periodically</li>
+<li><strong>Multiple instance types</strong>: Specify alternative types</li>
+<li><strong>Retry configuration</strong>: Automatic restart on interruption</li>
+</ol>
+<h3>Auto Scaling</h3>
+<pre><code class="language-yaml">Scheduling:
+  SlurmSettings:
+    ScaledownIdletime: 5  # Terminate after 5 min idle
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: c5-instances
+          MinCount: 0      # 0 nodes when idle
+          MaxCount: 100    # Maximum 100 nodes
+</code></pre>
+<h3>Cost Monitoring</h3>
+<pre><code class="language-python">import boto3
+from datetime import datetime, timedelta
+
+def get_cluster_cost(cluster_name, days=7):
+    """
+    Get cluster cost
+
+    Parameters:
+    -----------
+    cluster_name : str
+        Cluster name
+    days : int
+        Number of days back
+
+    Returns:
+    --------
+    cost : float
+        Total cost (USD)
+    """
+    ce_client = boto3.client('ce', region_name='us-east-1')
+
+    # Set time period
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=days)
+
+    # Cost Explorer API
+    response = ce_client.get_cost_and_usage(
+        TimePeriod={
+            'Start': start_date.strftime('%Y-%m-%d'),
+            'End': end_date.strftime('%Y-%m-%d')
+        },
+        Granularity='DAILY',
+        Metrics=['UnblendedCost'],
+        Filter={
+            'Tags': {
+                'Key': 'parallelcluster:cluster-name',
+                'Values': [cluster_name]
+            }
+        }
+    )
+
+    total_cost = 0
+    for result in response['ResultsByTime']:
+        cost = float(result['Total']['UnblendedCost']['Amount'])
+        total_cost += cost
+        print(f"{result['TimePeriod']['Start']}: ${cost:.2f}")
+
+    print(f"\nTotal cost ({days} days): ${total_cost:.2f}")
+    return total_cost
+
+# Usage example
+get_cluster_cost('vasp-cluster', days=7)
+</code></pre>
+<hr/>
+<h2>5.4 Docker/Singularity Containerization</h2>
+<h3>Creating Dockerfile</h3>
+<p><strong>Dockerfile</strong>:</p>
+<pre><code class="language-dockerfile">FROM ubuntu:20.04
+
+# Basic packages
+RUN apt-get update &amp;&amp; apt-get install -y \
+    build-essential \
+    gfortran \
+    openmpi-bin \
+    libopenmpi-dev \
+    python3 \
+    python3-pip \
+    wget \
+    &amp;&amp; rm -rf /var/lib/apt/lists/*
+
+# Python environment
+RUN pip3 install --upgrade pip &amp;&amp; \
+    pip3 install numpy scipy matplotlib \
+    ase pymatgen fireworks
+
+# Intel MKL (numerical computation library)
+RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB &amp;&amp; \
+    apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB &amp;&amp; \
+    echo "deb https://apt.repos.intel.com/oneapi all main" &gt; /etc/apt/sources.list.d/oneAPI.list &amp;&amp; \
+    apt-get update &amp;&amp; \
+    apt-get install -y intel-oneapi-mkl
+
+# VASP (license holders only)
+# COPY vasp.6.3.0.tar.gz /tmp/
+# RUN cd /tmp &amp;&amp; tar -xzf vasp.6.3.0.tar.gz &amp;&amp; \
+#     cd vasp.6.3.0 &amp;&amp; make all &amp;&amp; \
+#     cp bin/vasp_std /usr/local/bin/
+
+# Working directory
+WORKDIR /calculations
+
+# Default command
+CMD ["/bin/bash"]
+</code></pre>
+<h3>Docker Image Build and Push</h3>
+<pre><code class="language-bash"># Build image
+docker build -t my-vasp-env:latest .
+
+# Push to Docker Hub (for sharing)
+docker tag my-vasp-env:latest username/my-vasp-env:latest
+docker push username/my-vasp-env:latest
+
+# Push to Amazon ECR (for AWS)
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 123456789012.dkr.ecr.us-east-1.amazonaws.com
+
+docker tag my-vasp-env:latest 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-vasp-env:latest
+docker push 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-vasp-env:latest
+</code></pre>
+<h3>Executing with Singularity on HPC</h3>
+<p>HPC systems use Singularity instead of Docker.</p>
+<pre><code class="language-bash"># Create Singularity image from Docker image
+singularity build vasp-env.sif docker://username/my-vasp-env:latest
+
+# Execute with Singularity container
+singularity exec vasp-env.sif mpirun -np 48 vasp_std
+</code></pre>
+<p><strong>SLURM script (using Singularity)</strong>:</p>
+<pre><code class="language-bash">#!/bin/bash
+#SBATCH --job-name=vasp-singularity
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=48
+#SBATCH --time=24:00:00
+
+# Singularity image
+IMAGE=/shared/containers/vasp-env.sif
+
+# Execute VASP inside container
+singularity exec $IMAGE mpirun -np 48 vasp_std
+</code></pre>
+<hr/>
+<h2>5.5 Security and Compliance</h2>
+<h3>Access Control (IAM)</h3>
+<p><strong>Principle of Least Privilege</strong>:</p>
+<pre><code class="language-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeVolumes",
+        "ec2:RunInstances",
+        "ec2:TerminateInstances"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "us-east-1"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::my-vasp-bucket/*"
+    }
+  ]
+}
+</code></pre>
+<h3>Data Encryption</h3>
+<pre><code class="language-yaml"># config.yaml (encryption configuration)
+SharedStorage:
+  - MountDir: /shared
+    Name: ebs-encrypted
+    StorageType: Ebs
+    EbsSettings:
+      VolumeType: gp3
+      Size: 1000
+      Encrypted: true  # Encryption enabled
+      KmsKeyId: arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+</code></pre>
+<h3>Academic License Compliance</h3>
+<p>Considerations when using commercial software like <strong>VASP</strong> on the cloud:</p>
+<ol>
+<li><strong>License verification</strong>: Check if cloud usage is permitted</li>
+<li><strong>Node locking</strong>: Restrictions on execution on specific nodes</li>
+<li><strong>Concurrent execution limits</strong>: License count restrictions</li>
+<li><strong>Audit logs</strong>: Record usage history</li>
+</ol>
+<hr/>
+<h2>5.6 Case Study: 10,000 Material Screening</h2>
+<h3>Requirements Definition</h3>
+<p><strong>Objective</strong>: Calculate band gaps of 10,000 oxide materials within 6 months</p>
+<p><strong>Constraints</strong>:
+- Budget: $5,000
+- Computation time per material: 12 hours (48 cores)
+- Total CPU time: 5,760,000 CPU hours</p>
+<h3>Architecture Design</h3>
+<div class="mermaid">
+flowchart TD
+    A["Material List<br/>10,000 items"] --&gt; B["Batch Division<br/>100 batches × 100 materials"]
+    B --&gt; C["AWS Parallel Cluster<br/>Spot Instances"]
+    C --&gt; D["SLURM Array Jobs<br/>20 concurrent nodes"]
+    D --&gt; E["FireWorks<br/>Workflow Management"]
+    E --&gt; F["MongoDB<br/>Result Storage"]
+    F --&gt; G["S3<br/>Long-term Storage"]
+    G --&gt; H["Analysis &amp; Visualization"]
+</div>
+<h3>Implementation</h3>
+<p><strong>1. Cluster Configuration</strong></p>
+<pre><code class="language-yaml"># config-10k-materials.yaml
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: spot-compute
+      CapacityType: SPOT
+      ComputeResources:
+        - Name: c5-24xlarge-spot
+          InstanceType: c5.24xlarge  # 96 vCPU
+          MinCount: 0
+          MaxCount: 50  # 50 concurrent nodes = 4,800 cores
+          SpotPrice: 2.00
+</code></pre>
+<p><strong>2. Job Submission Script</strong></p>
+<pre><code class="language-python">def run_10k_project():
+    """Execute 10,000 material project"""
+
+    # Load material list
+    with open('oxide_materials_10k.txt', 'r') as f:
+        materials = [line.strip() for line in f]
+
+    print(f"Total materials: {len(materials)}")
+
+    # Divide into 100 batches
+    batch_size = 100
+    n_batches = len(materials) // batch_size
+
+    manager = SLURMJobManager()
+
+    for batch_id in range(n_batches):
+        start = batch_id * batch_size
+        end = (batch_id + 1) * batch_size
+        batch_materials = materials[start:end]
+
+        # Material list for batch
+        list_file = f'batch_{batch_id:03d}.txt'
+        with open(list_file, 'w') as f:
+            for mat in batch_materials:
+                f.write(f"{mat}\n")
+
+        # Submit array job (100 materials, 20 concurrent nodes)
+        job_id = manager.submit_array_job(
+            'vasp_bandgap.sh',
+            n_tasks=100,
+            max_concurrent=20
+        )
+
+        print(f"Batch {batch_id+1}/{n_batches} submitted: Job ID {job_id}")
+
+        # Rate limiting (for AWS API limits)
+        time.sleep(1)
+
+run_10k_project()
+</code></pre>
+<p><strong>3. Cost Analysis</strong></p>
+<pre><code class="language-python">def estimate_project_cost():
+    """Estimate project cost"""
+
+    # Parameters
+    n_materials = 10000
+    cpu_hours_per_material = 12
+    cores_per_job = 48
+
+    total_cpu_hours = n_materials * cpu_hours_per_material
+
+    # c5.24xlarge: 96 vCPU, $4.08/hour (on-demand)
+    ondemand_cost = total_cpu_hours * (4.08 / 96)
+    print(f"On-demand: ${ondemand_cost:,.0f}")
+
+    # Spot: 70% discount
+    spot_cost = ondemand_cost * 0.3
+    print(f"Spot: ${spot_cost:,.0f}")
+
+    # Storage: EBS 1TB × 6 months
+    storage_cost = 0.10 * 1000 * 6  # $0.10/GB/month
+    print(f"Storage: ${storage_cost:,.0f}")
+
+    # Data transfer: 500GB
+    transfer_cost = 500 * 0.09
+    print(f"Data transfer: ${transfer_cost:,.0f}")
+
+    total_cost = spot_cost + storage_cost + transfer_cost
+    print(f"\nTotal cost: ${total_cost:,.0f}")
+
+    return total_cost
+
+estimate_project_cost()
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>On-demand: $5,100
+Spot: $1,530
+Storage: $600
+Data transfer: $45
+
+Total cost: $2,175
+</code></pre>
+<hr/>
+<h2>5.7 Exercises</h2>
+<h3>Problem 1 (Difficulty: medium)</h3>
+<p><strong>Question</strong>: List three cost reduction strategies for AWS Parallel Cluster and estimate the reduction rate for each.</p>
+<details>
+<summary>Sample Answer</summary>
+
+**1. Using Spot Instances**
+- Reduction rate: 70%
+- Risk: Possibility of interruption
+
+**2. Auto scale-down (5 min idle)**
+- Reduction rate: 20-30% (depending on idle time)
+- Risk: None
+
+**3. Reserved Instances (1-year contract)**
+- Reduction rate: 40%
+- Risk: Long-term commitment
+
+**Total reduction rate**: Maximum 85% (Spot + auto-scale)
+
+</details>
+<h3>Problem 2 (Difficulty: hard)</h3>
+<p><strong>Question</strong>: For a 5,000 material project with a budget of $1,000 and 3-month timeframe, create an optimal execution plan.</p>
+<details>
+<summary>Sample Answer</summary>
+
+**Parameters**:
+- Materials: 5,000
+- CPU time: 5,000 × 12 hours = 60,000 hours
+- Budget: $1,000
+- Duration: 3 months = 90 days
+
+**Working backwards from constraints**:
+
+Cost constraint:
+
+<pre><code>$1,000 = Compute cost + Storage cost + Transfer cost
+$1,000 ≈ $800 (compute) + $150 (storage) + $50 (transfer)
+</code></pre>
+
+
+c5.24xlarge spot: $1.22/hour
+
+<pre><code>Available time = $800 / $1.22 = 656 hours
+Concurrent nodes = 60,000 / 656 / 24 = 3.8 ≈ 4 nodes
+</code></pre>
+
+
+**Execution plan**:
+1. Spot instances: c5.24xlarge × 4 nodes
+2. Concurrent execution: 16 materials (48 cores each)
+3. Per day: 16 materials × 2 batches = 32 materials
+4. Completion time: 5,000 / 32 = 156 days
+
+**Issue**: Duration exceeds 3 months (90 days)
+
+**Solutions**:
+- Increase concurrent nodes to 8 → Cost $1,600 (over budget)
+- Or reduce CPU time per material to 8 hours (trade-off with accuracy)
+
+</details>
+<hr/>
+<h2>5.8 Summary</h2>
+<p>In this chapter, we learned about cloud HPC utilization and cost optimization.</p>
+<p><strong>Key Points</strong>:</p>
+<ol>
+<li><strong>AWS Parallel Cluster</strong>: Easily build large-scale HPC environments</li>
+<li><strong>Spot Instances</strong>: 70% cost reduction</li>
+<li><strong>Docker/Singularity</strong>: Complete environment reproduction</li>
+<li><strong>Cost Management</strong>: Estimation and monitoring</li>
+<li><strong>Security</strong>: Encryption and access control</li>
+</ol>
+<p><strong>Congratulations on completing the series!</strong></p>
+<p>You have now completed all 5 chapters of High Throughput Computing. From fundamental concepts in Chapter 1 to cloud implementation in Chapter 5, you should have acquired practical skills.</p>
+<p><strong>Next Steps</strong>:</p>
+<ol>
+<li>Execute small-scale projects (100-1000 materials)</li>
+<li>Measure and optimize costs</li>
+<li>Publish results to NOMAD</li>
+<li>Write papers and present at conferences</li>
+</ol>
+<p><strong><a href="./index.html">Return to Series Top</a></strong></p>
+<hr/>
+<h2>References</h2>
+<ol>
+<li>
+<p>Amazon Web Services (2023). "AWS Parallel Cluster User Guide." https://docs.aws.amazon.com/parallelcluster/</p>
+</li>
+<li>
+<p>Kurtzer, G. M., et al. (2017). "Singularity: Scientific containers for mobility of compute." <em>PLOS ONE</em>, 12(5), e0177459.</p>
+</li>
+<li>
+<p>Merkel, D. (2014). "Docker: lightweight Linux containers for consistent development and deployment." <em>Linux Journal</em>, 2014(239), 2.</p>
+</li>
+<li>
+<p>NOMAD Laboratory (2023). "NOMAD Repository - FAIR Data Sharing." https://nomad-lab.eu/</p>
+</li>
+<li>
+<p>Jain, A., et al. (2015). "FireWorks: a dynamic workflow system designed for high-throughput applications." <em>Concurrency and Computation: Practice and Experience</em>, 27(17), 5037-5059.</p>
+</li>
+</ol>
+<hr/>
+<p><strong>License</strong>: CC BY 4.0
+<strong>Created</strong>: 2025-10-17
+<strong>Author</strong>: Dr. Yusuke Hashimoto, Tohoku University</p>
+<hr/>
+<p><strong>You have completed the High Throughput Computing introduction series!</strong></p>
+<p>We look forward to your research that accelerates materials discovery and contributes to the world.</p>
+<div class="navigation">
+<a class="nav-button" href="chapter-4.html">← Previous Chapter</a>
+<a class="nav-button" href="index.html">Return to Series Index</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantee, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, functionality, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content shall be governed by the specified conditions (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Author</strong>: AI Terakoya Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-17</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

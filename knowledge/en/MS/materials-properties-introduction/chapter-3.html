@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 3: Introduction to First-Principles Calculations (DFT Fundamentals) | MS Terakoya - Introduction to Materials Properties" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 3: Introduction to First-Principles Calculations (DFT Fundamentals) | MS Terakoya - Introduction to Materials Properties</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'strict'
+        });
+    </script>
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../MS/index.html">Materials Science</a><span class="breadcrumb-separator">›</span><a href="../../MS/materials-properties-introduction/index.html">Materials Properties</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/MS/materials-properties-introduction/chapter-3.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 3: Introduction to First-Principles Calculations (DFT Fundamentals)</h1>
+<p class="subtitle">Solving Electronic Structure of Materials with Density Functional Theory</p>
+<div class="meta">
+<span class="meta-item">📖 35-40 minutes</span>
+<span class="meta-item">💻 12 code examples</span>
+<span class="meta-item">📊 Difficulty: Advanced</span>
+<span class="meta-item">🎯 Learning objectives: 3</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter covers the fundamentals of Introduction to First, which principles calculations (dft fundamentals). You will learn essential concepts and techniques.</p>
+<h2>What You Will Learn in This Chapter</h2>
+<div class="info-box">
+<h3>Learning Objectives (3 Levels)</h3>
+<h4>Basic Level</h4>
+<ul>
+<li>Explain the basic principles of DFT (Hohenberg-Kohn theorem, Kohn-Sham equations)</li>
+<li>Understand the differences between exchange-correlation functionals (LDA, GGA, hybrid)</li>
+<li>Explain the basic workflow of DFT calculations</li>
+</ul>
+<h4>Intermediate Level</h4>
+<ul>
+<li>Create crystal structures and prepare DFT calculation inputs using ASE/Pymatgen</li>
+<li>Understand the roles of VASP input files (INCAR, POSCAR, KPOINTS, POTCAR)</li>
+<li>Perform convergence tests for k-point mesh and cutoff energy</li>
+</ul>
+<h4>Advanced Level</h4>
+<ul>
+<li>Select appropriate functionals based on material properties</li>
+<li>Understand the differences between pseudopotentials and PAW method and use them appropriately</li>
+<li>Build DFT calculation workflows for practical research</li>
+</ul>
+</div>
+<h2>What Are First-Principles Calculations?</h2>
+<p>First-principles calculations are computational methods that predict material properties theoretically by starting from the fundamental principles of quantum mechanics, without using empirical parameters. They are powerful tools for materials development because they can predict properties of experimentally unknown materials.</p>
+<h3>Difficulties of the Many-Body Schrödinger Equation</h3>
+<p>Ideally, we should solve the full wave function $\Psi(\mathbf{r}_1, \ldots, \mathbf{r}_N, \mathbf{R}_1, \ldots, \mathbf{R}_M)$ for a system consisting of $N$ electrons and $M$ nuclei:</p>
+
+        $$
+        \hat{H}\Psi = E\Psi
+        $$
+
+        <p>However, solving the many-body Schrödinger equation exactly is impossible from a computational standpoint. For example, a system with 100 electrons requires solving a partial differential equation in $3N = 300$ dimensions.</p>
+<h3>Born-Oppenheimer Approximation</h3>
+<p>Since nuclear masses are about 1,000 times heavier than electrons, we can assume that electrons instantly follow nuclear motion (adiabatic approximation). This allows us to separate electronic and nuclear motion:</p>
+
+        $$
+        \Psi(\mathbf{r}_i, \mathbf{R}_\alpha) = \psi(\mathbf{r}_i; \mathbf{R}_\alpha) \chi(\mathbf{R}_\alpha)
+        $$
+
+        <p>We can solve the electronic Schrödinger equation by fixing nuclear positions $\{\mathbf{R}_\alpha\}$.</p>
+<h2>Fundamentals of Density Functional Theory (DFT)</h2>
+<h3>Hohenberg-Kohn Theorems (1964)</h3>
+<p>The foundation of DFT is based on two theorems by Hohenberg and Kohn:</p>
+<div class="info-box">
+<h4>First Theorem: Uniqueness Theorem</h4>
+<p>The external potential $V_{\text{ext}}(\mathbf{r})$ (Coulomb potential from nuclei) is uniquely determined by the electron density $n(\mathbf{r})$ (up to a constant).</p>
+<p><strong>Physical meaning</strong>: If we know the electron density, all physical quantities of the system are determined.</p>
+</div>
+<div class="info-box">
+<h4>Second Theorem: Variational Principle</h4>
+<p>The ground state energy is a functional of the electron density $E[n]$, which takes its minimum value at the true ground state density:</p>
+            $$
+            E_0 = \min_{n} E[n]
+            $$
+            <p><strong>Physical meaning</strong>: Energy can be minimized using electron density as a variational parameter.</p>
+</div>
+<p>This theorem allows us to handle the electron density $n(\mathbf{r})$ (3-dimensional) instead of the many-body wave function $\Psi(\mathbf{r}_1, \ldots, \mathbf{r}_N)$ ($3N$-dimensional). This represents a dramatic reduction in computational cost.</p>
+<h3>Kohn-Sham Equations (1965)</h3>
+<p>The Hohenberg-Kohn theorem is an existence theorem, but it doesn't show how to actually calculate $E[n]$. Kohn and Sham proposed the idea of mapping the interacting many-electron system to a "non-interacting system" with the same density.</p>
+<p>The electron density $n(\mathbf{r})$ is expressed using $N$ Kohn-Sham orbitals $\{\phi_i(\mathbf{r})\}$:</p>
+
+        $$
+        n(\mathbf{r}) = \sum_{i=1}^N |\phi_i(\mathbf{r})|^2
+        $$
+
+        <p>Each orbital satisfies the Kohn-Sham equation:</p>
+
+        $$
+        \left[ -\frac{\hbar^2}{2m}\nabla^2 + V_{\text{eff}}(\mathbf{r}) \right] \phi_i(\mathbf{r}) = \varepsilon_i \phi_i(\mathbf{r})
+        $$
+
+        <p>Here, the effective potential $V_{\text{eff}}$ is:</p>
+
+        $$
+        V_{\text{eff}}(\mathbf{r}) = V_{\text{ext}}(\mathbf{r}) + V_{\text{H}}(\mathbf{r}) + V_{\text{xc}}(\mathbf{r})
+        $$
+
+        <ul>
+<li><strong>$V_{\text{ext}}$</strong>: External potential (Coulomb potential from nuclei)</li>
+<li><strong>$V_{\text{H}}$</strong>: Hartree potential (classical Coulomb interaction between electrons)</li>
+<li><strong>$V_{\text{xc}}$</strong>: Exchange-correlation potential (includes all quantum mechanical effects)</li>
+</ul>
+<h3>Exchange-Correlation Energy: The Heart of DFT</h3>
+<p>The exchange-correlation energy $E_{\text{xc}}[n]$ is the only approximation in DFT. It includes exchange and correlation effects:</p>
+<ul>
+<li><strong>Exchange energy</strong>: Reduction of repulsion between electrons with parallel spins due to Pauli exclusion principle</li>
+<li><strong>Correlation energy</strong>: Correlation of motion due to electron-electron interactions</li>
+</ul>
+<p>The exchange-correlation potential is obtained by functional differentiation of $E_{\text{xc}}[n]$:</p>
+
+        $$
+        V_{\text{xc}}(\mathbf{r}) = \frac{\delta E_{\text{xc}}[n]}{\delta n(\mathbf{r})}
+        $$
+
+        <h2>Types of Exchange-Correlation Functionals</h2>
+<h3>LDA (Local Density Approximation)</h3>
+<p>The simplest approximation. It assumes that the exchange-correlation energy density at each point $\mathbf{r}$ equals that of a uniform electron gas with density $n(\mathbf{r})$:</p>
+
+        $$
+        E_{\text{xc}}^{\text{LDA}}[n] = \int n(\mathbf{r}) \varepsilon_{\text{xc}}(n(\mathbf{r})) d\mathbf{r}
+        $$
+
+        <p><strong>Characteristics</strong>:</p>
+<ul>
+<li>Low computational cost</li>
+<li>Good accuracy for systems with slowly varying density (metals)</li>
+<li>Tends to underestimate band gaps</li>
+<li>Cannot describe weak interactions (van der Waals forces)</li>
+</ul>
+<h3>GGA (Generalized Gradient Approximation)</h3>
+<p>Considers not only the density $n(\mathbf{r})$ but also its gradient $\nabla n(\mathbf{r})$:</p>
+
+        $$
+        E_{\text{xc}}^{\text{GGA}}[n] = \int n(\mathbf{r}) \varepsilon_{\text{xc}}(n(\mathbf{r}), |\nabla n(\mathbf{r})|) d\mathbf{r}
+        $$
+
+        <p><strong>Representative GGA functionals</strong>:</p>
+<ul>
+<li><strong>PBE</strong> (Perdew-Burke-Ernzerhof): Most widely used for solid-state calculations</li>
+<li><strong>PW91</strong>: Predecessor of PBE</li>
+<li><strong>BLYP</strong>: Commonly used for molecular systems</li>
+</ul>
+<p><strong>Characteristics</strong>:</p>
+<ul>
+<li>Improved bond lengths and binding energies compared to LDA</li>
+<li>High accuracy for molecular and surface systems</li>
+<li>Computational cost similar to LDA</li>
+<li>Band gap underestimation still present</li>
+</ul>
+<h3>Hybrid Functionals</h3>
+<p>Methods that mix a portion of Hartree-Fock exchange (exact exchange). Improves band gap accuracy:</p>
+
+        $$
+        E_{\text{xc}}^{\text{hybrid}} = aE_{\text{x}}^{\text{HF}} + (1-a)E_{\text{x}}^{\text{DFT}} + E_{\text{c}}^{\text{DFT}}
+        $$
+
+        <p><strong>Representative hybrid functionals</strong>:</p>
+<ul>
+<li><strong>PBE0</strong>: Mixes 25% HF exchange ($a=0.25$)</li>
+<li><strong>HSE06</strong>: Uses HF exchange only at short range (reduces computational cost)</li>
+<li><strong>B3LYP</strong>: Widely used for molecular systems</li>
+</ul>
+<p><strong>Characteristics</strong>:</p>
+<ul>
+<li>Accurately predicts band gaps</li>
+<li>Effective for semiconductors and insulators</li>
+<li>High computational cost (5-10 times that of GGA)</li>
+</ul>
+<div class="mermaid">
+graph TD
+    A[Exchange-Correlation Functionals] --&gt; B[LDA]
+    A --&gt; C[GGA]
+    A --&gt; D[Hybrid]
+    A --&gt; E[Meta-GGA]
+
+    B --&gt; B1[Fastest/Low accuracy]
+    C --&gt; C1[Standard/High accuracy]
+    D --&gt; D1[High accuracy/High cost]
+    E --&gt; E1[Research/Highest accuracy]
+
+    style A fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+    style C fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style D fill:#fff3cd,stroke:#ffc107,stroke-width:2px
+</div>
+<h2>Pseudopotentials and PAW Method</h2>
+<h3>Difficulties of All-Electron Calculations</h3>
+<p>Core electrons of atoms (1s, 2s, 2p, etc.):</p>
+<ul>
+<li>Contribute little to chemical bonding</li>
+<li>Have rapidly oscillating wave functions near the nucleus</li>
+<li>Require many plane wave basis functions to describe (high computational cost)</li>
+</ul>
+<h3>Pseudopotentials</h3>
+<p>A method that replaces core electron effects with "pseudopotentials" and explicitly treats only valence electrons.</p>
+<div class="info-box">
+<h4>Requirements for Pseudopotentials</h4>
+<ul>
+<li>Match all-electron wave functions outside cutoff radius $r_c$</li>
+<li>Have same scattering properties as all-electron system</li>
+<li>Norm conservation: charge is conserved</li>
+</ul>
+</div>
+<p><strong>Types</strong>:</p>
+<ul>
+<li><strong>Norm-conserving</strong>: High accuracy but challenges with transferability</li>
+<li><strong>Ultrasoft</strong>: Good transferability but complex</li>
+<li><strong>PAW method</strong>: Current standard</li>
+</ul>
+<h3>PAW (Projector Augmented Wave) Method</h3>
+<p>The PAW method introduces a transformation that rigorously relates all-electron and pseudo wave functions:</p>
+
+        $$
+        |\psi\rangle = |\tilde{\psi}\rangle + \sum_i (|\phi_i\rangle - |\tilde{\phi}_i\rangle) \langle\tilde{p}_i|\tilde{\psi}\rangle
+        $$
+
+        <ul>
+<li>$|\tilde{\psi}\rangle$: Pseudo wave function (used in calculation)</li>
+<li>$|\psi\rangle$: All-electron wave function (used for physical quantities)</li>
+</ul>
+<p><strong>Advantages of PAW</strong>:</p>
+<ul>
+<li>Accuracy close to all-electron calculations</li>
+<li>Computational cost comparable to pseudopotentials</li>
+<li>Standard method in VASP</li>
+</ul>
+<h2>k-Point Sampling</h2>
+<h3>Bloch's Theorem and Periodic Boundary Conditions</h3>
+<p>Crystals have periodic structure, so Bloch's theorem holds:</p>
+
+        $$
+        \psi_{n\mathbf{k}}(\mathbf{r}) = e^{i\mathbf{k}\cdot\mathbf{r}} u_{n\mathbf{k}}(\mathbf{r})
+        $$
+
+        <p>Here, $u_{n\mathbf{k}}(\mathbf{r})$ is a lattice-periodic function. Wave functions are labeled by wave vector $\mathbf{k}$.</p>
+<h3>Brillouin Zone and k-Point Mesh</h3>
+<p>We need to solve Kohn-Sham equations at $\mathbf{k}$-points within the first Brillouin zone. In practice, we sample with a finite number of k-points.</p>
+<p><strong>Monkhorst-Pack mesh</strong>:</p>
+<p>Divide Brillouin zone at equal intervals:</p>
+
+        $$
+        \mathbf{k} = \frac{n_1}{N_1}\mathbf{b}_1 + \frac{n_2}{N_2}\mathbf{b}_2 + \frac{n_3}{N_3}\mathbf{b}_3
+        $$
+
+        <p>Specify mesh density as $N_1 \times N_2 \times N_3$.</p>
+<div class="warning-box">
+<h4>Importance of k-Point Convergence Tests</h4>
+<p>If the k-point mesh is too coarse, energies and properties won't converge. Metals especially require denser meshes (3-4 times denser than semiconductors). Guidelines:</p>
+<ul>
+<li>Semiconductors: 4×4×4 to 8×8×8</li>
+<li>Metals: 12×12×12 to 16×16×16</li>
+<li>Surfaces/2D systems: coarser in k_z direction (e.g., 8×8×1)</li>
+</ul>
+</div>
+<h2>Plane Wave Basis and Cutoff Energy</h2>
+<h3>Plane Wave Expansion</h3>
+<p>For periodic systems, Kohn-Sham orbitals can be expanded in plane waves:</p>
+
+        $$
+        \phi_{n\mathbf{k}}(\mathbf{r}) = \sum_{\mathbf{G}} c_{n\mathbf{k}}(\mathbf{G}) e^{i(\mathbf{k}+\mathbf{G})\cdot\mathbf{r}}
+        $$
+
+        <p>$\mathbf{G}$ are reciprocal lattice vectors. In principle this is an infinite sum, but in practice we truncate to finite terms.</p>
+<h3>Cutoff Energy $E_{\text{cut}}$</h3>
+<p>The kinetic energy corresponding to wave number $|\mathbf{k}+\mathbf{G}|$:</p>
+
+        $$
+        E = \frac{\hbar^2}{2m}|\mathbf{k}+\mathbf{G}|^2
+        $$
+
+        <p>We use only plane waves with energy below $E_{\text{cut}}$:</p>
+
+        $$
+        \frac{\hbar^2}{2m}|\mathbf{k}+\mathbf{G}|^2 &lt; E_{\text{cut}}
+        $$
+
+        <p><strong>Typical values</strong>:</p>
+<ul>
+<li>PAW: 400-600 eV (element-dependent)</li>
+<li>Ultrasoft PP: 30-50 Ry (approximately 400-680 eV)</li>
+</ul>
+<div class="warning-box">
+<h4>Cutoff Energy Convergence Test</h4>
+<p>Test until energy converges with increasing cutoff. Goals:</p>
+<ul>
+<li>Total energy: &lt; 1 meV/atom change</li>
+<li>Lattice constant: &lt; 0.01 Å change</li>
+</ul>
+</div>
+<h2>Learning DFT with Python: Introduction to ASE/Pymatgen</h2>
+<h3>ASE (Atomic Simulation Environment) Basics</h3>
+<p>ASE is a Python library that provides unified handling of atomic structure manipulation and DFT calculation setup.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+"""
+Example: ASE is a Python library that provides unified handling of at
+
+Purpose: Demonstrate data visualization techniques
+Target: Beginner to Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import numpy as np
+from ase import Atoms
+from ase.build import bulk, surface, molecule
+from ase.visualize import view
+import matplotlib.pyplot as plt
+
+# 1. Creating crystal structures
+# Si (diamond structure)
+si = bulk('Si', 'diamond', a=5.43)
+print("Si crystal structure:")
+print(si)
+print(f"Lattice constant: {si.cell[0,0]:.3f} Å")
+print(f"Number of atoms: {len(si)}")
+
+# 2. Creating various crystal structures
+structures = {
+    'Al (FCC)': bulk('Al', 'fcc', a=4.05),
+    'Fe (BCC)': bulk('Fe', 'bcc', a=2.87),
+    'Cu (FCC)': bulk('Cu', 'fcc', a=3.61),
+    'GaAs (zincblende)': bulk('GaAs', 'zincblende', a=5.65)
+}
+
+for name, struct in structures.items():
+    print(f"\n{name}:")
+    print(f"  Lattice constant: {struct.cell[0,0]:.3f} Å")
+    print(f"  Number of atoms: {len(struct)}")
+    print(f"  Chemical formula: {struct.get_chemical_formula()}")
+
+# 3. Creating surface structures
+# Si(111) surface
+si_surface = surface('Si', (1,1,1), layers=4, vacuum=10.0)
+print(f"\nSi(111) surface:")
+print(f"  Number of atoms: {len(si_surface)}")
+print(f"  Cell size: {si_surface.cell.lengths()}")
+
+# 4. Creating molecular structures
+h2o = molecule('H2O')
+print(f"\nH2O molecule:")
+print(f"  Number of atoms: {len(h2o)}")
+for i, atom in enumerate(h2o):
+    print(f"  {atom.symbol}: {atom.position}")
+</code></pre>
+<h3>Obtaining Detailed Crystal Structure Information</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+"""
+Example: Obtaining Detailed Crystal Structure Information
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Beginner to Intermediate
+Execution time: 10-30 seconds
+Dependencies: None
+"""
+
+from ase.build import bulk
+import numpy as np
+
+# Detailed analysis of Si crystal
+si = bulk('Si', 'diamond', a=5.43)
+
+# Cell information
+print("Cell matrix:")
+print(si.cell)
+print(f"\nCell volume: {si.get_volume():.3f} Å³")
+
+# Atomic positions (fractional coordinates)
+print("\nFractional coordinates of atoms:")
+scaled_pos = si.get_scaled_positions()
+for i, pos in enumerate(scaled_pos):
+    print(f"  Atom {i}: ({pos[0]:.4f}, {pos[1]:.4f}, {pos[2]:.4f})")
+
+# Atomic positions (Cartesian coordinates)
+print("\nCartesian coordinates of atoms [Å]:")
+for i, pos in enumerate(si.positions):
+    print(f"  Atom {i}: ({pos[0]:.4f}, {pos[1]:.4f}, {pos[2]:.4f})")
+
+# Calculate interatomic distances
+from ase.neighborlist import NeighborList, natural_cutoffs
+
+cutoffs = natural_cutoffs(si)
+nl = NeighborList(cutoffs, self_interaction=False, bothways=True)
+nl.update(si)
+
+print("\nNearest-neighbor distances:")
+for i in range(len(si)):
+    indices, offsets = nl.get_neighbors(i)
+    for j, offset in zip(indices, offsets):
+        dist = si.get_distance(i, j, mic=True)
+        print(f"  Atom {i} - Atom {j}: {dist:.4f} Å")
+    break  # Display only first atom
+</code></pre>
+<h3>Manipulating Crystal Structures with Pymatgen</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+"""
+Example: Manipulating Crystal Structures with Pymatgen
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Beginner to Intermediate
+Execution time: ~5 seconds
+Dependencies: None
+"""
+
+from pymatgen.core import Structure, Lattice
+import numpy as np
+
+# 1. Create crystal structure from lattice constants
+# Si (diamond structure)
+lattice = Lattice.cubic(5.43)
+si_struct = Structure(
+    lattice,
+    ["Si", "Si"],
+    [[0.00, 0.00, 0.00],
+     [0.25, 0.25, 0.25]]
+)
+
+print("Si crystal structure (Pymatgen):")
+print(si_struct)
+
+# 2. Symmetry analysis
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+analyzer = SpacegroupAnalyzer(si_struct)
+print(f"\nSpace group: {analyzer.get_space_group_symbol()}")
+print(f"Space group number: {analyzer.get_space_group_number()}")
+print(f"Point group: {analyzer.get_point_group_symbol()}")
+
+# 3. Convert to primitive cell
+primitive = analyzer.get_primitive_standard_structure()
+print(f"\nNumber of atoms in primitive cell: {len(primitive)}")
+print(f"Number of atoms in conventional cell: {len(si_struct)}")
+
+# 4. Compound material: GaAs
+gaas_struct = Structure(
+    Lattice.cubic(5.65),
+    ["Ga", "As"],
+    [[0.00, 0.00, 0.00],
+     [0.25, 0.25, 0.25]]
+)
+print("\nGaAs crystal structure:")
+print(gaas_struct)
+print(f"Space group: {SpacegroupAnalyzer(gaas_struct).get_space_group_symbol()}")
+</code></pre>
+<h3>Converting Between ASE and Pymatgen</h3>
+<pre><code class="language-python">
+from ase.build import bulk
+from pymatgen.io.ase import AseAtomsAdaptor
+
+# ASE → Pymatgen
+si_ase = bulk('Si', 'diamond', a=5.43)
+adaptor = AseAtomsAdaptor()
+si_pmg = adaptor.get_structure(si_ase)
+
+print("Conversion from ASE to Pymatgen:")
+print(si_pmg)
+
+# Pymatgen → ASE
+si_ase_back = adaptor.get_atoms(si_pmg)
+print("\nConversion from Pymatgen to ASE:")
+print(si_ase_back)
+
+# Leverage advantages of both
+# ASE: Convenient for calculation setup
+# Pymatgen: Powerful for symmetry analysis, Materials Project integration
+</code></pre>
+<h2>Creating VASP Input Files</h2>
+<h3>VASP's Four Input Files</h3>
+<p>VASP requires four main input files:</p>
+<table>
+<thead>
+<tr>
+<th>File name</th>
+<th>Contents</th>
+<th>How to create</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>INCAR</strong></td>
+<td>Calculation parameters (functional, k-points, convergence criteria, etc.)</td>
+<td>Manual or Pymatgen</td>
+</tr>
+<tr>
+<td><strong>POSCAR</strong></td>
+<td>Atomic structure (lattice constants, atomic positions)</td>
+<td>Auto-generated from ASE/Pymatgen</td>
+</tr>
+<tr>
+<td><strong>KPOINTS</strong></td>
+<td>k-point mesh settings</td>
+<td>Manual or Pymatgen</td>
+</tr>
+<tr>
+<td><strong>POTCAR</strong></td>
+<td>Pseudopotentials (PAW)</td>
+<td>Copy from VASP distribution</td>
+</tr>
+</tbody>
+</table>
+<h3>POSCAR (Atomic Structure File)</h3>
+<pre><code class="language-python">
+from ase.build import bulk
+from ase.io import write
+
+# Create POSCAR file for Si crystal
+si = bulk('Si', 'diamond', a=5.43)
+
+# Expand to 2×2×2 supercell
+si_supercell = si.repeat((2, 2, 2))
+
+# Write to POSCAR file
+write('POSCAR', si_supercell, format='vasp')
+
+print("Created POSCAR file")
+print(f"Number of atoms: {len(si_supercell)}")
+
+# Display contents of POSCAR file
+with open('POSCAR', 'r') as f:
+    print("\nContents of POSCAR:")
+    print(f.read())
+</code></pre>
+<p>Format of generated POSCAR file:</p>
+<pre><code>
+Si16
+1.0
+   10.8600000000    0.0000000000    0.0000000000
+    0.0000000000   10.8600000000    0.0000000000
+    0.0000000000    0.0000000000   10.8600000000
+Si
+16
+Direct
+  0.0000000000  0.0000000000  0.0000000000
+  0.1250000000  0.1250000000  0.1250000000
+  ...
+</code></pre>
+<h3>Creating INCAR Files</h3>
+<pre><code class="language-python">
+# Generate INCAR file template
+
+def create_incar(calculation_type='scf', system_name='Si',
+                 functional='PBE', encut=400, ismear=0, sigma=0.05):
+    """
+    Generate VASP INCAR file
+
+    Parameters:
+    -----------
+    calculation_type : str
+        'scf' (single-point), 'relax' (structure optimization), 'band' (band structure)
+    functional : str
+        'PBE', 'LDA', 'PBE0', 'HSE06'
+    encut : float
+        Cutoff energy [eV]
+    ismear : int
+        Smearing method (0: Gaussian, 1: Methfessel-Paxton, -5: tetrahedron)
+    sigma : float
+        Smearing width [eV]
+    """
+
+    incar_content = f"""SYSTEM = {system_name}
+
+# Electronic structure
+ENCUT = {encut}         # Cutoff energy [eV]
+PREC = Accurate         # Precision (Normal, Accurate, High)
+LREAL = Auto            # Real-space projection (Auto recommended)
+
+# Exchange-correlation
+GGA = PE                # PBE functional (remove for LDA)
+
+# SCF convergence
+EDIFF = 1E-6            # Electronic convergence criterion [eV]
+NELM = 100              # Maximum SCF iterations
+
+# Smearing (different settings for metals/semiconductors)
+ISMEAR = {ismear}       # Smearing method
+SIGMA = {sigma}         # Smearing width [eV]
+
+# Parallelization
+NCORE = 4               # Core parallelization (system-dependent)
+"""
+
+    # For structure relaxation
+    if calculation_type == 'relax':
+        incar_content += """
+# Structure relaxation
+IBRION = 2              # Ion relaxation algorithm (2: CG, 1: RMM-DIIS)
+NSW = 100               # Maximum ionic steps
+ISIF = 3                # Optimize cell and ionic positions
+EDIFFG = -0.01          # Force convergence criterion [eV/Å]
+"""
+
+    # For band calculation
+    elif calculation_type == 'band':
+        incar_content += """
+# Band structure calculation
+ICHARG = 11             # Read charge density
+LORBIT = 11             # Calculate projected DOS
+"""
+
+    return incar_content
+
+# Generate INCAR for SCF calculation
+incar_scf = create_incar(calculation_type='scf', system_name='Si bulk')
+with open('INCAR', 'w') as f:
+    f.write(incar_scf)
+
+print("Created INCAR file:")
+print(incar_scf)
+</code></pre>
+<h3>Creating KPOINTS Files</h3>
+<pre><code class="language-python">
+# Generate KPOINTS file
+
+def create_kpoints(kpts=(8, 8, 8), shift=(0, 0, 0), mode='Monkhorst-Pack'):
+    """
+    Generate VASP KPOINTS file
+
+    Parameters:
+    -----------
+    kpts : tuple
+        k-point mesh (nx, ny, nz)
+    shift : tuple
+        Mesh shift (usually (0,0,0))
+    mode : str
+        'Monkhorst-Pack' or 'Gamma'
+    """
+
+    kpoints_content = f"""Automatic mesh
+0
+{mode}
+{kpts[0]} {kpts[1]} {kpts[2]}
+{shift[0]} {shift[1]} {shift[2]}
+"""
+    return kpoints_content
+
+# 8×8×8 Monkhorst-Pack mesh
+kpoints_dense = create_kpoints(kpts=(8, 8, 8))
+with open('KPOINTS', 'w') as f:
+    f.write(kpoints_dense)
+
+print("Created KPOINTS file:")
+print(kpoints_dense)
+
+# Gamma-centered mesh (recommended for metals)
+kpoints_gamma = create_kpoints(kpts=(12, 12, 12), mode='Gamma')
+print("\nGamma-centered mesh:")
+print(kpoints_gamma)
+</code></pre>
+<h3>Batch Creation of Input Files Using Pymatgen</h3>
+<pre><code class="language-python">
+from pymatgen.io.vasp.inputs import Incar, Kpoints, Poscar
+from pymatgen.core import Structure
+from pymatgen.io.vasp.sets import MPRelaxSet
+
+# 1. Create Si structure with Pymatgen
+si_struct = Structure.from_file('POSCAR')  # Or create directly
+
+# 2. Generate complete set of input files with Materials Project standard settings
+# (Standard settings widely used in research community)
+mp_set = MPRelaxSet(si_struct)
+
+# 3. Write files
+mp_set.write_input('vasp_calc/')  # Create all files in vasp_calc/ directory
+
+print("Created complete set of VASP input files in vasp_calc/")
+print("Included files: INCAR, POSCAR, KPOINTS, POTCAR (copy needed)")
+
+# 4. Customize individually
+custom_incar = Incar({
+    'SYSTEM': 'Si bulk',
+    'ENCUT': 520,
+    'ISMEAR': 0,
+    'SIGMA': 0.05,
+    'EDIFF': 1e-6,
+    'PREC': 'Accurate'
+})
+
+custom_kpoints = Kpoints.gamma_automatic(kpts=(10, 10, 10))
+
+# Write
+custom_incar.write_file('vasp_calc/INCAR')
+custom_kpoints.write_file('vasp_calc/KPOINTS')
+</code></pre>
+<h2>Convergence Tests for k-Points and Cutoff Energy</h2>
+<h3>Convergence Test Strategy</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+"""
+Example: Convergence Test Strategy
+
+Purpose: Demonstrate data visualization techniques
+Target: Beginner to Intermediate
+Execution time: 5-15 seconds
+Dependencies: None
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Convergence test simulation
+# (Simulating actual VASP calculation results)
+
+# 1. k-point convergence test
+k_values = np.array([2, 4, 6, 8, 10, 12, 14, 16])
+# Converging total energy (dummy data)
+energy_k = -5.4 + 0.1 * np.exp(-k_values/4) + np.random.normal(0, 0.001, len(k_values))
+
+# 2. Cutoff energy convergence test
+encut_values = np.array([200, 250, 300, 350, 400, 450, 500, 550, 600])
+# Converging total energy (dummy data)
+energy_encut = -5.4 - 0.05 * np.exp(-(encut_values-200)/100) + np.random.normal(0, 0.001, len(encut_values))
+
+# Plot
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# k-point convergence
+ax1.plot(k_values, energy_k, 'o-', markersize=8, linewidth=2, color='#f093fb')
+ax1.axhline(y=energy_k[-1], color='red', linestyle='--', label='Converged value')
+ax1.fill_between(k_values, energy_k[-1]-0.001, energy_k[-1]+0.001,
+                  alpha=0.2, color='red', label='±1 meV range')
+ax1.set_xlabel('k-point mesh (k×k×k)', fontsize=12)
+ax1.set_ylabel('Total energy [eV/atom]', fontsize=12)
+ax1.set_title('k-point Convergence Test', fontsize=14, fontweight='bold')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# Cutoff energy convergence
+ax2.plot(encut_values, energy_encut, 's-', markersize=8, linewidth=2, color='#f5576c')
+ax2.axhline(y=energy_encut[-1], color='red', linestyle='--', label='Converged value')
+ax2.fill_between(encut_values, energy_encut[-1]-0.001, energy_encut[-1]+0.001,
+                  alpha=0.2, color='red', label='±1 meV range')
+ax2.set_xlabel('Cutoff energy [eV]', fontsize=12)
+ax2.set_ylabel('Total energy [eV/atom]', fontsize=12)
+ax2.set_title('Cutoff Energy Convergence Test', fontsize=14, fontweight='bold')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('convergence_tests.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# Convergence determination
+print("=== Convergence Test Results ===")
+print(f"\nk-point convergence:")
+for i in range(1, len(k_values)):
+    diff = abs(energy_k[i] - energy_k[i-1]) * 1000  # meV
+    status = "✓" if diff &lt; 1.0 else "✗"
+    print(f"  k={k_values[i]:2d}: ΔE = {diff:.3f} meV {status}")
+
+print(f"\nCutoff energy convergence:")
+for i in range(1, len(encut_values)):
+    diff = abs(energy_encut[i] - energy_encut[i-1]) * 1000  # meV
+    status = "✓" if diff &lt; 1.0 else "✗"
+    print(f"  ENCUT={encut_values[i]:3d} eV: ΔE = {diff:.3f} meV {status}")
+</code></pre>
+<h3>Practical Convergence Test Script</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+
+import os
+import numpy as np
+from ase.build import bulk
+from ase.io import write
+
+def run_convergence_test(structure, test_type='kpoints',
+                          k_range=None, encut_range=None):
+    """
+    Prepare directory structure and files for convergence tests
+
+    Parameters:
+    -----------
+    structure : ase.Atoms
+        Crystal structure to test
+    test_type : str
+        'kpoints' or 'encut'
+    k_range : list
+        List of k-point meshes to test (e.g., [4, 6, 8, 10, 12])
+    encut_range : list
+        List of cutoff energies to test [eV]
+    """
+
+    if test_type == 'kpoints' and k_range is not None:
+        print("=== k-point Convergence Test Preparation ===")
+        for k in k_range:
+            dirname = f'ktest_{k}x{k}x{k}'
+            os.makedirs(dirname, exist_ok=True)
+
+            # Create POSCAR
+            write(f'{dirname}/POSCAR', structure, format='vasp')
+
+            # Create KPOINTS
+            with open(f'{dirname}/KPOINTS', 'w') as f:
+                f.write(f"""Automatic mesh
+0
+Monkhorst-Pack
+{k} {k} {k}
+0 0 0
+""")
+
+            # Create INCAR (common settings)
+            with open(f'{dirname}/INCAR', 'w') as f:
+                f.write("""SYSTEM = k-point convergence test
+ENCUT = 400
+ISMEAR = 0
+SIGMA = 0.05
+EDIFF = 1E-6
+PREC = Accurate
+""")
+
+            print(f"  {dirname}/ created")
+
+    elif test_type == 'encut' and encut_range is not None:
+        print("=== Cutoff Energy Convergence Test Preparation ===")
+        for encut in encut_range:
+            dirname = f'encut_{encut}'
+            os.makedirs(dirname, exist_ok=True)
+
+            write(f'{dirname}/POSCAR', structure, format='vasp')
+
+            with open(f'{dirname}/KPOINTS', 'w') as f:
+                f.write("""Automatic mesh
+0
+Monkhorst-Pack
+8 8 8
+0 0 0
+""")
+
+            with open(f'{dirname}/INCAR', 'w') as f:
+                f.write(f"""SYSTEM = ENCUT convergence test
+ENCUT = {encut}
+ISMEAR = 0
+SIGMA = 0.05
+EDIFF = 1E-6
+PREC = Accurate
+""")
+
+            print(f"  {dirname}/ created")
+
+# Example usage
+si = bulk('Si', 'diamond', a=5.43)
+
+# Create directories for k-point convergence test
+run_convergence_test(si, test_type='kpoints',
+                      k_range=[4, 6, 8, 10, 12, 14])
+
+# Create directories for cutoff convergence test
+run_convergence_test(si, test_type='encut',
+                      encut_range=[300, 350, 400, 450, 500, 550, 600])
+
+print("\nAll test directories created")
+print("Next step: Run VASP in each directory")
+</code></pre>
+<h2>DFT Calculation Workflow</h2>
+<div class="mermaid">
+flowchart TD
+    A[Prepare crystal structure] --&gt; B[Create input files]
+    B --&gt; C{Convergence tests<br/>k-points・ENCUT}
+    C --&gt;|Not converged| B
+    C --&gt;|Converged| D[SCF calculation]
+    D --&gt; E[Structure optimization]
+    E --&gt; F{Structure change<br/>small?}
+    F --&gt;|No| E
+    F --&gt;|Yes| G[Property calculations]
+    G --&gt; H[Band structure]
+    G --&gt; I[Density of states]
+    G --&gt; J[Charge density]
+    H --&gt; K[Results analysis]
+    I --&gt; K
+    J --&gt; K
+    K --&gt; L[Papers/Reports]
+
+    style A fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+    style D fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style G fill:#fff3cd,stroke:#ffc107,stroke-width:2px
+    style L fill:#d4edda,stroke:#28a745,stroke-width:2px
+</div>
+<h3>Standard DFT Calculation Procedure</h3>
+<pre><code class="language-python">
+# Standard DFT calculation workflow (pseudocode)
+
+def dft_workflow(material_name, structure):
+    """
+    Standard DFT calculation workflow
+    """
+
+    print(f"=== DFT Calculation Workflow for {material_name} ===\n")
+
+    # Step 1: Convergence tests
+    print("Step 1: Convergence Tests")
+    print("  1-1. k-point mesh convergence test")
+    print("       → Optimal k-points: 8×8×8 determined")
+    print("  1-2. Cutoff energy convergence test")
+    print("       → Optimal ENCUT: 450 eV determined")
+
+    # Step 2: Structure optimization
+    print("\nStep 2: Structure Optimization (IBRION=2, ISIF=3)")
+    print("  - Initial structure: experimental values")
+    print("  - After optimization:")
+    print("    Lattice constant: 5.43 → 5.47 Å (+0.7%, PBE overestimation)")
+    print("    Atomic positions: no change (high symmetry)")
+
+    # Step 3: Static calculation (high accuracy)
+    print("\nStep 3: Static Calculation (single-point, NSW=0)")
+    print("  - High-accuracy SCF with optimized structure")
+    print("  - Save charge density and wave functions")
+
+    # Step 4: Band structure calculation
+    print("\nStep 4: Band Structure Calculation (ICHARG=11)")
+    print("  - High-symmetry path: Γ-X-W-K-Γ-L")
+    print("  - Indirect band gap: 0.65 eV (underestimates experimental 1.12 eV)")
+
+    # Step 5: Density of states calculation
+    print("\nStep 5: Density of States Calculation (LORBIT=11)")
+    print("  - Dense k-point mesh: 16×16×16")
+    print("  - Projected DOS (atom/orbital resolved)")
+
+    # Step 6: Results analysis
+    print("\nStep 6: Results Analysis")
+    print("  - Plot band diagram")
+    print("  - Plot DOS")
+    print("  - Compare with experimental values")
+
+    return {
+        'optimal_k': (8, 8, 8),
+        'optimal_encut': 450,
+        'lattice_constant': 5.47,
+        'band_gap': 0.65
+    }
+
+# Example execution
+si = bulk('Si', 'diamond', a=5.43)
+results = dft_workflow('Silicon', si)
+
+print(f"\n=== Calculation Results Summary ===")
+for key, value in results.items():
+    print(f"  {key}: {value}")
+</code></pre>
+<h2>Summary</h2>
+<div class="success-box">
+<h3>What We Learned in This Chapter</h3>
+<h4>Theoretical Understanding</h4>
+<ul>
+<li>DFT is a theory that solves the many-body Schrödinger equation using electron density</li>
+<li>Hohenberg-Kohn theorem: electron density determines all physical quantities</li>
+<li>Kohn-Sham equations: makes calculation possible through mapping to non-interacting system</li>
+<li>Exchange-correlation functionals (LDA, GGA, hybrid) are the only approximation</li>
+</ul>
+<h4>Practical Skills</h4>
+<ul>
+<li>Can create and manipulate crystal structures using ASE/Pymatgen</li>
+<li>Can create VASP input files (INCAR, POSCAR, KPOINTS)</li>
+<li>Can perform convergence tests for k-point mesh and cutoff energy</li>
+<li>Understood standard DFT calculation workflow</li>
+</ul>
+<h4>Preparation for Next Chapter</h4>
+<ul>
+<li>In Chapter 4, we will calculate electrical and magnetic properties from DFT results</li>
+<li>We will learn calculation methods for specific properties like electrical conductivity, Hall effect, and magnetization</li>
+</ul>
+</div>
+<h2>Exercises</h2>
+<div class="exercise-box">
+<h4>Exercise 1: Basic Theory (Easy)</h4>
+<p><strong>Problem</strong>: Determine whether the following statements are true or false, and correct any errors.</p>
+<ol>
+<li>In DFT, the electron density $n(\mathbf{r})$ is a 3-dimensional function, making it easier to handle than the many-body wave function.</li>
+<li>The Kohn-Sham equation exactly solves the interacting many-electron system.</li>
+<li>GGA functionals always provide higher accuracy than LDA because they consider density gradients.</li>
+<li>The PAW method is a type of pseudopotential method that achieves accuracy close to all-electron calculations.</li>
+</ol>
+<p><strong>Key points for answer</strong>:</p>
+<ol>
+<li>True. Dramatic reduction from $3N$ dimensions → 3 dimensions.</li>
+<li>False. Kohn-Sham equations are a "mapping to non-interacting system". Exchange-correlation functional $E_{\text{xc}}$ is an approximation.</li>
+<li>False. GGA is often superior, but LDA also works well for systems with nearly uniform density (simple metals).</li>
+<li>True. PAW has a transformation that restores the all-electron wave function.</li>
+</ol>
+</div>
+<div class="exercise-box">
+<h4>Exercise 2: Functional Selection (Medium)</h4>
+<p><strong>Problem</strong>: Select the optimal exchange-correlation functional for the following systems and explain your reasoning.</p>
+<ol>
+<li>Band gap calculation for Si bulk (semiconductor)</li>
+<li>Lattice constant optimization for Cu metal</li>
+<li>Electronic structure calculation for TiO₂ (titanium oxide)</li>
+<li>Binding energy calculation for organic molecules</li>
+</ol>
+<p><strong>Recommended answers</strong>:</p>
+<ol>
+<li>HSE06 (hybrid): GGA underestimates band gaps by about 50%.</li>
+<li>PBE (GGA): Metals have smooth electron density, GGA provides sufficient accuracy with low computational cost.</li>
+<li>PBE+U or HSE06: Need to account for strong correlation effects in Ti d-orbitals.</li>
+<li>B3LYP (hybrid): Extensively validated for molecular systems. PBE also acceptable.</li>
+</ol>
+</div>
+<div class="exercise-box">
+<h4>Exercise 3: Python Coding (Medium)</h4>
+<p><strong>Problem</strong>: Write code to create the following crystal structures with ASE and save them in POSCAR format.</p>
+<ol>
+<li>GaN (wurtzite structure, a=3.19 Å, c=5.19 Å)</li>
+<li>Fe (BCC structure, a=2.87 Å)</li>
+<li>Al₂O₃ (corundum structure, download from Materials Project)</li>
+</ol>
+<p><strong>Hints</strong>:</p>
+<ul>
+<li>GaN is wurtzite structure</li>
+<li>Fe is BCC (body-centered cubic)</li>
+<li>Use <code>pymatgen.ext.matproj</code> to access Materials Project</li>
+</ul>
+</div>
+<div class="exercise-box">
+<h4>Exercise 4: Convergence Test Analysis (Medium)</h4>
+<p><strong>Problem</strong>: Analyze the following k-point convergence test results and recommend the optimal k-point mesh.</p>
+<table>
+<thead>
+<tr>
+<th>k-point mesh</th>
+<th>Total energy [eV/atom]</th>
+<th>Calculation time [min]</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>4×4×4</td><td>-5.3421</td><td>2</td></tr>
+<tr><td>6×6×6</td><td>-5.3998</td><td>5</td></tr>
+<tr><td>8×8×8</td><td>-5.4125</td><td>12</td></tr>
+<tr><td>10×10×10</td><td>-5.4138</td><td>25</td></tr>
+<tr><td>12×12×12</td><td>-5.4141</td><td>45</td></tr>
+<tr><td>14×14×14</td><td>-5.4142</td><td>75</td></tr>
+</tbody>
+</table>
+<p><strong>Discussion points</strong>:</p>
+<ul>
+<li>Use 1 meV/atom (0.001 eV/atom) as convergence criterion</li>
+<li>Consider balance between computational cost and accuracy</li>
+<li>Judgment changes depending on whether metal or semiconductor</li>
+</ul>
+<p><strong>Recommended answer</strong>:</p>
+<p>Recommend 8×8×8 to 10×10×10. Reasoning:</p>
+<ul>
+<li>8×8×8: 1.27 meV/atom improvement from 6×6×6 (near convergence)</li>
+<li>10×10×10: 0.13 meV/atom improvement from 8×8×8 (nearly converged)</li>
+<li>12×12×12 and above: no improvement commensurate with computational cost</li>
+<li>Recommend 8×8×8 for semiconductors, 10×10×10 for metals</li>
+</ul>
+</div>
+<div class="exercise-box">
+<h4>Exercise 5: INCAR Settings Optimization (Hard)</h4>
+<p><strong>Problem</strong>: Set optimal INCAR parameters for the following calculation purposes.</p>
+<ol>
+<li>Lattice constant optimization for metallic Al</li>
+<li>Band gap calculation for semiconductor GaAs (HSE06)</li>
+<li>Magnetic moment calculation for ferromagnetic Fe</li>
+</ol>
+<p><strong>Recommended answers</strong>:</p>
+<p>1. Lattice constant optimization for metallic Al:</p>
+<pre><code>
+SYSTEM = Al lattice optimization
+ENCUT = 400
+PREC = Accurate
+GGA = PE
+ISMEAR = 1          # Methfessel-Paxton (optimal for metals)
+SIGMA = 0.2         # Larger smearing
+IBRION = 2          # CG method
+ISIF = 3            # Optimize cell shape too
+EDIFF = 1E-6
+EDIFFG = -0.01
+NSW = 50
+</code></pre>
+<p>2. Band gap calculation for semiconductor GaAs (HSE06):</p>
+<pre><code>
+SYSTEM = GaAs band gap (HSE06)
+ENCUT = 450
+PREC = Accurate
+LHFCALC = .TRUE.    # Enable hybrid functional
+HFSCREEN = 0.2      # HSE06 screening parameter
+ISMEAR = 0          # Gaussian (semiconductors)
+SIGMA = 0.05        # Smaller smearing
+EDIFF = 1E-7        # High accuracy convergence
+ALGO = Damped       # Recommended for HSE06
+TIME = 0.4
+</code></pre>
+<p>3. Magnetic moment calculation for ferromagnetic Fe:</p>
+<pre><code>
+SYSTEM = Fe magnetic moment
+ENCUT = 400
+PREC = Accurate
+GGA = PE
+ISMEAR = 1
+SIGMA = 0.2
+ISPIN = 2           # Spin-polarized calculation
+MAGMOM = 2.0        # Initial magnetic moment (Fe: approximately 2.2 μB)
+LORBIT = 11         # Magnetic moment projection
+EDIFF = 1E-6
+</code></pre>
+</div>
+<div class="exercise-box">
+<h4>Exercise 6: Practical Challenge (Hard)</h4>
+<p><strong>Problem</strong>: Prepare for actual DFT calculations following these steps.</p>
+<ol>
+<li>Create diamond structure Si crystal (2×2×2 supercell) using ASE</li>
+<li>Generate VASP input files (INCAR, POSCAR, KPOINTS)</li>
+<li>Create directory structure for k-point convergence tests (k=4,6,8,10,12)</li>
+<li>Verify that configuration files in each directory are correct and ready for calculation</li>
+</ol>
+<p><strong>Evaluation criteria</strong>:</p>
+<ul>
+<li>Is POSCAR file in correct VASP format</li>
+<li>Are INCAR settings appropriate for semiconductor Si (ISMEAR=0, etc.)</li>
+<li>Is k-point mesh correctly set in each directory</li>
+<li>Is directory structure organized and traceable</li>
+</ul>
+</div>
+<h2>References</h2>
+<ol>
+<li>Hohenberg, P., &amp; Kohn, W. (1964). "Inhomogeneous Electron Gas". Physical Review, 136(3B), B864.</li>
+<li>Kohn, W., &amp; Sham, L. J. (1965). "Self-Consistent Equations Including Exchange and Correlation Effects". Physical Review, 140(4A), A1133.</li>
+<li>Perdew, J. P., Burke, K., &amp; Ernzerhof, M. (1996). "Generalized Gradient Approximation Made Simple". Physical Review Letters, 77, 3865.</li>
+<li>Blöchl, P. E. (1994). "Projector augmented-wave method". Physical Review B, 50, 17953.</li>
+<li>Sholl, D., &amp; Steckel, J. A. (2011). "Density Functional Theory: A Practical Introduction". Wiley.</li>
+<li>ASE documentation: https://wiki.fysik.dtu.dk/ase/</li>
+<li>Pymatgen documentation: https://pymatgen.org/</li>
+<li>VASP manual: https://www.vasp.at/wiki/index.php/The_VASP_Manual</li>
+</ol>
+<div class="navigation">
+<a class="nav-button" href="chapter-2.html">← Chapter 2: Crystal Field Theory</a>
+<a class="nav-button" href="chapter-4.html">Chapter 4: Electrical and Magnetic Properties →</a>
+</div>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+</main>
+<footer>
+<p><strong>Materials Properties Introduction Series - Chapter 3</strong></p>
+<p>Density Functional Theory (DFT) Basics for Materials Science</p>
+<p>© 2025 MS Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

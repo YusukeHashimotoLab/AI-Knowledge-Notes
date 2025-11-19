@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 3: Model Selection and Hyperparameter Optimization - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 3: Model Selection and Hyperparameter Optimization - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="/AI-Knowledge-Notes/knowledge/en/index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/data-driven-materials-introduction/index.html">Data-Driven Materials</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/MI/data-driven-materials-introduction/chapter-3.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 3: Model Selection and Hyperparameter Optimization</h1>
+<p class="subtitle"></p>
+<div class="meta">
+<span class="meta-item">📖 Reading time: 20-25 minutes</span>
+<span class="meta-item">📊 Difficulty: Beginner</span>
+<span class="meta-item">💻 Code examples: 15</span>
+<span class="meta-item">📝 Exercises: 3</span>
+</div>
+</div>
+</header>
+<main class="container">
+<h1>Chapter 3: Model Selection and Hyperparameter Optimization</h1><p class="chapter-description">This chapter covers Model Selection and Hyperparameter Optimization. You will learn models based on data size (linear, cross-validation techniques (K-Fold, and ensemble learning methods (Bagging.</p>
+
+
+<hr/>
+<h2>Learning Objectives</h2>
+<p>After completing this chapter, you will be able to:</p>
+<ul>
+<li>✅ Select appropriate models based on data size (linear, tree-based, neural networks, GNNs)</li>
+<li>✅ Apply cross-validation techniques (K-Fold, Stratified, Time Series Split)</li>
+<li>✅ Perform automated hyperparameter optimization using Bayesian optimization with Optuna</li>
+<li>✅ Implement ensemble learning methods (Bagging, Boosting, Stacking)</li>
+<li>✅ Execute practical workflows for Li-ion battery capacity prediction</li>
+</ul>
+<hr/>
+<h2>3.1 Model Selection Strategy</h2>
+<p>In materials science machine learning, selecting appropriate models based on data characteristics is crucial for achieving good performance.</p>
+<h3>Data Size and Model Complexity</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+# - seaborn&gt;=0.12.0
+
+"""
+Example: Data Size and Model Complexity
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import learning_curve
+from sklearn.linear_model import Ridge, Lasso
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.neural_network import MLPRegressor
+
+# Generate sample materials data
+np.random.seed(42)
+
+def generate_material_data(n_samples, n_features=20):
+    """Simulate materials data"""
+    X = np.random.randn(n_samples, n_features)
+    # Nonlinear relationships
+    y = (
+        2 * X[:, 0]**2 +
+        3 * X[:, 1] * X[:, 2] -
+        1.5 * X[:, 3] +
+        np.random.normal(0, 0.5, n_samples)
+    )
+    return X, y
+
+# Relationship between model complexity and sample size
+sample_sizes = [50, 100, 200, 500, 1000]
+models = {
+    'Ridge': Ridge(),
+    'Random Forest': RandomForestRegressor(n_estimators=50, random_state=42),
+    'Gradient Boosting': GradientBoostingRegressor(n_estimators=50, random_state=42),
+    'Neural Network': MLPRegressor(hidden_layers=(50, 50), max_iter=1000, random_state=42)
+}
+
+# Learning curves
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+axes = axes.flatten()
+
+for idx, (model_name, model) in enumerate(models.items()):
+    X, y = generate_material_data(1000, n_features=20)
+
+    train_sizes, train_scores, val_scores = learning_curve(
+        model, X, y,
+        train_sizes=np.linspace(0.1, 1.0, 10),
+        cv=5,
+        scoring='neg_mean_squared_error',
+        n_jobs=-1
+    )
+
+    train_mean = -train_scores.mean(axis=1)
+    train_std = train_scores.std(axis=1)
+    val_mean = -val_scores.mean(axis=1)
+    val_std = val_scores.std(axis=1)
+
+    axes[idx].plot(train_sizes, train_mean, 'o-',
+                   color='steelblue', label='Training Error')
+    axes[idx].fill_between(train_sizes,
+                           train_mean - train_std,
+                           train_mean + train_std,
+                           alpha=0.2, color='steelblue')
+
+    axes[idx].plot(train_sizes, val_mean, 'o-',
+                   color='coral', label='Validation Error')
+    axes[idx].fill_between(train_sizes,
+                           val_mean - val_std,
+                           val_mean + val_std,
+                           alpha=0.2, color='coral')
+
+    axes[idx].set_xlabel('Training Size', fontsize=11)
+    axes[idx].set_ylabel('MSE', fontsize=11)
+    axes[idx].set_title(f'{model_name}', fontsize=12, fontweight='bold')
+    axes[idx].legend(loc='upper right')
+    axes[idx].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("Model Selection Guidelines:")
+print("- Small data (&lt;100): Ridge, Lasso (regularized linear models)")
+print("- Medium data (100-1000): Random Forest, Gradient Boosting")
+print("- Large data (&gt;1000): Neural Network, Deep Learning")
+</code></pre>
+<h3>Interpretability vs. Accuracy Trade-off</h3>
+<pre><code class="language-python"># Model interpretability and accuracy comparison
+model_comparison = pd.DataFrame({
+    'Model': [
+        'Linear Regression',
+        'Ridge/Lasso',
+        'Decision Tree',
+        'Random Forest',
+        'Gradient Boosting',
+        'Neural Network',
+        'GNN'
+    ],
+    'Interpretability': [10, 9, 7, 4, 3, 2, 1],
+    'Accuracy': [4, 5, 5, 8, 9, 9, 10],
+    'Training Speed': [10, 9, 8, 6, 5, 3, 2],
+    'Inference Speed': [10, 10, 9, 7, 6, 8, 4]
+})
+
+# Radar chart
+from math import pi
+
+categories = ['Interpretability', 'Accuracy', 'Training Speed', 'Inference Speed']
+N = len(categories)
+
+angles = [n / float(N) * 2 * pi for n in range(N)]
+angles += angles[:1]
+
+fig, axes = plt.subplots(2, 4, figsize=(18, 10),
+                         subplot_kw=dict(projection='polar'))
+axes = axes.flatten()
+
+for idx, row in model_comparison.iterrows():
+    values = row[categories].tolist()
+    values += values[:1]
+
+    axes[idx].plot(angles, values, 'o-', linewidth=2)
+    axes[idx].fill(angles, values, alpha=0.25)
+    axes[idx].set_xticks(angles[:-1])
+    axes[idx].set_xticklabels(categories, size=9)
+    axes[idx].set_ylim(0, 10)
+    axes[idx].set_title(row['Model'], size=11, fontweight='bold', pad=20)
+    axes[idx].grid(True)
+
+plt.tight_layout()
+plt.show()
+
+print("\nModel Selection Criteria:")
+print("- Interpretability prioritized: Ridge, Lasso, Decision Tree")
+print("- Accuracy prioritized: Gradient Boosting, Neural Network, GNN")
+print("- Balanced approach: Random Forest")
+</code></pre>
+<h3>Linear Models, Tree-based, Neural Networks, and GNNs Comparison</h3>
+<pre><code class="language-python"># Performance comparison on real data
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import mean_absolute_error, r2_score
+
+X, y = generate_material_data(500, n_features=20)
+
+models_benchmark = {
+    'Ridge': Ridge(alpha=1.0),
+    'Lasso': Lasso(alpha=0.1),
+    'Random Forest': RandomForestRegressor(n_estimators=100, random_state=42),
+    'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, random_state=42),
+    'MLP': MLPRegressor(hidden_layers=(100, 50), max_iter=1000, random_state=42)
+}
+
+results = []
+
+for model_name, model in models_benchmark.items():
+    # Cross-validation
+    cv_scores = cross_val_score(model, X, y, cv=5,
+                                scoring='neg_mean_absolute_error')
+    mae = -cv_scores.mean()
+    mae_std = cv_scores.std()
+
+    # R²
+    cv_r2 = cross_val_score(model, X, y, cv=5, scoring='r2')
+    r2 = cv_r2.mean()
+
+    results.append({
+        'Model': model_name,
+        'MAE': mae,
+        'MAE_std': mae_std,
+        'R²': r2
+    })
+
+results_df = pd.DataFrame(results)
+print("\nModel Performance Comparison:")
+print(results_df.to_string(index=False))
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# MAE
+axes[0].barh(results_df['Model'], results_df['MAE'],
+             xerr=results_df['MAE_std'],
+             color='steelblue', alpha=0.7)
+axes[0].set_xlabel('MAE (lower is better)', fontsize=11)
+axes[0].set_title('Prediction Error (MAE)', fontsize=12, fontweight='bold')
+axes[0].grid(axis='x', alpha=0.3)
+
+# R²
+axes[1].barh(results_df['Model'], results_df['R²'],
+             color='coral', alpha=0.7)
+axes[1].set_xlabel('R² (higher is better)', fontsize=11)
+axes[1].set_title('Coefficient of Determination (R²)', fontsize=12, fontweight='bold')
+axes[1].set_xlim(0, 1)
+axes[1].grid(axis='x', alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<hr/>
+<h2>3.2 Cross-Validation Techniques</h2>
+<p>Cross-validation is a fundamental technique for properly evaluating model generalization performance.</p>
+<h3>K-Fold Cross-Validation</h3>
+<pre><code class="language-python">from sklearn.model_selection import KFold, cross_validate
+
+def kfold_cv_demo(X, y, model, k=5):
+    """
+    K-Fold cross-validation demo
+    """
+    kf = KFold(n_splits=k, shuffle=True, random_state=42)
+
+    fold_results = []
+
+    for fold_idx, (train_idx, val_idx) in enumerate(kf.split(X)):
+        X_train, X_val = X[train_idx], X[val_idx]
+        y_train, y_val = y[train_idx], y[val_idx]
+
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_val)
+
+        mae = mean_absolute_error(y_val, y_pred)
+        r2 = r2_score(y_val, y_pred)
+
+        fold_results.append({
+            'Fold': fold_idx + 1,
+            'MAE': mae,
+            'R²': r2
+        })
+
+    return pd.DataFrame(fold_results)
+
+# Run K-Fold
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+fold_results = kfold_cv_demo(X, y, model, k=5)
+
+print("K-Fold CV Results:")
+print(fold_results.to_string(index=False))
+print(f"\nMean MAE: {fold_results['MAE'].mean():.4f} ± {fold_results['MAE'].std():.4f}")
+print(f"Mean R²: {fold_results['R²'].mean():.4f} ± {fold_results['R²'].std():.4f}")
+
+# Visualization
+fig, ax = plt.subplots(figsize=(10, 6))
+x_pos = np.arange(len(fold_results))
+
+ax.bar(x_pos, fold_results['MAE'], color='steelblue', alpha=0.7,
+       label='MAE per fold')
+ax.axhline(y=fold_results['MAE'].mean(), color='red',
+           linestyle='--', linewidth=2, label='Mean MAE')
+ax.fill_between(x_pos,
+                fold_results['MAE'].mean() - fold_results['MAE'].std(),
+                fold_results['MAE'].mean() + fold_results['MAE'].std(),
+                color='red', alpha=0.2, label='±1 Std')
+
+ax.set_xlabel('Fold', fontsize=12)
+ax.set_ylabel('MAE', fontsize=12)
+ax.set_title('K-Fold Cross-Validation Results', fontsize=13, fontweight='bold')
+ax.set_xticks(x_pos)
+ax.set_xticklabels(fold_results['Fold'])
+ax.legend()
+ax.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<h3>Stratified K-Fold</h3>
+<pre><code class="language-python">from sklearn.model_selection import StratifiedKFold
+
+# Classification data
+X_class, _ = generate_material_data(500, n_features=20)
+# 3-class classification
+y_class = np.digitize(y, bins=np.percentile(y, [33, 67]))
+
+def compare_kfold_strategies(X, y):
+    """
+    Standard K-Fold vs Stratified K-Fold comparison
+    """
+    # Standard K-Fold
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    normal_distributions = []
+
+    for train_idx, _ in kf.split(X):
+        y_train = y[train_idx]
+        class_dist = np.bincount(y_train) / len(y_train)
+        normal_distributions.append(class_dist)
+
+    # Stratified K-Fold
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    stratified_distributions = []
+
+    for train_idx, _ in skf.split(X, y):
+        y_train = y[train_idx]
+        class_dist = np.bincount(y_train) / len(y_train)
+        stratified_distributions.append(class_dist)
+
+    return normal_distributions, stratified_distributions
+
+normal_dist, stratified_dist = compare_kfold_strategies(X_class, y_class)
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Standard K-Fold
+normal_array = np.array(normal_dist)
+axes[0].bar(range(len(normal_array)), normal_array[:, 0],
+            label='Class 0', alpha=0.7)
+axes[0].bar(range(len(normal_array)), normal_array[:, 1],
+            bottom=normal_array[:, 0],
+            label='Class 1', alpha=0.7)
+axes[0].bar(range(len(normal_array)), normal_array[:, 2],
+            bottom=normal_array[:, 0] + normal_array[:, 1],
+            label='Class 2', alpha=0.7)
+axes[0].set_xlabel('Fold', fontsize=11)
+axes[0].set_ylabel('Class Distribution', fontsize=11)
+axes[0].set_title('Standard K-Fold', fontsize=12, fontweight='bold')
+axes[0].legend()
+axes[0].set_ylim(0, 1)
+
+# Stratified K-Fold
+stratified_array = np.array(stratified_dist)
+axes[1].bar(range(len(stratified_array)), stratified_array[:, 0],
+            label='Class 0', alpha=0.7)
+axes[1].bar(range(len(stratified_array)), stratified_array[:, 1],
+            bottom=stratified_array[:, 0],
+            label='Class 1', alpha=0.7)
+axes[1].bar(range(len(stratified_array)), stratified_array[:, 2],
+            bottom=stratified_array[:, 0] + stratified_array[:, 1],
+            label='Class 2', alpha=0.7)
+axes[1].set_xlabel('Fold', fontsize=11)
+axes[1].set_ylabel('Class Distribution', fontsize=11)
+axes[1].set_title('Stratified K-Fold', fontsize=12, fontweight='bold')
+axes[1].legend()
+axes[1].set_ylim(0, 1)
+
+plt.tight_layout()
+plt.show()
+
+print("Stratified K-Fold Advantages:")
+print("- Uniform class distribution across folds")
+print("- Stable evaluation even with imbalanced data")
+</code></pre>
+<h3>Time Series Split (for Sequential Data)</h3>
+<pre><code class="language-python">from sklearn.model_selection import TimeSeriesSplit
+
+# Time series data simulation
+n_time_points = 200
+time = np.arange(n_time_points)
+# Trend + seasonality + noise
+y_timeseries = (
+    0.05 * time +
+    10 * np.sin(2 * np.pi * time / 50) +
+    np.random.normal(0, 2, n_time_points)
+)
+X_timeseries = np.column_stack([time, np.sin(2 * np.pi * time / 50)])
+
+# Time Series Split
+tscv = TimeSeriesSplit(n_splits=5)
+
+# Visualization
+fig, ax = plt.subplots(figsize=(14, 6))
+
+colors = plt.cm.viridis(np.linspace(0, 1, 5))
+
+for fold_idx, (train_idx, test_idx) in enumerate(tscv.split(X_timeseries)):
+    # Train
+    ax.scatter(time[train_idx], y_timeseries[train_idx],
+               c=[colors[fold_idx]], s=20, alpha=0.3,
+               label=f'Fold {fold_idx+1} Train')
+    # Test
+    ax.scatter(time[test_idx], y_timeseries[test_idx],
+               c=[colors[fold_idx]], s=50, marker='s',
+               label=f'Fold {fold_idx+1} Test')
+
+ax.plot(time, y_timeseries, 'k-', alpha=0.3, linewidth=1)
+ax.set_xlabel('Time', fontsize=12)
+ax.set_ylabel('Value', fontsize=12)
+ax.set_title('Time Series Split', fontsize=13, fontweight='bold')
+ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+ax.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("Time Series Split Characteristics:")
+print("- Training data always precedes test data")
+print("- Prevents future data leakage (data leakage prevention)")
+</code></pre>
+<h3>Leave-One-Out CV (for Small Datasets)</h3>
+<pre><code class="language-python">from sklearn.model_selection import LeaveOneOut
+
+def loo_cv_demo(X, y, model):
+    """
+    Leave-One-Out CV
+    For small-scale datasets
+    """
+    loo = LeaveOneOut()
+    predictions = []
+    actuals = []
+
+    for train_idx, test_idx in loo.split(X):
+        X_train, X_test = X[train_idx], X[test_idx]
+        y_train, y_test = y[train_idx], y[test_idx]
+
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+
+        predictions.append(y_pred[0])
+        actuals.append(y_test[0])
+
+    return np.array(actuals), np.array(predictions)
+
+# Small dataset
+X_small, y_small = generate_material_data(50, n_features=10)
+model_small = Ridge(alpha=1.0)
+
+y_actual, y_pred_loo = loo_cv_demo(X_small, y_small, model_small)
+
+mae_loo = mean_absolute_error(y_actual, y_pred_loo)
+r2_loo = r2_score(y_actual, y_pred_loo)
+
+print(f"LOO CV Results (n={len(X_small)}):")
+print(f"MAE: {mae_loo:.4f}")
+print(f"R²: {r2_loo:.4f}")
+
+# Predicted vs actual
+plt.figure(figsize=(8, 8))
+plt.scatter(y_actual, y_pred_loo, c='steelblue', s=50, alpha=0.6)
+plt.plot([y_actual.min(), y_actual.max()],
+         [y_actual.min(), y_actual.max()],
+         'r--', linewidth=2, label='Perfect Prediction')
+plt.xlabel('Actual', fontsize=12)
+plt.ylabel('Predicted', fontsize=12)
+plt.title('Leave-One-Out CV Results', fontsize=13, fontweight='bold')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
+</code></pre>
+<hr/>
+<h2>3.3 Hyperparameter Optimization</h2>
+<p>Hyperparameter optimization explores the parameter space to maximize model performance.</p>
+<h3>Grid Search (Exhaustive Search)</h3>
+<pre><code class="language-python">from sklearn.model_selection import GridSearchCV
+
+def grid_search_demo(X, y):
+    """
+    Grid Search exhaustive search
+    """
+    param_grid = {
+        'n_estimators': [50, 100, 200],
+        'max_depth': [5, 10, 15, None],
+        'min_samples_split': [2, 5, 10]
+    }
+
+    model = RandomForestRegressor(random_state=42)
+
+    grid_search = GridSearchCV(
+        model,
+        param_grid,
+        cv=5,
+        scoring='neg_mean_absolute_error',
+        n_jobs=-1,
+        verbose=1
+    )
+
+    grid_search.fit(X, y)
+
+    return grid_search
+
+# Execute
+grid_result = grid_search_demo(X, y)
+
+print("Grid Search Results:")
+print(f"Best parameters: {grid_result.best_params_}")
+print(f"Best score (MAE): {-grid_result.best_score_:.4f}")
+print(f"\nSearch space size: {len(grid_result.cv_results_['params'])}")
+
+# Visualization (2D heatmap)
+results = pd.DataFrame(grid_result.cv_results_)
+
+# n_estimators vs max_depth
+pivot_table = results.pivot_table(
+    values='mean_test_score',
+    index='param_max_depth',
+    columns='param_n_estimators',
+    aggfunc='mean'
+)
+
+plt.figure(figsize=(10, 8))
+sns.heatmap(-pivot_table, annot=True, fmt='.3f',
+            cmap='YlOrRd', cbar_kws={'label': 'MAE'})
+plt.xlabel('n_estimators', fontsize=12)
+plt.ylabel('max_depth', fontsize=12)
+plt.title('Grid Search Results (MAE)', fontsize=13, fontweight='bold')
+plt.tight_layout()
+plt.show()
+</code></pre>
+<h3>Random Search</h3>
+<pre><code class="language-python">from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import randint, uniform
+
+def random_search_demo(X, y, n_iter=50):
+    """
+    Random Search random exploration
+    """
+    param_distributions = {
+        'n_estimators': randint(50, 300),
+        'max_depth': randint(5, 30),
+        'min_samples_split': randint(2, 20),
+        'min_samples_leaf': randint(1, 10),
+        'max_features': uniform(0.3, 0.7)
+    }
+
+    model = RandomForestRegressor(random_state=42)
+
+    random_search = RandomizedSearchCV(
+        model,
+        param_distributions,
+        n_iter=n_iter,
+        cv=5,
+        scoring='neg_mean_absolute_error',
+        n_jobs=-1,
+        random_state=42,
+        verbose=1
+    )
+
+    random_search.fit(X, y)
+
+    return random_search
+
+# Execute
+random_result = random_search_demo(X, y, n_iter=50)
+
+print("\nRandom Search Results:")
+print(f"Best parameters: {random_result.best_params_}")
+print(f"Best score (MAE): {-random_result.best_score_:.4f}")
+
+# Grid vs Random comparison
+print(f"\nGrid Search best score: {-grid_result.best_score_:.4f}")
+print(f"Random Search best score: {-random_result.best_score_:.4f}")
+print(f"\nRandom Search efficiency: Explored {50 / len(grid_result.cv_results_['params']) * 100:.1f}% of search space with comparable performance")
+</code></pre>
+<h3>Bayesian Optimization (Optuna, Hyperopt)</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - optuna&gt;=3.2.0
+
+import optuna
+
+def objective(trial, X, y):
+    """
+    Optuna objective function
+    """
+    params = {
+        'n_estimators': trial.suggest_int('n_estimators', 50, 300),
+        'max_depth': trial.suggest_int('max_depth', 5, 30),
+        'min_samples_split': trial.suggest_int('min_samples_split', 2, 20),
+        'min_samples_leaf': trial.suggest_int('min_samples_leaf', 1, 10),
+        'max_features': trial.suggest_float('max_features', 0.3, 1.0),
+        'random_state': 42
+    }
+
+    model = RandomForestRegressor(**params)
+
+    # Cross-validation
+    cv_scores = cross_val_score(
+        model, X, y, cv=5,
+        scoring='neg_mean_absolute_error'
+    )
+
+    return -cv_scores.mean()  # Negate for minimization
+
+# Optuna optimization
+study = optuna.create_study(direction='minimize')
+study.optimize(lambda trial: objective(trial, X, y), n_trials=100, show_progress_bar=True)
+
+print("\nOptuna Bayesian Optimization Results:")
+print(f"Best parameters: {study.best_params}")
+print(f"Best score (MAE): {study.best_value:.4f}")
+
+# Optimization history
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Optimization history
+axes[0].plot(study.trials_dataframe()['number'],
+             study.trials_dataframe()['value'],
+             'o-', color='steelblue', alpha=0.6, label='Trial Score')
+axes[0].plot(study.trials_dataframe()['number'],
+             study.trials_dataframe()['value'].cummin(),
+             'r-', linewidth=2, label='Best Score')
+axes[0].set_xlabel('Trial', fontsize=11)
+axes[0].set_ylabel('MAE', fontsize=11)
+axes[0].set_title('Optimization History', fontsize=12, fontweight='bold')
+axes[0].legend()
+axes[0].grid(alpha=0.3)
+
+# Parameter importance
+importances = optuna.importance.get_param_importances(study)
+axes[1].barh(list(importances.keys()), list(importances.values()),
+             color='coral', alpha=0.7)
+axes[1].set_xlabel('Importance', fontsize=11)
+axes[1].set_title('Hyperparameter Importance', fontsize=12, fontweight='bold')
+axes[1].grid(axis='x', alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<h3>Early Stopping</h3>
+<pre><code class="language-python">from sklearn.ensemble import GradientBoostingRegressor
+
+def early_stopping_demo(X, y):
+    """
+    Early Stopping demo
+    """
+    X_train, X_val, y_train, y_val = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # Track performance for each boosting stage
+    model = GradientBoostingRegressor(
+        n_estimators=500,
+        learning_rate=0.1,
+        max_depth=5,
+        random_state=42
+    )
+
+    model.fit(X_train, y_train)
+
+    # Predictions for each stage
+    train_scores = []
+    val_scores = []
+
+    for i, y_pred_train in enumerate(model.staged_predict(X_train)):
+        y_pred_val = list(model.staged_predict(X_val))[i]
+
+        train_mae = mean_absolute_error(y_train, y_pred_train)
+        val_mae = mean_absolute_error(y_val, y_pred_val)
+
+        train_scores.append(train_mae)
+        val_scores.append(val_mae)
+
+    # Optimal n_estimators (minimum validation error)
+    best_n_estimators = np.argmin(val_scores) + 1
+
+    return train_scores, val_scores, best_n_estimators
+
+train_curve, val_curve, best_n = early_stopping_demo(X, y)
+
+# Visualization
+plt.figure(figsize=(10, 6))
+plt.plot(range(1, len(train_curve)+1), train_curve,
+         'b-', label='Training Error', linewidth=2)
+plt.plot(range(1, len(val_curve)+1), val_curve,
+         'r-', label='Validation Error', linewidth=2)
+plt.axvline(x=best_n, color='green', linestyle='--',
+            label=f'Best n_estimators={best_n}', linewidth=2)
+plt.xlabel('n_estimators', fontsize=12)
+plt.ylabel('MAE', fontsize=12)
+plt.title('Early Stopping', fontsize=13, fontweight='bold')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+print(f"Early Stopping Results:")
+print(f"Optimal n_estimators: {best_n}")
+print(f"Validation MAE: {val_curve[best_n-1]:.4f}")
+print(f"Overfitting prevention: Reduced {500 - best_n} iterations")
+</code></pre>
+<hr/>
+<h2>3.4 Ensemble Learning</h2>
+<p>Combining multiple models improves prediction accuracy through ensemble methods.</p>
+<h3>Bagging (Bootstrap Aggregating)</h3>
+<pre><code class="language-python">from sklearn.ensemble import BaggingRegressor
+from sklearn.tree import DecisionTreeRegressor
+
+# Bagging
+bagging = BaggingRegressor(
+    estimator=DecisionTreeRegressor(max_depth=10),
+    n_estimators=50,
+    max_samples=0.8,
+    random_state=42
+)
+
+# Single Decision Tree for comparison
+single_tree = DecisionTreeRegressor(max_depth=10, random_state=42)
+
+# Evaluation
+cv_bagging = cross_val_score(bagging, X, y, cv=5,
+                             scoring='neg_mean_absolute_error')
+cv_single = cross_val_score(single_tree, X, y, cv=5,
+                            scoring='neg_mean_absolute_error')
+
+print("Bagging Results:")
+print(f"Single Decision Tree MAE: {-cv_single.mean():.4f} ± {cv_single.std():.4f}")
+print(f"Bagging MAE: {-cv_bagging.mean():.4f} ± {cv_bagging.std():.4f}")
+print(f"Improvement: {(cv_single.mean() - cv_bagging.mean()) / cv_single.mean() * 100:.1f}%")
+</code></pre>
+<h3>Boosting (AdaBoost, Gradient Boosting, LightGBM, XGBoost)</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - lightgbm&gt;=4.0.0
+
+"""
+Example: Boosting (AdaBoost, Gradient Boosting, LightGBM, XGBoost)
+
+Purpose: Demonstrate data manipulation and preprocessing
+Target: Advanced
+Execution time: ~5 seconds
+Dependencies: None
+"""
+
+from sklearn.ensemble import AdaBoostRegressor, GradientBoostingRegressor
+import lightgbm as lgb
+# import xgboost as xgb  # Optional
+
+# Various Boosting algorithms
+boosting_models = {
+    'AdaBoost': AdaBoostRegressor(n_estimators=100, random_state=42),
+    'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, random_state=42),
+    'LightGBM': lgb.LGBMRegressor(n_estimators=100, random_state=42, verbose=-1),
+    # 'XGBoost': xgb.XGBRegressor(n_estimators=100, random_state=42)
+}
+
+boosting_results = []
+
+for model_name, model in boosting_models.items():
+    cv_scores = cross_val_score(model, X, y, cv=5,
+                                scoring='neg_mean_absolute_error')
+    mae = -cv_scores.mean()
+    mae_std = cv_scores.std()
+
+    boosting_results.append({
+        'Model': model_name,
+        'MAE': mae,
+        'MAE_std': mae_std
+    })
+
+boosting_df = pd.DataFrame(boosting_results)
+
+print("\nBoosting Methods Comparison:")
+print(boosting_df.to_string(index=False))
+
+# Visualization
+plt.figure(figsize=(10, 6))
+plt.barh(boosting_df['Model'], boosting_df['MAE'],
+         xerr=boosting_df['MAE_std'],
+         color='steelblue', alpha=0.7)
+plt.xlabel('MAE', fontsize=12)
+plt.title('Boosting Methods Performance Comparison', fontsize=13, fontweight='bold')
+plt.grid(axis='x', alpha=0.3)
+plt.tight_layout()
+plt.show()
+</code></pre>
+<h3>Stacking</h3>
+<pre><code class="language-python">from sklearn.ensemble import StackingRegressor
+from sklearn.linear_model import Ridge
+
+# Base models
+base_models = [
+    ('rf', RandomForestRegressor(n_estimators=100, random_state=42)),
+    ('gb', GradientBoostingRegressor(n_estimators=100, random_state=42)),
+    ('lgbm', lgb.LGBMRegressor(n_estimators=100, random_state=42, verbose=-1))
+]
+
+# Meta model
+meta_model = Ridge(alpha=1.0)
+
+# Stacking
+stacking = StackingRegressor(
+    estimators=base_models,
+    final_estimator=meta_model,
+    cv=5
+)
+
+# Evaluation
+cv_stacking = cross_val_score(stacking, X, y, cv=5,
+                              scoring='neg_mean_absolute_error')
+
+print("\nStacking Results:")
+for name, _ in base_models:
+    model_cv = cross_val_score(dict(base_models)[name], X, y, cv=5,
+                               scoring='neg_mean_absolute_error')
+    print(f"{name} MAE: {-model_cv.mean():.4f}")
+
+print(f"Stacking Ensemble MAE: {-cv_stacking.mean():.4f}")
+print(f"\nImprovement: Stacking shows "
+      f"{((-cv_stacking.mean() / min([cross_val_score(m, X, y, cv=5, scoring='neg_mean_absolute_error').mean() for _, m in base_models])) - 1) * -100:.1f}% improvement over best single model")
+</code></pre>
+<h3>Voting</h3>
+<pre><code class="language-python">from sklearn.ensemble import VotingRegressor
+
+# Voting Ensemble
+voting = VotingRegressor(
+    estimators=base_models,
+    weights=[1, 1.5, 1]  # Higher weight for GB
+)
+
+cv_voting = cross_val_score(voting, X, y, cv=5,
+                            scoring='neg_mean_absolute_error')
+
+print(f"\nVoting Ensemble MAE: {-cv_voting.mean():.4f}")
+
+# Ensemble methods comparison
+ensemble_comparison = pd.DataFrame({
+    'Method': ['Single Best', 'Bagging', 'Boosting (LightGBM)',
+               'Stacking', 'Voting'],
+    'MAE': [
+        min([cross_val_score(m, X, y, cv=5, scoring='neg_mean_absolute_error').mean() for _, m in base_models]),
+        -cv_bagging.mean(),
+        boosting_df[boosting_df['Model'] == 'LightGBM']['MAE'].values[0],
+        -cv_stacking.mean(),
+        -cv_voting.mean()
+    ]
+})
+
+plt.figure(figsize=(10, 6))
+plt.barh(ensemble_comparison['Method'], ensemble_comparison['MAE'],
+         color='coral', alpha=0.7)
+plt.xlabel('MAE (lower is better)', fontsize=12)
+plt.title('Ensemble Methods Performance Comparison', fontsize=13, fontweight='bold')
+plt.grid(axis='x', alpha=0.3)
+plt.tight_layout()
+plt.show()
+</code></pre>
+<hr/>
+<h2>3.5 Case Study: Li-ion Battery Capacity Prediction</h2>
+<p>We implement the complete workflow of model selection and optimization using real Li-ion battery data.</p>
+<pre><code class="language-python"># Li-ion battery capacity dataset (simulation)
+np.random.seed(42)
+n_batteries = 300
+
+battery_data = pd.DataFrame({
+    'Cathode_Composition_Li': np.random.uniform(0.9, 1.1, n_batteries),
+    'Cathode_Composition_Co': np.random.uniform(0, 0.6, n_batteries),
+    'Cathode_Composition_Ni': np.random.uniform(0, 0.8, n_batteries),
+    'Cathode_Composition_Mn': np.random.uniform(0, 0.4, n_batteries),
+    'Anode_Carbon_Fraction': np.random.uniform(0.8, 1.0, n_batteries),
+    'Electrolyte_Concentration': np.random.uniform(0.5, 2.0, n_batteries),
+    'Electrode_Thickness': np.random.uniform(50, 200, n_batteries),
+    'Particle_Size': np.random.uniform(1, 20, n_batteries),
+    'Sintering_Temperature': np.random.uniform(700, 1000, n_batteries),
+    'BET_Surface_Area': np.random.uniform(1, 50, n_batteries)
+})
+
+# Capacity (complex nonlinear relationship)
+capacity = (
+    150 * battery_data['Cathode_Composition_Ni'] +
+    120 * battery_data['Cathode_Composition_Co'] +
+    80 * battery_data['Cathode_Composition_Mn'] +
+    30 * battery_data['Electrolyte_Concentration'] -
+    0.5 * battery_data['Electrode_Thickness'] +
+    2 * battery_data['BET_Surface_Area'] +
+    0.1 * battery_data['Sintering_Temperature'] +
+    20 * battery_data['Cathode_Composition_Ni'] * battery_data['Electrolyte_Concentration'] +
+    np.random.normal(0, 5, n_batteries)
+)
+
+battery_data['Capacity_mAh_g'] = capacity
+
+print("=== Li-ion Battery Capacity Prediction Dataset ===")
+print(f"Number of samples: {len(battery_data)}")
+print(f"Number of features: {battery_data.shape[1] - 1}")
+print(f"\nCapacity Statistics:")
+print(battery_data['Capacity_mAh_g'].describe())
+
+X_battery = battery_data.drop('Capacity_mAh_g', axis=1)
+y_battery = battery_data['Capacity_mAh_g']
+</code></pre>
+<h3>Step 1: Comparing Five Models</h3>
+<pre><code class="language-python">from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_battery, y_battery, test_size=0.2, random_state=42
+)
+
+# Five models for comparison
+models_to_compare = {
+    'Ridge': Ridge(alpha=1.0),
+    'Random Forest': RandomForestRegressor(n_estimators=100, random_state=42),
+    'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, random_state=42),
+    'LightGBM': lgb.LGBMRegressor(n_estimators=100, random_state=42, verbose=-1),
+    'Stacking': StackingRegressor(
+        estimators=[
+            ('rf', RandomForestRegressor(n_estimators=100, random_state=42)),
+            ('gb', GradientBoostingRegressor(n_estimators=100, random_state=42)),
+            ('lgbm', lgb.LGBMRegressor(n_estimators=100, random_state=42, verbose=-1))
+        ],
+        final_estimator=Ridge(alpha=1.0),
+        cv=5
+    )
+}
+
+comparison_results = []
+
+for model_name, model in models_to_compare.items():
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    mae = mean_absolute_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+
+    comparison_results.append({
+        'Model': model_name,
+        'MAE': mae,
+        'RMSE': rmse,
+        'R²': r2
+    })
+
+comparison_df = pd.DataFrame(comparison_results)
+print("\n=== Step 1: Model Comparison Results ===")
+print(comparison_df.to_string(index=False))
+</code></pre>
+<h3>Step 2: Automated Hyperparameter Optimization with Optuna</h3>
+<pre><code class="language-python">def objective_lightgbm(trial, X, y):
+    """
+    LightGBM hyperparameter optimization
+    """
+    param = {
+        'objective': 'regression',
+        'metric': 'mae',
+        'verbosity': -1,
+        'boosting_type': 'gbdt',
+        'num_leaves': trial.suggest_int('num_leaves', 20, 100),
+        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
+        'n_estimators': trial.suggest_int('n_estimators', 50, 300),
+        'min_child_samples': trial.suggest_int('min_child_samples', 5, 100),
+        'subsample': trial.suggest_float('subsample', 0.5, 1.0),
+        'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1.0),
+        'reg_alpha': trial.suggest_float('reg_alpha', 1e-8, 10.0, log=True),
+        'reg_lambda': trial.suggest_float('reg_lambda', 1e-8, 10.0, log=True),
+        'random_state': 42
+    }
+
+    model = lgb.LGBMRegressor(**param)
+
+    cv_scores = cross_val_score(
+        model, X, y, cv=5, scoring='neg_mean_absolute_error'
+    )
+
+    return -cv_scores.mean()
+
+# Optuna optimization
+study_battery = optuna.create_study(direction='minimize')
+study_battery.optimize(
+    lambda trial: objective_lightgbm(trial, X_battery, y_battery),
+    n_trials=100,
+    show_progress_bar=True
+)
+
+print("\n=== Step 2: Optuna Optimization ===")
+print(f"Best parameters:")
+for key, value in study_battery.best_params.items():
+    print(f"  {key}: {value}")
+print(f"\nBest MAE: {study_battery.best_value:.4f} mAh/g")
+
+# Re-evaluate with optimized model
+best_model = lgb.LGBMRegressor(**study_battery.best_params, random_state=42)
+best_model.fit(X_train, y_train)
+y_pred_best = best_model.predict(X_test)
+
+mae_best = mean_absolute_error(y_test, y_pred_best)
+r2_best = r2_score(y_test, y_pred_best)
+
+print(f"\nOptimized Model Performance:")
+print(f"MAE: {mae_best:.4f} mAh/g")
+print(f"R²: {r2_best:.4f}")
+</code></pre>
+<h3>Step 3: Final Stacking Ensemble for Peak Performance</h3>
+<pre><code class="language-python"># Stacking with optimized LightGBM
+optimized_stacking = StackingRegressor(
+    estimators=[
+        ('rf_tuned', RandomForestRegressor(
+            n_estimators=200, max_depth=15, min_samples_split=5,
+            random_state=42
+        )),
+        ('lgbm_tuned', lgb.LGBMRegressor(**study_battery.best_params, random_state=42)),
+        ('gb_tuned', GradientBoostingRegressor(
+            n_estimators=150, learning_rate=0.1, max_depth=7,
+            random_state=42
+        ))
+    ],
+    final_estimator=Ridge(alpha=0.5),
+    cv=5
+)
+
+optimized_stacking.fit(X_train, y_train)
+y_pred_stack = optimized_stacking.predict(X_test)
+
+mae_stack = mean_absolute_error(y_test, y_pred_stack)
+r2_stack = r2_score(y_test, y_pred_stack)
+
+print("\n=== Step 3: Final Stacking Ensemble ===")
+print(f"MAE: {mae_stack:.4f} mAh/g")
+print(f"R²: {r2_stack:.4f}")
+
+# Comprehensive results comparison
+final_comparison = pd.DataFrame({
+    'Stage': [
+        'Baseline (Ridge)',
+        'Best Single Model',
+        'Optuna Optimized',
+        'Final Stacking'
+    ],
+    'MAE': [
+        comparison_df[comparison_df['Model'] == 'Ridge']['MAE'].values[0],
+        comparison_df['MAE'].min(),
+        mae_best,
+        mae_stack
+    ],
+    'R²': [
+        comparison_df[comparison_df['Model'] == 'Ridge']['R²'].values[0],
+        comparison_df['R²'].max(),
+        r2_best,
+        r2_stack
+    ]
+})
+
+print("\n=== Overall Performance Progression ===")
+print(final_comparison.to_string(index=False))
+
+# Predicted vs actual
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# Best single model before optimization
+best_single_idx = comparison_df['MAE'].idxmin()
+best_single_model = list(models_to_compare.values())[best_single_idx]
+y_pred_single = best_single_model.predict(X_test)
+
+axes[0].scatter(y_test, y_pred_single, c='steelblue', s=50, alpha=0.6)
+axes[0].plot([y_test.min(), y_test.max()],
+             [y_test.min(), y_test.max()],
+             'r--', linewidth=2, label='Perfect')
+axes[0].set_xlabel('Actual Capacity (mAh/g)', fontsize=11)
+axes[0].set_ylabel('Predicted Capacity (mAh/g)', fontsize=11)
+axes[0].set_title(f'Best Single Model (MAE={comparison_df["MAE"].min():.2f})',
+                  fontsize=12, fontweight='bold')
+axes[0].legend()
+axes[0].grid(alpha=0.3)
+
+# Final Stacking
+axes[1].scatter(y_test, y_pred_stack, c='coral', s=50, alpha=0.6)
+axes[1].plot([y_test.min(), y_test.max()],
+             [y_test.min(), y_test.max()],
+             'r--', linewidth=2, label='Perfect')
+axes[1].set_xlabel('Actual Capacity (mAh/g)', fontsize=11)
+axes[1].set_ylabel('Predicted Capacity (mAh/g)', fontsize=11)
+axes[1].set_title(f'Final Stacking (MAE={mae_stack:.2f})',
+                  fontsize=12, fontweight='bold')
+axes[1].legend()
+axes[1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+improvement = (comparison_df['MAE'].min() - mae_stack) / comparison_df['MAE'].min() * 100
+print(f"\nFinal Improvement Rate: {improvement:.1f}%")
+</code></pre>
+<hr/>
+<h2>Exercises</h2>
+<h3>Exercise 1 (Difficulty: Easy)</h3>
+<p>Compare K-Fold CV and Stratified K-Fold CV using imbalanced classification data to evaluate performance.</p>
+<details>
+<summary>Solution Example</summary>
+<pre><code class="language-python">from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
+from sklearn.datasets import make_classification
+from sklearn.ensemble import RandomForestClassifier
+
+# Generate imbalanced data
+X, y = make_classification(n_samples=200, n_features=20,
+                          weights=[0.9, 0.1], random_state=42)
+
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# K-Fold
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+scores_kfold = cross_val_score(model, X, y, cv=kf, scoring='f1')
+
+# Stratified K-Fold
+skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+scores_stratified = cross_val_score(model, X, y, cv=skf, scoring='f1')
+
+print(f"K-Fold F1: {scores_kfold.mean():.4f} ± {scores_kfold.std():.4f}")
+print(f"Stratified K-Fold F1: {scores_stratified.mean():.4f} ± {scores_stratified.std():.4f}")
+</code></pre>
+</details>
+<h3>Exercise 2 (Difficulty: Medium)</h3>
+<p>Use Optuna to optimize Random Forest hyperparameters. Explore four parameters: <code>n_estimators</code>, <code>max_depth</code>, <code>min_samples_split</code>, and <code>max_features</code>.</p>
+<details>
+<summary>Solution Example</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - optuna&gt;=3.2.0
+
+"""
+Example: Use Optuna to optimize Random Forest hyperparameters. Explor
+
+Purpose: Demonstrate optimization techniques
+Target: Advanced
+Execution time: 10-30 seconds
+Dependencies: None
+"""
+
+import optuna
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import cross_val_score
+
+def objective_rf(trial):
+    params = {
+        'n_estimators': trial.suggest_int('n_estimators', 50, 300),
+        'max_depth': trial.suggest_int('max_depth', 5, 30),
+        'min_samples_split': trial.suggest_int('min_samples_split', 2, 20),
+        'max_features': trial.suggest_float('max_features', 0.3, 1.0),
+        'random_state': 42
+    }
+
+    model = RandomForestRegressor(**params)
+    cv_scores = cross_val_score(model, X, y, cv=5,
+                                scoring='neg_mean_absolute_error')
+
+    return -cv_scores.mean()
+
+study = optuna.create_study(direction='minimize')
+study.optimize(objective_rf, n_trials=50)
+
+print(f"Best parameters: {study.best_params}")
+print(f"Best score: {study.best_value:.4f}")
+</code></pre>
+</details>
+<h3>Exercise 3 (Difficulty: Hard)</h3>
+<p>Build a Stacking Ensemble with three base models (Ridge, Random Forest, LightGBM) and compare two meta-models (Ridge, Lasso). Which meta-model performs better?</p>
+<details>
+<summary>Solution Example</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - lightgbm&gt;=4.0.0
+
+"""
+Example: Build a Stacking Ensemble with three base models (Ridge, Ran
+
+Purpose: Demonstrate data manipulation and preprocessing
+Target: Advanced
+Execution time: ~5 seconds
+Dependencies: None
+"""
+
+from sklearn.ensemble import StackingRegressor
+from sklearn.linear_model import Ridge, Lasso
+import lightgbm as lgb
+
+base_models = [
+    ('ridge', Ridge(alpha=1.0)),
+    ('rf', RandomForestRegressor(n_estimators=100, random_state=42)),
+    ('lgbm', lgb.LGBMRegressor(n_estimators=100, random_state=42, verbose=-1))
+]
+
+meta_models = {
+    'Ridge': Ridge(alpha=1.0),
+    'Lasso': Lasso(alpha=0.1)
+}
+
+results = []
+
+for meta_name, meta_model in meta_models.items():
+    stacking = StackingRegressor(
+        estimators=base_models,
+        final_estimator=meta_model,
+        cv=5
+    )
+
+    cv_scores = cross_val_score(stacking, X, y, cv=5,
+                                scoring='neg_mean_absolute_error')
+    mae = -cv_scores.mean()
+
+    results.append({
+        'Meta Model': meta_name,
+        'MAE': mae
+    })
+
+results_df = pd.DataFrame(results)
+print(results_df.to_string(index=False))
+</code></pre>
+</details>
+<hr/>
+<h2>3.6 Model Optimization Environment and Reproducibility</h2>
+<h3>Library Version Management</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - lightgbm&gt;=4.0.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - optuna&gt;=3.2.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+# - scikit-learn&gt;=1.3.0, &lt;1.5.0
+
+"""
+Example: Library Version Management
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+# Libraries required for model selection and optimization
+import sys
+import sklearn
+import optuna
+import lightgbm
+import pandas as pd
+import numpy as np
+
+reproducibility_info = {
+    'Python': sys.version,
+    'NumPy': np.__version__,
+    'Pandas': pd.__version__,
+    'scikit-learn': sklearn.__version__,
+    'Optuna': optuna.__version__,
+    'LightGBM': lightgbm.__version__,
+    'Date': '2025-10-19'
+}
+
+print("=== Model Optimization Environment ===")
+for key, value in reproducibility_info.items():
+    print(f"{key}: {value}")
+
+# Recommended versions
+print("\n【Recommended Environment】")
+recommended = """
+numpy==1.24.3
+pandas==2.0.3
+scikit-learn==1.3.0
+optuna==3.3.0
+lightgbm==4.0.0
+xgboost==2.0.0  # Optional
+matplotlib==3.7.2
+seaborn==0.12.2
+"""
+print(recommended)
+
+print("\n【Installation Command】")
+print("```bash")
+print("pip install numpy==1.24.3 pandas==2.0.3 scikit-learn==1.3.0")
+print("pip install optuna==3.3.0 lightgbm==4.0.0")
+print("```")
+
+print("\n【Important Notes】")
+print("⚠️ Optuna's optimization algorithm may differ across versions")
+print("⚠️ LightGBM/XGBoost may have OS-dependent issues → validate in consistent environment")
+print("⚠️ Always specify library versions in papers and reports")
+</code></pre>
+<h3>Random Seed Management</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+# Seed setting for reproducibility
+def set_all_seeds(seed=42):
+    """
+    Set all random number generators
+    """
+    import random
+    import numpy as np
+
+    random.seed(seed)
+    np.random.seed(seed)
+
+    # scikit-learn models specify via random_state parameter
+    print(f"✅ Random seed {seed} set")
+    print("Specify random_state={seed} explicitly in model training")
+
+set_all_seeds(42)
+
+# Optuna seed management
+print("\n【Optuna Seed Management】")
+print("```python")
+print("study = optuna.create_study(")
+print("    direction='minimize',")
+print("    sampler=optuna.samplers.TPESampler(seed=42)  # Ensure reproducibility")
+print(")")
+print("```")
+</code></pre>
+<h3>Practical Pitfalls (Model Selection and Optimization)</h3>
+<pre><code class="language-python">print("=== Model Selection and Optimization Pitfalls ===\n")
+
+print("【Pitfall 1: Hyperparameter Tuning on Test Data】")
+print("❌ Bad practice: Optimize on test set")
+print("```python")
+print("X_train, X_test = train_test_split(X, y)")
+print("# Evaluate multiple models and select best on test set")
+print("for model in models:")
+print("    score = model.score(X_test, y_test)  # WRONG!")
+print("best_model = models[best_idx]")
+print("```")
+
+print("\n✅ Correct approach: Train/Validation/Test split")
+print("```python")
+print("X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3)")
+print("X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5)")
+print("# Optimize on Validation, evaluate on Test only")
+print("```")
+
+print("\n【Pitfall 2: Data Leakage in Cross-Validation】")
+print("⚠️ Running preprocessing (StandardScaler, Imputer) on all data")
+print("→ Test data information leaks into training")
+
+print("\n✅ Solution: Use Pipeline to include preprocessing")
+print("```python")
+print("from sklearn.pipeline import Pipeline")
+print("from sklearn.preprocessing import StandardScaler")
+print("")
+print("pipeline = Pipeline([")
+print("    ('scaler', StandardScaler()),")
+print("    ('model', RandomForestRegressor())")
+print("])")
+print("cv_scores = cross_val_score(pipeline, X, y, cv=5)")
+print("```")
+
+print("\n【Pitfall 3: Excessive Optuna Iterations】")
+print("⚠️ Using n_trials=1000 for optimization → overfitting risk")
+print("→ Overfit to validation set")
+
+print("\n✅ Solution: Early Stopping + Test Evaluation")
+print("```python")
+print("study.optimize(objective, n_trials=100,")
+print("    callbacks=[optuna.study.MaxTrialsCallback(100)])")
+print("# Evaluate final model on test set")
+print("```")
+
+print("\n【Pitfall 4: Excessive Ensemble Complexity】")
+print("⚠️ Combining Stacking + Voting + Blending in multiple stages")
+print("→ Increased training time, lost interpretability, overfitting")
+
+print("\n✅ Solution: Simple ensemble (2-3 models)")
+print("```python")
+print("# Simple Stacking (3 base models + 1 meta model)")
+print("stacking = StackingRegressor(")
+print("    estimators=[('rf', RF), ('gb', GB), ('lgbm', LGBM)],")
+print("    final_estimator=Ridge(),")
+print("    cv=5")
+print(")")
+print("```")
+
+print("\n【Pitfall 5: Complex Models on Small Datasets】")
+print("⚠️ Training Neural Network on 50 samples")
+print("→ Overfitting, unstable")
+
+print("\n✅ Solution: Select model based on data size")
+print("```python")
+print("if len(X) &lt; 100:")
+print("    model = Ridge()  # Linear model")
+print("elif len(X) &lt; 1000:")
+print("    model = RandomForest()  # Tree-based")
+print("else:")
+print("    model = NeuralNetwork()  # Deep learning")
+print("```")
+</code></pre>
+<hr/>
+<h2>Summary</h2>
+<p>In this chapter, we learned <strong>model selection and hyperparameter optimization</strong>.</p>
+<p><strong>Key Takeaways</strong>:</p>
+<ol>
+<li><strong>Model Selection</strong>: Choose appropriate models based on data size (small: Ridge, medium: RF, large: NN)</li>
+<li><strong>Cross-Validation</strong>: Apply K-Fold, Stratified, Time Series appropriately</li>
+<li><strong>Optimization Methods</strong>: Progression from Grid &lt; Random &lt; Bayesian (Optuna) for efficiency</li>
+<li><strong>Ensemble Methods</strong>: Stacking &gt; Voting &gt; Boosting &gt; Bagging in performance hierarchy</li>
+<li><strong>Real-world Case Study</strong>: Li-ion battery capacity prediction showed 30%+ performance improvement</li>
+<li><strong>Environment Management</strong>: Strict library versioning and random seed control</li>
+<li><strong>Common Pitfalls</strong>: Avoid test set tuning, data leakage, overfitting, and oversized models on small data</li>
+</ol>
+<p><strong>Next Chapter Preview</strong>:
+Chapter 4 covers Explainable AI (XAI). We'll use SHAP, LIME, and attention visualization to understand prediction physical meanings and explore real-world applications and career paths.</p>
+<hr/>
+<h2>Chapter 3 Checklist</h2>
+<h3>Model Selection</h3>
+<ul>
+<li>[ ] <strong>Evaluate Data Size</strong></li>
+<li>[ ] Samples &lt; 100 → Ridge/Lasso (regularized linear models)</li>
+<li>[ ] Samples 100-1000 → Random Forest/Gradient Boosting</li>
+<li>[ ] Samples &gt; 1000 → Neural Network/Deep Learning</li>
+<li>
+<p>[ ] Verify sample-to-feature ratio &gt; 10:1</p>
+</li>
+<li>
+<p>[ ] <strong>Balance Interpretability vs. Accuracy</strong></p>
+</li>
+<li>[ ] Interpretability priority (material design guidelines) → Ridge, Decision Tree</li>
+<li>[ ] Accuracy priority (maximize prediction) → Gradient Boosting, Stacking</li>
+<li>
+<p>[ ] Balanced approach → Random Forest</p>
+</li>
+<li>
+<p>[ ] <strong>Verify Model Complexity</strong></p>
+</li>
+<li>[ ] Check learning curves for overfitting (training error &lt;&lt; validation error)</li>
+<li>[ ] Tune regularization (alpha, lambda)</li>
+<li>[ ] Set appropriate iteration count via Early Stopping</li>
+</ul>
+<h3>Cross-Validation</h3>
+<ul>
+<li>[ ] <strong>K-Fold CV (Standard)</strong></li>
+<li>[ ] Use K=5 for regression tasks</li>
+<li>[ ] Use K=10 when computational resources available for better accuracy</li>
+<li>
+<p>[ ] Set shuffle=True to remove order effects</p>
+</li>
+<li>
+<p>[ ] <strong>Stratified K-Fold (Classification/Imbalanced)</strong></p>
+</li>
+<li>[ ] Essential for imbalanced datasets</li>
+<li>[ ] Verify class distribution uniformity across folds</li>
+<li>
+<p>[ ] Verify minority class samples &gt; K</p>
+</li>
+<li>
+<p>[ ] <strong>Time Series Split (Sequential Data)</strong></p>
+</li>
+<li>[ ] Apply to sequential material experiment data</li>
+<li>[ ] Verify training always precedes test temporally</li>
+<li>
+<p>[ ] Absolutely prevent future data training (data leakage prevention)</p>
+</li>
+<li>
+<p>[ ] <strong>Leave-One-Out CV (Small Datasets)</strong></p>
+</li>
+<li>[ ] Use when samples &lt; 50</li>
+<li>[ ] Recognize high computational cost (n iterations)</li>
+<li>[ ] Be aware of overly optimistic evaluation</li>
+</ul>
+<h3>Hyperparameter Optimization</h3>
+<ul>
+<li>[ ] <strong>Grid Search</strong></li>
+<li>[ ] Use when search space small (&lt;100 combinations)</li>
+<li>[ ] Focus on 2-3 important parameters</li>
+<li>
+<p>[ ] Exhaustively evaluate all combinations</p>
+</li>
+<li>
+<p>[ ] <strong>Random Search</strong></p>
+</li>
+<li>[ ] Use for large search spaces</li>
+<li>[ ] Achieves Grid Search performance with 10-20% trials</li>
+<li>
+<p>[ ] Efficiently explore continuous parameters</p>
+</li>
+<li>
+<p>[ ] <strong>Bayesian Optimization (Optuna)</strong></p>
+</li>
+<li>[ ] Most efficient (recommended)</li>
+<li>[ ] n_trials=50-100 sufficient for good performance</li>
+<li>[ ] Parameter importance analysis improves interpretability</li>
+<li>
+<p>[ ] Set sampler algorithm (TPESampler) seed for reproducibility</p>
+</li>
+<li>
+<p>[ ] <strong>Early Stopping</strong></p>
+</li>
+<li>[ ] Essential for Boosting models</li>
+<li>[ ] Stop at minimum validation error point</li>
+<li>[ ] Prevents overfitting and reduces computation</li>
+</ul>
+<h3>Ensemble Learning</h3>
+<ul>
+<li>[ ] <strong>Bagging</strong></li>
+<li>[ ] Random Forest implements Bagging automatically</li>
+<li>[ ] Stabilizes high-variance models</li>
+<li>
+<p>[ ] Expect 20-30% improvement with Decision Tree ensemble</p>
+</li>
+<li>
+<p>[ ] <strong>Boosting</strong></p>
+</li>
+<li>[ ] Test Gradient Boosting, LightGBM, XGBoost</li>
+<li>[ ] Trade-off between learning_rate and n_estimators</li>
+<li>
+<p>[ ] Use Early Stopping to prevent overfitting</p>
+</li>
+<li>
+<p>[ ] <strong>Stacking</strong></p>
+</li>
+<li>[ ] Use 3-5 diverse base models</li>
+<li>[ ] Keep meta-model simple (Ridge, Lasso)</li>
+<li>[ ] Generate meta-features with cross-validation (cv=5)</li>
+<li>
+<p>[ ] Target 5-10% improvement over single best model</p>
+</li>
+<li>
+<p>[ ] <strong>Voting</strong></p>
+</li>
+<li>[ ] Simpler than Stacking</li>
+<li>[ ] Weight models by performance</li>
+<li>[ ] 3 models typically sufficient</li>
+</ul>
+<h3>Avoiding Practical Pitfalls</h3>
+<ul>
+<li>[ ] <strong>No Test Set Tuning</strong></li>
+<li>[ ] Use Train/Validation/Test split</li>
+<li>[ ] Optimize on Validation, evaluate on Test only</li>
+<li>
+<p>[ ] Use test set exactly once</p>
+</li>
+<li>
+<p>[ ] <strong>Prevent Cross-Validation Data Leakage</strong></p>
+</li>
+<li>[ ] Embed preprocessing in Pipeline</li>
+<li>[ ] Perform preprocessing independently per fold (StandardScaler.fit)</li>
+<li>
+<p>[ ] Execute feature selection within cross-validation</p>
+</li>
+<li>
+<p>[ ] <strong>Avoid Excessive Optimization</strong></p>
+</li>
+<li>[ ] Use Optuna n_trials &lt; 200 (recommend 100)</li>
+<li>[ ] Monitor validation vs. test performance gap</li>
+<li>
+<p>[ ] Start with simple models</p>
+</li>
+<li>
+<p>[ ] <strong>Avoid Ensemble Overcomplexity</strong></p>
+</li>
+<li>[ ] Limit Stacking to single level (no multi-stage)</li>
+<li>[ ] Keep base models ≤ 5</li>
+<li>
+<p>[ ] Evaluate training time vs. performance trade-off</p>
+</li>
+<li>
+<p>[ ] <strong>Avoid Complex Models on Small Data</strong></p>
+</li>
+<li>[ ] Samples &lt; 100 → linear models</li>
+<li>[ ] Samples &lt; 1000 → tree-based models</li>
+<li>[ ] Deep learning only for large data (&gt;1000)</li>
+</ul>
+<h3>Reproducibility Assurance</h3>
+<ul>
+<li>[ ] <strong>Version Management</strong></li>
+<li>[ ] Record scikit-learn, Optuna, LightGBM versions</li>
+<li>[ ] Create requirements.txt</li>
+<li>
+<p>[ ] Consider Docker for environment consistency (recommended)</p>
+</li>
+<li>
+<p>[ ] <strong>Random Seed Configuration</strong></p>
+</li>
+<li>[ ] NumPy: np.random.seed(42)</li>
+<li>[ ] scikit-learn: random_state=42</li>
+<li>[ ] Optuna: TPESampler(seed=42)</li>
+<li>
+<p>[ ] Use consistent seed across all random elements</p>
+</li>
+<li>
+<p>[ ] <strong>Save Optimization History</strong></p>
+</li>
+<li>[ ] Save Optuna study.trials_dataframe() to CSV</li>
+<li>[ ] Save best parameters as JSON</li>
+<li>
+<p>[ ] Save learning curves as images</p>
+</li>
+<li>
+<p>[ ] <strong>Model Persistence</strong></p>
+</li>
+<li>[ ] Save trained model with joblib.dump()</li>
+<li>[ ] Apply identical preprocessing during prediction</li>
+<li>[ ] Version control models (Git LFS recommended)</li>
+</ul>
+<h3>Li-ion Battery Capacity Prediction Case Study</h3>
+<ul>
+<li>[ ] <strong>Data Preparation</strong></li>
+<li>[ ] Generate composition, structure, process condition features</li>
+<li>[ ] Split Train/Test (80/20)</li>
+<li>
+<p>[ ] Handle missing values and outliers pre-training</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Model Comparison</strong></p>
+</li>
+<li>[ ] Evaluate 5 models (Ridge, RF, GB, LGBM, Stacking)</li>
+<li>[ ] Compare using MAE, RMSE, R²</li>
+<li>
+<p>[ ] Identify best single model</p>
+</li>
+<li>
+<p>[ ] <strong>Step 2: Optuna Optimization</strong></p>
+</li>
+<li>[ ] Optimize 8 LightGBM hyperparameters</li>
+<li>[ ] Run with n_trials=100</li>
+<li>
+<p>[ ] Analyze parameter importance</p>
+</li>
+<li>
+<p>[ ] <strong>Step 3: Final Stacking</strong></p>
+</li>
+<li>[ ] Use 3 optimized models as base</li>
+<li>[ ] Select Ridge as meta-model</li>
+<li>[ ] Achieve &gt;30% improvement from Baseline (Ridge)</li>
+</ul>
+<h3>Model Selection and Optimization Quality Metrics</h3>
+<ul>
+<li>[ ] <strong>Prediction Accuracy</strong></li>
+<li>[ ] MAE (regression) &lt; 20% of data standard deviation</li>
+<li>[ ] R² &gt; 0.8 (R² &gt; 0.7 acceptable for materials science)</li>
+<li>
+<p>[ ] Verify RMSE (evaluate outlier influence)</p>
+</li>
+<li>
+<p>[ ] <strong>Generalization Performance</strong></p>
+</li>
+<li>[ ] Training-test error gap &lt; 10%</li>
+<li>[ ] Small cross-validation std (stability)</li>
+<li>
+<p>[ ] Verify performance maintenance on new data</p>
+</li>
+<li>
+<p>[ ] <strong>Computational Efficiency</strong></p>
+</li>
+<li>[ ] Training time &lt; 1 hour (medium-scale data)</li>
+<li>[ ] Inference time &lt; 1 second/sample</li>
+<li>
+<p>[ ] Optuna optimization time &lt; 10 minutes (n_trials=100)</p>
+</li>
+<li>
+<p>[ ] <strong>Interpretability</strong></p>
+</li>
+<li>[ ] Identify important variables via feature_importances_</li>
+<li>[ ] Use SHAP values (next chapter) for physical interpretation</li>
+<li>[ ] Verify validity with domain expert</li>
+</ul>
+<hr/>
+<h2>References</h2>
+<ol>
+<li>
+<p><strong>Akiba, T., Sano, S., Yanase, T., et al.</strong> (2019). Optuna: A Next-generation Hyperparameter Optimization Framework. <em>Proceedings of the 25th ACM SIGKDD</em>, 2623-2631. <a href="https://doi.org/10.1145/3292500.3330701">DOI: 10.1145/3292500.3330701</a></p>
+</li>
+<li>
+<p><strong>Bergstra, J. &amp; Bengio, Y.</strong> (2012). Random search for hyper-parameter optimization. <em>Journal of Machine Learning Research</em>, 13, 281-305.</p>
+</li>
+<li>
+<p><strong>Dietterich, T. G.</strong> (2000). Ensemble methods in machine learning. <em>International Workshop on Multiple Classifier Systems</em>, 1-15. Springer.</p>
+</li>
+<li>
+<p><strong>Wolpert, D. H.</strong> (1992). Stacked generalization. <em>Neural Networks</em>, 5(2), 241-259. <a href="https://doi.org/10.1016/S0893-6080(05)80023-1">DOI: 10.1016/S0893-6080(05)80023-1</a></p>
+</li>
+</ol>
+<hr/>
+<p><a href="chapter-2.html">← Chapter 2</a> | <a href="chapter-4.html">Chapter 4 →</a></p>
+<div class="navigation">
+<a class="nav-button" href="chapter-2.html">← Previous Chapter</a>
+<a class="nav-button" href="index.html">Return to Series Contents</a>
+<a class="nav-button" href="chapter-4.html">Next Chapter →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided for educational, research, and informational purposes only and does not constitute professional advice (legal, accounting, technical warranties, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any express or implied warranties, including merchantability, fitness for particular purpose, non-infringement, accuracy, completeness, or operational/safety assurances.</li>
+<li>We assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, or any services provided by third parties.</li>
+<li>To the maximum extent permitted by applicable law, we are not liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>This content may be modified, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to specified conditions (e.g., CC BY 4.0), which typically include warranty disclaimers.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Author</strong>: AI Terakoya Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-17</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

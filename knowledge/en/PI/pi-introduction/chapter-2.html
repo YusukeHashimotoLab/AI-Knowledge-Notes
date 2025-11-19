@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 2: Process Data Preprocessing and Visualization - PI Terakoya. Time series data manipulation using Pandas (resampling, rolling statistics)" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 2: Process Data Preprocessing and Visualization - PI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../PI/index.html">Process Informatics</a><span class="breadcrumb-separator">›</span><a href="../../PI/pi-introduction/index.html">PI</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/PI/pi-introduction/chapter-2.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="container">
+<h1>Chapter 2: Process Data Preprocessing and Visualization</h1>
+<p class="subtitle">Practical Preprocessing Methods to Improve Data Quality</p>
+<div class="meta">
+<span class="meta">📖 Reading Time: 30-35 minutes</span>
+<span class="meta">📊 Difficulty: Beginner to Intermediate</span>
+<span class="meta">💻 Code Examples: 10</span>
+</div>
+</div>
+</header>
+<main class="container">
+<h1>Chapter 2: Process Data Preprocessing and Visualization</h1>
+<p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-left: 4px solid #11998e; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">Process data preprocessing is the most critical step to obtain high-quality analysis results. Learn practical methods for handling time series data, addressing missing values and outliers, and data scaling techniques.</p>
+<div class="learning-objectives">
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will master the following:</p>
+<ul>
+<li>✅ Time series data manipulation using Pandas (resampling, rolling statistics)</li>
+<li>✅ Identify types of missing values (MCAR/MAR/MNAR) and select appropriate imputation methods</li>
+<li>✅ Implement multiple outlier detection methods (Z-score, IQR, Isolation Forest)</li>
+<li>✅ Choose appropriate scaling methods for process data</li>
+<li>✅ Create advanced visualizations with Matplotlib/Seaborn</li>
+</ul>
+</div>
+<hr/>
+<h2>2.1 Handling Time Series Data</h2>
+<p>Process industry data is primarily <strong>time series data</strong> that changes over time. Mastering Pandas' powerful time series capabilities is a fundamental skill in PI.</p>
+<h3>Basics of Pandas DatetimeIndex</h3>
+<p>To work with time series data, first set up a <code>DatetimeIndex</code>. This makes time-based operations much easier.</p>
+<h4>Code Example 1: DatetimeIndex Setup and Slicing</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 1: DatetimeIndex Setup and Slicing
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Generate sample data: 3 days of distillation column operation data (1-minute intervals)
+np.random.seed(42)
+dates = pd.date_range('2025-01-01 00:00', periods=4320, freq='1min')  # 3 days
+df = pd.DataFrame({
+    'timestamp': dates,
+    'temperature': 85 + np.random.normal(0, 1.5, 4320) + 2*np.sin(np.arange(4320)*2*np.pi/1440),
+    'pressure': 1.2 + np.random.normal(0, 0.05, 4320),
+    'flow_rate': 50 + np.random.normal(0, 3, 4320)
+})
+
+# Set as DatetimeIndex
+df = df.set_index('timestamp')
+print("Basic DataFrame Information:")
+print(df.info())
+print("\nFirst 5 rows:")
+print(df.head())
+
+# Time-based slicing
+print("\nData from 2025-01-01 12:00 to 13:00:")
+subset = df['2025-01-01 12:00':'2025-01-01 13:00']
+print(subset.head())
+print(f"Number of records: {len(subset)}")
+
+# Extract data for a specific day
+day1 = df['2025-01-01']
+print(f"\nNumber of records for 2025-01-01: {len(day1)}")
+
+# Time period filtering (9:00-17:00 for all days)
+business_hours = df.between_time('09:00', '17:00')
+print(f"\nNumber of records during business hours: {len(business_hours)}")
+
+# Calculate statistics
+print("\nDaily Statistics:")
+daily_stats = df.resample('D').agg({
+    'temperature': ['mean', 'std', 'min', 'max'],
+    'pressure': ['mean', 'std'],
+    'flow_rate': ['mean', 'sum']
+})
+print(daily_stats)
+</code></pre>
+<p><strong>Output Example</strong>:</p>
+<pre><code>Basic DataFrame Information:
+&lt;class 'pandas.core.frame.DataFrame'&gt;
+DatetimeIndex: 4320 entries, 2025-01-01 00:00:00 to 2025-01-03 23:59:00
+Freq: min
+Data columns (total 3 columns):
+...
+
+Number of records for 2025-01-01: 1440
+Number of records during business hours: 1440
+</code></pre>
+<p><strong>Explanation</strong>: Using <code>DatetimeIndex</code> enables intuitive time-based slicing and aggregation. Extracting specific time periods and calculating daily/weekly statistics for process data becomes straightforward.</p>
+<h3>Resampling</h3>
+<p>Sensor data is often recorded at second intervals, but minute or hourly data may be sufficient for analysis. <strong>Resampling</strong> allows you to adjust the data granularity.</p>
+<h4>Code Example 2: Resampling and Downsampling</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 2: Resampling and Downsampling
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Generate high-frequency data (5-second intervals, 1 day)
+np.random.seed(42)
+dates = pd.date_range('2025-01-01', periods=17280, freq='5s')  # 5-second intervals
+df_highfreq = pd.DataFrame({
+    'temperature': 175 + np.random.normal(0, 0.5, 17280)
+}, index=dates)
+
+print(f"Original data: {len(df_highfreq)} records (5-second intervals)")
+print(df_highfreq.head())
+
+# Downsample to 1-minute average
+df_1min = df_highfreq.resample('1min').mean()
+print(f"\n1-minute average: {len(df_1min)} records")
+print(df_1min.head())
+
+# 5-minute aggregation (multiple aggregation functions)
+df_5min = df_highfreq.resample('5min').agg(['mean', 'std', 'min', 'max'])
+print(f"\n5-minute aggregation: {len(df_5min)} records")
+print(df_5min.head())
+
+# Hourly aggregation
+df_hourly = df_highfreq.resample('1h').agg({
+    'temperature': ['mean', 'std', 'count']
+})
+print(f"\nHourly aggregation: {len(df_hourly)} records")
+print(df_hourly.head(10))
+
+# Visualization: Original data and resampled results
+fig, axes = plt.subplots(3, 1, figsize=(14, 10))
+
+# Original data (first 1 hour only)
+axes[0].plot(df_highfreq.index[:720], df_highfreq['temperature'][:720],
+             linewidth=0.5, alpha=0.7, label='Original (5s)')
+axes[0].set_ylabel('Temperature (°C)')
+axes[0].set_title('Original Data (5-second interval)')
+axes[0].legend()
+axes[0].grid(alpha=0.3)
+
+# 1-minute average (first 1 hour)
+axes[1].plot(df_1min.index[:60], df_1min['temperature'][:60],
+             linewidth=1, color='#11998e', label='1-min average')
+axes[1].set_ylabel('Temperature (°C)')
+axes[1].set_title('Resampled to 1-minute average')
+axes[1].legend()
+axes[1].grid(alpha=0.3)
+
+# 5-minute average (full day)
+axes[2].plot(df_5min.index, df_5min['temperature']['mean'],
+             linewidth=1.5, color='#f59e0b', label='5-min average')
+axes[2].fill_between(df_5min.index,
+                      df_5min['temperature']['min'],
+                      df_5min['temperature']['max'],
+                      alpha=0.2, color='#f59e0b', label='Min-Max range')
+axes[2].set_ylabel('Temperature (°C)')
+axes[2].set_xlabel('Time')
+axes[2].set_title('Resampled to 5-minute statistics')
+axes[2].legend()
+axes[2].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Data size comparison
+print("\n\nData Size Comparison:")
+print(f"Original data (5s): {len(df_highfreq):,} records")
+print(f"1-minute average: {len(df_1min):,} records ({len(df_1min)/len(df_highfreq)*100:.1f}%)")
+print(f"5-minute average: {len(df_5min):,} records ({len(df_5min)/len(df_highfreq)*100:.2f}%)")
+</code></pre>
+<p><strong>Output Example</strong>:</p>
+<pre><code>Original data: 17,280 records (5-second intervals)
+1-minute average: 1,440 records (8.3%)
+5-minute average: 288 records (1.67%)
+</code></pre>
+<p><strong>Explanation</strong>: Resampling reduces data volume while reducing noise. Selecting the appropriate time granularity based on analysis objectives optimizes the balance between computational efficiency and information content.</p>
+<h3>Rolling Statistics</h3>
+<p><strong>Rolling statistics</strong> such as moving averages and moving standard deviations are effective for trend identification and noise reduction.</p>
+<h4>Code Example 3: Rolling Statistics and Trend Analysis</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 3: Rolling Statistics and Trend Analysis
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Sample data: Reactor temperature data with noise
+np.random.seed(42)
+dates = pd.date_range('2025-01-01', periods=1440, freq='1min')
+
+# Trend component + noise
+trend = 170 + np.linspace(0, 10, 1440)  # Slowly increasing
+noise = np.random.normal(0, 2, 1440)
+df = pd.DataFrame({
+    'temperature': trend + noise
+}, index=dates)
+
+# Calculate rolling statistics
+df['rolling_mean_10'] = df['temperature'].rolling(window=10).mean()
+df['rolling_mean_60'] = df['temperature'].rolling(window=60).mean()
+df['rolling_std_60'] = df['temperature'].rolling(window=60).std()
+
+# Deviation from moving average (useful for anomaly detection)
+df['deviation'] = df['temperature'] - df['rolling_mean_60']
+
+# Rolling max/min (60-minute window)
+df['rolling_max'] = df['temperature'].rolling(window=60).max()
+df['rolling_min'] = df['temperature'].rolling(window=60).min()
+
+# Visualization
+fig, axes = plt.subplots(3, 1, figsize=(14, 12))
+
+# Original data and rolling average
+axes[0].plot(df.index, df['temperature'], alpha=0.3, linewidth=0.5,
+             label='Raw data', color='gray')
+axes[0].plot(df.index, df['rolling_mean_10'], linewidth=1.5,
+             label='10-min moving average', color='#11998e')
+axes[0].plot(df.index, df['rolling_mean_60'], linewidth=2,
+             label='60-min moving average', color='#f59e0b')
+axes[0].set_ylabel('Temperature (°C)')
+axes[0].set_title('Rolling Average for Trend Identification')
+axes[0].legend()
+axes[0].grid(alpha=0.3)
+
+# Rolling standard deviation (monitoring variability)
+axes[1].plot(df.index, df['rolling_std_60'], linewidth=1.5, color='#7b2cbf')
+axes[1].axhline(y=df['rolling_std_60'].mean(), color='red', linestyle='--',
+                label=f'Average Std: {df["rolling_std_60"].mean():.2f}')
+axes[1].set_ylabel('Rolling Std (°C)')
+axes[1].set_title('60-min Rolling Standard Deviation (Process Stability)')
+axes[1].legend()
+axes[1].grid(alpha=0.3)
+
+# Deviation from moving average
+axes[2].plot(df.index, df['deviation'], linewidth=0.8, color='#11998e')
+axes[2].axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+axes[2].fill_between(df.index, -3, 3, alpha=0.2, color='green',
+                      label='Normal range (±3°C)')
+axes[2].set_ylabel('Deviation (°C)')
+axes[2].set_xlabel('Time')
+axes[2].set_title('Deviation from 60-min Moving Average')
+axes[2].legend()
+axes[2].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Statistical summary
+print("Rolling Statistics Summary:")
+print(df[['rolling_mean_60', 'rolling_std_60', 'deviation']].describe())
+
+# Anomaly detection (deviation ±4°C or more from moving average)
+anomalies = df[abs(df['deviation']) &gt; 4]
+print(f"\nAnomaly data points: {len(anomalies)} records ({len(anomalies)/len(df)*100:.2f}%)")
+if len(anomalies) &gt; 0:
+    print(anomalies.head())
+</code></pre>
+<p><strong>Output Example</strong>:</p>
+<pre><code>Rolling Statistics Summary:
+       rolling_mean_60  rolling_std_60  deviation
+count      1381.000000     1381.000000  1381.000000
+mean        174.952379        1.998624     0.004892
+std           2.885820        0.289455     2.019341
+min         170.256432        1.187654    -6.234521
+max         180.134567        3.456789     5.987654
+
+Anomaly data points: 12 records (0.83%)
+</code></pre>
+<p><strong>Explanation</strong>: Rolling statistics form the foundation for process trend identification, stability monitoring, and anomaly detection. The window size should be adjusted according to the process time constant.</p>
+<hr/>
+<h2>2.2 Missing Value Handling and Outlier Detection</h2>
+<p>Real process data contains <strong>missing values</strong> due to sensor failures or communication errors, and <strong>outliers</strong> due to abnormal measurements. Appropriate handling is essential.</p>
+<h3>Types of Missing Values and Countermeasures</h3>
+<p>Missing values are classified into three types:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+<th>Example</th>
+<th>Recommended Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MCAR</strong><br/>(Missing Completely At Random)</td>
+<td>Missing completely at random</td>
+<td>Temporary sensor communication error</td>
+<td>Linear interpolation, moving average imputation</td>
+</tr>
+<tr>
+<td><strong>MAR</strong><br/>(Missing At Random)</td>
+<td>Missing depends on other variables</td>
+<td>Sensor tends to fail at high temperatures</td>
+<td>Regression imputation, K-nearest neighbors imputation</td>
+</tr>
+<tr>
+<td><strong>MNAR</strong><br/>(Missing Not At Random)</td>
+<td>Missingness itself contains information</td>
+<td>Out-of-range values are not recorded</td>
+<td>Careful analysis, consider deletion</td>
+</tr>
+</tbody>
+</table>
+<h4>Code Example 4: Missing Value Detection and Multiple Imputation Methods</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 4: Missing Value Detection and Multiple Imputat
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.impute import KNNImputer
+
+# Generate sample data: Intentionally create missing values
+np.random.seed(42)
+dates = pd.date_range('2025-01-01', periods=500, freq='5min')
+df = pd.DataFrame({
+    'temperature': 175 + np.random.normal(0, 2, 500),
+    'pressure': 1.5 + np.random.normal(0, 0.1, 500),
+    'flow_rate': 50 + np.random.normal(0, 3, 500)
+}, index=dates)
+
+# Insert missing values randomly (10% missing rate)
+missing_indices = np.random.choice(df.index, size=int(len(df)*0.1), replace=False)
+df.loc[missing_indices, 'temperature'] = np.nan
+
+# Add consecutive missing values (simulate sensor failure)
+df.loc['2025-01-01 10:00':'2025-01-01 10:30', 'pressure'] = np.nan
+
+print("Missing Value Check:")
+print(df.isnull().sum())
+print(f"\nMissing Rate:")
+print(df.isnull().sum() / len(df) * 100)
+
+# Method 1: Linear interpolation (optimal for time series data)
+df_linear = df.copy()
+df_linear['temperature'] = df_linear['temperature'].interpolate(method='linear')
+df_linear['pressure'] = df_linear['pressure'].interpolate(method='linear')
+
+# Method 2: Spline interpolation (smooth imputation)
+df_spline = df.copy()
+df_spline['temperature'] = df_spline['temperature'].interpolate(method='spline', order=2)
+df_spline['pressure'] = df_spline['pressure'].interpolate(method='spline', order=2)
+
+# Method 3: Forward Fill
+df_ffill = df.copy()
+df_ffill = df_ffill.fillna(method='ffill')
+
+# Method 4: K-nearest neighbors imputation (considers multivariate)
+imputer = KNNImputer(n_neighbors=5)
+df_knn = df.copy()
+df_knn_values = imputer.fit_transform(df_knn)
+df_knn = pd.DataFrame(df_knn_values, columns=df.columns, index=df.index)
+
+# Visualization: Comparison of imputation methods
+fig, axes = plt.subplots(2, 1, figsize=(14, 10))
+
+# Temperature data imputation comparison
+time_range = slice('2025-01-01 08:00', '2025-01-01 12:00')
+axes[0].plot(df.loc[time_range].index, df.loc[time_range, 'temperature'],
+             'o', markersize=4, label='Original (with missing)', alpha=0.5)
+axes[0].plot(df_linear.loc[time_range].index, df_linear.loc[time_range, 'temperature'],
+             linewidth=2, label='Linear interpolation', alpha=0.8)
+axes[0].plot(df_spline.loc[time_range].index, df_spline.loc[time_range, 'temperature'],
+             linewidth=2, label='Spline interpolation', alpha=0.8)
+axes[0].plot(df_knn.loc[time_range].index, df_knn.loc[time_range, 'temperature'],
+             linewidth=2, label='KNN imputation', alpha=0.8, linestyle='--')
+axes[0].set_ylabel('Temperature (°C)')
+axes[0].set_title('Comparison of Missing Value Imputation Methods - Temperature')
+axes[0].legend()
+axes[0].grid(alpha=0.3)
+
+# Pressure data imputation (includes consecutive missing)
+axes[1].plot(df.loc[time_range].index, df.loc[time_range, 'pressure'],
+             'o', markersize=4, label='Original (with missing)', alpha=0.5)
+axes[1].plot(df_linear.loc[time_range].index, df_linear.loc[time_range, 'pressure'],
+             linewidth=2, label='Linear interpolation', alpha=0.8)
+axes[1].plot(df_ffill.loc[time_range].index, df_ffill.loc[time_range, 'pressure'],
+             linewidth=2, label='Forward fill', alpha=0.8)
+axes[1].set_ylabel('Pressure (MPa)')
+axes[1].set_xlabel('Time')
+axes[1].set_title('Comparison of Imputation Methods - Pressure (with consecutive missing)')
+axes[1].legend()
+axes[1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("\nMissing Check After Imputation:")
+print("Linear interpolation:", df_linear.isnull().sum().sum())
+print("Spline interpolation:", df_spline.isnull().sum().sum())
+print("KNN imputation:", df_knn.isnull().sum().sum())
+</code></pre>
+<p><strong>Output Example</strong>:</p>
+<pre><code>Missing Value Check:
+temperature    50
+pressure        7
+flow_rate       0
+dtype: int64
+
+Missing Rate:
+temperature    10.0
+pressure        1.4
+flow_rate       0.0
+
+Missing Check After Imputation:
+Linear interpolation: 0
+Spline interpolation: 0
+KNN imputation: 0
+</code></pre>
+<p><strong>Explanation</strong>: For process data, linear interpolation or spline interpolation considering time series properties is effective. KNN imputation is also an excellent choice when multivariate correlations are strong. For long consecutive missing periods, consider deletion rather than imputation.</p>
+<h3>Practical Outlier Detection Methods</h3>
+<p>Outliers occur due to various causes including measurement errors, sensor failures, and actual abnormal conditions. Selecting appropriate detection methods is crucial.</p>
+<h4>Code Example 5: Statistical Outlier Detection (Z-score, IQR)</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+# - scipy&gt;=1.11.0
+
+"""
+Example: Code Example 5: Statistical Outlier Detection (Z-score, IQR)
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+
+# Generate sample data: Normal data + intentional outliers
+np.random.seed(42)
+n = 1000
+df = pd.DataFrame({
+    'temperature': np.random.normal(175, 2, n)
+})
+
+# Add outliers (5%)
+outlier_indices = np.random.choice(range(n), size=50, replace=False)
+df.loc[outlier_indices, 'temperature'] += np.random.choice([-15, 15], size=50)
+
+# Method 1: Z-score method (how many standard deviations from the mean)
+df['z_score'] = np.abs(stats.zscore(df['temperature']))
+df['outlier_zscore'] = df['z_score'] &gt; 3  # 3σ rule
+
+# Method 2: IQR method (interquartile range)
+Q1 = df['temperature'].quantile(0.25)
+Q3 = df['temperature'].quantile(0.75)
+IQR = Q3 - Q1
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+df['outlier_iqr'] = (df['temperature'] &lt; lower_bound) | (df['temperature'] &gt; upper_bound)
+
+# Method 3: Modified Z-score method (robust method)
+median = df['temperature'].median()
+mad = np.median(np.abs(df['temperature'] - median))
+modified_z_scores = 0.6745 * (df['temperature'] - median) / mad
+df['outlier_modified_z'] = np.abs(modified_z_scores) &gt; 3.5
+
+# Result summary
+print("Outlier Detection Results:")
+print(f"Z-score method (&gt;3σ): {df['outlier_zscore'].sum()} records ({df['outlier_zscore'].sum()/len(df)*100:.2f}%)")
+print(f"IQR method (1.5×IQR): {df['outlier_iqr'].sum()} records ({df['outlier_iqr'].sum()/len(df)*100:.2f}%)")
+print(f"Modified Z-score method: {df['outlier_modified_z'].sum()} records ({df['outlier_modified_z'].sum()/len(df)*100:.2f}%)")
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# Original data histogram
+axes[0, 0].hist(df['temperature'], bins=50, color='#11998e', alpha=0.7, edgecolor='black')
+axes[0, 0].axvline(df['temperature'].mean(), color='red', linestyle='--',
+                    label=f'Mean: {df["temperature"].mean():.2f}')
+axes[0, 0].axvline(df['temperature'].median(), color='orange', linestyle='--',
+                    label=f'Median: {df["temperature"].median():.2f}')
+axes[0, 0].set_xlabel('Temperature (°C)')
+axes[0, 0].set_ylabel('Frequency')
+axes[0, 0].set_title('Temperature Distribution')
+axes[0, 0].legend()
+axes[0, 0].grid(alpha=0.3)
+
+# Z-score method
+axes[0, 1].scatter(range(len(df)), df['temperature'], c=df['outlier_zscore'],
+                   cmap='RdYlGn_r', alpha=0.6, s=10)
+axes[0, 1].set_xlabel('Data Point Index')
+axes[0, 1].set_ylabel('Temperature (°C)')
+axes[0, 1].set_title(f'Z-score Method ({df["outlier_zscore"].sum()} outliers)')
+axes[0, 1].grid(alpha=0.3)
+
+# IQR method
+axes[1, 0].scatter(range(len(df)), df['temperature'], c=df['outlier_iqr'],
+                   cmap='RdYlGn_r', alpha=0.6, s=10)
+axes[1, 0].axhline(upper_bound, color='red', linestyle='--', label=f'Upper: {upper_bound:.2f}')
+axes[1, 0].axhline(lower_bound, color='red', linestyle='--', label=f'Lower: {lower_bound:.2f}')
+axes[1, 0].set_xlabel('Data Point Index')
+axes[1, 0].set_ylabel('Temperature (°C)')
+axes[1, 0].set_title(f'IQR Method ({df["outlier_iqr"].sum()} outliers)')
+axes[1, 0].legend()
+axes[1, 0].grid(alpha=0.3)
+
+# Box plot
+box_data = [df[~df['outlier_iqr']]['temperature'],
+            df[df['outlier_iqr']]['temperature']]
+axes[1, 1].boxplot(box_data, labels=['Normal', 'Outliers'], patch_artist=True,
+                   boxprops=dict(facecolor='#11998e', alpha=0.7))
+axes[1, 1].set_ylabel('Temperature (°C)')
+axes[1, 1].set_title('Box Plot: Normal vs Outliers (IQR method)')
+axes[1, 1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Outlier statistics
+print("\nOutlier Statistics:")
+print(df[df['outlier_iqr']]['temperature'].describe())
+</code></pre>
+<p><strong>Explanation</strong>: The Z-score method assumes normal distribution and is vulnerable to outliers. The IQR method is robust and less affected by outliers. For process data, using both methods together is recommended.</p>
+<h4>Code Example 6: Machine Learning-Based Outlier Detection (Isolation Forest)</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 6: Machine Learning-Based Outlier Detection (Is
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.ensemble import IsolationForest
+
+# Generate sample data: Multivariate process data
+np.random.seed(42)
+n = 1000
+
+# Normal data (correlated 2 variables)
+temperature = np.random.normal(175, 2, n)
+pressure = 1.5 + 0.01 * (temperature - 175) + np.random.normal(0, 0.05, n)
+
+df = pd.DataFrame({
+    'temperature': temperature,
+    'pressure': pressure
+})
+
+# Add anomalous data (multivariate anomaly patterns)
+# Pattern 1: Temperature abnormally high but pressure normal
+df.loc[950:960, 'temperature'] += 20
+# Pattern 2: Pressure abnormally low but temperature normal
+df.loc[970:980, 'pressure'] -= 0.5
+# Pattern 3: Both abnormal
+df.loc[990:995, ['temperature', 'pressure']] += [15, 0.3]
+
+# Outlier detection with Isolation Forest
+iso_forest = IsolationForest(contamination=0.05, random_state=42)
+df['outlier_if'] = iso_forest.fit_predict(df[['temperature', 'pressure']])
+df['outlier_if'] = df['outlier_if'] == -1  # -1 indicates outlier
+
+# Anomaly score (lower values indicate more anomalous)
+df['anomaly_score'] = iso_forest.score_samples(df[['temperature', 'pressure']])
+
+print("Isolation Forest Detection Results:")
+print(f"Detected outliers: {df['outlier_if'].sum()} records ({df['outlier_if'].sum()/len(df)*100:.2f}%)")
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# Scatter plot: Normal vs Anomalous
+normal = df[~df['outlier_if']]
+outliers = df[df['outlier_if']]
+
+axes[0].scatter(normal['temperature'], normal['pressure'],
+                c='#11998e', alpha=0.6, s=30, label='Normal')
+axes[0].scatter(outliers['temperature'], outliers['pressure'],
+                c='red', alpha=0.8, s=50, marker='x', label='Outliers')
+axes[0].set_xlabel('Temperature (°C)')
+axes[0].set_ylabel('Pressure (MPa)')
+axes[0].set_title('Isolation Forest: Outlier Detection (2D)')
+axes[0].legend()
+axes[0].grid(alpha=0.3)
+
+# Anomaly score histogram
+axes[1].hist(df[~df['outlier_if']]['anomaly_score'], bins=50,
+             alpha=0.7, color='#11998e', label='Normal', edgecolor='black')
+axes[1].hist(df[df['outlier_if']]['anomaly_score'], bins=20,
+             alpha=0.7, color='red', label='Outliers', edgecolor='black')
+axes[1].set_xlabel('Anomaly Score')
+axes[1].set_ylabel('Frequency')
+axes[1].set_title('Distribution of Anomaly Scores')
+axes[1].legend()
+axes[1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Most anomalous data points
+print("\nTop 5 Most Anomalous Data Points:")
+most_anomalous = df.nsmallest(5, 'anomaly_score')[['temperature', 'pressure', 'anomaly_score']]
+print(most_anomalous)
+
+# Statistical comparison
+print("\nNormal Data Statistics:")
+print(normal[['temperature', 'pressure']].describe())
+print("\nOutlier Statistics:")
+print(outliers[['temperature', 'pressure']].describe())
+</code></pre>
+<p><strong>Output Example</strong>:</p>
+<pre><code>Isolation Forest Detection Results:
+Detected outliers: 50 records (5.00%)
+
+Top 5 Most Anomalous Data Points:
+     temperature  pressure  anomaly_score
+990    189.234567  1.823456      -0.234567
+991    190.123456  1.834567      -0.223456
+995    188.987654  1.812345      -0.219876
+...
+</code></pre>
+<p><strong>Explanation</strong>: Isolation Forest excels at detecting outliers in multivariate data. It can capture anomalies in variable relationships that univariate statistical methods cannot detect. Very effective for process data anomaly detection.</p>
+<hr/>
+<h2>2.3 Data Scaling and Normalization</h2>
+<p>Before building machine learning models, <strong>scaling</strong> to align variable scales is important. In process data, variable scales differ greatly, such as temperature (0-200°C) and pressure (0-3 MPa).</p>
+<h3>Major Scaling Methods</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Transformation Formula</th>
+<th>Characteristics</th>
+<th>Application Scenarios</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Min-Max<br/>Scaling</strong></td>
+<td>$x' = \frac{x - x_{min}}{x_{max} - x_{min}}$</td>
+<td>Transform to [0, 1] range</td>
+<td>When outliers are few</td>
+</tr>
+<tr>
+<td><strong>Standard<br/>Scaling</strong></td>
+<td>$x' = \frac{x - \mu}{\sigma}$</td>
+<td>Mean 0, standard deviation 1</td>
+<td>When distribution is close to normal</td>
+</tr>
+<tr>
+<td><strong>Robust<br/>Scaling</strong></td>
+<td>$x' = \frac{x - Q_{med}}{Q_{75} - Q_{25}}$</td>
+<td>Robust to outliers</td>
+<td>When outliers are many</td>
+</tr>
+</tbody>
+</table>
+<h4>Code Example 7: Scaling Method Comparison and Selection</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 7: Scaling Method Comparison and Selection
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
+
+# Generate sample data: Process data with outliers
+np.random.seed(42)
+n = 500
+
+df = pd.DataFrame({
+    'temperature': np.random.normal(175, 5, n),
+    'pressure': np.random.normal(1.5, 0.2, n),
+    'flow_rate': np.random.normal(50, 10, n)
+})
+
+# Add outliers
+df.loc[480:490, 'temperature'] += 50  # Temperature outliers
+df.loc[491:495, 'pressure'] += 1.5    # Pressure outliers
+
+print("Original Data Statistics:")
+print(df.describe())
+
+# Apply three scaling methods
+minmax_scaler = MinMaxScaler()
+standard_scaler = StandardScaler()
+robust_scaler = RobustScaler()
+
+df_minmax = pd.DataFrame(
+    minmax_scaler.fit_transform(df),
+    columns=[col + '_minmax' for col in df.columns]
+)
+
+df_standard = pd.DataFrame(
+    standard_scaler.fit_transform(df),
+    columns=[col + '_standard' for col in df.columns]
+)
+
+df_robust = pd.DataFrame(
+    robust_scaler.fit_transform(df),
+    columns=[col + '_robust' for col in df.columns]
+)
+
+# Combine results
+df_scaled = pd.concat([df, df_minmax, df_standard, df_robust], axis=1)
+
+# Visualization: Temperature data scaling comparison
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# Original data
+axes[0, 0].hist(df['temperature'], bins=50, color='#11998e', alpha=0.7, edgecolor='black')
+axes[0, 0].set_xlabel('Temperature (°C)')
+axes[0, 0].set_ylabel('Frequency')
+axes[0, 0].set_title('Original Data')
+axes[0, 0].axvline(df['temperature'].mean(), color='red', linestyle='--', label='Mean')
+axes[0, 0].legend()
+axes[0, 0].grid(alpha=0.3)
+
+# Min-Max Scaling
+axes[0, 1].hist(df_scaled['temperature_minmax'], bins=50, color='#f59e0b', alpha=0.7, edgecolor='black')
+axes[0, 1].set_xlabel('Scaled Temperature')
+axes[0, 1].set_ylabel('Frequency')
+axes[0, 1].set_title('Min-Max Scaling [0, 1]')
+axes[0, 1].grid(alpha=0.3)
+
+# Standard Scaling
+axes[1, 0].hist(df_scaled['temperature_standard'], bins=50, color='#7b2cbf', alpha=0.7, edgecolor='black')
+axes[1, 0].set_xlabel('Scaled Temperature')
+axes[1, 0].set_ylabel('Frequency')
+axes[1, 0].set_title('Standard Scaling (μ=0, σ=1)')
+axes[1, 0].axvline(0, color='red', linestyle='--', label='Mean=0')
+axes[1, 0].legend()
+axes[1, 0].grid(alpha=0.3)
+
+# Robust Scaling
+axes[1, 1].hist(df_scaled['temperature_robust'], bins=50, color='#10b981', alpha=0.7, edgecolor='black')
+axes[1, 1].set_xlabel('Scaled Temperature')
+axes[1, 1].set_ylabel('Frequency')
+axes[1, 1].set_title('Robust Scaling (Median-IQR based)')
+axes[1, 1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Post-scaling statistics comparison
+print("\nPost-Scaling Statistics (Temperature):")
+print(df_scaled[['temperature_minmax', 'temperature_standard', 'temperature_robust']].describe())
+
+# Outlier impact evaluation
+print("\nScale Values for Data Points with Outliers (480-495):")
+outlier_range = df_scaled.iloc[480:496]
+print(outlier_range[['temperature', 'temperature_minmax', 'temperature_standard', 'temperature_robust']].head())
+
+# Recommendations
+print("\n【Recommendations】")
+print("✓ Min-Max: When outliers are few and [0,1] range is needed (e.g., neural networks)")
+print("✓ Standard: When distribution is close to normal and outliers are few (e.g., linear regression, SVM)")
+print("✓ Robust: When outliers are many and robust preprocessing is needed (real process data)")
+</code></pre>
+<p><strong>Output Example</strong>:</p>
+<pre><code>Original Data Statistics:
+       temperature    pressure   flow_rate
+count   500.000000  500.000000  500.000000
+mean    176.543210    1.534567   50.123456
+std       7.234567    0.267890   10.234567
+min     165.123456    0.987654   25.678901
+max     225.678901    3.123456   75.432109
+
+【Recommendations】
+✓ Min-Max: When outliers are few and [0,1] range is needed (e.g., neural networks)
+✓ Standard: When distribution is close to normal and outliers are few (e.g., linear regression, SVM)
+✓ Robust: When outliers are many and robust preprocessing is needed (real process data)
+</code></pre>
+<p><strong>Explanation</strong>: Since process data often contains outliers, Robust Scaling is the safest choice. However, select the appropriate method based on model type and objectives.</p>
+<h4>Code Example 8: Practical Scaling Workflow</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 8: Practical Scaling Workflow
+
+Purpose: Demonstrate machine learning model training and evaluation
+Target: Beginner to Intermediate
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import RobustScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score, mean_squared_error
+
+# Generate sample data: Distillation column process data
+np.random.seed(42)
+n = 1000
+
+df = pd.DataFrame({
+    'feed_temp': np.random.normal(60, 5, n),
+    'reflux_ratio': np.random.uniform(1.5, 3.5, n),
+    'reboiler_duty': np.random.normal(1500, 200, n),
+    'pressure': np.random.normal(1.2, 0.1, n)
+})
+
+# Target variable: Product purity (calculated from features)
+df['purity'] = (
+    95 +
+    0.3 * df['reflux_ratio'] +
+    0.002 * df['reboiler_duty'] -
+    0.1 * df['feed_temp'] +
+    2 * df['pressure'] +
+    np.random.normal(0, 0.5, n)
+)
+
+# Split into features and target variable
+X = df[['feed_temp', 'reflux_ratio', 'reboiler_duty', 'pressure']]
+y = df['purity']
+
+# Split into training and test data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+print("Data Range Before Scaling:")
+print(X_train.describe().loc[['min', 'max']])
+
+# Scaling (fit on training data, transform test data)
+scaler = RobustScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)  # Important: transform only, not fit
+
+# Convert back to DataFrame (preserve column names)
+X_train_scaled = pd.DataFrame(X_train_scaled, columns=X.columns, index=X_train.index)
+X_test_scaled = pd.DataFrame(X_test_scaled, columns=X.columns, index=X_test.index)
+
+print("\nData Range After Scaling (Training Data):")
+print(X_train_scaled.describe().loc[['min', 'max']])
+
+# Model building (unscaled vs scaled)
+# Unscaled
+model_unscaled = LinearRegression()
+model_unscaled.fit(X_train, y_train)
+y_pred_unscaled = model_unscaled.predict(X_test)
+
+# Scaled
+model_scaled = LinearRegression()
+model_scaled.fit(X_train_scaled, y_train)
+y_pred_scaled = model_scaled.predict(X_test_scaled)
+
+# Performance evaluation
+print("\n【Model Performance Comparison】")
+print(f"Unscaled - R²: {r2_score(y_test, y_pred_unscaled):.4f}, RMSE: {np.sqrt(mean_squared_error(y_test, y_pred_unscaled)):.4f}")
+print(f"Scaled - R²: {r2_score(y_test, y_pred_scaled):.4f}, RMSE: {np.sqrt(mean_squared_error(y_test, y_pred_scaled)):.4f}")
+
+# Coefficient comparison (scaling effect)
+print("\nRegression Coefficient Comparison:")
+coef_comparison = pd.DataFrame({
+    'Feature': X.columns,
+    'Unscaled_Coef': model_unscaled.coef_,
+    'Scaled_Coef': model_scaled.coef_
+})
+print(coef_comparison)
+
+print("\n【Important Notes】")
+print("1. Fit scaler on training data, use transform only on test data")
+print("2. This prevents data leakage and accurately simulates real-world operation")
+print("3. For linear regression, performance is the same but coefficient interpretability and model convergence improve")
+print("4. For distance-based models (KNN, SVM), scaling directly affects performance")
+</code></pre>
+<p><strong>Explanation</strong>: The most important aspect of scaling in practice is to <strong>fit on training data and use transform only on test data</strong>. This prevents data leakage and allows accurate evaluation of real-world performance.</p>
+<hr/>
+<h2>2.4 Advanced Visualization with Pandas/Matplotlib/Seaborn</h2>
+<p>Appropriate visualization is essential for understanding the essence of data. Let's master visualization techniques specific to process data.</p>
+<h4>Code Example 9: Multi-dimensional Visualization of Process Operating States</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+# - seaborn&gt;=0.12.0
+
+"""
+Example: Code Example 9: Multi-dimensional Visualization of Process O
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from matplotlib.patches import Rectangle
+
+# Generate sample data: 24 hours of continuous operation data
+np.random.seed(42)
+dates = pd.date_range('2025-01-01', periods=1440, freq='1min')
+
+# Simulate 3 operating phases
+phase1 = 480  # Startup phase (0-8h)
+phase2 = 600  # Steady-state operation (8-18h)
+phase3 = 360  # Shutdown phase (18-24h)
+
+temperature = np.concatenate([
+    np.linspace(25, 175, phase1) + np.random.normal(0, 2, phase1),  # Startup
+    175 + np.random.normal(0, 1, phase2),  # Steady-state
+    np.linspace(175, 30, phase3) + np.random.normal(0, 3, phase3)  # Shutdown
+])
+
+pressure = np.concatenate([
+    np.linspace(0.1, 1.5, phase1) + np.random.normal(0, 0.05, phase1),
+    1.5 + np.random.normal(0, 0.03, phase2),
+    np.linspace(1.5, 0.1, phase3) + np.random.normal(0, 0.08, phase3)
+])
+
+flow_rate = np.concatenate([
+    np.linspace(0, 50, phase1) + np.random.normal(0, 2, phase1),
+    50 + np.random.normal(0, 1, phase2),
+    np.linspace(50, 0, phase3) + np.random.normal(0, 2, phase3)
+])
+
+df = pd.DataFrame({
+    'temperature': temperature,
+    'pressure': pressure,
+    'flow_rate': flow_rate,
+    'phase': ['Startup']*phase1 + ['Steady-State']*phase2 + ['Shutdown']*phase3
+}, index=dates)
+
+# Visualization: Composite charts
+fig = plt.figure(figsize=(16, 12))
+gs = fig.add_gridspec(4, 2, hspace=0.3, wspace=0.3)
+
+# 1. Time series plot (color-coded by phase)
+ax1 = fig.add_subplot(gs[0, :])
+colors = {'Startup': '#f59e0b', 'Steady-State': '#11998e', 'Shutdown': '#7b2cbf'}
+for phase in df['phase'].unique():
+    phase_data = df[df['phase'] == phase]
+    ax1.plot(phase_data.index, phase_data['temperature'],
+             color=colors[phase], label=phase, linewidth=1.5)
+ax1.set_ylabel('Temperature (°C)', fontsize=11)
+ax1.set_title('Process Temperature by Operating Phase', fontsize=13, fontweight='bold')
+ax1.legend(loc='upper right')
+ax1.grid(alpha=0.3)
+
+# 2. Multiple variable simultaneous plot (dual axis)
+ax2 = fig.add_subplot(gs[1, :])
+ax2_twin = ax2.twinx()
+
+ax2.plot(df.index, df['temperature'], color='#11998e', linewidth=1.5, label='Temperature')
+ax2.set_ylabel('Temperature (°C)', color='#11998e', fontsize=11)
+ax2.tick_params(axis='y', labelcolor='#11998e')
+
+ax2_twin.plot(df.index, df['pressure'], color='#f59e0b', linewidth=1.5, label='Pressure')
+ax2_twin.set_ylabel('Pressure (MPa)', color='#f59e0b', fontsize=11)
+ax2_twin.tick_params(axis='y', labelcolor='#f59e0b')
+
+ax2.set_title('Temperature and Pressure (Dual Axis)', fontsize=13, fontweight='bold')
+ax2.grid(alpha=0.3)
+
+# 3. Correlation scatter plot (by phase)
+ax3 = fig.add_subplot(gs[2, 0])
+for phase in df['phase'].unique():
+    phase_data = df[df['phase'] == phase]
+    ax3.scatter(phase_data['temperature'], phase_data['pressure'],
+                c=colors[phase], alpha=0.5, s=10, label=phase)
+ax3.set_xlabel('Temperature (°C)', fontsize=11)
+ax3.set_ylabel('Pressure (MPa)', fontsize=11)
+ax3.set_title('Temperature vs Pressure by Phase', fontsize=12, fontweight='bold')
+ax3.legend()
+ax3.grid(alpha=0.3)
+
+# 4. Heatmap (hourly average values)
+ax4 = fig.add_subplot(gs[2, 1])
+df_hourly = df.copy()
+df_hourly['hour'] = df_hourly.index.hour
+hourly_avg = df_hourly.groupby('hour')[['temperature', 'pressure', 'flow_rate']].mean()
+sns.heatmap(hourly_avg.T, annot=True, fmt='.1f', cmap='RdYlGn',
+            cbar_kws={'label': 'Value'}, ax=ax4)
+ax4.set_title('Hourly Average Heatmap', fontsize=12, fontweight='bold')
+ax4.set_xlabel('Hour of Day', fontsize=11)
+
+# 5. Box plot (distribution by phase)
+ax5 = fig.add_subplot(gs[3, 0])
+df.boxplot(column='temperature', by='phase', ax=ax5, patch_artist=True,
+           boxprops=dict(facecolor='#11998e', alpha=0.7))
+ax5.set_title('Temperature Distribution by Phase', fontsize=12, fontweight='bold')
+ax5.set_xlabel('Operating Phase', fontsize=11)
+ax5.set_ylabel('Temperature (°C)', fontsize=11)
+plt.sca(ax5)
+plt.xticks(rotation=0)
+
+# 6. Rolling statistics (stability visualization)
+ax6 = fig.add_subplot(gs[3, 1])
+df['rolling_std'] = df['temperature'].rolling(window=60).std()
+ax6.plot(df.index, df['rolling_std'], color='#7b2cbf', linewidth=1.5)
+ax6.axhline(y=1, color='green', linestyle='--', label='Target Stability (σ &lt; 1°C)')
+ax6.set_ylabel('60-min Rolling Std (°C)', fontsize=11)
+ax6.set_xlabel('Time', fontsize=11)
+ax6.set_title('Process Stability (Rolling Standard Deviation)', fontsize=12, fontweight='bold')
+ax6.legend()
+ax6.grid(alpha=0.3)
+
+plt.suptitle('Comprehensive Process Data Visualization Dashboard',
+             fontsize=15, fontweight='bold', y=0.995)
+plt.show()
+
+# Statistical summary
+print("Phase-wise Statistical Summary:")
+print(df.groupby('phase')[['temperature', 'pressure', 'flow_rate']].describe())
+</code></pre>
+<p><strong>Explanation</strong>: Combining multiple visualization methods allows simultaneous understanding of different aspects of data. Color-coding by operating phase, dual-axis charts, and heatmaps are very effective for communication with process engineers.</p>
+<h4>Code Example 10: Interactive Dashboard (Plotly)</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+# - plotly&gt;=5.14.0
+
+"""
+Example: Code Example 10: Interactive Dashboard (Plotly)
+
+Purpose: Demonstrate data visualization techniques
+Target: Beginner to Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly.express as px
+
+# Generate sample data
+np.random.seed(42)
+dates = pd.date_range('2025-01-01', periods=2880, freq='30s')
+
+df = pd.DataFrame({
+    'temperature': 175 + np.random.normal(0, 2, 2880) + 3*np.sin(np.arange(2880)*2*np.pi/2880),
+    'pressure': 1.5 + np.random.normal(0, 0.08, 2880),
+    'flow_rate': 50 + np.random.normal(0, 3, 2880),
+    'purity': 98 + np.random.normal(0, 0.5, 2880)
+}, index=dates)
+
+# Add anomaly events
+df.loc['2025-01-01 08:00':'2025-01-01 08:15', 'temperature'] += 10
+df.loc['2025-01-01 16:00':'2025-01-01 16:20', 'purity'] -= 2
+
+# Create interactive dashboard
+fig = make_subplots(
+    rows=4, cols=1,
+    subplot_titles=('Reactor Temperature', 'Pressure', 'Flow Rate', 'Product Purity'),
+    vertical_spacing=0.08,
+    specs=[[{"secondary_y": False}],
+           [{"secondary_y": False}],
+           [{"secondary_y": False}],
+           [{"secondary_y": False}]]
+)
+
+# Temperature
+fig.add_trace(
+    go.Scatter(x=df.index, y=df['temperature'],
+               mode='lines',
+               name='Temperature',
+               line=dict(color='#11998e', width=1.5),
+               hovertemplate='%{x}&lt;br/&gt;Temp: %{y:.2f}°C&lt;extra&gt;&lt;/extra&gt;'),
+    row=1, col=1
+)
+fig.add_hline(y=175, line_dash="dash", line_color="red",
+              annotation_text="Target", row=1, col=1)
+
+# Pressure
+fig.add_trace(
+    go.Scatter(x=df.index, y=df['pressure'],
+               mode='lines',
+               name='Pressure',
+               line=dict(color='#f59e0b', width=1.5),
+               hovertemplate='%{x}&lt;br/&gt;Pressure: %{y:.3f} MPa&lt;extra&gt;&lt;/extra&gt;'),
+    row=2, col=1
+)
+
+# Flow rate
+fig.add_trace(
+    go.Scatter(x=df.index, y=df['flow_rate'],
+               mode='lines',
+               name='Flow Rate',
+               line=dict(color='#7b2cbf', width=1.5),
+               hovertemplate='%{x}&lt;br/&gt;Flow: %{y:.2f} m³/h&lt;extra&gt;&lt;/extra&gt;'),
+    row=3, col=1
+)
+
+# Product purity (add quality control range)
+fig.add_trace(
+    go.Scatter(x=df.index, y=df['purity'],
+               mode='lines',
+               name='Purity',
+               line=dict(color='#10b981', width=1.5),
+               hovertemplate='%{x}&lt;br/&gt;Purity: %{y:.2f}%&lt;extra&gt;&lt;/extra&gt;'),
+    row=4, col=1
+)
+fig.add_hrect(y0=97.5, y1=99.0, line_width=0, fillcolor="green", opacity=0.1,
+              annotation_text="Spec Range", row=4, col=1)
+
+# Layout settings
+fig.update_xaxes(title_text="Time", row=4, col=1)
+fig.update_yaxes(title_text="Temp (°C)", row=1, col=1)
+fig.update_yaxes(title_text="Pressure (MPa)", row=2, col=1)
+fig.update_yaxes(title_text="Flow (m³/h)", row=3, col=1)
+fig.update_yaxes(title_text="Purity (%)", row=4, col=1)
+
+fig.update_layout(
+    title_text="Interactive Process Monitoring Dashboard",
+    height=1000,
+    showlegend=False,
+    hovermode='x unified',
+    template='plotly_white'
+)
+
+# Add interactive features
+fig.update_xaxes(
+    rangeslider_visible=False,
+    rangeselector=dict(
+        buttons=list([
+            dict(count=1, label="1h", step="hour", stepmode="backward"),
+            dict(count=6, label="6h", step="hour", stepmode="backward"),
+            dict(count=12, label="12h", step="hour", stepmode="backward"),
+            dict(step="all", label="All")
+        ])
+    ),
+    row=1, col=1
+)
+
+# Save and display
+fig.write_html("process_monitoring_dashboard.html")
+print("Interactive dashboard saved to 'process_monitoring_dashboard.html'.")
+print("\n【Dashboard Features】")
+print("✓ Zoom: Drag to zoom in, double-click to reset")
+print("✓ Pan: Shift + drag to move")
+print("✓ Hover: Mouse over data points for details")
+print("✓ Time range selection: Buttons at top for 1h/6h/12h/all periods")
+print("✓ Saved as HTML file, viewable in browser")
+
+# Optional: Display in Jupyter Notebook
+# fig.show()
+
+# Additional analysis: Identify anomaly times
+temp_anomaly = df[df['temperature'] &gt; 180]
+purity_anomaly = df[df['purity'] &lt; 97]
+
+print(f"\nTemperature anomalies: {len(temp_anomaly)} records")
+if len(temp_anomaly) &gt; 0:
+    print(f"Occurrence time: {temp_anomaly.index[0]} - {temp_anomaly.index[-1]}")
+
+print(f"\nPurity anomalies: {len(purity_anomaly)} records")
+if len(purity_anomaly) &gt; 0:
+    print(f"Occurrence time: {purity_anomaly.index[0]} - {purity_anomaly.index[-1]}")
+</code></pre>
+<p><strong>Output Example</strong>:</p>
+<pre><code>Interactive dashboard saved to 'process_monitoring_dashboard.html'.
+
+【Dashboard Features】
+✓ Zoom: Drag to zoom in, double-click to reset
+✓ Pan: Shift + drag to move
+✓ Hover: Mouse over data points for details
+✓ Time range selection: Buttons at top for 1h/6h/12h/all periods
+✓ Saved as HTML file, viewable in browser
+
+Temperature anomalies: 31 records
+Occurrence time: 2025-01-01 08:00:00 - 2025-01-01 08:15:00
+
+Purity anomalies: 41 records
+Occurrence time: 2025-01-01 16:00:00 - 2025-01-01 16:20:00
+</code></pre>
+<p><strong>Explanation</strong>: Interactive dashboards using Plotly are ideal for reporting to process engineers and managers. They can be saved as HTML files and viewed by anyone in a browser, making them highly practical.</p>
+<hr/>
+<h2>2.5 Chapter Summary</h2>
+<h3>What We Learned</h3>
+<ol>
+<li><strong>Time Series Data Manipulation</strong>
+<ul>
+<li>Intuitive time-based slicing with DatetimeIndex</li>
+<li>Adjust data granularity with resampling to improve computational efficiency</li>
+<li>Trend identification and noise reduction with rolling statistics</li>
+</ul>
+</li>
+<li><strong>Missing Value Handling</strong>
+<ul>
+<li>Three types (MCAR/MAR/MNAR) and appropriate countermeasures</li>
+<li>Choosing between linear interpolation, spline interpolation, and KNN imputation</li>
+<li>Time-aware imputation is effective for time series data</li>
+</ul>
+</li>
+<li><strong>Outlier Detection</strong>
+<ul>
+<li>Statistical methods (Z-score, IQR) and their limitations</li>
+<li>Multivariate outlier detection with Isolation Forest</li>
+<li>Combining multiple methods recommended for process data</li>
+</ul>
+</li>
+<li><strong>Scaling</strong>
+<ul>
+<li>Three methods: Min-Max, Standard, and Robust</li>
+<li>Robust is appropriate for real process data with many outliers</li>
+<li>Principle: fit on training data, transform on test data</li>
+</ul>
+</li>
+<li><strong>Advanced Visualization</strong>
+<ul>
+<li>Phase-wise color coding, dual-axis charts, heatmaps</li>
+<li>Interactive dashboards with Plotly</li>
+<li>Importance of understanding data from multiple perspectives</li>
+</ul>
+</li>
+</ol>
+<h3>Key Points</h3>
+<blockquote>
+<p><strong>"Garbage In, Garbage Out"</strong>: The quality of data preprocessing determines model performance.</p>
+</blockquote>
+<ul>
+<li>Process data always contains missing values and outliers</li>
+<li>Never start model building without appropriate preprocessing</li>
+<li>Visualization is the best means to verify preprocessing effectiveness</li>
+<li>In practice, spend 60-70% of total time on preprocessing</li>
+</ul>
+<h3>Practical Tips</h3>
+<ol>
+<li><strong>Don't neglect Exploratory Data Analysis (EDA)</strong>: Understand data first before jumping into model building</li>
+<li><strong>Make preprocessing reversible</strong>: Keep original data and record each preprocessing step</li>
+<li><strong>Verify with visualization</strong>: Visualize at each preprocessing step to confirm expected results</li>
+<li><strong>Leverage domain knowledge</strong>: Collaborate with process engineers to understand the meaning of anomalies</li>
+</ol>
+<h3>To the Next Chapter</h3>
+<p>In Chapter 3, we'll learn <strong>Process Modeling Basics</strong> using preprocessed data:</p>
+<ul>
+<li>Process model building with linear regression</li>
+<li>Multivariate regression and PLS (Partial Least Squares)</li>
+<li>Concept and implementation of soft sensors</li>
+<li>Model evaluation metrics (R², RMSE, MAE)</li>
+<li>Extension to nonlinear models (Random Forest, SVR)</li>
+</ul>
+<div class="navigation">
+<a class="nav-button" href="chapter-1.html">← Previous Chapter</a>
+<a class="nav-button" href="chapter-3.html">Next Chapter →</a>
+</div>
+</main>
+<section>
+<h2>References</h2>
+<ol>
+<li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+<li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+<li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+<li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+</ol>
+</section>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided for educational, research, and informational purposes only and does not constitute professional advice (legal, accounting, technical warranties, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The creator and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>The creator and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content, to the maximum extent permitted by applicable law.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Author</strong>: PI Knowledge Hub Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-25</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 PI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

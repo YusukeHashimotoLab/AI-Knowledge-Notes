@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 4: Continuous Manufacturing and QbD Implementation | Process Informatics Dojo" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 4: Continuous Manufacturing and QbD Implementation | Process Informatics Dojo</title>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../PI/index.html">Process Informatics</a><span class="breadcrumb-separator">›</span><a href="../../PI/pharma-manufacturing-ai/index.html">Pharma Manufacturing AI</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 4</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/PI/pharma-manufacturing-ai/chapter-4.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+
+<header>
+<h1>Chapter 4: Continuous Manufacturing and QbD Implementation</h1>
+<p class="subtitle">Continuous Manufacturing and Quality by Design Implementation</p>
+</header>
+<div class="container">
+<a class="back-link" href="index.html">← Back to Series Index</a>
+<div class="content-box">
+<h2>📖 Chapter Overview</h2>
+<p>
+                Pharmaceutical manufacturing is transitioning from traditional batch production to continuous manufacturing.
+                This chapter covers the optimization and implementation of continuous production systems
+                based on QbD (Quality by Design) concepts, utilizing Design of Experiments (DoE),
+                design space, and risk-based approaches.
+            </p>
+<h3>🎯 Learning Objectives</h3>
+<ul>
+<li>Basic concepts of QbD (Quality by Design) and ICH Q8-Q11 guidelines</li>
+<li>Efficient process optimization using Design of Experiments (DoE)</li>
+<li>Design space construction and visualization</li>
+<li>Design and control strategies for continuous manufacturing systems</li>
+<li>Implementation of real-time control and feedback control</li>
+<li>Migration strategy from batch to continuous production</li>
+<li>Application of risk-based approaches (ICH Q9)</li>
+</ul>
+</div>
+<div class="content-box">
+<h2>🎯 4.1 Fundamentals of QbD (Quality by Design)</h2>
+<h3>Three Pillars of QbD</h3>
+<p>Core concepts of QbD as defined in the ICH Q8 guideline:</p>
+<ol>
+<li><strong>QTPP (Quality Target Product Profile)</strong>: Quality Target Product Profile</li>
+<li><strong>CQA (Critical Quality Attributes)</strong>: Critical Quality Attributes</li>
+<li><strong>CPP (Critical Process Parameters)</strong>: Critical Process Parameters</li>
+</ol>
+<div class="gmp-note">
+<strong>🏭 Benefits of QbD</strong><br/>
+                • Process design based on scientific understanding<br/>
+                • Proactive assessment and reduction of quality risks<br/>
+                • Continuous dialogue with regulatory authorities<br/>
+                • Flexible manufacturing within design space<br/>
+                • Continuous improvement throughout the lifecycle
+            </div>
+<h3>Definition of Design Space</h3>
+<div class="formula">
+<p><strong>Design Space (ICH Q8 Definition)</strong></p>
+<p>
+                    "The multidimensional combination and interaction of input variables (e.g., material attributes)
+                    and process parameters that have been demonstrated to provide assurance of quality"
+                </p>
+                $$ \text{Design Space} = \{(\mathbf{x}_1, \mathbf{x}_2, \ldots, \mathbf{x}_n) \mid \text{CQA}_i \in [\text{LSL}_i, \text{USL}_i] \, \forall i\} $$
+            </div>
+<h3>💻 Code Example 4.1: Design of Experiments (DoE) and Design Space Construction</h3>
+<pre><code>import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+import warnings
+warnings.filterwarnings('ignore')
+
+plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
+
+class QbDDesigner:
+    """QbD Design Space Design Class"""
+
+    def __init__(self):
+        self.model = None
+        self.poly_features = None
+
+    def generate_doe_design(self, design_type='central_composite'):
+        """
+        Generate experimental design
+
+        Args:
+            design_type: Design type ('full_factorial', 'central_composite', 'box_behnken')
+
+        Returns:
+            DataFrame of experimental design
+        """
+        if design_type == 'central_composite':
+            # Central Composite Design (3 factors)
+            # Factors: Reaction temperature (70-90°C), Reaction time (60-180 min), Catalyst amount (1-5%)
+
+            # Cube points (2^3 = 8 points)
+            cube_points = np.array([
+                [-1, -1, -1], [1, -1, -1], [-1, 1, -1], [1, 1, -1],
+                [-1, -1, 1], [1, -1, 1], [-1, 1, 1], [1, 1, 1]
+            ])
+
+            # Axial points (2×3 = 6 points, α=1.682)
+            alpha = 1.682
+            axial_points = np.array([
+                [-alpha, 0, 0], [alpha, 0, 0],
+                [0, -alpha, 0], [0, alpha, 0],
+                [0, 0, -alpha], [0, 0, alpha]
+            ])
+
+            # Center points (6 replicates)
+            center_points = np.array([[0, 0, 0]] * 6)
+
+            # Consolidation
+            design_matrix = np.vstack([cube_points, axial_points, center_points])
+
+            # Conversion to actual scale
+            temp_range = (70, 90)
+            time_range = (60, 180)
+            catalyst_range = (1, 5)
+
+            temperature = (design_matrix[:, 0] + 1) / 2 * (temp_range[1] - temp_range[0]) + temp_range[0]
+            time = (design_matrix[:, 1] + 1) / 2 * (time_range[1] - time_range[0]) + time_range[0]
+            catalyst = (design_matrix[:, 2] + 1) / 2 * (catalyst_range[1] - catalyst_range[0]) + catalyst_range[0]
+
+            df_design = pd.DataFrame({
+                'run': range(1, len(design_matrix) + 1),
+                'temperature': temperature,
+                'time': time,
+                'catalyst': catalyst
+            })
+
+        return df_design
+
+    def simulate_response(self, df_design):
+        """
+        Simulate response variables (yield and purity)
+
+        Args:
+            df_design: DataFrame of experimental design
+
+        Returns:
+            DataFrame with added response variables
+        """
+        np.random.seed(42)
+
+        # Yield model (quadratic equation + noise)
+        # Optimal conditions: Temperature 80°C, Time 120 min, Catalyst 3% for maximum yield
+        temp_centered = (df_design['temperature'] - 80) / 10
+        time_centered = (df_design['time'] - 120) / 60
+        catalyst_centered = (df_design['catalyst'] - 3) / 2
+
+        yield_base = (
+            95  # Base yield
+            - 3 * temp_centered ** 2  # Quadratic effect of temperature
+            - 2 * time_centered ** 2  # Quadratic effect of time
+            - 4 * catalyst_centered ** 2  # Quadratic effect of catalyst
+            + 1.5 * temp_centered * time_centered  # Interaction
+            + np.random.normal(0, 1, len(df_design))  # Noise
+        )
+
+        # Purity model
+        purity_base = (
+            99.5  # Base purity
+            - 0.5 * temp_centered ** 2
+            - 0.3 * time_centered ** 2
+            - 0.4 * catalyst_centered ** 2
+            + np.random.normal(0, 0.1, len(df_design))
+        )
+
+        df_design['yield'] = np.clip(yield_base, 0, 100)
+        df_design['purity'] = np.clip(purity_base, 95, 100)
+
+        return df_design
+
+    def build_response_surface_model(self, df_design, response_var):
+        """
+        Build response surface model (quadratic polynomial)
+
+        Args:
+            df_design: Experimental data
+            response_var: Response variable name
+
+        Returns:
+            Trained model
+        """
+        X = df_design[['temperature', 'time', 'catalyst']].values
+        y = df_design[response_var].values
+
+        # Generate quadratic polynomial features
+        self.poly_features = PolynomialFeatures(degree=2, include_bias=True)
+        X_poly = self.poly_features.fit_transform(X)
+
+        # Linear regression model
+        self.model = LinearRegression()
+        self.model.fit(X_poly, y)
+
+        # Prediction and evaluation
+        y_pred = self.model.predict(X_poly)
+        r2 = r2_score(y, y_pred)
+
+        return self.model, r2
+
+    def predict_response(self, temperature, time, catalyst):
+        """Predict response"""
+        X_new = np.array([[temperature, time, catalyst]])
+        X_poly = self.poly_features.transform(X_new)
+        return self.model.predict(X_poly)[0]
+
+    def plot_design_space(self, df_design, temp_range, time_range, catalyst_fixed=3):
+        """Visualize design space"""
+        fig = plt.figure(figsize=(16, 6))
+
+        # Design space on temperature-time plane (catalyst amount fixed)
+        temp_grid = np.linspace(temp_range[0], temp_range[1], 50)
+        time_grid = np.linspace(time_range[0], time_range[1], 50)
+        T_mesh, Ti_mesh = np.meshgrid(temp_grid, time_grid)
+
+        # Yield prediction
+        yield_grid = np.zeros_like(T_mesh)
+        purity_grid = np.zeros_like(T_mesh)
+
+        for i in range(len(temp_grid)):
+            for j in range(len(time_grid)):
+                yield_grid[j, i] = self.predict_response(T_mesh[j, i], Ti_mesh[j, i], catalyst_fixed)
+                purity_grid[j, i] = self.predict_response(T_mesh[j, i], Ti_mesh[j, i], catalyst_fixed)
+
+        # Yield contour plot
+        ax1 = fig.add_subplot(131)
+        contour_yield = ax1.contourf(T_mesh, Ti_mesh, yield_grid, levels=20, cmap='RdYlGn')
+        ax1.contour(T_mesh, Ti_mesh, yield_grid, levels=[90, 92, 94], colors='black',
+                    linewidths=1.5, linestyles='dashed')
+        ax1.scatter(df_design['temperature'], df_design['time'], c='blue', s=50,
+                    edgecolor='black', linewidth=1, label='Experimental points', zorder=5)
+        ax1.set_xlabel('Reaction Temperature (°C)')
+        ax1.set_ylabel('Reaction Time (min)')
+        ax1.set_title(f'Yield (Catalyst={catalyst_fixed}%)', fontsize=12, fontweight='bold')
+        ax1.legend()
+        plt.colorbar(contour_yield, ax=ax1, label='Yield (%)')
+
+        # Purity contour plot
+        ax2 = fig.add_subplot(132)
+        contour_purity = ax2.contourf(T_mesh, Ti_mesh, purity_grid, levels=20, cmap='Blues')
+        ax2.contour(T_mesh, Ti_mesh, purity_grid, levels=[99.0, 99.2, 99.4], colors='black',
+                    linewidths=1.5, linestyles='dashed')
+        ax2.scatter(df_design['temperature'], df_design['time'], c='blue', s=50,
+                    edgecolor='black', linewidth=1, label='Experimental points', zorder=5)
+        ax2.set_xlabel('Reaction Temperature (°C)')
+        ax2.set_ylabel('Reaction Time (min)')
+        ax2.set_title(f'Purity (Catalyst={catalyst_fixed}%)', fontsize=12, fontweight='bold')
+        ax2.legend()
+        plt.colorbar(contour_purity, ax=ax2, label='Purity (%)')
+
+        # Design space (Yield≥90% AND Purity≥99.0%)
+        ax3 = fig.add_subplot(133)
+        design_space_mask = (yield_grid &gt;= 90) &amp; (purity_grid &gt;= 99.0)
+
+        ax3.contourf(T_mesh, Ti_mesh, design_space_mask.astype(int), levels=[0, 0.5, 1],
+                     colors=['red', 'green'], alpha=0.3)
+        ax3.contour(T_mesh, Ti_mesh, yield_grid, levels=[90], colors='blue',
+                    linewidths=2, linestyles='solid', label='Yield=90%')
+        ax3.contour(T_mesh, Ti_mesh, purity_grid, levels=[99.0], colors='orange',
+                    linewidths=2, linestyles='solid', label='Purity=99.0%')
+        ax3.scatter(df_design['temperature'], df_design['time'], c='blue', s=50,
+                    edgecolor='black', linewidth=1, label='Experimental points', zorder=5)
+        ax3.set_xlabel('Reaction Temperature (°C)')
+        ax3.set_ylabel('Reaction Time (min)')
+        ax3.set_title('Design Space (Green=Acceptable Region)', fontsize=12, fontweight='bold')
+        ax3.legend()
+
+        plt.tight_layout()
+        plt.savefig('qbd_design_space.png', dpi=300, bbox_inches='tight')
+        plt.show()
+
+# Execution example
+print("=" * 60)
+print("QbD Design Space Design System")
+print("=" * 60)
+
+# QbD design instance
+qbd = QbDDesigner()
+
+# Generate central composite design
+df_design = qbd.generate_doe_design(design_type='central_composite')
+
+print(f"\nDesign of Experiments (Central Composite Design):")
+print(f"Number of experiments: {len(df_design)}")
+print(f"\nFactor levels:")
+print(f"  Reaction temperature: 70-90°C")
+print(f"  Reaction time: 60-180 min")
+print(f"  Catalyst amount: 1-5%")
+
+# Simulate response variables
+df_design = qbd.simulate_response(df_design)
+
+print(f"\nResponse variables:")
+print(f"  Yield: {df_design['yield'].min():.1f}-{df_design['yield'].max():.1f}%")
+print(f"  Purity: {df_design['purity'].min():.2f}-{df_design['purity'].max():.2f}%")
+
+# Build response surface model
+model_yield, r2_yield = qbd.build_response_surface_model(df_design, 'yield')
+print(f"\nYield model R² = {r2_yield:.4f}")
+
+model_purity, r2_purity = qbd.build_response_surface_model(df_design, 'purity')
+print(f"Purity model R² = {r2_purity:.4f}")
+
+# Search for optimal conditions
+print(f"\nOptimal condition prediction:")
+optimal_yield = qbd.predict_response(80, 120, 3)
+print(f"  Temperature=80°C, Time=120 min, Catalyst=3%")
+print(f"  → Yield = {optimal_yield:.2f}%")
+
+# Visualize design space
+qbd.plot_design_space(df_design, temp_range=(70, 90), time_range=(60, 180), catalyst_fixed=3)
+</code></pre>
+<p><strong>Implementation Points:</strong></p>
+<ul>
+<li>Efficient experimental design using Central Composite Design (CCD)</li>
+<li>Response surface construction using quadratic polynomial models</li>
+<li>Multi-objective optimization (balancing yield and purity)</li>
+<li>Design space visualization and identification of acceptable regions</li>
+<li>Science-based process parameter settings</li>
+</ul>
+</div>
+<div class="content-box">
+<h2>⚙️ 4.2 Control Strategy for Continuous Manufacturing Systems</h2>
+<h3>Batch vs Continuous Production</h3>
+<table>
+<tr>
+<th>Item</th>
+<th>Batch Production</th>
+<th>Continuous Production</th>
+</tr>
+<tr>
+<td>Production Mode</td>
+<td>Intermittent</td>
+<td>Continuous</td>
+</tr>
+<tr>
+<td>Lead Time</td>
+<td>Days to weeks</td>
+<td>Hours</td>
+</tr>
+<tr>
+<td>Equipment Scale</td>
+<td>Large</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>Flexibility</td>
+<td>High</td>
+<td>Time required for product changeover</td>
+</tr>
+<tr>
+<td>Quality Control</td>
+<td>Batch-by-batch</td>
+<td>Real-time</td>
+</tr>
+<tr>
+<td>Inventory</td>
+<td>Large intermediate inventory</td>
+<td>Minimized</td>
+</tr>
+</table>
+<h3>💻 Code Example 4.2: Real-Time Control Simulation for Continuous Manufacturing</h3>
+<pre><code>import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+import warnings
+warnings.filterwarnings('ignore')
+
+plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
+
+class ContinuousManufacturingSimulator:
+    """Continuous Manufacturing Simulator"""
+
+    def __init__(self, target_concentration=5.0):
+        """
+        Args:
+            target_concentration: Target concentration (mol/L)
+        """
+        self.target = target_concentration
+        self.Kp = 2.0  # Proportional gain
+        self.Ki = 0.5  # Integral gain
+        self.Kd = 0.1  # Derivative gain
+        self.integral_error = 0
+        self.previous_error = 0
+
+    def reactor_dynamics(self, state, t, feed_rate, T):
+        """
+        Continuous reactor dynamics (CSTR: Continuous Stirred-Tank Reactor)
+
+        Args:
+            state: [Concentration C, Temperature T_reactor]
+            t: Time
+            feed_rate: Feed flow rate
+            T: Set temperature
+
+        Returns:
+            State change rate [dC/dt, dT/dt]
+        """
+        C, T_reactor = state
+
+        # Parameters
+        V = 10.0  # Reactor volume (L)
+        k0 = 1e10  # Frequency factor
+        Ea = 8000  # Activation energy (J/mol)
+        R = 8.314  # Gas constant
+        C_in = 10.0  # Feed concentration (mol/L)
+
+        # Reaction rate constant (Arrhenius equation)
+        k = k0 * np.exp(-Ea / (R * (T_reactor + 273.15)))
+
+        # Mass balance
+        dC_dt = feed_rate / V * (C_in - C) - k * C
+
+        # Energy balance (simplified)
+        dT_dt = 0.1 * (T - T_reactor)  # Temperature control
+
+        return [dC_dt, dT_dt]
+
+    def pid_controller(self, error, dt=0.1):
+        """
+        PID controller
+
+        Args:
+            error: Deviation (target value - current value)
+            dt: Sampling time
+
+        Returns:
+            Control output (feed flow rate adjustment)
+        """
+        # Integral term
+        self.integral_error += error * dt
+
+        # Derivative term
+        derivative_error = (error - self.previous_error) / dt
+
+        # PID output
+        output = (self.Kp * error +
+                  self.Ki * self.integral_error +
+                  self.Kd * derivative_error)
+
+        self.previous_error = error
+
+        return output
+
+    def simulate_continuous_process(self, duration=100, disturbance_times=None):
+        """
+        Simulate continuous manufacturing process
+
+        Args:
+            duration: Simulation time (min)
+            disturbance_times: List of disturbance occurrence times
+
+        Returns:
+            DataFrame of time series data
+        """
+        dt = 0.1  # Sampling time (min)
+        t = np.arange(0, duration, dt)
+
+        # Initial state
+        C = 5.0  # Initial concentration
+        T_reactor = 80.0  # Initial reactor temperature
+        state = [C, T_reactor]
+
+        # Recording lists
+        concentrations = []
+        temperatures = []
+        feed_rates = []
+        errors = []
+        setpoints = []
+
+        # Base feed flow rate
+        base_feed_rate = 1.0  # L/min
+
+        for i, time in enumerate(t):
+            # Target value (setpoint change simulation)
+            if time &lt; 30:
+                target = 5.0
+            elif time &lt; 60:
+                target = 6.0
+            else:
+                target = 5.5
+
+            # Add disturbances
+            if disturbance_times and any(abs(time - dt_time) &lt; 0.5 for dt_time in disturbance_times):
+                state[0] += np.random.uniform(-0.5, 0.5)  # Concentration disturbance
+
+            # PID control
+            error = target - state[0]
+            control_output = self.pid_controller(error, dt)
+
+            # Update feed flow rate (with constraints)
+            feed_rate = np.clip(base_feed_rate + control_output, 0.5, 2.0)
+
+            # Update reactor dynamics
+            state = odeint(self.reactor_dynamics, state, [time, time + dt],
+                           args=(feed_rate, 80.0))[-1]
+
+            # Record
+            concentrations.append(state[0])
+            temperatures.append(state[1])
+            feed_rates.append(feed_rate)
+            errors.append(error)
+            setpoints.append(target)
+
+        df_results = pd.DataFrame({
+            'time': t,
+            'concentration': concentrations,
+            'temperature': temperatures,
+            'feed_rate': feed_rates,
+            'error': errors,
+            'setpoint': setpoints
+        })
+
+        return df_results
+
+    def plot_control_performance(self, df_results):
+        """Visualize control performance"""
+        fig, axes = plt.subplots(3, 1, figsize=(14, 10))
+
+        # Concentration profile
+        axes[0].plot(df_results['time'], df_results['concentration'], color='#11998e',
+                     linewidth=2, label='Measured concentration')
+        axes[0].plot(df_results['time'], df_results['setpoint'], color='red',
+                     linestyle='--', linewidth=2, label='Target concentration')
+        axes[0].fill_between(df_results['time'],
+                              df_results['setpoint'] - 0.1,
+                              df_results['setpoint'] + 0.1,
+                              alpha=0.2, color='green', label='Acceptable range (±0.1)')
+        axes[0].set_xlabel('Time (min)')
+        axes[0].set_ylabel('Concentration (mol/L)')
+        axes[0].set_title('Continuous Reactor Concentration Control', fontsize=12, fontweight='bold')
+        axes[0].legend()
+        axes[0].grid(alpha=0.3)
+
+        # Feed flow rate
+        axes[1].plot(df_results['time'], df_results['feed_rate'], color='#38ef7d',
+                     linewidth=2)
+        axes[1].set_xlabel('Time (min)')
+        axes[1].set_ylabel('Feed Flow Rate (L/min)')
+        axes[1].set_title('PID Controller Output (Feed Flow Rate)', fontsize=12, fontweight='bold')
+        axes[1].grid(alpha=0.3)
+
+        # Control error
+        axes[2].plot(df_results['time'], df_results['error'], color='#f38181',
+                     linewidth=1.5)
+        axes[2].axhline(y=0, color='black', linestyle='-', linewidth=1)
+        axes[2].fill_between(df_results['time'], -0.1, 0.1,
+                              alpha=0.2, color='green', label='Acceptable error')
+        axes[2].set_xlabel('Time (min)')
+        axes[2].set_ylabel('Control Error (mol/L)')
+        axes[2].set_title('Control Error', fontsize=12, fontweight='bold')
+        axes[2].legend()
+        axes[2].grid(alpha=0.3)
+
+        plt.tight_layout()
+        plt.savefig('continuous_manufacturing_control.png', dpi=300, bbox_inches='tight')
+        plt.show()
+
+# Execution example
+print("=" * 60)
+print("Continuous Manufacturing Real-Time Control Simulation")
+print("=" * 60)
+
+# Initialize simulator
+cm_sim = ContinuousManufacturingSimulator(target_concentration=5.0)
+
+# Set disturbance occurrence times
+disturbance_times = [40, 70]
+
+# Execute simulation
+df_results = cm_sim.simulate_continuous_process(duration=100, disturbance_times=disturbance_times)
+
+# Performance evaluation
+print(f"\nSimulation results:")
+print(f"Simulation time: {df_results['time'].max():.1f} min")
+print(f"Concentration range: {df_results['concentration'].min():.2f}-{df_results['concentration'].max():.2f} mol/L")
+print(f"Average control error: {df_results['error'].abs().mean():.4f} mol/L")
+print(f"Maximum control error: {df_results['error'].abs().max():.4f} mol/L")
+
+# Steady-state error evaluation (last 10 minutes)
+steady_state_data = df_results[df_results['time'] &gt; 90]
+steady_state_error = steady_state_data['error'].abs().mean()
+print(f"Steady-state error: {steady_state_error:.4f} mol/L")
+
+# Visualization
+cm_sim.plot_control_performance(df_results)
+</code></pre>
+<p><strong>Implementation Points:</strong></p>
+<ul>
+<li>Dynamic modeling of continuous reactor (CSTR)</li>
+<li>Real-time feedback control using PID control</li>
+<li>Evaluation of responsiveness to setpoint changes and disturbances</li>
+<li>Quantitative evaluation of control performance (steady-state error, response time)</li>
+<li>Addressing control challenges unique to continuous production not found in batch production</li>
+</ul>
+</div>
+<div class="content-box">
+<h2>📚 Summary</h2>
+<p>In this chapter, we learned about continuous manufacturing and QbD implementation.</p>
+<h3>Key Points</h3>
+<ul>
+<li>The three pillars of QbD (QTPP, CQA, CPP) and scientific approach</li>
+<li>Efficient process optimization using Design of Experiments (DoE)</li>
+<li>Design space construction and visualization</li>
+<li>Real-time control strategies for continuous manufacturing systems</li>
+<li>Stable quality assurance through PID control</li>
+</ul>
+<div class="key-point">
+<strong>🎯 Next Chapter Preview</strong><br/>
+                In Chapter 5, we will learn about regulatory compliance and CSV (Computer System Validation) implementation strategies for AI systems.
+                We will acquire essential knowledge for implementing AI systems in GMP environments, including 21 CFR Part 11 compliance,
+                audit trails, electronic signatures, and data integrity implementation.
+            </div>
+</div>
+<div class="nav-buttons">
+<a href="chapter-3.html">← Chapter 3: PAT and Real-Time Quality Control</a>
+<a href="chapter-5.html">Chapter 5: Regulatory Compliance and CSV Implementation →</a>
+</div>
+</div>
+<section>
+            <h2>References</h2>
+            <ol>
+                <li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+                <li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+                <li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+                <li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+            </ol>
+        </section>
+
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+<footer>
+<p>© 2025 AI Terakoya - Process Informatics Dojo</p>
+<p>Chapter 4: Continuous Manufacturing and QbD Implementation</p>
+</footer>
+</body>
+</html>

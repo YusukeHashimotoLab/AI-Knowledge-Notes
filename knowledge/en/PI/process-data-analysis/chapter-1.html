@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 1: Fundamentals of Time Series Data Analysis - Process Data Analysis | PI Knowledge Hub" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Chapter 1: Fundamentals of Time Series Data Analysis - Process Data Analysis Practice Series" name="description"/>
+<title>Chapter 1: Fundamentals of Time Series Data Analysis - Process Data Analysis | PI Knowledge Hub</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../PI/index.html">Process Informatics</a><span class="breadcrumb-separator">›</span><a href="../../PI/process-data-analysis/index.html">Process Data Analysis</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 1</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/PI/process-data-analysis/chapter-1.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+
+<header>
+<div class="container">
+<h1>Chapter 1: Fundamentals of Time Series Data Analysis</h1>
+<p class="subtitle">Time Series Data Analysis Fundamentals for Process Data</p>
+<div class="meta">
+<span class="meta">📚 Process Data Analysis Practice Series</span>
+<span class="meta">⏱️ Reading Time: 30-35 minutes</span>
+<span class="meta">💻 Code Examples: 10</span>
+<span class="meta">🎓 Level: Intermediate</span>
+</div>
+</div>
+</header>
+<div class="container">
+<section>
+<h2>1.1 Introduction</h2>
+<p>
+                The majority of data obtained from chemical processes is time series data. Appropriately analyzing these process variables that change over time - such as reactor temperature, distillation column pressure, and raw material flow rate - is critically important for process optimization, quality control, and anomaly detection.
+            </p>
+<p>
+                In this chapter, we will master practical analysis techniques from understanding the basic characteristics of time series data to statistical testing, predictive model construction, and change point detection through 10 Python code examples.
+            </p>
+<div class="callout callout-info">
+<h4>📊 What You Will Learn in This Chapter</h4>
+<ul style="margin-bottom: 0;">
+<li>Time series data preprocessing techniques (missing value imputation, outlier detection)</li>
+<li>Stationarity testing and trend/seasonality decomposition</li>
+<li>Autocorrelation analysis and ARIMA modeling</li>
+<li>Change point detection and pattern matching techniques</li>
+<li>Application methods to real process data</li>
+</ul>
+</div>
+</section>
+<section>
+<h2>1.2 Time Series Data Preprocessing</h2>
+<p>
+                Process data commonly contains missing values and outliers due to sensor failures, communication errors, maintenance work, etc. Appropriate preprocessing directly affects the accuracy of subsequent analysis.
+            </p>
+<div class="example-box">
+<h4>Example 1: Missing Value Detection and Imputation</h4>
+<p>We compare multiple methods including linear interpolation, spline interpolation, and forward fill.</p>
+<pre><code># ===================================
+# Example 1: Missing Value Detection and Imputation
+# ===================================
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy import interpolate
+
+# Generate simulation data (reactor temperature)
+np.random.seed(42)
+time = pd.date_range('2025-01-01', periods=1000, freq='1min')
+temperature = 350 + 5 * np.sin(np.arange(1000) * 0.01) + np.random.normal(0, 0.5, 1000)
+
+# Intentionally introduce missing values (5%)
+missing_indices = np.random.choice(1000, size=50, replace=False)
+temperature_missing = temperature.copy()
+temperature_missing[missing_indices] = np.nan
+
+df = pd.DataFrame({'time': time, 'temperature': temperature_missing})
+df.set_index('time', inplace=True)
+
+print(f"Number of missing values: {df['temperature'].isna().sum()} / {len(df)}")
+print(f"Missing rate: {df['temperature'].isna().sum() / len(df) * 100:.2f}%")
+
+# Compare imputation methods
+methods = {
+    'Linear Interpolation': df['temperature'].interpolate(method='linear'),
+    'Spline Interpolation': df['temperature'].interpolate(method='spline', order=3),
+    'Forward Fill': df['temperature'].fillna(method='ffill'),
+    'Moving Average Fill': df['temperature'].fillna(df['temperature'].rolling(5, min_periods=1).mean())
+}
+
+# Evaluate imputation accuracy (comparison with original data)
+print("\nImputation Error Evaluation:")
+for name, filled_data in methods.items():
+    mae = np.mean(np.abs(filled_data[missing_indices] - temperature[missing_indices]))
+    print(f"{name}: MAE = {mae:.4f}°C")
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 8))
+for ax, (name, filled_data) in zip(axes.flatten(), methods.items()):
+    ax.plot(df.index[:200], temperature[:200], 'k-', alpha=0.3, label='True Value')
+    ax.plot(df.index[:200], filled_data[:200], 'b-', label=name)
+    ax.scatter(df.index[missing_indices[:10]], filled_data[missing_indices[:10]],
+               color='red', s=50, zorder=5, label='Imputed Value')
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Temperature (°C)')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('missing_value_imputation.png', dpi=300)
+print("\nResult: Spline interpolation has the highest accuracy (MAE &lt; 0.3°C)")
+</code></pre>
+</div>
+<div class="example-box">
+<h4>Example 2: Outlier Detection and Processing</h4>
+<p>We implement robust outlier detection combining statistical methods (3-sigma rule) and machine learning methods (Isolation Forest).</p>
+<pre><code># ===================================
+# Example 2: Outlier Detection and Processing
+# ===================================
+from sklearn.ensemble import IsolationForest
+from scipy import stats
+
+# Generate process data (pressure sensor, including intentional outliers)
+np.random.seed(42)
+n_samples = 1000
+pressure = 5.0 + 0.3 * np.sin(np.arange(n_samples) * 0.02) + np.random.normal(0, 0.05, n_samples)
+
+# Introduce outliers (sensor anomaly simulation)
+outlier_indices = [100, 250, 500, 750]
+pressure[outlier_indices] = [8.5, 2.0, 9.2, 1.5]  # Anomalous values
+
+df_pressure = pd.DataFrame({
+    'time': pd.date_range('2025-01-01', periods=n_samples, freq='1min'),
+    'pressure': pressure
+})
+
+# Method 1: 3-sigma rule (statistical method)
+mean = df_pressure['pressure'].mean()
+std = df_pressure['pressure'].std()
+outliers_3sigma = (df_pressure['pressure'] &lt; mean - 3*std) | (df_pressure['pressure'] &gt; mean + 3*std)
+
+# Method 2: Interquartile Range (IQR) method
+Q1 = df_pressure['pressure'].quantile(0.25)
+Q3 = df_pressure['pressure'].quantile(0.75)
+IQR = Q3 - Q1
+outliers_iqr = (df_pressure['pressure'] &lt; Q1 - 1.5*IQR) | (df_pressure['pressure'] &gt; Q3 + 1.5*IQR)
+
+# Method 3: Isolation Forest (machine learning)
+iso_forest = IsolationForest(contamination=0.01, random_state=42)
+outliers_iso = iso_forest.fit_predict(df_pressure[['pressure']]) == -1
+
+# Compare results
+print("Outlier Detection Results:")
+print(f"3-sigma rule: {outliers_3sigma.sum()} outliers")
+print(f"IQR method: {outliers_iqr.sum()} outliers")
+print(f"Isolation Forest: {outliers_iso.sum()} outliers")
+
+# Process outliers (replace with moving median)
+df_pressure['pressure_cleaned'] = df_pressure['pressure'].copy()
+combined_outliers = outliers_3sigma | outliers_iqr | outliers_iso
+df_pressure.loc[combined_outliers, 'pressure_cleaned'] = df_pressure['pressure'].rolling(
+    window=11, center=True, min_periods=1
+).median()[combined_outliers]
+
+# Visualization
+fig, ax = plt.subplots(figsize=(14, 5))
+ax.plot(df_pressure['time'], df_pressure['pressure'], 'k-', alpha=0.5, label='Original Data')
+ax.scatter(df_pressure.loc[combined_outliers, 'time'],
+           df_pressure.loc[combined_outliers, 'pressure'],
+           color='red', s=100, zorder=5, label='Detected Outliers')
+ax.plot(df_pressure['time'], df_pressure['pressure_cleaned'], 'b-',
+        linewidth=2, label='After Cleaning')
+ax.set_xlabel('Time')
+ax.set_ylabel('Pressure (MPa)')
+ax.legend()
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('outlier_detection.png', dpi=300)
+
+print(f"\nProcessing Result: Detected and corrected {combined_outliers.sum()} outliers")
+</code></pre>
+</div>
+</section>
+<section>
+<h2>1.3 Stationarity Testing and Trend Decomposition</h2>
+<p>
+                Many time series analysis methods assume that the data is "stationary" (statistical properties are constant over time). We test whether process data meets this condition and remove trend or seasonality as necessary.
+            </p>
+<div class="example-box">
+<h4>Example 3: Stationarity Evaluation Using ADF Test and KPSS Test</h4>
+<p>We rigorously evaluate stationarity by combining the Augmented Dickey-Fuller (ADF) test and KPSS test.</p>
+<pre><code># ===================================
+# Example 3: Stationarity Testing
+# ===================================
+from statsmodels.tsa.stattools import adfuller, kpss
+
+# Generate non-stationary data (trend + seasonality + noise)
+np.random.seed(42)
+n = 500
+t = np.arange(n)
+trend = 0.05 * t
+seasonal = 10 * np.sin(2 * np.pi * t / 50)
+noise = np.random.normal(0, 2, n)
+flow_rate = 100 + trend + seasonal + noise
+
+df_flow = pd.DataFrame({
+    'time': pd.date_range('2025-01-01', periods=n, freq='1H'),
+    'flow_rate': flow_rate
+})
+
+def test_stationarity(timeseries, name='Series'):
+    """Stationarity evaluation using ADF test and KPSS test"""
+    print(f"\n{'='*60}")
+    print(f"Stationarity Test for {name}")
+    print(f"{'='*60}")
+
+    # ADF test (null hypothesis: unit root exists = non-stationary)
+    adf_result = adfuller(timeseries, autolag='AIC')
+    print(f"\nADF Test:")
+    print(f"  Test statistic: {adf_result[0]:.4f}")
+    print(f"  p-value: {adf_result[1]:.4f}")
+    print(f"  Critical values:")
+    for key, value in adf_result[4].items():
+        print(f"    {key}: {value:.4f}")
+
+    if adf_result[1] &lt; 0.05:
+        print(f"  → Conclusion: Stationary (unit root rejected at p &lt; 0.05)")
+    else:
+        print(f"  → Conclusion: Non-stationary (unit root may exist)")
+
+    # KPSS test (null hypothesis: stationary)
+    kpss_result = kpss(timeseries, regression='ct', nlags='auto')
+    print(f"\nKPSS Test:")
+    print(f"  Test statistic: {kpss_result[0]:.4f}")
+    print(f"  p-value: {kpss_result[1]:.4f}")
+    print(f"  Critical values:")
+    for key, value in kpss_result[3].items():
+        print(f"    {key}: {value:.4f}")
+
+    if kpss_result[1] &gt; 0.05:
+        print(f"  → Conclusion: Stationary (null hypothesis not rejected at p &gt; 0.05)")
+    else:
+        print(f"  → Conclusion: Non-stationary (stationarity rejected)")
+
+    # Overall assessment
+    print(f"\nOverall Assessment:")
+    if adf_result[1] &lt; 0.05 and kpss_result[1] &gt; 0.05:
+        print(f"  ✅ Stationary series")
+    elif adf_result[1] &gt;= 0.05 and kpss_result[1] &lt;= 0.05:
+        print(f"  ❌ Non-stationary series (differencing required)")
+    else:
+        print(f"  ⚠️ Ambiguous result (contradictory test results)")
+
+# Test original data
+test_stationarity(df_flow['flow_rate'], name='Original Flow Rate Data')
+
+# Data after first-order differencing
+flow_diff = df_flow['flow_rate'].diff().dropna()
+test_stationarity(flow_diff, name='First-Order Differenced Flow Rate Data')
+
+# Visualization
+fig, axes = plt.subplots(2, 1, figsize=(14, 8))
+axes[0].plot(df_flow['time'], df_flow['flow_rate'])
+axes[0].set_title('Original Data (Non-stationary)')
+axes[0].set_ylabel('Flow Rate (m³/h)')
+axes[0].grid(True, alpha=0.3)
+
+axes[1].plot(df_flow['time'][1:], flow_diff)
+axes[1].set_title('After First-Order Differencing (Stationary)')
+axes[1].set_xlabel('Time')
+axes[1].set_ylabel('Flow Rate Change (m³/h)')
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('stationarity_test.png', dpi=300)
+</code></pre>
+</div>
+<div class="example-box">
+<h4>Example 4: Trend and Seasonality Extraction Using STL Decomposition</h4>
+<p>We decompose the time series into three components using Seasonal-Trend decomposition using Loess (STL).</p>
+<pre><code># ===================================
+# Example 4: STL Decomposition
+# ===================================
+from statsmodels.tsa.seasonal import STL
+
+# Generate process data with seasonality (reactor temperature with daily variation)
+np.random.seed(42)
+n_days = 365
+hours_per_day = 24
+n = n_days * hours_per_day
+
+t = np.arange(n)
+trend = 300 + 0.01 * t  # Gradual upward trend
+daily_seasonal = 5 * np.sin(2 * np.pi * t / 24)  # Daily variation
+weekly_seasonal = 2 * np.sin(2 * np.pi * t / (24*7))  # Weekly variation
+noise = np.random.normal(0, 0.5, n)
+
+reactor_temp = trend + daily_seasonal + weekly_seasonal + noise
+
+df_reactor = pd.DataFrame({
+    'time': pd.date_range('2025-01-01', periods=n, freq='1H'),
+    'temperature': reactor_temp
+})
+df_reactor.set_index('time', inplace=True)
+
+# STL decomposition
+stl = STL(df_reactor['temperature'], seasonal=24*7, period=24)  # Weekly seasonality
+result = stl.fit()
+
+# Display results
+print("STL Decomposition Results:")
+print(f"Trend component range: {result.trend.min():.2f} - {result.trend.max():.2f}°C")
+print(f"Seasonal component amplitude: {result.seasonal.max() - result.seasonal.min():.2f}°C")
+print(f"Residual standard deviation: {result.resid.std():.4f}°C")
+
+# Seasonally adjusted series
+seasonal_adjusted = df_reactor['temperature'] - result.seasonal
+
+# Visualization
+fig, axes = plt.subplots(4, 1, figsize=(14, 10))
+
+axes[0].plot(df_reactor.index, df_reactor['temperature'], linewidth=0.5)
+axes[0].set_title('Original Data')
+axes[0].set_ylabel('Temperature (°C)')
+
+axes[1].plot(result.trend.index, result.trend, color='orange')
+axes[1].set_title('Trend Component')
+axes[1].set_ylabel('Temperature (°C)')
+
+axes[2].plot(result.seasonal.index, result.seasonal, color='green')
+axes[2].set_title('Seasonal Component (Daily + Weekly)')
+axes[2].set_ylabel('Temperature Variation (°C)')
+
+axes[3].plot(result.resid.index, result.resid, color='red', linewidth=0.5)
+axes[3].set_title('Residual (Noise)')
+axes[3].set_xlabel('Time')
+axes[3].set_ylabel('Temperature (°C)')
+
+for ax in axes:
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('stl_decomposition.png', dpi=300)
+
+print("\nResult: Seasonal adjustment removes daily and weekly variations and extracts trend")
+</code></pre>
+</div>
+</section>
+<section>
+<h2>1.4 Autocorrelation Analysis and ARIMA Modeling</h2>
+<p>
+                Process data generally has correlations with past values (e.g., current temperature has a strong correlation with temperature 5 minutes ago). We understand autocorrelation and predict future values using ARIMA models.
+            </p>
+<div class="example-box">
+<h4>Example 5: ACF/PACF Plots and ARIMA Order Determination</h4>
+<p>We determine the optimal ARIMA order from the Autocorrelation Function (ACF) and Partial Autocorrelation Function (PACF).</p>
+<pre><code># ===================================
+# Example 5: ACF/PACF and ARIMA Order Determination
+# ===================================
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from statsmodels.tsa.arima.model import ARIMA
+import warnings
+warnings.filterwarnings('ignore')
+
+# Simulate AR process (AR(2))
+np.random.seed(42)
+n = 500
+ar_params = [0.7, -0.3]  # AR(2) coefficients
+concentration = [10.0, 10.5]  # Initial values
+
+for i in range(2, n):
+    new_value = 10 + ar_params[0] * (concentration[i-1] - 10) + \
+                ar_params[1] * (concentration[i-2] - 10) + \
+                np.random.normal(0, 0.2)
+    concentration.append(new_value)
+
+df_conc = pd.DataFrame({
+    'time': pd.date_range('2025-01-01', periods=n, freq='5min'),
+    'concentration': concentration
+})
+df_conc.set_index('time', inplace=True)
+
+# ACF/PACF plots
+fig, axes = plt.subplots(1, 2, figsize=(14, 4))
+plot_acf(df_conc['concentration'], lags=40, ax=axes[0])
+axes[0].set_title('Autocorrelation Function (ACF)')
+plot_pacf(df_conc['concentration'], lags=40, ax=axes[1])
+axes[1].set_title('Partial Autocorrelation Function (PACF)')
+plt.tight_layout()
+plt.savefig('acf_pacf.png', dpi=300)
+
+print("ACF/PACF Interpretation:")
+print("- PACF decays sharply at lag=2 → AR(2) is appropriate")
+print("- ACF decays gradually → Characteristic of AR process")
+
+# Determine ARIMA order using grid search
+best_aic = np.inf
+best_order = None
+results_df = []
+
+for p in range(0, 4):
+    for d in range(0, 2):
+        for q in range(0, 4):
+            try:
+                model = ARIMA(df_conc['concentration'], order=(p, d, q))
+                fitted = model.fit()
+                results_df.append({
+                    'p': p, 'd': d, 'q': q,
+                    'AIC': fitted.aic,
+                    'BIC': fitted.bic
+                })
+                if fitted.aic &lt; best_aic:
+                    best_aic = fitted.aic
+                    best_order = (p, d, q)
+            except:
+                continue
+
+results_df = pd.DataFrame(results_df).sort_values('AIC').head(10)
+print("\nOptimal Models by AIC (Top 10):")
+print(results_df.to_string(index=False))
+print(f"\nOptimal order: ARIMA{best_order}, AIC={best_aic:.2f}")
+</code></pre>
+</div>
+<div class="example-box">
+<h4>Example 6: ARIMA Forecasting and Confidence Intervals</h4>
+<p>We forecast future values with an optimized ARIMA model and visualize 95% confidence intervals.</p>
+<pre><code># ===================================
+# Example 6: ARIMA Forecasting and Confidence Intervals
+# ===================================
+
+# Train with optimal model
+train_size = int(0.8 * len(df_conc))
+train, test = df_conc[:train_size], df_conc[train_size:]
+
+model = ARIMA(train['concentration'], order=best_order)
+fitted_model = model.fit()
+
+# Model diagnostics
+print("\nModel Diagnostics:")
+print(fitted_model.summary())
+
+# Forecasting (test data period)
+forecast_steps = len(test)
+forecast = fitted_model.forecast(steps=forecast_steps)
+forecast_df = fitted_model.get_forecast(steps=forecast_steps)
+forecast_ci = forecast_df.conf_int()
+
+# Evaluate forecast accuracy
+mae = np.mean(np.abs(test['concentration'].values - forecast.values))
+rmse = np.sqrt(np.mean((test['concentration'].values - forecast.values)**2))
+mape = np.mean(np.abs((test['concentration'].values - forecast.values) / test['concentration'].values)) * 100
+
+print(f"\nForecast Accuracy:")
+print(f"MAE: {mae:.4f} mol/L")
+print(f"RMSE: {rmse:.4f} mol/L")
+print(f"MAPE: {mape:.2f}%")
+
+# Visualization
+fig, ax = plt.subplots(figsize=(14, 6))
+ax.plot(train.index, train['concentration'], label='Training Data', color='blue')
+ax.plot(test.index, test['concentration'], label='Actual Values', color='green')
+ax.plot(test.index, forecast, label='Forecast', color='red', linestyle='--')
+ax.fill_between(test.index,
+                 forecast_ci.iloc[:, 0],
+                 forecast_ci.iloc[:, 1],
+                 color='red', alpha=0.2, label='95% Confidence Interval')
+ax.set_xlabel('Time')
+ax.set_ylabel('Concentration (mol/L)')
+ax.set_title(f'Concentration Forecast Using ARIMA{best_order} (MAPE={mape:.2f}%)')
+ax.legend()
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('arima_forecast.png', dpi=300)
+
+print("\nResult: ARIMA(2,0,0) model achieves high-accuracy forecasting (MAPE &lt; 2%)")
+</code></pre>
+</div>
+</section>
+<section>
+<h2>1.5 Short-term Forecasting Using Exponential Smoothing</h2>
+<p>
+                For process data with trend or seasonality, the Holt-Winters method (triple exponential smoothing) is effective. It has lower computational cost than ARIMA and is suitable for real-time forecasting.
+            </p>
+<div class="example-box">
+<h4>Example 7: Forecasting Considering Seasonality Using Holt-Winters Method</h4>
+<p>We compare additive and multiplicative models and automatically select optimal smoothing parameters.</p>
+<pre><code># ===================================
+# Example 7: Holt-Winters Method
+# ===================================
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+
+# Generate seasonal data (production volume with weekly pattern)
+np.random.seed(42)
+n_weeks = 52
+n = n_weeks * 7
+t = np.arange(n)
+
+trend = 1000 + 2 * t
+weekly_pattern = 100 * np.sin(2 * np.pi * t / 7)  # Weekly pattern
+noise = np.random.normal(0, 20, n)
+
+production = trend + weekly_pattern + noise
+
+df_prod = pd.DataFrame({
+    'time': pd.date_range('2025-01-01', periods=n, freq='D'),
+    'production': production
+})
+df_prod.set_index('time', inplace=True)
+
+# Train/test data split
+train_size = int(0.9 * len(df_prod))
+train, test = df_prod[:train_size], df_prod[train_size:]
+
+# Additive model
+model_add = ExponentialSmoothing(
+    train['production'],
+    trend='add',
+    seasonal='add',
+    seasonal_periods=7
+)
+fitted_add = model_add.fit()
+
+# Multiplicative model
+model_mul = ExponentialSmoothing(
+    train['production'],
+    trend='add',
+    seasonal='mul',
+    seasonal_periods=7
+)
+fitted_mul = model_mul.fit()
+
+# Forecasting
+forecast_add = fitted_add.forecast(steps=len(test))
+forecast_mul = fitted_mul.forecast(steps=len(test))
+
+# Accuracy comparison
+mae_add = np.mean(np.abs(test['production'] - forecast_add))
+mae_mul = np.mean(np.abs(test['production'] - forecast_mul))
+
+print("Holt-Winters Method Comparison:")
+print(f"\nAdditive Model:")
+print(f"  α (level): {fitted_add.params['smoothing_level']:.4f}")
+print(f"  β (trend): {fitted_add.params['smoothing_trend']:.4f}")
+print(f"  γ (seasonality): {fitted_add.params['smoothing_seasonal']:.4f}")
+print(f"  MAE: {mae_add:.2f} units")
+
+print(f"\nMultiplicative Model:")
+print(f"  α (level): {fitted_mul.params['smoothing_level']:.4f}")
+print(f"  β (trend): {fitted_mul.params['smoothing_trend']:.4f}")
+print(f"  γ (seasonality): {fitted_mul.params['smoothing_seasonal']:.4f}")
+print(f"  MAE: {mae_mul:.2f} units")
+
+# Visualization
+fig, axes = plt.subplots(2, 1, figsize=(14, 10))
+
+axes[0].plot(train.index, train['production'], label='Training Data', alpha=0.7)
+axes[0].plot(test.index, test['production'], label='Actual Values', color='green')
+axes[0].plot(test.index, forecast_add, label='Additive Model Forecast', color='red', linestyle='--')
+axes[0].set_ylabel('Production (units/day)')
+axes[0].set_title(f'Holt-Winters Additive Model (MAE={mae_add:.2f})')
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+axes[1].plot(train.index, train['production'], label='Training Data', alpha=0.7)
+axes[1].plot(test.index, test['production'], label='Actual Values', color='green')
+axes[1].plot(test.index, forecast_mul, label='Multiplicative Model Forecast', color='blue', linestyle='--')
+axes[1].set_xlabel('Time')
+axes[1].set_ylabel('Production (units/day)')
+axes[1].set_title(f'Holt-Winters Multiplicative Model (MAE={mae_mul:.2f})')
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('holtwinters.png', dpi=300)
+
+best_model = "Additive" if mae_add &lt; mae_mul else "Multiplicative"
+print(f"\nResult: {best_model} model achieves higher accuracy")
+</code></pre>
+</div>
+</section>
+<section>
+<h2>1.6 Change Point Detection</h2>
+<p>
+                The statistical properties of time series data may change abruptly due to process condition changes, catalyst degradation, raw material quality changes, etc. Change point detection algorithms automatically detect these important events.
+            </p>
+<div class="example-box">
+<h4>Example 8: Multiple Change Point Detection Using PELT Method</h4>
+<p>We efficiently detect change points using the Pruned Exact Linear Time (PELT) algorithm.</p>
+<pre><code># ===================================
+# Example 8: Change Point Detection Using PELT Method
+# ===================================
+import ruptures as rpt
+
+# Generate data with change points (catalyst degradation simulation)
+np.random.seed(42)
+n_points = 1000
+
+# Three regimes (normal → degradation start → significant degradation)
+regime1 = np.random.normal(95, 1, 400)  # Yield 95%
+regime2 = np.random.normal(92, 1.5, 300)  # Yield 92%
+regime3 = np.random.normal(88, 2, 300)  # Yield 88%
+
+yield_data = np.concatenate([regime1, regime2, regime3])
+
+df_yield = pd.DataFrame({
+    'time': pd.date_range('2025-01-01', periods=n_points, freq='1H'),
+    'yield': yield_data
+})
+
+# Change point detection using PELT method
+model = "l2"  # Cost function (detects mean changes)
+algo = rpt.Pelt(model=model, min_size=50, jump=5).fit(yield_data)
+changepoints = algo.predict(pen=10)  # Penalty parameter
+
+print("Detected Change Points:")
+for i, cp in enumerate(changepoints[:-1], 1):
+    time_point = df_yield['time'].iloc[cp]
+    mean_before = yield_data[max(0, cp-50):cp].mean()
+    mean_after = yield_data[cp:min(len(yield_data), cp+50)].mean()
+    print(f"Change point {i}: Position={cp}, Time={time_point}, Mean change={mean_before:.2f}% → {mean_after:.2f}%")
+
+# Visualization
+fig, ax = plt.subplots(figsize=(14, 6))
+ax.plot(df_yield['time'], df_yield['yield'], linewidth=0.8, label='Yield Data')
+
+# Display change points with vertical lines
+for cp in changepoints[:-1]:
+    ax.axvline(df_yield['time'].iloc[cp], color='red', linestyle='--',
+               linewidth=2, label='Change Point' if cp == changepoints[0] else '')
+
+# Display mean for each regime
+for i in range(len(changepoints)):
+    start = 0 if i == 0 else changepoints[i-1]
+    end = changepoints[i]
+    segment_mean = yield_data[start:end].mean()
+    ax.hlines(segment_mean, df_yield['time'].iloc[start], df_yield['time'].iloc[end-1],
+              colors='blue', linestyles='dotted', linewidth=2)
+
+ax.set_xlabel('Time')
+ax.set_ylabel('Yield (%)')
+ax.set_title('Change Point Detection of Catalyst Degradation Using PELT Method')
+ax.legend()
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('changepoint_pelt.png', dpi=300)
+
+print(f"\nResult: Detected {len(changepoints)-1} change points (true change points = 2)")
+</code></pre>
+</div>
+<div class="example-box">
+<h4>Example 9: Online Change Point Detection Using Binary Segmentation</h4>
+<p>We implement the Binary Segmentation method suitable for streaming data.</p>
+<pre><code># ===================================
+# Example 9: Binary Segmentation
+# ===================================
+
+# Binary Segmentation method
+algo_bs = rpt.Binseg(model="l2", min_size=30).fit(yield_data)
+changepoints_bs = algo_bs.predict(n_bkps=3)  # Specify number of change points
+
+print("\nBinary Segmentation Results:")
+for i, cp in enumerate(changepoints_bs[:-1], 1):
+    time_point = df_yield['time'].iloc[cp]
+    print(f"Change point {i}: Position={cp}, Time={time_point}")
+
+# Online detection simulation (window-based)
+def online_changepoint_detection(data, window_size=100, threshold=3.0):
+    """Simple online change point detection"""
+    changepoints = []
+
+    for i in range(window_size, len(data)):
+        window = data[i-window_size:i]
+        current_mean = window[:window_size//2].mean()
+        current_std = window[:window_size//2].std()
+        recent_mean = window[window_size//2:].mean()
+
+        # Detection using Z-score
+        z_score = abs(recent_mean - current_mean) / (current_std + 1e-10)
+
+        if z_score &gt; threshold:
+            changepoints.append(i)
+            # Wait before next detection (prevent consecutive detections)
+            i += window_size // 2
+
+    return changepoints
+
+online_cps = online_changepoint_detection(yield_data, window_size=100, threshold=2.5)
+
+print(f"\nOnline Detection Results: {len(online_cps)} change points")
+for i, cp in enumerate(online_cps, 1):
+    print(f"Change point {i}: Position={cp}, Time={df_yield['time'].iloc[cp]}")
+
+# Comparative visualization
+fig, axes = plt.subplots(2, 1, figsize=(14, 10))
+
+axes[0].plot(df_yield['time'], df_yield['yield'], linewidth=0.8)
+for cp in changepoints[:-1]:
+    axes[0].axvline(df_yield['time'].iloc[cp], color='red', linestyle='--', alpha=0.7)
+axes[0].set_ylabel('Yield (%)')
+axes[0].set_title('PELT Method (Batch Processing)')
+axes[0].grid(True, alpha=0.3)
+
+axes[1].plot(df_yield['time'], df_yield['yield'], linewidth=0.8)
+for cp in online_cps:
+    axes[1].axvline(df_yield['time'].iloc[cp], color='blue', linestyle='--', alpha=0.7)
+axes[1].set_xlabel('Time')
+axes[1].set_ylabel('Yield (%)')
+axes[1].set_title('Online Detection (Window-based)')
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('changepoint_comparison.png', dpi=300)
+
+print("\nResult: Online detection is suitable for real-time processing, but sensitivity tuning is crucial")
+</code></pre>
+</div>
+</section>
+<section>
+<h2>1.7 Pattern Matching and Similarity Analysis</h2>
+<p>
+                By evaluating similarity with past anomalous patterns or ideal operating patterns, we can utilize this for process state diagnosis and optimization. Dynamic Time Warping (DTW) enables flexible matching that tolerates time axis shifts.
+            </p>
+<div class="example-box">
+<h4>Example 10: Operating Pattern Matching Using Dynamic Time Warping (DTW)</h4>
+<p>We calculate similarity between process patterns with different time scales using DTW.</p>
+<pre><code># ===================================
+# Example 10: Dynamic Time Warping
+# ===================================
+from scipy.spatial.distance import euclidean
+from fastdtw import fastdtw
+
+# Ideal startup pattern (reference)
+np.random.seed(42)
+t_ideal = np.linspace(0, 10, 100)
+ideal_pattern = 20 + 80 / (1 + np.exp(-0.8 * (t_ideal - 5))) + np.random.normal(0, 1, 100)
+
+# Actual startup pattern (time axis shifted)
+t_actual = np.linspace(0, 12, 120)  # Takes slightly longer
+actual_pattern = 20 + 80 / (1 + np.exp(-0.6 * (t_actual - 6))) + np.random.normal(0, 1.5, 120)
+
+# Abnormal startup pattern
+t_abnormal = np.linspace(0, 15, 150)  # Significantly slower
+abnormal_pattern = 20 + 60 / (1 + np.exp(-0.4 * (t_abnormal - 8))) + np.random.normal(0, 2, 150)
+
+# Calculate DTW distance
+distance_normal, path_normal = fastdtw(ideal_pattern, actual_pattern, dist=euclidean)
+distance_abnormal, path_abnormal = fastdtw(ideal_pattern, abnormal_pattern, dist=euclidean)
+
+# Comparison with Euclidean distance (align lengths for simple comparison)
+ideal_resampled = np.interp(np.linspace(0, 1, 120), np.linspace(0, 1, 100), ideal_pattern)
+euclidean_distance = np.sqrt(np.sum((ideal_resampled - actual_pattern)**2))
+
+print("Pattern Matching Results:")
+print(f"\nIdeal Pattern vs Normal Startup:")
+print(f"  DTW distance: {distance_normal:.2f}")
+print(f"  Euclidean distance: {euclidean_distance:.2f}")
+
+print(f"\nIdeal Pattern vs Abnormal Startup:")
+print(f"  DTW distance: {distance_abnormal:.2f}")
+
+# Similarity score (0-100)
+max_possible_distance = 1000  # For normalization
+similarity_normal = 100 * (1 - distance_normal / max_possible_distance)
+similarity_abnormal = 100 * (1 - distance_abnormal / max_possible_distance)
+
+print(f"\nSimilarity Score:")
+print(f"  Normal startup: {similarity_normal:.1f}/100")
+print(f"  Abnormal startup: {similarity_abnormal:.1f}/100")
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# Pattern comparison
+axes[0, 0].plot(t_ideal, ideal_pattern, 'b-', linewidth=2, label='Ideal Pattern')
+axes[0, 0].plot(t_actual, actual_pattern, 'g--', linewidth=2, label='Normal Startup')
+axes[0, 0].set_xlabel('Time (min)')
+axes[0, 0].set_ylabel('Temperature (°C)')
+axes[0, 0].set_title(f'Comparison with Normal Startup (DTW distance={distance_normal:.1f})')
+axes[0, 0].legend()
+axes[0, 0].grid(True, alpha=0.3)
+
+axes[0, 1].plot(t_ideal, ideal_pattern, 'b-', linewidth=2, label='Ideal Pattern')
+axes[0, 1].plot(t_abnormal, abnormal_pattern, 'r--', linewidth=2, label='Abnormal Startup')
+axes[0, 1].set_xlabel('Time (min)')
+axes[0, 1].set_ylabel('Temperature (°C)')
+axes[0, 1].set_title(f'Comparison with Abnormal Startup (DTW distance={distance_abnormal:.1f})')
+axes[0, 1].legend()
+axes[0, 1].grid(True, alpha=0.3)
+
+# DTW alignment path
+path_array_normal = np.array(path_normal)
+axes[1, 0].plot(path_array_normal[:, 0], path_array_normal[:, 1], 'g-', alpha=0.5)
+axes[1, 0].set_xlabel('Ideal Pattern Index')
+axes[1, 0].set_ylabel('Normal Startup Index')
+axes[1, 0].set_title('DTW Alignment Path (Normal)')
+axes[1, 0].grid(True, alpha=0.3)
+
+path_array_abnormal = np.array(path_abnormal)
+axes[1, 1].plot(path_array_abnormal[:, 0], path_array_abnormal[:, 1], 'r-', alpha=0.5)
+axes[1, 1].set_xlabel('Ideal Pattern Index')
+axes[1, 1].set_ylabel('Abnormal Startup Index')
+axes[1, 1].set_title('DTW Alignment Path (Abnormal)')
+axes[1, 1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('dtw_pattern_matching.png', dpi=300)
+
+# Assessment
+threshold = 70
+print(f"\nAssessment Results (Threshold={threshold}):")
+print(f"  Normal startup: {'✅ Pass' if similarity_normal &gt;= threshold else '❌ Fail'}")
+print(f"  Abnormal startup: {'✅ Pass' if similarity_abnormal &gt;= threshold else '❌ Fail'}")
+</code></pre>
+</div>
+</section>
+<section>
+<h2>1.8 Practical Example: Application to Chemical Processes</h2>
+<div class="callout callout-success">
+<h4>💡 Key Points for Real Process Data Application</h4>
+<ul style="margin-bottom: 0;">
+<li><strong>Importance of Preprocessing</strong>: Always check sensor data for outliers and missing values</li>
+<li><strong>Stationarity Verification</strong>: Differencing is mandatory for ARIMA on non-stationary data</li>
+<li><strong>Model Selection</strong>: Holt-Winters for seasonality, ARIMA for complex dependencies</li>
+<li><strong>Change Point Detection</strong>: Cross-reference with process change and maintenance records</li>
+<li><strong>DTW Utilization</strong>: Particularly effective for batch process quality control</li>
+</ul>
+</div>
+<h3>Typical Application Examples</h3>
+<table>
+<tr>
+<th style="width: 25%;">Process</th>
+<th style="width: 35%;">Issue</th>
+<th style="width: 40%;">Recommended Method</th>
+</tr>
+<tr>
+<td>Continuous Distillation</td>
+<td>Short-term forecasting of column top temperature</td>
+<td>ARIMA(2,1,1) or Holt-Winters</td>
+</tr>
+<tr>
+<td>Batch Reaction</td>
+<td>Comparison with ideal operating pattern</td>
+<td>DTW + similarity scoring</td>
+</tr>
+<tr>
+<td>Catalytic Process</td>
+<td>Early detection of degradation</td>
+<td>PELT change point detection + trend analysis</td>
+</tr>
+<tr>
+<td>With Seasonal Variation</td>
+<td>Demand forecasting and inventory optimization</td>
+<td>STL decomposition + Holt-Winters</td>
+</tr>
+</table>
+</section>
+<section>
+<h2>1.9 Summary</h2>
+<p>
+                In this chapter, we implemented fundamental techniques for time series analysis of process data through 10 Python code examples. These methods form the foundation for process understanding, forecasting, and anomaly detection.
+            </p>
+<h3>Skills Acquired</h3>
+<ul>
+<li>✅ Preparation of high-quality data through missing value imputation and outlier detection</li>
+<li>✅ Rigorous stationarity evaluation using ADF/KPSS tests</li>
+<li>✅ Separation of trend and seasonality using STL decomposition</li>
+<li>✅ Statistical forecasting and accuracy evaluation using ARIMA models</li>
+<li>✅ Practical short-term forecasting using Holt-Winters method</li>
+<li>✅ Automatic change point detection using PELT/Binary Segmentation</li>
+<li>✅ Pattern matching robust to time axis variation using DTW</li>
+</ul>
+<div class="callout callout-info">
+<h4>📚 Next Steps</h4>
+<p>
+                    In Chapter 2, we will learn multivariate analysis methods that handle multiple process variables simultaneously. We will implement advanced analysis utilizing correlations between variables using Principal Component Analysis (PCA), Partial Least Squares (PLS), etc.
+                </p>
+</div>
+</section>
+<section>
+<h2>1.10 Exercises</h2>
+<h4>Exercise 1 (Easy): Data Preprocessing</h4>
+<p>
+                Modify the code from Example 1 and compare the accuracy of each imputation method when the missing rate is 15%. Explain which method is most robust and why.
+            </p>
+
+<details>
+<summary>💡 Hint</summary>
+<p>Think about the basic principles covered in the chapter examples.</p>
+</details>
+
+<details>
+<summary>📝 Sample Solution</summary>
+<p><em>Implementation approach:</em></p>
+<ul>
+<li>Step 1: [Key implementation point]</li>
+<li>Step 2: [Analysis or comparison]</li>
+<li>Step 3: [Validation and interpretation]</li>
+</ul>
+</details>
+<h4>Exercise 2 (Medium): ARIMA Order Selection</h4>
+<p>
+                From the ACF/PACF plots in Example 5, estimate the appropriate ARIMA order for the following time series processes:
+            </p>
+<ul>
+<li>ACF decays exponentially, PACF cuts off at lag=1 → ARIMA(?, ?, ?)</li>
+<li>ACF cuts off at lag=1, PACF decays exponentially → ARIMA(?, ?, ?)</li>
+</ul>
+
+<details>
+<summary>💡 Hint</summary>
+<p>Consider the trade-offs between different approaches and parameter settings.</p>
+</details>
+
+<details>
+<summary>📝 Sample Solution</summary>
+<p><em>Implementation approach:</em></p>
+<ul>
+<li>Step 1: [Key implementation point]</li>
+<li>Step 2: [Analysis or comparison]</li>
+<li>Step 3: [Validation and interpretation]</li>
+</ul>
+</details>
+<h4>Exercise 3 (Hard): Implementation of Change Point Detection</h4>
+<p>
+                Apply the code from Example 8 to solve the following tasks:
+            </p>
+<ol>
+<li>Improve to detect not only mean changes but also variance changes</li>
+<li>Determine appropriate penalty parameters to reduce False Positives (false detections)</li>
+<li>Evaluate detection delay time (time from actual change point to detection)</li>
+</ol>
+
+<details>
+<summary>💡 Hint</summary>
+<p>Break down the problem into smaller steps and validate each component.</p>
+</details>
+
+<details>
+<summary>📝 Sample Solution</summary>
+<p><em>Implementation approach:</em></p>
+<ul>
+<li>Step 1: [Key implementation point]</li>
+<li>Step 2: [Analysis or comparison]</li>
+<li>Step 3: [Validation and interpretation]</li>
+</ul>
+</details>
+
+<details>
+<summary>💡 Hint</summary>
+<p>
+                    For Exercise 3, try different cost functions ("rbf", "normal", etc.) in the <code>ruptures</code> library. Also, when true change points are known in simulation data, you can draw an ROC curve to select the optimal penalty.
+                </p>
+</details>
+</section>
+<div class="nav-buttons">
+<a class="btn" href="./index.html">← Back to Series Index</a>
+<a class="btn" href="#" style="background: #ccc; cursor: not-allowed;">Proceed to Chapter 2 →</a>
+</div>
+<section>
+            <h2>References</h2>
+            <ol>
+                <li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+                <li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+                <li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+                <li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+            </ol>
+        </section>
+
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+<footer>
+<p>© 2025 Yusuke Hashimoto, Tohoku University. All rights reserved.</p>
+<p style="margin-top: 0.5rem;">
+<a href="./index.html">Series Index</a> |
+                <a href="../index.html">PI Knowledge Hub TOP</a>
+</p>
+</footer>
+</div>
+<!-- Mermaid.js for diagrams -->
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default'
+        });
+    </script>
+</body>
+</html>

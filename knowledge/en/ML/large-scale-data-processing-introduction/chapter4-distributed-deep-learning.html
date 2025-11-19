@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter - AI Terakoya. Understand the main distributed learning strategies (Data/Model/Pipeline Parallelism)" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/large-scale-data-processing-introduction/index.html">Large Scale Data Processing</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 4</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/ML/large-scale-data-processing-introduction/chapter4-distributed-deep-learning.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Fundamentals and Practice of Distributed Deep Learning</h1>
+<p class="subtitle">Training Large-Scale Models with PyTorch DDP and Horovod</p>
+<div class="meta">
+<span class="meta-item">📖 Reading time: 45-50 minutes</span>
+<span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
+<span class="meta-item">💻 Code examples: 8</span>
+<span class="meta-item">📝 Exercises: 5</span>
+</div>
+</div>
+</header>
+<main class="container">
+<h1>Chapter 4: Fundamentals and Practice of Distributed Deep Learning</h1><p class="chapter-description">This chapter covers the fundamentals of Fundamentals and Practice of Distributed Deep Learning, which distributed learning strategies. You will learn multi-GPU training with PyTorch DDP, and implement Horovod's AllReduce architecture, and large-scale model training techniques (AMP.</p>
+
+
+<div class="learning-objectives">
+<h2>Learning Objectives</h2>
+<ul>
+<li>Understand the main distributed learning strategies (Data/Model/Pipeline Parallelism)</li>
+<li>Implement multi-GPU training with PyTorch DDP</li>
+<li>Understand and implement Horovod's AllReduce architecture</li>
+<li>Master large-scale model training techniques (AMP, Gradient Accumulation)</li>
+<li>Learn best practices and debugging methods for distributed learning</li>
+</ul>
+</div>
+<p><strong>Reading time</strong>: 45-50 minutes</p>
+
+---
+
+<h2>4.1 Distributed Learning Strategies</h2>
+<h3>4.1.1 Why Distributed Learning is Necessary</h3>
+<p><strong>Challenges in modern deep learning:</strong></p>
+<ul>
+<li><strong>Increasing model sizes</strong>: GPT-3 (175B parameters), BERT-Large (340M parameters)</li>
+<li><strong>Massive datasets</strong>: ImageNet-21K (14M images), Common Crawl (hundreds of TB)</li>
+<li><strong>Training time issues</strong>: Single GPU training can take weeks to months</li>
+</ul>
+<p><strong>Solutions through distributed learning:</strong></p>
+<ul>
+<li><strong>Reduced training time</strong>: Ideally 8x speedup with 8 GPU parallelization</li>
+<li><strong>Enabling large-scale models</strong>: Distributing memory across multiple GPUs/nodes</li>
+<li><strong>Cost efficiency</strong>: Efficient resource utilization in cloud environments</li>
+</ul>
+<h3>4.1.2 Data Parallelism</h3>
+<p><strong>Basic principle:</strong></p>
+<ul>
+<li>Place a complete copy of the model on each GPU</li>
+<li>Split data batches and distribute to each GPU</li>
+<li>Independent forward and backward propagation on each GPU</li>
+<li>Aggregate gradients across all GPUs (AllReduce)</li>
+<li>Update model with unified gradients</li>
+</ul>
+<p><strong>Advantages:</strong></p>
+<ul>
+<li>Relatively simple implementation</li>
+<li>Effective when the model fits in GPU memory</li>
+<li>High scalability (up to hundreds of GPUs)</li>
+</ul>
+<p><strong>Disadvantages:</strong></p>
+<ul>
+<li>Entire model required on each GPU (memory constraint)</li>
+<li>Communication overhead for gradient synchronization</li>
+</ul>
+<h3>4.1.3 Model Parallelism</h3>
+<p><strong>Basic principle:</strong></p>
+<ul>
+<li>Split the model across multiple GPUs</li>
+<li>Each GPU handles different layers/parameters</li>
+<li>Data is shared across all GPUs</li>
+</ul>
+<p><strong>Splitting methods:</strong></p>
+<ul>
+<li><strong>Layer-wise splitting</strong>: Layers 1-5 on GPU0, 6-10 on GPU1</li>
+<li><strong>Tensor splitting</strong>: Split weight matrices of each layer (Megatron-LM)</li>
+</ul>
+<p><strong>Advantages:</strong></p>
+<ul>
+<li>Support for huge models exceeding GPU memory</li>
+<li>No gradient synchronization needed (only inter-layer communication)</li>
+</ul>
+<p><strong>Disadvantages:</strong></p>
+<ul>
+<li>Reduced parallelism due to inter-GPU dependencies</li>
+<li>Complex implementation</li>
+<li>Communication bottleneck</li>
+</ul>
+<h3>4.1.4 Pipeline Parallelism</h3>
+<p><strong>Basic principle:</strong></p>
+<ul>
+<li>Split model into multiple stages (each handled by a GPU)</li>
+<li>Divide data into micro-batches</li>
+<li>Process sequentially in a pipeline fashion</li>
+<li>Reduce GPU idle time</li>
+</ul>
+<p><strong>GPipe method:</strong></p>
+<ul>
+<li>Improve pipeline efficiency with micro-batch splitting</li>
+<li>Combine with gradient accumulation</li>
+<li>Memory reduction through recomputation</li>
+</ul>
+<p><strong>Advantages:</strong></p>
+<ul>
+<li>Higher parallelism than model parallelism</li>
+<li>Improved GPU utilization</li>
+</ul>
+<p><strong>Disadvantages:</strong></p>
+<ul>
+<li>Pipeline bubble (idle time)</li>
+<li>Implementation complexity</li>
+</ul>
+<h3>4.1.5 Hybrid Approaches</h3>
+<p><strong>3D Parallelism (Megatron-LM):</strong></p>
+<ul>
+<li><strong>Data Parallelism</strong>: Between nodes</li>
+<li><strong>Model Parallelism</strong>: Between GPUs within a node (tensor splitting)</li>
+<li><strong>Pipeline Parallelism</strong>: Layer splitting</li>
+</ul>
+<p><strong>ZeRO (DeepSpeed):</strong></p>
+<ul>
+<li>Optimizer state partitioning (ZeRO-1)</li>
+<li>Gradient partitioning (ZeRO-2)</li>
+<li>Parameter partitioning (ZeRO-3)</li>
+<li>Maximize Data Parallelism efficiency</li>
+</ul>
+<h3>4.1.6 Strategy Comparison Diagram</h3>
+<div class="mermaid">
+graph TB
+    subgraph "Data Parallelism"
+        D1[GPU 0<br/>Model Copy<br/>Data Batch 1]
+        D2[GPU 1<br/>Model Copy<br/>Data Batch 2]
+        D3[GPU 2<br/>Model Copy<br/>Data Batch 3]
+        D1 -.AllReduce.-&gt; D2
+        D2 -.AllReduce.-&gt; D3
+    end
+
+    subgraph "Model Parallelism"
+        M1[GPU 0<br/>Layer 1-3]
+        M2[GPU 1<br/>Layer 4-6]
+        M3[GPU 2<br/>Layer 7-9]
+        M1 --&gt;|Forward| M2
+        M2 --&gt;|Forward| M3
+        M3 -.Backward.-&gt; M2
+        M2 -.Backward.-&gt; M1
+    end
+
+    subgraph "Pipeline Parallelism"
+        P1[GPU 0<br/>Stage 1<br/>Micro-batch 1,2,3]
+        P2[GPU 1<br/>Stage 2<br/>Micro-batch 1,2,3]
+        P3[GPU 2<br/>Stage 3<br/>Micro-batch 1,2,3]
+        P1 ==&gt;|Pipeline| P2
+        P2 ==&gt;|Pipeline| P3
+    end
+</div>
+
+---
+
+<h2>4.2 PyTorch Distributed Data Parallel (DDP)</h2>
+<h3>4.2.1 torch.distributed Basics</h3>
+<p><strong>Key concepts:</strong></p>
+<ul>
+<li><strong>Process Group</strong>: Collection of parallel processes</li>
+<li><strong>Rank</strong>: Unique ID of a process (0, 1, 2, ...)</li>
+<li><strong>World Size</strong>: Total number of processes</li>
+<li><strong>Backend</strong>: Communication library (NCCL, Gloo, MPI)</li>
+</ul>
+<p><strong>Backend selection:</strong></p>
+<ul>
+<li><strong>NCCL</strong>: Optimal for inter-GPU communication (recommended)</li>
+<li><strong>Gloo</strong>: Supports both CPU and GPU</li>
+<li><strong>MPI</strong>: Used in HPC clusters</li>
+</ul>
+<h4>Code Example 1: Basic Distributed Initialization</h4>
+<details>
+<summary>distributed_init.py - Distributed environment initialization</summary>
+<pre><code>import os
+import torch
+import torch.distributed as dist
+import torch.multiprocessing as mp
+
+def setup(rank, world_size):
+    """
+    Setup distributed environment
+
+    Args:
+        rank: Process rank (0 to world_size-1)
+        world_size: Total number of processes
+    """
+    # Set environment variables
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12355'
+
+    # Initialize process group
+    dist.init_process_group(
+        backend='nccl',  # Use NCCL for inter-GPU communication
+        rank=rank,
+        world_size=world_size
+    )
+
+    # Assign each process to corresponding GPU
+    torch.cuda.set_device(rank)
+
+    print(f"Process {rank}/{world_size} initialized on GPU {rank}")
+
+def cleanup():
+    """Cleanup distributed environment"""
+    dist.destroy_process_group()
+
+def demo_basic_operations(rank, world_size):
+    """
+    Demo of basic distributed operations
+    """
+    setup(rank, world_size)
+
+    # Create tensor on each process
+    tensor = torch.ones(2, 2).cuda(rank) * (rank + 1)
+    print(f"Rank {rank} - Original tensor:\n{tensor}")
+
+    # AllReduce: Sum tensors from all processes
+    dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
+    print(f"Rank {rank} - After AllReduce:\n{tensor}")
+
+    # Broadcast: Distribute Rank 0's tensor to all processes
+    if rank == 0:
+        broadcast_tensor = torch.tensor([100.0, 200.0]).cuda(rank)
+    else:
+        broadcast_tensor = torch.zeros(2).cuda(rank)
+
+    dist.broadcast(broadcast_tensor, src=0)
+    print(f"Rank {rank} - After Broadcast: {broadcast_tensor}")
+
+    cleanup()
+
+if __name__ == "__main__":
+    world_size = 4  # Use 4 GPUs
+    mp.spawn(
+        demo_basic_operations,
+        args=(world_size,),
+        nprocs=world_size,
+        join=True
+    )
+</code></pre>
+</details>
+<p><strong>Execution method:</strong></p>
+<pre><code># Single node, 4 GPUs
+python distributed_init.py
+
+# Multiple nodes (4 GPUs per node, 2 nodes)
+# Node 0:
+python -m torch.distributed.launch \
+    --nproc_per_node=4 \
+    --nnodes=2 \
+    --node_rank=0 \
+    --master_addr="192.168.1.1" \
+    --master_port=12355 \
+    distributed_init.py
+
+# Node 1:
+python -m torch.distributed.launch \
+    --nproc_per_node=4 \
+    --nnodes=2 \
+    --node_rank=1 \
+    --master_addr="192.168.1.1" \
+    --master_port=12355 \
+    distributed_init.py
+</code></pre>
+<h3>4.2.2 DDP Implementation</h3>
+<h4>Code Example 2: Image Classification Training with PyTorch DDP</h4>
+<details>
+<summary>ddp_training.py - ResNet18 DDP training</summary>
+<pre><code>import os
+import torch
+import torch.nn as nn
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader, Dataset
+from torch.utils.data.distributed import DistributedSampler
+import torchvision
+import torchvision.transforms as transforms
+
+def setup(rank, world_size):
+    """Setup distributed environment"""
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12355'
+    dist.init_process_group("nccl", rank=rank, world_size=world_size)
+    torch.cuda.set_device(rank)
+
+def cleanup():
+    """Cleanup distributed environment"""
+    dist.destroy_process_group()
+
+def prepare_dataloader(rank, world_size, batch_size=32):
+    """
+    Prepare distributed dataloader
+
+    Use DistributedSampler to assign different data to each process
+    """
+    # Data preprocessing
+    transform = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    ])
+
+    # CIFAR-10 dataset
+    dataset = torchvision.datasets.CIFAR10(
+        root='./data',
+        train=True,
+        download=True,
+        transform=transform
+    )
+
+    # DistributedSampler: Split data into world_size chunks
+    sampler = DistributedSampler(
+        dataset,
+        num_replicas=world_size,
+        rank=rank,
+        shuffle=True,
+        drop_last=False
+    )
+
+    # DataLoader
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        sampler=sampler,
+        num_workers=4,
+        pin_memory=True
+    )
+
+    return dataloader, sampler
+
+def train_epoch(model, dataloader, optimizer, criterion, rank, epoch):
+    """
+    Train for one epoch
+    """
+    model.train()
+    total_loss = 0.0
+    correct = 0
+    total = 0
+
+    for batch_idx, (data, target) in enumerate(dataloader):
+        data, target = data.cuda(rank), target.cuda(rank)
+
+        # Forward pass
+        optimizer.zero_grad()
+        output = model(data)
+        loss = criterion(output, target)
+
+        # Backward pass (DDP automatically synchronizes gradients)
+        loss.backward()
+        optimizer.step()
+
+        # Statistics
+        total_loss += loss.item()
+        _, predicted = output.max(1)
+        total += target.size(0)
+        correct += predicted.eq(target).sum().item()
+
+        if rank == 0 and batch_idx % 100 == 0:
+            print(f"Epoch {epoch}, Batch {batch_idx}, "
+                  f"Loss: {loss.item():.4f}, "
+                  f"Acc: {100.*correct/total:.2f}%")
+
+    avg_loss = total_loss / len(dataloader)
+    accuracy = 100. * correct / total
+
+    return avg_loss, accuracy
+
+def main(rank, world_size):
+    """
+    Main training loop
+    """
+    print(f"Running DDP on rank {rank}.")
+    setup(rank, world_size)
+
+    # Create model
+    model = torchvision.models.resnet18(num_classes=10).cuda(rank)
+
+    # Wrap model with DDP
+    model = DDP(model, device_ids=[rank])
+
+    # Loss function and optimizer
+    criterion = nn.CrossEntropyLoss().cuda(rank)
+    optimizer = torch.optim.SGD(
+        model.parameters(),
+        lr=0.1,
+        momentum=0.9,
+        weight_decay=5e-4
+    )
+
+    # Learning rate scheduler
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=200
+    )
+
+    # Prepare dataloader
+    dataloader, sampler = prepare_dataloader(rank, world_size, batch_size=128)
+
+    # Training loop
+    num_epochs = 100
+    for epoch in range(num_epochs):
+        # Set sampler seed at epoch start (for shuffle reproducibility)
+        sampler.set_epoch(epoch)
+
+        # Train
+        avg_loss, accuracy = train_epoch(
+            model, dataloader, optimizer, criterion, rank, epoch
+        )
+
+        # Update learning rate
+        scheduler.step()
+
+        # Only Rank 0 outputs logs
+        if rank == 0:
+            print(f"Epoch {epoch}/{num_epochs} - "
+                  f"Loss: {avg_loss:.4f}, Accuracy: {accuracy:.2f}%")
+
+            # Save model (Rank 0 only)
+            if (epoch + 1) % 10 == 0:
+                torch.save(
+                    model.module.state_dict(),  # Access original model via model.module
+                    f'checkpoint_epoch_{epoch+1}.pth'
+                )
+
+    cleanup()
+
+if __name__ == "__main__":
+    import torch.multiprocessing as mp
+
+    world_size = torch.cuda.device_count()  # Number of available GPUs
+    print(f"Training with {world_size} GPUs")
+
+    mp.spawn(main, args=(world_size,), nprocs=world_size, join=True)
+</code></pre>
+</details>
+<p><strong>Important DDP points:</strong></p>
+<ul>
+<li><strong>DistributedSampler</strong>: Assigns different data to each process</li>
+<li><strong>sampler.set_epoch()</strong>: Changes shuffle for each epoch</li>
+<li><strong>model.module</strong>: Accesses original model within DDP wrapper</li>
+<li><strong>Save only on Rank 0</strong>: Model saving should be executed by only one process</li>
+</ul>
+<h3>4.2.3 Multi-Node GPU Training</h3>
+<h4>Code Example 3: Multi-Node DDP with Slurm</h4>
+<details>
+<summary>slurm_ddp.sh - Slurm script</summary>
+<pre><code>#!/bin/bash
+#SBATCH --job-name=ddp_training
+#SBATCH --nodes=4                    # 4 nodes
+#SBATCH --ntasks-per-node=4          # 4 processes per node (4 GPUs)
+#SBATCH --cpus-per-task=8            # 8 CPUs per process
+#SBATCH --gres=gpu:4                 # 4 GPUs per node
+#SBATCH --time=24:00:00
+#SBATCH --output=logs/ddp_%j.out
+#SBATCH --error=logs/ddp_%j.err
+
+# Load modules
+module load cuda/11.8
+module load anaconda3
+
+# Set environment variables
+export MASTER_PORT=12340
+export MASTER_ADDR=$(scontrol show hostname $SLURM_NODELIST | head -n 1)
+export WORLD_SIZE=$SLURM_NTASKS
+export NCCL_DEBUG=INFO
+
+# Execute training on each node
+srun python -u ddp_training_multi_node.py \
+    --epochs 100 \
+    --batch-size 128 \
+    --lr 0.1
+</code></pre>
+</details>
+<details>
+<summary>ddp_training_multi_node.py - Multi-node compatible version</summary>
+<pre><code>import os
+import argparse
+import torch
+import torch.nn as nn
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+
+def setup():
+    """
+    Read distributed settings from Slurm environment variables
+    """
+    # Environment variables set by Slurm
+    rank = int(os.environ['SLURM_PROCID'])
+    world_size = int(os.environ['SLURM_NTASKS'])
+    local_rank = int(os.environ['SLURM_LOCALID'])
+
+    # Master address and port
+    master_addr = os.environ['MASTER_ADDR']
+    master_port = os.environ['MASTER_PORT']
+
+    # Set environment variables
+    os.environ['MASTER_ADDR'] = master_addr
+    os.environ['MASTER_PORT'] = master_port
+
+    # Initialize
+    dist.init_process_group(
+        backend='nccl',
+        init_method='env://',
+        world_size=world_size,
+        rank=rank
+    )
+
+    # Local GPU setting
+    torch.cuda.set_device(local_rank)
+
+    return rank, world_size, local_rank
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--epochs', type=int, default=100)
+    parser.add_argument('--batch-size', type=int, default=128)
+    parser.add_argument('--lr', type=float, default=0.1)
+    args = parser.parse_args()
+
+    # Setup distributed environment
+    rank, world_size, local_rank = setup()
+
+    if rank == 0:
+        print(f"Training with {world_size} processes across "
+              f"{world_size // torch.cuda.device_count()} nodes")
+
+    # Model, dataloader, and training loop same as before
+    # ...
+
+    dist.destroy_process_group()
+
+if __name__ == "__main__":
+    main()
+</code></pre>
+</details>
+
+---
+
+<h2>4.3 Horovod</h2>
+<h3>4.3.1 AllReduce Architecture</h3>
+<p><strong>What is Horovod:</strong></p>
+<ul>
+<li>Open-source distributed training framework developed by Uber</li>
+<li>Supports TensorFlow, PyTorch, Keras, and MXNet</li>
+<li>Efficient AllReduce communication based on MPI</li>
+</ul>
+<p><strong>AllReduce mechanism:</strong></p>
+<ul>
+<li><strong>Ring-AllReduce</strong>: Communicate data in a ring topology</li>
+<li><strong>Communication volume</strong>: O(N) (N is gradient size), independent of number of processes</li>
+<li><strong>Bandwidth efficiency</strong>: Utilizes full bandwidth</li>
+</ul>
+<h4>Ring-AllReduce Operation</h4>
+<div class="mermaid">
+sequenceDiagram
+    participant GPU0
+    participant GPU1
+    participant GPU2
+    participant GPU3
+
+    Note over GPU0,GPU3: Step 1: Scatter-Reduce
+    GPU0-&gt;&gt;GPU1: Send chunk A
+    GPU1-&gt;&gt;GPU2: Send chunk B
+    GPU2-&gt;&gt;GPU3: Send chunk C
+    GPU3-&gt;&gt;GPU0: Send chunk D
+
+    Note over GPU0,GPU3: Step 2: AllGather
+    GPU0-&gt;&gt;GPU1: Send reduced A
+    GPU1-&gt;&gt;GPU2: Send reduced B
+    GPU2-&gt;&gt;GPU3: Send reduced C
+    GPU3-&gt;&gt;GPU0: Send reduced D
+
+    Note over GPU0,GPU3: All GPUs have complete reduced gradients
+</div>
+<h3>4.3.2 Horovod API</h3>
+<h4>Code Example 4: PyTorch Training with Horovod</h4>
+<details>
+<summary>horovod_training.py - ResNet18 Horovod training</summary>
+<pre><code>import torch
+import torch.nn as nn
+import torchvision
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader
+import horovod.torch as hvd
+
+def train_horovod():
+    """
+    Distributed training using Horovod
+    """
+    # Initialize Horovod
+    hvd.init()
+
+    # Assign each process to corresponding GPU
+    torch.cuda.set_device(hvd.local_rank())
+    device = torch.device('cuda')
+
+    # Prepare dataloader
+    transform = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    ])
+
+    dataset = torchvision.datasets.CIFAR10(
+        root='./data',
+        train=True,
+        download=True,
+        transform=transform
+    )
+
+    # Horovod sampler
+    train_sampler = torch.utils.data.distributed.DistributedSampler(
+        dataset,
+        num_replicas=hvd.size(),
+        rank=hvd.rank()
+    )
+
+    train_loader = DataLoader(
+        dataset,
+        batch_size=128,
+        sampler=train_sampler,
+        num_workers=4,
+        pin_memory=True
+    )
+
+    # Create model
+    model = torchvision.models.resnet18(num_classes=10).to(device)
+
+    # Optimizer
+    optimizer = torch.optim.SGD(
+        model.parameters(),
+        lr=0.1 * hvd.size(),  # Scale learning rate by number of workers
+        momentum=0.9,
+        weight_decay=5e-4
+    )
+
+    # Wrap optimizer with Horovod
+    optimizer = hvd.DistributedOptimizer(
+        optimizer,
+        named_parameters=model.named_parameters(),
+        compression=hvd.Compression.fp16,  # Reduce communication with FP16 compression
+        op=hvd.Average  # Average gradients
+    )
+
+    # Broadcast initial parameters (same initial values across all workers)
+    hvd.broadcast_parameters(model.state_dict(), root_rank=0)
+    hvd.broadcast_optimizer_state(optimizer, root_rank=0)
+
+    # Loss function
+    criterion = nn.CrossEntropyLoss()
+
+    # Training loop
+    num_epochs = 100
+    for epoch in range(num_epochs):
+        model.train()
+        train_sampler.set_epoch(epoch)
+
+        epoch_loss = 0.0
+        correct = 0
+        total = 0
+
+        for batch_idx, (data, target) in enumerate(train_loader):
+            data, target = data.to(device), target.to(device)
+
+            optimizer.zero_grad()
+            output = model(data)
+            loss = criterion(output, target)
+            loss.backward()
+
+            # Horovod automatically performs AllReduce on gradients
+            optimizer.step()
+
+            # Statistics
+            epoch_loss += loss.item()
+            _, predicted = output.max(1)
+            total += target.size(0)
+            correct += predicted.eq(target).sum().item()
+
+        # Aggregate statistics across all workers
+        epoch_loss = metric_average(epoch_loss, 'avg_loss')
+        accuracy = metric_average(correct / total, 'avg_accuracy')
+
+        # Only Rank 0 outputs logs
+        if hvd.rank() == 0:
+            print(f"Epoch {epoch}/{num_epochs} - "
+                  f"Loss: {epoch_loss:.4f}, Accuracy: {accuracy*100:.2f}%")
+
+            # Save model
+            if (epoch + 1) % 10 == 0:
+                torch.save(model.state_dict(),
+                          f'horovod_checkpoint_epoch_{epoch+1}.pth')
+
+def metric_average(val, name):
+    """
+    Average metrics across all workers
+    """
+    tensor = torch.tensor(val)
+    avg_tensor = hvd.allreduce(tensor, name=name)
+    return avg_tensor.item()
+
+if __name__ == "__main__":
+    train_horovod()
+</code></pre>
+</details>
+<p><strong>Execution method:</strong></p>
+<pre><code># Single node, 4 GPUs
+horovodrun -np 4 python horovod_training.py
+
+# Multiple nodes (4 GPUs per node, 2 nodes)
+horovodrun -np 8 -H node1:4,node2:4 python horovod_training.py
+
+# Slurm cluster
+srun --ntasks=8 --gres=gpu:4 python horovod_training.py
+</code></pre>
+<h3>4.3.3 TensorFlow/PyTorch Integration</h3>
+<h4>Code Example 5: TensorFlow Training with Horovod</h4>
+<details>
+<summary>horovod_tensorflow.py - Using Horovod with TensorFlow</summary>
+<pre><code>import tensorflow as tf
+import horovod.tensorflow as hvd
+
+def train_tensorflow_horovod():
+    """
+    Distributed training with Horovod + TensorFlow
+    """
+    # Initialize Horovod
+    hvd.init()
+
+    # Enable GPU memory growth
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+    if gpus:
+        tf.config.experimental.set_visible_devices(
+            gpus[hvd.local_rank()], 'GPU'
+        )
+
+    # Dataset
+    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
+    x_train = x_train.astype('float32') / 255.0
+    x_test = x_test.astype('float32') / 255.0
+
+    # Dataset sharding (different data for each worker)
+    dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+    dataset = dataset.shard(num_shards=hvd.size(), index=hvd.rank())
+    dataset = dataset.shuffle(10000).batch(128).prefetch(tf.data.AUTOTUNE)
+
+    # Model
+    model = tf.keras.applications.ResNet50(
+        include_top=True,
+        weights=None,
+        classes=10,
+        input_shape=(32, 32, 3)
+    )
+
+    # Optimizer
+    optimizer = tf.keras.optimizers.SGD(
+        learning_rate=0.1 * hvd.size(),
+        momentum=0.9
+    )
+
+    # Wrap optimizer with Horovod
+    optimizer = hvd.DistributedOptimizer(
+        optimizer,
+        compression=hvd.Compression.fp16
+    )
+
+    # Loss function and metrics
+    loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+
+    @tf.function
+    def training_step(images, labels, first_batch):
+        with tf.GradientTape() as tape:
+            predictions = model(images, training=True)
+            loss = loss_fn(labels, predictions)
+
+        # Horovod performs AllReduce on gradients
+        tape = hvd.DistributedGradientTape(tape, compression=hvd.Compression.fp16)
+        gradients = tape.gradient(loss, model.trainable_variables)
+        optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+
+        # Broadcast parameters on first batch
+        if first_batch:
+            hvd.broadcast_variables(model.variables, root_rank=0)
+            hvd.broadcast_variables(optimizer.variables(), root_rank=0)
+
+        return loss
+
+    # Training loop
+    for epoch in range(100):
+        epoch_loss = 0.0
+        for batch_idx, (images, labels) in enumerate(dataset):
+            loss = training_step(images, labels, batch_idx == 0 and epoch == 0)
+            epoch_loss += loss.numpy()
+
+        # Calculate average loss
+        epoch_loss = hvd.allreduce(
+            tf.constant(epoch_loss / len(dataset)),
+            average=True
+        ).numpy()
+
+        if hvd.rank() == 0:
+            print(f"Epoch {epoch}, Loss: {epoch_loss:.4f}")
+
+            # Save model
+            if (epoch + 1) % 10 == 0:
+                model.save(f'tf_horovod_model_epoch_{epoch+1}.h5')
+
+if __name__ == "__main__":
+    train_tensorflow_horovod()
+</code></pre>
+</details>
+<h3>4.3.4 Performance Comparison: PyTorch DDP vs Horovod</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>PyTorch DDP</th>
+<th>Horovod</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Communication Backend</strong></td>
+<td>NCCL, Gloo, MPI</td>
+<td>MPI, NCCL</td>
+</tr>
+<tr>
+<td><strong>Framework Support</strong></td>
+<td>PyTorch only</td>
+<td>TensorFlow, PyTorch, Keras, MXNet</td>
+</tr>
+<tr>
+<td><strong>Implementation Complexity</strong></td>
+<td>Moderate</td>
+<td>Simple</td>
+</tr>
+<tr>
+<td><strong>Communication Efficiency</strong></td>
+<td>High (NCCL optimized)</td>
+<td>High (Ring-AllReduce)</td>
+</tr>
+<tr>
+<td><strong>Scalability</strong></td>
+<td>Hundreds of GPUs</td>
+<td>Thousands of GPUs (MPI-based)</td>
+</tr>
+<tr>
+<td><strong>Gradient Compression</strong></td>
+<td>Manual implementation</td>
+<td>Standard support (FP16)</td>
+</tr>
+<tr>
+<td><strong>Dynamic Graph Support</strong></td>
+<td>Full support</td>
+<td>Full support</td>
+</tr>
+<tr>
+<td><strong>Ecosystem</strong></td>
+<td>PyTorch official</td>
+<td>Independent project</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Benchmark results (ResNet-50, ImageNet, 8 GPUs):</strong></p>
+<ul>
+<li><strong>PyTorch DDP</strong>: 2,400 images/sec (92% scaling efficiency)</li>
+<li><strong>Horovod</strong>: 2,350 images/sec (90% scaling efficiency)</li>
+</ul>
+<p><strong>Recommendations:</strong></p>
+<ul>
+<li><strong>PyTorch only</strong> → PyTorch DDP</li>
+<li><strong>Multiple frameworks</strong> → Horovod</li>
+<li><strong>Large clusters (100+ GPUs)</strong> → Horovod (MPI stability)</li>
+</ul>
+
+---
+
+<h2>4.4 Large-Scale Model Training Techniques</h2>
+<h3>4.4.1 Gradient Accumulation</h3>
+<p><strong>Purpose:</strong></p>
+<ul>
+<li>Achieve large batch sizes under GPU memory constraints</li>
+<li>Execute small batches multiple times and accumulate gradients</li>
+</ul>
+<p><strong>Mathematical formula:</strong></p>
+$$
+\nabla_\theta L_{\text{effective}} = \frac{1}{K} \sum_{k=1}^{K} \nabla_\theta L(\text{mini-batch}_k)
+$$
+
+<p>$K$: Number of accumulation steps, effective batch size = $K \times$ mini-batch size</p>
+<h4>Code Example 6: Gradient Accumulation Implementation</h4>
+<details>
+<summary>gradient_accumulation.py - Gradient accumulation</summary>
+<pre><code>import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+import torchvision
+
+def train_with_gradient_accumulation(
+    model, dataloader, optimizer, criterion,
+    accumulation_steps=4, device='cuda'
+):
+    """
+    Training with gradient accumulation
+
+    Args:
+        accumulation_steps: Number of steps to accumulate gradients
+    """
+    model.train()
+    optimizer.zero_grad()
+
+    for batch_idx, (data, target) in enumerate(dataloader):
+        data, target = data.to(device), target.to(device)
+
+        # Forward pass
+        output = model(data)
+        loss = criterion(output, target)
+
+        # Divide loss by accumulation steps
+        loss = loss / accumulation_steps
+
+        # Backward pass (accumulate gradients)
+        loss.backward()
+
+        # Update parameters every accumulation_steps
+        if (batch_idx + 1) % accumulation_steps == 0:
+            optimizer.step()
+            optimizer.zero_grad()
+
+            print(f"Batch {batch_idx+1}, Updated parameters")
+
+    # Process remaining batches
+    if (batch_idx + 1) % accumulation_steps != 0:
+        optimizer.step()
+        optimizer.zero_grad()
+
+# Usage example
+model = torchvision.models.resnet50().cuda()
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+criterion = nn.CrossEntropyLoss()
+
+# Small batch size (16) × accumulation steps (4) = effective batch size (64)
+train_loader = DataLoader(dataset, batch_size=16, shuffle=True)
+
+train_with_gradient_accumulation(
+    model, train_loader, optimizer, criterion,
+    accumulation_steps=4
+)
+</code></pre>
+</details>
+<p><strong>Advantages:</strong></p>
+<ul>
+<li>Avoid GPU memory constraints</li>
+<li>Enable large batch size training</li>
+</ul>
+<p><strong>Disadvantages:</strong></p>
+<ul>
+<li>Reduced training speed (small effect on communication overhead reduction)</li>
+<li>Be careful with Batch Normalization behavior (statistics on small batches)</li>
+</ul>
+<h3>4.4.2 Mixed Precision Training (AMP)</h3>
+<p><strong>Overview:</strong></p>
+<ul>
+<li>Mix FP16 (half-precision floating point) and FP32 for training</li>
+<li>Accelerate computation and reduce memory</li>
+<li>Ensure numerical stability with loss scaling</li>
+</ul>
+<p><strong>Effects:</strong></p>
+<ul>
+<li><strong>Speed up</strong>: 1.5~2x (utilizing Tensor Cores)</li>
+<li><strong>Memory reduction</strong>: About 50%</li>
+</ul>
+<h4>Code Example 7: Using PyTorch AMP</h4>
+<details>
+<summary>amp_training.py - Automatic Mixed Precision</summary>
+<pre><code>import torch
+import torch.nn as nn
+from torch.cuda.amp import autocast, GradScaler
+import torchvision
+
+def train_with_amp(model, dataloader, optimizer, criterion, device='cuda'):
+    """
+    Training with Automatic Mixed Precision (AMP)
+    """
+    model.train()
+
+    # GradScaler: Properly scale FP16 gradients
+    scaler = GradScaler()
+
+    for batch_idx, (data, target) in enumerate(dataloader):
+        data, target = data.to(device), target.to(device)
+
+        optimizer.zero_grad()
+
+        # autocast: Automatically select optimal precision
+        with autocast():
+            output = model(data)
+            loss = criterion(output, target)
+
+        # Backward pass with scaled loss
+        scaler.scale(loss).backward()
+
+        # Unscale gradients and update parameters
+        scaler.step(optimizer)
+        scaler.update()
+
+        if batch_idx % 100 == 0:
+            print(f"Batch {batch_idx}, Loss: {loss.item():.4f}")
+
+# Usage example
+model = torchvision.models.resnet50().cuda()
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+criterion = nn.CrossEntropyLoss()
+
+train_loader = torch.utils.data.DataLoader(dataset, batch_size=128)
+
+train_with_amp(model, train_loader, optimizer, criterion)
+</code></pre>
+</details>
+<p><strong>Combining AMP + Gradient Accumulation + DDP</strong>:</p>
+<details>
+<summary>amp_grad_accum_ddp.py - Complete optimization</summary>
+<pre><code>import torch
+import torch.nn as nn
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.cuda.amp import autocast, GradScaler
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
+
+def train_optimized(
+    rank, world_size, model, dataset,
+    batch_size=32, accumulation_steps=4, epochs=100
+):
+    """
+    Complete implementation of AMP + Gradient Accumulation + DDP
+    """
+    # Setup distributed environment
+    dist.init_process_group("nccl", rank=rank, world_size=world_size)
+    torch.cuda.set_device(rank)
+
+    # Wrap model with DDP
+    model = model.cuda(rank)
+    model = DDP(model, device_ids=[rank])
+
+    # Dataloader
+    sampler = DistributedSampler(dataset, num_replicas=world_size, rank=rank)
+    dataloader = DataLoader(
+        dataset, batch_size=batch_size, sampler=sampler, num_workers=4
+    )
+
+    # Optimizer and loss function
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    criterion = nn.CrossEntropyLoss()
+    scaler = GradScaler()
+
+    for epoch in range(epochs):
+        sampler.set_epoch(epoch)
+        model.train()
+        optimizer.zero_grad()
+
+        for batch_idx, (data, target) in enumerate(dataloader):
+            data, target = data.cuda(rank), target.cuda(rank)
+
+            # Forward pass with AMP
+            with autocast():
+                output = model(data)
+                loss = criterion(output, target) / accumulation_steps
+
+            # Gradient accumulation
+            scaler.scale(loss).backward()
+
+            # Update parameters every accumulation_steps
+            if (batch_idx + 1) % accumulation_steps == 0:
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
+
+        # Process remaining batches
+        if (batch_idx + 1) % accumulation_steps != 0:
+            scaler.step(optimizer)
+            scaler.update()
+            optimizer.zero_grad()
+
+        if rank == 0:
+            print(f"Epoch {epoch} completed")
+
+    dist.destroy_process_group()
+
+# Execute
+if __name__ == "__main__":
+    import torch.multiprocessing as mp
+
+    world_size = torch.cuda.device_count()
+    model = torchvision.models.resnet50()
+
+    mp.spawn(
+        train_optimized,
+        args=(world_size, model, dataset),
+        nprocs=world_size,
+        join=True
+    )
+</code></pre>
+</details>
+<h3>4.4.3 Gradient Checkpointing</h3>
+<p><strong>Overview:</strong></p>
+<ul>
+<li>Don't save intermediate activations during forward pass, recompute during backward pass</li>
+<li>Significantly reduce memory usage (trade-off with computation time)</li>
+</ul>
+<p><strong>Effects:</strong></p>
+<ul>
+<li><strong>Memory reduction</strong>: O(n) → O(√n) (n is number of layers)</li>
+<li><strong>Computation increase</strong>: About 20-30%</li>
+</ul>
+<pre><code>from torch.utils.checkpoint import checkpoint
+
+class CheckpointedResNet(nn.Module):
+    def __init__(self, original_model):
+        super().__init__()
+        self.layer1 = original_model.layer1
+        self.layer2 = original_model.layer2
+        self.layer3 = original_model.layer3
+        self.layer4 = original_model.layer4
+        self.fc = original_model.fc
+
+    def forward(self, x):
+        # Use checkpoint for each layer
+        x = checkpoint(self.layer1, x)
+        x = checkpoint(self.layer2, x)
+        x = checkpoint(self.layer3, x)
+        x = checkpoint(self.layer4, x)
+        x = self.fc(x)
+        return x
+</code></pre>
+<h3>4.4.4 DeepSpeed ZeRO</h3>
+<p><strong>ZeRO (Zero Redundancy Optimizer):</strong></p>
+<ul>
+<li>Microsoft's ultra-large-scale model training framework</li>
+<li>Distribute optimizer states, gradients, and parameters</li>
+</ul>
+<p><strong>Three stages of ZeRO:</strong></p>
+<ul>
+<li><strong>ZeRO-1</strong>: Optimizer state partitioning (4x memory reduction)</li>
+<li><strong>ZeRO-2</strong>: + Gradient partitioning (8x memory reduction)</li>
+<li><strong>ZeRO-3</strong>: + Parameter partitioning (Nx reduction with N workers)</li>
+</ul>
+<h4>Code Example 8: Using DeepSpeed ZeRO</h4>
+<details>
+<summary>deepspeed_zero.py - DeepSpeed training</summary>
+<pre><code>import torch
+import torch.nn as nn
+import deepspeed
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
+
+def train_with_deepspeed():
+    """
+    Large-scale model training using DeepSpeed ZeRO
+    """
+    # DeepSpeed configuration file
+    ds_config = {
+        "train_batch_size": 64,
+        "gradient_accumulation_steps": 4,
+        "optimizer": {
+            "type": "Adam",
+            "params": {
+                "lr": 1e-5,
+                "betas": [0.9, 0.999],
+                "eps": 1e-8,
+                "weight_decay": 0.01
+            }
+        },
+        "fp16": {
+            "enabled": True,
+            "loss_scale": 0,
+            "loss_scale_window": 1000,
+            "hysteresis": 2,
+            "min_loss_scale": 1
+        },
+        "zero_optimization": {
+            "stage": 3,  # ZeRO-3: Maximum memory reduction
+            "offload_optimizer": {
+                "device": "cpu",  # Offload optimizer states to CPU
+                "pin_memory": True
+            },
+            "offload_param": {
+                "device": "cpu",  # Offload parameters to CPU
+                "pin_memory": True
+            },
+            "overlap_comm": True,
+            "contiguous_gradients": True,
+            "sub_group_size": 1e9,
+            "reduce_bucket_size": 5e8,
+            "stage3_prefetch_bucket_size": 5e8,
+            "stage3_param_persistence_threshold": 1e6,
+            "stage3_max_live_parameters": 1e9,
+            "stage3_max_reuse_distance": 1e9,
+            "stage3_gather_fp16_weights_on_model_save": True
+        },
+        "gradient_clipping": 1.0,
+        "wall_clock_breakdown": False
+    }
+
+    # Large-scale model (GPT-2 Large: 774M parameters)
+    model = GPT2LMHeadModel.from_pretrained('gpt2-large')
+
+    # Initialize DeepSpeed engine
+    model_engine, optimizer, _, _ = deepspeed.initialize(
+        model=model,
+        model_parameters=model.parameters(),
+        config=ds_config
+    )
+
+    # Dataloader
+    train_loader = ...  # Prepare dataloader
+
+    # Training loop
+    for epoch in range(10):
+        for batch in train_loader:
+            inputs = batch['input_ids'].to(model_engine.local_rank)
+            labels = batch['labels'].to(model_engine.local_rank)
+
+            # Forward pass
+            outputs = model_engine(inputs, labels=labels)
+            loss = outputs.loss
+
+            # DeepSpeed automatically handles backward pass and parameter updates
+            model_engine.backward(loss)
+            model_engine.step()
+
+    # Save model (aggregate all parameters)
+    model_engine.save_checkpoint('./checkpoints')
+
+if __name__ == "__main__":
+    # Launch DeepSpeed
+    # deepspeed --num_gpus=8 deepspeed_zero.py
+    train_with_deepspeed()
+</code></pre>
+</details>
+<p><strong>Execution command:</strong></p>
+<pre><code># Single node, 8 GPUs
+deepspeed --num_gpus=8 deepspeed_zero.py
+
+# Multiple nodes (2 nodes, 8 GPUs each)
+deepspeed --num_nodes=2 --num_gpus=8 --hostfile=hostfile deepspeed_zero.py
+</code></pre>
+<p><strong>ZeRO-3 effect (GPT-3 175B parameters):</strong></p>
+<ul>
+<li><strong>Conventional DDP</strong>: Training impossible (GPU memory insufficient)</li>
+<li><strong>ZeRO-3</strong>: Trainable with 128 GPUs (40GB each)</li>
+<li><strong>Memory reduction</strong>: 64x (128 workers)</li>
+</ul>
+
+---
+
+<h2>4.5 Distributed Learning Best Practices</h2>
+<h3>4.5.1 Communication Optimization</h3>
+<p><strong>Gradient Bucketing:</strong></p>
+<ul>
+<li>Communicate small gradients together (reduce latency)</li>
+<li>PyTorch DDP enabled by default</li>
+</ul>
+<pre><code># DDP bucket size setting
+model = DDP(
+    model,
+    device_ids=[rank],
+    bucket_cap_mb=25,  # Bucket size (MB)
+    find_unused_parameters=False  # Disable unused parameter detection
+)
+</code></pre>
+<p><strong>Gradient compression:</strong></p>
+<ul>
+<li>FP16 compression reduces communication volume by 50%</li>
+<li>Sparsification, quantization</li>
+</ul>
+<pre><code># Horovod fp16 compression
+optimizer = hvd.DistributedOptimizer(
+    optimizer,
+    compression=hvd.Compression.fp16
+)
+</code></pre>
+<p><strong>Hierarchical AllReduce:</strong></p>
+<ul>
+<li>Intra-node NCCL → Inter-node MPI</li>
+<li>Horovod Hierarchical AllReduce</li>
+</ul>
+<h3>4.5.2 Batch Size and Learning Rate Scaling</h3>
+<p><strong>Linear Scaling Rule:</strong></p>
+$$
+\text{LR}_{\text{distributed}} = \text{LR}_{\text{base}} \times \frac{\text{Batch}_{\text{distributed}}}{\text{Batch}_{\text{base}}}
+$$
+
+<p><strong>Example:</strong></p>
+<ul>
+<li>Base: LR=0.1, Batch=256 (single GPU)</li>
+<li>8 GPUs: LR=0.8, Batch=2,048 (256×8)</li>
+</ul>
+<p><strong>Warmup:</strong></p>
+<ul>
+<li>Gradually increase learning rate in first epochs</li>
+<li>Stabilize training with large batch sizes</li>
+</ul>
+<pre><code>def linear_warmup_cosine_decay(step, warmup_steps, total_steps, base_lr, max_lr):
+    """
+    Warmup + Cosine Decay learning rate scheduler
+    """
+    if step &lt; warmup_steps:
+        # Warmup: Linear increase
+        lr = base_lr + (max_lr - base_lr) * step / warmup_steps
+    else:
+        # Cosine Decay
+        progress = (step - warmup_steps) / (total_steps - warmup_steps)
+        lr = base_lr + 0.5 * (max_lr - base_lr) * (1 + math.cos(math.pi * progress))
+    return lr
+</code></pre>
+<h3>4.5.3 Learning Rate Adjustment Best Practices</h3>
+<p><strong>LARS (Layer-wise Adaptive Rate Scaling):</strong></p>
+<ul>
+<li>Adaptively adjust learning rate per layer</li>
+<li>Effective for ultra-large batch sizes (32K~64K)</li>
+</ul>
+<p><strong>LAMB (Layer-wise Adaptive Moments optimizer for Batch training):</strong></p>
+<ul>
+<li>Achieved batch size 65,536 for BERT training</li>
+<li>Adam-based LARS extension</li>
+</ul>
+<h3>4.5.4 Debugging Distributed Code</h3>
+<p><strong>Common errors:</strong></p>
+<p><strong>1. Deadlock:</strong></p>
+<ul>
+<li>All processes must execute the same collective communication</li>
+<li>Hangs if only some processes communicate</li>
+</ul>
+<pre><code># Bad example: Only Rank 0 performs allreduce
+if rank == 0:
+    dist.all_reduce(tensor)  # Other processes wait → Deadlock
+
+# Correct example: All processes perform allreduce
+dist.all_reduce(tensor)
+if rank == 0:
+    print(tensor)
+</code></pre>
+<p><strong>2. Memory leak:</strong></p>
+<ul>
+<li>Forgetting to detach during gradient accumulation</li>
+<li>Computation graph continues to be retained</li>
+</ul>
+<pre><code># Correct implementation for gradient accumulation
+loss = loss / accumulation_steps
+loss.backward()
+
+# Detach when computing metrics
+total_loss += loss.detach().item()
+</code></pre>
+<p><strong>3. Lack of reproducibility:</strong></p>
+<ul>
+<li>Insufficient seed setting</li>
+<li>Different initialization in each process</li>
+</ul>
+<pre><code>def set_seed(seed, rank):
+    """
+    Seed setting for reproducibility
+    """
+    torch.manual_seed(seed + rank)  # Different seed per rank
+    torch.cuda.manual_seed_all(seed + rank)
+    np.random.seed(seed + rank)
+    random.seed(seed + rank)
+
+    # CuDNN deterministic behavior (slower)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+</code></pre>
+<p><strong>Debugging tools:</strong></p>
+<p><strong>NCCL environment variables:</strong></p>
+<pre><code>export NCCL_DEBUG=INFO           # NCCL debug information
+export NCCL_DEBUG_SUBSYS=ALL     # Log all subsystems
+export NCCL_IB_DISABLE=1         # Disable InfiniBand (for debugging)
+export NCCL_P2P_DISABLE=1        # Disable P2P communication
+</code></pre>
+<p><strong>PyTorch profiler:</strong></p>
+<pre><code>from torch.profiler import profile, ProfilerActivity
+
+with profile(
+    activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+    record_shapes=True,
+    with_stack=True
+) as prof:
+    for data, target in train_loader:
+        output = model(data)
+        loss = criterion(output, target)
+        loss.backward()
+        optimizer.step()
+
+print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
+</code></pre>
+
+---
+
+<h2>4.6 Summary</h2>
+<h3>What We Learned</h3>
+<ol>
+<li>
+<p><strong>Distributed learning strategies:</strong></p>
+<ul>
+<li>Data Parallelism: Model copying, data splitting, gradient aggregation</li>
+<li>Model Parallelism: Model splitting, resolving memory constraints</li>
+<li>Pipeline Parallelism: Stage splitting, improving GPU utilization</li>
+<li>Hybrid Approaches: 3D Parallelism, ZeRO</li>
+</ul>
+</li>
+<li>
+<p><strong>PyTorch DDP:</strong></p>
+<ul>
+<li>torch.distributed basics (Rank, World Size, Backend)</li>
+<li>Data splitting with DistributedSampler</li>
+<li>Automatic gradient synchronization with DDP wrapper</li>
+<li>Multi-node training (Slurm, SSH)</li>
+</ul>
+</li>
+<li>
+<p><strong>Horovod:</strong></p>
+<ul>
+<li>Ring-AllReduce architecture</li>
+<li>Efficient communication based on MPI/NCCL</li>
+<li>TensorFlow/PyTorch/Keras support</li>
+<li>Further speedup with FP16 compression</li>
+</ul>
+</li>
+<li>
+<p><strong>Large-scale model training:</strong></p>
+<ul>
+<li>Gradient Accumulation: Avoiding memory constraints</li>
+<li>Mixed Precision (AMP): 1.5~2x speedup, 50% memory reduction</li>
+<li>Gradient Checkpointing: O(n) → O(√n) memory reduction</li>
+<li>DeepSpeed ZeRO: Ultra-large-scale model (175B parameters) training</li>
+</ul>
+</li>
+<li>
+<p><strong>Best practices:</strong></p>
+<ul>
+<li>Communication optimization: Bucketing, compression, hierarchical AllReduce</li>
+<li>Batch size scaling: Linear Scaling Rule, Warmup</li>
+<li>Learning rate adjustment: LARS, LAMB</li>
+<li>Debugging: Avoiding deadlocks, memory leak countermeasures, reproducibility</li>
+</ul>
+</li>
+</ol>
+<h3>Next Steps</h3>
+<p>In Chapter 5, we will learn about real-world large-scale data processing applications:</p>
+<ul>
+<li>Distributed training of recommendation systems (Netflix, Amazon scale)</li>
+<li>Pre-training of large language models (BERT, GPT)</li>
+<li>Real-time stream processing (Apache Kafka + Spark Streaming)</li>
+<li>Large-scale screening in materials informatics</li>
+</ul>
+
+---
+
+<h2>Exercises</h2>
+<p><strong>Question 1:</strong> Explain the differences between Data Parallelism and Model Parallelism from the perspectives of memory usage and communication patterns.</p>
+<p><strong>Question 2:</strong> For training with 8 GPUs, if a single GPU uses batch size 32 and learning rate 0.1, calculate the appropriate batch size and learning rate for distributed training.</p>
+<p><strong>Question 3:</strong> You want to achieve an effective batch size of 256 using Gradient Accumulation. If GPU memory constraints only allow batch size 32, what should accumulation_steps be set to?</p>
+<p><strong>Question 4:</strong> Explain the mechanism of "loss scaling" used by Mixed Precision Training (AMP) to maintain numerical stability.</p>
+<p><strong>Question 5:</strong> Discuss why DeepSpeed ZeRO-3 has higher memory efficiency compared to conventional Data Parallelism from the perspective of distributing optimizer states, gradients, and parameters (within 500 characters).</p>
+
+---
+
+<h2>References</h2>
+<ol>
+<li>Goyal, P. et al. "Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour." <em>arXiv:1706.02677</em> (2017).</li>
+<li>Sergeev, A. &amp; Del Balso, M. "Horovod: fast and easy distributed deep learning in TensorFlow." <em>arXiv:1802.05799</em> (2018).</li>
+<li>Li, S. et al. "PyTorch Distributed: Experiences on Accelerating Data Parallel Training." <em>VLDB</em> (2020).</li>
+<li>Rajbhandari, S. et al. "ZeRO: Memory Optimizations Toward Training Trillion Parameter Models." <em>SC'20</em> (2020).</li>
+<li>Huang, Y. et al. "GPipe: Efficient Training of Giant Neural Networks using Pipeline Parallelism." <em>NeurIPS</em> (2019).</li>
+<li>You, Y. et al. "Large Batch Optimization for Deep Learning: Training BERT in 76 minutes." <em>ICLR</em> (2020).</li>
+<li>Micikevicius, P. et al. "Mixed Precision Training." <em>ICLR</em> (2018).</li>
+<li>Shoeybi, M. et al. "Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism." <em>arXiv:1909.08053</em> (2019).</li>
+</ol>
+
+---
+
+<p><strong>Next chapter</strong>: <a href="chapter5-real-world-applications.html">Chapter 5: Real-World Large-Scale Data Processing Applications</a></p>
+<p><strong>License</strong>: This content is provided under CC BY 4.0 license.</p>
+<div class="navigation">
+<a class="nav-button" href="chapter3-mapreduce-and-spark.html">← Previous Chapter</a>
+<a class="nav-button" href="index.html">Back to Series Index</a>
+<a class="nav-button" href="chapter5-real-world-applications.html">Next Chapter →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes, and does not provide professional advice (legal, accounting, technical guarantees, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS", without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The content creator and Tohoku University assume no responsibility for the content, availability, or safety of external links, data, tools, or libraries provided by third parties.</li>
+<li>The content creator and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content, to the maximum extent permitted by applicable law.</li>
+<li>The content of this material is subject to change, update, or discontinuation without notice.</li>
+<li>The copyright and license of this content shall follow the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Author</strong>: AI Terakoya Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Creation date</strong>: 2025-10-21</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

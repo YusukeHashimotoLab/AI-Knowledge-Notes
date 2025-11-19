@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 4: Stochastic Differential Equations and Wiener Process | Probability Theory and Stochastic Processes" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 4: Stochastic Differential Equations and Wiener Process | Probability Theory and Stochastic Processes</title>
+<meta content="Learn about Wiener processes, stochastic differential equations, Itô integrals, geometric Brownian motion, and Ornstein-Uhlenbeck processes." name="description"/>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/FM/probability-stochastic-processes/chapter-4.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+
+<header>
+<h1>Chapter 4: Stochastic Differential Equations and Wiener Process</h1>
+<p class="subtitle">Stochastic Differential Equations and Wiener Process</p>
+</header>
+<div class="container">
+<div class="breadcrumb">
+<a href="../index.html">Fundamentals of Mathematics Dojo</a> &gt;
+            <a href="index.html">Probability Theory and Stochastic Processes</a> &gt;
+            Chapter 4
+        </div>
+<div class="content">
+<h2>4.1 Wiener Process (Brownian Motion)</h2>
+<div class="definition">
+<strong>📐 Definition: Wiener Process (Standard Brownian Motion)</strong><br/>
+                A stochastic process \(\{W(t)\}_{t \geq 0}\) is called a <strong>Wiener process</strong> if:
+
+                <ol>
+<li>\(W(0) = 0\) (starts from zero)</li>
+<li>Independent increments: \(W(t_1), W(t_2) - W(t_1), W(t_3) - W(t_2), \ldots\) are independent</li>
+<li>Stationary increments: \(W(t+s) - W(s) \sim N(0, t)\)</li>
+<li>Continuous paths: \(W(t)\) is a continuous function in \(t\)</li>
+</ol>
+<strong>Properties:</strong>
+                \[E[W(t)] = 0, \quad Var(W(t)) = t, \quad Cov(W(s), W(t)) = \min(s, t)\]
+            </div>
+<h3>💻 Code Example 1: Simulation of Wiener Process (Brownian Motion)</h3>
+<div class="code-block">import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+
+# Wiener process simulation
+np.random.seed(42)
+
+def simulate_wiener_process(T, dt):
+    """Wiener process simulation"""
+    n_steps = int(T / dt)
+    t = np.linspace(0, T, n_steps + 1)
+
+    # Increments dW ~ N(0, dt)
+    dW = np.random.normal(0, np.sqrt(dt), n_steps)
+
+    # Build Wiener process by cumulative sum
+    W = np.concatenate([[0], np.cumsum(dW)])
+
+    return t, W
+
+# Parameters
+T = 10  # End time
+dt = 0.01  # Time step
+
+# Simulate multiple paths
+n_paths = 10
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# (1) Sample paths
+for _ in range(n_paths):
+    t, W = simulate_wiener_process(T, dt)
+    axes[0, 0].plot(t, W, alpha=0.6, linewidth=1.5)
+
+axes[0, 0].axhline(y=0, color='red', linestyle='--', linewidth=2, label='E[W(t)] = 0')
+axes[0, 0].set_xlabel('Time t', fontsize=11)
+axes[0, 0].set_ylabel('W(t)', fontsize=11)
+axes[0, 0].set_title('Sample Paths of Wiener Process', fontsize=12, fontweight='bold')
+axes[0, 0].legend()
+axes[0, 0].grid(alpha=0.3)
+
+# (2) Variance evolution in time
+n_simulations = 1000
+t_checkpoints = [1, 2, 5, 10]
+
+for t_check in t_checkpoints:
+    W_values = []
+    for _ in range(n_simulations):
+        t, W = simulate_wiener_process(t_check, dt)
+        W_values.append(W[-1])
+
+    W_values = np.array(W_values)
+
+    # Histogram
+    axes[0, 1].hist(W_values, bins=50, alpha=0.4, density=True,
+                     label=f't={t_check}')
+
+# Theoretical distribution N(0, t)
+x = np.linspace(-6, 6, 1000)
+for t_check in t_checkpoints:
+    theoretical_pdf = stats.norm.pdf(x, 0, np.sqrt(t_check))
+    axes[0, 1].plot(x, theoretical_pdf, linewidth=2, linestyle='--')
+
+axes[0, 1].set_xlabel('W(t)', fontsize=11)
+axes[0, 1].set_ylabel('Density', fontsize=11)
+axes[0, 1].set_title('Distribution of W(t) at Different Times', fontsize=12, fontweight='bold')
+axes[0, 1].legend()
+axes[0, 1].grid(alpha=0.3)
+
+# (3) Evolution of mean and variance over time
+t, W_sample = simulate_wiener_process(T, dt)
+n_paths_analysis = 500
+
+all_paths = []
+for _ in range(n_paths_analysis):
+    t, W = simulate_wiener_process(T, dt)
+    all_paths.append(W)
+
+all_paths = np.array(all_paths)
+
+mean_W = all_paths.mean(axis=0)
+std_W = all_paths.std(axis=0)
+
+axes[1, 0].plot(t, mean_W, color='#667eea', linewidth=2.5, label='Observed Mean')
+axes[1, 0].fill_between(t, mean_W - std_W, mean_W + std_W,
+                          alpha=0.3, color='#667eea', label='Observed ±1σ')
+axes[1, 0].plot(t, np.zeros_like(t), 'r--', linewidth=2, label='Theoretical Mean=0')
+axes[1, 0].plot(t, np.sqrt(t), 'g--', linewidth=2, label='Theoretical σ=√t')
+axes[1, 0].plot(t, -np.sqrt(t), 'g--', linewidth=2)
+
+axes[1, 0].set_xlabel('Time t', fontsize=11)
+axes[1, 0].set_ylabel('W(t)', fontsize=11)
+axes[1, 0].set_title('Evolution of Mean and Variance over Time', fontsize=12, fontweight='bold')
+axes[1, 0].legend()
+axes[1, 0].grid(alpha=0.3)
+
+# (4) Covariance structure Cov(W(s), W(t)) = min(s, t)
+s_values = np.linspace(0, T, 100)
+t_values = np.linspace(0, T, 100)
+S, T_grid = np.meshgrid(s_values, t_values)
+
+# Theoretical covariance
+Cov_theory = np.minimum(S, T_grid)
+
+im = axes[1, 1].imshow(Cov_theory, extent=[0, T, 0, T], origin='lower',
+                        cmap='viridis', aspect='auto')
+axes[1, 1].set_xlabel('Time s', fontsize=11)
+axes[1, 1].set_ylabel('Time t', fontsize=11)
+axes[1, 1].set_title('Cov(W(s), W(t)) = min(s, t)', fontsize=12, fontweight='bold')
+plt.colorbar(im, ax=axes[1, 1])
+
+plt.tight_layout()
+plt.show()
+
+print("Verification of Wiener Process Properties:")
+print("="*60)
+for t_check in t_checkpoints:
+    W_values = []
+    for _ in range(n_simulations):
+        t, W = simulate_wiener_process(t_check, dt)
+        W_values.append(W[-1])
+    W_values = np.array(W_values)
+
+    print(f"t={t_check}:")
+    print(f"  Theoretical: E[W(t)]={0:.4f}, Var(W(t))={t_check:.4f}")
+    print(f"  Observed: E[W(t)]={W_values.mean():.4f}, Var(W(t))={W_values.var():.4f}")</div>
+<h2>4.2 Drift and Volatility</h2>
+<div class="definition">
+<strong>📐 Definition: Wiener Process with Drift</strong><br/>
+                A Wiener process with drift coefficient \(\mu\) and volatility coefficient \(\sigma\):
+                \[X(t) = X_0 + \mu t + \sigma W(t)\]
+
+                <strong>Expectation and Variance:</strong>
+                \[E[X(t)] = X_0 + \mu t, \quad Var(X(t)) = \sigma^2 t\]
+
+                Drift \(\mu\) represents a deterministic trend, while volatility \(\sigma\) represents the magnitude of random fluctuations.
+            </div>
+<h3>💻 Code Example 2: Effects of Drift and Volatility</h3>
+<div class="code-block"># Simulation of Wiener process with drift
+np.random.seed(42)
+
+def simulate_drift_wiener(X0, mu, sigma, T, dt):
+    """Simulation of Wiener process with drift"""
+    t, W = simulate_wiener_process(T, dt)
+    X = X0 + mu * t + sigma * W
+    return t, X
+
+# Parameter settings
+X0 = 100
+T = 5
+dt = 0.01
+
+# Different combinations of drift and volatility
+configs = [
+    {'mu': 0, 'sigma': 1, 'label': 'μ=0, σ=1 (Standard Wiener)'},
+    {'mu': 2, 'sigma': 1, 'label': 'μ=2, σ=1 (Positive Drift)'},
+    {'mu': -1, 'sigma': 1, 'label': 'μ=-1, σ=1 (Negative Drift)'},
+    {'mu': 0, 'sigma': 3, 'label': 'μ=0, σ=3 (High Volatility)'},
+]
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+axes = axes.flatten()
+
+for idx, config in enumerate(configs):
+    mu = config['mu']
+    sigma = config['sigma']
+
+    # Simulate multiple paths
+    for _ in range(20):
+        t, X = simulate_drift_wiener(X0, mu, sigma, T, dt)
+        axes[idx].plot(t, X, alpha=0.4, linewidth=1.5, color='#667eea')
+
+    # Expectation
+    t_theory = np.linspace(0, T, 1000)
+    E_X = X0 + mu * t_theory
+    axes[idx].plot(t_theory, E_X, 'r--', linewidth=2.5, label=f'E[X(t)]={X0}+{mu}t')
+
+    # ±1σ confidence band
+    std_X = sigma * np.sqrt(t_theory)
+    axes[idx].fill_between(t_theory, E_X - std_X, E_X + std_X,
+                             alpha=0.2, color='red', label='E[X]±σ')
+
+    axes[idx].set_xlabel('Time t', fontsize=11)
+    axes[idx].set_ylabel('X(t)', fontsize=11)
+    axes[idx].set_title(config['label'], fontsize=12, fontweight='bold')
+    axes[idx].legend()
+    axes[idx].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Statistical verification
+print("\nStatistical Verification of Wiener Process with Drift:")
+print("="*60)
+for config in configs:
+    mu = config['mu']
+    sigma = config['sigma']
+
+    # Final values of multiple paths
+    n_sims = 1000
+    final_values = []
+    for _ in range(n_sims):
+        t, X = simulate_drift_wiener(X0, mu, sigma, T, dt)
+        final_values.append(X[-1])
+
+    final_values = np.array(final_values)
+
+    print(f"\n{config['label']}:")
+    print(f"  Theoretical: E[X({T})]={X0 + mu*T:.2f}, Var(X({T}))={sigma**2*T:.2f}")
+    print(f"  Observed: E[X({T})]={final_values.mean():.2f}, Var(X({T}))={final_values.var():.2f}")</div>
+<h2>4.3 Stochastic Differential Equations (SDE) and Euler-Maruyama Method</h2>
+<div class="definition">
+<strong>📐 Definition: Stochastic Differential Equation (SDE)</strong><br/>
+                General form of a stochastic differential equation:
+                \[dX(t) = \mu(X, t) \, dt + \sigma(X, t) \, dW(t)\]
+
+                Where:
+                <ul>
+<li>\(\mu(X, t)\): Drift term (deterministic part)</li>
+<li>\(\sigma(X, t)\): Diffusion term (stochastic part)</li>
+<li>\(dW(t)\): Infinitesimal increment of Wiener process</li>
+</ul>
+<strong>Euler-Maruyama Method (numerical solution):</strong>
+                \[X_{n+1} = X_n + \mu(X_n, t_n) \Delta t + \sigma(X_n, t_n) \sqrt{\Delta t} \, Z_n\]
+                where \(Z_n \sim N(0, 1)\) are independent standard normal random variables.
+            </div>
+<h3>💻 Code Example 3: SDE Numerical Solution by Euler-Maruyama Method</h3>
+<div class="code-block"># Implementation of Euler-Maruyama method
+def euler_maruyama(mu_func, sigma_func, X0, T, dt):
+    """
+    Numerical solution of SDE by Euler-Maruyama method
+
+    Parameters:
+    -----------
+    mu_func : function
+        Drift term μ(X, t)
+    sigma_func : function
+        Diffusion term σ(X, t)
+    X0 : float
+        Initial value
+    T : float
+        End time
+    dt : float
+        Time step
+    """
+    n_steps = int(T / dt)
+    t = np.linspace(0, T, n_steps + 1)
+    X = np.zeros(n_steps + 1)
+    X[0] = X0
+
+    for i in range(n_steps):
+        dW = np.random.normal(0, np.sqrt(dt))
+        X[i+1] = X[i] + mu_func(X[i], t[i]) * dt + sigma_func(X[i], t[i]) * dW
+
+    return t, X
+
+# Example 1: Linear SDE dX = -θX dt + σ dW (special case of Ornstein-Uhlenbeck process)
+theta = 0.5
+sigma = 1.0
+
+mu_func = lambda X, t: -theta * X
+sigma_func = lambda X, t: sigma
+
+np.random.seed(42)
+X0 = 5
+T = 10
+dt = 0.01
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# (1) Simulation of multiple paths
+for _ in range(20):
+    t, X = euler_maruyama(mu_func, sigma_func, X0, T, dt)
+    axes[0, 0].plot(t, X, alpha=0.4, linewidth=1.5, color='#667eea')
+
+axes[0, 0].axhline(y=0, color='red', linestyle='--', linewidth=2, label='Equilibrium')
+axes[0, 0].set_xlabel('Time t', fontsize=11)
+axes[0, 0].set_ylabel('X(t)', fontsize=11)
+axes[0, 0].set_title('Linear SDE: dX = -θX dt + σ dW', fontsize=12, fontweight='bold')
+axes[0, 0].legend()
+axes[0, 0].grid(alpha=0.3)
+
+# (2) Comparison of different time steps
+dts = [0.1, 0.01, 0.001]
+np.random.seed(42)
+
+for dt_test in dts:
+    t, X = euler_maruyama(mu_func, sigma_func, X0, T, dt_test)
+    axes[0, 1].plot(t, X, linewidth=2, alpha=0.7, label=f'Δt={dt_test}')
+
+axes[0, 1].set_xlabel('Time t', fontsize=11)
+axes[0, 1].set_ylabel('X(t)', fontsize=11)
+axes[0, 1].set_title('Effect of Time Step', fontsize=12, fontweight='bold')
+axes[0, 1].legend()
+axes[0, 1].grid(alpha=0.3)
+
+# (3) Convergence to mean (mean reversion)
+n_paths = 500
+all_paths = []
+
+for _ in range(n_paths):
+    t, X = euler_maruyama(mu_func, sigma_func, X0, T, dt)
+    all_paths.append(X)
+
+all_paths = np.array(all_paths)
+mean_X = all_paths.mean(axis=0)
+std_X = all_paths.std(axis=0)
+
+axes[1, 0].plot(t, mean_X, color='#667eea', linewidth=2.5, label='Observed Mean')
+axes[1, 0].fill_between(t, mean_X - std_X, mean_X + std_X,
+                          alpha=0.3, color='#667eea', label='±1σ')
+
+# Theoretical mean (analytical solution): E[X(t)] = X0 * exp(-θt)
+E_X_theory = X0 * np.exp(-theta * t)
+axes[1, 0].plot(t, E_X_theory, 'r--', linewidth=2, label='Theoretical Mean')
+
+axes[1, 0].set_xlabel('Time t', fontsize=11)
+axes[1, 0].set_ylabel('E[X(t)]', fontsize=11)
+axes[1, 0].set_title('Convergence to Mean (Mean Reversion)', fontsize=12, fontweight='bold')
+axes[1, 0].legend()
+axes[1, 0].grid(alpha=0.3)
+
+# (4) Stationary distribution
+# Distribution after sufficient time (t→∞ gives N(0, σ²/(2θ)))
+final_values = all_paths[:, -1]
+
+axes[1, 1].hist(final_values, bins=50, density=True, alpha=0.6,
+                 color='#667eea', edgecolor='black', label='Observed')
+
+# Theoretical stationary distribution
+x = np.linspace(final_values.min(), final_values.max(), 1000)
+stationary_var = sigma**2 / (2 * theta)
+stationary_pdf = stats.norm.pdf(x, 0, np.sqrt(stationary_var))
+axes[1, 1].plot(x, stationary_pdf, 'r-', linewidth=2.5,
+                 label=f'N(0, {stationary_var:.2f})')
+
+axes[1, 1].set_xlabel('X(∞)', fontsize=11)
+axes[1, 1].set_ylabel('Density', fontsize=11)
+axes[1, 1].set_title('Stationary Distribution', fontsize=12, fontweight='bold')
+axes[1, 1].legend()
+axes[1, 1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("Verification of Linear SDE:")
+print(f"Theoretical stationary variance: σ²/(2θ) = {stationary_var:.4f}")
+print(f"Observed stationary variance: {final_values.var():.4f}")</div>
+<h2>4.4 Geometric Brownian Motion (Stock Price Model)</h2>
+<div class="theorem">
+<strong>📊 Theorem: Geometric Brownian Motion</strong><br/>
+                Geometric Brownian motion is defined by the following SDE:
+                \[dS(t) = \mu S(t) \, dt + \sigma S(t) \, dW(t)\]
+
+                <strong>Analytical Solution (by Itô's formula):</strong>
+                \[S(t) = S_0 \exp\left[\left(\mu - \frac{\sigma^2}{2}\right)t + \sigma W(t)\right]\]
+
+                Expectation: \(E[S(t)] = S_0 e^{\mu t}\)<br/>
+                Variance: \(Var(S(t)) = S_0^2 e^{2\mu t}(e^{\sigma^2 t} - 1)\)
+
+                <strong>Applications:</strong> Black-Scholes model (stock prices, exchange rates)
+            </div>
+<h3>💻 Code Example 4: Geometric Brownian Motion (Stock Price Model)</h3>
+<div class="code-block"># Simulation of geometric Brownian motion
+np.random.seed(42)
+
+def geometric_brownian_motion(S0, mu, sigma, T, dt):
+    """Geometric Brownian motion simulation (using analytical solution)"""
+    n_steps = int(T / dt)
+    t = np.linspace(0, T, n_steps + 1)
+
+    # Generate Wiener process
+    dW = np.random.normal(0, np.sqrt(dt), n_steps)
+    W = np.concatenate([[0], np.cumsum(dW)])
+
+    # Analytical solution
+    S = S0 * np.exp((mu - 0.5 * sigma**2) * t + sigma * W)
+
+    return t, S
+
+# Parameters (stock price model)
+S0 = 100  # Initial stock price
+mu = 0.1  # Drift (annual return rate)
+sigma = 0.2  # Volatility (annual)
+T = 1  # 1 year
+dt = 1/252  # 1 trading day
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# (1) Sample paths
+n_paths = 50
+for _ in range(n_paths):
+    t, S = geometric_brownian_motion(S0, mu, sigma, T, dt)
+    axes[0, 0].plot(t, S, alpha=0.4, linewidth=1.5, color='#667eea')
+
+# Expectation
+t_theory = np.linspace(0, T, 1000)
+E_S = S0 * np.exp(mu * t_theory)
+axes[0, 0].plot(t_theory, E_S, 'r--', linewidth=2.5, label=f'E[S(t)]={S0}e^{{μt}}')
+
+axes[0, 0].set_xlabel('Time (years)', fontsize=11)
+axes[0, 0].set_ylabel('Stock Price S(t)', fontsize=11)
+axes[0, 0].set_title('Geometric Brownian Motion (Stock Price Model)', fontsize=12, fontweight='bold')
+axes[0, 0].legend()
+axes[0, 0].grid(alpha=0.3)
+axes[0, 0].set_ylim([0, 200])
+
+# (2) Distribution of log returns
+# log(S(t)/S0) ~ N((μ - σ²/2)t, σ²t)
+n_sims = 5000
+final_prices = []
+for _ in range(n_sims):
+    t, S = geometric_brownian_motion(S0, mu, sigma, T, dt)
+    final_prices.append(S[-1])
+
+final_prices = np.array(final_prices)
+log_returns = np.log(final_prices / S0)
+
+axes[0, 1].hist(log_returns, bins=50, density=True, alpha=0.6,
+                 color='#667eea', edgecolor='black', label='Simulation')
+
+# Theoretical distribution
+x = np.linspace(log_returns.min(), log_returns.max(), 1000)
+theoretical_mean = (mu - 0.5 * sigma**2) * T
+theoretical_std = sigma * np.sqrt(T)
+theoretical_pdf = stats.norm.pdf(x, theoretical_mean, theoretical_std)
+axes[0, 1].plot(x, theoretical_pdf, 'r-', linewidth=2.5, label='Theoretical')
+
+axes[0, 1].set_xlabel('Log Return log(S(T)/S₀)', fontsize=11)
+axes[0, 1].set_ylabel('Density', fontsize=11)
+axes[0, 1].set_title('Distribution of Log Returns', fontsize=12, fontweight='bold')
+axes[0, 1].legend()
+axes[0, 1].grid(alpha=0.3)
+
+# (3) Comparison of different volatilities
+sigmas = [0.1, 0.2, 0.3, 0.4]
+colors = ['blue', 'green', 'orange', 'red']
+
+for sig, color in zip(sigmas, colors):
+    for _ in range(10):
+        t, S = geometric_brownian_motion(S0, mu, sig, T, dt)
+        axes[1, 0].plot(t, S, alpha=0.3, linewidth=1.5, color=color)
+
+    # Expectation for each volatility
+    axes[1, 0].plot(t_theory, S0 * np.exp(mu * t_theory), '--',
+                     linewidth=2, color=color, label=f'σ={sig}')
+
+axes[1, 0].set_xlabel('Time (years)', fontsize=11)
+axes[1, 0].set_ylabel('Stock Price S(t)', fontsize=11)
+axes[1, 0].set_title('Comparison with Different Volatilities', fontsize=12, fontweight='bold')
+axes[1, 0].legend()
+axes[1, 0].grid(alpha=0.3)
+
+# (4) Monte Carlo pricing (European call option)
+K = 100  # Strike price
+r = 0.05  # Risk-free rate
+
+# Option payoff max(S(T) - K, 0)
+payoffs = np.maximum(final_prices - K, 0)
+option_price_mc = np.exp(-r * T) * payoffs.mean()
+
+# Black-Scholes formula (analytical solution)
+from scipy.stats import norm as norm_dist
+d1 = (np.log(S0/K) + (r + 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
+d2 = d1 - sigma*np.sqrt(T)
+option_price_bs = S0*norm_dist.cdf(d1) - K*np.exp(-r*T)*norm_dist.cdf(d2)
+
+axes[1, 1].hist(payoffs, bins=50, alpha=0.6, color='#667eea', edgecolor='black')
+axes[1, 1].axvline(payoffs.mean(), color='red', linestyle='--', linewidth=2,
+                    label=f'Mean Payoff={payoffs.mean():.2f}')
+axes[1, 1].set_xlabel('Payoff max(S(T)-K, 0)', fontsize=11)
+axes[1, 1].set_ylabel('Frequency', fontsize=11)
+axes[1, 1].set_title('Distribution of Option Payoff', fontsize=12, fontweight='bold')
+axes[1, 1].legend()
+axes[1, 1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("Verification of Geometric Brownian Motion:")
+print(f"Theoretical: E[S(T)] = {S0 * np.exp(mu * T):.2f}")
+print(f"Observed: E[S(T)] = {final_prices.mean():.2f}")
+print(f"\nOption Price:")
+print(f"Monte Carlo: {option_price_mc:.4f}")
+print(f"Black-Scholes: {option_price_bs:.4f}")</div>
+<h2>4.5 Ornstein-Uhlenbeck Process (Mean Reversion)</h2>
+<div class="definition">
+<strong>📐 Definition: Ornstein-Uhlenbeck Process</strong><br/>
+                The Ornstein-Uhlenbeck process is an SDE with mean-reverting properties:
+                \[dX(t) = \theta(\mu - X(t)) \, dt + \sigma \, dW(t)\]
+
+                Where:
+                <ul>
+<li>\(\mu\): Long-term mean (equilibrium point)</li>
+<li>\(\theta &gt; 0\): Speed of reversion</li>
+<li>\(\sigma\): Volatility</li>
+</ul>
+<strong>Analytical Solution:</strong>
+                \[X(t) = X_0 e^{-\theta t} + \mu(1 - e^{-\theta t}) + \sigma \int_0^t e^{-\theta(t-s)} dW(s)\]
+
+                Stationary distribution: \(X(\infty) \sim N\left(\mu, \frac{\sigma^2}{2\theta}\right)\)
+            </div>
+<h3>💻 Code Example 5: Ornstein-Uhlenbeck Process (Mean Reversion)</h3>
+<div class="code-block"># Simulation of Ornstein-Uhlenbeck process
+np.random.seed(42)
+
+def ornstein_uhlenbeck(X0, theta, mu, sigma, T, dt):
+    """Ornstein-Uhlenbeck process simulation"""
+    mu_func = lambda X, t: theta * (mu - X)
+    sigma_func = lambda X, t: sigma
+    return euler_maruyama(mu_func, sigma_func, X0, T, dt)
+
+# Parameters
+X0 = 10
+theta = 2.0  # Speed of reversion
+mu = 5  # Long-term mean
+sigma = 1.5  # Volatility
+T = 10
+dt = 0.01
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# (1) Mean reversion from different initial values
+initial_values = [0, 3, 5, 7, 10]
+colors = plt.cm.viridis(np.linspace(0, 1, len(initial_values)))
+
+for X0_test, color in zip(initial_values, colors):
+    for _ in range(5):
+        t, X = ornstein_uhlenbeck(X0_test, theta, mu, sigma, T, dt)
+        axes[0, 0].plot(t, X, alpha=0.4, linewidth=1.5, color=color)
+
+axes[0, 0].axhline(y=mu, color='red', linestyle='--', linewidth=2.5,
+                    label=f'Long-term Mean μ={mu}')
+axes[0, 0].set_xlabel('Time t', fontsize=11)
+axes[0, 0].set_ylabel('X(t)', fontsize=11)
+axes[0, 0].set_title('Visualization of Mean Reversion', fontsize=12, fontweight='bold')
+axes[0, 0].legend()
+axes[0, 0].grid(alpha=0.3)
+
+# (2) Comparison of different reversion speeds
+thetas = [0.5, 1.0, 2.0, 5.0]
+for theta_test in thetas:
+    for _ in range(10):
+        t, X = ornstein_uhlenbeck(X0, theta_test, mu, sigma, T, dt)
+        axes[0, 1].plot(t, X, alpha=0.3, linewidth=1.5, label=f'θ={theta_test}' if _ == 0 else None)
+
+axes[0, 1].axhline(y=mu, color='red', linestyle='--', linewidth=2)
+axes[0, 1].set_xlabel('Time t', fontsize=11)
+axes[0, 1].set_ylabel('X(t)', fontsize=11)
+axes[0, 1].set_title('Effect of Reversion Speed θ', fontsize=12, fontweight='bold')
+axes[0, 1].legend()
+axes[0, 1].grid(alpha=0.3)
+
+# (3) Stationary distribution
+n_paths = 5000
+final_values = []
+
+for _ in range(n_paths):
+    t, X = ornstein_uhlenbeck(X0, theta, mu, sigma, T, dt)
+    final_values.append(X[-1])
+
+final_values = np.array(final_values)
+
+axes[1, 0].hist(final_values, bins=50, density=True, alpha=0.6,
+                 color='#667eea', edgecolor='black', label='Simulation')
+
+# Theoretical stationary distribution N(μ, σ²/(2θ))
+x = np.linspace(final_values.min(), final_values.max(), 1000)
+stationary_var = sigma**2 / (2 * theta)
+stationary_pdf = stats.norm.pdf(x, mu, np.sqrt(stationary_var))
+axes[1, 0].plot(x, stationary_pdf, 'r-', linewidth=2.5,
+                 label=f'N({mu}, {stationary_var:.2f})')
+
+axes[1, 0].set_xlabel('X(∞)', fontsize=11)
+axes[1, 0].set_ylabel('Density', fontsize=11)
+axes[1, 0].set_title('Stationary Distribution', fontsize=12, fontweight='bold')
+axes[1, 0].legend()
+axes[1, 0].grid(alpha=0.3)
+
+# (4) Time evolution of mean and variance
+all_paths = []
+for _ in range(1000):
+    t, X = ornstein_uhlenbeck(X0, theta, mu, sigma, T, dt)
+    all_paths.append(X)
+
+all_paths = np.array(all_paths)
+mean_X = all_paths.mean(axis=0)
+var_X = all_paths.var(axis=0)
+
+# Theoretical mean and variance
+E_X_theory = X0 * np.exp(-theta * t) + mu * (1 - np.exp(-theta * t))
+Var_X_theory = (sigma**2 / (2*theta)) * (1 - np.exp(-2*theta*t))
+
+axes[1, 1].plot(t, mean_X, color='#667eea', linewidth=2.5, label='Observed Mean')
+axes[1, 1].plot(t, E_X_theory, 'r--', linewidth=2, label='Theoretical Mean')
+axes[1, 1].fill_between(t, mean_X - np.sqrt(var_X), mean_X + np.sqrt(var_X),
+                          alpha=0.2, color='#667eea', label='Observed ±1σ')
+axes[1, 1].fill_between(t, E_X_theory - np.sqrt(Var_X_theory),
+                          E_X_theory + np.sqrt(Var_X_theory),
+                          alpha=0.2, color='red')
+
+axes[1, 1].set_xlabel('Time t', fontsize=11)
+axes[1, 1].set_ylabel('E[X(t)]', fontsize=11)
+axes[1, 1].set_title('Time Evolution of Mean and Variance', fontsize=12, fontweight='bold')
+axes[1, 1].legend()
+axes[1, 1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("Verification of Ornstein-Uhlenbeck Process:")
+print(f"Theoretical stationary distribution: N({mu}, {stationary_var:.4f})")
+print(f"Observed stationary distribution: N({final_values.mean():.4f}, {final_values.var():.4f})")</div>
+<h2>4.6 Simulation of Stochastic Integrals</h2>
+<h3>💻 Code Example 6: Simulation of Stochastic Integrals</h3>
+<div class="code-block"># Simulation of Itô integral: I(t) = ∫₀ᵗ f(s) dW(s)
+np.random.seed(42)
+
+def stochastic_integral(f_func, T, dt):
+    """Simulation of stochastic integral ∫₀ᵗ f(s) dW(s)"""
+    n_steps = int(T / dt)
+    t = np.linspace(0, T, n_steps + 1)
+
+    # Wiener process increments
+    dW = np.random.normal(0, np.sqrt(dt), n_steps)
+
+    # Calculation of stochastic integral (Itô integral)
+    I = np.zeros(n_steps + 1)
+    for i in range(n_steps):
+        I[i+1] = I[i] + f_func(t[i]) * dW[i]
+
+    return t, I
+
+T = 5
+dt = 0.01
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# (1) Case f(t) = 1: ∫₀ᵗ dW(s) = W(t)
+f_const = lambda t: 1
+n_paths = 20
+
+for _ in range(n_paths):
+    t, I = stochastic_integral(f_const, T, dt)
+    axes[0, 0].plot(t, I, alpha=0.4, linewidth=1.5, color='#667eea')
+
+axes[0, 0].set_xlabel('Time t', fontsize=11)
+axes[0, 0].set_ylabel('∫₀ᵗ dW(s)', fontsize=11)
+axes[0, 0].set_title('Itô Integral: ∫₀ᵗ dW(s) = W(t)', fontsize=12, fontweight='bold')
+axes[0, 0].grid(alpha=0.3)
+
+# (2) Case f(t) = t: ∫₀ᵗ s dW(s)
+f_linear = lambda t: t
+
+for _ in range(n_paths):
+    t, I = stochastic_integral(f_linear, T, dt)
+    axes[0, 1].plot(t, I, alpha=0.4, linewidth=1.5, color='#764ba2')
+
+axes[0, 1].set_xlabel('Time t', fontsize=11)
+axes[0, 1].set_ylabel('∫₀ᵗ s dW(s)', fontsize=11)
+axes[0, 1].set_title('Itô Integral: ∫₀ᵗ s dW(s)', fontsize=12, fontweight='bold')
+axes[0, 1].grid(alpha=0.3)
+
+# (3) Property of Itô integral: E[I(t)] = 0
+n_sims = 1000
+final_values_const = []
+final_values_linear = []
+
+for _ in range(n_sims):
+    t, I_const = stochastic_integral(f_const, T, dt)
+    t, I_linear = stochastic_integral(f_linear, T, dt)
+    final_values_const.append(I_const[-1])
+    final_values_linear.append(I_linear[-1])
+
+axes[1, 0].hist(final_values_const, bins=50, alpha=0.6, density=True,
+                 color='#667eea', edgecolor='black', label='∫₀ᵗ dW(s)')
+axes[1, 0].hist(final_values_linear, bins=50, alpha=0.6, density=True,
+                 color='#764ba2', edgecolor='black', label='∫₀ᵗ s dW(s)')
+
+axes[1, 0].axvline(0, color='red', linestyle='--', linewidth=2, label='E[I]=0')
+axes[1, 0].set_xlabel('I(T)', fontsize=11)
+axes[1, 0].set_ylabel('Density', fontsize=11)
+axes[1, 0].set_title('Distribution of Itô Integral', fontsize=12, fontweight='bold')
+axes[1, 0].legend()
+axes[1, 0].grid(alpha=0.3)
+
+# (4) Variance of Itô integral: Var(∫₀ᵗ f(s) dW(s)) = ∫₀ᵗ f(s)² ds
+# Case f(t) = t: Var = ∫₀ᵗ s² ds = t³/3
+theoretical_var = T**3 / 3
+
+print("Properties of Itô Integral:")
+print(f"∫₀ᵗ dW(s): E={np.mean(final_values_const):.6f}, Var={np.var(final_values_const):.4f} (Theoretical Var={T:.4f})")
+print(f"∫₀ᵗ s dW(s): E={np.mean(final_values_linear):.6f}, Var={np.var(final_values_linear):.4f} (Theoretical Var={theoretical_var:.4f})")
+
+# Quadratic variation of Itô integral
+# (∫₀ᵗ f(s) dW(s))² - ∫₀ᵗ f(s)² ds is a martingale
+squared_integrals = []
+quadratic_variations = []
+
+for _ in range(n_sims):
+    t, I = stochastic_integral(f_linear, T, dt)
+    squared_integrals.append(I[-1]**2)
+    # ∫₀ᵗ s² ds = t³/3
+    quadratic_variations.append(I[-1]**2 - T**3/3)
+
+axes[1, 1].hist(quadratic_variations, bins=50, alpha=0.6,
+                 color='#667eea', edgecolor='black')
+axes[1, 1].axvline(np.mean(quadratic_variations), color='red',
+                    linestyle='--', linewidth=2,
+                    label=f'Mean={np.mean(quadratic_variations):.4f}')
+axes[1, 1].set_xlabel('I² - [I,I]', fontsize=11)
+axes[1, 1].set_ylabel('Frequency', fontsize=11)
+axes[1, 1].set_title('Quadratic Variation (Martingale Property)', fontsize=12, fontweight='bold')
+axes[1, 1].legend()
+axes[1, 1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()</div>
+<h2>4.7 Langevin Equation</h2>
+<h3>💻 Code Example 7: Langevin Equation</h3>
+<div class="code-block"># Langevin equation (overdamped): dv = -γv dt + σ dW
+# Application to materials science: motion of Brownian particles
+
+np.random.seed(42)
+
+# Parameters
+gamma = 1.0  # Friction coefficient
+sigma = np.sqrt(2 * gamma)  # Volatility (by fluctuation-dissipation theorem)
+T_sim = 20
+dt = 0.01
+
+# Velocity simulation (Ornstein-Uhlenbeck process)
+def simulate_velocity(v0, gamma, sigma, T, dt):
+    """Velocity simulation by Langevin equation"""
+    mu_func = lambda v, t: -gamma * v
+    sigma_func = lambda v, t: sigma
+    return euler_maruyama(mu_func, sigma_func, v0, T, dt)
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# (1) Time evolution of velocity
+v0 = 5
+n_paths = 50
+
+for _ in range(n_paths):
+    t, v = simulate_velocity(v0, gamma, sigma, T_sim, dt)
+    axes[0, 0].plot(t, v, alpha=0.4, linewidth=1.5, color='#667eea')
+
+axes[0, 0].axhline(y=0, color='red', linestyle='--', linewidth=2, label='Equilibrium Velocity=0')
+axes[0, 0].set_xlabel('Time', fontsize=11)
+axes[0, 0].set_ylabel('Velocity v(t)', fontsize=11)
+axes[0, 0].set_title('Time Evolution of Velocity by Langevin Equation', fontsize=12, fontweight='bold')
+axes[0, 0].legend()
+axes[0, 0].grid(alpha=0.3)
+
+# (2) Stationary distribution of velocity (Maxwell-Boltzmann distribution)
+n_sims = 5000
+final_velocities = []
+
+for _ in range(n_sims):
+    t, v = simulate_velocity(v0, gamma, sigma, T_sim, dt)
+    final_velocities.append(v[-1])
+
+final_velocities = np.array(final_velocities)
+
+axes[0, 1].hist(final_velocities, bins=50, density=True, alpha=0.6,
+                 color='#667eea', edgecolor='black', label='Simulation')
+
+# Theoretical distribution (by fluctuation-dissipation theorem N(0, σ²/(2γ)))
+x = np.linspace(final_velocities.min(), final_velocities.max(), 1000)
+stationary_var = sigma**2 / (2 * gamma)
+stationary_pdf = stats.norm.pdf(x, 0, np.sqrt(stationary_var))
+axes[0, 1].plot(x, stationary_pdf, 'r-', linewidth=2.5,
+                 label=f'N(0, {stationary_var:.2f})')
+
+axes[0, 1].set_xlabel('Velocity v', fontsize=11)
+axes[0, 1].set_ylabel('Density', fontsize=11)
+axes[0, 1].set_title('Stationary Distribution of Velocity (Maxwell-Boltzmann)', fontsize=12, fontweight='bold')
+axes[0, 1].legend()
+axes[0, 1].grid(alpha=0.3)
+
+# (3) Time evolution of position (integrating velocity)
+def simulate_position(v0, gamma, sigma, T, dt):
+    """Position simulation (time integration of velocity)"""
+    t, v = simulate_velocity(v0, gamma, sigma, T, dt)
+    x = np.cumsum(v) * dt
+    return t, x, v
+
+for _ in range(20):
+    t, x, v = simulate_position(v0, gamma, sigma, T_sim, dt)
+    axes[1, 0].plot(t, x, alpha=0.4, linewidth=1.5, color='#764ba2')
+
+axes[1, 0].set_xlabel('Time', fontsize=11)
+axes[1, 0].set_ylabel('Position x(t)', fontsize=11)
+axes[1, 0].set_title('Position of Brownian Particle (Diffusion)', fontsize=12, fontweight='bold')
+axes[1, 0].grid(alpha=0.3)
+
+# (4) Mean Square Displacement (MSD)
+# Measurement of diffusion coefficient
+n_paths_msd = 500
+all_positions = []
+
+for _ in range(n_paths_msd):
+    t, x, v = simulate_position(0, gamma, sigma, T_sim, dt)
+    all_positions.append(x)
+
+all_positions = np.array(all_positions)
+msd = np.mean(all_positions**2, axis=0)
+
+# Theoretical MSD (long-time limit): <x²> = 2Dt, D = σ²/(2γ²) = 1/γ
+D_theory = 1 / gamma
+msd_theory = 2 * D_theory * t
+
+axes[1, 1].plot(t, msd, color='#667eea', linewidth=2.5, label='Observed MSD')
+axes[1, 1].plot(t, msd_theory, 'r--', linewidth=2, label=f'Theoretical MSD=2Dt (D={D_theory:.2f})')
+axes[1, 1].set_xlabel('Time', fontsize=11)
+axes[1, 1].set_ylabel('<x²(t)>', fontsize=11)
+axes[1, 1].set_title('Mean Square Displacement (Measurement of Diffusion Coefficient)', fontsize=12, fontweight='bold')
+axes[1, 1].legend()
+axes[1, 1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Measurement of diffusion coefficient
+# Estimate diffusion coefficient from slope of MSD = 2Dt
+from scipy.stats import linregress
+slope, intercept, r_value, p_value, std_err = linregress(t[100:], msd[100:])
+D_measured = slope / 2
+
+print("Diffusion by Langevin Equation:")
+print(f"Theoretical diffusion coefficient: D = σ²/(2γ²) = {D_theory:.4f}")
+print(f"Measured diffusion coefficient: D = {D_measured:.4f}")
+print(f"Einstein relation: D = kT/γ (fluctuation-dissipation theorem)")</x²(t)></x²></div>
+<div class="note">
+<strong>💡 Note:</strong> The Langevin equation is used to model various phenomena in materials science, including motion of Brownian particles, diffusion of colloids, and dynamics of polymers. The fluctuation-dissipation theorem relates friction and random force intensity in thermal equilibrium states.
+            </div>
+<h2>Exercises</h2>
+<div class="exercise">
+<strong>📝 Exercise 1: Properties of Wiener Process</strong><br/>
+                For a Wiener process W(t):
+                <ol>
+<li>Verify by simulation that W(2) - W(1) and W(4) - W(3) are independent</li>
+<li>Verify by simulation that Cov(W(2), W(5)) = min(2, 5) = 2</li>
+<li>Confirm by numerical differentiation that the path of W(t) is nowhere differentiable</li>
+</ol>
+</div>
+<div class="exercise">
+<strong>📝 Exercise 2: Application of Geometric Brownian Motion</strong><br/>
+                Consider a geometric Brownian motion with initial stock price S₀=100, μ=0.08, σ=0.25:
+                <ol>
+<li>Simulate the stock price distribution after 1 year and visualize with a histogram</li>
+<li>Calculate the price of a European call option with strike price K=110 using Monte Carlo method</li>
+<li>Compare with the Black-Scholes formula and evaluate the error</li>
+</ol>
+</div>
+<div class="exercise">
+<strong>📝 Exercise 3: Analysis of Ornstein-Uhlenbeck Process</strong><br/>
+                For the OU process dX = 3(2-X)dt + 1.5 dW:
+                <ol>
+<li>Run a simulation starting from X₀=5 and visualize convergence to the mean</li>
+<li>Compare the stationary distribution with theoretical values</li>
+<li>Investigate how convergence time changes when varying the reversion speed θ</li>
+</ol>
+</div>
+<div class="nav-buttons">
+<a class="nav-button" href="chapter-3.html">← Chapter 3</a>
+<a class="nav-button" href="chapter-5.html">Chapter 5 →</a>
+</div>
+</div>
+</div>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+<footer>
+<p>© 2025 AI Terakoya - Fundamentals of Mathematics &amp; Physics Dojo</p>
+</footer>
+</body>
+</html>

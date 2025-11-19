@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 3: Magnetic Measurements - MS Terakoya. Understand the basic principles of diamagnetism, paramagnetism, and ferromagnetism" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 3: Magnetic Measurements - MS Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<!-- Prism.js for syntax highlighting -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/MS/electrical-magnetic-testing-introduction/chapter-3.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+
+<header>
+<div class="header-content">
+<h1>Chapter 3: Magnetic Measurements</h1>
+<p class="subtitle">VSM/SQUID Magnetometry, M-H Curve Analysis, Magnetic Anisotropy Evaluation, PPMS Integrated Measurements</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 50-60 minutes</span>
+<span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
+<span class="meta-item">💻 Code Examples: 7</span>
+</div>
+</div>
+</header>
+<div class="breadcrumb">
+<a href="../index.html">AI Terakoya Top</a> &gt;
+        <a href="../index.html">MS Dojo</a> &gt;
+        <a href="index.html">Introduction to Electrical and Magnetic Testing</a> &gt;
+        Chapter 3
+    </div>
+<main class="container">
+<p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); border-left: 4px solid #f093fb; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">
+            Magnetic measurements are techniques for quantitatively evaluating the magnetic properties of materials (magnetization, magnetic moment, magnetic anisotropy). In this chapter, we will learn the principles of VSM (Vibrating Sample Magnetometer) and SQUID (Superconducting Quantum Interference Device), M-H curve analysis (saturation magnetization, coercivity, remanence), fitting with Curie-Weiss law and Langevin function, temperature-dependent measurements (FC/ZFC), and integrated measurement techniques using PPMS (Physical Property Measurement System), and perform practical magnetic data analysis with Python.
+        </p>
+<div class="learning-objectives">
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will be able to:</p>
+<ul>
+<li>✅ Understand the basic principles of diamagnetism, paramagnetism, and ferromagnetism</li>
+<li>✅ Explain the measurement principles and characteristics of VSM and SQUID</li>
+<li>✅ Extract saturation magnetization, coercivity, and remanence from M-H curves</li>
+<li>✅ Fit data with the Curie-Weiss law (χ = C/(T - θ))</li>
+<li>✅ Analyze paramagnetism with the Langevin function</li>
+<li>✅ Calculate magnetic anisotropy energy</li>
+<li>✅ Build complete VSM/SQUID data processing workflows in Python</li>
+</ul>
+</div>
+<h2>3.1 Fundamentals of Magnetism</h2>
+<h3>3.1.1 Relationship Between Magnetization and Magnetic Field</h3>
+<p><strong>Magnetization</strong> $M$ is the magnetic moment per unit volume:</p>
+
+        $$
+        M = \frac{\sum \mu_i}{V}
+        $$
+
+        <p>where $\mu_i$ is the magnetic moment of individual atoms/molecules, and $V$ is the volume.</p>
+<p><strong>Magnetic susceptibility</strong> $\chi$ is the response of magnetization to magnetic field $H$:</p>
+
+        $$
+        M = \chi H
+        $$
+
+        <p><strong>Types of magnetic fields</strong>:</p>
+<ul>
+<li><strong>Magnetic field $H$</strong> (magnetic field strength): unit A/m or Oe (Oersted)</li>
+<li><strong>Magnetic flux density $B$</strong>: unit T (Tesla)</li>
+<li>Relationship: $B = \mu_0(H + M)$ (SI units), $\mu_0 = 4\pi \times 10^{-7}$ H/m</li>
+</ul>
+<h3>3.1.2 Classification of Magnetism</h3>
+<table>
+<thead>
+<tr>
+<th>Magnetism</th>
+<th>Susceptibility $\chi$</th>
+<th>Temperature Dependence</th>
+<th>Characteristics</th>
+<th>Material Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Diamagnetism</strong></td>
+<td>$\chi &lt; 0$<br/>(~$-10^{-5}$)</td>
+<td>Almost none</td>
+<td>Weak magnetization<br/>opposing external field</td>
+<td>Cu, Au, H₂O<br/>Superconductors</td>
+</tr>
+<tr>
+<td><strong>Paramagnetism</strong></td>
+<td>$\chi &gt; 0$<br/>(~$10^{-5}$-$10^{-3}$)</td>
+<td>$\chi \propto 1/T$<br/>(Curie's law)</td>
+<td>Weak magnetization<br/>in field direction</td>
+<td>Al, Pt, O₂<br/>Rare earth ions</td>
+</tr>
+<tr>
+<td><strong>Ferromagnetism</strong></td>
+<td>$\chi \gg 1$<br/>(~$10^2$-$10^5$)</td>
+<td>Large for T &lt; T$_C$<br/>Paramagnetic for T &gt; T$_C$</td>
+<td>Spontaneous<br/>magnetization<br/>Hysteresis</td>
+<td>Fe, Co, Ni<br/>NdFeB, SmCo</td>
+</tr>
+<tr>
+<td><strong>Antiferromagnetism</strong></td>
+<td>$\chi &gt; 0$<br/>(small)</td>
+<td>Peak at T = T$_N$</td>
+<td>Adjacent spins<br/>antiparallel</td>
+<td>MnO, Cr, FeO</td>
+</tr>
+<tr>
+<td><strong>Ferrimagnetism</strong></td>
+<td>$\chi \gg 1$</td>
+<td>Similar to<br/>ferromagnetism</td>
+<td>Unequal antiparallel<br/>spin arrangement</td>
+<td>Fe₃O₄ (Magnetite)<br/>Ferrites</td>
+</tr>
+</tbody>
+</table>
+<div class="mermaid">
+flowchart TD
+    A[External Field H] --&gt; B{Material Magnetic Response}
+    B --&gt; C[Diamagnetic<br/>M ↓ H]
+    B --&gt; D[Paramagnetic<br/>M ↑ H<br/>M ∝ H/T]
+    B --&gt; E[Ferromagnetic<br/>Spontaneous<br/>magnetization<br/>M &gt;&gt; H]
+    
+    E --&gt; F[Saturation M_s]
+    E --&gt; G[Coercivity H_c]
+    E --&gt; H[Remanence M_r]
+
+    style A fill:#99ccff,stroke:#0066cc,stroke-width:2px
+    style C fill:#ffeb99,stroke:#ffa500,stroke-width:2px
+    style D fill:#99ff99,stroke:#00cc00,stroke-width:2px
+    style E fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+        </div>
+<h2>3.2 VSM (Vibrating Sample Magnetometer)</h2>
+<h3>3.2.1 VSM Measurement Principle</h3>
+<p><strong>VSM</strong> (developed by Simon Foner in 1956) is a method that vibrates the sample and measures the voltage induced in detection coils by its magnetic moment.</p>
+<p><strong>Measurement principle</strong>:</p>
+<ol>
+<li>Place the sample in a uniform magnetic field and vibrate it vertically at frequency $f$ (typically 10-100 Hz)</li>
+<li>When the sample's magnetic moment $\mu$ vibrates, a time-varying magnetic flux $\Phi(t)$ is generated around the detection coils</li>
+<li>According to Faraday's law of electromagnetic induction, induced voltage $V(t)$ is generated in the coils:
+                $$
+                V(t) = -\frac{d\Phi}{dt} \propto \mu \cdot f
+                $$
+            </li>
+<li>Lock-in detection extracts the component at vibration frequency $f$ to quantify the magnetic moment</li>
+</ol>
+<p><strong>VSM characteristics</strong>:</p>
+<ul>
+<li><strong>Sensitivity</strong>: $10^{-6}$ - $10^{-8}$ emu (electromagnetic unit)</li>
+<li><strong>Magnetic field range</strong>: 0 - 3 T (typical electromagnet)</li>
+<li><strong>Temperature range</strong>: 4 K - 1000 K (with liquid He cryostat)</li>
+<li><strong>Measurement time</strong>: 0.1 - 1 second per point (relatively fast)</li>
+</ul>
+<h4>Code Example 3-1: Curie-Weiss Law Fitting</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+from lmfit import Model
+
+def curie_weiss(T, C, theta):
+    &quot;&quot;&quot;
+    Curie-Weiss law: χ = C / (T - θ)
+    
+    Parameters
+    ----------
+    T : array-like
+        Temperature [K]
+    C : float
+        Curie constant
+    theta : float
+        Curie-Weiss temperature (Weiss constant) [K]
+    
+    Returns
+    -------
+    chi : array-like
+        Magnetic susceptibility
+    &quot;&quot;&quot;
+    return C / (T - theta)
+
+# Generate simulation data (paramagnetic material)
+T_range = np.linspace(100, 400, 30)  # [K]
+C_true = 1.5  # Curie constant
+theta_true = -10  # Curie-Weiss temperature [K] (negative → antiferromagnetic interaction)
+
+chi_data = curie_weiss(T_range, C_true, theta_true)
+chi_data_noise = chi_data * (1 + 0.05 * np.random.randn(len(T_range)))  # 5% noise
+
+# Fitting
+model = Model(curie_weiss)
+params = model.make_params(C=1.0, theta=0)
+result = model.fit(chi_data_noise, params, T=T_range)
+
+print(&quot;Curie-Weiss Law Fitting Results:&quot;)
+print(result.fit_report())
+
+# Plot
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+
+# Left: χ vs T
+ax1.scatter(T_range, chi_data_noise, s=80, alpha=0.7, edgecolors='black', linewidths=1.5, label='Measured data', color='#f093fb')
+ax1.plot(T_range, result.best_fit, linewidth=2.5, label=f'Fit: C={result.params[&quot;C&quot;].value:.2f}, θ={result.params[&quot;theta&quot;].value:.1f} K', color='#f5576c')
+ax1.set_xlabel('Temperature T [K]', fontsize=12)
+ax1.set_ylabel('Magnetic Susceptibility χ', fontsize=12)
+ax1.set_title('Curie-Weiss Law: χ vs T', fontsize=14, fontweight='bold')
+ax1.legend(fontsize=11)
+ax1.grid(alpha=0.3)
+
+# Right: 1/χ vs T (Curie-Weiss plot)
+ax2.scatter(T_range, 1/chi_data_noise, s=80, alpha=0.7, edgecolors='black', linewidths=1.5, label='Data (1/χ)', color='#ffa500')
+T_fit_extended = np.linspace(0, 450, 100)
+chi_fit_extended = curie_weiss(T_fit_extended, result.params['C'].value, result.params['theta'].value)
+ax2.plot(T_fit_extended, 1/chi_fit_extended, linewidth=2.5, label='Linear fit (extended)', color='#f5576c')
+
+# Highlight θ
+theta_fit = result.params['theta'].value
+ax2.axvline(theta_fit, color='red', linestyle='--', linewidth=2, label=f'θ = {theta_fit:.1f} K')
+ax2.scatter([theta_fit], [0], s=200, c='red', edgecolors='black', linewidth=2, marker='X', zorder=5)
+
+ax2.set_xlabel('Temperature T [K]', fontsize=12)
+ax2.set_ylabel('1/χ', fontsize=12)
+ax2.set_title('Curie-Weiss Plot: 1/χ vs T', fontsize=14, fontweight='bold')
+ax2.legend(fontsize=11)
+ax2.grid(alpha=0.3)
+ax2.set_xlim(0, 450)
+ax2.set_ylim(bottom=0)
+
+plt.tight_layout()
+plt.show()
+
+print(f&quot;\nPhysical Interpretation:&quot;)
+print(f&quot;  Curie constant C = {result.params['C'].value:.2f}&quot;)
+print(f&quot;  Curie-Weiss temperature θ = {result.params['theta'].value:.1f} K&quot;)
+if result.params['theta'].value &lt; 0:
+    print(f&quot;  θ &lt; 0 → Dominant antiferromagnetic interactions&quot;)
+elif result.params['theta'].value &gt; 0:
+    print(f&quot;  θ &gt; 0 → Dominant ferromagnetic interactions&quot;)
+else:
+    print(f&quot;  θ ≈ 0 → Ideal paramagnetism (no interactions)&quot;)
+</code></pre>
+<h2>3.3 SQUID (Superconducting Quantum Interference Device)</h2>
+<h3>3.3.1 SQUID Measurement Principle</h3>
+<p><strong>SQUID</strong> (Superconducting Quantum Interference Device) is an ultra-high sensitivity magnetic sensor using superconducting rings and Josephson junctions.</p>
+<p><strong>Measurement principle</strong>:</p>
+<ol>
+<li>When magnetic flux $\Phi$ penetrates a superconducting ring, quantized superconducting current flows</li>
+<li>The critical current through the Josephson junction changes periodically with magnetic flux:
+                $$
+                I_c(\Phi) = I_0 \left|\cos\left(\frac{\pi\Phi}{\Phi_0}\right)\right|
+                $$
+                where $\Phi_0 = h/(2e) \approx 2.07 \times 10^{-15}$ Wb is the magnetic flux quantum
+            </li>
+<li>Minute changes in magnetic flux are detected with extremely high sensitivity as changes in critical current</li>
+</ol>
+<p><strong>SQUID characteristics</strong>:</p>
+<ul>
+<li><strong>Sensitivity</strong>: $10^{-10}$ - $10^{-12}$ emu (over 1000 times better than VSM)</li>
+<li><strong>Magnetic field range</strong>: 0 - 7 T (superconducting magnet)</li>
+<li><strong>Temperature range</strong>: 1.8 K - 400 K (with He gas)</li>
+<li><strong>Measurement time</strong>: 1 - 10 seconds per point (slower than VSM, but higher precision)</li>
+<li><strong>Noise level</strong>: $10^{-14}$ T/√Hz (world's highest sensitivity magnetic sensor)</li>
+</ul>
+<h4>Code Example 3-2: Langevin Function Fitting (Paramagnetism)</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+from lmfit import Model
+
+def langevin(H, M_s, T, mu):
+    &quot;&quot;&quot;
+    Langevin function (classical paramagnetism)
+    
+    Parameters
+    ----------
+    H : array-like
+        Magnetic field [A/m or Oe]
+    M_s : float
+        Saturation magnetization [emu/g or Am^2/kg]
+    T : float
+        Temperature [K]
+    mu : float
+        Magnetic moment per particle [Bohr magneton units]
+    
+    Returns
+    -------
+    M : array-like
+        Magnetization [emu/g]
+    &quot;&quot;&quot;
+    mu_B = 9.274e-24  # Bohr magneton [J/T]
+    mu_0 = 4 * np.pi * 1e-7  # Vacuum permeability [H/m]
+    k_B = 1.38065e-23  # Boltzmann constant [J/K]
+    
+    # Convert field to SI units (Oe → T)
+    H_T = H * 1e-4  # 1 Oe = 10^-4 T
+    
+    # Langevin parameter
+    xi = mu * mu_B * H_T / (k_B * T)
+    
+    # Langevin function: L(ξ) = coth(ξ) - 1/ξ
+    L = np.where(np.abs(xi) &lt; 1e-3, xi/3, 1/np.tanh(xi) - 1/xi)  # Avoid divergence for small ξ
+    
+    M = M_s * L
+    return M
+
+# Generate simulation data (superparamagnetic nanoparticles)
+H_range = np.linspace(-10000, 10000, 100)  # [Oe]
+M_s_true = 50  # Saturation magnetization [emu/g]
+T_true = 300  # Temperature [K]
+mu_true = 5000  # Particle magnetic moment [μ_B]
+
+M_data = langevin(H_range, M_s_true, T_true, mu_true)
+M_data_noise = M_data + 0.5 * np.random.randn(len(H_range))  # Add noise
+
+# Fitting
+model = Model(langevin)
+params = model.make_params(M_s=40, T=300, mu=3000)
+params['T'].vary = False  # Fix temperature
+
+result = model.fit(M_data_noise, params, H=H_range)
+
+print(&quot;Langevin Function Fitting Results:&quot;)
+print(result.fit_report())
+
+# Plot
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+
+# Left: M vs H
+ax1.scatter(H_range, M_data_noise, s=50, alpha=0.6, edgecolors='black', linewidths=1, label='Data (with noise)', color='#f093fb')
+ax1.plot(H_range, result.best_fit, linewidth=2.5, label=f'Fit: M_s={result.params[&quot;M_s&quot;].value:.1f} emu/g, μ={result.params[&quot;mu&quot;].value:.0f} μ_B', color='#f5576c')
+ax1.axhline(M_s_true, color='green', linestyle='--', linewidth=1.5, label=f'True M_s = {M_s_true} emu/g')
+ax1.axhline(-M_s_true, color='green', linestyle='--', linewidth=1.5)
+ax1.set_xlabel('Magnetic Field H [Oe]', fontsize=12)
+ax1.set_ylabel('Magnetization M [emu/g]', fontsize=12)
+ax1.set_title('Langevin Function Fit (Paramagnetism)', fontsize=14, fontweight='bold')
+ax1.legend(fontsize=10)
+ax1.grid(alpha=0.3)
+
+# Right: Temperature dependence (Langevin curves at different temperatures)
+T_list = [50, 100, 200, 300, 400]
+colors = plt.cm.plasma(np.linspace(0, 0.9, len(T_list)))
+
+for T, color in zip(T_list, colors):
+    M_T = langevin(H_range, result.params['M_s'].value, T, result.params['mu'].value)
+    ax2.plot(H_range, M_T, linewidth=2.5, label=f'T = {T} K', color=color)
+
+ax2.set_xlabel('Magnetic Field H [Oe]', fontsize=12)
+ax2.set_ylabel('Magnetization M [emu/g]', fontsize=12)
+ax2.set_title('Temperature Dependence of Langevin Curve', fontsize=14, fontweight='bold')
+ax2.legend(fontsize=10, loc='lower right')
+ax2.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print(f&quot;\nPhysical Interpretation:&quot;)
+print(f&quot;  Saturation magnetization M_s = {result.params['M_s'].value:.1f} emu/g&quot;)
+print(f&quot;  Particle magnetic moment μ = {result.params['mu'].value:.0f} μ_B&quot;)
+print(f&quot;  Lower temperature approaches saturation at lower field (reduced thermal fluctuation)&quot;)
+</code></pre>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+</main></body></html>

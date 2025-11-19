@@ -1,0 +1,2296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 3: Hands-On Python Tutorial - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 3: Hands-On Python Tutorial - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../MI/index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="../../MI/nm-introduction/index.html">Nm</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/MI/nm-introduction/chapter3-hands-on.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 3: Hands-On Python Tutorial</h1>
+<p class="subtitle">Nanomaterial Data Analysis and Machine Learning</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 30-40 min</span>
+<span class="meta-item">📊 Difficulty: Beginner</span>
+<span class="meta-item">💻 Code Examples: 0</span>
+<span class="meta-item">📝 Exercises: 0</span>
+</div>
+</div>
+</header>
+<main class="container">
+<h1>Chapter 3: Hands-On Python Tutorial</h1>
+<p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #7b2cbf; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">Build skills for efficiently exploring conditions using regression models effective even with small datasets and Bayesian optimization. Covers essential visualization of MD data and interpretation with SHAP in one go.</p>
+<p class="chapter-supplement" style="margin: 0.75rem 0 1.5rem 0; padding: 0.75rem 1rem; background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%); border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 0.95rem; line-height: 1.7; color: #4a5568;"><strong>💡 Supplement:</strong> fewfortrialsrowswithgoodconditionsfindofGoal。Bayesian optimizationis“metal detector”guides you to hits。</p>
+<p>Nanomaterial Data Analysis and Machine Learning</p>
+<hr/>
+<h2>Learning Objectives</h2>
+<p>By studying this chapter, you will acquire the following skills:</p>
+<ul>
+<li>✅ Hands-on nanoparticle data generation, visualization, and preprocessing</li>
+<li>✅ Prediction of nanomaterial properties using 5 types of regression models</li>
+<li>✅ Optimal design of nanomaterials through Bayesian optimization</li>
+<li>✅ Interpretation of machine learning models using SHAP analysis</li>
+<li>✅ Trade-off analysis through multi-objective optimization</li>
+<li>✅ TEM image analysis and size distribution fitting</li>
+<li>✅ Application to quality control through anomaly detection</li>
+</ul>
+<hr/>
+<h2>3.1 Environment Setup</h2>
+<h3>Required Libraries</h3>
+<p>Main Python libraries used in this tutorial:</p>
+<pre><code class="language-python"># Data processing and visualization
+pandas, numpy, matplotlib, seaborn, scipy
+
+# Machine learning
+scikit-learn, lightgbm
+
+# Optimization
+scikit-optimize
+
+# Model interpretation
+shap
+
+# Multi-objective optimization (optional)
+pymoo
+</code></pre>
+<h3>Installation Methods</h3>
+<h4>Option 1: Anaconda Environment</h4>
+<pre><code class="language-bash"># Create new Anaconda environment
+conda create -n nanomaterials python=3.10 -y
+conda activate nanomaterials
+
+# Install required libraries
+conda install pandas numpy matplotlib seaborn scipy scikit-learn -y
+conda install -c conda-forge lightgbm scikit-optimize shap -y
+
+# For multi-objective optimization (optional)
+pip install pymoo
+</code></pre>
+<h4>Option 2: venv + pip Environment</h4>
+<pre><code class="language-bash"># Create virtual environment
+python -m venv nanomaterials_env
+
+# Activate virtual environment
+# macOS/Linux:
+source nanomaterials_env/bin/activate
+# Windows:
+nanomaterials_env\Scripts\activate
+
+# Install required libraries
+pip install pandas numpy matplotlib seaborn scipy
+pip install scikit-learn lightgbm scikit-optimize shap pymoo
+</code></pre>
+<h4>Option 3: Google Colab</h4>
+<p>When using Google Colab, execute the following code in a cell:</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+# - seaborn&gt;=0.12.0
+
+"""
+Example: When using Google Colab, execute the following code in a cel
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 10-30 seconds
+Dependencies: None
+"""
+
+# Install additional packages
+!pip install lightgbm scikit-optimize shap pymoo
+
+# Verify imports
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+print("Environment setup complete!")
+</code></pre>
+<hr/>
+<h2>3.2 Nanoparticle Data Preparation and Visualization</h2>
+<h3>[Example 1] Synthetic Data Generation: Size and Optical Properties of Gold Nanoparticles</h3>
+<p>The localized surface plasmon resonance (LSPR) wavelength of gold nanoparticles depends on particle size. This relationship is represented with simulated data.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+# - seaborn&gt;=0.12.0
+
+"""
+Example: The localized surface plasmon resonance (LSPR) wavelength of
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Font settings (adjust as needed)
+plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
+
+# Set random seed (for reproducibility)
+np.random.seed(42)
+
+# Number of samples
+n_samples = 200
+
+# Gold nanoparticle size (nm): mean 15 nm, std 5 nm
+size = np.random.normal(15, 5, n_samples)
+size = np.clip(size, 5, 50)  # 5-50 nmclipped to range
+
+# LSPR wavelength (nm): simplified Mie theory approximation
+# Base wavelength 520 nm + size-dependent term + noise
+lspr = 520 + 0.8 * (size - 15) + np.random.normal(0, 5, n_samples)
+
+# Synthesis conditions
+temperature = np.random.uniform(20, 80, n_samples)  # Temperature (°C)
+pH = np.random.uniform(4, 10, n_samples)  # pH
+
+# Create DataFrame
+data = pd.DataFrame({
+    'size_nm': size,
+    'lspr_nm': lspr,
+    'temperature_C': temperature,
+    'pH': pH
+})
+
+print("=" * 60)
+print("Gold nanoparticle data generation complete")
+print("=" * 60)
+print(data.head(10))
+print("\nBasic statistics:")
+print(data.describe())
+</code></pre>
+<h3>[Example 2] Size Distribution Histogram</h3>
+<pre><code class="language-python"># Size distribution histogram
+fig, ax = plt.subplots(figsize=(10, 6))
+
+# Histogram and KDE (kernel density estimation)
+ax.hist(data['size_nm'], bins=30, alpha=0.6, color='skyblue',
+        edgecolor='black', density=True, label='Histogram')
+
+# KDE plot
+from scipy.stats import gaussian_kde
+kde = gaussian_kde(data['size_nm'])
+x_range = np.linspace(data['size_nm'].min(), data['size_nm'].max(), 100)
+ax.plot(x_range, kde(x_range), 'r-', linewidth=2, label='KDE')
+
+ax.set_xlabel('Particle Size (nm)', fontsize=12)
+ax.set_ylabel('Probability Density', fontsize=12)
+ax.set_title('Gold Nanoparticle Size Distribution', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print(f"Average size: {data['size_nm'].mean():.2f} nm")
+print(f"Standard deviation: {data['size_nm'].std():.2f} nm")
+print(f"Median: {data['size_nm'].median():.2f} nm")
+</code></pre>
+<h3>[Example 3] Scatter Plot Matrix</h3>
+<pre><code class="language-python"># Pairplot (scatter plot matrix)
+sns.pairplot(data, diag_kind='kde', plot_kws={'alpha': 0.6},
+             height=2.5, corner=False)
+plt.suptitle('Pairplot of Gold Nanoparticle Data', y=1.01, fontsize=14, fontweight='bold')
+plt.show()
+
+print("Visualized relationships between variables")
+</code></pre>
+<h3>[Example 4] Correlation Matrix Heatmap</h3>
+<pre><code class="language-python"># Calculate correlation matrix
+correlation_matrix = data.corr()
+
+# Heatmap
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.heatmap(correlation_matrix, annot=True, fmt='.3f', cmap='coolwarm',
+            center=0, square=True, linewidths=1, cbar_kws={"shrink": 0.8})
+ax.set_title('Correlation Matrix', fontsize=14, fontweight='bold')
+plt.tight_layout()
+plt.show()
+
+print("Correlation coefficients:")
+print(correlation_matrix)
+print(f"\nCorrelation between LSPR wavelength and size: {correlation_matrix.loc['lspr_nm', 'size_nm']:.3f}")
+</code></pre>
+<h3>[Example 5] 3D Plot: Size vs Temperature vs LSPR</h3>
+<pre><code class="language-python">from mpl_toolkits.mplot3d import Axes3D
+
+# 3D scatter plot
+fig = plt.figure(figsize=(12, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+# Colormap
+scatter = ax.scatter(data['size_nm'], data['temperature_C'], data['lspr_nm'],
+                     c=data['pH'], cmap='viridis', s=50, alpha=0.6, edgecolors='k')
+
+ax.set_xlabel('Size (nm)', fontsize=11)
+ax.set_ylabel('Temperature (°C)', fontsize=11)
+ax.set_zlabel('LSPR Wavelength (nm)', fontsize=11)
+ax.set_title('3D Scatter: Size vs Temperature vs LSPR (colored by pH)',
+             fontsize=13, fontweight='bold')
+
+# Colorbar
+cbar = plt.colorbar(scatter, ax=ax, shrink=0.5, aspect=5)
+cbar.set_label('pH', fontsize=10)
+
+plt.tight_layout()
+plt.show()
+
+print("Visualized multidimensional relationships with 3D plot")
+</code></pre>
+<hr/>
+<h2>3.3 Preprocessing and Data Splitting</h2>
+<h3>[Example 6] Missing Value Handling</h3>
+<pre><code class="language-python"># Introduce missing values artificially (for practice)
+data_with_missing = data.copy()
+np.random.seed(123)
+
+# Introduce 5% missing values randomly
+missing_indices = np.random.choice(data.index, size=int(0.05 * len(data)), replace=False)
+data_with_missing.loc[missing_indices, 'temperature_C'] = np.nan
+
+print("=" * 60)
+print("Check missing values")
+print("=" * 60)
+print(f"Number of missing values:\n{data_with_missing.isnull().sum()}")
+
+# Missing value handling method 1: fill with mean
+data_filled_mean = data_with_missing.fillna(data_with_missing.mean())
+
+# Missing value handling method 2: fill with median
+data_filled_median = data_with_missing.fillna(data_with_missing.median())
+
+# Missing value handling method 3: drop
+data_dropped = data_with_missing.dropna()
+
+print(f"\nOriginal data: {len(data_with_missing)}rows")
+print(f"After dropping missing values: {len(data_dropped)}rows")
+print(f"After mean imputation: {len(data_filled_mean)}rows(no missing values)")
+
+# Use original data (no missing values) for subsequent analysis
+data_clean = data.copy()
+print("\n→ Using data without missing values henceforth")
+</code></pre>
+<h3>[Example 7] Outlier Detection (IQR Method)</h3>
+<pre><code class="language-python"># Outlier detection using IQR (interquartile range) method
+def detect_outliers_iqr(series):
+    Q1 = series.quantile(0.25)
+    Q3 = series.quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    outliers = (series &lt; lower_bound) | (series &gt; upper_bound)
+    return outliers, lower_bound, upper_bound
+
+# Detect outliers in size
+outliers, lower, upper = detect_outliers_iqr(data_clean['size_nm'])
+
+print("=" * 60)
+print("Outlier Detection (IQR Method)")
+print("=" * 60)
+print(f"Number of detected outliers: {outliers.sum()}")
+print(f"Lower bound: {lower:.2f} nm, Upper bound: {upper:.2f} nm")
+
+# Visualization
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.boxplot([data_clean['size_nm']], labels=['Size (nm)'], vert=False)
+ax.scatter(data_clean.loc[outliers, 'size_nm'],
+           [1] * outliers.sum(), color='red', s=100,
+           label=f'Outliers (n={outliers.sum()})', zorder=3)
+ax.set_xlabel('Size (nm)', fontsize=12)
+ax.set_title('Boxplot with Outliers', fontsize=14, fontweight='bold')
+ax.legend()
+ax.grid(True, alpha=0.3, axis='x')
+plt.tight_layout()
+plt.show()
+
+print("→ Using all data without removing outliers")
+</code></pre>
+<h3>[Example 8] Feature Scaling (StandardScaler)</h3>
+<pre><code class="language-python">from sklearn.preprocessing import StandardScaler
+
+# Separate features and target
+X = data_clean[['size_nm', 'temperature_C', 'pH']]
+y = data_clean['lspr_nm']
+
+# StandardScaler (normalize to mean 0, std 1)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Compare before and after scaling
+X_scaled_df = pd.DataFrame(X_scaled, columns=X.columns, index=X.index)
+
+print("=" * 60)
+print("Statistics before scaling")
+print("=" * 60)
+print(X.describe())
+
+print("\n" + "=" * 60)
+print("Statistics after scaling (mean≈0, std≈1)")
+print("=" * 60)
+print(X_scaled_df.describe())
+
+print("\n→ Scaling unified the scale of each feature")
+</code></pre>
+<h3>[Example 9] Train-Test Data Splitting</h3>
+<pre><code class="language-python">from sklearn.model_selection import train_test_split
+
+# Split into training and test data (80:20)
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled, y, test_size=0.2, random_state=42
+)
+
+print("=" * 60)
+print("Data Split")
+print("=" * 60)
+print(f"Total data: {len(X)}samples")
+print(f"Training data: {len(X_train)}samples ({len(X_train)/len(X)*100:.1f}%)")
+print(f"Test data: {len(X_test)}samples ({len(X_test)/len(X)*100:.1f}%)")
+
+print("\nTraining data statistics:")
+print(pd.DataFrame(X_train, columns=X.columns).describe())
+</code></pre>
+<hr/>
+<h2>3.4 Predicting Nanoparticle Properties with Regression Models</h2>
+<p>Goal: Predict LSPR wavelength from size, temperature, and pH</p>
+<h3>[Example 10] Linear Regression</h3>
+<pre><code class="language-python">from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+
+# Build linear regression model
+model_lr = LinearRegression()
+model_lr.fit(X_train, y_train)
+
+# Prediction
+y_train_pred_lr = model_lr.predict(X_train)
+y_test_pred_lr = model_lr.predict(X_test)
+
+# Evaluation metrics
+r2_train_lr = r2_score(y_train, y_train_pred_lr)
+r2_test_lr = r2_score(y_test, y_test_pred_lr)
+rmse_test_lr = np.sqrt(mean_squared_error(y_test, y_test_pred_lr))
+mae_test_lr = mean_absolute_error(y_test, y_test_pred_lr)
+
+print("=" * 60)
+print("Linear Regression")
+print("=" * 60)
+print(f"Training R²: {r2_train_lr:.4f}")
+print(f"Test R²: {r2_test_lr:.4f}")
+print(f"Test RMSE: {rmse_test_lr:.4f} nm")
+print(f"Test MAE: {mae_test_lr:.4f} nm")
+
+# Regression coefficients
+print("\ntimesregressioncoefficient:")
+for name, coef in zip(X.columns, model_lr.coef_):
+    print(f"  {name}: {coef:.4f}")
+print(f"  Intercept: {model_lr.intercept_:.4f}")
+
+# Residual plot
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Predicted vs actual values
+axes[0].scatter(y_test, y_test_pred_lr, alpha=0.6, edgecolors='k')
+axes[0].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
+             'r--', lw=2, label='Perfect Prediction')
+axes[0].set_xlabel('Actual LSPR (nm)', fontsize=11)
+axes[0].set_ylabel('Predicted LSPR (nm)', fontsize=11)
+axes[0].set_title(f'Linear Regression (R² = {r2_test_lr:.3f})', fontsize=12, fontweight='bold')
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+# Residual plot
+residuals = y_test - y_test_pred_lr
+axes[1].scatter(y_test_pred_lr, residuals, alpha=0.6, edgecolors='k')
+axes[1].axhline(y=0, color='r', linestyle='--', lw=2)
+axes[1].set_xlabel('Predicted LSPR (nm)', fontsize=11)
+axes[1].set_ylabel('Residuals (nm)', fontsize=11)
+axes[1].set_title('Residual Plot', fontsize=12, fontweight='bold')
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<h3>[Example 11] Random Forest Regression</h3>
+<pre><code class="language-python">from sklearn.ensemble import RandomForestRegressor
+
+# Random forest regression model
+model_rf = RandomForestRegressor(n_estimators=100, max_depth=10,
+                                 random_state=42, n_jobs=-1)
+model_rf.fit(X_train, y_train)
+
+# Prediction
+y_train_pred_rf = model_rf.predict(X_train)
+y_test_pred_rf = model_rf.predict(X_test)
+
+# Evaluation
+r2_train_rf = r2_score(y_train, y_train_pred_rf)
+r2_test_rf = r2_score(y_test, y_test_pred_rf)
+rmse_test_rf = np.sqrt(mean_squared_error(y_test, y_test_pred_rf))
+mae_test_rf = mean_absolute_error(y_test, y_test_pred_rf)
+
+print("=" * 60)
+print("Random Forest Regression")
+print("=" * 60)
+print(f"Training R²: {r2_train_rf:.4f}")
+print(f"Test R²: {r2_test_rf:.4f}")
+print(f"Test RMSE: {rmse_test_rf:.4f} nm")
+print(f"Test MAE: {mae_test_rf:.4f} nm")
+
+# Feature importance
+feature_importance = pd.DataFrame({
+    'Feature': X.columns,
+    'Importance': model_rf.feature_importances_
+}).sort_values('Importance', ascending=False)
+
+print("\nfeature importance:")
+print(feature_importance)
+
+# Visualize feature importance
+fig, ax = plt.subplots(figsize=(8, 5))
+ax.barh(feature_importance['Feature'], feature_importance['Importance'],
+        color='steelblue', edgecolor='black')
+ax.set_xlabel('Importance', fontsize=12)
+ax.set_title('Feature Importance (Random Forest)', fontsize=13, fontweight='bold')
+ax.grid(True, alpha=0.3, axis='x')
+plt.tight_layout()
+plt.show()
+</code></pre>
+<h3>[Example 12] Gradient Boosting (LightGBM)</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - lightgbm&gt;=4.0.0
+
+"""
+Example: [Example 12] Gradient Boosting (LightGBM)
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+import lightgbm as lgb
+
+# Build LightGBM model
+params = {
+    'objective': 'regression',
+    'metric': 'rmse',
+    'num_leaves': 31,
+    'learning_rate': 0.05,
+    'n_estimators': 200,
+    'random_state': 42,
+    'verbose': -1
+}
+
+model_lgb = lgb.LGBMRegressor(**params)
+model_lgb.fit(X_train, y_train)
+
+# Prediction
+y_train_pred_lgb = model_lgb.predict(X_train)
+y_test_pred_lgb = model_lgb.predict(X_test)
+
+# Evaluation
+r2_train_lgb = r2_score(y_train, y_train_pred_lgb)
+r2_test_lgb = r2_score(y_test, y_test_pred_lgb)
+rmse_test_lgb = np.sqrt(mean_squared_error(y_test, y_test_pred_lgb))
+mae_test_lgb = mean_absolute_error(y_test, y_test_pred_lgb)
+
+print("=" * 60)
+print("Gradient Boosting (LightGBM)")
+print("=" * 60)
+print(f"Training R²: {r2_train_lgb:.4f}")
+print(f"Test R²: {r2_test_lgb:.4f}")
+print(f"Test RMSE: {rmse_test_lgb:.4f} nm")
+print(f"Test MAE: {mae_test_lgb:.4f} nm")
+
+# Predicted vs actual values plot
+fig, ax = plt.subplots(figsize=(8, 6))
+ax.scatter(y_test, y_test_pred_lgb, alpha=0.6, edgecolors='k', s=60)
+ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
+        'r--', lw=2, label='Perfect Prediction')
+ax.set_xlabel('Actual LSPR (nm)', fontsize=12)
+ax.set_ylabel('Predicted LSPR (nm)', fontsize=12)
+ax.set_title(f'LightGBM Prediction (R² = {r2_test_lgb:.3f})',
+             fontsize=13, fontweight='bold')
+ax.legend()
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+</code></pre>
+<h3>[Example 13] Support Vector Regression (SVR)</h3>
+<pre><code class="language-python">from sklearn.svm import SVR
+
+# SVR model (RBF kernel)
+model_svr = SVR(kernel='rbf', C=10, gamma='scale', epsilon=0.1)
+model_svr.fit(X_train, y_train)
+
+# Prediction
+y_train_pred_svr = model_svr.predict(X_train)
+y_test_pred_svr = model_svr.predict(X_test)
+
+# Evaluation
+r2_train_svr = r2_score(y_train, y_train_pred_svr)
+r2_test_svr = r2_score(y_test, y_test_pred_svr)
+rmse_test_svr = np.sqrt(mean_squared_error(y_test, y_test_pred_svr))
+mae_test_svr = mean_absolute_error(y_test, y_test_pred_svr)
+
+print("=" * 60)
+print("Support Vector Regression (SVR)")
+print("=" * 60)
+print(f"Training R²: {r2_train_svr:.4f}")
+print(f"Test R²: {r2_test_svr:.4f}")
+print(f"Test RMSE: {rmse_test_svr:.4f} nm")
+print(f"Test MAE: {mae_test_svr:.4f} nm")
+print(f"Number of support vectors: {len(model_svr.support_)}")
+</code></pre>
+<h3>[Example 14] Neural Network (MLP Regressor)</h3>
+<pre><code class="language-python">from sklearn.neural_network import MLPRegressor
+
+# MLP model
+model_mlp = MLPRegressor(hidden_layer_sizes=(100, 50),
+                         activation='relu',
+                         solver='adam',
+                         alpha=0.001,
+                         max_iter=500,
+                         random_state=42,
+                         early_stopping=True,
+                         validation_fraction=0.1,
+                         verbose=False)
+
+model_mlp.fit(X_train, y_train)
+
+# Prediction
+y_train_pred_mlp = model_mlp.predict(X_train)
+y_test_pred_mlp = model_mlp.predict(X_test)
+
+# Evaluation
+r2_train_mlp = r2_score(y_train, y_train_pred_mlp)
+r2_test_mlp = r2_score(y_test, y_test_pred_mlp)
+rmse_test_mlp = np.sqrt(mean_squared_error(y_test, y_test_pred_mlp))
+mae_test_mlp = mean_absolute_error(y_test, y_test_pred_mlp)
+
+print("=" * 60)
+print("Neural Network (MLP Regressor)")
+print("=" * 60)
+print(f"Training R²: {r2_train_mlp:.4f}")
+print(f"Test R²: {r2_test_mlp:.4f}")
+print(f"Test RMSE: {rmse_test_mlp:.4f} nm")
+print(f"Test MAE: {mae_test_mlp:.4f} nm")
+print(f"Number of iterations: {model_mlp.n_iter_}")
+print(f"Hidden layer structure: {model_mlp.hidden_layer_sizes}")
+</code></pre>
+<h3>[Example 15] Model Performance Comparison</h3>
+<pre><code class="language-python"># Summarize all model performances
+results = pd.DataFrame({
+    'Model': ['Linear Regression', 'Random Forest', 'LightGBM', 'SVR', 'MLP'],
+    'R² (Train)': [r2_train_lr, r2_train_rf, r2_train_lgb, r2_train_svr, r2_train_mlp],
+    'R² (Test)': [r2_test_lr, r2_test_rf, r2_test_lgb, r2_test_svr, r2_test_mlp],
+    'RMSE (Test)': [rmse_test_lr, rmse_test_rf, rmse_test_lgb, rmse_test_svr, rmse_test_mlp],
+    'MAE (Test)': [mae_test_lr, mae_test_rf, mae_test_lgb, mae_test_svr, mae_test_mlp]
+})
+
+results['Overfit'] = results['R² (Train)'] - results['R² (Test)']
+
+print("=" * 80)
+print("Performance Comparison of All Models")
+print("=" * 80)
+print(results.to_string(index=False))
+
+# Identify best model
+best_model_idx = results['R² (Test)'].idxmax()
+best_model_name = results.loc[best_model_idx, 'Model']
+best_r2 = results.loc[best_model_idx, 'R² (Test)']
+
+print(f"\nBest model: {best_model_name} (R² = {best_r2:.4f})")
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# R² score comparison
+x_pos = np.arange(len(results))
+axes[0].bar(x_pos, results['R² (Test)'], alpha=0.7, color='steelblue',
+            edgecolor='black', label='Test R²')
+axes[0].set_xticks(x_pos)
+axes[0].set_xticklabels(results['Model'], rotation=15, ha='right')
+axes[0].set_ylabel('R² Score', fontsize=12)
+axes[0].set_title('Model Comparison: R² Score', fontsize=13, fontweight='bold')
+axes[0].grid(True, alpha=0.3, axis='y')
+axes[0].legend()
+
+# RMSEcomparison
+axes[1].bar(x_pos, results['RMSE (Test)'], alpha=0.7, color='coral',
+            edgecolor='black', label='Test RMSE')
+axes[1].set_xticks(x_pos)
+axes[1].set_xticklabels(results['Model'], rotation=15, ha='right')
+axes[1].set_ylabel('RMSE (nm)', fontsize=12)
+axes[1].set_title('Model Comparison: RMSE', fontsize=13, fontweight='bold')
+axes[1].grid(True, alpha=0.3, axis='y')
+axes[1].legend()
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<hr/>
+<h2>3.5 Quantum Dot Emission Wavelength Prediction</h2>
+<h3>[Example 16] Data Generation: CdSe Quantum Dots</h3>
+<p>CdSequantum dotsofemissionwavelengthis、Brusbased on equationsizedepends on。</p>
+<pre><code class="language-python"># CdSequantum dotsdataofgeneration
+np.random.seed(100)
+
+n_qd_samples = 150
+
+# quantum dotsofsize（2-10 nm）
+size_qd = np.random.uniform(2, 10, n_qd_samples)
+
+# Brusequationofsimpleapproximation: emission = 520 + 130/(size^0.8) + noise
+emission = 520 + 130 / (size_qd ** 0.8) + np.random.normal(0, 10, n_qd_samples)
+
+# Synthesis conditions
+synthesis_time = np.random.uniform(10, 120, n_qd_samples)  # min
+precursor_ratio = np.random.uniform(0.5, 2.0, n_qd_samples)  # molar ratio
+
+# create DataFrame
+data_qd = pd.DataFrame({
+    'size_nm': size_qd,
+    'emission_nm': emission,
+    'synthesis_time_min': synthesis_time,
+    'precursor_ratio': precursor_ratio
+})
+
+print("=" * 60)
+print("CdSequantum dotsdataofgenerationcomplete")
+print("=" * 60)
+print(data_qd.head(10))
+print("\nBasic statistics:")
+print(data_qd.describe())
+
+# sizeand emissionwavelengthofrelationshipplot
+fig, ax = plt.subplots(figsize=(10, 6))
+scatter = ax.scatter(data_qd['size_nm'], data_qd['emission_nm'],
+                     c=data_qd['synthesis_time_min'], cmap='plasma',
+                     s=80, alpha=0.7, edgecolors='k')
+ax.set_xlabel('Quantum Dot Size (nm)', fontsize=12)
+ax.set_ylabel('Emission Wavelength (nm)', fontsize=12)
+ax.set_title('CdSe Quantum Dot: Size vs Emission Wavelength',
+             fontsize=13, fontweight='bold')
+cbar = plt.colorbar(scatter, ax=ax)
+cbar.set_label('Synthesis Time (min)', fontsize=10)
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+</code></pre>
+<h3>[Example 17] Quantum Dot Model (LightGBM)</h3>
+<pre><code class="language-python"># Separate features and target
+X_qd = data_qd[['size_nm', 'synthesis_time_min', 'precursor_ratio']]
+y_qd = data_qd['emission_nm']
+
+# scaling
+scaler_qd = StandardScaler()
+X_qd_scaled = scaler_qd.fit_transform(X_qd)
+
+# training/testminsplit
+X_qd_train, X_qd_test, y_qd_train, y_qd_test = train_test_split(
+    X_qd_scaled, y_qd, test_size=0.2, random_state=42
+)
+
+# LightGBMmodel
+model_qd = lgb.LGBMRegressor(
+    objective='regression',
+    num_leaves=31,
+    learning_rate=0.05,
+    n_estimators=200,
+    random_state=42,
+    verbose=-1
+)
+
+model_qd.fit(X_qd_train, y_qd_train)
+
+# Prediction
+y_qd_train_pred = model_qd.predict(X_qd_train)
+y_qd_test_pred = model_qd.predict(X_qd_test)
+
+# Evaluation
+r2_qd_train = r2_score(y_qd_train, y_qd_train_pred)
+r2_qd_test = r2_score(y_qd_test, y_qd_test_pred)
+rmse_qd = np.sqrt(mean_squared_error(y_qd_test, y_qd_test_pred))
+mae_qd = mean_absolute_error(y_qd_test, y_qd_test_pred)
+
+print("=" * 60)
+print("quantum dotsemissionwavelengthpredictionmodel（LightGBM）")
+print("=" * 60)
+print(f"Training R²: {r2_qd_train:.4f}")
+print(f"Test R²: {r2_qd_test:.4f}")
+print(f"Test RMSE: {rmse_qd:.4f} nm")
+print(f"Test MAE: {mae_qd:.4f} nm")
+</code></pre>
+<h3>[Example 18] Prediction Result Visualization</h3>
+<pre><code class="language-python"># Predicted vs actual values plot（with confidence interval）
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# Test dataofplot
+axes[0].scatter(y_qd_test, y_qd_test_pred, alpha=0.6, s=80,
+                edgecolors='k', label='Test Data')
+axes[0].plot([y_qd_test.min(), y_qd_test.max()],
+             [y_qd_test.min(), y_qd_test.max()],
+             'r--', lw=2, label='Perfect Prediction')
+
+# ±10 nm ofrangedisplay
+axes[0].fill_between([y_qd_test.min(), y_qd_test.max()],
+                     [y_qd_test.min()-10, y_qd_test.max()-10],
+                     [y_qd_test.min()+10, y_qd_test.max()+10],
+                     alpha=0.2, color='gray', label='±10 nm')
+
+axes[0].set_xlabel('Actual Emission (nm)', fontsize=12)
+axes[0].set_ylabel('Predicted Emission (nm)', fontsize=12)
+axes[0].set_title(f'QD Emission Prediction (R² = {r2_qd_test:.3f})',
+                  fontsize=13, fontweight='bold')
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+# sizeclassificationofpredictionaccuracy
+size_bins = [2, 4, 6, 8, 10]
+size_labels = ['2-4 nm', '4-6 nm', '6-8 nm', '8-10 nm']
+data_qd_test = pd.DataFrame({
+    'size': X_qd.iloc[y_qd_test.index]['size_nm'].values,
+    'actual': y_qd_test.values,
+    'predicted': y_qd_test_pred
+})
+data_qd_test['size_bin'] = pd.cut(data_qd_test['size'], bins=size_bins, labels=size_labels)
+data_qd_test['error'] = np.abs(data_qd_test['actual'] - data_qd_test['predicted'])
+
+# sizeper binandofaverageerror
+error_by_size = data_qd_test.groupby('size_bin')['error'].mean()
+
+axes[1].bar(range(len(error_by_size)), error_by_size.values,
+            color='coral', edgecolor='black', alpha=0.7)
+axes[1].set_xticks(range(len(error_by_size)))
+axes[1].set_xticklabels(error_by_size.index)
+axes[1].set_ylabel('Mean Absolute Error (nm)', fontsize=12)
+axes[1].set_xlabel('QD Size Range', fontsize=12)
+axes[1].set_title('Prediction Error by QD Size', fontsize=13, fontweight='bold')
+axes[1].grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.show()
+
+print(f"\noverallofaverageabsolute error: {mae_qd:.2f} nm")
+print("sizeclassificationofaverageabsolute error:")
+print(error_by_size)
+</code></pre>
+<hr/>
+<h2>3.6 Feature Importance Analysis</h2>
+<h3>[Example 19] Feature Importance (LightGBM)</h3>
+<pre><code class="language-python"># LightGBMmodeloffeature importance（gain-based）
+importance_gain = model_lgb.feature_importances_
+importance_df = pd.DataFrame({
+    'Feature': X.columns,
+    'Importance': importance_gain
+}).sort_values('Importance', ascending=False)
+
+print("=" * 60)
+print("feature importance（LightGBM）")
+print("=" * 60)
+print(importance_df)
+
+# Visualization
+fig, ax = plt.subplots(figsize=(8, 5))
+colors = ['steelblue', 'coral', 'lightgreen']
+ax.barh(importance_df['Feature'], importance_df['Importance'],
+        color=colors, edgecolor='black')
+ax.set_xlabel('Feature Importance (Gain)', fontsize=12)
+ax.set_title('Feature Importance: LSPR Prediction',
+             fontsize=13, fontweight='bold')
+ax.grid(True, alpha=0.3, axis='x')
+plt.tight_layout()
+plt.show()
+
+print(f"\nmost important feature: {importance_df.iloc[0]['Feature']}")
+</code></pre>
+<h3>[Example 20] SHAP Analysis: Prediction Interpretation</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - shap&gt;=0.42.0
+
+"""
+Example: [Example 20] SHAP Analysis: Prediction Interpretation
+
+Purpose: Demonstrate data visualization techniques
+Target: Beginner
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+import shap
+
+# SHAP Explainerofcreate
+explainer = shap.Explainer(model_lgb, X_train)
+shap_values = explainer(X_test)
+
+print("=" * 60)
+print("SHAPminanalysis")
+print("=" * 60)
+print("SHAPvaluecalculationcomplete")
+print(f"SHAPvalueofshape: {shap_values.values.shape}")
+
+# SHAP Summary Plot
+fig, ax = plt.subplots(figsize=(10, 6))
+shap.summary_plot(shap_values, X_test, feature_names=X.columns, show=False)
+plt.title('SHAP Summary Plot: Feature Impact on LSPR Prediction',
+          fontsize=13, fontweight='bold', pad=20)
+plt.tight_layout()
+plt.show()
+
+# SHAP Dependence Plot（most important feature）
+top_feature_idx = importance_df.index[0]
+top_feature_name = X.columns[top_feature_idx]
+
+fig, ax = plt.subplots(figsize=(10, 6))
+shap.dependence_plot(top_feature_idx, shap_values.values, X_test,
+                     feature_names=X.columns, show=False)
+plt.title(f'SHAP Dependence Plot: {top_feature_name}',
+          fontsize=13, fontweight='bold')
+plt.tight_layout()
+plt.show()
+
+print(f"\nSHAPminanalysistofrom、{top_feature_name}LSPRwavelengthpredictiontomost influentialandconfirmed")
+</code></pre>
+<hr/>
+<h2>3.7 Nanomaterial Design with Bayesian Optimization</h2>
+<p>Goal：GoalLSPRwavelength（550 nm）implementachieveoptimalfor synthesis condition search</p>
+<h3>[Example 21] Search Space Definition</h3>
+<pre><code class="language-python">from skopt.space import Real
+
+# search space definition
+# size: 10-40 nm、temperature: 20-80°C、pH: 4-10
+search_space = [
+    Real(10, 40, name='size_nm'),
+    Real(20, 80, name='temperature_C'),
+    Real(4, 10, name='pH')
+]
+
+print("=" * 60)
+print("Bayesian optimization：search space definition")
+print("=" * 60)
+for dim in search_space:
+    print(f"  {dim.name}: [{dim.bounds[0]}, {dim.bounds[1]}]")
+
+print("\nGoal: LSPRwavelength = 550 nm implementachieve condition search")
+</code></pre>
+<h3>[Example 22] Objective Function Setup</h3>
+<pre><code class="language-python"># objective function：predictionLSPRwavelengthandGoalwavelength（550 nm）ofdifferenceofabsolutevalueminimization
+target_lspr = 550.0
+
+def objective_function(params):
+    """
+    Bayesian optimizationofobjective function
+
+    Parameters:
+    -----------
+    params : list
+        [size_nm, temperature_C, pH]
+
+    Returns:
+    --------
+    float
+        Goalwavelengthandoferror（minimizationperformvalue）
+    """
+    # parametersacquisition
+    size, temp, ph = params
+
+    # featuresconstruction（scalingapplication）
+    features = np.array([[size, temp, ph]])
+    features_scaled = scaler.transform(features)
+
+    # LSPRwavelengthprediction
+    predicted_lspr = model_lgb.predict(features_scaled)[0]
+
+    # Goalwavelengthandoferror（absolutevalue）
+    error = abs(predicted_lspr - target_lspr)
+
+    return error
+
+# test implementationrows
+test_params = [20.0, 50.0, 7.0]
+test_error = objective_function(test_params)
+print(f"\ntest implementationrows:")
+print(f"  parameters: size={test_params[0]} nm, temp={test_params[1]}°C, pH={test_params[2]}")
+print(f"  objective functionvalue（error）: {test_error:.4f} nm")
+</code></pre>
+<h3>[Example 23] Running Bayesian Optimization (scikit-optimize)</h3>
+<pre><code class="language-python">from skopt import gp_minimize
+from skopt.plots import plot_convergence, plot_objective
+
+# Bayesian optimizationofimplementationrows
+print("\n" + "=" * 60)
+print("Bayesian optimizationofimplementationrowsmiddle...")
+print("=" * 60)
+
+result = gp_minimize(
+    func=objective_function,
+    dimensions=search_space,
+    n_calls=50,  # Evaluationnumber of times
+    n_initial_points=10,  # random sampling count
+    random_state=42,
+    verbose=False
+)
+
+print("optimizationcomplete！")
+print("\n" + "=" * 60)
+print("optimizationresults")
+print("=" * 60)
+print(f"minimumobjective functionvalue（error）: {result.fun:.4f} nm")
+print(f"\noptimalparameters:")
+print(f"  size: {result.x[0]:.2f} nm")
+print(f"  temperature: {result.x[1]:.2f} °C")
+print(f"  pH: {result.x[2]:.2f}")
+
+# under optimal conditionsofpredictionLSPRwavelengthcalculation
+optimal_features = np.array([result.x])
+optimal_features_scaled = scaler.transform(optimal_features)
+predicted_optimal_lspr = model_lgb.predict(optimal_features_scaled)[0]
+
+print(f"\npredictionis performedLSPRwavelength: {predicted_optimal_lspr:.2f} nm")
+print(f"GoalLSPRwavelength: {target_lspr} nm")
+print(f"Achievedaccuracy: {abs(predicted_optimal_lspr - target_lspr):.2f} nm")
+</code></pre>
+<h3>[Example 24] Optimization Result Visualization</h3>
+<pre><code class="language-python"># Optimizationprocessofvisualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# convergence plot
+plot_convergence(result, ax=axes[0])
+axes[0].set_title('Convergence Plot', fontsize=13, fontweight='bold')
+axes[0].set_ylabel('Objective Value (Error, nm)', fontsize=11)
+axes[0].set_xlabel('Number of Evaluations', fontsize=11)
+axes[0].grid(True, alpha=0.3)
+
+# Evaluationhistoryofplot
+iterations = range(1, len(result.func_vals) + 1)
+axes[1].plot(iterations, result.func_vals, 'o-', alpha=0.6, label='Evaluation')
+axes[1].plot(iterations, np.minimum.accumulate(result.func_vals),
+             'r-', linewidth=2, label='Best So Far')
+axes[1].set_xlabel('Iteration', fontsize=11)
+axes[1].set_ylabel('Objective Value (Error, nm)', fontsize=11)
+axes[1].set_title('Optimization Progress', fontsize=13, fontweight='bold')
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<h3>[Example 25] Convergence Plot</h3>
+<pre><code class="language-python"># detailedconvergence plot（bestvalueofprogression）
+fig, ax = plt.subplots(figsize=(10, 6))
+
+cumulative_min = np.minimum.accumulate(result.func_vals)
+iterations = np.arange(1, len(cumulative_min) + 1)
+
+ax.plot(iterations, cumulative_min, 'b-', linewidth=2, marker='o',
+        markersize=4, label='Best Error')
+ax.axhline(y=result.fun, color='r', linestyle='--', linewidth=2,
+           label=f'Final Best: {result.fun:.2f} nm')
+ax.fill_between(iterations, 0, cumulative_min, alpha=0.2, color='blue')
+
+ax.set_xlabel('Iteration', fontsize=12)
+ax.set_ylabel('Minimum Error (nm)', fontsize=12)
+ax.set_title('Bayesian Optimization: Convergence to Optimal Solution',
+             fontsize=13, fontweight='bold')
+ax.legend(fontsize=11)
+ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print(f"\n{len(result.func_vals)}timesofevaluationwithoptimalsolutiontoconverge")
+print(f"initialevaluationwithofbesterror: {result.func_vals[0]:.2f} nm")
+print(f"final besterror: {result.fun:.2f} nm")
+print(f"improvement rate: {(1 - result.fun/result.func_vals[0])*100:.1f}%")
+</code></pre>
+<hr/>
+<h2>3.8 Multi-Objective Optimization: Size and Emission Efficiency Trade-offs</h2>
+<h3>[Example 26] Pareto Optimization (NSGA-II)</h3>
+<p>multi-objective optimizationin、multipleofsimultaneous objectivestooptimization|。herein、quantum dotsofsizeminimization、emissionefficiency（virtual metric）maximization|。</p>
+<pre><code class="language-python"># pymoouse|multi-objective optimization
+try:
+    from pymoo.core.problem import Problem
+    from pymoo.algorithms.moo.nsga2 import NSGA2
+    from pymoo.optimize import minimize as pymoo_minimize
+    from pymoo.operators.crossover.sbx import SBX
+    from pymoo.operators.mutation.pm import PM
+    from pymoo.operators.sampling.rnd import FloatRandomSampling
+
+    # multi-objective optimizationproblemofdefinition
+    class QuantumDotOptimization(Problem):
+        def __init__(self):
+            super().__init__(
+                n_var=3,  # number of variables（size, synthesis_time, precursor_ratio）
+                n_obj=2,  # objective functionnumber（sizeminimization、emissionefficiency maximization）
+                n_constr=0,  # no constraints
+                xl=np.array([2.0, 10.0, 0.5]),  # Lower bound
+                xu=np.array([10.0, 120.0, 2.0])  # Upper bound
+            )
+
+        def _evaluate(self, X, out, *args, **kwargs):
+            # objective function1: sizeofminimization
+            obj1 = X[:, 0]  # size
+
+            # objective function2: emissionefficiencyofmaximization（negativeofvaluewithminimizationproblemtotransformation）
+            # efficiencyisvirtualto、emission wavelength550 nmtohigher when closerandassumption
+            features = X  # [size, synthesis_time, precursor_ratio]
+            features_scaled = scaler_qd.transform(features)
+            predicted_emission = model_qd.predict(features_scaled)
+
+            # efficiency：550 nmfromofhigher when deviation is smaller（negativeofvaluewithmaximization→minimization）
+            efficiency = -np.abs(predicted_emission - 550)
+            obj2 = -efficiency  # maximizationminimizationproblemtotransformation
+
+            out["F"] = np.column_stack([obj1, obj2])
+
+    # problemofinstantiation
+    problem = QuantumDotOptimization()
+
+    # NSGA-IIalgorithm
+    algorithm = NSGA2(
+        pop_size=40,
+        sampling=FloatRandomSampling(),
+        crossover=SBX(prob=0.9, eta=15),
+        mutation=PM(eta=20),
+        eliminate_duplicates=True
+    )
+
+    # Optimizationimplementationrows
+    print("=" * 60)
+    print("multi-objective optimization（NSGA-II）implementationrowsmiddle...")
+    print("=" * 60)
+
+    res = pymoo_minimize(
+        problem,
+        algorithm,
+        ('n_gen', 50),  # number of generations
+        seed=42,
+        verbose=False
+    )
+
+    print("multi-objective optimizationcomplete！")
+    print(f"\nParetooptimalsolutionofnumber: {len(res.F)}")
+
+    # Paretooptimalsolutionofdisplay（top5）
+    print("\nrepresentative Paretooptimalsolution（top5）:")
+    pareto_solutions = pd.DataFrame({
+        'Size (nm)': res.X[:, 0],
+        'Synthesis Time (min)': res.X[:, 1],
+        'Precursor Ratio': res.X[:, 2],
+        'Obj1: Size': res.F[:, 0],
+        'Obj2: -Efficiency': res.F[:, 1]
+    }).head(5)
+    print(pareto_solutions.to_string(index=False))
+
+    PYMOO_AVAILABLE = True
+
+except ImportError:
+    print("=" * 60)
+    print("pymoonot installed")
+    print("=" * 60)
+    print("multi-objective optimizationtoispymoorequiredwith|:")
+    print("  pip install pymoo")
+    print("\ninsteadto、simplifiedmulti-objective optimizationofExampledisplay|")
+
+    # simplifiedgrid searchbymulti-objective optimizationofsimulated
+    sizes = np.linspace(2, 10, 20)
+    times = np.linspace(10, 120, 20)
+    ratios = np.linspace(0.5, 2.0, 20)
+
+    # grid search（sampling）
+    sample_X = []
+    sample_F = []
+
+    for size in sizes[::4]:
+        for time in times[::4]:
+            for ratio in ratios[::4]:
+                features = np.array([[size, time, ratio]])
+                features_scaled = scaler_qd.transform(features)
+                emission = model_qd.predict(features_scaled)[0]
+
+                obj1 = size
+                obj2 = abs(emission - 550)
+
+                sample_X.append([size, time, ratio])
+                sample_F.append([obj1, obj2])
+
+    sample_X = np.array(sample_X)
+    sample_F = np.array(sample_F)
+
+    print("\ngrid searchbysolutionofsearchcomplete")
+    print(f"searched solutionsofnumber: {len(sample_F)}")
+
+    res = type('Result', (), {
+        'X': sample_X,
+        'F': sample_F
+    })()
+
+    PYMOO_AVAILABLE = False
+</code></pre>
+<h3>[Example 27] Pareto Front Visualization</h3>
+<pre><code class="language-python"># Paretofrontofvisualization
+fig, ax = plt.subplots(figsize=(10, 7))
+
+if PYMOO_AVAILABLE:
+    # NSGA-IIofresultsplot
+    ax.scatter(res.F[:, 0], -res.F[:, 1], c='blue', s=80, alpha=0.6,
+               edgecolors='black', label='Pareto Optimal Solutions')
+
+    title_suffix = "(NSGA-II)"
+else:
+    # grid searchofresultsplot
+    ax.scatter(res.F[:, 0], res.F[:, 1], c='blue', s=60, alpha=0.5,
+               edgecolors='black', label='Sampled Solutions')
+
+    title_suffix = "(Grid Search)"
+
+ax.set_xlabel('Objective 1: Size (nm) [Minimize]', fontsize=12)
+
+if PYMOO_AVAILABLE:
+    ax.set_ylabel('Objective 2: Efficiency [Maximize]', fontsize=12)
+else:
+    ax.set_ylabel('Objective 2: Deviation from 550nm [Minimize]', fontsize=12)
+
+ax.set_title(f'Pareto Front: Size vs Emission Efficiency {title_suffix}',
+             fontsize=13, fontweight='bold')
+ax.legend(fontsize=11)
+ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("\nPareto front:")
+print("  sizereduceandefficiency decreases、increase efficiencyandsizebecomes larger")
+print("  → trade-offrelationshipclearto")
+</code></pre>
+<hr/>
+<h2>3.9 TEM Image Analysis and Size Distribution</h2>
+<h3>[Example 28] Simulated TEM Data Generation</h3>
+<p>TEM（transmission electron microscope）withmeasured nanoparticlessizeis、approximatelylog-normalmindistributiontofollows。</p>
+<pre><code class="language-python">from scipy.stats import lognorm
+
+# log-normalminfollows distributionTEMsizedataofgeneration
+np.random.seed(200)
+
+# parameters
+mean_size = 20  # Average size（nm）
+cv = 0.3  # coefficient of variation（Standard deviation/average）
+
+# log-normalmindistributionofparameterscalculation
+sigma = np.sqrt(np.log(1 + cv**2))
+mu = np.log(mean_size) - 0.5 * sigma**2
+
+# samplesgeneration（500particles）
+tem_sizes = lognorm.rvs(s=sigma, scale=np.exp(mu), size=500)
+
+print("=" * 60)
+print("TEMmeasurement dataofgeneration（log-normalmindistribution）")
+print("=" * 60)
+print(f"number of samples: {len(tem_sizes)}particles")
+print(f"Average size: {tem_sizes.mean():.2f} nm")
+print(f"Standard deviation: {tem_sizes.std():.2f} nm")
+print(f"Median: {np.median(tem_sizes):.2f} nm")
+print(f"minimumvalue: {tem_sizes.min():.2f} nm")
+print(f"maximumvalue: {tem_sizes.max():.2f} nm")
+
+# histogram
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.hist(tem_sizes, bins=40, alpha=0.7, color='lightblue',
+        edgecolor='black', density=True, label='TEM Data')
+ax.set_xlabel('Particle Size (nm)', fontsize=12)
+ax.set_ylabel('Probability Density', fontsize=12)
+ax.set_title('TEM Size Distribution (Lognormal)', fontsize=13, fontweight='bold')
+ax.legend()
+ax.grid(True, alpha=0.3, axis='y')
+plt.tight_layout()
+plt.show()
+</code></pre>
+<h3>[Example 29] Log-Normal Distribution Fitting</h3>
+<pre><code class="language-python"># log-normalmindistributionoffitting
+shape_fit, loc_fit, scale_fit = lognorm.fit(tem_sizes, floc=0)
+
+# fittedmindistributionofparameters
+fitted_mean = np.exp(np.log(scale_fit) + 0.5 * shape_fit**2)
+fitted_std = fitted_mean * np.sqrt(np.exp(shape_fit**2) - 1)
+
+print("=" * 60)
+print("log-normalmindistribution fittingresults")
+print("=" * 60)
+print(f"shapeparameters (sigma): {shape_fit:.4f}")
+print(f"scaleparameters: {scale_fit:.4f}")
+print(f"fittedAverage size: {fitted_mean:.2f} nm")
+print(f"fittedStandard deviation: {fitted_std:.2f} nm")
+
+# measuredvalueandofcomparison
+print(f"\nmeasuredvalueandofcomparison:")
+print(f"  Average size - measured: {tem_sizes.mean():.2f} nm, fit: {fitted_mean:.2f} nm")
+print(f"  Standard deviation - measured: {tem_sizes.std():.2f} nm, fit: {fitted_std:.2f} nm")
+</code></pre>
+<h3>[Example 30] Fitting Result Visualization</h3>
+<pre><code class="language-python"># fittingresultsofdetailsvisualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# histogramandfitting curve
+axes[0].hist(tem_sizes, bins=40, alpha=0.6, color='lightblue',
+             edgecolor='black', density=True, label='TEM Data')
+
+# fittedlog-normalmindistribution
+x_range = np.linspace(0, tem_sizes.max(), 200)
+fitted_pdf = lognorm.pdf(x_range, shape_fit, loc=loc_fit, scale=scale_fit)
+axes[0].plot(x_range, fitted_pdf, 'r-', linewidth=2,
+             label=f'Lognormal Fit (μ={fitted_mean:.1f}, σ={fitted_std:.1f})')
+
+axes[0].set_xlabel('Particle Size (nm)', fontsize=12)
+axes[0].set_ylabel('Probability Density', fontsize=12)
+axes[0].set_title('TEM Size Distribution with Lognormal Fit',
+                  fontsize=13, fontweight='bold')
+axes[0].legend()
+axes[0].grid(True, alpha=0.3, axis='y')
+
+# Q-Qplot（minquantile pointsplot）
+from scipy.stats import probplot
+
+probplot(tem_sizes, dist=lognorm, sparams=(shape_fit, loc_fit, scale_fit),
+         plot=axes[1])
+axes[1].set_title('Q-Q Plot: Lognormal Distribution',
+                  fontsize=13, fontweight='bold')
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("\nQ-Qplot: data on straight linetoif、log-normalmindistributiontofollows well")
+</code></pre>
+<hr/>
+<h2>3.10 Molecular Dynamics (MD) Data Analysis</h2>
+<h3>[Example 31] Loading MD Simulation Data</h3>
+<p>minmolecular dynamicssimulationin、nanoparticlesofatomic configurationoftrack time evolution。</p>
+<pre><code class="language-python"># MDsimulation dataofsimulated generation
+# actualofMDdataisLAMMPS, GROMACSobtained from
+
+np.random.seed(300)
+
+n_atoms = 100  # number of atoms
+n_steps = 1000  # number of timesteps
+dt = 0.001  # timestep（ps）
+
+# initial position（nm）
+positions_initial = np.random.uniform(-1, 1, (n_atoms, 3))
+
+# time evolutionofsimulated（random walk）
+positions = np.zeros((n_steps, n_atoms, 3))
+positions[0] = positions_initial
+
+for t in range(1, n_steps):
+    # random displacement
+    displacement = np.random.normal(0, 0.01, (n_atoms, 3))
+    positions[t] = positions[t-1] + displacement
+
+print("=" * 60)
+print("MDsimulation dataofgeneration")
+print("=" * 60)
+print(f"number of atoms: {n_atoms}")
+print(f"number of timesteps: {n_steps}")
+print(f"simulation time: {n_steps * dt:.2f} ps")
+print(f"data shape: {positions.shape} (time, atoms, xyz)")
+
+# middlecentral atom（atom0）oftrajectoryplot
+fig = plt.figure(figsize=(12, 5))
+
+ax1 = fig.add_subplot(121, projection='3d')
+ax1.plot(positions[:, 0, 0], positions[:, 0, 1], positions[:, 0, 2],
+         'b-', alpha=0.5, linewidth=0.5)
+ax1.scatter(positions[0, 0, 0], positions[0, 0, 1], positions[0, 0, 2],
+            c='green', s=100, label='Start', edgecolors='k')
+ax1.scatter(positions[-1, 0, 0], positions[-1, 0, 1], positions[-1, 0, 2],
+            c='red', s=100, label='End', edgecolors='k')
+ax1.set_xlabel('X (nm)')
+ax1.set_ylabel('Y (nm)')
+ax1.set_zlabel('Z (nm)')
+ax1.set_title('Atom Trajectory (Atom 0)', fontweight='bold')
+ax1.legend()
+
+ax2 = fig.add_subplot(122)
+ax2.plot(np.arange(n_steps) * dt, positions[:, 0, 0], label='X')
+ax2.plot(np.arange(n_steps) * dt, positions[:, 0, 1], label='Y')
+ax2.plot(np.arange(n_steps) * dt, positions[:, 0, 2], label='Z')
+ax2.set_xlabel('Time (ps)', fontsize=11)
+ax2.set_ylabel('Position (nm)', fontsize=11)
+ax2.set_title('Position vs Time (Atom 0)', fontweight='bold')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<h3>[Example 32] Radial Distribution Function (RDF) Calculation</h3>
+<p>radial distribution function（Radial Distribution Function, RDF）is、interatomic distanceofmindistributionrepresents。</p>
+<pre><code class="language-python"># radial distribution function（RDF）calculation
+def calculate_rdf(positions, r_max=2.0, n_bins=100):
+    """
+    radial distribution functioncalculation
+
+    Parameters:
+    -----------
+    positions : ndarray
+        atom positions (n_atoms, 3)
+    r_max : float
+        maximum distance（nm）
+    n_bins : int
+        number of bins
+
+    Returns:
+    --------
+    r_bins : ndarray
+        distance bins
+    rdf : ndarray
+        radial distribution function
+    """
+    n_atoms = positions.shape[0]
+
+    # all atom pairsofdistance calculation
+    distances = []
+    for i in range(n_atoms):
+        for j in range(i+1, n_atoms):
+            dist = np.linalg.norm(positions[i] - positions[j])
+            if dist &lt; r_max:
+                distances.append(dist)
+
+    distances = np.array(distances)
+
+    # histogram
+    hist, bin_edges = np.histogram(distances, bins=n_bins, range=(0, r_max))
+    r_bins = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    # normalization（ideal gasandofratio）
+    dr = r_max / n_bins
+    volume_shell = 4 * np.pi * r_bins**2 * dr
+    n_ideal = volume_shell * (n_atoms / (4/3 * np.pi * r_max**3))
+
+    rdf = hist / n_ideal / (n_atoms / 2)
+
+    return r_bins, rdf
+
+# final framewithRDFcalculation
+final_positions = positions[-1]
+r_bins, rdf = calculate_rdf(final_positions, r_max=1.5, n_bins=150)
+
+print("=" * 60)
+print("radial distribution function（RDF）")
+print("=" * 60)
+print(f"calculationcomplete: {len(r_bins)}unitsofbin")
+
+# RDFofplot
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.plot(r_bins, rdf, 'b-', linewidth=2)
+ax.axhline(y=1, color='r', linestyle='--', linewidth=1, label='Ideal Gas (g(r)=1)')
+ax.set_xlabel('Distance r (nm)', fontsize=12)
+ax.set_ylabel('g(r)', fontsize=12)
+ax.set_title('Radial Distribution Function (RDF)', fontsize=13, fontweight='bold')
+ax.legend()
+ax.grid(True, alpha=0.3)
+ax.set_ylim(0, max(rdf) * 1.1)
+
+plt.tight_layout()
+plt.show()
+
+# peak positionofdetection
+from scipy.signal import find_peaks
+
+peaks, _ = find_peaks(rdf, height=1.2, distance=10)
+print(f"\nRDFofpeak position（characteristic interatomic distance）:")
+for i, peak_idx in enumerate(peaks[:3], 1):
+    print(f"  peak{i}: r = {r_bins[peak_idx]:.3f} nm, g(r) = {rdf[peak_idx]:.2f}")
+</code></pre>
+<h3>[Example 33] Diffusion Coefficient Calculation (Mean Squared Displacement)</h3>
+<pre><code class="language-python"># mean squared displacement（MSD）calculation
+def calculate_msd(positions):
+    """
+    mean squared displacementcalculation
+
+    Parameters:
+    -----------
+    positions : ndarray
+        atom positions (n_steps, n_atoms, 3)
+
+    Returns:
+    --------
+    msd : ndarray
+        mean squared displacement (n_steps,)
+    """
+    n_steps, n_atoms, _ = positions.shape
+    msd = np.zeros(n_steps)
+
+    # each timestepwithofMSD
+    for t in range(n_steps):
+        displacement = positions[t] - positions[0]
+        squared_displacement = np.sum(displacement**2, axis=1)
+        msd[t] = np.mean(squared_displacement)
+
+    return msd
+
+# MSDcalculation
+msd = calculate_msd(positions)
+time = np.arange(n_steps) * dt
+
+print("=" * 60)
+print("mean squared displacement（MSD）anddiffusion coefficient")
+print("=" * 60)
+
+# diffusion coefficientcalculation（Einsteinrelationship equation: MSD = 6*D*t）
+# linearfit（latter half50%ofdatause）
+start_idx = n_steps // 2
+fit_coeffs = np.polyfit(time[start_idx:], msd[start_idx:], 1)
+slope = fit_coeffs[0]
+diffusion_coefficient = slope / 6
+
+print(f"diffusion coefficient D = {diffusion_coefficient:.6f} nm²/ps")
+print(f"            = {diffusion_coefficient * 1e3:.6f} × 10⁻⁶ cm²/s")
+
+# MSDplot
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.plot(time, msd, 'b-', linewidth=2, label='MSD')
+ax.plot(time[start_idx:], fit_coeffs[0] * time[start_idx:] + fit_coeffs[1],
+        'r--', linewidth=2, label=f'Linear Fit (D={diffusion_coefficient:.4f} nm²/ps)')
+ax.set_xlabel('Time (ps)', fontsize=12)
+ax.set_ylabel('MSD (nm²)', fontsize=12)
+ax.set_title('Mean Squared Displacement (MSD)', fontsize=13, fontweight='bold')
+ax.legend(fontsize=11)
+ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("\ndiffusion coefficientis、nanoparticlesofquantitatively mobilitytoevaluationimportant indicatorwith|")
+</code></pre>
+<hr/>
+<h2>3.11 Anomaly Detection: Quality Control Applications</h2>
+<h3>[Example 34] Anomalous Nanoparticle Detection with Isolation Forest</h3>
+<p>manufacturingprocesswithgenerated nanoparticlesofquality controlto、machine learningbyanomaly detectionapplication|。</p>
+<pre><code class="language-python">from sklearn.ensemble import IsolationForest
+
+# normaldataandanomalymix data
+np.random.seed(400)
+
+# normalgold nanoparticlesdata（180samples）
+normal_size = np.random.normal(15, 3, 180)
+normal_lspr = 520 + 0.8 * (normal_size - 15) + np.random.normal(0, 3, 180)
+
+# anomalynanoparticlesdata（20samples）：sizeanomalytolargeorsmall
+anomaly_size = np.concatenate([
+    np.random.uniform(5, 8, 10),  # anomalytosmall
+    np.random.uniform(35, 50, 10)  # anomalytolarge
+])
+anomaly_lspr = 520 + 0.8 * (anomaly_size - 15) + np.random.normal(0, 8, 20)
+
+# combine all data
+all_size = np.concatenate([normal_size, anomaly_size])
+all_lspr = np.concatenate([normal_lspr, anomaly_lspr])
+all_data = np.column_stack([all_size, all_lspr])
+
+# label（normal=0、anomaly=1）
+true_labels = np.concatenate([np.zeros(180), np.ones(20)])
+
+print("=" * 60)
+print("anomaly detection（Isolation Forest）")
+print("=" * 60)
+print(f"Total data: {len(all_data)}")
+print(f"normaldata: {int((true_labels == 0).sum())}samples")
+print(f"anomalydata: {int((true_labels == 1).sum())}samples")
+
+# Isolation Forestmodel
+iso_forest = IsolationForest(
+    contamination=0.1,  # anomalydataofsplittotal（10%andassumption）
+    random_state=42,
+    n_estimators=100
+)
+
+# anomaly detection
+predictions = iso_forest.fit_predict(all_data)
+anomaly_scores = iso_forest.score_samples(all_data)
+
+# Predictionresults（1: normal、-1: anomaly）
+predicted_anomalies = (predictions == -1)
+true_anomalies = (true_labels == 1)
+
+# Evaluation metrics
+from sklearn.metrics import confusion_matrix, classification_report
+
+# Prediction0/1totransformation
+predicted_labels = (predictions == -1).astype(int)
+
+print("\nconfusionrowscolumn:")
+cm = confusion_matrix(true_labels, predicted_labels)
+print(cm)
+
+print("\nminclassification report:")
+print(classification_report(true_labels, predicted_labels,
+                            target_names=['Normal', 'Anomaly']))
+
+# detection rate
+detected_anomalies = np.sum(predicted_anomalies &amp; true_anomalies)
+total_anomalies = np.sum(true_anomalies)
+detection_rate = detected_anomalies / total_anomalies * 100
+
+print(f"\nanomalydetection rate: {detection_rate:.1f}% ({detected_anomalies}/{total_anomalies})")
+</code></pre>
+<h3>[Example 35] Anomaly Sample Visualization</h3>
+<pre><code class="language-python"># anomaly detectionresultsofvisualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# scatter plot（trueoflabel）
+axes[0].scatter(all_size[true_labels == 0], all_lspr[true_labels == 0],
+                c='blue', s=60, alpha=0.6, label='Normal', edgecolors='k')
+axes[0].scatter(all_size[true_labels == 1], all_lspr[true_labels == 1],
+                c='red', s=100, alpha=0.8, marker='^', label='True Anomaly',
+                edgecolors='k', linewidths=2)
+axes[0].set_xlabel('Size (nm)', fontsize=12)
+axes[0].set_ylabel('LSPR Wavelength (nm)', fontsize=12)
+axes[0].set_title('True Labels', fontsize=13, fontweight='bold')
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+# scatter plot（predictionresults）
+normal_mask = ~predicted_anomalies
+anomaly_mask = predicted_anomalies
+
+axes[1].scatter(all_size[normal_mask], all_lspr[normal_mask],
+                c='blue', s=60, alpha=0.6, label='Predicted Normal', edgecolors='k')
+axes[1].scatter(all_size[anomaly_mask], all_lspr[anomaly_mask],
+                c='orange', s=100, alpha=0.8, marker='X', label='Predicted Anomaly',
+                edgecolors='k', linewidths=2)
+
+# correctly detectedanomalyemphasis
+correctly_detected = predicted_anomalies &amp; true_anomalies
+axes[1].scatter(all_size[correctly_detected], all_lspr[correctly_detected],
+                c='red', s=150, marker='*', label='Correctly Detected',
+                edgecolors='black', linewidths=1.5, zorder=5)
+
+axes[1].set_xlabel('Size (nm)', fontsize=12)
+axes[1].set_ylabel('LSPR Wavelength (nm)', fontsize=12)
+axes[1].set_title('Isolation Forest Predictions', fontsize=13, fontweight='bold')
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# anomaly scoreofmindistribution
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.hist(anomaly_scores[true_labels == 0], bins=30, alpha=0.6,
+        color='blue', label='Normal', edgecolor='black')
+ax.hist(anomaly_scores[true_labels == 1], bins=30, alpha=0.6,
+        color='red', label='Anomaly', edgecolor='black')
+ax.set_xlabel('Anomaly Score', fontsize=12)
+ax.set_ylabel('Frequency', fontsize=12)
+ax.set_title('Anomaly Score Distribution', fontsize=13, fontweight='bold')
+ax.legend(fontsize=11)
+ax.grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.show()
+
+print("\nanomaly scorelow（negativeofvaluelarge）the more、anomalywithhigh possibility")
+</code></pre>
+<hr/>
+<h2>Summary</h2>
+<p>this chapterin、PythonusedNanomaterial Data Analysis and Machine Learningofpractical approachmethod35unitsofcodeExamplewithlearned。</p>
+<h3>Key Skills Acquired</h3>
+<ol>
+<li>
+<p><strong>data generationandvisualization</strong>（Example1-5）
+   - gold nanoparticles、quantum dotsofsynthesisdata generation
+   - histogram、scatter plot、3Dplot、correlationminanalysis</p>
+</li>
+<li>
+<p><strong>data preprocessing</strong>（Example6-9）
+   - missing value handling、outlier detection、scaling、Data Split</p>
+</li>
+<li>
+<p><strong>timesregressionmodelbyphysical propertiesprediction</strong>（Example10-15）
+   - linear regression、random forest、LightGBM、SVR、MLP
+   - modelperformance comparison（R²、RMSE、MAE）</p>
+</li>
+<li>
+<p><strong>quantum dotsemissionprediction</strong>（Example16-18）
+   - Brusequationtobased ondata generation
+   - LightGBMbypredictionmodelconstruction</p>
+</li>
+<li>
+<p><strong>feature importanceandmodel interpretation</strong>（Example19-20）
+   - LightGBMfeature importance
+   - SHAPminby analysispredictionofinterpretation</p>
+</li>
+<li>
+<p><strong>Bayesian optimization</strong>（Example21-25）
+   - GoalLSPRwavelengthimplementachieveoptimalsynthesis conditionsofsearch
+   - convergence plot、optimizationprocessofvisualization</p>
+</li>
+<li>
+<p><strong>multi-objective optimization</strong>（Example26-27）
+   - NSGA-IIbyParetooptimization
+   - sizeand emissionefficiencyoftrade-offminanalysis</p>
+</li>
+<li>
+<p><strong>TEMimage analysis</strong>（Example28-30）
+   - log-normalmindistributionbysizemindistribution fitting
+   - Q-Qplotbymindistributionofvalidation</p>
+</li>
+<li>
+<p><strong>minmolecular dynamicsdata analysis</strong>（Example31-33）
+   - atomic trajectoryofvisualization
+   - radial distribution function（RDF）calculation
+   - diffusion coefficientofcalculation（MSDmethod）</p>
+</li>
+<li>
+<p><strong>anomaly detection</strong>（Example34-35）</p>
+<ul>
+<li>Isolation Forestbyquality control</li>
+<li>anomalynanoparticlesofselfmotion detection</li>
+</ul>
+</li>
+</ol>
+<h3>Practical Applications</h3>
+<p>theseoftechniquesis、or lessoflike actualofnanomaterials researchtodirect applicationwithcan：</p>
+<ul>
+<li><strong>materials design</strong>: machine learningbyphysical propertiespredictionandoptimizationbyhigh-efficiency materials search</li>
+<li><strong>processoptimization</strong>: Bayesian optimizationbyexperimentnumber of timesreductionandoptimalsynthesis condition discovery</li>
+<li><strong>quality control</strong>: anomaly detectionbydefective productsofearly detectionandyield improvement</li>
+<li><strong>data analysis</strong>: TEMdata、MDsimulation dataofquantitative solutionanalysis</li>
+<li><strong>model interpretation</strong>: SHAPminby analysispredictionbasisofvisualizationandreliability improvement</li>
+</ul>
+<h3>Preview of Next Chapter</h3>
+<p>Chapter 4in、theseoftechniquesimplementwhenofnanomaterials research projecttoapplication|5oflearn detailed case studies。carbon nanotube composite materials、quantum dots、gold nanoparticlescatalysts、graphene、nanomedicineofpractical use casesExamplethrough、problem solvingofunderstand overall picture。</p>
+<hr/>
+<h2>Exerciseproblem</h2>
+<h3>Exercise1: carbon nanotubesofelectrical conductivityprediction</h3>
+<p>carbon nanotubes（CNT）ofelectrical conductivityis、diameter、chirality、lengthdepends on。or lessofdatageneration、LightGBMmodelwithpredictionplease。</p>
+<p><strong>data specifications</strong>：
+- number of samples：150
+- features：diameter（1-3 nm）、length（100-1000 nm）、chirality index（0-1ofcontinuousvalue）
+- target：electrical conductivity（10³-10⁷ S/m、log-normalmindistribution）</p>
+<p><strong>task</strong>：
+1. data generation
+2. training/Test dataminsplit
+3. LightGBMmodelofconstructionandevaluation
+4. feature importanceofvisualization</p>
+<details>
+<summary>Sample Solution</summary>
+<pre><code class="language-python"># data generation
+np.random.seed(500)
+n_samples = 150
+
+diameter = np.random.uniform(1, 3, n_samples)
+length = np.random.uniform(100, 1000, n_samples)
+chirality = np.random.uniform(0, 1, n_samples)
+
+# electrical conductivity（simplemodel: diameterandchiralitytostrongly dependent）
+log_conductivity = 3 + 2*diameter + 3*chirality + 0.001*length + np.random.normal(0, 0.5, n_samples)
+conductivity = 10 ** log_conductivity  # S/m
+
+data_cnt = pd.DataFrame({
+    'diameter_nm': diameter,
+    'length_nm': length,
+    'chirality': chirality,
+    'conductivity_Sm': conductivity
+})
+
+# featuresandtarget
+X_cnt = data_cnt[['diameter_nm', 'length_nm', 'chirality']]
+y_cnt = np.log10(data_cnt['conductivity_Sm'])  # logarithmic transformation
+
+# scaling
+scaler_cnt = StandardScaler()
+X_cnt_scaled = scaler_cnt.fit_transform(X_cnt)
+
+# training/testminsplit
+X_cnt_train, X_cnt_test, y_cnt_train, y_cnt_test = train_test_split(
+    X_cnt_scaled, y_cnt, test_size=0.2, random_state=42
+)
+
+# LightGBMmodel
+model_cnt = lgb.LGBMRegressor(num_leaves=31, learning_rate=0.05, n_estimators=200, random_state=42, verbose=-1)
+model_cnt.fit(X_cnt_train, y_cnt_train)
+
+# Predictionandevaluation
+y_cnt_pred = model_cnt.predict(X_cnt_test)
+r2_cnt = r2_score(y_cnt_test, y_cnt_pred)
+rmse_cnt = np.sqrt(mean_squared_error(y_cnt_test, y_cnt_pred))
+
+print(f"R²: {r2_cnt:.4f}")
+print(f"RMSE: {rmse_cnt:.4f}")
+
+# Feature importance
+importance_cnt = pd.DataFrame({
+    'Feature': X_cnt.columns,
+    'Importance': model_cnt.feature_importances_
+}).sort_values('Importance', ascending=False)
+
+print("\nfeature importance:")
+print(importance_cnt)
+
+# Visualization
+fig, ax = plt.subplots(figsize=(8, 5))
+ax.barh(importance_cnt['Feature'], importance_cnt['Importance'], color='steelblue', edgecolor='black')
+ax.set_xlabel('Importance')
+ax.set_title('Feature Importance: CNT Conductivity Prediction')
+plt.tight_layout()
+plt.show()
+</code></pre>
+</details>
+<h3>Exercise2: silver nanoparticlesofoptimalsynthesis conditionssearch</h3>
+<p>silver nanoparticlesofantibacterial activityis、sizesmaller is higher。Bayesian optimizationusing、Target size（10 nm）implementachieveoptimalfor synthesistemperatureandpHplease search。</p>
+<p><strong>conditions</strong>：
+- temperaturerange：20-80°C
+- pHrange：6-11
+- Target size：10 nm</p>
+<details>
+<summary>Sample Solution</summary>
+<pre><code class="language-python"># silver nanoparticlesdataofgeneration
+np.random.seed(600)
+n_ag = 100
+
+temp_ag = np.random.uniform(20, 80, n_ag)
+pH_ag = np.random.uniform(6, 11, n_ag)
+
+# sizemodel（temperaturehigh、pHsmaller with lowerandassumption）
+size_ag = 15 - 0.1*temp_ag - 0.8*pH_ag + np.random.normal(0, 1, n_ag)
+size_ag = np.clip(size_ag, 5, 30)
+
+data_ag = pd.DataFrame({
+    'temperature': temp_ag,
+    'pH': pH_ag,
+    'size': size_ag
+})
+
+# modelconstruction（LightGBM）
+X_ag = data_ag[['temperature', 'pH']]
+y_ag = data_ag['size']
+
+scaler_ag = StandardScaler()
+X_ag_scaled = scaler_ag.fit_transform(X_ag)
+
+model_ag = lgb.LGBMRegressor(num_leaves=31, learning_rate=0.05, n_estimators=100, random_state=42, verbose=-1)
+model_ag.fit(X_ag_scaled, y_ag)
+
+# Bayesian optimization
+from skopt import gp_minimize
+from skopt.space import Real
+
+space_ag = [
+    Real(20, 80, name='temperature'),
+    Real(6, 11, name='pH')
+]
+
+target_size = 10.0
+
+def objective_ag(params):
+    temp, ph = params
+    features = scaler_ag.transform([[temp, ph]])
+    predicted_size = model_ag.predict(features)[0]
+    return abs(predicted_size - target_size)
+
+result_ag = gp_minimize(objective_ag, space_ag, n_calls=40, random_state=42, verbose=False)
+
+print("=" * 60)
+print("silver nanoparticlesofoptimalsynthesis conditions")
+print("=" * 60)
+print(f"minimumerror: {result_ag.fun:.2f} nm")
+print(f"optimaltemperature: {result_ag.x[0]:.1f} °C")
+print(f"optimalpH: {result_ag.x[1]:.2f}")
+
+# under optimal conditionsofpredictionsize
+optimal_features = scaler_ag.transform([result_ag.x])
+predicted_size = model_ag.predict(optimal_features)[0]
+print(f"predictionsize: {predicted_size:.2f} nm")
+</code></pre>
+</details>
+<h3>Exercise3: quantum dotsofmulti-color emission design</h3>
+<p>red（650 nm）、green（550 nm）、blue（450 nm）of3colorofemissionimplementachieveCdSequantum dotsofsize、Bayesian optimizationwithplease design。</p>
+<p><strong>hint</strong>：
+- for each colorandtooptimizationimplementrows
+- emissionwavelengthandsizeofrelationshipuse</p>
+<details>
+<summary>Sample Solution</summary>
+<pre><code class="language-python"># quantum dotsdata（Example16ofdata_qduse）
+# model_qd and scaler_qd constructioncompletedandassumption
+
+# 3colorofGoalwavelength
+target_colors = {
+    'Red': 650,
+    'Green': 550,
+    'Blue': 450
+}
+
+results_colors = {}
+
+for color_name, target_emission in target_colors.items():
+    # search space
+    space_qd = [
+        Real(2, 10, name='size_nm'),
+        Real(10, 120, name='synthesis_time_min'),
+        Real(0.5, 2.0, name='precursor_ratio')
+    ]
+
+    # objective function
+    def objective_qd(params):
+        features = scaler_qd.transform([params])
+        predicted_emission = model_qd.predict(features)[0]
+        return abs(predicted_emission - target_emission)
+
+    # Optimization
+    result_qd_color = gp_minimize(objective_qd, space_qd, n_calls=30, random_state=42, verbose=False)
+
+    # resultssave
+    optimal_features = scaler_qd.transform([result_qd_color.x])
+    predicted_emission = model_qd.predict(optimal_features)[0]
+
+    results_colors[color_name] = {
+        'target': target_emission,
+        'size': result_qd_color.x[0],
+        'time': result_qd_color.x[1],
+        'ratio': result_qd_color.x[2],
+        'predicted': predicted_emission,
+        'error': result_qd_color.fun
+    }
+
+# resultsdisplay
+print("=" * 80)
+print("quantum dotsmulti-color emission design")
+print("=" * 80)
+
+results_df = pd.DataFrame(results_colors).T
+print(results_df.to_string())
+
+# Visualization
+fig, ax = plt.subplots(figsize=(10, 6))
+colors_rgb = {'Red': 'red', 'Green': 'green', 'Blue': 'blue'}
+
+for color_name, result in results_colors.items():
+    ax.scatter(result['size'], result['predicted'],
+               s=200, color=colors_rgb[color_name],
+               edgecolors='black', linewidths=2, label=color_name)
+
+ax.set_xlabel('Quantum Dot Size (nm)', fontsize=12)
+ax.set_ylabel('Emission Wavelength (nm)', fontsize=12)
+ax.set_title('Multi-Color Quantum Dot Design', fontsize=13, fontweight='bold')
+ax.legend(fontsize=11)
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+</code></pre>
+</details>
+<hr/>
+<h2>3.12 End-of-Chapter Checklist: Quality Assurance of Nanomaterial Data Analysis Skills</h2>
+<p>this chapterwithlearnedPythonbyNanomaterial Data Analysis and Machine Learningofimplementationskillssystematictocheck。</p>
+<h3>3.12.1 Environment Setup Skills（Environment Setup）</h3>
+<h4>Foundation Level</h4>
+<ul>
+<li>[ ] Python 3.9or moreinstalled</li>
+<li>[ ] 3ofenvironmentconstructionoptional（Anaconda/venv/Colab）ofexplain differencescan</li>
+<li>[ ] selfminofsituationtooptimalselect environmentcan</li>
+<li>[ ] virtual environmentcreateactivate/deactivatecan</li>
+<li>[ ] pip/condawithlibraryinstallcan（pandas、numpy、matplotlib、scikit-learn、lightgbm）</li>
+<li>[ ] environment verification codeimplementrows、confirm error-free operationcan</li>
+</ul>
+<h4>Applied Level</h4>
+<ul>
+<li>[ ] requirements.txtcreateusecan</li>
+<li>[ ] Google ColabwithGoogle Drivemount and load data</li>
+<li>[ ] multipleofvirtual environment usageclassificationtousemincan be done</li>
+<li>[ ] installation errorselfcapabilitywithtroubleshootingcan</li>
+<li>[ ] optionallibrary（pymoo、SHAP）requiredtoinstall according tocan</li>
+</ul>
+<hr/>
+<h3>3.12.2 Data Processing &amp; Visualization Skills（Data Processing &amp; Visualization）</h3>
+<h4>Foundation Level</h4>
+<ul>
+<li>[ ] NumPywithsynthetic data generationcan（normalmindistribution、uniformmindistribution）</li>
+<li>[ ] PandaswithDataFramecreateoperationscan</li>
+<li>[ ] basic statistics（mean、std、median）can calculate</li>
+<li>[ ] histogramcan create</li>
+<li>[ ] scatter plotcan create</li>
+<li>[ ] missingvaluedetectioncan（<code>isnull().sum()</code>）</li>
+<li>[ ] missingvaluedeleteisimputationcan（<code>dropna()</code> or <code>fillna()</code>）</li>
+</ul>
+<h4>Applied Level</h4>
+<ul>
+<li>[ ] correlationrowscolumn calculationvisualizationcan（<code>corr()</code>、seaborn.heatmap）</li>
+<li>[ ] pairplot（scatter plot matrix）can create（seaborn.pairplot）</li>
+<li>[ ] 3Dscatter plotcan create（mpl_toolkits.mplot3d）</li>
+<li>[ ] KDE（kernel density estimation）usecan</li>
+<li>[ ] outliervalueIQRmethodwithdetectioncan</li>
+<li>[ ] StandardScalerwithdata standardizationcan</li>
+<li>[ ] train_test_splitwithdataminsplitcan（80% vs 20%）</li>
+<li>[ ] <code>random_state=42</code>withensure reproducibility</li>
+</ul>
+<h4>Advanced Level</h4>
+<ul>
+<li>[ ] log-normalmindistribution fittingcan be done（scipy.stats.lognorm）</li>
+<li>[ ] Q-Qplotwithmindistributionofgoodness of fit verificationcan</li>
+<li>[ ] effective colormaptousecan（viridis、plasma、coolwarm）</li>
+<li>[ ] multipleofsubplotsusing advancedvisualizationcan be done</li>
+</ul>
+<hr/>
+<h3>3.12.3 Machine Learning Model Implementation Skills（ML Model Implementation）</h3>
+<h4>Foundation Level（5ofmodelimplementation）</h4>
+<ul>
+<li>[ ] linear regressionimplement and、coefficientofmeaning explanationcan</li>
+<li>[ ] random forestimplement and、<code>n_estimators</code>ofrolesplitexplanationcan</li>
+<li>[ ] LightGBMinstallimplementationcan</li>
+<li>[ ] SVRwithstandardization（StandardScaler）ofunderstand necessity</li>
+<li>[ ] MLPRegressor（neural network）can implement</li>
+</ul>
+<h4>Applied Level（modelselectionandevaluation）</h4>
+<ul>
+<li>[ ] MAE、R²、RMSEcalculation and interpretationcan</li>
+<li>[ ] Training dataandTest dataofperformance differenceevaluationcan</li>
+<li>[ ] can detect overfitting（trainingR² ≫ testR²）</li>
+<li>[ ] 5ofmodelofperformance comparison tablewithorganizationcan</li>
+<li>[ ] predicted value vs measuredvalueofscatter plotcan create</li>
+<li>[ ] residualplotcreate、modelofbias detectioncan</li>
+</ul>
+<h4>Advanced Level</h4>
+<ul>
+<li>[ ] data characteristicstoaccording tooptimalformodelselectioncan</li>
+<li>strong linearity → linear regression</li>
+<li>strong nonlinearity → random forest、LightGBM</li>
+<li>few data points → SVR</li>
+<li>[ ] eachmodelofhyperparametersofrolesplitunderstand</li>
+<li>random forest：n_estimators、max_depth</li>
+<li>LightGBM：learning_rate、num_leaves</li>
+<li>SVR：C、gamma、epsilon</li>
+<li>MLP：hidden_layer_sizes、alpha、early_stopping</li>
+</ul>
+<hr/>
+<h3>3.12.4 Feature Importance &amp; Model Interpretation Skills（Feature Importance &amp; Interpretability）</h3>
+<h4>Foundation Level</h4>
+<ul>
+<li>[ ] random forestoffeature importanceacquire andvisualizationcan（<code>feature_importances_</code>）</li>
+<li>[ ] LightGBMoffeature importanceacquire andvisualizationcan</li>
+<li>[ ] feature importanceofresultsinterpretationcan（most influential featureiswhat）</li>
+</ul>
+<h4>Applied Level</h4>
+<ul>
+<li>[ ] SHAPlibraryinstallusecan</li>
+<li>[ ] SHAP Explainercan create（<code>shap.Explainer</code>）</li>
+<li>[ ] SHAP Summary Plotcan create and interpret</li>
+<li>[ ] SHAP Dependence Plotcan create and interpret</li>
+<li>[ ] SHAPvalueofpositive/negativepredictiontoexplain influencecan</li>
+</ul>
+<h4>Advanced Level</h4>
+<ul>
+<li>[ ] multipleofinterpretation methodmethodusemincan be done</li>
+<li>feature importance：overall importance</li>
+<li>SHAP：unitsclassificationsamplesofpredictionreason</li>
+<li>[ ] modelofpredictionbasis for stakeholderstoexplanationcan</li>
+</ul>
+<hr/>
+<h3>3.12.5 Bayesian Optimization Skills（Bayesian Optimization）</h3>
+<h4>Foundation Level</h4>
+<ul>
+<li>[ ] scikit-optimizeinstallcan</li>
+<li>[ ] search space definitioncan（<code>Real(min, max, name)</code>）</li>
+<li>[ ] objective functiondefinitioncan（parametersreceive、errorreturn）</li>
+<li>[ ] <code>gp_minimize</code>implementrowscan</li>
+<li>[ ] optimizationresults（result.x、result.fun）acquisitioncan</li>
+</ul>
+<h4>Applied Level</h4>
+<ul>
+<li>[ ] n_callsandn_initial_pointsofrolesplitunderstand</li>
+<li>n_calls：evaluationnumber of times</li>
+<li>n_initial_points：random sampling count</li>
+<li>[ ] convergence plotcan create（<code>plot_convergence</code>）</li>
+<li>[ ] optimizationprocessofvisualizationcan be done（evaluationhistory、bestvalueofprogression）</li>
+<li>[ ] GoalvaluetoofAchievedaccuracyevaluationcan</li>
+</ul>
+<h4>Advanced Level</h4>
+<ul>
+<li>[ ] multipleofGoal（red, green, blueofquantum dots）toforoptimizationimplementrowscan</li>
+<li>[ ] optimizationresultsexperimental validation plantoutilizationcan</li>
+<li>[ ] acquisition function（Acquisition Function）ofunderstand the concept</li>
+</ul>
+<hr/>
+<h3>3.12.6 multi-objective optimizationskills（Multi-Objective Optimization）</h3>
+<h4>Foundation Level</h4>
+<ul>
+<li>[ ] pymoolibraryinstallcan</li>
+<li>[ ] multi-objective optimizationproblemofunderstand the concept（sizeminimization vs efficiency maximization）</li>
+<li>[ ] Pareto frontofconcept explanationcan</li>
+</ul>
+<h4>Applied Level</h4>
+<ul>
+<li>[ ] pymoo.core.probleminheritProblemclass definitioncan</li>
+<li>[ ] NSGA-IIalgorithmcan implement</li>
+<li>[ ] Pareto frontvisualizationcan</li>
+<li>[ ] trade-offrelationshipinterpretationcan</li>
+</ul>
+<h4>Advanced Level</h4>
+<ul>
+<li>[ ] multipleoffrom solution to applicationtoaccording tooptimalsolution selectioncan</li>
+<li>performance-oriented</li>
+<li>environment-oriented</li>
+<li>balanced type</li>
+<li>[ ] grid searchbyalternative implementationcan be done（pymoowhen unavailable）</li>
+</ul>
+<hr/>
+<h3>3.12.7 nanomaterial-specificofsolutionanalysisskills（Nanomaterial-Specific Analysis）</h3>
+<h4>TEMimage analysis</h4>
+<ul>
+<li>[ ] log-normalminfollows distributionsizedatagenerationcan</li>
+<li>[ ] log-normalmindistributionofparameters（sigma、mu）can calculate</li>
+<li>[ ] <code>lognorm.fit</code>withfittingcan</li>
+<li>[ ] fittingresultsvisualizationcan（histogram + PDFcurve）</li>
+<li>[ ] Q-Qplotwithmindistributionofgoodness of fitevaluationcan</li>
+</ul>
+<h4>minmolecular dynamics（MD）data analysis</h4>
+<ul>
+<li>[ ] atomic trajectory dataofunderstand structure（n_steps × n_atoms × 3）</li>
+<li>[ ] 3Dtrajectoryplotcan create</li>
+<li>[ ] radial distribution function（RDF）can calculate</li>
+<li>[ ] RDFofextract characteristic interatomic distances from peak positionscan</li>
+<li>[ ] mean squared displacement（MSD）can calculate</li>
+<li>[ ] MSDfromdiffusion coefficientcalculationcan（Einsteinrelationship equation）</li>
+</ul>
+<h4>anomaly detection</h4>
+<ul>
+<li>[ ] Isolation Forestcan implement</li>
+<li>[ ] contamination（anomaly data ratio）settingscan</li>
+<li>[ ] anomaly scorecan calculate（<code>score_samples</code>）</li>
+<li>[ ] confusionrowscolumnwithanomalydetectionaccuracyevaluationcan</li>
+<li>[ ] normaldataandanomalydataofmindistributionvisualizationcan</li>
+</ul>
+<hr/>
+<h3>3.12.8 code qualityskills（Code Quality）</h3>
+<h4>Foundation Level</h4>
+<ul>
+<li>[ ] allofcodetorandom seed（<code>random_state=42</code>）set</li>
+<li>[ ] data validation（shape、dtype、missingvalue、range）implementimplemented</li>
+<li>[ ] variable namesmineasy to understand（<code>X_train</code>、<code>y_test</code>、<code>model_lgb</code>）</li>
+<li>[ ] commentswithprocessingofexplain purpose</li>
+<li>[ ] graphtotitle、axis labels、legendExampleadded</li>
+</ul>
+<h4>Applied Level</h4>
+<ul>
+<li>[ ] functionalized for code reuseto|
+  <code>python
+  def calculate_rdf(positions, r_max, n_bins):
+      ...</code></li>
+<li>[ ] documentation string（Docstring）described</li>
+<li>[ ] graphofaesthetics arranged（fontsize、grid、alpha）</li>
+<li>[ ] try-exceptwitherror handlingimplement and|（pymooofImportErrorsupport）</li>
+</ul>
+<hr/>
+<h3>3.12.9 troubleshootingskills（Troubleshooting）</h3>
+<h4>Foundation Level（error handling）</h4>
+<ul>
+<li>[ ] <code>ModuleNotFoundError</code>can solve（<code>pip install</code>）</li>
+<li>[ ] <code>ValueError: Input contains NaN</code>can solve（missing value handling）</li>
+<li>[ ] <code>ConvergenceWarning</code>（MLPofconvergence error）can solve</li>
+<li><code>max_iter</code>increase</li>
+<li>standardize data</li>
+<li>Early Stoppingenable</li>
+<li>[ ] read error message、search for solutioncan be done</li>
+</ul>
+<h4>Applied Level（performance improvement）</h4>
+<ul>
+<li>[ ] R² &lt; 0.7ofcase、3or moreofimprovement measuresimplementrowscan</li>
+<li>feature engineering</li>
+<li>modelchange（linear→nonlinear）</li>
+<li>hyperparametersadjustment</li>
+<li>[ ] can detect overfitting（trainingR² ≫ testR²）</li>
+<li>[ ] detect underfittingcan（trainingR²testR²also low）</li>
+</ul>
+<hr/>
+<h3>3.12.10 overallevaluation：proficiencyleveljudgment</h3>
+<p>or lessofleveljudgmentwith、selfminofplease check achievement level。</p>
+<h4>level1：beginner（Beginner）</h4>
+<ul>
+<li>Environment Setup Skills：Foundation Level 100%Achieved</li>
+<li>Data Processing &amp; Visualization Skills：Foundation Level 80%or more achieved</li>
+<li>Machine Learning Model Implementation Skills：Foundation Level 5middle3or moreimplementation</li>
+<li>troubleshooting：Foundation Leveloferrorselfcapabilitywithsolution</li>
+</ul>
+<p><strong>Learning Goal:</strong> nanoparticlesdatagenerationvisualization、linear regressionandrandom forestwithLSPRwavelengthpredictioncan implement</p>
+<hr/>
+<h4>level2：middleintermediate（Intermediate）</h4>
+<ul>
+<li>Environment Setup Skills：Applied Level 80%or more achieved</li>
+<li>Data Processing &amp; Visualization Skills：Foundation Level 100%Achieved + Applied Level 70%or more</li>
+<li>Machine Learning Model Implementation Skills：Foundation Level 100%Achieved + Applied Level 70%or more</li>
+<li>Feature Importance &amp; Model Interpretation Skills：Foundation Level 100%Achieved + Applied Level 50%or more</li>
+<li>Bayesian Optimization Skills：Foundation Level 100%Achieved + Applied Level 50%or more</li>
+</ul>
+<p><strong>Learning Goal:</strong> 5oftimesregressionmodelcomparison、Bayesian optimizationwithGoalLSPRwavelength（550 nm）Achievedfind synthesis conditionscan</p>
+<hr/>
+<h4>level3：advanced（Advanced）</h4>
+<ul>
+<li>all categories：Applied Level 100%Achieved</li>
+<li>Feature Importance &amp; Model Interpretation Skills：Advanced Level 80%or more</li>
+<li>Bayesian Optimization Skills：Advanced Level 80%or more</li>
+<li>multi-objective optimizationskills：Applied Level 100%Achieved</li>
+<li>nanomaterial-specificofsolutionanalysisskills：TEM、MD、anomaly detectionimplement all</li>
+</ul>
+<p><strong>Learning Goal:</strong> SHAPminanalysiswithmodel interpretation、multi-objective optimizationwithsizeandefficiencyoftrade-offvisualizationcan</p>
+<hr/>
+<h4>level4：expert（Expert）</h4>
+<ul>
+<li>all categories：Advanced Level 80%or more achieved</li>
+<li>code quality：Applied Level 100%Achieved</li>
+<li>originalselfofnanomaterial data（experimental dataisliterature data）toapplicationcan</li>
+<li>custom machine learning pipelineconstructioncan</li>
+<li>present research at conferences and publish paperscan</li>
+</ul>
+<p><strong>Learning Goal:</strong>
+- actual nanomaterial data（TEM、UV-Vis、XRD）integrated solutionanalysis
+- machine learningtonovel nanoparticlesofphysical properties90%or moreofaccuracywithprediction
+- Bayesian optimizationwithexperimentnumber of timesconventionalof1/5toreduction</p>
+<hr/>
+<h3>3.12.11 practical project check：Exerciseproblemofcompletion</h3>
+<h4>Exercise1Completion check（CNTelectrical conductivityprediction）</h4>
+<ul>
+<li>[ ] data generation（150samples、3features）implement</li>
+<li>[ ] LightGBMmodelwithpredictionimplement</li>
+<li>[ ] R² &gt; 0.8、RMSE &lt; 0.5Achieved</li>
+<li>[ ] feature importancevisualization</li>
+<li>[ ] resultsinterpretation（etcofwhich features are most influential）</li>
+</ul>
+<h4>Exercise2Completion check（optimal silver nanoparticle synthesis conditions）</h4>
+<ul>
+<li>[ ] silver nanoparticlesdata（100samples）generation</li>
+<li>[ ] LightGBMmodelconstruction</li>
+<li>[ ] Bayesian optimizationimplementrows（40timesevaluation）</li>
+<li>[ ] Target size（10 nm）andoferror &lt; 1 nmAchieved</li>
+<li>[ ] optimaltemperaturepHidentification</li>
+</ul>
+<h4>Exercise3Completion check（quantum dotsmulti-color emission design）</h4>
+<ul>
+<li>[ ] red, green, blueof3colortooptimizationimplementrows</li>
+<li>[ ] each colorofoptimalsizeidentify synthesis conditions</li>
+<li>[ ] predictionwavelengthGoalwavelength±10 nmwithintois within</li>
+<li>[ ] resultsvisualization（size vs wavelengthofplot）</li>
+</ul>
+<hr/>
+<h3>3.12.12 nextofto stepofreadiness check</h3>
+<h4>real-world application（Chapter 4）toofpreparation</h4>
+<ul>
+<li>[ ] machine learningofbasic workflow（data preparation→modeltraining→evaluation→optimization）understand</li>
+<li>[ ] nanomaterial-specificofdata（sizemindistribution、optical properties、electrical properties）can handle</li>
+<li>[ ] optimizationmethodmethod（Bayesian optimization、multi-objective optimization）can implement</li>
+<li>[ ] model interpretation（SHAP）ofunderstand importance</li>
+</ul>
+<h4>deep learning and graphsneural networktoofpreparation</h4>
+<ul>
+<li>[ ] neural network（MLP）implement and、activation functionoptimizationalgorithmunderstand</li>
+<li>[ ] learning curvevisualization、can detect overfitting</li>
+<li>[ ] Early Stoppingofunderstand the concept</li>
+</ul>
+<h4>to practical researchofpreparation</h4>
+<ul>
+<li>[ ] Jupyter Notebook|isPythonscriptwithcode managementcan</li>
+<li>[ ] requirements.txtwithreproducible environmentto|</li>
+<li>[ ] predictionresultsgraphing、reporttoSummarycan be</li>
+<li>[ ] codetodocumentation described</li>
+</ul>
+<hr/>
+<p><strong>use checklistofhint:</strong>
+1. <strong>regulartoreview</strong>: after learning、1weeks later、1months latertorecheck
+2. <strong>not yetAchievedprioritize items</strong>: checkwithcollect incomplete itemsmiddlelearning
+3. <strong>levelrecord judgment</strong>: growthvisualizationmaintain motivation
+4. <strong>actual projectwithofutilization</strong>: before research/development project starttorequiredskillsconfirmation</p>
+<hr/>
+<h2>References</h2>
+<ol>
+<li>
+<p><strong>Pedregosa, F. et al.</strong> (2011). Scikit-learn: Machine Learning in Python. <em>Journal of Machine Learning Research</em>, 12, 2825-2830.</p>
+</li>
+<li>
+<p><strong>Ke, G. et al.</strong> (2017). LightGBM: A highly efficient gradient boosting decision tree. <em>Advances in Neural Information Processing Systems</em>, 30, 3146-3154.</p>
+</li>
+<li>
+<p><strong>Lundberg, S. M. &amp; Lee, S.-I.</strong> (2017). A unified approach to interpreting model predictions. <em>Advances in Neural Information Processing Systems</em>, 30, 4765-4774.</p>
+</li>
+<li>
+<p><strong>Snoek, J., Larochelle, H., &amp; Adams, R. P.</strong> (2012). Practical Bayesian optimization of machine learning algorithms. <em>Advances in Neural Information Processing Systems</em>, 25, 2951-2959.</p>
+</li>
+<li>
+<p><strong>Deb, K. et al.</strong> (2002). A fast and elitist multiobjective genetic algorithm: NSGA-II. <em>IEEE Transactions on Evolutionary Computation</em>, 6(2), 182-197. <a href="https://doi.org/10.1109/4235.996017">DOI: 10.1109/4235.996017</a></p>
+</li>
+<li>
+<p><strong>Frenkel, D. &amp; Smit, B.</strong> (2001). <em>Understanding Molecular Simulation: From Algorithms to Applications</em> (2nd ed.). Academic Press.</p>
+</li>
+</ol>
+<hr/>
+<p><a href="chapter2-fundamentals.html">← previous chapter：nanomaterialsoffundamental principles</a> | <a href="chapter-4.html">next chapter：real worldofapplicationandcareer →</a></p>
+<div class="navigation">
+<a class="nav-button" href="chapter2-fundamentals.html">← beforeofchapter</a>
+<a class="nav-button" href="index.html">series table of contentstoreturn</a>
+<a class="nav-button" href="chapter-4.html">nextofchapter →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>disclaimer</h3>
+<ul>
+<li>this contentiseducation, research, information provisionofonly purposeand、professional advice(methodlegal, accounting, technical guarantees, etc)provideofinnot。</li>
+<li>this content and accompanying codeExampleis「as is(AS IS)」withprovided、explicitisimplicit or otherwise、merchantability、fitness for particular purpose、non-infringement、accuracy and completeness、no guarantee of operation, safety, etc。</li>
+<li>external links、data, tools provided by third partieslibraryetcofcontent, availability, safetyto、authors and Tohoku Universityisnoneofassume no responsibility。</li>
+<li>this contentofuse and implementationrowsinterpretationtodirect, indirect, incidental, specialclassificationresultspunitive damages occurredwith、applicationmethodwithmaximum extent permittedofrangewith、authors and Tohoku Universityisassume no responsibility。</li>
+<li>this contentofcontentis、subject to change, update, discontinuation without noticeandexists。</li>
+<li>this contentofcopyright and licenseisspecified conditions(Example: CC BY 4.0)tofollows。the licenseisnormal、includes no warranty clause。</li>
+</ul>
+</section>
+<footer>
+<p><strong>author</strong>: AI Terakoya Content Team</p>
+<p><strong>version</strong>: 1.0 | <strong>creation date</strong>: 2025-10-17</p>
+<p><strong>license</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

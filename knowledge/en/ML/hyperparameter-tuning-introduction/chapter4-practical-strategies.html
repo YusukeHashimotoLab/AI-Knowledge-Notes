@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 4: Practical Tuning Strategies - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 4: Practical Tuning Strategies - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+<script>
+        MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']], processEscapes: true, processEnvironments: true },
+            options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'], ignoreHtmlClass: 'mermaid' }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/hyperparameter-tuning-introduction/index.html">Hyperparameter Tuning</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 4</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/ML/hyperparameter-tuning-introduction/chapter4-practical-strategies.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 4: Practical Tuning Strategies</h1>
+<p class="subtitle">From Multi-Objective Optimization to Production Operations - Advanced Techniques for Real-World Use</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 25 minutes</span>
+<span class="meta-item">📊 Difficulty: Advanced</span>
+<span class="meta-item">💻 Code Examples: 6</span>
+<span class="meta-item">🎯 Practice-Oriented</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter focuses on practical applications of Practical Tuning Strategies. You will learn Achieving tradeoff balance through multi-objective optimization.</p>
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will master:</p>
+<ul>
+<li>✅ Achieving tradeoff balance through multi-objective optimization</li>
+<li>✅ Efficient narrowing of search space using Early Stopping</li>
+<li>✅ Scalable hyperparameter tuning in distributed environments</li>
+<li>✅ Leveraging prior knowledge through transfer learning and warm start</li>
+<li>✅ Practical tuning operation guidelines for production environments</li>
+</ul>
+<h2>1. Multi-Objective Optimization</h2>
+<p>In real ML systems, you need to balance multiple metrics beyond just accuracy, including latency, model size, and inference cost.</p>
+<h3>1.1 Accuracy vs Latency Tradeoff</h3>
+<p>Single-objective optimization may select models unsuitable for real-world operations. For example:</p>
+<ul>
+<li><strong>High accuracy but slow models:</strong> Unsuitable for real-time inference</li>
+<li><strong>Fast but low accuracy models:</strong> Do not meet business requirements</li>
+<li><strong>Balanced models:</strong> Practical compromise</li>
+</ul>
+<div class="mermaid">
+graph LR
+    A[Accuracy-focused] --&gt;|Tradeoff| B[Pareto Frontier]
+    C[Speed-focused] --&gt;|Tradeoff| B
+    B --&gt; D[Set of optimal solutions]
+    D --&gt; E[Select based on business requirements]
+</div>
+<h3>1.2 Understanding the Pareto Frontier</h3>
+<p>The Pareto frontier is the set of solutions where no metric can be improved without degrading another. This allows selecting the optimal model from multiple candidates.</p>
+<blockquote>
+<strong>Pareto Optimality:</strong> A state where a solution is not inferior in all metrics and is superior in at least one metric.
+</blockquote>
+<h3>1.3 Multi-Objective Optimization in Optuna</h3>
+<p>Optuna supports multi-objective optimization that simultaneously optimizes multiple objective functions.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - optuna&gt;=3.2.0
+
+import optuna
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
+from sklearn.datasets import load_breast_cancer
+import time
+import numpy as np
+
+# Dataset preparation
+X, y = load_breast_cancer(return_X_y=True)
+
+def objective(trial):
+    """Optimize accuracy and latency simultaneously"""
+    # Suggest hyperparameters
+    params = {
+        'n_estimators': trial.suggest_int('n_estimators', 10, 200),
+        'max_depth': trial.suggest_int('max_depth', 2, 32),
+        'min_samples_split': trial.suggest_int('min_samples_split', 2, 20),
+        'min_samples_leaf': trial.suggest_int('min_samples_leaf', 1, 10),
+        'max_features': trial.suggest_categorical('max_features', ['sqrt', 'log2', None])
+    }
+
+    # Model training and accuracy evaluation
+    clf = RandomForestClassifier(**params, random_state=42, n_jobs=-1)
+    accuracy = cross_val_score(clf, X, y, cv=3, n_jobs=-1).mean()
+
+    # Latency measurement (inference time)
+    clf.fit(X, y)
+    start_time = time.time()
+    _ = clf.predict(X[:100])  # Measure inference time for 100 samples
+    latency = (time.time() - start_time) * 1000  # milliseconds
+
+    # Return two objectives: maximize accuracy, minimize latency
+    return accuracy, latency
+
+# Multi-objective optimization study
+study = optuna.create_study(
+    directions=['maximize', 'minimize'],  # Maximize accuracy, minimize latency
+    study_name='multi_objective_optimization'
+)
+
+study.optimize(objective, n_trials=50)
+
+# Get Pareto frontier solutions
+print("=== Pareto Optimal Solutions ===")
+for trial in study.best_trials:
+    print(f"Trial {trial.number}:")
+    print(f"  Accuracy: {trial.values[0]:.4f}")
+    print(f"  Latency: {trial.values[1]:.2f} ms")
+    print(f"  Params: {trial.params}\n")
+</code></pre>
+<div class="tip-box">
+<strong>💡 Practical Tips:</strong>
+<ul>
+<li>Limit number of objectives to 2-3 (4+ becomes difficult to interpret)</li>
+<li>Align the scale of each objective function (normalization recommended)</li>
+<li>Select final model from Pareto frontier based on business requirements</li>
+</ul>
+</div>
+<h3>1.4 Visualizing the Pareto Frontier</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+
+import matplotlib.pyplot as plt
+
+def visualize_pareto_frontier(study):
+    """Visualize the Pareto frontier"""
+    # Get all trial results
+    trials = study.trials
+    accuracies = [t.values[0] for t in trials]
+    latencies = [t.values[1] for t in trials]
+
+    # Get Pareto optimal solutions
+    pareto_trials = study.best_trials
+    pareto_accuracies = [t.values[0] for t in pareto_trials]
+    pareto_latencies = [t.values[1] for t in pareto_trials]
+
+    # Plot
+    plt.figure(figsize=(10, 6))
+    plt.scatter(latencies, accuracies, alpha=0.5, label='All trials')
+    plt.scatter(pareto_latencies, pareto_accuracies,
+                color='red', s=100, marker='*', label='Pareto frontier')
+
+    # Connect Pareto frontier with lines
+    sorted_pareto = sorted(zip(pareto_latencies, pareto_accuracies))
+    plt.plot([p[0] for p in sorted_pareto], [p[1] for p in sorted_pareto],
+             'r--', alpha=0.5)
+
+    plt.xlabel('Latency (ms)')
+    plt.ylabel('Accuracy')
+    plt.title('Multi-Objective Optimization: Accuracy vs Latency')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+
+visualize_pareto_frontier(study)
+</code></pre>
+<h2>2. Early Stopping Strategy</h2>
+<p>By terminating unpromising trials early, you can use computational resources efficiently and perform more exploration.</p>
+<h3>2.1 Importance of Pruning</h3>
+<p>In hyperparameter tuning, many trials do not ultimately yield good results, so early termination is the key to efficiency.</p>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Characteristics</th>
+<th>Application Scenarios</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MedianPruner</td>
+<td>Terminates trials that are worse than median</td>
+<td>General purpose, balanced</td>
+</tr>
+<tr>
+<td>PercentilePruner</td>
+<td>Terminates trials not in top X%</td>
+<td>When aggressive exploration reduction is needed</td>
+</tr>
+<tr>
+<td>SuccessiveHalvingPruner</td>
+<td>Allocates resources progressively</td>
+<td>When learning curves are available</td>
+</tr>
+<tr>
+<td>HyperbandPruner</td>
+<td>Runs multiple SuccessiveHalving in parallel</td>
+<td>Large-scale exploration, state-of-the-art method</td>
+</tr>
+</tbody>
+</table>
+<h3>2.2 Implementing MedianPruner</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - optuna&gt;=3.2.0
+
+import optuna
+from optuna.pruners import MedianPruner
+from sklearn.model_selection import cross_validate
+from sklearn.ensemble import GradientBoostingClassifier
+import numpy as np
+
+def objective_with_pruning(trial):
+    """Objective function with pruning"""
+    params = {
+        'n_estimators': trial.suggest_int('n_estimators', 50, 500),
+        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3),
+        'max_depth': trial.suggest_int('max_depth', 3, 10),
+        'subsample': trial.suggest_float('subsample', 0.5, 1.0),
+    }
+
+    clf = GradientBoostingClassifier(**params, random_state=42)
+
+    # Progressive evaluation (report intermediate progress)
+    for step in range(5):
+        # Evaluate with progressively increasing n_estimators
+        intermediate_clf = GradientBoostingClassifier(
+            n_estimators=(step + 1) * 20,
+            learning_rate=params['learning_rate'],
+            max_depth=params['max_depth'],
+            subsample=params['subsample'],
+            random_state=42
+        )
+
+        # Intermediate evaluation
+        scores = cross_validate(intermediate_clf, X, y, cv=3,
+                                scoring='accuracy', n_jobs=-1)
+        intermediate_score = scores['test_score'].mean()
+
+        # Report intermediate result
+        trial.report(intermediate_score, step)
+
+        # Pruning decision
+        if trial.should_prune():
+            raise optuna.TrialPruned()
+
+    # Final evaluation
+    final_scores = cross_validate(clf, X, y, cv=5, scoring='accuracy', n_jobs=-1)
+    return final_scores['test_score'].mean()
+
+# Study with MedianPruner
+pruner = MedianPruner(
+    n_startup_trials=5,  # Do not prune first 5 trials
+    n_warmup_steps=2,    # Do not prune first 2 steps
+    interval_steps=1     # Make pruning decision at each step
+)
+
+study = optuna.create_study(
+    direction='maximize',
+    pruner=pruner,
+    study_name='pruning_optimization'
+)
+
+study.optimize(objective_with_pruning, n_trials=50)
+
+print(f"Best accuracy: {study.best_value:.4f}")
+print(f"Best params: {study.best_params}")
+print(f"Pruned trials: {len([t for t in study.trials if t.state == optuna.trial.TrialState.PRUNED])}")
+print(f"Completed trials: {len([t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE])}")
+</code></pre>
+<h3>2.3 Implementing PercentilePruner</h3>
+<pre><code class="language-python">from optuna.pruners import PercentilePruner
+
+# PercentilePruner: Terminate trials not in top 25%
+pruner = PercentilePruner(
+    percentile=25.0,      # Only top 25% continue
+    n_startup_trials=5,   # First 5 trials always complete
+    n_warmup_steps=2      # Do not prune first 2 steps
+)
+
+study = optuna.create_study(
+    direction='maximize',
+    pruner=pruner,
+    study_name='percentile_pruning'
+)
+
+study.optimize(objective_with_pruning, n_trials=50)
+
+# Analyze pruning effectiveness
+pruned_count = len([t for t in study.trials if t.state == optuna.trial.TrialState.PRUNED])
+completed_count = len([t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE])
+pruning_rate = pruned_count / len(study.trials) * 100
+
+print(f"Pruning rate: {pruning_rate:.1f}%")
+print(f"Time saved: ~{pruning_rate * 0.8:.1f}% (estimated)")
+</code></pre>
+<div class="warning-box">
+<strong>⚠️ Cautions:</strong>
+<ul>
+<li>Too aggressive pruning may terminate promising trials</li>
+<li>Adjust n_startup_trials according to search space complexity</li>
+<li>Increase n_warmup_steps if learning curves are unstable</li>
+</ul>
+</div>
+<h2>3. Distributed Hyperparameter Tuning</h2>
+<p>For large search spaces or computationally expensive models, executing tuning in a distributed environment can significantly reduce time.</p>
+<h3>3.1 How Optuna Distributed Optimization Works</h3>
+<p>Optuna allows multiple workers to collaboratively execute optimization through shared storage (RDB, Redis, etc.).</p>
+<div class="mermaid">
+graph TD
+    A[Shared Storage<br/>RDB/Redis] --&gt; B[Worker 1]
+    A --&gt; C[Worker 2]
+    A --&gt; D[Worker 3]
+    A --&gt; E[Worker N]
+    B --&gt; F[Save trial results]
+    C --&gt; F
+    D --&gt; F
+    E --&gt; F
+    F --&gt; A
+</div>
+<h3>3.2 Distributed Optimization with RDB</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - optuna&gt;=3.2.0
+
+"""
+Example: 3.2 Distributed Optimization with RDB
+
+Purpose: Demonstrate optimization techniques
+Target: Advanced
+Execution time: 10-30 seconds
+Dependencies: None
+"""
+
+import optuna
+from optuna.storages import RDBStorage
+
+# Shared storage configuration (PostgreSQL example)
+storage = RDBStorage(
+    url='postgresql://user:password@localhost/optuna_db',
+    engine_kwargs={
+        'pool_size': 20,
+        'max_overflow': 0,
+    }
+)
+
+# Create distributed study (shared among multiple workers)
+study = optuna.create_study(
+    study_name='distributed_optimization',
+    storage=storage,
+    direction='maximize',
+    load_if_exists=True  # Reuse existing study if present
+)
+
+# Execute this code on each worker
+def objective(trial):
+    x = trial.suggest_float('x', -10, 10)
+    y = trial.suggest_float('y', -10, 10)
+    return -(x**2 + y**2)
+
+# Each worker optimizes in parallel
+study.optimize(objective, n_trials=100)
+
+print(f"Best value: {study.best_value}")
+print(f"Best params: {study.best_params}")
+print(f"Total trials: {len(study.trials)}")
+</code></pre>
+<div class="tip-box">
+<strong>💡 Best Practices for Distributed Optimization:</strong>
+<ul>
+<li><strong>Storage Selection:</strong> Small-medium scale→SQLite, large scale→PostgreSQL/MySQL, ultra-fast→Redis</li>
+<li><strong>Number of Workers:</strong> Consider CPU count, network bandwidth, storage performance</li>
+<li><strong>Load Balancing:</strong> Adjust n_trials for each worker to balance load</li>
+</ul>
+</div>
+<h3>3.3 Distributed Tuning with Ray Tune</h3>
+<p>Ray Tune is a framework specialized for distributed execution and scheduling, suitable for parallel tuning on large clusters.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - ray&gt;=2.5.0
+
+from ray import tune
+from ray.tune.schedulers import ASHAScheduler
+from ray.tune.search.optuna import OptunaSearch
+import numpy as np
+
+def train_model(config):
+    """Training function (Ray Tune executes in parallel)"""
+    # Simulation: implement actual model training
+    for epoch in range(10):
+        # Training using config['lr'] and config['batch_size']
+        accuracy = 1 - (config['lr'] - 0.01)**2 - (config['batch_size'] - 32)**2 / 1000
+        accuracy += np.random.normal(0, 0.01)  # Noise
+
+        # Report intermediate result
+        tune.report(accuracy=accuracy)
+
+# Define search space
+search_space = {
+    'lr': tune.loguniform(1e-4, 1e-1),
+    'batch_size': tune.choice([16, 32, 64, 128]),
+    'hidden_size': tune.choice([64, 128, 256, 512]),
+}
+
+# ASHA Scheduler (efficient early stopping)
+scheduler = ASHAScheduler(
+    max_t=10,           # Maximum epochs
+    grace_period=1,     # Minimum execution epochs
+    reduction_factor=2  # Terminate half at each stage
+)
+
+# Use Optuna search algorithm
+search_alg = OptunaSearch()
+
+# Execute distributed tuning
+analysis = tune.run(
+    train_model,
+    config=search_space,
+    num_samples=50,           # Number of trials
+    scheduler=scheduler,
+    search_alg=search_alg,
+    resources_per_trial={     # Resources per trial
+        'cpu': 2,
+        'gpu': 0.5
+    },
+    verbose=1
+)
+
+# Get optimal parameters
+best_config = analysis.best_config
+print(f"Best config: {best_config}")
+print(f"Best accuracy: {analysis.best_result['accuracy']:.4f}")
+</code></pre>
+<h3>3.4 Scalability Considerations</h3>
+<table>
+<thead>
+<tr>
+<th>Scale</th>
+<th>Recommended Framework</th>
+<th>Storage</th>
+<th>Number of Workers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Small scale (~100 trials)</td>
+<td>Optuna</td>
+<td>SQLite</td>
+<td>1-4</td>
+</tr>
+<tr>
+<td>Medium scale (100-1000 trials)</td>
+<td>Optuna</td>
+<td>PostgreSQL</td>
+<td>4-16</td>
+</tr>
+<tr>
+<td>Large scale (1000-10000 trials)</td>
+<td>Ray Tune</td>
+<td>PostgreSQL/Redis</td>
+<td>16-64</td>
+</tr>
+<tr>
+<td>Ultra-large scale (10000+ trials)</td>
+<td>Ray Tune</td>
+<td>Distributed Redis</td>
+<td>64+</td>
+</tr>
+</tbody>
+</table>
+<h2>4. Transfer Learning and Warm Start</h2>
+<p>By leveraging past tuning results and knowledge from similar tasks, exploration can be greatly streamlined.</p>
+<h3>4.1 Leveraging Prior Knowledge</h3>
+<p>Rather than starting tuning from scratch, this approach begins exploration from known good hyperparameters.</p>
+<h4>Benefits of Warm Start</h4>
+<ul>
+<li><strong>Reduced exploration time:</strong> Faster convergence by starting from good initial values</li>
+<li><strong>Risk reduction:</strong> Can guarantee minimum performance</li>
+<li><strong>Knowledge accumulation:</strong> Can leverage past experience</li>
+</ul>
+<h3>4.2 Implementing Warm Start in Optuna</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - optuna&gt;=3.2.0
+
+"""
+Example: 4.2 Implementing Warm Start in Optuna
+
+Purpose: Demonstrate optimization techniques
+Target: Advanced
+Execution time: 10-30 seconds
+Dependencies: None
+"""
+
+import optuna
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
+
+# Known good hyperparameters (from past experience or domain knowledge)
+known_good_params = [
+    {'n_estimators': 100, 'max_depth': 10, 'min_samples_split': 5},
+    {'n_estimators': 200, 'max_depth': 15, 'min_samples_split': 2},
+    {'n_estimators': 150, 'max_depth': 12, 'min_samples_split': 4},
+]
+
+def objective(trial):
+    params = {
+        'n_estimators': trial.suggest_int('n_estimators', 50, 300),
+        'max_depth': trial.suggest_int('max_depth', 5, 20),
+        'min_samples_split': trial.suggest_int('min_samples_split', 2, 10),
+    }
+
+    clf = RandomForestClassifier(**params, random_state=42, n_jobs=-1)
+    score = cross_val_score(clf, X, y, cv=3, n_jobs=-1).mean()
+    return score
+
+# Create study
+study = optuna.create_study(direction='maximize')
+
+# Warm start: Add known good parameters in advance
+for params in known_good_params:
+    study.enqueue_trial(params)
+
+# Execute optimization (enqueued trials are executed preferentially)
+study.optimize(objective, n_trials=50)
+
+print(f"Best score: {study.best_value:.4f}")
+print(f"Best params: {study.best_params}")
+
+# Check effectiveness of pre-registered parameters
+warmstart_trials = study.trials[:len(known_good_params)]
+print("\n=== Warmstart trials performance ===")
+for i, trial in enumerate(warmstart_trials):
+    print(f"Params {i+1}: {trial.params} -&gt; Score: {trial.value:.4f}")
+</code></pre>
+<h3>4.3 Applications of Meta-Learning</h3>
+<p>A technique that learns from multiple similar tasks and predicts good initial parameters for new tasks.</p>
+<blockquote>
+<strong>Meta-Learning:</strong> Called "learning to learn," a technology that accelerates adaptation to new tasks from experience on multiple tasks.
+</blockquote>
+<h4>Practical Meta-Learning Approaches</h4>
+<ol>
+<li><strong>Save past tuning history:</strong> Record pairs of dataset characteristics and best parameters</li>
+<li><strong>Search similar tasks:</strong> Identify past tasks similar to new tasks</li>
+<li><strong>Parameter recommendation:</strong> Use best parameters from similar tasks as initial values</li>
+</ol>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import json
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+
+class MetaLearningOptimizer:
+    """Hyperparameter optimization using meta-learning"""
+
+    def __init__(self, history_file='tuning_history.json'):
+        self.history_file = history_file
+        self.history = self.load_history()
+
+    def load_history(self):
+        """Load past tuning history"""
+        try:
+            with open(self.history_file, 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return []
+
+    def save_history(self, dataset_features, best_params, best_score):
+        """Save new tuning results"""
+        self.history.append({
+            'dataset_features': dataset_features,
+            'best_params': best_params,
+            'best_score': best_score
+        })
+        with open(self.history_file, 'w') as f:
+            json.dump(self.history, f, indent=2)
+
+    def get_dataset_features(self, X, y):
+        """Extract dataset features"""
+        return {
+            'n_samples': X.shape[0],
+            'n_features': X.shape[1],
+            'n_classes': len(np.unique(y)),
+            'class_imbalance': np.std(np.bincount(y)) / np.mean(np.bincount(y)),
+            'feature_correlation': np.mean(np.abs(np.corrcoef(X.T))),
+        }
+
+    def find_similar_tasks(self, current_features, top_k=3):
+        """Search for similar tasks"""
+        if not self.history:
+            return []
+
+        # Vectorize features
+        current_vec = np.array(list(current_features.values())).reshape(1, -1)
+
+        similarities = []
+        for record in self.history:
+            hist_vec = np.array(list(record['dataset_features'].values())).reshape(1, -1)
+            sim = cosine_similarity(current_vec, hist_vec)[0][0]
+            similarities.append((sim, record))
+
+        # Sort by similarity
+        similarities.sort(reverse=True, key=lambda x: x[0])
+        return [record for _, record in similarities[:top_k]]
+
+    def get_warmstart_params(self, X, y):
+        """Recommend parameters for warm start"""
+        current_features = self.get_dataset_features(X, y)
+        similar_tasks = self.find_similar_tasks(current_features)
+
+        if not similar_tasks:
+            return []
+
+        # Return best parameters from similar tasks
+        return [task['best_params'] for task in similar_tasks]
+
+# Usage example
+meta_optimizer = MetaLearningOptimizer()
+
+# Warm start for new task
+warmstart_params = meta_optimizer.get_warmstart_params(X, y)
+
+if warmstart_params:
+    print("=== Recommended warmstart parameters ===")
+    for i, params in enumerate(warmstart_params):
+        print(f"Recommendation {i+1}: {params}")
+
+    # Warm start with Optuna
+    study = optuna.create_study(direction='maximize')
+    for params in warmstart_params:
+        study.enqueue_trial(params)
+    study.optimize(objective, n_trials=50)
+else:
+    # If no history, perform normal optimization
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=50)
+
+# Save results to history
+dataset_features = meta_optimizer.get_dataset_features(X, y)
+meta_optimizer.save_history(dataset_features, study.best_params, study.best_value)
+</code></pre>
+<h3>4.4 Practical Approaches to Transfer Learning</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Application Scenarios</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Warm Start</td>
+<td>Experience with similar tasks</td>
+<td>20-40% reduction in exploration time</td>
+</tr>
+<tr>
+<td>Meta-Learning</td>
+<td>Many past tasks available</td>
+<td>Improved initial performance + exploration efficiency</td>
+</tr>
+<tr>
+<td>Domain Knowledge Injection</td>
+<td>Expert insights available</td>
+<td>Risk reduction + fast convergence</td>
+</tr>
+<tr>
+<td>Ensemble Utilization</td>
+<td>Multiple candidate parameters</td>
+<td>Improved robustness</td>
+</tr>
+</tbody>
+</table>
+<h2>5. Practical Tuning Guide</h2>
+<p>This section explains best practices for applying theory to practical work, debugging techniques, and production operation know-how.</p>
+<h3>5.1 Best Practices for Search Space Design</h3>
+<h4>Principles for Effective Search Space Design</h4>
+<ol>
+<li><strong>Prioritize by impact</strong>
+<ul>
+<li>Learning rate, regularization parameters → High priority</li>
+<li>Batch size, number of epochs → Medium priority</li>
+<li>Fine-tuning parameters → Low priority</li>
+</ul>
+</li>
+<li><strong>Select appropriate scale</strong>
+<ul>
+<li>Learning rate: Logarithmic scale (loguniform)</li>
+<li>Regularization strength: Logarithmic scale</li>
+<li>Number of layers, units: Integer, linear scale</li>
+</ul>
+</li>
+<li><strong>Utilize conditional parameters</strong>
+<ul>
+<li>Parameters dependent on specific choices use conditional branching</li>
+</ul>
+</li>
+</ol>
+<div class="tip-box">
+<strong>💡 Search Space Design Checklist:</strong>
+<ul>
+<li>✅ Are parameter dependencies clearly defined?</li>
+<li>✅ Are appropriate distributions (uniform, loguniform, etc.) selected?</li>
+<li>✅ Is the search range neither too wide nor too narrow?</li>
+<li>✅ Have computationally expensive parameters been narrowed down?</li>
+</ul>
+</div>
+<h3>5.2 Debugging and Troubleshooting</h3>
+<h4>Common Problems and Solutions</h4>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No convergence</td>
+<td>Search space too wide</td>
+<td>Narrow range with preliminary experiments</td>
+</tr>
+<tr>
+<td>Same parameters repeatedly</td>
+<td>Sampler bias</td>
+<td>Compare with RandomSampler</td>
+</tr>
+<tr>
+<td>Too much pruning</td>
+<td>Pruner settings too strict</td>
+<td>Increase n_warmup_steps</td>
+</tr>
+<tr>
+<td>Unstable results</td>
+<td>Evaluation randomness</td>
+<td>Increase CV folds, fix seed</td>
+</tr>
+<tr>
+<td>Out of memory</td>
+<td>Model too large</td>
+<td>Reduce batch size, gradient accumulation</td>
+</tr>
+</tbody>
+</table>
+<h4>Visualization for Debugging</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - optuna&gt;=3.2.0
+
+"""
+Example: Visualization for Debugging
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 10-30 seconds
+Dependencies: None
+"""
+
+import optuna
+from optuna.visualization import (
+    plot_optimization_history,
+    plot_param_importances,
+    plot_parallel_coordinate,
+    plot_slice
+)
+
+# Visualization after optimization execution
+study = optuna.create_study(direction='maximize')
+study.optimize(objective, n_trials=100)
+
+# 1. Optimization history: Check if improving over time
+fig1 = plot_optimization_history(study)
+fig1.show()
+
+# 2. Parameter importance: Check which parameters are important
+fig2 = plot_param_importances(study)
+fig2.show()
+
+# 3. Parallel coordinate plot: Check relationships between parameters
+fig3 = plot_parallel_coordinate(study)
+fig3.show()
+
+# 4. Slice plot: Check individual parameter effects
+fig4 = plot_slice(study)
+fig4.show()
+</code></pre>
+<h3>5.3 Production Environment Operations</h3>
+<h4>Production Operations Workflow</h4>
+<div class="mermaid">
+graph TD
+    A[Development environment exploration] --&gt; B[Select candidate parameters]
+    B --&gt; C[Verify in staging environment]
+    C --&gt; D{Performance &amp; stability OK?}
+    D --&gt;|No| A
+    D --&gt;|Yes| E[Production deployment]
+    E --&gt; F[Monitoring]
+    F --&gt; G{Performance degradation detected?}
+    G --&gt;|Yes| H[Re-tuning]
+    G --&gt;|No| F
+    H --&gt; A
+</div>
+<h4>Best Practices for Production Operations</h4>
+<ol>
+<li><strong>Gradual Rollout</strong>
+<ul>
+<li>Canary deployment: Verify with a portion of traffic</li>
+<li>A/B testing: Parallel operation with existing model</li>
+<li>Gradual switching: Immediate rollback if problems occur</li>
+</ul>
+</li>
+<li><strong>Continuous Monitoring</strong>
+<ul>
+<li>Track prediction performance (accuracy, AUC, etc.)</li>
+<li>Monitor latency and throughput</li>
+<li>Data drift detection</li>
+</ul>
+</li>
+<li><strong>Regular Re-tuning</strong>
+<ul>
+<li>Perform quarterly or as data distribution changes</li>
+<li>Evaluate new algorithms and techniques</li>
+<li>Meta-learning leveraging past results</li>
+</ul>
+</li>
+</ol>
+<div class="warning-box">
+<strong>⚠️ Cautions for Production Operations:</strong>
+<ul>
+<li><strong>Ensure reproducibility:</strong> Fix random seeds and library versions</li>
+<li><strong>Backup:</strong> Maintain ability to restore existing model at any time</li>
+<li><strong>Documentation:</strong> Record tuning history and reasons for parameter changes</li>
+<li><strong>Alert setup:</strong> Automatic notification on performance degradation</li>
+</ul>
+</div>
+<h3>5.4 Summary of Practical Tuning Strategies</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Purpose</th>
+<th>Recommended Method</th>
+<th>Number of Trials</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Initial exploration</td>
+<td>Understand overall picture</td>
+<td>Random Search</td>
+<td>20-50</td>
+</tr>
+<tr>
+<td>Narrowing</td>
+<td>Identify promising regions</td>
+<td>TPE + Pruning</td>
+<td>50-100</td>
+</tr>
+<tr>
+<td>Precision exploration</td>
+<td>Find optimal solution</td>
+<td>CMA-ES/GP</td>
+<td>100-200</td>
+</tr>
+<tr>
+<td>Multi-objective</td>
+<td>Adjust tradeoffs</td>
+<td>Multi-objective TPE</td>
+<td>100-300</td>
+</tr>
+<tr>
+<td>Production verification</td>
+<td>Final confirmation</td>
+<td>Increase cross-validation</td>
+<td>5-10</td>
+</tr>
+</tbody>
+</table>
+<h3>5.5 Tuning Efficiency Cheat Sheet</h3>
+<blockquote>
+<strong>Quick tuning procedure when time is limited:</strong>
+<ol>
+<li>Set initial values from domain knowledge/past experience (warm start)</li>
+<li>Narrow down to 2-3 important parameters for exploration (learning rate, regularization)</li>
+<li>Enable MedianPruner to reduce wasteful trials</li>
+<li>Parallel execution (4-8 workers) to reduce time</li>
+<li>Ensure practical performance with 50-100 trials</li>
+</ol>
+</blockquote>
+<h2>End-of-Chapter Exercises</h2>
+<details>
+<summary><strong>Exercise 1: Implementing Multi-Objective Optimization (Difficulty: Medium)</strong></summary>
+<p>Implement an Optuna study that simultaneously optimizes accuracy, inference time, and model size. Visualize the Pareto frontier and select a solution that meets business requirements (accuracy ≥0.90, inference time ≤50ms).</p>
+</details>
+<details>
+<summary><strong>Exercise 2: Comparing Pruning Strategies (Difficulty: Medium)</strong></summary>
+<p>Compare MedianPruner, PercentilePruner, and HyperbandPruner through experiments. For the same objective function, compare the pruning rate, final performance, and computation time of each pruner, and evaluate which is most efficient.</p>
+</details>
+<details>
+<summary><strong>Exercise 3: Implementing Distributed Tuning (Difficulty: Advanced)</strong></summary>
+<p>Implement Optuna distributed optimization using PostgreSQL. Access the study simultaneously from 3 different workers and efficiently execute a total of 150 trials. Analyze each worker's contribution.</p>
+</details>
+<details>
+<summary><strong>Exercise 4: Building a Meta-Learning System (Difficulty: Advanced)</strong></summary>
+<p>Build a meta-learning system that performs tuning on multiple datasets (UCI ML Repository, etc.) and recommends optimal hyperparameters for new datasets based on that history.</p>
+</details>
+<details>
+<summary><strong>Exercise 5: Production Operations Simulation (Difficulty: Advanced)</strong></summary>
+<p>Using time series data, implement a production operations simulation. Create a mechanism to detect performance degradation when data drift occurs and automatically trigger re-tuning.</p>
+</details>
+<h2>Summary</h2>
+<p>In this chapter, we learned practical hyperparameter tuning strategies:</p>
+<ul>
+<li>✅ <strong>Multi-objective optimization:</strong> Solve tradeoffs between multiple metrics like accuracy and latency with Pareto frontier</li>
+<li>✅ <strong>Early Stopping:</strong> Dramatically improve computational efficiency by pruning unpromising trials</li>
+<li>✅ <strong>Distributed tuning:</strong> Achieve large-scale exploration through parallel execution using RDB or Redis</li>
+<li>✅ <strong>Transfer learning:</strong> Streamline exploration through warm start and meta-learning leveraging past knowledge</li>
+<li>✅ <strong>Production operations:</strong> Workflow of gradual deployment, continuous monitoring, and regular re-tuning</li>
+</ul>
+<p>By combining these techniques, you can achieve high-quality and efficient hyperparameter tuning required in practical work.</p>
+<div class="project-box">
+<h3>📊 Practical Project: End-to-End Tuning Pipeline</h3>
+<p>Build an end-to-end tuning pipeline that integrates all the techniques learned in this chapter to solve real business challenges:</p>
+<ol>
+<li>Select a Kaggle competition or real dataset</li>
+<li>Optimize accuracy and inference time with multi-objective optimization</li>
+<li>Streamline exploration with pruning, reduce time with distributed execution</li>
+<li>Leverage past knowledge with meta-learning</li>
+<li>Implement monitoring and re-tuning mechanisms for production operations</li>
+</ol>
+<p>Through this project, establish production-level hyperparameter tuning skills.</p>
+</div>
+<div class="navigation">
+<a class="nav-button" href="chapter3-advanced-methods.html">← Chapter 3: Advanced Optimization Methods</a>
+<a class="nav-button" href="index.html">Return to Table of Contents</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is intended solely for educational, research, and informational purposes, and does not provide professional advice (legal, accounting, technical guarantees, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The authors and Tohoku University assume no responsibility for the content, availability, or safety of external links, data, tools, libraries, etc. provided by third parties.</li>
+<li>To the maximum extent permitted by applicable law, the authors and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+<footer>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

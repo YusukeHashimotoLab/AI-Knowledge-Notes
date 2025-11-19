@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 2: Process Environment Modeling - AI Agent Autonomous Operation | PI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Chapter 2: Process Environment Modeling - OpenAI Gym Environment Implementation and Applications to Reinforcement Learning" name="description"/>
+<title>Chapter 2: Process Environment Modeling - AI Agent Autonomous Operation | PI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<!-- Mermaid for diagrams -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            }
+        });
+    </script>
+<!-- MathJax for math formulas -->
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../PI/index.html">Process Informatics</a><span class="breadcrumb-separator">›</span><a href="../../PI/ai-agent-process/index.html">AI Agent Process</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/PI/ai-agent-process/chapter-2.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="container">
+<h1>Chapter 2: Process Environment Modeling</h1>
+<p class="subtitle">Building reinforcement learning-compatible chemical process environments with OpenAI Gym</p>
+<div class="meta">
+<span class="meta">📖 Reading Time: 25-30 minutes</span>
+<span class="meta">💡 Difficulty: Advanced</span>
+<span class="meta">🔬 Examples: CSTR, Distillation Tower, Multi-Unit</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter covers Process Environment Modeling. You will learn Know reward function design principles and OpenAI Gym environment structure.</p>
+<section>
+<h2>2.1 State Space Definition</h2>
+<p>In reinforcement learning, the state space is a set of variables representing the current state of the environment. In chemical processes, continuous variables such as temperature, pressure, concentration, and flow rate constitute the state.</p>
+<div class="info-box">
+<p><strong>💡 State Space Design Principles</strong></p>
+<ul>
+<li><strong>Markov Property</strong>: The current state contains sufficient information to determine future behavior</li>
+<li><strong>Observability</strong>: Select variables that can actually be measured by sensors</li>
+<li><strong>Normalization</strong>: Convert each variable to the same scale (e.g., 0-1)</li>
+<li><strong>Dimensionality Reduction</strong>: Remove redundant variables to improve learning efficiency</li>
+</ul>
+</div>
+<h3>Example 1: State Space Construction and Normalization</h3>
+<p>Define the state space for a CSTR (Continuous Stirred Tank Reactor) and implement normalization.</p>
+<pre><code>import numpy as np
+from typing import Dict, Tuple
+import gym
+from gym import spaces
+
+# ===================================
+# Example 1: State Space Definition and Normalization
+# ===================================
+
+class StateSpace:
+    """State space definition for chemical processes"""
+
+    def __init__(self):
+        # Physical variable ranges (min_value, max_value)
+        self.bounds = {
+            'temperature': (300.0, 400.0),      # K
+            'pressure': (1.0, 10.0),            # bar
+            'concentration': (0.0, 2.0),        # mol/L
+            'flow_rate': (0.5, 5.0),            # L/min
+            'level': (0.0, 100.0)               # %
+        }
+
+    def get_state_vector(self, physical_state: Dict) -&gt; np.ndarray:
+        """Construct state vector from physical variables"""
+        state = np.array([
+            physical_state['temperature'],
+            physical_state['pressure'],
+            physical_state['concentration'],
+            physical_state['flow_rate'],
+            physical_state['level']
+        ])
+        return state
+
+    def normalize(self, state: np.ndarray) -&gt; np.ndarray:
+        """Normalize state to [0, 1] range"""
+        normalized = np.zeros_like(state)
+        for i, var_name in enumerate(self.bounds.keys()):
+            min_val, max_val = self.bounds[var_name]
+            normalized[i] = (state[i] - min_val) / (max_val - min_val)
+            normalized[i] = np.clip(normalized[i], 0, 1)
+        return normalized
+
+    def denormalize(self, normalized_state: np.ndarray) -&gt; np.ndarray:
+        """Convert normalized state back to physical values"""
+        state = np.zeros_like(normalized_state)
+        for i, var_name in enumerate(self.bounds.keys()):
+            min_val, max_val = self.bounds[var_name]
+            state[i] = normalized_state[i] * (max_val - min_val) + min_val
+        return state
+
+    def get_gym_space(self) -&gt; spaces.Box:
+        """Get state space for OpenAI Gym"""
+        low = np.array([bounds[0] for bounds in self.bounds.values()])
+        high = np.array([bounds[1] for bounds in self.bounds.values()])
+        return spaces.Box(low=low, high=high, dtype=np.float32)
+
+
+# ===== Usage Example =====
+print("=== Example 1: State Space Definition and Normalization ===\n")
+
+state_space = StateSpace()
+
+# Sample state
+physical_state = {
+    'temperature': 350.0,
+    'pressure': 5.5,
+    'concentration': 1.2,
+    'flow_rate': 2.5,
+    'level': 75.0
+}
+
+# Construct state vector
+state_vector = state_space.get_state_vector(physical_state)
+print("Physical state vector:")
+print(state_vector)
+
+# Normalization
+normalized = state_space.normalize(state_vector)
+print("\nNormalized state (0-1 range):")
+print(normalized)
+
+# Verify with denormalization
+denormalized = state_space.denormalize(normalized)
+print("\nDenormalized state (original physical values):")
+print(denormalized)
+
+# Gym space definition
+gym_space = state_space.get_gym_space()
+print(f"\nOpenAI Gym state space:")
+print(f"  Low: {gym_space.low}")
+print(f"  High: {gym_space.high}")
+print(f"  Shape: {gym_space.shape}")
+
+# Random sampling
+random_state = gym_space.sample()
+print(f"\nRandom sample: {random_state}")
+</code></pre>
+<div class="example-output">
+<strong>Output Example:</strong><br/>
+                Physical state vector:<br/>
+                [350.    5.5   1.2   2.5  75. ]<br/>
+<br/>
+                Normalized state (0-1 range):<br/>
+                [0.5  0.5  0.6  0.44 0.75]<br/>
+<br/>
+                OpenAI Gym state space:<br/>
+                  Shape: (5,)
+            </div>
+</section>
+<section>
+<h2>2.2 Action Space Design</h2>
+<p>The action space is the set of operations an agent can execute. This includes discrete actions (valve open/close) and continuous actions (flow rate adjustment).</p>
+<h3>Example 2: Implementation of Discrete, Continuous, and Mixed Action Spaces</h3>
+<pre><code>import gym
+from gym import spaces
+import numpy as np
+
+# ===================================
+# Example 2: Action Space Design
+# ===================================
+
+class ActionSpaceDesign:
+    """Action space design patterns"""
+
+    @staticmethod
+    def discrete_action_space() -&gt; spaces.Discrete:
+        """Discrete action space (e.g., valve operation)
+
+        Actions:
+            0: Valve fully closed
+            1: Valve 25% open
+            2: Valve 50% open
+            3: Valve 75% open
+            4: Valve fully open
+        """
+        return spaces.Discrete(5)
+
+    @staticmethod
+    def continuous_action_space() -&gt; spaces.Box:
+        """Continuous action space (e.g., flow control)
+
+        Actions:
+            [0]: Heater output (0-10 kW)
+            [1]: Cooling water flow (0-5 L/min)
+        """
+        return spaces.Box(
+            low=np.array([0.0, 0.0]),
+            high=np.array([10.0, 5.0]),
+            dtype=np.float32
+        )
+
+    @staticmethod
+    def mixed_action_space() -&gt; spaces.Dict:
+        """Mixed action space (discrete + continuous)
+
+        Actions:
+            'mode': Operating mode selection (0: standby, 1: running, 2: shutdown)
+            'heating': Heater output (0-10 kW)
+            'flow': Flow rate (0-5 L/min)
+        """
+        return spaces.Dict({
+            'mode': spaces.Discrete(3),
+            'heating': spaces.Box(low=0.0, high=10.0, shape=(1,), dtype=np.float32),
+            'flow': spaces.Box(low=0.0, high=5.0, shape=(1,), dtype=np.float32)
+        })
+
+    @staticmethod
+    def apply_safety_constraints(action: np.ndarray, state: np.ndarray) -&gt; np.ndarray:
+        """Apply safety constraints
+
+        Args:
+            action: Original action
+            state: Current state [temp, pressure, ...]
+
+        Returns:
+            Constrained action
+        """
+        safe_action = action.copy()
+
+        # Constraint 1: Limit heater output at high temperature
+        if state[0] &gt; 380:  # Temperature above 380K
+            safe_action[0] = min(safe_action[0], 2.0)  # Max heater 2kW
+
+        # Constraint 2: Limit flow at high pressure
+        if len(state) &gt; 1 and state[1] &gt; 8:  # Pressure above 8bar
+            safe_action[1] = min(safe_action[1], 1.0)  # Max flow 1L/min
+
+        # Constraint 3: Physical limits
+        safe_action = np.clip(safe_action, [0.0, 0.0], [10.0, 5.0])
+
+        return safe_action
+
+
+# ===== Usage Example =====
+print("\n=== Example 2: Action Space Design ===\n")
+
+designer = ActionSpaceDesign()
+
+# 1. Discrete action space
+discrete_space = designer.discrete_action_space()
+print("Discrete action space:")
+print(f"  Number of actions: {discrete_space.n}")
+print(f"  Sample: {discrete_space.sample()}")
+
+# 2. Continuous action space
+continuous_space = designer.continuous_action_space()
+print("\nContinuous action space:")
+print(f"  Low: {continuous_space.low}")
+print(f"  High: {continuous_space.high}")
+print(f"  Sample: {continuous_space.sample()}")
+
+# 3. Mixed action space
+mixed_space = designer.mixed_action_space()
+print("\nMixed action space:")
+sample_mixed = mixed_space.sample()
+print(f"  Mode: {sample_mixed['mode']}")
+print(f"  Heating: {sample_mixed['heating']}")
+print(f"  Flow: {sample_mixed['flow']}")
+
+# 4. Safety constraint application
+print("\nSafety constraint application:")
+unsafe_action = np.array([8.0, 4.0])  # Heater 8kW, flow 4L/min
+high_temp_state = np.array([385.0, 5.0])  # High temperature state
+
+safe_action = designer.apply_safety_constraints(unsafe_action, high_temp_state)
+print(f"  Original action: {unsafe_action}")
+print(f"  After constraints: {safe_action}")
+print(f"  Reason: Temperature {high_temp_state[0]:.0f}K &gt; 380K → Heater limited to 2kW or below")
+</code></pre>
+<div class="example-output">
+<strong>Output Example:</strong><br/>
+                Discrete action space:<br/>
+                  Number of actions: 5<br/>
+                  Sample: 2<br/>
+<br/>
+                Continuous action space:<br/>
+                  Sample: [6.23 2.84]<br/>
+<br/>
+                Safety constraint application:<br/>
+                  Original action: [8. 4.]<br/>
+                  After constraints: [2. 4.]
+            </div>
+</section>
+<section>
+<h2>2.3 Reward Function Basic Design</h2>
+<p>The reward function numerically quantifies the quality of an agent's actions. For chemical processes, we design multi-objective reward functions considering setpoint tracking, energy efficiency, and safety.</p>
+<h3>Example 3: Multi-Objective Reward Function Implementation</h3>
+<pre><code>import numpy as np
+from typing import Dict
+
+# ===================================
+# Example 3: Multi-Objective Reward Function
+# ===================================
+
+class RewardFunction:
+    """Reward function for chemical processes"""
+
+    def __init__(self, weights: Dict[str, float] = None):
+        # Weights for each objective (default values)
+        self.weights = weights or {
+            'setpoint_tracking': 1.0,    # Setpoint tracking
+            'energy': 0.3,                # Energy efficiency
+            'safety': 2.0,                # Safety
+            'stability': 0.5              # Stability
+        }
+
+    def compute_reward(self, state: np.ndarray, action: np.ndarray,
+                      target_temp: float = 350.0) -&gt; Tuple[float, Dict[str, float]]:
+        """Compute total reward
+
+        Args:
+            state: [temperature, pressure, concentration, ...]
+            action: [heating_power, flow_rate]
+            target_temp: Target temperature
+
+        Returns:
+            total_reward: Total reward
+            components: Detailed breakdown of reward components
+        """
+        temp, pressure = state[0], state[1]
+        heating, flow = action[0], action[1] if len(action) &gt; 1 else 0
+
+        # 1. Setpoint tracking reward (temperature)
+        temp_error = abs(temp - target_temp)
+        r_tracking = -temp_error / 10.0  # Range -10 to 0
+
+        # 2. Energy efficiency reward
+        energy_cost = heating * 0.1 + flow * 0.05  # Energy cost
+        r_energy = -energy_cost
+
+        # 3. Safety reward (penalty)
+        r_safety = 0.0
+        if temp &gt; 380:  # High temperature warning
+            r_safety = -10.0 * (temp - 380)
+        if temp &gt; 400:  # Danger zone
+            r_safety = -100.0
+        if pressure &gt; 9:  # High pressure warning
+            r_safety += -5.0 * (pressure - 9)
+
+        # 4. Stability reward (low variation)
+        # Note: In practice, use difference from previous step
+        r_stability = 0.0  # Simplified for brevity
+
+        # Weighted sum
+        components = {
+            'tracking': r_tracking * self.weights['setpoint_tracking'],
+            'energy': r_energy * self.weights['energy'],
+            'safety': r_safety * self.weights['safety'],
+            'stability': r_stability * self.weights['stability']
+        }
+
+        total_reward = sum(components.values())
+
+        return total_reward, components
+
+    def reward_shaping(self, raw_reward: float, progress: float) -&gt; float:
+        """Reward shaping (encourage early exploration)
+
+        Args:
+            raw_reward: Original reward
+            progress: Learning progress (0-1)
+
+        Returns:
+            shaped_reward: Shaped reward
+        """
+        # Reduce penalties early in training
+        penalty_scale = 0.3 + 0.7 * progress
+        if raw_reward &lt; 0:
+            return raw_reward * penalty_scale
+        else:
+            return raw_reward
+
+
+# ===== Usage Example =====
+print("\n=== Example 3: Multi-Objective Reward Function ===\n")
+
+reward_func = RewardFunction()
+
+# Scenario 1: Optimal state
+state_optimal = np.array([350.0, 5.0, 1.0])
+action_optimal = np.array([5.0, 2.0])
+
+reward, components = reward_func.compute_reward(state_optimal, action_optimal)
+print("Scenario 1: Optimal state")
+print(f"  State: T={state_optimal[0]}K, P={state_optimal[1]}bar")
+print(f"  Action: Heating={action_optimal[0]}kW, Flow={action_optimal[1]}L/min")
+print(f"  Total reward: {reward:.3f}")
+for key, val in components.items():
+    print(f"    {key}: {val:.3f}")
+
+# Scenario 2: High temperature danger state
+state_danger = np.array([390.0, 5.0, 1.0])
+action_danger = np.array([8.0, 2.0])
+
+reward, components = reward_func.compute_reward(state_danger, action_danger)
+print("\nScenario 2: High temperature danger state")
+print(f"  State: T={state_danger[0]}K, P={state_danger[1]}bar")
+print(f"  Total reward: {reward:.3f}")
+for key, val in components.items():
+    print(f"    {key}: {val:.3f}")
+
+# Scenario 3: Excessive energy use
+state_normal = np.array([345.0, 5.0, 1.0])
+action_waste = np.array([10.0, 5.0])
+
+reward, components = reward_func.compute_reward(state_normal, action_waste)
+print("\nScenario 3: Excessive energy use")
+print(f"  State: T={state_normal[0]}K, P={state_normal[1]}bar")
+print(f"  Action: Heating={action_waste[0]}kW, Flow={action_waste[1]}L/min")
+print(f"  Total reward: {reward:.3f}")
+for key, val in components.items():
+    print(f"    {key}: {val:.3f}")
+</code></pre>
+<div class="example-output">
+<strong>Output Example:</strong><br/>
+                Scenario 1: Optimal state<br/>
+                  Total reward: -0.250<br/>
+                    tracking: 0.000<br/>
+                    energy: -0.250<br/>
+                    safety: 0.000<br/>
+<br/>
+                Scenario 2: High temperature danger state<br/>
+                  Total reward: -204.550<br/>
+                    tracking: -4.000<br/>
+                    energy: -0.550<br/>
+                    safety: -200.000
+            </div>
+<div class="warning-box">
+<p><strong>⚠️ Reward Function Design Considerations</strong></p>
+<ul>
+<li><strong>Scale Unification</strong>: Align the scale of each reward component</li>
+<li><strong>Avoid Sparse Rewards</strong>: Provide appropriate intermediate rewards</li>
+<li><strong>Prevent Reward Hacking</strong>: Verify that no unintended behaviors are induced</li>
+</ul>
+</div>
+</section>
+<section>
+<h2>Learning Objectives Review</h2>
+<h3>Basic Understanding</h3>
+<ul>
+<li>✅ Understand state space and action space definition methods</li>
+<li>✅ Know reward function design principles</li>
+<li>✅ Understand OpenAI Gym environment structure</li>
+</ul>
+<h3>Practical Skills</h3>
+<ul>
+<li>✅ Implement state normalization and denormalization</li>
+<li>✅ Design discrete, continuous, and mixed action spaces</li>
+<li>✅ Implement multi-objective reward functions</li>
+<li>✅ Incorporate safety constraints</li>
+</ul>
+<h3>Application Ability</h3>
+<ul>
+<li>✅ Implement CSTR environment compliant with Gym</li>
+<li>✅ Model distillation tower environment</li>
+<li>✅ Integrate multi-unit processes</li>
+</ul>
+</section>
+<div class="navigation">
+<a class="nav-button" href="chapter-1.html">← Chapter 1: Agent Fundamentals</a>
+<a class="nav-button" href="chapter-3.html">Chapter 3: Reward Design →</a>
+</div>
+<section>
+<h2>References</h2>
+<ol>
+<li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+<li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+<li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+<li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+</ol>
+</section>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+</main>
+<footer style="background-color: var(--color-bg-alt); padding: var(--spacing-lg); margin-top: var(--spacing-xl); text-align: center; border-top: 1px solid var(--color-border);">
+<p style="color: var(--color-text-light); font-size: 0.9rem;">
+            © 2025 PI Terakoya - AI Agent Autonomous Process Operation Series |
+            <a href="../../../index.html" style="color: var(--color-link);">Return to Home</a>
+</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 3: Transformer and BERT - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 3: Transformer and BERT - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/nlp-introduction/index.html">NLP</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/ML/nlp-introduction/chapter3-transformer-bert.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 3: Transformer and BERT</h1>
+<p class="subtitle">From Attention Mechanism to Pre-trained Models - The Revolution in Natural Language Processing</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 35-40 minutes</span>
+<span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
+<span class="meta-item">💻 Code Examples: 10</span>
+<span class="meta-item">📝 Practice Problems: 5</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter covers Transformer and BERT. You will learn mechanisms of the Transformer architecture, necessity of Positional Encoding, and Execute pre-training.</p>
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will be able to:</p>
+<ul>
+<li>✅ Understand the mechanisms of the Transformer architecture</li>
+<li>✅ Implement Self-Attention and Multi-Head Attention</li>
+<li>✅ Explain the necessity of Positional Encoding</li>
+<li>✅ Execute pre-training and fine-tuning of BERT</li>
+<li>✅ Master the HuggingFace Transformers library</li>
+<li>✅ Apply Japanese BERT models in practical tasks</li>
+</ul>
+<hr/>
+<h2>3.1 Transformer Architecture</h2>
+<h3>Birth of the Transformer</h3>
+<p>The <strong>Transformer</strong> is an architecture proposed in the "Attention is All You Need" paper published by Google in 2017. It achieved sequence processing using only <strong>Self-Attention mechanisms</strong>, without using RNNs or LSTMs.</p>
+<blockquote>
+<p>"Eliminate sequential processing of RNNs and compute relationships between all tokens in parallel"</p>
+</blockquote>
+<h3>Advantages of Transformer</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>RNN/LSTM</th>
+<th>Transformer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Parallelization</strong></td>
+<td>Sequential processing (slow)</td>
+<td>Fully parallel (fast)</td>
+</tr>
+<tr>
+<td><strong>Long-range Dependencies</strong></td>
+<td>Difficult due to gradient vanishing</td>
+<td>Easy with direct connections</td>
+</tr>
+<tr>
+<td><strong>Computational Complexity</strong></td>
+<td>O(n)</td>
+<td>O(n²)</td>
+</tr>
+<tr>
+<td><strong>Interpretability</strong></td>
+<td>Low</td>
+<td>High with Attention visualization</td>
+</tr>
+</tbody>
+</table>
+<h3>Overall Architecture</h3>
+<div class="mermaid">
+graph TB
+    A[Input Sentence] --&gt; B[Input Embedding]
+    B --&gt; C[Positional Encoding]
+    C --&gt; D[Encoder Stack]
+    D --&gt; E[Decoder Stack]
+    E --&gt; F[Linear + Softmax]
+    F --&gt; G[Output Sentence]
+
+    D --&gt; |Context| E
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+    style E fill:#fce4ec
+    style F fill:#fff9c4
+    style G fill:#e0f2f1
+</div>
+<hr/>
+<h2>3.2 Self-Attention Mechanism</h2>
+<h3>Principles of Self-Attention</h3>
+<p><strong>Self-Attention</strong> is a mechanism where each token in the input sequence computes its relationship with all other tokens.</p>
+<p>It uses three weight matrices:</p>
+<ul>
+<li>$\mathbf{W}_Q$: Query matrix</li>
+<li>$\mathbf{W}_K$: Key matrix</li>
+<li>$\mathbf{W}_V$: Value matrix</li>
+</ul>
+<h3>Calculation Steps</h3>
+<p><strong>Step 1: Compute Query, Key, Value</strong></p>
+<p>$$
+\mathbf{Q} = \mathbf{X}\mathbf{W}_Q, \quad \mathbf{K} = \mathbf{X}\mathbf{W}_K, \quad \mathbf{V} = \mathbf{X}\mathbf{W}_V
+$$</p>
+<p><strong>Step 2: Compute Attention Score</strong></p>
+<p>$$
+\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^T}{\sqrt{d_k}}\right)\mathbf{V}
+$$</p>
+<ul>
+<li>$d_k$: Dimensionality of Key (scaling factor)</li>
+</ul>
+<h3>Implementation Example: Scaled Dot-Product Attention</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+
+def scaled_dot_product_attention(Q, K, V, mask=None):
+    """
+    Scaled Dot-Product Attention
+
+    Args:
+        Q: Query matrix (batch_size, seq_len, d_k)
+        K: Key matrix (batch_size, seq_len, d_k)
+        V: Value matrix (batch_size, seq_len, d_v)
+        mask: Mask (optional)
+
+    Returns:
+        output: Output after applying Attention
+        attention_weights: Attention weights
+    """
+    d_k = Q.shape[-1]
+
+    # Compute Attention Score
+    scores = np.matmul(Q, K.transpose(0, 2, 1)) / np.sqrt(d_k)
+
+    # Apply mask (optional)
+    if mask is not None:
+        scores = scores + (mask * -1e9)
+
+    # Softmax
+    attention_weights = softmax(scores, axis=-1)
+
+    # Weighted sum
+    output = np.matmul(attention_weights, V)
+
+    return output, attention_weights
+
+def softmax(x, axis=-1):
+    """Softmax function"""
+    exp_x = np.exp(x - np.max(x, axis=axis, keepdims=True))
+    return exp_x / np.sum(exp_x, axis=axis, keepdims=True)
+
+# Usage example
+batch_size, seq_len, d_model = 2, 5, 64
+Q = np.random.randn(batch_size, seq_len, d_model)
+K = np.random.randn(batch_size, seq_len, d_model)
+V = np.random.randn(batch_size, seq_len, d_model)
+
+output, weights = scaled_dot_product_attention(Q, K, V)
+print(f"Output shape: {output.shape}")
+print(f"Attention weights shape: {weights.shape}")
+print(f"\nAttention weights (first sample):\n{weights[0]}")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Output shape: (2, 5, 64)
+Attention weights shape: (2, 5, 5)
+
+Attention weights (first sample):
+[[0.21 0.19 0.20 0.18 0.22]
+ [0.20 0.21 0.19 0.20 0.20]
+ [0.19 0.20 0.21 0.20 0.20]
+ [0.20 0.20 0.19 0.21 0.20]
+ [0.22 0.18 0.20 0.19 0.21]]
+</code></pre>
+<h3>PyTorch Implementation</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+"""
+Example: PyTorch Implementation
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Advanced
+Execution time: ~5 seconds
+Dependencies: None
+"""
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class ScaledDotProductAttention(nn.Module):
+    def __init__(self, d_k):
+        super().__init__()
+        self.d_k = d_k
+
+    def forward(self, Q, K, V, mask=None):
+        # Attention Score
+        scores = torch.matmul(Q, K.transpose(-2, -1)) / torch.sqrt(torch.tensor(self.d_k, dtype=torch.float32))
+
+        # Apply mask
+        if mask is not None:
+            scores = scores.masked_fill(mask == 0, -1e9)
+
+        # Softmax
+        attention_weights = F.softmax(scores, dim=-1)
+
+        # Weighted sum
+        output = torch.matmul(attention_weights, V)
+
+        return output, attention_weights
+
+# Usage example
+d_model = 64
+attention = ScaledDotProductAttention(d_k=d_model)
+
+Q = torch.randn(2, 5, d_model)
+K = torch.randn(2, 5, d_model)
+V = torch.randn(2, 5, d_model)
+
+output, weights = attention(Q, K, V)
+print(f"Output shape: {output.shape}")
+print(f"Attention weights shape: {weights.shape}")
+</code></pre>
+<hr/>
+<h2>3.3 Multi-Head Attention</h2>
+<h3>Overview</h3>
+<p><strong>Multi-Head Attention</strong> executes multiple attention heads in parallel to capture information from different representation subspaces.</p>
+<div class="mermaid">
+graph LR
+    A[Input X] --&gt; B1[Head 1]
+    A --&gt; B2[Head 2]
+    A --&gt; B3[Head 3]
+    A --&gt; B4[Head h]
+
+    B1 --&gt; C[Concat]
+    B2 --&gt; C
+    B3 --&gt; C
+    B4 --&gt; C
+
+    C --&gt; D[Linear]
+    D --&gt; E[Output]
+
+    style A fill:#e3f2fd
+    style B1 fill:#fff3e0
+    style B2 fill:#fff3e0
+    style B3 fill:#fff3e0
+    style B4 fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+    style E fill:#e0f2f1
+</div>
+<h3>Formulation</h3>
+<p>$$
+\text{MultiHead}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h)\mathbf{W}_O
+$$</p>
+<p>Each head is:</p>
+<p>$$
+\text{head}_i = \text{Attention}(\mathbf{Q}\mathbf{W}_i^Q, \mathbf{K}\mathbf{W}_i^K, \mathbf{V}\mathbf{W}_i^V)
+$$</p>
+<h3>Implementation Example</h3>
+<pre><code class="language-python">class MultiHeadAttention(nn.Module):
+    def __init__(self, d_model, num_heads):
+        """
+        Multi-Head Attention
+
+        Args:
+            d_model: Model dimensionality
+            num_heads: Number of attention heads
+        """
+        super().__init__()
+        assert d_model % num_heads == 0
+
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.d_k = d_model // num_heads
+
+        # Linear layers
+        self.W_Q = nn.Linear(d_model, d_model)
+        self.W_K = nn.Linear(d_model, d_model)
+        self.W_V = nn.Linear(d_model, d_model)
+        self.W_O = nn.Linear(d_model, d_model)
+
+        self.attention = ScaledDotProductAttention(self.d_k)
+
+    def split_heads(self, x, batch_size):
+        """Split into multiple heads"""
+        x = x.view(batch_size, -1, self.num_heads, self.d_k)
+        return x.transpose(1, 2)  # (batch, num_heads, seq_len, d_k)
+
+    def forward(self, Q, K, V, mask=None):
+        batch_size = Q.size(0)
+
+        # Linear transformation
+        Q = self.W_Q(Q)
+        K = self.W_K(K)
+        V = self.W_V(V)
+
+        # Split into multiple heads
+        Q = self.split_heads(Q, batch_size)
+        K = self.split_heads(K, batch_size)
+        V = self.split_heads(V, batch_size)
+
+        # Apply attention
+        output, attention_weights = self.attention(Q, K, V, mask)
+
+        # Concat
+        output = output.transpose(1, 2).contiguous()
+        output = output.view(batch_size, -1, self.d_model)
+
+        # Final linear layer
+        output = self.W_O(output)
+
+        return output, attention_weights
+
+# Usage example
+d_model = 512
+num_heads = 8
+seq_len = 10
+batch_size = 2
+
+mha = MultiHeadAttention(d_model, num_heads)
+x = torch.randn(batch_size, seq_len, d_model)
+
+output, weights = mha(x, x, x)
+print(f"Output shape: {output.shape}")
+print(f"Attention weights shape: {weights.shape}")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Output shape: torch.Size([2, 10, 512])
+Attention weights shape: torch.Size([2, 8, 10, 10])
+</code></pre>
+<hr/>
+<h2>3.4 Positional Encoding</h2>
+<h3>Necessity</h3>
+<p>Since Self-Attention has no order information, <strong>Positional Encoding</strong> adds positional information to the sequence.</p>
+<h3>Sinusoidal Positional Encoding</h3>
+<p>$$
+\text{PE}_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d_{model}}}\right)
+$$</p>
+<p>$$
+\text{PE}_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d_{model}}}\right)
+$$</p>
+<ul>
+<li>$pos$: Position of the token</li>
+<li>$i$: Dimension index</li>
+</ul>
+<h3>Implementation Example</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
+import numpy as np
+import matplotlib.pyplot as plt
+
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, max_len=5000):
+        """
+        Positional Encoding
+
+        Args:
+            d_model: Model dimensionality
+            max_len: Maximum sequence length
+        """
+        super().__init__()
+
+        # Pre-compute Positional Encoding
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
+
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+
+        pe = pe.unsqueeze(0)  # (1, max_len, d_model)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        """
+        Args:
+            x: (batch_size, seq_len, d_model)
+        """
+        seq_len = x.size(1)
+        return x + self.pe[:, :seq_len, :]
+
+# Usage example
+d_model = 128
+max_len = 100
+
+pe_layer = PositionalEncoding(d_model, max_len)
+x = torch.randn(2, 50, d_model)
+output = pe_layer(x)
+
+print(f"Input shape: {x.shape}")
+print(f"Output shape: {output.shape}")
+
+# Visualize Positional Encoding
+pe_matrix = pe_layer.pe[0, :max_len, :].numpy()
+
+plt.figure(figsize=(12, 6))
+plt.imshow(pe_matrix.T, cmap='RdBu', aspect='auto')
+plt.xlabel('Position', fontsize=12)
+plt.ylabel('Dimension', fontsize=12)
+plt.title('Positional Encoding (Sinusoidal)', fontsize=14)
+plt.colorbar()
+plt.tight_layout()
+plt.show()
+</code></pre>
+<hr/>
+<h2>3.5 Feed-Forward Networks</h2>
+<h3>Position-wise Feed-Forward Networks</h3>
+<p>A two-layer neural network applied independently to each position:</p>
+<p>$$
+\text{FFN}(x) = \max(0, x\mathbf{W}_1 + b_1)\mathbf{W}_2 + b_2
+$$</p>
+<h3>Implementation Example</h3>
+<pre><code class="language-python">class PositionwiseFeedForward(nn.Module):
+    def __init__(self, d_model, d_ff, dropout=0.1):
+        """
+        Position-wise Feed-Forward Networks
+
+        Args:
+            d_model: Model dimensionality
+            d_ff: Intermediate layer dimensionality (typically 4 * d_model)
+            dropout: Dropout rate
+        """
+        super().__init__()
+        self.linear1 = nn.Linear(d_model, d_ff)
+        self.linear2 = nn.Linear(d_ff, d_model)
+        self.dropout = nn.Dropout(dropout)
+        self.activation = nn.ReLU()
+
+    def forward(self, x):
+        # (batch_size, seq_len, d_model) -&gt; (batch_size, seq_len, d_ff)
+        x = self.linear1(x)
+        x = self.activation(x)
+        x = self.dropout(x)
+
+        # (batch_size, seq_len, d_ff) -&gt; (batch_size, seq_len, d_model)
+        x = self.linear2(x)
+        return x
+
+# Usage example
+d_model = 512
+d_ff = 2048
+
+ffn = PositionwiseFeedForward(d_model, d_ff)
+x = torch.randn(2, 10, d_model)
+
+output = ffn(x)
+print(f"Input shape: {x.shape}")
+print(f"Output shape: {output.shape}")
+</code></pre>
+<hr/>
+<h2>3.6 BERT (Bidirectional Encoder Representations from Transformers)</h2>
+<h3>Features of BERT</h3>
+<p><strong>BERT</strong> is a bidirectional pre-training model announced by Google in 2018.</p>
+<blockquote>
+<p>"Learn bidirectional context simultaneously, not just left-to-right"</p>
+</blockquote>
+<div class="mermaid">
+graph LR
+    A[Large Corpus] --&gt; B[Pre-training]
+    B --&gt; C[BERT Base/Large]
+    C --&gt; D1[Fine-tuning: Classification]
+    C --&gt; D2[Fine-tuning: NER]
+    C --&gt; D3[Fine-tuning: QA]
+    C --&gt; D4[Feature Extraction]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D1 fill:#e8f5e9
+    style D2 fill:#e8f5e9
+    style D3 fill:#e8f5e9
+    style D4 fill:#e8f5e9
+</div>
+<h3>BERT Model Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Layers</th>
+<th>Hidden Size</th>
+<th>Attention Heads</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>BERT-Base</strong></td>
+<td>12</td>
+<td>768</td>
+<td>12</td>
+<td>110M</td>
+</tr>
+<tr>
+<td><strong>BERT-Large</strong></td>
+<td>24</td>
+<td>1024</td>
+<td>16</td>
+<td>340M</td>
+</tr>
+</tbody>
+</table>
+<h3>Pre-training Tasks</h3>
+<h4>1. Masked Language Modeling (MLM)</h4>
+<p>Mask 15% of input tokens with [MASK] and predict them.</p>
+<pre><code>Input:  The [MASK] is beautiful today.
+Target: The weather is beautiful today.
+</code></pre>
+<h4>2. Next Sentence Prediction (NSP)</h4>
+<p>Predict whether two sentences are consecutive.</p>
+<pre><code>Sentence A: The cat sat on the mat.
+Sentence B: It was very comfortable.
+Label: IsNext (1)
+
+Sentence A: The cat sat on the mat.
+Sentence B: The economy is growing.
+Label: NotNext (0)
+</code></pre>
+<h3>Getting Started with BERT using HuggingFace Transformers</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+# - transformers&gt;=4.30.0
+
+"""
+Example: Getting Started with BERT using HuggingFace Transformers
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+from transformers import BertTokenizer, BertModel
+import torch
+
+# Load tokenizer and model
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+model = BertModel.from_pretrained('bert-base-uncased')
+
+# Encode text
+text = "Hello, how are you?"
+inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True)
+
+print("Tokens:", tokenizer.convert_ids_to_tokens(inputs['input_ids'][0]))
+print("Input IDs:", inputs['input_ids'])
+print("Attention Mask:", inputs['attention_mask'])
+
+# Model inference
+with torch.no_grad():
+    outputs = model(**inputs)
+
+# Outputs
+last_hidden_states = outputs.last_hidden_state  # (batch_size, seq_len, hidden_size)
+pooler_output = outputs.pooler_output  # (batch_size, hidden_size) [CLS] token output
+
+print(f"\nLast Hidden States shape: {last_hidden_states.shape}")
+print(f"Pooler Output shape: {pooler_output.shape}")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Tokens: ['[CLS]', 'hello', ',', 'how', 'are', 'you', '?', '[SEP]']
+Input IDs: tensor([[  101,  7592,  1010,  2129,  2024,  2017,  1029,   102]])
+Attention Mask: tensor([[1, 1, 1, 1, 1, 1, 1, 1]])
+
+Last Hidden States shape: torch.Size([1, 8, 768])
+Pooler Output shape: torch.Size([1, 768])
+</code></pre>
+<hr/>
+<h2>3.7 Fine-tuning BERT</h2>
+<h3>Text Classification Task</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - transformers&gt;=4.30.0
+
+"""
+Example: Text Classification Task
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Intermediate
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+from transformers import BertForSequenceClassification, Trainer, TrainingArguments
+from datasets import load_dataset
+import numpy as np
+from sklearn.metrics import accuracy_score, f1_score
+
+# Load dataset (e.g., IMDb movie reviews)
+dataset = load_dataset('imdb')
+
+# Tokenizer and model
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=2)
+
+# Data preprocessing
+def tokenize_function(examples):
+    return tokenizer(examples['text'], padding='max_length', truncation=True, max_length=512)
+
+tokenized_datasets = dataset.map(tokenize_function, batched=True)
+
+# Test with small subset
+train_dataset = tokenized_datasets['train'].shuffle(seed=42).select(range(1000))
+eval_dataset = tokenized_datasets['test'].shuffle(seed=42).select(range(200))
+
+# Evaluation function
+def compute_metrics(eval_pred):
+    logits, labels = eval_pred
+    predictions = np.argmax(logits, axis=-1)
+
+    acc = accuracy_score(labels, predictions)
+    f1 = f1_score(labels, predictions, average='weighted')
+
+    return {'accuracy': acc, 'f1': f1}
+
+# Training configuration
+training_args = TrainingArguments(
+    output_dir='./results',
+    evaluation_strategy='epoch',
+    learning_rate=2e-5,
+    per_device_train_batch_size=8,
+    per_device_eval_batch_size=8,
+    num_train_epochs=3,
+    weight_decay=0.01,
+    logging_dir='./logs',
+    logging_steps=10,
+    save_strategy='epoch',
+)
+
+# Initialize Trainer
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+    compute_metrics=compute_metrics,
+)
+
+# Fine-tuning
+trainer.train()
+
+# Evaluation
+results = trainer.evaluate()
+print(f"\nEvaluation results: {results}")
+</code></pre>
+<h3>Named Entity Recognition (NER)</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - transformers&gt;=4.30.0
+
+"""
+Example: Named Entity Recognition (NER)
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Beginner
+Execution time: 5-10 seconds
+Dependencies: None
+"""
+
+from transformers import BertForTokenClassification, pipeline
+
+# Load NER model
+model_name = 'dbmdz/bert-large-cased-finetuned-conll03-english'
+ner_pipeline = pipeline('ner', model=model_name, tokenizer=model_name)
+
+# Extract named entities from text
+text = "Apple Inc. is looking at buying U.K. startup for $1 billion. Tim Cook is the CEO."
+results = ner_pipeline(text)
+
+print("Named Entity Recognition Results:")
+for entity in results:
+    print(f"{entity['word']}: {entity['entity']} (confidence: {entity['score']:.4f})")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Named Entity Recognition Results:
+Apple: B-ORG (confidence: 0.9987)
+Inc: I-ORG (confidence: 0.9983)
+U: B-LOC (confidence: 0.9976)
+K: I-LOC (confidence: 0.9945)
+Tim: B-PER (confidence: 0.9995)
+Cook: I-PER (confidence: 0.9993)
+CEO: B-MISC (confidence: 0.8734)
+</code></pre>
+<h3>Question Answering</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - transformers&gt;=4.30.0
+
+from transformers import pipeline
+
+# Load QA model
+qa_pipeline = pipeline('question-answering', model='bert-large-uncased-whole-word-masking-finetuned-squad')
+
+# Context and question
+context = """
+The Transformer is a deep learning model introduced in 2017, used primarily in the field of
+natural language processing (NLP). Like recurrent neural networks (RNNs), Transformers are
+designed to handle sequential data, such as natural language, for tasks such as translation
+and text summarization. However, unlike RNNs, Transformers do not require that the sequential
+data be processed in order.
+"""
+
+question = "When was the Transformer introduced?"
+
+# Question answering
+result = qa_pipeline(question=question, context=context)
+
+print(f"Question: {question}")
+print(f"Answer: {result['answer']}")
+print(f"Confidence: {result['score']:.4f}")
+print(f"Start position: {result['start']}, End position: {result['end']}")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Question: When was the Transformer introduced?
+Answer: 2017
+Confidence: 0.9812
+Start position: 50, End position: 54
+</code></pre>
+<hr/>
+<h2>3.8 Japanese BERT Models</h2>
+<h3>Representative Japanese BERT Models</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Provider</th>
+<th>Tokenizer</th>
+<th>Features</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tohoku BERT</strong></td>
+<td>Tohoku University</td>
+<td>MeCab + WordPiece</td>
+<td>Trained on Japanese Wikipedia</td>
+</tr>
+<tr>
+<td><strong>Kyoto BERT</strong></td>
+<td>Kyoto University</td>
+<td>Juman++ + WordPiece</td>
+<td>High-quality morphological analysis</td>
+</tr>
+<tr>
+<td><strong>NICT BERT</strong></td>
+<td>NICT</td>
+<td>SentencePiece</td>
+<td>Large corpus</td>
+</tr>
+<tr>
+<td><strong>Waseda RoBERTa</strong></td>
+<td>Waseda University</td>
+<td>SentencePiece</td>
+<td>RoBERTa (without NSP)</td>
+</tr>
+</tbody>
+</table>
+<h3>Usage Example of Tohoku BERT</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+# - transformers&gt;=4.30.0
+
+"""
+Example: Usage Example of Tohoku BERT
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+from transformers import BertJapaneseTokenizer, BertModel
+import torch
+
+# Load Tohoku BERT
+model_name = 'cl-tohoku/bert-base-japanese-whole-word-masking'
+tokenizer = BertJapaneseTokenizer.from_pretrained(model_name)
+model = BertModel.from_pretrained(model_name)
+
+# Japanese text
+text = "Natural language processing is an important field of artificial intelligence."
+
+# Tokenize
+inputs = tokenizer(text, return_tensors='pt')
+print("Tokens:", tokenizer.convert_ids_to_tokens(inputs['input_ids'][0]))
+
+# Inference
+with torch.no_grad():
+    outputs = model(**inputs)
+
+print(f"\nLast Hidden States shape: {outputs.last_hidden_state.shape}")
+print(f"Pooler Output shape: {outputs.pooler_output.shape}")
+</code></pre>
+<h3>Japanese Text Classification</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+# - transformers&gt;=4.30.0
+
+"""
+Example: Japanese Text Classification
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+from transformers import BertForSequenceClassification, BertJapaneseTokenizer
+import torch
+import torch.nn.functional as F
+
+# Load model and tokenizer
+model_name = 'cl-tohoku/bert-base-japanese-whole-word-masking'
+tokenizer = BertJapaneseTokenizer.from_pretrained(model_name)
+
+# Customize for sentiment analysis (e.g., positive/negative)
+model = BertForSequenceClassification.from_pretrained(model_name, num_labels=2)
+
+# Example texts
+texts = [
+    "This movie was truly wonderful!",
+    "It was the worst experience and a waste of time.",
+    "It was average and not particularly memorable."
+]
+
+# Inference
+model.eval()
+for text in texts:
+    inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True)
+
+    with torch.no_grad():
+        outputs = model(**inputs)
+        logits = outputs.logits
+        probs = F.softmax(logits, dim=-1)
+
+    predicted_class = torch.argmax(probs, dim=-1).item()
+    confidence = probs[0][predicted_class].item()
+
+    label = "Positive" if predicted_class == 1 else "Negative"
+    print(f"\nText: {text}")
+    print(f"Prediction: {label} (confidence: {confidence:.4f})")
+</code></pre>
+<hr/>
+<h2>3.9 BERT Application Techniques</h2>
+<h3>Feature Extraction</h3>
+<p>Use BERT as a fixed feature extractor.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+# - transformers&gt;=4.30.0
+
+from transformers import BertModel, BertTokenizer
+import torch
+import numpy as np
+
+# Model and tokenizer
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+model = BertModel.from_pretrained('bert-base-uncased')
+model.eval()  # Evaluation mode
+
+def get_sentence_embedding(text, pooling='mean'):
+    """
+    Get sentence embedding vector
+
+    Args:
+        text: Input text
+        pooling: Pooling method ('mean', 'max', 'cls')
+
+    Returns:
+        embedding: Embedding vector
+    """
+    inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True)
+
+    with torch.no_grad():
+        outputs = model(**inputs)
+
+    # Last Hidden States
+    last_hidden = outputs.last_hidden_state  # (batch_size, seq_len, hidden_size)
+
+    if pooling == 'mean':
+        # Mean pooling
+        mask = inputs['attention_mask'].unsqueeze(-1).expand(last_hidden.size()).float()
+        sum_embeddings = torch.sum(last_hidden * mask, 1)
+        sum_mask = torch.clamp(mask.sum(1), min=1e-9)
+        embedding = sum_embeddings / sum_mask
+    elif pooling == 'max':
+        # Max pooling
+        embedding = torch.max(last_hidden, 1)[0]
+    elif pooling == 'cls':
+        # [CLS] token
+        embedding = outputs.pooler_output
+
+    return embedding.squeeze().numpy()
+
+# Usage example
+texts = [
+    "Natural language processing is fascinating.",
+    "I love machine learning.",
+    "The weather is nice today."
+]
+
+embeddings = [get_sentence_embedding(text, pooling='mean') for text in texts]
+
+# Calculate cosine similarity
+from sklearn.metrics.pairwise import cosine_similarity
+
+similarity_matrix = cosine_similarity(embeddings)
+
+print("Cosine Similarity Matrix:")
+print(similarity_matrix)
+print(f"\nSimilarity between sentence 1 and 2: {similarity_matrix[0, 1]:.4f}")
+print(f"Similarity between sentence 1 and 3: {similarity_matrix[0, 2]:.4f}")
+</code></pre>
+<h3>Sentence Embeddings</h3>
+<p>High-quality sentence embeddings using Sentence-BERT:</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+"""
+Example: High-quality sentence embeddings using Sentence-BERT:
+
+Purpose: Demonstrate neural network implementation
+Target: Advanced
+Execution time: 10-30 seconds
+Dependencies: None
+"""
+
+from sentence_transformers import SentenceTransformer
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Load Sentence-BERT model
+model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+
+# List of sentences
+sentences = [
+    "The cat sits on the mat.",
+    "A feline rests on a rug.",
+    "The dog plays in the park.",
+    "Machine learning is a subset of artificial intelligence.",
+    "Deep learning uses neural networks."
+]
+
+# Get embedding vectors
+embeddings = model.encode(sentences)
+
+print(f"Embedding vector shape: {embeddings.shape}")
+
+# Calculate similarity
+similarity = cosine_similarity(embeddings)
+
+print("\nSentence similarity matrix:")
+for i, sent in enumerate(sentences):
+    print(f"\n{i}: {sent}")
+
+print("\nSimilarity:")
+for i in range(len(sentences)):
+    for j in range(i+1, len(sentences)):
+        print(f"Sentence {i} and Sentence {j}: {similarity[i, j]:.4f}")
+</code></pre>
+<h3>Domain Adaptation</h3>
+<p>Perform additional pre-training with domain-specific data:</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - transformers&gt;=4.30.0
+
+"""
+Example: Perform additional pre-training with domain-specific data:
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Beginner to Intermediate
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+from transformers import BertForMaskedLM, BertTokenizer, DataCollatorForLanguageModeling
+from transformers import Trainer, TrainingArguments
+from datasets import Dataset
+
+# Medical domain example
+domain_texts = [
+    "The patient's blood pressure is within normal range.",
+    "Dietary therapy is important for diabetes treatment.",
+    "This medication has risk of side effects.",
+    # ... large amount of domain-specific text
+]
+
+# Create dataset
+dataset = Dataset.from_dict({'text': domain_texts})
+
+# Tokenizer and model
+tokenizer = BertJapaneseTokenizer.from_pretrained('cl-tohoku/bert-base-japanese')
+model = BertForMaskedLM.from_pretrained('cl-tohoku/bert-base-japanese')
+
+# Tokenize
+def tokenize_function(examples):
+    return tokenizer(examples['text'], padding='max_length', truncation=True, max_length=128)
+
+tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=['text'])
+
+# Data Collator (for MLM)
+data_collator = DataCollatorForLanguageModeling(
+    tokenizer=tokenizer,
+    mlm=True,
+    mlm_probability=0.15
+)
+
+# Training configuration
+training_args = TrainingArguments(
+    output_dir='./domain_adapted_bert',
+    overwrite_output_dir=True,
+    num_train_epochs=3,
+    per_device_train_batch_size=8,
+    save_steps=500,
+    save_total_limit=2,
+    learning_rate=5e-5,
+)
+
+# Trainer
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=tokenized_dataset,
+    data_collator=data_collator,
+)
+
+# Additional pre-training
+# trainer.train()  # Uncomment to execute
+
+print("Domain-adapted model ready")
+</code></pre>
+<hr/>
+<h2>3.10 Chapter Summary</h2>
+<h3>What We Learned</h3>
+<ol>
+<li><p><strong>Transformer Architecture</strong></p>
+<ul>
+<li>Principles and implementation of Self-Attention mechanism</li>
+<li>Learning multiple representations with Multi-Head Attention</li>
+<li>Adding positional information with Positional Encoding</li>
+<li>Non-linear transformation with Feed-Forward Networks</li>
+</ul></li>
+<li><p><strong>BERT Fundamentals</strong></p>
+<ul>
+<li>Importance of bidirectional pre-training</li>
+<li>MLM and NSP tasks</li>
+<li>How to use HuggingFace Transformers</li>
+</ul></li>
+<li><p><strong>Fine-tuning</strong></p>
+<ul>
+<li>Text classification, NER, and QA tasks</li>
+<li>Utilizing Japanese BERT models</li>
+</ul></li>
+<li><p><strong>Application Techniques</strong></p>
+<ul>
+<li>Feature extraction and sentence embeddings</li>
+<li>Domain adaptation</li>
+<li>Practical applications</li>
+</ul></li>
+</ol>
+<h3>To the Next Chapter</h3>
+<p>In Chapter 4, we will learn about <strong>advanced BERT models</strong>:</p>
+<ul>
+<li>RoBERTa, ALBERT, DistilBERT</li>
+<li>GPT series (GPT-2, GPT-3)</li>
+<li>T5, BART (Seq2Seq models)</li>
+<li>Latest large language models</li>
+</ul>
+<hr/>
+<h2>Practice Problems</h2>
+<h3>Problem 1 (Difficulty: easy)</h3>
+<p>Explain the difference between Self-Attention and Cross-Attention.</p>
+<details>
+<summary>Answer Example</summary>
+<p><strong>Answer</strong>:</p>
+<ul>
+<li><strong>Self-Attention</strong>: Query, Key, and Value are all generated from the same input sequence. Learns relationships between elements within the input sequence.</li>
+<li><strong>Cross-Attention</strong>: Query and Key/Value are generated from different sequences (e.g., Decoder's Query and Encoder's Key/Value). Learns relationships between different sequences.</li>
+</ul>
+<p><strong>Use Cases</strong>:</p>
+<ul>
+<li>Self-Attention: BERT's Encoder, word dependencies within a sentence</li>
+<li>Cross-Attention: Machine translation's Decoder, correspondence between source and target text</li>
+</ul>
+</details>
+<h3>Problem 2 (Difficulty: medium)</h3>
+<p>Explain why Positional Encoding is necessary and why Sinusoidal functions are used.</p>
+<details>
+<summary>Answer Example</summary>
+<p><strong>Necessity</strong>:</p>
+<ul>
+<li>Self-Attention has no order information (permutation invariance)</li>
+<li>Cannot distinguish "cat sat on mat" from "mat on sat cat"</li>
+<li>Adding positional information preserves sequence order</li>
+</ul>
+<p><strong>Reasons for Using Sinusoidal Functions</strong>:</p>
+<ol>
+<li><strong>Handling Variable Length Sequences</strong>: Can handle sequences longer than those seen during training</li>
+<li><strong>Representing Relative Positions</strong>: $\text{PE}_{pos+k}$ can be expressed as a linear transformation of $\text{PE}_{pos}$</li>
+<li><strong>No Parameters Required</strong>: No need for learning, low computational cost</li>
+<li><strong>Periodicity</strong>: Captures short-term and long-term positional relationships with different frequencies</li>
+</ol>
+</details>
+<h3>Problem 3 (Difficulty: medium)</h3>
+<p>In BERT's MLM (Masked Language Modeling), explain the design rationale for masking 15% of input tokens.</p>
+<details>
+<summary>Answer Example</summary>
+<p><strong>Rationale for 15%</strong>:</p>
+<ul>
+<li><strong>Balance</strong>: Too low leads to slow learning, too high leads to insufficient context</li>
+<li><strong>Experimentally Optimal Value</strong>: Result of testing various percentages in the BERT paper</li>
+</ul>
+<p><strong>Mask Breakdown</strong>:</p>
+<ul>
+<li>80%: Replace with [MASK] token</li>
+<li>10%: Replace with random token</li>
+<li>10%: Keep original token</li>
+</ul>
+<p><strong>Design Rationale</strong>:</p>
+<ol>
+<li>80% as [MASK]: Primary learning task</li>
+<li>10% as random: Prevents model from relying only on [MASK]</li>
+<li>10% as original: Learns representations of actual tokens</li>
+</ol>
+<p>This ensures the model works appropriately during fine-tuning when [MASK] tokens don't appear.</p>
+</details>
+<h3>Problem 4 (Difficulty: hard)</h3>
+<p>Explain the advantages of using multiple heads in Multi-Head Attention compared to single Attention. Also discuss potential problems when using too many heads.</p>
+<details>
+<summary>Answer Example</summary>
+<p><strong>Advantages of Multiple Heads</strong>:</p>
+<ol>
+<li><p><strong>Different Representation Subspaces</strong></p>
+<ul>
+<li>Each head learns different types of relationships</li>
+<li>Examples: syntactic relationships, semantic relationships, long-range dependencies</li>
+</ul></li>
+<li><p><strong>Parallel Computation</strong></p>
+<ul>
+<li>Multiple heads can be computed simultaneously</li>
+<li>Efficient GPU processing</li>
+</ul></li>
+<li><p><strong>Redundancy and Robustness</strong></p>
+<ul>
+<li>Other heads compensate if some heads fail</li>
+<li>Captures diverse information</li>
+</ul></li>
+<li><p><strong>Ensemble Effect</strong></p>
+<ul>
+<li>Integrates information from multiple perspectives</li>
+<li>Learns richer representations</li>
+</ul></li>
+</ol>
+<p><strong>Problems with Too Many Heads</strong>:</p>
+<ol>
+<li><strong>Increased Computational Cost</strong>: Increased memory and computation time</li>
+<li><strong>Overfitting Risk</strong>: Overfitting due to increased parameters</li>
+<li><strong>Redundancy</strong>: More heads with similar roles</li>
+<li><strong>Optimization Difficulty</strong>: Difficult to coordinate many heads</li>
+</ol>
+<p><strong>Recommendations in Practice</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Model Size</th>
+<th>Recommended Heads</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Small (d=256)</td>
+<td>4-8</td>
+</tr>
+<tr>
+<td>Base (d=512-768)</td>
+<td>8-12</td>
+</tr>
+<tr>
+<td>Large (d=1024)</td>
+<td>12-16</td>
+</tr>
+</tbody>
+</table>
+</details>
+<h3>Problem 5 (Difficulty: hard)</h3>
+<p>Complete the following code to implement a sentiment analysis model using BERT. Prepare your own data or generate sample data.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+# - transformers&gt;=4.30.0
+
+"""
+Example: Complete the following code to implement a sentiment analysi
+
+Purpose: Demonstrate optimization techniques
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+from transformers import BertTokenizer, BertForSequenceClassification
+from torch.utils.data import Dataset, DataLoader
+import torch
+
+# Implement dataset class
+class SentimentDataset(Dataset):
+    # Implement here
+    pass
+
+# Implement training function
+def train_model(model, train_loader, optimizer, device):
+    # Implement here
+    pass
+
+# Implement evaluation function
+def evaluate_model(model, test_loader, device):
+    # Implement here
+    pass
+</code></pre>
+<details>
+<summary>Answer Example</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+# - transformers&gt;=4.30.0
+
+"""
+Example: Complete the following code to implement a sentiment analysi
+
+Purpose: Demonstrate optimization techniques
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+from transformers import BertTokenizer, BertForSequenceClassification
+from torch.utils.data import Dataset, DataLoader
+import torch
+import torch.nn as nn
+from sklearn.metrics import accuracy_score, classification_report
+import numpy as np
+
+# Device configuration
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+# Sample data
+train_texts = [
+    "This product is wonderful!",
+    "It was the worst experience.",
+    "It's average.",
+    "I'm very satisfied.",
+    "I'll never buy this again.",
+]
+train_labels = [1, 0, 1, 1, 0]  # 1: Positive, 0: Negative
+
+test_texts = [
+    "I think it's a good product.",
+    "It was disappointing."
+]
+test_labels = [1, 0]
+
+# Dataset class
+class SentimentDataset(Dataset):
+    def __init__(self, texts, labels, tokenizer, max_length=128):
+        self.texts = texts
+        self.labels = labels
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+
+    def __len__(self):
+        return len(self.texts)
+
+    def __getitem__(self, idx):
+        text = self.texts[idx]
+        label = self.labels[idx]
+
+        encoding = self.tokenizer(
+            text,
+            max_length=self.max_length,
+            padding='max_length',
+            truncation=True,
+            return_tensors='pt'
+        )
+
+        return {
+            'input_ids': encoding['input_ids'].flatten(),
+            'attention_mask': encoding['attention_mask'].flatten(),
+            'labels': torch.tensor(label, dtype=torch.long)
+        }
+
+# Training function
+def train_model(model, train_loader, optimizer, device, epochs=3):
+    model.train()
+
+    for epoch in range(epochs):
+        total_loss = 0
+        for batch in train_loader:
+            optimizer.zero_grad()
+
+            input_ids = batch['input_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
+            labels = batch['labels'].to(device)
+
+            outputs = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=labels
+            )
+
+            loss = outputs.loss
+            total_loss += loss.item()
+
+            loss.backward()
+            optimizer.step()
+
+        avg_loss = total_loss / len(train_loader)
+        print(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.4f}")
+
+# Evaluation function
+def evaluate_model(model, test_loader, device):
+    model.eval()
+    predictions = []
+    true_labels = []
+
+    with torch.no_grad():
+        for batch in test_loader:
+            input_ids = batch['input_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
+            labels = batch['labels'].to(device)
+
+            outputs = model(
+                input_ids=input_ids,
+                attention_mask=attention_mask
+            )
+
+            logits = outputs.logits
+            preds = torch.argmax(logits, dim=-1)
+
+            predictions.extend(preds.cpu().numpy())
+            true_labels.extend(labels.cpu().numpy())
+
+    accuracy = accuracy_score(true_labels, predictions)
+    print(f"\nAccuracy: {accuracy:.4f}")
+    print("\nClassification Report:")
+    print(classification_report(true_labels, predictions, target_names=['Negative', 'Positive']))
+
+    return accuracy
+
+# Main processing
+def main():
+    # Tokenizer and model
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=2)
+    model.to(device)
+
+    # Dataset and dataloader
+    train_dataset = SentimentDataset(train_texts, train_labels, tokenizer)
+    test_dataset = SentimentDataset(test_texts, test_labels, tokenizer)
+
+    train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=2, shuffle=False)
+
+    # Optimizer
+    optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
+
+    # Training
+    print("Starting training...")
+    train_model(model, train_loader, optimizer, device, epochs=3)
+
+    # Evaluation
+    print("\nStarting evaluation...")
+    evaluate_model(model, test_loader, device)
+
+if __name__ == '__main__':
+    main()
+</code></pre>
+<p><strong>Example Output</strong>:</p>
+<pre><code>Starting training...
+Epoch 1/3, Loss: 0.6234
+Epoch 2/3, Loss: 0.4521
+Epoch 3/3, Loss: 0.3012
+
+Starting evaluation...
+Accuracy: 1.0000
+
+Classification Report:
+              precision    recall  f1-score   support
+
+    Negative       1.00      1.00      1.00         1
+    Positive       1.00      1.00      1.00         1
+
+    accuracy                           1.00         2
+   macro avg       1.00      1.00      1.00         2
+weighted avg       1.00      1.00      1.00         2
+</code></pre>
+</details>
+<hr/>
+<h2>References</h2>
+<ol>
+<li>Vaswani, A., et al. (2017). <em>Attention Is All You Need</em>. NeurIPS.</li>
+<li>Devlin, J., et al. (2019). <em>BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding</em>. NAACL.</li>
+<li>Liu, Y., et al. (2019). <em>RoBERTa: A Robustly Optimized BERT Pretraining Approach</em>. arXiv.</li>
+<li>Lan, Z., et al. (2020). <em>ALBERT: A Lite BERT for Self-supervised Learning of Language Representations</em>. ICLR.</li>
+<li>Sanh, V., et al. (2019). <em>DistilBERT, a distilled version of BERT: smaller, faster, cheaper and lighter</em>. NeurIPS Workshop.</li>
+<li>HuggingFace Transformers Documentation. <a href="https://huggingface.co/docs/transformers/">https://huggingface.co/docs/transformers/</a></li>
+<li>Tohoku University BERT Model. <a href="https://github.com/cl-tohoku/bert-japanese">https://github.com/cl-tohoku/bert-japanese</a></li>
+</ol>
+<div class="navigation">
+<a class="nav-button" href="chapter2-word-embeddings.html">← Previous Chapter: Word Embeddings</a>
+<a class="nav-button" href="chapter4-advanced-transformers.html">Next Chapter: Advanced Transformer Models →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes, and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The creator and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party provided data, tools, or libraries.</li>
+<li>To the maximum extent permitted by applicable law, the creator and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content of this material may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are governed by the specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Created by</strong>: AI Terakoya Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-21</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

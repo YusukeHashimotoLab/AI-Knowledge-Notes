@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 3: Acquisition Function Design - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 3: Acquisition Function Design - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="/AI-Knowledge-Notes/knowledge/en/index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/active-learning-introduction/index.html">Active Learning</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/MI/active-learning-introduction/chapter-3.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 3: Acquisition Function Design</h1>
+<p class="subtitle">Expected Improvement・UCB・Multi-Objective Optimization</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 25-30 min</span>
+<span class="meta-item">📊 Difficulty: Intermediate-Advanced</span>
+<span class="meta-item">💻 Code Examples: 7</span>
+<span class="meta-item">📝 Exercises: 3</span>
+</div>
+</div>
+</header>
+<main class="container">
+<h1>Chapter 3: Acquisition Function Design</h1><p class="chapter-description">This chapter covers Acquisition Function Design. You will learn Expected Improvement, Pareto optimality to multi-objective optimization, and Incorporate constraints into Acquisition Functions.</p>
+
+
+<p><strong>Expected Improvement・UCB・Multi-Objective Optimization</strong></p>
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will master the following:</p>
+<ul>
+<li>✅ Understand the characteristics of four major Acquisition Functions</li>
+<li>✅ Implement Expected Improvement</li>
+<li>✅ Apply Pareto optimality to multi-objective optimization</li>
+<li>✅ Incorporate constraints into Acquisition Functions</li>
+<li>✅ Explain selection criteria for Acquisition Functions</li>
+</ul>
+<p><strong>Reading Time</strong>: 25-30 min
+<strong>Code Examples</strong>: 7
+<strong>Exercises</strong>: 3</p>
+<hr/>
+<h2>3.1 Fundamentals of Acquisition Functions</h2>
+<h3>What is an Acquisition Function?</h3>
+<p><strong>Definition</strong>: A scoring function that determines which sample should be acquired next</p>
+<p><strong>Formula</strong>:
+$$
+x^* = \arg\max_{x \in \mathcal{X}} \alpha(x | \mathcal{D})
+$$</p>
+<ul>
+<li>$\alpha(x | \mathcal{D})$: Acquisition Function</li>
+<li>$\mathcal{X}$: Search space</li>
+<li>$\mathcal{D}$: Data acquired so far</li>
+</ul>
+<h3>Four Major Acquisition Functions</h3>
+<h4>1. Expected Improvement (EI)</h4>
+<p><strong>Principle</strong>: Expected value of improvement from the current best value</p>
+<p><strong>Formula</strong>:
+$$
+\text{EI}(x) = \mathbb{E}[\max(f(x) - f^*, 0)]
+$$</p>
+<p>$$
+= \begin{cases}
+(\mu(x) - f^*)\Phi(Z) + \sigma(x)\phi(Z) &amp; \text{if } \sigma(x) &gt; 0 \
+0 &amp; \text{if } \sigma(x) = 0
+\end{cases}
+$$</p>
+<p>where,
+$$
+Z = \frac{\mu(x) - f^*}{\sigma(x)}
+$$</p>
+<ul>
+<li>$f^*$: Current best value</li>
+<li>$\mu(x)$: Predicted mean</li>
+<li>$\sigma(x)$: Predicted standard deviation</li>
+<li>$\Phi(\cdot)$: Cumulative distribution function of standard normal distribution</li>
+<li>$\phi(\cdot)$: Probability density function of standard normal distribution</li>
+</ul>
+<p><strong>Code Example 1: Implementation of Expected Improvement</strong></p>
+<pre>__PROTECTED_CODE_0__</pre>
+<h4>2. Probability of Improvement (PI)</h4>
+<p><strong>Principle</strong>: Probability of improving the current best value</p>
+<p><strong>Formula</strong>:
+$$
+\text{PI}(x) = P(f(x) \geq f^* + \xi)
+$$</p>
+<p>$$
+= \Phi\left(\frac{\mu(x) - f^* - \xi}{\sigma(x)}\right)
+$$</p>
+<ul>
+<li>$\xi$: Improvement threshold (typically 0.01)</li>
+</ul>
+<p><strong>Code Example 2: Implementation of Probability of Improvement</strong></p>
+<pre>__PROTECTED_CODE_1__</pre>
+<h4>3. Upper Confidence Bound (UCB)</h4>
+<p><strong>Principle</strong>: Predicted mean + uncertainty bonus</p>
+<p><strong>Formula</strong>:
+$$
+\text{UCB}(x) = \mu(x) + \kappa \sigma(x)
+$$</p>
+<ul>
+<li>$\kappa$: Exploration parameter (typically 1.0-3.0)</li>
+</ul>
+<p><strong>Code Example 3: Implementation of UCB</strong></p>
+<pre>__PROTECTED_CODE_2__</pre>
+<h4>4. Thompson Sampling</h4>
+<p><strong>Principle</strong>: Sample from Gaussian Process and select the maximum value</p>
+<p><strong>Formula</strong>:
+$$
+f(x) \sim \mathcal{GP}(\mu(x), k(x, x'))
+$$</p>
+<p>$$
+x^* = \arg\max_{x \in \mathcal{X}} f(x)
+$$</p>
+<p><strong>Code Example 4: Implementation of Thompson Sampling</strong></p>
+<pre>__PROTECTED_CODE_3__</pre>
+<hr/>
+<h2>3.2 Multi-Objective Acquisition Functions</h2>
+<h3>Pareto Optimality</h3>
+<p><strong>Definition</strong>: A solution that does not sacrifice other objectives to improve one objective</p>
+<p><strong>Formula</strong>:
+$$
+x^* \text{ is Pareto optimal} \iff \nexists x : f_i(x) \geq f_i(x^*) \ \forall i \land f_j(x) &gt; f_j(x^*) \ \text{for some } j
+$$</p>
+<h3>Expected Hypervolume Improvement (EHVI)</h3>
+<p><strong>Principle</strong>: Maximize the expected improvement in hypervolume</p>
+<p><strong>Formula</strong>:
+$$
+\text{EHVI}(x) = \mathbb{E}[HV(\mathcal{P} \cup {f(x)}) - HV(\mathcal{P})]
+$$</p>
+<ul>
+<li>$HV(\cdot)$: Hypervolume</li>
+<li>$\mathcal{P}$: Current Pareto set</li>
+</ul>
+<p><strong>Code Example 5: Implementation of Multi-Objective Optimization (BoTorch)</strong></p>
+<pre>__PROTECTED_CODE_4__</pre>
+<hr/>
+<h2>3.3 Constrained Acquisition Functions</h2>
+<h3>Handling Constraints</h3>
+<p><strong>Example</strong>: Synthesizability constraints, cost constraints</p>
+<p><strong>Formula</strong>:
+$$
+x^* = \arg\max_{x \in \mathcal{X}} \alpha(x | \mathcal{D}) \cdot P_c(x)
+$$</p>
+<ul>
+<li>$P_c(x)$: Probability of satisfying constraints</li>
+</ul>
+<p><strong>Constrained Expected Improvement</strong>:
+$$
+\text{CEI}(x) = \text{EI}(x) \cdot P(c(x) \leq 0)
+$$</p>
+<hr/>
+<h2>3.4 Case Study: Thermoelectric Materials Exploration</h2>
+<h3>Problem Setting</h3>
+<p><strong>Objective</strong>: Maximize the thermoelectric figure of merit ZT value</p>
+<p><strong>ZT value</strong>:
+$$
+ZT = \frac{S^2 \sigma T}{\kappa}
+$$</p>
+<ul>
+<li>$S$: Seebeck coefficient</li>
+<li>$\sigma$: Electrical conductivity</li>
+<li>$T$: Absolute temperature</li>
+<li>$\kappa$: Thermal conductivity</li>
+</ul>
+<p><strong>Challenge</strong>: Simultaneous optimization of three properties (multi-objective optimization)</p>
+<hr/>
+<h2>Chapter Summary</h2>
+<h3>Comparison Table of Acquisition Functions</h3>
+<table>
+<thead>
+<tr>
+<th>Acquisition Function</th>
+<th>Characteristics</th>
+<th>Exploration Tendency</th>
+<th>Computational Cost</th>
+<th>Recommended Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EI</td>
+<td>Expected improvement</td>
+<td>Balanced</td>
+<td>Low</td>
+<td>General optimization</td>
+</tr>
+<tr>
+<td>PI</td>
+<td>Improvement probability</td>
+<td>Exploitation-focused</td>
+<td>Low</td>
+<td>Fast exploration</td>
+</tr>
+<tr>
+<td>UCB</td>
+<td>Upper confidence bound</td>
+<td>Exploration-focused</td>
+<td>Low</td>
+<td>Wide-range exploration</td>
+</tr>
+<tr>
+<td>Thompson</td>
+<td>Stochastic</td>
+<td>Balanced</td>
+<td>Medium</td>
+<td>Parallel experiments</td>
+</tr>
+</tbody>
+</table>
+<h3>Next Chapter</h3>
+<p>In Chapter 4, you will learn about <strong>Applications and Practice in Materials Exploration</strong>:
+- Active Learning × Bayesian Optimization
+- Active Learning × High-Throughput Computation
+- Active Learning × Experimental Robots
+- Real-World Applications and Career Paths</p>
+<p><strong><a href="chapter-4.html">Chapter 4: Applications and Practice in Materials Exploration →</a></strong></p>
+<hr/>
+<h2>Exercises</h2>
+<p>(Omitted: Detailed Implementation of Exercises)</p>
+<hr/>
+<h2>References</h2>
+<ol>
+<li>
+<p>Jones, D. R. et al. (1998). "Efficient Global Optimization of Expensive Black-Box Functions." <em>Journal of Global Optimization</em>, 13(4), 455-492.</p>
+</li>
+<li>
+<p>Daulton, S. et al. (2020). "Differentiable Expected Hypervolume Improvement for Parallel Multi-Objective Bayesian Optimization." <em>NeurIPS</em>.</p>
+</li>
+</ol>
+<hr/>
+<h2>Navigation</h2>
+<h3>Previous Chapter</h3>
+<p><strong><a href="chapter-2.html">← Chapter 2: Uncertainty Estimation Techniques</a></strong></p>
+<h3>Next Chapter</h3>
+<p><strong><a href="chapter-4.html">Chapter 4: Applications and Practice in Materials Exploration →</a></strong></p>
+<h3>Series Table of Contents</h3>
+<p><strong><a href="./index.html">← Back to Series Table of Contents</a></strong></p>
+<hr/>
+<p><strong>Learn practical applications in the next chapter!</strong></p>
+<div class="navigation">
+<a class="nav-button" href="chapter-2.html">← Previous Chapter</a>
+<a class="nav-button" href="index.html">Back to Table of Contents</a>
+<a class="nav-button" href="chapter-4.html">Next Chapter →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is intended solely for educational, research, and informational purposes, and does not provide professional advice (legal, accounting, technical guarantees, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" with no warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, functionality, or safety.</li>
+<li>The creators and Tohoku University are not responsible for the content, availability, or safety of external links, third-party data, tools, or libraries.</li>
+<li>To the maximum extent permitted by applicable law, the creators and Tohoku University are not liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content follow the specified conditions (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Creator</strong>: AI Terakoya Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-18</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

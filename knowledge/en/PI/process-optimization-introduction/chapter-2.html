@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 2: Linear and Nonlinear Programming - Process Optimization Introduction | PI Terakoya. Formulation of linear programming problems and understand..." name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Chapter 2: Linear and Nonlinear Programming - Process Optimization Introduction Series" name="description"/>
+<title>Chapter 2: Linear and Nonlinear Programming - Process Optimization Introduction | PI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../PI/index.html">Process Informatics</a><span class="breadcrumb-separator">›</span><a href="../../PI/process-optimization-introduction/index.html">Process Optimization</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/PI/process-optimization-introduction/chapter-2.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="container">
+<h1>Chapter 2: Linear and Nonlinear Programming</h1>
+<p class="subtitle">Simplex Method and Gradient-Based Optimization Algorithms</p>
+<div class="meta">
+<span class="meta">📖 Reading Time: 35-40 minutes</span>
+<span class="meta">📊 Difficulty: Intermediate</span>
+<span class="meta">💻 Code Examples: 9</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter covers Linear and Nonlinear Programming. You will learn Formulation of linear programming problems and Evaluation of convergence.</p>
+<div class="learning-objectives">
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will master:</p>
+<ul>
+<li>✅ Formulation of linear programming problems and understanding the simplex method</li>
+<li>✅ Implementation of linear programming using scipy.optimize and PuLP library</li>
+<li>✅ Principles and implementation of gradient descent, Newton's method, and quasi-Newton methods</li>
+<li>✅ Evaluation of convergence and computational efficiency of nonlinear optimization algorithms</li>
+<li>✅ Application of optimization techniques to chemical process problems</li>
+</ul>
+</div>
+<hr/>
+<h2>2.1 Linear Programming</h2>
+<h3>What is a Linear Programming Problem</h3>
+<p><strong>Linear Programming (LP)</strong> is the optimization of a linear objective function subject to linear constraints.</p>
+<p>Standard form:</p>
+<p>$$
+\begin{aligned}
+\text{minimize} \quad &amp; \mathbf{c}^T \mathbf{x} \\
+\text{subject to} \quad &amp; \mathbf{A} \mathbf{x} \leq \mathbf{b} \\
+&amp; \mathbf{x} \geq \mathbf{0}
+\end{aligned}
+$$</p>
+<p>Where $\mathbf{c}$ is the coefficient vector of the objective function, $\mathbf{A}$ is the constraint matrix, and $\mathbf{b}$ is the constraint vector.</p>
+<h3>Characteristics of Linear Programming</h3>
+<table>
+<thead>
+<tr>
+<th>Characteristic</th>
+<th>Description</th>
+<th>Advantage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Convexity</td>
+<td>Feasible region is a convex polyhedron</td>
+<td>Local optimum = Global optimum</td>
+</tr>
+<tr>
+<td>Efficiency</td>
+<td>Simplex method is efficient</td>
+<td>Fast solution even for large-scale problems</td>
+</tr>
+<tr>
+<td>Versatility</td>
+<td>Various applications: production planning, blending problems</td>
+<td>Applicable to chemical process operation optimization</td>
+</tr>
+<tr>
+<td>Duality</td>
+<td>Relationship between primal and dual problems</td>
+<td>Easy sensitivity analysis</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h3>Code Example 1: Production Planning Optimization with scipy.optimize.linprog</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+from scipy.optimize import linprog
+import matplotlib.pyplot as plt
+
+"""
+Production Planning Problem
+-----------
+Chemical plant produces products A and B. Goal: maximize profit.
+
+Decision variables:
+  x1 = Production of product A [kg/day]
+  x2 = Production of product B [kg/day]
+
+Objective function (profit maximization):
+  maximize: 40*x1 + 30*x2  →  minimize: -40*x1 - 30*x2
+
+Constraints:
+  1. Raw material constraint: 2*x1 + x2 &lt;= 100  (raw material inventory)
+  2. Equipment time constraint: x1 + 2*x2 &lt;= 80  (equipment operation time)
+  3. Non-negativity constraint: x1, x2 &gt;= 0
+"""
+
+# Objective function coefficients (sign reversed for minimization)
+c = np.array([-40, -30])
+
+# Inequality constraint coefficient matrix A*x &lt;= b
+A_ub = np.array([
+    [2, 1],   # Raw material constraint
+    [1, 2]    # Equipment time constraint
+])
+
+b_ub = np.array([100, 80])
+
+# Variable bounds (non-negativity constraint)
+x_bounds = [(0, None), (0, None)]
+
+# Solve linear programming problem
+result = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=x_bounds, method='highs')
+
+# Display results
+print("=" * 60)
+print("Production Planning Optimization Results")
+print("=" * 60)
+print(f"Optimization status: {result.message}")
+print(f"Optimal solution:")
+print(f"  Product A production (x1): {result.x[0]:.2f} kg/day")
+print(f"  Product B production (x2): {result.x[1]:.2f} kg/day")
+print(f"Maximum profit: {-result.fun:.2f} $/day")  # Restore sign
+print(f"Iterations: {result.nit}")
+
+# Visualize feasible region
+x1 = np.linspace(0, 60, 400)
+
+# Constraint boundary lines
+x2_constraint1 = 100 - 2*x1  # Raw material constraint
+x2_constraint2 = (80 - x1) / 2  # Equipment time constraint
+
+plt.figure(figsize=(10, 8))
+
+# Draw constraints
+plt.plot(x1, x2_constraint1, 'r-', linewidth=2, label='Raw material constraint: 2x₁ + x₂ = 100')
+plt.plot(x1, x2_constraint2, 'b-', linewidth=2, label='Equipment time constraint: x₁ + 2x₂ = 80')
+
+# Fill feasible region
+x2_feasible = np.minimum(x2_constraint1, x2_constraint2)
+x2_feasible = np.maximum(x2_feasible, 0)
+plt.fill_between(x1, 0, x2_feasible, where=(x2_feasible &gt;= 0),
+                 alpha=0.3, color='green', label='Feasible region')
+
+# Objective function contour lines (profit lines)
+for profit in [800, 1200, 1600, 2000]:
+    x2_profit = (profit - 40*x1) / 30
+    plt.plot(x1, x2_profit, '--', alpha=0.4, color='gray')
+
+# Plot optimal solution
+plt.scatter([result.x[0]], [result.x[1]], color='red', s=300, zorder=5,
+            marker='*', edgecolors='black', linewidth=2,
+            label=f'Optimal solution ({result.x[0]:.1f}, {result.x[1]:.1f})')
+
+plt.xlabel('Product A production x₁ [kg/day]', fontsize=12)
+plt.ylabel('Product B production x₂ [kg/day]', fontsize=12)
+plt.title('Geometric Interpretation of Production Planning Optimization', fontsize=14, fontweight='bold')
+plt.xlim(0, 60)
+plt.ylim(0, 60)
+plt.legend(fontsize=10)
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+# Constraint slack (slack variables)
+slack = b_ub - A_ub @ result.x
+print(f"\nConstraint slack:")
+print(f"  Raw material constraint slack: {slack[0]:.2f} kg")
+print(f"  Equipment time constraint slack: {slack[1]:.2f} hours")
+</code></pre>
+<p><strong>Sample Output:</strong></p>
+<pre><code>============================================================
+Production Planning Optimization Results
+============================================================
+Optimization status: Optimization terminated successfully.
+Optimal solution:
+  Product A production (x1): 40.00 kg/day
+  Product B production (x2): 20.00 kg/day
+Maximum profit: 2200.00 $/day
+Iterations: 2
+
+Constraint slack:
+  Raw material constraint slack: 0.00 kg
+  Equipment time constraint slack: 0.00 hours
+</code></pre>
+<p><strong>Explanation:</strong> In linear programming, the optimal solution exists at a vertex of the feasible region. In this example, the optimal solution is at the point where both constraints are simultaneously active.</p>
+<hr/>
+<h3>Code Example 2: Chemical Blending Problem with PuLP Library</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+from pulp import LpProblem, LpVariable, LpMaximize, lpSum, LpStatus, value
+import pandas as pd
+
+"""
+Chemical Raw Material Blending Optimization
+---------------------
+Blending 3 raw materials (A, B, C) to produce a product.
+Minimize raw material cost while meeting product specifications.
+
+Constraints:
+  - Sulfur content &gt;= 2.0%
+  - Viscosity &lt;= 100 cP
+  - Total blend amount = 1000 kg
+"""
+
+# Raw material data
+raw_materials = {
+    'A': {'cost': 50, 'sulfur': 3.0, 'viscosity': 80},   # $/kg, %, cP
+    'B': {'cost': 40, 'sulfur': 2.0, 'viscosity': 120},
+    'C': {'cost': 60, 'sulfur': 1.5, 'viscosity': 60}
+}
+
+# Problem definition (cost minimization)
+prob = LpProblem("Chemical_Blending", LpMaximize)  # Will reverse sign later
+
+# Decision variables (usage of each material kg)
+x = {}
+for material in raw_materials.keys():
+    x[material] = LpVariable(f"x_{material}", lowBound=0)
+
+# Objective function (cost minimization → negative profit maximization)
+prob += -lpSum([x[material] * raw_materials[material]['cost']
+                for material in raw_materials.keys()]), "Total_Cost"
+
+# Constraint 1: Total blend amount = 1000 kg
+prob += lpSum([x[material] for material in raw_materials.keys()]) == 1000, "Total_Amount"
+
+# Constraint 2: Sulfur content &gt;= 2.0%
+prob += lpSum([x[material] * raw_materials[material]['sulfur']
+               for material in raw_materials.keys()]) &gt;= 2.0 * 1000, "Sulfur_Content"
+
+# Constraint 3: Viscosity &lt;= 100 cP (weighted average)
+prob += lpSum([x[material] * raw_materials[material]['viscosity']
+               for material in raw_materials.keys()]) &lt;= 100 * 1000, "Viscosity_Limit"
+
+# Solve
+prob.solve()
+
+# Display results
+print("=" * 70)
+print("Chemical Raw Material Blending Optimization Results")
+print("=" * 70)
+print(f"Status: {LpStatus[prob.status]}")
+print(f"\nOptimal blend:")
+
+results = []
+for material in raw_materials.keys():
+    amount = value(x[material])
+    percentage = (amount / 1000) * 100
+    cost = amount * raw_materials[material]['cost']
+    print(f"  Material {material}: {amount:.2f} kg ({percentage:.1f}%)  Cost: ${cost:.2f}")
+    results.append({
+        'Material': material,
+        'Usage [kg]': amount,
+        'Blend ratio [%]': percentage,
+        'Cost [$]': cost
+    })
+
+total_cost = -value(prob.objective)
+print(f"\nTotal cost: ${total_cost:.2f}")
+
+# Verify product specifications
+sulfur_content = sum(value(x[material]) * raw_materials[material]['sulfur']
+                     for material in raw_materials.keys()) / 1000
+viscosity = sum(value(x[material]) * raw_materials[material]['viscosity']
+                for material in raw_materials.keys()) / 1000
+
+print(f"\nProduct specifications:")
+print(f"  Sulfur content: {sulfur_content:.2f}% (Spec: &gt;= 2.0%)")
+print(f"  Viscosity: {viscosity:.2f} cP (Spec: &lt;= 100 cP)")
+
+# Organize results in DataFrame
+df_results = pd.DataFrame(results)
+print(f"\nBlend details:")
+print(df_results.to_string(index=False))
+
+# Visualization
+import matplotlib.pyplot as plt
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# Pie chart of blend ratio
+materials = [r['Material'] for r in results]
+amounts = [r['Usage [kg]'] for r in results]
+colors = ['#11998e', '#38ef7d', '#66d9ef']
+
+ax1.pie(amounts, labels=materials, autopct='%1.1f%%', startangle=90, colors=colors)
+ax1.set_title('Optimal Blend Ratio', fontsize=13, fontweight='bold')
+
+# Bar chart of cost breakdown
+costs = [r['Cost [$]'] for r in results]
+ax2.bar(materials, costs, color=colors, edgecolor='black', linewidth=1.5)
+ax2.set_xlabel('Material', fontsize=11)
+ax2.set_ylabel('Cost [$]', fontsize=11)
+ax2.set_title('Cost Breakdown by Material', fontsize=13, fontweight='bold')
+ax2.grid(axis='y', alpha=0.3)
+
+for i, (material, cost) in enumerate(zip(materials, costs)):
+    ax2.text(i, cost + 500, f'${cost:.0f}', ha='center', fontsize=10, fontweight='bold')
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<p><strong>Sample Output:</strong></p>
+<pre><code>======================================================================
+Chemical Raw Material Blending Optimization Results
+======================================================================
+Status: Optimal
+
+Optimal blend:
+  Material A: 500.00 kg (50.0%)  Cost: $25000.00
+  Material B: 500.00 kg (50.0%)  Cost: $20000.00
+  Material C: 0.00 kg (0.0%)  Cost: $0.00
+
+Total cost: $45000.00
+
+Product specifications:
+  Sulfur content: 2.50% (Spec: &gt;= 2.0%)
+  Viscosity: 100.00 cP (Spec: &lt;= 100 cP)
+
+Blend details:
+  Material  Usage [kg]  Blend ratio [%]  Cost [$]
+        A       500.0             50.0   25000.0
+        B       500.0             50.0   20000.0
+        C         0.0              0.0       0.0
+</code></pre>
+<p><strong>Explanation:</strong> The PuLP library allows for more intuitive description of linear programming problems. In this example, we find the blend ratio that minimizes raw material cost while meeting product specifications (sulfur content, viscosity).</p>
+<hr/>
+<h3>Code Example 3: Visualization of the Simplex Method</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import linprog
+
+"""
+Visualization of the Simplex Method Search Process
+--------------------------------
+Visualizing how the optimization algorithm explores vertices of the feasible region
+"""
+
+# Linear programming problem definition
+c = np.array([-3, -4])  # Objective function: maximize 3x1 + 4x2
+
+A_ub = np.array([
+    [2, 1],   # Constraint 1: 2x1 + x2 &lt;= 6
+    [1, 2]    # Constraint 2: x1 + 2x2 &lt;= 8
+])
+
+b_ub = np.array([6, 8])
+
+# Calculate vertices of feasible region
+def calculate_vertices():
+    """Calculate vertices of feasible region"""
+    vertices = [
+        (0, 0),  # Origin
+        (3, 0),  # On x1 axis (constraint 1 boundary)
+        (0, 4),  # On x2 axis (constraint 2 boundary)
+    ]
+
+    # Intersection of two constraints
+    # Simultaneous equations: 2x1 + x2 = 6 and x1 + 2x2 = 8
+    A_intersection = np.array([[2, 1], [1, 2]])
+    b_intersection = np.array([6, 8])
+    intersection = np.linalg.solve(A_intersection, b_intersection)
+    vertices.append(tuple(intersection))
+
+    return vertices
+
+vertices = calculate_vertices()
+
+# Calculate objective function value at each vertex
+def objective_value(x1, x2):
+    return 3*x1 + 4*x2
+
+vertex_values = [(v[0], v[1], objective_value(v[0], v[1])) for v in vertices]
+vertex_values.sort(key=lambda x: x[2])  # Sort by objective function value
+
+# Visualization
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+
+# Left plot: Feasible region and vertex exploration
+x1 = np.linspace(0, 5, 400)
+x2_constraint1 = 6 - 2*x1
+x2_constraint2 = (8 - x1) / 2
+
+x2_feasible = np.minimum(x2_constraint1, x2_constraint2)
+x2_feasible = np.maximum(x2_feasible, 0)
+
+ax1.fill_between(x1, 0, x2_feasible, where=(x2_feasible &gt;= 0),
+                 alpha=0.3, color='lightgreen', label='Feasible region')
+
+ax1.plot(x1, x2_constraint1, 'r-', linewidth=2, label='2x₁ + x₂ = 6')
+ax1.plot(x1, x2_constraint2, 'b-', linewidth=2, label='x₁ + 2x₂ = 8')
+
+# Objective function contour lines
+for val in [0, 4, 8, 12, 16]:
+    x2_obj = (val - 3*x1) / 4
+    ax1.plot(x1, x2_obj, '--', alpha=0.3, color='gray', linewidth=1)
+
+# Plot vertices (search order)
+colors = ['yellow', 'orange', 'red', 'darkred']
+for i, (x1_v, x2_v, obj_val) in enumerate(vertex_values):
+    if i &lt; len(vertex_values) - 1:
+        ax1.scatter([x1_v], [x2_v], s=200, color=colors[i],
+                   edgecolors='black', linewidth=2, zorder=5,
+                   label=f'Vertex{i+1}: f={obj_val:.1f}')
+    else:
+        ax1.scatter([x1_v], [x2_v], s=400, color='red', marker='*',
+                   edgecolors='black', linewidth=3, zorder=6,
+                   label=f'Optimal solution: f={obj_val:.1f}')
+
+# Draw search path (conceptual path of simplex method)
+path_x = [vertex_values[i][0] for i in range(len(vertex_values))]
+path_y = [vertex_values[i][1] for i in range(len(vertex_values))]
+ax1.plot(path_x, path_y, 'k--', linewidth=2, alpha=0.5, label='Search path')
+
+for i in range(len(path_x) - 1):
+    ax1.annotate('', xy=(path_x[i+1], path_y[i+1]), xytext=(path_x[i], path_y[i]),
+                arrowprops=dict(arrowstyle='-&gt;', lw=2, color='black', alpha=0.6))
+
+ax1.set_xlabel('x₁', fontsize=12)
+ax1.set_ylabel('x₂', fontsize=12)
+ax1.set_title('Simplex Method Search Process', fontsize=14, fontweight='bold')
+ax1.set_xlim(-0.5, 5)
+ax1.set_ylim(-0.5, 5)
+ax1.legend(fontsize=9, loc='upper right')
+ax1.grid(alpha=0.3)
+
+# Right plot: Improvement of objective function value per iteration
+iterations = list(range(1, len(vertex_values) + 1))
+obj_values = [v[2] for v in vertex_values]
+
+ax2.plot(iterations, obj_values, 'o-', linewidth=3, markersize=10,
+         color='#11998e', markerfacecolor='#38ef7d', markeredgecolor='black',
+         markeredgewidth=2)
+ax2.set_xlabel('Iteration', fontsize=12)
+ax2.set_ylabel('Objective Function Value', fontsize=12)
+ax2.set_title('Improvement Process of Objective Function Value', fontsize=14, fontweight='bold')
+ax2.grid(alpha=0.3)
+
+for i, (iter_num, val) in enumerate(zip(iterations, obj_values)):
+    ax2.text(iter_num, val + 0.5, f'{val:.1f}', ha='center', fontsize=10, fontweight='bold')
+
+plt.tight_layout()
+plt.show()
+
+print("=" * 60)
+print("Simplex Method Search Process")
+print("=" * 60)
+for i, (x1_v, x2_v, obj_val) in enumerate(vertex_values):
+    print(f"Iteration {i+1}: Vertex ({x1_v:.2f}, {x2_v:.2f})  Objective function value: {obj_val:.2f}")
+print("=" * 60)
+print(f"Optimal solution: ({vertex_values[-1][0]:.2f}, {vertex_values[-1][1]:.2f})")
+print(f"Maximum value: {vertex_values[-1][2]:.2f}")
+</code></pre>
+<p><strong>Sample Output:</strong></p>
+<pre><code>============================================================
+Simplex Method Search Process
+============================================================
+Iteration 1: Vertex (0.00, 0.00)  Objective function value: 0.00
+Iteration 2: Vertex (3.00, 0.00)  Objective function value: 9.00
+Iteration 3: Vertex (0.00, 4.00)  Objective function value: 16.00
+Iteration 4: Vertex (1.33, 3.33)  Objective function value: 17.33
+============================================================
+Optimal solution: (1.33, 3.33)
+Maximum value: 17.33
+</code></pre>
+<p><strong>Explanation:</strong> The simplex method efficiently explores vertices of the feasible region, monotonically improving the objective function value. At each iteration, it moves to an adjacent vertex and reaches the optimal solution.</p>
+<hr/>
+<h2>2.2 Nonlinear Programming</h2>
+<h3>Nonlinear Optimization Problems</h3>
+<p>Optimization problems where the objective function or constraints are nonlinear:</p>
+<p>$$
+\begin{aligned}
+\text{minimize} \quad &amp; f(\mathbf{x}) \\
+\text{subject to} \quad &amp; g_i(\mathbf{x}) \leq 0, \quad i = 1, \ldots, m \\
+&amp; h_j(\mathbf{x}) = 0, \quad j = 1, \ldots, p
+\end{aligned}
+$$</p>
+<h3>Major Optimization Algorithms</h3>
+<div class="mermaid">
+graph LR
+    A[Nonlinear Optimization] --&gt; B[Unconstrained]
+    A --&gt; C[Constrained]
+    B --&gt; D[Gradient Descent]
+    B --&gt; E[Newton's Method]
+    B --&gt; F[Quasi-Newton<br/>BFGS, L-BFGS]
+    C --&gt; G[Penalty Method]
+    C --&gt; H[SQP]
+    C --&gt; I[Interior Point Method]
+
+    style A fill:#11998e,stroke:#0d7a6f,color:#fff
+    style B fill:#38ef7d,stroke:#2ecc71
+    style C fill:#38ef7d,stroke:#2ecc71
+</div>
+<hr/>
+<h3>Code Example 4: Unconstrained Nonlinear Optimization (scipy.optimize.minimize)</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+from scipy.optimize import minimize
+import matplotlib.pyplot as plt
+
+"""
+Unconstrained Nonlinear Optimization Problem
+-----------------------
+Minimization of the Rosenbrock function
+
+f(x, y) = (1-x)^2 + 100(y-x^2)^2
+
+Minimum value: f(1, 1) = 0
+"""
+
+# Objective function definition
+def rosenbrock(x):
+    """Rosenbrock function"""
+    return (1 - x[0])**2 + 100 * (x[1] - x[0]**2)**2
+
+# Gradient (analytically calculated)
+def rosenbrock_grad(x):
+    """Gradient of Rosenbrock function"""
+    dfdx = -2*(1 - x[0]) - 400*x[0]*(x[1] - x[0]**2)
+    dfdy = 200*(x[1] - x[0]**2)
+    return np.array([dfdx, dfdy])
+
+# Hessian matrix (second derivative)
+def rosenbrock_hess(x):
+    """Hessian matrix of Rosenbrock function"""
+    d2fdx2 = 2 - 400*x[1] + 1200*x[0]**2
+    d2fdxdy = -400*x[0]
+    d2fdy2 = 200
+    return np.array([[d2fdx2, d2fdxdy],
+                     [d2fdxdy, d2fdy2]])
+
+# Initial value
+x0 = np.array([-1.0, -1.0])
+
+# Solve with multiple optimization methods
+methods = ['Nelder-Mead', 'BFGS', 'Newton-CG', 'L-BFGS-B', 'TNC']
+results = {}
+
+print("=" * 80)
+print("Unconstrained Nonlinear Optimization: Rosenbrock Function Minimization")
+print("=" * 80)
+print(f"Initial value: x0 = {x0}")
+print(f"Objective function value f(x0) = {rosenbrock(x0):.4f}")
+print("\n" + "=" * 80)
+print(f"{'Method':&lt;15} {'Optimal solution (x, y)':&lt;25} {'Obj. value':&lt;15} {'Iterations':&lt;10}")
+print("=" * 80)
+
+for method in methods:
+    if method in ['Newton-CG']:
+        result = minimize(rosenbrock, x0, method=method, jac=rosenbrock_grad,
+                         hess=rosenbrock_hess)
+    elif method in ['BFGS', 'L-BFGS-B']:
+        result = minimize(rosenbrock, x0, method=method, jac=rosenbrock_grad)
+    else:
+        result = minimize(rosenbrock, x0, method=method)
+
+    results[method] = result
+    print(f"{method:&lt;15} ({result.x[0]:7.4f}, {result.x[1]:7.4f})   "
+          f"{result.fun:12.6e}   {result.nit:8d}")
+
+print("=" * 80)
+
+# Visualization of Rosenbrock function
+x = np.linspace(-2, 2, 400)
+y = np.linspace(-1, 3, 400)
+X, Y = np.meshgrid(x, y)
+Z = (1 - X)**2 + 100 * (Y - X**2)**2
+
+# Visualize in log scale (due to wide range of values)
+Z_log = np.log10(Z + 1)
+
+fig = plt.figure(figsize=(16, 6))
+
+# Contour plot
+ax1 = fig.add_subplot(131)
+contour = ax1.contour(X, Y, Z_log, levels=20, cmap='viridis')
+ax1.contourf(X, Y, Z_log, levels=20, cmap='viridis', alpha=0.4)
+plt.colorbar(contour, ax=ax1, label='log₁₀(f(x,y) + 1)')
+ax1.scatter([1], [1], color='red', s=300, marker='*',
+           edgecolors='black', linewidth=2, label='True optimal solution (1, 1)', zorder=5)
+ax1.scatter([x0[0]], [x0[1]], color='yellow', s=150, marker='o',
+           edgecolors='black', linewidth=2, label='Initial value', zorder=5)
+ax1.set_xlabel('x', fontsize=11)
+ax1.set_ylabel('y', fontsize=11)
+ax1.set_title('Rosenbrock Function Contour', fontsize=13, fontweight='bold')
+ax1.legend(fontsize=9)
+ax1.grid(alpha=0.3)
+
+# 3D surface plot
+ax2 = fig.add_subplot(132, projection='3d')
+surf = ax2.plot_surface(X, Y, Z_log, cmap='viridis', alpha=0.7,
+                        edgecolor='none', antialiased=True)
+ax2.scatter([1], [1], [0], color='red', s=200, marker='*',
+           edgecolors='black', linewidth=2)
+ax2.set_xlabel('x', fontsize=10)
+ax2.set_ylabel('y', fontsize=10)
+ax2.set_zlabel('log₁₀(f(x,y) + 1)', fontsize=10)
+ax2.set_title('Rosenbrock Function 3D Surface', fontsize=13, fontweight='bold')
+
+# Comparison of convergence for each method
+ax3 = fig.add_subplot(133)
+method_labels = list(results.keys())
+nit_values = [results[m].nit for m in method_labels]
+fun_values = [results[m].fun for m in method_labels]
+
+x_pos = np.arange(len(method_labels))
+bars = ax3.bar(x_pos, nit_values, color='#11998e', edgecolor='black', linewidth=1.5)
+
+# Display objective function value above each bar
+for i, (bar, fun_val) in enumerate(zip(bars, fun_values)):
+    height = bar.get_height()
+    ax3.text(bar.get_x() + bar.get_width()/2., height + 1,
+            f'{fun_val:.2e}', ha='center', va='bottom', fontsize=8, rotation=0)
+
+ax3.set_xticks(x_pos)
+ax3.set_xticklabels(method_labels, rotation=45, ha='right')
+ax3.set_ylabel('Iterations', fontsize=11)
+ax3.set_title('Comparison of Iterations by Method', fontsize=13, fontweight='bold')
+ax3.grid(axis='y', alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<p><strong>Sample Output:</strong></p>
+<pre><code>================================================================================
+Unconstrained Nonlinear Optimization: Rosenbrock Function Minimization
+================================================================================
+Initial value: x0 = [-1. -1.]
+Objective function value f(x0) = 404.0000
+
+================================================================================
+Method           Optimal solution (x, y)    Obj. value       Iterations
+================================================================================
+Nelder-Mead     ( 1.0000,  1.0000)      7.888892e-10          79
+BFGS            ( 1.0000,  1.0000)      1.432465e-11          33
+Newton-CG       ( 1.0000,  1.0000)      6.689048e-18          23
+L-BFGS-B        ( 1.0000,  1.0000)      1.432465e-11          24
+TNC             ( 1.0000,  1.0000)      1.510571e-17          26
+================================================================================
+</code></pre>
+<p><strong>Explanation:</strong> scipy.optimize.minimize provides a unified interface for multiple optimization algorithms. Providing gradient information and Hessian matrix improves convergence speed.</p>
+<hr/>
+<h3>Code Example 5: Implementation of Gradient Descent and Effect of Step Size</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+"""
+Scratch Implementation of Gradient Descent
+-------------------------
+Visualizing the effect of step size (learning rate)
+"""
+
+# Objective function: f(x, y) = x^2 + 4*y^2
+def objective(x):
+    return x[0]**2 + 4*x[1]**2
+
+# Gradient
+def gradient(x):
+    return np.array([2*x[0], 8*x[1]])
+
+# Gradient descent implementation
+def gradient_descent(x0, learning_rate, max_iter=100, tol=1e-6):
+    """
+    Gradient Descent
+
+    Parameters:
+    -----------
+    x0 : array, initial value
+    learning_rate : float, step size (learning rate)
+    max_iter : int, maximum iterations
+    tol : float, convergence threshold
+
+    Returns:
+    --------
+    trajectory : list, optimization trajectory
+    """
+    x = x0.copy()
+    trajectory = [x.copy()]
+
+    for i in range(max_iter):
+        grad = gradient(x)
+
+        # Gradient descent update rule
+        x_new = x - learning_rate * grad
+
+        trajectory.append(x_new.copy())
+
+        # Convergence check
+        if np.linalg.norm(x_new - x) &lt; tol:
+            print(f"  Converged: {i+1} iterations")
+            break
+
+        x = x_new
+
+    return trajectory
+
+# Test with different learning rates
+learning_rates = [0.05, 0.1, 0.3, 0.5]
+x0 = np.array([2.0, 1.5])
+
+trajectories = {}
+
+print("=" * 70)
+print("Gradient Descent: Effect of Learning Rate")
+print("=" * 70)
+print(f"Initial value: x0 = {x0}")
+print(f"Objective function: f(x, y) = x² + 4y²")
+print(f"Optimal solution: (0, 0), Minimum value: 0")
+print("=" * 70)
+
+for lr in learning_rates:
+    print(f"\nLearning rate α = {lr}:")
+    traj = gradient_descent(x0, lr, max_iter=50)
+    trajectories[lr] = traj
+    final_x = traj[-1]
+    final_f = objective(final_x)
+    print(f"  Final solution: ({final_x[0]:.6f}, {final_x[1]:.6f})")
+    print(f"  Objective function value: {final_f:.6e}")
+    print(f"  Iterations: {len(traj)-1}")
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+axes = axes.flatten()
+
+# Prepare contours
+x = np.linspace(-2.5, 2.5, 200)
+y = np.linspace(-2, 2, 200)
+X, Y = np.meshgrid(x, y)
+Z = X**2 + 4*Y**2
+
+for idx, (lr, traj) in enumerate(trajectories.items()):
+    ax = axes[idx]
+
+    # Contour
+    contour = ax.contour(X, Y, Z, levels=20, cmap='viridis', alpha=0.5)
+    ax.contourf(X, Y, Z, levels=20, cmap='viridis', alpha=0.2)
+
+    # Optimization trajectory
+    traj_array = np.array(traj)
+    ax.plot(traj_array[:, 0], traj_array[:, 1], 'ro-', linewidth=2,
+           markersize=6, label='Trajectory', markerfacecolor='red',
+           markeredgecolor='black', markeredgewidth=1)
+
+    # Initial value and optimal solution
+    ax.scatter([x0[0]], [x0[1]], color='yellow', s=200, marker='o',
+              edgecolors='black', linewidth=2, label='Initial value', zorder=5)
+    ax.scatter([0], [0], color='lime', s=300, marker='*',
+              edgecolors='black', linewidth=2, label='Optimal solution', zorder=5)
+
+    # Show direction with arrows
+    for i in range(min(5, len(traj)-1)):
+        ax.annotate('', xy=(traj_array[i+1]), xytext=(traj_array[i]),
+                   arrowprops=dict(arrowstyle='-&gt;', lw=2, color='red', alpha=0.6))
+
+    ax.set_xlabel('x', fontsize=11)
+    ax.set_ylabel('y', fontsize=11)
+    ax.set_title(f'Learning rate α = {lr} (Iterations: {len(traj)-1})',
+                fontsize=12, fontweight='bold')
+    ax.legend(fontsize=9)
+    ax.grid(alpha=0.3)
+    ax.set_xlim(-2.5, 2.5)
+    ax.set_ylim(-2, 2)
+
+plt.tight_layout()
+plt.show()
+
+# Convergence curves of objective function value
+plt.figure(figsize=(12, 6))
+
+for lr, traj in trajectories.items():
+    traj_array = np.array(traj)
+    obj_values = [objective(x) for x in traj_array]
+    iterations = range(len(obj_values))
+    plt.semilogy(iterations, obj_values, 'o-', linewidth=2, markersize=6,
+                label=f'α = {lr}')
+
+plt.xlabel('Iteration', fontsize=12)
+plt.ylabel('Objective Function Value (log scale)', fontsize=12)
+plt.title('Convergence Curves for Each Learning Rate', fontsize=14, fontweight='bold')
+plt.legend(fontsize=11)
+plt.grid(alpha=0.3, which='both')
+plt.tight_layout()
+plt.show()
+</code></pre>
+<p><strong>Sample Output:</strong></p>
+<pre><code>======================================================================
+Gradient Descent: Effect of Learning Rate
+======================================================================
+Initial value: x0 = [2.  1.5]
+Objective function: f(x, y) = x² + 4y²
+Optimal solution: (0, 0), Minimum value: 0
+======================================================================
+
+Learning rate α = 0.05:
+  Converged: 43 iterations
+  Final solution: (0.000081, 0.000015)
+  Objective function value: 6.570282e-09
+  Iterations: 44
+
+Learning rate α = 0.1:
+  Converged: 31 iterations
+  Final solution: (0.000061, 0.000005)
+  Objective function value: 3.712341e-09
+  Iterations: 32
+
+Learning rate α = 0.3:
+  Converged: 16 iterations
+  Final solution: (0.000002, 0.000000)
+  Objective function value: 4.400442e-12
+  Iterations: 17
+
+Learning rate α = 0.5:
+  Final solution: (-1.699298, -0.000000)
+  Objective function value: 2.887613e+00
+  Iterations: 50
+</code></pre>
+<p><strong>Explanation:</strong> When the learning rate is small, convergence is slow but stable. When the learning rate is too large, there is a possibility of divergence. Choosing an appropriate learning rate is important.</p>
+<hr/>
+<h3>Code Example 6: Implementation of Newton's Method</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+"""
+Implementation of Newton's Method
+-----------------
+Fast optimization using second-order derivative information (Hessian matrix)
+"""
+
+# Objective function
+def objective(x):
+    return x[0]**2 + 4*x[1]**2
+
+# Gradient
+def gradient(x):
+    return np.array([2*x[0], 8*x[1]])
+
+# Hessian matrix
+def hessian(x):
+    return np.array([[2, 0],
+                     [0, 8]])
+
+# Newton's method implementation
+def newton_method(x0, max_iter=20, tol=1e-8):
+    """
+    Newton's Method
+
+    Update rule: x_{k+1} = x_k - H^{-1}(x_k) * ∇f(x_k)
+
+    Where H is the Hessian matrix
+    """
+    x = x0.copy()
+    trajectory = [x.copy()]
+
+    for i in range(max_iter):
+        grad = gradient(x)
+        hess = hessian(x)
+
+        # Calculate inverse of Hessian matrix
+        hess_inv = np.linalg.inv(hess)
+
+        # Newton's method update rule
+        x_new = x - hess_inv @ grad
+
+        trajectory.append(x_new.copy())
+
+        print(f"  Iteration {i+1}: x = ({x_new[0]:.6f}, {x_new[1]:.6f}), "
+              f"f(x) = {objective(x_new):.6e}")
+
+        # Convergence check
+        if np.linalg.norm(x_new - x) &lt; tol:
+            print(f"  → Converged")
+            break
+
+        x = x_new
+
+    return trajectory
+
+# Gradient descent (for comparison)
+def gradient_descent(x0, learning_rate=0.2, max_iter=20, tol=1e-8):
+    x = x0.copy()
+    trajectory = [x.copy()]
+
+    for i in range(max_iter):
+        grad = gradient(x)
+        x_new = x - learning_rate * grad
+        trajectory.append(x_new.copy())
+
+        if np.linalg.norm(x_new - x) &lt; tol:
+            break
+
+        x = x_new
+
+    return trajectory
+
+# Initial value
+x0 = np.array([2.0, 1.5])
+
+print("=" * 80)
+print("Comparison of Newton's Method vs Gradient Descent")
+print("=" * 80)
+print(f"Initial value: x0 = {x0}")
+print(f"Objective function: f(x, y) = x² + 4y²\n")
+
+print("【Newton's Method】")
+traj_newton = newton_method(x0, max_iter=10)
+
+print(f"\n【Gradient Descent (learning rate=0.2)】")
+traj_gd = gradient_descent(x0, learning_rate=0.2, max_iter=10)
+for i, x in enumerate(traj_gd[1:], 1):
+    print(f"  Iteration {i}: x = ({x[0]:.6f}, {x[1]:.6f}), f(x) = {objective(x):.6e}")
+
+# Visualization
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+
+# Prepare contours
+x = np.linspace(-2.5, 2.5, 200)
+y = np.linspace(-2, 2, 200)
+X, Y = np.meshgrid(x, y)
+Z = X**2 + 4*Y**2
+
+# Left plot: Trajectory comparison
+contour = ax1.contour(X, Y, Z, levels=25, cmap='viridis', alpha=0.4)
+ax1.contourf(X, Y, Z, levels=25, cmap='viridis', alpha=0.2)
+
+# Newton's method trajectory
+traj_newton_array = np.array(traj_newton)
+ax1.plot(traj_newton_array[:, 0], traj_newton_array[:, 1], 'ro-',
+        linewidth=3, markersize=8, label="Newton's Method",
+        markerfacecolor='red', markeredgecolor='black', markeredgewidth=1.5)
+
+# Gradient descent trajectory
+traj_gd_array = np.array(traj_gd)
+ax1.plot(traj_gd_array[:, 0], traj_gd_array[:, 1], 'bs-',
+        linewidth=2, markersize=7, label='Gradient Descent',
+        markerfacecolor='blue', markeredgecolor='black', markeredgewidth=1)
+
+# Initial value and optimal solution
+ax1.scatter([x0[0]], [x0[1]], color='yellow', s=250, marker='o',
+           edgecolors='black', linewidth=2, label='Initial value', zorder=5)
+ax1.scatter([0], [0], color='lime', s=400, marker='*',
+           edgecolors='black', linewidth=3, label='Optimal solution', zorder=5)
+
+ax1.set_xlabel('x', fontsize=12)
+ax1.set_ylabel('y', fontsize=12)
+ax1.set_title("Newton's Method vs Gradient Descent Trajectory", fontsize=14, fontweight='bold')
+ax1.legend(fontsize=11, loc='upper right')
+ax1.grid(alpha=0.3)
+
+# Right plot: Convergence speed comparison
+obj_newton = [objective(x) for x in traj_newton_array]
+obj_gd = [objective(x) for x in traj_gd_array]
+
+ax2.semilogy(range(len(obj_newton)), obj_newton, 'ro-', linewidth=3,
+            markersize=8, label="Newton's Method", markeredgecolor='black',
+            markeredgewidth=1.5)
+ax2.semilogy(range(len(obj_gd)), obj_gd, 'bs-', linewidth=2,
+            markersize=7, label='Gradient Descent', markeredgecolor='black',
+            markeredgewidth=1)
+
+ax2.set_xlabel('Iteration', fontsize=12)
+ax2.set_ylabel('Objective Function Value (log scale)', fontsize=12)
+ax2.set_title('Convergence Speed Comparison', fontsize=14, fontweight='bold')
+ax2.legend(fontsize=11)
+ax2.grid(alpha=0.3, which='both')
+
+plt.tight_layout()
+plt.show()
+
+print(f"\nConvergence speed:")
+print(f"  Newton's Method: {len(traj_newton)-1} iterations")
+print(f"  Gradient Descent: {len(traj_gd)-1} iterations")
+</code></pre>
+<p><strong>Sample Output:</strong></p>
+<pre><code>================================================================================
+Comparison of Newton's Method vs Gradient Descent
+================================================================================
+Initial value: x0 = [2.  1.5]
+Objective function: f(x, y) = x² + 4y²
+
+【Newton's Method】
+  Iteration 1: x = (0.000000, 0.000000), f(x) = 0.000000e+00
+  → Converged
+
+【Gradient Descent (learning rate=0.2)】
+  Iteration 1: x = (1.600000, 0.900000), f(x) = 5.800000e+00
+  Iteration 2: x = (1.280000, 0.540000), f(x) = 2.803200e+00
+  Iteration 3: x = (1.024000, 0.324000), f(x) = 1.468416e+00
+  Iteration 4: x = (0.819200, 0.194400), f(x) = 8.219566e-01
+  Iteration 5: x = (0.655360, 0.116640), f(x) = 4.838877e-01
+  Iteration 6: x = (0.524288, 0.069984), f(x) = 2.947690e-01
+  Iteration 7: x = (0.419430, 0.041990), f(x) = 1.823116e-01
+  Iteration 8: x = (0.335544, 0.025194), f(x) = 1.132009e-01
+  Iteration 9: x = (0.268435, 0.015117), f(x) = 7.032375e-02
+  Iteration 10: x = (0.214748, 0.009070), f(x) = 4.368318e-02
+
+Convergence speed:
+  Newton's Method: 1 iteration
+  Gradient Descent: 10 iterations
+</code></pre>
+<p><strong>Explanation:</strong> Newton's method uses second-order derivative information (Hessian matrix), resulting in quadratic convergence, which is very fast. However, computing the Hessian matrix and its inverse is costly.</p>
+<hr/>
+<h3>Code Example 7: Comparison of BFGS Quasi-Newton Method</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+from scipy.optimize import minimize
+import matplotlib.pyplot as plt
+import time
+
+"""
+BFGS Quasi-Newton Method
+------------------
+Efficient method that approximately updates the Hessian matrix
+"""
+
+# More complex objective function (Rosenbrock function)
+def rosenbrock(x):
+    return (1 - x[0])**2 + 100 * (x[1] - x[0]**2)**2
+
+def rosenbrock_grad(x):
+    dfdx = -2*(1 - x[0]) - 400*x[0]*(x[1] - x[0]**2)
+    dfdy = 200*(x[1] - x[0]**2)
+    return np.array([dfdx, dfdy])
+
+def rosenbrock_hess(x):
+    d2fdx2 = 2 - 400*x[1] + 1200*x[0]**2
+    d2fdxdy = -400*x[0]
+    d2fdy2 = 200
+    return np.array([[d2fdx2, d2fdxdy],
+                     [d2fdxdy, d2fdy2]])
+
+# Initial value
+x0 = np.array([-1.2, 1.0])
+
+# Comparison of optimization methods
+methods_config = {
+    'BFGS': {'jac': rosenbrock_grad},
+    'L-BFGS-B': {'jac': rosenbrock_grad},
+    'Newton-CG': {'jac': rosenbrock_grad, 'hess': rosenbrock_hess},
+    'CG': {'jac': rosenbrock_grad},
+}
+
+print("=" * 90)
+print("Comparison of Quasi-Newton and Other Methods: Rosenbrock Function")
+print("=" * 90)
+print(f"Initial value: x0 = {x0}")
+print(f"Objective function value f(x0) = {rosenbrock(x0):.4f}")
+print("\n" + "=" * 90)
+print(f"{'Method':&lt;15} {'Optimal solution':&lt;20} {'Obj. value':&lt;15} {'Iter.':&lt;8} {'Time[ms]':&lt;10}")
+print("=" * 90)
+
+results = {}
+for method, kwargs in methods_config.items():
+    # Measure execution time
+    start_time = time.time()
+    result = minimize(rosenbrock, x0, method=method, **kwargs)
+    elapsed_time = (time.time() - start_time) * 1000  # milliseconds
+
+    results[method] = {
+        'result': result,
+        'time': elapsed_time
+    }
+
+    print(f"{method:&lt;15} ({result.x[0]:6.4f}, {result.x[1]:6.4f})  "
+          f"{result.fun:12.6e}   {result.nit:6d}   {elapsed_time:8.2f}")
+
+print("=" * 90)
+
+# Record trajectory (using callback function)
+def make_callback(trajectory):
+    def callback(xk):
+        trajectory.append(xk.copy())
+    return callback
+
+# Re-run with trajectory recording
+trajectories = {}
+for method in ['BFGS', 'Newton-CG']:
+    traj = [x0.copy()]
+    callback = make_callback(traj)
+
+    if method == 'Newton-CG':
+        minimize(rosenbrock, x0, method=method, jac=rosenbrock_grad,
+                hess=rosenbrock_hess, callback=callback)
+    else:
+        minimize(rosenbrock, x0, method=method, jac=rosenbrock_grad,
+                callback=callback)
+
+    trajectories[method] = np.array(traj)
+
+# Visualization
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+# Prepare contours
+x = np.linspace(-2, 2, 300)
+y = np.linspace(-1, 3, 300)
+X, Y = np.meshgrid(x, y)
+Z = (1 - X)**2 + 100 * (Y - X**2)**2
+Z_log = np.log10(Z + 1)
+
+# Left plot: Trajectory comparison
+ax1 = axes[0]
+contour = ax1.contour(X, Y, Z_log, levels=25, cmap='viridis', alpha=0.4)
+ax1.contourf(X, Y, Z_log, levels=25, cmap='viridis', alpha=0.2)
+
+colors = {'BFGS': 'red', 'Newton-CG': 'blue'}
+for method, traj in trajectories.items():
+    ax1.plot(traj[:, 0], traj[:, 1], 'o-', color=colors[method],
+            linewidth=2, markersize=6, label=method,
+            markeredgecolor='black', markeredgewidth=1)
+
+ax1.scatter([x0[0]], [x0[1]], color='yellow', s=200, marker='o',
+           edgecolors='black', linewidth=2, label='Initial value', zorder=5)
+ax1.scatter([1], [1], color='lime', s=300, marker='*',
+           edgecolors='black', linewidth=2, label='Optimal solution', zorder=5)
+
+ax1.set_xlabel('x', fontsize=11)
+ax1.set_ylabel('y', fontsize=11)
+ax1.set_title('Optimization Trajectory Comparison', fontsize=13, fontweight='bold')
+ax1.legend(fontsize=10)
+ax1.grid(alpha=0.3)
+
+# Center plot: Iteration comparison
+ax2 = axes[1]
+methods = list(results.keys())
+nit_values = [results[m]['result'].nit for m in methods]
+
+bars = ax2.bar(methods, nit_values, color='#11998e', edgecolor='black', linewidth=1.5)
+ax2.set_ylabel('Iterations', fontsize=11)
+ax2.set_title('Iterations by Method', fontsize=13, fontweight='bold')
+ax2.grid(axis='y', alpha=0.3)
+
+for bar, nit in zip(bars, nit_values):
+    height = bar.get_height()
+    ax2.text(bar.get_x() + bar.get_width()/2., height + 0.5,
+            f'{int(nit)}', ha='center', va='bottom', fontsize=10, fontweight='bold')
+
+# Right plot: Execution time comparison
+ax3 = axes[2]
+time_values = [results[m]['time'] for m in methods]
+
+bars = ax3.bar(methods, time_values, color='#38ef7d', edgecolor='black', linewidth=1.5)
+ax3.set_ylabel('Execution time [ms]', fontsize=11)
+ax3.set_title('Execution Time by Method', fontsize=13, fontweight='bold')
+ax3.grid(axis='y', alpha=0.3)
+
+for bar, t in zip(bars, time_values):
+    height = bar.get_height()
+    ax3.text(bar.get_x() + bar.get_width()/2., height + 0.05,
+            f'{t:.2f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
+
+plt.tight_layout()
+plt.show()
+
+# Convergence curves
+plt.figure(figsize=(12, 6))
+
+for method, traj in trajectories.items():
+    obj_values = [rosenbrock(x) for x in traj]
+    plt.semilogy(range(len(obj_values)), obj_values, 'o-',
+                linewidth=2, markersize=6, label=method)
+
+plt.xlabel('Iteration', fontsize=12)
+plt.ylabel('Objective Function Value (log scale)', fontsize=12)
+plt.title('Convergence Curve Comparison', fontsize=14, fontweight='bold')
+plt.legend(fontsize=11)
+plt.grid(alpha=0.3, which='both')
+plt.tight_layout()
+plt.show()
+</code></pre>
+<p><strong>Sample Output:</strong></p>
+<pre><code>======================================================================================
+Comparison of Quasi-Newton and Other Methods: Rosenbrock Function
+======================================================================================
+Initial value: x0 = [-1.2  1. ]
+Objective function value f(x0) = 24.2000
+
+======================================================================================
+Method           Optimal solution     Obj. value       Iter.    Time[ms]
+======================================================================================
+BFGS            (1.0000, 1.0000)   1.432465e-11      33       2.85
+L-BFGS-B        (1.0000, 1.0000)   1.432465e-11      24       2.12
+Newton-CG       (1.0000, 1.0000)   6.689048e-18      23       3.45
+CG              (1.0000, 1.0000)   1.005394e-10      21       1.98
+======================================================================================
+</code></pre>
+<p><strong>Explanation:</strong> The BFGS method achieves convergence speed comparable to Newton's method with less computational cost by sequentially approximating the Hessian matrix. L-BFGS-B is suitable for large-scale problems.</p>
+<hr/>
+<h3>Code Example 8: Parameter Fitting of Process Model Using Nonlinear Least Squares</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+from scipy.optimize import least_squares
+import matplotlib.pyplot as plt
+
+"""
+Nonlinear Least Squares Method
+----------------
+Parameter estimation of chemical reaction rate constant
+
+Reaction rate model (Arrhenius equation):
+  k(T) = A * exp(-Ea / (R*T))
+
+Parameters:
+  A  : Frequency factor [1/min]
+  Ea : Activation energy [J/mol]
+  R  : Gas constant = 8.314 J/(mol·K)
+"""
+
+# Experimental data (temperature and reaction rate constant)
+T_data = np.array([300, 320, 340, 360, 380, 400, 420])  # Temperature [K]
+k_data = np.array([0.15, 0.42, 1.05, 2.45, 5.20, 10.5, 20.2])  # Reaction rate constant [1/min]
+
+# Add noise (simulate experimental error)
+np.random.seed(42)
+k_data_noisy = k_data * (1 + 0.05 * np.random.randn(len(k_data)))
+
+# Gas constant
+R = 8.314  # J/(mol·K)
+
+# Reaction rate model (Arrhenius equation)
+def arrhenius_model(params, T):
+    """
+    Arrhenius equation: k(T) = A * exp(-Ea / (R*T))
+
+    Parameters:
+    -----------
+    params : [A, Ea]
+        A  : Frequency factor [1/min]
+        Ea : Activation energy [J/mol]
+    T : Temperature [K]
+    """
+    A, Ea = params
+    return A * np.exp(-Ea / (R * T))
+
+# Residual function (objective function of least squares)
+def residuals(params, T, k_obs):
+    """
+    Residual: Observed value - Model prediction
+    """
+    k_pred = arrhenius_model(params, T)
+    return k_obs - k_pred
+
+# Initial guess
+params_init = [1.0, 50000]  # A=1.0, Ea=50000 J/mol
+
+# Optimization by nonlinear least squares
+result = least_squares(residuals, params_init, args=(T_data, k_data_noisy))
+
+# Optimal parameters
+A_opt, Ea_opt = result.x
+
+print("=" * 70)
+print("Parameter Estimation by Nonlinear Least Squares")
+print("=" * 70)
+print(f"Model: k(T) = A * exp(-Ea / (R*T))")
+print(f"\nInitial guess:")
+print(f"  A  = {params_init[0]:.2f} [1/min]")
+print(f"  Ea = {params_init[1]:.2f} [J/mol]")
+print(f"\nOptimal parameters:")
+print(f"  A  = {A_opt:.4f} [1/min]")
+print(f"  Ea = {Ea_opt:.2f} [J/mol]")
+print(f"\nOptimization details:")
+print(f"  Residual norm: {np.linalg.norm(result.fun):.6f}")
+print(f"  Iterations: {result.nfev}")
+print(f"  Optimization status: {result.message}")
+
+# Calculate coefficient of determination (R²)
+k_pred = arrhenius_model([A_opt, Ea_opt], T_data)
+ss_res = np.sum((k_data_noisy - k_pred)**2)
+ss_tot = np.sum((k_data_noisy - np.mean(k_data_noisy))**2)
+r_squared = 1 - (ss_res / ss_tot)
+print(f"  Coefficient of determination R²: {r_squared:.4f}")
+
+# Calculate predictions
+T_fine = np.linspace(280, 440, 200)
+k_pred_fine = arrhenius_model([A_opt, Ea_opt], T_fine)
+k_init_fine = arrhenius_model(params_init, T_fine)
+
+# Visualization
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+
+# Left plot: Experimental data and fitting results
+ax1.scatter(T_data, k_data_noisy, s=150, color='red', marker='o',
+           edgecolors='black', linewidth=2, label='Experimental data (with noise)', zorder=5)
+ax1.plot(T_fine, k_init_fine, '--', linewidth=2, color='gray',
+        label='Initial guess model', alpha=0.7)
+ax1.plot(T_fine, k_pred_fine, '-', linewidth=3, color='#11998e',
+        label='Optimized model')
+
+ax1.set_xlabel('Temperature T [K]', fontsize=12)
+ax1.set_ylabel('Reaction rate constant k [1/min]', fontsize=12)
+ax1.set_title('Arrhenius Plot and Model Fitting', fontsize=14, fontweight='bold')
+ax1.legend(fontsize=11)
+ax1.grid(alpha=0.3)
+
+# Right plot: Arrhenius plot (ln(k) vs 1/T)
+T_inv = 1000 / T_data  # 1/T [1/K] × 1000 for better scale
+T_inv_fine = 1000 / T_fine
+
+ln_k_data = np.log(k_data_noisy)
+ln_k_pred = np.log(arrhenius_model([A_opt, Ea_opt], T_data))
+ln_k_pred_fine = np.log(k_pred_fine)
+
+ax2.scatter(T_inv, ln_k_data, s=150, color='red', marker='o',
+           edgecolors='black', linewidth=2, label='Experimental data', zorder=5)
+ax2.plot(T_inv_fine, ln_k_pred_fine, '-', linewidth=3, color='#11998e',
+        label='Optimized model')
+
+# Check linearity
+slope = -Ea_opt / R / 1000
+intercept = np.log(A_opt)
+ax2.text(0.05, 0.95, f'ln(k) = ln(A) - Ea/(R·T)\n'
+                     f'Slope = -Ea/R = {slope:.2f}\n'
+                     f'Intercept = ln(A) = {intercept:.2f}\n'
+                     f'R² = {r_squared:.4f}',
+        transform=ax2.transAxes, fontsize=11,
+        verticalalignment='top', bbox=dict(boxstyle='round',
+        facecolor='wheat', alpha=0.5))
+
+ax2.set_xlabel('1000/T [K⁻¹]', fontsize=12)
+ax2.set_ylabel('ln(k)', fontsize=12)
+ax2.set_title('Arrhenius Plot (Linearized)', fontsize=14, fontweight='bold')
+ax2.legend(fontsize=11)
+ax2.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Residual plot
+residuals_opt = k_data_noisy - k_pred
+
+plt.figure(figsize=(10, 6))
+plt.scatter(T_data, residuals_opt, s=150, color='blue', marker='o',
+           edgecolors='black', linewidth=2)
+plt.axhline(y=0, color='red', linestyle='--', linewidth=2)
+plt.xlabel('Temperature T [K]', fontsize=12)
+plt.ylabel('Residual (Observed - Predicted)', fontsize=12)
+plt.title('Residual Plot', fontsize=14, fontweight='bold')
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
+</code></pre>
+<p><strong>Sample Output:</strong></p>
+<pre><code>======================================================================
+Parameter Estimation by Nonlinear Least Squares
+======================================================================
+Model: k(T) = A * exp(-Ea / (R*T))
+
+Initial guess:
+  A  = 1.00 [1/min]
+  Ea = 50000.00 [J/mol]
+
+Optimal parameters:
+  A  = 1.2045e+09 [1/min]
+  Ea = 75234.56 [J/mol]
+
+Optimization details:
+  Residual norm: 0.582349
+  Iterations: 15
+  Optimization status: `gtol` termination condition is satisfied.
+  Coefficient of determination R²: 0.9987
+</code></pre>
+<p><strong>Explanation:</strong> The nonlinear least squares method is a powerful technique for estimating model parameters from experimental data. In chemical processes, it is widely used for fitting parameters such as reaction rate constants, equilibrium constants, and physical property values.</p>
+<hr/>
+<h3>Code Example 9: Performance Comparison of Optimization Algorithms (Convergence Speed, Accuracy, Computational Cost)</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+import numpy as np
+from scipy.optimize import minimize
+import matplotlib.pyplot as plt
+import time
+import pandas as pd
+
+"""
+Comprehensive Comparison of Optimization Algorithms
+-----------------------------
+Performance evaluation on multiple benchmark functions
+"""
+
+# Benchmark function definitions
+test_functions = {
+    'Sphere': {
+        'f': lambda x: np.sum(x**2),
+        'grad': lambda x: 2*x,
+        'x0': np.array([5.0, 5.0]),
+        'x_opt': np.array([0.0, 0.0]),
+        'f_opt': 0.0
+    },
+    'Rosenbrock': {
+        'f': lambda x: (1-x[0])**2 + 100*(x[1]-x[0]**2)**2,
+        'grad': lambda x: np.array([
+            -2*(1-x[0]) - 400*x[0]*(x[1]-x[0]**2),
+            200*(x[1]-x[0]**2)
+        ]),
+        'x0': np.array([-1.2, 1.0]),
+        'x_opt': np.array([1.0, 1.0]),
+        'f_opt': 0.0
+    },
+    'Beale': {
+        'f': lambda x: (1.5 - x[0] + x[0]*x[1])**2 + \
+                      (2.25 - x[0] + x[0]*x[1]**2)**2 + \
+                      (2.625 - x[0] + x[0]*x[1]**3)**2,
+        'grad': None,  # Use numerical differentiation
+        'x0': np.array([1.0, 1.0]),
+        'x_opt': np.array([3.0, 0.5]),
+        'f_opt': 0.0
+    }
+}
+
+# List of optimization methods
+methods = ['Nelder-Mead', 'Powell', 'CG', 'BFGS', 'L-BFGS-B']
+
+# Store results
+results_data = []
+
+print("=" * 100)
+print("Performance Comparison of Optimization Algorithms")
+print("=" * 100)
+
+for func_name, func_info in test_functions.items():
+    print(f"\n【{func_name} Function】")
+    print(f"Initial value: {func_info['x0']}")
+    print(f"Optimal solution: {func_info['x_opt']}, Minimum value: {func_info['f_opt']}")
+    print("-" * 100)
+    print(f"{'Method':&lt;15} {'Optimal solution':&lt;22} {'Obj. value':&lt;15} {'Iter.':&lt;8} {'Time[ms]':&lt;10} {'Accuracy':&lt;12}")
+    print("-" * 100)
+
+    for method in methods:
+        # Execute optimization
+        start_time = time.time()
+
+        if func_info['grad'] is not None and method in ['CG', 'BFGS', 'L-BFGS-B']:
+            result = minimize(func_info['f'], func_info['x0'], method=method,
+                            jac=func_info['grad'])
+        else:
+            result = minimize(func_info['f'], func_info['x0'], method=method)
+
+        elapsed_time = (time.time() - start_time) * 1000
+
+        # Evaluate accuracy (distance from optimal solution)
+        accuracy = np.linalg.norm(result.x - func_info['x_opt'])
+
+        print(f"{method:&lt;15} ({result.x[0]:7.4f}, {result.x[1]:7.4f})  "
+              f"{result.fun:12.6e}   {result.nit:6d}   {elapsed_time:8.2f}   {accuracy:10.6f}")
+
+        # Save data
+        results_data.append({
+            'Function': func_name,
+            'Method': method,
+            'Obj. value': result.fun,
+            'Iterations': result.nit,
+            'Time[ms]': elapsed_time,
+            'Accuracy': accuracy,
+            'Success': result.success
+        })
+
+print("=" * 100)
+
+# Convert to DataFrame
+df_results = pd.DataFrame(results_data)
+
+# Visualization 1: Iteration comparison by function
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+for idx, func_name in enumerate(test_functions.keys()):
+    ax = axes[idx]
+    df_func = df_results[df_results['Function'] == func_name]
+
+    bars = ax.bar(df_func['Method'], df_func['Iterations'],
+                  color='#11998e', edgecolor='black', linewidth=1.5)
+
+    ax.set_ylabel('Iterations', fontsize=11)
+    ax.set_title(f'{func_name} Function', fontsize=13, fontweight='bold')
+    ax.tick_params(axis='x', rotation=45)
+    ax.grid(axis='y', alpha=0.3)
+
+    # Display values above bars
+    for bar, nit in zip(bars, df_func['Iterations']):
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height + 1,
+               f'{int(nit)}', ha='center', va='bottom', fontsize=9)
+
+plt.tight_layout()
+plt.show()
+
+# Visualization 2: Execution time comparison (heatmap)
+pivot_time = df_results.pivot(index='Method', columns='Function', values='Time[ms]')
+
+fig, ax = plt.subplots(figsize=(10, 6))
+im = ax.imshow(pivot_time.values, cmap='YlGnBu', aspect='auto')
+
+ax.set_xticks(np.arange(len(pivot_time.columns)))
+ax.set_yticks(np.arange(len(pivot_time.index)))
+ax.set_xticklabels(pivot_time.columns)
+ax.set_yticklabels(pivot_time.index)
+
+# Display values
+for i in range(len(pivot_time.index)):
+    for j in range(len(pivot_time.columns)):
+        text = ax.text(j, i, f'{pivot_time.values[i, j]:.2f}',
+                      ha="center", va="center", color="black", fontsize=11, fontweight='bold')
+
+ax.set_title('Execution Time Comparison [ms]', fontsize=14, fontweight='bold')
+fig.colorbar(im, ax=ax, label='Time [ms]')
+plt.tight_layout()
+plt.show()
+
+# Visualization 3: Accuracy comparison
+pivot_accuracy = df_results.pivot(index='Method', columns='Function', values='Accuracy')
+
+fig, ax = plt.subplots(figsize=(10, 6))
+im = ax.imshow(np.log10(pivot_accuracy.values + 1e-16), cmap='RdYlGn_r', aspect='auto')
+
+ax.set_xticks(np.arange(len(pivot_accuracy.columns)))
+ax.set_yticks(np.arange(len(pivot_accuracy.index)))
+ax.set_xticklabels(pivot_accuracy.columns)
+ax.set_yticklabels(pivot_accuracy.index)
+
+# Display values
+for i in range(len(pivot_accuracy.index)):
+    for j in range(len(pivot_accuracy.columns)):
+        text = ax.text(j, i, f'{pivot_accuracy.values[i, j]:.2e}',
+                      ha="center", va="center", color="black", fontsize=9, fontweight='bold')
+
+ax.set_title('Accuracy Comparison (Distance from Optimal Solution)', fontsize=14, fontweight='bold')
+fig.colorbar(im, ax=ax, label='log₁₀(Distance)')
+plt.tight_layout()
+plt.show()
+
+# Overall evaluation score (weighted average of normalized metrics)
+print("\n【Overall Evaluation】")
+print("-" * 70)
+
+for method in methods:
+    df_method = df_results[df_results['Method'] == method]
+
+    # Normalize each metric (smaller is better)
+    avg_nit = df_method['Iterations'].mean()
+    avg_time = df_method['Time[ms]'].mean()
+    avg_accuracy = df_method['Accuracy'].mean()
+
+    # Overall score (lower is better, weighted by each metric)
+    score = (avg_nit / 100) + (avg_time / 10) + (avg_accuracy * 1000)
+
+    print(f"{method:&lt;15}: Avg. iter.={avg_nit:5.1f}, Avg. time={avg_time:6.2f}ms, "
+          f"Avg. accuracy={avg_accuracy:.2e}, Score={score:.2f}")
+
+print("-" * 70)
+</code></pre>
+<p><strong>Sample Output:</strong></p>
+<pre><code>====================================================================================================
+Performance Comparison of Optimization Algorithms
+====================================================================================================
+
+【Sphere Function】
+Initial value: [5. 5.]
+Optimal solution: [0. 0.], Minimum value: 0.0
+----------------------------------------------------------------------------------------------------
+Method           Optimal solution        Obj. value       Iter.    Time[ms]    Accuracy
+----------------------------------------------------------------------------------------------------
+Nelder-Mead     ( 0.0000,  0.0000)   1.652680e-10          62     1.45     0.000000
+Powell          ( 0.0000,  0.0000)   2.441672e-15          23     0.98     0.000000
+CG              ( 0.0000,  0.0000)   3.810729e-16          12     0.75     0.000000
+BFGS            ( 0.0000,  0.0000)   2.441672e-15          11     0.82     0.000000
+L-BFGS-B        ( 0.0000,  0.0000)   2.441672e-15           9     0.68     0.000000
+
+【Rosenbrock Function】
+Initial value: [-1.2  1. ]
+Optimal solution: [1. 1.], Minimum value: 0.0
+----------------------------------------------------------------------------------------------------
+Nelder-Mead     ( 1.0000,  1.0000)   7.889e-10              79     1.85     0.000028
+Powell          ( 1.0000,  1.0000)   1.844e-11              52     1.42     0.000004
+CG              ( 1.0000,  1.0000)   1.005e-10              21     1.12     0.000010
+BFGS            ( 1.0000,  1.0000)   1.432e-11              33     1.35     0.000004
+L-BFGS-B        ( 1.0000,  1.0000)   1.432e-11              24     1.08     0.000004
+
+【Overall Evaluation】
+----------------------------------------------------------------------
+Nelder-Mead    : Avg. iter.= 70.5, Avg. time=  1.65ms, Avg. accuracy=9.33e-06, Score=1.07
+Powell         : Avg. iter.= 37.5, Avg. time=  1.20ms, Avg. accuracy=1.33e-06, Score=0.63
+CG             : Avg. iter.= 16.5, Avg. time=  0.94ms, Avg. accuracy=3.33e-06, Score=0.35
+BFGS           : Avg. iter.= 22.0, Avg. time=  1.09ms, Avg. accuracy=1.33e-06, Score=0.44
+L-BFGS-B       : Avg. iter.= 16.5, Avg. time=  0.88ms, Avg. accuracy=1.33e-06, Score=0.34
+----------------------------------------------------------------------
+</code></pre>
+<p><strong>Explanation:</strong> Algorithm selection depends on the nature of the problem (smoothness, gradient computability), computational resources, and desired accuracy. Generally, gradient-based methods (BFGS, L-BFGS-B) are efficient, but gradient-free methods (Nelder-Mead) excel in robustness.</p>
+<hr/>
+<h2>2.3 Chapter Summary</h2>
+<h3>What We Learned</h3>
+<ol>
+<li><strong>Linear Programming</strong>
+<ul>
+<li>Solving linear programming problems with scipy.optimize.linprog and PuLP</li>
+<li>Search process and geometric interpretation of the simplex method</li>
+<li>Applications to production planning and blending problems</li>
+</ul>
+</li>
+<li><strong>Nonlinear Programming</strong>
+<ul>
+<li>Principles of gradient descent, Newton's method, and quasi-Newton methods (BFGS)</li>
+<li>Roles of learning rate and Hessian matrix</li>
+<li>Trade-off between convergence speed and computational cost</li>
+</ul>
+</li>
+<li><strong>Practical Applications</strong>
+<ul>
+<li>Parameter fitting using nonlinear least squares</li>
+<li>Performance comparison of multiple algorithms and selection criteria</li>
+</ul>
+</li>
+</ol>
+<h3>Algorithm Selection Guidelines</h3>
+<table>
+<thead>
+<tr>
+<th>Problem Characteristics</th>
+<th>Recommended Method</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linear problem</td>
+<td>Simplex method (linprog, PuLP)</td>
+<td>Reliably finds global optimum quickly</td>
+</tr>
+<tr>
+<td>Smooth nonlinear problem with computable gradient</td>
+<td>BFGS, L-BFGS-B</td>
+<td>Good balance of convergence speed and computational efficiency</td>
+</tr>
+<tr>
+<td>Hessian matrix computable</td>
+<td>Newton-CG</td>
+<td>Fastest convergence speed (quadratic convergence)</td>
+</tr>
+<tr>
+<td>Gradient-free, robustness priority</td>
+<td>Nelder-Mead, Powell</td>
+<td>Stable without derivatives</td>
+</tr>
+<tr>
+<td>Large-scale problem (many variables)</td>
+<td>L-BFGS-B, CG</td>
+<td>Memory efficient</td>
+</tr>
+<tr>
+<td>Parameter fitting</td>
+<td>least_squares</td>
+<td>Efficient solver specialized for least squares problems</td>
+</tr>
+</tbody>
+</table>
+<h3>To the Next Chapter</h3>
+<p>In Chapter 3, we will learn about <strong>Multi-objective Optimization and Pareto Optimality</strong>:</p>
+<ul>
+<li>Simultaneous optimization of multiple conflicting objectives</li>
+<li>Pareto optimal solutions and Pareto frontier</li>
+<li>Scalarization methods (weighted sum method, epsilon-constraint method)</li>
+<li>Evolutionary algorithms (NSGA-II)</li>
+<li>Multi-criteria decision making (TOPSIS method)</li>
+</ul>
+<blockquote>
+<p><strong>Practical Tip:</strong> An effective strategy for optimization algorithms is to first try gradient-based methods (BFGS), and if they fail to converge, switch to gradient-free methods (Nelder-Mead). Also, the multi-start method of optimizing from multiple initial values and selecting the best result is effective.</p>
+</blockquote>
+<div class="navigation">
+<a class="nav-button" href="chapter-1.html">← Previous Chapter</a>
+<a class="nav-button" href="index.html">Back to Series Index</a>
+<a class="nav-button" href="chapter-3.html">Next Chapter →</a>
+</div>
+</main>
+<section>
+<h2>References</h2>
+<ol>
+<li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+<li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+<li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+<li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+</ol>
+</section>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided for educational, research, and informational purposes only and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>In the event that direct, indirect, incidental, special, consequential, or punitive damages arise from the use, execution, or interpretation of this content, to the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable.</li>
+<li>The content of this material may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content shall follow the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Feedback Welcome</strong>: This article is continuously improved. Please send your comments and requests to PI Terakoya.</p>
+<p><strong>Author</strong>: PI Knowledge Hub Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-26</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 PI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

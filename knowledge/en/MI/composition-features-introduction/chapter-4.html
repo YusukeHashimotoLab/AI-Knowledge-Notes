@@ -1,0 +1,2037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 4: Machine Learning Model Integration - Composition-Based Features Introduction Series. Basic Understanding: scikit-learn pipelines, model selec..." name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Machine Learning Model Integration - Achieving GNN-level Accuracy with Composition-Based Features" name="description"/>
+<title>Chapter 4: Machine Learning Model Integration - Composition-Based Features Introduction Series</title>
+<!-- CSS Styling -->
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<!-- MathJax Configuration -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<!-- Mermaid for Diagrams -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+<!-- Prism.js for Syntax Highlighting -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</head>
+<body><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/MI/composition-features-introduction/chapter-4.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="container">
+<h1>Chapter 4: Machine Learning Model Integration</h1>
+<p class="subtitle">Achieving GNN-level Accuracy with Composition-Based Features</p>
+<div class="meta">
+<span>📚 Composition-Based Features Introduction Series</span>
+<span>⏱️ Reading Time: ~30 minutes</span>
+<span>🎯 Difficulty: Intermediate</span>
+</div>
+</div>
+</header>
+<div class="container">
+<!-- Learning Objectives -->
+<div class="learning-objectives">
+<h3>📖 What You Will Learn</h3>
+<ul>
+<li><strong>Basic Understanding</strong>: scikit-learn pipelines, model selection criteria, composition-based vs structure-based performance comparison</li>
+<li><strong>Practical Skills</strong>: RandomForest/GradientBoosting/MLP implementation, hyperparameter GridSearch, learning curve analysis</li>
+<li><strong>Application Ability</strong>: SHAP interpretation, multi-model ensemble, Matbench benchmark evaluation</li>
+</ul>
+</div>
+<!-- Introduction -->
+<section id="introduction">
+<h2>Introduction</h2>
+<p>
+                In the previous chapters, we learned how to generate composition-based features (Magpie, ElementProperty, custom Featurizers). In this chapter, we will master practical techniques for integrating these features with machine learning models to predict material properties with high accuracy.
+            </p>
+<p>
+                Particularly important is the possibility of achieving prediction accuracy comparable to Graph Neural Networks (GNNs) using <strong>composition information alone</strong>. In the Matbench v0.1 benchmark, composition-based models (such as ElemNet) achieved R² 0.92 for formation energy prediction, with a gap of only 3-5% compared to GNN models requiring crystal structure (R² 0.95-0.97).
+            </p>
+<p>
+                In this chapter, you will master machine learning workflows that can be immediately applied in practice through scikit-learn pipeline construction, comparison of multiple models (RandomForest, GradientBoosting, MLP), hyperparameter optimization, and SHAP interpretation.
+            </p>
+</section>
+<!-- Section 4.1: scikit-learn Pipeline Integration -->
+<section id="sklearn-pipeline">
+<h2>4.1 scikit-learn Pipeline Integration</h2>
+<h3>4.1.1 Basic Pipeline Concepts</h3>
+<p>
+                scikit-learn's <code>Pipeline</code> is a powerful tool that integrates data preprocessing, feature generation, and model training into a single processing flow. matminer's Featurizers can also be integrated into pipelines, offering the following advantages:
+            </p>
+<ul>
+<li><strong>Ensuring Reproducibility</strong>: Manage all processing in a single object and apply the same preprocessing to training/test data</li>
+<li><strong>Preventing Data Leakage</strong>: Correctly split data during cross-validation</li>
+<li><strong>Ease of Deployment</strong>: Save and load entire pipeline with joblib</li>
+</ul>
+<div class="mermaid">
+                graph LR
+                A[Chemical Composition<br/>Fe2O3] --&gt; B[Featurizer<br/>MagpieData]
+                B --&gt; C[Features<br/>145-dim]
+                C --&gt; D[StandardScaler<br/>Standardization]
+                D --&gt; E[ML Model<br/>RandomForest]
+                E --&gt; F[Prediction<br/>Formation Energy]
+                style A fill:#e3f2fd
+                style C fill:#fff3e0
+                style F fill:#f1f8e9
+            </div>
+<h3>4.1.2 Basic Pipeline Construction</h3>
+<p>
+                Here is the basic pattern for integrating matminer Featurizers into scikit-learn pipelines.
+            </p>
+<div class="colab-badge">
+<a href="https://colab.research.google.com/github/hackingmaterials/matminer_examples/blob/main/matminer_examples/machine_learning-nb/sklearn_pipeline_example.ipynb" target="_blank">
+<img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg"/>
+</a>
+</div>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - joblib&gt;=1.3.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Here is the basic pattern for integrating matminer Featurize
+
+Purpose: Demonstrate machine learning model training and evaluation
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+# Code Example1: scikit-learn Pipeline with Magpie Featurizer
+
+# Import required libraries
+import pandas as pd
+import numpy as np
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split, cross_val_score
+from matminer.featurizers.composition import ElementProperty
+from matminer.featurizers.conversions import StrToComposition
+import joblib
+
+# Prepare sample data (formation energy prediction)
+data = pd.DataFrame({
+    'composition': ['Fe2O3', 'Al2O3', 'TiO2', 'SiO2', 'MgO',
+                    'CaO', 'Na2O', 'K2O', 'ZnO', 'CuO'],
+    'formation_energy': [-8.3, -16.6, -9.7, -9.1, -6.1,
+                         -6.3, -4.2, -3.6, -3.6, -1.6]  # eV/atom
+})
+
+# 1. Convert chemical composition from string to Composition object
+str_to_comp = StrToComposition(target_col_id='composition_obj')
+data = str_to_comp.featurize_dataframe(data, 'composition')
+
+# 2. Build pipeline
+# Pipeline syntax: list of tuples [('name', object), ...]
+pipeline = Pipeline([
+    ('scaler', StandardScaler()),           # Feature scaling
+    ('model', RandomForestRegressor(       # Random Forest regression
+        n_estimators=100,
+        max_depth=10,
+        random_state=42
+    ))
+])
+
+# 3. Feature generation (executed outside pipeline)
+featurizer = ElementProperty.from_preset('magpie')
+data = featurizer.featurize_dataframe(data, 'composition_obj')
+
+# 4. Separate features and target
+feature_cols = featurizer.feature_labels()
+X = data[feature_cols]
+y = data['formation_energy']
+
+# 5. Train/test data split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# 6. Train pipeline
+pipeline.fit(X_train, y_train)
+
+# 7. Performance evaluation
+train_score = pipeline.score(X_train, y_train)
+test_score = pipeline.score(X_test, y_test)
+
+print(f"Training Data R² Score: {train_score:.4f}")
+print(f"Test Data R² Score: {test_score:.4f}")
+
+# 8. Cross-validation
+cv_scores = cross_val_score(
+    pipeline, X_train, y_train,
+    cv=5, scoring='r2'
+)
+print(f"\n5-Fold CV Average R²: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+
+# 9. Save pipeline
+joblib.dump(pipeline, 'formation_energy_model.pkl')
+print("\nSaved model toformation_energy_model.pkl")
+
+# 10. Load and use pipeline
+loaded_pipeline = joblib.load('formation_energy_model.pkl')
+predictions = loaded_pipeline.predict(X_test)
+print(f"\nPrediction Examples（First 3 Samples）:")
+for i in range(min(3, len(predictions))):
+    print(f"  Actual Value: {y_test.iloc[i]:.2f} eV/atom, "
+          f"Predicted Value: {predictions[i]:.2f} eV/atom")
+</code></pre>
+<div class="info-box">
+<h4>💡 make_pipeline vs Pipeline</h4>
+<p>
+                    Using <code>make_pipeline</code>, each step is automatically named, allowing for more concise notation:
+                </p>
+<pre><code class="language-python">from sklearn.pipeline import make_pipeline
+
+# Auto-naming version (names are 'standardscaler', 'randomforestregressor', etc.)
+pipeline = make_pipeline(
+    StandardScaler(),
+    RandomForestRegressor(n_estimators=100, random_state=42)
+)
+
+# Manual naming version (arbitrary names can be specified)
+pipeline = Pipeline([
+    ('scaling', StandardScaler()),
+    ('rf_model', RandomForestRegressor(n_estimators=100, random_state=42))
+])
+</code></pre>
+<p>
+<strong>Selection Criteria</strong>: For hyperparameter optimization where specific steps need to be accessed, <code>Pipeline</code> (explicit naming) is recommended; for simple workflows, <code>make_pipeline</code> is preferred.
+                </p>
+</div>
+<h3>4.1.3 Integrating Featurizer into Pipeline</h3>
+<p>
+                To directly integrate matminer's Featurizer into a scikit-learn pipeline, use the <code>DFMLAdaptor</code> class (matminer 0.7.4 and later).
+            </p>
+<pre><code class="language-python"># How to integrate Featurizer into pipeline
+
+from matminer.featurizers.base import MultipleFeaturizer
+from matminer.featurizers.composition import (
+    ElementProperty, Stoichiometry, ValenceOrbital
+)
+from matminer.utils.pipeline import DFMLAdaptor
+
+# Integrate multiple Featurizers
+multi_featurizer = MultipleFeaturizer([
+    ElementProperty.from_preset('magpie'),
+    Stoichiometry(),
+    ValenceOrbital()
+])
+
+# Make scikit-learn compatible with DFMLAdaptor
+featurizer_step = DFMLAdaptor(
+    multi_featurizer,
+    input_cols=['composition_obj'],
+    ignore_cols=['composition', 'formation_energy']  # Columns excluded from feature generation
+)
+
+# Build pipeline
+full_pipeline = Pipeline([
+    ('featurize', featurizer_step),
+    ('scale', StandardScaler()),
+    ('model', RandomForestRegressor(n_estimators=100, random_state=42))
+])
+
+# Can train with entire dataframe as input
+full_pipeline.fit(data, data['formation_energy'])
+</code></pre>
+<div class="warning-box">
+<h4>⚠️ Watch Out for Data Leakage</h4>
+<p>
+                    During cross-validation, if the Featurizer uses statistics from the entire dataset (e.g., mean values), data leakage can occur. To prevent this:
+                </p>
+<ul>
+<li><strong>Method 1</strong>: Build pipeline after applying Featurizer (recommended)</li>
+<li><strong>Method 2</strong>: Calculate statistics only during fit with custom Transformer</li>
+</ul>
+<p>
+                    For simplicity in this series, we adopt Method 1 (building pipeline after applying Featurizer).
+                </p>
+</div>
+</section>
+<!-- Section 4.2: Model Selection and Hyperparameter Optimization -->
+<section id="model-selection">
+<h2>4.2 Model Selection and Hyperparameter Optimization</h2>
+<h3>4.2.1 Main Machine Learning Models</h3>
+<p>
+                For material property prediction using composition-based features, the following three models are widely used:
+            </p>
+<table class="hyperparameter-table">
+<thead>
+<tr>
+<th>Model</th>
+<th>Characteristics</th>
+<th>Key Hyperparameters</th>
+<th>Recommended Range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Random Forest</strong></td>
+<td>Ensemble of decision trees, robust to overfitting, can obtain feature importance</td>
+<td>
+<code>n_estimators</code><br/>
+<code>max_depth</code><br/>
+<code>min_samples_split</code>
+</td>
+<td>
+                            100-500<br/>
+                            10-50<br/>
+                            2-10
+                        </td>
+</tr>
+<tr>
+<td><strong>Gradient Boosting</strong><br/>(XGBoost/LightGBM)</td>
+<td>Sequentially corrects errors, high accuracy, risk of overfitting</td>
+<td>
+<code>learning_rate</code><br/>
+<code>n_estimators</code><br/>
+<code>max_depth</code>
+</td>
+<td>
+                            0.01-0.3<br/>
+                            100-1000<br/>
+                            3-10
+                        </td>
+</tr>
+<tr>
+<td><strong>Neural Network</strong><br/>(MLP)</td>
+<td>Learns nonlinear relationships, effective with large-scale data, long training time</td>
+<td>
+<code>hidden_layer_sizes</code><br/>
+<code>activation</code><br/>
+<code>alpha</code>
+</td>
+<td>
+                            (100,), (100, 50)<br/>
+                            'relu', 'tanh'<br/>
+                            0.0001-0.01
+                        </td>
+</tr>
+</tbody>
+</table>
+<h3>4.2.2 Random Forest Regression</h3>
+<p>
+                Random Forest achieves high prediction accuracy and overfitting resistance by averaging predictions from multiple decision trees. In materials science, it is also frequently used for feature importance analysis.
+            </p>
+<div class="colab-badge">
+<a href="https://colab.research.google.com/github/hackingmaterials/matminer_examples/blob/main/matminer_examples/machine_learning-nb/random_forest_example.ipynb" target="_blank">
+<img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg"/>
+</a>
+</div>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+
+"""
+Example: Random Forest achieves high prediction accuracy and overfitt
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+# Code Example2: Random Forest regression (including hyperparameter optimization)
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import GridSearchCV, cross_val_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import matplotlib.pyplot as plt
+
+# Use features generated in Previous Chapter (X_train, X_test, y_train, y_test)
+
+# 1. Baseline model (default parameters)
+rf_baseline = RandomForestRegressor(random_state=42)
+rf_baseline.fit(X_train, y_train)
+baseline_score = rf_baseline.score(X_test, y_test)
+print(f"Baseline Model R² Score: {baseline_score:.4f}")
+
+# 2. Hyperparameter grid search
+param_grid = {
+    'n_estimators': [100, 200, 300],
+    'max_depth': [10, 20, 30, None],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4]
+}
+
+rf_model = RandomForestRegressor(random_state=42)
+grid_search = GridSearchCV(
+    rf_model,
+    param_grid,
+    cv=5,                    # 5-fold cross-validation
+    scoring='r2',            # Evaluate with R² score
+    n_jobs=-1,               # Use all CPU cores
+    verbose=1
+)
+
+# Execute GridSearch
+print("\nRunning GridSearchCV...")
+grid_search.fit(X_train, y_train)
+
+# Optimal parameters
+print(f"\nOptimal Parameters: {grid_search.best_params_}")
+print(f"Best CV Score: {grid_search.best_score_:.4f}")
+
+# 3. Evaluate with optimal model
+best_rf = grid_search.best_estimator_
+y_pred_train = best_rf.predict(X_train)
+y_pred_test = best_rf.predict(X_test)
+
+# Calculate evaluation metrics
+def evaluate_model(y_true, y_pred, dataset_name):
+    mae = mean_absolute_error(y_true, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+    r2 = r2_score(y_true, y_pred)
+
+    print(f"\n{dataset_name} Evaluation Results:")
+    print(f"  MAE:  {mae:.4f}")
+    print(f"  RMSE: {rmse:.4f}")
+    print(f"  R²:   {r2:.4f}")
+
+    return mae, rmse, r2
+
+train_metrics = evaluate_model(y_train, y_pred_train, "Training Data")
+test_metrics = evaluate_model(y_test, y_pred_test, "Test Data")
+
+# 4. Visualize feature importance
+feature_importance = best_rf.feature_importances_
+importance_df = pd.DataFrame({
+    'feature': feature_cols,
+    'importance': feature_importance
+}).sort_values('importance', ascending=False)
+
+print("\nTop 10 Features:")
+print(importance_df.head(10).to_string(index=False))
+
+# Visualization
+plt.figure(figsize=(10, 6))
+plt.barh(importance_df.head(10)['feature'],
+         importance_df.head(10)['importance'])
+plt.xlabel('Importance')
+plt.title('Random Forest Feature Importance (Top 10)')
+plt.gca().invert_yaxis()
+plt.tight_layout()
+plt.savefig('rf_feature_importance.png', dpi=150)
+print("\nSaved feature importance graph to rf_feature_importance.png")
+
+# 5. Predicted Value vs Actual Value plot
+plt.figure(figsize=(8, 8))
+plt.scatter(y_test, y_pred_test, alpha=0.6, edgecolors='k', linewidth=0.5)
+plt.plot([y_test.min(), y_test.max()],
+         [y_test.min(), y_test.max()],
+         'r--', lw=2, label='Ideal prediction')
+plt.xlabel('Actual Value (eV/atom)')
+plt.ylabel('Predicted Value (eV/atom)')
+plt.title(f'Random Forest Prediction Performance\nR² = {test_metrics[2]:.4f}')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.savefig('rf_prediction_plot.png', dpi=150)
+print("Saved prediction plot to rf_prediction_plot.png")
+</code></pre>
+<h3>4.2.3 Gradient Boosting (XGBoost)</h3>
+<p>
+                Gradient Boosting is a method that sequentially adds weak learners (shallow decision trees), correcting the errors of the previous model at each step. XGBoost is an implementation with optimizations for speed and regularization, frequently winning Kaggle competitions.
+            </p>
+<div class="colab-badge">
+<a href="https://colab.research.google.com/github/hackingmaterials/matminer_examples/blob/main/matminer_examples/machine_learning-nb/xgboost_example.ipynb" target="_blank">
+<img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg"/>
+</a>
+</div>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - xgboost&gt;=2.0.0
+
+"""
+Example: Gradient Boosting is a method that sequentially adds weak le
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+# Code Example3: Gradient Boosting implementation (XGBoost)
+
+# XGBoost installation (not required in Google Colab)
+# !pip install xgboost
+
+import xgboost as xgb
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import uniform, randint
+
+# 1. Create dataset for XGBoost (for speed optimization)
+dtrain = xgb.DMatrix(X_train, label=y_train)
+dtest = xgb.DMatrix(X_test, label=y_test)
+
+# 2. Baseline model
+params_baseline = {
+    'objective': 'reg:squarederror',
+    'eval_metric': 'rmse',
+    'eta': 0.1,                     # Learning rate
+    'max_depth': 6,
+    'subsample': 0.8,
+    'colsample_bytree': 0.8,
+    'seed': 42
+}
+
+# Training (using early stopping)
+evals = [(dtrain, 'train'), (dtest, 'test')]
+bst_baseline = xgb.train(
+    params_baseline,
+    dtrain,
+    num_boost_round=1000,
+    evals=evals,
+    early_stopping_rounds=50,
+    verbose_eval=False
+)
+
+print(f"Baseline best iteration: {bst_baseline.best_iteration}")
+print(f"Test RMSE: {bst_baseline.best_score:.4f}")
+
+# 3. Hyperparameter optimization with RandomizedSearchCV
+# Use XGBRegressor (scikit-learn compatible)
+xgb_model = xgb.XGBRegressor(
+    objective='reg:squarederror',
+    eval_metric='rmse',
+    random_state=42
+)
+
+param_distributions = {
+    'n_estimators': randint(100, 1000),
+    'learning_rate': uniform(0.01, 0.3),
+    'max_depth': randint(3, 10),
+    'min_child_weight': randint(1, 10),
+    'subsample': uniform(0.6, 0.4),          # 0.6-1.0
+    'colsample_bytree': uniform(0.6, 0.4),   # 0.6-1.0
+    'gamma': uniform(0, 0.5)
+}
+
+random_search = RandomizedSearchCV(
+    xgb_model,
+    param_distributions,
+    n_iter=50,                # 50 random samplings
+    cv=5,
+    scoring='r2',
+    n_jobs=-1,
+    verbose=1,
+    random_state=42
+)
+
+print("\nRunning RandomizedSearchCV...")
+random_search.fit(X_train, y_train)
+
+print(f"\nOptimal Parameters: {random_search.best_params_}")
+print(f"Best CV R² Score: {random_search.best_score_:.4f}")
+
+# 4. Evaluate with optimal model
+best_xgb = random_search.best_estimator_
+y_pred_test_xgb = best_xgb.predict(X_test)
+xgb_metrics = evaluate_model(y_test, y_pred_test_xgb, "XGBoost Test Data")
+
+# 5. Feature importance (Gain metric)
+xgb_importance = best_xgb.get_booster().get_score(importance_type='gain')
+importance_df_xgb = pd.DataFrame({
+    'feature': list(xgb_importance.keys()),
+    'importance': list(xgb_importance.values())
+}).sort_values('importance', ascending=False)
+
+print("\nXGBoost Top 10 Features (Gain):")
+print(importance_df_xgb.head(10).to_string(index=False))
+
+# 6. Visualize learning curve
+evals_result = best_xgb.evals_result()
+plt.figure(figsize=(10, 6))
+plt.plot(evals_result['validation_0']['rmse'], label='Training RMSE')
+plt.xlabel('Iteration')
+plt.ylabel('RMSE')
+plt.title('XGBoost Learning Curve')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.savefig('xgb_learning_curve.png', dpi=150)
+print("\nSaved learning curve to xgb_learning_curve.png")
+</code></pre>
+<div class="tip-box">
+<h4>💡 GridSearchCV vs RandomizedSearchCV</h4>
+<p>
+<strong>GridSearchCV</strong>: Exhaustively searches all parameter combinations (high computational cost)
+                </p>
+<p>
+<strong>RandomizedSearchCV</strong>: Efficiently searches through random sampling (recommended)
+                </p>
+<p>
+<strong>When to Use</strong>: RandomizedSearchCV is appropriate when the parameter space is wide (e.g., XGBoost), GridSearchCV when narrow (e.g., Random Forest).
+                </p>
+</div>
+<h3>4.2.4 Neural Network (MLP Regressor)</h3>
+<p>
+                Multi-layer Perceptron (MLP) is a neural network with multiple hidden layers. It excels at learning nonlinear relationships and demonstrates high performance on large-scale datasets.
+            </p>
+<div class="colab-badge">
+<a href="https://colab.research.google.com/github/hackingmaterials/matminer_examples/blob/main/matminer_examples/machine_learning-nb/neural_network_example.ipynb" target="_blank">
+<img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg"/>
+</a>
+</div>
+<pre><code class="language-python"># Code Example4: Neural Network（MLP Regressor）
+
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import validation_curve
+
+# 1. Data standardization (required for MLP)
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# 2. Baseline MLP
+mlp_baseline = MLPRegressor(
+    hidden_layer_sizes=(100,),      # 1 hidden layer, 100 units
+    activation='relu',
+    solver='adam',
+    alpha=0.0001,                   # L2 regularization coefficient
+    batch_size='auto',
+    learning_rate_init=0.001,
+    max_iter=500,
+    random_state=42,
+    early_stopping=True,            # Stop if validation loss doesn't improve
+    validation_fraction=0.1,
+    verbose=False
+)
+
+mlp_baseline.fit(X_train_scaled, y_train)
+print(f"Baseline MLP training complete ({mlp_baseline.n_iter_} iterations)")
+print(f"Test R² Score: {mlp_baseline.score(X_test_scaled, y_test):.4f}")
+
+# 3. Hyperparameter grid search
+param_grid_mlp = {
+    'hidden_layer_sizes': [(50,), (100,), (100, 50), (150, 100, 50)],
+    'activation': ['relu', 'tanh'],
+    'alpha': [0.0001, 0.001, 0.01],
+    'learning_rate_init': [0.001, 0.01]
+}
+
+mlp_model = MLPRegressor(
+    solver='adam',
+    max_iter=1000,
+    early_stopping=True,
+    random_state=42,
+    verbose=False
+)
+
+grid_search_mlp = GridSearchCV(
+    mlp_model,
+    param_grid_mlp,
+    cv=3,                           # 3-fold because MLP is time-consuming
+    scoring='r2',
+    n_jobs=-1,
+    verbose=1
+)
+
+print("\nRunning MLP GridSearchCV...")
+grid_search_mlp.fit(X_train_scaled, y_train)
+
+print(f"\nOptimal Parameters: {grid_search_mlp.best_params_}")
+print(f"Best CV R² Score: {grid_search_mlp.best_score_:.4f}")
+
+# 4. Evaluate with optimal model
+best_mlp = grid_search_mlp.best_estimator_
+y_pred_test_mlp = best_mlp.predict(X_test_scaled)
+mlp_metrics = evaluate_model(y_test, y_pred_test_mlp, "MLP Test Data")
+
+# 5. Visualize loss curve
+plt.figure(figsize=(10, 6))
+plt.plot(best_mlp.loss_curve_, label='Training Loss')
+if hasattr(best_mlp, 'validation_scores_'):
+    plt.plot(best_mlp.validation_scores_, label='Validation Score')
+plt.xlabel('Iteration')
+plt.ylabel('Loss / Score')
+plt.title('MLP Learning Curve')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.savefig('mlp_loss_curve.png', dpi=150)
+print("\nSaved loss curve to mlp_loss_curve.png")
+
+# 6. Investigate hidden layer size effects (Validation Curve)
+train_scores, valid_scores = validation_curve(
+    MLPRegressor(activation='relu', alpha=0.001, random_state=42, max_iter=500),
+    X_train_scaled, y_train,
+    param_name='hidden_layer_sizes',
+    param_range=[(50,), (100,), (150,), (100, 50), (150, 100)],
+    cv=3,
+    scoring='r2',
+    n_jobs=-1
+)
+
+plt.figure(figsize=(10, 6))
+plt.plot(['(50,)', '(100,)', '(150,)', '(100,50)', '(150,100)'],
+         train_scores.mean(axis=1), 'o-', label='Training Score')
+plt.plot(['(50,)', '(100,)', '(150,)', '(100,50)', '(150,100)'],
+         valid_scores.mean(axis=1), 's-', label='Validation Score')
+plt.xlabel('Hidden Layer Size')
+plt.ylabel('R² Score')
+plt.title('MLP Hidden Layer Size and Model Performance')
+plt.legend()
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.savefig('mlp_validation_curve.png', dpi=150)
+print("Saved Validation Curve to mlp_validation_curve.png")
+</code></pre>
+<h3>4.2.5 Learning Curve Analysis</h3>
+<p>
+                A Learning Curve visualizes the relationship between training data volume and prediction performance, used to diagnose overfitting and underfitting.
+            </p>
+<div class="mermaid">
+                graph TD
+                A[Learning Curve Analysis] --&gt; B{Training Score vs Validation Score}
+                B --&gt;|Train↑Val↑| C[Good Generalization]
+                B --&gt;|Train↑Val↓| D[Overfitting<br/>Simplify Model]
+                B --&gt;|Train↓Val↓| E[Underfitting<br/>Complexify Model]
+                B --&gt;|Both Converge| F[Expect Improvement<br/>with More Data]
+                style C fill:#c8e6c9
+                style D fill:#ffccbc
+                style E fill:#ffe0b2
+                style F fill:#b3e5fc
+            
+<div class="colab-badge">
+<a href="https://colab.research.google.com/github/hackingmaterials/matminer_examples/blob/main/matminer_examples/machine_learning-nb/learning_curve_example.ipynb" target="_blank">
+<img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg"/>
+</a>
+</div>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+# Code Example5: Learning curve analysis (learning_curve function)
+
+from sklearn.model_selection import learning_curve
+import matplotlib.pyplot as plt
+import numpy as np
+
+def plot_learning_curve(estimator, X, y, title, cv=5, n_jobs=-1,
+                        train_sizes=np.linspace(0.1, 1.0, 10)):
+    """
+    Function to plot learning curve
+
+    Parameters:
+    -----------
+    estimator : scikit-learn estimator
+        Model to evaluate
+    X : array-like, shape (n_samples, n_features)
+        Features
+    y : array-like, shape (n_samples,)
+        Target
+    title : str
+        Graph title
+    cv : int
+        Number of cross-validation folds
+    train_sizes : array-like
+        Training data sampling ratios
+    """
+    plt.figure(figsize=(10, 6))
+
+    # Calculate training/validation scores with learning_curve function
+    train_sizes_abs, train_scores, valid_scores = learning_curve(
+        estimator, X, y,
+        train_sizes=train_sizes,
+        cv=cv,
+        scoring='r2',
+        n_jobs=n_jobs,
+        verbose=0
+    )
+
+    # Calculate mean and standard deviation
+    train_scores_mean = train_scores.mean(axis=1)
+    train_scores_std = train_scores.std(axis=1)
+    valid_scores_mean = valid_scores.mean(axis=1)
+    valid_scores_std = valid_scores.std(axis=1)
+
+    # Plot
+    plt.fill_between(train_sizes_abs,
+                     train_scores_mean - train_scores_std,
+                     train_scores_mean + train_scores_std,
+                     alpha=0.1, color='blue')
+    plt.fill_between(train_sizes_abs,
+                     valid_scores_mean - valid_scores_std,
+                     valid_scores_mean + valid_scores_std,
+                     alpha=0.1, color='red')
+
+    plt.plot(train_sizes_abs, train_scores_mean, 'o-', color='blue',
+             label='Training Score')
+    plt.plot(train_sizes_abs, valid_scores_mean, 's-', color='red',
+             label='Cross-Validation Score')
+
+    plt.xlabel('Number of Training Samples')
+    plt.ylabel('R² Score')
+    plt.title(title)
+    plt.legend(loc='best')
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+
+    return plt
+
+# Compare learning curves of multiple models
+models = {
+    'Random Forest': RandomForestRegressor(n_estimators=100, max_depth=20,
+                                           random_state=42),
+    'XGBoost': xgb.XGBRegressor(n_estimators=200, max_depth=6,
+                                learning_rate=0.1, random_state=42),
+    'MLP': MLPRegressor(hidden_layer_sizes=(100, 50), alpha=0.001,
+                        max_iter=500, random_state=42)
+}
+
+for model_name, model in models.items():
+    # Standardization required for MLP
+    if model_name == 'MLP':
+        X_current = X_train_scaled
+        y_current = y_train
+    else:
+        X_current = X_train
+        y_current = y_train
+
+    plot_learning_curve(
+        model, X_current, y_current,
+        title=f'{model_name} Learning Curve',
+        cv=5
+    )
+    plt.savefig(f'learning_curve_{model_name.replace(" ", "_").lower()}.png',
+                dpi=150)
+    print(f"Saved learning curve for {model_name}")
+
+# Diagnostic guide
+print("\n[Learning Curve Diagnostic Guide]")
+print("1. High training / Low validation → Overfitting (simplify model, strengthen regularization)")
+print("2. Low training / Low validation → Underfitting (complexify model, add features)")
+print("3. Both scores converge high → Good (little improvement expected from more data)")
+print("4. Both scores increasing → Expect improvement with more data")
+</code></pre>
+</div></section>
+<!-- Section 4.3: Composition vs GNN Performance -->
+<section id="composition-vs-gnn">
+<h2>4.3 Composition-Based vs GNN Performance Comparison</h2>
+<h3>4.3.1 Matbench v0.1 Benchmark</h3>
+<p>
+<a href="https://matbench.materialsproject.org/" target="_blank">Matbench v0.1</a> is a standard benchmark for material property prediction, consisting of 13 tasks (formation energy, band gap, elastic modulus, etc.). Each task contains thousands to tens of thousands of data points, enabling fair performance comparisons.
+            </p>
+<div class="info-box">
+<h4>📊 Features of Matbench v0.1</h4>
+<ul>
+<li><strong>13 Tasks</strong>: Formation energy, band gap, dielectric constant, bulk modulus, shear modulus, etc.</li>
+<li><strong>Unified Data Split</strong>: 5-fold CV, predefined train/test splits</li>
+<li><strong>Diverse Inputs</strong>: Composition only (9 tasks), structure required (4 tasks)</li>
+<li><strong>Public Leaderboard</strong>: Can compare performance of latest algorithms</li>
+</ul>
+</div>
+<h3>4.3.2 Composition-Based vs GNN Performance Details</h3>
+<p>
+                The following table compares the performance of composition-based models (Magpie, ElemNet) and GNN models (CGCNN, MEGNet, ALIGNN) on the Matbench benchmark.
+            </p>
+<table class="benchmark-table">
+<thead>
+<tr>
+<th>Task</th>
+<th>Sample Count</th>
+<th>Evaluation Metric</th>
+<th>Magpie + RF</th>
+<th>ElemNet</th>
+<th>CGCNN</th>
+<th>MEGNet</th>
+<th>ALIGNN</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Formation Energy</strong><br/>(matbench_mp_e_form)</td>
+<td>132,752</td>
+<td>MAE (eV/atom)</td>
+<td>0.082</td>
+<td>0.065</td>
+<td class="best-score">0.052</td>
+<td>0.059</td>
+<td class="best-score">0.047</td>
+</tr>
+<tr>
+<td><strong>Band Gap</strong><br/>(matbench_mp_gap)</td>
+<td>106,113</td>
+<td>MAE (eV)</td>
+<td>0.42</td>
+<td>0.35</td>
+<td class="best-score">0.27</td>
+<td>0.30</td>
+<td class="best-score">0.25</td>
+</tr>
+<tr>
+<td><strong>Bulk Modulus</strong><br/>(matbench_mp_bulk_modulus)</td>
+<td>10,987</td>
+<td>MAE (log10(GPa))</td>
+<td>0.082</td>
+<td>0.075</td>
+<td class="best-score">0.063</td>
+<td>0.068</td>
+<td class="best-score">0.059</td>
+</tr>
+<tr>
+<td><strong>Shear Modulus</strong><br/>(matbench_mp_shear_modulus)</td>
+<td>10,987</td>
+<td>MAE (log10(GPa))</td>
+<td>0.092</td>
+<td>0.084</td>
+<td class="best-score">0.071</td>
+<td>0.076</td>
+<td class="best-score">0.067</td>
+</tr>
+<tr>
+<td><strong>Dielectric Constant</strong><br/>(matbench_dielectric)</td>
+<td>4,764</td>
+<td>MAE (log10)</td>
+<td>0.29</td>
+<td>0.26</td>
+<td class="best-score">0.21</td>
+<td>0.23</td>
+<td class="best-score">0.19</td>
+</tr>
+<tr>
+<td><strong>Perovskite Formation</strong><br/>(matbench_perovskites)</td>
+<td>18,928</td>
+<td>ROCAUC</td>
+<td>0.91</td>
+<td class="best-score">0.94</td>
+<td>0.93</td>
+<td>0.92</td>
+<td class="best-score">0.95</td>
+</tr>
+<tr>
+<td><strong>Phonon Frequency</strong><br/>(matbench_phonons)</td>
+<td>1,265</td>
+<td>MAE (cm⁻¹)</td>
+<td>89.5</td>
+<td>—</td>
+<td class="best-score">62.3</td>
+<td>71.2</td>
+<td class="best-score">58.7</td>
+</tr>
+</tbody>
+</table>
+<div class="info-box">
+<h4>🔍 Analysis of Performance Difference Factors</h4>
+<p>
+<strong>When composition-based is advantageous</strong>:
+                </p>
+<ul>
+<li><strong>Perovskite Formation</strong>: Chemical composition regularity is dominant (ElemNet: ROCAUC 0.94)</li>
+<li><strong>Small-scale Datasets</strong>: GNNs require large amounts of data, composition-based can learn from hundreds of samples</li>
+</ul>
+<p>
+<strong>When GNN is advantageous</strong>:
+                </p>
+<ul>
+<li><strong>Formation Energy</strong>: Crystal structure (coordination number, bond distance) is important (ALIGNN: MAE 0.047 vs ElemNet: 0.065)</li>
+<li><strong>Mechanical Properties</strong>: Elastic modulus strongly depends on crystal symmetry</li>
+<li><strong>Phonon Frequency</strong>: Atomic arrangement directly affects</li>
+</ul>
+</div>
+<h3>4.3.3 Selection Criteria</h3>
+<p>
+                The following shows selection criteria for composition-based and GNN-based models:
+            </p>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Composition-Based Recommended</th>
+<th>GNN Recommended</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Data Size</strong></td>
+<td>Small-scale (&lt;1,000 samples)</td>
+<td>Large-scale (&gt;10,000 samples)</td>
+</tr>
+<tr>
+<td><strong>Crystal Structure</strong></td>
+<td>Unknown/Undetermined</td>
+<td>Known/High-precision</td>
+</tr>
+<tr>
+<td><strong>Computational Cost</strong></td>
+<td>Seconds on CPU</td>
+<td>Minutes to hours on GPU</td>
+</tr>
+<tr>
+<td><strong>Interpretability</strong></td>
+<td>Feature importance is intuitive</td>
+<td>Strong black-box nature</td>
+</tr>
+<tr>
+<td><strong>Prediction Accuracy</strong></td>
+<td>85-95% of GNN</td>
+<td>Highest accuracy</td>
+</tr>
+<tr>
+<td><strong>Search Phase</strong></td>
+<td>Initial screening</td>
+<td>Precise evaluation of final candidates</td>
+</tr>
+</tbody>
+</table>
+<div class="tip-box">
+<h4>💡 Recommended Workflow in Practice</h4>
+<ol>
+<li><strong>Phase 1 - Initial Screening</strong>: Narrow down 100,000 candidates to 1,000 with composition-based model (minutes on CPU)</li>
+<li><strong>Phase 2 - Structure Optimization</strong>: DFT relaxation calculation of crystal structures for 1,000 candidates (several days)</li>
+<li><strong>Phase 3 - Precise Prediction</strong>: Select 100 candidates with GNN (several hours on GPU)</li>
+<li><strong>Phase 4 - Experimental Validation</strong>: Synthesize and measure final 10 candidates</li>
+</ol>
+<p>
+                    This hybrid approach enables high-accuracy material discovery while controlling computational costs.
+                </p>
+</div>
+<h3>4.3.4 Matbench Benchmark Execution Example</h3>
+<p>
+                We execute the Matbench benchmark and evaluate the performance of composition-based models.
+            </p>
+<div class="colab-badge">
+<a href="https://colab.research.google.com/github/hackingmaterials/matminer_examples/blob/main/matminer_examples/machine_learning-nb/matbench_example.ipynb" target="_blank">
+<img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg"/>
+</a>
+</div>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: We execute the Matbench benchmark and evaluate the performan
+
+Purpose: Demonstrate machine learning model training and evaluation
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+# Code Example6: Matbench benchmark evaluation
+
+# Matbench installation
+# !pip install matbench
+
+from matbench.bench import MatbenchBenchmark
+from matminer.featurizers.composition import ElementProperty
+from matminer.featurizers.conversions import StrToComposition
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+import pandas as pd
+
+# 1. Initialize Matbench benchmark
+mb = MatbenchBenchmark(
+    autoload=False,
+    subset=[
+        'matbench_mp_e_form',        # Formation energy
+        'matbench_mp_gap',           # Band gap
+        'matbench_perovskites'       # Perovskite formation
+    ]
+)
+
+# 2. Load datasets
+for task in mb.tasks:
+    task.load()
+    print(f"\n{task.dataset_name}:")
+    print(f"  Sample count: {len(task.df)}")
+    print(f"  Target: {task.metadata['target']}")
+    print(f"  Task type: {task.metadata['task_type']}")
+
+# 3. Build and evaluate composition-based model
+def evaluate_composition_model(task):
+    """
+    Evaluate Matbench task with composition-based model (Magpie + RandomForest)
+    """
+    # Convert chemical composition
+    str_to_comp = StrToComposition(target_col_id='composition_obj')
+    task.df = str_to_comp.featurize_dataframe(task.df, 'composition')
+
+    # Generate Magpie features
+    featurizer = ElementProperty.from_preset('magpie')
+    task.df = featurizer.featurize_dataframe(task.df, 'composition_obj')
+
+    feature_cols = featurizer.feature_labels()
+
+    # Build pipeline
+    if task.metadata['task_type'] == 'regression':
+        model = RandomForestRegressor(
+            n_estimators=300,
+            max_depth=30,
+            min_samples_split=5,
+            random_state=42,
+            n_jobs=-1
+        )
+    else:  # classification
+        from sklearn.ensemble import RandomForestClassifier
+        model = RandomForestClassifier(
+            n_estimators=300,
+            max_depth=30,
+            random_state=42,
+            n_jobs=-1
+        )
+
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),
+        ('model', model)
+    ])
+
+    # Evaluate with Matbench standard 5-fold CV
+    for fold_idx, fold in enumerate(task.folds):
+        # Get train/test data
+        train_inputs, train_outputs = task.get_train_and_val_data(fold)
+        X_train = train_inputs[feature_cols]
+        y_train = train_outputs
+
+        # Train model
+        pipeline.fit(X_train, y_train)
+
+        # Predict on test data
+        test_inputs, test_outputs = task.get_test_data(fold,
+                                                        include_target=True)
+        X_test = test_inputs[feature_cols]
+        predictions = pipeline.predict(X_test)
+
+        # Record predictions
+        task.record(fold, predictions)
+
+        print(f"  Fold {fold_idx + 1} complete")
+
+    # Calculate overall scores
+    scores = task.scores
+    print(f"\n{task.dataset_name} Evaluation Results:")
+    for metric, values in scores.items():
+        print(f"  {metric}: {values['mean']:.4f} ± {values['std']:.4f}")
+
+    return scores
+
+# 4. Execute evaluation on all tasks
+results = {}
+for task in mb.tasks:
+    print(f"\n{'='*60}")
+    print(f"Evaluating: {task.dataset_name}")
+    print('='*60)
+    scores = evaluate_composition_model(task)
+    results[task.dataset_name] = scores
+
+# 5. Display results summary
+print("\n" + "="*60)
+print("All Tasks Evaluation Results Summary")
+print("="*60)
+for dataset_name, scores in results.items():
+    print(f"\n{dataset_name}:")
+    for metric, values in scores.items():
+        print(f"  {metric}: {values['mean']:.4f} ± {values['std']:.4f}")
+
+# 6. Save results in Matbench official format
+mb.to_file('matbench_composition_results.json')
+print("\nSaved results to matbench_composition_results.json")
+print("Can be submitted to official leaderboard: https://matbench.materialsproject.org/")
+</code></pre>
+</section>
+<!-- Section 4.4: Model Interpretability with SHAP -->
+<section id="model-interpretability">
+<h2>4.4 Model Interpretability (SHAP)</h2>
+<h3>4.4.1 SHAP Foundational Theory</h3>
+<p>
+                SHAP (SHapley Additive exPlanations) is an interpretation method that applies Shapley values from game theory to machine learning. It quantifies the contribution of each feature to predicted values, making black-box model decisions explainable.
+            </p>
+<div class="info-box">
+<h4>📐 Definition of SHAP Values</h4>
+<p>
+                    The SHAP value $\phi_i$ for feature $i$ is defined as the following Shapley value:
+                </p>
+<p>
+                    $$
+                    \phi_i = \sum_{S \subseteq F \setminus \{i\}} \frac{|S|!(|F|-|S|-1)!}{|F|!} [f(S \cup \{i\}) - f(S)]
+                    $$
+                </p>
+<p>
+                    Where $F$ is the set of all features, $S$ is a subset of features, and $f(S)$ is the predicted value using feature set $S$.
+                </p>
+<p>
+<strong>Intuitive Interpretation</strong>: The value averaged over all possible feature combinations of how much the predicted value changes when feature $i$ is added.
+                </p>
+</div>
+<h3>4.4.2 Feature Importance vs SHAP</h3>
+<p>
+                It is important to understand the differences between Random Forest feature importance and SHAP:
+            </p>
+<table>
+<thead>
+<tr>
+<th>Comparison Item</th>
+<th>Feature Importance</th>
+<th>SHAP Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Definition</strong></td>
+<td>Average impurity (Gini) decrease</td>
+<td>Contribution to predicted value (Shapley value)</td>
+</tr>
+<tr>
+<td><strong>Interpretation</strong></td>
+<td>Global (overall importance)</td>
+<td>Local (individual sample contribution)</td>
+</tr>
+<tr>
+<td><strong>Directionality</strong></td>
+<td>None (importance only)</td>
+<td>Yes (positive/negative contribution)</td>
+</tr>
+<tr>
+<td><strong>Computational Cost</strong></td>
+<td>Low (calculated during training)</td>
+<td>High (calculated per prediction)</td>
+</tr>
+<tr>
+<td><strong>Theoretical Guarantee</strong></td>
+<td>None (heuristic)</td>
+<td>Yes (axiomatic foundation)</td>
+</tr>
+</tbody>
+</table>
+<h3>4.4.3 SHAP Implementation and Visualization</h3>
+<p>
+                We analyze Random Forest models using the SHAP library.
+            </p>
+<div class="colab-badge">
+<a href="https://colab.research.google.com/github/hackingmaterials/matminer_examples/blob/main/matminer_examples/machine_learning-nb/shap_example.ipynb" target="_blank">
+<img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg"/>
+</a>
+</div>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - shap&gt;=0.42.0
+
+"""
+Example: We analyze Random Forest models using the SHAP library.
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+# Code Example7: SHAP interpretation (summary_plot, dependence_plot)
+
+# SHAP installation
+# !pip install shap
+
+import shap
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Use trained model (best_rf trained in previous section)
+# X_test, y_test also continue from previous section
+
+# 1. Create SHAP Explainer (Tree Explainer for Random Forest)
+explainer = shap.TreeExplainer(best_rf)
+
+# 2. Calculate SHAP values (all test data)
+print("Calculating SHAP values...")
+shap_values = explainer.shap_values(X_test)
+print(f"SHAP values shape: {shap_values.shape}")  # (n_samples, n_features)
+
+# 3. Summary Plot (overall feature importance and distribution)
+plt.figure(figsize=(10, 8))
+shap.summary_plot(shap_values, X_test, feature_names=feature_cols,
+                  show=False, max_display=20)
+plt.tight_layout()
+plt.savefig('shap_summary_plot.png', dpi=150, bbox_inches='tight')
+print("\nSaved Summary Plot to shap_summary_plot.png")
+plt.close()
+
+# 4. Summary Plot (bar chart version: mean absolute SHAP values)
+plt.figure(figsize=(10, 8))
+shap.summary_plot(shap_values, X_test, feature_names=feature_cols,
+                  plot_type='bar', show=False, max_display=20)
+plt.tight_layout()
+plt.savefig('shap_summary_bar.png', dpi=150, bbox_inches='tight')
+print("Saved Summary Plot (bar chart) to shap_summary_bar.png")
+plt.close()
+
+# 5. Dependence Plot (detailed analysis of specific feature)
+# Get most important feature
+shap_importance = np.abs(shap_values).mean(axis=0)
+top_feature_idx = np.argmax(shap_importance)
+top_feature_name = feature_cols[top_feature_idx]
+
+plt.figure(figsize=(10, 6))
+shap.dependence_plot(
+    top_feature_idx,
+    shap_values,
+    X_test,
+    feature_names=feature_cols,
+    show=False
+)
+plt.tight_layout()
+plt.savefig(f'shap_dependence_{top_feature_name}.png',
+            dpi=150, bbox_inches='tight')
+print(f"\nSaved Dependence Plot ({top_feature_name})")
+plt.close()
+
+# 6. Force Plot (individual sample prediction explanation)
+# JavaScript-based, recommended for Jupyter environment
+shap.initjs()
+
+# Explain prediction for first test sample
+sample_idx = 0
+shap_values_sample = shap_values[sample_idx, :]
+base_value = explainer.expected_value
+prediction = best_rf.predict(X_test.iloc[[sample_idx]])[0]
+
+print(f"\nPrediction explanation for Sample #{sample_idx}:")
+print(f"  Base value (mean prediction): {base_value:.4f}")
+print(f"  Predicted Value: {prediction:.4f}")
+print(f"  Actual Value: {y_test.iloc[sample_idx]:.4f}")
+
+# Display Force Plot (Jupyter environment)
+# shap.force_plot(base_value, shap_values_sample, X_test.iloc[sample_idx, :],
+#                 feature_names=feature_cols)
+
+# 7. Mean absolute SHAP value ranking by feature
+shap_df = pd.DataFrame({
+    'feature': feature_cols,
+    'mean_abs_shap': np.abs(shap_values).mean(axis=0)
+}).sort_values('mean_abs_shap', ascending=False)
+
+print("\nTop 20 Features (mean absolute SHAP value):")
+print(shap_df.head(20).to_string(index=False))
+
+# 8. Comparison with Partial Dependence Plot
+from sklearn.inspection import partial_dependence, PartialDependenceDisplay
+
+# Create partial dependence plots for top 3 features
+top_3_features = shap_df.head(3)['feature'].tolist()
+top_3_indices = [feature_cols.index(f) for f in top_3_features]
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+for i, (feature_idx, feature_name) in enumerate(zip(top_3_indices, top_3_features)):
+    pd_result = partial_dependence(
+        best_rf, X_test, [feature_idx], grid_resolution=50
+    )
+    axes[i].plot(pd_result['grid_values'][0], pd_result['average'][0])
+    axes[i].set_xlabel(feature_name)
+    axes[i].set_ylabel('Partial Dependence')
+    axes[i].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('partial_dependence_plots.png', dpi=150)
+print("\nSaved partial dependence plots to partial_dependence_plots.png")
+
+# 9. Statistical summary of SHAP values
+print("\nSHAP Value Statistics:")
+print(f"  Mean absolute SHAP value across all features: {np.abs(shap_values).mean():.4f}")
+print(f"  Maximum SHAP value: {shap_values.max():.4f}")
+print(f"  Minimum SHAP value: {shap_values.min():.4f}")
+
+# Separate positive and negative contributions
+positive_shap = shap_values[shap_values &gt; 0].sum()
+negative_shap = shap_values[shap_values &lt; 0].sum()
+print(f"  Total positive contribution: {positive_shap:.4f}")
+print(f"  Total negative contribution: {negative_shap:.4f}")
+</code></pre>
+<h3>4.4.4 Practical Interpretation of SHAP Analysis</h3>
+<p>
+                We explain interpretation methods for each SHAP visualization technique:
+            </p>
+<div class="mermaid">
+                graph TB
+                A[SHAP Visualization Methods] --&gt; B[Summary Plot]
+                A --&gt; C[Dependence Plot]
+                A --&gt; D[Force Plot]
+                A --&gt; E[Waterfall Plot]
+
+                B --&gt; B1[Importance of all features<br/>Color=Feature value]
+                C --&gt; C1[Relationship between feature value and SHAP value<br/>Interaction visualization]
+                D --&gt; D2[Factor decomposition of individual predictions<br/>Change from base value]
+                E --&gt; E1[Stacked graph of predictions<br/>Cumulative contribution]
+
+                style B fill:#e3f2fd
+                style C fill:#fff3e0
+                style D fill:#f1f8e9
+                style E fill:#fce4ec
+            
+<div class="tip-box">
+<h4>💡 Best Practices for SHAP Analysis</h4>
+<ol>
+<li><strong>Summary Plot</strong>: Optimal for understanding overall trends. Check whether red (high values) increase or decrease predictions</li>
+<li><strong>Dependence Plot</strong>: Discover nonlinear relationships. Identify threshold effects and saturation effects</li>
+<li><strong>Force Plot</strong>: Explain individual predictions. Analyze causes of outliers and prediction errors</li>
+<li><strong>Use with Partial Dependence Plots</strong>: SHAP visualizes local effects, PDP visualizes global feature effects</li>
+</ol>
+<p>
+<strong>Application Example in Materials Science</strong>: If "electronegativity difference" shows high SHAP values in formation energy prediction, it suggests that ionic bonding contributes to stability.
+                </p>
+</div>
+</div></section>
+<!-- Section: Exercises -->
+<section id="exercises">
+<h2>Exercises</h2>
+<!-- Easy Exercises -->
+<div class="exercise">
+<h4>Exercise 1 (Easy): Building a Pipeline</h4>
+<p>
+                    Build a scikit-learn pipeline including Magpie features, StandardScaler, and RandomForestRegressor, and calculate the cross-validation score (5-fold, R²).
+                </p>
+<details>
+<summary>Show sample solution</summary>
+<pre><code class="language-python">from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import cross_val_score
+from matminer.featurizers.composition import ElementProperty
+
+# Generate features (outside pipeline)
+featurizer = ElementProperty.from_preset('magpie')
+data = featurizer.featurize_dataframe(data, 'composition_obj')
+
+X = data[featurizer.feature_labels()]
+y = data['target']
+
+# Build pipeline
+pipeline = Pipeline([
+    ('scaler', StandardScaler()),
+    ('model', RandomForestRegressor(n_estimators=100, random_state=42))
+])
+
+# Cross-validation
+cv_scores = cross_val_score(pipeline, X, y, cv=5, scoring='r2')
+print(f"5-Fold CV R²: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+</code></pre>
+</details>
+</div>
+<div class="exercise">
+<h4>Exercise 2 (Easy): Basic Model Training</h4>
+<p>
+                    Train XGBoostRegressor with default parameters and calculate MAE, RMSE, and R² for training/test data.
+                </p>
+<details>
+<summary>Show sample solution</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - xgboost&gt;=2.0.0
+
+"""
+Example: Train XGBoostRegressor with default parameters and calculate
+
+Purpose: Demonstrate machine learning model training and evaluation
+Target: Beginner to Intermediate
+Execution time: 30-60 seconds
+Dependencies: None
+"""
+
+import xgboost as xgb
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import numpy as np
+
+# Train model
+xgb_model = xgb.XGBRegressor(random_state=42)
+xgb_model.fit(X_train, y_train)
+
+# Predict
+y_pred_train = xgb_model.predict(X_train)
+y_pred_test = xgb_model.predict(X_test)
+
+# Evaluation metrics
+print("Training Data:")
+print(f"  MAE:  {mean_absolute_error(y_train, y_pred_train):.4f}")
+print(f"  RMSE: {np.sqrt(mean_squared_error(y_train, y_pred_train)):.4f}")
+print(f"  R²:   {r2_score(y_train, y_pred_train):.4f}")
+
+print("\nTest Data:")
+print(f"  MAE:  {mean_absolute_error(y_test, y_pred_test):.4f}")
+print(f"  RMSE: {np.sqrt(mean_squared_error(y_test, y_pred_test)):.4f}")
+print(f"  R²:   {r2_score(y_test, y_pred_test):.4f}")
+</code></pre>
+</details>
+</div>
+<div class="exercise">
+<h4>Exercise 3 (Easy): Cross-Validation Implementation</h4>
+<p>
+                    Execute 3-fold cross-validation on MLPRegressor and display R² scores for each fold and the average.
+                </p>
+<details>
+<summary>Show sample solution</summary>
+<pre><code class="language-python">from sklearn.neural_network import MLPRegressor
+from sklearn.model_selection import cross_validate
+from sklearn.preprocessing import StandardScaler
+
+# Data standardization
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# MLP model
+mlp = MLPRegressor(hidden_layer_sizes=(100,), max_iter=500, random_state=42)
+
+# 3-fold CV
+cv_results = cross_validate(
+    mlp, X_scaled, y,
+    cv=3,
+    scoring='r2',
+    return_train_score=True
+)
+
+print("Scores for each fold:")
+for i, (train_score, test_score) in enumerate(zip(
+    cv_results['train_score'], cv_results['test_score']
+)):
+    print(f"  Fold {i+1}: Train R²={train_score:.4f}, Test R²={test_score:.4f}")
+
+print(f"\nAverage Test R²: {cv_results['test_score'].mean():.4f} "
+      f"± {cv_results['test_score'].std():.4f}")
+</code></pre>
+</details>
+</div>
+<!-- Medium Exercises -->
+<div class="exercise">
+<h4>Exercise 4 (Medium): GridSearch Optimization</h4>
+<p>
+                    Optimize Random Forest hyperparameters (n_estimators, max_depth, min_samples_split) with GridSearchCV and display optimal parameters and best CV score.
+                </p>
+<details>
+<summary>Show sample solution</summary>
+<pre><code class="language-python">from sklearn.model_selection import GridSearchCV
+
+param_grid = {
+    'n_estimators': [100, 200, 300],
+    'max_depth': [10, 20, 30],
+    'min_samples_split': [2, 5, 10]
+}
+
+rf_model = RandomForestRegressor(random_state=42)
+grid_search = GridSearchCV(
+    rf_model, param_grid, cv=5, scoring='r2', n_jobs=-1, verbose=1
+)
+
+grid_search.fit(X_train, y_train)
+
+print(f"Optimal Parameters: {grid_search.best_params_}")
+print(f"Best CV R² Score: {grid_search.best_score_:.4f}")
+
+# Evaluate on test data
+test_score = grid_search.best_estimator_.score(X_test, y_test)
+print(f"Test R² Score: {test_score:.4f}")
+</code></pre>
+</details>
+</div>
+<div class="exercise">
+<h4>Exercise 5 (Medium): Learning Curve Interpretation</h4>
+<p>
+                    Draw learning curves and diagnose overfitting/underfitting. Vary training data size at 10%, 30%, 50%, 70%, and 100%.
+                </p>
+<details>
+<summary>Show sample solution</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+
+"""
+Example: Draw learning curves and diagnose overfitting/underfitting. 
+
+Purpose: Demonstrate data visualization techniques
+Target: Beginner to Intermediate
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+from sklearn.model_selection import learning_curve
+import matplotlib.pyplot as plt
+
+train_sizes, train_scores, valid_scores = learning_curve(
+    RandomForestRegressor(n_estimators=100, random_state=42),
+    X, y,
+    train_sizes=[0.1, 0.3, 0.5, 0.7, 1.0],
+    cv=5,
+    scoring='r2',
+    n_jobs=-1
+)
+
+plt.figure(figsize=(10, 6))
+plt.plot(train_sizes, train_scores.mean(axis=1), 'o-', label='Training Score')
+plt.plot(train_sizes, valid_scores.mean(axis=1), 's-', label='Validation Score')
+plt.xlabel('Number of Training Samples')
+plt.ylabel('R² Score')
+plt.title('Learning Curve')
+plt.legend()
+plt.grid(alpha=0.3)
+
+# Diagnosis
+final_train_score = train_scores.mean(axis=1)[-1]
+final_valid_score = valid_scores.mean(axis=1)[-1]
+gap = final_train_score - final_valid_score
+
+if gap &gt; 0.1:
+    diagnosis = "Possibility of overfitting（Training Score &gt;&gt; Validation Score）"
+elif final_valid_score &lt; 0.7:
+    diagnosis = "Possibility of underfitting（Both scores are low）"
+else:
+    diagnosis = "Good generalization performance"
+
+plt.text(0.5, 0.1, f"Diagnosis: {diagnosis}",
+         transform=plt.gca().transAxes, fontsize=12,
+         bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+plt.tight_layout()
+plt.show()
+</code></pre>
+</details>
+</div>
+<div class="exercise">
+<h4>Exercise 6 (Medium): SHAP Value Calculation and Ranking</h4>
+<p>
+                    Calculate SHAP values for a trained Random Forest model and display ranking of top 10 features by mean absolute SHAP value.
+                </p>
+<details>
+<summary>Show sample solution</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - shap&gt;=0.42.0
+
+"""
+Example: Calculate SHAP values for a trained Random Forest model and 
+
+Purpose: Demonstrate data manipulation and preprocessing
+Target: Beginner to Intermediate
+Execution time: ~5 seconds
+Dependencies: None
+"""
+
+import shap
+import numpy as np
+
+# Create TreeExplainer
+explainer = shap.TreeExplainer(best_rf)
+
+# Calculate SHAP values
+shap_values = explainer.shap_values(X_test)
+
+# Mean Absolute SHAP Valuefor ranking
+shap_importance = np.abs(shap_values).mean(axis=0)
+feature_names = X_test.columns.tolist()
+
+shap_df = pd.DataFrame({
+    'feature': feature_names,
+    'mean_abs_shap': shap_importance
+}).sort_values('mean_abs_shap', ascending=False)
+
+print("Top 10 Features (mean absolute SHAP value):")
+print(shap_df.head(10).to_string(index=False))
+
+# Visualization
+plt.figure(figsize=(10, 6))
+plt.barh(shap_df.head(10)['feature'], shap_df.head(10)['mean_abs_shap'])
+plt.xlabel('Mean Absolute SHAP Value')
+plt.title('Feature Importance (SHAP)')
+plt.gca().invert_yaxis()
+plt.tight_layout()
+plt.show()
+</code></pre>
+</details>
+</div>
+<div class="exercise">
+<h4>Exercise 7 (Medium): Model Performance Comparison</h4>
+<p>
+                    Train three models (Random Forest, XGBoost, MLP) on the same dataset and output MAE, RMSE, and R² as a comparison table.
+                </p>
+<details>
+<summary>Show sample solution</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - xgboost&gt;=2.0.0
+
+"""
+Example: Train three models (Random Forest, XGBoost, MLP) on the same
+
+Purpose: Demonstrate machine learning model training and evaluation
+Target: Advanced
+Execution time: 30-60 seconds
+Dependencies: None
+"""
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.neural_network import MLPRegressor
+import xgboost as xgb
+from sklearn.preprocessing import StandardScaler
+
+# Define models
+models = {
+    'Random Forest': RandomForestRegressor(n_estimators=200, max_depth=20,
+                                           random_state=42),
+    'XGBoost': xgb.XGBRegressor(n_estimators=200, max_depth=6,
+                                learning_rate=0.1, random_state=42),
+    'MLP': MLPRegressor(hidden_layer_sizes=(100, 50), max_iter=500,
+                        random_state=42)
+}
+
+# Store evaluation results
+results = []
+
+for model_name, model in models.items():
+    # Standardize for MLP
+    if model_name == 'MLP':
+        scaler = StandardScaler()
+        X_train_current = scaler.fit_transform(X_train)
+        X_test_current = scaler.transform(X_test)
+    else:
+        X_train_current = X_train
+        X_test_current = X_test
+
+    # Train and predict
+    model.fit(X_train_current, y_train)
+    y_pred = model.predict(X_test_current)
+
+    # Evaluation metrics
+    mae = mean_absolute_error(y_test, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    r2 = r2_score(y_test, y_pred)
+
+    results.append({
+        'Model': model_name,
+        'MAE': mae,
+        'RMSE': rmse,
+        'R²': r2
+    })
+
+# Display results
+results_df = pd.DataFrame(results)
+print("\nModel Performance Comparison:")
+print(results_df.to_string(index=False))
+
+# Highlight best model
+best_model_idx = results_df['R²'].idxmax()
+print(f"\nBest Model: {results_df.loc[best_model_idx, 'Model']}")
+</code></pre>
+</details>
+</div>
+<!-- Hard Exercises -->
+<div class="exercise">
+<h4>Exercise 8 (Hard): Ensemble Method (Stacking)</h4>
+<p>
+                    Implement StackingRegressor with Random Forest, XGBoost, and MLP as base models and LinearRegression as meta-model. Verify if performance improves over single models.
+                </p>
+<details>
+<summary>Show sample solution</summary>
+<pre><code class="language-python">from sklearn.ensemble import StackingRegressor
+from sklearn.linear_model import LinearRegression
+
+# Define base models
+base_models = [
+    ('rf', RandomForestRegressor(n_estimators=200, max_depth=20,
+                                 random_state=42)),
+    ('xgb', xgb.XGBRegressor(n_estimators=200, max_depth=6,
+                             learning_rate=0.1, random_state=42)),
+    ('mlp', Pipeline([
+        ('scaler', StandardScaler()),
+        ('model', MLPRegressor(hidden_layer_sizes=(100, 50),
+                               max_iter=500, random_state=42))
+    ]))
+]
+
+# Meta-model
+meta_model = LinearRegression()
+
+# Build StackingRegressor
+stacking_model = StackingRegressor(
+    estimators=base_models,
+    final_estimator=meta_model,
+    cv=5
+)
+
+# Train
+print("Training Stacking model...")
+stacking_model.fit(X_train, y_train)
+
+# Evaluation
+y_pred_stacking = stacking_model.predict(X_test)
+stacking_mae = mean_absolute_error(y_test, y_pred_stacking)
+stacking_rmse = np.sqrt(mean_squared_error(y_test, y_pred_stacking))
+stacking_r2 = r2_score(y_test, y_pred_stacking)
+
+print("\nStacking Model Performance:")
+print(f"  MAE:  {stacking_mae:.4f}")
+print(f"  RMSE: {stacking_rmse:.4f}")
+print(f"  R²:   {stacking_r2:.4f}")
+
+# Comparison with single models
+print("\nPerformance Improvement Rate (vs Random Forest):")
+rf_r2 = 0.85  # Assume previous exercise results
+improvement = (stacking_r2 - rf_r2) / rf_r2 * 100
+print(f"  R² Improvement: {improvement:.2f}%")
+</code></pre>
+</details>
+</div>
+<div class="exercise">
+<h4>Exercise 9 (Hard): Matbench Benchmark Reproduction</h4>
+<p>
+                    Train a composition-based model on Matbench's matbench_mp_e_form (formation energy) task and save results in official leaderboard format.
+                </p>
+<details>
+<summary>Show sample solution</summary>
+<pre><code class="language-python">from matbench.bench import MatbenchBenchmark
+
+# Initialize Matbench benchmark
+mb = MatbenchBenchmark(autoload=False, subset=['matbench_mp_e_form'])
+
+for task in mb.tasks:
+    task.load()
+
+    # Convert chemical composition and generate Magpie features
+    str_to_comp = StrToComposition(target_col_id='composition_obj')
+    task.df = str_to_comp.featurize_dataframe(task.df, 'composition')
+
+    featurizer = ElementProperty.from_preset('magpie')
+    task.df = featurizer.featurize_dataframe(task.df, 'composition_obj')
+
+    feature_cols = featurizer.feature_labels()
+
+    # Pipeline
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),
+        ('model', RandomForestRegressor(n_estimators=300, max_depth=30,
+                                        min_samples_split=5, random_state=42))
+    ])
+
+    # Evaluation with 5-fold CV
+    for fold_idx, fold in enumerate(task.folds):
+        train_inputs, train_outputs = task.get_train_and_val_data(fold)
+        X_train_fold = train_inputs[feature_cols]
+        y_train_fold = train_outputs
+
+        pipeline.fit(X_train_fold, y_train_fold)
+
+        test_inputs, _ = task.get_test_data(fold, include_target=False)
+        X_test_fold = test_inputs[feature_cols]
+        predictions = pipeline.predict(X_test_fold)
+
+        task.record(fold, predictions)
+        print(f"Fold {fold_idx + 1} completed")
+
+    # Display scores
+    scores = task.scores
+    for metric, values in scores.items():
+        print(f"{metric}: {values['mean']:.4f} ± {values['std']:.4f}")
+
+# Save results
+mb.to_file('matbench_eform_results.json')
+print("\nSaved results to matbench_eform_results.json ")
+</code></pre>
+</details>
+</div>
+<div class="exercise">
+<h4>Exercise 10 (Hard): Custom Evaluation Metric (MAPE)</h4>
+<p>
+                    Implement Mean Absolute Percentage Error (MAPE) as a custom evaluation metric and use it with GridSearchCV. MAPE is defined by the following formula:<br/>
+                    $$\text{MAPE} = \frac{100}{n} \sum_{i=1}^{n} \left| \frac{y_i - \hat{y}_i}{y_i} \right|$$
+                </p>
+<details>
+<summary>Show sample solution</summary>
+<pre><code class="language-python">from sklearn.metrics import make_scorer
+
+def mean_absolute_percentage_error(y_true, y_pred):
+    """
+    MAPE（Mean Absolute Percentage Error） calculation
+
+    Note: Add small value to avoid errors when y_true contains 0
+    """
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+
+    # Avoid division by zero
+    epsilon = 1e-10
+    return np.mean(np.abs((y_true - y_pred) / (y_true + epsilon))) * 100
+
+# Convert to scikit-learn scorer
+mape_scorer = make_scorer(mean_absolute_percentage_error,
+                          greater_is_better=False)  # Lower MAPE is better
+
+# Use custom evaluation metric with GridSearchCV
+param_grid = {
+    'n_estimators': [100, 200],
+    'max_depth': [10, 20]
+}
+
+grid_search = GridSearchCV(
+    RandomForestRegressor(random_state=42),
+    param_grid,
+    cv=5,
+    scoring=mape_scorer,  # Custom evaluation metric
+    n_jobs=-1,
+    verbose=1
+)
+
+grid_search.fit(X_train, y_train)
+
+print(f"Optimal Parameters: {grid_search.best_params_}")
+print(f"Best CV MAPE Score: {-grid_search.best_score_:.4f}%")  # Invert negative
+
+# Evaluate on test data
+y_pred_test = grid_search.best_estimator_.predict(X_test)
+test_mape = mean_absolute_percentage_error(y_test, y_pred_test)
+print(f"Test MAPE: {test_mape:.4f}%")
+</code></pre>
+</details>
+</div>
+</section>
+<!-- Learning Check -->
+<section id="learning-check">
+<h2>Learning Objectives Achievement Check</h2>
+<div class="info-box">
+<h4>Self-evaluate the following items (3 levels: Beginner/Intermediate/Advanced)</h4>
+<h4>Beginner Level (Basic Understanding)</h4>
+<ul>
+<li>Can build, save, and load scikit-learn pipelines</li>
+<li>Can explain characteristics and use cases of Random Forest, XGBoost, and MLP</li>
+<li>Understand performance differences between composition-based and GNN-based models</li>
+<li>Understand purpose and implementation of cross-validation</li>
+</ul>
+<h4>Intermediate Level (Practical Skills)</h4>
+<ul>
+<li>Can optimize hyperparameters with GridSearchCV</li>
+<li>Can diagnose overfitting/underfitting from learning curves</li>
+<li>Can calculate SHAP values and interpret feature importance</li>
+<li>Can quantitatively compare performance of multiple models</li>
+</ul>
+<h4>Advanced Level (Applied Skills)</h4>
+<ul>
+<li>Can build ensemble models with StackingRegressor</li>
+<li>Can evaluate on Matbench benchmark and save results in official format</li>
+<li>Can implement custom evaluation metrics and integrate with GridSearchCV</li>
+<li>Can distinguish when to use SHAP Dependence Plot vs Partial Dependence Plot</li>
+</ul>
+</div>
+</section>
+<!-- Summary -->
+<section id="summary">
+<h2>Summary</h2>
+<p>
+                In this chapter, we learned practical methods for integrating composition-based features with machine learning models to predict material properties with high accuracy. Let's review the key points:
+            </p>
+<h3>Key Points</h3>
+<ul>
+<li><strong>scikit-learn Pipelines</strong>: Integrate feature generation, preprocessing, and model training to ensure reproducibility</li>
+<li><strong>Model Selection</strong>: Distinguish use cases for Random Forest (interpretability-focused), XGBoost (accuracy-focused), and MLP (large-scale data)</li>
+<li><strong>Hyperparameter Optimization</strong>: Choose between GridSearchCV (exhaustive) and RandomizedSearchCV (efficient)</li>
+<li><strong>Learning Curve Analysis</strong>: Diagnose overfitting/underfitting and predict effects of adding data</li>
+<li><strong>Composition vs GNN</strong>: On Matbench, composition-based achieves 85-95% of GNN accuracy with &lt;1/100 computational cost</li>
+<li><strong>SHAP Interpretation</strong>: Quantify prediction factors and gain physical insights</li>
+</ul>
+<h3>Practical Application Guidelines</h3>
+<div class="tip-box">
+<h4>Recommended Workflow</h4>
+<ol>
+<li><strong>Initial Exploration</strong>: Narrow down 10⁵ candidates to 10³ with composition-based model (minutes)</li>
+<li><strong>Structure Optimization</strong>: DFT structure relaxation of selected candidates (days)</li>
+<li><strong>Precise Prediction</strong>: Select final candidates with GNN (hours)</li>
+<li><strong>Experimental Validation</strong>: Synthesize and measure top 10-20 candidates</li>
+</ol>
+<p>
+                    This hybrid approach enables high-accuracy material discovery while <strong>reducing computational cost by 90%</strong>.
+                </p>
+</div>
+<h3>Next Steps</h3>
+<p>
+                In Chapter 5, we will learn end-to-end workflows from discovery of new materials to experimental validation by applying composition-based features to actual material discovery projects. We will proceed to more practical content including integration with the Materials Project database, efficiency through active learning, and uncertainty quantification.
+            </p>
+</section>
+<!-- References -->
+<section id="references">
+<h2>References</h2>
+<ol>
+<li>
+                    Ward, L., Agrawal, A., Choudhary, A., &amp; Wolverton, C. (2016). "A general-purpose machine learning framework for predicting properties of inorganic materials." <em>npj Computational Materials</em>, 2, 16028, pp. 4-6.
+                    <a href="https://doi.org/10.1038/npjcompumats.2016.28" target="_blank">https://doi.org/10.1038/npjcompumats.2016.28</a>
+<br/><small>(Details Magpie feature performance benchmarks and integration methods with Random Forest)</small>
+</li>
+<li>
+                    Jha, D., Ward, L., Paul, A., Liao, W., Choudhary, A., Wolverton, C., &amp; Agrawal, A. (2018). "ElemNet: Deep Learning the Chemistry of Materials From Only Elemental Composition." <em>Scientific Reports</em>, 8, 17593, pp. 6-9.
+                    <a href="https://doi.org/10.1038/s41598-018-35934-y" target="_blank">https://doi.org/10.1038/s41598-018-35934-y</a>
+<br/><small>(Neural network achieving high-accuracy predictions from composition only, Matbench benchmark performance)</small>
+</li>
+<li>
+                    Dunn, A., Wang, Q., Ganose, A., Dopp, D., &amp; Jain, A. (2020). "Benchmarking materials property prediction methods: the Matbench test set and Automatminer reference algorithm." <em>npj Computational Materials</em>, 6, 138, pp. 1-10.
+                    <a href="https://doi.org/10.1038/s41524-020-00406-3" target="_blank">https://doi.org/10.1038/s41524-020-00406-3</a>
+<br/><small>(Matbench v0.1 design philosophy, details of 13 tasks, standard evaluation protocol)</small>
+</li>
+<li>
+                    scikit-learn Documentation: Pipeline and GridSearchCV.
+                    <a href="https://scikit-learn.org/stable/" target="_blank">https://scikit-learn.org/stable/</a>
+<br/><small>(Official documentation for pipeline construction, hyperparameter optimization, and learning curves)</small>
+</li>
+<li>
+                    XGBoost Documentation.
+                    <a href="https://xgboost.readthedocs.io/" target="_blank">https://xgboost.readthedocs.io/</a>
+<br/><small>(Details on XGBoost parameter tuning, early stopping, and feature importance)</small>
+</li>
+<li>
+                    Lundberg, S.M., &amp; Lee, S.I. (2017). "A Unified Approach to Interpreting Model Predictions." <em>Advances in Neural Information Processing Systems (NeurIPS)</em>, pp. 4765-4774.
+                    <a href="https://arxiv.org/abs/1705.07874" target="_blank">https://arxiv.org/abs/1705.07874</a>
+<br/><small>(SHAP original paper, theoretical foundation of Shapley values and TreeExplainer algorithm)</small>
+</li>
+<li>
+                    matminer Tutorials: Machine Learning Integration.
+                    <a href="https://hackingmaterials.lbl.gov/matminer/" target="_blank">https://hackingmaterials.lbl.gov/matminer/</a>
+<br/><small>（matminerand scikit-learn integration examples, DFMLAdaptor usage, best practices）</small>
+</li>
+</ol>
+</section>
+<!-- Navigation -->
+<nav class="navigation">
+<a class="nav-button" href="chapter-3.html">← Chapter 3: Element Property Database and Featurizer</a>
+<a class="nav-button" href="index.html">Back to Contents</a>
+<a class="nav-button" href="chapter-5.html">Chapter 5: Practical Materials Discovery →</a>
+</nav>
+</div>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+<footer style="text-align: center; padding: 2rem 0; margin-top: 3rem; border-top: 1px solid var(--border-color);">
+<p>© 2025 Composition-Based Features Introduction Series | AI Terakoya Knowledge Base</p>
+</footer>
+</body>
+</html>

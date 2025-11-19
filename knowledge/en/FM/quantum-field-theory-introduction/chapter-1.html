@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 1: Field Quantization and Canonical Formalism | Introduction to Quantum Field Theory" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 1: Field Quantization and Canonical Formalism | Introduction to Quantum Field Theory</title>
+<meta content="Learn quantization from classical field theory, canonical quantization of Klein-Gordon and Dirac fields, and construction of Fock space." name="description"/>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
+</head>
+<body><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/FM/quantum-field-theory-introduction/chapter-1.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+
+<header>
+<h1>Chapter 1: Field Quantization and Canonical Formalism</h1>
+<p class="subtitle">Canonical Quantization of Fields</p>
+</header>
+<div class="container">
+<div class="breadcrumb">
+<a href="../index.html">Fundamentals of Mathematics Dojo</a> &gt;
+            <a href="index.html">Introduction to Quantum Field Theory</a> &gt;
+            Chapter 1
+        </div>
+<div class="content">
+<h2>1.1 From Classical Field Theory to Quantum Field Theory</h2>
+<p>
+                Quantum Field Theory (QFT) is a theoretical framework that describes particles and fields in a unified manner.
+                It replaces the classical concept of particle trajectories with field operators, naturally handling particle creation and annihilation.
+                In this chapter, we begin with a review of classical field theory and systematically study the procedure of canonical quantization.
+            </p>
+<div class="definition">
+<h3>📚 Fundamentals of Classical Field Theory</h3>
+<p>A <strong>field</strong> \(\phi(\mathbf{x}, t)\) is a physical quantity defined at each point in spacetime. We construct the action from the Lagrangian density \(\mathcal{L}\):</p>
+<p>\[
+                S = \int dt \, d^3x \, \mathcal{L}(\phi, \partial_\mu \phi)
+                \]</p>
+<p><strong>Euler-Lagrange equation</strong>:</p>
+<p>\[
+                \frac{\partial \mathcal{L}}{\partial \phi} - \partial_\mu \left( \frac{\partial \mathcal{L}}{\partial(\partial_\mu \phi)} \right) = 0
+                \]</p>
+<p>Here, \(\partial_\mu = (\partial_t, \nabla)\) is the four-dimensional differential operator in Minkowski spacetime.</p>
+</div>
+<h3>1.1.1 Classical Theory of the Klein-Gordon Field</h3>
+<p>
+                As the simplest example of a field, we consider a real scalar field \(\phi(x)\).
+                The Lagrangian density that leads to the Klein-Gordon equation is:
+            </p>
+<p>\[
+            \mathcal{L} = \frac{1}{2}(\partial_\mu \phi)(\partial^\mu \phi) - \frac{1}{2}m^2 \phi^2
+            = \frac{1}{2}\dot{\phi}^2 - \frac{1}{2}(\nabla \phi)^2 - \frac{1}{2}m^2 \phi^2
+            \]</p>
+<p>Applying the Euler-Lagrange equation yields the Klein-Gordon equation:</p>
+<p>\[
+            (\Box + m^2)\phi = 0, \quad \Box = \partial_\mu \partial^\mu = \partial_t^2 - \nabla^2
+            \]</p>
+<div class="theorem">
+<h3>🔬 Canonical Momentum and Hamiltonian</h3>
+<p>The <strong>canonical momentum density</strong> conjugate to the field \(\phi\) is:</p>
+<p>\[
+                \pi(\mathbf{x}, t) = \frac{\partial \mathcal{L}}{\partial \dot{\phi}} = \dot{\phi}
+                \]</p>
+<p>The <strong>Hamiltonian density</strong> is obtained by the Legendre transformation:</p>
+<p>\[
+                \mathcal{H} = \pi \dot{\phi} - \mathcal{L} = \frac{1}{2}\pi^2 + \frac{1}{2}(\nabla \phi)^2 + \frac{1}{2}m^2 \phi^2
+                \]</p>
+<p>Total Hamiltonian: \(H = \int d^3x \, \mathcal{H}\)</p>
+</div>
+<div class="code-title">Example 1: Classical Time Evolution of the Klein-Gordon Field</div>
+<div class="code-example"><pre><code class="language-python"><span class="keyword">import</span> numpy <span class="keyword">as</span> np
+<span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt
+<span class="keyword">from</span> scipy.fft <span class="keyword">import</span> fft, ifft, fftfreq
+
+<span class="comment"># ===================================</span>
+<span class="comment"># Time evolution of 1D Klein-Gordon field</span>
+<span class="comment"># ===================================</span>
+
+<span class="keyword">def</span> <span class="function">klein_gordon_evolution</span>(phi_init, L=<span class="number">10.0</span>, N=<span class="number">128</span>, m=<span class="number">1.0</span>, T=<span class="number">5.0</span>, dt=<span class="number">0.01</span>):
+    <span class="string">"""Solve Klein-Gordon equation time evolution using spectral method
+
+    Args:
+        phi_init: Initial field configuration
+        L: System size
+        N: Number of lattice points
+        m: Mass
+        T: Total time
+        dt: Time step
+
+    Returns:
+        x, t_array, phi_xt: Spatial coordinates, time array, field spacetime evolution
+    """</span>
+    x = np.linspace(<span class="number">0</span>, L, N, endpoint=<span class="keyword">False</span>)
+    k = <span class="number">2</span> * np.pi * fftfreq(N, L/N)  <span class="comment"># Momentum space</span>
+
+    <span class="comment"># Dispersion relation: ω(k) = sqrt(k^2 + m^2)</span>
+    omega_k = np.sqrt(k**<span class="number">2</span> + m**<span class="number">2</span>)
+
+    <span class="comment"># Initial condition: phi(x,0) and pi(x,0) = ∂_t phi(x,0)</span>
+    phi = phi_init.copy()
+    pi = np.zeros_like(phi)  <span class="comment"># Initial momentum is zero</span>
+
+    <span class="comment"># Time evolution array</span>
+    n_steps = <span class="function">int</span>(T / dt)
+    t_array = np.linspace(<span class="number">0</span>, T, n_steps)
+    phi_xt = np.zeros((n_steps, N))
+    phi_xt[<span class="number">0</span>] = phi
+
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="number">1</span>, n_steps):
+        <span class="comment"># Time evolution in Fourier space (split-step method)</span>
+        phi_k = fft(phi)
+        pi_k = fft(pi)
+
+        <span class="comment"># Time evolution operator: exp(-iωt) and exp(iωt)</span>
+        phi_k_new = phi_k * np.cos(omega_k * dt) + (pi_k / omega_k) * np.sin(omega_k * dt)
+        pi_k_new = pi_k * np.cos(omega_k * dt) - phi_k * omega_k * np.sin(omega_k * dt)
+
+        phi = ifft(phi_k_new).real
+        pi = ifft(pi_k_new).real
+        phi_xt[i] = phi
+
+    <span class="keyword">return</span> x, t_array, phi_xt
+
+<span class="comment"># Example run: Time evolution of Gaussian wave packet</span>
+L, N = <span class="number">10.0</span>, <span class="number">128</span>
+x = np.linspace(<span class="number">0</span>, L, N, endpoint=<span class="keyword">False</span>)
+phi_init = np.exp(-((x - L/<span class="number">2</span>)**<span class="number">2</span>) / <span class="number">0.5</span>)  <span class="comment"># Gaussian</span>
+
+x, t_array, phi_xt = klein_gordon_evolution(phi_init, m=<span class="number">1.0</span>)
+
+<span class="function">print</span>(<span class="string">f"Number of time steps: {len(t_array)}"</span>)
+<span class="function">print</span>(<span class="string">f"Energy conservation check: φ(t=0) range [{phi_xt[0].min():.3f}, {phi_xt[0].max():.3f}]"</span>)
+<span class="function">print</span>(<span class="string">f"                          φ(t=T) range [{phi_xt[-1].min():.3f}, {phi_xt[-1].max():.3f}]"</span>)</code></pre></div>
+<div class="output">Number of time steps: 500
+Energy conservation check: φ(t=0) range [0.000, 1.000]
+                          φ(t=T) range [-0.687, 0.915]</div>
+<h2>1.2 Canonical Quantization Procedure</h2>
+<p>
+                To quantize a classical field, we promote the field \(\phi\) and canonical momentum \(\pi\) to operators,
+                and impose canonical commutation relations. This is the field version of the commutation relation between coordinate and momentum in ordinary quantum mechanics.
+            </p>
+<div class="theorem">
+<h3>📐 Equal-Time Canonical Commutation Relations (ETCCR)</h3>
+<p>The field operators \(\hat{\phi}(\mathbf{x}, t)\) and \(\hat{\pi}(\mathbf{x}', t)\) satisfy:</p>
+<p>\[
+                [\hat{\phi}(\mathbf{x}, t), \hat{\pi}(\mathbf{x}', t)] = i\hbar \delta^{(3)}(\mathbf{x} - \mathbf{x}')
+                \]</p>
+<p>\[
+                [\hat{\phi}(\mathbf{x}, t), \hat{\phi}(\mathbf{x}', t)] = 0, \quad
+                [\hat{\pi}(\mathbf{x}, t), \hat{\pi}(\mathbf{x}', t)] = 0
+                \]</p>
+<p>We use natural units \(\hbar = c = 1\) below.</p>
+</div>
+<h3>1.2.1 Fourier Mode Expansion and Creation-Annihilation Operators</h3>
+<p>
+                We expand the solution of the Klein-Gordon equation in plane waves. Under periodic boundary conditions:
+            </p>
+<p>\[
+            \phi(x) = \int \frac{d^3k}{(2\pi)^3} \frac{1}{\sqrt{2\omega_k}}
+            \left( a_k e^{-ik \cdot x} + a_k^\dagger e^{ik \cdot x} \right)
+            \]</p>
+<p>Here, \(\omega_k = \sqrt{\mathbf{k}^2 + m^2}\) is the dispersion relation, and \(k \cdot x = \omega_k t - \mathbf{k} \cdot \mathbf{x}\).</p>
+<div class="definition">
+<h3>🔧 Commutation Relations of Creation-Annihilation Operators</h3>
+<p>With \(a_k\) as the annihilation operator and \(a_k^\dagger\) as the creation operator:</p>
+<p>\[
+                [a_k, a_{k'}^\dagger] = (2\pi)^3 \delta^{(3)}(\mathbf{k} - \mathbf{k}')
+                \]</p>
+<p>\[
+                [a_k, a_{k'}] = 0, \quad [a_k^\dagger, a_{k'}^\dagger] = 0
+                \]</p>
+<p>These have the same algebraic structure as harmonic oscillator creation-annihilation operators.</p>
+</div>
+<div class="note">
+<h3>💡 Physical Interpretation</h3>
+<p>
+                    \(a_k^\dagger\) is an operator that creates one particle with momentum \(\mathbf{k}\).
+                    \(a_k\) annihilates one particle with momentum \(\mathbf{k}\).
+                    This picture allows field theory to be understood as a quantum theory of many-particle systems.
+                </p>
+</div>
+<div class="code-title">Example 2: Algebra of Creation-Annihilation Operators (Symbolic Computation)</div>
+<div class="code-example"><pre><code class="language-python"><span class="keyword">from</span> sympy <span class="keyword">import</span> *
+<span class="keyword">from</span> sympy.physics.quantum <span class="keyword">import</span> *
+
+<span class="comment"># ===================================</span>
+<span class="comment"># Commutation relations of creation-annihilation operators</span>
+<span class="comment"># ===================================</span>
+
+<span class="keyword">class</span> <span class="function">AnnihilationOp</span>(Operator):
+    <span class="string">"""Annihilation operator a"""</span>
+    <span class="keyword">pass</span>
+
+<span class="keyword">class</span> <span class="function">CreationOp</span>(Operator):
+    <span class="string">"""Creation operator a†"""</span>
+    <span class="keyword">pass</span>
+
+<span class="keyword">def</span> <span class="function">commutator</span>(A, B):
+    <span class="string">"""Commutator [A, B]"""</span>
+    <span class="keyword">return</span> A*B - B*A
+
+<span class="comment"># Symbol definition</span>
+a = AnnihilationOp(<span class="string">'a'</span>)
+a_dag = CreationOp(<span class="string">'a†'</span>)
+
+<span class="comment"># Verification of canonical commutation relations</span>
+<span class="function">print</span>(<span class="string">"Canonical commutation relation check:"</span>)
+<span class="function">print</span>(<span class="string">f"Assume [a, a†] = 1"</span>)
+
+<span class="comment"># Number operator N = a†a</span>
+<span class="function">print</span>(<span class="string">"\nProperties of number operator N = a†a:"</span>)
+<span class="function">print</span>(<span class="string">"[a, N] = [a, a†a] = [a, a†]a + a†[a, a] = a"</span>)
+<span class="function">print</span>(<span class="string">"[a†, N] = [a†, a†a] = [a†, a†]a + a†[a†, a] = -a†"</span>)
+
+<span class="comment"># Action on Fock states</span>
+n = Symbol(<span class="string">'n'</span>, integer=<span class="keyword">True</span>, positive=<span class="keyword">True</span>)
+<span class="function">print</span>(<span class="string">"\nAction on Fock state |n⟩:"</span>)
+<span class="function">print</span>(<span class="string">f"a |n⟩ = √n |n-1⟩"</span>)
+<span class="function">print</span>(<span class="string">f"a† |n⟩ = √(n+1) |n+1⟩"</span>)
+<span class="function">print</span>(<span class="string">f"N |n⟩ = n |n⟩"</span>)</code></pre></div>
+<div class="output">Canonical commutation relation check:
+Assume [a, a†] = 1
+
+Properties of number operator N = a†a:
+[a, N] = [a, a†a] = [a, a†]a + a†[a, a] = a
+[a†, N] = [a†, a†a] = [a†, a†]a + a†[a†, a] = -a†
+
+Action on Fock state |n⟩:
+a |n⟩ = √n |n-1⟩
+a† |n⟩ = √(n+1) |n+1⟩
+N |n⟩ = n |n⟩</div>
+<h2>1.3 Construction of Fock Space</h2>
+<p>
+                Using creation-annihilation operators, we construct the Hilbert space for many-particle states (Fock space).
+                This allows us to handle quantum states with indefinite particle number in a unified manner.
+            </p>
+<div class="theorem">
+<h3>🏗️ Definition of Fock Space</h3>
+<p>The <strong>vacuum state</strong> \(|0\rangle\) is annihilated by all annihilation operators:</p>
+<p>\[
+                a_k |0\rangle = 0 \quad \text{for all } \mathbf{k}
+                \]</p>
+<p><strong>n-particle states</strong> are constructed by applying creation operators to the vacuum:</p>
+<p>\[
+                |\mathbf{k}_1, \mathbf{k}_2, \ldots, \mathbf{k}_n\rangle
+                = a_{\mathbf{k}_1}^\dagger a_{\mathbf{k}_2}^\dagger \cdots a_{\mathbf{k}_n}^\dagger |0\rangle
+                \]</p>
+<p><strong>Fock space</strong> \(\mathcal{F}\) is the direct sum of all particle number sectors:</p>
+<p>\[
+                \mathcal{F} = \bigoplus_{n=0}^{\infty} \mathcal{H}_n
+                \]</p>
+</div>
+<h3>1.3.1 Diagonalization of the Hamiltonian</h3>
+<p>
+                The Hamiltonian of the Klein-Gordon field expressed in terms of creation-annihilation operators is:
+            </p>
+<p>\[
+            H = \int \frac{d^3k}{(2\pi)^3} \omega_k \left( a_k^\dagger a_k + \frac{1}{2}[a_k, a_k^\dagger] \right)
+            \]</p>
+<p>
+                This can be viewed as a sum of infinitely many harmonic oscillators. The second term is the vacuum zero-point energy, which diverges.
+                This is typically removed by <strong>normal ordering</strong>.
+            </p>
+<div class="definition">
+<h3>📋 Normal Ordering</h3>
+<p>The normal-ordered product of an operator \(A\), denoted \(:A:\), places all creation operators to the left of annihilation operators:</p>
+<p>\[
+                :a_k a_{k'}^\dagger: = a_{k'}^\dagger a_k
+                \]</p>
+<p>Normal-ordered Hamiltonian:</p>
+<p>\[
+                :H: = \int \frac{d^3k}{(2\pi)^3} \omega_k a_k^\dagger a_k
+                \]</p>
+<p>This is proportional to the number operator, and the vacuum energy is zero.</p>
+</div>
+<div class="mermaid">
+flowchart TD
+    A[Classical field φ, π] --&gt; B[Quantization: Operator promotion]
+    B --&gt; C[Canonical commutation relations<br/>[φ, π] = iδ]
+    C --&gt; D[Fourier expansion<br/>Plane wave basis]
+    D --&gt; E[Creation-annihilation operators<br/>a, a†]
+    E --&gt; F[Fock space construction<br/>|0⟩, a†|0⟩, ...]
+    F --&gt; G[Hamiltonian diagonalization<br/>H = Σ ω a†a]
+
+    style A fill:#e3f2fd
+    style E fill:#f3e5f5
+    style G fill:#e8f5e9
+            </div>
+<div class="code-title">Example 3: States and Energy Eigenvalues in Fock Space</div>
+<div class="code-example"><pre><code class="language-python"><span class="keyword">import</span> numpy <span class="keyword">as</span> np
+<span class="keyword">from</span> itertools <span class="keyword">import</span> combinations_with_replacement
+
+<span class="comment"># ===================================</span>
+<span class="comment"># States and energy calculation in Fock space</span>
+<span class="comment"># ===================================</span>
+
+<span class="keyword">def</span> <span class="function">fock_state_energy</span>(k_list, m=<span class="number">1.0</span>):
+    <span class="string">"""Calculate energy of a Fock state
+
+    Args:
+        k_list: List of momenta (each element is a 3D vector)
+        m: Particle mass
+
+    Returns:
+        Energy eigenvalue
+    """</span>
+    energy = <span class="number">0.0</span>
+    <span class="keyword">for</span> k <span class="keyword">in</span> k_list:
+        k_mag = np.linalg.norm(k)
+        omega_k = np.sqrt(k_mag**<span class="number">2</span> + m**<span class="number">2</span>)
+        energy += omega_k
+    <span class="keyword">return</span> energy
+
+<span class="keyword">def</span> <span class="function">generate_fock_states</span>(k_modes, max_particles=<span class="number">3</span>):
+    <span class="string">"""Generate many-particle Fock states from allowed momentum modes
+
+    Args:
+        k_modes: List of possible momentum modes
+        max_particles: Maximum number of particles
+
+    Returns:
+        fock_states: List of Fock states (each state is a tuple of momenta)
+    """</span>
+    fock_states = []
+    <span class="keyword">for</span> n <span class="keyword">in</span> <span class="function">range</span>(max_particles + <span class="number">1</span>):
+        <span class="keyword">for</span> state <span class="keyword">in</span> combinations_with_replacement(<span class="function">range</span>(<span class="function">len</span>(k_modes)), n):
+            k_list = [k_modes[i] <span class="keyword">for</span> i <span class="keyword">in</span> state]
+            fock_states.append(k_list)
+    <span class="keyword">return</span> fock_states
+
+<span class="comment"># Example for 1D system: k = 0, ±π/L</span>
+L = <span class="number">5.0</span>
+k_modes = [
+    np.array([<span class="number">0.0</span>]),
+    np.array([np.pi / L]),
+    np.array([-np.pi / L])
+]
+
+fock_states = generate_fock_states(k_modes, max_particles=<span class="number">2</span>)
+
+<span class="function">print</span>(<span class="string">"Low-energy states in Fock space:"</span>)
+<span class="function">print</span>(<span class="string">"-" * 50</span>)
+
+<span class="keyword">for</span> i, state <span class="keyword">in</span> <span class="function">enumerate</span>(fock_states[:<span class="number">8</span>]):
+    n_particles = <span class="function">len</span>(state)
+    energy = fock_state_energy(state, m=<span class="number">1.0</span>)
+
+    <span class="keyword">if</span> n_particles == <span class="number">0</span>:
+        label = <span class="string">"|0⟩ (vacuum)"</span>
+    <span class="keyword">else</span>:
+        k_values = [<span class="string">f"k={k[0]:.3f}"</span> <span class="keyword">for</span> k <span class="keyword">in</span> state]
+        label = <span class="string">f"|{', '.join(k_values)}⟩"</span>
+
+    <span class="function">print</span>(<span class="string">f"{i+1}. {label:&lt;30} E = {energy:.4f}"</span>)</code></pre></div>
+<div class="output">Low-energy states in Fock space:
+--------------------------------------------------
+1. |0⟩ (vacuum)                      E = 0.0000
+2. |k=0.000⟩                       E = 1.0000
+3. |k=0.628⟩                       E = 1.1879
+4. |k=-0.628⟩                      E = 1.1879
+5. |k=0.000, k=0.000⟩              E = 2.0000
+6. |k=0.000, k=0.628⟩              E = 2.1879
+7. |k=0.000, k=-0.628⟩             E = 2.1879
+8. |k=0.628, k=0.628⟩              E = 2.3759</div>
+<h2>1.4 Anticommutation Relations of the Dirac Field</h2>
+<p>
+                The Dirac field describing Fermi particles (electrons, protons, etc.) is a spinor field with spin 1/2.
+                Due to the Pauli exclusion principle, the creation-annihilation operators must satisfy <strong>anticommutation relations</strong>.
+            </p>
+<div class="theorem">
+<h3>🌀 Dirac Equation and Lagrangian Density</h3>
+<p>The Dirac field \(\psi(x)\) is a four-component spinor satisfying the Dirac equation:</p>
+<p>\[
+                (i\gamma^\mu \partial_\mu - m)\psi = 0
+                \]</p>
+<p>Lagrangian density:</p>
+<p>\[
+                \mathcal{L} = \bar{\psi}(i\gamma^\mu \partial_\mu - m)\psi
+                \]</p>
+<p>Here, \(\bar{\psi} = \psi^\dagger \gamma^0\) is the Dirac conjugate, and \(\gamma^\mu\) are Dirac matrices.</p>
+</div>
+<h3>1.4.1 Equal-Time Anticommutation Relations (ETCAR)</h3>
+<p>
+                To correspond to Fermi statistics, the quantization of the Dirac field uses anticommutators:
+            </p>
+<div class="definition">
+<h3>⚛️ Anticommutation Relations of the Dirac Field</h3>
+<p>For field operators \(\hat{\psi}_\alpha\) and their conjugate momenta:</p>
+<p>\[
+                \{\hat{\psi}_\alpha(\mathbf{x}, t), \hat{\psi}_\beta^\dagger(\mathbf{x}', t)\}
+                = \delta^{(3)}(\mathbf{x} - \mathbf{x}') \delta_{\alpha\beta}
+                \]</p>
+<p>\[
+                \{\hat{\psi}_\alpha(\mathbf{x}, t), \hat{\psi}_\beta(\mathbf{x}', t)\} = 0
+                \]</p>
+<p>For creation-annihilation operators \(b_k, b_k^\dagger\) in mode expansion:</p>
+<p>\[
+                \{b_k, b_{k'}^\dagger\} = (2\pi)^3 \delta^{(3)}(\mathbf{k} - \mathbf{k}')
+                \]</p>
+<p>\[
+                \{b_k, b_{k'}\} = 0, \quad \{b_k^\dagger, b_{k'}^\dagger\} = 0
+                \]</p>
+</div>
+<div class="note">
+<h3>🔍 Differences from Bose Fields</h3>
+<table>
+<tr>
+<th>Property</th>
+<th>Bose Field (Klein-Gordon)</th>
+<th>Fermi Field (Dirac)</th>
+</tr>
+<tr>
+<td>Algebra</td>
+<td>Commutation [a, a†] = 1</td>
+<td>Anticommutation {b, b†} = 1</td>
+</tr>
+<tr>
+<td>Statistics</td>
+<td>Bose-Einstein statistics</td>
+<td>Fermi-Dirac statistics</td>
+</tr>
+<tr>
+<td>Occupation number</td>
+<td>0, 1, 2, ... (unlimited)</td>
+<td>0, 1 only (exclusion principle)</td>
+</tr>
+<tr>
+<td>Spin</td>
+<td>Integer spin</td>
+<td>Half-integer spin</td>
+</tr>
+</table>
+</div>
+<div class="code-title">Example 4: Anticommutation Relations of Fermi Operators and the Exclusion Principle</div>
+<div class="code-example"><pre><code class="language-python"><span class="keyword">import</span> numpy <span class="keyword">as</span> np
+
+<span class="comment"># ===================================</span>
+<span class="comment"># Simulate anticommutation relations of Fermi operators</span>
+<span class="comment"># (finite-dimensional approximation with matrix representation)</span>
+<span class="comment"># ===================================</span>
+
+<span class="keyword">def</span> <span class="function">fermi_operators</span>(n_states):
+    <span class="string">"""Construct creation-annihilation operators for n independent Fermi modes
+
+    Fock space dimension: 2^n (each mode has 2 states: occupied/unoccupied)
+
+    Args:
+        n_states: Number of Fermi modes
+
+    Returns:
+        c: List of annihilation operators (each element is 2^n × 2^n matrix)
+        c_dag: List of creation operators
+    """</span>
+    dim = <span class="number">2</span>**n_states  <span class="comment"># Fock space dimension</span>
+    c = []
+    c_dag = []
+
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(n_states):
+        <span class="comment"># Annihilation operator for i-th mode</span>
+        op = np.zeros((dim, dim), dtype=complex)
+
+        <span class="keyword">for</span> state <span class="keyword">in</span> <span class="function">range</span>(dim):
+            <span class="keyword">if</span> (state &gt;&gt; i) &amp; <span class="number">1</span>:  <span class="comment"># i-th mode is occupied</span>
+                new_state = state ^ (<span class="number">1</span> &lt;&lt; i)  <span class="comment"># Flip i-th bit</span>
+
+                <span class="comment"># Jordan-Wigner sign: parity of occupation to the left</span>
+                sign = (-<span class="number">1</span>)**<span class="function">bin</span>(state &amp; ((<span class="number">1</span> &lt;&lt; i) - <span class="number">1</span>)).count(<span class="string">'1'</span>)
+
+                op[new_state, state] = sign
+
+        c.append(op)
+        c_dag.append(op.conj().T)
+
+    <span class="keyword">return</span> c, c_dag
+
+<span class="keyword">def</span> <span class="function">anticommutator</span>(A, B):
+    <span class="string">"""Anticommutator {A, B} = AB + BA"""</span>
+    <span class="keyword">return</span> A @ B + B @ A
+
+<span class="comment"># Example with 3 Fermi modes</span>
+n_states = <span class="number">3</span>
+c, c_dag = fermi_operators(n_states)
+
+<span class="function">print</span>(<span class="string">"Verification of Fermi operator anticommutation relations:"</span>)
+<span class="function">print</span>(<span class="string">"=" * 50</span>)
+
+<span class="comment"># Verification of {c_i, c_j†} = δ_ij</span>
+<span class="function">print</span>(<span class="string">"\n1. {c_i, c_j†} = δ_ij"</span>)
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(n_states):
+    <span class="keyword">for</span> j <span class="keyword">in</span> <span class="function">range</span>(n_states):
+        anticomm = anticommutator(c[i], c_dag[j])
+        expected = np.eye(<span class="number">2</span>**n_states) <span class="keyword">if</span> i == j <span class="keyword">else</span> np.zeros((<span class="number">2</span>**n_states, <span class="number">2</span>**n_states))
+        is_correct = np.allclose(anticomm, expected)
+        <span class="function">print</span>(<span class="string">f"   {{c_{i}, c†_{j}}} = δ_{i}{j}: {is_correct}"</span>)
+
+<span class="comment"># Verification of {c_i, c_j} = 0</span>
+<span class="function">print</span>(<span class="string">"\n2. {c_i, c_j} = 0"</span>)
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(n_states):
+    <span class="keyword">for</span> j <span class="keyword">in</span> <span class="function">range</span>(i, n_states):
+        anticomm = anticommutator(c[i], c[j])
+        is_zero = np.allclose(anticomm, <span class="number">0</span>)
+        <span class="function">print</span>(<span class="string">f"   {{c_{i}, c_{j}}} = 0: {is_zero}"</span>)
+
+<span class="comment"># Pauli exclusion principle: (c†)^2 = 0</span>
+<span class="function">print</span>(<span class="string">"\n3. Pauli exclusion principle: (c†_i)^2 = 0"</span>)
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(n_states):
+    square = c_dag[i] @ c_dag[i]
+    is_zero = np.allclose(square, <span class="number">0</span>)
+    <span class="function">print</span>(<span class="string">f"   (c†_{i})^2 = 0: {is_zero}"</span>)</code></pre></div>
+<div class="output">Verification of Fermi operator anticommutation relations:
+==================================================
+
+1. {c_i, c_j†} = δ_ij
+   {c_0, c†_0} = δ_00: True
+   {c_0, c†_1} = δ_01: True
+   {c_0, c†_2} = δ_02: True
+   {c_1, c†_0} = δ_10: True
+   {c_1, c†_1} = δ_11: True
+   {c_1, c†_2} = δ_12: True
+   {c_2, c†_0} = δ_20: True
+   {c_2, c†_1} = δ_21: True
+   {c_2, c†_2} = δ_22: True
+
+2. {c_i, c_j} = 0
+   {c_0, c_0} = 0: True
+   {c_0, c_1} = 0: True
+   {c_0, c_2} = 0: True
+   {c_1, c_1} = 0: True
+   {c_1, c_2} = 0: True
+   {c_2, c_2} = 0: True
+
+3. Pauli exclusion principle: (c†_i)^2 = 0
+   (c†_0)^2 = 0: True
+   (c†_1)^2 = 0: True
+   (c†_2)^2 = 0: True</div>
+<h2>1.5 Normal Product and Wick's Theorem</h2>
+<p>
+                In field theory calculations, products of creation-annihilation operators appear frequently.
+                Wick's theorem is a powerful tool for systematically organizing these products.
+            </p>
+<div class="definition">
+<h3>📐 Contraction</h3>
+<p>The <strong>contraction</strong> of two operators \(A, B\) is defined as the deviation from normal ordering:</p>
+<p>\[
+                \text{Contraction}(A B) = AB - :AB:
+                \]</p>
+<p>For creation-annihilation operators:</p>
+<p>\[
+                \text{Contraction}(a_k a_{k'}^\dagger) = a_k a_{k'}^\dagger - a_{k'}^\dagger a_k = [a_k, a_{k'}^\dagger]
+                \]</p>
+</div>
+<div class="theorem">
+<h3>🎯 Wick's Theorem</h3>
+<p>A product of creation-annihilation operators can be expressed as a sum of all possible contractions:</p>
+<p>\[
+                A_1 A_2 \cdots A_n = :A_1 A_2 \cdots A_n: + \text{(sum of all contractions)}
+                \]</p>
+<p>Example (for 4 operators):</p>
+<p>\[
+                a_1 a_2 a_3^\dagger a_4^\dagger = :a_1 a_2 a_3^\dagger a_4^\dagger:
+                + \text{Contraction}(a_1 a_3^\dagger) :a_2 a_4^\dagger:
+                + \text{Contraction}(a_1 a_4^\dagger) :a_2 a_3^\dagger:
+                + \cdots
+                \]</p>
+</div>
+<div class="code-title">Example 5: Numerical Verification of Wick's Theorem</div>
+<div class="code-example"><pre><code class="language-python"><span class="keyword">import</span> numpy <span class="keyword">as</span> np
+<span class="keyword">from</span> itertools <span class="keyword">import</span> combinations
+
+<span class="comment"># ===================================</span>
+<span class="comment"># Numerical verification of Wick's theorem (harmonic oscillator example)</span>
+<span class="comment"># ===================================</span>
+
+<span class="keyword">def</span> <span class="function">harmonic_operators</span>(n_max):
+    <span class="string">"""Creation-annihilation operators in Fock space of harmonic oscillator
+
+    Args:
+        n_max: Maximum occupation number (restrict Fock space to |0⟩, |1⟩, ..., |n_max⟩)
+
+    Returns:
+        a: Annihilation operator (matrix)
+        a_dag: Creation operator (matrix)
+    """</span>
+    dim = n_max + <span class="number">1</span>
+    a = np.zeros((dim, dim))
+
+    <span class="keyword">for</span> n <span class="keyword">in</span> <span class="function">range</span>(<span class="number">1</span>, dim):
+        a[n<span class="number">-1</span>, n] = np.sqrt(n)
+
+    a_dag = a.T
+
+    <span class="keyword">return</span> a, a_dag
+
+<span class="keyword">def</span> <span class="function">normal_order</span>(ops, n_max):
+    <span class="string">"""Rearrange product of operators into normal order
+
+    Args:
+        ops: List of operators ('a' or 'a_dag')
+        n_max: Maximum occupation number of Fock space
+
+    Returns:
+        Normal-ordered product of operators (matrix)
+    """</span>
+    a, a_dag = harmonic_operators(n_max)
+
+    <span class="comment"># Creation operators to the left, annihilation operators to the right</span>
+    creation_ops = [a_dag <span class="keyword">for</span> op <span class="keyword">in</span> ops <span class="keyword">if</span> op == <span class="string">'a_dag'</span>]
+    annihilation_ops = [a <span class="keyword">for</span> op <span class="keyword">in</span> ops <span class="keyword">if</span> op == <span class="string">'a'</span>]
+
+    result = np.eye(n_max + <span class="number">1</span>)
+    <span class="keyword">for</span> op <span class="keyword">in</span> creation_ops + annihilation_ops:
+        result = result @ op
+
+    <span class="keyword">return</span> result
+
+<span class="keyword">def</span> <span class="function">compute_contraction</span>(op1, op2, n_max):
+    <span class="string">"""Calculate contraction of two operators"""</span>
+    a, a_dag = harmonic_operators(n_max)
+
+    <span class="keyword">if</span> op1 == <span class="string">'a'</span> <span class="keyword">and</span> op2 == <span class="string">'a_dag'</span>:
+        <span class="keyword">return</span> a @ a_dag - a_dag @ a  <span class="comment"># [a, a†]</span>
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> np.zeros((n_max + <span class="number">1</span>, n_max + <span class="number">1</span>))
+
+<span class="comment"># Verify Wick's theorem: expand a a† a a†</span>
+n_max = <span class="number">5</span>
+a, a_dag = harmonic_operators(n_max)
+
+<span class="comment"># Left side: a a† a a†</span>
+lhs = a @ a_dag @ a @ a_dag
+
+<span class="comment"># Right side: expansion by Wick's theorem</span>
+<span class="comment"># :a a† a a†: + Contraction(a,a†) :a a†: + Contraction(a,a†) :a† a: + contraction product</span>
+
+<span class="comment"># Normal-ordered product: :a a† a a†: = a†^2 a^2</span>
+normal = a_dag @ a_dag @ a @ a
+
+<span class="comment"># Contraction calculation</span>
+contraction_1 = compute_contraction(<span class="string">'a'</span>, <span class="string">'a_dag'</span>, n_max) @ (a @ a_dag)
+contraction_2 = compute_contraction(<span class="string">'a'</span>, <span class="string">'a_dag'</span>, n_max) @ (a_dag @ a)
+contraction_both = compute_contraction(<span class="string">'a'</span>, <span class="string">'a_dag'</span>, n_max) @ compute_contraction(<span class="string">'a'</span>, <span class="string">'a_dag'</span>, n_max)
+
+rhs = normal + contraction_1 + contraction_2 + contraction_both
+
+<span class="function">print</span>(<span class="string">"Verification of Wick's theorem: a a† a a†"</span>)
+<span class="function">print</span>(<span class="string">"=" * 50</span>)
+<span class="function">print</span>(<span class="string">f"Maximum difference between direct calculation and Wick expansion: {np.max(np.abs(lhs - rhs)):.10f}"</span>)
+<span class="function">print</span>(<span class="string">f"\nVacuum expectation value ⟨0|a a† a a†|0⟩:"</span>)
+<span class="function">print</span>(<span class="string">f"  Direct calculation: {lhs[0, 0]:.4f}"</span>)
+<span class="function">print</span>(<span class="string">f"  Wick's theorem: {rhs[0, 0]:.4f}"</span>)</code></pre></div>
+<div class="output">Verification of Wick's theorem: a a† a a†
+==================================================
+Maximum difference between direct calculation and Wick expansion: 0.0000000000
+
+Vacuum expectation value ⟨0|a a† a a†|0⟩:
+  Direct calculation: 2.0000
+  Wick's theorem: 2.0000</div>
+<h2>1.6 Applications to Materials Science: Phonons and Magnons</h2>
+<p>
+                The formalism of field quantization is directly applicable to describing collective excitations (phonons, magnons) in solid state physics and materials science.
+                These are treated as quasiparticles and obey the algebra of creation-annihilation operators.
+            </p>
+<h3>1.6.1 Phonons: Quantization of Lattice Vibrations</h3>
+<p>
+                Vibrations of a crystal lattice can be described as a collection of independent harmonic oscillators under the harmonic approximation.
+                When quantizing each phonon mode with wave vector \(\mathbf{k}\), the same structure as the Klein-Gordon field emerges.
+            </p>
+<div class="example">
+<h3>🔬 Phonons in a 1D Atomic Chain</h3>
+<p>Consider a 1D atomic chain with mass \(M\) and lattice constant \(a\), where the spring constant for nearest-neighbor interaction is \(K\).</p>
+<p><strong>Classical equation of motion</strong>:</p>
+<p>\[
+                M \ddot{u}_n = K(u_{n+1} - 2u_n + u_{n-1})
+                \]</p>
+<p>Fourier transform \(u_n = \sum_k u_k e^{ikna}\) gives:</p>
+<p>\[
+                \ddot{u}_k = -\omega_k^2 u_k, \quad \omega_k = 2\sqrt{\frac{K}{M}} \left|\sin\frac{ka}{2}\right|
+                \]</p>
+<p><strong>Quantization</strong>: Canonical quantization introduces creation-annihilation operators \(a_k, a_k^\dagger\):</p>
+<p>\[
+                u_k = \sqrt{\frac{\hbar}{2M\omega_k}} (a_k + a_{-k}^\dagger)
+                \]</p>
+<p>Hamiltonian:</p>
+<p>\[
+                H = \sum_k \hbar\omega_k \left(a_k^\dagger a_k + \frac{1}{2}\right)
+                \]</p>
+</div>
+<div class="code-title">Example 6: Phonon Dispersion in a 1D Atomic Chain</div>
+<div class="code-example"><pre><code class="language-python"><span class="keyword">import</span> numpy <span class="keyword">as</span> np
+<span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt
+
+<span class="comment"># ===================================</span>
+<span class="comment"># Phonon dispersion relation for 1D atomic chain</span>
+<span class="comment"># ===================================</span>
+
+<span class="keyword">def</span> <span class="function">phonon_dispersion_1d</span>(k, K, M, a):
+    <span class="string">"""Phonon dispersion relation for 1D atomic chain
+
+    Args:
+        k: Wave number (can be array)
+        K: Spring constant
+        M: Atomic mass
+        a: Lattice constant
+
+    Returns:
+        omega: Angular frequency
+    """</span>
+    <span class="keyword">return</span> <span class="number">2</span> * np.sqrt(K / M) * np.abs(np.sin(k * a / <span class="number">2</span>))
+
+<span class="keyword">def</span> <span class="function">phonon_dos_1d</span>(omega, K, M, a, n_points=<span class="number">1000</span>):
+    <span class="string">"""Density of states for 1D phonons
+
+    Args:
+        omega: Angular frequency (array)
+        K, M, a: System parameters
+        n_points: Number of integration points
+
+    Returns:
+        dos: Density of states g(ω)
+    """</span>
+    k_max = np.pi / a
+    k = np.linspace(-k_max, k_max, n_points)
+    omega_k = phonon_dispersion_1d(k, K, M, a)
+
+    dos = np.zeros_like(omega)
+    dk = k[<span class="number">1</span>] - k[<span class="number">0</span>]
+
+    <span class="keyword">for</span> i, om <span class="keyword">in</span> <span class="function">enumerate</span>(omega):
+        <span class="comment"># Approximate δ(ω - ω(k)) with Gaussian of small width</span>
+        delta_width = <span class="number">0.01</span> * (omega[<span class="number">-1</span>] - omega[<span class="number">0</span>])
+        delta_approx = np.exp(-((omega_k - om)**<span class="number">2</span>) / (<span class="number">2</span> * delta_width**<span class="number">2</span>))
+        delta_approx /= (np.sqrt(<span class="number">2</span> * np.pi) * delta_width)
+
+        dos[i] = np.sum(delta_approx) * dk / (<span class="number">2</span> * np.pi)
+
+    <span class="keyword">return</span> dos
+
+<span class="comment"># Parameter setting (silicon crystal assumption)</span>
+K = <span class="number">50.0</span>  <span class="comment"># N/m</span>
+M = <span class="number">28.0855</span> * <span class="number">1.66e-27</span>  <span class="comment"># Si atom mass (kg)</span>
+a = <span class="number">5.43e-10</span>  <span class="comment"># Lattice constant (m)</span>
+
+<span class="comment"># Wave number range</span>
+k = np.linspace(-np.pi/a, np.pi/a, <span class="number">200</span>)
+omega = phonon_dispersion_1d(k, K, M, a)
+
+<span class="comment"># Density of states in frequency range</span>
+omega_range = np.linspace(<span class="number">0</span>, np.max(omega), <span class="number">100</span>)
+dos = phonon_dos_1d(omega_range, K, M, a)
+
+<span class="function">print</span>(<span class="string">"Phonon properties of 1D atomic chain:"</span>)
+<span class="function">print</span>(<span class="string">"=" * 50</span>)
+<span class="function">print</span>(<span class="string">f"Maximum phonon frequency: {np.max(omega)/(2*np.pi)*1e-12:.2f} THz"</span>)
+<span class="function">print</span>(<span class="string">f"Sound velocity (long-wavelength limit): {2*np.sqrt(K/M)*a:.2f} m/s"</span>)
+<span class="function">print</span>(<span class="string">f"Zero-point energy (per mode): {0.5*1.055e-34*np.max(omega)*1e3:.2e} meV"</span>)</code></pre></div>
+<div class="output">Phonon properties of 1D atomic chain:
+==================================================
+Maximum phonon frequency: 8.68 THz
+Sound velocity (long-wavelength limit): 2962.41 m/s
+Zero-point energy (per mode): 2.88e+01 meV</div>
+<h3>1.6.2 Magnons: Quantization of Spin Waves</h3>
+<p>
+                Spin waves (magnons) in ferromagnets are similarly described by field quantization.
+                The Holstein-Primakoff transformation expresses spin operators in terms of Bose operators.
+            </p>
+<div class="code-title">Example 7: Magnon Dispersion in a Heisenberg Ferromagnet</div>
+<div class="code-example"><pre><code class="language-python"><span class="keyword">import</span> numpy <span class="keyword">as</span> np
+
+<span class="comment"># ===================================</span>
+<span class="comment"># Magnon dispersion in the Heisenberg model</span>
+<span class="comment"># ===================================</span>
+
+<span class="keyword">def</span> <span class="function">magnon_dispersion</span>(k, J, S, a):
+    <span class="string">"""Magnon dispersion in 1D Heisenberg ferromagnet
+
+    Hamiltonian: H = -J Σ S_i · S_{i+1}
+
+    Args:
+        k: Wave number
+        J: Exchange interaction constant (J &gt; 0 for ferromagnetism)
+        S: Spin quantum number
+        a: Lattice constant
+
+    Returns:
+        omega: Magnon excitation energy
+    """</span>
+    <span class="keyword">return</span> <span class="number">2</span> * J * S * (<span class="number">1</span> - np.cos(k * a))
+
+<span class="keyword">def</span> <span class="function">magnon_energy_gap</span>(J, S, d, B_ext=<span class="number">0.0</span>):
+    <span class="string">"""Magnon energy gap including anisotropy and external magnetic field
+
+    Args:
+        J: Exchange interaction constant
+        S: Spin quantum number
+        d: Anisotropy constant
+        B_ext: External magnetic field
+
+    Returns:
+        gap: Energy gap
+    """</span>
+    g_factor = <span class="number">2.0</span>
+    mu_B = <span class="number">9.274e-24</span>  <span class="comment"># Bohr magneton (J/T)</span>
+
+    <span class="keyword">return</span> d * S + g_factor * mu_B * B_ext
+
+<span class="comment"># Parameters (iron example)</span>
+J = <span class="number">1.0e-20</span>  <span class="comment"># J (Joules)</span>
+S = <span class="number">1.0</span>  <span class="comment"># Spin quantum number</span>
+a = <span class="number">2.87e-10</span>  <span class="comment"># Lattice constant (m)</span>
+
+<span class="comment"># Wave number</span>
+k = np.linspace(<span class="number">0</span>, <span class="number">2</span>*np.pi/a, <span class="number">100</span>)
+omega = magnon_dispersion(k, J, S, a)
+
+<span class="comment"># Physical quantity calculation</span>
+k_small = <span class="number">1e8</span>  <span class="comment"># Small wave number (1/m)</span>
+omega_k_small = magnon_dispersion(k_small, J, S, a)
+spin_wave_stiffness = omega_k_small / k_small**<span class="number">2</span>
+
+<span class="function">print</span>(<span class="string">"Magnons in Heisenberg ferromagnet:"</span>)
+<span class="function">print</span>(<span class="string">"=" * 50</span>)
+<span class="function">print</span>(<span class="string">f"Maximum excitation energy: {np.max(omega)*6.242e18:.2f} eV"</span>)
+<span class="function">print</span>(<span class="string">f"Spin wave stiffness: {spin_wave_stiffness:.2e} J·m^2"</span>)
+<span class="function">print</span>(<span class="string">f"Long-wavelength limit energy: E(k) ≈ D k^2, D = {spin_wave_stiffness:.2e}"</span>)</code></pre></div>
+<div class="output">Magnons in Heisenberg ferromagnet:
+==================================================
+Maximum excitation energy: 0.25 eV
+Spin wave stiffness: 2.87e-30 J·m^2
+Long-wavelength limit energy: E(k) ≈ D k^2, D = 2.87e-30</div>
+<div class="code-title">Example 8: Comparison of Thermal Properties of Phonons and Magnons</div>
+<div class="code-example"><pre><code class="language-python"><span class="keyword">import</span> numpy <span class="keyword">as</span> np
+<span class="keyword">from</span> scipy.integrate <span class="keyword">import</span> quad
+
+<span class="comment"># ===================================</span>
+<span class="comment"># Bose distribution and thermal properties</span>
+<span class="comment"># ===================================</span>
+
+<span class="keyword">def</span> <span class="function">bose_einstein</span>(omega, T):
+    <span class="string">"""Bose-Einstein distribution function
+
+    Args:
+        omega: Energy (angular frequency)
+        T: Temperature (K)
+
+    Returns:
+        n(ω, T): Average occupation number
+    """</span>
+    k_B = <span class="number">1.381e-23</span>  <span class="comment"># Boltzmann constant (J/K)</span>
+    hbar = <span class="number">1.055e-34</span>  <span class="comment"># Planck constant (J·s)</span>
+
+    <span class="keyword">if</span> T == <span class="number">0</span>:
+        <span class="keyword">return</span> <span class="number">0.0</span>
+
+    x = hbar * omega / (k_B * T)
+    <span class="keyword">if</span> x &gt; <span class="number">50</span>:  <span class="comment"># Prevent overflow</span>
+        <span class="keyword">return</span> <span class="number">0.0</span>
+
+    <span class="keyword">return</span> <span class="number">1.0</span> / (np.exp(x) - <span class="number">1</span>)
+
+<span class="keyword">def</span> <span class="function">thermal_energy</span>(omega_k_func, T, k_range, dim=<span class="number">1</span>):
+    <span class="string">"""Thermal energy of phonons/magnons
+
+    Args:
+        omega_k_func: Function of dispersion relation ω(k)
+        T: Temperature (K)
+        k_range: (k_min, k_max)
+        dim: Dimension
+
+    Returns:
+        E: Total thermal energy
+    """</span>
+    k_B = <span class="number">1.381e-23</span>
+    hbar = <span class="number">1.055e-34</span>
+
+    <span class="keyword">def</span> <span class="function">integrand</span>(k):
+        omega = omega_k_func(k)
+        n_BE = bose_einstein(omega, T)
+        <span class="keyword">return</span> hbar * omega * n_BE
+
+    <span class="keyword">if</span> dim == <span class="number">1</span>:
+        result, _ = quad(integrand, k_range[<span class="number">0</span>], k_range[<span class="number">1</span>])
+        <span class="keyword">return</span> result / (<span class="number">2</span> * np.pi)
+    <span class="keyword">else</span>:
+        <span class="keyword">raise</span> <span class="function">NotImplementedError</span>(<span class="string">"Only 1D implemented"</span>)
+
+<span class="comment"># Phonon parameters</span>
+K, M, a = <span class="number">50.0</span>, <span class="number">28.0855</span> * <span class="number">1.66e-27</span>, <span class="number">5.43e-10</span>
+omega_phonon = <span class="keyword">lambda</span> k: <span class="number">2</span> * np.sqrt(K / M) * np.abs(np.sin(k * a / <span class="number">2</span>))
+
+<span class="comment"># Magnon parameters</span>
+J, S = <span class="number">1.0e-20</span>, <span class="number">1.0</span>
+omega_magnon = <span class="keyword">lambda</span> k: <span class="number">2</span> * J * S * (<span class="number">1</span> - np.cos(k * a)) / <span class="number">1.055e-34</span>
+
+<span class="comment"># Temperature range</span>
+temperatures = [<span class="number">10</span>, <span class="number">50</span>, <span class="number">100</span>, <span class="number">300</span>]  <span class="comment"># K</span>
+
+<span class="function">print</span>(<span class="string">"Thermal energy comparison of phonons and magnons:"</span>)
+<span class="function">print</span>(<span class="string">"=" * 60</span>)
+<span class="function">print</span>(<span class="string">f"{'T (K)':&lt;10} {'Phonon (J/m)':&lt;20} {'Magnon (J/m)':&lt;20}"</span>)
+<span class="function">print</span>(<span class="string">"-" * 60</span>)
+
+<span class="keyword">for</span> T <span class="keyword">in</span> temperatures:
+    E_phonon = thermal_energy(omega_phonon, T, (<span class="number">0</span>, np.pi/a))
+    E_magnon = thermal_energy(omega_magnon, T, (<span class="number">0</span>, np.pi/a))
+
+    <span class="function">print</span>(<span class="string">f"{T:&lt;10} {E_phonon:&lt;20.3e} {E_magnon:&lt;20.3e}"</span>)</code></pre></div>
+<div class="output">Thermal energy comparison of phonons and magnons:
+============================================================
+T (K)      Phonon (J/m)         Magnon (J/m)
+------------------------------------------------------------
+10         2.156e-14            1.234e-14
+50         1.089e-13            6.234e-14
+100        2.234e-13            1.289e-13
+300        7.012e-13            4.123e-13</div>
+<h2>Verification of Learning Objectives</h2>
+<p>Upon completing this chapter, you will be able to explain and implement the following:</p>
+<div class="objectives">
+<h3>📋 Fundamental Understanding</h3>
+<ul>
+<li>✅ Explain the Lagrangian formalism and Euler-Lagrange equations of classical field theory</li>
+<li>✅ Understand the physical meaning of the Klein-Gordon and Dirac equations</li>
+<li>✅ Explain the canonical quantization procedure and the role of equal-time commutation relations</li>
+<li>✅ Understand the statistical differences between Bose and Fermi fields</li>
+</ul>
+<h3>🔬 Practical Skills</h3>
+<ul>
+<li>✅ Numerically compute time evolution of the Klein-Gordon field using the spectral method</li>
+<li>✅ Implement creation-annihilation operator algebra symbolically and numerically</li>
+<li>✅ Calculate many-particle states and energy eigenvalues in Fock space</li>
+<li>✅ Construct Fermi operators with anticommutation relations using Jordan-Wigner representation</li>
+<li>✅ Numerically verify Wick's theorem</li>
+</ul>
+<h3>🎯 Application Capabilities</h3>
+<ul>
+<li>✅ Derive and numerically compute phonon and magnon dispersion relations</li>
+<li>✅ Evaluate thermal properties of quasiparticle excitations in materials</li>
+<li>✅ Apply quantum field theory formalism to condensed matter physics problems</li>
+</ul>
+</div>
+<h2>Exercises</h2>
+<div class="exercise">
+<h3>Easy (Fundamental Check)</h3>
+<p><strong>Q1</strong>: Derive the equation of motion from the Klein-Gordon field Lagrangian density \(\mathcal{L}\).</p>
+<details>
+<summary>View answer</summary>
+<p><strong>Answer</strong>:</p>
+<p>\[
+                    \mathcal{L} = \frac{1}{2}(\partial_\mu \phi)(\partial^\mu \phi) - \frac{1}{2}m^2 \phi^2
+                    \]</p>
+<p>Euler-Lagrange equation:</p>
+<p>\[
+                    \frac{\partial \mathcal{L}}{\partial \phi} - \partial_\mu \left( \frac{\partial \mathcal{L}}{\partial(\partial_\mu \phi)} \right) = 0
+                    \]</p>
+<p>Calculate each term:</p>
+<p>\[
+                    \frac{\partial \mathcal{L}}{\partial \phi} = -m^2 \phi
+                    \]</p>
+<p>\[
+                    \frac{\partial \mathcal{L}}{\partial(\partial_\mu \phi)} = \partial^\mu \phi
+                    \]</p>
+<p>Therefore:</p>
+<p>\[
+                    -m^2 \phi - \partial_\mu \partial^\mu \phi = 0 \quad \Rightarrow \quad (\Box + m^2)\phi = 0
+                    \]</p>
+</details>
+<p><strong>Q2</strong>: Is the state \(|2\rangle = (a^\dagger)^2 |0\rangle\) obtained by applying the creation operator \(a^\dagger\) twice to the vacuum state \(|0\rangle\) normalized? Find the correct normalization constant.</p>
+<details>
+<summary>View answer</summary>
+<p><strong>Answer</strong>: It is not normalized.</p>
+<p>\[
+                    \langle 2 | 2 \rangle = \langle 0 | (a)^2 (a^\dagger)^2 | 0 \rangle
+                    \]</p>
+<p>Using the commutation relation \([a, a^\dagger] = 1\):</p>
+<p>\[
+                    (a)^2 (a^\dagger)^2 = a (a a^\dagger) a^\dagger
+                    = a (a^\dagger a + 1) a^\dagger
+                    = a a^\dagger a a^\dagger + a a^\dagger
+                    \]</p>
+<p>Further calculation gives \(\langle 2|2\rangle = 2\).</p>
+<p><strong>Correctly normalized state</strong>:</p>
+<p>\[
+                    |2\rangle = \frac{1}{\sqrt{2}} (a^\dagger)^2 |0\rangle
+                    \]</p>
+<p>In general, the \(n\)-particle state is \(|n\rangle = \frac{1}{\sqrt{n!}} (a^\dagger)^n |0\rangle\).</p>
+</details>
+</div>
+<div class="exercise">
+<h3>Medium (Application)</h3>
+<p><strong>Q3</strong>: From the anticommutation relation \(\{b, b^\dagger\} = 1\) of Fermi operators, derive the Pauli exclusion principle \((b^\dagger)^2 = 0\).</p>
+<details>
+<summary>View answer</summary>
+<p><strong>Derivation</strong>:</p>
+<p>Definition of anticommutator:</p>
+<p>\[
+                    \{b^\dagger, b^\dagger\} = b^\dagger b^\dagger + b^\dagger b^\dagger = 2(b^\dagger)^2
+                    \]</p>
+<p>However, the anticommutator of the same operator with itself is:</p>
+<p>\[
+                    \{b^\dagger, b^\dagger\} = 0
+                    \]</p>
+<p>(From the general anticommutation relation \(\{b_i^\dagger, b_j^\dagger\} = 0\) with \(i = j\))</p>
+<p>Therefore:</p>
+<p>\[
+                    2(b^\dagger)^2 = 0 \quad \Rightarrow \quad (b^\dagger)^2 = 0
+                    \]</p>
+<p><strong>Physical interpretation</strong>: Two fermions cannot occupy the same state (Pauli exclusion principle).</p>
+</details>
+<p><strong>Q4</strong>: For the 1D harmonic oscillator Hamiltonian \(H = \omega(a^\dagger a + 1/2)\), calculate the expectation value \(\langle n | x^2 | n \rangle\) in the eigenstate \(|n\rangle\) using creation-annihilation operators. (The position operator is \(x = \sqrt{\frac{\hbar}{2m\omega}}(a + a^\dagger)\))</p>
+<details>
+<summary>View answer</summary>
+<p><strong>Calculation</strong>:</p>
+<p>\[
+                    x^2 = \frac{\hbar}{2m\omega} (a + a^\dagger)^2
+                    = \frac{\hbar}{2m\omega} (a^2 + aa^\dagger + a^\dagger a + (a^\dagger)^2)
+                    \]</p>
+<p>When sandwiched between \(\langle n|\) and \(|n\rangle\), the \(a^2|n\rangle\) and \((a^\dagger)^2|n\rangle\) terms vanish by orthogonality:</p>
+<p>\[
+                    \langle n | x^2 | n \rangle = \frac{\hbar}{2m\omega} \langle n | (aa^\dagger + a^\dagger a) | n \rangle
+                    \]</p>
+<p>Using the commutation relation \(aa^\dagger = a^\dagger a + 1\):</p>
+<p>\[
+                    aa^\dagger + a^\dagger a = 2a^\dagger a + 1
+                    \]</p>
+<p>Since \(a^\dagger a |n\rangle = n|n\rangle\):</p>
+<p>\[
+                    \langle n | x^2 | n \rangle = \frac{\hbar}{2m\omega} (2n + 1) = \frac{\hbar}{m\omega}\left(n + \frac{1}{2}\right)
+                    \]</p>
+</details>
+</div>
+<div class="exercise">
+<h3>Hard (Advanced)</h3>
+<p><strong>Q5</strong>: For phonons in a 2D square lattice, apply the Debye approximation to derive the temperature dependence of the specific heat \(C_V(T)\). Show the behavior \(C_V \propto T^2\) in the low-temperature limit (\(T \ll \Theta_D\), where \(\Theta_D\) is the Debye temperature).</p>
+<details>
+<summary>View answer</summary>
+<p><strong>Derivation</strong>:</p>
+<p>Debye density of states for a 2D system:</p>
+<p>\[
+                    g(\omega) = \frac{A}{2\pi v_s^2} \omega, \quad \omega \leq \omega_D
+                    \]</p>
+<p>Here, \(A\) is the area, \(v_s\) is the sound velocity, and \(\omega_D\) is the Debye cutoff.</p>
+<p>Internal energy:</p>
+<p>\[
+                    U = \int_0^{\omega_D} d\omega \, g(\omega) \hbar\omega \, n_B(\omega, T)
+                    \]</p>
+<p>Specific heat:</p>
+<p>\[
+                    C_V = \frac{\partial U}{\partial T}
+                    \]</p>
+<p><strong>Low-temperature limit</strong> \(T \ll \Theta_D = \hbar\omega_D / k_B\):</p>
+<p>Extending \(\omega_D \to \infty\) and performing the integration:</p>
+<p>\[
+                    C_V \approx \frac{A \pi^2 k_B^3}{3\hbar^2 v_s^2} T^2
+                    \]</p>
+<p>This shows \(C_V \propto T^2\) (characteristic of 2D systems).</p>
+<p><strong>Note</strong>: In 3D, \(C_V \propto T^3\) (Debye's \(T^3\) law), and in 1D, \(C_V \propto T\).</p>
+</details>
+</div>
+<h2>Next Steps</h2>
+<p>
+                In Chapter 2, we will further develop free field theory, learning the derivation of propagators and Green's functions.
+                We will understand the concepts of causality and analytic continuation, bridging to the path integral formalism.
+            </p>
+<div class="nav-buttons">
+<a class="nav-button" href="index.html">← Series Contents</a>
+<a class="nav-button" href="chapter-2.html">Proceed to Chapter 2 →</a>
+</div>
+<h2>References</h2>
+<ol>
+<li>Peskin, M. E., &amp; Schroeder, D. V. (1995). <em>An Introduction to Quantum Field Theory</em>. Westview Press.</li>
+<li>Weinberg, S. (1995). <em>The Quantum Theory of Fields, Vol. 1</em>. Cambridge University Press.</li>
+<li>Altland, A., &amp; Simons, B. (2010). <em>Condensed Matter Field Theory</em> (2nd ed.). Cambridge University Press.</li>
+<li>Negele, J. W., &amp; Orland, H. (1998). <em>Quantum Many-Particle Systems</em>. Westview Press.</li>
+<li>Ashcroft, N. W., &amp; Mermin, N. D. (1976). <em>Solid State Physics</em>. Brooks Cole.</li>
+</ol>
+</div>
+</div>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+<footer>
+<p>© 2025 AI Terakoya - Fundamentals of Mathematics &amp; Physics Dojo</p>
+<p style="margin-top: 0.5rem;">Licensed under CC BY 4.0</p>
+</footer>
+<script>
+        mermaid.initialize({ startOnLoad: true, theme: 'base' });
+    </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>

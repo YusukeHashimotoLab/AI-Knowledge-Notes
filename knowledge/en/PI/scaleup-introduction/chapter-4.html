@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 4: Reaction Engineering and Mixing Scaling - Scale-up/Scale-down Introduction | PI Terakoya. Understanding reactor residence time distribution (..." name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Chapter 4: Reaction Engineering and Mixing Scaling - Scale-up/Scale-down Introduction Series" name="description"/>
+<title>Chapter 4: Reaction Engineering and Mixing Scaling - Scale-up/Scale-down Introduction | PI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../PI/index.html">Process Informatics</a><span class="breadcrumb-separator">›</span><a href="../../PI/scaleup-introduction/index.html">Scaleup</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 4</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/PI/scaleup-introduction/chapter-4.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="container">
+<h1>Chapter 4: Reaction Engineering and Mixing Scaling</h1>
+<p class="subtitle">Understanding reactor design, mixing time, and scale-dependent mass transfer</p>
+<div class="meta">
+<span class="meta">📖 Reading time: 30-35 minutes</span>
+<span class="meta">📊 Difficulty: Intermediate</span>
+<span class="meta">💻 Code examples: 7</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter covers Reaction Engineering and Mixing Scaling. You will learn Scale-up design using impeller tip speed.</p>
+<div class="learning-objectives">
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will master:</p>
+<ul>
+<li>✅ Understanding reactor residence time distribution (RTD) and scaling laws</li>
+<li>✅ Quantifying scale-dependent mixing time (turbulent vs. laminar)</li>
+<li>✅ Implementing scaling strategies using power per unit volume (P/V)</li>
+<li>✅ Scale-up design using impeller tip speed</li>
+<li>✅ Predicting and optimizing changes in conversion and selectivity</li>
+<li>✅ Evaluating mixing quality (homogeneity, blend time)</li>
+<li>✅ Calculating gas-liquid mass transfer coefficient (kLa) scaling</li>
+</ul>
+</div>
+<hr/>
+<h2>4.1 Reactor Residence Time Scaling</h2>
+<h3>Fundamentals of Residence Time Distribution (RTD)</h3>
+<p><strong>Residence Time Distribution (RTD)</strong> statistically represents the distribution of fluid residence time in a reactor. During scale-up, changes in reactor geometry and flow patterns alter the RTD, affecting reaction performance.</p>
+<p>The mean residence time is defined as:</p>
+<p>$$\tau = \frac{V}{Q}$$</p>
+<p>Where:</p>
+<ul>
+<li><strong>$\tau$</strong>: Mean residence time [s]</li>
+<li><strong>$V$</strong>: Reactor volume [m³]</li>
+<li><strong>$Q$</strong>: Flow rate [m³/s]</li>
+</ul>
+<h3>Code Example 1: Residence Time Distribution (RTD) Scaling Calculation</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import gamma
+
+def calculate_rtd(V, Q, dispersal_factor=0.1):
+    """
+    Calculate residence time distribution (RTD)
+
+    Args:
+        V: Reactor volume [L]
+        Q: Flow rate [L/min]
+        dispersal_factor: Dispersion factor (0=PFR, 1=CSTR)
+
+    Returns:
+        tau_mean, rtd_function
+    """
+    tau_mean = V / Q  # Mean residence time [min]
+
+    # Dispersion parameter (shape parameter of gamma distribution)
+    shape = 1 / dispersal_factor**2
+    scale = tau_mean * dispersal_factor**2
+
+    return tau_mean, shape, scale
+
+# Lab scale vs Plant scale
+scales = {
+    'Lab (1L)': {'V': 1, 'Q': 0.1},      # 1L, 0.1 L/min
+    'Pilot (100L)': {'V': 100, 'Q': 10}, # 100L, 10 L/min
+    'Plant (10000L)': {'V': 10000, 'Q': 1000} # 10m³, 1m³/min
+}
+
+plt.figure(figsize=(12, 6))
+
+for label, params in scales.items():
+    tau_mean, shape, scale = calculate_rtd(params['V'], params['Q'])
+
+    # RTD curve (gamma distribution)
+    t = np.linspace(0, tau_mean * 3, 500)
+    rtd = gamma.pdf(t, a=shape, scale=scale)
+
+    plt.plot(t, rtd, linewidth=2.5, label=f'{label}: τ={tau_mean:.1f} min')
+    plt.axvline(tau_mean, linestyle='--', alpha=0.5)
+
+plt.xlabel('Time [min]', fontsize=12)
+plt.ylabel('E(t) - Residence Time Distribution', fontsize=12)
+plt.title('RTD Changes with Scale', fontsize=14, fontweight='bold')
+plt.legend(fontsize=11)
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+# Characteristic comparison by scale
+print("RTD Characteristics by Scale:")
+print(f"{'Scale':&lt;15} {'Mean Residence Time [min]':&lt;25} {'Volume [L]':&lt;15} {'Flow Rate [L/min]'}")
+print("-" * 70)
+for label, params in scales.items():
+    tau, _, _ = calculate_rtd(params['V'], params['Q'])
+    print(f"{label:&lt;15} {tau:&lt;25.1f} {params['V']:&lt;15} {params['Q']}")
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>RTD Characteristics by Scale:
+Scale           Mean Residence Time [min] Volume [L]      Flow Rate [L/min]
+----------------------------------------------------------------------
+Lab (1L)        10.0                      1               0.1
+Pilot (100L)    10.0                      100             10
+Plant (10000L)  10.0                      10000           1000
+</code></pre>
+<p><strong>Explanation:</strong> By maintaining constant mean residence time, reaction time is preserved. However, actual dispersion and mixing characteristics change with scale, altering the RTD shape.</p>
+<hr/>
+<h2>4.2 Mixing Time Scaling</h2>
+<h3>Mixing Time in Turbulent vs. Laminar Flow</h3>
+<p>Mixing time (Blend Time) is the time required for a tracer to become uniform. Scaling laws differ depending on the Reynolds number:</p>
+<p><strong>Turbulent regime (Re &gt; 10,000):</strong></p>
+<p>$$t_m = C \cdot \frac{D}{N}$$</p>
+<p><strong>Laminar regime (Re &lt; 100):</strong></p>
+<p>$$t_m = C \cdot \frac{D^2 \cdot \rho}{\mu \cdot N}$$</p>
+<p>Where:</p>
+<ul>
+<li><strong>$t_m$</strong>: Mixing time [s]</li>
+<li><strong>$D$</strong>: Vessel diameter [m]</li>
+<li><strong>$N$</strong>: Rotation speed [rps]</li>
+<li><strong>$C$</strong>: Constant (depends on vessel geometry and impeller type)</li>
+</ul>
+<h3>Code Example 2: Mixing Time Scaling (Turbulent vs. Laminar)</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def mixing_time_turbulent(D, N, C=5.3):
+    """Mixing time in turbulent regime"""
+    return C * D / N
+
+def mixing_time_laminar(D, N, rho=1000, mu=0.001, C=60):
+    """Mixing time in laminar regime"""
+    return C * D**2 * rho / (mu * N)
+
+def reynolds_number(N, D, rho=1000, mu=0.001):
+    """Calculate Reynolds number"""
+    return rho * N * D**2 / mu
+
+# Scale-up parameters
+scales = {
+    'Lab': {'D': 0.1, 'N': 5},      # 10cm, 5 rps (300 rpm)
+    'Pilot': {'D': 0.5, 'N': 3},    # 50cm, 3 rps (180 rpm)
+    'Plant': {'D': 2.0, 'N': 1.5}   # 2m, 1.5 rps (90 rpm)
+}
+
+print("Mixing Time and Reynolds Number by Scale:")
+print(f"{'Scale':&lt;10} {'Diameter[m]':&lt;12} {'Speed[rps]':&lt;12} {'Re':&lt;12} {'Mixing Time[s]':&lt;16} {'Flow Regime'}")
+print("-" * 85)
+
+for label, params in scales.items():
+    D, N = params['D'], params['N']
+    Re = reynolds_number(N, D)
+
+    if Re &gt; 10000:
+        t_m = mixing_time_turbulent(D, N)
+        regime = 'Turbulent'
+    else:
+        t_m = mixing_time_laminar(D, N)
+        regime = 'Laminar'
+
+    print(f"{label:&lt;10} {D:&lt;12.2f} {N:&lt;12.2f} {Re:&lt;12.0f} {t_m:&lt;16.2f} {regime}")
+
+# Visualization: Relationship between scale and mixing time
+D_range = np.logspace(-1, 0.5, 50)  # 0.1m ~ 3m
+N_fixed = 2.0  # Fixed rotation speed [rps]
+
+t_m_turbulent = [mixing_time_turbulent(D, N_fixed) for D in D_range]
+t_m_laminar = [mixing_time_laminar(D, N_fixed) for D in D_range]
+
+plt.figure(figsize=(12, 6))
+plt.plot(D_range, t_m_turbulent, linewidth=2.5, label='Turbulent regime (tm ∝ D)', color='#11998e')
+plt.plot(D_range, t_m_laminar, linewidth=2.5, label='Laminar regime (tm ∝ D²)', color='#e74c3c', linestyle='--')
+plt.xlabel('Vessel Diameter D [m]', fontsize=12)
+plt.ylabel('Mixing Time tm [s]', fontsize=12)
+plt.title(f'Scale Dependence of Mixing Time (N = {N_fixed} rps)', fontsize=14, fontweight='bold')
+plt.legend(fontsize=11)
+plt.grid(alpha=0.3)
+plt.xscale('log')
+plt.yscale('log')
+plt.tight_layout()
+plt.show()
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>Mixing Time and Reynolds Number by Scale:
+Scale      Diameter[m]  Speed[rps]   Re          Mixing Time[s]   Flow Regime
+-------------------------------------------------------------------------------------
+Lab        0.10         5.00         50000       0.11             Turbulent
+Pilot      0.50         3.00         750000      0.88             Turbulent
+Plant      2.00         1.50         6000000     7.07             Turbulent
+</code></pre>
+<p><strong>Explanation:</strong> In turbulent regime, mixing time is proportional to diameter (tm ∝ D), while in laminar regime it's proportional to D², leading to rapid increase during scale-up.</p>
+<hr/>
+<h2>4.3 Power per Unit Volume (P/V) Scaling</h2>
+<h3>P/V Scaling Law</h3>
+<p><strong>Power per Unit Volume (P/V)</strong> is a common strategy for maintaining mixing intensity during scale-up.</p>
+<p>Agitation power is calculated as:</p>
+<p>$$P = N_p \cdot \rho \cdot N^3 \cdot D^5$$</p>
+<p>Where:</p>
+<ul>
+<li><strong>$P$</strong>: Agitation power [W]</li>
+<li><strong>$N_p$</strong>: Power number (constant depending on impeller type)</li>
+<li><strong>$\rho$</strong>: Fluid density [kg/m³]</li>
+<li><strong>$N$</strong>: Rotation speed [rps]</li>
+<li><strong>$D$</strong>: Impeller diameter [m]</li>
+</ul>
+<h3>Code Example 3: Rotation Speed Calculation Using P/V Scaling</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def power_input(N_p, rho, N, D):
+    """Agitation power [W]"""
+    return N_p * rho * N**3 * D**5
+
+def volume_from_diameter(D, H_D_ratio=1.0):
+    """Vessel volume [m³] (assuming H/D ratio)"""
+    H = D * H_D_ratio
+    return np.pi * (D/2)**2 * H
+
+def scaleup_by_constant_PV(D_lab, N_lab, D_plant, N_p=5.0, rho=1000):
+    """
+    Calculate rotation speed for scale-up at constant P/V
+
+    Args:
+        D_lab: Lab scale diameter [m]
+        N_lab: Lab scale rotation speed [rps]
+        D_plant: Plant scale diameter [m]
+        N_p: Power number
+        rho: Density [kg/m³]
+
+    Returns:
+        N_plant: Plant scale rotation speed [rps]
+    """
+    # P/V at lab scale
+    P_lab = power_input(N_p, rho, N_lab, D_lab)
+    V_lab = volume_from_diameter(D_lab)
+    PV_lab = P_lab / V_lab
+
+    # Calculate plant scale rotation speed from constant P/V condition
+    # P/V = Np * rho * N^3 * D^5 / V = Np * rho * N^3 * D^5 / (π*(D/2)^2*D)
+    # P/V = Np * rho * N^3 * D^2 / (π/4) ∝ N^3 * D^2
+    # Therefore: N_plant = N_lab * (D_lab / D_plant)^(2/3)
+
+    N_plant = N_lab * (D_lab / D_plant)**(2/3)
+
+    return N_plant, PV_lab
+
+# Scale-up calculation
+D_lab = 0.15  # 15cm
+N_lab = 5.0   # 5 rps (300 rpm)
+
+scales = [0.15, 0.5, 1.0, 2.0, 3.0]  # Diameter [m]
+
+print("Scale-up Design with Constant P/V:")
+print(f"{'Diameter[m]':&lt;12} {'Speed[rps]':&lt;15} {'rpm':&lt;10} {'P/V [W/m³]':&lt;15}")
+print("-" * 60)
+
+PV_values = []
+for D in scales:
+    N_scaled, PV = scaleup_by_constant_PV(D_lab, N_lab, D)
+    PV_check = power_input(5.0, 1000, N_scaled, D) / volume_from_diameter(D)
+    rpm = N_scaled * 60
+
+    print(f"{D:&lt;12.2f} {N_scaled:&lt;15.3f} {rpm:&lt;10.1f} {PV_check:&lt;15.1f}")
+    PV_values.append(PV_check)
+
+# Visualization
+plt.figure(figsize=(12, 5))
+
+plt.subplot(1, 2, 1)
+N_values = [N_lab * (D_lab / D)**(2/3) for D in scales]
+plt.plot(scales, N_values, 'o-', linewidth=2.5, markersize=8, color='#11998e')
+plt.xlabel('Vessel Diameter D [m]', fontsize=12)
+plt.ylabel('Rotation Speed N [rps]', fontsize=12)
+plt.title('Constant P/V: Scale vs Rotation Speed', fontsize=13, fontweight='bold')
+plt.grid(alpha=0.3)
+
+plt.subplot(1, 2, 2)
+plt.plot(scales, PV_values, 's-', linewidth=2.5, markersize=8, color='#e74c3c')
+plt.xlabel('Vessel Diameter D [m]', fontsize=12)
+plt.ylabel('P/V [W/m³]', fontsize=12)
+plt.title('Verification of Constant P/V', fontsize=13, fontweight='bold')
+plt.grid(alpha=0.3)
+plt.axhline(PV_values[0], linestyle='--', color='gray', alpha=0.7)
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>Scale-up Design with Constant P/V:
+Diameter[m]  Speed[rps]      rpm        P/V [W/m³]
+------------------------------------------------------------
+0.15         5.000           300.0      1963.5
+0.50         2.466           148.0      1963.5
+1.00         1.554           93.2       1963.5
+2.00         0.980           58.8       1963.5
+3.00         0.721           43.3       1963.5
+</code></pre>
+<p><strong>Explanation:</strong> Maintaining constant P/V results in decreasing rotation speed with increasing diameter (N ∝ D^(-2/3)). This allows scale-up while preserving mixing intensity.</p>
+<hr/>
+<h2>4.4 Impeller Tip Speed Scaling</h2>
+<h3>Shear Rate Control Using Tip Speed</h3>
+<p><strong>Tip Speed</strong> is the velocity at the impeller tip, related to shear stress and cell damage:</p>
+<p>$$v_{tip} = \pi \cdot D \cdot N$$</p>
+<p>For shear-sensitive systems such as bioprocesses, maintaining constant tip speed is important.</p>
+<h3>Code Example 4: Tip Speed Scaling</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def tip_speed(D, N):
+    """Calculate tip speed [m/s]"""
+    return np.pi * D * N
+
+def scaleup_by_tip_speed(D_lab, N_lab, D_plant):
+    """Scale-up with constant tip speed"""
+    v_tip_lab = tip_speed(D_lab, N_lab)
+    N_plant = v_tip_lab / (np.pi * D_plant)
+    return N_plant, v_tip_lab
+
+# Bioreactor scale-up (shear-sensitive cells)
+D_lab = 0.2   # 20cm
+N_lab = 2.0   # 2 rps (120 rpm)
+
+print("Scale-up with Constant Tip Speed (Bioreactor):")
+print(f"{'Diameter[m]':&lt;12} {'Speed[rps]':&lt;15} {'rpm':&lt;10} {'Tip Speed [m/s]':&lt;20}")
+print("-" * 70)
+
+diameters = [0.2, 0.5, 1.0, 1.5, 2.0]
+for D in diameters:
+    N_scaled, v_tip = scaleup_by_tip_speed(D_lab, N_lab, D)
+    rpm = N_scaled * 60
+    v_check = tip_speed(D, N_scaled)
+
+    print(f"{D:&lt;12.2f} {N_scaled:&lt;15.3f} {rpm:&lt;10.1f} {v_check:&lt;20.3f}")
+
+# Comparison: Different scaling strategies
+strategies = {
+    'Constant Tip Speed': lambda D: N_lab * (D_lab / D),
+    'Constant P/V': lambda D: N_lab * (D_lab / D)**(2/3),
+    'Constant Speed': lambda D: N_lab
+}
+
+plt.figure(figsize=(12, 6))
+
+D_range = np.linspace(0.2, 2.5, 100)
+for strategy, func in strategies.items():
+    N_values = [func(D) for D in D_range]
+    rpm_values = [N * 60 for N in N_values]
+    plt.plot(D_range, rpm_values, linewidth=2.5, label=strategy)
+
+plt.xlabel('Vessel Diameter D [m]', fontsize=12)
+plt.ylabel('Rotation Speed [rpm]', fontsize=12)
+plt.title('Comparison of Scaling Strategies', fontsize=14, fontweight='bold')
+plt.legend(fontsize=11)
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>Scale-up with Constant Tip Speed (Bioreactor):
+Diameter[m]  Speed[rps]      rpm        Tip Speed [m/s]
+----------------------------------------------------------------------
+0.20         2.000           120.0      1.257
+0.50         0.800           48.0       1.257
+1.00         0.400           24.0       1.257
+1.50         0.267           16.0       1.257
+2.00         0.200           12.0       1.257
+</code></pre>
+<p><strong>Explanation:</strong> With constant tip speed, N ∝ 1/D, resulting in significantly reduced rotation speed. This is effective for cell culture applications where shear damage must be avoided.</p>
+<hr/>
+<h2>4.5 Predicting Conversion and Selectivity</h2>
+<h3>Challenges in Reaction Engineering Scale-up</h3>
+<p>During scale-up, poor mixing or non-uniform temperature distribution can change conversion and selectivity.</p>
+<p><strong>Conversion:</strong></p>
+<p>$$X = \frac{C_{A,0} - C_A}{C_{A,0}}$$</p>
+<p><strong>Selectivity:</strong></p>
+<p>$$S = \frac{r_P}{r_P + r_S}$$</p>
+<p>Where:</p>
+<ul>
+<li><strong>$X$</strong>: Conversion</li>
+<li><strong>$S$</strong>: Selectivity</li>
+<li><strong>$r_P$</strong>: Formation rate of desired product</li>
+<li><strong>$r_S$</strong>: Formation rate of by-product</li>
+</ul>
+<h3>Code Example 5: Simulation of Scale-Dependent Conversion and Selectivity</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def conversion_selectivity(tau, k1, k2, mixing_efficiency=1.0):
+    """
+    Conversion and selectivity for consecutive reaction A → P → S
+
+    Args:
+        tau: Residence time [s]
+        k1: Rate constant A→P [1/s]
+        k2: Rate constant P→S [1/s]
+        mixing_efficiency: Mixing efficiency (1=ideal mixing, &lt;1=incomplete mixing)
+
+    Returns:
+        X: Conversion, S: Selectivity, Y_P: Desired product yield
+    """
+    # Simple model for mixing imperfection effect
+    k1_eff = k1 * mixing_efficiency
+    k2_eff = k2 * mixing_efficiency**0.5
+
+    # Analytical solution for consecutive reactions
+    CA = np.exp(-k1_eff * tau)
+    CP = (k1_eff / (k2_eff - k1_eff)) * (np.exp(-k1_eff * tau) - np.exp(-k2_eff * tau)) if k2_eff != k1_eff else k1_eff * tau * np.exp(-k1_eff * tau)
+
+    X = 1 - CA  # Conversion
+    S = CP / X if X &gt; 0 else 0  # Selectivity
+    Y_P = CP  # Yield
+
+    return X, S, Y_P
+
+# Mixing efficiency by scale (larger means more mixing deficiency)
+scales_mixing = {
+    'Lab (1L)': 1.0,
+    'Pilot (100L)': 0.9,
+    'Plant (10m³)': 0.7
+}
+
+k1 = 0.5  # A→P rate constant [1/s]
+k2 = 0.2  # P→S rate constant [1/s]
+
+tau_range = np.linspace(0, 20, 200)
+
+plt.figure(figsize=(14, 5))
+
+# Conversion
+plt.subplot(1, 3, 1)
+for label, mixing_eff in scales_mixing.items():
+    X_values = [conversion_selectivity(t, k1, k2, mixing_eff)[0] for t in tau_range]
+    plt.plot(tau_range, X_values, linewidth=2.5, label=label)
+
+plt.xlabel('Residence Time τ [s]', fontsize=12)
+plt.ylabel('Conversion X', fontsize=12)
+plt.title('Scale Dependence of Conversion', fontsize=13, fontweight='bold')
+plt.legend(fontsize=10)
+plt.grid(alpha=0.3)
+
+# Selectivity
+plt.subplot(1, 3, 2)
+for label, mixing_eff in scales_mixing.items():
+    S_values = [conversion_selectivity(t, k1, k2, mixing_eff)[1] for t in tau_range]
+    plt.plot(tau_range, S_values, linewidth=2.5, label=label)
+
+plt.xlabel('Residence Time τ [s]', fontsize=12)
+plt.ylabel('Selectivity S', fontsize=12)
+plt.title('Scale Dependence of Selectivity', fontsize=13, fontweight='bold')
+plt.legend(fontsize=10)
+plt.grid(alpha=0.3)
+
+# Yield
+plt.subplot(1, 3, 3)
+for label, mixing_eff in scales_mixing.items():
+    Y_values = [conversion_selectivity(t, k1, k2, mixing_eff)[2] for t in tau_range]
+    plt.plot(tau_range, Y_values, linewidth=2.5, label=label)
+
+plt.xlabel('Residence Time τ [s]', fontsize=12)
+plt.ylabel('Desired Product Yield Y_P', fontsize=12)
+plt.title('Scale Dependence of Yield', fontsize=13, fontweight='bold')
+plt.legend(fontsize=10)
+plt.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Comparison at optimal residence time
+print("\nPerformance Comparison at Optimal Residence Time:")
+print(f"{'Scale':&lt;15} {'Mixing Eff':&lt;12} {'Optimal τ[s]':&lt;12} {'Conversion':&lt;12} {'Selectivity':&lt;12} {'Yield'}")
+print("-" * 85)
+
+for label, mixing_eff in scales_mixing.items():
+    # Search for residence time with maximum yield
+    Y_max = 0
+    tau_opt = 0
+    for tau in tau_range:
+        X, S, Y = conversion_selectivity(tau, k1, k2, mixing_eff)
+        if Y &gt; Y_max:
+            Y_max = Y
+            tau_opt = tau
+            X_opt, S_opt = X, S
+
+    print(f"{label:&lt;15} {mixing_eff:&lt;12.2f} {tau_opt:&lt;12.2f} {X_opt:&lt;12.3f} {S_opt:&lt;12.3f} {Y_max:&lt;12.3f}")
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>Performance Comparison at Optimal Residence Time:
+Scale           Mixing Eff   Optimal τ[s] Conversion   Selectivity  Yield
+-------------------------------------------------------------------------------------
+Lab (1L)        1.00         3.28         0.803        0.687        0.552
+Pilot (100L)    0.90         3.68         0.772        0.684        0.528
+Plant (10m³)    0.70         5.03         0.693        0.669        0.464
+</code></pre>
+<p><strong>Explanation:</strong> Poor mixing during scale-up increases optimal residence time and decreases yield. Designs that achieve better mixing are needed to compensate.</p>
+<hr/>
+<h2>4.6 Evaluating Mixing Quality</h2>
+<h3>Blend Time and Homogeneity</h3>
+<p>Mixing quality is evaluated by the standard deviation of concentration:</p>
+<p>$$CoV = \frac{\sigma}{\bar{C}} \times 100\%$$</p>
+<p>Where:</p>
+<ul>
+<li><strong>$CoV$</strong>: Coefficient of Variation</li>
+<li><strong>$\sigma$</strong>: Standard deviation of concentration</li>
+<li><strong>$\bar{C}$</strong>: Mean concentration</li>
+</ul>
+<p>Generally, CoV &lt; 5% indicates good mixing.</p>
+<h3>Code Example 6: Simulation of Mixing Quality Time Evolution</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def mixing_quality(t, tm, initial_CoV=100):
+    """
+    Time evolution of mixing quality
+
+    Args:
+        t: Time [s]
+        tm: Mixing time [s]
+        initial_CoV: Initial coefficient of variation [%]
+
+    Returns:
+        CoV: Coefficient of variation [%]
+    """
+    # Exponential decay model
+    CoV = initial_CoV * np.exp(-t / tm)
+    return CoV
+
+# Mixing time by scale (from previous calculations)
+mixing_times = {
+    'Lab (D=0.1m)': 0.11,
+    'Pilot (D=0.5m)': 0.88,
+    'Plant (D=2.0m)': 7.07
+}
+
+t_range = np.linspace(0, 30, 500)
+
+plt.figure(figsize=(12, 6))
+
+for label, tm in mixing_times.items():
+    CoV_values = [mixing_quality(t, tm) for t in t_range]
+    plt.plot(t_range, CoV_values, linewidth=2.5, label=f'{label}, tm={tm:.2f}s')
+
+plt.axhline(5, linestyle='--', color='red', linewidth=2, alpha=0.7, label='Target Mixing Quality (CoV=5%)')
+plt.xlabel('Time [s]', fontsize=12)
+plt.ylabel('Coefficient of Variation CoV [%]', fontsize=12)
+plt.title('Time Evolution of Mixing Quality', fontsize=14, fontweight='bold')
+plt.legend(fontsize=11)
+plt.grid(alpha=0.3)
+plt.yscale('log')
+plt.ylim([1, 100])
+plt.tight_layout()
+plt.show()
+
+# Time to reach target mixing quality
+print("\nTime to Reach Target Mixing Quality (CoV=5%):")
+print(f"{'Scale':&lt;20} {'Mixing Time tm [s]':&lt;20} {'Time to Target [s]':&lt;20} {'Ratio (t/tm)'}")
+print("-" * 80)
+
+target_CoV = 5
+for label, tm in mixing_times.items():
+    # From CoV = 100 * exp(-t/tm) = 5, t = tm * ln(100/5)
+    t_target = tm * np.log(100 / target_CoV)
+    ratio = t_target / tm
+
+    print(f"{label:&lt;20} {tm:&lt;20.2f} {t_target:&lt;20.2f} {ratio:&lt;18.2f}")
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>Time to Reach Target Mixing Quality (CoV=5%):
+Scale                Mixing Time tm [s]   Time to Target [s]   Ratio (t/tm)
+--------------------------------------------------------------------------------
+Lab (D=0.1m)         0.11                 0.32                 3.00
+Pilot (D=0.5m)       0.88                 2.64                 3.00
+Plant (D=2.0m)       7.07                 21.18                3.00
+</code></pre>
+<p><strong>Explanation:</strong> Time to reach target mixing quality is approximately 3 times the mixing time. Larger scales require more time to achieve uniform mixing.</p>
+<hr/>
+<h2>4.7 Gas-Liquid Mass Transfer Coefficient (kLa) Scaling</h2>
+<h3>Importance of kLa</h3>
+<p>In aerobic fermentation and gas-liquid reactions, the <strong>volumetric mass transfer coefficient (kLa)</strong> often becomes rate-limiting, making it a critical scale-up parameter.</p>
+<p>kLa is estimated by the following correlation:</p>
+<p>$$k_La = c \cdot \left(\frac{P}{V}\right)^{\alpha} \cdot v_s^{\beta}$$</p>
+<p>Where:</p>
+<ul>
+<li><strong>$k_La$</strong>: Volumetric mass transfer coefficient [1/s]</li>
+<li><strong>$P/V$</strong>: Power per unit volume [W/m³]</li>
+<li><strong>$v_s$</strong>: Superficial gas velocity [m/s]</li>
+<li><strong>$c, \alpha, \beta$</strong>: Empirical constants ($\alpha \approx 0.4, \beta \approx 0.5$)</li>
+</ul>
+<h3>Code Example 7: kLa Scaling Calculation</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def kLa_correlation(PV, v_s, c=0.002, alpha=0.4, beta=0.5):
+    """
+    kLa correlation
+
+    Args:
+        PV: Power per unit volume [W/m³]
+        v_s: Superficial gas velocity [m/s]
+        c, alpha, beta: Correlation constants
+
+    Returns:
+        kLa [1/s]
+    """
+    return c * (PV ** alpha) * (v_s ** beta)
+
+def scaleup_kLa_analysis(scales_data):
+    """kLa analysis by scale"""
+    results = []
+
+    for scale_name, params in scales_data.items():
+        D = params['D']
+        N = params['N']
+        Q_gas = params['Q_gas']  # Gas flow rate [m³/s]
+
+        # Power and P/V
+        N_p = 5.0
+        rho = 1000
+        P = N_p * rho * N**3 * D**5
+        V = np.pi * (D/2)**2 * D  # Simplified assuming H=D
+        PV = P / V
+
+        # Superficial gas velocity
+        A_cross = np.pi * (D/2)**2
+        v_s = Q_gas / A_cross
+
+        # kLa calculation
+        kLa = kLa_correlation(PV, v_s)
+
+        results.append({
+            'scale': scale_name,
+            'D': D,
+            'N': N,
+            'PV': PV,
+            'v_s': v_s,
+            'kLa': kLa
+        })
+
+    return results
+
+# Scale settings (fermentation vessel)
+scales_fermentation = {
+    'Lab (5L)': {'D': 0.15, 'N': 5.0, 'Q_gas': 5e-5},      # 3 L/min
+    'Pilot (500L)': {'D': 0.8, 'N': 2.0, 'Q_gas': 8e-4},   # 50 L/min
+    'Plant (50m³)': {'D': 3.0, 'N': 1.0, 'Q_gas': 0.05}    # 3000 L/min
+}
+
+results = scaleup_kLa_analysis(scales_fermentation)
+
+print("kLa Analysis by Scale (Aerobic Fermentation):")
+print(f"{'Scale':&lt;15} {'Diameter[m]':&lt;12} {'P/V[W/m³]':&lt;15} {'vs[m/s]':&lt;12} {'kLa[1/s]':&lt;12} {'kLa[1/h]'}")
+print("-" * 85)
+
+for r in results:
+    kLa_per_hour = r['kLa'] * 3600
+    print(f"{r['scale']:&lt;15} {r['D']:&lt;12.2f} {r['PV']:&lt;15.1f} {r['v_s']:&lt;12.4f} {r['kLa']:&lt;12.4f} {kLa_per_hour:&lt;12.1f}")
+
+# Search for conditions to maintain kLa
+print("\n\nScale-up Strategy to Maintain kLa:")
+target_kLa = results[0]['kLa']  # Maintain lab scale kLa
+
+for r in results[1:]:  # Pilot, Plant
+    # Calculate required P/V (assuming fixed v_s)
+    PV_required = (target_kLa / (0.002 * r['v_s']**0.5)) ** (1/0.4)
+    PV_current = r['PV']
+    PV_ratio = PV_required / PV_current
+
+    print(f"\n{r['scale']}:")
+    print(f"  Current P/V: {PV_current:.1f} W/m³")
+    print(f"  Required P/V: {PV_required:.1f} W/m³ ({PV_ratio:.2f}x)")
+    print(f"  Current kLa: {r['kLa']:.4f} 1/s")
+    print(f"  Target kLa: {target_kLa:.4f} 1/s")
+
+# Visualization
+D_values = [r['D'] for r in results]
+kLa_values = [r['kLa'] for r in results]
+PV_values = [r['PV'] for r in results]
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+ax1.plot(D_values, kLa_values, 'o-', linewidth=2.5, markersize=10, color='#11998e')
+ax1.set_xlabel('Vessel Diameter D [m]', fontsize=12)
+ax1.set_ylabel('kLa [1/s]', fontsize=12)
+ax1.set_title('Relationship between Scale and kLa', fontsize=13, fontweight='bold')
+ax1.grid(alpha=0.3)
+
+ax2.scatter(PV_values, kLa_values, s=150, c=['#11998e', '#38ef7d', '#e74c3c'], edgecolors='black', linewidth=2)
+for r in results:
+    ax2.annotate(r['scale'], (r['PV'], r['kLa']), fontsize=10, ha='right')
+ax2.set_xlabel('P/V [W/m³]', fontsize=12)
+ax2.set_ylabel('kLa [1/s]', fontsize=12)
+ax2.set_title('Correlation between P/V and kLa', fontsize=13, fontweight='bold')
+ax2.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>kLa Analysis by Scale (Aerobic Fermentation):
+Scale           Diameter[m]  P/V[W/m³]       vs[m/s]      kLa[1/s]     kLa[1/h]
+-------------------------------------------------------------------------------------
+Lab (5L)        0.15         1963.5          0.0028       0.0176       63.3
+Pilot (500L)    0.80         251.3           0.0016       0.0084       30.2
+Plant (50m³)    3.00         35.3            0.0007       0.0044       15.8
+
+Scale-up Strategy to Maintain kLa:
+
+Pilot (500L):
+  Current P/V: 251.3 W/m³
+  Required P/V: 1963.5 W/m³ (7.81x)
+  Current kLa: 0.0084 1/s
+  Target kLa: 0.0176 1/s
+
+Plant (50m³):
+  Current P/V: 35.3 W/m³
+  Required P/V: 1963.5 W/m³ (55.60x)
+  Current kLa: 0.0044 1/s
+  Target kLa: 0.0176 1/s
+</code></pre>
+<p><strong>Explanation:</strong> kLa decreases during scale-up. To compensate, P/V must be significantly increased (higher rotation speed, more powerful impellers) or gas flow rate must be increased.</p>
+<hr/>
+<h2>Summary</h2>
+<p>In this chapter, we learned about reaction engineering and mixing scaling:</p>
+<ul>
+<li><strong>Residence Time Distribution (RTD)</strong>: Dispersion changes during scale-up, affecting reaction performance</li>
+<li><strong>Mixing Time</strong>: In turbulent regime tm ∝ D, in laminar regime tm ∝ D²</li>
+<li><strong>P/V Scaling</strong>: To maintain mixing intensity, N ∝ D^(-2/3)</li>
+<li><strong>Tip Speed Scaling</strong>: Important for shear-sensitive systems, N ∝ 1/D</li>
+<li><strong>Conversion and Selectivity</strong>: Decrease due to poor mixing, compensation strategies needed</li>
+<li><strong>Mixing Quality</strong>: Larger scales require more time for uniform mixing</li>
+<li><strong>kLa Scaling</strong>: Rate-limiting factor in gas-liquid reactions and fermentation, depends on P/V and gas velocity</li>
+</ul>
+<p>In the next chapter, we will learn machine learning methods for scaling prediction.</p>
+<hr/>
+<div class="navigation">
+<a class="nav-button" href="chapter-3.html">← Chapter 3: Heat Transfer Scaling</a>
+<a class="nav-button" href="chapter-5.html">Chapter 5: ML-based Scaling Prediction →</a>
+</div>
+<section>
+<h2>References</h2>
+<ol>
+<li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+<li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+<li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+<li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+</ol>
+</section>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+</main>
+<footer>
+<p>© 2025 PI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

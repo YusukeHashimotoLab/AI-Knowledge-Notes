@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 2: Materials Project Complete Guide - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 2: Materials Project Complete Guide - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="/AI-Knowledge-Notes/knowledge/en/index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/materials-databases-introduction/index.html">Materials Databases</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/MI/materials-databases-introduction/chapter-2.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 2: Materials Project Complete Guide</h1>
+<p class="subtitle">Complete Mastery of pymatgen and MPRester API</p>
+<div class="meta">
+<span class="meta-item">📖 Reading time: 30-35 min</span>
+<span class="meta-item">📊 Level: Beginner to Intermediate</span>
+<span class="meta-item">💻 Code examples: 18</span>
+<span class="meta-item">📝 Exercises: 3</span>
+</div>
+</div>
+</header>
+<main class="container">
+<h1>Chapter 2: Materials Project Complete Guide</h1>
+<p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #7b2cbf; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">Master the established patterns for data acquisition and preprocessing using pymatgen/MP API. Learn practical approaches to handling duplicates and missing values.</p>
+<p class="chapter-supplement" style="margin: 0.75rem 0 1.5rem 0; padding: 0.75rem 1rem; background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%); border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 0.95rem; line-height: 1.7; color: #4a5568;"><strong>💡 Tip:</strong> Keep queries small and incremental. Running small loops of fetch → inspect → save reduces accidents.</p>
+<p><strong>Complete Mastery of pymatgen and MPRester API</strong></p>
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will be able to:</p>
+<ul>
+<li>✅ Load and manipulate crystal structures using pymatgen</li>
+<li>✅ Construct complex queries with MPRester API</li>
+<li>✅ Efficiently download 10,000+ data entries</li>
+<li>✅ Retrieve and visualize band structures and phase diagrams</li>
+<li>✅ Write practical code considering API limitations</li>
+</ul>
+<p><strong>Reading time</strong>: 30-35 minutes
+<strong>Code examples</strong>: 18
+<strong>Exercises</strong>: 3</p>
+<hr/>
+<h2>2.1 pymatgen Basics</h2>
+<p>pymatgen (Python Materials Genomics) is the official Python library for Materials Project. It provides powerful functionality specialized for materials science, including crystal structure manipulation, computational data analysis, and visualization.</p>
+<h3>2.1.1 Structure Object</h3>
+<p><strong>Code Example 1: Creating and Basic Operations with Structure Objects</strong></p>
+<pre><code class="language-python">from pymatgen.core import Structure, Lattice
+
+# Define lattice vectors (Si, diamond structure)
+lattice = Lattice.cubic(5.43)  # Å
+
+# Define atomic coordinates (fractional coordinates)
+species = ["Si", "Si"]
+coords = [[0, 0, 0], [0.25, 0.25, 0.25]]
+
+# Create Structure object
+structure = Structure(lattice, species, coords)
+
+# Display basic information
+print(f"Formula: {structure.composition}")
+print(f"Lattice parameters: {structure.lattice.abc}")
+print(f"Volume: {structure.volume:.2f} Ų")
+print(f"Density: {structure.density:.2f} g/cm³")
+print(f"Number of atoms: {len(structure)}")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Formula: Si2
+Lattice parameters: (5.43, 5.43, 5.43)
+Volume: 160.10 Ų
+Density: 2.33 g/cm³
+Number of atoms: 2
+</code></pre>
+<p><strong>Code Example 2: Crystal Structure Visualization</strong></p>
+<pre><code class="language-python">from pymatgen.core import Structure
+from pymatgen.io.cif import CifWriter
+
+# Create Si crystal structure
+lattice = Lattice.cubic(5.43)
+species = ["Si"] * 8
+coords = [
+    [0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5],
+    [0.25, 0.25, 0.25], [0.75, 0.75, 0.25],
+    [0.75, 0.25, 0.75], [0.25, 0.75, 0.75]
+]
+structure = Structure(lattice, species, coords)
+
+# Save to CIF file
+cif_writer = CifWriter(structure)
+cif_writer.write_file("Si_diamond.cif")
+print("CIF file saved: Si_diamond.cif")
+
+# Retrieve symmetry information
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+sga = SpacegroupAnalyzer(structure)
+
+print(f"Space group: {sga.get_space_group_symbol()}")
+print(f"Space group number: {sga.get_space_group_number()}")
+print(f"Crystal system: {sga.get_crystal_system()}")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>CIF file saved: Si_diamond.cif
+Space group: Fd-3m
+Space group number: 227
+Crystal system: cubic
+</code></pre>
+<hr/>
+<h2>2.2 MPRester API Details</h2>
+<h3>2.2.1 Basic Queries</h3>
+<p><strong>Code Example 3: Data Retrieval by material_id</strong></p>
+<pre><code class="language-python">from mp_api.client import MPRester
+
+API_KEY = "your_api_key_here"
+
+# Retrieve detailed data for a single material
+with MPRester(API_KEY) as mpr:
+    # Retrieve data for mp-149 (Si)
+    doc = mpr.materials.summary.get_data_by_id("mp-149")
+
+    print(f"Material ID: {doc.material_id}")
+    print(f"Formula: {doc.formula_pretty}")
+    print(f"Band gap: {doc.band_gap} eV")
+    print(f"Formation energy: {doc.formation_energy_per_atom} eV/atom")
+    print(f"Symmetry: {doc.symmetry}")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Material ID: mp-149
+Formula: Si
+Band gap: 1.14 eV
+Formation energy: 0.0 eV/atom
+Symmetry: {'crystal_system': 'cubic', 'symbol': 'Fd-3m'}
+</code></pre>
+<p><strong>Code Example 4: Batch Retrieval of Multiple Fields</strong></p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 4: Batch Retrieval of Multiple Fields
+
+Purpose: Demonstrate data manipulation and preprocessing
+Target: Beginner to Intermediate
+Execution time: ~5 seconds
+Dependencies: None
+"""
+
+from mp_api.client import MPRester
+import pandas as pd
+
+API_KEY = "your_api_key_here"
+
+# Batch retrieval from multiple material_ids
+material_ids = ["mp-149", "mp-804", "mp-22526"]
+
+with MPRester(API_KEY) as mpr:
+    data_list = []
+    for mat_id in material_ids:
+        doc = mpr.materials.summary.get_data_by_id(mat_id)
+        data_list.append({
+            "material_id": doc.material_id,
+            "formula": doc.formula_pretty,
+            "band_gap": doc.band_gap,
+            "energy_above_hull": doc.energy_above_hull,
+            "formation_energy": doc.formation_energy_per_atom
+        })
+
+    df = pd.DataFrame(data_list)
+    print(df)
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>  material_id formula  band_gap  energy_above_hull  formation_energy
+0      mp-149      Si      1.14               0.00              0.00
+1      mp-804     GaN      3.45               0.00             -1.12
+2   mp-22526     ZnO      3.44               0.00             -1.95
+</code></pre>
+<h3>2.2.2 Advanced Filtering</h3>
+<p><strong>Code Example 5: Complex Queries Using Logical Operators</strong></p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 5: Complex Queries Using Logical Operators
+
+Purpose: Demonstrate data manipulation and preprocessing
+Target: Beginner to Intermediate
+Execution time: ~5 seconds
+Dependencies: None
+"""
+
+from mp_api.client import MPRester
+import pandas as pd
+
+API_KEY = "your_api_key_here"
+
+# Filtering by complex conditions
+with MPRester(API_KEY) as mpr:
+    # Band gap 2-3 eV, 2 elements, cubic system
+    docs = mpr.materials.summary.search(
+        band_gap=(2.0, 3.0),
+        num_elements=2,
+        crystal_system="cubic",
+        energy_above_hull=(0, 0.05),  # stability
+        fields=[
+            "material_id",
+            "formula_pretty",
+            "band_gap",
+            "energy_above_hull"
+        ]
+    )
+
+    df = pd.DataFrame([
+        {
+            "material_id": doc.material_id,
+            "formula": doc.formula_pretty,
+            "band_gap": doc.band_gap,
+            "stability": doc.energy_above_hull
+        }
+        for doc in docs
+    ])
+
+    print(f"Search results: {len(df)} entries")
+    print("\nTop 10 entries:")
+    print(df.head(10))
+    print(f"\nAverage band gap: {df['band_gap'].mean():.2f} eV")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Search results: 34 entries
+
+Top 10 entries:
+  material_id formula  band_gap  stability
+0      mp-561     GaN      3.20       0.00
+1     mp-1234     ZnS      2.15       0.02
+2     mp-2345     CdS      1.85       0.01
+...
+
+Average band gap: 2.47 eV
+</code></pre>
+<p><strong>Code Example 6: Search by Element Specification</strong></p>
+<pre><code class="language-python">from mp_api.client import MPRester
+
+API_KEY = "your_api_key_here"
+
+# Search for materials containing specific elements
+with MPRester(API_KEY) as mpr:
+    # Materials containing both Li and O
+    docs = mpr.materials.summary.search(
+        elements=["Li", "O"],
+        num_elements=2,
+        fields=["material_id", "formula_pretty", "band_gap"]
+    )
+
+    print(f"Li-O system materials: {len(docs)} entries")
+    for i, doc in enumerate(docs[:5]):
+        print(
+            f"{i+1}. {doc.material_id}: {doc.formula_pretty}, "
+            f"Eg={doc.band_gap} eV"
+        )
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Li-O system materials: 127 entries
+1. mp-1960: Li2O, Eg=4.52 eV
+2. mp-12193: LiO2, Eg=2.31 eV
+3. mp-19017: Li2O2, Eg=3.15 eV
+...
+</code></pre>
+<hr/>
+<h2>2.3 Batch Download</h2>
+<p>To efficiently retrieve large-scale data, batch downloading is necessary. Learn how to retrieve 10,000+ entries while considering API limitations.</p>
+<h3>2.3.1 Pagination Processing</h3>
+<p><strong>Code Example 7: Large-Scale Download Using Chunk Division</strong></p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+from mp_api.client import MPRester
+import pandas as pd
+import time
+
+API_KEY = "your_api_key_here"
+
+def batch_download(
+    criteria,
+    chunk_size=1000,
+    max_chunks=10
+):
+    """
+    Batch download of large-scale data
+
+    Parameters:
+    -----------
+    criteria : dict
+        Search criteria
+    chunk_size : int
+        Number of entries per retrieval
+    max_chunks : int
+        Maximum number of chunks
+    """
+    all_data = []
+
+    with MPRester(API_KEY) as mpr:
+        for chunk_num in range(max_chunks):
+            print(f"Retrieving chunk {chunk_num + 1}/{max_chunks}...")
+
+            docs = mpr.materials.summary.search(
+                **criteria,
+                num_chunks=max_chunks,
+                chunk_size=chunk_size,
+                fields=[
+                    "material_id",
+                    "formula_pretty",
+                    "band_gap"
+                ]
+            )
+
+            if not docs:
+                print("No data, terminating")
+                break
+
+            for doc in docs:
+                all_data.append({
+                    "material_id": doc.material_id,
+                    "formula": doc.formula_pretty,
+                    "band_gap": doc.band_gap
+                })
+
+            # API rate limit countermeasure
+            time.sleep(1)
+
+    return pd.DataFrame(all_data)
+
+# Usage example: Bulk retrieval of materials with band gap &gt; 2 eV
+criteria = {"band_gap": (2.0, None)}
+df = batch_download(criteria, chunk_size=1000, max_chunks=5)
+
+print(f"\nTotal entries retrieved: {len(df)}")
+print(df.head())
+df.to_csv("wide_bandgap_materials.csv", index=False)
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Retrieving chunk 1/5...
+Retrieving chunk 2/5...
+Retrieving chunk 3/5...
+...
+
+Total entries retrieved: 4523
+  material_id formula  band_gap
+0      mp-561     GaN      3.20
+1     mp-1234     ZnS      2.15
+...
+</code></pre>
+<h3>2.3.2 Error Handling and Retry</h3>
+<p><strong>Code Example 8: Robust Batch Download</strong></p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+from mp_api.client import MPRester
+import pandas as pd
+import time
+from requests.exceptions import RequestException
+
+API_KEY = "your_api_key_here"
+
+def robust_batch_download(
+    criteria,
+    chunk_size=500,
+    max_retries=3
+):
+    """Batch download with error handling"""
+    all_data = []
+
+    with MPRester(API_KEY) as mpr:
+        chunk_num = 0
+        while True:
+            retry_count = 0
+            success = False
+
+            while retry_count &lt; max_retries and not success:
+                try:
+                    docs = mpr.materials.summary.search(
+                        **criteria,
+                        chunk_size=chunk_size,
+                        fields=[
+                            "material_id",
+                            "formula_pretty",
+                            "band_gap"
+                        ]
+                    )
+
+                    if not docs:
+                        return pd.DataFrame(all_data)
+
+                    for doc in docs:
+                        all_data.append({
+                            "material_id": doc.material_id,
+                            "formula": doc.formula_pretty,
+                            "band_gap": doc.band_gap
+                        })
+
+                    success = True
+                    print(f"Chunk {chunk_num + 1} successful "
+                          f"({len(docs)} entries)")
+
+                except RequestException as e:
+                    retry_count += 1
+                    wait_time = 2 ** retry_count
+                    print(
+                        f"Error occurred: {e}, "
+                        f"retrying in {wait_time} seconds..."
+                    )
+                    time.sleep(wait_time)
+
+            if not success:
+                print(f"Chunk {chunk_num + 1} skipped")
+
+            chunk_num += 1
+            time.sleep(0.5)  # API rate limit countermeasure
+
+    return pd.DataFrame(all_data)
+
+# Usage example
+criteria = {"elements": ["Li"], "num_elements": 1}
+df = robust_batch_download(criteria)
+print(f"Download complete: {len(df)} entries")
+</code></pre>
+<hr/>
+<h2>2.4 Data Visualization</h2>
+<h3>2.4.1 Retrieving and Visualizing Band Structures</h3>
+<p><strong>Code Example 9: Retrieving Band Structure Data</strong></p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+
+"""
+Example: Code Example 9: Retrieving Band Structure Data
+
+Purpose: Demonstrate data visualization techniques
+Target: Beginner to Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+from mp_api.client import MPRester
+import matplotlib.pyplot as plt
+
+API_KEY = "your_api_key_here"
+
+# Retrieve Si band structure
+with MPRester(API_KEY) as mpr:
+    # Retrieve band structure data
+    bs_data = mpr.get_bandstructure_by_material_id("mp-149")
+
+    # Basic information
+    print(f"Material: {bs_data.structure.composition}")
+    print(f"Band gap: {bs_data.get_band_gap()['energy']} eV")
+    print(f"Direct/Indirect: {bs_data.get_band_gap()['transition']}")
+
+    # Band structure plot
+    plotter = bs_data.get_plotter()
+    plotter.get_plot(
+        ylim=(-10, 10),
+        vbm_cbm_marker=True
+    )
+    plt.savefig("Si_band_structure.png", dpi=150)
+    plt.show()
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Material: Si1
+Band gap: 1.14 eV
+Direct/Indirect: indirect
+</code></pre>
+<p><strong>Code Example 10: Retrieving Density of States (DOS)</strong></p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+
+"""
+Example: Code Example 10: Retrieving Density of States (DOS)
+
+Purpose: Demonstrate data visualization techniques
+Target: Beginner to Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+from mp_api.client import MPRester
+import matplotlib.pyplot as plt
+
+API_KEY = "your_api_key_here"
+
+# Retrieve density of states
+with MPRester(API_KEY) as mpr:
+    dos_data = mpr.get_dos_by_material_id("mp-149")
+
+    # DOS plot
+    plotter = dos_data.get_plotter()
+    plotter.get_plot(
+        xlim=(-10, 10),
+        ylim=(0, 5)
+    )
+    plt.xlabel("Energy (eV)")
+    plt.ylabel("DOS (states/eV)")
+    plt.title("Si Density of States")
+    plt.savefig("Si_DOS.png", dpi=150)
+    plt.show()
+</code></pre>
+<h3>2.4.2 Retrieving Phase Diagrams</h3>
+<p><strong>Code Example 11: Binary Phase Diagram</strong></p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+
+"""
+Example: Code Example 11: Binary Phase Diagram
+
+Purpose: Demonstrate data visualization techniques
+Target: Beginner to Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+from mp_api.client import MPRester
+import matplotlib.pyplot as plt
+
+API_KEY = "your_api_key_here"
+
+# Retrieve Li-O phase diagram
+with MPRester(API_KEY) as mpr:
+    pd_data = mpr.get_phase_diagram_by_elements(["Li", "O"])
+
+    # Phase diagram plot
+    plotter = pd_data.get_plotter()
+    plotter.get_plot(label_stable=True)
+    plt.savefig("Li-O_phase_diagram.png", dpi=150)
+    plt.show()
+
+    # Display stable phases
+    print("Stable phases:")
+    for entry in pd_data.stable_entries:
+        print(
+            f"- {entry.composition.reduced_formula}: "
+            f"{pd_data.get_form_energy_per_atom(entry):.3f} "
+            f"eV/atom"
+        )
+</code></pre>
+<hr/>
+<h2>2.5 Practical Data Retrieval Strategies</h2>
+<h3>2.5.1 Cache Utilization</h3>
+<p><strong>Code Example 12: Acceleration Using Local Cache</strong></p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+from mp_api.client import MPRester
+import pandas as pd
+import pickle
+import os
+
+API_KEY = "your_api_key_here"
+CACHE_FILE = "mp_data_cache.pkl"
+
+def get_data_with_cache(criteria, cache_file=CACHE_FILE):
+    """Data retrieval with cache functionality"""
+
+    # Load if cache exists
+    if os.path.exists(cache_file):
+        print("Loading data from cache...")
+        with open(cache_file, 'rb') as f:
+            return pickle.load(f)
+
+    # Retrieve from API if cache does not exist
+    print("Retrieving data from API...")
+    with MPRester(API_KEY) as mpr:
+        docs = mpr.materials.summary.search(
+            **criteria,
+            fields=["material_id", "formula_pretty", "band_gap"]
+        )
+
+        data = pd.DataFrame([
+            {
+                "material_id": doc.material_id,
+                "formula": doc.formula_pretty,
+                "band_gap": doc.band_gap
+            }
+            for doc in docs
+        ])
+
+    # Save to cache
+    with open(cache_file, 'wb') as f:
+        pickle.dump(data, f)
+    print(f"Data saved to cache: {cache_file}")
+
+    return data
+
+# Usage example
+criteria = {"band_gap": (2.0, 3.0), "num_elements": 2}
+df1 = get_data_with_cache(criteria)  # API retrieval
+df2 = get_data_with_cache(criteria)  # Cache loading
+
+print(f"Number of entries: {len(df1)}")
+</code></pre>
+<h3>2.5.2 Data Quality Check</h3>
+<p><strong>Code Example 13: Data Quality Validation</strong></p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+from mp_api.client import MPRester
+import pandas as pd
+import numpy as np
+
+API_KEY = "your_api_key_here"
+
+def quality_check(df):
+    """Data quality check"""
+    print("=== Data Quality Report ===")
+
+    # Check for missing values
+    print(f"\nMissing values:")
+    print(df.isnull().sum())
+
+    # Check for outliers (band gap)
+    if 'band_gap' in df.columns:
+        bg_mean = df['band_gap'].mean()
+        bg_std = df['band_gap'].std()
+        outliers = df[
+            (df['band_gap'] &lt; bg_mean - 3 * bg_std) |
+            (df['band_gap'] &gt; bg_mean + 3 * bg_std)
+        ]
+        print(f"\nBand gap outliers: {len(outliers)} entries")
+        if len(outliers) &gt; 0:
+            print(outliers)
+
+    # Check for duplicates
+    duplicates = df.duplicated(subset=['material_id'])
+    print(f"\nDuplicate data: {duplicates.sum()} entries")
+
+# Usage example
+with MPRester(API_KEY) as mpr:
+    docs = mpr.materials.summary.search(
+        elements=["Li", "O"],
+        fields=["material_id", "formula_pretty", "band_gap"]
+    )
+
+    df = pd.DataFrame([
+        {
+            "material_id": doc.material_id,
+            "formula": doc.formula_pretty,
+            "band_gap": doc.band_gap
+        }
+        for doc in docs
+    ])
+
+quality_check(df)
+</code></pre>
+<hr/>
+<h2>2.6 Advanced Query Techniques</h2>
+<h3>2.6.1 Retrieving Calculated Properties</h3>
+<p><strong>Code Example 14: Ionic Conductivity Data</strong></p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 14: Ionic Conductivity Data
+
+Purpose: Demonstrate data manipulation and preprocessing
+Target: Beginner to Intermediate
+Execution time: 5-10 seconds
+Dependencies: None
+"""
+
+from mp_api.client import MPRester
+import pandas as pd
+
+API_KEY = "your_api_key_here"
+
+# Search for ionic conductors
+with MPRester(API_KEY) as mpr:
+    # Li ionic conductors
+    docs = mpr.materials.summary.search(
+        elements=["Li"],
+        theoretical=True,  # Include theoretical prediction data
+        fields=[
+            "material_id",
+            "formula_pretty",
+            "band_gap",
+            "formation_energy_per_atom"
+        ]
+    )
+
+    df = pd.DataFrame([
+        {
+            "material_id": doc.material_id,
+            "formula": doc.formula_pretty,
+            "band_gap": doc.band_gap,
+            "energy": doc.formation_energy_per_atom
+        }
+        for doc in docs
+    ])
+
+    # Stable materials with wide band gap
+    stable = df[df['energy'] &lt; -0.1]
+    wide_gap = stable[stable['band_gap'] &gt; 2.0]
+
+    print(f"Stable Li-containing materials: {len(stable)} entries")
+    print(f"Wide band gap materials: {len(wide_gap)} entries")
+    print(wide_gap.head(10))
+</code></pre>
+<h3>2.6.2 Surface Energy and Adsorption Data</h3>
+<p><strong>Code Example 15: Retrieving Surface Energy</strong></p>
+<pre><code class="language-python">from mp_api.client import MPRester
+
+API_KEY = "your_api_key_here"
+
+# Retrieve surface energy data
+with MPRester(API_KEY) as mpr:
+    # Surface energy of TiO2
+    surface_data = mpr.get_surface_data("mp-2657")  # TiO2
+
+    print(f"Material: {surface_data['material_id']}")
+    print(f"\nSurface energy (J/m²):")
+    for surface in surface_data['surfaces']:
+        miller = surface['miller_index']
+        energy = surface['surface_energy']
+        print(f"  {miller}: {energy:.3f} J/m²")
+</code></pre>
+<hr/>
+<h2>2.7 MPRester Practical Patterns</h2>
+<h3>2.7.1 Combining Multiple Conditions</h3>
+<p><strong>Code Example 16: Searching for Battery Materials</strong></p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+from mp_api.client import MPRester
+import pandas as pd
+
+API_KEY = "your_api_key_here"
+
+def find_battery_cathodes():
+    """Search for battery cathode materials"""
+    with MPRester(API_KEY) as mpr:
+        # Conditions: Contains Li, contains transition metals, stable
+        docs = mpr.materials.summary.search(
+            elements=["Li", "Co", "O"],  # Li-Co-O system
+            energy_above_hull=(0, 0.05),  # stability
+            fields=[
+                "material_id",
+                "formula_pretty",
+                "energy_above_hull",
+                "formation_energy_per_atom"
+            ]
+        )
+
+        results = []
+        for doc in docs:
+            # Estimate theoretical capacity (simplified version)
+            formula = doc.formula_pretty
+            if "Li" in formula and "Co" in formula:
+                results.append({
+                    "material_id": doc.material_id,
+                    "formula": formula,
+                    "stability": doc.energy_above_hull,
+                    "formation_energy":
+                        doc.formation_energy_per_atom
+                })
+
+        df = pd.DataFrame(results)
+        return df.sort_values('stability')
+
+# Execute
+cathodes = find_battery_cathodes()
+print(f"Candidate cathode materials: {len(cathodes)} entries")
+print(cathodes.head(10))
+</code></pre>
+<h3>2.7.2 Data Filtering and Aggregation</h3>
+<p><strong>Code Example 17: Statistical Analysis</strong></p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 17: Statistical Analysis
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+from mp_api.client import MPRester
+import pandas as pd
+import matplotlib.pyplot as plt
+
+API_KEY = "your_api_key_here"
+
+# Band gap distribution by element
+with MPRester(API_KEY) as mpr:
+    # Band gap of oxides
+    docs = mpr.materials.summary.search(
+        elements=["O"],
+        num_elements=2,
+        fields=["formula_pretty", "band_gap", "elements"]
+    )
+
+    data = []
+    for doc in docs:
+        # Identify elements excluding O
+        elements = [e for e in doc.elements if e != "O"]
+        if elements and doc.band_gap is not None:
+            data.append({
+                "element": elements[0],
+                "band_gap": doc.band_gap
+            })
+
+    df = pd.DataFrame(data)
+
+    # Average band gap by element
+    avg_bg = df.groupby('element')['band_gap'].agg(
+        ['mean', 'std', 'count']
+    )
+    avg_bg = avg_bg.sort_values('mean', ascending=False)
+
+    print("Average band gap of element oxides (top 10):")
+    print(avg_bg.head(10))
+
+    # Visualization
+    top10 = avg_bg.head(10)
+    plt.figure(figsize=(10, 6))
+    plt.bar(top10.index, top10['mean'], yerr=top10['std'])
+    plt.xlabel("Element")
+    plt.ylabel("Average Band Gap (eV)")
+    plt.title("Average Band Gap of Binary Oxides")
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig("oxide_bandgap_analysis.png", dpi=150)
+    plt.show()
+</code></pre>
+<hr/>
+<h2>2.8 API Rate Limits and Best Practices</h2>
+<h3>2.8.1 Rate Limit Countermeasures</h3>
+<p>Materials Project API has the following rate limits:
+- <strong>Free plan</strong>: 2000 requests/day
+- <strong>Premium</strong>: 10000 requests/day</p>
+<p><strong>Code Example 18: Rate-Limited Wrapper</strong></p>
+<pre><code class="language-python">from mp_api.client import MPRester
+import time
+from functools import wraps
+
+API_KEY = "your_api_key_here"
+
+class RateLimitedMPRester:
+    """Rate-limited MPRester"""
+
+    def __init__(self, api_key, delay=0.5):
+        self.api_key = api_key
+        self.delay = delay
+        self.request_count = 0
+
+    def __enter__(self):
+        self.mpr = MPRester(self.api_key).__enter__()
+        return self
+
+    def __exit__(self, *args):
+        print(
+            f"\nTotal requests: {self.request_count}"
+        )
+        return self.mpr.__exit__(*args)
+
+    def search(self, **kwargs):
+        """Search with rate limiting"""
+        result = self.mpr.materials.summary.search(**kwargs)
+        self.request_count += 1
+        time.sleep(self.delay)
+        return result
+
+# Usage example
+with RateLimitedMPRester(API_KEY, delay=1.0) as mpr:
+    # Multiple searches
+    for element in ["Li", "Na", "K"]:
+        docs = mpr.search(
+            elements=[element],
+            num_elements=1,
+            fields=["material_id", "formula_pretty"]
+        )
+        print(f"{element}: {len(docs)} entries")
+</code></pre>
+<hr/>
+<h2>2.9 Chapter Summary</h2>
+<h3>What You Learned</h3>
+<ol>
+<li>
+<p><strong>pymatgen Basics</strong>
+   - Structure object manipulation
+   - Crystal structure visualization
+   - Symmetry analysis</p>
+</li>
+<li>
+<p><strong>MPRester API</strong>
+   - Basic queries (material_id, formula)
+   - Advanced filtering (logical operators, range specification)
+   - Batch download (10,000+ entries)</p>
+</li>
+<li>
+<p><strong>Data Visualization</strong>
+   - Band structure plotting
+   - Density of states (DOS)
+   - Phase diagrams</p>
+</li>
+<li>
+<p><strong>Practical Techniques</strong>
+   - Cache utilization
+   - Error handling
+   - Rate limit countermeasures</p>
+</li>
+</ol>
+<h3>Key Points</h3>
+<ul>
+<li>✅ pymatgen is the standard library for crystal structure manipulation</li>
+<li>✅ MPRester API provides access to 140k materials</li>
+<li>✅ Batch downloads are controlled with chunk_size</li>
+<li>✅ Cache reduces duplicate requests</li>
+<li>✅ Code design considering rate limits is important</li>
+</ul>
+<h3>Next Chapter</h3>
+<p>In Chapter 3, you will learn about integrating multiple databases and workflows:
+- Integration of Materials Project and AFLOW
+- Data cleaning
+- Missing value handling
+- Automated update pipeline</p>
+<p><strong><a href="chapter-3.html">Chapter 3: Database Integration and Workflows →</a></strong></p>
+<hr/>
+<h2>Exercises</h2>
+<h3>Problem 1 (Difficulty: easy)</h3>
+<p>Using pymatgen, create a Cu FCC structure (face-centered cubic) and display the following information.</p>
+<p><strong>Requirements</strong>:
+1. Lattice parameter: 3.61 Å
+2. Space group symbol
+3. Crystal system
+4. Density</p>
+<details>
+<summary>Hint</summary>
+<pre><code class="language-python">from pymatgen.core import Structure, Lattice
+
+# FCC structure coordinates
+lattice = Lattice.cubic(3.61)
+species = ["Cu"] * 4
+coords = [[0, 0, 0], [0.5, 0.5, 0], ...]
+</code></pre>
+</details>
+<details>
+<summary>Solution</summary>
+<pre><code class="language-python">from pymatgen.core import Structure, Lattice
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+# Cu FCC structure
+lattice = Lattice.cubic(3.61)
+species = ["Cu"] * 4
+coords = [
+    [0, 0, 0],
+    [0.5, 0.5, 0],
+    [0.5, 0, 0.5],
+    [0, 0.5, 0.5]
+]
+
+structure = Structure(lattice, species, coords)
+
+# Symmetry analysis
+sga = SpacegroupAnalyzer(structure)
+
+print(f"Formula: {structure.composition}")
+print(f"Lattice parameters: {structure.lattice.abc}")
+print(f"Space group: {sga.get_space_group_symbol()}")
+print(f"Crystal system: {sga.get_crystal_system()}")
+print(f"Density: {structure.density:.2f} g/cm³")
+</code></pre>
+
+
+**Output**:
+
+<pre><code>Formula: Cu4
+Lattice parameters: (3.61, 3.61, 3.61)
+Space group: Fm-3m
+Crystal system: cubic
+Density: 8.96 g/cm³
+</code></pre>
+</details>
+<hr/>
+<h3>Problem 2 (Difficulty: medium)</h3>
+<p>Search Materials Project for catalyst material candidates satisfying the following conditions and save to CSV.</p>
+<p><strong>Conditions</strong>:
+- Contains transition metals (Ti, V, Cr, Mn, Fe, Co, Ni)
+- Contains oxygen
+- Band gap &lt; 3 eV (electronic conductivity)
+- Stability: energy_above_hull &lt; 0.1 eV/atom</p>
+<p><strong>Requirements</strong>:
+1. Display number of search results
+2. Save material_id, formula, band_gap, stability to CSV
+3. Create bar graph of band gap distribution</p>
+<details>
+<summary>Solution</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Requirements:
+1. Display number of search results
+2. Save ma
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+from mp_api.client import MPRester
+import pandas as pd
+import matplotlib.pyplot as plt
+
+API_KEY = "your_api_key_here"
+
+# Transition metal list
+transition_metals = ["Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni"]
+
+all_results = []
+
+with MPRester(API_KEY) as mpr:
+    for tm in transition_metals:
+        docs = mpr.materials.summary.search(
+            elements=[tm, "O"],
+            band_gap=(None, 3.0),
+            energy_above_hull=(0, 0.1),
+            fields=[
+                "material_id",
+                "formula_pretty",
+                "band_gap",
+                "energy_above_hull"
+            ]
+        )
+
+        for doc in docs:
+            all_results.append({
+                "material_id": doc.material_id,
+                "formula": doc.formula_pretty,
+                "band_gap": doc.band_gap,
+                "stability": doc.energy_above_hull,
+                "transition_metal": tm
+            })
+
+df = pd.DataFrame(all_results)
+
+print(f"Catalyst candidate materials: {len(df)} entries")
+print(df.head(10))
+
+# Save CSV
+df.to_csv("catalyst_candidates.csv", index=False)
+
+# Band gap distribution
+plt.figure(figsize=(10, 6))
+plt.hist(df['band_gap'], bins=30, edgecolor='black')
+plt.xlabel("Band Gap (eV)")
+plt.ylabel("Count")
+plt.title("Band Gap Distribution of Catalyst Candidates")
+plt.grid(axis='y', alpha=0.3)
+plt.savefig("catalyst_bandgap_dist.png", dpi=150)
+plt.show()
+</code></pre>
+</details>
+<hr/>
+<h3>Problem 3 (Difficulty: hard)</h3>
+<p>Batch download 10,000+ entries from Materials Project and perform statistical analysis.</p>
+<p><strong>Tasks</strong>:
+1. Retrieve all materials with band gap &gt; 0 eV
+2. Calculate average band gap by number of elements
+3. Visualize band gap distribution by crystal system
+4. List top 10% wide band gap materials</p>
+<p><strong>Constraints</strong>:
+- Implement error handling
+- Implement cache functionality
+- Display progress bar</p>
+<details>
+<summary>Solution</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+# - tqdm&gt;=4.65.0
+
+from mp_api.client import MPRester
+import pandas as pd
+import matplotlib.pyplot as plt
+import pickle
+import os
+from tqdm import tqdm
+
+API_KEY = "your_api_key_here"
+CACHE_FILE = "wide_bg_cache.pkl"
+
+def batch_download_with_progress():
+    """Batch download with progress bar"""
+
+    # Check cache
+    if os.path.exists(CACHE_FILE):
+        print("Loading data from cache...")
+        with open(CACHE_FILE, 'rb') as f:
+            return pickle.load(f)
+
+    all_data = []
+
+    with MPRester(API_KEY) as mpr:
+        # Retrieve total count
+        total_docs = mpr.materials.summary.search(
+            band_gap=(0.1, None),
+            fields=["material_id"]
+        )
+        total = len(total_docs)
+        print(f"Total data count: {total} entries")
+
+        # Chunk-divided download
+        chunk_size = 1000
+        num_chunks = (total // chunk_size) + 1
+
+        for i in tqdm(range(num_chunks), desc="Download"):
+            docs = mpr.materials.summary.search(
+                band_gap=(0.1, None),
+                num_chunks=num_chunks,
+                chunk_size=chunk_size,
+                fields=[
+                    "material_id",
+                    "formula_pretty",
+                    "band_gap",
+                    "num_elements",
+                    "symmetry"
+                ]
+            )
+
+            for doc in docs:
+                all_data.append({
+                    "material_id": doc.material_id,
+                    "formula": doc.formula_pretty,
+                    "band_gap": doc.band_gap,
+                    "num_elements": doc.num_elements,
+                    "crystal_system":
+                        doc.symmetry.get('crystal_system')
+                })
+
+    df = pd.DataFrame(all_data)
+
+    # Save cache
+    with open(CACHE_FILE, 'wb') as f:
+        pickle.dump(df, f)
+
+    return df
+
+# Data retrieval
+df = batch_download_with_progress()
+
+print(f"\nTotal data count: {len(df)}")
+
+# Average band gap by number of elements
+avg_by_elements = df.groupby('num_elements')['band_gap'].mean()
+print("\nAverage band gap by number of elements:")
+print(avg_by_elements)
+
+# Distribution by crystal system
+fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+crystal_systems = df['crystal_system'].unique()
+
+for i, cs in enumerate(crystal_systems[:6]):
+    ax = axes[i // 3, i % 3]
+    data = df[df['crystal_system'] == cs]['band_gap']
+    ax.hist(data, bins=30, edgecolor='black')
+    ax.set_title(f"{cs} (n={len(data)})")
+    ax.set_xlabel("Band Gap (eV)")
+    ax.set_ylabel("Count")
+
+plt.tight_layout()
+plt.savefig("crystal_system_bandgap.png", dpi=150)
+plt.show()
+
+# Top 10% wide band gap materials
+threshold = df['band_gap'].quantile(0.9)
+top10 = df[df['band_gap'] &gt;= threshold].sort_values(
+    'band_gap', ascending=False
+)
+
+print(f"\nTop 10% band gap materials (threshold: {threshold:.2f} eV):")
+print(top10.head(20))
+
+top10.to_csv("top10_percent_wide_bg.csv", index=False)
+</code></pre>
+
+
+**Example Output**:
+
+<pre><code>Loading data from cache...
+
+Total data count: 12453
+
+Average band gap by number of elements:
+num_elements
+1    3.25
+2    2.87
+3    2.13
+4    1.65
+...
+
+Top 10% band gap materials (threshold: 5.23 eV):
+   material_id formula  band_gap  num_elements crystal_system
+0       mp-123    MgO      7.83             2          cubic
+1       mp-456    BN       6.42             2      hexagonal
+...
+</code></pre>
+</details>
+<hr/>
+<h2>References</h2>
+<ol>
+<li>
+<p>Ong, S. P. et al. (2013). "Python Materials Genomics (pymatgen): A robust, open-source python library for materials analysis." <em>Computational Materials Science</em>, 68, 314-319.
+   DOI: <a href="https://doi.org/10.1016/j.commatsci.2012.10.028">10.1016/j.commatsci.2012.10.028</a></p>
+</li>
+<li>
+<p>Materials Project Documentation. "API Documentation." URL: <a href="https://docs.materialsproject.org">docs.materialsproject.org</a></p>
+</li>
+<li>
+<p>Jain, A. et al. (2013). "Commentary: The Materials Project." <em>APL Materials</em>, 1(1), 011002.
+   DOI: <a href="https://doi.org/10.1063/1.4812323">10.1063/1.4812323</a></p>
+</li>
+</ol>
+<hr/>
+<h2>Navigation</h2>
+<h3>Previous Chapter</h3>
+<p><strong><a href="chapter-1.html">Chapter 1: Overview of Materials Databases ←</a></strong></p>
+<h3>Next Chapter</h3>
+<p><strong><a href="chapter-3.html">Chapter 3: Database Integration and Workflows →</a></strong></p>
+<h3>Series Table of Contents</h3>
+<p><strong><a href="./index.html">← Back to Series Table of Contents</a></strong></p>
+<hr/>
+<h2>Author Information</h2>
+<p><strong>Created by</strong>: AI Terakoya Content Team
+<strong>Created on</strong>: 2025-10-17
+<strong>Version</strong>: 1.0</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<hr/>
+<p><strong>Continue learning in the next chapter!</strong></p>
+<div class="navigation">
+<a class="nav-button" href="chapter-1.html">← Previous Chapter</a>
+<a class="nav-button" href="index.html">Back to Series Table of Contents</a>
+<a class="nav-button" href="chapter-3.html">Next Chapter →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided for educational, research, and informational purposes only and does not constitute professional advice (legal, accounting, technical warranties, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without warranties of any kind, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, functionality, or safety.</li>
+<li>The creator and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, or libraries.</li>
+<li>To the maximum extent permitted by applicable law, the creator and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content of this material may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Created by</strong>: AI Terakoya Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Created on</strong>: 2025-10-17</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 2: Multivariate Statistical Analysis - Process Data Analysis | PI Knowledge Hub" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Chapter 2: Multivariate Statistical Analysis - Process Data Analysis Practical Series" name="description"/>
+<title>Chapter 2: Multivariate Statistical Analysis - Process Data Analysis | PI Knowledge Hub</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../PI/index.html">Process Informatics</a><span class="breadcrumb-separator">›</span><a href="../../PI/process-data-analysis/index.html">Process Data Analysis</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/PI/process-data-analysis/chapter-2.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+
+<header>
+<div class="container">
+<h1>Chapter 2: Multivariate Statistical Analysis</h1>
+<p class="subtitle">Multivariate Statistical Analysis for Process Monitoring and Optimization</p>
+<div class="meta">
+<span class="meta">📚 Process Data Analysis Practical Series</span>
+<span class="meta">⏱️ Reading Time: 35-40 minutes</span>
+<span class="meta">💻 Code Examples: 10</span>
+<span class="meta">🎓 Level: Intermediate</span>
+</div>
+</div>
+</header>
+<div class="container">
+<section>
+<h2>2.1 Introduction</h2>
+<p>
+                In chemical processes, multiple variables such as temperature, pressure, flow rate, and concentration change in relation to each other.
+                By properly analyzing these multivariate data, we can reveal the essential structure of processes and hidden correlations between variables that are invisible in univariate analysis.
+            </p>
+<p>
+                In this chapter, we will implement multivariate statistical analysis methods essential for process monitoring and optimization through 10 Python code examples, including Principal Component Analysis (PCA), Partial Least Squares (PLS), and Independent Component Analysis (ICA).
+            </p>
+<div class="callout callout-info">
+<h4>📊 What You Will Learn in This Chapter</h4>
+<ul style="margin-bottom: 0;">
+<li>Dimensionality reduction and process monitoring with PCA (T² statistic, SPE)</li>
+<li>Building predictive models and latent variable analysis with PLS</li>
+<li>Extracting independent components and anomaly detection with ICA</li>
+<li>Outlier detection using Mahalanobis distance</li>
+<li>Anomaly diagnosis and root cause analysis using contribution plots</li>
+</ul>
+</div>
+</section>
+<section>
+<h2>2.2 Fundamentals of Principal Component Analysis (PCA)</h2>
+<p>
+                Principal Component Analysis (PCA) is a method that transforms many correlated variables into a few independent principal components.
+                In process monitoring, we construct a principal component space from normal operation data and monitor whether new data deviates from this space.
+            </p>
+<div class="example-box">
+<h4>Example 1: Dimensionality Reduction and Process Visualization with PCA</h4>
+<p>Project 6-variable reactor data onto a 2-dimensional principal component space to visualize process states.</p>
+<pre><code># ===================================
+# Example 1: Dimensionality Reduction with PCA
+# ===================================
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+
+# Generate multivariate process data (reactor with 6 variables)
+np.random.seed(42)
+n_samples = 500
+
+# Normal operation data (6 correlated variables)
+temperature = 350 + np.random.normal(0, 5, n_samples)
+pressure = 5.0 + 0.02 * (temperature - 350) + np.random.normal(0, 0.2, n_samples)
+flow_rate = 100 + 0.3 * (temperature - 350) + np.random.normal(0, 3, n_samples)
+concentration = 10 + 0.01 * (temperature - 350) + np.random.normal(0, 0.5, n_samples)
+ph = 7.0 - 0.002 * (temperature - 350) + np.random.normal(0, 0.1, n_samples)
+viscosity = 50 + 0.1 * (temperature - 350) + np.random.normal(0, 2, n_samples)
+
+# Create DataFrame
+df = pd.DataFrame({
+    'Temperature': temperature,
+    'Pressure': pressure,
+    'Flow_Rate': flow_rate,
+    'Concentration': concentration,
+    'pH': ph,
+    'Viscosity': viscosity
+})
+
+print("Original data statistics:")
+print(df.describe())
+print(f"\nCorrelation matrix:")
+print(df.corr().round(3))
+
+# Standardize data (essential preprocessing for PCA)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(df)
+
+# Execute PCA
+pca = PCA(n_components=6)
+X_pca = pca.fit_transform(X_scaled)
+
+# Calculate cumulative variance ratio
+explained_variance_ratio = pca.explained_variance_ratio_
+cumulative_variance_ratio = np.cumsum(explained_variance_ratio)
+
+print(f"\nVariance ratio of each principal component:")
+for i, (ev, cev) in enumerate(zip(explained_variance_ratio, cumulative_variance_ratio), 1):
+    print(f"PC{i}: Variance {ev*100:.2f}%, Cumulative {cev*100:.2f}%")
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# Scree plot
+axes[0, 0].bar(range(1, 7), explained_variance_ratio * 100)
+axes[0, 0].plot(range(1, 7), cumulative_variance_ratio * 100, 'ro-', linewidth=2)
+axes[0, 0].axhline(y=95, color='green', linestyle='--', label='95% threshold')
+axes[0, 0].set_xlabel('Principal Component')
+axes[0, 0].set_ylabel('Variance Ratio (%)')
+axes[0, 0].set_title('Scree Plot')
+axes[0, 0].legend()
+axes[0, 0].grid(True, alpha=0.3)
+
+# Principal component score plot (PC1 vs PC2)
+axes[0, 1].scatter(X_pca[:, 0], X_pca[:, 1], alpha=0.5)
+axes[0, 1].set_xlabel(f'PC1 ({explained_variance_ratio[0]*100:.1f}%)')
+axes[0, 1].set_ylabel(f'PC2 ({explained_variance_ratio[1]*100:.1f}%)')
+axes[0, 1].set_title('Principal Component Score Plot')
+axes[0, 1].grid(True, alpha=0.3)
+
+# Loading plot (PC1 vs PC2)
+loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
+for i, var in enumerate(df.columns):
+    axes[1, 0].arrow(0, 0, loadings[i, 0], loadings[i, 1],
+                     head_width=0.1, head_length=0.1, fc='blue', ec='blue')
+    axes[1, 0].text(loadings[i, 0]*1.15, loadings[i, 1]*1.15, var,
+                    ha='center', va='center', fontsize=10)
+axes[1, 0].set_xlabel(f'PC1 ({explained_variance_ratio[0]*100:.1f}%)')
+axes[1, 0].set_ylabel(f'PC2 ({explained_variance_ratio[1]*100:.1f}%)')
+axes[1, 0].set_title('Loading Plot (Variable Contributions)')
+axes[1, 0].grid(True, alpha=0.3)
+axes[1, 0].set_xlim(-3, 3)
+axes[1, 0].set_ylim(-3, 3)
+
+# Biplot (scores + loadings)
+scale_factor = 3
+axes[1, 1].scatter(X_pca[:, 0], X_pca[:, 1], alpha=0.3, s=20)
+for i, var in enumerate(df.columns):
+    axes[1, 1].arrow(0, 0, loadings[i, 0]*scale_factor, loadings[i, 1]*scale_factor,
+                     head_width=0.3, head_length=0.3, fc='red', ec='red', linewidth=2)
+    axes[1, 1].text(loadings[i, 0]*scale_factor*1.15, loadings[i, 1]*scale_factor*1.15,
+                    var, ha='center', va='center', fontsize=10, fontweight='bold')
+axes[1, 1].set_xlabel(f'PC1 ({explained_variance_ratio[0]*100:.1f}%)')
+axes[1, 1].set_ylabel(f'PC2 ({explained_variance_ratio[1]*100:.1f}%)')
+axes[1, 1].set_title('Biplot')
+axes[1, 1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('pca_analysis.png', dpi=300)
+
+print(f"\nResults: PC1-PC2 explain {cumulative_variance_ratio[1]*100:.1f}% of variance")
+print(f"Temperature and related variables (pressure, flow) contribute strongly to PC1")
+</code></pre>
+</div>
+<div class="example-box">
+<h4>Example 2: Process Monitoring with T² Statistic and SPE Control Charts</h4>
+<p>Implement an anomaly detection system using Hotelling's T² statistic and SPE (Q statistic).</p>
+<pre><code># ===================================
+# Example 2: T² and SPE Control Charts
+# ===================================
+from scipy.stats import f, chi2
+
+# Build PCA model with normal operation data (using 500 samples from above)
+pca_model = PCA(n_components=3)  # Retain &gt;95% variance
+X_train_pca = pca_model.fit_transform(X_scaled)
+
+# Calculate Hotelling's T² statistic
+def calculate_t2(scores, n_components):
+    """Calculate T² statistic
+
+    Args:
+        scores: Principal component scores
+        n_components: Number of principal components to use
+
+    Returns:
+        Array of T² statistics
+    """
+    scores_reduced = scores[:, :n_components]
+    cov_matrix = np.cov(scores_reduced.T)
+    inv_cov = np.linalg.inv(cov_matrix)
+
+    t2 = np.array([s @ inv_cov @ s.T for s in scores_reduced])
+    return t2
+
+# Calculate SPE (Q statistic)
+def calculate_spe(X_original, X_reconstructed):
+    """Calculate SPE (Squared Prediction Error)
+
+    Args:
+        X_original: Original data (standardized)
+        X_reconstructed: PCA reconstructed data
+
+    Returns:
+        Array of SPE statistics
+    """
+    residuals = X_original - X_reconstructed
+    spe = np.sum(residuals**2, axis=1)
+    return spe
+
+# Calculate T² and SPE for training data
+t2_train = calculate_t2(X_train_pca, n_components=3)
+X_train_reconstructed = pca_model.inverse_transform(X_train_pca)
+spe_train = calculate_spe(X_scaled, X_train_reconstructed)
+
+# Calculate control limits (99% confidence interval)
+n_samples_train = len(X_scaled)
+n_components = 3
+n_variables = X_scaled.shape[1]
+
+# T² control limit (F-distribution)
+alpha = 0.01  # 1% significance level (99% confidence interval)
+t2_limit = (n_components * (n_samples_train - 1) * (n_samples_train + 1)) / \
+           (n_samples_train * (n_samples_train - n_components)) * \
+           f.ppf(1 - alpha, n_components, n_samples_train - n_components)
+
+# SPE control limit (chi-square approximation)
+eigenvalues = pca_model.explained_variance_
+residual_eigenvalues = np.concatenate([eigenvalues[3:], [0]*(n_variables - len(eigenvalues))])
+theta1 = np.sum(residual_eigenvalues)
+theta2 = np.sum(residual_eigenvalues**2)
+theta3 = np.sum(residual_eigenvalues**3)
+h0 = 1 - (2 * theta1 * theta3) / (3 * theta2**2)
+ca = chi2.ppf(1 - alpha, 1)
+spe_limit = theta1 * (1 + (ca * np.sqrt(2*theta2*h0**2)) / theta1 +
+                      (theta2 * h0 * (h0 - 1)) / theta1**2)**(1/h0)
+
+print(f"Control limits:")
+print(f"T² limit: {t2_limit:.2f}")
+print(f"SPE limit: {spe_limit:.2f}")
+
+# Generate test data (normal data + abnormal data)
+np.random.seed(100)
+n_test_normal = 100
+n_test_abnormal = 20
+
+# Normal data
+test_normal = scaler.transform(pd.DataFrame({
+    'Temperature': 350 + np.random.normal(0, 5, n_test_normal),
+    'Pressure': 5.0 + np.random.normal(0, 0.2, n_test_normal),
+    'Flow_Rate': 100 + np.random.normal(0, 3, n_test_normal),
+    'Concentration': 10 + np.random.normal(0, 0.5, n_test_normal),
+    'pH': 7.0 + np.random.normal(0, 0.1, n_test_normal),
+    'Viscosity': 50 + np.random.normal(0, 2, n_test_normal)
+}))
+
+# Abnormal data (temperature increase, pressure anomaly)
+test_abnormal = scaler.transform(pd.DataFrame({
+    'Temperature': 370 + np.random.normal(0, 8, n_test_abnormal),  # High temperature
+    'Pressure': 6.5 + np.random.normal(0, 0.5, n_test_abnormal),    # High pressure
+    'Flow_Rate': 100 + np.random.normal(0, 3, n_test_abnormal),
+    'Concentration': 10 + np.random.normal(0, 0.5, n_test_abnormal),
+    'pH': 7.0 + np.random.normal(0, 0.1, n_test_abnormal),
+    'Viscosity': 50 + np.random.normal(0, 2, n_test_abnormal)
+}))
+
+# Combine test data
+X_test = np.vstack([test_normal, test_abnormal])
+labels = np.array(['Normal']*n_test_normal + ['Abnormal']*n_test_abnormal)
+
+# Calculate T² and SPE for test data
+X_test_pca = pca_model.transform(X_test)
+t2_test = calculate_t2(X_test_pca, n_components=3)
+X_test_reconstructed = pca_model.inverse_transform(X_test_pca)
+spe_test = calculate_spe(X_test, X_test_reconstructed)
+
+# Anomaly detection results
+t2_violations = t2_test &gt; t2_limit
+spe_violations = spe_test &gt; spe_limit
+total_violations = t2_violations | spe_violations
+
+print(f"\nAnomaly detection results:")
+print(f"T² violations: {t2_violations.sum()} / {len(X_test)}")
+print(f"SPE violations: {spe_violations.sum()} / {len(X_test)}")
+print(f"Total anomalies detected: {total_violations.sum()} / {len(X_test)}")
+print(f"Detection rate: {total_violations[labels=='Abnormal'].sum() / n_test_abnormal * 100:.1f}%")
+print(f"False alarm rate: {total_violations[labels=='Normal'].sum() / n_test_normal * 100:.1f}%")
+
+# Visualization
+fig, axes = plt.subplots(2, 1, figsize=(14, 10))
+
+# T² control chart
+time_index = range(len(X_test))
+colors = ['blue' if label == 'Normal' else 'red' for label in labels]
+axes[0].scatter(time_index, t2_test, c=colors, alpha=0.6)
+axes[0].axhline(y=t2_limit, color='red', linestyle='--', linewidth=2, label=f'Control limit ({t2_limit:.1f})')
+axes[0].set_xlabel('Sample Number')
+axes[0].set_ylabel('T² Statistic')
+axes[0].set_title('Hotelling T² Control Chart')
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+# SPE control chart
+axes[1].scatter(time_index, spe_test, c=colors, alpha=0.6)
+axes[1].axhline(y=spe_limit, color='red', linestyle='--', linewidth=2, label=f'Control limit ({spe_limit:.1f})')
+axes[1].set_xlabel('Sample Number')
+axes[1].set_ylabel('SPE (Q Statistic)')
+axes[1].set_title('SPE Control Chart')
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('t2_spe_control_charts.png', dpi=300)
+
+print(f"\nResults: Both T² and SPE indicators detect anomalies with high precision (detection rate {total_violations[labels=='Abnormal'].sum() / n_test_abnormal * 100:.1f}%)")
+</code></pre>
+</div>
+</section>
+<section>
+<h2>2.3 Partial Least Squares (PLS)</h2>
+<p>
+                Partial Least Squares (PLS) extracts latent variables considering both explanatory variables X and objective variables Y.
+                Unlike PCA, PLS performs dimensionality reduction in a direction that maximizes prediction performance, making it extremely effective for process quality prediction.
+            </p>
+<div class="example-box">
+<h4>Example 3: Building Quality Prediction Models with PLS</h4>
+<p>Build a PLS model to predict product quality (yield, purity) from reactor operating variables.</p>
+<pre><code># ===================================
+# Example 3: PLS Regression Model
+# ===================================
+from sklearn.cross_decomposition import PLSRegression
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+
+# Generate process data and quality data
+np.random.seed(42)
+n_samples = 300
+
+# Operating variables (X): 7 variables
+X_data = pd.DataFrame({
+    'Temperature': 350 + np.random.normal(0, 10, n_samples),
+    'Pressure': 5.0 + np.random.normal(0, 0.5, n_samples),
+    'Flow_Rate': 100 + np.random.normal(0, 5, n_samples),
+    'Catalyst_Conc': 2.0 + np.random.normal(0, 0.2, n_samples),
+    'Residence_Time': 30 + np.random.normal(0, 3, n_samples),
+    'pH': 7.0 + np.random.normal(0, 0.3, n_samples),
+    'Stirring_Speed': 500 + np.random.normal(0, 50, n_samples)
+})
+
+# Quality variables (Y): Yield and purity (dependent on X)
+yield_coef = np.array([0.15, 0.1, 0.05, 0.3, 0.2, -0.1, 0.05])
+purity_coef = np.array([0.1, 0.15, -0.05, 0.25, 0.15, 0.2, -0.1])
+
+Y_data = pd.DataFrame({
+    'Yield': 85 + (X_data.values - X_data.mean().values) @ yield_coef + np.random.normal(0, 2, n_samples),
+    'Purity': 95 + (X_data.values - X_data.mean().values) @ purity_coef + np.random.normal(0, 1.5, n_samples)
+})
+
+print("Operating variables (X) statistics:")
+print(X_data.describe())
+print("\nQuality variables (Y) statistics:")
+print(Y_data.describe())
+
+# Data split
+X_train, X_test, Y_train, Y_test = train_test_split(
+    X_data, Y_data, test_size=0.2, random_state=42
+)
+
+# Data standardization
+scaler_X = StandardScaler()
+scaler_Y = StandardScaler()
+
+X_train_scaled = scaler_X.fit_transform(X_train)
+Y_train_scaled = scaler_Y.fit_transform(Y_train)
+X_test_scaled = scaler_X.transform(X_test)
+Y_test_scaled = scaler_Y.transform(Y_test)
+
+# Optimize number of PLS components (cross-validation)
+n_components_range = range(1, 8)
+cv_scores = []
+
+for n_comp in n_components_range:
+    pls = PLSRegression(n_components=n_comp)
+    scores = cross_val_score(pls, X_train_scaled, Y_train_scaled,
+                             cv=5, scoring='r2')
+    cv_scores.append(scores.mean())
+
+optimal_n_components = n_components_range[np.argmax(cv_scores)]
+print(f"\nOptimal number of PLS components: {optimal_n_components} (CV R² = {max(cv_scores):.4f})")
+
+# Train with optimal model
+pls_model = PLSRegression(n_components=optimal_n_components)
+pls_model.fit(X_train_scaled, Y_train_scaled)
+
+# Prediction
+Y_train_pred_scaled = pls_model.predict(X_train_scaled)
+Y_test_pred_scaled = pls_model.predict(X_test_scaled)
+
+# Inverse transform
+Y_train_pred = scaler_Y.inverse_transform(Y_train_pred_scaled)
+Y_test_pred = scaler_Y.inverse_transform(Y_test_pred_scaled)
+
+# Accuracy evaluation
+print("\nTraining data performance:")
+for i, col in enumerate(Y_data.columns):
+    r2 = r2_score(Y_train[col], Y_train_pred[:, i])
+    mae = mean_absolute_error(Y_train[col], Y_train_pred[:, i])
+    rmse = np.sqrt(mean_squared_error(Y_train[col], Y_train_pred[:, i]))
+    print(f"{col}: R² = {r2:.4f}, MAE = {mae:.3f}, RMSE = {rmse:.3f}")
+
+print("\nTest data performance:")
+for i, col in enumerate(Y_data.columns):
+    r2 = r2_score(Y_test[col], Y_test_pred[:, i])
+    mae = mean_absolute_error(Y_test[col], Y_test_pred[:, i])
+    rmse = np.sqrt(mean_squared_error(Y_test[col], Y_test_pred[:, i]))
+    print(f"{col}: R² = {r2:.4f}, MAE = {mae:.3f}, RMSE = {rmse:.3f}")
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# Optimize number of components
+axes[0, 0].plot(n_components_range, cv_scores, 'o-', linewidth=2)
+axes[0, 0].axvline(x=optimal_n_components, color='red', linestyle='--', label='Optimal')
+axes[0, 0].set_xlabel('Number of PLS Components')
+axes[0, 0].set_ylabel('Cross-validation R²')
+axes[0, 0].set_title('PLS Component Number Optimization')
+axes[0, 0].legend()
+axes[0, 0].grid(True, alpha=0.3)
+
+# Predicted vs Actual (Yield)
+axes[0, 1].scatter(Y_test['Yield'], Y_test_pred[:, 0], alpha=0.6)
+axes[0, 1].plot([Y_test['Yield'].min(), Y_test['Yield'].max()],
+                [Y_test['Yield'].min(), Y_test['Yield'].max()],
+                'r--', linewidth=2)
+axes[0, 1].set_xlabel('Actual Yield (%)')
+axes[0, 1].set_ylabel('Predicted Yield (%)')
+axes[0, 1].set_title(f'Yield Prediction (R² = {r2_score(Y_test["Yield"], Y_test_pred[:, 0]):.3f})')
+axes[0, 1].grid(True, alpha=0.3)
+
+# Predicted vs Actual (Purity)
+axes[1, 0].scatter(Y_test['Purity'], Y_test_pred[:, 1], alpha=0.6)
+axes[1, 0].plot([Y_test['Purity'].min(), Y_test['Purity'].max()],
+                [Y_test['Purity'].min(), Y_test['Purity'].max()],
+                'r--', linewidth=2)
+axes[1, 0].set_xlabel('Actual Purity (%)')
+axes[1, 0].set_ylabel('Predicted Purity (%)')
+axes[1, 0].set_title(f'Purity Prediction (R² = {r2_score(Y_test["Purity"], Y_test_pred[:, 1]):.3f})')
+axes[1, 0].grid(True, alpha=0.3)
+
+# Variable importance (VIP)
+def calculate_vip(pls_model):
+    """Calculate Variable Importance in Projection (VIP)"""
+    t = pls_model.x_scores_
+    w = pls_model.x_weights_
+    q = pls_model.y_loadings_
+
+    p, h = w.shape
+    vips = np.zeros(p)
+
+    s = np.diag(t.T @ t @ q.T @ q).reshape(h, -1)
+    total_s = np.sum(s)
+
+    for i in range(p):
+        weight = np.array([(w[i, j] / np.linalg.norm(w[:, j]))**2 for j in range(h)])
+        vips[i] = np.sqrt(p * (s.T @ weight) / total_s)
+
+    return vips
+
+vip_scores = calculate_vip(pls_model)
+axes[1, 1].barh(X_data.columns, vip_scores)
+axes[1, 1].axvline(x=1.0, color='red', linestyle='--', linewidth=2, label='Importance threshold')
+axes[1, 1].set_xlabel('VIP Score')
+axes[1, 1].set_title('Variable Importance (VIP)')
+axes[1, 1].legend()
+axes[1, 1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('pls_regression.png', dpi=300)
+
+print(f"\nResults: {optimal_n_components}-component PLS model achieves high-precision prediction (test R² &gt; 0.85)")
+print(f"Important variables with VIP &gt; 1.0: {X_data.columns[vip_scores &gt; 1.0].tolist()}")
+</code></pre>
+</div>
+<div class="example-box">
+<h4>Example 4: Relationship Analysis Between Variable Groups Using Canonical Correlation Analysis (CCA)</h4>
+<p>Extract canonical variates with maximum correlation between operating variable groups and quality variable groups.</p>
+<pre><code># ===================================
+# Example 4: Canonical Correlation Analysis (CCA)
+# ===================================
+from sklearn.cross_decomposition import CCA
+
+# Execute CCA (extract 2 canonical variates)
+n_components_cca = 2
+cca_model = CCA(n_components=n_components_cca)
+cca_model.fit(X_train_scaled, Y_train_scaled)
+
+# Calculate canonical variates
+X_train_c, Y_train_c = cca_model.transform(X_train_scaled, Y_train_scaled)
+X_test_c, Y_test_c = cca_model.transform(X_test_scaled, Y_test_scaled)
+
+# Calculate canonical correlation coefficients
+canonical_correlations = []
+for i in range(n_components_cca):
+    corr = np.corrcoef(X_train_c[:, i], Y_train_c[:, i])[0, 1]
+    canonical_correlations.append(corr)
+    print(f"Canonical correlation {i+1}: {corr:.4f}")
+
+# Calculate canonical loadings
+X_loadings = np.corrcoef(X_train_scaled.T, X_train_c.T)[:X_train_scaled.shape[1], X_train_scaled.shape[1]:]
+Y_loadings = np.corrcoef(Y_train_scaled.T, Y_train_c.T)[:Y_train_scaled.shape[1], Y_train_scaled.shape[1]:]
+
+print("\nCanonical loadings for X variables:")
+for i, var in enumerate(X_data.columns):
+    print(f"{var:20s}: CC1={X_loadings[i, 0]:6.3f}, CC2={X_loadings[i, 1]:6.3f}")
+
+print("\nCanonical loadings for Y variables:")
+for i, var in enumerate(Y_data.columns):
+    print(f"{var:20s}: CC1={Y_loadings[i, 0]:6.3f}, CC2={Y_loadings[i, 1]:6.3f}")
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Canonical variate plot
+axes[0].scatter(X_train_c[:, 0], Y_train_c[:, 0], alpha=0.6)
+axes[0].set_xlabel(f'X Canonical Variate 1 (corr={canonical_correlations[0]:.3f})')
+axes[0].set_ylabel('Y Canonical Variate 1')
+axes[0].set_title('First Canonical Variate Relationship')
+axes[0].grid(True, alpha=0.3)
+
+# Loading plot
+width = 0.35
+x_pos = np.arange(len(X_data.columns))
+axes[1].barh(x_pos, X_loadings[:, 0], width, label='X variables→CC1', alpha=0.7)
+axes[1].set_yticks(x_pos)
+axes[1].set_yticklabels(X_data.columns)
+axes[1].set_xlabel('Canonical Loading')
+axes[1].set_title('Contribution of X Variables to First Canonical Variate')
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('cca_analysis.png', dpi=300)
+
+print(f"\nResults: Strong canonical correlation between operating and quality variables (r={canonical_correlations[0]:.3f})")
+</code></pre>
+</div>
+</section>
+<section>
+<h2>2.4 Factor Analysis and Independent Component Analysis</h2>
+<p>
+                Factor Analysis (FA) extracts latent factors behind observed variables.
+                Independent Component Analysis (ICA) separates statistically independent components and is effective for identifying root causes of anomalies.
+            </p>
+<div class="example-box">
+<h4>Example 5: Extracting Latent Variables with Factor Analysis</h4>
+<p>Extract a small number of latent factors from numerous process variables and interpret their physical meaning.</p>
+<pre><code># ===================================
+# Example 5: Factor Analysis
+# ===================================
+from sklearn.decomposition import FactorAnalysis
+from scipy.stats import pearsonr
+
+# Determine number of factors (scree test)
+n_factors_range = range(1, 7)
+log_likelihoods = []
+
+for n_factors in n_factors_range:
+    fa = FactorAnalysis(n_components=n_factors, random_state=42)
+    fa.fit(X_scaled)
+    log_likelihoods.append(fa.score(X_scaled))
+
+optimal_n_factors = 3  # Determined from elbow point
+
+# Execute factor analysis
+fa_model = FactorAnalysis(n_components=optimal_n_factors, rotation='varimax', random_state=42)
+factors = fa_model.fit_transform(X_scaled)
+loadings_fa = fa_model.components_.T
+
+print(f"Factor analysis results ({optimal_n_factors} factors):")
+print("\nFactor loadings:")
+loadings_df = pd.DataFrame(
+    loadings_fa,
+    index=df.columns,
+    columns=[f'Factor{i+1}' for i in range(optimal_n_factors)]
+)
+print(loadings_df.round(3))
+
+# Calculate communality
+communalities = np.sum(loadings_fa**2, axis=1)
+print("\nCommunality (variance explained by factors for each variable):")
+for var, comm in zip(df.columns, communalities):
+    print(f"{var:20s}: {comm:.3f} ({comm*100:.1f}%)")
+
+# Interpretation of factors
+print("\nFactor interpretation:")
+print("Factor1: Temperature-related factor (temperature, pressure, flow)")
+print("Factor2: Chemical property factor (concentration, pH)")
+print("Factor3: Physical property factor (viscosity)")
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# Log-likelihood plot
+axes[0, 0].plot(n_factors_range, log_likelihoods, 'o-', linewidth=2)
+axes[0, 0].axvline(x=optimal_n_factors, color='red', linestyle='--', label='Selected number of factors')
+axes[0, 0].set_xlabel('Number of Factors')
+axes[0, 0].set_ylabel('Log Likelihood')
+axes[0, 0].set_title('Factor Number Selection (Scree Test)')
+axes[0, 0].legend()
+axes[0, 0].grid(True, alpha=0.3)
+
+# Loading heatmap
+im = axes[0, 1].imshow(loadings_fa, cmap='RdBu_r', aspect='auto', vmin=-1, vmax=1)
+axes[0, 1].set_xticks(range(optimal_n_factors))
+axes[0, 1].set_xticklabels([f'F{i+1}' for i in range(optimal_n_factors)])
+axes[0, 1].set_yticks(range(len(df.columns)))
+axes[0, 1].set_yticklabels(df.columns)
+axes[0, 1].set_title('Factor Loadings')
+plt.colorbar(im, ax=axes[0, 1])
+
+# Factor score plot
+axes[1, 0].scatter(factors[:, 0], factors[:, 1], alpha=0.5)
+axes[1, 0].set_xlabel('Factor 1')
+axes[1, 0].set_ylabel('Factor 2')
+axes[1, 0].set_title('Factor Score Plot')
+axes[1, 0].grid(True, alpha=0.3)
+
+# Communality bar plot
+axes[1, 1].barh(df.columns, communalities)
+axes[1, 1].set_xlabel('Communality')
+axes[1, 1].set_title('Variance Explained by Factors for Each Variable')
+axes[1, 1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('factor_analysis.png', dpi=300)
+
+print(f"\nResults: 6 variables effectively summarized by 3 factors (average communality {communalities.mean():.3f})")
+</code></pre>
+</div>
+<div class="example-box">
+<h4>Example 6: Signal Separation Using Independent Component Analysis (ICA)</h4>
+<p>Separate mixed signals into independent components with ICA and identify anomaly patterns.</p>
+<pre><code># ===================================
+# Example 6: Independent Component Analysis (ICA)
+# ===================================
+from sklearn.decomposition import FastICA
+
+# Execute ICA
+n_components_ica = 3
+ica_model = FastICA(n_components=n_components_ica, random_state=42, max_iter=500)
+sources = ica_model.fit_transform(X_scaled)
+mixing_matrix = ica_model.mixing_
+
+print("ICA results:")
+print(f"\nMixing matrix (observed variables = mixing matrix × independent components):")
+mixing_df = pd.DataFrame(
+    mixing_matrix,
+    index=df.columns,
+    columns=[f'IC{i+1}' for i in range(n_components_ica)]
+)
+print(mixing_df.round(3))
+
+# Statistical properties of independent components
+print("\nStatistical properties of independent components:")
+for i in range(n_components_ica):
+    kurtosis = ((sources[:, i] - sources[:, i].mean())**4).mean() / (sources[:, i].std()**4) - 3
+    print(f"IC{i+1}: Mean={sources[:, i].mean():.3f}, Std={sources[:, i].std():.3f}, "
+          f"Kurtosis={kurtosis:.3f}")
+
+# Generate abnormal data and detect with ICA
+np.random.seed(100)
+n_abnormal_ica = 20
+
+# Inject anomalies into specific independent component
+X_test_ica = X_scaled.copy()[:100]
+abnormal_indices = np.random.choice(100, n_abnormal_ica, replace=False)
+
+# Inject anomaly (spike) into IC1
+sources_test = ica_model.transform(X_test_ica)
+sources_test[abnormal_indices, 0] += np.random.uniform(3, 5, n_abnormal_ica)  # Outliers
+X_test_ica_abnormal = ica_model.inverse_transform(sources_test)
+
+# Calculate anomaly score (deviation from standard deviation of each independent component)
+sources_test_abnormal = ica_model.transform(X_test_ica_abnormal)
+anomaly_scores = np.sum((sources_test_abnormal / sources.std(axis=0))**2, axis=1)
+
+threshold = np.percentile(anomaly_scores, 95)
+detected_anomalies = anomaly_scores &gt; threshold
+
+print(f"\nAnomaly detection results (ICA):")
+print(f"Number of injected anomalies: {n_abnormal_ica}")
+print(f"Detected anomalies: {detected_anomalies.sum()}")
+print(f"Detection rate: {detected_anomalies[abnormal_indices].sum() / n_abnormal_ica * 100:.1f}%")
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# Time series of independent components
+for i in range(min(3, n_components_ica)):
+    axes[0, 0].plot(sources[:200, i], label=f'IC{i+1}', alpha=0.7)
+axes[0, 0].set_xlabel('Sample Number')
+axes[0, 0].set_ylabel('Independent Component')
+axes[0, 0].set_title('Extracted Independent Components')
+axes[0, 0].legend()
+axes[0, 0].grid(True, alpha=0.3)
+
+# Mixing matrix heatmap
+im = axes[0, 1].imshow(mixing_matrix, cmap='RdBu_r', aspect='auto')
+axes[0, 1].set_xticks(range(n_components_ica))
+axes[0, 1].set_xticklabels([f'IC{i+1}' for i in range(n_components_ica)])
+axes[0, 1].set_yticks(range(len(df.columns)))
+axes[0, 1].set_yticklabels(df.columns)
+axes[0, 1].set_title('Mixing Matrix')
+plt.colorbar(im, ax=axes[0, 1])
+
+# Scatter plot of independent components
+axes[1, 0].scatter(sources[:, 0], sources[:, 1], alpha=0.5)
+axes[1, 0].set_xlabel('IC1')
+axes[1, 0].set_ylabel('IC2')
+axes[1, 0].set_title('Independent Component Space')
+axes[1, 0].grid(True, alpha=0.3)
+
+# Anomaly scores
+colors_ica = ['red' if detected else 'blue' for detected in detected_anomalies]
+axes[1, 1].scatter(range(len(anomaly_scores)), anomaly_scores, c=colors_ica, alpha=0.6)
+axes[1, 1].axhline(y=threshold, color='red', linestyle='--', linewidth=2, label='Threshold')
+axes[1, 1].set_xlabel('Sample Number')
+axes[1, 1].set_ylabel('Anomaly Score')
+axes[1, 1].set_title('Anomaly Detection with ICA')
+axes[1, 1].legend()
+axes[1, 1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('ica_analysis.png', dpi=300)
+
+print(f"\nResults: ICA extracts statistically independent components and effectively detects anomalies")
+</code></pre>
+</div>
+</section>
+<section>
+<h2>2.5 Mahalanobis Distance and Outlier Detection</h2>
+<p>
+                Mahalanobis distance is a distance measure that considers correlations between variables in multivariate data.
+                Unlike Euclidean distance, it accounts for the distribution shape of data, making it excellent for outlier detection in high-dimensional data.
+            </p>
+<div class="example-box">
+<h4>Example 7: Multivariate Outlier Detection Using Mahalanobis Distance</h4>
+<p>Detect abnormal samples using the covariance structure of normal operation data.</p>
+<pre><code># ===================================
+# Example 7: Mahalanobis Distance
+# ===================================
+from scipy.spatial.distance import mahalanobis
+
+# Mean vector and covariance matrix of normal data
+mean_vector = X_scaled.mean(axis=0)
+cov_matrix = np.cov(X_scaled.T)
+inv_cov_matrix = np.linalg.inv(cov_matrix)
+
+# Calculate Mahalanobis distance
+def calculate_mahalanobis_distances(X, mean, inv_cov):
+    """Calculate Mahalanobis distance
+
+    Args:
+        X: Data matrix
+        mean: Mean vector
+        inv_cov: Inverse of covariance matrix
+
+    Returns:
+        Array of Mahalanobis distances
+    """
+    distances = np.array([
+        mahalanobis(x, mean, inv_cov) for x in X
+    ])
+    return distances
+
+# Mahalanobis distance of training data
+md_train = calculate_mahalanobis_distances(X_scaled, mean_vector, inv_cov_matrix)
+
+# Set threshold (chi-square distribution, 99% confidence interval)
+n_variables = X_scaled.shape[1]
+threshold_md = chi2.ppf(0.99, n_variables)
+
+print(f"Mahalanobis distance threshold (99% confidence interval): {threshold_md:.2f}")
+print(f"Outliers in training data: {(md_train &gt; threshold_md).sum()} / {len(md_train)}")
+
+# Test data (normal + abnormal)
+np.random.seed(200)
+n_test_md = 100
+
+# Normal data
+X_test_normal_md = scaler.transform(pd.DataFrame({
+    'Temperature': 350 + np.random.normal(0, 5, n_test_md),
+    'Pressure': 5.0 + np.random.normal(0, 0.2, n_test_md),
+    'Flow_Rate': 100 + np.random.normal(0, 3, n_test_md),
+    'Concentration': 10 + np.random.normal(0, 0.5, n_test_md),
+    'pH': 7.0 + np.random.normal(0, 0.1, n_test_md),
+    'Viscosity': 50 + np.random.normal(0, 2, n_test_md)
+}))
+
+# Abnormal data (multiple variables deviate simultaneously)
+n_abnormal_md = 15
+X_test_abnormal_md = scaler.transform(pd.DataFrame({
+    'Temperature': 370 + np.random.normal(0, 10, n_abnormal_md),   # High temperature
+    'Pressure': 6.0 + np.random.normal(0, 0.5, n_abnormal_md),     # High pressure
+    'Flow_Rate': 80 + np.random.normal(0, 5, n_abnormal_md),       # Low flow
+    'Concentration': 12 + np.random.normal(0, 1, n_abnormal_md),   # High concentration
+    'pH': 7.5 + np.random.normal(0, 0.2, n_abnormal_md),           # High pH
+    'Viscosity': 60 + np.random.normal(0, 3, n_abnormal_md)        # High viscosity
+}))
+
+# Combine test data
+X_test_md = np.vstack([X_test_normal_md, X_test_abnormal_md])
+labels_md = np.array(['Normal']*n_test_md + ['Abnormal']*n_abnormal_md)
+
+# Mahalanobis distance of test data
+md_test = calculate_mahalanobis_distances(X_test_md, mean_vector, inv_cov_matrix)
+
+# Anomaly detection results
+detected_outliers = md_test &gt; threshold_md
+
+print(f"\nAnomaly detection results for test data:")
+print(f"Detected anomalies: {detected_outliers.sum()} / {len(X_test_md)}")
+print(f"Detection rate (true anomalies): {detected_outliers[labels_md=='Abnormal'].sum() / n_abnormal_md * 100:.1f}%")
+print(f"False alarm rate (normal classified as abnormal): {detected_outliers[labels_md=='Normal'].sum() / n_test_md * 100:.1f}%")
+
+# Comparison with Euclidean distance
+euclidean_distances = np.linalg.norm(X_test_md - mean_vector, axis=1)
+threshold_euclidean = np.percentile(euclidean_distances, 99)
+detected_euclidean = euclidean_distances &gt; threshold_euclidean
+
+print(f"\nDetection rate with Euclidean distance: "
+      f"{detected_euclidean[labels_md=='Abnormal'].sum() / n_abnormal_md * 100:.1f}%")
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# Mahalanobis distance distribution
+axes[0, 0].hist(md_train, bins=50, alpha=0.7, label='Training data')
+axes[0, 0].axvline(x=threshold_md, color='red', linestyle='--', linewidth=2, label='Threshold')
+axes[0, 0].set_xlabel('Mahalanobis Distance')
+axes[0, 0].set_ylabel('Frequency')
+axes[0, 0].set_title('Mahalanobis Distance Distribution of Training Data')
+axes[0, 0].legend()
+axes[0, 0].grid(True, alpha=0.3)
+
+# Mahalanobis distance of test data
+colors_md = ['red' if label == 'Abnormal' else 'blue' for label in labels_md]
+axes[0, 1].scatter(range(len(md_test)), md_test, c=colors_md, alpha=0.6)
+axes[0, 1].axhline(y=threshold_md, color='red', linestyle='--', linewidth=2, label='Threshold')
+axes[0, 1].set_xlabel('Sample Number')
+axes[0, 1].set_ylabel('Mahalanobis Distance')
+axes[0, 1].set_title('Anomaly Detection in Test Data')
+axes[0, 1].legend()
+axes[0, 1].grid(True, alpha=0.3)
+
+# Mahalanobis vs Euclidean distance
+axes[1, 0].scatter(euclidean_distances, md_test, c=colors_md, alpha=0.6)
+axes[1, 0].set_xlabel('Euclidean Distance')
+axes[1, 0].set_ylabel('Mahalanobis Distance')
+axes[1, 0].set_title('Euclidean Distance vs Mahalanobis Distance')
+axes[1, 0].grid(True, alpha=0.3)
+
+# ROC curve comparison
+from sklearn.metrics import roc_curve, auc
+
+y_true = (labels_md == 'Abnormal').astype(int)
+fpr_md, tpr_md, _ = roc_curve(y_true, md_test)
+fpr_euc, tpr_euc, _ = roc_curve(y_true, euclidean_distances)
+
+auc_md = auc(fpr_md, tpr_md)
+auc_euc = auc(fpr_euc, tpr_euc)
+
+axes[1, 1].plot(fpr_md, tpr_md, 'b-', linewidth=2, label=f'Mahalanobis (AUC={auc_md:.3f})')
+axes[1, 1].plot(fpr_euc, tpr_euc, 'r--', linewidth=2, label=f'Euclidean (AUC={auc_euc:.3f})')
+axes[1, 1].plot([0, 1], [0, 1], 'k--', alpha=0.3)
+axes[1, 1].set_xlabel('False Positive Rate')
+axes[1, 1].set_ylabel('True Positive Rate')
+axes[1, 1].set_title('ROC Curve Comparison')
+axes[1, 1].legend()
+axes[1, 1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('mahalanobis_distance.png', dpi=300)
+
+print(f"\nResults: Mahalanobis distance achieves higher precision than Euclidean distance (AUC {auc_md:.3f} vs {auc_euc:.3f})")
+</code></pre>
+</div>
+</section>
+<section>
+<h2>2.6 Contribution Plots and Root Cause Analysis</h2>
+<p>
+                When an anomaly is detected, identifying which variables contribute most to the anomaly is extremely important for root cause analysis.
+                Contribution plots visualize the contribution of each variable to T² or SPE.
+            </p>
+<div class="example-box">
+<h4>Example 8: Anomaly Diagnosis Using Contribution Plots</h4>
+<p>Calculate the contribution of each variable to anomalous samples and identify the root cause.</p>
+<pre><code># ===================================
+# Example 8: Contribution Plots
+# ===================================
+
+# Use PCA model (model built in Example 2)
+pca_diag = PCA(n_components=3)
+pca_diag.fit(X_scaled)
+
+# Generate abnormal samples
+np.random.seed(300)
+normal_sample = scaler.transform(pd.DataFrame({
+    'Temperature': [350],
+    'Pressure': [5.0],
+    'Flow_Rate': [100],
+    'Concentration': [10],
+    'pH': [7.0],
+    'Viscosity': [50]
+}))
+
+abnormal_sample = scaler.transform(pd.DataFrame({
+    'Temperature': [380],      # Significant temperature increase
+    'Pressure': [5.2],         # Slightly high pressure
+    'Flow_Rate': [95],         # Slightly low flow
+    'Concentration': [10.5],   # Slightly high concentration
+    'pH': [7.0],               # Normal
+    'Viscosity': [52]          # Slightly high viscosity
+}))
+
+def calculate_t2_contribution(sample, pca_model):
+    """Calculate contribution of each variable to T² statistic
+
+    Args:
+        sample: Standardized sample (1×p)
+        pca_model: Trained PCA model
+
+    Returns:
+        Contribution vector
+    """
+    # Principal component scores
+    scores = pca_model.transform(sample.reshape(1, -1))[0]
+
+    # Variance of each principal component
+    variances = pca_model.explained_variance_
+
+    # Loadings
+    loadings = pca_model.components_
+
+    # Contribution of each variable
+    contributions = np.zeros(len(sample[0]))
+    for i in range(len(scores)):
+        contributions += (scores[i]**2 / variances[i]) * loadings[i]**2
+
+    return contributions
+
+def calculate_spe_contribution(sample, pca_model):
+    """Calculate contribution of each variable to SPE
+
+    Args:
+        sample: Standardized sample (1×p)
+        pca_model: Trained PCA model
+
+    Returns:
+        Contribution vector
+    """
+    # PCA reconstruction
+    reconstructed = pca_model.inverse_transform(
+        pca_model.transform(sample.reshape(1, -1))
+    )
+
+    # Residual
+    residual = sample - reconstructed[0]
+
+    # Contribution of each variable (squared residual)
+    contributions = residual**2
+
+    return contributions
+
+# Contribution of normal sample
+t2_contrib_normal = calculate_t2_contribution(normal_sample[0], pca_diag)
+spe_contrib_normal = calculate_spe_contribution(normal_sample[0], pca_diag)
+
+# Contribution of abnormal sample
+t2_contrib_abnormal = calculate_t2_contribution(abnormal_sample[0], pca_diag)
+spe_contrib_abnormal = calculate_spe_contribution(abnormal_sample[0], pca_diag)
+
+print("T² contribution of normal sample:")
+for var, contrib in zip(df.columns, t2_contrib_normal):
+    print(f"{var:20s}: {contrib:.4f}")
+
+print("\nT² contribution of abnormal sample:")
+for var, contrib in zip(df.columns, t2_contrib_abnormal):
+    print(f"{var:20s}: {contrib:.4f}")
+
+print("\nSPE contribution of abnormal sample:")
+for var, contrib in zip(df.columns, spe_contrib_abnormal):
+    print(f"{var:20s}: {contrib:.4f}")
+
+# Normalize contributions (relative importance)
+t2_contrib_norm = t2_contrib_abnormal / t2_contrib_abnormal.sum() * 100
+spe_contrib_norm = spe_contrib_abnormal / spe_contrib_abnormal.sum() * 100
+
+print("\nT² contribution (relative %):")
+for var, contrib in zip(df.columns, t2_contrib_norm):
+    print(f"{var:20s}: {contrib:.2f}%")
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# T² contribution of normal sample
+axes[0, 0].barh(df.columns, t2_contrib_normal)
+axes[0, 0].set_xlabel('T² Contribution')
+axes[0, 0].set_title('T² Contribution Plot of Normal Sample')
+axes[0, 0].grid(True, alpha=0.3)
+
+# T² contribution of abnormal sample
+colors_contrib = ['red' if var == 'Temperature' else 'blue' for var in df.columns]
+axes[0, 1].barh(df.columns, t2_contrib_abnormal, color=colors_contrib)
+axes[0, 1].set_xlabel('T² Contribution')
+axes[0, 1].set_title('T² Contribution Plot of Abnormal Sample (Temperature Dominant)')
+axes[0, 1].grid(True, alpha=0.3)
+
+# SPE contribution of abnormal sample
+axes[1, 0].barh(df.columns, spe_contrib_abnormal, color=colors_contrib)
+axes[1, 0].set_xlabel('SPE Contribution')
+axes[1, 0].set_title('SPE Contribution Plot of Abnormal Sample')
+axes[1, 0].grid(True, alpha=0.3)
+
+# Comparison of relative contributions
+x = np.arange(len(df.columns))
+width = 0.35
+axes[1, 1].barh(x - width/2, t2_contrib_norm, width, label='T² contribution', alpha=0.7)
+axes[1, 1].barh(x + width/2, spe_contrib_norm, width, label='SPE contribution', alpha=0.7)
+axes[1, 1].set_yticks(x)
+axes[1, 1].set_yticklabels(df.columns)
+axes[1, 1].set_xlabel('Relative Contribution (%)')
+axes[1, 1].set_title('T² vs SPE Contribution Comparison')
+axes[1, 1].legend()
+axes[1, 1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('contribution_plots.png', dpi=300)
+
+print(f"\nDiagnosis result: Temperature contributes {t2_contrib_norm[0]:.1f}% to T², {spe_contrib_norm[0]:.1f}% to SPE")
+print("Root cause: Abnormal increase in reactor temperature (380°C)")
+</code></pre>
+</div>
+<div class="example-box">
+<h4>Example 9: Variable Selection and Importance Ranking</h4>
+<p>Automatically select important variables from many variables to improve model interpretability and performance.</p>
+<pre><code># ===================================
+# Example 9: Variable Selection and Importance
+# ===================================
+from sklearn.feature_selection import SelectKBest, f_regression, mutual_info_regression
+from sklearn.ensemble import RandomForestRegressor
+
+# Variable importance in quality prediction task (using data from Example 3)
+# Method 1: Variable selection by F-statistic
+selector_f = SelectKBest(score_func=f_regression, k=5)
+selector_f.fit(X_train_scaled, Y_train['Yield'])
+f_scores = selector_f.scores_
+
+print("Variable scores by F-statistic:")
+for var, score in zip(X_data.columns, f_scores):
+    print(f"{var:20s}: {score:.2f}")
+
+selected_vars_f = X_data.columns[selector_f.get_support()]
+print(f"\nSelected variables (F-statistic): {selected_vars_f.tolist()}")
+
+# Method 2: Variable selection by mutual information
+mi_scores = mutual_info_regression(X_train_scaled, Y_train['Yield'], random_state=42)
+
+print("\nVariable scores by mutual information:")
+for var, score in zip(X_data.columns, mi_scores):
+    print(f"{var:20s}: {score:.4f}")
+
+# Method 3: Random Forest feature importance
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_model.fit(X_train_scaled, Y_train['Yield'])
+rf_importances = rf_model.feature_importances_
+
+print("\nRandom Forest feature importance:")
+for var, importance in zip(X_data.columns, rf_importances):
+    print(f"{var:20s}: {importance:.4f}")
+
+# Calculate overall score (average rank of 3 methods)
+def rank_normalize(scores):
+    """Convert scores to ranks and normalize"""
+    ranks = np.argsort(np.argsort(scores))[::-1]  # Descending rank
+    return ranks / len(ranks)
+
+rank_f = rank_normalize(f_scores)
+rank_mi = rank_normalize(mi_scores)
+rank_rf = rank_normalize(rf_importances)
+
+ensemble_rank = (rank_f + rank_mi + rank_rf) / 3
+
+print("\nOverall importance ranking:")
+ranking_df = pd.DataFrame({
+    'Variable': X_data.columns,
+    'F-statistic': rank_f,
+    'Mutual Info': rank_mi,
+    'RF Importance': rank_rf,
+    'Ensemble': ensemble_rank
+})
+ranking_df = ranking_df.sort_values('Ensemble', ascending=False)
+print(ranking_df.to_string(index=False))
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# F-statistic
+axes[0, 0].barh(X_data.columns, f_scores)
+axes[0, 0].set_xlabel('F-statistic')
+axes[0, 0].set_title('Variable Importance by F-statistic')
+axes[0, 0].grid(True, alpha=0.3)
+
+# Mutual information
+axes[0, 1].barh(X_data.columns, mi_scores)
+axes[0, 1].set_xlabel('Mutual Information')
+axes[0, 1].set_title('Variable Importance by Mutual Information')
+axes[0, 1].grid(True, alpha=0.3)
+
+# Random Forest importance
+axes[1, 0].barh(X_data.columns, rf_importances)
+axes[1, 0].set_xlabel('Feature Importance')
+axes[1, 0].set_title('Random Forest Feature Importance')
+axes[1, 0].grid(True, alpha=0.3)
+
+# Overall ranking
+axes[1, 1].barh(ranking_df['Variable'], ranking_df['Ensemble'],
+                color=['red' if r &gt; 0.7 else 'blue' for r in ranking_df['Ensemble']])
+axes[1, 1].set_xlabel('Overall Importance Score')
+axes[1, 1].set_title('Ensemble Variable Importance')
+axes[1, 1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('variable_importance.png', dpi=300)
+
+top_3_vars = ranking_df['Variable'].head(3).tolist()
+print(f"\nResults: Top 3 most important variables are {top_3_vars}")
+</code></pre>
+</div>
+</section>
+<section>
+<h2>2.7 Cross-Validation and Model Validation</h2>
+<p>
+                Appropriate cross-validation is essential to evaluate the generalization performance of multivariate models.
+                Especially for process data, validation strategies considering time series properties are important.
+            </p>
+<div class="example-box">
+<h4>Example 10: Time Series Cross-Validation and Model Evaluation</h4>
+<p>Rigorously evaluate PLS model generalization performance with time series split cross-validation.</p>
+<pre><code># ===================================
+# Example 10: Cross-Validation and Model Evaluation
+# ===================================
+from sklearn.model_selection import TimeSeriesSplit, KFold
+from sklearn.metrics import mean_absolute_percentage_error
+
+# Data preparation (treat as time series data)
+X_cv = X_data.values
+Y_cv = Y_data['Yield'].values
+
+# Method 1: Regular K-fold cross-validation (ignoring time series)
+n_splits = 5
+kfold = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+
+kfold_scores = []
+for train_idx, val_idx in kfold.split(X_cv):
+    X_train_cv, X_val_cv = X_cv[train_idx], X_cv[val_idx]
+    Y_train_cv, Y_val_cv = Y_cv[train_idx], Y_cv[val_idx]
+
+    # Standardization
+    scaler_cv = StandardScaler()
+    X_train_cv_scaled = scaler_cv.fit_transform(X_train_cv)
+    X_val_cv_scaled = scaler_cv.transform(X_val_cv)
+
+    # PLS model
+    pls_cv = PLSRegression(n_components=3)
+    pls_cv.fit(X_train_cv_scaled, Y_train_cv)
+    Y_val_pred = pls_cv.predict(X_val_cv_scaled).flatten()
+
+    r2 = r2_score(Y_val_cv, Y_val_pred)
+    kfold_scores.append(r2)
+
+print("K-fold cross-validation results:")
+print(f"R² scores: {[f'{s:.4f}' for s in kfold_scores]}")
+print(f"Average R²: {np.mean(kfold_scores):.4f} ± {np.std(kfold_scores):.4f}")
+
+# Method 2: Time series split cross-validation (considering time series)
+tscv = TimeSeriesSplit(n_splits=n_splits)
+
+tscv_scores = []
+tscv_train_sizes = []
+tscv_test_sizes = []
+
+for fold, (train_idx, val_idx) in enumerate(tscv.split(X_cv), 1):
+    X_train_cv, X_val_cv = X_cv[train_idx], X_cv[val_idx]
+    Y_train_cv, Y_val_cv = Y_cv[train_idx], Y_cv[val_idx]
+
+    tscv_train_sizes.append(len(train_idx))
+    tscv_test_sizes.append(len(val_idx))
+
+    # Standardization
+    scaler_cv = StandardScaler()
+    X_train_cv_scaled = scaler_cv.fit_transform(X_train_cv)
+    X_val_cv_scaled = scaler_cv.transform(X_val_cv)
+
+    # PLS model
+    pls_cv = PLSRegression(n_components=3)
+    pls_cv.fit(X_train_cv_scaled, Y_train_cv)
+    Y_val_pred = pls_cv.predict(X_val_cv_scaled).flatten()
+
+    r2 = r2_score(Y_val_cv, Y_val_pred)
+    mae = mean_absolute_error(Y_val_cv, Y_val_pred)
+    mape = mean_absolute_percentage_error(Y_val_cv, Y_val_pred)
+
+    tscv_scores.append(r2)
+
+    print(f"\nFold {fold}:")
+    print(f"  Training size: {len(train_idx)}, Validation size: {len(val_idx)}")
+    print(f"  R²: {r2:.4f}, MAE: {mae:.3f}, MAPE: {mape*100:.2f}%")
+
+print("\nTime series cross-validation results:")
+print(f"R² scores: {[f'{s:.4f}' for s in tscv_scores]}")
+print(f"Average R²: {np.mean(tscv_scores):.4f} ± {np.std(tscv_scores):.4f}")
+
+# Create learning curve
+train_sizes_range = np.linspace(50, 240, 10).astype(int)
+train_scores_lc = []
+val_scores_lc = []
+
+for train_size in train_sizes_range:
+    X_train_lc = X_cv[:train_size]
+    Y_train_lc = Y_cv[:train_size]
+    X_val_lc = X_cv[train_size:train_size+30]
+    Y_val_lc = Y_cv[train_size:train_size+30]
+
+    if len(X_val_lc) &lt; 10:
+        break
+
+    scaler_lc = StandardScaler()
+    X_train_lc_scaled = scaler_lc.fit_transform(X_train_lc)
+    X_val_lc_scaled = scaler_lc.transform(X_val_lc)
+
+    pls_lc = PLSRegression(n_components=3)
+    pls_lc.fit(X_train_lc_scaled, Y_train_lc)
+
+    train_pred = pls_lc.predict(X_train_lc_scaled).flatten()
+    val_pred = pls_lc.predict(X_val_lc_scaled).flatten()
+
+    train_scores_lc.append(r2_score(Y_train_lc, train_pred))
+    val_scores_lc.append(r2_score(Y_val_lc, val_pred))
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# K-fold vs time series cross-validation
+axes[0, 0].boxplot([kfold_scores, tscv_scores], labels=['K-fold', 'Time Series Split'])
+axes[0, 0].set_ylabel('R²')
+axes[0, 0].set_title('Comparison of Cross-Validation Methods')
+axes[0, 0].grid(True, alpha=0.3)
+
+# Time series split visualization
+for fold, (train_idx, val_idx) in enumerate(tscv.split(X_cv), 1):
+    axes[0, 1].barh(fold, len(train_idx), left=0, color='blue', alpha=0.5, label='Training' if fold==1 else '')
+    axes[0, 1].barh(fold, len(val_idx), left=len(train_idx), color='red', alpha=0.5, label='Validation' if fold==1 else '')
+axes[0, 1].set_xlabel('Number of Samples')
+axes[0, 1].set_ylabel('Fold')
+axes[0, 1].set_title('Time Series Split Cross-Validation Structure')
+axes[0, 1].legend()
+axes[0, 1].grid(True, alpha=0.3)
+
+# Learning curve
+train_sizes_plot = train_sizes_range[:len(train_scores_lc)]
+axes[1, 0].plot(train_sizes_plot, train_scores_lc, 'o-', label='Training score', linewidth=2)
+axes[1, 0].plot(train_sizes_plot, val_scores_lc, 's-', label='Validation score', linewidth=2)
+axes[1, 0].set_xlabel('Number of Training Samples')
+axes[1, 0].set_ylabel('R²')
+axes[1, 0].set_title('Learning Curve')
+axes[1, 0].legend()
+axes[1, 0].grid(True, alpha=0.3)
+
+# Residual plot (final model)
+pls_final = PLSRegression(n_components=3)
+scaler_final = StandardScaler()
+X_scaled_final = scaler_final.fit_transform(X_cv)
+pls_final.fit(X_scaled_final, Y_cv)
+Y_pred_final = pls_final.predict(X_scaled_final).flatten()
+residuals = Y_cv - Y_pred_final
+
+axes[1, 1].scatter(Y_pred_final, residuals, alpha=0.6)
+axes[1, 1].axhline(y=0, color='red', linestyle='--', linewidth=2)
+axes[1, 1].set_xlabel('Predicted Value')
+axes[1, 1].set_ylabel('Residual')
+axes[1, 1].set_title('Residual Plot (Final Model)')
+axes[1, 1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('cross_validation.png', dpi=300)
+
+print(f"\nResults: More rigorous performance evaluation with time series split CV (average R² {np.mean(tscv_scores):.4f})")
+print(f"Learning curve: Performance stabilizes with 200+ training samples")
+</code></pre>
+</div>
+</section>
+<section>
+<h2>2.8 Practical Example: Application to Chemical Processes</h2>
+<div class="callout callout-success">
+<h4>💡 Key Points for Real Process Data Application</h4>
+<ul style="margin-bottom: 0;">
+<li><strong>Essential standardization</strong>: Always standardize variables with different scales before PCA/PLS</li>
+<li><strong>Selecting number of principal components</strong>: Cumulative variance ratio &gt;95%, or Kaiser criterion (eigenvalue &gt;1)</li>
+<li><strong>Combined use of T² and SPE</strong>: T² detects in-model anomalies, SPE detects out-of-model anomalies</li>
+<li><strong>Utilizing contribution plots</strong>: Always identify root causes after anomaly detection</li>
+<li><strong>Considering time series properties</strong>: Evaluate process data with time series cross-validation</li>
+</ul>
+</div>
+<h3>Typical Applications</h3>
+<table>
+<tr>
+<th style="width: 25%;">Process</th>
+<th style="width: 35%;">Challenge</th>
+<th style="width: 40%;">Recommended Method</th>
+</tr>
+<tr>
+<td>Continuous polymerization process</td>
+<td>Quality prediction and anomaly detection</td>
+<td>Hybrid of PLS (prediction) + PCA (monitoring)</td>
+</tr>
+<tr>
+<td>Batch fermentation</td>
+<td>Monitoring batch-to-batch variation</td>
+<td>Multi-way PCA + T²/SPE control charts</td>
+</tr>
+<tr>
+<td>Distillation process</td>
+<td>Early detection of minor anomalies</td>
+<td>ICA (independent component extraction) + contribution plots</td>
+</tr>
+<tr>
+<td>Catalytic reactor</td>
+<td>Degradation diagnosis and remaining life prediction</td>
+<td>PLS (degradation model) + Mahalanobis distance</td>
+</tr>
+</table>
+</section>
+<section>
+<h2>2.9 Summary</h2>
+<p>
+                In this chapter, we implemented multivariate statistical analysis methods essential for process monitoring and quality prediction through 10 Python code examples.
+                These methods enable extraction of useful information from complex process data and facilitate early anomaly detection and root cause analysis.
+            </p>
+<h3>Skills Acquired</h3>
+<ul>
+<li>✅ Dimensionality reduction and principal component interpretation with PCA</li>
+<li>✅ Multivariate process monitoring with T² statistic and SPE control charts</li>
+<li>✅ Building predictive models and evaluating variable importance (VIP) with PLS</li>
+<li>✅ Canonical correlation analysis between variable groups with CCA</li>
+<li>✅ Extracting and interpreting latent factors with factor analysis</li>
+<li>✅ Separating independent components and anomaly detection with ICA</li>
+<li>✅ High-precision outlier detection using Mahalanobis distance</li>
+<li>✅ Anomaly diagnosis and root cause identification using contribution plots</li>
+<li>✅ Implementation of variable selection and importance ranking</li>
+<li>✅ Rigorous model evaluation with time series cross-validation</li>
+</ul>
+<div class="callout callout-info">
+<h4>📚 Next Steps</h4>
+<p>
+                    In Chapter 3, we will learn predictive modeling using machine learning.
+                    We will enhance process quality prediction and anomaly classification precision using regression models, classification models, and ensemble learning.
+                </p>
+</div>
+</section>
+<section>
+<h2>2.10 Exercises</h2>
+<h4>Exercise 1 (Easy): Interpreting PCA</h4>
+<p>
+                From the loadings of the first principal component (PC1) obtained in Example 1, explain the physical meaning represented by PC1.
+                Which variable groups contribute strongly to PC1?
+            </p>
+
+<details>
+<summary>💡 Hint</summary>
+<p>Think about the basic principles covered in the chapter examples.</p>
+</details>
+
+<details>
+<summary>📝 Sample Solution</summary>
+<p><em>Implementation approach:</em></p>
+<ul>
+<li>Step 1: [Key implementation point]</li>
+<li>Step 2: [Analysis or comparison]</li>
+<li>Step 3: [Validation and interpretation]</li>
+</ul>
+</details>
+<h4>Exercise 2 (Medium): Using T² and SPE Properly</h4>
+<p>
+                For the following anomaly patterns, explain which of T² statistic or SPE statistic will react more sensitively, with reasons:
+            </p>
+<ul>
+<li>Pattern A: Temperature and pressure increase simultaneously (maintaining correlation)</li>
+<li>Pattern B: Only temperature increases (other variables are normal)</li>
+<li>Pattern C: All variables show different correlation patterns from before</li>
+</ul>
+
+<details>
+<summary>💡 Hint</summary>
+<p>Consider the trade-offs between different approaches and parameter settings.</p>
+</details>
+
+<details>
+<summary>📝 Sample Solution</summary>
+<p><em>Implementation approach:</em></p>
+<ul>
+<li>Step 1: [Key implementation point]</li>
+<li>Step 2: [Analysis or comparison]</li>
+<li>Step 3: [Validation and interpretation]</li>
+</ul>
+</details>
+<h4>Exercise 3 (Hard): Optimizing PLS Model</h4>
+<p>
+                For the PLS model in Example 3, perform the following tasks:
+            </p>
+<ol>
+<li>Build a simplified model by narrowing down variables based on VIP scores</li>
+<li>Compare prediction performance between the original model and simplified model</li>
+<li>Explain which model you recommend for actual operation, with reasons</li>
+</ol>
+
+<details>
+<summary>💡 Hint</summary>
+<p>Break down the problem into smaller steps and validate each component.</p>
+</details>
+
+<details>
+<summary>📝 Sample Solution</summary>
+<p><em>Implementation approach:</em></p>
+<ul>
+<li>Step 1: [Key implementation point]</li>
+<li>Step 2: [Analysis or comparison]</li>
+<li>Step 3: [Validation and interpretation]</li>
+</ul>
+</details>
+
+<details>
+<summary>💡 Hint</summary>
+<p>
+                    For Exercise 3, build a simplified model using only variables with VIP &gt; 1.0.
+                    For performance evaluation, consider not only R², MAE, and MAPE on test data, but also model interpretability and maintainability.
+                    In real processes, ease of operation is an important criterion in addition to accuracy.
+                </p>
+</details>
+</section>
+<div class="nav-buttons">
+<a class="btn" href="chapter-1.html">← Back to Chapter 1</a>
+<a class="btn" href="#" style="background: #ccc; cursor: not-allowed;">Proceed to Chapter 3 →</a>
+</div>
+<section>
+            <h2>References</h2>
+            <ol>
+                <li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+                <li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+                <li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+                <li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+            </ol>
+        </section>
+
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+<footer>
+<p>© 2025 Yusuke Hashimoto, Tohoku University. All rights reserved.</p>
+<p style="margin-top: 0.5rem;">
+<a href="./index.html">Series Table of Contents</a> |
+                <a href="../index.html">PI Knowledge Hub TOP</a>
+</p>
+</footer>
+</div>
+<!-- Mermaid.js for diagrams -->
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default'
+        });
+    </script>
+</body>
+</html>

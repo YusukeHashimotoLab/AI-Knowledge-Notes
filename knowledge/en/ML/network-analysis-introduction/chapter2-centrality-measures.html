@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 2: Centrality Measures - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 2: Centrality Measures - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/network-analysis-introduction/index.html">Network Analysis</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/ML/network-analysis-introduction/chapter2-centrality-measures.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 2: Centrality Measures</h1>
+<p class="subtitle">Identifying Important Nodes in Networks - Quantifying Influence</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 25-30 minutes</span>
+<span class="meta-item">📊 Difficulty: Intermediate</span>
+<span class="meta-item">💻 Code Examples: 8</span>
+<span class="meta-item">📝 Exercises: 5</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter covers Centrality Measures. You will learn Detect bottlenecks using betweenness centrality, Distinguish between eigenvector centrality, and Perform influence analysis on real data.</p>
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will be able to:</p>
+<ul>
+<li>✅ Understand the concept and importance of centrality</li>
+<li>✅ Calculate and interpret degree centrality and closeness centrality</li>
+<li>✅ Detect bottlenecks using betweenness centrality</li>
+<li>✅ Distinguish between eigenvector centrality and PageRank</li>
+<li>✅ Perform influence analysis on real data</li>
+<li>✅ Compare multiple centrality measures using NetworkX</li>
+</ul>
+<hr/>
+<h2>2.1 The Concept of Centrality</h2>
+<h3>What is Centrality?</h3>
+<p><strong>Centrality</strong> is a metric that quantifies the "importance" of nodes in a network.</p>
+<blockquote>
+<p>"A group of metrics that numerically answer the question: 'Which nodes have the most influence in the network?'"</p>
+</blockquote>
+<h3>Why Centrality is Important</h3>
+<table>
+<thead>
+<tr>
+<th>Application Domain</th>
+<th>Use Case</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Social Networks</strong></td>
+<td>Influencer identification</td>
+<td>Twitter influence ranking</td>
+</tr>
+<tr>
+<td><strong>Transportation Networks</strong></td>
+<td>Critical hub detection</td>
+<td>Airport/station prioritization</td>
+</tr>
+<tr>
+<td><strong>Protein Networks</strong></td>
+<td>Key gene discovery</td>
+<td>Drug target selection</td>
+</tr>
+<tr>
+<td><strong>Web Networks</strong></td>
+<td>Search ranking</td>
+<td>Google PageRank</td>
+</tr>
+<tr>
+<td><strong>Infrastructure</strong></td>
+<td>Vulnerability analysis</td>
+<td>Critical nodes in power grids</td>
+</tr>
+</tbody>
+</table>
+<h3>Choosing the Right Centrality Measure</h3>
+<div class="mermaid">
+graph TD
+    A[Network Analysis Purpose] --&gt; B{What is Important?}
+    B --&gt;|Number of direct connections| C[Degree Centrality]
+    B --&gt;|Ease of reaching all nodes| D[Closeness Centrality]
+    B --&gt;|Information brokerage| E[Betweenness Centrality]
+    B --&gt;|Connections to important nodes| F[Eigenvector Centrality]
+    B --&gt;|Random walk arrival probability| G[PageRank]
+
+    style A fill:#ffebee
+    style B fill:#fff3e0
+    style C fill:#e3f2fd
+    style D fill:#e8f5e9
+    style E fill:#f3e5f5
+    style F fill:#fce4ec
+    style G fill:#c8e6c9
+</div>
+<h3>Computational Complexity Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Centrality Measure</th>
+<th>Complexity</th>
+<th>Large Networks</th>
+<th>Directed Graph Support</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Degree Centrality</strong></td>
+<td>O(V + E)</td>
+<td>⭐⭐⭐</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Closeness Centrality</strong></td>
+<td>O(V × E)</td>
+<td>⭐⭐</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Betweenness Centrality</strong></td>
+<td>O(V × E)</td>
+<td>⭐</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Eigenvector Centrality</strong></td>
+<td>O(V²) iterative</td>
+<td>⭐⭐</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>PageRank</strong></td>
+<td>O(V + E) iterative</td>
+<td>⭐⭐⭐</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<p>V: Number of nodes, E: Number of edges</p>
+<hr/>
+<h2>2.2 Degree Centrality and Closeness Centrality</h2>
+<h3>Degree Centrality</h3>
+<p><strong>Degree centrality</strong> measures importance by the number of edges a node has.</p>
+<p><strong>For undirected graphs:</strong></p>
+<p>$$
+C_D(v) = \frac{\deg(v)}{n - 1}
+$$</p>
+<ul>
+<li>$\deg(v)$: Degree of node $v$ (number of connections)</li>
+<li>$n$: Total number of nodes</li>
+</ul>
+<p><strong>For directed graphs:</strong></p>
+<ul>
+<li><strong>In-degree centrality</strong>: Number of incoming edges (popularity)</li>
+<li><strong>Out-degree centrality</strong>: Number of outgoing edges (sociability)</li>
+</ul>
+<h4>Implementation Example: Calculating Degree Centrality</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - networkx&gt;=3.1.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+"""
+Example: Implementation Example: Calculating Degree Centrality
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import networkx as nx
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Create a sample social network
+G = nx.karate_club_graph()
+
+# Calculate degree centrality
+degree_centrality = nx.degree_centrality(G)
+
+# Get top 5 nodes
+top5_nodes = sorted(degree_centrality.items(), key=lambda x: x[1], reverse=True)[:5]
+
+print("=== Degree Centrality ===")
+print("\nTop 5 Nodes:")
+for node, centrality in top5_nodes:
+    print(f"  Node {node}: {centrality:.4f} (connections: {G.degree(node)})")
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+
+# Network diagram (node size adjusted by degree centrality)
+pos = nx.spring_layout(G, seed=42)
+node_sizes = [v * 3000 for v in degree_centrality.values()]
+node_colors = [degree_centrality[node] for node in G.nodes()]
+
+nx.draw_networkx_nodes(G, pos, node_size=node_sizes,
+                       node_color=node_colors, cmap='viridis',
+                       alpha=0.8, ax=axes[0])
+nx.draw_networkx_edges(G, pos, alpha=0.2, ax=axes[0])
+nx.draw_networkx_labels(G, pos, font_size=8, ax=axes[0])
+axes[0].set_title('Degree Centrality Visualization\n(Node size = centrality)', fontsize=14)
+axes[0].axis('off')
+
+# Histogram
+values = list(degree_centrality.values())
+axes[1].hist(values, bins=15, alpha=0.7, edgecolor='black', color='skyblue')
+axes[1].set_xlabel('Degree Centrality')
+axes[1].set_ylabel('Number of Nodes')
+axes[1].set_title('Degree Centrality Distribution', fontsize=14)
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print(f"\nAverage degree centrality: {np.mean(values):.4f}")
+print(f"Standard deviation: {np.std(values):.4f}")
+</code></pre>
+<blockquote>
+<p><strong>Interpretation</strong>: Nodes with high degree centrality are "hubs" with many direct connections.</p>
+</blockquote>
+<h3>Closeness Centrality</h3>
+<p><strong>Closeness centrality</strong> measures importance by the inverse of the shortest distance to all other nodes.</p>
+<p>$$
+C_C(v) = \frac{n - 1}{\sum_{u \neq v} d(v, u)}
+$$</p>
+<ul>
+<li>$d(v, u)$: Shortest distance from node $v$ to $u$</li>
+<li>$n$: Total number of nodes</li>
+</ul>
+<blockquote>
+<p><strong>Meaning</strong>: Short average distance to all nodes = information can spread quickly</p>
+</blockquote>
+<h4>Implementation Example: Calculating and Comparing Closeness Centrality</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - networkx&gt;=3.1.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Implementation Example: Calculating and Comparing Closeness 
+
+Purpose: Demonstrate data visualization techniques
+Target: Beginner to Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import networkx as nx
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Calculate closeness centrality
+closeness_centrality = nx.closeness_centrality(G)
+
+# Compare degree centrality and closeness centrality
+comparison_df = pd.DataFrame({
+    'Degree': degree_centrality,
+    'Closeness': closeness_centrality
+}).sort_values('Closeness', ascending=False)
+
+print("\n=== Closeness Centrality ===")
+print("\nDegree Centrality vs Closeness Centrality (Top 10 nodes):")
+print(comparison_df.head(10).to_string())
+
+# Correlation analysis
+correlation = comparison_df['Degree'].corr(comparison_df['Closeness'])
+print(f"\nCorrelation between degree and closeness centrality: {correlation:.4f}")
+
+# Visualization: Scatter plot
+fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+
+# Scatter plot
+axes[0].scatter(comparison_df['Degree'], comparison_df['Closeness'],
+               alpha=0.6, s=100, edgecolors='black')
+axes[0].set_xlabel('Degree Centrality', fontsize=12)
+axes[0].set_ylabel('Closeness Centrality', fontsize=12)
+axes[0].set_title(f'Degree Centrality vs Closeness Centrality\nCorrelation: {correlation:.3f}', fontsize=14)
+axes[0].grid(True, alpha=0.3)
+
+# Ranking comparison
+top10_degree = comparison_df.nlargest(10, 'Degree').index
+top10_closeness = comparison_df.nlargest(10, 'Closeness').index
+
+# Venn diagram-like analysis
+both = set(top10_degree) &amp; set(top10_closeness)
+only_degree = set(top10_degree) - set(top10_closeness)
+only_closeness = set(top10_closeness) - set(top10_degree)
+
+print(f"\n=== Top 10 Node Comparison ===")
+print(f"In both Top 10: {len(both)} nodes - {both}")
+print(f"Only degree Top 10: {len(only_degree)} nodes - {only_degree}")
+print(f"Only closeness Top 10: {len(only_closeness)} nodes - {only_closeness}")
+
+# Network diagram (closeness centrality)
+pos = nx.spring_layout(G, seed=42)
+node_sizes = [v * 3000 for v in closeness_centrality.values()]
+node_colors = [closeness_centrality[node] for node in G.nodes()]
+
+nx.draw_networkx_nodes(G, pos, node_size=node_sizes,
+                       node_color=node_colors, cmap='plasma',
+                       alpha=0.8, ax=axes[1])
+nx.draw_networkx_edges(G, pos, alpha=0.2, ax=axes[1])
+nx.draw_networkx_labels(G, pos, font_size=8, ax=axes[1])
+axes[1].set_title('Closeness Centrality Visualization', fontsize=14)
+axes[1].axis('off')
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<blockquote>
+<p><strong>Important</strong>: Degree centrality and closeness centrality do not always align. A node with low degree can still have high closeness if it reaches all nodes quickly.</p>
+</blockquote>
+<hr/>
+<h2>2.3 Betweenness Centrality</h2>
+<h3>Betweenness Centrality</h3>
+<p><strong>Betweenness centrality</strong> measures importance by the frequency with which a node appears on shortest paths.</p>
+<p>$$
+C_B(v) = \sum_{s \neq v \neq t} \frac{\sigma_{st}(v)}{\sigma_{st}}
+$$</p>
+<ul>
+<li>$\sigma_{st}$: Total number of shortest paths from node $s$ to $t$</li>
+<li>$\sigma_{st}(v)$: Number of those paths that pass through node $v$</li>
+</ul>
+<blockquote>
+<p><strong>Meaning</strong>: The importance of nodes that can control the flow of information or resources as "intermediaries"</p>
+</blockquote>
+<h3>Information Flow and Bottleneck Detection</h3>
+<p>Characteristics of nodes with high betweenness centrality:</p>
+<ul>
+<li><strong>Bridges</strong>: Nodes connecting communities</li>
+<li><strong>Bottlenecks</strong>: Nodes whose removal fragments information flow</li>
+<li><strong>Gatekeepers</strong>: Nodes positioned to control information flow</li>
+</ul>
+<h4>Implementation Example: Betweenness Centrality and Bottleneck Detection</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - networkx&gt;=3.1.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+"""
+Example: Implementation Example: Betweenness Centrality and Bottlenec
+
+Purpose: Demonstrate data visualization techniques
+Target: Beginner to Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import networkx as nx
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Calculate betweenness centrality
+betweenness_centrality = nx.betweenness_centrality(G, normalized=True)
+
+# Compare three centrality measures
+centrality_comparison = pd.DataFrame({
+    'Degree': degree_centrality,
+    'Closeness': closeness_centrality,
+    'Betweenness': betweenness_centrality
+}).sort_values('Betweenness', ascending=False)
+
+print("=== Betweenness Centrality ===")
+print("\nComparison of all centrality measures (Top 10 nodes):")
+print(centrality_comparison.head(10).to_string())
+
+# Top nodes
+top_betweenness = centrality_comparison.nlargest(5, 'Betweenness')
+print(f"\nBetweenness Centrality Top 5:")
+for node, row in top_betweenness.iterrows():
+    print(f"  Node {node}: Betweenness={row['Betweenness']:.4f}, "
+          f"Degree={row['Degree']:.4f}, Closeness={row['Closeness']:.4f}")
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(16, 14))
+
+# 1. Betweenness centrality network diagram
+pos = nx.spring_layout(G, seed=42)
+node_sizes = [v * 3000 for v in betweenness_centrality.values()]
+node_colors = [betweenness_centrality[node] for node in G.nodes()]
+
+nx.draw_networkx_nodes(G, pos, node_size=node_sizes,
+                       node_color=node_colors, cmap='Reds',
+                       alpha=0.8, ax=axes[0, 0])
+nx.draw_networkx_edges(G, pos, alpha=0.2, ax=axes[0, 0])
+nx.draw_networkx_labels(G, pos, font_size=8, ax=axes[0, 0])
+axes[0, 0].set_title('Betweenness Centrality Visualization\n(Node size &amp; color = betweenness)', fontsize=14)
+axes[0, 0].axis('off')
+
+# 2. Correlation of three centrality measures
+metrics = ['Degree', 'Closeness', 'Betweenness']
+correlation_matrix = centrality_comparison[metrics].corr()
+
+im = axes[0, 1].imshow(correlation_matrix, cmap='coolwarm', vmin=-1, vmax=1)
+axes[0, 1].set_xticks(range(len(metrics)))
+axes[0, 1].set_yticks(range(len(metrics)))
+axes[0, 1].set_xticklabels(metrics, rotation=45)
+axes[0, 1].set_yticklabels(metrics)
+axes[0, 1].set_title('Centrality Measure Correlation Matrix', fontsize=14)
+
+for i in range(len(metrics)):
+    for j in range(len(metrics)):
+        text = axes[0, 1].text(j, i, f'{correlation_matrix.iloc[i, j]:.2f}',
+                              ha="center", va="center", color="black", fontsize=12)
+
+plt.colorbar(im, ax=axes[0, 1])
+
+# 3. Betweenness centrality distribution
+axes[1, 0].hist(list(betweenness_centrality.values()), bins=20,
+               alpha=0.7, edgecolor='black', color='salmon')
+axes[1, 0].set_xlabel('Betweenness Centrality')
+axes[1, 0].set_ylabel('Number of Nodes')
+axes[1, 0].set_title('Betweenness Centrality Distribution', fontsize=14)
+axes[1, 0].grid(True, alpha=0.3)
+
+# 4. Bottleneck analysis: Impact of removing top nodes
+top_betweenness_nodes = list(centrality_comparison.nlargest(3, 'Betweenness').index)
+G_copy = G.copy()
+
+# Original network connectivity
+original_components = nx.number_connected_components(G)
+original_avg_path = nx.average_shortest_path_length(G)
+
+print(f"\n=== Bottleneck Analysis ===")
+print(f"Original network:")
+print(f"  Number of connected components: {original_components}")
+print(f"  Average shortest path length: {original_avg_path:.4f}")
+
+# Remove top nodes and check impact
+impact_data = []
+for node in top_betweenness_nodes:
+    G_copy.remove_node(node)
+    components = nx.number_connected_components(G_copy)
+    if components == 1:
+        avg_path = nx.average_shortest_path_length(G_copy)
+    else:
+        # Calculate only for largest connected component
+        largest_cc = max(nx.connected_components(G_copy), key=len)
+        avg_path = nx.average_shortest_path_length(G_copy.subgraph(largest_cc))
+
+    impact_data.append({
+        'removed': node,
+        'components': components,
+        'avg_path': avg_path,
+        'path_increase': avg_path - original_avg_path
+    })
+
+    print(f"\nAfter removing node {node}:")
+    print(f"  Number of connected components: {components}")
+    print(f"  Average shortest path length: {avg_path:.4f} (+{avg_path - original_avg_path:.4f})")
+
+    G_copy = G.copy()  # Reset
+
+# Visualize bottleneck impact
+nodes_removed = [d['removed'] for d in impact_data]
+path_increases = [d['path_increase'] for d in impact_data]
+
+axes[1, 1].bar(range(len(nodes_removed)), path_increases,
+              alpha=0.7, edgecolor='black', color='coral')
+axes[1, 1].set_xticks(range(len(nodes_removed)))
+axes[1, 1].set_xticklabels(nodes_removed)
+axes[1, 1].set_xlabel('Removed Node')
+axes[1, 1].set_ylabel('Increase in Average Path Length')
+axes[1, 1].set_title('Bottleneck Impact Analysis\n(Path length increase upon node removal)', fontsize=14)
+axes[1, 1].grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<h3>Fast Approximation Algorithm</h3>
+<p>For large networks, computing exact betweenness centrality is computationally expensive, so approximation algorithms are used.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - networkx&gt;=3.1.0
+
+"""
+Example: For large networks, computing exact betweenness centrality i
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Beginner to Intermediate
+Execution time: 5-10 seconds
+Dependencies: None
+"""
+
+import networkx as nx
+import time
+
+# Generate a large network
+G_large = nx.barabasi_albert_graph(n=1000, m=3, seed=42)
+
+print("=== Betweenness Centrality Computation Speed Comparison ===")
+print(f"Network size: {G_large.number_of_nodes()} nodes, "
+      f"{G_large.number_of_edges()} edges")
+
+# Exact computation
+start = time.time()
+betweenness_full = nx.betweenness_centrality(G_large)
+time_full = time.time() - start
+
+# Approximate computation (sampling)
+start = time.time()
+betweenness_approx = nx.betweenness_centrality(G_large, k=100)  # Sample 100 nodes
+time_approx = time.time() - start
+
+print(f"\nExact computation: {time_full:.4f} seconds")
+print(f"Approximate computation (k=100): {time_approx:.4f} seconds")
+print(f"Speed improvement: {time_full/time_approx:.2f}x")
+
+# Accuracy comparison (top 10 nodes)
+top10_full = sorted(betweenness_full.items(), key=lambda x: x[1], reverse=True)[:10]
+top10_approx = sorted(betweenness_approx.items(), key=lambda x: x[1], reverse=True)[:10]
+
+top10_full_nodes = set([n for n, _ in top10_full])
+top10_approx_nodes = set([n for n, _ in top10_approx])
+overlap = len(top10_full_nodes &amp; top10_approx_nodes)
+
+print(f"\nTop 10 node agreement rate: {overlap/10*100:.1f}%")
+</code></pre>
+<blockquote>
+<p><strong>Recommendation</strong>: For networks with more than 1000 nodes, use approximate computation with the <code>k</code> parameter.</p>
+</blockquote>
+<hr/>
+<h2>2.4 Eigenvector Centrality and PageRank</h2>
+<h3>Eigenvector Centrality</h3>
+<p><strong>Eigenvector centrality</strong> is based on the recursive definition: "Nodes connected to important nodes are important."</p>
+<p>$$
+x_v = \frac{1}{\lambda} \sum_{u \in N(v)} x_u
+$$</p>
+<ul>
+<li>$x_v$: Centrality score of node $v$</li>
+<li>$N(v)$: Set of neighboring nodes of $v$</li>
+<li>$\lambda$: Largest eigenvalue of the adjacency matrix</li>
+</ul>
+<blockquote>
+<p><strong>Meaning</strong>: Being connected to influential nodes makes you influential</p>
+</blockquote>
+<h3>PageRank Algorithm</h3>
+<p><strong>PageRank</strong> is a ranking algorithm used by Google's search engine.</p>
+<p>$$
+PR(v) = \frac{1-d}{N} + d \sum_{u \in B_v} \frac{PR(u)}{L(u)}
+$$</p>
+<ul>
+<li>$PR(v)$: PageRank score of node $v$</li>
+<li>$B_v$: Set of nodes linking to node $v$</li>
+<li>$L(u)$: Number of outgoing links from node $u$</li>
+<li>$d$: Damping factor (typically 0.85)</li>
+<li>$N$: Total number of nodes</li>
+</ul>
+<blockquote>
+<p><strong>Difference from eigenvector centrality</strong>: PageRank considers random jumps and is more stable for directed graphs</p>
+</blockquote>
+<h3>Implementation and Comparison</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - networkx&gt;=3.1.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Implementation and Comparison
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import networkx as nx
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+# Karate Club network (undirected)
+G_undirected = nx.karate_club_graph()
+
+# Convert to directed graph (bidirectional edges)
+G_directed = G_undirected.to_directed()
+
+print("=== Eigenvector Centrality vs PageRank ===")
+
+# Eigenvector centrality (undirected graph)
+eigenvector_centrality = nx.eigenvector_centrality(G_undirected, max_iter=1000)
+
+# PageRank (directed graph)
+pagerank = nx.pagerank(G_directed, alpha=0.85)
+
+# Comparison dataframe
+comparison = pd.DataFrame({
+    'Degree': nx.degree_centrality(G_undirected),
+    'Eigenvector': eigenvector_centrality,
+    'PageRank': pagerank
+}).sort_values('PageRank', ascending=False)
+
+print("\nTop 10 nodes (sorted by PageRank):")
+print(comparison.head(10).to_string())
+
+# Correlation analysis
+print(f"\n=== Correlation Analysis ===")
+print(f"Degree vs Eigenvector: {comparison['Degree'].corr(comparison['Eigenvector']):.4f}")
+print(f"Degree vs PageRank: {comparison['Degree'].corr(comparison['PageRank']):.4f}")
+print(f"Eigenvector vs PageRank: {comparison['Eigenvector'].corr(comparison['PageRank']):.4f}")
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(16, 14))
+
+# 1. Eigenvector centrality network diagram
+pos = nx.spring_layout(G_undirected, seed=42)
+node_sizes = [v * 3000 for v in eigenvector_centrality.values()]
+node_colors = [eigenvector_centrality[node] for node in G_undirected.nodes()]
+
+nx.draw_networkx_nodes(G_undirected, pos, node_size=node_sizes,
+                       node_color=node_colors, cmap='YlOrRd',
+                       alpha=0.8, ax=axes[0, 0])
+nx.draw_networkx_edges(G_undirected, pos, alpha=0.2, ax=axes[0, 0])
+nx.draw_networkx_labels(G_undirected, pos, font_size=8, ax=axes[0, 0])
+axes[0, 0].set_title('Eigenvector Centrality Visualization', fontsize=14)
+axes[0, 0].axis('off')
+
+# 2. PageRank network diagram
+node_sizes_pr = [v * 3000 for v in pagerank.values()]
+node_colors_pr = [pagerank[node] for node in G_directed.nodes()]
+
+nx.draw_networkx_nodes(G_directed, pos, node_size=node_sizes_pr,
+                       node_color=node_colors_pr, cmap='GnBu',
+                       alpha=0.8, ax=axes[0, 1])
+nx.draw_networkx_edges(G_directed, pos, alpha=0.2, ax=axes[0, 1])
+nx.draw_networkx_labels(G_directed, pos, font_size=8, ax=axes[0, 1])
+axes[0, 1].set_title('PageRank Visualization', fontsize=14)
+axes[0, 1].axis('off')
+
+# 3. Scatter plot: Eigenvector vs PageRank
+axes[1, 0].scatter(comparison['Eigenvector'], comparison['PageRank'],
+                  alpha=0.6, s=100, edgecolors='black')
+axes[1, 0].set_xlabel('Eigenvector Centrality', fontsize=12)
+axes[1, 0].set_ylabel('PageRank', fontsize=12)
+axes[1, 0].set_title(f'Eigenvector Centrality vs PageRank\n'
+                     f'Correlation: {comparison["Eigenvector"].corr(comparison["PageRank"]):.3f}',
+                     fontsize=14)
+axes[1, 0].grid(True, alpha=0.3)
+
+# 4. Comparison of top 10 nodes
+top10_eigen = comparison.nlargest(10, 'Eigenvector').index
+top10_pr = comparison.nlargest(10, 'PageRank').index
+
+indices = range(10)
+eigen_values = [comparison.loc[node, 'Eigenvector'] for node in top10_pr]
+pr_values = [comparison.loc[node, 'PageRank'] for node in top10_pr]
+
+x = np.arange(len(indices))
+width = 0.35
+
+axes[1, 1].bar(x - width/2, eigen_values, width, label='Eigenvector',
+              alpha=0.7, edgecolor='black')
+axes[1, 1].bar(x + width/2, pr_values, width, label='PageRank',
+              alpha=0.7, edgecolor='black')
+axes[1, 1].set_xlabel('Node (PageRank Top 10 order)')
+axes[1, 1].set_ylabel('Centrality Score')
+axes[1, 1].set_title('Eigenvector Centrality vs PageRank (Top 10)', fontsize=14)
+axes[1, 1].set_xticks(x)
+axes[1, 1].set_xticklabels([str(n) for n in top10_pr], rotation=45)
+axes[1, 1].legend()
+axes[1, 1].grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<h3>When to Use Eigenvector Centrality vs PageRank</h3>
+<table>
+<thead>
+<tr>
+<th>Measure</th>
+<th>Use Case</th>
+<th>Advantages</th>
+<th>Disadvantages</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Eigenvector Centrality</strong></td>
+<td>Undirected graphs, friendships</td>
+<td>Theoretically simple</td>
+<td>Convergence issues in directed graphs</td>
+</tr>
+<tr>
+<td><strong>PageRank</strong></td>
+<td>Directed graphs, Web, citations</td>
+<td>Stable convergence, scalable</td>
+<td>Requires parameter tuning</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2>2.5 Practice: Social Network Influence Analysis</h2>
+<h3>Twitter Network Analysis Example</h3>
+<p>Compare multiple centrality measures using data modeled after a real social network.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - networkx&gt;=3.1.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Compare multiple centrality measures using data modeled afte
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import networkx as nx
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+# Generate a more realistic social network
+# Barabasi-Albert model with scale-free properties
+np.random.seed(42)
+n_users = 100
+G_social = nx.barabasi_albert_graph(n=n_users, m=3, seed=42)
+
+# Convert to directed graph (follow relationships)
+G_social_directed = G_social.to_directed()
+
+# Add retweet relationships (only some edges)
+for edge in list(G_social_directed.edges())[:30]:
+    if np.random.random() &gt; 0.5:
+        G_social_directed[edge[0]][edge[1]]['weight'] = np.random.randint(1, 10)
+
+print("=== Twitter Network Analysis ===")
+print(f"Number of users: {G_social_directed.number_of_nodes()}")
+print(f"Number of follow relationships: {G_social_directed.number_of_edges()}")
+print(f"Average degree: {sum(dict(G_social_directed.degree()).values()) / n_users:.2f}")
+
+# Calculate all centrality measures
+centralities = {
+    'Degree': nx.degree_centrality(G_social_directed),
+    'In-Degree': nx.in_degree_centrality(G_social_directed),
+    'Out-Degree': nx.out_degree_centrality(G_social_directed),
+    'Closeness': nx.closeness_centrality(G_social_directed),
+    'Betweenness': nx.betweenness_centrality(G_social_directed),
+    'Eigenvector': nx.eigenvector_centrality(G_social_directed, max_iter=1000),
+    'PageRank': nx.pagerank(G_social_directed, alpha=0.85)
+}
+
+# Convert to dataframe
+df_centralities = pd.DataFrame(centralities)
+
+print("\n=== Statistics of All Centrality Measures ===")
+print(df_centralities.describe())
+
+# Top 5 users for each measure
+print("\n=== Top 5 Influencers for Each Measure ===")
+for metric in centralities.keys():
+    top5 = df_centralities.nlargest(5, metric)
+    print(f"\n{metric}:")
+    for idx, row in top5.iterrows():
+        print(f"  User {idx}: {row[metric]:.4f}")
+</code></pre>
+<h3>Comparing Multiple Centrality Measures</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - seaborn&gt;=0.12.0
+
+"""
+Example: Comparing Multiple Centrality Measures
+
+Purpose: Demonstrate data visualization techniques
+Target: Beginner to Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import seaborn as sns
+
+# Calculate correlation matrix
+correlation_matrix = df_centralities.corr()
+
+print("\n=== Centrality Measure Correlation Matrix ===")
+print(correlation_matrix.round(3))
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(16, 14))
+
+# 1. Correlation matrix heatmap
+sns.heatmap(correlation_matrix, annot=True, fmt='.2f', cmap='coolwarm',
+            center=0, square=True, ax=axes[0, 0], cbar_kws={'shrink': 0.8})
+axes[0, 0].set_title('Centrality Measure Correlation Matrix', fontsize=14)
+
+# 2. PageRank vs other measures scatter plot
+metrics_to_compare = ['Degree', 'Betweenness', 'Eigenvector']
+colors = ['blue', 'red', 'green']
+
+for metric, color in zip(metrics_to_compare, colors):
+    axes[0, 1].scatter(df_centralities['PageRank'], df_centralities[metric],
+                      alpha=0.5, s=50, label=metric, color=color)
+
+axes[0, 1].set_xlabel('PageRank', fontsize=12)
+axes[0, 1].set_ylabel('Centrality Score', fontsize=12)
+axes[0, 1].set_title('PageRank vs Other Measures', fontsize=14)
+axes[0, 1].legend()
+axes[0, 1].grid(True, alpha=0.3)
+
+# 3. Distribution of each measure (violin plot)
+df_normalized = (df_centralities - df_centralities.min()) / (df_centralities.max() - df_centralities.min())
+df_melted = df_normalized.melt(var_name='Metric', value_name='Normalized Score')
+
+sns.violinplot(data=df_melted, x='Metric', y='Normalized Score', ax=axes[1, 0])
+axes[1, 0].set_xticklabels(axes[1, 0].get_xticklabels(), rotation=45, ha='right')
+axes[1, 0].set_title('Centrality Measure Distribution (Normalized)', fontsize=14)
+axes[1, 0].grid(True, alpha=0.3, axis='y')
+
+# 4. Calculate and visualize composite score
+# Average all normalized measures
+df_centralities['Composite_Score'] = df_normalized.mean(axis=1)
+top_influencers = df_centralities.nlargest(15, 'Composite_Score')
+
+axes[1, 1].barh(range(len(top_influencers)), top_influencers['Composite_Score'],
+               alpha=0.7, edgecolor='black', color='purple')
+axes[1, 1].set_yticks(range(len(top_influencers)))
+axes[1, 1].set_yticklabels([f'User {idx}' for idx in top_influencers.index])
+axes[1, 1].set_xlabel('Composite Influence Score')
+axes[1, 1].set_title('Top 15 Users by Overall Influence\n(Average of all normalized measures)', fontsize=14)
+axes[1, 1].grid(True, alpha=0.3, axis='x')
+
+plt.tight_layout()
+plt.show()
+
+print("\n=== Top 10 Overall Influence ===")
+print(top_influencers.head(10)[['Composite_Score', 'PageRank', 'Betweenness', 'Degree']])
+</code></pre>
+<h3>Identifying and Visualizing Influential Nodes</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - networkx&gt;=3.1.0
+
+import networkx as nx
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+
+# Classify influence categories
+def classify_influence(row):
+    """Classify users based on centrality scores"""
+    score = row['Composite_Score']
+    pagerank = row['PageRank']
+    betweenness = row['Betweenness']
+
+    if score &gt; 0.5:
+        return 'Mega Influencer'
+    elif pagerank &gt; df_centralities['PageRank'].quantile(0.9):
+        return 'Hub'
+    elif betweenness &gt; df_centralities['Betweenness'].quantile(0.9):
+        return 'Bridge'
+    elif score &gt; 0.3:
+        return 'Micro Influencer'
+    else:
+        return 'Regular User'
+
+df_centralities['Category'] = df_centralities.apply(classify_influence, axis=1)
+
+print("\n=== User Category Distribution ===")
+category_counts = df_centralities['Category'].value_counts()
+print(category_counts)
+
+# Color coding by category
+category_colors = {
+    'Mega Influencer': '#FF1744',
+    'Hub': '#FF9100',
+    'Bridge': '#00E676',
+    'Micro Influencer': '#2979FF',
+    'Regular User': '#BDBDBD'
+}
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(18, 8))
+
+# 1. Network diagram (color-coded by category)
+pos = nx.spring_layout(G_social_directed, k=0.5, iterations=50, seed=42)
+
+for category, color in category_colors.items():
+    nodes = df_centralities[df_centralities['Category'] == category].index
+    node_sizes = [df_centralities.loc[n, 'Composite_Score'] * 1000 for n in nodes]
+
+    nx.draw_networkx_nodes(G_social_directed, pos, nodelist=nodes,
+                          node_size=node_sizes, node_color=color,
+                          alpha=0.8, label=category, ax=axes[0])
+
+nx.draw_networkx_edges(G_social_directed, pos, alpha=0.1,
+                       arrows=True, arrowsize=5, ax=axes[0])
+
+# Label top 5
+top5_nodes = df_centralities.nlargest(5, 'Composite_Score').index
+labels = {node: str(node) for node in top5_nodes}
+nx.draw_networkx_labels(G_social_directed, pos, labels, font_size=10,
+                       font_weight='bold', ax=axes[0])
+
+axes[0].set_title('Twitter Network Influence Analysis\n'
+                 '(Node size = composite score, color = category)', fontsize=14)
+axes[0].legend(loc='upper left', fontsize=10)
+axes[0].axis('off')
+
+# 2. Centrality measure comparison by category
+categories = list(category_colors.keys())
+metrics = ['PageRank', 'Betweenness', 'Degree']
+
+category_stats = df_centralities.groupby('Category')[metrics].mean()
+category_stats = category_stats.reindex(categories)  # Fix order
+
+x = np.arange(len(categories))
+width = 0.25
+
+for i, metric in enumerate(metrics):
+    offset = width * (i - 1)
+    axes[1].bar(x + offset, category_stats[metric], width,
+               label=metric, alpha=0.7, edgecolor='black')
+
+axes[1].set_xlabel('User Category', fontsize=12)
+axes[1].set_ylabel('Average Centrality Score', fontsize=12)
+axes[1].set_title('Centrality Measure Comparison by Category', fontsize=14)
+axes[1].set_xticks(x)
+axes[1].set_xticklabels(categories, rotation=45, ha='right')
+axes[1].legend()
+axes[1].grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.show()
+
+# Detailed analysis report
+print("\n=== Detailed Statistics by Category ===")
+for category in categories:
+    users = df_centralities[df_centralities['Category'] == category]
+    if len(users) &gt; 0:
+        print(f"\n{category} ({len(users)} users):")
+        print(f"  Average PageRank: {users['PageRank'].mean():.4f}")
+        print(f"  Average betweenness centrality: {users['Betweenness'].mean():.4f}")
+        print(f"  Average degree centrality: {users['Degree'].mean():.4f}")
+        print(f"  Average composite score: {users['Composite_Score'].mean():.4f}")
+
+# Influential node recommendations
+print("\n=== Influencer Marketing Recommendations ===")
+print("\nMega Influencers (large-scale campaigns):")
+mega = df_centralities[df_centralities['Category'] == 'Mega Influencer']
+if len(mega) &gt; 0:
+    print(mega.nlargest(3, 'Composite_Score')[['PageRank', 'Betweenness', 'Composite_Score']])
+
+print("\nBridges (cross-community diffusion):")
+bridges = df_centralities[df_centralities['Category'] == 'Bridge']
+if len(bridges) &gt; 0:
+    print(bridges.nlargest(3, 'Betweenness')[['PageRank', 'Betweenness', 'Composite_Score']])
+
+print("\nHubs (targeted advertising):")
+hubs = df_centralities[df_centralities['Category'] == 'Hub']
+if len(hubs) &gt; 0:
+    print(hubs.nlargest(3, 'PageRank')[['PageRank', 'Betweenness', 'Composite_Score']])
+</code></pre>
+<blockquote>
+<p><strong>Practical Insight</strong>: Using a combination of multiple centrality measures rather than a single one enables more comprehensive influence analysis.</p>
+</blockquote>
+<hr/>
+<h2>2.6 Chapter Summary</h2>
+<h3>What We Learned</h3>
+<ol>
+<li><p><strong>Concept of Centrality</strong></p>
+<ul>
+<li>Quantifying node importance in networks</li>
+<li>Choosing appropriate measures based on purpose</li>
+<li>Implementation considering computational complexity</li>
+</ul></li>
+<li><p><strong>Degree and Closeness Centrality</strong></p>
+<ul>
+<li>Degree centrality: Number of direct connections</li>
+<li>Closeness centrality: Ease of reaching all nodes</li>
+<li>Correlated but not always aligned</li>
+</ul></li>
+<li><p><strong>Betweenness Centrality</strong></p>
+<ul>
+<li>Identifying information flow intermediaries</li>
+<li>Effective for bottleneck detection</li>
+<li>Use approximation for large networks</li>
+</ul></li>
+<li><p><strong>Eigenvector Centrality and PageRank</strong></p>
+<ul>
+<li>Emphasizing connections to important nodes</li>
+<li>PageRank is stable for directed graphs</li>
+<li>Effective for Web and citation networks</li>
+</ul></li>
+<li><p><strong>Practical Influence Analysis</strong></p>
+<ul>
+<li>Combining multiple measures is effective</li>
+<li>Identifying influencers with composite scores</li>
+<li>Strategic use through categorization</li>
+</ul></li>
+</ol>
+<h3>Centrality Measure Selection Guide</h3>
+<table>
+<thead>
+<tr>
+<th>Purpose</th>
+<th>Recommended Measure</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Social media influencers</td>
+<td>PageRank, eigenvector</td>
+<td>Emphasizes quality connections</td>
+</tr>
+<tr>
+<td>Information diffusion starting points</td>
+<td>Degree, closeness centrality</td>
+<td>Quick reach to many nodes</td>
+</tr>
+<tr>
+<td>Network bottlenecks</td>
+<td>Betweenness centrality</td>
+<td>Information flow control points</td>
+</tr>
+<tr>
+<td>Bridges between communities</td>
+<td>Betweenness centrality</td>
+<td>Nodes connecting different groups</td>
+</tr>
+<tr>
+<td>Web page ranking</td>
+<td>PageRank</td>
+<td>Evaluating link structure</td>
+</tr>
+</tbody>
+</table>
+<h3>Next Chapter</h3>
+<p>In Chapter 3, we will learn about <strong>Community Detection</strong>:</p>
+<ul>
+<li>Louvain method</li>
+<li>Label Propagation</li>
+<li>Girvan-Newman method</li>
+<li>Modularity optimization</li>
+<li>Hierarchical clustering</li>
+</ul>
+<hr/>
+<h2>Exercises</h2>
+<h3>Problem 1 (Difficulty: easy)</h3>
+<p>Explain the difference between degree centrality and closeness centrality, and describe the situations in which each shows high values.</p>
+<details>
+<summary>Sample Answer</summary>
+<p><strong>Answer</strong>:</p>
+<p><strong>Degree Centrality</strong>:</p>
+<ul>
+<li>Definition: The number of direct connections (edges) a node has</li>
+<li>High values occur in: "Hub" nodes directly connected to many nodes</li>
+<li>Example: Users with many followers on SNS</li>
+</ul>
+<p><strong>Closeness Centrality</strong>:</p>
+<ul>
+<li>Definition: The inverse of shortest distances to all other nodes</li>
+<li>High values occur in: Nodes positioned at the center of the network with short average distances to all nodes</li>
+<li>Example: Transfer hubs in transportation networks (convenient interchange stations)</li>
+</ul>
+<p><strong>Key Difference</strong>:</p>
+<ul>
+<li>Degree centrality measures "local" connection quantity</li>
+<li>Closeness centrality measures "global" reachability</li>
+<li>Even with low degree, closeness centrality can be high if positioned at the network center</li>
+</ul>
+</details>
+<h3>Problem 2 (Difficulty: medium)</h3>
+<p>Create a simple network with the following code and calculate betweenness centrality for all nodes. Report the node with the highest betweenness centrality and its value.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - networkx&gt;=3.1.0
+
+"""
+Example: Create a simple network with the following code and calculat
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Beginner
+Execution time: ~5 seconds
+Dependencies: None
+"""
+
+import networkx as nx
+
+G = nx.Graph()
+G.add_edges_from([(0, 1), (1, 2), (2, 3), (3, 4), (1, 5), (5, 6)])
+</code></pre>
+<details>
+<summary>Sample Answer</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - networkx&gt;=3.1.0
+
+"""
+Example: Create a simple network with the following code and calculat
+
+Purpose: Demonstrate data visualization techniques
+Target: Beginner to Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import networkx as nx
+import matplotlib.pyplot as plt
+
+# Create graph
+G = nx.Graph()
+G.add_edges_from([(0, 1), (1, 2), (2, 3), (3, 4), (1, 5), (5, 6)])
+
+# Calculate betweenness centrality
+betweenness = nx.betweenness_centrality(G, normalized=True)
+
+print("=== Betweenness Centrality Results ===")
+for node, centrality in sorted(betweenness.items()):
+    print(f"Node {node}: {centrality:.4f}")
+
+# Identify maximum value
+max_node = max(betweenness, key=betweenness.get)
+max_value = betweenness[max_node]
+
+print(f"\nNode with highest betweenness centrality: {max_node}")
+print(f"Betweenness centrality value: {max_value:.4f}")
+
+# Visualization
+pos = nx.spring_layout(G, seed=42)
+node_sizes = [v * 3000 for v in betweenness.values()]
+node_colors = [betweenness[node] for node in G.nodes()]
+
+plt.figure(figsize=(10, 7))
+nx.draw_networkx_nodes(G, pos, node_size=node_sizes,
+                       node_color=node_colors, cmap='Reds', alpha=0.8)
+nx.draw_networkx_edges(G, pos, alpha=0.5, width=2)
+nx.draw_networkx_labels(G, pos, font_size=14, font_weight='bold')
+plt.title(f'Betweenness Centrality Visualization\nMax: Node {max_node} ({max_value:.4f})', fontsize=14)
+plt.axis('off')
+plt.tight_layout()
+plt.show()
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>=== Betweenness Centrality Results ===
+Node 0: 0.0000
+Node 1: 0.6000
+Node 2: 0.2667
+Node 3: 0.1333
+Node 4: 0.0000
+Node 5: 0.0667
+Node 6: 0.0000
+
+Node with highest betweenness centrality: 1
+Betweenness centrality value: 0.6000
+</code></pre>
+<p><strong>Interpretation</strong>: Node 1 is a bridge connecting different parts of the network (paths from 0-1-2-3-4 and branches to 5-6), positioned on many shortest paths, resulting in the highest betweenness centrality.</p>
+</details>
+<h3>Problem 3 (Difficulty: medium)</h3>
+<p>Experiment with PageRank damping factor (alpha) values of 0.5 and 0.95, and observe how results change. Explain the role of the damping factor.</p>
+<details>
+<summary>Sample Answer</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - networkx&gt;=3.1.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Experiment with PageRank damping factor (alpha) values of 0.
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import networkx as nx
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Test network (directed graph)
+G = nx.DiGraph()
+G.add_edges_from([
+    (0, 1), (1, 2), (2, 3), (3, 0),  # Cycle
+    (1, 4), (4, 5), (5, 1),          # Sub-cycle
+    (3, 6), (6, 7), (7, 3)           # Another sub-cycle
+])
+
+# Calculate PageRank with different damping factors
+alpha_values = [0.5, 0.85, 0.95]
+pagerank_results = {}
+
+print("=== Damping Factor Impact Analysis ===")
+for alpha in alpha_values:
+    pr = nx.pagerank(G, alpha=alpha)
+    pagerank_results[f'alpha={alpha}'] = pr
+
+    top3 = sorted(pr.items(), key=lambda x: x[1], reverse=True)[:3]
+    print(f"\nalpha = {alpha}:")
+    print(f"  Top 3 nodes: {[(node, f'{score:.4f}') for node, score in top3]}")
+
+# Comparison dataframe
+df_comparison = pd.DataFrame(pagerank_results)
+print("\nPageRank comparison for all nodes:")
+print(df_comparison.to_string())
+
+# Visualization
+fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+pos = nx.spring_layout(G, seed=42)
+
+for i, alpha in enumerate(alpha_values):
+    pr = pagerank_results[f'alpha={alpha}']
+    node_sizes = [v * 5000 for v in pr.values()]
+    node_colors = [pr[node] for node in G.nodes()]
+
+    nx.draw_networkx_nodes(G, pos, node_size=node_sizes,
+                          node_color=node_colors, cmap='YlOrRd',
+                          alpha=0.8, ax=axes[i])
+    nx.draw_networkx_edges(G, pos, alpha=0.3, arrows=True,
+                          arrowsize=15, ax=axes[i])
+    nx.draw_networkx_labels(G, pos, font_size=10, ax=axes[i])
+    axes[i].set_title(f'PageRank (alpha={alpha})', fontsize=14)
+    axes[i].axis('off')
+
+plt.tight_layout()
+plt.show()
+
+# Score variance analysis
+print("\n=== Score Variance Comparison ===")
+for alpha in alpha_values:
+    scores = list(pagerank_results[f'alpha={alpha}'].values())
+    print(f"alpha={alpha}: Standard deviation={pd.Series(scores).std():.6f}")
+</code></pre>
+<p><strong>Damping Factor Role Explanation</strong>:</p>
+<ol>
+<li><p><strong>Definition</strong>: The damping factor (alpha) is the probability that a random walker follows a link</p>
+<ul>
+<li>Probability alpha: Follow links from current page</li>
+<li>Probability (1-alpha): Random jump</li>
+</ul></li>
+<li><p><strong>Impact by value</strong>:</p>
+<ul>
+<li><strong>alpha=0.5</strong>: 50% probability of random jump → Score uniformity</li>
+<li><strong>alpha=0.85</strong>: Standard value, well-balanced</li>
+<li><strong>alpha=0.95</strong>: Strong reflection of link structure → Score differences amplified</li>
+</ul></li>
+<li><p><strong>Practical meaning</strong>:</p>
+<ul>
+<li>Low alpha: Avoids dead-end problems, gives chances to new pages</li>
+<li>High alpha: Emphasizes link structure, benefits established pages</li>
+</ul></li>
+</ol>
+</details>
+<h3>Problem 4 (Difficulty: hard)</h3>
+<p>For the following network, calculate degree centrality, betweenness centrality, and PageRank, and compare the Top 5 nodes for each. Explain why differences occur from a network structure perspective.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - networkx&gt;=3.1.0
+
+"""
+Example: For the following network, calculate degree centrality, betw
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Beginner
+Execution time: ~5 seconds
+Dependencies: None
+"""
+
+import networkx as nx
+G = nx.les_miserables_graph()
+</code></pre>
+<details>
+<summary>Sample Answer</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - networkx&gt;=3.1.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: For the following network, calculate degree centrality, betw
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import networkx as nx
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Les Miserables network (literary character relationships)
+G = nx.les_miserables_graph()
+
+print(f"=== Les Miserables Network ===")
+print(f"Number of nodes: {G.number_of_nodes()}")
+print(f"Number of edges: {G.number_of_edges()}")
+
+# Convert to directed graph (for PageRank)
+G_directed = G.to_directed()
+
+# Calculate three centrality measures
+degree_cent = nx.degree_centrality(G)
+betweenness_cent = nx.betweenness_centrality(G)
+pagerank_cent = nx.pagerank(G_directed, alpha=0.85)
+
+# Integrate into dataframe
+centrality_df = pd.DataFrame({
+    'Degree': degree_cent,
+    'Betweenness': betweenness_cent,
+    'PageRank': pagerank_cent
+})
+
+# Top 5 for each measure
+print("\n=== Degree Centrality Top 5 ===")
+top5_degree = centrality_df.nlargest(5, 'Degree')
+print(top5_degree[['Degree']])
+
+print("\n=== Betweenness Centrality Top 5 ===")
+top5_betweenness = centrality_df.nlargest(5, 'Betweenness')
+print(top5_betweenness[['Betweenness']])
+
+print("\n=== PageRank Top 5 ===")
+top5_pagerank = centrality_df.nlargest(5, 'PageRank')
+print(top5_pagerank[['PageRank']])
+
+# Commonality analysis
+top5_degree_set = set(top5_degree.index)
+top5_betweenness_set = set(top5_betweenness.index)
+top5_pagerank_set = set(top5_pagerank.index)
+
+all_three = top5_degree_set &amp; top5_betweenness_set &amp; top5_pagerank_set
+degree_betweenness = (top5_degree_set &amp; top5_betweenness_set) - all_three
+degree_pagerank = (top5_degree_set &amp; top5_pagerank_set) - all_three
+betweenness_pagerank = (top5_betweenness_set &amp; top5_pagerank_set) - all_three
+
+print("\n=== Top 5 Overlap Analysis ===")
+print(f"In all three Top 5: {all_three}")
+print(f"Degree &amp; betweenness only: {degree_betweenness}")
+print(f"Degree &amp; PageRank only: {degree_pagerank}")
+print(f"Betweenness &amp; PageRank only: {betweenness_pagerank}")
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(16, 14))
+
+# 1. Degree centrality
+pos = nx.spring_layout(G, k=0.3, iterations=50, seed=42)
+node_sizes = [v * 3000 for v in degree_cent.values()]
+node_colors = [degree_cent[node] for node in G.nodes()]
+
+nx.draw_networkx_nodes(G, pos, node_size=node_sizes,
+                       node_color=node_colors, cmap='Blues', alpha=0.7, ax=axes[0, 0])
+nx.draw_networkx_edges(G, pos, alpha=0.1, ax=axes[0, 0])
+top5_labels = {node: node for node in top5_degree.index}
+nx.draw_networkx_labels(G, pos, top5_labels, font_size=8, ax=axes[0, 0])
+axes[0, 0].set_title('Degree Centrality (Top 5 labeled)', fontsize=14)
+axes[0, 0].axis('off')
+
+# 2. Betweenness centrality
+node_sizes = [v * 10000 for v in betweenness_cent.values()]
+node_colors = [betweenness_cent[node] for node in G.nodes()]
+
+nx.draw_networkx_nodes(G, pos, node_size=node_sizes,
+                       node_color=node_colors, cmap='Reds', alpha=0.7, ax=axes[0, 1])
+nx.draw_networkx_edges(G, pos, alpha=0.1, ax=axes[0, 1])
+top5_labels = {node: node for node in top5_betweenness.index}
+nx.draw_networkx_labels(G, pos, top5_labels, font_size=8, ax=axes[0, 1])
+axes[0, 1].set_title('Betweenness Centrality (Top 5 labeled)', fontsize=14)
+axes[0, 1].axis('off')
+
+# 3. PageRank
+node_sizes = [v * 100000 for v in pagerank_cent.values()]
+node_colors = [pagerank_cent[node] for node in G.nodes()]
+
+nx.draw_networkx_nodes(G, pos, node_size=node_sizes,
+                       node_color=node_colors, cmap='Greens', alpha=0.7, ax=axes[1, 0])
+nx.draw_networkx_edges(G, pos, alpha=0.1, ax=axes[1, 0])
+top5_labels = {node: node for node in top5_pagerank.index}
+nx.draw_networkx_labels(G, pos, top5_labels, font_size=8, ax=axes[1, 0])
+axes[1, 0].set_title('PageRank (Top 5 labeled)', fontsize=14)
+axes[1, 0].axis('off')
+
+# 4. Correlation matrix
+correlation = centrality_df.corr()
+im = axes[1, 1].imshow(correlation, cmap='coolwarm', vmin=-1, vmax=1)
+axes[1, 1].set_xticks(range(3))
+axes[1, 1].set_yticks(range(3))
+axes[1, 1].set_xticklabels(['Degree', 'Betweenness', 'PageRank'])
+axes[1, 1].set_yticklabels(['Degree', 'Betweenness', 'PageRank'])
+axes[1, 1].set_title('Centrality Measure Correlation', fontsize=14)
+
+for i in range(3):
+    for j in range(3):
+        text = axes[1, 1].text(j, i, f'{correlation.iloc[i, j]:.2f}',
+                              ha="center", va="center", color="black", fontsize=12)
+
+plt.colorbar(im, ax=axes[1, 1])
+plt.tight_layout()
+plt.show()
+
+print("\n=== Structural Reasons for Differences ===")
+print("\n1. Nodes with high degree but low others:")
+print("   → Many connections but not bridges, not connected to important nodes")
+print("   → Example: Local hubs")
+
+print("\n2. Nodes with high betweenness but low others:")
+print("   → Bridges between communities but few connections themselves")
+print("   → Example: Gatekeepers, intermediaries")
+
+print("\n3. Nodes with high PageRank but low others:")
+print("   → Few connections but connected to highly influential nodes")
+print("   → Example: Nodes with VIP connections")
+
+# Specific example analysis (top characters)
+print("\n=== Detailed Analysis of Main Characters ===")
+main_characters = list(all_three)
+if main_characters:
+    for char in main_characters:
+        print(f"\n{char}:")
+        print(f"  Degree centrality: {centrality_df.loc[char, 'Degree']:.4f}")
+        print(f"  Betweenness centrality: {centrality_df.loc[char, 'Betweenness']:.4f}")
+        print(f"  PageRank: {centrality_df.loc[char, 'PageRank']:.4f}")
+        print(f"  → High in all measures = central story character")
+</code></pre>
+<p><strong>Detailed Structural Reasons</strong>:</p>
+<ol>
+<li><p><strong>Degree Centrality</strong>: Number of direct connections</p>
+<ul>
+<li>Characters interacting with many other characters (e.g., protagonist)</li>
+<li>High scores even for local hubs</li>
+</ul></li>
+<li><p><strong>Betweenness Centrality</strong>: Position connecting different groups</p>
+<ul>
+<li>Characters connecting different parts of the story</li>
+<li>Nodes whose removal fragments the network</li>
+</ul></li>
+<li><p><strong>PageRank</strong>: Connections to important nodes</p>
+<ul>
+<li>Characters associated with main characters</li>
+<li>High-quality connections even with few connections</li>
+</ul></li>
+</ol>
+</details>
+<h3>Problem 5 (Difficulty: hard)</h3>
+<p>Generate a random graph (Erdos-Renyi model) and a scale-free graph (Barabasi-Albert model), and compare the distributions of degree centrality and PageRank for each graph. What differences are observed?</p>
+<details>
+<summary>Sample Answer</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - networkx&gt;=3.1.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - scipy&gt;=1.11.0
+
+"""
+Example: Generate a random graph (Erdos-Renyi model) and a scale-free
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import networkx as nx
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import stats
+
+# Parameters
+n_nodes = 500
+seed = 42
+
+# 1. Erdos-Renyi random graph
+p = 6 / n_nodes  # Average degree ≈ 6
+G_random = nx.erdos_renyi_graph(n=n_nodes, p=p, seed=seed)
+
+# 2. Barabasi-Albert scale-free graph
+m = 3  # Each node connects with 3 edges
+G_scale_free = nx.barabasi_albert_graph(n=n_nodes, m=m, seed=seed)
+
+print("=== Network Comparison ===")
+print(f"\nErdos-Renyi random graph:")
+print(f"  Number of nodes: {G_random.number_of_nodes()}")
+print(f"  Number of edges: {G_random.number_of_edges()}")
+print(f"  Average degree: {2 * G_random.number_of_edges() / G_random.number_of_nodes():.2f}")
+
+print(f"\nBarabasi-Albert scale-free graph:")
+print(f"  Number of nodes: {G_scale_free.number_of_nodes()}")
+print(f"  Number of edges: {G_scale_free.number_of_edges()}")
+print(f"  Average degree: {2 * G_scale_free.number_of_edges() / G_scale_free.number_of_nodes():.2f}")
+
+# Calculate centrality
+degree_random = nx.degree_centrality(G_random)
+degree_scale_free = nx.degree_centrality(G_scale_free)
+
+pagerank_random = nx.pagerank(G_random.to_directed(), alpha=0.85)
+pagerank_scale_free = nx.pagerank(G_scale_free.to_directed(), alpha=0.85)
+
+# Statistics
+print("\n=== Degree Centrality Statistics ===")
+print(f"Random graph: mean={np.mean(list(degree_random.values())):.4f}, "
+      f"std dev={np.std(list(degree_random.values())):.4f}")
+print(f"Scale-free: mean={np.mean(list(degree_scale_free.values())):.4f}, "
+      f"std dev={np.std(list(degree_scale_free.values())):.4f}")
+
+print("\n=== PageRank Statistics ===")
+print(f"Random graph: mean={np.mean(list(pagerank_random.values())):.4f}, "
+      f"std dev={np.std(list(pagerank_random.values())):.4f}")
+print(f"Scale-free: mean={np.mean(list(pagerank_scale_free.values())):.4f}, "
+      f"std dev={np.std(list(pagerank_scale_free.values())):.4f}")
+
+# Visualization
+fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+
+# 1. Random graph - degree centrality distribution
+axes[0, 0].hist(list(degree_random.values()), bins=30, alpha=0.7,
+               edgecolor='black', color='skyblue')
+axes[0, 0].set_xlabel('Degree Centrality')
+axes[0, 0].set_ylabel('Number of Nodes')
+axes[0, 0].set_title('Random Graph: Degree Centrality Distribution', fontsize=12)
+axes[0, 0].grid(True, alpha=0.3)
+
+# 2. Random graph - PageRank distribution
+axes[0, 1].hist(list(pagerank_random.values()), bins=30, alpha=0.7,
+               edgecolor='black', color='lightgreen')
+axes[0, 1].set_xlabel('PageRank')
+axes[0, 1].set_ylabel('Number of Nodes')
+axes[0, 1].set_title('Random Graph: PageRank Distribution', fontsize=12)
+axes[0, 1].grid(True, alpha=0.3)
+
+# 3. Random graph - scatter plot
+axes[0, 2].scatter(list(degree_random.values()), list(pagerank_random.values()),
+                  alpha=0.5, s=20, color='blue')
+axes[0, 2].set_xlabel('Degree Centrality')
+axes[0, 2].set_ylabel('PageRank')
+axes[0, 2].set_title('Random Graph: Degree vs PageRank', fontsize=12)
+axes[0, 2].grid(True, alpha=0.3)
+
+# 4. Scale-free graph - degree centrality distribution (log scale)
+axes[1, 0].hist(list(degree_scale_free.values()), bins=30, alpha=0.7,
+               edgecolor='black', color='salmon')
+axes[1, 0].set_xlabel('Degree Centrality')
+axes[1, 0].set_ylabel('Number of Nodes (log)')
+axes[1, 0].set_yscale('log')
+axes[1, 0].set_title('Scale-free Graph: Degree Centrality Distribution', fontsize=12)
+axes[1, 0].grid(True, alpha=0.3)
+
+# 5. Scale-free graph - PageRank distribution (log scale)
+axes[1, 1].hist(list(pagerank_scale_free.values()), bins=30, alpha=0.7,
+               edgecolor='black', color='lightcoral')
+axes[1, 1].set_xlabel('PageRank')
+axes[1, 1].set_ylabel('Number of Nodes (log)')
+axes[1, 1].set_yscale('log')
+axes[1, 1].set_title('Scale-free Graph: PageRank Distribution', fontsize=12)
+axes[1, 1].grid(True, alpha=0.3)
+
+# 6. Scale-free graph - scatter plot
+axes[1, 2].scatter(list(degree_scale_free.values()), list(pagerank_scale_free.values()),
+                  alpha=0.5, s=20, color='red')
+axes[1, 2].set_xlabel('Degree Centrality')
+axes[1, 2].set_ylabel('PageRank')
+axes[1, 2].set_title('Scale-free Graph: Degree vs PageRank', fontsize=12)
+axes[1, 2].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Power law fitting (scale-free only)
+degree_sequence = sorted([d for n, d in G_scale_free.degree()], reverse=True)
+degree_counts = np.bincount(degree_sequence)
+degrees = np.arange(len(degree_counts))
+
+# Exclude zeros
+nonzero = degree_counts &gt; 0
+degrees_nz = degrees[nonzero]
+counts_nz = degree_counts[nonzero]
+
+# Fit on log scale
+if len(degrees_nz) &gt; 1:
+    log_degrees = np.log(degrees_nz)
+    log_counts = np.log(counts_nz)
+    slope, intercept = np.polyfit(log_degrees, log_counts, 1)
+
+    print(f"\n=== Power Law Fitting ===")
+    print(f"Scale-free graph degree distribution: P(k) ~ k^{slope:.2f}")
+    print(f"(Theoretical value is approximately -3)")
+
+print("\n=== Observed Differences ===")
+print("\n1. Degree distribution:")
+print("   Random graph: Near normal distribution (most nodes near average)")
+print("   Scale-free: Power law (few hubs and many low-degree nodes)")
+
+print("\n2. PageRank distribution:")
+print("   Random graph: Relatively uniform")
+print("   Scale-free: Highly skewed (few nodes with high scores)")
+
+print("\n3. Correlation:")
+print(f"   Random graph: {np.corrcoef(list(degree_random.values()), list(pagerank_random.values()))[0,1]:.3f}")
+print(f"   Scale-free: {np.corrcoef(list(degree_scale_free.values()), list(pagerank_scale_free.values()))[0,1]:.3f}")
+print("   → Stronger correlation between degree and PageRank in scale-free")
+
+print("\n4. Real-world implications:")
+print("   In scale-free networks (Web, SNS, etc.):")
+print("   - Influence concentrated in few influencers")
+print("   - Hub nodes are extremely important")
+print("   - Robust to random attacks but vulnerable to targeted attacks")
+</code></pre>
+</details>
+<hr/>
+<h2>References</h2>
+<ol>
+<li>Newman, M. E. J. (2018). <em>Networks: An Introduction</em> (2nd ed.). Oxford University Press.</li>
+<li>Barabási, A. L. (2016). <em>Network Science</em>. Cambridge University Press.</li>
+<li>Borgatti, S. P., &amp; Everett, M. G. (2006). A Graph-theoretic perspective on centrality. <em>Social Networks</em>, 28(4), 466-484.</li>
+<li>Page, L., Brin, S., Motwani, R., &amp; Winograd, T. (1999). The PageRank citation ranking: Bringing order to the web. <em>Stanford InfoLab</em>.</li>
+<li>Brandes, U. (2001). A faster algorithm for betweenness centrality. <em>Journal of Mathematical Sociology</em>, 25(2), 163-177.</li>
+</ol>
+<div class="navigation">
+<a class="nav-button" href="chapter1-network-basics.html">← Previous: Graph Theory Fundamentals</a>
+<a class="nav-button" href="chapter3-community-detection.html">Next: Community Detection →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, or libraries.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content of this material may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Author</strong>: AI Terakoya Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-23</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 1: Wafer Process Statistical Control | Process Informatics Dojo" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 1: Wafer Process Statistical Control | Process Informatics Dojo</title>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../../PI/index.html">Process Informatics</a><span class="breadcrumb-separator">›</span><a href="../../PI/semiconductor-manufacturing-ai/index.html">Semiconductor Manufacturing AI</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 1</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/PI/semiconductor-manufacturing-ai/chapter-1.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+
+<header>
+<h1>Chapter 1: Wafer Process Statistical Control</h1>
+<p class="subtitle">Wafer Process Statistical Control and R2R Management</p>
+</header>
+<div class="container">
+<a class="back-link" href="index.html">← Back to Series Index</a>
+<div class="content-box">
+<h2>📖 Chapter Overview</h2>
+<p>
+                Semiconductor manufacturing requires precision control at the nanometer scale. In this chapter,
+                we will learn about statistical control of wafer processes and AI technologies, including
+                Run-to-Run (R2R) control, Virtual Metrology (VM), and process drift detection.
+            </p>
+<h3>🎯 Learning Objectives</h3>
+<ul>
+<li>Characteristics of semiconductor processes and wafer-level statistical control</li>
+<li>Principles and implementation of Run-to-Run (R2R) control</li>
+<li>Predictive measurement using Virtual Metrology (VM)</li>
+<li>EWMA control and process drift compensation</li>
+<li>Multivariate Statistical Process Control (MSPC)</li>
+<li>Wafer map analysis and spatial pattern recognition</li>
+</ul>
+</div>
+<div class="content-box">
+<h2>⚙️ 1.1 Fundamentals of Run-to-Run (R2R) Control</h2>
+<h3>Principles of R2R Control</h3>
+<p>
+                Run-to-Run control is an adaptive control method that feeds back measurement results from the previous wafer (lot)
+                to adjust manufacturing conditions for the next wafer.
+            </p>
+<div class="formula">
+<h4>EWMA (Exponentially Weighted Moving Average) Control</h4>
+                $$ u_k = u_{k-1} + K \cdot (T - y_k) $$
+                <p>
+                    \( u_k \): Control input at run k (process parameter)<br/>
+                    \( y_k \): Measured value at run k<br/>
+                    \( T \): Target value<br/>
+                    \( K \): Control gain (0 &lt; K &lt; 1)
+                </p>
+</div>
+<div class="tech-note">
+<strong>💡 R2R Application Examples in Semiconductor Processes</strong><br/>
+                ・<strong>Etching</strong>: CD (Critical Dimension) control by adjusting etching time<br/>
+                ・<strong>CVD Deposition</strong>: Film thickness control by adjusting deposition time<br/>
+                ・<strong>CMP</strong>: Planarization control by adjusting polishing time<br/>
+                ・<strong>Lithography</strong>: Pattern accuracy control by adjusting exposure dose and focus
+            </div>
+<h3>💻 Code Example 1.1: EWMA R2R Control System</h3>
+<pre><code>import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy import stats
+import warnings
+warnings.filterwarnings('ignore')
+
+plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
+
+class R2RController:
+    """Run-to-Run EWMA Control System"""
+
+    def __init__(self, target, initial_input, control_gain=0.5):
+        """
+        Args:
+            target: Target value (e.g., film thickness 100nm)
+            initial_input: Initial control input (e.g., deposition time 60s)
+            control_gain: Control gain K (0 &lt; K &lt; 1)
+        """
+        self.target = target
+        self.u = initial_input  # Current control input
+        self.K = control_gain
+        self.history = {
+            'run': [],
+            'input': [],
+            'output': [],
+            'error': []
+        }
+
+    def process_model(self, u, drift=0, noise_std=1.0):
+        """
+        Process model (simplified)
+
+        Args:
+            u: Control input (deposition time, etc.)
+            drift: Process drift
+            noise_std: Process noise standard deviation
+
+        Returns:
+            Measured value (film thickness, etc.)
+        """
+        # Linear model: y = 1.5 * u + drift + noise
+        gain = 1.5  # Process gain
+        y = gain * u + drift + np.random.normal(0, noise_std)
+        return y
+
+    def update_control(self, measurement):
+        """
+        Update control input (EWMA control)
+
+        Args:
+            measurement: Measured value
+
+        Returns:
+            Next control input
+        """
+        error = self.target - measurement
+
+        # EWMA control law
+        u_next = self.u + self.K * error
+
+        # Control input constraints (physical constraints)
+        u_next = np.clip(u_next, 30, 90)  # Range of 30-90 seconds
+
+        self.u = u_next
+        return u_next
+
+    def run_simulation(self, n_runs=100, drift_start=50, drift_rate=0.1):
+        """
+        R2R control simulation
+
+        Args:
+            n_runs: Number of runs (wafers)
+            drift_start: Drift start run
+            drift_rate: Drift rate (/run)
+        """
+        for run in range(n_runs):
+            # Calculate process drift
+            if run &gt;= drift_start:
+                drift = (run - drift_start) * drift_rate
+            else:
+                drift = 0
+
+            # Process execution and measurement
+            y = self.process_model(self.u, drift=drift, noise_std=2.0)
+
+            # Record history
+            error = y - self.target
+            self.history['run'].append(run + 1)
+            self.history['input'].append(self.u)
+            self.history['output'].append(y)
+            self.history['error'].append(error)
+
+            # Update next control input
+            self.update_control(y)
+
+        return pd.DataFrame(self.history)
+
+    def plot_results(self, df):
+        """Visualize control results"""
+        fig, axes = plt.subplots(3, 1, figsize=(14, 10))
+
+        # Measurement value trend
+        axes[0].plot(df['run'], df['output'], marker='o', color='#11998e',
+                     linewidth=1.5, markersize=4, label='Measured Value')
+        axes[0].axhline(y=self.target, color='red', linestyle='--',
+                        linewidth=2, label=f'Target Value ({self.target}nm)')
+        axes[0].fill_between(df['run'], self.target - 3, self.target + 3,
+                              alpha=0.2, color='green', label='Tolerance Range (±3nm)')
+        axes[0].set_xlabel('Run Number (Wafer)')
+        axes[0].set_ylabel('Film Thickness (nm)')
+        axes[0].set_title('Film Thickness Control by R2R', fontsize=12, fontweight='bold')
+        axes[0].legend()
+        axes[0].grid(alpha=0.3)
+
+        # Control input trend
+        axes[1].plot(df['run'], df['input'], marker='s', color='#38ef7d',
+                     linewidth=1.5, markersize=4, label='Deposition Time')
+        axes[1].set_xlabel('Run Number (Wafer)')
+        axes[1].set_ylabel('Deposition Time (s)')
+        axes[1].set_title('R2R Control Input', fontsize=12, fontweight='bold')
+        axes[1].legend()
+        axes[1].grid(alpha=0.3)
+
+        # Control error
+        axes[2].plot(df['run'], df['error'], marker='^', color='#f38181',
+                     linewidth=1.5, markersize=4, label='Control Error')
+        axes[2].axhline(y=0, color='black', linestyle='-', linewidth=1)
+        axes[2].fill_between(df['run'], -3, 3, alpha=0.2, color='green',
+                              label='Tolerance Error (±3nm)')
+        axes[2].set_xlabel('Run Number (Wafer)')
+        axes[2].set_ylabel('Error (nm)')
+        axes[2].set_title('Control Error', fontsize=12, fontweight='bold')
+        axes[2].legend()
+        axes[2].grid(alpha=0.3)
+
+        plt.tight_layout()
+        plt.savefig('r2r_control_results.png', dpi=300, bbox_inches='tight')
+        plt.show()
+
+# Execution example
+print("=" * 60)
+print("Run-to-Run EWMA Control System (CVD Deposition Process)")
+print("=" * 60)
+
+# Initialize R2R control system
+r2r = R2RController(
+    target=100.0,        # Target film thickness 100nm
+    initial_input=60.0,  # Initial deposition time 60s
+    control_gain=0.5     # Control gain K=0.5
+)
+
+# Run simulation
+df_results = r2r.run_simulation(
+    n_runs=100,
+    drift_start=50,   # Drift starts at run 50
+    drift_rate=0.1    # Drift of 0.1nm/run
+)
+
+# Performance evaluation
+print(f"\nControl Performance Evaluation:")
+print(f"Average film thickness: {df_results['output'].mean():.2f} nm")
+print(f"Film thickness standard deviation: {df_results['output'].std():.2f} nm")
+print(f"Mean absolute error: {df_results['error'].abs().mean():.2f} nm")
+print(f"Maximum error: {df_results['error'].abs().max():.2f} nm")
+
+# Calculate in-spec rate
+in_spec = df_results[(df_results['output'] &gt;= 97) &amp; (df_results['output'] &lt;= 103)]
+print(f"In-spec rate (100±3nm): {len(in_spec)/len(df_results)*100:.1f}%")
+
+# Comparison before and after drift
+before_drift = df_results[df_results['run'] &lt; 50]
+after_drift = df_results[df_results['run'] &gt;= 50]
+print(f"\nAverage before drift (runs 1-49): {before_drift['output'].mean():.2f} nm")
+print(f"Average after drift (runs 50-100): {after_drift['output'].mean():.2f} nm")
+
+# Visualization
+r2r.plot_results(df_results)
+</code></pre>
+<p><strong>Implementation Points:</strong></p>
+<ul>
+<li>Automatic process drift compensation using EWMA control</li>
+<li>Balance between responsiveness and stability by adjusting control gain K</li>
+<li>Consideration of physical constraints (upper and lower limits of control input)</li>
+<li>Quantitative control performance evaluation (mean error, standard deviation, in-spec rate)</li>
+</ul>
+</div>
+<div class="content-box">
+<h2>🔮 1.2 Virtual Metrology</h2>
+<h3>Principles of Virtual Metrology</h3>
+<p>
+                Virtual Metrology (VM) is a technology that predicts wafer quality characteristics (film thickness, CD, electrical properties, etc.)
+                from process equipment sensor data (temperature, pressure, flow rate, etc.) without using measurement instruments.
+            </p>
+<div class="key-point">
+<strong>💡 Advantages of VM</strong><br/>
+                ・Real-time quality control through 100% measurement<br/>
+                ・Reduction of measurement cost and time (no measurement equipment required)<br/>
+                ・Realization of inline control<br/>
+                ・Quality prediction at intermediate steps where measurement is not possible
+            </div>
+<h3>💻 Code Example 1.2: Virtual Metrology Using Random Forest</h3>
+<pre><code>import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+import warnings
+warnings.filterwarnings('ignore')
+
+plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
+
+class VirtualMetrologySystem:
+    """Virtual Metrology System"""
+
+    def __init__(self):
+        self.model = None
+        self.feature_names = None
+
+    def generate_process_data(self, n_samples=500):
+        """
+        Generate process sensor data (assuming etching process)
+
+        Returns:
+            (Sensor data, CD measurement values)
+        """
+        np.random.seed(42)
+
+        # Process conditions (equipment sensor data)
+        rf_power = np.random.normal(1000, 50, n_samples)      # RF Power (W)
+        pressure = np.random.normal(50, 5, n_samples)          # Pressure (mTorr)
+        gas_flow_ar = np.random.normal(200, 10, n_samples)    # Ar gas flow (sccm)
+        gas_flow_cf4 = np.random.normal(50, 5, n_samples)     # CF4 gas flow (sccm)
+        temp_chamber = np.random.normal(60, 3, n_samples)     # Chamber temperature (°C)
+        etch_time = np.random.normal(120, 5, n_samples)       # Etching time (s)
+
+        # CD (Critical Dimension) physical model
+        # CD = f(RF power, pressure, gas flows, temp, time) + noise
+        cd_base = 90  # Base CD (nm)
+
+        cd = (cd_base
+              - 0.002 * (rf_power - 1000)      # RF power↑ → CD↓
+              + 0.05 * (pressure - 50)          # Pressure↑ → CD↑
+              - 0.01 * (gas_flow_cf4 - 50)     # CF4↑ → CD↓ (etching promotion)
+              + 0.005 * (temp_chamber - 60)    # Temperature↑ → CD↑
+              - 0.03 * (etch_time - 120)       # Time↑ → CD↓
+              + np.random.normal(0, 1, n_samples))  # Noise
+
+        # Create DataFrame
+        df = pd.DataFrame({
+            'rf_power': rf_power,
+            'pressure': pressure,
+            'gas_flow_ar': gas_flow_ar,
+            'gas_flow_cf4': gas_flow_cf4,
+            'temp_chamber': temp_chamber,
+            'etch_time': etch_time,
+            'cd_measured': cd
+        })
+
+        return df
+
+    def train_vm_model(self, df, feature_columns, target_column='cd_measured'):
+        """
+        Train VM model
+
+        Args:
+            df: Process data
+            feature_columns: Feature columns
+            target_column: Target column for prediction
+        """
+        X = df[feature_columns].values
+        y = df[target_column].values
+
+        # Split training/test data
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.3, random_state=42
+        )
+
+        # Random Forest model
+        self.model = RandomForestRegressor(
+            n_estimators=100,
+            max_depth=15,
+            min_samples_split=5,
+            random_state=42
+        )
+        self.model.fit(X_train, y_train)
+        self.feature_names = feature_columns
+
+        # Prediction and evaluation
+        y_pred_train = self.model.predict(X_train)
+        y_pred_test = self.model.predict(X_test)
+
+        # Performance metrics
+        r2_train = r2_score(y_train, y_pred_train)
+        r2_test = r2_score(y_test, y_pred_test)
+        rmse_test = np.sqrt(mean_squared_error(y_test, y_pred_test))
+        mae_test = mean_absolute_error(y_test, y_pred_test)
+
+        results = {
+            'X_train': X_train, 'y_train': y_train,
+            'X_test': X_test, 'y_test': y_test,
+            'y_pred_train': y_pred_train, 'y_pred_test': y_pred_test,
+            'r2_train': r2_train, 'r2_test': r2_test,
+            'rmse_test': rmse_test, 'mae_test': mae_test
+        }
+
+        return results
+
+    def predict_cd(self, process_conditions):
+        """
+        Predict CD from process conditions
+
+        Args:
+            process_conditions: Array or DataFrame of process conditions
+
+        Returns:
+            Predicted CD value
+        """
+        if self.model is None:
+            raise ValueError("Model has not been trained")
+
+        return self.model.predict(process_conditions)
+
+    def plot_vm_results(self, results):
+        """Visualize VM results"""
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+        # Prediction accuracy plot (training data)
+        axes[0, 0].scatter(results['y_train'], results['y_pred_train'],
+                           alpha=0.5, s=20, color='#11998e', label='Training Data')
+        axes[0, 0].plot([85, 95], [85, 95], 'r--', linewidth=2, label='Ideal Line')
+        axes[0, 0].set_xlabel('Measured CD (nm)')
+        axes[0, 0].set_ylabel('Predicted CD (nm)')
+        axes[0, 0].set_title(f'Training Data Prediction Accuracy (R²={results["r2_train"]:.4f})',
+                             fontsize=12, fontweight='bold')
+        axes[0, 0].legend()
+        axes[0, 0].grid(alpha=0.3)
+
+        # Prediction accuracy plot (test data)
+        axes[0, 1].scatter(results['y_test'], results['y_pred_test'],
+                           alpha=0.5, s=20, color='#38ef7d', label='Test Data')
+        axes[0, 1].plot([85, 95], [85, 95], 'r--', linewidth=2, label='Ideal Line')
+        axes[0, 1].set_xlabel('Measured CD (nm)')
+        axes[0, 1].set_ylabel('Predicted CD (nm)')
+        axes[0, 1].set_title(f'Test Data Prediction Accuracy (R²={results["r2_test"]:.4f})',
+                             fontsize=12, fontweight='bold')
+        axes[0, 1].legend()
+        axes[0, 1].grid(alpha=0.3)
+
+        # Prediction error distribution
+        errors = results['y_pred_test'] - results['y_test']
+        axes[1, 0].hist(errors, bins=30, color='#4ecdc4', alpha=0.7, edgecolor='black')
+        axes[1, 0].axvline(x=0, color='red', linestyle='--', linewidth=2, label='Zero Error')
+        axes[1, 0].set_xlabel('Prediction Error (nm)')
+        axes[1, 0].set_ylabel('Frequency')
+        axes[1, 0].set_title(f'Prediction Error Distribution (MAE={results["mae_test"]:.2f}nm)',
+                             fontsize=12, fontweight='bold')
+        axes[1, 0].legend()
+        axes[1, 0].grid(alpha=0.3)
+
+        # Feature importance
+        feature_importance = pd.DataFrame({
+            'feature': self.feature_names,
+            'importance': self.model.feature_importances_
+        }).sort_values('importance', ascending=True)
+
+        axes[1, 1].barh(feature_importance['feature'], feature_importance['importance'],
+                        color='#f38181', alpha=0.8)
+        axes[1, 1].set_xlabel('Importance')
+        axes[1, 1].set_title('Feature Importance', fontsize=12, fontweight='bold')
+        axes[1, 1].grid(axis='x', alpha=0.3)
+
+        plt.tight_layout()
+        plt.savefig('virtual_metrology_results.png', dpi=300, bbox_inches='tight')
+        plt.show()
+
+# Execution example
+print("=" * 60)
+print("Virtual Metrology System (Etching Process)")
+print("=" * 60)
+
+# Initialize VM system
+vm = VirtualMetrologySystem()
+
+# Generate process data
+df_process = vm.generate_process_data(n_samples=500)
+
+print(f"\nGenerated data count: {len(df_process)}")
+print(f"CD range: {df_process['cd_measured'].min():.2f} - {df_process['cd_measured'].max():.2f} nm")
+
+# Define features
+feature_cols = ['rf_power', 'pressure', 'gas_flow_ar', 'gas_flow_cf4',
+                'temp_chamber', 'etch_time']
+
+# Train VM model
+results = vm.train_vm_model(df_process, feature_cols)
+
+print(f"\nVM Model Performance:")
+print(f"Training data R² = {results['r2_train']:.4f}")
+print(f"Test data R² = {results['r2_test']:.4f}")
+print(f"RMSE = {results['rmse_test']:.2f} nm")
+print(f"MAE = {results['mae_test']:.2f} nm")
+
+# New wafer prediction example
+print(f"\nNew Wafer CD Prediction:")
+new_wafer = np.array([[1020, 52, 205, 48, 61, 118]])  # New process conditions
+predicted_cd = vm.predict_cd(new_wafer)
+print(f"Predicted CD: {predicted_cd[0]:.2f} nm")
+
+# Visualization
+vm.plot_vm_results(results)
+</code></pre>
+<p><strong>Implementation Points:</strong></p>
+<ul>
+<li>High-precision prediction of quality characteristics from process equipment sensor data (R² &gt; 0.95)</li>
+<li>Modeling of nonlinear relationships using Random Forest</li>
+<li>Identification of dominant process parameters through feature importance analysis</li>
+<li>Realization of inline quality control through real-time prediction</li>
+</ul>
+</div>
+<div class="content-box">
+<h2>📚 Summary</h2>
+<p>In this chapter, we learned about statistical control of wafer processes.</p>
+<h3>Key Points</h3>
+<ul>
+<li>Automatic process drift compensation using Run-to-Run EWMA control</li>
+<li>100% quality prediction and measurement cost reduction using Virtual Metrology</li>
+<li>Trade-off between control gain and responsiveness</li>
+<li>High-precision process-quality relationship modeling using machine learning models</li>
+</ul>
+<div class="key-point">
+<strong>🎯 Preview of Next Chapter</strong><br/>
+                In Chapter 2, we will learn about AI-based defect inspection and AOI (Automated Optical Inspection).
+                You will master image-based quality control technologies including defect classification using deep learning (CNN),
+                semantic segmentation, and foreign material detection.
+            </div>
+</div>
+<div class="nav-buttons">
+<a href="index.html">← Series Index</a>
+<a href="chapter-2.html">Chapter 2: AI Defect Inspection and AOI →</a>
+</div>
+</div>
+<section>
+            <h2>References</h2>
+            <ol>
+                <li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+                <li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+                <li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+                <li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+            </ol>
+        </section>
+
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+<footer>
+<p>© 2025 AI Terakoya - Process Informatics Dojo</p>
+<p>Chapter 1: Wafer Process Statistical Control</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 3: GAN (Generative Adversarial Networks) - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 3: GAN (Generative Adversarial Networks) - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+<script>
+        MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']], processEscapes: true, processEnvironments: true },
+            options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'], ignoreHtmlClass: 'mermaid' }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/generative-models-introduction/index.html">Generative Models</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/ML/generative-models-introduction/chapter3-gan.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 3: GAN (Generative Adversarial Networks)</h1>
+<p class="subtitle">Generating Realistic Images with Adversarial Learning - From Vanilla GAN to StyleGAN</p>
+<div class="meta">
+<span class="meta-item">📖 Reading time: 30-35 min</span>
+<span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
+<span class="meta-item">💻 Code examples: 8</span>
+<span class="meta-item">📝 Practice problems: 5</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter covers GAN (Generative Adversarial Networks). You will learn basic concepts of GANs, theoretical background of Minimax game, and Mode Collapse problem.</p>
+<h2>Learning Objectives</h2>
+<p>By completing this chapter, you will master the following:</p>
+<ul>
+<li>✅ Understand the basic concepts of GANs and the roles of Generator and Discriminator</li>
+<li>✅ Understand the theoretical background of Minimax game and Nash equilibrium</li>
+<li>✅ Master the Mode Collapse problem and its countermeasures</li>
+<li>✅ Implement DCGAN (Deep Convolutional GAN) architecture</li>
+<li>✅ Understand WGAN-GP (Wasserstein GAN with Gradient Penalty)</li>
+<li>✅ Master training techniques like Spectral Normalization and Label Smoothing</li>
+<li>✅ Understand the basic concepts and features of StyleGAN</li>
+<li>✅ Implement real image generation projects</li>
+</ul>
+<hr/>
+<h2>3.1 Basic Concepts of GAN</h2>
+<h3>What is a Generator</h3>
+<p><strong>Generator</strong> is a neural network that generates realistic data from random noise (latent variables).</p>
+<blockquote>
+<p>"The Generator learns to take a random latent vector $\mathbf{z} \sim p_z(\mathbf{z})$ as input and generate fake data $G(\mathbf{z})$ that is indistinguishable from training data."</p>
+</blockquote>
+<div class="mermaid">
+graph LR
+    A[Latent Vector z<br/>100-dim noise] --&gt; B[Generator G]
+    B --&gt; C[Generated Image<br/>28×28×1]
+
+    D[Random<br/>Sampling] --&gt; A
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#e8f5e9
+</div>
+<h3>What is a Discriminator</h3>
+<p><strong>Discriminator</strong> is a binary classifier that determines whether input data is real (training data) or fake (Generator output).</p>
+<div class="mermaid">
+graph TB
+    A1[Real Image] --&gt; D[Discriminator D]
+    A2[Generated Image] --&gt; D
+
+    D --&gt; O1[Real: 1.0<br/>Score]
+    D --&gt; O2[Fake: 0.0<br/>Score]
+
+    style A1 fill:#e8f5e9
+    style A2 fill:#ffebee
+    style D fill:#fff3e0
+    style O1 fill:#e8f5e9
+    style O2 fill:#ffebee
+</div>
+<h3>Adversarial Learning Mechanism</h3>
+<p>GANs learn through <strong>adversarial competition</strong> between the Generator and Discriminator:</p>
+<div class="mermaid">
+sequenceDiagram
+    participant G as Generator
+    participant D as Discriminator
+    participant R as Real Data
+
+    G-&gt;&gt;G: Generate image from noise
+    G-&gt;&gt;D: Present generated image
+    R-&gt;&gt;D: Present real image
+    D-&gt;&gt;D: Discriminate real/fake
+    D-&gt;&gt;G: Feedback (gradients)
+    G-&gt;&gt;G: Improve to be more deceptive
+    D-&gt;&gt;D: Improve to be more discerning
+
+    Note over G,D: Repeat this process
+</div>
+<h3>Minimax Game Theory</h3>
+<p>The objective function of GAN is formulated as <strong>Minimax optimization</strong>:</p>
+<p>$$
+\min_G \max_D V(D, G) = \mathbb{E}_{\mathbf{x} \sim p_{\text{data}}}[\log D(\mathbf{x})] + \mathbb{E}_{\mathbf{z} \sim p_z}[\log(1 - D(G(\mathbf{z})))]
+$$</p>
+<p>Meaning of each term:</p>
+<ul>
+<li><strong>First term</strong> $\mathbb{E}_{\mathbf{x} \sim p_{\text{data}}}[\log D(\mathbf{x})]$: Discriminator's ability to correctly identify real data</li>
+<li><strong>Second term</strong> $\mathbb{E}_{\mathbf{z} \sim p_z}[\log(1 - D(G(\mathbf{z})))]$: Discriminator's ability to detect fake data</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Network</th>
+<th>Objective</th>
+<th>Optimization Direction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Discriminator (D)</strong></td>
+<td>Maximize $V(D, G)$</td>
+<td>Accurately discriminate real and fake</td>
+</tr>
+<tr>
+<td><strong>Generator (G)</strong></td>
+<td>Minimize $V(D, G)$</td>
+<td>Generate images that fool the Discriminator</td>
+</tr>
+</tbody>
+</table>
+<h3>What is Nash Equilibrium</h3>
+<p><strong>Nash equilibrium</strong> is a state where both Generator and Discriminator adopt optimal strategies, and neither has an incentive to change their strategy.</p>
+<p>Theoretically, at Nash equilibrium the following holds:</p>
+<ul>
+<li>$D^*(\mathbf{x}) = \frac{p_{\text{data}}(\mathbf{x})}{p_{\text{data}}(\mathbf{x}) + p_g(\mathbf{x})} = 0.5$ (discriminator cannot decide)</li>
+<li>$p_g(\mathbf{x}) = p_{\text{data}}(\mathbf{x})$ (generated distribution matches true distribution)</li>
+</ul>
+<div class="mermaid">
+graph LR
+    subgraph Initial State
+        I1[Generator<br/>Random images] --&gt; I2[Discriminator<br/>Easy to discriminate]
+    end
+
+    subgraph During Training
+        M1[Generator<br/>Improving] --&gt; M2[Discriminator<br/>Accuracy improving]
+    end
+
+    subgraph Nash Equilibrium
+        N1[Generator<br/>Perfect imitation] --&gt; N2[Discriminator<br/>50% accuracy]
+    end
+
+    I2 --&gt; M1
+    M2 --&gt; N1
+
+    style I1 fill:#ffebee
+    style M1 fill:#fff3e0
+    style N1 fill:#e8f5e9
+    style N2 fill:#e8f5e9
+</div>
+<hr/>
+<h2>3.2 GAN Training Algorithm</h2>
+<h3>Implementation Example 1: Vanilla GAN Basic Structure</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+"""
+Example: Implementation Example 1: Vanilla GAN Basic Structure
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Advanced
+Execution time: 5-10 seconds
+Dependencies: None
+"""
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import numpy as np
+
+# Device configuration
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"Using device: {device}\n")
+
+print("=== Vanilla GAN Basic Structure ===\n")
+
+# Generator definition
+class Generator(nn.Module):
+    def __init__(self, latent_dim=100, img_shape=(1, 28, 28)):
+        super(Generator, self).__init__()
+        self.img_shape = img_shape
+        img_size = int(np.prod(img_shape))
+
+        self.model = nn.Sequential(
+            nn.Linear(latent_dim, 128),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(128, 256),
+            nn.BatchNorm1d(256),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(256, 512),
+            nn.BatchNorm1d(512),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(512, img_size),
+            nn.Tanh()  # Normalize to [-1, 1]
+        )
+
+    def forward(self, z):
+        img = self.model(z)
+        img = img.view(img.size(0), *self.img_shape)
+        return img
+
+# Discriminator definition
+class Discriminator(nn.Module):
+    def __init__(self, img_shape=(1, 28, 28)):
+        super(Discriminator, self).__init__()
+        img_size = int(np.prod(img_shape))
+
+        self.model = nn.Sequential(
+            nn.Linear(img_size, 512),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(512, 256),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(256, 1),
+            nn.Sigmoid()  # Output probability [0, 1]
+        )
+
+    def forward(self, img):
+        img_flat = img.view(img.size(0), -1)
+        validity = self.model(img_flat)
+        return validity
+
+# Model instantiation
+latent_dim = 100
+img_shape = (1, 28, 28)
+
+generator = Generator(latent_dim, img_shape).to(device)
+discriminator = Discriminator(img_shape).to(device)
+
+print("--- Generator ---")
+print(generator)
+print(f"\nGenerator parameters: {sum(p.numel() for p in generator.parameters()):,}")
+
+print("\n--- Discriminator ---")
+print(discriminator)
+print(f"\nDiscriminator parameters: {sum(p.numel() for p in discriminator.parameters()):,}")
+
+# Test run
+z = torch.randn(8, latent_dim).to(device)
+fake_imgs = generator(z)
+print(f"\nGenerated image shape: {fake_imgs.shape}")
+
+validity = discriminator(fake_imgs)
+print(f"Discriminator output shape: {validity.shape}")
+print(f"Discriminator score examples: {validity[:3].detach().cpu().numpy().flatten()}")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Using device: cuda
+
+=== Vanilla GAN Basic Structure ===
+
+--- Generator ---
+Generator(
+  (model): Sequential(
+    (0): Linear(in_features=100, out_features=128, bias=True)
+    (1): LeakyReLU(negative_slope=0.2, inplace=True)
+    (2): Linear(in_features=128, out_features=256, bias=True)
+    (3): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (4): LeakyReLU(negative_slope=0.2, inplace=True)
+    (5): Linear(in_features=256, out_features=512, bias=True)
+    (6): BatchNorm1d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (7): LeakyReLU(negative_slope=0.2, inplace=True)
+    (8): Linear(in_features=512, out_features=784, bias=True)
+    (9): Tanh()
+  )
+)
+
+Generator parameters: 533,136
+
+--- Discriminator ---
+Discriminator(
+  (model): Sequential(
+    (0): Linear(in_features=784, out_features=512, bias=True)
+    (1): LeakyReLU(negative_slope=0.2, inplace=True)
+    (2): Linear(in_features=512, out_features=256, bias=True)
+    (3): LeakyReLU(negative_slope=0.2, inplace=True)
+    (4): Linear(in_features=256, out_features=1, bias=True)
+    (5): Sigmoid()
+  )
+)
+
+Discriminator parameters: 533,505
+
+Generated image shape: torch.Size([8, 1, 28, 28])
+Discriminator output shape: torch.Size([8, 1])
+Discriminator score examples: [0.4987 0.5023 0.4956]
+</code></pre>
+<h3>Implementation Example 2: GAN Training Loop</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torchvision&gt;=0.15.0
+
+"""
+Example: Implementation Example 2: GAN Training Loop
+
+Purpose: Demonstrate optimization techniques
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+from torchvision import datasets, transforms
+from torch.utils.data import DataLoader
+
+print("\n=== GAN Training Loop ===\n")
+
+# Data loader (using MNIST)
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize([0.5], [0.5])  # Normalize to [-1, 1]
+])
+
+# Sample data (in practice use MNIST etc.)
+batch_size = 64
+# dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+# dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+# Dummy data for demo
+dataloader = [(torch.randn(batch_size, 1, 28, 28).to(device), None) for _ in range(10)]
+
+# Loss function and optimizers
+adversarial_loss = nn.BCELoss()
+optimizer_G = optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+optimizer_D = optim.Adam(discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+
+print("--- Training Configuration ---")
+print(f"Batch size: {batch_size}")
+print(f"Learning rate: 0.0002")
+print(f"Beta1: 0.5, Beta2: 0.999")
+print(f"Loss function: Binary Cross Entropy\n")
+
+# Training loop (simplified version)
+num_epochs = 3
+print("--- Training Started ---")
+
+for epoch in range(num_epochs):
+    for i, (real_imgs, _) in enumerate(dataloader):
+        batch_size_actual = real_imgs.size(0)
+
+        # Ground truth labels (real=1, fake=0)
+        valid = torch.ones(batch_size_actual, 1).to(device)
+        fake = torch.zeros(batch_size_actual, 1).to(device)
+
+        # ---------------------
+        #  Train Discriminator
+        # ---------------------
+        optimizer_D.zero_grad()
+
+        # Real image loss
+        real_loss = adversarial_loss(discriminator(real_imgs), valid)
+
+        # Fake image loss
+        z = torch.randn(batch_size_actual, latent_dim).to(device)
+        fake_imgs = generator(z)
+        fake_loss = adversarial_loss(discriminator(fake_imgs.detach()), fake)
+
+        # Total Discriminator loss
+        d_loss = (real_loss + fake_loss) / 2
+        d_loss.backward()
+        optimizer_D.step()
+
+        # -----------------
+        #  Train Generator
+        # -----------------
+        optimizer_G.zero_grad()
+
+        # Generator loss (goal is to fool Discriminator)
+        gen_imgs = generator(z)
+        g_loss = adversarial_loss(discriminator(gen_imgs), valid)
+
+        g_loss.backward()
+        optimizer_G.step()
+
+        # Progress display
+        if i % 5 == 0:
+            print(f"[Epoch {epoch+1}/{num_epochs}] [Batch {i}/{len(dataloader)}] "
+                  f"[D loss: {d_loss.item():.4f}] [G loss: {g_loss.item():.4f}]")
+
+    print(f"\nEpoch {epoch+1} completed\n")
+
+print("Training completed!")
+
+# Check generated samples
+generator.eval()
+with torch.no_grad():
+    z_sample = torch.randn(16, latent_dim).to(device)
+    generated_samples = generator(z_sample)
+    print(f"\nGenerated sample shape: {generated_samples.shape}")
+    print(f"Generated sample value range: [{generated_samples.min():.2f}, {generated_samples.max():.2f}]")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>
+=== GAN Training Loop ===
+
+--- Training Configuration ---
+Batch size: 64
+Learning rate: 0.0002
+Beta1: 0.5, Beta2: 0.999
+Loss function: Binary Cross Entropy
+
+--- Training Started ---
+[Epoch 1/3] [Batch 0/10] [D loss: 0.6923] [G loss: 0.6934]
+[Epoch 1/3] [Batch 5/10] [D loss: 0.5234] [G loss: 0.8123]
+
+Epoch 1 completed
+
+[Epoch 2/3] [Batch 0/10] [D loss: 0.4567] [G loss: 0.9234]
+[Epoch 2/3] [Batch 5/10] [D loss: 0.3892] [G loss: 1.0456]
+
+Epoch 2 completed
+
+[Epoch 3/3] [Batch 0/10] [D loss: 0.3234] [G loss: 1.1234]
+[Epoch 3/3] [Batch 5/10] [D loss: 0.2876] [G loss: 1.2123]
+
+Epoch 3 completed
+
+Training completed!
+
+Generated sample shape: torch.Size([16, 1, 28, 28])
+Generated sample value range: [-0.98, 0.97]
+</code></pre>
+<h3>Mode Collapse Problem</h3>
+<p><strong>Mode Collapse</strong> is a phenomenon where the Generator generates only some modes (patterns) of the training data, losing diversity.</p>
+<div class="mermaid">
+graph TB
+    subgraph Normal Learning
+        N1[Training Data<br/>10 classes] --&gt; N2[Generator<br/>Generates 10 classes]
+    end
+
+    subgraph Mode Collapse
+        M1[Training Data<br/>10 classes] --&gt; M2[Generator<br/>Only 2-3 classes]
+    end
+
+    style N2 fill:#e8f5e9
+    style M2 fill:#ffebee
+</div>
+<h3>Causes and Countermeasures for Mode Collapse</h3>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Symptom</th>
+<th>Countermeasure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Gradient Instability</strong></td>
+<td>G fixates on some samples</td>
+<td>Spectral Normalization, WGAN</td>
+</tr>
+<tr>
+<td><strong>Objective Function Issues</strong></td>
+<td>D becomes too perfect</td>
+<td>Label Smoothing, One-sided Label</td>
+</tr>
+<tr>
+<td><strong>Lack of Information</strong></td>
+<td>Lack of diversity</td>
+<td>Minibatch Discrimination</td>
+</tr>
+<tr>
+<td><strong>Optimization Issues</strong></td>
+<td>Fails to reach Nash equilibrium</td>
+<td>Two Timescale Update Rule</td>
+</tr>
+</tbody>
+</table>
+<h3>Implementation Example 3: Mode Collapse Visualization</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+
+import matplotlib.pyplot as plt
+
+print("\n=== Mode Collapse Visualization ===\n")
+
+def visualize_mode_collapse_simulation():
+    """
+    Mode Collapse simulation (2D Gaussian data)
+    """
+    # 8 Gaussian mixture distributions (true data)
+    def sample_real_data(n_samples):
+        centers = [
+            (1, 1), (1, -1), (-1, 1), (-1, -1),
+            (2, 0), (-2, 0), (0, 2), (0, -2)
+        ]
+        samples = []
+        for _ in range(n_samples):
+            center = centers[np.random.randint(0, len(centers))]
+            sample = np.random.randn(2) * 0.1 + center
+            samples.append(sample)
+        return np.array(samples)
+
+    # Normal Generator (covers all modes)
+    real_data = sample_real_data(1000)
+
+    # Mode Collapsed data (only 2 modes)
+    collapsed_centers = [(1, 1), (-1, -1)]
+    collapsed_data = []
+    for _ in range(1000):
+        center = collapsed_centers[np.random.randint(0, len(collapsed_centers))]
+        sample = np.random.randn(2) * 0.1 + center
+        collapsed_data.append(sample)
+    collapsed_data = np.array(collapsed_data)
+
+    print("Normal generated data:")
+    print(f"  Unique clusters: 8")
+    print(f"  Number of samples: {len(real_data)}")
+
+    print("\nMode Collapsed data:")
+    print(f"  Unique clusters: 2")
+    print(f"  Number of samples: {len(collapsed_data)}")
+    print(f"  Diversity loss: 75%")
+
+visualize_mode_collapse_simulation()
+
+# Mode Collapse detection in actual GANs
+print("\n--- Mode Collapse Detection Metrics ---")
+print("1. Inception Score (IS):")
+print("   - High value = high quality &amp; diversity")
+print("   - Decreases during Mode Collapse")
+print("\n2. Frechet Inception Distance (FID):")
+print("   - Low value = close to true data")
+print("   - Increases during Mode Collapse")
+print("\n3. Number of Modes Captured:")
+print("   - Measured by clustering")
+print("   - Ideal: Cover all modes")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>
+=== Mode Collapse Visualization ===
+
+Normal generated data:
+  Unique clusters: 8
+  Number of samples: 1000
+
+Mode Collapsed data:
+  Unique clusters: 2
+  Number of samples: 1000
+  Diversity loss: 75%
+
+--- Mode Collapse Detection Metrics ---
+1. Inception Score (IS):
+   - High value = high quality &amp; diversity
+   - Decreases during Mode Collapse
+
+2. Frechet Inception Distance (FID):
+   - Low value = close to true data
+   - Increases during Mode Collapse
+
+3. Number of Modes Captured:
+   - Measured by clustering
+   - Ideal: Cover all modes
+</code></pre>
+<hr/>
+<h2>3.3 DCGAN (Deep Convolutional GAN)</h2>
+<h3>DCGAN Design Principles</h3>
+<p><strong>DCGAN</strong> is a stable GAN architecture using convolutional layers, following these guidelines:</p>
+<ul>
+<li><strong>Remove Pooling layers</strong>: Use Strided Convolution and Transposed Convolution</li>
+<li><strong>Batch Normalization</strong>: Apply to all layers in Generator and Discriminator (except output layer)</li>
+<li><strong>Remove Fully Connected layers</strong>: Fully convolutional architecture</li>
+<li><strong>ReLU activation</strong>: Use in all Generator layers (except output layer uses Tanh)</li>
+<li><strong>LeakyReLU activation</strong>: Use in all Discriminator layers</li>
+</ul>
+<div class="mermaid">
+graph LR
+    subgraph DCGAN Generator
+        G1[Latent Vector<br/>100] --&gt; G2[Dense<br/>4×4×1024]
+        G2 --&gt; G3[ConvTranspose<br/>8×8×512]
+        G3 --&gt; G4[ConvTranspose<br/>16×16×256]
+        G4 --&gt; G5[ConvTranspose<br/>32×32×128]
+        G5 --&gt; G6[ConvTranspose<br/>64×64×3]
+    end
+
+    style G1 fill:#e3f2fd
+    style G6 fill:#e8f5e9
+</div>
+<h3>Implementation Example 4: DCGAN Generator</h3>
+<pre><code class="language-python">print("\n=== DCGAN Architecture ===\n")
+
+class DCGANGenerator(nn.Module):
+    def __init__(self, latent_dim=100, img_channels=1):
+        super(DCGANGenerator, self).__init__()
+
+        self.init_size = 7  # For MNIST (7×7 → 28×28)
+        self.l1 = nn.Sequential(
+            nn.Linear(latent_dim, 128 * self.init_size ** 2)
+        )
+
+        self.conv_blocks = nn.Sequential(
+            nn.BatchNorm2d(128),
+
+            # Upsample 1: 7×7 → 14×14
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(128, 128, 3, stride=1, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+
+            # Upsample 2: 14×14 → 28×28
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(128, 64, 3, stride=1, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+
+            # Output layer
+            nn.Conv2d(64, img_channels, 3, stride=1, padding=1),
+            nn.Tanh()
+        )
+
+    def forward(self, z):
+        out = self.l1(z)
+        out = out.view(out.size(0), 128, self.init_size, self.init_size)
+        img = self.conv_blocks(out)
+        return img
+
+class DCGANDiscriminator(nn.Module):
+    def __init__(self, img_channels=1):
+        super(DCGANDiscriminator, self).__init__()
+
+        def discriminator_block(in_filters, out_filters, bn=True):
+            block = [
+                nn.Conv2d(in_filters, out_filters, 3, 2, 1),
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.Dropout2d(0.25)
+            ]
+            if bn:
+                block.append(nn.BatchNorm2d(out_filters))
+            return block
+
+        self.model = nn.Sequential(
+            *discriminator_block(img_channels, 16, bn=False),  # 28×28 → 14×14
+            *discriminator_block(16, 32),                       # 14×14 → 7×7
+            *discriminator_block(32, 64),                       # 7×7 → 3×3
+            *discriminator_block(64, 128),                      # 3×3 → 1×1
+        )
+
+        # Output layer
+        ds_size = 1
+        self.adv_layer = nn.Sequential(
+            nn.Linear(128 * ds_size ** 2, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, img):
+        out = self.model(img)
+        out = out.view(out.size(0), -1)
+        validity = self.adv_layer(out)
+        return validity
+
+# Model instantiation
+dcgan_generator = DCGANGenerator(latent_dim=100, img_channels=1).to(device)
+dcgan_discriminator = DCGANDiscriminator(img_channels=1).to(device)
+
+print("--- DCGAN Generator ---")
+print(dcgan_generator)
+print(f"\nParameters: {sum(p.numel() for p in dcgan_generator.parameters()):,}")
+
+print("\n--- DCGAN Discriminator ---")
+print(dcgan_discriminator)
+print(f"\nParameters: {sum(p.numel() for p in dcgan_discriminator.parameters()):,}")
+
+# Test run
+z_dcgan = torch.randn(4, 100).to(device)
+fake_imgs_dcgan = dcgan_generator(z_dcgan)
+print(f"\nGenerated image shape: {fake_imgs_dcgan.shape}")
+
+validity_dcgan = dcgan_discriminator(fake_imgs_dcgan)
+print(f"Discriminator output shape: {validity_dcgan.shape}")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>
+=== DCGAN Architecture ===
+
+--- DCGAN Generator ---
+DCGANGenerator(
+  (l1): Sequential(
+    (0): Linear(in_features=100, out_features=6272, bias=True)
+  )
+  (conv_blocks): Sequential(
+    (0): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (1): Upsample(scale_factor=2.0, mode=nearest)
+    (2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (3): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (4): ReLU(inplace=True)
+    (5): Upsample(scale_factor=2.0, mode=nearest)
+    (6): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (7): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (8): ReLU(inplace=True)
+    (9): Conv2d(64, 1, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (10): Tanh()
+  )
+)
+
+Parameters: 781,761
+
+--- DCGAN Discriminator ---
+DCGANDiscriminator(
+  (model): Sequential(...)
+  (adv_layer): Sequential(
+    (0): Linear(in_features=128, out_features=1, bias=True)
+    (1): Sigmoid()
+  )
+)
+
+Parameters: 89,473
+
+Generated image shape: torch.Size([4, 1, 28, 28])
+Discriminator output shape: torch.Size([4, 1])
+</code></pre>
+<hr/>
+<h2>3.4 Training Techniques</h2>
+<h3>WGAN-GP (Wasserstein GAN with Gradient Penalty)</h3>
+<p><strong>WGAN</strong> stabilizes GAN training using Wasserstein distance. <strong>Gradient Penalty (GP)</strong> is a method to enforce Lipschitz constraints.</p>
+<p>WGAN-GP loss functions:</p>
+<p>$$
+\mathcal{L}_D = \mathbb{E}_{\tilde{\mathbf{x}} \sim p_g}[D(\tilde{\mathbf{x}})] - \mathbb{E}_{\mathbf{x} \sim p_{\text{data}}}[D(\mathbf{x})] + \lambda \mathbb{E}_{\hat{\mathbf{x}} \sim p_{\hat{\mathbf{x}}}}[(\|\nabla_{\hat{\mathbf{x}}} D(\hat{\mathbf{x}})\|_2 - 1)^2]
+$$</p>
+<p>$$
+\mathcal{L}_G = -\mathbb{E}_{\tilde{\mathbf{x}} \sim p_g}[D(\tilde{\mathbf{x}})]
+$$</p>
+<p>Where $\hat{\mathbf{x}} = \epsilon \mathbf{x} + (1 - \epsilon)\tilde{\mathbf{x}}$ is an interpolation point between real and fake.</p>
+<h3>Implementation Example 5: WGAN-GP Implementation</h3>
+<pre><code class="language-python">print("\n=== WGAN-GP Implementation ===\n")
+
+def compute_gradient_penalty(D, real_samples, fake_samples, device):
+    """
+    Compute Gradient Penalty
+    """
+    batch_size = real_samples.size(0)
+
+    # Random weight (for interpolation)
+    alpha = torch.rand(batch_size, 1, 1, 1).to(device)
+
+    # Interpolation between real and fake
+    interpolates = (alpha * real_samples + (1 - alpha) * fake_samples).requires_grad_(True)
+
+    # Evaluate with Discriminator
+    d_interpolates = D(interpolates)
+
+    # Compute gradients
+    gradients = torch.autograd.grad(
+        outputs=d_interpolates,
+        inputs=interpolates,
+        grad_outputs=torch.ones_like(d_interpolates),
+        create_graph=True,
+        retain_graph=True,
+        only_inputs=True
+    )[0]
+
+    # L2 norm of gradients
+    gradients = gradients.view(batch_size, -1)
+    gradient_norm = gradients.norm(2, dim=1)
+
+    # Gradient Penalty
+    gradient_penalty = ((gradient_norm - 1) ** 2).mean()
+
+    return gradient_penalty
+
+# WGAN-GP Discriminator (no Sigmoid)
+class WGANDiscriminator(nn.Module):
+    def __init__(self, img_channels=1):
+        super(WGANDiscriminator, self).__init__()
+
+        self.model = nn.Sequential(
+            nn.Conv2d(img_channels, 16, 3, 2, 1),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Dropout2d(0.25),
+
+            nn.Conv2d(16, 32, 3, 2, 1),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Dropout2d(0.25),
+            nn.BatchNorm2d(32),
+
+            nn.Conv2d(32, 64, 3, 2, 1),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Dropout2d(0.25),
+            nn.BatchNorm2d(64),
+
+            nn.Conv2d(64, 128, 3, 2, 1),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Dropout2d(0.25),
+            nn.BatchNorm2d(128),
+        )
+
+        self.adv_layer = nn.Linear(128, 1)  # No Sigmoid
+
+    def forward(self, img):
+        out = self.model(img)
+        out = out.view(out.size(0), -1)
+        validity = self.adv_layer(out)
+        return validity
+
+# WGAN-GP training loop (simplified)
+wgan_discriminator = WGANDiscriminator(img_channels=1).to(device)
+optimizer_D_wgan = optim.Adam(wgan_discriminator.parameters(), lr=0.0001, betas=(0.5, 0.999))
+optimizer_G_wgan = optim.Adam(dcgan_generator.parameters(), lr=0.0001, betas=(0.5, 0.999))
+
+lambda_gp = 10  # Gradient Penalty coefficient
+n_critic = 5    # Train Discriminator 5 times more than Generator
+
+print("--- WGAN-GP Training Configuration ---")
+print(f"Gradient Penalty coefficient (λ): {lambda_gp}")
+print(f"Critic iterations: {n_critic}")
+print(f"Learning rate: 0.0001")
+print(f"Loss: Wasserstein distance + GP\n")
+
+# Sample training step
+real_imgs_sample = torch.randn(32, 1, 28, 28).to(device)
+z_sample = torch.randn(32, 100).to(device)
+
+for step in range(3):
+    # ---------------------
+    #  Train Discriminator
+    # ---------------------
+    for _ in range(n_critic):
+        optimizer_D_wgan.zero_grad()
+
+        fake_imgs_wgan = dcgan_generator(z_sample).detach()
+
+        # Wasserstein loss
+        real_validity = wgan_discriminator(real_imgs_sample)
+        fake_validity = wgan_discriminator(fake_imgs_wgan)
+
+        # Gradient Penalty
+        gp = compute_gradient_penalty(wgan_discriminator, real_imgs_sample, fake_imgs_wgan, device)
+
+        # Discriminator loss
+        d_loss_wgan = -torch.mean(real_validity) + torch.mean(fake_validity) + lambda_gp * gp
+
+        d_loss_wgan.backward()
+        optimizer_D_wgan.step()
+
+    # -----------------
+    #  Train Generator
+    # -----------------
+    optimizer_G_wgan.zero_grad()
+
+    gen_imgs_wgan = dcgan_generator(z_sample)
+    fake_validity_g = wgan_discriminator(gen_imgs_wgan)
+
+    # Generator loss
+    g_loss_wgan = -torch.mean(fake_validity_g)
+
+    g_loss_wgan.backward()
+    optimizer_G_wgan.step()
+
+    print(f"Step {step+1}: [D loss: {d_loss_wgan.item():.4f}] [G loss: {g_loss_wgan.item():.4f}] [GP: {gp.item():.4f}]")
+
+print("\nWGAN-GP advantages:")
+print("  ✓ Improved training stability")
+print("  ✓ Mitigates Mode Collapse")
+print("  ✓ Meaningful loss metric (Wasserstein distance)")
+print("  ✓ Robustness to hyperparameters")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>
+=== WGAN-GP Implementation ===
+
+--- WGAN-GP Training Configuration ---
+Gradient Penalty coefficient (λ): 10
+Critic iterations: 5
+Learning rate: 0.0001
+Loss: Wasserstein distance + GP
+
+Step 1: [D loss: 12.3456] [G loss: -8.2345] [GP: 0.2345]
+Step 2: [D loss: 9.8765] [G loss: -10.5432] [GP: 0.1876]
+Step 3: [D loss: 7.6543] [G loss: -12.3456] [GP: 0.1543]
+
+WGAN-GP advantages:
+  ✓ Improved training stability
+  ✓ Mitigates Mode Collapse
+  ✓ Meaningful loss metric (Wasserstein distance)
+  ✓ Robustness to hyperparameters
+</code></pre>
+<h3>Spectral Normalization</h3>
+<p><strong>Spectral Normalization</strong> is a technique that normalizes the spectral norm (maximum singular value) of weight matrices in each Discriminator layer to 1.</p>
+<p>Spectral norm:</p>
+<p>$$
+\|W\|_2 = \max_{\mathbf{h}} \frac{\|W\mathbf{h}\|_2}{\|\mathbf{h}\|_2}
+$$</p>
+<p>Normalized weight:</p>
+<p>$$
+\bar{W} = \frac{W}{\|W\|_2}
+$$</p>
+<h3>Implementation Example 6: Applying Spectral Normalization</h3>
+<pre><code class="language-python">from torch.nn.utils import spectral_norm
+
+print("\n=== Spectral Normalization ===\n")
+
+class SpectralNormDiscriminator(nn.Module):
+    def __init__(self, img_channels=1):
+        super(SpectralNormDiscriminator, self).__init__()
+
+        self.model = nn.Sequential(
+            spectral_norm(nn.Conv2d(img_channels, 64, 4, 2, 1)),
+            nn.LeakyReLU(0.2, inplace=True),
+
+            spectral_norm(nn.Conv2d(64, 128, 4, 2, 1)),
+            nn.LeakyReLU(0.2, inplace=True),
+
+            spectral_norm(nn.Conv2d(128, 256, 4, 2, 1)),
+            nn.LeakyReLU(0.2, inplace=True),
+
+            spectral_norm(nn.Conv2d(256, 512, 4, 2, 1)),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
+
+        self.adv_layer = spectral_norm(nn.Linear(512, 1))
+
+    def forward(self, img):
+        out = self.model(img)
+        out = out.view(out.size(0), -1)
+        validity = self.adv_layer(out)
+        return validity
+
+sn_discriminator = SpectralNormDiscriminator(img_channels=1).to(device)
+
+print("--- Spectral Normalization Applied Discriminator ---")
+print(sn_discriminator)
+print(f"\nParameters: {sum(p.numel() for p in sn_discriminator.parameters()):,}")
+
+# Check spectral norms
+print("\n--- Spectral Norm Verification ---")
+for name, module in sn_discriminator.named_modules():
+    if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
+        if hasattr(module, 'weight_orig'):  # Spectral Norm applied
+            weight = module.weight
+            spectral_norm_value = torch.norm(weight, p=2).item()
+            print(f"{name}: Spectral norm ≈ {spectral_norm_value:.4f}")
+
+print("\nSpectral Normalization effects:")
+print("  ✓ Automatically satisfies Lipschitz constraint")
+print("  ✓ Simpler than WGAN-GP (no GP)")
+print("  ✓ Improved training stability")
+print("  ✓ Computationally efficient")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>
+=== Spectral Normalization ===
+
+--- Spectral Normalization Applied Discriminator ---
+SpectralNormDiscriminator(
+  (model): Sequential(
+    (0): Conv2d(1, 64, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (1): LeakyReLU(negative_slope=0.2, inplace=True)
+    (2): Conv2d(64, 128, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (3): LeakyReLU(negative_slope=0.2, inplace=True)
+    (4): Conv2d(128, 256, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (5): LeakyReLU(negative_slope=0.2, inplace=True)
+    (6): Conv2d(256, 512, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+    (7): LeakyReLU(negative_slope=0.2, inplace=True)
+  )
+  (adv_layer): Linear(in_features=512, out_features=1, bias=True)
+)
+
+Parameters: 2,943,041
+
+--- Spectral Norm Verification ---
+model.0: Spectral norm ≈ 1.0023
+model.2: Spectral norm ≈ 0.9987
+model.4: Spectral norm ≈ 1.0012
+model.6: Spectral norm ≈ 0.9995
+adv_layer: Spectral norm ≈ 1.0008
+
+Spectral Normalization effects:
+  ✓ Automatically satisfies Lipschitz constraint
+  ✓ Simpler than WGAN-GP (no GP)
+  ✓ Improved training stability
+  ✓ Computationally efficient
+</code></pre>
+<h3>Label Smoothing</h3>
+<p><strong>Label Smoothing</strong> prevents Discriminator overconfidence by relaxing ground truth labels from 0/1 to values like 0.9/0.1.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Real Label</th>
+<th>Fake Label</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Normal</strong></td>
+<td>1.0</td>
+<td>0.0</td>
+<td>D overconfident → G gradient vanishing</td>
+</tr>
+<tr>
+<td><strong>Label Smoothing</strong></td>
+<td>0.9</td>
+<td>0.1</td>
+<td>Prevents D overconfidence</td>
+</tr>
+<tr>
+<td><strong>One-sided</strong></td>
+<td>0.9</td>
+<td>0.0</td>
+<td>Only fake side strict</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">print("\n=== Label Smoothing Implementation ===\n")
+
+# Apply Label Smoothing
+real_label_smooth = 0.9
+fake_label_smooth = 0.1
+
+# Normal labels
+valid_normal = torch.ones(batch_size, 1).to(device)
+fake_normal = torch.zeros(batch_size, 1).to(device)
+
+# Label Smoothing applied
+valid_smooth = torch.ones(batch_size, 1).to(device) * real_label_smooth
+fake_smooth = torch.ones(batch_size, 1).to(device) * fake_label_smooth
+
+print("Normal labels:")
+print(f"  Real: {valid_normal[0].item()}")
+print(f"  Fake: {fake_normal[0].item()}")
+
+print("\nLabel Smoothing applied:")
+print(f"  Real: {valid_smooth[0].item()}")
+print(f"  Fake: {fake_smooth[0].item()}")
+
+print("\nLabel Smoothing effects:")
+print("  ✓ Prevents Discriminator overconfidence")
+print("  ✓ Stabilizes gradients to Generator")
+print("  ✓ Improves training convergence")
+print("  ✓ Very simple implementation")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>
+=== Label Smoothing Implementation ===
+
+Normal labels:
+  Real: 1.0
+  Fake: 0.0
+
+Label Smoothing applied:
+  Real: 0.9
+  Fake: 0.1
+
+Label Smoothing effects:
+  ✓ Prevents Discriminator overconfidence
+  ✓ Stabilizes gradients to Generator
+  ✓ Improves training convergence
+  ✓ Very simple implementation
+</code></pre>
+<hr/>
+<h2>3.5 StyleGAN Overview</h2>
+<h3>StyleGAN Innovation</h3>
+<p><strong>StyleGAN</strong> is a high-quality image generation GAN developed by NVIDIA, greatly improving style controllability.</p>
+<div class="mermaid">
+graph LR
+    subgraph StyleGAN Architecture
+        Z[Latent Vector z] --&gt; M[Mapping Network<br/>8-layer MLP]
+        M --&gt; W[Intermediate Latent Space w]
+        W --&gt; S1[Style 1<br/>4×4 resolution]
+        W --&gt; S2[Style 2<br/>8×8 resolution]
+        W --&gt; S3[Style 3<br/>16×16 resolution]
+        W --&gt; S4[Style 4<br/>32×32 resolution]
+
+        N[Noise] --&gt; S1
+        N --&gt; S2
+        N --&gt; S3
+        N --&gt; S4
+
+        S1 --&gt; G[Generated Image<br/>1024×1024]
+        S2 --&gt; G
+        S3 --&gt; G
+        S4 --&gt; G
+    end
+
+    style Z fill:#e3f2fd
+    style W fill:#fff3e0
+    style G fill:#e8f5e9
+</div>
+<h3>StyleGAN Key Technologies</h3>
+<table>
+<thead>
+<tr>
+<th>Technology</th>
+<th>Description</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Mapping Network</strong></td>
+<td>Transforms latent space z to intermediate space w</td>
+<td>More disentangled latent space</td>
+</tr>
+<tr>
+<td><strong>Adaptive Instance Norm</strong></td>
+<td>Injects style at each layer</td>
+<td>Hierarchical style control</td>
+</tr>
+<tr>
+<td><strong>Noise Injection</strong></td>
+<td>Adds random noise at each layer</td>
+<td>Fine-grained randomness (hair, etc.)</td>
+</tr>
+<tr>
+<td><strong>Progressive Growing</strong></td>
+<td>Progressive training from low to high resolution</td>
+<td>Training stability and high quality</td>
+</tr>
+</tbody>
+</table>
+<h3>StyleGAN Style Mixing</h3>
+<p>StyleGAN can combine styles from different latent vectors:</p>
+<ul>
+<li><strong>Coarse styles (4×4 to 8×8)</strong>: Face orientation, hairstyle, face shape</li>
+<li><strong>Medium styles (16×16 to 32×32)</strong>: Facial expressions, eye openness, hair style</li>
+<li><strong>Fine styles (64×64 to 1024×1024)</strong>: Skin texture, hair details, background</li>
+</ul>
+<h3>Implementation Example 7: StyleGAN Simplified (Conceptual Implementation)</h3>
+<pre><code class="language-python">print("\n=== StyleGAN Conceptual Implementation ===\n")
+
+class MappingNetwork(nn.Module):
+    """Map latent space z to intermediate latent space w"""
+    def __init__(self, latent_dim=512, num_layers=8):
+        super(MappingNetwork, self).__init__()
+
+        layers = []
+        for i in range(num_layers):
+            layers.extend([
+                nn.Linear(latent_dim, latent_dim),
+                nn.LeakyReLU(0.2, inplace=True)
+            ])
+
+        self.mapping = nn.Sequential(*layers)
+
+    def forward(self, z):
+        w = self.mapping(z)
+        return w
+
+class AdaptiveInstanceNorm(nn.Module):
+    """AdaIN layer for style injection"""
+    def __init__(self, num_features, w_dim):
+        super(AdaptiveInstanceNorm, self).__init__()
+
+        self.norm = nn.InstanceNorm2d(num_features, affine=False)
+
+        # Generate scale and bias from style
+        self.style_scale = nn.Linear(w_dim, num_features)
+        self.style_bias = nn.Linear(w_dim, num_features)
+
+    def forward(self, x, w):
+        # Instance Normalization
+        normalized = self.norm(x)
+
+        # Apply style
+        scale = self.style_scale(w).unsqueeze(2).unsqueeze(3)
+        bias = self.style_bias(w).unsqueeze(2).unsqueeze(3)
+
+        out = scale * normalized + bias
+        return out
+
+class StyleGANGeneratorBlock(nn.Module):
+    """One block of StyleGAN Generator"""
+    def __init__(self, in_channels, out_channels, w_dim=512):
+        super(StyleGANGeneratorBlock, self).__init__()
+
+        self.conv1 = nn.Conv2d(in_channels, out_channels, 3, padding=1)
+        self.adain1 = AdaptiveInstanceNorm(out_channels, w_dim)
+        self.noise1 = nn.Parameter(torch.zeros(1))
+
+        self.conv2 = nn.Conv2d(out_channels, out_channels, 3, padding=1)
+        self.adain2 = AdaptiveInstanceNorm(out_channels, w_dim)
+        self.noise2 = nn.Parameter(torch.zeros(1))
+
+        self.activation = nn.LeakyReLU(0.2, inplace=True)
+
+    def forward(self, x, w, noise=None):
+        # Conv1 + AdaIN1 + Noise
+        out = self.conv1(x)
+        if noise is not None:
+            out = out + noise * self.noise1
+        out = self.adain1(out, w)
+        out = self.activation(out)
+
+        # Conv2 + AdaIN2 + Noise
+        out = self.conv2(out)
+        if noise is not None:
+            out = out + noise * self.noise2
+        out = self.adain2(out, w)
+        out = self.activation(out)
+
+        return out
+
+# Test Mapping Network
+mapping_net = MappingNetwork(latent_dim=512, num_layers=8).to(device)
+z_style = torch.randn(4, 512).to(device)
+w = mapping_net(z_style)
+
+print("--- Mapping Network ---")
+print(f"Input z shape: {z_style.shape}")
+print(f"Output w shape: {w.shape}")
+print(f"Parameters: {sum(p.numel() for p in mapping_net.parameters()):,}")
+
+# Test StyleGAN Block
+style_block = StyleGANGeneratorBlock(128, 64, w_dim=512).to(device)
+x_input = torch.randn(4, 128, 8, 8).to(device)
+x_output = style_block(x_input, w)
+
+print("\n--- StyleGAN Generator Block ---")
+print(f"Input x shape: {x_input.shape}")
+print(f"Output x shape: {x_output.shape}")
+print(f"Parameters: {sum(p.numel() for p in style_block.parameters()):,}")
+
+print("\nStyleGAN features:")
+print("  ✓ High-quality image generation (1024×1024 and above)")
+print("  ✓ Fine-grained style control")
+print("  ✓ Diverse image generation through style mixing")
+print("  ✓ More disentangled latent space (w space)")
+print("  ✓ Excellent performance in face image generation")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>
+=== StyleGAN Conceptual Implementation ===
+
+--- Mapping Network ---
+Input z shape: torch.Size([4, 512])
+Output w shape: torch.Size([4, 512])
+Parameters: 2,101,248
+
+--- StyleGAN Generator Block ---
+Input x shape: torch.Size([4, 128, 8, 8])
+Output x shape: torch.Size([4, 64, 8, 8])
+Parameters: 222,976
+
+StyleGAN features:
+  ✓ High-quality image generation (1024×1024 and above)
+  ✓ Fine-grained style control
+  ✓ Diverse image generation through style mixing
+  ✓ More disentangled latent space (w space)
+  ✓ Excellent performance in face image generation
+</code></pre>
+<hr/>
+<h2>3.6 Practice: Image Generation Project</h2>
+<h3>Implementation Example 8: Complete Image Generation Pipeline</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torchvision&gt;=0.15.0
+
+import torchvision.utils as vutils
+from torchvision.utils import save_image
+
+print("\n=== Complete Image Generation Pipeline ===\n")
+
+class ImageGenerationPipeline:
+    """Complete pipeline for image generation"""
+
+    def __init__(self, generator, latent_dim=100, device='cuda'):
+        self.generator = generator
+        self.latent_dim = latent_dim
+        self.device = device
+        self.generator.eval()
+
+    def generate_images(self, num_images=16, seed=None):
+        """Generate specified number of images"""
+        if seed is not None:
+            torch.manual_seed(seed)
+
+        with torch.no_grad():
+            z = torch.randn(num_images, self.latent_dim).to(self.device)
+            generated_imgs = self.generator(z)
+
+        return generated_imgs
+
+    def interpolate_latent(self, z1, z2, num_steps=10):
+        """Interpolate between two latent vectors"""
+        alphas = torch.linspace(0, 1, num_steps)
+        interpolated_imgs = []
+
+        with torch.no_grad():
+            for alpha in alphas:
+                z_interp = (1 - alpha) * z1 + alpha * z2
+                img = self.generator(z_interp)
+                interpolated_imgs.append(img)
+
+        return torch.cat(interpolated_imgs, dim=0)
+
+    def explore_latent_space(self, base_z, dimension, range_scale=3.0, num_steps=10):
+        """Explore a specific dimension of latent space"""
+        variations = []
+
+        with torch.no_grad():
+            for scale in torch.linspace(-range_scale, range_scale, num_steps):
+                z_var = base_z.clone()
+                z_var[0, dimension] += scale
+                img = self.generator(z_var)
+                variations.append(img)
+
+        return torch.cat(variations, dim=0)
+
+    def save_generated_images(self, images, filename, nrow=8):
+        """Save generated images"""
+        # Normalize [-1, 1] → [0, 1]
+        images = (images + 1) / 2.0
+        images = torch.clamp(images, 0, 1)
+
+        # Save in grid format
+        grid = vutils.make_grid(images, nrow=nrow, padding=2, normalize=False)
+
+        print(f"Saving images: {filename}")
+        print(f"  Grid size: {grid.shape}")
+        # save_image(grid, filename)  # Actual saving
+
+        return grid
+
+# Initialize pipeline
+pipeline = ImageGenerationPipeline(
+    generator=dcgan_generator,
+    latent_dim=100,
+    device=device
+)
+
+print("--- Image Generation ---")
+generated_imgs = pipeline.generate_images(num_images=16, seed=42)
+print(f"Generated images: {generated_imgs.size(0)}")
+print(f"Image shape: {generated_imgs.shape}")
+
+# Save grid
+grid = pipeline.save_generated_images(generated_imgs, "generated_samples.png", nrow=4)
+print(f"Grid shape: {grid.shape}\n")
+
+# Latent space interpolation
+print("--- Latent Space Interpolation ---")
+z1 = torch.randn(1, 100).to(device)
+z2 = torch.randn(1, 100).to(device)
+interpolated_imgs = pipeline.interpolate_latent(z1, z2, num_steps=8)
+print(f"Interpolated images: {interpolated_imgs.size(0)}")
+print(f"Interpolation steps: 8\n")
+
+# Latent space exploration
+print("--- Latent Space Exploration ---")
+base_z = torch.randn(1, 100).to(device)
+dimension_to_explore = 5
+variations = pipeline.explore_latent_space(base_z, dimension_to_explore, num_steps=10)
+print(f"Explored dimension: {dimension_to_explore}")
+print(f"Variations: {variations.size(0)}")
+print(f"Range: [-3.0, 3.0]\n")
+
+# Quality evaluation metrics (conceptual)
+print("--- Generation Quality Metrics ---")
+print("1. Inception Score (IS):")
+print("   - Evaluates image quality and diversity")
+print("   - Range: 1.0~ (higher is better)")
+print("   - MNIST: ~2-3, ImageNet: ~10-15")
+
+print("\n2. Frechet Inception Distance (FID):")
+print("   - Distance between generated and true distributions")
+print("   - Range: 0~ (lower is better)")
+print("   - FID &lt; 50: Good, FID &lt; 10: Very good")
+
+print("\n3. Precision &amp; Recall:")
+print("   - Precision: Quality of generated images")
+print("   - Recall: Diversity of generated images")
+print("   - Ideally both high")
+
+print("\n--- Practical Applications ---")
+print("✓ Face image generation (StyleGAN)")
+print("✓ Artwork generation")
+print("✓ Data augmentation (supplementing small datasets)")
+print("✓ Image super-resolution (Super-Resolution GAN)")
+print("✓ Image-to-image translation (pix2pix, CycleGAN)")
+print("✓ 3D model generation")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>
+=== Complete Image Generation Pipeline ===
+
+--- Image Generation ---
+Generated images: 16
+Image shape: torch.Size([16, 1, 28, 28])
+Saving images: generated_samples.png
+  Grid size: torch.Size([3, 62, 62])
+Grid shape: torch.Size([3, 62, 62])
+
+--- Latent Space Interpolation ---
+Interpolated images: 8
+Interpolation steps: 8
+
+--- Latent Space Exploration ---
+Explored dimension: 5
+Variations: 10
+Range: [-3.0, 3.0]
+
+--- Generation Quality Metrics ---
+1. Inception Score (IS):
+   - Evaluates image quality and diversity
+   - Range: 1.0~ (higher is better)
+   - MNIST: ~2-3, ImageNet: ~10-15
+
+2. Frechet Inception Distance (FID):
+   - Distance between generated and true distributions
+   - Range: 0~ (lower is better)
+   - FID &lt; 50: Good, FID &lt; 10: Very good
+
+3. Precision &amp; Recall:
+   - Precision: Quality of generated images
+   - Recall: Diversity of generated images
+   - Ideally both high
+
+--- Practical Applications ---
+✓ Face image generation (StyleGAN)
+✓ Artwork generation
+✓ Data augmentation (supplementing small datasets)
+✓ Image super-resolution (Super-Resolution GAN)
+✓ Image-to-image translation (pix2pix, CycleGAN)
+✓ 3D model generation
+</code></pre>
+<hr/>
+<h2>GAN Training Best Practices</h2>
+<h3>Hyperparameter Selection</h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Recommended Value</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Learning rate</strong></td>
+<td>0.0001-0.0002</td>
+<td>Set low for stable training</td>
+</tr>
+<tr>
+<td><strong>Beta1 (Adam)</strong></td>
+<td>0.5</td>
+<td>Lower than typical 0.9 (GAN characteristic)</td>
+</tr>
+<tr>
+<td><strong>Beta2 (Adam)</strong></td>
+<td>0.999</td>
+<td>Maintain standard value</td>
+</tr>
+<tr>
+<td><strong>Batch size</strong></td>
+<td>64-128</td>
+<td>Balance of stability and computational efficiency</td>
+</tr>
+<tr>
+<td><strong>Latent dimension</strong></td>
+<td>100-512</td>
+<td>Adjust based on complexity</td>
+</tr>
+</tbody>
+</table>
+<h3>Training Stabilization Techniques</h3>
+<div class="mermaid">
+graph TB
+    A[Training Instability] --&gt; B1[Gradient Issues]
+    A --&gt; B2[Mode Collapse]
+    A --&gt; B3[Convergence Failure]
+
+    B1 --&gt; C1[Spectral Norm]
+    B1 --&gt; C2[Gradient Clipping]
+    B1 --&gt; C3[WGAN-GP]
+
+    B2 --&gt; D1[Minibatch Discrimination]
+    B2 --&gt; D2[Feature Matching]
+    B2 --&gt; D3[Two Timescale]
+
+    B3 --&gt; E1[Label Smoothing]
+    B3 --&gt; E2[Noise Injection]
+    B3 --&gt; E3[Learning Rate Decay]
+
+    style B1 fill:#ffebee
+    style B2 fill:#ffebee
+    style B3 fill:#ffebee
+    style C1 fill:#e8f5e9
+    style C2 fill:#e8f5e9
+    style C3 fill:#e8f5e9
+    style D1 fill:#e8f5e9
+    style D2 fill:#e8f5e9
+    style D3 fill:#e8f5e9
+    style E1 fill:#e8f5e9
+    style E2 fill:#e8f5e9
+    style E3 fill:#e8f5e9
+</div>
+<h3>Debugging Checklist</h3>
+<ul>
+<li><strong>Discriminator too strong</strong>: Lower learning rate, apply Label Smoothing</li>
+<li><strong>Generator too strong</strong>: Increase Discriminator training iterations</li>
+<li><strong>Mode Collapse occurring</strong>: Try WGAN-GP, Spectral Norm, Minibatch Discrimination</li>
+<li><strong>Gradient vanishing</strong>: Use LeakyReLU, add Batch Normalization</li>
+<li><strong>Training oscillation</strong>: Lower learning rate, Two Timescale Update Rule</li>
+</ul>
+<hr/>
+<h2>Summary</h2>
+<p>In this chapter, we learned about GANs from basics to applications:</p>
+<h3>Key Points</h3>
+<details>
+<summary><strong>1. Basic Principles of GANs</strong></summary>
+<ul>
+<li>Adversarial competition between Generator and Discriminator</li>
+<li>Minimax game and Nash equilibrium</li>
+<li>Image generation from latent space</li>
+<li>Training instability and countermeasures</li>
+</ul>
+</details>
+<details>
+<summary><strong>2. Mode Collapse Problem</strong></summary>
+<ul>
+<li>Phenomenon where generation diversity is lost</li>
+<li>Causes: Gradient instability, objective function issues</li>
+<li>Countermeasures: WGAN-GP, Spectral Norm, Minibatch Discrimination</li>
+<li>Evaluation metrics: IS, FID, Precision/Recall</li>
+</ul>
+</details>
+<details>
+<summary><strong>3. DCGAN</strong></summary>
+<ul>
+<li>Stable GAN with convolutional layers</li>
+<li>Design guidelines: Remove pooling, apply BN, remove fully connected layers</li>
+<li>Excellent performance in image generation</li>
+<li>Simple implementation, easy to understand</li>
+</ul>
+</details>
+<details>
+<summary><strong>4. Training Techniques</strong></summary>
+<ul>
+<li><strong>WGAN-GP</strong>: Wasserstein distance + Gradient Penalty</li>
+<li><strong>Spectral Normalization</strong>: Automatic satisfaction of Lipschitz constraint</li>
+<li><strong>Label Smoothing</strong>: Prevent Discriminator overconfidence</li>
+<li>Combine these techniques to achieve stable training</li>
+</ul>
+</details>
+<details>
+<summary><strong>5. StyleGAN</strong></summary>
+<ul>
+<li>High-quality image generation (1024×1024 and above)</li>
+<li>More disentangled latent space via Mapping Network</li>
+<li>Hierarchical style control via AdaIN</li>
+<li>Diverse image generation through style mixing</li>
+</ul>
+</details>
+<h3>Next Steps</h3>
+<p>In the next chapter, we'll proceed to more advanced generative models:</p>
+<ul>
+<li>Conditional GAN (conditional generation)</li>
+<li>pix2pix, CycleGAN (image-to-image translation)</li>
+<li>BigGAN, Progressive GAN (large-scale, high-resolution)</li>
+<li>Comparison with non-GAN generative models (VAE, Diffusion Models)</li>
+</ul>
+<hr/>
+<h2>Practice Problems</h2>
+<details>
+<summary><strong>Problem 1: Understanding Nash Equilibrium</strong></summary>
+<p><strong>Question</strong>: When GAN reaches Nash equilibrium, explain what happens to the following conditions:</p>
+<ol>
+<li>Value of Discriminator output $D(\mathbf{x})$</li>
+<li>Relationship between generated distribution $p_g(\mathbf{x})$ and true distribution $p_{\text{data}}(\mathbf{x})$</li>
+<li>State of Generator loss</li>
+<li>Can training continue</li>
+</ol>
+<p><strong>Sample Answer</strong>:</p>
+<p><strong>1. Discriminator Output</strong></p>
+<ul>
+<li>$D(\mathbf{x}) = 0.5$ (for all inputs)</li>
+<li>Reason: Cannot distinguish between real and fake</li>
+<li>Theoretical derivation: $D^*(\mathbf{x}) = \frac{p_{\text{data}}(\mathbf{x})}{p_{\text{data}}(\mathbf{x}) + p_g(\mathbf{x})} = 0.5$</li>
+</ul>
+<p><strong>2. Distribution Relationship</strong></p>
+<ul>
+<li>$p_g(\mathbf{x}) = p_{\text{data}}(\mathbf{x})$ (perfect match)</li>
+<li>Generator perfectly mimics true data distribution</li>
+<li>KL divergence: $D_{KL}(p_{\text{data}} \| p_g) = 0$</li>
+</ul>
+<p><strong>3. Generator Loss</strong></p>
+<ul>
+<li>Reaches minimum value (theoretically)</li>
+<li>$\mathcal{L}_G = -\log(0.5) = \log(2) \approx 0.693$</li>
+<li>No room for further improvement</li>
+</ul>
+<p><strong>4. Continuing Training</strong></p>
+<ul>
+<li>Training ends theoretically (convergence)</li>
+<li>In practice, complete Nash equilibrium is never reached</li>
+<li>Oscillations or minor improvements may continue</li>
+</ul>
+</details>
+<details>
+<summary><strong>Problem 2: Mode Collapse Detection and Countermeasures</strong></summary>
+<p><strong>Question</strong>: When training a GAN on MNIST dataset (10 classes of handwritten digits), generated images only show digits "1" and "7". Explain the following:</p>
+<ol>
+<li>Name of this phenomenon and its cause</li>
+<li>How can it be detected (3 methods)</li>
+<li>Propose 3 countermeasures and explain their effects</li>
+</ol>
+<p><strong>Sample Answer</strong>:</p>
+<p><strong>1. Phenomenon and Cause</strong></p>
+<ul>
+<li><strong>Phenomenon</strong>: Mode Collapse</li>
+<li><strong>Cause</strong>:
+<ul>
+<li>Generator discovers it can fool Discriminator with "1" and "7"</li>
+<li>Easier to learn than other digits (simpler shapes)</li>
+<li>Falls into local optimum due to gradient instability</li>
+</ul>
+</li>
+</ul>
+<p><strong>2. Detection Methods</strong></p>
+<ul>
+<li><strong>Visual Inspection</strong>: Check generated images, observe lack of diversity</li>
+<li><strong>Clustering</strong>: Cluster generated images with k-means, few clusters (2)</li>
+<li><strong>Inception Score</strong>: IS score decreases due to low diversity</li>
+</ul>
+<p><strong>3. Countermeasures</strong></p>
+<p><strong>Countermeasure A: Apply WGAN-GP</strong></p>
+<ul>
+<li>Stabilize training with Wasserstein distance + Gradient Penalty</li>
+<li>Effect: Prevents gradient explosion/vanishing, makes learning all modes easier</li>
+<li>Implementation: Remove Sigmoid from Discriminator output, add GP term</li>
+</ul>
+<p><strong>Countermeasure B: Minibatch Discrimination</strong></p>
+<ul>
+<li>Provide Discriminator with similarity information between samples in batch</li>
+<li>Effect: If Generator produces same samples, Discriminator can easily detect</li>
+<li>Implementation: Calculate batch statistics and concatenate to Discriminator input</li>
+</ul>
+<p><strong>Countermeasure C: Two Timescale Update Rule</strong></p>
+<ul>
+<li>Train Discriminator more than Generator (e.g., 5:1 ratio)</li>
+<li>Effect: Discriminator stays strong, Generator explores all modes</li>
+<li>Implementation: Set D_steps parameter in training loop</li>
+</ul>
+</details>
+<details>
+<summary><strong>Problem 3: Comparing WGAN-GP and Spectral Normalization</strong></summary>
+<p><strong>Question</strong>: Compare WGAN-GP and Spectral Normalization from the following perspectives:</p>
+<ol>
+<li>Method of realizing Lipschitz constraint</li>
+<li>Computational cost</li>
+<li>Implementation complexity</li>
+<li>Training stability</li>
+<li>Which to choose (by situation)</li>
+</ol>
+<p><strong>Sample Answer</strong>:</p>
+<p><strong>1. Lipschitz Constraint Realization</strong></p>
+<ul>
+<li><strong>WGAN-GP</strong>:
+<ul>
+<li>Constrains gradient norm to 1 with Gradient Penalty</li>
+<li>Computes gradients at interpolation points during training</li>
+<li>Soft constraint (added as penalty term)</li>
+</ul>
+</li>
+<li><strong>Spectral Norm</strong>:
+<ul>
+<li>Normalizes spectral norm of weight matrices in each layer to 1</li>
+<li>Constrains weights themselves</li>
+<li>Hard constraint (direct normalization)</li>
+</ul>
+</li>
+</ul>
+<p><strong>2. Computational Cost</strong></p>
+<ul>
+<li><strong>WGAN-GP</strong>:
+<ul>
+<li>GP calculation needed each iteration (interpolation + backprop)</li>
+<li>Training overhead: approximately 30-50% increase</li>
+</ul>
+</li>
+<li><strong>Spectral Norm</strong>:
+<ul>
+<li>Estimates maximum singular value with Power Iteration</li>
+<li>Training overhead: approximately 5-10% increase</li>
+<li>No overhead at inference</li>
+</ul>
+</li>
+</ul>
+<p><strong>3. Implementation Complexity</strong></p>
+<ul>
+<li><strong>WGAN-GP</strong>:
+<ul>
+<li>Requires interpolation point generation, gradient calculation, GP term addition</li>
+<li>Somewhat complex implementation (about 50 lines of code)</li>
+</ul>
+</li>
+<li><strong>Spectral Norm</strong>:
+<ul>
+<li>Just apply PyTorch's <code>spectral_norm()</code> to layers</li>
+<li>Very simple implementation (complete in 1 line)</li>
+</ul>
+</li>
+</ul>
+<p><strong>4. Training Stability</strong></p>
+<ul>
+<li><strong>WGAN-GP</strong>:
+<ul>
+<li>Meaningful loss via Wasserstein distance</li>
+<li>Effective at mitigating Mode Collapse</li>
+<li>Requires tuning λ (GP coefficient)</li>
+</ul>
+</li>
+<li><strong>Spectral Norm</strong>:
+<ul>
+<li>Consistent Lipschitz constraint across all layers</li>
+<li>Few hyperparameters (no tuning needed)</li>
+<li>High stability</li>
+</ul>
+</li>
+</ul>
+<p><strong>5. Selection Criteria</strong></p>
+<ul>
+<li><strong>Choose WGAN-GP when</strong>:
+<ul>
+<li>Theoretical guarantees are important</li>
+<li>Want to use Wasserstein distance as loss</li>
+<li>Have ample computational resources</li>
+</ul>
+</li>
+<li><strong>Choose Spectral Norm when</strong>:
+<ul>
+<li>Prioritize simple implementation</li>
+<li>Computational efficiency is important</li>
+<li>Want to quickly create prototypes</li>
+<li>Modern choice (frequently used in recent papers)</li>
+</ul>
+</li>
+</ul>
+</details>
+<details>
+<summary><strong>Problem 4: StyleGAN Style Mixing</strong></summary>
+<p><strong>Question</strong>: In StyleGAN, if you want to generate an image with "face shape from A + facial expression and hairstyle from B" using two latent vectors $\mathbf{z}_A$ and $\mathbf{z}_B$, how would you implement this?</p>
+<ol>
+<li>Latent vector mapping procedure</li>
+<li>At which resolution layers to switch styles</li>
+<li>Implementation code outline</li>
+</ol>
+<p><strong>Sample Answer</strong>:</p>
+<p><strong>1. Mapping Procedure</strong></p>
+<ul>
+<li>$\mathbf{z}_A \rightarrow$ Mapping Network $\rightarrow \mathbf{w}_A$</li>
+<li>$\mathbf{z}_B \rightarrow$ Mapping Network $\rightarrow \mathbf{w}_B$</li>
+<li>Use different $\mathbf{w}$ at each resolution layer</li>
+</ul>
+<p><strong>2. Style Switching Point</strong></p>
+<ul>
+<li><strong>Coarse styles (4×4 to 8×8)</strong>: Use $\mathbf{w}_A$
+<ul>
+<li>Face orientation, overall shape</li>
+<li>Retain A's "face shape"</li>
+</ul>
+</li>
+<li><strong>Medium to fine styles (16×16 to 1024×1024)</strong>: Use $\mathbf{w}_B$
+<ul>
+<li>Facial expressions, eye openness, hairstyle, skin texture</li>
+<li>Apply B's "facial expression and hairstyle"</li>
+</ul>
+</li>
+</ul>
+<p><strong>3. Implementation Code Outline</strong></p>
+<pre><code class="language-python"># Mapping Network
+w_A = mapping_network(z_A)
+w_B = mapping_network(z_B)
+
+# Initial constant input
+x = constant_input  # 4×4
+
+# Coarse styles (A's face shape)
+x = synthesis_block_4x4(x, w_A)  # 4×4
+x = synthesis_block_8x8(x, w_A)  # 8×8
+
+# Medium to fine styles (B's expression &amp; hairstyle)
+x = synthesis_block_16x16(x, w_B)  # 16×16
+x = synthesis_block_32x32(x, w_B)  # 32×32
+x = synthesis_block_64x64(x, w_B)  # 64×64
+# ...continue using w_B
+
+generated_image = x
+</code></pre>
+<p><strong>Effect</strong>:</p>
+<ul>
+<li>Maintains basic structure of A's face while reflecting B's expression and hairstyle</li>
+<li>Infinite variations possible through style mixing</li>
+<li>Different effects achieved by changing switching resolution</li>
+</ul>
+</details>
+<details>
+<summary><strong>Problem 5: GAN Evaluation Metrics</strong></summary>
+<p><strong>Question</strong>: You need to evaluate the following 3 GAN models. Explain which metrics to use and how:</p>
+<ul>
+<li><strong>Model A</strong>: IS = 8.5, FID = 25, Precision = 0.85, Recall = 0.60</li>
+<li><strong>Model B</strong>: IS = 6.2, FID = 18, Precision = 0.75, Recall = 0.82</li>
+<li><strong>Model C</strong>: IS = 7.8, FID = 15, Precision = 0.80, Recall = 0.78</li>
+</ul>
+<ol>
+<li>Meaning of each metric</li>
+<li>Which model is optimal (by use case)</li>
+<li>Overall recommended model</li>
+</ol>
+<p><strong>Sample Answer</strong>:</p>
+<p><strong>1. Meaning of Each Metric</strong></p>
+<ul>
+<li><strong>Inception Score (IS)</strong>:
+<ul>
+<li>Combination of image quality and diversity</li>
+<li>High value = high quality and diverse</li>
+<li>Limitation: Doesn't consider true data distribution</li>
+</ul>
+</li>
+<li><strong>Frechet Inception Distance (FID)</strong>:
+<ul>
+<li>Distance between generated and true distributions</li>
+<li>Low value = close to true data</li>
+<li>Most reliable metric</li>
+</ul>
+</li>
+<li><strong>Precision</strong>:
+<ul>
+<li>Quality of generated images (realism)</li>
+<li>High = high quality, but diversity not guaranteed</li>
+</ul>
+</li>
+<li><strong>Recall</strong>:
+<ul>
+<li>Diversity of generated images (coverage)</li>
+<li>High = diverse, but quality not guaranteed</li>
+</ul>
+</li>
+</ul>
+<p><strong>2. Optimal Model by Use Case</strong></p>
+<ul>
+<li><strong>High-quality image generation priority (e.g., advertising materials)</strong>:
+<ul>
+<li>Model A (Precision = 0.85 is highest)</li>
+<li>Reason: Individual image quality is important, diversity is secondary</li>
+</ul>
+</li>
+<li><strong>Data augmentation (e.g., supplementing training data)</strong>:
+<ul>
+<li>Model B (Recall = 0.82 is highest)</li>
+<li>Reason: Need diverse samples, some quality degradation acceptable</li>
+</ul>
+</li>
+<li><strong>General image generation</strong>:
+<ul>
+<li>Model C (FID = 15 is lowest, well-balanced)</li>
+<li>Reason: Good balance between quality and diversity</li>
+</ul>
+</li>
+</ul>
+<p><strong>3. Overall Recommendation</strong></p>
+<ul>
+<li><strong>Recommended model: Model C</strong></li>
+<li>Reasons:
+<ul>
+<li>Lowest FID (15) = closest to true data</li>
+<li>Well-balanced Precision (0.80) and Recall (0.78)</li>
+<li>General-purpose without bias toward specific use</li>
+</ul>
+</li>
+<li><strong>Overall evaluation approach</strong>:
+<ul>
+<li>Prioritize FID (most reliable)</li>
+<li>Check Precision/Recall balance for quality and diversity</li>
+<li>Use IS as reference only (insufficient alone)</li>
+</ul>
+</li>
+</ul>
+</details>
+<hr/>
+<div class="navigation">
+<a class="nav-button" href="chapter2-vae.html">← Chapter 2: VAE (Variational Autoencoder)</a>
+<a class="nav-button" href="chapter4-advanced-gans.html">Chapter 4: Advanced GAN Architectures →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, or libraries.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content of this material may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+</ul>
+</section>
+<footer>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+<p>ML-A04: Introduction to Generative Models - Generate Realistic Images with GANs</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 1: Fundamentals of Ontology and Semantic Web - Introduction to Process Ontology | PI Knowledge Hub" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Chapter 1: Fundamentals of Ontology and Semantic Web - Process Knowledge Representation using RDF, RDFS, and SPARQL" name="description"/>
+<title>Chapter 1: Fundamentals of Ontology and Semantic Web - Introduction to Process Ontology | PI Knowledge Hub</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<!-- Mermaid for diagrams -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../PI/index.html">Process Informatics</a><span class="breadcrumb-separator">›</span><a href="../../PI/process-ontology-kg/index.html">Process Ontology KG</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 1</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/PI/process-ontology-kg/chapter-1.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="container">
+<h1>Chapter 1: Fundamentals of Ontology and Semantic Web</h1>
+<p class="subtitle">Structuring Process Knowledge with RDF, RDFS, and SPARQL</p>
+<div class="meta">
+<span class="meta">📖 Reading time: 25-30 minutes</span>
+<span class="meta">💻 Code examples: 7</span>
+<span class="meta">📊 Difficulty: Advanced</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter covers the fundamentals of Fundamentals of Ontology and Semantic Web, which forms the foundation of this area. You will learn concept of RDFS hierarchical structure, Know the basic syntax of SPARQL queries, and role of namespaces.</p>
+<section>
+<h2>1.1 Fundamentals of RDF (Resource Description Framework)</h2>
+<p>RDF, the foundational technology of the Semantic Web, expresses information as triples consisting of "Subject," "Predicate," and "Object." This structure enables the description of complex knowledge about chemical processes in a machine-readable format.</p>
+<div class="info-box">
+<p><strong>💡 Structure of RDF Triples</strong></p>
+<ul>
+<li><strong>Subject</strong>: The resource being described (e.g., Reactor R-101)</li>
+<li><strong>Predicate</strong>: The relationship between resources (e.g., hasTemperature)</li>
+<li><strong>Object</strong>: A value or resource (e.g., 350°C)</li>
+</ul>
+</div>
+<h3>Example 1: Building Basic RDF Graphs with rdflib</h3>
+<p>Express basic information about a chemical reactor using RDF triples.</p>
+<pre><code># ===================================
+# Example 1: Basic RDF Graph Construction
+# ===================================
+
+from rdflib import Graph, Namespace, Literal, URIRef
+from rdflib.namespace import RDF, RDFS, XSD
+
+# Define namespaces
+PROC = Namespace("http://example.org/process/")
+UNIT = Namespace("http://example.org/unit/")
+
+# Create graph
+g = Graph()
+g.bind("proc", PROC)
+g.bind("unit", UNIT)
+
+# Add triples (Reactor R-101 information)
+reactor = PROC["R-101"]
+
+# Basic attributes
+g.add((reactor, RDF.type, PROC.Reactor))
+g.add((reactor, RDFS.label, Literal("Continuous Stirred Tank Reactor", lang="en")))
+g.add((reactor, PROC.hasTemperature, Literal(350, datatype=XSD.double)))
+g.add((reactor, PROC.hasPressure, Literal(5.0, datatype=XSD.double)))
+g.add((reactor, PROC.hasVolume, Literal(10.0, datatype=XSD.double)))
+g.add((reactor, PROC.unit, UNIT.degC))
+
+# Input streams to reactor
+g.add((reactor, PROC.hasInput, PROC["Stream-01"]))
+g.add((PROC["Stream-01"], RDFS.label, Literal("Raw Material Feed")))
+g.add((PROC["Stream-01"], PROC.flowRate, Literal(100.0, datatype=XSD.double)))
+
+# Output streams from reactor
+g.add((reactor, PROC.hasOutput, PROC["Stream-02"]))
+g.add((PROC["Stream-02"], RDFS.label, Literal("Reaction Product")))
+
+# Serialize in Turtle format (human-readable)
+print("=== Turtle Format ===")
+print(g.serialize(format="turtle"))
+
+# Check number of triples
+print(f"\nTotal triples: {len(g)}")
+
+# Query for specific predicate
+print("\n=== Retrieving Temperature Information ===")
+for s, p, o in g.triples((None, PROC.hasTemperature, None)):
+    print(f"{s} temperature: {o}°C")
+</code></pre>
+<div class="example-output">
+<strong>Output example:</strong><br/>
+                === Turtle Format ===<br/>
+                @prefix proc: &lt;http://example.org/process/&gt; .<br/>
+                @prefix rdfs: &lt;http://www.w3.org/2000/01/rdf-schema#&gt; .<br/>
+<br/>
+                proc:R-101 a proc:Reactor ;<br/>
+                    rdfs:label "Continuous Stirred Tank Reactor"@en ;<br/>
+                    proc:hasTemperature 350.0 ;<br/>
+                    proc:hasPressure 5.0 .<br/>
+<br/>
+                Total triples: 11<br/>
+                http://example.org/process/R-101 temperature: 350.0°C
+            </div>
+<h3>Example 2: Converting Between RDF/XML and Turtle Notation</h3>
+<p>Implement conversion between different serialization formats.</p>
+<pre><code># ===================================
+# Example 2: Serialization Format Conversion
+# ===================================
+
+from rdflib import Graph, Namespace, Literal
+from rdflib.namespace import RDF, RDFS
+
+# RDF graph for distillation column
+g = Graph()
+PROC = Namespace("http://example.org/process/")
+g.bind("proc", PROC)
+
+# Distillation column D-201 information
+column = PROC["D-201"]
+g.add((column, RDF.type, PROC.DistillationColumn))
+g.add((column, RDFS.label, Literal("Distillation Column D-201", lang="en")))
+g.add((column, PROC.numberOfTrays, Literal(30)))
+g.add((column, PROC.refluxRatio, Literal(2.5)))
+g.add((column, PROC.feedTray, Literal(15)))
+
+# RDF/XML format
+print("=== RDF/XML Format ===")
+rdfxml = g.serialize(format="xml")
+print(rdfxml)
+
+# Turtle format
+print("\n=== Turtle Format ===")
+turtle = g.serialize(format="turtle")
+print(turtle)
+
+# N-Triples format (simplest)
+print("\n=== N-Triples Format ===")
+ntriples = g.serialize(format="nt")
+print(ntriples)
+
+# JSON-LD format (convenient for Web APIs)
+print("\n=== JSON-LD Format ===")
+jsonld = g.serialize(format="json-ld", indent=2)
+print(jsonld)
+
+# Save to file
+g.serialize(destination="distillation_column.ttl", format="turtle")
+print("\n✓ File saved in Turtle format: distillation_column.ttl")
+
+# Load from file
+g_loaded = Graph()
+g_loaded.parse("distillation_column.ttl", format="turtle")
+print(f"✓ Loading complete: {len(g_loaded)} triples")
+</code></pre>
+<div class="example-output">
+<strong>Output example:</strong><br/>
+                === Turtle Format ===<br/>
+                proc:D-201 a proc:DistillationColumn ;<br/>
+                    rdfs:label "Distillation Column D-201"@en ;<br/>
+                    proc:numberOfTrays 30 ;<br/>
+                    proc:refluxRatio 2.5 ;<br/>
+                    proc:feedTray 15 .<br/>
+<br/>
+                ✓ File saved in Turtle format<br/>
+                ✓ Loading complete: 5 triples
+            </div>
+</section>
+<section>
+<h2>1.2 Class Hierarchy with RDFS (RDF Schema)</h2>
+<p>RDFS extends RDF and enables the definition of hierarchical structures for classes and properties. This is an important concept for building classification systems for chemical process equipment.</p>
+<h3>Example 3: Defining RDFS Hierarchical Structure</h3>
+<p>Define class hierarchy and properties for chemical equipment.</p>
+<pre><code># ===================================
+# Example 3: Defining RDFS Hierarchical Structure
+# ===================================
+
+from rdflib import Graph, Namespace, Literal
+from rdflib.namespace import RDF, RDFS
+
+g = Graph()
+PROC = Namespace("http://example.org/process/")
+g.bind("proc", PROC)
+
+# ===== Define Class Hierarchy =====
+
+# Top-level class: ProcessEquipment
+g.add((PROC.ProcessEquipment, RDF.type, RDFS.Class))
+g.add((PROC.ProcessEquipment, RDFS.label, Literal("Process Equipment")))
+
+# Subclass definitions
+# Reactor
+g.add((PROC.Reactor, RDF.type, RDFS.Class))
+g.add((PROC.Reactor, RDFS.subClassOf, PROC.ProcessEquipment))
+g.add((PROC.Reactor, RDFS.label, Literal("Reactor")))
+
+# HeatExchanger
+g.add((PROC.HeatExchanger, RDF.type, RDFS.Class))
+g.add((PROC.HeatExchanger, RDFS.subClassOf, PROC.ProcessEquipment))
+g.add((PROC.HeatExchanger, RDFS.label, Literal("Heat Exchanger")))
+
+# Separator
+g.add((PROC.Separator, RDF.type, RDFS.Class))
+g.add((PROC.Separator, RDFS.subClassOf, PROC.ProcessEquipment))
+g.add((PROC.Separator, RDFS.label, Literal("Separator")))
+
+# Further subclass: DistillationColumn
+g.add((PROC.DistillationColumn, RDF.type, RDFS.Class))
+g.add((PROC.DistillationColumn, RDFS.subClassOf, PROC.Separator))
+g.add((PROC.DistillationColumn, RDFS.label, Literal("Distillation Column")))
+
+# ===== Property Definitions =====
+
+# hasInput
+g.add((PROC.hasInput, RDF.type, RDF.Property))
+g.add((PROC.hasInput, RDFS.domain, PROC.ProcessEquipment))
+g.add((PROC.hasInput, RDFS.range, PROC.Stream))
+g.add((PROC.hasInput, RDFS.label, Literal("Input")))
+
+# hasOutput
+g.add((PROC.hasOutput, RDF.type, RDF.Property))
+g.add((PROC.hasOutput, RDFS.domain, PROC.ProcessEquipment))
+g.add((PROC.hasOutput, RDFS.range, PROC.Stream))
+g.add((PROC.hasOutput, RDFS.label, Literal("Output")))
+
+# hasTemperature
+g.add((PROC.hasTemperature, RDF.type, RDF.Property))
+g.add((PROC.hasTemperature, RDFS.domain, PROC.ProcessEquipment))
+g.add((PROC.hasTemperature, RDFS.label, Literal("Temperature")))
+
+# ===== Create Instances =====
+reactor = PROC["R-101"]
+g.add((reactor, RDF.type, PROC.Reactor))
+g.add((reactor, RDFS.label, Literal("CSTR Reactor")))
+
+# Visualize class hierarchy
+print("=== Class Hierarchy ===")
+for subclass in g.subjects(RDFS.subClassOf, None):
+    for superclass in g.objects(subclass, RDFS.subClassOf):
+        sub_label = g.value(subclass, RDFS.label)
+        super_label = g.value(superclass, RDFS.label)
+        print(f"{sub_label} → {super_label}")
+
+# List of properties
+print("\n=== Property List ===")
+for prop in g.subjects(RDF.type, RDF.Property):
+    label = g.value(prop, RDFS.label)
+    domain = g.value(prop, RDFS.domain)
+    range_val = g.value(prop, RDFS.range)
+    print(f"- {label}: {domain} → {range_val}")
+
+print(f"\nTotal triples: {len(g)}")
+print(g.serialize(format="turtle"))
+</code></pre>
+<div class="example-output">
+<strong>Output example:</strong><br/>
+                === Class Hierarchy ===<br/>
+                Reactor → Process Equipment<br/>
+                Heat Exchanger → Process Equipment<br/>
+                Separator → Process Equipment<br/>
+                Distillation Column → Separator<br/>
+<br/>
+                === Property List ===<br/>
+                - Input: ProcessEquipment → Stream<br/>
+                - Output: ProcessEquipment → Stream<br/>
+                - Temperature: ProcessEquipment → (undefined)<br/>
+<br/>
+                Total triples: 28
+            </div>
+</section>
+<section>
+<h2>1.3 SPARQL Query Fundamentals</h2>
+<p>SPARQL is a query language for RDF graphs. With SQL-like syntax, it enables complex pattern matching and knowledge extraction.</p>
+<h3>Example 4: SPARQL SELECT Queries</h3>
+<p>Extract information about process equipment.</p>
+<pre><code># ===================================
+# Example 4: SPARQL SELECT Queries
+# ===================================
+
+from rdflib import Graph, Namespace, Literal
+from rdflib.namespace import RDF, RDFS, XSD
+
+# Create sample data
+g = Graph()
+PROC = Namespace("http://example.org/process/")
+g.bind("proc", PROC)
+
+# Multiple reactor data
+reactors = [
+    ("R-101", "CSTR Reactor", 350, 5.0, 100),
+    ("R-102", "PFR Reactor", 400, 8.0, 150),
+    ("R-103", "Batch Reactor", 320, 3.0, 80),
+]
+
+for id, label, temp, press, flow in reactors:
+    reactor = PROC[id]
+    g.add((reactor, RDF.type, PROC.Reactor))
+    g.add((reactor, RDFS.label, Literal(label, lang="en")))
+    g.add((reactor, PROC.hasTemperature, Literal(temp, datatype=XSD.double)))
+    g.add((reactor, PROC.hasPressure, Literal(press, datatype=XSD.double)))
+    g.add((reactor, PROC.flowRate, Literal(flow, datatype=XSD.double)))
+
+# ===== Execute SPARQL Queries =====
+
+# Query 1: Basic information for all reactors
+query1 = """
+PREFIX proc: <http: example.org="" process=""></http:>
+PREFIX rdfs: <http: 01="" 2000="" rdf-schema#="" www.w3.org="">
+
+SELECT ?reactor ?label ?temp ?press
+WHERE {
+    ?reactor a proc:Reactor .
+    ?reactor rdfs:label ?label .
+    ?reactor proc:hasTemperature ?temp .
+    ?reactor proc:hasPressure ?press .
+}
+ORDER BY DESC(?temp)
+"""
+
+print("=== Query 1: All Reactors (Descending Temperature) ===")
+results1 = g.query(query1)
+for row in results1:
+    print(f"{row.label}: {row.temp}°C, {row.press}bar")
+
+# Query 2: Conditional search (temperature &gt; 340°C and pressure &gt; 4bar)
+query2 = """
+PREFIX proc: <http: example.org="" process=""></http:>
+PREFIX rdfs: <http: 01="" 2000="" rdf-schema#="" www.w3.org="">
+
+SELECT ?label ?temp ?press
+WHERE {
+    ?reactor a proc:Reactor .
+    ?reactor rdfs:label ?label .
+    ?reactor proc:hasTemperature ?temp .
+    ?reactor proc:hasPressure ?press .
+    FILTER (?temp &gt; 340 &amp;&amp; ?press &gt; 4.0)
+}
+"""
+
+print("\n=== Query 2: High Temperature High Pressure Reactors ===")
+results2 = g.query(query2)
+for row in results2:
+    print(f"{row.label}: {row.temp}°C, {row.press}bar")
+
+# Query 3: Aggregation (average temperature, maximum pressure)
+query3 = """
+PREFIX proc: <http: example.org="" process=""></http:>
+
+SELECT (AVG(?temp) AS ?avgTemp) (MAX(?press) AS ?maxPress) (COUNT(?reactor) AS ?count)
+WHERE {
+    ?reactor a proc:Reactor .
+    ?reactor proc:hasTemperature ?temp .
+    ?reactor proc:hasPressure ?press .
+}
+"""
+
+print("\n=== Query 3: Statistical Information ===")
+results3 = g.query(query3)
+for row in results3:
+    print(f"Reactor count: {row.count}")
+    print(f"Average temperature: {float(row.avgTemp):.1f}°C")
+    print(f"Maximum pressure: {float(row.maxPress)}bar")
+</http:></http:></code></pre>
+<div class="example-output">
+<strong>Output example:</strong><br/>
+                === Query 1: All Reactors (Descending Temperature) ===<br/>
+                PFR Reactor: 400.0°C, 8.0bar<br/>
+                CSTR Reactor: 350.0°C, 5.0bar<br/>
+                Batch Reactor: 320.0°C, 3.0bar<br/>
+<br/>
+                === Query 2: High Temperature High Pressure Reactors ===<br/>
+                PFR Reactor: 400.0°C, 8.0bar<br/>
+                CSTR Reactor: 350.0°C, 5.0bar<br/>
+<br/>
+                === Query 3: Statistical Information ===<br/>
+                Reactor count: 3<br/>
+                Average temperature: 356.7°C<br/>
+                Maximum pressure: 8.0bar
+            </div>
+</section>
+<section>
+<h2>1.4 Knowledge Representation of Chemical Processes</h2>
+<h3>Example 5: Building Equipment Connection Graphs</h3>
+<p>Represent process flow diagrams as RDF graphs.</p>
+<pre><code># ===================================
+# Example 5: RDF Representation of Process Flow Diagrams
+# ===================================
+
+from rdflib import Graph, Namespace, Literal, URIRef
+from rdflib.namespace import RDF, RDFS
+
+g = Graph()
+PROC = Namespace("http://example.org/process/")
+g.bind("proc", PROC)
+
+# ===== Process Flow: Feed → Reactor → HeatExchanger → Separator =====
+
+# 1. Feed Tank
+feed_tank = PROC["TK-001"]
+g.add((feed_tank, RDF.type, PROC.StorageTank))
+g.add((feed_tank, RDFS.label, Literal("Feed Tank")))
+g.add((feed_tank, PROC.capacity, Literal(50000)))  # liters
+
+# 2. Reactor
+reactor = PROC["R-101"]
+g.add((reactor, RDF.type, PROC.Reactor))
+g.add((reactor, RDFS.label, Literal("Main Reactor")))
+
+# 3. Heat Exchanger
+hx = PROC["HX-201"]
+g.add((hx, RDF.type, PROC.HeatExchanger))
+g.add((hx, RDFS.label, Literal("Cooler")))
+
+# 4. Separator
+separator = PROC["SEP-301"]
+g.add((separator, RDF.type, PROC.Separator))
+g.add((separator, RDFS.label, Literal("Vapor-Liquid Separator")))
+
+# ===== Material Streams =====
+s1 = PROC["S-001"]  # Feed → Reactor
+s2 = PROC["S-002"]  # Reactor → HX
+s3 = PROC["S-003"]  # HX → Separator
+
+for stream in [s1, s2, s3]:
+    g.add((stream, RDF.type, PROC.Stream))
+
+# ===== Equipment Connections =====
+# Feed Tank → Reactor
+g.add((feed_tank, PROC.hasOutput, s1))
+g.add((reactor, PROC.hasInput, s1))
+
+# Reactor → Heat Exchanger
+g.add((reactor, PROC.hasOutput, s2))
+g.add((hx, PROC.hasInput, s2))
+
+# Heat Exchanger → Separator
+g.add((hx, PROC.hasOutput, s3))
+g.add((separator, PROC.hasInput, s3))
+
+# ===== Visualize Process Flow =====
+print("=== Process Flow Diagram ===\n")
+
+# Equipment list
+print("Equipment list:")
+for eq in g.subjects(RDF.type, None):
+    if eq != PROC.Stream:
+        eq_type = g.value(eq, RDF.type)
+        eq_label = g.value(eq, RDFS.label)
+        if eq_type and eq_type != RDFS.Class:
+            print(f"  - {eq_label} ({eq_type.split('/')[-1]})")
+
+# Connection relationships
+print("\nConnection relationships:")
+for s in g.subjects(PROC.hasOutput, None):
+    source_label = g.value(s, RDFS.label)
+    for stream in g.objects(s, PROC.hasOutput):
+        for target in g.subjects(PROC.hasInput, stream):
+            target_label = g.value(target, RDFS.label)
+            print(f"  {source_label} → {target_label}")
+
+# Path exploration with SPARQL
+query = """
+PREFIX proc: <http: example.org="" process=""></http:>
+PREFIX rdfs: <http: 01="" 2000="" rdf-schema#="" www.w3.org="">
+
+SELECT ?source_label ?target_label
+WHERE {
+    ?source proc:hasOutput ?stream .
+    ?target proc:hasInput ?stream .
+    ?source rdfs:label ?source_label .
+    ?target rdfs:label ?target_label .
+}
+"""
+
+print("\n=== SPARQL Query Results (Connection Relationships) ===")
+for row in g.query(query):
+    print(f"{row.source_label} ⟶ {row.target_label}")
+</http:></code></pre>
+<div class="example-output">
+<strong>Output example:</strong><br/>
+                === Process Flow Diagram ===<br/>
+<br/>
+                Equipment list:<br/>
+                  - Feed Tank (StorageTank)<br/>
+                  - Main Reactor (Reactor)<br/>
+                  - Cooler (HeatExchanger)<br/>
+                  - Vapor-Liquid Separator (Separator)<br/>
+<br/>
+                Connection relationships:<br/>
+                  Feed Tank → Main Reactor<br/>
+                  Main Reactor → Cooler<br/>
+                  Cooler → Vapor-Liquid Separator
+            </div>
+<div class="tip-box">
+<p><strong>💡 Practical Implications</strong></p>
+<p>This RDF graph structure enables digitization of P&amp;ID (Piping and Instrumentation Diagram) information and management in machine-readable format. Adding and modifying equipment can be handled flexibly.</p>
+</div>
+</section>
+<section>
+<h2>1.5 Representation of Substances and Properties</h2>
+<h3>Example 6: RDF Model for Chemical Substances and Properties</h3>
+<p>Structure chemical substance property data using RDF.</p>
+<pre><code># ===================================
+# Example 6: RDF Model for Chemical Substances and Properties
+# ===================================
+
+from rdflib import Graph, Namespace, Literal
+from rdflib.namespace import RDF, RDFS, XSD
+
+g = Graph()
+CHEM = Namespace("http://example.org/chemistry/")
+PROP = Namespace("http://example.org/property/")
+g.bind("chem", CHEM)
+g.bind("prop", PROP)
+
+# ===== Define Chemical Substances =====
+
+# Ethanol
+ethanol = CHEM["Ethanol"]
+g.add((ethanol, RDF.type, CHEM.Chemical))
+g.add((ethanol, RDFS.label, Literal("Ethanol", lang="en")))
+g.add((ethanol, CHEM.formula, Literal("C2H5OH")))
+g.add((ethanol, CHEM.cas, Literal("64-17-5")))
+g.add((ethanol, CHEM.smiles, Literal("CCO")))
+
+# Property data
+g.add((ethanol, PROP.molecularWeight, Literal(46.07, datatype=XSD.double)))
+g.add((ethanol, PROP.boilingPoint, Literal(78.37, datatype=XSD.double)))
+g.add((ethanol, PROP.meltingPoint, Literal(-114.1, datatype=XSD.double)))
+g.add((ethanol, PROP.density, Literal(0.789, datatype=XSD.double)))
+
+# Water
+water = CHEM["Water"]
+g.add((water, RDF.type, CHEM.Chemical))
+g.add((water, RDFS.label, Literal("Water", lang="en")))
+g.add((water, CHEM.formula, Literal("H2O")))
+g.add((water, CHEM.cas, Literal("7732-18-5")))
+g.add((water, PROP.molecularWeight, Literal(18.015, datatype=XSD.double)))
+g.add((water, PROP.boilingPoint, Literal(100.0, datatype=XSD.double)))
+g.add((water, PROP.meltingPoint, Literal(0.0, datatype=XSD.double)))
+g.add((water, PROP.density, Literal(1.0, datatype=XSD.double)))
+
+# ===== Representation of Mixtures =====
+mixture = CHEM["EthanolWaterMixture"]
+g.add((mixture, RDF.type, CHEM.Mixture))
+g.add((mixture, RDFS.label, Literal("Ethanol-Water Solution")))
+g.add((mixture, CHEM.contains, ethanol))
+g.add((mixture, CHEM.contains, water))
+g.add((mixture, CHEM.composition, Literal("50% vol/vol")))
+
+# ===== SPARQL Query: Substances with boiling point ≤ 80°C =====
+query = """
+PREFIX chem: <http: chemistry="" example.org=""></http:>
+PREFIX prop: <http: example.org="" property=""></http:>
+PREFIX rdfs: <http: 01="" 2000="" rdf-schema#="" www.w3.org="">
+
+SELECT ?name ?formula ?bp
+WHERE {
+    ?chemical a chem:Chemical .
+    ?chemical rdfs:label ?name .
+    ?chemical chem:formula ?formula .
+    ?chemical prop:boilingPoint ?bp .
+    FILTER (?bp &lt;= 80)
+}
+ORDER BY ?bp
+"""
+
+print("=== Substances with Boiling Point ≤ 80°C ===")
+for row in g.query(query):
+    print(f"{row.name} ({row.formula}): Boiling point {row.bp}°C")
+
+# Molecular weight comparison
+query2 = """
+PREFIX chem: <http: chemistry="" example.org=""></http:>
+PREFIX prop: <http: example.org="" property=""></http:>
+PREFIX rdfs: <http: 01="" 2000="" rdf-schema#="" www.w3.org="">
+
+SELECT ?name ?mw
+WHERE {
+    ?chemical a chem:Chemical .
+    ?chemical rdfs:label ?name .
+    ?chemical prop:molecularWeight ?mw .
+}
+ORDER BY DESC(?mw)
+"""
+
+print("\n=== By Molecular Weight ===")
+for row in g.query(query2):
+    print(f"{row.name}: {float(row.mw):.2f} g/mol")
+
+# Mixture components
+print("\n=== Mixture Composition ===")
+for component in g.objects(mixture, CHEM.contains):
+    label = g.value(component, RDFS.label)
+    print(f"- {label}")
+</http:></http:></code></pre>
+<div class="example-output">
+<strong>Output example:</strong><br/>
+                === Substances with Boiling Point ≤ 80°C ===<br/>
+                Ethanol (C2H5OH): Boiling point 78.37°C<br/>
+<br/>
+                === By Molecular Weight ===<br/>
+                Ethanol: 46.07 g/mol<br/>
+                Water: 18.02 g/mol<br/>
+<br/>
+                === Mixture Composition ===<br/>
+                - Ethanol<br/>
+                - Water
+            </div>
+</section>
+<section>
+<h2>1.6 Namespace and URI Management</h2>
+<h3>Example 7: Integrated Management of Multiple Namespaces</h3>
+<p>Implement namespace management when integrating different ontologies.</p>
+<pre><code># ===================================
+# Example 7: Integrated Namespace Management
+# ===================================
+
+from rdflib import Graph, Namespace, Literal
+from rdflib.namespace import RDF, RDFS, OWL, SKOS, DCTERMS
+
+# Create graph and namespace bindings
+g = Graph()
+
+# Standard namespaces
+g.bind("rdf", RDF)
+g.bind("rdfs", RDFS)
+g.bind("owl", OWL)
+g.bind("skos", SKOS)
+g.bind("dcterms", DCTERMS)
+
+# Custom namespaces
+PROC = Namespace("http://example.org/process/")
+CHEM = Namespace("http://example.org/chemistry/")
+SENSOR = Namespace("http://example.org/sensor/")
+UNIT = Namespace("http://example.org/unit/")
+
+g.bind("proc", PROC)
+g.bind("chem", CHEM)
+g.bind("sensor", SENSOR)
+g.bind("unit", UNIT)
+
+# ===== Ontology Metadata =====
+ontology_uri = PROC["ontology"]
+g.add((ontology_uri, RDF.type, OWL.Ontology))
+g.add((ontology_uri, DCTERMS.title, Literal("Process Ontology", lang="en")))
+g.add((ontology_uri, DCTERMS.creator, Literal("Hashimoto Lab")))
+g.add((ontology_uri, DCTERMS.created, Literal("2025-10-26")))
+g.add((ontology_uri, OWL.versionInfo, Literal("1.0")))
+
+# ===== Data Using Multiple Namespaces =====
+
+# Temperature sensor
+temp_sensor = SENSOR["TE-101"]
+g.add((temp_sensor, RDF.type, SENSOR.TemperatureSensor))
+g.add((temp_sensor, RDFS.label, Literal("Temperature Sensor TE-101")))
+g.add((temp_sensor, SENSOR.measuredProperty, PROC.Temperature))
+g.add((temp_sensor, SENSOR.unit, UNIT.degC))
+g.add((temp_sensor, SENSOR.installedAt, PROC["R-101"]))
+
+# Reactor R-101
+reactor = PROC["R-101"]
+g.add((reactor, RDF.type, PROC.Reactor))
+g.add((reactor, RDFS.label, Literal("Main Reactor")))
+g.add((reactor, PROC.processes, CHEM["EsterificationReaction"]))
+
+# Chemical reaction
+reaction = CHEM["EsterificationReaction"]
+g.add((reaction, RDF.type, CHEM.ChemicalReaction))
+g.add((reaction, RDFS.label, Literal("Esterification Reaction")))
+g.add((reaction, SKOS.definition, Literal("A reaction that produces esters from alcohols and carboxylic acids")))
+
+# ===== Verify Namespaces =====
+print("=== Bound Namespaces ===")
+for prefix, namespace in g.namespaces():
+    print(f"{prefix}: {namespace}")
+
+# Verify URI construction
+print("\n=== URI Construction Examples ===")
+print(f"Reactor URI: {reactor}")
+print(f"Sensor URI: {temp_sensor}")
+print(f"Reaction URI: {reaction}")
+
+# Triple count by namespace
+print("\n=== Triple Count by Namespace ===")
+namespace_counts = {}
+for s, p, o in g:
+    # Count namespace of subject
+    ns = str(s).rsplit('/', 1)[0] + '/'
+    namespace_counts[ns] = namespace_counts.get(ns, 0) + 1
+
+for ns, count in sorted(namespace_counts.items(), key=lambda x: x[1], reverse=True):
+    # Reverse lookup prefix from namespace
+    prefix = None
+    for p, n in g.namespaces():
+        if str(n) == ns:
+            prefix = p
+            break
+    print(f"{prefix or 'unknown'}: {count} triples")
+
+# Output in Turtle format (namespaces are organized)
+print("\n=== Turtle Format (excerpt) ===")
+print(g.serialize(format="turtle")[:800])
+</code></pre>
+<div class="example-output">
+<strong>Output example:</strong><br/>
+                === Bound Namespaces ===<br/>
+                rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#<br/>
+                rdfs: http://www.w3.org/2000/01/rdf-schema#<br/>
+                proc: http://example.org/process/<br/>
+                chem: http://example.org/chemistry/<br/>
+                sensor: http://example.org/sensor/<br/>
+                unit: http://example.org/unit/<br/>
+<br/>
+                === URI Construction Examples ===<br/>
+                Reactor URI: http://example.org/process/R-101<br/>
+                Sensor URI: http://example.org/sensor/TE-101<br/>
+                Reaction URI: http://example.org/chemistry/EsterificationReaction<br/>
+<br/>
+                === Triple Count by Namespace ===<br/>
+                sensor: 5 triples<br/>
+                proc: 4 triples<br/>
+                chem: 2 triples
+            </div>
+<div class="success-box">
+<p><strong>✅ Best Practices</strong></p>
+<ul>
+<li><strong>Consistent Namespace URIs</strong>: Use persistent URIs that include organizational domain</li>
+<li><strong>Leverage Standard Ontologies</strong>: Actively use existing standards like Dublin Core and SKOS</li>
+<li><strong>Version Management</strong>: Record ontology versions with owl:versionInfo</li>
+</ul>
+</div>
+</section>
+<section>
+<h2>Learning Objectives Review</h2>
+<p>Upon completing this chapter, you will be able to explain and implement the following:</p>
+<h3>Basic Understanding</h3>
+<ul>
+<li>✅ Explain the structure of RDF triples (Subject-Predicate-Object)</li>
+<li>✅ Understand the concept of RDFS hierarchical structure</li>
+<li>✅ Know the basic syntax of SPARQL queries</li>
+<li>✅ Understand the role of namespaces and URIs</li>
+</ul>
+<h3>Practical Skills</h3>
+<ul>
+<li>✅ Create and manipulate RDF graphs with rdflib</li>
+<li>✅ Serialize RDF in Turtle/RDF-XML formats</li>
+<li>✅ Write SPARQL filtering and aggregation queries</li>
+<li>✅ Represent chemical process flow diagrams using RDF</li>
+<li>✅ Manage multiple namespaces in an integrated manner</li>
+</ul>
+<h3>Application Ability</h3>
+<ul>
+<li>✅ Convert P&amp;ID information to RDF graphs</li>
+<li>✅ Build chemical substance property databases using RDF</li>
+<li>✅ Design hierarchical classification of process equipment</li>
+</ul>
+</section>
+<section>
+<h2>Next Steps</h2>
+<p>In Chapter 1, we learned the fundamentals of Semantic Web technology with RDF/RDFS and SPARQL queries. In the next chapter, we will learn advanced process ontology design using OWL (Web Ontology Language) and knowledge modeling that enables reasoning.</p>
+<div class="info-box">
+<p><strong>📚 Next Chapter Preview (Chapter 2)</strong></p>
+<ul>
+<li>Defining OWL classes and properties</li>
+<li>Cardinality constraints and value restrictions</li>
+<li>Complete ontology design for process equipment</li>
+<li>Implementation using owlready2</li>
+</ul>
+</div>
+</section>
+<div class="navigation">
+<a class="nav-button" href="index.html">← Back to Series Index</a>
+<a class="nav-button" href="chapter-2.html">Chapter 2: Process Ontology Design →</a>
+</div>
+<section>
+<h2>References</h2>
+<ol>
+<li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+<li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+<li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+<li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+</ol>
+</section>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+</main>
+<footer style="background-color: var(--color-bg-alt); padding: var(--spacing-lg); margin-top: var(--spacing-xl); text-align: center; border-top: 1px solid var(--color-border);">
+<p style="color: var(--color-text-light); font-size: 0.9rem;">
+            © 2025 PI Knowledge Hub - Process Ontology Series |
+            <a href="../../../index.html" style="color: var(--color-link);">Return to Home</a>
+</p>
+</footer>
+</body>
+</html>

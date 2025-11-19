@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 3: Creep and Stress Relaxation | Mechanical Testing Introduction" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 3: Creep and Stress Relaxation | Mechanical Testing Introduction</title>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
+</head>
+<body><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<span class="locale-link disabled">日本語 (準備中)</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+
+<header>
+<h1>Chapter 3: Creep and Stress Relaxation</h1>
+<p class="subtitle">Time-Dependent Deformation Behavior</p>
+</header>
+<div class="container">
+<div class="breadcrumb">
+<a href="../index.html">Materials Science Dojo</a> &gt;
+            <a href="index.html">Mechanical Testing Introduction</a> &gt; Chapter 3
+        </div>
+<div class="content">
+<h2>3.1 Creep Fundamentals</h2>
+<p>Creep is time-dependent plastic deformation under constant stress at elevated temperature. Critical for high-temperature applications like turbines and reactors.</p>
+<div class="definition">
+<strong>📐 Creep Strain Rate:</strong> $$\dot{\epsilon} = A\sigma^n \exp\left(-\frac{Q}{RT}\right)$$
+                where $A$ is constant, $n$ is stress exponent, $Q$ is activation energy.
+            </div>
+<h3>💻 Code Example 1: Creep Curve Generation</h3>
+<div class="code-example"><pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def creep_curve(time, stress, temperature, Q=200000, A=1e-15, n=5):
+    &quot;&quot;&quot;Generate creep strain vs time curve&quot;&quot;&quot;
+    R = 8.314
+    T = temperature + 273
+    
+    # Primary creep
+    t1 = time[time &lt;= 100]
+    eps1 = 0.01 * np.sqrt(t1)
+    
+    # Secondary creep (steady-state)
+    strain_rate_ss = A * stress**n * np.exp(-Q/(R*T))
+    t2 = time[(time &gt; 100) &amp; (time &lt;= 900)]
+    eps2 = eps1[-1] + strain_rate_ss * (t2 - 100)
+    
+    # Tertiary creep
+    t3 = time[time &gt; 900]
+    eps3 = eps2[-1] + strain_rate_ss * (t3 - 900) * np.exp((t3-900)/100)
+    
+    strain = np.concatenate([eps1, eps2, eps3])
+    return strain
+
+time = np.linspace(0, 1000, 500)
+strain = creep_curve(time, stress=100, temperature=600)
+
+plt.figure(figsize=(10, 6))
+plt.plot(time, strain*100, 'b-', linewidth=2)
+plt.axvline(100, color='r', linestyle='--', alpha=0.5, label='Primary→Secondary')
+plt.axvline(900, color='g', linestyle='--', alpha=0.5, label='Secondary→Tertiary')
+plt.xlabel('Time (hours)')
+plt.ylabel('Creep Strain (%)')
+plt.title('Creep Curve: Three Stages')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()</code></pre></div>
+<h2>3.2 Larson-Miller Parameter</h2>
+<p>Larson-Miller parameter enables extrapolation of short-term creep data to long-term performance.</p>
+<div class="definition">
+<strong>📐 Larson-Miller Parameter:</strong> $$P_{LM} = T(C + \log t_r)$$
+                where $T$ is temperature (K), $t_r$ is rupture time (hours), $C$ ≈ 20.
+            </div>
+<h3>💻 Code Example 2: Larson-Miller Analysis</h3>
+<div class="code-example"><pre><code class="language-python">def larson_miller_parameter(temperature, rupture_time, C=20):
+    """Calculate Larson-Miller parameter"""
+    T = temperature + 273  # Convert to K
+    P_LM = T * (C + np.log10(rupture_time))
+    return P_LM
+
+def predict_life(stress, P_LM, temperature, C=20):
+    """Predict rupture time from P_LM"""
+    T = temperature + 273
+    log_t = (P_LM / T) - C
+    t_r = 10**log_t
+    return t_r
+
+# Example
+T1, t1 = 650, 1000
+P_LM = larson_miller_parameter(T1, t1)
+t2_predicted = predict_life(stress=100, P_LM=P_LM, temperature=600)
+
+print(f"Larson-Miller Parameter: {P_LM:.0f}")
+print(f"Predicted life at 600°C: {t2_predicted:.1f} hours")</code></pre></div>
+<h2>3.3 Stress Relaxation</h2>
+<p>Stress relaxation is decrease in stress under constant strain, opposite of creep.</p>
+<div class="definition">
+<strong>📐 Stress Relaxation:</strong> $$\sigma(t) = \sigma_0 \exp\left(-\frac{t}{\tau}\right)$$
+                where $\tau$ is relaxation time constant.
+            </div>
+<h3>💻 Code Example 3: Stress Relaxation Modeling</h3>
+<div class="code-example"><pre><code class="language-python">def stress_relaxation(time, sigma_0, tau):
+    """Model stress relaxation"""
+    return sigma_0 * np.exp(-time / tau)
+
+time = np.linspace(0, 500, 200)
+sigma = stress_relaxation(time, sigma_0=300, tau=100)
+
+plt.figure(figsize=(10, 6))
+plt.plot(time, sigma, 'b-', linewidth=2)
+plt.xlabel('Time (hours)')
+plt.ylabel('Stress (MPa)')
+plt.title('Stress Relaxation Curve')
+plt.grid(True, alpha=0.3)
+plt.show()</code></pre></div>
+<h2>3.4 Creep Testing Standards</h2>
+<p>ASTM E139 specifies procedures for creep and creep-rupture testing.</p>
+<h3>💻 Code Example 4: Creep Test Analysis</h3>
+<div class="code-example"><pre><code class="language-python">class CreepTest:
+    """Creep test data analysis"""
+    
+    def minimum_creep_rate(self, time, strain):
+        """Find minimum (steady-state) creep rate"""
+        strain_rate = np.gradient(strain, time)
+        min_idx = np.argmin(strain_rate[100:]) + 100
+        return strain_rate[min_idx]
+    
+    def time_to_rupture(self, time, strain, failure_strain=0.20):
+        """Estimate time to rupture"""
+        idx = np.argmin(np.abs(strain - failure_strain))
+        return time[idx]
+
+test = CreepTest()
+time = np.linspace(0, 1000, 500)
+strain = creep_curve(time, 100, 600)
+
+mcr = test.minimum_creep_rate(time, strain)
+ttr = test.time_to_rupture(time, strain)
+
+print(f"Minimum Creep Rate: {mcr:.2e} /hour")
+print(f"Time to Rupture: {ttr:.1f} hours")</code></pre></div>
+<h2>3.5 Temperature and Stress Effects</h2>
+<p>Creep rate increases exponentially with temperature and as power law with stress.</p>
+<h3>💻 Code Example 5: Parametric Study</h3>
+<div class="code-example"><pre><code class="language-python">temperatures = [500, 550, 600, 650]
+stresses = [50, 75, 100, 125]
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# Temperature effect
+for T in temperatures:
+    strain = creep_curve(time, stress=100, temperature=T)
+    ax1.plot(time, strain*100, linewidth=2, label=f'{T}°C')
+ax1.set_xlabel('Time (hours)')
+ax1.set_ylabel('Creep Strain (%)')
+ax1.set_title('Temperature Effect on Creep')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+
+# Stress effect
+for sigma in stresses:
+    strain = creep_curve(time, stress=sigma, temperature=600)
+    ax2.plot(time, strain*100, linewidth=2, label=f'{sigma} MPa')
+ax2.set_xlabel('Time (hours)')
+ax2.set_ylabel('Creep Strain (%)')
+ax2.set_title('Stress Effect on Creep')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()</code></pre></div>
+<h2>3.6 Creep Damage and Life Prediction</h2>
+<p>Creep damage accumulates over time, leading to eventual failure. Damage models predict remaining life.</p>
+<h3>💻 Code Example 6: Damage Accumulation</h3>
+<div class="code-example"><pre><code class="language-python">def monkman_grant(time_to_rupture, min_creep_rate, m=1, C=0.05):
+    """Monkman-Grant relationship"""
+    # MCR * t_r^m = C
+    predicted_tr = (C / min_creep_rate)**(1/m)
+    return predicted_tr
+
+mcr = 1e-5
+predicted_life = monkman_grant(None, mcr)
+print(f"Predicted rupture life: {predicted_life:.1f} hours")</code></pre></div>
+<h2>3.7 Applications and Design</h2>
+<p>Creep considerations critical for gas turbines, nuclear reactors, and high-temperature pipelines.</p>
+<h3>💻 Code Example 7: Design Allowable Stress</h3>
+<div class="code-example"><pre><code class="language-python">def design_allowable_stress(temperature, design_life=100000):
+    """Calculate allowable stress for design life"""
+    # Use simplified master curve
+    T = temperature + 273
+    sigma_allow = 500 * np.exp(-0.003 * temperature) * (design_life / 100000)**(-0.15)
+    return sigma_allow
+
+temps = np.linspace(400, 700, 50)
+sigma_allow = [design_allowable_stress(T) for T in temps]
+
+plt.figure(figsize=(10, 6))
+plt.plot(temps, sigma_allow, 'b-', linewidth=2)
+plt.xlabel('Temperature (°C)')
+plt.ylabel('Allowable Stress (MPa)')
+plt.title('Design Allowable Stress vs Temperature (100,000 hour life)')
+plt.grid(True, alpha=0.3)
+plt.show()</code></pre></div>
+<h2>📝 Chapter Exercises</h2>
+<div class="exercise">
+<strong>✏️ Exercises</strong>
+<ol>
+<li>Calculate Larson-Miller parameter for creep rupture at 650°C after 5000 hours.</li>
+<li>Predict rupture life at 600°C using P_LM from exercise 1.</li>
+<li>Analyze creep curve to determine minimum creep rate and time to 5% strain.</li>
+<li>Compare creep rates at 550°C and 650°C for same stress using Arrhenius equation.</li>
+<li>Design allowable stress for 10-year service life at 600°C.</li>
+</ol>
+</div>
+<h2>Summary</h2>
+<ul>
+<li>Creep is time-dependent plastic deformation at elevated temperature</li>
+<li>Three stages: primary (decreasing rate), secondary (constant rate), tertiary (accelerating rate)</li>
+<li>Creep rate: $\dot{\epsilon} = A\sigma^n \exp(-Q/RT)$</li>
+<li>Larson-Miller parameter enables life prediction from short-term data</li>
+<li>Stress relaxation is stress decrease under constant strain</li>
+<li>Critical for high-temperature applications: turbines, reactors, pipelines</li>
+<li>Design must account for creep to ensure long-term structural integrity</li>
+</ul>
+<div class="nav-buttons">
+<a class="nav-button" href="chapter-2.html">← Chapter 2: Hardness Testing</a>
+<a class="nav-button" href="chapter-4.html">Chapter 4: Fatigue &amp; Fracture →</a>
+</div>
+</div>
+</div>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+<footer><p>© 2025 AI Terakoya - Materials Science Dojo</p></footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>

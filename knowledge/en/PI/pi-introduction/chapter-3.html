@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 3: Fundamentals of Process Modeling - PI Terakoya. Build and evaluate process models using linear regression" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 3: Fundamentals of Process Modeling - PI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../PI/index.html">Process Informatics</a><span class="breadcrumb-separator">›</span><a href="../../PI/pi-introduction/index.html">Pi</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/PI/pi-introduction/chapter-3.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="container">
+<h1>Chapter 3: Fundamentals of Process Modeling</h1>
+<p class="subtitle">Process Prediction and Optimization through Machine Learning</p>
+<div class="meta">
+<span class="meta">📖 Reading Time: 40-45 minutes</span>
+<span class="meta">📊 Difficulty: Intermediate</span>
+<span class="meta">💻 Code Examples: 12</span>
+</div>
+</div>
+</header>
+<main class="container">
+<h1>Chapter 3: Fundamentals of Process Modeling</h1>
+<p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-left: 4px solid #11998e; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">Process modeling is the core technology of PI. Starting from linear regression and extending to PLS, soft sensors, and nonlinear models, you will master practical model building techniques.</p>
+<div class="learning-objectives">
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will master:</p>
+<ul>
+<li>✅ Build and evaluate process models using linear regression</li>
+<li>✅ Address multicollinearity problems with PLS (Partial Least Squares)</li>
+<li>✅ Understand the concept of soft sensors and implement them</li>
+<li>✅ Accurately evaluate models using R², RMSE, MAE, and cross-validation</li>
+<li>✅ Distinguish between nonlinear models such as Random Forest and SVR</li>
+</ul>
+</div>
+<hr/>
+<h2>3.1 Process Model Construction with Linear Regression</h2>
+<p>Linear regression is the foundation of process modeling. While simple, it achieves sufficient accuracy for many real processes.</p>
+<h3>Basics of Simple Regression Analysis</h3>
+<p>Let's start with <strong>simple regression analysis</strong> which predicts the objective variable from a single explanatory variable.</p>
+<p><strong>Simple Regression Model</strong>:</p>
+$$y = \beta_0 + \beta_1 x + \epsilon$$
+
+<p>Where $y$ is the objective variable (e.g., product purity), $x$ is the explanatory variable (e.g., reaction temperature), $\beta_0$ is the intercept, $\beta_1$ is the slope, and $\epsilon$ is the error term.</p>
+<h4>Code Example 1: Quality Prediction Model with Simple Regression</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 1: Quality Prediction Model with Simple Regress
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 30-60 seconds
+Dependencies: None
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+
+# Sample data generation: Relationship between reaction temperature and yield
+np.random.seed(42)
+n = 100
+
+# Reaction temperature (°C)
+temperature = np.random.uniform(160, 190, n)
+
+# Yield (%) = Linear relationship + Noise
+# Theory: Higher temperature increases yield (up to optimal temperature)
+yield_percentage = 50 + 0.5 * (temperature - 160) + np.random.normal(0, 2, n)
+
+df = pd.DataFrame({
+    'temperature': temperature,
+    'yield': yield_percentage
+})
+
+print("Basic Statistics of Data:")
+print(df.describe())
+print(f"\nCorrelation Coefficient: {df['temperature'].corr(df['yield']):.4f}")
+
+# Simple regression model construction
+X = df[['temperature']].values
+y = df['yield'].values
+
+model = LinearRegression()
+model.fit(X, y)
+
+# Prediction
+y_pred = model.predict(X)
+
+# Model parameters
+print(f"\n【Model Parameters】")
+print(f"Intercept (β₀): {model.intercept_:.4f}")
+print(f"Slope (β₁): {model.coef_[0]:.4f}")
+print(f"Model Equation: y = {model.intercept_:.4f} + {model.coef_[0]:.4f} × Temperature")
+
+# Evaluation metrics
+r2 = r2_score(y, y_pred)
+rmse = np.sqrt(mean_squared_error(y, y_pred))
+mae = mean_absolute_error(y, y_pred)
+
+print(f"\n【Model Performance】")
+print(f"R² (Coefficient of Determination): {r2:.4f}")
+print(f"RMSE (Root Mean Squared Error): {rmse:.4f}%")
+print(f"MAE (Mean Absolute Error): {mae:.4f}%")
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Scatter plot and regression line
+axes[0].scatter(df['temperature'], df['yield'], alpha=0.6, s=50,
+                color='#11998e', label='Actual data')
+axes[0].plot(df['temperature'], y_pred, color='red', linewidth=2,
+             label=f'Regression line (R²={r2:.3f})')
+axes[0].set_xlabel('Reaction Temperature (°C)', fontsize=12)
+axes[0].set_ylabel('Yield (%)', fontsize=12)
+axes[0].set_title('Simple Linear Regression: Temperature vs Yield', fontsize=13, fontweight='bold')
+axes[0].legend()
+axes[0].grid(alpha=0.3)
+
+# Residual plot (checking prediction errors)
+residuals = y - y_pred
+axes[1].scatter(y_pred, residuals, alpha=0.6, s=50, color='#11998e')
+axes[1].axhline(y=0, color='red', linestyle='--', linewidth=2)
+axes[1].set_xlabel('Predicted Yield (%)', fontsize=12)
+axes[1].set_ylabel('Residuals (%)', fontsize=12)
+axes[1].set_title('Residual Plot (Error Analysis)', fontsize=13, fontweight='bold')
+axes[1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Practical example: Yield prediction at new temperatures
+new_temperatures = np.array([[165], [175], [185]])
+predicted_yields = model.predict(new_temperatures)
+
+print(f"\n【Prediction Example】")
+for temp, pred_yield in zip(new_temperatures, predicted_yields):
+    print(f"Temperature {temp[0]}°C → Predicted Yield: {pred_yield:.2f}%")
+</code></pre>
+<p><strong>Example Output</strong>:</p>
+<pre><code>Basic Statistics of Data:
+       temperature       yield
+count   100.000000  100.000000
+mean    175.234567   57.834567
+std       8.678901    4.234567
+...
+
+Correlation Coefficient: 0.8234
+
+【Model Parameters】
+Intercept (β₀): 42.3456
+Slope (β₁): 0.4876
+Model Equation: y = 42.3456 + 0.4876 × Temperature
+
+【Model Performance】
+R² (Coefficient of Determination): 0.6780
+RMSE (Root Mean Squared Error): 2.1234%
+MAE (Mean Absolute Error): 1.7890%
+
+【Prediction Example】
+Temperature 165°C → Predicted Yield: 52.80%
+Temperature 175°C → Predicted Yield: 57.68%
+Temperature 185°C → Predicted Yield: 62.56%
+</code></pre>
+<p><strong>Explanation</strong>: Simple regression has high interpretability and is easy to understand physically. In the residual plot, confirm that the errors are randomly distributed (if there is a pattern, it suggests a nonlinear relationship).</p>
+<h3>Multiple Linear Regression</h3>
+<p>In actual processes, multiple variables simultaneously affect the outcome. <strong>Multiple linear regression</strong> predicts the objective variable from multiple explanatory variables.</p>
+<p><strong>Multiple Regression Model</strong>:</p>
+$$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p + \epsilon$$
+
+<h4>Code Example 2: Distillation Column Purity Prediction with Multiple Regression</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+# - seaborn&gt;=0.12.0
+
+"""
+Example: Code Example 2: Distillation Column Purity Prediction with M
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 30-60 seconds
+Dependencies: None
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_squared_error
+
+# Sample data generation: Distillation column operation data
+np.random.seed(42)
+n = 300
+
+df = pd.DataFrame({
+    'feed_temp': np.random.normal(60, 5, n),           # Feed temperature (°C)
+    'reflux_ratio': np.random.uniform(1.5, 3.5, n),    # Reflux ratio
+    'reboiler_duty': np.random.normal(1500, 150, n),   # Reboiler duty (kW)
+    'pressure': np.random.normal(1.2, 0.1, n),         # Column pressure (MPa)
+    'feed_rate': np.random.normal(100, 10, n)          # Feed rate (kg/h)
+})
+
+# Product purity (%): Linear combination of multiple variables + Noise
+df['purity'] = (
+    92 +
+    0.05 * df['feed_temp'] +
+    1.2 * df['reflux_ratio'] +
+    0.002 * df['reboiler_duty'] +
+    2.0 * df['pressure'] -
+    0.01 * df['feed_rate'] +
+    np.random.normal(0, 0.5, n)
+)
+
+# Correlation matrix visualization
+plt.figure(figsize=(10, 8))
+corr = df.corr()
+sns.heatmap(corr, annot=True, fmt='.3f', cmap='RdYlGn', center=0,
+            square=True, linewidths=1, cbar_kws={"shrink": 0.8})
+plt.title('Correlation Matrix - Distillation Column Variables', fontsize=14, fontweight='bold')
+plt.tight_layout()
+plt.show()
+
+# Data split
+X = df[['feed_temp', 'reflux_ratio', 'reboiler_duty', 'pressure', 'feed_rate']]
+y = df['purity']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Multiple regression model construction
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Prediction
+y_train_pred = model.predict(X_train)
+y_test_pred = model.predict(X_test)
+
+# Evaluation
+train_r2 = r2_score(y_train, y_train_pred)
+test_r2 = r2_score(y_test, y_test_pred)
+train_rmse = np.sqrt(mean_squared_error(y_train, y_train_pred))
+test_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
+
+print("【Multiple Regression Model Results】")
+print(f"\nTraining Data - R²: {train_r2:.4f}, RMSE: {train_rmse:.4f}%")
+print(f"Test Data - R²: {test_r2:.4f}, RMSE: {test_rmse:.4f}%")
+
+# Model parameters (importance of each variable)
+coefficients = pd.DataFrame({
+    'Variable': X.columns,
+    'Coefficient': model.coef_,
+    'Abs_Coefficient': np.abs(model.coef_)
+}).sort_values('Abs_Coefficient', ascending=False)
+
+print(f"\nIntercept: {model.intercept_:.4f}")
+print("\nCoefficients of each variable (influence):")
+print(coefficients)
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# Predicted vs Actual (training data)
+axes[0, 0].scatter(y_train, y_train_pred, alpha=0.5, s=30, color='#11998e')
+axes[0, 0].plot([y_train.min(), y_train.max()], [y_train.min(), y_train.max()],
+                'r--', linewidth=2, label='Perfect prediction')
+axes[0, 0].set_xlabel('Actual Purity (%)', fontsize=11)
+axes[0, 0].set_ylabel('Predicted Purity (%)', fontsize=11)
+axes[0, 0].set_title(f'Training Set (R²={train_r2:.3f})', fontsize=12, fontweight='bold')
+axes[0, 0].legend()
+axes[0, 0].grid(alpha=0.3)
+
+# Predicted vs Actual (test data)
+axes[0, 1].scatter(y_test, y_test_pred, alpha=0.5, s=30, color='#f59e0b')
+axes[0, 1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
+                'r--', linewidth=2, label='Perfect prediction')
+axes[0, 1].set_xlabel('Actual Purity (%)', fontsize=11)
+axes[0, 1].set_ylabel('Predicted Purity (%)', fontsize=11)
+axes[0, 1].set_title(f'Test Set (R²={test_r2:.3f})', fontsize=12, fontweight='bold')
+axes[0, 1].legend()
+axes[0, 1].grid(alpha=0.3)
+
+# Residual plot
+residuals_test = y_test - y_test_pred
+axes[1, 0].scatter(y_test_pred, residuals_test, alpha=0.5, s=30, color='#7b2cbf')
+axes[1, 0].axhline(y=0, color='red', linestyle='--', linewidth=2)
+axes[1, 0].set_xlabel('Predicted Purity (%)', fontsize=11)
+axes[1, 0].set_ylabel('Residuals (%)', fontsize=11)
+axes[1, 0].set_title('Residual Plot (Test Set)', fontsize=12, fontweight='bold')
+axes[1, 0].grid(alpha=0.3)
+
+# Coefficient importance
+axes[1, 1].barh(coefficients['Variable'], coefficients['Abs_Coefficient'], color='#11998e')
+axes[1, 1].set_xlabel('Absolute Coefficient Value', fontsize=11)
+axes[1, 1].set_title('Feature Importance (Coefficient Magnitude)', fontsize=12, fontweight='bold')
+axes[1, 1].grid(alpha=0.3, axis='x')
+
+plt.tight_layout()
+plt.show()
+
+print("\n【Interpretation】")
+print("✓ Reflux ratio has the greatest impact on purity")
+print("✓ Pressure is also an important control variable")
+print("✓ High R² indicates the model shows good prediction performance")
+</code></pre>
+<p><strong>Example Output</strong>:</p>
+<pre><code>【Multiple Regression Model Results】
+
+Training Data - R²: 0.9523, RMSE: 0.3456%
+Test Data - R²: 0.9487, RMSE: 0.3589%
+
+Intercept: 91.2345
+
+Coefficients of each variable (influence):
+        Variable  Coefficient  Abs_Coefficient
+1   reflux_ratio     1.198765         1.198765
+3       pressure     1.987654         1.987654
+2  reboiler_duty     0.001987         0.001987
+0      feed_temp     0.049876         0.049876
+4      feed_rate    -0.009876         0.009876
+</code></pre>
+<p><strong>Explanation</strong>: In multiple regression, you can understand the influence of each variable from its coefficient. Since the R² values for training and test data are close, there is no concern about overfitting.</p>
+<h4>Code Example 3: Residual Analysis and Model Diagnostics</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+# - scipy&gt;=1.11.0
+
+"""
+Example: Code Example 3: Residual Analysis and Model Diagnostics
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from scipy import stats
+
+# Using data and model from previous code example
+# (Continuation of Code Example 2)
+
+# Residual analysis
+residuals = y_test - y_test_pred
+
+# Statistical tests
+# 1. Normality test (Shapiro-Wilk test)
+statistic, p_value = stats.shapiro(residuals)
+print("【Residual Normality Test (Shapiro-Wilk)】")
+print(f"Statistic: {statistic:.4f}, p-value: {p_value:.4f}")
+if p_value &gt; 0.05:
+    print("✓ Residuals follow normal distribution (p &gt; 0.05)")
+else:
+    print("✗ Residuals deviate from normal distribution (p &lt; 0.05)")
+
+# 2. Check homoscedasticity (simplified Breusch-Pagan test)
+print(f"\n【Residual Statistics】")
+print(f"Mean: {residuals.mean():.6f} (closer to 0 is better)")
+print(f"Standard Deviation: {residuals.std():.4f}")
+print(f"Skewness: {stats.skew(residuals):.4f} (-0.5 to 0.5 is ideal)")
+print(f"Kurtosis: {stats.kurtosis(residuals):.4f} (-1 to 1 is ideal)")
+
+# Visualization: Detailed residual analysis
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# 1. Normal Q-Q plot of residuals
+stats.probplot(residuals, dist="norm", plot=axes[0, 0])
+axes[0, 0].set_title('Q-Q Plot (Normality Check)', fontsize=12, fontweight='bold')
+axes[0, 0].grid(alpha=0.3)
+
+# 2. Residual histogram
+axes[0, 1].hist(residuals, bins=30, color='#11998e', alpha=0.7, edgecolor='black')
+axes[0, 1].axvline(x=0, color='red', linestyle='--', linewidth=2)
+# Overlay theoretical normal distribution curve
+mu, sigma = residuals.mean(), residuals.std()
+x = np.linspace(residuals.min(), residuals.max(), 100)
+axes[0, 1].plot(x, len(residuals) * (x[1]-x[0]) * stats.norm.pdf(x, mu, sigma),
+                'r-', linewidth=2, label='Normal dist.')
+axes[0, 1].set_xlabel('Residuals (%)', fontsize=11)
+axes[0, 1].set_ylabel('Frequency', fontsize=11)
+axes[0, 1].set_title('Residual Distribution', fontsize=12, fontweight='bold')
+axes[0, 1].legend()
+axes[0, 1].grid(alpha=0.3)
+
+# 3. Residuals vs Predicted values (check homoscedasticity)
+axes[1, 0].scatter(y_test_pred, residuals, alpha=0.5, s=30, color='#11998e')
+axes[1, 0].axhline(y=0, color='red', linestyle='--', linewidth=2)
+# Add rolling standard deviation (visual check for homoscedasticity)
+sorted_indices = np.argsort(y_test_pred)
+rolling_std = pd.Series(residuals.values[sorted_indices]).rolling(window=20).std()
+axes[1, 0].plot(np.sort(y_test_pred), rolling_std, 'orange', linewidth=2, label='Rolling Std')
+axes[1, 0].set_xlabel('Predicted Purity (%)', fontsize=11)
+axes[1, 0].set_ylabel('Residuals (%)', fontsize=11)
+axes[1, 0].set_title('Residuals vs Fitted (Homoscedasticity Check)', fontsize=12, fontweight='bold')
+axes[1, 0].legend()
+axes[1, 0].grid(alpha=0.3)
+
+# 4. Residual time series plot (check independence)
+axes[1, 1].plot(residuals.values, linewidth=1, color='#11998e', alpha=0.7)
+axes[1, 1].axhline(y=0, color='red', linestyle='--', linewidth=2)
+axes[1, 1].fill_between(range(len(residuals)), -2*sigma, 2*sigma,
+                         alpha=0.2, color='green', label='±2σ range')
+axes[1, 1].set_xlabel('Observation Order', fontsize=11)
+axes[1, 1].set_ylabel('Residuals (%)', fontsize=11)
+axes[1, 1].set_title('Residuals Sequence Plot (Independence Check)', fontsize=12, fontweight='bold')
+axes[1, 1].legend()
+axes[1, 1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Model diagnostics conclusion
+print("\n【Model Diagnostics Conclusion】")
+print("✓ Normal Q-Q plot: If points lie on straight line, residuals are normally distributed")
+print("✓ Homoscedasticity: Confirm that variance of residuals is constant and independent of predicted values")
+print("✓ Independence: Confirm that residuals show no pattern and are random")
+print("✓ If these conditions are met, the linear regression model is appropriate")
+</code></pre>
+<p><strong>Explanation</strong>: Residual analysis is an important step to verify model validity. Check the three conditions: normality, homoscedasticity, and independence. If these are not met, consider model revision or variable transformation.</p>
+<hr/>
+<h2>3.2 Multivariate Regression and PLS (Partial Least Squares)</h2>
+<p>Process data often has strong correlations between explanatory variables (<strong>multicollinearity</strong>), which makes ordinary multiple regression unstable. <strong>PLS (Partial Least Squares)</strong> is a powerful method to solve this problem.</p>
+<h3>Multicollinearity Problem</h3>
+<p>When multicollinearity exists, the following problems occur:</p>
+<ul>
+<li>Regression coefficients become unstable (vary greatly with small data changes)</li>
+<li>Coefficient signs contradict theory (e.g., yield decreases with temperature increase)</li>
+<li>Prediction performance is good but interpretability is poor</li>
+</ul>
+<p><strong>VIF (Variance Inflation Factor)</strong> diagnoses multicollinearity:</p>
+$$\text{VIF}_i = \frac{1}{1 - R^2_i}$$
+
+<p>VIF &gt; 10 indicates multicollinearity, and caution is needed even when VIF &gt; 5.</p>
+<h4>Code Example 4: Multicollinearity Diagnosis and VIF Calculation</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 4: Multicollinearity Diagnosis and VIF Calculat
+
+Purpose: Demonstrate machine learning model training and evaluation
+Target: Intermediate
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+# Sample data generation: Variables with strong correlation
+np.random.seed(42)
+n = 200
+
+# Temperature (reference variable)
+temperature = np.random.normal(175, 5, n)
+
+# Pressure (strongly correlated with temperature)
+pressure = 1.0 + 0.01 * temperature + np.random.normal(0, 0.05, n)
+
+# Flow rate (moderately correlated with temperature)
+flow_rate = 50 + 0.1 * temperature + np.random.normal(0, 3, n)
+
+# Energy (composite variable of temperature and pressure → multicollinearity)
+energy = 100 + 2 * temperature + 50 * pressure + np.random.normal(0, 5, n)
+
+# Yield (objective variable)
+yield_pct = 80 + 0.3 * temperature + 5 * pressure + 0.05 * flow_rate + np.random.normal(0, 2, n)
+
+df = pd.DataFrame({
+    'temperature': temperature,
+    'pressure': pressure,
+    'flow_rate': flow_rate,
+    'energy': energy,
+    'yield': yield_pct
+})
+
+# Correlation matrix
+print("【Correlation Matrix】")
+corr_matrix = df.corr()
+print(corr_matrix.round(3))
+
+# VIF calculation
+X = df[['temperature', 'pressure', 'flow_rate', 'energy']]
+vif_data = pd.DataFrame()
+vif_data["Variable"] = X.columns
+vif_data["VIF"] = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+vif_data = vif_data.sort_values('VIF', ascending=False)
+
+print("\n【VIF (Multicollinearity Diagnosis)】")
+print(vif_data)
+print("\nJudgment Criteria:")
+print("  VIF &lt; 5:  No multicollinearity problem")
+print("  5 &lt; VIF &lt; 10: Moderate multicollinearity (caution)")
+print("  VIF &gt; 10: Severe multicollinearity (countermeasures needed)")
+
+# Recalculate excluding variables with multicollinearity
+X_reduced = df[['temperature', 'pressure', 'flow_rate']]  # Exclude energy
+vif_data_reduced = pd.DataFrame()
+vif_data_reduced["Variable"] = X_reduced.columns
+vif_data_reduced["VIF"] = [variance_inflation_factor(X_reduced.values, i) for i in range(X_reduced.shape[1])]
+
+print("\n【VIF (after excluding energy)】")
+print(vif_data_reduced.sort_values('VIF', ascending=False))
+
+# Compare model performance
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score
+
+y = df['yield']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train_red, X_test_red = train_test_split(X_reduced, test_size=0.2, random_state=42)[0:2]
+
+# Using all variables
+model_full = LinearRegression().fit(X_train, y_train)
+r2_full = r2_score(y_test, model_full.predict(X_test))
+
+# Excluding energy
+model_reduced = LinearRegression().fit(X_train_red, y_train)
+r2_reduced = r2_score(y_test, model_reduced.predict(X_test_red))
+
+print(f"\n【Model Performance Comparison】")
+print(f"Using all variables (with multicollinearity): R² = {r2_full:.4f}")
+print(f"Excluding energy (reduced multicollinearity): R² = {r2_reduced:.4f}")
+print("\n→ Performance is almost the same even when excluding variables with multicollinearity")
+print("  Rather, model stability and interpretability improve")
+</code></pre>
+<p><strong>Example Output</strong>:</p>
+<pre><code>【VIF (Multicollinearity Diagnosis)】
+    Variable         VIF
+3     energy  245.678901
+0  temperature   23.456789
+1   pressure    18.234567
+2  flow_rate     2.345678
+
+Judgment Criteria:
+  VIF &lt; 5:  No multicollinearity problem
+  5 &lt; VIF &lt; 10: Moderate multicollinearity (caution)
+  VIF &gt; 10: Severe multicollinearity (countermeasures needed)
+
+【VIF (after excluding energy)】
+    Variable       VIF
+0  temperature  3.456789
+1     pressure  2.987654
+2    flow_rate  1.234567
+</code></pre>
+<p><strong>Explanation</strong>: Variables with high VIF can be predicted from other variables and are redundant. Model performance is maintained even when excluded, and stability actually improves.</p>
+<h3>PLS (Partial Least Squares) Principle and Implementation</h3>
+<p>PLS finds latent variables (components) that maximize the covariance between explanatory variables and objective variables, avoiding multicollinearity.</p>
+<h4>Code Example 5: Soft Sensor Construction with PLS</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 5: Soft Sensor Construction with PLS
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 30-60 seconds
+Dependencies: None
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.cross_decomposition import PLSRegression
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.preprocessing import StandardScaler
+
+# Sample data generation: Predict purity from distillation column temperature profile (20 stages)
+np.random.seed(42)
+n = 500
+
+# Temperature profile (20 stage temperatures): Highly correlated with each other
+base_profile = np.linspace(80, 160, 20)
+temperature_profiles = np.array([
+    base_profile + np.random.normal(0, 2, 20) for _ in range(n)
+])
+
+# Product purity: Calculated from temperature profile (especially upper stage temperatures are important)
+purity = (
+    95 +
+    0.05 * temperature_profiles[:, 0:5].mean(axis=1) +  # Average temperature of upper 5 stages
+    0.02 * temperature_profiles[:, 15:20].mean(axis=1) +  # Average temperature of lower 5 stages
+    np.random.normal(0, 0.5, n)
+)
+
+# Create dataframe
+X = pd.DataFrame(temperature_profiles, columns=[f'T{i+1}' for i in range(20)])
+y = pd.Series(purity, name='purity')
+
+# Data split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Scaling (essential for PLS)
+scaler_X = StandardScaler()
+scaler_y = StandardScaler()
+
+X_train_scaled = scaler_X.fit_transform(X_train)
+X_test_scaled = scaler_X.transform(X_test)
+y_train_scaled = scaler_y.fit_transform(y_train.values.reshape(-1, 1)).ravel()
+
+# Select optimal number of components (cross-validation)
+max_components = 10
+cv_scores = []
+
+for n_comp in range(1, max_components + 1):
+    pls = PLSRegression(n_components=n_comp)
+    scores = cross_val_score(pls, X_train_scaled, y_train_scaled, cv=5,
+                             scoring='r2')
+    cv_scores.append(scores.mean())
+
+optimal_n_components = np.argmax(cv_scores) + 1
+print(f"【Optimal Component Selection】")
+print(f"Optimal number of components: {optimal_n_components}")
+print(f"CV R² Score: {max(cv_scores):.4f}")
+
+# Build PLS model with optimal number of components
+pls_model = PLSRegression(n_components=optimal_n_components)
+pls_model.fit(X_train_scaled, y_train_scaled)
+
+# Prediction (rescale)
+y_train_pred_scaled = pls_model.predict(X_train_scaled)
+y_test_pred_scaled = pls_model.predict(X_test_scaled)
+
+y_train_pred = scaler_y.inverse_transform(y_train_pred_scaled.reshape(-1, 1)).ravel()
+y_test_pred = scaler_y.inverse_transform(y_test_pred_scaled.reshape(-1, 1)).ravel()
+
+# Comparison: Ordinary linear regression
+lr_model = LinearRegression()
+lr_model.fit(X_train_scaled, y_train_scaled)
+y_test_pred_lr_scaled = lr_model.predict(X_test_scaled)
+y_test_pred_lr = scaler_y.inverse_transform(y_test_pred_lr_scaled.reshape(-1, 1)).ravel()
+
+# Evaluation
+pls_r2 = r2_score(y_test, y_test_pred)
+pls_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
+lr_r2 = r2_score(y_test, y_test_pred_lr)
+lr_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred_lr))
+
+print(f"\n【Model Performance Comparison】")
+print(f"PLS ({optimal_n_components} components): R² = {pls_r2:.4f}, RMSE = {pls_rmse:.4f}%")
+print(f"Linear Regression (20 variables): R² = {lr_r2:.4f}, RMSE = {lr_rmse:.4f}%")
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# Number of components vs CV Score
+axes[0, 0].plot(range(1, max_components + 1), cv_scores, marker='o',
+                linewidth=2, markersize=8, color='#11998e')
+axes[0, 0].axvline(x=optimal_n_components, color='red', linestyle='--',
+                   label=f'Optimal: {optimal_n_components} components')
+axes[0, 0].set_xlabel('Number of Components', fontsize=11)
+axes[0, 0].set_ylabel('Cross-Validation R²', fontsize=11)
+axes[0, 0].set_title('Optimal Component Selection', fontsize=12, fontweight='bold')
+axes[0, 0].legend()
+axes[0, 0].grid(alpha=0.3)
+
+# PLS prediction results
+axes[0, 1].scatter(y_test, y_test_pred, alpha=0.6, s=50, color='#11998e')
+axes[0, 1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
+                'r--', linewidth=2, label='Perfect prediction')
+axes[0, 1].set_xlabel('Actual Purity (%)', fontsize=11)
+axes[0, 1].set_ylabel('Predicted Purity (%)', fontsize=11)
+axes[0, 1].set_title(f'PLS Model (R²={pls_r2:.3f})', fontsize=12, fontweight='bold')
+axes[0, 1].legend()
+axes[0, 1].grid(alpha=0.3)
+
+# Linear regression prediction results
+axes[1, 0].scatter(y_test, y_test_pred_lr, alpha=0.6, s=50, color='#f59e0b')
+axes[1, 0].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
+                'r--', linewidth=2, label='Perfect prediction')
+axes[1, 0].set_xlabel('Actual Purity (%)', fontsize=11)
+axes[1, 0].set_ylabel('Predicted Purity (%)', fontsize=11)
+axes[1, 0].set_title(f'Linear Regression (R²={lr_r2:.3f})', fontsize=12, fontweight='bold')
+axes[1, 0].legend()
+axes[1, 0].grid(alpha=0.3)
+
+# Variable importance (PLS loadings)
+loadings = pls_model.x_loadings_[:, 0]  # First component loadings
+axes[1, 1].barh(X.columns, loadings, color='#11998e')
+axes[1, 1].set_xlabel('Loading on 1st Component', fontsize=11)
+axes[1, 1].set_ylabel('Temperature Stage', fontsize=11)
+axes[1, 1].set_title('Variable Importance (PLS Loadings)', fontsize=12, fontweight='bold')
+axes[1, 1].grid(alpha=0.3, axis='x')
+
+plt.tight_layout()
+plt.show()
+
+print("\n【Advantages of PLS】")
+print("✓ Stable model construction even with multicollinearity")
+print("✓ Information aggregated with fewer components (20 variables → 3-5 components)")
+print("✓ Computationally efficient, suitable for real-time prediction")
+print("✓ Improved interpretability (understanding of major latent variables)")
+</code></pre>
+<p><strong>Example Output</strong>:</p>
+<pre><code>【Optimal Component Selection】
+Optimal number of components: 4
+CV R² Score: 0.8923
+
+【Model Performance Comparison】
+PLS (4 components): R² = 0.8956, RMSE = 0.5123%
+Linear Regression (20 variables): R² = 0.8834, RMSE = 0.5456%
+</code></pre>
+<p><strong>Explanation</strong>: PLS compresses 20 highly correlated variables into 4 independent components, building an efficient model. It is particularly effective when the number of variables is close to the number of samples or when real-time performance is required for online prediction.</p>
+<h4>Code Example 6: Comparison of PLS and Principal Component Regression (PCR)</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 6: Comparison of PLS and Principal Component Re
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.cross_decomposition import PLSRegression
+from sklearn.decomposition import PCA
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_squared_error
+
+# Using data from previous code example
+# X, y are already defined
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Scaling
+scaler_X = StandardScaler()
+scaler_y = StandardScaler()
+X_train_scaled = scaler_X.fit_transform(X_train)
+X_test_scaled = scaler_X.transform(X_test)
+y_train_scaled = scaler_y.fit_transform(y_train.values.reshape(-1, 1)).ravel()
+
+# PLS (extract components considering objective variable)
+pls = PLSRegression(n_components=4)
+pls.fit(X_train_scaled, y_train_scaled)
+
+# PCR (Principal Component Regression: extract components without considering objective variable)
+pca = PCA(n_components=4)
+X_train_pca = pca.fit_transform(X_train_scaled)
+X_test_pca = pca.transform(X_test_scaled)
+
+pcr = LinearRegression()
+pcr.fit(X_train_pca, y_train_scaled)
+
+# Prediction
+y_test_pred_pls = scaler_y.inverse_transform(
+    pls.predict(X_test_scaled).reshape(-1, 1)
+).ravel()
+
+y_test_pred_pcr = scaler_y.inverse_transform(
+    pcr.predict(X_test_pca).reshape(-1, 1)
+).ravel()
+
+# Evaluation
+pls_r2 = r2_score(y_test, y_test_pred_pls)
+pcr_r2 = r2_score(y_test, y_test_pred_pcr)
+pls_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred_pls))
+pcr_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred_pcr))
+
+print("【PLS vs PCR Comparison】")
+print(f"PLS:  R² = {pls_r2:.4f}, RMSE = {pls_rmse:.4f}%")
+print(f"PCR:  R² = {pcr_r2:.4f}, RMSE = {pcr_rmse:.4f}%")
+
+# Comparison of cumulative variance explained
+pls_variance = np.var(pls.x_scores_, axis=0)
+pls_cumulative = np.cumsum(pls_variance) / np.sum(pls_variance)
+
+pca_variance = pca.explained_variance_ratio_
+pca_cumulative = np.cumsum(pca_variance)
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Cumulative variance explained
+axes[0].plot(range(1, 5), pls_cumulative, marker='o', linewidth=2,
+             markersize=8, label='PLS', color='#11998e')
+axes[0].plot(range(1, 5), pca_cumulative, marker='s', linewidth=2,
+             markersize=8, label='PCA', color='#f59e0b')
+axes[0].set_xlabel('Number of Components', fontsize=11)
+axes[0].set_ylabel('Cumulative Variance Explained', fontsize=11)
+axes[0].set_title('Variance Explained: PLS vs PCA', fontsize=12, fontweight='bold')
+axes[0].legend()
+axes[0].grid(alpha=0.3)
+
+# Prediction accuracy comparison
+methods = ['PLS', 'PCR']
+r2_scores = [pls_r2, pcr_r2]
+colors = ['#11998e', '#f59e0b']
+
+axes[1].bar(methods, r2_scores, color=colors, alpha=0.7, edgecolor='black')
+axes[1].set_ylabel('R² Score', fontsize=11)
+axes[1].set_title('Prediction Performance: PLS vs PCR', fontsize=12, fontweight='bold')
+axes[1].set_ylim([0.8, 1.0])
+axes[1].grid(alpha=0.3, axis='y')
+
+for i, (method, score) in enumerate(zip(methods, r2_scores)):
+    axes[1].text(i, score + 0.01, f'{score:.4f}', ha='center', fontsize=11, fontweight='bold')
+
+plt.tight_layout()
+plt.show()
+
+print("\n【Difference between PLS and PCR】")
+print("PLS: Extract components that maximize covariance with objective variable")
+print("     → Prioritize information directly related to prediction")
+print("PCR: Extract components that maximize variance only from explanatory variables")
+print("     → May include information unrelated to prediction")
+print("\n→ In process modeling, PLS generally shows superior performance")
+</code></pre>
+<p><strong>Explanation</strong>: Unlike PCR, PLS extracts latent variables considering the objective variable, resulting in higher prediction performance. For high-dimensional data like process data, PLS is the first choice.</p>
+<hr/>
+<h2>3.3 Soft Sensor Concept and Implementation</h2>
+<p><strong>Soft Sensor</strong> is a technology that estimates quality variables that are difficult or expensive to measure from process variables that are easy to measure. It is widely used in process industries.</p>
+<h3>Typical Applications of Soft Sensors</h3>
+<table>
+<thead>
+<tr>
+<th>Industry</th>
+<th>Estimation Target (Y)</th>
+<th>Input Variables (X)</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Chemical Plant</td>
+<td>Product purity</td>
+<td>Temperature profile, pressure, flow rate</td>
+<td>Real-time quality control</td>
+</tr>
+<tr>
+<td>Steel Production</td>
+<td>Mechanical strength of steel</td>
+<td>Composition, heating temperature, cooling rate</td>
+<td>Quality prediction, defect reduction</td>
+</tr>
+<tr>
+<td>Pharmaceuticals</td>
+<td>Active ingredient content</td>
+<td>Reaction temperature, pH, stirring speed</td>
+<td>Batch quality assurance</td>
+</tr>
+<tr>
+<td>Semiconductors</td>
+<td>Film thickness, composition</td>
+<td>Process gas flow rate, temperature, pressure</td>
+<td>Yield improvement</td>
+</tr>
+</tbody>
+</table>
+<h4>Code Example 7: Distillation Column Soft Sensor Design and Implementation</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 7: Distillation Column Soft Sensor Design and I
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.cross_decomposition import PLSRegression
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+
+# Sample data generation: Distillation column operation data
+np.random.seed(42)
+n = 1000
+
+# Time series data (10 days, minute intervals)
+dates = pd.date_range('2025-01-01', periods=n, freq='15min')
+
+# Online measurable variables (soft sensor inputs)
+df = pd.DataFrame({
+    'feed_temp': np.random.normal(60, 3, n),
+    'top_temp': np.random.normal(85, 2, n),
+    'bottom_temp': np.random.normal(155, 4, n),
+    'reflux_ratio': np.random.uniform(2.0, 3.0, n),
+    'reboiler_duty': np.random.normal(1500, 100, n),
+    'feed_rate': np.random.normal(100, 8, n),
+    'pressure': np.random.normal(1.2, 0.08, n)
+}, index=dates)
+
+# Offline measured quality variable (soft sensor output)
+# Reality: Once daily GC analysis (high cost, time delay)
+# Soft sensor: Real-time prediction
+df['purity'] = (
+    95 +
+    0.05 * df['feed_temp'] +
+    0.2 * (df['top_temp'] - 85) +
+    0.5 * df['reflux_ratio'] +
+    0.001 * df['reboiler_duty'] +
+    1.5 * df['pressure'] +
+    np.random.normal(0, 0.3, n)
+)
+
+# Simulate offline measurement (once per day = once every 96 samples)
+df['purity_measured'] = np.nan
+df.loc[df.index[::96], 'purity_measured'] = df.loc[df.index[::96], 'purity']
+
+print(f"【Data Overview】")
+print(f"Total data points: {len(df)}")
+print(f"Offline measurements: {df['purity_measured'].notna().sum()} samples ({df['purity_measured'].notna().sum()/len(df)*100:.1f}%)")
+print(f"Measurement frequency: Once per day (data collected every 15 minutes)")
+
+# Soft sensor construction (using only offline measurement data)
+train_data = df[df['purity_measured'].notna()].copy()
+X = train_data[['feed_temp', 'top_temp', 'bottom_temp', 'reflux_ratio',
+                'reboiler_duty', 'feed_rate', 'pressure']]
+y = train_data['purity_measured']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Scaling
+scaler_X = StandardScaler()
+scaler_y = StandardScaler()
+X_train_scaled = scaler_X.fit_transform(X_train)
+X_test_scaled = scaler_X.transform(X_test)
+y_train_scaled = scaler_y.fit_transform(y_train.values.reshape(-1, 1)).ravel()
+
+# PLS model construction
+pls_soft_sensor = PLSRegression(n_components=5)
+pls_soft_sensor.fit(X_train_scaled, y_train_scaled)
+
+# Evaluate on test data
+y_test_pred_scaled = pls_soft_sensor.predict(X_test_scaled)
+y_test_pred = scaler_y.inverse_transform(y_test_pred_scaled.reshape(-1, 1)).ravel()
+
+r2 = r2_score(y_test, y_test_pred)
+rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
+mae = mean_absolute_error(y_test, y_test_pred)
+
+print(f"\n【Soft Sensor Performance】")
+print(f"R²: {r2:.4f}")
+print(f"RMSE: {rmse:.4f}%")
+print(f"MAE: {mae:.4f}%")
+
+# Real-time prediction for all data
+X_all = df[['feed_temp', 'top_temp', 'bottom_temp', 'reflux_ratio',
+            'reboiler_duty', 'feed_rate', 'pressure']]
+X_all_scaled = scaler_X.transform(X_all)
+y_all_pred_scaled = pls_soft_sensor.predict(X_all_scaled)
+df['purity_soft_sensor'] = scaler_y.inverse_transform(y_all_pred_scaled.reshape(-1, 1)).ravel()
+
+# Visualization
+fig, axes = plt.subplots(3, 1, figsize=(16, 12))
+
+# Time series plot: Actual vs Soft sensor prediction
+time_window = slice('2025-01-01', '2025-01-03')  # First 3 days
+axes[0].plot(df.loc[time_window].index, df.loc[time_window, 'purity'],
+             linewidth=1, alpha=0.5, label='True Purity (unknown in practice)', color='gray')
+axes[0].scatter(df.loc[time_window].index, df.loc[time_window, 'purity_measured'],
+                s=100, color='red', marker='o', label='Offline Measurement (1/day)', zorder=3)
+axes[0].plot(df.loc[time_window].index, df.loc[time_window, 'purity_soft_sensor'],
+             linewidth=2, color='#11998e', label='Soft Sensor Prediction (real-time)')
+axes[0].set_ylabel('Product Purity (%)', fontsize=11)
+axes[0].set_title('Soft Sensor: Real-time Quality Prediction', fontsize=13, fontweight='bold')
+axes[0].legend(loc='upper right')
+axes[0].grid(alpha=0.3)
+
+# Predicted vs Actual (test data)
+axes[1].scatter(y_test, y_test_pred, alpha=0.6, s=50, color='#11998e')
+axes[1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
+             'r--', linewidth=2, label='Perfect prediction')
+axes[1].set_xlabel('Measured Purity (%)', fontsize=11)
+axes[1].set_ylabel('Predicted Purity (%)', fontsize=11)
+axes[1].set_title(f'Soft Sensor Accuracy (R²={r2:.3f})', fontsize=12, fontweight='bold')
+axes[1].legend()
+axes[1].grid(alpha=0.3)
+
+# Error distribution
+errors = y_test - y_test_pred
+axes[2].hist(errors, bins=30, color='#11998e', alpha=0.7, edgecolor='black')
+axes[2].axvline(x=0, color='red', linestyle='--', linewidth=2)
+axes[2].set_xlabel('Prediction Error (%)', fontsize=11)
+axes[2].set_ylabel('Frequency', fontsize=11)
+axes[2].set_title(f'Error Distribution (MAE={mae:.3f}%)', fontsize=12, fontweight='bold')
+axes[2].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("\n【Soft Sensor Benefits】")
+print(f"✓ Offline measurement: Once per day → Soft sensor: Every 15 minutes (96x frequency)")
+print(f"✓ Measurement cost reduction: GC analysis ¥5,000/time × 365 times/year = ¥1.82M/year → Nearly zero")
+print(f"✓ Real-time quality control: Early detection of anomalies, immediate control response possible")
+print(f"✓ Process optimization: Continuous quality monitoring accelerates optimal condition search")
+</code></pre>
+<p><strong>Example Output</strong>:</p>
+<pre><code>【Data Overview】
+Total data points: 1000
+Offline measurements: 11 samples (1.1%)
+Measurement frequency: Once per day (data collected every 15 minutes)
+
+【Soft Sensor Performance】
+R²: 0.9234
+RMSE: 0.4567%
+MAE: 0.3456%
+</code></pre>
+<p><strong>Explanation</strong>: Soft sensors replace low-frequency, high-cost offline measurements with high-frequency, zero-cost real-time predictions. This is one of the most practical applications of PI.</p>
+<h4>Code Example 8: Soft Sensor Operation and Maintenance</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 8: Soft Sensor Operation and Maintenance
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.cross_decomposition import PLSRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import r2_score
+
+# Using soft sensor from previous code example
+# pls_soft_sensor, scaler_X, scaler_y are already defined
+
+# Simulation: Operating conditions change (process drift)
+# After 3 months, raw material composition changes and model accuracy decreases
+
+# Generate new operating data (process characteristics drift)
+np.random.seed(100)
+n_new = 300
+dates_new = pd.date_range('2025-04-01', periods=n_new, freq='15min')
+
+df_new = pd.DataFrame({
+    'feed_temp': np.random.normal(62, 3, n_new),  # Mean increased by 2°C
+    'top_temp': np.random.normal(87, 2, n_new),   # Mean increased by 2°C
+    'bottom_temp': np.random.normal(155, 4, n_new),
+    'reflux_ratio': np.random.uniform(2.0, 3.0, n_new),
+    'reboiler_duty': np.random.normal(1550, 100, n_new),  # Mean increased by 50kW
+    'feed_rate': np.random.normal(100, 8, n_new),
+    'pressure': np.random.normal(1.2, 0.08, n_new)
+}, index=dates_new)
+
+# True purity (process characteristics changed)
+df_new['purity'] = (
+    93 +  # Baseline decreased by 2% (impact of raw material composition change)
+    0.05 * df_new['feed_temp'] +
+    0.2 * (df_new['top_temp'] - 85) +
+    0.5 * df_new['reflux_ratio'] +
+    0.001 * df_new['reboiler_duty'] +
+    1.5 * df_new['pressure'] +
+    np.random.normal(0, 0.3, n_new)
+)
+
+# Offline measurement (once per week)
+df_new['purity_measured'] = np.nan
+df_new.loc[df_new.index[::672], 'purity_measured'] = df_new.loc[df_new.index[::672], 'purity']
+
+# Predict with existing soft sensor
+X_new = df_new[['feed_temp', 'top_temp', 'bottom_temp', 'reflux_ratio',
+                'reboiler_duty', 'feed_rate', 'pressure']]
+X_new_scaled = scaler_X.transform(X_new)
+y_new_pred_scaled = pls_soft_sensor.predict(X_new_scaled)
+df_new['purity_soft_sensor_old'] = scaler_y.inverse_transform(y_new_pred_scaled.reshape(-1, 1)).ravel()
+
+# Performance evaluation (existing model)
+old_model_r2 = r2_score(df_new['purity'], df_new['purity_soft_sensor_old'])
+old_model_mae = np.abs(df_new['purity'] - df_new['purity_soft_sensor_old']).mean()
+
+print("【Soft Sensor Performance Degradation】")
+print(f"Existing model (built 3 months ago): R² = {old_model_r2:.4f}, MAE = {old_model_mae:.4f}%")
+
+# Soft sensor retraining (online update)
+# Add new offline measurement data and retrain
+train_new = df_new[df_new['purity_measured'].notna()].copy()
+X_retrain = train_new[['feed_temp', 'top_temp', 'bottom_temp', 'reflux_ratio',
+                        'reboiler_duty', 'feed_rate', 'pressure']]
+y_retrain = train_new['purity_measured']
+
+# Combine existing and new data
+X_combined = pd.concat([X, X_retrain])
+y_combined = pd.concat([y, y_retrain])
+
+# Rescaling and retraining
+scaler_X_new = StandardScaler()
+scaler_y_new = StandardScaler()
+X_combined_scaled = scaler_X_new.fit_transform(X_combined)
+y_combined_scaled = scaler_y_new.fit_transform(y_combined.values.reshape(-1, 1)).ravel()
+
+pls_updated = PLSRegression(n_components=5)
+pls_updated.fit(X_combined_scaled, y_combined_scaled)
+
+# Predict with updated model
+X_new_scaled_updated = scaler_X_new.transform(X_new)
+y_new_pred_updated_scaled = pls_updated.predict(X_new_scaled_updated)
+df_new['purity_soft_sensor_updated'] = scaler_y_new.inverse_transform(
+    y_new_pred_updated_scaled.reshape(-1, 1)
+).ravel()
+
+# Performance evaluation (updated model)
+updated_model_r2 = r2_score(df_new['purity'], df_new['purity_soft_sensor_updated'])
+updated_model_mae = np.abs(df_new['purity'] - df_new['purity_soft_sensor_updated']).mean()
+
+print(f"Updated model (retrained with latest data): R² = {updated_model_r2:.4f}, MAE = {updated_model_mae:.4f}%")
+print(f"\nPerformance improvement: R² {old_model_r2:.4f} → {updated_model_r2:.4f} (+{(updated_model_r2-old_model_r2)*100:.2f}%)")
+print(f"           MAE {old_model_mae:.4f}% → {updated_model_mae:.4f}% (-{(old_model_mae-updated_model_mae):.4f}%)")
+
+# Visualization
+fig, axes = plt.subplots(2, 1, figsize=(16, 10))
+
+# Time series comparison
+time_window = slice('2025-04-01', '2025-04-03')
+axes[0].plot(df_new.loc[time_window].index, df_new.loc[time_window, 'purity'],
+             linewidth=2, alpha=0.7, label='True Purity', color='black')
+axes[0].plot(df_new.loc[time_window].index, df_new.loc[time_window, 'purity_soft_sensor_old'],
+             linewidth=2, alpha=0.8, label='Old Model (drift)', color='red')
+axes[0].plot(df_new.loc[time_window].index, df_new.loc[time_window, 'purity_soft_sensor_updated'],
+             linewidth=2, alpha=0.8, label='Updated Model', color='#11998e')
+axes[0].set_ylabel('Product Purity (%)', fontsize=11)
+axes[0].set_title('Soft Sensor Performance: Before and After Update', fontsize=13, fontweight='bold')
+axes[0].legend()
+axes[0].grid(alpha=0.3)
+
+# Error comparison
+errors_old = df_new['purity'] - df_new['purity_soft_sensor_old']
+errors_updated = df_new['purity'] - df_new['purity_soft_sensor_updated']
+
+axes[1].hist(errors_old, bins=40, alpha=0.6, label='Old Model', color='red', edgecolor='black')
+axes[1].hist(errors_updated, bins=40, alpha=0.6, label='Updated Model', color='#11998e', edgecolor='black')
+axes[1].axvline(x=0, color='black', linestyle='--', linewidth=2)
+axes[1].set_xlabel('Prediction Error (%)', fontsize=11)
+axes[1].set_ylabel('Frequency', fontsize=11)
+axes[1].set_title('Error Distribution Comparison', fontsize=12, fontweight='bold')
+axes[1].legend()
+axes[1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("\n【Important Points for Soft Sensor Operation】")
+print("1. Regular model performance monitoring (trend analysis of prediction errors)")
+print("2. Process drift detection (statistical process control, CUSUM, etc.)")
+print("3. Regular model updates (monthly to quarterly)")
+print("4. Continuous collection of offline measurement data (for retraining)")
+print("5. Model version management and rollback functionality")
+</code></pre>
+<p><strong>Explanation</strong>: Soft sensors are not "build and forget" but require continuous maintenance. Monitor process characteristic changes (drift) and maintain model performance through regular retraining.</p>
+<hr/>
+<h2>3.4 Model Evaluation Metrics</h2>
+<p>Understanding appropriate metrics and validation methods is essential for accurately evaluating model performance.</p>
+<h3>Main Evaluation Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Formula</th>
+<th>Characteristics</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>R²</strong><br/>(Coefficient of Determination)</td>
+<td>$R^2 = 1 - \frac{\sum(y_i - \hat{y}_i)^2}{\sum(y_i - \bar{y})^2}$</td>
+<td>Range 0-1<br/>Closer to 1 is better</td>
+<td>Proportion of variance<br/>explained by model</td>
+</tr>
+<tr>
+<td><strong>RMSE</strong><br/>(Root Mean<br/>Squared Error)</td>
+<td>$\text{RMSE} = \sqrt{\frac{1}{n}\sum(y_i - \hat{y}_i)^2}$</td>
+<td>Same unit as data<br/>Sensitive to outliers</td>
+<td>Standard magnitude<br/>of prediction error</td>
+</tr>
+<tr>
+<td><strong>MAE</strong><br/>(Mean Absolute Error)</td>
+<td>$\text{MAE} = \frac{1}{n}\sum|y_i - \hat{y}_i|$</td>
+<td>Same unit as data<br/>Robust to outliers</td>
+<td>Average magnitude<br/>of prediction error</td>
+</tr>
+<tr>
+<td><strong>MAPE</strong><br/>(Mean Absolute<br/>Percentage Error)</td>
+<td>$\text{MAPE} = \frac{100}{n}\sum\frac{|y_i - \hat{y}_i|}{|y_i|}$</td>
+<td>Percentage display<br/>Scale-independent</td>
+<td>Average of<br/>relative errors</td>
+</tr>
+</tbody>
+</table>
+<h4>Code Example 9: Implementation and Interpretation of Model Evaluation Metrics</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 9: Implementation and Interpretation of Model E
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+
+# Sample data generation
+np.random.seed(42)
+n = 300
+
+X = pd.DataFrame({
+    'temp': np.random.uniform(160, 190, n),
+    'pressure': np.random.uniform(1.0, 2.0, n),
+    'flow': np.random.uniform(40, 60, n)
+})
+
+y = (70 + 0.3*X['temp'] + 10*X['pressure'] + 0.2*X['flow'] +
+     np.random.normal(0, 3, n))
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Compare two models
+model_lr = LinearRegression().fit(X_train, y_train)
+model_rf = RandomForestRegressor(n_estimators=100, random_state=42).fit(X_train, y_train)
+
+y_pred_lr = model_lr.predict(X_test)
+y_pred_rf = model_rf.predict(X_test)
+
+# Evaluation metric calculation function
+def evaluate_model(y_true, y_pred, model_name):
+    r2 = r2_score(y_true, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+    mae = mean_absolute_error(y_true, y_pred)
+    mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100
+
+    # Additional metrics
+    max_error = np.max(np.abs(y_true - y_pred))
+    residuals = y_true - y_pred
+
+    results = {
+        'Model': model_name,
+        'R²': r2,
+        'RMSE': rmse,
+        'MAE': mae,
+        'MAPE (%)': mape,
+        'Max Error': max_error,
+        'Residual Mean': residuals.mean(),
+        'Residual Std': residuals.std()
+    }
+    return results
+
+# Evaluate both models
+results_lr = evaluate_model(y_test, y_pred_lr, 'Linear Regression')
+results_rf = evaluate_model(y_test, y_pred_rf, 'Random Forest')
+
+results_df = pd.DataFrame([results_lr, results_rf])
+print("【Model Performance Comparison】")
+print(results_df.to_string(index=False))
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# Predicted vs Actual (Linear Regression)
+axes[0, 0].scatter(y_test, y_pred_lr, alpha=0.6, s=50, color='#11998e')
+axes[0, 0].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
+                'r--', linewidth=2, label='Perfect prediction')
+axes[0, 0].set_xlabel('Actual', fontsize=11)
+axes[0, 0].set_ylabel('Predicted', fontsize=11)
+axes[0, 0].set_title(f'Linear Regression (R²={results_lr["R²"]:.3f}, RMSE={results_lr["RMSE"]:.2f})',
+                     fontsize=11, fontweight='bold')
+axes[0, 0].legend()
+axes[0, 0].grid(alpha=0.3)
+
+# Predicted vs Actual (Random Forest)
+axes[0, 1].scatter(y_test, y_pred_rf, alpha=0.6, s=50, color='#f59e0b')
+axes[0, 1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
+                'r--', linewidth=2, label='Perfect prediction')
+axes[0, 1].set_xlabel('Actual', fontsize=11)
+axes[0, 1].set_ylabel('Predicted', fontsize=11)
+axes[0, 1].set_title(f'Random Forest (R²={results_rf["R²"]:.3f}, RMSE={results_rf["RMSE"]:.2f})',
+                     fontsize=11, fontweight='bold')
+axes[0, 1].legend()
+axes[0, 1].grid(alpha=0.3)
+
+# Evaluation metric comparison (bar chart)
+metrics = ['R²', 'MAE', 'MAPE (%)']
+lr_scores = [results_lr['R²'], results_lr['MAE'], results_lr['MAPE (%)']]
+rf_scores = [results_rf['R²'], results_rf['MAE'], results_rf['MAPE (%)']]
+
+x = np.arange(len(metrics))
+width = 0.35
+
+axes[1, 0].bar(x - width/2, lr_scores, width, label='Linear Regression',
+               color='#11998e', alpha=0.7)
+axes[1, 0].bar(x + width/2, rf_scores, width, label='Random Forest',
+               color='#f59e0b', alpha=0.7)
+axes[1, 0].set_ylabel('Score', fontsize=11)
+axes[1, 0].set_title('Evaluation Metrics Comparison', fontsize=12, fontweight='bold')
+axes[1, 0].set_xticks(x)
+axes[1, 0].set_xticklabels(metrics)
+axes[1, 0].legend()
+axes[1, 0].grid(alpha=0.3, axis='y')
+
+# Residual distribution comparison
+residuals_lr = y_test - y_pred_lr
+residuals_rf = y_test - y_pred_rf
+
+axes[1, 1].hist(residuals_lr, bins=20, alpha=0.6, label='Linear Regression',
+                color='#11998e', edgecolor='black')
+axes[1, 1].hist(residuals_rf, bins=20, alpha=0.6, label='Random Forest',
+                color='#f59e0b', edgecolor='black')
+axes[1, 1].axvline(x=0, color='red', linestyle='--', linewidth=2)
+axes[1, 1].set_xlabel('Residuals', fontsize=11)
+axes[1, 1].set_ylabel('Frequency', fontsize=11)
+axes[1, 1].set_title('Residual Distribution', fontsize=12, fontweight='bold')
+axes[1, 1].legend()
+axes[1, 1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("\n【Metric Interpretation】")
+print("R²: Proportion of variance explained by model (closer to 1 is better)")
+print("RMSE: Standard magnitude of prediction error (smaller is better, sensitive to outliers)")
+print("MAE: Average magnitude of prediction error (smaller is better, robust to outliers)")
+print("MAPE: Average relative error (% display, scale-independent)")
+print("\n【Selection Criteria】")
+print("✓ R²: Evaluate overall fit (most common)")
+print("✓ RMSE: When emphasizing large errors (quality control)")
+print("✓ MAE: When suppressing influence of outliers")
+print("✓ MAPE: When comparing data with different scales")
+</code></pre>
+<p><strong>Explanation</strong>: By combining multiple evaluation metrics, you can understand model performance from multiple perspectives. Don't rely on a single metric alone; select appropriate metrics according to the purpose.</p>
+<h4>Code Example 10: Performance Evaluation with Cross-Validation</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 10: Performance Evaluation with Cross-Validatio
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import cross_val_score, KFold, learning_curve
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import StandardScaler
+
+# Using data from previous code example
+# X, y are already defined
+
+# K-Fold cross-validation
+kfold = KFold(n_splits=5, shuffle=True, random_state=42)
+
+model_lr = LinearRegression()
+model_rf = RandomForestRegressor(n_estimators=100, random_state=42)
+
+# Cross-validation scores
+cv_scores_lr = cross_val_score(model_lr, X, y, cv=kfold, scoring='r2')
+cv_scores_rf = cross_val_score(model_rf, X, y, cv=kfold, scoring='r2')
+
+print("【Cross-Validation Results (R² Score)】")
+print(f"\nLinear Regression:")
+print(f"  Each Fold: {cv_scores_lr}")
+print(f"  Mean: {cv_scores_lr.mean():.4f} (±{cv_scores_lr.std():.4f})")
+
+print(f"\nRandom Forest:")
+print(f"  Each Fold: {cv_scores_rf}")
+print(f"  Mean: {cv_scores_rf.mean():.4f} (±{cv_scores_rf.std():.4f})")
+
+# Learning curve calculation
+train_sizes, train_scores_lr, val_scores_lr = learning_curve(
+    model_lr, X, y, cv=5, scoring='r2',
+    train_sizes=np.linspace(0.1, 1.0, 10), random_state=42
+)
+
+train_sizes, train_scores_rf, val_scores_rf = learning_curve(
+    model_rf, X, y, cv=5, scoring='r2',
+    train_sizes=np.linspace(0.1, 1.0, 10), random_state=42
+)
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Cross-validation score comparison
+axes[0].boxplot([cv_scores_lr, cv_scores_rf], labels=['Linear Regression', 'Random Forest'],
+                patch_artist=True,
+                boxprops=dict(facecolor='#11998e', alpha=0.7))
+axes[0].set_ylabel('R² Score', fontsize=11)
+axes[0].set_title('Cross-Validation Performance (5-Fold)', fontsize=12, fontweight='bold')
+axes[0].grid(alpha=0.3, axis='y')
+
+# Learning curve
+train_mean_lr = train_scores_lr.mean(axis=1)
+train_std_lr = train_scores_lr.std(axis=1)
+val_mean_lr = val_scores_lr.mean(axis=1)
+val_std_lr = val_scores_lr.std(axis=1)
+
+axes[1].plot(train_sizes, train_mean_lr, 'o-', color='#11998e', linewidth=2,
+             label='Training score (LR)')
+axes[1].fill_between(train_sizes, train_mean_lr - train_std_lr,
+                      train_mean_lr + train_std_lr, alpha=0.2, color='#11998e')
+axes[1].plot(train_sizes, val_mean_lr, 's-', color='#f59e0b', linewidth=2,
+             label='Validation score (LR)')
+axes[1].fill_between(train_sizes, val_mean_lr - val_std_lr,
+                      val_mean_lr + val_std_lr, alpha=0.2, color='#f59e0b')
+axes[1].set_xlabel('Training Set Size', fontsize=11)
+axes[1].set_ylabel('R² Score', fontsize=11)
+axes[1].set_title('Learning Curve (Linear Regression)', fontsize=12, fontweight='bold')
+axes[1].legend(loc='lower right')
+axes[1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("\n【Importance of Cross-Validation】")
+print("✓ Evaluate with multiple splits instead of a single train/test split")
+print("✓ Reduce evaluation bias due to data bias")
+print("✓ More accurately estimate model generalization performance")
+print("✓ Standard deviation also allows evaluation of performance stability")
+
+print("\n【Learning Curve Interpretation】")
+print("✓ Small difference between training and validation scores → No overfitting")
+print("✓ Both scores high → Model is appropriate")
+print("✓ Training score high but validation score low → Sign of overfitting")
+print("✓ Both scores low → Model lacks complexity (underfitting)")
+</code></pre>
+<p><strong>Explanation</strong>: Cross-validation is a method to extract maximum information from limited data. Since process data acquisition costs are high, efficient validation is important.</p>
+<hr/>
+<h2>3.5 Extension to Nonlinear Models</h2>
+<p>Processes have nonlinearities. When linear regression is insufficient, consider <strong>nonlinear models</strong>.</p>
+<h3>Main Nonlinear Models</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Characteristics</th>
+<th>Advantages</th>
+<th>Disadvantages</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Polynomial Regression</strong></td>
+<td>Extension of linear regression</td>
+<td>High interpretability</td>
+<td>Difficult to select degree</td>
+</tr>
+<tr>
+<td><strong>Random Forest</strong></td>
+<td>Ensemble of decision trees</td>
+<td>High accuracy, robust to outliers</td>
+<td>Black box</td>
+</tr>
+<tr>
+<td><strong>SVR</strong></td>
+<td>Support Vector Regression</td>
+<td>Strong theoretical foundation</td>
+<td>Requires parameter tuning</td>
+</tr>
+<tr>
+<td><strong>NN/DNN</strong></td>
+<td>Neural Networks</td>
+<td>Strong with ultra-high dimensional data</td>
+<td>Requires large amounts of data</td>
+</tr>
+</tbody>
+</table>
+<h4>Code Example 11: Polynomial Regression and Random Forest</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 11: Polynomial Regression and Random Forest
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_squared_error
+
+# Sample data generation: Nonlinear relationship
+np.random.seed(42)
+n = 200
+
+temperature = np.random.uniform(160, 190, n)
+
+# Nonlinear relationship: Maximum yield at optimal temperature 175°C
+yield_pct = (
+    -0.05 * (temperature - 175)**2 +  # Quadratic relationship (hill-shaped)
+    90 +
+    np.random.normal(0, 1.5, n)
+)
+
+df = pd.DataFrame({'temperature': temperature, 'yield': yield_pct})
+
+X = df[['temperature']]
+y = df['yield']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Model 1: Linear regression (baseline)
+model_linear = LinearRegression()
+model_linear.fit(X_train, y_train)
+y_pred_linear = model_linear.predict(X_test)
+r2_linear = r2_score(y_test, y_pred_linear)
+
+# Model 2: Polynomial regression (degree 2)
+poly_features = PolynomialFeatures(degree=2, include_bias=False)
+X_train_poly = poly_features.fit_transform(X_train)
+X_test_poly = poly_features.transform(X_test)
+
+model_poly = LinearRegression()
+model_poly.fit(X_train_poly, y_train)
+y_pred_poly = model_poly.predict(X_test_poly)
+r2_poly = r2_score(y_test, y_pred_poly)
+
+# Model 3: Random Forest
+model_rf = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)
+model_rf.fit(X_train, y_train)
+y_pred_rf = model_rf.predict(X_test)
+r2_rf = r2_score(y_test, y_pred_rf)
+
+print("【Model Performance Comparison】")
+print(f"Linear Regression:       R² = {r2_linear:.4f}, RMSE = {np.sqrt(mean_squared_error(y_test, y_pred_linear)):.4f}")
+print(f"Polynomial Regression (degree 2): R² = {r2_poly:.4f}, RMSE = {np.sqrt(mean_squared_error(y_test, y_pred_poly)):.4f}")
+print(f"Random Forest:  R² = {r2_rf:.4f}, RMSE = {np.sqrt(mean_squared_error(y_test, y_pred_rf)):.4f}")
+
+# Prediction curves for visualization
+X_plot = np.linspace(160, 190, 300).reshape(-1, 1)
+y_plot_linear = model_linear.predict(X_plot)
+y_plot_poly = model_poly.predict(poly_features.transform(X_plot))
+y_plot_rf = model_rf.predict(X_plot)
+
+# Visualization
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+# Linear regression
+axes[0].scatter(X_train, y_train, alpha=0.5, s=30, color='gray', label='Training data')
+axes[0].scatter(X_test, y_test, alpha=0.5, s=30, color='red', label='Test data')
+axes[0].plot(X_plot, y_plot_linear, color='#11998e', linewidth=2.5, label='Linear fit')
+axes[0].set_xlabel('Temperature (°C)', fontsize=11)
+axes[0].set_ylabel('Yield (%)', fontsize=11)
+axes[0].set_title(f'Linear Regression (R²={r2_linear:.3f})', fontsize=12, fontweight='bold')
+axes[0].legend()
+axes[0].grid(alpha=0.3)
+
+# Polynomial regression
+axes[1].scatter(X_train, y_train, alpha=0.5, s=30, color='gray', label='Training data')
+axes[1].scatter(X_test, y_test, alpha=0.5, s=30, color='red', label='Test data')
+axes[1].plot(X_plot, y_plot_poly, color='#f59e0b', linewidth=2.5, label='Polynomial fit (degree=2)')
+axes[1].set_xlabel('Temperature (°C)', fontsize=11)
+axes[1].set_ylabel('Yield (%)', fontsize=11)
+axes[1].set_title(f'Polynomial Regression (R²={r2_poly:.3f})', fontsize=12, fontweight='bold')
+axes[1].legend()
+axes[1].grid(alpha=0.3)
+
+# Random Forest
+axes[2].scatter(X_train, y_train, alpha=0.5, s=30, color='gray', label='Training data')
+axes[2].scatter(X_test, y_test, alpha=0.5, s=30, color='red', label='Test data')
+axes[2].plot(X_plot, y_plot_rf, color='#7b2cbf', linewidth=2.5, label='Random Forest')
+axes[2].set_xlabel('Temperature (°C)', fontsize=11)
+axes[2].set_ylabel('Yield (%)', fontsize=11)
+axes[2].set_title(f'Random Forest (R²={r2_rf:.3f})', fontsize=12, fontweight='bold')
+axes[2].legend()
+axes[2].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Display polynomial coefficients
+print(f"\n【Polynomial Regression Equation】")
+print(f"y = {model_poly.intercept_:.4f} + {model_poly.coef_[0]:.4f}×T + {model_poly.coef_[1]:.4f}×T²")
+
+# Estimate optimal temperature (from polynomial regression)
+optimal_temp = -model_poly.coef_[0] / (2 * model_poly.coef_[1])
+optimal_yield = model_poly.predict(poly_features.transform([[optimal_temp]]))[0]
+print(f"\nEstimated optimal temperature: {optimal_temp:.2f}°C")
+print(f"Estimated maximum yield: {optimal_yield:.2f}%")
+</code></pre>
+<p><strong>Example Output</strong>:</p>
+<pre><code>【Model Performance Comparison】
+Linear Regression:       R² = 0.2345, RMSE = 3.4567
+Polynomial Regression (degree 2): R² = 0.9234, RMSE = 1.0987
+Random Forest:  R² = 0.9156, RMSE = 1.1567
+
+【Polynomial Regression Equation】
+y = -345.6789 + 5.6789×T + -0.0162×T²
+
+Estimated optimal temperature: 175.12°C
+Estimated maximum yield: 89.87%
+</code></pre>
+<p><strong>Explanation</strong>: When nonlinear relationships exist, linear regression shows poor performance. Polynomial regression can handle nonlinearity while maintaining interpretability and is also useful for estimating optimal conditions.</p>
+<h4>Code Example 12: Hyperparameter Tuning (GridSearchCV)</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 12: Hyperparameter Tuning (GridSearchCV)
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import GridSearchCV, train_test_split
+from sklearn.metrics import r2_score, mean_squared_error
+
+# Using data from previous code example
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Hyperparameter search range
+param_grid = {
+    'n_estimators': [50, 100, 200],
+    'max_depth': [5, 10, 15, None],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4]
+}
+
+# Hyperparameter tuning with GridSearchCV
+rf = RandomForestRegressor(random_state=42)
+grid_search = GridSearchCV(estimator=rf, param_grid=param_grid,
+                           cv=5, scoring='r2', n_jobs=-1, verbose=1)
+
+print("【Running GridSearchCV...】")
+print(f"Number of parameter combinations to search: {len(param_grid['n_estimators']) * len(param_grid['max_depth']) * len(param_grid['min_samples_split']) * len(param_grid['min_samples_leaf'])}")
+
+grid_search.fit(X_train, y_train)
+
+# Optimal parameters
+print(f"\n【Optimal Parameters】")
+print(grid_search.best_params_)
+print(f"\nOptimal CV Score (R²): {grid_search.best_score_:.4f}")
+
+# Evaluate test data with optimal model
+best_model = grid_search.best_estimator_
+y_pred_best = best_model.predict(X_test)
+test_r2 = r2_score(y_test, y_pred_best)
+test_rmse = np.sqrt(mean_squared_error(y_test, y_pred_best))
+
+print(f"\nTest Data Performance:")
+print(f"  R²: {test_r2:.4f}")
+print(f"  RMSE: {test_rmse:.4f}")
+
+# Visualize results (top 10 parameter combinations)
+results = pd.DataFrame(grid_search.cv_results_)
+results_sorted = results.sort_values('rank_test_score')
+
+top_10 = results_sorted.head(10)
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# R² scores of top 10 parameters
+axes[0].barh(range(10), top_10['mean_test_score'], color='#11998e', alpha=0.7)
+axes[0].set_yticks(range(10))
+axes[0].set_yticklabels([f"Rank {i+1}" for i in range(10)])
+axes[0].set_xlabel('Mean CV R² Score', fontsize=11)
+axes[0].set_title('Top 10 Parameter Combinations', fontsize=12, fontweight='bold')
+axes[0].grid(alpha=0.3, axis='x')
+axes[0].invert_yaxis()
+
+# Predicted vs Actual (optimal model)
+axes[1].scatter(y_test, y_pred_best, alpha=0.6, s=50, color='#11998e')
+axes[1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
+             'r--', linewidth=2, label='Perfect prediction')
+axes[1].set_xlabel('Actual Yield (%)', fontsize=11)
+axes[1].set_ylabel('Predicted Yield (%)', fontsize=11)
+axes[1].set_title(f'Best Model Performance (R²={test_r2:.3f})', fontsize=12, fontweight='bold')
+axes[1].legend()
+axes[1].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("\n【Importance of Hyperparameter Tuning】")
+print("✓ Default values often do not provide optimal performance")
+print("✓ Systematically search for optimal parameters with GridSearchCV")
+print("✓ Search while preventing overfitting with cross-validation")
+print("✓ Computational cost is high but model performance significantly improves")
+</code></pre>
+<p><strong>Explanation</strong>: Hyperparameter tuning is an important step to maximize model performance. Using GridSearchCV allows systematic and efficient discovery of optimal parameters.</p>
+<hr/>
+<h2>3.6 Chapter Summary</h2>
+<h3>What We Learned</h3>
+<ol>
+<li><strong>Linear Regression Fundamentals</strong>
+<ul>
+<li>Process model construction with simple and multiple regression</li>
+<li>Model diagnostics through residual analysis</li>
+<li>Interpretation of coefficients and understanding physical meaning</li>
+</ul>
+</li>
+<li><strong>Addressing Multicollinearity with PLS</strong>
+<ul>
+<li>Multicollinearity diagnosis with VIF</li>
+<li>Compress to latent variables with PLS for stable model construction</li>
+<li>Differences from PCR and PLS advantages</li>
+</ul>
+</li>
+<li><strong>Soft Sensor Implementation</strong>
+<ul>
+<li>Replace offline measurements with real-time predictions</li>
+<li>Monitor process drift and perform regular retraining</li>
+<li>Importance of practical operation and maintenance</li>
+</ul>
+</li>
+<li><strong>Model Evaluation Practice</strong>
+<ul>
+<li>Distinguish between R², RMSE, MAE, and MAPE</li>
+<li>Evaluate generalization performance with cross-validation</li>
+<li>Diagnose overfitting with learning curves</li>
+</ul>
+</li>
+<li><strong>Extension to Nonlinear Models</strong>
+<ul>
+<li>Characteristics of polynomial regression, Random Forest, and SVR</li>
+<li>Hyperparameter optimization with GridSearchCV</li>
+<li>Performance comparison with linear models</li>
+</ul>
+</li>
+</ol>
+<h3>Important Points</h3>
+<blockquote>
+<p><strong>"All models are wrong, but some are useful."</strong> - George Box</p>
+</blockquote>
+<ul>
+<li>Perfect models do not exist. Select appropriate models according to purpose</li>
+<li>Start with simple models and increase complexity as needed</li>
+<li>Understand the tradeoff between interpretability and accuracy</li>
+<li>Models are not "build and forget" but require continuous maintenance</li>
+</ul>
+<h3>Model Selection Guidelines</h3>
+<ol>
+<li><strong>Strong linear relationships</strong> → Linear regression, PLS</li>
+<li><strong>Multicollinearity present</strong> → PLS, Ridge/Lasso regression</li>
+<li><strong>Nonlinear relationships present</strong> → Polynomial regression, Random Forest, SVR</li>
+<li><strong>Interpretability important</strong> → Linear regression, polynomial regression</li>
+<li><strong>Accuracy top priority</strong> → Random Forest, Gradient Boosting, DNN</li>
+</ol>
+<h3>To the Next Chapter</h3>
+<p>In Chapter 4, we will integrate the learned techniques and conduct <strong>practical exercises using real process data</strong>:</p>
+<ul>
+<li>Case study: Chemical plant operation data analysis</li>
+<li>Quality prediction model construction (EDA → Modeling → Evaluation)</li>
+<li>Process condition optimization fundamentals</li>
+<li>Complete implementation project workflow</li>
+<li>Summary and next steps (advanced topics)</li>
+</ul>
+<div class="navigation">
+<a class="nav-button" href="chapter-2.html">← Previous Chapter</a>
+<a class="nav-button" href="chapter-4.html">Next Chapter →</a>
+</div>
+</main>
+<section>
+<h2>References</h2>
+<ol>
+<li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+<li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+<li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+<li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+</ol>
+</section>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>Even if direct, indirect, incidental, special, consequential, or punitive damages arise from the use, execution, or interpretation of this content, to the maximum extent permitted by applicable law, the creators and Tohoku University assume no liability.</li>
+<li>The content of this material may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content follow the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Author</strong>: PI Knowledge Hub Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-25</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 PI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

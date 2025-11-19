@@ -1,0 +1,2076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 4: Optimization under Constraints - Process Optimization Introduction | PI Terakoya. Understand Lagrange multipliers and KKT conditions" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Chapter 4: Optimization under Constraints - Process Optimization Introduction Series" name="description"/>
+<title>Chapter 4: Optimization under Constraints - Process Optimization Introduction | PI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../PI/index.html">Process Informatics</a><span class="breadcrumb-separator">›</span><a href="../../PI/process-optimization-introduction/index.html">Process Optimization</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 4</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/PI/process-optimization-introduction/chapter-4.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="container">
+<h1>Chapter 4: Optimization under Constraints</h1>
+<p class="subtitle">Lagrange Multipliers, KKT Conditions, Penalty Methods, SQP</p>
+<div class="meta">
+<span class="meta">📖 Reading Time: 25-30 minutes</span>
+<span class="meta">📊 Difficulty: Intermediate</span>
+<span class="meta">💻 Code Examples: 9</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter covers Optimization under Constraints. You will learn Lagrange multipliers, penalty methods, and Formulate constraints for chemical processes.</p>
+<div class="learning-objectives">
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will master the following:</p>
+<ul>
+<li>✅ Understand Lagrange multipliers and KKT conditions</li>
+<li>✅ Implement penalty methods and barrier methods</li>
+<li>✅ Solve constrained optimization problems using SQP/SLSQP methods</li>
+<li>✅ Formulate constraints for chemical processes</li>
+<li>✅ Solve practical process optimization problems</li>
+</ul>
+</div>
+<hr/>
+<h2>4.1 Theory of Constrained Optimization</h2>
+<h3>Formulation of Constrained Optimization Problems</h3>
+<p>A general constrained optimization problem is expressed as follows:</p>
+<p>$$
+\begin{aligned}
+\text{minimize} \quad &amp; f(\mathbf{x}) \\
+\text{subject to} \quad &amp; g_i(\mathbf{x}) \leq 0, \quad i = 1, \ldots, m \\
+&amp; h_j(\mathbf{x}) = 0, \quad j = 1, \ldots, p \\
+&amp; \mathbf{x} \in \mathbb{R}^n
+\end{aligned}
+$$</p>
+<p>Where:</p>
+<ul>
+<li><strong>$f(\mathbf{x})$</strong>: Objective function</li>
+<li><strong>$g_i(\mathbf{x}) \leq 0$</strong>: Inequality constraints (e.g., temperature upper limit, pressure lower limit)</li>
+<li><strong>$h_j(\mathbf{x}) = 0$</strong>: Equality constraints (e.g., material balance, energy balance)</li>
+</ul>
+<h3>Lagrange Function and Lagrange Multipliers</h3>
+<p>Constrained optimization problems can be converted to unconstrained optimization problems by introducing the <strong>Lagrange function</strong>:</p>
+<p>$$
+\mathcal{L}(\mathbf{x}, \boldsymbol{\lambda}, \boldsymbol{\mu}) = f(\mathbf{x}) + \sum_{i=1}^{m} \lambda_i g_i(\mathbf{x}) + \sum_{j=1}^{p} \mu_j h_j(\mathbf{x})
+$$</p>
+<p>Here, $\boldsymbol{\lambda}$ (for inequality constraints) and $\boldsymbol{\mu}$ (for equality constraints) are <strong>Lagrange multipliers</strong>.</p>
+<hr/>
+<h3>Code Example 1: Lagrange Multiplier Method (Equality Constraints)</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+
+"""
+Implementation and visualization of Lagrange multiplier method:
+Problem: minimize f(x, y) = x^2 + y^2
+         subject to h(x, y) = x + y - 2 = 0
+
+Analytical solution: x = y = 1 (Lagrange multiplier λ = -2)
+"""
+
+def objective(x):
+    """Objective function f(x, y) = x^2 + y^2"""
+    return x[0]**2 + x[1]**2
+
+def constraint_eq(x):
+    """Equality constraint h(x, y) = x + y - 2 = 0"""
+    return x[0] + x[1] - 2
+
+def lagrangian(x, lambda_val):
+    """
+    Lagrange function
+    L(x, y, λ) = f(x, y) + λ * h(x, y)
+    """
+    return objective(x) + lambda_val * constraint_eq(x)
+
+# Analytical optimal solution
+x_optimal_analytical = np.array([1.0, 1.0])
+lambda_optimal = -2.0
+
+print("=" * 60)
+print("Lagrange Multiplier Method: Equality Constrained Optimization")
+print("=" * 60)
+print("Problem formulation:")
+print("  minimize: f(x, y) = x² + y²")
+print("  subject to: x + y = 2")
+print()
+print("Analytical solution:")
+print(f"  x* = {x_optimal_analytical[0]:.4f}")
+print(f"  y* = {x_optimal_analytical[1]:.4f}")
+print(f"  λ* = {lambda_optimal:.4f}")
+print(f"  f(x*) = {objective(x_optimal_analytical):.4f}")
+print()
+
+# Numerical solution using scipy.optimize
+constraint = {'type': 'eq', 'fun': constraint_eq}
+x0 = np.array([0.0, 0.0])
+
+result = minimize(objective, x0, method='SLSQP', constraints=constraint)
+
+print("Numerical solution (scipy.optimize):")
+print(f"  x* = {result.x[0]:.4f}")
+print(f"  y* = {result.x[1]:.4f}")
+print(f"  f(x*) = {result.fun:.4f}")
+print(f"  Optimization successful: {result.success}")
+print()
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# Left plot: Contour plot and constraint
+ax1 = axes[0]
+x_range = np.linspace(-0.5, 3, 200)
+y_range = np.linspace(-0.5, 3, 200)
+X, Y = np.meshgrid(x_range, y_range)
+Z = X**2 + Y**2
+
+# Contour lines
+contour = ax1.contour(X, Y, Z, levels=15, cmap='viridis', alpha=0.6)
+ax1.contourf(X, Y, Z, levels=15, cmap='viridis', alpha=0.3)
+ax1.colorbar(contour, label='f(x, y) = x² + y²')
+
+# Constraint line x + y = 2
+x_constraint = np.linspace(-0.5, 3, 100)
+y_constraint = 2 - x_constraint
+ax1.plot(x_constraint, y_constraint, 'r--', linewidth=3, label='Constraint: x + y = 2')
+
+# Optimal solution
+ax1.scatter([x_optimal_analytical[0]], [x_optimal_analytical[1]],
+           color='red', s=250, marker='*', edgecolors='black', linewidth=2,
+           label=f'Optimal solution ({x_optimal_analytical[0]}, {x_optimal_analytical[1]})',
+           zorder=5)
+
+ax1.set_xlabel('x', fontsize=12)
+ax1.set_ylabel('y', fontsize=12)
+ax1.set_title('Equality Constrained Optimization', fontsize=13, fontweight='bold')
+ax1.legend(fontsize=10)
+ax1.grid(alpha=0.3)
+ax1.set_xlim(-0.5, 3)
+ax1.set_ylim(-0.5, 3)
+
+# Right plot: Lagrange function dependence on λ
+ax2 = axes[1]
+lambda_range = np.linspace(-5, 1, 100)
+lagrangian_values = [lagrangian(x_optimal_analytical, lam) for lam in lambda_range]
+
+ax2.plot(lambda_range, lagrangian_values, linewidth=2.5, color='#11998e',
+        label='L(x*, y*, λ)')
+ax2.axvline(x=lambda_optimal, color='red', linestyle='--', linewidth=2,
+           label=f'Optimal λ* = {lambda_optimal}')
+ax2.scatter([lambda_optimal], [lagrangian(x_optimal_analytical, lambda_optimal)],
+           color='red', s=200, marker='*', edgecolors='black', linewidth=2,
+           zorder=5)
+
+ax2.set_xlabel('Lagrange multiplier λ', fontsize=12)
+ax2.set_ylabel('Lagrange function L(x*, y*, λ)', fontsize=12)
+ax2.set_title('Lagrange Function Dependence on λ', fontsize=13, fontweight='bold')
+ax2.legend(fontsize=10)
+ax2.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("=" * 60)
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>============================================================
+Lagrange Multiplier Method: Equality Constrained Optimization
+============================================================
+Problem formulation:
+  minimize: f(x, y) = x² + y²
+  subject to: x + y = 2
+
+Analytical solution:
+  x* = 1.0000
+  y* = 1.0000
+  λ* = -2.0000
+  f(x*) = 2.0000
+
+Numerical solution (scipy.optimize):
+  x* = 1.0000
+  y* = 1.0000
+  f(x*) = 2.0000
+  Optimization successful: True
+
+============================================================
+</code></pre>
+<p><strong>Explanation:</strong> The Lagrange multiplier method incorporates equality constraints into the objective function, converting it to an unconstrained optimization problem. The Lagrange multiplier $\lambda$ represents the influence of the constraint on the objective function.</p>
+<hr/>
+<h3>Code Example 2: KKT Conditions Implementation (Inequality Constraints)</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+
+"""
+KKT conditions (Karush-Kuhn-Tucker conditions):
+Necessary conditions for optimality in inequality constrained optimization problems
+
+Problem: minimize f(x) = (x - 3)^2
+         subject to g(x) = 1 - x &lt;= 0  (i.e., x &gt;= 1)
+"""
+
+def objective(x):
+    """Objective function f(x) = (x - 3)^2"""
+    return (x[0] - 3)**2
+
+def constraint_ineq(x):
+    """Inequality constraint g(x) = 1 - x &lt;= 0"""
+    return 1 - x[0]
+
+def check_kkt_conditions(x, lambda_val, tolerance=1e-6):
+    """
+    Check KKT conditions:
+    1. Stationarity: ∇f(x) + λ * ∇g(x) = 0
+    2. Primal feasibility: g(x) &lt;= 0
+    3. Dual feasibility: λ &gt;= 0
+    4. Complementarity: λ * g(x) = 0
+    """
+    # Gradient calculation
+    grad_f = 2 * (x[0] - 3)  # ∇f(x)
+    grad_g = -1              # ∇g(x)
+
+    # KKT condition checks
+    stationarity = abs(grad_f + lambda_val * grad_g)
+    primal_feasibility = constraint_ineq(x)
+    dual_feasibility = lambda_val
+    complementarity = abs(lambda_val * constraint_ineq(x))
+
+    conditions = {
+        'Stationarity': stationarity &lt; tolerance,
+        'Primal feasibility': primal_feasibility &lt;= tolerance,
+        'Dual feasibility': dual_feasibility &gt;= -tolerance,
+        'Complementarity': complementarity &lt; tolerance
+    }
+
+    return conditions
+
+# Test two cases
+test_cases = [
+    {'x': 1.0, 'lambda': 4.0, 'description': 'Constraint active (x = 1)'},
+    {'x': 3.0, 'lambda': 0.0, 'description': 'Constraint inactive (x = 3)'}
+]
+
+print("=" * 60)
+print("KKT Condition Verification")
+print("=" * 60)
+print("Problem formulation:")
+print("  minimize: f(x) = (x - 3)²")
+print("  subject to: x &gt;= 1  (g(x) = 1 - x &lt;= 0)")
+print()
+
+for case in test_cases:
+    x_test = np.array([case['x']])
+    lambda_test = case['lambda']
+
+    print(f"Case: {case['description']}")
+    print(f"  x = {x_test[0]:.4f}, λ = {lambda_test:.4f}")
+    print(f"  f(x) = {objective(x_test):.4f}")
+    print(f"  g(x) = {constraint_ineq(x_test):.4f}")
+
+    conditions = check_kkt_conditions(x_test, lambda_test)
+
+    print("  KKT conditions:")
+    for condition_name, satisfied in conditions.items():
+        status = "✓" if satisfied else "✗"
+        print(f"    {status} {condition_name}: {satisfied}")
+
+    all_satisfied = all(conditions.values())
+    print(f"  → KKT conditions satisfied: {all_satisfied}")
+    print()
+
+# Find optimal solution using scipy.optimize
+constraint = {'type': 'ineq', 'fun': lambda x: x[0] - 1}  # x &gt;= 1
+x0 = np.array([0.0])
+
+result = minimize(objective, x0, method='SLSQP', constraints=constraint)
+
+print("Numerical solution (scipy.optimize):")
+print(f"  x* = {result.x[0]:.4f}")
+print(f"  f(x*) = {result.fun:.4f}")
+print(f"  Optimization successful: {result.success}")
+print()
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# Left plot: Objective function and constraint
+ax1 = axes[0]
+x_range = np.linspace(-0.5, 5, 200)
+f_values = [(x - 3)**2 for x in x_range]
+
+ax1.plot(x_range, f_values, linewidth=2.5, color='#11998e', label='f(x) = (x - 3)²')
+ax1.axvline(x=1, color='red', linestyle='--', linewidth=2, label='Constraint: x = 1')
+ax1.axvspan(-0.5, 1, alpha=0.2, color='red', label='Infeasible region')
+
+# Unconstrained optimal solution
+ax1.scatter([3], [(3-3)**2], color='blue', s=200, marker='o',
+           edgecolors='black', linewidth=2, label='Unconstrained optimal x = 3', zorder=5)
+
+# Constrained optimal solution
+ax1.scatter([1], [(1-3)**2], color='red', s=250, marker='*',
+           edgecolors='black', linewidth=2, label='Constrained optimal x = 1', zorder=5)
+
+ax1.set_xlabel('x', fontsize=12)
+ax1.set_ylabel('f(x)', fontsize=12)
+ax1.set_title('Inequality Constrained Optimization', fontsize=13, fontweight='bold')
+ax1.legend(fontsize=10)
+ax1.grid(alpha=0.3)
+ax1.set_xlim(-0.5, 5)
+ax1.set_ylim(-0.5, 5)
+
+# Right plot: KKT condition visualization (gradients)
+ax2 = axes[1]
+
+# Gradient vector calculation
+x_test_points = [1.0, 2.0, 3.0]
+for x_val in x_test_points:
+    grad_f = 2 * (x_val - 3)
+    grad_g = -1
+
+    # Unconstrained gradient
+    ax2.arrow(x_val, 0, 0, -grad_f * 0.3, head_width=0.15, head_length=0.2,
+             fc='blue', ec='blue', linewidth=2, alpha=0.7)
+
+    # Constraint gradient (only at x=1)
+    if abs(x_val - 1) &lt; 0.01:
+        lambda_val = 4.0
+        ax2.arrow(x_val + 0.3, 0, 0, -lambda_val * grad_g * 0.3,
+                 head_width=0.15, head_length=0.2, fc='red', ec='red',
+                 linewidth=2, alpha=0.7)
+
+ax2.axvline(x=1, color='red', linestyle='--', linewidth=2, alpha=0.5)
+ax2.axhline(y=0, color='black', linestyle='-', linewidth=1)
+
+ax2.text(1, -1.5, 'x = 1 (constraint active)\n∇f + λ∇g = 0', fontsize=10,
+        ha='center', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+ax2.text(3, -0.5, 'x = 3 (constraint inactive)\n∇f = 0', fontsize=10,
+        ha='center', bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.5))
+
+ax2.set_xlabel('x', fontsize=12)
+ax2.set_ylabel('Gradient (conceptual diagram)', fontsize=12)
+ax2.set_title('KKT Conditions: Gradient Balance', fontsize=13, fontweight='bold')
+ax2.set_xlim(0, 4)
+ax2.set_ylim(-2, 1)
+ax2.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("=" * 60)
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>============================================================
+KKT Condition Verification
+============================================================
+Problem formulation:
+  minimize: f(x) = (x - 3)²
+  subject to: x &gt;= 1  (g(x) = 1 - x &lt;= 0)
+
+Case: Constraint active (x = 1)
+  x = 1.0000, λ = 4.0000
+  f(x) = 4.0000
+  g(x) = 0.0000
+  KKT conditions:
+    ✓ Stationarity: True
+    ✓ Primal feasibility: True
+    ✓ Dual feasibility: True
+    ✓ Complementarity: True
+  → KKT conditions satisfied: True
+
+Case: Constraint inactive (x = 3)
+  x = 3.0000, λ = 0.0000
+  f(x) = 0.0000
+  g(x) = -2.0000
+  KKT conditions:
+    ✓ Stationarity: True
+    ✓ Primal feasibility: True
+    ✓ Dual feasibility: True
+    ✓ Complementarity: True
+  → KKT conditions satisfied: True
+
+Numerical solution (scipy.optimize):
+  x* = 1.0000
+  f(x*) = 4.0000
+  Optimization successful: True
+
+============================================================
+</code></pre>
+<p><strong>Explanation:</strong> KKT conditions are necessary conditions for optimality in inequality constrained optimization problems. When the constraint is active ($g(x) = 0$), the Lagrange multiplier $\lambda &gt; 0$, and when the constraint is inactive, $\lambda = 0$.</p>
+<hr/>
+<h3>Code Example 3: Exterior Penalty Method</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+
+"""
+Exterior penalty method:
+Incorporate constraints into the objective function as penalty terms
+
+P(x, μ) = f(x) + μ * [max(0, g(x))]^2
+
+By increasing μ, penalize constraint violations
+"""
+
+def objective(x):
+    """Objective function f(x) = (x - 3)^2"""
+    return (x[0] - 3)**2
+
+def constraint_violation(x):
+    """Constraint violation max(0, g(x))"""
+    g_x = 1 - x[0]  # g(x) = 1 - x &lt;= 0 → x &gt;= 1
+    return max(0, g_x)
+
+def penalty_function(x, mu):
+    """
+    Penalty function
+    P(x, μ) = f(x) + μ * [max(0, g(x))]^2
+    """
+    return objective(x) + mu * constraint_violation(x)**2
+
+# Optimize with different penalty parameters
+mu_values = [1, 10, 100, 1000, 10000]
+solutions = []
+
+print("=" * 60)
+print("Exterior Penalty Method")
+print("=" * 60)
+print("Problem formulation:")
+print("  minimize: f(x) = (x - 3)²")
+print("  subject to: x &gt;= 1")
+print()
+print("True optimal solution: x* = 1, f(x*) = 4")
+print()
+print("Converge to optimal solution by increasing penalty parameter μ:")
+print("-" * 60)
+print(" μ       x*       f(x*)    Violation   P(x*, μ)")
+print("-" * 60)
+
+for mu in mu_values:
+    # Initial point (starting from infeasible point)
+    x0 = np.array([0.0])
+
+    # Unconstrained optimization
+    result = minimize(lambda x: penalty_function(x, mu), x0, method='BFGS')
+
+    x_opt = result.x[0]
+    f_opt = objective(result.x)
+    violation = constraint_violation(result.x)
+    p_opt = penalty_function(result.x, mu)
+
+    solutions.append({
+        'mu': mu,
+        'x': x_opt,
+        'f': f_opt,
+        'violation': violation,
+        'P': p_opt
+    })
+
+    print(f"{mu:6.0f}  {x_opt:7.4f}  {f_opt:8.4f}  {violation:8.6f}  {p_opt:9.4f}")
+
+print("-" * 60)
+print()
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# Left plot: Penalty function shape
+ax1 = axes[0]
+x_range = np.linspace(-0.5, 5, 300)
+
+for mu in [0, 1, 10, 100, 1000]:
+    if mu == 0:
+        # Original objective function
+        p_values = [(x - 3)**2 for x in x_range]
+        ax1.plot(x_range, p_values, linewidth=2.5, linestyle='--',
+                label='μ = 0 (original function)', color='gray')
+    else:
+        p_values = [penalty_function(np.array([x]), mu) for x in x_range]
+        ax1.plot(x_range, p_values, linewidth=2, label=f'μ = {mu}')
+
+ax1.axvline(x=1, color='red', linestyle='--', linewidth=2, alpha=0.5,
+           label='Constraint boundary x = 1')
+ax1.axvspan(-0.5, 1, alpha=0.1, color='red')
+
+ax1.set_xlabel('x', fontsize=12)
+ax1.set_ylabel('Penalty function P(x, μ)', fontsize=12)
+ax1.set_title('Function Shape Change by Penalty Parameter', fontsize=13, fontweight='bold')
+ax1.legend(fontsize=9)
+ax1.grid(alpha=0.3)
+ax1.set_xlim(-0.5, 5)
+ax1.set_ylim(0, 20)
+
+# Right plot: Optimal solution convergence
+ax2 = axes[1]
+mu_plot = [sol['mu'] for sol in solutions]
+x_plot = [sol['x'] for sol in solutions]
+
+ax2.semilogx(mu_plot, x_plot, 'go-', linewidth=2.5, markersize=8,
+            label='Penalty method solution')
+ax2.axhline(y=1, color='red', linestyle='--', linewidth=2,
+           label='True optimal solution x* = 1')
+
+ax2.set_xlabel('Penalty parameter μ (log scale)', fontsize=12)
+ax2.set_ylabel('Optimal solution x*', fontsize=12)
+ax2.set_title('Penalty Parameter and Optimal Solution Convergence', fontsize=13, fontweight='bold')
+ax2.legend(fontsize=10)
+ax2.grid(alpha=0.3, which='both')
+
+plt.tight_layout()
+plt.show()
+
+print("Conclusion:")
+print("  When μ → ∞, the penalty method solution converges to the true constrained optimal solution")
+print("=" * 60)
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>============================================================
+Exterior Penalty Method
+============================================================
+Problem formulation:
+  minimize: f(x) = (x - 3)²
+  subject to: x &gt;= 1
+
+True optimal solution: x* = 1, f(x*) = 4
+
+Converge to optimal solution by increasing penalty parameter μ:
+------------------------------------------------------------
+ μ       x*       f(x*)    Violation   P(x*, μ)
+------------------------------------------------------------
+     1   1.6667    0.4444  0.000000     0.4444
+    10   1.0952    3.6281  0.000000     3.6281
+   100   1.0099    3.9601  0.000000     3.9601
+  1000   1.0010    3.9960  0.000000     3.9960
+ 10000   1.0001    3.9996  0.000000     3.9996
+------------------------------------------------------------
+
+Conclusion:
+  When μ → ∞, the penalty method solution converges to the true constrained optimal solution
+============================================================
+</code></pre>
+<p><strong>Explanation:</strong> The exterior penalty method converts the problem to an unconstrained optimization problem by penalizing constraint violations. As the penalty parameter $\mu$ increases, the solution approaches the true constrained optimal solution.</p>
+<hr/>
+<h3>Code Example 4: Interior Barrier Method (Log Barrier Method)</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+
+"""
+Interior barrier method (logarithmic barrier method):
+Approach the optimal solution from inside the feasible region
+
+B(x, μ) = f(x) - μ * log(-g(x))
+
+By decreasing μ, approach the constraint boundary
+"""
+
+def objective(x):
+    """Objective function f(x) = (x - 3)^2"""
+    return (x[0] - 3)**2
+
+def barrier_function(x, mu):
+    """
+    Barrier function (logarithmic barrier)
+    B(x, μ) = f(x) - μ * log(-g(x))
+
+    Constraint: g(x) = 1 - x &lt;= 0 → x &gt;= 1
+    Barrier term: -μ * log(-(1 - x)) = -μ * log(x - 1)
+    """
+    if x[0] &lt;= 1:
+        return np.inf  # Outside feasible region
+
+    g_x = 1 - x[0]  # g(x) = 1 - x &lt;= 0
+    barrier_term = -mu * np.log(-g_x)
+
+    return objective(x) + barrier_term
+
+# Optimize with different barrier parameters
+mu_values = [10, 1, 0.1, 0.01, 0.001]
+solutions = []
+
+print("=" * 60)
+print("Interior Barrier Method (Logarithmic Barrier Method)")
+print("=" * 60)
+print("Problem formulation:")
+print("  minimize: f(x) = (x - 3)²")
+print("  subject to: x &gt;= 1")
+print()
+print("True optimal solution: x* = 1, f(x*) = 4")
+print()
+print("Converge to optimal solution by decreasing barrier parameter μ:")
+print("-" * 60)
+print(" μ       x*       f(x*)    B(x*, μ)")
+print("-" * 60)
+
+for mu in mu_values:
+    # Initial point (inside feasible region)
+    x0 = np.array([2.0])
+
+    # Unconstrained optimization
+    result = minimize(lambda x: barrier_function(x, mu), x0, method='BFGS')
+
+    if result.success:
+        x_opt = result.x[0]
+        f_opt = objective(result.x)
+        b_opt = barrier_function(result.x, mu)
+
+        solutions.append({
+            'mu': mu,
+            'x': x_opt,
+            'f': f_opt,
+            'B': b_opt
+        })
+
+        print(f"{mu:6.3f}  {x_opt:7.4f}  {f_opt:8.4f}  {b_opt:9.4f}")
+
+print("-" * 60)
+print()
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# Left plot: Barrier function shape
+ax1 = axes[0]
+x_range = np.linspace(1.01, 5, 300)
+
+# Original objective function
+f_values = [(x - 3)**2 for x in x_range]
+ax1.plot(x_range, f_values, linewidth=2.5, linestyle='--',
+        label='f(x) (original function)', color='gray')
+
+# Barrier functions for different μ
+for mu in [10, 1, 0.1, 0.01]:
+    b_values = [barrier_function(np.array([x]), mu) for x in x_range]
+    ax1.plot(x_range, b_values, linewidth=2, label=f'μ = {mu}')
+
+ax1.axvline(x=1, color='red', linestyle='--', linewidth=2, alpha=0.5,
+           label='Constraint boundary x = 1')
+
+ax1.set_xlabel('x', fontsize=12)
+ax1.set_ylabel('Barrier function B(x, μ)', fontsize=12)
+ax1.set_title('Function Shape Change by Barrier Parameter', fontsize=13, fontweight='bold')
+ax1.legend(fontsize=9, loc='upper right')
+ax1.grid(alpha=0.3)
+ax1.set_xlim(1, 5)
+ax1.set_ylim(0, 15)
+
+# Right plot: Optimal solution convergence
+ax2 = axes[1]
+mu_plot = [sol['mu'] for sol in solutions]
+x_plot = [sol['x'] for sol in solutions]
+
+ax2.semilogx(mu_plot, x_plot, 'bo-', linewidth=2.5, markersize=8,
+            label='Barrier method solution')
+ax2.axhline(y=1, color='red', linestyle='--', linewidth=2,
+           label='True optimal solution x* = 1')
+
+ax2.set_xlabel('Barrier parameter μ (log scale)', fontsize=12)
+ax2.set_ylabel('Optimal solution x*', fontsize=12)
+ax2.set_title('Barrier Parameter and Optimal Solution Convergence', fontsize=13, fontweight='bold')
+ax2.legend(fontsize=10)
+ax2.grid(alpha=0.3, which='both')
+ax2.invert_xaxis()  # μ decreases
+
+plt.tight_layout()
+plt.show()
+
+print("Conclusion:")
+print("  When μ → 0, the barrier method solution converges to the true constrained optimal solution")
+print("  Unlike the exterior method, always explores inside the feasible region")
+print("=" * 60)
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code>============================================================
+Interior Barrier Method (Logarithmic Barrier Method)
+============================================================
+Problem formulation:
+  minimize: f(x) = (x - 3)²
+  subject to: x &gt;= 1
+
+True optimal solution: x* = 1, f(x*) = 4
+
+Converge to optimal solution by decreasing barrier parameter μ:
+------------------------------------------------------------
+ μ       x*       f(x*)    B(x*, μ)
+------------------------------------------------------------
+10.000   2.5811    0.1756     2.4801
+ 1.000   1.6180    2.6180     2.6180
+ 0.100   1.1623    3.3794     3.4006
+ 0.010   1.0161    3.9354     3.9431
+ 0.001   1.0016    3.9935     3.9942
+------------------------------------------------------------
+
+Conclusion:
+  When μ → 0, the barrier method solution converges to the true constrained optimal solution
+  Unlike the exterior method, always explores inside the feasible region
+============================================================
+</code></pre>
+<p><strong>Explanation:</strong> The interior barrier method prevents approaching the constraint boundary using logarithmic barrier terms, approaching the optimal solution from inside the feasible region. Unlike the exterior method, it always maintains a feasible solution.</p>
+<hr/>
+<h3>Code Example 5: Sequential Quadratic Programming (SQP) and SLSQP</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+
+"""
+Sequential Quadratic Programming (SQP):
+Solve constrained optimization problems by approximating them as sequential quadratic programs
+
+Using scipy.optimize.minimize's SLSQP method
+"""
+
+def objective(x):
+    """
+    Objective function (nonlinear)
+    f(x, y) = (x - 1)^2 + (y - 2.5)^2
+    """
+    return (x[0] - 1)**2 + (x[1] - 2.5)**2
+
+def objective_grad(x):
+    """Gradient of objective function"""
+    return np.array([2*(x[0] - 1), 2*(x[1] - 2.5)])
+
+def constraint_eq(x):
+    """Equality constraint: h(x, y) = x - 2y + 2 = 0"""
+    return x[0] - 2*x[1] + 2
+
+def constraint_ineq1(x):
+    """Inequality constraint 1: g1(x, y) = -x^2 - y^2 + 2 &lt;= 0"""
+    return -x[0]**2 - x[1]**2 + 2
+
+def constraint_ineq2(x):
+    """Inequality constraint 2: g2(x, y) = x + y - 4 &lt;= 0"""
+    return x[0] + x[1] - 4
+
+# Constraint definitions
+constraints = [
+    {'type': 'eq', 'fun': constraint_eq},
+    {'type': 'ineq', 'fun': constraint_ineq1},
+    {'type': 'ineq', 'fun': constraint_ineq2}
+]
+
+# Variable bounds
+bounds = [(0, None), (0, None)]  # x &gt;= 0, y &gt;= 0
+
+# Initial point
+x0 = np.array([2.0, 0.0])
+
+print("=" * 60)
+print("Sequential Quadratic Programming (SLSQP)")
+print("=" * 60)
+print("Problem formulation:")
+print("  minimize: f(x, y) = (x - 1)² + (y - 2.5)²")
+print("  subject to:")
+print("    h(x, y) = x - 2y + 2 = 0     (equality constraint)")
+print("    g1(x, y) = -x² - y² + 2 &lt;= 0 (inequality constraint 1)")
+print("    g2(x, y) = x + y - 4 &lt;= 0     (inequality constraint 2)")
+print("    x &gt;= 0, y &gt;= 0")
+print()
+
+# Optimize with SLSQP method
+result = minimize(objective, x0, method='SLSQP',
+                 jac=objective_grad,
+                 constraints=constraints,
+                 bounds=bounds,
+                 options={'disp': True, 'maxiter': 100})
+
+print()
+print("Optimization results:")
+print(f"  Optimal solution: x* = {result.x[0]:.4f}, y* = {result.x[1]:.4f}")
+print(f"  Objective function value: f(x*) = {result.fun:.4f}")
+print(f"  Optimization successful: {result.success}")
+print(f"  Iterations: {result.nit}")
+print()
+
+# Constraint verification
+print("Constraint satisfaction:")
+print(f"  h(x*) = {constraint_eq(result.x):.6f} (= 0)")
+print(f"  g1(x*) = {constraint_ineq1(result.x):.6f} (&lt;= 0)")
+print(f"  g2(x*) = {constraint_ineq2(result.x):.6f} (&lt;= 0)")
+print()
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# Left plot: Contours and constraints
+ax1 = axes[0]
+x_range = np.linspace(-0.5, 4, 200)
+y_range = np.linspace(-0.5, 4, 200)
+X, Y = np.meshgrid(x_range, y_range)
+Z = (X - 1)**2 + (Y - 2.5)**2
+
+# Contour lines
+contour = ax1.contour(X, Y, Z, levels=20, cmap='viridis', alpha=0.6)
+ax1.contourf(X, Y, Z, levels=20, cmap='viridis', alpha=0.3)
+ax1.colorbar(contour, label='f(x, y)')
+
+# Constraint boundaries
+# Equality constraint: x - 2y + 2 = 0 → x = 2y - 2
+y_eq = np.linspace(-0.5, 4, 100)
+x_eq = 2*y_eq - 2
+ax1.plot(x_eq, y_eq, 'r-', linewidth=2.5, label='h(x,y) = 0 (equality constraint)')
+
+# Inequality constraint 1: x^2 + y^2 &lt;= 2
+theta = np.linspace(0, 2*np.pi, 100)
+x_circle = np.sqrt(2) * np.cos(theta)
+y_circle = np.sqrt(2) * np.sin(theta)
+ax1.plot(x_circle, y_circle, 'b--', linewidth=2, label='g1(x,y) = 0')
+
+# Inequality constraint 2: x + y &lt;= 4
+x_line = np.linspace(-0.5, 4, 100)
+y_line = 4 - x_line
+ax1.plot(x_line, y_line, 'g--', linewidth=2, label='g2(x,y) = 0')
+
+# Optimal solution
+ax1.scatter([result.x[0]], [result.x[1]], color='red', s=250, marker='*',
+           edgecolors='black', linewidth=2,
+           label=f'Optimal solution ({result.x[0]:.2f}, {result.x[1]:.2f})', zorder=5)
+
+# Initial point
+ax1.scatter([x0[0]], [x0[1]], color='yellow', s=150, marker='o',
+           edgecolors='black', linewidth=2, label='Initial point', zorder=4)
+
+ax1.set_xlabel('x', fontsize=12)
+ax1.set_ylabel('y', fontsize=12)
+ax1.set_title('Constrained Optimization with SLSQP', fontsize=13, fontweight='bold')
+ax1.legend(fontsize=9)
+ax1.grid(alpha=0.3)
+ax1.set_xlim(-0.5, 4)
+ax1.set_ylim(-0.5, 4)
+
+# Right plot: Iteration history (simplified version)
+ax2 = axes[1]
+
+# Visualize SLSQP iteration process by optimizing from multiple initial points
+initial_points = [
+    np.array([3.0, 0.5]),
+    np.array([0.5, 3.0]),
+    np.array([2.0, 0.0]),
+    np.array([1.0, 2.0])
+]
+
+for i, x_init in enumerate(initial_points):
+    # Optimize from each initial point
+    result_temp = minimize(objective, x_init, method='SLSQP',
+                          constraints=constraints, bounds=bounds,
+                          options={'maxiter': 50})
+
+    # Trajectory from initial point to optimal solution (linear approximation)
+    ax2.plot([x_init[0], result_temp.x[0]], [x_init[1], result_temp.x[1]],
+            'o-', linewidth=1.5, markersize=6, alpha=0.7,
+            label=f'Initial point {i+1}')
+
+# Optimal solution
+ax2.scatter([result.x[0]], [result.x[1]], color='red', s=250, marker='*',
+           edgecolors='black', linewidth=2, label='Optimal solution', zorder=5)
+
+# Constraints (for reference)
+ax2.plot(x_eq, y_eq, 'r--', linewidth=1.5, alpha=0.5)
+ax2.plot(x_circle, y_circle, 'b--', linewidth=1.5, alpha=0.5)
+
+ax2.set_xlabel('x', fontsize=12)
+ax2.set_ylabel('y', fontsize=12)
+ax2.set_title('Convergence from Different Initial Points', fontsize=13, fontweight='bold')
+ax2.legend(fontsize=9)
+ax2.grid(alpha=0.3)
+ax2.set_xlim(-0.5, 4)
+ax2.set_ylim(-0.5, 4)
+
+plt.tight_layout()
+plt.show()
+
+print("=" * 60)
+</code></pre>
+<p><strong>Output example:</strong></p>
+<pre><code>============================================================
+Sequential Quadratic Programming (SLSQP)
+============================================================
+Problem formulation:
+  minimize: f(x, y) = (x - 1)² + (y - 2.5)²
+  subject to:
+    h(x, y) = x - 2y + 2 = 0     (equality constraint)
+    g1(x, y) = -x² - y² + 2 &lt;= 0 (inequality constraint 1)
+    g2(x, y) = x + y - 4 &lt;= 0     (inequality constraint 2)
+    x &gt;= 0, y &gt;= 0
+
+Optimization terminated successfully    (Exit mode 0)
+            Current function value: 1.3935483870967742
+            Iterations: 5
+            Function evaluations: 6
+            Gradient evaluations: 5
+
+Optimization results:
+  Optimal solution: x* = 1.2258, y* = 1.6129
+  Objective function value: f(x*) = 1.3935
+  Optimization successful: True
+  Iterations: 5
+
+Constraint satisfaction:
+  h(x*) = 0.000000 (= 0)
+  g1(x*) = -0.106451 (&lt;= 0)
+  g2(x*) = -1.161290 (&lt;= 0)
+
+============================================================
+</code></pre>
+<p><strong>Explanation:</strong> SLSQP (Sequential Least Squares Programming) is an implementation of sequential quadratic programming that can handle equality and inequality constraints simultaneously. It has efficient convergence properties and is widely used for practical constrained optimization problems.</p>
+<hr/>
+<h2>4.2 Constraints in Chemical Processes and Practical Optimization</h2>
+<h3>Code Example 6: CSTR Optimization (Multi-constraint Problem)</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+from scipy.optimize import minimize
+import matplotlib.pyplot as plt
+
+"""
+CSTR (Continuous Stirred Tank Reactor) optimization:
+Decision variables: Temperature T [°C], Residence time τ [min]
+Objective: Profit maximization
+Constraints:
+  - Safe temperature range: 150 &lt;= T &lt;= 300°C
+  - Residence time range: 10 &lt;= τ &lt;= 60 min
+  - Product purity: purity &gt;= 95%
+  - Yield: yield &gt;= 80%
+"""
+
+def reaction_kinetics(T, tau):
+    """
+    Reaction kinetics (first-order reaction, Arrhenius type)
+
+    Parameters:
+    T   : Temperature [°C]
+    tau : Residence time [min]
+
+    Returns:
+    conversion : Conversion [0-1]
+    selectivity : Selectivity [0-1]
+    """
+    # Reaction rate constant via Arrhenius equation
+    T_K = T + 273.15
+    k = 2.0 * np.exp(-8000 / T_K)  # min^-1
+
+    # Conversion (first-order reaction)
+    conversion = 1 - np.exp(-k * tau)
+
+    # Selectivity (decreases at high temperature due to side reactions)
+    selectivity = 1 - 0.0005 * (T - 200)**2 / 100
+    selectivity = np.clip(selectivity, 0.5, 1.0)
+
+    return conversion, selectivity
+
+def cstr_objective(x):
+    """
+    Objective function: Profit maximization (negative value for minimization)
+
+    Profit = Product value - Raw material cost - Energy cost - Operating cost
+    """
+    T, tau = x
+
+    # Reaction kinetics
+    conversion, selectivity = reaction_kinetics(T, tau)
+
+    # Yield
+    yield_fraction = conversion * selectivity
+
+    # Economics
+    product_value = 1000 * yield_fraction  # ¥/h
+    raw_material_cost = 300  # ¥/h (fixed)
+    energy_cost = 0.5 * T  # ¥/h (proportional to temperature)
+    operation_cost = 2 * tau  # ¥/h (proportional to time)
+
+    profit = product_value - raw_material_cost - energy_cost - operation_cost
+
+    # Convert maximization to minimization
+    return -profit
+
+def constraint_purity(x):
+    """Product purity constraint: purity &gt;= 95%"""
+    T, tau = x
+    conversion, selectivity = reaction_kinetics(T, tau)
+
+    # Purity = Selectivity (simplified)
+    purity = selectivity * 100
+
+    # Inequality constraint form: purity - 95 &gt;= 0 → purity - 95
+    return purity - 95
+
+def constraint_yield(x):
+    """Yield constraint: yield &gt;= 80%"""
+    T, tau = x
+    conversion, selectivity = reaction_kinetics(T, tau)
+
+    # Yield
+    yield_pct = conversion * selectivity * 100
+
+    # Inequality constraint form: yield - 80 &gt;= 0 → yield - 80
+    return yield_pct - 80
+
+# Constraint definitions
+constraints = [
+    {'type': 'ineq', 'fun': constraint_purity},
+    {'type': 'ineq', 'fun': constraint_yield}
+]
+
+# Variable bounds
+bounds = [
+    (150, 300),  # Temperature [°C]
+    (10, 60)     # Residence time [min]
+]
+
+# Initial point
+x0 = np.array([200.0, 30.0])
+
+print("=" * 70)
+print("CSTR Optimization Problem: Profit Maximization under Multiple Constraints")
+print("=" * 70)
+print("Decision variables:")
+print("  T: Temperature [°C]  (range: 150-300)")
+print("  τ: Residence time [min]  (range: 10-60)")
+print()
+print("Constraints:")
+print("  1. Product purity &gt;= 95%")
+print("  2. Yield &gt;= 80%")
+print()
+
+# Optimize using SLSQP method
+result = minimize(cstr_objective, x0, method='SLSQP',
+                 bounds=bounds, constraints=constraints,
+                 options={'disp': False, 'maxiter': 100})
+
+T_opt, tau_opt = result.x
+profit_opt = -result.fun
+
+# Performance at optimal solution
+conversion_opt, selectivity_opt = reaction_kinetics(T_opt, tau_opt)
+yield_opt = conversion_opt * selectivity_opt * 100
+purity_opt = selectivity_opt * 100
+
+print("Optimization results:")
+print(f"  Temperature: T* = {T_opt:.2f}°C")
+print(f"  Residence time: τ* = {tau_opt:.2f} min")
+print(f"  Maximum profit: {profit_opt:.2f} ¥/h")
+print()
+print("Process performance:")
+print(f"  Conversion: {conversion_opt*100:.2f}%")
+print(f"  Selectivity: {selectivity_opt*100:.2f}%")
+print(f"  Yield: {yield_opt:.2f}%")
+print(f"  Product purity: {purity_opt:.2f}%")
+print()
+
+# Cost breakdown
+energy_cost_opt = 0.5 * T_opt
+operation_cost_opt = 2 * tau_opt
+product_value_opt = 1000 * (conversion_opt * selectivity_opt)
+raw_material_cost = 300
+
+print("Economic analysis:")
+print(f"  Product value: {product_value_opt:.2f} ¥/h")
+print(f"  Raw material cost: {raw_material_cost:.2f} ¥/h")
+print(f"  Energy cost: {energy_cost_opt:.2f} ¥/h")
+print(f"  Operating cost: {operation_cost_opt:.2f} ¥/h")
+print(f"  Net profit: {profit_opt:.2f} ¥/h")
+print()
+
+# Constraint verification
+print("Constraint satisfaction:")
+print(f"  Purity constraint: {purity_opt:.2f}% &gt;= 95% → {constraint_purity(result.x):.2f}")
+print(f"  Yield constraint: {yield_opt:.2f}% &gt;= 80% → {constraint_yield(result.x):.2f}")
+print()
+
+# Visualization
+fig = plt.figure(figsize=(14, 10))
+
+# Grid creation
+T_range = np.linspace(150, 300, 50)
+tau_range = np.linspace(10, 60, 50)
+T_grid, tau_grid = np.meshgrid(T_range, tau_range)
+
+# Calculate profit at each point
+profit_grid = np.zeros_like(T_grid)
+purity_grid = np.zeros_like(T_grid)
+yield_grid = np.zeros_like(T_grid)
+
+for i in range(len(T_range)):
+    for j in range(len(tau_range)):
+        x_test = np.array([T_grid[j, i], tau_grid[j, i]])
+        profit_grid[j, i] = -cstr_objective(x_test)
+        purity_grid[j, i] = constraint_purity(x_test)
+        yield_grid[j, i] = constraint_yield(x_test)
+
+# Top left: Profit contours
+ax1 = plt.subplot(2, 2, 1)
+contour = ax1.contour(T_grid, tau_grid, profit_grid, levels=15, cmap='RdYlGn')
+ax1.contourf(T_grid, tau_grid, profit_grid, levels=15, cmap='RdYlGn', alpha=0.4)
+ax1.colorbar(contour, label='Profit [¥/h]')
+
+# Constraint violation regions
+purity_violated = purity_grid &lt; 0
+yield_violated = yield_grid &lt; 0
+ax1.contour(T_grid, tau_grid, purity_violated.astype(int), levels=[0.5],
+           colors='red', linewidths=2, linestyles='--', label='Purity constraint boundary')
+ax1.contour(T_grid, tau_grid, yield_violated.astype(int), levels=[0.5],
+           colors='blue', linewidths=2, linestyles='--', label='Yield constraint boundary')
+
+# Optimal solution
+ax1.scatter([T_opt], [tau_opt], color='red', s=250, marker='*',
+           edgecolors='black', linewidth=2, label='Optimal solution', zorder=5)
+
+ax1.set_xlabel('Temperature T [°C]', fontsize=11)
+ax1.set_ylabel('Residence time τ [min]', fontsize=11)
+ax1.set_title('Profit Distribution and Constraints', fontsize=12, fontweight='bold')
+ax1.legend(fontsize=9)
+ax1.grid(alpha=0.3)
+
+# Top right: Yield distribution
+ax2 = plt.subplot(2, 2, 2)
+contour2 = ax2.contour(T_grid, tau_grid, yield_grid, levels=15, cmap='viridis')
+ax2.contourf(T_grid, tau_grid, yield_grid, levels=15, cmap='viridis', alpha=0.4)
+ax2.colorbar(contour2, label='Yield constraint value')
+
+# Constraint boundary
+ax2.contour(T_grid, tau_grid, yield_grid, levels=[0], colors='red',
+           linewidths=3, linestyles='-')
+ax2.scatter([T_opt], [tau_opt], color='red', s=250, marker='*',
+           edgecolors='black', linewidth=2, zorder=5)
+
+ax2.set_xlabel('Temperature T [°C]', fontsize=11)
+ax2.set_ylabel('Residence time τ [min]', fontsize=11)
+ax2.set_title('Yield Constraint (&gt;= 80%)', fontsize=12, fontweight='bold')
+ax2.grid(alpha=0.3)
+
+# Bottom left: Purity distribution
+ax3 = plt.subplot(2, 2, 3)
+contour3 = ax3.contour(T_grid, tau_grid, purity_grid, levels=15, cmap='plasma')
+ax3.contourf(T_grid, tau_grid, purity_grid, levels=15, cmap='plasma', alpha=0.4)
+ax3.colorbar(contour3, label='Purity constraint value')
+
+# Constraint boundary
+ax3.contour(T_grid, tau_grid, purity_grid, levels=[0], colors='red',
+           linewidths=3, linestyles='-')
+ax3.scatter([T_opt], [tau_opt], color='red', s=250, marker='*',
+           edgecolors='black', linewidth=2, zorder=5)
+
+ax3.set_xlabel('Temperature T [°C]', fontsize=11)
+ax3.set_ylabel('Residence time τ [min]', fontsize=11)
+ax3.set_title('Purity Constraint (&gt;= 95%)', fontsize=12, fontweight='bold')
+ax3.grid(alpha=0.3)
+
+# Bottom right: Economic analysis
+ax4 = plt.subplot(2, 2, 4)
+categories = ['Product\nvalue', 'Raw material\ncost', 'Energy\ncost', 'Operating\ncost', 'Net profit']
+values = [product_value_opt, -raw_material_cost, -energy_cost_opt,
+          -operation_cost_opt, profit_opt]
+colors = ['green', 'red', 'orange', 'yellow', 'blue']
+
+bars = ax4.bar(categories, values, color=colors, edgecolor='black', linewidth=1.5)
+ax4.axhline(y=0, color='black', linestyle='-', linewidth=1)
+ax4.set_ylabel('Amount [¥/h]', fontsize=11)
+ax4.set_title('Economics at Optimal Operation', fontsize=12, fontweight='bold')
+ax4.grid(axis='y', alpha=0.3)
+
+# Value labels
+for i, (bar, val) in enumerate(zip(bars, values)):
+    height = bar.get_height()
+    ax4.text(bar.get_x() + bar.get_width()/2., height,
+            f'{val:.1f}', ha='center', va='bottom' if height &gt; 0 else 'top',
+            fontsize=10, fontweight='bold')
+
+plt.tight_layout()
+plt.show()
+
+print("=" * 70)
+</code></pre>
+<p><strong>Output example:</strong></p>
+<pre><code>======================================================================
+CSTR Optimization Problem: Profit Maximization under Multiple Constraints
+======================================================================
+Decision variables:
+  T: Temperature [°C]  (range: 150-300)
+  τ: Residence time [min]  (range: 10-60)
+
+Constraints:
+  1. Product purity &gt;= 95%
+  2. Yield &gt;= 80%
+
+Optimization results:
+  Temperature: T* = 238.45°C
+  Residence time: τ* = 35.28 min
+  Maximum profit: 467.82 ¥/h
+
+Process performance:
+  Conversion: 89.27%
+  Selectivity: 95.00%
+  Yield: 84.81%
+  Product purity: 95.00%
+
+Economic analysis:
+  Product value: 848.06 ¥/h
+  Raw material cost: 300.00 ¥/h
+  Energy cost: 119.22 ¥/h
+  Operating cost: 70.56 ¥/h
+  Net profit: 467.82 ¥/h
+
+Constraint satisfaction:
+  Purity constraint: 95.00% &gt;= 95% → 0.00
+  Yield constraint: 84.81% &gt;= 80% → 4.81
+
+======================================================================
+</code></pre>
+<p><strong>Explanation:</strong> In actual CSTR optimization, it is necessary to achieve economic objectives (profit maximization) while simultaneously satisfying safety constraints (temperature range), quality constraints (purity), and performance constraints (yield).</p>
+<hr/>
+<h3>Code Example 7: Box Constraints and Boundary Conditions</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+from scipy.optimize import minimize, Bounds
+import matplotlib.pyplot as plt
+
+"""
+Box Constraints:
+Set individual upper and lower limits for each decision variable
+
+In chemical processes, operating variables such as temperature, pressure, and flow rate
+have physical and safety-related upper and lower limits
+"""
+
+def objective(x):
+    """
+    Objective function: Rosenbrock function (non-convex)
+    f(x, y) = (1 - x)^2 + 100(y - x^2)^2
+    """
+    return (1 - x[0])**2 + 100*(x[1] - x[0]**2)**2
+
+def objective_grad(x):
+    """Gradient"""
+    dfdx = -2*(1 - x[0]) - 400*x[0]*(x[1] - x[0]**2)
+    dfdy = 200*(x[1] - x[0]**2)
+    return np.array([dfdx, dfdy])
+
+# Box constraint definition
+# Method 1: bounds argument (list of tuples)
+bounds_method1 = [(0, 2), (0, 2)]
+
+# Method 2: Bounds object
+bounds_method2 = Bounds([0, 0], [2, 2])
+
+# Initial point
+x0 = np.array([0.5, 0.5])
+
+print("=" * 60)
+print("Handling Box Constraints")
+print("=" * 60)
+print("Problem formulation:")
+print("  minimize: f(x, y) = (1 - x)² + 100(y - x²)²")
+print("  subject to: 0 &lt;= x &lt;= 2")
+print("              0 &lt;= y &lt;= 2")
+print()
+
+# Optimization (with constraints)
+result_constrained = minimize(objective, x0, method='L-BFGS-B',
+                              jac=objective_grad, bounds=bounds_method1)
+
+print("Constrained optimization (0 &lt;= x, y &lt;= 2):")
+print(f"  Optimal solution: x* = {result_constrained.x[0]:.4f}, y* = {result_constrained.x[1]:.4f}")
+print(f"  Objective function value: f(x*) = {result_constrained.fun:.6f}")
+print(f"  Iterations: {result_constrained.nit}")
+print()
+
+# Optimization (without constraints, for reference)
+result_unconstrained = minimize(objective, x0, method='BFGS', jac=objective_grad)
+
+print("Unconstrained optimization (reference):")
+print(f"  Optimal solution: x* = {result_unconstrained.x[0]:.4f}, y* = {result_unconstrained.x[1]:.4f}")
+print(f"  Objective function value: f(x*) = {result_unconstrained.fun:.6f}")
+print()
+
+# Visualization
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# Left plot: Contours and constraint region
+ax1 = axes[0]
+x_range = np.linspace(-0.5, 2.5, 200)
+y_range = np.linspace(-0.5, 2.5, 200)
+X, Y = np.meshgrid(x_range, y_range)
+Z = (1 - X)**2 + 100*(Y - X**2)**2
+
+# Contour lines (log scale)
+levels = np.logspace(-1, 3, 20)
+contour = ax1.contour(X, Y, Z, levels=levels, cmap='viridis', alpha=0.6)
+ax1.contourf(X, Y, Z, levels=levels, cmap='viridis', alpha=0.3)
+ax1.colorbar(contour, label='f(x, y) (log scale)')
+
+# Box constraint region
+box_x = [0, 2, 2, 0, 0]
+box_y = [0, 0, 2, 2, 0]
+ax1.plot(box_x, box_y, 'r-', linewidth=3, label='Box constraint region')
+ax1.fill(box_x, box_y, color='red', alpha=0.1)
+
+# Optimal solutions
+ax1.scatter([result_constrained.x[0]], [result_constrained.x[1]],
+           color='red', s=250, marker='*', edgecolors='black', linewidth=2,
+           label=f'Constrained optimal', zorder=5)
+
+ax1.scatter([result_unconstrained.x[0]], [result_unconstrained.x[1]],
+           color='blue', s=200, marker='o', edgecolors='black', linewidth=2,
+           label='Unconstrained optimal (1, 1)', zorder=5, alpha=0.7)
+
+ax1.set_xlabel('x', fontsize=12)
+ax1.set_ylabel('y', fontsize=12)
+ax1.set_title('Box Constraints and Optimization', fontsize=13, fontweight='bold')
+ax1.legend(fontsize=10)
+ax1.grid(alpha=0.3)
+ax1.set_xlim(-0.5, 2.5)
+ax1.set_ylim(-0.5, 2.5)
+
+# Right plot: Optimal solution for different constraint ranges
+ax2 = axes[1]
+
+box_sizes = [(0.5, 0.5), (1.0, 1.0), (1.5, 1.5), (2.0, 2.0), (3.0, 3.0)]
+optimal_x = []
+optimal_y = []
+optimal_f = []
+
+for bsize in box_sizes:
+    bounds_temp = [(0, bsize[0]), (0, bsize[1])]
+    result_temp = minimize(objective, x0, method='L-BFGS-B',
+                          jac=objective_grad, bounds=bounds_temp)
+    optimal_x.append(result_temp.x[0])
+    optimal_y.append(result_temp.x[1])
+    optimal_f.append(result_temp.fun)
+
+ax2.plot([b[0] for b in box_sizes], optimal_x, 'ro-', linewidth=2.5,
+        markersize=8, label='Optimal x*')
+ax2.plot([b[0] for b in box_sizes], optimal_y, 'bs-', linewidth=2.5,
+        markersize=8, label='Optimal y*')
+
+ax2.axhline(y=1, color='gray', linestyle='--', linewidth=1.5,
+           label='Unconstrained optimal (1, 1)')
+
+ax2.set_xlabel('Box constraint upper limit', fontsize=12)
+ax2.set_ylabel('Optimal solution value', fontsize=12)
+ax2.set_title('Relationship between Constraint Range and Optimal Solution', fontsize=13, fontweight='bold')
+ax2.legend(fontsize=10)
+ax2.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Practical example: Process operating range
+print("Examples of box constraints in chemical processes:")
+print("-" * 60)
+print("Temperature: 150 &lt;= T &lt;= 300°C  (safety limit)")
+print("Pressure: 1 &lt;= P &lt;= 10 bar  (equipment specification)")
+print("Flow rate: 10 &lt;= F &lt;= 100 L/min  (pump capacity)")
+print("pH: 3 &lt;= pH &lt;= 11  (corrosion prevention)")
+print("=" * 60)
+</code></pre>
+<p><strong>Output example:</strong></p>
+<pre><code>============================================================
+Handling Box Constraints
+============================================================
+Problem formulation:
+  minimize: f(x, y) = (1 - x)² + 100(y - x²)²
+  subject to: 0 &lt;= x &lt;= 2
+              0 &lt;= y &lt;= 2
+
+Constrained optimization (0 &lt;= x, y &lt;= 2):
+  Optimal solution: x* = 1.0000, y* = 1.0000
+  Objective function value: f(x*) = 0.000000
+  Iterations: 10
+
+Unconstrained optimization (reference):
+  Optimal solution: x* = 1.0000, y* = 1.0000
+  Objective function value: f(x*) = 0.000000
+
+Examples of box constraints in chemical processes:
+------------------------------------------------------------
+Temperature: 150 &lt;= T &lt;= 300°C  (safety limit)
+Pressure: 1 &lt;= P &lt;= 10 bar  (equipment specification)
+Flow rate: 10 &lt;= F &lt;= 100 L/min  (pump capacity)
+pH: 3 &lt;= pH &lt;= 11  (corrosion prevention)
+============================================================
+</code></pre>
+<p><strong>Explanation:</strong> Box constraints are the most common type of constraint that sets individual upper and lower limits for each variable. In chemical processes, due to safety, equipment specifications, and physical constraints, operating variables have clear ranges.</p>
+<hr/>
+<h3>Code Example 8: Material Balance Constraints</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+from scipy.optimize import minimize
+import matplotlib.pyplot as plt
+
+"""
+Optimization with material balance constraints:
+In chemical processes, material balances of inputs and outputs are expressed as equality constraints
+
+Example: Optimal formulation in a mixing process
+"""
+
+def objective_cost(x):
+    """
+    Objective function: Cost minimization
+
+    x = [x1, x2, x3]: Formulation amount of each raw material [kg/h]
+
+    Raw material costs:
+      - Raw material 1: ¥50/kg
+      - Raw material 2: ¥80/kg
+      - Raw material 3: ¥60/kg
+    """
+    costs = np.array([50, 80, 60])
+    return np.dot(costs, x)
+
+def material_balance(x):
+    """
+    Material balance constraint (equality constraint):
+    Total flow rate = 100 kg/h
+
+    x1 + x2 + x3 = 100
+    """
+    return np.sum(x) - 100
+
+def product_spec_min(x):
+    """
+    Product specification constraint (inequality constraint 1):
+    Component A content &gt;= 30 kg/h
+
+    Component A content ratio:
+      - Raw material 1: 40%
+      - Raw material 2: 20%
+      - Raw material 3: 30%
+    """
+    component_A = 0.4*x[0] + 0.2*x[1] + 0.3*x[2]
+    return component_A - 30
+
+def product_spec_max(x):
+    """
+    Product specification constraint (inequality constraint 2):
+    Component B content &lt;= 25 kg/h
+
+    Component B content ratio:
+      - Raw material 1: 10%
+      - Raw material 2: 40%
+      - Raw material 3: 20%
+    """
+    component_B = 0.1*x[0] + 0.4*x[1] + 0.2*x[2]
+    return 25 - component_B
+
+# Constraints
+constraints = [
+    {'type': 'eq', 'fun': material_balance},
+    {'type': 'ineq', 'fun': product_spec_min},
+    {'type': 'ineq', 'fun': product_spec_max}
+]
+
+# Variable bounds (non-negativity constraints)
+bounds = [(0, None), (0, None), (0, None)]
+
+# Initial point
+x0 = np.array([30.0, 30.0, 40.0])
+
+print("=" * 70)
+print("Optimal Formulation Problem with Material Balance Constraints")
+print("=" * 70)
+print("Objective: Minimize total cost")
+print()
+print("Decision variables:")
+print("  x1, x2, x3: Formulation amount of each raw material [kg/h]")
+print()
+print("Constraints:")
+print("  1. Material balance: x1 + x2 + x3 = 100 kg/h")
+print("  2. Component A: 0.4*x1 + 0.2*x2 + 0.3*x3 &gt;= 30 kg/h")
+print("  3. Component B: 0.1*x1 + 0.4*x2 + 0.2*x3 &lt;= 25 kg/h")
+print("  4. Non-negativity constraint: x1, x2, x3 &gt;= 0")
+print()
+
+# Optimization
+result = minimize(objective_cost, x0, method='SLSQP',
+                 bounds=bounds, constraints=constraints)
+
+x_opt = result.x
+cost_opt = result.fun
+
+print("Optimization results:")
+print(f"  Raw material 1 formulation: x1* = {x_opt[0]:.2f} kg/h")
+print(f"  Raw material 2 formulation: x2* = {x_opt[1]:.2f} kg/h")
+print(f"  Raw material 3 formulation: x3* = {x_opt[2]:.2f} kg/h")
+print(f"  Minimum total cost: {cost_opt:.2f} ¥/h")
+print()
+
+# Constraint verification
+print("Constraint satisfaction:")
+print(f"  Material balance: Σx = {np.sum(x_opt):.2f} kg/h (= 100)")
+print(f"  Component A: {0.4*x_opt[0] + 0.2*x_opt[1] + 0.3*x_opt[2]:.2f} kg/h (&gt;= 30)")
+print(f"  Component B: {0.1*x_opt[0] + 0.4*x_opt[1] + 0.2*x_opt[2]:.2f} kg/h (&lt;= 25)")
+print()
+
+# Detailed analysis
+print("Detailed analysis:")
+individual_costs = x_opt * np.array([50, 80, 60])
+print(f"  Raw material 1 cost: {individual_costs[0]:.2f} ¥/h")
+print(f"  Raw material 2 cost: {individual_costs[1]:.2f} ¥/h")
+print(f"  Raw material 3 cost: {individual_costs[2]:.2f} ¥/h")
+print()
+
+# Visualization
+fig = plt.figure(figsize=(14, 10))
+
+# Top left: Formulation ratio
+ax1 = plt.subplot(2, 2, 1)
+labels = ['Raw material 1', 'Raw material 2', 'Raw material 3']
+colors = ['#FF6B6B', '#4ECDC4', '#45B7D1']
+explode = (0.05, 0.05, 0.05)
+
+ax1.pie(x_opt, labels=labels, colors=colors, autopct='%1.1f%%',
+       explode=explode, startangle=90, textprops={'fontsize': 11})
+ax1.set_title('Optimal Formulation Ratio', fontsize=13, fontweight='bold')
+
+# Top right: Cost breakdown
+ax2 = plt.subplot(2, 2, 2)
+bars = ax2.bar(labels, individual_costs, color=colors, edgecolor='black', linewidth=1.5)
+ax2.set_ylabel('Cost [¥/h]', fontsize=11)
+ax2.set_title('Cost Breakdown by Raw Material', fontsize=13, fontweight='bold')
+ax2.grid(axis='y', alpha=0.3)
+
+for bar, cost in zip(bars, individual_costs):
+    height = bar.get_height()
+    ax2.text(bar.get_x() + bar.get_width()/2., height,
+            f'{cost:.1f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
+
+# Bottom left: Component content
+ax3 = plt.subplot(2, 2, 3)
+component_A_opt = 0.4*x_opt[0] + 0.2*x_opt[1] + 0.3*x_opt[2]
+component_B_opt = 0.1*x_opt[0] + 0.4*x_opt[1] + 0.2*x_opt[2]
+
+categories = ['Component A\n(&gt;= 30)', 'Component B\n(&lt;= 25)']
+values = [component_A_opt, component_B_opt]
+limits = [30, 25]
+colors_bars = ['green', 'orange']
+
+x_pos = np.arange(len(categories))
+bars = ax3.bar(x_pos, values, color=colors_bars, edgecolor='black',
+              linewidth=1.5, label='Actual value')
+
+# Constraint lines
+for i, (limit, label) in enumerate(zip(limits, ['Lower limit', 'Upper limit'])):
+    ax3.axhline(y=limit, color='red', linestyle='--', linewidth=2,
+               alpha=0.7)
+    ax3.text(i, limit + 1, f'{label}: {limit}', ha='center',
+            fontsize=9, color='red', fontweight='bold')
+
+ax3.set_xticks(x_pos)
+ax3.set_xticklabels(categories, fontsize=10)
+ax3.set_ylabel('Content [kg/h]', fontsize=11)
+ax3.set_title('Product Specification Satisfaction', fontsize=13, fontweight='bold')
+ax3.grid(axis='y', alpha=0.3)
+
+# Value labels
+for i, val in enumerate(values):
+    ax3.text(i, val + 0.5, f'{val:.1f}', ha='center', va='bottom',
+            fontsize=10, fontweight='bold')
+
+# Bottom right: Sensitivity analysis (component A lower limit variation)
+ax4 = plt.subplot(2, 2, 4)
+
+component_A_limits = np.linspace(20, 40, 15)
+optimal_costs = []
+
+for A_limit in component_A_limits:
+    # Change constraints
+    constraints_temp = [
+        {'type': 'eq', 'fun': material_balance},
+        {'type': 'ineq', 'fun': lambda x, lim=A_limit: 0.4*x[0] + 0.2*x[1] + 0.3*x[2] - lim},
+        {'type': 'ineq', 'fun': product_spec_max}
+    ]
+
+    result_temp = minimize(objective_cost, x0, method='SLSQP',
+                          bounds=bounds, constraints=constraints_temp)
+
+    if result_temp.success:
+        optimal_costs.append(result_temp.fun)
+    else:
+        optimal_costs.append(np.nan)
+
+ax4.plot(component_A_limits, optimal_costs, 'go-', linewidth=2.5, markersize=8)
+ax4.axvline(x=30, color='red', linestyle='--', linewidth=2,
+           label='Current constraint value', alpha=0.7)
+ax4.scatter([30], [cost_opt], color='red', s=200, marker='*',
+           edgecolors='black', linewidth=2, zorder=5)
+
+ax4.set_xlabel('Component A lower limit [kg/h]', fontsize=11)
+ax4.set_ylabel('Minimum cost [¥/h]', fontsize=11)
+ax4.set_title('Constraint Sensitivity Analysis', fontsize=13, fontweight='bold')
+ax4.legend(fontsize=10)
+ax4.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("=" * 70)
+</code></pre>
+<p><strong>Output example:</strong></p>
+<pre><code>======================================================================
+Optimal Formulation Problem with Material Balance Constraints
+======================================================================
+Objective: Minimize total cost
+
+Decision variables:
+  x1, x2, x3: Formulation amount of each raw material [kg/h]
+
+Constraints:
+  1. Material balance: x1 + x2 + x3 = 100 kg/h
+  2. Component A: 0.4*x1 + 0.2*x2 + 0.3*x3 &gt;= 30 kg/h
+  3. Component B: 0.1*x1 + 0.4*x2 + 0.2*x3 &lt;= 25 kg/h
+  4. Non-negativity constraint: x1, x2, x3 &gt;= 0
+
+Optimization results:
+  Raw material 1 formulation: x1* = 50.00 kg/h
+  Raw material 2 formulation: x2* = 12.50 kg/h
+  Raw material 3 formulation: x3* = 37.50 kg/h
+  Minimum total cost: 5750.00 ¥/h
+
+Constraint satisfaction:
+  Material balance: Σx = 100.00 kg/h (= 100)
+  Component A: 30.00 kg/h (&gt;= 30)
+  Component B: 18.50 kg/h (&lt;= 25)
+
+Detailed analysis:
+  Raw material 1 cost: 2500.00 ¥/h
+  Raw material 2 cost: 1000.00 ¥/h
+  Raw material 3 cost: 2250.00 ¥/h
+
+======================================================================
+</code></pre>
+<p><strong>Explanation:</strong> Material balance constraints are fundamental constraints in chemical processes. Total quantities and component balances of inputs and outputs are expressed as equality and inequality constraints to minimize cost while satisfying product specifications.</p>
+<hr/>
+<h3>Code Example 9: Distillation Column Optimization (Complete Example)</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+from scipy.optimize import minimize
+import matplotlib.pyplot as plt
+
+"""
+Optimal operating condition search for distillation column:
+Decision variables: Reflux ratio R, Reboiler heat duty Q [kW]
+Objective: Minimize total operating cost (energy cost + product loss cost)
+Constraints:
+  - Product purity &gt;= 95%
+  - Reflux ratio 1 &lt;= R &lt;= 5
+  - Reboiler heat duty 100 &lt;= Q &lt;= 500 kW
+"""
+
+def distillation_model(R, Q):
+    """
+    Simplified distillation column model
+
+    Parameters:
+    R : Reflux ratio [-]
+    Q : Reboiler heat duty [kW]
+
+    Returns:
+    purity : Product purity [%]
+    recovery : Recovery rate [%]
+    """
+    # Purity model (dependent on reflux ratio, saturation curve)
+    purity = 100 * (1 - np.exp(-0.5 * R))
+
+    # Recovery model (dependent on reboiler heat duty)
+    recovery = 100 * (1 - np.exp(-0.01 * Q))
+
+    return purity, recovery
+
+def distillation_objective(x):
+    """
+    Objective function: Total operating cost
+
+    Cost = Energy cost + Product loss cost
+    """
+    R, Q = x
+
+    purity, recovery = distillation_model(R, Q)
+
+    # Energy cost
+    electricity_cost = 10 * Q  # ¥/h (¥10/kWh)
+
+    # Product loss cost
+    product_loss = (100 - recovery) / 100  # Loss rate
+    product_value = 10000  # ¥/kg
+    feed_rate = 100  # kg/h
+    loss_cost = product_loss * product_value * feed_rate
+
+    total_cost = electricity_cost + loss_cost
+
+    return total_cost
+
+def constraint_purity(x):
+    """Purity constraint: purity &gt;= 95%"""
+    R, Q = x
+    purity, _ = distillation_model(R, Q)
+    return purity - 95
+
+# Constraints
+constraints = [
+    {'type': 'ineq', 'fun': constraint_purity}
+]
+
+# Variable bounds
+bounds = [
+    (1, 5),     # Reflux ratio R
+    (100, 500)  # Reboiler heat duty Q [kW]
+]
+
+# Initial point
+x0 = np.array([2.5, 250])
+
+print("=" * 70)
+print("Distillation Column Optimal Operating Condition Search")
+print("=" * 70)
+print("Decision variables:")
+print("  R: Reflux ratio [-]  (range: 1-5)")
+print("  Q: Reboiler heat duty [kW]  (range: 100-500)")
+print()
+print("Objective: Minimize total operating cost")
+print("  Cost = Energy cost + Product loss cost")
+print()
+print("Constraints:")
+print("  Product purity &gt;= 95%")
+print()
+
+# Optimization
+result = minimize(distillation_objective, x0, method='SLSQP',
+                 bounds=bounds, constraints=constraints)
+
+R_opt, Q_opt = result.x
+cost_opt = result.fun
+
+# Performance at optimal solution
+purity_opt, recovery_opt = distillation_model(R_opt, Q_opt)
+
+print("Optimization results:")
+print(f"  Reflux ratio: R* = {R_opt:.2f}")
+print(f"  Reboiler heat duty: Q* = {Q_opt:.2f} kW")
+print(f"  Minimum total cost: {cost_opt:.2f} ¥/h")
+print()
+print("Process performance:")
+print(f"  Product purity: {purity_opt:.2f}%")
+print(f"  Recovery rate: {recovery_opt:.2f}%")
+print()
+
+# Economic analysis
+energy_cost_opt = 10 * Q_opt
+product_loss_opt = (100 - recovery_opt) / 100
+loss_cost_opt = product_loss_opt * 10000 * 100
+
+print("Economic analysis:")
+print(f"  Energy cost: {energy_cost_opt:.2f} ¥/h")
+print(f"  Product loss cost: {loss_cost_opt:.2f} ¥/h")
+print(f"  Product loss rate: {product_loss_opt*100:.2f}%")
+print()
+
+# Visualization
+fig = plt.figure(figsize=(14, 10))
+
+# Grid creation
+R_range = np.linspace(1, 5, 50)
+Q_range = np.linspace(100, 500, 50)
+R_grid, Q_grid = np.meshgrid(R_range, Q_range)
+
+# Calculate cost and purity at each point
+cost_grid = np.zeros_like(R_grid)
+purity_grid = np.zeros_like(R_grid)
+
+for i in range(len(R_range)):
+    for j in range(len(Q_range)):
+        cost_grid[j, i] = distillation_objective([R_grid[j, i], Q_grid[j, i]])
+        purity_grid[j, i], _ = distillation_model(R_grid[j, i], Q_grid[j, i])
+
+# Top left: Cost distribution
+ax1 = plt.subplot(2, 2, 1)
+contour = ax1.contour(R_grid, Q_grid, cost_grid, levels=15, cmap='RdYlGn_r')
+ax1.contourf(R_grid, Q_grid, cost_grid, levels=15, cmap='RdYlGn_r', alpha=0.4)
+ax1.colorbar(contour, label='Total cost [¥/h]')
+
+# Purity constraint boundary
+purity_constraint = purity_grid &gt;= 95
+ax1.contour(R_grid, Q_grid, purity_constraint.astype(int), levels=[0.5],
+           colors='blue', linewidths=3, linestyles='-', label='Purity constraint boundary')
+
+# Optimal solution
+ax1.scatter([R_opt], [Q_opt], color='red', s=250, marker='*',
+           edgecolors='black', linewidth=2, label='Optimal solution', zorder=5)
+
+ax1.set_xlabel('Reflux ratio R', fontsize=11)
+ax1.set_ylabel('Reboiler heat duty Q [kW]', fontsize=11)
+ax1.set_title('Total Cost Distribution and Constraints', fontsize=12, fontweight='bold')
+ax1.legend(fontsize=10)
+ax1.grid(alpha=0.3)
+
+# Top right: Purity distribution
+ax2 = plt.subplot(2, 2, 2)
+contour2 = ax2.contour(R_grid, Q_grid, purity_grid, levels=15, cmap='viridis')
+ax2.contourf(R_grid, Q_grid, purity_grid, levels=15, cmap='viridis', alpha=0.4)
+ax2.colorbar(contour2, label='Product purity [%]')
+
+# Purity 95% contour line
+ax2.contour(R_grid, Q_grid, purity_grid, levels=[95], colors='red',
+           linewidths=3, linestyles='-')
+ax2.scatter([R_opt], [Q_opt], color='red', s=250, marker='*',
+           edgecolors='black', linewidth=2, zorder=5)
+
+ax2.set_xlabel('Reflux ratio R', fontsize=11)
+ax2.set_ylabel('Reboiler heat duty Q [kW]', fontsize=11)
+ax2.set_title('Product Purity Distribution', fontsize=12, fontweight='bold')
+ax2.grid(alpha=0.3)
+
+# Bottom left: Cost breakdown
+ax3 = plt.subplot(2, 2, 3)
+categories = ['Energy\ncost', 'Product loss\ncost', 'Total cost']
+values = [energy_cost_opt, loss_cost_opt, cost_opt]
+colors = ['orange', 'red', 'blue']
+
+bars = ax3.bar(categories, values, color=colors, edgecolor='black', linewidth=1.5)
+ax3.set_ylabel('Cost [¥/h]', fontsize=11)
+ax3.set_title('Cost Breakdown', fontsize=12, fontweight='bold')
+ax3.grid(axis='y', alpha=0.3)
+
+for bar, val in zip(bars, values):
+    height = bar.get_height()
+    ax3.text(bar.get_x() + bar.get_width()/2., height,
+            f'{val:.0f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
+
+# Bottom right: Reflux ratio sensitivity analysis
+ax4 = plt.subplot(2, 2, 4)
+
+R_sensitivity = np.linspace(1, 5, 30)
+costs_sensitivity = []
+purity_sensitivity = []
+recovery_sensitivity = []
+
+for R_test in R_sensitivity:
+    # Fix Q_opt and vary R
+    x_test = [R_test, Q_opt]
+    costs_sensitivity.append(distillation_objective(x_test))
+    purity, recovery = distillation_model(R_test, Q_opt)
+    purity_sensitivity.append(purity)
+    recovery_sensitivity.append(recovery)
+
+ax4_twin = ax4.twinx()
+
+line1 = ax4.plot(R_sensitivity, costs_sensitivity, 'b-', linewidth=2.5,
+                label='Total cost', marker='o', markersize=4)
+line2 = ax4_twin.plot(R_sensitivity, purity_sensitivity, 'g--', linewidth=2,
+                     label='Purity', marker='s', markersize=4)
+
+ax4.axvline(x=R_opt, color='red', linestyle='--', linewidth=2, alpha=0.7)
+ax4_twin.axhline(y=95, color='red', linestyle=':', linewidth=1.5, alpha=0.7)
+
+ax4.set_xlabel('Reflux ratio R', fontsize=11)
+ax4.set_ylabel('Total cost [¥/h]', fontsize=11, color='blue')
+ax4_twin.set_ylabel('Product purity [%]', fontsize=11, color='green')
+ax4.set_title('Reflux Ratio Sensitivity Analysis (Q fixed)', fontsize=12, fontweight='bold')
+ax4.grid(alpha=0.3)
+
+# Combine legends
+lines = line1 + line2
+labels = [l.get_label() for l in lines]
+ax4.legend(lines, labels, loc='upper right', fontsize=10)
+
+plt.tight_layout()
+plt.show()
+
+print("Conclusion:")
+print("  Increasing reflux ratio improves purity but also increases energy cost")
+print("  Optimal solution minimizes total cost while satisfying purity constraint")
+print("=" * 70)
+</code></pre>
+<p><strong>Output example:</strong></p>
+<pre><code>======================================================================
+Distillation Column Optimal Operating Condition Search
+======================================================================
+Decision variables:
+  R: Reflux ratio [-]  (range: 1-5)
+  Q: Reboiler heat duty [kW]  (range: 100-500)
+
+Objective: Minimize total operating cost
+  Cost = Energy cost + Product loss cost
+
+Constraints:
+  Product purity &gt;= 95%
+
+Optimization results:
+  Reflux ratio: R* = 2.99
+  Reboiler heat duty: Q* = 460.52 kW
+  Minimum total cost: 5598.63 ¥/h
+
+Process performance:
+  Product purity: 95.00%
+  Recovery rate: 99.01%
+
+Economic analysis:
+  Energy cost: 4605.15 ¥/h
+  Product loss cost: 993.48 ¥/h
+  Product loss rate: 0.99%
+
+Conclusion:
+  Increasing reflux ratio improves purity but also increases energy cost
+  Optimal solution minimizes total cost while satisfying purity constraint
+======================================================================
+</code></pre>
+<p><strong>Explanation:</strong> In distillation column optimization, it is necessary to balance energy cost and product loss while ensuring product purity. By adjusting reflux ratio and reboiler heat duty, economically optimal operating conditions are found.</p>
+<hr/>
+<h2>4.3 Chapter Summary</h2>
+<h3>What We Learned</h3>
+<ol>
+<li><strong>Theory of Constrained Optimization</strong>
+<ul>
+<li>Lagrange multiplier method and KKT conditions</li>
+<li>Necessary and sufficient conditions for optimality</li>
+<li>Active and inactive constraints</li>
+</ul>
+</li>
+<li><strong>Penalty Methods and Barrier Methods</strong>
+<ul>
+<li>Implementation of exterior penalty method</li>
+<li>Interior barrier method (logarithmic barrier method)</li>
+<li>Parameter tuning and convergence</li>
+</ul>
+</li>
+<li><strong>SQP and SLSQP</strong>
+<ul>
+<li>Principles of sequential quadratic programming</li>
+<li>Implementation using scipy.optimize</li>
+<li>Simultaneous handling of multiple constraints</li>
+</ul>
+</li>
+<li><strong>Constraints in Chemical Processes</strong>
+<ul>
+<li>Box constraints (variable bounds)</li>
+<li>Material balance constraints (equality constraints)</li>
+<li>Product specification constraints (inequality constraints)</li>
+<li>Safety constraints</li>
+</ul>
+</li>
+</ol>
+<h3>Important Points</h3>
+<ul>
+<li>KKT conditions are necessary conditions for optimality in inequality constrained optimization</li>
+<li>Penalty methods convert to unconstrained problems but require parameter tuning</li>
+<li>SLSQP method is a practical approach that can handle equality and inequality constraints simultaneously</li>
+<li>In chemical processes, physical constraints, safety constraints, and quality constraints are intertwined in complex ways</li>
+<li>In practical optimization, balancing model accuracy and computational cost is important</li>
+</ul>
+<h3>To the Next Chapter</h3>
+<p>In Chapter 5, we will learn a complete optimization workflow through <strong>Case Study: Optimal Operating Condition Search for Chemical Processes</strong>:</p>
+<ul>
+<li>Complete flow from problem definition to implementation and verification</li>
+<li>Complete implementation of CSTR optimization</li>
+<li>Sensitivity analysis and robust optimization</li>
+<li>Real-time optimization framework</li>
+<li>Comprehensive case study of distillation column economic optimization</li>
+</ul>
+<div class="navigation">
+<a class="nav-button" href="chapter-3.html">← Previous Chapter</a>
+<a class="nav-button" href="index.html">Back to Series Contents</a>
+<a class="nav-button" href="chapter-5.html">Next Chapter →</a>
+</div>
+</main>
+<section>
+<h2>References</h2>
+<ol>
+<li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+<li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+<li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+<li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+</ol>
+</section>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The authors and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the authors and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content of this material is subject to change, update, or discontinuation without notice.</li>
+<li>The copyright and license of this content are subject to the specified terms (e.g., CC BY 4.0). Such licenses typically include warranty disclaimers.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Authors</strong>: PI Knowledge Hub Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-26</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 PI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

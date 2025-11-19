@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 2: Heat Conduction Equation and Diffusion Phenomena | Partial Differential Equations and Boundary Value Problems" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 2: Heat Conduction Equation and Diffusion Phenomena | Partial Differential Equations and Boundary Value Problems</title>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
+</head>
+<body><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/FM/pde-boundary-value/chapter-2.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<h1>Chapter 2: Heat Conduction Equation and Diffusion Phenomena</h1>
+<p class="subtitle">Heat Equation and Diffusion</p>
+</header>
+<div class="container">
+<div class="breadcrumb">
+<a href="../index.html">FM Dojo</a> &gt;
+ <a href="index.html">Partial Differential Equations and Boundary Value Problems</a> &gt;
+ Chapter 2
+ </div>
+<div class="content">
+<h2>2.1 Derivation of the Heat Conduction Equation</h2>
+<p>
+ We derive the diffusion equation from Fourier's law of heat conduction.
+ </p>
+<div class="theorem">
+<strong>📐 Theory</strong><br/>
+<p><strong>heat conduction equation（diffusion equation）:</strong></p>
+ $$\frac{\partial u}{\partial t} = \alpha \frac{\partial^2 u}{\partial x^2}$$
+ <p>where $u(x,t)$ is temperature and $\alpha = k/(\rho c_p)$ is thermal diffusivity</p>
+<p>$k$: thermal conductivity, $\rho$: density, $c_p$: specific heat</p>
+</div>
+<div class="code-title">💻 Code Example 1: Numerical solution of heat conduction equation (explicit scheme)</div>
+<div class="code-example"><pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+"""
+Example: $k$: thermal conductivity, $\rho$: density, $c_p$: specific 
+
+Purpose: Demonstrate data visualization techniques
+Target: Beginner to Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Parameters
+L = 10.0 # rod length
+alpha = 0.1 # thermal diffusivity
+T_total = 10.0
+Nx = 100
+Nt = 2000
+
+x = np.linspace(0, L, Nx)
+t = np.linspace(0, T_total, Nt)
+dx = x[1] - x[0]
+dt = t[1] - t[0]
+
+# Stability condition verification
+r = alpha * dt / dx**2
+print(f"Stability parameter r = {r:.4f} (stability condition: r ≤ 0.5)")
+
+# Initial condition: step function
+u = np.zeros((Nt, Nx))
+u[0, Nx//4:3*Nx//4] = 100.0
+
+# Boundary conditions: u(0,t) = u(L,t) = 0
+# explicit scheme（FTCS: Forward Time Central Space）
+for n in range(Nt-1):
+ for i in range(1, Nx-1):
+ u[n+1, i] = u[n, i] + r * (u[n, i+1] - 2*u[n, i] + u[n, i-1])
+
+ u[n+1, 0] = 0
+ u[n+1, -1] = 0
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+axes = axes.flatten()
+
+times_idx = [0, Nt//10, Nt//3, Nt-1]
+for idx, n in enumerate(times_idx):
+ ax = axes[idx]
+ ax.plot(x, u[n], 'b-', linewidth=2)
+ ax.axhline(0, color='gray', linewidth=0.5)
+ ax.grid(True, alpha=0.3)
+ ax.set_xlabel('Position x', fontsize=12)
+ ax.set_ylabel('Temperature u(x,t)', fontsize=12)
+ ax.set_title(f't = {t[n]:.2f}', fontsize=12)
+ ax.set_ylim(-10, 110)
+
+plt.suptitle('Numerical solution of heat conduction equation (explicit scheme)', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# Spacetime plot
+plt.figure(figsize=(12, 6))
+plt.contourf(x, t, u, levels=50, cmap='hot')
+plt.colorbar(label='Temperature u(x,t)')
+plt.xlabel('Position x', fontsize=12)
+plt.ylabel('Time t', fontsize=12)
+plt.title('Heat diffusion spacetime diagram', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+print("\nProperties of heat conduction equation:")
+print("- Heat diffuses from high temperature to low temperature")
+print("- Temperature distribution becomes smoother over time")
+print("- Entropy increases (irreversible process)")</code></pre></div>
+</div>
+<div class="content">
+<h2>2.2 Fundamental Solution (Gaussian Kernel)</h2>
+<p>
+ We learn the fundamental solution of the heat conduction equation in an infinite domain.
+ </p>
+<div class="theorem">
+<strong>📐 Theory</strong><br/>
+<p><strong>Fundamental Solution (Gaussian Kernel):</strong></p>
+ $$G(x,t) = \frac{1}{\sqrt{4\pi\alpha t}} e^{-x^2/(4\alpha t)}$$
+ <p><strong>General solution by convolution:</strong></p>
+ $$u(x,t) = \int_{-\infty}^{\infty} G(x-\xi, t) f(\xi) d\xi$$
+ </div>
+<div class="code-title">💻 Code Example 2: Visualization of fundamental solution (Gaussian kernel)</div>
+<div class="code-example"><pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+"""
+Example: General solution by convolution:
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Parameters
+alpha = 0.1
+x = np.linspace(-10, 10, 500)
+
+# fundamental solution
+def fundamental_solution(x, t, alpha):
+ if t &lt;= 0:
+ return np.zeros_like(x)
+ return (1/np.sqrt(4*np.pi*alpha*t)) * np.exp(-x**2 / (4*alpha*t))
+
+# Time evolution
+t_values = [0.1, 0.5, 1.0, 2.0, 5.0]
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# Time evolution of fundamental solution
+for t in t_values:
+ G = fundamental_solution(x, t, alpha)
+ ax1.plot(x, G, linewidth=2, label=f't = {t}')
+
+ax1.grid(True, alpha=0.3)
+ax1.set_xlabel('Position x', fontsize=12)
+ax1.set_ylabel('G(x,t)', fontsize=12)
+ax1.set_title('Time evolution of fundamental solution (Gaussian kernel)', fontsize=14)
+ax1.legend()
+
+# General solution by convolution
+# Initial condition: step function
+def initial_condition(x):
+ return np.where(np.abs(x) &lt; 1, 1.0, 0.0)
+
+# Convolution
+def convolution_solution(x, t, alpha, f):
+ xi = np.linspace(-20, 20, 1000)
+ dxi = xi[1] - xi[0]
+ u = np.zeros_like(x)
+
+ for i, x_val in enumerate(x):
+ G = fundamental_solution(x_val - xi, t, alpha)
+ integrand = G * f(xi)
+ u[i] = np.trapz(integrand, dx=dxi)
+
+ return u
+
+# Solutions at different times
+for t in [0.5, 1.0, 2.0, 5.0]:
+ u = convolution_solution(x, t, alpha, initial_condition)
+ ax2.plot(x, u, linewidth=2, label=f't = {t}')
+
+# Initial condition
+ax2.plot(x, initial_condition(x), 'k--', linewidth=2, alpha=0.5, label='Initial condition')
+
+ax2.grid(True, alpha=0.3)
+ax2.set_xlabel('Position x', fontsize=12)
+ax2.set_ylabel('Temperature u(x,t)', fontsize=12)
+ax2.set_title('General solution by convolution', fontsize=14)
+ax2.legend()
+
+plt.tight_layout()
+plt.show()
+
+print("=== Properties of fundamental solution ===")
+print("- Mass conservation: ∫G(x,t)dx = 1")
+print("- Spreads over time (diffusion)")
+print("- Approaches delta function as t→0")</code></pre></div>
+</div>
+<div class="content">
+<h2>2.3 Boundary Value Problems by Separation of Variables</h2>
+<p>
+ We solve the heat conduction equation in a finite domain using the method of separation of variables.
+ </p>
+<div class="code-title">💻 Code Example 3: Separation of variables solution and Fourier series</div>
+<div class="code-example"><pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+"""
+Example: We solve the heat conduction equation in a finite domain usi
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Parameters
+L = 10.0
+alpha = 0.1
+n_modes = 20
+
+x = np.linspace(0, L, 200)
+
+# Initial condition
+def initial_temp(x):
+ return 100 * np.sin(np.pi * x / L) + 50 * np.sin(2 * np.pi * x / L)
+
+# Fourier coefficients
+def compute_fourier_coeff(f, L, n_max):
+ coeffs = []
+ for n in range(1, n_max+1):
+ x_int = np.linspace(0, L, 1000)
+ integrand = f(x_int) * np.sin(n * np.pi * x_int / L)
+ c_n = (2/L) * np.trapz(integrand, x_int)
+ coeffs.append(c_n)
+ return coeffs
+
+c_n = compute_fourier_coeff(initial_temp, L, n_modes)
+print(f"Fourier coefficients c_n: {c_n[:5]}")
+
+# Separation of variables solution
+def separation_solution(x, t, L, alpha, c_n):
+ u = np.zeros_like(x)
+ for n, c in enumerate(c_n, 1):
+ lambda_n = (n * np.pi / L)**2
+ u += c * np.sin(n * np.pi * x / L) * np.exp(-alpha * lambda_n * t)
+ return u
+
+# Visualization
+fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+axes = axes.flatten()
+
+times = [0, 1, 2, 5, 10, 20]
+for idx, t in enumerate(times):
+ ax = axes[idx]
+ u = separation_solution(x, t, L, alpha, c_n)
+ ax.plot(x, u, 'b-', linewidth=2)
+ ax.axhline(0, color='gray', linewidth=0.5)
+ ax.grid(True, alpha=0.3)
+ ax.set_xlabel('Position x', fontsize=11)
+ ax.set_ylabel('Temperature u(x,t)', fontsize=11)
+ ax.set_title(f't = {t:.1f}', fontsize=12)
+ ax.set_ylim(-200, 200)
+
+plt.suptitle('Separation of variables solution: Fourier series expansion', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# Mode decay
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# Time decay of modes
+t_range = np.linspace(0, 20, 200)
+for n in range(1, 6):
+ lambda_n = (n * np.pi / L)**2
+ amplitude = np.exp(-alpha * lambda_n * t_range)
+ ax1.plot(t_range, amplitude, linewidth=2, label=f'Mode {n}')
+
+ax1.grid(True, alpha=0.3)
+ax1.set_xlabel('Time t', fontsize=12)
+ax1.set_ylabel('Amplitude (normalized)', fontsize=12)
+ax1.set_title('Time decay of each mode', fontsize=14)
+ax1.legend()
+
+# Decay rates
+modes = np.arange(1, 11)
+decay_rates = alpha * (modes * np.pi / L)**2
+
+ax2.plot(modes, decay_rates, 'bo-', linewidth=2, markersize=8)
+ax2.grid(True, alpha=0.3)
+ax2.set_xlabel('Mode number n', fontsize=12)
+ax2.set_ylabel('Decay rate $\\alpha\\lambda_n$', fontsize=12)
+ax2.set_title('Relationship between decay rate and mode number', fontsize=14)
+
+plt.tight_layout()
+plt.show()
+
+print("\nCharacteristics of separation of variables solution:")
+print("- Higher-order modes decay faster")
+print("- After long time, the fundamental mode (n=1) dominates")
+print(f"- Decay time constant of fundamental mode: τ = 1/(αλ₁) = {1/(alpha*(np.pi/L)**2):.2f}")</code></pre></div>
+</div>
+<div class="content">
+<h2>2.4 Types of Boundary Conditions</h2>
+<p>
+ We learn Dirichlet, Neumann, and Robin boundary conditions.
+ </p>
+<div class="theorem">
+<strong>📐 Theory</strong><br/>
+<p><strong>Types of Boundary Conditions:</strong></p>
+<ul>
+<li><strong>Dirichlet:</strong> $u(0,t) = T_0$ (specified temperature)</li>
+<li><strong>Neumann:</strong> $\frac{\partial u}{\partial x}(0,t) = q_0$ (specified heat flux)</li>
+<li><strong>Robin:</strong> $\frac{\partial u}{\partial x} + hu = 0$ (convective boundary)</li>
+</ul>
+</div>
+<div class="code-title">💻 Code Example 4: Comparison of different boundary conditions</div>
+<div class="code-example"><pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+"""
+Example: Types of Boundary Conditions:
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 5-15 seconds
+Dependencies: None
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Parameters
+L = 10.0
+alpha = 0.1
+T_total = 15.0
+Nx = 100
+Nt = 1500
+
+x = np.linspace(0, L, Nx)
+dx = x[1] - x[0]
+dt = T_total / Nt
+r = alpha * dt / dx**2
+
+# Initial condition
+def init_cond(x):
+ return 100 * np.exp(-((x - L/2)/2)**2)
+
+# Simulation with 3 types of boundary conditions
+cases = {
+ 'Dirichlet (u=0)': 'dirichlet',
+ 'Neumann (∂u/∂x=0)': 'neumann',
+ 'Robin (convection)': 'robin'
+}
+
+solutions = {}
+
+for name, bc_type in cases.items():
+ u = np.zeros((Nt, Nx))
+ u[0] = init_cond(x)
+
+ for n in range(Nt-1):
+ for i in range(1, Nx-1):
+ u[n+1, i] = u[n, i] + r * (u[n, i+1] - 2*u[n, i] + u[n, i-1])
+
+ # Boundary conditions
+ if bc_type == 'dirichlet':
+ # Temperature fixed at both ends
+ u[n+1, 0] = 0
+ u[n+1, -1] = 0
+
+ elif bc_type == 'neumann':
+ # Insulated at both ends (∂u/∂x = 0)
+ u[n+1, 0] = u[n+1, 1]
+ u[n+1, -1] = u[n+1, -2]
+
+ elif bc_type == 'robin':
+ # Convective boundary conditions (simplified)
+ h = 0.5 # convection coefficient
+ u[n+1, 0] = (u[n+1, 1] + h*dx*0) / (1 + h*dx)
+ u[n+1, -1] = (u[n+1, -2] + h*dx*0) / (1 + h*dx)
+
+ solutions[name] = u
+
+# Visualization
+fig, axes = plt.subplots(2, 3, figsize=(16, 10))
+
+times_idx = [0, Nt//5, 2*Nt//5, 3*Nt//5, 4*Nt//5, Nt-1]
+t = np.linspace(0, T_total, Nt)
+
+for idx, n in enumerate(times_idx):
+ ax = axes[idx//3, idx%3]
+
+ for name, u in solutions.items():
+ ax.plot(x, u[n], linewidth=2, label=name, alpha=0.8)
+
+ ax.axhline(0, color='gray', linewidth=0.5)
+ ax.grid(True, alpha=0.3)
+ ax.set_xlabel('Position x', fontsize=11)
+ ax.set_ylabel('Temperature u(x,t)', fontsize=11)
+ ax.set_title(f't = {t[n]:.2f}', fontsize=12)
+ ax.set_ylim(-10, 110)
+ if idx == 0:
+ ax.legend()
+
+plt.suptitle('Difference in temperature distribution by boundary condition types', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+print("=== Physical meaning of boundary conditions ===")
+print("Dirichlet: Boundary held at constant temperature (e.g., ice water bath)")
+print("Neumann: Insulated boundary (e.g., insulation material)")
+print("Robin: Convective boundary (e.g., heat dissipation to air)")</code></pre></div>
+</div>
+<div class="content">
+<h2>📝 End-of-Chapter Problems</h2>
+<div class="exercise">
+<strong>Exercise Problems</strong>
+<ol>
+<li>For a rod with thermal diffusivity $\alpha = 0.2$ cm²/s and length $L=10$ cm, find the decay time constant of the fundamental mode.</li>
+<li>Find the temperature distribution in equilibrium when the entire system is insulated under Neumann boundary conditions.</li>
+<li>Find the steady state for a 2D square domain where only one edge is at high temperature (others at low temperature).</li>
+<li>Compare the numerical solution using the Crank-Nicolson method with $r=2$ to the explicit method.</li>
+</ol>
+</div>
+</div>
+<div class="nav-buttons">
+<a class="nav-button" href="chapter-1.html">← Chapter 1</a>
+<a class="nav-button" href="chapter-3.html">Chapter 3 →</a>
+</div>
+</div>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+<footer>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>

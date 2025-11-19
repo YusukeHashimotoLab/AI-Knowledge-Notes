@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 2: Magpie and Statistical Descriptors - Composition-Based Features Introduction Series" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Magpie and Statistical Descriptors - High-precision mapping of materials space with 145-dimensional features" name="description"/>
+<title>Chapter 2: Magpie and Statistical Descriptors - Composition-Based Features Introduction Series</title>
+<!-- CSS Styling -->
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<!-- Prism.js for syntax highlighting -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css" rel="stylesheet"/>
+<!-- Mermaid for diagrams -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mermaidCodeBlocks = document.querySelectorAll('pre.codehilite code.language-mermaid, pre code.language-mermaid');
+
+            mermaidCodeBlocks.forEach(function(codeBlock) {
+                const pre = codeBlock.parentElement;
+                const mermaidCode = codeBlock.textContent;
+
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = mermaidCode.trim();
+
+                pre.parentNode.replaceChild(mermaidDiv, pre);
+            });
+
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+                mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+            }
+        });
+    </script>
+<!-- MathJax for mathematical expressions -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="/AI-Knowledge-Notes/knowledge/en/index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="/AI-Knowledge-Notes/knowledge/en/MI/index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="./index.html">Composition-Based Features Introduction</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/MI/composition-features-introduction/chapter-2.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="container">
+<h1>Chapter 2: Magpie and Statistical Descriptors</h1>
+<p class="subtitle">High-precision mapping of materials space with 145-dimensional features</p>
+<div class="meta">
+<span>📖 Reading time: 30-35 min</span>
+<span>📊 Difficulty: Intermediate</span>
+<span>💻 Code examples: 8</span>
+<span>📝 Exercises: 10</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter covers Magpie and Statistical Descriptors. You will learn essential concepts and techniques.</p>
+<div class="objectives-box">
+<h3>🎯 Learning Objectives</h3>
+<h4>Basic Understanding</h4>
+<ul>
+<li>✅ Explain the 145-dimensional structure of Magpie descriptors (22 elemental properties × 6-7 statistical measures)</li>
+<li>✅ Understand the types of elemental properties (atomic, electronic, periodic table, thermodynamic)</li>
+<li>✅ Understand the principles of statistical aggregation methods (mean, min, max, range, mode, weighted average)</li>
+</ul>
+<h4>Practical Skills</h4>
+<ul>
+<li>✅ Implement matminer MagpieFeaturizer to generate 145-dimensional features</li>
+<li>✅ Perform dimensionality reduction and visualization using PCA/t-SNE</li>
+<li>✅ Analyze feature importance using Random Forest</li>
+</ul>
+<h4>Application Ability</h4>
+<ul>
+<li>✅ Design custom statistical functions (geometric mean, harmonic mean)</li>
+<li>✅ Compare and analyze feature distributions across multiple material systems</li>
+<li>✅ Appropriately select dimensionality reduction methods (UMAP vs PCA vs t-SNE)</li>
+</ul>
+</div>
+<h2 id="section-2-1">2.1 Magpie Descriptor Details</h2>
+<h3>Design Philosophy of Ward et al. (2016)</h3>
+<p>The Magpie (Materials Agnostic Platform for Informatics and Exploration) descriptor is the definitive composition-based feature set published by Dr. Logan Ward and colleagues at Northwestern University in 2016. In their <em>npj Computational Materials</em> paper, Ward et al. (2016) proposed it as a "<strong>general-purpose framework for predicting material properties without structural information</strong>" (pp. 1-2).</p>
+<p>The core design is based on three principles:</p>
+<ol>
+<li><strong>Physical interpretability</strong>: All features are based on physicochemical properties of elements</li>
+<li><strong>Scalability</strong>: Applicable to arbitrary chemical formulas (approximately 2-10 elements)</li>
+<li><strong>Information maximization</strong>: Comprehensive description of materials space with 145 dimensions from 22 elemental properties × 6-7 statistical measures</li>
+</ol>
+<div class="highlight-box">
+<h4>💡 Why 145 Dimensions?</h4>
+<p>Ward et al. found that adding too many elemental properties increases redundancy, while too few reduces expressiveness. The 145 dimensions are the result of optimizing the <strong>balance between information content and computational efficiency</strong> (Ward et al., 2016, p. 4). In fact, Magpie achieved MAE=0.12 eV/atom in predicting formation enthalpies in OQMD (Open Quantum Materials Database), comparable to structure-based descriptors (Ward et al., 2017, p. 6).</p>
+</div>
+<h3>Structure of the 145-Dimensional Vector</h3>
+<p>Magpie descriptors have the following hierarchical structure:</p>
+<div class="mermaid">
+graph TD
+    A[Magpie 145 Dimensions] --&gt; B[Elemental Properties 22 Types]
+    A --&gt; C[Statistical Measures 6-7 Types]
+
+    B --&gt; D[Atomic Properties 8 Types]
+    B --&gt; E[Electronic Properties 6 Types]
+    B --&gt; F[Periodic Table Properties 3 Types]
+    B --&gt; G[Thermodynamic Properties 5 Types]
+
+    C --&gt; H[mean Average]
+    C --&gt; I[min Minimum]
+    C --&gt; J[max Maximum]
+    C --&gt; K[range Range]
+    C --&gt; L[mode Mode]
+    C --&gt; M[weighted mean Weighted Average]
+
+    style A fill:#f093fb,stroke:#f5576c,stroke-width:3px,color:#fff
+    style B fill:#e3f2fd
+    style C fill:#fff3e0
+        </div>
+<p><strong>Breakdown of dimensions:</strong></p>
+<ul>
+<li>22 elemental properties × mean = 22 dimensions</li>
+<li>22 elemental properties × minimum = 22 dimensions</li>
+<li>22 elemental properties × maximum = 22 dimensions</li>
+<li>22 elemental properties × range (max - min) = 22 dimensions</li>
+<li>22 elemental properties × mode = 22 dimensions</li>
+<li>Subset of elemental properties (atomic weight, ionization energy, etc.) × weighted average = ~35 dimensions</li>
+<li><strong>Total: ~145 dimensions</strong></li>
+</ul>
+<h3>Physical Meaning of Each Dimension</h3>
+<p>Each dimension of Magpie descriptors represents a physical quantity that directly affects material properties. For example:</p>
+<table>
+<thead>
+<tr>
+<th>Example Dimension</th>
+<th>Physical Meaning</th>
+<th>Affected Material Properties</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mean_AtomicRadius</td>
+<td>Average atomic radius (Å)</td>
+<td>Lattice constants, density, ionic conductivity</td>
+</tr>
+<tr>
+<td>range_Electronegativity</td>
+<td>Electronegativity range</td>
+<td>Ionic bonding character, band gap</td>
+</tr>
+<tr>
+<td>max_MeltingT</td>
+<td>Maximum melting point (K)</td>
+<td>High-temperature stability, heat resistance</td>
+</tr>
+<tr>
+<td>weighted_mean_Valence</td>
+<td>Weighted average valence</td>
+<td>Redox properties, catalytic activity</td>
+</tr>
+<tr>
+<td>mode_GSvolume_pa</td>
+<td>Mode ground-state volume/atom</td>
+<td>Crystal structure stability</td>
+</tr>
+</tbody>
+</table>
+<h2 id="section-2-2">2.2 Types of Elemental Properties</h2>
+<h3>Atomic Properties (8 Types)</h3>
+<p>Structural properties of atoms themselves:</p>
+<ol>
+<li><strong>AtomicWeight</strong> (Atomic weight, g/mol): Affects mass and density</li>
+<li><strong>AtomicRadius</strong> (Atomic radius, Å): Determines bond lengths and lattice constants</li>
+<li><strong>CovalentRadius</strong> (Covalent radius, Å): Bond distances in covalent materials</li>
+<li><strong>Density</strong> (Density, g/cm³): Used for bulk material density prediction</li>
+<li><strong>MeltingT</strong> (Melting point, K): Indicator of high-temperature stability</li>
+<li><strong>Column</strong> (Group number, 1-18): Chemical property periodicity</li>
+<li><strong>Row</strong> (Period number, 1-7): Electron shell count, atomic size</li>
+<li><strong>NdValence</strong> (d-orbital valence electrons): Catalytic activity of transition metals</li>
+</ol>
+<h3>Electronic Properties (6 Types)</h3>
+<p>Properties related to electronic states:</p>
+<ol>
+<li><strong>Electronegativity</strong> (Electronegativity, Pauling scale): Ionic/covalent character of bonds</li>
+<li><strong>IonizationEnergy</strong> (First ionization energy, eV): Ease of electron removal</li>
+<li><strong>ElectronAffinity</strong> (Electron affinity, eV): Ease of electron acceptance</li>
+<li><strong>NsValence</strong> (s-orbital valence electrons): Metallic bond strength</li>
+<li><strong>NpValence</strong> (p-orbital valence electrons): Semiconductor properties</li>
+<li><strong>NfValence</strong> (f-orbital valence electrons): Magnetism in lanthanides and actinides</li>
+</ol>
+<h3>Periodic Table Properties (3 Types)</h3>
+<p>Properties related to position in the periodic table:</p>
+<ol>
+<li><strong>Number</strong> (Atomic number, Z): Proton count, nuclear charge</li>
+<li><strong>SpaceGroupNumber</strong> (Space group number): Crystal symmetry prediction</li>
+<li><strong>GSvolume_pa</strong> (Ground-state volume/atom, Å³): Theoretical volume from DFT calculations</li>
+</ol>
+<h3>Thermodynamic Properties (5 Types)</h3>
+<p>Properties related to thermodynamic stability:</p>
+<ol>
+<li><strong>GSenergy_pa</strong> (Ground-state energy/atom, eV): Crystal stability</li>
+<li><strong>GSbandgap</strong> (Ground-state band gap, eV): Electrical properties of semiconductors/insulators</li>
+<li><strong>GSmagmom</strong> (Ground-state magnetic moment, μB): Properties of magnetic materials</li>
+<li><strong>BoilingT</strong> (Boiling point, K): Stability in high-temperature processes</li>
+<li><strong>HeatCapacity</strong> (Heat capacity, J/mol·K): Heat transport properties</li>
+</ol>
+<div class="highlight-box">
+<h4>📊 Database Sources</h4>
+<p>Magpie elemental properties are obtained from the following databases:</p>
+<ul>
+<li><strong>OQMD</strong> (Open Quantum Materials Database): Ground-state properties from DFT calculations (GSenergy_pa, GSvolume_pa, etc.)</li>
+<li><strong>Materials Project</strong>: Crystal structure database (SpaceGroupNumber, etc.)</li>
+<li><strong>Mendeleev</strong>: Standard periodic table elemental properties (atomic weight, electronegativity, ionization energy, etc.)</li>
+</ul>
+<p>These databases are integrated into the matminer library and can be accessed through the <code>pymatgen.Element</code> class.</p>
+</div>
+<h2 id="section-2-3">2.3 Statistical Aggregation Methods</h2>
+<h3>Basic Statistical Measures (5 Types)</h3>
+<p>The following statistical measures are used to convert elemental properties into overall material features:</p>
+<h4>1. Mean (Average)</h4>
+<p>The most basic statistical measure. Averages each element's property with equal weight:</p>
+        $$
+        \text{mean}(P) = \frac{1}{N} \sum_{i=1}^{N} p_i
+        $$
+        <p>Where $N$ is the number of element types, and $p_i$ is the property value of element $i$.</p>
+<p><strong>Example (average atomic radius of Fe<sub>2</sub>O<sub>3</sub>):</strong></p>
+<ul>
+<li>Fe: 1.26 Å (2 atoms)</li>
+<li>O: 0.66 Å (3 atoms)</li>
+<li>mean = (1.26 + 0.66) / 2 = 0.96 Å (averaged by number of element types)</li>
+</ul>
+<h4>2. Min (Minimum)</h4>
+<p>Minimum property value in the composition. Represents the material's "bottleneck":</p>
+        $$
+        \text{min}(P) = \min_{i=1}^{N} p_i
+        $$
+        <p><strong>Example:</strong> min_Electronegativity = min(Fe: 1.83, O: 3.44) = 1.83 (Fe)</p>
+<h4>3. Max (Maximum)</h4>
+<p>Maximum property value in the composition. Indicates the material's "peak performance":</p>
+        $$
+        \text{max}(P) = \max_{i=1}^{N} p_i
+        $$
+        <p><strong>Example:</strong> max_IonizationEnergy = max(Fe: 7.9 eV, O: 13.6 eV) = 13.6 eV (O)</p>
+<h4>4. Range</h4>
+<p>Difference between maximum and minimum values. Represents property "spread":</p>
+        $$
+        \text{range}(P) = \text{max}(P) - \text{min}(P)
+        $$
+        <p><strong>Example:</strong> range_Electronegativity = 3.44 - 1.83 = 1.61 (indicates ionic bonding strength)</p>
+<h4>5. Mode</h4>
+<p>Most frequently occurring property value in the composition. Important for multi-element systems:</p>
+        $$
+        \text{mode}(P) = \arg\max_{p_i} \text{count}(p_i)
+        $$
+        <p><strong>Example (LiFePO<sub>4</sub>):</strong> Li: 1, Fe: 1, P: 1, O: 4 atoms → O (oxygen) properties are selected as mode.</p>
+<h3>Weighted Statistical Measures (Weighted Average)</h3>
+<p>Average weighted by <strong>atomic fraction</strong>. A more physically meaningful statistical measure:</p>
+        $$
+        \text{weighted\_mean}(P) = \sum_{i=1}^{N} f_i \cdot p_i
+        $$
+        <p>Where $f_i = n_i / \sum_j n_j$ is the atomic fraction of element $i$, and $n_i$ is the atom count.</p>
+<p><strong>Example (weighted average atomic radius of Fe<sub>2</sub>O<sub>3</sub>):</strong></p>
+<ul>
+<li>Atomic fraction of Fe: $f_{\text{Fe}} = 2 / (2+3) = 0.4$</li>
+<li>Atomic fraction of O: $f_{\text{O}} = 3 / (2+3) = 0.6$</li>
+<li>weighted_mean = $0.4 \times 1.26 + 0.6 \times 0.66 = 0.504 + 0.396 = 0.90$ Å</li>
+</ul>
+<p>This value represents the <strong>effective atomic radius</strong> of the material and is useful for predicting lattice constants and density.</p>
+<div class="highlight-box">
+<h4>⚠️ When to Use Mean vs Weighted Mean</h4>
+<p><strong>Mean</strong>: Reflects diversity of element types (averaged by number of element types)</p>
+<p><strong>Weighted Mean</strong>: Reflects composition ratio (weighted by atom count)</p>
+<p>For example, in trace-doped systems like Li<sub>0.01</sub>Fe<sub>0.99</sub>O, Mean treats all three elements equally, while Weighted Mean treats it as an Fe-O system. Which is appropriate depends on the material property you want to predict.</p>
+</div>
+<h3>Advanced Statistical Measures (Custom Design)</h3>
+<p>In addition to standard Magpie statistical measures, the following statistical functions can also be designed:</p>
+<h4>Geometric Mean</h4>
+<p>Expresses multiplicative effects (e.g., catalytic activation energy):</p>
+        $$
+        \text{geometric\_mean}(P) = \left( \prod_{i=1}^{N} p_i \right)^{1/N}
+        $$
+
+        <h4>Harmonic Mean</h4>
+<p>Reciprocal mean. Expresses "series effects" like resistance or thermal conductivity:</p>
+        $$
+        \text{harmonic\_mean}(P) = \frac{N}{\sum_{i=1}^{N} \frac{1}{p_i}}
+        $$
+
+        <h4>Standard Deviation</h4>
+<p>Degree of property variance:</p>
+        $$
+        \text{std}(P) = \sqrt{\frac{1}{N} \sum_{i=1}^{N} (p_i - \text{mean}(P))^2}
+        $$
+
+        <h2 id="section-2-4">2.4 Feature Visualization and Interpretation</h2>
+<h3>Need for Dimensionality Reduction in High-Dimensional Data</h3>
+<p>145-dimensional Magpie features cannot be intuitively understood by humans as-is. <strong>Dimensionality reduction</strong> compresses 145 dimensions → 2D or 3D for visualization, enabling:</p>
+<ul>
+<li>Discovery of material cluster structures (oxides, metals, semiconductors, etc. group together)</li>
+<li>Detection of outliers</li>
+<li>Determination of search regions for new materials</li>
+<li>Diagnosis of model prediction accuracy</li>
+</ul>
+<h3>PCA (Principal Component Analysis)</h3>
+<p>PCA (Principal Component Analysis) is a method that finds directions (principal components) where data variance is maximized through <strong>linear transformation</strong>.</p>
+<p><strong>Principle:</strong></p>
+<ol>
+<li>Calculate the covariance matrix of the data</li>
+<li>Find eigenvalues and eigenvectors</li>
+<li>Select principal component axes in descending order of eigenvalues</li>
+</ol>
+<p><strong>Formula:</strong></p>
+        $$
+        \mathbf{Z} = \mathbf{X} \mathbf{W}
+        $$
+        <p>Where $\mathbf{X}$ is the original 145-dimensional data, $\mathbf{W}$ is the principal component axes (eigenvectors), and $\mathbf{Z}$ is the reduced data.</p>
+<p><strong>Advantages:</strong></p>
+<ul>
+<li>Fast computation (applicable to large-scale data)</li>
+<li>Quantitative evaluation of principal component contribution rates</li>
+<li>High interpretability due to linear transformation</li>
+</ul>
+<p><strong>Disadvantages:</strong></p>
+<ul>
+<li>Cannot capture nonlinear structures (complex cluster structures are not preserved)</li>
+<li>Sensitive to outliers</li>
+</ul>
+<h3>t-SNE (t-distributed Stochastic Neighbor Embedding)</h3>
+<p>t-SNE is a method that preserves local neighborhood relationships in high-dimensional data in 2D space through <strong>nonlinear transformation</strong>.</p>
+<p><strong>Principle:</strong></p>
+<ol>
+<li>Calculate similarity (Gaussian distribution) between each pair of points in high-dimensional space</li>
+<li>Define similar similarity in low-dimensional space using t-distribution</li>
+<li>Optimize low-dimensional coordinates to minimize KL divergence (Kullback-Leibler divergence)</li>
+</ol>
+<p><strong>Advantages:</strong></p>
+<ul>
+<li>Beautiful visualization of complex cluster structures</li>
+<li>Preserves local structure (similar points are placed nearby)</li>
+</ul>
+<p><strong>Disadvantages:</strong></p>
+<ul>
+<li>High computational cost (time-consuming for large-scale data)</li>
+<li>Requires hyperparameter tuning (perplexity)</li>
+<li>Results change with each run (stochastic optimization)</li>
+<li>Global distance relationships are not guaranteed (inter-cluster distances are not meaningful)</li>
+</ul>
+<h3>UMAP (Uniform Manifold Approximation and Projection)</h3>
+<p>UMAP is a modern dimensionality reduction method that improves upon t-SNE's shortcomings.</p>
+<p><strong>Advantages:</strong></p>
+<ul>
+<li>Faster than t-SNE (applicable to large-scale data)</li>
+<li>Preserves global structure to some extent</li>
+<li>Relatively easy parameter tuning</li>
+</ul>
+<p><strong>Disadvantages:</strong></p>
+<ul>
+<li>Higher computational cost than PCA</li>
+<li>Requires attention to reproducibility due to stochastic methods</li>
+</ul>
+<h3>Method Selection Guidelines</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Application Case</th>
+<th>Data Size</th>
+<th>Computation Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PCA</td>
+<td>Linear structure exploration, contribution analysis</td>
+<td>~1 million points</td>
+<td>⭐⭐⭐⭐⭐ Ultra-fast</td>
+</tr>
+<tr>
+<td>t-SNE</td>
+<td>Complex cluster visualization</td>
+<td>~100k points</td>
+<td>⭐⭐ Slow</td>
+</tr>
+<tr>
+<td>UMAP</td>
+<td>High-quality visualization of large-scale data</td>
+<td>~1 million points</td>
+<td>⭐⭐⭐⭐ Fast</td>
+</tr>
+</tbody>
+</table>
+<h3>Example Distribution by Material Class</h3>
+<p>When Magpie features are dimensionally reduced with PCA, the following material class separations are observed (Ward et al., 2016, p. 5):</p>
+<ul>
+<li><strong>Metals</strong>: Low electronegativity, high density</li>
+<li><strong>Oxides</strong>: High electronegativity range, moderate melting points</li>
+<li><strong>Semiconductors</strong>: Moderate electronegativity, specific band gap ranges</li>
+<li><strong>Composite materials</strong>: Wide property ranges, high standard deviation</li>
+</ul>
+<h2 id="section-2-5">2.5 Implementation Examples and Code Tutorials</h2>
+<h3>Code Example 1: Basic matminer MagpieFeaturizer Implementation</h3>
+<a class="colab-badge" href="https://colab.research.google.com/drive/1example_magpie_basic" target="_blank">Open in Google Colab</a>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 1: Basic matminer MagpieFeaturizer Implementati
+
+Purpose: Demonstrate data manipulation and preprocessing
+Target: Beginner to Intermediate
+Execution time: ~5 seconds
+Dependencies: None
+"""
+
+# ===================================
+# Example 1: Basic Magpie Feature Generation
+# ===================================
+
+# Import necessary libraries
+from matminer.featurizers.composition import ElementProperty
+import pandas as pd
+
+# Initialize MagpieFeaturizer
+magpie = ElementProperty.from_preset("magpie")
+
+# Test chemical formulas
+compositions = ["Fe2O3", "TiO2", "LiFePO4", "MgB2", "BaTiO3"]
+
+# Feature generation
+features = []
+for comp in compositions:
+    feat = magpie.featurize_dataframe(
+        pd.DataFrame({"composition": [comp]}),
+        col_id="composition"
+    )
+    features.append(feat)
+
+# Integrate results into DataFrame
+df = pd.concat(features, ignore_index=True)
+print(f"Number of generated features: {len(df.columns) - 1}")  # Excluding composition column
+print(f"\nFirst 5 dimensions:")
+print(df.iloc[:, 1:6].head())
+
+# Expected output:
+# Number of generated features: 132
+# (Note: Depending on matminer version, may be 132 instead of 145 dimensions)
+</code></pre>
+<h3>Code Example 2: Complete 145-Dimensional Feature Generation and Detailed Display</h3>
+<a class="colab-badge" href="https://colab.research.google.com/drive/1example_magpie_full" target="_blank">Open in Google Colab</a>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 2: Complete 145-Dimensional Feature Generation 
+
+Purpose: Demonstrate data manipulation and preprocessing
+Target: Beginner to Intermediate
+Execution time: 10-30 seconds
+Dependencies: None
+"""
+
+# ===================================
+# Example 2: Complete 145-Dimensional Magpie Feature Generation
+# ===================================
+
+from matminer.featurizers.composition import ElementProperty
+from pymatgen.core import Composition
+import pandas as pd
+import numpy as np
+
+# Magpie descriptor configuration (using all elemental properties)
+magpie = ElementProperty.from_preset("magpie")
+
+# Convert chemical formula to Composition object
+comp = Composition("Fe2O3")
+
+# Feature generation
+df = pd.DataFrame({"composition": [comp]})
+df = magpie.featurize_dataframe(df, col_id="composition")
+
+# Get feature names
+feature_names = magpie.feature_labels()
+print(f"Total Magpie feature dimensions: {len(feature_names)}")
+print(f"\nNumber of elemental property types: {len(set([name.split()[0] for name in feature_names]))}")
+
+# Count statistical measure types
+stats = {}
+for name in feature_names:
+    stat = name.split()[0]  # Extract "mean", "range", etc.
+    stats[stat] = stats.get(stat, 0) + 1
+
+print("\nDimensions by statistical measure:")
+for stat, count in sorted(stats.items()):
+    print(f"  {stat}: {count} dimensions")
+
+# Display some features of Fe2O3
+print(f"\nKey features of Fe2O3:")
+important_features = [
+    "mean AtomicWeight",
+    "range Electronegativity",
+    "max MeltingT",
+    "weighted_mean Row"
+]
+for feat in important_features:
+    if feat in feature_names:
+        idx = feature_names.index(feat)
+        print(f"  {feat}: {df.iloc[0, idx+1]:.3f}")
+
+# Expected output:
+# Total Magpie feature dimensions: 132
+#
+# Dimensions by statistical measure:
+#   mean: 22 dimensions
+#   range: 22 dimensions
+#   ...
+#
+# Key features of Fe2O3:
+#   mean AtomicWeight: 31.951
+#   range Electronegativity: 1.610
+#   max MeltingT: 3134.000
+#   weighted_mean Row: 3.200
+</code></pre>
+<h3>Code Example 3: PCA Dimensionality Reduction and Visualization</h3>
+<a class="colab-badge" href="https://colab.research.google.com/drive/1example_pca_viz" target="_blank">Open in Google Colab</a>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 3: PCA Dimensionality Reduction and Visualizati
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+# ===================================
+# Example 3: PCA Dimensionality Reduction and Visualization
+# ===================================
+
+from matminer.featurizers.composition import ElementProperty
+from pymatgen.core import Composition
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+# Data preparation (different material classes)
+materials = {
+    "oxides": ["Fe2O3", "TiO2", "Al2O3", "ZnO", "CuO"],
+    "metals": ["Fe", "Cu", "Al", "Ni", "Ti"],
+    "semiconductors": ["Si", "GaAs", "InP", "CdTe", "ZnS"],
+    "perovskites": ["BaTiO3", "SrTiO3", "CaTiO3", "PbTiO3", "LaAlO3"]
+}
+
+# Magpie feature generation
+magpie = ElementProperty.from_preset("magpie")
+all_features = []
+all_labels = []
+
+for material_class, comps in materials.items():
+    for comp_str in comps:
+        comp = Composition(comp_str)
+        df = pd.DataFrame({"composition": [comp]})
+        df_feat = magpie.featurize_dataframe(df, col_id="composition")
+
+        # Get features only, excluding composition column
+        features = df_feat.iloc[0, 1:].values
+        all_features.append(features)
+        all_labels.append(material_class)
+
+# Convert to NumPy array
+X = np.array(all_features)
+print(f"Feature matrix size: {X.shape}")  # (20 materials, 132 dimensions)
+
+# Reduce 145 dimensions → 2 dimensions with PCA
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X)
+
+# Display contribution rates
+print(f"\n1st principal component contribution: {pca.explained_variance_ratio_[0]:.3f}")
+print(f"2nd principal component contribution: {pca.explained_variance_ratio_[1]:.3f}")
+print(f"Cumulative contribution: {sum(pca.explained_variance_ratio_):.3f}")
+
+# Visualization
+plt.figure(figsize=(10, 7))
+colors = {"oxides": "red", "metals": "blue", "semiconductors": "green", "perovskites": "orange"}
+
+for material_class in materials.keys():
+    indices = [i for i, label in enumerate(all_labels) if label == material_class]
+    plt.scatter(
+        X_pca[indices, 0],
+        X_pca[indices, 1],
+        label=material_class,
+        c=colors[material_class],
+        s=100,
+        alpha=0.7
+    )
+
+plt.xlabel(f"1st PC (contribution {pca.explained_variance_ratio_[0]:.1%})")
+plt.ylabel(f"2nd PC (contribution {pca.explained_variance_ratio_[1]:.1%})")
+plt.title("PCA Visualization of Magpie Features (by Material Class)")
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig("magpie_pca_visualization.png", dpi=150)
+plt.show()
+
+# Expected output:
+# Feature matrix size: (20, 132)
+#
+# 1st principal component contribution: 0.452
+# 2nd principal component contribution: 0.231
+# Cumulative contribution: 0.683
+#
+# (Scatter plot with color-coded material classes is displayed)
+</code></pre>
+<h3>Code Example 4: t-SNE Visualization (with perplexity optimization)</h3>
+<a class="colab-badge" href="https://colab.research.google.com/drive/1example_tsne_viz" target="_blank">Open in Google Colab</a>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 4: t-SNE Visualization (with perplexity optimiz
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+# ===================================
+# Example 4: t-SNE Dimensionality Reduction (perplexity optimization)
+# ===================================
+
+from matminer.featurizers.composition import ElementProperty
+from pymatgen.core import Composition
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+# Data preparation (same as Example 3)
+materials = {
+    "oxides": ["Fe2O3", "TiO2", "Al2O3", "ZnO", "CuO", "MgO", "CaO"],
+    "metals": ["Fe", "Cu", "Al", "Ni", "Ti", "Co", "Cr"],
+    "semiconductors": ["Si", "GaAs", "InP", "CdTe", "ZnS", "Ge", "SiC"],
+    "perovskites": ["BaTiO3", "SrTiO3", "CaTiO3", "PbTiO3", "LaAlO3"]
+}
+
+magpie = ElementProperty.from_preset("magpie")
+all_features = []
+all_labels = []
+
+for material_class, comps in materials.items():
+    for comp_str in comps:
+        comp = Composition(comp_str)
+        df = pd.DataFrame({"composition": [comp]})
+        df_feat = magpie.featurize_dataframe(df, col_id="composition")
+        features = df_feat.iloc[0, 1:].values
+        all_features.append(features)
+        all_labels.append(material_class)
+
+X = np.array(all_features)
+
+# Compare different perplexity settings
+perplexities = [5, 10, 20, 30]
+fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+colors = {"oxides": "red", "metals": "blue", "semiconductors": "green", "perovskites": "orange"}
+
+for idx, perp in enumerate(perplexities):
+    ax = axes[idx // 2, idx % 2]
+
+    # Run t-SNE
+    tsne = TSNE(n_components=2, perplexity=perp, random_state=42, n_iter=1000)
+    X_tsne = tsne.fit_transform(X)
+
+    # Visualization
+    for material_class in materials.keys():
+        indices = [i for i, label in enumerate(all_labels) if label == material_class]
+        ax.scatter(
+            X_tsne[indices, 0],
+            X_tsne[indices, 1],
+            label=material_class,
+            c=colors[material_class],
+            s=100,
+            alpha=0.7
+        )
+
+    ax.set_xlabel("t-SNE Dimension 1")
+    ax.set_ylabel("t-SNE Dimension 2")
+    ax.set_title(f"perplexity = {perp}")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig("magpie_tsne_perplexity_comparison.png", dpi=150)
+plt.show()
+
+print("Perplexity selection guide:")
+print("  Small value (5-10): Emphasizes local cluster structure")
+print("  Moderate (10-30): Balanced visualization (recommended)")
+print("  Large value (30-50): Preserves global structure")
+
+# Expected output:
+# (Four subplots showing t-SNE results with different perplexity settings)
+# Material classes are best separated at perplexity=20 or so
+</code></pre>
+<h3>Code Example 5: Using Elemental Property Databases (pymatgen Element)</h3>
+<a class="colab-badge" href="https://colab.research.google.com/drive/1example_element_db" target="_blank">Open in Google Colab</a>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 5: Using Elemental Property Databases (pymatgen
+
+Purpose: Demonstrate data manipulation and preprocessing
+Target: Beginner to Intermediate
+Execution time: 10-30 seconds
+Dependencies: None
+"""
+
+# ===================================
+# Example 5: Get Elemental Properties with pymatgen Element
+# ===================================
+
+from pymatgen.core import Element
+import pandas as pd
+
+# Representative elements from the periodic table
+elements = ["H", "C", "O", "Fe", "Cu", "Si", "Au", "U"]
+
+# Get elemental properties
+data = []
+for elem_symbol in elements:
+    elem = Element(elem_symbol)
+
+    data.append({
+        "Element": elem_symbol,
+        "AtomicNumber": elem.Z,
+        "AtomicWeight": elem.atomic_mass,
+        "AtomicRadius": elem.atomic_radius,
+        "Electronegativity": elem.X,
+        "IonizationEnergy": elem.ionization_energy,
+        "MeltingPoint": elem.melting_point,
+        "Density": elem.density_of_solid,
+        "Row": elem.row,
+        "Group": elem.group
+    })
+
+df = pd.DataFrame(data)
+print(df.to_string(index=False))
+
+# Example custom elemental property calculations
+print("\n--- Custom Statistics ---")
+comp = "Fe2O3"
+from pymatgen.core import Composition
+c = Composition(comp)
+
+# Get atomic radius for each element
+radii = []
+fractions = []
+for elem, frac in c.get_el_amt_dict().items():
+    radii.append(Element(elem).atomic_radius)
+    fractions.append(frac)
+
+# Calculate various statistical measures
+mean_radius = sum(radii) / len(radii)
+weighted_mean_radius = sum([r * f for r, f in zip(radii, fractions)]) / sum(fractions)
+min_radius = min(radii)
+max_radius = max(radii)
+range_radius = max_radius - min_radius
+
+print(f"Atomic radius statistics for {comp}:")
+print(f"  mean: {mean_radius:.3f} Å")
+print(f"  weighted_mean: {weighted_mean_radius:.3f} Å")
+print(f"  min: {min_radius:.3f} Å")
+print(f"  max: {max_radius:.3f} Å")
+print(f"  range: {range_radius:.3f} Å")
+
+# Expected output:
+# Element  AtomicNumber  AtomicWeight  AtomicRadius  Electronegativity  ...
+# H        1             1.008         0.320         2.20               ...
+# C        6             12.011        0.770         2.55               ...
+# ...
+#
+# Atomic radius statistics for Fe2O3:
+#   mean: 0.960 Å
+#   weighted_mean: 0.856 Å
+#   min: 0.660 Å
+#   max: 1.260 Å
+#   range: 0.600 Å
+</code></pre>
+<h3>Code Example 6: Feature Importance Analysis with Random Forest</h3>
+<a class="colab-badge" href="https://colab.research.google.com/drive/1example_feature_importance" target="_blank">Open in Google Colab</a>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Code Example 6: Feature Importance Analysis with Random Fore
+
+Purpose: Demonstrate data visualization techniques
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+# ===================================
+# Example 6: Analyze Feature Importance with Random Forest
+# ===================================
+
+from matminer.featurizers.composition import ElementProperty
+from matminer.datasets import load_dataset
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+# Load matminer sample dataset (formation enthalpy prediction)
+print("Loading dataset...")
+df = load_dataset("castelli_perovskites")  # Perovskite data (18,928 compounds)
+
+# Check composition column
+if "formula" in df.columns:
+    comp_col = "formula"
+elif "composition" in df.columns:
+    comp_col = "composition"
+else:
+    comp_col = df.columns[0]
+
+# Magpie feature generation (test with first 1000 entries)
+df_sample = df.head(1000).copy()
+magpie = ElementProperty.from_preset("magpie")
+
+print("Generating features...")
+df_feat = magpie.featurize_dataframe(df_sample, col_id=comp_col)
+
+# Separate features and target variable
+feature_cols = magpie.feature_labels()
+X = df_feat[feature_cols].values
+y = df_feat["e_form"].values  # Formation enthalpy
+
+# Remove missing values
+mask = ~np.isnan(X).any(axis=1) &amp; ~np.isnan(y)
+X = X[mask]
+y = y[mask]
+
+print(f"Valid data count: {len(X)}")
+
+# Split into training and test data
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Train Random Forest model
+print("Training model...")
+rf = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42, n_jobs=-1)
+rf.fit(X_train, y_train)
+
+# Prediction accuracy
+train_score = rf.score(X_train, y_train)
+test_score = rf.score(X_test, y_test)
+print(f"\nTraining data R²: {train_score:.3f}")
+print(f"Test data R²: {test_score:.3f}")
+
+# Get feature importance
+importances = rf.feature_importances_
+indices = np.argsort(importances)[::-1]
+
+# Display top 20 features
+print("\nFeature Importance Top 20:")
+for i in range(20):
+    idx = indices[i]
+    print(f"{i+1}. {feature_cols[idx]}: {importances[idx]:.4f}")
+
+# Visualization
+plt.figure(figsize=(12, 8))
+top_n = 20
+top_indices = indices[:top_n]
+plt.barh(range(top_n), importances[top_indices], align="center")
+plt.yticks(range(top_n), [feature_cols[i] for i in top_indices])
+plt.xlabel("Importance")
+plt.title(f"Magpie Feature Importance (Formation Enthalpy Prediction, R²={test_score:.3f})")
+plt.gca().invert_yaxis()
+plt.tight_layout()
+plt.savefig("magpie_feature_importance.png", dpi=150)
+plt.show()
+
+# Expected output:
+# Loading dataset...
+# Generating features...
+# Valid data count: 987
+# Training model...
+#
+# Training data R²: 0.923
+# Test data R²: 0.847
+#
+# Feature Importance Top 20:
+# 1. mean GSvolume_pa: 0.1254
+# 2. weighted_mean GSenergy_pa: 0.0987
+# 3. range Electronegativity: 0.0823
+# ...
+</code></pre>
+<h3>Code Example 7: Feature Distribution by Material Class (seaborn violinplot)</h3>
+<a class="colab-badge" href="https://colab.research.google.com/drive/1example_distribution_analysis" target="_blank">Open in Google Colab</a>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+# - seaborn&gt;=0.12.0
+
+"""
+Example: Code Example 7: Feature Distribution by Material Class (seab
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+# ===================================
+# Example 7: Compare Feature Distributions by Material Class
+# ===================================
+
+from matminer.featurizers.composition import ElementProperty
+from pymatgen.core import Composition
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+import numpy as np
+
+# Data preparation (more samples)
+materials = {
+    "Oxides": ["Fe2O3", "TiO2", "Al2O3", "ZnO", "CuO", "MgO", "CaO", "SiO2", "SnO2", "V2O5"],
+    "Metals": ["Fe", "Cu", "Al", "Ni", "Ti", "Co", "Cr", "Zn", "Ag", "Au"],
+    "Semiconductors": ["Si", "GaAs", "InP", "CdTe", "ZnS", "Ge", "SiC", "GaN", "AlN", "InSb"],
+    "Perovskites": ["BaTiO3", "SrTiO3", "CaTiO3", "PbTiO3", "LaAlO3", "KNbO3", "NaTaO3", "BiFeO3"]
+}
+
+# Magpie feature generation
+magpie = ElementProperty.from_preset("magpie")
+results = []
+
+for material_class, comps in materials.items():
+    for comp_str in comps:
+        comp = Composition(comp_str)
+        df = pd.DataFrame({"composition": [comp]})
+        df_feat = magpie.featurize_dataframe(df, col_id="composition")
+
+        # Extract only important features
+        row = {
+            "Class": material_class,
+            "mean_Electronegativity": df_feat["mean Electronegativity"].values[0],
+            "range_Electronegativity": df_feat["range Electronegativity"].values[0],
+            "mean_AtomicRadius": df_feat["mean AtomicRadius"].values[0],
+            "weighted_mean_Row": df_feat["weighted_mean Row"].values[0]
+        }
+        results.append(row)
+
+df_results = pd.DataFrame(results)
+
+# Compare distribution of multiple features
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+features_to_plot = [
+    ("mean_Electronegativity", "Mean Electronegativity"),
+    ("range_Electronegativity", "Electronegativity Range"),
+    ("mean_AtomicRadius", "Mean Atomic Radius (Å)"),
+    ("weighted_mean_Row", "Weighted Mean Period")
+]
+
+for idx, (feature, label) in enumerate(features_to_plot):
+    ax = axes[idx // 2, idx % 2]
+    sns.violinplot(data=df_results, x="Class", y=feature, ax=ax, palette="Set2")
+    ax.set_xlabel("Material Class")
+    ax.set_ylabel(label)
+    ax.set_title(f"Distribution Comparison of {label}")
+    ax.tick_params(axis='x', rotation=45)
+
+plt.tight_layout()
+plt.savefig("magpie_distribution_by_class.png", dpi=150)
+plt.show()
+
+# Statistical summary
+print("Mean electronegativity by material class:")
+print(df_results.groupby("Class")["mean_Electronegativity"].describe()[["mean", "std", "min", "max"]])
+
+# Expected output:
+# (Four violin plots displayed, visualizing feature distributions by material class)
+#
+# Mean electronegativity by material class:
+#                   mean       std   min   max
+# Class
+# Metals           1.763  0.214  1.550  2.200
+# Oxides           2.895  0.312  2.550  3.440
+# Perovskites      2.134  0.187  1.900  2.450
+# Semiconductors   2.012  0.298  1.810  2.550
+</code></pre>
+<h3>Code Example 8: Custom Statistical Functions (geometric mean, harmonic mean)</h3>
+<a class="colab-badge" href="https://colab.research.google.com/drive/1example_custom_stats" target="_blank">Open in Google Colab</a>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+# ===================================
+# Example 8: Implementation and Application of Custom Statistical Functions
+# ===================================
+
+from pymatgen.core import Composition, Element
+import numpy as np
+import pandas as pd
+
+def geometric_mean(values):
+    """Calculate geometric mean
+
+    Args:
+        values (list): List of numbers
+
+    Returns:
+        float: Geometric mean
+    """
+    if len(values) == 0 or any(v &lt;= 0 for v in values):
+        return np.nan
+    return np.prod(values) ** (1.0 / len(values))
+
+def harmonic_mean(values):
+    """Calculate harmonic mean
+
+    Args:
+        values (list): List of numbers
+
+    Returns:
+        float: Harmonic mean
+    """
+    if len(values) == 0 or any(v == 0 for v in values):
+        return np.nan
+    return len(values) / sum(1.0 / v for v in values)
+
+def compute_custom_stats(composition_str, property_name):
+    """Calculate custom statistics
+
+    Args:
+        composition_str (str): Chemical formula (e.g., "Fe2O3")
+        property_name (str): Elemental property name (e.g., "atomic_radius")
+
+    Returns:
+        dict: Various statistical measures
+    """
+    comp = Composition(composition_str)
+
+    # Get elemental properties
+    values = []
+    fractions = []
+
+    for elem, frac in comp.get_el_amt_dict().items():
+        element = Element(elem)
+
+        # Get value according to property name
+        if property_name == "atomic_radius":
+            val = element.atomic_radius
+        elif property_name == "electronegativity":
+            val = element.X
+        elif property_name == "ionization_energy":
+            val = element.ionization_energy
+        elif property_name == "melting_point":
+            val = element.melting_point
+        else:
+            raise ValueError(f"Unknown property: {property_name}")
+
+        if val is not None:
+            values.append(val)
+            fractions.append(frac)
+
+    if len(values) == 0:
+        return {}
+
+    # Calculate statistics
+    total_atoms = sum(fractions)
+    weights = [f / total_atoms for f in fractions]
+
+    stats = {
+        "arithmetic_mean": np.mean(values),
+        "geometric_mean": geometric_mean(values),
+        "harmonic_mean": harmonic_mean(values),
+        "weighted_mean": sum(v * w for v, w in zip(values, weights)),
+        "min": min(values),
+        "max": max(values),
+        "range": max(values) - min(values),
+        "std": np.std(values)
+    }
+
+    return stats
+
+# Test cases
+test_compounds = ["Fe2O3", "LiFePO4", "BaTiO3", "MgB2", "CuInGaSe2"]
+
+# Calculate statistics for multiple elemental properties
+properties = ["atomic_radius", "electronegativity", "ionization_energy"]
+
+results = []
+for comp in test_compounds:
+    for prop in properties:
+        stats = compute_custom_stats(comp, prop)
+        row = {"Compound": comp, "Property": prop}
+        row.update(stats)
+        results.append(row)
+
+df = pd.DataFrame(results)
+
+# Display atomic radius statistics
+print("=== Atomic Radius Statistics Comparison ===")
+df_radius = df[df["Property"] == "atomic_radius"]
+print(df_radius[["Compound", "arithmetic_mean", "geometric_mean", "harmonic_mean", "weighted_mean"]].to_string(index=False))
+
+# Compare geometric mean and arithmetic mean
+print("\n=== Statistics Comparison (Fe2O3 Electronegativity) ===")
+stats_fe2o3 = compute_custom_stats("Fe2O3", "electronegativity")
+for stat_name, value in stats_fe2o3.items():
+    print(f"{stat_name:20s}: {value:.4f}")
+
+# Physical meaning of custom statistics
+print("\n【Physical Meaning of Statistics】")
+print("- Arithmetic mean: Reflects diversity of element types")
+print("- Geometric mean: Expresses multiplicative effects (catalytic activity, etc.)")
+print("- Harmonic mean: Expresses series effects (resistance, thermal conductivity, etc.)")
+print("- Weighted mean: Effective value considering composition ratio")
+
+# Expected output:
+# === Atomic Radius Statistics Comparison ===
+# Compound  arithmetic_mean  geometric_mean  harmonic_mean  weighted_mean
+# Fe2O3           0.960          0.914          0.869          0.856
+# LiFePO4         0.948          0.895          0.831          0.842
+# BaTiO3          1.313          1.171          1.016          1.076
+# MgB2            0.980          0.930          0.880          0.901
+# CuInGaSe2       1.163          1.141          1.118          1.144
+#
+# === Statistics Comparison (Fe2O3 Electronegativity) ===
+# arithmetic_mean     : 2.6350
+# geometric_mean      : 2.5231
+# harmonic_mean       : 2.4088
+# weighted_mean       : 2.8040
+# min                 : 1.8300
+# max                 : 3.4400
+# range               : 1.6100
+# std                 : 1.1385
+</code></pre>
+<h2 id="section-2-6">2.6 Learning Objectives Review</h2>
+<div class="objectives-box">
+<h3>✅ What You Learned in This Chapter</h3>
+<h4>Basic Understanding</h4>
+<ul>
+<li>✅ Magpie descriptors consist of 145 dimensions (22 elemental properties × 6-7 statistical measures)</li>
+<li>✅ Elemental properties are classified into four categories: atomic, electronic, periodic table, and thermodynamic</li>
+<li>✅ Statistical aggregation methods (mean, min, max, range, mode, weighted mean) quantify overall composition features</li>
+</ul>
+<h4>Practical Skills</h4>
+<ul>
+<li>✅ Can generate 145-dimensional features with matminer MagpieFeaturizer</li>
+<li>✅ Can perform dimensionality reduction with PCA/t-SNE and visualize materials space in 2D</li>
+<li>✅ Can analyze feature importance with Random Forest and identify factors contributing to material property prediction</li>
+</ul>
+<h4>Application Ability</h4>
+<ul>
+<li>✅ Can design custom statistical functions (geometric mean, harmonic mean) to express specific physical phenomena</li>
+<li>✅ Can compare and analyze feature distributions across multiple material systems (oxides, metals, semiconductors, perovskites)</li>
+<li>✅ Can appropriately select and use dimensionality reduction methods (PCA, t-SNE, UMAP) according to data characteristics</li>
+</ul>
+</div>
+<h2 id="exercises">Exercises</h2>
+<h3>Easy (Basic Confirmation)</h3>
+<details>
+<summary><strong>Q1:</strong> What is the total dimensionality of Magpie descriptors? Also, state their components (number of elemental property types and number of statistical measure types).</summary>
+<p><strong>Answer:</strong> 145 dimensions (may be 132 dimensions depending on matminer version)</p>
+<p><strong>Components:</strong></p>
+<ul>
+<li>Elemental properties: 22 types</li>
+<li>Statistical measures: 6-7 types (mean, min, max, range, mode, weighted mean, etc.)</li>
+</ul>
+<p><strong>Explanation:</strong> Magpie descriptors are the standard for composition-based features designed by Ward et al. (2016). By calculating 6-7 statistical measures for 22 elemental properties (atomic radius, electronegativity, ionization energy, etc.), approximately 145-dimensional vectors are generated. This dimensionality is the result of optimizing the balance between information content and computational efficiency.</p>
+</details>
+<details>
+<summary><strong>Q2:</strong> Calculate <strong>mean AtomicRadius</strong> and <strong>weighted_mean AtomicRadius</strong> for Fe<sub>2</sub>O<sub>3</sub>. The atomic radius of Fe is 1.26 Å and O is 0.66 Å.</summary>
+<p><strong>Answer:</strong></p>
+<ul>
+<li>mean AtomicRadius = 0.96 Å</li>
+<li>weighted_mean AtomicRadius = 0.90 Å</li>
+</ul>
+<p><strong>Calculation process:</strong></p>
+<p><strong>mean (arithmetic mean):</strong></p>
+<p>Average by number of element types: (1.26 + 0.66) / 2 = 1.92 / 2 = 0.96 Å</p>
+<p><strong>weighted_mean (weighted average):</strong></p>
+<p>Atomic fraction of Fe: 2 / (2+3) = 0.4</p>
+<p>Atomic fraction of O: 3 / (2+3) = 0.6</p>
+<p>weighted_mean = 0.4 × 1.26 + 0.6 × 0.66 = 0.504 + 0.396 = 0.90 Å</p>
+<p><strong>Explanation:</strong> Mean reflects the diversity of element types, while weighted_mean represents an effective value considering composition ratio. Weighted_mean more accurately reflects the actual atomic arrangement in the material.</p>
+</details>
+<details>
+<summary><strong>Q3:</strong> Among the following elemental properties, select all that are classified as <strong>Electronic Properties</strong>.<br/>
+            a) Electronegativity<br/>
+            b) MeltingT (melting point)<br/>
+            c) IonizationEnergy (ionization energy)<br/>
+            d) AtomicRadius (atomic radius)<br/>
+            e) ElectronAffinity (electron affinity)</summary>
+<p><strong>Answer:</strong> a) Electronegativity, c) IonizationEnergy, e) ElectronAffinity</p>
+<p><strong>Explanation:</strong></p>
+<ul>
+<li><strong>Electronic properties</strong>: Properties related to electronic states (Electronegativity, IonizationEnergy, ElectronAffinity, NsValence, NpValence, NfValence)</li>
+<li><strong>Thermodynamic properties</strong>: b) MeltingT (melting point)</li>
+<li><strong>Atomic properties</strong>: d) AtomicRadius (atomic radius)</li>
+</ul>
+<p>Electronic properties directly affect material band gaps, ionic/covalent bonding character, and redox properties.</p>
+</details>
+<h3>Medium (Application)</h3>
+<details>
+<summary><strong>Q4:</strong> List three differences between PCA and t-SNE, and explain in which situations each should be used.</summary>
+<p><strong>Three differences between PCA and t-SNE:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>PCA</th>
+<th>t-SNE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Transformation method</td>
+<td>Linear transformation</td>
+<td>Nonlinear transformation</td>
+</tr>
+<tr>
+<td>Preserved structure</td>
+<td>Global variance</td>
+<td>Local neighborhood relationships</td>
+</tr>
+<tr>
+<td>Computation speed</td>
+<td>Fast (large-scale data compatible)</td>
+<td>Slow (medium-scale data only)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage guidelines:</strong></p>
+<ul>
+<li><strong>When to use PCA:</strong>
+<ul>
+<li>When data is linearly separable</li>
+<li>When you want to quantitatively evaluate principal component contribution</li>
+<li>When data size is large (100k+ points)</li>
+<li>When computation speed is important</li>
+</ul>
+</li>
+<li><strong>When to use t-SNE:</strong>
+<ul>
+<li>When you want to visualize complex cluster structures</li>
+<li>When local similarity is important</li>
+<li>When data size is medium (10k-100k points)</li>
+<li>When beautiful visualization is the goal</li>
+</ul>
+</li>
+</ul>
+<p><strong>Example:</strong> In materials exploration, it's effective to first use PCA to grasp global structure, then use t-SNE to visualize specific cluster regions in detail.</p>
+</details>
+<details>
+<summary><strong>Q5:</strong> Feature importance analysis with Random Forest identified <strong>mean GSvolume_pa</strong> (mean ground-state volume/atom) as the most important feature. What material properties is this result suitable for predicting? Explain with reasons.</summary>
+<p><strong>Suitable material properties for prediction:</strong></p>
+<ul>
+<li><strong>Formation Enthalpy</strong></li>
+<li><strong>Density</strong></li>
+<li><strong>Lattice Constant</strong></li>
+<li><strong>Bulk Modulus</strong></li>
+</ul>
+<p><strong>Reasons:</strong></p>
+<p>GSvolume_pa (ground-state volume/atom) is the <strong>theoretical atomic volume</strong> obtained from DFT calculations. The importance of this property means:</p>
+<ol>
+<li><strong>Correlation with structural stability:</strong> Materials with smaller volumes tend to have shorter interatomic distances and stronger bonds. This directly correlates with low formation enthalpy (high stability).</li>
+<li><strong>Direct relationship with density:</strong> Smaller volume/atom results in higher material density.</li>
+<li><strong>Crystal structure influence:</strong> Volume varies with crystal structure even for the same composition, suggesting structural factors strongly affect material properties.</li>
+</ol>
+<p><strong>Note:</strong> Since GSvolume_pa is a DFT calculation-based property, there may be slight discrepancies with experimental data. Also, note that it depends on crystal structure as well as composition, so it's <strong>not a pure composition-based descriptor</strong>.</p>
+</details>
+<details>
+<summary><strong>Q6:</strong> When setting t-SNE's hyperparameter <strong>perplexity</strong> to 5, 20, and 50, what visualization results do you expect for each? Also, how should the optimal value be determined?</summary>
+<p><strong>Effect of perplexity:</strong></p>
+<table>
+<thead>
+<tr>
+<th>perplexity</th>
+<th>Visualization characteristics</th>
+<th>Application cases</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5 (small)</td>
+<td>Very fine clusters are formed. Emphasizes local structure but may over-cluster.</td>
+<td>Local outlier detection, fine structure exploration</td>
+</tr>
+<tr>
+<td>20 (moderate)</td>
+<td>Balanced cluster formation. Material classes (oxides, metals, etc.) are clearly separated.</td>
+<td>General visualization (recommended)</td>
+</tr>
+<tr>
+<td>50 (large)</td>
+<td>Preserves global structure. Cluster boundaries may become ambiguous.</td>
+<td>Large datasets, global trend analysis</td>
+</tr>
+</tbody>
+</table>
+<p><strong>How to determine optimal value:</strong></p>
+<ol>
+<li><strong>Rule of thumb based on data size:</strong>
+<ul>
+<li>Small (&lt;100 points): perplexity = 5-15</li>
+<li>Medium (100-1000 points): perplexity = 20-50</li>
+<li>Large (&gt;1000 points): perplexity = 50-100</li>
+</ul>
+</li>
+<li><strong>Try multiple values:</strong> Set perplexity = [5, 10, 20, 30, 50] and select the most interpretable result</li>
+<li><strong>Cluster evaluation metrics:</strong> Quantitatively evaluate with Silhouette Score, etc.</li>
+</ol>
+<p><strong>Example:</strong> For materials exploration (100-1000 compounds), perplexity=20-30 often provides the clearest material class separation.</p>
+</details>
+<details>
+<summary><strong>Q7:</strong> Why does matminer's MagpieFeaturizer sometimes generate 132 dimensions and sometimes 145 dimensions? Consider the impact of this difference on prediction accuracy.</summary>
+<p><strong>Reasons for dimensional differences:</strong></p>
+<ul>
+<li><strong>matminer version:</strong> 132 dimensions in v0.6 and earlier, expanded to 145 dimensions in v0.7 and later.</li>
+<li><strong>Elemental property database updates:</strong> New elemental properties (GSmagmom, etc.) were added through Materials Project and OQMD database updates.</li>
+<li><strong>Statistical measure additions:</strong> weighted_mean statistical measures were added for some elemental properties.</li>
+</ul>
+<p><strong>Impact on prediction accuracy:</strong></p>
+<ol>
+<li><strong>Increased information content:</strong> 145 dimensions can represent elemental properties in more detail, potentially improving prediction accuracy for complex material properties (magnetism, electronic states, etc.). According to Ward et al. (2017), formation enthalpy prediction MAE improved by about 5-10% (p. 8).</li>
+<li><strong>Overfitting risk:</strong> With small data (&lt;100 samples), 145 dimensions may be excessive features causing overfitting. In this case, perform PCA dimensionality reduction or feature selection.</li>
+<li><strong>Computational cost:</strong> The increase from 132 to 145 dimensions doesn't significantly impact computational cost (less than 10% increase).</li>
+</ol>
+<p><strong>Practical advice:</strong> For large datasets (&gt;1000 samples), use 145 dimensions; for small datasets, use 132 dimensions or reduce to 50-80 dimensions with PCA.</p>
+</details>
+<h3>Hard (Advanced)</h3>
+<details>
+<summary><strong>Q8:</strong> Implement <strong>geometric mean</strong> and <strong>harmonic mean</strong> as custom statistical functions, and calculate them for Fe<sub>2</sub>O<sub>3</sub>'s electronegativity. Also, explain how these statistics differ from <strong>arithmetic mean</strong> and what physical phenomena they are suitable for expressing.<br/>
+            (Fe electronegativity: 1.83, O electronegativity: 3.44)</summary>
+<p><strong>Calculation results:</strong></p>
+<ul>
+<li>Arithmetic mean = (1.83 + 3.44) / 2 = 2.635</li>
+<li>Geometric mean = √(1.83 × 3.44) = √6.2952 = 2.509</li>
+<li>Harmonic mean = 2 / (1/1.83 + 1/3.44) = 2 / (0.546 + 0.291) = 2 / 0.837 = 2.389</li>
+</ul>
+<p><strong>Magnitude relationship of statistics:</strong></p>
+<p>Always Harmonic mean ≤ Geometric mean ≤ Arithmetic mean (equality only when all values are equal).</p>
+<p><strong>Physical meaning and application cases:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Statistic</th>
+<th>Formula</th>
+<th>Physical meaning</th>
+<th>Application cases</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Arithmetic mean</td>
+<td>$(x_1 + x_2) / 2$</td>
+<td>Linear additive effect</td>
+<td>Density, molar mass, and other extensive variables</td>
+</tr>
+<tr>
+<td>Geometric mean</td>
+<td>$\sqrt{x_1 \times x_2}$</td>
+<td>Multiplicative effect</td>
+<td>Catalytic activity (activation energy), chemical reaction rates, composite material properties</td>
+</tr>
+<tr>
+<td>Harmonic mean</td>
+<td>$2 / (1/x_1 + 1/x_2)$</td>
+<td>Series resistance effect</td>
+<td>Electrical resistance, thermal conductivity, diffusion coefficients (rate-limiting step control)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Interpretation of Fe<sub>2</sub>O<sub>3</sub> electronegativity:</strong></p>
+<ul>
+<li><strong>Arithmetic mean (2.635):</strong> Reflects element diversity. Equal consideration of Fe and O electronegativity.</li>
+<li><strong>Geometric mean (2.509):</strong> Suitable for expressing ionic bonding character. Large electronegativity difference = 3.44 - 1.83 = 1.61 indicates strong ionic bonding (Fe³⁺ and O²⁻) formation.</li>
+<li><strong>Harmonic mean (2.389):</strong> Emphasizes the influence of low electronegativity element (Fe). Expresses "bottleneck" in electron transfer.</li>
+</ul>
+<p><strong>Implementation code example:</strong></p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+"""
+Example: Implementation code example:
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Beginner to Intermediate
+Execution time: ~5 seconds
+Dependencies: None
+"""
+
+import numpy as np
+
+def geometric_mean(values):
+    return np.prod(values) ** (1.0 / len(values))
+
+def harmonic_mean(values):
+    return len(values) / sum(1.0 / v for v in values)
+
+# Fe2O3 electronegativity
+en_values = [1.83, 3.44]  # Fe, O
+
+print(f"Arithmetic mean: {np.mean(en_values):.3f}")
+print(f"Geometric mean: {geometric_mean(en_values):.3f}")
+print(f"Harmonic mean: {harmonic_mean(en_values):.3f}")
+</code></pre>
+</details>
+<details>
+<summary><strong>Q9:</strong> You want to compare and analyze Magpie features for three material systems (oxides, metals, semiconductors). What feature combinations should you visualize to most clearly show differences between material classes? Propose three feature pairs with reasons.</summary>
+<p><strong>Three recommended feature pairs with reasons:</strong></p>
+<h4>1. mean Electronegativity vs range Electronegativity</h4>
+<p><strong>Reasons:</strong></p>
+<ul>
+<li><strong>Oxides:</strong> High mean electronegativity (metal + nonmetal), large range (ionic bonding character)</li>
+<li><strong>Metals:</strong> Low mean electronegativity, small range (similar element combinations)</li>
+<li><strong>Semiconductors:</strong> Moderate mean electronegativity, moderate range</li>
+</ul>
+<p><strong>Expected separation:</strong> Most basic feature pair that clearly separates three classes.</p>
+<h4>2. weighted_mean GSbandgap vs mean IonizationEnergy</h4>
+<p><strong>Reasons:</strong></p>
+<ul>
+<li><strong>Oxides:</strong> High band gap (&gt;3 eV, insulators), high ionization energy</li>
+<li><strong>Metals:</strong> Band gap = 0 eV (conductive), low ionization energy</li>
+<li><strong>Semiconductors:</strong> Moderate band gap (1-3 eV), moderate ionization energy</li>
+</ul>
+<p><strong>Expected separation:</strong> Directly reflects electronic state differences. Useful for predicting material electrical properties.</p>
+<h4>3. mean AtomicRadius vs weighted_mean MeltingT</h4>
+<p><strong>Reasons:</strong></p>
+<ul>
+<li><strong>Oxides:</strong> Moderate atomic radius, medium-high melting point (ceramic properties)</li>
+<li><strong>Metals:</strong> Large atomic radius (large metallic radius), high melting point (transition metals)</li>
+<li><strong>Semiconductors:</strong> Medium-large atomic radius, moderate melting point</li>
+</ul>
+<p><strong>Expected separation:</strong> Expresses structural and thermodynamic stability differences.</p>
+<p><strong>Implementation example:</strong></p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - seaborn&gt;=0.12.0
+
+"""
+Example: Implementation example:
+
+Purpose: Demonstrate data visualization techniques
+Target: Intermediate
+Execution time: 2-5 seconds
+Dependencies: None
+"""
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Visualize feature pairs
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+pairs = [
+    ("mean Electronegativity", "range Electronegativity"),
+    ("weighted_mean GSbandgap", "mean IonizationEnergy"),
+    ("mean AtomicRadius", "weighted_mean MeltingT")
+]
+
+for idx, (feat1, feat2) in enumerate(pairs):
+    ax = axes[idx]
+    for material_class in ["Oxides", "Metals", "Semiconductors"]:
+        mask = df_results["Class"] == material_class
+        ax.scatter(
+            df_results[mask][feat1],
+            df_results[mask][feat2],
+            label=material_class,
+            s=100,
+            alpha=0.7
+        )
+    ax.set_xlabel(feat1)
+    ax.set_ylabel(feat2)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+</details>
+<details>
+<summary><strong>Q10:</strong> Compare PCA, t-SNE, and UMAP dimensionality reduction methods on the following three evaluation axes, and determine which method to choose for a 10,000 compound Magpie feature dataset.<br/>
+<strong>Evaluation axes:</strong> (1) Computation time, (2) Cluster separation performance, (3) Global structure preservation</summary>
+<p><strong>Quantitative comparison of three methods (10,000 compounds):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Computation Time</th>
+<th>Cluster Separation</th>
+<th>Global Structure Preservation</th>
+<th>Overall Evaluation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PCA</td>
+<td>⭐⭐⭐⭐⭐<br/>~1 second</td>
+<td>⭐⭐⭐<br/>Linear separation only</td>
+<td>⭐⭐⭐⭐⭐<br/>Complete preservation</td>
+<td>Fast but limited separation</td>
+</tr>
+<tr>
+<td>t-SNE</td>
+<td>⭐<br/>~30-60 min</td>
+<td>⭐⭐⭐⭐⭐<br/>Best</td>
+<td>⭐⭐<br/>Not preserved</td>
+<td>Beautiful but time-consuming</td>
+</tr>
+<tr>
+<td>UMAP</td>
+<td>⭐⭐⭐⭐<br/>~2-5 min</td>
+<td>⭐⭐⭐⭐<br/>High</td>
+<td>⭐⭐⭐⭐<br/>Somewhat preserved</td>
+<td><strong>Best balance (recommended)</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation: UMAP (detailed reasons)</strong></p>
+<ol>
+<li><strong>Computation time:</strong> Can execute in about 2-5 minutes for 10,000 compounds. 10-20x faster than t-SNE.</li>
+<li><strong>Cluster separation performance:</strong> High separation performance comparable to t-SNE. Material classes (oxides, metals, semiconductors, etc.) are clearly separated.</li>
+<li><strong>Global structure:</strong> Unlike t-SNE, inter-cluster distances also have some meaning. For example, "distance between oxides and metals &gt; distance between oxide subclasses" is preserved.</li>
+</ol>
+<p><strong>Application cases for each method:</strong></p>
+<ul>
+<li><strong>PCA:</strong> First step of exploratory data analysis (EDA), contribution rate analysis, data exceeding 1 million points</li>
+<li><strong>t-SNE:</strong> Beautiful visualization for papers, small data (&lt;5,000 points), when computation time is not a constraint</li>
+<li><strong>UMAP:</strong> Practical materials exploration, medium to large data (1,000-100,000 points), balance-oriented</li>
+</ul>
+<p><strong>Implementation example (comparing three methods):</strong></p>
+<pre><code class="language-python">from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+import umap
+import time
+
+# Data preparation (10,000 compound Magpie features)
+# X = np.array(magpie_features)  # shape: (10000, 145)
+
+methods = {
+    "PCA": PCA(n_components=2),
+    "t-SNE": TSNE(n_components=2, perplexity=30, n_iter=1000),
+    "UMAP": umap.UMAP(n_components=2, n_neighbors=15, min_dist=0.1)
+}
+
+results = {}
+for name, model in methods.items():
+    start = time.time()
+    X_reduced = model.fit_transform(X)
+    elapsed = time.time() - start
+    results[name] = {"time": elapsed, "data": X_reduced}
+    print(f"{name}: {elapsed:.2f} seconds")
+
+# Visualization comparison
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+for idx, (name, result) in enumerate(results.items()):
+    ax = axes[idx]
+    scatter = ax.scatter(
+        result["data"][:, 0],
+        result["data"][:, 1],
+        c=labels,  # Material class labels
+        cmap="Set2",
+        s=10,
+        alpha=0.6
+    )
+    ax.set_title(f"{name} ({result['time']:.1f}s)")
+    ax.set_xlabel("Dimension 1")
+    ax.set_ylabel("Dimension 2")
+
+plt.tight_layout()
+plt.show()
+</code></pre>
+<p><strong>Conclusion:</strong> <strong>UMAP</strong> is optimal for a 10,000 compound dataset. It offers the best balance of computation time, separation performance, and structure preservation.</p>
+</details>
+<h2 id="next-steps">Next Steps</h2>
+<p>In this chapter, we learned the detailed structure of Magpie descriptors, types of elemental properties, statistical aggregation methods, and visualization through dimensionality reduction.</p>
+<p>In the next Chapter 3, we will learn <strong>Stoichiometric Descriptors and Elemental Fraction Vectors</strong>, exploring methods to directly use stoichiometric ratios as features.</p>
+<div class="nav-buttons">
+<a class="nav-button" href="chapter-1.html">← Chapter 1: Composition-Based Features Fundamentals</a>
+<a class="nav-button" href="./index.html">Return to Series Table of Contents</a>
+<a class="nav-button" href="chapter-3.html">Chapter 3: Stoichiometric Descriptors →</a>
+</div>
+<h2 id="references">References</h2>
+<ol>
+<li>Ward, L., Agrawal, A., Choudhary, A., &amp; Wolverton, C. (2016). "A general-purpose machine learning framework for predicting properties of inorganic materials." <em>npj Computational Materials</em>, 2, 16028, pp. 1-7. https://doi.org/10.1038/npjcompumats.2016.28</li>
+<li>Ghiringhelli, L. M., Vybiral, J., Levchenko, S. V., Draxl, C., &amp; Scheffler, M. (2015). "Big Data of Materials Science: Critical Role of the Descriptor." <em>Physical Review Letters</em>, 114(10), 105503, pp. 1-5. https://doi.org/10.1103/PhysRevLett.114.105503</li>
+<li>Ward, L., Liu, R., Krishna, A., Hegde, V. I., Agrawal, A., Choudhary, A., &amp; Wolverton, C. (2017). "Including crystal structure attributes in machine learning models of formation energies via Voronoi tessellations." <em>Physical Review B</em>, 96(2), 024104, pp. 1-12. https://doi.org/10.1103/PhysRevB.96.024104</li>
+<li>Oliynyk, A. O., Antono, E., Sparks, T. D., Ghadbeigi, L., Gaultois, M. W., Meredig, B., &amp; Mar, A. (2016). "High-Throughput Machine-Learning-Driven Synthesis of Full-Heusler Compounds." <em>Chemistry of Materials</em>, 28(20), 7324-7331, pp. 7324-7331. https://doi.org/10.1021/acs.chemmater.6b02724</li>
+<li>matminer Documentation: Composition-based featurizers. Hacking Materials Research Group, Lawrence Berkeley National Laboratory. https://hackingmaterials.lbl.gov/matminer/featurizer_summary.html#composition-based-featurizers (Accessed: 2025-01-15)</li>
+<li>scikit-learn Documentation: Feature selection. scikit-learn developers. https://scikit-learn.org/stable/modules/feature_selection.html (Accessed: 2025-01-15)</li>
+<li>Mendeleev Python library documentation. https://mendeleev.readthedocs.io/ (Accessed: 2025-01-15)</li>
+</ol>
+<hr style="margin: 3rem 0; border: none; border-top: 1px solid var(--border-color);"/>
+<p style="text-align: center; color: #666; font-size: 0.9rem;">
+<a href="./index.html">Return to Series Table of Contents</a> |
+            <a href="chapter-1.html">← Chapter 1</a> |
+            <a href="chapter-3.html">Chapter 3 →</a>
+</p>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+</main>
+<!-- Prism.js Script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>

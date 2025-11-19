@@ -1,0 +1,1773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 5: Introduction to Object Detection - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 5: Introduction to Object Detection - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/cnn-introduction/index.html">CNN</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 5</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/ML/cnn-introduction/chapter5-object-detection.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 5: Introduction to Object Detection</h1>
+<p class="subtitle">From Image Classification to Object Detection - R-CNN, YOLO, and Modern Methods</p>
+<div class="meta">
+<span class="meta-item">📖 Reading time: 25-30 minutes</span>
+<span class="meta-item">📊 Difficulty: Intermediate to Advanced</span>
+<span class="meta-item">💻 Code examples: 8</span>
+<span class="meta-item">📝 Exercises: 4</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter introduces the basics of Introduction to Object Detection. You will learn differences between image classification, design philosophy, and and interpret evaluation metrics such as IoU.</p>
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will be able to:</p>
+<ul>
+<li>✅ Understand the differences between image classification and object detection and define appropriate tasks</li>
+<li>✅ Explain the architecture and evolution of two-stage detectors (R-CNN family)</li>
+<li>✅ Understand the design philosophy and advantages of one-stage detectors (YOLO, SSD)</li>
+<li>✅ Implement and interpret evaluation metrics such as IoU, NMS, and mAP</li>
+<li>✅ Implement and perform inference with object detection models using PyTorch</li>
+<li>✅ Achieve practical object detection with COCO format datasets</li>
+</ul>
+<hr/>
+<h2>5.1 What is Object Detection</h2>
+<h3>Types of Image Recognition Tasks</h3>
+<p>Image recognition tasks in computer vision are primarily classified into three categories based on their objectives.</p>
+<div class="mermaid">
+graph LR
+    A[Image Recognition Tasks] --&gt; B[Classification<br/>Image Classification]
+    A --&gt; C[Detection<br/>Object Detection]
+    A --&gt; D[Segmentation<br/>Segmentation]
+
+    B --&gt; B1["What is this image?<br/>Class label only"]
+    C --&gt; C1["What and where?<br/>Location + Class label"]
+    D --&gt; D1["Which pixel is what?<br/>Pixel-level classification"]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#e8f5e9
+    style D fill:#f3e5f5
+</div>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Purpose</th>
+<th>Output</th>
+<th>Applications</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Classification</strong></td>
+<td>Classify the entire image</td>
+<td>Class label (e.g., "cat")</td>
+<td>Image search, content filtering</td>
+</tr>
+<tr>
+<td><strong>Detection</strong></td>
+<td>Identify object location and class</td>
+<td>Bounding Box + class label</td>
+<td>Autonomous driving, surveillance, medical imaging</td>
+</tr>
+<tr>
+<td><strong>Segmentation</strong></td>
+<td>Pixel-level region division</td>
+<td>Segmentation mask</td>
+<td>Background removal, 3D reconstruction, medical diagnosis</td>
+</tr>
+</tbody>
+</table>
+<h3>Basic Concepts of Object Detection</h3>
+<h4>Bounding Box</h4>
+<p>A <strong>bounding box</strong> is a rectangular region that encloses a detected object, containing the following information:</p>
+<ul>
+<li><strong>Coordinate representation</strong>: $(x, y, w, h)$ or $(x_{\min}, y_{\min}, x_{\max}, y_{\max})$</li>
+<li><strong>Class label</strong>: Object category (e.g., "person", "car")</li>
+<li><strong>Confidence score</strong>: Detection confidence $[0, 1]$</li>
+</ul>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pillow&gt;=10.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from PIL import Image
+import numpy as np
+
+def visualize_bounding_boxes(image_path, boxes, labels, scores, class_names):
+    """
+    Visualize Bounding Boxes
+
+    Args:
+        image_path: Image file path
+        boxes: Bounding box coordinates [[x_min, y_min, x_max, y_max], ...]
+        labels: Class labels [0, 1, 2, ...]
+        scores: Confidence scores [0.95, 0.87, ...]
+        class_names: List of class names ['person', 'car', ...]
+    """
+    # Load image
+    img = Image.open(image_path)
+
+    fig, ax = plt.subplots(1, figsize=(12, 8))
+    ax.imshow(img)
+
+    # Draw each bounding box
+    colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange']
+
+    for box, label, score in zip(boxes, labels, scores):
+        x_min, y_min, x_max, y_max = box
+        width = x_max - x_min
+        height = y_max - y_min
+
+        # Draw rectangle
+        color = colors[label % len(colors)]
+        rect = patches.Rectangle(
+            (x_min, y_min), width, height,
+            linewidth=2, edgecolor=color, facecolor='none'
+        )
+        ax.add_patch(rect)
+
+        # Display label and score
+        label_text = f'{class_names[label]}: {score:.2f}'
+        ax.text(
+            x_min, y_min - 5,
+            label_text,
+            bbox=dict(facecolor=color, alpha=0.7),
+            fontsize=10, color='white'
+        )
+
+    ax.axis('off')
+    plt.tight_layout()
+    plt.show()
+
+# Usage example
+# boxes = [[50, 50, 200, 300], [250, 100, 400, 350]]
+# labels = [0, 1]  # 0: person, 1: car
+# scores = [0.95, 0.87]
+# class_names = ['person', 'car', 'dog', 'cat']
+# visualize_bounding_boxes('sample.jpg', boxes, labels, scores, class_names)
+</code></pre>
+<h4>IoU (Intersection over Union)</h4>
+<p><strong>IoU</strong> is a metric that measures the overlap between two bounding boxes and is essential for evaluating object detection.</p>
+<p>$$
+\text{IoU} = \frac{\text{Area of Overlap}}{\text{Area of Union}} = \frac{|A \cap B|}{|A \cup B|}
+$$</p>
+<div class="mermaid">
+graph LR
+    A[Predicted Box] --&gt; C[Intersection<br/>Overlap region]
+    B[Ground Truth Box] --&gt; C
+    C --&gt; D[Union<br/>Union region]
+    D --&gt; E[IoU = Intersection / Union]
+
+    style A fill:#ffebee
+    style B fill:#e8f5e9
+    style C fill:#fff3e0
+    style E fill:#e3f2fd
+</div>
+<pre><code class="language-python">def calculate_iou(box1, box2):
+    """
+    Calculate IoU between two bounding boxes
+
+    Args:
+        box1, box2: [x_min, y_min, x_max, y_max]
+
+    Returns:
+        iou: IoU value [0, 1]
+    """
+    # Intersection region coordinates
+    x_min_inter = max(box1[0], box2[0])
+    y_min_inter = max(box1[1], box2[1])
+    x_max_inter = min(box1[2], box2[2])
+    y_max_inter = min(box1[3], box2[3])
+
+    # Intersection area
+    inter_width = max(0, x_max_inter - x_min_inter)
+    inter_height = max(0, y_max_inter - y_min_inter)
+    intersection = inter_width * inter_height
+
+    # Area of each box
+    area1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    area2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
+
+    # Union area
+    union = area1 + area2 - intersection
+
+    # Calculate IoU (avoid division by zero)
+    iou = intersection / union if union &gt; 0 else 0
+
+    return iou
+
+# Usage examples and tests
+box1 = [50, 50, 150, 150]   # Ground truth box
+box2 = [100, 100, 200, 200] # Predicted box (partial overlap)
+box3 = [50, 50, 150, 150]   # Predicted box (perfect match)
+box4 = [200, 200, 300, 300] # Predicted box (no overlap)
+
+print(f"Partial overlap IoU: {calculate_iou(box1, box2):.4f}")  # ~0.14
+print(f"Perfect match IoU: {calculate_iou(box1, box3):.4f}")      # 1.00
+print(f"No overlap IoU: {calculate_iou(box1, box4):.4f}")    # 0.00
+
+# Vectorized batch IoU calculation
+def batch_iou(boxes1, boxes2):
+    """
+    Efficiently calculate IoU between multiple bounding boxes (PyTorch version)
+
+    Args:
+        boxes1: Tensor of shape [N, 4]
+        boxes2: Tensor of shape [M, 4]
+
+    Returns:
+        iou: Tensor of shape [N, M]
+    """
+    # Calculate intersection
+    x_min = torch.max(boxes1[:, None, 0], boxes2[:, 0])
+    y_min = torch.max(boxes1[:, None, 1], boxes2[:, 1])
+    x_max = torch.min(boxes1[:, None, 2], boxes2[:, 2])
+    y_max = torch.min(boxes1[:, None, 3], boxes2[:, 3])
+
+    inter_width = torch.clamp(x_max - x_min, min=0)
+    inter_height = torch.clamp(y_max - y_min, min=0)
+    intersection = inter_width * inter_height
+
+    # Calculate areas
+    area1 = (boxes1[:, 2] - boxes1[:, 0]) * (boxes1[:, 3] - boxes1[:, 1])
+    area2 = (boxes2[:, 2] - boxes2[:, 0]) * (boxes2[:, 3] - boxes2[:, 1])
+
+    # Union and IoU
+    union = area1[:, None] + area2 - intersection
+    iou = intersection / union
+
+    return iou
+
+# Usage example
+boxes1 = torch.tensor([[50, 50, 150, 150], [100, 100, 200, 200]], dtype=torch.float32)
+boxes2 = torch.tensor([[50, 50, 150, 150], [200, 200, 300, 300]], dtype=torch.float32)
+
+iou_matrix = batch_iou(boxes1, boxes2)
+print("\nBatch IoU Matrix:")
+print(iou_matrix)
+# Output:
+# tensor([[1.0000, 0.0000],
+#         [0.1429, 0.0000]])
+</code></pre>
+<blockquote>
+<p><strong>IoU criteria</strong>:</p>
+<ul>
+<li>IoU ≥ 0.5: Typically treated as correct (PASCAL VOC standard)</li>
+<li>IoU ≥ 0.75: Stricter criteria (COCO evaluation)</li>
+<li>IoU &lt; 0.5: Treated as false positive</li>
+</ul>
+</blockquote>
+<hr/>
+<h2>5.2 Two-Stage Detectors</h2>
+<h3>Evolution of R-CNN Family</h3>
+<p>Two-stage detectors perform object detection in two stages: <strong>①region proposal</strong> and <strong>②object classification</strong>.</p>
+<div class="mermaid">
+graph LR
+    A[Input Image] --&gt; B[Stage 1<br/>Region Proposal]
+    B --&gt; C[Candidate Regions<br/>~2000]
+    C --&gt; D[Stage 2<br/>Classification]
+    D --&gt; E[Final Detection Results<br/>Box + Class]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style D fill:#f3e5f5
+    style E fill:#e8f5e9
+</div>
+<h4>R-CNN (2014)</h4>
+<p><strong>R-CNN (Regions with CNN features)</strong> is a pioneering deep learning-based object detection approach.</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Process</th>
+<th>Features</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. Region Proposal</strong></td>
+<td>Generate candidate regions with Selective Search (~2000)</td>
+<td>Traditional image processing method</td>
+</tr>
+<tr>
+<td><strong>2. CNN Feature Extraction</strong></td>
+<td>Extract features from each region with AlexNet</td>
+<td>Requires 2000 forward passes</td>
+</tr>
+<tr>
+<td><strong>3. SVM Classification</strong></td>
+<td>Classify with SVM</td>
+<td>Trained separately from CNN</td>
+</tr>
+<tr>
+<td><strong>4. Bounding Box Regression</strong></td>
+<td>Fine-tune box coordinates</td>
+<td>Improves accuracy</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Problems</strong>:</p>
+<ul>
+<li>Very slow inference (47 seconds per image)</li>
+<li>Complex training (three separate learning stages)</li>
+<li>Many redundant feature extraction computations</li>
+</ul>
+<h4>Fast R-CNN (2015)</h4>
+<p><strong>Fast R-CNN</strong> significantly improved R-CNN's computational efficiency.</p>
+<div class="mermaid">
+graph LR
+    A[Input Image] --&gt; B[CNN<br/>Feature Map]
+    B --&gt; C[RoI Pooling]
+    D[Region<br/>Proposals] --&gt; C
+    C --&gt; E[FC Layers]
+    E --&gt; F1[Softmax<br/>Classification]
+    E --&gt; F2[Regressor<br/>Box Regression]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style F1 fill:#e8f5e9
+    style F2 fill:#e8f5e9
+</div>
+<p><strong>Improvements</strong>:</p>
+<ul>
+<li>Run CNN only once on the entire image</li>
+<li>Extract fixed-size features from candidate regions with RoI Pooling</li>
+<li>End-to-end learning with multi-task loss (classification + box regression)</li>
+<li>Inference speed: 47 seconds → 2 seconds (23x speedup)</li>
+</ul>
+<h4>Faster R-CNN (2016)</h4>
+<p><strong>Faster R-CNN</strong> made region proposals learnable with CNNs, achieving complete end-to-end detection.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pillow&gt;=10.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+# - torchvision&gt;=0.15.0
+
+import torch
+import torch.nn as nn
+import torchvision
+from torchvision.models.detection import fasterrcnn_resnet50_fpn
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+
+def create_faster_rcnn(num_classes, pretrained=True):
+    """
+    Create Faster R-CNN model
+
+    Args:
+        num_classes: Number of detection classes (including background)
+        pretrained: Use COCO pre-trained weights
+
+    Returns:
+        model: Faster R-CNN model
+    """
+    # Load COCO pre-trained model
+    model = fasterrcnn_resnet50_fpn(pretrained=pretrained)
+
+    # Replace classifier (final layer only)
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+
+    return model
+
+# Create model (e.g., COCO 80 classes + background)
+model = create_faster_rcnn(num_classes=91, pretrained=True)
+model.eval()
+
+print("Faster R-CNN model structure:")
+print(f"- Backbone: ResNet-50 + FPN")
+print(f"- RPN: Region Proposal Network")
+print(f"- RoI Heads: Box Head + Class Predictor")
+
+# Run inference
+def run_faster_rcnn_inference(model, image_path, threshold=0.5):
+    """
+    Object detection inference with Faster R-CNN
+
+    Args:
+        model: Faster R-CNN model
+        image_path: Input image path
+        threshold: Detection score threshold
+
+    Returns:
+        boxes, labels, scores: Detection results
+    """
+    from PIL import Image
+    from torchvision import transforms
+
+    # Load and preprocess image
+    img = Image.open(image_path).convert('RGB')
+    transform = transforms.Compose([transforms.ToTensor()])
+    img_tensor = transform(img).unsqueeze(0)  # [1, 3, H, W]
+
+    # Inference
+    model.eval()
+    with torch.no_grad():
+        predictions = model(img_tensor)
+
+    # Extract results above threshold
+    pred = predictions[0]
+    keep = pred['scores'] &gt; threshold
+
+    boxes = pred['boxes'][keep].cpu().numpy()
+    labels = pred['labels'][keep].cpu().numpy()
+    scores = pred['scores'][keep].cpu().numpy()
+
+    print(f"\nNumber of detected objects: {len(boxes)}")
+    for i, (box, label, score) in enumerate(zip(boxes, labels, scores)):
+        print(f"  {i+1}. Label: {label}, Score: {score:.3f}, Box: {box}")
+
+    return boxes, labels, scores
+
+# COCO class names (partial)
+COCO_INSTANCE_CATEGORY_NAMES = [
+    '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
+    'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign',
+    'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow'
+    # ... all 91 classes
+]
+
+# Usage example
+# boxes, labels, scores = run_faster_rcnn_inference(model, 'test_image.jpg', threshold=0.7)
+# visualize_bounding_boxes('test_image.jpg', boxes, labels, scores, COCO_INSTANCE_CATEGORY_NAMES)
+</code></pre>
+<h3>Region Proposal Network (RPN)</h3>
+<p><strong>RPN</strong> is the core technology of Faster R-CNN, proposing candidate regions with a learning-based approach.</p>
+<blockquote>
+<p><strong>How RPN works</strong>:</p>
+<ol>
+<li>Place multiple anchor boxes (different sizes and aspect ratios) at each location on the feature map</li>
+<li>Score each anchor for "objectness" (object likelihood)</li>
+<li>Regress bounding box coordinate offsets</li>
+<li>Pass high-score proposals to RoI Pooling</li>
+</ol>
+</blockquote>
+<pre><code class="language-python">class SimpleRPN(nn.Module):
+    """
+    Simplified Region Proposal Network (for educational purposes)
+    """
+
+    def __init__(self, in_channels=512, num_anchors=9):
+        """
+        Args:
+            in_channels: Number of input feature map channels
+            num_anchors: Number of anchors per location (typically 3 scales × 3 aspect ratios = 9)
+        """
+        super(SimpleRPN, self).__init__()
+
+        # Shared convolutional layer
+        self.conv = nn.Conv2d(in_channels, 512, kernel_size=3, padding=1)
+
+        # Objectness score (2 classes: object or background)
+        self.cls_logits = nn.Conv2d(512, num_anchors * 2, kernel_size=1)
+
+        # Bounding box regression (4 coordinates × num_anchors)
+        self.bbox_pred = nn.Conv2d(512, num_anchors * 4, kernel_size=1)
+
+    def forward(self, feature_map):
+        """
+        Args:
+            feature_map: [B, C, H, W] feature map
+
+        Returns:
+            objectness: [B, num_anchors*2, H, W] object scores
+            bbox_deltas: [B, num_anchors*4, H, W] box coordinate offsets
+        """
+        # Shared feature extraction
+        x = torch.relu(self.conv(feature_map))
+
+        # Objectness classification
+        objectness = self.cls_logits(x)
+
+        # Bounding box regression
+        bbox_deltas = self.bbox_pred(x)
+
+        return objectness, bbox_deltas
+
+# Test RPN operation
+rpn = SimpleRPN(in_channels=512, num_anchors=9)
+feature_map = torch.randn(1, 512, 38, 38)  # e.g., ResNet feature map
+
+objectness, bbox_deltas = rpn(feature_map)
+print(f"Objectness shape: {objectness.shape}")     # [1, 18, 38, 38]
+print(f"BBox Deltas shape: {bbox_deltas.shape}")   # [1, 36, 38, 38]
+print(f"Total Proposals: {38 * 38 * 9} anchors")   # 12,996 anchors
+</code></pre>
+<hr/>
+<h2>5.3 One-Stage Detectors</h2>
+<h3>YOLO (You Only Look Once)</h3>
+<p><strong>YOLO</strong> formulates object detection as a "regression problem," directly predicting bounding boxes and classes end-to-end with a single CNN.</p>
+<div class="mermaid">
+graph LR
+    A[Input Image<br/>448×448] --&gt; B[CNN Backbone<br/>Feature Extraction]
+    B --&gt; C[Grid Division<br/>7×7]
+    C --&gt; D[Predict per Cell<br/>Box + Class]
+    D --&gt; E[NMS<br/>Remove Duplicates]
+    E --&gt; F[Final Detection Results]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#ffe0b2
+    style E fill:#e1bee7
+    style F fill:#e8f5e9
+</div>
+<h4>YOLO Design Philosophy</h4>
+<ul>
+<li><strong>Speed-focused</strong>: Aims for real-time inference (45+ FPS)</li>
+<li><strong>Global context</strong>: Better context understanding by looking at the entire image at once</li>
+<li><strong>Simple</strong>: No complex pipeline, end-to-end learning</li>
+</ul>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - torch&gt;=2.0.0, &lt;2.3.0
+
+import torch
+import torch.nn as nn
+
+# Using YOLOv5 (Ultralytics implementation)
+def load_yolov5(model_size='yolov5s', pretrained=True):
+    """
+    Load YOLOv5 model
+
+    Args:
+        model_size: Model size ('yolov5n', 'yolov5s', 'yolov5m', 'yolov5l', 'yolov5x')
+        pretrained: Use COCO pre-trained weights
+
+    Returns:
+        model: YOLOv5 model
+    """
+    # Load from PyTorch Hub (Ultralytics implementation)
+    model = torch.hub.load('ultralytics/yolov5', model_size, pretrained=pretrained)
+
+    return model
+
+# Load model
+model = load_yolov5('yolov5s', pretrained=True)
+model.eval()
+
+print("YOLOv5s model information:")
+print(f"- Parameters: {sum(p.numel() for p in model.parameters()):,}")
+print(f"- Inference speed: ~140 FPS (GPU)")
+print(f"- Input size: 640×640 (default)")
+
+def run_yolo_inference(model, image_path, conf_threshold=0.25, iou_threshold=0.45):
+    """
+    Object detection inference with YOLOv5
+
+    Args:
+        model: YOLOv5 model
+        image_path: Input image path
+        conf_threshold: Confidence score threshold
+        iou_threshold: NMS IoU threshold
+
+    Returns:
+        results: Detection results (pandas DataFrame)
+    """
+    # Inference settings
+    model.conf = conf_threshold
+    model.iou = iou_threshold
+
+    # Run inference
+    results = model(image_path)
+
+    # Display results
+    results.print()  # Print to console
+
+    # Visualize results
+    results.show()   # Display image
+
+    # Get results as DataFrame
+    detections = results.pandas().xyxy[0]
+
+    print(f"\nNumber of detected objects: {len(detections)}")
+    print(detections)
+
+    return results
+
+# Usage example
+# results = run_yolo_inference(model, 'test_image.jpg', conf_threshold=0.5)
+
+# Batch inference
+def run_yolo_batch_inference(model, image_paths, save_dir='results/'):
+    """
+    Batch inference for multiple images
+
+    Args:
+        model: YOLOv5 model
+        image_paths: List of image paths
+        save_dir: Directory to save results
+    """
+    import os
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Batch inference
+    results = model(image_paths)
+
+    # Save results
+    results.save(save_dir=save_dir)
+
+    print(f"Batch inference complete: {len(image_paths)} images")
+    print(f"Results saved to: {save_dir}")
+
+    return results
+
+# Usage example
+# image_list = ['img1.jpg', 'img2.jpg', 'img3.jpg']
+# batch_results = run_yolo_batch_inference(model, image_list)
+</code></pre>
+<h4>YOLO Loss Function</h4>
+<p>YOLO combines three losses for training:</p>
+<p>$$
+\mathcal{L}_{\text{YOLO}} = \lambda_{\text{box}} \mathcal{L}_{\text{box}} + \lambda_{\text{obj}} \mathcal{L}_{\text{obj}} + \lambda_{\text{cls}} \mathcal{L}_{\text{cls}}
+$$</p>
+<ul>
+<li>$\mathcal{L}_{\text{box}}$: Bounding box coordinate regression loss (CIoU Loss)</li>
+<li>$\mathcal{L}_{\text{obj}}$: Objectness binary classification loss</li>
+<li>$\mathcal{L}_{\text{cls}}$: Multi-class classification loss</li>
+</ul>
+<h3>SSD (Single Shot Detector)</h3>
+<p><strong>SSD</strong> performs detection on feature maps at different scales, balancing speed and accuracy.</p>
+<blockquote>
+<p><strong>SSD features</strong>:</p>
+<ul>
+<li>Multi-scale feature maps (detection at multiple resolutions)</li>
+<li>Uses default boxes (equivalent to anchors) on each feature map</li>
+<li>More accurate than YOLO, faster than Faster R-CNN</li>
+</ul>
+</blockquote>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pillow&gt;=10.0.0
+# - torchvision&gt;=0.15.0
+
+from torchvision.models.detection import ssd300_vgg16
+
+def create_ssd_model(num_classes=91, pretrained=True):
+    """
+    Create SSD300 model
+
+    Args:
+        num_classes: Number of detection classes
+        pretrained: Use pre-trained weights
+
+    Returns:
+        model: SSD300 model
+    """
+    # SSD300 with VGG16 backbone
+    model = ssd300_vgg16(pretrained=pretrained, num_classes=num_classes)
+
+    return model
+
+# Load model
+ssd_model = create_ssd_model(num_classes=91, pretrained=True)
+ssd_model.eval()
+
+print("SSD300 model information:")
+print(f"- Input size: 300×300")
+print(f"- Backbone: VGG16")
+print(f"- Feature maps: 6 layers (different scales)")
+
+def run_ssd_inference(model, image_path, threshold=0.5):
+    """
+    Object detection inference with SSD
+    """
+    from PIL import Image
+    from torchvision import transforms
+
+    # Load and preprocess image
+    img = Image.open(image_path).convert('RGB')
+    transform = transforms.Compose([transforms.ToTensor()])
+    img_tensor = transform(img).unsqueeze(0)
+
+    # Inference
+    model.eval()
+    with torch.no_grad():
+        predictions = model(img_tensor)
+
+    # Extract results
+    pred = predictions[0]
+    keep = pred['scores'] &gt; threshold
+
+    boxes = pred['boxes'][keep].cpu().numpy()
+    labels = pred['labels'][keep].cpu().numpy()
+    scores = pred['scores'][keep].cpu().numpy()
+
+    print(f"\nNumber of detected objects: {len(boxes)}")
+    for i, (box, label, score) in enumerate(zip(boxes, labels, scores)):
+        print(f"  {i+1}. Label: {label}, Score: {score:.3f}")
+
+    return boxes, labels, scores
+
+# Usage example
+# boxes, labels, scores = run_ssd_inference(ssd_model, 'test_image.jpg', threshold=0.6)
+</code></pre>
+<hr/>
+<h2>5.4 Evaluation Metrics</h2>
+<h3>Precision and Recall</h3>
+<p>Object detection evaluation uses metrics similar to information retrieval.</p>
+<p>$$
+\text{Precision} = \frac{TP}{TP + FP} \quad \text{(Detection accuracy)}
+$$</p>
+<p>$$
+\text{Recall} = \frac{TP}{TP + FN} \quad \text{(Detection coverage)}
+$$</p>
+<ul>
+<li><strong>TP (True Positive)</strong>: Correctly detected objects (IoU ≥ threshold)</li>
+<li><strong>FP (False Positive)</strong>: False detections (IoU &lt; threshold or background misclassified as object)</li>
+<li><strong>FN (False Negative)</strong>: Missed detections (existing objects not detected)</li>
+</ul>
+<h3>NMS (Non-Maximum Suppression)</h3>
+<p><strong>NMS</strong> is an algorithm that removes overlapping detection results, keeping only one box per object.</p>
+<div class="mermaid">
+graph LR
+    A[Detection Boxes<br/>Sort by Score] --&gt; B[Select Highest Score Box]
+    B --&gt; C[Remove Overlapping Boxes<br/>IoU &gt; threshold]
+    C --&gt; D{Boxes Remaining?}
+    D --&gt;|Yes| B
+    D --&gt;|No| E[Final Detection Results]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style E fill:#e8f5e9
+</div>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+def non_max_suppression(boxes, scores, iou_threshold=0.5):
+    """
+    Non-Maximum Suppression (NMS) implementation
+
+    Args:
+        boxes: Bounding box coordinates [[x_min, y_min, x_max, y_max], ...] (numpy array)
+        scores: Confidence scores [0.9, 0.8, ...]
+        iou_threshold: IoU threshold (boxes with more overlap are removed)
+
+    Returns:
+        keep_indices: Indices of boxes to keep
+    """
+    import numpy as np
+
+    # Sort by descending score
+    sorted_indices = np.argsort(scores)[::-1]
+
+    keep_indices = []
+
+    while len(sorted_indices) &gt; 0:
+        # Keep highest score box
+        current = sorted_indices[0]
+        keep_indices.append(current)
+
+        if len(sorted_indices) == 1:
+            break
+
+        # Calculate IoU with remaining boxes
+        current_box = boxes[current]
+        remaining_boxes = boxes[sorted_indices[1:]]
+
+        ious = np.array([calculate_iou(current_box, box) for box in remaining_boxes])
+
+        # Keep only boxes below IoU threshold
+        keep_mask = ious &lt; iou_threshold
+        sorted_indices = sorted_indices[1:][keep_mask]
+
+    return np.array(keep_indices)
+
+# Usage example
+boxes = np.array([
+    [50, 50, 150, 150],
+    [55, 55, 155, 155],   # Large overlap with first box
+    [200, 200, 300, 300],
+    [205, 205, 305, 305]  # Large overlap with third box
+])
+scores = np.array([0.9, 0.85, 0.95, 0.88])
+
+keep_indices = non_max_suppression(boxes, scores, iou_threshold=0.5)
+print(f"Original number of boxes: {len(boxes)}")
+print(f"Number of boxes after NMS: {len(keep_indices)}")
+print(f"Kept indices: {keep_indices}")
+print(f"Kept boxes:\n{boxes[keep_indices]}")
+
+# PyTorch official NMS implementation (faster)
+from torchvision.ops import nms
+
+def nms_torch(boxes, scores, iou_threshold=0.5):
+    """
+    PyTorch NMS (fast C++ implementation)
+
+    Args:
+        boxes: Tensor of shape [N, 4]
+        scores: Tensor of shape [N]
+        iou_threshold: IoU threshold
+
+    Returns:
+        keep: Indices of boxes to keep (Tensor)
+    """
+    keep = nms(boxes, scores, iou_threshold)
+    return keep
+
+# Usage example
+boxes_tensor = torch.tensor(boxes, dtype=torch.float32)
+scores_tensor = torch.tensor(scores, dtype=torch.float32)
+
+keep_torch = nms_torch(boxes_tensor, scores_tensor, iou_threshold=0.5)
+print(f"\nPyTorch NMS result: {keep_torch}")
+</code></pre>
+<h3>mAP (mean Average Precision)</h3>
+<p><strong>mAP</strong> is the standard evaluation metric for object detection, representing the average precision across all classes.</p>
+<h4>Calculation Steps</h4>
+<ol>
+<li><strong>For each class</strong>, draw a Precision-Recall curve</li>
+<li>Calculate <strong>AP (Average Precision)</strong> as the area under the curve</li>
+<li>Average AP across all classes to obtain <strong>mAP</strong></li>
+</ol>
+<p>$$
+\text{AP} = \int_0^1 P(r) \, dr
+$$</p>
+<p>$$
+\text{mAP} = \frac{1}{C} \sum_{c=1}^{C} \text{AP}_c
+$$</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+def calculate_precision_recall(pred_boxes, pred_scores, true_boxes, iou_threshold=0.5):
+    """
+    Calculate values for Precision-Recall curve
+
+    Args:
+        pred_boxes: Predicted boxes [N, 4]
+        pred_scores: Predicted scores [N]
+        true_boxes: Ground truth boxes [M, 4]
+        iou_threshold: IoU threshold
+
+    Returns:
+        precisions, recalls: Lists of Precision-Recall values
+    """
+    import numpy as np
+
+    # Sort by descending score
+    sorted_indices = np.argsort(pred_scores)[::-1]
+    pred_boxes = pred_boxes[sorted_indices]
+    pred_scores = pred_scores[sorted_indices]
+
+    num_true = len(true_boxes)
+    matched_true = np.zeros(num_true, dtype=bool)
+
+    tp = np.zeros(len(pred_boxes))
+    fp = np.zeros(len(pred_boxes))
+
+    for i, pred_box in enumerate(pred_boxes):
+        # Calculate maximum IoU with ground truth boxes
+        if len(true_boxes) == 0:
+            fp[i] = 1
+            continue
+
+        ious = np.array([calculate_iou(pred_box, true_box) for true_box in true_boxes])
+        max_iou_idx = np.argmax(ious)
+        max_iou = ious[max_iou_idx]
+
+        # TP if exceeds IoU threshold and not yet matched
+        if max_iou &gt;= iou_threshold and not matched_true[max_iou_idx]:
+            tp[i] = 1
+            matched_true[max_iou_idx] = True
+        else:
+            fp[i] = 1
+
+    # Cumulative sum
+    tp_cumsum = np.cumsum(tp)
+    fp_cumsum = np.cumsum(fp)
+
+    # Precision and Recall
+    recalls = tp_cumsum / num_true if num_true &gt; 0 else np.zeros_like(tp_cumsum)
+    precisions = tp_cumsum / (tp_cumsum + fp_cumsum + 1e-10)
+
+    return precisions, recalls
+
+def calculate_ap(precisions, recalls):
+    """
+    Calculate Average Precision (AP) using 11-point interpolation
+
+    Args:
+        precisions: List of precision values
+        recalls: List of recall values
+
+    Returns:
+        ap: Average Precision
+    """
+    import numpy as np
+
+    # 11-point interpolation
+    ap = 0.0
+    for t in np.linspace(0, 1, 11):
+        # Maximum precision at recall ≥ t
+        if np.sum(recalls &gt;= t) == 0:
+            p = 0
+        else:
+            p = np.max(precisions[recalls &gt;= t])
+        ap += p / 11
+
+    return ap
+
+# Usage example
+pred_boxes = np.array([
+    [50, 50, 150, 150],
+    [55, 55, 155, 155],
+    [200, 200, 300, 300]
+])
+pred_scores = np.array([0.9, 0.7, 0.85])
+true_boxes = np.array([
+    [52, 52, 152, 152],
+    [205, 205, 305, 305]
+])
+
+precisions, recalls = calculate_precision_recall(
+    pred_boxes, pred_scores, true_boxes, iou_threshold=0.5
+)
+
+ap = calculate_ap(precisions, recalls)
+print(f"Average Precision: {ap:.4f}")
+
+# Visualize Precision-Recall curve
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(10, 6))
+plt.plot(recalls, precisions, marker='o', linewidth=2)
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.title('Precision-Recall Curve')
+plt.grid(True, alpha=0.3)
+plt.xlim([0, 1.05])
+plt.ylim([0, 1.05])
+plt.fill_between(recalls, precisions, alpha=0.2)
+plt.text(0.5, 0.5, f'AP = {ap:.4f}', fontsize=14, bbox=dict(facecolor='white', alpha=0.8))
+plt.tight_layout()
+plt.show()
+
+def calculate_map(all_precisions, all_recalls, num_classes):
+    """
+    Calculate mean Average Precision (mAP)
+
+    Args:
+        all_precisions: List of precision lists per class [[p1, p2, ...], ...]
+        all_recalls: List of recall lists per class [[r1, r2, ...], ...]
+        num_classes: Number of classes
+
+    Returns:
+        mAP: mean Average Precision
+    """
+    aps = []
+
+    for i in range(num_classes):
+        ap = calculate_ap(all_precisions[i], all_recalls[i])
+        aps.append(ap)
+        print(f"Class {i}: AP = {ap:.4f}")
+
+    mAP = np.mean(aps)
+    print(f"\nmAP: {mAP:.4f}")
+
+    return mAP
+</code></pre>
+<blockquote>
+<p><strong>COCO mAP</strong>: The COCO dataset uses a stricter evaluation by calculating AP at multiple IoU thresholds (0.5, 0.55, ..., 0.95) and averaging them.</p>
+</blockquote>
+<hr/>
+<h2>5.5 Object Detection with PyTorch</h2>
+<h3>Using torchvision.models.detection</h3>
+<p>PyTorch's torchvision provides a rich collection of pre-trained object detection models.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pillow&gt;=10.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+# - torchvision&gt;=0.15.0
+
+import torch
+import torchvision
+from torchvision.models.detection import (
+    fasterrcnn_resnet50_fpn,
+    fasterrcnn_mobilenet_v3_large_fpn,
+    retinanet_resnet50_fpn,
+    ssd300_vgg16
+)
+
+def compare_detection_models():
+    """
+    Compare various object detection models
+    """
+    models_info = {
+        'Faster R-CNN (ResNet-50)': {
+            'model': fasterrcnn_resnet50_fpn,
+            'type': 'Two-Stage',
+            'speed': 'Slow',
+            'accuracy': 'High'
+        },
+        'Faster R-CNN (MobileNetV3)': {
+            'model': fasterrcnn_mobilenet_v3_large_fpn,
+            'type': 'Two-Stage',
+            'speed': 'Medium',
+            'accuracy': 'Medium'
+        },
+        'RetinaNet (ResNet-50)': {
+            'model': retinanet_resnet50_fpn,
+            'type': 'One-Stage',
+            'speed': 'Medium',
+            'accuracy': 'High'
+        },
+        'SSD300 (VGG16)': {
+            'model': ssd300_vgg16,
+            'type': 'One-Stage',
+            'speed': 'Fast',
+            'accuracy': 'Medium'
+        }
+    }
+
+    print("Object Detection Model Comparison:")
+    print("-" * 80)
+    for name, info in models_info.items():
+        print(f"{name:35s} | Type: {info['type']:10s} | "
+              f"Speed: {info['speed']:6s} | Accuracy: {info['accuracy']:6s}")
+    print("-" * 80)
+
+compare_detection_models()
+
+# Fine-tuning on custom dataset
+from torch.utils.data import Dataset, DataLoader
+import json
+
+class CustomDetectionDataset(Dataset):
+    """
+    Custom object detection dataset (COCO format)
+    """
+
+    def __init__(self, image_dir, annotation_file, transforms=None):
+        """
+        Args:
+            image_dir: Image directory path
+            annotation_file: Annotation file in COCO format
+            transforms: Data augmentation
+        """
+        self.image_dir = image_dir
+        self.transforms = transforms
+
+        # Load annotations
+        with open(annotation_file, 'r') as f:
+            self.coco_data = json.load(f)
+
+        self.images = self.coco_data['images']
+        self.annotations = self.coco_data['annotations']
+
+        # Group annotations by image ID
+        self.image_to_annotations = {}
+        for ann in self.annotations:
+            image_id = ann['image_id']
+            if image_id not in self.image_to_annotations:
+                self.image_to_annotations[image_id] = []
+            self.image_to_annotations[image_id].append(ann)
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        # Image information
+        img_info = self.images[idx]
+        image_id = img_info['id']
+        img_path = f"{self.image_dir}/{img_info['file_name']}"
+
+        # Load image
+        from PIL import Image
+        img = Image.open(img_path).convert('RGB')
+
+        # Get annotations
+        anns = self.image_to_annotations.get(image_id, [])
+
+        boxes = []
+        labels = []
+
+        for ann in anns:
+            # COCO format: [x, y, width, height] → [x_min, y_min, x_max, y_max]
+            x, y, w, h = ann['bbox']
+            boxes.append([x, y, x + w, y + h])
+            labels.append(ann['category_id'])
+
+        # Convert to tensors
+        boxes = torch.as_tensor(boxes, dtype=torch.float32)
+        labels = torch.as_tensor(labels, dtype=torch.int64)
+
+        target = {
+            'boxes': boxes,
+            'labels': labels,
+            'image_id': torch.tensor([image_id])
+        }
+
+        # Data augmentation
+        if self.transforms:
+            img = self.transforms(img)
+
+        return img, target
+
+# Dataset usage example
+# dataset = CustomDetectionDataset(
+#     image_dir='data/images',
+#     annotation_file='data/annotations.json',
+#     transforms=torchvision.transforms.ToTensor()
+# )
+#
+# data_loader = DataLoader(dataset, batch_size=2, shuffle=True, collate_fn=lambda x: tuple(zip(*x)))
+</code></pre>
+<h3>Training Loop Implementation</h3>
+<pre><code class="language-python">def train_detection_model(model, data_loader, optimizer, device, epoch):
+    """
+    Train object detection model (one epoch)
+
+    Args:
+        model: Object detection model
+        data_loader: Data loader
+        optimizer: Optimizer
+        device: Execution device
+        epoch: Current epoch number
+    """
+    model.train()
+
+    total_loss = 0
+    for batch_idx, (images, targets) in enumerate(data_loader):
+        # Transfer data to device
+        images = [img.to(device) for img in images]
+        targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+
+        # Forward pass (torchvision models return loss during training)
+        loss_dict = model(images, targets)
+
+        # Sum all losses
+        losses = sum(loss for loss in loss_dict.values())
+
+        # Backward pass
+        optimizer.zero_grad()
+        losses.backward()
+        optimizer.step()
+
+        total_loss += losses.item()
+
+        # Progress display
+        if batch_idx % 10 == 0:
+            print(f'Epoch {epoch}, Batch {batch_idx}/{len(data_loader)}, '
+                  f'Loss: {losses.item():.4f}')
+            print(f'  Details: {", ".join([f"{k}: {v.item():.4f}" for k, v in loss_dict.items()])}')
+
+    avg_loss = total_loss / len(data_loader)
+    print(f'Epoch {epoch} - Average Loss: {avg_loss:.4f}\n')
+
+    return avg_loss
+
+def evaluate_detection_model(model, data_loader, device):
+    """
+    Evaluate object detection model
+
+    Args:
+        model: Object detection model
+        data_loader: Data loader
+        device: Execution device
+
+    Returns:
+        metrics: Dictionary of evaluation metrics
+    """
+    model.eval()
+
+    all_predictions = []
+    all_targets = []
+
+    with torch.no_grad():
+        for images, targets in data_loader:
+            images = [img.to(device) for img in images]
+
+            # Inference
+            predictions = model(images)
+
+            all_predictions.extend([{k: v.cpu() for k, v in p.items()} for p in predictions])
+            all_targets.extend([{k: v.cpu() for k, v in t.items()} for t in targets])
+
+    # Calculate evaluation metrics (simplified version)
+    print("Evaluation results:")
+    print(f"  Total samples: {len(all_predictions)}")
+
+    # Average number of detections
+    avg_detections = sum(len(p['boxes']) for p in all_predictions) / len(all_predictions)
+    print(f"  Average detections: {avg_detections:.2f}")
+
+    return {'avg_detections': avg_detections}
+
+# Training execution example
+def full_training_pipeline(num_epochs=10):
+    """
+    Complete training pipeline
+    """
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # Create model
+    model = fasterrcnn_resnet50_fpn(pretrained=True)
+    model.to(device)
+
+    # Optimizer
+    params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
+
+    # Learning rate scheduler
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+
+    # Training loop
+    for epoch in range(1, num_epochs + 1):
+        # Training
+        # train_loss = train_detection_model(model, train_loader, optimizer, device, epoch)
+
+        # Evaluation
+        # metrics = evaluate_detection_model(model, val_loader, device)
+
+        # Update learning rate
+        lr_scheduler.step()
+
+        # Save model
+        # torch.save(model.state_dict(), f'detection_model_epoch_{epoch}.pth')
+
+        print(f"Epoch {epoch} completed.\n")
+
+# Usage example
+# full_training_pipeline(num_epochs=10)
+</code></pre>
+<hr/>
+<h2>5.6 Practice: Detection with COCO Format Data</h2>
+<h3>COCO Dataset Overview</h3>
+<p><strong>COCO (Common Objects in Context)</strong> is the standard benchmark dataset for object detection.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Number of images</strong></td>
+<td>Training: 118K, Validation: 5K, Test: 41K</td>
+</tr>
+<tr>
+<td><strong>Number of classes</strong></td>
+<td>80 classes (person, car, dog, etc.)</td>
+</tr>
+<tr>
+<td><strong>Annotations</strong></td>
+<td>Bounding boxes, segmentation, keypoints</td>
+</tr>
+<tr>
+<td><strong>Evaluation metric</strong></td>
+<td>mAP @ IoU=[0.50:0.05:0.95]</td>
+</tr>
+</tbody>
+</table>
+<h3>Complete Object Detection Pipeline</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pillow&gt;=10.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+# - torchvision&gt;=0.15.0
+
+import torch
+import torchvision
+from torchvision.models.detection import fasterrcnn_resnet50_fpn
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+import numpy as np
+from PIL import Image
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+
+class ObjectDetectionPipeline:
+    """
+    Complete object detection pipeline
+    """
+
+    def __init__(self, num_classes, pretrained=True, device=None):
+        """
+        Args:
+            num_classes: Number of detection classes (including background)
+            pretrained: Use pre-trained weights
+            device: Execution device
+        """
+        self.device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.num_classes = num_classes
+
+        # Build model
+        self.model = self._build_model(pretrained)
+        self.model.to(self.device)
+
+        print(f"Object detection pipeline initialization complete")
+        print(f"  Device: {self.device}")
+        print(f"  Number of classes: {num_classes}")
+
+    def _build_model(self, pretrained):
+        """Build model"""
+        model = fasterrcnn_resnet50_fpn(pretrained=pretrained)
+
+        # Replace final layer
+        in_features = model.roi_heads.box_predictor.cls_score.in_features
+        model.roi_heads.box_predictor = FastRCNNPredictor(in_features, self.num_classes)
+
+        return model
+
+    def predict(self, image_path, conf_threshold=0.5, nms_threshold=0.5):
+        """
+        Detect objects from image
+
+        Args:
+            image_path: Input image path
+            conf_threshold: Confidence score threshold
+            nms_threshold: NMS IoU threshold
+
+        Returns:
+            detections: Detection results dictionary
+        """
+        # Load image
+        img = Image.open(image_path).convert('RGB')
+        img_tensor = torchvision.transforms.ToTensor()(img).unsqueeze(0).to(self.device)
+
+        # Inference
+        self.model.eval()
+        with torch.no_grad():
+            predictions = self.model(img_tensor)
+
+        # Post-processing
+        pred = predictions[0]
+
+        # NMS (torchvision models run NMS internally, but can apply additionally)
+        keep = torchvision.ops.nms(pred['boxes'], pred['scores'], nms_threshold)
+
+        # Threshold filtering
+        keep = keep[pred['scores'][keep] &gt; conf_threshold]
+
+        detections = {
+            'boxes': pred['boxes'][keep].cpu().numpy(),
+            'labels': pred['labels'][keep].cpu().numpy(),
+            'scores': pred['scores'][keep].cpu().numpy()
+        }
+
+        return detections, img
+
+    def visualize(self, image, detections, class_names, save_path=None):
+        """
+        Visualize detection results
+
+        Args:
+            image: PIL Image
+            detections: Return value from predict()
+            class_names: List of class names
+            save_path: Save path (display only if None)
+        """
+        fig, ax = plt.subplots(1, figsize=(12, 8))
+        ax.imshow(image)
+
+        colors = plt.cm.hsv(np.linspace(0, 1, len(class_names))).tolist()
+
+        for box, label, score in zip(detections['boxes'], detections['labels'], detections['scores']):
+            x_min, y_min, x_max, y_max = box
+            width = x_max - x_min
+            height = y_max - y_min
+
+            color = colors[label % len(colors)]
+
+            # Bounding box
+            rect = patches.Rectangle(
+                (x_min, y_min), width, height,
+                linewidth=2, edgecolor=color, facecolor='none'
+            )
+            ax.add_patch(rect)
+
+            # Label
+            label_text = f'{class_names[label]}: {score:.2f}'
+            ax.text(
+                x_min, y_min - 5,
+                label_text,
+                bbox=dict(facecolor=color, alpha=0.7),
+                fontsize=10, color='white', weight='bold'
+            )
+
+        ax.axis('off')
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path, dpi=150, bbox_inches='tight')
+            print(f"Results saved: {save_path}")
+        else:
+            plt.show()
+
+    def batch_predict(self, image_paths, conf_threshold=0.5):
+        """
+        Batch inference
+
+        Args:
+            image_paths: List of image paths
+            conf_threshold: Confidence threshold
+
+        Returns:
+            all_detections: List of detection results per image
+        """
+        all_detections = []
+
+        for img_path in image_paths:
+            detections, img = self.predict(img_path, conf_threshold)
+            all_detections.append({
+                'path': img_path,
+                'detections': detections,
+                'image': img
+            })
+
+        return all_detections
+
+    def evaluate_coco(self, data_loader, coco_gt):
+        """
+        COCO format evaluation
+
+        Args:
+            data_loader: Data loader
+            coco_gt: COCO ground truth annotations
+
+        Returns:
+            metrics: Evaluation metrics
+        """
+        from pycocotools.coco import COCO
+        from pycocotools.cocoeval import COCOeval
+
+        self.model.eval()
+        coco_results = []
+
+        with torch.no_grad():
+            for images, targets in data_loader:
+                images = [img.to(self.device) for img in images]
+                predictions = self.model(images)
+
+                # Convert to COCO format
+                for target, pred in zip(targets, predictions):
+                    image_id = target['image_id'].item()
+
+                    for box, label, score in zip(pred['boxes'], pred['labels'], pred['scores']):
+                        x_min, y_min, x_max, y_max = box.tolist()
+
+                        coco_results.append({
+                            'image_id': image_id,
+                            'category_id': label.item(),
+                            'bbox': [x_min, y_min, x_max - x_min, y_max - y_min],
+                            'score': score.item()
+                        })
+
+        # COCO evaluation
+        coco_dt = coco_gt.loadRes(coco_results)
+        coco_eval = COCOeval(coco_gt, coco_dt, 'bbox')
+        coco_eval.evaluate()
+        coco_eval.accumulate()
+        coco_eval.summarize()
+
+        metrics = {
+            'mAP': coco_eval.stats[0],
+            'mAP_50': coco_eval.stats[1],
+            'mAP_75': coco_eval.stats[2]
+        }
+
+        return metrics
+
+# Usage example
+if __name__ == '__main__':
+    # COCO class names (abbreviated)
+    COCO_CLASSES = [
+        '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
+        'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign',
+        'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+        'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag'
+        # ... all 91 classes
+    ]
+
+    # Initialize pipeline
+    pipeline = ObjectDetectionPipeline(num_classes=91, pretrained=True)
+
+    # Single image inference
+    # detections, img = pipeline.predict('test_image.jpg', conf_threshold=0.7)
+    # pipeline.visualize(img, detections, COCO_CLASSES, save_path='result.jpg')
+
+    # Batch inference
+    # image_list = ['img1.jpg', 'img2.jpg', 'img3.jpg']
+    # results = pipeline.batch_predict(image_list, conf_threshold=0.6)
+
+    print("Object detection pipeline ready")
+</code></pre>
+<hr/>
+<h2>Chapter Summary</h2>
+<h3>What We Learned</h3>
+<ol>
+<li><p><strong>Object Detection Fundamentals</strong></p>
+<ul>
+<li>Differences between classification, detection, and segmentation</li>
+<li>How to calculate bounding boxes and IoU</li>
+<li>Challenges and evaluation metrics for object detection</li>
+</ul></li>
+<li><p><strong>Two-Stage Detectors</strong></p>
+<ul>
+<li>Evolution of R-CNN, Fast R-CNN, Faster R-CNN</li>
+<li>How Region Proposal Networks work</li>
+<li>Accuracy-focused approaches</li>
+</ul></li>
+<li><p><strong>One-Stage Detectors</strong></p>
+<ul>
+<li>Design philosophy of YOLO and SSD</li>
+<li>Trade-offs between speed and accuracy</li>
+<li>Achieving real-time detection</li>
+</ul></li>
+<li><p><strong>Evaluation Metrics</strong></p>
+<ul>
+<li>Implementation of NMS (Non-Maximum Suppression)</li>
+<li>Precision-Recall curves and AP</li>
+<li>Calculating mAP (mean Average Precision)</li>
+</ul></li>
+<li><p><strong>Implementation Skills</strong></p>
+<ul>
+<li>Object detection with PyTorch torchvision</li>
+<li>Building training and evaluation pipelines</li>
+<li>Handling COCO format data</li>
+</ul></li>
+</ol>
+<h3>Model Selection Guide</h3>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Recommended Model</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Highest accuracy</strong></td>
+<td>Faster R-CNN (ResNet-101)</td>
+<td>Precise detection with two-stage</td>
+</tr>
+<tr>
+<td><strong>Real-time</strong></td>
+<td>YOLOv5s / YOLOv8</td>
+<td>140+ FPS, lightweight</td>
+</tr>
+<tr>
+<td><strong>Balanced</strong></td>
+<td>YOLOv5m / RetinaNet</td>
+<td>Balance of speed and accuracy</td>
+</tr>
+<tr>
+<td><strong>Edge devices</strong></td>
+<td>MobileNet SSD</td>
+<td>Low computation, memory efficient</td>
+</tr>
+<tr>
+<td><strong>Small object detection</strong></td>
+<td>Faster R-CNN + FPN</td>
+<td>Multi-scale feature extraction</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2>Exercises</h2>
+<h3>Problem 1 (Difficulty: medium)</h3>
+<p>Implement an IoU calculation function in NumPy and verify with the following test cases:</p>
+<ul>
+<li>Box1: [0, 0, 100, 100], Box2: [50, 50, 150, 150] → IoU ≈ 0.143</li>
+<li>Box1: [0, 0, 100, 100], Box2: [0, 0, 100, 100] → IoU = 1.0</li>
+<li>Box1: [0, 0, 50, 50], Box2: [60, 60, 100, 100] → IoU = 0.0</li>
+</ul>
+<details>
+<summary>Solution Example</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+
+import numpy as np
+
+def calculate_iou_numpy(box1, box2):
+    """IoU calculation with NumPy"""
+    # Intersection region
+    x_min_inter = max(box1[0], box2[0])
+    y_min_inter = max(box1[1], box2[1])
+    x_max_inter = min(box1[2], box2[2])
+    y_max_inter = min(box1[3], box2[3])
+
+    inter_area = max(0, x_max_inter - x_min_inter) * max(0, y_max_inter - y_min_inter)
+
+    # Area of each box
+    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
+
+    # IoU
+    union_area = box1_area + box2_area - inter_area
+    iou = inter_area / union_area if union_area &gt; 0 else 0
+
+    return iou
+
+# Test
+test_cases = [
+    ([0, 0, 100, 100], [50, 50, 150, 150], 0.143),
+    ([0, 0, 100, 100], [0, 0, 100, 100], 1.0),
+    ([0, 0, 50, 50], [60, 60, 100, 100], 0.0)
+]
+
+for box1, box2, expected in test_cases:
+    iou = calculate_iou_numpy(box1, box2)
+    print(f"Box1: {box1}, Box2: {box2}")
+    print(f"  Calculated IoU: {iou:.4f}, Expected: {expected:.4f}, Match: {abs(iou - expected) &lt; 0.001}")
+</code></pre>
+</details>
+<h3>Problem 2 (Difficulty: hard)</h3>
+<p>Implement the NMS (Non-Maximum Suppression) algorithm from scratch and test with the following data:</p>
+<pre><code>boxes = [[50, 50, 150, 150], [55, 55, 155, 155], [200, 200, 300, 300], [205, 205, 305, 305]]
+scores = [0.9, 0.85, 0.95, 0.88]
+iou_threshold = 0.5
+</code></pre>
+<p>Expected output: Indices [2, 0] (in score order) are kept</p>
+<details>
+<summary>Hint</summary>
+<ul>
+<li>Sort by descending score</li>
+<li>Keep highest score box and remove overlapping boxes</li>
+<li>Repeat until all boxes are processed</li>
+</ul>
+</details>
+<h3>Problem 3 (Difficulty: medium)</h3>
+<p>Use Faster R-CNN to perform object detection on a custom image and visualize the results. Display the class names and scores of detected objects.</p>
+<details>
+<summary>Solution Example</summary>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pillow&gt;=10.0.0
+# - torch&gt;=2.0.0, &lt;2.3.0
+# - torchvision&gt;=0.15.0
+
+"""
+Example: Use Faster R-CNN to perform object detection on a custom ima
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Advanced
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+import torch
+from torchvision.models.detection import fasterrcnn_resnet50_fpn
+from PIL import Image
+import torchvision.transforms as T
+
+# Load model
+model = fasterrcnn_resnet50_fpn(pretrained=True)
+model.eval()
+
+# Load image
+img = Image.open('your_image.jpg').convert('RGB')
+img_tensor = T.ToTensor()(img).unsqueeze(0)
+
+# Inference
+with torch.no_grad():
+    predictions = model(img_tensor)
+
+# Display results
+pred = predictions[0]
+for i, (box, label, score) in enumerate(zip(pred['boxes'], pred['labels'], pred['scores'])):
+    if score &gt; 0.5:
+        print(f"Detection {i+1}: Class={COCO_CLASSES[label]}, Score={score:.3f}, Box={box.tolist()}")
+
+# Visualization
+# Use visualize_bounding_boxes function
+</code></pre>
+</details>
+<h3>Problem 4 (Difficulty: hard)</h3>
+<p>Create a script to perform real-time object detection from a video file (or webcam) using YOLOv5. Display detection results frame by frame and measure FPS.</p>
+<details>
+<summary>Hint</summary>
+<ul>
+<li>Load video with OpenCV (cv2.VideoCapture)</li>
+<li>Run YOLOv5 inference on each frame</li>
+<li>Measure FPS with time.time()</li>
+<li>Display results with cv2.imshow()</li>
+</ul>
+</details>
+<hr/>
+<h2>References</h2>
+<ol>
+<li>Girshick, R., et al. (2014). "Rich feature hierarchies for accurate object detection and semantic segmentation." <em>CVPR</em>.</li>
+<li>Girshick, R. (2015). "Fast R-CNN." <em>ICCV</em>.</li>
+<li>Ren, S., et al. (2016). "Faster R-CNN: Towards real-time object detection with region proposal networks." <em>TPAMI</em>.</li>
+<li>Redmon, J., et al. (2016). "You only look once: Unified, real-time object detection." <em>CVPR</em>.</li>
+<li>Liu, W., et al. (2016). "SSD: Single shot multibox detector." <em>ECCV</em>.</li>
+<li>Lin, T.-Y., et al. (2014). "Microsoft COCO: Common objects in context." <em>ECCV</em>.</li>
+<li>Lin, T.-Y., et al. (2017). "Focal loss for dense object detection." <em>ICCV</em>. (RetinaNet)</li>
+<li>Jocher, G., et al. (2022). "YOLOv5: State-of-the-art object detection." <em>Ultralytics</em>.</li>
+</ol>
+<div class="navigation">
+<a class="nav-button" href="chapter-4.html">← Previous Chapter: Modern Architectures</a>
+<a class="nav-button" href="index.html">Series Index</a>
+<a class="nav-button" href="../index.html">Machine Learning Home →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided for educational, research, and informational purposes only and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, or operational safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, or libraries.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>Content may be modified, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content follow the specified terms (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Author</strong>: AI Terakoya Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-21</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

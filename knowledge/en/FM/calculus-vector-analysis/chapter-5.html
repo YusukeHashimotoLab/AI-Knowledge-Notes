@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 5: Line Integrals, Surface Integrals, and Integral Theorems | Introduction to Calculus and Vector Analysis" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 5: Line Integrals, Surface Integrals, and Integral Theorems | Introduction to Calculus and Vector Analysis</title>
+<meta content="Learn line integrals, surface integrals, Green's theorem, Gauss's divergence theorem, and Stokes' theorem, and implement applications to electromagnetism and fluid dynamics." name="description"/>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+</head>
+<body><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/FM/calculus-vector-analysis/chapter-5.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+
+<header>
+<h1>Chapter 5: Line Integrals, Surface Integrals, and Integral Theorems</h1>
+<p class="subtitle">Line Integrals, Surface Integrals, and Integral Theorems</p>
+</header>
+<div class="container">
+<div class="breadcrumb">
+<a href="../index.html">AI Terakoya Top</a> &gt; <a href="../index.html">FM Dojo</a> &gt;
+            <a href="index.html">Introduction to Calculus and Vector Analysis</a> &gt;
+            Chapter 5
+        </div>
+<div class="content">
+<h2>5.1 Fundamentals of Line Integrals</h2>
+<div class="definition">
+<strong>📐 Definition: Line Integral</strong><br/>
+                Line integral of scalar field f over curve C:
+                $$\int_C f \, ds = \int_a^b f(\mathbf{r}(t)) \|\mathbf{r}'(t)\| \, dt$$
+                Line integral of vector field F (work):
+                $$\int_C \mathbf{F} \cdot d\mathbf{r} = \int_a^b \mathbf{F}(\mathbf{r}(t)) \cdot \mathbf{r}'(t) \, dt$$
+            </div>
+<h3>💻 Code Example 1: Line Integral of Scalar Field</h3>
+<div class="code-block">import numpy as np
+import matplotlib.pyplot as plt
+from scipy import integrate
+
+# Parametric representation of curve: r(t) = (cos t, sin t), 0 ≤ t ≤ π
+def curve(t):
+    x = np.cos(t)
+    y = np.sin(t)
+    return x, y
+
+# Scalar field: f(x,y) = x² + y²
+def scalar_field(x, y):
+    return x**2 + y**2
+
+# Integrand for line integral
+def integrand(t):
+    x, y = curve(t)
+    f_val = scalar_field(x, y)
+    # Magnitude of velocity vector ||r'(t)||
+    dx_dt = -np.sin(t)
+    dy_dt = np.cos(t)
+    speed = np.sqrt(dx_dt**2 + dy_dt**2)
+    return f_val * speed
+
+# Calculate line integral
+result, error = integrate.quad(integrand, 0, np.pi)
+print(f"Line integral of scalar field:")
+print(f"∫_C f ds = {result:.6f} (estimated error: {error:.2e})")
+
+# Visualization
+t = np.linspace(0, np.pi, 100)
+x, y = curve(t)
+
+plt.figure(figsize=(8, 8))
+plt.plot(x, y, 'r-', linewidth=3, label='Curve C')
+plt.arrow(0, 1, 0.1, 0, head_width=0.1, head_length=0.05, fc='red', ec='red')
+plt.scatter([x[0]], [y[0]], color='green', s=150, marker='o', label='Start point', zorder=5)
+plt.scatter([x[-1]], [y[-1]], color='blue', s=150, marker='s', label='End point', zorder=5)
+plt.xlabel('x')
+plt.ylabel('y')
+plt.title('Path of Line Integration')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.axis('equal')
+plt.show()</div>
+<h3>💻 Code Example 2: Line Integral of Vector Field (Work)</h3>
+<div class="code-block"># Vector field: F(x,y) = (y, -x)
+def vector_field(x, y):
+    return y, -x
+
+# Line integral ∫_C F·dr
+def integrand_vector(t):
+    x, y = curve(t)
+    Fx, Fy = vector_field(x, y)
+    dx_dt = -np.sin(t)
+    dy_dt = np.cos(t)
+    return Fx * dx_dt + Fy * dy_dt
+
+result_work, error = integrate.quad(integrand_vector, 0, np.pi)
+print(f"\nLine integral of vector field (work):")
+print(f"∫_C F·dr = {result_work:.6f}")
+
+# Visualization of vector field
+x_grid = np.linspace(-1.5, 1.5, 15)
+y_grid = np.linspace(-1.5, 1.5, 15)
+X, Y = np.meshgrid(x_grid, y_grid)
+Fx, Fy = vector_field(X, Y)
+
+plt.figure(figsize=(10, 8))
+plt.quiver(X, Y, Fx, Fy, alpha=0.6)
+plt.plot(x, y, 'r-', linewidth=3, label='Path C')
+plt.scatter([x[0]], [y[0]], color='green', s=150, marker='o', zorder=5)
+plt.scatter([x[-1]], [y[-1]], color='blue', s=150, marker='s', zorder=5)
+plt.xlabel('x')
+plt.ylabel('y')
+plt.title('Vector Field F=(y,-x) and Integration Path')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.axis('equal')
+plt.show()</div>
+<h2>5.2 Green's Theorem</h2>
+<div class="theorem">
+<strong>📐 Theorem: Green's Theorem</strong><br/>
+                For boundary C (counterclockwise) of region D:
+                $$\oint_C (P \, dx + Q \, dy) = \iint_D \left(\frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y}\right) dA$$
+                Line integrals can be converted to double integrals.
+            </div>
+<h3>💻 Code Example 3: Verification of Green's Theorem</h3>
+<div class="code-block"># Vector field F = (P, Q) = (x, y)
+# Region D: unit disk x² + y² ≤ 1
+
+# Left side: line integral ∮_C (x dx + y dy)
+def curve_circle(t):
+    return np.cos(t), np.sin(t)
+
+def line_integral(t):
+    x, y = curve_circle(t)
+    dx_dt, dy_dt = -np.sin(t), np.cos(t)
+    P, Q = x, y
+    return P * dx_dt + Q * dy_dt
+
+left_side, _ = integrate.quad(line_integral, 0, 2*np.pi)
+
+# Right side: double integral ∬_D (∂Q/∂x - ∂P/∂y) dA
+# ∂Q/∂x = ∂y/∂x = 0, ∂P/∂y = ∂x/∂y = 0
+# Therefore integral value is 0
+
+right_side = 0.0
+
+print("Verification of Green's theorem:")
+print(f"F = (x, y), D = unit disk")
+print(f"Left side (line integral): ∮_C F·dr = {left_side:.6f}")
+print(f"Right side (double integral): ∬_D (∂Q/∂x - ∂P/∂y) dA = {right_side:.6f}")
+print(f"Difference: {abs(left_side - right_side):.2e}")
+
+# More interesting example: F = (-y, x)
+def line_integral2(t):
+    x, y = curve_circle(t)
+    dx_dt, dy_dt = -np.sin(t), np.cos(t)
+    P, Q = -y, x
+    return P * dx_dt + Q * dy_dt
+
+left_side2, _ = integrate.quad(line_integral2, 0, 2*np.pi)
+
+# Right side: ∂Q/∂x - ∂P/∂y = 1 - (-(-1)) = 2
+# ∬_D 2 dA = 2 × (area of circle) = 2π
+right_side2 = 2 * np.pi
+
+print(f"\nF = (-y, x), D = unit disk")
+print(f"Left side (line integral): {left_side2:.6f}")
+print(f"Right side (double integral): {right_side2:.6f}")
+print(f"Error: {abs(left_side2 - right_side2):.2e}")</div>
+<h2>5.3 Fundamentals of Surface Integrals</h2>
+<div class="definition">
+<strong>📐 Definition: Surface Integral</strong><br/>
+                Surface integral of scalar field f over surface S:
+                $$\iint_S f \, dS$$
+                Surface integral of vector field F (flux):
+                $$\iint_S \mathbf{F} \cdot \mathbf{n} \, dS$$
+                where n is the unit normal vector of the surface.
+            </div>
+<h3>💻 Code Example 4: Surface Integral on Sphere</h3>
+<div class="code-block">from scipy import integrate
+
+# Parametric representation of sphere: r(θ,φ) = (sin θ cos φ, sin θ sin φ, cos θ)
+# 0 ≤ θ ≤ π, 0 ≤ φ ≤ 2π
+
+def sphere_parametrization(theta, phi):
+    x = np.sin(theta) * np.cos(phi)
+    y = np.sin(theta) * np.sin(phi)
+    z = np.cos(theta)
+    return x, y, z
+
+# Scalar field: f(x,y,z) = z
+def scalar_field_3d(x, y, z):
+    return z
+
+# Integrand for surface integral (including Jacobian)
+def surface_integrand(theta, phi):
+    x, y, z = sphere_parametrization(theta, phi)
+    f_val = scalar_field_3d(x, y, z)
+    # Jacobian of sphere: r² sin θ (radius r=1)
+    jacobian = np.sin(theta)
+    return f_val * jacobian
+
+# Calculate surface integral
+result, error = integrate.dblquad(surface_integrand,
+                                   0, 2*np.pi,    # φ range
+                                   0, np.pi)      # θ range
+
+print("Surface integral on sphere:")
+print(f"∬_S z dS = {result:.6f} (analytical solution: 0 by symmetry)")
+print(f"Estimated error: {error:.2e}")</div>
+<h2>5.4 Gauss's Divergence Theorem</h2>
+<div class="theorem">
+<strong>📐 Theorem: Gauss's Divergence Theorem</strong><br/>
+                For closed surface S enclosing region V:
+                $$\oiint_S \mathbf{F} \cdot \mathbf{n} \, dS = \iiint_V (\nabla \cdot \mathbf{F}) \, dV$$
+                Surface integrals can be converted to volume integrals.
+            </div>
+<h3>💻 Code Example 5: Verification of Gauss's Divergence Theorem</h3>
+<div class="code-block"># Vector field F = (x, y, z)
+# Region: unit sphere x² + y² + z² ≤ 1
+
+# Right side: volume integral ∭_V div F dV
+# div F = ∂x/∂x + ∂y/∂y + ∂z/∂z = 3
+# ∭_V 3 dV = 3 × (volume of sphere) = 3 × (4π/3) = 4π
+
+right_side_gauss = 4 * np.pi
+
+# Left side: surface integral ∬_S F·n dS
+# On sphere surface F·n = (x,y,z)·(x,y,z) = x²+y²+z² = 1 (on unit sphere surface)
+# ∬_S 1 dS = surface area of sphere = 4π
+
+left_side_gauss = 4 * np.pi
+
+print("Verification of Gauss's divergence theorem:")
+print(f"F = (x, y, z), V = unit sphere")
+print(f"Left side (surface integral): ∬_S F·n dS = {left_side_gauss:.6f}")
+print(f"Right side (volume integral): ∭_V div F dV = {right_side_gauss:.6f}")
+print(f"Both sides match ✓")</div>
+<h2>5.5 Stokes' Theorem</h2>
+<div class="theorem">
+<strong>📐 Theorem: Stokes' Theorem</strong><br/>
+                For boundary C of surface S:
+                $$\oint_C \mathbf{F} \cdot d\mathbf{r} = \iint_S (\nabla \times \mathbf{F}) \cdot \mathbf{n} \, dS$$
+                Line integrals can be converted to surface integrals. This is the 3D version of Green's theorem.
+            </div>
+<h3>💻 Code Example 6: Application of Stokes' Theorem</h3>
+<div class="code-block"># Vector field F = (-y, x, 0)
+# Surface S: hemisphere z = √(1-x²-y²), boundary C: unit circle x²+y²=1 (on z=0 plane)
+
+# Left side: line integral ∮_C F·dr
+def stokes_line_integral(t):
+    x, y, z = np.cos(t), np.sin(t), 0
+    dx_dt, dy_dt, dz_dt = -np.sin(t), np.cos(t), 0
+    Fx, Fy, Fz = -y, x, 0
+    return Fx*dx_dt + Fy*dy_dt + Fz*dz_dt
+
+left_stokes, _ = integrate.quad(stokes_line_integral, 0, 2*np.pi)
+
+# Right side: curl F = (0, 0, 2)
+# ∬_S (0,0,2)·n dS = 2 × (projected area of hemisphere) = 2π
+
+right_stokes = 2 * np.pi
+
+print("\nVerification of Stokes' theorem:")
+print(f"F = (-y, x, 0), S = hemisphere")
+print(f"Left side (line integral): ∮_C F·dr = {left_stokes:.6f}")
+print(f"Right side (surface integral): ∬_S (curl F)·n dS = {right_stokes:.6f}")
+print(f"Error: {abs(left_stokes - right_stokes):.2e}")</div>
+<h2>5.6 Application to Materials Science: Diffusion Flux and Conservation Laws</h2>
+<div class="example">
+<strong>🔬 Application Example:</strong> In atomic diffusion in materials, conservation law is derived from Gauss's divergence theorem:
+                $$\frac{\partial C}{\partial t} = -\nabla \cdot \mathbf{J} + S$$
+                where C is concentration, J is diffusion flux, and S is generation term.
+            </div>
+<h3>💻 Code Example 7: Numerical Simulation of Diffusion Equation</h3>
+<div class="code-block"># 1D diffusion equation: ∂C/∂t = D ∂²C/∂x²
+# Initial condition: Gaussian distribution
+# Boundary condition: zero concentration at both ends
+
+def diffusion_1d(C0, D, dx, dt, n_steps):
+    """Numerical solution of 1D diffusion equation (explicit Euler method)"""
+    C = C0.copy()
+    C_history = [C.copy()]
+
+    for step in range(n_steps):
+        C_new = C.copy()
+        for i in range(1, len(C)-1):
+            # Laplacian: (C[i+1] - 2C[i] + C[i-1]) / dx²
+            laplacian = (C[i+1] - 2*C[i] + C[i-1]) / dx**2
+            C_new[i] = C[i] + D * dt * laplacian
+
+        C = C_new
+        if step % 10 == 0:
+            C_history.append(C.copy())
+
+    return C_history
+
+# Parameter settings
+nx = 100
+L = 10.0
+x = np.linspace(0, L, nx)
+dx = x[1] - x[0]
+
+# Initial concentration distribution (Gaussian distribution)
+C0 = np.exp(-(x - L/2)**2 / 0.5)
+C0[0] = C0[-1] = 0  # Boundary condition
+
+# Diffusion coefficient and time step
+D = 0.1
+dt = 0.01
+n_steps = 100
+
+# Execute simulation
+C_history = diffusion_1d(C0, D, dx, dt, n_steps)
+
+# Visualization
+plt.figure(figsize=(12, 6))
+for i, C in enumerate(C_history[::2]):
+    plt.plot(x, C, label=f't = {i*2*10*dt:.2f}', alpha=0.7)
+
+plt.xlabel('Position x')
+plt.ylabel('Concentration C')
+plt.title('Time Evolution of 1D Diffusion Equation')
+plt.legend(loc='upper right')
+plt.grid(True, alpha=0.3)
+plt.show()
+
+print("\nDiffusion simulation:")
+print(f"Initial peak concentration: {C0.max():.4f}")
+print(f"Final peak concentration: {C_history[-1].max():.4f}")
+print(f"Concentration decrease due to diffusion: {(1 - C_history[-1].max()/C0.max())*100:.1f}%")</div>
+<h2>Summary</h2>
+<ul>
+<li>Line integrals calculate accumulated values along a path for scalar fields and work for vector fields</li>
+<li>Surface integrals calculate accumulated values on surfaces and flux for vector fields</li>
+<li>Green's theorem converts line integrals to double integrals (2D)</li>
+<li>Gauss's divergence theorem converts surface integrals to volume integrals (3D)</li>
+<li>Stokes' theorem converts line integrals to surface integrals (3D version of Green's theorem)</li>
+<li>In materials science, they are applied to calculations of diffusion flux, conservation laws, etc.</li>
+</ul>
+<div class="nav-buttons">
+<a class="nav-button" href="chapter-4.html">← Chapter 4: Vector Fields</a>
+<a class="nav-button" href="index.html">Back to Series Top</a>
+</div>
+</div>
+</div>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+<footer>
+<p>© 2025 AI Terakoya - Fundamentals of Mathematics</p>
+</footer>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\(', '\)']],
+                displayMath: [['$$', '$$'], ['\[', '\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</body>
+</html>

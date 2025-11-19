@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 2: Distributed Machine Learning with Apache Spark - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 2: Distributed Machine Learning with Apache Spark - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/large-scale-data-processing-introduction/index.html">Large Scale Data Processing</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/ML/large-scale-data-processing-introduction/chapter2-apache-spark.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 2: Distributed Machine Learning with Apache Spark</h1>
+<p class="subtitle">Practical Foundation for Big Data ML - Accelerating Large-Scale Data Processing with Spark</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 35-40 minutes</span>
+<span class="meta-item">📊 Difficulty: Intermediate</span>
+<span class="meta-item">💻 Code Examples: 10</span>
+<span class="meta-item">📝 Exercises: 5</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter covers Distributed Machine Learning with Apache Spark. You will learn Spark architecture, Perform efficient data manipulation with Spark SQL, and distributed machine learning with Spark MLlib.</p>
+<h2>Learning Objectives</h2>
+<p>By completing this chapter, you will be able to:</p>
+<ul>
+<li>✅ Understand Spark architecture and distributed processing mechanisms</li>
+<li>✅ Use and differentiate between RDD, DataFrame, and Dataset APIs</li>
+<li>✅ Perform efficient data manipulation with Spark SQL</li>
+<li>✅ Implement distributed machine learning with Spark MLlib</li>
+<li>✅ Apply performance optimization techniques</li>
+<li>✅ Execute large-scale ML processing on real data</li>
+</ul>
+<hr/>
+<h2>2.1 Spark Architecture</h2>
+<h3>What is Apache Spark?</h3>
+<p><strong>Apache Spark</strong> is a fast distributed processing framework for large-scale data. It achieves speeds over 100 times faster than MapReduce and supports machine learning, stream processing, and graph processing.</p>
+<blockquote>
+<p>"The successor to MapReduce" - In-memory processing dramatically accelerates iterative operations.</p>
+</blockquote>
+<h3>Key Spark Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+<th>Features</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Spark Core</strong></td>
+<td>Basic processing engine</td>
+<td>RDD, task scheduling</td>
+</tr>
+<tr>
+<td><strong>Spark SQL</strong></td>
+<td>Structured data processing</td>
+<td>DataFrame, SQL queries</td>
+</tr>
+<tr>
+<td><strong>Spark MLlib</strong></td>
+<td>Machine learning</td>
+<td>Distributed ML, pipelines</td>
+</tr>
+<tr>
+<td><strong>Spark Streaming</strong></td>
+<td>Stream processing</td>
+<td>Real-time data processing</td>
+</tr>
+<tr>
+<td><strong>GraphX</strong></td>
+<td>Graph processing</td>
+<td>Network analysis</td>
+</tr>
+</tbody>
+</table>
+<h3>Driver and Executor Relationship</h3>
+<div class="mermaid">
+graph TB
+    subgraph "Driver Program"
+        A[SparkContext]
+        B[DAG Scheduler]
+        C[Task Scheduler]
+    end
+
+    subgraph "Cluster Manager"
+        D[YARN / Mesos / K8s]
+    end
+
+    subgraph "Worker Node 1"
+        E1[Executor 1]
+        E2[Task]
+        E3[Cache]
+    end
+
+    subgraph "Worker Node 2"
+        F1[Executor 2]
+        F2[Task]
+        F3[Cache]
+    end
+
+    subgraph "Worker Node N"
+        G1[Executor N]
+        G2[Task]
+        G3[Cache]
+    end
+
+    A --&gt; B
+    B --&gt; C
+    C --&gt; D
+    D --&gt; E1
+    D --&gt; F1
+    D --&gt; G1
+
+    style A fill:#e3f2fd
+    style D fill:#fff3e0
+    style E1 fill:#e8f5e9
+    style F1 fill:#e8f5e9
+    style G1 fill:#e8f5e9
+</div>
+<h3>Lazy Evaluation</h3>
+<p>Spark distinguishes between <strong>Transformations</strong> and <strong>Actions</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Transformation</strong></td>
+<td>Returns new RDD/DataFrame<br/>Lazy evaluation (computation not executed)</td>
+<td><code>map()</code>, <code>filter()</code>, <code>groupBy()</code></td>
+</tr>
+<tr>
+<td><strong>Action</strong></td>
+<td>Returns result or saves<br/>Eager evaluation (actual computation executed)</td>
+<td><code>count()</code>, <code>collect()</code>, <code>save()</code></td>
+</tr>
+</tbody>
+</table>
+<h3>DAG Execution Model</h3>
+<div class="mermaid">
+graph LR
+    A[Load Data] --&gt; B[filter]
+    B --&gt; C[map]
+    C --&gt; D[reduceByKey]
+    D --&gt; E[collect]
+
+    style A fill:#e3f2fd
+    style E fill:#ffebee
+    style B fill:#f3e5f5
+    style C fill:#f3e5f5
+    style D fill:#f3e5f5
+
+    classDef transformation fill:#f3e5f5
+    classDef action fill:#ffebee
+</div>
+<p><strong>Transformations</strong> build an execution plan (DAG), and when an <strong>Action</strong> is called, optimized computation is executed.</p>
+<h3>Initializing a Spark Session</h3>
+<pre><code class="language-python">from pyspark.sql import SparkSession
+
+# Create Spark session
+spark = SparkSession.builder \
+    .appName("SparkMLExample") \
+    .master("local[*]") \
+    .config("spark.driver.memory", "4g") \
+    .config("spark.executor.memory", "4g") \
+    .getOrCreate()
+
+print(f"Spark Version: {spark.version}")
+print(f"Spark Master: {spark.sparkContext.master}")
+print(f"App Name: {spark.sparkContext.appName}")
+
+# Check Spark session configuration
+spark.sparkContext.getConf().getAll()
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Spark Version: 3.5.0
+Spark Master: local[*]
+App Name: SparkMLExample
+</code></pre>
+<blockquote>
+<p><strong>Important</strong>: <code>local[*]</code> runs in local mode using all CPU cores. In cluster mode, specify <code>yarn</code> or <code>k8s://</code>.</p>
+</blockquote>
+<hr/>
+<h2>2.2 RDD (Resilient Distributed Datasets)</h2>
+<h3>What are RDDs?</h3>
+<p><strong>RDD (Resilient Distributed Dataset)</strong> is Spark's fundamental data abstraction - an immutable object representing a distributed collection.</p>
+<h4>Three Properties of RDDs</h4>
+<ol>
+<li><strong>Resilient</strong>: Automatic recovery from failures through lineage</li>
+<li><strong>Distributed</strong>: Data is distributed across the cluster</li>
+<li><strong>Dataset</strong>: Immutable collection in memory</li>
+</ol>
+<h3>Basic RDD Operations</h3>
+<h4>Creating RDDs</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pyspark&gt;=3.4.0
+
+"""
+Example: Creating RDDs
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Beginner
+Execution time: ~5 seconds
+Dependencies: None
+"""
+
+from pyspark import SparkContext
+
+# Get SparkContext (from SparkSession)
+sc = spark.sparkContext
+
+# Method 1: Create from Python list
+data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+rdd = sc.parallelize(data, numSlices=4)  # Split into 4 partitions
+
+print(f"Number of partitions: {rdd.getNumPartitions()}")
+print(f"First 5 elements: {rdd.take(5)}")
+
+# Method 2: Create from text file
+# text_rdd = sc.textFile("hdfs://path/to/file.txt")
+
+# Method 3: Create from multiple files
+# multi_rdd = sc.wholeTextFiles("hdfs://path/to/directory/")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Number of partitions: 4
+First 5 elements: [1, 2, 3, 4, 5]
+</code></pre>
+<h3>Transformations</h3>
+<pre><code class="language-python"># Prepare data
+numbers = sc.parallelize(range(1, 11))
+
+# map: Apply function to each element
+squares = numbers.map(lambda x: x ** 2)
+print(f"Squares: {squares.collect()}")
+
+# filter: Extract elements matching condition
+evens = numbers.filter(lambda x: x % 2 == 0)
+print(f"Evens: {evens.collect()}")
+
+# flatMap: Expand each element to multiple elements
+words = sc.parallelize(["Hello World", "Apache Spark"])
+all_words = words.flatMap(lambda line: line.split(" "))
+print(f"Words: {all_words.collect()}")
+
+# union: Combine two RDDs
+rdd1 = sc.parallelize([1, 2, 3])
+rdd2 = sc.parallelize([4, 5, 6])
+combined = rdd1.union(rdd2)
+print(f"Combined: {combined.collect()}")
+
+# distinct: Remove duplicates
+duplicates = sc.parallelize([1, 2, 2, 3, 3, 3, 4])
+unique = duplicates.distinct()
+print(f"Unique: {unique.collect()}")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Squares: [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
+Evens: [2, 4, 6, 8, 10]
+Words: ['Hello', 'World', 'Apache', 'Spark']
+Combined: [1, 2, 3, 4, 5, 6]
+Unique: [1, 2, 3, 4]
+</code></pre>
+<h3>Key-Value RDD Operations</h3>
+<pre><code class="language-python"># Create pair RDD
+pairs = sc.parallelize([("apple", 3), ("banana", 2), ("apple", 5), ("orange", 1)])
+
+# reduceByKey: Aggregate values by key
+total_by_key = pairs.reduceByKey(lambda a, b: a + b)
+print(f"Total by key: {total_by_key.collect()}")
+
+# groupByKey: Group values by key
+grouped = pairs.groupByKey()
+print(f"Grouped: {[(k, list(v)) for k, v in grouped.collect()]}")
+
+# mapValues: Apply function to values only
+doubled_values = pairs.mapValues(lambda x: x * 2)
+print(f"Doubled values: {doubled_values.collect()}")
+
+# sortByKey: Sort by key
+sorted_pairs = pairs.sortByKey()
+print(f"Sorted: {sorted_pairs.collect()}")
+
+# join: Join two pair RDDs
+prices = sc.parallelize([("apple", 100), ("banana", 80), ("orange", 60)])
+joined = pairs.join(prices)
+print(f"Joined: {joined.collect()}")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Total by key: [('apple', 8), ('banana', 2), ('orange', 1)]
+Grouped: [('apple', [3, 5]), ('banana', [2]), ('orange', [1])]
+Doubled values: [('apple', 6), ('banana', 4), ('apple', 10), ('orange', 2)]
+Sorted: [('apple', 3), ('apple', 5), ('banana', 2), ('orange', 1)]
+Joined: [('apple', (3, 100)), ('apple', (5, 100)), ('banana', (2, 80)), ('orange', (1, 60))]
+</code></pre>
+<h3>Actions</h3>
+<pre><code class="language-python">numbers = sc.parallelize(range(1, 11))
+
+# count: Count elements
+print(f"Count: {numbers.count()}")
+
+# collect: Get all elements (caution: only for data that fits in memory)
+print(f"All elements: {numbers.collect()}")
+
+# take: Get first n elements
+print(f"First 3 elements: {numbers.take(3)}")
+
+# first: Get first element
+print(f"First element: {numbers.first()}")
+
+# reduce: Aggregate all elements
+sum_all = numbers.reduce(lambda a, b: a + b)
+print(f"Sum: {sum_all}")
+
+# foreach: Execute side-effect operation on each element
+numbers.foreach(lambda x: print(f"Processing: {x}"))
+
+# saveAsTextFile: Save to file
+# numbers.saveAsTextFile("output/numbers")
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>Count: 10
+All elements: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+First 3 elements: [1, 2, 3]
+First element: 1
+Sum: 55
+</code></pre>
+<h3>Lineage and Fault Tolerance</h3>
+<pre><code class="language-python"># Check RDD lineage
+numbers = sc.parallelize(range(1, 101))
+squares = numbers.map(lambda x: x ** 2)
+evens = squares.filter(lambda x: x % 2 == 0)
+
+# Display lineage with debug string
+print("RDD Lineage:")
+print(evens.toDebugString().decode('utf-8'))
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>RDD Lineage:
+(4) PythonRDD[10] at RDD at PythonRDD.scala:53 []
+ |  MapPartitionsRDD[9] at mapPartitions at PythonRDD.scala:145 []
+ |  MapPartitionsRDD[8] at mapPartitions at PythonRDD.scala:145 []
+ |  ParallelCollectionRDD[7] at parallelize at PythonRDD.scala:195 []
+</code></pre>
+<blockquote>
+<p><strong>Important</strong>: Spark records lineage, and in case of node failure, it automatically recomputes data from this lineage.</p>
+</blockquote>
+<hr/>
+<h2>2.3 Spark DataFrames and SQL</h2>
+<h3>What are DataFrames?</h3>
+<p><strong>DataFrames</strong> are distributed datasets with named columns, providing faster and more user-friendly APIs than RDDs.</p>
+<h4>Advantages of DataFrames</h4>
+<ul>
+<li><strong>Catalyst Optimizer</strong>: Query optimization for faster execution</li>
+<li><strong>Tungsten execution engine</strong>: Improved memory efficiency</li>
+<li><strong>Schema information</strong>: Type safety and optimization</li>
+<li><strong>SQL compatibility</strong>: Can use SQL queries</li>
+</ul>
+<h3>Creating DataFrames</h3>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Creating DataFrames
+
+Purpose: Demonstrate data manipulation and preprocessing
+Target: Beginner to Intermediate
+Execution time: ~5 seconds
+Dependencies: None
+"""
+
+from pyspark.sql import Row
+import pandas as pd
+
+# Method 1: Create from Python list
+data = [
+    ("Alice", 25, "Engineer"),
+    ("Bob", 30, "Data Scientist"),
+    ("Charlie", 35, "Manager"),
+    ("Diana", 28, "Analyst")
+]
+columns = ["name", "age", "job"]
+df = spark.createDataFrame(data, columns)
+
+# Check data
+df.show()
+df.printSchema()
+
+# Method 2: Create from Row objects
+rows = [
+    Row(name="Eve", age=32, job="Developer"),
+    Row(name="Frank", age=29, job="Designer")
+]
+df2 = spark.createDataFrame(rows)
+
+# Method 3: Create from Pandas DataFrame
+pandas_df = pd.DataFrame({
+    'name': ['Grace', 'Henry'],
+    'age': [27, 31],
+    'job': ['Researcher', 'Architect']
+})
+df3 = spark.createDataFrame(pandas_df)
+
+# Method 4: Read from CSV file
+# df_csv = spark.read.csv("data.csv", header=True, inferSchema=True)
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>+-------+---+---------------+
+|   name|age|            job|
++-------+---+---------------+
+|  Alice| 25|       Engineer|
+|    Bob| 30|Data Scientist|
+|Charlie| 35|        Manager|
+|  Diana| 28|        Analyst|
++-------+---+---------------+
+
+root
+ |-- name: string (nullable = true)
+ |-- age: long (nullable = true)
+ |-- job: string (nullable = true)
+</code></pre>
+<h3>DataFrame Operations</h3>
+<h4>Selection and Filtering</h4>
+<pre><code class="language-python"># Column selection
+df.select("name", "age").show()
+
+# Filtering by condition
+df.filter(df.age &gt; 28).show()
+
+# where (alias for filter)
+df.where(df.job == "Engineer").show()
+
+# Multiple conditions
+df.filter((df.age &gt; 25) &amp; (df.age &lt; 32)).show()
+
+# Add new column
+from pyspark.sql.functions import col, lit
+
+df_with_salary = df.withColumn("salary", col("age") * 1000)
+df_with_salary.show()
+
+# Rename column
+df_renamed = df.withColumnRenamed("job", "position")
+df_renamed.show()
+
+# Drop column
+df_dropped = df.drop("job")
+df_dropped.show()
+</code></pre>
+<h3>Aggregation and Grouping</h3>
+<pre><code class="language-python">from pyspark.sql.functions import avg, count, max, min, sum
+
+# Prepare data
+sales_data = [
+    ("Alice", "2024-01", 100),
+    ("Alice", "2024-02", 150),
+    ("Bob", "2024-01", 200),
+    ("Bob", "2024-02", 180),
+    ("Charlie", "2024-01", 120),
+    ("Charlie", "2024-02", 140)
+]
+sales_df = spark.createDataFrame(sales_data, ["name", "month", "sales"])
+
+# Group and aggregate
+sales_summary = sales_df.groupBy("name").agg(
+    sum("sales").alias("total_sales"),
+    avg("sales").alias("avg_sales"),
+    count("sales").alias("num_months")
+)
+sales_summary.show()
+
+# Group by multiple columns
+monthly_stats = sales_df.groupBy("name", "month").agg(
+    max("sales").alias("max_sales"),
+    min("sales").alias("min_sales")
+)
+monthly_stats.show()
+
+# Pivot table
+pivot_df = sales_df.groupBy("name").pivot("month").sum("sales")
+pivot_df.show()
+</code></pre>
+<p><strong>Output</strong>:</p>
+<pre><code>+-------+-----------+---------+----------+
+|   name|total_sales|avg_sales|num_months|
++-------+-----------+---------+----------+
+|  Alice|        250|    125.0|         2|
+|    Bob|        380|    190.0|         2|
+|Charlie|        260|    130.0|         2|
++-------+-----------+---------+----------+
+</code></pre>
+<h3>Using Spark SQL</h3>
+<pre><code class="language-python"># Register DataFrame as temporary view
+df.createOrReplaceTempView("employees")
+
+# Execute SQL query
+sql_result = spark.sql("""
+    SELECT
+        job,
+        COUNT(*) as num_employees,
+        AVG(age) as avg_age,
+        MAX(age) as max_age,
+        MIN(age) as min_age
+    FROM employees
+    GROUP BY job
+    ORDER BY avg_age DESC
+""")
+
+sql_result.show()
+
+# Complex SQL query
+advanced_query = spark.sql("""
+    SELECT
+        name,
+        age,
+        job,
+        CASE
+            WHEN age &lt; 28 THEN 'Junior'
+            WHEN age &gt;= 28 AND age &lt; 32 THEN 'Mid-level'
+            ELSE 'Senior'
+        END as level
+    FROM employees
+    WHERE age &gt; 25
+    ORDER BY age
+""")
+
+advanced_query.show()
+</code></pre>
+<h3>Join Operations</h3>
+<pre><code class="language-python"># Prepare data
+employees = spark.createDataFrame([
+    (1, "Alice", "Engineering"),
+    (2, "Bob", "Data Science"),
+    (3, "Charlie", "Management")
+], ["id", "name", "department"])
+
+salaries = spark.createDataFrame([
+    (1, 80000),
+    (2, 95000),
+    (4, 70000)  # id=4 doesn't exist in employees table
+], ["id", "salary"])
+
+# Inner Join
+inner_join = employees.join(salaries, "id", "inner")
+print("Inner Join:")
+inner_join.show()
+
+# Left Outer Join
+left_join = employees.join(salaries, "id", "left")
+print("Left Outer Join:")
+left_join.show()
+
+# Right Outer Join
+right_join = employees.join(salaries, "id", "right")
+print("Right Outer Join:")
+right_join.show()
+
+# Full Outer Join
+full_join = employees.join(salaries, "id", "outer")
+print("Full Outer Join:")
+full_join.show()
+</code></pre>
+<p><strong>Output (Inner Join)</strong>:</p>
+<pre><code>+---+-----+-------------+------+
+| id| name|   department|salary|
++---+-----+-------------+------+
+|  1|Alice|  Engineering| 80000|
+|  2|  Bob| Data Science| 95000|
++---+-----+-------------+------+
+</code></pre>
+<h3>Catalyst Optimizer Effects</h3>
+<pre><code class="language-python"># Check query execution plan
+df_filtered = df.filter(df.age &gt; 25).select("name", "age")
+
+# Physical execution plan
+print("Physical Plan:")
+df_filtered.explain(mode="formatted")
+
+# Logical plan before optimization
+print("\nLogical Plan:")
+df_filtered.explain(mode="extended")
+</code></pre>
+<blockquote>
+<p><strong>Important</strong>: Catalyst automatically applies optimizations such as predicate pushdown, column pruning, and constant folding.</p>
+</blockquote>
+<hr/>
+<h2>2.4 Spark MLlib (Machine Learning)</h2>
+<h3>What is MLlib?</h3>
+<p><strong>Spark MLlib</strong> is Spark's distributed machine learning library that efficiently executes training on large-scale data.</p>
+<h4>Key MLlib Features</h4>
+<ul>
+<li><strong>Classification</strong>: Logistic regression, decision trees, random forest, GBT</li>
+<li><strong>Regression</strong>: Linear regression, regression trees, generalized linear models</li>
+<li><strong>Clustering</strong>: K-Means, GMM, LDA</li>
+<li><strong>Collaborative Filtering</strong>: ALS (Alternating Least Squares)</li>
+<li><strong>Dimensionality Reduction</strong>: PCA, SVD</li>
+<li><strong>Feature Transformation</strong>: VectorAssembler, StringIndexer, OneHotEncoder</li>
+</ul>
+<h3>ML Pipeline Basics</h3>
+<div class="mermaid">
+graph LR
+    A[Raw Data] --&gt; B[StringIndexer]
+    B --&gt; C[VectorAssembler]
+    C --&gt; D[StandardScaler]
+    D --&gt; E[Classifier]
+    E --&gt; F[Predictions]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#fff3e0
+    style D fill:#fff3e0
+    style E fill:#f3e5f5
+    style F fill:#e8f5e9
+</div>
+<h3>Implementing Classification Tasks</h3>
+<pre><code class="language-python">from pyspark.ml.feature import VectorAssembler, StringIndexer
+from pyspark.ml.classification import LogisticRegression, RandomForestClassifier
+from pyspark.ml.evaluation import BinaryClassificationEvaluator, MulticlassClassificationEvaluator
+from pyspark.ml import Pipeline
+
+# Generate sample data
+from pyspark.sql.functions import rand, when
+
+# Generate data with structure similar to Iris dataset
+data = spark.range(0, 1000).select(
+    (rand() * 3 + 4).alias("sepal_length"),
+    (rand() * 2 + 2).alias("sepal_width"),
+    (rand() * 3 + 1).alias("petal_length"),
+    (rand() * 2 + 0.1).alias("petal_width")
+)
+
+# Create target variable
+data = data.withColumn(
+    "species",
+    when((data.petal_length &lt; 2), "setosa")
+    .when((data.petal_length &gt;= 2) &amp; (data.petal_length &lt; 4), "versicolor")
+    .otherwise("virginica")
+)
+
+# Check data
+data.show(10)
+data.groupBy("species").count().show()
+
+# Train-test split
+train_data, test_data = data.randomSplit([0.8, 0.2], seed=42)
+
+print(f"Training data: {train_data.count()} rows")
+print(f"Test data: {test_data.count()} rows")
+</code></pre>
+<h3>Feature Transformation Pipeline</h3>
+<pre><code class="language-python"># Stage 1: Convert categorical variable to index
+label_indexer = StringIndexer(
+    inputCol="species",
+    outputCol="label"
+)
+
+# Stage 2: Combine features into vector
+feature_columns = ["sepal_length", "sepal_width", "petal_length", "petal_width"]
+vector_assembler = VectorAssembler(
+    inputCols=feature_columns,
+    outputCol="features"
+)
+
+# Stage 3: Logistic regression model
+lr = LogisticRegression(
+    featuresCol="features",
+    labelCol="label",
+    maxIter=100,
+    regParam=0.01
+)
+
+# Build pipeline
+pipeline = Pipeline(stages=[label_indexer, vector_assembler, lr])
+
+# Train model
+print("Starting model training...")
+model = pipeline.fit(train_data)
+print("Training complete")
+
+# Make predictions
+predictions = model.transform(test_data)
+
+# Check prediction results
+predictions.select("species", "label", "features", "prediction", "probability").show(10, truncate=False)
+</code></pre>
+<h3>Model Evaluation</h3>
+<pre><code class="language-python"># Multi-class classification evaluation
+multi_evaluator = MulticlassClassificationEvaluator(
+    labelCol="label",
+    predictionCol="prediction"
+)
+
+# Accuracy
+accuracy = multi_evaluator.evaluate(predictions, {multi_evaluator.metricName: "accuracy"})
+print(f"Accuracy: {accuracy:.4f}")
+
+# F1 score
+f1 = multi_evaluator.evaluate(predictions, {multi_evaluator.metricName: "f1"})
+print(f"F1 Score: {f1:.4f}")
+
+# Weighted precision
+weighted_precision = multi_evaluator.evaluate(
+    predictions,
+    {multi_evaluator.metricName: "weightedPrecision"}
+)
+print(f"Weighted Precision: {weighted_precision:.4f}")
+
+# Weighted recall
+weighted_recall = multi_evaluator.evaluate(
+    predictions,
+    {multi_evaluator.metricName: "weightedRecall"}
+)
+print(f"Weighted Recall: {weighted_recall:.4f}")
+
+# Calculate confusion matrix
+from pyspark.ml.evaluation import MulticlassMetrics
+prediction_and_labels = predictions.select("prediction", "label").rdd
+metrics = MulticlassMetrics(prediction_and_labels)
+
+print("\nConfusion Matrix:")
+print(metrics.confusionMatrix().toArray())
+</code></pre>
+<h3>Implementing Regression Tasks</h3>
+<pre><code class="language-python">from pyspark.ml.regression import LinearRegression, RandomForestRegressor
+from pyspark.ml.evaluation import RegressionEvaluator
+
+# Generate regression sample data
+regression_data = spark.range(0, 1000).select(
+    (rand() * 100).alias("feature1"),
+    (rand() * 50).alias("feature2"),
+    (rand() * 30).alias("feature3")
+)
+
+# Target variable (linear relationship + noise)
+from pyspark.sql.functions import col
+regression_data = regression_data.withColumn(
+    "target",
+    col("feature1") * 2 + col("feature2") * 1.5 - col("feature3") * 0.5 + (rand() * 10 - 5)
+)
+
+# Train-test split
+train_reg, test_reg = regression_data.randomSplit([0.8, 0.2], seed=42)
+
+# Create feature vector
+feature_cols = ["feature1", "feature2", "feature3"]
+assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
+
+# Linear regression model
+lr_regressor = LinearRegression(
+    featuresCol="features",
+    labelCol="target",
+    maxIter=100,
+    regParam=0.1,
+    elasticNetParam=0.5  # L1/L2 regularization mix ratio
+)
+
+# Build pipeline
+regression_pipeline = Pipeline(stages=[assembler, lr_regressor])
+
+# Train
+regression_model = regression_pipeline.fit(train_reg)
+
+# Make predictions
+regression_predictions = regression_model.transform(test_reg)
+
+# Evaluation
+reg_evaluator = RegressionEvaluator(
+    labelCol="target",
+    predictionCol="prediction"
+)
+
+rmse = reg_evaluator.evaluate(regression_predictions, {reg_evaluator.metricName: "rmse"})
+mae = reg_evaluator.evaluate(regression_predictions, {reg_evaluator.metricName: "mae"})
+r2 = reg_evaluator.evaluate(regression_predictions, {reg_evaluator.metricName: "r2"})
+
+print(f"\n=== Regression Model Evaluation ===")
+print(f"RMSE: {rmse:.4f}")
+print(f"MAE: {mae:.4f}")
+print(f"R²: {r2:.4f}")
+
+# Model coefficients
+lr_model = regression_model.stages[-1]
+print(f"\nCoefficients: {lr_model.coefficients}")
+print(f"Intercept: {lr_model.intercept:.4f}")
+</code></pre>
+<h3>Random Forest Classification</h3>
+<pre><code class="language-python">from pyspark.ml.classification import RandomForestClassifier
+
+# Random forest model
+rf = RandomForestClassifier(
+    featuresCol="features",
+    labelCol="label",
+    numTrees=100,
+    maxDepth=10,
+    seed=42
+)
+
+# Pipeline (feature transformation + RF)
+rf_pipeline = Pipeline(stages=[label_indexer, vector_assembler, rf])
+
+# Train
+print("Starting random forest training...")
+rf_model = rf_pipeline.fit(train_data)
+print("Training complete")
+
+# Make predictions
+rf_predictions = rf_model.transform(test_data)
+
+# Evaluation
+rf_accuracy = multi_evaluator.evaluate(
+    rf_predictions,
+    {multi_evaluator.metricName: "accuracy"}
+)
+rf_f1 = multi_evaluator.evaluate(
+    rf_predictions,
+    {multi_evaluator.metricName: "f1"}
+)
+
+print(f"\n=== Random Forest Evaluation ===")
+print(f"Accuracy: {rf_accuracy:.4f}")
+print(f"F1 Score: {rf_f1:.4f}")
+
+# Feature importances
+rf_classifier = rf_model.stages[-1]
+feature_importances = rf_classifier.featureImportances
+
+print("\nFeature Importances:")
+for idx, importance in enumerate(feature_importances):
+    print(f"{feature_columns[idx]}: {importance:.4f}")
+</code></pre>
+<h3>Cross-Validation and Hyperparameter Tuning</h3>
+<pre><code class="language-python">from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
+
+# Build parameter grid
+param_grid = ParamGridBuilder() \
+    .addGrid(lr.regParam, [0.001, 0.01, 0.1]) \
+    .addGrid(lr.maxIter, [50, 100, 150]) \
+    .build()
+
+# Configure cross-validation
+cv = CrossValidator(
+    estimator=pipeline,
+    estimatorParamMaps=param_grid,
+    evaluator=multi_evaluator,
+    numFolds=3,
+    seed=42
+)
+
+# Execute cross-validation
+print("Starting cross-validation...")
+cv_model = cv.fit(train_data)
+print("Complete")
+
+# Predict with best model
+cv_predictions = cv_model.transform(test_data)
+
+# Check best parameters
+best_model = cv_model.bestModel
+print("\nBest Parameters:")
+print(best_model.stages[-1].extractParamMap())
+
+# Evaluation
+cv_accuracy = multi_evaluator.evaluate(
+    cv_predictions,
+    {multi_evaluator.metricName: "accuracy"}
+)
+print(f"\nAccuracy after CV: {cv_accuracy:.4f}")
+</code></pre>
+<hr/>
+<h2>2.5 Performance Optimization</h2>
+<h3>Partitioning Strategies</h3>
+<p>Proper partitioning significantly affects Spark performance.</p>
+<h4>Determining Partition Count</h4>
+<pre><code class="language-python"># Default partition count
+print(f"Default partition count: {spark.sparkContext.defaultParallelism}")
+
+# Check RDD partition count
+rdd = sc.parallelize(range(1000))
+print(f"RDD partition count: {rdd.getNumPartitions()}")
+
+# Check DataFrame partition count
+df = spark.range(10000)
+print(f"DataFrame partition count: {df.rdd.getNumPartitions()}")
+
+# Reset partition count
+rdd_repartitioned = rdd.repartition(8)
+print(f"After repartitioning: {rdd_repartitioned.getNumPartitions()}")
+
+# coalesce: Reduce partition count (without shuffle)
+rdd_coalesced = rdd.coalesce(4)
+print(f"After coalesce: {rdd_coalesced.getNumPartitions()}")
+</code></pre>
+<blockquote>
+<p><strong>Recommendation</strong>: Partition count guideline is (CPU cores × 2-3).</p>
+</blockquote>
+<h4>Custom Partitioner</h4>
+<pre><code class="language-python"># Hash partitioning with key-value pairs
+pairs = sc.parallelize([("A", 1), ("B", 2), ("A", 3), ("C", 4), ("B", 5)])
+
+# Hash partitioning
+hash_partitioned = pairs.partitionBy(4)
+print(f"Hash partition count: {hash_partitioned.getNumPartitions()}")
+
+# Check contents of each partition
+def show_partition_contents(index, iterator):
+    yield f"Partition {index}: {list(iterator)}"
+
+partition_contents = hash_partitioned.mapPartitionsWithIndex(show_partition_contents)
+for content in partition_contents.collect():
+    print(content)
+</code></pre>
+<h3>Caching and Persistence</h3>
+<h4>Memory Caching</h4>
+<pre><code class="language-python"># Cache DataFrame
+df_large = spark.range(0, 10000000)
+
+# Cache (default: memory only)
+df_large.cache()
+
+# First action creates cache
+count1 = df_large.count()
+print(f"First count (creating cache): {count1}")
+
+# Second time onwards uses cache (fast)
+count2 = df_large.count()
+print(f"Second count (using cache): {count2}")
+
+# Release cache
+df_large.unpersist()
+</code></pre>
+<h4>Choosing Persistence Level</h4>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pyspark&gt;=3.4.0
+
+"""
+Example: Choosing Persistence Level
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Beginner
+Execution time: ~5 seconds
+Dependencies: None
+"""
+
+from pyspark import StorageLevel
+
+# RDD persistence level
+rdd = sc.parallelize(range(1000000))
+
+# Use both memory and disk
+rdd.persist(StorageLevel.MEMORY_AND_DISK)
+
+# Serialize and store in memory (improved memory efficiency)
+rdd.persist(StorageLevel.MEMORY_ONLY_SER)
+
+# Replication (improved fault tolerance)
+rdd.persist(StorageLevel.MEMORY_AND_DISK_2)
+
+print(f"Storage level: {rdd.getStorageLevel()}")
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Storage Level</th>
+<th>Description</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MEMORY_ONLY</code></td>
+<td>Memory only (default)</td>
+<td>When sufficient memory available</td>
+</tr>
+<tr>
+<td><code>MEMORY_AND_DISK</code></td>
+<td>Memory → spill to disk</td>
+<td>Large-scale data</td>
+</tr>
+<tr>
+<td><code>MEMORY_ONLY_SER</code></td>
+<td>Serialize and store in memory</td>
+<td>Memory efficiency priority</td>
+</tr>
+<tr>
+<td><code>DISK_ONLY</code></td>
+<td>Disk only</td>
+<td>Memory shortage</td>
+</tr>
+<tr>
+<td><code>OFF_HEAP</code></td>
+<td>Off-heap memory</td>
+<td>Avoid GC</td>
+</tr>
+</tbody>
+</table>
+<h3>Broadcast Variables</h3>
+<pre><code class="language-python"># Distribute small dataset to all nodes
+lookup_table = {"A": 100, "B": 200, "C": 300, "D": 400}
+
+# Broadcast
+broadcast_lookup = sc.broadcast(lookup_table)
+
+# Use broadcast variable in RDD
+data = sc.parallelize([("A", 1), ("B", 2), ("C", 3), ("A", 4)])
+
+def enrich_data(pair):
+    key, value = pair
+    # Reference broadcast variable
+    multiplier = broadcast_lookup.value.get(key, 1)
+    return (key, value * multiplier)
+
+enriched = data.map(enrich_data)
+print(enriched.collect())
+
+# Release broadcast variable
+broadcast_lookup.unpersist()
+</code></pre>
+<blockquote>
+<p><strong>Important</strong>: Broadcast variables significantly improve join operation performance (especially joins with small tables).</p>
+</blockquote>
+<h3>Tuning Parameters</h3>
+<h4>Spark Session Configuration</h4>
+<pre><code class="language-python"># Performance optimization settings
+spark_optimized = SparkSession.builder \
+    .appName("OptimizedSparkApp") \
+    .master("local[*]") \
+    .config("spark.driver.memory", "4g") \
+    .config("spark.executor.memory", "4g") \
+    .config("spark.executor.cores", "4") \
+    .config("spark.default.parallelism", "100") \
+    .config("spark.sql.shuffle.partitions", "100") \
+    .config("spark.sql.adaptive.enabled", "true") \
+    .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
+    .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
+    .getOrCreate()
+
+# Check configuration
+for conf in spark_optimized.sparkContext.getConf().getAll():
+    print(f"{conf[0]}: {conf[1]}")
+</code></pre>
+<h4>Key Tuning Parameters</h4>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Recommended Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spark.executor.memory</code></td>
+<td>Executor memory size</td>
+<td>70% of available memory</td>
+</tr>
+<tr>
+<td><code>spark.executor.cores</code></td>
+<td>Cores per executor</td>
+<td>4-6 cores</td>
+</tr>
+<tr>
+<td><code>spark.default.parallelism</code></td>
+<td>Default parallelism</td>
+<td>Cores × 2-3</td>
+</tr>
+<tr>
+<td><code>spark.sql.shuffle.partitions</code></td>
+<td>Partitions during shuffle</td>
+<td>100-200 (data size dependent)</td>
+</tr>
+<tr>
+<td><code>spark.sql.adaptive.enabled</code></td>
+<td>Adaptive query execution</td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>spark.serializer</code></td>
+<td>Serializer</td>
+<td><code>KryoSerializer</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Execution Plan Optimization</h3>
+<pre><code class="language-python"># DataFrame optimization example
+large_df = spark.range(0, 10000000)
+small_df = spark.range(0, 100)
+
+# Before optimization: filter on large table → join
+result_unoptimized = large_df.filter(large_df.id % 2 == 0).join(small_df, "id")
+
+# After optimization: join → filter (predicate pushdown)
+result_optimized = large_df.join(small_df, "id").filter(large_df.id % 2 == 0)
+
+# Compare execution plans
+print("Before optimization:")
+result_unoptimized.explain()
+
+print("\nAfter optimization:")
+result_optimized.explain()
+
+# Catalyst automatically optimizes, so both actually have same execution plan
+</code></pre>
+<hr/>
+<h2>2.6 Chapter Summary</h2>
+<h3>What We Learned</h3>
+<ol>
+<li><p><strong>Spark Architecture</strong></p>
+<ul>
+<li>Distributed processing with Driver-Executor model</li>
+<li>Lazy Evaluation and DAG execution</li>
+<li>Cluster managers (YARN, Mesos, K8s)</li>
+<li>Distinction between Transformations and Actions</li>
+</ul></li>
+<li><p><strong>RDD (Resilient Distributed Datasets)</strong></p>
+<ul>
+<li>Immutable, distributed, fault-tolerant collections</li>
+<li>Automatic recovery through lineage</li>
+<li>Operations like map, filter, reduceByKey</li>
+<li>Key-Value pair processing</li>
+</ul></li>
+<li><p><strong>Spark DataFrames and SQL</strong></p>
+<ul>
+<li>Faster execution through Catalyst Optimizer</li>
+<li>Type safety through schema information</li>
+<li>Integration of SQL queries and DataFrame API</li>
+<li>Efficient processing of joins, aggregations, grouping</li>
+</ul></li>
+<li><p><strong>Spark MLlib</strong></p>
+<ul>
+<li>Distributed machine learning pipelines</li>
+<li>Feature transformation and preprocessing</li>
+<li>Classification, regression, clustering</li>
+<li>Cross-validation and hyperparameter tuning</li>
+</ul></li>
+<li><p><strong>Performance Optimization</strong></p>
+<ul>
+<li>Appropriate partitioning strategies</li>
+<li>Caching and persistence levels</li>
+<li>Join optimization with broadcast variables</li>
+<li>Tuning parameter configuration</li>
+</ul></li>
+</ol>
+<h3>Spark Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>API Selection</strong></td>
+<td>DataFrame/Dataset &gt; RDD (optimization benefits)</td>
+</tr>
+<tr>
+<td><strong>Partitioning</strong></td>
+<td>Appropriate count (cores × 2-3), even distribution</td>
+</tr>
+<tr>
+<td><strong>Caching</strong></td>
+<td>Cache only reused intermediate results</td>
+</tr>
+<tr>
+<td><strong>Shuffle Reduction</strong></td>
+<td>Avoid unnecessary groupByKey, use reduceByKey</td>
+</tr>
+<tr>
+<td><strong>Broadcast</strong></td>
+<td>Utilize for joins with small tables</td>
+</tr>
+<tr>
+<td><strong>Memory Management</strong></td>
+<td>Appropriate Executor memory configuration</td>
+</tr>
+</tbody>
+</table>
+<h3>Next Chapter</h3>
+<p>In Chapter 3, we'll learn about <strong>Distributed Deep Learning Frameworks</strong>:</p>
+<ul>
+<li>Distributed training with Horovod</li>
+<li>TensorFlow and PyTorch distributed strategies</li>
+<li>Massively parallel processing with Ray</li>
+<li>Experiment management with MLflow</li>
+<li>Distributed hyperparameter optimization</li>
+</ul>
+<hr/>
+<h2>Exercises</h2>
+<h3>Exercise 1 (Difficulty: Easy)</h3>
+<p>Explain the difference between Transformations and Actions in Spark, and provide three examples of each.</p>
+<details>
+<summary>Sample Answer</summary>
+<p><strong>Answer</strong>:</p>
+<p><strong>Transformation</strong>:</p>
+<ul>
+<li>Definition: Operations that return a new RDD/DataFrame and are lazily evaluated</li>
+<li>Characteristics: Actual computation is not executed, an execution plan (DAG) is built</li>
+<li>Examples:
+<ol>
+<li><code>map()</code> - Apply function to each element</li>
+<li><code>filter()</code> - Extract elements matching condition</li>
+<li><code>groupBy()</code> - Group by key</li>
+</ol></li>
+</ul>
+<p><strong>Action</strong>:</p>
+<ul>
+<li>Definition: Operations that return results or save, eagerly evaluated</li>
+<li>Characteristics: Actual computation is executed, data is returned to Driver or storage</li>
+<li>Examples:
+<ol>
+<li><code>count()</code> - Count elements</li>
+<li><code>collect()</code> - Retrieve all elements</li>
+<li><code>saveAsTextFile()</code> - Save to file</li>
+</ol></li>
+</ul>
+<p><strong>Importance of Difference</strong>:</p>
+<p>Transformations are fast because they only build the DAG. When an Action is called, Spark executes computation with an optimized execution plan.</p>
+</details>
+<h3>Exercise 2 (Difficulty: Medium)</h3>
+<p>What problems might occur when executing the following code? How should it be fixed?</p>
+<pre><code class="language-python">rdd = sc.parallelize(range(1, 1000000))
+result = rdd.map(lambda x: x ** 2).collect()
+print(result)
+</code></pre>
+<details>
+<summary>Sample Answer</summary>
+<p><strong>Problems</strong>:</p>
+<ol>
+<li><strong>Out of memory</strong>: <code>collect()</code> gathers all data into Driver memory, potentially causing out-of-memory with 1 million elements</li>
+<li><strong>Performance degradation</strong>: Loses benefits of distributed processing</li>
+<li><strong>Network load</strong>: Large data transfer from Executors to Driver</li>
+</ol>
+<p><strong>Fixes</strong>:</p>
+<pre><code class="language-python"># Method 1: Get only necessary elements
+rdd = sc.parallelize(range(1, 1000000))
+result = rdd.map(lambda x: x ** 2).take(10)  # Only first 10 elements
+print(result)
+
+# Method 2: Save to file
+rdd.map(lambda x: x ** 2).saveAsTextFile("output/squares")
+
+# Method 3: Use aggregation operation
+total = rdd.map(lambda x: x ** 2).sum()
+print(f"Sum: {total}")
+
+# Method 4: Sampling
+sample = rdd.map(lambda x: x ** 2).sample(False, 0.01).collect()
+print(f"Sample: {sample[:10]}")
+</code></pre>
+<p><strong>Best Practices</strong>:</p>
+<ul>
+<li>Use <code>collect()</code> only for small datasets (few thousand rows or less)</li>
+<li>For large-scale data, use <code>take(n)</code>, <code>sample()</code>, <code>saveAsTextFile()</code></li>
+</ul>
+</details>
+<h3>Exercise 3 (Difficulty: Medium)</h3>
+<p>Implement the following SQL query using the DataFrame API in Spark.</p>
+<pre><code class="language-sql">SELECT
+    department,
+    AVG(salary) as avg_salary,
+    MAX(salary) as max_salary,
+    COUNT(*) as num_employees
+FROM employees
+WHERE age &gt; 25
+GROUP BY department
+HAVING COUNT(*) &gt; 5
+ORDER BY avg_salary DESC
+</code></pre>
+<details>
+<summary>Sample Answer</summary>
+<pre><code class="language-python">from pyspark.sql.functions import avg, max, count, col
+
+# DataFrame API version
+result = employees \
+    .filter(col("age") &gt; 25) \
+    .groupBy("department") \
+    .agg(
+        avg("salary").alias("avg_salary"),
+        max("salary").alias("max_salary"),
+        count("*").alias("num_employees")
+    ) \
+    .filter(col("num_employees") &gt; 5) \
+    .orderBy(col("avg_salary").desc())
+
+result.show()
+
+# Alternative notation (method chaining)
+result_alt = (employees
+    .where("age &gt; 25")
+    .groupBy("department")
+    .agg(
+        {"salary": "avg", "salary": "max", "*": "count"}
+    )
+    .withColumnRenamed("avg(salary)", "avg_salary")
+    .withColumnRenamed("max(salary)", "max_salary")
+    .withColumnRenamed("count(1)", "num_employees")
+    .filter("num_employees &gt; 5")
+    .sort(col("avg_salary").desc())
+)
+</code></pre>
+<p><strong>Explanation</strong>:</p>
+<ul>
+<li><code>filter()</code> / <code>where()</code>: WHERE clause</li>
+<li><code>groupBy()</code>: GROUP BY clause</li>
+<li><code>agg()</code>: Aggregation functions (AVG, MAX, COUNT)</li>
+<li><code>filter()</code> (second time): HAVING clause</li>
+<li><code>orderBy()</code> / <code>sort()</code>: ORDER BY clause</li>
+</ul>
+</details>
+<h3>Exercise 4 (Difficulty: Hard)</h3>
+<p>Explain how to efficiently perform Key-Value pair joins on a large dataset (100 million rows) for the following three scenarios:</p>
+<ol>
+<li>When both datasets are large</li>
+<li>When one dataset is small (fits in memory)</li>
+<li>When data is already sorted</li>
+</ol>
+<details>
+<summary>Sample Answer</summary>
+<p><strong>Answer</strong>:</p>
+<h4>Scenario 1: Both datasets are large</h4>
+<pre><code class="language-python"># Standard join (sort-merge join or hash join)
+large_df1 = spark.read.parquet("large_dataset1.parquet")
+large_df2 = spark.read.parquet("large_dataset2.parquet")
+
+# Optimize partition count
+large_df1 = large_df1.repartition(200, "join_key")
+large_df2 = large_df2.repartition(200, "join_key")
+
+# Join
+result = large_df1.join(large_df2, "join_key", "inner")
+
+# Cache (if reusing)
+result.cache()
+result.count()  # Materialize cache
+</code></pre>
+<p><strong>Optimization points</strong>:</p>
+<ul>
+<li>Appropriate partition count (adjust based on data size)</li>
+<li>Pre-partition by join key</li>
+<li>Enable adaptive query execution (AQE)</li>
+</ul>
+<h4>Scenario 2: One dataset is small</h4>
+<pre><code class="language-python">from pyspark.sql.functions import broadcast
+
+large_df = spark.read.parquet("large_dataset.parquet")
+small_df = spark.read.parquet("small_dataset.parquet")
+
+# Broadcast join (distribute small table to all nodes)
+result = large_df.join(broadcast(small_df), "join_key", "inner")
+
+# Or set automatic broadcast threshold
+spark.conf.set("spark.sql.autoBroadcastJoinThreshold", 10485760)  # 10MB
+</code></pre>
+<p><strong>Optimization points</strong>:</p>
+<ul>
+<li>Broadcast small tables (&lt;10MB)</li>
+<li>No shuffle needed, significant speedup</li>
+<li>Be careful with memory usage (distributed to all Executors)</li>
+</ul>
+<h4>Scenario 3: Data is already sorted</h4>
+<pre><code class="language-python"># When data is sorted and partitioned by join key
+sorted_df1 = spark.read.parquet("sorted_dataset1.parquet")
+sorted_df2 = spark.read.parquet("sorted_dataset2.parquet")
+
+# Explicitly use sort-merge join
+result = sorted_df1.join(
+    sorted_df2,
+    sorted_df1["join_key"] == sorted_df2["join_key"],
+    "inner"
+)
+
+# Force sort-merge join with hint
+from pyspark.sql.functions import expr
+result = sorted_df1.hint("merge").join(sorted_df2, "join_key")
+</code></pre>
+<p><strong>Optimization points</strong>:</p>
+<ul>
+<li>Reduced shuffle if already sorted</li>
+<li>Pre-partition using bucketing</li>
+<li>Maintain sort order when saving in Parquet format</li>
+</ul>
+<h4>Performance Comparison</h4>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Join Type</th>
+<th>Shuffle</th>
+<th>Speed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Both large</td>
+<td>Sort-merge/Hash</td>
+<td>Yes</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>One small</td>
+<td>Broadcast</td>
+<td>No</td>
+<td>Fast</td>
+</tr>
+<tr>
+<td>Already sorted</td>
+<td>Sort-merge</td>
+<td>Partial</td>
+<td>Fast</td>
+</tr>
+</tbody>
+</table>
+</details>
+<h3>Exercise 5 (Difficulty: Hard)</h3>
+<p>Build a complete pipeline for a text classification task (spam detection) using Spark MLlib. Include:</p>
+<ul>
+<li>Text preprocessing (tokenization, stopword removal)</li>
+<li>TF-IDF feature creation</li>
+<li>Training logistic regression model</li>
+<li>Evaluation with cross-validation</li>
+</ul>
+<details>
+<summary>Sample Answer</summary>
+<pre><code class="language-python">from pyspark.ml.feature import Tokenizer, StopWordsRemover, HashingTF, IDF
+from pyspark.ml.classification import LogisticRegression
+from pyspark.ml import Pipeline
+from pyspark.ml.evaluation import BinaryClassificationEvaluator, MulticlassClassificationEvaluator
+from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
+
+# Create sample data
+data = spark.createDataFrame([
+    (0, "Free money now click here"),
+    (0, "Congratulations you won a prize"),
+    (1, "Meeting scheduled for tomorrow"),
+    (1, "Please review the attached document"),
+    (0, "Claim your free gift today"),
+    (1, "Project update for next week"),
+    (0, "Urgent account verification required"),
+    (1, "Thanks for your help yesterday"),
+    (0, "You have been selected winner"),
+    (1, "Let's discuss the proposal")
+] * 100, ["label", "text"])  # Increase data
+
+print(f"Data count: {data.count()}")
+data.show(5)
+
+# Train-test split
+train, test = data.randomSplit([0.8, 0.2], seed=42)
+
+# Stage 1: Tokenization
+tokenizer = Tokenizer(inputCol="text", outputCol="words")
+
+# Stage 2: Stopword removal
+remover = StopWordsRemover(inputCol="words", outputCol="filtered_words")
+
+# Stage 3: Hashing TF
+hashingTF = HashingTF(
+    inputCol="filtered_words",
+    outputCol="raw_features",
+    numFeatures=1000
+)
+
+# Stage 4: IDF
+idf = IDF(inputCol="raw_features", outputCol="features")
+
+# Stage 5: Logistic regression
+lr = LogisticRegression(maxIter=100, regParam=0.01)
+
+# Build pipeline
+pipeline = Pipeline(stages=[tokenizer, remover, hashingTF, idf, lr])
+
+# Parameter grid
+paramGrid = ParamGridBuilder() \
+    .addGrid(hashingTF.numFeatures, [500, 1000, 2000]) \
+    .addGrid(lr.regParam, [0.001, 0.01, 0.1]) \
+    .addGrid(lr.maxIter, [50, 100]) \
+    .build()
+
+# Cross-validation
+cv = CrossValidator(
+    estimator=pipeline,
+    estimatorParamMaps=paramGrid,
+    evaluator=BinaryClassificationEvaluator(),
+    numFolds=3,
+    seed=42
+)
+
+# Train
+print("\nStarting cross-validation...")
+cv_model = cv.fit(train)
+print("Training complete")
+
+# Make predictions
+predictions = cv_model.transform(test)
+
+# Check prediction results
+predictions.select("text", "label", "prediction", "probability").show(10, truncate=False)
+
+# Evaluation
+binary_evaluator = BinaryClassificationEvaluator()
+multi_evaluator = MulticlassClassificationEvaluator()
+
+auc = binary_evaluator.evaluate(predictions, {binary_evaluator.metricName: "areaUnderROC"})
+accuracy = multi_evaluator.evaluate(predictions, {multi_evaluator.metricName: "accuracy"})
+f1 = multi_evaluator.evaluate(predictions, {multi_evaluator.metricName: "f1"})
+
+print("\n=== Model Evaluation ===")
+print(f"AUC: {auc:.4f}")
+print(f"Accuracy: {accuracy:.4f}")
+print(f"F1 Score: {f1:.4f}")
+
+# Best parameters
+best_model = cv_model.bestModel
+print("\nBest Parameters:")
+print(f"numFeatures: {best_model.stages[2].getNumFeatures()}")
+print(f"regParam: {best_model.stages[-1].getRegParam()}")
+print(f"maxIter: {best_model.stages[-1].getMaxIter()}")
+
+# Predict on new text
+new_data = spark.createDataFrame([
+    (0, "Free lottery winner claim now"),
+    (1, "Project deadline next Monday")
+], ["id", "text"])
+
+new_predictions = cv_model.transform(new_data)
+new_predictions.select("text", "prediction", "probability").show(truncate=False)
+</code></pre>
+<p><strong>Sample output</strong>:</p>
+<pre><code>=== Model Evaluation ===
+AUC: 0.9850
+Accuracy: 0.9500
+F1 Score: 0.9495
+</code></pre>
+<p><strong>Extension ideas</strong>:</p>
+<ul>
+<li>Use Word2Vec or GloVe embeddings</li>
+<li>Add N-gram features</li>
+<li>Try Random Forest or GBT</li>
+<li>Add custom features (sentence length, uppercase ratio, etc.)</li>
+</ul>
+</details>
+<hr/>
+<h2>References</h2>
+<ol>
+<li>Zaharia, M., et al. (2016). <em>Apache Spark: A Unified Engine for Big Data Processing</em>. Communications of the ACM, 59(11), 56-65.</li>
+<li>Karau, H., Konwinski, A., Wendell, P., &amp; Zaharia, M. (2015). <em>Learning Spark: Lightning-Fast Big Data Analysis</em>. O'Reilly Media.</li>
+<li>Chambers, B., &amp; Zaharia, M. (2018). <em>Spark: The Definitive Guide</em>. O'Reilly Media.</li>
+<li>Meng, X., et al. (2016). <em>MLlib: Machine Learning in Apache Spark</em>. Journal of Machine Learning Research, 17(1), 1235-1241.</li>
+<li>Apache Spark Documentation. (2024). <em>Spark SQL, DataFrames and Datasets Guide</em>. URL: https://spark.apache.org/docs/latest/sql-programming-guide.html</li>
+<li>Databricks. (2024). <em>Apache Spark Performance Tuning Guide</em>. URL: https://www.databricks.com/blog/performance-tuning</li>
+</ol>
+<div class="navigation">
+<a class="nav-button" href="index.html">← Series Index</a>
+<a class="nav-button" href="chapter3-dask.html">Next Chapter: Dask →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is for educational, research, and informational purposes only and does not provide professional advice (legal, accounting, technical warranties, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without warranties of any kind, either express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The creators and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>The creators and Tohoku University are not liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content, to the maximum extent permitted by applicable law.</li>
+<li>The content of this material may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content follow the specified conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+<footer>
+<p><strong>Author</strong>: AI Terakoya Content Team</p>
+<p><strong>Version</strong>: 1.0 | <strong>Created</strong>: 2025-10-21</p>
+<p><strong>License</strong>: Creative Commons BY 4.0</p>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

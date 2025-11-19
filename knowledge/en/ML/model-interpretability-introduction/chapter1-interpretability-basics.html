@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 1: Model Interpretability Basics - AI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 1: Model Interpretability Basics - AI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+<!-- MathJax for LaTeX equation rendering -->
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../../ML/index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="../../ML/model-interpretability-introduction/index.html">Model Interpretability</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 1</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/ML/model-interpretability-introduction/chapter1-interpretability-basics.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 1: Model Interpretability Basics</h1>
+<p class="subtitle">Understanding Interpretability for Building Trustworthy AI Systems</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 30-35 minutes</span>
+<span class="meta-item">📊 Difficulty: Beginner</span>
+<span class="meta-item">💻 Code Examples: 8</span>
+<span class="meta-item">📝 Exercises: 6</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter introduces the basics of Model Interpretability Basics. You will learn why model interpretability is important, taxonomy of interpretability, and characteristics of interpretable models.</p>
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will be able to:</p>
+<ul>
+<li>✅ Understand why model interpretability is important</li>
+<li>✅ Grasp the taxonomy of interpretability</li>
+<li>✅ Learn the characteristics of interpretable models</li>
+<li>✅ Understand an overview of major interpretation techniques</li>
+<li>✅ Learn criteria for evaluating interpretability</li>
+<li>✅ Implement practical interpretable models</li>
+</ul>
+<hr/>
+<h2>1.1 Why Model Interpretability Matters</h2>
+<h3>Trust and Accountability</h3>
+<p>To trust machine learning model predictions, we need to understand "why the model made that prediction." Especially for high-risk decision-making (medical diagnosis, loan approval, criminal justice, etc.), accountability is essential.</p>
+<table>
+<thead>
+<tr>
+<th>Application Domain</th>
+<th>Why Interpretability is Needed</th>
+<th>Risks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Medical Diagnosis</strong></td>
+<td>Doctors need to understand diagnostic reasoning and explain to patients</td>
+<td>Life-threatening misdiagnosis</td>
+</tr>
+<tr>
+<td><strong>Loan Approval</strong></td>
+<td>Obligation to explain rejection reasons, ensure fairness</td>
+<td>Discriminatory decisions, legal litigation</td>
+</tr>
+<tr>
+<td><strong>Criminal Justice</strong></td>
+<td>Need to show basis for recidivism risk assessment</td>
+<td>Unjust verdicts, human rights violations</td>
+</tr>
+<tr>
+<td><strong>Autonomous Vehicles</strong></td>
+<td>Accountability in accidents, safety verification</td>
+<td>Loss of life, legal liability</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important</strong>: "High prediction accuracy" alone is insufficient. For stakeholders to trust and properly use models, they need to understand the basis for predictions.</p>
+</blockquote>
+<h3>Regulatory Requirements (GDPR, AI Regulations)</h3>
+<p>Regulations regarding machine learning model transparency are being strengthened worldwide:</p>
+<ul>
+<li><strong>GDPR (General Data Protection Regulation)</strong>: Stipulates "right to explanation" regarding automated decision-making (Article 22)</li>
+<li><strong>EU AI Act</strong>: Transparency and explainability requirements for high-risk AI systems</li>
+<li><strong>U.S. Fair Credit Reporting Act</strong>: Obligation to provide "adverse action notice" regarding credit scores</li>
+<li><strong>Japan's Personal Information Protection Act</strong>: Information provision to individuals regarding automated decision-making</li>
+</ul>
+<h3>Debugging and Model Improvement</h3>
+<p>Interpretability is also essential for improving model performance:</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Diagnosing unexpected model predictions
+
+Problem: Customer churn prediction model performs poorly in production
+"""
+
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+
+# Generate sample data
+np.random.seed(42)
+n_samples = 1000
+
+data = pd.DataFrame({
+    'age': np.random.randint(18, 80, n_samples),
+    'tenure_months': np.random.randint(1, 120, n_samples),
+    'monthly_charges': np.random.uniform(20, 150, n_samples),
+    'total_charges': np.random.uniform(100, 10000, n_samples),
+    'num_support_calls': np.random.poisson(2, n_samples),
+    'contract_type': np.random.choice(['month', 'year', '2year'], n_samples),
+    'customer_id': np.arange(n_samples)  # Data leak!
+})
+
+# Target variable (churn)
+data['churn'] = ((data['num_support_calls'] &gt; 3) |
+                 (data['monthly_charges'] &gt; 100)).astype(int)
+
+# Train model
+X = data.drop('churn', axis=1)
+X_encoded = pd.get_dummies(X, columns=['contract_type'])
+y = data['churn']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_encoded, y, test_size=0.2, random_state=42
+)
+
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Diagnose with Feature Importance
+feature_importance = pd.DataFrame({
+    'feature': X_encoded.columns,
+    'importance': model.feature_importances_
+}).sort_values('importance', ascending=False)
+
+print("Feature Importance:")
+print(feature_importance.head(10))
+
+# Problem discovered: customer_id has highest importance (data leak)
+print("\n⚠️ Abnormally high importance for customer_id → Possible data leakage")
+</code></pre>
+<h3>Bias Detection</h3>
+<p>Interpretability allows us to discover unfair patterns learned by the model:</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Bias detection in hiring screening model
+"""
+
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+
+# Sample data with bias
+np.random.seed(42)
+n_samples = 1000
+
+data = pd.DataFrame({
+    'years_experience': np.random.randint(0, 20, n_samples),
+    'education_level': np.random.randint(1, 5, n_samples),
+    'skills_score': np.random.uniform(0, 100, n_samples),
+    'gender': np.random.choice(['M', 'F'], n_samples),
+    'age': np.random.randint(22, 65, n_samples)
+})
+
+# Biased target (includes gender discrimination)
+data['hired'] = (
+    (data['years_experience'] &gt; 5) &amp;
+    (data['skills_score'] &gt; 60) &amp;
+    (data['gender'] == 'M')  # Gender bias
+).astype(int)
+
+# Train model
+X = pd.get_dummies(data.drop('hired', axis=1), columns=['gender'])
+y = data['hired']
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+model = LogisticRegression(random_state=42)
+model.fit(X_scaled, y)
+
+# Check coefficients to detect bias
+coefficients = pd.DataFrame({
+    'feature': X.columns,
+    'coefficient': model.coef_[0]
+}).sort_values('coefficient', ascending=False)
+
+print("Model Coefficients:")
+print(coefficients)
+
+# Abnormally high coefficient for gender_M → Detect gender bias
+print("\n⚠️ High coefficient for gender_M → Possible gender discrimination")
+print("📊 Fairness evaluation required")
+</code></pre>
+<hr/>
+<h2>1.2 Classification of Interpretability</h2>
+<h3>Global Interpretation vs Local Interpretation</h3>
+<table>
+<thead>
+<tr>
+<th>Classification</th>
+<th>Description</th>
+<th>Question</th>
+<th>Example Methods</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Global Interpretation</strong></td>
+<td>Understanding overall model behavior</td>
+<td>"How does the model predict in general?"</td>
+<td>Feature Importance, Partial Dependence</td>
+</tr>
+<tr>
+<td><strong>Local Interpretation</strong></td>
+<td>Explaining individual predictions</td>
+<td>"Why was this customer predicted to churn?"</td>
+<td>LIME, SHAP, Counterfactual</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Global Interpretation vs Local Interpretation
+"""
+
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+
+# Generate sample data
+np.random.seed(42)
+n_samples = 500
+
+data = pd.DataFrame({
+    'age': np.random.randint(18, 70, n_samples),
+    'income': np.random.uniform(20000, 150000, n_samples),
+    'debt_ratio': np.random.uniform(0, 1, n_samples),
+    'credit_history_months': np.random.randint(0, 360, n_samples)
+})
+
+# Target: Loan approval
+data['approved'] = (
+    (data['income'] &gt; 50000) &amp;
+    (data['debt_ratio'] &lt; 0.5) &amp;
+    (data['credit_history_months'] &gt; 24)
+).astype(int)
+
+X = data.drop('approved', axis=1)
+y = data['approved']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+model = RandomForestClassifier(n_estimators=50, random_state=42)
+model.fit(X_train, y_train)
+
+# --- Global Interpretation: Feature Importance ---
+print("=== Global Interpretation ===")
+print("Most important features for the overall model:")
+feature_importance = pd.DataFrame({
+    'feature': X.columns,
+    'importance': model.feature_importances_
+}).sort_values('importance', ascending=False)
+print(feature_importance)
+
+# --- Local Interpretation: Individual prediction explanation ---
+print("\n=== Local Interpretation ===")
+# Select one sample from test data
+sample_idx = 0
+sample = X_test.iloc[sample_idx:sample_idx+1]
+prediction = model.predict(sample)[0]
+prediction_proba = model.predict_proba(sample)[0]
+
+print(f"Features of sample {sample_idx}:")
+print(sample.T)
+print(f"\nPrediction: {'Approved' if prediction == 1 else 'Rejected'}")
+print(f"Probability: {prediction_proba[1]:.2%}")
+
+# Simple local importance (tree-based)
+# In practice, using SHAP or LIME is recommended
+print("\nFeatures contributing to this prediction (approximate):")
+for feature in X.columns:
+    print(f"  {feature}: {sample[feature].values[0]:.2f}")
+</code></pre>
+<h3>Model-Specific vs Model-Agnostic</h3>
+<table>
+<thead>
+<tr>
+<th>Classification</th>
+<th>Description</th>
+<th>Advantages</th>
+<th>Disadvantages</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Model-Specific</strong></td>
+<td>Interpretation specific to particular models</td>
+<td>Accurate, efficient</td>
+<td>Cannot be applied to other models</td>
+</tr>
+<tr>
+<td><strong>Model-Agnostic</strong></td>
+<td>Applicable to any model</td>
+<td>High versatility</td>
+<td>May have high computational cost</td>
+</tr>
+</tbody>
+</table>
+<h3>Intrinsic Interpretability vs Post-hoc Interpretability</h3>
+<ul>
+<li><strong>Intrinsic Interpretability</strong>: The model itself is interpretable (linear regression, decision trees)</li>
+<li><strong>Post-hoc Interpretability</strong>: Interpreting black-box models after the fact (SHAP, LIME)</li>
+</ul>
+<h3>Taxonomy of Interpretability</h3>
+<div class="mermaid">
+graph TB
+    A[Model Interpretability] --&gt; B[Scope]
+    A --&gt; C[Dependency]
+    A --&gt; D[Timing]
+
+    B --&gt; B1[Global Interpretation<br/>Overall model behavior]
+    B --&gt; B2[Local Interpretation<br/>Individual prediction explanation]
+
+    C --&gt; C1[Model-Specific<br/>For specific models]
+    C --&gt; C2[Model-Agnostic<br/>General purpose]
+
+    D --&gt; D1[Intrinsic Interpretability<br/>Inherently interpretable]
+    D --&gt; D2[Post-hoc Interpretability<br/>After-the-fact explanation]
+
+    style A fill:#7b2cbf,color:#fff
+    style B1 fill:#e3f2fd
+    style B2 fill:#e3f2fd
+    style C1 fill:#fff3e0
+    style C2 fill:#fff3e0
+    style D1 fill:#c8e6c9
+    style D2 fill:#c8e6c9
+</div>
+<hr/>
+<h2>1.3 Interpretable Models</h2>
+<h3>Linear Regression</h3>
+<p>Linear regression is one of the most easily interpretable models. The coefficient of each feature directly indicates its influence.</p>
+<p><strong>Formula</strong>:</p>
+<p>$$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_n x_n$$</p>
+<p>$\beta_i$ indicates the change in predicted value for a one-unit change in feature $x_i$.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Housing price prediction with linear regression
+"""
+
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Generate sample data
+np.random.seed(42)
+n_samples = 200
+
+data = pd.DataFrame({
+    'square_feet': np.random.randint(500, 4000, n_samples),
+    'bedrooms': np.random.randint(1, 6, n_samples),
+    'age_years': np.random.randint(0, 50, n_samples),
+    'distance_to_city': np.random.uniform(0, 50, n_samples)
+})
+
+# Target: Price (in ten thousands)
+data['price'] = (
+    data['square_feet'] * 0.5 +
+    data['bedrooms'] * 50 -
+    data['age_years'] * 5 -
+    data['distance_to_city'] * 10 +
+    np.random.normal(0, 100, n_samples)
+)
+
+X = data.drop('price', axis=1)
+y = data['price']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Standardization (for comparing coefficients)
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Train model
+model = LinearRegression()
+model.fit(X_train_scaled, y_train)
+
+# Interpret coefficients
+coefficients = pd.DataFrame({
+    'feature': X.columns,
+    'coefficient': model.coef_,
+    'abs_coefficient': np.abs(model.coef_)
+}).sort_values('abs_coefficient', ascending=False)
+
+print("Linear regression model coefficients:")
+print(coefficients)
+print(f"\nIntercept: {model.intercept_:.2f}")
+
+print("\nInterpretation:")
+print("- square_feet has the largest coefficient → Area most influences price")
+print("- age_years has a negative coefficient → Older properties have lower prices")
+print("- Coefficients are standardized, enabling direct comparison")
+
+# Prediction example
+sample = X_test_scaled[0:1]
+prediction = model.predict(sample)[0]
+print(f"\nSample predicted price: {prediction:.2f} (in ten thousands)")
+</code></pre>
+<h3>Decision Trees</h3>
+<p>Decision trees have rule-based branching structures that are easy for humans to understand.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - matplotlib&gt;=3.7.0
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Iris classification with decision tree
+"""
+
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_iris
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+
+# Load data
+iris = load_iris()
+X = pd.DataFrame(iris.data, columns=iris.feature_names)
+y = iris.target
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Decision tree model (limit depth for interpretability)
+model = DecisionTreeClassifier(max_depth=3, random_state=42)
+model.fit(X_train, y_train)
+
+# Accuracy
+accuracy = model.score(X_test, y_test)
+print(f"Accuracy: {accuracy:.2%}")
+
+# Extract rules (text format)
+from sklearn.tree import export_text
+tree_rules = export_text(model, feature_names=list(iris.feature_names))
+print("\nDecision tree rules:")
+print(tree_rules[:500] + "...")  # Display first 500 characters only
+
+# Interpretation example
+print("\nInterpretation:")
+print("- petal width (cm) &lt;= 0.8 → classified as setosa")
+print("- Otherwise, petal width or petal length determines versicolor/virginica")
+print("- Decision boundaries are clear and understandable even for non-experts")
+</code></pre>
+<h3>Rule-Based Models</h3>
+<p>Models composed of IF-THEN rules can be directly used as business rules.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Simple rule-based classifier
+"""
+
+import numpy as np
+import pandas as pd
+
+class SimpleRuleClassifier:
+    """Interpretable rule-based classifier"""
+
+    def __init__(self):
+        self.rules = []
+
+    def add_rule(self, condition, prediction, description=""):
+        """Add a rule"""
+        self.rules.append({
+            'condition': condition,
+            'prediction': prediction,
+            'description': description
+        })
+
+    def predict(self, X):
+        """Make predictions"""
+        predictions = []
+        for _, row in X.iterrows():
+            prediction = None
+            for rule in self.rules:
+                if rule['condition'](row):
+                    prediction = rule['prediction']
+                    break
+            predictions.append(prediction if prediction is not None else 0)
+        return np.array(predictions)
+
+    def explain(self):
+        """Explain rules"""
+        print("Classification rules:")
+        for i, rule in enumerate(self.rules, 1):
+            print(f"  Rule {i}: {rule['description']} → {rule['prediction']}")
+
+# Usage example: Loan approval rules
+classifier = SimpleRuleClassifier()
+
+# Rule 1: High income and low debt
+classifier.add_rule(
+    condition=lambda row: row['income'] &gt; 100000 and row['debt_ratio'] &lt; 0.3,
+    prediction=1,
+    description="High income (&gt;100K) and low debt ratio (&lt;30%)"
+)
+
+# Rule 2: Medium income with good credit history
+classifier.add_rule(
+    condition=lambda row: row['income'] &gt; 50000 and row['credit_history_months'] &gt; 36,
+    prediction=1,
+    description="Medium income (&gt;50K) and credit history &gt;3 years"
+)
+
+# Rule 3: Reject all other cases
+classifier.add_rule(
+    condition=lambda row: True,
+    prediction=0,
+    description="All other cases"
+)
+
+# Test data
+test_data = pd.DataFrame({
+    'income': [120000, 60000, 30000],
+    'debt_ratio': [0.2, 0.4, 0.6],
+    'credit_history_months': [48, 40, 12]
+})
+
+predictions = classifier.predict(test_data)
+classifier.explain()
+
+print("\nPrediction results:")
+for i, (pred, income) in enumerate(zip(predictions, test_data['income'])):
+    print(f"  Applicant {i+1} (Income: ${income:,.0f}): {'Approved' if pred == 1 else 'Rejected'}")
+</code></pre>
+<h3>GAM (Generalized Additive Models)</h3>
+<p>GAMs are interpretable models that can visualize the nonlinear effect of each feature.</p>
+<p><strong>Formula</strong>:</p>
+<p>$$g(\mathbb{E}[y]) = \beta_0 + f_1(x_1) + f_2(x_2) + \cdots + f_n(x_n)$$</p>
+<p>$f_i$ is a nonlinear function of feature $x_i$.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Modeling nonlinear relationships with GAM
+"""
+
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import train_test_split
+
+# Generate sample data (nonlinear relationships)
+np.random.seed(42)
+n_samples = 300
+
+x1 = np.random.uniform(-3, 3, n_samples)
+x2 = np.random.uniform(-3, 3, n_samples)
+
+# Nonlinear relationships: sine function and quadratic function
+y = np.sin(x1) + x2**2 + np.random.normal(0, 0.2, n_samples)
+
+data = pd.DataFrame({'x1': x1, 'x2': x2, 'y': y})
+
+# Feature engineering: Add polynomial features (GAM approximation)
+from sklearn.preprocessing import PolynomialFeatures
+
+X = data[['x1', 'x2']]
+poly = PolynomialFeatures(degree=3, include_bias=False, interaction_features=False)
+X_poly = poly.fit_transform(X)
+
+feature_names = poly.get_feature_names_out(['x1', 'x2'])
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_poly, data['y'], test_size=0.2, random_state=42
+)
+
+# Train with Ridge regression
+model = Ridge(alpha=1.0)
+model.fit(X_train, y_train)
+
+print(f"Test R² score: {model.score(X_test, y_test):.3f}")
+
+# Visualize the effect of each feature
+print("\nPolynomial coefficients for each feature:")
+coef_df = pd.DataFrame({
+    'feature': feature_names,
+    'coefficient': model.coef_
+})
+print(coef_df)
+
+print("\nInterpretation:")
+print("- Odd-degree terms of x1 are important → sine function-like nonlinearity")
+print("- Quadratic term of x2 is important → quadratic function relationship")
+print("- Effects of each variable can be interpreted individually")
+</code></pre>
+<hr/>
+<h2>1.4 Overview of Interpretation Techniques</h2>
+<h3>Feature Importance</h3>
+<p>A method to quantify the importance of features. Frequently used in tree-based models.</p>
+<ul>
+<li><strong>Mean Decrease Impurity</strong>: Measures importance by decrease in impurity</li>
+<li><strong>Permutation Importance</strong>: Measures by performance degradation when features are shuffled</li>
+</ul>
+<h3>Partial Dependence Plot (PDP)</h3>
+<p>Visualizes the relationship between a specific feature and model predictions.</p>
+<p><strong>Formula</strong>:</p>
+<p>$$\text{PDP}(x_s) = \mathbb{E}_{x_c}[f(x_s, x_c)]$$</p>
+<p>$x_s$ is the target feature, $x_c$ are the other features.</p>
+<h3>SHAP (SHapley Additive exPlanations)</h3>
+<p>Uses Shapley values from game theory to calculate the contribution of each feature.</p>
+<p><strong>Characteristics</strong>:</p>
+<ul>
+<li>Consistent explanations</li>
+<li>Enables both local and global interpretation</li>
+<li>Model-agnostic</li>
+</ul>
+<h3>LIME (Local Interpretable Model-agnostic Explanations)</h3>
+<p>Explains individual predictions by approximating them locally with a linear model.</p>
+<p><strong>Procedure</strong>:</p>
+<ol>
+<li>Generate samples in the neighborhood of the instance to be predicted</li>
+<li>Obtain predictions from the black-box model</li>
+<li>Locally approximate with an interpretable model (such as linear regression)</li>
+<li>Interpret the coefficients of the approximate model</li>
+</ol>
+<h3>Saliency Maps</h3>
+<p>In image classification, visualizes which pixels are important for predictions.</p>
+<p><strong>Calculation Method</strong>:</p>
+<p>$$S(x) = \left| \frac{\partial f(x)}{\partial x} \right|$$</p>
+<p>Computes gradients with respect to the input image and highlights important regions.</p>
+<hr/>
+<h2>1.5 Evaluating Interpretability</h2>
+<h3>Fidelity</h3>
+<p>Measures how accurately the interpretation method explains the behavior of the original model.</p>
+<table>
+<thead>
+<tr>
+<th>Evaluation Metric</th>
+<th>Description</th>
+<th>Calculation Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>R² Score</strong></td>
+<td>Agreement between explanation model and original model</td>
+<td>$R^2 = 1 - \frac{\sum(y_{\text{true}} - y_{\text{approx}})^2}{\sum(y_{\text{true}} - \bar{y})^2}$</td>
+</tr>
+<tr>
+<td><strong>Local Fidelity</strong></td>
+<td>Agreement of local predictions</td>
+<td>Prediction error on neighborhood samples</td>
+</tr>
+</tbody>
+</table>
+<h3>Consistency</h3>
+<p>Evaluates whether similar explanations are obtained for similar instances.</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - numpy&gt;=1.24.0, &lt;2.0.0
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Evaluating consistency of interpretation
+"""
+
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+
+# Sample data
+np.random.seed(42)
+n_samples = 500
+
+data = pd.DataFrame({
+    'feature1': np.random.normal(0, 1, n_samples),
+    'feature2': np.random.normal(0, 1, n_samples),
+    'feature3': np.random.normal(0, 1, n_samples)
+})
+data['target'] = (data['feature1'] + data['feature2'] &gt; 0).astype(int)
+
+X = data.drop('target', axis=1)
+y = data['target']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+model = RandomForestClassifier(n_estimators=50, random_state=42)
+model.fit(X_train, y_train)
+
+# Compare Feature Importance for similar samples
+sample1 = X_test.iloc[0:1]
+sample2 = X_test.iloc[1:2]  # Similar sample
+
+# Simple local importance using tree paths
+# (Using SHAP is recommended in practice)
+
+print("Sample 1 features:")
+print(sample1.values)
+print(f"Prediction: {model.predict(sample1)[0]}")
+
+print("\nSample 2 features:")
+print(sample2.values)
+print(f"Prediction: {model.predict(sample2)[0]}")
+
+# Calculate distance
+distance = np.linalg.norm(sample1.values - sample2.values)
+print(f"\nDistance between samples: {distance:.3f}")
+print("Consistency evaluation: Need to verify if explanations for similar samples are similar")
+</code></pre>
+<h3>Stability</h3>
+<p>Evaluates whether interpretations change significantly with minor changes in input data.</p>
+<h3>Comprehensibility</h3>
+<p>Evaluates how easily humans can understand the explanation. Since quantification is difficult, user studies are common.</p>
+<table>
+<thead>
+<tr>
+<th>Evaluation Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Number of Rules</strong></td>
+<td>Number of rules in decision trees or rule sets (fewer is more understandable)</td>
+</tr>
+<tr>
+<td><strong>Number of Features</strong></td>
+<td>Number of features used in explanation (fewer is better)</td>
+</tr>
+<tr>
+<td><strong>User Study</strong></td>
+<td>Comprehension test by actual users</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2>Practice Problems</h2>
+<details>
+<summary>Problem 1: Need for Model Interpretability</summary>
+<p><strong>Problem</strong>: Explain why model interpretability is particularly important in the following scenarios.</p>
+<ol>
+<li>Bank loan approval system</li>
+<li>Medical image diagnosis support system</li>
+<li>Recommendation system</li>
+</ol>
+<p><strong>Sample Answer</strong>:</p>
+<ol>
+<li><strong>Loan Approval</strong>: Obligation to explain rejection reasons (legal requirement), ensuring fairness, preventing discriminatory decisions</li>
+<li><strong>Medical Diagnosis</strong>: Doctors' understanding of diagnostic reasoning, explanation to patients, reducing misdiagnosis risk, responding to medical malpractice litigation</li>
+<li><strong>Recommendation</strong>: Improving user trust, transparency of recommendation reasons, bias detection (avoiding filter bubbles)</li>
+</ol>
+</details>
+<details>
+<summary>Problem 2: Global Interpretation and Local Interpretation</summary>
+<p><strong>Problem</strong>: For a "customer churn prediction model," provide examples of information you would want to know from global interpretation and local interpretation respectively.</p>
+<p><strong>Sample Answer</strong>:</p>
+<ul>
+<li><strong>Global Interpretation</strong>:
+  <ul>
+<li>"Number of support inquiries" is the most influential feature for churn</li>
+<li>Relationship between "contract duration" and churn probability (longer duration tends to have lower churn rate)</li>
+<li>Top 5 most important features overall in the model</li>
+</ul>
+</li>
+<li><strong>Local Interpretation</strong>:
+  <ul>
+<li>Reason why customer A (ID=12345) was predicted to churn (10+ support inquiries, contract duration less than 3 months, etc.)</li>
+<li>Factors that should be improved to reduce this customer's churn probability</li>
+</ul>
+</li>
+</ul>
+</details>
+<details>
+<summary>Problem 3: Choosing Interpretable Models</summary>
+<p><strong>Problem</strong>: For the following scenarios, choose which interpretable model is appropriate and explain the reason.</p>
+<ol>
+<li>Housing price prediction (features: area, number of rooms, building age, etc.)</li>
+<li>Spam email classification (features: word frequency)</li>
+<li>Patient readmission risk prediction (features: age, diagnosis history, test values, etc.)</li>
+</ol>
+<p><strong>Sample Answer</strong>:</p>
+<ol>
+<li><strong>Linear Regression</strong>: Coefficients of each feature directly indicate influence on price, making it understandable for real estate agents and customers</li>
+<li><strong>Decision Tree or Rule-Based</strong>: Rules like "if the word 'free' appears 5+ times → spam" are intuitive</li>
+<li><strong>GAM or Decision Tree</strong>: Can visualize nonlinear relationships (e.g., U-shaped relationship between age and readmission risk). Easy for doctors to understand diagnostic logic</li>
+</ol>
+</details>
+<details>
+<summary>Problem 4: Detecting Data Leakage</summary>
+<p><strong>Problem</strong>: Explain how to detect data leakage using Feature Importance and provide a code example.</p>
+<p><strong>Sample Answer</strong>:</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Method for detecting data leakage
+"""
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+
+# Checklist of suspicious features
+suspicious_features = [
+    'id', 'timestamp', 'created_at', 'updated_at',
+    'target', 'label', 'outcome'  # Target variable itself or its leakage
+]
+
+# Calculate Feature Importance
+model = RandomForestClassifier()
+# model.fit(X_train, y_train)
+
+feature_importance = pd.DataFrame({
+    'feature': X.columns,
+    'importance': model.feature_importances_
+}).sort_values('importance', ascending=False)
+
+# Check top features
+top_features = feature_importance.head(5)
+for _, row in top_features.iterrows():
+    feature = row['feature']
+    importance = row['importance']
+
+    # Check if suspicious features are in top ranks
+    if any(suspect in feature.lower() for suspect in suspicious_features):
+        print(f"⚠️ Possible data leakage: {feature} (importance: {importance:.3f})")
+
+    # Check if importance is abnormally high (&gt;0.9)
+    if importance &gt; 0.9:
+        print(f"⚠️ Abnormally high importance: {feature} (importance: {importance:.3f})")
+</code></pre>
+</details>
+<details>
+<summary>Problem 5: Evaluating Interpretability</summary>
+<p><strong>Problem</strong>: What metrics or methods can be used to evaluate "Fidelity" of interpretation techniques?</p>
+<p><strong>Sample Answer</strong>:</p>
+<ul>
+<li><strong>R² Score</strong>: Agreement between explanation model (such as LIME's linear approximation) and original black-box model predictions</li>
+<li><strong>Prediction Error</strong>: Mean absolute error (MAE) between explanation model and original model predictions</li>
+<li><strong>Classification Accuracy Comparison</strong>: How accurately the explanation model can reproduce the original model's predictions</li>
+<li><strong>Local Fidelity</strong>: How accurate the explanation model is in the neighborhood of a specific instance</li>
+</ul>
+</details>
+<details>
+<summary>Problem 6: Implementation Challenge</summary>
+<p><strong>Problem</strong>: Using scikit-learn's Titanic dataset (or any dataset), implement the following.</p>
+<ol>
+<li>Train a logistic regression model and interpret its coefficients</li>
+<li>Train a decision tree model and extract its rules</li>
+<li>Train a random forest model and visualize Feature Importance</li>
+<li>Compare the interpretability of the three models</li>
+</ol>
+<p><strong>Hint</strong>:</p>
+<pre><code class="language-python"># Requirements:
+# - Python 3.9+
+# - pandas&gt;=2.0.0, &lt;2.2.0
+
+"""
+Example: Hint:
+
+Purpose: Demonstrate core concepts and implementation patterns
+Target: Beginner to Intermediate
+Execution time: 1-5 minutes
+Dependencies: None
+"""
+
+from sklearn.datasets import fetch_openml
+import pandas as pd
+
+# Load data
+titanic = fetch_openml('titanic', version=1, as_frame=True, parser='auto')
+df = titanic.frame
+
+# Preprocessing (missing value handling, categorical encoding, etc.)
+# ...
+
+# Train and interpret models
+# ...
+</code></pre>
+</details>
+<hr/>
+<h2>Summary</h2>
+<p>In this chapter, we learned the basics of model interpretability:</p>
+<ul>
+<li>✅ <strong>Importance</strong>: Essential for trustworthiness, regulatory compliance, debugging, and bias detection</li>
+<li>✅ <strong>Classification</strong>: Global/local, model-specific/agnostic, intrinsic/post-hoc interpretability</li>
+<li>✅ <strong>Interpretable Models</strong>: Linear regression, decision trees, rule-based, GAM</li>
+<li>✅ <strong>Interpretation Techniques</strong>: Feature Importance, PDP, SHAP, LIME, Saliency Maps</li>
+<li>✅ <strong>Evaluation Criteria</strong>: Fidelity, Consistency, Stability, Comprehensibility</li>
+</ul>
+<p>In the next chapter, we will learn in detail about Feature Importance and Permutation Importance.</p>
+<hr/>
+<h2>References</h2>
+<ul>
+<li>Molnar, C. (2022). <em>Interpretable Machine Learning: A Guide for Making Black Box Models Explainable</em>. <a href="https://christophm.github.io/interpretable-ml-book/">https://christophm.github.io/interpretable-ml-book/</a></li>
+<li>Lundberg, S. M., &amp; Lee, S. I. (2017). "A Unified Approach to Interpreting Model Predictions." <em>NIPS 2017</em>.</li>
+<li>Ribeiro, M. T., Singh, S., &amp; Guestrin, C. (2016). "Why Should I Trust You?: Explaining the Predictions of Any Classifier." <em>KDD 2016</em>.</li>
+<li>Rudin, C. (2019). "Stop Explaining Black Box Machine Learning Models for High Stakes Decisions and Use Interpretable Models Instead." <em>Nature Machine Intelligence</em>.</li>
+<li>European Union. (2016). <em>General Data Protection Regulation (GDPR)</em>. Article 22.</li>
+<li>Doshi-Velez, F., &amp; Kim, B. (2017). "Towards A Rigorous Science of Interpretable Machine Learning." <em>arXiv:1702.08608</em>.</li>
+</ul>
+<div class="navigation">
+<a class="nav-button" href="index.html">📚 Back to Contents</a>
+<a class="nav-button" href="chapter2-feature-importance.html">Next Chapter →</a>
+</div>
+</main>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided for educational, research, and informational purposes only and does not constitute professional advice (legal, accounting, technical guarantees, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranties, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, functionality, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content of this material may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated terms (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+<footer>
+<p>© 2025 AI Terakoya. All rights reserved.</p>
+</footer>
+</body>
+</html>

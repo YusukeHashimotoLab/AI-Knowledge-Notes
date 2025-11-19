@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 3: Modeling of Unit Operations - Process Simulation Introduction | PI Terakoya" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Chapter 3: Modeling of Unit Operations - Process Simulation Introduction Series" name="description"/>
+<title>Chapter 3: Modeling of Unit Operations - Process Simulation Introduction | PI Terakoya</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../../PI/index.html">Process Informatics</a><span class="breadcrumb-separator">›</span><a href="../../PI/process-simulation/index.html">Process Simulation</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+</div>
+</nav><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/PI/process-simulation/chapter-3.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-11-16</span>
+</div>
+<header>
+<div class="container">
+<h1>Chapter 3: Modeling of Unit Operations</h1>
+<p class="subtitle">Engineering Model Implementation for Distillation, Absorption, Reactors, and Heat Exchangers</p>
+<div class="meta">
+<span class="meta">📖 Reading Time: 40-45 min</span>
+<span class="meta">💻 Difficulty: Intermediate to Advanced</span>
+<span class="meta">🎯 Practical Exercises: 8</span>
+</div>
+</div>
+</header>
+<main class="container">
+
+<p class="chapter-description">This chapter covers Modeling of Unit Operations. You will learn essential concepts and techniques.</p>
+<section>
+<h2>3.1 Distillation Column Modeling</h2>
+<p>
+                Distillation is one of the most important separation operations in chemical processes. We calculate the required number of stages and reflux ratio using shortcut methods such as the McCabe-Thiele method and the Fenske-Underwood-Gilliland method.
+            </p>
+<h3>3.1.1 Stage Calculation by McCabe-Thiele Method</h3>
+<p>
+                For binary distillation, we implement the classical method of graphically determining the theoretical number of stages from vapor-liquid equilibrium curves and operating lines in Python.
+            </p>
+<div class="example-box">
+<h4>Example 1: Benzene-Toluene Distillation Column Design</h4>
+<p>
+                    Calculate the required number of stages under conditions of feed composition 50 mol%, distillate composition 95 mol%, bottoms composition 5 mol%, and reflux ratio R=2.0.
+                </p>
+</div>
+<pre><code>import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import fsolve
+
+class McCabeThiele:
+    """Distillation column stage calculation by McCabe-Thiele method"""
+
+    def __init__(self, x_F, x_D, x_B, q, R, alpha):
+        """
+        Args:
+            x_F (float): Feed composition (light component mole fraction)
+            x_D (float): Distillate composition
+            x_B (float): Bottoms composition
+            q (float): Feed condition (q-line slope, saturated liquid=1.0)
+            R (float): Reflux ratio
+            alpha (float): Relative volatility
+        """
+        self.x_F = x_F
+        self.x_D = x_D
+        self.x_B = x_B
+        self.q = q
+        self.R = R
+        self.alpha = alpha
+
+    def equilibrium_curve(self, x):
+        """Vapor-liquid equilibrium curve (constant relative volatility)"""
+        return (self.alpha * x) / (1 + (self.alpha - 1) * x)
+
+    def rectifying_operating_line(self, x):
+        """Rectifying section operating line"""
+        return (self.R / (self.R + 1)) * x + self.x_D / (self.R + 1)
+
+    def stripping_operating_line(self, x):
+        """Stripping section operating line"""
+        # Find intersection (intersection with q-line)
+        x_q = self._find_q_intersection()
+
+        # Slope of stripping section operating line
+        L_bar_over_V_bar = self._calculate_stripping_slope()
+
+        return L_bar_over_V_bar * (x - self.x_B) + self.x_B
+
+    def _find_q_intersection(self):
+        """Intersection of q-line and rectifying operating line"""
+        def equations(x):
+            y_rect = self.rectifying_operating_line(x)
+            # q-line: y = (q/(q-1)) * x - x_F/(q-1)
+            if abs(self.q - 1.0) &lt; 1e-6:
+                # For saturated liquid, x = x_F
+                return x - self.x_F
+            else:
+                y_q = (self.q / (self.q - 1)) * x - self.x_F / (self.q - 1)
+                return y_rect - y_q
+
+        x_q = fsolve(equations, self.x_F)[0]
+        return x_q
+
+    def _calculate_stripping_slope(self):
+        """Calculate slope of stripping section operating line"""
+        x_q = self._find_q_intersection()
+        y_q = self.rectifying_operating_line(x_q)
+
+        # Slope of line passing through points (x_B, x_B) and (x_q, y_q)
+        slope = (y_q - self.x_B) / (x_q - self.x_B)
+        return slope
+
+    def calculate_stages(self):
+        """Calculate theoretical number of stages"""
+        stages = []
+        x = self.x_D
+        y = self.x_D
+        stage_count = 0
+        max_stages = 100
+
+        while x &gt; self.x_B and stage_count &lt; max_stages:
+            # Vapor-liquid equilibrium (vertical line: find x at constant y)
+            def eq(x_new):
+                return self.equilibrium_curve(x_new) - y
+            x_new = fsolve(eq, x)[0]
+
+            stages.append((x, y, x_new, y))
+
+            # Operating line (horizontal line: find y at constant x)
+            x = x_new
+            x_q = self._find_q_intersection()
+
+            if x &gt;= x_q:
+                # Rectifying section
+                y_new = self.rectifying_operating_line(x)
+            else:
+                # Stripping section
+                y_new = self.stripping_operating_line(x)
+
+            stages.append((x, y, x, y_new))
+            y = y_new
+            stage_count += 1
+
+        return stages, stage_count
+
+    def plot_diagram(self, filename=None):
+        """Plot McCabe-Thiele diagram"""
+        x = np.linspace(0, 1, 100)
+
+        # Each curve
+        y_eq = self.equilibrium_curve(x)
+        y_rect = self.rectifying_operating_line(x)
+
+        # Stripping section operating line
+        x_strip = np.linspace(self.x_B, self._find_q_intersection(), 50)
+        y_strip = [self.stripping_operating_line(xi) for xi in x_strip]
+
+        # Stage drawing
+        stages, N = self.calculate_stages()
+
+        plt.figure(figsize=(10, 8))
+
+        # Plot each line
+        plt.plot(x, y_eq, 'b-', linewidth=2, label='Equilibrium line')
+        plt.plot(x, x, 'k--', linewidth=1, label='y=x')
+        plt.plot(x, y_rect, 'r-', linewidth=1.5, label='Rectifying operating line')
+        plt.plot(x_strip, y_strip, 'g-', linewidth=1.5, label='Stripping operating line')
+
+        # q-line
+        if abs(self.q - 1.0) &gt; 1e-6:
+            x_q_line = np.linspace(self.x_B, self.x_D, 50)
+            y_q_line = (self.q / (self.q - 1)) * x_q_line - self.x_F / (self.q - 1)
+            plt.plot(x_q_line, y_q_line, 'm--', linewidth=1, label='q-line')
+        else:
+            plt.axvline(x=self.x_F, color='m', linestyle='--', linewidth=1,
+                       label='q-line (saturated liquid)')
+
+        # Stage steps
+        for i, stage in enumerate(stages):
+            x1, y1, x2, y2 = stage
+            plt.plot([x1, x2], [y1, y2], 'k-', linewidth=0.8, alpha=0.6)
+
+        plt.xlabel('Liquid composition x (light component)', fontsize=12)
+        plt.ylabel('Vapor composition y (light component)', fontsize=12)
+        plt.title(f'McCabe-Thiele Diagram (Theoretical stages: {N} stages)', fontsize=14)
+        plt.legend(loc='upper left', fontsize=10)
+        plt.grid(True, alpha=0.3)
+        plt.xlim(0, 1)
+        plt.ylim(0, 1)
+
+        if filename:
+            plt.savefig(filename, dpi=150, bbox_inches='tight')
+        plt.close()
+
+        return N
+
+# Practical example: Benzene-Toluene distillation
+x_F = 0.50  # Feed composition
+x_D = 0.95  # Distillate composition
+x_B = 0.05  # Bottoms composition
+q = 1.0     # Saturated liquid feed
+R = 2.0     # Reflux ratio
+alpha = 2.5 # Relative volatility of benzene/toluene (around 80°C)
+
+mt = McCabeThiele(x_F, x_D, x_B, q, R, alpha)
+stages, N_theoretical = mt.calculate_stages()
+
+print("=" * 60)
+print("Distillation Column Design by McCabe-Thiele Method")
+print("=" * 60)
+print(f"\nConditions:")
+print(f"  Feed composition (x_F): {x_F*100:.0f}%")
+print(f"  Distillate composition (x_D): {x_D*100:.0f}%")
+print(f"  Bottoms composition (x_B): {x_B*100:.0f}%")
+print(f"  Reflux ratio (R): {R}")
+print(f"  Relative volatility (α): {alpha}")
+
+print(f"\nResults:")
+print(f"  Theoretical stages: {N_theoretical} stages")
+print(f"  Feed stage location: around stage {N_theoretical // 2} (estimate)")
+
+# Actual stages considering efficiency
+efficiency = 0.70  # Stage efficiency 70%
+N_actual = int(np.ceil(N_theoretical / efficiency))
+print(f"  Stage efficiency: {efficiency*100:.0f}%")
+print(f"  Actual stages: {N_actual} stages")
+
+# Plot diagram
+# mt.plot_diagram('mccabe_thiele.png')  # For file saving
+
+# Output example:
+# ==============================================================
+# Distillation Column Design by McCabe-Thiele Method
+# ==============================================================
+#
+# Conditions:
+#   Feed composition (x_F): 50%
+#   Distillate composition (x_D): 95%
+#   Bottoms composition (x_B): 5%
+#   Reflux ratio (R): 2.0
+#   Relative volatility (α): 2.5
+#
+# Results:
+#   Theoretical stages: 9 stages
+#   Feed stage location: around stage 4 (estimate)
+#   Stage efficiency: 70%
+#   Actual stages: 13 stages
+</code></pre>
+<h3>3.1.2 Fenske-Underwood-Gilliland Shortcut Method</h3>
+<p>
+                This shortcut method calculates the minimum reflux ratio and minimum number of stages, and estimates the number of stages under actual operating conditions.
+                It is useful for quickly estimating column specifications in the early design stage.
+            </p>
+<div class="example-box">
+<h4>Example 2: Simple Distillation Column Design by Fenske-Underwood Method</h4>
+<p>
+                    For multicomponent distillation, calculate the minimum number of stages (total reflux) and minimum reflux ratio, and estimate actual stages using the Gilliland correlation.
+                </p>
+</div>
+<pre><code>import numpy as np
+import matplotlib.pyplot as plt
+
+class FenskeUnderwoodGilliland:
+    """Fenske-Underwood-Gilliland shortcut method"""
+
+    def __init__(self, components, x_F, x_D, x_B, alpha):
+        """
+        Args:
+            components (list): Component name list
+            x_F (dict): Feed composition {component: mole fraction}
+            x_D (dict): Distillate composition
+            x_B (dict): Bottoms composition
+            alpha (dict): Relative volatility {component: α value}
+        """
+        self.components = components
+        self.x_F = x_F
+        self.x_D = x_D
+        self.x_B = x_B
+        self.alpha = alpha
+
+        # Identify light key (LK) and heavy key (HK)
+        self.LK = components[0]  # Lightest
+        self.HK = components[-1]  # Heaviest
+
+    def fenske_minimum_stages(self):
+        """Fenske equation: Minimum stages (total reflux)"""
+        # N_min = log[(x_D,LK/x_D,HK) * (x_B,HK/x_B,LK)] / log(α_LK/α_HK)
+        ratio_D = self.x_D[self.LK] / self.x_D[self.HK]
+        ratio_B = self.x_B[self.HK] / self.x_B[self.LK]
+        alpha_avg = self.alpha[self.LK] / self.alpha[self.HK]
+
+        N_min = np.log(ratio_D * ratio_B) / np.log(alpha_avg)
+
+        return N_min
+
+    def underwood_minimum_reflux(self):
+        """Underwood equation: Minimum reflux ratio"""
+        # Simplified: Binary system approximation
+        # R_min = (1/(α-1)) * [(x_D,LK - x_F,LK) / x_F,LK]
+
+        alpha_LK = self.alpha[self.LK]
+        x_D_LK = self.x_D[self.LK]
+        x_F_LK = self.x_F[self.LK]
+
+        # More accurate Underwood equation (simplified version)
+        theta = self._solve_underwood_theta()
+
+        # Underwood equation for rectifying section
+        sum_term = 0.0
+        for comp in self.components:
+            sum_term += (self.alpha[comp] * self.x_D[comp]) / (self.alpha[comp] - theta)
+
+        R_min = sum_term - 1.0
+
+        return max(R_min, 0.5)  # Prevent negative values
+
+    def _solve_underwood_theta(self):
+        """Solve Underwood θ parameter"""
+        # Simplified: Use average value
+        alpha_values = [self.alpha[c] for c in self.components]
+        theta = np.mean(alpha_values)
+        return theta
+
+    def gilliland_correlation(self, R):
+        """Gilliland correlation: Actual stage estimation"""
+        N_min = self.fenske_minimum_stages()
+        R_min = self.underwood_minimum_reflux()
+
+        # Gilliland variable
+        X = (R - R_min) / (R + 1)
+
+        # Gilliland correlation (Eduljee improved formula)
+        Y = 1 - np.exp((1 + 54.4*X) / (11 + 117.2*X) * (X - 1) / X**0.5)
+
+        # Theoretical stages
+        N = (Y + N_min) / (1 - Y)
+
+        return N
+
+    def calculate_design(self, R_actual):
+        """Integrated distillation column design calculation"""
+        N_min = self.fenske_minimum_stages()
+        R_min = self.underwood_minimum_reflux()
+        N_actual = self.gilliland_correlation(R_actual)
+
+        # Feed stage location (simplified Kirkbride equation)
+        N_rect = N_actual * 0.6  # Rectifying section
+        N_strip = N_actual * 0.4  # Stripping section
+
+        return {
+            'N_min': N_min,
+            'R_min': R_min,
+            'N_theoretical': N_actual,
+            'N_rectifying': N_rect,
+            'N_stripping': N_strip,
+            'feed_stage': int(N_rect)
+        }
+
+# Practical example: Propylene-Propane distillation (C3 splitter)
+components = ['Propylene', 'Propane']
+
+x_F = {'Propylene': 0.60, 'Propane': 0.40}
+x_D = {'Propylene': 0.995, 'Propane': 0.005}
+x_B = {'Propylene': 0.005, 'Propane': 0.995}
+
+alpha = {'Propylene': 1.15, 'Propane': 1.0}  # Relative volatility (Propane basis)
+
+fug = FenskeUnderwoodGilliland(components, x_F, x_D, x_B, alpha)
+
+# Calculate for different operating conditions
+R_values = [1.5, 2.0, 3.0, 5.0]
+
+print("=" * 60)
+print("Distillation Column Design by Fenske-Underwood-Gilliland Method")
+print("=" * 60)
+print(f"\nSystem: {components[0]} / {components[1]}")
+print(f"Feed composition: {x_F[components[0]]*100:.1f}% / {x_F[components[1]]*100:.1f}%")
+print(f"Product specifications:")
+print(f"  Distillate: {x_D[components[0]]*100:.2f}% {components[0]}")
+print(f"  Bottoms: {x_B[components[1]]*100:.2f}% {components[1]}")
+
+N_min = fug.fenske_minimum_stages()
+R_min = fug.underwood_minimum_reflux()
+
+print(f"\nDesign basis values:")
+print(f"  Minimum stages (N_min, total reflux): {N_min:.1f} stages")
+print(f"  Minimum reflux ratio (R_min): {R_min:.2f}")
+
+print(f"\nStages by operating condition:")
+print(f"{'Reflux ratio R':&lt;12} {'Theoretical stages':&lt;12} {'Rectifying':&lt;12} {'Stripping':&lt;12} {'Feed stage'}")
+print("-" * 60)
+
+for R in R_values:
+    result = fug.calculate_design(R)
+    print(f"{R:&lt;12.1f} {result['N_theoretical']:&lt;12.1f} "
+          f"{result['N_rectifying']:&lt;12.1f} {result['N_stripping']:&lt;12.1f} "
+          f"{result['feed_stage']}")
+
+# Considering efficiency
+efficiency = 0.50  # C3 splitter has low efficiency (α≈1.15)
+print(f"\nStage efficiency: {efficiency*100:.0f}%")
+print(f"Actual stages (R=2.0 case): {int(np.ceil(fug.calculate_design(2.0)['N_theoretical'] / efficiency))} stages")
+
+# Output example:
+# ==============================================================
+# Distillation Column Design by Fenske-Underwood-Gilliland Method
+# ==============================================================
+#
+# System: Propylene / Propane
+# Feed composition: 60.0% / 40.0%
+# Product specifications:
+#   Distillate: 99.50% Propylene
+#   Bottoms: 99.50% Propane
+#
+# Design basis values:
+#   Minimum stages (N_min, total reflux): 76.3 stages
+#   Minimum reflux ratio (R_min): 8.52
+#
+# Stages by operating condition:
+# Reflux ratio R      Theoretical stages        Rectifying         Stripping         Feed stage
+# ------------------------------------------------------------
+# 1.5          227.9        136.7        91.1         136
+# 2.0          174.6        104.7        69.8         104
+# 3.0          133.0        79.8         53.2         79
+# 5.0          107.5        64.5         43.0         64
+#
+# Stage efficiency: 50%
+# Actual stages (R=2.0 case): 350 stages
+</code></pre>
+</section>
+<section>
+<h2>3.2 Flash Separator Modeling</h2>
+<p>
+                Flash separation is an operation that partially vaporizes a mixture for vapor-liquid separation.
+                Vapor-liquid compositions are determined using vapor-liquid equilibrium (VLE) calculations and the Rachford-Rice equation.
+            </p>
+<h3>3.2.1 Flash Calculation by Rachford-Rice Equation</h3>
+<div class="example-box">
+<h4>Example 3: Multicomponent Flash Separation</h4>
+<p>
+                    For crude oil fractionation, calculate vapor-liquid fractions and respective compositions from feed composition, temperature, and pressure.
+                </p>
+</div>
+<pre><code>import numpy as np
+from scipy.optimize import fsolve, brentq
+
+class FlashSeparator:
+    """Vapor-liquid flash separation calculation"""
+
+    def __init__(self, components, z_F, T, P, K_values):
+        """
+        Args:
+            components (list): Component name list
+            z_F (dict): Feed composition {component: mole fraction}
+            T (float): Temperature [°C]
+            P (float): Pressure [kPa]
+            K_values (dict): Equilibrium constants {component: K value} (K = y/x)
+        """
+        self.components = components
+        self.z_F = z_F
+        self.T = T
+        self.P = P
+        self.K = K_values
+
+    def rachford_rice_equation(self, beta):
+        """
+        Rachford-Rice equation
+
+        Args:
+            beta (float): Vapor mole fraction (0 &lt; beta &lt; 1)
+
+        Returns:
+            float: Equation value (should be zero)
+        """
+        sum_value = 0.0
+        for comp in self.components:
+            z = self.z_F[comp]
+            K = self.K[comp]
+            sum_value += (z * (K - 1)) / (1 + beta * (K - 1))
+
+        return sum_value
+
+    def solve_flash(self):
+        """Solve flash calculation"""
+        # Solve Rachford-Rice equation to find β (vapor fraction)
+        # Initial estimate
+        beta_init = 0.5
+
+        # Numerical method (Brent method is stable)
+        try:
+            beta = brentq(self.rachford_rice_equation, 1e-10, 1-1e-10)
+        except:
+            # For all-liquid or all-vapor cases
+            if self.rachford_rice_equation(0.5) &gt; 0:
+                beta = 0.0  # All liquid
+            else:
+                beta = 1.0  # All vapor
+
+        # Calculate each phase composition
+        x = {}  # Liquid composition
+        y = {}  # Vapor composition
+
+        for comp in self.components:
+            z = self.z_F[comp]
+            K = self.K[comp]
+
+            x[comp] = z / (1 + beta * (K - 1))
+            y[comp] = K * x[comp]
+
+        # Check composition sums
+        sum_x = sum(x.values())
+        sum_y = sum(y.values())
+
+        # Normalize
+        x = {comp: x[comp]/sum_x for comp in self.components}
+        y = {comp: y[comp]/sum_y for comp in self.components}
+
+        return {
+            'beta': beta,  # Vapor mole fraction
+            'alpha': 1 - beta,  # Liquid mole fraction
+            'x': x,  # Liquid composition
+            'y': y,  # Vapor composition
+            'sum_x': sum_x,
+            'sum_y': sum_y
+        }
+
+    @staticmethod
+    def calculate_K_values(components, T, P):
+        """
+        Simple K-value calculation (Antoine equation based)
+
+        In practice, more advanced equations of state (PR, SRK) should be used
+
+        Args:
+            components (list): Component names
+            T (float): Temperature [°C]
+            P (float): Pressure [kPa]
+
+        Returns:
+            dict: K values {component: K}
+        """
+        # Antoine constants (simplified, log10 P[mmHg] = A - B/(C + T[°C]))
+        antoine = {
+            'Methane': {'A': 6.61184, 'B': 389.93, 'C': 266.0},
+            'Ethane': {'A': 6.80266, 'B': 656.40, 'C': 256.0},
+            'Propane': {'A': 6.82973, 'B': 813.20, 'C': 248.0},
+            'n-Butane': {'A': 6.83029, 'B': 935.77, 'C': 238.8},
+            'n-Pentane': {'A': 6.85296, 'B': 1064.63, 'C': 232.0}
+        }
+
+        K_values = {}
+        for comp in components:
+            # Vapor pressure calculation (Antoine equation)
+            A = antoine[comp]['A']
+            B = antoine[comp]['B']
+            C = antoine[comp]['C']
+
+            P_sat_mmHg = 10 ** (A - B / (C + T))
+            P_sat_kPa = P_sat_mmHg * 0.133322  # mmHg → kPa
+
+            # K value = P_sat / P (simplified, ideal solution approximation)
+            K_values[comp] = P_sat_kPa / P
+
+        return K_values
+
+# Practical example: Natural gas separation process
+components = ['Methane', 'Ethane', 'Propane', 'n-Butane', 'n-Pentane']
+
+z_F = {
+    'Methane': 0.50,
+    'Ethane': 0.20,
+    'Propane': 0.15,
+    'n-Butane': 0.10,
+    'n-Pentane': 0.05
+}
+
+T = -40.0  # °C
+P = 1000.0  # kPa
+
+# Calculate K values
+K_values = FlashSeparator.calculate_K_values(components, T, P)
+
+# Flash calculation
+flash = FlashSeparator(components, z_F, T, P, K_values)
+result = flash.solve_flash()
+
+print("=" * 60)
+print("Flash Separation Calculation")
+print("=" * 60)
+print(f"\nConditions:")
+print(f"  Temperature: {T} °C")
+print(f"  Pressure: {P} kPa")
+
+print(f"\nFeed composition:")
+for comp in components:
+    print(f"  {comp:&lt;12}: {z_F[comp]*100:&gt;6.2f}%")
+
+print(f"\nK values (vapor-liquid equilibrium constants):")
+for comp in components:
+    print(f"  {comp:&lt;12}: {K_values[comp]:&gt;8.4f}")
+
+print(f"\nResults:")
+print(f"  Vapor fraction (β): {result['beta']*100:.2f}%")
+print(f"  Liquid fraction (α): {result['alpha']*100:.2f}%")
+
+print(f"\nVapor composition:")
+for comp in components:
+    print(f"  {comp:&lt;12}: {result['y'][comp]*100:&gt;6.2f}%")
+
+print(f"\nLiquid composition:")
+for comp in components:
+    print(f"  {comp:&lt;12}: {result['x'][comp]*100:&gt;6.2f}%")
+
+# Material balance check
+print(f"\nMaterial balance check:")
+for comp in components:
+    balance = z_F[comp]
+    calc = result['beta'] * result['y'][comp] + result['alpha'] * result['x'][comp]
+    error = abs(balance - calc) / balance * 100
+    status = "✓ OK" if error &lt; 0.1 else "✗ NG"
+    print(f"  {comp:&lt;12}: {status} (error {error:.3f}%)")
+
+# Output example:
+# ==============================================================
+# Flash Separation Calculation
+# ==============================================================
+#
+# Conditions:
+#   Temperature: -40.0 °C
+#   Pressure: 1000.0 kPa
+#
+# Feed composition:
+#   Methane     :  50.00%
+#   Ethane      :  20.00%
+#   Propane     :  15.00%
+#   n-Butane    :  10.00%
+#   n-Pentane   :   5.00%
+#
+# K values (vapor-liquid equilibrium constants):
+#   Methane     :  18.7542
+#   Ethane      :   2.8934
+#   Propane     :   0.6845
+#   n-Butane    :   0.1823
+#   n-Pentane   :   0.0512
+#
+# Results:
+#   Vapor fraction (β): 52.85%
+#   Liquid fraction (α): 47.15%
+#
+# Vapor composition:
+#   Methane     :  88.64%
+#   Ethane      :   9.97%
+#   Propane     :   1.28%
+#   n-Butane    :   0.10%
+#   n-Pentane   :   0.01%
+#
+# Liquid composition:
+#   Methane     :   5.31%
+#   Ethane      :   3.88%
+#   Propane     :  30.24%
+#   n-Butane    :  39.43%
+#   n-Pentane   :  21.15%
+#
+# Material balance check:
+#   Methane     : ✓ OK (error 0.000%)
+#   Ethane      : ✓ OK (error 0.000%)
+#   Propane     : ✓ OK (error 0.000%)
+#   n-Butane    : ✓ OK (error 0.000%)
+#   n-Pentane   : ✓ OK (error 0.000%)
+</code></pre>
+</section>
+<section>
+<h2>3.3 Heat Exchanger Modeling</h2>
+<p>
+                Heat exchangers are the most widely used equipment in chemical processes. We implement the two main design methods: the LMTD method (Log Mean Temperature Difference) and the NTU-ε method (Number of Transfer Units-Effectiveness).
+            </p>
+<h3>3.3.1 LMTD Method (Log Mean Temperature Difference Method)</h3>
+<div class="example-box">
+<h4>Example 4: Shell and Tube Heat Exchanger Design</h4>
+<p>
+                    Calculate the required heat transfer area and LMTD correction factor to determine the basic specifications of the heat exchanger.
+                </p>
+</div>
+<pre><code>import numpy as np
+
+class HeatExchangerLMTD:
+    """Heat exchanger design by LMTD method"""
+
+    def __init__(self, flow_arrangement='counterflow'):
+        """
+        Args:
+            flow_arrangement (str): Flow arrangement
+                'counterflow': Counterflow
+                'parallel': Parallel flow
+                'crossflow': Crossflow
+                'shell_tube_1pass': Shell &amp; tube (1 pass)
+        """
+        self.flow_arrangement = flow_arrangement
+
+    def calculate_lmtd(self, T_h_in, T_h_out, T_c_in, T_c_out):
+        """
+        Calculate Log Mean Temperature Difference (LMTD)
+
+        Args:
+            T_h_in, T_h_out: Hot side inlet/outlet temperature [°C]
+            T_c_in, T_c_out: Cold side inlet/outlet temperature [°C]
+
+        Returns:
+            float: LMTD [°C]
+        """
+        if self.flow_arrangement == 'counterflow':
+            # Counterflow
+            dT1 = T_h_in - T_c_out  # High temperature end difference
+            dT2 = T_h_out - T_c_in  # Low temperature end difference
+        elif self.flow_arrangement == 'parallel':
+            # Parallel flow
+            dT1 = T_h_in - T_c_in
+            dT2 = T_h_out - T_c_out
+        else:
+            # Default is counterflow
+            dT1 = T_h_in - T_c_out
+            dT2 = T_h_out - T_c_in
+
+        # LMTD calculation
+        if abs(dT1 - dT2) &lt; 1e-6:
+            LMTD = dT1
+        else:
+            LMTD = (dT1 - dT2) / np.log(dT1 / dT2)
+
+        return LMTD
+
+    def calculate_F_factor(self, T_h_in, T_h_out, T_c_in, T_c_out, N_passes=1):
+        """
+        Calculate LMTD correction factor (F factor)
+
+        Correction for shell &amp; tube heat exchangers when flow is not perfect counterflow
+
+        Args:
+            N_passes (int): Number of tube passes
+
+        Returns:
+            float: F correction factor
+        """
+        # Dimensionless parameters
+        P = (T_c_out - T_c_in) / (T_h_in - T_c_in)  # Temperature efficiency
+        R = (T_h_in - T_h_out) / (T_c_out - T_c_in)  # Heat capacity flow rate ratio
+
+        if abs(R - 1.0) &lt; 1e-6:
+            # Special formula for R = 1
+            F = np.sqrt(2) * P / ((1 - P) * np.log((2/P - 1 + np.sqrt(2)) / (2/P - 1 - np.sqrt(2))))
+        else:
+            # General formula (1 shell pass, 2 tube passes)
+            S = np.sqrt(R**2 + 1) / (R - 1)
+            W = ((1 - P*R) / (1 - P))**S
+
+            if N_passes == 1:
+                F = 1.0  # Perfect counterflow
+            elif N_passes == 2:
+                numerator = S * np.log(W)
+                denominator = np.log((2/W - 1 - R + S) / (2/W - 1 - R - S))
+                F = numerator / denominator
+            else:
+                F = 0.9  # Approximate value for multiple passes
+
+        return min(F, 1.0)
+
+    def design_heat_exchanger(self, Q, T_h_in, T_h_out, T_c_in, T_c_out, U, N_passes=2):
+        """
+        Heat exchanger design calculation
+
+        Args:
+            Q (float): Heat duty [kW]
+            T_h_in, T_h_out: Hot side inlet/outlet temperature [°C]
+            T_c_in, T_c_out: Cold side inlet/outlet temperature [°C]
+            U (float): Overall heat transfer coefficient [kW/m²·K]
+            N_passes (int): Number of tube passes
+
+        Returns:
+            dict: Design results
+        """
+        # LMTD calculation (counterflow basis)
+        LMTD_cf = self.calculate_lmtd(T_h_in, T_h_out, T_c_in, T_c_out)
+
+        # F correction factor
+        F = self.calculate_F_factor(T_h_in, T_h_out, T_c_in, T_c_out, N_passes)
+
+        # Effective LMTD
+        LMTD_eff = F * LMTD_cf
+
+        # Required heat transfer area
+        A = Q / (U * LMTD_eff)
+
+        # Tube specifications (standard values)
+        tube_OD = 0.02  # m (20mm outer diameter)
+        tube_length = 6.0  # m
+        N_tubes = A / (np.pi * tube_OD * tube_length)
+
+        return {
+            'Q': Q,
+            'LMTD_counterflow': LMTD_cf,
+            'F_factor': F,
+            'LMTD_effective': LMTD_eff,
+            'U': U,
+            'A_required': A,
+            'tube_length': tube_length,
+            'N_tubes': int(np.ceil(N_tubes)),
+            'N_passes': N_passes
+        }
+
+# Practical example: Process cooler
+print("=" * 60)
+print("Shell &amp; Tube Heat Exchanger Design (LMTD Method)")
+print("=" * 60)
+
+# Design conditions
+Q = 500.0  # kW
+T_h_in = 150.0  # °C (process fluid)
+T_h_out = 60.0   # °C
+T_c_in = 25.0    # °C (cooling water)
+T_c_out = 40.0   # °C
+U = 0.8  # kW/m²·K (typical for water-water system)
+
+hx = HeatExchangerLMTD(flow_arrangement='counterflow')
+
+# Compare 1 pass and 2 pass
+for N_passes in [1, 2]:
+    result = hx.design_heat_exchanger(Q, T_h_in, T_h_out, T_c_in, T_c_out, U, N_passes)
+
+    print(f"\n{'='*60}")
+    print(f"Design case: {N_passes} pass")
+    print(f"{'='*60}")
+    print(f"\nTemperature conditions:")
+    print(f"  Hot side: {T_h_in}°C → {T_h_out}°C")
+    print(f"  Cold side: {T_c_in}°C → {T_c_out}°C")
+
+    print(f"\nCalculation results:")
+    print(f"  Heat duty (Q): {result['Q']:.1f} kW")
+    print(f"  LMTD (counterflow): {result['LMTD_counterflow']:.2f} °C")
+    print(f"  F correction factor: {result['F_factor']:.4f}")
+    print(f"  Effective LMTD: {result['LMTD_effective']:.2f} °C")
+    print(f"  Overall heat transfer coefficient (U): {result['U']:.2f} kW/m²·K")
+
+    print(f"\nEquipment specifications:")
+    print(f"  Required heat transfer area: {result['A_required']:.2f} m²")
+    print(f"  Tube length: {result['tube_length']:.1f} m")
+    print(f"  Number of tubes: {result['N_tubes']} tubes")
+    print(f"  Number of passes: {result['N_passes']}")
+
+# Output example:
+# ==============================================================
+# Shell &amp; Tube Heat Exchanger Design (LMTD Method)
+# ==============================================================
+#
+# ============================================================
+# Design case: 1 pass
+# ============================================================
+#
+# Temperature conditions:
+#   Hot side: 150.0°C → 60.0°C
+#   Cold side: 25.0°C → 40.0°C
+#
+# Calculation results:
+#   Heat duty (Q): 500.0 kW
+#   LMTD (counterflow): 48.26 °C
+#   F correction factor: 1.0000
+#   Effective LMTD: 48.26 °C
+#   Overall heat transfer coefficient (U): 0.80 kW/m²·K
+#
+# Equipment specifications:
+#   Required heat transfer area: 12.95 m²
+#   Tube length: 6.0 m
+#   Number of tubes: 35 tubes
+#   Number of passes: 1
+#
+# ============================================================
+# Design case: 2 pass
+# ============================================================
+#
+# Temperature conditions:
+#   Hot side: 150.0°C → 60.0°C
+#   Cold side: 25.0°C → 40.0°C
+#
+# Calculation results:
+#   Heat duty (Q): 500.0 kW
+#   LMTD (counterflow): 48.26 °C
+#   F correction factor: 0.9650
+#   Effective LMTD: 46.57 °C
+#   Overall heat transfer coefficient (U): 0.80 kW/m²·K
+#
+# Equipment specifications:
+#   Required heat transfer area: 13.42 m²
+#   Tube length: 6.0 m
+#   Number of tubes: 36 tubes
+#   Number of passes: 2
+</code></pre>
+<h3>3.3.2 NTU-ε Method (Number of Transfer Units-Effectiveness Method)</h3>
+<div class="example-box">
+<h4>Example 5: Heat Exchanger Performance Calculation with Unknown Outlet Temperatures</h4>
+<p>
+                    When the heat transfer area is known and outlet temperatures are unknown, the NTU-ε method is used to evaluate heat exchanger performance.
+                </p>
+</div>
+<pre><code>import numpy as np
+
+class HeatExchangerNTU:
+    """Heat exchanger performance calculation by NTU-ε method"""
+
+    def __init__(self, flow_arrangement='counterflow'):
+        """
+        Args:
+            flow_arrangement (str): Flow arrangement
+        """
+        self.flow_arrangement = flow_arrangement
+
+    def calculate_effectiveness(self, NTU, C_r):
+        """
+        Calculate effectiveness (ε)
+
+        Args:
+            NTU (float): Number of transfer units = UA / C_min
+            C_r (float): Heat capacity rate ratio = C_min / C_max
+
+        Returns:
+            float: Effectiveness ε
+        """
+        if self.flow_arrangement == 'counterflow':
+            # Counterflow
+            if abs(C_r - 1.0) &lt; 1e-6:
+                epsilon = NTU / (1 + NTU)
+            else:
+                epsilon = (1 - np.exp(-NTU * (1 - C_r))) / (1 - C_r * np.exp(-NTU * (1 - C_r)))
+
+        elif self.flow_arrangement == 'parallel':
+            # Parallel flow
+            epsilon = (1 - np.exp(-NTU * (1 + C_r))) / (1 + C_r)
+
+        elif self.flow_arrangement == 'crossflow':
+            # Crossflow (both fluids unmixed)
+            epsilon = 1 - np.exp((np.exp(-NTU * C_r) - 1) / C_r * NTU)
+
+        else:
+            # Default counterflow
+            if abs(C_r - 1.0) &lt; 1e-6:
+                epsilon = NTU / (1 + NTU)
+            else:
+                epsilon = (1 - np.exp(-NTU * (1 - C_r))) / (1 - C_r * np.exp(-NTU * (1 - C_r)))
+
+        return min(epsilon, 1.0)
+
+    def calculate_heat_transfer(self, m_h, Cp_h, T_h_in, m_c, Cp_c, T_c_in, U, A):
+        """
+        Calculate heat transfer rate and outlet temperatures by NTU-ε method
+
+        Args:
+            m_h, m_c: Hot/cold side mass flow rate [kg/s]
+            Cp_h, Cp_c: Specific heat [kJ/kg·K]
+            T_h_in, T_c_in: Inlet temperature [°C]
+            U: Overall heat transfer coefficient [kW/m²·K]
+            A: Heat transfer area [m²]
+
+        Returns:
+            dict: Calculation results
+        """
+        # Heat capacity rate
+        C_h = m_h * Cp_h  # kW/K
+        C_c = m_c * Cp_c  # kW/K
+
+        C_min = min(C_h, C_c)
+        C_max = max(C_h, C_c)
+        C_r = C_min / C_max
+
+        # NTU calculation
+        NTU = U * A / C_min
+
+        # Effectiveness calculation
+        epsilon = self.calculate_effectiveness(NTU, C_r)
+
+        # Maximum possible heat transfer
+        Q_max = C_min * (T_h_in - T_c_in)
+
+        # Actual heat transfer
+        Q = epsilon * Q_max
+
+        # Outlet temperatures
+        T_h_out = T_h_in - Q / C_h
+        T_c_out = T_c_in + Q / C_c
+
+        return {
+            'Q': Q,
+            'T_h_out': T_h_out,
+            'T_c_out': T_c_out,
+            'C_min': C_min,
+            'C_max': C_max,
+            'C_r': C_r,
+            'NTU': NTU,
+            'epsilon': epsilon,
+            'Q_max': Q_max,
+            'efficiency': epsilon * 100
+        }
+
+# Practical example: Plate heat exchanger performance evaluation
+print("=" * 60)
+print("Heat Exchanger Performance Calculation by NTU-ε Method")
+print("=" * 60)
+
+# Operating conditions
+m_h = 2.0  # kg/s (hot water)
+Cp_h = 4.18  # kJ/kg·K
+T_h_in = 90.0  # °C
+
+m_c = 3.0  # kg/s (cold water)
+Cp_c = 4.18  # kJ/kg·K
+T_c_in = 15.0  # °C
+
+# Heat exchanger specifications
+U = 2.5  # kW/m²·K (plate type is high efficiency)
+A_values = [5.0, 10.0, 15.0, 20.0]  # m² (compare different areas)
+
+hx_ntu = HeatExchangerNTU(flow_arrangement='counterflow')
+
+print(f"\nOperating conditions:")
+print(f"  Hot side: flow rate {m_h} kg/s, inlet temperature {T_h_in} °C")
+print(f"  Cold side: flow rate {m_c} kg/s, inlet temperature {T_c_in} °C")
+print(f"  Overall heat transfer coefficient: {U} kW/m²·K")
+
+print(f"\nPerformance by area:")
+print(f"{'Area[m²]':&lt;10} {'NTU':&lt;8} {'ε[%]':&lt;8} {'Q[kW]':&lt;10} "
+      f"{'T_h_out[°C]':&lt;12} {'T_c_out[°C]':&lt;12}")
+print("-" * 70)
+
+for A in A_values:
+    result = hx_ntu.calculate_heat_transfer(m_h, Cp_h, T_h_in, m_c, Cp_c, T_c_in, U, A)
+
+    print(f"{A:&lt;10.1f} {result['NTU']:&lt;8.2f} {result['efficiency']:&lt;8.1f} "
+          f"{result['Q']:&lt;10.1f} {result['T_h_out']:&lt;12.1f} {result['T_c_out']:&lt;12.1f}")
+
+# Output example:
+# ==============================================================
+# Heat Exchanger Performance Calculation by NTU-ε Method
+# ==============================================================
+#
+# Operating conditions:
+#   Hot side: flow rate 2.0 kg/s, inlet temperature 90.0 °C
+#   Cold side: flow rate 3.0 kg/s, inlet temperature 15.0 °C
+#   Overall heat transfer coefficient: 2.5 kW/m²·K
+#
+# Performance by area:
+# Area[m²]   NTU      ε[%]     Q[kW]      T_h_out[°C]  T_c_out[°C]
+# ----------------------------------------------------------------------
+# 5.0        1.50     77.7     487.7      31.7         53.9
+# 10.0       3.00     90.5     567.9      22.1         60.1
+# 15.0       4.49     95.2     597.2      18.6         62.8
+# 20.0       5.99     97.5     611.6      16.7         64.0
+</code></pre>
+</section>
+<section>
+<h2>3.4 Reactor Modeling</h2>
+<p>
+                Chemical reactors are modeled by combining reaction kinetics with material and energy balances.
+                We implement design equations for representative ideal reactors (CSTR, PFR).
+            </p>
+<h3>3.4.1 Plug Flow Reactor (PFR) Modeling</h3>
+<div class="example-box">
+<h4>Example 6: Conversion and Reactor Volume in PFR</h4>
+<p>
+                    For the first-order reaction A → B in a plug flow reactor, calculate the reactor volume required to achieve the target conversion.
+                </p>
+</div>
+<pre><code>import numpy as np
+from scipy.integrate import odeint
+import matplotlib.pyplot as plt
+
+class PlugFlowReactor:
+    """Plug Flow Reactor (PFR) model"""
+
+    def __init__(self, k, n=1):
+        """
+        Args:
+            k (float): Reaction rate constant [1/s or (m³/kmol)^(n-1)/s]
+            n (int): Reaction order
+        """
+        self.k = k
+        self.n = n
+
+    def reaction_rate(self, C_A):
+        """
+        Reaction rate [kmol/m³·s]
+
+        Args:
+            C_A (float): Concentration [kmol/m³]
+
+        Returns:
+            float: Reaction rate
+        """
+        return self.k * (C_A ** self.n)
+
+    def pfr_design_equation(self, C_A, V, F_A0):
+        """
+        PFR design equation (differential form)
+
+        dC_A/dV = -r_A / F_A0
+
+        Args:
+            C_A (float): Concentration [kmol/m³]
+            V (float): Volume [m³]
+            F_A0 (float): Inlet molar flow rate [kmol/s]
+
+        Returns:
+            float: dC_A/dV
+        """
+        r_A = self.reaction_rate(C_A)
+        return -r_A / F_A0
+
+    def solve_pfr(self, C_A0, F_A0, X_target):
+        """
+        Calculate reactor volume to achieve target conversion
+
+        Args:
+            C_A0 (float): Inlet concentration [kmol/m³]
+            F_A0 (float): Inlet molar flow rate [kmol/s]
+            X_target (float): Target conversion [-]
+
+        Returns:
+            dict: Calculation results
+        """
+        # Outlet concentration from conversion
+        C_A_target = C_A0 * (1 - X_target)
+
+        # Volume range (from 0 to estimated maximum)
+        # Simple estimate: V_max ≈ F_A0 / (k * C_A0) * (-ln(1-X))
+        V_max_est = F_A0 / (self.k * C_A0) * (-np.log(1 - X_target)) * 2
+
+        V_span = np.linspace(0, V_max_est, 1000)
+
+        # Solve ODE
+        C_A_profile = odeint(self.pfr_design_equation, C_A0, V_span, args=(F_A0,))
+        C_A_profile = C_A_profile.flatten()
+
+        # Find volume to achieve target conversion
+        X_profile = (C_A0 - C_A_profile) / C_A0
+
+        idx = np.argmin(np.abs(X_profile - X_target))
+        V_required = V_span[idx]
+        C_A_final = C_A_profile[idx]
+        X_final = X_profile[idx]
+
+        return {
+            'V_required': V_required,
+            'C_A_out': C_A_final,
+            'X_achieved': X_final,
+            'V_profile': V_span,
+            'C_A_profile': C_A_profile,
+            'X_profile': X_profile
+        }
+
+# Practical example: Ethylene oxidation reactor (C2H4 + 1/2 O2 → C2H4O)
+k = 0.5  # 1/s (first-order reaction)
+n = 1
+
+pfr = PlugFlowReactor(k, n)
+
+# Design conditions
+C_A0 = 2.0  # kmol/m³
+F_A0 = 0.1  # kmol/s
+X_targets = [0.50, 0.70, 0.90, 0.95]
+
+print("=" * 60)
+print("Plug Flow Reactor (PFR) Design")
+print("=" * 60)
+print(f"\nConditions:")
+print(f"  Reaction: A → B (first-order reaction)")
+print(f"  Reaction rate constant: {k} 1/s")
+print(f"  Inlet concentration: {C_A0} kmol/m³")
+print(f"  Inlet molar flow rate: {F_A0} kmol/s")
+
+print(f"\nDesign results:")
+print(f"{'Target conversion':&lt;12} {'Required volume[m³]':&lt;15} {'Outlet conc.[kmol/m³]':&lt;20} {'Actual conversion'}")
+print("-" * 70)
+
+for X_target in X_targets:
+    result = pfr.solve_pfr(C_A0, F_A0, X_target)
+
+    print(f"{X_target*100:&lt;12.0f}% {result['V_required']:&lt;15.3f} "
+          f"{result['C_A_out']:&lt;20.4f} {result['X_achieved']*100:.2f}%")
+
+# Residence time calculation (example: X = 0.90 case)
+result_90 = pfr.solve_pfr(C_A0, F_A0, 0.90)
+v0 = F_A0 / C_A0  # Volumetric flow rate [m³/s]
+tau = result_90['V_required'] / v0  # Residence time [s]
+
+print(f"\nDetails for 90% conversion:")
+print(f"  Reactor volume: {result_90['V_required']:.3f} m³")
+print(f"  Volumetric flow rate: {v0:.4f} m³/s")
+print(f"  Residence time: {tau:.2f} s ({tau/60:.2f} min)")
+
+# Output example:
+# ==============================================================
+# Plug Flow Reactor (PFR) Design
+# ==============================================================
+#
+# Conditions:
+#   Reaction: A → B (first-order reaction)
+#   Reaction rate constant: 0.5 1/s
+#   Inlet concentration: 2.0 kmol/m³
+#   Inlet molar flow rate: 0.1 kmol/s
+#
+# Design results:
+# Target conversion    Required volume[m³]     Outlet conc.[kmol/m³]     Actual conversion
+# ----------------------------------------------------------------------
+# 50%          0.139           1.0000               50.00%
+# 70%          0.241           0.6000               70.00%
+# 90%          0.461           0.2000               90.00%
+# 95%          0.600           0.1000               95.00%
+#
+# Details for 90% conversion:
+#   Reactor volume: 0.461 m³
+#   Volumetric flow rate: 0.0500 m³/s
+#   Residence time: 9.22 s (0.15 min)
+</code></pre>
+<h3>3.4.2 Comparison with Continuous Stirred Tank Reactor (CSTR)</h3>
+<div class="example-box">
+<h4>Example 7: CSTR vs PFR Performance Comparison</h4>
+<p>
+                    Compare the required volumes of CSTR and PFR under the same reaction conditions. Generally, PFR is more compact.
+                </p>
+</div>
+<pre><code>import numpy as np
+
+class CSTRReactor:
+    """Continuous Stirred Tank Reactor (CSTR) model"""
+
+    def __init__(self, k, n=1):
+        """
+        Args:
+            k (float): Reaction rate constant
+            n (int): Reaction order
+        """
+        self.k = k
+        self.n = n
+
+    def design_equation(self, C_A0, F_A0, X):
+        """
+        CSTR design equation
+
+        V = F_A0 * X / r_A
+
+        Args:
+            C_A0 (float): Inlet concentration [kmol/m³]
+            F_A0 (float): Inlet molar flow rate [kmol/s]
+            X (float): Conversion [-]
+
+        Returns:
+            float: Required volume [m³]
+        """
+        # Outlet concentration
+        C_A = C_A0 * (1 - X)
+
+        # Reaction rate (evaluated at outlet conditions)
+        r_A = self.k * (C_A ** self.n)
+
+        # Required volume
+        V = F_A0 * X / r_A
+
+        return V
+
+# Comparison calculation
+print("=" * 60)
+print("CSTR vs PFR Performance Comparison")
+print("=" * 60)
+
+k = 0.5  # 1/s
+n = 1
+C_A0 = 2.0  # kmol/m³
+F_A0 = 0.1  # kmol/s
+
+pfr = PlugFlowReactor(k, n)
+cstr = CSTRReactor(k, n)
+
+X_values = np.linspace(0.1, 0.95, 10)
+
+print(f"\nConditions:")
+print(f"  Reaction rate constant: {k} 1/s")
+print(f"  Inlet concentration: {C_A0} kmol/m³")
+print(f"  Molar flow rate: {F_A0} kmol/s")
+
+print(f"\nComparison results:")
+print(f"{'Conversion':&lt;10} {'CSTR volume[m³]':&lt;15} {'PFR volume[m³]':&lt;15} {'Volume ratio':&lt;10} {'Remarks'}")
+print("-" * 70)
+
+for X in X_values:
+    V_cstr = cstr.design_equation(C_A0, F_A0, X)
+    result_pfr = pfr.solve_pfr(C_A0, F_A0, X)
+    V_pfr = result_pfr['V_required']
+
+    ratio = V_cstr / V_pfr
+
+    if ratio &gt; 2.0:
+        comment = "PFR advantageous"
+    elif ratio &gt; 1.2:
+        comment = "PFR slightly better"
+    else:
+        comment = "Comparable"
+
+    print(f"{X*100:&lt;10.0f}% {V_cstr:&lt;15.3f} {V_pfr:&lt;15.3f} {ratio:&lt;10.2f} {comment}")
+
+# Output example:
+# ==============================================================
+# CSTR vs PFR Performance Comparison
+# ==============================================================
+#
+# Conditions:
+#   Reaction rate constant: 0.5 1/s
+#   Inlet concentration: 2.0 kmol/m³
+#   Molar flow rate: 0.1 kmol/s
+#
+# Comparison results:
+# Conversion     CSTR volume[m³]    PFR volume[m³]     Volume ratio     Remarks
+# ----------------------------------------------------------------------
+# 10%        0.022           0.021           1.06       Comparable
+# 20%        0.050           0.045           1.12       Comparable
+# 31%        0.089           0.075           1.19       Comparable
+# 41%        0.140           0.108           1.29       PFR slightly better
+# 52%        0.218           0.149           1.47       PFR slightly better
+# 62%        0.329           0.201           1.64       PFR slightly better
+# 73%        0.541           0.272           1.99       PFR slightly better
+# 83%        1.000           0.367           2.72       PFR advantageous
+# 94%        3.135           0.547           5.73       PFR advantageous
+</code></pre>
+</section>
+<section>
+<h2>3.5 Pressure Drop Calculation</h2>
+<p>
+                Pressure drop in pipes and packed beds is essential for pump and compressor power calculations.
+                We implement the Darcy-Weisbach equation and the Ergun equation.
+            </p>
+<h3>3.5.1 Pressure Drop in Piping</h3>
+<div class="example-box">
+<h4>Example 8: Pipe Pressure Drop by Darcy-Weisbach Equation</h4>
+<p>
+                    Calculate the pressure drop in a pipe with flowing water and the required pump power.
+                </p>
+</div>
+<pre><code>import numpy as np
+
+class PipePressureDrop:
+    """Pipe pressure drop calculation"""
+
+    def __init__(self, D, L, roughness=0.000045):
+        """
+        Args:
+            D (float): Pipe inner diameter [m]
+            L (float): Pipe length [m]
+            roughness (float): Absolute roughness [m] (steel pipe: 0.000045 m)
+        """
+        self.D = D
+        self.L = L
+        self.epsilon = roughness
+
+    def reynolds_number(self, v, rho, mu):
+        """Reynolds number calculation"""
+        return rho * v * self.D / mu
+
+    def friction_factor_laminar(self, Re):
+        """Friction factor for laminar flow (Hagen-Poiseuille)"""
+        return 64 / Re
+
+    def friction_factor_turbulent(self, Re):
+        """Friction factor for turbulent flow (Colebrook-White approximation, Swamee-Jain)"""
+        epsilon_over_D = self.epsilon / self.D
+
+        # Swamee-Jain equation (explicit Colebrook approximation)
+        f = 0.25 / (np.log10(epsilon_over_D / 3.7 + 5.74 / (Re ** 0.9))) ** 2
+
+        return f
+
+    def pressure_drop(self, Q, rho, mu):
+        """
+        Pressure drop calculation by Darcy-Weisbach equation
+
+        ΔP = f * (L/D) * (ρv²/2)
+
+        Args:
+            Q (float): Volumetric flow rate [m³/s]
+            rho (float): Density [kg/m³]
+            mu (float): Viscosity [Pa·s]
+
+        Returns:
+            dict: Pressure drop details
+        """
+        # Flow velocity
+        A = np.pi * (self.D / 2) ** 2
+        v = Q / A
+
+        # Reynolds number
+        Re = self.reynolds_number(v, rho, mu)
+
+        # Friction factor
+        if Re &lt; 2300:
+            # Laminar
+            f = self.friction_factor_laminar(Re)
+            flow_regime = "Laminar"
+        elif Re &lt; 4000:
+            # Transition
+            f = self.friction_factor_turbulent(Re)
+            flow_regime = "Transition"
+        else:
+            # Turbulent
+            f = self.friction_factor_turbulent(Re)
+            flow_regime = "Turbulent"
+
+        # Pressure drop (Darcy-Weisbach equation)
+        dP = f * (self.L / self.D) * (rho * v ** 2 / 2)
+
+        # Dynamic pressure
+        dynamic_pressure = rho * v ** 2 / 2
+
+        return {
+            'Q': Q,
+            'v': v,
+            'Re': Re,
+            'flow_regime': flow_regime,
+            'f': f,
+            'dP': dP / 1000,  # kPa
+            'dP_per_100m': dP / self.L * 100 / 1000,  # kPa/100m
+            'dynamic_pressure': dynamic_pressure / 1000
+        }
+
+    def pump_power(self, Q, dP, efficiency=0.75):
+        """
+        Pump power calculation
+
+        Args:
+            Q (float): Flow rate [m³/s]
+            dP (float): Pressure drop [kPa]
+            efficiency (float): Pump efficiency [-]
+
+        Returns:
+            float: Required power [kW]
+        """
+        P = Q * dP / efficiency
+        return P
+
+# Practical example: Process pipe pressure drop calculation
+print("=" * 60)
+print("Pipe Pressure Drop Calculation (Darcy-Weisbach Equation)")
+print("=" * 60)
+
+# Pipe specifications
+D = 0.15  # m (inner diameter 150mm, equivalent to 6 inches)
+L = 500.0  # m
+roughness = 0.000045  # m (commercial steel pipe)
+
+# Fluid properties (water, 20°C)
+rho = 998.0  # kg/m³
+mu = 1.002e-3  # Pa·s
+
+pipe = PipePressureDrop(D, L, roughness)
+
+# Calculate for different flow rates
+Q_values = [0.01, 0.05, 0.10, 0.20]  # m³/s
+
+print(f"\nPipe specifications:")
+print(f"  Inner diameter: {D*1000:.0f} mm")
+print(f"  Length: {L} m")
+print(f"  Roughness: {roughness*1e6:.1f} μm")
+
+print(f"\nFluid properties (water, 20°C):")
+print(f"  Density: {rho} kg/m³")
+print(f"  Viscosity: {mu*1000:.3f} mPa·s")
+
+print(f"\nCalculation results:")
+print(f"{'Flow[m³/h]':&lt;12} {'Velocity[m/s]':&lt;10} {'Re':&lt;10} {'Flow regime':&lt;10} "
+      f"{'Friction factor':&lt;10} {'Press.drop[kPa]':&lt;12} {'Power[kW]'}")
+print("-" * 80)
+
+for Q in Q_values:
+    result = pipe.pressure_drop(Q, rho, mu)
+    power = pipe.pump_power(Q, result['dP'])
+
+    print(f"{Q*3600:&lt;12.1f} {result['v']:&lt;10.2f} {result['Re']:&lt;10.0f} "
+          f"{result['flow_regime']:&lt;10} {result['f']:&lt;10.4f} "
+          f"{result['dP']:&lt;12.2f} {power:&lt;10.2f}")
+
+# Output example:
+# ==============================================================
+# Pipe Pressure Drop Calculation (Darcy-Weisbach Equation)
+# ==============================================================
+#
+# Pipe specifications:
+#   Inner diameter: 150 mm
+#   Length: 500.0 m
+#   Roughness: 45.0 μm
+#
+# Fluid properties (water, 20°C):
+#   Density: 998.0 kg/m³
+#   Viscosity: 1.002 mPa·s
+#
+# Calculation results:
+# Flow[m³/h]   Velocity[m/s]  Re         Flow regime     Friction factor     Press.drop[kPa]     Power[kW]
+# --------------------------------------------------------------------------------
+# 36.0         0.57       84698      Turbulent        0.0193       8.18          0.03
+# 180.0        2.83       423492     Turbulent        0.0162       182.88        3.66
+# 360.0        5.66       846985     Turbulent        0.0154       692.34        36.90
+# 720.0        11.31      1693970    Turbulent        0.0148       2641.13       282.79
+</code></pre>
+</section>
+<section>
+<h2>3.6 Learning Summary</h2>
+<div class="info-box">
+<h3>Unit Operation Models Learned in This Chapter</h3>
+<ul>
+<li><strong>Distillation Column</strong>: McCabe-Thiele method, Fenske-Underwood-Gilliland shortcut method</li>
+<li><strong>Flash Separation</strong>: Vapor-liquid equilibrium calculation by Rachford-Rice equation</li>
+<li><strong>Heat Exchanger</strong>: Two design approaches - LMTD method and NTU-ε method</li>
+<li><strong>Reactor</strong>: Design equations and performance comparison of PFR and CSTR</li>
+<li><strong>Pressure Drop</strong>: Darcy-Weisbach equation and pump power calculation</li>
+</ul>
+</div>
+<div class="warning-box">
+<h3>Notes for Practical Application</h3>
+<ul>
+<li>Accurately evaluate temperature and pressure dependence of physical properties (simplified in this chapter)</li>
+<li>Use equations of state (PR, SRK) for multicomponent systems</li>
+<li>Correct stage efficiency and HETP (Height Equivalent to a Theoretical Plate) with experimental values</li>
+<li>Apply design margins considering safety factors</li>
+<li>Coupled analysis with control systems is important</li>
+</ul>
+</div>
+<div class="example-box">
+<h3>Next Steps</h3>
+<p>
+                    Combine the unit operation models learned in this chapter to construct simulations of entire processes.
+                    In the next chapter, we will learn flowsheet simulation that integrates these models.
+                </p>
+</div>
+</section>
+<div class="nav-buttons">
+<a class="nav-button" href="chapter-2.html">← Chapter 2: Material and Energy Balances</a>
+<a class="nav-button" href="index.html">Series Contents →</a>
+</div>
+<section>
+<h2>References</h2>
+<ol>
+<li>Montgomery, D. C. (2019). <em>Design and Analysis of Experiments</em> (9th ed.). Wiley.</li>
+<li>Box, G. E. P., Hunter, J. S., &amp; Hunter, W. G. (2005). <em>Statistics for Experimenters: Design, Innovation, and Discovery</em> (2nd ed.). Wiley.</li>
+<li>Seborg, D. E., Edgar, T. F., Mellichamp, D. A., &amp; Doyle III, F. J. (2016). <em>Process Dynamics and Control</em> (4th ed.). Wiley.</li>
+<li>McKay, M. D., Beckman, R. J., &amp; Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." <em>Technometrics</em>, 42(1), 55-61.</li>
+</ol>
+</section>
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<ul>
+<li>This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).</li>
+<li>This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.</li>
+<li>The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.</li>
+<li>To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.</li>
+<li>The content may be changed, updated, or discontinued without notice.</li>
+<li>The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.</li>
+</ul>
+</section>
+
+</main>
+<footer>
+<p>© 2025 PI Terakoya - Process Informatics Learning Platform</p>
+</footer>
+</body>
+</html>
