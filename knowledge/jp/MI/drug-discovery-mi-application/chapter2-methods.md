@@ -1449,7 +1449,7 @@ Random Forestが性能・速度・解釈性のバランスに最適。
 
 第2章で創薬特化のMI手法を理解しました。次の第3章では、これらの手法をPythonで実装し、実際に動かしてみます。RDKitとChEMBLを使った30個のコード例を通じて、実践的なスキルを習得しましょう。
 
-**[第3章: Pythonで実装する創薬MI - RDKit & ChEMBL実践 →](./chapter-3.html)**
+**[第3章: Pythonで実装する創薬MI - RDKit & ChEMBL実践 →](./chapter3-hands-on.html)**
 
 ---
 
@@ -1477,4 +1477,4 @@ Random Forestが性能・速度・解釈性のバランスに最適。
 
 ---
 
-[シリーズ目次に戻る](./index.html) | [第1章へ戻る](./chapter1-background.html) | [第3章へ進む →](./chapter-3.html)
+[シリーズ目次に戻る](./index.html) | [第1章へ戻る](./chapter1-background.html) | [第3章へ進む →](./chapter3-hands-on.html)

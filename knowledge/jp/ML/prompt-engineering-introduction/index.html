@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="プロンプトエンジニアリング入門シリーズ - LLMを最大限活用するための実践的技術を学ぶ">
+    <title>プロンプトエンジニアリング入門シリーズ v1.0 - AI Terakoya</title>
+
+    <!-- CSS Styling -->
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #3498db;
+            --link-hover: #2980b9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header .container {
+            padding: 0 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            margin-bottom: 1rem;
+        }
+
+        .meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-top: 1rem;
+        }
+
+        .meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Typography */
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            color: var(--primary-color);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.6rem;
+            color: var(--primary-color);
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+        }
+
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--link-hover);
+            text-decoration: underline;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1.2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Chapter Cards */
+        .chapter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .chapter-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .chapter-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            border-color: var(--secondary-color);
+        }
+
+        .chapter-card h3 {
+            margin-top: 0;
+            font-size: 1.3rem;
+        }
+
+        .chapter-card .chapter-meta {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .chapter-card.ch1 {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        }
+
+        .chapter-card.ch2 {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+        }
+
+        .chapter-card.ch3 {
+            background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+        }
+
+        .chapter-card.ch4 {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+        }
+
+        .chapter-card.ch5 {
+            background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%);
+        }
+
+        .chapter-card.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .chapter-card.disabled:hover {
+            transform: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-color: transparent;
+        }
+
+        .coming-soon {
+            display: inline-block;
+            background: #ff9800;
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+
+        /* Learning Paths */
+        .learning-path {
+            background: #f8f9fa;
+            border-left: 4px solid var(--secondary-color);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .learning-path h4 {
+            margin-top: 0;
+            color: var(--secondary-color);
+        }
+
+        /* FAQ */
+        .faq {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .faq h4 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        /* Mermaid diagrams */
+        .mermaid {
+            text-align: center;
+            margin: 2rem 0;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--border-color);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+        /* Navigation buttons */
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 3rem 0;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .nav-button:hover {
+            background: var(--link-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        /* Locale Switcher */
+        .locale-switcher {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .locale-switcher a {
+            color: white;
+            text-decoration: none;
+            margin: 0 0.5rem;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .locale-switcher a:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+        .locale-switcher .active {
+            font-weight: bold;
+            opacity: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .chapter-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        // Mermaid.js initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            }
+        });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">プロンプトエンジニアリング入門</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="container">
+            <h1>🎯 プロンプトエンジニアリング入門シリーズ v1.0</h1>
+            <p class="subtitle">LLMを最大限活用する技術 - 効果的なプロンプト設計の実践ガイド</p>
+            <div class="meta">
+                <span>📖 総学習時間: 100-125分</span>
+                <span>📊 レベル: 初級〜中級</span>
+                <span>💡 プロンプト例: 50+個</span>
+                <span>📝 章数: 5章</span>
+            </div>
+            <div class="locale-switcher">
+                🌐 言語: <span class="active">日本語</span> | <a href="#" style="opacity: 0.5; cursor: not-allowed;" onclick="return false;">English (準備中)</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <p><strong>大規模言語モデル（LLM）の能力を最大限に引き出すための実践的プロンプトエンジニアリング技術</strong></p>
+
+        <h2 id="overview">シリーズ概要</h2>
+        <p>このシリーズは、<strong>プロンプトエンジニアリング</strong>の基礎から実践までを学ぶ全5章構成の教育コンテンツです。</p>
+
+        <p>ChatGPT、Claude、Geminiなどの<strong>大規模言語モデル（LLM）</strong>を効果的に使いこなすには、適切なプロンプト（指示文）の設計が不可欠です。このシリーズでは、LLMから高品質な回答を引き出すための体系的な技術を、豊富な実例とともに学びます。</p>
+
+        <p><strong>特徴:</strong></p>
+        <ul>
+            <li>✅ <strong>実践重視</strong>: 50個以上の実際に動くプロンプト例</li>
+            <li>✅ <strong>体系的な構成</strong>: 基礎 → 技法 → 応用 → 高度な技術 → 実践プロジェクト</li>
+            <li>✅ <strong>幅広いユースケース</strong>: ビジネス、教育、研究、開発での活用例</li>
+            <li>✅ <strong>すぐに使える</strong>: コピー&ペーストで即実践可能なテンプレート</li>
+            <li>✅ <strong>最新技術</strong>: Chain of Thought、Few-shot Learning、Role Promptingなど</li>
+        </ul>
+
+        <p><strong>総学習時間</strong>: 100-125分（プロンプト実行と演習を含む）</p>
+
+        <h2 id="learning-goals">学習目標</h2>
+        <p>このシリーズを完了すると、以下のスキルを習得できます：</p>
+        <ul>
+            <li>🎯 <strong>効果的なプロンプト設計</strong>: 明確で具体的な指示を作成できる</li>
+            <li>🎯 <strong>高度な技法の活用</strong>: Zero-shot、Few-shot、Chain of Thoughtを使い分けられる</li>
+            <li>🎯 <strong>タスク別最適化</strong>: 要約、翻訳、分析、コード生成など目的に応じたプロンプトを設計できる</li>
+            <li>🎯 <strong>品質向上技術</strong>: LLMの出力品質を体系的に改善できる</li>
+            <li>🎯 <strong>実践的応用</strong>: ビジネスや研究の実際の場面で活用できる</li>
+        </ul>
+
+        <h2 id="learning">学習の進め方</h2>
+
+        <h3>推奨学習順序</h3>
+
+        <div class="mermaid">
+graph TD
+    A[第1章: 基礎] --> B[第2章: 基本技法]
+    B --> C[第3章: 応用技術]
+    C --> D[第4章: 高度な技術]
+    D --> E[第5章: 実践プロジェクト]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+    style E fill:#fce4ec
+        </div>
+
+        <div class="learning-path">
+            <h4>🎯 完全マスターコース（全章推奨）</h4>
+            <p><strong>対象</strong>: プロンプトエンジニアリングを体系的に学びたい方</p>
+            <p><strong>進め方</strong>: 第1章 → 第2章 → 第3章 → 第4章 → 第5章</p>
+            <p><strong>所要時間</strong>: 100-125分</p>
+            <p><strong>成果</strong>: 基礎から応用まで網羅的に習得、実務で即活用可能</p>
+        </div>
+
+        <div class="learning-path">
+            <h4>⚡ 速習コース（経験者向け）</h4>
+            <p><strong>対象</strong>: LLMを使ったことがあり、技術を深めたい方</p>
+            <p><strong>進め方</strong>: 第1章（復習） → 第3章（応用） → 第4章（高度）</p>
+            <p><strong>所要時間</strong>: 60-75分</p>
+            <p><strong>成果</strong>: 高度な技法を習得、プロンプト品質を大幅向上</p>
+        </div>
+
+        <div class="learning-path">
+            <h4>🔍 ピンポイント学習</h4>
+            <p><strong>対象</strong>: 特定のトピックを学びたい方</p>
+            <ul>
+                <li><strong>基礎のみ</strong>: 第1章（20-25分）</li>
+                <li><strong>Chain of Thought</strong>: 第1章 → 第3章（45-50分）</li>
+                <li><strong>実践活用</strong>: 第5章（20-25分）</li>
+            </ul>
+        </div>
+
+        <h2 id="chapters">各章の詳細</h2>
+
+        <div class="chapter-grid">
+            <div class="chapter-card ch1">
+                <h3><a href="./chapter-1.html">第1章：プロンプトエンジニアリングの基礎</a></h3>
+                <div class="chapter-meta">
+                    📖 読了時間: 20-25分 | 💡 プロンプト例: 10個 | 📝 演習: 5問
+                </div>
+                <h4>学習内容</h4>
+                <ul>
+                    <li>プロンプトエンジニアリングとは何か</li>
+                    <li>良いプロンプトの6つの特徴</li>
+                    <li>Zero-shot学習とFew-shot学習</li>
+                    <li>Chain of Thought（CoT）プロンプティング</li>
+                    <li>実践的なプロンプトテンプレート</li>
+                    <li>よくある失敗パターンと改善方法</li>
+                </ul>
+                <p><strong><a href="./chapter-1.html">第1章を読む →</a></strong></p>
+            </div>
+
+            <div class="chapter-card ch2 disabled">
+                <h3>第2章：基本プロンプト技法<span class="coming-soon">準備中</span></h3>
+                <div class="chapter-meta">
+                    📖 読了時間: 20-25分 | 💡 プロンプト例: 12個 | 📝 演習: 5問
+                </div>
+                <h4>学習内容（予定）</h4>
+                <ul>
+                    <li>Role Prompting（役割設定）</li>
+                    <li>Context Setting（文脈設定）</li>
+                    <li>Output Format（出力形式指定）</li>
+                    <li>Constraint Setting（制約条件）</li>
+                    <li>Task Decomposition（タスク分解）</li>
+                    <li>プロンプトテンプレートライブラリ</li>
+                </ul>
+            </div>
+
+            <div class="chapter-card ch3 disabled">
+                <h3>第3章：応用プロンプト技術<span class="coming-soon">準備中</span></h3>
+                <div class="chapter-meta">
+                    📖 読了時間: 20-25分 | 💡 プロンプト例: 12個 | 📝 演習: 5問
+                </div>
+                <h4>学習内容（予定）</h4>
+                <ul>
+                    <li>Tree of Thought（思考の木）</li>
+                    <li>Self-Consistency（自己一貫性）</li>
+                    <li>ReAct（推論+行動）パターン</li>
+                    <li>Multi-turn Conversation設計</li>
+                    <li>プロンプトチェーン構築</li>
+                    <li>エラーハンドリングと品質管理</li>
+                </ul>
+            </div>
+
+            <div class="chapter-card ch4 disabled">
+                <h3>第4章：タスク別最適化<span class="coming-soon">準備中</span></h3>
+                <div class="chapter-meta">
+                    📖 読了時間: 20-25分 | 💡 プロンプト例: 10個 | 📝 演習: 5問
+                </div>
+                <h4>学習内容（予定）</h4>
+                <ul>
+                    <li>テキスト要約の最適化</li>
+                    <li>翻訳品質の向上</li>
+                    <li>コード生成とレビュー</li>
+                    <li>データ分析と抽出</li>
+                    <li>創造的コンテンツ生成</li>
+                    <li>質問応答システム構築</li>
+                </ul>
+            </div>
+
+            <div class="chapter-card ch5 disabled">
+                <h3>第5章：実践プロジェクト<span class="coming-soon">準備中</span></h3>
+                <div class="chapter-meta">
+                    📖 読了時間: 20-25分 | 💡 プロンプト例: 8個 | 📝 演習: 5問
+                </div>
+                <h4>学習内容（予定）</h4>
+                <ul>
+                    <li>ビジネス文書作成の自動化</li>
+                    <li>研究論文要約システム</li>
+                    <li>カスタマーサポートボット</li>
+                    <li>教育コンテンツ生成</li>
+                    <li>プロンプトライブラリの構築</li>
+                    <li>継続的な改善とベストプラクティス</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2 id="outcomes">全体の学習成果</h2>
+
+        <p>このシリーズを完了すると、以下のスキルと知識を習得できます：</p>
+
+        <h3>知識レベル（Understanding）</h3>
+        <ul>
+            <li>✅ プロンプトエンジニアリングの基本原則を理解している</li>
+            <li>✅ Zero-shot、Few-shot、Chain of Thoughtの違いを説明できる</li>
+            <li>✅ 効果的なプロンプトの特徴を理解している</li>
+            <li>✅ タスク別の最適化手法を知っている</li>
+            <li>✅ LLMの制限と対処法を理解している</li>
+        </ul>
+
+        <h3>実践スキル（Doing）</h3>
+        <ul>
+            <li>✅ 明確で具体的なプロンプトを作成できる</li>
+            <li>✅ 適切な例示（Few-shot）を設計できる</li>
+            <li>✅ Chain of Thoughtで段階的推論を誘導できる</li>
+            <li>✅ タスクに応じたプロンプトを最適化できる</li>
+            <li>✅ プロンプトの品質を評価・改善できる</li>
+        </ul>
+
+        <h3>応用力（Applying）</h3>
+        <ul>
+            <li>✅ ビジネス課題をプロンプトで解決できる</li>
+            <li>✅ 新しいユースケースにプロンプト技術を適用できる</li>
+            <li>✅ プロンプトライブラリを構築・管理できる</li>
+            <li>✅ チーム内でプロンプトのベストプラクティスを共有できる</li>
+        </ul>
+
+        <h2 id="prerequisites">前提知識</h2>
+
+        <h3>必須スキル</h3>
+        <ul>
+            <li>💻 ChatGPT、Claude、Geminiなどを使った経験（基本的な質問ができるレベル）</li>
+            <li>💻 日本語または英語でテキストを読み書きできる</li>
+        </ul>
+
+        <h3>推奨スキル（あると望ましい）</h3>
+        <ul>
+            <li>📚 機械学習の基礎知識（「機械学習入門シリーズ」推奨）</li>
+            <li>📚 自然言語処理の基本的な理解</li>
+        </ul>
+
+        <h2 id="faq">よくある質問（FAQ）</h2>
+
+        <div class="faq">
+            <h4>Q1: ChatGPTを少し使ったことがあるだけですが大丈夫ですか？</h4>
+            <p><strong>A:</strong> はい。基本的な質問をした経験があれば十分です。このシリーズでは基礎から体系的に学べます。</p>
+        </div>
+
+        <div class="faq">
+            <h4>Q2: どのLLMを使えばいいですか？</h4>
+            <p><strong>A:</strong> ChatGPT（GPT-3.5/4）、Claude、Geminiのいずれでも学習できます。多くの技術は汎用的に使えます。無料プランで十分学習可能です。</p>
+        </div>
+
+        <div class="faq">
+            <h4>Q3: プログラミングの知識は必要ですか？</h4>
+            <p><strong>A:</strong> 第1〜3章は不要です。第4章（コード生成）と第5章（実践プロジェクト）で基本的なプログラミング知識があると理解が深まりますが、必須ではありません。</p>
+        </div>
+
+        <div class="faq">
+            <h4>Q4: どれくらいの時間で学習できますか？</h4>
+            <p><strong>A:</strong> 全章で100-125分です。1日1章（20-25分）のペースで、約1週間で完了します。週末に集中して学習することも可能です。</p>
+        </div>
+
+        <div class="faq">
+            <h4>Q5: ビジネスで即活用できますか？</h4>
+            <p><strong>A:</strong> はい。第1章の基礎技術だけでも、メール作成、文書要約、アイデア出しなど日常業務で活用できます。第5章では実践的なビジネスユースケースを扱います。</p>
+        </div>
+
+        <div class="faq">
+            <h4>Q6: プロンプトはコピー&ペーストできますか？</h4>
+            <p><strong>A:</strong> はい。すべてのプロンプト例は実際に動作確認済みで、そのまま使用できます。自分の用途に合わせてカスタマイズも推奨します。</p>
+        </div>
+
+        <hr>
+
+        <h2 id="start">さあ、始めましょう！</h2>
+        <p>準備はできましたか？ 第1章から始めて、LLMを最大限活用するプロンプトエンジニアリングの世界へ踏み出しましょう！</p>
+
+        <div class="nav-buttons">
+            <a href="../index.html" class="nav-button">← 機械学習トップ</a>
+            <a href="./chapter-1.html" class="nav-button">第1章: プロンプトエンジニアリングの基礎 →</a>
+        </div>
+
+        <hr>
+
+        <p><strong>更新履歴</strong></p>
+        <ul>
+            <li><strong>2025-12-01</strong>: v1.0 初版公開（第1章のみ）</li>
+        </ul>
+
+        <hr>
+
+        <p><strong>あなたのLLM活用の旅はここから始まります！</strong></p>
+
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するプロンプト例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+            <li>外部LLMサービス（ChatGPT、Claude、Gemini等）の利用規約および制限事項は各サービス提供者の責任範囲であり、作成者および東北大学は一切の責任を負いません。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

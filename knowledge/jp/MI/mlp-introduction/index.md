@@ -109,7 +109,7 @@ graph TD
 
 ---
 
-### [第2章：MLP基礎 - 概念、手法、エコシステム](./chapter-2.html)
+### [第2章：MLP基礎 - 概念、手法、エコシステム](./chapter2-fundamentals.html)
 
 **難易度**: 入門〜中級
 **読了時間**: 20-25分
@@ -166,11 +166,11 @@ graph TD
 - ✅ 15のMLP専門用語を適切に使用できる
 - ✅ 主要MLPアーキテクチャ（Behler-Parrinello～MACE）の進化を説明できる
 
-**[第2章を読む →](./chapter-2.html)**
+**[第2章を読む →](./chapter2-fundamentals.html)**
 
 ---
 
-### [第3章：Pythonで体験するMLP - SchNetPackハンズオン](./chapter-3.html)
+### [第3章：Pythonで体験するMLP - SchNetPackハンズオン](./chapter3-hands-on.html)
 
 **難易度**: 中級
 **読了時間**: 30-35分
@@ -233,7 +233,7 @@ graph TD
 - ✅ Active Learningで不確実性評価ができる
 - ✅ よくあるエラーを自力でトラブルシューティングできる
 
-**[第3章を読む →](./chapter-3.html)**
+**[第3章を読む →](./chapter3-hands-on.html)**
 
 ---
 

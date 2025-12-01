@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第1章：プロンプトエンジニアリングの基礎 - プロンプトエンジニアリング入門 - AI Terakoya</title>
+    <meta name="description" content="プロンプトエンジニアリングの基礎を学ぶ。良いプロンプトの特徴、Zero-shot学習、Few-shot学習、Chain of Thoughtプロンプティングなど実践的技術を習得。">
+
+    <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-primary-dark: #1a252f;
+            --color-accent: #7b2cbf;
+            --color-accent-light: #9d4edd;
+            --color-text: #2d3748;
+            --color-text-light: #4a5568;
+            --color-bg: #ffffff;
+            --color-bg-alt: #f7fafc;
+            --color-border: #e2e8f0;
+            --color-code-bg: #f8f9fa;
+            --color-link: #3182ce;
+            --color-link-hover: #2c5aa0;
+
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+
+            --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+            --border-radius: 8px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            font-size: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+            color: white;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            box-shadow: var(--box-shadow);
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-weight: 400;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md) var(--spacing-xl);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-xl);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--color-primary);
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--color-primary-dark);
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        a {
+            color: var(--color-link);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--color-link-hover);
+            text-decoration: underline;
+        }
+
+        ul, ol {
+            margin-left: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        li {
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text);
+        }
+
+        pre {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: var(--color-code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            color: var(--color-text-light);
+            font-style: italic;
+            background-color: var(--color-bg-alt);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+        }
+
+        .example-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .example-box h4 {
+            color: #1976d2;
+            margin-top: 0;
+        }
+
+        .bad-example {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .bad-example h4 {
+            color: #c62828;
+            margin-top: 0;
+        }
+
+        .good-example {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .good-example h4 {
+            color: #2e7d32;
+            margin-top: 0;
+        }
+
+        .note {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            border-radius: var(--border-radius);
+        }
+
+        .note h4 {
+            color: #f57c00;
+            margin-top: 0;
+        }
+
+        .key-takeaways {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            padding: var(--spacing-lg);
+            margin: var(--spacing-lg) 0;
+            border-radius: var(--border-radius);
+            border: 2px solid #4caf50;
+        }
+
+        .key-takeaways h3 {
+            color: #2e7d32;
+            margin-top: 0;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: var(--spacing-xl) 0;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--color-accent);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .nav-button:hover {
+            background: var(--color-accent-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(123, 44, 191, 0.3);
+        }
+
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .locale-switcher {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .locale-switcher a {
+            color: white;
+            text-decoration: none;
+            margin: 0 0.5rem;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .locale-switcher a:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+        .locale-switcher .active {
+            font-weight: bold;
+            opacity: 1;
+        }
+
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--color-border);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 var(--spacing-sm) var(--spacing-lg);
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+
+    <!-- MathJax for equations -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="./index.html">プロンプトエンジニアリング入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第1章</span>
+        </div>
+    </nav>
+
+    <header>
+        <div class="header-content">
+            <h1>第1章：プロンプトエンジニアリングの基礎</h1>
+            <p class="subtitle">効果的なプロンプト設計の原則と実践技術</p>
+            <div class="meta">
+                <span class="meta-item">📖 読了時間: 20-25分</span>
+                <span class="meta-item">💡 プロンプト例: 10個</span>
+                <span class="meta-item">📝 演習: 5問</span>
+                <span class="meta-item">📊 難易度: 初級</span>
+            </div>
+            <div class="locale-switcher">
+                🌐 言語: <span class="active">日本語</span> | <a href="#" style="opacity: 0.5; cursor: not-allowed;" onclick="return false;">English (準備中)</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2 id="introduction">プロンプトエンジニアリングとは</h2>
+
+        <p><strong>プロンプトエンジニアリング（Prompt Engineering）</strong>とは、大規模言語モデル（LLM）から望ましい出力を引き出すために、効果的な入力（プロンプト）を設計する技術です。</p>
+
+        <p>ChatGPT、Claude、Geminiなどの<strong>LLM</strong>は非常に強力ですが、その能力を最大限に引き出すには適切な「質問の仕方」「指示の出し方」が重要です。同じ質問でも、プロンプトの書き方次第で回答の質が大きく変わります。</p>
+
+        <div class="example-box">
+            <h4>🎯 なぜプロンプトエンジニアリングが重要なのか</h4>
+            <ul>
+                <li><strong>品質向上</strong>: より正確で詳細な回答を得られる</li>
+                <li><strong>効率化</strong>: 試行錯誤の時間を削減できる</li>
+                <li><strong>再現性</strong>: 同じ品質の出力を安定して得られる</li>
+                <li><strong>コスト削減</strong>: APIトークン使用量を最適化できる</li>
+                <li><strong>応用範囲の拡大</strong>: より複雑なタスクに対応できる</li>
+            </ul>
+        </div>
+
+        <h2 id="good-prompts">良いプロンプトの6つの特徴</h2>
+
+        <p>効果的なプロンプトには、以下の6つの特徴があります：</p>
+
+        <h3>1. 明確性（Clarity）</h3>
+        <p>曖昧さを排除し、具体的に何を求めているのか明確に示します。</p>
+
+        <div class="bad-example">
+            <h4>❌ 悪い例</h4>
+            <pre><code>AIについて教えて</code></pre>
+            <p><strong>問題点</strong>: 範囲が広すぎて、何を知りたいのか不明確</p>
+        </div>
+
+        <div class="good-example">
+            <h4>✅ 良い例</h4>
+            <pre><code>機械学習における教師あり学習と教師なし学習の違いを、
+具体例を含めて3つのポイントで説明してください。</code></pre>
+            <p><strong>改善点</strong>: トピック、形式、詳細度が明確</p>
+        </div>
+
+        <h3>2. 具体性（Specificity）</h3>
+        <p>期待する出力の形式、長さ、スタイルを具体的に指定します。</p>
+
+        <div class="bad-example">
+            <h4>❌ 悪い例</h4>
+            <pre><code>メールを書いて</code></pre>
+        </div>
+
+        <div class="good-example">
+            <h4>✅ 良い例</h4>
+            <pre><code>クライアントへの提案書送付メールを作成してください。
+
+【条件】
+- 受取人: 田中様（ABC株式会社 部長）
+- 目的: 新システム導入の提案書を送付
+- トーン: フォーマルで丁寧
+- 長さ: 200-300文字
+- 含める要素: 挨拶、提案書の要点、次のステップ</code></pre>
+        </div>
+
+        <h3>3. 文脈提供（Context）</h3>
+        <p>タスクの背景情報や前提条件を提供します。</p>
+
+        <div class="example-box">
+            <h4>💡 プロンプト例：文脈を含む</h4>
+            <pre><code>あなたは経験豊富なPythonプログラマーです。
+初心者向けのプログラミング教材を作成しています。
+
+Pythonのリスト内包表記について、以下の形式で説明してください：
+1. 基本的な概念（100文字以内）
+2. シンプルなコード例
+3. よくある使用場面（3つ）
+4. 初心者が間違えやすいポイント</code></pre>
+        </div>
+
+        <h3>4. 制約条件（Constraints）</h3>
+        <p>出力に関する制限や要件を明示します。</p>
+
+        <div class="example-box">
+            <h4>💡 プロンプト例：制約条件付き</h4>
+            <pre><code>以下の制約条件で商品説明文を作成してください：
+
+【制約】
+- 長さ: 150文字以内
+- トーン: カジュアルで親しみやすい
+- 必須キーワード: 「エコ」「耐久性」「コスパ」
+- 避けるべき表現: 誇大広告、専門用語
+- ターゲット: 20-30代の社会人
+
+【商品】ステンレス製タンブラー</code></pre>
+        </div>
+
+        <h3>5. 例示（Examples）</h3>
+        <p>期待する出力の例を示すことで、形式や品質の基準を明確にします。</p>
+
+        <div class="example-box">
+            <h4>💡 プロンプト例：Few-shot学習</h4>
+            <pre><code>以下の例に従って、感情分析を行ってください。
+
+例1:
+入力: 今日は最高の一日だった！
+出力: ポジティブ (喜び、満足)
+
+例2:
+入力: 雨で予定がキャンセルになって残念
+出力: ネガティブ (失望、悲しみ)
+
+例3:
+入力: 明日は晴れるかな
+出力: ニュートラル (期待、不確実性)
+
+では、以下の文を分析してください：
+入力: 新しいプロジェクトが始まるけど不安だ</code></pre>
+        </div>
+
+        <h3>6. 段階的指示（Step-by-step）</h3>
+        <p>複雑なタスクは段階的に分解して指示します。</p>
+
+        <div class="example-box">
+            <h4>💡 プロンプト例：段階的指示</h4>
+            <pre><code>以下の手順で、データ分析レポートを作成してください：
+
+【ステップ1】データの概要を確認
+- データセットの規模（行数、列数）
+- 各列のデータ型
+- 欠損値の有無
+
+【ステップ2】基本統計量の算出
+- 数値列の平均、中央値、標準偏差
+- カテゴリ列の出現頻度
+
+【ステップ3】異常値の検出
+- 外れ値の特定
+- その原因の推測
+
+【ステップ4】結論と推奨事項
+- 主要な発見事項（3つ）
+- 次のアクションの提案</code></pre>
+        </div>
+
+        <h2 id="zero-shot-few-shot">Zero-shot学習とFew-shot学習</h2>
+
+        <h3>Zero-shot学習</h3>
+        <p><strong>Zero-shot</strong>は、例示なしで直接タスクを指示する方法です。シンプルなタスクや一般的な質問に適しています。</p>
+
+        <div class="example-box">
+            <h4>💡 Zero-shot プロンプト例</h4>
+            <pre><code>以下の文章を英語に翻訳してください：
+
+「機械学習は、データから学習してタスクを実行するコンピュータの能力です。」</code></pre>
+        </div>
+
+        <h3>Few-shot学習</h3>
+        <p><strong>Few-shot</strong>は、いくつかの例を示してからタスクを実行させる方法です。形式が特殊な場合や、品質の基準を明確にしたい場合に有効です。</p>
+
+        <div class="example-box">
+            <h4>💡 Few-shot プロンプト例（2-shot）</h4>
+            <pre><code>以下の例に従って、商品名を短縮形に変換してください：
+
+例1:
+入力: スーパープレミアム高機能多用途ハイブリッド掃除機
+出力: プレミアム掃除機
+
+例2:
+入力: ウルトラスリムデザインワイヤレス充電対応スマートフォン
+出力: スリムスマホ
+
+では、以下を変換してください：
+入力: エクストラロングバッテリー搭載ポータブルBluetoothスピーカー</code></pre>
+        </div>
+
+        <h3>One-shot vs Few-shot vs Many-shot</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>手法</th>
+                    <th>例の数</th>
+                    <th>メリット</th>
+                    <th>デメリット</th>
+                    <th>適した場面</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Zero-shot</strong></td>
+                    <td>0個</td>
+                    <td>シンプル、トークン節約</td>
+                    <td>精度が低い場合あり</td>
+                    <td>一般的なタスク</td>
+                </tr>
+                <tr>
+                    <td><strong>One-shot</strong></td>
+                    <td>1個</td>
+                    <td>形式を示せる</td>
+                    <td>パターン学習に不十分</td>
+                    <td>単純な形式指定</td>
+                </tr>
+                <tr>
+                    <td><strong>Few-shot</strong></td>
+                    <td>2-5個</td>
+                    <td>パターン学習、高精度</td>
+                    <td>トークン増加</td>
+                    <td>複雑なタスク</td>
+                </tr>
+                <tr>
+                    <td><strong>Many-shot</strong></td>
+                    <td>6個以上</td>
+                    <td>最高精度</td>
+                    <td>トークン大量消費</td>
+                    <td>高精度が必須の場合</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="chain-of-thought">Chain of Thought（CoT）プロンプティング</h2>
+
+        <p><strong>Chain of Thought（思考の連鎖）</strong>は、LLMに段階的な推論を促す技術です。「ステップバイステップで考えてください」という指示を加えることで、より論理的で正確な回答を得られます。</p>
+
+        <h3>基本的なCoTプロンプト</h3>
+
+        <div class="bad-example">
+            <h4>❌ CoTなし</h4>
+            <pre><code>Q: りんごが5個、みかんが3個あります。
+りんご2個とみかん1個を使いました。
+残りの果物の合計は何個ですか？</code></pre>
+            <p><strong>問題点</strong>: 計算過程が不明確で、エラーが起きやすい</p>
+        </div>
+
+        <div class="good-example">
+            <h4>✅ CoTあり</h4>
+            <pre><code>Q: りんごが5個、みかんが3個あります。
+りんご2個とみかん1個を使いました。
+残りの果物の合計は何個ですか？
+
+ステップバイステップで考えてください。</code></pre>
+            <p><strong>期待される出力</strong>:</p>
+            <pre><code>ステップ1: 最初の果物の数を確認
+- りんご: 5個
+- みかん: 3個
+- 合計: 5 + 3 = 8個
+
+ステップ2: 使った果物を引く
+- りんご: 5 - 2 = 3個
+- みかん: 3 - 1 = 2個
+
+ステップ3: 残りの合計を計算
+- 残り: 3 + 2 = 5個
+
+答え: 5個</code></pre>
+        </div>
+
+        <h3>Few-shot CoTプロンプト</h3>
+
+        <div class="example-box">
+            <h4>💡 Few-shot CoT プロンプト例</h4>
+            <pre><code>以下の例に従って、問題を解いてください：
+
+例:
+Q: カフェでコーヒー2杯（各450円）とケーキ1個（600円）を注文しました。
+1000円札2枚で支払います。お釣りはいくらですか？
+
+A: ステップバイステップで考えます。
+1. コーヒー2杯の金額: 450円 × 2 = 900円
+2. 合計金額: 900円 + 600円 = 1500円
+3. 支払い金額: 1000円 × 2 = 2000円
+4. お釣り: 2000円 - 1500円 = 500円
+答え: 500円
+
+では、以下の問題を解いてください：
+Q: 本屋で本3冊（各1200円）と雑誌2冊（各800円）を買いました。
+5000円札で支払います。お釣りはいくらですか？</code></pre>
+        </div>
+
+        <h3>CoTが特に有効な場面</h3>
+        <ul>
+            <li><strong>数学的推論</strong>: 計算問題、論理パズル</li>
+            <li><strong>複雑な意思決定</strong>: 複数の要因を考慮する判断</li>
+            <li><strong>因果関係の分析</strong>: 原因と結果の関係を説明</li>
+            <li><strong>多段階の問題解決</strong>: 複数のステップが必要なタスク</li>
+            <li><strong>デバッグ</strong>: コードやプロセスのエラー原因特定</li>
+        </ul>
+
+        <h2 id="practical-templates">実践的なプロンプトテンプレート</h2>
+
+        <p>以下は、すぐに使える実践的なプロンプトテンプレートです。</p>
+
+        <h3>テンプレート1: タスク実行型</h3>
+        <div class="example-box">
+            <pre><code>【役割】あなたは [専門分野] の専門家です。
+
+【タスク】[具体的なタスク内容]
+
+【入力】
+[処理対象のデータや情報]
+
+【出力形式】
+- [形式1]
+- [形式2]
+- [形式3]
+
+【制約条件】
+- [制約1]
+- [制約2]
+
+【例】（オプション）
+[期待する出力の例]</code></pre>
+        </div>
+
+        <h3>テンプレート2: 分析型</h3>
+        <div class="example-box">
+            <pre><code>以下のデータを分析してください：
+
+【データ】
+[分析対象のデータ]
+
+【分析の観点】
+1. [観点1]
+2. [観点2]
+3. [観点3]
+
+【求める出力】
+1. 主要な発見事項（3つ）
+2. データから読み取れる傾向
+3. 推奨される次のアクション
+
+ステップバイステップで分析してください。</code></pre>
+        </div>
+
+        <h3>テンプレート3: 創作型</h3>
+        <div class="example-box">
+            <pre><code>以下の条件でコンテンツを作成してください：
+
+【種類】[ブログ記事 / メール / プレゼン資料など]
+
+【テーマ】[主題]
+
+【対象読者】
+- 年齢層: [年齢範囲]
+- 知識レベル: [初心者 / 中級者 / 専門家]
+- 関心事: [興味や課題]
+
+【トーン】[フォーマル / カジュアル / 専門的など]
+
+【構成】
+1. [セクション1]
+2. [セクション2]
+3. [セクション3]
+
+【長さ】[文字数または単語数]
+
+【必須要素】
+- [含めるべき要素1]
+- [含めるべき要素2]</code></pre>
+        </div>
+
+        <h3>テンプレート4: コード生成型</h3>
+        <div class="example-box">
+            <pre><code>以下の仕様でPythonコードを作成してください：
+
+【機能】[実装する機能の説明]
+
+【入力】[関数の引数や入力データ]
+
+【出力】[期待される出力]
+
+【要件】
+- プログラミング言語: Python 3.8+
+- 使用ライブラリ: [ライブラリ名]
+- エラーハンドリング: 必須
+- コメント: 各関数に日本語のdocstring
+
+【例】
+入力例: [具体例]
+期待される出力: [結果例]
+
+コードと使用例を提供してください。</code></pre>
+        </div>
+
+        <h2 id="common-mistakes">よくある失敗パターンと改善方法</h2>
+
+        <h3>失敗パターン1: 指示が曖昧</h3>
+        <div class="bad-example">
+            <h4>❌ 改善前</h4>
+            <pre><code>ビジネスメールを書いて</code></pre>
+        </div>
+        <div class="good-example">
+            <h4>✅ 改善後</h4>
+            <pre><code>取引先への新商品紹介メールを作成してください。
+
+【条件】
+- 受取人: 営業部長
+- 目的: 新商品「XYZ」の紹介と商談アポイント獲得
+- トーン: フォーマルかつ親しみやすい
+- 長さ: 300文字程度
+- 含める要素: 挨拶、商品の特徴（3つ）、具体的な日程提案</code></pre>
+        </div>
+
+        <h3>失敗パターン2: 一度に複数のタスクを依頼</h3>
+        <div class="bad-example">
+            <h4>❌ 改善前</h4>
+            <pre><code>このコードをレビューして、バグを修正して、
+さらに性能を改善して、ドキュメントも書いて</code></pre>
+        </div>
+        <div class="good-example">
+            <h4>✅ 改善後</h4>
+            <pre><code>【タスク1】まず、このコードのバグを特定してください：
+[コード]
+
+バグが見つかったら、次のタスクに進みます。</code></pre>
+            <p>その後、順次タスクを分けて依頼する</p>
+        </div>
+
+        <h3>失敗パターン3: 文脈不足</h3>
+        <div class="bad-example">
+            <h4>❌ 改善前</h4>
+            <pre><code>この文章を改善して：
+「商品を開発しました」</code></pre>
+        </div>
+        <div class="good-example">
+            <h4>✅ 改善後</h4>
+            <pre><code>【背景】
+スタートアップのプレスリリースを作成しています。
+対象読者は投資家とメディア関係者です。
+
+【改善してほしい文章】
+「商品を開発しました」
+
+【改善の方向性】
+- より具体的で印象的な表現に
+- 商品の革新性を強調
+- 読者の関心を引く
+- プロフェッショナルなトーン</code></pre>
+        </div>
+
+        <h3>失敗パターン4: 出力形式の未指定</h3>
+        <div class="bad-example">
+            <h4>❌ 改善前</h4>
+            <pre><code>Pythonの主要な機能について説明して</code></pre>
+        </div>
+        <div class="good-example">
+            <h4>✅ 改善後</h4>
+            <pre><code>Pythonの主要な機能を以下の形式で説明してください：
+
+【出力形式】
+各機能について：
+1. 機能名
+2. 簡潔な説明（50文字以内）
+3. コード例（5行以内）
+4. 使用場面
+
+【対象機能】
+- リスト内包表記
+- デコレータ
+- ジェネレータ
+
+初心者向けに分かりやすく説明してください。</code></pre>
+        </div>
+
+        <h2 id="best-practices">プロンプト設計のベストプラクティス</h2>
+
+        <div class="note">
+            <h4>💡 実践のヒント</h4>
+            <ul>
+                <li><strong>反復改善</strong>: 最初のプロンプトで完璧を求めず、出力を見ながら改善</li>
+                <li><strong>テンプレート化</strong>: よく使うプロンプトはテンプレート化して再利用</li>
+                <li><strong>バージョン管理</strong>: 効果的だったプロンプトを記録・管理</li>
+                <li><strong>A/Bテスト</strong>: 複数のプロンプトを試して最適なものを選択</li>
+                <li><strong>フィードバック活用</strong>: LLMの出力から学び、プロンプトを改善</li>
+            </ul>
+        </div>
+
+        <h3>プロンプト設計のチェックリスト</h3>
+        <ul>
+            <li>☐ タスクの目的が明確か？</li>
+            <li>☐ 必要な文脈情報を提供したか？</li>
+            <li>☐ 出力形式を具体的に指定したか？</li>
+            <li>☐ 制約条件を明示したか？</li>
+            <li>☐ 複雑なタスクは段階的に分解したか？</li>
+            <li>☐ 必要に応じて例示を含めたか？</li>
+            <li>☐ トーンやスタイルを指定したか？</li>
+            <li>☐ 対象読者や利用シーンを明確にしたか？</li>
+        </ul>
+
+        <h2 id="key-takeaways-section">この章のまとめ</h2>
+
+        <div class="key-takeaways">
+            <h3>🎯 重要ポイント</h3>
+            <ul>
+                <li><strong>明確性が最重要</strong>: 曖昧さを排除し、具体的に指示する</li>
+                <li><strong>6つの特徴</strong>: 明確性、具体性、文脈、制約、例示、段階的指示</li>
+                <li><strong>Zero-shot vs Few-shot</strong>: タスクの複雑さに応じて使い分ける</li>
+                <li><strong>Chain of Thought</strong>: 複雑な推論には「ステップバイステップで考えて」を追加</li>
+                <li><strong>テンプレート活用</strong>: 効果的なパターンを再利用して効率化</li>
+                <li><strong>反復改善</strong>: 最初から完璧を求めず、出力を見ながら改善</li>
+            </ul>
+        </div>
+
+        <h2 id="exercises">演習問題</h2>
+
+        <p>以下の演習で、学んだ知識を実践してみましょう。</p>
+
+        <h3>演習1: プロンプト改善（難易度: ★☆☆）</h3>
+        <div class="note">
+            <p><strong>問題</strong>: 以下の曖昧なプロンプトを、6つの特徴を踏まえて改善してください。</p>
+            <pre><code>料理のレシピを教えて</code></pre>
+            <p><strong>ヒント</strong>: 料理名、人数、調理時間、難易度、出力形式を明確にしましょう。</p>
+        </div>
+
+        <h3>演習2: Few-shotプロンプト作成（難易度: ★★☆）</h3>
+        <div class="note">
+            <p><strong>問題</strong>: 商品レビューの感情分析（ポジティブ/ネガティブ/ニュートラル）を行うFew-shotプロンプトを作成してください。最低3つの例を含めること。</p>
+        </div>
+
+        <h3>演習3: Chain of Thoughtプロンプト（難易度: ★★☆）</h3>
+        <div class="note">
+            <p><strong>問題</strong>: 以下の問題を解くためのCoTプロンプトを作成してください。</p>
+            <pre><code>問題: ある会社の従業員は120人です。
+そのうち40%が営業部、30%が開発部、残りが管理部です。
+開発部の人数が10人増えた場合、開発部の割合は何%になりますか？</code></pre>
+        </div>
+
+        <h3>演習4: タスク実行型プロンプト（難易度: ★★★）</h3>
+        <div class="note">
+            <p><strong>問題</strong>: 「顧客からのクレームメールへの返信」を作成するための、包括的なプロンプトテンプレートを設計してください。役割、タスク、制約条件、出力形式を含めること。</p>
+        </div>
+
+        <h3>演習5: 実践応用（難易度: ★★★）</h3>
+        <div class="note">
+            <p><strong>問題</strong>: あなたの実際の仕事や学習で使えるプロンプトを1つ作成し、実際にLLMで試してください。結果を評価し、改善点を3つ挙げてください。</p>
+        </div>
+
+        <h2 id="next-steps">次のステップ</h2>
+
+        <p>第1章では、プロンプトエンジニアリングの基礎を学びました。次の章では、より高度な技法を学びます：</p>
+
+        <ul>
+            <li><strong>第2章</strong>（準備中）: Role Prompting、Context Setting、Output Formatなど基本技法</li>
+            <li><strong>第3章</strong>（準備中）: Tree of Thought、Self-Consistencyなど応用技術</li>
+            <li><strong>第4章</strong>（準備中）: タスク別の最適化手法（要約、翻訳、コード生成など）</li>
+            <li><strong>第5章</strong>（準備中）: 実践プロジェクトとプロンプトライブラリ構築</li>
+        </ul>
+
+        <div class="nav-buttons">
+            <a href="./index.html" class="nav-button">← シリーズトップ</a>
+            <a href="#" class="nav-button" style="opacity: 0.5; cursor: not-allowed;" onclick="return false;">第2章（準備中） →</a>
+        </div>
+
+        <hr>
+
+        <h2 id="references">参考資料</h2>
+        <ul>
+            <li>OpenAI. (2023). <em>GPT Best Practices</em></li>
+            <li>Wei, J., et al. (2022). <em>Chain-of-Thought Prompting Elicits Reasoning in Large Language Models</em></li>
+            <li>Brown, T., et al. (2020). <em>Language Models are Few-Shot Learners</em></li>
+            <li>Anthropic. (2024). <em>Prompt Engineering Guide</em></li>
+        </ul>
+
+        <hr>
+
+        <p><strong>更新履歴</strong></p>
+        <ul>
+            <li><strong>2025-12-01</strong>: v1.0 初版公開</li>
+        </ul>
+
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するプロンプト例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+            <li>外部LLMサービス（ChatGPT、Claude、Gemini等）の利用規約および制限事項は各サービス提供者の責任範囲であり、作成者および東北大学は一切の責任を負いません。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

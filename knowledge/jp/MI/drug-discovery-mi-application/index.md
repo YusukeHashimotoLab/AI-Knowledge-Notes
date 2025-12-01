@@ -156,7 +156,7 @@ graph TD
 
 ---
 
-### [第3章：Pythonで実装する創薬MI - RDKit & ChEMBL実践](./chapter-3.html)
+### [第3章：Pythonで実装する創薬MI - RDKit & ChEMBL実践](./chapter3-hands-on.html)
 
 **難易度**: 中級
 **読了時間**: 35-45分
@@ -227,7 +227,7 @@ graph TD
 - ✅ Graph Neural Networkの基礎を理解し、実装できる
 - ✅ 実際の創薬プロジェクトをエンドツーエンドで実行できる
 
-**[第3章を読む →](./chapter-3.html)**
+**[第3章を読む →](./chapter3-hands-on.html)**
 
 ---
 
