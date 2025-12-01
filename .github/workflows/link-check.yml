@@ -1,0 +1,178 @@
+name: Link Checker
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'knowledge/**/*.html'
+      - 'knowledge/**/*.md'
+      - 'scripts/check_links.py'
+      - '.github/workflows/link-check.yml'
+  pull_request:
+    paths:
+      - 'knowledge/**/*.html'
+      - 'knowledge/**/*.md'
+      - 'scripts/check_links.py'
+      - '.github/workflows/link-check.yml'
+  workflow_dispatch:
+
+jobs:
+  check-links-en:
+    name: Check Links (English)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install beautifulsoup4 lxml tqdm
+
+      - name: Run link checker (English)
+        id: linkcheck-en
+        run: |
+          python scripts/check_links.py \
+            --path knowledge/en \
+            --output linkcheck_en_report.txt
+        continue-on-error: true
+
+      - name: Upload English report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linkcheck-en-report
+          path: linkcheck_en_report.txt
+          retention-days: 30
+
+      - name: Display English report summary
+        if: always()
+        run: |
+          echo "=== Link Check Summary (English) ==="
+          if [ -f linkcheck_en_report.txt ]; then
+            head -n 50 linkcheck_en_report.txt
+            echo ""
+            echo "Full report available in artifacts"
+          else
+            echo "Report file not found"
+          fi
+
+      - name: Check for broken links (English)
+        run: |
+          if grep -q "Broken links: 0" linkcheck_en_report.txt && \
+             grep -q "Missing anchors: 0" linkcheck_en_report.txt; then
+            echo "No broken links found in English version"
+            exit 0
+          else
+            echo "Broken links detected in English version"
+            echo "Download the artifact for detailed report"
+            exit 1
+          fi
+
+  check-links-jp:
+    name: Check Links (Japanese)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install beautifulsoup4 lxml tqdm
+
+      - name: Run link checker (Japanese)
+        id: linkcheck-jp
+        run: |
+          python scripts/check_links.py \
+            --path knowledge/jp \
+            --output linkcheck_jp_report.txt
+        continue-on-error: true
+
+      - name: Upload Japanese report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linkcheck-jp-report
+          path: linkcheck_jp_report.txt
+          retention-days: 30
+
+      - name: Display Japanese report summary
+        if: always()
+        run: |
+          echo "=== Link Check Summary (Japanese) ==="
+          if [ -f linkcheck_jp_report.txt ]; then
+            head -n 50 linkcheck_jp_report.txt
+            echo ""
+            echo "Full report available in artifacts"
+          else
+            echo "Report file not found"
+          fi
+
+      - name: Check for broken links (Japanese)
+        run: |
+          if grep -q "Broken links: 0" linkcheck_jp_report.txt && \
+             grep -q "Missing anchors: 0" linkcheck_jp_report.txt; then
+            echo "No broken links found in Japanese version"
+            exit 0
+          else
+            echo "Broken links detected in Japanese version"
+            echo "Download the artifact for detailed report"
+            exit 1
+          fi
+
+  summary:
+    name: Link Check Summary
+    runs-on: ubuntu-latest
+    needs: [check-links-en, check-links-jp]
+    if: always()
+
+    steps:
+      - name: Check overall status
+        run: |
+          echo "=== Link Check Complete ==="
+          echo "English: ${{ needs.check-links-en.result }}"
+          echo "Japanese: ${{ needs.check-links-jp.result }}"
+
+          if [ "${{ needs.check-links-en.result }}" != "success" ] || \
+             [ "${{ needs.check-links-jp.result }}" != "success" ]; then
+            echo ""
+            echo "Some link checks failed. Please review the artifacts."
+            exit 1
+          else
+            echo ""
+            echo "All link checks passed successfully"
+            exit 0
+          fi

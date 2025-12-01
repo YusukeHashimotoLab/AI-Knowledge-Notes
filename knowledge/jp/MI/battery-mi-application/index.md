@@ -141,7 +141,7 @@ graph TD
 
 ---
 
-### [第3章：Pythonで実装する電池MI - PyBaMM & 機械学習実践](./chapter-3.html)
+### [第3章：Pythonで実装する電池MI - PyBaMM & 機械学習実践](./chapter3-hands-on.html)
 
 **難易度**: 中級
 **読了時間**: 40-50分
@@ -209,7 +209,7 @@ graph TD
 - ✅ ベイズ最適化で最適材料を探索できる
 - ✅ 実際の電池開発プロジェクトを実行できる
 
-**[第3章を読む →](./chapter-3.html)**
+**[第3章を読む →](./chapter3-hands-on.html)**
 
 ---
 

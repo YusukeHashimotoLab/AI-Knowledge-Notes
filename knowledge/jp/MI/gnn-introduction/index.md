@@ -101,8 +101,7 @@ language: "ja"
 
 ---
 
-## 学習の進め方
-
+## 学習の進め方 {#learning-path}
 ### 推奨学習順序
 
 ```mermaid
@@ -1065,12 +1064,11 @@ MIエンジニアとして就職
 3. **翻訳**: 英語版（将来的に）
 4. **演習問題の追加**: 新しい問題、難易度別
 
-詳細は [CONTRIBUTING.md](../../CONTRIBUTING.html)（準備中）
+詳細は CONTRIBUTING.md（準備中）
 
 ---
 
-## ライセンスと利用規約
-
+## ライセンスと利用規約 {#license-terms}
 **CC BY 4.0**（Creative Commons Attribution 4.0 International）
 
 ### 可能なこと
@@ -1118,7 +1116,7 @@ Retrieved from [URL]
 
 **[第1章: なぜ材料科学にGNNが必要か →](./chapter-1.html)**
 
-または、[学習の進め方](#学習の進め方)に戻って自分に合った学習パスを確認してください。
+または、[学習の進め方](#learning-path)に戻って自分に合った学習パスを確認してください。
 
 ---
 

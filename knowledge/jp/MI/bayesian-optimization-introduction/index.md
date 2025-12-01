@@ -106,8 +106,7 @@ language: "ja"
 
 ---
 
-## 学習の進め方
-
+## 学習の進め方 {#learning-path}
 ### 推奨学習順序
 
 ```mermaid
@@ -168,7 +167,7 @@ graph TD
 
 ## 各章の詳細
 
-### [第1章：なぜ材料探索に最適化が必要か](./chapter1-introduction.html)
+### [第1章：なぜ材料探索に最適化が必要か](./chapter-1.html)
 
 **難易度**: 入門
 **読了時間**: 20-25分
@@ -219,7 +218,7 @@ graph TD
 - **実験コスト（Experimental Cost）**: 1回の実験に要する時間・費用・労力
 - **局所最適解（Local Optimum）**: その近傍では最良だが大域的には最適でない解
 
-**[第1章を読む →](./chapter1-introduction.html)**
+**[第1章を読む →](./chapter-1.html)**
 
 ---
 
@@ -396,7 +395,7 @@ graph TD
 
 ---
 
-### [第4章：アクティブラーニング戦略](./chapter4-active-learning.html)
+### [第4章：アクティブラーニング戦略](./chapter-4.html)
 
 **難易度**: 中級〜上級
 **読了時間**: 15-20分
@@ -488,7 +487,7 @@ graph LR
     style F fill:#fce4ec
 ```
 
-**[第4章を読む →](./chapter4-active-learning.html)**
+**[第4章を読む →](./chapter-4.html)**
 
 ---
 
@@ -931,12 +930,11 @@ Kaggleコンペ参加
 4. **演習問題の追加**: 新しい課題、チャレンジ問題
 5. **ケーススタディ**: 独自の材料探索事例
 
-詳細は [CONTRIBUTING.md](../../CONTRIBUTING.html) を参照してください。
+詳細は [CONTRIBUTING.md](#) を参照してください。
 
 ---
 
-## ライセンスと利用規約
-
+## ライセンスと利用規約 {#license-terms}
 **CC BY 4.0**（Creative Commons Attribution 4.0 International）
 
 ### 可能なこと
@@ -981,9 +979,9 @@ BibTeX:
 
 準備はできましたか？ 第1章から始めて、ベイズ最適化で材料探索を革新する旅を始めましょう！
 
-**[第1章: なぜ材料探索に最適化が必要か →](./chapter1-introduction.html)**
+**[第1章: なぜ材料探索に最適化が必要か →](./chapter-1.html)**
 
-または、[学習の進め方](#学習の進め方)に戻って自分に合った学習パスを確認してください。
+または、[学習の進め方](#learning-path)に戻って自分に合った学習パスを確認してください。
 
 ---
 

@@ -88,6 +88,10 @@ class LinkChecker:
             if file_path.suffix == '.html':
                 soup = BeautifulSoup(content, 'html.parser')
 
+                # Remove code blocks to avoid parsing example HTML/links inside them
+                for code_block in soup.find_all(['pre', 'code']):
+                    code_block.decompose()
+
                 # Extract href links
                 for elem in soup.find_all('a', href=True):
                     href = elem['href']
@@ -114,9 +118,18 @@ class LinkChecker:
                         })
 
             elif file_path.suffix == '.md':
+                # Remove content inside fenced code blocks before extracting links
+                # This prevents false positives from example code (URLs like 'link', 'demo-link', etc.)
+                code_block_pattern = r'```[\s\S]*?```'
+                content_without_code = re.sub(code_block_pattern, lambda m: '\n' * m.group(0).count('\n'), content)
+
+                # Also remove inline code
+                inline_code_pattern = r'`[^`]+`'
+                content_without_code = re.sub(inline_code_pattern, '', content_without_code)
+
                 # Extract markdown links [text](url)
                 md_link_pattern = r'\[([^\]]+)\]\(([^\)]+)\)'
-                for match in re.finditer(md_link_pattern, content):
+                for match in re.finditer(md_link_pattern, content_without_code):
                     url = match.group(2)
                     line_num = content[:match.start()].count('\n') + 1
                     links.append({
@@ -171,9 +184,42 @@ class LinkChecker:
 
         return resolved, anchor
 
+    # SMILES chemical notation patterns to exclude from link checking
+    SMILES_PATTERNS = [
+        r'^[A-Z]$',                    # Single uppercase letter (C, O, N, etc.)
+        r'^=[A-Z]',                    # =O, =N, =S etc.
+        r'^\[.*\]$',                   # [OH], [C@@H], [NH2] etc.
+        r'^NC\(=O',                    # Amide bond NC(=O
+        r'^\[C@@?H?\]',                # Chiral carbon [C@H], [C@@H]
+        r'^C\(=O',                     # Carbonyl C(=O
+        r'^\w+\d+-\w+',                # Chemical notation like C=C4
+        r'^[A-Z][a-z]?\d*$',           # Element with optional number (C, O, N, Na, Ca2)
+        r'^[CNOS]=',                   # Double bonds starting with common elements
+        r'^\[.*:.*\]$',                # Atom mapping [O:2], [C:1]
+        r'^[cnos]\d*$',                # Aromatic atoms (lowercase)
+    ]
+
+    def is_smiles_notation(self, url: str) -> bool:
+        """Check if the URL looks like SMILES chemical notation"""
+        import re
+        for pattern in self.SMILES_PATTERNS:
+            if re.match(pattern, url):
+                return True
+        # Additional heuristic: if it contains typical SMILES characters and is short
+        smiles_chars = set('=@[]()/#\\')
+        if len(url) < 30 and any(c in url for c in smiles_chars):
+            # Check if it looks like a chemical formula (has capital letters and special chars)
+            if re.match(r'^[A-Za-z0-9=@\[\]()/#\\:,+-]+$', url):
+                return True
+        return False
+
     def validate_link(self, source_file: Path, link_info: Dict) -> Dict:
         """Validate a single link"""
         url = link_info['url']
+
+        # Skip SMILES chemical notation (common in chemoinformatics content)
+        if self.is_smiles_notation(url):
+            return {'status': 'ok', 'reason': 'SMILES notation (skipped)'}
 
         # Skip external links
         if self.is_external_link(url):

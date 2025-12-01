@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第1章：PyTorch Geometric入門とグラフデータの基礎 - PyTorch Geometric入門 - AI Terakoya</title>
+  <meta name="description" content="PyTorch Geometricの基礎とグラフデータの扱い方を学ぶ。グラフ構造、Dataオブジェクト、組み込みデータセット、GNNの基本実装を実践的なコード例で理解します。">
+
+  <style>
+    :root {
+      --color-primary: #2c3e50;
+      --color-primary-dark: #1a252f;
+      --color-accent: #7b2cbf;
+      --color-accent-light: #9d4edd;
+      --color-text: #2d3748;
+      --color-text-light: #4a5568;
+      --color-bg: #ffffff;
+      --color-bg-alt: #f7fafc;
+      --color-border: #e2e8f0;
+      --color-code-bg: #f8f9fa;
+      --color-link: #3182ce;
+      --color-link-hover: #2c5aa0;
+
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 1rem;
+      --spacing-md: 1.5rem;
+      --spacing-lg: 2rem;
+      --spacing-xl: 3rem;
+
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+      --border-radius: 8px;
+      --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      line-height: 1.7;
+      color: var(--color-text);
+      background-color: var(--color-bg);
+      font-size: 16px;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+      color: white;
+      padding: var(--spacing-xl) var(--spacing-md);
+      margin-bottom: var(--spacing-xl);
+      box-shadow: var(--box-shadow);
+    }
+
+    .header-content {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: var(--spacing-sm);
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      opacity: 0.95;
+      font-weight: 400;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-md);
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 var(--spacing-md) var(--spacing-xl);
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-xl);
+      margin-bottom: var(--spacing-md);
+      padding-bottom: var(--spacing-xs);
+      border-bottom: 3px solid var(--color-accent);
+    }
+
+    h3 {
+      font-size: 1.4rem;
+      color: var(--color-primary);
+      margin-top: var(--spacing-lg);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    h4 {
+      font-size: 1.1rem;
+      color: var(--color-primary-dark);
+      margin-top: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    p {
+      margin-bottom: var(--spacing-md);
+      color: var(--color-text);
+    }
+
+    a {
+      color: var(--color-link);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    a:hover {
+      color: var(--color-link-hover);
+      text-decoration: underline;
+    }
+
+    ul, ol {
+      margin-left: var(--spacing-lg);
+      margin-bottom: var(--spacing-md);
+    }
+
+    li {
+      margin-bottom: var(--spacing-xs);
+      color: var(--color-text);
+    }
+
+    pre {
+      background-color: var(--color-code-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      overflow-x: auto;
+      margin-bottom: var(--spacing-md);
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      background-color: var(--color-code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+    }
+
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: var(--spacing-md);
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      border: 1px solid var(--color-border);
+      padding: var(--spacing-sm);
+      text-align: left;
+    }
+
+    th {
+      background-color: var(--color-bg-alt);
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    blockquote {
+      border-left: 4px solid var(--color-accent);
+      padding-left: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      color: var(--color-text-light);
+      font-style: italic;
+      background-color: var(--color-bg-alt);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    .mermaid {
+      text-align: center;
+      margin: var(--spacing-lg) 0;
+      background-color: var(--color-bg-alt);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    details {
+      background-color: var(--color-bg-alt);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--color-primary);
+      user-select: none;
+      padding: var(--spacing-xs);
+      margin: calc(-1 * var(--spacing-md));
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+    }
+
+    summary:hover {
+      background-color: rgba(123, 44, 191, 0.1);
+    }
+
+    details[open] summary {
+      margin-bottom: var(--spacing-md);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .chapter-description {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-left: 4px solid #7b2cbf;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: #2d3748;
+    }
+
+    .learning-objectives {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      padding: var(--spacing-lg);
+      border-radius: var(--border-radius);
+      border-left: 4px solid var(--color-accent);
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .learning-objectives h2 {
+      margin-top: 0;
+      border-bottom: none;
+    }
+
+    .navigation {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--spacing-md);
+      margin: var(--spacing-xl) 0;
+      padding-top: var(--spacing-lg);
+      border-top: 2px solid var(--color-border);
+    }
+
+    .nav-button {
+      flex: 1;
+      padding: var(--spacing-md);
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+      color: white;
+      border-radius: var(--border-radius);
+      text-align: center;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: var(--box-shadow);
+    }
+
+    .nav-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      text-decoration: none;
+    }
+
+    .nav-button.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #6c757d;
+    }
+
+    .nav-button.disabled:hover {
+      transform: none;
+      box-shadow: var(--box-shadow);
+    }
+
+    footer {
+      margin-top: var(--spacing-xl);
+      padding: var(--spacing-lg) var(--spacing-md);
+      background-color: var(--color-bg-alt);
+      border-top: 1px solid var(--color-border);
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--color-text-light);
+    }
+
+    .disclaimer {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-left: 4px solid #6c757d;
+      border-radius: 4px;
+    }
+
+    .disclaimer h3 {
+      color: #495057;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+
+    .disclaimer ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .disclaimer li {
+      padding: 0.5rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+      font-size: 0.9rem;
+      color: #6c757d;
+      line-height: 1.6;
+    }
+
+    .disclaimer li::before {
+      content: "⚠️";
+      position: absolute;
+      left: 0;
+    }
+
+    /* Breadcrumb styles */
+    .breadcrumb {
+      background: #f7fafc;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.9rem;
+    }
+
+    .breadcrumb-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .breadcrumb a {
+      color: #667eea;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+
+    .breadcrumb-separator {
+      color: #a0aec0;
+      margin: 0 0.25rem;
+    }
+
+    .breadcrumb-current {
+      color: #4a5568;
+      font-weight: 500;
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    .warning-box {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    .success-box {
+      background: #e8f5e9;
+      border-left: 4px solid #4caf50;
+      padding: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+      border-radius: var(--border-radius);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 0 1rem 2rem;
+      }
+
+      h1 {
+        font-size: 1.6rem;
+      }
+
+      h2 {
+        font-size: 1.4rem;
+      }
+
+      .navigation {
+        flex-direction: column;
+      }
+    }
+  </style>
+
+  <!-- Mermaid for diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <!-- Prism.js for syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <!-- MathJax for equations -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <script>
+    // Mermaid.js initialization
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof mermaid !== 'undefined') {
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+      }
+    });
+  </script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="./index.html">PyTorch Geometric入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第1章</span>
+    </div>
+  </nav>
+
+  <header>
+    <div class="header-content">
+      <h1>第1章：PyTorch Geometric入門とグラフデータの基礎</h1>
+      <p class="subtitle">グラフ構造データとGNNの第一歩</p>
+      <div class="meta">
+        <span class="meta-item">📖 読了時間: 30-35分</span>
+        <span class="meta-item">📊 難易度: 中級</span>
+        <span class="meta-item">💻 コード例: 12個</span>
+        <span class="meta-item">📝 演習: 5問</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="chapter-description">
+      <p>この章では、グラフニューラルネットワーク（GNN）の基礎となるグラフデータの概念と、PyTorch Geometric（PyG）ライブラリの使い方を学びます。グラフの基本構造、PyGのインストール、Dataオブジェクトの扱い方、組み込みデータセット、そして簡単なGCNレイヤーの実装を通じて、GNN開発の基盤を固めていきましょう。</p>
+    </div>
+
+    <div class="learning-objectives">
+      <h2>学習目標</h2>
+      <ul>
+        <li>✅ グラフデータの基本概念（ノード、エッジ、隣接行列）を理解する</li>
+        <li>✅ PyTorch Geometricをインストールし、動作確認ができる</li>
+        <li>✅ PyGのDataオブジェクトを作成・操作できる</li>
+        <li>✅ 組み込みデータセットを読み込み、探索できる</li>
+        <li>✅ 簡単なGCNレイヤーを使ったノード分類を実装できる</li>
+      </ul>
+    </div>
+
+    <h2 id="graph-basics">1. グラフデータの基礎概念</h2>
+
+    <p><strong>グラフ（Graph）</strong>は、ノード（頂点）とエッジ（辺）から構成されるデータ構造です。実世界の多くの複雑な関係性をグラフで表現できます。</p>
+
+    <h3>グラフの基本要素</h3>
+
+    <ul>
+      <li><strong>ノード（Node/Vertex）</strong>: グラフの要素を表す点。例：人、分子の原子、論文</li>
+      <li><strong>エッジ（Edge/Link）</strong>: ノード間の関係を表す線。例：友人関係、化学結合、引用関係</li>
+      <li><strong>特徴量（Features）</strong>: ノードやエッジに付随する属性情報</li>
+    </ul>
+
+    <div class="mermaid">
+graph LR
+  A[ノード A] -->|エッジ| B[ノード B]
+  B --> C[ノード C]
+  A --> C
+  C --> D[ノード D]
+  B --> D
+    </div>
+
+    <h3>グラフの種類</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>分類</th>
+          <th>種類</th>
+          <th>説明</th>
+          <th>例</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>方向性</td>
+          <td>有向グラフ</td>
+          <td>エッジに方向がある</td>
+          <td>Twitterのフォロー関係、引用ネットワーク</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>無向グラフ</td>
+          <td>エッジに方向がない</td>
+          <td>Facebookの友人関係、分子構造</td>
+        </tr>
+        <tr>
+          <td>ノード種類</td>
+          <td>同種グラフ</td>
+          <td>1種類のノード</td>
+          <td>ソーシャルネットワーク（人のみ）</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>異種グラフ</td>
+          <td>複数種類のノード</td>
+          <td>ユーザーと商品を含むレコメンデーショングラフ</td>
+        </tr>
+        <tr>
+          <td>重み</td>
+          <td>重み付きグラフ</td>
+          <td>エッジに重み（強度）がある</td>
+          <td>道路ネットワーク（距離）、類似度グラフ</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>グラフの表現方法</h3>
+
+    <p>グラフをコンピュータで扱うための主な表現方法：</p>
+
+    <h4>1. 隣接行列（Adjacency Matrix）</h4>
+
+    <p>ノード数を \(N\) とすると、\(N \times N\) の行列 \(A\) で表現：</p>
+    <p>$$A_{ij} = \begin{cases} 1 & \text{if ノード } i \text{ から } j \text{ へエッジがある} \\ 0 & \text{otherwise} \end{cases}$$</p>
+
+    <pre><code class="language-python">import numpy as np
+
+# 4ノードのグラフの隣接行列
+# エッジ: 0→1, 1→2, 0→2, 2→3, 1→3
+adjacency_matrix = np.array([
+    [0, 1, 1, 0],  # ノード0からの接続
+    [0, 0, 1, 1],  # ノード1からの接続
+    [0, 0, 0, 1],  # ノード2からの接続
+    [0, 0, 0, 0]   # ノード3からの接続
+])
+
+print("隣接行列:\n", adjacency_matrix)
+</code></pre>
+
+    <h4>2. エッジインデックス（Edge Index）</h4>
+
+    <p>PyTorch Geometricで採用されている効率的な表現方法。スパース（疎）なグラフに適しています。</p>
+
+    <pre><code class="language-python">import torch
+
+# 同じグラフをエッジインデックスで表現
+# 形状: [2, num_edges]
+# 1行目: 始点ノード、2行目: 終点ノード
+edge_index = torch.tensor([
+    [0, 1, 0, 2, 1],  # 始点ノード
+    [1, 2, 2, 3, 3]   # 終点ノード
+], dtype=torch.long)
+
+print("エッジインデックス:\n", edge_index)
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 なぜエッジインデックス？</strong></p>
+      <p>隣接行列は \(O(N^2)\) のメモリが必要ですが、実世界のグラフは疎（スパース）なことが多く、エッジインデックスは \(O(E)\)（\(E\)はエッジ数）で済みます。例えば、1万ノードで平均次数10のグラフでは、隣接行列は100MB必要ですが、エッジインデックスは約800KBで済みます。</p>
+    </div>
+
+    <h2 id="installation">2. PyTorch Geometricのインストールと環境構築</h2>
+
+    <p><strong>PyTorch Geometric</strong>は、PyTorchをベースにしたグラフニューラルネットワーク専用ライブラリです。</p>
+
+    <h3>インストール方法</h3>
+
+    <p>PyTorch Geometricは、PyTorchとCUDAのバージョンに依存します。まず、使用環境を確認しましょう。</p>
+
+    <pre><code class="language-python">import torch
+print(f"PyTorch version: {torch.__version__}")
+print(f"CUDA available: {torch.cuda.is_available()}")
+if torch.cuda.is_available():
+    print(f"CUDA version: {torch.version.cuda}")
+</code></pre>
+
+    <h4>方法1: pip経由のインストール（推奨）</h4>
+
+    <pre><code class="language-bash"># PyTorch 2.0以降の場合（CPU版）
+pip install torch-geometric
+
+# 追加の依存パッケージ
+pip install pyg-lib torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.1.0+cpu.html
+
+# GPU版（CUDA 11.8の場合）
+pip install torch-geometric
+pip install pyg-lib torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.1.0+cu118.html
+</code></pre>
+
+    <h4>方法2: conda経由のインストール</h4>
+
+    <pre><code class="language-bash"># condaの場合
+conda install pyg -c pyg
+</code></pre>
+
+    <h4>方法3: Google Colab（環境構築不要）</h4>
+
+    <p>Google Colabでは以下のコマンドで簡単にインストールできます：</p>
+
+    <pre><code class="language-python">!pip install torch-geometric
+!pip install pyg-lib torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.1.0+cu118.html
+</code></pre>
+
+    <h3>インストール確認</h3>
+
+    <pre><code class="language-python">import torch
+import torch_geometric
+
+print(f"PyTorch version: {torch.__version__}")
+print(f"PyTorch Geometric version: {torch_geometric.__version__}")
+
+# サンプルデータで動作確認
+from torch_geometric.data import Data
+
+edge_index = torch.tensor([[0, 1, 1, 2],
+                           [1, 0, 2, 1]], dtype=torch.long)
+x = torch.tensor([[-1], [0], [1]], dtype=torch.float)
+data = Data(x=x, edge_index=edge_index)
+
+print(f"\nSample Data object created successfully!")
+print(f"Number of nodes: {data.num_nodes}")
+print(f"Number of edges: {data.num_edges}")
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>PyTorch version: 2.1.0
+PyTorch Geometric version: 2.4.0
+
+Sample Data object created successfully!
+Number of nodes: 3
+Number of edges: 4
+</code></pre>
+
+    <h2 id="data-object">3. PyGのDataオブジェクト</h2>
+
+    <p>PyTorch Geometricの中心的なデータ構造が<strong>Dataオブジェクト</strong>です。グラフの構造と特徴量を効率的に格納します。</p>
+
+    <h3>Dataオブジェクトの構造</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>属性</th>
+          <th>形状</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>x</code></td>
+          <td>[num_nodes, num_features]</td>
+          <td>ノード特徴量行列</td>
+        </tr>
+        <tr>
+          <td><code>edge_index</code></td>
+          <td>[2, num_edges]</td>
+          <td>エッジの接続情報（COO形式）</td>
+        </tr>
+        <tr>
+          <td><code>edge_attr</code></td>
+          <td>[num_edges, num_edge_features]</td>
+          <td>エッジ特徴量行列（オプション）</td>
+        </tr>
+        <tr>
+          <td><code>y</code></td>
+          <td>任意</td>
+          <td>ターゲットラベル（ノードまたはグラフ）</td>
+        </tr>
+        <tr>
+          <td><code>pos</code></td>
+          <td>[num_nodes, num_dimensions]</td>
+          <td>ノードの位置座標（オプション）</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Dataオブジェクトの作成</h3>
+
+    <pre><code class="language-python">import torch
+from torch_geometric.data import Data
+
+# ノード特徴量（3ノード、各ノード2次元特徴）
+x = torch.tensor([[1.0, 2.0],
+                  [3.0, 4.0],
+                  [5.0, 6.0]], dtype=torch.float)
+
+# エッジインデックス（4つのエッジ）
+# 0→1, 1→0, 1→2, 2→1
+edge_index = torch.tensor([[0, 1, 1, 2],
+                           [1, 0, 2, 1]], dtype=torch.long)
+
+# エッジ特徴量（各エッジ1次元特徴）
+edge_attr = torch.tensor([[1.0], [1.0], [2.0], [2.0]], dtype=torch.float)
+
+# ノードラベル（ノード分類タスクの場合）
+y = torch.tensor([0, 1, 0], dtype=torch.long)
+
+# Dataオブジェクト作成
+data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
+
+print(data)
+print(f"\nNumber of nodes: {data.num_nodes}")
+print(f"Number of edges: {data.num_edges}")
+print(f"Number of features: {data.num_node_features}")
+print(f"Has isolated nodes: {data.has_isolated_nodes()}")
+print(f"Has self-loops: {data.has_self_loops()}")
+print(f"Is undirected: {data.is_undirected()}")
+</code></pre>
+
+    <p><strong>出力：</strong></p>
+
+    <pre><code>Data(x=[3, 2], edge_index=[2, 4], edge_attr=[4, 1], y=[3])
+
+Number of nodes: 3
+Number of edges: 4
+Number of features: 2
+Has isolated nodes: False
+Has self-loops: False
+Is undirected: True
+</code></pre>
+
+    <h3>Dataオブジェクトの操作</h3>
+
+    <pre><code class="language-python">import torch
+from torch_geometric.data import Data
+
+data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
+
+# 特定ノードの特徴量取得
+print("Node 0 features:", data.x[0])
+
+# 特定エッジの情報取得
+print("Edge 0:", data.edge_index[:, 0])
+print("Edge 0 attribute:", data.edge_attr[0])
+
+# データをGPUに転送
+if torch.cuda.is_available():
+    data = data.to('cuda')
+    print(f"Data moved to: {data.x.device}")
+
+# CPUに戻す
+data = data.to('cpu')
+
+# データの検証
+print(f"\nIs valid: {data.validate()}")
+</code></pre>
+
+    <h2 id="datasets">4. 基本的なデータ操作と組み込みデータセット</h2>
+
+    <p>PyTorch Geometricには、研究・学習用の組み込みデータセットが多数用意されています。</p>
+
+    <h3>主要な組み込みデータセット</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>データセット</th>
+          <th>種類</th>
+          <th>ノード数</th>
+          <th>説明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Cora</td>
+          <td>引用ネットワーク</td>
+          <td>2,708</td>
+          <td>論文の引用関係、7クラス分類</td>
+        </tr>
+        <tr>
+          <td>Citeseer</td>
+          <td>引用ネットワーク</td>
+          <td>3,327</td>
+          <td>論文の引用関係、6クラス分類</td>
+        </tr>
+        <tr>
+          <td>PubMed</td>
+          <td>引用ネットワーク</td>
+          <td>19,717</td>
+          <td>医学論文の引用関係、3クラス分類</td>
+        </tr>
+        <tr>
+          <td>PPI</td>
+          <td>生物ネットワーク</td>
+          <td>14,755</td>
+          <td>タンパク質相互作用、マルチラベル分類</td>
+        </tr>
+        <tr>
+          <td>QM9</td>
+          <td>分子グラフ</td>
+          <td>約13万分子</td>
+          <td>分子特性予測、回帰タスク</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Coraデータセットの読み込み</h3>
+
+    <pre><code class="language-python">from torch_geometric.datasets import Planetoid
+
+# Coraデータセットをダウンロード・読み込み
+dataset = Planetoid(root='/tmp/Cora', name='Cora')
+
+print(f"Dataset: {dataset}")
+print(f"Number of graphs: {len(dataset)}")
+print(f"Number of features: {dataset.num_features}")
+print(f"Number of classes: {dataset.num_classes}")
+
+# 最初のグラフ（Coraは単一グラフ）
+data = dataset[0]
+
+print(f"\nGraph structure:")
+print(f"Number of nodes: {data.num_nodes}")
+print(f"Number of edges: {data.num_edges}")
+print(f"Average node degree: {data.num_edges / data.num_nodes:.2f}")
+print(f"Training nodes: {data.train_mask.sum().item()}")
+print(f"Validation nodes: {data.val_mask.sum().item()}")
+print(f"Test nodes: {data.test_mask.sum().item()}")
+
+# ノード特徴量とラベルの確認
+print(f"\nNode features shape: {data.x.shape}")
+print(f"Node labels shape: {data.y.shape}")
+print(f"First node features: {data.x[0][:10]}...")
+print(f"First node label: {data.y[0].item()}")
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>Dataset: Cora()
+Number of graphs: 1
+Number of features: 1433
+Number of classes: 7
+
+Graph structure:
+Number of nodes: 2708
+Number of edges: 10556
+Average node degree: 3.90
+Training nodes: 140
+Validation nodes: 500
+Test nodes: 1000
+
+Node features shape: torch.Size([2708, 1433])
+Node labels shape: torch.Size([2708])
+First node features: tensor([0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])...
+First node label: 3
+</code></pre>
+
+    <h3>DataLoaderの使い方</h3>
+
+    <p>複数のグラフを含むデータセットでは、DataLoaderを使ってバッチ処理します。</p>
+
+    <pre><code class="language-python">from torch_geometric.datasets import TUDataset
+from torch_geometric.loader import DataLoader
+
+# ENZYMES データセット（タンパク質のグラフ分類）
+dataset = TUDataset(root='/tmp/ENZYMES', name='ENZYMES')
+
+print(f"Dataset: {dataset}")
+print(f"Number of graphs: {len(dataset)}")
+print(f"Number of classes: {dataset.num_classes}")
+print(f"Number of features: {dataset.num_features}")
+
+# DataLoader作成
+loader = DataLoader(dataset, batch_size=32, shuffle=True)
+
+# バッチの確認
+for batch in loader:
+    print(f"\nBatch:")
+    print(f"Number of graphs in batch: {batch.num_graphs}")
+    print(f"Total nodes in batch: {batch.num_nodes}")
+    print(f"Total edges in batch: {batch.num_edges}")
+    print(f"Batch shape: {batch.batch.shape}")
+    break  # 最初のバッチのみ表示
+</code></pre>
+
+    <div class="info-box">
+      <p><strong>💡 バッチ処理の仕組み</strong></p>
+      <p>PyGのDataLoaderは、複数のグラフを1つの大きなグラフとして結合します。各ノードがどのグラフに属するかは<code>batch</code>属性で管理されます。これにより、異なるサイズのグラフを効率的にバッチ処理できます。</p>
+    </div>
+
+    <h2 id="first-gnn">5. 簡単なGNNの実装例</h2>
+
+    <p>最も基本的なグラフニューラルネットワーク層である<strong>GCNConv（Graph Convolutional Network）</strong>を使って、ノード分類モデルを実装します。</p>
+
+    <h3>GCNの基本原理</h3>
+
+    <p>GCNは各ノードの特徴量を、隣接ノードの特徴量を集約して更新します：</p>
+    <p>$$\mathbf{x}_i^{(k+1)} = \sigma\left(\sum_{j \in \mathcal{N}(i) \cup \{i\}} \frac{1}{\sqrt{d_i d_j}} \mathbf{W}^{(k)} \mathbf{x}_j^{(k)}\right)$$</p>
+
+    <p>ここで：</p>
+    <ul>
+      <li>\(\mathbf{x}_i^{(k)}\): 層 \(k\) におけるノード \(i\) の特徴量</li>
+      <li>\(\mathcal{N}(i)\): ノード \(i\) の隣接ノード集合</li>
+      <li>\(d_i\): ノード \(i\) の次数</li>
+      <li>\(\mathbf{W}^{(k)}\): 学習可能な重み行列</li>
+      <li>\(\sigma\): 活性化関数（ReLU等）</li>
+    </ul>
+
+    <div class="mermaid">
+graph LR
+  A[ノード A<br/>特徴量] --> AGG[集約]
+  B[隣接ノード B<br/>特徴量] --> AGG
+  C[隣接ノード C<br/>特徴量] --> AGG
+  AGG --> UPDATE[更新]
+  UPDATE --> A2[新しい特徴量]
+    </div>
+
+    <h3>GCNモデルの実装</h3>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.nn import GCNConv
+
+class GCN(torch.nn.Module):
+    def __init__(self, num_features, num_classes):
+        super(GCN, self).__init__()
+        # 2層のGCN
+        self.conv1 = GCNConv(num_features, 16)
+        self.conv2 = GCNConv(16, num_classes)
+
+    def forward(self, data):
+        x, edge_index = data.x, data.edge_index
+
+        # 第1層: 入力 → 16次元
+        x = self.conv1(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=0.5, training=self.training)
+
+        # 第2層: 16次元 → クラス数
+        x = self.conv2(x, edge_index)
+
+        return F.log_softmax(x, dim=1)
+
+# モデル作成
+from torch_geometric.datasets import Planetoid
+
+dataset = Planetoid(root='/tmp/Cora', name='Cora')
+data = dataset[0]
+
+model = GCN(num_features=dataset.num_features,
+            num_classes=dataset.num_classes)
+
+print(model)
+print(f"\nTotal parameters: {sum(p.numel() for p in model.parameters())}")
+</code></pre>
+
+    <h3>学習ループの実装</h3>
+
+    <pre><code class="language-python">import torch
+import torch.nn.functional as F
+from torch_geometric.datasets import Planetoid
+
+# データとモデルの準備
+dataset = Planetoid(root='/tmp/Cora', name='Cora')
+data = dataset[0]
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = GCN(num_features=dataset.num_features,
+            num_classes=dataset.num_classes).to(device)
+data = data.to(device)
+
+# オプティマイザ
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+
+# 学習ループ
+model.train()
+for epoch in range(200):
+    optimizer.zero_grad()
+
+    # 順伝播
+    out = model(data)
+
+    # 損失計算（訓練データのみ）
+    loss = F.nll_loss(out[data.train_mask], data.y[data.train_mask])
+
+    # 逆伝播
+    loss.backward()
+    optimizer.step()
+
+    # 10エポックごとに結果表示
+    if (epoch + 1) % 10 == 0:
+        model.eval()
+        _, pred = model(data).max(dim=1)
+        correct = pred[data.train_mask].eq(data.y[data.train_mask]).sum().item()
+        accuracy = correct / data.train_mask.sum().item()
+        print(f'Epoch {epoch+1:03d}, Loss: {loss:.4f}, Train Acc: {accuracy:.4f}')
+        model.train()
+</code></pre>
+
+    <h3>モデルの評価</h3>
+
+    <pre><code class="language-python">def test(model, data):
+    model.eval()
+    with torch.no_grad():
+        out = model(data)
+        _, pred = out.max(dim=1)
+
+        # 訓練データ精度
+        correct = pred[data.train_mask].eq(data.y[data.train_mask]).sum().item()
+        train_acc = correct / data.train_mask.sum().item()
+
+        # 検証データ精度
+        correct = pred[data.val_mask].eq(data.y[data.val_mask]).sum().item()
+        val_acc = correct / data.val_mask.sum().item()
+
+        # テストデータ精度
+        correct = pred[data.test_mask].eq(data.y[data.test_mask]).sum().item()
+        test_acc = correct / data.test_mask.sum().item()
+
+    return train_acc, val_acc, test_acc
+
+train_acc, val_acc, test_acc = test(model, data)
+print(f'\nFinal Results:')
+print(f'Train Accuracy: {train_acc:.4f}')
+print(f'Validation Accuracy: {val_acc:.4f}')
+print(f'Test Accuracy: {test_acc:.4f}')
+</code></pre>
+
+    <p><strong>出力例：</strong></p>
+
+    <pre><code>Epoch 010, Loss: 1.9234, Train Acc: 0.3143
+Epoch 020, Loss: 1.7845, Train Acc: 0.4357
+Epoch 030, Loss: 1.5234, Train Acc: 0.6000
+...
+Epoch 200, Loss: 0.5123, Train Acc: 0.9714
+
+Final Results:
+Train Accuracy: 0.9714
+Validation Accuracy: 0.7540
+Test Accuracy: 0.8130
+</code></pre>
+
+    <div class="success-box">
+      <p><strong>🎉 初めてのGNN実装完了！</strong></p>
+      <p>Coraデータセットでテスト精度81%を達成しました。これはグラフ構造を考慮しないMLPモデル（約60%）と比べて大幅に改善されています。GNNはノード間の関係性を学習することで、より高い精度を実現しています。</p>
+    </div>
+
+    <h2 id="exercises">演習問題</h2>
+
+    <details>
+      <summary><strong>演習1：カスタムグラフの作成</strong></summary>
+      <p>以下の条件でグラフを作成してください：</p>
+      <ol>
+        <li>5つのノード（各ノード3次元特徴量）</li>
+        <li>無向グラフ（双方向エッジ）</li>
+        <li>エッジ: 0-1, 1-2, 2-3, 3-4, 4-0</li>
+        <li>各ノードにランダムなラベル（0,1,2のいずれか）を付与</li>
+      </ol>
+      <pre><code class="language-python"># ここにコードを書く
+</code></pre>
+    </details>
+
+    <details>
+      <summary><strong>演習2：データセット探索</strong></summary>
+      <p>Citeseerデータセットを読み込み、以下の情報を出力してください：</p>
+      <ul>
+        <li>ノード数、エッジ数</li>
+        <li>平均ノード次数</li>
+        <li>特徴量次元数</li>
+        <li>クラス数</li>
+        <li>訓練/検証/テストノード数</li>
+      </ul>
+    </details>
+
+    <details>
+      <summary><strong>演習3：3層GCNの実装</strong></summary>
+      <p>2層GCNを拡張して、3層のGCNモデルを実装してください。中間層の次元数は32と16にしてください。Coraデータセットで学習し、精度を比較してください。</p>
+      <p>ヒント: 層を増やすと過学習しやすくなるため、Dropoutの調整が必要かもしれません。</p>
+    </details>
+
+    <details>
+      <summary><strong>演習4：エッジ特徴量の活用</strong></summary>
+      <p>エッジに重み（特徴量）を持つグラフを作成し、<code>edge_attr</code>属性を設定してください。エッジの重みはランダムな値（0.1〜1.0の範囲）としてください。</p>
+    </details>
+
+    <details>
+      <summary><strong>演習5：グラフの可視化</strong></summary>
+      <p>NetworkXとMatplotlibを使って、作成したグラフを可視化してください。ノードの色をラベルで分けて表示してください。</p>
+      <pre><code class="language-python">import networkx as nx
+import matplotlib.pyplot as plt
+from torch_geometric.utils import to_networkx
+
+# PyGのDataオブジェクトをNetworkXグラフに変換
+# ここにコードを書く
+</code></pre>
+    </details>
+
+    <h2 id="summary">まとめ</h2>
+
+    <p>この章では、グラフニューラルネットワークの基礎を学びました：</p>
+
+    <ul>
+      <li>✅ グラフデータの基本概念（ノード、エッジ、隣接行列、エッジインデックス）</li>
+      <li>✅ PyTorch Geometricのインストールと環境構築</li>
+      <li>✅ Dataオブジェクトの構造と操作方法</li>
+      <li>✅ 組み込みデータセット（Cora、ENZYMES等）の使い方</li>
+      <li>✅ GCNConvレイヤーを使ったノード分類の実装</li>
+    </ul>
+
+    <div class="success-box">
+      <p><strong>🎉 次のステップ</strong></p>
+      <p>次章では、グラフ畳み込みネットワーク（GCN）のメッセージパッシングの仕組みを詳しく学び、ノード分類タスクを完全に理解します。過学習対策やハイパーパラメータ調整についても実践的に学びます。</p>
+    </div>
+
+    <div class="navigation">
+      <a href="./index.html" class="nav-button">← シリーズ概要</a>
+      <span class="nav-button disabled">第2章: グラフ畳み込みネットワーク （準備中）→</span>
+    </div>
+
+    <hr style="margin: 2rem 0;">
+
+    <p><strong>参考リソース</strong></p>
+    <ul>
+      <li><a href="https://pytorch-geometric.readthedocs.io/" target="_blank">PyTorch Geometric公式ドキュメント</a></li>
+      <li><a href="https://github.com/pyg-team/pytorch_geometric" target="_blank">PyTorch Geometric GitHub</a></li>
+      <li><a href="https://arxiv.org/abs/1609.02907" target="_blank">GCN論文: Semi-Supervised Classification with Graph Convolutional Networks</a></li>
+    </ul>
+
+  </main>
+
+  <section class="disclaimer">
+    <h3>免責事項</h3>
+    <ul>
+      <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+      <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+      <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+      <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+      <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+      <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+      <p>Licensed under CC BY 4.0</p>
+    </div>
+  </footer>
+</body>
+</html>

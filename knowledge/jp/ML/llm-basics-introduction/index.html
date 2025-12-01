@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="LLM基礎入門 - 大規模言語モデルの仕組みと活用を学ぶ実践的教育シリーズ">
+    <title>LLM基礎入門シリーズ v1.0 - AI Terakoya</title>
+
+    <!-- CSS Styling -->
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --link-color: #3498db;
+            --link-hover: #2980b9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header .container {
+            padding: 0 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            margin-bottom: 1rem;
+        }
+
+        .meta {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            opacity: 0.95;
+            margin-top: 1rem;
+        }
+
+        .meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Typography */
+        h2 {
+            font-size: 1.75rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            color: var(--primary-color);
+        }
+
+        h4 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.6rem;
+            color: var(--primary-color);
+        }
+
+        p {
+            margin-bottom: 1.2rem;
+        }
+
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--link-hover);
+            text-decoration: underline;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1.2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Chapter Cards */
+        .chapter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .chapter-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .chapter-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            border-color: var(--secondary-color);
+        }
+
+        .chapter-card h3 {
+            margin-top: 0;
+            font-size: 1.3rem;
+        }
+
+        .chapter-card .chapter-meta {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .chapter-card.ch1 {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        }
+
+        .chapter-card.ch2 {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+        }
+
+        .chapter-card.ch3 {
+            background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+        }
+
+        .chapter-card.ch4 {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+        }
+
+        .chapter-card.ch5 {
+            background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%);
+        }
+
+        .chapter-card.coming-soon {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .chapter-card.coming-soon:hover {
+            transform: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-color: transparent;
+        }
+
+        .coming-soon-badge {
+            display: inline-block;
+            background: #666;
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+
+        /* Learning Paths */
+        .learning-path {
+            background: #f8f9fa;
+            border-left: 4px solid var(--secondary-color);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .learning-path h4 {
+            margin-top: 0;
+            color: var(--secondary-color);
+        }
+
+        /* FAQ */
+        .faq {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .faq h4 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        /* Mermaid diagrams */
+        .mermaid {
+            text-align: center;
+            margin: 2rem 0;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--border-color);
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .disclaimer {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+
+        .disclaimer h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .disclaimer li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .disclaimer li::before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+
+        /* Navigation buttons */
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 3rem 0;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .nav-button:hover {
+            background: var(--link-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        /* Locale Switcher */
+        .locale-switcher {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .locale-switcher a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        .locale-switcher a:hover {
+            opacity: 1;
+        }
+
+        .locale-switcher .coming-soon-text {
+            color: white;
+            opacity: 0.6;
+            font-size: 0.85rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            h2 {
+                font-size: 1.4rem;
+            }
+
+            .meta {
+                font-size: 0.85rem;
+            }
+
+            .chapter-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .locale-switcher {
+                position: static;
+                margin-bottom: 1rem;
+                text-align: center;
+            }
+        }
+
+
+
+        /* Breadcrumb styles */
+        .breadcrumb {
+            background: #f7fafc;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #a0aec0;
+            margin: 0 0.25rem;
+        }
+
+        .breadcrumb-current {
+            color: #4a5568;
+            font-weight: 500;
+        }
+    </style>
+
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        // Mermaid.js initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            }
+        });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">LLM基礎入門</span>
+        </div>
+    </nav>
+
+    <header style="position: relative;">
+        <div class="locale-switcher">
+            <span class="coming-soon-text">EN版準備中</span>
+        </div>
+        <div class="container">
+            <h1>🤖 LLM基礎入門シリーズ v1.0</h1>
+            <p class="subtitle">大規模言語モデルの仕組みと活用 - ChatGPT時代を理解する</p>
+            <div class="meta">
+                <span>📖 総学習時間: 120-150分</span>
+                <span>📊 レベル: 初級〜中級</span>
+                <span>💻 コード例: 30+個</span>
+                <span>📝 章数: 5章</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <p><strong>ChatGPTの背後にある技術を理解する - 大規模言語モデル(LLM)の基礎から実践まで</strong></p>
+
+        <h2 id="overview">シリーズ概要</h2>
+        <p>このシリーズは、<strong>大規模言語モデル(LLM: Large Language Model)</strong>の基礎を体系的に学ぶ全5章構成の実践的教育コンテンツです。</p>
+
+        <p><strong>ChatGPT、Claude、Gemini</strong>といったAIアシスタントが日常生活に浸透する中、その背後にある技術を理解することは、AI時代を生きるすべての人にとって重要です。このシリーズでは、LLMの基本原理から実装、評価、実践的活用まで、包括的に学習します。</p>
+
+        <p><strong>特徴:</strong></p>
+        <ul>
+            <li>✅ <strong>現代的なアプローチ</strong>: ChatGPT、GPT-4、Claude、LLaMA等の最新モデルを解説</li>
+            <li>✅ <strong>実践的なコード</strong>: Hugging Face Transformersを使った実装例30個以上</li>
+            <li>✅ <strong>段階的な学習</strong>: 基礎理論 → アーキテクチャ → 実装 → 評価 → 活用</li>
+            <li>✅ <strong>図解と可視化</strong>: Transformerアーキテクチャ、Attention機構を図で理解</li>
+            <li>✅ <strong>実務的な視点</strong>: プロンプトエンジニアリング、ファインチューニング、RAG等</li>
+        </ul>
+
+        <p><strong>総学習時間</strong>: 120-150分（コード実行と演習を含む）</p>
+
+        <h2 id="learning-objectives">学習目標</h2>
+
+        <p>このシリーズを完了すると、以下のスキルと知識を習得できます：</p>
+
+        <h3>知識レベル（Understanding）</h3>
+        <ul>
+            <li>✅ LLMとは何か、その歴史と進化を説明できる</li>
+            <li>✅ Transformerアーキテクチャの基本構造を理解している</li>
+            <li>✅ Self-Attention機構とMulti-Head Attentionの仕組みを知っている</li>
+            <li>✅ トークン化、位置エンコーディングの役割を理解している</li>
+            <li>✅ 事前学習とファインチューニングの違いを説明できる</li>
+        </ul>
+
+        <h3>実践スキル（Doing）</h3>
+        <ul>
+            <li>✅ Hugging Face Transformersを使ってLLMを動かせる</li>
+            <li>✅ 効果的なプロンプトを設計できる（プロンプトエンジニアリング）</li>
+            <li>✅ LLMの出力品質を評価できる（BLEU、ROUGE等）</li>
+            <li>✅ 簡単なファインチューニングを実装できる</li>
+            <li>✅ RAG（検索拡張生成）の仕組みを理解し実装できる</li>
+        </ul>
+
+        <h3>応用力（Applying）</h3>
+        <ul>
+            <li>✅ 業務課題に対して適切なLLM活用方法を提案できる</li>
+            <li>✅ LLMの限界とリスクを理解し、適切に対処できる</li>
+            <li>✅ 最新のLLM研究動向を追跡し理解できる</li>
+            <li>✅ より高度なLLMプロジェクトに進む準備ができている</li>
+        </ul>
+
+        <h2 id="learning">学習の進め方</h2>
+
+        <h3>推奨学習順序</h3>
+
+        <div class="mermaid">
+graph TD
+    A[第1章: LLMとは何か] --> B[第2章: Transformerアーキテクチャ]
+    B --> C[第3章: LLMの実装と活用]
+    C --> D[第4章: LLMの評価と改善]
+    D --> E[第5章: 実践的LLM活用]
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e8f5e9
+    style E fill:#fce4ec
+        </div>
+
+        <div class="learning-path">
+            <h4>🎯 完全マスターコース（全章推奨）</h4>
+            <p><strong>対象</strong>: LLMを体系的に学びたい方、機械学習の基礎知識がある方</p>
+            <p><strong>進め方</strong>: 第1章 → 第2章 → 第3章 → 第4章 → 第5章</p>
+            <p><strong>所要時間</strong>: 120-150分</p>
+            <p><strong>成果</strong>: LLMの理論から実装、評価、実践まで包括的に習得</p>
+        </div>
+
+        <div class="learning-path">
+            <h4>⚡ 実践優先コース</h4>
+            <p><strong>対象</strong>: すぐにLLMを使いたい方、理論より実践重視の方</p>
+            <p><strong>進め方</strong>: 第1章（概要のみ） → 第3章（実装） → 第5章（実践）</p>
+            <p><strong>所要時間</strong>: 70-80分</p>
+            <p><strong>成果</strong>: LLMの基本理解と実践的活用スキル</p>
+        </div>
+
+        <div class="learning-path">
+            <h4>🔍 理論重視コース</h4>
+            <p><strong>対象</strong>: LLMの原理を深く理解したい研究者・エンジニア</p>
+            <p><strong>進め方</strong>: 第1章 → 第2章（詳細に学習） → 第4章 → 関連論文</p>
+            <p><strong>所要時間</strong>: 90-100分 + 論文読解</p>
+            <p><strong>成果</strong>: Transformer理論の深い理解とLLM研究の基礎</p>
+        </div>
+
+        <h2 id="prerequisites">前提知識</h2>
+
+        <h3>必須知識</h3>
+        <ul>
+            <li>📌 <strong>Python基礎</strong>: 変数、関数、リスト、辞書などの基本文法</li>
+            <li>📌 <strong>機械学習の基礎</strong>: 訓練とテスト、損失関数、最適化の概念</li>
+            <li>📌 <strong>ニューラルネットワーク基礎</strong>: 多層パーセプトロン、活性化関数</li>
+        </ul>
+
+        <h3>推奨知識（あると理解が深まる）</h3>
+        <ul>
+            <li>💡 自然言語処理(NLP)の基礎概念</li>
+            <li>💡 深層学習フレームワーク（PyTorch、TensorFlow）の基本</li>
+            <li>💡 線形代数（行列演算、内積）の基礎</li>
+        </ul>
+
+        <h3>推奨学習リソース（前提知識が不足している場合）</h3>
+        <ul>
+            <li>→ <a href="../ml-introduction/index.html">機械学習入門シリーズ</a> - Python・NumPy・Pandas基礎</li>
+            <li>→ <a href="../neural-networks-introduction/index.html">ニューラルネットワーク入門</a> - NN基礎とPyTorch</li>
+            <li>→ <a href="../nlp-introduction/index.html">自然言語処理入門</a> - NLPの基本概念</li>
+        </ul>
+
+        <h2 id="chapters">各章の詳細</h2>
+
+        <div class="chapter-grid">
+            <div class="chapter-card ch1">
+                <h3><a href="./chapter-1.html">第1章：LLMとは何か</a></h3>
+                <div class="chapter-meta">
+                    📖 読了時間: 25-30分 | 💻 コード例: 5個 | 📝 演習: 3問
+                </div>
+                <h4>学習内容</h4>
+                <ul>
+                    <li>LLMの定義と特徴</li>
+                    <li>LLMの歴史（BERT、GPT、T5からChatGPTまで）</li>
+                    <li>代表的なLLM（GPT-4、Claude、LLaMA、Gemini）</li>
+                    <li>Transformerアーキテクチャの基礎</li>
+                    <li>トークン化の仕組み（BPE、WordPiece）</li>
+                    <li>LLMの活用事例と限界</li>
+                </ul>
+                <p><strong><a href="./chapter-1.html">第1章を読む →</a></strong></p>
+            </div>
+
+            <div class="chapter-card ch2 coming-soon">
+                <h3>第2章：Transformerアーキテクチャ <span class="coming-soon-badge">準備中</span></h3>
+                <div class="chapter-meta">
+                    📖 読了時間: 30-35分 | 💻 コード例: 8個 | 📝 演習: 4問
+                </div>
+                <h4>学習内容（予定）</h4>
+                <ul>
+                    <li>Self-Attention機構の詳細</li>
+                    <li>Multi-Head Attentionの仕組み</li>
+                    <li>位置エンコーディング（Positional Encoding）</li>
+                    <li>Feed-Forward Network層</li>
+                    <li>Layer Normalizationと残差接続</li>
+                    <li>Encoder-DecoderとDecoder-Onlyモデル</li>
+                </ul>
+            </div>
+
+            <div class="chapter-card ch3 coming-soon">
+                <h3>第3章：LLMの実装と活用 <span class="coming-soon-badge">準備中</span></h3>
+                <div class="chapter-meta">
+                    📖 読了時間: 30-35分 | 💻 コード例: 10個 | 📝 演習: 5問
+                </div>
+                <h4>学習内容（予定）</h4>
+                <ul>
+                    <li>Hugging Face Transformersの基本</li>
+                    <li>事前学習済みモデルの読み込みと推論</li>
+                    <li>プロンプトエンジニアリング技法</li>
+                    <li>Few-Shot Learning、Zero-Shot Learning</li>
+                    <li>テキスト生成のパラメータ調整（Temperature、Top-k等）</li>
+                    <li>ファインチューニングの基礎</li>
+                </ul>
+            </div>
+
+            <div class="chapter-card ch4 coming-soon">
+                <h3>第4章：LLMの評価と改善 <span class="coming-soon-badge">準備中</span></h3>
+                <div class="chapter-meta">
+                    📖 読了時間: 25-30分 | 💻 コード例: 6個 | 📝 演習: 4問
+                </div>
+                <h4>学習内容（予定）</h4>
+                <ul>
+                    <li>LLMの評価指標（BLEU、ROUGE、Perplexity）</li>
+                    <li>ヒューマン評価とベンチマーク</li>
+                    <li>バイアスと公平性の問題</li>
+                    <li>ハルシネーション（幻覚）への対策</li>
+                    <li>RLHF（人間フィードバックからの強化学習）</li>
+                    <li>モデル圧縮と効率化</li>
+                </ul>
+            </div>
+
+            <div class="chapter-card ch5 coming-soon">
+                <h3>第5章：実践的LLM活用 <span class="coming-soon-badge">準備中</span></h3>
+                <div class="chapter-meta">
+                    📖 読了時間: 30-35分 | 💻 コード例: 8個 | 📝 演習: 5問
+                </div>
+                <h4>学習内容（予定）</h4>
+                <ul>
+                    <li>RAG（Retrieval-Augmented Generation）の実装</li>
+                    <li>LangChainを使ったLLMアプリケーション</li>
+                    <li>ベクトルデータベース（Pinecone、Chroma）</li>
+                    <li>エージェント型AIの構築</li>
+                    <li>プロダクション環境への展開</li>
+                    <li>コスト最適化とセキュリティ</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2 id="faq">よくある質問（FAQ）</h2>
+
+        <div class="faq">
+            <h4>Q1: 機械学習の知識がなくてもLLMを学べますか？</h4>
+            <p><strong>A:</strong> 基本的な機械学習の知識（訓練、テスト、損失関数など）があることが推奨されます。もし知識が不足している場合は、先に「<a href="../ml-introduction/index.html">機械学習入門シリーズ</a>」や「<a href="../neural-networks-introduction/index.html">ニューラルネットワーク入門</a>」を学習することをお勧めします。</p>
+        </div>
+
+        <div class="faq">
+            <h4>Q2: ChatGPTとGPT-4の違いは何ですか？</h4>
+            <p><strong>A:</strong> ChatGPTはアプリケーション名で、その背後で動作するモデルがGPT-3.5やGPT-4です。GPT-4はGPT-3.5より大規模で高性能なモデルで、より複雑な推論や長文理解が可能です。第1章で詳しく解説します。</p>
+        </div>
+
+        <div class="faq">
+            <h4>Q3: コードを実行するには何が必要ですか？</h4>
+            <p><strong>A:</strong> Python 3.8以上、transformers、torch、numpy、pandas等のライブラリが必要です。Google Colabを使えば環境構築不要で、無料のGPUも利用できます。各章でセットアップ方法を説明します。</p>
+        </div>
+
+        <div class="faq">
+            <h4>Q4: LLMを動かすには高性能なGPUが必要ですか？</h4>
+            <p><strong>A:</strong> 推論（既存モデルの利用）には小型モデルならCPUでも可能です。大規模モデルの利用やファインチューニングにはGPUが推奨されますが、Google ColabやHugging Face Inference APIを使えば無料で試せます。</p>
+        </div>
+
+        <div class="faq">
+            <h4>Q5: このシリーズ終了後はどうすればいいですか？</h4>
+            <p><strong>A:</strong> 「Transformer詳細」「ファインチューニング実践」「RAG実装」など、より専門的なシリーズに進むことができます。また、実際のプロジェクトでLLMを活用することで理解が深まります。</p>
+        </div>
+
+        <div class="faq">
+            <h4>Q6: LLMの商用利用に制限はありますか？</h4>
+            <p><strong>A:</strong> モデルごとにライセンスが異なります。GPT-4はOpenAI APIの利用規約に従う必要があり、LLaMAは研究用途に制限がありましたが、LLaMA 2以降は商用利用も可能です。各章で詳しく説明します。</p>
+        </div>
+
+        <hr>
+
+        <h2 id="start">さあ、始めましょう！</h2>
+        <p>準備はできましたか？ 第1章から始めて、大規模言語モデルの世界を探検しましょう！</p>
+
+        <div class="nav-buttons">
+            <a href="../index.html" class="nav-button">← 機械学習トップ</a>
+            <a href="./chapter-1.html" class="nav-button">第1章: LLMとは何か →</a>
+        </div>
+
+        <hr>
+
+        <p><strong>更新履歴</strong></p>
+        <ul>
+            <li><strong>2025-12-01</strong>: v1.0 初版公開（第1章のみ）</li>
+        </ul>
+
+        <hr>
+
+        <p><strong>あなたのLLM学習の旅はここから始まります！</strong></p>
+
+    </main>
+
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。</li>
+            <li>本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。</li>
+            <li>外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。</li>
+            <li>本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。</li>
+            <li>本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。</li>
+            <li>本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+            <p>Licensed under CC BY 4.0</p>
+        </div>
+    </footer>
+</body>
+</html>

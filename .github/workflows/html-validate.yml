@@ -1,0 +1,308 @@
+name: HTML Validation
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'knowledge/**/*.html'
+      - '.github/workflows/html-validate.yml'
+  pull_request:
+    paths:
+      - 'knowledge/**/*.html'
+      - '.github/workflows/html-validate.yml'
+  workflow_dispatch:
+
+jobs:
+  validate-html-en:
+    name: Validate HTML (English)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install html-validate
+        run: npm install -g html-validate
+
+      - name: Create html-validate configuration
+        run: |
+          cat > .htmlvalidate.json << 'EOF'
+          {
+            "extends": ["html-validate:recommended"],
+            "rules": {
+              "void-style": "off",
+              "no-trailing-whitespace": "off",
+              "attr-quotes": ["error", { "style": "double", "unquoted": false }],
+              "no-inline-style": "off",
+              "require-sri": "off",
+              "no-utf8-bom": "error",
+              "doctype-html": "error",
+              "element-required-attributes": "error",
+              "no-missing-references": "warn"
+            },
+            "elements": [
+              "html5"
+            ]
+          }
+          EOF
+
+      - name: Find HTML files (English)
+        id: find-html-en
+        run: |
+          echo "Finding HTML files in knowledge/en..."
+          find knowledge/en -name "*.html" -type f > html_files_en.txt
+          FILE_COUNT=$(wc -l < html_files_en.txt)
+          echo "Found $FILE_COUNT HTML files"
+          echo "file_count=$FILE_COUNT" >> $GITHUB_OUTPUT
+
+          # Select sample files for validation (first 10 index and chapter files)
+          echo "Selecting sample files for validation..."
+          grep -E "(index\.html|chapter-[0-9]+\.html)" html_files_en.txt | head -n 10 > sample_files_en.txt || true
+          SAMPLE_COUNT=$(wc -l < sample_files_en.txt)
+          echo "Selected $SAMPLE_COUNT sample files"
+          echo "sample_count=$SAMPLE_COUNT" >> $GITHUB_OUTPUT
+
+      - name: Validate HTML files (English)
+        id: validate-en
+        run: |
+          echo "=== HTML Validation (English) ==="
+
+          if [ ! -s sample_files_en.txt ]; then
+            echo "No HTML files to validate"
+            exit 0
+          fi
+
+          echo "Validating sample files..."
+          cat sample_files_en.txt
+
+          # Run validation
+          VALIDATION_FAILED=0
+          while IFS= read -r file; do
+            echo ""
+            echo "Validating: $file"
+            if html-validate "$file"; then
+              echo "✓ Valid"
+            else
+              echo "✗ Validation errors found"
+              VALIDATION_FAILED=1
+            fi
+          done < sample_files_en.txt
+
+          # Summary
+          echo ""
+          echo "=== Validation Summary (English) ==="
+          echo "Total files in knowledge base: ${{ steps.find-html-en.outputs.file_count }}"
+          echo "Sample files validated: ${{ steps.find-html-en.outputs.sample_count }}"
+
+          if [ $VALIDATION_FAILED -eq 1 ]; then
+            echo "Status: FAILED - Some files have validation errors"
+            exit 1
+          else
+            echo "Status: PASSED - All sampled files are valid"
+            exit 0
+          fi
+        continue-on-error: true
+
+      - name: Create validation report (English)
+        if: always()
+        run: |
+          {
+            echo "HTML Validation Report (English)"
+            echo "Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+            echo "=================================="
+            echo ""
+            echo "Total HTML files: ${{ steps.find-html-en.outputs.file_count }}"
+            echo "Sample files validated: ${{ steps.find-html-en.outputs.sample_count }}"
+            echo ""
+            echo "Sample files:"
+            cat sample_files_en.txt
+          } > html_validation_en_report.txt
+
+      - name: Upload English validation report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: html-validation-en-report
+          path: html_validation_en_report.txt
+          retention-days: 30
+
+      - name: Check validation result (English)
+        if: steps.validate-en.outcome == 'failure'
+        run: |
+          echo "HTML validation failed for English content"
+          echo "Please check the workflow logs for details"
+          exit 1
+
+  validate-html-jp:
+    name: Validate HTML (Japanese)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install html-validate
+        run: npm install -g html-validate
+
+      - name: Create html-validate configuration
+        run: |
+          cat > .htmlvalidate.json << 'EOF'
+          {
+            "extends": ["html-validate:recommended"],
+            "rules": {
+              "void-style": "off",
+              "no-trailing-whitespace": "off",
+              "attr-quotes": ["error", { "style": "double", "unquoted": false }],
+              "no-inline-style": "off",
+              "require-sri": "off",
+              "no-utf8-bom": "error",
+              "doctype-html": "error",
+              "element-required-attributes": "error",
+              "no-missing-references": "warn"
+            },
+            "elements": [
+              "html5"
+            ]
+          }
+          EOF
+
+      - name: Find HTML files (Japanese)
+        id: find-html-jp
+        run: |
+          echo "Finding HTML files in knowledge/jp..."
+          find knowledge/jp -name "*.html" -type f > html_files_jp.txt || true
+          FILE_COUNT=$(wc -l < html_files_jp.txt)
+          echo "Found $FILE_COUNT HTML files"
+          echo "file_count=$FILE_COUNT" >> $GITHUB_OUTPUT
+
+          # Select sample files for validation (first 10 index and chapter files)
+          echo "Selecting sample files for validation..."
+          grep -E "(index\.html|chapter-[0-9]+\.html)" html_files_jp.txt | head -n 10 > sample_files_jp.txt || true
+          SAMPLE_COUNT=$(wc -l < sample_files_jp.txt)
+          echo "Selected $SAMPLE_COUNT sample files"
+          echo "sample_count=$SAMPLE_COUNT" >> $GITHUB_OUTPUT
+
+      - name: Validate HTML files (Japanese)
+        id: validate-jp
+        run: |
+          echo "=== HTML Validation (Japanese) ==="
+
+          if [ ! -s sample_files_jp.txt ]; then
+            echo "No HTML files to validate"
+            exit 0
+          fi
+
+          echo "Validating sample files..."
+          cat sample_files_jp.txt
+
+          # Run validation
+          VALIDATION_FAILED=0
+          while IFS= read -r file; do
+            echo ""
+            echo "Validating: $file"
+            if html-validate "$file"; then
+              echo "✓ Valid"
+            else
+              echo "✗ Validation errors found"
+              VALIDATION_FAILED=1
+            fi
+          done < sample_files_jp.txt
+
+          # Summary
+          echo ""
+          echo "=== Validation Summary (Japanese) ==="
+          echo "Total files in knowledge base: ${{ steps.find-html-jp.outputs.file_count }}"
+          echo "Sample files validated: ${{ steps.find-html-jp.outputs.sample_count }}"
+
+          if [ $VALIDATION_FAILED -eq 1 ]; then
+            echo "Status: FAILED - Some files have validation errors"
+            exit 1
+          else
+            echo "Status: PASSED - All sampled files are valid"
+            exit 0
+          fi
+        continue-on-error: true
+
+      - name: Create validation report (Japanese)
+        if: always()
+        run: |
+          {
+            echo "HTML Validation Report (Japanese)"
+            echo "Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+            echo "=================================="
+            echo ""
+            echo "Total HTML files: ${{ steps.find-html-jp.outputs.file_count }}"
+            echo "Sample files validated: ${{ steps.find-html-jp.outputs.sample_count }}"
+            echo ""
+            echo "Sample files:"
+            cat sample_files_jp.txt
+          } > html_validation_jp_report.txt
+
+      - name: Upload Japanese validation report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: html-validation-jp-report
+          path: html_validation_jp_report.txt
+          retention-days: 30
+
+      - name: Check validation result (Japanese)
+        if: steps.validate-jp.outcome == 'failure'
+        run: |
+          echo "HTML validation failed for Japanese content"
+          echo "Please check the workflow logs for details"
+          exit 1
+
+  summary:
+    name: Validation Summary
+    runs-on: ubuntu-latest
+    needs: [validate-html-en, validate-html-jp]
+    if: always()
+
+    steps:
+      - name: Check overall status
+        run: |
+          echo "=== HTML Validation Complete ==="
+          echo "English: ${{ needs.validate-html-en.result }}"
+          echo "Japanese: ${{ needs.validate-html-jp.result }}"
+
+          if [ "${{ needs.validate-html-en.result }}" != "success" ] || \
+             [ "${{ needs.validate-html-jp.result }}" != "success" ]; then
+            echo ""
+            echo "Some validations failed. Please review the artifacts and logs."
+            exit 1
+          else
+            echo ""
+            echo "All HTML validations passed successfully"
+            exit 0
+          fi
