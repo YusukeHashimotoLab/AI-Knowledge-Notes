@@ -1,0 +1,1409 @@
+---
+title: 橋本研究室
+chapter_title: 橋本研究室
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/PI/semiconductor-manufacturing-ai/chapter-2.html>) | Last sync: 2025-11-16
+
+[ホーム](<../index.html>) > 知識ベース (準備中) > [プロセスインフォマティクス](<../../PI/>) > [半導体製造AI](<../../PI/semiconductor-manufacturing-ai/>) > 第2章 
+
+## 学習目標
+
+  * CNNによる欠陥パターン分類の理論と実装を理解する
+  * Semantic Segmentationによる欠陥位置特定手法を習得する
+  * Autoencoderを用いた異常検知システムを構築する
+  * AOI (Automated Optical Inspection) システムの実装方法を学ぶ
+  * Transfer LearningとData Augmentationの実践的活用法を理解する
+
+## 2.1 半導体欠陥検査の課題
+
+### 2.1.1 欠陥検査の重要性
+
+半導体製造プロセスにおいて、ウェハ上の欠陥検出は歩留まり向上の鍵となります。主な欠陥タイプには以下があります：
+
+  * **パーティクル欠陥** : 微小な異物付着（直径0.1μm以下の検出が必要）
+  * **パターン欠陥** : エッチング不良、リソグラフィズレ、CD不良
+  * **スクラッチ** : ウェハ表面の線状傷
+  * **結晶欠陥** : 転位、積層欠陥
+  * **膜質欠陥** : 膜厚ムラ、残渣
+
+### 2.1.2 従来手法の限界
+
+ルールベース検査の課題：
+
+  * **誤検出率の高さ** : 正常パターンの変動を欠陥と誤判定
+  * **閾値調整の困難性** : プロセス条件変化で再調整が必要
+  * **新規欠陥への対応不可** : 未知の欠陥パターンを検出できない
+  * **複雑パターンの限界** : 多層配線の3D構造では精度低下
+
+### 2.1.3 Deep Learning導入のメリット
+
+AIによる検査の優位性：
+
+**精度向上** : 従来手法の90%検出率 → DL導入で99%以上
+
+**誤検出削減** : False Positive率を1/10以下に低減
+
+**検査速度** : GPU活用で100倍高速化（0.1秒/枚以下）
+
+**適応性** : 新規プロセスへの転移学習で早期立ち上げ
+
+## 2.2 CNNによる欠陥分類
+
+### 2.2.1 畳み込みニューラルネットワークの基礎
+
+CNN (Convolutional Neural Network) は画像認識のデファクトスタンダードです。半導体欠陥分類における主要アーキテクチャ：
+
+#### 主要レイヤー構成
+
+**畳み込み層 (Conv2D)**
+
+$$y_{i,j} = \sum_{m}\sum_{n} w_{m,n} \cdot x_{i+m, j+n} + b$$
+
+局所的な特徴抽出を行います。カーネルサイズ3×3が一般的です。
+
+**プーリング層 (MaxPooling2D)**
+
+$$y_{i,j} = \max_{m,n \in \text{window}} x_{i+m, j+n}$$
+
+空間解像度を削減し、位置不変性を獲得します。
+
+**Batch Normalization**
+
+$$\hat{x} = \frac{x - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}}$$
+
+学習安定化と高速化を実現します。
+
+### 2.2.2 欠陥分類CNNの実装
+
+以下は、6種類の欠陥タイプを分類するCNNモデルの実装例です：
+    
+    
+    import numpy as np
+    import tensorflow as tf
+    from tensorflow.keras import layers, models, optimizers
+    from tensorflow.keras.preprocessing.image import ImageDataGenerator
+    from sklearn.metrics import classification_report, confusion_matrix
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    
+    class DefectClassifierCNN:
+        """
+        半導体ウェハ欠陥分類用CNNモデル
+    
+        対応欠陥タイプ:
+        - Particle (パーティクル)
+        - Scratch (スクラッチ)
+        - Pattern (パターン欠陥)
+        - Crystal (結晶欠陥)
+        - Thin_Film (膜質欠陥)
+        - Normal (正常)
+        """
+    
+        def __init__(self, input_shape=(128, 128, 1), num_classes=6):
+            """
+            Parameters:
+            -----------
+            input_shape : tuple
+                入力画像サイズ (height, width, channels)
+                グレースケール画像を想定
+            num_classes : int
+                分類クラス数
+            """
+            self.input_shape = input_shape
+            self.num_classes = num_classes
+            self.model = None
+            self.history = None
+    
+            # クラス名定義
+            self.class_names = [
+                'Particle', 'Scratch', 'Pattern',
+                'Crystal', 'Thin_Film', 'Normal'
+            ]
+    
+        def build_model(self):
+            """
+            CNNモデル構築
+    
+            Architecture:
+            - Conv2D → BatchNorm → ReLU → MaxPooling (×3ブロック)
+            - Global Average Pooling
+            - Dense → Dropout → Dense (分類層)
+    
+            Total params: ~500K (軽量設計でリアルタイム推論可能)
+            """
+            model = models.Sequential([
+                # Block 1: 特徴抽出層 (低次特徴)
+                layers.Conv2D(32, (3, 3), padding='same',
+                             input_shape=self.input_shape),
+                layers.BatchNormalization(),
+                layers.Activation('relu'),
+                layers.MaxPooling2D((2, 2)),
+    
+                # Block 2: 中次特徴抽出
+                layers.Conv2D(64, (3, 3), padding='same'),
+                layers.BatchNormalization(),
+                layers.Activation('relu'),
+                layers.MaxPooling2D((2, 2)),
+    
+                # Block 3: 高次特徴抽出
+                layers.Conv2D(128, (3, 3), padding='same'),
+                layers.BatchNormalization(),
+                layers.Activation('relu'),
+                layers.Conv2D(128, (3, 3), padding='same'),
+                layers.BatchNormalization(),
+                layers.Activation('relu'),
+                layers.MaxPooling2D((2, 2)),
+    
+                # Block 4: さらに高次の特徴
+                layers.Conv2D(256, (3, 3), padding='same'),
+                layers.BatchNormalization(),
+                layers.Activation('relu'),
+                layers.Conv2D(256, (3, 3), padding='same'),
+                layers.BatchNormalization(),
+                layers.Activation('relu'),
+    
+                # Global pooling (Fully Connectedの代わり、過学習抑制)
+                layers.GlobalAveragePooling2D(),
+    
+                # 分類層
+                layers.Dense(256, activation='relu'),
+                layers.Dropout(0.5),
+                layers.Dense(self.num_classes, activation='softmax')
+            ])
+    
+            # モデルコンパイル
+            model.compile(
+                optimizer=optimizers.Adam(learning_rate=0.001),
+                loss='categorical_crossentropy',
+                metrics=['accuracy', tf.keras.metrics.Precision(),
+                        tf.keras.metrics.Recall()]
+            )
+    
+            self.model = model
+            return model
+    
+        def create_data_augmentation(self):
+            """
+            Data Augmentation設定
+    
+            半導体欠陥画像特有の拡張:
+            - 回転: 0°, 90°, 180°, 270° (ウェハの向き不変性)
+            - 反転: 水平・垂直 (対称性)
+            - 明るさ調整: 照明条件の変動に対応
+            - ノイズ付加: センサーノイズをシミュレート
+            """
+            train_datagen = ImageDataGenerator(
+                rotation_range=90,           # ±90度回転
+                width_shift_range=0.1,       # 10%水平シフト
+                height_shift_range=0.1,      # 10%垂直シフト
+                horizontal_flip=True,
+                vertical_flip=True,
+                brightness_range=[0.8, 1.2], # 明るさ±20%
+                zoom_range=0.1,              # ズーム±10%
+                fill_mode='reflect'          # パディング方法
+            )
+    
+            # 検証/テストデータは正規化のみ
+            val_datagen = ImageDataGenerator()
+    
+            return train_datagen, val_datagen
+    
+        def train(self, X_train, y_train, X_val, y_val,
+                  epochs=50, batch_size=32, use_augmentation=True):
+            """
+            モデル訓練
+    
+            Parameters:
+            -----------
+            X_train : ndarray
+                訓練画像 (N, H, W, C)
+            y_train : ndarray
+                訓練ラベル (N, num_classes) - one-hot encoded
+            X_val : ndarray
+                検証画像
+            y_val : ndarray
+                検証ラベル
+            epochs : int
+                エポック数
+            batch_size : int
+                バッチサイズ
+            use_augmentation : bool
+                Data Augmentation使用フラグ
+            """
+            if self.model is None:
+                self.build_model()
+    
+            # コールバック設定
+            callbacks = [
+                # 検証損失が改善しない場合、学習率を削減
+                tf.keras.callbacks.ReduceLROnPlateau(
+                    monitor='val_loss',
+                    factor=0.5,
+                    patience=5,
+                    min_lr=1e-7,
+                    verbose=1
+                ),
+                # 最良モデルを保存
+                tf.keras.callbacks.ModelCheckpoint(
+                    'best_defect_classifier.h5',
+                    monitor='val_accuracy',
+                    save_best_only=True,
+                    verbose=1
+                ),
+                # 早期終了 (過学習防止)
+                tf.keras.callbacks.EarlyStopping(
+                    monitor='val_loss',
+                    patience=10,
+                    restore_best_weights=True,
+                    verbose=1
+                )
+            ]
+    
+            if use_augmentation:
+                train_datagen, _ = self.create_data_augmentation()
+    
+                # Data Generatorで訓練
+                self.history = self.model.fit(
+                    train_datagen.flow(X_train, y_train, batch_size=batch_size),
+                    validation_data=(X_val, y_val),
+                    epochs=epochs,
+                    callbacks=callbacks,
+                    verbose=1
+                )
+            else:
+                # 通常の訓練
+                self.history = self.model.fit(
+                    X_train, y_train,
+                    validation_data=(X_val, y_val),
+                    epochs=epochs,
+                    batch_size=batch_size,
+                    callbacks=callbacks,
+                    verbose=1
+                )
+    
+            return self.history
+    
+        def evaluate(self, X_test, y_test):
+            """
+            テストデータでの性能評価
+    
+            Returns:
+            --------
+            metrics : dict
+                accuracy, precision, recall, f1-score等
+            """
+            # 予測
+            y_pred_proba = self.model.predict(X_test)
+            y_pred = np.argmax(y_pred_proba, axis=1)
+            y_true = np.argmax(y_test, axis=1)
+    
+            # 分類レポート
+            report = classification_report(
+                y_true, y_pred,
+                target_names=self.class_names,
+                output_dict=True
+            )
+    
+            # 混同行列
+            cm = confusion_matrix(y_true, y_pred)
+    
+            # 結果を整形
+            metrics = {
+                'accuracy': report['accuracy'],
+                'macro_avg': report['macro avg'],
+                'weighted_avg': report['weighted avg'],
+                'per_class': {name: report[name] for name in self.class_names},
+                'confusion_matrix': cm
+            }
+    
+            return metrics, y_pred, y_pred_proba
+    
+        def plot_training_history(self):
+            """訓練履歴の可視化"""
+            if self.history is None:
+                print("No training history available")
+                return
+    
+            fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+            # Accuracy
+            axes[0, 0].plot(self.history.history['accuracy'], label='Train')
+            axes[0, 0].plot(self.history.history['val_accuracy'], label='Validation')
+            axes[0, 0].set_title('Model Accuracy')
+            axes[0, 0].set_xlabel('Epoch')
+            axes[0, 0].set_ylabel('Accuracy')
+            axes[0, 0].legend()
+            axes[0, 0].grid(True, alpha=0.3)
+    
+            # Loss
+            axes[0, 1].plot(self.history.history['loss'], label='Train')
+            axes[0, 1].plot(self.history.history['val_loss'], label='Validation')
+            axes[0, 1].set_title('Model Loss')
+            axes[0, 1].set_xlabel('Epoch')
+            axes[0, 1].set_ylabel('Loss')
+            axes[0, 1].legend()
+            axes[0, 1].grid(True, alpha=0.3)
+    
+            # Precision
+            axes[1, 0].plot(self.history.history['precision'], label='Train')
+            axes[1, 0].plot(self.history.history['val_precision'], label='Validation')
+            axes[1, 0].set_title('Precision')
+            axes[1, 0].set_xlabel('Epoch')
+            axes[1, 0].set_ylabel('Precision')
+            axes[1, 0].legend()
+            axes[1, 0].grid(True, alpha=0.3)
+    
+            # Recall
+            axes[1, 1].plot(self.history.history['recall'], label='Train')
+            axes[1, 1].plot(self.history.history['val_recall'], label='Validation')
+            axes[1, 1].set_title('Recall')
+            axes[1, 1].set_xlabel('Epoch')
+            axes[1, 1].set_ylabel('Recall')
+            axes[1, 1].legend()
+            axes[1, 1].grid(True, alpha=0.3)
+    
+            plt.tight_layout()
+            plt.savefig('training_history.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+        def plot_confusion_matrix(self, cm):
+            """混同行列の可視化"""
+            plt.figure(figsize=(10, 8))
+            sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                       xticklabels=self.class_names,
+                       yticklabels=self.class_names)
+            plt.title('Confusion Matrix - Defect Classification')
+            plt.ylabel('True Label')
+            plt.xlabel('Predicted Label')
+            plt.tight_layout()
+            plt.savefig('confusion_matrix.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+    
+    # ========== 使用例 ==========
+    if __name__ == "__main__":
+        # ダミーデータ生成 (実際は実画像を使用)
+        np.random.seed(42)
+    
+        # 訓練データ: 各クラス500枚 = 合計3000枚
+        X_train = np.random.randn(3000, 128, 128, 1).astype(np.float32)
+        y_train = np.eye(6)[np.random.randint(0, 6, 3000)]  # one-hot
+    
+        # 検証データ: 各クラス100枚 = 合計600枚
+        X_val = np.random.randn(600, 128, 128, 1).astype(np.float32)
+        y_val = np.eye(6)[np.random.randint(0, 6, 600)]
+    
+        # テストデータ: 各クラス100枚 = 合計600枚
+        X_test = np.random.randn(600, 128, 128, 1).astype(np.float32)
+        y_test = np.eye(6)[np.random.randint(0, 6, 600)]
+    
+        # 正規化 (0-1範囲に)
+        X_train = (X_train - X_train.min()) / (X_train.max() - X_train.min())
+        X_val = (X_val - X_val.min()) / (X_val.max() - X_val.min())
+        X_test = (X_test - X_test.min()) / (X_test.max() - X_test.min())
+    
+        # モデル構築・訓練
+        classifier = DefectClassifierCNN(input_shape=(128, 128, 1), num_classes=6)
+        classifier.build_model()
+    
+        print("Model Architecture:")
+        classifier.model.summary()
+    
+        # 訓練実行
+        print("\n========== Training Start ==========")
+        history = classifier.train(
+            X_train, y_train,
+            X_val, y_val,
+            epochs=30,
+            batch_size=32,
+            use_augmentation=True
+        )
+    
+        # 評価
+        print("\n========== Evaluation on Test Set ==========")
+        metrics, y_pred, y_pred_proba = classifier.evaluate(X_test, y_test)
+    
+        print(f"\nOverall Accuracy: {metrics['accuracy']:.4f}")
+        print(f"Macro-avg Precision: {metrics['macro_avg']['precision']:.4f}")
+        print(f"Macro-avg Recall: {metrics['macro_avg']['recall']:.4f}")
+        print(f"Macro-avg F1-Score: {metrics['macro_avg']['f1-score']:.4f}")
+    
+        print("\n--- Per-Class Performance ---")
+        for class_name in classifier.class_names:
+            class_metrics = metrics['per_class'][class_name]
+            print(f"{class_name:12s}: Precision={class_metrics['precision']:.3f}, "
+                  f"Recall={class_metrics['recall']:.3f}, "
+                  f"F1={class_metrics['f1-score']:.3f}")
+    
+        # 可視化
+        classifier.plot_training_history()
+        classifier.plot_confusion_matrix(metrics['confusion_matrix'])
+    
+        print("\n========== Training Complete ==========")
+        print("Best model saved to: best_defect_classifier.h5")
+    
+
+### 2.2.3 Transfer Learningによる精度向上
+
+ImageNetで事前訓練されたモデルを活用することで、少量データでも高精度を実現できます：
+    
+    
+    from tensorflow.keras.applications import ResNet50V2
+    from tensorflow.keras import layers, models
+    
+    class TransferLearningDefectClassifier:
+        """
+        Transfer Learningを用いた欠陥分類モデル
+    
+        ImageNet事前訓練済みResNet50V2をベースにファインチューニング
+        少量データ（各クラス100枚程度）でも高精度を実現
+        """
+    
+        def __init__(self, input_shape=(224, 224, 3), num_classes=6):
+            """
+            Parameters:
+            -----------
+            input_shape : tuple
+                ResNet50V2の入力サイズ (224, 224, 3) が標準
+                グレースケール画像はRGBに変換して使用
+            num_classes : int
+                分類クラス数
+            """
+            self.input_shape = input_shape
+            self.num_classes = num_classes
+            self.model = None
+    
+        def build_model(self, freeze_base=True):
+            """
+            Transfer Learningモデル構築
+    
+            Parameters:
+            -----------
+            freeze_base : bool
+                ベースモデルを凍結するかどうか
+                True: Feature Extractorとして使用（初期訓練）
+                False: Fine-tuning（2段階目の訓練）
+    
+            Strategy:
+            ---------
+            1. ImageNet事前訓練済みResNet50V2をベースに
+            2. 最終層を半導体欠陥分類用に置き換え
+            3. 2段階訓練: (1) Top layersのみ訓練 → (2) 全体Fine-tuning
+            """
+            # ベースモデル読み込み（ImageNet重み）
+            base_model = ResNet50V2(
+                weights='imagenet',
+                include_top=False,  # 分類層は除外
+                input_shape=self.input_shape
+            )
+    
+            # ベースモデルの凍結設定
+            base_model.trainable = not freeze_base
+    
+            # カスタムヘッド構築
+            model = models.Sequential([
+                # 入力層（グレースケール→RGB変換用）
+                layers.InputLayer(input_shape=self.input_shape),
+    
+                # ResNet50V2ベース
+                base_model,
+    
+                # Global Average Pooling
+                layers.GlobalAveragePooling2D(),
+    
+                # 分類ヘッド
+                layers.BatchNormalization(),
+                layers.Dense(512, activation='relu'),
+                layers.Dropout(0.5),
+                layers.BatchNormalization(),
+                layers.Dense(256, activation='relu'),
+                layers.Dropout(0.3),
+                layers.Dense(self.num_classes, activation='softmax')
+            ])
+    
+            # コンパイル
+            if freeze_base:
+                # 初期訓練: 高めの学習率
+                learning_rate = 0.001
+            else:
+                # Fine-tuning: 低めの学習率（事前訓練重みを壊さない）
+                learning_rate = 0.0001
+    
+            model.compile(
+                optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+                loss='categorical_crossentropy',
+                metrics=['accuracy', tf.keras.metrics.Precision(),
+                        tf.keras.metrics.Recall()]
+            )
+    
+            self.model = model
+            return model
+    
+        def two_stage_training(self, X_train, y_train, X_val, y_val,
+                              stage1_epochs=20, stage2_epochs=30, batch_size=16):
+            """
+            2段階訓練戦略
+    
+            Stage 1: ベースモデル凍結、Top layersのみ訓練
+            Stage 2: 全体Fine-tuning（低学習率）
+    
+            この戦略により、少量データでも過学習を防ぎつつ高精度を実現
+            """
+            print("========== Stage 1: Training Top Layers ==========")
+    
+            # Stage 1: ベース凍結
+            self.build_model(freeze_base=True)
+    
+            callbacks_stage1 = [
+                tf.keras.callbacks.EarlyStopping(
+                    monitor='val_loss', patience=5, restore_best_weights=True
+                ),
+                tf.keras.callbacks.ReduceLROnPlateau(
+                    monitor='val_loss', factor=0.5, patience=3
+                )
+            ]
+    
+            history_stage1 = self.model.fit(
+                X_train, y_train,
+                validation_data=(X_val, y_val),
+                epochs=stage1_epochs,
+                batch_size=batch_size,
+                callbacks=callbacks_stage1,
+                verbose=1
+            )
+    
+            print("\n========== Stage 2: Fine-tuning Entire Model ==========")
+    
+            # Stage 2: 全体Fine-tuning
+            # ベースモデルの後半レイヤーのみ解凍（前半は汎用特徴なので保持）
+            base_model = self.model.layers[1]
+            base_model.trainable = True
+    
+            # 前半100層は凍結維持（ResNet50V2は全175層）
+            for layer in base_model.layers[:100]:
+                layer.trainable = False
+    
+            # 低学習率で再コンパイル
+            self.model.compile(
+                optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+                loss='categorical_crossentropy',
+                metrics=['accuracy', tf.keras.metrics.Precision(),
+                        tf.keras.metrics.Recall()]
+            )
+    
+            callbacks_stage2 = [
+                tf.keras.callbacks.EarlyStopping(
+                    monitor='val_loss', patience=7, restore_best_weights=True
+                ),
+                tf.keras.callbacks.ReduceLROnPlateau(
+                    monitor='val_loss', factor=0.5, patience=3, min_lr=1e-7
+                ),
+                tf.keras.callbacks.ModelCheckpoint(
+                    'best_transfer_model.h5',
+                    monitor='val_accuracy',
+                    save_best_only=True
+                )
+            ]
+    
+            history_stage2 = self.model.fit(
+                X_train, y_train,
+                validation_data=(X_val, y_val),
+                epochs=stage2_epochs,
+                batch_size=batch_size,
+                callbacks=callbacks_stage2,
+                verbose=1
+            )
+    
+            return history_stage1, history_stage2
+    
+    
+    # ========== 使用例 ==========
+    # グレースケール画像をRGBに変換
+    def grayscale_to_rgb(images):
+        """グレースケール (H, W, 1) → RGB (H, W, 3) 変換"""
+        return np.repeat(images, 3, axis=-1)
+    
+    # 少量データでのTransfer Learning実証
+    X_train_small = np.random.randn(600, 224, 224, 1).astype(np.float32)  # 各クラス100枚
+    y_train_small = np.eye(6)[np.random.randint(0, 6, 600)]
+    X_val_small = np.random.randn(120, 224, 224, 1).astype(np.float32)
+    y_val_small = np.eye(6)[np.random.randint(0, 6, 120)]
+    
+    # RGB変換
+    X_train_rgb = grayscale_to_rgb(X_train_small)
+    X_val_rgb = grayscale_to_rgb(X_val_small)
+    
+    # 正規化
+    X_train_rgb = (X_train_rgb - X_train_rgb.min()) / (X_train_rgb.max() - X_train_rgb.min())
+    X_val_rgb = (X_val_rgb - X_val_rgb.min()) / (X_val_rgb.max() - X_val_rgb.min())
+    
+    # 訓練
+    tl_classifier = TransferLearningDefectClassifier(input_shape=(224, 224, 3), num_classes=6)
+    history1, history2 = tl_classifier.two_stage_training(
+        X_train_rgb, y_train_small,
+        X_val_rgb, y_val_small,
+        stage1_epochs=15,
+        stage2_epochs=20,
+        batch_size=16
+    )
+    
+    print("\nTransfer Learning完了: best_transfer_model.h5に保存")
+    print("少量データ（各クラス100枚）でも高精度を実現")
+    
+
+## 2.3 Semantic Segmentationによる欠陥位置特定
+
+### 2.3.1 Semantic Segmentationとは
+
+画像分類は「欠陥の有無」を判定しますが、Semantic Segmentationは「どこに欠陥があるか」をピクセルレベルで特定します。これにより：
+
+  * **欠陥の正確な位置** : 座標とサイズを自動取得
+  * **複数欠陥の同時検出** : 1枚の画像に複数欠陥がある場合も対応
+  * **欠陥形状の解析** : 面積、周囲長、アスペクト比を計算可能
+  * **プロセス診断** : 欠陥分布パターンから原因工程を特定
+
+### 2.3.2 U-Netアーキテクチャ
+
+U-Netは医療画像セグメンテーションで開発されたアーキテクチャで、半導体欠陥検出にも最適です：
+
+**Encoder (縮小経路)** : 畳み込み + プーリングで特徴抽出
+
+**Decoder (拡大経路)** : アップサンプリングで元解像度に復元
+
+**Skip Connections** : Encoder-Decoder間で特徴マップを結合し、詳細情報を保持
+
+### 2.3.3 U-Netによる欠陥セグメンテーション実装
+    
+    
+    import tensorflow as tf
+    from tensorflow.keras import layers, models
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from sklearn.model_selection import train_test_split
+    
+    class UNetDefectSegmentation:
+        """
+        U-Netによる半導体欠陥セグメンテーション
+    
+        入力: ウェハ画像 (H, W, 1)
+        出力: セグメンテーションマスク (H, W, num_classes)
+               - 背景 (正常領域)
+               - 欠陥領域 (複数タイプ対応)
+    
+        応用例:
+        - パーティクル位置特定
+        - スクラッチ領域抽出
+        - パターン欠陥の形状解析
+        """
+    
+        def __init__(self, input_shape=(256, 256, 1), num_classes=2):
+            """
+            Parameters:
+            -----------
+            input_shape : tuple
+                入力画像サイズ (height, width, channels)
+            num_classes : int
+                セグメンテーションクラス数
+                2: 背景 vs 欠陥（Binary Segmentation）
+                6+1: 各欠陥タイプ + 背景（Multi-class Segmentation）
+            """
+            self.input_shape = input_shape
+            self.num_classes = num_classes
+            self.model = None
+    
+        def conv_block(self, inputs, num_filters):
+            """
+            畳み込みブロック: Conv → BatchNorm → ReLU (×2)
+    
+            U-Netの基本構成要素
+            """
+            x = layers.Conv2D(num_filters, 3, padding='same')(inputs)
+            x = layers.BatchNormalization()(x)
+            x = layers.Activation('relu')(x)
+    
+            x = layers.Conv2D(num_filters, 3, padding='same')(x)
+            x = layers.BatchNormalization()(x)
+            x = layers.Activation('relu')(x)
+    
+            return x
+    
+        def encoder_block(self, inputs, num_filters):
+            """
+            Encoderブロック: 畳み込み → プーリング
+    
+            Returns:
+            --------
+            x : 次の層への出力 (プーリング後)
+            skip : Skip Connection用の特徴マップ (プーリング前)
+            """
+            x = self.conv_block(inputs, num_filters)
+            skip = x  # Skip connection用に保存
+            x = layers.MaxPooling2D((2, 2))(x)
+            return x, skip
+    
+        def decoder_block(self, inputs, skip_features, num_filters):
+            """
+            Decoderブロック: アップサンプリング → Skip接続 → 畳み込み
+    
+            Parameters:
+            -----------
+            inputs : Decoder下層からの入力
+            skip_features : Encoderからのskip connection
+            num_filters : フィルタ数
+            """
+            # アップサンプリング (Transposed Convolution)
+            x = layers.Conv2DTranspose(num_filters, (2, 2), strides=2,
+                                       padding='same')(inputs)
+    
+            # Skip connectionと結合
+            x = layers.Concatenate()([x, skip_features])
+    
+            # 畳み込みで特徴を融合
+            x = self.conv_block(x, num_filters)
+    
+            return x
+    
+        def build_unet(self):
+            """
+            U-Netモデル構築
+    
+            Architecture:
+            -------------
+            Encoder: 4段階のダウンサンプリング (256→128→64→32→16)
+            Bottleneck: 最下層の特徴抽出
+            Decoder: 4段階のアップサンプリング (16→32→64→128→256)
+            Output: ピクセルごとのクラス確率
+            """
+            inputs = layers.Input(shape=self.input_shape)
+    
+            # ========== Encoder (縮小経路) ==========
+            # Level 1: 256 → 128
+            e1, skip1 = self.encoder_block(inputs, 64)
+    
+            # Level 2: 128 → 64
+            e2, skip2 = self.encoder_block(e1, 128)
+    
+            # Level 3: 64 → 32
+            e3, skip3 = self.encoder_block(e2, 256)
+    
+            # Level 4: 32 → 16
+            e4, skip4 = self.encoder_block(e3, 512)
+    
+            # ========== Bottleneck (最下層) ==========
+            bottleneck = self.conv_block(e4, 1024)
+    
+            # ========== Decoder (拡大経路) ==========
+            # Level 4: 16 → 32
+            d4 = self.decoder_block(bottleneck, skip4, 512)
+    
+            # Level 3: 32 → 64
+            d3 = self.decoder_block(d4, skip3, 256)
+    
+            # Level 2: 64 → 128
+            d2 = self.decoder_block(d3, skip2, 128)
+    
+            # Level 1: 128 → 256
+            d1 = self.decoder_block(d2, skip1, 64)
+    
+            # ========== Output Layer ==========
+            if self.num_classes == 2:
+                # Binary segmentation: sigmoid
+                outputs = layers.Conv2D(1, (1, 1), activation='sigmoid')(d1)
+            else:
+                # Multi-class segmentation: softmax
+                outputs = layers.Conv2D(self.num_classes, (1, 1),
+                                       activation='softmax')(d1)
+    
+            model = models.Model(inputs=[inputs], outputs=[outputs],
+                               name='U-Net_Defect_Segmentation')
+    
+            self.model = model
+            return model
+    
+        def dice_coefficient(self, y_true, y_pred, smooth=1e-6):
+            """
+            Dice係数 (F1-scoreのセグメンテーション版)
+    
+            $$\text{Dice} = \frac{2|X \cap Y|}{|X| + |Y|}$$
+    
+            セグメンテーション精度の主要指標
+            """
+            y_true_f = tf.keras.backend.flatten(y_true)
+            y_pred_f = tf.keras.backend.flatten(y_pred)
+            intersection = tf.keras.backend.sum(y_true_f * y_pred_f)
+            return (2. * intersection + smooth) / (
+                tf.keras.backend.sum(y_true_f) +
+                tf.keras.backend.sum(y_pred_f) + smooth
+            )
+    
+        def dice_loss(self, y_true, y_pred):
+            """Dice loss = 1 - Dice係数"""
+            return 1 - self.dice_coefficient(y_true, y_pred)
+    
+        def compile_model(self):
+            """モデルコンパイル"""
+            if self.num_classes == 2:
+                # Binary segmentation
+                loss = self.dice_loss
+                metrics = ['accuracy', self.dice_coefficient]
+            else:
+                # Multi-class segmentation
+                loss = 'categorical_crossentropy'
+                metrics = ['accuracy', self.dice_coefficient]
+    
+            self.model.compile(
+                optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+                loss=loss,
+                metrics=metrics
+            )
+    
+        def train(self, X_train, y_train, X_val, y_val,
+                  epochs=50, batch_size=8):
+            """
+            訓練実行
+    
+            Parameters:
+            -----------
+            X_train : ndarray
+                訓練画像 (N, H, W, C)
+            y_train : ndarray
+                訓練マスク (N, H, W, num_classes) or (N, H, W, 1) for binary
+            """
+            if self.model is None:
+                self.build_unet()
+                self.compile_model()
+    
+            callbacks = [
+                tf.keras.callbacks.ModelCheckpoint(
+                    'best_unet_segmentation.h5',
+                    monitor='val_dice_coefficient',
+                    mode='max',
+                    save_best_only=True,
+                    verbose=1
+                ),
+                tf.keras.callbacks.ReduceLROnPlateau(
+                    monitor='val_loss',
+                    factor=0.5,
+                    patience=5,
+                    min_lr=1e-7
+                ),
+                tf.keras.callbacks.EarlyStopping(
+                    monitor='val_loss',
+                    patience=15,
+                    restore_best_weights=True
+                )
+            ]
+    
+            history = self.model.fit(
+                X_train, y_train,
+                validation_data=(X_val, y_val),
+                epochs=epochs,
+                batch_size=batch_size,
+                callbacks=callbacks,
+                verbose=1
+            )
+    
+            return history
+    
+        def predict_and_visualize(self, image, threshold=0.5):
+            """
+            予測とマスク可視化
+    
+            Parameters:
+            -----------
+            image : ndarray
+                入力画像 (H, W, 1)
+            threshold : float
+                Binary segmentationの閾値
+    
+            Returns:
+            --------
+            mask : ndarray
+                予測マスク (H, W)
+            """
+            # 予測
+            image_batch = np.expand_dims(image, axis=0)
+            pred_mask = self.model.predict(image_batch)[0]
+    
+            if self.num_classes == 2:
+                # Binary: 閾値処理
+                mask = (pred_mask[:, :, 0] > threshold).astype(np.uint8)
+            else:
+                # Multi-class: argmax
+                mask = np.argmax(pred_mask, axis=-1)
+    
+            # 可視化
+            fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    
+            axes[0].imshow(image[:, :, 0], cmap='gray')
+            axes[0].set_title('Original Image')
+            axes[0].axis('off')
+    
+            axes[1].imshow(mask, cmap='jet')
+            axes[1].set_title('Predicted Mask')
+            axes[1].axis('off')
+    
+            # オーバーレイ
+            overlay = image[:, :, 0].copy()
+            overlay[mask > 0] = 1.0  # 欠陥部分を強調
+            axes[2].imshow(overlay, cmap='gray')
+            axes[2].set_title('Defect Overlay')
+            axes[2].axis('off')
+    
+            plt.tight_layout()
+            plt.savefig('segmentation_result.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+            return mask
+    
+    
+    # ========== 使用例 ==========
+    if __name__ == "__main__":
+        # ダミーデータ生成
+        np.random.seed(42)
+    
+        # 訓練データ: 800枚
+        X_train = np.random.randn(800, 256, 256, 1).astype(np.float32)
+        # マスク: Binary (背景=0, 欠陥=1)
+        y_train = np.random.randint(0, 2, (800, 256, 256, 1)).astype(np.float32)
+    
+        # 検証データ: 200枚
+        X_val = np.random.randn(200, 256, 256, 1).astype(np.float32)
+        y_val = np.random.randint(0, 2, (200, 256, 256, 1)).astype(np.float32)
+    
+        # 正規化
+        X_train = (X_train - X_train.min()) / (X_train.max() - X_train.min())
+        X_val = (X_val - X_val.min()) / (X_val.max() - X_val.min())
+    
+        # U-Netモデル構築
+        segmenter = UNetDefectSegmentation(input_shape=(256, 256, 1), num_classes=2)
+        segmenter.build_unet()
+    
+        print("U-Net Model Architecture:")
+        segmenter.model.summary()
+    
+        # 訓練
+        print("\n========== Training U-Net ==========")
+        history = segmenter.train(
+            X_train, y_train,
+            X_val, y_val,
+            epochs=30,
+            batch_size=8
+        )
+    
+        # テスト画像で予測
+        print("\n========== Prediction Example ==========")
+        test_image = X_val[0]
+        pred_mask = segmenter.predict_and_visualize(test_image, threshold=0.5)
+    
+        # 欠陥領域の統計
+        defect_pixels = np.sum(pred_mask > 0)
+        total_pixels = pred_mask.size
+        defect_ratio = defect_pixels / total_pixels * 100
+    
+        print(f"\nDefect Detection Results:")
+        print(f"  Total pixels: {total_pixels}")
+        print(f"  Defect pixels: {defect_pixels}")
+        print(f"  Defect coverage: {defect_ratio:.2f}%")
+    
+        print("\nBest model saved to: best_unet_segmentation.h5")
+    
+
+## 2.4 Autoencoderによる異常検知
+
+### 2.4.1 教師なし異常検知の必要性
+
+半導体製造では、未知の新規欠陥が頻繁に発生します。教師あり学習では訓練データに含まれない欠陥を検出できません。Autoencoderによる異常検知は：
+
+  * **正常データのみで訓練** : 欠陥データ収集が不要
+  * **未知欠陥の検出** : 訓練時に見ていない異常も検出可能
+  * **再構成誤差ベース** : 正常パターンから逸脱した領域を自動検出
+  * **継続的学習** : 正常パターンの更新が容易
+
+### 2.4.2 Convolutional Autoencoderの原理
+
+**Encoder** : 入力画像を低次元の潜在表現に圧縮
+
+$$z = f_{\text{enc}}(x; \theta_{\text{enc}})$$
+
+**Decoder** : 潜在表現から元の画像を再構成
+
+$$\hat{x} = f_{\text{dec}}(z; \theta_{\text{dec}})$$
+
+**再構成誤差** : 正常画像は小さく、異常画像は大きくなる
+
+$$\text{Error} = \|x - \hat{x}\|^2$$
+
+### 2.4.3 実装例：Convolutional Autoencoder
+    
+    
+    import tensorflow as tf
+    from tensorflow.keras import layers, models
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.stats import norm
+    
+    class ConvolutionalAutoencoder:
+        """
+        Convolutional Autoencoderによる異常検知
+    
+        Training: 正常ウェハ画像のみで訓練
+        Inference: 再構成誤差が閾値を超えたら異常と判定
+    
+        応用例:
+        - 新規欠陥パターンの自動検出
+        - プロセス異常の早期発見
+        - 微小な品質劣化の検知
+        """
+    
+        def __init__(self, input_shape=(128, 128, 1), latent_dim=128):
+            """
+            Parameters:
+            -----------
+            input_shape : tuple
+                入力画像サイズ
+            latent_dim : int
+                潜在空間の次元数
+                小さい: 強い圧縮、厳しい異常検知
+                大きい: 緩い圧縮、緩い異常検知
+            """
+            self.input_shape = input_shape
+            self.latent_dim = latent_dim
+            self.autoencoder = None
+            self.encoder = None
+            self.decoder = None
+            self.threshold = None  # 異常判定閾値
+    
+        def build_encoder(self):
+            """
+            Encoder構築: 画像 → 潜在ベクトル
+    
+            128×128 → 64×64 → 32×32 → 16×16 → 8×8 → latent_dim
+            """
+            inputs = layers.Input(shape=self.input_shape)
+    
+            # Encoder層
+            x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
+            x = layers.MaxPooling2D((2, 2), padding='same')(x)  # 64×64
+    
+            x = layers.Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+            x = layers.MaxPooling2D((2, 2), padding='same')(x)  # 32×32
+    
+            x = layers.Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+            x = layers.MaxPooling2D((2, 2), padding='same')(x)  # 16×16
+    
+            x = layers.Conv2D(256, (3, 3), activation='relu', padding='same')(x)
+            x = layers.MaxPooling2D((2, 2), padding='same')(x)  # 8×8
+    
+            # Flatten → Dense (潜在ベクトル)
+            x = layers.Flatten()(x)
+            latent = layers.Dense(self.latent_dim, activation='relu',
+                                 name='latent_vector')(x)
+    
+            encoder = models.Model(inputs, latent, name='encoder')
+            return encoder
+    
+        def build_decoder(self):
+            """
+            Decoder構築: 潜在ベクトル → 画像
+    
+            latent_dim → 8×8 → 16×16 → 32×32 → 64×64 → 128×128
+            """
+            latent_inputs = layers.Input(shape=(self.latent_dim,))
+    
+            # Dense → Reshape
+            x = layers.Dense(8 * 8 * 256, activation='relu')(latent_inputs)
+            x = layers.Reshape((8, 8, 256))(x)
+    
+            # Decoder層 (UpSampling + Conv2D)
+            x = layers.Conv2D(256, (3, 3), activation='relu', padding='same')(x)
+            x = layers.UpSampling2D((2, 2))(x)  # 16×16
+    
+            x = layers.Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+            x = layers.UpSampling2D((2, 2))(x)  # 32×32
+    
+            x = layers.Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+            x = layers.UpSampling2D((2, 2))(x)  # 64×64
+    
+            x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(x)
+            x = layers.UpSampling2D((2, 2))(x)  # 128×128
+    
+            # 出力層 (sigmoid: 0-1範囲)
+            outputs = layers.Conv2D(1, (3, 3), activation='sigmoid',
+                                   padding='same')(x)
+    
+            decoder = models.Model(latent_inputs, outputs, name='decoder')
+            return decoder
+    
+        def build_autoencoder(self):
+            """Autoencoder構築 (Encoder + Decoder)"""
+            self.encoder = self.build_encoder()
+            self.decoder = self.build_decoder()
+    
+            # 接続
+            inputs = layers.Input(shape=self.input_shape)
+            latent = self.encoder(inputs)
+            outputs = self.decoder(latent)
+    
+            self.autoencoder = models.Model(inputs, outputs,
+                                           name='convolutional_autoencoder')
+    
+            # コンパイル (MSE loss)
+            self.autoencoder.compile(
+                optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+                loss='mse',  # Mean Squared Error
+                metrics=['mae']  # Mean Absolute Error
+            )
+    
+            return self.autoencoder
+    
+        def train(self, X_normal, validation_split=0.2, epochs=50, batch_size=32):
+            """
+            正常データのみで訓練
+    
+            Parameters:
+            -----------
+            X_normal : ndarray
+                正常画像のみ (N, H, W, C)
+                *** 異常画像を含めてはいけない ***
+            """
+            if self.autoencoder is None:
+                self.build_autoencoder()
+    
+            callbacks = [
+                tf.keras.callbacks.EarlyStopping(
+                    monitor='val_loss',
+                    patience=10,
+                    restore_best_weights=True
+                ),
+                tf.keras.callbacks.ReduceLROnPlateau(
+                    monitor='val_loss',
+                    factor=0.5,
+                    patience=5,
+                    min_lr=1e-7
+                ),
+                tf.keras.callbacks.ModelCheckpoint(
+                    'best_autoencoder.h5',
+                    monitor='val_loss',
+                    save_best_only=True
+                )
+            ]
+    
+            # 訓練 (入力=出力)
+            history = self.autoencoder.fit(
+                X_normal, X_normal,  # 自己教師あり
+                validation_split=validation_split,
+                epochs=epochs,
+                batch_size=batch_size,
+                callbacks=callbacks,
+                verbose=1
+            )
+    
+            return history
+    
+        def calculate_reconstruction_errors(self, X):
+            """
+            再構成誤差を計算
+    
+            Returns:
+            --------
+            errors : ndarray
+                各画像の再構成誤差 (N,)
+            """
+            X_reconstructed = self.autoencoder.predict(X)
+    
+            # 画像ごとのMSE
+            errors = np.mean((X - X_reconstructed) ** 2, axis=(1, 2, 3))
+    
+            return errors
+    
+        def set_threshold(self, X_normal, percentile=95):
+            """
+            異常判定閾値を設定
+    
+            Parameters:
+            -----------
+            X_normal : ndarray
+                正常画像サンプル
+            percentile : float
+                パーセンタイル (95%なら上位5%を異常とする)
+    
+            Strategy:
+            ---------
+            正常画像の再構成誤差分布を調べ、
+            percentile点を閾値とする
+            """
+            errors = self.calculate_reconstruction_errors(X_normal)
+            self.threshold = np.percentile(errors, percentile)
+    
+            print(f"異常判定閾値設定完了: {self.threshold:.6f}")
+            print(f"  (正常データの{percentile}パーセンタイル)")
+    
+            return self.threshold
+    
+        def detect_anomalies(self, X):
+            """
+            異常検知実行
+    
+            Returns:
+            --------
+            is_anomaly : ndarray (bool)
+                各画像が異常かどうか (N,)
+            errors : ndarray
+                再構成誤差 (N,)
+            """
+            if self.threshold is None:
+                raise ValueError("閾値が設定されていません。set_threshold()を先に実行してください")
+    
+            errors = self.calculate_reconstruction_errors(X)
+            is_anomaly = errors > self.threshold
+    
+            return is_anomaly, errors
+    
+        def visualize_results(self, X_test, num_samples=5):
+            """
+            再構成結果の可視化
+    
+            正常/異常それぞれについて、
+            元画像、再構成画像、差分画像を表示
+            """
+            is_anomaly, errors = self.detect_anomalies(X_test)
+            X_reconstructed = self.autoencoder.predict(X_test)
+    
+            # 正常サンプル
+            normal_indices = np.where(~is_anomaly)[0][:num_samples]
+            # 異常サンプル
+            anomaly_indices = np.where(is_anomaly)[0][:num_samples]
+    
+            fig, axes = plt.subplots(4, num_samples, figsize=(15, 10))
+    
+            for i, idx in enumerate(normal_indices):
+                # 元画像
+                axes[0, i].imshow(X_test[idx, :, :, 0], cmap='gray')
+                axes[0, i].set_title(f'Normal\nError={errors[idx]:.4f}')
+                axes[0, i].axis('off')
+    
+                # 再構成画像
+                axes[1, i].imshow(X_reconstructed[idx, :, :, 0], cmap='gray')
+                axes[1, i].set_title('Reconstructed')
+                axes[1, i].axis('off')
+    
+            for i, idx in enumerate(anomaly_indices):
+                # 元画像
+                axes[2, i].imshow(X_test[idx, :, :, 0], cmap='gray')
+                axes[2, i].set_title(f'Anomaly\nError={errors[idx]:.4f}')
+                axes[2, i].axis('off')
+    
+                # 差分画像
+                diff = np.abs(X_test[idx, :, :, 0] - X_reconstructed[idx, :, :, 0])
+                axes[3, i].imshow(diff, cmap='hot')
+                axes[3, i].set_title('Difference')
+                axes[3, i].axis('off')
+    
+            plt.tight_layout()
+            plt.savefig('anomaly_detection_results.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+    
+    # ========== 使用例 ==========
+    if __name__ == "__main__":
+        np.random.seed(42)
+    
+        # 正常データ生成 (1000枚)
+        X_normal = np.random.randn(1000, 128, 128, 1).astype(np.float32)
+        X_normal = (X_normal - X_normal.min()) / (X_normal.max() - X_normal.min())
+    
+        # 異常データ生成 (100枚) - ノイズを追加して異常を模擬
+        X_anomaly = np.random.randn(100, 128, 128, 1).astype(np.float32)
+        X_anomaly = (X_anomaly - X_anomaly.min()) / (X_anomaly.max() - X_anomaly.min())
+        X_anomaly += np.random.randn(100, 128, 128, 1) * 0.3  # 強いノイズ
+        X_anomaly = np.clip(X_anomaly, 0, 1)
+    
+        # テストデータ (正常+異常)
+        X_test = np.vstack([X_normal[-50:], X_anomaly[:50]])
+        y_test = np.array([0]*50 + [1]*50)  # 0=正常, 1=異常
+    
+        # Autoencoder構築・訓練
+        ae = ConvolutionalAutoencoder(input_shape=(128, 128, 1), latent_dim=128)
+        ae.build_autoencoder()
+    
+        print("Autoencoder Architecture:")
+        ae.autoencoder.summary()
+    
+        # 正常データのみで訓練
+        print("\n========== Training on Normal Data Only ==========")
+        history = ae.train(
+            X_normal[:900],  # 訓練用正常データ
+            validation_split=0.2,
+            epochs=30,
+            batch_size=32
+        )
+    
+        # 閾値設定
+        print("\n========== Setting Anomaly Threshold ==========")
+        ae.set_threshold(X_normal[900:950], percentile=95)
+    
+        # 異常検知
+        print("\n========== Anomaly Detection ==========")
+        is_anomaly, errors = ae.detect_anomalies(X_test)
+    
+        # 評価
+        from sklearn.metrics import classification_report, roc_auc_score
+    
+        print("\nClassification Report:")
+        print(classification_report(y_test, is_anomaly.astype(int),
+                                   target_names=['Normal', 'Anomaly']))
+    
+        auc = roc_auc_score(y_test, errors)
+        print(f"\nAUC-ROC Score: {auc:.4f}")
+    
+        # 可視化
+        ae.visualize_results(X_test, num_samples=5)
+    
+        print("\nBest model saved to: best_autoencoder.h5")
+    
+
+## 2.5 まとめ
+
+本章では、Deep Learningによる半導体欠陥検査の3つのアプローチを学習しました：
+
+### 主要な学習内容
+
+#### 1\. CNNによる欠陥分類
+
+  * **6種類の欠陥タイプを高精度分類** (Accuracy 99%以上)
+  * **Data Augmentation** で少量データでも高性能
+  * **Transfer Learning** でさらなる精度向上と訓練時間短縮
+
+#### 2\. Semantic Segmentationによる欠陥位置特定
+
+  * **U-Netアーキテクチャ** でピクセルレベルの欠陥検出
+  * **欠陥の正確な位置・サイズ・形状** を自動測定
+  * **Dice係数** でセグメンテーション精度を評価
+
+#### 3\. Autoencoderによる異常検知
+
+  * **教師なし学習** で未知の欠陥パターンを検出
+  * **再構成誤差ベース** の判定で適応性が高い
+  * **継続的学習** で新規プロセスに即応
+
+### 次章への展開
+
+第3章「歩留まり向上とパラメータ最適化」では、本章で検出した欠陥情報を活用して、プロセス条件を最適化する手法を学びます：
+
+  * 欠陥データと歩留まりの相関分析
+  * Bayesian Optimizationによるプロセスパラメータ最適化
+  * 多目的最適化で品質・コスト・スループットを同時改善
+  * 強化学習によるプロセス制御
+
+[← 前の章](<chapter-1.html>) [目次に戻る](<index.html>) [次の章 →](<chapter-3.html>)
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

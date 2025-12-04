@@ -1,0 +1,392 @@
+---
+title: "Chapter 2: Fundamentals of Integration and Numerical Integration"
+chapter_title: "Chapter 2: Fundamentals of Integration and Numerical Integration"
+subtitle: Fundamentals of Integration and Numerical Integration
+---
+
+🌐 EN | [🇯🇵 JP](<../../../jp/FM/calculus-vector-analysis/chapter-2.html>) | Last sync: 2025-11-16
+
+[AI Terakoya Top](<../index.html>) > [FM Dojo](<../index.html>) > [Introduction to Calculus and Vector Analysis](<index.html>) > Chapter 2 
+
+## 2.1 Definite Integrals and Indefinite Integrals
+
+**📐 Definition: Definite Integral**  
+The definite integral of function f(x) over interval [a, b] is defined as the limit of a Riemann sum: $$\int_a^b f(x) dx = \lim_{n \to \infty} \sum_{i=1}^n f(x_i^*) \Delta x$$ Geometrically, it represents the area enclosed by the curve y = f(x) and the x-axis. 
+
+Integration is an operation to calculate "accumulated quantities". In materials science, it is used for heat calculations, in process engineering for total amount of reactants, and in machine learning for normalization constants of probability distributions. 
+
+### 💻 Code Example 1: Approximation of Definite Integral Using Riemann Sum
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def f(x):
+        """Integrand: f(x) = x^2"""
+        return x**2
+    
+    # Approximation of integral using Riemann sum
+    def riemann_sum(f, a, b, n, method='midpoint'):
+        """
+        method: 'left' (left endpoint), 'right' (right endpoint), 'midpoint' (midpoint)
+        """
+        dx = (b - a) / n
+        x = np.linspace(a, b, n+1)
+    
+        if method == 'left':
+            x_sample = x[:-1]
+        elif method == 'right':
+            x_sample = x[1:]
+        else:  # midpoint
+            x_sample = (x[:-1] + x[1:]) / 2
+    
+        return np.sum(f(x_sample) * dx)
+    
+    # Calculate ∫₀¹ x² dx = 1/3
+    a, b = 0, 1
+    exact_value = 1/3
+    
+    n_values = [4, 10, 50, 100, 500]
+    print("Integral approximation using Riemann sum:")
+    print(f"Analytical solution: ∫₀¹ x² dx = {exact_value:.10f}\n")
+    
+    for n in n_values:
+        approx = riemann_sum(f, a, b, n, 'midpoint')
+        error = abs(approx - exact_value)
+        print(f"n={n:3d}: approximation = {approx:.10f}, error = {error:.2e}")
+    
+    # Visualization: midpoint Riemann sum for n=10
+    n = 10
+    x = np.linspace(a, b, 1000)
+    dx = (b - a) / n
+    x_rect = np.linspace(a, b, n+1)
+    x_mid = (x_rect[:-1] + x_rect[1:]) / 2
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(x, f(x), 'b-', linewidth=2, label='f(x) = x²')
+    ax.fill_between(x, 0, f(x), alpha=0.2)
+    
+    # Draw rectangles
+    for i in range(n):
+        height = f(x_mid[i])
+        rect = plt.Rectangle((x_rect[i], 0), dx, height,
+                             edgecolor='red', facecolor='none', linewidth=1.5)
+        ax.add_patch(rect)
+        ax.plot([x_mid[i]], [height], 'ro', markersize=6)
+    
+    ax.set_xlabel('x', fontsize=12)
+    ax.set_ylabel('f(x)', fontsize=12)
+    ax.set_title(f'Midpoint Riemann Sum (n={n})', fontsize=14)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+
+**📐 Theorem: Fundamental Theorem of Calculus**  
+If f(x) is a continuous function and F(x) is an antiderivative (indefinite integral) of f(x), then: $$\int_a^b f(x) dx = F(b) - F(a)$$ This theorem shows that differentiation and integration are inverse operations of each other. 
+
+### 💻 Code Example 2: Symbolic Integration Using SymPy
+    
+    
+    import sympy as sp
+    
+    x = sp.Symbol('x')
+    
+    # Indefinite integrals (antiderivatives)
+    functions = [
+        x**2,
+        sp.exp(x),
+        sp.sin(x),
+        1/x,
+        x * sp.exp(x)
+    ]
+    
+    print("Examples of indefinite integrals:")
+    for func in functions:
+        integral = sp.integrate(func, x)
+        print(f"∫ {func} dx = {integral} + C")
+    
+    print("\nExamples of definite integrals:")
+    # ∫₀¹ x² dx
+    result = sp.integrate(x**2, (x, 0, 1))
+    print(f"∫₀¹ x² dx = {result}")
+    
+    # ∫₀^π sin(x) dx
+    result = sp.integrate(sp.sin(x), (x, 0, sp.pi))
+    print(f"∫₀^π sin(x) dx = {result}")
+
+## 2.2 Numerical Integration Using Trapezoidal Rule
+
+The trapezoidal rule is the most basic numerical integration method that approximates the curve with straight lines to calculate area. 
+
+### 💻 Code Example 3: Implementation of Trapezoidal Rule
+    
+    
+    def trapezoidal_rule(f, a, b, n):
+        """
+        Numerical integration using trapezoidal rule
+        Accuracy: O(h²) where h = (b-a)/n
+        """
+        x = np.linspace(a, b, n+1)
+        y = f(x)
+        h = (b - a) / n
+    
+        # Trapezoidal rule formula: h * [f(a)/2 + f(x₁) + ... + f(xₙ₋₁) + f(b)/2]
+        integral = h * (y[0]/2 + np.sum(y[1:-1]) + y[-1]/2)
+        return integral
+    
+    # Test: ∫₀^π sin(x) dx = 2
+    f = np.sin
+    a, b = 0, np.pi
+    exact = 2.0
+    
+    print("Integration using trapezoidal rule:")
+    print(f"Analytical solution: ∫₀^π sin(x) dx = {exact}\n")
+    
+    for n in [10, 50, 100, 500]:
+        approx = trapezoidal_rule(f, a, b, n)
+        error = abs(approx - exact)
+        print(f"n={n:3d}: approximation = {approx:.10f}, error = {error:.2e}")
+    
+    # Verification of convergence
+    n_values = np.array([10, 20, 50, 100, 200, 500, 1000])
+    errors = []
+    for n in n_values:
+        approx = trapezoidal_rule(f, a, b, n)
+        errors.append(abs(approx - exact))
+    
+    plt.figure(figsize=(8, 6))
+    plt.loglog(n_values, errors, 'o-', linewidth=2, markersize=8, label='Trapezoidal rule error')
+    plt.loglog(n_values, 1/n_values**2, '--', label='O(1/n²)', alpha=0.5)
+    plt.xlabel('Number of divisions n', fontsize=12)
+    plt.ylabel('Absolute error', fontsize=12)
+    plt.title('Convergence of Trapezoidal Rule', fontsize=14)
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.show()
+
+## 2.3 High-Precision Integration Using Simpson's Rule
+
+Simpson's rule approximates the curve with quadratic functions (parabolas) and is more accurate than the trapezoidal rule. 
+
+### 💻 Code Example 4: Implementation of Simpson's Rule
+    
+    
+    def simpson_rule(f, a, b, n):
+        """
+        Numerical integration using Simpson's rule
+        n must be even
+        Accuracy: O(h⁴) where h = (b-a)/n
+        """
+        if n % 2 != 0:
+            raise ValueError("n must be even for Simpson's rule")
+    
+        x = np.linspace(a, b, n+1)
+        y = f(x)
+        h = (b - a) / n
+    
+        # Simpson's rule formula
+        integral = h/3 * (y[0] + 4*np.sum(y[1:-1:2]) + 2*np.sum(y[2:-1:2]) + y[-1])
+        return integral
+    
+    # Comparison of trapezoidal rule and Simpson's rule
+    print("Trapezoidal rule vs Simpson's rule:")
+    print(f"Analytical solution: ∫₀^π sin(x) dx = {exact}\n")
+    
+    n = 100
+    trap_result = trapezoidal_rule(f, a, b, n)
+    simp_result = simpson_rule(f, a, b, n)
+    
+    print(f"n={n}:")
+    print(f"Trapezoidal rule: {trap_result:.10f}, error = {abs(trap_result - exact):.2e}")
+    print(f"Simpson's rule:   {simp_result:.10f}, error = {abs(simp_result - exact):.2e}")
+    
+    # Visualization of accuracy comparison
+    n_values = np.array([10, 20, 50, 100, 200, 500])
+    errors_trap = []
+    errors_simp = []
+    
+    for n in n_values:
+        errors_trap.append(abs(trapezoidal_rule(f, a, b, n) - exact))
+        errors_simp.append(abs(simpson_rule(f, a, b, n if n%2==0 else n+1) - exact))
+    
+    plt.figure(figsize=(10, 6))
+    plt.loglog(n_values, errors_trap, 'o-', linewidth=2, markersize=8, label='Trapezoidal rule')
+    plt.loglog(n_values, errors_simp, 's-', linewidth=2, markersize=8, label="Simpson's rule")
+    plt.loglog(n_values, 1/n_values**2, '--', label='O(1/n²)', alpha=0.5)
+    plt.loglog(n_values, 1/n_values**4, '--', label='O(1/n⁴)', alpha=0.5)
+    plt.xlabel('Number of divisions n', fontsize=12)
+    plt.ylabel('Absolute error', fontsize=12)
+    plt.title('Accuracy Comparison of Numerical Integration Methods', fontsize=14)
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.show()
+
+## 2.4 Advanced Numerical Integration with SciPy
+
+The SciPy library provides high-performance integration functions with adaptive step size adjustment and high-order quadrature methods. 
+
+### 💻 Code Example 5: SciPy Numerical Integration Functions
+    
+    
+    from scipy import integrate
+    
+    # Comparison of various integration methods
+    def test_function(x):
+        """Function with strong oscillations"""
+        return np.sin(x) * np.exp(-x/10)
+    
+    a, b = 0, 20
+    exact_value = integrate.quad(test_function, a, b, limit=1000)[0]  # High-precision reference value
+    
+    print("SciPy numerical integration:")
+    print(f"Reference value (quad): {exact_value:.10f}\n")
+    
+    # quad: adaptive Gauss-Kronrod quadrature
+    result, error = integrate.quad(test_function, a, b)
+    print(f"quad (adaptive):        {result:.10f}, estimated error = {error:.2e}")
+    
+    # fixed_quad: fixed-order Gauss-Legendre quadrature
+    result, _ = integrate.fixed_quad(test_function, a, b, n=50)
+    print(f"fixed_quad (n=50):      {result:.10f}, error = {abs(result-exact_value):.2e}")
+    
+    # romberg: Romberg integration (extension of Richardson extrapolation)
+    result = integrate.romberg(test_function, a, b, show=False)
+    print(f"romberg:                {result:.10f}, error = {abs(result-exact_value):.2e}")
+    
+    # Visualization
+    x = np.linspace(a, b, 1000)
+    y = test_function(x)
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(x, y, linewidth=2)
+    plt.fill_between(x, 0, y, alpha=0.3)
+    plt.xlabel('x', fontsize=12)
+    plt.ylabel('f(x)', fontsize=12)
+    plt.title('Integrand: f(x) = sin(x)·exp(-x/10)', fontsize=14)
+    plt.grid(True, alpha=0.3)
+    plt.axhline(y=0, color='k', linewidth=0.5)
+    plt.show()
+
+## 2.5 Application to Materials Science: Heat Capacity Calculation
+
+**🔬 Application Example:** The amount of heat Q required to heat a substance from temperature T₁ to T₂ is obtained by integrating the heat capacity C_p(T) with respect to temperature: $$Q = \int_{T_1}^{T_2} C_p(T) dT$$ 
+
+### 💻 Code Example 6: Heat Calculation
+    
+    
+    # Temperature dependence of heat capacity of copper (empirical formula)
+    def copper_heat_capacity(T):
+        """
+        Constant pressure heat capacity of copper Cp [J/(mol·K)]
+        T: Temperature [K]
+        """
+        # Shomate equation (simplified version)
+        A, B, C = 22.64, 6.28e-3, 0
+        return A + B*T + C*T**2
+    
+    # Heat required to heat from 300K to 600K
+    T1, T2 = 300, 600
+    
+    # Numerical integration
+    Q_numerical, error = integrate.quad(copper_heat_capacity, T1, T2)
+    
+    # Analytical integration (for verification)
+    def Q_analytical(T1, T2):
+        A, B = 22.64, 6.28e-3
+        return A*(T2-T1) + B/2*(T2**2-T1**2)
+    
+    Q_exact = Q_analytical(T1, T2)
+    
+    print(f"Heat to heat 1 mol of copper from {T1}K → {T2}K:")
+    print(f"Numerical integration: Q = {Q_numerical:.2f} J/mol (estimated error: {error:.2e})")
+    print(f"Analytical solution:   Q = {Q_exact:.2f} J/mol")
+    print(f"Difference:            {abs(Q_numerical - Q_exact):.2e} J/mol")
+    
+    # Visualization of Cp(T)
+    T = np.linspace(200, 800, 100)
+    Cp = copper_heat_capacity(T)
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Left plot: Temperature dependence of heat capacity
+    ax1.plot(T, Cp, linewidth=2)
+    ax1.axvspan(T1, T2, alpha=0.2, color='orange', label='Integration interval')
+    ax1.set_xlabel('Temperature T (K)', fontsize=12)
+    ax1.set_ylabel('Heat capacity Cp (J/(mol·K))', fontsize=12)
+    ax1.set_title('Heat Capacity of Copper', fontsize=14)
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Right plot: Cumulative heat
+    T_range = np.linspace(300, 800, 100)
+    Q_cumulative = [integrate.quad(copper_heat_capacity, 300, T)[0] for T in T_range]
+    
+    ax2.plot(T_range, Q_cumulative, linewidth=2)
+    ax2.axhline(y=Q_numerical, color='red', linestyle='--', label=f'Q(300→600K) = {Q_numerical:.0f} J/mol')
+    ax2.set_xlabel('Temperature T (K)', fontsize=12)
+    ax2.set_ylabel('Cumulative heat (J/mol)', fontsize=12)
+    ax2.set_title('Cumulative Heating from 300K', fontsize=14)
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+
+## 2.6 Improper Integrals and Handling Singularities
+
+**📝 Note:** Special care is needed when the integrand diverges to infinity (singularity) or when the integration interval is infinite (improper integral). 
+
+### 💻 Code Example 7: Calculation of Improper Integrals
+    
+    
+    # Example 1: Infinite integration interval
+    def integrand1(x):
+        return np.exp(-x**2)
+    
+    # ∫₀^∞ exp(-x²) dx = √π/2
+    result, error = integrate.quad(integrand1, 0, np.inf)
+    exact = np.sqrt(np.pi) / 2
+    print("Examples of improper integrals:")
+    print(f"∫₀^∞ exp(-x²) dx = {result:.10f} (analytical solution: {exact:.10f})")
+    print(f"Estimated error: {error:.2e}, actual error: {abs(result-exact):.2e}\n")
+    
+    # Example 2: When there is a singularity
+    def integrand2(x):
+        """Singularity at x=0"""
+        return 1/np.sqrt(x)
+    
+    # ∫₀¹ 1/√x dx = 2
+    result, error = integrate.quad(integrand2, 0, 1)
+    exact = 2.0
+    print(f"∫₀¹ 1/√x dx = {result:.10f} (analytical solution: {exact:.10f})")
+    print(f"Estimated error: {error:.2e}, actual error: {abs(result-exact):.2e}")
+    
+    # Explicitly specify singularity
+    result2, error2 = integrate.quad(integrand2, 0, 1, points=[0])
+    print(f"With singularity specified: {result2:.10f}, error: {abs(result2-exact):.2e}")
+
+## 2.7 Practice Problems
+
+**✏️ Exercise 1:** Calculate ∫₀² (x³ - 2x² + x) dx (1) analytically, (2) using trapezoidal rule (n=100), (3) using Simpson's rule (n=100). 
+
+**✏️ Exercise 2:** The reaction rate is given as r(t) = 0.5 exp(-0.1t) [mol/L/s]. Calculate the total reaction amount for 0 ≤ t ≤ 20 seconds using numerical integration. 
+
+## Summary
+
+  * Definite integrals represent the area enclosed by the curve and axis, used for calculating accumulated quantities
+  * Trapezoidal rule has O(h²) accuracy, Simpson's rule has O(h⁴) accuracy as basic numerical integration methods
+  * SciPy's quad function achieves high-precision integration through adaptive step size adjustment
+  * In materials science, integration is utilized in various situations such as heat calculations and spectral analysis
+  * Improper integrals and integrals with singularities can also be numerically calculated with appropriate methods
+
+[← Chapter 1: Fundamentals of Differentiation](<chapter-1.html>) [Chapter 3: Multivariable Calculus →](<chapter-3.html>)
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

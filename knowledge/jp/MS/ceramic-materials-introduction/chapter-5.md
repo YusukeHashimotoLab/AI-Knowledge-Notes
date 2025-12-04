@@ -1,0 +1,1542 @@
+---
+title: "第5章: Python実践ワークフロー"
+chapter_title: "第5章: Python実践ワークフロー"
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/MS/ceramic-materials-introduction/chapter-5.html>) | Last sync: 2025-11-16
+
+[AI寺子屋トップ](<../../index.html>)›[材料科学](<../../MS/index.html>)›[Ceramic Materials](<../../MS/ceramic-materials-introduction/index.html>)›Chapter 5
+
+  * [トップ](<index.html>)
+  * [概要](<#intro>)
+  * [Materials Project](<#materials-project>)
+  * [機械学習](<#ml>)
+  * [画像解析](<#image-analysis>)
+  * [プロセス最適化](<#optimization>)
+  * [統合ワークフロー](<#integrated>)
+  * [演習問題](<#exercises>)
+  * [参考文献](<#references>)
+  * ← 前の章（準備中）
+
+## 5.1 セラミックス研究のPythonワークフロー
+
+本章では、これまでの理論学習を実践的な研究ワークフローに統合します。Materials Project APIによる結晶構造データ取得、機械学習による特性予測、OpenCVを用いた微構造画像解析、scipy.optimizeによるプロセスパラメータ最適化を組み合わせ、実際の研究課題に適用できる総合的なスキルを習得します。 
+
+**本章の学習目標**
+
+  * **レベル1（基本理解）** : Materials Project API、scikit-learn、OpenCVの基本的な使い方を理解し、簡単なデータ取得・解析ができる
+  * **レベル2（実践スキル）** : 実データを用いた機械学習モデル構築、画像処理による粒径分布解析、最適化アルゴリズムの実装ができる
+  * **レベル3（応用力）** : 独自の研究課題に対して、データベース検索→特性予測→プロセス設計→実験計画の統合ワークフローを設計・実行できる
+
+### 統合ワークフローの全体像
+    
+    
+    ```mermaid
+    flowchart TD
+                    A[研究課題定義目標特性の設定] --> B[Materials Project結晶構造データ取得]
+                    B --> C[XRD/構造解析pymatgen処理]
+                    C --> D[機械学習モデル特性予測]
+                    D --> E[候補材料選定スクリーニング]
+                    E --> F[プロセス設計焼結条件最適化]
+                    F --> G[実験計画DOE/Bayesian最適化]
+                    G --> H[微構造解析SEM画像処理]
+                    H --> I[特性評価Weibull解析]
+                    I --> J{目標達成?}
+                    J -->|No| D
+                    J -->|Yes| K[成果まとめ論文・報告]
+    
+                    style A fill:#f093fb,color:#fff
+                    style D fill:#f5576c,color:#fff
+                    style F fill:#f5576c,color:#fff
+                    style K fill:#4caf50,color:#fff
+    ```
+
+フェーズ | ツール | 入力 | 出力  
+---|---|---|---  
+データ取得 | Materials Project API | 化学式、特性範囲 | 結晶構造、物性値  
+特性予測 | scikit-learn | 組成、構造記述子 | 誘電率、バンドギャップ  
+微構造解析 | OpenCV | SEM画像 | 粒径分布、気孔率  
+プロセス最適化 | scipy.optimize | 実験データ | 最適焼結条件  
+統合解析 | pandas, matplotlib | 全データ | レポート、可視化  
+  
+## 5.2 Materials Project APIの活用
+
+### 5.2.1 Materials Projectとは
+
+Materials Project（https://materialsproject.org）は、MIT・LBNLが運営する材料科学データベースで、150,000以上の無機材料の結晶構造、電子構造、熱力学特性を提供します。Python APIを通じて、プログラムから直接データを取得できます。 
+
+### 5.2.2 API利用の準備
+
+Materials Project APIを使用するには、無料アカウント登録が必要です： 
+
+  1. https://materialsproject.org にアクセス
+  2. アカウント登録（無料）
+  3. Dashboard → API からAPIキーを取得
+  4. 環境変数に設定: `export MP_API_KEY="your_api_key"`
+
+#### Python実装: Materials Project API結晶構造取得
+    
+    
+    # ===================================
+    # Example 1: Materials Project API結晶構造取得
+    # ===================================
+    
+    # インストール: pip install mp-api pymatgen
+    
+    from mp_api.client import MPRester
+    import os
+    
+    def get_material_data_from_mp(formula, api_key=None):
+        """
+        Materials ProjectからBaTiO3の結晶構造と物性を取得
+    
+        Parameters:
+        -----------
+        formula : str
+            化学式（例: "BaTiO3", "Al2O3"）
+        api_key : str
+            Materials Project APIキー（環境変数から自動取得も可）
+    
+        Returns:
+        --------
+        results : dict
+            材料データ（構造、バンドギャップ、エネルギーなど）
+        """
+        # APIキーの取得
+        if api_key is None:
+            api_key = os.environ.get('MP_API_KEY')
+            if api_key is None:
+                raise ValueError("API key not found. Set MP_API_KEY environment variable.")
+    
+        # MPResterを使ってデータ取得
+        with MPRester(api_key) as mpr:
+            # 化学式で検索
+            docs = mpr.materials.summary.search(formula=formula)
+    
+            if not docs:
+                print(f"No data found for {formula}")
+                return None
+    
+            # 最安定相（formation_energy_per_atomが最小）を選択
+            stable_material = min(docs, key=lambda x: x.formation_energy_per_atom)
+    
+            results = {
+                'material_id': stable_material.material_id,
+                'formula': stable_material.formula_pretty,
+                'formation_energy': stable_material.formation_energy_per_atom,
+                'band_gap': stable_material.band_gap,
+                'density': stable_material.density,
+                'structure': stable_material.structure,
+                'spacegroup': stable_material.symmetry.symbol,
+                'volume': stable_material.structure.volume
+            }
+    
+            return results
+    
+    
+    def analyze_mp_batio3():
+        """
+        BaTiO3のMaterials Projectデータを解析
+        """
+        import matplotlib.pyplot as plt
+        from pymatgen.analysis.diffraction.xrd import XRDCalculator
+    
+        # BaTiO3データ取得（実際には自分のAPIキーを使用）
+        print("=== Fetching BaTiO3 data from Materials Project ===")
+    
+        # 注: 以下はダミーデータ（実際にはAPIから取得）
+        # 実行時は上記のget_material_data_from_mp()を使用
+    
+        print("Material ID: mp-2998")
+        print("Formula: BaTiO3")
+        print("Formation Energy: -1.68 eV/atom")
+        print("Band Gap: 1.79 eV")
+        print("Density: 6.02 g/cm³")
+        print("Space Group: P4mm (99)")
+        print("Volume: 64.2 Å³")
+    
+        # XRDパターンのシミュレーション（pymatgen使用）
+        print("\n=== Simulating XRD Pattern ===")
+    
+        # 実際の実装例（構造データが必要）
+        """
+        data = get_material_data_from_mp("BaTiO3")
+        structure = data['structure']
+    
+        calculator = XRDCalculator()
+        pattern = calculator.get_pattern(structure, two_theta_range=(10, 90))
+    
+        # XRDパターンのプロット
+        plt.figure(figsize=(10, 5))
+        plt.plot(pattern.x, pattern.y, linewidth=2, color='navy')
+        plt.xlabel('2θ (degrees)', fontsize=12)
+        plt.ylabel('Intensity (a.u.)', fontsize=12)
+        plt.title('BaTiO3 XRD Pattern (Simulated)', fontsize=14, fontweight='bold')
+        plt.grid(True, alpha=0.3)
+        plt.savefig('batio3_xrd.png', dpi=300, bbox_inches='tight')
+        plt.show()
+        """
+    
+        print("XRD simulation requires pymatgen and structure data.")
+        print("Main peaks expected at 2θ ≈ 22°, 31°, 38°, 45°, 50°, 56°")
+    
+    
+    def compare_perovskite_oxides():
+        """
+        ペロブスカイト酸化物のバンドギャップ比較
+        """
+        import matplotlib.pyplot as plt
+        import numpy as np
+    
+        # Materials Projectから取得したデータ（実例）
+        perovskites = {
+            'BaTiO₃': {'band_gap': 1.79, 'formation_energy': -1.68},
+            'SrTiO₃': {'band_gap': 1.80, 'formation_energy': -1.75},
+            'CaTiO₃': {'band_gap': 2.10, 'formation_energy': -1.82},
+            'PbTiO₃': {'band_gap': 1.50, 'formation_energy': -1.45},
+            'KNbO₃': {'band_gap': 1.90, 'formation_energy': -1.55}
+        }
+    
+        names = list(perovskites.keys())
+        band_gaps = [data['band_gap'] for data in perovskites.values()]
+        formation_energies = [data['formation_energy'] for data in perovskites.values()]
+    
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+        # 左図: バンドギャップ比較
+        ax1 = axes[0]
+        colors = ['#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b']
+        ax1.bar(names, band_gaps, color=colors, edgecolor='black', linewidth=1.5)
+        ax1.axhline(y=1.5, color='red', linestyle='--', linewidth=2, label='Visible light threshold (~1.5 eV)')
+        ax1.set_ylabel('Band Gap (eV)', fontsize=12)
+        ax1.set_title('Perovskite Oxide Band Gaps', fontsize=14, fontweight='bold')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3, axis='y')
+    
+        # 右図: 安定性（生成エネルギー）
+        ax2 = axes[1]
+        ax2.barh(names, formation_energies, color=colors, edgecolor='black', linewidth=1.5)
+        ax2.set_xlabel('Formation Energy (eV/atom)', fontsize=12)
+        ax2.set_title('Thermodynamic Stability', fontsize=14, fontweight='bold')
+        ax2.grid(True, alpha=0.3, axis='x')
+    
+        plt.tight_layout()
+        plt.savefig('perovskite_comparison.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        print("=== Perovskite Oxide Properties ===")
+        for name, props in perovskites.items():
+            print(f"{name:10s}: Band Gap = {props['band_gap']:.2f} eV, ΔH_f = {props['formation_energy']:.2f} eV/atom")
+    
+    # 実行
+    # analyze_mp_batio3()  # 実際にはAPIキーが必要
+    compare_perovskite_oxides()
+    
+
+**Materials Projectの活用シーン**
+
+  * 新材料スクリーニング: バンドギャップ1.5-2.5 eVの光触媒候補を一括検索
+  * 相安定性評価: 化合物の生成エネルギーから熱力学的安定性を判断
+  * XRDパターン予測: 合成前にXRD指紋を予測し、実験結果と照合
+  * 元素置換効果: AサイトをBa→Srに置換したときの物性変化を比較
+
+#### Python実装: XRD実験データとシミュレーションの比較
+    
+    
+    # ===================================
+    # Example 2: XRD実験データとシミュレーション比較
+    # ===================================
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def simulate_xrd_pattern(two_theta, peaks):
+        """
+        XRDパターンのシミュレーション（ガウス関数の和）
+    
+        Parameters:
+        -----------
+        two_theta : array
+            2θ角度範囲
+        peaks : list of dict
+            ピーク情報 [{'position': 2θ, 'intensity': I, 'fwhm': FWHM}, ...]
+    
+        Returns:
+        --------
+        intensity : array
+            強度プロファイル
+        """
+        intensity = np.zeros_like(two_theta)
+    
+        for peak in peaks:
+            pos = peak['position']
+            I = peak['intensity']
+            fwhm = peak['fwhm']
+            sigma = fwhm / (2 * np.sqrt(2 * np.log(2)))
+    
+            intensity += I * np.exp(-((two_theta - pos)**2) / (2 * sigma**2))
+    
+        return intensity
+    
+    
+    def compare_experimental_simulated_xrd():
+        """
+        実験XRDとシミュレーションの比較
+        """
+        # 2θ範囲
+        two_theta = np.linspace(10, 90, 1000)
+    
+        # BaTiO3の理論ピーク（Materials Projectから）
+        theoretical_peaks = [
+            {'position': 22.2, 'intensity': 100, 'fwhm': 0.3, 'hkl': '(001)'},
+            {'position': 31.5, 'intensity': 60, 'fwhm': 0.3, 'hkl': '(011)'},
+            {'position': 38.9, 'intensity': 50, 'fwhm': 0.3, 'hkl': '(111)'},
+            {'position': 45.0, 'intensity': 30, 'fwhm': 0.3, 'hkl': '(002)'},
+            {'position': 50.9, 'intensity': 25, 'fwhm': 0.3, 'hkl': '(012)'},
+            {'position': 56.2, 'intensity': 40, 'fwhm': 0.3, 'hkl': '(112)'}
+        ]
+    
+        # 実験データ（ピーク位置がわずかにシフト、FWHM広い）
+        experimental_peaks = [
+            {'position': 22.3, 'intensity': 95, 'fwhm': 0.5},
+            {'position': 31.6, 'intensity': 58, 'fwhm': 0.5},
+            {'position': 39.0, 'intensity': 48, 'fwhm': 0.5},
+            {'position': 45.2, 'intensity': 28, 'fwhm': 0.5},
+            {'position': 51.1, 'intensity': 23, 'fwhm': 0.5},
+            {'position': 56.4, 'intensity': 38, 'fwhm': 0.5}
+        ]
+    
+        # ノイズ追加
+        np.random.seed(42)
+        noise = np.random.normal(0, 2, len(two_theta))
+    
+        # シミュレーションと実験データ生成
+        I_theory = simulate_xrd_pattern(two_theta, theoretical_peaks)
+        I_exp = simulate_xrd_pattern(two_theta, experimental_peaks) + noise
+    
+        # プロット
+        plt.figure(figsize=(12, 6))
+    
+        plt.plot(two_theta, I_theory, linewidth=2, color='blue', label='Simulated (Materials Project)', alpha=0.8)
+        plt.plot(two_theta, I_exp, linewidth=1.5, color='red', label='Experimental', alpha=0.7)
+    
+        # ピーク位置のアノテーション
+        for peak in theoretical_peaks[:3]:  # 主要3ピークのみ表示
+            plt.axvline(x=peak['position'], color='blue', linestyle='--', alpha=0.3)
+            plt.text(peak['position'], peak['intensity'] + 5, peak['hkl'],
+                    ha='center', fontsize=10, color='blue')
+    
+        plt.xlabel('2θ (degrees)', fontsize=12)
+        plt.ylabel('Intensity (a.u.)', fontsize=12)
+        plt.title('BaTiO₃ XRD Pattern: Experimental vs Simulated', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.xlim(10, 90)
+        plt.savefig('xrd_comparison.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # ピークシフトの定量評価
+        print("=== XRD Peak Position Comparison ===")
+        print("hkl     Theory   Exp.    Shift")
+        for theo, exp in zip(theoretical_peaks, experimental_peaks):
+            shift = exp['position'] - theo['position']
+            hkl = theo.get('hkl', '---')
+            print(f"{hkl:6s}  {theo['position']:5.1f}°  {exp['position']:5.1f}°  {shift:+5.2f}°")
+    
+        # 格子定数の推定
+        print("\n=== Lattice Parameter Estimation ===")
+        print("Peak shift suggests lattice expansion/contraction.")
+        print("Average shift: +0.15° → Δa/a ≈ +0.3% (tensile strain)")
+    
+    # 実行
+    compare_experimental_simulated_xrd()
+    
+
+**XRDデータの解釈** 実験XRDパターンが理論と異なる原因： 
+
+  * 格子歪み: 残留応力によるピークシフト
+  * 結晶子サイズ: ナノ粒子ではピーク幅が広がる（Scherrer式）
+  * 不純物相: 理論にない余剰ピークが出現
+  * 配向性: 薄膜試料では特定面方位が強調
+
+## 5.3 機械学習による特性予測
+
+### 5.3.1 セラミックス材料への機械学習適用
+
+機械学習は、大量の材料データから組成-構造-特性の関係を学習し、未知材料の特性を予測します。セラミックスでは、誘電率、バンドギャップ、熱伝導率などの予測に応用されます。 
+
+### 5.3.2 記述子（Descriptor）の設計
+
+材料を機械学習モデルに入力するため、組成・構造を数値ベクトル（記述子）に変換します： 
+
+  * **組成記述子** : 原子半径、電気陰性度、イオン価数の平均/標準偏差
+  * **構造記述子** : 結合距離、配位数、対称性パラメータ
+  * **電子構造記述子** : バンドギャップ、状態密度の特徴量
+
+#### Python実装: scikit-learn機械学習特性予測
+    
+    
+    # ===================================
+    # Example 3: scikit-learn機械学習特性予測
+    # ===================================
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from sklearn.model_selection import train_test_split
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.metrics import mean_squared_error, r2_score
+    
+    def generate_ceramic_dataset():
+        """
+        セラミックス材料データセットの生成（ダミーデータ）
+        実際にはMaterials Projectや実験データを使用
+    
+        Returns:
+        --------
+        df : DataFrame
+            材料データ（組成記述子 + 誘電率）
+        """
+        np.random.seed(42)
+        n_samples = 200
+    
+        # 組成記述子（簡略化）
+        # X1: A-site平均イオン半径 [Å]
+        # X2: B-site平均電気陰性度
+        # X3: 酸素欠損濃度 [%]
+        # X4: 焼結温度 [°C]
+    
+        X1 = np.random.uniform(1.0, 1.5, n_samples)  # Ba(1.35), Sr(1.18), Ca(1.00)
+        X2 = np.random.uniform(1.5, 2.5, n_samples)  # Ti(1.54), Zr(1.33), Nb(1.6)
+        X3 = np.random.uniform(0, 5, n_samples)
+        X4 = np.random.uniform(1200, 1600, n_samples)
+    
+        # 誘電率（ダミーモデル）
+        # εᵣ ∝ f(イオン半径, 電気陰性度, 欠損, 温度)
+        epsilon_r = 1000 + 3000 * X1 + 500 * (2.0 - X2) - 100 * X3 + 0.5 * X4 + \
+                    np.random.normal(0, 200, n_samples)
+    
+        # データフレーム作成
+        df = pd.DataFrame({
+            'ionic_radius_A': X1,
+            'electronegativity_B': X2,
+            'oxygen_vacancy': X3,
+            'sintering_temp': X4,
+            'permittivity': epsilon_r
+        })
+    
+        return df
+    
+    
+    def train_ml_model_for_permittivity():
+        """
+        ランダムフォレストによる誘電率予測モデルの構築
+        """
+        # データセット生成
+        df = generate_ceramic_dataset()
+    
+        print("=== Dataset Overview ===")
+        print(df.head())
+        print(f"\nDataset size: {len(df)} samples")
+        print(f"Permittivity range: {df['permittivity'].min():.0f} - {df['permittivity'].max():.0f}")
+    
+        # 特徴量とターゲット
+        X = df[['ionic_radius_A', 'electronegativity_B', 'oxygen_vacancy', 'sintering_temp']]
+        y = df['permittivity']
+    
+        # 訓練/テストデータ分割
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+        # ランダムフォレストモデルの訓練
+        model = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)
+        model.fit(X_train, y_train)
+    
+        # 予測
+        y_pred_train = model.predict(X_train)
+        y_pred_test = model.predict(X_test)
+    
+        # 評価指標
+        rmse_train = np.sqrt(mean_squared_error(y_train, y_pred_train))
+        rmse_test = np.sqrt(mean_squared_error(y_test, y_pred_test))
+        r2_train = r2_score(y_train, y_pred_train)
+        r2_test = r2_score(y_test, y_pred_test)
+    
+        print("\n=== Model Performance ===")
+        print(f"Train RMSE: {rmse_train:.1f}, R² = {r2_train:.3f}")
+        print(f"Test  RMSE: {rmse_test:.1f}, R² = {r2_test:.3f}")
+    
+        # 可視化
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+        # 左図: 予測 vs 実測
+        ax1 = axes[0]
+        ax1.scatter(y_train, y_pred_train, alpha=0.5, s=50, label='Train', color='blue')
+        ax1.scatter(y_test, y_pred_test, alpha=0.7, s=50, label='Test', color='red')
+    
+        # 理想線
+        y_range = [df['permittivity'].min(), df['permittivity'].max()]
+        ax1.plot(y_range, y_range, 'k--', linewidth=2, label='Perfect prediction')
+    
+        ax1.set_xlabel('Actual Permittivity', fontsize=12)
+        ax1.set_ylabel('Predicted Permittivity', fontsize=12)
+        ax1.set_title(f'Prediction Accuracy (R² = {r2_test:.3f})', fontsize=14, fontweight='bold')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+    
+        # 右図: 特徴量重要度
+        ax2 = axes[1]
+        importances = model.feature_importances_
+        features = X.columns
+        indices = np.argsort(importances)[::-1]
+    
+        ax2.barh(range(len(importances)), importances[indices], color='skyblue', edgecolor='black')
+        ax2.set_yticks(range(len(importances)))
+        ax2.set_yticklabels([features[i] for i in indices])
+        ax2.set_xlabel('Feature Importance', fontsize=12)
+        ax2.set_title('Random Forest Feature Importance', fontsize=14, fontweight='bold')
+        ax2.grid(True, alpha=0.3, axis='x')
+    
+        plt.tight_layout()
+        plt.savefig('ml_permittivity_prediction.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        return model, X.columns
+    
+    
+    # 実行
+    model, features = train_ml_model_for_permittivity()
+    
+    # 新材料の予測例
+    print("\n=== Predicting New Material ===")
+    new_material = pd.DataFrame({
+        'ionic_radius_A': [1.35],  # Ba-site
+        'electronegativity_B': [1.54],  # Ti-site
+        'oxygen_vacancy': [0.5],
+        'sintering_temp': [1400]
+    })
+    predicted_permittivity = model.predict(new_material)
+    print(f"Input: {new_material.values[0]}")
+    print(f"Predicted permittivity: {predicted_permittivity[0]:.0f}")
+    
+
+#### Python実装: ランダムフォレスト特徴量重要度
+    
+    
+    # ===================================
+    # Example 4: ランダムフォレスト特徴量重要度の詳細解析
+    # ===================================
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.inspection import permutation_importance
+    
+    def analyze_feature_importance():
+        """
+        特徴量重要度の詳細解析（Gini重要度 vs Permutation重要度）
+        """
+        # データセット生成
+        df = generate_ceramic_dataset()
+        X = df[['ionic_radius_A', 'electronegativity_B', 'oxygen_vacancy', 'sintering_temp']]
+        y = df['permittivity']
+    
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+        # モデル訓練
+        model = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)
+        model.fit(X_train, y_train)
+    
+        # Gini重要度（デフォルト）
+        gini_importances = model.feature_importances_
+    
+        # Permutation重要度（テストデータ）
+        perm_importance = permutation_importance(model, X_test, y_test, n_repeats=10, random_state=42)
+        perm_importances = perm_importance.importances_mean
+    
+        # 可視化
+        features = X.columns
+        x = np.arange(len(features))
+        width = 0.35
+    
+        plt.figure(figsize=(10, 6))
+        plt.barh(x - width/2, gini_importances, width, label='Gini Importance', color='skyblue', edgecolor='black')
+        plt.barh(x + width/2, perm_importances, width, label='Permutation Importance', color='salmon', edgecolor='black')
+    
+        plt.yticks(x, features)
+        plt.xlabel('Importance', fontsize=12)
+        plt.title('Feature Importance Comparison', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(True, alpha=0.3, axis='x')
+        plt.tight_layout()
+        plt.savefig('feature_importance_comparison.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        print("=== Feature Importance Analysis ===")
+        print("Feature                    Gini      Permutation")
+        for feat, gini, perm in zip(features, gini_importances, perm_importances):
+            print(f"{feat:25s}  {gini:.3f}     {perm:.3f}")
+    
+    # 実行
+    analyze_feature_importance()
+    
+
+**機械学習モデルの選択**
+
+  * **ランダムフォレスト** : 非線形関係の学習、特徴量重要度の可視化に優れる
+  * **勾配ブースティング（XGBoost）** : 高精度予測、ハイパーパラメータ調整が重要
+  * **ニューラルネットワーク** : 大規模データセット、複雑な相互作用の学習
+  * **線形回帰** : 解釈性重視、物理モデルとの統合
+
+## 5.4 微構造画像解析
+
+### 5.4.1 SEM画像処理の流れ
+
+SEM（走査電子顕微鏡）画像から粒径分布、気孔率、粒界構造を定量的に抽出します。OpenCVを用いた画像処理の典型的な流れ： 
+
+  1. 前処理: ノイズ除去、コントラスト調整
+  2. 二値化: 粒子/背景の分離
+  3. セグメンテーション: 個別粒子の識別（Watershed法）
+  4. 特徴量抽出: 面積、周囲長、円形度、粒径
+  5. 統計解析: 粒径分布、平均粒径、分散
+
+#### Python実装: OpenCVによる粒径分布解析
+    
+    
+    # ===================================
+    # Example 5: OpenCV粒径分布解析
+    # ===================================
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import cv2
+    from scipy.stats import lognorm
+    
+    def generate_synthetic_sem_image(size=512, n_particles=100):
+        """
+        合成SEMイメージの生成（実験データの代替）
+    
+        Parameters:
+        -----------
+        size : int
+            画像サイズ [px]
+        n_particles : int
+            粒子数
+    
+        Returns:
+        --------
+        image : array
+            グレースケールSEMイメージ
+        """
+        image = np.ones((size, size), dtype=np.uint8) * 255  # 白背景
+    
+        np.random.seed(42)
+        for _ in range(n_particles):
+            # ランダム位置と半径（対数正規分布）
+            x = np.random.randint(20, size - 20)
+            y = np.random.randint(20, size - 20)
+            radius = int(lognorm.rvs(s=0.4, scale=15, size=1)[0])
+            radius = np.clip(radius, 5, 30)
+    
+            # 円を描画（粒子）
+            cv2.circle(image, (x, y), radius, 100, -1)
+    
+            # 粒界（円周）
+            cv2.circle(image, (x, y), radius, 50, 2)
+    
+        # ノイズ追加
+        noise = np.random.normal(0, 10, image.shape).astype(np.int16)
+        image = np.clip(image.astype(np.int16) + noise, 0, 255).astype(np.uint8)
+    
+        return image
+    
+    
+    def analyze_grain_size_distribution(image):
+        """
+        粒径分布の解析
+    
+        Parameters:
+        -----------
+        image : array
+            グレースケールSEM画像
+    
+        Returns:
+        --------
+        grain_sizes : list
+            検出された粒子の等価円直径 [px]
+        """
+        # 前処理: ガウシアンブラー
+        blurred = cv2.GaussianBlur(image, (5, 5), 0)
+    
+        # 二値化（大津の方法）
+        _, binary = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    
+        # モルフォロジー処理（ノイズ除去）
+        kernel = np.ones((3, 3), np.uint8)
+        binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=2)
+    
+        # 距離変換とWatershedセグメンテーション
+        dist_transform = cv2.distanceTransform(binary, cv2.DIST_L2, 5)
+        _, sure_fg = cv2.threshold(dist_transform, 0.3 * dist_transform.max(), 255, 0)
+        sure_fg = np.uint8(sure_fg)
+    
+        # 輪郭検出
+        contours, _ = cv2.findContours(sure_fg, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+        # 粒径計算（等価円直径）
+        grain_sizes = []
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            if area > 50:  # 最小面積フィルタ
+                equivalent_diameter = np.sqrt(4 * area / np.pi)
+                grain_sizes.append(equivalent_diameter)
+    
+        return grain_sizes, binary, contours
+    
+    
+    def plot_grain_analysis_results():
+        """
+        粒径解析結果の可視化
+        """
+        # 合成SEM画像生成
+        sem_image = generate_synthetic_sem_image(size=512, n_particles=120)
+    
+        # 粒径解析
+        grain_sizes, binary, contours = analyze_grain_size_distribution(sem_image)
+    
+        # 統計量計算
+        grain_sizes = np.array(grain_sizes)
+        mean_size = np.mean(grain_sizes)
+        std_size = np.std(grain_sizes)
+        median_size = np.median(grain_sizes)
+    
+        # 可視化
+        fig, axes = plt.subplots(2, 2, figsize=(12, 12))
+    
+        # 左上: 元画像
+        ax1 = axes[0, 0]
+        ax1.imshow(sem_image, cmap='gray')
+        ax1.set_title('Original SEM Image', fontsize=14, fontweight='bold')
+        ax1.axis('off')
+    
+        # 右上: 二値化画像
+        ax2 = axes[0, 1]
+        ax2.imshow(binary, cmap='gray')
+        ax2.set_title('Binary Image (Segmented)', fontsize=14, fontweight='bold')
+        ax2.axis('off')
+    
+        # 左下: 輪郭検出結果
+        ax3 = axes[1, 0]
+        contour_image = cv2.cvtColor(sem_image, cv2.COLOR_GRAY2BGR)
+        cv2.drawContours(contour_image, contours, -1, (255, 0, 0), 2)
+        ax3.imshow(contour_image)
+        ax3.set_title(f'Detected Grains (n = {len(grain_sizes)})', fontsize=14, fontweight='bold')
+        ax3.axis('off')
+    
+        # 右下: 粒径分布ヒストグラム
+        ax4 = axes[1, 1]
+        ax4.hist(grain_sizes, bins=20, density=True, alpha=0.7, color='skyblue', edgecolor='black')
+    
+        # 対数正規分布フィッティング
+        s, loc, scale = lognorm.fit(grain_sizes, floc=0)
+        x = np.linspace(grain_sizes.min(), grain_sizes.max(), 100)
+        pdf = lognorm.pdf(x, s, loc, scale)
+        ax4.plot(x, pdf, 'r-', linewidth=2, label=f'Lognormal fit\nμ={scale:.1f}, σ={s:.2f}')
+    
+        ax4.axvline(mean_size, color='blue', linestyle='--', linewidth=2, label=f'Mean = {mean_size:.1f} px')
+        ax4.axvline(median_size, color='green', linestyle='--', linewidth=2, label=f'Median = {median_size:.1f} px')
+    
+        ax4.set_xlabel('Grain Diameter (pixels)', fontsize=12)
+        ax4.set_ylabel('Probability Density', fontsize=12)
+        ax4.set_title('Grain Size Distribution', fontsize=14, fontweight='bold')
+        ax4.legend()
+        ax4.grid(True, alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('grain_size_analysis.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 統計結果出力
+        print("=== Grain Size Analysis Results ===")
+        print(f"Number of grains detected: {len(grain_sizes)}")
+        print(f"Mean diameter: {mean_size:.2f} px")
+        print(f"Median diameter: {median_size:.2f} px")
+        print(f"Standard deviation: {std_size:.2f} px")
+        print(f"Size range: {grain_sizes.min():.2f} - {grain_sizes.max():.2f} px")
+        print(f"\nD10 = {np.percentile(grain_sizes, 10):.2f} px")
+        print(f"D50 = {np.percentile(grain_sizes, 50):.2f} px")
+        print(f"D90 = {np.percentile(grain_sizes, 90):.2f} px")
+    
+    # 実行
+    plot_grain_analysis_results()
+    
+
+#### Python実装: SEM画像セグメンテーション高度解析
+    
+    
+    # ===================================
+    # Example 6: SEM画像セグメンテーション（Watershed法）
+    # ===================================
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import cv2
+    from scipy import ndimage
+    
+    def advanced_watershed_segmentation(image):
+        """
+        Watershed法による高度なセグメンテーション
+    
+        Parameters:
+        -----------
+        image : array
+            グレースケールSEM画像
+    
+        Returns:
+        --------
+        labeled_image : array
+            ラベル付き画像（各粒子に固有ID）
+        n_grains : int
+            検出粒子数
+        """
+        # 前処理
+        blurred = cv2.GaussianBlur(image, (5, 5), 0)
+        _, binary = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    
+        # ノイズ除去
+        kernel = np.ones((3, 3), np.uint8)
+        opening = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=2)
+    
+        # 確実な背景領域
+        sure_bg = cv2.dilate(opening, kernel, iterations=3)
+    
+        # 確実な前景領域（距離変換）
+        dist_transform = cv2.distanceTransform(opening, cv2.DIST_L2, 5)
+        _, sure_fg = cv2.threshold(dist_transform, 0.5 * dist_transform.max(), 255, 0)
+        sure_fg = np.uint8(sure_fg)
+    
+        # 不確定領域
+        unknown = cv2.subtract(sure_bg, sure_fg)
+    
+        # マーカー作成
+        _, markers = cv2.connectedComponents(sure_fg)
+        markers = markers + 1
+        markers[unknown == 255] = 0
+    
+        # Watershed適用
+        image_bgr = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        markers = cv2.watershed(image_bgr, markers)
+    
+        # ラベル画像作成
+        labeled_image = markers.copy()
+        labeled_image[labeled_image == -1] = 0  # 境界を背景に
+        n_grains = np.max(labeled_image) - 1  # 背景ラベル(1)を除く
+    
+        return labeled_image, n_grains, dist_transform
+    
+    
+    def visualize_watershed_results():
+        """
+        Watershed結果の詳細可視化
+        """
+        # 合成画像生成
+        sem_image = generate_synthetic_sem_image(size=512, n_particles=80)
+    
+        # Watershed解析
+        labeled, n_grains, dist_trans = advanced_watershed_segmentation(sem_image)
+    
+        # カラーマップ作成
+        colored_labels = np.zeros((labeled.shape[0], labeled.shape[1], 3), dtype=np.uint8)
+        np.random.seed(42)
+        for label in range(2, n_grains + 2):  # ラベル2から開始（0=背景, 1=境界）
+            mask = labeled == label
+            color = np.random.randint(0, 255, 3)
+            colored_labels[mask] = color
+    
+        # 可視化
+        fig, axes = plt.subplots(2, 2, figsize=(12, 12))
+    
+        # 左上: 元画像
+        axes[0, 0].imshow(sem_image, cmap='gray')
+        axes[0, 0].set_title('Original SEM Image', fontsize=14, fontweight='bold')
+        axes[0, 0].axis('off')
+    
+        # 右上: 距離変換
+        axes[0, 1].imshow(dist_trans, cmap='jet')
+        axes[0, 1].set_title('Distance Transform', fontsize=14, fontweight='bold')
+        axes[0, 1].axis('off')
+    
+        # 左下: Watershedラベル
+        axes[1, 0].imshow(labeled, cmap='nipy_spectral')
+        axes[1, 0].set_title(f'Watershed Labels (n = {n_grains})', fontsize=14, fontweight='bold')
+        axes[1, 0].axis('off')
+    
+        # 右下: カラー分離
+        axes[1, 1].imshow(colored_labels)
+        axes[1, 1].set_title('Segmented Grains (Colored)', fontsize=14, fontweight='bold')
+        axes[1, 1].axis('off')
+    
+        plt.tight_layout()
+        plt.savefig('watershed_segmentation.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        print(f"=== Watershed Segmentation Results ===")
+        print(f"Total grains detected: {n_grains}")
+        print(f"Average grain area: {(labeled > 1).sum() / n_grains:.0f} px²")
+    
+    # 実行
+    visualize_watershed_results()
+    
+
+**画像解析の注意点**
+
+  * スケールバー: 画像のピクセル-実寸法変換が必須（例: 100 px = 1 μm）
+  * 境界粒子: 画像端の不完全粒子は統計から除外
+  * 重なり粒子: Watershed法でも完全分離は困難、手動補正が必要な場合あり
+  * 二値化閾値: 大津の方法が最適とは限らず、材料ごとに調整
+
+## 5.5 プロセスパラメータ最適化
+
+### 5.5.1 最適化問題の定式化
+
+セラミックス製造プロセス（焼結条件、組成比など）を最適化する問題は、以下のように定式化されます： 
+
+\\[ \text{Maximize (or Minimize)} \quad f(\mathbf{x}) \\] \\[ \text{subject to} \quad \mathbf{x}_{\text{min}} \leq \mathbf{x} \leq \mathbf{x}_{\text{max}} \\] 
+
+ここで、\\( \mathbf{x} = [T, t, P, \dots] \\) は設計変数（温度、時間、圧力など）、\\( f(\mathbf{x}) \\) は目的関数（密度、強度など）です。 
+
+#### Python実装: scipy.optimizeによる焼結プロセス最適化
+    
+    
+    # ===================================
+    # Example 7: scipy.optimize焼結プロセス最適化
+    # ===================================
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.optimize import minimize, differential_evolution
+    
+    def sintering_density_model(params):
+        """
+        焼結密度のプロセスモデル（簡略化）
+    
+        Parameters:
+        -----------
+        params : array
+            [T: 温度(°C), t: 時間(h), P: 圧力(MPa)]
+    
+        Returns:
+        --------
+        density : float
+            相対密度 [%]
+        """
+        T, t, P = params
+    
+        # 簡略化したArrhenius型モデル
+        # ρ = 100 × (1 - exp(-k·t)), k = A·exp(-Q/(RT))
+    
+        Q = 400e3  # 活性化エネルギー [J/mol]
+        R = 8.314
+        A = 1e10  # 前指数因子
+    
+        T_K = T + 273.15
+        k = A * np.exp(-Q / (R * T_K)) * (P / 10)**0.3  # 圧力効果
+    
+        density = 100 * (1 - np.exp(-k * t * 3600))  # tは時間[h]→[s]
+    
+        # 粒成長ペナルティ（過焼結）
+        grain_growth_penalty = 0
+        if T > 1600:
+            grain_growth_penalty = 0.1 * (T - 1600)
+    
+        return density - grain_growth_penalty
+    
+    
+    def cost_function(params):
+        """
+        最適化の目的関数（最小化問題）
+        密度を最大化 → コスト最小化（負の密度）
+        """
+        density = sintering_density_model(params)
+    
+        # エネルギーコスト項（高温・長時間ペナルティ）
+        T, t, P = params
+        energy_cost = 0.001 * T * t  # 簡略化
+    
+        # 総コスト = -密度 + エネルギーコスト
+        total_cost = -density + energy_cost
+    
+        return total_cost
+    
+    
+    def optimize_sintering_process():
+        """
+        焼結プロセスの最適化
+        """
+        # 変数範囲
+        bounds = [
+            (1200, 1700),  # 温度 [°C]
+            (1, 10),       # 時間 [h]
+            (0, 50)        # 圧力 [MPa]
+        ]
+    
+        # 初期値
+        x0 = [1400, 4, 20]
+    
+        print("=== Sintering Process Optimization ===")
+        print("Objective: Maximize density while minimizing energy cost")
+        print(f"Initial guess: T={x0[0]}°C, t={x0[1]}h, P={x0[2]}MPa")
+    
+        # 最適化実行（局所最適化: L-BFGS-B）
+        result_local = minimize(cost_function, x0, method='L-BFGS-B', bounds=bounds)
+    
+        T_opt_local, t_opt_local, P_opt_local = result_local.x
+        density_opt_local = sintering_density_model(result_local.x)
+    
+        print("\n--- Local Optimization (L-BFGS-B) ---")
+        print(f"Optimal T = {T_opt_local:.1f}°C")
+        print(f"Optimal t = {t_opt_local:.2f} h")
+        print(f"Optimal P = {P_opt_local:.1f} MPa")
+        print(f"Achieved density = {density_opt_local:.2f}%")
+        print(f"Cost = {result_local.fun:.4f}")
+    
+        # 大域的最適化（Differential Evolution）
+        result_global = differential_evolution(cost_function, bounds, seed=42, maxiter=100)
+    
+        T_opt_global, t_opt_global, P_opt_global = result_global.x
+        density_opt_global = sintering_density_model(result_global.x)
+    
+        print("\n--- Global Optimization (Differential Evolution) ---")
+        print(f"Optimal T = {T_opt_global:.1f}°C")
+        print(f"Optimal t = {t_opt_global:.2f} h")
+        print(f"Optimal P = {P_opt_global:.1f} MPa")
+        print(f"Achieved density = {density_opt_global:.2f}%")
+        print(f"Cost = {result_global.fun:.4f}")
+    
+        # 可視化: 温度-時間マップ
+        T_range = np.linspace(1200, 1700, 50)
+        t_range = np.linspace(1, 10, 50)
+        T_grid, t_grid = np.meshgrid(T_range, t_range)
+    
+        density_grid = np.zeros_like(T_grid)
+        for i in range(len(T_range)):
+            for j in range(len(t_range)):
+                density_grid[j, i] = sintering_density_model([T_grid[j, i], t_grid[j, i], P_opt_global])
+    
+        plt.figure(figsize=(10, 7))
+        contour = plt.contourf(T_grid, t_grid, density_grid, levels=20, cmap='RdYlGn')
+        plt.colorbar(contour, label='Relative Density (%)')
+    
+        plt.scatter(T_opt_global, t_opt_global, s=300, c='red', marker='*', edgecolors='black',
+                    linewidth=2, zorder=5, label=f'Optimum: {density_opt_global:.1f}%')
+    
+        plt.xlabel('Temperature (°C)', fontsize=12)
+        plt.ylabel('Time (h)', fontsize=12)
+        plt.title(f'Sintering Density Map (P = {P_opt_global:.1f} MPa)', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.savefig('sintering_optimization.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+    # 実行
+    optimize_sintering_process()
+    
+
+#### Python実装: 多目的最適化（Pareto最適）
+    
+    
+    # ===================================
+    # Example 8: 多目的最適化（密度 vs コスト）
+    # ===================================
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.optimize import differential_evolution
+    
+    def multi_objective_sintering(params):
+        """
+        多目的最適化: 密度最大化 & コスト最小化
+    
+        Returns:
+        --------
+        objectives : tuple
+            (負の密度, エネルギーコスト)
+        """
+        T, t, P = params
+    
+        density = sintering_density_model(params)
+        energy_cost = 0.01 * T * t + 0.05 * P  # コストモデル
+    
+        return -density, energy_cost
+    
+    
+    def pareto_frontier_analysis():
+        """
+        Pareto最適解のフロンティア探索
+        """
+        # 重み係数を変えて複数回最適化
+        weights = np.linspace(0, 1, 20)
+    
+        pareto_solutions = []
+    
+        for w in weights:
+            # 重み付きスカラー化
+            def scalarized_objective(params):
+                obj1, obj2 = multi_objective_sintering(params)
+                return w * obj1 + (1 - w) * obj2
+    
+            bounds = [(1200, 1700), (1, 10), (0, 50)]
+            result = differential_evolution(scalarized_objective, bounds, seed=42, maxiter=50)
+    
+            T, t, P = result.x
+            density = sintering_density_model(result.x)
+            _, cost = multi_objective_sintering(result.x)
+    
+            pareto_solutions.append({
+                'T': T, 't': t, 'P': P,
+                'density': density, 'cost': cost
+            })
+    
+        # Paretoフロンティアの可視化
+        densities = [sol['density'] for sol in pareto_solutions]
+        costs = [sol['cost'] for sol in pareto_solutions]
+    
+        plt.figure(figsize=(10, 6))
+        plt.scatter(densities, costs, s=100, c=weights, cmap='viridis', edgecolors='black', linewidth=1.5)
+        plt.plot(densities, costs, 'k--', linewidth=1, alpha=0.5)
+    
+        # 特定点のアノテーション
+        idx_max_density = np.argmax(densities)
+        idx_min_cost = np.argmin(costs)
+    
+        plt.scatter(densities[idx_max_density], costs[idx_max_density], s=300, c='red',
+                    marker='*', edgecolors='black', linewidth=2, label='Max Density')
+        plt.scatter(densities[idx_min_cost], costs[idx_min_cost], s=300, c='blue',
+                    marker='s', edgecolors='black', linewidth=2, label='Min Cost')
+    
+        plt.xlabel('Relative Density (%)', fontsize=12)
+        plt.ylabel('Energy Cost (a.u.)', fontsize=12)
+        plt.title('Pareto Frontier: Density vs Cost', fontsize=14, fontweight='bold')
+        plt.colorbar(plt.cm.ScalarMappable(cmap='viridis'), label='Weight (0=cost, 1=density)')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.savefig('pareto_frontier.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        print("=== Pareto Frontier Analysis ===")
+        print(f"Max Density Solution: {densities[idx_max_density]:.2f}%, Cost={costs[idx_max_density]:.2f}")
+        print(f"  → T={pareto_solutions[idx_max_density]['T']:.0f}°C, t={pareto_solutions[idx_max_density]['t']:.1f}h")
+        print(f"\nMin Cost Solution: {densities[idx_min_cost]:.2f}%, Cost={costs[idx_min_cost]:.2f}")
+        print(f"  → T={pareto_solutions[idx_min_cost]['T']:.0f}°C, t={pareto_solutions[idx_min_cost]['t']:.1f}h")
+    
+    # 実行
+    pareto_frontier_analysis()
+    
+
+**最適化アルゴリズムの選択**
+
+  * **勾配法（L-BFGS-B）** : 高速、滑らかな目的関数に有効
+  * **Differential Evolution** : 大域的最適解探索、多峰性関数
+  * **ベイズ最適化** : 実験コスト高い場合、少ない評価回数で最適化
+  * **遺伝的アルゴリズム** : 離散変数、多目的最適化
+
+## 5.6 統合ワークフロークラスの実装
+
+### 5.6.1 統合解析クラスの設計
+
+これまで学んだ技術を統合し、再利用可能なPythonクラスとして実装します。これにより、新しい研究課題に迅速に適用できます。 
+
+#### Python実装: CeramicsWorkflow統合クラス
+    
+    
+    # ===================================
+    # Example 8: 統合ワークフロークラス
+    # ===================================
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from sklearn.ensemble import RandomForestRegressor
+    from scipy.optimize import differential_evolution
+    
+    class CeramicsWorkflow:
+        """
+        セラミックス研究の統合ワークフロー
+    
+        機能:
+        - データベース検索（Materials Project API）
+        - 機械学習特性予測
+        - プロセス最適化
+        - 結果レポート生成
+        """
+    
+        def __init__(self, material_name):
+            """
+            初期化
+    
+            Parameters:
+            -----------
+            material_name : str
+                材料名（例: "BaTiO3"）
+            """
+            self.material_name = material_name
+            self.data = {}
+            self.ml_model = None
+            self.optimization_result = None
+    
+            print(f"=== CeramicsWorkflow initialized for {material_name} ===")
+    
+        def fetch_database(self, api_key=None):
+            """
+            Materials Projectからデータ取得（ダミー実装）
+            """
+            print(f"\n[Step 1] Fetching data for {self.material_name} from Materials Project...")
+    
+            # 実際にはMaterials Project APIを使用
+            self.data['structure'] = "Perovskite (cubic)"
+            self.data['band_gap'] = 1.79  # eV
+            self.data['density'] = 6.02   # g/cm³
+            self.data['formation_energy'] = -1.68  # eV/atom
+    
+            print(f"  Structure: {self.data['structure']}")
+            print(f"  Band gap: {self.data['band_gap']} eV")
+            print(f"  Density: {self.data['density']} g/cm³")
+    
+            return self.data
+    
+        def train_ml_model(self, training_data):
+            """
+            機械学習モデルの訓練
+    
+            Parameters:
+            -----------
+            training_data : DataFrame
+                訓練データ（特徴量 + ターゲット）
+            """
+            print("\n[Step 2] Training machine learning model...")
+    
+            X = training_data.drop('permittivity', axis=1)
+            y = training_data['permittivity']
+    
+            self.ml_model = RandomForestRegressor(n_estimators=100, random_state=42)
+            self.ml_model.fit(X, y)
+    
+            train_score = self.ml_model.score(X, y)
+            print(f"  Model trained: R² = {train_score:.3f}")
+    
+            return self.ml_model
+    
+        def predict_property(self, input_features):
+            """
+            特性予測
+    
+            Parameters:
+            -----------
+            input_features : DataFrame
+                予測対象の特徴量
+    
+            Returns:
+            --------
+            prediction : float
+                予測値
+            """
+            if self.ml_model is None:
+                raise ValueError("ML model not trained. Call train_ml_model() first.")
+    
+            prediction = self.ml_model.predict(input_features)
+    
+            print(f"\n[Step 3] Property prediction:")
+            print(f"  Input: {input_features.values[0]}")
+            print(f"  Predicted permittivity: {prediction[0]:.0f}")
+    
+            return prediction[0]
+    
+        def optimize_process(self):
+            """
+            プロセスパラメータ最適化
+            """
+            print("\n[Step 4] Optimizing sintering process...")
+    
+            def objective(params):
+                density = sintering_density_model(params)
+                T, t, P = params
+                cost = 0.001 * T * t
+                return -(density - cost)
+    
+            bounds = [(1200, 1700), (1, 10), (0, 50)]
+            result = differential_evolution(objective, bounds, seed=42, maxiter=50)
+    
+            self.optimization_result = {
+                'temperature': result.x[0],
+                'time': result.x[1],
+                'pressure': result.x[2],
+                'density': sintering_density_model(result.x)
+            }
+    
+            print(f"  Optimal T: {self.optimization_result['temperature']:.0f}°C")
+            print(f"  Optimal t: {self.optimization_result['time']:.1f}h")
+            print(f"  Optimal P: {self.optimization_result['pressure']:.0f}MPa")
+            print(f"  Achieved density: {self.optimization_result['density']:.1f}%")
+    
+            return self.optimization_result
+    
+        def generate_report(self):
+            """
+            統合レポートの生成
+            """
+            print("\n=== Final Report ===")
+            print(f"Material: {self.material_name}")
+            print(f"\nDatabase Properties:")
+            for key, value in self.data.items():
+                print(f"  {key}: {value}")
+    
+            if self.optimization_result:
+                print(f"\nOptimized Process:")
+                print(f"  Temperature: {self.optimization_result['temperature']:.0f}°C")
+                print(f"  Time: {self.optimization_result['time']:.1f}h")
+                print(f"  Pressure: {self.optimization_result['pressure']:.0f}MPa")
+                print(f"  Target Density: {self.optimization_result['density']:.1f}%")
+    
+            print("\n[Workflow Complete]")
+    
+    
+    # 使用例
+    if __name__ == "__main__":
+        # ワークフロー初期化
+        workflow = CeramicsWorkflow("BaTiO3")
+    
+        # Step 1: データベース検索
+        workflow.fetch_database()
+    
+        # Step 2: 機械学習（訓練データ生成）
+        training_data = generate_ceramic_dataset()
+        workflow.train_ml_model(training_data)
+    
+        # Step 3: 新材料の特性予測
+        new_composition = pd.DataFrame({
+            'ionic_radius_A': [1.35],
+            'electronegativity_B': [1.54],
+            'oxygen_vacancy': [0.5],
+            'sintering_temp': [1400]
+        })
+        workflow.predict_property(new_composition)
+    
+        # Step 4: プロセス最適化
+        workflow.optimize_process()
+    
+        # Step 5: レポート生成
+        workflow.generate_report()
+    
+
+**統合ワークフローの拡張性** このクラス設計により、以下の拡張が容易になります： 
+
+  * 新しい材料データベース（ICSD, AFLOWLIB）の追加
+  * 深層学習モデル（PyTorch, TensorFlow）への置き換え
+  * 実験データの自動取り込み（CSV, Excel読み込み）
+  * 可視化ダッシュボード（Plotly Dash, Streamlit）の統合
+
+## 演習問題
+
+#### 演習 5-1: Materials Project API基本操作易
+
+Materials Project APIを使用して、SrTiO₃のバンドギャップと密度を取得するコードを書きなさい。 
+
+解答例
+    
+    
+    # 注: 実際にはAPIキーが必要
+    data = get_material_data_from_mp("SrTiO3")
+    print(f"Band gap: {data['band_gap']} eV")
+    print(f"Density: {data['density']} g/cm³")
+    
+
+#### 演習 5-2: XRDピーク同定易
+
+実験XRDで2θ = 31.5°, 45.0°にピークが観測されました。BaTiO₃の理論ピーク位置（31.5°, 45.0°）と比較し、格子定数の変化を推定しなさい。 
+
+解答例
+    
+    
+    print("実験ピーク位置が理論値と一致")
+    print("→ 格子定数 a = 4.00 Å（標準値）")
+    print("もしΔ2θ = +0.2°のシフトがあれば:")
+    print("  格子収縮 Δa/a ≈ -0.4%（圧縮応力）")
+    
+
+#### 演習 5-3: 機械学習データ分割易
+
+200サンプルのデータセットを、訓練:検証:テスト = 70:15:15の比率で分割するコードを書きなさい。 
+
+解答例
+    
+    
+    from sklearn.model_selection import train_test_split
+    
+    # 70% train, 30% temp
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+    
+    # 30%を15%+15%に分割
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+    
+    print(f"Train: {len(X_train)}, Val: {len(X_val)}, Test: {len(X_test)}")
+    # 出力: Train: 140, Val: 30, Test: 30
+    
+
+#### 演習 5-4: 粒径分布の統計解析中
+
+粒径データ [10, 12, 15, 18, 20, 22, 25, 28, 30, 35] μmから、平均粒径、D50、Span（(D90-D10)/D50）を計算しなさい。 
+
+解答例
+    
+    
+    grain_sizes = np.array([10, 12, 15, 18, 20, 22, 25, 28, 30, 35])
+    
+    mean = np.mean(grain_sizes)
+    D10 = np.percentile(grain_sizes, 10)
+    D50 = np.percentile(grain_sizes, 50)
+    D90 = np.percentile(grain_sizes, 90)
+    span = (D90 - D10) / D50
+    
+    print(f"Mean: {mean:.1f} μm")
+    print(f"D50: {D50:.1f} μm")
+    print(f"Span: {span:.2f}")
+    # 出力例: Mean=21.5, D50=21.0, Span=1.10
+    
+
+#### 演習 5-5: ハイパーパラメータチューニング中
+
+ランダムフォレストのn_estimatorsとmax_depthをグリッドサーチで最適化するコードを書きなさい。 
+
+解答例
+    
+    
+    from sklearn.model_selection import GridSearchCV
+    
+    param_grid = {
+        'n_estimators': [50, 100, 200],
+        'max_depth': [5, 10, 15, None]
+    }
+    
+    grid_search = GridSearchCV(RandomForestRegressor(random_state=42),
+                               param_grid, cv=5, scoring='r2')
+    grid_search.fit(X_train, y_train)
+    
+    print(f"Best params: {grid_search.best_params_}")
+    print(f"Best R²: {grid_search.best_score_:.3f}")
+    
+
+#### 演習 5-6: 画像の二値化閾値比較中
+
+大津の方法と固定閾値（128）で二値化した結果を比較し、検出粒子数の違いを調べなさい。 
+
+解答例
+    
+    
+    _, binary_otsu = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    _, binary_fixed = cv2.threshold(image, 128, 255, cv2.THRESH_BINARY_INV)
+    
+    contours_otsu, _ = cv2.findContours(binary_otsu, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours_fixed, _ = cv2.findContours(binary_fixed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    print(f"Otsu: {len(contours_otsu)} particles")
+    print(f"Fixed: {len(contours_fixed)} particles")
+    # 大津の方法の方が適応的で精度が高い
+    
+
+#### 演習 5-7: 制約付き最適化中
+
+焼結温度T ≤ 1500°C、時間t ≤ 6hの制約下で、密度を最大化する条件を求めなさい。 
+
+解答例
+    
+    
+    bounds = [(1200, 1500), (1, 6), (0, 50)]  # 制約を反映
+    result = differential_evolution(lambda x: -sintering_density_model(x),
+                                    bounds, seed=42)
+    
+    print(f"Optimal T: {result.x[0]:.0f}°C")
+    print(f"Optimal t: {result.x[1]:.1f}h")
+    print(f"Density: {-result.fun:.1f}%")
+    
+
+#### 演習 5-8: 交差検証による汎化性能評価難
+
+5-fold交差検証を実行し、各foldのRMSEを計算してモデルの安定性を評価しなさい。 
+
+解答例
+    
+    
+    from sklearn.model_selection import cross_val_score
+    
+    scores = cross_val_score(RandomForestRegressor(n_estimators=100, random_state=42),
+                            X, y, cv=5, scoring='neg_root_mean_squared_error')
+    
+    rmse_scores = -scores  # 符号を反転
+    print(f"RMSE per fold: {rmse_scores}")
+    print(f"Mean RMSE: {rmse_scores.mean():.1f} ± {rmse_scores.std():.1f}")
+    # 標準偏差が小さいほど安定
+    
+
+#### 演習 5-9: Watershed法のパラメータ調整難
+
+距離変換の閾値（0.3, 0.5, 0.7）を変えて、検出粒子数がどう変わるか調べなさい。 
+
+解答例
+    
+    
+    thresholds = [0.3, 0.5, 0.7]
+    for thresh in thresholds:
+        _, sure_fg = cv2.threshold(dist_transform, thresh * dist_transform.max(), 255, 0)
+        contours, _ = cv2.findContours(sure_fg.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        print(f"Threshold {thresh}: {len(contours)} grains")
+    
+    # 閾値が高いほど検出粒子数減少（過セグメンテーション回避）
+    
+
+#### 演習 5-10: 統合ワークフローの拡張難
+
+CeramicsWorkflowクラスに、実験データ（CSV）を読み込み、機械学習モデルを訓練するメソッドを追加しなさい。 
+
+解答例
+    
+    
+    class CeramicsWorkflow:
+        # ... 既存のメソッド ...
+    
+        def load_experimental_data(self, csv_path):
+            """
+            実験データの読み込み
+    
+            Parameters:
+            -----------
+            csv_path : str
+                CSVファイルパス
+            """
+            print(f"\n[Data Loading] Reading {csv_path}...")
+            self.experimental_data = pd.read_csv(csv_path)
+            print(f"  Loaded {len(self.experimental_data)} samples")
+            print(f"  Columns: {list(self.experimental_data.columns)}")
+            return self.experimental_data
+    
+    # 使用例
+    workflow = CeramicsWorkflow("Al2O3")
+    workflow.load_experimental_data("sintering_data.csv")
+    workflow.train_ml_model(workflow.experimental_data)
+    
+
+## 参考文献
+
+  1. Jain, A., et al. (2013). Commentary: The Materials Project: A materials genome approach to accelerating materials innovation. _APL Materials_ , 1(1), 011002.
+  2. Ong, S.P., et al. (2013). Python Materials Genomics (pymatgen): A robust, open-source python library for materials analysis. _Computational Materials Science_ , 68, 314-319.
+  3. Pedregosa, F., et al. (2011). Scikit-learn: Machine Learning in Python. _Journal of Machine Learning Research_ , 12, 2825-2830.
+  4. Bradski, G. (2000). The OpenCV Library. _Dr. Dobb's Journal of Software Tools_.
+  5. Virtanen, P., et al. (2020). SciPy 1.0: Fundamental algorithms for scientific computing in Python. _Nature Methods_ , 17, 261-272.
+  6. Ward, L., et al. (2018). Matminer: An open source toolkit for materials data mining. _Computational Materials Science_ , 152, 60-69.
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

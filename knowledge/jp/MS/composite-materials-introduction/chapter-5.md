@@ -1,0 +1,1048 @@
+---
+title: 第5章 Python実践
+chapter_title: 第5章 Python実践
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/MS/composite-materials-introduction/chapter-5.html>) | Last sync: 2025-11-16
+
+### 複合材料入門
+
+  * [目次](<index.html>)
+  * [第1章 複合材料の基礎](<chapter-1.html>)
+  * [第2章 繊維強化複合材料](<chapter-2.html>)
+  * [第3章 粒子・積層複合材料](<chapter-3.html>)
+  * 第4章 複合材料の評価（準備中）
+  * [第5章 Python実践](<chapter-5.html>)
+
+#### Materials Science シリーズ
+
+  * [高分子材料入門](<../polymer-materials-introduction/index.html>)
+  * 薄膜・ナノ材料入門 (準備中)
+  * [複合材料入門](<index.html>)
+
+# 第5章 Python実践
+
+### 学習目標
+
+  * **基礎レベル:** 古典積層理論(CLT)をPythonで実装し、A-B-D行列を計算できる
+  * **応用レベル:** 最適化アルゴリズムを用いて積層構成を設計し、性能予測ができる
+  * **発展レベル:** 有限要素法の前処理を実装し、大規模解析への展開ができる
+
+## 5.1 古典積層理論の完全実装
+
+### 5.1.1 オブジェクト指向設計
+
+複合材料解析ツールをクラスベースで設計し、再利用性と拡張性を確保します。 
+
+#### 例題 5.1: CLT 解析ライブラリの実装
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from dataclasses import dataclass
+    from typing import List, Tuple, Optional
+    
+    @dataclass
+    class Material:
+        """単層材料の特性を保持するクラス"""
+        name: str
+        E1: float  # 縦弾性率 [GPa]
+        E2: float  # 横弾性率 [GPa]
+        nu12: float  # 主ポアソン比
+        G12: float  # せん断弾性率 [GPa]
+        Xt: float  # 縦引張強度 [MPa]
+        Xc: float  # 縦圧縮強度 [MPa]
+        Yt: float  # 横引張強度 [MPa]
+        Yc: float  # 横圧縮強度 [MPa]
+        S: float   # せん断強度 [MPa]
+    
+        def __post_init__(self):
+            """相反定理の確認"""
+            self.nu21 = self.nu12 * self.E2 / self.E1
+    
+        def Q_matrix(self) -> np.ndarray:
+            """縮約剛性マトリクス [Q] を計算"""
+            denom = 1 - self.nu12 * self.nu21
+            Q11 = self.E1 / denom
+            Q22 = self.E2 / denom
+            Q12 = self.nu12 * self.E2 / denom
+            Q66 = self.G12
+    
+            return np.array([
+                [Q11, Q12, 0],
+                [Q12, Q22, 0],
+                [0, 0, Q66]
+            ]) * 1000  # GPa → MPa
+    
+    class Laminate:
+        """積層板の解析クラス"""
+    
+        def __init__(self, material: Material, layup: List[float], t_ply: float):
+            """
+            Parameters:
+            -----------
+            material : Material
+                単層材料
+            layup : List[float]
+                積層構成 [θ1, θ2, ..., θn] (度)
+            t_ply : float
+                単層厚さ [mm]
+            """
+            self.material = material
+            self.layup = np.array(layup)
+            self.t_ply = t_ply
+            self.n_plies = len(layup)
+            self.total_thickness = self.n_plies * t_ply
+    
+            # z座標の計算(中央面を基準)
+            self.z = np.linspace(
+                -self.total_thickness / 2,
+                self.total_thickness / 2,
+                self.n_plies + 1
+            )
+    
+            # A, B, D マトリクスの計算
+            self.A, self.B, self.D = self._compute_ABD()
+    
+        @staticmethod
+        def transformation_matrix(theta: float) -> np.ndarray:
+            """座標変換マトリクス [T]"""
+            theta_rad = np.radians(theta)
+            c = np.cos(theta_rad)
+            s = np.sin(theta_rad)
+    
+            return np.array([
+                [c**2, s**2, 2*s*c],
+                [s**2, c**2, -2*s*c],
+                [-s*c, s*c, c**2 - s**2]
+            ])
+    
+        def Q_bar(self, theta: float) -> np.ndarray:
+            """Off-axis 剛性マトリクス [Q̄]"""
+            Q = self.material.Q_matrix()
+            T = self.transformation_matrix(theta)
+            T_inv = np.linalg.inv(T)
+    
+            return T_inv @ Q @ T_inv.T
+    
+        def _compute_ABD(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+            """A-B-D マトリクスを計算"""
+            A = np.zeros((3, 3))
+            B = np.zeros((3, 3))
+            D = np.zeros((3, 3))
+    
+            for k in range(self.n_plies):
+                Q_bar = self.Q_bar(self.layup[k])
+                z_k = self.z[k]
+                z_k1 = self.z[k + 1]
+    
+                A += Q_bar * (z_k1 - z_k)
+                B += 0.5 * Q_bar * (z_k1**2 - z_k**2)
+                D += (1/3) * Q_bar * (z_k1**3 - z_k**3)
+    
+            return A, B, D
+    
+        def ABD_matrix(self) -> np.ndarray:
+            """完全な6×6 ABDマトリクス"""
+            return np.block([
+                [self.A, self.B],
+                [self.B, self.D]
+            ])
+    
+        def is_symmetric(self) -> bool:
+            """積層構成が対称かどうか判定"""
+            n = len(self.layup)
+            for i in range(n // 2):
+                if self.layup[i] != self.layup[n - 1 - i]:
+                    return False
+            return True
+    
+        def effective_properties(self) -> dict:
+            """等価面内特性を計算"""
+            # コンプライアンスマトリクス
+            a = np.linalg.inv(self.A)
+    
+            # 等価ヤング率
+            Ex = 1 / (a[0, 0] * self.total_thickness)
+            Ey = 1 / (a[1, 1] * self.total_thickness)
+    
+            # 等価ポアソン比
+            nu_xy = -a[0, 1] / a[0, 0]
+            nu_yx = -a[1, 0] / a[1, 1]
+    
+            # 等価せん断弾性率
+            Gxy = 1 / (a[2, 2] * self.total_thickness)
+    
+            return {
+                'Ex': Ex / 1000,  # MPa → GPa
+                'Ey': Ey / 1000,
+                'nu_xy': nu_xy,
+                'nu_yx': nu_yx,
+                'Gxy': Gxy / 1000
+            }
+    
+        def print_summary(self):
+            """積層板の情報を出力"""
+            print("="*70)
+            print(f"積層板サマリ: {self.material.name}")
+            print("="*70)
+            print(f"積層構成: {self.layup}")
+            print(f"層数: {self.n_plies}")
+            print(f"単層厚さ: {self.t_ply} mm")
+            print(f"総板厚: {self.total_thickness} mm")
+            print(f"対称積層: {self.is_symmetric()}")
+    
+            print("\n[A] マトリクス (N/mm):")
+            print(self.A)
+    
+            print("\n[B] マトリクス (N):")
+            print(self.B)
+            print(f"Bマトリクスのノルム: {np.linalg.norm(self.B):.2e}")
+    
+            print("\n[D] マトリクス (N·mm):")
+            print(self.D)
+    
+            props = self.effective_properties()
+            print("\n等価面内特性:")
+            print(f"  Ex = {props['Ex']:.1f} GPa")
+            print(f"  Ey = {props['Ey']:.1f} GPa")
+            print(f"  νxy = {props['nu_xy']:.3f}")
+            print(f"  Gxy = {props['Gxy']:.1f} GPa")
+            print("="*70)
+    
+    # 使用例
+    # CFRP材料の定義
+    cfrp = Material(
+        name="T300/Epoxy",
+        E1=140.0, E2=10.0, nu12=0.30, G12=5.0,
+        Xt=1500, Xc=1200, Yt=50, Yc=200, S=70
+    )
+    
+    # 積層構成
+    layup_symmetric = [0, 45, -45, 90, 90, -45, 45, 0]
+    layup_quasi_iso = [0, 45, -45, 90]
+    
+    # 積層板の作成
+    lam_sym = Laminate(cfrp, layup_symmetric, t_ply=0.125)
+    lam_qi = Laminate(cfrp, layup_quasi_iso, t_ply=0.125)
+    
+    # サマリ表示
+    lam_sym.print_summary()
+    print("\n")
+    lam_qi.print_summary()
+
+### 5.1.2 応力・ひずみ解析
+
+印加荷重から各層の応力を計算し、破壊規準と照合します。 
+
+#### 例題 5.2: 積層板の応力解析と First Ply Failure
+    
+    
+    class FailureCriterion:
+        """破壊規準の基底クラス"""
+    
+        def __init__(self, material: Material):
+            self.material = material
+    
+        def failure_index(self, sigma1: float, sigma2: float, tau12: float) -> float:
+            """破壊指数を計算(実装は派生クラス)"""
+            raise NotImplementedError
+    
+    class TsaiWuCriterion(FailureCriterion):
+        """Tsai-Wu 破壊規準"""
+    
+        def __init__(self, material: Material):
+            super().__init__(material)
+    
+            # Tsai-Wu 係数
+            self.F1 = 1/material.Xt - 1/material.Xc
+            self.F2 = 1/material.Yt - 1/material.Yc
+            self.F11 = 1/(material.Xt * material.Xc)
+            self.F22 = 1/(material.Yt * material.Yc)
+            self.F66 = 1/material.S**2
+            self.F12 = -0.5 * np.sqrt(self.F11 * self.F22)
+    
+        def failure_index(self, sigma1: float, sigma2: float, tau12: float) -> float:
+            """Tsai-Wu 破壊指数"""
+            FI = (self.F1 * sigma1 + self.F2 * sigma2 +
+                  self.F11 * sigma1**2 + self.F22 * sigma2**2 +
+                  self.F66 * tau12**2 + 2 * self.F12 * sigma1 * sigma2)
+            return FI
+    
+    class LaminateAnalysis:
+        """積層板の荷重解析クラス"""
+    
+        def __init__(self, laminate: Laminate, criterion: FailureCriterion):
+            self.laminate = laminate
+            self.criterion = criterion
+    
+        def analyze_loading(self, Nx: float, Ny: float, Nxy: float,
+                            Mx: float = 0, My: float = 0, Mxy: float = 0) -> List[dict]:
+            """
+            荷重条件下での各層の応力解析
+    
+            Parameters:
+            -----------
+            Nx, Ny, Nxy : float
+                合応力 [N/mm]
+            Mx, My, Mxy : float
+                合モーメント [N·mm/mm]
+    
+            Returns:
+            --------
+            results : List[dict]
+                各層の応力と破壊指数
+            """
+            # ABD マトリクスの逆行列
+            ABD_inv = np.linalg.inv(self.laminate.ABD_matrix())
+    
+            # 荷重ベクトル
+            load = np.array([Nx, Ny, Nxy, Mx, My, Mxy])
+    
+            # 中央面のひずみと曲率
+            strain_curvature = ABD_inv @ load
+            epsilon0 = strain_curvature[:3]
+            kappa = strain_curvature[3:]
+    
+            results = []
+    
+            for k in range(self.laminate.n_plies):
+                # 層の中央位置
+                z_mid = (self.laminate.z[k] + self.laminate.z[k + 1]) / 2
+    
+                # 全体座標系でのひずみ
+                epsilon_global = epsilon0 + z_mid * kappa
+    
+                # 全体座標系での応力
+                Q_bar = self.laminate.Q_bar(self.laminate.layup[k])
+                stress_global = Q_bar @ epsilon_global
+    
+                # 主軸座標系へ変換
+                T = self.laminate.transformation_matrix(self.laminate.layup[k])
+                stress_local = T @ stress_global
+    
+                sigma1, sigma2, tau12 = stress_local
+    
+                # 破壊指数
+                FI = self.criterion.failure_index(sigma1, sigma2, tau12)
+                SF = 1 / np.sqrt(FI) if FI > 0 else np.inf
+    
+                results.append({
+                    'ply': k + 1,
+                    'angle': self.laminate.layup[k],
+                    'z': z_mid,
+                    'strain_global': epsilon_global,
+                    'stress_global': stress_global,
+                    'stress_local': stress_local,
+                    'FI': FI,
+                    'SF': SF
+                })
+    
+            return results
+    
+        def first_ply_failure(self, Nx: float, Ny: float, Nxy: float) -> Tuple[int, float]:
+            """
+            First Ply Failure 荷重を求める
+    
+            Returns:
+            --------
+            fpf_ply : int
+                最初に破壊する層番号
+            fpf_load : float
+                FPF荷重倍率
+            """
+            # 単位荷重での解析
+            results = self.analyze_loading(Nx, Ny, Nxy)
+    
+            # 最小安全率を見つける
+            min_sf = min(r['SF'] for r in results)
+            fpf_ply = min((r for r in results), key=lambda r: r['SF'])['ply']
+    
+            return fpf_ply, min_sf
+    
+    # 使用例
+    cfrp = Material(
+        name="T300/Epoxy",
+        E1=140.0, E2=10.0, nu12=0.30, G12=5.0,
+        Xt=1500, Xc=1200, Yt=50, Yc=200, S=70
+    )
+    
+    layup = [0, 45, -45, 90]
+    lam = Laminate(cfrp, layup, t_ply=0.125)
+    
+    # Tsai-Wu 規準
+    criterion = TsaiWuCriterion(cfrp)
+    
+    # 解析オブジェクト
+    analysis = LaminateAnalysis(lam, criterion)
+    
+    # 荷重条件(一軸引張)
+    Nx = 100  # N/mm
+    Ny = 0
+    Nxy = 0
+    
+    # 応力解析
+    results = analysis.analyze_loading(Nx, Ny, Nxy)
+    
+    # 結果表示
+    print("積層板の応力解析結果:")
+    print("="*80)
+    print(f"荷重: Nx = {Nx} N/mm, Ny = {Ny} N/mm, Nxy = {Nxy} N/mm")
+    print("-"*80)
+    print(f"{'層':>3} {'角度':>6} {'σ1':>10} {'σ2':>10} {'τ12':>10} {'FI':>8} {'SF':>8}")
+    print("-"*80)
+    
+    for r in results:
+        print(f"{r['ply']:3d} {r['angle']:6.0f}° {r['stress_local'][0]:10.1f} "
+              f"{r['stress_local'][1]:10.1f} {r['stress_local'][2]:10.1f} "
+              f"{r['FI']:8.3f} {r['SF']:8.2f}")
+    
+    # FPF
+    fpf_ply, fpf_sf = analysis.first_ply_failure(Nx, Ny, Nxy)
+    print("-"*80)
+    print(f"First Ply Failure: 層 {fpf_ply} (角度 {layup[fpf_ply-1]}°)")
+    print(f"安全率: {fpf_sf:.2f}")
+    print(f"破壊荷重: Nx = {Nx * fpf_sf:.1f} N/mm")
+
+## 5.2 最適積層設計
+
+### 5.2.1 遺伝的アルゴリズム (GA)
+
+離散変数(繊維配向角度)の最適化には、遺伝的アルゴリズムが有効です。 
+
+#### 例題 5.3: GA による積層構成最適化
+    
+    
+    import random
+    from typing import List, Callable
+    import numpy as np
+    
+    class GeneticAlgorithm:
+        """遺伝的アルゴリズムによる積層設計最適化"""
+    
+        def __init__(self, n_plies: int, angle_options: List[float],
+                     objective_func: Callable, symmetric: bool = True,
+                     pop_size: int = 50, generations: int = 100):
+            """
+            Parameters:
+            -----------
+            n_plies : int
+                層数
+            angle_options : List[float]
+                使用可能な角度 [度]
+            objective_func : Callable
+                目的関数(layup → score, 小さいほど良い)
+            symmetric : bool
+                対称積層を強制するか
+            """
+            self.n_plies = n_plies
+            self.angle_options = angle_options
+            self.objective_func = objective_func
+            self.symmetric = symmetric
+            self.pop_size = pop_size
+            self.generations = generations
+    
+            # 対称積層の場合は半分だけ遺伝子として扱う
+            self.gene_length = n_plies // 2 if symmetric else n_plies
+    
+        def create_individual(self) -> List[float]:
+            """個体(積層構成)をランダム生成"""
+            genes = [random.choice(self.angle_options) for _ in range(self.gene_length)]
+    
+            if self.symmetric:
+                # 対称積層化
+                return genes + genes[::-1]
+            else:
+                return genes
+    
+        def fitness(self, individual: List[float]) -> float:
+            """適応度(目的関数の逆数)"""
+            score = self.objective_func(individual)
+            return 1 / (1 + score)  # スコアが小さいほど適応度が高い
+    
+        def selection(self, population: List[List[float]]) -> List[List[float]]:
+            """トーナメント選択"""
+            tournament_size = 3
+            selected = []
+    
+            for _ in range(len(population)):
+                tournament = random.sample(population, tournament_size)
+                winner = max(tournament, key=self.fitness)
+                selected.append(winner)
+    
+            return selected
+    
+        def crossover(self, parent1: List[float], parent2: List[float]) -> List[float]:
+            """一点交叉"""
+            point = random.randint(1, self.gene_length - 1)
+    
+            if self.symmetric:
+                # 半分の遺伝子で交叉
+                genes1 = parent1[:self.gene_length]
+                genes2 = parent2[:self.gene_length]
+                child_genes = genes1[:point] + genes2[point:]
+                return child_genes + child_genes[::-1]
+            else:
+                return parent1[:point] + parent2[point:]
+    
+        def mutate(self, individual: List[float], mutation_rate: float = 0.1) -> List[float]:
+            """突然変異"""
+            if self.symmetric:
+                genes = individual[:self.gene_length]
+                mutated_genes = []
+    
+                for gene in genes:
+                    if random.random() < mutation_rate:
+                        mutated_genes.append(random.choice(self.angle_options))
+                    else:
+                        mutated_genes.append(gene)
+    
+                return mutated_genes + mutated_genes[::-1]
+            else:
+                return [
+                    random.choice(self.angle_options) if random.random() < mutation_rate else gene
+                    for gene in individual
+                ]
+    
+        def optimize(self) -> Tuple[List[float], float]:
+            """最適化実行"""
+            # 初期集団
+            population = [self.create_individual() for _ in range(self.pop_size)]
+    
+            best_history = []
+    
+            for gen in range(self.generations):
+                # 適応度評価
+                fitnesses = [self.fitness(ind) for ind in population]
+                best_idx = np.argmax(fitnesses)
+                best_individual = population[best_idx]
+                best_score = self.objective_func(best_individual)
+    
+                best_history.append(best_score)
+    
+                if gen % 10 == 0:
+                    print(f"世代 {gen}: 最良スコア = {best_score:.4f}, "
+                          f"積層 = {best_individual}")
+    
+                # 選択
+                selected = self.selection(population)
+    
+                # 次世代生成
+                next_population = [best_individual]  # エリート保存
+    
+                while len(next_population) < self.pop_size:
+                    parent1, parent2 = random.sample(selected, 2)
+                    child = self.crossover(parent1, parent2)
+                    child = self.mutate(child)
+                    next_population.append(child)
+    
+                population = next_population
+    
+            # 最終世代の最良個体
+            fitnesses = [self.fitness(ind) for ind in population]
+            best_idx = np.argmax(fitnesses)
+            best_individual = population[best_idx]
+            best_score = self.objective_func(best_individual)
+    
+            return best_individual, best_score
+    
+    # 最適化問題の定義
+    cfrp = Material(
+        name="T300/Epoxy",
+        E1=140.0, E2=10.0, nu12=0.30, G12=5.0,
+        Xt=1500, Xc=1200, Yt=50, Yc=200, S=70
+    )
+    
+    t_ply = 0.125
+    
+    # 目的関数: Ex と Ey の差を最小化(準等方性に近づける)
+    def objective_quasi_isotropic(layup):
+        lam = Laminate(cfrp, layup, t_ply)
+        props = lam.effective_properties()
+        # Ex と Ey の相対差
+        diff = abs(props['Ex'] - props['Ey']) / props['Ex']
+        return diff
+    
+    # GA実行
+    angle_options = [0, 45, -45, 90]
+    n_plies = 8
+    
+    ga = GeneticAlgorithm(
+        n_plies=n_plies,
+        angle_options=angle_options,
+        objective_func=objective_quasi_isotropic,
+        symmetric=True,
+        pop_size=50,
+        generations=100
+    )
+    
+    best_layup, best_score = ga.optimize()
+    
+    print("\n" + "="*70)
+    print("最適積層設計結果:")
+    print("="*70)
+    print(f"最適積層: {best_layup}")
+    print(f"目的関数値(Ex-Ey差): {best_score:.4f}")
+    
+    # 最適積層の詳細解析
+    lam_opt = Laminate(cfrp, best_layup, t_ply)
+    lam_opt.print_summary()
+
+### 5.2.2 多目的最適化
+
+強度、剛性、重量など複数の目的を同時に最適化します。 
+
+#### 例題 5.4: NSGA-II による多目的最適化
+    
+    
+    from scipy.optimize import differential_evolution
+    import matplotlib.pyplot as plt
+    
+    def multi_objective_function(layup_continuous, material, t_ply,
+                                  target_Nx, target_Ny):
+        """
+        多目的関数: 質量最小化 & 強度確保
+    
+        Parameters:
+        -----------
+        layup_continuous : array
+            連続変数化した積層構成 [0-3] → [0, 45, -45, 90]
+    
+        Returns:
+        --------
+        objectives : tuple
+            (質量, 逆安全率)
+        """
+        # 連続変数を離散角度に変換
+        angle_map = {0: 0, 1: 45, 2: -45, 3: 90}
+        layup = [angle_map[int(round(x))] for x in layup_continuous]
+    
+        # 積層板作成
+        lam = Laminate(material, layup, t_ply)
+    
+        # 質量(板厚に比例)
+        mass = lam.total_thickness
+    
+        # 安全率(Tsai-Wu)
+        criterion = TsaiWuCriterion(material)
+        analysis = LaminateAnalysis(lam, criterion)
+    
+        try:
+            results = analysis.analyze_loading(target_Nx, target_Ny, 0)
+            min_sf = min(r['SF'] for r in results)
+        except:
+            min_sf = 0.1  # エラー時はペナルティ
+    
+        # 目的: 質量最小化、安全率最大化(逆数最小化)
+        return mass, 1 / min_sf
+    
+    # Pareto フロンティアの探索(簡易版: スカラー化法)
+    cfrp = Material(
+        name="T300/Epoxy",
+        E1=140.0, E2=10.0, nu12=0.30, G12=5.0,
+        Xt=1500, Xc=1200, Yt=50, Yc=200, S=70
+    )
+    
+    t_ply = 0.125
+    target_Nx = 150  # N/mm
+    target_Ny = 50   # N/mm
+    n_plies = 12
+    
+    # 重み付けスカラー化法
+    weights = np.linspace(0, 1, 11)
+    pareto_solutions = []
+    
+    for w in weights:
+        def scalarized_objective(x):
+            mass, inv_sf = multi_objective_function(x, cfrp, t_ply, target_Nx, target_Ny)
+            # 正規化して重み付け和
+            return w * mass / 2.0 + (1 - w) * inv_sf * 10
+    
+        # 最適化(differential_evolution)
+        bounds = [(0, 3)] * n_plies  # 0-3の連続値
+        result = differential_evolution(
+            scalarized_objective,
+            bounds,
+            maxiter=50,
+            seed=123,
+            atol=0.1,
+            tol=0.1
+        )
+    
+        # 最適解
+        angle_map = {0: 0, 1: 45, 2: -45, 3: 90}
+        best_layup = [angle_map[int(round(x))] for x in result.x]
+        mass, inv_sf = multi_objective_function(result.x, cfrp, t_ply, target_Nx, target_Ny)
+    
+        pareto_solutions.append({
+            'weight': w,
+            'layup': best_layup,
+            'mass': mass,
+            'safety_factor': 1 / inv_sf
+        })
+    
+        print(f"重み w={w:.1f}: 質量={mass:.3f} mm, SF={1/inv_sf:.2f}, 積層={best_layup}")
+    
+    # Paretoフロント可視化
+    masses = [sol['mass'] for sol in pareto_solutions]
+    sfs = [sol['safety_factor'] for sol in pareto_solutions]
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(masses, sfs, 'bo-', linewidth=2, markersize=8)
+    plt.xlabel('板厚 [mm]')
+    plt.ylabel('安全率')
+    plt.title('Pareto フロンティア (質量 vs 安全率)')
+    plt.grid(True, alpha=0.3)
+    
+    # 各点にラベル
+    for i, sol in enumerate(pareto_solutions[::2]):  # 間引いて表示
+        plt.annotate(f"w={sol['weight']:.1f}",
+                     (sol['mass'], sol['safety_factor']),
+                     textcoords="offset points", xytext=(5,5), fontsize=8)
+    
+    plt.tight_layout()
+    plt.savefig('pareto_front.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+## 5.3 有限要素法の前処理
+
+### 5.3.1 メッシュ生成
+
+複合材料の有限要素解析では、各層を別要素または シェル要素の積分点として扱います。 
+
+#### 例題 5.5: 矩形板のメッシュ生成とAbaqus入力ファイル作成
+    
+    
+    import numpy as np
+    
+    class CompositeMesh:
+        """複合材料板のメッシュ生成"""
+    
+        def __init__(self, length: float, width: float,
+                     nx: int, ny: int, laminate: Laminate):
+            """
+            Parameters:
+            -----------
+            length, width : float
+                板の寸法 [mm]
+            nx, ny : int
+                要素分割数
+            laminate : Laminate
+                積層板オブジェクト
+            """
+            self.length = length
+            self.width = width
+            self.nx = nx
+            self.ny = ny
+            self.laminate = laminate
+    
+            self.nodes = []
+            self.elements = []
+    
+            self._generate_mesh()
+    
+        def _generate_mesh(self):
+            """節点と要素の生成"""
+            # 節点生成
+            dx = self.length / self.nx
+            dy = self.width / self.ny
+    
+            node_id = 1
+            for j in range(self.ny + 1):
+                for i in range(self.nx + 1):
+                    x = i * dx
+                    y = j * dy
+                    self.nodes.append({
+                        'id': node_id,
+                        'x': x,
+                        'y': y,
+                        'z': 0
+                    })
+                    node_id += 1
+    
+            # 要素生成(4節点シェル要素)
+            elem_id = 1
+            for j in range(self.ny):
+                for i in range(self.nx):
+                    n1 = j * (self.nx + 1) + i + 1
+                    n2 = n1 + 1
+                    n3 = n1 + (self.nx + 1) + 1
+                    n4 = n1 + (self.nx + 1)
+    
+                    self.elements.append({
+                        'id': elem_id,
+                        'nodes': [n1, n2, n3, n4]
+                    })
+                    elem_id += 1
+    
+        def export_abaqus_inp(self, filename: str):
+            """Abaqus入力ファイルを出力"""
+            with open(filename, 'w') as f:
+                f.write("*HEADING\n")
+                f.write("Composite Laminate Mesh\n")
+    
+                # 節点
+                f.write("*NODE\n")
+                for node in self.nodes:
+                    f.write(f"{node['id']}, {node['x']:.4f}, {node['y']:.4f}, {node['z']:.4f}\n")
+    
+                # 要素
+                f.write("*ELEMENT, TYPE=S4R, ELSET=PLATE\n")
+                for elem in self.elements:
+                    nodes_str = ", ".join(map(str, elem['nodes']))
+                    f.write(f"{elem['id']}, {nodes_str}\n")
+    
+                # シェル断面
+                f.write("*SHELL SECTION, ELSET=PLATE, COMPOSITE\n")
+                for k, angle in enumerate(self.laminate.layup):
+                    # 厚さ, 積分点数, 材料名, 角度
+                    f.write(f"{self.laminate.t_ply}, 3, MAT1, {angle}\n")
+    
+                # 材料特性
+                mat = self.laminate.material
+                f.write("*MATERIAL, NAME=MAT1\n")
+                f.write("*ELASTIC, TYPE=LAMINA\n")
+                f.write(f"{mat.E1*1000}, {mat.E2*1000}, {mat.nu12}, "
+                        f"{mat.G12*1000}, {mat.G12*1000}, {mat.G12*1000}\n")
+    
+                # 境界条件(単純支持)
+                f.write("*BOUNDARY\n")
+                # 左辺(x=0): UX=0
+                for node in self.nodes:
+                    if abs(node['x']) < 1e-6:
+                        f.write(f"{node['id']}, 1\n")
+    
+                # 下辺(y=0): UY=0
+                for node in self.nodes:
+                    if abs(node['y']) < 1e-6:
+                        f.write(f"{node['id']}, 2\n")
+    
+                # 荷重ステップ
+                f.write("*STEP\n")
+                f.write("*STATIC\n")
+    
+                # 分布荷重(上面に圧力)
+                f.write("*DLOAD\n")
+                for elem in self.elements:
+                    f.write(f"{elem['id']}, P, 0.1\n")  # 0.1 MPa
+    
+                f.write("*OUTPUT, FIELD\n")
+                f.write("*NODE OUTPUT\n")
+                f.write("U, RF\n")
+                f.write("*ELEMENT OUTPUT\n")
+                f.write("S, E\n")
+                f.write("*END STEP\n")
+    
+            print(f"Abaqus 入力ファイルを出力しました: {filename}")
+    
+    # メッシュ生成例
+    cfrp = Material(
+        name="T300/Epoxy",
+        E1=140.0, E2=10.0, nu12=0.30, G12=5.0,
+        Xt=1500, Xc=1200, Yt=50, Yc=200, S=70
+    )
+    
+    layup = [0, 45, -45, 90, 90, -45, 45, 0]
+    lam = Laminate(cfrp, layup, t_ply=0.125)
+    
+    # 矩形板メッシュ
+    mesh = CompositeMesh(length=100, width=100, nx=10, ny=10, laminate=lam)
+    
+    # Abaqus入力ファイル出力
+    mesh.export_abaqus_inp("composite_plate.inp")
+    
+    print(f"生成メッシュ情報:")
+    print(f"  節点数: {len(mesh.nodes)}")
+    print(f"  要素数: {len(mesh.elements)}")
+    print(f"  積層構成: {layup}")
+    print(f"  総板厚: {lam.total_thickness} mm")
+
+### 5.3.2 後処理とデータ可視化
+
+FEA結果の読み込みと可視化を自動化します。 
+
+#### 例題 5.6: 応力分布の可視化
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Rectangle
+    from matplotlib.collections import PatchCollection
+    
+    def visualize_stress_distribution(mesh: CompositeMesh, stress_values: np.ndarray,
+                                        component: str = 'Sxx', cmap: str = 'jet'):
+        """
+        メッシュ上の応力分布を可視化
+    
+        Parameters:
+        -----------
+        mesh : CompositeMesh
+            メッシュオブジェクト
+        stress_values : ndarray
+            各要素の応力値 [MPa]
+        component : str
+            応力成分名
+        cmap : str
+            カラーマップ
+        """
+        fig, ax = plt.subplots(figsize=(10, 8))
+    
+        patches = []
+        colors = []
+    
+        for elem, stress in zip(mesh.elements, stress_values):
+            # 要素の4節点座標を取得
+            node_ids = elem['nodes']
+            coords = np.array([[mesh.nodes[nid-1]['x'], mesh.nodes[nid-1]['y']]
+                               for nid in node_ids])
+    
+            # 矩形パッチ作成
+            x_min, y_min = coords.min(axis=0)
+            width = coords[:, 0].max() - x_min
+            height = coords[:, 1].max() - y_min
+    
+            rect = Rectangle((x_min, y_min), width, height)
+            patches.append(rect)
+            colors.append(stress)
+    
+        # パッチコレクション
+        p = PatchCollection(patches, cmap=cmap, edgecolors='black', linewidths=0.5)
+        p.set_array(np.array(colors))
+    
+        ax.add_collection(p)
+    
+        # カラーバー
+        cbar = plt.colorbar(p, ax=ax)
+        cbar.set_label(f'{component} [MPa]', fontsize=12)
+    
+        ax.set_xlim(0, mesh.length)
+        ax.set_ylim(0, mesh.width)
+        ax.set_aspect('equal')
+        ax.set_xlabel('X [mm]', fontsize=12)
+        ax.set_ylabel('Y [mm]', fontsize=12)
+        ax.set_title(f'応力分布: {component}', fontsize=14, weight='bold')
+    
+        plt.tight_layout()
+        plt.savefig(f'stress_{component}.png', dpi=300, bbox_inches='tight')
+        plt.close()
+    
+    # 模擬応力データ生成
+    n_elements = len(mesh.elements)
+    
+    # 板中央で応力が高い分布を模擬
+    stress_Sxx = []
+    for elem in mesh.elements:
+        node_ids = elem['nodes']
+        x_center = np.mean([mesh.nodes[nid-1]['x'] for nid in node_ids])
+        y_center = np.mean([mesh.nodes[nid-1]['y'] for nid in node_ids])
+    
+        # 板中央(50, 50)からの距離に応じた応力
+        dist = np.sqrt((x_center - 50)**2 + (y_center - 50)**2)
+        stress = 100 * np.exp(-dist / 30)  # ガウシアン分布
+    
+        stress_Sxx.append(stress)
+    
+    stress_Sxx = np.array(stress_Sxx)
+    
+    # 可視化
+    visualize_stress_distribution(mesh, stress_Sxx, component='Sxx', cmap='jet')
+    print("応力分布図を出力しました: stress_Sxx.png")
+
+## 5.4 まとめ
+
+本章では、Pythonを用いた複合材料解析の実践的な実装を学びました：
+
+  * 古典積層理論(CLT)の完全実装(オブジェクト指向設計)
+  * 応力解析とFirst Ply Failure予測
+  * 遺伝的アルゴリズムによる最適積層設計
+  * 多目的最適化とParetoフロンティア
+  * 有限要素法の前処理(メッシュ生成、Abaqus入力)
+  * 結果の可視化と後処理
+
+これらの技術を組み合わせることで、実務レベルの複合材料設計・解析が 可能になります。さらに発展的な学習として、損傷力学、 確率論的設計、マルチスケール解析などに取り組むことを推奨します。 
+
+## 演習問題
+
+### 基礎レベル
+
+#### 問題 5.1: CLT ライブラリの拡張
+
+Laminate クラスに以下のメソッドを追加せよ： 
+
+  * 曲げ剛性(板厚あたり)を計算する effective_bending_stiffness()
+  * 熱膨張係数を考慮した thermal_stress() メソッド
+
+#### 問題 5.2: プロット機能の実装
+
+Laminate クラスに、各層の応力分布を板厚方向にプロットする plot_through_thickness_stress() メソッドを実装せよ。 
+
+#### 問題 5.3: データ出力
+
+解析結果をCSVファイルに出力する export_to_csv() メソッドを実装せよ。 出力項目: 層番号、角度、z座標、σ1, σ2, τ12, FI, SF 
+
+### 応用レベル
+
+#### 問題 5.4: 座屈解析
+
+積層板の座屈荷重を計算する buckling_load() メソッドを実装せよ。 単純支持矩形板の座屈固有値問題を解け。 
+
+#### 問題 5.5: 最適化の拡張
+
+遺伝的アルゴリズムに以下の制約を追加せよ： 
+
+  * 連続する同じ角度は2層まで
+  * 0°層を少なくとも20%含む
+  * 対称積層を維持
+
+#### 問題 5.6: パラメトリックスタディ
+
+繊維体積分率 V_f = 0.4-0.7 の範囲で、積層板の面内剛性と 重量のトレードオフを可視化するプログラムを作成せよ。 
+
+#### 問題 5.7: ユーザーインターフェース
+
+対話的に積層構成を入力し、即座に特性を表示する 簡易GUIをtkinterで作成せよ。 
+
+### 発展レベル
+
+#### 問題 5.8: 損傷進展シミュレーション
+
+Progressive Failure Analysisを実装せよ： 
+
+  * First Ply Failure 検出
+  * 破損層の剛性低下(Degradation Model)
+  * 荷重の再分配と再解析
+  * Last Ply Failure までのループ
+
+#### 問題 5.9: マルチスケール解析
+
+ミクロスケール(繊維-母材)からマクロスケール(積層板)への 均質化手法を実装せよ。有限要素法でRVE解析を行い、 等価単層特性を抽出せよ。 
+
+#### 問題 5.10: 機械学習との統合
+
+以下の機械学習モデルを構築せよ： 
+
+  * 入力: 積層構成(ワンホットエンコーディング)
+  * 出力: Ex, Ey, Gxy, First Ply Failure荷重
+  * 学習データ: CLT解析で1000サンプル生成
+  * モデル: ニューラルネットワーク(scikit-learn/TensorFlow)
+  * 評価: R²スコア、予測誤差の可視化
+
+## 参考文献
+
+  1. Reddy, J. N., "Mechanics of Laminated Composite Plates and Shells: Theory and Analysis", 2nd ed., CRC Press, 2003, pp. 456-534
+  2. Kaw, A. K., "Mechanics of Composite Materials", 2nd ed., CRC Press, 2005, pp. 312-389
+  3. Goldberg, D. E., "Genetic Algorithms in Search, Optimization, and Machine Learning", Addison-Wesley, 1989, pp. 1-89
+  4. Deb, K., "Multi-Objective Optimization Using Evolutionary Algorithms", Wiley, 2001, pp. 234-312
+  5. Liu, B., Haftka, R. T., and Akgun, M. A., "Two-level Composite Wing Structural Optimization Using Response Surfaces", Structural and Multidisciplinary Optimization, Vol. 20, 2000, pp. 87-96
+  6. Simulia, "Abaqus Analysis User's Guide: Composite Materials", Dassault Systèmes, 2020, pp. 23.1.1-23.6.8
+  7. Bathe, K. J., "Finite Element Procedures", Prentice Hall, 1996, pp. 634-712
+  8. Hunter, J. D., "Matplotlib: A 2D Graphics Environment", Computing in Science & Engineering, Vol. 9, 2007, pp. 90-95
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

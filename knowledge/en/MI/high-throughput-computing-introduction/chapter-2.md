@@ -1,0 +1,946 @@
+---
+title: "Chapter 2: DFT Calculation Automation (VASP, Quantum ESPRESSO)"
+chapter_title: "Chapter 2: DFT Calculation Automation (VASP, Quantum ESPRESSO)"
+subtitle: 
+reading_time: 20-25 min
+difficulty: Intermediate to Advanced
+code_examples: 6
+exercises: 0
+version: 1.0
+created_at: 2025-10-17
+---
+
+# Chapter 2: DFT Calculation Automation (VASP, Quantum ESPRESSO)
+
+Learn the fundamentals of automation from input generation to execution management using ASE and pymatgen to reduce errors.
+
+**💡 Note:** Templatize input generation to fill only differences. Also prepare restart procedures for handling failures.
+
+## Learning Objectives
+
+By reading this chapter, you will be able to:
+
+  * ✅ Automatically execute DFT calculations using ASE
+  * ✅ Auto-generate input files for VASP and Quantum ESPRESSO
+  * ✅ Use pymatgen's InputSet for standardized configurations
+  * ✅ Detect errors and perform automatic restarts
+  * ✅ Automate convergence checks for structural optimization
+
+* * *
+
+## 2.1 ASE (Atomic Simulation Environment) Basics
+
+### What is ASE?
+
+**ASE (Atomic Simulation Environment)** is a Python library for atomic-scale simulations.
+
+**Features** : \- ✅ Support for diverse calculation codes (VASP, QE, LAMMPS, etc.) \- ✅ Unified interface for structure generation and manipulation \- ✅ Tools for analyzing calculation results \- ✅ MIT License (open source)
+
+### Installation
+    
+    
+    # conda environment recommended
+    conda create -n ht_computing python=3.10
+    conda activate ht_computing
+    
+    # Install ASE
+    pip install ase
+    
+    # Additional packages
+    pip install numpy scipy matplotlib
+    
+
+### Basic Structure Generation
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example: Basic Structure Generation
+    
+    Purpose: Demonstrate neural network implementation
+    Target: Beginner to Intermediate
+    Execution time: ~5 seconds
+    Dependencies: None
+    """
+    
+    from ase import Atoms
+    from ase.build import bulk, molecule
+    import numpy as np
+    
+    # Example 1: Bulk crystal generation
+    si = bulk('Si', 'diamond', a=5.43)
+    print(f"Si crystal: {len(si)} atoms")
+    print(f"Lattice constant: {si.cell.cellpar()}")
+    
+    # Example 2: Molecule generation
+    h2o = molecule('H2O')
+    print(f"H2O molecule: {len(h2o)} atoms")
+    
+    # Example 3: Custom structure
+    # LiCoO2 (layered structure)
+    a = 2.82
+    c = 14.05
+    positions = [
+        [0, 0, 0],       # Li
+        [0, 0, 0.5*c],   # Co
+        [1/3, 2/3, 0.25*c],  # O
+        [2/3, 1/3, 0.75*c],  # O
+    ]
+    atoms = Atoms('LiCoO2',
+                  positions=positions,
+                  cell=[a, a, c, 90, 90, 120],
+                  pbc=True)
+    
+    print(f"LiCoO2: {atoms.get_chemical_formula()}")
+    
+
+**Output** :
+    
+    
+    Si crystal: 2 atoms
+    Lattice constant: [5.43 5.43 5.43 90.  90.  90. ]
+    H2O molecule: 3 atoms
+    LiCoO2: LiCoO2
+    
+
+### Structure Visualization
+    
+    
+    from ase.visualize import view
+    
+    # 3D visualization (launches GUI)
+    view(si)
+    
+    # Save to file
+    from ase.io import write
+    
+    # Save in CIF format
+    write('si_structure.cif', si)
+    
+    # POSCAR format (for VASP)
+    write('POSCAR', si, format='vasp')
+    
+    # XYZ format
+    write('structure.xyz', si)
+    
+
+* * *
+
+## 2.2 VASP Automation
+
+### VASP Interface Configuration
+    
+    
+    from ase.calculators.vasp import Vasp
+    
+    # VASP calculator configuration
+    calc = Vasp(
+        # Basic settings
+        xc='PBE',           # Exchange-correlation functional
+        encut=520,          # Energy cutoff (eV)
+    
+        # k-point settings
+        kpts=(8, 8, 8),     # Monkhorst-Pack grid
+        gamma=True,         # Gamma-centered
+    
+        # Electronic structure
+        ismear=0,           # Gaussian smearing
+        sigma=0.05,         # Smearing width (eV)
+    
+        # Convergence criteria
+        ediff=1e-5,         # Energy convergence (eV)
+    
+        # Parallelization
+        ncore=4,            # Improve parallel efficiency
+    
+        # Output control
+        lwave=False,        # Do not save WAVECAR
+        lcharg=False,       # Do not save CHGCAR
+    )
+    
+
+### Structural Optimization Automation
+    
+    
+    from ase.optimize import BFGS
+    from ase.calculators.vasp import Vasp
+    from ase.io import read, write
+    import os
+    
+    def relax_structure(atoms, output_dir='relaxation'):
+        """
+        Automatically execute structural optimization
+    
+        Parameters:
+        -----------
+        atoms : ase.Atoms
+            Structure to optimize
+        output_dir : str
+            Output directory
+    
+        Returns:
+        --------
+        relaxed_atoms : ase.Atoms
+            Optimized structure
+        """
+        # Create output directory
+        os.makedirs(output_dir, exist_ok=True)
+        os.chdir(output_dir)
+    
+        # VASP calculator configuration
+        calc = Vasp(
+            xc='PBE',
+            encut=520,
+            kpts=(8, 8, 8),
+            ediff=1e-5,
+            ibrion=2,       # Structural optimization algorithm
+            nsw=100,        # Maximum ionic steps
+            isif=3,         # Also optimize cell shape
+            ediffg=-0.01,   # Force convergence criterion (eV/Å)
+        )
+    
+        atoms.calc = calc
+    
+        # Execute optimization
+        print(f"Starting structural optimization: {atoms.get_chemical_formula()}")
+    
+        try:
+            # Optimize with BFGS algorithm
+            optimizer = BFGS(atoms, trajectory='optimization.traj')
+            optimizer.run(fmax=0.01)  # Maximum force below 0.01 eV/Å
+    
+            print("Structural optimization completed")
+            print(f"Final energy: {atoms.get_potential_energy():.3f} eV")
+    
+            # Save optimized structure
+            write('CONTCAR', atoms, format='vasp')
+    
+            return atoms
+    
+        except Exception as e:
+            print(f"Error occurred: {e}")
+            return None
+    
+        finally:
+            os.chdir('..')
+    
+    # Usage example
+    si = bulk('Si', 'diamond', a=5.43)
+    relaxed_si = relax_structure(si, output_dir='si_relaxation')
+    
+
+### INCAR File Auto-Generation
+    
+    
+    def generate_incar(calculation_type='relax'):
+        """
+        Generate INCAR settings according to calculation type
+    
+        Parameters:
+        -----------
+        calculation_type : str
+            One of 'relax', 'static', 'band', 'dos'
+    
+        Returns:
+        --------
+        incar_dict : dict
+            Dictionary of INCAR settings
+        """
+        # Common settings
+        base_settings = {
+            'SYSTEM': 'Automated calculation',
+            'PREC': 'Accurate',
+            'ENCUT': 520,
+            'EDIFF': 1e-5,
+            'ISMEAR': 0,
+            'SIGMA': 0.05,
+            'LREAL': False,
+            'LWAVE': False,
+            'LCHARG': False,
+        }
+    
+        # Calculation-type-specific settings
+        if calculation_type == 'relax':
+            specific = {
+                'IBRION': 2,      # CG method
+                'NSW': 100,       # Maximum ionic steps
+                'ISIF': 3,        # Cell shape optimization
+                'EDIFFG': -0.01,  # Force convergence
+            }
+    
+        elif calculation_type == 'static':
+            specific = {
+                'IBRION': -1,     # No ionic relaxation
+                'NSW': 0,
+                'LCHARG': True,   # Save charge density
+            }
+    
+        elif calculation_type == 'band':
+            specific = {
+                'IBRION': -1,
+                'NSW': 0,
+                'ICHARG': 11,     # Read charge density
+                'LORBIT': 11,     # DOS and bands
+            }
+    
+        elif calculation_type == 'dos':
+            specific = {
+                'IBRION': -1,
+                'NSW': 0,
+                'ICHARG': 11,
+                'LORBIT': 11,
+                'NEDOS': 2001,    # DOS resolution
+            }
+    
+        else:
+            raise ValueError(f"Unknown calculation type: {calculation_type}")
+    
+        # Combine settings
+        incar_dict = {**base_settings, **specific}
+    
+        return incar_dict
+    
+    # Usage example
+    relax_incar = generate_incar('relax')
+    print("INCAR for structural optimization:")
+    for key, value in relax_incar.items():
+        print(f"{key} = {value}")
+    
+
+### Automatic K-point Configuration
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    
+    from ase.dft.kpoints import monkhorst_pack
+    import numpy as np
+    
+    def auto_kpoints(atoms, kpt_density=1000):
+        """
+        Automatically set k-point density according to cell size
+    
+        Parameters:
+        -----------
+        atoms : ase.Atoms
+            Structure
+        kpt_density : float
+            k-point density (number of k-points per 1/Å³)
+    
+        Returns:
+        --------
+        kpts : tuple
+            k-point grid (nx, ny, nz)
+        """
+        # Reciprocal lattice vector lengths
+        cell = atoms.get_cell()
+        reciprocal_cell = cell.reciprocal()
+        lengths = np.linalg.norm(reciprocal_cell, axis=1)
+    
+        # Calculate k-point numbers
+        kpts = []
+        for length in lengths:
+            # Calculate required divisions from k-point density
+            n = max(1, int(np.ceil(kpt_density / length)))
+            kpts.append(n)
+    
+        return tuple(kpts)
+    
+    # Usage example
+    si = bulk('Si', 'diamond', a=5.43)
+    kpts = auto_kpoints(si, kpt_density=1000)
+    print(f"k-point grid for Si: {kpts}")  # e.g., (12, 12, 12)
+    
+    # Large cell
+    supercell = si * (2, 2, 2)
+    kpts_super = auto_kpoints(supercell, kpt_density=1000)
+    print(f"k-point for supercell: {kpts_super}")  # e.g., (6, 6, 6)
+    
+
+* * *
+
+## 2.3 Quantum ESPRESSO Automation
+
+### QE Calculator Configuration
+    
+    
+    from ase.calculators.espresso import Espresso
+    
+    # Quantum ESPRESSO calculator
+    calc_qe = Espresso(
+        # Executable path
+        command='pw.x -in PREFIX.pwi > PREFIX.pwo',
+    
+        # Pseudopotentials
+        pseudopotentials={
+            'Si': 'Si.pbe-n-kjpaw_psl.1.0.0.UPF',
+            'O': 'O.pbe-n-kjpaw_psl.1.0.0.UPF',
+        },
+        pseudo_dir='/path/to/pseudopotentials',
+    
+        # Input parameters
+        input_data={
+            'control': {
+                'calculation': 'relax',
+                'restart_mode': 'from_scratch',
+                'prefix': 'pwscf',
+                'outdir': './tmp',
+                'pseudo_dir': '/path/to/pseudopotentials',
+            },
+            'system': {
+                'ecutwfc': 60,      # Wavefunction cutoff (Ry)
+                'ecutrho': 480,     # Charge density cutoff
+                'occupations': 'smearing',
+                'smearing': 'gaussian',
+                'degauss': 0.01,
+            },
+            'electrons': {
+                'conv_thr': 1e-8,   # Convergence criterion
+                'mixing_beta': 0.7,
+            },
+            'ions': {
+                'ion_dynamics': 'bfgs',
+            },
+        },
+    
+        # k-point
+        kpts=(8, 8, 8),
+        koffset=(0, 0, 0),
+    )
+    
+
+### QE Input File Template
+    
+    
+    def generate_qe_input(atoms, calculation='relax'):
+        """
+        Generate Quantum ESPRESSO input file
+    
+        Parameters:
+        -----------
+        atoms : ase.Atoms
+            Structure to calculate
+        calculation : str
+            'relax', 'scf', 'nscf', 'bands'
+    
+        Returns:
+        --------
+        input_str : str
+            Input file content
+        """
+        from ase.io.espresso import write_espresso_in
+    
+        # Calculation-type-specific settings
+        if calculation == 'relax':
+            input_data = {
+                'control': {
+                    'calculation': 'relax',
+                    'restart_mode': 'from_scratch',
+                },
+                'system': {
+                    'ecutwfc': 60,
+                    'ecutrho': 480,
+                },
+                'electrons': {
+                    'conv_thr': 1e-8,
+                },
+                'ions': {
+                    'ion_dynamics': 'bfgs',
+                },
+            }
+    
+        elif calculation == 'scf':
+            input_data = {
+                'control': {
+                    'calculation': 'scf',
+                },
+                'system': {
+                    'ecutwfc': 60,
+                    'ecutrho': 480,
+                },
+                'electrons': {
+                    'conv_thr': 1e-8,
+                },
+            }
+    
+        elif calculation == 'bands':
+            input_data = {
+                'control': {
+                    'calculation': 'bands',
+                },
+                'system': {
+                    'ecutwfc': 60,
+                    'ecutrho': 480,
+                    'nbnd': 20,  # Number of bands
+                },
+                'electrons': {
+                    'conv_thr': 1e-8,
+                },
+            }
+    
+        # Write input file
+        write_espresso_in(
+            'pw.in',
+            atoms,
+            input_data=input_data,
+            pseudopotentials={el: f"{el}.pbe.UPF" for el in set(atoms.get_chemical_symbols())},
+            kpts=(8, 8, 8),
+        )
+    
+        with open('pw.in', 'r') as f:
+            input_str = f.read()
+    
+        return input_str
+    
+    # Usage example
+    si = bulk('Si', 'diamond', a=5.43)
+    qe_input = generate_qe_input(si, calculation='relax')
+    print(qe_input)
+    
+
+* * *
+
+## 2.4 Advanced Automation with pymatgen
+
+### Using InputSet
+
+pymatgen provides standardized calculation configurations used in Materials Project.
+    
+    
+    from pymatgen.core import Structure
+    from pymatgen.io.vasp.sets import MPRelaxSet, MPStaticSet
+    
+    # Load structure (from CIF file)
+    structure = Structure.from_file("LiCoO2.cif")
+    
+    # Materials Project standard structural optimization settings
+    relax_set = MPRelaxSet(structure)
+    
+    # Auto-generate INCAR, KPOINTS, POTCAR
+    relax_set.write_input("relax_calculation")
+    
+    # Directory contents:
+    # relax_calculation/
+    #   ├── INCAR
+    #   ├── POSCAR
+    #   ├── KPOINTS
+    #   └── POTCAR
+    
+    # Static calculation settings (after structural optimization)
+    static_set = MPStaticSet(structure)
+    static_set.write_input("static_calculation")
+    
+
+### Custom InputSet
+    
+    
+    from pymatgen.io.vasp.sets import DictSet
+    
+    # Custom settings
+    custom_incar = {
+        "ENCUT": 600,      # Higher accuracy than default
+        "EDIFF": 1e-6,
+        "ISMEAR": -5,      # Tetrahedron method
+        "LORBIT": 11,
+        "LWAVE": False,
+        "LCHARG": True,
+    }
+    
+    # Create custom InputSet
+    custom_set = DictSet(
+        structure,
+        config_dict={
+            "INCAR": custom_incar,
+            "KPOINTS": {"reciprocal_density": 200},  # k-point density
+        }
+    )
+    
+    custom_set.write_input("custom_calculation")
+    
+
+### Error Detection and Restart
+    
+    
+    from pymatgen.io.vasp.outputs import Vasprun, Outcar
+    from pymatgen.io.vasp.sets import MPRelaxSet
+    import os
+    
+    def check_convergence(directory):
+        """
+        Check convergence of VASP calculation
+    
+        Returns:
+        --------
+        status : str
+            'converged', 'not_converged', 'error'
+        """
+        try:
+            # Read vasprun.xml
+            vasprun = Vasprun(os.path.join(directory, "vasprun.xml"))
+    
+            if vasprun.converged:
+                return 'converged'
+            else:
+                return 'not_converged'
+    
+        except Exception as e:
+            print(f"Error: {e}")
+            return 'error'
+    
+    def auto_restart(directory, max_attempts=3):
+        """
+        Automatically restart non-converged calculations
+    
+        Parameters:
+        -----------
+        directory : str
+            Calculation directory
+        max_attempts : int
+            Maximum retry attempts
+        """
+        for attempt in range(max_attempts):
+            status = check_convergence(directory)
+    
+            if status == 'converged':
+                print("Calculation converged")
+                return True
+    
+            elif status == 'not_converged':
+                print(f"Not converged. Retry {attempt+1}/{max_attempts}")
+    
+                # Relax settings
+                # Example: Lower energy cutoff, increase smearing
+                modify_incar(directory, {'ENCUT': 450, 'SIGMA': 0.1})
+    
+                # Restart
+                restart_calculation(directory)
+    
+            elif status == 'error':
+                print("Fatal error. Skipping")
+                return False
+    
+        print("Maximum retry attempts reached")
+        return False
+    
+    def modify_incar(directory, new_params):
+        """Modify INCAR file"""
+        from pymatgen.io.vasp.inputs import Incar
+    
+        incar_file = os.path.join(directory, "INCAR")
+        incar = Incar.from_file(incar_file)
+    
+        # Update parameters
+        for key, value in new_params.items():
+            incar[key] = value
+    
+        # Save
+        incar.write_file(incar_file)
+        print(f"INCAR updated: {new_params}")
+    
+    def restart_calculation(directory):
+        """Re-execute calculation"""
+        import subprocess
+    
+        # Copy CONTCAR to POSCAR
+        os.system(f"cp {directory}/CONTCAR {directory}/POSCAR")
+    
+        # Re-run VASP
+        os.chdir(directory)
+        subprocess.run(["mpirun", "-np", "48", "vasp_std"])
+        os.chdir("..")
+    
+
+* * *
+
+## 2.5 Batch Processing
+
+### Automatic Calculation of Multiple Materials
+    
+    
+    import os
+    from pymatgen.core import Structure
+    from pymatgen.io.vasp.sets import MPRelaxSet
+    
+    def batch_relax(structure_files, output_root='calculations'):
+        """
+        Batch structural optimization of multiple structures
+    
+        Parameters:
+        -----------
+        structure_files : list
+            List of CIF files
+        output_root : str
+            Output root directory
+        """
+        os.makedirs(output_root, exist_ok=True)
+    
+        for cif_file in structure_files:
+            # Load structure
+            structure = Structure.from_file(cif_file)
+            formula = structure.composition.reduced_formula
+    
+            print(f"Processing: {formula}")
+    
+            # Output directory
+            calc_dir = os.path.join(output_root, formula)
+    
+            # Create InputSet
+            relax_set = MPRelaxSet(structure)
+            relax_set.write_input(calc_dir)
+    
+            # Create job script
+            create_job_script(calc_dir, formula)
+    
+            # Submit job (for SLURM)
+            os.chdir(calc_dir)
+            os.system("sbatch job.sh")
+            os.chdir("../..")
+    
+            print(f"  → Job submitted: {calc_dir}")
+    
+    def create_job_script(directory, jobname):
+        """Create SLURM job script"""
+        script = f"""#!/bin/bash
+    #SBATCH --job-name={jobname}
+    #SBATCH --nodes=1
+    #SBATCH --ntasks-per-node=48
+    #SBATCH --time=24:00:00
+    #SBATCH --partition=standard
+    
+    module load vasp/6.3.0
+    
+    mpirun -np 48 vasp_std
+    """
+    
+        with open(os.path.join(directory, "job.sh"), 'w') as f:
+            f.write(script)
+    
+    # Usage example
+    cif_files = [
+        "LiCoO2.cif",
+        "LiNiO2.cif",
+        "LiMnO2.cif",
+        "LiFePO4.cif",
+    ]
+    
+    batch_relax(cif_files, output_root='battery_materials')
+    
+
+* * *
+
+## 2.6 Exercises
+
+### Problem 1 (Difficulty: easy)
+
+**Problem** : Use ASE to generate NaCl (rock salt structure) crystal and save it to a POSCAR file. The lattice constant is 5.64 Å.
+
+Hint Use the `ase.build.bulk` function. Specify 'rocksalt' for the crystal structure.  Solution
+    
+    
+    from ase.build import bulk
+    from ase.io import write
+    
+    # Generate NaCl crystal
+    nacl = bulk('NaCl', 'rocksalt', a=5.64)
+    
+    # Save POSCAR
+    write('POSCAR_NaCl', nacl, format='vasp')
+    
+    print(f"NaCl: {nacl.get_chemical_formula()}")
+    print(f"Number of atoms: {len(nacl)}")
+    print(f"Cell parameters: {nacl.cell.cellpar()}")
+    
+
+**Output**: 
+    
+    
+    NaCl: NaCl
+    Number of atoms: 2
+    Cell parameters: [5.64 5.64 5.64 90.  90.  90. ]
+    
+
+### Problem 2 (Difficulty: medium)
+
+**Problem** : Use pymatgen's MPRelaxSet to generate input files for structural optimization of Li₂O (Li2O.cif). Additionally, change the k-point density to 2000.
+
+Hint Use user_incar_settings and user_kpoints_settings of `MPRelaxSet`.  Solution
+    
+    
+    from pymatgen.core import Structure
+    from pymatgen.io.vasp.sets import MPRelaxSet
+    
+    # Load structure
+    structure = Structure.from_file("Li2O.cif")
+    
+    # Customize k-point density
+    relax_set = MPRelaxSet(
+        structure,
+        user_kpoints_settings={"reciprocal_density": 2000}
+    )
+    
+    # Generate input files
+    relax_set.write_input("li2o_relax")
+    
+    print("Input files generated: li2o_relax/")
+    print(f"k-point settings:")
+    with open("li2o_relax/KPOINTS", 'r') as f:
+        print(f.read())
+    
+
+### Problem 3 (Difficulty: hard)
+
+**Problem** : Set up automatic calculations for 100 oxides (in CIF format) with the following conditions:
+
+  1. Structural optimization with Materials Project standard settings
+  2. k-point density of 1500
+  3. Create a directory for each material
+  4. Auto-generate SLURM job scripts
+  5. Error handling (skip if loading fails)
+
+Hint Refer to the batch processing code example and add error handling.  Solution
+    
+    
+    import os
+    from pymatgen.core import Structure
+    from pymatgen.io.vasp.sets import MPRelaxSet
+    from glob import glob
+    
+    def batch_process_oxides(cif_directory, output_root='oxide_calculations'):
+        """
+        Batch process 100 oxides
+        """
+        # CIF file list
+        cif_files = glob(os.path.join(cif_directory, "*.cif"))
+        print(f"Number of CIF files: {len(cif_files)}")
+    
+        os.makedirs(output_root, exist_ok=True)
+    
+        success_count = 0
+        error_count = 0
+    
+        for cif_file in cif_files:
+            try:
+                # Load structure
+                structure = Structure.from_file(cif_file)
+                formula = structure.composition.reduced_formula
+    
+                # Process only oxides
+                if 'O' not in structure.composition.elements:
+                    print(f"Skip (not an oxide): {formula}")
+                    continue
+    
+                print(f"Processing ({success_count+1}): {formula}")
+    
+                # Output directory
+                calc_dir = os.path.join(output_root, formula)
+    
+                # Create InputSet (k-point density 1500)
+                relax_set = MPRelaxSet(
+                    structure,
+                    user_kpoints_settings={"reciprocal_density": 1500}
+                )
+                relax_set.write_input(calc_dir)
+    
+                # Create job script
+                create_slurm_script(calc_dir, formula)
+    
+                success_count += 1
+    
+            except Exception as e:
+                print(f"Error: {cif_file} - {e}")
+                error_count += 1
+                continue
+    
+        print(f"\nCompleted:")
+        print(f"  Success: {success_count}")
+        print(f"  Failed: {error_count}")
+    
+    def create_slurm_script(directory, jobname):
+        """SLURM job script"""
+        script = f"""#!/bin/bash
+    #SBATCH --job-name={jobname}
+    #SBATCH --nodes=1
+    #SBATCH --ntasks-per-node=48
+    #SBATCH --time=24:00:00
+    #SBATCH --partition=standard
+    #SBATCH --output=slurm-%j.out
+    #SBATCH --error=slurm-%j.err
+    
+    # Environment setup
+    module load intel/2021.2
+    module load vasp/6.3.0
+    
+    # Execute VASP
+    mpirun -np 48 vasp_std
+    
+    # Convergence check
+    if grep -q "reached required accuracy" OUTCAR; then
+        echo "Convergence success"
+        exit 0
+    else
+        echo "Convergence failed"
+        exit 1
+    fi
+    """
+    
+        with open(os.path.join(directory, "job.sh"), 'w') as f:
+            f.write(script)
+    
+    # Execute
+    batch_process_oxides("oxide_cifs", output_root="oxide_ht_calculations")
+    
+
+**Output example**: 
+    
+    
+    Number of CIF files: 100
+    Processing (1): Li2O
+    Processing (2): Na2O
+    Skip (not an oxide): LiCl
+    Processing (3): MgO
+    ...
+    Completed:
+      Success: 95
+      Failed: 5
+    
+
+* * *
+
+## 2.7 Summary
+
+In this chapter, we learned DFT calculation automation using ASE and pymatgen.
+
+**Key Points** :
+
+  1. **ASE** : Unified interface for manipulating diverse calculation codes
+  2. **VASP automation** : Auto-generation of INCAR, KPOINTS, POTCAR
+  3. **QE automation** : Input file templates
+  4. **pymatgen InputSet** : Materials Project standard settings
+  5. **Error handling** : Convergence check and automatic restart
+  6. **Batch processing** : Batch calculations for multiple materials
+
+**Next Steps** :
+
+In Chapter 3, we will learn about **job scheduling and parallelization**. You will master SLURM script creation, large-scale parallel computing with MPI, and efficient management techniques for 1000-material scale calculations.
+
+**[Chapter 3: Job Scheduling and Parallelization →](<chapter-3.html>)**
+
+* * *
+
+## References
+
+  1. Larsen, A. H., et al. (2017). "The atomic simulation environment—a Python library for working with atoms." _Journal of Physics: Condensed Matter_ , 29(27), 273002.
+
+  2. Ong, S. P., et al. (2013). "Python Materials Genomics (pymatgen): A robust, open-source python library for materials analysis." _Computational Materials Science_ , 68, 314-319.
+
+  3. Kresse, G., & Furthmüller, J. (1996). "Efficient iterative schemes for ab initio total-energy calculations using a plane-wave basis set." _Physical Review B_ , 54(16), 11169.
+
+  4. Giannozzi, P., et al. (2009). "QUANTUM ESPRESSO: a modular and open-source software project for quantum simulations of materials." _Journal of Physics: Condensed Matter_ , 21(39), 395502.
+
+* * *
+
+**License** : CC BY 4.0 **Created** : 2025-10-17 **Author** : Dr. Yusuke Hashimoto, Tohoku University

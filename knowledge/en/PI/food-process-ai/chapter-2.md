@@ -1,0 +1,727 @@
+---
+title: Chapter 2 Process Monitoring and Quality Control
+chapter_title: Chapter 2 Process Monitoring and Quality Control
+---
+
+[AI Learning Hub Top](<../index.html>)›[Process Informatics](<../../index.html>)›[Food Process AI](<../../PI/food-process-ai/index.html>)›Chapter 2
+
+🌐 EN | [🇯🇵 JP](<../../../jp/PI/food-process-ai/chapter-2.html>) | Last sync: 2025-11-16
+
+This chapter covers Chapter 2 Process Monitoring and Quality Control. You will learn essential concepts and techniques.
+
+## 2.1 Real-Time Process Monitoring
+
+Real-time monitoring of food manufacturing processes is essential for ensuring quality consistency and food safety. In addition to physical quantities such as temperature, pressure, and flow rate, online acquisition of composition and quality data through near-infrared spectroscopy (NIR) and image analysis has become possible. By using AI technology, early detection of anomalies and quality prediction can be achieved from these multivariate data. 
+
+### Key Monitoring Parameters
+
+Monitoring Parameter | Measurement Method | Control Purpose | AI Application  
+---|---|---|---  
+Temperature | Thermocouple, PT100 sensor | Sterilization effect, quality maintenance | Anomaly detection, F-value prediction  
+Pressure | Pressure sensor | Equipment safety, process control | Equipment degradation prediction  
+Flow rate | Flowmeter (electromagnetic, ultrasonic) | Blend ratio control, yield management | Flow anomaly detection  
+pH | pH sensor | Fermentation management, quality control | Fermentation endpoint prediction  
+Sugar content | NIR spectroscopy, refractometer | Quality management, formulation control | Quality prediction  
+Color | Color sensor, image analysis | Baking degree, quality evaluation | Appearance quality judgment  
+Viscosity | Viscometer (rotational, vibrational) | Texture control, formulation management | Texture prediction  
+      
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - pandas>=2.0.0, <2.2.0
+    # - seaborn>=0.12.0
+    
+    """
+    Example: Key Monitoring Parameters
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Intermediate
+    Execution time: 5-15 seconds
+    Dependencies: None
+    """
+    
+                <div class="code-header">📊 Code Example 1: Multivariate Process Monitoring System Simulation</div>
+                <pre><code class="language-python">import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.decomposition import PCA
+    import seaborn as sns
+    
+    # Simulate real-time process data
+    np.random.seed(42)
+    n_samples = 500
+    
+    # Normal operation data (400 samples)
+    normal_data = pd.DataFrame({
+        'Temperature_C': np.random.normal(85, 2, 400),
+        'Pressure_kPa': np.random.normal(150, 5, 400),
+        'Flow_L/min': np.random.normal(50, 3, 400),
+        'pH': np.random.normal(4.0, 0.2, 400),
+        'Sugar_Brix': np.random.normal(12, 0.8, 400),
+        'Viscosity_cP': np.random.normal(100, 10, 400),
+    })
+    normal_data['Status'] = 'Normal'
+    
+    # Anomaly data (100 samples) - multiple patterns
+    anomaly1 = pd.DataFrame({  # Temperature anomaly
+        'Temperature_C': np.random.normal(78, 2, 30),
+        'Pressure_kPa': np.random.normal(150, 5, 30),
+        'Flow_L/min': np.random.normal(50, 3, 30),
+        'pH': np.random.normal(4.0, 0.2, 30),
+        'Sugar_Brix': np.random.normal(12, 0.8, 30),
+        'Viscosity_cP': np.random.normal(100, 10, 30),
+    })
+    anomaly1['Status'] = 'Temp_Drop'
+    
+    anomaly2 = pd.DataFrame({  # Pressure anomaly
+        'Temperature_C': np.random.normal(85, 2, 30),
+        'Pressure_kPa': np.random.normal(170, 5, 30),
+        'Flow_L/min': np.random.normal(50, 3, 30),
+        'pH': np.random.normal(4.0, 0.2, 30),
+        'Sugar_Brix': np.random.normal(12, 0.8, 30),
+        'Viscosity_cP': np.random.normal(100, 10, 30),
+    })
+    anomaly2['Status'] = 'Pressure_Rise'
+    
+    anomaly3 = pd.DataFrame({  # Multivariate anomaly (quality degradation)
+        'Temperature_C': np.random.normal(83, 2, 40),
+        'Pressure_kPa': np.random.normal(145, 5, 40),
+        'Flow_L/min': np.random.normal(55, 3, 40),
+        'pH': np.random.normal(4.3, 0.2, 40),
+        'Sugar_Brix': np.random.normal(13, 0.8, 40),
+        'Viscosity_cP': np.random.normal(110, 10, 40),
+    })
+    anomaly3['Status'] = 'Quality_Degradation'
+    
+    # Combine data
+    data = pd.concat([normal_data, anomaly1, anomaly2, anomaly3], ignore_index=True)
+    
+    # Standardize features
+    features = ['Temperature_C', 'Pressure_kPa', 'Flow_L/min', 'pH', 'Sugar_Brix', 'Viscosity_cP']
+    scaler = StandardScaler()
+    data_scaled = scaler.fit_transform(data[features])
+    
+    # Dimensionality reduction via PCA (6D → 2D)
+    pca = PCA(n_components=2)
+    data_pca = pca.fit_transform(data_scaled)
+    
+    # Visualization
+    fig = plt.figure(figsize=(16, 10))
+    gs = fig.add_gridspec(3, 2, hspace=0.3, wspace=0.3)
+    
+    # 1. PCA score plot
+    ax1 = fig.add_subplot(gs[0, :])
+    colors = {'Normal': '#11998e', 'Temp_Drop': '#ff6b6b', 'Pressure_Rise': '#ffa500', 'Quality_Degradation': '#9b59b6'}
+    for state in data['Status'].unique():
+        mask = data['Status'] == state
+        ax1.scatter(data_pca[mask, 0], data_pca[mask, 1],
+                    label=state, alpha=0.6, s=50, color=colors[state])
+    ax1.set_xlabel(f'PC1 ({pca.explained_variance_ratio_[0]*100:.1f}% explained)', fontsize=12)
+    ax1.set_ylabel(f'PC2 ({pca.explained_variance_ratio_[1]*100:.1f}% explained)', fontsize=12)
+    ax1.set_title('Anomaly Detection via Principal Component Analysis (PCA Score Plot)', fontsize=14, fontweight='bold')
+    ax1.legend(loc='best', fontsize=10)
+    ax1.grid(True, alpha=0.3)
+    
+    # 2. Variance ratio plot
+    ax2 = fig.add_subplot(gs[1, 0])
+    ax2.bar(range(len(pca.explained_variance_ratio_)),
+            pca.explained_variance_ratio_, color='#11998e', alpha=0.7)
+    ax2.set_xlabel('Principal Component', fontsize=11)
+    ax2.set_ylabel('Variance Ratio', fontsize=11)
+    ax2.set_title('Variance Ratio of Principal Components', fontsize=12, fontweight='bold')
+    ax2.grid(True, alpha=0.3, axis='y')
+    
+    # 3. Factor loadings
+    ax3 = fig.add_subplot(gs[1, 1])
+    loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
+    for i, feature in enumerate(features):
+        ax3.arrow(0, 0, loadings[i, 0], loadings[i, 1],
+                  head_width=0.05, head_length=0.05, fc='#11998e', ec='#11998e')
+        ax3.text(loadings[i, 0]*1.15, loadings[i, 1]*1.15, feature,
+                 fontsize=10, ha='center', va='center')
+    ax3.set_xlim(-1, 1)
+    ax3.set_ylim(-1, 1)
+    ax3.axhline(0, color='gray', linestyle='--', alpha=0.5)
+    ax3.axvline(0, color='gray', linestyle='--', alpha=0.5)
+    ax3.set_xlabel('PC1', fontsize=11)
+    ax3.set_ylabel('PC2', fontsize=11)
+    ax3.set_title('Factor Loadings (Variable Contributions)', fontsize=12, fontweight='bold')
+    ax3.grid(True, alpha=0.3)
+    
+    # 4-6. Time series plots of key variables
+    time = np.arange(len(data))
+    axes = [fig.add_subplot(gs[2, 0]), fig.add_subplot(gs[2, 1])]
+    plot_vars = ['Temperature_C', 'Pressure_kPa']
+    for ax, var in zip(axes, plot_vars):
+        ax.plot(time[:400], data[var][:400], color='#11998e', alpha=0.7, linewidth=1, label='Normal')
+        ax.plot(time[400:], data[var][400:], color='#ff6b6b', alpha=0.7, linewidth=1, label='Anomaly')
+        ax.set_xlabel('Sample Number', fontsize=11)
+        ax.set_ylabel(var, fontsize=11)
+        ax.set_title(f'{var} Time Series', fontsize=12, fontweight='bold')
+        ax.legend(fontsize=10)
+        ax.grid(True, alpha=0.3)
+    
+    plt.savefig('multivariate_monitoring.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Statistical report
+    print("=== Process Monitoring Statistical Report ===")
+    print(f"\nTotal samples: {len(data)}")
+    print(f"Normal data: {len(normal_data)} ({len(normal_data)/len(data)*100:.1f}%)")
+    print(f"Anomaly data: {len(data)-len(normal_data)} ({(len(data)-len(normal_data))/len(data)*100:.1f}%)")
+    
+    print("\n=== Principal Component Analysis Results ===")
+    print(f"Cumulative variance ratio (PC1+PC2): {pca.explained_variance_ratio_.sum()*100:.1f}%")
+    print("\nFactor loadings:")
+    loadings_df = pd.DataFrame(loadings[:, :2], index=features, columns=['PC1', 'PC2'])
+    print(loadings_df.round(3))
+    
+    print("\n=== Statistics by Status ===")
+    for state in data['Status'].unique():
+        state_data = data[data['Status'] == state]
+        print(f"\n{state}:")
+        print(state_data[features].describe().loc[['mean', 'std']].round(2))
+
+## 2.2 Sensory Evaluation and AI
+
+In food quality evaluation, sensory evaluation (flavor, texture, color, aroma) is extremely important. However, sensory evaluation is subjective and has the challenge of large variation between evaluators. By using AI technology, especially machine learning and deep learning, objective quality prediction and quantification of sensory evaluation data become possible. 
+
+### 🍽️ Five Senses in Sensory Evaluation
+
+  * **Taste** : Sweetness, sourness, saltiness, bitterness, umami (5 basic tastes)
+  * **Smell** : Complex combination of aroma compounds (thousands of types)
+  * **Touch** : Texture (hardness, viscosity, smoothness, crispness)
+  * **Vision** : Color, shape, gloss, transparency
+  * **Hearing** : Chewing sounds, crunch
+
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - pandas>=2.0.0, <2.2.0
+    # - seaborn>=0.12.0
+    
+    """
+    Example: 🍽️ Five Senses in Sensory Evaluation
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Advanced
+    Execution time: 30-60 seconds
+    Dependencies: None
+    """
+    
+                <div class="code-header">📊 Code Example 2: Multivariate Analysis of Sensory Evaluation Data and Quality Prediction</div>
+                <pre><code class="language-python">import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.model_selection import train_test_split, cross_val_score
+    from sklearn.metrics import mean_squared_error, r2_score
+    import seaborn as sns
+    
+    # Generate sensory evaluation dataset
+    np.random.seed(42)
+    n_samples = 300
+    
+    # Physicochemical analysis data
+    sensory_data = pd.DataFrame({
+        'Sugar_Brix': np.random.uniform(10, 15, n_samples),
+        'Acidity_%': np.random.uniform(0.3, 0.8, n_samples),
+        'Moisture_%': np.random.uniform(80, 90, n_samples),
+        'Hardness_N': np.random.uniform(5, 15, n_samples),
+        'Color_L': np.random.uniform(60, 80, n_samples),
+        'Aroma_ppm': np.random.uniform(50, 150, n_samples),
+    })
+    
+    # Sensory evaluation scores (overall rating): Simulate complex nonlinear relationships
+    sensory_data['Sweetness_Score'] = (
+        8 * sensory_data['Sugar_Brix'] / 15 +
+        np.random.normal(0, 0.5, n_samples)
+    ).clip(1, 10)
+    
+    sensory_data['Sourness_Score'] = (
+        8 * sensory_data['Acidity_%'] / 0.8 +
+        np.random.normal(0, 0.5, n_samples)
+    ).clip(1, 10)
+    
+    sensory_data['Texture_Score'] = (
+        5 + 3 * np.sin(sensory_data['Hardness_N'] / 5) +
+        np.random.normal(0, 0.5, n_samples)
+    ).clip(1, 10)
+    
+    sensory_data['Aroma_Score'] = (
+        4 + 4 * np.log(sensory_data['Aroma_ppm'] / 50) +
+        np.random.normal(0, 0.5, n_samples)
+    ).clip(1, 10)
+    
+    # Overall evaluation (weighted average of each score)
+    sensory_data['Overall_Rating'] = (
+        0.3 * sensory_data['Sweetness_Score'] +
+        0.2 * sensory_data['Sourness_Score'] +
+        0.3 * sensory_data['Texture_Score'] +
+        0.2 * sensory_data['Aroma_Score'] +
+        np.random.normal(0, 0.3, n_samples)
+    ).clip(1, 10)
+    
+    # Features and target variable
+    X = sensory_data[['Sugar_Brix', 'Acidity_%', 'Moisture_%', 'Hardness_N', 'Color_L', 'Aroma_ppm']]
+    y = sensory_data['Overall_Rating']
+    
+    # Data split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    # Model construction
+    model = RandomForestRegressor(n_estimators=200, max_depth=15, random_state=42, n_jobs=-1)
+    model.fit(X_train, y_train)
+    
+    # Prediction and evaluation
+    y_pred = model.predict(X_test)
+    r2 = r2_score(y_test, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='r2')
+    
+    # Visualization
+    fig = plt.figure(figsize=(16, 10))
+    gs = fig.add_gridspec(2, 3, hspace=0.3, wspace=0.3)
+    
+    # 1. Predicted vs actual values
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax1.scatter(y_test, y_pred, alpha=0.6, s=60, color='#11998e', edgecolors='white', linewidth=0.5)
+    ax1.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()],
+             'r--', lw=2, label='Ideal line')
+    ax1.set_xlabel('Actual Value (Sensory)', fontsize=12)
+    ax1.set_ylabel('Predicted Value (AI Model)', fontsize=12)
+    ax1.set_title(f'Sensory Evaluation Prediction Model\n(R²={r2:.3f}, RMSE={rmse:.3f})',
+                  fontsize=13, fontweight='bold')
+    ax1.legend(fontsize=10)
+    ax1.grid(True, alpha=0.3)
+    
+    # 2. Residual plot
+    ax2 = fig.add_subplot(gs[0, 1])
+    residuals = y_test - y_pred
+    ax2.scatter(y_pred, residuals, alpha=0.6, s=60, color='#38ef7d', edgecolors='white', linewidth=0.5)
+    ax2.axhline(0, color='red', linestyle='--', lw=2)
+    ax2.set_xlabel('Predicted Value', fontsize=12)
+    ax2.set_ylabel('Residual (Actual - Predicted)', fontsize=12)
+    ax2.set_title('Residual Plot', fontsize=13, fontweight='bold')
+    ax2.grid(True, alpha=0.3)
+    
+    # 3. Feature importance
+    ax3 = fig.add_subplot(gs[0, 2])
+    feature_importance = pd.DataFrame({
+        'Feature': X.columns,
+        'Importance': model.feature_importances_
+    }).sort_values('Importance', ascending=True)
+    
+    ax3.barh(feature_importance['Feature'], feature_importance['Importance'], color='#11998e')
+    ax3.set_xlabel('Importance', fontsize=12)
+    ax3.set_title('Feature Importance', fontsize=13, fontweight='bold')
+    ax3.grid(True, alpha=0.3, axis='x')
+    
+    # 4. Correlation matrix heatmap
+    ax4 = fig.add_subplot(gs[1, :])
+    corr_data = sensory_data[['Sugar_Brix', 'Acidity_%', 'Hardness_N', 'Aroma_ppm',
+                               'Sweetness_Score', 'Sourness_Score', 'Texture_Score', 'Aroma_Score', 'Overall_Rating']]
+    correlation_matrix = corr_data.corr()
+    
+    sns.heatmap(correlation_matrix, annot=True, fmt='.2f', cmap='RdYlGn', center=0,
+                square=True, linewidths=1, cbar_kws={'label': 'Correlation'}, ax=ax4)
+    ax4.set_title('Correlation between Physicochemical Values and Sensory Evaluation Scores', fontsize=13, fontweight='bold')
+    
+    plt.savefig('sensory_evaluation_ai.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Report output
+    print("=== Sensory Evaluation Prediction Model Performance ===")
+    print(f"R² coefficient: {r2:.4f}")
+    print(f"RMSE: {rmse:.4f}")
+    print(f"Cross-validation R² (mean±std): {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+    
+    print("\n=== Feature Importance Ranking ===")
+    feature_ranking = pd.DataFrame({
+        'Feature': X.columns,
+        'Importance': model.feature_importances_
+    }).sort_values('Importance', ascending=False)
+    print(feature_ranking.to_string(index=False))
+    
+    print("\n=== Sensory Evaluation Score Statistics ===")
+    print(sensory_data[['Sweetness_Score', 'Sourness_Score', 'Texture_Score', 'Aroma_Score', 'Overall_Rating']].describe())
+
+## 2.3 Appearance Quality Evaluation by Image Analysis
+
+The appearance quality of food (color, shape, surface condition) is an important factor directly related to consumer purchase intent. Traditionally, visual inspection by humans was relied upon, but with image analysis using deep learning (especially CNN: Convolutional Neural Network), objective and high-speed quality judgment has become possible. 
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - seaborn>=0.12.0
+    
+    """
+    Example: The appearance quality of food (color, shape, surface condit
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Advanced
+    Execution time: 1-5 minutes
+    Dependencies: None
+    """
+    
+                <div class="code-header">📊 Code Example 3: Image Feature Extraction and Quality Classification (Simulation)</div>
+                <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import train_test_split, cross_val_score
+    from sklearn.metrics import classification_report, confusion_matrix
+    import seaborn as sns
+    
+    # Simulation of image feature data (actually extracted by CNN)
+    np.random.seed(42)
+    n_samples_per_class = 200
+    
+    # Three quality classes: Grade A (excellent), Grade B (standard), Grade C (defective)
+    def generate_class_data(mean_color, std_color, mean_shape, std_shape, mean_texture, std_texture, label):
+        return pd.DataFrame({
+            'Mean_R': np.random.normal(mean_color[0], std_color, n_samples_per_class),
+            'Mean_G': np.random.normal(mean_color[1], std_color, n_samples_per_class),
+            'Mean_B': np.random.normal(mean_color[2], std_color, n_samples_per_class),
+            'Shape_Circularity': np.random.normal(mean_shape, std_shape, n_samples_per_class),
+            'Surface_Roughness': np.random.normal(mean_texture, std_texture, n_samples_per_class),
+            'Size_mm2': np.random.normal(100, 10, n_samples_per_class),
+            'Quality_Class': label
+        })
+    
+    # Grade A: Bright color, high circularity, smooth surface
+    class_A = generate_class_data(
+        mean_color=[180, 150, 120], std_color=10,
+        mean_shape=0.85, std_shape=0.05,
+        mean_texture=5, std_texture=2,
+        label='Grade_A'
+    )
+    
+    # Grade B: Intermediate characteristics
+    class_B = generate_class_data(
+        mean_color=[160, 130, 100], std_color=15,
+        mean_shape=0.75, std_shape=0.08,
+        mean_texture=10, std_texture=3,
+        label='Grade_B'
+    )
+    
+    # Grade C: Dark color, low circularity, rough surface
+    class_C = generate_class_data(
+        mean_color=[140, 110, 80], std_color=20,
+        mean_shape=0.60, std_shape=0.10,
+        mean_texture=18, std_texture=5,
+        label='Grade_C'
+    )
+    
+    # Combine data
+    image_data = pd.concat([class_A, class_B, class_C], ignore_index=True)
+    
+    # Features and target variable
+    X = image_data.drop('Quality_Class', axis=1)
+    y = image_data['Quality_Class']
+    
+    # Data split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    
+    # Build classification model
+    clf = RandomForestClassifier(n_estimators=200, max_depth=20, random_state=42, n_jobs=-1)
+    clf.fit(X_train, y_train)
+    
+    # Prediction and evaluation
+    y_pred = clf.predict(X_test)
+    accuracy = clf.score(X_test, y_test)
+    cv_scores = cross_val_score(clf, X_train, y_train, cv=5, scoring='accuracy')
+    
+    # Confusion matrix
+    cm = confusion_matrix(y_test, y_pred, labels=['Grade_A', 'Grade_B', 'Grade_C'])
+    
+    # Visualization
+    fig = plt.figure(figsize=(16, 10))
+    gs = fig.add_gridspec(2, 3, hspace=0.3, wspace=0.3)
+    
+    # 1. Confusion matrix
+    ax1 = fig.add_subplot(gs[0, 0])
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=['Grade A', 'Grade B', 'Grade C'],
+                yticklabels=['Grade A', 'Grade B', 'Grade C'],
+                ax=ax1, cbar_kws={'label': 'Sample Count'})
+    ax1.set_xlabel('Predicted Class', fontsize=12)
+    ax1.set_ylabel('Actual Class', fontsize=12)
+    ax1.set_title(f'Confusion Matrix\n(Accuracy={accuracy:.3f})', fontsize=13, fontweight='bold')
+    
+    # 2. Feature importance
+    ax2 = fig.add_subplot(gs[0, 1])
+    feature_importance = pd.DataFrame({
+        'Feature': X.columns,
+        'Importance': clf.feature_importances_
+    }).sort_values('Importance', ascending=True)
+    
+    ax2.barh(feature_importance['Feature'], feature_importance['Importance'], color='#11998e')
+    ax2.set_xlabel('Importance', fontsize=12)
+    ax2.set_title('Image Feature Importance', fontsize=13, fontweight='bold')
+    ax2.grid(True, alpha=0.3, axis='x')
+    
+    # 3. Color distribution by class
+    ax3 = fig.add_subplot(gs[0, 2])
+    colors_map = {'Grade_A': '#4caf50', 'Grade_B': '#ff9800', 'Grade_C': '#f44336'}
+    for label in ['Grade_A', 'Grade_B', 'Grade_C']:
+        class_data = image_data[image_data['Quality_Class'] == label]
+        ax3.scatter(class_data['Mean_R'], class_data['Mean_G'],
+                    label=label, alpha=0.6, s=40, color=colors_map[label])
+    ax3.set_xlabel('Mean Color R', fontsize=12)
+    ax3.set_ylabel('Mean Color G', fontsize=12)
+    ax3.set_title('Quality Class Distribution in Color Space', fontsize=13, fontweight='bold')
+    ax3.legend(fontsize=10)
+    ax3.grid(True, alpha=0.3)
+    
+    # 4. Relationship between shape and surface roughness
+    ax4 = fig.add_subplot(gs[1, 0])
+    for label in ['Grade_A', 'Grade_B', 'Grade_C']:
+        class_data = image_data[image_data['Quality_Class'] == label]
+        ax4.scatter(class_data['Shape_Circularity'], class_data['Surface_Roughness'],
+                    label=label, alpha=0.6, s=40, color=colors_map[label])
+    ax4.set_xlabel('Shape Circularity', fontsize=12)
+    ax4.set_ylabel('Surface Roughness', fontsize=12)
+    ax4.set_title('Shape vs Surface Roughness', fontsize=13, fontweight='bold')
+    ax4.legend(fontsize=10)
+    ax4.grid(True, alpha=0.3)
+    
+    # 5. Feature distribution by class (violin plot)
+    ax5 = fig.add_subplot(gs[1, 1:])
+    plot_data = image_data[['Shape_Circularity', 'Surface_Roughness', 'Quality_Class']].melt(
+        id_vars='Quality_Class', var_name='Feature', value_name='Value')
+    
+    sns.violinplot(data=plot_data, x='Feature', y='Value', hue='Quality_Class',
+                   palette={'Grade_A': '#4caf50', 'Grade_B': '#ff9800', 'Grade_C': '#f44336'},
+                   split=False, ax=ax5)
+    ax5.set_title('Feature Distribution by Quality Class', fontsize=13, fontweight='bold')
+    ax5.legend(title='Quality Class', fontsize=10)
+    ax5.grid(True, alpha=0.3, axis='y')
+    
+    plt.savefig('image_quality_classification.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Report output
+    print("=== Image Quality Classification Model Performance ===")
+    print(f"Accuracy: {accuracy:.4f}")
+    print(f"Cross-validation accuracy (mean±std): {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+    
+    print("\n=== Detailed Classification Report ===")
+    print(classification_report(y_test, y_pred))
+    
+    print("\n=== Statistics by Class ===")
+    for label in ['Grade_A', 'Grade_B', 'Grade_C']:
+        class_data = image_data[image_data['Quality_Class'] == label]
+        print(f"\n{label}:")
+        print(class_data[['Mean_R', 'Shape_Circularity', 'Surface_Roughness']].describe().loc[['mean', 'std']].round(2))
+
+## 2.4 Statistical Quality Control (SQC)
+
+Statistical Quality Control (SQC) is a method of monitoring and managing process variation using statistical methods. Using control charts, it determines whether a process is in a controlled state and enables early detection of anomalies. 
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    """
+    Example: Statistical Quality Control (SQC) is a method of monitoring 
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Intermediate
+    Execution time: 2-5 seconds
+    Dependencies: None
+    """
+    
+                <div class="code-header">📊 Code Example 4: X-R Control Charts and Process Capability Indices</div>
+                <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    import pandas as pd
+    
+    # Generate manufacturing lot data (subgroups with sample size n=5)
+    np.random.seed(42)
+    n_subgroups = 30
+    subgroup_size = 5
+    target = 100  # Target value
+    spec_lower = 95  # Lower specification limit
+    spec_upper = 105  # Upper specification limit
+    
+    # Normal process (20 subgroups) + abnormal process (10 subgroups with mean shift)
+    normal_data = np.random.normal(target, 2, (20, subgroup_size))
+    abnormal_data = np.random.normal(target + 3, 2, (10, subgroup_size))
+    data = np.vstack([normal_data, abnormal_data])
+    
+    # Calculate X-bar (mean) and R (range)
+    xbar = data.mean(axis=1)
+    R = data.max(axis=1) - data.min(axis=1)
+    
+    # Calculate control limits
+    xbar_grand = xbar.mean()
+    R_bar = R.mean()
+    
+    # Control chart constants (for n=5)
+    A2 = 0.577  # X-bar chart constant
+    D3 = 0      # R chart lower limit constant
+    D4 = 2.114  # R chart upper limit constant
+    
+    # X-bar control limits
+    UCL_xbar = xbar_grand + A2 * R_bar
+    LCL_xbar = xbar_grand - A2 * R_bar
+    
+    # R control limits
+    UCL_R = D4 * R_bar
+    LCL_R = D3 * R_bar
+    
+    # Calculate process capability indices
+    sigma_hat = R_bar / 1.693  # d2=2.326 for n=5, sigma = R_bar / d2
+    Cp = (spec_upper - spec_lower) / (6 * sigma_hat)
+    Cpk = min((spec_upper - xbar_grand), (xbar_grand - spec_lower)) / (3 * sigma_hat)
+    
+    # Visualization
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
+    
+    # 1. X-bar control chart
+    ax1.plot(range(1, n_subgroups+1), xbar, marker='o', color='#11998e', linewidth=2, markersize=6)
+    ax1.axhline(xbar_grand, color='green', linestyle='-', linewidth=2, label='Center Line (CL)')
+    ax1.axhline(UCL_xbar, color='red', linestyle='--', linewidth=2, label='Upper Control Limit (UCL)')
+    ax1.axhline(LCL_xbar, color='red', linestyle='--', linewidth=2, label='Lower Control Limit (LCL)')
+    ax1.axhline(spec_upper, color='orange', linestyle=':', linewidth=2, label='Upper Spec Limit (USL)')
+    ax1.axhline(spec_lower, color='orange', linestyle=':', linewidth=2, label='Lower Spec Limit (LSL)')
+    
+    # Detect and highlight out-of-control points
+    out_of_control = (xbar > UCL_xbar) | (xbar < LCL_xbar)
+    if out_of_control.any():
+        ax1.scatter(np.where(out_of_control)[0] + 1, xbar[out_of_control],
+                    color='red', s=150, marker='x', linewidths=3, zorder=5, label='Out of Control')
+    
+    ax1.set_xlabel('Subgroup Number', fontsize=12)
+    ax1.set_ylabel('Subgroup Mean (X̄)', fontsize=12)
+    ax1.set_title('X̄ Control Chart (Mean Chart)', fontsize=14, fontweight='bold')
+    ax1.legend(fontsize=10, loc='upper left')
+    ax1.grid(True, alpha=0.3)
+    
+    # 2. R control chart
+    ax2.plot(range(1, n_subgroups+1), R, marker='s', color='#38ef7d', linewidth=2, markersize=6)
+    ax2.axhline(R_bar, color='green', linestyle='-', linewidth=2, label='Center Line (CL)')
+    ax2.axhline(UCL_R, color='red', linestyle='--', linewidth=2, label='Upper Control Limit (UCL)')
+    if LCL_R > 0:
+        ax2.axhline(LCL_R, color='red', linestyle='--', linewidth=2, label='Lower Control Limit (LCL)')
+    
+    # Detect out-of-control points
+    out_of_control_R = (R > UCL_R) | (R < LCL_R)
+    if out_of_control_R.any():
+        ax2.scatter(np.where(out_of_control_R)[0] + 1, R[out_of_control_R],
+                    color='red', s=150, marker='x', linewidths=3, zorder=5, label='Out of Control')
+    
+    ax2.set_xlabel('Subgroup Number', fontsize=12)
+    ax2.set_ylabel('Range (R)', fontsize=12)
+    ax2.set_title('R Control Chart (Range Chart)', fontsize=14, fontweight='bold')
+    ax2.legend(fontsize=10, loc='upper left')
+    ax2.grid(True, alpha=0.3)
+    
+    # 3. Histogram and process capability
+    all_data = data.flatten()
+    ax3.hist(all_data, bins=30, density=True, alpha=0.7, color='#11998e', edgecolor='white')
+    ax3.axvline(target, color='green', linestyle='-', linewidth=2, label='Target Value')
+    ax3.axvline(spec_upper, color='red', linestyle='--', linewidth=2, label='Upper Spec Limit (USL)')
+    ax3.axvline(spec_lower, color='red', linestyle='--', linewidth=2, label='Lower Spec Limit (LSL)')
+    
+    # Fit normal distribution
+    from scipy.stats import norm
+    mu, sigma = all_data.mean(), all_data.std()
+    x = np.linspace(all_data.min(), all_data.max(), 100)
+    ax3.plot(x, norm.pdf(x, mu, sigma), 'r-', linewidth=2, label='Normal Distribution Fit')
+    
+    ax3.set_xlabel('Measurement Value', fontsize=12)
+    ax3.set_ylabel('Density', fontsize=12)
+    ax3.set_title(f'Histogram and Process Capability\nCp={Cp:.3f}, Cpk={Cpk:.3f}',
+                  fontsize=14, fontweight='bold')
+    ax3.legend(fontsize=10)
+    ax3.grid(True, alpha=0.3, axis='y')
+    
+    # 4. Out-of-spec rate estimation
+    ax4.axis('off')
+    report_text = f"""
+    === Statistical Quality Control (SQC) Report ===
+    
+    【Control Chart Analysis Results】
+    • Number of subgroups: {n_subgroups}
+    • Subgroup size: {subgroup_size}
+    • Total samples: {n_subgroups * subgroup_size}
+    
+    【X̄ Control Chart (Mean Chart)】
+    • Center line (CL): {xbar_grand:.2f}
+    • Upper control limit (UCL): {UCL_xbar:.2f}
+    • Lower control limit (LCL): {LCL_xbar:.2f}
+    • Out-of-control points: {out_of_control.sum()} / {n_subgroups} subgroups
+    
+    【R Control Chart (Range Chart)】
+    • Center line (R̄): {R_bar:.2f}
+    • Upper control limit (UCL): {UCL_R:.2f}
+    • Out-of-control points: {out_of_control_R.sum()} / {n_subgroups} subgroups
+    
+    【Process Capability Indices】
+    • Cp (process capability index): {Cp:.3f}
+    • Cpk (capability index with offset): {Cpk:.3f}
+    • Estimated standard deviation (σ̂): {sigma_hat:.3f}
+    
+    【Judgment】
+    • Process capability: {"Adequate" if Cp >= 1.33 else "Needs improvement" if Cp >= 1.0 else "Inadequate"}
+    • Offset status: {"Good" if Cpk >= 1.33 else "Caution" if Cpk >= 1.0 else "Poor"}
+    
+    【Out-of-Spec Rate Estimation】
+    • Above upper spec limit: {(all_data > spec_upper).sum() / len(all_data) * 100:.2f}%
+    • Below lower spec limit: {(all_data < spec_lower).sum() / len(all_data) * 100:.2f}%
+    • Total out-of-spec rate: {((all_data > spec_upper) | (all_data < spec_lower)).sum() / len(all_data) * 100:.2f}%
+    """
+    
+    ax4.text(0.1, 0.9, report_text, fontsize=11, verticalalignment='top',
+             family='monospace', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+    
+    plt.tight_layout()
+    plt.savefig('sqc_control_charts.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    print(report_text)
+
+### ⚠️ Considerations for Quality Control Implementation
+
+  * **Subgroup selection** : Create subgroups from consecutive samples within a short time period (rational subgrouping)
+  * **Recalculation of control limits** : Reset control limits after process improvement
+  * **Anomaly pattern detection** : Detect runs, trends, and cycles in addition to points outside control limits
+  * **Cp/Cpk target values** : Generally target Cp ≥ 1.33, Cpk ≥ 1.33
+  * **Difference between specs and control limits** : Specs are customer requirements, control limits are based on process capability
+
+## Summary
+
+In this chapter, we learned about AI technologies for food process monitoring and quality control:
+
+  * Multivariate process monitoring and anomaly detection using PCA
+  * Quantification of sensory evaluation data and quality prediction using machine learning
+  * Automatic classification of appearance quality by image analysis
+  * Statistical quality control (X-R control charts, process capability indices)
+
+In the next chapter, we will learn practical methods for process optimization and Bayesian optimization.
+
+[← Chapter 1: Food Process and AI Fundamentals](<chapter-1.html>) [Chapter 3: Process Optimization →](<chapter-3.html>)
+
+## References
+
+  1. Montgomery, D. C. (2019). _Design and Analysis of Experiments_ (9th ed.). Wiley.
+  2. Box, G. E. P., Hunter, J. S., & Hunter, W. G. (2005). _Statistics for Experimenters: Design, Innovation, and Discovery_ (2nd ed.). Wiley.
+  3. Seborg, D. E., Edgar, T. F., Mellichamp, D. A., & Doyle III, F. J. (2016). _Process Dynamics and Control_ (4th ed.). Wiley.
+  4. McKay, M. D., Beckman, R. J., & Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." _Technometrics_ , 42(1), 55-61.
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

@@ -1,0 +1,109 @@
+---
+title: "第3章: 固有値・固有ベクトルと対角化"
+chapter_title: "第3章: 固有値・固有ベクトルと対角化"
+subtitle: Eigenvalues, Eigenvectors, and Diagonalization
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/FM/linear-algebra-tensor/chapter-3.html>) | Last sync: 2025-11-16
+
+[基礎数理道場](<../index.html>) > [線形代数とテンソル解析](<index.html>) > 第3章 
+
+## 3.1 固有値・固有ベクトルの定義
+
+**📐 定義: 固有値・固有ベクトル**  
+正方行列Aに対して、Av = λv を満たすゼロでないベクトル v を固有ベクトル、 スカラー λ を固有値と呼びます。  
+幾何学的意味：固有ベクトルは行列による変換で方向が変わらないベクトル 
+
+### 💻 コード例1: 固有値・固有ベクトルの計算
+
+Python実装: 固有値・固有ベクトルの計算
+
+import numpy as np import matplotlib.pyplot as plt # 2×2行列 A = np.array([[4, 1], [2, 3]]) # 固有値・固有ベクトルの計算 eigenvalues, eigenvectors = np.linalg.eig(A) print("固有値・固有ベクトルの計算:") print(f"A =\n{A}\n") print(f"固有値: {eigenvalues}") print(f"固有ベクトル:\n{eigenvectors}\n") # 検証: Av = λv for i in range(len(eigenvalues)): lam = eigenvalues[i] v = eigenvectors[:, i] Av = A @ v lam_v = lam * v print(f"λ{i+1} = {lam:.4f}") print(f" Av = {Av}") print(f" λv = {lam_v}") print(f" Av = λv? {np.allclose(Av, lam_v)}\n")
+
+### 💻 コード例2: 固有ベクトルの幾何学的意味
+
+Python実装: 固有ベクトルの可視化
+
+# 固有ベクトルの可視化 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6)) # ランダムなベクトルと固有ベクトル random_vec = np.array([1, 1]) eigen_vec1 = eigenvectors[:, 0] eigen_vec2 = eigenvectors[:, 1] # 変換前のベクトル origin = [0, 0] ax1.quiver(*origin, *random_vec, angles='xy', scale_units='xy', scale=1, color='blue', width=0.01, label='一般ベクトル') ax1.quiver(*origin, *eigen_vec1, angles='xy', scale_units='xy', scale=1, color='red', width=0.01, label=f'固有ベクトル1 (λ={eigenvalues[0]:.2f})') ax1.quiver(*origin, *eigen_vec2, angles='xy', scale_units='xy', scale=1, color='green', width=0.01, label=f'固有ベクトル2 (λ={eigenvalues[1]:.2f})') ax1.set_xlim(-1, 5) ax1.set_ylim(-1, 5) ax1.set_xlabel('x') ax1.set_ylabel('y') ax1.set_title('変換前') ax1.legend() ax1.grid(True, alpha=0.3) ax1.axhline(y=0, color='k', linewidth=0.5) ax1.axvline(x=0, color='k', linewidth=0.5) # 変換後のベクトル random_transformed = A @ random_vec eigen_transformed1 = A @ eigen_vec1 eigen_transformed2 = A @ eigen_vec2 ax2.quiver(*origin, *random_transformed, angles='xy', scale_units='xy', scale=1, color='blue', width=0.01, label='一般ベクトル（方向変化）', alpha=0.7) ax2.quiver(*origin, *eigen_transformed1, angles='xy', scale_units='xy', scale=1, color='red', width=0.01, label='固有ベクトル1（方向不変）') ax2.quiver(*origin, *eigen_transformed2, angles='xy', scale_units='xy', scale=1, color='green', width=0.01, label='固有ベクトル2（方向不変）') # 元のベクトルを薄く表示 ax2.quiver(*origin, *random_vec, angles='xy', scale_units='xy', scale=1, color='blue', width=0.005, alpha=0.2) ax2.quiver(*origin, *eigen_vec1, angles='xy', scale_units='xy', scale=1, color='red', width=0.005, alpha=0.2) ax2.quiver(*origin, *eigen_vec2, angles='xy', scale_units='xy', scale=1, color='green', width=0.005, alpha=0.2) ax2.set_xlim(-1, 5) ax2.set_ylim(-1, 5) ax2.set_xlabel('x') ax2.set_ylabel('y') ax2.set_title('行列Aによる変換後') ax2.legend(fontsize=8) ax2.grid(True, alpha=0.3) ax2.axhline(y=0, color='k', linewidth=0.5) ax2.axvline(x=0, color='k', linewidth=0.5) plt.tight_layout() plt.show()
+
+## 3.2 特性方程式と固有値の計算
+
+**📐 定理: 特性方程式**  
+固有値 λ は特性方程式 det(A - λI) = 0 の解として求められます。  
+n×n行列はn個の固有値を持ちます（重複を含む）。 
+
+### 💻 コード例3: SymPyによる特性方程式の導出
+
+Python実装: 特性方程式の記号計算
+
+import sympy as sp # 記号変数 lam = sp.Symbol('lambda') # 行列Aを記号で定義 A_sym = sp.Matrix([[4, 1], [2, 3]]) # I - 単位行列 I = sp.eye(2) # 特性行列 A - λI char_matrix = A_sym - lam * I print("特性方程式の導出:") print(f"A - λI =") sp.pprint(char_matrix) # 特性方程式 det(A - λI) = 0 char_poly = char_matrix.det() print(f"\n特性多項式: {char_poly} = 0") # 固有値を求める eigenvals_sym = sp.solve(char_poly, lam) print(f"固有値: {eigenvals_sym}") # NumPyの結果と比較 print(f"\nNumPyの固有値: {eigenvalues}")
+
+## 3.3 対角化
+
+**📐 定義: 対角化**  
+行列Aが対角化可能 ⇔ P^(-1)AP = D となる行列P（固有ベクトルを列に持つ）と 対角行列D（対角成分が固有値）が存在する。 
+
+### 💻 コード例4: 対角化の実装
+
+Python実装: 対角化と応用
+
+# 固有値を対角成分に持つ対角行列D D = np.diag(eigenvalues) # 固有ベクトルを列に持つ行列P P = eigenvectors # P^(-1) P_inv = np.linalg.inv(P) # 検証: P^(-1) A P = D result = P_inv @ A @ P print("対角化の検証:") print(f"P (固有ベクトル行列) =\n{P}\n") print(f"D (固有値対角行列) =\n{D}\n") print(f"P^(-1) A P =\n{result}\n") print(f"D に一致? {np.allclose(result, D)}") # 対角化の応用: A^n の高速計算 # A^n = P D^n P^(-1) n = 10 A_n_fast = P @ np.linalg.matrix_power(D, n) @ P_inv A_n_direct = np.linalg.matrix_power(A, n) print(f"\nA^{n} の計算:") print(f"対角化利用: {A_n_fast[0,0]:.4f}") print(f"直接計算: {A_n_direct[0,0]:.4f}") print(f"一致? {np.allclose(A_n_fast, A_n_direct)}")
+
+## 3.4 対称行列の性質
+
+**📐 定理: 対称行列のスペクトル定理**  
+実対称行列（A = A^T）は：  
+
+  * すべての固有値が実数
+  * 異なる固有値に対応する固有ベクトルは直交
+  * 必ず対角化可能で、直交行列による対角化が可能
+
+### 💻 コード例5: 対称行列の固有値分解
+
+Python実装: 対称行列の固有値分解
+
+# 対称行列 A_sym = np.array([[3, 1], [1, 3]]) # 固有値・固有ベクトル eigenvals_sym, eigenvecs_sym = np.linalg.eigh(A_sym) # 対称行列専用 print("対称行列の固有値分解:") print(f"A (対称) =\n{A_sym}\n") print(f"固有値: {eigenvals_sym}") print(f"固有ベクトル:\n{eigenvecs_sym}\n") # 固有ベクトルの直交性を確認 v1 = eigenvecs_sym[:, 0] v2 = eigenvecs_sym[:, 1] inner_product = np.dot(v1, v2) print(f"固有ベクトルの内積: {inner_product:.10f}") print(f"直交? {np.abs(inner_product) < 1e-10}") # 直交行列性の確認: Q^T Q = I Q = eigenvecs_sym QTQ = Q.T @ Q print(f"\nQ^T Q =\n{QTQ}") print(f"単位行列? {np.allclose(QTQ, np.eye(2))}")
+
+## 3.5 PCA（主成分分析）
+
+**🔬 応用例: 主成分分析（PCA）**  
+データの共分散行列を固有値分解し、最大固有値に対応する固有ベクトル方向が データの最大分散方向（第1主成分）となります。 
+
+### 💻 コード例6: PCAの実装
+
+Python実装: 主成分分析（PCA）
+
+from sklearn.datasets import make_blobs # サンプルデータ生成 np.random.seed(42) X, _ = make_blobs(n_samples=100, n_features=2, centers=1, cluster_std=2.0) # データを中心化 X_centered = X - np.mean(X, axis=0) # 共分散行列 cov_matrix = np.cov(X_centered.T) # 固有値分解 eigenvals_pca, eigenvecs_pca = np.linalg.eigh(cov_matrix) # 固有値の大きい順にソート idx = eigenvals_pca.argsort()[::-1] eigenvals_pca = eigenvals_pca[idx] eigenvecs_pca = eigenvecs_pca[:, idx] print("PCA（主成分分析）:") print(f"共分散行列:\n{cov_matrix}\n") print(f"固有値: {eigenvals_pca}") print(f"寄与率: {eigenvals_pca / eigenvals_pca.sum()}") # 可視化 plt.figure(figsize=(10, 8)) plt.scatter(X_centered[:, 0], X_centered[:, 1], alpha=0.5) # 主成分方向を描画 origin = [0, 0] scale = np.sqrt(eigenvals_pca) for i in range(2): vec = eigenvecs_pca[:, i] * scale[i] * 3 plt.quiver(*origin, *vec, angles='xy', scale_units='xy', scale=1, color=['red', 'blue'][i], width=0.01, label=f'PC{i+1} (λ={eigenvals_pca[i]:.2f})') plt.xlabel('Feature 1') plt.ylabel('Feature 2') plt.title('主成分分析（PCA）') plt.legend() plt.grid(True, alpha=0.3) plt.axis('equal') plt.show()
+
+### 💻 コード例7: 次元削減によるデータ圧縮
+
+Python実装: 次元削減と再構成
+
+# 第1主成分のみに射影（2D → 1D） PC1 = eigenvecs_pca[:, 0].reshape(-1, 1) # 射影 X_pca = X_centered @ PC1 # 元の空間に戻す（近似再構成） X_reconstructed = X_pca @ PC1.T # 再構成誤差 reconstruction_error = np.mean(np.linalg.norm(X_centered - X_reconstructed, axis=1)**2) print(f"\n次元削減:") print(f"元の次元: {X_centered.shape[1]}D") print(f"削減後: 1D") print(f"再構成誤差: {reconstruction_error:.4f}") print(f"第1主成分の寄与率: {eigenvals_pca[0]/eigenvals_pca.sum()*100:.1f}%") # 可視化 plt.figure(figsize=(10, 8)) plt.scatter(X_centered[:, 0], X_centered[:, 1], alpha=0.3, label='元データ') plt.scatter(X_reconstructed[:, 0], X_reconstructed[:, 1], alpha=0.5, label='再構成データ', s=10) plt.plot([0, PC1[0,0]*scale[0]*3], [0, PC1[1,0]*scale[0]*3], 'r-', linewidth=3, label='PC1') plt.xlabel('Feature 1') plt.ylabel('Feature 2') plt.title('第1主成分への射影と再構成') plt.legend() plt.grid(True, alpha=0.3) plt.axis('equal') plt.show()
+
+## 3.6 材料科学への応用: 振動モード解析
+
+### 💻 コード例8: 連成振動系の固有振動数
+
+Python実装: 振動モード解析
+
+# 2自由度連成振動系 # m1 = m2 = 1 kg, k1 = k2 = k3 = 1 N/m # 運動方程式: M x'' + K x = 0 # 固有値問題: det(K - ω² M) = 0 M = np.array([[1, 0], [0, 1]]) # 質量行列 K = np.array([[2, -1], [-1, 2]]) # 剛性行列 # 一般化固有値問題を解く eigenvals_vibration, eigenvecs_vibration = np.linalg.eigh(K, M) # 固有角振動数 ω = sqrt(λ) omega = np.sqrt(eigenvals_vibration) print("振動モード解析:") print(f"質量行列 M:\n{M}\n") print(f"剛性行列 K:\n{K}\n") print(f"固有値 λ: {eigenvals_vibration}") print(f"固有角振動数 ω: {omega} rad/s") print(f"固有振動数 f: {omega/(2*np.pi)} Hz\n") print("振動モード（固有ベクトル）:") for i in range(2): print(f"モード{i+1} (f={omega[i]/(2*np.pi):.3f} Hz):") print(f" 質点1: {eigenvecs_vibration[0,i]:.4f}") print(f" 質点2: {eigenvecs_vibration[1,i]:.4f}") if eigenvecs_vibration[0,i] * eigenvecs_vibration[1,i] > 0: print(f" → 同位相振動\n") else: print(f" → 逆位相振動\n")
+
+## まとめ
+
+  * 固有ベクトルは線形変換で方向が変わらないベクトル、固有値はその伸縮率
+  * 対角化により行列のべき乗計算が効率化され、動的システム解析に有用
+  * 対称行列は実固有値を持ち、直交する固有ベクトルで対角化可能
+  * PCAは共分散行列の固有値分解によりデータの主要な変動方向を抽出
+  * 材料科学では振動モード解析、結晶対称性など様々な応用がある
+
+[← 第2章: 行列式](<chapter-2.html>) 第4章: 特異値分解 →（準備中）
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

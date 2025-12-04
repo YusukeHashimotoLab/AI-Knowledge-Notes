@@ -1,0 +1,1198 @@
+---
+title: "第3章: 高分子の物性"
+chapter_title: "第3章: 高分子の物性"
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/MS/polymer-materials-introduction/chapter-3.html>) | Last sync: 2025-11-16
+
+[AI寺子屋トップ](<../../index.html>)›[材料科学](<../../MS/index.html>)›[Polymer Materials](<../../MS/polymer-materials-introduction/index.html>)›Chapter 3
+
+  * [目次](<index.html>)
+  * [← 第2章](<chapter-2.html>)
+  * [第3章](<chapter-3.html>)
+  * 第4章 →（準備中）
+  * [第5章](<chapter-5.html>)
+
+### 学習目標
+
+**初級:**
+
+  * 応力-ひずみ曲線の主要な特徴（降伏、破断）を理解する
+  * 粘弾性の基本概念（弾性と粘性の中間挙動）を説明できる
+  * クリープとストレス緩和の違いを理解する
+
+**中級:**
+
+  * MaxwellモデルとVoigtモデルで粘弾性をシミュレートできる
+  * WLF式を用いて時間-温度換算を実行できる
+  * 動的機械分析（DMA）データからE'、E''、tan δを算出できる
+
+**上級:**
+
+  * 複雑なレオロジー挙動をモデル化できる
+  * マスターカーブを作成し、長時間挙動を予測できる
+  * tan δピークからガラス転移温度を精密に決定できる
+
+## 3.1 機械的性質
+
+高分子材料の**機械的性質** は、応力-ひずみ試験で評価されます。引張試験では、試料に荷重を加えてひずみを測定し、**Young率（弾性率）** 、**降伏応力** 、**破断応力** 、**破断伸び** などの特性値を得ます。 
+    
+    
+    ```mermaid
+    flowchart TD
+                        A[応力-ひずみ試験] --> B[弾性領域]
+                        A --> C[降伏点]
+                        A --> D[塑性変形]
+                        A --> E[破断点]
+                        B --> F[Young率 Eσ = E × ε]
+                        C --> G[降伏応力 σy塑性変形開始]
+                        D --> H[ネッキング局所的くびれ]
+                        E --> I[破断応力 σb破断伸び εb]
+                        F --> J[用途: 剛性評価]
+                        G --> K[用途: 耐荷重設計]
+                        I --> L[用途: 延性評価]
+    ```
+
+### 3.1.1 応力-ひずみ曲線シミュレーション
+
+高分子の応力-ひずみ曲線は、材料の種類（ガラス状、ゴム状、半結晶性）によって大きく異なります。以下では、典型的な3つのパターンをシミュレートします。 
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # 応力-ひずみ曲線シミュレーション
+    def simulate_stress_strain_curves():
+        """
+        高分子材料の典型的な応力-ひずみ曲線をシミュレート
+    
+        Returns:
+        - strain: ひずみ（%）
+        - stresses: 各材料タイプの応力（MPa）
+        """
+        # ひずみ範囲（%）
+        strain = np.linspace(0, 100, 500)
+    
+        # 1. ガラス状高分子（PMMA, PS）: 高剛性、低延性
+        def glassy_polymer(eps):
+            """ガラス状高分子の応力-ひずみ"""
+            E = 3000  # MPa（高いYoung率）
+            sigma_y = 70  # MPa（降伏応力）
+            eps_y = sigma_y / E * 100  # 降伏ひずみ（%）
+            eps_b = 5  # %（破断ひずみ：脆性）
+    
+            sigma = np.zeros_like(eps)
+            for i, e in enumerate(eps):
+                if e <= eps_y:
+                    sigma[i] = E * e / 100  # 弾性領域
+                elif e <= eps_b:
+                    sigma[i] = sigma_y + (e - eps_y) * 2  # わずかな塑性変形
+                else:
+                    sigma[i] = 0  # 破断
+            return sigma
+    
+        # 2. ゴム状高分子（天然ゴム、シリコーンゴム）: 低剛性、高延性
+        def rubbery_polymer(eps):
+            """ゴム状高分子の応力-ひずみ（非線形弾性）"""
+            G = 2  # MPa（低いせん断弾性率）
+            # ゴム弾性理論: σ = G(λ - λ^-2), λ = 1 + ε
+            lambda_ratio = 1 + eps / 100
+            sigma = G * (lambda_ratio - lambda_ratio**(-2))
+            return sigma
+    
+        # 3. 半結晶性高分子（PE, PP）: 中剛性、高延性、ネッキング
+        def semicrystalline_polymer(eps):
+            """半結晶性高分子の応力-ひずみ"""
+            E = 1200  # MPa
+            sigma_y = 25  # MPa
+            eps_y = sigma_y / E * 100
+            eps_neck_end = 30  # ネッキング終了ひずみ
+            eps_b = 80  # 破断ひずみ
+    
+            sigma = np.zeros_like(eps)
+            for i, e in enumerate(eps):
+                if e <= eps_y:
+                    sigma[i] = E * e / 100  # 弾性領域
+                elif e <= eps_neck_end:
+                    # ネッキング中は応力ほぼ一定
+                    sigma[i] = sigma_y - 3 + (e - eps_y) * 0.1
+                elif e <= eps_b:
+                    # ひずみ硬化（配向による強化）
+                    sigma[i] = 22 + (e - eps_neck_end) * 0.4
+                else:
+                    sigma[i] = 0  # 破断
+            return sigma
+    
+        # 応力計算
+        stress_glassy = glassy_polymer(strain)
+        stress_rubbery = rubbery_polymer(strain)
+        stress_semicryst = semicrystalline_polymer(strain)
+    
+        # 可視化
+        plt.figure(figsize=(12, 5))
+    
+        plt.subplot(1, 2, 1)
+        plt.plot(strain[stress_glassy > 0], stress_glassy[stress_glassy > 0],
+                 'b-', linewidth=2, label='Glassy (PMMA)')
+        plt.plot(strain[stress_rubbery > 0], stress_rubbery[stress_rubbery > 0],
+                 'r-', linewidth=2, label='Rubbery (Natural Rubber)')
+        plt.plot(strain[stress_semicryst > 0], stress_semicryst[stress_semicryst > 0],
+                 'g-', linewidth=2, label='Semicrystalline (PE)')
+    
+        plt.xlabel('Strain (%)', fontsize=12)
+        plt.ylabel('Stress (MPa)', fontsize=12)
+        plt.title('Stress-Strain Curves for Different Polymers', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(alpha=0.3)
+        plt.xlim(0, 100)
+    
+        # サブプロット2：Young率の比較
+        plt.subplot(1, 2, 2)
+        materials = ['Glassy\n(PMMA)', 'Semicryst.\n(PE)', 'Rubbery\n(NR)']
+        youngs_moduli = [3000, 1200, 2]  # MPa
+        colors = ['#4A90E2', '#50C878', '#E74C3C']
+    
+        bars = plt.bar(materials, youngs_moduli, color=colors, edgecolor='black', linewidth=2)
+        plt.ylabel('Young\'s Modulus (MPa)', fontsize=12)
+        plt.title('Comparison of Young\'s Moduli', fontsize=14, fontweight='bold')
+        plt.yscale('log')
+        plt.grid(alpha=0.3, axis='y')
+    
+        # 数値ラベル
+        for bar, val in zip(bars, youngs_moduli):
+            height = bar.get_height()
+            plt.text(bar.get_x() + bar.get_width()/2., height,
+                    f'{val} MPa', ha='center', va='bottom', fontsize=10, fontweight='bold')
+    
+        plt.tight_layout()
+        plt.savefig('stress_strain_curves.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 結果出力
+        print("=== 応力-ひずみ特性比較 ===")
+        print("\n1. ガラス状高分子（PMMA）:")
+        print("   Young率: 3000 MPa, 降伏応力: 70 MPa, 破断ひずみ: 5%")
+        print("   特徴: 高剛性・脆性、透明性")
+    
+        print("\n2. ゴム状高分子（天然ゴム）:")
+        print("   Young率: 2 MPa, 破断ひずみ: 500%以上")
+        print("   特徴: 低剛性・高延性、エントロピー弾性")
+    
+        print("\n3. 半結晶性高分子（ポリエチレン）:")
+        print("   Young率: 1200 MPa, 降伏応力: 25 MPa, 破断ひずみ: 80%")
+        print("   特徴: 中剛性・延性、ネッキング現象")
+    
+        return strain, stress_glassy, stress_rubbery, stress_semicryst
+    
+    # 実行
+    simulate_stress_strain_curves()
+    
+
+## 3.2 粘弾性の基礎
+
+高分子は**粘弾性（Viscoelasticity）** を示し、弾性固体と粘性流体の中間的な挙動を示します。瞬間的には弾性的に応答し、長時間では粘性流動が生じます。粘弾性は、**Maxwellモデル** と**Voigtモデル** で記述されます。 
+
+### MaxwellモデルとVoigtモデル
+
+**Maxwellモデル:** ばねとダッシュポットの**直列結合** 。ストレス緩和を表現。応力一定下では時間とともにひずみが増加（クリープ）。 
+
+**Voigtモデル:** ばねとダッシュポットの**並列結合** 。クリープを表現。ひずみ一定下では応力が緩和しない（遅延弾性）。 
+
+### 3.2.1 Maxwellモデルシミュレーション
+
+Maxwellモデルの応力緩和は、以下の微分方程式で記述されます： 
+
+\\[ \sigma(t) = \sigma_0 e^{-t/\tau} \\] 
+
+ここで、τ = η/E は緩和時間、η は粘度、E は弾性率です。 
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # Maxwellモデルシミュレーション
+    def simulate_maxwell_model(relaxation_times=[1, 10, 100], strain0=0.1):
+        """
+        Maxwellモデルによる応力緩和をシミュレート
+    
+        Parameters:
+        - relaxation_times: 緩和時間τのリスト（秒）
+        - strain0: 初期ひずみ
+    
+        Returns:
+        - time: 時間（秒）
+        - stresses: 応力（各緩和時間）
+        """
+        # 時間範囲（対数スケール）
+        time = np.logspace(-2, 3, 500)  # 0.01秒〜1000秒
+    
+        E = 1000  # MPa（弾性率）
+        sigma0 = E * strain0  # 初期応力（MPa）
+    
+        plt.figure(figsize=(14, 5))
+    
+        # サブプロット1：応力緩和曲線
+        plt.subplot(1, 3, 1)
+        for tau in relaxation_times:
+            # Maxwell応力緩和: σ(t) = σ0 * exp(-t/τ)
+            stress = sigma0 * np.exp(-time / tau)
+            plt.plot(time, stress, linewidth=2, label=f'τ = {tau} s')
+    
+        plt.xscale('log')
+        plt.xlabel('Time (s)', fontsize=12)
+        plt.ylabel('Stress σ(t) (MPa)', fontsize=12)
+        plt.title('Maxwell Model: Stress Relaxation', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(alpha=0.3)
+        plt.axhline(0, color='k', linewidth=0.8)
+    
+        # サブプロット2：緩和弾性率
+        plt.subplot(1, 3, 2)
+        for tau in relaxation_times:
+            # 緩和弾性率: E(t) = E0 * exp(-t/τ)
+            E_t = E * np.exp(-time / tau)
+            plt.plot(time, E_t, linewidth=2, label=f'τ = {tau} s')
+    
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlabel('Time (s)', fontsize=12)
+        plt.ylabel('Relaxation Modulus E(t) (MPa)', fontsize=12)
+        plt.title('Relaxation Modulus vs Time', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(alpha=0.3)
+    
+        # サブプロット3：クリープコンプライアンス
+        plt.subplot(1, 3, 3)
+        sigma_const = 10  # MPa（一定応力）
+        for tau in relaxation_times:
+            # Maxwellクリープ: ε(t) = σ/E + σt/η = σ/E(1 + t/τ)
+            strain = (sigma_const / E) * (1 + time / tau) * 100  # %
+            plt.plot(time, strain, linewidth=2, label=f'τ = {tau} s')
+    
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlabel('Time (s)', fontsize=12)
+        plt.ylabel('Strain ε(t) (%)', fontsize=12)
+        plt.title('Maxwell Model: Creep Behavior', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('maxwell_model.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 結果出力
+        print("=== Maxwellモデル解析結果 ===")
+        print(f"初期ひずみ: {strain0*100:.1f}%")
+        print(f"初期応力: {sigma0:.1f} MPa")
+        print(f"弾性率: {E} MPa\n")
+    
+        for tau in relaxation_times:
+            eta = E * tau  # 粘度（MPa·s）
+            t_half = tau * np.log(2)  # 半減期
+            print(f"緩和時間 τ = {tau} s:")
+            print(f"  粘度 η = {eta} MPa·s")
+            print(f"  応力半減期 = {t_half:.2f} s")
+    
+        return time, relaxation_times
+    
+    # 実行
+    simulate_maxwell_model()
+    
+
+### 3.2.2 Voigtモデルシミュレーション
+
+Voigtモデルのクリープは、以下の式で記述されます： 
+
+\\[ \varepsilon(t) = \frac{\sigma_0}{E} \left(1 - e^{-t/\tau}\right) \\] 
+
+ここで、τ = η/E は遅延時間です。 
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # Voigtモデルシミュレーション
+    def simulate_voigt_model(retardation_times=[1, 10, 100], stress0=10):
+        """
+        Voigtモデルによるクリープをシミュレート
+    
+        Parameters:
+        - retardation_times: 遅延時間τのリスト（秒）
+        - stress0: 一定応力（MPa）
+    
+        Returns:
+        - time: 時間（秒）
+        - strains: ひずみ（各遅延時間）
+        """
+        # 時間範囲
+        time = np.logspace(-2, 3, 500)  # 0.01秒〜1000秒
+    
+        E = 1000  # MPa（弾性率）
+        epsilon_eq = stress0 / E  # 平衡ひずみ
+    
+        plt.figure(figsize=(14, 5))
+    
+        # サブプロット1：クリープ曲線
+        plt.subplot(1, 3, 1)
+        for tau in retardation_times:
+            # Voigtクリープ: ε(t) = (σ0/E)(1 - exp(-t/τ))
+            strain = epsilon_eq * (1 - np.exp(-time / tau)) * 100  # %
+            plt.plot(time, strain, linewidth=2, label=f'τ = {tau} s')
+    
+        plt.xscale('log')
+        plt.xlabel('Time (s)', fontsize=12)
+        plt.ylabel('Strain ε(t) (%)', fontsize=12)
+        plt.title('Voigt Model: Creep Behavior', fontsize=14, fontweight='bold')
+        plt.axhline(epsilon_eq * 100, color='red', linestyle='--',
+                    linewidth=1.5, label=f'Equilibrium ({epsilon_eq*100:.2f}%)')
+        plt.legend()
+        plt.grid(alpha=0.3)
+    
+        # サブプロット2：クリープコンプライアンス
+        plt.subplot(1, 3, 2)
+        for tau in retardation_times:
+            # クリープコンプライアンス: J(t) = (1/E)(1 - exp(-t/τ))
+            J_t = (1 / E) * (1 - np.exp(-time / tau)) * 1000  # 1/GPa
+            plt.plot(time, J_t, linewidth=2, label=f'τ = {tau} s')
+    
+        plt.xscale('log')
+        plt.xlabel('Time (s)', fontsize=12)
+        plt.ylabel('Creep Compliance J(t) (1/GPa)', fontsize=12)
+        plt.title('Creep Compliance vs Time', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(alpha=0.3)
+    
+        # サブプロット3：回復曲線（荷重除去後）
+        plt.subplot(1, 3, 3)
+        time_loading = 100  # 荷重時間（秒）
+        time_total = np.linspace(0, 300, 500)
+    
+        for tau in retardation_times:
+            strain_recovery = np.zeros_like(time_total)
+            for i, t in enumerate(time_total):
+                if t <= time_loading:
+                    # 荷重中：クリープ
+                    strain_recovery[i] = epsilon_eq * (1 - np.exp(-t / tau))
+                else:
+                    # 荷重除去後：回復
+                    t_unload = t - time_loading
+                    strain_at_unload = epsilon_eq * (1 - np.exp(-time_loading / tau))
+                    strain_recovery[i] = strain_at_unload * np.exp(-t_unload / tau)
+            plt.plot(time_total, strain_recovery * 100, linewidth=2, label=f'τ = {tau} s')
+    
+        plt.axvline(time_loading, color='red', linestyle='--', linewidth=1.5, label='Unload')
+        plt.xlabel('Time (s)', fontsize=12)
+        plt.ylabel('Strain ε(t) (%)', fontsize=12)
+        plt.title('Voigt Model: Recovery after Unloading', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('voigt_model.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 結果出力
+        print("=== Voigtモデル解析結果 ===")
+        print(f"一定応力: {stress0} MPa")
+        print(f"平衡ひずみ: {epsilon_eq*100:.2f}%")
+        print(f"弾性率: {E} MPa\n")
+    
+        for tau in retardation_times:
+            eta = E * tau  # 粘度（MPa·s）
+            t_90 = -tau * np.log(0.1)  # 90%到達時間
+            print(f"遅延時間 τ = {tau} s:")
+            print(f"  粘度 η = {eta} MPa·s")
+            print(f"  90%クリープ到達時間 = {t_90:.2f} s")
+    
+        return time, retardation_times
+    
+    # 実行
+    simulate_voigt_model()
+    
+
+## 3.3 クリープとストレス緩和
+
+**クリープ（Creep）** は一定応力下での時間依存的なひずみ増加、**ストレス緩和（Stress Relaxation）** は一定ひずみ下での時間依存的な応力減少です。両者は高分子の粘弾性挙動を理解する上で重要です。 
+    
+    
+    ```mermaid
+    flowchart LR
+                        A[粘弾性試験] --> B[クリープ試験]
+                        A --> C[ストレス緩和試験]
+                        B --> D[一定応力σ0]
+                        D --> E[ひずみε t 測定]
+                        E --> F[クリープコンプライアンスJ t = ε t /σ0]
+                        C --> G[一定ひずみε0]
+                        G --> H[応力σ t 測定]
+                        H --> I[緩和弾性率E t = σ t /ε0]
+    ```
+
+### 3.3.1 クリープコンプライアンス計算
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # クリープコンプライアンス計算
+    def calculate_creep_compliance(stress=10, times=None):
+        """
+        実験的クリープデータからクリープコンプライアンスを計算
+    
+        Parameters:
+        - stress: 一定応力（MPa）
+        - times: 時間配列（秒）
+    
+        Returns:
+        - times: 時間（秒）
+        - compliance: クリープコンプライアンス（1/GPa）
+        """
+        if times is None:
+            times = np.logspace(-1, 4, 100)  # 0.1秒〜10000秒
+    
+        # 実験的クリープひずみをシミュレート（4要素モデル）
+        # ε(t) = σ0[J0 + J1(1-exp(-t/τ1)) + J2(1-exp(-t/τ2)) + t/η0]
+        J0 = 0.2e-3  # 瞬間コンプライアンス（1/GPa）
+        J1 = 0.5e-3  # 遅延コンプライアンス1
+        tau1 = 10    # 遅延時間1（秒）
+        J2 = 0.3e-3  # 遅延コンプライアンス2
+        tau2 = 1000  # 遅延時間2（秒）
+        eta0 = 1e6   # 定常流動粘度（GPa·s）
+    
+        # クリープひずみ（%）
+        strain = stress * (J0 + J1 * (1 - np.exp(-times / tau1)) +
+                           J2 * (1 - np.exp(-times / tau2)) +
+                           times / eta0) * 100
+    
+        # クリープコンプライアンス（1/GPa）
+        compliance = strain / (stress * 100) * 1000
+    
+        # 可視化
+        plt.figure(figsize=(14, 5))
+    
+        # サブプロット1：クリープひずみ
+        plt.subplot(1, 3, 1)
+        plt.plot(times, strain, 'b-', linewidth=2)
+        plt.xscale('log')
+        plt.xlabel('Time (s)', fontsize=12)
+        plt.ylabel('Creep Strain (%)', fontsize=12)
+        plt.title(f'Creep Curve (σ = {stress} MPa)', fontsize=14, fontweight='bold')
+        plt.grid(alpha=0.3)
+    
+        # サブプロット2：クリープコンプライアンス
+        plt.subplot(1, 3, 2)
+        plt.plot(times, compliance, 'r-', linewidth=2)
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlabel('Time (s)', fontsize=12)
+        plt.ylabel('Creep Compliance J(t) (1/GPa)', fontsize=12)
+        plt.title('Creep Compliance vs Time', fontsize=14, fontweight='bold')
+        plt.grid(alpha=0.3)
+    
+        # サブプロット3：クリープ速度（dε/dt）
+        plt.subplot(1, 3, 3)
+        # 数値微分
+        creep_rate = np.gradient(strain, times)
+        plt.plot(times, creep_rate, 'g-', linewidth=2)
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlabel('Time (s)', fontsize=12)
+        plt.ylabel('Creep Rate dε/dt (%/s)', fontsize=12)
+        plt.title('Creep Rate vs Time', fontsize=14, fontweight='bold')
+        plt.grid(alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('creep_compliance.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 結果出力
+        print("=== クリープコンプライアンス解析 ===")
+        print(f"一定応力: {stress} MPa")
+        print(f"瞬間コンプライアンス J0: {J0*1000:.3f} 1/GPa")
+        print(f"遅延時間1: {tau1} s, J1: {J1*1000:.3f} 1/GPa")
+        print(f"遅延時間2: {tau2} s, J2: {J2*1000:.3f} 1/GPa")
+        print(f"定常流動粘度: {eta0:.2e} GPa·s")
+    
+        # 特定時間でのクリープひずみ
+        for t in [1, 10, 100, 1000]:
+            idx = np.argmin(np.abs(times - t))
+            print(f"\nt = {t} s:")
+            print(f"  クリープひずみ: {strain[idx]:.3f}%")
+            print(f"  コンプライアンス: {compliance[idx]:.3f} 1/GPa")
+    
+        return times, compliance
+    
+    # 実行
+    calculate_creep_compliance()
+    
+
+## 3.4 WLF式と時間-温度換算
+
+高分子の粘弾性は温度に強く依存します。**Williams-Landel-Ferry（WLF）式** は、ガラス転移温度Tg近傍での時間-温度換算を可能にします： 
+
+\\[ \log a_T = \frac{-C_1 (T - T_g)}{C_2 + (T - T_g)} \\] 
+
+ここで、aTはシフトファクター、C1とC2は材料固有の定数（普遍定数：C1 = 17.44、C2 = 51.6 K）です。 
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # WLF式による時間-温度換算
+    def apply_wlf_time_temperature_superposition(tg=373, temperatures=None):
+        """
+        WLF式を用いて時間-温度換算を実行しマスターカーブを作成
+    
+        Parameters:
+        - tg: ガラス転移温度（K）
+        - temperatures: 測定温度のリスト（K）
+    
+        Returns:
+        - shift_factors: シフトファクター
+        - master_curve: マスターカーブ
+        """
+        if temperatures is None:
+            # 測定温度（Tgを中心に±50K）
+            temperatures = tg + np.array([-40, -20, 0, 20, 40])
+    
+        # WLF定数（普遍定数）
+        C1 = 17.44
+        C2 = 51.6  # K
+    
+        # 基準温度（通常Tg）
+        T_ref = tg
+    
+        # シフトファクター計算
+        shift_factors = {}
+        for T in temperatures:
+            log_aT = -C1 * (T - T_ref) / (C2 + (T - T_ref))
+            aT = 10**log_aT
+            shift_factors[T] = aT
+    
+        # 各温度での緩和弾性率を生成
+        time_base = np.logspace(-5, 5, 100)  # 基準時間スケール
+    
+        plt.figure(figsize=(14, 5))
+    
+        # サブプロット1：各温度での緩和弾性率
+        plt.subplot(1, 3, 1)
+        for T in temperatures:
+            # 簡易緩和弾性率（単一緩和時間モデル）
+            tau = 1.0  # 基準緩和時間（秒）
+            E_inf = 1  # MPa（平衡弾性率）
+            E0 = 1000  # MPa（ガラス状弾性率）
+            E_t = E_inf + (E0 - E_inf) * np.exp(-time_base / tau)
+            plt.plot(time_base, E_t, linewidth=2, label=f'{T-273.15:.0f}°C')
+    
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlabel('Time (s)', fontsize=12)
+        plt.ylabel('Relaxation Modulus E(t) (MPa)', fontsize=12)
+        plt.title('E(t) at Different Temperatures', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(alpha=0.3)
+    
+        # サブプロット2：マスターカーブ（時間軸シフト後）
+        plt.subplot(1, 3, 2)
+        for T in temperatures:
+            aT = shift_factors[T]
+            time_shifted = time_base * aT  # 時間軸をシフト
+    
+            # 緩和弾性率（基準温度での挙動）
+            tau_ref = 1.0
+            E_inf = 1
+            E0 = 1000
+            E_t = E_inf + (E0 - E_inf) * np.exp(-time_base / tau_ref)
+    
+            plt.plot(time_shifted, E_t, linewidth=2, label=f'{T-273.15:.0f}°C')
+    
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlabel(f'Reduced Time (s) at Tref = {T_ref-273.15:.0f}°C', fontsize=12)
+        plt.ylabel('Relaxation Modulus E(t) (MPa)', fontsize=12)
+        plt.title('Master Curve by WLF Superposition', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(alpha=0.3)
+    
+        # サブプロット3：シフトファクター vs 温度
+        plt.subplot(1, 3, 3)
+        T_range = np.linspace(tg - 50, tg + 50, 100)
+        log_aT_range = -C1 * (T_range - T_ref) / (C2 + (T_range - T_ref))
+    
+        plt.plot(T_range - 273.15, log_aT_range, 'b-', linewidth=2, label='WLF Equation')
+        plt.scatter([T - 273.15 for T in temperatures],
+                    [np.log10(shift_factors[T]) for T in temperatures],
+                    s=100, c='red', edgecolors='black', linewidths=2, zorder=5, label='Measured')
+        plt.axvline(tg - 273.15, color='green', linestyle='--', linewidth=1.5, label=f'Tg = {tg-273.15:.0f}°C')
+        plt.xlabel('Temperature (°C)', fontsize=12)
+        plt.ylabel('log(aT)', fontsize=12)
+        plt.title('WLF Shift Factor vs Temperature', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('wlf_time_temperature.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 結果出力
+        print("=== WLF時間-温度換算結果 ===")
+        print(f"ガラス転移温度 Tg: {tg - 273.15:.0f}°C")
+        print(f"WLF定数: C1 = {C1}, C2 = {C2} K")
+        print(f"基準温度: {T_ref - 273.15:.0f}°C\n")
+    
+        for T in sorted(temperatures):
+            aT = shift_factors[T]
+            print(f"温度 {T - 273.15:.0f}°C:")
+            print(f"  シフトファクター aT = {aT:.2e}")
+            print(f"  log(aT) = {np.log10(aT):.2f}")
+    
+        return shift_factors, T_range
+    
+    # 実行例：Tg = 100°C（373 K）のポリマー
+    apply_wlf_time_temperature_superposition(tg=373)
+    
+
+## 3.5 動的機械分析（DMA）
+
+**動的機械分析（DMA: Dynamic Mechanical Analysis）** では、振動応力を加えて貯蔵弾性率（E'）、損失弾性率（E''）、損失正接（tan δ）を測定します。これらはガラス転移や分子運動のモードを解析するのに有用です。 
+
+### 3.5.1 動的粘弾性パラメータ計算
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # 動的粘弾性（DMA）シミュレーション
+    def simulate_dma_measurement(tg=373, frequency=1.0):
+        """
+        温度掃引DMA測定をシミュレート
+    
+        Parameters:
+        - tg: ガラス転移温度（K）
+        - frequency: 測定周波数（Hz）
+    
+        Returns:
+        - temperatures: 温度（K）
+        - E_prime: 貯蔵弾性率（MPa）
+        - E_double_prime: 損失弾性率（MPa）
+        - tan_delta: 損失正接
+        """
+        # 温度範囲（Tgを中心に±100K）
+        temperatures = np.linspace(tg - 100, tg + 100, 200)
+    
+        # ガラス状弾性率とゴム状弾性率
+        E_glassy = 3000  # MPa
+        E_rubbery = 10   # MPa
+    
+        # 遷移幅
+        transition_width = 20  # K
+    
+        # 貯蔵弾性率E'（シグモイド関数で近似）
+        def sigmoid(T, Tg, width):
+            """シグモイド関数"""
+            return 1 / (1 + np.exp((T - Tg) / width))
+    
+        E_prime = E_rubbery + (E_glassy - E_rubbery) * sigmoid(temperatures, tg, transition_width)
+    
+        # 損失弾性率E''（E'の微分に比例）
+        # ピークはTgで最大
+        def gaussian_peak(T, Tg, width, amplitude):
+            """Gaussianピーク"""
+            return amplitude * np.exp(-0.5 * ((T - Tg) / width)**2)
+    
+        E_double_prime = gaussian_peak(temperatures, tg, transition_width, 300)
+    
+        # 損失正接 tan(δ) = E''/E'
+        tan_delta = E_double_prime / E_prime
+    
+        # 可視化
+        plt.figure(figsize=(14, 5))
+    
+        # サブプロット1：E'とE''
+        plt.subplot(1, 3, 1)
+        plt.plot(temperatures - 273.15, E_prime, 'b-', linewidth=2, label="E' (Storage Modulus)")
+        plt.plot(temperatures - 273.15, E_double_prime, 'r-', linewidth=2, label='E" (Loss Modulus)')
+        plt.axvline(tg - 273.15, color='green', linestyle='--', linewidth=1.5, label=f'Tg = {tg-273.15:.0f}°C')
+        plt.yscale('log')
+        plt.xlabel('Temperature (°C)', fontsize=12)
+        plt.ylabel('Modulus (MPa)', fontsize=12)
+        plt.title(f'DMA: E\' and E" vs Temperature (f = {frequency} Hz)', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(alpha=0.3)
+    
+        # サブプロット2：tan δ
+        plt.subplot(1, 3, 2)
+        plt.plot(temperatures - 273.15, tan_delta, 'purple', linewidth=2)
+        plt.axvline(tg - 273.15, color='green', linestyle='--', linewidth=1.5, label=f'Tg = {tg-273.15:.0f}°C')
+        # tan δのピーク位置を検出
+        tg_from_tan_delta = temperatures[np.argmax(tan_delta)]
+        plt.axvline(tg_from_tan_delta - 273.15, color='red', linestyle=':', linewidth=1.5,
+                    label=f'Tg (tan δ peak) = {tg_from_tan_delta-273.15:.0f}°C')
+        plt.xlabel('Temperature (°C)', fontsize=12)
+        plt.ylabel('tan δ', fontsize=12)
+        plt.title('Loss Tangent vs Temperature', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(alpha=0.3)
+    
+        # サブプロット3：周波数依存性
+        plt.subplot(1, 3, 3)
+        frequencies = [0.1, 1.0, 10.0]  # Hz
+        for freq in frequencies:
+            # 周波数が高いほどTgが高温側にシフト（時間-温度換算）
+            # 簡易的に Tg_app = Tg + k*log(f) とモデル化
+            k = 5  # K/decade
+            tg_app = tg + k * np.log10(freq / 1.0)
+            tan_delta_freq = E_double_prime / (E_rubbery + (E_glassy - E_rubbery) *
+                                                sigmoid(temperatures, tg_app, transition_width))
+            plt.plot(temperatures - 273.15, tan_delta_freq, linewidth=2, label=f'{freq} Hz')
+    
+        plt.xlabel('Temperature (°C)', fontsize=12)
+        plt.ylabel('tan δ', fontsize=12)
+        plt.title('Frequency Dependence of tan δ', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('dma_dynamic_mechanical_analysis.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 結果出力
+        print("=== DMA解析結果 ===")
+        print(f"測定周波数: {frequency} Hz")
+        print(f"ガラス転移温度 Tg: {tg - 273.15:.0f}°C")
+        print(f"ガラス状弾性率 E': {E_glassy} MPa")
+        print(f"ゴム状弾性率 E': {E_rubbery} MPa")
+        print(f"\ntan δピーク位置: {tg_from_tan_delta - 273.15:.1f}°C")
+        print(f"tan δ最大値: {np.max(tan_delta):.3f}")
+    
+        # 特定温度での値
+        for T_target in [tg - 50, tg, tg + 50]:
+            idx = np.argmin(np.abs(temperatures - T_target))
+            print(f"\n温度 {T_target - 273.15:.0f}°C:")
+            print(f"  E' = {E_prime[idx]:.1f} MPa")
+            print(f"  E'' = {E_double_prime[idx]:.1f} MPa")
+            print(f"  tan δ = {tan_delta[idx]:.3f}")
+    
+        return temperatures, E_prime, E_double_prime, tan_delta
+    
+    # 実行
+    simulate_dma_measurement(tg=373, frequency=1.0)
+    
+
+### 3.5.2 レオロジー流動曲線
+
+高分子溶融体のレオロジー挙動は、せん断速度と粘度の関係（流動曲線）で特徴づけられます。多くの高分子は**せん断速度依存性（shear-thinning）** を示します。 
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # レオロジー流動曲線
+    def simulate_rheological_flow_curve():
+        """
+        高分子溶融体の流動曲線をシミュレート（Cross/Carreau-Yasudaモデル）
+    
+        Returns:
+        - shear_rates: せん断速度（1/s）
+        - viscosities: 粘度（Pa·s）
+        """
+        # せん断速度範囲（対数スケール）
+        shear_rates = np.logspace(-3, 3, 100)  # 0.001〜1000 1/s
+    
+        # Crossモデル: η(γ̇) = η_inf + (η0 - η_inf) / (1 + (λγ̇)^m)
+        eta0 = 10000    # ゼロせん断粘度（Pa·s）
+        eta_inf = 100   # 無限せん断粘度（Pa·s）
+        lambda_c = 1.0  # 緩和時間（s）
+        m = 0.7         # べき指数
+    
+        viscosity_cross = eta_inf + (eta0 - eta_inf) / (1 + (lambda_c * shear_rates)**m)
+    
+        # べき乗則モデル: η = K * γ̇^(n-1)
+        K = 1000  # 稠度係数（Pa·s^n）
+        n = 0.3   # べき指数（n < 1でshear-thinning）
+        viscosity_power_law = K * shear_rates**(n - 1)
+    
+        # 可視化
+        plt.figure(figsize=(14, 5))
+    
+        # サブプロット1：粘度-せん断速度曲線
+        plt.subplot(1, 3, 1)
+        plt.plot(shear_rates, viscosity_cross, 'b-', linewidth=2, label='Cross Model')
+        plt.plot(shear_rates, viscosity_power_law, 'r--', linewidth=2, label='Power Law Model')
+        plt.axhline(eta0, color='green', linestyle=':', linewidth=1.5, label=f'η0 = {eta0} Pa·s')
+        plt.axhline(eta_inf, color='purple', linestyle=':', linewidth=1.5, label=f'η∞ = {eta_inf} Pa·s')
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlabel('Shear Rate γ̇ (1/s)', fontsize=12)
+        plt.ylabel('Viscosity η (Pa·s)', fontsize=12)
+        plt.title('Flow Curve: Viscosity vs Shear Rate', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(alpha=0.3)
+    
+        # サブプロット2：せん断応力-せん断速度
+        plt.subplot(1, 3, 2)
+        shear_stress_cross = viscosity_cross * shear_rates
+        shear_stress_power_law = viscosity_power_law * shear_rates
+        plt.plot(shear_rates, shear_stress_cross, 'b-', linewidth=2, label='Cross Model')
+        plt.plot(shear_rates, shear_stress_power_law, 'r--', linewidth=2, label='Power Law Model')
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlabel('Shear Rate γ̇ (1/s)', fontsize=12)
+        plt.ylabel('Shear Stress τ (Pa)', fontsize=12)
+        plt.title('Shear Stress vs Shear Rate', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(alpha=0.3)
+    
+        # サブプロット3：温度依存性（Arrhenius式）
+        plt.subplot(1, 3, 3)
+        temperatures = np.linspace(150, 250, 50) + 273.15  # K
+        Ea = 50000  # 活性化エネルギー（J/mol）
+        R = 8.314   # 気体定数
+        T_ref = 200 + 273.15  # 基準温度（K）
+        eta_ref = 1000  # 基準粘度（Pa·s）
+    
+        # Arrhenius式: η(T) = η_ref * exp(Ea/R * (1/T - 1/T_ref))
+        viscosity_temp = eta_ref * np.exp(Ea / R * (1 / temperatures - 1 / T_ref))
+    
+        plt.plot(temperatures - 273.15, viscosity_temp, 'g-', linewidth=2)
+        plt.axvline(T_ref - 273.15, color='red', linestyle='--', linewidth=1.5,
+                    label=f'Tref = {T_ref-273.15:.0f}°C')
+        plt.yscale('log')
+        plt.xlabel('Temperature (°C)', fontsize=12)
+        plt.ylabel('Viscosity η (Pa·s)', fontsize=12)
+        plt.title('Temperature Dependence (Arrhenius)', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('rheology_flow_curve.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 結果出力
+        print("=== レオロジー流動曲線解析 ===")
+        print("Crossモデルパラメータ:")
+        print(f"  ゼロせん断粘度 η0: {eta0} Pa·s")
+        print(f"  無限せん断粘度 η∞: {eta_inf} Pa·s")
+        print(f"  緩和時間 λ: {lambda_c} s")
+        print(f"  べき指数 m: {m}")
+    
+        print("\nべき乗則モデルパラメータ:")
+        print(f"  稠度係数 K: {K} Pa·s^n")
+        print(f"  べき指数 n: {n} (shear-thinning)")
+    
+        # 特定せん断速度での値
+        for gamma_dot in [0.01, 1.0, 100]:
+            idx = np.argmin(np.abs(shear_rates - gamma_dot))
+            print(f"\nせん断速度 {gamma_dot} 1/s:")
+            print(f"  粘度（Cross）: {viscosity_cross[idx]:.1f} Pa·s")
+            print(f"  せん断応力: {shear_stress_cross[idx]:.1f} Pa")
+    
+        return shear_rates, viscosity_cross
+    
+    # 実行
+    simulate_rheological_flow_curve()
+    
+
+## 演習問題
+
+#### 演習1: Young率計算（Easy）
+
+応力10 MPa、ひずみ0.5%のとき、Young率を計算してください。 
+
+解答を見る
+
+**解答:**
+    
+    
+    stress = 10  # MPa
+    strain = 0.5 / 100  # %を小数に変換
+    
+    E = stress / strain
+    print(f"Young率 E = {E} MPa = {E/1000} GPa")
+    # 出力: Young率 E = 2000 MPa = 2.0 GPa
+
+この値は半結晶性高分子（PE, PP）に相当します。
+
+#### 演習2: Maxwell緩和時間（Easy）
+
+E = 1000 MPa、η = 10,000 MPa·sのとき、Maxwell緩和時間τを計算してください。 
+
+解答を見る
+
+**解答:**
+    
+    
+    E = 1000  # MPa
+    eta = 10000  # MPa·s
+    
+    tau = eta / E
+    print(f"緩和時間 τ = {tau} s")
+    # 出力: 緩和時間 τ = 10 s
+
+10秒で応力が約37%（1/e）に減少します。
+
+#### 演習3: WLFシフトファクター（Easy）
+
+Tg = 100°C、T = 120°C、C1 = 17.44、C2 = 51.6 Kのとき、WLFシフトファクターaTを計算してください。 
+
+解答を見る
+
+**解答:**
+    
+    
+    Tg = 373  # K
+    T = 393  # K
+    C1 = 17.44
+    C2 = 51.6  # K
+    
+    log_aT = -C1 * (T - Tg) / (C2 + (T - Tg))
+    aT = 10**log_aT
+    
+    print(f"log(aT) = {log_aT:.3f}")
+    print(f"シフトファクター aT = {aT:.3e}")
+    # 出力: log(aT) ≈ -4.88, aT ≈ 1.3e-5
+
+120°Cでは緩和が約10万倍速くなります。
+
+#### 演習4: クリープコンプライアンス（Medium）
+
+一定応力5 MPa下で、時間10秒後のひずみが0.8%でした。クリープコンプライアンスJ(10s)を計算してください（単位: 1/GPa）。 
+
+解答を見る
+
+**解答:**
+    
+    
+    stress = 5  # MPa
+    strain = 0.8 / 100  # 小数
+    time = 10  # s
+    
+    # J(t) = ε(t) / σ
+    J_t = strain / stress  # 1/MPa
+    J_t_GPa = J_t * 1000   # 1/GPa
+    
+    print(f"クリープコンプライアンス J(10s) = {J_t_GPa:.3f} 1/GPa")
+    # 出力: J(10s) = 0.160 1/GPa
+
+#### 演習5: tan δとTg（Medium）
+
+DMA測定でtan δのピークが95°Cで観測されました。ガラス転移温度Tgを推定してください（周波数1 Hz）。 
+
+解答を見る
+
+**解答:**
+
+tan δピークの温度は、通常Tgより5-10°C高い位置に現れます（周波数1 Hzの場合）。したがって、Tg ≈ 85-90°Cと推定されます。DSCで測定されるTg（昇温速度10 K/min）とほぼ一致します。
+
+#### 演習6: せん断粘度計算（Medium）
+
+せん断速度10 1/s、せん断応力5000 Paのとき、見かけ粘度を計算してください。 
+
+解答を見る
+
+**解答:**
+    
+    
+    shear_rate = 10  # 1/s
+    shear_stress = 5000  # Pa
+    
+    # η = τ / γ̇
+    viscosity = shear_stress / shear_rate
+    
+    print(f"見かけ粘度 η = {viscosity} Pa·s")
+    # 出力: 見かけ粘度 η = 500 Pa·s
+
+これは中程度の粘度で、射出成形に適した範囲です。
+
+#### 演習7: Voigt回復時間（Medium）
+
+Voigtモデル（E = 1000 MPa, η = 5000 MPa·s）で荷重除去後、ひずみが初期値の10%まで回復するのに要する時間を計算してください。 
+
+解答を見る
+
+**解答:**
+    
+    
+    E = 1000  # MPa
+    eta = 5000  # MPa·s
+    tau = eta / E  # 遅延時間
+    
+    # 回復: ε(t) = ε0 * exp(-t/τ)
+    # ε(t) / ε0 = 0.1 → exp(-t/τ) = 0.1
+    # t = -τ * ln(0.1)
+    
+    import numpy as np
+    t_recovery = -tau * np.log(0.1)
+    
+    print(f"遅延時間 τ = {tau} s")
+    print(f"90%回復時間 = {t_recovery:.2f} s")
+    # 出力: 遅延時間 τ = 5 s, 90%回復時間 = 11.51 s
+
+#### 演習8: マスターカーブ作成（Hard）
+
+3つの温度（80°C, 100°C, 120°C）で測定した緩和弾性率データを、Tg = 100°Cを基準温度としてWLF式でシフトし、マスターカーブを作成してください。C1 = 17.44, C2 = 51.6 Kを使用。 
+
+解答を見る
+
+**解答:**
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # パラメータ
+    Tg = 373  # K (100°C)
+    C1, C2 = 17.44, 51.6
+    temperatures = [353, 373, 393]  # K (80, 100, 120°C)
+    
+    # 基準時間スケール
+    time_base = np.logspace(-2, 4, 100)
+    
+    # WLFシフトファクター
+    def wlf_shift(T, Tref):
+        return 10**(-C1 * (T - Tref) / (C2 + (T - Tref)))
+    
+    # マスターカーブプロット
+    plt.figure(figsize=(10, 6))
+    for T in temperatures:
+        aT = wlf_shift(T, Tg)
+        time_shifted = time_base * aT
+        # 簡易緩和弾性率
+        E_t = 10 + 2990 * np.exp(-time_base / 1.0)
+        plt.plot(time_shifted, E_t, 'o-', label=f'{T-273.15:.0f}°C (aT={aT:.2e})')
+    
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('Reduced Time (s)', fontsize=12)
+    plt.ylabel('E(t) (MPa)', fontsize=12)
+    plt.title('Master Curve at Tref = 100°C', fontsize=14, fontweight='bold')
+    plt.legend()
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+    
+    print("全データが1本の曲線に重なればマスターカーブ作成成功")
+
+#### 演習9: DMAによるTg決定（Hard）
+
+周波数0.1, 1.0, 10 Hzで測定したtan δピーク温度が85, 95, 105°Cでした。周波数0 Hzに外挿してTgを推定してください。 
+
+解答を見る
+
+**解答:**
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.optimize import curve_fit
+    
+    # 実験データ
+    frequencies = np.array([0.1, 1.0, 10.0])  # Hz
+    tan_delta_peaks = np.array([85, 95, 105])  # °C
+    
+    # 線形フィッティング: Tg_app = Tg + k*log10(f)
+    def linear_model(log_f, Tg, k):
+        return Tg + k * log_f
+    
+    log_frequencies = np.log10(frequencies)
+    params, _ = curve_fit(linear_model, log_frequencies, tan_delta_peaks)
+    Tg_extrapolated, k = params
+    
+    # プロット
+    plt.figure(figsize=(8, 6))
+    plt.scatter(log_frequencies, tan_delta_peaks, s=100, c='red', edgecolors='black', zorder=5)
+    log_f_fit = np.linspace(-2, 2, 100)
+    Tg_fit = linear_model(log_f_fit, Tg_extrapolated, k)
+    plt.plot(log_f_fit, Tg_fit, 'b-', linewidth=2)
+    plt.axhline(Tg_extrapolated, color='green', linestyle='--', label=f'Tg (f→0) = {Tg_extrapolated:.1f}°C')
+    plt.xlabel('log(Frequency) [Hz]', fontsize=12)
+    plt.ylabel('tan δ Peak Temperature (°C)', fontsize=12)
+    plt.title('Frequency Dependence of Tg', fontsize=14, fontweight='bold')
+    plt.legend()
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+    
+    print(f"外挿されたTg（f→0）: {Tg_extrapolated:.1f}°C")
+    print(f"周波数依存性k: {k:.2f} K/decade")
+    # 出力例: Tg ≈ 75°C, k ≈ 10 K/decade
+
+#### 演習10: レオロジー最適化（Hard）
+
+射出成形機のせん断速度範囲100-1000 1/sで、粘度を500-1000 Pa·sに制御したい。Crossモデルのパラメータ（η0, λ, m）を最適化してください。 
+
+解答を見る
+
+**解答:**
+    
+    
+    import numpy as np
+    from scipy.optimize import minimize
+    import matplotlib.pyplot as plt
+    
+    # 目標：100-1000 1/sで粘度500-1000 Pa·s
+    target_shear_rates = np.array([100, 1000])
+    target_viscosities = np.array([1000, 500])
+    
+    # Crossモデル: η = η_inf + (η0 - η_inf) / (1 + (λγ̇)^m)
+    eta_inf = 100  # 固定
+    
+    def cross_viscosity(gamma_dot, params):
+        eta0, lambda_c, m = params
+        return eta_inf + (eta0 - eta_inf) / (1 + (lambda_c * gamma_dot)**m)
+    
+    # 最適化：目標粘度との残差最小化
+    def objective(params):
+        predicted = cross_viscosity(target_shear_rates, params)
+        return np.sum((predicted - target_viscosities)**2)
+    
+    # 初期値と最適化
+    initial_params = [5000, 0.01, 0.7]
+    result = minimize(objective, initial_params, bounds=[(1000, 20000), (0.001, 1.0), (0.3, 1.0)])
+    eta0_opt, lambda_opt, m_opt = result.x
+    
+    print("=== 最適化結果 ===")
+    print(f"η0 = {eta0_opt:.0f} Pa·s")
+    print(f"λ = {lambda_opt:.4f} s")
+    print(f"m = {m_opt:.3f}")
+    
+    # 検証プロット
+    gamma_range = np.logspace(1, 3, 100)
+    eta_optimized = cross_viscosity(gamma_range, result.x)
+    
+    plt.figure(figsize=(8, 6))
+    plt.plot(gamma_range, eta_optimized, 'b-', linewidth=2, label='Optimized Cross Model')
+    plt.scatter(target_shear_rates, target_viscosities, s=100, c='red', edgecolors='black',
+                zorder=5, label='Target Values')
+    plt.fill_between(gamma_range, 500, 1000, alpha=0.2, color='green', label='Target Range')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('Shear Rate (1/s)', fontsize=12)
+    plt.ylabel('Viscosity (Pa·s)', fontsize=12)
+    plt.title('Optimized Rheology for Injection Molding', fontsize=14, fontweight='bold')
+    plt.legend()
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+
+## 参考文献
+
+  1. Ward, I. M., & Sweeney, J. (2012). _An Introduction to the Mechanical Properties of Solid Polymers_ (3rd ed.). Wiley. pp. 1-105, 220-295.
+  2. Ferry, J. D. (1980). _Viscoelastic Properties of Polymers_ (3rd ed.). Wiley. pp. 30-125, 280-340.
+  3. Osswald, T. A., & Rudolph, N. (2015). _Polymer Rheology: Fundamentals and Applications_. Hanser. pp. 15-90.
+  4. Menard, K. P., & Menard, N. (2008). _Dynamic Mechanical Analysis: A Practical Introduction_ (2nd ed.). CRC Press. pp. 1-75.
+  5. Dealy, J. M., & Wissbrun, K. F. (1990). _Melt Rheology and Its Role in Plastics Processing_. Springer. pp. 50-145.
+  6. Williams, M. L., Landel, R. F., & Ferry, J. D. (1955). _J. Am. Chem. Soc._ , 77, 3701-3707. (WLF equation)
+
+### 次章への接続
+
+第4章では、導電性高分子、生体適合性高分子、刺激応答性高分子などの**機能性高分子** を学びます。本章で学んだ粘弾性の知識は、生体材料のソフトマターとしての挙動理解や、刺激応答性高分子の相転移解析に直結します。また、導電性高分子の電気的性質と機械的性質の両立設計にも応用されます。 
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

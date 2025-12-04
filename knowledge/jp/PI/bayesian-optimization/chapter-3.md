@@ -1,0 +1,651 @@
+---
+title: 第3章：獲得関数
+chapter_title: 第3章：獲得関数
+subtitle: 探索と活用のバランスを制御する戦略
+---
+
+## 3.1 獲得関数とは
+
+獲得関数（Acquisition Function）は、ベイズ最適化において次に評価すべき候補点を決定する重要な要素です。 ガウス過程が予測した平均と不確実性を入力として、「どの点を次に実験すべきか」を数値化します。 
+
+#### 💡 獲得関数の役割
+
+  * **探索（Exploration）** ：不確実性が高い領域を調べる
+  * **活用（Exploitation）** ：現在の最良値の周辺を詳細に調べる
+  * **バランス調整** ：問題や進捗に応じて探索と活用の比率を制御
+
+本章では、7つの代表的な獲得関数を実装し、それぞれの特性と適用場面を理解します。 
+
+## 3.2 Expected Improvement (EI)
+
+最も広く使われる獲得関数。現在の最良値からの改善量の期待値を最大化します。 
+
+### Example 1: Expected Improvement の実装
+    
+    
+    # Expected Improvement (EI) の実装
+    import numpy as np
+    from scipy.stats import norm
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+    import matplotlib.pyplot as plt
+    
+    # 1次元テスト関数（プロセス温度の最適化）
+    def process_yield(x):
+        """反応収率のシミュレーション（温度に対する応答）"""
+        return -(x - 2.5)**2 + 5 + 0.3 * np.sin(5 * x)
+    
+    # Expected Improvement の計算
+    def expected_improvement(X, gp, y_best, xi=0.01):
+        """EI獲得関数
+    
+        Args:
+            X: 評価点
+            gp: 学習済みガウス過程
+            y_best: 現在の最良値
+            xi: 改善の閾値（小さいほど活用重視）
+        """
+        mu, sigma = gp.predict(X, return_std=True)
+        sigma = sigma.reshape(-1, 1)
+    
+        # 改善量の計算
+        with np.errstate(divide='warn'):
+            imp = mu - y_best - xi
+            Z = imp / sigma
+            ei = imp * norm.cdf(Z) + sigma * norm.pdf(Z)
+            ei[sigma == 0.0] = 0.0
+    
+        return ei
+    
+    # 初期サンプリング
+    np.random.seed(42)
+    X_init = np.random.uniform(0, 5, 3).reshape(-1, 1)
+    y_init = process_yield(X_init)
+    
+    # ガウス過程の構築
+    kernel = C(1.0, (1e-3, 1e3)) * RBF(1.0, (1e-2, 1e2))
+    gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10)
+    gp.fit(X_init, y_init)
+    
+    # EIの評価
+    X_test = np.linspace(0, 5, 200).reshape(-1, 1)
+    y_best = y_init.max()
+    ei_values = expected_improvement(X_test, gp, y_best)
+    
+    # 次の候補点
+    next_x = X_test[np.argmax(ei_values)]
+    
+    print(f"現在の最良値: {y_best:.3f}")
+    print(f"次の実験候補点: {next_x[0]:.3f}")
+    print(f"EI値: {ei_values.max():.4f}")
+    
+    # 可視化
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+    
+    # 上段: GPの予測
+    mu, sigma = gp.predict(X_test, return_std=True)
+    ax1.plot(X_test, process_yield(X_test), 'r--', label='True function', alpha=0.5)
+    ax1.plot(X_test, mu, 'b-', label='GP mean')
+    ax1.fill_between(X_test.ravel(), mu - 1.96*sigma, mu + 1.96*sigma,
+                     alpha=0.2, label='95% CI')
+    ax1.scatter(X_init, y_init, c='red', s=100, zorder=10, label='Observations')
+    ax1.axvline(next_x, color='green', linestyle=':', label='Next sample')
+    ax1.set_ylabel('Yield')
+    ax1.legend()
+    ax1.set_title('Gaussian Process Prediction')
+    
+    # 下段: EI値
+    ax2.plot(X_test, ei_values, 'g-', label='Expected Improvement')
+    ax2.axvline(next_x, color='green', linestyle=':', label='Maximum EI')
+    ax2.set_xlabel('Temperature (x)')
+    ax2.set_ylabel('EI')
+    ax2.legend()
+    ax2.set_title('Expected Improvement Acquisition Function')
+    
+    plt.tight_layout()
+    plt.savefig('ei_acquisition.png', dpi=150, bbox_inches='tight')
+    print("保存完了: ei_acquisition.png")
+    
+
+#### ✅ EIの特徴
+
+  * 探索と活用のバランスが良い（デフォルト推奨）
+  * パラメータ `xi` で調整可能（0.01-0.1が一般的）
+  * 局所最適解にはまりにくい
+
+## 3.3 Probability of Improvement (PI)
+
+現在の最良値を改善する確率を最大化する獲得関数。EIよりも保守的な戦略。 
+
+### Example 2: Probability of Improvement の実装
+    
+    
+    # Probability of Improvement (PI) の実装
+    def probability_of_improvement(X, gp, y_best, xi=0.01):
+        """PI獲得関数
+    
+        Args:
+            X: 評価点
+            gp: 学習済みガウス過程
+            y_best: 現在の最良値
+            xi: 改善の閾値
+        """
+        mu, sigma = gp.predict(X, return_std=True)
+        sigma = sigma.reshape(-1, 1)
+    
+        with np.errstate(divide='warn'):
+            Z = (mu - y_best - xi) / sigma
+            pi = norm.cdf(Z)
+            pi[sigma == 0.0] = 0.0
+    
+        return pi
+    
+    # PIとEIの比較
+    pi_values = probability_of_improvement(X_test, gp, y_best)
+    next_x_pi = X_test[np.argmax(pi_values)]
+    
+    # 比較プロット
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(X_test, ei_values/ei_values.max(), 'g-', label='EI (normalized)', linewidth=2)
+    ax.plot(X_test, pi_values, 'b-', label='PI', linewidth=2)
+    ax.axvline(next_x, color='green', linestyle=':', alpha=0.7, label=f'EI max: {next_x[0]:.2f}')
+    ax.axvline(next_x_pi, color='blue', linestyle=':', alpha=0.7, label=f'PI max: {next_x_pi[0]:.2f}')
+    ax.set_xlabel('Temperature')
+    ax.set_ylabel('Acquisition Value')
+    ax.legend()
+    ax.set_title('EI vs PI Acquisition Functions')
+    ax.grid(alpha=0.3)
+    plt.savefig('ei_vs_pi.png', dpi=150, bbox_inches='tight')
+    
+    print(f"EI推奨点: {next_x[0]:.3f}")
+    print(f"PI推奨点: {next_x_pi[0]:.3f}")
+    print(f"差: {abs(next_x[0] - next_x_pi[0]):.3f}")
+    
+
+#### ⚠️ PIの注意点
+
+PIは改善の「確率」のみを考慮し、改善の「大きさ」を考慮しません。そのため、微小な改善でも確率が高ければ選択されます。EIの方が実用的なケースが多いです。
+
+## 3.4 Upper Confidence Bound (UCB)
+
+予測平均と不確実性の加重和を最大化。パラメータで探索度合いを明示的に制御できます。 
+
+### Example 3: UCBの実装と探索パラメータの影響
+    
+    
+    # Upper Confidence Bound (UCB) の実装
+    def upper_confidence_bound(X, gp, kappa=2.0):
+        """UCB獲得関数
+    
+        Args:
+            X: 評価点
+            gp: 学習済みガウス過程
+            kappa: 探索パラメータ（大きいほど探索重視）
+        """
+        mu, sigma = gp.predict(X, return_std=True)
+        return mu + kappa * sigma
+    
+    # 異なるkappaでの比較
+    kappas = [0.5, 1.0, 2.0, 5.0]
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    
+    for i, kappa in enumerate(kappas):
+        ax = axes[i//2, i%2]
+    
+        ucb_values = upper_confidence_bound(X_test, gp, kappa=kappa)
+        next_x_ucb = X_test[np.argmax(ucb_values)]
+    
+        # GPの予測
+        mu, sigma = gp.predict(X_test, return_std=True)
+    
+        ax.plot(X_test, process_yield(X_test), 'r--', alpha=0.3, label='True')
+        ax.plot(X_test, mu, 'b-', alpha=0.5, label='GP mean')
+        ax.fill_between(X_test.ravel(), mu - sigma, mu + sigma, alpha=0.1)
+        ax.plot(X_test, ucb_values, 'g-', linewidth=2, label='UCB')
+        ax.scatter(X_init, y_init, c='red', s=80, zorder=10)
+        ax.axvline(next_x_ucb, color='green', linestyle=':', linewidth=2)
+    
+        ax.set_title(f'κ = {kappa} (Next: {next_x_ucb[0]:.2f})')
+        ax.set_xlabel('Temperature')
+        ax.set_ylabel('Value')
+        ax.legend(loc='upper right', fontsize=8)
+        ax.grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('ucb_kappa_comparison.png', dpi=150, bbox_inches='tight')
+    
+    print("\nUCBの探索パラメータ影響:")
+    for kappa in kappas:
+        ucb = upper_confidence_bound(X_test, gp, kappa=kappa)
+        next_x = X_test[np.argmax(ucb)]
+        print(f"κ={kappa:.1f}: 次実験点 = {next_x[0]:.3f}")
+    
+
+#### 💡 UCBパラメータ選択ガイド
+
+  * `kappa = 0.5-1.0`: 活用重視（最良値周辺の精密探索）
+  * `kappa = 2.0-3.0`: バランス型（推奨デフォルト）
+  * `kappa = 5.0-10.0`: 探索重視（未知領域の調査）
+
+## 3.5 Thompson Sampling
+
+ベイズ的アプローチ。ガウス過程の事後分布からサンプリングし、その最大値を次の候補とします。 
+
+### Example 4: Thompson Samplingの実装
+    
+    
+    # Thompson Sampling の実装
+    def thompson_sampling(X, gp, n_samples=10, random_state=None):
+        """Thompson Sampling獲得関数
+    
+        Args:
+            X: 評価点
+            gp: 学習済みガウス過程
+            n_samples: サンプリング数
+            random_state: 乱数シード
+        """
+        if random_state is not None:
+            np.random.seed(random_state)
+    
+        # GPから関数をサンプリング
+        y_samples = gp.sample_y(X, n_samples=n_samples)
+    
+        # 各サンプルの最大値の位置
+        max_indices = np.argmax(y_samples, axis=0)
+    
+        # 頻度ベースのスコア（どの点が最も選ばれるか）
+        score = np.zeros(len(X))
+        for idx in max_indices:
+            score[idx] += 1
+    
+        return score, y_samples
+    
+    # Thompson Samplingの実行
+    ts_score, samples = thompson_sampling(X_test, gp, n_samples=50, random_state=42)
+    next_x_ts = X_test[np.argmax(ts_score)]
+    
+    # 可視化
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+    
+    # サンプルした関数
+    mu, sigma = gp.predict(X_test, return_std=True)
+    ax1.plot(X_test, process_yield(X_test), 'r--', alpha=0.5, linewidth=2, label='True')
+    ax1.plot(X_test, mu, 'b-', linewidth=2, label='GP mean')
+    for i in range(min(10, samples.shape[1])):
+        ax1.plot(X_test, samples[:, i], 'gray', alpha=0.3, linewidth=0.5)
+    ax1.scatter(X_init, y_init, c='red', s=100, zorder=10, label='Observations')
+    ax1.axvline(next_x_ts, color='green', linestyle=':', linewidth=2, label='TS selection')
+    ax1.set_ylabel('Yield')
+    ax1.legend()
+    ax1.set_title(f'Thompson Sampling (50 samples)')
+    ax1.grid(alpha=0.3)
+    
+    # 選択頻度
+    ax2.bar(X_test.ravel(), ts_score, width=0.03, color='green', alpha=0.7)
+    ax2.axvline(next_x_ts, color='green', linestyle=':', linewidth=2)
+    ax2.set_xlabel('Temperature')
+    ax2.set_ylabel('Selection Frequency')
+    ax2.set_title('Thompson Sampling Scores')
+    ax2.grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('thompson_sampling.png', dpi=150, bbox_inches='tight')
+    
+    print(f"Thompson Sampling推奨点: {next_x_ts[0]:.3f}")
+    print(f"選択頻度: {ts_score.max()}/50")
+    
+
+#### ✅ Thompson Samplingの利点
+
+  * 理論的に最適な探索戦略（ベイズリグレット最小化）
+  * 多腕バンディット問題で実績あり
+  * ランダム性により局所解回避
+
+## 3.6 Knowledge Gradient (KG)
+
+次のサンプルを取得した後の改善量を予測する先読み型獲得関数。 
+
+### Example 5: Knowledge Gradientの実装
+    
+    
+    # Knowledge Gradient の簡易実装
+    def knowledge_gradient(X, X_candidate, gp, n_samples=100):
+        """Knowledge Gradient獲得関数
+    
+        Args:
+            X: 既存の観測点
+            X_candidate: 候補点
+            gp: 学習済みガウス過程
+            n_samples: モンテカルロサンプル数
+        """
+        # 現在の最良値
+        y_pred_current = gp.predict(X_candidate, return_std=False)
+        current_best = y_pred_current.max()
+    
+        kg_values = np.zeros(len(X))
+    
+        for i, x_new in enumerate(X):
+            # 新しい点を追加した場合の期待改善
+            # モンテカルロ近似
+            improvements = []
+    
+            for _ in range(n_samples):
+                # 新点でのサンプリング
+                y_new_sample = gp.sample_y(x_new.reshape(1, -1), n_samples=1)[0, 0]
+    
+                # GPを更新（仮想的に）
+                X_temp = np.vstack([gp.X_train_, x_new.reshape(1, -1)])
+                y_temp = np.hstack([gp.y_train_, y_new_sample])
+    
+                gp_temp = GaussianProcessRegressor(kernel=gp.kernel_)
+                gp_temp.fit(X_temp, y_temp)
+    
+                # 更新後の最良予測
+                y_pred_new = gp_temp.predict(X_candidate, return_std=False)
+                new_best = y_pred_new.max()
+    
+                improvements.append(max(0, new_best - current_best))
+    
+            kg_values[i] = np.mean(improvements)
+    
+        return kg_values
+    
+    # KGの計算（計算コスト高いため粗いグリッドで）
+    X_coarse = np.linspace(0, 5, 30).reshape(-1, 1)
+    X_candidate = np.linspace(0, 5, 50).reshape(-1, 1)
+    
+    print("Knowledge Gradient計算中（数分かかります）...")
+    kg_values = knowledge_gradient(X_coarse, X_candidate, gp, n_samples=20)
+    next_x_kg = X_coarse[np.argmax(kg_values)]
+    
+    # 他の獲得関数と比較
+    ei_coarse = expected_improvement(X_coarse, gp, y_best)
+    ucb_coarse = upper_confidence_bound(X_coarse, gp, kappa=2.0)
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(X_coarse, ei_coarse/ei_coarse.max(), 'g-', label='EI (norm)', linewidth=2)
+    ax.plot(X_coarse, ucb_coarse/ucb_coarse.max(), 'b-', label='UCB (norm)', linewidth=2)
+    ax.plot(X_coarse, kg_values/kg_values.max(), 'r-', label='KG (norm)', linewidth=2)
+    ax.axvline(next_x_kg, color='red', linestyle=':', label=f'KG max: {next_x_kg[0]:.2f}')
+    ax.set_xlabel('Temperature')
+    ax.set_ylabel('Normalized Acquisition Value')
+    ax.legend()
+    ax.set_title('Knowledge Gradient vs Other Acquisition Functions')
+    ax.grid(alpha=0.3)
+    plt.savefig('knowledge_gradient.png', dpi=150, bbox_inches='tight')
+    
+    print(f"\nKnowledge Gradient推奨点: {next_x_kg[0]:.3f}")
+    print(f"KG値: {kg_values.max():.4f}")
+    
+
+#### ⚠️ KGの計算コスト
+
+Knowledge Gradientは各候補点でGPを再学習するため計算コストが高いです。 実用的には粗いグリッドでの評価、または解析的近似（KG*）を使用します。 
+
+## 3.7 Entropy Search
+
+最適解の位置に関する不確実性（エントロピー）を最も減少させる点を選択します。 
+
+### Example 6: Entropy Searchの概念実装
+    
+    
+    # Entropy Search の概念的実装
+    from scipy.stats import entropy
+    
+    def entropy_search_approx(X, gp, X_candidate, n_samples=100):
+        """Entropy Searchの近似実装
+    
+        Args:
+            X: 評価点
+            gp: 学習済みガウス過程
+            X_candidate: 最適解の候補領域
+            n_samples: サンプリング数
+        """
+        # 最適解位置の事前分布（候補点での予測値に基づく）
+        mu_candidate, sigma_candidate = gp.predict(X_candidate, return_std=True)
+    
+        # 正規化して確率分布化
+        prob_optimum = np.exp(mu_candidate / sigma_candidate.max())
+        prob_optimum /= prob_optimum.sum()
+    
+        # 現在のエントロピー
+        current_entropy = entropy(prob_optimum)
+    
+        es_values = np.zeros(len(X))
+    
+        for i, x_new in enumerate(X):
+            # 新点での予測
+            mu_new, sigma_new = gp.predict(x_new.reshape(1, -1), return_std=True)
+    
+            # サンプリングベースでエントロピー削減を近似
+            entropy_reductions = []
+    
+            for _ in range(n_samples):
+                # 新点の観測値をサンプル
+                y_new = np.random.normal(mu_new[0], sigma_new[0])
+    
+                # GP更新後の最適解分布を近似
+                # 簡易化: 新点の観測が候補点の確率に与える影響
+                updated_prob = prob_optimum.copy()
+    
+                # 新点が候補より良い場合の影響
+                for j, x_cand in enumerate(X_candidate):
+                    if y_new > mu_candidate[j]:
+                        updated_prob[j] *= 0.5  # 簡易的な重み付け
+    
+                updated_prob /= updated_prob.sum() + 1e-10
+                new_entropy = entropy(updated_prob)
+    
+                entropy_reductions.append(current_entropy - new_entropy)
+    
+            es_values[i] = np.mean(entropy_reductions)
+    
+        return es_values
+    
+    # Entropy Searchの実行
+    es_values = entropy_search_approx(X_coarse, gp, X_candidate, n_samples=50)
+    next_x_es = X_coarse[np.argmax(es_values)]
+    
+    # 可視化
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+    
+    # 最適解の確率分布
+    mu_cand, sigma_cand = gp.predict(X_candidate, return_std=True)
+    prob_opt = np.exp(mu_cand / sigma_cand.max())
+    prob_opt /= prob_opt.sum()
+    
+    ax1.plot(X_candidate, prob_opt, 'b-', linewidth=2, label='P(x is optimum)')
+    ax1.fill_between(X_candidate.ravel(), 0, prob_opt, alpha=0.3)
+    ax1.scatter(X_init, [0.01]*len(X_init), c='red', s=100, zorder=10, label='Observations')
+    ax1.set_ylabel('Probability')
+    ax1.legend()
+    ax1.set_title('Estimated Distribution of Optimal Point')
+    ax1.grid(alpha=0.3)
+    
+    # Entropy Search値
+    ax2.plot(X_coarse, es_values, 'r-', linewidth=2, label='Entropy Reduction')
+    ax2.axvline(next_x_es, color='red', linestyle=':', linewidth=2, label=f'ES max: {next_x_es[0]:.2f}')
+    ax2.set_xlabel('Temperature')
+    ax2.set_ylabel('Expected Entropy Reduction')
+    ax2.legend()
+    ax2.set_title('Entropy Search Acquisition Function')
+    ax2.grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('entropy_search.png', dpi=150, bbox_inches='tight')
+    
+    print(f"Entropy Search推奨点: {next_x_es[0]:.3f}")
+    print(f"期待エントロピー削減: {es_values.max():.4f}")
+    
+
+#### 💡 Entropy Searchの特徴
+
+  * 情報理論に基づく厳密な定式化
+  * 最適解の同定に効率的（同定問題向き）
+  * 実装が複雑（近似手法が一般的）
+
+## 3.8 獲得関数の比較実験
+
+これまで学んだ6つの獲得関数を実プロセス最適化問題で比較します。 
+
+### Example 7: 獲得関数の包括的比較
+    
+    
+    # 獲得関数の性能比較実験
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+    
+    # テスト関数: 複雑なプロセス応答
+    def complex_process(x):
+        """多峰性プロセス応答（温度・圧力の2次元）"""
+        x1, x2 = x[:, 0], x[:, 1]
+        return (-(x1 - 3)**2 - (x2 - 2)**2 + 10 +
+                2 * np.sin(3*x1) * np.cos(2*x2) +
+                np.random.normal(0, 0.1, len(x1)))
+    
+    # 各獲得関数でのベイズ最適化
+    def run_bo_with_acquisition(acquisition_func, n_iterations=20):
+        """指定した獲得関数でBOを実行"""
+        # 初期サンプリング
+        np.random.seed(42)
+        X_init = np.random.uniform([0, 0], [5, 4], (5, 2))
+        y_init = complex_process(X_init)
+    
+        X_all = X_init.copy()
+        y_all = y_init.copy()
+        best_values = [y_all.max()]
+    
+        for iteration in range(n_iterations):
+            # GPモデルの構築
+            kernel = C(1.0) * RBF([1.0, 1.0])
+            gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10,
+                                          normalize_y=True, random_state=42)
+            gp.fit(X_all, y_all)
+    
+            # 候補点の生成
+            X_candidates = np.random.uniform([0, 0], [5, 4], (1000, 2))
+    
+            # 獲得関数で次の点を選択
+            if acquisition_func == 'EI':
+                acq_values = expected_improvement(X_candidates, gp, y_all.max())
+            elif acquisition_func == 'PI':
+                acq_values = probability_of_improvement(X_candidates, gp, y_all.max())
+            elif acquisition_func == 'UCB':
+                acq_values = upper_confidence_bound(X_candidates, gp, kappa=2.0)
+            elif acquisition_func == 'Random':
+                acq_values = np.random.rand(len(X_candidates))
+    
+            next_x = X_candidates[np.argmax(acq_values)]
+            next_y = complex_process(next_x.reshape(1, -1))
+    
+            # データ追加
+            X_all = np.vstack([X_all, next_x])
+            y_all = np.hstack([y_all, next_y])
+            best_values.append(y_all.max())
+    
+        return best_values
+    
+    # 各獲得関数での実行
+    acquisition_functions = ['EI', 'PI', 'UCB', 'Random']
+    results = {}
+    
+    print("各獲得関数での最適化実行中...")
+    for acq_func in acquisition_functions:
+        print(f"  {acq_func}...")
+        results[acq_func] = run_bo_with_acquisition(acq_func, n_iterations=20)
+    
+    # 結果の可視化
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # 収束曲線
+    for acq_func, best_vals in results.items():
+        ax1.plot(best_vals, marker='o', label=acq_func, linewidth=2, markersize=4)
+    
+    ax1.set_xlabel('Iteration')
+    ax1.set_ylabel('Best Value Found')
+    ax1.set_title('Convergence Comparison')
+    ax1.legend()
+    ax1.grid(alpha=0.3)
+    
+    # 最終性能の比較
+    final_values = [vals[-1] for vals in results.values()]
+    colors = ['green', 'blue', 'red', 'gray']
+    ax2.bar(acquisition_functions, final_values, color=colors, alpha=0.7)
+    ax2.set_ylabel('Final Best Value')
+    ax2.set_title('Final Performance Comparison')
+    ax2.grid(axis='y', alpha=0.3)
+    
+    # 値を表示
+    for i, (func, val) in enumerate(zip(acquisition_functions, final_values)):
+        ax2.text(i, val, f'{val:.2f}', ha='center', va='bottom', fontweight='bold')
+    
+    plt.tight_layout()
+    plt.savefig('acquisition_comparison.png', dpi=150, bbox_inches='tight')
+    
+    # 統計サマリー
+    print("\n=== 獲得関数比較結果 ===")
+    print(f"{'関数':<10} {'最終値':<10} {'改善量':<10} {'20回での到達率'}")
+    print("-" * 50)
+    for acq_func, best_vals in results.items():
+        improvement = best_vals[-1] - best_vals[0]
+        convergence = (best_vals[-1] - best_vals[0]) / (max(final_values) - best_vals[0]) * 100
+        print(f"{acq_func:<10} {best_vals[-1]:<10.3f} {improvement:<10.3f} {convergence:>6.1f}%")
+    
+    print("\n推奨獲得関数:")
+    best_acq = max(results.keys(), key=lambda k: results[k][-1])
+    print(f"  最良性能: {best_acq}")
+    print(f"  最終値: {results[best_acq][-1]:.3f}")
+    
+
+#### ✅ 比較実験からの知見
+
+  * **EI** : 最もバランスが良く、多くのケースで推奨
+  * **UCB** : パラメータ調整で柔軟性高い
+  * **PI** : 保守的、局所最適に陥りやすい
+  * **Random** : ベースライン（BOの優位性確認用）
+
+## 3.9 実務での獲得関数選択ガイド
+
+獲得関数 | 適用場面 | 長所 | 短所  
+---|---|---|---  
+**EI** | デフォルト推奨、多目的 | バランス良好、理論的裏付け | ノイズに敏感  
+**PI** | 保守的な最適化 | 実装簡単、解釈容易 | 活用に偏りがち  
+**UCB** | 探索度合いの調整必要 | パラメータで制御可能 | パラメータ選択が難しい  
+**Thompson Sampling** | 並列実験、多腕バンディット | 理論的最適性、多様性 | サンプリングコスト  
+**KG** | 高価な実験、少数サンプル | 先読み最適、効率的 | 計算コスト大  
+**Entropy Search** | 最適解の同定が目的 | 情報理論的厳密性 | 実装複雑  
+  
+#### 💡 実務での推奨戦略
+
+  1. **まずEIを試す** : 多くのケースで良好な性能
+  2. **探索が不足** : UCB（kappa増加）またはThompson Sampling
+  3. **収束が遅い** : PI（活用重視）またはEI（xi減少）
+  4. **並列実験** : Thompson SamplingまたはバッチUCB
+  5. **実験コスト極大** : Knowledge Gradient
+
+## まとめ
+
+本章では、ベイズ最適化の心臓部である獲得関数を7つの実装例とともに学習しました。
+
+### 重要ポイント
+
+  * **探索と活用** : すべての獲得関数はこのトレードオフを制御
+  * **EIが基本** : 迷ったらExpected Improvementから開始
+  * **UCBの柔軟性** : パラメータで探索度合いを明示的に調整可能
+  * **Thompson Samplingの理論性** : ベイズ的に最適、並列化にも有効
+  * **状況に応じた選択** : 問題の性質や進捗で獲得関数を変更することも有効
+
+### 次章の予告
+
+第4章では、実プロセスで頻出する**多目的最適化** （品質と効率の両立など）と **制約付き最適化** （安全領域内での最適化）を扱います。 複数の獲得関数を組み合わせた高度な戦略も学びます。 
+
+[← 第2章: ガウス過程](<chapter-2.html>) [目次に戻る](<index.html>) 第4章: 多目的・制約付き最適化 →（準備中）
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

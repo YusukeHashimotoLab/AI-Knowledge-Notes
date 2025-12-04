@@ -1,0 +1,1409 @@
+---
+title: "Chapter 5: Python Practice - Metallic Materials Data Analysis"
+chapter_title: "Chapter 5: Python Practice - Metallic Materials Data Analysis"
+subtitle: "Python Practice: Metallic Materials Data Analysis"
+---
+
+EN | [JP](<../../../jp/MS/metallic-materials-introduction/chapter-5.html>) | Last sync: 2025-11-16
+
+# Chapter 5: Python Practice - Metallic Materials Data Analysis
+
+Python Practice: Metallic Materials Data Analysis
+
+[MS Dojo Top](<../index.html>)>[Introduction to Metallic Materials](<index.html>)> Chapter 5
+
+## Overview
+
+In this chapter, we learn practical methods for metallic materials data analysis using Python. We cover accessing material databases through the Materials Project API, structural analysis using pymatgen/ASE, phase diagram calculations with pycalphad, and materials property prediction using machine learning. These data-driven approaches are essential in modern materials science research.
+
+### Learning Objectives
+
+  * Retrieve information from material databases using the Materials Project API
+  * Manipulate, visualize, and analyze crystal structures with pymatgen/ASE
+  * Calculate multi-component phase diagrams and evaluate phase stability with pycalphad
+  * Process and statistically analyze large-scale material data with pandas/numpy
+  * Build machine learning models (scikit-learn) to predict material properties
+  * Design and implement high-throughput calculation workflows
+  * Discover material trends through data visualization
+
+**Environment Setup** : To execute the code in this chapter, the following libraries are required.  
+`pip install pymatgen mp-api ase pycalphad scikit-learn pandas matplotlib seaborn plotly`  
+Materials Project API keys can be obtained for free at [materialsproject.org](<https://materialsproject.org/>).
+
+## 5.1 Data Retrieval with Materials Project API
+
+### 5.1.1 What is Materials Project
+
+Materials Project (MP) is a materials database operated by Lawrence Berkeley National Laboratory in the United States, providing first-principles calculation data for over 150,000 types of materials. Information such as crystal structure, band gap, elastic constants, formation energy, and phase diagrams can be accessed through the Python API.
+
+### 5.1.2 API Authentication and Client Initialization
+
+To use the Materials Project API, an API key is required. After free registration on the website, initialize the `MPRester` client.
+
+**Code Example 1: Materials Project API Initialization and Material Search**
+    
+    
+    from mp_api.client import MPRester
+    import pandas as pd
+    
+    # Set API key (replace with your actual key)
+    API_KEY = "your_api_key_here"
+    
+    def search_materials_by_formula(formula, api_key=API_KEY):
+        """
+        Search materials by chemical formula and retrieve basic information
+    
+        Parameters:
+        -----------
+        formula : str
+            Chemical formula (e.g., "Fe", "Al2O3", "Fe-Ni")
+        api_key : str
+            Materials Project API key
+    
+        Returns:
+        --------
+        df : DataFrame
+            DataFrame containing material information
+        """
+        with MPRester(api_key) as mpr:
+            # Search materials by chemical formula
+            docs = mpr.materials.summary.search(
+                formula=formula,
+                fields=["material_id", "formula_pretty", "structure",
+                        "energy_per_atom", "formation_energy_per_atom",
+                        "band_gap", "is_stable", "e_above_hull"]
+            )
+    
+            if not docs:
+                print(f"No materials found for formula: {formula}")
+                return pd.DataFrame()
+    
+            # Convert to DataFrame
+            data = []
+            for doc in docs:
+                data.append({
+                    'Material ID': doc.material_id,
+                    'Formula': doc.formula_pretty,
+                    'Energy [eV/atom]': doc.energy_per_atom,
+                    'Formation Energy [eV/atom]': doc.formation_energy_per_atom,
+                    'Band Gap [eV]': doc.band_gap,
+                    'Stable': doc.is_stable,
+                    'E above hull [eV/atom]': doc.e_above_hull
+                })
+    
+            df = pd.DataFrame(data)
+            return df
+    
+    # Usage example: Search for iron (Fe) materials
+    print("=== Searching for Fe materials ===")
+    fe_materials = search_materials_by_formula("Fe")
+    print(fe_materials.head(10))
+    
+    # Filtering: Stable materials only
+    stable_fe = fe_materials[fe_materials['Stable'] == True]
+    print(f"\nNumber of stable Fe materials: {len(stable_fe)}")
+    
+    # Search for Fe-Ni alloys
+    print("\n=== Searching for Fe-Ni alloys ===")
+    fe_ni_alloys = search_materials_by_formula("Fe-Ni")
+    print(fe_ni_alloys.head(10))
+    
+    # Statistical information
+    print("\n=== Statistics for Fe-Ni alloys ===")
+    print(f"Total materials: {len(fe_ni_alloys)}")
+    print(f"Average formation energy: {fe_ni_alloys['Formation Energy [eV/atom]'].mean():.3f} eV/atom")
+    print(f"Stable materials: {fe_ni_alloys['Stable'].sum()}")
+
+### 5.1.3 Retrieving and Visualizing Structure Information
+
+Structure data retrieved from Materials Project is provided as pymatgen Structure objects. These can be used to analyze and visualize crystal structures.
+
+**Code Example 2: Retrieving and Analyzing Structure Data**
+    
+    
+    from mp_api.client import MPRester
+    from pymatgen.core import Structure
+    import matplotlib.pyplot as plt
+    
+    def get_structure_analysis(material_id, api_key=API_KEY):
+        """
+        Retrieve structure from Material ID and perform detailed analysis
+    
+        Parameters:
+        -----------
+        material_id : str
+            Materials Project ID (e.g., "mp-13")
+        api_key : str
+            API key
+    
+        Returns:
+        --------
+        structure : Structure
+            pymatgen Structure object
+        """
+        with MPRester(api_key) as mpr:
+            # Retrieve structure data
+            structure = mpr.get_structure_by_material_id(material_id)
+    
+            print(f"=== Structure Analysis for {material_id} ===")
+            print(f"Formula: {structure.composition.reduced_formula}")
+            print(f"Space Group: {structure.get_space_group_info()}")
+            print(f"Lattice Parameters:")
+            print(f"  a = {structure.lattice.a:.4f} A")
+            print(f"  b = {structure.lattice.b:.4f} A")
+            print(f"  c = {structure.lattice.c:.4f} A")
+            print(f"  alpha = {structure.lattice.alpha:.2f} deg")
+            print(f"  beta = {structure.lattice.beta:.2f} deg")
+            print(f"  gamma = {structure.lattice.gamma:.2f} deg")
+            print(f"Volume: {structure.volume:.4f} A^3")
+            print(f"Density: {structure.density:.4f} g/cm^3")
+    
+            # Atom count and composition
+            print(f"\nComposition:")
+            for elem, amount in structure.composition.items():
+                print(f"  {elem}: {amount:.2f}")
+    
+            # Nearest neighbor distances
+            print(f"\nNearest neighbor distances:")
+            neighbors = structure.get_all_neighbors(r=3.5)
+            for i, site_neighbors in enumerate(neighbors[:3]):  # First 3 sites
+                if site_neighbors:
+                    min_dist = min([n.nn_distance for n in site_neighbors])
+                    print(f"  Site {i} ({structure[i].species_string}): {min_dist:.3f} A")
+    
+            return structure
+    
+    # Usage example: Structure analysis of BCC iron (mp-13)
+    bcc_fe_structure = get_structure_analysis("mp-13")
+    
+    # Density comparison of multiple materials
+    material_ids = ["mp-13", "mp-79", "mp-134"]  # Fe (BCC), Ni (FCC), Al (FCC)
+    densities = []
+    formulas = []
+    
+    with MPRester(API_KEY) as mpr:
+        for mat_id in material_ids:
+            structure = mpr.get_structure_by_material_id(mat_id)
+            formulas.append(structure.composition.reduced_formula)
+            densities.append(structure.density)
+    
+    # Visualization
+    plt.figure(figsize=(10, 6))
+    plt.bar(formulas, densities, color=['steelblue', 'lightcoral', 'lightgreen'])
+    plt.ylabel('Density [g/cm^3]', fontsize=12)
+    plt.title('Density Comparison of Metallic Elements', fontsize=14)
+    plt.grid(axis='y', alpha=0.3)
+    for i, (formula, density) in enumerate(zip(formulas, densities)):
+        plt.text(i, density + 0.2, f'{density:.2f}', ha='center', fontsize=11)
+    plt.tight_layout()
+    plt.savefig('density_comparison.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+### 5.1.4 Batch Processing: Bulk Data Retrieval for Multiple Materials
+
+In high-throughput analysis, bulk retrieval of material data is performed for statistical analysis and machine learning applications.
+
+**Code Example 3: Bulk Retrieval and Statistical Analysis of Transition Metal Materials**
+    
+    
+    from mp_api.client import MPRester
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    
+    def batch_download_transition_metals(api_key=API_KEY):
+        """
+        Bulk download material data for transition metal elements
+    
+        Returns:
+        --------
+        df : DataFrame
+            Material database
+        """
+        transition_metals = ['Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn']
+    
+        all_data = []
+    
+        with MPRester(api_key) as mpr:
+            for element in transition_metals:
+                print(f"Downloading data for {element}...")
+    
+                # Search for pure element materials
+                docs = mpr.materials.summary.search(
+                    chemsys=element,
+                    fields=["material_id", "formula_pretty", "formation_energy_per_atom",
+                            "energy_per_atom", "band_gap", "density",
+                            "e_above_hull", "is_stable"]
+                )
+    
+                for doc in docs:
+                    all_data.append({
+                        'Material ID': doc.material_id,
+                        'Element': element,
+                        'Formula': doc.formula_pretty,
+                        'Formation Energy [eV/atom]': doc.formation_energy_per_atom,
+                        'Energy [eV/atom]': doc.energy_per_atom,
+                        'Band Gap [eV]': doc.band_gap,
+                        'Density [g/cm^3]': doc.density,
+                        'E above hull [eV/atom]': doc.e_above_hull,
+                        'Stable': doc.is_stable
+                    })
+    
+        df = pd.DataFrame(all_data)
+        return df
+    
+    # Data download
+    print("=== Batch Download Transition Metal Materials ===")
+    tm_data = batch_download_transition_metals()
+    
+    # Statistical analysis
+    print(f"\nTotal materials: {len(tm_data)}")
+    print(f"Stable materials: {tm_data['Stable'].sum()}")
+    
+    # Statistics by element
+    print("\n=== Statistics by Element ===")
+    element_stats = tm_data.groupby('Element').agg({
+        'Formation Energy [eV/atom]': 'mean',
+        'Density [g/cm^3]': 'mean',
+        'Stable': 'sum'
+    }).round(3)
+    print(element_stats)
+    
+    # Visualization: Formation energy distribution
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # 1. Formation energy vs density
+    stable_data = tm_data[tm_data['Stable'] == True]
+    axes[0, 0].scatter(stable_data['Density [g/cm^3]'],
+                        stable_data['Formation Energy [eV/atom]'],
+                        c=stable_data['Band Gap [eV]'], cmap='viridis',
+                        s=50, alpha=0.6)
+    axes[0, 0].set_xlabel('Density [g/cm^3]', fontsize=11)
+    axes[0, 0].set_ylabel('Formation Energy [eV/atom]', fontsize=11)
+    axes[0, 0].set_title('Formation Energy vs. Density', fontsize=12)
+    cbar = plt.colorbar(axes[0, 0].collections[0], ax=axes[0, 0])
+    cbar.set_label('Band Gap [eV]', fontsize=10)
+    axes[0, 0].grid(alpha=0.3)
+    
+    # 2. Formation energy distribution by element
+    sns.boxplot(data=tm_data, x='Element', y='Formation Energy [eV/atom]',
+                ax=axes[0, 1], palette='Set2')
+    axes[0, 1].set_title('Formation Energy Distribution by Element', fontsize=12)
+    axes[0, 1].set_ylabel('Formation Energy [eV/atom]', fontsize=11)
+    axes[0, 1].tick_params(axis='x', rotation=45)
+    axes[0, 1].grid(axis='y', alpha=0.3)
+    
+    # 3. Density distribution
+    axes[1, 0].hist(stable_data['Density [g/cm^3]'], bins=20,
+                    color='steelblue', alpha=0.7, edgecolor='black')
+    axes[1, 0].set_xlabel('Density [g/cm^3]', fontsize=11)
+    axes[1, 0].set_ylabel('Count', fontsize=11)
+    axes[1, 0].set_title('Density Distribution (Stable Materials)', fontsize=12)
+    axes[1, 0].grid(alpha=0.3)
+    
+    # 4. Stability ratio
+    stability_counts = tm_data.groupby('Element')['Stable'].value_counts().unstack(fill_value=0)
+    stability_counts.plot(kind='bar', stacked=True, ax=axes[1, 1],
+                           color=['lightcoral', 'lightgreen'],
+                           legend=True)
+    axes[1, 1].set_title('Stability Count by Element', fontsize=12)
+    axes[1, 1].set_ylabel('Count', fontsize=11)
+    axes[1, 1].tick_params(axis='x', rotation=45)
+    axes[1, 1].legend(['Unstable', 'Stable'], fontsize=10)
+    
+    plt.tight_layout()
+    plt.savefig('transition_metal_statistics.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Save data to CSV
+    tm_data.to_csv('transition_metals_data.csv', index=False)
+    print("\nData saved to 'transition_metals_data.csv'")
+
+## 5.2 Structural Analysis with pymatgen
+
+### 5.2.1 Creating and Manipulating Crystal Structures
+
+pymatgen provides advanced functions for crystal structure generation, deformation, and symmetry analysis.
+
+**Code Example 4: Crystal Structure Generation and Supercell Creation**
+    
+    
+    from pymatgen.core import Structure, Lattice
+    import numpy as np
+    from pymatgen.io.ase import AseAtomsAdaptor
+    from ase.visualize import view
+    
+    def create_fcc_structure(element, lattice_constant):
+        """
+        Generate FCC structure
+    
+        Parameters:
+        -----------
+        element : str
+            Element symbol
+        lattice_constant : float
+            Lattice constant [A]
+    
+        Returns:
+        --------
+        structure : Structure
+            FCC structure
+        """
+        lattice = Lattice.cubic(lattice_constant)
+        coords = [[0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]]
+        structure = Structure(lattice, [element]*4, coords)
+        return structure
+    
+    # Generate FCC Ni
+    fcc_ni = create_fcc_structure("Ni", 3.52)
+    print("=== FCC Ni Structure ===")
+    print(fcc_ni)
+    
+    # Create supercell (2x2x2)
+    supercell = fcc_ni.copy()
+    supercell.make_supercell([2, 2, 2])
+    print(f"\n=== Supercell (2x2x2) ===")
+    print(f"Number of atoms: {len(supercell)}")
+    print(f"Volume: {supercell.volume:.2f} A^3")
+    
+    # Create substitutional solid solution (Fe-Ni)
+    def create_substitutional_alloy(base_structure, substitute_element, substitute_fraction):
+        """
+        Create substitutional solid solution
+    
+        Parameters:
+        -----------
+        base_structure : Structure
+            Base structure
+        substitute_element : str
+            Substitution element
+        substitute_fraction : float
+            Substitution fraction (0-1)
+    
+        Returns:
+        --------
+        alloy_structure : Structure
+            Alloy structure
+        """
+        alloy = base_structure.copy()
+        n_substitute = int(len(alloy) * substitute_fraction)
+    
+        # Randomly select sites for substitution
+        np.random.seed(42)  # For reproducibility
+        substitute_indices = np.random.choice(len(alloy), n_substitute, replace=False)
+    
+        for idx in substitute_indices:
+            alloy[idx] = substitute_element
+    
+        return alloy
+    
+    # Create Fe0.5Ni0.5 alloy (from supercell)
+    fe_ni_alloy = create_substitutional_alloy(supercell, "Fe", 0.5)
+    print(f"\n=== Fe-Ni Alloy (50% substitution) ===")
+    print(f"Composition: {fe_ni_alloy.composition}")
+    
+    # Nearest neighbor distance analysis
+    from pymatgen.analysis.structure_analyzer import VoronoiConnectivity
+    
+    def analyze_nearest_neighbors(structure):
+        """
+        Analyze nearest neighbor atomic distances
+        """
+        print(f"\n=== Nearest Neighbor Analysis ===")
+        all_neighbors = structure.get_all_neighbors(r=4.0)
+    
+        distances = []
+        for site_neighbors in all_neighbors:
+            if site_neighbors:
+                min_dist = min([n.nn_distance for n in site_neighbors])
+                distances.append(min_dist)
+    
+        distances = np.array(distances)
+        print(f"Mean nearest neighbor distance: {distances.mean():.3f} A")
+        print(f"Std deviation: {distances.std():.3f} A")
+        print(f"Min distance: {distances.min():.3f} A")
+        print(f"Max distance: {distances.max():.3f} A")
+    
+        return distances
+    
+    nn_distances = analyze_nearest_neighbors(fe_ni_alloy)
+    
+    # Calculate coordination numbers
+    def calculate_coordination_numbers(structure, cutoff=3.5):
+        """
+        Calculate coordination numbers
+        """
+        all_neighbors = structure.get_all_neighbors(r=cutoff)
+        coordination_numbers = [len(neighbors) for neighbors in all_neighbors]
+    
+        print(f"\n=== Coordination Number Analysis (cutoff={cutoff} A) ===")
+        print(f"Mean coordination number: {np.mean(coordination_numbers):.2f}")
+        print(f"Most common: {np.bincount(coordination_numbers).argmax()}")
+    
+        return coordination_numbers
+    
+    coord_nums = calculate_coordination_numbers(fe_ni_alloy)
+    
+    # Convert to ASE and visualize (optional)
+    adaptor = AseAtomsAdaptor()
+    ase_atoms = adaptor.get_atoms(fe_ni_alloy)
+    # view(ase_atoms)  # Visualize with ASE GUI (interactive environment)
+
+### 5.2.2 Symmetry Analysis and Space Group Determination
+
+pymatgen enables automatic space group determination and retrieval of symmetry operations.
+
+**Code Example 5: Symmetry Analysis**
+    
+    
+    from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+    from pymatgen.core import Structure
+    
+    def symmetry_analysis(structure, symprec=0.1):
+        """
+        Detailed symmetry analysis of crystal structure
+    
+        Parameters:
+        -----------
+        structure : Structure
+            Structure to analyze
+        symprec : float
+            Symmetry precision [A]
+    
+        Returns:
+        --------
+        analysis_dict : dict
+            Analysis results
+        """
+        sga = SpacegroupAnalyzer(structure, symprec=symprec)
+    
+        print(f"=== Symmetry Analysis ===")
+        print(f"Space Group: {sga.get_space_group_symbol()}")
+        print(f"Space Group Number: {sga.get_space_group_number()}")
+        print(f"Point Group: {sga.get_point_group_symbol()}")
+        print(f"Crystal System: {sga.get_crystal_system()}")
+        print(f"Lattice Type: {sga.get_lattice_type()}")
+    
+        # Number of symmetry operations
+        symm_ops = sga.get_symmetry_operations()
+        print(f"Number of symmetry operations: {len(symm_ops)}")
+    
+        # Convert to primitive cell
+        primitive = sga.get_primitive_standard_structure()
+        print(f"\nPrimitive cell:")
+        print(f"  Number of atoms: {len(primitive)}")
+        print(f"  Volume: {primitive.volume:.4f} A^3")
+    
+        # Convert to conventional cell
+        conventional = sga.get_conventional_standard_structure()
+        print(f"\nConventional cell:")
+        print(f"  Number of atoms: {len(conventional)}")
+        print(f"  Volume: {conventional.volume:.4f} A^3")
+    
+        return {
+            'space_group': sga.get_space_group_symbol(),
+            'sg_number': sga.get_space_group_number(),
+            'point_group': sga.get_point_group_symbol(),
+            'crystal_system': sga.get_crystal_system(),
+            'primitive': primitive,
+            'conventional': conventional
+        }
+    
+    # Symmetry analysis of FCC Ni structure
+    fcc_ni_structure = create_fcc_structure("Ni", 3.52)
+    ni_symmetry = symmetry_analysis(fcc_ni_structure)
+    
+    # Generate and analyze BCC Fe structure
+    def create_bcc_structure(element, lattice_constant):
+        """Generate BCC structure"""
+        lattice = Lattice.cubic(lattice_constant)
+        coords = [[0, 0, 0], [0.5, 0.5, 0.5]]
+        structure = Structure(lattice, [element]*2, coords)
+        return structure
+    
+    bcc_fe_structure = create_bcc_structure("Fe", 2.87)
+    print("\n" + "="*50)
+    fe_symmetry = symmetry_analysis(bcc_fe_structure)
+    
+    # Comparison table
+    import pandas as pd
+    comparison_df = pd.DataFrame({
+        'Property': ['Space Group', 'SG Number', 'Point Group', 'Crystal System',
+                     'Atoms in primitive', 'Atoms in conventional'],
+        'FCC Ni': [ni_symmetry['space_group'], ni_symmetry['sg_number'],
+                   ni_symmetry['point_group'], ni_symmetry['crystal_system'],
+                   len(ni_symmetry['primitive']), len(ni_symmetry['conventional'])],
+        'BCC Fe': [fe_symmetry['space_group'], fe_symmetry['sg_number'],
+                   fe_symmetry['point_group'], fe_symmetry['crystal_system'],
+                   len(fe_symmetry['primitive']), len(fe_symmetry['conventional'])]
+    })
+    print("\n=== FCC vs BCC Comparison ===")
+    print(comparison_df.to_string(index=False))
+
+## 5.3 Phase Diagram Calculations with pycalphad
+
+### 5.3.1 CALPHAD Approach and pycalphad
+
+CALPHAD (CALculation of PHAse Diagrams) is a method for calculating multi-component phase diagrams using thermodynamic databases. pycalphad is a Python library for executing CALPHAD calculations, capable of reading TDB (Thermodynamic DataBase) files and performing equilibrium calculations.
+
+**Code Example 6: Fe-C Binary Phase Diagram Calculation**
+    
+    
+    from pycalphad import Database, equilibrium, variables as v
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    def calculate_binary_phase_diagram(tdb_file, elements, x_component, T_range, x_range):
+        """
+        Calculate binary phase diagram
+    
+        Parameters:
+        -----------
+        tdb_file : str
+            TDB file path
+        elements : list
+            Element list (e.g., ['FE', 'C'])
+        x_component : str
+            Component for horizontal axis (e.g., 'C')
+        T_range : tuple
+            Temperature range [K] (T_min, T_max, num_points)
+        x_range : tuple
+            Composition range (x_min, x_max, num_points)
+    
+        Returns:
+        --------
+        eq : xarray.Dataset
+            Equilibrium calculation results
+        """
+        # Load database
+        db = Database(tdb_file)
+    
+        # Set temperature and composition ranges
+        temps = np.linspace(T_range[0], T_range[1], T_range[2])
+        compositions = np.linspace(x_range[0], x_range[1], x_range[2])
+    
+        # Equilibrium calculation
+        eq = equilibrium(db, elements, 'BCC_A2',
+                          {v.X(x_component): compositions, v.T: temps, v.P: 101325},
+                          calc_opts={'pbar': False})
+    
+        return eq, temps, compositions
+    
+    # Example of Fe-C phase diagram calculation (TDB file required for actual execution)
+    # Note: Actual execution requires an Fe-C TDB file
+    # Here we show the concept as pseudo-code
+    
+    def plot_fe_c_phase_diagram_conceptual():
+        """
+        Conceptual plot of Fe-C phase diagram (without actual database)
+        """
+        # Temperature and carbon concentration ranges
+        T = np.linspace(500, 1600, 100)  # K to deg C conversion: T - 273
+        C_wt = np.linspace(0, 6.7, 100)  # wt% C
+    
+        fig, ax = plt.subplots(figsize=(12, 8))
+    
+        # A1 line (727 deg C, eutectoid temperature)
+        A1_temp = 727
+        ax.axhline(y=A1_temp, color='blue', linestyle='--', linewidth=2,
+                    label='A1 (Eutectoid, 727 deg C)')
+    
+        # A3 line (Ferrite-Austenite boundary, conceptual)
+        A3_C = np.linspace(0, 0.8, 50)
+        A3_T = 912 - 200 * A3_C
+        ax.plot(A3_C, A3_T, 'r-', linewidth=2, label='A3 (Ferrite-Austenite)')
+    
+        # Acm line (Austenite-Cementite boundary, conceptual)
+        Acm_C = np.linspace(0.8, 6.7, 50)
+        Acm_T = 727 + (1147 - 727) * (Acm_C - 0.8) / (6.7 - 0.8)
+        ax.plot(Acm_C, Acm_T, 'g-', linewidth=2, label='Acm (Austenite-Cementite)')
+    
+        # Eutectoid point
+        ax.plot(0.8, 727, 'ko', markersize=12, label='Eutectoid Point (0.8%C, 727 deg C)')
+    
+        # Eutectic point (4.3%C, 1147 deg C)
+        ax.plot(4.3, 1147, 'rs', markersize=12, label='Eutectic Point (4.3%C, 1147 deg C)')
+    
+        # Phase region labels
+        ax.text(0.2, 500, 'Ferrite (alpha)', fontsize=14, fontweight='bold')
+        ax.text(0.2, 850, 'Austenite (gamma)', fontsize=14, fontweight='bold')
+        ax.text(1.5, 650, 'Ferrite + Pearlite', fontsize=12)
+        ax.text(5.5, 900, 'Austenite + Cementite', fontsize=12)
+    
+        ax.set_xlabel('Carbon Content [wt%]', fontsize=13)
+        ax.set_ylabel('Temperature [deg C]', fontsize=13)
+        ax.set_title('Fe-C Phase Diagram (Conceptual)', fontsize=15, fontweight='bold')
+        ax.legend(fontsize=11, loc='upper right')
+        ax.grid(True, alpha=0.3)
+        ax.set_xlim(0, 6.7)
+        ax.set_ylim(400, 1600)
+    
+        plt.tight_layout()
+        plt.savefig('fe_c_phase_diagram_conceptual.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+    plot_fe_c_phase_diagram_conceptual()
+    
+    print("=== Fe-C Phase Diagram Key Points ===")
+    print("Eutectoid: 0.8 wt% C, 727 deg C (Austenite -> Ferrite + Cementite)")
+    print("Eutectic: 4.3 wt% C, 1147 deg C (Liquid -> Austenite + Cementite)")
+    print("A1 temperature: 727 deg C (Ferrite-Austenite-Cementite equilibrium)")
+    print("A3 temperature: Variable (Ferrite-Austenite boundary, composition-dependent)")
+
+**About TDB Files** : To perform actual phase diagram calculations with pycalphad, TDB (Thermodynamic DataBase) files are required. Fe-C system TDB files can be obtained from the [pycalphad official repository](<https://github.com/pycalphad/pycalphad>) examples and from [Thermocalc](<https://www.thermocalc.com/>).
+
+## 5.4 Material Property Prediction with Machine Learning
+
+### 5.4.1 Material Descriptors
+
+To input materials into machine learning models, chemical composition and structure must be converted to numerical vectors (descriptors). Common descriptors include average values of element properties such as electronegativity, atomic radius, and valence electrons, as well as crystal structure symmetry indicators.
+
+**Code Example 7: Material Descriptor Generation and Machine Learning Model Construction**
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - pandas>=2.0.0, <2.2.0
+    
+    """
+    Example: Material property prediction using machine learning
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Advanced
+    Execution time: 30-60 seconds
+    Dependencies: None
+    """
+    
+    import pandas as pd
+    import numpy as np
+    from sklearn.model_selection import train_test_split, cross_val_score
+    from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+    from sklearn.linear_model import Ridge
+    from sklearn.metrics import mean_absolute_error, r2_score
+    import matplotlib.pyplot as plt
+    
+    # Create sample dataset (in practice, download from Materials Project)
+    def create_sample_dataset(n_samples=200):
+        """
+        Create sample dataset for metallic materials
+    
+        Returns:
+        --------
+        df : DataFrame
+            Material property data
+        """
+        np.random.seed(42)
+    
+        # Descriptors (features)
+        atomic_radius = np.random.uniform(1.0, 2.0, n_samples)  # A
+        electronegativity = np.random.uniform(1.5, 2.5, n_samples)
+        valence_electrons = np.random.randint(3, 11, n_samples)
+        density = np.random.uniform(2.0, 10.0, n_samples)  # g/cm^3
+        formation_energy = np.random.uniform(-2.0, 0.5, n_samples)  # eV/atom
+    
+        # Target: Elastic modulus (pseudo-generation)
+        # Actual trend: Higher density and electronegativity correlate with hardness
+        elastic_modulus = (50 + 30 * density + 20 * electronegativity +
+                            5 * valence_electrons - 10 * formation_energy +
+                            np.random.normal(0, 20, n_samples))  # GPa
+    
+        df = pd.DataFrame({
+            'Atomic Radius [A]': atomic_radius,
+            'Electronegativity': electronegativity,
+            'Valence Electrons': valence_electrons,
+            'Density [g/cm^3]': density,
+            'Formation Energy [eV/atom]': formation_energy,
+            'Elastic Modulus [GPa]': elastic_modulus
+        })
+    
+        return df
+    
+    # Create dataset
+    materials_df = create_sample_dataset(200)
+    print("=== Material Dataset ===")
+    print(materials_df.head(10))
+    print(f"\nDataset shape: {materials_df.shape}")
+    print(f"Statistical summary:")
+    print(materials_df.describe())
+    
+    # Separate features and target
+    X = materials_df.drop('Elastic Modulus [GPa]', axis=1)
+    y = materials_df['Elastic Modulus [GPa]']
+    
+    # Train-Test split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    print(f"\nTraining set: {X_train.shape[0]} samples")
+    print(f"Test set: {X_test.shape[0]} samples")
+    
+    # Train and evaluate multiple models
+    models = {
+        'Ridge Regression': Ridge(alpha=1.0),
+        'Random Forest': RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42),
+        'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, max_depth=5,
+                                                        learning_rate=0.1, random_state=42)
+    }
+    
+    results = {}
+    
+    print("\n=== Model Training and Evaluation ===")
+    for name, model in models.items():
+        # Training
+        model.fit(X_train, y_train)
+    
+        # Prediction
+        y_train_pred = model.predict(X_train)
+        y_test_pred = model.predict(X_test)
+    
+        # Evaluation metrics
+        train_mae = mean_absolute_error(y_train, y_train_pred)
+        test_mae = mean_absolute_error(y_test, y_test_pred)
+        train_r2 = r2_score(y_train, y_train_pred)
+        test_r2 = r2_score(y_test, y_test_pred)
+    
+        # Cross-validation
+        cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='r2')
+    
+        results[name] = {
+            'Train MAE': train_mae,
+            'Test MAE': test_mae,
+            'Train R^2': train_r2,
+            'Test R^2': test_r2,
+            'CV R^2 Mean': cv_scores.mean(),
+            'CV R^2 Std': cv_scores.std(),
+            'Predictions': y_test_pred
+        }
+    
+        print(f"\n{name}:")
+        print(f"  Train MAE: {train_mae:.2f} GPa, R^2 = {train_r2:.3f}")
+        print(f"  Test MAE: {test_mae:.2f} GPa, R^2 = {test_r2:.3f}")
+        print(f"  Cross-validation R^2: {cv_scores.mean():.3f} +/- {cv_scores.std():.3f}")
+    
+    # Select best model
+    best_model_name = max(results, key=lambda k: results[k]['Test R^2'])
+    print(f"\n=== Best Model: {best_model_name} ===")
+    print(f"Test R^2 = {results[best_model_name]['Test R^2']:.3f}")
+    
+    # Visualization: Prediction vs Actual
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+    
+    for i, (name, model) in enumerate(models.items()):
+        y_pred = results[name]['Predictions']
+    
+        axes[i].scatter(y_test, y_pred, alpha=0.6, s=50, color='steelblue')
+        axes[i].plot([y_test.min(), y_test.max()],
+                      [y_test.min(), y_test.max()],
+                      'r--', linewidth=2, label='Perfect Prediction')
+    
+        axes[i].set_xlabel('True Elastic Modulus [GPa]', fontsize=11)
+        axes[i].set_ylabel('Predicted Elastic Modulus [GPa]', fontsize=11)
+        axes[i].set_title(f'{name}\nR^2 = {results[name]["Test R^2"]:.3f}', fontsize=12)
+        axes[i].legend(fontsize=10)
+        axes[i].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('ml_prediction_comparison.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Feature importance (for Random Forest)
+    if 'Random Forest' in models:
+        rf_model = models['Random Forest']
+        feature_importance = pd.DataFrame({
+            'Feature': X.columns,
+            'Importance': rf_model.feature_importances_
+        }).sort_values('Importance', ascending=False)
+    
+        print("\n=== Feature Importance (Random Forest) ===")
+        print(feature_importance.to_string(index=False))
+    
+        # Visualization
+        plt.figure(figsize=(10, 6))
+        plt.barh(feature_importance['Feature'], feature_importance['Importance'],
+                  color='steelblue')
+        plt.xlabel('Importance', fontsize=12)
+        plt.title('Feature Importance for Elastic Modulus Prediction', fontsize=14)
+        plt.gca().invert_yaxis()
+        plt.tight_layout()
+        plt.savefig('feature_importance.png', dpi=300, bbox_inches='tight')
+        plt.show()
+
+### 5.4.2 Advanced Descriptors: Magpie Features
+
+Magpie (Materials Agnostic Platform for Informatics and Exploration) is a tool that automatically generates over 100 types of descriptors from chemical composition. It integrates with pymatgen, enabling high-precision material property prediction.
+
+## 5.5 High-Throughput Calculation Workflow
+
+### 5.5.1 Workflow Design
+
+In large-scale material screening, the workflow of data acquisition, preprocessing, analysis, and prediction is automated.
+
+**Code Example 8: Material Screening Workflow**
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - pandas>=2.0.0, <2.2.0
+    
+    """
+    Example: Material screening workflow automation
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Advanced
+    Execution time: 2-5 seconds
+    Dependencies: None
+    """
+    
+    import pandas as pd
+    import numpy as np
+    from mp_api.client import MPRester
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.preprocessing import StandardScaler
+    import matplotlib.pyplot as plt
+    
+    class MaterialScreeningWorkflow:
+        """
+        Automated material screening workflow
+        """
+    
+        def __init__(self, api_key):
+            self.api_key = api_key
+            self.data = None
+            self.model = None
+            self.scaler = StandardScaler()
+    
+        def step1_data_collection(self, elements, max_materials=100):
+            """
+            Step 1: Data collection
+            """
+            print("=== Step 1: Data Collection ===")
+            all_data = []
+    
+            with MPRester(self.api_key) as mpr:
+                for element in elements:
+                    print(f"Fetching data for {element}...")
+                    docs = mpr.materials.summary.search(
+                        chemsys=element,
+                        fields=["material_id", "formula_pretty", "formation_energy_per_atom",
+                                "band_gap", "density", "e_above_hull", "is_stable"],
+                        num_chunks=1
+                    )
+    
+                    for doc in docs[:max_materials]:
+                        all_data.append({
+                            'Material ID': doc.material_id,
+                            'Formula': doc.formula_pretty,
+                            'Formation Energy [eV/atom]': doc.formation_energy_per_atom,
+                            'Band Gap [eV]': doc.band_gap,
+                            'Density [g/cm^3]': doc.density,
+                            'E above hull [eV/atom]': doc.e_above_hull,
+                            'Stable': doc.is_stable
+                        })
+    
+            self.data = pd.DataFrame(all_data)
+            print(f"Collected {len(self.data)} materials")
+            return self.data
+    
+        def step2_preprocessing(self):
+            """
+            Step 2: Data preprocessing
+            """
+            print("\n=== Step 2: Preprocessing ===")
+    
+            # Remove missing values
+            initial_count = len(self.data)
+            self.data = self.data.dropna()
+            print(f"Removed {initial_count - len(self.data)} samples with missing values")
+    
+            # Filter stable materials only
+            stable_data = self.data[self.data['Stable'] == True]
+            print(f"Stable materials: {len(stable_data)} / {len(self.data)}")
+            self.data = stable_data
+    
+            return self.data
+    
+        def step3_feature_engineering(self):
+            """
+            Step 3: Feature engineering
+            """
+            print("\n=== Step 3: Feature Engineering ===")
+    
+            # Generate new features (e.g., relative stability index)
+            self.data['Stability Score'] = -self.data['E above hull [eV/atom]']
+    
+            # Log-transform density (scale adjustment)
+            self.data['Log Density'] = np.log10(self.data['Density [g/cm^3]'])
+    
+            print("New features created:")
+            print(f"  - Stability Score")
+            print(f"  - Log Density")
+    
+            return self.data
+    
+        def step4_screening(self, target_property, criteria):
+            """
+            Step 4: Screening
+    
+            Parameters:
+            -----------
+            target_property : str
+                Property to screen
+            criteria : dict
+                Screening criteria (e.g., {'min': 5.0, 'max': 10.0})
+            """
+            print(f"\n=== Step 4: Screening for {target_property} ===")
+            print(f"Criteria: {criteria}")
+    
+            screened = self.data.copy()
+    
+            if 'min' in criteria:
+                screened = screened[screened[target_property] >= criteria['min']]
+                print(f"  - {target_property} >= {criteria['min']}: {len(screened)} materials")
+    
+            if 'max' in criteria:
+                screened = screened[screened[target_property] <= criteria['max']]
+                print(f"  - {target_property} <= {criteria['max']}: {len(screened)} materials")
+    
+            print(f"\nScreened candidates: {len(screened)}")
+    
+            return screened
+    
+        def step5_visualization(self, screened_data):
+            """
+            Step 5: Results visualization
+            """
+            print("\n=== Step 5: Visualization ===")
+    
+            fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+            # 1. Formation energy vs density
+            axes[0, 0].scatter(self.data['Density [g/cm^3]'],
+                                self.data['Formation Energy [eV/atom]'],
+                                alpha=0.3, s=30, color='gray', label='All materials')
+            axes[0, 0].scatter(screened_data['Density [g/cm^3]'],
+                                screened_data['Formation Energy [eV/atom]'],
+                                alpha=0.7, s=50, color='red', label='Screened')
+            axes[0, 0].set_xlabel('Density [g/cm^3]', fontsize=11)
+            axes[0, 0].set_ylabel('Formation Energy [eV/atom]', fontsize=11)
+            axes[0, 0].set_title('Formation Energy vs. Density', fontsize=12)
+            axes[0, 0].legend()
+            axes[0, 0].grid(alpha=0.3)
+    
+            # 2. Density distribution
+            axes[0, 1].hist(self.data['Density [g/cm^3]'], bins=30, alpha=0.5,
+                             color='gray', label='All', edgecolor='black')
+            axes[0, 1].hist(screened_data['Density [g/cm^3]'], bins=20, alpha=0.7,
+                             color='red', label='Screened', edgecolor='black')
+            axes[0, 1].set_xlabel('Density [g/cm^3]', fontsize=11)
+            axes[0, 1].set_ylabel('Count', fontsize=11)
+            axes[0, 1].set_title('Density Distribution', fontsize=12)
+            axes[0, 1].legend()
+            axes[0, 1].grid(axis='y', alpha=0.3)
+    
+            # 3. E above hull distribution
+            axes[1, 0].hist(self.data['E above hull [eV/atom]'], bins=30, alpha=0.5,
+                             color='gray', label='All', edgecolor='black')
+            axes[1, 0].hist(screened_data['E above hull [eV/atom]'], bins=20, alpha=0.7,
+                             color='red', label='Screened', edgecolor='black')
+            axes[1, 0].set_xlabel('E above hull [eV/atom]', fontsize=11)
+            axes[1, 0].set_ylabel('Count', fontsize=11)
+            axes[1, 0].set_title('Stability Distribution', fontsize=12)
+            axes[1, 0].legend()
+            axes[1, 0].grid(axis='y', alpha=0.3)
+    
+            # 4. Top candidate materials list
+            top_candidates = screened_data.nsmallest(10, 'Formation Energy [eV/atom]')
+            axes[1, 1].axis('off')
+            table_data = top_candidates[['Formula', 'Density [g/cm^3]',
+                                           'Formation Energy [eV/atom]']].values
+            table = axes[1, 1].table(cellText=table_data,
+                                      colLabels=['Formula', 'Density', 'Form. Energy'],
+                                      cellLoc='center', loc='center',
+                                      colWidths=[0.3, 0.3, 0.4])
+            table.auto_set_font_size(False)
+            table.set_fontsize(9)
+            table.scale(1, 2)
+            axes[1, 1].set_title('Top 10 Candidates', fontsize=12, pad=20)
+    
+            plt.tight_layout()
+            plt.savefig('screening_results.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+    # Workflow execution example (API key required)
+    if __name__ == "__main__":
+        # Initialization
+        API_KEY = "your_api_key_here"  # Replace with actual key
+        workflow = MaterialScreeningWorkflow(API_KEY)
+    
+        # Step 1: Data collection (transition metals)
+        elements = ['Fe', 'Ni', 'Cu', 'Ti', 'Al']
+        # workflow.step1_data_collection(elements, max_materials=50)
+    
+        # Step 2: Preprocessing
+        # workflow.step2_preprocessing()
+    
+        # Step 3: Feature engineering
+        # workflow.step3_feature_engineering()
+    
+        # Step 4: Screening (materials with density 5-10 g/cm^3)
+        # screened = workflow.step4_screening('Density [g/cm^3]', {'min': 5.0, 'max': 10.0})
+    
+        # Step 5: Visualization
+        # workflow.step5_visualization(screened)
+    
+        # Save results
+        # screened.to_csv('screened_materials.csv', index=False)
+        # print("\nScreened materials saved to 'screened_materials.csv'")
+    
+        print("\n=== Workflow Conceptual Example ===")
+        print("The workflow demonstrates automated material screening:")
+        print("1. Collect data from Materials Project API")
+        print("2. Preprocess and filter stable materials")
+        print("3. Engineer new features")
+        print("4. Screen by target properties (density, formation energy, etc.)")
+        print("5. Visualize and export results")
+
+## Exercises
+
+Exercise 1: Searching Al Alloys with Materials Project APIEasy
+
+**Problem** : Using the Materials Project API, search for Al-Cu system alloys (Al, Cu, and their combinations) and extract only stable materials. Display a table showing the chemical formula and Material ID of the top 5 materials with the lowest formation energy.
+
+Solution Example
+    
+    
+    from mp_api.client import MPRester
+    import pandas as pd
+    
+    API_KEY = "your_api_key_here"
+    
+    def search_al_cu_alloys(api_key=API_KEY):
+        """Search Al-Cu system alloys"""
+        with MPRester(api_key) as mpr:
+            # Search Al-Cu chemical system
+            docs = mpr.materials.summary.search(
+                chemsys="Al-Cu",
+                fields=["material_id", "formula_pretty", "formation_energy_per_atom",
+                        "is_stable", "e_above_hull"]
+            )
+    
+            data = []
+            for doc in docs:
+                data.append({
+                    'Material ID': doc.material_id,
+                    'Formula': doc.formula_pretty,
+                    'Formation Energy [eV/atom]': doc.formation_energy_per_atom,
+                    'Stable': doc.is_stable,
+                    'E above hull [eV/atom]': doc.e_above_hull
+                })
+    
+            df = pd.DataFrame(data)
+            return df
+    
+    # Execute search
+    print("=== Searching Al-Cu Alloys ===")
+    al_cu_alloys = search_al_cu_alloys()
+    
+    # Filter stable materials only
+    stable_alloys = al_cu_alloys[al_cu_alloys['Stable'] == True]
+    print(f"\nTotal materials: {len(al_cu_alloys)}")
+    print(f"Stable materials: {len(stable_alloys)}")
+    
+    # Top 5 with lowest formation energy
+    top5 = stable_alloys.nsmallest(5, 'Formation Energy [eV/atom]')
+    
+    print("\n=== Top 5 Stable Al-Cu Alloys (Lowest Formation Energy) ===")
+    print(top5[['Material ID', 'Formula', 'Formation Energy [eV/atom]']].to_string(index=False))
+    
+    # Analysis of results
+    print("\n=== Analysis ===")
+    print(f"Most stable alloy: {top5.iloc[0]['Formula']} ({top5.iloc[0]['Material ID']})")
+    print(f"Formation energy: {top5.iloc[0]['Formation Energy [eV/atom]']:.3f} eV/atom")
+    print("\nStable Al-Cu compounds typically include Al2Cu, AlCu, and Cu-rich phases.")
+    print("Formation energy < 0 indicates thermodynamic stability relative to pure elements.")
+
+**Expected Output** : List of stable compounds such as Al2Cu, AlCu and their formation energies
+
+**Explanation** : `chemsys="Al-Cu"` searches all compounds in the Al-Cu binary system. Filtering by `is_stable=True` extracts materials with negative formation energy (stable).
+
+Exercise 2: Supercell Creation and Coordination Number Calculation with pymatgenMedium
+
+**Problem** : Using pymatgen, create a 3x3x3 supercell of an FCC Cu structure (lattice constant 3.61 A) and calculate the coordination number for all atoms. Also, find the mean and standard deviation of the nearest neighbor distances.
+
+Solution Example
+    
+    
+    from pymatgen.core import Structure, Lattice
+    import numpy as np
+    
+    def create_fcc_cu_supercell():
+        """Create 3x3x3 supercell of FCC Cu structure"""
+        # FCC unit cell
+        lattice = Lattice.cubic(3.61)
+        coords = [[0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]]
+        fcc_cu = Structure(lattice, ["Cu"]*4, coords)
+    
+        print("=== FCC Cu Unit Cell ===")
+        print(f"Lattice parameter: 3.61 A")
+        print(f"Number of atoms: {len(fcc_cu)}")
+    
+        # Create supercell
+        supercell = fcc_cu.copy()
+        supercell.make_supercell([3, 3, 3])
+    
+        print(f"\n=== 3x3x3 Supercell ===")
+        print(f"Number of atoms: {len(supercell)}")
+        print(f"Volume: {supercell.volume:.2f} A^3")
+    
+        return supercell
+    
+    # Create supercell
+    cu_supercell = create_fcc_cu_supercell()
+    
+    # Coordination number calculation (cutoff = 3.0 A, nearest neighbors only)
+    print("\n=== Coordination Number Analysis ===")
+    cutoff = 3.0  # A
+    all_neighbors = cu_supercell.get_all_neighbors(r=cutoff)
+    
+    coordination_numbers = [len(neighbors) for neighbors in all_neighbors]
+    
+    print(f"Cutoff distance: {cutoff} A")
+    print(f"Coordination numbers:")
+    print(f"  Mean: {np.mean(coordination_numbers):.2f}")
+    print(f"  Std: {np.std(coordination_numbers):.3f}")
+    print(f"  Min: {np.min(coordination_numbers)}")
+    print(f"  Max: {np.max(coordination_numbers)}")
+    
+    # Nearest neighbor distance statistics
+    print("\n=== Nearest Neighbor Distance Analysis ===")
+    nn_distances = []
+    
+    for site_neighbors in all_neighbors:
+        if site_neighbors:
+            min_dist = min([n.nn_distance for n in site_neighbors])
+            nn_distances.append(min_dist)
+    
+    nn_distances = np.array(nn_distances)
+    
+    print(f"Mean nearest neighbor distance: {nn_distances.mean():.4f} A")
+    print(f"Std deviation: {nn_distances.std():.4f} A")
+    print(f"Min distance: {nn_distances.min():.4f} A")
+    print(f"Max distance: {nn_distances.max():.4f} A")
+    
+    # Comparison with theoretical value
+    theoretical_nn = 3.61 / np.sqrt(2)  # FCC nearest neighbor distance = a/sqrt(2)
+    print(f"\nTheoretical nearest neighbor distance (a/sqrt(2)): {theoretical_nn:.4f} A")
+    print(f"Difference from calculated: {abs(nn_distances.mean() - theoretical_nn):.4f} A")
+    
+    # FCC structure coordination number is 12
+    print("\n=== Verification ===")
+    if np.mean(coordination_numbers) == 12:
+        print("Coordination number = 12 (FCC structure confirmed)")
+    else:
+        print(f"Coordination number = {np.mean(coordination_numbers):.1f} (expected 12)")
+
+**Expected Output** :
+    
+    
+    Number of atoms: 108 (3x3x3x4)
+    Mean coordination number: 12.00
+    Mean nearest neighbor distance: 2.552 A (= 3.61/sqrt(2))
+
+**Explanation** : The coordination number for FCC structure is 12. The nearest neighbor distance is calculated from the lattice constant \\(a\\) as \\(a/\sqrt{2}\\). All atoms within the supercell interior have the same coordination environment.
+
+Exercise 3: Formation Energy Prediction with Machine LearningHard
+
+**Problem** : Download material data for transition metals (Fe, Ni, Cu, Ti, V) from Materials Project and build a machine learning model to predict formation energy using density, band gap, and number of atoms as features. Try both Random Forest and Gradient Boosting, and evaluate which has higher accuracy.
+
+Solution Example
+    
+    
+    from mp_api.client import MPRester
+    import pandas as pd
+    import numpy as np
+    from sklearn.model_selection import train_test_split, cross_val_score
+    from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+    from sklearn.metrics import mean_absolute_error, r2_score
+    import matplotlib.pyplot as plt
+    
+    API_KEY = "your_api_key_here"
+    
+    def download_transition_metal_data(elements, api_key=API_KEY):
+        """Download transition metal data"""
+        all_data = []
+    
+        with MPRester(api_key) as mpr:
+            for element in elements:
+                print(f"Downloading {element}...")
+                docs = mpr.materials.summary.search(
+                    chemsys=element,
+                    fields=["material_id", "formula_pretty", "formation_energy_per_atom",
+                            "band_gap", "density", "nsites", "is_stable"],
+                    num_chunks=1
+                )
+    
+                for doc in docs[:50]:  # Up to 50 materials per element
+                    if doc.is_stable:
+                        all_data.append({
+                            'Material ID': doc.material_id,
+                            'Formula': doc.formula_pretty,
+                            'Density [g/cm^3]': doc.density,
+                            'Band Gap [eV]': doc.band_gap,
+                            'Number of Sites': doc.nsites,
+                            'Formation Energy [eV/atom]': doc.formation_energy_per_atom
+                        })
+    
+        df = pd.DataFrame(all_data)
+        return df
+    
+    # Data download
+    elements = ['Fe', 'Ni', 'Cu', 'Ti', 'V']
+    print("=== Data Download ===")
+    # tm_data = download_transition_metal_data(elements)
+    
+    # Use sample data (in practice, retrieve from API)
+    np.random.seed(42)
+    n_samples = 150
+    tm_data = pd.DataFrame({
+        'Material ID': [f'mp-{i}' for i in range(n_samples)],
+        'Formula': [f'Material_{i}' for i in range(n_samples)],
+        'Density [g/cm^3]': np.random.uniform(2, 10, n_samples),
+        'Band Gap [eV]': np.random.uniform(0, 3, n_samples),
+        'Number of Sites': np.random.randint(2, 20, n_samples),
+        'Formation Energy [eV/atom]': np.random.uniform(-2.5, 0.5, n_samples)
+    })
+    
+    print(f"Downloaded {len(tm_data)} materials")
+    print(tm_data.head())
+    
+    # Features and target
+    X = tm_data[['Density [g/cm^3]', 'Band Gap [eV]', 'Number of Sites']]
+    y = tm_data['Formation Energy [eV/atom]']
+    
+    # Train-Test split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    print(f"\nTraining: {len(X_train)}, Test: {len(X_test)}")
+    
+    # Model training
+    models = {
+        'Random Forest': RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42),
+        'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, max_depth=5,
+                                                         learning_rate=0.1, random_state=42)
+    }
+    
+    results = {}
+    
+    print("\n=== Model Training ===")
+    for name, model in models.items():
+        model.fit(X_train, y_train)
+    
+        y_train_pred = model.predict(X_train)
+        y_test_pred = model.predict(X_test)
+    
+        train_mae = mean_absolute_error(y_train, y_train_pred)
+        test_mae = mean_absolute_error(y_test, y_test_pred)
+        test_r2 = r2_score(y_test, y_test_pred)
+    
+        cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='r2')
+    
+        results[name] = {
+            'Test MAE': test_mae,
+            'Test R^2': test_r2,
+            'CV R^2 Mean': cv_scores.mean(),
+            'Predictions': y_test_pred
+        }
+    
+        print(f"\n{name}:")
+        print(f"  Test MAE: {test_mae:.3f} eV/atom")
+        print(f"  Test R^2: {test_r2:.3f}")
+        print(f"  CV R^2: {cv_scores.mean():.3f} +/- {cv_scores.std():.3f}")
+    
+    # Comparison
+    best_model = max(results, key=lambda k: results[k]['Test R^2'])
+    print(f"\n=== Best Model: {best_model} ===")
+    print(f"Test R^2 = {results[best_model]['Test R^2']:.3f}")
+    
+    # Visualization
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    for i, (name, model) in enumerate(models.items()):
+        y_pred = results[name]['Predictions']
+    
+        axes[i].scatter(y_test, y_pred, alpha=0.6, s=50)
+        axes[i].plot([y_test.min(), y_test.max()],
+                      [y_test.min(), y_test.max()],
+                      'r--', linewidth=2)
+        axes[i].set_xlabel('True Formation Energy [eV/atom]', fontsize=11)
+        axes[i].set_ylabel('Predicted [eV/atom]', fontsize=11)
+        axes[i].set_title(f'{name}\nR^2 = {results[name]["Test R^2"]:.3f}', fontsize=12)
+        axes[i].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('ml_formation_energy_prediction.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+**Expected Output** : R^2 score comparison between Random Forest and Gradient Boosting (typically around 0.6-0.8)
+
+**Explanation** : Formation energy correlates with density, band gap, and structural complexity (number of atoms). Random Forest captures nonlinear relationships well, while Gradient Boosting iteratively corrects fine errors. With actual data, adding more features (electronegativity, atomic radius, etc.) improves accuracy.
+
+## References
+
+**[1]** Jain, A., Ong, S.P., Hautier, G., et al. (2013)._Commentary: The Materials Project: A materials genome approach to accelerating materials innovation_. APL Materials, 1(1), 011002. DOI: 10.1063/1.4812323.
+
+**[2]** Ong, S.P., Richards, W.D., Jain, A., et al. (2013)._Python Materials Genomics (pymatgen): A robust, open-source python library for materials analysis_. Computational Materials Science, 68, 314-319, pp. 314-319.
+
+**[3]** Otis, R., Liu, Z.K. (2017)._pycalphad: CALPHAD-based Computational Thermodynamics in Python_. Journal of Open Research Software, 5(1), pp. 1-11.
+
+**[4]** Ward, L., Agrawal, A., Choudhary, A., Wolverton, C. (2016)._A general-purpose machine learning framework for predicting properties of inorganic materials_. npj Computational Materials, 2, 16028, pp. 1-7.
+
+**[5]** Pedregosa, F., Varoquaux, G., Gramfort, A., et al. (2011)._Scikit-learn: Machine Learning in Python_. Journal of Machine Learning Research, 12, 2825-2830.
+
+**[6]** McKinney, W. (2010)._Data Structures for Statistical Computing in Python_. Proceedings of the 9th Python in Science Conference, pp. 56-61.
+
+**[7]** Hunter, J.D. (2007)._Matplotlib: A 2D Graphics Environment_. Computing in Science & Engineering, 9(3), 90-95.
+
+## Learning Objectives Checklist
+
+### Skills and Knowledge to Master
+
+#### Level 1: Basic Understanding (Knowledge)
+
+  * Understand the basic usage of Materials Project API
+  * Know that crystal structures can be generated and manipulated with pymatgen
+  * Understand that pycalphad is used for phase diagram calculations
+  * Know the basic workflow for predicting material properties with machine learning
+  * Understand the concept of material descriptors (features)
+  * Can explain the benefits of high-throughput calculations
+
+#### Level 2: Practical Skills (Application)
+
+  * Can search and download material data using Materials Project API
+  * Can create supercells with pymatgen and calculate coordination numbers and nearest neighbor distances
+  * Can perform symmetry analysis and space group determination with pymatgen
+  * Can perform statistical analysis and visualization of material data with pandas
+  * Can build regression models with scikit-learn to predict material properties
+  * Can design and implement material screening workflows
+  * Can automate batch processing of multiple materials with Python
+
+#### Level 3: Advanced Application (Problem Solving)
+
+  * Can efficiently collect appropriate data from large-scale material databases
+  * Can design complex material descriptors to improve machine learning model accuracy
+  * Can compare different machine learning algorithms and select optimal models
+  * Can discover new material candidates through high-throughput calculations
+  * Can integrate experimental and computational data for material design
+  * Can develop custom material analysis tools and workflows
+  * Can reproduce and extend methods reported in research papers using Python
+
+**Verification** : Confirm that you can solve all the exercises above (Exercise 1-3) independently. In particular, Exercise 3 (machine learning prediction) is an important skill frequently used in actual research projects.
+
+[Chapter 4: Processing and Heat Treatment](<chapter-4.html>)[Series TOP](<index.html>)
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

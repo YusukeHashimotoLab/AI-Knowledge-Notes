@@ -1,0 +1,954 @@
+---
+title: "第2章: 区間推定と信頼区間"
+chapter_title: "第2章: 区間推定と信頼区間"
+subtitle: Interval Estimation and Confidence Intervals
+---
+
+[基礎数理道場](<../index.html>) > [推測統計学とベイズ統計](<index.html>) > 第2章 
+
+## 2.1 信頼区間の概念
+
+点推定は母数の単一の推定値を与えますが、その推定値がどの程度信頼できるかの情報は含みません。 **区間推定（Interval Estimation）** は、母数を含む可能性が高い範囲を確率的に提示します。 
+
+#### 📘 信頼区間の定義
+
+母数 \\( \theta \\) に対する**信頼水準 \\( 1-\alpha \\) の信頼区間** は、統計量 \\( L(X_1, \ldots, X_n) \\) と \\( U(X_1, \ldots, X_n) \\) を用いて：
+
+$$ P(L \leq \theta \leq U) = 1 - \alpha $$ 
+
+となる区間 \\( [L, U] \\) です。通常 \\( \alpha = 0.05 \\)（95%信頼区間）が用いられます。
+
+**📌 重要な解釈**  
+「95%信頼区間」は「母数がこの区間に含まれる確率が95%」ではなく、 「このような区間推定を100回行ったとき、約95回は真の母数を含む区間が得られる」という意味です（頻度論的解釈）。 
+
+## 2.2 正規母集団の母平均の信頼区間
+
+### 2.2.1 母分散既知の場合（z区間）
+
+#### 📘 母分散既知のときの信頼区間
+
+母集団が \\( N(\mu, \sigma^2) \\) で \\( \sigma^2 \\) が既知のとき：
+
+$$ \bar{X} \pm z_{\alpha/2} \frac{\sigma}{\sqrt{n}} $$ 
+
+ここで \\( z_{\alpha/2} \\) は標準正規分布の上側 \\( \alpha/2 \\) 点（例: 95%信頼区間なら \\( z_{0.025} = 1.96 \\)）
+
+#### 💻 コード例1: 正規母集団の母平均の信頼区間（母分散既知）
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    
+    # 真のパラメータ
+    mu_true = 100
+    sigma_true = 15  # 既知
+    
+    # データ生成
+    np.random.seed(42)
+    n = 25
+    data = np.random.normal(mu_true, sigma_true, n)
+    
+    # 標本平均
+    x_bar = np.mean(data)
+    
+    # 95%信頼区間（z区間）
+    alpha = 0.05
+    z_critical = stats.norm.ppf(1 - alpha/2)
+    margin_of_error = z_critical * sigma_true / np.sqrt(n)
+    ci_lower = x_bar - margin_of_error
+    ci_upper = x_bar + margin_of_error
+    
+    print("=== 母平均の信頼区間（母分散既知） ===")
+    print(f"標本サイズ: {n}")
+    print(f"標本平均: {x_bar:.2f}")
+    print(f"母標準偏差（既知）: {sigma_true}")
+    print(f"z_{{{alpha/2}}} = {z_critical:.4f}")
+    print(f"誤差限界: ±{margin_of_error:.2f}")
+    print(f"95%信頼区間: [{ci_lower:.2f}, {ci_upper:.2f}]")
+    print(f"真の母平均 {mu_true} は区間内: {ci_lower <= mu_true <= ci_upper}")
+    
+    # シミュレーションで被覆確率を検証
+    n_simulations = 1000
+    coverage_count = 0
+    ci_data = []
+    
+    np.random.seed(123)
+    for _ in range(n_simulations):
+        sample = np.random.normal(mu_true, sigma_true, n)
+        sample_mean = np.mean(sample)
+        ci_l = sample_mean - margin_of_error
+        ci_u = sample_mean + margin_of_error
+        ci_data.append((ci_l, ci_u))
+        if ci_l <= mu_true <= ci_upper:
+            coverage_count += 1
+    
+    coverage_rate = coverage_count / n_simulations
+    print(f"\nシミュレーション（{n_simulations}回）:")
+    print(f"被覆確率: {coverage_rate:.3f} (理論値: 0.95)")
+    
+    # 可視化
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # 信頼区間の分布
+    axes[0].hist(data, bins=15, density=True, alpha=0.7,
+                 color='skyblue', edgecolor='black', label='データ')
+    x_range = np.linspace(mu_true - 4*sigma_true, mu_true + 4*sigma_true, 200)
+    axes[0].plot(x_range, stats.norm.pdf(x_range, mu_true, sigma_true),
+                 'r-', linewidth=2, label=f'真の母集団 N({mu_true}, {sigma_true}²)')
+    axes[0].axvline(x_bar, color='blue', linestyle='--', linewidth=2,
+                    label=f'標本平均: {x_bar:.1f}')
+    axes[0].axvspan(ci_lower, ci_upper, alpha=0.3, color='green',
+                    label=f'95%信頼区間')
+    axes[0].axvline(mu_true, color='red', linestyle=':', linewidth=2,
+                    label=f'真の母平均: {mu_true}')
+    axes[0].set_xlabel('値')
+    axes[0].set_ylabel('確率密度')
+    axes[0].set_title('母平均の95%信頼区間')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+    
+    # 信頼区間のシミュレーション（最初の50回を表示）
+    for i in range(min(50, len(ci_data))):
+        ci_l, ci_u = ci_data[i]
+        color = 'green' if ci_l <= mu_true <= ci_u else 'red'
+        axes[1].plot([ci_l, ci_u], [i, i], color=color, linewidth=1, alpha=0.6)
+        axes[1].plot((ci_l + ci_u)/2, i, 'o', color=color, markersize=2)
+    
+    axes[1].axvline(mu_true, color='blue', linestyle='--', linewidth=2,
+                    label=f'真の母平均: {mu_true}')
+    axes[1].set_xlabel('区間')
+    axes[1].set_ylabel('シミュレーション番号')
+    axes[1].set_title(f'信頼区間のシミュレーション（被覆率: {coverage_rate:.1%}）')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3, axis='x')
+    
+    plt.tight_layout()
+    plt.show()
+
+### 2.2.2 母分散未知の場合（t区間）
+
+#### 📘 母分散未知のときの信頼区間（t分布）
+
+母集団が \\( N(\mu, \sigma^2) \\) で \\( \sigma^2 \\) が未知のとき：
+
+$$ \bar{X} \pm t_{\alpha/2, n-1} \frac{S}{\sqrt{n}} $$ 
+
+ここで \\( S = \sqrt{\frac{1}{n-1}\sum_{i=1}^n (X_i - \bar{X})^2} \\) は標本標準偏差、
+
+\\( t_{\alpha/2, n-1} \\) は自由度 \\( n-1 \\) のt分布の上側 \\( \alpha/2 \\) 点
+
+#### 💻 コード例2: t分布を用いた信頼区間（小標本）
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    
+    # 真のパラメータ
+    mu_true = 75
+    sigma_true = 12
+    
+    # 小標本の場合
+    np.random.seed(42)
+    n = 10  # 小標本
+    data = np.random.normal(mu_true, sigma_true, n)
+    
+    # 標本統計量
+    x_bar = np.mean(data)
+    s = np.std(data, ddof=1)  # 不偏標準偏差
+    
+    # 95%信頼区間（t区間）
+    alpha = 0.05
+    t_critical = stats.t.ppf(1 - alpha/2, df=n-1)
+    margin_of_error_t = t_critical * s / np.sqrt(n)
+    ci_lower_t = x_bar - margin_of_error_t
+    ci_upper_t = x_bar + margin_of_error_t
+    
+    # 比較のため、z区間も計算（誤った方法）
+    z_critical = stats.norm.ppf(1 - alpha/2)
+    margin_of_error_z = z_critical * s / np.sqrt(n)
+    ci_lower_z = x_bar - margin_of_error_z
+    ci_upper_z = x_bar + margin_of_error_z
+    
+    print("=== 母平均の信頼区間（母分散未知、小標本） ===")
+    print(f"標本サイズ: {n}")
+    print(f"標本平均: {x_bar:.2f}")
+    print(f"標本標準偏差: {s:.2f}")
+    print(f"\nt分布（正しい方法）:")
+    print(f"  t_{{{alpha/2}, {n-1}}} = {t_critical:.4f}")
+    print(f"  95%信頼区間: [{ci_lower_t:.2f}, {ci_upper_t:.2f}]")
+    print(f"  区間の幅: {ci_upper_t - ci_lower_t:.2f}")
+    print(f"\nz分布（誤った方法、参考）:")
+    print(f"  z_{{{alpha/2}}} = {z_critical:.4f}")
+    print(f"  95%信頼区間: [{ci_lower_z:.2f}, {ci_upper_z:.2f}]")
+    print(f"  区間の幅: {ci_upper_z - ci_lower_z:.2f}")
+    print(f"\nt区間 vs z区間の幅の比: {(ci_upper_t - ci_lower_t)/(ci_upper_z - ci_lower_z):.3f}")
+    
+    # 標本サイズと信頼区間幅の関係
+    sample_sizes = np.array([5, 10, 20, 30, 50, 100, 200])
+    ci_widths_t = []
+    ci_widths_z = []
+    
+    np.random.seed(42)
+    for ns in sample_sizes:
+        sample = np.random.normal(mu_true, sigma_true, ns)
+        xb = np.mean(sample)
+        sb = np.std(sample, ddof=1)
+    
+        t_crit = stats.t.ppf(1 - alpha/2, df=ns-1)
+        z_crit = stats.norm.ppf(1 - alpha/2)
+    
+        width_t = 2 * t_crit * sb / np.sqrt(ns)
+        width_z = 2 * z_crit * sb / np.sqrt(ns)
+    
+        ci_widths_t.append(width_t)
+        ci_widths_z.append(width_z)
+    
+    # 可視化
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # t分布とz分布の比較
+    x = np.linspace(-4, 4, 200)
+    axes[0].plot(x, stats.norm.pdf(x), 'b-', linewidth=2, label='標準正規分布 (z)')
+    for df in [2, 5, 10, 30]:
+        axes[0].plot(x, stats.t.pdf(x, df), linewidth=2, label=f't分布 (df={df})')
+    axes[0].set_xlabel('値')
+    axes[0].set_ylabel('確率密度')
+    axes[0].set_title('t分布と標準正規分布の比較')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+    
+    # 標本サイズと信頼区間幅
+    axes[1].plot(sample_sizes, ci_widths_t, 'ro-', markersize=8,
+                 linewidth=2, label='t区間（正しい）')
+    axes[1].plot(sample_sizes, ci_widths_z, 'b^--', markersize=8,
+                 linewidth=2, label='z区間（母分散既知の場合）')
+    axes[1].set_xlabel('標本サイズ')
+    axes[1].set_ylabel('信頼区間の幅')
+    axes[1].set_title('標本サイズと95%信頼区間の幅')
+    axes[1].set_xscale('log')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3, which='both')
+    
+    plt.tight_layout()
+    plt.show()
+
+**📌 重要ポイント**  
+小標本（n < 30程度）では、t分布を使う必要があります。自由度が小さいほど、 t分布は正規分布より��裾が厚く、信頼区間が広くなります。標本サイズが大きくなると、 t分布は正規分布に近づきます。 
+
+## 2.3 母分散の信頼区間（カイ二乗分布）
+
+#### 📘 母分散の信頼区間
+
+母集団が \\( N(\mu, \sigma^2) \\) のとき、\\( \frac{(n-1)S^2}{\sigma^2} \sim \chi^2_{n-1} \\) より：
+
+$$ \left[ \frac{(n-1)S^2}{\chi^2_{\alpha/2, n-1}}, \frac{(n-1)S^2}{\chi^2_{1-\alpha/2, n-1}} \right] $$ 
+
+が母分散 \\( \sigma^2 \\) の \\( 1-\alpha \\) 信頼区間です。
+
+#### 💻 コード例3: 母分散の信頼区間
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    
+    # 真のパラメータ
+    mu_true = 50
+    sigma2_true = 100  # 母分散
+    sigma_true = np.sqrt(sigma2_true)
+    
+    # データ生成
+    np.random.seed(42)
+    n = 20
+    data = np.random.normal(mu_true, sigma_true, n)
+    
+    # 標本分散（不偏）
+    s2 = np.var(data, ddof=1)
+    
+    # 95%信頼区間
+    alpha = 0.05
+    chi2_lower = stats.chi2.ppf(alpha/2, df=n-1)
+    chi2_upper = stats.chi2.ppf(1 - alpha/2, df=n-1)
+    
+    ci_lower = (n-1) * s2 / chi2_upper
+    ci_upper = (n-1) * s2 / chi2_lower
+    
+    print("=== 母分散の信頼区間 ===")
+    print(f"標本サイズ: {n}")
+    print(f"標本分散: {s2:.2f}")
+    print(f"真の母分散: {sigma2_true}")
+    print(f"\nカイ二乗分位点:")
+    print(f"  χ²_{{{alpha/2}, {n-1}}} = {chi2_lower:.4f}")
+    print(f"  χ²_{{{1-alpha/2}, {n-1}}} = {chi2_upper:.4f}")
+    print(f"\n母分散σ²の95%信頼区間: [{ci_lower:.2f}, {ci_upper:.2f}]")
+    print(f"母標準偏差σの95%信頼区間: [{np.sqrt(ci_lower):.2f}, {np.sqrt(ci_upper):.2f}]")
+    print(f"真の母分散は区間内: {ci_lower <= sigma2_true <= ci_upper}")
+    
+    # シミュレーションで被覆確率を検証
+    n_simulations = 1000
+    coverage_count = 0
+    
+    np.random.seed(123)
+    for _ in range(n_simulations):
+        sample = np.random.normal(mu_true, sigma_true, n)
+        s2_sample = np.var(sample, ddof=1)
+        ci_l = (n-1) * s2_sample / chi2_upper
+        ci_u = (n-1) * s2_sample / chi2_lower
+        if ci_l <= sigma2_true <= ci_u:
+            coverage_count += 1
+    
+    coverage_rate = coverage_count / n_simulations
+    print(f"\nシミュレーション（{n_simulations}回）:")
+    print(f"被覆確率: {coverage_rate:.3f} (理論値: 0.95)")
+    
+    # 可視化
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # カイ二乗分布
+    x = np.linspace(0, 40, 300)
+    axes[0].plot(x, stats.chi2.pdf(x, df=n-1), 'b-', linewidth=2,
+                 label=f'χ²分布 (df={n-1})')
+    axes[0].axvline(chi2_lower, color='red', linestyle='--', linewidth=2,
+                    label=f'下側分位点: {chi2_lower:.2f}')
+    axes[0].axvline(chi2_upper, color='green', linestyle='--', linewidth=2,
+                    label=f'上側分位点: {chi2_upper:.2f}')
+    axes[0].fill_between(x, 0, stats.chi2.pdf(x, df=n-1),
+                          where=(x >= chi2_lower) & (x <= chi2_upper),
+                          alpha=0.3, color='yellow', label='95%領域')
+    axes[0].set_xlabel('χ²値')
+    axes[0].set_ylabel('確率密度')
+    axes[0].set_title(f'カイ二乗分布 (自由度={n-1})')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+    
+    # 標本分散の分布
+    sample_variances = []
+    np.random.seed(42)
+    for _ in range(5000):
+        sample = np.random.normal(mu_true, sigma_true, n)
+        sample_variances.append(np.var(sample, ddof=1))
+    
+    axes[1].hist(sample_variances, bins=50, density=True, alpha=0.7,
+                 color='skyblue', edgecolor='black', label='標本分散の分布')
+    axes[1].axvline(sigma2_true, color='red', linestyle='--', linewidth=2,
+                    label=f'真の母分散: {sigma2_true}')
+    axes[1].axvline(ci_lower, color='green', linestyle=':', linewidth=2,
+                    label=f'信頼区間下限: {ci_lower:.1f}')
+    axes[1].axvline(ci_upper, color='green', linestyle=':', linewidth=2,
+                    label=f'信頼区間上限: {ci_upper:.1f}')
+    axes[1].axvspan(ci_lower, ci_upper, alpha=0.2, color='green')
+    axes[1].set_xlabel('分散')
+    axes[1].set_ylabel('密度')
+    axes[1].set_title('標本分散の分布と信頼区間')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+
+## 2.4 2標本問題と差の信頼区間
+
+#### 📘 2つの母平均の差の信頼区間
+
+**等分散の場合** （プールされた分散を使用）：
+
+$$ (\bar{X}_1 - \bar{X}_2) \pm t_{\alpha/2, n_1+n_2-2} \cdot S_p \sqrt{\frac{1}{n_1} + \frac{1}{n_2}} $$ 
+
+ここで \\( S_p^2 = \frac{(n_1-1)S_1^2 + (n_2-1)S_2^2}{n_1+n_2-2} \\) はプールされた分散
+
+**不等分散の場合** （Welchのt検定）：
+
+$$ (\bar{X}_1 - \bar{X}_2) \pm t_{\alpha/2, \nu} \sqrt{\frac{S_1^2}{n_1} + \frac{S_2^2}{n_2}} $$ 
+
+自由度 \\( \nu \\) はWelch-Satterthwaiteの近似式で計算
+
+#### 💻 コード例4: 2標本t信頼区間
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    
+    # 2つの製造プロセスの強度データ（シミュレーション）
+    np.random.seed(42)
+    
+    # プロセスA
+    mu_A = 450
+    sigma_A = 25
+    n_A = 20
+    data_A = np.random.normal(mu_A, sigma_A, n_A)
+    
+    # プロセスB
+    mu_B = 470
+    sigma_B = 30
+    n_B = 25
+    data_B = np.random.normal(mu_B, sigma_B, n_B)
+    
+    # 標本統計量
+    x_bar_A = np.mean(data_A)
+    x_bar_B = np.mean(data_B)
+    s_A = np.std(data_A, ddof=1)
+    s_B = np.std(data_B, ddof=1)
+    
+    diff = x_bar_B - x_bar_A
+    true_diff = mu_B - mu_A
+    
+    print("=== 2標本問題: 平均の差の信頼区間 ===")
+    print(f"プロセスA: n={n_A}, 平均={x_bar_A:.2f}, SD={s_A:.2f}")
+    print(f"プロセスB: n={n_B}, 平均={x_bar_B:.2f}, SD={s_B:.2f}")
+    print(f"平均の差: {diff:.2f} (真の差: {true_diff})")
+    
+    # 等分散性の検定（F検定）
+    f_stat = s_A**2 / s_B**2 if s_A > s_B else s_B**2 / s_A**2
+    f_pvalue = 2 * min(stats.f.cdf(s_A**2/s_B**2, n_A-1, n_B-1),
+                       1 - stats.f.cdf(s_A**2/s_B**2, n_A-1, n_B-1))
+    print(f"\n等分散性の検定（F検定）:")
+    print(f"  F統計量: {f_stat:.4f}, p値: {f_pvalue:.4f}")
+    
+    # 方法1: 等分散を仮定（プールされた分散）
+    alpha = 0.05
+    s_pooled = np.sqrt(((n_A-1)*s_A**2 + (n_B-1)*s_B**2) / (n_A + n_B - 2))
+    se_pooled = s_pooled * np.sqrt(1/n_A + 1/n_B)
+    df_pooled = n_A + n_B - 2
+    t_crit_pooled = stats.t.ppf(1 - alpha/2, df=df_pooled)
+    ci_lower_pooled = diff - t_crit_pooled * se_pooled
+    ci_upper_pooled = diff + t_crit_pooled * se_pooled
+    
+    print(f"\n【方法1】等分散を仮定:")
+    print(f"  プールされた標準偏差: {s_pooled:.2f}")
+    print(f"  自由度: {df_pooled}")
+    print(f"  95%信頼区間: [{ci_lower_pooled:.2f}, {ci_upper_pooled:.2f}]")
+    
+    # 方法2: 不等分散（Welchの方法）
+    se_welch = np.sqrt(s_A**2/n_A + s_B**2/n_B)
+    df_welch = (s_A**2/n_A + s_B**2/n_B)**2 / \
+               (s_A**4/(n_A**2*(n_A-1)) + s_B**4/(n_B**2*(n_B-1)))
+    t_crit_welch = stats.t.ppf(1 - alpha/2, df=df_welch)
+    ci_lower_welch = diff - t_crit_welch * se_welch
+    ci_upper_welch = diff + t_crit_welch * se_welch
+    
+    print(f"\n【方法2】不等分散（Welch）:")
+    print(f"  自由度（Welch-Satterthwaite）: {df_welch:.2f}")
+    print(f"  95%信頼区間: [{ci_lower_welch:.2f}, {ci_upper_welch:.2f}]")
+    
+    # SciPyの関数を使用
+    t_stat, p_value = stats.ttest_ind(data_B, data_A, equal_var=False)
+    ci_scipy = stats.ttest_ind(data_B, data_A, equal_var=False,
+                                alternative='two-sided').confidence_interval(0.95)
+    print(f"\n【SciPy】不等分散t検定:")
+    print(f"  95%信頼区間: [{ci_scipy.low:.2f}, {ci_scipy.high:.2f}]")
+    
+    # 可視化
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # データの分布
+    axes[0].boxplot([data_A, data_B], labels=['プロセスA', 'プロセスB'],
+                    patch_artist=True,
+                    boxprops=dict(facecolor='skyblue', alpha=0.7),
+                    medianprops=dict(color='red', linewidth=2))
+    axes[0].scatter(np.ones(n_A)*1 + np.random.normal(0, 0.05, n_A),
+                    data_A, alpha=0.5, color='blue', s=30)
+    axes[0].scatter(np.ones(n_B)*2 + np.random.normal(0, 0.05, n_B),
+                    data_B, alpha=0.5, color='green', s=30)
+    axes[0].set_ylabel('強度 [MPa]')
+    axes[0].set_title('2つのプロセスの強度データ')
+    axes[0].grid(True, alpha=0.3, axis='y')
+    
+    # 平均の差の信頼区間
+    methods = ['等分散\n仮定', 'Welch\n(不等分散)']
+    diffs = [diff, diff]
+    errors_lower = [diff - ci_lower_pooled, diff - ci_lower_welch]
+    errors_upper = [ci_upper_pooled - diff, ci_upper_welch - diff]
+    
+    axes[1].errorbar(methods, diffs,
+                     yerr=[errors_lower, errors_upper],
+                     fmt='o', markersize=10, capsize=10, capthick=2,
+                     elinewidth=2, color='blue', label='95%信頼区間')
+    axes[1].axhline(true_diff, color='red', linestyle='--',
+                    linewidth=2, label=f'真の差: {true_diff}')
+    axes[1].axhline(0, color='gray', linestyle=':', linewidth=1,
+                    label='差なし')
+    axes[1].set_ylabel('平均の差 [MPa]')
+    axes[1].set_title('平均の差の95%信頼区間')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3, axis='y')
+    
+    plt.tight_layout()
+    plt.show()
+
+## 2.5 割合の信頼区間（二項分布）
+
+#### 📘 母比率の信頼区間
+
+**正規近似** （\\( np \geq 5 \\) かつ \\( n(1-p) \geq 5 \\) のとき）：
+
+$$ \hat{p} \pm z_{\alpha/2} \sqrt{\frac{\hat{p}(1-\hat{p})}{n}} $$ 
+
+**Wilson区間** （小標本でも適用可能）：
+
+$$ \frac{\hat{p} + \frac{z^2}{2n} \pm z\sqrt{\frac{\hat{p}(1-\hat{p})}{n} + \frac{z^2}{4n^2}}}{1 + \frac{z^2}{n}} $$ 
+
+#### 💻 コード例5: 母比率の信頼区間
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    from statsmodels.stats.proportion import proportion_confint
+    
+    # データ（例: 製品の不良率調査）
+    n = 200  # 検査した製品数
+    x = 15   # 不良品数
+    p_hat = x / n  # 標本比率
+    
+    print("=== 母比率の信頼区間 ===")
+    print(f"標本サイズ: {n}")
+    print(f"不良品数: {x}")
+    print(f"標本比率: {p_hat:.4f} ({p_hat*100:.2f}%)")
+    
+    # 方法1: 正規近似（Wald区間）
+    alpha = 0.05
+    z = stats.norm.ppf(1 - alpha/2)
+    se = np.sqrt(p_hat * (1 - p_hat) / n)
+    ci_lower_wald = p_hat - z * se
+    ci_upper_wald = p_hat + z * se
+    
+    print(f"\n【Wald区間】（正規近似）:")
+    print(f"  95%信頼区間: [{ci_lower_wald:.4f}, {ci_upper_wald:.4f}]")
+    print(f"               [{ci_lower_wald*100:.2f}%, {ci_upper_wald*100:.2f}%]")
+    
+    # 方法2: Wilson区間
+    term1 = p_hat + z**2 / (2*n)
+    term2 = z * np.sqrt(p_hat*(1-p_hat)/n + z**2/(4*n**2))
+    denominator = 1 + z**2/n
+    ci_lower_wilson = (term1 - term2) / denominator
+    ci_upper_wilson = (term1 + term2) / denominator
+    
+    print(f"\n【Wilson区間】:")
+    print(f"  95%信頼区間: [{ci_lower_wilson:.4f}, {ci_upper_wilson:.4f}]")
+    print(f"               [{ci_lower_wilson*100:.2f}%, {ci_upper_wilson*100:.2f}%]")
+    
+    # 方法3: Clopper-Pearson区間（exact）
+    ci_lower_cp, ci_upper_cp = proportion_confint(x, n, alpha=alpha, method='beta')
+    
+    print(f"\n【Clopper-Pearson区間】（exact）:")
+    print(f"  95%信頼区間: [{ci_lower_cp:.4f}, {ci_upper_cp:.4f}]")
+    print(f"               [{ci_lower_cp*100:.2f}%, {ci_upper_cp*100:.2f}%]")
+    
+    # 比較可視化
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # 各手法の信頼区間比較
+    methods = ['Wald\n(正規近似)', 'Wilson', 'Clopper-\nPearson']
+    lowers = [ci_lower_wald, ci_lower_wilson, ci_lower_cp]
+    uppers = [ci_upper_wald, ci_upper_wilson, ci_upper_cp]
+    centers = [p_hat, p_hat, p_hat]
+    
+    for i, (method, lower, upper) in enumerate(zip(methods, lowers, uppers)):
+        axes[0].plot([lower, upper], [i, i], 'o-', linewidth=3, markersize=8,
+                     label=method)
+    
+    axes[0].axvline(p_hat, color='red', linestyle='--', linewidth=2,
+                    label=f'標本比率: {p_hat:.3f}')
+    axes[0].set_yticks(range(len(methods)))
+    axes[0].set_yticklabels(methods)
+    axes[0].set_xlabel('比率')
+    axes[0].set_title('母比率の95%信頼区間（手法比較）')
+    axes[0].grid(True, alpha=0.3, axis='x')
+    axes[0].legend()
+    
+    # 標本サイズと信頼区間幅の関係
+    sample_sizes = np.logspace(1, 3, 50, dtype=int)
+    widths_wald = []
+    widths_wilson = []
+    
+    p_fixed = 0.075  # 固定された真の比率
+    
+    for ns in sample_sizes:
+        x_sim = int(p_fixed * ns)
+        p_sim = x_sim / ns
+    
+        # Wald
+        se_sim = np.sqrt(p_sim * (1-p_sim) / ns)
+        w_wald = 2 * z * se_sim
+        widths_wald.append(w_wald)
+    
+        # Wilson
+        t1 = p_sim + z**2/(2*ns)
+        t2 = z * np.sqrt(p_sim*(1-p_sim)/ns + z**2/(4*ns**2))
+        denom = 1 + z**2/ns
+        w_wilson = 2 * t2 / denom
+        widths_wilson.append(w_wilson)
+    
+    axes[1].plot(sample_sizes, widths_wald, 'b-', linewidth=2, label='Wald区間')
+    axes[1].plot(sample_sizes, widths_wilson, 'g--', linewidth=2, label='Wilson区間')
+    axes[1].set_xlabel('標本サイズ')
+    axes[1].set_ylabel('信頼区間の幅')
+    axes[1].set_title(f'標本サイズと信頼区間幅の関係 (p={p_fixed})')
+    axes[1].set_xscale('log')
+    axes[1].set_yscale('log')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3, which='both')
+    
+    plt.tight_layout()
+    plt.show()
+
+## 2.6 ブートストラップ信頼区間
+
+#### 📘 ブートストラップ法
+
+理論的な分布が未知の場合、リサンプリングによって信頼区間を構築できます：
+
+  1. 元データから**復元抽出** でブートストラップサンプルを生成
+  2. 各ブートストラップサンプルで統計量を計算
+  3. 統計量の分布から分位点を求めて信頼区間を構築
+
+**パーセンタイル法** : ブートストラップ分布の \\( \alpha/2 \\) 分位点と \\( 1-\alpha/2 \\) 分位点を区間端点とする
+
+#### 💻 コード例6: ブートストラップ信頼区間
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    
+    # データ生成（歪んだ分布）
+    np.random.seed(42)
+    # ガンマ分布（右に歪んでいる）
+    data = np.random.gamma(2, 2, 50)
+    
+    # 推定したい統計量: 中央値（median）
+    observed_median = np.median(data)
+    
+    print("=== ブートストラップ信頼区間 ===")
+    print(f"標本サイズ: {len(data)}")
+    print(f"標本中央値: {observed_median:.2f}")
+    print(f"標本平均: {np.mean(data):.2f}")
+    print(f"データの歪度: {stats.skew(data):.2f}")
+    
+    # ブートストラップリサンプリング
+    n_bootstrap = 10000
+    bootstrap_medians = []
+    
+    np.random.seed(123)
+    for _ in range(n_bootstrap):
+        # 復元抽出
+        bootstrap_sample = np.random.choice(data, size=len(data), replace=True)
+        bootstrap_medians.append(np.median(bootstrap_sample))
+    
+    bootstrap_medians = np.array(bootstrap_medians)
+    
+    # パーセンタイル法による信頼区間
+    alpha = 0.05
+    ci_lower_percentile = np.percentile(bootstrap_medians, alpha/2 * 100)
+    ci_upper_percentile = np.percentile(bootstrap_medians, (1 - alpha/2) * 100)
+    
+    print(f"\n【パーセンタイル法】:")
+    print(f"  95%信頼区間: [{ci_lower_percentile:.2f}, {ci_upper_percentile:.2f}]")
+    
+    # BCa法（Bias-Corrected and Accelerated）による信頼区間
+    # より精度の高い方法
+    from scipy.stats import norm
+    
+    # バイアス補正項の計算
+    z0 = norm.ppf(np.sum(bootstrap_medians < observed_median) / n_bootstrap)
+    
+    # 加速度定数の計算（ジャックナイフ法）
+    jackknife_medians = []
+    for i in range(len(data)):
+        jackknife_sample = np.delete(data, i)
+        jackknife_medians.append(np.median(jackknife_sample))
+    
+    jackknife_medians = np.array(jackknife_medians)
+    mean_jack = np.mean(jackknife_medians)
+    numerator = np.sum((mean_jack - jackknife_medians)**3)
+    denominator = 6 * (np.sum((mean_jack - jackknife_medians)**2))**(3/2)
+    a = numerator / denominator if denominator != 0 else 0
+    
+    # BCa信頼区間の分位点
+    z_alpha = norm.ppf(alpha/2)
+    z_1alpha = norm.ppf(1 - alpha/2)
+    
+    p_lower = norm.cdf(z0 + (z0 + z_alpha)/(1 - a*(z0 + z_alpha)))
+    p_upper = norm.cdf(z0 + (z0 + z_1alpha)/(1 - a*(z0 + z_1alpha)))
+    
+    ci_lower_bca = np.percentile(bootstrap_medians, p_lower * 100)
+    ci_upper_bca = np.percentile(bootstrap_medians, p_upper * 100)
+    
+    print(f"\n【BCa法】:")
+    print(f"  バイアス補正項 z0: {z0:.4f}")
+    print(f"  加速度定数 a: {a:.4f}")
+    print(f"  95%信頼区間: [{ci_lower_bca:.2f}, {ci_upper_bca:.2f}]")
+    
+    # 可視化
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # 元データの分布
+    axes[0].hist(data, bins=15, density=True, alpha=0.7,
+                 color='skyblue', edgecolor='black', label='データ')
+    axes[0].axvline(observed_median, color='red', linestyle='--',
+                    linewidth=2, label=f'標本中央値: {observed_median:.1f}')
+    axes[0].axvline(np.mean(data), color='blue', linestyle=':',
+                    linewidth=2, label=f'標本平均: {np.mean(data):.1f}')
+    axes[0].set_xlabel('値')
+    axes[0].set_ylabel('密度')
+    axes[0].set_title('元データの分布（右に歪んでいる）')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+    
+    # ブートストラップ分布
+    axes[1].hist(bootstrap_medians, bins=50, density=True, alpha=0.7,
+                 color='lightgreen', edgecolor='black', label='ブートストラップ分布')
+    axes[1].axvline(observed_median, color='red', linestyle='--',
+                    linewidth=2, label=f'観測中央値: {observed_median:.1f}')
+    axes[1].axvline(ci_lower_percentile, color='blue', linestyle=':',
+                    linewidth=2, label='パーセンタイル法')
+    axes[1].axvline(ci_upper_percentile, color='blue', linestyle=':',
+                    linewidth=2)
+    axes[1].axvline(ci_lower_bca, color='purple', linestyle='--',
+                    linewidth=2, label='BCa法')
+    axes[1].axvline(ci_upper_bca, color='purple', linestyle='--',
+                    linewidth=2)
+    axes[1].set_xlabel('中央値')
+    axes[1].set_ylabel('密度')
+    axes[1].set_title(f'ブートストラップ分布（{n_bootstrap}回）')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # 正規近似との比較
+    print(f"\n【参考】正規近似による中央値の信頼区間:")
+    # 中央値の標準誤差の近似: SE ≈ 1.253 * σ / sqrt(n)
+    se_median_approx = 1.253 * np.std(data) / np.sqrt(len(data))
+    ci_lower_normal = observed_median - 1.96 * se_median_approx
+    ci_upper_normal = observed_median + 1.96 * se_median_approx
+    print(f"  95%信頼区間: [{ci_lower_normal:.2f}, {ci_upper_normal:.2f}]")
+    print(f"  （歪んだ分布では不正確な可能性があります）")
+
+**📌 重要ポイント**  
+ブートストラップ法は分布の形を仮定せずに信頼区間を構築できる強力な手法です。 特に、中央値や歪度など、理論的な分布が複雑な統計量に有効です。BCa法はパーセンタイル法より 精度が高く、バイアスと歪度を補正します。 
+
+## 2.7 材料強度データの区間推定
+
+#### 💻 コード例7: 材料強度データの包括的区間推定
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    from statsmodels.stats.proportion import proportion_confint
+    
+    # 材料強度データ（実験データのシミュレーション）
+    np.random.seed(42)
+    n_specimens = 30
+    true_mean = 450  # MPa
+    true_std = 30    # MPa
+    
+    # Weibull分布でシミュレーション（脆性材料）
+    k_weibull = 15
+    lambda_weibull = 470
+    strength_data = np.random.weibull(k_weibull, n_specimens) * lambda_weibull
+    
+    print("=== 材料強度データの区間推定 ===")
+    print(f"試験片数: {n_specimens}")
+    print(f"平均強度: {np.mean(strength_data):.2f} MPa")
+    print(f"標準偏差: {np.std(strength_data, ddof=1):.2f} MPa")
+    print(f"最小値: {np.min(strength_data):.2f} MPa")
+    print(f"最大値: {np.max(strength_data):.2f} MPa")
+    
+    # 1. 平均強度の95%信頼区間（t区間）
+    mean_strength = np.mean(strength_data)
+    std_strength = np.std(strength_data, ddof=1)
+    se_mean = std_strength / np.sqrt(n_specimens)
+    alpha = 0.05
+    t_crit = stats.t.ppf(1 - alpha/2, df=n_specimens-1)
+    ci_mean_lower = mean_strength - t_crit * se_mean
+    ci_mean_upper = mean_strength + t_crit * se_mean
+    
+    print(f"\n【平均強度の95%信頼区間】:")
+    print(f"  [{ci_mean_lower:.2f}, {ci_mean_upper:.2f}] MPa")
+    
+    # 2. 標準偏差の95%信頼区間（カイ二乗分布）
+    chi2_lower = stats.chi2.ppf(alpha/2, df=n_specimens-1)
+    chi2_upper = stats.chi2.ppf(1-alpha/2, df=n_specimens-1)
+    ci_std_lower = np.sqrt((n_specimens-1) * std_strength**2 / chi2_upper)
+    ci_std_upper = np.sqrt((n_specimens-1) * std_strength**2 / chi2_lower)
+    
+    print(f"\n【標準偏差の95%信頼区間】:")
+    print(f"  [{ci_std_lower:.2f}, {ci_std_upper:.2f}] MPa")
+    
+    # 3. 変動係数（CV）の信頼区間（ブートストラップ）
+    cv_observed = std_strength / mean_strength
+    
+    n_bootstrap = 5000
+    cv_bootstrap = []
+    np.random.seed(123)
+    for _ in range(n_bootstrap):
+        boot_sample = np.random.choice(strength_data, size=n_specimens, replace=True)
+        cv_bootstrap.append(np.std(boot_sample, ddof=1) / np.mean(boot_sample))
+    
+    ci_cv_lower = np.percentile(cv_bootstrap, alpha/2 * 100)
+    ci_cv_upper = np.percentile(cv_bootstrap, (1-alpha/2) * 100)
+    
+    print(f"\n【変動係数（CV）の95%信頼区間】:")
+    print(f"  観測CV: {cv_observed:.4f} ({cv_observed*100:.2f}%)")
+    print(f"  95%信頼区間: [{ci_cv_lower:.4f}, {ci_cv_upper:.4f}]")
+    print(f"               [{ci_cv_lower*100:.2f}%, {ci_cv_upper*100:.2f}%]")
+    
+    # 4. 破壊確率の信頼区間
+    # 400 MPa以下で破壊する確率の推定
+    threshold = 400  # MPa
+    n_failed = np.sum(strength_data <= threshold)
+    p_failure = n_failed / n_specimens
+    
+    print(f"\n【破壊確率の95%信頼区間】({threshold} MPa以下):")
+    print(f"  破壊した試験片数: {n_failed}/{n_specimens}")
+    print(f"  標本破壊確率: {p_failure:.4f} ({p_failure*100:.2f}%)")
+    
+    if n_failed > 0:
+        ci_fail_lower, ci_fail_upper = proportion_confint(n_failed, n_specimens,
+                                                           alpha=alpha, method='wilson')
+        print(f"  Wilson信頼区間: [{ci_fail_lower:.4f}, {ci_fail_upper:.4f}]")
+        print(f"                   [{ci_fail_lower*100:.2f}%, {ci_fail_upper*100:.2f}%]")
+    else:
+        print(f"  （破壊なし: 上側信頼限界のみ計算可能）")
+    
+    # 5. 特定パーセンタイルの信頼区間（ブートストラップ）
+    # 5%タイル（下位5%の強度）の信頼区間
+    percentile_5 = np.percentile(strength_data, 5)
+    percentile_95 = np.percentile(strength_data, 95)
+    
+    p5_bootstrap = []
+    p95_bootstrap = []
+    for _ in range(n_bootstrap):
+        boot_sample = np.random.choice(strength_data, size=n_specimens, replace=True)
+        p5_bootstrap.append(np.percentile(boot_sample, 5))
+        p95_bootstrap.append(np.percentile(boot_sample, 95))
+    
+    ci_p5_lower = np.percentile(p5_bootstrap, alpha/2 * 100)
+    ci_p5_upper = np.percentile(p5_bootstrap, (1-alpha/2) * 100)
+    ci_p95_lower = np.percentile(p95_bootstrap, alpha/2 * 100)
+    ci_p95_upper = np.percentile(p95_bootstrap, (1-alpha/2) * 100)
+    
+    print(f"\n【5パーセンタイルの95%信頼区間】:")
+    print(f"  観測値: {percentile_5:.2f} MPa")
+    print(f"  95%信頼区間: [{ci_p5_lower:.2f}, {ci_p5_upper:.2f}] MPa")
+    
+    print(f"\n【95パーセンタイルの95%信頼区間】:")
+    print(f"  観測値: {percentile_95:.2f} MPa")
+    print(f"  95%信頼区間: [{ci_p95_lower:.2f}, {ci_p95_upper:.2f}] MPa")
+    
+    # 可視化
+    fig = plt.figure(figsize=(16, 10))
+    gs = fig.add_gridspec(3, 2, hspace=0.3, wspace=0.3)
+    
+    # 1. データの分布と平均の信頼区間
+    ax1 = fig.add_subplot(gs[0, :])
+    ax1.hist(strength_data, bins=12, density=True, alpha=0.7,
+             color='skyblue', edgecolor='black', label='実験データ')
+    ax1.axvline(mean_strength, color='blue', linestyle='--', linewidth=2,
+                label=f'平均: {mean_strength:.1f} MPa')
+    ax1.axvspan(ci_mean_lower, ci_mean_upper, alpha=0.3, color='blue',
+                label=f'平均の95%CI: [{ci_mean_lower:.1f}, {ci_mean_upper:.1f}]')
+    ax1.axvline(threshold, color='red', linestyle=':', linewidth=2,
+                label=f'設計基準: {threshold} MPa')
+    ax1.set_xlabel('強度 [MPa]')
+    ax1.set_ylabel('密度')
+    ax1.set_title('材料強度データと統計的区間推定')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # 2. CVのブートストラップ分布
+    ax2 = fig.add_subplot(gs[1, 0])
+    ax2.hist(cv_bootstrap, bins=40, density=True, alpha=0.7,
+             color='lightgreen', edgecolor='black')
+    ax2.axvline(cv_observed, color='red', linestyle='--', linewidth=2,
+                label=f'観測CV: {cv_observed:.3f}')
+    ax2.axvline(ci_cv_lower, color='blue', linestyle=':', linewidth=2)
+    ax2.axvline(ci_cv_upper, color='blue', linestyle=':', linewidth=2,
+                label=f'95%CI: [{ci_cv_lower:.3f}, {ci_cv_upper:.3f}]')
+    ax2.set_xlabel('変動係数 (CV)')
+    ax2.set_ylabel('密度')
+    ax2.set_title('変動係数のブートストラップ分布')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    # 3. パーセンタイルの信頼区間
+    ax3 = fig.add_subplot(gs[1, 1])
+    percentiles = [5, 25, 50, 75, 95]
+    obs_values = [np.percentile(strength_data, p) for p in percentiles]
+    ci_lowers = [ci_p5_lower, 0, 0, 0, ci_p95_lower]
+    ci_uppers = [ci_p5_upper, 0, 0, 0, ci_p95_upper]
+    
+    # 5%と95%タイルのみ信頼区間を表示
+    ax3.errorbar([0, 4], [obs_values[0], obs_values[4]],
+                 yerr=[[obs_values[0]-ci_lowers[0], obs_values[4]-ci_lowers[4]],
+                       [ci_uppers[0]-obs_values[0], ci_uppers[4]-obs_values[4]]],
+                 fmt='o', markersize=10, capsize=8, capthick=2,
+                 elinewidth=2, color='blue', label='95%信頼区間')
+    ax3.plot(range(5), obs_values, 'ro-', markersize=8, linewidth=2,
+             label='観測値')
+    ax3.set_xticks(range(5))
+    ax3.set_xticklabels([f'{p}%' for p in percentiles])
+    ax3.set_ylabel('強度 [MPa]')
+    ax3.set_title('パーセンタイル値と信頼区間')
+    ax3.legend()
+    ax3.grid(True, alpha=0.3, axis='y')
+    
+    # 4. 信頼区間の幅の比較
+    ax4 = fig.add_subplot(gs[2, :])
+    metrics = ['平均', '標準偏差', 'CV', '5%タイル', '95%タイル']
+    observed = [mean_strength, std_strength, cv_observed, percentile_5, percentile_95]
+    lower_ci = [ci_mean_lower, ci_std_lower, ci_cv_lower, ci_p5_lower, ci_p95_lower]
+    upper_ci = [ci_mean_upper, ci_std_upper, ci_cv_upper, ci_p5_upper, ci_p95_upper]
+    
+    # 正規化して比較
+    relative_widths = [(u-l)/o for o, l, u in zip(observed, lower_ci, upper_ci)]
+    
+    ax4.bar(metrics, relative_widths, color='skyblue', edgecolor='black', alpha=0.7)
+    ax4.set_ylabel('相対的区間幅 (区間幅/推定値)')
+    ax4.set_title('各統計量の信頼区間の相対的幅（不確実性の比較）')
+    ax4.grid(True, alpha=0.3, axis='y')
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # 実践的まとめ
+    print("\n=== 実践的解釈 ===")
+    print(f"✓ 平均強度は95%の確率で{ci_mean_lower:.1f}～{ci_mean_upper:.1f} MPaの範囲")
+    print(f"✓ データのばらつき（標準偏差）は{ci_std_lower:.1f}～{ci_std_upper:.1f} MPa")
+    print(f"✓ 変動係数は{ci_cv_lower*100:.1f}%～{ci_cv_upper*100:.1f}%（品質の安定性指標）")
+    print(f"✓ 下位5%の材料強度は{ci_p5_lower:.1f}～{ci_p5_upper:.1f} MPa（設計基準値の参考）")
+
+#### 📝 練習問題
+
+  1. 標本サイズが10の場合と100の場合で、同じ信頼水準95%の信頼区間の幅がどう変わるか計算してください。
+  2. 信頼水準を90%、95%、99%と変えたとき、信頼区間の幅がどう変化するか確認してください。
+  3. 対応のある2標本（paired t-test）の信頼区間を実装してください。
+  4. ブートストラップ法で標本平均の信頼区間を構築し、理論的なt区間と比較してください。
+
+## まとめ
+
+  * 信頼区間は母数の不確実性を定量化する重要な手法である
+  * 母分散既知の場合はz分布、未知の場合はt分布を使用する
+  * 小標本ではt分布が必須、大標本では正規分布に近づく
+  * 母分散の信頼区間にはカイ二乗分布を使用する
+  * 2標本問題では等分散性に応じて手法を選ぶ（プールされた分散 vs Welch法）
+  * 母比率の信頼区間はWilson区間が推奨される（小標本でも適用可能）
+  * ブートストラップ法は分布の仮定が不要で強力である
+  * 材料科学では複数の統計量の信頼区間を総合的に評価する
+
+[← 第1章: 推定理論の基礎](<chapter-1.html>) [第3章: 仮説検定と検定力分析 →](<chapter-3.html>)
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

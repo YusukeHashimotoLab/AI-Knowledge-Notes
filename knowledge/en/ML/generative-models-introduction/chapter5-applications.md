@@ -1,0 +1,1857 @@
+---
+title: "Chapter 5: Applications of Generative Models"
+chapter_title: "Chapter 5: Applications of Generative Models"
+subtitle: Practical Applications from Text-to-Image Generation to Avatar Creation Systems
+reading_time: 25-30 minutes
+difficulty: Intermediate to Advanced
+code_examples: 7
+exercises: 5
+---
+
+This chapter focuses on practical applications of Applications of Generative Models. You will learn Text-to-Image generation using Stable Diffusion and Image-to-Image transformations (Style transfer.
+
+## Learning Objectives
+
+By completing this chapter, you will be able to:
+
+  * ✅ Implement Text-to-Image generation using Stable Diffusion
+  * ✅ Understand and apply prompt engineering techniques to generate effective images
+  * ✅ Implement Image-to-Image transformations (Style transfer, Super-resolution)
+  * ✅ Understand the mechanisms of Conditional GAN (cGAN) for conditional generation
+  * ✅ Understand the fundamentals of Audio generation techniques (WaveGAN)
+  * ✅ Build practical avatar generation systems
+  * ✅ Understand ethical challenges and responsible use of generative AI
+
+* * *
+
+## 5.1 Text-to-Image Generation
+
+### Overview of Stable Diffusion
+
+**Stable Diffusion** is a diffusion model that generates high-quality images from text prompts. Released by Stability AI in 2022, it is one of the most powerful open-source Text-to-Image generation models available.
+    
+    
+    ```mermaid
+    graph LR
+        A[Text Prompt] --> B[CLIP Text Encoder]
+        B --> C[Text Embedding77×768]
+        C --> D[U-Net Denoiser]
+        E[Random NoiseLatent Space] --> D
+        D --> F[Denoising Steps20-50 iterations]
+        F --> G[VAE Decoder]
+        G --> H[Generated Image512×512 or 1024×1024]
+    
+        style A fill:#e3f2fd
+        style H fill:#c8e6c9
+        style D fill:#fff9c4
+    ```
+
+#### Stable Diffusion Architecture Components
+
+Component | Role | Technical Details  
+---|---|---  
+**Text Encoder** | Converts text to embedding vectors | CLIP ViT-L/14 (OpenAI)  
+**VAE Encoder/Decoder** | Converts between image and Latent space | 8× compression, 512×512→64×64  
+**U-Net Denoiser** | Denoising and image generation | Text conditioning via Cross-attention mechanism  
+**Scheduler** | Noise schedule management | DDPM, DDIM, Euler, DPM-Solver++  
+  
+### Stable Diffusion Implementation
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - pillow>=10.0.0
+    # - torch>=2.0.0, <2.3.0
+    
+    import torch
+    from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
+    from PIL import Image
+    import matplotlib.pyplot as plt
+    
+    class StableDiffusionGenerator:
+        """
+        Text-to-Image generation class using Stable Diffusion
+    
+        Features:
+        - Multiple scheduler support (DDPM, DDIM, Euler, DPM-Solver++)
+        - Negative prompt support
+        - CFG (Classifier-Free Guidance) control
+        - Reproducibility via seed fixing
+        """
+    
+        def __init__(self, model_id="stabilityai/stable-diffusion-2-1", device="cuda"):
+            """
+            Args:
+                model_id: HuggingFace model ID
+                device: Device to use (cuda or cpu)
+            """
+            self.device = device if torch.cuda.is_available() else "cpu"
+    
+            # Initialize pipeline
+            self.pipe = StableDiffusionPipeline.from_pretrained(
+                model_id,
+                torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
+                safety_checker=None  # Implement appropriate filtering in production
+            )
+    
+            # Use faster DPM-Solver++ scheduler
+            self.pipe.scheduler = DPMSolverMultistepScheduler.from_config(
+                self.pipe.scheduler.config
+            )
+    
+            self.pipe = self.pipe.to(self.device)
+    
+            # Memory optimization (when using GPU)
+            if self.device == "cuda":
+                self.pipe.enable_attention_slicing()
+                self.pipe.enable_vae_slicing()
+    
+        def generate(
+            self,
+            prompt,
+            negative_prompt="",
+            num_inference_steps=25,
+            guidance_scale=7.5,
+            width=512,
+            height=512,
+            seed=None,
+            num_images=1
+        ):
+            """
+            Generate images from text prompt
+    
+            Args:
+                prompt: Description of desired image
+                negative_prompt: Description of elements to avoid
+                num_inference_steps: Number of denoising steps (20-50 recommended)
+                guidance_scale: CFG scale (7-15 recommended, higher is more faithful to prompt)
+                width, height: Generated image size (multiples of 8)
+                seed: Seed value for reproducibility
+                num_images: Number of images to generate
+    
+            Returns:
+                List of generated images
+            """
+            # Set seed
+            generator = None
+            if seed is not None:
+                generator = torch.Generator(device=self.device).manual_seed(seed)
+    
+            # Generate image
+            with torch.autocast(self.device):
+                output = self.pipe(
+                    prompt=prompt,
+                    negative_prompt=negative_prompt,
+                    num_inference_steps=num_inference_steps,
+                    guidance_scale=guidance_scale,
+                    width=width,
+                    height=height,
+                    generator=generator,
+                    num_images_per_prompt=num_images
+                )
+    
+            return output.images
+    
+        def generate_grid(self, prompts, **kwargs):
+            """
+            Generate image grid from multiple prompts
+    
+            Args:
+                prompts: List of prompts
+                **kwargs: Additional arguments for generate method
+    
+            Returns:
+                Grid image
+            """
+            images = []
+            for prompt in prompts:
+                img = self.generate(prompt, num_images=1, **kwargs)[0]
+                images.append(img)
+    
+            # Create grid
+            n = len(images)
+            cols = int(n ** 0.5)
+            rows = (n + cols - 1) // cols
+    
+            w, h = images[0].size
+            grid = Image.new('RGB', (w * cols, h * rows))
+    
+            for idx, img in enumerate(images):
+                grid.paste(img, ((idx % cols) * w, (idx // cols) * h))
+    
+            return grid
+    
+    # Usage example
+    if __name__ == "__main__":
+        # Initialize generator
+        sd = StableDiffusionGenerator()
+    
+        # Basic generation
+        prompt = "A beautiful sunset over mountains, oil painting style, highly detailed"
+        negative_prompt = "blurry, low quality, distorted"
+    
+        images = sd.generate(
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            num_inference_steps=30,
+            guidance_scale=7.5,
+            seed=42,
+            num_images=2
+        )
+    
+        # Display images
+        fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+        for idx, img in enumerate(images):
+            axes[idx].imshow(img)
+            axes[idx].axis('off')
+            axes[idx].set_title(f'Image {idx + 1}')
+        plt.tight_layout()
+        plt.show()
+    
+        # Generate grid with multiple prompts
+        prompts = [
+            "A cat astronaut in space, digital art",
+            "A futuristic city at night, cyberpunk style",
+            "A magical forest with glowing mushrooms",
+            "A steampunk robot playing violin"
+        ]
+    
+        grid = sd.generate_grid(
+            prompts,
+            negative_prompt="ugly, blurry, low quality",
+            num_inference_steps=25,
+            guidance_scale=7.5,
+            seed=42
+        )
+    
+        plt.figure(figsize=(10, 10))
+        plt.imshow(grid)
+        plt.axis('off')
+        plt.title('Generated Image Grid')
+        plt.show()
+    
+
+### Prompt Engineering Techniques
+
+**Prompt Engineering** is the technique of optimizing text prompts to generate desired images. Understanding the components of effective prompts is crucial.
+
+#### Structure of Effective Prompts
+
+$$ \text{Prompt} = \text{Subject} + \text{Style} + \text{Quality} + \text{Details} + \text{Modifiers} $$
+
+Element | Description | Example  
+---|---|---  
+**Subject** | Main subject | "a majestic lion", "a futuristic building"  
+**Style** | Artistic style | "oil painting", "anime style", "photorealistic"  
+**Quality** | Quality modifiers | "highly detailed", "8k resolution", "masterpiece"  
+**Details** | Specific details | "golden hour lighting", "dramatic shadows"  
+**Modifiers** | Additional adjustments | "trending on artstation", "by Greg Rutkowski"  
+      
+    
+    class PromptEngineer:
+        """
+        Helper class for constructing effective prompts
+        """
+    
+        # Prompt templates
+        STYLE_KEYWORDS = {
+            'photorealistic': 'photorealistic, photo, realistic, high quality photograph',
+            'digital_art': 'digital art, digital painting, artstation',
+            'oil_painting': 'oil painting, traditional art, canvas',
+            'anime': 'anime style, manga, japanese animation',
+            'cyberpunk': 'cyberpunk style, neon lights, futuristic',
+            '3d_render': '3d render, octane render, unreal engine, blender'
+        }
+    
+        QUALITY_KEYWORDS = [
+            'highly detailed',
+            '8k resolution',
+            'masterpiece',
+            'best quality',
+            'sharp focus',
+            'professional'
+        ]
+    
+        NEGATIVE_KEYWORDS = [
+            'blurry',
+            'low quality',
+            'bad anatomy',
+            'distorted',
+            'ugly',
+            'duplicate',
+            'watermark'
+        ]
+    
+        @staticmethod
+        def build_prompt(
+            subject,
+            style='photorealistic',
+            quality_level='high',
+            additional_details=None,
+            artist=None
+        ):
+            """
+            Build structured prompt
+    
+            Args:
+                subject: Main subject
+                style: Style keyword
+                quality_level: Quality level ('high', 'medium', 'low')
+                additional_details: Additional details (list or string)
+                artist: Artist name (optional)
+    
+            Returns:
+                Constructed prompt
+            """
+            components = [subject]
+    
+            # Add style
+            if style in PromptEngineer.STYLE_KEYWORDS:
+                components.append(PromptEngineer.STYLE_KEYWORDS[style])
+            else:
+                components.append(style)
+    
+            # Add quality keywords
+            if quality_level == 'high':
+                components.extend(PromptEngineer.QUALITY_KEYWORDS[:4])
+            elif quality_level == 'medium':
+                components.extend(PromptEngineer.QUALITY_KEYWORDS[:2])
+    
+            # Additional details
+            if additional_details:
+                if isinstance(additional_details, list):
+                    components.extend(additional_details)
+                else:
+                    components.append(additional_details)
+    
+            # Artist name
+            if artist:
+                components.append(f"by {artist}")
+    
+            return ", ".join(components)
+    
+        @staticmethod
+        def build_negative_prompt(custom_negatives=None):
+            """
+            Build negative prompt
+    
+            Args:
+                custom_negatives: Custom negative keywords
+    
+            Returns:
+                Negative prompt string
+            """
+            negatives = PromptEngineer.NEGATIVE_KEYWORDS.copy()
+            if custom_negatives:
+                negatives.extend(custom_negatives)
+            return ", ".join(negatives)
+    
+        @staticmethod
+        def optimize_for_faces(base_prompt):
+            """
+            Optimize prompt for face generation
+            """
+            face_keywords = [
+                'detailed face',
+                'perfect eyes',
+                'symmetrical face',
+                'professional portrait',
+                'sharp facial features'
+            ]
+            return f"{base_prompt}, {', '.join(face_keywords)}"
+    
+        @staticmethod
+        def optimize_for_landscapes(base_prompt):
+            """
+            Optimize prompt for landscape generation
+            """
+            landscape_keywords = [
+                'wide angle',
+                'epic vista',
+                'atmospheric',
+                'dramatic lighting',
+                'depth of field'
+            ]
+            return f"{base_prompt}, {', '.join(landscape_keywords)}"
+    
+    # Usage example
+    if __name__ == "__main__":
+        pe = PromptEngineer()
+    
+        # Portrait generation
+        portrait_prompt = pe.build_prompt(
+            subject="a young woman with flowing red hair",
+            style="digital_art",
+            quality_level="high",
+            additional_details=["golden hour lighting", "soft shadows"],
+            artist="Ilya Kuvshinov"
+        )
+        portrait_prompt = pe.optimize_for_faces(portrait_prompt)
+    
+        # Landscape generation
+        landscape_prompt = pe.build_prompt(
+            subject="a serene mountain lake surrounded by pine trees",
+            style="oil_painting",
+            quality_level="high",
+            additional_details=["misty morning", "reflections on water"]
+        )
+        landscape_prompt = pe.optimize_for_landscapes(landscape_prompt)
+    
+        # Negative prompt
+        negative = pe.build_negative_prompt(["deformed", "disfigured"])
+    
+        print("Portrait Prompt:")
+        print(portrait_prompt)
+        print("\nLandscape Prompt:")
+        print(landscape_prompt)
+        print("\nNegative Prompt:")
+        print(negative)
+    
+
+> **Prompt Best Practices** :
+> 
+>   * **Be specific** : "A clear lake surrounded by snowy mountains at sunset" rather than "beautiful landscape"
+>   * **Use quality keywords** : "highly detailed", "8k", "masterpiece", etc.
+>   * **Utilize negative prompts** : Explicitly specify elements to avoid
+>   * **Use weighting** : (keyword:1.5) to emphasize, (keyword:0.8) to de-emphasize
+>   * **Reference artists** : Use well-known artist names for specific styles
+> 
+
+### CFG (Classifier-Free Guidance) Theory
+
+CFG is a technique to improve quality in conditional generation. It combines predictions from conditional and unconditional models.
+
+$$ \epsilon_\theta(z_t, c, t) = \epsilon_\theta(z_t, \emptyset, t) + s \cdot (\epsilon_\theta(z_t, c, t) - \epsilon_\theta(z_t, \emptyset, t)) $$
+
+Where:
+
+  * $\epsilon_\theta(z_t, c, t)$: Noise prediction conditioned on $c$ (text)
+  * $\epsilon_\theta(z_t, \emptyset, t)$: Unconditional noise prediction
+  * $s$: Guidance scale (typically 7-15)
+  * $z_t$: Latent variable at time $t$
+
+    
+    
+    ```mermaid
+    graph TB
+        A[Input: Noisy Latent z_t] --> B[Conditional Pathwith Text c]
+        A --> C[Unconditional Pathno text]
+    
+        B --> D[ε_cond]
+        C --> E[ε_uncond]
+    
+        D --> F[Guidance Calculation]
+        E --> F
+    
+        F --> G[ε_guided = ε_uncond + s × Δε]
+        G --> H[Denoising Step]
+    
+        I[Guidance Scale s] --> F
+    
+        style A fill:#e3f2fd
+        style H fill:#c8e6c9
+        style I fill:#fff9c4
+    ```
+
+* * *
+
+## 5.2 Image-to-Image Transformation
+
+### Style Transfer
+
+**Style Transfer** is a technique that applies the style (color palette, brushstrokes, texture) of one image to the content of another. In Stable Diffusion, an existing image is used instead of initial noise.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - pillow>=10.0.0
+    # - torch>=2.0.0, <2.3.0
+    
+    from diffusers import StableDiffusionImg2ImgPipeline
+    from PIL import Image
+    import torch
+    
+    class StyleTransferGenerator:
+        """
+        Image-to-Image transformation class using Stable Diffusion
+    
+        Features:
+        - Style transfer
+        - Image variation generation
+        - Transformation degree adjustment via strength control
+        """
+    
+        def __init__(self, model_id="stabilityai/stable-diffusion-2-1", device="cuda"):
+            self.device = device if torch.cuda.is_available() else "cpu"
+    
+            self.pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
+                model_id,
+                torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
+                safety_checker=None
+            )
+    
+            self.pipe = self.pipe.to(self.device)
+    
+            if self.device == "cuda":
+                self.pipe.enable_attention_slicing()
+    
+        def transfer_style(
+            self,
+            input_image,
+            style_prompt,
+            strength=0.75,
+            guidance_scale=7.5,
+            num_inference_steps=50,
+            seed=None
+        ):
+            """
+            Apply style to image
+    
+            Args:
+                input_image: Input image (PIL Image or path String)
+                style_prompt: Description of desired style
+                strength: Transformation strength (0.0-1.0, higher means more change)
+                guidance_scale: CFG scale
+                num_inference_steps: Number of steps
+                seed: Random seed
+    
+            Returns:
+                Style-transformed image
+            """
+            # Load image
+            if isinstance(input_image, str):
+                input_image = Image.open(input_image).convert('RGB')
+    
+            # Resize (to multiples of 8)
+            w, h = input_image.size
+            w = (w // 8) * 8
+            h = (h // 8) * 8
+            input_image = input_image.resize((w, h))
+    
+            # Set seed
+            generator = None
+            if seed is not None:
+                generator = torch.Generator(device=self.device).manual_seed(seed)
+    
+            # Style transfer
+            with torch.autocast(self.device):
+                output = self.pipe(
+                    prompt=style_prompt,
+                    image=input_image,
+                    strength=strength,
+                    guidance_scale=guidance_scale,
+                    num_inference_steps=num_inference_steps,
+                    generator=generator
+                )
+    
+            return output.images[0]
+    
+        def create_variations(
+            self,
+            input_image,
+            prompt,
+            num_variations=4,
+            strength=0.5,
+            **kwargs
+        ):
+            """
+            Generate variations of input image
+    
+            Args:
+                input_image: Input image
+                prompt: Prompt indicating transformation direction
+                num_variations: Number of variations to generate
+                strength: Transformation strength
+    
+            Returns:
+                List of variation images
+            """
+            variations = []
+            for i in range(num_variations):
+                seed = kwargs.get('seed', None)
+                if seed is not None:
+                    seed = seed + i
+    
+                var_img = self.transfer_style(
+                    input_image,
+                    prompt,
+                    strength=strength,
+                    seed=seed,
+                    **{k: v for k, v in kwargs.items() if k != 'seed'}
+                )
+                variations.append(var_img)
+    
+            return variations
+    
+    # Usage example
+    if __name__ == "__main__":
+        st = StyleTransferGenerator()
+    
+        # Style transfer example
+        input_image = "path/to/photo.jpg"
+    
+        style_prompts = [
+            "oil painting in the style of Van Gogh, swirling brushstrokes",
+            "anime style, Studio Ghibli aesthetic, vibrant colors",
+            "cyberpunk style, neon lights, futuristic",
+            "watercolor painting, soft colors, artistic"
+        ]
+    
+        fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+        axes = axes.flatten()
+    
+        # Display original image
+        original = Image.open(input_image)
+        axes[0].imshow(original)
+        axes[0].set_title('Original')
+        axes[0].axis('off')
+    
+        # Transfer each style
+        for idx, style_prompt in enumerate(style_prompts):
+            styled_img = st.transfer_style(
+                input_image,
+                style_prompt,
+                strength=0.75,
+                num_inference_steps=50,
+                seed=42
+            )
+    
+            axes[idx + 1].imshow(styled_img)
+            axes[idx + 1].set_title(style_prompt[:30] + '...')
+            axes[idx + 1].axis('off')
+    
+        # Hide last cell
+        axes[-1].axis('off')
+    
+        plt.tight_layout()
+        plt.show()
+    
+
+### Super-Resolution
+
+**Super-Resolution** is a technique for generating high-resolution images from low-resolution images. Diffusion model-based approaches demonstrate state-of-the-art performance.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - pillow>=10.0.0
+    # - torch>=2.0.0, <2.3.0
+    
+    import torch
+    import torch.nn as nn
+    from diffusers import StableDiffusionUpscalePipeline
+    from PIL import Image
+    
+    class SuperResolutionModel:
+        """
+        Super-resolution class using Stable Diffusion Upscaler
+    
+        Features:
+        - 4× upscaling
+        - Denoising and detail completion
+        - Quality control via prompts
+        """
+    
+        def __init__(self, model_id="stabilityai/stable-diffusion-x4-upscaler", device="cuda"):
+            self.device = device if torch.cuda.is_available() else "cpu"
+    
+            self.pipe = StableDiffusionUpscalePipeline.from_pretrained(
+                model_id,
+                torch_dtype=torch.float16 if self.device == "cuda" else torch.float32
+            )
+    
+            self.pipe = self.pipe.to(self.device)
+    
+            if self.device == "cuda":
+                self.pipe.enable_attention_slicing()
+                self.pipe.enable_vae_slicing()
+    
+        def upscale(
+            self,
+            input_image,
+            prompt="high quality, detailed",
+            num_inference_steps=50,
+            guidance_scale=7.5,
+            noise_level=20,
+            seed=None
+        ):
+            """
+            Upscale image by 4×
+    
+            Args:
+                input_image: Low-resolution input image
+                prompt: Quality improvement prompt
+                num_inference_steps: Number of steps
+                guidance_scale: CFG scale
+                noise_level: Noise level (0-100, higher generates more details)
+                seed: Random seed
+    
+            Returns:
+                Upscaled image
+            """
+            # Load image
+            if isinstance(input_image, str):
+                input_image = Image.open(input_image).convert('RGB')
+    
+            # Set seed
+            generator = None
+            if seed is not None:
+                generator = torch.Generator(device=self.device).manual_seed(seed)
+    
+            # Upscaling
+            with torch.autocast(self.device):
+                upscaled = self.pipe(
+                    prompt=prompt,
+                    image=input_image,
+                    num_inference_steps=num_inference_steps,
+                    guidance_scale=guidance_scale,
+                    noise_level=noise_level,
+                    generator=generator
+                ).images[0]
+    
+            return upscaled
+    
+        def progressive_upscale(self, input_image, target_size, **kwargs):
+            """
+            Progressive upscaling (for very large sizes)
+    
+            Args:
+                input_image: Input image
+                target_size: Target size (width, height)
+    
+            Returns:
+                Upscaled image
+            """
+            if isinstance(input_image, str):
+                input_image = Image.open(input_image).convert('RGB')
+    
+            current_img = input_image
+            current_size = current_img.size
+    
+            while current_size[0] < target_size[0] or current_size[1] < target_size[1]:
+                # 4× upscaling
+                current_img = self.upscale(current_img, **kwargs)
+                current_size = current_img.size
+    
+                print(f"Upscaled to: {current_size}")
+    
+                # Exit if target size is exceeded
+                if current_size[0] >= target_size[0] and current_size[1] >= target_size[1]:
+                    break
+    
+            # Finally resize to target size
+            if current_size != target_size:
+                current_img = current_img.resize(target_size, Image.LANCZOS)
+    
+            return current_img
+    
+    # Usage example
+    if __name__ == "__main__":
+        sr = SuperResolutionModel()
+    
+        # Upscale low-resolution image
+        low_res_image = "path/to/low_res.jpg"
+    
+        # Compare different noise levels
+        noise_levels = [10, 20, 40, 60]
+    
+        fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+        axes = axes.flatten()
+    
+        # Original image
+        original = Image.open(low_res_image)
+        axes[0].imshow(original)
+        axes[0].set_title(f'Original ({original.size[0]}x{original.size[1]})')
+        axes[0].axis('off')
+    
+        # Upscale at each noise level
+        for idx, noise_level in enumerate(noise_levels):
+            upscaled = sr.upscale(
+                low_res_image,
+                prompt="high quality, sharp, detailed, professional photograph",
+                noise_level=noise_level,
+                seed=42
+            )
+    
+            axes[idx + 1].imshow(upscaled)
+            axes[idx + 1].set_title(f'Noise Level {noise_level}\n({upscaled.size[0]}x{upscaled.size[1]})')
+            axes[idx + 1].axis('off')
+    
+        axes[-1].axis('off')
+    
+        plt.tight_layout()
+        plt.show()
+    
+
+* * *
+
+## 5.3 Conditional Generation
+
+### Conditional GAN (cGAN)
+
+**Conditional GAN** is an extension of GAN that generates images based on conditions such as class labels or attribute information. Both the Generator and Discriminator receive conditional information.
+    
+    
+    ```mermaid
+    graph TB
+        A[Random Noise z] --> G[Generator G]
+        B[Condition cClass Label] --> G
+        G --> C[Fake Image x̃]
+    
+        D[Real Image x] --> Disc[Discriminator D]
+        C --> Disc
+        B --> Disc
+    
+        Disc --> E[Real/Fake + Class]
+    
+        style A fill:#e3f2fd
+        style B fill:#fff9c4
+        style C fill:#ffccbc
+        style D fill:#c8e6c9
+        style E fill:#f8bbd0
+    ```
+
+#### cGAN Objective Function
+
+$$ \min_G \max_D V(D, G) = \mathbb{E}_{x \sim p_{data}(x)}[\log D(x|c)] + \mathbb{E}_{z \sim p_z(z)}[\log(1 - D(G(z|c)|c))] $$
+
+Where:
+
+  * $c$: Conditional information (class label, text, image, etc.)
+  * $D(x|c)$: Discrimination considering condition $c$
+  * $G(z|c)$: Generation based on condition $c$
+
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - torch>=2.0.0, <2.3.0
+    
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    
+    class ConditionalGenerator(nn.Module):
+        """
+        Conditional GAN Generator
+    
+        Realizes conditional image generation by combining
+        conditional information (class labels) as embeddings
+        """
+    
+        def __init__(self, latent_dim=100, num_classes=10, img_size=32, channels=3):
+            super(ConditionalGenerator, self).__init__()
+    
+            self.latent_dim = latent_dim
+            self.num_classes = num_classes
+            self.img_size = img_size
+    
+            # Class embedding
+            self.label_emb = nn.Embedding(num_classes, latent_dim)
+    
+            # Generator body
+            self.init_size = img_size // 4
+            self.fc = nn.Linear(latent_dim * 2, 128 * self.init_size ** 2)
+    
+            self.conv_blocks = nn.Sequential(
+                nn.BatchNorm2d(128),
+    
+                nn.Upsample(scale_factor=2),
+                nn.Conv2d(128, 128, 3, stride=1, padding=1),
+                nn.BatchNorm2d(128),
+                nn.LeakyReLU(0.2, inplace=True),
+    
+                nn.Upsample(scale_factor=2),
+                nn.Conv2d(128, 64, 3, stride=1, padding=1),
+                nn.BatchNorm2d(64),
+                nn.LeakyReLU(0.2, inplace=True),
+    
+                nn.Conv2d(64, channels, 3, stride=1, padding=1),
+                nn.Tanh()
+            )
+    
+        def forward(self, noise, labels):
+            """
+            Args:
+                noise: Random noise (batch_size, latent_dim)
+                labels: Class labels (batch_size,)
+    
+            Returns:
+                Generated images (batch_size, channels, img_size, img_size)
+            """
+            # Get class embedding
+            label_embedding = self.label_emb(labels)  # (batch_size, latent_dim)
+    
+            # Concatenate noise and label embedding
+            gen_input = torch.cat([noise, label_embedding], dim=1)  # (batch_size, latent_dim*2)
+    
+            # Fully connected layer
+            out = self.fc(gen_input)
+            out = out.view(out.size(0), 128, self.init_size, self.init_size)
+    
+            # Convolutional layers
+            img = self.conv_blocks(out)
+    
+            return img
+    
+    
+    class ConditionalDiscriminator(nn.Module):
+        """
+        Conditional GAN Discriminator
+    
+        Takes image and class label as input and
+        performs Real/Fake discrimination
+        """
+    
+        def __init__(self, num_classes=10, img_size=32, channels=3):
+            super(ConditionalDiscriminator, self).__init__()
+    
+            self.num_classes = num_classes
+            self.img_size = img_size
+    
+            # Class embedding (expanded to image size)
+            self.label_emb = nn.Embedding(num_classes, img_size * img_size)
+    
+            # Discriminator body
+            self.conv_blocks = nn.Sequential(
+                nn.Conv2d(channels + 1, 64, 3, stride=2, padding=1),
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.Dropout2d(0.25),
+    
+                nn.Conv2d(64, 128, 3, stride=2, padding=1),
+                nn.BatchNorm2d(128),
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.Dropout2d(0.25),
+    
+                nn.Conv2d(128, 256, 3, stride=2, padding=1),
+                nn.BatchNorm2d(256),
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.Dropout2d(0.25),
+            )
+    
+            # Calculate output layer size
+            ds_size = img_size // 2 ** 3
+            self.adv_layer = nn.Sequential(
+                nn.Linear(256 * ds_size ** 2, 1),
+                nn.Sigmoid()
+            )
+    
+        def forward(self, img, labels):
+            """
+            Args:
+                img: Input image (batch_size, channels, img_size, img_size)
+                labels: Class labels (batch_size,)
+    
+            Returns:
+                Discrimination score (batch_size, 1)
+            """
+            # Transform class embedding to image size
+            label_embedding = self.label_emb(labels)  # (batch_size, img_size*img_size)
+            label_embedding = label_embedding.view(-1, 1, self.img_size, self.img_size)
+    
+            # Concatenate image and label embedding
+            d_in = torch.cat([img, label_embedding], dim=1)  # (batch_size, channels+1, H, W)
+    
+            # Convolutional layers
+            out = self.conv_blocks(d_in)
+            out = out.view(out.size(0), -1)
+    
+            # Discrimination
+            validity = self.adv_layer(out)
+    
+            return validity
+    
+    
+    class ConditionalGANTrainer:
+        """
+        Conditional GAN training class
+        """
+    
+        def __init__(self, latent_dim=100, num_classes=10, img_size=32, channels=3, device='cuda'):
+            self.device = device
+            self.latent_dim = latent_dim
+            self.num_classes = num_classes
+    
+            # Initialize models
+            self.generator = ConditionalGenerator(
+                latent_dim, num_classes, img_size, channels
+            ).to(device)
+    
+            self.discriminator = ConditionalDiscriminator(
+                num_classes, img_size, channels
+            ).to(device)
+    
+            # Optimizers
+            self.optimizer_G = torch.optim.Adam(self.generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+            self.optimizer_D = torch.optim.Adam(self.discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+    
+            # Loss function
+            self.criterion = nn.BCELoss()
+    
+        def train_step(self, real_imgs, labels):
+            """
+            One training step
+    
+            Args:
+                real_imgs: Real image batch
+                labels: Corresponding class labels
+    
+            Returns:
+                d_loss, g_loss: Discriminator and Generator losses
+            """
+            batch_size = real_imgs.size(0)
+    
+            # Labels
+            real_label = torch.ones(batch_size, 1, device=self.device)
+            fake_label = torch.zeros(batch_size, 1, device=self.device)
+    
+            # ---------------------
+            # Train Discriminator
+            # ---------------------
+            self.optimizer_D.zero_grad()
+    
+            # Discriminate real images
+            real_validity = self.discriminator(real_imgs, labels)
+            d_real_loss = self.criterion(real_validity, real_label)
+    
+            # Generate and discriminate fake images
+            z = torch.randn(batch_size, self.latent_dim, device=self.device)
+            gen_labels = torch.randint(0, self.num_classes, (batch_size,), device=self.device)
+            fake_imgs = self.generator(z, gen_labels)
+            fake_validity = self.discriminator(fake_imgs.detach(), gen_labels)
+            d_fake_loss = self.criterion(fake_validity, fake_label)
+    
+            # Discriminator loss
+            d_loss = (d_real_loss + d_fake_loss) / 2
+            d_loss.backward()
+            self.optimizer_D.step()
+    
+            # -----------------
+            # Train Generator
+            # -----------------
+            self.optimizer_G.zero_grad()
+    
+            # Generator loss (fool the Discriminator)
+            gen_validity = self.discriminator(fake_imgs, gen_labels)
+            g_loss = self.criterion(gen_validity, real_label)
+    
+            g_loss.backward()
+            self.optimizer_G.step()
+    
+            return d_loss.item(), g_loss.item()
+    
+        def generate_samples(self, num_samples=10, class_id=None):
+            """
+            Generate sample images
+    
+            Args:
+                num_samples: Number of samples to generate
+                class_id: Generate specific class (random if None)
+    
+            Returns:
+                Generated images and labels
+            """
+            self.generator.eval()
+    
+            with torch.no_grad():
+                z = torch.randn(num_samples, self.latent_dim, device=self.device)
+    
+                if class_id is not None:
+                    labels = torch.full((num_samples,), class_id, dtype=torch.long, device=self.device)
+                else:
+                    labels = torch.randint(0, self.num_classes, (num_samples,), device=self.device)
+    
+                gen_imgs = self.generator(z, labels)
+    
+            self.generator.train()
+            return gen_imgs, labels
+    
+    # Usage example
+    if __name__ == "__main__":
+        # MNIST-style configuration
+        trainer = ConditionalGANTrainer(
+            latent_dim=100,
+            num_classes=10,
+            img_size=28,
+            channels=1,
+            device='cuda' if torch.cuda.is_available() else 'cpu'
+        )
+    
+        # Generate samples for each class
+        fig, axes = plt.subplots(2, 5, figsize=(12, 6))
+        axes = axes.flatten()
+    
+        for class_id in range(10):
+            gen_imgs, _ = trainer.generate_samples(num_samples=1, class_id=class_id)
+            img = gen_imgs[0].cpu().squeeze().numpy()
+    
+            axes[class_id].imshow(img, cmap='gray')
+            axes[class_id].set_title(f'Class {class_id}')
+            axes[class_id].axis('off')
+    
+        plt.tight_layout()
+        plt.show()
+    
+
+* * *
+
+## 5.4 Audio Generation
+
+### WaveGAN Overview
+
+**WaveGAN** is a GAN that directly generates raw audio waveforms. It adapts image generation GAN architectures to 1D convolutions.
+    
+    
+    ```mermaid
+    graph LR
+        A[Random Noise100-dim] --> B[FC Layer16×256]
+        B --> C[Reshape256×16]
+        C --> D[Transposed Conv1D×5Upsample]
+        D --> E[Output16384 samples1 second @ 16kHz]
+    
+        F[Real Audio] --> G[Conv1D×5Downsample]
+        E --> G
+        G --> H[FC Layer] --> I[Real/Fake]
+    
+        style A fill:#e3f2fd
+        style E fill:#c8e6c9
+        style I fill:#f8bbd0
+    ```
+
+#### WaveGAN Features
+
+Feature | Image GAN | WaveGAN  
+---|---|---  
+**Convolution** | 2D Conv | 1D Conv (temporal axis)  
+**Sample Length** | 64×64 pixels | 16384 samples (1 second @ 16kHz)  
+**Upsampling** | 2× at a time | 4×, 8×, 16×, etc.  
+**Normalization** | Batch Norm | Phase Shuffle  
+  
+> **Phase Shuffle** : An important technique in WaveGAN that randomly shifts phases during training to prevent the Discriminator from overfitting to specific phases. This generates natural audio with fewer artifacts.
+
+* * *
+
+## 5.5 Practical Project: Avatar Generation System
+
+### Avatar Generation Requirements
+
+A practical avatar generation system requires the following features:
+
+  * **Diversity** : Variations in facial features, hairstyles, and clothing
+  * **Consistency** : Different poses and expressions of the same person
+  * **Controllability** : User-specified attributes (hair color, eye color, etc.)
+  * **Quality** : High-resolution with natural appearance
+
+    
+    
+    ```mermaid
+    graph TB
+        A[User Input] --> B[Text Prompt Builder]
+        A --> C[Attribute SelectorHair, Eyes, Style]
+    
+        B --> D[Stable Diffusion Pipeline]
+        C --> D
+    
+        D --> E[Initial Generation512×512]
+        E --> F[Face Detection &Alignment]
+        F --> G[Super Resolution2048×2048]
+    
+        G --> H{Quality Check}
+        H -->|Pass| I[Final Avatar]
+        H -->|Fail| D
+    
+        style A fill:#e3f2fd
+        style I fill:#c8e6c9
+        style H fill:#fff9c4
+    ```
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - pillow>=10.0.0
+    # - torch>=2.0.0, <2.3.0
+    
+    import torch
+    from diffusers import StableDiffusionPipeline, StableDiffusionUpscalePipeline
+    from PIL import Image, ImageDraw, ImageFont
+    import random
+    
+    class AvatarGenerationSystem:
+        """
+        Comprehensive avatar generation system
+    
+        Features:
+        - Customizable attributes (hair, eyes, style, etc.)
+        - Consistent multi-pose generation
+        - Automatic quality checking
+        - High-quality enhancement via super-resolution
+        """
+    
+        # Attribute options
+        HAIR_STYLES = ['long flowing', 'short', 'curly', 'straight', 'wavy', 'braided']
+        HAIR_COLORS = ['blonde', 'brunette', 'black', 'red', 'white', 'blue', 'pink']
+        EYE_COLORS = ['blue', 'green', 'brown', 'hazel', 'gray', 'amber']
+        STYLES = ['anime', 'realistic', 'cartoon', 'semi-realistic', 'fantasy']
+        EXPRESSIONS = ['smiling', 'serious', 'happy', 'calm', 'mysterious']
+        BACKGROUNDS = ['simple background', 'gradient background', 'nature background', 'abstract background']
+    
+        def __init__(self, device="cuda"):
+            self.device = device if torch.cuda.is_available() else "cpu"
+    
+            # Text-to-Image pipeline
+            self.sd_pipe = StableDiffusionPipeline.from_pretrained(
+                "stabilityai/stable-diffusion-2-1",
+                torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
+                safety_checker=None
+            ).to(self.device)
+    
+            # Upscaler pipeline
+            self.upscale_pipe = StableDiffusionUpscalePipeline.from_pretrained(
+                "stabilityai/stable-diffusion-x4-upscaler",
+                torch_dtype=torch.float16 if self.device == "cuda" else torch.float32
+            ).to(self.device)
+    
+            if self.device == "cuda":
+                self.sd_pipe.enable_attention_slicing()
+                self.upscale_pipe.enable_attention_slicing()
+    
+        def build_avatar_prompt(
+            self,
+            gender='female',
+            hair_style=None,
+            hair_color=None,
+            eye_color=None,
+            style=None,
+            expression=None,
+            background=None,
+            additional_features=None
+        ):
+            """
+            Build avatar prompt
+    
+            Args:
+                gender: 'male' or 'female'
+                hair_style, hair_color, eye_color: Hair and eye attributes
+                style: Art style
+                expression: Facial expression
+                background: Background
+                additional_features: Additional features (list)
+    
+            Returns:
+                Constructed prompt
+            """
+            # Random selection (if not specified)
+            hair_style = hair_style or random.choice(self.HAIR_STYLES)
+            hair_color = hair_color or random.choice(self.HAIR_COLORS)
+            eye_color = eye_color or random.choice(self.EYE_COLORS)
+            style = style or random.choice(self.STYLES)
+            expression = expression or random.choice(self.EXPRESSIONS)
+            background = background or random.choice(self.BACKGROUNDS)
+    
+            # Build prompt
+            components = [
+                f"portrait of a {gender}",
+                f"{hair_color} {hair_style} hair",
+                f"{eye_color} eyes",
+                expression,
+                background,
+                f"{style} style",
+                "highly detailed face",
+                "professional digital art",
+                "8k quality",
+                "perfect anatomy",
+                "beautiful lighting"
+            ]
+    
+            # Additional features
+            if additional_features:
+                components.extend(additional_features)
+    
+            prompt = ", ".join(components)
+    
+            # Negative prompt
+            negative_prompt = ", ".join([
+                "blurry", "low quality", "distorted", "deformed",
+                "bad anatomy", "disfigured", "ugly", "duplicate",
+                "extra limbs", "mutation", "watermark"
+            ])
+    
+            return prompt, negative_prompt
+    
+        def generate_avatar(
+            self,
+            prompt=None,
+            negative_prompt=None,
+            num_inference_steps=50,
+            guidance_scale=7.5,
+            seed=None,
+            upscale=False,
+            **prompt_kwargs
+        ):
+            """
+            Generate avatar
+    
+            Args:
+                prompt: Custom prompt (automatically built if None)
+                negative_prompt: Negative prompt
+                num_inference_steps: Number of steps
+                guidance_scale: CFG scale
+                seed: Random seed
+                upscale: Whether to apply super-resolution
+                **prompt_kwargs: Arguments for build_avatar_prompt
+    
+            Returns:
+                Generated avatar image
+            """
+            # Build prompt
+            if prompt is None:
+                prompt, auto_negative = self.build_avatar_prompt(**prompt_kwargs)
+                negative_prompt = negative_prompt or auto_negative
+    
+            # Set seed
+            generator = None
+            if seed is not None:
+                generator = torch.Generator(device=self.device).manual_seed(seed)
+    
+            # Initial generation
+            with torch.autocast(self.device):
+                output = self.sd_pipe(
+                    prompt=prompt,
+                    negative_prompt=negative_prompt,
+                    num_inference_steps=num_inference_steps,
+                    guidance_scale=guidance_scale,
+                    generator=generator,
+                    width=512,
+                    height=512
+                )
+    
+            avatar = output.images[0]
+    
+            # Super-resolution (optional)
+            if upscale:
+                with torch.autocast(self.device):
+                    avatar = self.upscale_pipe(
+                        prompt=prompt,
+                        image=avatar,
+                        num_inference_steps=50,
+                        guidance_scale=7.5,
+                        noise_level=20
+                    ).images[0]
+    
+            return avatar, prompt
+    
+        def generate_avatar_set(
+            self,
+            num_avatars=4,
+            consistent_style=True,
+            upscale=False,
+            seed=None,
+            **base_kwargs
+        ):
+            """
+            Generate consistent avatar set
+    
+            Args:
+                num_avatars: Number of avatars to generate
+                consistent_style: Whether to unify style
+                upscale: Apply super-resolution
+                seed: Base seed
+                **base_kwargs: Common attributes
+    
+            Returns:
+                List of avatar images, list of prompts
+            """
+            avatars = []
+            prompts = []
+    
+            # Fixed parameters for consistency
+            if consistent_style:
+                style = base_kwargs.get('style') or random.choice(self.STYLES)
+                base_kwargs['style'] = style
+    
+            for i in range(num_avatars):
+                current_seed = seed + i if seed is not None else None
+    
+                # Generate each avatar (varying expression)
+                avatar, prompt = self.generate_avatar(
+                    expression=random.choice(self.EXPRESSIONS),
+                    seed=current_seed,
+                    upscale=upscale,
+                    **base_kwargs
+                )
+    
+                avatars.append(avatar)
+                prompts.append(prompt)
+    
+            return avatars, prompts
+    
+        def create_avatar_sheet(self, avatars, prompts, grid_size=(2, 2)):
+            """
+            Create avatar sheet (display multiple avatars in grid)
+    
+            Args:
+                avatars: List of avatar images
+                prompts: List of corresponding prompts
+                grid_size: Grid size (rows, cols)
+    
+            Returns:
+                Grid image
+            """
+            rows, cols = grid_size
+            w, h = avatars[0].size
+    
+            # Add space for text
+            text_height = 100
+            grid = Image.new('RGB', (w * cols, h * rows + text_height * rows), 'white')
+            draw = ImageDraw.Draw(grid)
+    
+            for idx, (avatar, prompt) in enumerate(zip(avatars[:rows*cols], prompts[:rows*cols])):
+                row = idx // cols
+                col = idx % cols
+    
+                # Paste avatar
+                grid.paste(avatar, (col * w, row * (h + text_height)))
+    
+                # Prompt text (abbreviated)
+                short_prompt = prompt[:60] + '...' if len(prompt) > 60 else prompt
+                text_y = row * (h + text_height) + h + 10
+                draw.text((col * w + 10, text_y), short_prompt, fill='black')
+    
+            return grid
+    
+    # Usage example
+    if __name__ == "__main__":
+        avatar_system = AvatarGenerationSystem()
+    
+        # Single avatar generation
+        avatar, prompt = avatar_system.generate_avatar(
+            gender='female',
+            hair_color='pink',
+            eye_color='blue',
+            style='anime',
+            expression='smiling',
+            seed=42,
+            upscale=False
+        )
+    
+        print(f"Generated avatar with prompt: {prompt}")
+        avatar.show()
+    
+        # Avatar set generation (with consistency)
+        avatars, prompts = avatar_system.generate_avatar_set(
+            num_avatars=4,
+            gender='male',
+            style='realistic',
+            hair_color='black',
+            consistent_style=True,
+            seed=100
+        )
+    
+        # Create avatar sheet
+        sheet = avatar_system.create_avatar_sheet(avatars, prompts, grid_size=(2, 2))
+        sheet.show()
+    
+        # Random variations
+        random_avatars = []
+        for i in range(6):
+            avatar, _ = avatar_system.generate_avatar(seed=i*10)
+            random_avatars.append(avatar)
+    
+        random_sheet = avatar_system.create_avatar_sheet(
+            random_avatars,
+            ['Random Avatar'] * 6,
+            grid_size=(2, 3)
+        )
+        random_sheet.show()
+    
+
+### Artwork Creation System
+    
+    
+    class ArtworkCreationSystem:
+        """
+        Artistic work generation system
+    
+        Features:
+        - Various art styles (oil painting, watercolor, digital art, etc.)
+        - Composition control
+        - Color palette specification
+        - Artist style imitation
+        """
+    
+        ART_STYLES = {
+            'oil_painting': 'oil painting on canvas, thick brush strokes, impasto technique',
+            'watercolor': 'watercolor painting, soft colors, transparent layers, paper texture',
+            'digital_art': 'digital art, digital painting, trending on artstation, highly detailed',
+            'impressionism': 'impressionist style, loose brushwork, emphasis on light, outdoor scene',
+            'surrealism': 'surrealist art, dreamlike, bizarre imagery, subconscious inspiration',
+            'abstract': 'abstract art, non-representational, geometric shapes, bold colors',
+            'minimalist': 'minimalist art, simple composition, limited color palette, negative space',
+            'cyberpunk': 'cyberpunk art, neon colors, futuristic, high tech low life aesthetic'
+        }
+    
+        COMPOSITIONS = {
+            'rule_of_thirds': 'rule of thirds composition, balanced',
+            'symmetrical': 'symmetrical composition, centered, mirror-like',
+            'diagonal': 'diagonal composition, dynamic, movement',
+            'golden_ratio': 'golden ratio composition, harmonious proportions',
+            'minimalist': 'minimalist composition, lots of negative space'
+        }
+    
+        COLOR_PALETTES = {
+            'warm': 'warm color palette, reds, oranges, yellows',
+            'cool': 'cool color palette, blues, greens, purples',
+            'monochromatic': 'monochromatic color scheme, shades of single color',
+            'complementary': 'complementary colors, high contrast',
+            'pastel': 'pastel colors, soft, muted tones',
+            'vibrant': 'vibrant colors, saturated, bold'
+        }
+    
+        def __init__(self, device="cuda"):
+            self.device = device if torch.cuda.is_available() else "cpu"
+    
+            self.sd_pipe = StableDiffusionPipeline.from_pretrained(
+                "stabilityai/stable-diffusion-2-1",
+                torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
+                safety_checker=None
+            ).to(self.device)
+    
+            if self.device == "cuda":
+                self.sd_pipe.enable_attention_slicing()
+    
+        def create_artwork(
+            self,
+            subject,
+            art_style='digital_art',
+            composition='rule_of_thirds',
+            color_palette='vibrant',
+            artist_reference=None,
+            mood=None,
+            additional_details=None,
+            num_inference_steps=50,
+            guidance_scale=7.5,
+            seed=None,
+            size=(768, 768)
+        ):
+            """
+            Generate artwork
+    
+            Args:
+                subject: Subject (e.g., "a mountain landscape", "a cat")
+                art_style: Art style
+                composition: Composition
+                color_palette: Color palette
+                artist_reference: Reference artist name
+                mood: Atmosphere (e.g., "melancholic", "joyful")
+                additional_details: Additional details
+                num_inference_steps: Number of steps
+                guidance_scale: CFG scale
+                seed: Random seed
+                size: Image size
+    
+            Returns:
+                Generated artwork, used prompt
+            """
+            # Build prompt
+            components = [subject]
+    
+            # Style
+            if art_style in self.ART_STYLES:
+                components.append(self.ART_STYLES[art_style])
+            else:
+                components.append(art_style)
+    
+            # Composition
+            if composition in self.COMPOSITIONS:
+                components.append(self.COMPOSITIONS[composition])
+    
+            # Color palette
+            if color_palette in self.COLOR_PALETTES:
+                components.append(self.COLOR_PALETTES[color_palette])
+    
+            # Mood
+            if mood:
+                components.append(f"{mood} mood")
+    
+            # Artist reference
+            if artist_reference:
+                components.append(f"in the style of {artist_reference}")
+    
+            # Quality keywords
+            components.extend([
+                "masterpiece",
+                "highly detailed",
+                "professional",
+                "award winning"
+            ])
+    
+            # Additional details
+            if additional_details:
+                if isinstance(additional_details, list):
+                    components.extend(additional_details)
+                else:
+                    components.append(additional_details)
+    
+            prompt = ", ".join(components)
+    
+            # Negative prompt
+            negative_prompt = "low quality, blurry, distorted, ugly, bad art, amateur"
+    
+            # Generate
+            generator = None
+            if seed is not None:
+                generator = torch.Generator(device=self.device).manual_seed(seed)
+    
+            with torch.autocast(self.device):
+                output = self.sd_pipe(
+                    prompt=prompt,
+                    negative_prompt=negative_prompt,
+                    num_inference_steps=num_inference_steps,
+                    guidance_scale=guidance_scale,
+                    generator=generator,
+                    width=size[0],
+                    height=size[1]
+                )
+    
+            return output.images[0], prompt
+    
+        def create_series(
+            self,
+            base_subject,
+            num_variations=4,
+            vary_parameter='color_palette',
+            **base_kwargs
+        ):
+            """
+            Generate themed artwork series
+    
+            Args:
+                base_subject: Base subject
+                num_variations: Number of variations
+                vary_parameter: Parameter to vary
+                **base_kwargs: Fixed parameters
+    
+            Returns:
+                List of artworks, list of prompts
+            """
+            artworks = []
+            prompts = []
+    
+            # List of values to vary
+            if vary_parameter == 'color_palette':
+                variations = list(self.COLOR_PALETTES.keys())
+            elif vary_parameter == 'art_style':
+                variations = list(self.ART_STYLES.keys())
+            elif vary_parameter == 'composition':
+                variations = list(self.COMPOSITIONS.keys())
+            else:
+                variations = [None] * num_variations
+    
+            for i, variation in enumerate(variations[:num_variations]):
+                kwargs = base_kwargs.copy()
+                if variation:
+                    kwargs[vary_parameter] = variation
+    
+                seed = base_kwargs.get('seed')
+                if seed is not None:
+                    kwargs['seed'] = seed + i
+    
+                artwork, prompt = self.create_artwork(base_subject, **kwargs)
+                artworks.append(artwork)
+                prompts.append(prompt)
+    
+            return artworks, prompts
+    
+    # Usage example
+    if __name__ == "__main__":
+        art_system = ArtworkCreationSystem()
+    
+        # Single artwork generation
+        artwork, prompt = art_system.create_artwork(
+            subject="a serene zen garden with cherry blossoms",
+            art_style="watercolor",
+            composition="rule_of_thirds",
+            color_palette="pastel",
+            mood="peaceful",
+            seed=42
+        )
+    
+        print(f"Artwork prompt: {prompt}")
+        artwork.show()
+    
+        # Artwork series (varying color palette)
+        artworks, prompts = art_system.create_series(
+            base_subject="a mystical forest",
+            num_variations=4,
+            vary_parameter='color_palette',
+            art_style='digital_art',
+            composition='diagonal',
+            seed=100
+        )
+    
+        # Display grid
+        fig, axes = plt.subplots(2, 2, figsize=(12, 12))
+        axes = axes.flatten()
+    
+        for idx, (artwork, prompt) in enumerate(zip(artworks, prompts)):
+            axes[idx].imshow(artwork)
+            axes[idx].axis('off')
+            # Extract color palette name
+            palette = prompt.split('color palette')[0].split(',')[-1].strip()
+            axes[idx].set_title(palette.capitalize())
+    
+        plt.tight_layout()
+        plt.show()
+    
+
+* * *
+
+## 5.6 Ethical Considerations
+
+### Ethical Challenges of Generative AI
+
+Applications of generative models come with important ethical challenges. The following points need to be considered for responsible development and use.
+
+Challenge | Description | Example Countermeasures  
+---|---|---  
+**Deepfakes** | Fake images/videos indistinguishable from real ones | Digital watermarks, provenance verification, detection technology  
+**Copyright Infringement** | Rights of training data, attribution of generated content | License verification, proper credit attribution  
+**Bias and Fairness** | Training data bias reflected in generated content | Diverse datasets, bias detection  
+**Abuse Risks** | Harmful content, fraud, harassment | Safety filters, terms of use  
+**Privacy** | Personal information leakage from training data | Data anonymization, differential privacy  
+  
+#### Best Practices for Responsible Use
+    
+    
+    ```mermaid
+    graph TB
+        A[Generative AI Development/Use] --> B[Transparency]
+        A --> C[Accountability]
+        A --> D[Fairness]
+        A --> E[Privacy Protection]
+        A --> F[Safety]
+    
+        B --> B1[Disclose model limitations]
+        B --> B2[Indicate generated content]
+    
+        C --> C1[Establish terms of use]
+        C --> C2[Ensure auditability]
+    
+        D --> D1[Conduct bias testing]
+        D --> D2[Ensure diverse representation]
+    
+        E --> E1[Data protection measures]
+        E --> E2[Consent acquisition process]
+    
+        F --> F1[Harmful content filters]
+        F --> F2[Misuse prevention features]
+    
+        style A fill:#e3f2fd
+        style B fill:#c8e6c9
+        style C fill:#fff9c4
+        style D fill:#ffccbc
+        style E fill:#f8bbd0
+        style F fill:#b2dfdb
+    ```
+
+> **Recommendations for Implementation** :
+> 
+>   1. **Implement Safety Checker** : Detect and exclude harmful/inappropriate content
+>   2. **Embed watermarks** : Invisible markers indicating AI-generated content
+>   3. **Record usage logs** : Ensure traceability in case of abuse
+>   4. **User education** : Inform about proper usage methods and risks
+>   5. **Continuous monitoring** : Monitor model behavior and bias
+> 
+
+### Legal and Regulatory Aspects
+
+  * **Copyright Law** : Copyright attribution of AI-generated content is complex and varies by country
+  * **Portrait Rights/Publicity Rights** : Care is needed when generating and using images resembling real people
+  * **EU AI Act** : Regulations for high-risk AI systems, transparency requirements
+  * **Platform Policies** : Comply with terms of use for each platform
+
+* * *
+
+## Exercises
+
+**Exercise 1: Prompt Engineering**
+
+**Task** : Design effective prompts for the following scenarios:
+
+  1. Medieval European castle landscape (oil painting style)
+  2. Futuristic city neon streets (cyberpunk style)
+  3. Quiet Japanese garden (watercolor style)
+
+**Requirements** :
+
+  * Include Subject, Style, Quality, Details, and Modifiers
+  * Design appropriate Negative prompts
+  * Recommend CFG scale and step count
+
+**Hint** : Refer to the PromptEngineer class and construct each element clearly separated.
+
+**Exercise 2: Style Transfer Implementation**
+
+**Task** : Extend the StyleTransferGenerator class to add the following features:
+
+  1. **Multiple style comparison** : Apply and compare multiple styles to one image
+  2. **Strength gradation** : Display results with gradually varying strength values
+  3. **Style synthesis** : Combine two style prompts
+
+**Expected output** : Visualize each variation in a grid image
+
+**Exercise 3: Conditional GAN Extension**
+
+**Task** : Extend the ConditionalGAN class to implement Multi-Label Conditional GAN with multiple attribute conditioning.
+
+**Specifications** :
+
+  * Condition on two or more attributes simultaneously (e.g., class + color)
+  * Implement embedding layers for each attribute
+  * Enable generation by combining attributes
+
+**Evaluation criteria** : Can images with specified multiple attributes be generated?
+
+**Exercise 4: Avatar System Improvements**
+
+**Task** : Add the following features to AvatarGenerationSystem:
+
+  1. **Avatar editing feature** : Partially change attributes after generation
+  2. **Consistency score** : Evaluate consistency of multiple generated avatars
+  3. **Batch processing** : Efficiently generate large numbers of avatars
+  4. **Custom style learning** : Learn style from user-provided images
+
+**Implementation points** : Consider methods to modify based on existing avatars using Image-to-Image transformation.
+
+**Exercise 5: Ethical Safeguard Implementation**
+
+**Task** : Implement ethical safeguards in the generation system:
+
+**Implementation items** :
+
+  1. **Content filter** : Detect and reject inappropriate prompts
+  2. **Watermark embedding** : Add markers indicating AI generation to images
+  3. **Generation log** : Record prompts and generated content
+  4. **Bias detection** : Detect over/under-representation of specific attributes
+
+**Test cases** :
+
+  * Are inappropriate prompts properly rejected?
+  * Are watermarks included in images (visual or programmatic detection)?
+  * Do diversity metrics meet certain standards?
+
+* * *
+
+## Summary
+
+In this chapter, we learned about practical applications of generative models:
+
+  * **Text-to-Image Generation** : High-quality image generation using Stable Diffusion and prompt engineering techniques
+  * **Image-to-Image Transformation** : Image transformation through Style transfer and Super-resolution
+  * **Conditional Generation** : Controllable generation using Conditional GAN
+  * **Audio Generation** : Fundamentals of audio waveform generation with WaveGAN
+  * **Practical Projects** : Comprehensive implementation of avatar generation systems and artwork creation
+  * **Ethical Considerations** : Challenges and countermeasures for responsible AI development
+
+Generative AI is a powerful technology, but its use comes with responsibilities. Let's develop applications that contribute to society with both technical skills and ethical considerations.

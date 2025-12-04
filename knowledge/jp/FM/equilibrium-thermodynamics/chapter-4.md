@@ -1,0 +1,149 @@
+---
+title: "第4章: 臨界現象とスケーリング理論"
+chapter_title: "第4章: 臨界現象とスケーリング理論"
+---
+
+[基礎数理道場](<../index.html>) > [平衡熱力学と相転移](<index.html>) > 第4章 
+
+## 🎯 学習目標
+
+  * 臨界点の定義と物理的性質を理解する
+  * 6つの臨界指数（α, β, γ, δ, ν, η）を説明できる
+  * 対応状態原理（Law of Corresponding States）を適用できる
+  * Ising模型の基礎を理解し、1D・2D系をシミュレーションできる
+  * モンテカルロ法（Metropolisアルゴリズム）を実装できる
+  * 繰り込み群の基本概念を理解する
+  * 普遍性クラスとスケーリング則を説明できる
+
+## 📖 臨界現象とは
+
+### 臨界点の性質
+
+**臨界点** は、気液の区別が消失する点です（\\(T_c, P_c, V_c\\)）。
+
+**臨界点近傍での特異な振る舞い** ：
+
+  * **臨界オパール色** （Critical opalescence）: 密度揺らぎによる光散乱
+  * **発散する物理量** : 圧縮率 \\(\kappa_T \to \infty\\)、比熱 \\(C_V \to \infty\\)
+  * **長距離相関** : 相関長 \\(\xi \to \infty\\)
+  * **べき乗則** : 物理量が \\(|T - T_c|^\alpha\\) のように振る舞う
+
+### 臨界指数
+
+臨界点近傍での物理量のべき乗則を特徴づける指数：
+
+**比熱** \\(C \sim |T - T_c|^{-\alpha}\\)
+
+**秩序パラメータ** \\(m \sim |T - T_c|^\beta\\) （\\(T < T_c\\)）
+
+**帯磁率** \\(\chi \sim |T - T_c|^{-\gamma}\\)
+
+**臨界等温線** \\(h \sim |m|^\delta\\) （\\(T = T_c\\)）
+
+**相関長** \\(\xi \sim |T - T_c|^{-\nu}\\)
+
+**相関関数** \\(G(r) \sim r^{-(d-2+\eta)}\\) （\\(T = T_c\\)）
+
+**スケーリング則** （Widom, Kadanoff）：
+
+\\[ \alpha + 2\beta + \gamma = 2, \quad \beta(\delta - 1) = \gamma, \quad \nu d = 2 - \alpha \\]
+
+## 💻 例題4.1: van der Waals臨界点の解析
+
+Python実装: van der Waals気体の臨界指数
+
+import numpy as np import matplotlib.pyplot as plt from scipy.optimize import fsolve # van der Waals状態方程式 def P_vdw(V, T, a, b, R): """van der Waals圧力""" return R * T / (V - b) - a / V**2 # CO₂のパラメータ R = 8.314e-6 # MPa·m³/(mol·K) a = 0.3658 # MPa·m⁶/mol² b = 4.267e-5 # m³/mol # 臨界点 T_c = 8 * a / (27 * R * b) P_c = a / (27 * b**2) V_c = 3 * b print("=== van der Waals臨界点（CO₂）===") print(f"T_c = {T_c:.2f} K = {T_c - 273.15:.2f} °C") print(f"P_c = {P_c:.4f} MPa = {P_c*10:.2f} bar") print(f"V_c = {V_c*1e6:.2f} cm³/mol") print(f"\n実験値（CO₂）:") print(f" T_c = 304.13 K = 30.98 °C") print(f" P_c = 7.38 MPa = 73.8 bar") print() # 臨界点近傍での物理量の振る舞い epsilon_range = np.logspace(-3, -0.5, 50) # (T - T_c) / T_c # 秩序パラメータ（密度差）の計算 def compute_order_parameter(epsilon, a, b, R, V_c, T_c): """秩序パラメータ m = (ρ_L - ρ_G) / ρ_c""" T = T_c * (1 + epsilon) # Maxwell構成で気液の密度を求める（簡略化） # ここでは平均場近似 m ~ ε^(1/2) を使う beta_mf = 0.5 # 平均場理論の臨界指数 m = epsilon**beta_mf return m # 帯磁率（圧縮率） def compute_susceptibility(epsilon, a, b, R, V_c, T_c): """帯磁率 χ ~ ε^(-γ)""" T = T_c * (1 + epsilon) V = V_c # 等温圧縮率 κ_T = -1/V (∂V/∂P)_T dP_dV = -R * T / (V - b)**2 + 2 * a / V**3 kappa_T = -1 / (V * dP_dV) # 臨界点での値で規格化 T_ref = T_c * 1.001 dP_dV_ref = -R * T_ref / (V - b)**2 + 2 * a / V**3 kappa_T_ref = -1 / (V * dP_dV_ref) chi = kappa_T / kappa_T_ref return chi # 計算 m_values = [compute_order_parameter(-eps, a, b, R, V_c, T_c) for eps in epsilon_range] chi_values = [compute_susceptibility(eps, a, b, R, V_c, T_c) for eps in epsilon_range] # 可視化 fig, axes = plt.subplots(1, 2, figsize=(14, 6)) # 秩序パラメータ ax1 = axes[0] ax1.loglog(epsilon_range, m_values, 'b-', linewidth=2.5, label='van der Waals') # 理論的べき乗則 beta_mf = 0.5 ax1.loglog(epsilon_range, epsilon_range**beta_mf, 'r--', linewidth=2, label=f'べき乗則 ε^{beta_mf}') ax1.set_xlabel('ε = |T - T_c| / T_c') ax1.set_ylabel('秩序パラメータ m') ax1.set_title('秩序パラメータの臨界挙動') ax1.legend() ax1.grid(True, alpha=0.3, which='both') # 帯磁率 ax2 = axes[1] ax2.loglog(epsilon_range, chi_values, 'g-', linewidth=2.5, label='van der Waals') # 理論的べき乗則 gamma_mf = 1.0 ax2.loglog(epsilon_range, epsilon_range**(-gamma_mf), 'm--', linewidth=2, label=f'べき乗則 ε^{-gamma_mf}') ax2.set_xlabel('ε = |T - T_c| / T_c') ax2.set_ylabel('帯磁率 χ') ax2.set_title('帯磁率の臨界挙動') ax2.legend() ax2.grid(True, alpha=0.3, which='both') plt.tight_layout() plt.savefig('critical_vdw_exponents.png', dpi=300, bbox_inches='tight') plt.show() # 臨界指数のまとめ print("=== van der Waals（平均場理論）の臨界指数 ===\n") critical_exponents_mf = { 'α (比熱)': 0, 'β (秩序パラメータ)': 0.5, 'γ (帯磁率)': 1.0, 'δ (臨界等温線)': 3.0, 'ν (相関長)': 0.5, 'η (相関関数)': 0, } print(f"{'指数':<25} {'平均場理論':<15} {'3D Ising実験値':<15}") print("-" * 55) for name, value_mf in critical_exponents_mf.items(): # 3D Ising模型の実験値 ising_3d = { 'α (比熱)': 0.110, 'β (秩序パラメータ)': 0.326, 'γ (帯磁率)': 1.237, 'δ (臨界等温線)': 4.789, 'ν (相関長)': 0.630, 'η (相関関数)': 0.036, } value_ising = ising_3d[name] print(f"{name:<25} {value_mf:<15.3f} {value_ising:<15.3f}") print("\nスケーリング則の検証（平均場理論）:") alpha, beta, gamma = 0, 0.5, 1.0 print(f" α + 2β + γ = {alpha} + 2×{beta} + {gamma} = {alpha + 2*beta + gamma}") print(f" （理論値: 2）") 
+
+## 💻 例題4.2: 対応状態原理の検証
+
+### 対応状態原理
+
+異なる物質の状態方程式を、臨界点で規格化した変数で表すと同じ形になる：
+
+\\[ P_r = \frac{P}{P_c}, \quad T_r = \frac{T}{T_c}, \quad V_r = \frac{V}{V_c} \\]
+
+van der Waals方程式では：
+
+\\[ \left(P_r + \frac{3}{V_r^2}\right)(3V_r - 1) = 8T_r \\]
+
+これは物質によらない**普遍的** な式です。
+
+Python実装: 対応状態原理の可視化
+
+import numpy as np import matplotlib.pyplot as plt # 換算変数での van der Waals方程式 def P_reduced_vdw(V_r, T_r): """換算圧力 P_r = f(V_r, T_r)""" return 8 * T_r / (3 * V_r - 1) - 3 / V_r**2 # 複数物質のデータ substances = { 'CO₂': {'T_c': 304.13, 'P_c': 7.38, 'V_c': 94.0}, # K, MPa, cm³/mol 'H₂O': {'T_c': 647.1, 'P_c': 22.06, 'V_c': 56.0}, 'N₂': {'T_c': 126.2, 'P_c': 3.39, 'V_c': 90.1}, 'CH₄': {'T_c': 190.6, 'P_c': 4.60, 'V_c': 99.0}, } # 換算等温線 T_r_values = [0.9, 1.0, 1.1, 1.2, 1.5] colors = ['blue', 'red', 'green', 'orange', 'purple'] fig, axes = plt.subplots(1, 2, figsize=(14, 6)) # 換算変数でのプロット（普遍的） ax1 = axes[0] V_r_range = np.linspace(0.4, 5, 200) for T_r, color in zip(T_r_values, colors): P_r_values = [] for V_r in V_r_range: P_r = P_reduced_vdw(V_r, T_r) if P_r > 0: P_r_values.append(P_r) else: P_r_values.append(np.nan) ax1.plot(V_r_range, P_r_values, color=color, linewidth=2, label=f'T_r = {T_r:.1f}') ax1.axhline(1.0, color='gray', linestyle='--', alpha=0.5, label='P_r = 1') ax1.axvline(1.0, color='gray', linestyle='--', alpha=0.5, label='V_r = 1') ax1.plot(1.0, 1.0, 'ko', markersize=10, label='臨界点') ax1.set_xlabel('V_r = V / V_c') ax1.set_ylabel('P_r = P / P_c') ax1.set_title('対応状態原理（換算変数）\nすべての物質で同じ曲線') ax1.set_xlim([0, 5]) ax1.set_ylim([0, 3]) ax1.legend(fontsize=9) ax1.grid(True, alpha=0.3) # 実変数でのプロット（物質依存） ax2 = axes[1] # CO₂の例（T_r = 1.1） T_r = 1.1 for name, props in list(substances.items())[:3]: # CO₂, H₂O, N₂ T_c = props['T_c'] P_c = props['P_c'] V_c = props['V_c'] T = T_r * T_c V_range = V_r_range * V_c P_values = [] for V_r in V_r_range: P_r = P_reduced_vdw(V_r, T_r) if P_r > 0: P_values.append(P_r * P_c) else: P_values.append(np.nan) ax2.plot(V_range, P_values, linewidth=2, label=f'{name} ({T:.0f} K)') ax2.set_xlabel('モル体積 V (cm³/mol)') ax2.set_ylabel('圧力 P (MPa)') ax2.set_title(f'実変数での等温線（T_r = {T_r}）\n物質ごとに異なる') ax2.legend() ax2.grid(True, alpha=0.3) plt.tight_layout() plt.savefig('critical_corresponding_states.png', dpi=300, bbox_inches='tight') plt.show() # 圧縮因子 Z = PV/(RT) print("=== 対応状態原理の検証 ===\n") print("臨界点での圧縮因子 Z_c = P_c V_c / (R T_c)") print() print(f"{'物質':<10} {'Z_c（実験）':<15} {'Z_c（vdW）':<15}") print("-" * 40) R = 8.314 # J/(mol·K) = 8.314e-6 MPa·m³/(mol·K) Z_c_vdw = 3 / 8 # van der Waalsの普遍値 for name, props in substances.items(): T_c = props['T_c'] P_c = props['P_c'] * 1e6 # MPa → Pa V_c = props['V_c'] * 1e-6 # cm³/mol → m³/mol Z_c_exp = P_c * V_c / (R * T_c) print(f"{name:<10} {Z_c_exp:<15.4f} {Z_c_vdw:<15.4f}") print(f"\nvan der Waals理論: Z_c = 3/8 = {Z_c_vdw:.4f} (すべての物質で同じ)") print("実験値: Z_c ≈ 0.27-0.29 (物質により若干異なる)") print("\n対応状態原理は近似的に成立（量子効果・分子構造の影響あり）") 
+
+## 💻 例題4.3: 1D Ising模型のシミュレーション
+
+### Ising模型
+
+格子上のスピン系の最も単純なモデル：
+
+\\[ H = -J \sum_{\langle i,j \rangle} s_i s_j - h \sum_i s_i \\]
+
+  * \\(s_i = \pm 1\\): サイト i のスピン
+  * \\(J > 0\\): 交換相互作用（強磁性）
+  * \\(h\\): 外部磁場
+  * \\(\langle i,j \rangle\\): 最近接対
+
+**1D Ising模型** : 相転移なし（厳密解 \\(T_c = 0\\)）
+
+**2D Ising模型** : \\(T_c > 0\\) で相転移（Onsager解）
+
+Python実装: 1D Ising模型の厳密解
+
+import numpy as np import matplotlib.pyplot as plt def ising_1d_exact(T, J, h, k_B=1.0): """1D Ising模型の厳密解 Args: T: 温度 J: 交換相互作用 h: 外部磁場 k_B: ボルツマン定数 Returns: m: 磁化 chi: 帯磁率 U: 内部エネルギー C: 比熱 """ beta = 1 / (k_B * T) # 磁化（h ≠ 0 の場合） if abs(h) > 1e-10: # 磁化の厳密解 exp_beta_J = np.exp(beta * J) exp_beta_h = np.exp(beta * h) exp_minus_beta_h = np.exp(-beta * h) # 分配関数の寄与 Z_plus = exp_beta_J * exp_beta_h + np.exp(-beta * J) * exp_minus_beta_h Z_minus = exp_beta_J * exp_minus_beta_h + np.exp(-beta * J) * exp_beta_h m = (Z_plus - Z_minus) / (Z_plus + Z_minus) else: m = 0 # h = 0 では T > 0 で m = 0 # 帯磁率（h = 0での微分） exp_2beta_J = np.exp(2 * beta * J) chi = beta * exp_2beta_J / (1 + exp_2beta_J) # 内部エネルギー U = -J * np.tanh(beta * J) # 比熱 C = k_B * (beta * J)**2 / np.cosh(beta * J)**2 return m, chi, U, C # パラメータ J = 1.0 k_B = 1.0 h = 0.1 # 小さな外部磁場 # 温度範囲 T_range = np.linspace(0.1, 5.0, 100) m_values = [] chi_values = [] U_values = [] C_values = [] for T in T_range: m, chi, U, C = ising_1d_exact(T, J, h, k_B) m_values.append(m) chi_values.append(chi) U_values.append(U) C_values.append(C) # 可視化 fig, axes = plt.subplots(2, 2, figsize=(14, 10)) # 磁化 ax1 = axes[0, 0] ax1.plot(T_range, m_values, 'b-', linewidth=2.5) ax1.set_xlabel('Temperature T/J') ax1.set_ylabel('Magnetization m') ax1.set_title(f'1D Ising模型の磁化（h = {h}J）') ax1.grid(True, alpha=0.3) ax1.axhline(0, color='gray', linestyle='--', alpha=0.5) # 帯磁率 ax2 = axes[0, 1] ax2.plot(T_range, chi_values, 'r-', linewidth=2.5) ax2.set_xlabel('Temperature T/J') ax2.set_ylabel('Susceptibility χ') ax2.set_title('1D Ising模型の帯磁率（h = 0）') ax2.grid(True, alpha=0.3) # 内部エネルギー ax3 = axes[1, 0] ax3.plot(T_range, U_values, 'g-', linewidth=2.5) ax3.set_xlabel('Temperature T/J') ax3.set_ylabel('Internal energy U/J') ax3.set_title('1D Ising模型の内部エネルギー') ax3.grid(True, alpha=0.3) # 比熱 ax4 = axes[1, 1] ax4.plot(T_range, C_values, 'm-', linewidth=2.5) ax4.set_xlabel('Temperature T/J') ax4.set_ylabel('Heat capacity C/k_B') ax4.set_title('1D Ising模型の比熱') ax4.grid(True, alpha=0.3) plt.tight_layout() plt.savefig('critical_ising_1d_exact.png', dpi=300, bbox_inches='tight') plt.show() # 結果の表示 print("=== 1D Ising模型（厳密解）===\n") print("重要な性質:") print(" - 相転移なし（T_c = 0）") print(" - h = 0 では T > 0 で m = 0") print(" - 帯磁率は T → 0 で発散") print(" - 比熱は有限（ピークなし）") print() # 低温・高温極限 T_low = 0.1 m_low, chi_low, U_low, C_low = ising_1d_exact(T_low, J, 0, k_B) print(f"低温極限（T = {T_low}J）:") print(f" 帯磁率 χ = {chi_low:.4f}") print(f" 内部エネルギー U/J = {U_low:.4f} → -1 (すべて整列)") print() T_high = 5.0 m_high, chi_high, U_high, C_high = ising_1d_exact(T_high, J, 0, k_B) print(f"高温極限（T = {T_high}J）:") print(f" 帯磁率 χ = {chi_high:.4f} → 0") print(f" 内部エネルギー U/J = {U_high:.4f} → 0 (ランダム)") 
+
+## 💻 例題4.4: 2D Ising模型（モンテカルロ法）
+
+Python実装: Metropolisアルゴリズム
+
+import numpy as np import matplotlib.pyplot as plt def ising_2d_monte_carlo(L, T, J, h, n_steps, n_equilibrate): """2D Ising模型のモンテカルロシミュレーション（Metropolis法） Args: L: 格子サイズ（L×L） T: 温度 J: 交換相互作用 h: 外部磁場 n_steps: モンテカルロステップ数 n_equilibrate: 平衡化ステップ数 Returns: m_avg: 平均磁化 E_avg: 平均エネルギー spin_config: 最終スピン配置 """ # 初期配置（ランダム） spins = 2 * np.random.randint(0, 2, size=(L, L)) - 1 beta = 1 / T # k_B = 1 # エネルギー計算 def compute_energy(spins): E = 0 for i in range(L): for j in range(L): s = spins[i, j] # 最近接和（周期境界条件） neighbors = spins[(i+1) % L, j] + spins[i, (j+1) % L] + \ spins[(i-1) % L, j] + spins[i, (j-1) % L] E += -J * s * neighbors - h * s return E / 2 # 二重カウント補正 # Metropolisアルゴリズム m_history = [] E_history = [] for step in range(n_equilibrate + n_steps): # ランダムにスピンを選ぶ i, j = np.random.randint(0, L, size=2) s = spins[i, j] # 最近接スピン neighbors = spins[(i+1) % L, j] + spins[i, (j+1) % L] + \ spins[(i-1) % L, j] + spins[i, (j-1) % L] # エネルギー変化 dE = 2 * s * (J * neighbors + h) # Metropolis判定 if dE < 0 or np.random.rand() < np.exp(-beta * dE): spins[i, j] *= -1 # スピン反転 # 測定（平衡化後） if step >= n_equilibrate: m = np.mean(spins) E = compute_energy(spins) m_history.append(m) E_history.append(E) m_avg = np.mean(m_history) E_avg = np.mean(E_history) return m_avg, E_avg, spins # パラメータ L = 20 # 格子サイズ J = 1.0 h = 0.0 n_steps = 5000 n_equilibrate = 1000 # Onsager臨界温度（2D Ising, 正方格子） T_c_exact = 2 * J / np.log(1 + np.sqrt(2)) # ≈ 2.269 print(f"=== 2D Ising模型（Metropolisモンテカルロ）===") print(f"格子サイズ: {L}×{L}") print(f"Onsager臨界温度: T_c = {T_c_exact:.4f} J") print() # 温度範囲 T_range = np.linspace(1.0, 4.0, 20) m_values = [] E_values = [] for T in T_range: m, E, _ = ising_2d_monte_carlo(L, T, J, h, n_steps, n_equilibrate) m_values.append(abs(m)) # 自発磁化の絶対値 E_values.append(E) print(f"T = {T:.2f}: m = {m:.4f}, E = {E:.2f}") # 可視化 fig, axes = plt.subplots(1, 3, figsize=(18, 5)) # 磁化 ax1 = axes[0] ax1.plot(T_range, m_values, 'bo-', markersize=5, linewidth=2) ax1.axvline(T_c_exact, color='r', linestyle='--', linewidth=2, label=f'T_c = {T_c_exact:.3f}') ax1.set_xlabel('Temperature T/J') ax1.set_ylabel('Magnetization |m|') ax1.set_title('2D Ising模型の自発磁化') ax1.legend() ax1.grid(True, alpha=0.3) # エネルギー ax2 = axes[1] ax2.plot(T_range, E_values, 'ro-', markersize=5, linewidth=2) ax2.axvline(T_c_exact, color='r', linestyle='--', linewidth=2) ax2.set_xlabel('Temperature T/J') ax2.set_ylabel('Energy per spin E/(NJ)') ax2.set_title('2D Ising模型のエネルギー') ax2.grid(True, alpha=0.3) # スピン配置の可視化 ax3 = axes[2] # 低温（T = 1.5）と高温（T = 3.5）での配置 T_low = 1.5 T_high = 3.5 _, _, spins_low = ising_2d_monte_carlo(L, T_low, J, h, n_steps, n_equilibrate) _, _, spins_high = ising_2d_monte_carlo(L, T_high, J, h, n_steps, n_equilibrate) # 並べて表示 combined = np.hstack([spins_low, np.ones((L, 2)), spins_high]) im = ax3.imshow(combined, cmap='coolwarm', interpolation='nearest') ax3.set_title(f'スピン配置\n左: T={T_low} < T_c, 右: T={T_high} > T_c') ax3.axis('off') plt.colorbar(im, ax=ax3, fraction=0.046, pad=0.04) plt.tight_layout() plt.savefig('critical_ising_2d_monte_carlo.png', dpi=300, bbox_inches='tight') plt.show() print(f"\n観測結果:") print(f" T < T_c: 秩序相（ほぼ全て↑または↓）") print(f" T > T_c: 無秩序相（ランダムなスピン配置）") print(f" T ≈ T_c: 大きな揺らぎ（臨界オパール色の類似）") 
+
+## 💻 例題4.5: 臨界指数のフィッティング
+
+Python実装: べき乗則のフィッティング
+
+import numpy as np import matplotlib.pyplot as plt from scipy.optimize import curve_fit # 2D Isingモンテカルロデータ（前のコードから） # 臨界点近傍を密にサンプリング L = 30 J = 1.0 h = 0.0 T_c_exact = 2 * J / np.log(1 + np.sqrt(2)) # T < T_c の範囲で磁化を測定 T_below = np.linspace(T_c_exact * 0.7, T_c_exact * 0.995, 15) m_below = [] print("=== 臨界指数のフィッティング ===\n") print("データ取得中...") for T in T_below: m, _, _ = ising_2d_monte_carlo(L, T, J, h, n_steps=8000, n_equilibrate=2000) m_below.append(abs(m)) # T > T_c で帯磁率を測定（簡略化: 磁化の揺らぎ） T_above = np.linspace(T_c_exact * 1.005, T_c_exact * 1.5, 15) chi_above = [] for T in T_above: # 複数回測定して揺らぎを計算 m_samples = [] for _ in range(5): m, _, _ = ising_2d_monte_carlo(L, T, J, h, n_steps=3000, n_equilibrate=1000) m_samples.append(m) # 帯磁率 χ = β ( \- ²) beta = 1 / T m_mean = np.mean(m_samples) m2_mean = np.mean(np.array(m_samples)**2) chi = beta * L * L * (m2_mean - m_mean**2) chi_above.append(chi) # べき乗則フィッティング # m ~ ε^β, χ ~ ε^(-γ) epsilon_below = (T_c_exact - T_below) / T_c_exact epsilon_above = (T_above - T_c_exact) / T_c_exact # β指数（秩序パラメータ） def power_law_beta(eps, beta, A): return A * eps**beta params_beta, _ = curve_fit(power_law_beta, epsilon_below, m_below, p0=[0.3, 1.0], bounds=([0, 0], [1, 10])) beta_fit, A_beta = params_beta # γ指数（帯磁率） def power_law_gamma(eps, gamma, B): return B * eps**(-gamma) params_gamma, _ = curve_fit(power_law_gamma, epsilon_above, chi_above, p0=[1.2, 10.0], bounds=([0, 0], [3, 1000])) gamma_fit, B_gamma = params_gamma print(f"\nフィッティング結果:") print(f" β（秩序パラメータ指数） = {beta_fit:.3f}") print(f" γ（帯磁率指数） = {gamma_fit:.3f}") print() print(f"2D Ising理論値:") print(f" β = 1/8 = 0.125") print(f" γ = 7/4 = 1.750") print() # 可視化 fig, axes = plt.subplots(1, 2, figsize=(14, 6)) # β指数 ax1 = axes[0] ax1.loglog(epsilon_below, m_below, 'bo', markersize=8, label='MCデータ') ax1.loglog(epsilon_below, power_law_beta(epsilon_below, beta_fit, A_beta), 'r-', linewidth=2, label=f'フィット: β = {beta_fit:.3f}') ax1.loglog(epsilon_below, power_law_beta(epsilon_below, 0.125, A_beta), 'g--', linewidth=2, label='理論: β = 0.125') ax1.set_xlabel('ε = (T_c - T) / T_c') ax1.set_ylabel('Magnetization m') ax1.set_title('秩序パラメータ指数 β') ax1.legend() ax1.grid(True, alpha=0.3, which='both') # γ指数 ax2 = axes[1] ax2.loglog(epsilon_above, chi_above, 'ro', markersize=8, label='MCデータ') ax2.loglog(epsilon_above, power_law_gamma(epsilon_above, gamma_fit, B_gamma), 'b-', linewidth=2, label=f'フィット: γ = {gamma_fit:.3f}') ax2.loglog(epsilon_above, power_law_gamma(epsilon_above, 1.75, B_gamma), 'g--', linewidth=2, label='理論: γ = 1.75') ax2.set_xlabel('ε = (T - T_c) / T_c') ax2.set_ylabel('Susceptibility χ') ax2.set_title('帯磁率指数 γ') ax2.legend() ax2.grid(True, alpha=0.3, which='both') plt.tight_layout() plt.savefig('critical_exponents_fitting.png', dpi=300, bbox_inches='tight') plt.show() print("注意:") print(" - 有限サイズ効果により理論値からのずれが生じる") print(" - より大きな格子（L > 100）で高精度の測定が可能") print(" - 臨界点のごく近傍（ε < 0.01）でべき乗則が顕著") 
+
+## 💻 例題4.6: スケーリング関係式の検証
+
+Python実装: スケーリング則の確認
+
+import numpy as np import matplotlib.pyplot as plt # 臨界指数のデータ critical_exponents = { '平均場理論': {'alpha': 0, 'beta': 0.5, 'gamma': 1.0, 'delta': 3.0, 'nu': 0.5, 'eta': 0}, '2D Ising (理論)': {'alpha': 0, 'beta': 0.125, 'gamma': 1.75, 'delta': 15, 'nu': 1.0, 'eta': 0.25}, '3D Ising (実験)': {'alpha': 0.110, 'beta': 0.326, 'gamma': 1.237, 'delta': 4.789, 'nu': 0.630, 'eta': 0.036}, '3D Heisenberg': {'alpha': -0.133, 'beta': 0.365, 'gamma': 1.386, 'delta': 4.80, 'nu': 0.705, 'eta': 0.035}, } # スケーリング則 scaling_relations = { 'Rushbrooke': lambda exp: exp['alpha'] + 2*exp['beta'] + exp['gamma'], 'Widom': lambda exp: exp['gamma'] / (exp['beta'] * (exp['delta'] - 1)), 'Fisher': lambda exp: exp['gamma'] / (exp['nu'] * (2 - exp['eta'])), } print("=== スケーリング関係式の検証 ===\n") # 各理論/実験での検証 results = {} for name, exps in critical_exponents.items(): results[name] = {} # Rushbrooke: α + 2β + γ = 2 rushbrooke = exps['alpha'] + 2*exps['beta'] + exps['gamma'] results[name]['Rushbrooke'] = rushbrooke # Widom: γ / (β(δ-1)) = 1 widom = exps['gamma'] / (exps['beta'] * (exps['delta'] - 1)) results[name]['Widom'] = widom # Fisher: γ / (ν(2-η)) = 1 fisher = exps['gamma'] / (exps['nu'] * (2 - exps['eta'])) results[name]['Fisher'] = fisher # 結果の表示 print(f"{'理論/実験':<20} {'Rushbrooke':<15} {'Widom':<15} {'Fisher':<15}") print(f"{'（期待値）':<20} {'(2.000)':<15} {'(1.000)':<15} {'(1.000)':<15}") print("-" * 65) for name, vals in results.items(): rush = vals['Rushbrooke'] wid = vals['Widom'] fish = vals['Fisher'] print(f"{name:<20} {rush:<15.4f} {wid:<15.4f} {fish:<15.4f}") # 誤差の可視化 fig, ax = plt.subplots(figsize=(10, 6)) relations = ['Rushbrooke', 'Widom', 'Fisher'] expected = [2.0, 1.0, 1.0] x = np.arange(len(relations)) width = 0.2 for i, (name, vals) in enumerate(results.items()): values = [vals[r] for r in relations] ax.bar(x + i*width, values, width, label=name, alpha=0.8) # 期待値の線 for i, (rel, exp_val) in enumerate(zip(relations, expected)): ax.axhline(exp_val, color='red', linestyle='--', linewidth=1.5, alpha=0.5) ax.text(i, exp_val + 0.1, f'期待値: {exp_val}', ha='center', fontsize=9) ax.set_xlabel('スケーリング関係式') ax.set_ylabel('計算値') ax.set_title('スケーリング関係式の検証') ax.set_xticks(x + width * 1.5) ax.set_xticklabels(relations) ax.legend() ax.grid(True, axis='y', alpha=0.3) plt.tight_layout() plt.savefig('critical_scaling_relations.png', dpi=300, bbox_inches='tight') plt.show() # 普遍性クラス print("\n=== 普遍性クラス ===\n") print("臨界指数は系の詳細（格子構造、相互作用の詳細）によらず、") print("以下の基本的な性質のみで決まる：") print(" 1. 空間次元 d") print(" 2. 秩序パラメータの成分数 n") print(" 3. 相互作用の範囲（短距離 or 長距離）") print() print("例:") print(" - Ising (n=1): 格子気体、二元合金、強磁性体") print(" - Heisenberg (n=3): 等方的強磁性体") print(" - XY (n=2): 超流動、超伝導") print() print("この普遍性が臨界現象の理論的基礎（繰り込み群）を支えている") 
+
+## 💻 例題4.7: 繰り込み群の初歩
+
+Python実装: 実空間繰り込み群（1D Ising）
+
+import numpy as np import matplotlib.pyplot as plt def renormalize_1d_ising(K): """1D Ising模型の実空間繰り込み群変換 Args: K: 結合定数 K = J/(k_B T) Returns: K_prime: 繰り込まれた結合定数 """ # 2スピンブロックの繰り込み # 分配関数: Z = Σ exp(K s_i s_{i+1}) # ブロックスピン S_I = sign(s_{2I} + s_{2I+1}) # 結合の繰り込み（1D Ising） # K' = (1/2) ln(cosh(2K)) K_prime = 0.5 * np.log(np.cosh(2 * K)) return K_prime # 繰り込み群フロー K_initial_values = np.linspace(0.01, 2.0, 20) fig, axes = plt.subplots(1, 2, figsize=(14, 6)) # フローダイアグラム ax1 = axes[0] for K_init in K_initial_values: K_flow = [K_init] K = K_init for _ in range(20): K = renormalize_1d_ising(K) K_flow.append(K) ax1.plot(K_flow, 'o-', markersize=3, linewidth=1, alpha=0.7) ax1.set_xlabel('繰り込みステップ n') ax1.set_ylabel('結合定数 K') ax1.set_title('1D Ising模型の繰り込み群フロー') ax1.grid(True, alpha=0.3) ax1.text(15, 1.5, 'すべてのフローが\nK* = 0（高温不動点）\nに収束', fontsize=11, bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.6)) # K vs K' の図 ax2 = axes[1] K_range = np.linspace(0, 2.0, 100) K_prime_range = [renormalize_1d_ising(K) for K in K_range] ax2.plot(K_range, K_prime_range, 'b-', linewidth=2.5, label="K' = f(K)") ax2.plot(K_range, K_range, 'r--', linewidth=2, label="K' = K（不動点）") # 不動点 K_fixed = 0 # K* = 0 ax2.plot(K_fixed, K_fixed, 'ro', markersize=10, label=f'不動点 K* = {K_fixed}') ax2.set_xlabel('K = J/(k_B T)') ax2.set_ylabel("K' (繰り込み後)") ax2.set_title('繰り込み群変換 K → K\'') ax2.legend() ax2.grid(True, alpha=0.3) ax2.set_xlim([0, 2.0]) ax2.set_ylim([0, 2.0]) plt.tight_layout() plt.savefig('critical_renormalization_group_1d.png', dpi=300, bbox_inches='tight') plt.show() # 解析 print("=== 繰り込み群（Real Space RG）===\n") print("1D Ising模型の繰り込み群変換:") print(" K' = (1/2) ln(cosh(2K))") print() print("不動点:") print(" K* = 0 （高温不動点、T = ∞）") print(" K* = ∞ （低温不動点、T = 0）") print() print("結論:") print(" - K < K*（有限温度）では K → 0（無秩序相）") print(" - 有限温度での相転移なし（T_c = 0）") print() print("2D Isingでは:") print(" - 非自明な不動点 K_c が存在") print(" - K_c = ln(1 + √2)/2 ≈ 0.4407") print(" - T_c = 2J/(k_B ln(1 + √2)) ≈ 2.269 J/k_B") print() # 線形化と臨界指数 print("=== 臨界指数の計算（線形化）===\n") print("不動点K*近傍で線形化:") print(" δK_{n+1} = λ δK_n") print(" λ = dK'/dK|_{K=K*} （固有値）") print() # K* = 0での線形化 K_star = 0 dK_prime_dK = 2 * np.tanh(2 * K_star) # K* = 0 での微分 print(f"1D Ising (K* = 0):") print(f" λ = dK'/dK|_{{K*=0}} = {dK_prime_dK:.4f}") print(f" |λ| < 1 → K* = 0は安定（引き込む不動点）") print() print("相関長の臨界指数 ν:") print(" ξ ~ |T - T_c|^(-ν)") print(" ν = ln(b) / ln(λ) （b: 長さのスケール変換因子）") print(" 1D Ising: b = 2, λ = 0 → ν = ∞（相転移なし）") 
+
+## 📚 まとめ
+
+  * **臨界点** は物理量が発散・長距離相関が現れる特異点
+  * **臨界指数** （α, β, γ, δ, ν, η）がべき乗則の振る舞いを特徴づける
+  * van der Waals気体は平均場理論の臨界指数を持つ
+  * **対応状態原理** により異なる物質を統一的に記述できる
+  * **Ising模型** は相転移の基本モデル（1D: 相転移なし、2D: T_c > 0）
+  * **モンテカルロ法** （Metropolisアルゴリズム）で熱平衡状態を計算できる
+  * **スケーリング則** により臨界指数間に関係式が成立
+  * **普遍性クラス** : 臨界指数は空間次元と秩序パラメータで決まる
+  * **繰り込み群** は臨界現象の統一的理論的枠組み
+
+### 💡 演習問題
+
+  1. **[Easy]** van der Waals気体の臨界点で圧縮因子 \\(Z_c = P_c V_c / (R T_c) = 3/8\\) となることを示せ。
+  2. **[Easy]** Rushbrookeのスケーリング則 \\(\alpha + 2\beta + \gamma = 2\\) が2D Ising模型の理論値（α=0, β=1/8, γ=7/4）で成立することを確認せよ。
+  3. **[Medium]** 1D Ising模型で、h = 0 のときの帯磁率 \\(\chi = \beta e^{2\beta J} / (1 + e^{2\beta J})\\) が \\(T \to 0\\) で発散することを示せ。
+  4. **[Medium]** モンテカルロシミュレーションで、2D Ising模型の臨界温度近傍での比熱を計算し、ピークを観測せよ。比熱は \\(C = \beta^2 (\langle E^2 \rangle - \langle E \rangle^2)\\) で計算できる。
+  5. **[Hard]** 繰り込み群の線形化解析で、不動点の固有値 \\(\lambda\\) と相関長の臨界指数 \\(\nu\\) の関係 \\(\nu = \ln(b) / \ln(\lambda)\\) を導出せよ。ただし \\(b\\) は長さのスケール変換因子とする。
+
+[← 第3章: 相平衡と相図](<chapter-3.html>) [シリーズTOP](<index.html>) [第5章: 材料科学への応用 →](<chapter-5.html>)
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

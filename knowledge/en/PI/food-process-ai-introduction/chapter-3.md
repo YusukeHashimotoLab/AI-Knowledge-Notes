@@ -1,0 +1,752 @@
+---
+title: "Chapter 3: Process Optimization"
+chapter_title: "Chapter 3: Process Optimization"
+---
+
+[AI Terakoya Top](<../index.html>)›[Process Informatics](<../../index.html>)›Food Process AI›Chapter 3
+
+🌐 EN | 日本語 (準備中) Last sync: 2025-11-16
+
+This chapter covers Process Optimization. You will learn essential concepts and techniques.
+
+## 3.1 Challenges in Food Process Optimization
+
+Optimization of food manufacturing processes is critically important from the perspectives of quality improvement, cost reduction, and energy efficiency enhancement. However, there are many challenges, including raw material variability, complex nonlinear relationships, and the need for multi-objective optimization. AI technologies, especially Bayesian optimization and genetic algorithms, are powerful methods for addressing these challenges. 
+
+### Major Challenges in Food Process Optimization
+
+  * **Multi-variable and Nonlinearity** : Complex interactions among numerous parameters such as temperature, time, pH, and formulation ratios
+  * **High Evaluation Cost** : Experimental evaluation takes time and money (several hours to days per experiment)
+  * **Multi-objective Optimization** : Simultaneous optimization of quality, cost, and energy efficiency
+  * **Constraint Conditions** : Food safety standards (HACCP), equipment capacity constraints
+  * **Batch-to-Batch Variation** : Seasonal variations in raw materials, lot differences
+
+### 🎯 Optimization Method Selection Guide
+
+Method | Application Scenario | Advantages | Disadvantages  
+---|---|---|---  
+**Bayesian Optimization** | High evaluation cost, optimization with few experiments | High sample efficiency, considers uncertainty | Somewhat high computational cost  
+**Genetic Algorithm** | Multi-objective optimization, includes discrete variables | Global optimal solution search, easy implementation | Slow convergence  
+**Response Surface Methodology (RSM)** | Combined with design of experiments | Statistical basis, easy visualization | Accuracy decreases with strong nonlinearity  
+**Particle Swarm Optimization (PSO)** | Continuous variable optimization | Simple implementation, few parameter adjustments | Prone to local optima  
+      
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    
+                <div class="code-header">📊 Code Example 1: Heating Condition Optimization Using Bayesian Optimization</div>
+                <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+    from scipy.stats import norm
+    import warnings
+    warnings.filterwarnings('ignore')
+    
+    # Objective function for food heating process (simulates actual process)
+    def food_processing_objective(temperature, time):
+        """
+        Objective function: Maximize quality score (function of temperature and time)
+        Optimal point near: temperature=90°C, time=20min
+        """
+        # Complex nonlinear function (simulating actual food process)
+        quality = (
+            100 * np.exp(-0.5 * ((temperature - 90)/10)**2) *
+            np.exp(-0.5 * ((time - 20)/5)**2) +
+            10 * np.sin(temperature / 10) * np.cos(time / 5) +
+            np.random.normal(0, 2)  # Measurement noise
+        )
+        return quality
+    
+    # Bayesian Optimization implementation
+    class BayesianOptimizer:
+        def __init__(self, bounds, n_init=5):
+            self.bounds = np.array(bounds)
+            self.n_init = n_init
+            self.X_sample = []
+            self.y_sample = []
+    
+            # Gaussian Process Regression model
+            kernel = C(1.0, (1e-3, 1e3)) * RBF([10, 10], (1e-2, 1e2))
+            self.gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10,
+                                               alpha=1e-6, normalize_y=True)
+    
+        def acquisition_function(self, X, xi=0.01):
+            """
+            Acquisition function: Expected Improvement (EI)
+            """
+            mu, sigma = self.gp.predict(X, return_std=True)
+            mu_sample_opt = np.max(self.y_sample)
+    
+            with np.errstate(divide='warn'):
+                imp = mu - mu_sample_opt - xi
+                Z = imp / sigma
+                ei = imp * norm.cdf(Z) + sigma * norm.pdf(Z)
+                ei[sigma == 0.0] = 0.0
+    
+            return ei
+    
+        def propose_location(self):
+            """
+            Propose next evaluation point (maximize EI)
+            """
+            dim = self.bounds.shape[0]
+            min_val = float('inf')
+            min_x = None
+    
+            # Random sampling + optimization
+            n_restarts = 25
+            for _ in range(n_restarts):
+                x0 = np.random.uniform(self.bounds[:, 0], self.bounds[:, 1], size=dim)
+                res = self._minimize_acquisition(x0)
+                if res < min_val:
+                    min_val = res
+                    min_x = x0
+    
+            return min_x
+    
+        def _minimize_acquisition(self, x0):
+            """
+            Minimize acquisition function (minimize negative EI)
+            """
+            from scipy.optimize import minimize
+    
+            def objective(x):
+                return -self.acquisition_function(x.reshape(1, -1))
+    
+            bounds_list = [(self.bounds[i, 0], self.bounds[i, 1])
+                           for i in range(self.bounds.shape[0])]
+    
+            res = minimize(objective, x0, bounds=bounds_list, method='L-BFGS-B')
+            return res.fun
+    
+        def optimize(self, objective_func, n_iter=20):
+            """
+            Execute Bayesian optimization
+            """
+            # Initial random sampling
+            for _ in range(self.n_init):
+                x = np.random.uniform(self.bounds[:, 0], self.bounds[:, 1],
+                                      size=self.bounds.shape[0])
+                y = objective_func(x[0], x[1])
+                self.X_sample.append(x)
+                self.y_sample.append(y)
+    
+            # Bayesian optimization loop
+            for i in range(n_iter):
+                # Update GP model
+                self.gp.fit(np.array(self.X_sample), np.array(self.y_sample))
+    
+                # Propose next evaluation point
+                x_next = self.propose_location()
+                y_next = objective_func(x_next[0], x_next[1])
+    
+                self.X_sample.append(x_next)
+                self.y_sample.append(y_next)
+    
+                if (i + 1) % 5 == 0:
+                    print(f"Iteration {i+1}: Best quality = {np.max(self.y_sample):.2f} "
+                          f"at T={self.X_sample[np.argmax(self.y_sample)][0]:.1f}°C, "
+                          f"t={self.X_sample[np.argmax(self.y_sample)][1]:.1f}min")
+    
+            return np.array(self.X_sample), np.array(self.y_sample)
+    
+    # Execute optimization
+    bounds = [[75, 105], [10, 30]]  # [temperature range, time range]
+    optimizer = BayesianOptimizer(bounds, n_init=5)
+    X_sample, y_sample = optimizer.optimize(food_processing_objective, n_iter=25)
+    
+    # Optimal solution
+    best_idx = np.argmax(y_sample)
+    best_temp, best_time = X_sample[best_idx]
+    best_quality = y_sample[best_idx]
+    
+    print(f"\n=== Optimization Results ===")
+    print(f"Optimal temperature: {best_temp:.2f}°C")
+    print(f"Optimal time: {best_time:.2f} min")
+    print(f"Maximum quality score: {best_quality:.2f}")
+    print(f"Total evaluations: {len(X_sample)}")
+    
+    # Visualization
+    fig = plt.figure(figsize=(16, 10))
+    gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
+    
+    # 1. True objective function (reference)
+    ax1 = fig.add_subplot(gs[0, 0])
+    T_grid = np.linspace(75, 105, 100)
+    t_grid = np.linspace(10, 30, 100)
+    T_mesh, t_mesh = np.meshgrid(T_grid, t_grid)
+    quality_grid = np.zeros_like(T_mesh)
+    for i in range(T_mesh.shape[0]):
+        for j in range(T_mesh.shape[1]):
+            quality_grid[i, j] = food_processing_objective(T_mesh[i, j], t_mesh[i, j])
+    
+    contour = ax1.contourf(T_mesh, t_mesh, quality_grid, levels=20, cmap='viridis', alpha=0.8)
+    ax1.scatter(X_sample[:5, 0], X_sample[:5, 1], c='red', s=100,
+                marker='o', edgecolors='white', linewidth=2, label='Initial samples', zorder=5)
+    ax1.scatter(X_sample[5:, 0], X_sample[5:, 1], c='white', s=80,
+                marker='s', edgecolors='black', linewidth=1.5, label='BO proposals', zorder=5)
+    ax1.scatter(best_temp, best_time, c='gold', s=300, marker='*',
+                edgecolors='red', linewidth=2, label='Optimal solution', zorder=10)
+    ax1.set_xlabel('Temperature (°C)', fontsize=12)
+    ax1.set_ylabel('Time (min)', fontsize=12)
+    ax1.set_title('Bayesian Optimization Search Process', fontsize=14, fontweight='bold')
+    ax1.legend(fontsize=10)
+    plt.colorbar(contour, ax=ax1, label='Quality Score')
+    
+    # 2. Quality score progression
+    ax2 = fig.add_subplot(gs[0, 1])
+    iterations = np.arange(1, len(y_sample) + 1)
+    best_so_far = np.maximum.accumulate(y_sample)
+    ax2.plot(iterations, y_sample, 'o-', color='#11998e', alpha=0.6,
+             linewidth=2, markersize=6, label='Quality at each evaluation')
+    ax2.plot(iterations, best_so_far, 'r-', linewidth=3, label='Best value progression')
+    ax2.axvline(x=5, color='gray', linestyle='--', alpha=0.5, label='Initial sampling end')
+    ax2.set_xlabel('Evaluation count', fontsize=12)
+    ax2.set_ylabel('Quality score', fontsize=12)
+    ax2.set_title('Optimization Convergence Process', fontsize=14, fontweight='bold')
+    ax2.legend(fontsize=10)
+    ax2.grid(True, alpha=0.3)
+    
+    # 3. Gaussian process prediction (temperature direction slice, time=best_time)
+    ax3 = fig.add_subplot(gs[1, 0])
+    T_test = np.linspace(75, 105, 200).reshape(-1, 1)
+    t_test = np.full_like(T_test, best_time)
+    X_test = np.hstack([T_test, t_test])
+    
+    mu, sigma = optimizer.gp.predict(X_test, return_std=True)
+    
+    ax3.plot(T_test, mu, 'b-', linewidth=2, label='GP prediction mean')
+    ax3.fill_between(T_test.ravel(), mu - 1.96*sigma, mu + 1.96*sigma,
+                     alpha=0.3, color='blue', label='95% confidence interval')
+    ax3.scatter(X_sample[:, 0], y_sample, c='red', s=80, marker='o',
+                edgecolors='white', linewidth=1.5, label='Observations', zorder=5)
+    ax3.axvline(x=best_temp, color='green', linestyle='--', linewidth=2, label='Optimal temperature')
+    ax3.set_xlabel('Temperature (°C)', fontsize=12)
+    ax3.set_ylabel('Quality score', fontsize=12)
+    ax3.set_title(f'Gaussian Process Prediction (time={best_time:.1f}min fixed)', fontsize=14, fontweight='bold')
+    ax3.legend(fontsize=10)
+    ax3.grid(True, alpha=0.3)
+    
+    # 4. Acquisition function (Expected Improvement)
+    ax4 = fig.add_subplot(gs[1, 1])
+    ei = optimizer.acquisition_function(X_test)
+    ax4.plot(T_test, ei, 'g-', linewidth=2)
+    ax4.fill_between(T_test.ravel(), 0, ei, alpha=0.3, color='green')
+    ax4.set_xlabel('Temperature (°C)', fontsize=12)
+    ax4.set_ylabel('Expected Improvement', fontsize=12)
+    ax4.set_title('Acquisition Function (Selection Criterion for Next Evaluation)', fontsize=14, fontweight='bold')
+    ax4.grid(True, alpha=0.3)
+    
+    plt.savefig('bayesian_optimization_food.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+## 3.2 Multi-Objective Optimization Using Genetic Algorithms
+
+In food processes, it is necessary to simultaneously optimize multiple objectives such as quality, cost, and energy efficiency. Genetic algorithms (GA), especially NSGA-II (Non-dominated Sorting Genetic Algorithm II), can efficiently search for Pareto optimal solutions. 
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    """
+    Example: In food processes, it is necessary to simultaneously optimiz
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Advanced
+    Execution time: 1-5 minutes
+    Dependencies: None
+    """
+    
+                <div class="code-header">📊 Code Example 2: Multi-Objective Optimization (Quality vs Cost)</div>
+                <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.optimize import differential_evolution
+    
+    # Multi-objective optimization problem definition
+    class FoodProcessMultiObjective:
+        def __init__(self):
+            # Parameter ranges
+            self.bounds = [
+                (75, 105),   # Temperature (°C)
+                (10, 30),    # Time (min)
+                (3.0, 5.0),  # pH
+                (50, 150),   # Flow rate (L/min)
+            ]
+    
+        def quality_objective(self, params):
+            """
+            Objective function 1: Maximize quality score (negative value for minimization problem)
+            """
+            temp, time, ph, flow = params
+    
+            # Quality function (nonlinear)
+            quality = (
+                100 * np.exp(-0.5 * ((temp - 90)/10)**2) *
+                np.exp(-0.5 * ((time - 20)/5)**2) *
+                np.exp(-0.5 * ((ph - 4.0)/0.5)**2) *
+                (1 + 0.1 * np.sin(flow / 20))
+            )
+    
+            return -quality  # Convert to minimization problem
+    
+        def cost_objective(self, params):
+            """
+            Objective function 2: Minimize cost
+            """
+            temp, time, ph, flow = params
+    
+            # Energy cost (depends on temperature and time)
+            energy_cost = 0.1 * (temp - 70) * time
+    
+            # pH adjuster cost
+            ph_cost = 5 * abs(ph - 4.0)
+    
+            # Pump operation cost
+            pump_cost = 0.05 * flow * time
+    
+            total_cost = energy_cost + ph_cost + pump_cost
+    
+            return total_cost
+    
+        def constraints_check(self, params):
+            """
+            Constraint condition check (HACCP standards, etc.)
+            """
+            temp, time, ph, flow = params
+    
+            # F-value (sterilization effect) calculation: F0 = time * 10^((temp-121)/10)
+            F0 = time * (10 ** ((temp - 121) / 10))
+    
+            # Minimum F-value requirement (example: F0 >= 3)
+            if F0 < 3:
+                return False
+    
+            # pH range constraint
+            if not (3.0 <= ph <= 5.0):
+                return False
+    
+            return True
+    
+    # Simple Pareto optimization (grid search + Pareto determination)
+    problem = FoodProcessMultiObjective()
+    
+    # Pareto front approximation by random sampling
+    np.random.seed(42)
+    n_samples = 1000
+    
+    # Generate random samples
+    samples = []
+    qualities = []
+    costs = []
+    
+    for _ in range(n_samples):
+        params = [
+            np.random.uniform(low, high)
+            for low, high in problem.bounds
+        ]
+    
+        if problem.constraints_check(params):
+            quality = -problem.quality_objective(params)  # Restore (maximize)
+            cost = problem.cost_objective(params)
+    
+            samples.append(params)
+            qualities.append(quality)
+            costs.append(cost)
+    
+    samples = np.array(samples)
+    qualities = np.array(qualities)
+    costs = np.array(costs)
+    
+    # Determine Pareto optimal solutions
+    def is_pareto_efficient(costs_qualities):
+        """
+        Determine Pareto optimal solutions (for two objectives)
+        cost: minimize, quality: maximize
+        """
+        is_efficient = np.ones(costs_qualities.shape[0], dtype=bool)
+        for i, c in enumerate(costs_qualities):
+            if is_efficient[i]:
+                # Check if other solutions dominate this solution
+                # Dominance: cost <= c[0] and quality >= c[1] with at least one strictly better
+                dominated = np.logical_and(
+                    costs_qualities[:, 0] <= c[0],  # Cost is same or less
+                    costs_qualities[:, 1] >= c[1]   # Quality is same or higher
+                )
+                # Strictly better (not equal)
+                strictly_better = np.logical_or(
+                    costs_qualities[:, 0] < c[0],
+                    costs_qualities[:, 1] > c[1]
+                )
+                dominated = np.logical_and(dominated, strictly_better)
+    
+                if np.any(dominated):
+                    is_efficient[i] = False
+    
+        return is_efficient
+    
+    # Extract Pareto optimal solutions
+    costs_qualities = np.column_stack([costs, qualities])
+    pareto_mask = is_pareto_efficient(costs_qualities)
+    pareto_samples = samples[pareto_mask]
+    pareto_costs = costs[pareto_mask]
+    pareto_qualities = qualities[pareto_mask]
+    
+    # Sort Pareto front by cost
+    sorted_indices = np.argsort(pareto_costs)
+    pareto_costs_sorted = pareto_costs[sorted_indices]
+    pareto_qualities_sorted = pareto_qualities[sorted_indices]
+    pareto_samples_sorted = pareto_samples[sorted_indices]
+    
+    # Select three representative solutions
+    n_pareto = len(pareto_costs_sorted)
+    representative_indices = [0, n_pareto // 2, n_pareto - 1]
+    representative_solutions = []
+    
+    for idx in representative_indices:
+        sol = {
+            'params': pareto_samples_sorted[idx],
+            'quality': pareto_qualities_sorted[idx],
+            'cost': pareto_costs_sorted[idx],
+            'label': ['Cost-focused', 'Balanced', 'Quality-focused'][representative_indices.index(idx)]
+        }
+        representative_solutions.append(sol)
+    
+    # Visualization
+    fig = plt.figure(figsize=(16, 10))
+    gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
+    
+    # 1. Pareto front
+    ax1 = fig.add_subplot(gs[0, :])
+    ax1.scatter(costs, qualities, c='lightgray', alpha=0.4, s=30, label='All samples')
+    ax1.plot(pareto_costs_sorted, pareto_qualities_sorted, 'r-', linewidth=2.5,
+             label='Pareto front', zorder=10)
+    ax1.scatter(pareto_costs_sorted, pareto_qualities_sorted, c='red', s=100,
+                marker='o', edgecolors='white', linewidth=2, label='Pareto optimal solutions', zorder=11)
+    
+    # Highlight representative solutions
+    colors_rep = ['#1f77b4', '#ff7f0e', '#2ca02c']
+    for i, sol in enumerate(representative_solutions):
+        ax1.scatter(sol['cost'], sol['quality'], c=colors_rep[i], s=300,
+                    marker='*', edgecolors='black', linewidth=2,
+                    label=sol['label'], zorder=12)
+        ax1.annotate(sol['label'],
+                    xy=(sol['cost'], sol['quality']),
+                    xytext=(15, 15), textcoords='offset points',
+                    fontsize=11, fontweight='bold',
+                    bbox=dict(boxstyle='round,pad=0.5', fc=colors_rep[i], alpha=0.7),
+                    arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'))
+    
+    ax1.set_xlabel('Cost (JPY/batch)', fontsize=13)
+    ax1.set_ylabel('Quality score', fontsize=13)
+    ax1.set_title('Multi-Objective Optimization: Pareto Front', fontsize=15, fontweight='bold')
+    ax1.legend(fontsize=11, loc='upper right')
+    ax1.grid(True, alpha=0.3)
+    
+    # 2-4. Parameter comparison of representative solutions
+    param_names = ['Temperature (°C)', 'Time (min)', 'pH', 'Flow rate (L/min)']
+    axes = [fig.add_subplot(gs[1, 0]), fig.add_subplot(gs[1, 1])]
+    
+    # Temperature and time
+    ax2 = axes[0]
+    x_pos = np.arange(len(representative_solutions))
+    width = 0.35
+    
+    temp_values = [sol['params'][0] for sol in representative_solutions]
+    time_values = [sol['params'][1] for sol in representative_solutions]
+    
+    ax2_twin = ax2.twinx()
+    bars1 = ax2.bar(x_pos - width/2, temp_values, width, label='Temperature', color='#ff6b6b', alpha=0.8)
+    bars2 = ax2_twin.bar(x_pos + width/2, time_values, width, label='Time', color='#4ecdc4', alpha=0.8)
+    
+    ax2.set_xlabel('Solution type', fontsize=12)
+    ax2.set_ylabel('Temperature (°C)', fontsize=12, color='#ff6b6b')
+    ax2_twin.set_ylabel('Time (min)', fontsize=12, color='#4ecdc4')
+    ax2.set_title('Representative Solution Parameter Comparison (Temperature/Time)', fontsize=13, fontweight='bold')
+    ax2.set_xticks(x_pos)
+    ax2.set_xticklabels([sol['label'] for sol in representative_solutions])
+    ax2.tick_params(axis='y', labelcolor='#ff6b6b')
+    ax2_twin.tick_params(axis='y', labelcolor='#4ecdc4')
+    ax2.grid(True, alpha=0.3, axis='y')
+    
+    # pH and flow rate
+    ax3 = axes[1]
+    ph_values = [sol['params'][2] for sol in representative_solutions]
+    flow_values = [sol['params'][3] for sol in representative_solutions]
+    
+    ax3_twin = ax3.twinx()
+    bars3 = ax3.bar(x_pos - width/2, ph_values, width, label='pH', color='#95e1d3', alpha=0.8)
+    bars4 = ax3_twin.bar(x_pos + width/2, flow_values, width, label='Flow rate', color='#f38181', alpha=0.8)
+    
+    ax3.set_xlabel('Solution type', fontsize=12)
+    ax3.set_ylabel('pH', fontsize=12, color='#95e1d3')
+    ax3_twin.set_ylabel('Flow rate (L/min)', fontsize=12, color='#f38181')
+    ax3.set_title('Representative Solution Parameter Comparison (pH/Flow rate)', fontsize=13, fontweight='bold')
+    ax3.set_xticks(x_pos)
+    ax3.set_xticklabels([sol['label'] for sol in representative_solutions])
+    ax3.tick_params(axis='y', labelcolor='#95e1d3')
+    ax3_twin.tick_params(axis='y', labelcolor='#f38181')
+    ax3.grid(True, alpha=0.3, axis='y')
+    
+    plt.savefig('multi_objective_optimization.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Report output
+    print("=== Multi-Objective Optimization Results ===")
+    print(f"Total samples: {n_samples}")
+    print(f"Samples satisfying constraints: {len(samples)}")
+    print(f"Pareto optimal solutions: {len(pareto_samples)}")
+    
+    print("\n=== Three Representative Solutions ===")
+    for i, sol in enumerate(representative_solutions):
+        print(f"\n{i+1}. {sol['label']}")
+        print(f"   Temperature: {sol['params'][0]:.2f}°C")
+        print(f"   Time: {sol['params'][1]:.2f} min")
+        print(f"   pH: {sol['params'][2]:.2f}")
+        print(f"   Flow rate: {sol['params'][3]:.2f} L/min")
+        print(f"   Quality score: {sol['quality']:.2f}")
+        print(f"   Cost: {sol['cost']:.2f} JPY/batch")
+    
+        # F-value calculation
+        F0 = sol['params'][1] * (10 ** ((sol['params'][0] - 121) / 10))
+        print(f"   Sterilization effect (F0 value): {F0:.2f}")
+
+## 3.3 Optimization Using Response Surface Methodology (RSM)
+
+Response Surface Methodology (RSM) is an optimization method that combines design of experiments with statistical modeling. With relatively few experiments, it models the relationship between process parameters and response variables with quadratic polynomials and searches for optimal conditions. 
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    
+                <div class="code-header">📊 Code Example 3: Response Surface Methodology (Box-Behnken Design)</div>
+                <pre><code class="language-python">import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from sklearn.preprocessing import PolynomialFeatures
+    from sklearn.linear_model import LinearRegression
+    from mpl_toolkits.mplot3d import Axes3D
+    
+    # Box-Behnken experimental design (3 factors)
+    def box_behnken_design(factors):
+        """
+        Generate Box-Behnken experimental design (for 3 factors)
+        """
+        # Coded levels: -1, 0, +1
+        design = np.array([
+            [-1, -1,  0], [1, -1,  0], [-1,  1,  0], [1,  1,  0],
+            [-1,  0, -1], [1,  0, -1], [-1,  0,  1], [1,  0,  1],
+            [ 0, -1, -1], [0,  1, -1], [ 0, -1,  1], [0,  1,  1],
+            [ 0,  0,  0], [0,  0,  0], [ 0,  0,  0]  # Center point (3 replicates)
+        ])
+    
+        # Convert to actual values
+        actual_design = []
+        for row in design:
+            actual_row = []
+            for i, level in enumerate(row):
+                low, center, high = factors[i]
+                if level == -1:
+                    actual_row.append(low)
+                elif level == 0:
+                    actual_row.append(center)
+                else:  # level == 1
+                    actual_row.append(high)
+            actual_design.append(actual_row)
+    
+        return np.array(actual_design)
+    
+    # Factor level settings (low, medium, high)
+    factors = [
+        (80, 90, 100),   # Temperature (°C)
+        (15, 20, 25),    # Time (min)
+        (3.5, 4.0, 4.5), # pH
+    ]
+    factor_names = ['Temperature', 'Time', 'pH']
+    
+    # Generate experimental design
+    X_design = box_behnken_design(factors)
+    
+    # Simulate response variable (quality score)
+    def response_function(temp, time, ph):
+        """
+        True response function (quadratic polynomial + interaction + noise)
+        """
+        response = (
+            50 +
+            2 * (temp - 90) + 0.5 * (time - 20) + 10 * (ph - 4.0) +
+            -0.05 * (temp - 90)**2 - 0.1 * (time - 20)**2 - 15 * (ph - 4.0)**2 +
+            0.02 * (temp - 90) * (time - 20) +
+            0.5 * (temp - 90) * (ph - 4.0) +
+            np.random.normal(0, 0.5)  # Experimental error
+        )
+        return response
+    
+    y_response = np.array([response_function(x[0], x[1], x[2]) for x in X_design])
+    
+    # Create dataframe
+    df_experiment = pd.DataFrame(X_design, columns=factor_names)
+    df_experiment['Quality Score'] = y_response
+    
+    print("=== Box-Behnken Experimental Design ===")
+    print(df_experiment)
+    
+    # Build quadratic response surface model
+    poly = PolynomialFeatures(degree=2, include_bias=True)
+    X_poly = poly.fit_transform(X_design)
+    model = LinearRegression()
+    model.fit(X_poly, y_response)
+    
+    # Model performance
+    y_pred = model.predict(X_poly)
+    r2_score = model.score(X_poly, y_response)
+    print(f"\n=== Response Surface Model ===")
+    print(f"R² score: {r2_score:.4f}")
+    
+    # Display coefficients
+    feature_names = poly.get_feature_names_out(factor_names)
+    coefficients = pd.DataFrame({
+        'Term': feature_names,
+        'Coefficient': model.coef_
+    })
+    print("\n=== Model Coefficients ===")
+    print(coefficients)
+    
+    # Optimization: Search for maximum value by grid search
+    temp_range = np.linspace(80, 100, 50)
+    time_range = np.linspace(15, 25, 50)
+    ph_fixed = 4.0  # Fix pH
+    
+    T_mesh, t_mesh = np.meshgrid(temp_range, time_range)
+    response_mesh = np.zeros_like(T_mesh)
+    
+    for i in range(T_mesh.shape[0]):
+        for j in range(T_mesh.shape[1]):
+            X_test = np.array([[T_mesh[i, j], t_mesh[i, j], ph_fixed]])
+            X_test_poly = poly.transform(X_test)
+            response_mesh[i, j] = model.predict(X_test_poly)[0]
+    
+    # Optimal point
+    max_idx = np.unravel_index(np.argmax(response_mesh), response_mesh.shape)
+    optimal_temp = T_mesh[max_idx]
+    optimal_time = t_mesh[max_idx]
+    optimal_response = response_mesh[max_idx]
+    
+    print(f"\n=== Optimal Conditions (pH={ph_fixed} fixed) ===")
+    print(f"Optimal temperature: {optimal_temp:.2f}°C")
+    print(f"Optimal time: {optimal_time:.2f} min")
+    print(f"Predicted quality score: {optimal_response:.2f}")
+    
+    # Visualization
+    fig = plt.figure(figsize=(16, 12))
+    
+    # 1. 3D response surface
+    ax1 = fig.add_subplot(2, 2, 1, projection='3d')
+    surf = ax1.plot_surface(T_mesh, t_mesh, response_mesh, cmap='viridis', alpha=0.8)
+    ax1.scatter(X_design[:, 0], X_design[:, 1], y_response, c='red', s=100,
+                marker='o', edgecolors='white', linewidth=2, label='Experimental points')
+    ax1.scatter(optimal_temp, optimal_time, optimal_response, c='gold', s=300,
+                marker='*', edgecolors='red', linewidth=2, label='Optimal point')
+    ax1.set_xlabel('Temperature (°C)', fontsize=11)
+    ax1.set_ylabel('Time (min)', fontsize=11)
+    ax1.set_zlabel('Quality Score', fontsize=11)
+    ax1.set_title(f'Response Surface (pH={ph_fixed} fixed)', fontsize=13, fontweight='bold')
+    plt.colorbar(surf, ax=ax1, shrink=0.5, label='Quality Score')
+    
+    # 2. Contour plot
+    ax2 = fig.add_subplot(2, 2, 2)
+    contour = ax2.contourf(T_mesh, t_mesh, response_mesh, levels=15, cmap='viridis', alpha=0.9)
+    contour_lines = ax2.contour(T_mesh, t_mesh, response_mesh, levels=10, colors='white',
+                                 linewidths=0.5, alpha=0.7)
+    ax2.clabel(contour_lines, inline=True, fontsize=8, fmt='%.1f')
+    ax2.scatter(X_design[:, 0], X_design[:, 1], c='red', s=100,
+                marker='o', edgecolors='white', linewidth=2, label='Experimental points')
+    ax2.scatter(optimal_temp, optimal_time, c='gold', s=300,
+                marker='*', edgecolors='red', linewidth=2, label='Optimal point')
+    ax2.set_xlabel('Temperature (°C)', fontsize=12)
+    ax2.set_ylabel('Time (min)', fontsize=12)
+    ax2.set_title(f'Contour Plot (pH={ph_fixed} fixed)', fontsize=13, fontweight='bold')
+    ax2.legend(fontsize=10)
+    plt.colorbar(contour, ax=ax2, label='Quality Score')
+    
+    # 3. Predicted vs observed values
+    ax3 = fig.add_subplot(2, 2, 3)
+    ax3.scatter(y_response, y_pred, c='#11998e', s=100, alpha=0.7, edgecolors='white', linewidth=1.5)
+    ax3.plot([y_response.min(), y_response.max()], [y_response.min(), y_response.max()],
+             'r--', linewidth=2, label='Ideal line')
+    ax3.set_xlabel('Observed value', fontsize=12)
+    ax3.set_ylabel('Predicted value', fontsize=12)
+    ax3.set_title(f'Prediction Accuracy (R²={r2_score:.4f})', fontsize=13, fontweight='bold')
+    ax3.legend(fontsize=10)
+    ax3.grid(True, alpha=0.3)
+    
+    # 4. Main effect plot (temperature effect)
+    ax4 = fig.add_subplot(2, 2, 4)
+    temp_test = np.linspace(80, 100, 100)
+    time_fixed = 20
+    ph_test_fixed = 4.0
+    
+    response_temp_effect = []
+    for t in temp_test:
+        X_test = np.array([[t, time_fixed, ph_test_fixed]])
+        X_test_poly = poly.transform(X_test)
+        response_temp_effect.append(model.predict(X_test_poly)[0])
+    
+    ax4.plot(temp_test, response_temp_effect, linewidth=2.5, color='#11998e', label='Predicted response')
+    ax4.scatter(X_design[:, 0], y_response, c='red', s=80, alpha=0.6,
+                edgecolors='white', linewidth=1.5, label='Experimental points')
+    ax4.axvline(x=optimal_temp, color='green', linestyle='--', linewidth=2, label='Optimal temperature')
+    ax4.set_xlabel('Temperature (°C)', fontsize=12)
+    ax4.set_ylabel('Quality score', fontsize=12)
+    ax4.set_title(f'Main Effect Plot (time={time_fixed}min, pH={ph_test_fixed} fixed)',
+                  fontsize=13, fontweight='bold')
+    ax4.legend(fontsize=10)
+    ax4.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('response_surface_method.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+### ⚠️ Precautions for Optimization Implementation
+
+  * **Local optima** : With strong nonlinearity, may fall into local solutions. Execute optimization from multiple initial values
+  * **Strict adherence to constraints** : Always satisfy food safety standards (HACCP, F-value)
+  * **Consideration of experimental error** : Repeat center point multiple times to estimate pure error
+  * **Danger of extrapolation** : Predictions outside experimental range have low reliability
+  * **Batch-to-batch variation** : Robust optimization considering raw material variation is desirable
+  * **Scale-up** : Lab-scale optimal conditions may not be reproducible at factory scale
+
+## Summary
+
+In this chapter, we learned optimization methods for food processes:
+
+  * Efficient experimental planning and optimal condition search using Bayesian optimization
+  * Multi-objective optimization (quality, cost, energy) using genetic algorithms
+  * Statistical optimization using Response Surface Methodology (Box-Behnken design)
+  * Practical optimization considering constraint conditions (HACCP, food safety standards)
+
+In the next chapter, we will learn practical methods for predictive maintenance and troubleshooting.
+
+[← Chapter 2: Process Monitoring and Quality Control](<chapter-3.html>) [Chapter 4: Predictive Maintenance and Troubleshooting →](<chapter-4.html>)
+
+## References
+
+  1. Montgomery, D. C. (2019). _Design and Analysis of Experiments_ (9th ed.). Wiley.
+  2. Box, G. E. P., Hunter, J. S., & Hunter, W. G. (2005). _Statistics for Experimenters: Design, Innovation, and Discovery_ (2nd ed.). Wiley.
+  3. Seborg, D. E., Edgar, T. F., Mellichamp, D. A., & Doyle III, F. J. (2016). _Process Dynamics and Control_ (4th ed.). Wiley.
+  4. McKay, M. D., Beckman, R. J., & Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." _Technometrics_ , 42(1), 55-61.
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

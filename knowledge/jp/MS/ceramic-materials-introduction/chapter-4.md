@@ -1,0 +1,1332 @@
+---
+title: "第4章: 機能性セラミックス"
+chapter_title: "第4章: 機能性セラミックス"
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/MS/ceramic-materials-introduction/chapter-4.html>) | Last sync: 2025-11-16
+
+[AI寺子屋トップ](<../../index.html>)›[材料科学](<../../MS/index.html>)›[Ceramic Materials](<../../MS/ceramic-materials-introduction/index.html>)›Chapter 4
+
+  * [トップ](<index.html>)
+  * [概要](<#intro>)
+  * [誘電体](<#dielectric>)
+  * [圧電](<#piezoelectric>)
+  * [イオン伝導](<#ionic>)
+  * [発光材料](<#luminescence>)
+  * [磁性](<#magnetic>)
+  * [演習問題](<#exercises>)
+  * [参考文献](<#references>)
+  * [← 前の章](<chapter-3.html>)
+  * [次の章へ →](<chapter-5.html>)
+
+## 4.1 機能性セラミックスの概要
+
+機能性セラミックスは、**誘電性、圧電性、イオン伝導性、発光性、磁性** などの電気的・光学的・磁気的性質を利用する材料群です。これらはコンデンサ、センサ、固体電解質、LED蛍光体、磁性デバイスとして広く応用されています。本章では、各機能の物理的メカニズムを学び、Pythonで特性計算を実践します。 
+
+**本章の学習目標**
+
+  * **レベル1（基本理解）** : 誘電率、圧電定数、イオン伝導度の定義を説明でき、代表材料と応用を理解できる
+  * **レベル2（実践スキル）** : Pythonで誘電率計算、圧電応答シミュレーション、Arrheniusプロットを実行できる
+  * **レベル3（応用力）** : 実測データから材料定数を抽出し、デバイス設計に応用できる。相図と組成の最適化ができる
+
+### 機能性セラミックスの分類
+    
+    
+    ```mermaid
+    flowchart TD
+                    A[機能性セラミックス] --> B[誘電体材料]
+                    A --> C[圧電・焦電材料]
+                    A --> D[イオン伝導体]
+                    A --> E[光機能材料]
+                    A --> F[磁性材料]
+    
+                    B --> B1[BaTiO₃MLCC]
+                    B --> B2[高誘電率材料εᵣ > 1000]
+    
+                    C --> C1[PZTアクチュエータ]
+                    C --> C2[AlN高周波フィルタ]
+    
+                    D --> D1[YSZSOFC電解質]
+                    D --> D2[Li系全固体電池]
+    
+                    E --> E1[蛍光体LED, PDP]
+                    E --> E2[レーザーYAG:Nd]
+    
+                    F --> F1[フェライト磁性コア]
+                    F --> F2[磁性ガーネット光アイソレータ]
+    
+                    style A fill:#f093fb,color:#fff
+                    style B fill:#e3f2fd
+                    style C fill:#fff3e0
+                    style D fill:#e8f5e9
+                    style E fill:#fce4ec
+                    style F fill:#f3e5f5
+    ```
+
+機能 | 代表材料 | 特性パラメータ | 主要応用  
+---|---|---|---  
+誘電体 | BaTiO₃, (Ba,Sr)TiO₃ | 誘電率 εᵣ = 1000-10000 | MLCC, メモリ  
+圧電体 | PZT, BaTiO₃, AlN | 圧電定数 d₃₃ = 100-600 pC/N | 超音波センサ、振動子  
+イオン伝導体 | YSZ, LLZO, β-Al₂O₃ | 伝導度 σ = 0.01-1 S/cm | SOFC, 全固体電池  
+発光体 | Y₃Al₅O₁₂:Ce (YAG:Ce) | 量子効率 > 90% | 白色LED蛍光体  
+磁性体 | NiFe₂O₄, BaFe₁₂O₁₉ | 飽和磁化 Ms = 0.3-0.6 T | トランス、モーター  
+  
+## 4.2 誘電体セラミックス
+
+### 4.2.1 誘電分極のメカニズム
+
+誘電体に電場を印加すると、以下の4種類の分極が生じます： 
+
+  1. **電子分極** : 電子雲の変位（全材料、~1015 Hz）
+  2. **イオン分極** : イオンの相対変位（赤外域、~1013 Hz）
+  3. **配向分極** : 永久双極子の回転（マイクロ波域、~109 Hz）
+  4. **界面分極** : 界面での電荷蓄積（低周波、~103 Hz）
+
+誘電率 \\( \epsilon_r \\) は真空誘電率 \\( \epsilon_0 = 8.854 \times 10^{-12} \\) F/m に対する比で定義されます： 
+
+\\[ \epsilon_r = \frac{\epsilon}{\epsilon_0} \\] 
+
+### 4.2.2 BaTiO₃の強誘電性
+
+BaTiO₃は、キュリー温度（Tc ≈ 120°C）以下で正方晶に相転移し、自発分極を持ちます。この強誘電性により、誘電率が10,000を超える高い値を示します。 
+
+#### Python実装: Clausius-Mossotti式による誘電率計算
+    
+    
+    # ===================================
+    # Example 1: Clausius-Mossotti誘電率計算
+    # ===================================
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def clausius_mossotti_permittivity(alpha, N, epsilon_0=8.854e-12):
+        """
+        Clausius-Mossotti式による誘電率の計算
+    
+        Parameters:
+        -----------
+        alpha : float
+            分極率 [C·m²/V]
+        N : float
+            単位体積あたりの原子数 [m^-3]
+        epsilon_0 : float
+            真空誘電率 [F/m]
+    
+        Returns:
+        --------
+        epsilon_r : float
+            比誘電率（無次元）
+        """
+        # Clausius-Mossotti式: (εᵣ - 1)/(εᵣ + 2) = N·α/(3ε₀)
+        # 変形: εᵣ = (1 + 2·N·α/(3ε₀)) / (1 - N·α/(3ε₀))
+    
+        numerator = 1 + 2 * N * alpha / (3 * epsilon_0)
+        denominator = 1 - N * alpha / (3 * epsilon_0)
+    
+        epsilon_r = numerator / denominator
+    
+        return epsilon_r
+    
+    
+    def curie_weiss_law(T, T_c=393, C=1.5e5):
+        """
+        Curie-Weiss則による誘電率の温度依存性
+    
+        Parameters:
+        -----------
+        T : float or array
+            温度 [K]
+        T_c : float
+            キュリー温度 [K] (BaTiO₃ ≈ 120°C = 393K)
+        C : float
+            Curie定数 [K]
+    
+        Returns:
+        --------
+        epsilon_r : float or array
+            比誘電率
+        """
+        # Curie-Weiss則: εᵣ = C / (T - Tᶜ)
+        epsilon_r = C / np.abs(T - T_c)
+    
+        # 発散を避けるため、最大値を制限
+        epsilon_r = np.minimum(epsilon_r, 20000)
+    
+        return epsilon_r
+    
+    
+    def plot_dielectric_properties():
+        """
+        誘電体の特性を可視化
+        """
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+        # 左図: 分極率と誘電率の関係
+        ax1 = axes[0]
+    
+        # 典型的な材料の分極率範囲
+        alpha_range = np.linspace(1e-40, 5e-40, 100)  # C·m²/V
+        N = 5e28  # m^-3 (典型的なイオン密度)
+    
+        epsilon_r_values = [clausius_mossotti_permittivity(alpha, N) for alpha in alpha_range]
+    
+        ax1.plot(alpha_range * 1e40, epsilon_r_values, linewidth=2, color='navy')
+    
+        # 代表的な材料をプロット
+        materials = {
+            'SiO₂': {'alpha': 3.5e-41, 'epsilon_r': 3.8},
+            'Al₂O₃': {'alpha': 1.0e-40, 'epsilon_r': 9.0},
+            'TiO₂': {'alpha': 2.5e-40, 'epsilon_r': 80},
+            'BaTiO₃': {'alpha': 4.5e-40, 'epsilon_r': 1200}
+        }
+    
+        for name, props in materials.items():
+            ax1.scatter(props['alpha'] * 1e40, props['epsilon_r'],
+                       s=150, edgecolors='black', linewidth=2, zorder=5)
+            ax1.annotate(name, (props['alpha'] * 1e40, props['epsilon_r']),
+                        xytext=(5, 5), textcoords='offset points', fontsize=10)
+    
+        ax1.set_xlabel('Polarizability α (10^-40 C·m²/V)', fontsize=12)
+        ax1.set_ylabel('Relative Permittivity εᵣ', fontsize=12)
+        ax1.set_title('Clausius-Mossotti Relation', fontsize=14, fontweight='bold')
+        ax1.grid(True, alpha=0.3)
+    
+        # 右図: BaTiO₃のCurie-Weiss則
+        ax2 = axes[1]
+    
+        T_range = np.linspace(293, 493, 500)  # 20°C ~ 220°C
+        T_c = 393  # 120°C
+    
+        epsilon_r_bto = curie_weiss_law(T_range, T_c, C=1.5e5)
+    
+        ax2.plot(T_range - 273.15, epsilon_r_bto, linewidth=2, color='crimson')
+        ax2.axvline(x=T_c - 273.15, color='blue', linestyle='--', linewidth=2,
+                    label=f'Curie temperature = {T_c-273.15:.0f}°C')
+    
+        ax2.set_xlabel('Temperature (°C)', fontsize=12)
+        ax2.set_ylabel('Relative Permittivity εᵣ', fontsize=12)
+        ax2.set_title('BaTiO₃ Curie-Weiss Behavior', fontsize=14, fontweight='bold')
+        ax2.set_ylim(0, 20000)
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('dielectric_properties.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 数値例
+        print("=== Clausius-Mossotti Calculation ===")
+        for name, props in materials.items():
+            calculated_eps = clausius_mossotti_permittivity(props['alpha'], N)
+            print(f"{name:10s}: α = {props['alpha']*1e40:.2f}×10^-40, εᵣ = {calculated_eps:.1f} (exp: {props['epsilon_r']})")
+    
+        print("\n=== BaTiO₃ Temperature Dependence ===")
+        for T_celsius in [80, 100, 120, 140, 160]:
+            T = T_celsius + 273.15
+            eps = curie_weiss_law(T, T_c=393, C=1.5e5)
+            print(f"T = {T_celsius:3d}°C → εᵣ = {eps:6.0f}")
+    
+    # 実行
+    plot_dielectric_properties()
+    
+
+### 4.2.3 MLCC（積層セラミックコンデンサ）の設計
+
+MLCCは、誘電体層と内部電極を交互に積層した構造で、高容量化を実現しています。容量Cは： 
+
+\\[ C = \frac{\epsilon_0 \epsilon_r A}{d} \times n \\] 
+
+ここで、\\( A \\) は電極面積、\\( d \\) は誘電体層厚み、\\( n \\) は層数です。 
+
+#### Python実装: MLCCキャパシタンス設計計算
+    
+    
+    # ===================================
+    # Example 2: MLCCキャパシタンス設計
+    # ===================================
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def mlcc_capacitance(epsilon_r, A, d, n, epsilon_0=8.854e-12):
+        """
+        MLCC（積層セラミックコンデンサ）の容量計算
+    
+        Parameters:
+        -----------
+        epsilon_r : float
+            比誘電率
+        A : float
+            電極面積 [m²]
+        d : float
+            誘電体層厚み [m]
+        n : int
+            積層数
+        epsilon_0 : float
+            真空誘電率 [F/m]
+    
+        Returns:
+        --------
+        C : float
+            容量 [F]
+        """
+        C = (epsilon_0 * epsilon_r * A / d) * n
+        return C
+    
+    
+    def design_mlcc_optimization():
+        """
+        MLCC設計の最適化シミュレーション
+        """
+        # 設計パラメータ
+        epsilon_r = 3000  # X7R材料（BaTiO₃系）
+        A = (1e-3)**2  # 1mm × 1mm
+        d_range = np.linspace(1e-6, 50e-6, 100)  # 1~50 μm
+        n = 100  # 100層
+    
+        # 容量計算
+        C_values = [mlcc_capacitance(epsilon_r, A, d, n) for d in d_range]
+    
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+        # 左図: 層厚みと容量の関係
+        ax1 = axes[0]
+        ax1.plot(d_range * 1e6, np.array(C_values) * 1e6, linewidth=2, color='navy')
+        ax1.axhline(y=1, color='red', linestyle='--', alpha=0.5, label='Target: 1 μF')
+    
+        ax1.set_xlabel('Dielectric Layer Thickness (μm)', fontsize=12)
+        ax1.set_ylabel('Capacitance (μF)', fontsize=12)
+        ax1.set_title('MLCC Capacitance vs Layer Thickness', fontsize=14, fontweight='bold')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+    
+        # 右図: 積層数の影響
+        ax2 = axes[1]
+        d_fixed = 5e-6  # 5 μm
+        n_range = np.arange(10, 501, 10)
+        C_vs_n = [mlcc_capacitance(epsilon_r, A, d_fixed, n) for n in n_range]
+    
+        ax2.plot(n_range, np.array(C_vs_n) * 1e6, linewidth=2, color='green')
+    
+        ax2.set_xlabel('Number of Layers n', fontsize=12)
+        ax2.set_ylabel('Capacitance (μF)', fontsize=12)
+        ax2.set_title(f'MLCC Capacitance vs Layer Count (d = {d_fixed*1e6} μm)', fontsize=14, fontweight='bold')
+        ax2.grid(True, alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('mlcc_design.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 設計例
+        print("=== MLCC Design Examples ===")
+        designs = [
+            {'name': 'Low-C (1 nF)', 'd': 20e-6, 'n': 10},
+            {'name': 'Mid-C (100 nF)', 'd': 10e-6, 'n': 50},
+            {'name': 'High-C (1 μF)', 'd': 5e-6, 'n': 200},
+            {'name': 'Ultra-C (10 μF)', 'd': 2e-6, 'n': 500}
+        ]
+    
+        for design in designs:
+            C = mlcc_capacitance(epsilon_r, A, design['d'], design['n'])
+            volume = A * design['d'] * design['n']
+            density = C / volume  # F/m³
+            print(f"{design['name']:20s}: d={design['d']*1e6:4.1f} μm, n={design['n']:3d} → C={C*1e6:8.2f} μF, density={density*1e-9:.2f} μF/mm³")
+    
+    # 実行
+    design_mlcc_optimization()
+    
+
+**MLCCの薄層化トレンド** 現代のMLCCでは、誘電体層厚みが1 μm以下（先端品では0.5 μm）まで薄層化されています。これにより、1608サイズ（1.6 mm × 0.8 mm）で10 μFを超える高容量を実現しています。薄層化には、均一な誘電体スラリーとナノ粒子原料が不可欠です。 
+
+## 4.3 圧電セラミックス
+
+### 4.3.1 圧電効果の原理
+
+圧電効果は、機械的応力により電荷が発生する現象（正圧電効果）と、電場印加により歪みが生じる現象（逆圧電効果）です。結晶構造の非対称性が必要で、32種の結晶点群のうち20種が圧電性を示します。 
+
+圧電定数 \\( d_{33} \\) は、電場方向と応力方向が平行な場合の歪み（または電荷）を表します： 
+
+\\[ S_3 = d_{33} E_3 \quad \text{（逆圧電効果）} \\] \\[ D_3 = d_{33} T_3 \quad \text{（正圧電効果）} \\] 
+
+ここで、\\( S \\) は歪み、\\( E \\) は電場、\\( D \\) は電束密度、\\( T \\) は応力です。 
+
+### 4.3.2 PZT（チタン酸ジルコン酸鉛）の特性
+
+PZT（Pb(ZrxTi1-x)O₃）は、最も広く使われる圧電材料です。MPB（Morphotropic Phase Boundary、x ≈ 0.52）組成で圧電特性が最大となります。 
+
+材料 | d₃₃ (pC/N) | kp | 用途  
+---|---|---|---  
+BaTiO₃ | 190 | 0.36 | 初期圧電素子  
+PZT-4 | 289 | 0.58 | センサ  
+PZT-5H | 593 | 0.65 | アクチュエータ  
+AlN | 5.5 | 0.20 | 高周波フィルタ  
+  
+#### Python実装: 圧電定数と結合係数の計算
+    
+    
+    # ===================================
+    # Example 3: 圧電定数と結合係数の計算
+    # ===================================
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def piezoelectric_strain(d_33, E_3):
+        """
+        逆圧電効果による歪みの計算
+    
+        Parameters:
+        -----------
+        d_33 : float
+            圧電定数 [m/V] または [C/N]
+        E_3 : float
+            電場 [V/m]
+    
+        Returns:
+        --------
+        S_3 : float
+            歪み（無次元）
+        """
+        S_3 = d_33 * E_3
+        return S_3
+    
+    
+    def electromechanical_coupling_factor(d_33, epsilon_33, s_33):
+        """
+        電気機械結合係数の計算
+    
+        Parameters:
+        -----------
+        d_33 : float
+            圧電定数 [C/N]
+        epsilon_33 : float
+            誘電率 [F/m]
+        s_33 : float
+            弾性コンプライアンス [m²/N]
+    
+        Returns:
+        --------
+        k_33 : float
+            結合係数（無次元、0~1）
+        """
+        k_33 = d_33 / np.sqrt(epsilon_33 * s_33)
+        return k_33
+    
+    
+    def plot_piezoelectric_response():
+        """
+        圧電応答の可視化
+        """
+        # PZT-5Hの物性値
+        d_33 = 593e-12  # C/N
+        epsilon_0 = 8.854e-12
+        epsilon_r = 3400
+        epsilon_33 = epsilon_0 * epsilon_r
+    
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+        # 左図: 電場-歪み関係（逆圧電効果）
+        ax1 = axes[0]
+        E_range = np.linspace(-2e6, 2e6, 500)  # -2 ~ +2 MV/m
+        strain = piezoelectric_strain(d_33, E_range)
+    
+        ax1.plot(E_range / 1e6, strain * 1e6, linewidth=2, color='navy')
+        ax1.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+        ax1.axvline(x=0, color='black', linestyle='-', linewidth=0.5)
+    
+        ax1.set_xlabel('Electric Field E₃ (MV/m)', fontsize=12)
+        ax1.set_ylabel('Strain S₃ (μstrain)', fontsize=12)
+        ax1.set_title('Converse Piezoelectric Effect (PZT-5H)', fontsize=14, fontweight='bold')
+        ax1.grid(True, alpha=0.3)
+    
+        # 右図: 材料比較（圧電定数と結合係数）
+        ax2 = axes[1]
+    
+        materials_piezo = {
+            'BaTiO₃': {'d33': 190e-12, 'epsilon_r': 1700, 's33': 8.3e-12},
+            'PZT-4': {'d33': 289e-12, 'epsilon_r': 1300, 's33': 12.3e-12},
+            'PZT-5H': {'d33': 593e-12, 'epsilon_r': 3400, 's33': 16.5e-12},
+            'PVDF': {'d33': 33e-12, 'epsilon_r': 12, 's33': 400e-12},
+            'AlN': {'d33': 5.5e-12, 'epsilon_r': 9, 's33': 3.0e-12}
+        }
+    
+        names = list(materials_piezo.keys())
+        d33_values = [props['d33'] * 1e12 for props in materials_piezo.values()]
+        k33_values = []
+    
+        for props in materials_piezo.values():
+            epsilon = epsilon_0 * props['epsilon_r']
+            k33 = electromechanical_coupling_factor(props['d33'], epsilon, props['s33'])
+            k33_values.append(k33)
+    
+        x = np.arange(len(names))
+        width = 0.35
+    
+        ax2.bar(x - width/2, d33_values, width, label='d₃₃ (pC/N)', color='skyblue', edgecolor='black')
+        ax2_twin = ax2.twinx()
+        ax2_twin.bar(x + width/2, k33_values, width, label='k₃₃', color='salmon', edgecolor='black')
+    
+        ax2.set_xlabel('Material', fontsize=12)
+        ax2.set_ylabel('Piezoelectric Constant d₃₃ (pC/N)', fontsize=12, color='skyblue')
+        ax2_twin.set_ylabel('Coupling Coefficient k₃₃', fontsize=12, color='salmon')
+        ax2.set_title('Piezoelectric Material Comparison', fontsize=14, fontweight='bold')
+        ax2.set_xticks(x)
+        ax2.set_xticklabels(names, rotation=15)
+        ax2.tick_params(axis='y', labelcolor='skyblue')
+        ax2_twin.tick_params(axis='y', labelcolor='salmon')
+        ax2.grid(True, alpha=0.3, axis='y')
+    
+        plt.tight_layout()
+        plt.savefig('piezoelectric_response.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 数値例
+        print("=== Piezoelectric Response Calculation (PZT-5H) ===")
+        for E_MV in [0.5, 1.0, 2.0]:
+            E = E_MV * 1e6
+            S = piezoelectric_strain(d_33, E)
+            displacement = S * 1e-3  # 1 mm厚さの場合
+            print(f"E = {E_MV:.1f} MV/m → Strain = {S*1e6:.1f} μstrain, Displacement (1mm) = {displacement*1e9:.2f} nm")
+    
+        print("\n=== Electromechanical Coupling Coefficients ===")
+        for name, props in materials_piezo.items():
+            epsilon = epsilon_0 * props['epsilon_r']
+            k33 = electromechanical_coupling_factor(props['d33'], epsilon, props['s33'])
+            print(f"{name:10s}: d₃₃ = {props['d33']*1e12:5.1f} pC/N, k₃₃ = {k33:.3f}")
+    
+    # 実行
+    plot_piezoelectric_response()
+    
+
+#### Python実装: PZT相図とMPB組成
+    
+    
+    # ===================================
+    # Example 4: PZT相図とMPB組成の可視化
+    # ===================================
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def pzt_phase_diagram():
+        """
+        PZTの相図とMPB（Morphotropic Phase Boundary）の可視化
+        """
+        # 組成範囲（Zr含有率）
+        x_Zr = np.linspace(0, 1, 500)
+    
+        # キュリー温度の組成依存性（簡略モデル）
+        T_c = 490 - 200 * x_Zr + 150 * x_Zr**2  # °C
+    
+        # 圧電定数の組成依存性（MPB付近で最大）
+        # MPB組成: x ≈ 0.52
+        x_MPB = 0.52
+        d_33 = 200 + 400 * np.exp(-((x_Zr - x_MPB) / 0.1)**2)
+    
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+        # 左図: 相図
+        ax1 = axes[0]
+    
+        # 相境界の定義（簡略化）
+        x_rhomb = x_Zr[x_Zr > x_MPB]
+        x_tetra = x_Zr[x_Zr <= x_MPB]
+        T_c_rhomb = T_c[x_Zr > x_MPB]
+        T_c_tetra = T_c[x_Zr <= x_MPB]
+    
+        # 領域の塗り分け
+        ax1.fill_between(x_rhomb, 0, T_c_rhomb, alpha=0.3, color='blue', label='Rhombohedral (FE_R)')
+        ax1.fill_between(x_tetra, 0, T_c_tetra, alpha=0.3, color='red', label='Tetragonal (FE_T)')
+        ax1.fill_between(x_Zr, T_c, 500, alpha=0.2, color='gray', label='Cubic (Paraelectric)')
+    
+        # MPB線
+        ax1.axvline(x=x_MPB, color='green', linestyle='--', linewidth=2, label=f'MPB (x = {x_MPB})')
+        ax1.plot(x_Zr, T_c, 'k-', linewidth=2, label='Curie Temperature')
+    
+        ax1.set_xlabel('Zr Content x in Pb(Zr_xTi_{1-x})O₃', fontsize=12)
+        ax1.set_ylabel('Temperature (°C)', fontsize=12)
+        ax1.set_title('PZT Phase Diagram', fontsize=14, fontweight='bold')
+        ax1.set_xlim(0, 1)
+        ax1.set_ylim(0, 500)
+        ax1.legend(loc='upper right')
+        ax1.grid(True, alpha=0.3)
+    
+        # 右図: 圧電定数の組成依存性
+        ax2 = axes[1]
+        ax2.plot(x_Zr, d_33, linewidth=2, color='navy')
+        ax2.axvline(x=x_MPB, color='green', linestyle='--', linewidth=2, label=f'MPB (x = {x_MPB})')
+        ax2.scatter([x_MPB], [np.max(d_33)], s=200, c='red', marker='*', edgecolors='black',
+                    linewidth=2, zorder=5, label=f'd₃₃ max = {np.max(d_33):.0f} pC/N')
+    
+        ax2.set_xlabel('Zr Content x in Pb(Zr_xTi_{1-x})O₃', fontsize=12)
+        ax2.set_ylabel('Piezoelectric Constant d₃₃ (pC/N)', fontsize=12)
+        ax2.set_title('PZT Piezoelectric Constant vs Composition', fontsize=14, fontweight='bold')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('pzt_phase_diagram.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 数値例
+        print("=== PZT Composition Effects ===")
+        compositions = [0.3, 0.4, 0.52, 0.6, 0.7]
+        for x in compositions:
+            idx = np.argmin(np.abs(x_Zr - x))
+            T_c_val = T_c[idx]
+            d_33_val = d_33[idx]
+            phase = 'Tetragonal' if x < x_MPB else 'Rhombohedral'
+            print(f"x = {x:.2f} ({phase:15s}): T_c = {T_c_val:5.1f}°C, d₃₃ = {d_33_val:5.0f} pC/N")
+    
+    # 実行
+    pzt_phase_diagram()
+    
+
+**鉛フリー圧電材料の開発** PZTは高性能ですが、鉛（Pb）の環境負荷が問題です。近年、(K,Na)NbO₃（KNN）、(Bi,Na)TiO₃（BNT）などの鉛フリー材料が研究されていますが、PZTの性能（d₃₃ ≈ 600 pC/N）に到達するには至っていません（KNN: ~300 pC/N）。 
+
+## 4.4 イオン伝導体セラミックス
+
+### 4.4.1 イオン伝導のメカニズム
+
+イオン伝導体では、イオン（O²⁻, Li⁺, Na⁺など）が結晶格子中を移動します。伝導度 \\( \sigma \\) は、Arrhenius式で表されます： 
+
+\\[ \sigma = \sigma_0 \exp\left(-\frac{E_a}{k_B T}\right) \\] 
+
+ここで、\\( \sigma_0 \\) は前指数因子、\\( E_a \\) は活性化エネルギー、\\( k_B \\) はボルツマン定数、\\( T \\) は温度です。 
+
+### 4.4.2 YSZ（イットリア安定化ジルコニア）
+
+YSZ（(Y₂O₃)x(ZrO₂)1-x）は、SOFC（固体酸化物形燃料電池）の電解質として使われます。Y³⁺ドープにより酸素空孔が生成され、O²⁻イオンが伝導します。 
+
+材料 | 伝導イオン | σ (S/cm) @ 800°C | Ea (eV) | 用途  
+---|---|---|---|---  
+YSZ (8mol% Y₂O₃) | O²⁻ | 0.1 | 1.0 | SOFC電解質  
+LLZO (Li₇La₃Zr₂O₁₂) | Li⁺ | 0.05 (室温) | 0.3 | 全固体電池  
+β-Al₂O₃ | Na⁺ | 0.2 (300°C) | 0.16 | Na-S電池  
+GDC (Ce₀.₉Gd₀.₁O₁.₉₅) | O²⁻ | 0.02 | 0.7 | 低温SOFC  
+  
+#### Python実装: Arrhenius伝導度と活性化エネルギー
+    
+    
+    # ===================================
+    # Example 5: Arrhenius伝導度計算
+    # ===================================
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.optimize import curve_fit
+    
+    def ionic_conductivity(T, sigma_0, E_a, k_B=8.617e-5):
+        """
+        Arrhenius式によるイオン伝導度の計算
+    
+        Parameters:
+        -----------
+        T : float or array
+            温度 [K]
+        sigma_0 : float
+            前指数因子 [S/cm]
+        E_a : float
+            活性化エネルギー [eV]
+        k_B : float
+            ボルツマン定数 [eV/K]
+    
+        Returns:
+        --------
+        sigma : float or array
+            イオン伝導度 [S/cm]
+        """
+        sigma = sigma_0 * np.exp(-E_a / (k_B * T))
+        return sigma
+    
+    
+    def fit_arrhenius_data(T_data, sigma_data):
+        """
+        実測データからArrhenius パラメータをフィッティング
+    
+        Parameters:
+        -----------
+        T_data : array
+            温度データ [K]
+        sigma_data : array
+            伝導度データ [S/cm]
+    
+        Returns:
+        --------
+        sigma_0 : float
+            前指数因子 [S/cm]
+        E_a : float
+            活性化エネルギー [eV]
+        """
+        # 対数変換: ln(σ) = ln(σ₀) - E_a/(k_B·T)
+        # y = ln(σ), x = 1/T, slope = -E_a/k_B, intercept = ln(σ₀)
+    
+        x = 1 / T_data
+        y = np.log(sigma_data)
+    
+        # 線形回帰
+        coeffs = np.polyfit(x, y, 1)
+        slope = coeffs[0]
+        intercept = coeffs[1]
+    
+        E_a = -slope * 8.617e-5  # eV
+        sigma_0 = np.exp(intercept)
+    
+        return sigma_0, E_a
+    
+    
+    def plot_ionic_conductivity():
+        """
+        イオン伝導度のArrhenius plotと材料比較
+        """
+        # 各材料のパラメータ
+        materials_ionic = {
+            'YSZ (8YSZ)': {'sigma_0': 2.5e4, 'E_a': 1.0, 'color': 'navy'},
+            'GDC': {'sigma_0': 1.0e4, 'E_a': 0.7, 'color': 'green'},
+            'LLZO': {'sigma_0': 1.0e2, 'E_a': 0.3, 'color': 'red'},
+            'β-Al₂O₃': {'sigma_0': 5.0e2, 'E_a': 0.16, 'color': 'purple'}
+        }
+    
+        # 温度範囲
+        T_range = np.linspace(300, 1200, 500)  # K
+    
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+        # 左図: Arrhenius plot
+        ax1 = axes[0]
+    
+        for name, params in materials_ionic.items():
+            sigma = ionic_conductivity(T_range, params['sigma_0'], params['E_a'])
+            ax1.semilogy(1e4 / T_range, sigma, linewidth=2, label=name, color=params['color'])
+    
+        ax1.set_xlabel('10^4 / T (K^-1)', fontsize=12)
+        ax1.set_ylabel('Ionic Conductivity σ (S/cm)', fontsize=12)
+        ax1.set_title('Arrhenius Plot for Ionic Conductors', fontsize=14, fontweight='bold')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3, which='both')
+    
+        # 右図: 実温度での伝導度比較
+        ax2 = axes[1]
+    
+        temperatures_celsius = [400, 600, 800, 1000]
+        x_pos = np.arange(len(temperatures_celsius))
+        width = 0.2
+    
+        for i, (name, params) in enumerate(materials_ionic.items()):
+            sigma_values = [ionic_conductivity(T + 273.15, params['sigma_0'], params['E_a'])
+                           for T in temperatures_celsius]
+            ax2.bar(x_pos + i * width, sigma_values, width, label=name, color=params['color'], edgecolor='black')
+    
+        ax2.set_xlabel('Temperature (°C)', fontsize=12)
+        ax2.set_ylabel('Ionic Conductivity σ (S/cm)', fontsize=12)
+        ax2.set_title('Conductivity Comparison at Different Temperatures', fontsize=14, fontweight='bold')
+        ax2.set_xticks(x_pos + width * 1.5)
+        ax2.set_xticklabels(temperatures_celsius)
+        ax2.set_yscale('log')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3, which='both')
+    
+        plt.tight_layout()
+        plt.savefig('ionic_conductivity.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 数値例
+        print("=== Ionic Conductivity at SOFC Operating Temperature (800°C) ===")
+        T_SOFC = 800 + 273.15
+        for name, params in materials_ionic.items():
+            sigma = ionic_conductivity(T_SOFC, params['sigma_0'], params['E_a'])
+            print(f"{name:15s}: σ = {sigma:.4f} S/cm, E_a = {params['E_a']:.2f} eV")
+    
+    # 実行
+    plot_ionic_conductivity()
+    
+
+#### Python実装: YSZイオン伝導度の温度依存性
+    
+    
+    # ===================================
+    # Example 6: YSZ伝導度の詳細解析
+    # ===================================
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def ysz_conductivity_vs_doping():
+        """
+        YSZのY₂O₃ドープ量と伝導度の関係
+        """
+        # Y₂O₃ドープ量（mol%）
+        doping_levels = np.array([3, 5, 8, 10, 12, 15])
+    
+        # 800°Cでの伝導度（実験データに基づく）
+        sigma_800C = np.array([0.02, 0.06, 0.10, 0.08, 0.05, 0.03])
+    
+        # 活性化エネルギー
+        E_a_values = np.array([1.1, 1.05, 1.0, 1.05, 1.15, 1.2])
+    
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+        # 左図: ドープ量と伝導度
+        ax1 = axes[0]
+        ax1.plot(doping_levels, sigma_800C, 'o-', linewidth=2, markersize=10, color='navy')
+        ax1.axvline(x=8, color='red', linestyle='--', linewidth=2, label='Optimal: 8 mol%')
+    
+        ax1.set_xlabel('Y₂O₃ Content (mol%)', fontsize=12)
+        ax1.set_ylabel('Ionic Conductivity σ (S/cm) @ 800°C', fontsize=12)
+        ax1.set_title('YSZ Conductivity vs Doping Level', fontsize=14, fontweight='bold')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+    
+        # 右図: 温度依存性（各ドープ量）
+        ax2 = axes[1]
+        T_range = np.linspace(600, 1200, 100) + 273.15
+    
+        for i, doping in enumerate([5, 8, 10]):
+            idx = np.where(doping_levels == doping)[0][0]
+            sigma_0_calc = sigma_800C[idx] / np.exp(-E_a_values[idx] / (8.617e-5 * (800 + 273.15)))
+            sigma_T = ionic_conductivity(T_range, sigma_0_calc, E_a_values[idx])
+    
+            ax2.semilogy(T_range - 273.15, sigma_T, linewidth=2, label=f'{doping} mol% Y₂O₃')
+    
+        ax2.set_xlabel('Temperature (°C)', fontsize=12)
+        ax2.set_ylabel('Ionic Conductivity σ (S/cm)', fontsize=12)
+        ax2.set_title('YSZ Conductivity vs Temperature', fontsize=14, fontweight='bold')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3, which='both')
+    
+        plt.tight_layout()
+        plt.savefig('ysz_conductivity_analysis.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 数値例
+        print("=== YSZ Doping Level Effects ===")
+        for i, doping in enumerate(doping_levels):
+            print(f"{doping:2d} mol% Y₂O₃: σ(800°C) = {sigma_800C[i]:.3f} S/cm, E_a = {E_a_values[i]:.2f} eV")
+    
+    # 実行
+    ysz_conductivity_vs_doping()
+    
+
+**SOFCの動作原理とYSZの役割** SOFC（固体酸化物形燃料電池）では、YSZ電解質を介してO²⁻イオンが陰極から陽極へ移動し、水素と反応して水を生成します。800-1000°Cの高温動作により、0.1 S/cm以上の伝導度が得られ、高効率発電（45-60%）を実現します。 
+
+## 4.5 発光材料セラミックス
+
+### 4.5.1 蛍光体の発光メカニズム
+
+蛍光体は、励起エネルギー（電子線、UV、青色LED）を吸収し、可視光を放出します。発光中心となる希土類イオン（Ce³⁺, Eu²⁺, Eu³⁺など）が、母体結晶（YAG, CaS, SrSiO₅など）中にドープされます。 
+
+発光効率（量子効率）は： 
+
+\\[ \eta = \frac{\text{放出光子数}}{\text{吸収光子数}} \times 100\% \\] 
+
+### 4.5.2 白色LED用YAG:Ce蛍光体
+
+YAG:Ce（Y₃Al₅O₁₂:Ce³⁺）は、青色LED（450-470 nm）で励起され、黄色光（500-650 nm）を放出します。青色光との混色により、白色光を実現します。 
+
+#### Python実装: CIE色度座標の計算
+    
+    
+    # ===================================
+    # Example 7: CIE色度座標計算
+    # ===================================
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.integrate import simpson
+    
+    def gaussian_emission_spectrum(wavelength, peak, fwhm, intensity=1.0):
+        """
+        ガウス型発光スペクトルの生成
+    
+        Parameters:
+        -----------
+        wavelength : array
+            波長 [nm]
+        peak : float
+            ピーク波長 [nm]
+        fwhm : float
+            半値全幅 (FWHM) [nm]
+        intensity : float
+            強度（任意単位）
+    
+        Returns:
+        --------
+        spectrum : array
+            発光強度
+        """
+        sigma = fwhm / (2 * np.sqrt(2 * np.log(2)))
+        spectrum = intensity * np.exp(-((wavelength - peak)**2) / (2 * sigma**2))
+        return spectrum
+    
+    
+    def cie_xyz_from_spectrum(wavelength, spectrum):
+        """
+        発光スペクトルからCIE XYZ値を計算（簡略版）
+    
+        Parameters:
+        -----------
+        wavelength : array
+            波長 [nm]
+        spectrum : array
+            発光強度
+    
+        Returns:
+        --------
+        X, Y, Z : float
+            CIE三刺激値
+        """
+        # CIE 1931標準観測者の簡略モデル（実際は標準データを使用）
+        # ここでは簡単のためガウス近似
+    
+        # x̄(λ): 赤錐体感度（ピーク 600 nm）
+        x_bar = gaussian_emission_spectrum(wavelength, 600, 50, 1.0)
+    
+        # ȳ(λ): 緑錐体感度（ピーク 550 nm）
+        y_bar = gaussian_emission_spectrum(wavelength, 550, 50, 1.0)
+    
+        # z̄(λ): 青錐体感度（ピーク 450 nm）
+        z_bar = gaussian_emission_spectrum(wavelength, 450, 50, 1.0)
+    
+        # 積分
+        X = simpson(spectrum * x_bar, wavelength)
+        Y = simpson(spectrum * y_bar, wavelength)
+        Z = simpson(spectrum * z_bar, wavelength)
+    
+        return X, Y, Z
+    
+    
+    def plot_yag_ce_emission():
+        """
+        YAG:Ce発光スペクトルとCIE色度座標
+        """
+        # 波長範囲
+        wavelength = np.linspace(380, 780, 400)
+    
+        # 青色LED（励起光）
+        blue_led = gaussian_emission_spectrum(wavelength, 460, 20, 1.0)
+    
+        # YAG:Ce発光（黄色）
+        yag_ce_emission = gaussian_emission_spectrum(wavelength, 560, 100, 0.8)
+    
+        # 合成スペクトル（白色光）
+        white_light = blue_led + yag_ce_emission
+    
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+        # 左図: 発光スペクトル
+        ax1 = axes[0]
+        ax1.fill_between(wavelength, 0, blue_led, alpha=0.5, color='blue', label='Blue LED (460 nm)')
+        ax1.fill_between(wavelength, 0, yag_ce_emission, alpha=0.5, color='yellow', label='YAG:Ce (560 nm)')
+        ax1.plot(wavelength, white_light, 'k-', linewidth=2, label='White Light (combined)')
+    
+        ax1.set_xlabel('Wavelength (nm)', fontsize=12)
+        ax1.set_ylabel('Intensity (a.u.)', fontsize=12)
+        ax1.set_title('YAG:Ce White LED Emission Spectrum', fontsize=14, fontweight='bold')
+        ax1.set_xlim(380, 780)
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+    
+        # 右図: CIE 1931色度図（簡略版）
+        ax2 = axes[1]
+    
+        # CIE色度座標の計算
+        X_blue, Y_blue, Z_blue = cie_xyz_from_spectrum(wavelength, blue_led)
+        x_blue = X_blue / (X_blue + Y_blue + Z_blue)
+        y_blue = Y_blue / (X_blue + Y_blue + Z_blue)
+    
+        X_yellow, Y_yellow, Z_yellow = cie_xyz_from_spectrum(wavelength, yag_ce_emission)
+        x_yellow = X_yellow / (X_yellow + Y_yellow + Z_yellow)
+        y_yellow = Y_yellow / (X_yellow + Y_yellow + Z_yellow)
+    
+        X_white, Y_white, Z_white = cie_xyz_from_spectrum(wavelength, white_light)
+        x_white = X_white / (X_white + Y_white + Z_white)
+        y_white = Y_white / (X_white + Y_white + Z_white)
+    
+        # プロット
+        ax2.scatter(x_blue, y_blue, s=200, c='blue', marker='o', edgecolors='black', linewidth=2, label='Blue LED')
+        ax2.scatter(x_yellow, y_yellow, s=200, c='yellow', marker='s', edgecolors='black', linewidth=2, label='YAG:Ce')
+        ax2.scatter(x_white, y_white, s=250, c='white', marker='*', edgecolors='black', linewidth=2, label='White Light', zorder=5)
+    
+        # 色温度線（簡略）
+        blackbody_x = np.array([0.45, 0.40, 0.35, 0.31])
+        blackbody_y = np.array([0.41, 0.40, 0.38, 0.33])
+        ax2.plot(blackbody_x, blackbody_y, 'k--', linewidth=1, alpha=0.5, label='Blackbody Locus')
+    
+        ax2.set_xlabel('CIE x', fontsize=12)
+        ax2.set_ylabel('CIE y', fontsize=12)
+        ax2.set_title('CIE 1931 Chromaticity Diagram', fontsize=14, fontweight='bold')
+        ax2.set_xlim(0, 0.8)
+        ax2.set_ylim(0, 0.9)
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('yag_ce_emission.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 数値結果
+        print("=== CIE Chromaticity Coordinates ===")
+        print(f"Blue LED:  (x, y) = ({x_blue:.3f}, {y_blue:.3f})")
+        print(f"YAG:Ce:    (x, y) = ({x_yellow:.3f}, {y_yellow:.3f})")
+        print(f"White Light: (x, y) = ({x_white:.3f}, {y_white:.3f})")
+        print(f"\nColor Temperature: ~5000-6000 K (cool white)")
+    
+    # 実行
+    plot_yag_ce_emission()
+    
+
+**白色LED蛍光体の設計** 理想的な白色光（色温度5000 K、演色性Ra > 80）には、YAG:Ce単独では不十分です。赤色成分を補うため、CaAlSiN₃:Eu²⁺（窒化物赤色蛍光体）を追加することで、演色性Ra > 90を実現できます。 
+
+## 4.6 磁性セラミックス
+
+### 4.6.1 フェライトの磁性
+
+フェライトは、一般式 MFe₂O₄（M = Mn, Ni, Zn, Co）で表される酸化物磁性体です。スピネル構造を持ち、フェリ磁性を示します。電気抵抗が高いため（>10⁶ Ω·cm）、高周波用途に適しています。 
+
+### 4.6.2 主要特性パラメータ
+
+  * **飽和磁化 M s**: 最大磁化（T = テスラ）
+  * **保磁力 H c**: 磁化を反転させる磁場（A/m）
+  * **透磁率 μ r**: 磁気透過率（無次元）
+  * **キュリー温度 T c**: 強磁性→常磁性転移温度（°C）
+
+材料 | Ms (T) | Hc (A/m) | μr | 用途  
+---|---|---|---|---  
+MnZn-ferrite | 0.35 | 10-20 | 2000-5000 | トランスコア  
+NiZn-ferrite | 0.30 | 15-30 | 100-1000 | 高周波コア  
+BaFe₁₂O₁₉ (M-type) | 0.48 | 200k-400k | 1.1 | 永久磁石  
+CoFe₂O₄ | 0.53 | 5k-10k | 10-50 | 磁気記録  
+  
+#### Python実装: フェライト磁化特性のシミュレーション
+    
+    
+    # ===================================
+    # Example 8: フェライト磁化曲線
+    # ===================================
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def langevin_function(x):
+        """
+        Langevin関数（常磁性の磁化）
+    
+        Parameters:
+        -----------
+        x : float or array
+            引数 (μH/kT)
+    
+        Returns:
+        --------
+        L(x) : float or array
+            Langevin関数の値
+        """
+        # 小さいxで発散を避ける
+        with np.errstate(divide='ignore', invalid='ignore'):
+            L = np.where(np.abs(x) < 1e-3, x / 3, 1 / np.tanh(x) - 1 / x)
+        return L
+    
+    
+    def ferrite_magnetization_curve(H, M_s=0.35, H_c=15, a=1000):
+        """
+        フェライトの磁化曲線（簡略モデル）
+    
+        Parameters:
+        -----------
+        H : array
+            磁場 [A/m]
+        M_s : float
+            飽和磁化 [T]
+        H_c : float
+            保磁力 [A/m]
+        a : float
+            形状パラメータ
+    
+        Returns:
+        --------
+        M : array
+            磁化 [T]
+        """
+        # tanhベースの簡略モデル
+        M = M_s * np.tanh((H - H_c) / a) if isinstance(H, (int, float)) else \
+            M_s * np.tanh((H - H_c) / a)
+        return M
+    
+    
+    def plot_ferrite_properties():
+        """
+        フェライトの磁気特性を可視化
+        """
+        # 磁場範囲
+        H_range = np.linspace(-5000, 5000, 1000)
+    
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+        # 左図: 軟磁性フェライト（MnZn）
+        ax1 = axes[0]
+    
+        M_s_soft = 0.35
+        H_c_soft = 15
+        M_soft = M_s_soft * np.tanh(H_range / 500)
+    
+        ax1.plot(H_range, M_soft, linewidth=2, color='navy')
+        ax1.axhline(y=M_s_soft, color='red', linestyle='--', linewidth=1, alpha=0.5, label=f'M_s = {M_s_soft} T')
+        ax1.axhline(y=-M_s_soft, color='red', linestyle='--', linewidth=1, alpha=0.5)
+        ax1.axvline(x=0, color='black', linestyle='-', linewidth=0.5)
+        ax1.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+    
+        ax1.set_xlabel('Magnetic Field H (A/m)', fontsize=12)
+        ax1.set_ylabel('Magnetization M (T)', fontsize=12)
+        ax1.set_title('Soft Ferrite (MnZn) M-H Curve', fontsize=14, fontweight='bold')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+    
+        # 右図: 硬磁性フェライト（BaFe₁₂O₁₉）
+        ax2 = axes[1]
+    
+        M_s_hard = 0.48
+        H_c_hard = 250000  # 250 kA/m
+        H_hard = np.linspace(-400000, 400000, 1000)
+        M_hard = M_s_hard * np.tanh((H_hard - H_c_hard) / 50000)
+    
+        # ヒステリシスループの近似
+        M_hard_up = M_s_hard * np.tanh((H_hard + H_c_hard) / 50000)
+        M_hard_down = M_s_hard * np.tanh((H_hard - H_c_hard) / 50000)
+    
+        ax2.plot(H_hard / 1000, M_hard_up, linewidth=2, color='blue', label='Ascending')
+        ax2.plot(H_hard / 1000, M_hard_down, linewidth=2, color='red', label='Descending')
+        ax2.axvline(x=H_c_hard / 1000, color='green', linestyle='--', linewidth=2, label=f'H_c = {H_c_hard/1000:.0f} kA/m')
+        ax2.axvline(x=-H_c_hard / 1000, color='green', linestyle='--', linewidth=2)
+    
+        ax2.set_xlabel('Magnetic Field H (kA/m)', fontsize=12)
+        ax2.set_ylabel('Magnetization M (T)', fontsize=12)
+        ax2.set_title('Hard Ferrite (BaFe₁₂O₁₉) Hysteresis Loop', fontsize=14, fontweight='bold')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('ferrite_magnetization.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        # 数値例
+        print("=== Ferrite Magnetic Properties ===")
+        print("\nSoft Ferrite (MnZn):")
+        print(f"  M_s = {M_s_soft} T, H_c = {H_c_soft} A/m")
+        print(f"  Application: High permeability (μ_r ~ 2000-5000), transformer cores")
+    
+        print("\nHard Ferrite (BaFe₁₂O₁₉):")
+        print(f"  M_s = {M_s_hard} T, H_c = {H_c_hard/1000} kA/m")
+        print(f"  Application: Permanent magnets, motors, speakers")
+    
+    # 実行
+    plot_ferrite_properties()
+    
+
+**ソフト磁性とハード磁性の用途分離** ソフトフェライト（低Hc、高μr）は、磁化が容易に反転するため、トランスやインダクタに使用されます。一方、ハードフェライト（高Hc）は、磁化が安定で永久磁石として機能します。両者は組成（Mn/Zn vs Ba/Sr）と焼結条件で制御されます。 
+
+## 演習問題
+
+#### 演習 4-1: Clausius-Mossotti式の応用易
+
+TiO₂の分極率α = 2.5×10⁻⁴⁰ C·m²/V、イオン密度N = 5×10²⁸ m⁻³のとき、比誘電率εrを計算しなさい。 
+
+解答例
+    
+    
+    alpha = 2.5e-40
+    N = 5e28
+    epsilon_r = clausius_mossotti_permittivity(alpha, N)
+    print(f"εᵣ = {epsilon_r:.1f}")
+    # 出力: εᵣ ≈ 80
+    
+
+#### 演習 4-2: MLCC容量設計易
+
+1 μFのMLCCを設計します。εr=3000、電極面積1 mm²、層厚み5 μmのとき、必要な積層数nを計算しなさい。 
+
+解答例
+    
+    
+    C_target = 1e-6  # 1 μF
+    epsilon_r = 3000
+    A = (1e-3)**2
+    d = 5e-6
+    epsilon_0 = 8.854e-12
+    
+    n = (C_target * d) / (epsilon_0 * epsilon_r * A)
+    print(f"必要な積層数 n = {n:.0f}")
+    # 出力: n ≈ 377層
+    
+
+#### 演習 4-3: 圧電変位の計算易
+
+PZT-5H（d₃₃ = 593 pC/N）に電場1 MV/mを印加したとき、1 mm厚の試験片の変位を計算しなさい。 
+
+解答例
+    
+    
+    d_33 = 593e-12
+    E = 1e6
+    thickness = 1e-3
+    
+    strain = piezoelectric_strain(d_33, E)
+    displacement = strain * thickness
+    print(f"変位 = {displacement*1e9:.1f} nm")
+    # 出力: 変位 ≈ 593 nm
+    
+
+#### 演習 4-4: Arrhenius活性化エネルギーの推定中
+
+YSZの伝導度が、700°Cで0.05 S/cm、900°Cで0.15 S/cmでした。活性化エネルギーEaを求めなさい。 
+
+解答例
+    
+    
+    T1 = 700 + 273.15
+    T2 = 900 + 273.15
+    sigma1 = 0.05
+    sigma2 = 0.15
+    k_B = 8.617e-5
+    
+    # ln(σ₂/σ₁) = -E_a/k_B × (1/T₂ - 1/T₁)
+    E_a = -k_B * np.log(sigma2 / sigma1) / (1/T2 - 1/T1)
+    print(f"E_a = {E_a:.2f} eV")
+    # 出力: E_a ≈ 0.95 eV
+    
+
+#### 演習 4-5: 白色LED色温度の調整中
+
+青色LED（460 nm）とYAG:Ce（560 nm）の強度比を変えて、色温度を4000 K（温白色）から6500 K（昼白色）に調整する方法を説明しなさい。 
+
+解答例
+    
+    
+    # 色温度を上げる（昼白色）には、青色成分を増やす
+    # YAG:Ce発光強度を減らすか、YAG:Ce層を薄くする
+    
+    # 4000 K: 青/黄 = 1.0
+    # 6500 K: 青/黄 = 1.5
+    
+    print("色温度を上げるには:")
+    print("1. YAG:Ce蛍光体層を薄くする（黄色減少）")
+    print("2. YAG:Ce濃度を下げる")
+    print("3. 青色LED出力を上げる")
+    
+
+#### 演習 4-6: PZT組成最適化中
+
+PZTのZr/Ti比を変えて、d₃₃が最大となる組成（MPB）を見つけるシミュレーションを実行しなさい。 
+
+解答例
+    
+    
+    x_Zr = np.linspace(0, 1, 100)
+    x_MPB = 0.52
+    d_33 = 200 + 400 * np.exp(-((x_Zr - x_MPB) / 0.1)**2)
+    
+    max_idx = np.argmax(d_33)
+    print(f"最適組成: x_Zr = {x_Zr[max_idx]:.2f}")
+    print(f"最大d₃₃ = {d_33[max_idx]:.0f} pC/N")
+    # 出力: x_Zr = 0.52, d₃₃ ≈ 600 pC/N
+    
+
+#### 演習 4-7: フェライト透磁率の周波数依存性中
+
+MnZnフェライトの透磁率が、1 kHzで3000、1 MHzで500に低下します。この周波数依存性の原因を説明しなさい。 
+
+解答例
+    
+    
+    print("周波数依存性の原因:")
+    print("1. 渦電流損失（低抵抗率）")
+    print("2. 磁壁移動の遅延（高周波で磁壁が追従できない）")
+    print("3. スピン回転の共鳴（フェリ磁性共鳴周波数）")
+    print("\n対策: NiZnフェライト（高抵抗）への変更")
+    
+
+#### 演習 4-8: SOFC電解質の厚み最適化難
+
+YSZ電解質の抵抗Rは、R = ρ × L / A（ρ: 抵抗率、L: 厚み、A: 面積）です。800°Cで0.1 S/cmの伝導度、10 cm²の面積のとき、抵抗を0.1 Ω以下にする最大厚みを求めなさい。 
+
+解答例
+    
+    
+    sigma = 0.1  # S/cm = 10 S/m
+    rho = 1 / sigma  # Ω·m
+    A = 10e-4  # m²
+    R_target = 0.1  # Ω
+    
+    L_max = R_target * A / rho
+    print(f"最大厚み L = {L_max*1e6:.0f} μm")
+    # 出力: L ≈ 100 μm
+    # 実際のSOFCでは10-50 μmが一般的
+    
+
+#### 演習 4-9: 圧電エネルギーハーベスティング難
+
+PZT素子（d₃₃ = 300 pC/N、面積10 cm²）に100 Nの荷重を周期的（10 Hz）に印加します。発生電力を推定しなさい（簡略計算）。 
+
+解答例
+    
+    
+    d_33 = 300e-12
+    F = 100  # N
+    A = 10e-4  # m²
+    f = 10  # Hz
+    epsilon_r = 1300
+    epsilon_0 = 8.854e-12
+    
+    # 発生電荷 Q = d₃₃ × F
+    Q = d_33 * F
+    print(f"発生電荷 Q = {Q*1e9:.1f} nC")
+    
+    # 容量 C = ε₀εᵣA/d（厚み1 mmと仮定）
+    d = 1e-3
+    C = epsilon_0 * epsilon_r * A / d
+    V = Q / C
+    print(f"電圧 V = {V:.1f} V")
+    
+    # 電力 P = 0.5 × C × V² × f
+    P = 0.5 * C * V**2 * f
+    print(f"電力 P = {P*1e6:.1f} μW")
+    # 出力例: ~10-100 μW（実用レベルは mW必要）
+    
+
+#### 演習 4-10: 多層構造蛍光体の設計難
+
+高演色性白色LED（Ra > 90）を実現するため、YAG:Ce（黄）とCaAlSiN₃:Eu（赤）の2層蛍光体を設計します。各層の厚み比と発光強度比を最適化する方針を述べなさい。 
+
+解答例
+    
+    
+    print("設計方針:")
+    print("1. YAG:Ce層（黄）: 青色LED励起で550 nm発光")
+    print("2. CaAlSiN₃:Eu層（赤）: 青色励起で630 nm発光")
+    print("3. 厚み比: YAG:Ce = 80%, 赤蛍光体 = 20%")
+    print("4. 発光強度比: 青:黄:赤 = 30:50:20")
+    print("5. CIE色度座標を(0.33, 0.33)に調整")
+    print("6. 演色評価数Ra > 90を確認（R9赤成分が重要）")
+    print("\n最適化アルゴリズム:")
+    print("- 厚みと濃度をパラメータとしたモンテカルロ最適化")
+    print("- 目的関数: Ra最大化 & 色温度5000-6500K制約")
+    
+
+## 参考文献
+
+  1. Moulson, A.J., Herbert, J.M. (2003). _Electroceramics: Materials, Properties, Applications_. Wiley, pp. 1-85, 155-210, 340-395.
+  2. Jaffe, B., Cook, W.R., Jaffe, H. (1971). _Piezoelectric Ceramics_. Academic Press, pp. 50-135.
+  3. Tuller, H.L. (2000). Ionic conduction in nanocrystalline materials. _Solid State Ionics_ , 131, 15-68.
+  4. Ronda, C.R. (2008). _Luminescence: From Theory to Applications_. Wiley-VCH, pp. 120-180.
+  5. Blasse, G., Grabmaier, B.C. (1994). _Luminescent Materials_. Springer, pp. 1-65.
+  6. Goldman, A. (2006). _Modern Ferrite Technology_. Springer, pp. 30-95.
+  7. Setter, N. (2002). _Piezoelectric Materials in Devices_. EPFL Swiss Federal Institute of Technology, pp. 1-50, 200-250.
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

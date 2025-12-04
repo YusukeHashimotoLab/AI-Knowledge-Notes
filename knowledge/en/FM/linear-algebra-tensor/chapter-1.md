@@ -1,0 +1,148 @@
+---
+title: "Chapter 1: Fundamentals of Vectors and Matrices"
+chapter_title: "Chapter 1: Fundamentals of Vectors and Matrices"
+subtitle: Vectors and Matrices Fundamentals
+---
+
+🌐 EN | [🇯🇵 JP](<../../../jp/FM/linear-algebra-tensor/chapter-1.html>) | Last sync: 2025-11-16
+
+[Fundamentals of Mathematics Dojo](<../index.html>) > [Linear Algebra and Tensor Analysis](<index.html>) > Chapter 1 
+
+## 1.1 Vector Fundamentals
+
+**Definition: Vector**  
+An n-dimensional vector is a set of n numbers: \\[\mathbf{v} = \begin{pmatrix} v_1 \\\ v_2 \\\ \vdots \\\ v_n \end{pmatrix}\\] Represents quantities with magnitude and direction (position, velocity, force, etc.). 
+
+### Code Example 1: Vector Operations with NumPy
+
+Python Implementation: Vector Operations with NumPy
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example: Code Example 1: Vector Operations with NumPy
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Beginner to Intermediate
+    Execution time: 2-5 seconds
+    Dependencies: None
+    """
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # Define vectors
+    v1 = np.array([3, 2])
+    v2 = np.array([1, 4])
+    
+    # Vector operations
+    v_sum = v1 + v2      # Sum
+    v_diff = v1 - v2     # Difference
+    v_scalar = 2 * v1    # Scalar multiplication
+    
+    print("Vector Operations:")
+    print(f"v1 = {v1}")
+    print(f"v2 = {v2}")
+    print(f"v1 + v2 = {v_sum}")
+    print(f"v1 - v2 = {v_diff}")
+    print(f"2 * v1 = {v_scalar}")
+    
+    # Visualization
+    fig, ax = plt.subplots(figsize=(8, 8))
+    origin = [0, 0]
+    
+    # Draw vectors as arrows
+    ax.quiver(*origin, *v1, angles='xy', scale_units='xy', scale=1, color='blue', width=0.01, label='v1')
+    ax.quiver(*origin, *v2, angles='xy', scale_units='xy', scale=1, color='red', width=0.01, label='v2')
+    ax.quiver(*origin, *v_sum, angles='xy', scale_units='xy', scale=1, color='green', width=0.01, label='v1+v2')
+    
+    # Display parallelogram law
+    ax.plot([v1[0], v_sum[0]], [v1[1], v_sum[1]], 'k--', alpha=0.3)
+    ax.plot([v2[0], v_sum[0]], [v2[1], v_sum[1]], 'k--', alpha=0.3)
+    
+    ax.set_xlim(-1, 6)
+    ax.set_ylim(-1, 7)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_title('Vector Addition')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.axhline(y=0, color='k', linewidth=0.5)
+    ax.axvline(x=0, color='k', linewidth=0.5)
+    plt.axis('equal')
+    plt.show()
+
+## 1.2 Dot Product and Norm
+
+**Definition: Dot Product and Norm**  
+Dot product of vectors v, w: \\[\mathbf{v} \cdot \mathbf{w} = \sum_{i=1}^n v_i w_i = v_1 w_1 + v_2 w_2 + \cdots + v_n w_n\\] Norm (length): \\[\|\mathbf{v}\| = \sqrt{\mathbf{v} \cdot \mathbf{v}} = \sqrt{v_1^2 + v_2^2 + \cdots + v_n^2}\\] 
+
+### Code Example 2: Calculating Dot Product and Norm
+
+# Calculate dot product dot_product = np.dot(v1, v2) # or v1 @ v2 # Calculate norm norm_v1 = np.linalg.norm(v1) norm_v2 = np.linalg.norm(v2) # Calculate angle: cos θ = (v·w) / (||v|| ||w||) cos_theta = dot_product / (norm_v1 * norm_v2) theta_rad = np.arccos(cos_theta) theta_deg = np.degrees(theta_rad) print(f"\nDot Product and Angle:") print(f"v1 · v2 = {dot_product}") print(f"||v1|| = {norm_v1:.4f}") print(f"||v2|| = {norm_v2:.4f}") print(f"Angle between v1 and v2: {theta_deg:.2f}°") # Unit vector (normalization) v1_unit = v1 / norm_v1 v2_unit = v2 / norm_v2 print(f"\nUnit vector of v1: {v1_unit}") print(f"Norm of unit vector: {np.linalg.norm(v1_unit):.10f}")
+
+## 1.3 Cross Product (3D)
+
+**Definition: Cross Product**  
+Cross product of 3D vectors v, w: \\[\mathbf{v} \times \mathbf{w} = \begin{pmatrix} v_2 w_3 - v_3 w_2 \\\ v_3 w_1 - v_1 w_3 \\\ v_1 w_2 - v_2 w_1 \end{pmatrix}\\] Result is a vector perpendicular to both v and w. 
+
+### Code Example 3: Calculating and Visualizing Cross Product
+
+from mpl_toolkits.mplot3d import Axes3D # 3D vectors v_3d = np.array([1, 0, 0]) w_3d = np.array([0, 1, 0]) # Calculate cross product cross_product = np.cross(v_3d, w_3d) print("Cross Product Calculation:") print(f"v = {v_3d}") print(f"w = {w_3d}") print(f"v × w = {cross_product}") print(f"||v × w|| = {np.linalg.norm(cross_product):.4f}") # Verify v × w is perpendicular to v and w print(f"\nPerpendicularity Check:") print(f"(v × w) · v = {np.dot(cross_product, v_3d):.10f}") print(f"(v × w) · w = {np.dot(cross_product, w_3d):.10f}") # 3D visualization fig = plt.figure(figsize=(10, 8)) ax = fig.add_subplot(111, projection='3d') origin = [0, 0, 0] ax.quiver(*origin, *v_3d, color='blue', arrow_length_ratio=0.1, linewidth=2, label='v') ax.quiver(*origin, *w_3d, color='red', arrow_length_ratio=0.1, linewidth=2, label='w') ax.quiver(*origin, *cross_product, color='green', arrow_length_ratio=0.1, linewidth=2, label='v×w') ax.set_xlim([-0.5, 1.5]) ax.set_ylim([-0.5, 1.5]) ax.set_zlim([-0.5, 1.5]) ax.set_xlabel('X') ax.set_ylabel('Y') ax.set_zlabel('Z') ax.set_title('Cross Product: v × w') ax.legend() plt.show()
+
+## 1.4 Basic Matrix Operations
+
+**Definition: Matrix**  
+An m × n matrix is an array of numbers with m rows and n columns: \\[A = \begin{pmatrix} a_{11} & a_{12} & \cdots & a_{1n} \\\ a_{21} & a_{22} & \cdots & a_{2n} \\\ \vdots & \vdots & \ddots & \vdots \\\ a_{m1} & a_{m2} & \cdots & a_{mn} \end{pmatrix}\\] 
+
+### Code Example 4: Basic Matrix Operations
+
+# Define matrices A = np.array([[1, 2, 3], [4, 5, 6]]) B = np.array([[7, 8], [9, 10], [11, 12]]) print("Matrix Operations:") print(f"A (2×3) =\n{A}\n") print(f"B (3×2) =\n{B}\n") # Transpose matrix A_T = A.T print(f"A^T (transpose) =\n{A_T}\n") # Matrix product (2×3) × (3×2) = (2×2) C = A @ B # or np.dot(A, B) print(f"A × B (2×2) =\n{C}\n") # Element-wise operations D = A + A # Addition if same shape E = 2 * A # Scalar multiplication print(f"A + A =\n{D}\n") print(f"2 * A =\n{E}")
+
+## 1.5 Special Matrices
+
+### Code Example 5: Identity Matrix, Zero Matrix, Diagonal Matrix
+
+# Identity matrix (diagonal elements are 1) I = np.eye(3) print("Identity Matrix I (3×3):") print(I) # Zero matrix Z = np.zeros((2, 3)) print(f"\nZero Matrix O (2×3):\n{Z}") # Diagonal matrix diag_values = [1, 2, 3] D_diag = np.diag(diag_values) print(f"\nDiagonal Matrix D:\n{D_diag}") # Extract diagonal elements of matrix A_square = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]) diag_A = np.diag(A_square) print(f"\nDiagonal elements of A: {diag_A}") # Trace (sum of diagonal elements) trace_A = np.trace(A_square) print(f"tr(A) = {trace_A}")
+
+## 1.6 Inverse Matrix
+
+**Definition: Inverse Matrix**  
+For square matrix A, A⁻¹ satisfying AA⁻¹ = A⁻¹A = I is called the inverse matrix. Inverse exists ⇔ det(A) ≠ 0 (non-singular matrix) 
+
+### Code Example 6: Calculating Inverse Matrix
+
+# Non-singular matrix A_inv = np.array([[1, 2], [3, 4]]) # Calculate inverse A_inverse = np.linalg.inv(A_inv) print("Inverse Matrix Calculation:") print(f"A =\n{A_inv}\n") print(f"A^(-1) =\n{A_inverse}\n") # Verification: A × A^(-1) = I product = A_inv @ A_inverse print(f"A × A^(-1) =\n{product}\n") print(f"Close to identity matrix: {np.allclose(product, np.eye(2))}") # Determinant det_A = np.linalg.det(A_inv) print(f"\ndet(A) = {det_A:.4f}") print(f"det(A) ≠ 0 so inverse exists ✓")
+
+## 1.7 Geometric Meaning of Linear Transformations
+
+### Code Example 7: Rotation Matrix
+
+# Rotation matrix: rotate counterclockwise by θ def rotation_matrix(theta): """2D rotation matrix""" cos_t = np.cos(theta) sin_t = np.sin(theta) return np.array([[cos_t, -sin_t], [sin_t, cos_t]]) # 45 degree rotation theta = np.pi / 4 # 45 degrees R = rotation_matrix(theta) print(f"45 Degree Rotation Matrix:") print(R) # Original vectors points = np.array([[1, 0], [0, 1], [1, 1], [0, 0]]) # Rotated vectors rotated_points = points @ R.T # Visualization fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6)) # Original shape ax1.plot([0, 1], [0, 0], 'b-', linewidth=2, marker='o') ax1.plot([0, 0], [0, 1], 'r-', linewidth=2, marker='o') ax1.set_xlim(-1.5, 1.5) ax1.set_ylim(-1.5, 1.5) ax1.set_xlabel('x') ax1.set_ylabel('y') ax1.set_title('Original Shape') ax1.grid(True, alpha=0.3) ax1.axhline(y=0, color='k', linewidth=0.5) ax1.axvline(x=0, color='k', linewidth=0.5) ax1.axis('equal') # Rotated shape ax2.plot([0, rotated_points[0,0]], [0, rotated_points[0,1]], 'b-', linewidth=2, marker='o') ax2.plot([0, rotated_points[1,0]], [0, rotated_points[1,1]], 'r-', linewidth=2, marker='o') ax2.set_xlim(-1.5, 1.5) ax2.set_ylim(-1.5, 1.5) ax2.set_xlabel('x') ax2.set_ylabel('y') ax2.set_title('After 45° Rotation') ax2.grid(True, alpha=0.3) ax2.axhline(y=0, color='k', linewidth=0.5) ax2.axvline(x=0, color='k', linewidth=0.5) ax2.axis('equal') plt.tight_layout() plt.show()
+
+### Code Example 8: Scaling and Shear
+
+# Scaling matrix (expansion/contraction) S = np.array([[2, 0], [0, 0.5]]) # Shear matrix Sh = np.array([[1, 0.5], [0, 1]]) # Square vertices square = np.array([[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]) # After transformation scaled = square @ S.T sheared = square @ Sh.T fig, axes = plt.subplots(1, 3, figsize=(15, 5)) # Original shape axes[0].plot(square[:,0], square[:,1], 'b-', linewidth=2) axes[0].fill(square[:,0], square[:,1], alpha=0.3) axes[0].set_title('Original Square') axes[0].set_xlim(-0.5, 2.5) axes[0].set_ylim(-0.5, 2.5) axes[0].grid(True, alpha=0.3) axes[0].axis('equal') # Scaling axes[1].plot(scaled[:,0], scaled[:,1], 'r-', linewidth=2) axes[1].fill(scaled[:,0], scaled[:,1], alpha=0.3, color='red') axes[1].set_title('Scaling (2x, 0.5x)') axes[1].set_xlim(-0.5, 2.5) axes[1].set_ylim(-0.5, 2.5) axes[1].grid(True, alpha=0.3) axes[1].axis('equal') # Shear axes[2].plot(sheared[:,0], sheared[:,1], 'g-', linewidth=2) axes[2].fill(sheared[:,0], sheared[:,1], alpha=0.3, color='green') axes[2].set_title('Shear') axes[2].set_xlim(-0.5, 2.5) axes[2].set_ylim(-0.5, 2.5) axes[2].grid(True, alpha=0.3) axes[2].axis('equal') plt.tight_layout() plt.show() print("Linear Transformations:") print(f"Scaling Matrix:\n{S}") print(f"\nShear Matrix:\n{Sh}")
+
+## Summary
+
+  * Vectors are quantities with magnitude and direction, efficiently handled as NumPy arrays
+  * Dot product is used for angle calculations, cross product generates perpendicular vectors
+  * Matrices represent linear transformations, unifying rotation, scaling, and shear operations
+  * Inverse matrices are essential for solving linear equations and inverse operations
+  * NumPy linear algebra functions enable concise implementation of complex operations
+
+[← Series Top](<index.html>) [Chapter 2: Determinants and Linear Systems →](<chapter-2.html>)
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

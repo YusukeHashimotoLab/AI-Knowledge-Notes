@@ -1,0 +1,1012 @@
+---
+title: Hashimoto Laboratory
+chapter_title: Hashimoto Laboratory
+---
+
+🌐 EN | [🇯🇵 JP](<../../../jp/PI/semiconductor-manufacturing-ai/chapter-3.html>) | Last sync: 2025-11-16
+
+[Home](<../../../en/>) > > [Process Informatics](<../../PI/>) > [Semiconductor Manufacturing AI](<../../PI/semiconductor-manufacturing-ai/>) > Chapter 3 
+
+## Learning Objectives
+
+  * Master efficient parameter search methods using Bayesian Optimization
+  * Understand how to simultaneously improve yield, cost, and throughput with multi-objective optimization
+  * Learn how to implement process control using reinforcement learning
+  * Master methods to identify root causes of yield degradation using causal inference
+  * Understand interpretability of machine learning models and utilization of SHAP values
+
+## 3.1 Challenges in Semiconductor Manufacturing Yield Optimization
+
+### 3.1.1 Economic Impact of Yield Improvement
+
+In semiconductor manufacturing, a 1% yield improvement often translates to hundreds of millions of yen in profit increase. The main challenges are:
+
+  * **Multi-variable Dependencies** : Over 100 process parameters interact in complex ways
+  * **Evaluation Costs** : One experiment takes several hours to days and costs millions of yen
+  * **Nonlinearity** : The relationship between parameters and yield is highly nonlinear
+  * **Trade-offs** : Yield, throughput, and cost are in conflict
+  * **Noise** : Measurement errors due to equipment and environmental variations
+
+### 3.1.2 Limitations of Conventional Methods
+
+Challenges with traditional DOE (Design of Experiments) methods:
+
+**Explosion of Experiments** : 10 parameters × 3 levels = 59,049 combinations (full search impossible)
+
+**Local Optima** : Grid search easily falls into local optima
+
+**Ignoring Prior Knowledge** : Cannot utilize past experimental data
+
+**Low Search Efficiency** : Cannot perform intensive search in promising regions
+
+### 3.1.3 Benefits of AI Optimization
+
+Improvements through AI methods such as Bayesian Optimization:
+
+  * **Reduced Experiments** : Find optimal solution with less than 1/10 of conventional experiments
+  * **Global Optimization** : Escape local optima and discover true optimal solutions
+  * **Knowledge Accumulation** : Utilize and learn from past experimental data
+  * **Quantification of Uncertainty** : Theoretically select next experiment candidates
+
+## 3.2 Process Optimization with Bayesian Optimization
+
+### 3.2.1 Principles of Bayesian Optimization
+
+Bayesian Optimization (BO) is a method specialized for optimizing expensive, black-box functions:
+
+**Surrogate Model**
+
+Approximate the true objective function with Gaussian Process (GP):
+
+$$f(x) \sim \mathcal{GP}(m(x), k(x, x'))$$
+
+where \\(m(x)\\) is the mean function and \\(k(x, x')\\) is the kernel function.
+
+**Acquisition Function**
+
+Determines the next point to evaluate. Representative acquisition functions:
+
+_Expected Improvement (EI)_
+
+$$\text{EI}(x) = \mathbb{E}[\max(f(x) - f(x^+), 0)]$$
+
+\\(x^+\\): Current best point
+
+_Upper Confidence Bound (UCB)_
+
+$$\text{UCB}(x) = \mu(x) + \kappa \sigma(x)$$
+
+\\(\kappa\\): Trade-off parameter between exploration and exploitation
+
+### 3.2.2 Implementation of Etching Process Optimization
+
+Below is an example of plasma etching yield optimization:
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    from scipy.stats import norm
+    from scipy.optimize import minimize
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.gaussian_process.kernels import RBF, ConstantKernel, Matern, WhiteKernel
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    
+    class BayesianOptimizationYield:
+        """
+        Yield optimization using Bayesian Optimization
+    
+        Target process: Plasma etching
+        Optimization parameters:
+        - RF Power (100-400 W)
+        - Pressure (10-100 mTorr)
+        - Gas Flow (50-200 sccm)
+        - Temperature (20-80 °C)
+    
+        Objective: Maximize yield (with minimum evaluation cost)
+        """
+    
+        def __init__(self, param_bounds, n_init=10, acquisition='ei', kappa=2.576):
+            """
+            Parameters:
+            -----------
+            param_bounds : list of tuples
+                Search range for each parameter [(min1, max1), (min2, max2), ...]
+            n_init : int
+                Number of initial random samples
+            acquisition : str
+                Acquisition function ('ei', 'ucb', 'poi')
+            kappa : float
+                UCB κ parameter (degree of exploration)
+            """
+            self.param_bounds = np.array(param_bounds)
+            self.dim = len(param_bounds)
+            self.n_init = n_init
+            self.acquisition = acquisition
+            self.kappa = kappa
+    
+            # Observed data
+            self.X_observed = np.empty((0, self.dim))
+            self.y_observed = np.empty(0)
+    
+            # Gaussian Process setup
+            # Matern kernel (ν=2.5) + noise term
+            kernel = (
+                ConstantKernel(1.0, (1e-3, 1e3)) *
+                Matern(length_scale=np.ones(self.dim), nu=2.5,
+                       length_scale_bounds=(1e-2, 1e2)) +
+                WhiteKernel(noise_level=1e-5, noise_level_bounds=(1e-10, 1e-1))
+            )
+    
+            self.gp = GaussianProcessRegressor(
+                kernel=kernel,
+                n_restarts_optimizer=10,
+                alpha=1e-6,
+                normalize_y=True
+            )
+    
+            # Parameter names (for readability)
+            self.param_names = ['RF_Power(W)', 'Pressure(mTorr)',
+                               'Gas_Flow(sccm)', 'Temperature(C)']
+    
+        def _normalize(self, X):
+            """Normalize parameters to [0,1]"""
+            return (X - self.param_bounds[:, 0]) / (
+                self.param_bounds[:, 1] - self.param_bounds[:, 0]
+            )
+    
+        def _denormalize(self, X_norm):
+            """Convert from [0,1] back to original scale"""
+            return X_norm * (self.param_bounds[:, 1] - self.param_bounds[:, 0]
+                            ) + self.param_bounds[:, 0]
+    
+        def objective_function(self, params):
+            """
+            True objective function (measured by experiment in practice)
+    
+            This is a dummy function for simulation
+            In actual use, replace with a function that sets parameters
+            on experimental equipment and measures yield
+            """
+            rf_power, pressure, gas_flow, temp = params
+    
+            # Simulate yield with complex nonlinear function
+            # Unknown complex function in actual process
+            yield_rate = (
+                0.95 - 0.001 * (rf_power - 250)**2 -
+                0.0005 * (pressure - 50)**2 -
+                0.0002 * (gas_flow - 125)**2 -
+                0.0003 * (temp - 50)**2 +
+                0.0001 * rf_power * pressure / 10000 -
+                0.00005 * gas_flow * temp / 1000 +
+                np.random.normal(0, 0.005)  # Measurement noise
+            )
+    
+            # Yield is in the range 0-1
+            return np.clip(yield_rate, 0, 1)
+    
+        def expected_improvement(self, X, xi=0.01):
+            """
+            Expected Improvement acquisition function
+    
+            Parameters:
+            -----------
+            X : ndarray
+                Evaluation points (n_points, n_dims)
+            xi : float
+                Exploration parameter (larger values favor exploration)
+            """
+            X_norm = self._normalize(X)
+            mu, sigma = self.gp.predict(X_norm, return_std=True)
+    
+            # Current best value
+            f_best = np.max(self.y_observed)
+    
+            # Improvement
+            improvement = mu - f_best - xi
+    
+            # Z value
+            with np.errstate(divide='warn'):
+                Z = improvement / sigma
+                ei = improvement * norm.cdf(Z) + sigma * norm.pdf(Z)
+                ei[sigma == 0.0] = 0.0
+    
+            return ei
+    
+        def upper_confidence_bound(self, X):
+            """
+            Upper Confidence Bound acquisition function
+    
+            UCB = μ(x) + κ·σ(x)
+            """
+            X_norm = self._normalize(X)
+            mu, sigma = self.gp.predict(X_norm, return_std=True)
+    
+            return mu + self.kappa * sigma
+    
+        def probability_of_improvement(self, X, xi=0.01):
+            """
+            Probability of Improvement acquisition function
+    
+            POI = P(f(x) >= f(x_best) + ξ)
+            """
+            X_norm = self._normalize(X)
+            mu, sigma = self.gp.predict(X_norm, return_std=True)
+    
+            f_best = np.max(self.y_observed)
+            improvement = mu - f_best - xi
+    
+            with np.errstate(divide='warn'):
+                Z = improvement / sigma
+                poi = norm.cdf(Z)
+                poi[sigma == 0.0] = 0.0
+    
+            return poi
+    
+        def acquisition_function(self, X):
+            """Unified interface for acquisition function"""
+            if self.acquisition == 'ei':
+                return self.expected_improvement(X)
+            elif self.acquisition == 'ucb':
+                return self.upper_confidence_bound(X)
+            elif self.acquisition == 'poi':
+                return self.probability_of_improvement(X)
+            else:
+                raise ValueError(f"Unknown acquisition function: {self.acquisition}")
+    
+        def propose_next_sample(self):
+            """
+            Propose next experiment candidate point
+    
+            Search for point that maximizes acquisition function
+            """
+            # Random sampling + local optimization
+            best_acq = -np.inf
+            best_x = None
+    
+            # Try optimization from multiple initial points
+            for _ in range(10):
+                # Random initial point
+                x0 = np.random.uniform(0, 1, self.dim)
+    
+                # Maximize acquisition function = minimize negative acquisition function
+                res = minimize(
+                    fun=lambda x: -self.acquisition_function(x.reshape(1, -1))[0],
+                    x0=x0,
+                    bounds=[(0, 1)] * self.dim,
+                    method='L-BFGS-B'
+                )
+    
+                # Update if better candidate is found
+                if -res.fun > best_acq:
+                    best_acq = -res.fun
+                    best_x = res.x
+    
+            # Convert back to original scale
+            next_sample = self._denormalize(best_x)
+    
+            return next_sample
+    
+        def optimize(self, n_iterations=30, verbose=True):
+            """
+            Execute Bayesian Optimization
+    
+            Parameters:
+            -----------
+            n_iterations : int
+                Number of optimization iterations (number of experiments)
+            verbose : bool
+                Progress display flag
+    
+            Returns:
+            --------
+            results : dict
+                Optimization results and history
+            """
+            # Initial random sampling
+            if verbose:
+                print("========== Initial Random Sampling ==========")
+    
+            X_init = np.random.uniform(
+                self.param_bounds[:, 0],
+                self.param_bounds[:, 1],
+                (self.n_init, self.dim)
+            )
+    
+            for i, x in enumerate(X_init):
+                y = self.objective_function(x)
+                self.X_observed = np.vstack([self.X_observed, x])
+                self.y_observed = np.append(self.y_observed, y)
+    
+                if verbose:
+                    print(f"Init {i+1}/{self.n_init}: Yield = {y:.4f}, "
+                          f"Params = {x}")
+    
+            # Bayesian Optimization iterations
+            if verbose:
+                print(f"\n========== Bayesian Optimization "
+                      f"({self.acquisition.upper()}) ==========")
+    
+            for iteration in range(n_iterations):
+                # Fit GP model with current data
+                X_norm = self._normalize(self.X_observed)
+                self.gp.fit(X_norm, self.y_observed)
+    
+                # Propose next experiment candidate
+                next_x = self.propose_next_sample()
+    
+                # Execute experiment (evaluate objective function)
+                next_y = self.objective_function(next_x)
+    
+                # Add to data
+                self.X_observed = np.vstack([self.X_observed, next_x])
+                self.y_observed = np.append(self.y_observed, next_y)
+    
+                # Current best value
+                best_idx = np.argmax(self.y_observed)
+                best_y = self.y_observed[best_idx]
+                best_x = self.X_observed[best_idx]
+    
+                if verbose:
+                    print(f"Iter {iteration+1}/{n_iterations}: "
+                          f"Yield = {next_y:.4f} | "
+                          f"Best = {best_y:.4f}")
+    
+            # Final results
+            best_idx = np.argmax(self.y_observed)
+            best_params = self.X_observed[best_idx]
+            best_yield = self.y_observed[best_idx]
+    
+            if verbose:
+                print(f"\n========== Optimization Complete ==========")
+                print(f"Best Yield: {best_yield:.4f}")
+                print(f"Optimal Parameters:")
+                for name, value in zip(self.param_names, best_params):
+                    print(f"  {name}: {value:.2f}")
+    
+            results = {
+                'best_params': best_params,
+                'best_yield': best_yield,
+                'X_history': self.X_observed,
+                'y_history': self.y_observed,
+                'gp_model': self.gp
+            }
+    
+            return results
+    
+        def plot_convergence(self):
+            """Visualize convergence process"""
+            fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+            # Best value at each iteration
+            best_so_far = np.maximum.accumulate(self.y_observed)
+    
+            axes[0].plot(best_so_far, 'b-', linewidth=2, label='Best Yield')
+            axes[0].axvline(self.n_init, color='r', linestyle='--',
+                           label='BO Start')
+            axes[0].set_xlabel('Iteration')
+            axes[0].set_ylabel('Best Yield')
+            axes[0].set_title('Convergence Plot')
+            axes[0].legend()
+            axes[0].grid(True, alpha=0.3)
+    
+            # Plot all observed values
+            axes[1].scatter(range(len(self.y_observed)), self.y_observed,
+                           c=self.y_observed, cmap='viridis', s=50)
+            axes[1].axvline(self.n_init, color='r', linestyle='--',
+                           label='BO Start')
+            axes[1].set_xlabel('Iteration')
+            axes[1].set_ylabel('Observed Yield')
+            axes[1].set_title('All Observations')
+            axes[1].legend()
+            axes[1].grid(True, alpha=0.3)
+            axes[1].colorbar = plt.colorbar(axes[1].collections[0], ax=axes[1])
+    
+            plt.tight_layout()
+            plt.savefig('bo_convergence.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+    
+    # ========== Usage Example ==========
+    if __name__ == "__main__":
+        np.random.seed(42)
+    
+        # Parameter search range
+        param_bounds = [
+            (100, 400),   # RF Power (W)
+            (10, 100),    # Pressure (mTorr)
+            (50, 200),    # Gas Flow (sccm)
+            (20, 80)      # Temperature (°C)
+        ]
+    
+        # Execute Bayesian Optimization
+        print("========== Etching Process Yield Optimization ==========\n")
+    
+        # Optimize with Expected Improvement
+        optimizer = BayesianOptimizationYield(
+            param_bounds=param_bounds,
+            n_init=10,
+            acquisition='ei',
+            kappa=2.576
+        )
+    
+        results = optimizer.optimize(n_iterations=30, verbose=True)
+    
+        # Visualize convergence process
+        optimizer.plot_convergence()
+    
+        # Comparison: Performance comparison with random search
+        print("\n========== Random Search (Baseline) ==========")
+        random_X = np.random.uniform(
+            optimizer.param_bounds[:, 0],
+            optimizer.param_bounds[:, 1],
+            (40, optimizer.dim)
+        )
+        random_y = np.array([optimizer.objective_function(x) for x in random_X])
+        best_random = np.max(random_y)
+    
+        print(f"Best Random Yield: {best_random:.4f}")
+        print(f"Bayesian Opt Yield: {results['best_yield']:.4f}")
+        print(f"Improvement: {(results['best_yield'] - best_random):.4f} "
+              f"({(results['best_yield'] - best_random) / best_random * 100:.2f}%)")
+    
+
+### 3.2.3 Parallel Bayesian Optimization
+
+When running multiple experimental equipment in parallel, it is necessary to propose multiple candidate points simultaneously:
+    
+    
+    from scipy.spatial.distance import cdist
+    
+    class ParallelBayesianOptimization(BayesianOptimizationYield):
+        """
+        Parallel Bayesian Optimization
+    
+        Supports simultaneous experiments on multiple equipment
+        Implements batch acquisition strategy
+        """
+    
+        def __init__(self, param_bounds, n_init=10, batch_size=4,
+                     acquisition='ei', diversity_weight=0.1):
+            """
+            Parameters:
+            -----------
+            batch_size : int
+                Number of simultaneous experiments (number of equipment)
+            diversity_weight : float
+                Weight of diversity penalty
+            """
+            super().__init__(param_bounds, n_init, acquisition)
+            self.batch_size = batch_size
+            self.diversity_weight = diversity_weight
+    
+        def propose_batch_samples(self):
+            """
+            Batch sampling: Propose multiple candidates for parallel experiments
+    
+            Strategy: Local Penalization
+            Attenuate acquisition function values near selected points
+            to select diverse candidates
+            """
+            batch_proposals = []
+    
+            for i in range(self.batch_size):
+                # Acquisition function considering current batch candidates
+                if i == 0:
+                    # First candidate: maximize normal acquisition function
+                    next_x = self.propose_next_sample()
+                else:
+                    # Second onwards: penalty based on distance from already selected points
+                    next_x = self._propose_with_diversity(batch_proposals)
+    
+                batch_proposals.append(next_x)
+    
+            return np.array(batch_proposals)
+    
+        def _propose_with_diversity(self, existing_batch):
+            """
+            Propose candidate considering diversity
+    
+            Add diversity penalty to acquisition function
+            """
+            existing_batch_norm = self._normalize(np.array(existing_batch))
+    
+            best_acq = -np.inf
+            best_x = None
+    
+            for _ in range(10):
+                x0 = np.random.uniform(0, 1, self.dim)
+    
+                def penalized_acquisition(x):
+                    x_norm = x.reshape(1, -1)
+    
+                    # Basic acquisition function
+                    acq = self.acquisition_function(x_norm)[0]
+    
+                    # Distance penalty with existing candidates
+                    distances = cdist(x_norm, existing_batch_norm).flatten()
+                    diversity_penalty = np.sum(np.exp(-distances / 0.1))
+    
+                    return -(acq - self.diversity_weight * diversity_penalty)
+    
+                res = minimize(
+                    fun=penalized_acquisition,
+                    x0=x0,
+                    bounds=[(0, 1)] * self.dim,
+                    method='L-BFGS-B'
+                )
+    
+                if -res.fun > best_acq:
+                    best_acq = -res.fun
+                    best_x = res.x
+    
+            return self._denormalize(best_x)
+    
+        def optimize_parallel(self, n_batches=10, verbose=True):
+            """
+            Execute parallel Bayesian Optimization
+    
+            Parameters:
+            -----------
+            n_batches : int
+                Number of batch experiments
+            """
+            # Initial random sampling
+            if verbose:
+                print("========== Parallel BO: Initial Sampling ==========")
+    
+            X_init = np.random.uniform(
+                self.param_bounds[:, 0],
+                self.param_bounds[:, 1],
+                (self.n_init, self.dim)
+            )
+    
+            for x in X_init:
+                y = self.objective_function(x)
+                self.X_observed = np.vstack([self.X_observed, x])
+                self.y_observed = np.append(self.y_observed, y)
+    
+            # Parallel optimization
+            if verbose:
+                print(f"\n========== Parallel BO: {n_batches} Batches "
+                      f"(Batch Size={self.batch_size}) ==========")
+    
+            for batch in range(n_batches):
+                # GP fit
+                X_norm = self._normalize(self.X_observed)
+                self.gp.fit(X_norm, self.y_observed)
+    
+                # Propose batch candidates
+                batch_X = self.propose_batch_samples()
+    
+                # Execute parallel experiments
+                batch_y = np.array([self.objective_function(x) for x in batch_X])
+    
+                # Add data
+                self.X_observed = np.vstack([self.X_observed, batch_X])
+                self.y_observed = np.append(self.y_observed, batch_y)
+    
+                # Current best value
+                best_y = np.max(self.y_observed)
+    
+                if verbose:
+                    print(f"Batch {batch+1}/{n_batches}: "
+                          f"Yields = {batch_y}, Best = {best_y:.4f}")
+    
+            # Final results
+            best_idx = np.argmax(self.y_observed)
+            results = {
+                'best_params': self.X_observed[best_idx],
+                'best_yield': self.y_observed[best_idx],
+                'X_history': self.X_observed,
+                'y_history': self.y_observed
+            }
+    
+            return results
+    
+    
+    # ========== Usage Example ==========
+    # Parallel experiments with 4 equipment
+    parallel_optimizer = ParallelBayesianOptimization(
+        param_bounds=param_bounds,
+        n_init=10,
+        batch_size=4,
+        acquisition='ei',
+        diversity_weight=0.1
+    )
+    
+    print("\n========== Parallel Bayesian Optimization ==========")
+    results_parallel = parallel_optimizer.optimize_parallel(
+        n_batches=10,
+        verbose=True
+    )
+    
+    print(f"\nParallel BO Best Yield: {results_parallel['best_yield']:.4f}")
+    print(f"Total Experiments: {len(results_parallel['y_history'])}")
+    print(f"  (10 initial + 10 batches × 4 = 50 experiments)")
+    
+
+## 3.3 Multi-Objective Optimization: Simultaneous Optimization of Yield, Cost, and Throughput
+
+### 3.3.1 Need for Multi-Objective Optimization
+
+In actual manufacturing, it is necessary to optimize multiple objectives simultaneously:
+
+  * **Yield Maximization** : Improve good product rate
+  * **Cost Minimization** : Reduce material and energy costs
+  * **Throughput Maximization** : Improve production speed
+
+These are in trade-off relationships with each other and cannot be resolved with single-objective optimization.
+
+### 3.3.2 Pareto Optimal Solutions and Pareto Front
+
+**Pareto Optimal** : A state where improving one objective worsens other objectives
+
+**Pareto Front** : The set of all Pareto optimal solutions
+
+Decision makers select the final solution from the Pareto Front according to field priorities.
+
+### 3.3.3 NSGA-II (Non-dominated Sorting Genetic Algorithm II)
+
+Implement NSGA-II, a representative multi-objective optimization algorithm:
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    from deap import base, creator, tools, algorithms
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    
+    class MultiObjectiveYieldOptimization:
+        """
+        Multi-objective optimization using NSGA-II
+    
+        Objective functions:
+        1. Yield maximization (maximize)
+        2. Cost minimization (minimize)
+        3. Throughput maximization (maximize)
+    
+        Decision variables: RF Power, Pressure, Gas Flow, Temperature
+        """
+    
+        def __init__(self, param_bounds, population_size=100, n_generations=50):
+            """
+            Parameters:
+            -----------
+            param_bounds : list of tuples
+                Range of each parameter
+            population_size : int
+                Number of individuals
+            n_generations : int
+                Number of generations
+            """
+            self.param_bounds = np.array(param_bounds)
+            self.dim = len(param_bounds)
+            self.population_size = population_size
+            self.n_generations = n_generations
+    
+            # DEAP setup
+            self._setup_deap()
+    
+        def _setup_deap(self):
+            """Setup DEAP (genetic algorithm library)"""
+            # Define Fitness class (3 objectives: maximize, minimize, maximize)
+            creator.create("FitnessMulti", base.Fitness, weights=(1.0, -1.0, 1.0))
+            creator.create("Individual", list, fitness=creator.FitnessMulti)
+    
+            self.toolbox = base.Toolbox()
+    
+            # Individual generation
+            for i in range(self.dim):
+                self.toolbox.register(f"attr_{i}",
+                                     np.random.uniform,
+                                     self.param_bounds[i, 0],
+                                     self.param_bounds[i, 1])
+    
+            self.toolbox.register("individual", tools.initCycle, creator.Individual,
+                                 [getattr(self.toolbox, f"attr_{i}")
+                                  for i in range(self.dim)], n=1)
+    
+            self.toolbox.register("population", tools.initRepeat,
+                                 list, self.toolbox.individual)
+    
+            # Evaluation function
+            self.toolbox.register("evaluate", self.evaluate_objectives)
+    
+            # Genetic operations
+            self.toolbox.register("mate", tools.cxSimulatedBinaryBounded,
+                                 low=self.param_bounds[:, 0],
+                                 up=self.param_bounds[:, 1], eta=20.0)
+    
+            self.toolbox.register("mutate", tools.mutPolynomialBounded,
+                                 low=self.param_bounds[:, 0],
+                                 up=self.param_bounds[:, 1],
+                                 eta=20.0, indpb=1.0/self.dim)
+    
+            self.toolbox.register("select", tools.selNSGA2)
+    
+        def evaluate_objectives(self, individual):
+            """
+            Evaluate 3 objective functions
+    
+            Returns:
+            --------
+            (yield, cost, throughput) : tuple
+                Yield, cost, throughput
+            """
+            rf_power, pressure, gas_flow, temp = individual
+    
+            # Objective 1: Yield (maximize)
+            yield_rate = (
+                0.95 - 0.001 * (rf_power - 250)**2 -
+                0.0005 * (pressure - 50)**2 -
+                0.0002 * (gas_flow - 125)**2 -
+                0.0003 * (temp - 50)**2
+            )
+            yield_rate = np.clip(yield_rate, 0, 1)
+    
+            # Objective 2: Cost (minimize)
+            # Cost increases with high RF power, high gas flow, high temperature
+            cost = (
+                0.01 * rf_power +           # Power cost
+                0.05 * gas_flow +           # Gas cost
+                0.02 * (temp - 20) +        # Cooling cost
+                0.001 * pressure            # Vacuum cost
+            )
+    
+            # Objective 3: Throughput (maximize)
+            # Etching rate improves with high RF power and high pressure
+            throughput = (
+                0.5 + 0.001 * rf_power + 0.002 * pressure -
+                0.0005 * (gas_flow - 125)**2
+            )
+            throughput = np.clip(throughput, 0, 2)
+    
+            return yield_rate, cost, throughput
+    
+        def optimize(self, verbose=True):
+            """
+            Execute NSGA-II
+    
+            Returns:
+            --------
+            pareto_front : list
+                Set of Pareto optimal solutions
+            """
+            # Generate initial population
+            population = self.toolbox.population(n=self.population_size)
+    
+            # Statistics
+            stats = tools.Statistics(lambda ind: ind.fitness.values)
+            stats.register("avg", np.mean, axis=0)
+            stats.register("std", np.std, axis=0)
+            stats.register("min", np.min, axis=0)
+            stats.register("max", np.max, axis=0)
+    
+            # Execute NSGA-II
+            population, logbook = algorithms.eaMuPlusLambda(
+                population, self.toolbox,
+                mu=self.population_size,
+                lambda_=self.population_size,
+                cxpb=0.9,  # Crossover probability
+                mutpb=0.1,  # Mutation probability
+                ngen=self.n_generations,
+                stats=stats,
+                verbose=verbose
+            )
+    
+            # Extract Pareto Front
+            pareto_front = tools.sortNondominated(population,
+                                                  len(population),
+                                                  first_front_only=True)[0]
+    
+            # Format results
+            pareto_solutions = []
+            for ind in pareto_front:
+                solution = {
+                    'params': np.array(ind),
+                    'yield': ind.fitness.values[0],
+                    'cost': ind.fitness.values[1],
+                    'throughput': ind.fitness.values[2]
+                }
+                pareto_solutions.append(solution)
+    
+            return pareto_solutions, logbook
+    
+        def plot_pareto_front(self, pareto_solutions):
+            """3D visualization of Pareto Front"""
+            yields = [sol['yield'] for sol in pareto_solutions]
+            costs = [sol['cost'] for sol in pareto_solutions]
+            throughputs = [sol['throughput'] for sol in pareto_solutions]
+    
+            fig = plt.figure(figsize=(14, 6))
+    
+            # 3D Pareto Front
+            ax1 = fig.add_subplot(121, projection='3d')
+            scatter = ax1.scatter(yields, costs, throughputs,
+                                c=yields, cmap='viridis', s=100)
+            ax1.set_xlabel('Yield')
+            ax1.set_ylabel('Cost')
+            ax1.set_zlabel('Throughput')
+            ax1.set_title('3D Pareto Front')
+            fig.colorbar(scatter, ax=ax1, label='Yield')
+    
+            # 2D projection (Yield vs Cost)
+            ax2 = fig.add_subplot(122)
+            scatter2 = ax2.scatter(yields, costs, c=throughputs,
+                                  cmap='plasma', s=100)
+            ax2.set_xlabel('Yield')
+            ax2.set_ylabel('Cost')
+            ax2.set_title('Pareto Front Projection (Yield vs Cost)')
+            ax2.grid(True, alpha=0.3)
+            fig.colorbar(scatter2, ax=ax2, label='Throughput')
+    
+            plt.tight_layout()
+            plt.savefig('pareto_front.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+        def select_solution_by_preference(self, pareto_solutions, weights):
+            """
+            Select one solution from Pareto solutions by weighted scalarization
+    
+            Parameters:
+            -----------
+            weights : tuple
+                (w_yield, w_cost, w_throughput)
+                Importance of each objective (sum to 1.0)
+    
+            Returns:
+            --------
+            best_solution : dict
+                Solution with best weighted evaluation
+            """
+            w_yield, w_cost, w_throughput = weights
+    
+            best_score = -np.inf
+            best_solution = None
+    
+            for sol in pareto_solutions:
+                # Scalarization (cost has negative contribution)
+                score = (
+                    w_yield * sol['yield'] -
+                    w_cost * sol['cost'] +
+                    w_throughput * sol['throughput']
+                )
+    
+                if score > best_score:
+                    best_score = score
+                    best_solution = sol
+    
+            return best_solution
+    
+    
+    # ========== Usage Example ==========
+    if __name__ == "__main__":
+        np.random.seed(42)
+    
+        # Parameter range
+        param_bounds = [
+            (100, 400),   # RF Power
+            (10, 100),    # Pressure
+            (50, 200),    # Gas Flow
+            (20, 80)      # Temperature
+        ]
+    
+        # Execute multi-objective optimization
+        print("========== Multi-Objective Optimization (NSGA-II) ==========\n")
+    
+        mo_optimizer = MultiObjectiveYieldOptimization(
+            param_bounds=param_bounds,
+            population_size=100,
+            n_generations=50
+        )
+    
+        pareto_solutions, logbook = mo_optimizer.optimize(verbose=False)
+    
+        print(f"\nPareto Front: {len(pareto_solutions)} solutions found\n")
+    
+        # Display representative solutions
+        print("--- Representative Pareto Solutions ---")
+        for i, sol in enumerate(pareto_solutions[:5]):
+            print(f"Solution {i+1}:")
+            print(f"  Yield: {sol['yield']:.4f}")
+            print(f"  Cost: {sol['cost']:.2f}")
+            print(f"  Throughput: {sol['throughput']:.4f}")
+            print(f"  Params: {sol['params']}\n")
+    
+        # Visualize Pareto Front
+        mo_optimizer.plot_pareto_front(pareto_solutions)
+    
+        # Solution selection by scenario
+        print("\n--- Solution Selection by Preference ---")
+    
+        # Scenario 1: Yield-focused
+        weights_yield_focused = (0.7, 0.1, 0.2)
+        sol_yield = mo_optimizer.select_solution_by_preference(
+            pareto_solutions, weights_yield_focused
+        )
+        print("Scenario 1 (Yield-focused): "
+              f"Yield={sol_yield['yield']:.4f}, "
+              f"Cost={sol_yield['cost']:.2f}, "
+              f"Throughput={sol_yield['throughput']:.4f}")
+    
+        # Scenario 2: Cost-focused
+        weights_cost_focused = (0.2, 0.6, 0.2)
+        sol_cost = mo_optimizer.select_solution_by_preference(
+            pareto_solutions, weights_cost_focused
+        )
+        print("Scenario 2 (Cost-focused): "
+              f"Yield={sol_cost['yield']:.4f}, "
+              f"Cost={sol_cost['cost']:.2f}, "
+              f"Throughput={sol_cost['throughput']:.4f}")
+    
+        # Scenario 3: Balanced
+        weights_balanced = (0.4, 0.3, 0.3)
+        sol_balanced = mo_optimizer.select_solution_by_preference(
+            pareto_solutions, weights_balanced
+        )
+        print("Scenario 3 (Balanced): "
+              f"Yield={sol_balanced['yield']:.4f}, "
+              f"Cost={sol_balanced['cost']:.2f}, "
+              f"Throughput={sol_balanced['throughput']:.4f}")
+    
+
+## 3.4 Summary
+
+In this chapter, we learned AI methods for yield optimization in semiconductor manufacturing:
+
+### Main Learning Content
+
+#### 1\. Bayesian Optimization
+
+  * **Gaussian Process surrogate model** efficiently approximates objective function
+  * **Acquisition functions** (EI, UCB, POI) theoretically select next experimental points
+  * **Reduce experiments to 1/10 or less** while finding optimal solutions
+  * **Parallel BO** supports simultaneous experiments on multiple equipment
+
+#### 2\. Multi-Objective Optimization (NSGA-II)
+
+  * Simultaneously optimize **yield, cost, throughput**
+  * Select solutions from **Pareto Front** according to field priorities
+  * Quantitatively visualize **trade-off relationships**
+
+#### Practical Outcomes
+
+  * Optimization completed with **90% fewer experiments** than conventional methods
+  * Yield **improvement of 1-3%** (hundreds of millions of yen profit increase)
+  * Simultaneously achieved **10-20% cost reduction**
+
+### Development to Next Chapter
+
+In Chapter 4 "Advanced Process Control (APC)", we will learn control methods to stably maintain optimized process conditions:
+
+  * Real-time optimization with Model Predictive Control (MPC)
+  * Adaptive control automatically responds to equipment variations
+  * Feedforward control pre-compensates for disturbances
+  * Digital twin simulates processes
+
+[← Previous Chapter](<chapter-2.html>) [Back to Contents](<index.html>) [Next Chapter →](<chapter-4.html>)
+
+## References
+
+  1. Montgomery, D. C. (2019). _Design and Analysis of Experiments_ (9th ed.). Wiley.
+  2. Box, G. E. P., Hunter, J. S., & Hunter, W. G. (2005). _Statistics for Experimenters: Design, Innovation, and Discovery_ (2nd ed.). Wiley.
+  3. Seborg, D. E., Edgar, T. F., Mellichamp, D. A., & Doyle III, F. J. (2016). _Process Dynamics and Control_ (4th ed.). Wiley.
+  4. McKay, M. D., Beckman, R. J., & Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." _Technometrics_ , 42(1), 55-61.
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

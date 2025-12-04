@@ -1,0 +1,1875 @@
+---
+title: "Chapter 1: Metallic Bonding and Crystal Structure"
+chapter_title: "Chapter 1: Metallic Bonding and Crystal Structure"
+subtitle: Free Electron Model of Metals, FCC/BCC/HCP Crystal Structures, Bravais Lattices, Miller Indices
+---
+
+# Chapter 1: Metallic Bonding and Crystal Structure
+
+This chapter covers Metallic Bonding and Crystal Structure. You will learn essential concepts and techniques.
+
+Free Electron Model of Metals, FCC/BCC/HCP Crystal Structures, Bravais Lattices, Miller Indices
+
+## 1.1 Electron Theory of Metallic Bonding
+
+Understanding the nature of metallic bonding is crucial for comprehending the properties of metals. Metallic bonding is a state where ionized metal atoms (cations) are held together by freely moving electrons (free electrons). This free electron model explains the properties of metals such as electrical conductivity, thermal conductivity, and metallic luster.
+
+### 1.1.1 Drude Model
+
+The Drude model treats free electrons in metals as classical gas molecules. In this model, electrons move freely between metal ions and are scattered through collisions with ions and other electrons.
+
+**Electrical conductivity formula:**
+
+$$\sigma = \frac{ne^2\tau}{m}$$ 
+
+Where $n$ is the electron density, $e$ is the electron charge, $\tau$ is the relaxation time, and $m$ is the electron mass.
+
+From this equation, we can see that electrical conductivity is proportional to electron density and relaxation time. The electrical resistance of metals increases with temperature because scattering of electrons by lattice vibrations (phonons) increases.
+
+### 1.1.2 Fermi-Dirac Distribution
+
+Quantum mechanically, electrons are fermions and obey the Pauli exclusion principle. The occupation probability of a state with energy $E$ at temperature $T$ is given by the Fermi-Dirac distribution function:
+
+$$f(E) = \frac{1}{1 + \exp\left(\frac{E - E_F}{k_BT}\right)}$$ 
+
+Where $E_F$ is the Fermi energy and $k_B$ is the Boltzmann constant.
+
+At absolute zero ($T = 0$ K), all states below the Fermi energy are occupied and those above are empty. Even at room temperature, since the Fermi energy of metals (several eV) is much larger than the thermal energy $k_BT$ (about 0.025 eV), the Fermi-Dirac distribution maintains a shape close to a step function.
+
+### 1.1.3 Density of States
+
+The density of states $D(E)$ of electrons in a metal represents the number of states per unit energy. In the free electron model, the three-dimensional density of states is expressed as:
+
+$$D(E) = \frac{2\pi V}{h^3}(2m)^{3/2}E^{1/2}$$ 
+
+Where $V$ is the volume, $h$ is Planck's constant, and $m$ is the electron mass.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    
+                    <h4>Code Example 1: Electrical Conductivity Calculation Using Drude Model</h4>
+                    <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # Physical constants
+    e = 1.602e-19  # Electron charge (C)
+    m_e = 9.109e-31  # Electron mass (kg)
+    
+    def calculate_conductivity(n, tau):
+        """
+        Calculate electrical conductivity using Drude model
+    
+        Parameters:
+        -----------
+        n : float
+            Electron density (m^-3)
+        tau : float
+            Relaxation time (s)
+    
+        Returns:
+        --------
+        sigma : float
+            Electrical conductivity (S/m)
+        """
+        sigma = (n * e**2 * tau) / m_e
+        return sigma
+    
+    # Electron density of representative metals (m^-3)
+    metals = {
+        'Cu': 8.45e28,   # Copper
+        'Ag': 5.85e28,   # Silver
+        'Al': 18.1e28,   # Aluminum
+        'Fe': 17.0e28,   # Iron
+        'Au': 5.90e28    # Gold
+    }
+    
+    # Relaxation time (typical value)
+    tau = 2.5e-14  # s
+    
+    # Calculate electrical conductivity for each metal
+    print("Electrical Conductivity of Metals (Drude Model):")
+    print("-" * 50)
+    for metal, n in metals.items():
+        sigma = calculate_conductivity(n, tau)
+        resistivity = 1 / sigma
+        print(f"{metal:4s}: σ = {sigma:.2e} S/m, ρ = {resistivity*1e8:.2f} μΩ·cm")
+    
+    # Temperature dependence simulation (copper)
+    temperatures = np.linspace(100, 500, 100)  # K
+    # Assume relaxation time is inversely proportional to temperature
+    tau_T = tau * 300 / temperatures  # Normalized at 300K
+    
+    conductivity_T = np.array([calculate_conductivity(metals['Cu'], t) for t in tau_T])
+    resistivity_T = 1 / conductivity_T
+    
+    # Plot graph
+    plt.figure(figsize=(10, 6))
+    plt.plot(temperatures, resistivity_T * 1e8, 'b-', linewidth=2)
+    plt.xlabel('Temperature (K)', fontsize=12)
+    plt.ylabel('Electrical Resistivity (μΩ·cm)', fontsize=12)
+    plt.title('Temperature Dependence of Copper Electrical Resistivity (Drude Model)', fontsize=14, fontweight='bold')
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig('cu_resistivity_vs_temperature.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    print("\n✓ Graph saved as 'cu_resistivity_vs_temperature.png'")
+    
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - scipy>=1.11.0
+    
+    
+                    <h4>Code Example 2: Fermi Energy and Density of States Calculation</h4>
+                    <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import constants
+    
+    # Physical constants
+    h = constants.h  # Planck constant
+    hbar = constants.hbar  # Dirac constant
+    m_e = constants.m_e  # Electron mass
+    k_B = constants.k  # Boltzmann constant
+    e = constants.e  # Electron charge
+    
+    def fermi_energy(n):
+        """
+        Calculate Fermi energy
+    
+        Parameters:
+        -----------
+        n : float
+            Electron density (m^-3)
+    
+        Returns:
+        --------
+        E_F : float
+            Fermi energy (J)
+        """
+        E_F = (hbar**2 / (2 * m_e)) * (3 * np.pi**2 * n)**(2/3)
+        return E_F
+    
+    def fermi_dirac(E, E_F, T):
+        """
+        Fermi-Dirac distribution function
+    
+        Parameters:
+        -----------
+        E : array-like
+            Energy (J)
+        E_F : float
+            Fermi energy (J)
+        T : float
+            Temperature (K)
+    
+        Returns:
+        --------
+        f : array-like
+            Occupation probability
+        """
+        if T == 0:
+            return np.where(E <= E_F, 1.0, 0.0)
+        else:
+            return 1 / (1 + np.exp((E - E_F) / (k_B * T)))
+    
+    def density_of_states(E):
+        """
+        Density of states for free electrons (3D)
+    
+        Parameters:
+        -----------
+        E : array-like
+            Energy (J)
+    
+        Returns:
+        --------
+        D : array-like
+            Density of states (J^-1 m^-3)
+        """
+        # Per unit volume
+        D = (1 / (2 * np.pi**2)) * (2 * m_e / hbar**2)**(3/2) * np.sqrt(E)
+        return D
+    
+    # Copper parameters
+    n_Cu = 8.45e28  # Electron density (m^-3)
+    E_F_Cu = fermi_energy(n_Cu)
+    E_F_eV = E_F_Cu / e  # In eV units
+    
+    print(f"Copper Fermi energy: {E_F_eV:.2f} eV")
+    print(f"Fermi velocity: {np.sqrt(2 * E_F_Cu / m_e) / 1e6:.2f} × 10^6 m/s")
+    
+    # Plot Fermi-Dirac distribution
+    E_range = np.linspace(0, 2 * E_F_Cu, 1000)
+    E_range_eV = E_range / e
+    
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Left plot: Fermi-Dirac distribution
+    temperatures = [0, 300, 1000, 3000]
+    for T in temperatures:
+        f = fermi_dirac(E_range, E_F_Cu, T)
+        label = f'{T} K' if T > 0 else '0 K'
+        axes[0].plot(E_range_eV, f, linewidth=2, label=label)
+    
+    axes[0].axvline(E_F_eV, color='red', linestyle='--', linewidth=1.5, label=f'$E_F$ = {E_F_eV:.2f} eV')
+    axes[0].set_xlabel('Energy (eV)', fontsize=12)
+    axes[0].set_ylabel('Occupation Probability f(E)', fontsize=12)
+    axes[0].set_title('Fermi-Dirac Distribution', fontsize=14, fontweight='bold')
+    axes[0].legend(fontsize=10)
+    axes[0].grid(True, alpha=0.3)
+    axes[0].set_xlim(0, 2 * E_F_eV)
+    axes[0].set_ylim(-0.05, 1.05)
+    
+    # Right plot: Density of states
+    D = density_of_states(E_range[E_range > 0])
+    E_positive_eV = E_range_eV[E_range > 0]
+    
+    axes[1].plot(E_positive_eV, D / 1e47, 'b-', linewidth=2)
+    axes[1].axvline(E_F_eV, color='red', linestyle='--', linewidth=1.5, label=f'$E_F$ = {E_F_eV:.2f} eV')
+    axes[1].set_xlabel('Energy (eV)', fontsize=12)
+    axes[1].set_ylabel('Density of States (10^47 states/(J·m³))', fontsize=12)
+    axes[1].set_title('Density of States for Free Electrons', fontsize=14, fontweight='bold')
+    axes[1].legend(fontsize=10)
+    axes[1].grid(True, alpha=0.3)
+    axes[1].set_xlim(0, 2 * E_F_eV)
+    
+    plt.tight_layout()
+    plt.savefig('fermi_dirac_and_dos.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    print("\n✓ Graph saved as 'fermi_dirac_and_dos.png'")
+    
+
+## 1.2 Fundamentals of Crystal Structure
+
+Most metals have crystalline structures where atoms are arranged in regular patterns. The mechanical, electrical, and thermal properties of metals depend heavily on their crystal structure. Representative metallic crystal structures include face-centered cubic (FCC), body-centered cubic (BCC), and hexagonal close-packed (HCP).
+
+### 1.2.1 Face-Centered Cubic (FCC)
+
+The FCC structure has atoms positioned at each corner and the center of each face of a cube. Representative FCC metals include copper (Cu), aluminum (Al), gold (Au), silver (Ag), and nickel (Ni).
+
+The FCC structure is characterized by a **lattice parameter** equal to the edge length of the cube $a$. The unit cell contains **4 atoms** (corners $8 \times 1/8 = 1$, face centers $6 \times 1/2 = 3$), with a **coordination number** of 12 (nearest neighbor atoms). The **atomic radius** is $r = \frac{a}{2\sqrt{2}}$, and the **packing fraction** is $\frac{\pi}{3\sqrt{2}} \approx 0.74$ (74%).
+    
+    
+    ```mermaid
+    flowchart TD
+        A[FCC Structure] --> B[Close-packed structure]
+        B --> C[Packing fraction 74%]
+        B --> D[Coordination number 12]
+        A --> E[Many slip systems]
+        E --> F[High ductility]
+        F --> G[Easy to process]
+        A --> H[Representative metals]
+        H --> I[Cu, Al, Au, Ag, Ni]
+    ```
+
+### 1.2.2 Body-Centered Cubic (BCC)
+
+The BCC structure has atoms positioned at each corner and the center of the cube. Representative BCC metals include iron (Fe, at room temperature), chromium (Cr), tungsten (W), and molybdenum (Mo).
+
+The BCC structure has a **lattice parameter** equal to the edge length of the cube $a$. The unit cell contains **2 atoms** (corners $8 \times 1/8 = 1$, body center $1$), with a **coordination number** of 8. The **atomic radius** is $r = \frac{\sqrt{3}a}{4}$, and the **packing fraction** is $\frac{\sqrt{3}\pi}{8} \approx 0.68$ (68%).
+
+### 1.2.3 Hexagonal Close-Packed (HCP)
+
+The HCP structure is a hexagonal close-packed structure. Representative HCP metals include magnesium (Mg), titanium (Ti), zinc (Zn), and cobalt (Co).
+
+The HCP structure has **lattice parameters** consisting of base edge length $a$ and height $c$. The unit cell contains **6 atoms** , with a **coordination number** of 12. The **ideal axial ratio** is $c/a = \sqrt{8/3} \approx 1.633$, and the **packing fraction** is $\frac{\pi}{3\sqrt{2}} \approx 0.74$ (74%, same as FCC).
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    
+                    <h4>Code Example 3: 3D Visualization of Crystal Structures (FCC/BCC/HCP)</h4>
+                    <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    
+    def create_fcc_structure(a=1.0):
+        """
+        Generate atomic coordinates for FCC structure
+    
+        Parameters:
+        -----------
+        a : float
+            Lattice parameter
+    
+        Returns:
+        --------
+        positions : ndarray
+            Atomic coordinates (N, 3)
+        """
+        positions = []
+    
+        # Corner atoms (only atoms within unit cell)
+        corners = [
+            [0, 0, 0], [a, 0, 0], [0, a, 0], [0, 0, a],
+            [a, a, 0], [a, 0, a], [0, a, a], [a, a, a]
+        ]
+    
+        # Face-center atoms
+        face_centers = [
+            [a/2, a/2, 0], [a/2, 0, a/2], [0, a/2, a/2],
+            [a/2, a/2, a], [a/2, a, a/2], [a, a/2, a/2]
+        ]
+    
+        positions.extend(corners)
+        positions.extend(face_centers)
+    
+        return np.array(positions)
+    
+    def create_bcc_structure(a=1.0):
+        """
+        Generate atomic coordinates for BCC structure
+    
+        Parameters:
+        -----------
+        a : float
+            Lattice parameter
+    
+        Returns:
+        --------
+        positions : ndarray
+            Atomic coordinates (N, 3)
+        """
+        positions = []
+    
+        # Corner atoms
+        corners = [
+            [0, 0, 0], [a, 0, 0], [0, a, 0], [0, 0, a],
+            [a, a, 0], [a, 0, a], [0, a, a], [a, a, a]
+        ]
+    
+        # Body-center atom
+        body_center = [[a/2, a/2, a/2]]
+    
+        positions.extend(corners)
+        positions.extend(body_center)
+    
+        return np.array(positions)
+    
+    def create_hcp_structure(a=1.0, c_over_a=1.633):
+        """
+        Generate atomic coordinates for HCP structure (simplified)
+    
+        Parameters:
+        -----------
+        a : float
+            Lattice parameter (base)
+        c_over_a : float
+            Axial ratio c/a
+    
+        Returns:
+        --------
+        positions : ndarray
+            Atomic coordinates (N, 3)
+        """
+        c = a * c_over_a
+        positions = []
+    
+        # Bottom layer atoms (A layer)
+        positions.append([0, 0, 0])
+        positions.append([a, 0, 0])
+        positions.append([a/2, a*np.sqrt(3)/2, 0])
+    
+        # Middle layer atom (B layer)
+        positions.append([a/2, a*np.sqrt(3)/6, c/2])
+    
+        # Top layer atoms (A layer)
+        positions.append([0, 0, c])
+        positions.append([a, 0, c])
+        positions.append([a/2, a*np.sqrt(3)/2, c])
+    
+        return np.array(positions)
+    
+    def plot_crystal_structure(positions, title, ax, color='blue', atom_size=300):
+        """
+        Plot crystal structure in 3D
+        """
+        ax.scatter(positions[:, 0], positions[:, 1], positions[:, 2],
+                   c=color, s=atom_size, alpha=0.7, edgecolors='black', linewidth=1.5)
+    
+        ax.set_xlabel('X', fontsize=10, fontweight='bold')
+        ax.set_ylabel('Y', fontsize=10, fontweight='bold')
+        ax.set_zlabel('Z', fontsize=10, fontweight='bold')
+        ax.set_title(title, fontsize=12, fontweight='bold', pad=10)
+    
+        # Set axis range
+        max_coord = np.max(positions)
+        ax.set_xlim([-0.2, max_coord + 0.2])
+        ax.set_ylim([-0.2, max_coord + 0.2])
+        ax.set_zlim([-0.2, max_coord + 0.2])
+    
+        ax.set_box_aspect([1, 1, 1])
+    
+    # Generate three crystal structures
+    a = 1.0
+    fcc_pos = create_fcc_structure(a)
+    bcc_pos = create_bcc_structure(a)
+    hcp_pos = create_hcp_structure(a)
+    
+    # Plot
+    fig = plt.figure(figsize=(16, 5))
+    
+    ax1 = fig.add_subplot(131, projection='3d')
+    plot_crystal_structure(fcc_pos, 'FCC Structure\n(Cu, Al, Au, Ag)', ax1, color='#FF6B6B')
+    
+    ax2 = fig.add_subplot(132, projection='3d')
+    plot_crystal_structure(bcc_pos, 'BCC Structure\n(Fe, Cr, W, Mo)', ax2, color='#4ECDC4')
+    
+    ax3 = fig.add_subplot(133, projection='3d')
+    plot_crystal_structure(hcp_pos, 'HCP Structure\n(Mg, Ti, Zn, Co)', ax3, color='#95E1D3')
+    
+    plt.tight_layout()
+    plt.savefig('crystal_structures_3d.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Calculate packing fraction and coordination number
+    print("Comparison of Crystal Structures:")
+    print("=" * 60)
+    print(f"{'Structure':<8} {'Packing Fraction':<15} {'Coord. Number':<10} {'Representative Metals'}")
+    print("-" * 60)
+    print(f"{'FCC':<8} {np.pi/(3*np.sqrt(2)):.4f} (74%)    {12:<10} Cu, Al, Au, Ag, Ni")
+    print(f"{'BCC':<8} {np.sqrt(3)*np.pi/8:.4f} (68%)    {8:<10} Fe, Cr, W, Mo")
+    print(f"{'HCP':<8} {np.pi/(3*np.sqrt(2)):.4f} (74%)    {12:<10} Mg, Ti, Zn, Co")
+    print("=" * 60)
+    
+    print("\n✓ Graph saved as 'crystal_structures_3d.png'")
+    
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    
+                    <h4>Code Example 4: Detailed Calculation of Packing Fraction and Coordination Number</h4>
+                    <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def calculate_fcc_properties(a):
+        """Calculate FCC structure properties"""
+        # Atomic radius
+        r = a / (2 * np.sqrt(2))
+    
+        # Number of atoms (per unit cell)
+        n_atoms = 4
+    
+        # Unit cell volume
+        V_cell = a**3
+    
+        # Atomic volume
+        V_atom = (4/3) * np.pi * r**3
+    
+        # Packing fraction
+        packing_fraction = (n_atoms * V_atom) / V_cell
+    
+        # Coordination number
+        coordination_number = 12
+    
+        # Nearest neighbor distance
+        nearest_neighbor = 2 * r
+    
+        return {
+            'structure': 'FCC',
+            'lattice_constant': a,
+            'atomic_radius': r,
+            'atoms_per_cell': n_atoms,
+            'packing_fraction': packing_fraction,
+            'coordination_number': coordination_number,
+            'nearest_neighbor': nearest_neighbor
+        }
+    
+    def calculate_bcc_properties(a):
+        """Calculate BCC structure properties"""
+        # Atomic radius
+        r = (np.sqrt(3) * a) / 4
+    
+        # Number of atoms
+        n_atoms = 2
+    
+        # Unit cell volume
+        V_cell = a**3
+    
+        # Atomic volume
+        V_atom = (4/3) * np.pi * r**3
+    
+        # Packing fraction
+        packing_fraction = (n_atoms * V_atom) / V_cell
+    
+        # Coordination number
+        coordination_number = 8
+    
+        # Nearest neighbor distance
+        nearest_neighbor = 2 * r
+    
+        return {
+            'structure': 'BCC',
+            'lattice_constant': a,
+            'atomic_radius': r,
+            'atoms_per_cell': n_atoms,
+            'packing_fraction': packing_fraction,
+            'coordination_number': coordination_number,
+            'nearest_neighbor': nearest_neighbor
+        }
+    
+    def calculate_hcp_properties(a, c_over_a=1.633):
+        """Calculate HCP structure properties"""
+        c = a * c_over_a
+    
+        # Atomic radius (half of nearest neighbor distance)
+        r = a / 2
+    
+        # Number of atoms
+        n_atoms = 6
+    
+        # Unit cell volume (hexagonal prism)
+        V_cell = (3 * np.sqrt(3) / 2) * a**2 * c
+    
+        # Atomic volume
+        V_atom = (4/3) * np.pi * r**3
+    
+        # Packing fraction
+        packing_fraction = (n_atoms * V_atom) / V_cell
+    
+        # Coordination number
+        coordination_number = 12
+    
+        # Nearest neighbor distance
+        nearest_neighbor = 2 * r
+    
+        return {
+            'structure': 'HCP',
+            'lattice_constant_a': a,
+            'lattice_constant_c': c,
+            'c_over_a': c_over_a,
+            'atomic_radius': r,
+            'atoms_per_cell': n_atoms,
+            'packing_fraction': packing_fraction,
+            'coordination_number': coordination_number,
+            'nearest_neighbor': nearest_neighbor
+        }
+    
+    # Lattice parameter (arbitrary units)
+    a = 1.0
+    
+    # Calculate properties for each structure
+    fcc_props = calculate_fcc_properties(a)
+    bcc_props = calculate_bcc_properties(a)
+    hcp_props = calculate_hcp_properties(a)
+    
+    # Display results
+    print("\nDetailed Property Comparison of Crystal Structures")
+    print("=" * 80)
+    
+    for props in [fcc_props, bcc_props, hcp_props]:
+        print(f"\n【{props['structure']} Structure】")
+        print("-" * 80)
+        if props['structure'] == 'HCP':
+            print(f"  Lattice constant a:        {props['lattice_constant_a']:.4f}")
+            print(f"  Lattice constant c:        {props['lattice_constant_c']:.4f}")
+            print(f"  Axial ratio c/a:           {props['c_over_a']:.4f}")
+        else:
+            print(f"  Lattice constant:          {props['lattice_constant']:.4f}")
+        print(f"  Atomic radius:             {props['atomic_radius']:.4f}")
+        print(f"  Atoms per unit cell:       {props['atoms_per_cell']}")
+        print(f"  Packing fraction:          {props['packing_fraction']:.4f} ({props['packing_fraction']*100:.1f}%)")
+        print(f"  Coordination number:       {props['coordination_number']}")
+        print(f"  Nearest neighbor distance: {props['nearest_neighbor']:.4f}")
+    
+    # Visualization
+    structures = ['FCC', 'BCC', 'HCP']
+    packing_fractions = [fcc_props['packing_fraction'],
+                         bcc_props['packing_fraction'],
+                         hcp_props['packing_fraction']]
+    coordination_numbers = [fcc_props['coordination_number'],
+                            bcc_props['coordination_number'],
+                            hcp_props['coordination_number']]
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # Packing fraction comparison
+    colors = ['#FF6B6B', '#4ECDC4', '#95E1D3']
+    bars1 = ax1.bar(structures, [pf * 100 for pf in packing_fractions], color=colors, alpha=0.8, edgecolor='black', linewidth=2)
+    ax1.set_ylabel('Packing Fraction (%)', fontsize=12, fontweight='bold')
+    ax1.set_title('Packing Fraction Comparison of Crystal Structures', fontsize=14, fontweight='bold')
+    ax1.set_ylim(0, 80)
+    ax1.grid(axis='y', alpha=0.3)
+    
+    # Display values on bars
+    for bar in bars1:
+        height = bar.get_height()
+        ax1.text(bar.get_x() + bar.get_width()/2., height + 1,
+                 f'{height:.1f}%', ha='center', va='bottom', fontsize=11, fontweight='bold')
+    
+    # Coordination number comparison
+    bars2 = ax2.bar(structures, coordination_numbers, color=colors, alpha=0.8, edgecolor='black', linewidth=2)
+    ax2.set_ylabel('Coordination Number', fontsize=12, fontweight='bold')
+    ax2.set_title('Coordination Number Comparison of Crystal Structures', fontsize=14, fontweight='bold')
+    ax2.set_ylim(0, 14)
+    ax2.grid(axis='y', alpha=0.3)
+    
+    # Display values on bars
+    for bar in bars2:
+        height = bar.get_height()
+        ax2.text(bar.get_x() + bar.get_width()/2., height + 0.3,
+                 f'{int(height)}', ha='center', va='bottom', fontsize=11, fontweight='bold')
+    
+    plt.tight_layout()
+    plt.savefig('crystal_properties_comparison.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    print("\n" + "=" * 80)
+    print("✓ Graph saved as 'crystal_properties_comparison.png'")
+    
+
+## 1.3 Miller Indices
+
+Miller indices are used to represent planes and directions in crystals. Miller indices are essential for understanding the symmetry of crystal structures and analyzing X-ray diffraction data.
+
+### 1.3.1 Notation of Crystal Planes (hkl)
+
+Crystal planes are represented by three integers $(h, k, l)$. These are the reciprocals of the intercepts of the plane with the crystal axes $a, b, c$, expressed as the smallest integers.
+
+**How to determine Miller indices:**
+
+  1. Find the coordinates where the plane intersects each crystal axis (e.g., $x=2, y=3, z=6$)
+  2. Take the reciprocals (e.g., $1/2, 1/3, 1/6$)
+  3. Multiply by the least common multiple to convert to integers (e.g., $\times 6$ gives $3, 2, 1$)
+  4. Notation: $(hkl) = (321)$
+
+Representative planes include $(100)$, the plane perpendicular to the $a$ axis; $(110)$, the plane diagonal to both $a$ and $b$ axes; and $(111)$, the plane equally inclined to all three axes, which is the close-packed plane in FCC structures.
+
+### 1.3.2 Notation of Crystal Directions [uvw]
+
+Crystal directions are represented by square brackets $[uvw]$. This indicates the direction of a vector from the origin toward the point $(u, v, w)$.
+
+### 1.3.3 Calculation of Interplanar Spacing
+
+In the cubic crystal system, the interplanar spacing $d_{hkl}$ for the $(hkl)$ plane is calculated by the following equation:
+
+$$d_{hkl} = \frac{a}{\sqrt{h^2 + k^2 + l^2}}$$ 
+
+Where $a$ is the lattice parameter.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    
+                    <h4>Code Example 5: Miller Indices and Interplanar Spacing Calculation</h4>
+                    <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    
+    def calculate_d_spacing(a, h, k, l, crystal_system='cubic'):
+        """
+        Calculate interplanar spacing
+    
+        Parameters:
+        -----------
+        a : float
+            Lattice parameter
+        h, k, l : int
+            Miller indices
+        crystal_system : str
+            Crystal system ('cubic', 'tetragonal', 'hexagonal', etc.)
+    
+        Returns:
+        --------
+        d : float
+            Interplanar spacing
+        """
+        if crystal_system == 'cubic':
+            d = a / np.sqrt(h**2 + k**2 + l**2)
+        else:
+            raise NotImplementedError(f"{crystal_system} system not implemented")
+    
+        return d
+    
+    def plot_plane(h, k, l, a=1.0, ax=None):
+        """
+        Visualize (hkl) plane
+    
+        Parameters:
+        -----------
+        h, k, l : int
+            Miller indices
+        a : float
+            Lattice parameter
+        ax : matplotlib axis
+            Axis for plotting
+        """
+        if ax is None:
+            fig = plt.figure(figsize=(8, 8))
+            ax = fig.add_subplot(111, projection='3d')
+    
+        # Calculate points where plane intersects axes
+        # If h, k, l is zero, at infinity (actually large value)
+        intercepts = []
+        for index in [h, k, l]:
+            if index != 0:
+                intercepts.append(a / index)
+            else:
+                intercepts.append(10 * a)  # Large value
+    
+        # Draw plane (approximate as triangle)
+        points = [
+            [intercepts[0], 0, 0],
+            [0, intercepts[1], 0],
+            [0, 0, intercepts[2]]
+        ]
+    
+        # Plane polygon
+        poly = [[points[0], points[1], points[2]]]
+        ax.add_collection3d(Poly3DCollection(poly, alpha=0.5, facecolor='cyan', edgecolor='blue', linewidth=2))
+    
+        # Draw coordinate axes
+        ax.plot([0, a], [0, 0], [0, 0], 'r-', linewidth=2, label='a-axis')
+        ax.plot([0, 0], [0, a], [0, 0], 'g-', linewidth=2, label='b-axis')
+        ax.plot([0, 0], [0, 0], [0, a], 'b-', linewidth=2, label='c-axis')
+    
+        # Markers at intercepts
+        if h != 0:
+            ax.scatter([intercepts[0]], [0], [0], c='red', s=100, marker='o')
+        if k != 0:
+            ax.scatter([0], [intercepts[1]], [0], c='green', s=100, marker='o')
+        if l != 0:
+            ax.scatter([0], [0], [intercepts[2]], c='blue', s=100, marker='o')
+    
+        ax.set_xlabel('X (a-axis)', fontsize=11, fontweight='bold')
+        ax.set_ylabel('Y (b-axis)', fontsize=11, fontweight='bold')
+        ax.set_zlabel('Z (c-axis)', fontsize=11, fontweight='bold')
+        ax.set_title(f'({h}{k}{l}) Plane', fontsize=13, fontweight='bold')
+    
+        max_val = max(intercepts) * 0.6
+        ax.set_xlim([0, max_val])
+        ax.set_ylim([0, max_val])
+        ax.set_zlim([0, max_val])
+    
+        ax.legend(fontsize=9)
+    
+        return ax
+    
+    # Visualize representative planes
+    fig = plt.figure(figsize=(16, 5))
+    
+    planes = [(1, 0, 0), (1, 1, 0), (1, 1, 1)]
+    a = 1.0
+    
+    for i, (h, k, l) in enumerate(planes):
+        ax = fig.add_subplot(1, 3, i+1, projection='3d')
+        plot_plane(h, k, l, a, ax)
+    
+        # Calculate and display interplanar spacing
+        d = calculate_d_spacing(a, h, k, l)
+        ax.text2D(0.05, 0.95, f'd = {d:.3f}a', transform=ax.transAxes, fontsize=11,
+                  verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+    
+    plt.tight_layout()
+    plt.savefig('miller_indices_planes.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Calculate interplanar spacing for major planes
+    print("\nInterplanar Spacing for Major Planes in Cubic System")
+    print("=" * 60)
+    print(f"{'Plane':<10} {'Interplanar Spacing (unit: a)':<20} {'Relative Intensity'}")
+    print("-" * 60)
+    
+    important_planes = [
+        (1, 0, 0), (1, 1, 0), (1, 1, 1),
+        (2, 0, 0), (2, 1, 0), (2, 1, 1),
+        (2, 2, 0), (3, 1, 0), (2, 2, 2)
+    ]
+    
+    for h, k, l in important_planes:
+        d = calculate_d_spacing(a, h, k, l)
+        # Relative intensity by structure factor (simplified, assuming FCC)
+        if (h % 2 == 0 and k % 2 == 0 and l % 2 == 0) or \
+           (h % 2 == 1 and k % 2 == 1 and l % 2 == 1):
+            intensity = "Strong"
+        else:
+            intensity = "Extinct (FCC)"
+    
+        print(f"({h}{k}{l}){'':<7} {d:.4f} a{'':<15} {intensity}")
+    
+    print("=" * 60)
+    print("\nNote: In FCC structure, only (hkl) planes with all even or all odd indices show diffraction")
+    print("✓ Graph saved as 'miller_indices_planes.png'")
+    
+
+## 1.4 Python Practice: Crystal Structure Generation and Analysis with ASE/pymatgen
+
+In actual materials science research, Python libraries such as `pymatgen` and `ASE` (Atomic Simulation Environment) are used to generate and manipulate crystal structures. These tools also enable integration with density functional theory (DFT) calculations and access to the Materials Project database.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    
+                    <h4>Code Example 6: Crystal Structure Generation and Visualization with ASE</h4>
+                    <pre><code class="language-python">"""
+    Crystal structure generation and analysis using ASE (Atomic Simulation Environment)
+    
+    Note: ASE installation required: pip install ase
+    """
+    
+    try:
+        from ase import Atoms
+        from ase.build import bulk
+        from ase.visualize import view
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+        import numpy as np
+    
+        # Generate crystal structures for various metals
+        structures = {}
+    
+        # Copper (FCC)
+        cu = bulk('Cu', 'fcc', a=3.615)  # a = 3.615 Å
+        structures['Cu (FCC)'] = cu
+    
+        # Iron (BCC)
+        fe = bulk('Fe', 'bcc', a=2.866)  # a = 2.866 Å
+        structures['Fe (BCC)'] = fe
+    
+        # Magnesium (HCP)
+        mg = bulk('Mg', 'hcp', a=3.209, c=5.211)  # a = 3.209 Å, c = 5.211 Å
+        structures['Mg (HCP)'] = mg
+    
+        # Aluminum (FCC)
+        al = bulk('Al', 'fcc', a=4.046)  # a = 4.046 Å
+        structures['Al (FCC)'] = al
+    
+        # Display information for each structure
+        print("Metal Crystal Structure Generation with ASE")
+        print("=" * 80)
+    
+        for name, atoms in structures.items():
+            print(f"\n【{name}】")
+            print("-" * 80)
+            print(f"  Chemical formula:  {atoms.get_chemical_formula()}")
+            print(f"  Number of atoms:   {len(atoms)}")
+            print(f"  Lattice constants (Å): a = {atoms.cell.cellpar()[0]:.3f}, "
+                  f"b = {atoms.cell.cellpar()[1]:.3f}, c = {atoms.cell.cellpar()[2]:.3f}")
+            print(f"  Cell angles (deg): α = {atoms.cell.cellpar()[3]:.1f}, "
+                  f"β = {atoms.cell.cellpar()[4]:.1f}, γ = {atoms.cell.cellpar()[5]:.1f}")
+            print(f"  Volume (Ų):       {atoms.get_volume():.3f}")
+            print(f"  Density (g/cm³):   Calculated = {atoms.get_masses().sum() / atoms.get_volume() * 1.66054:.3f}")
+    
+        # Create supercell (Cu 2x2x2)
+        cu_supercell = cu.repeat((2, 2, 2))
+        print(f"\n\n【Cu Supercell (2×2×2)】")
+        print("-" * 80)
+        print(f"  Number of atoms:   {len(cu_supercell)}")
+        print(f"  Volume (Ų):       {cu_supercell.get_volume():.3f}")
+    
+        # Function for 3D visualization
+        def plot_ase_structure(atoms, title, ax):
+            """Plot ASE Atoms object in 3D"""
+            positions = atoms.get_positions()
+    
+            ax.scatter(positions[:, 0], positions[:, 1], positions[:, 2],
+                       c='#FF6B6B', s=300, alpha=0.7, edgecolors='black', linewidth=1.5)
+    
+            # Draw cell boundaries
+            cell = atoms.cell
+    
+            # Cell vertices
+            origin = np.array([0, 0, 0])
+            vertices = [
+                origin,
+                cell[0],
+                cell[1],
+                cell[2],
+                cell[0] + cell[1],
+                cell[0] + cell[2],
+                cell[1] + cell[2],
+                cell[0] + cell[1] + cell[2]
+            ]
+    
+            # Cell edges
+            edges = [
+                (0, 1), (0, 2), (0, 3),
+                (1, 4), (1, 5), (2, 4),
+                (2, 6), (3, 5), (3, 6),
+                (4, 7), (5, 7), (6, 7)
+            ]
+    
+            for i, j in edges:
+                edge = np.array([vertices[i], vertices[j]])
+                ax.plot3D(edge[:, 0], edge[:, 1], edge[:, 2], 'k-', linewidth=1, alpha=0.6)
+    
+            ax.set_xlabel('X (Å)', fontsize=10, fontweight='bold')
+            ax.set_ylabel('Y (Å)', fontsize=10, fontweight='bold')
+            ax.set_zlabel('Z (Å)', fontsize=10, fontweight='bold')
+            ax.set_title(title, fontsize=12, fontweight='bold', pad=10)
+            ax.set_box_aspect([1, 1, 1])
+    
+        # Plot
+        fig = plt.figure(figsize=(16, 5))
+    
+        plot_structures = [(cu, 'Cu (FCC)'), (fe, 'Fe (BCC)'), (mg, 'Mg (HCP)')]
+    
+        for i, (atoms, name) in enumerate(plot_structures):
+            ax = fig.add_subplot(1, 3, i+1, projection='3d')
+            plot_ase_structure(atoms, name, ax)
+    
+        plt.tight_layout()
+        plt.savefig('ase_crystal_structures.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        print("\n" + "=" * 80)
+        print("✓ Graph saved as 'ase_crystal_structures.png'")
+        print("\n※ With ASE, atoms.edit() or from ase.visualize import view; view(atoms)")
+        print("  enables interactive 3D visualization (requires GUI environment)")
+    
+    except ImportError:
+        print("Error: ASE is not installed")
+        print("Installation method: pip install ase")
+        print("\nAlternatively, you can manually define crystal structures as follows:")
+        print("""
+    import numpy as np
+    
+    # Manual FCC structure definition
+    a = 3.615  # Copper lattice constant (Å)
+    fcc_positions = np.array([
+        [0.0, 0.0, 0.0],
+        [0.5*a, 0.5*a, 0.0],
+        [0.5*a, 0.0, 0.5*a],
+        [0.0, 0.5*a, 0.5*a]
+    ])
+    print("FCC atomic coordinates (Å):")
+    print(fcc_positions)
+    """)
+    
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    
+    
+                    <h4>Code Example 7: Advanced Crystal Structure Analysis with pymatgen</h4>
+                    <pre><code class="language-python">"""
+    Advanced crystal structure analysis using pymatgen
+    
+    Note: pymatgen installation required: pip install pymatgen
+    """
+    
+    try:
+        from pymatgen.core import Structure, Lattice
+        from pymatgen.analysis.structure_analyzer import SpacegroupAnalyzer
+        from pymatgen.symmetry.analyzer import SpacegroupAnalyzer as SGA
+        import numpy as np
+    
+        # Generate copper (FCC) structure
+        lattice_cu = Lattice.cubic(3.615)  # a = 3.615 Å
+        species_cu = ['Cu'] * 4
+        coords_cu = [
+            [0.0, 0.0, 0.0],
+            [0.5, 0.5, 0.0],
+            [0.5, 0.0, 0.5],
+            [0.0, 0.5, 0.5]
+        ]
+        cu_structure = Structure(lattice_cu, species_cu, coords_cu)
+    
+        # Generate iron (BCC) structure
+        lattice_fe = Lattice.cubic(2.866)  # a = 2.866 Å
+        species_fe = ['Fe'] * 2
+        coords_fe = [
+            [0.0, 0.0, 0.0],
+            [0.5, 0.5, 0.5]
+        ]
+        fe_structure = Structure(lattice_fe, species_fe, coords_fe)
+    
+        # Generate magnesium (HCP) structure
+        a_mg = 3.209
+        c_mg = 5.211
+        lattice_mg = Lattice.hexagonal(a_mg, c_mg)
+        species_mg = ['Mg'] * 2
+        coords_mg = [
+            [1/3, 2/3, 1/4],
+            [2/3, 1/3, 3/4]
+        ]
+        mg_structure = Structure(lattice_mg, species_mg, coords_mg)
+    
+        structures = {
+            'Cu (FCC)': cu_structure,
+            'Fe (BCC)': fe_structure,
+            'Mg (HCP)': mg_structure
+        }
+    
+        print("Detailed Crystal Structure Analysis with pymatgen")
+        print("=" * 80)
+    
+        for name, structure in structures.items():
+            print(f"\n【{name}】")
+            print("-" * 80)
+    
+            # Basic information
+            print(f"  Chemical formula:      {structure.composition.reduced_formula}")
+            print(f"  Space group:           ", end="")
+    
+            try:
+                sga = SpacegroupAnalyzer(structure)
+                spacegroup = sga.get_space_group_symbol()
+                spacegroup_number = sga.get_space_group_number()
+                print(f"{spacegroup} (No. {spacegroup_number})")
+    
+                # Number of symmetry operations
+                print(f"  Symmetry operations:   {len(sga.get_symmetry_operations())}")
+    
+                # Point group
+                print(f"  Point group:           {sga.get_point_group_symbol()}")
+    
+            except Exception as e:
+                print(f"Analysis error: {e}")
+    
+            # Lattice information
+            abc = structure.lattice.abc
+            angles = structure.lattice.angles
+            print(f"  Lattice constants (Å): a = {abc[0]:.3f}, b = {abc[1]:.3f}, c = {abc[2]:.3f}")
+            print(f"  Lattice angles (deg):  α = {angles[0]:.1f}, β = {angles[1]:.1f}, γ = {angles[2]:.1f}")
+            print(f"  Volume (Ų):           {structure.volume:.3f}")
+            print(f"  Density (g/cm³):       {structure.density:.3f}")
+    
+            # Nearest neighbor distances
+            print(f"\n  Nearest neighbor distances:")
+            all_nn_distances = []
+            for i, site in enumerate(structure):
+                neighbors = structure.get_neighbors(site, 4.0)  # Within 4 Å
+                if neighbors:
+                    nn_dist = min([neighbor[1] for neighbor in neighbors])
+                    all_nn_distances.append(nn_dist)
+    
+            if all_nn_distances:
+                avg_nn = np.mean(all_nn_distances)
+                print(f"    Average: {avg_nn:.3f} Å")
+                print(f"    Range: {min(all_nn_distances):.3f} - {max(all_nn_distances):.3f} Å")
+    
+        # Structure comparison
+        print("\n\n【Structure Comparison】")
+        print("=" * 80)
+        print(f"{'Structure':<15} {'Space Group':<15} {'Density (g/cm³)':<15} {'Nearest Distance (Å)'}")
+        print("-" * 80)
+    
+        for name, structure in structures.items():
+            try:
+                sga = SpacegroupAnalyzer(structure)
+                sg = sga.get_space_group_symbol()
+            except:
+                sg = "N/A"
+    
+            neighbors = structure.get_neighbors(structure[0], 4.0)
+            if neighbors:
+                nn_dist = min([neighbor[1] for neighbor in neighbors])
+            else:
+                nn_dist = 0.0
+    
+            print(f"{name:<15} {sg:<15} {structure.density:<15.3f} {nn_dist:.3f}")
+    
+        print("=" * 80)
+        print("\n✓ Analysis with pymatgen completed")
+    
+        # Save in CIF format
+        print("\nSave structures in CIF format:")
+        for name, structure in structures.items():
+            filename = name.replace(' ', '_').replace('(', '').replace(')', '') + '.cif'
+            structure.to(filename=filename, fmt='cif')
+            print(f"  ✓ {filename}")
+    
+    except ImportError:
+        print("Error: pymatgen is not installed")
+        print("Installation method: pip install pymatgen")
+        print("\npymatgen is a widely-used library in materials science research with features:")
+        print("  - Crystal structure generation, manipulation, and analysis")
+        print("  - Automatic determination of space groups and point groups")
+        print("  - Access to Materials Project database")
+        print("  - Integration with density functional theory (DFT) calculations")
+        print("  - Phase diagram and state diagram calculations")
+    
+
+### Exercise Problems
+
+#### Exercise 1.1
+
+Easy
+
+**Problem:** The electron density of copper (Cu) is $n = 8.45 \times 10^{28}$ m⁻³ and the relaxation time is $\tau = 2.5 \times 10^{-14}$ s. Calculate the electrical conductivity $\sigma$ and electrical resistivity $\rho$ of copper using the Drude model.
+
+Show solution
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example: Problem:The electron density of copper (Cu) is $n = 8.45 \ti
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Beginner to Intermediate
+    Execution time: 5-10 seconds
+    Dependencies: None
+    """
+    
+    import numpy as np
+    
+    # Physical constants
+    e = 1.602e-19  # Electron charge (C)
+    m_e = 9.109e-31  # Electron mass (kg)
+    
+    # Copper parameters
+    n = 8.45e28  # Electron density (m^-3)
+    tau = 2.5e-14  # Relaxation time (s)
+    
+    # Calculate electrical conductivity
+    sigma = (n * e**2 * tau) / m_e
+    
+    # Calculate electrical resistivity
+    rho = 1 / sigma
+    
+    print("=" * 60)
+    print("Electrical Conductivity and Resistivity of Copper (Drude Model)")
+    print("=" * 60)
+    print(f"\nGiven values:")
+    print(f"  Electron density n:    {n:.2e} m^-3")
+    print(f"  Relaxation time τ:    {tau:.2e} s")
+    print(f"\nCalculation results:")
+    print(f"  Electrical conductivity σ:  {sigma:.3e} S/m")
+    print(f"  Electrical resistivity ρ:  {rho:.3e} Ω·m")
+    print(f"                             {rho * 1e8:.2f} μΩ·cm")
+    print(f"\nReference: Experimental value is about 1.68 μΩ·cm (room temperature)")
+    print("=" * 60)
+    
+    # Explanation
+    print("\n【Calculation Explanation】")
+    print("-" * 60)
+    print("Drude model electrical conductivity formula:")
+    print("  σ = (n × e² × τ) / m")
+    print("\nWhere,")
+    print("  n  : Electron density")
+    print("  e  : Electron charge (1.602 × 10⁻¹⁹ C)")
+    print("  τ  : Relaxation time (average time before electron scattering)")
+    print("  m  : Electron mass (9.109 × 10⁻³¹ kg)")
+    print("\nElectrical resistivity is the reciprocal of electrical conductivity:")
+    print("  ρ = 1 / σ")
+    print("-" * 60)
+    
+    # Verification
+    print("\n【Result Verification】")
+    print("-" * 60)
+    theoretical = rho * 1e8
+    experimental = 1.68
+    error = abs(theoretical - experimental) / experimental * 100
+    print(f"Theoretical value (Drude model): {theoretical:.2f} μΩ·cm")
+    print(f"Experimental value (room temp):  {experimental:.2f} μΩ·cm")
+    print(f"Error:                           {error:.1f}%")
+    print("\nThe Drude model is a classical approximation, but")
+    print("the order of magnitude agrees, showing that it can")
+    print("qualitatively explain the electrical conductivity of metals.")
+    print("=" * 60)
+    
+
+#### Exercise 1.2
+
+Easy
+
+**Problem:** For an FCC structure with lattice parameter $a = 4.05$ Å, calculate:
+
+  1. Atomic radius $r$
+  2. Packing fraction
+  3. Number of atoms per unit cell
+
+Show solution
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example: Problem:For an FCC structure with lattice parameter $a = 4.0
+    
+    Purpose: Demonstrate core concepts and implementation patterns
+    Target: Beginner to Intermediate
+    Execution time: 5-10 seconds
+    Dependencies: None
+    """
+    
+    import numpy as np
+    
+    # Lattice parameter
+    a = 4.05  # Å
+    
+    print("=" * 70)
+    print("FCC Structure Calculation Problem")
+    print("=" * 70)
+    print(f"\nGiven value:")
+    print(f"  Lattice constant a = {a} Å")
+    
+    # (1) Calculate atomic radius
+    # In FCC, atoms are in contact along the face diagonal
+    # Face diagonal length = 4r = a√2
+    r = a / (2 * np.sqrt(2))
+    
+    print(f"\n(1) Atomic radius calculation:")
+    print(f"    In FCC structure, atoms contact along the face diagonal.")
+    print(f"    Face diagonal length = 4r = a√2")
+    print(f"    Therefore, r = a / (2√2)")
+    print(f"    ")
+    print(f"    Calculation: r = {a} / (2√2)")
+    print(f"                  = {a} / {2 * np.sqrt(2):.4f}")
+    print(f"                  = {r:.4f} Å")
+    
+    # (2) Calculate packing fraction
+    # Atoms per unit cell
+    n_atoms = 4
+    
+    # Unit cell volume
+    V_cell = a**3
+    
+    # Atomic volume (as sphere)
+    V_atom = (4/3) * np.pi * r**3
+    
+    # Packing fraction
+    packing_fraction = (n_atoms * V_atom) / V_cell
+    
+    print(f"\n(2) Packing fraction calculation:")
+    print(f"    Atoms per unit cell: n = {n_atoms}")
+    print(f"    Unit cell volume: V_cell = a³ = {a}³ = {V_cell:.3f} ų")
+    print(f"    Volume per atom: V_atom = (4/3)πr³ = {V_atom:.3f} ų")
+    print(f"    ")
+    print(f"    Packing fraction = (n × V_atom) / V_cell")
+    print(f"                      = ({n_atoms} × {V_atom:.3f}) / {V_cell:.3f}")
+    print(f"                      = {packing_fraction:.4f}")
+    print(f"                      = {packing_fraction * 100:.2f}%")
+    
+    # Comparison with theoretical value
+    theoretical_packing = np.pi / (3 * np.sqrt(2))
+    print(f"    ")
+    print(f"    Theoretical value: π / (3√2) = {theoretical_packing:.4f} = {theoretical_packing * 100:.2f}%")
+    
+    # (3) Atoms per unit cell
+    print(f"\n(3) Atoms per unit cell:")
+    print(f"    Corner atoms: 8 corners × 1/8 = 1 atom")
+    print(f"    Face-center atoms: 6 faces × 1/2 = 3 atoms")
+    print(f"    Total:       1 + 3 = {n_atoms} atoms")
+    
+    # Summary
+    print("\n" + "=" * 70)
+    print("【Answer Summary】")
+    print("=" * 70)
+    print(f"(1) Atomic radius r:              {r:.4f} Å = {r * 100:.2f} pm")
+    print(f"(2) Packing fraction:             {packing_fraction:.4f} = {packing_fraction * 100:.2f}%")
+    print(f"(3) Atoms per unit cell:          {n_atoms} atoms")
+    print("=" * 70)
+    
+    # Additional information
+    print("\n【Additional Information】")
+    print("-" * 70)
+    print("FCC structure characteristics:")
+    print("  - One of the close-packed structures (packing fraction 74%)")
+    print("  - Coordination number: 12")
+    print("  - Many slip systems, high ductility")
+    print("  - Representative metals: Cu, Al, Au, Ag, Ni, Pb")
+    print("-" * 70)
+    
+
+#### Exercise 1.3
+
+Medium
+
+**Problem:** For a cubic crystal system with lattice parameter $a = 3.5$ Å, calculate the interplanar spacing for the following planes: $(100)$, $(110)$, $(111)$, $(200)$, $(220)$
+
+Show solution
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def calculate_d_spacing(a, h, k, l):
+        """
+        Calculate interplanar spacing for cubic system
+    
+        Parameters:
+        -----------
+        a : float
+            Lattice parameter (Å)
+        h, k, l : int
+            Miller indices
+    
+        Returns:
+        --------
+        d : float
+            Interplanar spacing (Å)
+        """
+        d = a / np.sqrt(h**2 + k**2 + l**2)
+        return d
+    
+    # Lattice parameter
+    a = 3.5  # Å
+    
+    # Planes to calculate
+    planes = [
+        (1, 0, 0),
+        (1, 1, 0),
+        (1, 1, 1),
+        (2, 0, 0),
+        (2, 2, 0)
+    ]
+    
+    print("=" * 80)
+    print("Interplanar Spacing Calculation in Cubic System")
+    print("=" * 80)
+    print(f"\nGiven value:")
+    print(f"  Lattice constant a = {a} Å")
+    print(f"\nInterplanar spacing formula for cubic system:")
+    print(f"  d_hkl = a / √(h² + k² + l²)")
+    
+    print(f"\nCalculation results:")
+    print("=" * 80)
+    print(f"{'(hkl)':<8} {'h²+k²+l²':<12} {'√(h²+k²+l²)':<18} {'d_hkl (Å)':<15}")
+    print("-" * 80)
+    
+    d_values = []
+    plane_labels = []
+    
+    for h, k, l in planes:
+        sum_squares = h**2 + k**2 + l**2
+        sqrt_sum = np.sqrt(sum_squares)
+        d = calculate_d_spacing(a, h, k, l)
+        d_values.append(d)
+        plane_labels.append(f"({h}{k}{l})")
+    
+        print(f"({h}{k}{l}){'':<5} {sum_squares:<12} {sqrt_sum:<18.4f} {d:.4f}")
+    
+    print("=" * 80)
+    
+    # Visualize interplanar spacing
+    fig, ax = plt.subplots(figsize=(12, 7))
+    
+    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8']
+    bars = ax.bar(plane_labels, d_values, color=colors, alpha=0.8, edgecolor='black', linewidth=2)
+    
+    ax.set_ylabel('Interplanar Spacing d (Å)', fontsize=13, fontweight='bold')
+    ax.set_xlabel('Miller Indices (hkl)', fontsize=13, fontweight='bold')
+    ax.set_title(f'Interplanar Spacing in Cubic System (a = {a} Å)', fontsize=15, fontweight='bold', pad=15)
+    ax.grid(axis='y', alpha=0.3, linestyle='--')
+    
+    # Display values on bars
+    for bar, d in zip(bars, d_values):
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height + 0.05,
+                f'{d:.3f} Å', ha='center', va='bottom', fontsize=11, fontweight='bold')
+    
+    plt.tight_layout()
+    plt.savefig('d_spacing_comparison.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    print("\n✓ Graph saved as 'd_spacing_comparison.png'")
+    
+    # Application to X-ray diffraction
+    print("\n【Application to X-ray Diffraction】")
+    print("=" * 80)
+    print("Bragg's law: 2d sinθ = nλ")
+    print(f"\nDiffraction angle 2θ using Cu Kα radiation (λ = 1.5418 Å):")
+    print("-" * 80)
+    
+    lambda_cu = 1.5418  # Å
+    
+    for (h, k, l), d in zip(planes, d_values):
+        if d > lambda_cu / 2:  # Only if Bragg condition is satisfied
+            sin_theta = lambda_cu / (2 * d)
+            theta = np.arcsin(sin_theta) * 180 / np.pi
+            two_theta = 2 * theta
+            print(f"({h}{k}{l}):  d = {d:.4f} Å  →  2θ = {two_theta:.2f}°")
+        else:
+            print(f"({h}{k}{l}):  d = {d:.4f} Å  →  No diffraction (smaller than λ/2)")
+    
+    print("=" * 80)
+    
+    # Order of interplanar spacing
+    print("\n【Order of Interplanar Spacing】")
+    print("-" * 80)
+    sorted_indices = np.argsort(d_values)[::-1]  # Descending order
+    print("In order of decreasing interplanar spacing:")
+    for i, idx in enumerate(sorted_indices):
+        h, k, l = planes[idx]
+        print(f"  {i+1}. ({h}{k}{l}): {d_values[idx]:.4f} Å")
+    print("-" * 80)
+    
+
+#### Exercise 1.4
+
+Medium
+
+**Problem:** The Fermi energy of copper (Cu) is 7.05 eV. Calculate the following:
+
+  1. Calculate and compare the Fermi-Dirac distribution at absolute zero (0 K) and room temperature (300 K) with graphs
+  2. Calculate the Fermi velocity (electron velocity corresponding to the Fermi energy)
+
+Show solution
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - scipy>=1.11.0
+    
+    """
+    Example: Problem:The Fermi energy of copper (Cu) is 7.05 eV. Calculat
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Intermediate
+    Execution time: 2-5 seconds
+    Dependencies: None
+    """
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import constants
+    
+    # Physical constants
+    k_B = constants.k  # Boltzmann constant (J/K)
+    e = constants.e  # Electron charge (C)
+    m_e = constants.m_e  # Electron mass (kg)
+    
+    # Fermi energy of copper
+    E_F_eV = 7.05  # eV
+    E_F = E_F_eV * e  # Convert to J
+    
+    print("=" * 80)
+    print("Fermi-Dirac Distribution and Fermi Velocity Calculation for Copper")
+    print("=" * 80)
+    print(f"\nGiven value:")
+    print(f"  Fermi energy E_F = {E_F_eV} eV = {E_F:.3e} J")
+    
+    # (1) Calculate Fermi-Dirac distribution
+    def fermi_dirac(E, E_F, T):
+        """
+        Fermi-Dirac distribution function
+    
+        Parameters:
+        -----------
+        E : array-like
+            Energy (J)
+        E_F : float
+            Fermi energy (J)
+        T : float
+            Temperature (K)
+    
+        Returns:
+        --------
+        f : array-like
+            Occupation probability
+        """
+        if T == 0:
+            return np.where(E <= E_F, 1.0, 0.0)
+        else:
+            # Overflow protection
+            x = (E - E_F) / (k_B * T)
+            x = np.clip(x, -100, 100)
+            return 1 / (1 + np.exp(x))
+    
+    # Energy range (set in eV units)
+    E_range_eV = np.linspace(0, 15, 1000)
+    E_range = E_range_eV * e  # Convert to J
+    
+    # Distribution at 0 K and 300 K
+    f_0K = fermi_dirac(E_range, E_F, 0)
+    f_300K = fermi_dirac(E_range, E_F, 300)
+    
+    # Plot
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Left plot: Distribution function comparison
+    ax1.plot(E_range_eV, f_0K, 'b-', linewidth=2.5, label='T = 0 K')
+    ax1.plot(E_range_eV, f_300K, 'r-', linewidth=2.5, label='T = 300 K')
+    ax1.axvline(E_F_eV, color='green', linestyle='--', linewidth=2, label=f'$E_F$ = {E_F_eV} eV')
+    ax1.fill_between(E_range_eV, 0, f_300K, alpha=0.2, color='red')
+    ax1.set_xlabel('Energy (eV)', fontsize=12, fontweight='bold')
+    ax1.set_ylabel('Occupation Probability f(E)', fontsize=12, fontweight='bold')
+    ax1.set_title('Temperature Dependence of Fermi-Dirac Distribution', fontsize=13, fontweight='bold')
+    ax1.legend(fontsize=11)
+    ax1.grid(True, alpha=0.3)
+    ax1.set_xlim(0, 15)
+    ax1.set_ylim(-0.05, 1.05)
+    
+    # Right plot: Zoom near Fermi energy
+    E_zoom_eV = np.linspace(E_F_eV - 1, E_F_eV + 1, 500)
+    E_zoom = E_zoom_eV * e
+    f_zoom_0K = fermi_dirac(E_zoom, E_F, 0)
+    f_zoom_300K = fermi_dirac(E_zoom, E_F, 300)
+    
+    ax2.plot(E_zoom_eV, f_zoom_0K, 'b-', linewidth=2.5, label='T = 0 K')
+    ax2.plot(E_zoom_eV, f_zoom_300K, 'r-', linewidth=2.5, label='T = 300 K')
+    ax2.axvline(E_F_eV, color='green', linestyle='--', linewidth=2, label=f'$E_F$ = {E_F_eV} eV')
+    ax2.axhline(0.5, color='gray', linestyle=':', linewidth=1.5, alpha=0.7)
+    ax2.set_xlabel('Energy (eV)', fontsize=12, fontweight='bold')
+    ax2.set_ylabel('Occupation Probability f(E)', fontsize=12, fontweight='bold')
+    ax2.set_title('Zoom Near Fermi Energy', fontsize=13, fontweight='bold')
+    ax2.legend(fontsize=11)
+    ax2.grid(True, alpha=0.3)
+    ax2.set_xlim(E_F_eV - 1, E_F_eV + 1)
+    ax2.set_ylim(-0.05, 1.05)
+    
+    plt.tight_layout()
+    plt.savefig('fermi_dirac_temperature_comparison.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    print("\n(1) Fermi-Dirac distribution:")
+    print("-" * 80)
+    print(f"  0 K:   All states below E_F are occupied (f = 1)")
+    print(f"         All states above E_F are empty (f = 0)")
+    print(f"         Behaves as step function")
+    print(f"  ")
+    print(f"  300 K: f = 0.5 at E = E_F")
+    print(f"         Distribution 'blurs' with width of thermal energy k_B T = {k_B * 300 / e * 1000:.2f} meV")
+    print(f"         However, since E_F = {E_F_eV} eV >> k_B T,")
+    print(f"         maintains shape close to step function")
+    
+    # (2) Calculate Fermi velocity
+    # From E_F = (1/2) m v_F^2, v_F = √(2 E_F / m)
+    v_F = np.sqrt(2 * E_F / m_e)
+    
+    print(f"\n(2) Fermi velocity calculation:")
+    print("-" * 80)
+    print(f"  Relationship between Fermi energy and electron kinetic energy:")
+    print(f"    E_F = (1/2) m v_F²")
+    print(f"  ")
+    print(f"  Therefore, Fermi velocity is:")
+    print(f"    v_F = √(2 E_F / m)")
+    print(f"  ")
+    print(f"  Calculation:")
+    print(f"    v_F = √(2 × {E_F:.3e} J / {m_e:.3e} kg)")
+    print(f"        = {v_F:.3e} m/s")
+    print(f"        = {v_F / 1e6:.3f} × 10⁶ m/s")
+    print(f"  ")
+    print(f"  Ratio to speed of light c = {constants.c:.3e} m/s:")
+    print(f"    v_F / c = {v_F / constants.c:.4f} = {v_F / constants.c * 100:.2f}%")
+    print("-" * 80)
+    
+    print("\n" + "=" * 80)
+    print("【Answer Summary】")
+    print("=" * 80)
+    print(f"(1) Fermi-Dirac distribution:")
+    print(f"    - Step function at 0 K")
+    print(f"    - Blurs near E_F with width of k_B T at 300 K")
+    print(f"    - Graph saved to 'fermi_dirac_temperature_comparison.png'")
+    print(f"")
+    print(f"(2) Fermi velocity:")
+    print(f"    v_F = {v_F / 1e6:.3f} × 10⁶ m/s (about {v_F / constants.c * 100:.1f}% of speed of light)")
+    print("=" * 80)
+    
+    print("\n【Physical Significance】")
+    print("-" * 80)
+    print("The Fermi velocity is the velocity of electrons with Fermi energy")
+    print("at absolute zero. This velocity is very large (about 10⁶ m/s),")
+    print("showing that electrons in metals move at high speeds.")
+    print("This is the cause of the high electrical and thermal conductivity of metals.")
+    print("-" * 80)
+    
+
+#### Exercise 1.5
+
+Hard
+
+**Problem:** For an FCC metal, identify the slip systems (combinations of slip planes and slip directions) for the $(111)$ and $(100)$ planes, and compare the atomic packing density for each plane. Explain which plane is more likely to slip and why.
+
+Show solution
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example: Problem:For an FCC metal, identify the slip systems (combina
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Intermediate
+    Execution time: 2-5 seconds
+    Dependencies: None
+    """
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    
+    print("=" * 80)
+    print("Slip System Analysis for FCC Metals: (111) Plane vs (100) Plane")
+    print("=" * 80)
+    
+    # Slip systems in FCC structure
+    print("\n【Slip Systems in FCC Structure】")
+    print("-" * 80)
+    print("Primary slip systems in FCC metals (Cu, Al, Au, Ag, Ni, etc.):")
+    print("  Slip plane: {111} planes (close-packed planes)")
+    print("  Slip direction: <110> directions (close-packed directions)")
+    print("  ")
+    print("(111) plane slip systems: 4 {111} planes × 3 <110> directions = 12 systems")
+    print("(100) plane slip systems: Normally does not slip, but activates at high temperature")
+    
+    # Calculate atomic packing density for (111) and (100) planes
+    print("\n【Atomic Packing Density Comparison】")
+    print("-" * 80)
+    
+    # Lattice parameter
+    a = 1.0  # Arbitrary units
+    
+    # Atomic packing density of (111) plane
+    # (111) plane has triangular lattice
+    # Triangle area = (√3/2) × (a/√2)² = (√3/4) × a²
+    area_111_triangle = (np.sqrt(3) / 4) * a**2
+    
+    # Unit triangle on (111) plane contains 1 atom
+    # (3 corner atoms × 1/3 = 1 atom)
+    atoms_per_triangle_111 = 1
+    
+    # Atomic packing density = number of atoms / area
+    density_111 = atoms_per_triangle_111 / area_111_triangle
+    
+    print(f"\n(111) plane analysis:")
+    print(f"  Lattice structure: Triangular lattice (close-packed)")
+    print(f"  Unit triangle area: (√3/4) × a² = {area_111_triangle:.4f} a²")
+    print(f"  Atoms per unit triangle: {atoms_per_triangle_111}")
+    print(f"  Atomic packing density: {density_111:.4f} / a²")
+    print(f"                         = {density_111:.4f} × (1/a²)")
+    
+    # Atomic packing density of (100) plane
+    # (100) plane has square lattice
+    # Square area = (a/√2)² = a²/2
+    area_100_square = a**2 / 2
+    
+    # Unit square on (100) plane contains 1 atom
+    # (4 corner atoms × 1/4 = 1 atom)
+    atoms_per_square_100 = 1
+    
+    # Atomic packing density
+    density_100 = atoms_per_square_100 / area_100_square
+    
+    print(f"\n(100) plane analysis:")
+    print(f"  Lattice structure: Square lattice")
+    print(f"  Unit square area: a²/2 = {area_100_square:.4f} a²")
+    print(f"  Atoms per unit square: {atoms_per_square_100}")
+    print(f"  Atomic packing density: {density_100:.4f} / a²")
+    print(f"                         = {density_100:.4f} × (1/a²)")
+    
+    # Comparison
+    ratio = density_111 / density_100
+    print(f"\nAtom packing density ratio:")
+    print(f"  (111) plane / (100) plane = {ratio:.4f}")
+    print(f"  (111) plane has {ratio:.2f}× denser atomic packing")
+    
+    # Evaluate slip ease
+    print("\n" + "=" * 80)
+    print("【Slip Ease Evaluation】")
+    print("=" * 80)
+    
+    print("\nReasons why (111) plane is the primary slip plane:")
+    print("-" * 80)
+    print(f"1. Close-packed plane")
+    print(f"   → Highest atomic packing density ({density_111:.4f} / a²)")
+    print(f"   → Strong interatomic bonding, stable plane overall")
+    print(f"")
+    print(f"2. Largest interplanar spacing")
+    print(f"   → d_111 = a / √3 = {a / np.sqrt(3):.4f} a")
+    print(f"   → d_100 = a / √1 = {a / np.sqrt(1):.4f} a")
+    print(f"   → Larger interplanar spacing requires smaller shear stress for slip")
+    print(f"")
+    print(f"3. Slip direction <110> is close-packed direction")
+    print(f"   → Shortest interatomic distance (a/√2 = {a / np.sqrt(2):.4f} a)")
+    print(f"   → Minimum atomic displacement distance during slip")
+    print(f"")
+    print(f"4. Many slip systems")
+    print(f"   → {'{111}'} plane: 4 planes × 3 directions = 12 slip systems")
+    print(f"   → Can respond to various stress directions → High ductility")
+    
+    print("\nReasons why (100) plane is difficult to slip:")
+    print("-" * 80)
+    print(f"1. Low atomic packing density ({density_100:.4f} / a²)")
+    print(f"   → {1/ratio:.2f}× that of (111) plane")
+    print(f"   → Weak bonding across plane")
+    print(f"")
+    print(f"2. Small interplanar spacing")
+    print(f"   → d_100 = {a / np.sqrt(1):.4f} a ({np.sqrt(3):.2f}× denser than (111) plane)")
+    print(f"   → Requires larger shear stress for slip")
+    print(f"")
+    print(f"3. Not activated at room temperature")
+    print(f"   → Only activates at high temperature (>0.5T_m)")
+    
+    # Critical resolved shear stress (CRSS) concept
+    print("\n" + "=" * 80)
+    print("【Critical Resolved Shear Stress (CRSS)】")
+    print("=" * 80)
+    
+    print("\nSchmid's law:")
+    print("  τ_R = σ cos φ cos λ")
+    print("  ")
+    print("  Where,")
+    print("  τ_R : Resolved shear stress")
+    print("  σ  : Tensile stress")
+    print("  φ  : Angle between stress axis and slip plane normal")
+    print("  λ  : Angle between stress axis and slip direction")
+    print("  ")
+    print("Condition for slip initiation:")
+    print("  τ_R ≥ τ_CRSS")
+    print("  ")
+    print("Typical CRSS values for FCC metals (room temperature):")
+    print("  Cu:  about 0.5 - 1.0 MPa")
+    print("  Al:  about 0.2 - 0.5 MPa")
+    print("  Au:  about 0.3 - 0.8 MPa")
+    
+    # Visualization: Schematic of slip systems
+    fig = plt.figure(figsize=(14, 6))
+    
+    # Left plot: (111) plane slip system
+    ax1 = fig.add_subplot(121, projection='3d')
+    ax1.set_title('(111) Plane Slip System\n(Close-packed plane, 12 slip systems)',
+                  fontsize=12, fontweight='bold', pad=15)
+    
+    # Draw (111) plane (simplified)
+    plane_vertices_111 = np.array([
+        [0, 0, 1],
+        [1, 0, 0],
+        [0, 1, 0]
+    ])
+    
+    # Draw plane
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    poly_111 = Poly3DCollection([plane_vertices_111], alpha=0.5,
+                                 facecolor='cyan', edgecolor='blue', linewidth=2)
+    ax1.add_collection3d(poly_111)
+    
+    # Draw slip direction vectors
+    slip_directions_111 = [
+        ([0, 0, 1], [1, 0, 0]),
+        ([1, 0, 0], [0, 1, 0]),
+        ([0, 1, 0], [0, 0, 1])
+    ]
+    
+    for start, end in slip_directions_111:
+        start = np.array(start)
+        end = np.array(end)
+        ax1.quiver(start[0], start[1], start[2],
+                   end[0] - start[0], end[1] - start[1], end[2] - start[2],
+                   color='red', arrow_length_ratio=0.2, linewidth=2)
+    
+    ax1.set_xlabel('X', fontsize=10, fontweight='bold')
+    ax1.set_ylabel('Y', fontsize=10, fontweight='bold')
+    ax1.set_zlabel('Z', fontsize=10, fontweight='bold')
+    ax1.set_xlim([0, 1])
+    ax1.set_ylim([0, 1])
+    ax1.set_zlim([0, 1])
+    
+    # Right plot: (100) plane slip system
+    ax2 = fig.add_subplot(122, projection='3d')
+    ax2.set_title('(100) Plane Slip System\n(Non-close-packed plane, inactive at room temp)',
+                  fontsize=12, fontweight='bold', pad=15)
+    
+    # Draw (100) plane
+    plane_vertices_100 = np.array([
+        [1, 0, 0],
+        [1, 1, 0],
+        [1, 1, 1],
+        [1, 0, 1]
+    ])
+    
+    poly_100 = Poly3DCollection([plane_vertices_100], alpha=0.5,
+                                 facecolor='lightcoral', edgecolor='red', linewidth=2)
+    ax2.add_collection3d(poly_100)
+    
+    ax2.set_xlabel('X', fontsize=10, fontweight='bold')
+    ax2.set_ylabel('Y', fontsize=10, fontweight='bold')
+    ax2.set_zlabel('Z', fontsize=10, fontweight='bold')
+    ax2.set_xlim([0, 1])
+    ax2.set_ylim([0, 1])
+    ax2.set_zlim([0, 1])
+    
+    plt.tight_layout()
+    plt.savefig('fcc_slip_systems_comparison.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    print("\n" + "=" * 80)
+    print("【Conclusion】")
+    print("=" * 80)
+    print("Reasons why (111) plane is easier to slip than (100) plane:")
+    print("  1. Close-packed plane with high atomic packing density")
+    print(f"     → (111): {density_111:.4f} / a²")
+    print(f"     → (100): {density_100:.4f} / a² ({ratio:.2f}× difference)")
+    print("  2. Large interplanar spacing requires smaller shear stress for slip")
+    print("  3. 12 slip systems allow response to various stresses")
+    print("  4. Primary cause of high ductility in FCC metals")
+    print("=" * 80)
+    
+    print("\n✓ Graph saved as 'fcc_slip_systems_comparison.png'")
+    
+
+### Learning Objectives Check
+
+#### Level 1: Basic Understanding (Knowledge Acquisition)
+
+  * Can explain the free electron model and Drude model of metallic bonding
+  * Can explain the differences between FCC, BCC, and HCP crystal structures
+  * Understand the meaning of packing fraction and coordination number
+  * Understand the concept of Fermi-Dirac distribution
+  * Understand the notation method of Miller indices
+
+#### Level 2: Practical Skills (Calculation and Application)
+
+  * Can calculate electrical conductivity using Drude model
+  * Can calculate packing fraction for FCC, BCC, and HCP structures
+  * Can calculate interplanar spacing from Miller indices
+  * Can calculate Fermi energy and Fermi velocity
+  * Can visualize crystal structures with Python
+  * Can generate and manipulate crystal structures using ASE and pymatgen
+
+#### Level 3: Applied Ability (Problem Solving and Optimization)
+
+  * Can predict mechanical properties of materials from crystal structure
+  * Can analyze slip systems and evaluate material ductility
+  * Can interpret experimental data (XRD, electrical resistivity, etc.) in relation to crystal structure
+  * Can perform materials design simulations using pymatgen and ASE
+  * Can utilize databases like Materials Project for materials exploration
+
+## References
+
+  1. Kittel, C. (2018). _Introduction to Solid State Physics_ , 9th ed. Wiley, pp. 145-189, 223-267.
+  2. Ashcroft, N.W., Mermin, N.D. (1976). _Solid State Physics_. Brooks Cole, pp. 1-48, 123-167.
+  3. Callister, W.D., Jr., Rethwisch, D.G. (2020). _Materials Science and Engineering: An Introduction_ , 10th ed. Wiley, pp. 45-89, 112-145.
+  4. Porter, D.A., Easterling, K.E., Sherif, M.Y. (2009). _Phase Transformations in Metals and Alloys_ , 3rd ed. CRC Press, pp. 1-35.
+  5. Cottrell, A.H. (1953). _Dislocations and Plastic Flow in Crystals_. Oxford University Press, pp. 8-34.
+  6. Hosford, W.F. (2010). _Mechanical Behavior of Materials_ , 2nd ed. Cambridge University Press, pp. 67-102.
+  7. pymatgen documentation: Structure module. <https://pymatgen.org/pymatgen.core.structure.html>
+  8. ASE (Atomic Simulation Environment) documentation: Atoms and lattice objects. <https://wiki.fysik.dtu.dk/ase/>
+
+[← Back to Table of Contents](<./index.html>) [Chapter 2: Alloy Phase Diagrams and Phase Transformations →](<chapter-2.html>)
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

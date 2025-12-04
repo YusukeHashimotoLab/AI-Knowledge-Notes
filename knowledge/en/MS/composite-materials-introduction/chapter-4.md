@@ -1,0 +1,966 @@
+---
+title: "Chapter 4: Evaluation of Composite Materials"
+chapter_title: "Chapter 4: Evaluation of Composite Materials"
+---
+
+🌐 EN | [🇯🇵 JP](<../../../jp/MS/composite-materials-introduction/chapter-4.html>) | Last sync: 2025-11-16
+
+### Introduction to Composite Materials
+
+  * [Table of Contents](<index.html>)
+  * [Chapter 1: Fundamentals of Composite Materials](<chapter-1.html>)
+  * [Chapter 2: Fiber Reinforced Composites](<chapter-2.html>)
+  * [Chapter 3: Particle & Laminated Composites](<chapter-3.html>)
+  * [Chapter 4: Evaluation of Composite Materials](<chapter-4.html>)
+  * [Chapter 5: Python Practice](<chapter-5.html>)
+
+#### Materials Science Series
+
+  * [Introduction to Polymer Materials](<../polymer-materials-introduction/index.html>)
+  * [Introduction to Thin Film & Nano Materials](<../thin-film-nano-introduction/index.html>)
+  * [Introduction to Composite Materials](<index.html>)
+
+# Chapter 4: Evaluation of Composite Materials
+
+This chapter covers Evaluation of Composite Materials. You will learn essential concepts and techniques.
+
+### Learning Objectives
+
+  * **Fundamental Level:** Understand the principles of tensile, bending, and shear tests, and be able to measure basic mechanical properties
+  * **Application Level:** Predict fatigue life from S-N curves and appropriately select non-destructive inspection methods
+  * **Advanced Level:** Integrate multiple evaluation methods to comprehensively assess material reliability and establish quality assurance systems
+
+## 4.1 Mechanical Testing Methods
+
+### 4.1.1 Tensile Testing
+
+Tensile testing of composite materials is conducted in accordance with standards such as ASTM D3039 (fiber reinforced plastics) and JIS K 7164 (CFRP). 
+
+Item | Content | Notes  
+---|---|---  
+Specimen shape | Straight type, dumbbell type | Tabs (grip reinforcement) required  
+Dimensions | Length 250 mm, width 25 mm | Adjusted according to fiber orientation  
+Strain rate | 1-2 mm/min | Quasi-static conditions  
+Measured items | Modulus, tensile strength, fracture strain | Use strain gauge or extensometer  
+      
+    
+    ```mermaid
+    flowchart TD
+                                A[Mechanical Testing of Composites] --> B[Static Tests]
+                                A --> C[Dynamic Tests]
+    
+                                B --> D[Tensile TestE, σ_u, ε_f]
+                                B --> E[Compression Testσ_c, buckling]
+                                B --> F[Bending TestE_f, σ_f]
+                                B --> G[Interlaminar Shear Testτ_ILS]
+    
+                                C --> H[Fatigue TestS-N curve]
+                                C --> I[Impact TestCharpy, Izod]
+                                C --> J[Creep Testtime-dependent deformation]
+    
+                                style A fill:#e1f5ff
+                                style D fill:#ffe1e1
+                                style E fill:#ffe1e1
+                                style F fill:#ffe1e1
+                                style G fill:#ffe1e1
+                                style H fill:#c8e6c9
+                                style I fill:#c8e6c9
+                                style J fill:#c8e6c9
+    ```
+
+#### Example 4.1: Analysis of Tensile Test Data
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - scipy>=1.11.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    
+    def analyze_tensile_test(strain, stress):
+        """
+        Extract mechanical properties from tensile test data
+    
+        Parameters:
+        -----------
+        strain : array
+            Strain [-]
+        stress : array
+            Stress [MPa]
+    
+        Returns:
+        --------
+        properties : dict
+            Mechanical properties
+        """
+        # Modulus (slope of linear region)
+        linear_region = (strain > 0.0005) & (strain < 0.003)
+        slope, intercept, r_value, _, _ = stats.linregress(
+            strain[linear_region], stress[linear_region])
+    
+        E = slope  # [MPa]
+    
+        # Tensile strength (maximum stress)
+        sigma_u = np.max(stress)
+        idx_max = np.argmax(stress)
+    
+        # Fracture strain
+        epsilon_f = strain[idx_max]
+    
+        # Fracture energy (area under stress-strain curve)
+        U_f = np.trapz(stress[:idx_max+1], strain[:idx_max+1])
+    
+        properties = {
+            'modulus': E,
+            'ultimate_strength': sigma_u,
+            'failure_strain': epsilon_f,
+            'fracture_energy': U_f,
+            'r_squared': r_value**2
+        }
+    
+        return properties
+    
+    # Generate simulated data (CFRP unidirectional)
+    np.random.seed(42)
+    
+    # Strain range
+    strain_max = 0.015
+    n_points = 200
+    strain = np.linspace(0, strain_max, n_points)
+    
+    # Linear elastic region
+    E_true = 140000  # MPa
+    stress_elastic = E_true * strain
+    
+    # Nonlinear damage region (simplified model)
+    damage_start = 0.008
+    damage_factor = np.where(
+        strain > damage_start,
+        1 - 0.3 * ((strain - damage_start) / (strain_max - damage_start))**2,
+        1.0
+    )
+    
+    stress = stress_elastic * damage_factor
+    
+    # Add noise
+    noise = np.random.normal(0, 50, n_points)
+    stress += noise
+    
+    # Set failure
+    failure_idx = int(0.92 * n_points)
+    strain = strain[:failure_idx]
+    stress = stress[:failure_idx]
+    
+    # Extract properties
+    props = analyze_tensile_test(strain, stress)
+    
+    # Visualization
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Stress-strain curve
+    ax1.plot(strain * 100, stress, 'b-', linewidth=2, label='Experimental data')
+    
+    # Linear regression line
+    linear_region = (strain > 0.0005) & (strain < 0.003)
+    strain_fit = strain[linear_region]
+    stress_fit = props['modulus'] * strain_fit
+    ax1.plot(strain_fit * 100, stress_fit, 'r--', linewidth=2,
+             label=f"E = {props['modulus']/1000:.1f} GPa (R² = {props['r_squared']:.4f})")
+    
+    # Ultimate strength marker
+    ax1.plot(props['failure_strain'] * 100, props['ultimate_strength'],
+             'ro', markersize=10, label=f"σ_u = {props['ultimate_strength']:.0f} MPa")
+    
+    ax1.set_xlabel('Strain [%]')
+    ax1.set_ylabel('Stress [MPa]')
+    ax1.set_title('Tensile Test of CFRP Unidirectional Material')
+    ax1.grid(True, alpha=0.3)
+    ax1.legend()
+    
+    # Statistical information
+    info_text = f"""Mechanical Properties:
+    ━━━━━━━━━━━━━━━━━━━━━━
+    Young's Modulus:   {props['modulus']/1000:.1f} GPa
+    Tensile Strength:  {props['ultimate_strength']:.0f} MPa
+    Fracture Strain:   {props['failure_strain']*100:.2f} %
+    Fracture Energy:   {props['fracture_energy']:.1f} J/m³
+    R-squared:         {props['r_squared']:.4f}
+    """
+    
+    ax2.text(0.1, 0.5, info_text, fontsize=12, family='monospace',
+             verticalalignment='center', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    ax2.axis('off')
+    ax2.set_title('Measurement Results', fontsize=14, weight='bold')
+    
+    plt.tight_layout()
+    plt.savefig('tensile_test_analysis.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(info_text)
+
+### 4.1.2 Bending Test
+
+Three-point bending tests evaluate the flexural stiffness and flexural strength of composite materials. They are particularly effective for early detection of interlaminar delamination in laminates. 
+
+Formula for flexural modulus (three-point bending):
+
+$$E_f = \frac{L^3 m}{4bh^3}$$ 
+
+\\(L\\): span, \\(m\\): slope of load-deflection curve, \\(b\\): specimen width, \\(h\\): specimen thickness 
+
+#### Example 4.2: Simulation of Three-Point Bending Test
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def three_point_bending(L, b, h, E, P_max, n_points=100):
+        """
+        Simulation of three-point bending test
+    
+        Parameters:
+        -----------
+        L : float
+            Span [mm]
+        b : float
+            Specimen width [mm]
+        h : float
+            Specimen thickness [mm]
+        E : float
+            Young's modulus [GPa]
+        P_max : float
+            Maximum load [N]
+        n_points : int
+            Number of data points
+    
+        Returns:
+        --------
+        deflection, load : array
+            Deflection [mm], Load [N]
+        """
+        # Calculate maximum deflection
+        E_Pa = E * 1e9  # GPa → Pa
+        I = (b * h**3) / 12  # Second moment of area [mm^4] → [m^4] conversion needed
+    
+        delta_max = (P_max * L**3) / (48 * E_Pa * I * 1e-12)  # [mm]
+    
+        # Linear region
+        deflection = np.linspace(0, delta_max, n_points)
+        load = (48 * E_Pa * I * 1e-12 * deflection) / L**3
+    
+        return deflection, load
+    
+    def calculate_flexural_modulus(L, b, h, slope):
+        """
+        Calculate flexural modulus from slope of load-deflection curve
+    
+        Parameters:
+        -----------
+        slope : float
+            Slope of load-deflection curve [N/mm]
+    
+        Returns:
+        --------
+        E_f : float
+            Flexural modulus [GPa]
+        """
+        E_f = (L**3 * slope) / (4 * b * h**3) / 1000  # MPa → GPa
+        return E_f
+    
+    # CFRP laminate settings
+    L = 80  # mm (span)
+    b = 15  # mm (width)
+    h = 2   # mm (thickness)
+    E = 100 # GPa
+    P_max = 500  # N
+    
+    # Run simulation
+    deflection, load = three_point_bending(L, b, h, E, P_max)
+    
+    # Calculate flexural modulus
+    slope = load[1] / deflection[1]  # Initial slope [N/mm]
+    E_f_calculated = calculate_flexural_modulus(L, b, h, slope)
+    
+    # Calculate bending stress (at maximum load)
+    sigma_f_max = (3 * P_max * L) / (2 * b * h**2)  # [MPa]
+    
+    # Visualization
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Load-deflection curve
+    ax1.plot(deflection, load, 'b-', linewidth=2)
+    ax1.plot(deflection[-1], load[-1], 'ro', markersize=10,
+             label=f'Maximum load: {P_max} N\nDeflection: {deflection[-1]:.2f} mm')
+    ax1.set_xlabel('Deflection [mm]')
+    ax1.set_ylabel('Load [N]')
+    ax1.set_title('Three-Point Bending Test: Load-Deflection Curve')
+    ax1.grid(True, alpha=0.3)
+    ax1.legend()
+    
+    # Stress distribution (cross-section)
+    y = np.linspace(-h/2, h/2, 100)  # Distance from neutral axis
+    M_max = P_max * L / 4  # Maximum bending moment [N·mm]
+    I = (b * h**3) / 12
+    
+    sigma_bending = -(M_max * y * 1000) / I  # [MPa] (compression side is negative)
+    
+    ax2.plot(sigma_bending, y, 'r-', linewidth=2)
+    ax2.axhline(y=0, color='k', linestyle='--', linewidth=1, label='Neutral axis')
+    ax2.axvline(x=0, color='k', linestyle='-', linewidth=0.5)
+    ax2.fill_betweenx(y, 0, sigma_bending, where=(sigma_bending > 0),
+                       alpha=0.3, color='red', label='Tensile stress')
+    ax2.fill_betweenx(y, 0, sigma_bending, where=(sigma_bending < 0),
+                       alpha=0.3, color='blue', label='Compressive stress')
+    ax2.set_xlabel('Stress [MPa]')
+    ax2.set_ylabel('Position through thickness [mm]')
+    ax2.set_title('Cross-sectional Stress Distribution')
+    ax2.grid(True, alpha=0.3)
+    ax2.legend()
+    
+    plt.tight_layout()
+    plt.savefig('three_point_bending.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print("Three-Point Bending Test Analysis Results:")
+    print("="*60)
+    print(f"Span: {L} mm")
+    print(f"Specimen dimensions: {b} × {h} mm")
+    print(f"Maximum load: {P_max} N")
+    print(f"Maximum deflection: {deflection[-1]:.2f} mm")
+    print(f"Flexural modulus (calculated): {E_f_calculated:.1f} GPa")
+    print(f"Flexural modulus (input): {E:.1f} GPa")
+    print(f"Maximum bending stress: {sigma_f_max:.1f} MPa")
+
+### 4.1.3 Interlaminar Shear Test (ILSS)
+
+Short Beam Shear (SBS) testing evaluates the interlaminar shear strength of laminates. The span is set to approximately 5 times the thickness to induce interlaminar delamination. 
+
+$$\tau_{\text{ILSS}} = \frac{3P_{\max}}{4bh}$$ 
+
+#### Example 4.3: Statistical Analysis of Interlaminar Shear Strength
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - scipy>=1.11.0
+    
+    """
+    Example: Example 4.3: Statistical Analysis of Interlaminar Shear Stre
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Intermediate
+    Execution time: 2-5 seconds
+    Dependencies: None
+    """
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    
+    # Simulated experimental data (10 specimens)
+    np.random.seed(123)
+    
+    # Specimen dimensions
+    b = 10  # mm
+    h = 2   # mm
+    
+    # Maximum load data [N] (normal distribution to simulate scatter)
+    P_max_mean = 800
+    P_max_std = 40
+    n_specimens = 10
+    
+    P_max_data = np.random.normal(P_max_mean, P_max_std, n_specimens)
+    
+    # Calculate interlaminar shear strength
+    ILSS = (3 * P_max_data) / (4 * b * h)
+    
+    # Statistical analysis
+    ILSS_mean = np.mean(ILSS)
+    ILSS_std = np.std(ILSS, ddof=1)
+    ILSS_cv = (ILSS_std / ILSS_mean) * 100  # Coefficient of variation [%]
+    
+    # 95% confidence interval
+    conf_interval = stats.t.interval(0.95, len(ILSS)-1, loc=ILSS_mean,
+                                      scale=ILSS_std/np.sqrt(len(ILSS)))
+    
+    # Weibull distribution fitting
+    shape, loc, scale = stats.weibull_min.fit(ILSS, floc=0)
+    
+    # Visualization
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Histogram and normal distribution
+    ax1.hist(ILSS, bins=6, density=True, alpha=0.7, color='skyblue',
+             edgecolor='black', label='Experimental data')
+    
+    # Normal distribution fit
+    x_plot = np.linspace(ILSS.min(), ILSS.max(), 100)
+    normal_fit = stats.norm.pdf(x_plot, ILSS_mean, ILSS_std)
+    ax1.plot(x_plot, normal_fit, 'r-', linewidth=2, label='Normal distribution fit')
+    
+    ax1.axvline(x=ILSS_mean, color='g', linestyle='--', linewidth=2,
+                label=f'Mean: {ILSS_mean:.1f} MPa')
+    ax1.axvline(x=conf_interval[0], color='orange', linestyle=':',
+                label=f'95% CI')
+    ax1.axvline(x=conf_interval[1], color='orange', linestyle=':')
+    
+    ax1.set_xlabel('Interlaminar Shear Strength [MPa]')
+    ax1.set_ylabel('Probability Density')
+    ax1.set_title('Distribution of ILSS')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Weibull plot
+    sorted_ILSS = np.sort(ILSS)
+    n = len(sorted_ILSS)
+    prob_failure = np.arange(1, n+1) / (n+1)
+    
+    # Weibull linearization: ln(ln(1/(1-P))) vs ln(ILSS)
+    y_weibull = np.log(-np.log(1 - prob_failure))
+    x_weibull = np.log(sorted_ILSS)
+    
+    ax2.plot(x_weibull, y_weibull, 'bo', markersize=8, label='Experimental data')
+    
+    # Linear regression
+    slope_w, intercept_w, r_w, _, _ = stats.linregress(x_weibull, y_weibull)
+    y_fit = slope_w * x_weibull + intercept_w
+    ax2.plot(x_weibull, y_fit, 'r-', linewidth=2,
+             label=f'Shape parameter m = {slope_w:.2f}\nR² = {r_w**2:.4f}')
+    
+    ax2.set_xlabel('ln(ILSS)')
+    ax2.set_ylabel('ln(ln(1/(1-P)))')
+    ax2.set_title('Weibull Plot')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('ilss_statistical_analysis.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Output results
+    print("Statistical Analysis of Interlaminar Shear Strength (ILSS):")
+    print("="*60)
+    print(f"Number of specimens: {n_specimens}")
+    print(f"Mean: {ILSS_mean:.1f} MPa")
+    print(f"Standard deviation: {ILSS_std:.2f} MPa")
+    print(f"Coefficient of variation: {ILSS_cv:.2f} %")
+    print(f"95% confidence interval: [{conf_interval[0]:.1f}, {conf_interval[1]:.1f}] MPa")
+    print(f"\nWeibull distribution parameters:")
+    print(f"Shape parameter m: {shape:.2f}")
+    print(f"Scale parameter: {scale:.1f} MPa")
+    print(f"\nIndividual data:")
+    for i, (P, ilss) in enumerate(zip(P_max_data, ILSS), 1):
+        print(f"  Specimen {i}: P_max = {P:.1f} N → ILSS = {ilss:.1f} MPa")
+
+## 4.2 Fatigue Testing and Life Prediction
+
+### 4.2.1 S-N Curve
+
+The S-N curve showing the relationship between stress amplitude and number of cycles to failure is the fundamental data for fatigue life design. 
+
+$$\sigma_a = \sigma_f' (2N_f)^b$$ 
+
+\\(\sigma_a\\): stress amplitude, \\(N_f\\): number of cycles to failure, \\(\sigma_f'\\): fatigue strength coefficient, \\(b\\): fatigue strength exponent 
+
+#### Example 4.4: Fitting S-N Curves
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - scipy>=1.11.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.optimize import curve_fit
+    from scipy import stats
+    
+    def basquin_equation(N, sigma_f_prime, b):
+        """
+        Basquin's equation: σ_a = σ_f' * (2N)^b
+    
+        Parameters:
+        -----------
+        N : array
+            Number of cycles
+        sigma_f_prime : float
+            Fatigue strength coefficient [MPa]
+        b : float
+            Fatigue strength exponent (negative value)
+    
+        Returns:
+        --------
+        sigma_a : array
+            Stress amplitude [MPa]
+        """
+        return sigma_f_prime * (2 * N)**b
+    
+    # Simulated fatigue test data (CFRP)
+    np.random.seed(456)
+    
+    # Stress amplitude levels [MPa]
+    stress_levels = np.array([700, 600, 500, 400, 300, 250])
+    n_specimens_per_level = 3
+    
+    # True parameters
+    sigma_f_prime_true = 1200  # MPa
+    b_true = -0.10
+    
+    # Generate data
+    stress_data = []
+    cycles_data = []
+    
+    for sigma in stress_levels:
+        # Calculate cycles to failure at each stress level
+        N_mean = (sigma / sigma_f_prime_true)**(1/b_true) / 2
+    
+        # Add scatter with log-normal distribution
+        log_std = 0.3
+        for _ in range(n_specimens_per_level):
+            N_f = np.random.lognormal(np.log(N_mean), log_std)
+            stress_data.append(sigma)
+            cycles_data.append(N_f)
+    
+    stress_data = np.array(stress_data)
+    cycles_data = np.array(cycles_data)
+    
+    # Fit Basquin's equation
+    # Linear regression after logarithmic transformation
+    log_N = np.log10(2 * cycles_data)
+    log_sigma = np.log10(stress_data)
+    
+    slope, intercept, r_value, p_value, std_err = stats.linregress(log_N, log_sigma)
+    
+    b_fit = slope
+    sigma_f_prime_fit = 10**intercept
+    
+    print("S-N Curve Fitting Results:")
+    print("="*60)
+    print(f"Fatigue strength coefficient σ_f': {sigma_f_prime_fit:.0f} MPa (true: {sigma_f_prime_true})")
+    print(f"Fatigue strength exponent b: {b_fit:.4f} (true: {b_true})")
+    print(f"R-squared: {r_value**2:.4f}")
+    
+    # Visualization
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # S-N curve (semi-log)
+    N_plot = np.logspace(2, 7, 100)
+    sigma_fit = basquin_equation(N_plot, sigma_f_prime_fit, b_fit)
+    
+    ax1.semilogx(cycles_data, stress_data, 'bo', markersize=8, alpha=0.6,
+                 label='Experimental data')
+    ax1.semilogx(N_plot, sigma_fit, 'r-', linewidth=2,
+                 label=f'Basquin eq: σ_a = {sigma_f_prime_fit:.0f} (2N)^{b_fit:.3f}')
+    
+    # Endurance limit (10^7 cycles)
+    sigma_endurance = basquin_equation(1e7, sigma_f_prime_fit, b_fit)
+    ax1.axhline(y=sigma_endurance, color='g', linestyle='--',
+                label=f'Endurance limit (10⁷): {sigma_endurance:.0f} MPa')
+    
+    ax1.set_xlabel('Cycles to Failure N_f')
+    ax1.set_ylabel('Stress Amplitude σ_a [MPa]')
+    ax1.set_title('S-N Curve (CFRP)')
+    ax1.grid(True, alpha=0.3, which='both')
+    ax1.legend()
+    
+    # Residual plot
+    sigma_predicted = basquin_equation(cycles_data, sigma_f_prime_fit, b_fit)
+    residuals = stress_data - sigma_predicted
+    
+    ax2.semilogx(cycles_data, residuals, 'bo', markersize=8, alpha=0.6)
+    ax2.axhline(y=0, color='r', linestyle='-', linewidth=2)
+    ax2.axhline(y=np.std(residuals), color='orange', linestyle='--',
+                label=f'±1σ: ±{np.std(residuals):.1f} MPa')
+    ax2.axhline(y=-np.std(residuals), color='orange', linestyle='--')
+    ax2.set_xlabel('Cycles to Failure N_f')
+    ax2.set_ylabel('Residuals [MPa]')
+    ax2.set_title('Fitting Residuals')
+    ax2.grid(True, alpha=0.3, which='both')
+    ax2.legend()
+    
+    plt.tight_layout()
+    plt.savefig('sn_curve_analysis.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Life prediction example
+    stress_service = 350  # MPa (service stress)
+    N_predicted = (stress_service / sigma_f_prime_fit)**(1/b_fit) / 2
+    safety_factor = 2.0
+    N_design = N_predicted / safety_factor
+    
+    print(f"\nFatigue Life Prediction:")
+    print(f"Service stress: {stress_service} MPa")
+    print(f"Predicted cycles to failure: {N_predicted:.2e} cycles")
+    print(f"Design cycles (SF={safety_factor}): {N_design:.2e} cycles")
+
+### 4.2.2 Damage Accumulation Law
+
+Miner's linear damage accumulation law is used for fatigue life prediction under variable loading: 
+
+$$D = \sum_{i=1}^{k} \frac{n_i}{N_{f,i}} \quad (D = 1 \text{ for failure})$$ 
+
+\\(n_i\\): number of cycles at stress level i, \\(N_{f,i}\\): cycles to failure at stress level i
+
+#### Example 4.5: Cumulative Damage Calculation by Miner's Rule
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def miner_rule_damage(stress_levels, cycle_counts, sigma_f_prime, b):
+        """
+        Calculate damage by Miner's linear damage accumulation law
+    
+        Parameters:
+        -----------
+        stress_levels : array
+            Stress level of each load block [MPa]
+        cycle_counts : array
+            Number of cycles in each load block
+        sigma_f_prime, b : float
+            S-N curve parameters
+    
+        Returns:
+        --------
+        damage : float
+            Cumulative damage
+        damage_per_block : array
+            Damage per block
+        """
+        N_f = (stress_levels / sigma_f_prime)**(1/b) / 2
+        damage_per_block = cycle_counts / N_f
+        damage = np.sum(damage_per_block)
+    
+        return damage, damage_per_block
+    
+    # CFRP S-N curve parameters
+    sigma_f_prime = 1200
+    b = -0.10
+    
+    # Load spectrum (3 levels)
+    stress_levels = np.array([500, 400, 300])  # MPa
+    cycle_counts = np.array([1e4, 5e4, 1e5])   # cycles
+    
+    # Calculate damage
+    damage_total, damage_blocks = miner_rule_damage(
+        stress_levels, cycle_counts, sigma_f_prime, b)
+    
+    # Cycles to failure
+    N_f_individual = (stress_levels / sigma_f_prime)**(1/b) / 2
+    
+    # Visualization
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Load spectrum
+    x_pos = np.arange(len(stress_levels))
+    ax1.bar(x_pos, stress_levels, alpha=0.7, color=['red', 'orange', 'yellow'],
+            edgecolor='black')
+    ax1.set_xlabel('Load Block')
+    ax1.set_ylabel('Stress Amplitude [MPa]')
+    ax1.set_title('Load Spectrum')
+    ax1.set_xticks(x_pos)
+    ax1.set_xticklabels([f'Block {i+1}\n{n:.0e}' for i, n in enumerate(cycle_counts)])
+    ax1.grid(True, alpha=0.3, axis='y')
+    
+    # Display N_f for each block
+    for i, (stress, N_f) in enumerate(zip(stress_levels, N_f_individual)):
+        ax1.text(i, stress + 20, f'N_f = {N_f:.1e}',
+                 ha='center', fontsize=9)
+    
+    # Cumulative damage
+    damage_cumulative = np.cumsum(damage_blocks)
+    
+    ax2.bar(x_pos, damage_blocks, alpha=0.7, color=['red', 'orange', 'yellow'],
+            edgecolor='black', label='Block damage')
+    ax2.plot(x_pos, damage_cumulative, 'bo-', linewidth=2, markersize=10,
+             label='Cumulative damage')
+    ax2.axhline(y=1.0, color='r', linestyle='--', linewidth=2, label='Failure criterion')
+    ax2.set_xlabel('Load Block')
+    ax2.set_ylabel('Damage')
+    ax2.set_title('Cumulative Damage by Miner\'s Rule')
+    ax2.set_xticks(x_pos)
+    ax2.set_xticklabels([f'Block {i+1}' for i in range(len(stress_levels))])
+    ax2.legend()
+    ax2.grid(True, alpha=0.3, axis='y')
+    
+    plt.tight_layout()
+    plt.savefig('miner_rule_damage.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Output results
+    print("Cumulative Damage Analysis by Miner's Rule:")
+    print("="*60)
+    for i, (stress, cycles, N_f, d) in enumerate(
+        zip(stress_levels, cycle_counts, N_f_individual, damage_blocks), 1):
+        print(f"Block {i}: σ = {stress} MPa, n = {cycles:.0e}")
+        print(f"  Cycles to failure N_f = {N_f:.2e}")
+        print(f"  Damage d = {d:.4f}")
+        print()
+    
+    print(f"Total cumulative damage: {damage_total:.4f}")
+    if damage_total < 1.0:
+        remaining_life = (1.0 - damage_total) / damage_total
+        print(f"Status: Safe ({remaining_life:.2f} times remaining life to failure)")
+    elif damage_total >= 1.0:
+        print(f"Status: Failure predicted (damage > 1.0)")
+
+## 4.3 Non-Destructive Evaluation (NDE/NDT)
+
+### 4.3.1 Classification of Non-Destructive Evaluation Methods
+
+Main methods for detecting internal defects (delamination, voids, fiber breakage) in composite materials: 
+
+Method | Principle | Detection Target | Advantages/Disadvantages  
+---|---|---|---  
+Ultrasonic testing | Reflection/attenuation of ultrasound | Delamination, voids, thickness | High accuracy / Contact required  
+X-ray CT | Difference in X-ray transmittance | 3D internal structure, fiber orientation | High resolution / High cost  
+Thermography | Difference in thermal conductivity | Delamination, poor impregnation | Non-contact, fast / Near-surface only  
+AE method | Elastic waves from fracture | Damage progression, location | Real-time / High noise influence  
+Eddy current testing | Change in conductivity | CFRP fiber breakage | Fast / Conductive materials only  
+  
+### 4.3.2 Ultrasonic Testing
+
+Ultrasonic C-scan enables 2D mapping of delamination in laminates. Frequency: 5-10 MHz, using immersion or contact method. 
+
+#### Example 4.6: Analysis of Ultrasonic C-Scan Data
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.ndimage import gaussian_filter
+    
+    def simulate_c_scan(size_x, size_y, defects):
+        """
+        Simulate ultrasonic C-scan data
+    
+        Parameters:
+        -----------
+        size_x, size_y : int
+            Scan area size [mm]
+        defects : list of dict
+            Defect information [{'x': x, 'y': y, 'size': size, 'depth': depth}]
+    
+        Returns:
+        --------
+        c_scan : ndarray
+            C-scan image (amplitude values)
+        """
+        resolution = 0.5  # mm
+        nx = int(size_x / resolution)
+        ny = int(size_y / resolution)
+    
+        # Amplitude in sound region (100%)
+        c_scan = np.ones((ny, nx)) * 100
+    
+        # Add noise
+        noise = np.random.normal(0, 2, (ny, nx))
+        c_scan += noise
+    
+        # Add defects
+        for defect in defects:
+            x_center = int(defect['x'] / resolution)
+            y_center = int(defect['y'] / resolution)
+            size = int(defect['size'] / resolution)
+            depth = defect['depth']
+    
+            # Gaussian-shaped amplitude reduction
+            y, x = np.ogrid[-y_center:ny-y_center, -x_center:nx-x_center]
+            mask = x*x + y*y <= (size/2)**2
+    
+            # Amplitude reduction based on depth (deeper = harder to detect)
+            attenuation = 100 * (1 - 0.8 * np.exp(-depth / 2))
+            c_scan[mask] = np.minimum(c_scan[mask], attenuation)
+    
+        # Smoothing
+        c_scan = gaussian_filter(c_scan, sigma=1)
+    
+        return c_scan
+    
+    # Scan settings
+    size_x = 100  # mm
+    size_y = 100  # mm
+    
+    # Defect data (simulating delamination)
+    defects = [
+        {'x': 30, 'y': 30, 'size': 15, 'depth': 1.0},  # Near surface
+        {'x': 70, 'y': 40, 'size': 10, 'depth': 3.0},  # Deep
+        {'x': 50, 'y': 70, 'size': 20, 'depth': 0.5},  # Large delamination
+    ]
+    
+    # C-scan simulation
+    c_scan = simulate_c_scan(size_x, size_y, defects)
+    
+    # Defect detection (threshold processing)
+    threshold = 80  # Amplitude below 80% considered as defect
+    defect_map = c_scan < threshold
+    
+    # Visualization
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
+    
+    # C-scan image
+    im1 = ax1.imshow(c_scan, cmap='jet', origin='lower', extent=[0, size_x, 0, size_y])
+    ax1.set_xlabel('X [mm]')
+    ax1.set_ylabel('Y [mm]')
+    ax1.set_title('Ultrasonic C-Scan (Amplitude)')
+    cbar1 = plt.colorbar(im1, ax=ax1)
+    cbar1.set_label('Amplitude [%]')
+    
+    # Overlay true defect locations
+    for defect in defects:
+        circle = plt.Circle((defect['x'], defect['y']), defect['size']/2,
+                            color='white', fill=False, linewidth=2, linestyle='--')
+        ax1.add_patch(circle)
+    
+    # Defect map
+    im2 = ax2.imshow(defect_map, cmap='gray_r', origin='lower',
+                     extent=[0, size_x, 0, size_y])
+    ax2.set_xlabel('X [mm]')
+    ax2.set_ylabel('Y [mm]')
+    ax2.set_title(f'Defect Detection (threshold < {threshold}%)')
+    
+    # Histogram
+    ax3.hist(c_scan.flatten(), bins=50, alpha=0.7, color='blue',
+             edgecolor='black')
+    ax3.axvline(x=threshold, color='r', linestyle='--', linewidth=2,
+                label=f'Threshold: {threshold}%')
+    ax3.set_xlabel('Amplitude [%]')
+    ax3.set_ylabel('Pixel Count')
+    ax3.set_title('Amplitude Distribution')
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('ultrasonic_c_scan.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Calculate defect area
+    resolution = 0.5
+    pixel_area = resolution**2
+    defect_area = np.sum(defect_map) * pixel_area
+    total_area = size_x * size_y
+    defect_ratio = (defect_area / total_area) * 100
+    
+    print("Ultrasonic C-Scan Analysis Results:")
+    print("="*60)
+    print(f"Scan area: {size_x} × {size_y} mm")
+    print(f"Resolution: {resolution} mm")
+    print(f"Detection threshold: {threshold}%")
+    print(f"Detected defect area: {defect_area:.1f} mm²")
+    print(f"Defect area ratio: {defect_ratio:.2f}%")
+    print(f"\nConfigured defects:")
+    for i, defect in enumerate(defects, 1):
+        print(f"  Defect {i}: Position ({defect['x']}, {defect['y']}) mm, "
+              f"Size {defect['size']} mm, Depth {defect['depth']} mm")
+
+## 4.4 Summary
+
+In this chapter, we learned about evaluation techniques for composite materials:
+
+  * Mechanical testing methods (tensile, bending, interlaminar shear)
+  * Fatigue life prediction using S-N curves
+  * Miner's linear damage accumulation law
+  * Non-destructive evaluation methods (ultrasonic, X-ray CT, thermography)
+  * Statistical analysis and data processing techniques
+
+In the next chapter, we will perform practical composite materials analysis using Python, including implementation of classical lamination theory, optimal laminate design, and finite element preprocessing. 
+
+## Exercises
+
+### Fundamental Level
+
+#### Problem 4.1: Analysis of Tensile Test Data
+
+From the following tensile test data, determine the Young's modulus and tensile strength:   
+Stress 280 MPa at strain 0.002, maximum stress 1450 MPa (strain 0.012) 
+
+#### Problem 4.2: Calculation of Flexural Modulus
+
+In a three-point bending test (L=80 mm, b=15 mm, h=2 mm), a load of 450 N was measured at a deflection of 3 mm. Determine the flexural modulus. 
+
+#### Problem 4.3: Calculation of ILSS
+
+A maximum load of 750 N was recorded in a Short Beam Shear test (specimen: width 10 mm, thickness 2 mm). Determine the interlaminar shear strength. 
+
+### Application Level
+
+#### Problem 4.4: Fitting S-N Curves
+
+Determine the Basquin equation parameters (σ_f', b) from the following fatigue test data:   
+600 MPa: 5×10³, 500 MPa: 3×10⁴, 400 MPa: 2×10⁵, 300 MPa: 1×10⁶ cycles 
+
+#### Problem 4.5: Application of Miner's Rule
+
+Calculate the cumulative damage for a CFRP laminate subjected to two-level loading (500 MPa for 1×10⁴ cycles, 300 MPa for 5×10⁴ cycles). (σ_f' = 1200 MPa, b = -0.10) 
+
+#### Problem 4.6: Statistical Analysis
+
+For tensile strength data [1420, 1450, 1380, 1460, 1410, 1440, 1400, 1430] MPa, determine the mean, standard deviation, and 95% confidence interval. 
+
+#### Problem 4.7: Programming Exercise
+
+Create a visualization program for fatigue test data: 
+
+  * Plot S-N curve (semi-log)
+  * Fit Basquin's equation
+  * Display 95% confidence interval
+
+### Advanced Level
+
+#### Problem 4.8: Probabilistic Fatigue Analysis
+
+When fatigue life follows a Weibull distribution (shape parameter m=3), determine the design number of cycles satisfying 90% reliability. (Mean cycles to failure: 1×10⁶ cycles) 
+
+#### Problem 4.9: Multiaxial Fatigue
+
+Predict the fatigue life of CFRP laminates under combined tension-torsion loading using the Critical Plane Approach. 
+
+#### Problem 4.10: NDE Data Processing
+
+Implement the following image processing for ultrasonic C-scan data: 
+
+  * Noise reduction (median filter)
+  * Edge detection (Sobel, Canny)
+  * Segmentation of defect regions
+  * Quantitative evaluation of defect size and shape
+
+## References
+
+  1. ASTM D3039, "Standard Test Method for Tensile Properties of Polymer Matrix Composite Materials", ASTM International, 2017
+  2. Talreja, R. and Singh, C. V., "Damage and Failure of Composite Materials", Cambridge University Press, 2012, pp. 156-234
+  3. Reifsnider, K. L., "Fatigue of Composite Materials", Elsevier, 1991, pp. 89-167
+  4. Harris, B., "Fatigue in Composites", Woodhead Publishing, 2003, pp. 234-312
+  5. Miner, M. A., "Cumulative Damage in Fatigue", Journal of Applied Mechanics, Vol. 12, 1945, pp. A159-A164
+  6. Gao, F., Handley, L., and Phillips, J., "Nondestructive Evaluation of Composite Materials", in ASM Handbook Vol. 17: Nondestructive Evaluation and Quality Control, 1989, pp. 778-812
+  7. Halmshaw, R., "Non-Destructive Testing", 2nd ed., Edward Arnold, 1991, pp. 145-223
+  8. Hellier, C. J., "Handbook of Nondestructive Evaluation", 2nd ed., McGraw-Hill, 2013, pp. 312-389, 456-523
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

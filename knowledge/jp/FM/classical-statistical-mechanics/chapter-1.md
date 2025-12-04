@@ -1,0 +1,201 @@
+---
+title: "第1章: 統計力学の基礎と確率論"
+chapter_title: "第1章: 統計力学の基礎と確率論"
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/FM/classical-statistical-mechanics/chapter-1.html>) | Last sync: 2025-11-16
+
+[基礎数理道場](<../index.html>) > [古典統計力学入門](<index.html>) > 第1章 
+
+## 🎯 学習目標
+
+  * 位相空間とミクロ状態の概念を理解する
+  * 等重率の原理（等確率の仮定）を学ぶ
+  * ボルツマン分布とエントロピーの関係を理解する
+  * Stirlingの公式を使った大数系の扱いを習得する
+  * ミクロカノニカル集団の基礎を学ぶ
+  * 理想気体のエントロピーを計算する
+  * Maxwell速度分布を導出し、可視化する
+  * 情報理論とエントロピーの関係を理解する
+
+## 📖 統計力学とは
+
+### 統計力学の目的
+
+**統計力学** は、ミクロな粒子の集団（\\(10^{23}\\)個程度）からマクロな熱力学的性質を導出する理論です。
+
+**なぜ統計力学が必要か？**
+
+  * ニュートン力学で全粒子の運動を追跡するのは実質不可能（\\(10^{23}\\)個の方程式）
+  * しかし、マクロな物理量（温度、圧力、エントロピー）は再現性があり予測可能
+  * → ミクロな詳細ではなく、**確率分布** を用いて平均的な振る舞いを記述
+
+### 位相空間とミクロ状態
+
+**位相空間（Phase space）** : \\(N\\)粒子系の全状態を記述する \\(6N\\)次元空間（位置 \\(\mathbf{q}\\) と運動量 \\(\mathbf{p}\\)）
+
+\\[ \Gamma = (\mathbf{q}_1, \mathbf{p}_1, \mathbf{q}_2, \mathbf{p}_2, \ldots, \mathbf{q}_N, \mathbf{p}_N) \\]
+
+**ミクロ状態（Microstate）** : 位相空間中の1点。系の完全な記述。
+
+**マクロ状態（Macrostate）** : エネルギー \\(E\\)、粒子数 \\(N\\)、体積 \\(V\\) などで指定される巨視的状態。多数のミクロ状態に対応。
+
+### 等重率の原理（Principle of Equal a priori Probability）
+
+孤立系（エネルギー一定）では、**同じエネルギーを持つすべてのミクロ状態は等確率で実現される** 。
+
+これは統計力学の基本仮定であり、実験事実とも整合します。
+
+## 💻 例題1.1: 位相空間の可視化（1次元調和振動子）
+
+Python実装: 位相空間軌道
+
+import numpy as np import matplotlib.pyplot as plt # 1次元調和振動子の位相空間 # ハミルトニアン: H = p²/(2m) + (1/2)kq² m = 1.0 # 質量 k = 1.0 # バネ定数 omega = np.sqrt(k / m) # 角振動数 # エネルギー固定での軌道（楕円） def phase_space_trajectory(E, m, k, num_points=100): """エネルギー E の位相空間軌道""" # q の範囲: -sqrt(2E/k) ~ sqrt(2E/k) q_max = np.sqrt(2 * E / k) q = np.linspace(-q_max, q_max, num_points) # p(q) = ±sqrt(2m(E - (1/2)kq²)) p_squared = 2 * m * (E - 0.5 * k * q**2) p_squared = np.maximum(p_squared, 0) # 負にならないように p_pos = np.sqrt(p_squared) p_neg = -np.sqrt(p_squared) return q, p_pos, p_neg # 異なるエネルギーでの軌道 energies = [0.5, 1.0, 2.0, 3.0] colors = ['blue', 'green', 'orange', 'red'] fig, axes = plt.subplots(1, 2, figsize=(14, 6)) # 位相空間軌道 ax1 = axes[0] for E, color in zip(energies, colors): q, p_pos, p_neg = phase_space_trajectory(E, m, k) ax1.plot(q, p_pos, color=color, linewidth=2, label=f'E = {E:.1f}') ax1.plot(q, p_neg, color=color, linewidth=2) ax1.set_xlabel('Position q') ax1.set_ylabel('Momentum p') ax1.set_title('位相空間軌道（エネルギー固定）') ax1.legend() ax1.grid(True, alpha=0.3) ax1.axis('equal') # 時間発展 ax2 = axes[1] E = 2.0 q0, p0 = np.sqrt(2 * E / k), 0 # 初期条件 t = np.linspace(0, 4 * np.pi / omega, 1000) q_t = q0 * np.cos(omega * t) p_t = -q0 * m * omega * np.sin(omega * t) ax2.plot(t, q_t, 'b-', label='Position q(t)', linewidth=2) ax2.plot(t, p_t, 'r-', label='Momentum p(t)', linewidth=2) ax2.set_xlabel('Time t') ax2.set_ylabel('q(t), p(t)') ax2.set_title(f'時間発展（E = {E}）') ax2.legend() ax2.grid(True, alpha=0.3) plt.tight_layout() plt.savefig('stat_mech_phase_space.png', dpi=300, bbox_inches='tight') plt.show() print("=== 位相空間の性質 ===") print(f"角振動数 ω = {omega:.4f}") print(f"周期 T = {2*np.pi/omega:.4f}") print("\n位相空間軌道はエネルギー一定で楕円を描きます。") print("これが「ミクロ状態」の集合を表します。") 
+
+## 💻 例題1.2: ボルツマン分布の導出
+
+### ボルツマン分布
+
+温度 \\(T\\) の熱浴と接触する系において、エネルギー \\(E_i\\) の状態 \\(i\\) が実現される確率は：
+
+\\[ P_i = \frac{1}{Z} e^{-\beta E_i}, \quad \beta = \frac{1}{k_B T} \\]
+
+ここで \\(Z\\) は分配関数（partition function）：
+
+\\[ Z = \sum_i e^{-\beta E_i} \\]
+
+\\(k_B = 1.380649 \times 10^{-23}\\) J/K はボルツマン定数です。
+
+Python実装: ボルツマン分布の可視化
+
+import numpy as np import matplotlib.pyplot as plt # ボルツマン定数 k_B = 1.380649e-23 # J/K # 離散エネルギー準位系（例: 等間隔準位） n_levels = 10 energy_spacing = 1e-21 # J（約0.6 meV） E_levels = np.arange(n_levels) * energy_spacing def boltzmann_distribution(E_levels, T, k_B): """ボルツマン分布""" beta = 1 / (k_B * T) exp_factors = np.exp(-beta * E_levels) Z = np.sum(exp_factors) P = exp_factors / Z return P, Z # 異なる温度での分布 temperatures = [100, 300, 500, 1000] # K colors = ['blue', 'green', 'orange', 'red'] fig, axes = plt.subplots(1, 2, figsize=(14, 6)) # ボルツマン分布 ax1 = axes[0] for T, color in zip(temperatures, colors): P, Z = boltzmann_distribution(E_levels, T, k_B) ax1.plot(E_levels / 1e-21, P, 'o-', color=color, linewidth=2, markersize=6, label=f'T = {T} K') ax1.set_xlabel('Energy (10⁻²¹ J)') ax1.set_ylabel('Probability P(E)') ax1.set_title('ボルツマン分布（温度依存）') ax1.legend() ax1.grid(True, alpha=0.3) # 平均エネルギー ax2 = axes[1] T_range = np.linspace(50, 1000, 100) avg_energies = [] for T in T_range: P, Z = boltzmann_distribution(E_levels, T, k_B) avg_E = np.sum(P * E_levels) avg_energies.append(avg_E) ax2.plot(T_range, np.array(avg_energies) / 1e-21, 'b-', linewidth=2) ax2.set_xlabel('Temperature (K)') ax2.set_ylabel('Average Energy (10⁻²¹ J)') ax2.set_title('平均エネルギーの温度依存性') ax2.grid(True, alpha=0.3) plt.tight_layout() plt.savefig('stat_mech_boltzmann_distribution.png', dpi=300, bbox_inches='tight') plt.show() # 数値結果 print("=== ボルツマン分布の解析 ===") for T in temperatures: P, Z = boltzmann_distribution(E_levels, T, k_B) avg_E = np.sum(P * E_levels) print(f"\nT = {T} K:") print(f" 分配関数 Z = {Z:.4f}") print(f" 平均エネルギー  = {avg_E/1e-21:.4f} × 10⁻²¹ J") print(f" 基底状態占有率 P(E=0) = {P[0]:.4f}") 
+
+## 💻 例題1.3: Stirlingの公式
+
+### Stirlingの公式
+
+大きな \\(N\\) に対して：
+
+\\[ \ln N! \approx N \ln N - N \\]
+
+さらに精密には：
+
+\\[ \ln N! \approx N \ln N - N + \frac{1}{2} \ln(2\pi N) \\]
+
+統計力学では \\(N \sim 10^{23}\\) なので、Stirlingの公式が極めて有用です。
+
+Python実装: Stirlingの公式の精度検証
+
+import numpy as np import matplotlib.pyplot as plt from scipy.special import factorial, gammaln # Stirlingの公式の比較 N_values = np.arange(1, 101) # 厳密な値 ln_factorial_exact = gammaln(N_values + 1) # Stirlingの公式（簡易版） ln_factorial_stirling_simple = N_values * np.log(N_values) - N_values # Stirlingの公式（精密版） ln_factorial_stirling_precise = N_values * np.log(N_values) - N_values + \ 0.5 * np.log(2 * np.pi * N_values) # 可視化 fig, axes = plt.subplots(1, 2, figsize=(14, 6)) # 対数階乗の比較 ax1 = axes[0] ax1.plot(N_values, ln_factorial_exact, 'k-', label='Exact ln(N!)', linewidth=2) ax1.plot(N_values, ln_factorial_stirling_simple, 'b--', label='Stirling (simple)', linewidth=2) ax1.plot(N_values, ln_factorial_stirling_precise, 'r:', label='Stirling (precise)', linewidth=2) ax1.set_xlabel('N') ax1.set_ylabel('ln(N!)') ax1.set_title('Stirlingの公式の比較') ax1.legend() ax1.grid(True, alpha=0.3) # 相対誤差 ax2 = axes[1] rel_error_simple = np.abs((ln_factorial_stirling_simple - ln_factorial_exact) / ln_factorial_exact) rel_error_precise = np.abs((ln_factorial_stirling_precise - ln_factorial_exact) / ln_factorial_exact) ax2.semilogy(N_values, rel_error_simple, 'b--', label='Simple', linewidth=2) ax2.semilogy(N_values, rel_error_precise, 'r:', label='Precise', linewidth=2) ax2.set_xlabel('N') ax2.set_ylabel('Relative error') ax2.set_title('Stirlingの公式の相対誤差') ax2.legend() ax2.grid(True, alpha=0.3, which='both') plt.tight_layout() plt.savefig('stat_mech_stirling.png', dpi=300, bbox_inches='tight') plt.show() # 大きなNでの検証 N_large = [100, 1000, 10000, 100000] print("=== Stirlingの公式の精度（大きなN）===\n") for N in N_large: ln_exact = gammaln(N + 1) ln_stirling = N * np.log(N) - N + 0.5 * np.log(2 * np.pi * N) rel_error = np.abs((ln_stirling - ln_exact) / ln_exact) print(f"N = {N}:") print(f" ln(N!) (exact) = {ln_exact:.6e}") print(f" ln(N!) (Stirling) = {ln_stirling:.6e}") print(f" Relative error = {rel_error:.6e}\n") 
+
+## 💻 例題1.4: エントロピーとボルツマンの関係式
+
+### ボルツマンのエントロピー
+
+マクロ状態に対応するミクロ状態の数を \\(\Omega\\) とすると、エントロピー \\(S\\) は：
+
+\\[ S = k_B \ln \Omega \\]
+
+これは**ボルツマンの関係式** と呼ばれ、統計力学と熱力学を結びつけます。
+
+\\(\Omega\\) が大きいほど（ミクロ状態が多いほど）エントロピーが大きい。
+
+Python実装: コイン投げとエントロピー
+
+import numpy as np import matplotlib.pyplot as plt from scipy.special import comb # N個のコインを投げた時の状態数 # マクロ状態: 表がn個 # ミクロ状態数: Ω(n) = C(N, n) = N! / (n!(N-n)!) k_B = 1.380649e-23 # J/K def microstate_count(N, n): """N個のコイン中、n個が表となるミクロ状態数""" return comb(N, n, exact=True) def entropy(N, n, k_B): """エントロピー S = k_B ln(Ω)""" Omega = microstate_count(N, n) return k_B * np.log(Omega) # N = 100 のコイン N = 100 n_values = np.arange(N + 1) Omega_values = [microstate_count(N, n) for n in n_values] S_values = [entropy(N, n, k_B) for n in n_values] # 可視化 fig, axes = plt.subplots(1, 2, figsize=(14, 6)) # ミクロ状態数 ax1 = axes[0] ax1.semilogy(n_values, Omega_values, 'b-', linewidth=2) ax1.axvline(N/2, color='r', linestyle='--', linewidth=2, label=f'n = N/2 (最大)') ax1.set_xlabel('Number of heads (n)') ax1.set_ylabel('Number of microstates Ω(n)') ax1.set_title(f'ミクロ状態数（N = {N}）') ax1.legend() ax1.grid(True, alpha=0.3) # エントロピー ax2 = axes[1] ax2.plot(n_values, np.array(S_values) / k_B, 'g-', linewidth=2) ax2.axvline(N/2, color='r', linestyle='--', linewidth=2, label=f'n = N/2 (最大)') ax2.set_xlabel('Number of heads (n)') ax2.set_ylabel('Entropy S/k_B') ax2.set_title(f'エントロピー（N = {N}）') ax2.legend() ax2.grid(True, alpha=0.3) plt.tight_layout() plt.savefig('stat_mech_entropy_coins.png', dpi=300, bbox_inches='tight') plt.show() # 最大エントロピー状態 n_max = N // 2 Omega_max = microstate_count(N, n_max) S_max = entropy(N, n_max, k_B) print(f"=== コイン投げとエントロピー（N = {N}）===") print(f"最もありそうな状態: n = {n_max}（表が半分）") print(f" ミクロ状態数 Ω = {Omega_max:.6e}") print(f" エントロピー S = {S_max:.6e} J/K") print(f" S/k_B = {S_max/k_B:.4f}") print(f"\nすべて表（n={N}）:") print(f" ミクロ状態数 Ω = 1") print(f" エントロピー S = 0") print("\n→ 最も無秩序な状態（n=N/2）が最大エントロピーを持つ") 
+
+## 💻 例題1.5: ミクロカノニカル集団と理想気体のエントロピー
+
+### ミクロカノニカル集団
+
+エネルギー \\(E\\)、粒子数 \\(N\\)、体積 \\(V\\) が固定された孤立系。
+
+エントロピー:
+
+\\[ S(E, V, N) = k_B \ln \Omega(E, V, N) \\]
+
+理想気体の場合（Sackur-Tetrode式）:
+
+\\[ S = N k_B \left[\ln\left(\frac{V}{N}\left(\frac{2\pi m k_B T}{h^2}\right)^{3/2}\right) + \frac{5}{2}\right] \\]
+
+Python実装: 理想気体のエントロピー
+
+import numpy as np import matplotlib.pyplot as plt # 物理定数 k_B = 1.380649e-23 # J/K h = 6.62607015e-34 # J·s m_Ar = 6.63e-26 # Ar原子の質量 (kg) def sackur_tetrode_entropy(N, V, T, m, k_B, h): """Sackur-Tetrode式によるエントロピー""" thermal_wavelength = h / np.sqrt(2 * np.pi * m * k_B * T) entropy_per_particle = k_B * (np.log(V / (N * thermal_wavelength**3)) + 5/2) return N * entropy_per_particle # Arガス 1 mol N_A = 6.022e23 # アボガドロ数 N = N_A # 体積依存性（温度固定） T = 300 # K V_range = np.linspace(0.001, 0.1, 100) # m³ S_vs_V = [sackur_tetrode_entropy(N, V, T, m_Ar, k_B, h) for V in V_range] # 温度依存性（体積固定） V = 0.0224 # m³ (標準状態で1 mol) T_range = np.linspace(100, 1000, 100) # K S_vs_T = [sackur_tetrode_entropy(N, V, T, m_Ar, k_B, h) for T in T_range] # 可視化 fig, axes = plt.subplots(1, 2, figsize=(14, 6)) # 体積依存性 ax1 = axes[0] ax1.plot(V_range * 1000, np.array(S_vs_V) / N, 'b-', linewidth=2) ax1.set_xlabel('Volume (L)') ax1.set_ylabel('Entropy per particle (J/K)') ax1.set_title(f'エントロピーの体積依存性（T = {T} K）') ax1.grid(True, alpha=0.3) # 温度依存性 ax2 = axes[1] ax2.plot(T_range, np.array(S_vs_T) / N, 'r-', linewidth=2) ax2.set_xlabel('Temperature (K)') ax2.set_ylabel('Entropy per particle (J/K)') ax2.set_title(f'エントロピーの温度依存性（V = {V*1000:.1f} L）') ax2.grid(True, alpha=0.3) plt.tight_layout() plt.savefig('stat_mech_sackur_tetrode.png', dpi=300, bbox_inches='tight') plt.show() # 標準状態でのエントロピー T_std = 298.15 # K V_std = 0.0224 # m³ S_std = sackur_tetrode_entropy(N, V_std, T_std, m_Ar, k_B, h) S_molar = S_std / N_A # モルエントロピー print("=== 理想気体のエントロピー（Ar, 1 mol）===") print(f"標準状態（T = {T_std} K, V = {V_std*1000:.1f} L）:") print(f" モルエントロピー S = {S_molar:.6e} J/(K·mol)") print(f" S = {S_molar:.2f} J/(K·mol)") print(f"\n実験値との比較（Ar）: ~154.8 J/(K·mol)") print(f"理論値: {S_molar:.1f} J/(K·mol)") 
+
+## 💻 例題1.6: Maxwell速度分布の導出
+
+### Maxwell速度分布
+
+理想気体中の粒子の速さ \\(v\\) の確率分布：
+
+\\[ f(v) = 4\pi \left(\frac{m}{2\pi k_B T}\right)^{3/2} v^2 e^{-\frac{mv^2}{2k_B T}} \\]
+
+最確速度（most probable speed）:
+
+\\[ v_{\text{mp}} = \sqrt{\frac{2k_B T}{m}} \\]
+
+平均速度:
+
+\\[ \langle v \rangle = \sqrt{\frac{8k_B T}{\pi m}} \\]
+
+二乗平均速度（root-mean-square speed）:
+
+\\[ v_{\text{rms}} = \sqrt{\langle v^2 \rangle} = \sqrt{\frac{3k_B T}{m}} \\]
+
+Python実装: Maxwell速度分布
+
+import numpy as np import matplotlib.pyplot as plt from scipy.integrate import quad # 物理定数 k_B = 1.380649e-23 # J/K m_N2 = 4.65e-26 # N₂分子の質量 (kg) def maxwell_speed_distribution(v, m, T, k_B): """Maxwell速度分布""" factor = 4 * np.pi * (m / (2 * np.pi * k_B * T))**(3/2) return factor * v**2 * np.exp(-m * v**2 / (2 * k_B * T)) def most_probable_speed(m, T, k_B): """最確速度""" return np.sqrt(2 * k_B * T / m) def mean_speed(m, T, k_B): """平均速度""" return np.sqrt(8 * k_B * T / (np.pi * m)) def rms_speed(m, T, k_B): """二乗平均速度""" return np.sqrt(3 * k_B * T / m) # N₂ガス temperatures = [200, 300, 500, 800] # K colors = ['blue', 'green', 'orange', 'red'] v_range = np.linspace(0, 2000, 1000) # m/s fig, axes = plt.subplots(1, 2, figsize=(14, 6)) # Maxwell分布 ax1 = axes[0] for T, color in zip(temperatures, colors): f_v = maxwell_speed_distribution(v_range, m_N2, T, k_B) ax1.plot(v_range, f_v, color=color, linewidth=2, label=f'T = {T} K') # 最確速度をマーク v_mp = most_probable_speed(m_N2, T, k_B) f_mp = maxwell_speed_distribution(v_mp, m_N2, T, k_B) ax1.plot(v_mp, f_mp, 'o', color=color, markersize=8) ax1.set_xlabel('Speed v (m/s)') ax1.set_ylabel('Probability density f(v)') ax1.set_title('Maxwell速度分布（N₂）') ax1.legend() ax1.grid(True, alpha=0.3) # 特性速度の温度依存性 ax2 = axes[1] T_range = np.linspace(100, 1000, 100) v_mp_array = [most_probable_speed(m_N2, T, k_B) for T in T_range] v_mean_array = [mean_speed(m_N2, T, k_B) for T in T_range] v_rms_array = [rms_speed(m_N2, T, k_B) for T in T_range] ax2.plot(T_range, v_mp_array, 'b-', linewidth=2, label='Most probable') ax2.plot(T_range, v_mean_array, 'g-', linewidth=2, label='Mean') ax2.plot(T_range, v_rms_array, 'r-', linewidth=2, label='RMS') ax2.set_xlabel('Temperature (K)') ax2.set_ylabel('Speed (m/s)') ax2.set_title('特性速度の温度依存性') ax2.legend() ax2.grid(True, alpha=0.3) plt.tight_layout() plt.savefig('stat_mech_maxwell_distribution.png', dpi=300, bbox_inches='tight') plt.show() # 数値結果 print("=== Maxwell速度分布（N₂ at 300 K）===") T = 300 v_mp = most_probable_speed(m_N2, T, k_B) v_mean = mean_speed(m_N2, T, k_B) v_rms = rms_speed(m_N2, T, k_B) print(f"最確速度: {v_mp:.1f} m/s") print(f"平均速度: {v_mean:.1f} m/s") print(f"二乗平均速度: {v_rms:.1f} m/s") print(f"\n比率:") print(f" v_mp : v_mean : v_rms = {v_mp/v_mp:.3f} : {v_mean/v_mp:.3f} : {v_rms/v_mp:.3f}") print(f" 理論比: 1 : {np.sqrt(8/(2*np.pi)):.3f} : {np.sqrt(3/2):.3f}") 
+
+## 💻 例題1.7: 情報理論とエントロピー
+
+### Shannonエントロピー
+
+情報理論におけるエントロピー（不確実性の尺度）：
+
+\\[ H = -\sum_i p_i \ln p_i \\]
+
+統計力学のエントロピーとの関係:
+
+\\[ S = k_B H \\]
+
+最大エントロピー原理: 制約条件のもとで、エントロピーが最大となる分布が平衡分布。
+
+Python実装: Shannonエントロピーと確率分布
+
+import numpy as np import matplotlib.pyplot as plt def shannon_entropy(p): """Shannonエントロピー H = -Σ p_i ln(p_i)""" p = np.array(p) p = p[p > 0] # ゼロを除外（log(0)を避ける） return -np.sum(p * np.log(p)) # 異なる確率分布 n = 10 # 状態数 # 1. 均等分布 p_uniform = np.ones(n) / n # 2. 偏った分布 p_biased = np.array([0.5] + [0.5/(n-1)] * (n-1)) # 3. 極端な分布 p_extreme = np.zeros(n) p_extreme[0] = 1.0 # 4. 中間的な分布 p_moderate = np.exp(-np.arange(n) * 0.5) p_moderate /= np.sum(p_moderate) distributions = { 'Uniform': p_uniform, 'Biased': p_biased, 'Extreme (deterministic)': p_extreme, 'Moderate (exponential)': p_moderate } # エントロピー計算 entropies = {name: shannon_entropy(p) for name, p in distributions.items()} # 可視化 fig, axes = plt.subplots(2, 2, figsize=(14, 10)) axes = axes.ravel() for i, (name, p) in enumerate(distributions.items()): ax = axes[i] ax.bar(range(n), p, color='skyblue', edgecolor='black', alpha=0.7) ax.set_xlabel('State') ax.set_ylabel('Probability') ax.set_title(f'{name}\nH = {entropies[name]:.4f}') ax.set_ylim([0, 1.0]) ax.grid(True, axis='y', alpha=0.3) plt.tight_layout() plt.savefig('stat_mech_shannon_entropy.png', dpi=300, bbox_inches='tight') plt.show() # 結果 print("=== Shannonエントロピーの比較 ===\n") for name, H in entropies.items(): print(f"{name}:") print(f" H = {H:.6f}") print(f" 最大エントロピー比: {H / np.log(n) * 100:.2f}%\n") print(f"最大エントロピー（均等分布）: H_max = ln({n}) = {np.log(n):.6f}") print("\n→ 均等分布が最大エントロピーを持つ（最も不確実）") print("→ 決定論的分布（1状態に集中）はエントロピーゼロ（完全に確実）") 
+
+## 💻 例題1.8: 材料科学応用 - 合金のエントロピー
+
+Python実装: 配置エントロピー（混合エントロピー）
+
+import numpy as np import matplotlib.pyplot as plt # 2元合金 A-B の配置エントロピー # N個の原子サイト上に、N_A個のA原子とN_B個のB原子 # 配置の数: Ω = N! / (N_A! N_B!) # エントロピー: S = k_B ln(Ω) k_B = 1.380649e-23 # J/K N_A_avogadro = 6.022e23 # アボガドロ数 def configurational_entropy_per_site(x_A, k_B): """単位サイトあたりの配置エントロピー""" x_B = 1 - x_A if x_A == 0 or x_A == 1: return 0 return -k_B * (x_A * np.log(x_A) + x_B * np.log(x_B)) def mixing_entropy_molar(x_A): """モル混合エントロピー（R = N_A * k_B）""" R = 8.314 # J/(K·mol) x_B = 1 - x_A if x_A == 0 or x_A == 1: return 0 return -R * (x_A * np.log(x_A) + x_B * np.log(x_B)) # 組成範囲 x_A_range = np.linspace(0.001, 0.999, 1000) S_config = [configurational_entropy_per_site(x, k_B) for x in x_A_range] S_mixing_molar = [mixing_entropy_molar(x) for x in x_A_range] # 可視化 fig, axes = plt.subplots(1, 2, figsize=(14, 6)) # 単位サイトあたりの配置エントロピー ax1 = axes[0] ax1.plot(x_A_range, np.array(S_config) / k_B, 'b-', linewidth=2) ax1.axvline(0.5, color='r', linestyle='--', linewidth=1.5, label='x_A = 0.5 (最大)') ax1.set_xlabel('Composition x_A') ax1.set_ylabel('Configurational entropy per site (S/k_B)') ax1.set_title('配置エントロピー（単位サイト）') ax1.legend() ax1.grid(True, alpha=0.3) # モル混合エントロピー ax2 = axes[1] ax2.plot(x_A_range, S_mixing_molar, 'g-', linewidth=2) ax2.axvline(0.5, color='r', linestyle='--', linewidth=1.5, label='x_A = 0.5 (最大)') ax2.set_xlabel('Composition x_A') ax2.set_ylabel('Mixing entropy (J/(K·mol))') ax2.set_title('モル混合エントロピー') ax2.legend() ax2.grid(True, alpha=0.3) plt.tight_layout() plt.savefig('stat_mech_alloy_entropy.png', dpi=300, bbox_inches='tight') plt.show() # 特定組成での値 compositions = [0.1, 0.3, 0.5, 0.7, 0.9] print("=== 合金の配置エントロピー ===\n") for x_A in compositions: S_per_site = configurational_entropy_per_site(x_A, k_B) S_molar = mixing_entropy_molar(x_A) print(f"組成 x_A = {x_A:.1f}:") print(f" 配置エントロピー（per site）: {S_per_site/k_B:.4f} k_B") print(f" モル混合エントロピー: {S_molar:.4f} J/(K·mol)\n") S_max = mixing_entropy_molar(0.5) print(f"最大混合エントロピー（x_A = 0.5）: {S_max:.4f} J/(K·mol)") print(f"理論値 R ln(2) = {8.314 * np.log(2):.4f} J/(K·mol)") print("\n→ 等組成（50:50）で混合エントロピーが最大") print("→ 高エントロピー合金（HEA）の設計原理に関連") 
+
+## 📚 まとめ
+
+  * **位相空間** は系の全ミクロ状態を記述し、等重率の原理が統計力学の基礎
+  * **ボルツマン分布** は温度 \\(T\\) での平衡状態の確率分布を与える
+  * **Stirlingの公式** により大数系（\\(N \sim 10^{23}\\)）の階乗を近似計算可能
+  * **エントロピー** \\(S = k_B \ln \Omega\\) はミクロ状態数と結びつき、不確実性の尺度
+  * **ミクロカノニカル集団** は孤立系を記述し、Sackur-Tetrode式で理想気体のエントロピーが得られる
+  * **Maxwell速度分布** は理想気体の速度分布を与え、温度と質量に依存
+  * **Shannonエントロピー** は情報理論と統計力学を結びつける
+  * 合金の**配置エントロピー** は材料設計（高エントロピー合金）に重要
+
+### 💡 演習問題
+
+  1. **位相空間体積** : 2次元調和振動子のエネルギー \\(E\\) 以下の位相空間体積を計算せよ。
+  2. **ボルツマン分布の検証** : 3準位系（E₀=0, E₁=ε, E₂=2ε）でボルツマン分布を計算し、高温・低温極限での振る舞いを調べよ。
+  3. **Stirling近似の改良** : Stirlingの公式の次の項 \\(\ln N! \approx N\ln N - N + \frac{1}{2}\ln(2\pi N) + \frac{1}{12N}\\) を含めて精度を比較せよ。
+  4. **Maxwell分布の検証** : 速度空間での積分 \\(\int_0^\infty f(v) dv = 1\\) を数値的に確認せよ。
+  5. **3元合金のエントロピー** : A-B-C 3元合金の配置エントロピーを \\(x_A + x_B + x_C = 1\\) の制約のもとで計算し、3次元プロットせよ。
+
+[← シリーズTOP](<index.html>) [第2章: カノニカル集団と分配関数 →](<chapter-2.html>)
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

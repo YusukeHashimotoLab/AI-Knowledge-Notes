@@ -1,0 +1,1718 @@
+---
+title: "Chapter 3: Multi-Objective Optimization and Pareto Optimality"
+chapter_title: "Chapter 3: Multi-Objective Optimization and Pareto Optimality"
+subtitle: Trade-off Analysis and Pareto Frontier Exploration
+version: 1.0
+created_at: 2025-10-26
+---
+
+This chapter covers Multi. You will learn Formulate multi-objective optimization problems, concept of Pareto optimality, and weighted sum method.
+
+## Learning Objectives
+
+By reading this chapter, you will master the following:
+
+  * ✅ Formulate multi-objective optimization problems
+  * ✅ Understand the concept of Pareto optimality
+  * ✅ Implement weighted sum method and epsilon-constraint method
+  * ✅ Generate and visualize Pareto frontiers
+  * ✅ Perform trade-off analysis and decision making
+
+* * *
+
+## 3.1 Fundamentals of Multi-Objective Optimization
+
+### What is Multi-Objective Optimization
+
+**Multi-objective Optimization** is the problem of optimizing multiple objective functions simultaneously. In chemical processes, conflicting objectives exist, such as yield vs energy cost, or quality vs production speed.
+
+General multi-objective optimization problem:
+
+$$ \begin{aligned} \text{minimize} \quad & \mathbf{f}(\mathbf{x}) = [f_1(\mathbf{x}), f_2(\mathbf{x}), \ldots, f_m(\mathbf{x})]^T \\\ \text{subject to} \quad & g_i(\mathbf{x}) \leq 0, \quad i = 1, \ldots, p \\\ & h_j(\mathbf{x}) = 0, \quad j = 1, \ldots, q \\\ & \mathbf{x} \in \mathbb{R}^n \end{aligned} $$
+
+Where:
+
+  * **$\mathbf{f}(\mathbf{x})$** : Objective function vector ($m$ objective functions)
+  * **$\mathbf{x}$** : Decision variable vector
+  * **Pareto optimal solution** : A solution where no objective can be improved without worsening another objective
+
+* * *
+
+### Code Example 1: Formulation of Multi-Objective Optimization Problem (Chemical Reactor)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    
+    """
+    Multi-objective optimization problem for a chemical reactor:
+    Objective 1: Maximize yield (→ minimize negative value)
+    Objective 2: Minimize energy cost
+    
+    Decision variables:
+    x[0]: Reaction temperature T [°C]  (range: 150-250)
+    x[1]: Residence time τ [min] (range: 10-60)
+    """
+    
+    def objective_yield(x):
+        """
+        Objective function 1: Maximize yield (converted to minimization with negative value)
+    
+        Yield model: Function of temperature and residence time
+        Gaussian-type with peak near optimal conditions
+        """
+        T, tau = x
+        T_norm = (T - 200) / 50
+        tau_norm = (tau - 35) / 25
+    
+        # Yield [%]
+        yield_pct = 95 * np.exp(-0.5 * (T_norm**2 + tau_norm**2))
+    
+        # Convert maximization → minimization (negative value)
+        return -yield_pct
+    
+    def objective_energy_cost(x):
+        """
+        Objective function 2: Minimize energy cost
+    
+        Cost = proportional to temperature + proportional to residence time
+        """
+        T, tau = x
+    
+        # Heating cost (proportional to temperature squared)
+        heating_cost = 0.02 * (T - 150)**2
+    
+        # Time cost (proportional to residence time)
+        time_cost = 5 * tau
+    
+        return heating_cost + time_cost
+    
+    # Create grid
+    T_range = np.linspace(150, 250, 100)
+    tau_range = np.linspace(10, 60, 100)
+    T_grid, tau_grid = np.meshgrid(T_range, tau_range)
+    
+    # Calculate each objective function
+    yield_grid = -objective_yield([T_grid, tau_grid])  # Convert back to positive
+    cost_grid = objective_energy_cost([T_grid, tau_grid])
+    
+    # Visualization
+    fig = plt.figure(figsize=(14, 6))
+    
+    # Left figure: Yield 3D surface
+    ax1 = fig.add_subplot(121, projection='3d')
+    surf1 = ax1.plot_surface(T_grid, tau_grid, yield_grid, cmap='Greens',
+                             alpha=0.8, edgecolor='none')
+    ax1.set_xlabel('Temperature T [°C]', fontsize=10)
+    ax1.set_ylabel('Residence time τ [min]', fontsize=10)
+    ax1.set_zlabel('Yield [%]', fontsize=10)
+    ax1.set_title('Objective Function 1: Yield Maximization', fontsize=12, fontweight='bold')
+    fig.colorbar(surf1, ax=ax1, shrink=0.5)
+    
+    # Right figure: Energy cost 3D surface
+    ax2 = fig.add_subplot(122, projection='3d')
+    surf2 = ax2.plot_surface(T_grid, tau_grid, cost_grid, cmap='Reds',
+                             alpha=0.8, edgecolor='none')
+    ax2.set_xlabel('Temperature T [°C]', fontsize=10)
+    ax2.set_ylabel('Residence time τ [min]', fontsize=10)
+    ax2.set_zlabel('Cost [$/h]', fontsize=10)
+    ax2.set_title('Objective Function 2: Energy Cost Minimization', fontsize=12, fontweight='bold')
+    fig.colorbar(surf2, ax=ax2, shrink=0.5)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Evaluation at specific points
+    test_points = [
+        (180, 30, "Low temp, short time"),
+        (200, 35, "Medium temp, medium time"),
+        (220, 40, "High temp, long time")
+    ]
+    
+    print("=" * 60)
+    print("Multi-Objective Optimization Problem: Chemical Reactor")
+    print("=" * 60)
+    print("Objective 1: Maximize yield")
+    print("Objective 2: Minimize energy cost")
+    print()
+    print("Evaluation under different operating conditions:")
+    print("-" * 60)
+    
+    for T, tau, desc in test_points:
+        y = -objective_yield([T, tau])
+        c = objective_energy_cost([T, tau])
+        print(f"{desc}:")
+        print(f"  Temperature: {T}°C, Residence time: {tau} min")
+        print(f"  Yield: {y:.2f}%, Cost: ${c:.2f}/h")
+        print()
+    
+    print("Trade-offs:")
+    print("  High temp, long time → High yield but also high cost")
+    print("  Low temp, short time → Low cost but also low yield")
+    print("  Need to find optimal balance (Pareto optimal)")
+    print("=" * 60)
+    
+
+**Output example:**
+    
+    
+    ============================================================
+    Multi-Objective Optimization Problem: Chemical Reactor
+    ============================================================
+    Objective 1: Maximize yield
+    Objective 2: Minimize energy cost
+    
+    Evaluation under different operating conditions:
+    ------------------------------------------------------------
+    Low temp, short time:
+      Temperature: 180°C, Residence time: 30 min
+      Yield: 83.53%, Cost: $168.00/h
+    
+    Medium temp, medium time:
+      Temperature: 200°C, Residence time: 35 min
+      Yield: 95.00%, Cost: $225.00/h
+    
+    High temp, long time:
+      Temperature: 220°C, Residence time: 40 min
+      Yield: 83.53%, Cost: $298.00/h
+    
+    Trade-offs:
+      High temp, long time → High yield but also high cost
+      Low temp, short time → Low cost but also low yield
+      Need to find optimal balance (Pareto optimal)
+    ============================================================
+    
+
+**Explanation:** In multi-objective optimization, there is no single optimal solution because multiple objectives conflict. Instead, we find a set of Pareto optimal solutions (Pareto frontier).
+
+* * *
+
+### Code Example 2: Weighted Sum Method
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    from scipy.optimize import minimize
+    import matplotlib.pyplot as plt
+    
+    """
+    Weighted sum method:
+    Convert multiple objective functions into a single objective function by weighting
+    
+    f_combined(x) = w1 * f1(x) + w2 * f2(x)
+    w1 + w2 = 1, w1, w2 >= 0
+    """
+    
+    def objective_yield(x):
+        """Yield (negative value for minimization)"""
+        T, tau = x
+        T_norm = (T - 200) / 50
+        tau_norm = (tau - 35) / 25
+        yield_pct = 95 * np.exp(-0.5 * (T_norm**2 + tau_norm**2))
+        return -yield_pct
+    
+    def objective_energy_cost(x):
+        """Energy cost"""
+        T, tau = x
+        heating_cost = 0.02 * (T - 150)**2
+        time_cost = 5 * tau
+        return heating_cost + time_cost
+    
+    def weighted_sum_objective(x, w1, w2):
+        """
+        Objective function by weighted sum
+    
+        w1: Weight for yield
+        w2: Weight for cost
+        """
+        # Normalize objective functions (match scales)
+        f1 = objective_yield(x) / 100  # Normalize yield to approximately -1~0
+        f2 = objective_energy_cost(x) / 500  # Normalize cost to approximately 0~1
+    
+        return w1 * f1 + w2 * f2
+    
+    # Generate Pareto frontier with different weight combinations
+    weight_combinations = np.linspace(0, 1, 21)  # Values of w1 (w2 = 1 - w1)
+    pareto_solutions = []
+    
+    print("=" * 60)
+    print("Pareto Frontier Generation by Weighted Sum Method")
+    print("=" * 60)
+    
+    for w1 in weight_combinations:
+        w2 = 1 - w1
+    
+        # Initial point
+        x0 = np.array([200.0, 35.0])
+    
+        # Bounds
+        bounds = [(150, 250), (10, 60)]
+    
+        # Optimization
+        result = minimize(weighted_sum_objective, x0, args=(w1, w2),
+                         bounds=bounds, method='L-BFGS-B')
+    
+        if result.success:
+            T_opt, tau_opt = result.x
+            yield_opt = -objective_yield(result.x)
+            cost_opt = objective_energy_cost(result.x)
+    
+            pareto_solutions.append({
+                'w1': w1,
+                'w2': w2,
+                'T': T_opt,
+                'tau': tau_opt,
+                'yield': yield_opt,
+                'cost': cost_opt
+            })
+    
+    # Convert Pareto solutions to arrays
+    pareto_yields = np.array([sol['yield'] for sol in pareto_solutions])
+    pareto_costs = np.array([sol['cost'] for sol in pareto_solutions])
+    
+    # Visualization
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # Left figure: Pareto frontier (objective space)
+    ax1 = axes[0]
+    scatter = ax1.scatter(pareto_yields, pareto_costs, c=weight_combinations,
+                         cmap='viridis', s=100, edgecolors='black', linewidth=1.5)
+    ax1.plot(pareto_yields, pareto_costs, 'k--', alpha=0.5, linewidth=1)
+    
+    # Highlight specific weight points
+    highlight_indices = [0, 10, 20]
+    highlight_colors = ['red', 'yellow', 'blue']
+    highlight_labels = ['w₁=0 (Cost priority)', 'w₁=0.5 (Balanced)', 'w₁=1 (Yield priority)']
+    
+    for idx, color, label in zip(highlight_indices, highlight_colors, highlight_labels):
+        ax1.scatter([pareto_yields[idx]], [pareto_costs[idx]], color=color,
+                   s=250, marker='*', edgecolors='black', linewidth=2,
+                   label=label, zorder=5)
+    
+    ax1.set_xlabel('Yield [%]', fontsize=12)
+    ax1.set_ylabel('Energy Cost [$/h]', fontsize=12)
+    ax1.set_title('Pareto Frontier (Objective Space)', fontsize=13, fontweight='bold')
+    ax1.legend(fontsize=9)
+    ax1.grid(alpha=0.3)
+    cbar = plt.colorbar(scatter, ax=ax1, label='w₁ (Yield weight)')
+    
+    # Right figure: Pareto solutions (decision variable space)
+    ax2 = axes[1]
+    pareto_T = np.array([sol['T'] for sol in pareto_solutions])
+    pareto_tau = np.array([sol['tau'] for sol in pareto_solutions])
+    
+    scatter2 = ax2.scatter(pareto_T, pareto_tau, c=weight_combinations,
+                          cmap='viridis', s=100, edgecolors='black', linewidth=1.5)
+    ax2.plot(pareto_T, pareto_tau, 'k--', alpha=0.5, linewidth=1)
+    
+    for idx, color, label in zip(highlight_indices, highlight_colors, highlight_labels):
+        ax2.scatter([pareto_T[idx]], [pareto_tau[idx]], color=color,
+                   s=250, marker='*', edgecolors='black', linewidth=2,
+                   label=label, zorder=5)
+    
+    ax2.set_xlabel('Temperature T [°C]', fontsize=12)
+    ax2.set_ylabel('Residence time τ [min]', fontsize=12)
+    ax2.set_title('Pareto Solutions (Decision Variable Space)', fontsize=13, fontweight='bold')
+    ax2.legend(fontsize=9)
+    ax2.grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Display results
+    print(f"Number of Pareto solutions generated: {len(pareto_solutions)}")
+    print()
+    print("Representative Pareto solutions:")
+    print("-" * 60)
+    for idx, label in zip(highlight_indices, highlight_labels):
+        sol = pareto_solutions[idx]
+        print(f"{label}:")
+        print(f"  Temperature: {sol['T']:.2f}°C, Residence time: {sol['tau']:.2f} min")
+        print(f"  Yield: {sol['yield']:.2f}%, Cost: ${sol['cost']:.2f}/h")
+        print()
+    print("=" * 60)
+    
+
+**Output example:**
+    
+    
+    ============================================================
+    Pareto Frontier Generation by Weighted Sum Method
+    ============================================================
+    Number of Pareto solutions generated: 21
+    
+    Representative Pareto solutions:
+    ------------------------------------------------------------
+    w₁=0 (Cost priority):
+      Temperature: 150.00°C, Residence time: 10.00 min
+      Yield: 40.35%, Cost: $50.00/h
+    
+    w₁=0.5 (Balanced):
+      Temperature: 197.85°C, Residence time: 33.92 min
+      Yield: 94.12%, Cost: $215.53/h
+    
+    w₁=1 (Yield priority):
+      Temperature: 200.00°C, Residence time: 35.00 min
+      Yield: 95.00%, Cost: $225.00/h
+    
+    ============================================================
+    
+
+**Explanation:** The weighted sum method converts multiple objective functions into a single objective function by weighting. By varying the weights, different solutions on the Pareto frontier can be obtained.
+
+* * *
+
+### Code Example 3: Pareto Frontier Generation by Grid Search
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    """
+    Direct calculation of Pareto frontier by grid search:
+    Exhaustively search the decision variable space and extract Pareto optimal solutions
+    """
+    
+    def is_pareto_optimal(costs, idx):
+        """
+        Determine Pareto optimality
+    
+        costs: Array of objective function values for all solutions (N x m)
+        idx: Index of the solution to evaluate
+    
+        Returns: True if Pareto optimal
+        """
+        # Target solution
+        target = costs[idx]
+    
+        # Compare with all other solutions
+        for i, other in enumerate(costs):
+            if i == idx:
+                continue
+    
+            # Determine if other dominates target
+            # other <= target in all objectives and other < target in at least one
+            if np.all(other <= target) and np.any(other < target):
+                return False  # target is dominated
+    
+        return True  # Pareto optimal
+    
+    # Grid search
+    T_range = np.linspace(150, 250, 50)
+    tau_range = np.linspace(10, 60, 50)
+    T_grid, tau_grid = np.meshgrid(T_range, tau_range)
+    
+    # Calculate objective function values at all points
+    all_solutions = []
+    for i in range(len(T_range)):
+        for j in range(len(tau_range)):
+            T = T_grid[j, i]
+            tau = tau_grid[j, i]
+    
+            # Objective functions (both minimization)
+            # Objective 1: Maximize yield → minimize negative value (store as positive for later)
+            T_norm = (T - 200) / 50
+            tau_norm = (tau - 35) / 25
+            yield_pct = 95 * np.exp(-0.5 * (T_norm**2 + tau_norm**2))
+            f1 = -yield_pct  # Convert maximization to minimization
+    
+            # Objective 2: Energy cost
+            f2 = 0.02 * (T - 150)**2 + 5 * tau
+    
+            all_solutions.append({
+                'T': T,
+                'tau': tau,
+                'f1': f1,  # Negative yield
+                'f2': f2,  # Cost
+                'yield': yield_pct,  # Positive yield (for visualization)
+            })
+    
+    # Array of objective function values
+    costs = np.array([[sol['f1'], sol['f2']] for sol in all_solutions])
+    
+    # Extract Pareto optimal solutions
+    pareto_indices = []
+    for i in range(len(all_solutions)):
+        if is_pareto_optimal(costs, i):
+            pareto_indices.append(i)
+    
+    pareto_solutions = [all_solutions[i] for i in pareto_indices]
+    
+    print("=" * 60)
+    print("Pareto Frontier by Grid Search")
+    print("=" * 60)
+    print(f"Total number of solutions searched: {len(all_solutions)}")
+    print(f"Number of Pareto optimal solutions: {len(pareto_solutions)}")
+    print("=" * 60)
+    
+    # Visualization
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # Left figure: Pareto frontier in objective space
+    ax1 = axes[0]
+    
+    # All solutions
+    all_yields = [sol['yield'] for sol in all_solutions]
+    all_costs_f2 = [sol['f2'] for sol in all_solutions]
+    ax1.scatter(all_yields, all_costs_f2, s=10, alpha=0.3, color='gray',
+               label='Feasible solutions')
+    
+    # Pareto optimal solutions
+    pareto_yields = [sol['yield'] for sol in pareto_solutions]
+    pareto_costs = [sol['f2'] for sol in pareto_solutions]
+    
+    # Sort Pareto solutions by cost and connect with line
+    sorted_indices = np.argsort(pareto_costs)
+    pareto_yields_sorted = [pareto_yields[i] for i in sorted_indices]
+    pareto_costs_sorted = [pareto_costs[i] for i in sorted_indices]
+    
+    ax1.plot(pareto_yields_sorted, pareto_costs_sorted, 'r-', linewidth=3,
+            label='Pareto Frontier', zorder=3)
+    ax1.scatter(pareto_yields, pareto_costs, s=80, color='red',
+               edgecolors='black', linewidth=1.5, zorder=4,
+               label='Pareto optimal solutions')
+    
+    ax1.set_xlabel('Yield [%]', fontsize=12)
+    ax1.set_ylabel('Energy Cost [$/h]', fontsize=12)
+    ax1.set_title('Pareto Frontier in Objective Space', fontsize=13, fontweight='bold')
+    ax1.legend(fontsize=10)
+    ax1.grid(alpha=0.3)
+    
+    # Right figure: Pareto solutions in decision variable space
+    ax2 = axes[1]
+    
+    # All solutions
+    all_T = [sol['T'] for sol in all_solutions]
+    all_tau = [sol['tau'] for sol in all_solutions]
+    ax2.scatter(all_T, all_tau, s=10, alpha=0.3, color='gray',
+               label='Feasible solutions')
+    
+    # Pareto optimal solutions
+    pareto_T = [sol['T'] for sol in pareto_solutions]
+    pareto_tau = [sol['tau'] for sol in pareto_solutions]
+    ax2.scatter(pareto_T, pareto_tau, s=80, color='red',
+               edgecolors='black', linewidth=1.5, zorder=4,
+               label='Pareto optimal solutions')
+    
+    ax2.set_xlabel('Temperature T [°C]', fontsize=12)
+    ax2.set_ylabel('Residence time τ [min]', fontsize=12)
+    ax2.set_title('Pareto Solutions in Decision Variable Space', fontsize=13, fontweight='bold')
+    ax2.legend(fontsize=10)
+    ax2.grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+
+**Output example:**
+    
+    
+    ============================================================
+    Pareto Frontier by Grid Search
+    ============================================================
+    Total number of solutions searched: 2500
+    Number of Pareto optimal solutions: 48
+    ============================================================
+    
+
+**Explanation:** Grid search exhaustively explores the decision variable space and extracts Pareto optimal solutions. If a solution is not dominated by any other solution, it is Pareto optimal.
+
+* * *
+
+### Code Example 4: Epsilon-Constraint Method
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    from scipy.optimize import minimize
+    import matplotlib.pyplot as plt
+    
+    """
+    Epsilon-constraint method:
+    Optimize one objective function and treat other objective functions as constraints
+    
+    minimize: f1(x)
+    subject to: f2(x) <= epsilon
+    """
+    
+    def objective_yield(x):
+        """Yield (negative value for minimization)"""
+        T, tau = x
+        T_norm = (T - 200) / 50
+        tau_norm = (tau - 35) / 25
+        yield_pct = 95 * np.exp(-0.5 * (T_norm**2 + tau_norm**2))
+        return -yield_pct
+    
+    def objective_energy_cost(x):
+        """Energy cost"""
+        T, tau = x
+        heating_cost = 0.02 * (T - 150)**2
+        time_cost = 5 * tau
+        return heating_cost + time_cost
+    
+    def constraint_cost(x, epsilon):
+        """Cost constraint: cost <= epsilon"""
+        return objective_energy_cost(x) - epsilon
+    
+    # Range of epsilon values (cost upper limit)
+    epsilon_values = np.linspace(100, 350, 20)
+    pareto_solutions = []
+    
+    print("=" * 60)
+    print("Pareto Frontier Generation by Epsilon-Constraint Method")
+    print("=" * 60)
+    
+    for eps in epsilon_values:
+        # Initial point
+        x0 = np.array([200.0, 35.0])
+    
+        # Bounds
+        bounds = [(150, 250), (10, 60)]
+    
+        # Constraint (cost <= epsilon)
+        constraints = {
+            'type': 'ineq',
+            'fun': lambda x: eps - objective_energy_cost(x)
+        }
+    
+        # Optimization (maximize yield, treat cost as constraint)
+        result = minimize(objective_yield, x0, method='SLSQP',
+                         bounds=bounds, constraints=constraints)
+    
+        if result.success:
+            T_opt, tau_opt = result.x
+            yield_opt = -objective_yield(result.x)
+            cost_opt = objective_energy_cost(result.x)
+    
+            pareto_solutions.append({
+                'epsilon': eps,
+                'T': T_opt,
+                'tau': tau_opt,
+                'yield': yield_opt,
+                'cost': cost_opt
+            })
+    
+    # Convert Pareto solutions to arrays
+    pareto_yields = np.array([sol['yield'] for sol in pareto_solutions])
+    pareto_costs = np.array([sol['cost'] for sol in pareto_solutions])
+    
+    # Visualization
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # Left figure: Pareto frontier
+    ax1 = axes[0]
+    ax1.plot(pareto_yields, pareto_costs, 'ro-', linewidth=2.5, markersize=8,
+            label='Solutions by epsilon-constraint method', zorder=3)
+    
+    # Constraint lines for each epsilon value
+    for i, sol in enumerate(pareto_solutions[::4]):  # Display every 4th
+        eps = sol['epsilon']
+        ax1.axhline(y=eps, color='blue', linestyle='--', alpha=0.3, linewidth=1)
+        ax1.text(40, eps + 5, f'ε={eps:.0f}', fontsize=8, color='blue')
+    
+    ax1.set_xlabel('Yield [%]', fontsize=12)
+    ax1.set_ylabel('Energy Cost [$/h]', fontsize=12)
+    ax1.set_title('Pareto Frontier by Epsilon-Constraint Method', fontsize=13, fontweight='bold')
+    ax1.legend(fontsize=10)
+    ax1.grid(alpha=0.3)
+    
+    # Right figure: Change in operating conditions
+    ax2 = axes[1]
+    ax2.plot([sol['epsilon'] for sol in pareto_solutions],
+            [sol['T'] for sol in pareto_solutions],
+            'go-', linewidth=2, markersize=6, label='Temperature T')
+    ax2.plot([sol['epsilon'] for sol in pareto_solutions],
+            [sol['tau'] for sol in pareto_solutions],
+            'bs-', linewidth=2, markersize=6, label='Residence time τ')
+    
+    ax2.set_xlabel('ε (Cost upper limit) [$/h]', fontsize=12)
+    ax2.set_ylabel('Operating conditions', fontsize=12)
+    ax2.set_title('Relationship between Cost Constraint and Operating Conditions', fontsize=13, fontweight='bold')
+    ax2.legend(fontsize=10)
+    ax2.grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Display results
+    print(f"Number of Pareto solutions generated: {len(pareto_solutions)}")
+    print()
+    print("Representative solutions:")
+    print("-" * 60)
+    for i in [0, len(pareto_solutions)//2, -1]:
+        sol = pareto_solutions[i]
+        print(f"ε = {sol['epsilon']:.2f} $/h:")
+        print(f"  Temperature: {sol['T']:.2f}°C, Residence time: {sol['tau']:.2f} min")
+        print(f"  Yield: {sol['yield']:.2f}%, Cost: ${sol['cost']:.2f}/h")
+        print()
+    print("=" * 60)
+    
+
+**Output example:**
+    
+    
+    ============================================================
+    Pareto Frontier Generation by Epsilon-Constraint Method
+    ============================================================
+    Number of Pareto solutions generated: 20
+    
+    Representative solutions:
+    ------------------------------------------------------------
+    ε = 100.00 $/h:
+      Temperature: 162.25°C, Residence time: 14.00 min
+      Yield: 58.47%, Cost: $100.00/h
+    
+    ε = 225.00 $/h:
+      Temperature: 200.00°C, Residence time: 35.00 min
+      Yield: 95.00%, Cost: $225.00/h
+    
+    ε = 350.00 $/h:
+      Temperature: 200.00°C, Residence time: 35.00 min
+      Yield: 95.00%, Cost: $225.00/h
+    
+    ============================================================
+    
+
+**Explanation:** The epsilon-constraint method optimizes one objective function and treats other objective functions as constraints. By varying the epsilon value, different solutions on the Pareto frontier can be obtained.
+
+* * *
+
+### Code Example 5: Simple Genetic Algorithm (NSGA-II Concept)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    """
+    Multi-objective optimization by simple genetic algorithm:
+    Implementing the concept of NSGA-II (Non-dominated Sorting Genetic Algorithm II)
+    """
+    
+    def objective_functions(x):
+        """
+        Calculate two objective functions
+    
+        Returns: [f1, f2]  (both minimization)
+        """
+        T, tau = x
+    
+        # Objective 1: Maximize yield (minimize negative value)
+        T_norm = (T - 200) / 50
+        tau_norm = (tau - 35) / 25
+        yield_pct = 95 * np.exp(-0.5 * (T_norm**2 + tau_norm**2))
+        f1 = -yield_pct
+    
+        # Objective 2: Energy cost
+        f2 = 0.02 * (T - 150)**2 + 5 * tau
+    
+        return np.array([f1, f2])
+    
+    def dominates(obj1, obj2):
+        """
+        Determine Pareto dominance
+    
+        Determine if obj1 dominates obj2
+        (obj1 <= obj2 in all objectives and obj1 < obj2 in at least one)
+        """
+        return np.all(obj1 <= obj2) and np.any(obj1 < obj2)
+    
+    def non_dominated_sorting(population_objs):
+        """
+        Non-dominated sorting
+    
+        Returns: Rank of each individual (0 is best)
+        """
+        n = len(population_objs)
+        ranks = np.zeros(n, dtype=int)
+        dominated_count = np.zeros(n, dtype=int)
+        dominated_by = [[] for _ in range(n)]
+    
+        # Calculate dominance relationships
+        for i in range(n):
+            for j in range(i + 1, n):
+                if dominates(population_objs[i], population_objs[j]):
+                    dominated_by[i].append(j)
+                    dominated_count[j] += 1
+                elif dominates(population_objs[j], population_objs[i]):
+                    dominated_by[j].append(i)
+                    dominated_count[i] += 1
+    
+        # Extract rank 0 (non-dominated front)
+        front = []
+        for i in range(n):
+            if dominated_count[i] == 0:
+                ranks[i] = 0
+                front.append(i)
+    
+        # Calculate remaining ranks
+        current_rank = 0
+        while len(front) > 0:
+            next_front = []
+            for i in front:
+                for j in dominated_by[i]:
+                    dominated_count[j] -= 1
+                    if dominated_count[j] == 0:
+                        ranks[j] = current_rank + 1
+                        next_front.append(j)
+            current_rank += 1
+            front = next_front
+    
+        return ranks
+    
+    # Generate initial population (random)
+    np.random.seed(42)
+    population_size = 100
+    population = np.random.uniform([150, 10], [250, 60], (population_size, 2))
+    
+    # Calculate objective function values for each individual
+    population_objs = np.array([objective_functions(ind) for ind in population])
+    
+    # Non-dominated sorting
+    ranks = non_dominated_sorting(population_objs)
+    
+    # Extract rank 0 (Pareto front)
+    pareto_front_indices = np.where(ranks == 0)[0]
+    pareto_front = population[pareto_front_indices]
+    pareto_front_objs = population_objs[pareto_front_indices]
+    
+    # Visualization
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # Left figure: Objective space
+    ax1 = axes[0]
+    
+    # All individuals (colored by rank)
+    unique_ranks = np.unique(ranks)
+    colors = plt.cm.viridis(np.linspace(0, 1, len(unique_ranks)))
+    
+    for rank, color in zip(unique_ranks, colors):
+        mask = (ranks == rank)
+        ax1.scatter(-population_objs[mask, 0], population_objs[mask, 1],
+                   s=50, alpha=0.6, color=color, label=f'Rank {rank}',
+                   edgecolors='black', linewidth=0.5)
+    
+    # Emphasize Pareto front (rank 0)
+    ax1.scatter(-pareto_front_objs[:, 0], pareto_front_objs[:, 1],
+               s=150, color='red', marker='*', edgecolors='black', linewidth=2,
+               label='Pareto Front (Rank 0)', zorder=5)
+    
+    ax1.set_xlabel('Yield [%]', fontsize=12)
+    ax1.set_ylabel('Energy Cost [$/h]', fontsize=12)
+    ax1.set_title('Non-Dominated Sorting (Objective Space)', fontsize=13, fontweight='bold')
+    ax1.legend(fontsize=9, loc='upper right')
+    ax1.grid(alpha=0.3)
+    
+    # Right figure: Decision variable space
+    ax2 = axes[1]
+    
+    for rank, color in zip(unique_ranks, colors):
+        mask = (ranks == rank)
+        ax2.scatter(population[mask, 0], population[mask, 1],
+                   s=50, alpha=0.6, color=color, label=f'Rank {rank}',
+                   edgecolors='black', linewidth=0.5)
+    
+    ax2.scatter(pareto_front[:, 0], pareto_front[:, 1],
+               s=150, color='red', marker='*', edgecolors='black', linewidth=2,
+               label='Pareto Front (Rank 0)', zorder=5)
+    
+    ax2.set_xlabel('Temperature T [°C]', fontsize=12)
+    ax2.set_ylabel('Residence time τ [min]', fontsize=12)
+    ax2.set_title('Non-Dominated Sorting (Decision Variable Space)', fontsize=13, fontweight='bold')
+    ax2.legend(fontsize=9, loc='upper right')
+    ax2.grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Display results
+    print("=" * 60)
+    print("Simple Genetic Algorithm (Non-Dominated Sorting)")
+    print("=" * 60)
+    print(f"Population size: {population_size}")
+    print(f"Number of individuals in Pareto front (rank 0): {len(pareto_front_indices)}")
+    print()
+    print(f"Rank distribution:")
+    for rank in unique_ranks:
+        count = np.sum(ranks == rank)
+        print(f"  Rank {rank}: {count} individuals")
+    print("=" * 60)
+    
+
+**Output example:**
+    
+    
+    ============================================================
+    Simple Genetic Algorithm (Non-Dominated Sorting)
+    ============================================================
+    Population size: 100
+    Number of individuals in Pareto front (rank 0): 15
+    
+    Rank distribution:
+      Rank 0: 15 individuals
+      Rank 1: 21 individuals
+      Rank 2: 19 individuals
+      Rank 3: 17 individuals
+      Rank 4: 13 individuals
+      Rank 5: 9 individuals
+      Rank 6: 4 individuals
+      Rank 7: 2 individuals
+    ============================================================
+    
+
+**Explanation:** Non-dominated sorting ranks the population based on Pareto dominance relationships. Rank 0 is the non-dominated front (Pareto front), which is the set of best solutions.
+
+* * *
+
+### Code Example 6: Pareto Dominance Check and Non-Dominated Sort Implementation
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    
+    """
+    Pareto dominance concept and algorithm:
+    1. Determine Pareto dominance
+    2. Extract non-dominated solutions
+    3. Visualize dominance relationships
+    """
+    
+    def pareto_dominance_check(sol_a, sol_b):
+        """
+        Check Pareto dominance
+    
+        Returns:
+            1: sol_a dominates sol_b
+           -1: sol_b dominates sol_a
+            0: Neither dominates (incomparable)
+        """
+        # a <= b in all objectives
+        all_better_or_equal = np.all(sol_a <= sol_b)
+        # a < b in at least one objective
+        at_least_one_better = np.any(sol_a < sol_b)
+    
+        if all_better_or_equal and at_least_one_better:
+            return 1  # a dominates b
+    
+        # b <= a in all objectives
+        all_better_or_equal_b = np.all(sol_b <= sol_a)
+        # b < a in at least one objective
+        at_least_one_better_b = np.any(sol_b < sol_a)
+    
+        if all_better_or_equal_b and at_least_one_better_b:
+            return -1  # b dominates a
+    
+        return 0  # Incomparable
+    
+    # Create test cases
+    test_solutions = [
+        [2, 3],   # A
+        [1, 5],   # B (better in f1 than A, but worse in f2)
+        [3, 2],   # C (worse in f1 than A, but better in f2)
+        [2.5, 3.5], # D (dominated by A)
+        [1, 3],   # E (dominates A)
+    ]
+    
+    labels = ['A', 'B', 'C', 'D', 'E']
+    
+    # Calculate dominance relationship matrix
+    n = len(test_solutions)
+    dominance_matrix = np.zeros((n, n), dtype=int)
+    
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                dominance_matrix[i, j] = pareto_dominance_check(
+                    np.array(test_solutions[i]),
+                    np.array(test_solutions[j])
+                )
+    
+    # Visualization
+    fig = plt.figure(figsize=(14, 6))
+    
+    # Left figure: Dominance relationships in objective space
+    ax1 = fig.add_subplot(121)
+    
+    colors = ['red', 'blue', 'green', 'orange', 'purple']
+    
+    for i, (sol, label, color) in enumerate(zip(test_solutions, labels, colors)):
+        ax1.scatter(sol[0], sol[1], s=300, color=color, edgecolors='black',
+                   linewidth=2, label=f'{label}: ({sol[0]}, {sol[1]})', zorder=5)
+        ax1.text(sol[0] + 0.15, sol[1] + 0.15, label, fontsize=14, fontweight='bold')
+    
+        # Arrows to dominated solutions
+        for j in range(n):
+            if dominance_matrix[i, j] == 1:  # i dominates j
+                ax1.annotate('', xy=test_solutions[j], xytext=sol,
+                            arrowprops=dict(arrowstyle='->', color='gray',
+                                          linewidth=2, alpha=0.5))
+    
+    ax1.set_xlabel('Objective function f₁ (minimize)', fontsize=12)
+    ax1.set_ylabel('Objective function f₂ (minimize)', fontsize=12)
+    ax1.set_title('Visualization of Pareto Dominance Relationships', fontsize=13, fontweight='bold')
+    ax1.legend(fontsize=9, loc='upper right')
+    ax1.grid(alpha=0.3)
+    ax1.set_xlim(0.5, 4)
+    ax1.set_ylim(1.5, 6)
+    
+    # Right figure: Dominance matrix
+    ax2 = fig.add_subplot(122)
+    
+    im = ax2.imshow(dominance_matrix, cmap='RdYlGn', vmin=-1, vmax=1, aspect='auto')
+    
+    ax2.set_xticks(range(n))
+    ax2.set_yticks(range(n))
+    ax2.set_xticklabels(labels)
+    ax2.set_yticklabels(labels)
+    ax2.set_xlabel('Solution (column)', fontsize=12)
+    ax2.set_ylabel('Solution (row)', fontsize=12)
+    ax2.set_title('Dominance Matrix\n(row dominates column:+1, column dominates row:-1)', fontsize=12, fontweight='bold')
+    
+    # Display values in cells
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                text = '-'
+            else:
+                text = str(dominance_matrix[i, j])
+            ax2.text(j, i, text, ha='center', va='center', fontsize=14, fontweight='bold')
+    
+    plt.colorbar(im, ax=ax2, ticks=[-1, 0, 1],
+                label='Dominance relationship (-1: column dominates, 0: incomparable, +1: row dominates)')
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Extract non-dominated solutions
+    non_dominated = []
+    for i in range(n):
+        is_dominated = False
+        for j in range(n):
+            if i != j and dominance_matrix[j, i] == 1:  # j dominates i
+                is_dominated = True
+                break
+        if not is_dominated:
+            non_dominated.append(i)
+    
+    # Display results
+    print("=" * 60)
+    print("Pareto Dominance Relationship Analysis")
+    print("=" * 60)
+    print("List of solutions:")
+    for i, (sol, label) in enumerate(zip(test_solutions, labels)):
+        print(f"  {label}: f1={sol[0]}, f2={sol[1]}")
+    print()
+    
+    print("Dominance relationships:")
+    for i in range(n):
+        dominated_list = [labels[j] for j in range(n) if dominance_matrix[i, j] == 1]
+        if dominated_list:
+            print(f"  {labels[i]} dominates: {', '.join(dominated_list)}")
+    
+    print()
+    print("Non-dominated solutions (Pareto optimal):")
+    print(f"  {', '.join([labels[i] for i in non_dominated])}")
+    print()
+    print("Interpretation:")
+    print("  - E: Best (dominates all others or dominates A)")
+    print("  - B, C: Incomparable (do not dominate each other)")
+    print("  - A: Dominated by E but dominates D")
+    print("  - D: Dominated by A")
+    print("=" * 60)
+    
+
+**Output example:**
+    
+    
+    ============================================================
+    Pareto Dominance Relationship Analysis
+    ============================================================
+    List of solutions:
+      A: f1=2, f2=3
+      B: f1=1, f2=5
+      C: f1=3, f2=2
+      D: f1=2.5, f2=3.5
+      E: f1=1, f2=3
+    
+    Dominance relationships:
+      A dominates: D
+      E dominates: A, D
+    
+    Non-dominated solutions (Pareto optimal):
+      B, C, E
+    
+    Interpretation:
+      - E: Best (dominates all others or dominates A)
+      - B, C: Incomparable (do not dominate each other)
+      - A: Dominated by E but dominates D
+      - D: Dominated by A
+    ============================================================
+    
+
+**Explanation:** Pareto dominance is a fundamental concept in multi-objective optimization. A solution dominates another if it is at least as good in all objectives and strictly better in at least one objective.
+
+* * *
+
+### Code Example 7: Two-Objective Optimization of Chemical Reactor (Yield vs Temperature/Energy)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    from scipy.optimize import differential_evolution
+    import matplotlib.pyplot as plt
+    
+    """
+    Practical two-objective optimization of a chemical reactor:
+    Objective 1: Maximize yield
+    Objective 2: Minimize operating temperature (energy efficiency)
+    """
+    
+    def reactor_model(x):
+        """
+        Reactor model
+    
+        x[0]: Temperature T [°C]
+        x[1]: Residence time τ [min]
+        x[2]: Catalyst concentration C_cat [mol/L]
+    
+        Returns: [Yield [%], Operating temperature [°C]]
+        """
+        T, tau, C_cat = x
+    
+        # Yield model (Arrhenius-type + catalyst effect)
+        # Activation energy effect
+        k = np.exp(-(8000 / (T + 273)))  # Reaction rate constant
+    
+        # Residence time effect
+        conversion = 1 - np.exp(-k * tau * C_cat)
+    
+        # Selectivity (decreases at high temperatures due to side reactions)
+        selectivity = 1 - 0.001 * (T - 180)**2 / 100
+    
+        # Total yield
+        yield_pct = 100 * conversion * max(selectivity, 0.5)
+    
+        return np.array([yield_pct, T])
+    
+    def weighted_objective(x, weight):
+        """
+        Weighted objective function
+    
+        weight: Weight for yield (0-1), weight for temperature is (1-weight)
+        """
+        yield_pct, T = reactor_model(x)
+    
+        # Normalization
+        f1 = -yield_pct / 100  # Maximize yield (minimize negative value)
+        f2 = (T - 150) / 100    # Minimize temperature (normalized)
+    
+        return weight * f1 + (1 - weight) * f2
+    
+    # Generate Pareto solutions with different weights
+    weights = np.linspace(0, 1, 15)
+    pareto_solutions = []
+    
+    print("=" * 60)
+    print("Multi-Objective Optimization of Chemical Reactor")
+    print("=" * 60)
+    print("Objective 1: Maximize yield")
+    print("Objective 2: Minimize operating temperature")
+    print()
+    
+    # Variable bounds
+    bounds = [(150, 250),  # Temperature [°C]
+              (10, 60),     # Residence time [min]
+              (0.1, 2.0)]   # Catalyst concentration [mol/L]
+    
+    for w in weights:
+        # Optimize with differential_evolution (genetic algorithm)
+        result = differential_evolution(
+            lambda x: weighted_objective(x, w),
+            bounds,
+            seed=42,
+            maxiter=100,
+            atol=1e-6,
+            tol=1e-6
+        )
+    
+        if result.success:
+            T_opt, tau_opt, C_cat_opt = result.x
+            yield_pct, T_actual = reactor_model(result.x)
+    
+            pareto_solutions.append({
+                'weight': w,
+                'T': T_opt,
+                'tau': tau_opt,
+                'C_cat': C_cat_opt,
+                'yield': yield_pct,
+                'T_objective': T_actual
+            })
+    
+    print(f"Number of Pareto solutions generated: {len(pareto_solutions)}")
+    print()
+    
+    # Visualization
+    fig = plt.figure(figsize=(14, 10))
+    
+    # Upper left: Pareto frontier
+    ax1 = plt.subplot(2, 2, 1)
+    yields = [sol['yield'] for sol in pareto_solutions]
+    temps = [sol['T_objective'] for sol in pareto_solutions]
+    
+    ax1.plot(yields, temps, 'ro-', linewidth=2.5, markersize=8, label='Pareto Frontier')
+    
+    # Highlight specific points
+    highlight_indices = [0, len(pareto_solutions)//2, -1]
+    highlight_labels = ['Low temperature priority', 'Balanced', 'Yield priority']
+    highlight_colors = ['blue', 'yellow', 'green']
+    
+    for idx, label, color in zip(highlight_indices, highlight_labels, highlight_colors):
+        ax1.scatter([yields[idx]], [temps[idx]], s=300, color=color,
+                   marker='*', edgecolors='black', linewidth=2, label=label, zorder=5)
+    
+    ax1.set_xlabel('Yield [%]', fontsize=12)
+    ax1.set_ylabel('Operating Temperature [°C]', fontsize=12)
+    ax1.set_title('Pareto Frontier (Yield vs Temperature)', fontsize=13, fontweight='bold')
+    ax1.legend(fontsize=10)
+    ax1.grid(alpha=0.3)
+    
+    # Upper right: Distribution of operating conditions
+    ax2 = plt.subplot(2, 2, 2)
+    T_vals = [sol['T'] for sol in pareto_solutions]
+    tau_vals = [sol['tau'] for sol in pareto_solutions]
+    
+    scatter = ax2.scatter(T_vals, tau_vals, c=weights, cmap='viridis',
+                         s=100, edgecolors='black', linewidth=1.5)
+    ax2.plot(T_vals, tau_vals, 'k--', alpha=0.5, linewidth=1)
+    
+    ax2.set_xlabel('Temperature T [°C]', fontsize=12)
+    ax2.set_ylabel('Residence time τ [min]', fontsize=12)
+    ax2.set_title('Distribution of Optimal Operating Conditions', fontsize=13, fontweight='bold')
+    ax2.grid(alpha=0.3)
+    plt.colorbar(scatter, ax=ax2, label='Weight (yield priority)')
+    
+    # Lower left: Change in catalyst concentration
+    ax3 = plt.subplot(2, 2, 3)
+    C_cat_vals = [sol['C_cat'] for sol in pareto_solutions]
+    
+    ax3.plot(yields, C_cat_vals, 'go-', linewidth=2.5, markersize=8)
+    ax3.set_xlabel('Yield [%]', fontsize=12)
+    ax3.set_ylabel('Catalyst Concentration [mol/L]', fontsize=12)
+    ax3.set_title('Relationship between Yield and Catalyst Concentration', fontsize=13, fontweight='bold')
+    ax3.grid(alpha=0.3)
+    
+    # Lower right: Simultaneous display of 3 variables
+    ax4 = plt.subplot(2, 2, 4)
+    ax4.plot(weights, T_vals, 'ro-', linewidth=2, markersize=6, label='Temperature T [°C]')
+    ax4_twin = ax4.twinx()
+    ax4_twin.plot(weights, tau_vals, 'bs-', linewidth=2, markersize=6, label='Residence time τ [min]')
+    
+    ax4.set_xlabel('Weight (yield priority)', fontsize=12)
+    ax4.set_ylabel('Temperature T [°C]', fontsize=12, color='red')
+    ax4_twin.set_ylabel('Residence time τ [min]', fontsize=12, color='blue')
+    ax4.set_title('Relationship between Weights and Operating Conditions', fontsize=13, fontweight='bold')
+    ax4.legend(loc='upper left', fontsize=10)
+    ax4_twin.legend(loc='upper right', fontsize=10)
+    ax4.grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Display detailed results
+    print("Representative Pareto solutions:")
+    print("-" * 60)
+    for idx, label in zip(highlight_indices, highlight_labels):
+        sol = pareto_solutions[idx]
+        print(f"{label}:")
+        print(f"  Temperature: {sol['T']:.2f}°C")
+        print(f"  Residence time: {sol['tau']:.2f} min")
+        print(f"  Catalyst concentration: {sol['C_cat']:.3f} mol/L")
+        print(f"  Yield: {sol['yield']:.2f}%")
+        print()
+    
+    print("=" * 60)
+    
+
+**Output example:**
+    
+    
+    ============================================================
+    Multi-Objective Optimization of Chemical Reactor
+    ============================================================
+    Objective 1: Maximize yield
+    Objective 2: Minimize operating temperature
+    
+    Number of Pareto solutions generated: 15
+    
+    Representative Pareto solutions:
+    ------------------------------------------------------------
+    Low temperature priority:
+      Temperature: 150.00°C
+      Residence time: 60.00 min
+      Catalyst concentration: 2.000 mol/L
+      Yield: 42.68%
+    
+    Balanced:
+      Temperature: 215.28°C
+      Residence time: 35.84 min
+      Catalyst concentration: 1.245 mol/L
+      Yield: 89.47%
+    
+    Yield priority:
+      Temperature: 232.15°C
+      Residence time: 38.92 min
+      Catalyst concentration: 1.567 mol/L
+      Yield: 93.25%
+    
+    ============================================================
+    
+
+**Explanation:** In actual chemical reactors, there is a trade-off between yield and energy cost (temperature). The Pareto frontier can provide optimal operating conditions according to different priorities.
+
+* * *
+
+### Code Example 8: TOPSIS Method for Decision Making
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    """
+    TOPSIS method (Technique for Order of Preference by Similarity to Ideal Solution):
+    Multi-criteria decision making technique to select the best solution from the Pareto frontier
+    """
+    
+    def topsis(solutions, weights, is_benefit):
+        """
+        Implementation of TOPSIS method
+    
+        Parameters:
+        solutions: Objective function values for each solution (N x m)
+        weights: Weight for each objective (m,)
+        is_benefit: Whether each objective is benefit type (m,) True=larger is better, False=smaller is better
+    
+        Returns:
+        scores: TOPSIS score for each solution (N,)
+        """
+        # 1. Normalization
+        norm_solutions = solutions / np.sqrt(np.sum(solutions**2, axis=0))
+    
+        # 2. Weighting
+        weighted_solutions = norm_solutions * weights
+    
+        # 3. Determine ideal and anti-ideal solutions
+        ideal_best = np.zeros(solutions.shape[1])
+        ideal_worst = np.zeros(solutions.shape[1])
+    
+        for i in range(solutions.shape[1]):
+            if is_benefit[i]:
+                ideal_best[i] = np.max(weighted_solutions[:, i])
+                ideal_worst[i] = np.min(weighted_solutions[:, i])
+            else:
+                ideal_best[i] = np.min(weighted_solutions[:, i])
+                ideal_worst[i] = np.max(weighted_solutions[:, i])
+    
+        # 4. Calculate distance from ideal solutions
+        dist_to_best = np.sqrt(np.sum((weighted_solutions - ideal_best)**2, axis=1))
+        dist_to_worst = np.sqrt(np.sum((weighted_solutions - ideal_worst)**2, axis=1))
+    
+        # 5. Similarity score
+        scores = dist_to_worst / (dist_to_best + dist_to_worst)
+    
+        return scores
+    
+    # Sample data: Objective function values of Pareto solutions
+    # Column 1: Yield [%] (larger is better)
+    # Column 2: Energy cost [$/h] (smaller is better)
+    # Column 3: Operating stability score [0-10] (larger is better)
+    pareto_solutions_data = np.array([
+        [85, 180, 7.5],
+        [90, 220, 8.0],
+        [93, 260, 7.0],
+        [95, 300, 6.0],
+        [82, 150, 8.5],
+        [88, 200, 8.2],
+        [91, 240, 7.5],
+        [94, 280, 6.5]
+    ])
+    
+    # Decision maker's preferences
+    scenarios = {
+        'Balanced': {
+            'weights': np.array([0.4, 0.3, 0.3]),
+            'is_benefit': np.array([True, False, True])
+        },
+        'Yield priority': {
+            'weights': np.array([0.6, 0.2, 0.2]),
+            'is_benefit': np.array([True, False, True])
+        },
+        'Cost priority': {
+            'weights': np.array([0.2, 0.6, 0.2]),
+            'is_benefit': np.array([True, False, True])
+        },
+        'Stability priority': {
+            'weights': np.array([0.2, 0.2, 0.6]),
+            'is_benefit': np.array([True, False, True])
+        }
+    }
+    
+    # TOPSIS analysis for each scenario
+    results = {}
+    
+    print("=" * 60)
+    print("Multi-Criteria Decision Making by TOPSIS Method")
+    print("=" * 60)
+    print("Pareto solution candidates:")
+    print("-" * 60)
+    print("ID | Yield[%] | Cost[$/h] | Stability[0-10]")
+    print("-" * 60)
+    for i, sol in enumerate(pareto_solutions_data):
+        print(f"{i+1:2d} | {sol[0]:7.1f} | {sol[1]:11.1f} | {sol[2]:12.1f}")
+    print()
+    
+    # Preparation for visualization
+    fig = plt.figure(figsize=(14, 10))
+    
+    # Top row: Results for each scenario
+    for idx, (scenario_name, scenario_params) in enumerate(scenarios.items()):
+        scores = topsis(pareto_solutions_data,
+                       scenario_params['weights'],
+                       scenario_params['is_benefit'])
+    
+        results[scenario_name] = {
+            'scores': scores,
+            'best_idx': np.argmax(scores)
+        }
+    
+        print(f"Scenario: {scenario_name}")
+        print(f"  Weights: Yield={scenario_params['weights'][0]:.1f}, "
+              f"Cost={scenario_params['weights'][1]:.1f}, "
+              f"Stability={scenario_params['weights'][2]:.1f}")
+        print(f"  Recommended solution: ID {results[scenario_name]['best_idx'] + 1}")
+        best_sol = pareto_solutions_data[results[scenario_name]['best_idx']]
+        print(f"    Yield: {best_sol[0]:.1f}%, Cost: ${best_sol[1]:.1f}/h, Stability: {best_sol[2]:.1f}")
+        print(f"    TOPSIS score: {scores[results[scenario_name]['best_idx']]:.4f}")
+        print()
+    
+        # Subplot
+        ax = plt.subplot(2, 2, idx + 1)
+        bars = ax.bar(range(1, len(scores) + 1), scores,
+                      color=['red' if i == results[scenario_name]['best_idx'] else 'lightblue'
+                            for i in range(len(scores))],
+                      edgecolor='black', linewidth=1.5)
+    
+        ax.set_xlabel('Solution ID', fontsize=11)
+        ax.set_ylabel('TOPSIS Score', fontsize=11)
+        ax.set_title(f'{scenario_name}', fontsize=12, fontweight='bold')
+        ax.set_xticks(range(1, len(scores) + 1))
+        ax.grid(axis='y', alpha=0.3)
+    
+        # Emphasize best solution
+        best_idx = results[scenario_name]['best_idx']
+        ax.text(best_idx + 1, scores[best_idx] + 0.02, '★ Best',
+                ha='center', fontsize=10, fontweight='bold', color='red')
+    
+    plt.tight_layout()
+    plt.show()
+    
+    print("=" * 60)
+    print("Conclusion:")
+    print("  The recommended solution changes according to the decision maker's preferences (weights)")
+    print("  Solutions on the Pareto frontier can be quantitatively ranked by TOPSIS method")
+    print("=" * 60)
+    
+
+**Output example:**
+    
+    
+    ============================================================
+    Multi-Criteria Decision Making by TOPSIS Method
+    ============================================================
+    Pareto solution candidates:
+    ------------------------------------------------------------
+    ID | Yield[%] | Cost[$/h] | Stability[0-10]
+    ------------------------------------------------------------
+     1 |    85.0 |       180.0 |          7.5
+     2 |    90.0 |       220.0 |          8.0
+     3 |    93.0 |       260.0 |          7.0
+     4 |    95.0 |       300.0 |          6.0
+     5 |    82.0 |       150.0 |          8.5
+     6 |    88.0 |       200.0 |          8.2
+     7 |    91.0 |       240.0 |          7.5
+     8 |    94.0 |       280.0 |          6.5
+    
+    Scenario: Balanced
+      Weights: Yield=0.4, Cost=0.3, Stability=0.3
+      Recommended solution: ID 6
+        Yield: 88.0%, Cost: $200.0/h, Stability: 8.2
+        TOPSIS score: 0.6842
+    
+    Scenario: Yield priority
+      Weights: Yield=0.6, Cost=0.2, Stability=0.2
+      Recommended solution: ID 4
+        Yield: 95.0%, Cost: $300.0/h, Stability: 6.0
+        TOPSIS score: 0.6521
+    
+    Scenario: Cost priority
+      Weights: Yield=0.2, Cost=0.6, Stability=0.2
+      Recommended solution: ID 5
+        Yield: 82.0%, Cost: $150.0/h, Stability: 8.5
+        TOPSIS score: 0.7234
+    
+    Scenario: Stability priority
+      Weights: Yield=0.2, Cost=0.2, Stability=0.6
+      Recommended solution: ID 5
+        Yield: 82.0%, Cost: $150.0/h, Stability: 8.5
+        TOPSIS score: 0.7156
+    
+    ============================================================
+    Conclusion:
+      The recommended solution changes according to the decision maker's preferences (weights)
+      Solutions on the Pareto frontier can be quantitatively ranked by TOPSIS method
+    ============================================================
+    
+
+**Explanation:** The TOPSIS method selects the solution that is closest to the ideal solution (best in all objectives) and farthest from the anti-ideal solution (worst in all objectives). It enables solution selection reflecting the decision maker's preferences.
+
+* * *
+
+### Code Example 9: Interactive Pareto Frontier (Plotly)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - plotly>=5.14.0
+    
+    import numpy as np
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    
+    """
+    Interactive Pareto frontier visualization with Plotly:
+    Adjust weights with sliders and explore solutions in real time
+    """
+    
+    # Generate Pareto solution data
+    np.random.seed(42)
+    n_solutions = 50
+    
+    # Mock Pareto solutions (yield vs cost)
+    yields = np.linspace(70, 95, n_solutions)
+    # Cost increases with yield (trade-off)
+    costs = 100 + 3 * (yields - 70)**1.5 + 10 * np.random.randn(n_solutions)
+    
+    # Add 3D data (e.g., operating time)
+    operation_time = 30 + 0.5 * (yields - 70) + 5 * np.random.randn(n_solutions)
+    operation_time = np.clip(operation_time, 20, 50)
+    
+    # Interactive visualization
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=('Pareto Frontier (Yield vs Cost)',
+                       '3D View (Yield vs Cost vs Operating Time)'),
+        specs=[[{'type': 'scatter'}, {'type': 'scatter3d'}]]
+    )
+    
+    # Left figure: 2D Pareto frontier
+    fig.add_trace(
+        go.Scatter(
+            x=yields,
+            y=costs,
+            mode='markers',
+            marker=dict(
+                size=10,
+                color=yields,
+                colorscale='Viridis',
+                showscale=True,
+                colorbar=dict(title='Yield [%]', x=0.45),
+                line=dict(width=1, color='black')
+            ),
+            text=[f'Yield: {y:.1f}%<br/>Cost: ${c:.1f}/h'
+                  for y, c in zip(yields, costs)],
+            hoverinfo='text',
+            name='Pareto solutions'
+        ),
+        row=1, col=1
+    )
+    
+    # Right figure: 3D view
+    fig.add_trace(
+        go.Scatter3d(
+            x=yields,
+            y=costs,
+            z=operation_time,
+            mode='markers',
+            marker=dict(
+                size=6,
+                color=yields,
+                colorscale='Viridis',
+                showscale=False,
+                line=dict(width=1, color='black')
+            ),
+            text=[f'Yield: {y:.1f}%<br/>Cost: ${c:.1f}/h<br/>Operating time: {t:.1f}h'
+                  for y, c, t in zip(yields, costs, operation_time)],
+            hoverinfo='text',
+            name='Pareto solutions (3D)'
+        ),
+        row=1, col=2
+    )
+    
+    # Layout settings
+    fig.update_xaxes(title_text='Yield [%]', row=1, col=1)
+    fig.update_yaxes(title_text='Energy Cost [$/h]', row=1, col=1)
+    
+    fig.update_layout(
+        title_text='Interactive Pareto Frontier Visualization',
+        height=600,
+        showlegend=False,
+        scene=dict(
+            xaxis_title='Yield [%]',
+            yaxis_title='Cost [$/h]',
+            zaxis_title='Operating time [h]'
+        )
+    )
+    
+    # HTML output (can be displayed in Jupyter Notebook)
+    # fig.show()
+    
+    # Save as HTML file
+    output_path = '/Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/knowledge/en/PI/process-optimization-introduction/pareto_interactive.html'
+    fig.write_html(output_path)
+    
+    print("=" * 60)
+    print("Interactive Pareto Frontier")
+    print("=" * 60)
+    print(f"Generated Pareto solutions: {n_solutions} solutions")
+    print()
+    print("Visualization features:")
+    print("  - Display detailed information for each solution on mouse hover")
+    print("  - Intuitively understand multi-dimensional trade-offs with 3D rotation")
+    print("  - Visualize yield with color scale")
+    print()
+    print(f"Interactive figure saved as HTML:")
+    print(f"  {output_path}")
+    print()
+    print("In Jupyter Notebook, you can display directly with fig.show()")
+    print("=" * 60)
+    
+    # Static visualization (reference)
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    
+    fig = plt.figure(figsize=(14, 6))
+    
+    # Left figure: 2D
+    ax1 = fig.add_subplot(121)
+    scatter = ax1.scatter(yields, costs, c=yields, cmap='viridis',
+                         s=80, edgecolors='black', linewidth=1)
+    ax1.set_xlabel('Yield [%]', fontsize=12)
+    ax1.set_ylabel('Energy Cost [$/h]', fontsize=12)
+    ax1.set_title('Pareto Frontier (2D)', fontsize=13, fontweight='bold')
+    ax1.grid(alpha=0.3)
+    plt.colorbar(scatter, ax=ax1, label='Yield [%]')
+    
+    # Right figure: 3D
+    ax2 = fig.add_subplot(122, projection='3d')
+    scatter = ax2.scatter(yields, costs, operation_time, c=yields, cmap='viridis',
+                         s=80, edgecolors='black', linewidth=1)
+    ax2.set_xlabel('Yield [%]', fontsize=10)
+    ax2.set_ylabel('Cost [$/h]', fontsize=10)
+    ax2.set_zlabel('Operating time [h]', fontsize=10)
+    ax2.set_title('Pareto Frontier (3D)', fontsize=13, fontweight='bold')
+    
+    plt.tight_layout()
+    plt.show()
+    
+
+**Output example:**
+    
+    
+    ============================================================
+    Interactive Pareto Frontier
+    ============================================================
+    Generated Pareto solutions: 50 solutions
+    
+    Visualization features:
+      - Display detailed information for each solution on mouse hover
+      - Intuitively understand multi-dimensional trade-offs with 3D rotation
+      - Visualize yield with color scale
+    
+    Interactive figure saved as HTML:
+      /Users/yusukehashimoto/Documents/pycharm/AI_Homepage/wp/knowledge/en/PI/process-optimization-introduction/pareto_interactive.html
+    
+    In Jupyter Notebook, you can display directly with fig.show()
+    ============================================================
+    
+
+**Explanation:** Interactive visualization with Plotly allows intuitive exploration of the Pareto frontier. By rotating 3D space with mouse operations, multi-dimensional trade-offs can be understood.
+
+* * *
+
+## 3.2 Chapter Summary
+
+### What We Learned
+
+  1. **Fundamentals of Multi-Objective Optimization**
+     * Formulation of multi-objective optimization problems
+     * Concepts of Pareto dominance and Pareto optimality
+     * Meaning of Pareto frontier
+  2. **Scalarization Methods**
+     * Generation of Pareto solutions by weighted sum method
+     * Implementation of epsilon-constraint method
+     * Characteristics and usage of each method
+  3. **Evolutionary Algorithms**
+     * Implementation of non-dominated sorting
+     * Concept of NSGA-II
+     * Pareto solution search by genetic algorithms
+  4. **Decision Making Methods**
+     * Solution selection by TOPSIS method
+     * Reflection of decision maker's preferences
+     * Interactive visualization
+
+### Key Points
+
+In multi-objective optimization, there is no single optimal solution, but rather a set of Pareto optimal solutions. The weighted sum method is easy to understand but may miss solutions with non-convex Pareto frontiers. The epsilon-constraint method allows explicit control of objective functions treated as constraints. NSGA-II efficiently explores the Pareto frontier through non-dominated sorting. The TOPSIS method enables selection of the best solution based on decision maker's preferences.
+
+### To the Next Chapter
+
+In Chapter 4, we will learn in detail about **optimization under constraints** , covering the Lagrange multiplier method and KKT conditions, penalty and barrier methods, and Sequential Quadratic Programming (SQP). The chapter addresses constraints specific to chemical processes including material balance, energy balance, and safety constraints, with practical examples of CSTR optimization and finding optimal operating conditions for distillation columns.

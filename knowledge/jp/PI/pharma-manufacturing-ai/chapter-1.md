@@ -1,0 +1,626 @@
+---
+title: 第1章 GMP準拠の統計的品質管理
+chapter_title: 第1章 GMP準拠の統計的品質管理
+subtitle: Statistical Quality Control under GMP Requirements
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/PI/pharma-manufacturing-ai/chapter-1.html>) | Last sync: 2025-11-16
+
+[AI寺子屋トップ](<../../index.html>)›[プロセス・インフォマティクス](<../../PI/index.html>)›[Pharma Manufacturing Ai](<../../PI/pharma-manufacturing-ai/index.html>)›Chapter 1
+
+[← シリーズ目次に戻る](<index.html>)
+
+## 📖 本章の概要
+
+医薬品製造においては、GMP（Good Manufacturing Practice）に基づく厳格な品質管理が求められます。 本章では、統計的プロセス管理（SPC）、工程能力指数（Cp/Cpk）、継続的プロセスベリフィケーション（CPV）、 年次製品レビュー（APR）など、GMP準拠の統計的品質管理手法をPythonで実装する方法を学びます。 
+
+### 🎯 学習目標
+
+  * GMP要件を満たす統計的プロセス管理（SPC）の実装
+  * 管理図（X-R chart、X-σ chart、CUSUM、EWMA）の自動生成
+  * 工程能力指数（Cp、Cpk、Pp、Ppk）の計算と評価
+  * 継続的プロセスベリフィケーション（CPV）の自動化
+  * 年次製品レビュー（APR）データ集計の効率化
+  * 逸脱検出と管理限界超過の自動アラート
+  * 監査証跡（Audit Trail）の記録実装
+
+## 📊 1.1 GMP要件と統計的品質管理の基礎
+
+### GMP規制における品質管理要件
+
+医薬品製造では、以下のGMP要件を満たす品質管理が必要です：
+
+  * **PIC/S GMP Annex 15** : 適格性評価とバリデーション
+  * **ICH Q7** : 原薬GMPガイドライン
+  * **ICH Q8-Q11** : 品質リスクマネジメント、QbD（Quality by Design）
+  * **FDA 21 CFR Part 211** : 完成医薬品のGMP規制
+  * **EU GMP Annex 11** : コンピュータ化システム
+
+**🏭 GMP準拠のポイント**  
+・すべての工程パラメータの記録と保管（最低3年間）  
+・逸脱発生時の根本原因分析（RCA）と是正措置（CAPA）  
+・継続的プロセスベリフィケーション（CPV）の実施  
+・年次製品レビュー（APR）による定期的な品質評価  
+・監査証跡の完全性確保（誰が、いつ、何を変更したか） 
+
+### 統計的プロセス管理（SPC）の基本概念
+
+#### 管理限界の計算
+
+$$ \text{UCL}_{\bar{X}} = \bar{\bar{X}} + A_2 \bar{R} $$ $$ \text{CL}_{\bar{X}} = \bar{\bar{X}} $$ $$ \text{LCL}_{\bar{X}} = \bar{\bar{X}} - A_2 \bar{R} $$ 
+
+ここで、\\( \bar{\bar{X}} \\) は全サンプルの平均の平均、\\( \bar{R} \\) は範囲の平均、 \\( A_2 \\) はサンプルサイズに応じた定数（n=5の場合、A_2=0.577） 
+
+### 💻 コード例1.1: X-R管理図の自動生成（GMP準拠版）
+    
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from datetime import datetime, timedelta
+    import json
+    import warnings
+    warnings.filterwarnings('ignore')
+    
+    plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'DejaVu Sans']
+    plt.rcParams['axes.unicode_minus'] = False
+    
+    class GMPControlChart:
+        """GMP準拠のX-R管理図クラス（監査証跡機能付き）"""
+    
+        def __init__(self, product_name, batch_prefix, specification_limits):
+            """
+            Args:
+                product_name: 製品名
+                batch_prefix: バッチ番号のプレフィックス
+                specification_limits: 規格値 (lower, upper)
+            """
+            self.product_name = product_name
+            self.batch_prefix = batch_prefix
+            self.spec_lower, self.spec_upper = specification_limits
+            self.audit_trail = []  # 監査証跡
+    
+            # SPCパラメータ
+            self.A2_table = {2: 1.880, 3: 1.023, 4: 0.729, 5: 0.577}
+            self.D3_table = {2: 0, 3: 0, 4: 0, 5: 0}
+            self.D4_table = {2: 3.267, 3: 2.574, 4: 2.282, 5: 2.114}
+    
+        def _log_audit(self, action, user="System", details=None):
+            """監査証跡の記録"""
+            entry = {
+                "timestamp": datetime.now().isoformat(),
+                "user": user,
+                "action": action,
+                "details": details or {}
+            }
+            self.audit_trail.append(entry)
+    
+        def generate_sample_data(self, n_batches=30, samples_per_batch=5):
+            """サンプルデータ生成（錠剤重量を想定）"""
+            np.random.seed(42)
+    
+            batches = []
+            batch_dates = []
+            start_date = datetime(2025, 1, 1)
+    
+            # 管理状態のデータ（バッチ1-20）
+            for i in range(20):
+                batch_id = f"{self.batch_prefix}{i+1:04d}"
+                batch_date = start_date + timedelta(days=i)
+                samples = np.random.normal(200, 2, samples_per_batch)  # 平均200mg、標準偏差2mg
+    
+                batches.append({
+                    'batch_id': batch_id,
+                    'date': batch_date,
+                    'samples': samples,
+                    'mean': np.mean(samples),
+                    'range': np.ptp(samples)
+                })
+                batch_dates.append(batch_date)
+    
+            # 軽微な平均シフト（バッチ21-25）
+            for i in range(20, 25):
+                batch_id = f"{self.batch_prefix}{i+1:04d}"
+                batch_date = start_date + timedelta(days=i)
+                samples = np.random.normal(202, 2, samples_per_batch)  # 平均が2mg上昇
+    
+                batches.append({
+                    'batch_id': batch_id,
+                    'date': batch_date,
+                    'samples': samples,
+                    'mean': np.mean(samples),
+                    'range': np.ptp(samples)
+                })
+                batch_dates.append(batch_date)
+    
+            # ばらつき増加（バッチ26-30）
+            for i in range(25, n_batches):
+                batch_id = f"{self.batch_prefix}{i+1:04d}"
+                batch_date = start_date + timedelta(days=i)
+                samples = np.random.normal(200, 4, samples_per_batch)  # 標準偏差が倍増
+    
+                batches.append({
+                    'batch_id': batch_id,
+                    'date': batch_date,
+                    'samples': samples,
+                    'mean': np.mean(samples),
+                    'range': np.ptp(samples)
+                })
+                batch_dates.append(batch_date)
+    
+            df = pd.DataFrame(batches)
+            self._log_audit("データ生成", details={"n_batches": n_batches, "samples_per_batch": samples_per_batch})
+    
+            return df
+    
+        def calculate_control_limits(self, df, samples_per_batch=5):
+            """管理限界の計算"""
+            # 全体平均と範囲平均
+            X_bar_bar = df['mean'].mean()
+            R_bar = df['range'].mean()
+    
+            # 定数の取得
+            A2 = self.A2_table[samples_per_batch]
+            D3 = self.D3_table[samples_per_batch]
+            D4 = self.D4_table[samples_per_batch]
+    
+            # X-bar管理図の管理限界
+            UCL_X = X_bar_bar + A2 * R_bar
+            CL_X = X_bar_bar
+            LCL_X = X_bar_bar - A2 * R_bar
+    
+            # R管理図の管理限界
+            UCL_R = D4 * R_bar
+            CL_R = R_bar
+            LCL_R = D3 * R_bar
+    
+            control_limits = {
+                'X': {'UCL': UCL_X, 'CL': CL_X, 'LCL': LCL_X},
+                'R': {'UCL': UCL_R, 'CL': CL_R, 'LCL': LCL_R}
+            }
+    
+            self._log_audit("管理限界計算", details=control_limits)
+    
+            return control_limits
+    
+        def detect_out_of_control(self, df, control_limits):
+            """管理限界超過の検出"""
+            violations = []
+    
+            for idx, row in df.iterrows():
+                # X-bar管理図の違反
+                if row['mean'] > control_limits['X']['UCL']:
+                    violations.append({
+                        'batch_id': row['batch_id'],
+                        'type': 'X-bar UCL超過',
+                        'value': row['mean'],
+                        'limit': control_limits['X']['UCL']
+                    })
+                elif row['mean'] < control_limits['X']['LCL']:
+                    violations.append({
+                        'batch_id': row['batch_id'],
+                        'type': 'X-bar LCL未達',
+                        'value': row['mean'],
+                        'limit': control_limits['X']['LCL']
+                    })
+    
+                # R管理図の違反
+                if row['range'] > control_limits['R']['UCL']:
+                    violations.append({
+                        'batch_id': row['batch_id'],
+                        'type': 'R UCL超過（ばらつき増加）',
+                        'value': row['range'],
+                        'limit': control_limits['R']['UCL']
+                    })
+    
+            if violations:
+                self._log_audit("管理限界違反検出", details={"violations_count": len(violations)})
+    
+            return violations
+    
+        def plot_control_chart(self, df, control_limits):
+            """X-R管理図のプロット"""
+            fig, axes = plt.subplots(2, 1, figsize=(14, 10))
+    
+            batch_indices = range(len(df))
+    
+            # X-bar管理図
+            axes[0].plot(batch_indices, df['mean'], marker='o', color='#11998e',
+                         linewidth=2, markersize=6, label='バッチ平均')
+            axes[0].axhline(y=control_limits['X']['UCL'], color='red', linestyle='--',
+                            linewidth=2, label=f"UCL = {control_limits['X']['UCL']:.2f}")
+            axes[0].axhline(y=control_limits['X']['CL'], color='green', linestyle='-',
+                            linewidth=2, label=f"CL = {control_limits['X']['CL']:.2f}")
+            axes[0].axhline(y=control_limits['X']['LCL'], color='red', linestyle='--',
+                            linewidth=2, label=f"LCL = {control_limits['X']['LCL']:.2f}")
+    
+            # 規格限界の表示
+            axes[0].axhline(y=self.spec_upper, color='orange', linestyle=':',
+                            linewidth=1.5, alpha=0.7, label=f"規格上限 = {self.spec_upper}")
+            axes[0].axhline(y=self.spec_lower, color='orange', linestyle=':',
+                            linewidth=1.5, alpha=0.7, label=f"規格下限 = {self.spec_lower}")
+    
+            axes[0].set_xlabel('バッチ番号')
+            axes[0].set_ylabel('錠剤重量平均（mg）')
+            axes[0].set_title(f'X-bar管理図 - {self.product_name}', fontsize=12, fontweight='bold')
+            axes[0].legend(loc='upper right', fontsize=9)
+            axes[0].grid(alpha=0.3)
+    
+            # R管理図
+            axes[1].plot(batch_indices, df['range'], marker='s', color='#38ef7d',
+                         linewidth=2, markersize=6, label='バッチ範囲')
+            axes[1].axhline(y=control_limits['R']['UCL'], color='red', linestyle='--',
+                            linewidth=2, label=f"UCL = {control_limits['R']['UCL']:.2f}")
+            axes[1].axhline(y=control_limits['R']['CL'], color='green', linestyle='-',
+                            linewidth=2, label=f"CL = {control_limits['R']['CL']:.2f}")
+            axes[1].axhline(y=control_limits['R']['LCL'], color='red', linestyle='--',
+                            linewidth=2, label=f"LCL = {control_limits['R']['LCL']:.2f}")
+    
+            axes[1].set_xlabel('バッチ番号')
+            axes[1].set_ylabel('範囲 R（mg）')
+            axes[1].set_title('R管理図 - プロセスばらつき', fontsize=12, fontweight='bold')
+            axes[1].legend(loc='upper right', fontsize=9)
+            axes[1].grid(alpha=0.3)
+    
+            plt.tight_layout()
+            plt.savefig('gmp_xr_control_chart.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+            self._log_audit("管理図作成", details={"chart_type": "X-R"})
+    
+        def export_audit_trail(self, filename="audit_trail.json"):
+            """監査証跡のエクスポート"""
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(self.audit_trail, f, ensure_ascii=False, indent=2)
+            print(f"監査証跡を {filename} にエクスポートしました")
+    
+    # 実行例
+    print("=" * 60)
+    print("GMP準拠X-R管理図システム")
+    print("=" * 60)
+    
+    # 管理図インスタンスの作成
+    chart = GMPControlChart(
+        product_name="アセトアミノフェン錠200mg",
+        batch_prefix="AP-",
+        specification_limits=(190, 210)  # 規格: 200±10mg
+    )
+    
+    # データ生成
+    df = chart.generate_sample_data(n_batches=30, samples_per_batch=5)
+    
+    print(f"\n製品名: {chart.product_name}")
+    print(f"総バッチ数: {len(df)}")
+    print(f"規格限界: {chart.spec_lower}-{chart.spec_upper} mg")
+    
+    # 管理限界計算
+    control_limits = chart.calculate_control_limits(df, samples_per_batch=5)
+    
+    print(f"\nX-bar管理限界:")
+    print(f"  UCL = {control_limits['X']['UCL']:.2f} mg")
+    print(f"  CL  = {control_limits['X']['CL']:.2f} mg")
+    print(f"  LCL = {control_limits['X']['LCL']:.2f} mg")
+    
+    print(f"\nR管理限界:")
+    print(f"  UCL = {control_limits['R']['UCL']:.2f} mg")
+    print(f"  CL  = {control_limits['R']['CL']:.2f} mg")
+    print(f"  LCL = {control_limits['R']['LCL']:.2f} mg")
+    
+    # 違反検出
+    violations = chart.detect_out_of_control(df, control_limits)
+    
+    if violations:
+        print(f"\n⚠️ 管理限界違反を {len(violations)} 件検出:")
+        for v in violations[:5]:  # 最初の5件を表示
+            print(f"  - {v['batch_id']}: {v['type']} (値: {v['value']:.2f}, 限界: {v['limit']:.2f})")
+    else:
+        print("\n✅ すべてのバッチが管理限界内です")
+    
+    # 管理図プロット
+    chart.plot_control_chart(df, control_limits)
+    
+    # 監査証跡のエクスポート
+    chart.export_audit_trail("audit_trail_xr_chart.json")
+    
+    print(f"\n監査証跡記録数: {len(chart.audit_trail)}")
+    
+
+**実装のポイント:**
+
+  * GMP要件を満たす監査証跡（Audit Trail）機能の実装
+  * 管理限界と規格限界の両方を可視化
+  * 自動的な逸脱検出とアラート機能
+  * バッチトレーサビリティの確保（バッチID、日付記録）
+  * JSON形式での監査証跡エクスポート
+
+## 📈 1.2 工程能力指数の計算と評価
+
+### 工程能力指数の定義
+
+#### 短期工程能力指数（Cp、Cpk）
+
+$$ C_p = \frac{\text{USL} - \text{LSL}}{6\sigma} $$ $$ C_{pk} = \min\left(\frac{\text{USL} - \mu}{3\sigma}, \frac{\mu - \text{LSL}}{3\sigma}\right) $$ 
+
+#### 長期工程能力指数（Pp、Ppk）
+
+$$ P_p = \frac{\text{USL} - \text{LSL}}{6s} $$ $$ P_{pk} = \min\left(\frac{\text{USL} - \bar{x}}{3s}, \frac{\bar{x} - \text{LSL}}{3s}\right) $$ 
+
+USL: 規格上限、LSL: 規格下限、μ: プロセス平均、σ: プロセス標準偏差（群内）、 s: 全体標準偏差 
+
+**💡 工程能力の評価基準**  
+・Cpk ≥ 1.67: 優秀（6σ品質レベル）  
+・Cpk ≥ 1.33: 良好（GMP推奨水準）  
+・Cpk ≥ 1.00: 最低限許容可能  
+・Cpk < 1.00: 不合格（改善必須）  
+※医薬品製造ではCpk ≥ 1.33が一般的な要求水準 
+
+### 💻 コード例1.2: 工程能力指数の自動計算システム
+    
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    import warnings
+    warnings.filterwarnings('ignore')
+    
+    plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'DejaVu Sans']
+    plt.rcParams['axes.unicode_minus'] = False
+    
+    class ProcessCapabilityAnalyzer:
+        """工程能力解析クラス（GMP準拠）"""
+    
+        def __init__(self, spec_lower, spec_upper, target=None):
+            """
+            Args:
+                spec_lower: 規格下限（LSL）
+                spec_upper: 規格上限（USL）
+                target: 目標値（指定しない場合は中心値）
+            """
+            self.LSL = spec_lower
+            self.USL = spec_upper
+            self.target = target if target is not None else (spec_lower + spec_upper) / 2
+    
+        def calculate_capability_indices(self, data, subgroup_size=5):
+            """
+            工程能力指数の計算
+    
+            Args:
+                data: 測定データ（1次元配列）
+                subgroup_size: サブグループサイズ（Cp/Cpk計算用）
+    
+            Returns:
+                dict: 各種工程能力指数
+            """
+            # 基本統計量
+            n = len(data)
+            mean = np.mean(data)
+            std_overall = np.std(data, ddof=1)  # 全体標準偏差（Pp/Ppk用）
+    
+            # サブグループ標準偏差の推定（Cp/Cpk用）
+            n_subgroups = n // subgroup_size
+            subgroups = data[:n_subgroups * subgroup_size].reshape(n_subgroups, subgroup_size)
+            R_bar = np.mean([np.ptp(sg) for sg in subgroups])  # 平均範囲
+    
+            # d2定数（サンプルサイズに応じた定数）
+            d2_table = {2: 1.128, 3: 1.693, 4: 2.059, 5: 2.326, 6: 2.534}
+            d2 = d2_table.get(subgroup_size, 2.326)
+    
+            sigma_within = R_bar / d2  # 群内標準偏差
+    
+            # Cp、Cpkの計算
+            Cp = (self.USL - self.LSL) / (6 * sigma_within)
+            Cpu = (self.USL - mean) / (3 * sigma_within)
+            Cpl = (mean - self.LSL) / (3 * sigma_within)
+            Cpk = min(Cpu, Cpl)
+    
+            # Pp、Ppkの計算
+            Pp = (self.USL - self.LSL) / (6 * std_overall)
+            Ppu = (self.USL - mean) / (3 * std_overall)
+            Ppl = (mean - self.LSL) / (3 * std_overall)
+            Ppk = min(Ppu, Ppl)
+    
+            # Cmの計算（中心化能力指数）
+            Cm = (self.USL - self.LSL) / (6 * np.abs(mean - self.target)) if mean != self.target else np.inf
+    
+            # 不良率の推定（正規分布を仮定）
+            z_usl = (self.USL - mean) / std_overall
+            z_lsl = (mean - self.LSL) / std_overall
+            ppm_upper = (1 - stats.norm.cdf(z_usl)) * 1e6
+            ppm_lower = (1 - stats.norm.cdf(z_lsl)) * 1e6
+            ppm_total = ppm_upper + ppm_lower
+    
+            results = {
+                'n': n,
+                'mean': mean,
+                'std_overall': std_overall,
+                'std_within': sigma_within,
+                'Cp': Cp,
+                'Cpk': Cpk,
+                'Cpu': Cpu,
+                'Cpl': Cpl,
+                'Pp': Pp,
+                'Ppk': Ppk,
+                'Ppu': Ppu,
+                'Ppl': Ppl,
+                'Cm': Cm,
+                'ppm_upper': ppm_upper,
+                'ppm_lower': ppm_lower,
+                'ppm_total': ppm_total
+            }
+    
+            return results
+    
+        def evaluate_capability(self, cpk_value):
+            """工程能力の評価"""
+            if cpk_value >= 1.67:
+                return "優秀（6σレベル）", "green"
+            elif cpk_value >= 1.33:
+                return "良好（GMP推奨水準）", "#38ef7d"
+            elif cpk_value >= 1.00:
+                return "最低限許容", "orange"
+            else:
+                return "不合格（改善必須）", "red"
+    
+        def plot_capability_analysis(self, data, results):
+            """工程能力解析の可視化"""
+            fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+            # ヒストグラムと正規分布
+            ax1 = axes[0, 0]
+            ax1.hist(data, bins=30, density=True, alpha=0.7, color='#11998e', edgecolor='black')
+    
+            # 正規分布フィット
+            x = np.linspace(data.min(), data.max(), 200)
+            ax1.plot(x, stats.norm.pdf(x, results['mean'], results['std_overall']),
+                     'r-', linewidth=2, label='正規分布フィット')
+    
+            # 規格限界
+            ax1.axvline(self.LSL, color='red', linestyle='--', linewidth=2, label=f'LSL = {self.LSL}')
+            ax1.axvline(self.USL, color='red', linestyle='--', linewidth=2, label=f'USL = {self.USL}')
+            ax1.axvline(self.target, color='green', linestyle=':', linewidth=2, label=f'目標 = {self.target}')
+            ax1.axvline(results['mean'], color='blue', linestyle='-', linewidth=2, label=f'平均 = {results["mean"]:.2f}')
+    
+            ax1.set_xlabel('測定値')
+            ax1.set_ylabel('確率密度')
+            ax1.set_title('ヒストグラムと規格限界', fontsize=12, fontweight='bold')
+            ax1.legend(fontsize=9)
+            ax1.grid(alpha=0.3)
+    
+            # 正規確率プロット
+            ax2 = axes[0, 1]
+            stats.probplot(data, dist="norm", plot=ax2)
+            ax2.set_title('正規確率プロット', fontsize=12, fontweight='bold')
+            ax2.grid(alpha=0.3)
+    
+            # 工程能力指数の棒グラフ
+            ax3 = axes[1, 0]
+            indices = ['Cp', 'Cpk', 'Pp', 'Ppk']
+            values = [results['Cp'], results['Cpk'], results['Pp'], results['Ppk']]
+            colors_bar = ['#11998e', '#38ef7d', '#11998e', '#38ef7d']
+    
+            bars = ax3.bar(indices, values, color=colors_bar, alpha=0.8, edgecolor='black')
+            ax3.axhline(y=1.33, color='green', linestyle='--', linewidth=2, label='GMP推奨水準 (1.33)')
+            ax3.axhline(y=1.00, color='orange', linestyle='--', linewidth=1.5, label='最低許容 (1.00)')
+    
+            # 値のラベル表示
+            for bar, val in zip(bars, values):
+                height = bar.get_height()
+                ax3.text(bar.get_x() + bar.get_width()/2., height,
+                         f'{val:.2f}', ha='center', va='bottom', fontweight='bold')
+    
+            ax3.set_ylabel('指数値')
+            ax3.set_title('工程能力指数', fontsize=12, fontweight='bold')
+            ax3.legend()
+            ax3.grid(axis='y', alpha=0.3)
+    
+            # サマリーテキスト
+            ax4 = axes[1, 1]
+            ax4.axis('off')
+    
+            evaluation, color = self.evaluate_capability(results['Cpk'])
+    
+            summary_text = f"""
+    工程能力解析サマリー
+    
+    サンプル数: {results['n']}
+    平均値: {results['mean']:.2f}
+    標準偏差（全体）: {results['std_overall']:.2f}
+    標準偏差（群内）: {results['std_within']:.2f}
+    
+    規格限界:
+      LSL = {self.LSL}
+      USL = {self.USL}
+      目標 = {self.target}
+    
+    短期工程能力:
+      Cp  = {results['Cp']:.2f}
+      Cpk = {results['Cpk']:.2f}
+    
+    長期工程能力:
+      Pp  = {results['Pp']:.2f}
+      Ppk = {results['Ppk']:.2f}
+    
+    推定不良率:
+      上限超過: {results['ppm_upper']:.0f} ppm
+      下限未達: {results['ppm_lower']:.0f} ppm
+      合計: {results['ppm_total']:.0f} ppm
+    
+    評価: {evaluation}
+            """
+    
+            ax4.text(0.1, 0.5, summary_text, fontsize=10, verticalalignment='center',
+                     family='monospace', bbox=dict(boxstyle='round', facecolor=color, alpha=0.2))
+    
+            plt.tight_layout()
+            plt.savefig('process_capability_analysis.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+    # 実行例
+    print("=" * 60)
+    print("工程能力解析システム（GMP準拠）")
+    print("=" * 60)
+    
+    # サンプルデータ生成（アセトアミノフェン錠の含量試験を想定）
+    np.random.seed(42)
+    n_samples = 150  # 30バッチ × 5サンプル/バッチ
+    
+    # プロセスが安定している場合
+    data_stable = np.random.normal(100.0, 1.5, n_samples)  # 平均100.0%、標準偏差1.5%
+    
+    # 工程能力解析
+    analyzer = ProcessCapabilityAnalyzer(
+        spec_lower=95.0,   # 規格下限: 95.0%
+        spec_upper=105.0,  # 規格上限: 105.0%
+        target=100.0       # 目標値: 100.0%
+    )
+    
+    results = analyzer.calculate_capability_indices(data_stable, subgroup_size=5)
+    
+    print("\n工程能力指数:")
+    print(f"Cp  = {results['Cp']:.3f}")
+    print(f"Cpk = {results['Cpk']:.3f}")
+    print(f"Pp  = {results['Pp']:.3f}")
+    print(f"Ppk = {results['Ppk']:.3f}")
+    
+    evaluation, _ = analyzer.evaluate_capability(results['Cpk'])
+    print(f"\n評価: {evaluation}")
+    print(f"推定不良率: {results['ppm_total']:.1f} ppm")
+    
+    # 可視化
+    analyzer.plot_capability_analysis(data_stable, results)
+    
+
+**実装のポイント:**
+
+  * 短期能力（Cp/Cpk）と長期能力（Pp/Ppk）の両方を計算
+  * GMP推奨水準（Cpk ≥ 1.33）との比較評価
+  * 正規確率プロットによる分布の正規性検証
+  * 推定不良率（ppm）の計算による品質予測
+  * 視覚的に分かりやすいレポート生成
+
+## 📚 まとめ
+
+本章では、GMP準拠の統計的品質管理の基礎を学びました。
+
+### 主要なポイント
+
+  * X-R管理図による工程管理と監査証跡の記録
+  * 工程能力指数（Cp/Cpk）の計算とGMP評価基準
+  * 自動的な逸脱検出とアラート機能
+  * 規格限界と管理限界の明確な区別
+  * データインテグリティを確保する実装パターン
+
+**🎯 次章予告**  
+第2章では、電子バッチ記録（EBR）の自動解析と逸脱管理について学びます。 バッチトレンド分析、異常検知、根本原因分析（RCA）、CAPA提案の自動化など、 より高度なデータ解析技術を習得します。 
+
+[← シリーズ目次](<index.html>) [第2章: 電子バッチ記録解析 →](<chapter-2.html>)
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。
