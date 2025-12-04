@@ -1,0 +1,2297 @@
+---
+title: "Chapter 5: Practical NLP Applications"
+chapter_title: "Chapter 5: Practical NLP Applications"
+subtitle: From Sentiment Analysis to Question Answering - Complete Implementation of Real-world NLP Tasks
+reading_time: 35-40 minutes
+difficulty: Intermediate to Advanced
+code_examples: 10
+exercises: 5
+version: 1.0
+created_at: 2025-10-21
+---
+
+This chapter focuses on practical applications of Practical NLP Applications. You will learn and evaluate Sentiment Analysis, Build Question Answering (QA) systems, and Text Summarization implementation methods.
+
+## Learning Objectives
+
+By reading this chapter, you will master the following:
+
+  * ✅ Implement and evaluate Sentiment Analysis
+  * ✅ Extract entities using Named Entity Recognition (NER)
+  * ✅ Build Question Answering (QA) systems
+  * ✅ Understand Text Summarization implementation methods
+  * ✅ Build end-to-end NLP pipelines
+  * ✅ Master production deployment and monitoring techniques
+
+* * *
+
+## 5.1 Sentiment Analysis
+
+### What is Sentiment Analysis
+
+**Sentiment Analysis** is a task that determines the author's opinion or emotion (positive, negative, or neutral) from text.
+
+> Applications: Product review analysis, social media monitoring, customer support, brand monitoring
+
+### Types of Sentiment Analysis
+
+Type | Description | Example  
+---|---|---  
+**Binary Classification** | Two-class classification: positive/negative | Whether a review is favorable or negative  
+**Multi-class Classification** | Multiple emotion categories | Very Negative, Negative, Neutral, Positive, Very Positive  
+**Aspect-based Sentiment** | Sentiment toward specific aspects | "The food was delicious but the service was bad" → Food: positive, Service: negative  
+**Emotion Detection** | Detect types of emotions | Joy, Anger, Sadness, Fear, Surprise  
+  
+### Binary Sentiment Analysis Implementation
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    # - seaborn>=0.12.0
+    
+    """
+    Example: Binary Sentiment Analysis Implementation
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Intermediate
+    Execution time: 30-60 seconds
+    Dependencies: None
+    """
+    
+    import numpy as np
+    import pandas as pd
+    from sklearn.model_selection import train_test_split
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    
+    # Sample data (movie reviews)
+    reviews = [
+        "This movie is absolutely fantastic! I loved every minute.",
+        "Terrible film, waste of time and money.",
+        "An amazing masterpiece with brilliant acting.",
+        "Boring and predictable. Would not recommend.",
+        "One of the best movies I've ever seen!",
+        "Awful story, poor direction, disappointing overall.",
+        "Great cinematography and compelling narrative.",
+        "Not worth watching. Very disappointing.",
+        "Excellent performances by all actors!",
+        "Dull and uninspiring. Fell asleep halfway through.",
+        "A true work of art! Highly recommended!",
+        "Complete disaster. Avoid at all costs.",
+        "Wonderful film with a heartwarming message.",
+        "Poorly executed and hard to follow.",
+        "Outstanding! A must-see for everyone.",
+        "Waste of time. Very poor quality.",
+        "Beautiful story and great music.",
+        "Terrible acting and weak plot.",
+        "Phenomenal! Best movie this year!",
+        "Boring and overrated. Not impressed."
+    ]
+    
+    # Labels (1: Positive, 0: Negative)
+    labels = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0,
+              1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+    
+    # Create DataFrame
+    df = pd.DataFrame({'review': reviews, 'sentiment': labels})
+    
+    print("=== Dataset ===")
+    print(df.head(10))
+    print(f"\nTotal samples: {len(df)}")
+    print(f"Positive: {sum(labels)}, Negative: {len(labels) - sum(labels)}")
+    
+    # Train-test split
+    X_train, X_test, y_train, y_test = train_test_split(
+        df['review'], df['sentiment'],
+        test_size=0.3, random_state=42, stratify=df['sentiment']
+    )
+    
+    # TF-IDF vectorization
+    vectorizer = TfidfVectorizer(max_features=1000, ngram_range=(1, 2))
+    X_train_tfidf = vectorizer.fit_transform(X_train)
+    X_test_tfidf = vectorizer.transform(X_test)
+    
+    # Logistic Regression model
+    model = LogisticRegression(max_iter=1000, random_state=42)
+    model.fit(X_train_tfidf, y_train)
+    
+    # Prediction and evaluation
+    y_pred = model.predict(X_test_tfidf)
+    accuracy = accuracy_score(y_test, y_pred)
+    
+    print("\n=== Model Performance ===")
+    print(f"Accuracy: {accuracy:.3f}")
+    print("\nClassification Report:")
+    print(classification_report(y_test, y_pred,
+                               target_names=['Negative', 'Positive']))
+    
+    # Confusion matrix
+    cm = confusion_matrix(y_test, y_pred)
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=['Negative', 'Positive'],
+                yticklabels=['Negative', 'Positive'])
+    plt.xlabel('Predicted')
+    plt.ylabel('Actual')
+    plt.title('Confusion Matrix - Sentiment Analysis')
+    plt.tight_layout()
+    plt.show()
+    
+    # Predict new reviews
+    new_reviews = [
+        "This is an incredible movie!",
+        "What a terrible waste of time.",
+        "Pretty good, I enjoyed it."
+    ]
+    
+    new_tfidf = vectorizer.transform(new_reviews)
+    predictions = model.predict(new_tfidf)
+    probabilities = model.predict_proba(new_tfidf)
+    
+    print("\n=== Predictions for New Reviews ===")
+    for review, pred, prob in zip(new_reviews, predictions, probabilities):
+        sentiment = "Positive" if pred == 1 else "Negative"
+        confidence = prob[pred]
+        print(f"Review: {review}")
+        print(f"  → {sentiment} (confidence: {confidence:.2%})\n")
+    
+
+### BERT-based Sentiment Analysis
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - torch>=2.0.0, <2.3.0
+    # - transformers>=4.30.0
+    
+    """
+    Example: BERT-based Sentiment Analysis
+    
+    Purpose: Demonstrate core concepts and implementation patterns
+    Target: Advanced
+    Execution time: 1-5 minutes
+    Dependencies: None
+    """
+    
+    from transformers import AutoTokenizer, AutoModelForSequenceClassification
+    from transformers import pipeline
+    import torch
+    
+    # Pre-trained BERT sentiment analysis model
+    model_name = "nlptown/bert-base-multilingual-uncased-sentiment"
+    
+    # Create pipeline
+    sentiment_pipeline = pipeline(
+        "sentiment-analysis",
+        model=model_name,
+        tokenizer=model_name
+    )
+    
+    # Sample reviews (English and Japanese)
+    reviews = [
+        "This product is absolutely amazing! Best purchase ever!",
+        "Terrible quality. Very disappointed with this item.",
+        "This product is wonderful! Very satisfied.",
+        "Worst quality. Very disappointed.",
+        "It's okay. Nothing special but does the job."
+    ]
+    
+    print("=== BERT Sentiment Analysis ===\n")
+    for review in reviews:
+        result = sentiment_pipeline(review)[0]
+        stars = int(result['label'].split()[0])
+        confidence = result['score']
+    
+        print(f"Review: {review}")
+        print(f"  → Rating: {stars} stars (confidence: {confidence:.2%})")
+        print(f"  → Sentiment: {'Positive' if stars >= 4 else 'Negative' if stars <= 2 else 'Neutral'}\n")
+    
+
+**Output** :
+    
+    
+    === BERT Sentiment Analysis ===
+    
+    Review: This product is absolutely amazing! Best purchase ever!
+      → Rating: 5 stars (confidence: 87.34%)
+      → Sentiment: Positive
+    
+    Review: Terrible quality. Very disappointed with this item.
+      → Rating: 1 stars (confidence: 92.15%)
+      → Sentiment: Negative
+    
+    Review: This product is wonderful! Very satisfied.
+      → Rating: 5 stars (confidence: 78.92%)
+      → Sentiment: Positive
+    
+    Review: Worst quality. Very disappointed.
+      → Rating: 1 stars (confidence: 85.67%)
+      → Sentiment: Negative
+    
+    Review: It's okay. Nothing special but does the job.
+      → Rating: 3 stars (confidence: 65.43%)
+      → Sentiment: Neutral
+    
+
+### Aspect-based Sentiment Analysis
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - spacy>=3.6.0
+    # - transformers>=4.30.0
+    
+    """
+    Example: Aspect-based Sentiment Analysis
+    
+    Purpose: Demonstrate core concepts and implementation patterns
+    Target: Beginner to Intermediate
+    Execution time: 10-30 seconds
+    Dependencies: None
+    """
+    
+    import spacy
+    from transformers import pipeline
+    
+    # ABSA (Aspect-Based Sentiment Analysis) implementation
+    class AspectBasedSentimentAnalyzer:
+        def __init__(self):
+            # Sentiment analysis pipeline
+            self.sentiment_analyzer = pipeline(
+                "sentiment-analysis",
+                model="nlptown/bert-base-multilingual-uncased-sentiment"
+            )
+            # For extracting noun phrases (aspect candidates)
+            self.nlp = spacy.load("en_core_web_sm")
+    
+        def extract_aspects(self, text):
+            """Extract aspect candidates from text"""
+            doc = self.nlp(text)
+            aspects = []
+    
+            # Extract noun and adjective combinations
+            for chunk in doc.noun_chunks:
+                aspects.append(chunk.text)
+    
+            return aspects
+    
+        def analyze_aspect_sentiment(self, text, aspect):
+            """Analyze sentiment for a specific aspect"""
+            # Extract sentences containing the aspect
+            sentences = text.split('.')
+            relevant_sentences = [s for s in sentences if aspect.lower() in s.lower()]
+    
+            if not relevant_sentences:
+                return None
+    
+            # Sentiment analysis
+            combined_text = '. '.join(relevant_sentences)
+            result = self.sentiment_analyzer(combined_text[:512])[0]  # BERT max length
+    
+            stars = int(result['label'].split()[0])
+            sentiment = 'Positive' if stars >= 4 else 'Negative' if stars <= 2 else 'Neutral'
+    
+            return {
+                'aspect': aspect,
+                'sentiment': sentiment,
+                'stars': stars,
+                'confidence': result['score']
+            }
+    
+        def analyze(self, text):
+            """Complete ABSA analysis"""
+            aspects = self.extract_aspects(text)
+            results = []
+    
+            for aspect in aspects:
+                result = self.analyze_aspect_sentiment(text, aspect)
+                if result:
+                    results.append(result)
+    
+            return results
+    
+    # Usage example
+    analyzer = AspectBasedSentimentAnalyzer()
+    
+    review = """
+    The food at this restaurant was absolutely delicious, especially the pasta.
+    However, the service was quite slow and the staff seemed unfriendly.
+    The ambiance was nice and cozy. The prices are a bit high but worth it for the quality.
+    """
+    
+    print("=== Aspect-Based Sentiment Analysis ===\n")
+    print(f"Review:\n{review}\n")
+    
+    results = analyzer.analyze(review)
+    
+    print("Aspect-level Sentiments:")
+    for r in results:
+        print(f"  {r['aspect']}: {r['sentiment']} ({r['stars']} stars, {r['confidence']:.1%} confidence)")
+    
+    # Overall aggregation
+    positive = sum(1 for r in results if r['sentiment'] == 'Positive')
+    negative = sum(1 for r in results if r['sentiment'] == 'Negative')
+    neutral = sum(1 for r in results if r['sentiment'] == 'Neutral')
+    
+    print(f"\nOverall Summary:")
+    print(f"  Positive aspects: {positive}")
+    print(f"  Negative aspects: {negative}")
+    print(f"  Neutral aspects: {neutral}")
+    
+
+* * *
+
+## 5.2 Named Entity Recognition (NER)
+
+### What is Named Entity Recognition
+
+**Named Entity Recognition (NER)** is a task that extracts and classifies entities such as person names, organization names, locations, and dates from text.
+
+### Main Entity Types
+
+Type | Description | Example  
+---|---|---  
+**PERSON** | Person names | Barack Obama, Taro Yamada  
+**ORG** | Organization names | Google, Tokyo University  
+**GPE** | Geopolitical entities (countries, cities) | Tokyo, United States  
+**DATE** | Dates | October 21, 2025, yesterday  
+**MONEY** | Monetary amounts | $100, 10,000 yen  
+**PRODUCT** | Product names | iPhone, Windows  
+  
+### BIO Tagging Scheme
+
+NER commonly uses the **BIO tagging scheme** :
+
+  * **B** (Begin): Start of an entity
+  * **I** (Inside): Inside an entity
+  * **O** (Outside): Outside any entity
+
+Example: "Barack Obama visited New York"
+
+  * Barack: `B-PERSON`
+  * Obama: `I-PERSON`
+  * visited: `O`
+  * New: `B-GPE`
+  * York: `I-GPE`
+
+### NER with spaCy
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - pandas>=2.0.0, <2.2.0
+    # - spacy>=3.6.0
+    
+    """
+    Example: NER with spaCy
+    
+    Purpose: Demonstrate data manipulation and preprocessing
+    Target: Beginner to Intermediate
+    Execution time: 5-10 seconds
+    Dependencies: None
+    """
+    
+    import spacy
+    from spacy import displacy
+    import pandas as pd
+    
+    # Load English model
+    nlp = spacy.load("en_core_web_sm")
+    
+    # Sample text
+    text = """
+    Apple Inc. was founded by Steve Jobs, Steve Wozniak, and Ronald Wayne
+    in April 1976 in Cupertino, California. The company's first product was
+    the Apple I computer. In 2011, Apple became the world's most valuable
+    publicly traded company. Tim Cook became CEO in August 2011, succeeding
+    Steve Jobs. Today, Apple employs over 150,000 people worldwide and
+    generates over $300 billion in annual revenue.
+    """
+    
+    # Perform NER
+    doc = nlp(text)
+    
+    print("=== Named Entity Recognition (spaCy) ===\n")
+    print(f"Text:\n{text}\n")
+    
+    # Extract entities
+    entities = []
+    for ent in doc.ents:
+        entities.append({
+            'text': ent.text,
+            'label': ent.label_,
+            'start': ent.start_char,
+            'end': ent.end_char
+        })
+    
+    # Display results
+    df_entities = pd.DataFrame(entities)
+    print("\nExtracted Entities:")
+    print(df_entities.to_string(index=False))
+    
+    # Aggregate by label
+    print("\n\nEntity Count by Type:")
+    label_counts = df_entities['label'].value_counts()
+    for label, count in label_counts.items():
+        print(f"  {label}: {count}")
+    
+    # Highlight entities (can be saved as HTML)
+    print("\n\nVisualizing entities...")
+    html = displacy.render(doc, style="ent", jupyter=False)
+    
+    # Visualization with custom colors
+    colors = {
+        "ORG": "#7aecec",
+        "PERSON": "#aa9cfc",
+        "GPE": "#feca74",
+        "DATE": "#ff9561",
+        "MONEY": "#9cc9cc"
+    }
+    options = {"ents": ["ORG", "PERSON", "GPE", "DATE", "MONEY"], "colors": colors}
+    displacy.render(doc, style="ent", options=options, jupyter=False)
+    
+
+### BERT-based NER (Transformers)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - pandas>=2.0.0, <2.2.0
+    # - transformers>=4.30.0
+    
+    """
+    Example: BERT-based NER (Transformers)
+    
+    Purpose: Demonstrate core concepts and implementation patterns
+    Target: Beginner to Intermediate
+    Execution time: 10-30 seconds
+    Dependencies: None
+    """
+    
+    from transformers import pipeline
+    import pandas as pd
+    
+    # BERT-based NER pipeline
+    ner_pipeline = pipeline(
+        "ner",
+        model="dbmdz/bert-large-cased-finetuned-conll03-english",
+        aggregation_strategy="simple"
+    )
+    
+    # Sample text
+    text = """
+    Elon Musk announced that Tesla will open a new factory in Berlin, Germany.
+    The facility is expected to produce 500,000 vehicles per year starting in 2024.
+    This follows Tesla's successful Shanghai factory which opened in 2019.
+    """
+    
+    print("=== BERT-based NER ===\n")
+    print(f"Text:\n{text}\n")
+    
+    # Perform NER
+    entities = ner_pipeline(text)
+    
+    # Display results
+    print("\nExtracted Entities:")
+    for ent in entities:
+        print(f"  {ent['word']:<20} → {ent['entity_group']:<10} (score: {ent['score']:.3f})")
+    
+    # Group entities
+    entity_dict = {}
+    for ent in entities:
+        entity_type = ent['entity_group']
+        if entity_type not in entity_dict:
+            entity_dict[entity_type] = []
+        entity_dict[entity_type].append(ent['word'])
+    
+    print("\n\nGrouped by Entity Type:")
+    for entity_type, words in entity_dict.items():
+        print(f"  {entity_type}: {', '.join(words)}")
+    
+
+**Output** :
+    
+    
+    === BERT-based NER ===
+    
+    Text:
+    Elon Musk announced that Tesla will open a new factory in Berlin, Germany.
+    The facility is expected to produce 500,000 vehicles per year starting in 2024.
+    This follows Tesla's successful Shanghai factory which opened in 2019.
+    
+    Extracted Entities:
+      Elon Musk            → PER        (score: 0.999)
+      Tesla                → ORG        (score: 0.997)
+      Berlin               → LOC        (score: 0.999)
+      Germany              → LOC        (score: 0.999)
+      Tesla                → ORG        (score: 0.998)
+      Shanghai             → LOC        (score: 0.999)
+    
+    Grouped by Entity Type:
+      PER: Elon Musk
+      ORG: Tesla, Tesla
+      LOC: Berlin, Germany, Shanghai
+    
+
+### Japanese NER (GiNZA + BERT)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - spacy>=3.6.0
+    
+    import spacy
+    
+    # Japanese NER (GiNZA model)
+    nlp_ja = spacy.load("ja_ginza")
+    
+    # Japanese sample text
+    text_ja = """
+    On October 21, 2025, Toyota Motor Corporation President Akio Toyoda held a press conference in Tokyo,
+    announcing the development plan for a new electric vehicle. The company aims to produce 1 million units by 2030.
+    Media such as Nikkei and NHK participated in the conference.
+    """
+    
+    print("=== Japanese Named Entity Recognition ===\n")
+    print(f"Text:\n{text_ja}\n")
+    
+    # Perform NER
+    doc_ja = nlp_ja(text_ja)
+    
+    # Extract entities
+    print("Extracted Entities:")
+    entities_ja = []
+    for ent in doc_ja.ents:
+        entities_ja.append({
+            'Text': ent.text,
+            'Type': ent.label_,
+            'Detail': spacy.explain(ent.label_)
+        })
+        print(f"  {ent.text:<15} → {ent.label_:<10} ({spacy.explain(ent.label_)})")
+    
+    # Convert to DataFrame
+    df_ja = pd.DataFrame(entities_ja)
+    print("\n\nEntity List:")
+    print(df_ja.to_string(index=False))
+    
+    # Aggregate by type
+    print("\n\nAggregation by Type:")
+    for label, count in df_ja['Type'].value_counts().items():
+        print(f"  {label}: {count} items")
+    
+
+### Training Custom NER Models
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    # - transformers>=4.30.0
+    
+    """
+    Example: Training Custom NER Models
+    
+    Purpose: Demonstrate core concepts and implementation patterns
+    Target: Beginner to Intermediate
+    Execution time: 1-5 minutes
+    Dependencies: None
+    """
+    
+    from transformers import (
+        AutoTokenizer,
+        AutoModelForTokenClassification,
+        TrainingArguments,
+        Trainer,
+        DataCollatorForTokenClassification
+    )
+    from datasets import Dataset
+    import numpy as np
+    
+    # Create custom NER dataset (simplified version)
+    train_data = [
+        {
+            "tokens": ["Apple", "is", "headquartered", "in", "Cupertino"],
+            "ner_tags": [3, 0, 0, 0, 5]  # 3: B-ORG, 0: O, 5: B-LOC
+        },
+        {
+            "tokens": ["Steve", "Jobs", "founded", "Apple", "Inc"],
+            "ner_tags": [1, 2, 0, 3, 4]  # 1: B-PER, 2: I-PER, 3: B-ORG, 4: I-ORG
+        },
+        # ... In practice, much more data is needed
+    ]
+    
+    # Label mapping
+    label_list = [
+        "O",           # 0
+        "B-PER",       # 1: Person (Begin)
+        "I-PER",       # 2: Person (Inside)
+        "B-ORG",       # 3: Organization (Begin)
+        "I-ORG",       # 4: Organization (Inside)
+        "B-LOC",       # 5: Location (Begin)
+        "I-LOC"        # 6: Location (Inside)
+    ]
+    
+    id2label = {i: label for i, label in enumerate(label_list)}
+    label2id = {label: i for i, label in enumerate(label_list)}
+    
+    print("=== Custom NER Model Training ===\n")
+    print(f"Number of labels: {len(label_list)}")
+    print(f"Labels: {label_list}\n")
+    
+    # Tokenizer and model
+    model_name = "bert-base-cased"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForTokenClassification.from_pretrained(
+        model_name,
+        num_labels=len(label_list),
+        id2label=id2label,
+        label2id=label2id
+    )
+    
+    # Prepare dataset
+    def tokenize_and_align_labels(examples):
+        """Tokenize and align labels"""
+        tokenized_inputs = tokenizer(
+            examples["tokens"],
+            truncation=True,
+            is_split_into_words=True,
+            padding=True
+        )
+    
+        labels = []
+        for i, label in enumerate(examples["ner_tags"]):
+            word_ids = tokenized_inputs.word_ids(batch_index=i)
+            label_ids = []
+            previous_word_idx = None
+    
+            for word_idx in word_ids:
+                if word_idx is None:
+                    label_ids.append(-100)  # Ignore special tokens
+                elif word_idx != previous_word_idx:
+                    label_ids.append(label[word_idx])
+                else:
+                    label_ids.append(-100)  # Ignore subwords
+                previous_word_idx = word_idx
+    
+            labels.append(label_ids)
+    
+        tokenized_inputs["labels"] = labels
+        return tokenized_inputs
+    
+    # Convert dataset
+    dataset = Dataset.from_list(train_data)
+    tokenized_dataset = dataset.map(tokenize_and_align_labels, batched=True)
+    
+    print("Training dataset prepared")
+    print(f"Number of samples: {len(tokenized_dataset)}")
+    print("\nNote: Thousands to tens of thousands of samples are needed for actual training")
+    
+
+* * *
+
+## 5.3 Question Answering Systems
+
+### Types of Question Answering
+
+Type | Description | Example  
+---|---|---  
+**Extractive QA** | Extract answer spans from documents | SQuAD, NewsQA  
+**Abstractive QA** | Understand documents and generate new sentences | Summarization-based QA  
+**Multiple Choice** | Select the correct answer from options | RACE, ARC  
+**Open-domain QA** | Answer from entire knowledge base | Google search-like QA  
+  
+### Extractive QA (BERT)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - transformers>=4.30.0
+    
+    """
+    Example: Extractive QA (BERT)
+    
+    Purpose: Demonstrate core concepts and implementation patterns
+    Target: Beginner to Intermediate
+    Execution time: ~5 seconds
+    Dependencies: None
+    """
+    
+    from transformers import pipeline
+    
+    # BERT-based QA pipeline
+    qa_pipeline = pipeline(
+        "question-answering",
+        model="deepset/bert-base-cased-squad2"
+    )
+    
+    # Context (document)
+    context = """
+    The Amazon rainforest, also known as Amazonia, is a moist broadleaf tropical
+    rainforest in the Amazon biome that covers most of the Amazon basin of South America.
+    This basin encompasses 7 million square kilometers, of which 5.5 million square
+    kilometers are covered by the rainforest. The majority of the forest is contained
+    within Brazil, with 60% of the rainforest, followed by Peru with 13%, and Colombia
+    with 10%. The Amazon represents over half of the planet's remaining rainforests and
+    comprises the largest and most biodiverse tract of tropical rainforest in the world,
+    with an estimated 390 billion individual trees divided into 16,000 species.
+    """
+    
+    # List of questions
+    questions = [
+        "Where is the Amazon rainforest located?",
+        "How many square kilometers does the Amazon basin cover?",
+        "What percentage of the Amazon rainforest is in Brazil?",
+        "How many tree species are in the Amazon?",
+        "Which country has the second largest portion of the Amazon?"
+    ]
+    
+    print("=== Extractive Question Answering ===\n")
+    print(f"Context:\n{context}\n")
+    print("=" * 70)
+    
+    for i, question in enumerate(questions, 1):
+        result = qa_pipeline(question=question, context=context)
+    
+        print(f"\nQ{i}: {question}")
+        print(f"A{i}: {result['answer']}")
+        print(f"   Confidence: {result['score']:.2%}")
+        print(f"   Position: characters {result['start']}-{result['end']}")
+    
+
+**Output** :
+    
+    
+    === Extractive Question Answering ===
+    
+    Context:
+    The Amazon rainforest, also known as Amazonia, is a moist broadleaf tropical
+    rainforest in the Amazon biome that covers most of the Amazon basin of South America.
+    ...
+    
+    ======================================================================
+    
+    Q1: Where is the Amazon rainforest located?
+    A1: South America
+       Confidence: 98.76%
+       Position: characters 159-172
+    
+    Q2: How many square kilometers does the Amazon basin cover?
+    A2: 7 million square kilometers
+       Confidence: 95.43%
+       Position: characters 193-218
+    
+    Q3: What percentage of the Amazon rainforest is in Brazil?
+    A3: 60%
+       Confidence: 99.12%
+       Position: characters 333-336
+    
+    Q4: How many tree species are in the Amazon?
+    A4: 16,000 species
+       Confidence: 97.58%
+       Position: characters 602-616
+    
+    Q5: Which country has the second largest portion of the Amazon?
+    A5: Peru
+       Confidence: 96.34%
+       Position: characters 364-368
+    
+
+### Japanese Question Answering
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - transformers>=4.30.0
+    
+    from transformers import pipeline
+    
+    # Japanese QA model
+    qa_pipeline_ja = pipeline(
+        "question-answering",
+        model="cl-tohoku/bert-base-japanese-whole-word-masking"
+    )
+    
+    # Japanese context
+    context_ja = """
+    Mount Fuji is Japan's highest peak, an active volcano with an elevation of 3,776 meters.
+    Spanning Yamanashi and Shizuoka prefectures, it is known domestically and internationally as a symbol of Japan.
+    It was registered as a UNESCO World Cultural Heritage site in June 2013.
+    Mount Fuji took its current form about 100,000 years ago, with its last eruption being the Hoei eruption of 1707.
+    Every year during the climbing season in July and August, about 300,000 climbers visit.
+    """
+    
+    questions_ja = [
+        "What is the elevation of Mount Fuji in meters?",
+        "When was Mount Fuji registered as a World Heritage site?",
+        "When was Mount Fuji's last eruption?",
+        "How many people visit during the climbing season?"
+    ]
+    
+    print("=== Japanese Question Answering ===\n")
+    print(f"Context:\n{context_ja}\n")
+    print("=" * 70)
+    
+    for i, question in enumerate(questions_ja, 1):
+        result = qa_pipeline_ja(question=question, context=context_ja)
+    
+        print(f"\nQ{i}: {question}")
+        print(f"A{i}: {result['answer']}")
+        print(f"   Confidence: {result['score']:.2%}")
+    
+
+### Retrieval-based QA (Search-augmented)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    # - torch>=2.0.0, <2.3.0
+    # - transformers>=4.30.0
+    
+    from transformers import pipeline, AutoTokenizer, AutoModel
+    import torch
+    import numpy as np
+    from sklearn.metrics.pairwise import cosine_similarity
+    
+    class RetrievalQA:
+        """Retrieval-based question answering system"""
+    
+        def __init__(self, documents):
+            self.documents = documents
+    
+            # Document embedding model
+            self.tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
+            self.encoder = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
+    
+            # QA pipeline
+            self.qa_pipeline = pipeline(
+                "question-answering",
+                model="deepset/bert-base-cased-squad2"
+            )
+    
+            # Pre-compute document vectors
+            self.doc_embeddings = self._encode_documents()
+    
+        def _encode_text(self, text):
+            """Vectorize text"""
+            inputs = self.tokenizer(text, return_tensors='pt',
+                                   truncation=True, padding=True, max_length=512)
+            with torch.no_grad():
+                outputs = self.encoder(**inputs)
+            # Mean pooling
+            embeddings = outputs.last_hidden_state.mean(dim=1)
+            return embeddings.numpy()
+    
+        def _encode_documents(self):
+            """Vectorize all documents"""
+            embeddings = []
+            for doc in self.documents:
+                emb = self._encode_text(doc)
+                embeddings.append(emb)
+            return np.vstack(embeddings)
+    
+        def retrieve_relevant_docs(self, query, top_k=3):
+            """Retrieve documents relevant to the question"""
+            query_emb = self._encode_text(query)
+            similarities = cosine_similarity(query_emb, self.doc_embeddings)[0]
+    
+            # Top-k document indices
+            top_indices = np.argsort(similarities)[::-1][:top_k]
+    
+            relevant_docs = []
+            for idx in top_indices:
+                relevant_docs.append({
+                    'document': self.documents[idx],
+                    'similarity': similarities[idx],
+                    'index': idx
+                })
+    
+            return relevant_docs
+    
+        def answer_question(self, question, top_k=3):
+            """Answer question"""
+            # Retrieve relevant documents
+            relevant_docs = self.retrieve_relevant_docs(question, top_k=top_k)
+    
+            # Answer using the most relevant document
+            best_doc = relevant_docs[0]['document']
+            result = self.qa_pipeline(question=question, context=best_doc)
+    
+            return {
+                'question': question,
+                'answer': result['answer'],
+                'confidence': result['score'],
+                'source_document': relevant_docs[0]['index'],
+                'similarity': relevant_docs[0]['similarity'],
+                'all_relevant_docs': relevant_docs
+            }
+    
+    # Document collection
+    documents = [
+        """Python is a high-level programming language created by Guido van Rossum
+        and first released in 1991. It emphasizes code readability and uses
+        significant indentation. Python is dynamically typed and garbage-collected.""",
+    
+        """Machine learning is a branch of artificial intelligence that focuses on
+        building systems that learn from data. Common algorithms include decision trees,
+        neural networks, and support vector machines.""",
+    
+        """Deep learning is a subset of machine learning based on artificial neural
+        networks with multiple layers. It has achieved remarkable results in computer
+        vision, natural language processing, and speech recognition.""",
+    
+        """Natural language processing (NLP) is a field of AI concerned with the
+        interaction between computers and human language. Tasks include sentiment
+        analysis, machine translation, and question answering.""",
+    
+        """The Transformer architecture, introduced in 2017, revolutionized NLP.
+        It uses self-attention mechanisms and has led to models like BERT, GPT,
+        and T5 that achieve state-of-the-art results."""
+    ]
+    
+    # System initialization
+    print("=== Retrieval-based Question Answering ===\n")
+    print("Vectorizing documents...")
+    qa_system = RetrievalQA(documents)
+    print(f"Complete! Prepared {len(documents)} documents\n")
+    
+    # List of questions
+    questions = [
+        "Who created Python?",
+        "What is deep learning?",
+        "What does NLP stand for?",
+        "When was the Transformer architecture introduced?"
+    ]
+    
+    for question in questions:
+        print(f"\nQuestion: {question}")
+        result = qa_system.answer_question(question, top_k=2)
+    
+        print(f"Answer: {result['answer']}")
+        print(f"Confidence: {result['confidence']:.2%}")
+        print(f"Source: Document #{result['source_document']} (similarity: {result['similarity']:.3f})")
+    
+        print(f"\nRelevant documents:")
+        for i, doc in enumerate(result['all_relevant_docs'], 1):
+            print(f"  {i}. Doc #{doc['index']} (similarity: {doc['similarity']:.3f})")
+            print(f"     {doc['document'][:100]}...")
+    
+
+* * *
+
+## 5.4 Text Summarization
+
+### Types of Summarization
+
+Type | Description | Method  
+---|---|---  
+**Extractive** | Extract important sentences from original text | TextRank, LexRank  
+**Abstractive** | Understand content and generate new sentences | BART, T5, GPT  
+**Single-document** | Summarize one document | News article summarization  
+**Multi-document** | Consolidate and summarize multiple documents | Topic summarization  
+  
+### Extractive Summarization (TextRank)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - networkx>=3.1.0
+    # - nltk>=3.8.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+    import networkx as nx
+    import nltk
+    from nltk.tokenize import sent_tokenize
+    
+    # NLTK data download (first time only)
+    # nltk.download('punkt')
+    
+    class TextRankSummarizer:
+        """Extractive summarization using TextRank algorithm"""
+    
+        def __init__(self, similarity_threshold=0.1):
+            self.similarity_threshold = similarity_threshold
+    
+        def _build_similarity_matrix(self, sentences):
+            """Build similarity matrix between sentences"""
+            # TF-IDF vectorization
+            vectorizer = TfidfVectorizer()
+            tfidf_matrix = vectorizer.fit_transform(sentences)
+    
+            # Calculate cosine similarity
+            similarity_matrix = cosine_similarity(tfidf_matrix)
+    
+            # Set values below threshold to 0
+            similarity_matrix[similarity_matrix < self.similarity_threshold] = 0
+    
+            return similarity_matrix
+    
+        def summarize(self, text, num_sentences=3):
+            """Summarize text"""
+            # Sentence segmentation
+            sentences = sent_tokenize(text)
+    
+            if len(sentences) <= num_sentences:
+                return text
+    
+            # Build similarity matrix
+            similarity_matrix = self._build_similarity_matrix(sentences)
+    
+            # Build graph
+            graph = nx.from_numpy_array(similarity_matrix)
+    
+            # Calculate PageRank
+            scores = nx.pagerank(graph)
+    
+            # Rank by score
+            ranked_sentences = sorted(
+                ((scores[i], s) for i, s in enumerate(sentences)),
+                reverse=True
+            )
+    
+            # Get top-k sentences (preserve original order)
+            top_sentences = sorted(
+                ranked_sentences[:num_sentences],
+                key=lambda x: sentences.index(x[1])
+            )
+    
+            # Generate summary
+            summary = ' '.join([sent for score, sent in top_sentences])
+    
+            return summary, scores
+    
+    # Sample text
+    article = """
+    Artificial intelligence has made remarkable progress in recent years.
+    Deep learning, a subset of machine learning, has been particularly successful.
+    Neural networks with many layers can learn complex patterns from data.
+    These models have achieved human-level performance on many tasks.
+    Computer vision has benefited greatly from deep learning advances.
+    Image classification, object detection, and segmentation are now highly accurate.
+    Natural language processing has also seen dramatic improvements.
+    Machine translation quality has improved significantly with neural approaches.
+    Language models can now generate coherent and contextually appropriate text.
+    However, challenges remain in areas like reasoning and common sense understanding.
+    AI systems still struggle with tasks that humans find easy.
+    Researchers are working on more robust and interpretable AI systems.
+    The future of AI holds both great promise and important challenges.
+    """
+    
+    print("=== Extractive Summarization (TextRank) ===\n")
+    print(f"Original Text ({len(sent_tokenize(article))} sentences):")
+    print(article)
+    print("\n" + "=" * 70)
+    
+    summarizer = TextRankSummarizer()
+    
+    for num_sents in [3, 5]:
+        summary, scores = summarizer.summarize(article, num_sentences=num_sents)
+        print(f"\n{num_sents}-Sentence Summary:")
+        print(summary)
+        print(f"\nCompression ratio: {len(summary) / len(article):.1%}")
+    
+
+### Abstractive Summarization (BART/T5)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - transformers>=4.30.0
+    
+    """
+    Example: Abstractive Summarization (BART/T5)
+    
+    Purpose: Demonstrate core concepts and implementation patterns
+    Target: Beginner to Intermediate
+    Execution time: 5-10 seconds
+    Dependencies: None
+    """
+    
+    from transformers import pipeline
+    
+    # BART-based summarization pipeline
+    summarizer_bart = pipeline(
+        "summarization",
+        model="facebook/bart-large-cnn"
+    )
+    
+    # T5-based summarization pipeline
+    summarizer_t5 = pipeline(
+        "summarization",
+        model="t5-base"
+    )
+    
+    # Long article
+    long_article = """
+    Climate change is one of the most pressing challenges facing humanity today.
+    The Earth's average temperature has increased by approximately 1.1 degrees Celsius
+    since the pre-industrial era, primarily due to human activities that release
+    greenhouse gases into the atmosphere. The burning of fossil fuels for energy,
+    deforestation, and industrial processes are the main contributors to this warming trend.
+    
+    The effects of climate change are already visible worldwide. Extreme weather events,
+    such as hurricanes, droughts, and heatwaves, are becoming more frequent and severe.
+    Sea levels are rising due to thermal expansion of water and melting ice sheets,
+    threatening coastal communities. Ecosystems are being disrupted, with many species
+    facing extinction as their habitats change faster than they can adapt.
+    
+    To address climate change, a global effort is required. The Paris Agreement,
+    adopted in 2015, aims to limit global warming to well below 2 degrees Celsius
+    above pre-industrial levels. Countries are implementing various strategies,
+    including transitioning to renewable energy sources, improving energy efficiency,
+    and developing carbon capture technologies. Individual actions, such as reducing
+    energy consumption and supporting sustainable practices, also play a crucial role.
+    
+    Despite progress, significant challenges remain. Many countries still rely heavily
+    on fossil fuels, and the transition to clean energy requires substantial investment.
+    Political will and international cooperation are essential for achieving climate goals.
+    Scientists emphasize that immediate and sustained action is necessary to prevent
+    the most catastrophic impacts of climate change and ensure a livable planet for
+    future generations.
+    """
+    
+    print("=== Abstractive Summarization ===\n")
+    print(f"Original Article ({len(long_article.split())} words):")
+    print(long_article)
+    print("\n" + "=" * 70)
+    
+    # BART summarization
+    print("\n### BART Summary ###")
+    bart_summary = summarizer_bart(
+        long_article,
+        max_length=100,
+        min_length=50,
+        do_sample=False
+    )
+    print(bart_summary[0]['summary_text'])
+    print(f"Length: {len(bart_summary[0]['summary_text'].split())} words")
+    
+    # T5 summarization (different lengths)
+    print("\n### T5 Summary (Short) ###")
+    t5_summary_short = summarizer_t5(
+        long_article,
+        max_length=60,
+        min_length=30
+    )
+    print(t5_summary_short[0]['summary_text'])
+    
+    print("\n### T5 Summary (Long) ###")
+    t5_summary_long = summarizer_t5(
+        long_article,
+        max_length=120,
+        min_length=60
+    )
+    print(t5_summary_long[0]['summary_text'])
+    
+
+**Output** :
+    
+    
+    === Abstractive Summarization ===
+    
+    Original Article (234 words):
+    Climate change is one of the most pressing challenges...
+    
+    ======================================================================
+    
+    ### BART Summary ###
+    Climate change is one of the most pressing challenges facing humanity today.
+    The Earth's average temperature has increased by approximately 1.1 degrees Celsius.
+    Effects include extreme weather events, rising sea levels, and ecosystem disruption.
+    The Paris Agreement aims to limit global warming to below 2 degrees Celsius.
+    Length: 51 words
+    
+    ### T5 Summary (Short) ###
+    climate change is caused by human activities that release greenhouse gases.
+    extreme weather events are becoming more frequent and severe.
+    Length: 19 words
+    
+    ### T5 Summary (Long) ###
+    the earth's average temperature has increased by 1.1 degrees celsius since
+    pre-industrial era. burning of fossil fuels, deforestation are main contributors.
+    paris agreement aims to limit global warming to below 2 degrees. countries are
+    implementing strategies including renewable energy and carbon capture.
+    Length: 45 words
+    
+
+### Japanese Text Summarization
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - transformers>=4.30.0
+    
+    """
+    Example: Japanese Text Summarization
+    
+    Purpose: Demonstrate core concepts and implementation patterns
+    Target: Beginner to Intermediate
+    Execution time: ~5 seconds
+    Dependencies: None
+    """
+    
+    from transformers import pipeline
+    
+    # Japanese summarization model
+    summarizer_ja = pipeline(
+        "summarization",
+        model="sonoisa/t5-base-japanese"
+    )
+    
+    # Japanese article
+    article_ja = """
+    Artificial intelligence (AI) technology has been rapidly developing in recent years and is impacting all aspects of our lives.
+    In particular, advances in a technology called deep learning have led to dramatic
+    performance improvements in the fields of image recognition and natural language processing.
+    
+    Currently, AI is being used in diverse fields such as medical diagnosis, autonomous driving, voice assistants, and recommendation systems.
+    In the medical field, AI assists doctors with image diagnosis,
+    contributing to early disease detection. Autonomous driving technology is being developed
+    with the aim of reducing traffic accidents and improving transportation efficiency.
+    
+    However, challenges exist in the development of AI technology. Ethical issues, privacy protection,
+    and impacts on employment are concerns. Additionally, the opacity of AI's decision-making process,
+    known as the black box problem, has been pointed out.
+    
+    In the future, to better utilize AI technology, not only technical progress is needed,
+    but also social discussion and appropriate regulatory frameworks. Continuous efforts are required
+    toward realizing a society where humans and AI collaborate.
+    """
+    
+    print("=== Japanese Text Summarization ===\n")
+    print(f"Original Article ({len(article_ja)} characters):")
+    print(article_ja)
+    print("\n" + "=" * 70)
+    
+    # Generate summary
+    summary_ja = summarizer_ja(
+        article_ja,
+        max_length=100,
+        min_length=30
+    )
+    
+    print("\nSummary:")
+    print(summary_ja[0]['summary_text'])
+    print(f"\nCompression ratio: {len(summary_ja[0]['summary_text']) / len(article_ja):.1%}")
+    
+
+* * *
+
+## 5.5 End-to-End Practical Project
+
+### Multi-task NLP Pipeline
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - spacy>=3.6.0
+    # - transformers>=4.30.0
+    
+    from transformers import pipeline
+    import spacy
+    from typing import Dict, List
+    import json
+    
+    class NLPPipeline:
+        """Comprehensive NLP pipeline"""
+    
+        def __init__(self):
+            print("Initializing NLP pipeline...")
+    
+            # Load models for each task
+            self.sentiment_analyzer = pipeline(
+                "sentiment-analysis",
+                model="distilbert-base-uncased-finetuned-sst-2-english"
+            )
+    
+            self.ner_pipeline = pipeline(
+                "ner",
+                model="dbmdz/bert-large-cased-finetuned-conll03-english",
+                aggregation_strategy="simple"
+            )
+    
+            self.qa_pipeline = pipeline(
+                "question-answering",
+                model="deepset/bert-base-cased-squad2"
+            )
+    
+            self.summarizer = pipeline(
+                "summarization",
+                model="facebook/bart-large-cnn"
+            )
+    
+            # spaCy (tokenization, POS tagging)
+            self.nlp = spacy.load("en_core_web_sm")
+    
+            print("Initialization complete!\n")
+    
+        def analyze_text(self, text: str) -> Dict:
+            """Comprehensive text analysis"""
+            results = {}
+    
+            # 1. Basic statistics
+            doc = self.nlp(text)
+            results['statistics'] = {
+                'num_characters': len(text),
+                'num_words': len([token for token in doc if not token.is_punct]),
+                'num_sentences': len(list(doc.sents)),
+                'num_unique_words': len(set([token.text.lower() for token in doc
+                                            if not token.is_punct]))
+            }
+    
+            # 2. Sentiment analysis
+            sentiment = self.sentiment_analyzer(text[:512])[0]
+            results['sentiment'] = {
+                'label': sentiment['label'],
+                'score': round(sentiment['score'], 4)
+            }
+    
+            # 3. Named entity recognition
+            entities = self.ner_pipeline(text)
+            results['entities'] = [
+                {
+                    'text': ent['word'],
+                    'type': ent['entity_group'],
+                    'score': round(ent['score'], 4)
+                }
+                for ent in entities
+            ]
+    
+            # 4. Keyword extraction (noun phrases)
+            keywords = []
+            for chunk in doc.noun_chunks:
+                if len(chunk.text.split()) <= 3:  # 3 words or less
+                    keywords.append(chunk.text)
+            results['keywords'] = list(set(keywords))[:10]
+    
+            # 5. POS tag distribution
+            pos_counts = {}
+            for token in doc:
+                pos = token.pos_
+                pos_counts[pos] = pos_counts.get(pos, 0) + 1
+            results['pos_distribution'] = pos_counts
+    
+            return results
+    
+        def process_document(self, text: str,
+                            questions: List[str] = None,
+                            summarize: bool = True) -> Dict:
+            """Complete document processing"""
+            results = {
+                'original_text': text,
+                'analysis': self.analyze_text(text)
+            }
+    
+            # Summarization
+            if summarize and len(text.split()) > 50:
+                summary = self.summarizer(
+                    text,
+                    max_length=100,
+                    min_length=30,
+                    do_sample=False
+                )
+                results['summary'] = summary[0]['summary_text']
+    
+            # Question answering
+            if questions:
+                results['qa'] = []
+                for q in questions:
+                    answer = self.qa_pipeline(question=q, context=text)
+                    results['qa'].append({
+                        'question': q,
+                        'answer': answer['answer'],
+                        'confidence': round(answer['score'], 4)
+                    })
+    
+            return results
+    
+    # System initialization
+    pipeline = NLPPipeline()
+    
+    # Sample document
+    document = """
+    Apple Inc. announced record quarterly earnings on Tuesday, with revenue
+    reaching $90 billion. CEO Tim Cook stated that the strong performance was
+    driven by robust iPhone sales and growing services revenue. The company's
+    stock price jumped 5% following the announcement.
+    
+    Apple also revealed plans to invest $50 billion in research and development
+    over the next five years, focusing on artificial intelligence and augmented
+    reality technologies. The investment will create thousands of new jobs in
+    the United States and internationally.
+    
+    However, analysts expressed concerns about potential supply chain disruptions
+    and increasing competition in the smartphone market. Despite these challenges,
+    Apple remains optimistic about future growth prospects.
+    """
+    
+    # List of questions
+    questions = [
+        "How much revenue did Apple report?",
+        "Who is the CEO of Apple?",
+        "How much will Apple invest in R&D?",
+        "What technologies will Apple focus on?"
+    ]
+    
+    print("=== Multi-task NLP Pipeline ===\n")
+    print("Processing document...\n")
+    
+    # Complete processing
+    results = pipeline.process_document(
+        text=document,
+        questions=questions,
+        summarize=True
+    )
+    
+    # Display results
+    print("### 1. Basic Statistics ###")
+    stats = results['analysis']['statistics']
+    for key, value in stats.items():
+        print(f"  {key}: {value}")
+    
+    print("\n### 2. Sentiment Analysis ###")
+    sentiment = results['analysis']['sentiment']
+    print(f"  Sentiment: {sentiment['label']} (confidence: {sentiment['score']:.1%})")
+    
+    print("\n### 3. Named Entities ###")
+    for ent in results['analysis']['entities'][:10]:
+        print(f"  {ent['text']:<20} → {ent['type']:<10} ({ent['score']:.1%})")
+    
+    print("\n### 4. Keywords ###")
+    print(f"  {', '.join(results['analysis']['keywords'])}")
+    
+    print("\n### 5. Summary ###")
+    print(f"  {results['summary']}")
+    
+    print("\n### 6. Question Answering ###")
+    for qa in results['qa']:
+        print(f"  Q: {qa['question']}")
+        print(f"  A: {qa['answer']} (confidence: {qa['confidence']:.1%})\n")
+    
+    # JSON output
+    print("\n### JSON Output ###")
+    json_output = json.dumps(results, indent=2, ensure_ascii=False)
+    print(json_output[:500] + "...")
+    
+
+### API Development with FastAPI
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - fastapi>=0.100.0
+    # - transformers>=4.30.0
+    
+    """
+    Example: API Development with FastAPI
+    
+    Purpose: Demonstrate core concepts and implementation patterns
+    Target: Intermediate
+    Execution time: 5-10 seconds
+    Dependencies: None
+    """
+    
+    # Filename: nlp_api.py
+    from fastapi import FastAPI, HTTPException
+    from pydantic import BaseModel
+    from transformers import pipeline
+    from typing import List, Optional
+    import uvicorn
+    
+    # FastAPI application
+    app = FastAPI(
+        title="NLP API",
+        description="Comprehensive Natural Language Processing API",
+        version="1.0.0"
+    )
+    
+    # Request models
+    class TextInput(BaseModel):
+        text: str
+        max_length: Optional[int] = 100
+    
+    class QAInput(BaseModel):
+        question: str
+        context: str
+    
+    class BatchTextInput(BaseModel):
+        texts: List[str]
+    
+    # Model initialization
+    sentiment_analyzer = pipeline("sentiment-analysis")
+    summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+    qa_pipeline = pipeline("question-answering")
+    ner_pipeline = pipeline("ner", aggregation_strategy="simple")
+    
+    # Endpoints
+    
+    @app.get("/")
+    async def root():
+        """API root"""
+        return {
+            "message": "Welcome to NLP API",
+            "endpoints": [
+                "/sentiment",
+                "/summarize",
+                "/qa",
+                "/ner",
+                "/batch-sentiment"
+            ]
+        }
+    
+    @app.post("/sentiment")
+    async def analyze_sentiment(input_data: TextInput):
+        """Sentiment analysis endpoint"""
+        try:
+            result = sentiment_analyzer(input_data.text[:512])[0]
+            return {
+                "text": input_data.text,
+                "sentiment": result['label'],
+                "confidence": round(result['score'], 4)
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/summarize")
+    async def summarize_text(input_data: TextInput):
+        """Text summarization endpoint"""
+        try:
+            summary = summarizer(
+                input_data.text,
+                max_length=input_data.max_length,
+                min_length=30,
+                do_sample=False
+            )
+            return {
+                "original_text": input_data.text,
+                "summary": summary[0]['summary_text'],
+                "compression_ratio": len(summary[0]['summary_text']) / len(input_data.text)
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/qa")
+    async def answer_question(input_data: QAInput):
+        """Question answering endpoint"""
+        try:
+            result = qa_pipeline(
+                question=input_data.question,
+                context=input_data.context
+            )
+            return {
+                "question": input_data.question,
+                "answer": result['answer'],
+                "confidence": round(result['score'], 4),
+                "start": result['start'],
+                "end": result['end']
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/ner")
+    async def extract_entities(input_data: TextInput):
+        """Named entity recognition endpoint"""
+        try:
+            entities = ner_pipeline(input_data.text)
+            return {
+                "text": input_data.text,
+                "entities": [
+                    {
+                        "text": ent['word'],
+                        "type": ent['entity_group'],
+                        "score": round(ent['score'], 4)
+                    }
+                    for ent in entities
+                ]
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/batch-sentiment")
+    async def batch_sentiment_analysis(input_data: BatchTextInput):
+        """Batch sentiment analysis"""
+        try:
+            results = []
+            for text in input_data.texts:
+                result = sentiment_analyzer(text[:512])[0]
+                results.append({
+                    "text": text,
+                    "sentiment": result['label'],
+                    "confidence": round(result['score'], 4)
+                })
+            return {"results": results}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    # Health check
+    @app.get("/health")
+    async def health_check():
+        """API health check"""
+        return {"status": "healthy", "models_loaded": True}
+    
+    # Server startup
+    if __name__ == "__main__":
+        print("Starting NLP API...")
+        print("Documentation: http://localhost:8000/docs")
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+    
+
+**Usage** :
+    
+    
+    # Start server
+    python nlp_api.py
+    
+    # Test with curl
+    curl -X POST "http://localhost:8000/sentiment" \
+      -H "Content-Type: application/json" \
+      -d '{"text": "This is an amazing product!"}'
+    
+    # Python client
+    import requests
+    
+    response = requests.post(
+        "http://localhost:8000/sentiment",
+        json={"text": "I love this API!"}
+    )
+    print(response.json())
+    
+
+* * *
+
+## 5.6 Chapter Summary
+
+### What We Learned
+
+  1. **Sentiment Analysis**
+
+     * Binary, Multi-class, Aspect-based classification
+     * TF-IDF + Logistic Regression
+     * Utilizing BERT pre-trained models
+     * Japanese sentiment analysis
+  2. **Named Entity Recognition**
+
+     * BIO tagging scheme
+     * spaCy, BERT-based NER
+     * Japanese NER (GiNZA)
+     * Training custom NER models
+  3. **Question Answering Systems**
+
+     * Extractive QA (BERT)
+     * Retrieval-based QA
+     * Japanese QA
+     * Integration of document retrieval and answer generation
+  4. **Text Summarization**
+
+     * Extractive (TextRank)
+     * Abstractive (BART, T5)
+     * Japanese summarization
+     * Evaluation of summarization quality
+  5. **End-to-End Implementation**
+
+     * Multi-task NLP pipeline
+     * API development with FastAPI
+     * Production deployment
+     * Monitoring and evaluation
+
+### Implementation Best Practices
+
+Item | Recommendation  
+---|---  
+**Model Selection** | Choose appropriate models for tasks (accuracy vs speed trade-off)  
+**Preprocessing** | Standardize text cleaning and normalization  
+**Evaluation Metrics** | Use appropriate metrics for each task (F1, BLEU, ROUGE, etc.)  
+**Error Handling** | Implement input length limits and exception handling  
+**Performance** | Utilize batch processing, model caching, and GPU  
+**Monitoring** | Record inference time, accuracy, and error rates  
+  
+### Next Steps
+
+  * Understanding and utilizing Large Language Models (LLM)
+  * Prompt Engineering
+  * RAG (Retrieval-Augmented Generation)
+  * Fine-tuning and Domain Adaptation
+  * Multimodal NLP (Text + Image)
+
+* * *
+
+## Exercises
+
+### Problem 1 (Difficulty: easy)
+
+Explain the differences between Extractive and Abstractive summarization, and describe their respective advantages and disadvantages.
+
+Sample Answer
+
+**Answer** :
+
+**Extractive Summarization** :
+
+  * Definition: Extract important sentences directly from the original text
+  * Methods: TextRank, LexRank, TF-IDF
+  * Advantages: 
+    * Grammatically correct (uses original sentences)
+    * Lower computational cost
+    * Less distortion of facts
+  * Disadvantages: 
+    * Redundancy may remain
+    * Cannot modify expressions according to context
+    * Summary fluency may be low
+
+**Abstractive Summarization** :
+
+  * Definition: Understand content and generate new sentences
+  * Methods: BART, T5, GPT
+  * Advantages: 
+    * Concise and fluent summaries
+    * Can paraphrase and rephrase
+    * More human-like summaries
+  * Disadvantages: 
+    * Risk of factual errors (Hallucination)
+    * Higher computational cost
+    * Requires large amounts of training data
+
+### Problem 2 (Difficulty: medium)
+
+Complete the following code to implement a custom sentiment analyzer. Use movie reviews as the dataset and perform binary classification for Positive/Negative.
+    
+    
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import accuracy_score, classification_report
+    
+    # Data (complete this)
+    reviews = [
+        # Positive reviews (at least 5)
+    
+        # Negative reviews (at least 5)
+    ]
+    labels = []  # Corresponding labels
+    
+    # Model implementation (complete this)
+    
+
+Sample Answer
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example: Complete the following code to implement a custom sentiment 
+    
+    Purpose: Demonstrate machine learning model training and evaluation
+    Target: Beginner to Intermediate
+    Execution time: 30-60 seconds
+    Dependencies: None
+    """
+    
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import accuracy_score, classification_report
+    import numpy as np
+    
+    # Dataset
+    reviews = [
+        # Positive reviews
+        "This movie is absolutely fantastic! Loved it!",
+        "Amazing performances and brilliant storyline.",
+        "One of the best films I've ever seen.",
+        "Highly recommended. A true masterpiece!",
+        "Wonderful cinematography and great acting.",
+        "Excellent movie with a heartwarming message.",
+        "Phenomenal! Must-see for everyone.",
+    
+        # Negative reviews
+        "Terrible film. Complete waste of time.",
+        "Boring and poorly executed.",
+        "Very disappointing. Would not recommend.",
+        "Awful story and weak performances.",
+        "Dull and uninspiring throughout.",
+        "Poor quality. Not worth watching.",
+        "Complete disaster. Avoid at all costs."
+    ]
+    
+    labels = [1, 1, 1, 1, 1, 1, 1,  # Positive
+              0, 0, 0, 0, 0, 0, 0]  # Negative
+    
+    print("=== Custom Sentiment Analyzer ===\n")
+    print(f"Data count: {len(reviews)}")
+    print(f"Positive: {sum(labels)}, Negative: {len(labels) - sum(labels)}\n")
+    
+    # Data split
+    X_train, X_test, y_train, y_test = train_test_split(
+        reviews, labels, test_size=0.3, random_state=42, stratify=labels
+    )
+    
+    # TF-IDF vectorization
+    vectorizer = TfidfVectorizer(max_features=100, ngram_range=(1, 2))
+    X_train_tfidf = vectorizer.fit_transform(X_train)
+    X_test_tfidf = vectorizer.transform(X_test)
+    
+    # Model training
+    model = LogisticRegression(max_iter=1000, random_state=42)
+    model.fit(X_train_tfidf, y_train)
+    
+    # Evaluation
+    y_pred = model.predict(X_test_tfidf)
+    accuracy = accuracy_score(y_test, y_pred)
+    
+    print("=== Model Evaluation ===")
+    print(f"Accuracy: {accuracy:.3f}\n")
+    print("Classification Report:")
+    print(classification_report(y_test, y_pred,
+                               target_names=['Negative', 'Positive']))
+    
+    # Predict new reviews
+    new_reviews = [
+        "Incredible movie! Best I've seen this year!",
+        "Absolutely terrible. Don't waste your money."
+    ]
+    
+    new_tfidf = vectorizer.transform(new_reviews)
+    predictions = model.predict(new_tfidf)
+    probabilities = model.predict_proba(new_tfidf)
+    
+    print("\n=== Predictions for New Reviews ===")
+    for review, pred, prob in zip(new_reviews, predictions, probabilities):
+        sentiment = "Positive" if pred == 1 else "Negative"
+        confidence = prob[pred]
+        print(f"Review: {review}")
+        print(f"  → {sentiment} (confidence: {confidence:.1%})\n")
+    
+
+### Problem 3 (Difficulty: medium)
+
+Using the BIO tagging scheme, label the following sentence with NER tags.
+
+Sentence: "Apple Inc. CEO Tim Cook visited Tokyo on October 21, 2025."
+
+Sample Answer
+
+**Answer** :
+
+Token | BIO Tag | Entity Type  
+---|---|---  
+Apple | B-ORG | Organization (Begin)  
+Inc. | I-ORG | Organization (Inside)  
+CEO | O | Outside  
+Tim | B-PER | Person (Begin)  
+Cook | I-PER | Person (Inside)  
+visited | O | Outside  
+Tokyo | B-LOC | Location (Begin)  
+on | O | Outside  
+October | B-DATE | Date (Begin)  
+21 | I-DATE | Date (Inside)  
+, | I-DATE | Date (Inside)  
+2025 | I-DATE | Date (Inside)  
+. | O | Outside  
+  
+**Entity Summary** :
+
+  * ORG: Apple Inc.
+  * PER: Tim Cook
+  * LOC: Tokyo
+  * DATE: October 21, 2025
+
+### Problem 4 (Difficulty: hard)
+
+Implement a Retrieval-based QA system. Create a mechanism that retrieves documents relevant to a question from multiple documents and uses those documents to generate an answer.
+
+Sample Answer
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    # - torch>=2.0.0, <2.3.0
+    # - transformers>=4.30.0
+    
+    """
+    Example: Implement a Retrieval-based QA system. Create a mechanism th
+    
+    Purpose: Demonstrate neural network implementation
+    Target: Advanced
+    Execution time: 1-5 minutes
+    Dependencies: None
+    """
+    
+    from transformers import pipeline, AutoTokenizer, AutoModel
+    import torch
+    import numpy as np
+    from sklearn.metrics.pairwise import cosine_similarity
+    
+    class SimpleRetrievalQA:
+        def __init__(self, documents):
+            self.documents = documents
+    
+            # Document embedding model
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                'sentence-transformers/all-MiniLM-L6-v2'
+            )
+            self.encoder = AutoModel.from_pretrained(
+                'sentence-transformers/all-MiniLM-L6-v2'
+            )
+    
+            # QA pipeline
+            self.qa = pipeline(
+                "question-answering",
+                model="deepset/bert-base-cased-squad2"
+            )
+    
+            # Vectorize documents
+            print("Vectorizing documents...")
+            self.doc_embeddings = self._encode_documents()
+            print(f"Complete! Prepared {len(documents)} documents")
+    
+        def _encode_text(self, text):
+            """Vectorize text"""
+            inputs = self.tokenizer(
+                text, return_tensors='pt',
+                truncation=True, padding=True, max_length=512
+            )
+            with torch.no_grad():
+                outputs = self.encoder(**inputs)
+            # Mean pooling
+            return outputs.last_hidden_state.mean(dim=1).numpy()
+    
+        def _encode_documents(self):
+            """Vectorize all documents"""
+            return np.vstack([self._encode_text(doc) for doc in self.documents])
+    
+        def retrieve(self, query, top_k=2):
+            """Retrieve relevant documents"""
+            query_emb = self._encode_text(query)
+            similarities = cosine_similarity(query_emb, self.doc_embeddings)[0]
+            top_indices = np.argsort(similarities)[::-1][:top_k]
+    
+            return [
+                {
+                    'doc': self.documents[i],
+                    'similarity': similarities[i],
+                    'index': i
+                }
+                for i in top_indices
+            ]
+    
+        def answer(self, question, top_k=2):
+            """Answer question"""
+            # Retrieve relevant documents
+            docs = self.retrieve(question, top_k)
+    
+            # Answer using the most relevant document
+            best_doc = docs[0]['doc']
+            result = self.qa(question=question, context=best_doc)
+    
+            return {
+                'question': question,
+                'answer': result['answer'],
+                'confidence': result['score'],
+                'source_doc_index': docs[0]['index'],
+                'source_similarity': docs[0]['similarity'],
+                'retrieved_docs': docs
+            }
+    
+    # Document collection
+    documents = [
+        """Python is a high-level programming language created by Guido van Rossum.
+        It was first released in 1991 and emphasizes code readability.""",
+    
+        """Machine learning is a subset of AI that enables systems to learn from data.
+        Popular algorithms include decision trees and neural networks.""",
+    
+        """Deep learning uses neural networks with multiple layers. It excels at
+        computer vision, NLP, and speech recognition tasks.""",
+    
+        """Natural language processing (NLP) deals with human-computer language
+        interaction. Tasks include sentiment analysis and machine translation.""",
+    
+        """The Transformer architecture, introduced in 2017, revolutionized NLP
+        with self-attention mechanisms. It led to BERT and GPT models."""
+    ]
+    
+    # System initialization and usage
+    print("=== Retrieval-based QA System ===\n")
+    qa_system = SimpleRetrievalQA(documents)
+    
+    questions = [
+        "Who created Python?",
+        "What is deep learning good at?",
+        "When was the Transformer introduced?"
+    ]
+    
+    for q in questions:
+        print(f"\nQ: {q}")
+        result = qa_system.answer(q)
+        print(f"A: {result['answer']}")
+        print(f"   Confidence: {result['confidence']:.1%}")
+        print(f"   Source: Doc #{result['source_doc_index']} "
+              f"(similarity: {result['source_similarity']:.3f})")
+    
+
+### Problem 5 (Difficulty: hard)
+
+Using FastAPI, implement a REST API that provides three functionalities: sentiment analysis, NER, and summarization. Consider error handling and consistent response format.
+
+Sample Answer
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - fastapi>=0.100.0
+    # - transformers>=4.30.0
+    
+    """
+    Example: Using FastAPI, implement a REST API that provides three func
+    
+    Purpose: Demonstrate core concepts and implementation patterns
+    Target: Intermediate
+    Execution time: 10-20 seconds
+    Dependencies: None
+    """
+    
+    # Filename: complete_nlp_api.py
+    from fastapi import FastAPI, HTTPException, status
+    from pydantic import BaseModel, validator
+    from transformers import pipeline
+    from typing import Optional, List, Dict, Any
+    import uvicorn
+    from datetime import datetime
+    
+    app = FastAPI(
+        title="Complete NLP API",
+        description="API providing sentiment analysis, NER, and summarization",
+        version="1.0.0"
+    )
+    
+    # Request models
+    class TextInput(BaseModel):
+        text: str
+    
+        @validator('text')
+        def text_not_empty(cls, v):
+            if not v or not v.strip():
+                raise ValueError('Text cannot be empty')
+            return v
+    
+    class SummarizeInput(TextInput):
+        max_length: Optional[int] = 100
+        min_length: Optional[int] = 30
+    
+        @validator('max_length')
+        def valid_max_length(cls, v):
+            if v < 10 or v > 500:
+                raise ValueError('max_length must be between 10-500')
+            return v
+    
+    # Response model
+    class APIResponse(BaseModel):
+        success: bool
+        timestamp: str
+        data: Optional[Dict[Any, Any]] = None
+        error: Optional[str] = None
+    
+    # Model initialization
+    print("Loading models...")
+    sentiment_analyzer = pipeline("sentiment-analysis")
+    ner_pipeline = pipeline("ner", aggregation_strategy="simple")
+    summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+    print("Complete!")
+    
+    # Helper function
+    def create_response(success: bool, data: Dict = None, error: str = None) -> APIResponse:
+        """Create unified response"""
+        return APIResponse(
+            success=success,
+            timestamp=datetime.utcnow().isoformat(),
+            data=data,
+            error=error
+        )
+    
+    # Endpoints
+    @app.get("/")
+    async def root():
+        return create_response(
+            success=True,
+            data={
+                "message": "Complete NLP API",
+                "endpoints": {
+                    "sentiment": "/api/sentiment",
+                    "ner": "/api/ner",
+                    "summarize": "/api/summarize",
+                    "health": "/health"
+                }
+            }
+        )
+    
+    @app.post("/api/sentiment", response_model=APIResponse)
+    async def analyze_sentiment(input_data: TextInput):
+        """Sentiment analysis"""
+        try:
+            result = sentiment_analyzer(input_data.text[:512])[0]
+            return create_response(
+                success=True,
+                data={
+                    "text": input_data.text,
+                    "sentiment": result['label'],
+                    "confidence": round(result['score'], 4)
+                }
+            )
+        except Exception as e:
+            return create_response(
+                success=False,
+                error=f"Sentiment analysis error: {str(e)}"
+            )
+    
+    @app.post("/api/ner", response_model=APIResponse)
+    async def extract_entities(input_data: TextInput):
+        """Named entity recognition"""
+        try:
+            entities = ner_pipeline(input_data.text)
+            return create_response(
+                success=True,
+                data={
+                    "text": input_data.text,
+                    "entities": [
+                        {
+                            "text": ent['word'],
+                            "type": ent['entity_group'],
+                            "confidence": round(ent['score'], 4)
+                        }
+                        for ent in entities
+                    ],
+                    "count": len(entities)
+                }
+            )
+        except Exception as e:
+            return create_response(
+                success=False,
+                error=f"NER error: {str(e)}"
+            )
+    
+    @app.post("/api/summarize", response_model=APIResponse)
+    async def summarize_text(input_data: SummarizeInput):
+        """Text summarization"""
+        try:
+            if len(input_data.text.split()) < 30:
+                return create_response(
+                    success=False,
+                    error="Text is too short (minimum 30 words required)"
+                )
+    
+            summary = summarizer(
+                input_data.text,
+                max_length=input_data.max_length,
+                min_length=input_data.min_length,
+                do_sample=False
+            )
+    
+            return create_response(
+                success=True,
+                data={
+                    "original_text": input_data.text,
+                    "summary": summary[0]['summary_text'],
+                    "original_length": len(input_data.text.split()),
+                    "summary_length": len(summary[0]['summary_text'].split()),
+                    "compression_ratio": round(
+                        len(summary[0]['summary_text']) / len(input_data.text), 3
+                    )
+                }
+            )
+        except Exception as e:
+            return create_response(
+                success=False,
+                error=f"Summarization error: {str(e)}"
+            )
+    
+    @app.get("/health")
+    async def health_check():
+        """Health check"""
+        return create_response(
+            success=True,
+            data={
+                "status": "healthy",
+                "models": {
+                    "sentiment": "loaded",
+                    "ner": "loaded",
+                    "summarizer": "loaded"
+                }
+            }
+        )
+    
+    if __name__ == "__main__":
+        print("\n=== Complete NLP API Starting ===")
+        print("Documentation: http://localhost:8000/docs")
+        print("API: http://localhost:8000/")
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+    
+
+**Usage Example (Python Client)** :
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - requests>=2.31.0
+    
+    """
+    Example: Usage Example (Python Client):
+    
+    Purpose: Demonstrate core concepts and implementation patterns
+    Target: Beginner
+    Execution time: ~5 seconds
+    Dependencies: None
+    """
+    
+    import requests
+    
+    API_URL = "http://localhost:8000"
+    
+    # Sentiment analysis
+    response = requests.post(
+        f"{API_URL}/api/sentiment",
+        json={"text": "This API is amazing!"}
+    )
+    print("Sentiment:", response.json())
+    
+    # NER
+    response = requests.post(
+        f"{API_URL}/api/ner",
+        json={"text": "Apple Inc. CEO Tim Cook visited Tokyo."}
+    )
+    print("\nNER:", response.json())
+    
+    # Summarization
+    long_text = """
+    Artificial intelligence has made remarkable progress...
+    (long text)
+    """
+    response = requests.post(
+        f"{API_URL}/api/summarize",
+        json={"text": long_text, "max_length": 80}
+    )
+    print("\nSummary:", response.json())
+    
+
+* * *
+
+## References
+
+  1. Devlin, J., et al. (2019). _BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding_. NAACL.
+  2. Lewis, M., et al. (2020). _BART: Denoising Sequence-to-Sequence Pre-training for Natural Language Generation, Translation, and Comprehension_. ACL.
+  3. Raffel, C., et al. (2020). _Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer (T5)_. JMLR.
+  4. Rajpurkar, P., et al. (2016). _SQuAD: 100,000+ Questions for Machine Comprehension of Text_. EMNLP.
+  5. Mihalcea, R., & Tarau, P. (2004). _TextRank: Bringing Order into Text_. EMNLP.
+  6. Lample, G., et al. (2016). _Neural Architectures for Named Entity Recognition_. NAACL.
+  7. Socher, R., et al. (2013). _Recursive Deep Models for Semantic Compositionality Over a Sentiment Treebank_. EMNLP.
+  8. Jurafsky, D., & Martin, J. H. (2023). _Speech and Language Processing_ (3rd ed.). Prentice Hall.

@@ -1,0 +1,1122 @@
+---
+title: "Chapter 2: Canonical Ensemble and Partition Function"
+chapter_title: "Chapter 2: Canonical Ensemble and Partition Function"
+---
+
+🌐 EN | [🇯🇵 JP](<../../../jp/FM/classical-statistical-mechanics/chapter-2.html>) | Last sync: 2025-11-16
+
+[Fundamental Mathematics Dojo](<../index.html>) > [Introduction to Classical Statistical Mechanics](<index.html>) > Chapter 2 
+
+## Learning Objectives
+
+  * Understand the concept of the canonical ensemble and its scope of application
+  * Master the method of deriving thermodynamic quantities from the canonical partition function
+  * Learn the meaning and importance of Helmholtz free energy
+  * Understand the equipartition theorem and learn its application to ideal gases
+  * Fully solve the thermodynamics of harmonic oscillator systems
+  * Understand two-level systems and Schottky heat capacity
+  * Describe lattice vibrations using the Einstein solid model
+  * Derive the \\(T^3\\) law for low-temperature heat capacity with the Debye model
+
+## What is a Canonical Ensemble
+
+### Canonical Ensemble
+
+A system in contact with a heat bath at temperature \\(T\\), capable of exchanging energy. In this ensemble, particle number \\(N\\), volume \\(V\\), and temperature \\(T\\) are fixed, while energy \\(E\\) fluctuates. This corresponds to standard laboratory situations where systems are in thermal contact with their surroundings.
+
+**Canonical partition function** :
+
+\\[ Z(N, V, T) = \sum_i e^{-\beta E_i}, \quad \beta = \frac{1}{k_B T} \\]
+
+In classical systems, integral form:
+
+\\[ Z = \frac{1}{h^{3N} N!} \int e^{-\beta H(\mathbf{q}, \mathbf{p})} d^{3N}\mathbf{q} \, d^{3N}\mathbf{p} \\]
+
+### Helmholtz Free Energy
+
+Derive thermodynamic potential from the partition function:
+
+\\[ F = -k_B T \ln Z \\]
+
+\\(F\\) is the Helmholtz free energy, related by \\(F = U - TS\\).
+
+Derivation of thermodynamic quantities: The **internal energy** is given by \\(U = -\frac{\partial \ln Z}{\partial \beta}\\), the **entropy** by \\(S = -\frac{\partial F}{\partial T} = k_B(\ln Z + \beta U)\\), the **pressure** by \\(P = -\frac{\partial F}{\partial V}\\), and the **heat capacity** by \\(C_V = \frac{\partial U}{\partial T}\\).
+
+## Example 2.1: Partition Function of a 1D Harmonic Oscillator
+
+### Quantum Harmonic Oscillator
+
+Energy levels: \\(E_n = \hbar\omega(n + \frac{1}{2})\\), \\(n = 0, 1, 2, \ldots\\)
+
+Partition function:
+
+\\[ Z = \sum_{n=0}^\infty e^{-\beta\hbar\omega(n+1/2)} = \frac{e^{-\beta\hbar\omega/2}}{1 - e^{-\beta\hbar\omega}} \\]
+
+Average energy:
+
+\\[ \langle E \rangle = \hbar\omega\left(\frac{1}{2} + \frac{1}{e^{\beta\hbar\omega} - 1}\right) \\]
+
+Python Implementation: Thermodynamics of Harmonic Oscillator
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # Physical constants
+    k_B = 1.380649e-23  # J/K
+    hbar = 1.054572e-34  # J·s
+    
+    # Harmonic oscillator partition function
+    omega = 2e13  # angular frequency (rad/s) - typical lattice vibration
+    
+    def partition_function_harmonic(omega, T, hbar, k_B):
+        """Quantum harmonic oscillator partition function"""
+        beta = 1 / (k_B * T)
+        x = beta * hbar * omega
+        return np.exp(-x/2) / (1 - np.exp(-x))
+    
+    def average_energy(omega, T, hbar, k_B):
+        """Average energy"""
+        beta = 1 / (k_B * T)
+        x = beta * hbar * omega
+        return hbar * omega * (0.5 + 1/(np.exp(x) - 1))
+    
+    def heat_capacity(omega, T, hbar, k_B):
+        """Heat capacity C = dE/dT"""
+        beta = 1 / (k_B * T)
+        x = beta * hbar * omega
+        exp_x = np.exp(x)
+        return k_B * x**2 * exp_x / (exp_x - 1)**2
+    
+    # Temperature range
+    T_range = np.logspace(0, 3, 200)  # 1 K ~ 1000 K
+    
+    # Calculate each quantity
+    Z_vals = [partition_function_harmonic(omega, T, hbar, k_B) for T in T_range]
+    E_vals = [average_energy(omega, T, hbar, k_B) for T in T_range]
+    C_vals = [heat_capacity(omega, T, hbar, k_B) for T in T_range]
+    
+    # Characteristic temperature
+    theta = hbar * omega / k_B
+    print(f"=== Thermodynamics of Harmonic Oscillator ===")
+    print(f"Angular frequency ω = {omega:.2e} rad/s")
+    print(f"Characteristic temperature θ = ℏω/k_B = {theta:.2f} K\n")
+    
+    # Visualization
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+    
+    # Partition function
+    ax1 = axes[0]
+    ax1.loglog(T_range, Z_vals, 'b-', linewidth=2)
+    ax1.axvline(theta, color='r', linestyle='--', linewidth=1.5, label=f'θ = {theta:.1f} K')
+    ax1.set_xlabel('Temperature (K)')
+    ax1.set_ylabel('Partition function Z')
+    ax1.set_title('Partition Function')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3, which='both')
+    
+    # Average energy
+    ax2 = axes[1]
+    E_0 = hbar * omega / 2  # Zero-point energy
+    ax2.semilogx(T_range, np.array(E_vals) / (hbar * omega), 'g-', linewidth=2)
+    ax2.axhline(0.5, color='k', linestyle=':', linewidth=1, label='Zero-point energy')
+    ax2.axvline(theta, color='r', linestyle='--', linewidth=1.5, label=f'θ = {theta:.1f} K')
+    ax2.set_xlabel('Temperature (K)')
+    ax2.set_ylabel('Average energy / ℏω')
+    ax2.set_title('Average Energy')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    # Heat capacity
+    ax3 = axes[2]
+    ax3.semilogx(T_range, np.array(C_vals) / k_B, 'r-', linewidth=2)
+    ax3.axhline(1.0, color='k', linestyle=':', linewidth=1, label='Classical limit')
+    ax3.axvline(theta, color='r', linestyle='--', linewidth=1.5, label=f'θ = {theta:.1f} K')
+    ax3.set_xlabel('Temperature (K)')
+    ax3.set_ylabel('Heat capacity / k_B')
+    ax3.set_title('Heat Capacity')
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('stat_mech_harmonic_oscillator.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Low-temperature and high-temperature limits
+    print("Low-temperature limit (T << θ):")
+    T_low = theta / 10
+    E_low = average_energy(omega, T_low, hbar, k_B)
+    C_low = heat_capacity(omega, T_low, hbar, k_B)
+    print(f"  T = {T_low:.2f} K")
+    print(f"  <e> ≈ {E_low/(hbar*omega):.4f} ℏω (≈ zero-point energy)")
+    print(f"  C ≈ {C_low/k_B:.6f} k_B (exponentially decaying)\n")
+    
+    print("High-temperature limit (T >> θ):")
+    T_high = theta * 10
+    E_high = average_energy(omega, T_high, hbar, k_B)
+    C_high = heat_capacity(omega, T_high, hbar, k_B)
+    print(f"  T = {T_high:.2f} K")
+    print(f"  <e> ≈ {E_high/(k_B*T_high):.4f} k_B T (classical)")
+    print(f"  C ≈ {C_high/k_B:.4f} k_B (equipartition theorem)")
+    </e></e>
+
+## Example 2.2: Equipartition Theorem
+
+### Equipartition Theorem
+
+In the high-temperature (classical) limit, each degree of freedom contributing quadratically to the energy has an average energy of \\(\frac{1}{2}k_B T\\).
+
+**Examples** : For 1D translational motion, \\(\langle \frac{p^2}{2m} \rangle = \frac{1}{2}k_B T\\). For harmonic oscillation with two quadratic terms, \\(\langle \frac{p^2}{2m} + \frac{1}{2}kq^2 \rangle = k_B T\\). For an ideal gas in 3D, \\(\langle E \rangle = \frac{3}{2}k_B T\\).
+
+Python Implementation: Verification of Equipartition Theorem (Monte Carlo Method)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # Verify equipartition theorem using Monte Carlo method
+    k_B = 1.380649e-23  # J/K
+    m = 4.65e-26  # Mass of N₂ molecule (kg)
+    
+    def monte_carlo_classical_gas(N_particles, T, k_B, m, n_steps=100000):
+        """Monte Carlo simulation of classical ideal gas"""
+        # Initialize velocities (from Maxwell distribution)
+        sigma_v = np.sqrt(k_B * T / m)
+        v = np.random.normal(0, sigma_v, (N_particles, 3))
+    
+        # Energy sampling
+        kinetic_energies = []
+    
+        for step in range(n_steps):
+            # Kinetic energy
+            KE = 0.5 * m * np.sum(v**2, axis=1)
+            kinetic_energies.append(np.mean(KE))
+    
+            # Metropolis step (small velocity change)
+            if step < n_steps - 1:
+                dv = np.random.normal(0, 0.1 * sigma_v, (N_particles, 3))
+                v_new = v + dv
+    
+                # Energy change
+                KE_old = 0.5 * m * np.sum(v**2)
+                KE_new = 0.5 * m * np.sum(v_new**2)
+                delta_E = KE_new - KE_old
+    
+                # Metropolis criterion
+                if delta_E < 0 or np.random.rand() < np.exp(-delta_E / (k_B * T * N_particles)):
+                    v = v_new
+    
+        return np.array(kinetic_energies)
+    
+    # Simulation settings
+    N_particles = 1000
+    temperatures = [100, 300, 500, 800]  # K
+    colors = ['blue', 'green', 'orange', 'red']
+    
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # Average kinetic energy vs temperature
+    ax1 = axes[0]
+    avg_KE_list = []
+    for T in temperatures:
+        KE_samples = monte_carlo_classical_gas(N_particles, T, k_B, m, n_steps=50000)
+        avg_KE = np.mean(KE_samples[10000:])  # After equilibration
+        avg_KE_list.append(avg_KE)
+    
+    theoretical = [1.5 * k_B * T for T in temperatures]
+    ax1.plot(temperatures, avg_KE_list, 'bo-', markersize=8, linewidth=2, label='Simulation')
+    ax1.plot(temperatures, theoretical, 'r--', linewidth=2, label='Theory: (3/2)k_B T')
+    ax1.set_xlabel('Temperature (K)')
+    ax1.set_ylabel('Average kinetic energy (J)')
+    ax1.set_title('Verification of Equipartition Theorem')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Time evolution
+    ax2 = axes[1]
+    T_demo = 300
+    KE_samples = monte_carlo_classical_gas(N_particles, T_demo, k_B, m, n_steps=10000)
+    ax2.plot(KE_samples, 'b-', alpha=0.7, linewidth=1)
+    ax2.axhline(1.5 * k_B * T_demo, color='r', linestyle='--', linewidth=2,
+                label=f'Theory: (3/2)k_B T = {1.5*k_B*T_demo:.2e} J')
+    ax2.set_xlabel('Monte Carlo step')
+    ax2.set_ylabel('Average kinetic energy (J)')
+    ax2.set_title(f'Time Evolution (T = {T_demo} K)')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('stat_mech_equipartition.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Results comparison
+    print("=== Verification of Equipartition Theorem ===\n")
+    for T, avg_KE in zip(temperatures, avg_KE_list):
+        theoretical_KE = 1.5 * k_B * T
+        error = abs(avg_KE - theoretical_KE) / theoretical_KE * 100
+        print(f"T = {T} K:")
+        print(f"  Simulation: <ke> = {avg_KE:.6e} J")
+        print(f"  Theory: (3/2)k_B T = {theoretical_KE:.6e} J")
+        print(f"  Error: {error:.2f}%\n")
+    </ke>
+
+## Example 2.3: Two-Level System and Schottky Heat Capacity
+
+### Two-Level System
+
+System with two energy levels: \\(E_0 = 0\\), \\(E_1 = \varepsilon\\)
+
+Partition function:
+
+\\[ Z = 1 + e^{-\beta\varepsilon} \\]
+
+Average energy:
+
+\\[ \langle E \rangle = \frac{\varepsilon}{e^{\beta\varepsilon} + 1} \\]
+
+Heat capacity (Schottky heat capacity):
+
+\\[ C = k_B \left(\frac{\varepsilon}{k_B T}\right)^2 \frac{e^{\varepsilon/k_B T}}{(e^{\varepsilon/k_B T} + 1)^2} \\]
+
+Peak temperature: \\(T \approx \varepsilon / (2k_B)\\)
+
+Python Implementation: Schottky Heat Capacity
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    k_B = 1.380649e-23  # J/K
+    
+    def two_level_partition(epsilon, T, k_B):
+        """Two-level system partition function"""
+        beta = 1 / (k_B * T)
+        return 1 + np.exp(-beta * epsilon)
+    
+    def two_level_energy(epsilon, T, k_B):
+        """Average energy"""
+        beta = 1 / (k_B * T)
+        return epsilon / (np.exp(beta * epsilon) + 1)
+    
+    def schottky_heat_capacity(epsilon, T, k_B):
+        """Schottky heat capacity"""
+        x = epsilon / (k_B * T)
+        exp_x = np.exp(x)
+        return k_B * x**2 * exp_x / (exp_x + 1)**2
+    
+    # Energy gaps
+    epsilon_values = [1e-21, 2e-21, 5e-21]  # J
+    colors = ['blue', 'green', 'red']
+    labels = ['ε = 1×10⁻²¹ J', 'ε = 2×10⁻²¹ J', 'ε = 5×10⁻²¹ J']
+    
+    T_range = np.linspace(1, 1000, 500)
+    
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # Occupation probability
+    ax1 = axes[0, 0]
+    for epsilon, color, label in zip(epsilon_values, colors, labels):
+        p_0 = 1 / (1 + np.exp(-epsilon / (k_B * T_range)))  # Ground state
+        p_1 = 1 - p_0  # Excited state
+        ax1.plot(T_range, p_0, '-', color=color, linewidth=2, label=f'{label} (ground)')
+        ax1.plot(T_range, p_1, '--', color=color, linewidth=2, label=f'{label} (excited)')
+    
+    ax1.set_xlabel('Temperature (K)')
+    ax1.set_ylabel('Occupation probability')
+    ax1.set_title('Level Occupation Probability')
+    ax1.legend(fontsize=8)
+    ax1.grid(True, alpha=0.3)
+    
+    # Average energy
+    ax2 = axes[0, 1]
+    for epsilon, color, label in zip(epsilon_values, colors, labels):
+        E_avg = [two_level_energy(epsilon, T, k_B) for T in T_range]
+        ax2.plot(T_range, np.array(E_avg) / epsilon, color=color, linewidth=2, label=label)
+    
+    ax2.axhline(0.5, color='k', linestyle=':', linewidth=1, label='High-temperature limit')
+    ax2.set_xlabel('Temperature (K)')
+    ax2.set_ylabel('Average energy / ε')
+    ax2.set_title('Average Energy')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    # Schottky heat capacity
+    ax3 = axes[1, 0]
+    for epsilon, color, label in zip(epsilon_values, colors, labels):
+        C_vals = [schottky_heat_capacity(epsilon, T, k_B) for T in T_range]
+        ax3.plot(T_range, np.array(C_vals) / k_B, color=color, linewidth=2, label=label)
+    
+        # Peak position
+        T_peak = epsilon / (2 * k_B)
+        C_peak = schottky_heat_capacity(epsilon, T_peak, k_B)
+        ax3.plot(T_peak, C_peak / k_B, 'o', color=color, markersize=8)
+    
+    ax3.set_xlabel('Temperature (K)')
+    ax3.set_ylabel('Heat capacity / k_B')
+    ax3.set_title('Schottky Heat Capacity')
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+    
+    # Energy gap dependence (peak temperature)
+    ax4 = axes[1, 1]
+    epsilon_scan = np.linspace(0.5e-21, 10e-21, 50)
+    T_peak_list = epsilon_scan / (2 * k_B)
+    C_peak_list = [schottky_heat_capacity(eps, eps/(2*k_B), k_B) for eps in epsilon_scan]
+    
+    ax4.plot(epsilon_scan / 1e-21, T_peak_list, 'b-', linewidth=2)
+    ax4_twin = ax4.twinx()
+    ax4_twin.plot(epsilon_scan / 1e-21, np.array(C_peak_list) / k_B, 'r-', linewidth=2)
+    
+    ax4.set_xlabel('Energy gap ε (10⁻²¹ J)')
+    ax4.set_ylabel('Peak temperature (K)', color='b')
+    ax4_twin.set_ylabel('Peak heat capacity / k_B', color='r')
+    ax4.set_title('Peak Characteristics vs ε')
+    ax4.tick_params(axis='y', labelcolor='b')
+    ax4_twin.tick_params(axis='y', labelcolor='r')
+    ax4.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('stat_mech_two_level_schottky.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Numerical results
+    print("=== Two-Level System and Schottky Heat Capacity ===\n")
+    for epsilon, label in zip(epsilon_values, labels):
+        T_peak = epsilon / (2 * k_B)
+        C_peak = schottky_heat_capacity(epsilon, T_peak, k_B)
+        print(f"{label}:")
+        print(f"  Characteristic temperature θ = ε/k_B = {epsilon/k_B:.2f} K")
+        print(f"  Peak temperature T_peak ≈ {T_peak:.2f} K")
+        print(f"  Peak heat capacity C_peak = {C_peak/k_B:.4f} k_B\n")
+    
+
+## Example 2.4: Einstein Solid Model
+
+### Einstein Solid Model
+
+\\(N\\) atoms behave as independent 3D harmonic oscillators:
+
+Partition function (per atom):
+
+\\[ z = \left(\frac{e^{-\beta\hbar\omega/2}}{1 - e^{-\beta\hbar\omega}}\right)^3 \\]
+
+Molar heat capacity:
+
+\\[ C_V = 3R \left(\frac{\theta_E}{T}\right)^2 \frac{e^{\theta_E/T}}{(e^{\theta_E/T} - 1)^2} \\]
+
+Einstein temperature: \\(\theta_E = \hbar\omega / k_B\\)
+
+High-temperature limit: \\(C_V \to 3R\\) (Dulong-Petit law)
+
+Low-temperature limit: \\(C_V \propto e^{-\theta_E/T}\\) (exponential decay)
+
+Python Implementation: Einstein Solid Heat Capacity
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    R = 8.314  # J/(K·mol)
+    
+    def einstein_heat_capacity(T, theta_E, R):
+        """Molar heat capacity of Einstein solid"""
+        x = theta_E / T
+        exp_x = np.exp(x)
+        return 3 * R * x**2 * exp_x / (exp_x - 1)**2
+    
+    # Different materials (different Einstein temperatures)
+    materials = {
+        'Pb': 88,    # K
+        'Ag': 215,
+        'Al': 394,
+        'C (diamond)': 1860
+    }
+    
+    colors = ['blue', 'green', 'orange', 'red']
+    T_range = np.logspace(0, 3, 300)  # 1 K ~ 1000 K
+    
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # Einstein heat capacity
+    ax1 = axes[0]
+    for (material, theta_E), color in zip(materials.items(), colors):
+        C_V = [einstein_heat_capacity(T, theta_E, R) for T in T_range]
+        ax1.semilogx(T_range, C_V, color=color, linewidth=2, label=f'{material} (θ_E={theta_E}K)')
+    
+    ax1.axhline(3 * R, color='k', linestyle='--', linewidth=1.5, label='Dulong-Petit: 3R')
+    ax1.set_xlabel('Temperature (K)')
+    ax1.set_ylabel('Molar heat capacity (J/(K·mol))')
+    ax1.set_title('Einstein Solid Heat Capacity')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    ax1.set_ylim([0, 30])
+    
+    # Normalized heat capacity (universal curve)
+    ax2 = axes[1]
+    for (material, theta_E), color in zip(materials.items(), colors):
+        T_reduced = T_range / theta_E
+        C_V_reduced = [einstein_heat_capacity(T, theta_E, R) / (3*R) for T in T_range]
+        ax2.semilogx(T_reduced, C_V_reduced, color=color, linewidth=2, label=material)
+    
+    ax2.axhline(1.0, color='k', linestyle='--', linewidth=1.5, label='High-temperature limit')
+    ax2.set_xlabel('Reduced temperature T/θ_E')
+    ax2.set_ylabel('C_V / (3R)')
+    ax2.set_title('Normalized Heat Capacity (Universal Curve)')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('stat_mech_einstein_solid.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Numerical results
+    print("=== Einstein Solid Model ===\n")
+    print("Dulong-Petit law: C_V = 3R = {:.3f} J/(K·mol)\n".format(3*R))
+    
+    T_test = 300  # K
+    print(f"Heat capacity at T = {T_test} K:")
+    for material, theta_E in materials.items():
+        C_V = einstein_heat_capacity(T_test, theta_E, R)
+        print(f"  {material:15s}: C_V = {C_V:.3f} J/(K·mol) ({C_V/(3*R)*100:.1f}% of 3R)")
+    
+    print("\nLow-temperature behavior (T = 10 K):")
+    T_low = 10
+    for material, theta_E in materials.items():
+        C_V_low = einstein_heat_capacity(T_low, theta_E, R)
+        print(f"  {material:15s}: C_V = {C_V_low:.6f} J/(K·mol)")
+    
+
+## Example 2.5: Debye Solid Model
+
+### Debye Model
+
+Treats lattice vibrations as sound waves in a continuum, considering frequency distribution:
+
+Density of states: \\(g(\omega) \propto \omega^2\\) (for \\(\omega < \omega_D\\))
+
+Debye temperature: \\(\theta_D = \hbar\omega_D / k_B\\)
+
+Low-temperature limit (\\(T \ll \theta_D\\)):
+
+\\[ C_V = \frac{12\pi^4}{5} R \left(\frac{T}{\theta_D}\right)^3 \\]
+
+This is the famous **Debye \\(T^3\\) law**. It agrees well with experiments.
+
+Python Implementation: Debye Heat Capacity and T³ Law
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.integrate import quad
+    
+    R = 8.314  # J/(K·mol)
+    
+    def debye_integral(x):
+        """Debye integral: D(x) = (3/x³) ∫₀ˣ (t⁴ e^t)/(e^t - 1)² dt"""
+        if x < 1e-10:
+            return 0
+    
+        def integrand(t):
+            if t < 1e-10:
+                return 0
+            exp_t = np.exp(t)
+            return (t**4 * exp_t) / (exp_t - 1)**2
+    
+        integral_value, _ = quad(integrand, 0, x, limit=100)
+        return 3 * integral_value / x**3
+    
+    def debye_heat_capacity(T, theta_D, R):
+        """Debye model heat capacity"""
+        x = theta_D / T
+        D_x = debye_integral(x)
+        return 3 * R * D_x
+    
+    def debye_T3_law(T, theta_D, R):
+        """Low-temperature T³ law"""
+        return (12 * np.pi**4 / 5) * R * (T / theta_D)**3
+    
+    # Debye temperatures of materials
+    materials_debye = {
+        'Pb': 105,   # K
+        'Ag': 225,
+        'Cu': 343,
+        'Al': 428,
+        'C (diamond)': 2230
+    }
+    
+    colors = ['blue', 'green', 'orange', 'red', 'purple']
+    T_range = np.logspace(0, 3, 100)
+    
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # Debye heat capacity
+    ax1 = axes[0]
+    for (material, theta_D), color in zip(materials_debye.items(), colors):
+        C_V = [debye_heat_capacity(T, theta_D, R) for T in T_range]
+        ax1.semilogx(T_range, C_V, '-', color=color, linewidth=2,
+                     label=f'{material} (θ_D={theta_D}K)')
+    
+    ax1.axhline(3 * R, color='k', linestyle='--', linewidth=1.5, label='Dulong-Petit')
+    ax1.set_xlabel('Temperature (K)')
+    ax1.set_ylabel('Molar heat capacity (J/(K·mol))')
+    ax1.set_title('Debye Solid Heat Capacity')
+    ax1.legend(fontsize=9)
+    ax1.grid(True, alpha=0.3)
+    
+    # T³ law verification (low temperature)
+    ax2 = axes[1]
+    T_low = np.linspace(1, 50, 100)
+    material_test = 'Al'
+    theta_D_test = materials_debye[material_test]
+    
+    C_debye = [debye_heat_capacity(T, theta_D_test, R) for T in T_low]
+    C_T3 = [debye_T3_law(T, theta_D_test, R) for T in T_low]
+    
+    ax2.plot(T_low**3, C_debye, 'b-', linewidth=2, label='Debye model')
+    ax2.plot(T_low**3, C_T3, 'r--', linewidth=2, label='T³ law (low-temperature limit)')
+    ax2.set_xlabel('T³ (K³)')
+    ax2.set_ylabel('Heat capacity (J/(K·mol))')
+    ax2.set_title(f'T³ Law Verification ({material_test}, θ_D={theta_D_test}K)')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('stat_mech_debye_model.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Comparison of Einstein and Debye models
+    print("=== Comparison of Einstein and Debye Models ===\n")
+    print("Material: Al (θ_E ≈ θ_D ≈ 400 K)\n")
+    
+    theta_test = 400
+    T_values = [10, 50, 100, 300]
+    
+    from scipy.integrate import quad as scipy_quad
+    
+    for T in T_values:
+        C_einstein = einstein_heat_capacity(T, theta_test, R)
+        C_debye = debye_heat_capacity(T, theta_test, R)
+    
+        print(f"T = {T} K:")
+        print(f"  Einstein: C_V = {C_einstein:.4f} J/(K·mol)")
+        print(f"  Debye:    C_V = {C_debye:.4f} J/(K·mol)")
+        print(f"  Difference: {abs(C_einstein - C_debye):.4f} J/(K·mol)\n")
+    
+    print("T³ law at low temperature:")
+    T_low_test = 10
+    C_debye_low = debye_heat_capacity(T_low_test, theta_test, R)
+    C_T3_low = debye_T3_law(T_low_test, theta_test, R)
+    print(f"T = {T_low_test} K:")
+    print(f"  Debye full calculation: {C_debye_low:.6f} J/(K·mol)")
+    print(f"  T³ approximation: {C_T3_low:.6f} J/(K·mol)")
+    print(f"  Relative error: {abs(C_debye_low - C_T3_low)/C_debye_low * 100:.2f}%")
+    
+
+## Example 2.6: Rotational Partition Function (Diatomic Molecules)
+
+Python Implementation: Rotational Spectrum of Diatomic Molecules
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example: Example 2.6: Rotational Partition Function (Diatomic Molecul
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Advanced
+    Execution time: 2-5 seconds
+    Dependencies: None
+    """
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # Rotational energy of diatomic molecules
+    # E_J = B J(J+1), J = 0, 1, 2, ...
+    # B = ℏ²/(2I) : rotational constant
+    # Degeneracy: g_J = 2J + 1
+    
+    k_B = 1.380649e-23  # J/K
+    hbar = 1.054572e-34  # J·s
+    
+    # Rotational constant of H₂ molecule
+    B_H2 = 85.4  # K (in units of B/k_B)
+    
+    def rotational_energy(J, B):
+        """Rotational energy level (in temperature units)"""
+        return B * J * (J + 1)
+    
+    def rotational_partition_function(T, B, J_max=50):
+        """Rotational partition function"""
+        Z_rot = 0
+        for J in range(J_max):
+            g_J = 2 * J + 1
+            E_J = rotational_energy(J, B)
+            Z_rot += g_J * np.exp(-E_J / T)
+        return Z_rot
+    
+    def rotational_heat_capacity(T, B, J_max=50):
+        """Rotational heat capacity"""
+        Z = rotational_partition_function(T, B, J_max)
+    
+        # Calculate <e>
+        E_avg = 0
+        for J in range(J_max):
+            g_J = 2 * J + 1
+            E_J = rotational_energy(J, B)
+            E_avg += g_J * E_J * np.exp(-E_J / T)
+        E_avg /= Z
+    
+        # Calculate <e²>
+        E2_avg = 0
+        for J in range(J_max):
+            g_J = 2 * J + 1
+            E_J = rotational_energy(J, B)
+            E2_avg += g_J * E_J**2 * np.exp(-E_J / T)
+        E2_avg /= Z
+    
+        # C = d<e>/dT = (<e²> - <e>²) / (k_B T²)
+        C_rot = (E2_avg - E_avg**2) / T**2
+        return C_rot * k_B
+    
+    # Temperature range
+    T_range = np.linspace(10, 1000, 200)
+    
+    # Level occupation
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # Rotational level energy and degeneracy
+    ax1 = axes[0, 0]
+    J_values = np.arange(0, 20)
+    E_values = [rotational_energy(J, B_H2) for J in J_values]
+    g_values = [2*J + 1 for J in J_values]
+    
+    ax1.stem(J_values, E_values, basefmt=' ', linefmt='b-', markerfmt='bo')
+    for J, E, g in zip(J_values[:10], E_values[:10], g_values[:10]):
+        ax1.text(J + 0.3, E, f'g={g}', fontsize=8)
+    
+    ax1.set_xlabel('Rotational quantum number J')
+    ax1.set_ylabel('Energy E/k_B (K)')
+    ax1.set_title(f'Rotational Levels (H₂, B = {B_H2} K)')
+    ax1.grid(True, alpha=0.3)
+    
+    # Occupation distribution at temperature
+    ax2 = axes[0, 1]
+    temperatures_demo = [50, 100, 300, 500]
+    colors_demo = ['blue', 'green', 'orange', 'red']
+    
+    for T, color in zip(temperatures_demo, colors_demo):
+        Z = rotational_partition_function(T, B_H2)
+        populations = []
+        for J in J_values:
+            g_J = 2 * J + 1
+            E_J = rotational_energy(J, B_H2)
+            p_J = g_J * np.exp(-E_J / T) / Z
+            populations.append(p_J)
+    
+        ax2.plot(J_values, populations, 'o-', color=color, linewidth=2,
+                 markersize=4, label=f'T = {T} K')
+    
+    ax2.set_xlabel('J')
+    ax2.set_ylabel('Population')
+    ax2.set_title('Rotational Level Occupation Distribution')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    # Partition function
+    ax3 = axes[1, 0]
+    Z_values = [rotational_partition_function(T, B_H2) for T in T_range]
+    ax3.plot(T_range, Z_values, 'b-', linewidth=2)
+    ax3.axvline(B_H2, color='r', linestyle='--', linewidth=1.5, label=f'θ_rot = {B_H2} K')
+    ax3.set_xlabel('Temperature (K)')
+    ax3.set_ylabel('Partition function Z_rot')
+    ax3.set_title('Rotational Partition Function')
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+    
+    # Rotational heat capacity
+    ax4 = axes[1, 1]
+    C_rot_values = [rotational_heat_capacity(T, B_H2) / k_B for T in T_range]
+    ax4.plot(T_range, C_rot_values, 'g-', linewidth=2)
+    ax4.axhline(1.0, color='k', linestyle='--', linewidth=1.5, label='Classical limit: k_B')
+    ax4.axvline(B_H2, color='r', linestyle='--', linewidth=1.5, label=f'θ_rot = {B_H2} K')
+    ax4.set_xlabel('Temperature (K)')
+    ax4.set_ylabel('C_rot / k_B')
+    ax4.set_title('Rotational Heat Capacity')
+    ax4.legend()
+    ax4.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('stat_mech_rotation.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    print("=== Rotation of Diatomic Molecules (H₂)===")
+    print(f"Rotational constant B = {B_H2} K\n")
+    
+    for T in [50, 100, 300, 500]:
+        Z_rot = rotational_partition_function(T, B_H2)
+        C_rot = rotational_heat_capacity(T, B_H2)
+        print(f"T = {T} K:")
+        print(f"  Z_rot = {Z_rot:.4f}")
+        print(f"  C_rot = {C_rot/k_B:.4f} k_B\n")
+    
+    print("High-temperature limit (T >> θ_rot):")
+    print("  Z_rot ≈ T/θ_rot")
+    print("  C_rot ≈ k_B (classical)")
+    </e></e²></e></e²></e>
+
+## Example 2.7: Partition Function of Ideal Gas
+
+Python Implementation: Separation of Translation, Rotation, Vibration
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    k_B = 1.380649e-23  # J/K
+    h = 6.62607015e-34  # J·s
+    hbar = h / (2 * np.pi)
+    m_N2 = 4.65e-26  # Mass of N₂ molecule (kg)
+    
+    # N₂ molecule parameters
+    B_N2 = 2.88  # K (rotational constant)
+    theta_vib_N2 = 3374  # K (vibrational temperature)
+    
+    def translational_partition_per_molecule(V, T, m, h, k_B):
+        """Translational partition function (per molecule)"""
+        lambda_T = h / np.sqrt(2 * np.pi * m * k_B * T)  # Thermal de Broglie wavelength
+        return V / lambda_T**3
+    
+    def rotational_partition(T, B):
+        """Rotational partition function (high-temperature approximation)"""
+        return T / B
+    
+    def vibrational_partition(T, theta_vib):
+        """Vibrational partition function"""
+        return 1 / (1 - np.exp(-theta_vib / T))
+    
+    def total_partition_per_molecule(V, T, m, B, theta_vib, h, k_B):
+        """Total partition function = z_trans × z_rot × z_vib"""
+        z_trans = translational_partition_per_molecule(V, T, m, h, k_B)
+        z_rot = rotational_partition(T, B)
+        z_vib = vibrational_partition(T, theta_vib)
+        return z_trans * z_rot * z_vib
+    
+    # Standard state
+    T_std = 298.15  # K
+    V_molar = 0.0224  # m³/mol
+    N_A = 6.022e23
+    V_per_molecule = V_molar / N_A
+    
+    # Temperature range
+    T_range = np.linspace(100, 1000, 200)
+    
+    # Calculate each contribution
+    z_trans_list = [translational_partition_per_molecule(V_per_molecule, T, m_N2, h, k_B)
+                    for T in T_range]
+    z_rot_list = [rotational_partition(T, B_N2) for T in T_range]
+    z_vib_list = [vibrational_partition(T, theta_vib_N2) for T in T_range]
+    z_total_list = [total_partition_per_molecule(V_per_molecule, T, m_N2, B_N2,
+                                                   theta_vib_N2, h, k_B) for T in T_range]
+    
+    # Visualization
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # Temperature dependence of each contribution
+    ax1 = axes[0, 0]
+    ax1.semilogy(T_range, z_trans_list, 'b-', linewidth=2, label='Translational')
+    ax1.semilogy(T_range, z_rot_list, 'g-', linewidth=2, label='Rotational')
+    ax1.semilogy(T_range, z_vib_list, 'r-', linewidth=2, label='Vibrational')
+    ax1.set_xlabel('Temperature (K)')
+    ax1.set_ylabel('Partition function (per molecule)')
+    ax1.set_title('Partition Function of Each Degree of Freedom')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3, which='both')
+    
+    # Total partition function
+    ax2 = axes[0, 1]
+    ax2.semilogy(T_range, z_total_list, 'k-', linewidth=2)
+    ax2.set_xlabel('Temperature (K)')
+    ax2.set_ylabel('Total partition function')
+    ax2.set_title('Total Partition Function (z_trans × z_rot × z_vib)')
+    ax2.grid(True, alpha=0.3, which='both')
+    
+    # Contribution ratio
+    ax3 = axes[1, 0]
+    log_z_trans = np.log(z_trans_list)
+    log_z_rot = np.log(z_rot_list)
+    log_z_vib = np.log(z_vib_list)
+    log_z_total = np.log(z_total_list)
+    
+    fraction_trans = log_z_trans / log_z_total
+    fraction_rot = log_z_rot / log_z_total
+    fraction_vib = log_z_vib / log_z_total
+    
+    ax3.plot(T_range, fraction_trans, 'b-', linewidth=2, label='Translational')
+    ax3.plot(T_range, fraction_rot, 'g-', linewidth=2, label='Rotational')
+    ax3.plot(T_range, fraction_vib, 'r-', linewidth=2, label='Vibrational')
+    ax3.set_xlabel('Temperature (K)')
+    ax3.set_ylabel('Fraction of ln(z)')
+    ax3.set_title('Contribution Ratio')
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+    
+    # Contribution to heat capacity
+    ax4 = axes[1, 1]
+    C_trans = 1.5 * np.ones_like(T_range)  # (3/2) k_B
+    C_rot = 1.0 * np.ones_like(T_range)    # k_B (high temperature)
+    
+    C_vib_list = []
+    for T in T_range:
+        x = theta_vib_N2 / T
+        exp_x = np.exp(x)
+        C_vib = x**2 * exp_x / (exp_x - 1)**2
+        C_vib_list.append(C_vib)
+    
+    C_total = C_trans + C_rot + np.array(C_vib_list)
+    
+    ax4.plot(T_range, C_trans, 'b--', linewidth=2, label='Translational')
+    ax4.plot(T_range, C_rot, 'g--', linewidth=2, label='Rotational')
+    ax4.plot(T_range, C_vib_list, 'r--', linewidth=2, label='Vibrational')
+    ax4.plot(T_range, C_total, 'k-', linewidth=2, label='Total')
+    ax4.axhline(3.5, color='gray', linestyle=':', linewidth=1.5, label='(7/2)k_B')
+    ax4.set_xlabel('Temperature (K)')
+    ax4.set_ylabel('C_V / k_B')
+    ax4.set_title('Contribution to Heat Capacity (N₂)')
+    ax4.legend()
+    ax4.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('stat_mech_ideal_gas_partition.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Numerical results
+    print("=== Partition Function of N₂ Ideal Gas (Standard State)===")
+    print(f"T = {T_std} K, V = {V_molar} m³/mol\n")
+    
+    z_trans_std = translational_partition_per_molecule(V_per_molecule, T_std, m_N2, h, k_B)
+    z_rot_std = rotational_partition(T_std, B_N2)
+    z_vib_std = vibrational_partition(T_std, theta_vib_N2)
+    z_total_std = z_trans_std * z_rot_std * z_vib_std
+    
+    print(f"Translation: z_trans = {z_trans_std:.6e}")
+    print(f"Rotation: z_rot = {z_rot_std:.2f}")
+    print(f"Vibration: z_vib = {z_vib_std:.6f}")
+    print(f"Total: z_total = {z_total_std:.6e}\n")
+    
+    print("Heat capacity (300 K):")
+    C_trans_val = 1.5
+    C_rot_val = 1.0
+    T_300 = 300
+    x_300 = theta_vib_N2 / T_300
+    C_vib_val = x_300**2 * np.exp(x_300) / (np.exp(x_300) - 1)**2
+    C_total_val = C_trans_val + C_rot_val + C_vib_val
+    
+    print(f"  C_trans = {C_trans_val:.2f} k_B")
+    print(f"  C_rot = {C_rot_val:.2f} k_B")
+    print(f"  C_vib = {C_vib_val:.4f} k_B (vibration nearly frozen)")
+    print(f"  C_total ≈ {C_total_val:.2f} k_B")
+    print(f"  Experimental value: C_V ≈ 2.5 k_B (translation + rotation only)")
+    
+
+## Example 2.8: Materials Science Application - Lattice Vibrations and Thermal Expansion
+
+Python Implementation: Anharmonic Effects and Thermal Expansion
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # Anharmonic potential: V(x) = (1/2)kx² - gx³ + fx⁴
+    # g is the anharmonicity parameter
+    
+    k_B = 1.380649e-23  # J/K
+    
+    def anharmonic_potential(x, k, g, f):
+        """Anharmonic potential"""
+        return 0.5 * k * x**2 - g * x**3 + f * x**4
+    
+    def thermal_expansion_coefficient(T, k, g, theta, k_B):
+        """Linear thermal expansion coefficient (perturbation theory)"""
+        # α ∝ g/k × (dE/dT)
+        # Simplified model
+        x = theta / T
+        if x > 50:  # Very low temperature
+            return 0
+        exp_x = np.exp(x)
+        dE_dT = k_B * x**2 * exp_x / (exp_x - 1)**2
+        alpha = (g / k) * dE_dT / (k_B * T)
+        return alpha
+    
+    # Parameters (typical solid)
+    k = 100  # N/m (spring constant)
+    g = 10   # Anharmonicity parameter
+    f = 1    # Fourth-order term
+    theta = 300  # K (Einstein temperature)
+    
+    x_range = np.linspace(-0.2, 0.3, 1000)
+    
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # Potential shape
+    ax1 = axes[0, 0]
+    V_harmonic = 0.5 * k * x_range**2
+    V_anharmonic = anharmonic_potential(x_range, k, g, f)
+    
+    ax1.plot(x_range, V_harmonic, 'b--', linewidth=2, label='Harmonic potential')
+    ax1.plot(x_range, V_anharmonic, 'r-', linewidth=2, label='Anharmonic potential')
+    ax1.axvline(0, color='k', linestyle=':', linewidth=1)
+    ax1.axhline(0, color='k', linestyle=':', linewidth=1)
+    ax1.set_xlabel('Displacement x')
+    ax1.set_ylabel('Potential V(x)')
+    ax1.set_title('Harmonic and Anharmonic Potentials')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    ax1.set_ylim([-0.5, 2])
+    
+    # Temperature dependence of equilibrium position (qualitative)
+    ax2 = axes[0, 1]
+    T_vals = np.linspace(1, 1000, 100)
+    # Equilibrium position shifts at high temperature due to anharmonicity
+    x_eq_shift = [0.01 * (T / theta) * (g / k) if T > theta/10 else 0 for T in T_vals]
+    
+    ax2.plot(T_vals, x_eq_shift, 'r-', linewidth=2)
+    ax2.set_xlabel('Temperature (K)')
+    ax2.set_ylabel('Equilibrium shift')
+    ax2.set_title('Temperature Dependence of Equilibrium Position (Thermal Expansion)')
+    ax2.grid(True, alpha=0.3)
+    
+    # Thermal expansion coefficient
+    ax3 = axes[1, 0]
+    alpha_vals = [thermal_expansion_coefficient(T, k, g, theta, k_B) for T in T_vals]
+    ax3.plot(T_vals, alpha_vals, 'b-', linewidth=2)
+    ax3.set_xlabel('Temperature (K)')
+    ax3.set_ylabel('Thermal expansion coefficient (a.u.)')
+    ax3.set_title('Temperature Dependence of Linear Thermal Expansion Coefficient')
+    ax3.grid(True, alpha=0.3)
+    
+    # Relation to Grüneisen parameter
+    ax4 = axes[1, 1]
+    # Grüneisen parameter γ = V/C_V × α × B_T
+    # Typical values
+    gamma_typical = 2.0  # Dimensionless
+    text_str = f"""
+    Grüneisen parameter γ:
+    
+    γ = (V/C_V) × α × B_T
+    
+    Typical value: γ ≈ {gamma_typical}
+    
+    Meaning:
+    - Volume dependence of lattice vibrations
+    - Relation between thermal expansion and compressibility
+    - Measure of anharmonicity
+    """
+    ax4.text(0.1, 0.5, text_str, fontsize=12, verticalalignment='center',
+             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    ax4.axis('off')
+    ax4.set_title('Grüneisen Parameter')
+    
+    plt.tight_layout()
+    plt.savefig('stat_mech_anharmonic_thermal_expansion.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    print("=== Anharmonic Effects and Thermal Expansion ===\n")
+    print("Anharmonic potential: V(x) = (1/2)kx² - gx³ + fx⁴\n")
+    print(f"Parameters:")
+    print(f"  k = {k} N/m")
+    print(f"  g = {g} (anharmonicity parameter)")
+    print(f"  θ = {theta} K\n")
+    
+    print("Mechanism of thermal expansion:")
+    print("  1. Potential becomes asymmetric due to anharmonicity (g≠0)")
+    print("  2. Vibration amplitude increases at high temperature")
+    print("  3. Equilibrium position shifts due to asymmetry → thermal expansion\n")
+    
+    T_test = 300
+    alpha_test = thermal_expansion_coefficient(T_test, k, g, theta, k_B)
+    print(f"Thermal expansion coefficient at T = {T_test} K:")
+    print(f"  α ≈ {alpha_test:.6e} K⁻¹ (arbitrary units)\n")
+    
+    print("Linear thermal expansion coefficients of actual materials (around 300 K):")
+    print("  Al: α ≈ 23 × 10⁻⁶ K⁻¹")
+    print("  Cu: α ≈ 17 × 10⁻⁶ K⁻¹")
+    print("  Fe: α ≈ 12 × 10⁻⁶ K⁻¹")
+    
+
+## Summary
+
+1\. The **canonical ensemble** describes systems at fixed temperature, allowing derivation of all thermodynamic quantities from the partition function \\(Z\\).
+
+2\. **Helmholtz free energy** \\(F = -k_B T \ln Z\\) is the fundamental thermodynamic potential.
+
+3\. The **equipartition theorem** states that classical quadratic energy terms each contribute \\(\frac{1}{2}k_B T\\) per degree of freedom.
+
+4\. The **harmonic oscillator** is a fundamental system exhibiting quantum effects (zero-point energy) and the classical high-temperature limit.
+
+5\. **Two-level systems** exhibit Schottky heat capacity and model magnetic and tunneling systems.
+
+6\. The **Einstein solid** explains the Dulong-Petit law as a collection of independent oscillators.
+
+7\. The **Debye model** gives the \\(T^3\\) law at low temperatures, agreeing well with experiments.
+
+8\. The ideal gas partition function **separates into translation, rotation, and vibration** , allowing independent evaluation of each contribution.
+
+9\. **Anharmonic effects** are the origin of thermal expansion and are characterized by the Grüneisen parameter.
+
+### Exercises
+
+  1. **Fluctuations in harmonic oscillator** : Calculate the energy variance \\(\langle E^2 \rangle - \langle E \rangle^2\\) and investigate its temperature dependence.
+  2. **Derivation of equipartition theorem** : Integrate \\(\langle p^2/(2m) \rangle\\) from the Boltzmann distribution to show it equals \\(\frac{1}{2}k_B T\\).
+  3. **Schottky anomaly** : Calculate the Schottky heat capacity for a three-level system (E₀=0, E₁=ε, E₂=2ε) and observe two peaks.
+  4. **Comparison of Einstein and Debye** : Compare low-temperature heat capacity with the same characteristic temperature (θ_E = θ_D) and confirm the superiority of the Debye model.
+  5. **Vibration-rotation spectrum** : Calculate the occupation numbers of vibration-rotation levels from the total partition function of a diatomic molecule and visualize the temperature dependence.
+
+[← Chapter 1: Fundamentals of Statistical Mechanics and Probability](<chapter-1.html>) [Chapter 3: Grand Canonical Ensemble →](<chapter-3.html>)
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

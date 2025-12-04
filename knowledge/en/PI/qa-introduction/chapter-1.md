@@ -1,0 +1,1509 @@
+---
+title: "Chapter 1: Fundamentals of Quality Management and TQM"
+chapter_title: "Chapter 1: Fundamentals of Quality Management and TQM"
+subtitle: From Basic Quality Concepts to Process Capability Assessment
+version: 1.0
+---
+
+This chapter covers the fundamentals of Fundamentals of Quality Management and TQM, which basic concepts of quality management. You will learn basic concepts of quality management (QC and 8 principles of TQM.
+
+## Learning Objectives
+
+By reading this chapter, you will be able to:
+
+  * ✅ Understand the basic concepts of quality management (QC, QA, QMS)
+  * ✅ Calculate and evaluate process capability indices (Cp, Cpk)
+  * ✅ Identify critical quality issues using Pareto analysis
+  * ✅ Classify and analyze cost of quality
+  * ✅ Understand the 8 principles of TQM and practice the PDCA cycle
+
+* * *
+
+## 1.1 Basic Concepts of Quality Management
+
+### What is Quality?
+
+**Quality** refers to "the degree to which a product or service meets customer requirements." ISO 9000 defines it as "the degree to which a set of inherent characteristics fulfills requirements."
+
+The evolution of quality management is divided into three eras:
+
+Era | Approach | Characteristics | Representative Methods  
+---|---|---|---  
+**Inspection Era** | Post-inspection | Removing defective products | 100% inspection, sampling inspection  
+**Statistical Quality Control** | Process control | Preventing defects | Control charts, sampling  
+**TQM** | Company-wide improvement | Maximizing customer satisfaction | Six Sigma, ISO 9001  
+  
+### Differences Between QC, QA, and QMS
+
+  * **QC (Quality Control)** : Measuring product/process quality and managing to meet standards
+  * **QA (Quality Assurance)** : System to ensure quality requirements are met
+  * **QMS (Quality Management System)** : Organization-wide framework for quality management
+
+    
+    
+    ```mermaid
+    graph TB
+        A[QMS Quality Management System] --> B[QA Quality Assurance]
+        A --> C[QC Quality Control]
+        B --> D[Process Design & Verification]
+        B --> E[Document Management & Audit]
+        C --> F[Inspection & Measurement]
+        C --> G[Nonconformance Management]
+    
+        style A fill:#e8f5e9
+        style B fill:#c8e6c9
+        style C fill:#a5d6a7
+    ```
+
+* * *
+
+## 1.2 Process Capability Assessment
+
+### Code Example 1: Process Capability Indices (Cp, Cpk) Calculation
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - scipy>=1.11.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    
+    def calculate_process_capability(data, USL, LSL):
+        """
+        Calculate Process Capability Indices (Cp, Cpk)
+    
+        Parameters:
+        -----------
+        data : array-like
+            Process data (e.g., product purity, dimensions)
+        USL : float
+            Upper Specification Limit
+        LSL : float
+            Lower Specification Limit
+    
+        Returns:
+        --------
+        dict : Process capability indices and statistics
+        """
+        # Basic statistics
+        mean = np.mean(data)
+        std = np.std(data, ddof=1)  # Unbiased standard deviation
+    
+        # Cp (Process Capability Index)
+        # Cp = (USL - LSL) / (6σ)
+        Cp = (USL - LSL) / (6 * std)
+    
+        # Cpk (Process Capability Index, one-sided)
+        # Cpk = min((USL - μ) / 3σ, (μ - LSL) / 3σ)
+        Cpu = (USL - mean) / (3 * std)
+        Cpl = (mean - LSL) / (3 * std)
+        Cpk = min(Cpu, Cpl)
+    
+        # Defect rate estimation (assuming normal distribution)
+        defect_rate_upper = 1 - stats.norm.cdf(USL, mean, std)
+        defect_rate_lower = stats.norm.cdf(LSL, mean, std)
+        total_defect_rate = defect_rate_upper + defect_rate_lower
+    
+        return {
+            'mean': mean,
+            'std': std,
+            'Cp': Cp,
+            'Cpk': Cpk,
+            'Cpu': Cpu,
+            'Cpl': Cpl,
+            'defect_rate': total_defect_rate,
+            'defect_ppm': total_defect_rate * 1e6
+        }
+    
+    # Chemical process product purity data (%)
+    np.random.seed(42)
+    purity_data = np.random.normal(loc=98.5, scale=0.3, size=200)
+    
+    # Specification limits
+    USL = 99.5  # Upper Specification Limit [%]
+    LSL = 97.5  # Lower Specification Limit [%]
+    
+    # Process capability calculation
+    capability = calculate_process_capability(purity_data, USL, LSL)
+    
+    # Visualization
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Histogram and process capability
+    ax1.hist(purity_data, bins=30, density=True, alpha=0.7, color='#11998e',
+             edgecolor='black', label='Measured Data')
+    
+    # Normal distribution fit
+    x = np.linspace(LSL - 1, USL + 1, 200)
+    ax1.plot(x, stats.norm.pdf(x, capability['mean'], capability['std']),
+             'r-', linewidth=2, label='Normal Distribution Fit')
+    
+    # Specification limit lines
+    ax1.axvline(USL, color='red', linestyle='--', linewidth=2, label=f'USL = {USL}%')
+    ax1.axvline(LSL, color='red', linestyle='--', linewidth=2, label=f'LSL = {LSL}%')
+    ax1.axvline(capability['mean'], color='green', linestyle='-', linewidth=2,
+                label=f'Mean = {capability["mean"]:.2f}%')
+    
+    ax1.set_xlabel('Product Purity [%]', fontsize=11)
+    ax1.set_ylabel('Probability Density', fontsize=11)
+    ax1.set_title('Process Capability Distribution', fontsize=12, fontweight='bold')
+    ax1.legend(fontsize=9)
+    ax1.grid(alpha=0.3)
+    
+    # Capability indices visualization
+    indices = ['Cp', 'Cpk', 'Cpu', 'Cpl']
+    values = [capability[idx] for idx in indices]
+    colors = ['#11998e' if v >= 1.33 else '#ffa726' if v >= 1.0 else '#ef5350' for v in values]
+    
+    bars = ax2.bar(indices, values, color=colors, edgecolor='black', linewidth=1.5)
+    ax2.axhline(y=1.33, color='green', linestyle='--', linewidth=2,
+                label='Excellent (≥1.33)', alpha=0.7)
+    ax2.axhline(y=1.00, color='orange', linestyle='--', linewidth=2,
+                label='Acceptable (≥1.00)', alpha=0.7)
+    
+    # Display values on bars
+    for bar in bars:
+        height = bar.get_height()
+        ax2.text(bar.get_x() + bar.get_width()/2., height + 0.05,
+                 f'{height:.3f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
+    
+    ax2.set_ylabel('Capability Index', fontsize=11)
+    ax2.set_title('Process Capability Indices', fontsize=12, fontweight='bold')
+    ax2.legend(fontsize=9)
+    ax2.grid(alpha=0.3, axis='y')
+    ax2.set_ylim(0, max(values) * 1.2)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Results output
+    print("=" * 60)
+    print("Process Capability Analysis Results")
+    print("=" * 60)
+    print(f"Mean:               {capability['mean']:.4f} %")
+    print(f"Std. Deviation:     {capability['std']:.4f} %")
+    print(f"Cp (Capability):    {capability['Cp']:.4f}")
+    print(f"Cpk (Adjusted):     {capability['Cpk']:.4f}")
+    print(f"Cpu (Upper):        {capability['Cpu']:.4f}")
+    print(f"Cpl (Lower):        {capability['Cpl']:.4f}")
+    print(f"Estimated Defect:   {capability['defect_rate']:.6%}")
+    print(f"Defect Rate [ppm]:  {capability['defect_ppm']:.2f} ppm")
+    print("=" * 60)
+    
+    # Capability evaluation
+    if capability['Cpk'] >= 1.33:
+        print("✅ Evaluation: Excellent - Process capability is sufficient")
+    elif capability['Cpk'] >= 1.00:
+        print("⚠️  Evaluation: Acceptable - Process capability is within tolerance but can be improved")
+    else:
+        print("❌ Evaluation: Unacceptable - Process capability is insufficient, urgent improvement needed")
+    
+
+**Example Output:**
+    
+    
+    ============================================================
+    Process Capability Analysis Results
+    ============================================================
+    Mean:               98.5041 %
+    Std. Deviation:     0.2989 %
+    Cp (Capability):    1.1163
+    Cpk (Adjusted):     1.1107
+    Cpu (Upper):        1.1107
+    Cpl (Lower):        1.1218
+    Estimated Defect:   0.000713%
+    Defect Rate [ppm]:  7.13 ppm
+    ============================================================
+    ⚠️  Evaluation: Acceptable - Process capability is within tolerance but can be improved
+    
+
+**Explanation:** Process capability indices (Cp, Cpk) quantitatively evaluate the process's ability to meet specifications. Cp ≥ 1.33 is considered excellent, Cp ≥ 1.0 is acceptable. Cpk also considers the position of the mean.
+
+* * *
+
+### Code Example 2: Pareto Analysis (80-20 Rule)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    
+    def pareto_analysis(data_dict, title="Pareto Chart"):
+        """
+        Execute and visualize Pareto analysis
+    
+        Parameters:
+        -----------
+        data_dict : dict
+            Dictionary of category name: occurrence count
+        title : str
+            Graph title
+        """
+        # Convert to DataFrame and sort
+        df = pd.DataFrame(list(data_dict.items()), columns=['Category', 'Count'])
+        df = df.sort_values('Count', ascending=False).reset_index(drop=True)
+    
+        # Calculate cumulative ratio
+        df['Cumulative'] = df['Count'].cumsum()
+        df['Cumulative_Pct'] = 100 * df['Cumulative'] / df['Count'].sum()
+        df['Percent'] = 100 * df['Count'] / df['Count'].sum()
+    
+        # Visualization
+        fig, ax1 = plt.subplots(figsize=(12, 6))
+    
+        # Bar chart
+        x_pos = np.arange(len(df))
+        bars = ax1.bar(x_pos, df['Count'], color='#11998e', alpha=0.8,
+                       edgecolor='black', linewidth=1.2, label='Occurrence Count')
+    
+        ax1.set_xlabel('Defect Type', fontsize=11)
+        ax1.set_ylabel('Occurrence Count', fontsize=11)
+        ax1.set_xticks(x_pos)
+        ax1.set_xticklabels(df['Category'], rotation=45, ha='right')
+    
+        # Cumulative ratio line chart
+        ax2 = ax1.twinx()
+        line = ax2.plot(x_pos, df['Cumulative_Pct'], color='red', marker='o',
+                        linewidth=2.5, markersize=8, label='Cumulative %')
+        ax2.set_ylabel('Cumulative Percentage [%]', fontsize=11)
+        ax2.set_ylim(0, 110)
+        ax2.axhline(y=80, color='orange', linestyle='--', linewidth=2,
+                    alpha=0.7, label='80% Line')
+    
+        # Display percentage on each bar
+        for i, (bar, pct) in enumerate(zip(bars, df['Percent'])):
+            height = bar.get_height()
+            ax1.text(bar.get_x() + bar.get_width()/2., height + 0.5,
+                    f'{pct:.1f}%', ha='center', va='bottom', fontsize=9)
+    
+        # Legend
+        lines1, labels1 = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left', fontsize=10)
+    
+        ax1.set_title(title, fontsize=13, fontweight='bold')
+        ax1.grid(alpha=0.3, axis='y')
+        plt.tight_layout()
+        plt.show()
+    
+        return df
+    
+    # Chemical plant defect data (1 month)
+    defects = {
+        'Raw Material Contamination': 145,
+        'Temperature Control Abnormal': 98,
+        'Pressure Fluctuation': 76,
+        'Insufficient Reaction Time': 54,
+        'Catalyst Activity Decline': 42,
+        'Pipe Clogging': 28,
+        'Instrument Error': 18,
+        'pH Control Deviation': 15,
+        'Insufficient Cooling': 12,
+        'Agitation Defect': 8,
+        'Formulation Error': 6,
+        'Others': 4
+    }
+    
+    # Execute Pareto analysis
+    df_pareto = pareto_analysis(defects, title='Pareto Analysis of Chemical Plant Defect Factors')
+    
+    # Identify items exceeding 80% line
+    cumsum_80 = df_pareto[df_pareto['Cumulative_Pct'] <= 80]
+    print("\n" + "=" * 60)
+    print("Pareto Analysis Results (80-20 Rule)")
+    print("=" * 60)
+    print(f"Total Defects: {df_pareto['Count'].sum()} cases\n")
+    print("Priority Control Items (up to 80% cumulative):")
+    print("-" * 60)
+    for idx, row in cumsum_80.iterrows():
+        print(f"{idx+1}. {row['Category']:<30} "
+              f"{row['Count']:>4} cases ({row['Percent']:>5.1f}%) "
+              f"Cumulative: {row['Cumulative_Pct']:>5.1f}%")
+    
+    print("=" * 60)
+    print(f"✅ Priority items: {len(cumsum_80)} / {len(df_pareto)} items")
+    print(f"   These cover {cumsum_80['Percent'].sum():.1f}% of all defects")
+    
+
+**Example Output:**
+    
+    
+    ============================================================
+    Pareto Analysis Results (80-20 Rule)
+    ============================================================
+    Total Defects: 506 cases
+    
+    Priority Control Items (up to 80% cumulative):
+    ------------------------------------------------------------
+    1. Raw Material Contamination       145 cases (28.7%) Cumulative:  28.7%
+    2. Temperature Control Abnormal      98 cases (19.4%) Cumulative:  48.0%
+    3. Pressure Fluctuation              76 cases (15.0%) Cumulative:  63.0%
+    4. Insufficient Reaction Time        54 cases (10.7%) Cumulative:  73.7%
+    ============================================================
+    ✅ Priority items: 4 / 12 items
+       These cover 73.7% of all defects
+    
+
+**Explanation:** Pareto analysis (80-20 rule) visualizes that "a small number of critical factors account for the majority of problems." The top 4 items account for 73.7% of all defects, so these should be prioritized for improvement.
+
+* * *
+
+### Code Example 3: Fishbone Diagram (Cause-and-Effect Diagram) Data Structure
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+    
+    def create_fishbone_data(problem, major_causes):
+        """
+        Create fishbone diagram data structure
+    
+        Parameters:
+        -----------
+        problem : str
+            Quality problem (effect)
+        major_causes : dict
+            Major cause categories and their factors
+    
+        Returns:
+        --------
+        dict : Fishbone diagram data
+        """
+        return {
+            'problem': problem,
+            'causes': major_causes
+        }
+    
+    def visualize_fishbone(fishbone_data):
+        """
+        Visualize fishbone diagram (simplified version)
+        """
+        fig, ax = plt.subplots(figsize=(14, 8))
+    
+        # Fish backbone (main axis)
+        ax.arrow(0.1, 0.5, 0.7, 0, head_width=0.05, head_length=0.05,
+                 fc='black', ec='black', linewidth=2)
+    
+        # Problem (fish head)
+        ax.text(0.85, 0.5, fishbone_data['problem'], fontsize=14,
+                fontweight='bold', bbox=dict(boxstyle='round',
+                facecolor='#ef5350', edgecolor='black', linewidth=2),
+                ha='center', va='center')
+    
+        # Major cause placement
+        causes = fishbone_data['causes']
+        n_causes = len(causes)
+        positions = [(0.25, 0.75), (0.45, 0.75), (0.65, 0.75),  # Upper
+                     (0.25, 0.25), (0.45, 0.25), (0.65, 0.25)]  # Lower
+    
+        for i, (category, factors) in enumerate(causes.items()):
+            if i >= len(positions):
+                break
+    
+            x, y = positions[i]
+    
+            # Major bones (categories)
+            if y > 0.5:  # Upper
+                ax.plot([x, x], [0.5, y], 'k-', linewidth=2)
+                text_y = y + 0.05
+            else:  # Lower
+                ax.plot([x, x], [0.5, y], 'k-', linewidth=2)
+                text_y = y - 0.05
+    
+            # Category name
+            ax.text(x, text_y, category, fontsize=11, fontweight='bold',
+                    bbox=dict(boxstyle='round', facecolor='#11998e',
+                             edgecolor='black', alpha=0.8),
+                    ha='center', va='center')
+    
+            # Minor bones (factors) - displayed as text
+            factor_text = '\n'.join([f'• {f}' for f in factors])
+            ax.text(x, y, factor_text, fontsize=8, ha='center', va='center',
+                    bbox=dict(boxstyle='round', facecolor='white',
+                             edgecolor='gray', alpha=0.9))
+    
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.axis('off')
+        ax.set_title('Fishbone Diagram (Cause-and-Effect Diagram)', fontsize=14, fontweight='bold')
+    
+        plt.tight_layout()
+        plt.show()
+    
+    # Chemical process quality problem analysis
+    fishbone = create_fishbone_data(
+        problem='Product Purity Decline',
+        major_causes={
+            'Material': [
+                'Insufficient raw material purity',
+                'Contamination',
+                'Poor storage conditions'
+            ],
+            'Method': [
+                'Insufficient reaction time',
+                'SOP non-compliance',
+                'Temperature control error'
+            ],
+            'Machine': [
+                'Reactor contamination',
+                'Pipe deterioration',
+                'Instrument calibration drift'
+            ],
+            'Man': [
+                'Operational error',
+                'Insufficient training',
+                'Lack of verification'
+            ],
+            'Measurement': [
+                'Analytical error',
+                'Poor sampling',
+                'Insufficient instrument accuracy'
+            ],
+            'Environment': [
+                'Temperature/humidity fluctuation',
+                'Vibration impact',
+                'External contamination'
+            ]
+        }
+    )
+    
+    # Visualization
+    visualize_fishbone(fishbone)
+    
+    # Data structure output
+    print("=" * 60)
+    print("Fishbone Diagram Data Structure")
+    print("=" * 60)
+    print(f"Quality Problem: {fishbone['problem']}\n")
+    for category, factors in fishbone['causes'].items():
+        print(f"{category}:")
+        for factor in factors:
+            print(f"  • {factor}")
+        print()
+    
+
+**Explanation:** The fishbone diagram (Ishikawa diagram, cause-and-effect diagram) is a method for systematically analyzing the root causes of quality problems. Factors are organized by 4M+2E categories (Man, Machine, Material, Method, Measurement, Environment).
+
+* * *
+
+### Code Example 4: PDCA Cycle Tracking System
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - pandas>=2.0.0, <2.2.0
+    
+    import pandas as pd
+    from datetime import datetime, timedelta
+    
+    class PDCACycle:
+        """
+        PDCA Cycle Management System
+        """
+        def __init__(self, project_name):
+            self.project_name = project_name
+            self.cycles = []
+    
+        def add_cycle(self, plan, do, check, act, start_date, cycle_duration_days=30):
+            """
+            Add PDCA cycle
+    
+            Parameters:
+            -----------
+            plan : str
+                Plan
+            do : str
+                Do
+            check : str
+                Check
+            act : str
+                Act
+            start_date : str
+                Start date (YYYY-MM-DD)
+            cycle_duration_days : int
+                Cycle duration (days)
+            """
+            start = datetime.strptime(start_date, '%Y-%m-%d')
+    
+            cycle = {
+                'cycle_id': len(self.cycles) + 1,
+                'plan': plan,
+                'do': do,
+                'check': check,
+                'act': act,
+                'start_date': start,
+                'end_date': start + timedelta(days=cycle_duration_days),
+                'status': 'Planned',
+                'kpi_before': None,
+                'kpi_after': None,
+                'improvement_pct': None
+            }
+    
+            self.cycles.append(cycle)
+    
+        def update_status(self, cycle_id, status, kpi_before=None, kpi_after=None):
+            """
+            Update PDCA cycle status
+            """
+            for cycle in self.cycles:
+                if cycle['cycle_id'] == cycle_id:
+                    cycle['status'] = status
+                    if kpi_before is not None:
+                        cycle['kpi_before'] = kpi_before
+                    if kpi_after is not None:
+                        cycle['kpi_after'] = kpi_after
+                        if kpi_before is not None:
+                            cycle['improvement_pct'] = 100 * (kpi_after - kpi_before) / kpi_before
+                    break
+    
+        def get_summary(self):
+            """
+            Get PDCA cycle summary
+            """
+            df = pd.DataFrame(self.cycles)
+            if not df.empty:
+                df['start_date'] = df['start_date'].dt.strftime('%Y-%m-%d')
+                df['end_date'] = df['end_date'].dt.strftime('%Y-%m-%d')
+            return df
+    
+        def visualize_progress(self):
+            """
+            Visualize improvement progress
+            """
+            df = self.get_summary()
+    
+            # KPI improvement visualization
+            cycles_with_kpi = df[df['kpi_after'].notna()]
+    
+            if len(cycles_with_kpi) == 0:
+                print("No KPI data available yet")
+                return
+    
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+            # KPI trend
+            ax1.plot(cycles_with_kpi['cycle_id'], cycles_with_kpi['kpi_before'],
+                    marker='o', linewidth=2, markersize=8, label='Before Improvement', color='#ef5350')
+            ax1.plot(cycles_with_kpi['cycle_id'], cycles_with_kpi['kpi_after'],
+                    marker='s', linewidth=2, markersize=8, label='After Improvement', color='#11998e')
+            ax1.set_xlabel('PDCA Cycle Number', fontsize=11)
+            ax1.set_ylabel('KPI Value', fontsize=11)
+            ax1.set_title('KPI Trend Through PDCA Improvement', fontsize=12, fontweight='bold')
+            ax1.legend(fontsize=10)
+            ax1.grid(alpha=0.3)
+    
+            # Improvement rate
+            colors = ['#11998e' if x > 0 else '#ef5350'
+                      for x in cycles_with_kpi['improvement_pct']]
+            bars = ax2.bar(cycles_with_kpi['cycle_id'], cycles_with_kpi['improvement_pct'],
+                          color=colors, edgecolor='black', linewidth=1.2)
+    
+            # Display improvement rate on bars
+            for bar, pct in zip(bars, cycles_with_kpi['improvement_pct']):
+                height = bar.get_height()
+                ax2.text(bar.get_x() + bar.get_width()/2., height + 0.5 if height > 0 else height - 0.5,
+                        f'{pct:.1f}%', ha='center', va='bottom' if height > 0 else 'top',
+                        fontsize=10, fontweight='bold')
+    
+            ax2.axhline(y=0, color='black', linestyle='-', linewidth=1)
+            ax2.set_xlabel('PDCA Cycle Number', fontsize=11)
+            ax2.set_ylabel('Improvement Rate [%]', fontsize=11)
+            ax2.set_title('Improvement Effect per Cycle', fontsize=12, fontweight='bold')
+            ax2.grid(alpha=0.3, axis='y')
+    
+            plt.tight_layout()
+            plt.show()
+    
+    # PDCA cycle management example
+    pdca = PDCACycle(project_name='Product Purity Improvement Project')
+    
+    # Cycle 1
+    pdca.add_cycle(
+        plan='Raise raw material purity inspection standard from 95% to 98%',
+        do='Conduct raw material receiving inspection with new standard (1 month)',
+        check='Product purity improved from 97.8% to 98.2% (+0.4%)',
+        act='Standardize new criteria, provide feedback to suppliers',
+        start_date='2025-01-01',
+        cycle_duration_days=30
+    )
+    pdca.update_status(cycle_id=1, status='Completed', kpi_before=97.8, kpi_after=98.2)
+    
+    # Cycle 2
+    pdca.add_cycle(
+        plan='Improve reaction temperature control accuracy from ±2°C to ±0.5°C',
+        do='Optimize PID parameters of temperature control system',
+        check='Product purity improved from 98.2% to 98.6% (+0.4%)',
+        act='Apply optimized PID parameters to all batches',
+        start_date='2025-02-01',
+        cycle_duration_days=30
+    )
+    pdca.update_status(cycle_id=2, status='Completed', kpi_before=98.2, kpi_after=98.6)
+    
+    # Cycle 3
+    pdca.add_cycle(
+        plan='Extend reaction time from 180 min to 200 min (to suppress side reactions)',
+        do='Test extended reaction time on 10 batches',
+        check='Product purity improved from 98.6% to 98.9% (+0.3%)',
+        act='Change standard reaction time to 200 min, adjust production plan',
+        start_date='2025-03-01',
+        cycle_duration_days=30
+    )
+    pdca.update_status(cycle_id=3, status='Completed', kpi_before=98.6, kpi_after=98.9)
+    
+    # Display summary
+    df_summary = pdca.get_summary()
+    print("=" * 90)
+    print(f"PDCA Cycle Management: {pdca.project_name}")
+    print("=" * 90)
+    print(df_summary[['cycle_id', 'plan', 'status', 'kpi_before', 'kpi_after',
+                      'improvement_pct']].to_string(index=False))
+    print("=" * 90)
+    
+    # Summary of improvement effects
+    total_improvement = df_summary['kpi_after'].iloc[-1] - df_summary['kpi_before'].iloc[0]
+    print(f"\nTotal Improvement: {df_summary['kpi_before'].iloc[0]:.1f}% → "
+          f"{df_summary['kpi_after'].iloc[-1]:.1f}% (+{total_improvement:.1f}%)")
+    
+    # Visualize progress
+    pdca.visualize_progress()
+    
+
+**Explanation:** The PDCA cycle (Plan-Do-Check-Act) is the fundamental framework for continuous improvement. It is important to measure KPIs in each cycle and quantitatively evaluate improvement effects.
+
+* * *
+
+### Code Example 5: Cost of Quality Analysis (COQ)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    
+    class QualityCostAnalyzer:
+        """
+        Cost of Quality Analysis Tool (COQ Analysis)
+        """
+        def __init__(self):
+            self.cost_data = {
+                'prevention': [],      # Prevention costs
+                'appraisal': [],       # Appraisal costs
+                'internal_failure': [], # Internal failure costs
+                'external_failure': []  # External failure costs
+            }
+    
+        def add_cost(self, category, description, amount):
+            """
+            Add quality cost
+    
+            Parameters:
+            -----------
+            category : str
+                Cost category (prevention, appraisal, internal_failure, external_failure)
+            description : str
+                Cost description
+            amount : float
+                Amount (yen)
+            """
+            if category in self.cost_data:
+                self.cost_data[category].append({
+                    'description': description,
+                    'amount': amount
+                })
+            else:
+                raise ValueError(f"Invalid category: {category}")
+    
+        def calculate_totals(self):
+            """
+            Calculate category and total costs
+            """
+            totals = {}
+            for category, items in self.cost_data.items():
+                totals[category] = sum(item['amount'] for item in items)
+    
+            totals['total_prevention_appraisal'] = totals['prevention'] + totals['appraisal']
+            totals['total_failure'] = totals['internal_failure'] + totals['external_failure']
+            totals['total'] = totals['total_prevention_appraisal'] + totals['total_failure']
+    
+            return totals
+    
+        def visualize(self):
+            """
+            Visualize quality costs
+            """
+            totals = self.calculate_totals()
+    
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+    
+            # Category costs (pie chart)
+            categories = ['Prevention Cost', 'Appraisal Cost', 'Internal Failure Cost', 'External Failure Cost']
+            amounts = [totals['prevention'], totals['appraisal'],
+                       totals['internal_failure'], totals['external_failure']]
+            colors = ['#11998e', '#38ef7d', '#ffa726', '#ef5350']
+    
+            wedges, texts, autotexts = ax1.pie(amounts, labels=categories, autopct='%1.1f%%',
+                                                 colors=colors, startangle=90,
+                                                 textprops={'fontsize': 10})
+            for autotext in autotexts:
+                autotext.set_color('white')
+                autotext.set_fontweight('bold')
+    
+            ax1.set_title('Quality Cost Breakdown', fontsize=12, fontweight='bold')
+    
+            # PAF ratio analysis (Prevention-Appraisal-Failure)
+            paf_categories = ['Prevention &\nAppraisal Cost', 'Failure Cost']
+            paf_amounts = [totals['total_prevention_appraisal'], totals['total_failure']]
+            paf_colors = ['#11998e', '#ef5350']
+    
+            bars = ax2.bar(paf_categories, paf_amounts, color=paf_colors,
+                          edgecolor='black', linewidth=1.5)
+    
+            # Display amount and ratio on bars
+            for bar, amount in zip(bars, paf_amounts):
+                height = bar.get_height()
+                pct = 100 * amount / totals['total']
+                ax2.text(bar.get_x() + bar.get_width()/2., height + 5,
+                        f'¥{amount:,.0f}\n({pct:.1f}%)', ha='center', va='bottom',
+                        fontsize=10, fontweight='bold')
+    
+            ax2.set_ylabel('Cost [Yen]', fontsize=11)
+            ax2.set_title('PAF Ratio Analysis', fontsize=12, fontweight='bold')
+            ax2.grid(alpha=0.3, axis='y')
+    
+            plt.tight_layout()
+            plt.show()
+    
+        def get_summary(self):
+            """
+            Get cost summary
+            """
+            totals = self.calculate_totals()
+    
+            # Details for each category
+            details = []
+            for category, items in self.cost_data.items():
+                for item in items:
+                    details.append({
+                        'Category': category,
+                        'Description': item['description'],
+                        'Amount': item['amount']
+                    })
+    
+            return pd.DataFrame(details), totals
+    
+    # Cost of quality analysis example
+    coq = QualityCostAnalyzer()
+    
+    # Prevention Costs
+    coq.add_cost('prevention', 'Quality planning', 500000)
+    coq.add_cost('prevention', 'Equipment preventive maintenance', 1200000)
+    coq.add_cost('prevention', 'Employee training', 800000)
+    coq.add_cost('prevention', 'Process improvement activities', 600000)
+    
+    # Appraisal Costs
+    coq.add_cost('appraisal', 'Receiving inspection', 900000)
+    coq.add_cost('appraisal', 'In-process inspection', 1500000)
+    coq.add_cost('appraisal', 'Final product inspection', 1100000)
+    coq.add_cost('appraisal', 'Measuring instrument calibration', 400000)
+    
+    # Internal Failure Costs
+    coq.add_cost('internal_failure', 'Defective product disposal', 2800000)
+    coq.add_cost('internal_failure', 'Rework & reprocessing', 1900000)
+    coq.add_cost('internal_failure', 'Downgraded products', 700000)
+    coq.add_cost('internal_failure', 'Re-inspection', 500000)
+    
+    # External Failure Costs
+    coq.add_cost('external_failure', 'Customer complaint handling', 1200000)
+    coq.add_cost('external_failure', 'Product recall', 800000)
+    coq.add_cost('external_failure', 'Warranty repair', 600000)
+    coq.add_cost('external_failure', 'Brand image damage', 400000)
+    
+    # Display summary
+    df_details, totals = coq.get_summary()
+    
+    print("=" * 70)
+    print("Cost of Quality Analysis Results (COQ)")
+    print("=" * 70)
+    print("\nCost by Category:")
+    print("-" * 70)
+    print(f"Prevention Cost:          ¥{totals['prevention']:>12,.0f}")
+    print(f"Appraisal Cost:           ¥{totals['appraisal']:>12,.0f}")
+    print(f"Internal Failure Cost:    ¥{totals['internal_failure']:>12,.0f}")
+    print(f"External Failure Cost:    ¥{totals['external_failure']:>12,.0f}")
+    print("-" * 70)
+    print(f"Total Quality Cost:       ¥{totals['total']:>12,.0f}")
+    print("=" * 70)
+    
+    # PAF ratio analysis
+    paf_ratio = totals['total_prevention_appraisal'] / totals['total_failure']
+    print(f"\nPAF Ratio (Prevention & Appraisal / Failure): {paf_ratio:.2f}")
+    
+    if paf_ratio < 0.5:
+        print("⚠️  Failure costs are too high. Investment in prevention/appraisal activities should be increased.")
+    elif paf_ratio < 1.0:
+        print("⚠️  Failure costs are somewhat high. Consider strengthening prevention activities.")
+    else:
+        print("✅ Appropriate balance. Preventive quality management is functioning.")
+    
+    # Visualization
+    coq.visualize()
+    
+    # Detailed data
+    print("\nQuality Cost Details:")
+    print(df_details.to_string(index=False))
+    
+
+**Explanation:** Cost of Quality (COQ) is classified into four categories: prevention costs, appraisal costs, and failure costs (internal and external). When failure costs are high, increasing investment in prevention/appraisal activities may reduce total costs.
+
+* * *
+
+### Code Example 6: Defect Rate Calculation and Confidence Intervals
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - scipy>=1.11.0
+    
+    import numpy as np
+    from scipy import stats
+    import matplotlib.pyplot as plt
+    
+    def calculate_defect_rate_ci(n_defects, n_total, confidence=0.95):
+        """
+        Calculate defect rate and confidence interval (binomial distribution)
+    
+        Parameters:
+        -----------
+        n_defects : int
+            Number of defects
+        n_total : int
+            Total inspected
+        confidence : float
+            Confidence level (default: 0.95 = 95%)
+    
+        Returns:
+        --------
+        dict : Defect rate, confidence interval, PPM
+        """
+        # Defect rate
+        p_defect = n_defects / n_total
+    
+        # Confidence interval (normal approximation for large samples)
+        z = stats.norm.ppf((1 + confidence) / 2)
+        se = np.sqrt(p_defect * (1 - p_defect) / n_total)
+    
+        ci_lower = max(0, p_defect - z * se)
+        ci_upper = min(1, p_defect + z * se)
+    
+        # Wilson score interval (more accurate even for small samples)
+        denominator = 1 + z**2 / n_total
+        center = (p_defect + z**2 / (2 * n_total)) / denominator
+        margin = z * np.sqrt(p_defect * (1 - p_defect) / n_total + z**2 / (4 * n_total**2)) / denominator
+    
+        wilson_lower = max(0, center - margin)
+        wilson_upper = min(1, center + margin)
+    
+        return {
+            'defect_rate': p_defect,
+            'defect_pct': p_defect * 100,
+            'defect_ppm': p_defect * 1e6,
+            'ci_lower': ci_lower,
+            'ci_upper': ci_upper,
+            'ci_lower_ppm': ci_lower * 1e6,
+            'ci_upper_ppm': ci_upper * 1e6,
+            'wilson_lower': wilson_lower,
+            'wilson_upper': wilson_upper,
+            'wilson_lower_ppm': wilson_lower * 1e6,
+            'wilson_upper_ppm': wilson_upper * 1e6,
+            'n_defects': n_defects,
+            'n_total': n_total,
+            'confidence': confidence
+        }
+    
+    def compare_defect_rates(n1_defects, n1_total, n2_defects, n2_total, alpha=0.05):
+        """
+        Compare two defect rates (statistical test)
+    
+        Parameters:
+        -----------
+        n1_defects, n1_total : int
+            Number of defects and total for group 1
+        n2_defects, n2_total : int
+            Number of defects and total for group 2
+        alpha : float
+            Significance level (default: 0.05 = 5%)
+    
+        Returns:
+        --------
+        dict : Test results
+        """
+        p1 = n1_defects / n1_total
+        p2 = n2_defects / n2_total
+    
+        # Pooled estimate
+        p_pooled = (n1_defects + n2_defects) / (n1_total + n2_total)
+    
+        # Standard error
+        se = np.sqrt(p_pooled * (1 - p_pooled) * (1/n1_total + 1/n2_total))
+    
+        # z-statistic
+        z_stat = (p1 - p2) / se
+        p_value = 2 * (1 - stats.norm.cdf(abs(z_stat)))
+    
+        return {
+            'p1': p1,
+            'p2': p2,
+            'p1_ppm': p1 * 1e6,
+            'p2_ppm': p2 * 1e6,
+            'difference': p1 - p2,
+            'difference_ppm': (p1 - p2) * 1e6,
+            'z_statistic': z_stat,
+            'p_value': p_value,
+            'significant': p_value < alpha,
+            'alpha': alpha
+        }
+    
+    # Defect rate calculation example
+    n_defects = 45
+    n_total = 5000
+    
+    result = calculate_defect_rate_ci(n_defects, n_total, confidence=0.95)
+    
+    print("=" * 70)
+    print("Defect Rate Analysis Results")
+    print("=" * 70)
+    print(f"Total Inspected:    {result['n_total']:,} units")
+    print(f"Number of Defects:  {result['n_defects']:,} units")
+    print(f"Defect Rate:        {result['defect_pct']:.3f}%")
+    print(f"Defect Rate [ppm]:  {result['defect_ppm']:.1f} ppm")
+    print(f"\n95% Confidence Interval:")
+    print(f"  Lower:            {result['ci_lower']*100:.3f}% ({result['ci_lower_ppm']:.1f} ppm)")
+    print(f"  Upper:            {result['ci_upper']*100:.3f}% ({result['ci_upper_ppm']:.1f} ppm)")
+    print(f"\nWilson Confidence Interval (recommended):")
+    print(f"  Lower:            {result['wilson_lower']*100:.3f}% ({result['wilson_lower_ppm']:.1f} ppm)")
+    print(f"  Upper:            {result['wilson_upper']*100:.3f}% ({result['wilson_upper_ppm']:.1f} ppm)")
+    print("=" * 70)
+    
+    # Comparison of defect rates before and after improvement
+    print("\n" + "=" * 70)
+    print("Statistical Verification of Improvement Effect")
+    print("=" * 70)
+    
+    # Before improvement
+    n1_defects = 45
+    n1_total = 5000
+    
+    # After improvement
+    n2_defects = 28
+    n2_total = 5000
+    
+    comparison = compare_defect_rates(n1_defects, n1_total, n2_defects, n2_total, alpha=0.05)
+    
+    print(f"Before Improvement: {comparison['p1_ppm']:.1f} ppm")
+    print(f"After Improvement:  {comparison['p2_ppm']:.1f} ppm")
+    print(f"Improvement Effect: {-comparison['difference_ppm']:.1f} ppm ({-comparison['difference']*100:.3f}%)")
+    print(f"\nStatistical Test:")
+    print(f"  z-statistic:      {comparison['z_statistic']:.3f}")
+    print(f"  p-value:          {comparison['p_value']:.4f}")
+    print(f"  Significance:     {comparison['alpha']}")
+    
+    if comparison['significant']:
+        print(f"✅ Conclusion: Improvement effect is statistically significant (p < {comparison['alpha']})")
+    else:
+        print(f"⚠️  Conclusion: Improvement effect is not statistically significant (p >= {comparison['alpha']})")
+    
+    # Visualization
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Defect rate confidence intervals
+    categories = ['Before Improvement', 'After Improvement']
+    rates = [comparison['p1_ppm'], comparison['p2_ppm']]
+    ci_lower_before = calculate_defect_rate_ci(n1_defects, n1_total)['wilson_lower_ppm']
+    ci_upper_before = calculate_defect_rate_ci(n1_defects, n1_total)['wilson_upper_ppm']
+    ci_lower_after = calculate_defect_rate_ci(n2_defects, n2_total)['wilson_lower_ppm']
+    ci_upper_after = calculate_defect_rate_ci(n2_defects, n2_total)['wilson_upper_ppm']
+    
+    errors = [
+        [rates[0] - ci_lower_before, ci_upper_before - rates[0]],
+        [rates[1] - ci_lower_after, ci_upper_after - rates[1]]
+    ]
+    
+    bars = ax1.bar(categories, rates, yerr=np.array(errors).T, capsize=10,
+                  color=['#ef5350', '#11998e'], edgecolor='black', linewidth=1.5)
+    
+    for bar, rate in zip(bars, rates):
+        height = bar.get_height()
+        ax1.text(bar.get_x() + bar.get_width()/2., height + 0.5,
+                f'{rate:.1f} ppm', ha='center', va='bottom', fontsize=11, fontweight='bold')
+    
+    ax1.set_ylabel('Defect Rate [ppm]', fontsize=11)
+    ax1.set_title('Defect Rate Comparison Before/After (95% CI)', fontsize=12, fontweight='bold')
+    ax1.grid(alpha=0.3, axis='y')
+    
+    # Defect count trend (simulated time series data)
+    months = np.arange(1, 13)
+    defects_before = np.random.poisson(9, 6)  # Before improvement (avg 9 per month)
+    defects_after = np.random.poisson(5.6, 6)  # After improvement (avg 5.6 per month)
+    defects_trend = np.concatenate([defects_before, defects_after])
+    
+    ax2.plot(months, defects_trend, marker='o', linewidth=2, markersize=8, color='#11998e')
+    ax2.axvline(x=6.5, color='red', linestyle='--', linewidth=2, label='Improvement Implemented')
+    ax2.fill_between(months[:6], 0, 20, alpha=0.1, color='#ef5350', label='Before')
+    ax2.fill_between(months[6:], 0, 20, alpha=0.1, color='#11998e', label='After')
+    
+    ax2.set_xlabel('Month', fontsize=11)
+    ax2.set_ylabel('Defect Count [units/month]', fontsize=11)
+    ax2.set_title('Defect Count Trend', fontsize=12, fontweight='bold')
+    ax2.legend(fontsize=10)
+    ax2.grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+
+**Explanation:** Calculating confidence intervals is important for evaluating defect rates. The Wilson confidence interval is recommended as it maintains accuracy even with small samples. Statistical hypothesis testing (z-test) is used to verify the significance of improvement effects.
+
+* * *
+
+### Code Example 7: 5 Whys Analysis
+    
+    
+    class FiveWhyAnalysis:
+        """
+        5 Whys Analysis Tool
+        """
+        def __init__(self, problem):
+            self.problem = problem
+            self.whys = []
+            self.root_cause = None
+            self.corrective_actions = []
+    
+        def add_why(self, question, answer):
+            """
+            Add a "why"
+    
+            Parameters:
+            -----------
+            question : str
+                Why? question
+            answer : str
+                The answer (next cause)
+            """
+            self.whys.append({
+                'level': len(self.whys) + 1,
+                'question': question,
+                'answer': answer
+            })
+    
+        def set_root_cause(self, root_cause):
+            """
+            Set root cause
+            """
+            self.root_cause = root_cause
+    
+        def add_corrective_action(self, action, responsible, deadline):
+            """
+            Add corrective action
+    
+            Parameters:
+            -----------
+            action : str
+                Corrective action description
+            responsible : str
+                Person responsible
+            deadline : str
+                Deadline
+            """
+            self.corrective_actions.append({
+                'action': action,
+                'responsible': responsible,
+                'deadline': deadline
+            })
+    
+        def visualize(self):
+            """
+            Visualize 5 Why analysis
+            """
+            print("=" * 80)
+            print("5 Whys Analysis")
+            print("=" * 80)
+            print(f"Problem: {self.problem}\n")
+    
+            for why in self.whys:
+                print(f"Why {why['level']}: {why['question']}")
+                print(f"→ {why['answer']}\n")
+    
+            if self.root_cause:
+                print(f"🎯 Root Cause: {self.root_cause}\n")
+    
+            if self.corrective_actions:
+                print("-" * 80)
+                print("Corrective Actions:")
+                print("-" * 80)
+                for i, action in enumerate(self.corrective_actions, 1):
+                    print(f"{i}. {action['action']}")
+                    print(f"   Responsible: {action['responsible']} | Deadline: {action['deadline']}\n")
+    
+            print("=" * 80)
+    
+    # 5 Why analysis example
+    analysis = FiveWhyAnalysis(problem='Product purity fell below specification lower limit (97.2%, spec: ≥97.5%)')
+    
+    analysis.add_why(
+        question='Why is product purity low?',
+        answer='Reaction temperature was lower than target (185°C) at 180°C'
+    )
+    
+    analysis.add_why(
+        question='Why was reaction temperature low?',
+        answer='Temperature sensor reading was 5°C higher than actual temperature'
+    )
+    
+    analysis.add_why(
+        question='Why was the temperature sensor reading off?',
+        answer='Temperature sensor had not been calibrated'
+    )
+    
+    analysis.add_why(
+        question='Why was the temperature sensor not calibrated?',
+        answer='Calibration schedule was not managed and deadline was missed'
+    )
+    
+    analysis.add_why(
+        question='Why was the calibration schedule not managed?',
+        answer='Instrument management system (maintenance ledger) was not established'
+    )
+    
+    analysis.set_root_cause(
+        'Lack of instrument management system prevented calibration deadline management'
+    )
+    
+    # Add corrective actions
+    analysis.add_corrective_action(
+        action='Create instrument management ledger (Excel-based) and register calibration deadlines for all instruments',
+        responsible='QA Dept. Tanaka',
+        deadline='2025-11-15'
+    )
+    
+    analysis.add_corrective_action(
+        action='Build system to send automatic alert emails 1 month before calibration deadline',
+        responsible='Production Engineering Dept. Sato',
+        deadline='2025-11-30'
+    )
+    
+    analysis.add_corrective_action(
+        action='Conduct emergency calibration of all temperature sensors (12 units)',
+        responsible='Maintenance Dept. Suzuki',
+        deadline='2025-11-10'
+    )
+    
+    analysis.add_corrective_action(
+        action='Add procedure to review instrument calibration status at monthly quality meetings',
+        responsible='QA Dept. Tanaka',
+        deadline='2025-12-01'
+    )
+    
+    # Display analysis results
+    analysis.visualize()
+    
+    # 5 Why analysis flowchart (Mermaid)
+    print("\n5 Why Analysis Flowchart:")
+    print("""
+    ```mermaid
+    graph TD
+        A[Problem: Product purity decline 97.2%] --> B[Why 1: Reaction temperature low 180°C]
+        B --> C[Why 2: Sensor reading deviation +5°C error]
+        C --> D[Why 3: Sensor not calibrated]
+        D --> E[Why 4: Calibration schedule not managed]
+        E --> F[Why 5: Instrument management system lacking]
+        F --> G[🎯 Root Cause: Management system inadequate]
+    
+        G --> H[Corrective Action 1: Create management ledger]
+        G --> I[Corrective Action 2: Automatic alerts]
+        G --> J[Corrective Action 3: Emergency calibration]
+        G --> K[Corrective Action 4: Regular review]
+    
+        style A fill:#ef5350
+        style G fill:#11998e
+        style H fill:#c8e6c9
+        style I fill:#c8e6c9
+        style J fill:#c8e6c9
+        style K fill:#c8e6c9
+    ```
+    """)
+    
+
+**Explanation:** 5 Whys analysis is a method to identify root causes rather than superficial causes of problems. By repeatedly asking "why," you can discover problems at the management system or process level.
+
+* * *
+
+### Code Example 8: Quality Metrics Dashboard
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from datetime import datetime, timedelta
+    
+    class QualityMetricsDashboard:
+        """
+        Quality Management Dashboard
+        """
+        def __init__(self):
+            self.metrics = {
+                'dates': [],
+                'yield': [],           # Yield [%]
+                'purity': [],          # Purity [%]
+                'defect_rate': [],     # Defect rate [ppm]
+                'first_pass_yield': [], # First Pass Yield [%]
+                'customer_complaints': [] # Customer complaints count
+            }
+    
+        def add_daily_metrics(self, date, yield_pct, purity, defect_ppm, fpy, complaints):
+            """
+            Add daily quality metrics
+            """
+            self.metrics['dates'].append(date)
+            self.metrics['yield'].append(yield_pct)
+            self.metrics['purity'].append(purity)
+            self.metrics['defect_rate'].append(defect_ppm)
+            self.metrics['first_pass_yield'].append(fpy)
+            self.metrics['customer_complaints'].append(complaints)
+    
+        def calculate_kpis(self):
+            """
+            Calculate KPIs
+            """
+            df = pd.DataFrame(self.metrics)
+    
+            kpis = {
+                'avg_yield': df['yield'].mean(),
+                'avg_purity': df['purity'].mean(),
+                'avg_defect_rate': df['defect_rate'].mean(),
+                'avg_fpy': df['first_pass_yield'].mean(),
+                'total_complaints': df['customer_complaints'].sum(),
+                'yield_std': df['yield'].std(),
+                'purity_std': df['purity'].std()
+            }
+    
+            return kpis
+    
+        def visualize_dashboard(self):
+            """
+            Visualize quality dashboard
+            """
+            df = pd.DataFrame(self.metrics)
+            kpis = self.calculate_kpis()
+    
+            fig = plt.figure(figsize=(16, 10))
+            gs = fig.add_gridspec(3, 3, hspace=0.3, wspace=0.3)
+    
+            # 1. Yield trend
+            ax1 = fig.add_subplot(gs[0, 0])
+            ax1.plot(df['dates'], df['yield'], marker='o', linewidth=2, color='#11998e')
+            ax1.axhline(y=kpis['avg_yield'], color='red', linestyle='--', linewidth=1.5,
+                       label=f'Average: {kpis["avg_yield"]:.1f}%')
+            ax1.set_ylabel('Yield [%]', fontsize=10)
+            ax1.set_title('Yield Trend', fontsize=11, fontweight='bold')
+            ax1.legend(fontsize=8)
+            ax1.grid(alpha=0.3)
+            ax1.tick_params(axis='x', rotation=45)
+    
+            # 2. Purity trend
+            ax2 = fig.add_subplot(gs[0, 1])
+            ax2.plot(df['dates'], df['purity'], marker='s', linewidth=2, color='#38ef7d')
+            ax2.axhline(y=kpis['avg_purity'], color='red', linestyle='--', linewidth=1.5,
+                       label=f'Average: {kpis["avg_purity"]:.2f}%')
+            ax2.axhline(y=97.5, color='orange', linestyle='--', linewidth=1.5, alpha=0.7,
+                       label='Lower Spec: 97.5%')
+            ax2.set_ylabel('Purity [%]', fontsize=10)
+            ax2.set_title('Product Purity Trend', fontsize=11, fontweight='bold')
+            ax2.legend(fontsize=8)
+            ax2.grid(alpha=0.3)
+            ax2.tick_params(axis='x', rotation=45)
+    
+            # 3. Defect rate trend
+            ax3 = fig.add_subplot(gs[0, 2])
+            ax3.plot(df['dates'], df['defect_rate'], marker='^', linewidth=2, color='#ffa726')
+            ax3.axhline(y=kpis['avg_defect_rate'], color='red', linestyle='--', linewidth=1.5,
+                       label=f'Average: {kpis["avg_defect_rate"]:.0f} ppm')
+            ax3.set_ylabel('Defect Rate [ppm]', fontsize=10)
+            ax3.set_title('Defect Rate Trend', fontsize=11, fontweight='bold')
+            ax3.legend(fontsize=8)
+            ax3.grid(alpha=0.3)
+            ax3.tick_params(axis='x', rotation=45)
+    
+            # 4. First Pass Yield (FPY)
+            ax4 = fig.add_subplot(gs[1, 0])
+            ax4.plot(df['dates'], df['first_pass_yield'], marker='D', linewidth=2, color='#42a5f5')
+            ax4.axhline(y=kpis['avg_fpy'], color='red', linestyle='--', linewidth=1.5,
+                       label=f'Average: {kpis["avg_fpy"]:.1f}%')
+            ax4.set_ylabel('First Pass Yield [%]', fontsize=10)
+            ax4.set_title('First Pass Yield (FPY) Trend', fontsize=11, fontweight='bold')
+            ax4.legend(fontsize=8)
+            ax4.grid(alpha=0.3)
+            ax4.tick_params(axis='x', rotation=45)
+    
+            # 5. Customer complaints count
+            ax5 = fig.add_subplot(gs[1, 1])
+            ax5.bar(df['dates'], df['customer_complaints'], color='#ef5350',
+                   edgecolor='black', linewidth=0.8)
+            ax5.set_ylabel('Complaint Count', fontsize=10)
+            ax5.set_title('Customer Complaints Count', fontsize=11, fontweight='bold')
+            ax5.grid(alpha=0.3, axis='y')
+            ax5.tick_params(axis='x', rotation=45)
+    
+            # 6. KPI summary (text display)
+            ax6 = fig.add_subplot(gs[1, 2])
+            ax6.axis('off')
+            kpi_text = f"""
+    Quality KPI Summary
+    
+    Yield:
+      Average: {kpis['avg_yield']:.1f}%
+      Std Dev: {kpis['yield_std']:.2f}%
+    
+    Purity:
+      Average: {kpis['avg_purity']:.2f}%
+      Std Dev: {kpis['purity_std']:.3f}%
+    
+    Defect Rate:
+      Average: {kpis['avg_defect_rate']:.0f} ppm
+    
+    First Pass Yield:
+      Average: {kpis['avg_fpy']:.1f}%
+    
+    Customer Complaints:
+      Total: {int(kpis['total_complaints'])} cases
+            """
+            ax6.text(0.1, 0.5, kpi_text, fontsize=10, verticalalignment='center',
+                    family='monospace', bbox=dict(boxstyle='round', facecolor='#e8f5e9',
+                                                  edgecolor='black', linewidth=1.5))
+    
+            # 7. Yield vs purity scatter plot
+            ax7 = fig.add_subplot(gs[2, :2])
+            scatter = ax7.scatter(df['yield'], df['purity'], c=df['defect_rate'],
+                                 cmap='RdYlGn_r', s=100, edgecolor='black', linewidth=1)
+            ax7.set_xlabel('Yield [%]', fontsize=10)
+            ax7.set_ylabel('Purity [%]', fontsize=10)
+            ax7.set_title('Yield vs Purity (color: defect rate)', fontsize=11, fontweight='bold')
+            cbar = plt.colorbar(scatter, ax=ax7)
+            cbar.set_label('Defect Rate [ppm]', fontsize=9)
+            ax7.grid(alpha=0.3)
+    
+            # 8. Quality trend (moving average)
+            ax8 = fig.add_subplot(gs[2, 2])
+            window = 3
+            ma_purity = df['purity'].rolling(window=window).mean()
+            ax8.plot(df['dates'], df['purity'], 'o-', linewidth=1, alpha=0.5,
+                    label='Measured', color='gray')
+            ax8.plot(df['dates'], ma_purity, linewidth=2.5, label=f'{window}-day MA',
+                    color='#11998e')
+            ax8.set_ylabel('Purity [%]', fontsize=10)
+            ax8.set_title('Purity Trend (Moving Average)', fontsize=11, fontweight='bold')
+            ax8.legend(fontsize=8)
+            ax8.grid(alpha=0.3)
+            ax8.tick_params(axis='x', rotation=45)
+    
+            plt.suptitle('Quality Management Dashboard', fontsize=14, fontweight='bold', y=0.995)
+            plt.tight_layout()
+            plt.show()
+    
+    # Create dashboard (30 days of data)
+    dashboard = QualityMetricsDashboard()
+    
+    np.random.seed(42)
+    start_date = datetime(2025, 10, 1)
+    
+    for i in range(30):
+        date = start_date + timedelta(days=i)
+    
+        # Quality metrics simulation
+        yield_pct = np.random.normal(92.5, 1.5)
+        purity = np.random.normal(98.2, 0.4)
+        defect_ppm = np.random.poisson(850)
+        fpy = np.random.normal(94.5, 2.0)
+        complaints = np.random.poisson(1.2)
+    
+        dashboard.add_daily_metrics(
+            date=date.strftime('%m/%d'),
+            yield_pct=yield_pct,
+            purity=purity,
+            defect_ppm=defect_ppm,
+            fpy=fpy,
+            complaints=complaints
+        )
+    
+    # Display dashboard
+    dashboard.visualize_dashboard()
+    
+    # KPI summary
+    kpis = dashboard.calculate_kpis()
+    print("=" * 60)
+    print("Quality Management KPI Summary (30 days)")
+    print("=" * 60)
+    print(f"Average Yield:      {kpis['avg_yield']:.2f}% ± {kpis['yield_std']:.2f}%")
+    print(f"Average Purity:     {kpis['avg_purity']:.3f}% ± {kpis['purity_std']:.3f}%")
+    print(f"Average Defect:     {kpis['avg_defect_rate']:.0f} ppm")
+    print(f"Average FPY:        {kpis['avg_fpy']:.2f}%")
+    print(f"Total Complaints:   {int(kpis['total_complaints'])} cases")
+    print("=" * 60)
+    
+
+**Explanation:** The quality metrics dashboard enables integrated visualization and management of multiple quality indicators including yield, purity, defect rate, First Pass Yield (FPY), and customer complaints. Quality trends are identified through moving averages and correlation analysis.
+
+* * *
+
+## 1.3 Chapter Summary
+
+### What We Learned
+
+  1. **Basic Concepts of Quality Management**
+     * Differences and roles of QC, QA, and QMS
+     * Evolution of quality management (Inspection → SPC → TQM)
+  2. **Process Capability Assessment**
+     * Quantitative evaluation using Cp and Cpk
+     * Defect rate estimation and confidence intervals
+  3. **Quality Improvement Methods**
+     * Identifying priority control items through Pareto analysis
+     * Root cause analysis using fishbone diagrams
+     * 5 Whys analysis
+  4. **TQM and Continuous Improvement**
+     * PDCA cycle practice
+     * Cost of Quality (COQ) analysis
+     * Integrated quality metrics management
+
+### Key Points
+
+Process capability index (Cpk >= 1.33) is a critical quality management indicator. Pareto analysis enables prioritized improvement of a small number of critical factors. The PDCA cycle achieves continuous improvement with quantitative measurement of effects. Quality costs can be optimized by reducing failure costs through investment in prevention and appraisal. Statistical methods including confidence intervals and hypothesis testing scientifically verify improvement effects.
+
+### To the Next Chapter
+
+In Chapter 2, we will learn **Statistical Process Control (SPC)** in detail, covering creation of X-bar charts, R charts, and p charts, anomaly detection using EWMA and CUSUM control charts, calculating control limits and detecting special cause variation, and applying SPC techniques to chemical processes.

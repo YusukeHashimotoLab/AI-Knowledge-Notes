@@ -1,0 +1,316 @@
+---
+title: "Chapter 4: Fatigue and Fracture Mechanics"
+chapter_title: "Chapter 4: Fatigue and Fracture Mechanics"
+subtitle: Cyclic Loading and Crack Growth Analysis
+---
+
+🌐 EN | 日本語 (準備中) Last sync: 2025-11-16
+
+[Materials Science Dojo](<../index.html>) > [Mechanical Testing Introduction](<index.html>) > Chapter 4 
+
+## 4.1 Fatigue Fundamentals
+
+Fatigue is progressive structural damage from cyclic loading, causing 80-90% of mechanical failures.
+
+**📐 Stress Amplitude and Mean Stress:** $$\sigma_a = \frac{\sigma_{max} - \sigma_{min}}{2}, \quad \sigma_m = \frac{\sigma_{max} + \sigma_{min}}{2}$$ **Stress ratio:** $R = \frac{\sigma_{min}}{\sigma_{max}}$ 
+
+### 💻 Code Example 1: S-N Curve Generation
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def generate_sn_curve(material='steel'):
+        """Generate S-N (Wöhler) curve"""
+        materials = {
+            'steel': {'S_f': 200, 'b': -0.12, 'N_e': 1e6},
+            'aluminum': {'S_f': 100, 'b': -0.10, 'N_e': 5e8}
+        }
+        props = materials[material]
+        
+        # Basquin equation: S = S_f * N^b
+        N = np.logspace(3, 9, 100)
+        S = props['S_f'] * (N / 2e3)**props['b']
+        
+        # Endurance limit for steel
+        if material == 'steel':
+            S[N > props['N_e']] = S[N > props['N_e']][0]
+        
+        return N, S
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    for material in ['steel', 'aluminum']:
+        N, S = generate_sn_curve(material)
+        ax.loglog(N, S, linewidth=2, label=material.capitalize())
+    
+    ax.set_xlabel('Cycles to Failure (N)', fontsize=12)
+    ax.set_ylabel('Stress Amplitude (MPa)', fontsize=12)
+    ax.set_title('S-N Curves for Different Materials', fontsize=14, fontweight='bold')
+    ax.legend()
+    ax.grid(True, which='both', alpha=0.3)
+    plt.show()
+
+## 4.2 Mean Stress Effects
+
+Mean stress affects fatigue life. Goodman and Gerber diagrams predict failure under combined mean and alternating stress.
+
+**📐 Mean Stress Correction:**  
+**Goodman:** $\frac{\sigma_a}{S_f} + \frac{\sigma_m}{S_u} = 1$  
+**Gerber:** $\frac{\sigma_a}{S_f} + \left(\frac{\sigma_m}{S_u}\right)^2 = 1$  
+**Soderberg:** $\frac{\sigma_a}{S_f} + \frac{\sigma_m}{S_y} = 1$ 
+
+### 💻 Code Example 2: Goodman Diagram
+    
+    
+    def goodman_diagram(S_u=500, S_f=200, S_y=300):
+        """Generate Goodman diagram"""
+        sigma_m = np.linspace(0, S_u, 100)
+        
+        # Goodman line
+        sigma_a_goodman = S_f * (1 - sigma_m / S_u)
+        
+        # Gerber parabola
+        sigma_a_gerber = S_f * (1 - (sigma_m / S_u)**2)
+        
+        # Soderberg line
+        sigma_a_soderberg = S_f * (1 - sigma_m / S_y)
+        
+        plt.figure(figsize=(10, 7))
+        plt.plot(sigma_m, sigma_a_goodman, 'b-', linewidth=2, label='Goodman')
+        plt.plot(sigma_m, sigma_a_gerber, 'r-', linewidth=2, label='Gerber')
+        plt.plot(sigma_m, sigma_a_soderberg, 'g-', linewidth=2, label='Soderberg')
+        plt.fill_between(sigma_m, 0, sigma_a_goodman, alpha=0.2)
+        plt.xlabel('Mean Stress σ_m (MPa)', fontsize=12)
+        plt.ylabel('Alternating Stress σ_a (MPa)', fontsize=12)
+        plt.title('Goodman Diagram', fontsize=14, fontweight='bold')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.show()
+    
+    goodman_diagram()
+
+## 4.3 Fracture Mechanics Basics
+
+Fracture mechanics analyzes crack growth and failure using stress intensity factor.
+
+**📐 Stress Intensity Factor:** $$K_I = Y\sigma\sqrt{\pi a}$$ where $Y$ is geometry factor, $\sigma$ is applied stress, $a$ is crack length.  
+**Fracture toughness criterion:** $K_I = K_{Ic}$ (critical value) 
+
+### 💻 Code Example 3: Stress Intensity Calculation
+    
+    
+    def stress_intensity_factor(sigma, crack_length, geometry='center_crack'):
+        """Calculate stress intensity factor K_I"""
+        a = crack_length
+        
+        # Geometry factors
+        if geometry == 'center_crack':
+            Y = 1.0  # For infinite plate
+        elif geometry == 'edge_crack':
+            Y = 1.12
+        elif geometry == 'semi_elliptical':
+            Y = 0.73
+        
+        K_I = Y * sigma * np.sqrt(np.pi * a)
+        return K_I
+    
+    # Example: crack growth analysis
+    crack_lengths = np.linspace(1, 20, 100)  # mm
+    sigma = 100  # MPa
+    K_I = [stress_intensity_factor(sigma, a/1000, 'edge_crack') for a in crack_lengths]
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(crack_lengths, K_I, 'b-', linewidth=2)
+    plt.axhline(30, color='r', linestyle='--', label='K_Ic = 30 MPa√m')
+    plt.xlabel('Crack Length (mm)', fontsize=12)
+    plt.ylabel('Stress Intensity Factor K_I (MPa√m)', fontsize=12)
+    plt.title('Stress Intensity vs Crack Length', fontsize=14, fontweight='bold')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.show()
+
+## 4.4 Paris Law for Fatigue Crack Growth
+
+Paris law describes crack growth rate under cyclic loading.
+
+**📐 Paris Law:** $$\frac{da}{dN} = C(\Delta K)^m$$ where $\Delta K = K_{max} - K_{min}$, $C$ and $m$ are material constants. 
+
+### 💻 Code Example 4: Fatigue Crack Growth Prediction
+    
+    
+    def paris_law_integration(a_0, sigma, Y, K_Ic, C=1e-11, m=3):
+        """Integrate Paris law to predict crack growth"""
+        a = a_0
+        N = 0
+        a_history = [a]
+        N_history = [N]
+        
+        while True:
+            # Calculate K
+            K_max = Y * sigma * np.sqrt(np.pi * a)
+            K_min = 0  # R = 0
+            Delta_K = K_max - K_min
+            
+            # Check failure
+            if K_max >= K_Ic:
+                break
+            
+            # Paris law: da/dN
+            da_dN = C * (Delta_K * 1e6)**m  # Convert to Pa√m
+            
+            # Update crack length
+            dN = 100  # Cycle increment
+            a = a + da_dN * dN
+            N = N + dN
+            
+            a_history.append(a)
+            N_history.append(N)
+            
+            if N > 1e7:  # Maximum cycles
+                break
+        
+        return np.array(N_history), np.array(a_history)
+    
+    # Simulation
+    N, a = paris_law_integration(a_0=0.001, sigma=100, Y=1.12, K_Ic=30e6)
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(N, a*1000, 'b-', linewidth=2)
+    plt.xlabel('Cycles (N)', fontsize=12)
+    plt.ylabel('Crack Length (mm)', fontsize=12)
+    plt.title('Fatigue Crack Growth Prediction', fontsize=14, fontweight='bold')
+    plt.grid(True, alpha=0.3)
+    plt.show()
+    
+    print(f"Cycles to failure: {N[-1]:.0f}")
+
+## 4.5 Low Cycle vs High Cycle Fatigue
+
+Low cycle fatigue (LCF) involves plastic strain, high cycle fatigue (HCF) is primarily elastic.
+
+### 💻 Code Example 5: Coffin-Manson Relationship
+    
+    
+    def coffin_manson(N_f, epsilon_f=0.5, c=-0.6):
+        """Coffin-Manson equation for LCF"""
+        # Δε_p/2 = ε_f' * (2*N_f)^c
+        delta_epsilon_p = epsilon_f * (2 * N_f)**c
+        return delta_epsilon_p
+    
+    N_values = np.logspace(1, 5, 100)
+    epsilon_p = coffin_manson(N_values)
+    
+    plt.figure(figsize=(10, 6))
+    plt.loglog(N_values, epsilon_p, 'b-', linewidth=2)
+    plt.xlabel('Cycles to Failure (N_f)', fontsize=12)
+    plt.ylabel('Plastic Strain Amplitude', fontsize=12)
+    plt.title('Coffin-Manson Relationship (LCF)', fontsize=14, fontweight='bold')
+    plt.grid(True, which='both', alpha=0.3)
+    plt.show()
+
+## 4.6 Fatigue Life Prediction
+
+Cumulative damage models like Miner's rule predict life under variable amplitude loading.
+
+**📐 Miner's Rule (Linear Damage Accumulation):** $$\sum_{i=1}^{k} \frac{n_i}{N_i} = 1$$ where $n_i$ is applied cycles at stress level $i$, $N_i$ is cycles to failure. 
+
+### 💻 Code Example 6: Miner's Rule Application
+    
+    
+    def miners_rule(stress_levels, cycles_applied):
+        """Calculate cumulative fatigue damage"""
+        # S-N curve parameters
+        S_f, b = 200, -0.12
+        
+        damage = 0
+        for S, n in zip(stress_levels, cycles_applied):
+            # Calculate N_f from S-N curve
+            N_f = (S / S_f)**(1/b) * 2e3
+            
+            # Add damage fraction
+            damage += n / N_f
+        
+        return damage
+    
+    # Example: Variable amplitude loading
+    stress_levels = [150, 200, 250]  # MPa
+    cycles_applied = [50000, 20000, 5000]
+    
+    damage = miners_rule(stress_levels, cycles_applied)
+    remaining_life_fraction = 1 - damage
+    
+    print(f"Cumulative Damage: {damage:.3f}")
+    print(f"Remaining Life: {remaining_life_fraction*100:.1f}%")
+    if damage >= 1:
+        print("Failure predicted!")
+
+## 4.7 Fracture Toughness Testing
+
+ASTM E399 specifies procedures for plane strain fracture toughness (K_Ic) testing.
+
+### 💻 Code Example 7: K_Ic Calculation from Test Data
+    
+    
+    def calculate_KIc(P_Q, B, W, a):
+        """Calculate K_Ic from compact tension test"""
+        # P_Q: Load at 5% secant
+        # B: Thickness, W: Width, a: Crack length
+        
+        alpha = a / W
+        
+        # Geometry function for CT specimen
+        f_alpha = (2 + alpha) / (1 - alpha)**1.5 * \
+                  (0.886 + 4.64*alpha - 13.32*alpha**2 + 14.72*alpha**3 - 5.6*alpha**4)
+        
+        K_Q = (P_Q / (B * np.sqrt(W))) * f_alpha
+        
+        # Validity checks (ASTM E399)
+        valid = True
+        if a < 0.45*W or a > 0.55*W:
+            valid = False
+        
+        return K_Q, valid
+    
+    # Example
+    P_Q = 15000  # N
+    B, W, a = 25e-3, 50e-3, 25e-3  # m
+    
+    K_Ic, valid = calculate_KIc(P_Q, B, W, a)
+    print(f"K_Ic = {K_Ic/1e6:.1f} MPa√m")
+    print(f"Test valid: {valid}")
+
+## 📝 Chapter Exercises
+
+**✏️ Exercises**
+
+  1. Generate S-N curve for steel with S_f=250 MPa, b=-0.12. Estimate life at 150 MPa.
+  2. Use Goodman diagram to check if σ_a=120 MPa, σ_m=80 MPa is safe (S_u=500, S_f=200).
+  3. Calculate K_I for 5 mm edge crack in plate under 150 MPa. If K_Ic=40 MPa√m, will it fail?
+  4. Use Paris law (C=1e-11, m=3) to predict cycles for crack growth from 2mm to 10mm.
+  5. Apply Miner's rule: 100k cycles at 120 MPa, 50k at 160 MPa, 10k at 200 MPa. Predict remaining life.
+
+## Summary
+
+  * Fatigue causes 80-90% of mechanical failures from cyclic loading
+  * S-N curves characterize fatigue life vs stress amplitude
+  * Mean stress effects predicted by Goodman, Gerber, Soderberg criteria
+  * Fracture mechanics uses stress intensity factor: K_I = Yσ√(πa)
+  * Paris law describes fatigue crack growth: da/dN = C(ΔK)^m
+  * LCF involves plastic strain (Coffin-Manson), HCF is elastic
+  * Miner's rule predicts cumulative damage under variable loading
+
+[← Chapter 3: Creep Testing](<chapter-3.html>) [Series Overview →](<index.html>)
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

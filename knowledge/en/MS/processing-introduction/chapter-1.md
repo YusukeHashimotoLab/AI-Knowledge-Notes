@@ -1,0 +1,1741 @@
+---
+title: "Chapter 1: Fundamentals of Process Control"
+chapter_title: "Chapter 1: Fundamentals of Process Control"
+subtitle: PID Control, Temperature Control, Vacuum Systems, Atmosphere Control
+reading_time: 35-45 min
+difficulty: Intermediate
+code_examples: 7
+version: 1.0
+---
+
+Process control is the foundation of all material manufacturing processes. By precisely managing control variables such as temperature, pressure, and atmosphere, target material properties can be consistently achieved. This chapter provides practical learning through Python simulations, covering everything from PID control principles and implementation to vacuum and gas flow control, and real-time monitoring. 
+
+## Learning Objectives
+
+By reading this chapter, you will master the following:
+
+  * ✅ Understand the operational principles and parameter tuning methods of PID control (Proportional-Integral-Derivative)
+  * ✅ Design and simulate temperature control systems (heater, sensor, feedback loop)
+  * ✅ Calculate vacuum pumpdown time and understand leak detection methods
+  * ✅ Practice the principles of gas flow controllers (MFC) and partial pressure calculations (Dalton's law)
+  * ✅ Understand oxygen partial pressure and dew point management in atmosphere control (Ar, N₂, H₂)
+  * ✅ Build real-time data collection and process anomaly detection systems
+  * ✅ Implement process control simulators and dashboards in Python
+
+## 1.1 PID Control Principles and Simulation
+
+### 1.1.1 Fundamentals of Feedback Control
+
+The purpose of process control is to maintain the **control variable (Process Variable, PV)** relative to the **Set Point (SP)**. The most widely used control method is **PID control** (Proportional-Integral-Derivative Control).
+
+**Components of PID control** :
+
+  * **P (Proportional)** : Control output proportional to error ($e = SP - PV$)
+  * **I (Integral)** : Accumulation of error (eliminates steady-state error)
+  * **D (Derivative)** : Rate of change of error (suppresses overshoot)
+
+**PID control equation** :
+
+$$ u(t) = K_p e(t) + K_i \int_0^t e(\tau) d\tau + K_d \frac{de(t)}{dt} $$ 
+
+  * $u(t)$: Control output (e.g., heater power %)
+  * $e(t) = SP - PV(t)$: Error
+  * $K_p$: Proportional gain
+  * $K_i$: Integral gain
+  * $K_d$: Derivative gain
+
+**Discrete-time PID equation** (for digital control systems):
+
+$$ u_n = K_p e_n + K_i \Delta t \sum_{k=0}^{n} e_k + K_d \frac{e_n - e_{n-1}}{\Delta t} $$ 
+    
+    
+    ```mermaid
+    flowchart LR
+        A[Set Point SP] --> B[Comparator]
+        F[SensorMeasured Value PV] --> B
+        B --> C[Error e]
+        C --> D[PID Controller]
+        D --> E[Control Output u]
+        E --> G[ProcessHeater etc.]
+        G --> F
+    
+        style A fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+        style D fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+        style G fill:#fce7f3,stroke:#f093fb,stroke-width:2px
+    ```
+
+#### Code Example 1-1: PID Controller Simulator
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    class PIDController:
+        """
+        PID Control Simulator
+    
+        Simulates process control such as temperature control
+        """
+    
+        def __init__(self, Kp, Ki, Kd, setpoint, dt=1.0):
+            """
+            Parameters
+            ----------
+            Kp : float
+                Proportional gain
+            Ki : float
+                Integral gain
+            Kd : float
+                Derivative gain
+            setpoint : float
+                Set Point
+            dt : float
+                Sampling time (seconds)
+            """
+            self.Kp = Kp
+            self.Ki = Ki
+            self.Kd = Kd
+            self.setpoint = setpoint
+            self.dt = dt
+    
+            self.integral = 0.0
+            self.prev_error = 0.0
+    
+        def update(self, measured_value):
+            """
+            Calculate control output (PID operation)
+    
+            Parameters
+            ----------
+            measured_value : float
+                Measured value (Process Variable PV)
+    
+            Returns
+            -------
+            output : float
+                Control output u(t)
+            """
+            error = self.setpoint - measured_value
+    
+            # P term (Proportional)
+            P = self.Kp * error
+    
+            # I term (Integral)
+            self.integral += error * self.dt
+            I = self.Ki * self.integral
+    
+            # D term (Derivative)
+            derivative = (error - self.prev_error) / self.dt
+            D = self.Kd * derivative
+    
+            # PID output
+            output = P + I + D
+    
+            # Update state
+            self.prev_error = error
+    
+            return output
+    
+    
+    def simulate_temperature_control(Kp=2.0, Ki=0.5, Kd=0.1,
+                                      target_temp=800, duration=200):
+        """
+        Simulation of temperature control process
+    
+        Parameters
+        ----------
+        Kp, Ki, Kd : float
+            PID gains
+        target_temp : float
+            Target temperature (°C)
+        duration : float
+            Simulation time (seconds)
+    
+        Returns
+        -------
+        time, temp, output : ndarray
+            Time, temperature history, control output
+        """
+        dt = 1.0  # Sampling time (seconds)
+        n_steps = int(duration / dt)
+    
+        # Initialize PID controller
+        pid = PIDController(Kp, Ki, Kd, target_temp, dt)
+    
+        # Initialization
+        time = np.arange(0, duration, dt)
+        temp = np.zeros(n_steps)
+        output = np.zeros(n_steps)
+        temp[0] = 25.0  # Start from room temperature
+    
+        # Simple thermal process model (first-order lag system)
+        # dT/dt = (output - heat_loss) / thermal_mass
+        thermal_mass = 50.0
+        heat_loss_coeff = 0.05
+    
+        for i in range(1, n_steps):
+            # Calculate PID control output
+            output[i] = pid.update(temp[i-1])
+    
+            # Limit control output (0-100%)
+            output[i] = np.clip(output[i], 0, 100)
+    
+            # Calculate temperature change
+            heat_input = output[i]
+            heat_loss = heat_loss_coeff * (temp[i-1] - 25.0)
+            dT = (heat_input - heat_loss) / thermal_mass
+    
+            temp[i] = temp[i-1] + dT * dt
+    
+        return time, temp, output
+    
+    
+    # Run simulation
+    time, temp, output = simulate_temperature_control()
+    
+    # Plot results
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+    
+    # Temperature profile
+    ax1.plot(time, temp, 'b-', linewidth=2, label='Temperature')
+    ax1.axhline(y=800, color='r', linestyle='--', label='Setpoint')
+    ax1.set_xlabel('Time (s)')
+    ax1.set_ylabel('Temperature (°C)')
+    ax1.set_title('PID Temperature Control Simulation')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Control output
+    ax2.plot(time, output, 'g-', linewidth=2)
+    ax2.set_xlabel('Time (s)')
+    ax2.set_ylabel('Heater Output (%)')
+    ax2.set_title('PID Control Output')
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('pid_simulation.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Calculate performance metrics
+    settling_time = time[np.where(np.abs(temp - 800) < 5)[0][0]]
+    overshoot = np.max(temp) - 800
+    print(f"Settling Time (±5°C): {settling_time:.1f} s")
+    print(f"Overshoot: {overshoot:.1f} °C")
+    print(f"Steady-State Error: {np.abs(temp[-1] - 800):.2f} °C")
+
+### 1.1.2 PID Parameter Tuning
+
+The performance of PID control depends on the adjustment of three gains ($K_p$, $K_i$, $K_d$).
+
+Parameter | Effect | Impact When Increased  
+---|---|---  
+**$K_p$ (Proportional)** | Increases response speed | Increased overshoot, prone to oscillation  
+**$K_i$ (Integral)** | Eliminates steady-state error | Oscillation, increased settling time  
+**$K_d$ (Derivative)** | Suppresses overshoot | Sensitive to noise, stabilizes  
+  
+**Ziegler-Nichols tuning method (experimental approach)** :
+
+  1. Set $K_i = 0$, $K_d = 0$, and control with $K_p$ only
+  2. Increase $K_p$ to find the ultimate gain $K_u$ where sustained oscillation occurs
+  3. Measure the oscillation period $T_u$
+  4. Calculate PID gains using the following equations: $$ K_p = 0.6 K_u, \quad K_i = \frac{2K_p}{T_u}, \quad K_d = \frac{K_p T_u}{8} $$ 
+
+#### Code Example 1-2: Automatic PID Parameter Optimization
+    
+    
+    from scipy.optimize import differential_evolution
+    
+    def evaluate_pid_performance(params, target_temp=800, duration=200):
+        """
+        PID parameter performance evaluation function
+    
+        Minimize IAE (Integral of Absolute Error)
+    
+        Parameters
+        ----------
+        params : tuple
+            (Kp, Ki, Kd)
+    
+        Returns
+        -------
+        cost : float
+            Evaluation cost (smaller is better)
+        """
+        Kp, Ki, Kd = params
+    
+        # Run simulation
+        time, temp, output = simulate_temperature_control(Kp, Ki, Kd,
+                                                           target_temp, duration)
+    
+        # Evaluation metric: IAE + overshoot penalty
+        error = np.abs(temp - target_temp)
+        IAE = np.sum(error)
+    
+        overshoot = np.max(temp) - target_temp
+        overshoot_penalty = 100 * max(0, overshoot)
+    
+        cost = IAE + overshoot_penalty
+    
+        return cost
+    
+    
+    # Run optimization (differential evolution algorithm)
+    bounds = [(0.1, 10.0),  # Kp
+              (0.01, 2.0),  # Ki
+              (0.0, 1.0)]   # Kd
+    
+    result = differential_evolution(
+        evaluate_pid_performance,
+        bounds,
+        maxiter=50,
+        seed=42,
+        disp=True
+    )
+    
+    Kp_opt, Ki_opt, Kd_opt = result.x
+    print(f"Optimal PID gains:")
+    print(f"  Kp = {Kp_opt:.3f}")
+    print(f"  Ki = {Ki_opt:.3f}")
+    print(f"  Kd = {Kd_opt:.3f}")
+    
+    # Simulation with optimized parameters
+    time, temp_opt, output_opt = simulate_temperature_control(
+        Kp_opt, Ki_opt, Kd_opt
+    )
+    
+    # Comparison plot
+    time, temp_default, _ = simulate_temperature_control(2.0, 0.5, 0.1)
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(time, temp_default, 'b--', linewidth=2, label='Default PID')
+    plt.plot(time, temp_opt, 'r-', linewidth=2, label='Optimized PID')
+    plt.axhline(y=800, color='k', linestyle=':', label='Setpoint')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Temperature (°C)')
+    plt.title('PID Optimization Comparison')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.savefig('pid_optimization.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
+## 1.2 Temperature Control System Design
+
+### 1.2.1 Temperature Ramps and Multi-Segment Profiles
+
+In heat treatment processes, not only simple constant temperature holding is required, but also **heating rate control** and **multi-stage profiles**.
+
+**Temperature ramp profile design** :
+
+  * **Heating rate** : $R_{\text{heat}} = 1-20$ °C/min (varies by material and process)
+  * **Hold time** : $t_{\text{hold}} = 10-180$ min (ensuring diffusion and reaction time)
+  * **Cooling rate** : $R_{\text{cool}} = 0.5-50$ °C/min (quenching or slow cooling)
+
+#### Code Example 1-3: Multi-Segment Temperature Profile Generator
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def generate_temperature_profile(segments, dt=1.0):
+        """
+        Generate multi-segment temperature profile
+    
+        Parameters
+        ----------
+        segments : list of dict
+            Specification for each segment
+            Example: [{'type': 'ramp', 'start': 25, 'end': 800, 'rate': 10},
+                     {'type': 'hold', 'temp': 800, 'duration': 3600}]
+        dt : float
+            Sampling time (seconds)
+    
+        Returns
+        -------
+        time, temperature : ndarray
+            Time and temperature profile
+        """
+        time_profile = []
+        temp_profile = []
+        current_time = 0.0
+        current_temp = segments[0].get('start', 25.0)
+    
+        for seg in segments:
+            if seg['type'] == 'ramp':
+                # Heating/cooling segment
+                start_temp = seg['start']
+                end_temp = seg['end']
+                rate = seg['rate']  # °C/min
+    
+                duration = abs(end_temp - start_temp) / rate * 60  # seconds
+                n_steps = int(duration / dt)
+    
+                seg_time = np.linspace(current_time, current_time + duration, n_steps)
+                seg_temp = np.linspace(start_temp, end_temp, n_steps)
+    
+                time_profile.append(seg_time)
+                temp_profile.append(seg_temp)
+    
+                current_time += duration
+                current_temp = end_temp
+    
+            elif seg['type'] == 'hold':
+                # Hold segment
+                hold_temp = seg['temp']
+                duration = seg['duration']  # seconds
+                n_steps = int(duration / dt)
+    
+                seg_time = np.linspace(current_time, current_time + duration, n_steps)
+                seg_temp = np.ones(n_steps) * hold_temp
+    
+                time_profile.append(seg_time)
+                temp_profile.append(seg_temp)
+    
+                current_time += duration
+                current_temp = hold_temp
+    
+        time_profile = np.concatenate(time_profile)
+        temp_profile = np.concatenate(temp_profile)
+    
+        return time_profile, temp_profile
+    
+    
+    # Typical annealing profile
+    annealing_segments = [
+        {'type': 'ramp', 'start': 25, 'end': 800, 'rate': 10},    # Heating at 10°C/min
+        {'type': 'hold', 'temp': 800, 'duration': 3600},          # Hold for 1 hour
+        {'type': 'ramp', 'start': 800, 'end': 25, 'rate': 5}      # Slow cooling at 5°C/min
+    ]
+    
+    time, temp = generate_temperature_profile(annealing_segments)
+    
+    # Plot and analysis
+    plt.figure(figsize=(12, 6))
+    plt.plot(time/60, temp, 'b-', linewidth=2)
+    plt.xlabel('Time (min)')
+    plt.ylabel('Temperature (°C)')
+    plt.title('Multi-Segment Temperature Profile (Annealing)')
+    plt.grid(True, alpha=0.3)
+    plt.savefig('temperature_profile.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Profile statistics
+    total_time = time[-1] / 3600
+    max_temp = np.max(temp)
+    print(f"Total Process Time: {total_time:.2f} hours")
+    print(f"Maximum Temperature: {max_temp:.0f} °C")
+    print(f"Average Heating Rate: {(max_temp - 25) / (time[np.argmax(temp)] / 60):.2f} °C/min")
+
+## 1.3 Vacuum Systems and Pressure Control
+
+### 1.3.1 Vacuum Pumpdown Time Calculation
+
+In vacuum processes (sputtering, CVD, annealing), the **pumpdown time** to evacuate the chamber to the target pressure is important.
+
+**Pumpdown equation** :
+
+$$ P(t) = P_0 \exp\left(-\frac{S}{V} t\right) + P_{\text{ultimate}} $$ 
+
+  * $P(t)$: Pressure at time $t$
+  * $P_0$: Initial pressure (typically atmospheric pressure 101325 Pa)
+  * $S$: Effective pumping speed (m³/s)
+  * $V$: Chamber volume (m³)
+  * $P_{\text{ultimate}}$: Ultimate pressure (pump performance limit)
+
+**Effective pumping speed** (considering pipe resistance):
+
+$$ \frac{1}{S} = \frac{1}{S_{\text{pump}}} + \frac{1}{C_{\text{pipe}}} $$ 
+
+  * $S_{\text{pump}}$: Pump nominal pumping speed
+  * $C_{\text{pipe}}$: Pipe conductance
+
+#### Code Example 1-4: Vacuum Pumpdown Simulator
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def pumpdown_curve(V, S_pump, C_pipe, P0=101325, P_ultimate=1e-3,
+                       t_max=600):
+        """
+        Calculate vacuum pumpdown curve
+    
+        Parameters
+        ----------
+        V : float
+            Chamber volume (m³)
+        S_pump : float
+            Pump pumping speed (m³/s)
+        C_pipe : float
+            Pipe conductance (m³/s)
+        P0 : float
+            Initial pressure (Pa)
+        P_ultimate : float
+            Ultimate pressure (Pa)
+        t_max : float
+            Maximum time (seconds)
+    
+        Returns
+        -------
+        time, pressure : ndarray
+            Time and pressure history
+        """
+        # Effective pumping speed
+        S_eff = 1 / (1/S_pump + 1/C_pipe)
+    
+        time = np.linspace(0, t_max, 1000)
+        pressure = P0 * np.exp(-S_eff / V * time) + P_ultimate
+    
+        return time, pressure
+    
+    
+    def calculate_pumpdown_time(V, S_pump, C_pipe, P_target, P0=101325):
+        """
+        Calculate time to reach target pressure
+    
+        Returns
+        -------
+        t_pumpdown : float
+            Pumpdown time (seconds)
+        """
+        S_eff = 1 / (1/S_pump + 1/C_pipe)
+        t_pumpdown = -(V / S_eff) * np.log(P_target / P0)
+    
+        return t_pumpdown
+    
+    
+    # Typical sputtering system parameters
+    V_chamber = 0.5  # m³ (500 L)
+    S_pump = 0.25    # m³/s (250 L/s turbo pump)
+    C_pipe = 0.5     # m³/s (pipe conductance)
+    
+    # Pumpdown curve
+    time, pressure = pumpdown_curve(V_chamber, S_pump, C_pipe)
+    
+    # Plot
+    plt.figure(figsize=(10, 6))
+    plt.semilogy(time/60, pressure, 'b-', linewidth=2)
+    plt.axhline(y=1.0, color='r', linestyle='--', label='Target: 1 Pa')
+    plt.axhline(y=1e-3, color='g', linestyle='--', label='Ultimate: 1 mPa')
+    plt.xlabel('Time (min)')
+    plt.ylabel('Pressure (Pa)')
+    plt.title('Vacuum Pumpdown Curve')
+    plt.legend()
+    plt.grid(True, alpha=0.3, which='both')
+    plt.savefig('pumpdown_curve.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Calculate time to reach target
+    P_target = 1.0  # Pa
+    t_pumpdown = calculate_pumpdown_time(V_chamber, S_pump, C_pipe, P_target)
+    print(f"Pumpdown time to {P_target} Pa: {t_pumpdown/60:.2f} min")
+    
+    # Effective pumping speed
+    S_eff = 1 / (1/S_pump + 1/C_pipe)
+    print(f"Effective pumping speed: {S_eff:.3f} m³/s ({S_eff*1000:.0f} L/s)")
+
+### 1.3.2 Dalton's Law and Gas Partial Pressure Control
+
+In process atmosphere control, the mixing ratio of multiple gases is important. According to **Dalton's law** , the total pressure is the sum of the partial pressures of each component gas.
+
+**Dalton's law** :
+
+$$ P_{\text{total}} = \sum_{i} P_i = P_{\text{Ar}} + P_{\text{N}_2} + P_{\text{O}_2} + \cdots $$ 
+
+**Relationship between partial pressure and mole fraction** :
+
+$$ P_i = x_i P_{\text{total}}, \quad x_i = \frac{n_i}{\sum_j n_j} $$ 
+
+#### Code Example 1-5: Gas Partial Pressure Calculation and MFC Control
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def calculate_partial_pressures(flow_rates, total_pressure):
+        """
+        Calculate partial pressures using Dalton's law
+    
+        Parameters
+        ----------
+        flow_rates : dict
+            Gas flow rates (sccm)
+            Example: {'Ar': 100, 'N2': 50, 'O2': 10}
+        total_pressure : float
+            Total pressure (Pa)
+    
+        Returns
+        -------
+        partial_pressures : dict
+            Partial pressure of each gas (Pa)
+        """
+        total_flow = sum(flow_rates.values())
+    
+        partial_pressures = {}
+        for gas, flow in flow_rates.items():
+            mole_fraction = flow / total_flow
+            partial_pressures[gas] = mole_fraction * total_pressure
+    
+        return partial_pressures
+    
+    
+    def oxygen_partial_pressure_control(target_pO2, total_pressure,
+                                          total_flow=200):
+        """
+        Calculate Ar/O2 mixing ratio for oxygen partial pressure control
+    
+        Parameters
+        ----------
+        target_pO2 : float
+            Target oxygen partial pressure (Pa)
+        total_pressure : float
+            Total pressure (Pa)
+        total_flow : float
+            Total flow rate (sccm)
+    
+        Returns
+        -------
+        flow_Ar, flow_O2 : float
+            Flow rates of Ar and O2 (sccm)
+        """
+        # Oxygen mole fraction
+        x_O2 = target_pO2 / total_pressure
+    
+        # Flow rate calculation
+        flow_O2 = x_O2 * total_flow
+        flow_Ar = (1 - x_O2) * total_flow
+    
+        return flow_Ar, flow_O2
+    
+    
+    # Case study: Reactive sputtering
+    # Target: oxygen partial pressure 0.1 Pa, total pressure 1.0 Pa
+    
+    total_pressure = 1.0  # Pa
+    target_pO2 = 0.1      # Pa
+    total_flow = 200      # sccm
+    
+    flow_Ar, flow_O2 = oxygen_partial_pressure_control(target_pO2, total_pressure,
+                                                         total_flow)
+    
+    print(f"Gas Flow Control Settings:")
+    print(f"  Ar: {flow_Ar:.1f} sccm")
+    print(f"  O2: {flow_O2:.1f} sccm")
+    print(f"  Total: {total_flow:.1f} sccm")
+    
+    # Calculate partial pressures
+    flow_rates = {'Ar': flow_Ar, 'O2': flow_O2}
+    partial_pressures = calculate_partial_pressures(flow_rates, total_pressure)
+    
+    print(f"\nPartial Pressures:")
+    for gas, pressure in partial_pressures.items():
+        print(f"  {gas}: {pressure:.3f} Pa")
+    
+    # Visualization: oxygen partial pressure vs Ar flow
+    pO2_range = np.linspace(0.01, 0.5, 50)
+    Ar_flows = []
+    O2_flows = []
+    
+    for pO2 in pO2_range:
+        Ar, O2 = oxygen_partial_pressure_control(pO2, total_pressure, total_flow)
+        Ar_flows.append(Ar)
+        O2_flows.append(O2)
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(pO2_range, Ar_flows, 'b-', linewidth=2, label='Ar')
+    plt.plot(pO2_range, O2_flows, 'r-', linewidth=2, label='O₂')
+    plt.xlabel('Target O₂ Partial Pressure (Pa)')
+    plt.ylabel('Flow Rate (sccm)')
+    plt.title('Gas Flow Control for Reactive Sputtering')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.savefig('gas_flow_control.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
+## 1.4 Real-Time Process Monitoring
+
+### 1.4.1 Data Collection and Logging
+
+In process control, parameters such as temperature, pressure, and gas flow are **recorded in real-time** and utilized for anomaly detection and traceability.
+
+#### Code Example 1-6: Real-Time Data Collection Simulator
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from datetime import datetime, timedelta
+    
+    class ProcessDataLogger:
+        """
+        Real-time logging of process data
+    
+        Records temperature, pressure, flow rates, etc.
+        """
+    
+        def __init__(self, parameters, sampling_rate=1.0):
+            """
+            Parameters
+            ----------
+            parameters : list of str
+                Parameter names to record
+            sampling_rate : float
+                Sampling rate (Hz)
+            """
+            self.parameters = parameters
+            self.sampling_rate = sampling_rate
+            self.data = {param: [] for param in parameters}
+            self.timestamps = []
+    
+        def log_data(self, timestamp, values):
+            """
+            Record data
+    
+            Parameters
+            ----------
+            timestamp : datetime
+                Timestamp
+            values : dict
+                Dictionary of parameter values
+            """
+            self.timestamps.append(timestamp)
+            for param in self.parameters:
+                self.data[param].append(values.get(param, np.nan))
+    
+        def to_dataframe(self):
+            """
+            Convert to pandas DataFrame
+    
+            Returns
+            -------
+            df : pd.DataFrame
+                Recorded data
+            """
+            df = pd.DataFrame(self.data)
+            df['timestamp'] = self.timestamps
+            return df
+    
+        def save_to_csv(self, filename):
+            """
+            Save to CSV file
+            """
+            df = self.to_dataframe()
+            df.to_csv(filename, index=False)
+            print(f"Data saved to {filename}")
+    
+    
+    def simulate_process_with_logging(duration=600, dt=1.0):
+        """
+        Simulation of process data logging
+    
+        Parameters
+        ----------
+        duration : float
+            Simulation time (seconds)
+        dt : float
+            Sampling interval (seconds)
+    
+        Returns
+        -------
+        df : pd.DataFrame
+            Recorded process data
+        """
+        # Initialize data logger
+        logger = ProcessDataLogger(
+            parameters=['temperature', 'pressure', 'ar_flow', 'o2_flow'],
+            sampling_rate=1/dt
+        )
+    
+        # Initial values for simulation
+        temp = 25.0
+        pressure = 101325.0
+        ar_flow = 100.0
+        o2_flow = 10.0
+    
+        start_time = datetime.now()
+        n_steps = int(duration / dt)
+    
+        for i in range(n_steps):
+            # Timestamp
+            timestamp = start_time + timedelta(seconds=i*dt)
+    
+            # Simulate process changes
+            # Heating phase (0-300 seconds)
+            if i * dt < 300:
+                temp += 2.5 * dt  # Heating at 2.5°C/s
+                pressure = max(1.0, pressure - 100 * dt)  # Pressure reduction
+            # Hold phase (300-600 seconds)
+            else:
+                temp += np.random.normal(0, 0.5)  # Noise
+                pressure += np.random.normal(0, 0.01)
+    
+            # Random fluctuations (measurement noise)
+            ar_flow += np.random.normal(0, 0.5)
+            o2_flow += np.random.normal(0, 0.1)
+    
+            # Record data
+            values = {
+                'temperature': temp,
+                'pressure': pressure,
+                'ar_flow': ar_flow,
+                'o2_flow': o2_flow
+            }
+            logger.log_data(timestamp, values)
+    
+        # Convert to DataFrame
+        df = logger.to_dataframe()
+    
+        return df, logger
+    
+    
+    # Run simulation
+    df, logger = simulate_process_with_logging(duration=600, dt=1.0)
+    
+    # Save data
+    logger.save_to_csv('process_log.csv')
+    
+    # Visualization
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # Temperature
+    axes[0, 0].plot(df.index, df['temperature'], 'b-', linewidth=1.5)
+    axes[0, 0].set_xlabel('Time (s)')
+    axes[0, 0].set_ylabel('Temperature (°C)')
+    axes[0, 0].set_title('Temperature Profile')
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # Pressure
+    axes[0, 1].semilogy(df.index, df['pressure'], 'r-', linewidth=1.5)
+    axes[0, 1].set_xlabel('Time (s)')
+    axes[0, 1].set_ylabel('Pressure (Pa)')
+    axes[0, 1].set_title('Pressure Profile')
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # Ar flow
+    axes[1, 0].plot(df.index, df['ar_flow'], 'g-', linewidth=1.5)
+    axes[1, 0].set_xlabel('Time (s)')
+    axes[1, 0].set_ylabel('Ar Flow (sccm)')
+    axes[1, 0].set_title('Argon Flow Rate')
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # O2 flow
+    axes[1, 1].plot(df.index, df['o2_flow'], 'm-', linewidth=1.5)
+    axes[1, 1].set_xlabel('Time (s)')
+    axes[1, 1].set_ylabel('O₂ Flow (sccm)')
+    axes[1, 1].set_title('Oxygen Flow Rate')
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('process_monitoring.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Statistical summary
+    print("\nProcess Data Summary:")
+    print(df.describe())
+
+#### Code Example 1-7: Process Anomaly Detection Dashboard
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    
+    class ProcessAnomalyDetector:
+        """
+        Process anomaly detection system
+    
+        Threshold-based detection using moving average and standard deviation
+        """
+    
+        def __init__(self, window_size=30, threshold_sigma=3.0):
+            """
+            Parameters
+            ----------
+            window_size : int
+                Window size for moving average
+            threshold_sigma : float
+                Anomaly detection threshold (multiple of σ)
+            """
+            self.window_size = window_size
+            self.threshold_sigma = threshold_sigma
+    
+        def detect_anomalies(self, data):
+            """
+            Execute anomaly detection
+    
+            Parameters
+            ----------
+            data : pd.Series
+                Process data series
+    
+            Returns
+            -------
+            anomalies : pd.Series (bool)
+                Anomaly flags
+            """
+            # Moving average and standard deviation
+            rolling_mean = data.rolling(window=self.window_size).mean()
+            rolling_std = data.rolling(window=self.window_size).std()
+    
+            # Upper and lower threshold limits
+            upper_bound = rolling_mean + self.threshold_sigma * rolling_std
+            lower_bound = rolling_mean - self.threshold_sigma * rolling_std
+    
+            # Anomaly detection
+            anomalies = (data > upper_bound) | (data < lower_bound)
+    
+            return anomalies, upper_bound, lower_bound
+    
+    
+    # Generate anomaly data (includes intentional anomalies)
+    np.random.seed(42)
+    time = np.arange(0, 600, 1)
+    temperature = 800 + np.random.normal(0, 2, len(time))
+    
+    # Inject anomaly (temperature spike from 400-420 seconds)
+    temperature[400:420] += 50
+    
+    df_anomaly = pd.DataFrame({'time': time, 'temperature': temperature})
+    
+    # Anomaly detection
+    detector = ProcessAnomalyDetector(window_size=30, threshold_sigma=3.0)
+    anomalies, upper, lower = detector.detect_anomalies(df_anomaly['temperature'])
+    
+    # Visualization
+    plt.figure(figsize=(14, 6))
+    plt.plot(df_anomaly['time'], df_anomaly['temperature'],
+             'b-', linewidth=1.5, label='Temperature', alpha=0.7)
+    plt.plot(df_anomaly['time'], upper, 'r--', linewidth=2, label='Upper Threshold')
+    plt.plot(df_anomaly['time'], lower, 'g--', linewidth=2, label='Lower Threshold')
+    
+    # Highlight anomaly points
+    anomaly_points = df_anomaly[anomalies]
+    plt.scatter(anomaly_points['time'], anomaly_points['temperature'],
+                color='red', s=50, label='Anomaly', zorder=5)
+    
+    plt.xlabel('Time (s)')
+    plt.ylabel('Temperature (°C)')
+    plt.title('Process Anomaly Detection Dashboard')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.savefig('anomaly_detection.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Anomaly summary
+    n_anomalies = anomalies.sum()
+    print(f"\nAnomaly Detection Results:")
+    print(f"  Total data points: {len(df_anomaly)}")
+    print(f"  Anomalies detected: {n_anomalies}")
+    print(f"  Anomaly rate: {n_anomalies/len(df_anomaly)*100:.2f}%")
+    
+    if n_anomalies > 0:
+        anomaly_times = df_anomaly[anomalies]['time'].values
+        print(f"  Anomaly time ranges: {anomaly_times[0]:.0f}-{anomaly_times[-1]:.0f} s")
+
+## Exercise Problems
+
+#### Exercise 1-1: Understanding PID Control Parameter Effects (Easy)
+
+Test the following three parameter sets with the PID controller and compare the temperature response differences:
+
+  * (a) $K_p = 5.0$, $K_i = 0$, $K_d = 0$ (P control only)
+  * (b) $K_p = 2.0$, $K_i = 0.5$, $K_d = 0$ (PI control)
+  * (c) $K_p = 2.0$, $K_i = 0.5$, $K_d = 0.1$ (PID control)
+
+Target temperature 800°C, initial temperature 25°C, simulation time 200 seconds. Compare steady-state error, overshoot, and settling time for each case.
+
+Solution Example
+    
+    
+    # Simulate with three parameter sets
+    cases = [
+        {'name': 'P-only', 'Kp': 5.0, 'Ki': 0.0, 'Kd': 0.0},
+        {'name': 'PI', 'Kp': 2.0, 'Ki': 0.5, 'Kd': 0.0},
+        {'name': 'PID', 'Kp': 2.0, 'Ki': 0.5, 'Kd': 0.1}
+    ]
+    
+    plt.figure(figsize=(12, 8))
+    
+    for case in cases:
+        time, temp, output = simulate_temperature_control(
+            case['Kp'], case['Ki'], case['Kd'],
+            target_temp=800, duration=200
+        )
+    
+        plt.plot(time, temp, linewidth=2, label=case['name'])
+    
+        # Performance metrics
+        steady_error = abs(temp[-1] - 800)
+        overshoot = max(0, np.max(temp) - 800)
+        settling_idx = np.where(np.abs(temp - 800) < 5)[0]
+        settling_time = time[settling_idx[0]] if len(settling_idx) > 0 else np.inf
+    
+        print(f"{case['name']} Control:")
+        print(f"  Steady-State Error: {steady_error:.2f} °C")
+        print(f"  Overshoot: {overshoot:.2f} °C")
+        print(f"  Settling Time (±5°C): {settling_time:.1f} s\n")
+    
+    plt.axhline(y=800, color='k', linestyle='--', label='Setpoint')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Temperature (°C)')
+    plt.title('PID Parameter Comparison')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.show()
+    
+    # Result interpretation:
+    # - P control only: Steady-state error remains (no integral term)
+    # - PI control: Steady-state error is eliminated, but large overshoot
+    # - PID control: Derivative term suppresses overshoot, optimal performance
+
+#### Exercise 1-2: Vacuum Leak Detection (Medium)
+
+After evacuating a vacuum chamber (volume 0.5 m³) to 1 Pa with a turbo pump (pumping speed 250 L/s), the valve is closed and pressure rise is measured. After 10 minutes, the pressure reached 1.5 Pa. Calculate the leak rate (Pa·L/s) and determine if this leak is within acceptable limits. (Acceptable leak rate: < 1×10⁻³ Pa·m³/s)
+
+Solution Example
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example: After evacuating a vacuum chamber (volume 0.5 m³) to 1 Pa wi
+    
+    Purpose: Demonstrate core concepts and implementation patterns
+    Target: Beginner to Intermediate
+    Execution time: ~5 seconds
+    Dependencies: None
+    """
+    
+    import numpy as np
+    
+    # Given parameters
+    V_chamber = 0.5  # m³ (500 L)
+    P_initial = 1.0  # Pa
+    P_final = 1.5    # Pa
+    delta_t = 10 * 60  # seconds (10 minutes)
+    
+    # Leak rate calculation
+    # dP/dt = Q_leak / V
+    # Q_leak = V * (P_final - P_initial) / delta_t
+    
+    Q_leak = V_chamber * (P_final - P_initial) / delta_t
+    
+    print(f"Leak Rate Calculation:")
+    print(f"  Initial Pressure: {P_initial} Pa")
+    print(f"  Final Pressure: {P_final} Pa")
+    print(f"  Time Interval: {delta_t/60:.1f} min")
+    print(f"  Leak Rate: {Q_leak:.3e} Pa·m³/s")
+    print(f"  Leak Rate: {Q_leak*1000:.3e} Pa·L/s")
+    
+    # Acceptable range judgment
+    Q_leak_threshold = 1e-3  # Pa·m³/s
+    if Q_leak < Q_leak_threshold:
+        print(f"\n✓ Leak rate is ACCEPTABLE (< {Q_leak_threshold:.1e} Pa·m³/s)")
+    else:
+        print(f"\n✗ Leak rate is UNACCEPTABLE (≥ {Q_leak_threshold:.1e} Pa·m³/s)")
+        print(f"  Action required: Leak detection and repair")
+    
+    # Leak location estimation (volume flow rate)
+    # at 1 Pa: Q_volume = Q_leak / P = 4.17e-4 / 1.0 = 4.17e-4 m³/s
+    Q_volume = Q_leak / P_initial
+    print(f"\nEquivalent Volume Flow (at 1 Pa): {Q_volume*1000:.3f} L/s")
+    print(f"  → Suggests a significant leak (e.g., loose flange, damaged O-ring)")
+    
+    # Result:
+    # Leak Rate: 4.17×10⁻⁴ Pa·m³/s
+    # This is smaller than the acceptable value (1×10⁻³), so "ACCEPTABLE"
+    # However, for UHV (ultra-high vacuum) applications, improvement is needed
+
+#### Exercise 1-3: Gas Control for Reactive Sputtering (Medium)
+
+For reactive sputtering of ITO (Indium Tin Oxide) thin films, control the oxygen partial pressure to 0.15 Pa. With a total pressure of 1.2 Pa and a total gas flow rate of 250 sccm, calculate the flow rates (sccm) of Ar and O₂. Also, evaluate the change in oxygen partial pressure when the oxygen flow rate varies by ±5%.
+
+Solution Example
+    
+    
+    # Parameters
+    total_pressure = 1.2  # Pa
+    target_pO2 = 0.15     # Pa
+    total_flow = 250      # sccm
+    
+    # Oxygen mole fraction
+    x_O2 = target_pO2 / total_pressure
+    
+    # Flow rate calculation
+    flow_O2 = x_O2 * total_flow
+    flow_Ar = (1 - x_O2) * total_flow
+    
+    print(f"ITO Reactive Sputtering Gas Control:")
+    print(f"  Target O₂ Partial Pressure: {target_pO2} Pa")
+    print(f"  Total Pressure: {total_pressure} Pa")
+    print(f"  Ar Flow: {flow_Ar:.2f} sccm")
+    print(f"  O₂ Flow: {flow_O2:.2f} sccm")
+    
+    # Oxygen flow variation impact assessment
+    flow_O2_variation = 0.05  # ±5%
+    flow_O2_min = flow_O2 * (1 - flow_O2_variation)
+    flow_O2_max = flow_O2 * (1 + flow_O2_variation)
+    
+    # Partial pressure after variation
+    pO2_min = (flow_O2_min / total_flow) * total_pressure
+    pO2_max = (flow_O2_max / total_flow) * total_pressure
+    
+    print(f"\nSensitivity Analysis (±5% O₂ flow variation):")
+    print(f"  O₂ Flow Range: {flow_O2_min:.2f} - {flow_O2_max:.2f} sccm")
+    print(f"  O₂ Partial Pressure Range: {pO2_min:.3f} - {pO2_max:.3f} Pa")
+    print(f"  Deviation from Target: {(pO2_max - target_pO2)/target_pO2*100:.1f}%")
+    
+    # Stability assessment
+    pO2_tolerance = 0.01  # Pa (allowable error)
+    if abs(pO2_max - target_pO2) < pO2_tolerance and abs(pO2_min - target_pO2) < pO2_tolerance:
+        print(f"\n✓ Gas control is STABLE (variation < {pO2_tolerance} Pa)")
+    else:
+        print(f"\n⚠ Gas control may be UNSTABLE")
+        print(f"  → Consider using closed-loop pO2 feedback control")
+    
+    # Result:
+    # Ar: 218.75 sccm, O₂: 31.25 sccm
+    # ±5% O₂ variation → pO2 variation ±0.0075 Pa (±5%)
+    # With MFC accuracy of ±1%, sufficiently stable control is possible
+
+#### Exercise 1-4: Temperature Profile Optimization (Medium)
+
+For solution treatment of Al alloy (550°C, 2-hour hold), if the heating rate is too fast, thermal stress causes cracks, and if too slow, precipitates coarsen. Design a temperature profile that minimizes total process time with an allowable heating rate range of 5-15°C/min and cooling rate ≥50°C/min.
+
+Solution Example
+    
+    
+    # Optimization: Fastest heating, required hold, fastest cooling
+    heat_rate_max = 15    # °C/min (fastest heating)
+    hold_temp = 550       # °C
+    hold_time = 120       # min (2 hours)
+    cool_rate = 50        # °C/min (quenching)
+    
+    # Profile design
+    segments_optimized = [
+        {'type': 'ramp', 'start': 25, 'end': hold_temp, 'rate': heat_rate_max},
+        {'type': 'hold', 'temp': hold_temp, 'duration': hold_time * 60},
+        {'type': 'ramp', 'start': hold_temp, 'end': 100, 'rate': cool_rate}  # Quench to 100°C
+    ]
+    
+    time_opt, temp_opt = generate_temperature_profile(segments_optimized)
+    
+    # Total process time
+    total_time_opt = time_opt[-1] / 60  # minutes
+    
+    print(f"Optimized Temperature Profile for Al Alloy:")
+    print(f"  Heating Rate: {heat_rate_max} °C/min")
+    print(f"  Hold Temperature: {hold_temp} °C")
+    print(f"  Hold Time: {hold_time} min")
+    print(f"  Cooling Rate: {cool_rate} °C/min")
+    print(f"  Total Process Time: {total_time_opt:.1f} min")
+    
+    # Time for each phase
+    heat_time = (hold_temp - 25) / heat_rate_max
+    cool_time = (hold_temp - 100) / cool_rate
+    
+    print(f"\nPhase Breakdown:")
+    print(f"  Heating: {heat_time:.1f} min")
+    print(f"  Hold: {hold_time:.1f} min")
+    print(f"  Cooling: {cool_time:.1f} min")
+    
+    # Plot
+    plt.figure(figsize=(12, 6))
+    plt.plot(time_opt/60, temp_opt, 'b-', linewidth=2)
+    plt.xlabel('Time (min)')
+    plt.ylabel('Temperature (°C)')
+    plt.title('Optimized Solution Treatment Profile for Al Alloy')
+    plt.grid(True, alpha=0.3)
+    plt.savefig('solution_treatment_profile.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Result:
+    # Total process time = 35 + 120 + 9 = 164 minutes (approximately 2.7 hours)
+    # By using fastest heating (15°C/min) and quenching (50°C/min),
+    # process time is minimized
+
+#### Exercise 1-5: Root Cause Analysis of Process Anomaly (Hard)
+
+Film thickness anomalies (exceeding ±10% of target) occurred in a sputtering system. Identify the root cause from the following process logs and propose countermeasures:
+
+  * Temperature: 800±3°C (within normal range)
+  * Pressure: 0.8-1.5 Pa (large variation, target 1.0 Pa)
+  * Ar flow: 98-102 sccm (within normal range)
+  * RF power: No variation (fixed at 300 W)
+
+Solution Example
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example: Film thickness anomalies (exceeding ±10% of target) occurred
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Intermediate
+    Execution time: 5-15 seconds
+    Dependencies: None
+    """
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # Generate simulation data (with pressure variation)
+    np.random.seed(42)
+    time = np.arange(0, 300, 1)
+    temperature = 800 + np.random.normal(0, 1.5, len(time))
+    pressure = 1.0 + 0.3 * np.sin(2*np.pi*time/50) + np.random.normal(0, 0.05, len(time))
+    ar_flow = 100 + np.random.normal(0, 1.0, len(time))
+    rf_power = 300 * np.ones(len(time))
+    
+    # Film thickness is inversely proportional to pressure (impact on sputtering yield)
+    film_thickness = 500 / pressure  # nm (simple model)
+    
+    # Visualization
+    fig, axes = plt.subplots(3, 1, figsize=(12, 10))
+    
+    # Pressure variation
+    axes[0].plot(time, pressure, 'r-', linewidth=1.5)
+    axes[0].axhline(y=1.0, color='k', linestyle='--', label='Target')
+    axes[0].fill_between(time, 0.9, 1.1, alpha=0.2, color='green', label='Tolerance')
+    axes[0].set_ylabel('Pressure (Pa)')
+    axes[0].set_title('Process Parameter Monitoring')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+    
+    # Film thickness variation
+    axes[1].plot(time, film_thickness, 'b-', linewidth=1.5)
+    axes[1].axhline(y=500, color='k', linestyle='--', label='Target')
+    axes[1].fill_between(time, 450, 550, alpha=0.2, color='green', label='Tolerance (±10%)')
+    axes[1].set_ylabel('Film Thickness (nm)')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+    
+    # Correlation analysis
+    axes[2].scatter(pressure, film_thickness, alpha=0.5)
+    axes[2].set_xlabel('Pressure (Pa)')
+    axes[2].set_ylabel('Film Thickness (nm)')
+    axes[2].set_title('Correlation: Pressure vs Film Thickness')
+    axes[2].grid(True, alpha=0.3)
+    
+    # Regression line
+    from scipy.stats import linregress
+    slope, intercept, r_value, p_value, std_err = linregress(pressure, film_thickness)
+    pressure_fit = np.linspace(pressure.min(), pressure.max(), 100)
+    thickness_fit = slope * pressure_fit + intercept
+    axes[2].plot(pressure_fit, thickness_fit, 'r-', linewidth=2,
+                 label=f'Fit: R²={r_value**2:.3f}')
+    axes[2].legend()
+    
+    plt.tight_layout()
+    plt.savefig('root_cause_analysis.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Statistical analysis
+    pressure_std = np.std(pressure)
+    thickness_std = np.std(film_thickness)
+    thickness_cv = thickness_std / np.mean(film_thickness) * 100
+    
+    print(f"Root Cause Analysis:")
+    print(f"  Pressure Std Dev: {pressure_std:.3f} Pa")
+    print(f"  Film Thickness CV: {thickness_cv:.2f}%")
+    print(f"  Correlation (R²): {r_value**2:.3f}")
+    
+    print(f"\nConclusion:")
+    print(f"  ✗ Primary cause: PRESSURE INSTABILITY")
+    print(f"  → Pressure variation (±30%) causes thickness variation (±15%)")
+    print(f"  → Exceeds tolerance (±10%)")
+    
+    print(f"\nRecommended Actions:")
+    print(f"  1. Check MFC (Mass Flow Controller) calibration")
+    print(f"  2. Inspect vacuum pump performance (oil level, belt tension)")
+    print(f"  3. Verify APC (Automatic Pressure Controller) PID tuning")
+    print(f"  4. Check for micro-leaks (leak rate test)")
+    print(f"  5. Implement closed-loop pressure feedback control")
+    
+    # Result interpretation:
+    # - Pressure variation (0.8-1.5 Pa, ±50%) is the main cause of film thickness variation
+    # - Temperature and flow are stable → heater and MFC are normal
+    # - Countermeasures: APC PID re-tuning or turbo pump maintenance
+
+#### Exercise 1-6: Multi-Objective Optimization Problem (Hard)
+
+For a CVD process, simultaneously optimize deposition rate (maximize) and film quality (minimize pinhole density). Objective function: $F = w_1 \cdot R - w_2 \cdot D$ ($R$: deposition rate nm/min, $D$: pinhole density count/cm²). Constraints: temperature 500-700°C, pressure 10-100 Pa, gas flow rate 50-200 sccm. Find optimal process conditions using Python.
+
+Solution Example
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    
+    from scipy.optimize import differential_evolution
+    import numpy as np
+    
+    def cvd_process_model(params):
+        """
+        Simple CVD process model
+    
+        Parameters
+        ----------
+        params : tuple
+            (temperature, pressure, flow_rate)
+    
+        Returns
+        -------
+        deposition_rate, pinhole_density : float
+            Deposition rate (nm/min), pinhole density (count/cm²)
+        """
+        temp, pressure, flow = params
+    
+        # Deposition rate model (Arrhenius type + pressure dependence)
+        # R = A * exp(-Ea/RT) * P^0.5 * flow^0.3
+        A = 1e6
+        Ea = 50000  # J/mol
+        R_gas = 8.314
+    
+        deposition_rate = A * np.exp(-Ea/(R_gas * (temp + 273))) * \
+                          np.sqrt(pressure) * (flow ** 0.3)
+    
+        # Pinhole density model (increases at low temperature and high pressure)
+        # D = D0 * exp(-T/T0) * (P/P0)^2
+        D0 = 100
+        T0 = 500
+        P0 = 50
+    
+        pinhole_density = D0 * np.exp(-(temp-500)/T0) * (pressure/P0)**2
+    
+        return deposition_rate, pinhole_density
+    
+    
+    def objective_function(params, w1=1.0, w2=10.0):
+        """
+        Optimization objective function (maximize)
+    
+        F = w1 * R - w2 * D
+    
+        Returns
+        -------
+        -F : float
+            Negative objective function value (converted to minimization problem)
+        """
+        deposition_rate, pinhole_density = cvd_process_model(params)
+    
+        F = w1 * deposition_rate - w2 * pinhole_density
+    
+        return -F  # Convert to minimization problem
+    
+    
+    # Run optimization
+    bounds = [
+        (500, 700),   # Temperature (°C)
+        (10, 100),    # Pressure (Pa)
+        (50, 200)     # Flow rate (sccm)
+    ]
+    
+    result = differential_evolution(
+        objective_function,
+        bounds,
+        args=(1.0, 10.0),  # w1, w2
+        maxiter=100,
+        seed=42,
+        disp=True
+    )
+    
+    temp_opt, pressure_opt, flow_opt = result.x
+    rate_opt, density_opt = cvd_process_model(result.x)
+    
+    print(f"Multi-Objective Optimization Results:")
+    print(f"  Optimal Temperature: {temp_opt:.1f} °C")
+    print(f"  Optimal Pressure: {pressure_opt:.1f} Pa")
+    print(f"  Optimal Flow Rate: {flow_opt:.1f} sccm")
+    print(f"\nPerformance:")
+    print(f"  Deposition Rate: {rate_opt:.2f} nm/min")
+    print(f"  Pinhole Density: {density_opt:.2f} /cm²")
+    print(f"  Objective Function F: {-result.fun:.2f}")
+    
+    # Parameter sweep (visualization)
+    temps = np.linspace(500, 700, 50)
+    rates = []
+    densities = []
+    
+    for temp in temps:
+        rate, density = cvd_process_model((temp, pressure_opt, flow_opt))
+        rates.append(rate)
+        densities.append(density)
+    
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+    
+    color = 'tab:blue'
+    ax1.set_xlabel('Temperature (°C)')
+    ax1.set_ylabel('Deposition Rate (nm/min)', color=color)
+    ax1.plot(temps, rates, color=color, linewidth=2)
+    ax1.tick_params(axis='y', labelcolor=color)
+    ax1.axvline(x=temp_opt, color='k', linestyle='--', alpha=0.5)
+    
+    ax2 = ax1.twinx()
+    color = 'tab:red'
+    ax2.set_ylabel('Pinhole Density (/cm²)', color=color)
+    ax2.plot(temps, densities, color=color, linewidth=2)
+    ax2.tick_params(axis='y', labelcolor=color)
+    
+    plt.title('CVD Process Multi-Objective Optimization')
+    fig.tight_layout()
+    plt.savefig('cvd_optimization.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Result interpretation:
+    # - Optimal temperature is approximately 650°C (too high increases deposition rate↑ but pinholes↓, trade-off)
+    # - Increasing weight w2 emphasizes film quality (pinhole reduction)
+    # - In real processes, film thickness uniformity and adhesion must also be considered
+
+#### Exercise 1-7: Real-Time Feedback Control System Design (Hard)
+
+Design a PID control system to maintain oxygen partial pressure at the target value (0.1 Pa) during annealing in an oxidizing atmosphere. Consider sensor (oxygen partial pressure meter) measurement delay of 10 seconds and MFC response time of 5 seconds, and determine PID gains that enable stable control.
+
+Solution Example
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    class OxygenPartialPressureController:
+        """
+        PID feedback control for oxygen partial pressure
+    
+        Considers measurement delay and MFC response time
+        """
+    
+        def __init__(self, Kp, Ki, Kd, setpoint, dt=1.0,
+                     sensor_delay=10, mfc_response_time=5):
+            """
+            Parameters
+            ----------
+            sensor_delay : float
+                Sensor measurement delay (seconds)
+            mfc_response_time : float
+                MFC response time (seconds)
+            """
+            self.Kp = Kp
+            self.Ki = Ki
+            self.Kd = Kd
+            self.setpoint = setpoint
+            self.dt = dt
+    
+            self.sensor_delay_steps = int(sensor_delay / dt)
+            self.mfc_tau = mfc_response_time
+    
+            self.integral = 0.0
+            self.prev_error = 0.0
+            self.measurement_buffer = []
+            self.mfc_output = 0.0
+    
+        def update(self, actual_pO2):
+            """
+            Update control output
+    
+            Returns
+            -------
+            mfc_flow : float
+                Command flow rate to MFC (sccm)
+            """
+            # Sensor delay simulation
+            self.measurement_buffer.append(actual_pO2)
+            if len(self.measurement_buffer) > self.sensor_delay_steps:
+                measured_pO2 = self.measurement_buffer.pop(0)
+            else:
+                measured_pO2 = self.measurement_buffer[0]
+    
+            # PID operation
+            error = self.setpoint - measured_pO2
+    
+            self.integral += error * self.dt
+            derivative = (error - self.prev_error) / self.dt
+    
+            pid_output = self.Kp * error + self.Ki * self.integral + self.Kd * derivative
+    
+            # MFC response (first-order lag)
+            self.mfc_output += (pid_output - self.mfc_output) / self.mfc_tau * self.dt
+    
+            self.prev_error = error
+    
+            return self.mfc_output
+    
+    
+    def simulate_oxygen_pressure_control(Kp, Ki, Kd, duration=300):
+        """
+        Simulation of oxygen partial pressure control
+        """
+        dt = 1.0
+        n_steps = int(duration / dt)
+    
+        # Initialize controller
+        controller = OxygenPartialPressureController(
+            Kp, Ki, Kd, setpoint=0.1, dt=dt,
+            sensor_delay=10, mfc_response_time=5
+        )
+    
+        # Initialization
+        time = np.arange(0, duration, dt)
+        pO2 = np.zeros(n_steps)
+        mfc_flow = np.zeros(n_steps)
+        pO2[0] = 0.05  # Initial value
+    
+        # Process model (simple)
+        # dpO2/dt = k1 * mfc_flow - k2 * pO2
+        k1 = 0.002  # Supply coefficient
+        k2 = 0.01   # Consumption/leak coefficient
+    
+        for i in range(1, n_steps):
+            # Control output
+            mfc_flow[i] = controller.update(pO2[i-1])
+            mfc_flow[i] = np.clip(mfc_flow[i], 0, 50)  # 0-50 sccm
+    
+            # Process dynamics
+            dpO2 = (k1 * mfc_flow[i] - k2 * pO2[i-1]) * dt
+            pO2[i] = pO2[i-1] + dpO2
+    
+        return time, pO2, mfc_flow
+    
+    
+    # Search for optimal PID gains
+    pid_candidates = [
+        {'name': 'Conservative', 'Kp': 50, 'Ki': 2, 'Kd': 5},
+        {'name': 'Moderate', 'Kp': 100, 'Ki': 5, 'Kd': 10},
+        {'name': 'Aggressive', 'Kp': 200, 'Ki': 10, 'Kd': 20}
+    ]
+    
+    plt.figure(figsize=(14, 10))
+    
+    for idx, pid in enumerate(pid_candidates):
+        time, pO2, mfc_flow = simulate_oxygen_pressure_control(
+            pid['Kp'], pid['Ki'], pid['Kd']
+        )
+    
+        plt.subplot(2, 1, 1)
+        plt.plot(time, pO2, linewidth=2, label=pid['name'])
+    
+        plt.subplot(2, 1, 2)
+        plt.plot(time, mfc_flow, linewidth=2, label=pid['name'])
+    
+        # Performance evaluation
+        settling_idx = np.where(np.abs(pO2 - 0.1) < 0.005)[0]
+        settling_time = time[settling_idx[0]] if len(settling_idx) > 0 else np.inf
+        overshoot = max(0, np.max(pO2) - 0.1)
+    
+        print(f"{pid['name']} PID:")
+        print(f"  Kp={pid['Kp']}, Ki={pid['Ki']}, Kd={pid['Kd']}")
+        print(f"  Settling Time: {settling_time:.1f} s")
+        print(f"  Overshoot: {overshoot:.4f} Pa\n")
+    
+    plt.subplot(2, 1, 1)
+    plt.axhline(y=0.1, color='k', linestyle='--', label='Setpoint')
+    plt.ylabel('O₂ Partial Pressure (Pa)')
+    plt.title('Oxygen Pressure Control with Measurement Delay')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    plt.subplot(2, 1, 2)
+    plt.xlabel('Time (s)')
+    plt.ylabel('MFC Flow (sccm)')
+    plt.title('MFC Control Output')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('oxygen_pressure_control.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    print(f"Recommendation:")
+    print(f"  Choose 'Moderate' PID for balance between speed and stability")
+    print(f"  Measurement delay requires careful tuning to avoid oscillation")
+
+#### Exercise 1-8: Building a Process Digital Twin (Hard)
+
+Build a **digital twin** (virtual model mimicking the real process) of a temperature control system. Perform system identification from measured data (temperature, heater output) and achieve prediction accuracy within ±2°C. Also consider application to model-based control (MPC).
+
+Solution Example
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    from scipy.optimize import curve_fit
+    import matplotlib.pyplot as plt
+    
+    # Generate measured data (simple simulation)
+    np.random.seed(42)
+    time_real = np.arange(0, 200, 1)
+    heater_real = 50 + 30 * (1 - np.exp(-time_real/30))  # Step response
+    temp_real = 25 + 300 * (1 - np.exp(-time_real/40)) + np.random.normal(0, 2, len(time_real))
+    
+    def first_order_model(t, K, tau, delay):
+        """
+        First-order lag + dead time model
+    
+        Parameters
+        ----------
+        K : float
+            Gain
+        tau : float
+            Time constant (seconds)
+        delay : float
+            Dead time (seconds)
+        """
+        response = np.zeros_like(t)
+        for i, ti in enumerate(t):
+            if ti > delay:
+                response[i] = K * (1 - np.exp(-(ti - delay) / tau))
+        return response + 25  # Offset
+    
+    # System identification (curve fitting)
+    popt, pcov = curve_fit(
+        lambda t, K, tau, delay: first_order_model(t, K, tau, delay),
+        time_real,
+        temp_real,
+        p0=[300, 40, 0],
+        bounds=([100, 10, 0], [500, 100, 10])
+    )
+    
+    K_id, tau_id, delay_id = popt
+    print(f"System Identification Results:")
+    print(f"  Gain K: {K_id:.2f}")
+    print(f"  Time Constant τ: {tau_id:.2f} s")
+    print(f"  Delay: {delay_id:.2f} s")
+    
+    # Prediction using digital twin model
+    temp_model = first_order_model(time_real, K_id, tau_id, delay_id)
+    
+    # Prediction error evaluation
+    prediction_error = temp_real - temp_model
+    rmse = np.sqrt(np.mean(prediction_error**2))
+    max_error = np.max(np.abs(prediction_error))
+    
+    print(f"\nModel Accuracy:")
+    print(f"  RMSE: {rmse:.2f} °C")
+    print(f"  Max Error: {max_error:.2f} °C")
+    
+    if max_error < 2.0:
+        print(f"  ✓ Accuracy target (±2°C) ACHIEVED")
+    else:
+        print(f"  ✗ Accuracy target (±2°C) NOT MET")
+        print(f"  → Consider higher-order model or nonlinear effects")
+    
+    # Visualization
+    fig, axes = plt.subplots(2, 1, figsize=(12, 10))
+    
+    # Temperature comparison
+    axes[0].plot(time_real, temp_real, 'b-', linewidth=2, label='Real Process', alpha=0.7)
+    axes[0].plot(time_real, temp_model, 'r--', linewidth=2, label='Digital Twin')
+    axes[0].set_ylabel('Temperature (°C)')
+    axes[0].set_title('Digital Twin: Real vs Model')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+    
+    # Prediction error
+    axes[1].plot(time_real, prediction_error, 'g-', linewidth=1.5)
+    axes[1].axhline(y=2, color='r', linestyle='--', label='Target ±2°C')
+    axes[1].axhline(y=-2, color='r', linestyle='--')
+    axes[1].fill_between(time_real, -2, 2, alpha=0.2, color='green')
+    axes[1].set_xlabel('Time (s)')
+    axes[1].set_ylabel('Prediction Error (°C)')
+    axes[1].set_title('Model Prediction Error')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('digital_twin.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # MPC (Model Predictive Control) application concept
+    print(f"\nMPC Application Concept:")
+    print(f"  1. Use digital twin to predict future temperature trajectory")
+    print(f"  2. Optimize heater input sequence over prediction horizon (e.g., 60s)")
+    print(f"  3. Apply first control action, then re-optimize at next timestep")
+    print(f"  4. Benefits: Handles constraints, anticipates disturbances")
+    
+    # Result:
+    # If RMSE is less than 2°C, the digital twin has sufficient accuracy
+    # In MPC, this model is used to calculate optimal control inputs
+    # Implementation uses scipy.optimize.minimize or dedicated MPC libraries (do-mpc)
+
+## Learning Achievement Checklist
+
+### Basic Understanding Level
+
+  * ☐ Can explain the roles of the three PID control elements (P, I, D)
+  * ☐ Understand the basic structure of feedback control
+  * ☐ Can design temperature ramp profiles
+  * ☐ Can use the vacuum pumpdown equation
+  * ☐ Can calculate partial pressures using Dalton's law
+
+### Practical Skills Level
+
+  * ☐ Can implement a PID controller in Python and adjust parameters
+  * ☐ Can generate and plot multi-segment temperature profiles
+  * ☐ Can calculate vacuum system reach time and leak rates
+  * ☐ Can calculate partial pressures from gas mixing ratios and determine MFC settings
+  * ☐ Can log process data and implement anomaly detection algorithms
+
+### Application Skills Level
+
+  * ☐ Can perform automatic PID gain optimization (differential evolution, etc.)
+  * ☐ Can design feedback control systems considering measurement delays
+  * ☐ Can perform root cause analysis of process anomalies (correlation analysis, statistical testing)
+  * ☐ Can solve multi-objective optimization problems (deposition rate vs film quality)
+  * ☐ Can build digital twins (system identification, prediction models)
+  * ☐ Can design real-time dashboards and propose process monitoring systems
+
+## References
+
+  1. Åström, K.J., Hägglund, T. (2006). _Advanced PID Control_. ISA - The Instrumentation, Systems, and Automation Society, pp. 45-78, 123-145.
+  2. Ogata, K. (2010). _Modern Control Engineering_ (5th ed.). Prentice Hall, pp. 156-189, 234-267.
+  3. Bunshah, R.F. (Ed.). (2001). _Handbook of Deposition Technologies for Films and Coatings: Science, Applications and Technology_ (3rd ed.). Elsevier, pp. 120-156, 201-245.
+  4. O'Hanlon, J.F. (2003). _A User's Guide to Vacuum Technology_ (3rd ed.). Wiley-Interscience, pp. 234-267, 345-378.
+  5. Seborg, D.E., Edgar, T.F., Mellichamp, D.A., Doyle III, F.J. (2016). _Process Dynamics and Control_ (4th ed.). Wiley, pp. 89-124, 267-302.
+  6. Python control systems library: `scipy.signal`, `control` package. Documentation: https://python-control.readthedocs.io
+  7. Glover, A.R., Smith, D.L. (2015). "Real-time process monitoring in semiconductor manufacturing," _Journal of Vacuum Science & Technology A_, 33(4), 041501. DOI: 10.1116/1.4916239, pp. 1-12.

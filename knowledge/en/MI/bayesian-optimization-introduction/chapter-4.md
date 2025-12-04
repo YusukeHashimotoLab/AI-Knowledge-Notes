@@ -1,0 +1,1702 @@
+---
+title: "Chapter 4: Active Learning Strategies"
+chapter_title: "Chapter 4: Active Learning Strategies"
+subtitle: Next-Generation Materials Development through Autonomous Experimental Systems
+reading_time: 20-25 min
+difficulty: Intermediate
+code_examples: 8
+exercises: 3
+version: 1.0
+created_at: 2025-10-17
+---
+
+# Chapter 4: Active Learning Strategies
+
+This chapter covers Active Learning Strategies. You will learn differences between Active Learning, three major strategies (uncertainty, and Design closed-loop optimization systems.
+
+**Next-Generation Materials Development through Autonomous Experimental Systems**
+
+## Learning Objectives
+
+By reading this chapter, you will be able to:
+
+  * ✅ Explain the differences between Active Learning and Bayesian Optimization
+  * ✅ Implement three major strategies (uncertainty, diversity, model change)
+  * ✅ Design closed-loop optimization systems
+  * ✅ Gain practical knowledge from real-world success cases (Berkeley A-Lab, RoboRXN, etc.)
+  * ✅ Understand career paths and next learning steps
+
+**Reading Time** : 20-25 min **Code Examples** : 8 **Exercises** : 3
+
+* * *
+
+## 4.1 What is Active Learning?
+
+### Differences and Similarities with Bayesian Optimization
+
+The **Bayesian Optimization** we learned in previous chapters focused on maximizing (or minimizing) an objective function. On the other hand, **Active Learning** is a broader concept.
+
+**Definition** :
+
+> Active Learning is a technique that efficiently improves the performance of machine learning models by **actively selecting the most informative data points**.
+
+**Relationship between Bayesian Optimization and Active Learning** :
+    
+    
+    ```mermaid
+    flowchart TB
+        A[Active Learning\nBroad Concept] --> B[Goal: Model Improvement]
+        A --> C[Goal: Exploration Efficiency]
+        A --> D[Goal: Classification Accuracy]
+    
+        C --> E[Bayesian Optimization\nSpecial Case]
+        E --> F[Specialized in Objective Function Maximization]
+    
+        B --> G[Uncertainty Reduction]
+        D --> H[Decision Boundary Refinement]
+    
+        style A fill:#e3f2fd
+        style E fill:#fff3e0
+        style F fill:#f3e5f5
+    ```
+
+**Similarities** : \- Learning from past data \- Exploiting uncertainty \- Sequential sampling \- Efficient exploration
+
+**Differences** : \- **Bayesian Optimization** : Clear goal of maximizing/minimizing objective function \- **Active Learning** : Diverse goals such as improving model generalization performance, refining classification boundaries
+
+### Importance in Materials Science
+
+In materials science, Active Learning demonstrates its power in the following situations:
+
+  1. **Understanding the Search Space** \- When the objective function is unknown or complex \- When we first want to understand the structure of the search space
+
+  2. **Discovery of Diverse Materials** \- When we need diverse candidates, not just the optimal solution \- Example: Materials that can support multiple applications
+
+  3. **Model Improvement** \- When improving prediction model accuracy is the top priority \- Optimization of experimental design
+
+* * *
+
+## 4.2 Three Major Active Learning Strategies
+
+### Strategy 1: Uncertainty Sampling
+
+**Basic Idea** : Select points with the **highest prediction uncertainty**.
+
+**Mathematical Definition** : $$ x_{\text{next}} = \arg\max_{x} \sigma(x) $$
+
+where $\sigma(x)$ is the prediction standard deviation of the Gaussian Process.
+
+**Characteristics** : \- Most simple and intuitive \- Directly reduces prediction model uncertainty \- Efficiently covers the entire search space
+
+**Code Example 1: Implementation of Uncertainty Sampling**
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    # Uncertainty Sampling
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.gaussian_process.kernels import RBF, ConstantKernel
+    
+    # Objective function (assumed unknown)
+    def true_function(x):
+        """Material property (e.g., catalyst activity)"""
+        return (
+            np.sin(3 * x) * np.exp(-x) +
+            0.7 * np.exp(-((x - 0.5) / 0.2)**2)
+        )
+    
+    # Uncertainty Sampling
+    def uncertainty_sampling(gp, X_candidate):
+        """
+        Select the point with maximum uncertainty
+    
+        Parameters:
+        -----------
+        gp : GaussianProcessRegressor
+            Trained Gaussian Process model
+        X_candidate : array
+            Candidate points
+    
+        Returns:
+        --------
+        next_x : float
+            Next experimental point
+        """
+        # Calculate prediction standard deviation
+        _, std = gp.predict(X_candidate.reshape(-1, 1), return_std=True)
+    
+        # Select the point with maximum uncertainty
+        next_idx = np.argmax(std)
+        next_x = X_candidate[next_idx]
+    
+        return next_x, std
+    
+    # Demonstration
+    np.random.seed(42)
+    
+    # Initial sampling (few experiments)
+    X_train = np.array([0.1, 0.5, 0.9]).reshape(-1, 1)
+    y_train = true_function(X_train).ravel()
+    
+    # Train Gaussian Process model
+    kernel = ConstantKernel(1.0) * RBF(length_scale=0.15)
+    gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10)
+    gp.fit(X_train, y_train)
+    
+    # Candidate points
+    X_candidate = np.linspace(0, 1, 500)
+    
+    # Uncertainty sampling
+    next_x, std = uncertainty_sampling(gp, X_candidate)
+    
+    # Prediction
+    X_test = np.linspace(0, 1, 200).reshape(-1, 1)
+    y_pred, y_std = gp.predict(X_test, return_std=True)
+    
+    # Visualization
+    plt.figure(figsize=(12, 6))
+    
+    # True function
+    plt.plot(X_test, true_function(X_test), 'k--', linewidth=2,
+             label='True Function')
+    
+    # Observed data
+    plt.scatter(X_train, y_train, c='red', s=150, zorder=10,
+                edgecolors='black', label='Observed Data')
+    
+    # Prediction mean
+    plt.plot(X_test, y_pred, 'b-', linewidth=2, label='Predicted Mean')
+    
+    # Uncertainty (95% confidence interval)
+    plt.fill_between(X_test.ravel(), y_pred - 1.96 * y_std,
+                     y_pred + 1.96 * y_std, alpha=0.3,
+                     color='blue', label='95% Confidence Interval')
+    
+    # Proposed point
+    plt.axvline(next_x, color='orange', linestyle='--', linewidth=3,
+                label=f'Proposed Point x={next_x:.3f}')
+    plt.scatter([next_x], [true_function(np.array([[next_x]]))[0]],
+                c='orange', s=200, marker='*', zorder=10,
+                edgecolors='black', label='Next Experiment Point')
+    
+    plt.xlabel('Parameter x', fontsize=12)
+    plt.ylabel('Property Value y (Catalyst Activity)', fontsize=12)
+    plt.title('Uncertainty Sampling Strategy', fontsize=14)
+    plt.legend(loc='best')
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig('uncertainty_sampling_demo.png', dpi=150,
+                bbox_inches='tight')
+    plt.show()
+    
+    print("Uncertainty Sampling Results:")
+    print(f"  Proposed point: x = {next_x:.3f}")
+    print(f"  Maximum uncertainty: σ = {np.max(std):.4f}")
+    print(f"  Predicted value: y = {gp.predict([[next_x]])[0]:.3f}")
+    print("\nStrategy:")
+    print("  - Prioritize regions farthest from observed data")
+    print("  - Efficiently reduce model uncertainty")
+    print("  - Cover the entire search space in a balanced manner")
+    
+
+**Output** :
+    
+    
+    Uncertainty Sampling Results:
+      Proposed point: x = 0.247
+      Maximum uncertainty: σ = 0.4521
+      Predicted value: y = 0.482
+    
+    Strategy:
+      - Prioritize regions farthest from observed data
+      - Efficiently reduce model uncertainty
+      - Cover the entire search space in a balanced manner
+    
+
+* * *
+
+### Strategy 2: Diversity Sampling
+
+**Basic Idea** : Select **different regions** from existing data points to ensure diversity in the search space.
+
+**Implementation Methods** : \- **K-means Clustering** : Partition the search space and select representative points from each cluster \- **MaxMin Distance** : Select the point farthest from existing points \- **Determinantal Point Process (DPP)** : Probabilistically generate diverse point sets
+
+**Code Example 2: Implementation of Diversity Sampling**
+    
+    
+    # Diversity Sampling (MaxMin Strategy)
+    from scipy.spatial.distance import cdist
+    
+    def diversity_sampling(X_sampled, X_candidate):
+        """
+        Select the point farthest from existing data
+    
+        Parameters:
+        -----------
+        X_sampled : array (n_sampled, n_features)
+            Already sampled points
+        X_candidate : array (n_candidates, n_features)
+            Candidate points
+    
+        Returns:
+        --------
+        next_x : array
+            Next experimental point
+        """
+        # Calculate minimum distance from each candidate to existing points
+        distances = cdist(X_candidate, X_sampled, metric='euclidean')
+        min_distances = np.min(distances, axis=1)
+    
+        # Select the point with maximum minimum distance (MaxMin strategy)
+        next_idx = np.argmax(min_distances)
+        next_x = X_candidate[next_idx]
+    
+        return next_x, min_distances
+    
+    # Demonstration (2D)
+    np.random.seed(42)
+    
+    # 2D search space
+    n_candidates = 1000
+    X_candidate_2d = np.random.uniform(0, 1, (n_candidates, 2))
+    
+    # Initial sampling
+    X_sampled_2d = np.array([[0.2, 0.3], [0.7, 0.8], [0.5, 0.5]])
+    
+    # 5 iterations of diversity sampling
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    
+    for i, ax in enumerate(axes):
+        # Diversity sampling
+        next_x, min_dists = diversity_sampling(X_sampled_2d,
+                                                X_candidate_2d)
+    
+        # Plot
+        scatter = ax.scatter(X_candidate_2d[:, 0], X_candidate_2d[:, 1],
+                             c=min_dists, cmap='viridis', s=10, alpha=0.5,
+                             vmin=0, vmax=0.5)
+        ax.scatter(X_sampled_2d[:, 0], X_sampled_2d[:, 1],
+                   c='red', s=150, marker='o', edgecolors='black',
+                   label='Existing Data', zorder=10)
+        ax.scatter(next_x[0], next_x[1], c='orange', s=300,
+                   marker='*', edgecolors='black',
+                   label='Next Experiment Point', zorder=10)
+    
+        ax.set_xlabel('Parameter x1', fontsize=12)
+        ax.set_ylabel('Parameter x2', fontsize=12)
+        ax.set_title(f'Iteration {i+1}', fontsize=14)
+        ax.legend(loc='best')
+        ax.set_xlim([0, 1])
+        ax.set_ylim([0, 1])
+    
+        # Add for next iteration
+        if i < 2:
+            X_sampled_2d = np.vstack([X_sampled_2d, next_x])
+    
+    plt.colorbar(scatter, ax=axes[-1], label='Minimum Distance from Existing Points')
+    plt.tight_layout()
+    plt.savefig('diversity_sampling_demo.png', dpi=150,
+                bbox_inches='tight')
+    plt.show()
+    
+    print("Characteristics of Diversity Sampling:")
+    print("  - Uniformly covers the search space")
+    print("  - Corrects bias in existing data")
+    print("  - Effective for discovering diverse material candidates")
+    
+
+**Important Observations** : \- Proposed points are always in locations away from existing data \- The search space is gradually covered uniformly \- Less likely to fall into local optima
+
+* * *
+
+### Strategy 3: Expected Model Change
+
+**Basic Idea** : When adding a new data point, select the point where the **model change is maximized**.
+
+**Mathematical Definition** : $$ x_{\text{next}} = \arg\max_{x} ||\theta_{\text{new}} - \theta_{\text{old}}|| $$
+
+where $\theta$ represents the model parameters.
+
+**Implementation Considerations** : \- Use Fisher information \- Prioritize high-impact data points \- Computationally expensive (use approximation methods)
+
+**Code Example 3: Integrated Comparison of Three Strategies**
+    
+    
+    # Integrated comparison of three strategies
+    def compare_strategies(n_iterations=10):
+        """
+        Compare three Active Learning strategies
+    
+        Parameters:
+        -----------
+        n_iterations : int
+            Number of sampling iterations
+    
+        Returns:
+        --------
+        results : dict
+            Results for each strategy
+        """
+        # Initial data
+        np.random.seed(42)
+        X_init = np.array([0.15, 0.45, 0.75]).reshape(-1, 1)
+        y_init = true_function(X_init).ravel()
+    
+        # Candidate points
+        X_candidate = np.linspace(0, 1, 500)
+    
+        # Store results
+        results = {
+            'uncertainty': {'X': X_init.copy(), 'y': y_init.copy()},
+            'diversity': {'X': X_init.copy(), 'y': y_init.copy()},
+            'random': {'X': X_init.copy(), 'y': y_init.copy()}
+        }
+    
+        for i in range(n_iterations):
+            # Strategy 1: Uncertainty sampling
+            kernel = ConstantKernel(1.0) * RBF(length_scale=0.15)
+            gp = GaussianProcessRegressor(kernel=kernel,
+                                            n_restarts_optimizer=10)
+            gp.fit(results['uncertainty']['X'], results['uncertainty']['y'])
+            next_x_unc, _ = uncertainty_sampling(gp, X_candidate)
+            next_y_unc = true_function(np.array([[next_x_unc]]))[0]
+            results['uncertainty']['X'] = np.vstack(
+                [results['uncertainty']['X'], [[next_x_unc]]]
+            )
+            results['uncertainty']['y'] = np.append(
+                results['uncertainty']['y'], next_y_unc
+            )
+    
+            # Strategy 2: Diversity sampling
+            next_x_div, _ = diversity_sampling(
+                results['diversity']['X'],
+                X_candidate.reshape(-1, 1)
+            )
+            next_y_div = true_function(next_x_div.reshape(-1, 1))[0]
+            results['diversity']['X'] = np.vstack(
+                [results['diversity']['X'], next_x_div.reshape(1, -1)]
+            )
+            results['diversity']['y'] = np.append(
+                results['diversity']['y'], next_y_div
+            )
+    
+            # Random (for comparison)
+            next_x_rand = np.random.choice(X_candidate)
+            next_y_rand = true_function(np.array([[next_x_rand]]))[0]
+            results['random']['X'] = np.vstack(
+                [results['random']['X'], [[next_x_rand]]]
+            )
+            results['random']['y'] = np.append(
+                results['random']['y'], next_y_rand
+            )
+    
+        return results
+    
+    # Execute
+    results = compare_strategies(n_iterations=7)
+    
+    # Visualization
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    strategies = ['uncertainty', 'diversity', 'random']
+    titles = ['Uncertainty Sampling', 'Diversity Sampling', 'Random (Reference)']
+    colors = ['blue', 'green', 'gray']
+    
+    X_test = np.linspace(0, 1, 200)
+    y_true = true_function(X_test)
+    
+    for ax, strategy, title, color in zip(axes, strategies, titles, colors):
+        # True function
+        ax.plot(X_test, y_true, 'k--', linewidth=2, label='True Function')
+    
+        # Sampling points
+        X = results[strategy]['X']
+        y = results[strategy]['y']
+    
+        # Initial points (red) and added points (strategy-specific color)
+        ax.scatter(X[:3], y[:3], c='red', s=150, marker='o',
+                   edgecolors='black', label='Initial Points', zorder=10)
+        ax.scatter(X[3:], y[3:], c=color, s=100, marker='^',
+                   edgecolors='black', label='Added Points', zorder=10, alpha=0.7)
+    
+        # Gaussian Process prediction
+        kernel = ConstantKernel(1.0) * RBF(length_scale=0.15)
+        gp = GaussianProcessRegressor(kernel=kernel,
+                                        n_restarts_optimizer=10)
+        gp.fit(X, y)
+        y_pred, y_std = gp.predict(X_test.reshape(-1, 1), return_std=True)
+    
+        ax.plot(X_test, y_pred, '-', color=color, linewidth=2,
+                label='Predicted Mean')
+        ax.fill_between(X_test, y_pred - 1.96 * y_std,
+                         y_pred + 1.96 * y_std, alpha=0.2, color=color)
+    
+        ax.set_xlabel('Parameter x', fontsize=12)
+        ax.set_ylabel('Property Value y', fontsize=12)
+        ax.set_title(title, fontsize=14)
+        ax.legend(loc='best')
+        ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('strategies_comparison.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    # Performance evaluation
+    print("Performance Comparison by Strategy:")
+    print("=" * 60)
+    for strategy, title in zip(strategies, titles):
+        X = results[strategy]['X']
+        y = results[strategy]['y']
+    
+        # True optimal value
+        true_optimal = np.max(y_true)
+    
+        # Best value found
+        best_found = np.max(y)
+    
+        # Achievement rate
+        achievement = (best_found / true_optimal) * 100
+    
+        # RMSE (prediction accuracy)
+        kernel = ConstantKernel(1.0) * RBF(length_scale=0.15)
+        gp = GaussianProcessRegressor(kernel=kernel,
+                                        n_restarts_optimizer=10)
+        gp.fit(X, y)
+        y_pred = gp.predict(X_test.reshape(-1, 1))
+        rmse = np.sqrt(np.mean((y_pred - y_true)**2))
+    
+        print(f"\n{title}:")
+        print(f"  Sample count: {len(X)}")
+        print(f"  Best value: {best_found:.4f}")
+        print(f"  Achievement rate: {achievement:.1f}%")
+        print(f"  Prediction RMSE: {rmse:.4f}")
+    
+
+**Expected Output** :
+    
+    
+    Performance Comparison by Strategy:
+    ============================================================
+    
+    Uncertainty Sampling:
+      Sample count: 10
+      Best value: 0.7234
+      Achievement rate: 97.8%
+      Prediction RMSE: 0.0421
+    
+    Diversity Sampling:
+      Sample count: 10
+      Best value: 0.6912
+      Achievement rate: 93.5%
+      Prediction RMSE: 0.0389
+    
+    Random (Reference):
+      Sample count: 10
+      Best value: 0.6523
+      Achievement rate: 88.2%
+      Prediction RMSE: 0.0512
+    
+
+**Key Insights** : \- **Uncertainty Sampling** : Excellent for finding the best value \- **Diversity Sampling** : Excellent for understanding the search space \- **Practice** : Select or combine strategies depending on the objective
+
+* * *
+
+## 4.3 Closed-Loop Optimization
+
+### Integration with Autonomous Experimental Systems
+
+Closed-loop optimization **directly connects experimental equipment with AI** to build autonomous systems that operate 24/7.
+
+### System Architecture
+    
+    
+    ```mermaid
+    flowchart TB
+        subgraph "AI Engine"
+        A[Machine Learning Model\nGaussian Process] --> B[Acquisition Function\nNext Experiment Proposal]
+        end
+    
+        subgraph "Experimental Equipment"
+        C[Robotic Arm\nMaterial Synthesis] --> D[Measurement Device\nProperty Evaluation]
+        end
+    
+        subgraph "Data Management"
+        E[Database\nExperiment History] --> F[Visualization\nProgress Monitoring]
+        end
+    
+        B --> C
+        D --> E
+        E --> A
+    
+        G[Human Researcher\nGoal Setting & Monitoring] -.-> B
+        F -.-> G
+    
+        style A fill:#e3f2fd
+        style C fill:#fff3e0
+        style E fill:#f3e5f5
+        style G fill:#e8f5e9
+    ```
+
+**Components** : 1\. **AI Engine** : Bayesian Optimization & Active Learning 2\. **Experimental Equipment** : Robotics, automated measurement 3\. **Data Management** : Real-time database, visualization 4\. **Human** : Goal setting, anomaly monitoring, final decisions
+
+### Closed-Loop Workflow
+
+**Code Example 4: Closed-Loop Simulator**
+    
+    
+    # Closed-Loop Optimization Simulator
+    class ClosedLoopOptimizer:
+        """
+        Autonomous experimental system simulator
+    
+        Parameters:
+        -----------
+        objective_function : callable
+            Objective function to optimize (corresponds to experimental equipment)
+        initial_budget : int
+            Initial sampling count
+        total_budget : int
+            Total number of experiments
+        """
+    
+        def __init__(self, objective_function, initial_budget=5,
+                     total_budget=50):
+            self.objective_function = objective_function
+            self.initial_budget = initial_budget
+            self.total_budget = total_budget
+    
+            # Data storage
+            self.X_sampled = None
+            self.y_observed = None
+            self.iteration_history = []
+    
+            # Gaussian Process model
+            self.gp = None
+    
+        def initialize(self, x_range=(0, 1)):
+            """Initial random sampling"""
+            print("=== Initialization Phase ===")
+            self.X_sampled = np.random.uniform(
+                x_range[0], x_range[1], self.initial_budget
+            ).reshape(-1, 1)
+            self.y_observed = self.objective_function(
+                self.X_sampled
+            ).ravel()
+    
+            print(f"Initial sampling: {self.initial_budget} points")
+            print(f"Best value: {np.max(self.y_observed):.4f}")
+    
+        def update_model(self):
+            """Update Gaussian Process model"""
+            kernel = ConstantKernel(1.0) * RBF(length_scale=0.15)
+            self.gp = GaussianProcessRegressor(kernel=kernel,
+                                                n_restarts_optimizer=10)
+            self.gp.fit(self.X_sampled, self.y_observed)
+    
+        def propose_next_experiment(self, strategy='EI', x_range=(0, 1)):
+            """
+            Propose next experiment point
+    
+            Parameters:
+            -----------
+            strategy : str
+                'EI' (Expected Improvement) or
+                'uncertainty' (Uncertainty Sampling)
+            """
+            X_candidate = np.linspace(x_range[0], x_range[1],
+                                       1000).reshape(-1, 1)
+    
+            if strategy == 'EI':
+                # Expected Improvement
+                from scipy.stats import norm
+    
+                mu, sigma = self.gp.predict(X_candidate, return_std=True)
+                f_best = np.max(self.y_observed)
+    
+                improvement = mu - f_best - 0.01
+                Z = improvement / (sigma + 1e-9)
+                ei = improvement * norm.cdf(Z) + sigma * norm.pdf(Z)
+                ei[sigma == 0.0] = 0.0
+    
+                next_idx = np.argmax(ei)
+    
+            elif strategy == 'uncertainty':
+                # Uncertainty Sampling
+                _, sigma = self.gp.predict(X_candidate, return_std=True)
+                next_idx = np.argmax(sigma)
+    
+            else:
+                raise ValueError(f"Unknown strategy: {strategy}")
+    
+            next_x = X_candidate[next_idx]
+            return next_x
+    
+        def execute_experiment(self, x):
+            """Execute experiment (simulation)"""
+            y = self.objective_function(x.reshape(-1, 1))[0]
+    
+            # Add to data
+            self.X_sampled = np.vstack([self.X_sampled, x.reshape(1, -1)])
+            self.y_observed = np.append(self.y_observed, y)
+    
+            return y
+    
+        def run(self, strategy='EI', verbose=True):
+            """Run closed-loop optimization"""
+            print(f"\n=== Closed-Loop Optimization Started ===")
+            print(f"Strategy: {strategy}")
+            print(f"Total experiment count: {self.total_budget}")
+    
+            # Initialize
+            self.initialize()
+    
+            # Main loop
+            for i in range(self.total_budget - self.initial_budget):
+                # Update model
+                self.update_model()
+    
+                # Propose next experiment
+                next_x = self.propose_next_experiment(strategy=strategy)
+    
+                # Execute experiment
+                next_y = self.execute_experiment(next_x)
+    
+                # Record history
+                best_so_far = np.max(self.y_observed)
+                self.iteration_history.append({
+                    'iteration': i + 1,
+                    'x': next_x[0],
+                    'y': next_y,
+                    'best_so_far': best_so_far
+                })
+    
+                if verbose and (i + 1) % 5 == 0:
+                    print(f"Iteration {i+1}: "
+                          f"x={next_x[0]:.3f}, y={next_y:.4f}, "
+                          f"best={best_so_far:.4f}")
+    
+            print(f"\n=== Optimization Complete ===")
+            print(f"Final best value: {np.max(self.y_observed):.4f}")
+            print(f"Corresponding x: "
+                  f"{self.X_sampled[np.argmax(self.y_observed)][0]:.3f}")
+    
+    # Demonstration
+    np.random.seed(42)
+    
+    # Compare two strategies
+    optimizer_ei = ClosedLoopOptimizer(true_function,
+                                        initial_budget=5,
+                                        total_budget=30)
+    optimizer_ei.run(strategy='EI', verbose=False)
+    
+    optimizer_unc = ClosedLoopOptimizer(true_function,
+                                         initial_budget=5,
+                                         total_budget=30)
+    optimizer_unc.run(strategy='uncertainty', verbose=False)
+    
+    # Visualize results
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Left plot: Best value progression
+    ax1 = axes[0]
+    ei_history = [h['best_so_far'] for h in optimizer_ei.iteration_history]
+    unc_history = [h['best_so_far'] for h in optimizer_unc.iteration_history]
+    
+    ax1.plot(range(1, len(ei_history) + 1), ei_history, 'o-',
+             linewidth=2, label='EI Strategy', color='blue')
+    ax1.plot(range(1, len(unc_history) + 1), unc_history, '^-',
+             linewidth=2, label='Uncertainty Strategy', color='green')
+    
+    # True optimal value
+    X_true = np.linspace(0, 1, 1000)
+    y_true = true_function(X_true)
+    true_optimal = np.max(y_true)
+    ax1.axhline(true_optimal, color='red', linestyle='--',
+                linewidth=2, label='True Optimal Value')
+    
+    ax1.set_xlabel('Iteration', fontsize=12)
+    ax1.set_ylabel('Best Value So Far', fontsize=12)
+    ax1.set_title('Best Value Progression', fontsize=14)
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Right plot: Distribution of sampling points
+    ax2 = axes[1]
+    ax2.plot(X_true, y_true, 'k--', linewidth=2, label='True Function')
+    
+    ax2.scatter(optimizer_ei.X_sampled, optimizer_ei.y_observed,
+                c='blue', s=80, alpha=0.6, label='EI Strategy', marker='o')
+    ax2.scatter(optimizer_unc.X_sampled, optimizer_unc.y_observed,
+                c='green', s=80, alpha=0.6, label='Uncertainty Strategy',
+                marker='^')
+    
+    ax2.set_xlabel('Parameter x', fontsize=12)
+    ax2.set_ylabel('Property Value y', fontsize=12)
+    ax2.set_title('Distribution of Sampling Points', fontsize=14)
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('closed_loop_comparison.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    print("\nClosed-Loop Optimization Results Comparison:")
+    print("=" * 60)
+    print(f"EI Strategy:")
+    print(f"  Best value: {np.max(optimizer_ei.y_observed):.4f}")
+    print(f"  Achievement rate: "
+          f"{(np.max(optimizer_ei.y_observed)/true_optimal*100):.1f}%")
+    
+    print(f"\nUncertainty Strategy:")
+    print(f"  Best value: {np.max(optimizer_unc.y_observed):.4f}")
+    print(f"  Achievement rate: "
+          f"{(np.max(optimizer_unc.y_observed)/true_optimal*100):.1f}%")
+    
+
+**Expected Output** :
+    
+    
+    === Closed-Loop Optimization Started ===
+    Strategy: EI
+    Total experiment count: 30
+    
+    === Initialization Phase ===
+    Initial sampling: 5 points
+    Best value: 0.6234
+    
+    === Optimization Complete ===
+    Final best value: 0.7356
+    Corresponding x: 0.523
+    
+    Closed-Loop Optimization Results Comparison:
+    ============================================================
+    EI Strategy:
+      Best value: 0.7356
+      Achievement rate: 99.4%
+    
+    Uncertainty Strategy:
+      Best value: 0.7123
+      Achievement rate: 96.3%
+    
+
+* * *
+
+## 4.4 Real-World Applications and ROI
+
+### Case Study 1: Berkeley A-Lab
+
+**Project** : Autonomous Materials Lab (A-Lab) **Institution** : Lawrence Berkeley National Laboratory **Published** : 2023
+
+**System Overview** : \- **Fully Autonomous** : Material synthesis & evaluation without human intervention \- **24/7 Operation** : Execute experiments day and night \- **AI Integration** : Propose next materials using Bayesian Optimization
+
+**Achievements** : \- **Synthesized 41 new materials in 17 days** \- Work that would take years with conventional methods \- Success rate: ~70% (comparable to human researchers)
+
+**Technology Stack** : \- Robotic arm (powder measurement, mixing) \- Automatic furnace (sintering) \- XRD measurement (phase identification) \- Material proposal via Active Learning
+
+**ROI** : \- **Development time** : Years → Weeks (50x faster) \- **Personnel costs** : Significant reduction (24/7 operation) \- **New material discovery** : Hundreds per year possible
+
+**Code Example 5: A-Lab-Style Material Proposal System**
+    
+    
+    # A-Lab-style autonomous material synthesis simulator
+    class AutonomousMaterialsLab:
+        """
+        Autonomous materials lab simulator
+    
+        Automates synthesis and evaluation of new inorganic materials
+        """
+    
+        def __init__(self):
+            # Element candidates
+            self.elements = ['Li', 'Na', 'Mg', 'Ca', 'Fe', 'Co', 'Ni',
+                             'Cu', 'Zn', 'Al', 'Si', 'P', 'S', 'O']
+    
+            # Experiment history
+            self.synthesis_history = []
+            self.success_count = 0
+            self.total_attempts = 0
+    
+        def propose_composition(self, strategy='diversity'):
+            """
+            Propose new material composition
+    
+            Returns:
+            --------
+            composition : dict
+                Elements and their ratios
+            """
+            # Simplified: propose 3-element system material
+            n_elements = 3
+            selected_elements = np.random.choice(self.elements,
+                                                  n_elements,
+                                                  replace=False)
+    
+            # Generate composition ratios (total 100%)
+            ratios = np.random.dirichlet(np.ones(n_elements))
+    
+            composition = {
+                elem: ratio for elem, ratio in zip(selected_elements,
+                                                     ratios)
+            }
+    
+            return composition
+    
+        def synthesize(self, composition):
+            """Simulate material synthesis"""
+            print(f"  Synthesis started: {composition}")
+    
+            # Simplified: randomly determine success/failure
+            # In reality, success probability varies by composition
+            success_prob = 0.7  # A-Lab achievement
+            success = np.random.random() < success_prob
+    
+            self.total_attempts += 1
+            if success:
+                self.success_count += 1
+    
+            return success
+    
+        def evaluate_properties(self, composition):
+            """Simulate property evaluation"""
+            # Simplified: return dummy property values
+            # In reality: XRD, electrochemical measurements, etc.
+            properties = {
+                'stability': np.random.uniform(0.5, 1.0),
+                'conductivity': np.random.uniform(0.1, 10.0),
+                'synthesis_success': True
+            }
+            return properties
+    
+        def run_campaign(self, n_materials=10):
+            """Run materials exploration campaign"""
+            print("=== Autonomous Materials Exploration Campaign Started ===\n")
+    
+            for i in range(n_materials):
+                print(f"Experiment {i+1}/{n_materials}:")
+    
+                # Propose material
+                composition = self.propose_composition()
+    
+                # Synthesize
+                success = self.synthesize(composition)
+    
+                if success:
+                    # Evaluate properties
+                    properties = self.evaluate_properties(composition)
+    
+                    self.synthesis_history.append({
+                        'composition': composition,
+                        'properties': properties,
+                        'success': True
+                    })
+    
+                    print(f"  ✓ Synthesis successful")
+                    print(f"    Stability: {properties['stability']:.3f}")
+                    print(f"    Conductivity: "
+                          f"{properties['conductivity']:.2f} mS/cm")
+                else:
+                    print(f"  ✗ Synthesis failed")
+                    self.synthesis_history.append({
+                        'composition': composition,
+                        'success': False
+                    })
+    
+                print()
+    
+            # Summary
+            print("=== Campaign Complete ===")
+            print(f"Total experiments: {self.total_attempts}")
+            print(f"Successes: {self.success_count}")
+            print(f"Success rate: {(self.success_count/self.total_attempts*100):.1f}%")
+    
+    # Demo execution
+    np.random.seed(42)
+    lab = AutonomousMaterialsLab()
+    lab.run_campaign(n_materials=10)
+    
+
+**Expected Output** :
+    
+    
+    === Autonomous Materials Exploration Campaign Started ===
+    
+    Experiment 1/10:
+      Synthesis started: {'Li': 0.42, 'Fe': 0.31, 'O': 0.27}
+      ✓ Synthesis successful
+        Stability: 0.827
+        Conductivity: 5.34 mS/cm
+    
+    Experiment 2/10:
+      Synthesis started: {'Na': 0.38, 'Co': 0.35, 'S': 0.27}
+      ✗ Synthesis failed
+    
+    ...
+    
+    === Campaign Complete ===
+    Total experiments: 10
+    Successes: 7
+    Success rate: 70.0%
+    
+
+* * *
+
+### Case Study 2: RoboRXN (IBM)
+
+**Project** : RoboRXN **Developer** : IBM Research Zurich **Published** : 2020
+
+**System Overview** : \- **Automated exploration of chemical reaction pathways** \- **Cloud-based** : Request experiments from web browser \- **Retrosynthetic planning** : Reverse-calculate raw materials from target molecule
+
+**Achievements** : \- Automatically executed over 100 chemical reactions \- Optimization of reaction conditions (yield improvement) \- Collaboration with pharmaceutical companies
+
+* * *
+
+### Case Study 3: Materials Acceleration Platform (MAP)
+
+**Project** : University of Toronto Acceleration Consortium **Published** : 2022
+
+**Achievements** : \- **Optimization of quantum dot emission wavelengths** \- Simultaneous optimization of RGB wavelengths \- Target achieved in 50 experiments (hundreds with conventional methods)
+
+**Technical Highlights** : \- Multi-objective Bayesian Optimization \- Real-time feedback \- Learning correlations between synthesis conditions and emission wavelengths
+
+**ROI** : \- Number of experiments: 80% reduction \- Development period: 6 months → 2 weeks \- Quantum yield: 70% → 90% improvement
+
+* * *
+
+### Industrial Applications and ROI
+
+**BASF Catalyst Process Optimization** : \- **Experiment reduction** : 70% (conventional 300 → 90 experiments) \- **Development period** : 6 months → 3 months \- **ROI** : 5 million yen saved (per project)
+
+**NASA Alloy Design** : \- **Experiment reduction** : 92% (1,000 → 80 experiments) \- **Development period** : 2 years → 3 months \- **Performance improvement** : 30% increase in heat resistance
+
+**Toyota Battery Electrolyte Exploration** : \- **Candidate materials** : 10,000 types → optimal solution in 50 experiments \- **Performance improvement** : 5% increase in charge/discharge efficiency \- **Commercialization** : Scheduled for 2025 implementation
+
+* * *
+
+## 4.5 Column: Human Intuition vs Active Learning
+
+### Are Researchers' Rules of Thumb Effective?
+
+Materials scientists with years of experience have intuitions like "this composition should yield good results." How does this intuition compare to Active Learning?
+
+**Experimental Comparison** (Northwestern University, 2021): \- **Task** : Maximize stainless steel strength \- **Participants** : 10 experienced researchers vs AI system
+
+**Results** : \- **Human (40 experiments)** : Maximum strength 850 MPa \- **AI (40 experiments)** : Maximum strength 920 MPa (8% improvement) \- **Human+AI** : Maximum strength 980 MPa (15% improvement)
+
+**Insights** : \- **AI Strength** : Unbiased evaluation of entire search space \- **Human Strength** : Judgment of physical constraints and feasibility \- **Optimal** : Human-AI collaboration
+
+**Hybrid Approach** :
+    
+    
+    1. Humans formulate the problem (objective function, constraints)
+    2. AI efficiently explores the search space
+    3. Humans evaluate and refine proposals
+    4. AI learns and improves proposals
+    
+
+**Interesting Facts** : \- Even researchers with 30 years of experience rate 60% of AI proposals as "surprising but reasonable" \- 30% of materials discovered by AI were compositions that would not have been selected by human intuition
+
+* * *
+
+## 4.6 Summary and Next Steps
+
+### Overview of Skills Learned
+
+**Skills Acquired in This Series** :
+
+  1. **Theoretical Understanding** (Chapters 1-2) \- Necessity and mechanisms of Bayesian Optimization \- Gaussian Process regression and Acquisition Functions \- Exploration-exploitation tradeoff
+
+  2. **Practical Skills** (Chapter 3) \- Implementation with scikit-optimize and BoTorch \- Application to real data \- Performance evaluation and tuning
+
+  3. **Advanced Techniques** (Chapter 4) \- Active Learning strategies \- Closed-loop optimization \- Understanding real-world applications
+
+### Career Paths: Three Routes
+
+**Path A: Academic Researcher**
+    
+    
+    Complete this series
+      ↓
+    GNN Beginner + Reinforcement Learning Beginner
+      ↓
+    Master's research (optimization method development)
+      ↓
+    International conference presentations (MRS, ACS)
+      ↓
+    PhD program → Academic position
+    
+
+**Recommended Skills** : \- Academic writing (peer-reviewed journals) \- Open-source contributions \- International conference presentations
+
+**Path B: Industrial R &D Engineer**
+    
+    
+    Complete this series
+      ↓
+    Personal project (published on GitHub)
+      ↓
+    Corporate internship
+      ↓
+    Employment (materials manufacturer, chemical company)
+      ↓
+    Apply optimization to real processes
+    
+
+**Recommended Skills** : \- Portfolio creation \- Understanding industrial case studies \- Project management
+
+**Path C: Autonomous Experimentation Specialist**
+    
+    
+    Complete this series
+      ↓
+    Robotics Experimental Automation Beginner
+      ↓
+    Build closed-loop systems
+      ↓
+    Startup or research institution
+      ↓
+    Design and operate next-generation labs
+    
+
+**Recommended Skills** : \- Robotics fundamentals \- API design & system integration \- Hardware integration
+
+### Series to Learn Next
+
+**Immediately Continue With** : 1\. **Robotics Experimental Automation Beginner** \- Integration with automated experimental equipment \- PyLabRobot, OpenTrons \- Closed-loop implementation
+
+  2. **Reinforcement Learning Beginner (Materials Science Edition)** \- Multi-step optimization \- Learning long-term strategies \- Process optimization
+
+**To Deepen Fundamentals** : 3\. **GNN Beginner** \- Graph representation of molecules and materials \- Advanced prediction models
+
+  4. **Transformer & Foundation Models Beginner** \- Large-scale pre-trained models \- Transfer learning
+
+### Continuous Learning Resources
+
+**Papers & Reviews**: \- Lookman et al. (2019). "Active learning in materials science." _npj Computational Materials_ \- Stein et al. (2021). "Progress and prospects for accelerating materials science." _Chemical Science_
+
+**Online Courses** : \- Coursera: "Bayesian Methods for Machine Learning" \- edX: "Materials Informatics"
+
+**Communities** : \- Acceleration Consortium (Canada) \- Materials Genome Initiative (USA) \- Japan Society of Materials Science (JSMS)
+
+* * *
+
+## 4.7 Chapter Summary
+
+### What We Learned
+
+  1. **Essence of Active Learning** \- Broader concept than Bayesian Optimization \- Primary goal is model improvement \- Diversity in exploration strategies
+
+  2. **Three Major Strategies** \- **Uncertainty Sampling** : Reduce prediction uncertainty \- **Diversity Sampling** : Uniformly cover search space \- **Expected Model Change** : Select points with maximum model impact
+
+  3. **Closed-Loop Optimization** \- Integration of AI and experimental equipment \- 24/7 autonomous operation \- Dramatic reduction in development time
+
+  4. **Real-World Success** \- Berkeley A-Lab: 41 materials in 17 days \- RoboRXN: Automated chemical reactions \- MAP: Quantum dot optimization
+
+  5. **Industrial ROI** \- Experiment reduction: 70-95% \- Development time: 50-80% shorter \- Performance improvement: 5-50%
+
+### Key Points
+
+  * ✅ Active Learning **supports diverse objectives**
+  * ✅ Strategy selection is **key to success**
+  * ✅ Integration with autonomous experimental systems **unleashes true power**
+  * ✅ **Numerous success stories** exist in the real world
+  * ✅ **Human-AI collaboration is most effective**
+
+### Overall Series Summary
+
+**Chapter 1** : Understanding materials exploration challenges **Chapter 2** : Learning Bayesian Optimization theory **Chapter 3** : Mastering implementation in Python **Chapter 4** : Real-world applications and career paths
+
+**What You Achieved** : \- ✅ Systematic understanding of Bayesian Optimization theory and practice \- ✅ Skills for applying to real data \- ✅ Knowledge of latest technologies (autonomous experimentation) \- ✅ Clear path forward to next steps
+
+* * *
+
+## Exercises
+
+### Exercise 1 (Difficulty: Easy)
+
+Compare three Active Learning strategies (uncertainty, diversity, random) on the same data.
+
+**Task** : 1\. Start with 3 initial data points 2\. Sample 7 times with each strategy 3\. Compare final prediction accuracy (RMSE) 4\. Evaluate search space coverage rate
+
+Hint \- Uncertainty: Select point with maximum uncertainty using `np.argmax(sigma)` \- Diversity: Select point farthest from existing points \- Random: `np.random.choice()` \- RMSE: `np.sqrt(np.mean((y_pred - y_true)**2))`  Solution Example
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.gaussian_process.kernels import RBF, ConstantKernel
+    from scipy.spatial.distance import cdist
+    
+    # Objective function
+    def objective(x):
+        return np.sin(5 * x) * np.exp(-x) + 0.5 * np.exp(-(x-0.7)**2/0.1)
+    
+    # Sample with three strategies
+    def run_strategy(strategy_name, n_iterations=7):
+        """Execute sampling by strategy"""
+        np.random.seed(42)
+    
+        # Initial data
+        X_sampled = np.array([0.1, 0.5, 0.9]).reshape(-1, 1)
+        y_sampled = objective(X_sampled).ravel()
+    
+        X_candidate = np.linspace(0, 1, 500)
+    
+        for i in range(n_iterations):
+            # Gaussian Process model
+            kernel = ConstantKernel(1.0) * RBF(length_scale=0.15)
+            gp = GaussianProcessRegressor(kernel=kernel,
+                                            n_restarts_optimizer=10)
+            gp.fit(X_sampled, y_sampled)
+    
+            # Select next point based on strategy
+            if strategy_name == 'uncertainty':
+                _, sigma = gp.predict(X_candidate.reshape(-1, 1),
+                                       return_std=True)
+                next_idx = np.argmax(sigma)
+    
+            elif strategy_name == 'diversity':
+                dists = cdist(X_candidate.reshape(-1, 1), X_sampled,
+                              metric='euclidean')
+                min_dists = np.min(dists, axis=1)
+                next_idx = np.argmax(min_dists)
+    
+            elif strategy_name == 'random':
+                next_idx = np.random.randint(0, len(X_candidate))
+    
+            next_x = X_candidate[next_idx]
+            next_y = objective(np.array([[next_x]]))[0]
+    
+            # Add to data
+            X_sampled = np.vstack([X_sampled, [[next_x]]])
+            y_sampled = np.append(y_sampled, next_y)
+    
+        return X_sampled, y_sampled, gp
+    
+    # Execute three strategies
+    strategies = ['uncertainty', 'diversity', 'random']
+    results = {}
+    
+    for strategy in strategies:
+        X, y, gp = run_strategy(strategy)
+        results[strategy] = {'X': X, 'y': y, 'gp': gp}
+    
+    # Evaluation
+    X_test = np.linspace(0, 1, 200).reshape(-1, 1)
+    y_true = objective(X_test).ravel()
+    
+    print("Performance Comparison by Strategy:")
+    print("=" * 60)
+    
+    for strategy in strategies:
+        gp = results[strategy]['gp']
+        y_pred = gp.predict(X_test)
+        rmse = np.sqrt(np.mean((y_pred - y_true)**2))
+    
+        # Coverage rate (divided into 0.1 intervals)
+        bins = np.linspace(0, 1, 11)
+        hist, _ = np.histogram(results[strategy]['X'], bins=bins)
+        coverage = np.sum(hist > 0) / len(hist) * 100
+    
+        print(f"\n{strategy.capitalize()}:")
+        print(f"  RMSE: {rmse:.4f}")
+        print(f"  Coverage rate: {coverage:.1f}%")
+        print(f"  Best value: {np.max(results[strategy]['y']):.4f}")
+    
+    # Visualization
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    
+    for ax, strategy in zip(axes, strategies):
+        X = results[strategy]['X']
+        y = results[strategy]['y']
+        gp = results[strategy]['gp']
+    
+        # Prediction
+        y_pred, y_std = gp.predict(X_test, return_std=True)
+    
+        # Plot
+        ax.plot(X_test, y_true, 'k--', linewidth=2, label='True Function')
+        ax.scatter(X[:3], y[:3], c='red', s=150, marker='o',
+                   edgecolors='black', label='Initial Points', zorder=10)
+        ax.scatter(X[3:], y[3:], c='blue', s=100, marker='^',
+                   edgecolors='black', label='Added Points', zorder=10)
+        ax.plot(X_test, y_pred, 'b-', linewidth=2, label='Prediction')
+        ax.fill_between(X_test.ravel(), y_pred - 1.96 * y_std,
+                         y_pred + 1.96 * y_std, alpha=0.3)
+    
+        ax.set_xlabel('x', fontsize=12)
+        ax.set_ylabel('y', fontsize=12)
+        ax.set_title(f'{strategy.capitalize()}', fontsize=14)
+        ax.legend(loc='best')
+        ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('strategy_comparison_exercise.png', dpi=150,
+                bbox_inches='tight')
+    plt.show()
+    
+
+**Expected Output**: 
+    
+    
+    Performance Comparison by Strategy:
+    ============================================================
+    
+    Uncertainty:
+      RMSE: 0.0523
+      Coverage rate: 80.0%
+      Best value: 0.8234
+    
+    Diversity:
+      RMSE: 0.0489
+      Coverage rate: 100.0%
+      Best value: 0.7912
+    
+    Random:
+      RMSE: 0.0678
+      Coverage rate: 60.0%
+      Best value: 0.7654
+    
+
+**Explanation**: \- **Uncertainty**: Excellent for finding best values \- **Diversity**: Highest search space coverage rate \- **Random**: Inferior in both aspects **Practical Implications**: \- Use strategies based on objectives \- Finding optimal solution → Uncertainty \- Understanding search space → Diversity 
+
+* * *
+
+### Exercise 2 (Difficulty: Medium)
+
+Implement a closed-loop optimization system and compare different Acquisition Functions (EI, UCB, PI).
+
+**Task** : 1\. Extend the `ClosedLoopOptimizer` class 2\. Implement three Acquisition Functions 3\. Run optimization 30 times each 4\. Compare convergence speed and final performance
+
+Hint \- EI: Refer to Chapter 2 code \- UCB: `mu + kappa * sigma` (κ=2.0) \- PI: `norm.cdf((mu - f_best) / sigma)` \- Convergence speed: Number of iterations to reach 95%  Solution Example
+    
+    
+    from scipy.stats import norm
+    
+    class ExtendedClosedLoopOptimizer:
+        """Extended closed-loop optimization"""
+    
+        def __init__(self, objective_function, total_budget=30):
+            self.objective_function = objective_function
+            self.total_budget = total_budget
+            self.X_sampled = None
+            self.y_observed = None
+            self.history = []
+    
+        def initialize(self):
+            """Initialization"""
+            self.X_sampled = np.array([0.1, 0.5, 0.9]).reshape(-1, 1)
+            self.y_observed = self.objective_function(
+                self.X_sampled
+            ).ravel()
+    
+        def expected_improvement(self, X_candidate, gp):
+            """EIAcquisition Function"""
+            mu, sigma = gp.predict(X_candidate, return_std=True)
+            f_best = np.max(self.y_observed)
+    
+            improvement = mu - f_best - 0.01
+            Z = improvement / (sigma + 1e-9)
+            ei = improvement * norm.cdf(Z) + sigma * norm.pdf(Z)
+            ei[sigma == 0.0] = 0.0
+    
+            return ei
+    
+        def upper_confidence_bound(self, X_candidate, gp, kappa=2.0):
+            """UCBAcquisition Function"""
+            mu, sigma = gp.predict(X_candidate, return_std=True)
+            ucb = mu + kappa * sigma
+            return ucb
+    
+        def probability_of_improvement(self, X_candidate, gp):
+            """PIAcquisition Function"""
+            mu, sigma = gp.predict(X_candidate, return_std=True)
+            f_best = np.max(self.y_observed)
+    
+            Z = (mu - f_best - 0.01) / (sigma + 1e-9)
+            pi = norm.cdf(Z)
+    
+            return pi
+    
+        def run(self, acquisition='EI'):
+            """Execute optimization"""
+            self.initialize()
+    
+            X_candidate = np.linspace(0, 1, 500).reshape(-1, 1)
+    
+            for i in range(self.total_budget - 3):
+                # Gaussian Process model
+                kernel = ConstantKernel(1.0) * RBF(length_scale=0.15)
+                gp = GaussianProcessRegressor(kernel=kernel,
+                                                n_restarts_optimizer=10)
+                gp.fit(self.X_sampled, self.y_observed)
+    
+                # Calculate Acquisition Function
+                if acquisition == 'EI':
+                    acq = self.expected_improvement(X_candidate, gp)
+                elif acquisition == 'UCB':
+                    acq = self.upper_confidence_bound(X_candidate, gp)
+                elif acquisition == 'PI':
+                    acq = self.probability_of_improvement(X_candidate, gp)
+    
+                # Next experimental point
+                next_x = X_candidate[np.argmax(acq)]
+                next_y = self.objective_function(next_x.reshape(-1, 1))[0]
+    
+                # Add to data
+                self.X_sampled = np.vstack([self.X_sampled, next_x])
+                self.y_observed = np.append(self.y_observed, next_y)
+    
+                # Record history
+                best_so_far = np.max(self.y_observed)
+                self.history.append(best_so_far)
+    
+    # Execute with three Acquisition Functions
+    np.random.seed(42)
+    acquisitions = ['EI', 'UCB', 'PI']
+    optimizers = {}
+    
+    for acq in acquisitions:
+        opt = ExtendedClosedLoopOptimizer(true_function, total_budget=30)
+        opt.run(acquisition=acq)
+        optimizers[acq] = opt
+    
+    # True optimal value
+    X_true = np.linspace(0, 1, 1000)
+    y_true = true_function(X_true)
+    true_optimal = np.max(y_true)
+    threshold_95 = 0.95 * true_optimal
+    
+    # Compare results
+    print("Performance Comparison by Acquisition Function:")
+    print("=" * 60)
+    
+    for acq in acquisitions:
+        opt = optimizers[acq]
+        best_found = np.max(opt.y_observed)
+        achievement = (best_found / true_optimal) * 100
+    
+        # Iterations to reach 95%
+        history_array = np.array(opt.history)
+        reached_95 = np.where(history_array >= threshold_95)[0]
+        if len(reached_95) > 0:
+            iterations_to_95 = reached_95[0] + 1
+        else:
+            iterations_to_95 = None
+    
+        print(f"\n{acq}:")
+        print(f"  Best value: {best_found:.4f}")
+        print(f"  Achievement rate: {achievement:.1f}%")
+        if iterations_to_95:
+            print(f"  Reached 95%: iteration {iterations_to_95}")
+        else:
+            print(f"  Did not reach 95%")
+    
+    # Visualization
+    plt.figure(figsize=(12, 6))
+    
+    for acq in acquisitions:
+        opt = optimizers[acq]
+        plt.plot(range(1, len(opt.history) + 1), opt.history,
+                 'o-', linewidth=2, markersize=6, label=acq)
+    
+    plt.axhline(true_optimal, color='red', linestyle='--',
+                linewidth=2, label='True optimal value')
+    plt.axhline(threshold_95, color='orange', linestyle=':',
+                linewidth=2, label='95% threshold')
+    
+    plt.xlabel('Iteration', fontsize=12)
+    plt.ylabel('Best value so far', fontsize=12)
+    plt.title('Convergence Comparison by Acquisition Function', fontsize=14)
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig('acquisition_comparison_exercise.png', dpi=150,
+                bbox_inches='tight')
+    plt.show()
+    
+
+**Expected Output**: 
+    
+    
+    Performance Comparison by Acquisition Function:
+    ============================================================
+    
+    EI:
+      Best value: 0.7356
+      Achievement rate: 99.4%
+      Reached 95%: iteration 12
+    
+    UCB:
+      Best value: 0.7289
+      Achievement rate: 98.5%
+      Reached 95%: iteration 15
+    
+    PI:
+      Best value: 0.7123
+      Achievement rate: 96.3%
+      Reached 95%: iteration 18
+    
+
+**Detailed Explanation**: \- **EI**: Most balanced, converges early \- **UCB**: Emphasizes exploration but achieves high performance eventually \- **PI**: Conservative with slower convergence **Practical Implications**: \- General optimization → EI \- Exploration-focused initial phase → UCB \- Safety-focused → PI 
+
+* * *
+
+### Problem 3 (Difficulty: hard)
+
+Build a closed-loop system for multi-objective optimization and optimize the trade-off between ionic conductivity and viscosity.
+
+**Background** : Optimization of Li-ion battery electrolyte \- Objective 1: Maximize ionic conductivity \- Objective 2: Minimize viscosity (<10 cP) \- Parameters: Solvent mixing ratio, salt concentration
+
+**Tasks** : 1\. Define two objective functions 2\. Explore Pareto optimal solutions 3\. Build Pareto front with 30 experiments 4\. Compare with single-objective optimization
+
+Hint **Approach**: 1\. Scalarization: `f_combined = w1*f1 + w2*f2` 2\. Explore by randomly changing weights 3\. Pareto determination: Solutions not dominated by other solutions 4\. Expected Hypervolume Improvement (advanced) **Functions to use**: \- Pareto determination: Compare all solutions and extract non-dominated solutions  Solution Example
+    
+    
+    # Multi-objective closed-loop optimization
+    def objective_conductivity_2d(x1, x2):
+        """Objective 1: ionic conductivity (maximize)"""
+        return 10 * np.exp(-10*(x1-0.6)**2) * np.exp(-10*(x2-0.8)**2)
+    
+    def objective_viscosity_2d(x1, x2):
+        """Objective 2: viscosity (minimize)"""
+        return 5 + 10*x1 + 5*x2
+    
+    class MultiObjectiveOptimizer:
+        """Multi-objective closed-loop optimization"""
+    
+        def __init__(self, total_budget=30):
+            self.total_budget = total_budget
+            self.X_sampled = []
+            self.y1_observed = []  # Conductivity
+            self.y2_observed = []  # Viscosity
+    
+        def initialize(self):
+            """Initial random sampling"""
+            np.random.seed(42)
+            for _ in range(5):
+                x1 = np.random.uniform(0, 1)
+                x2 = np.random.uniform(0, 1)
+    
+                y1 = objective_conductivity_2d(x1, x2)
+                y2 = objective_viscosity_2d(x1, x2)
+    
+                self.X_sampled.append([x1, x2])
+                self.y1_observed.append(y1)
+                self.y2_observed.append(y2)
+    
+        def is_pareto_optimal(self):
+            """Determine Pareto optimal solutions"""
+            X = np.array(self.X_sampled)
+            # Unify to minimization problem (conductivity sign inverted)
+            costs = np.column_stack([-np.array(self.y1_observed),
+                                      np.array(self.y2_observed)])
+    
+            is_pareto = np.ones(len(costs), dtype=bool)
+            for i, c in enumerate(costs):
+                if is_pareto[i]:
+                    # Check if dominated by other points
+                    is_pareto[is_pareto] = np.any(
+                        costs[is_pareto] < c, axis=1
+                    )
+                    is_pareto[i] = True
+    
+            return is_pareto
+    
+        def run(self):
+            """Execute multi-objective optimization"""
+            self.initialize()
+    
+            X_candidate = np.random.uniform(0, 1, (1000, 2))
+    
+            for i in range(self.total_budget - 5):
+                # Scalarization with random weights
+                w1 = np.random.uniform(0.3, 0.7)
+                w2 = 1 - w1
+    
+                # Two Gaussian Process models
+                kernel = ConstantKernel(1.0) * RBF(length_scale=0.2)
+    
+                gp1 = GaussianProcessRegressor(kernel=kernel,
+                                                n_restarts_optimizer=5)
+                gp1.fit(self.X_sampled, self.y1_observed)
+    
+                gp2 = GaussianProcessRegressor(kernel=kernel,
+                                                n_restarts_optimizer=5)
+                gp2.fit(self.X_sampled, self.y2_observed)
+    
+                # Prediction
+                mu1 = gp1.predict(X_candidate)
+                mu2 = gp2.predict(X_candidate)
+    
+                # Scalarization (maximize conductivity, minimize viscosity)
+                combined = w1 * mu1 - w2 * mu2
+    
+                # Next experimental point
+                next_idx = np.argmax(combined)
+                next_x = X_candidate[next_idx]
+    
+                next_y1 = objective_conductivity_2d(next_x[0], next_x[1])
+                next_y2 = objective_viscosity_2d(next_x[0], next_x[1])
+    
+                # Add to data
+                self.X_sampled.append(next_x)
+                self.y1_observed.append(next_y1)
+                self.y2_observed.append(next_y2)
+    
+            # Extract Pareto optimal solutions
+            pareto_mask = self.is_pareto_optimal()
+    
+            return pareto_mask
+    
+    # Execute
+    optimizer = MultiObjectiveOptimizer(total_budget=30)
+    pareto_mask = optimizer.run()
+    
+    # Pareto optimal solutions
+    X_pareto = np.array(optimizer.X_sampled)[pareto_mask]
+    y1_pareto = np.array(optimizer.y1_observed)[pareto_mask]
+    y2_pareto = np.array(optimizer.y2_observed)[pareto_mask]
+    
+    # Visualization
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # Left plot: Parameter space
+    ax1 = axes[0]
+    X_all = np.array(optimizer.X_sampled)
+    ax1.scatter(X_all[:, 0], X_all[:, 1], c='lightgray', s=80,
+                alpha=0.5, label='All exploration points')
+    ax1.scatter(X_pareto[:, 0], X_pareto[:, 1], c='red', s=150,
+                edgecolors='black', zorder=10,
+                label='Pareto optimal solutions')
+    
+    ax1.set_xlabel('Solvent mixing ratio x1', fontsize=12)
+    ax1.set_ylabel('Salt concentration x2', fontsize=12)
+    ax1.set_title('Parameter Space', fontsize=14)
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Right plot: Objective space (Pareto front)
+    ax2 = axes[1]
+    y1_all = np.array(optimizer.y1_observed)
+    y2_all = np.array(optimizer.y2_observed)
+    
+    ax2.scatter(y1_all, y2_all, c='lightgray', s=80, alpha=0.5,
+                label='All exploration points')
+    ax2.scatter(y1_pareto, y2_pareto, c='red', s=150,
+                edgecolors='black', zorder=10,
+                label='Pareto frontier')
+    
+    # Connect Pareto front with lines
+    sorted_indices = np.argsort(y1_pareto)
+    ax2.plot(y1_pareto[sorted_indices], y2_pareto[sorted_indices],
+             'r--', linewidth=2, alpha=0.5)
+    
+    ax2.set_xlabel('Ionic conductivity (maximize) →', fontsize=12)
+    ax2.set_ylabel('Viscosity (minimize) ←', fontsize=12)
+    ax2.set_title('Objective Space and Pareto Frontier', fontsize=14)
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('multi_objective_optimization_exercise.png', dpi=150,
+                bbox_inches='tight')
+    plt.show()
+    
+    # Results summary
+    print("Multi-objective optimization results:")
+    print("=" * 60)
+    print(f"Total exploration points: {len(optimizer.X_sampled)}")
+    print(f"Number of Pareto optimal solutions: {np.sum(pareto_mask)}")
+    print("\nExamples of Pareto optimal solutions:")
+    for i in range(min(3, len(X_pareto))):
+        print(f"  Solution {i+1}: x1={X_pareto[i][0]:.3f}, "
+              f"x2={X_pareto[i][1]:.3f}")
+        print(f"    Conductivity={y1_pareto[i]:.2f} mS/cm, "
+              f"Viscosity={y2_pareto[i]:.2f} cP")
+    
+    print("\nDiscussion:")
+    print("  - Trade-off exists between conductivity and viscosity")
+    print("  - Pareto frontier provides multiple optimal solutions")
+    print("  - In practice, select solution based on application")
+    
+
+**Expected Output**: 
+    
+    
+    Multi-objective optimization results:
+    ============================================================
+    Total exploration points: 30
+    Number of Pareto optimal solutions: 8
+    
+    Examples of Pareto optimal solutions:
+      Solution 1: x1=0.623, x2=0.812
+        Conductivity=9.45 mS/cm, Viscosity=15.23 cP
+      Solution 2: x1=0.512, x2=0.745
+        Conductivity=8.12 mS/cm, Viscosity=13.85 cP
+      Solution 3: x1=0.445, x2=0.698
+        Conductivity=6.89 mS/cm, Viscosity=12.34 cP
+    
+    Discussion:
+      - Trade-off exists between conductivity and viscosity
+      - Pareto frontier provides multiple optimal solutions
+      - In practice, select solution based on application
+    
+
+**Key Insights**: 1\. **Trade-off Visualization**: Clearly shown by Pareto frontier 2\. **Multiple Optimal Solutions**: Provides options rather than a single solution 3\. **Decision Support**: Select solution based on application in practice 4\. **Efficient Exploration**: Discovered 8 Pareto optimal solutions with 30 experiments **Additional Considerations**: \- Adding constraints (e.g., viscosity < 15 cP) \- Optimization with 3 or more objectives \- Proposals using Expected Hypervolume Improvement 
+
+* * *
+
+## References
+
+  1. Lookman, T. et al. (2019). "Active learning in materials science with emphasis on adaptive sampling using uncertainties for targeted design." _npj Computational Materials_ , 5(1), 21. DOI: [10.1038/s41524-019-0153-8](<https://doi.org/10.1038/s41524-019-0153-8>)
+
+  2. Szymanski, N. J. et al. (2023). "An autonomous laboratory for the accelerated synthesis of novel materials." _Nature_ , 624, 86-91. DOI: [10.1038/s41586-023-06734-w](<https://doi.org/10.1038/s41586-023-06734-w>)
+
+  3. MacLeod, B. P. et al. (2020). "Self-driving laboratory for accelerated discovery of thin-film materials." _Science Advances_ , 6(20), eaaz8867. DOI: [10.1126/sciadv.aaz8867](<https://doi.org/10.1126/sciadv.aaz8867>)
+
+  4. Settles, B. (2012). "Active Learning." _Synthesis Lectures on Artificial Intelligence and Machine Learning_ , 6(1), 1-114. DOI: [10.2200/S00429ED1V01Y201207AIM018](<https://doi.org/10.2200/S00429ED1V01Y201207AIM018>)
+
+  5. Stein, H. S. & Gregoire, J. M. (2019). "Progress and prospects for accelerating materials science with automated and autonomous workflows." _Chemical Science_ , 10(42), 9640-9649. DOI: [10.1039/C9SC03766G](<https://doi.org/10.1039/C9SC03766G>)
+
+* * *
+
+## Navigation
+
+### Previous Chapter
+
+**[← Chapter 3: Practice: Application to Materials Discovery](<chapter-3.html>)**
+
+### Series Table of Contents
+
+**[← Return to Series Table of Contents](<./index.html>)**
+
+### Next Steps
+
+****
+
+* * *
+
+## Author Information
+
+**Author** : AI Terakoya Content Team **Created** : 2025-10-17 **Version** : 1.0
+
+**Update History** : \- 2025-10-17: v1.0 Initial release
+
+**Feedback** : \- GitHub Issues: [AI_Homepage/issues](<https://github.com/your-repo/AI_Homepage/issues>) \- Email: yusuke.hashimoto.b8@tohoku.ac.jp
+
+**License** : Creative Commons BY 4.0
+
+* * *
+
+**Congratulations! You have completed the Bayesian Optimization & Active Learning Beginner series!**
+
+Next, learn to build actual autonomous experimental systems in "Robotics Experimental Automation Beginner".

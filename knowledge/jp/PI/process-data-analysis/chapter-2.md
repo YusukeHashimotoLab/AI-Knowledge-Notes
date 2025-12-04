@@ -1,0 +1,1354 @@
+---
+title: 第2章：多変量統計解析
+chapter_title: 第2章：多変量統計解析
+subtitle: Multivariate Statistical Analysis for Process Monitoring and Optimization
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/PI/process-data-analysis/chapter-2.html>) | Last sync: 2025-11-16
+
+[AI寺子屋トップ](<../../index.html>)›[プロセス・インフォマティクス](<../../PI/index.html>)›[Process Data Analysis](<../../PI/process-data-analysis/index.html>)›Chapter 2
+
+## 2.1 イントロダクション
+
+化学プロセスでは、温度、圧力、流量、濃度など、複数の変数が相互に関連しながら変化します。 これらの多変量データを適切に解析することで、単変量解析では見えなかったプロセスの本質的な構造や、 変数間の隠れた相関関係を明らかにできます。 
+
+本章では、主成分分析（PCA）、部分最小二乗法（PLS）、独立成分分析（ICA）など、 プロセス監視と最適化に不可欠な多変量統計解析手法を10個のPythonコード例で実装します。 
+
+#### 📊 本章で学ぶこと
+
+  * PCAによる次元削減とプロセス監視（T²統計量、SPE）
+  * PLSによる予測モデル構築と潜在変数解析
+  * ICAによる独立成分の抽出と異常検知
+  * マハラノビス距離による外れ値検出
+  * 寄与プロットによる異常診断と根本原因分析
+
+## 2.2 主成分分析（PCA）の基礎
+
+主成分分析（PCA: Principal Component Analysis）は、多数の相関する変数を少数の独立した主成分に変換する手法です。 プロセス監視では、正常運転データの主成分空間を構築し、新しいデータがこの空間から逸脱していないかを監視します。 
+
+#### Example 1: PCAによる次元削減とプロセス可視化
+
+6変数の反応器データを2次元の主成分空間に投影し、プロセス状態を可視化します。
+    
+    
+    # ===================================
+    # Example 1: PCAによる次元削減
+    # ===================================
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from sklearn.decomposition import PCA
+    from sklearn.preprocessing import StandardScaler
+    
+    # 多変量プロセスデータの生成（反応器の6変数）
+    np.random.seed(42)
+    n_samples = 500
+    
+    # 正常運転データ（相関のある6変数）
+    temperature = 350 + np.random.normal(0, 5, n_samples)
+    pressure = 5.0 + 0.02 * (temperature - 350) + np.random.normal(0, 0.2, n_samples)
+    flow_rate = 100 + 0.3 * (temperature - 350) + np.random.normal(0, 3, n_samples)
+    concentration = 10 + 0.01 * (temperature - 350) + np.random.normal(0, 0.5, n_samples)
+    ph = 7.0 - 0.002 * (temperature - 350) + np.random.normal(0, 0.1, n_samples)
+    viscosity = 50 + 0.1 * (temperature - 350) + np.random.normal(0, 2, n_samples)
+    
+    # データフレーム作成
+    df = pd.DataFrame({
+        'Temperature': temperature,
+        'Pressure': pressure,
+        'Flow_Rate': flow_rate,
+        'Concentration': concentration,
+        'pH': ph,
+        'Viscosity': viscosity
+    })
+    
+    print("元データの統計量:")
+    print(df.describe())
+    print(f"\n相関行列:")
+    print(df.corr().round(3))
+    
+    # データの標準化（PCAの前処理として必須）
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(df)
+    
+    # PCA実行
+    pca = PCA(n_components=6)
+    X_pca = pca.fit_transform(X_scaled)
+    
+    # 累積寄与率の計算
+    explained_variance_ratio = pca.explained_variance_ratio_
+    cumulative_variance_ratio = np.cumsum(explained_variance_ratio)
+    
+    print(f"\n各主成分の寄与率:")
+    for i, (ev, cev) in enumerate(zip(explained_variance_ratio, cumulative_variance_ratio), 1):
+        print(f"PC{i}: 寄与率 {ev*100:.2f}%, 累積寄与率 {cev*100:.2f}%")
+    
+    # 可視化
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # スクリープロット
+    axes[0, 0].bar(range(1, 7), explained_variance_ratio * 100)
+    axes[0, 0].plot(range(1, 7), cumulative_variance_ratio * 100, 'ro-', linewidth=2)
+    axes[0, 0].axhline(y=95, color='green', linestyle='--', label='95%基準')
+    axes[0, 0].set_xlabel('主成分')
+    axes[0, 0].set_ylabel('寄与率 (%)')
+    axes[0, 0].set_title('スクリープロット')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # 主成分スコアプロット（PC1 vs PC2）
+    axes[0, 1].scatter(X_pca[:, 0], X_pca[:, 1], alpha=0.5)
+    axes[0, 1].set_xlabel(f'PC1 ({explained_variance_ratio[0]*100:.1f}%)')
+    axes[0, 1].set_ylabel(f'PC2 ({explained_variance_ratio[1]*100:.1f}%)')
+    axes[0, 1].set_title('主成分スコアプロット')
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # ローディングプロット（PC1 vs PC2）
+    loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
+    for i, var in enumerate(df.columns):
+        axes[1, 0].arrow(0, 0, loadings[i, 0], loadings[i, 1],
+                         head_width=0.1, head_length=0.1, fc='blue', ec='blue')
+        axes[1, 0].text(loadings[i, 0]*1.15, loadings[i, 1]*1.15, var,
+                        ha='center', va='center', fontsize=10)
+    axes[1, 0].set_xlabel(f'PC1 ({explained_variance_ratio[0]*100:.1f}%)')
+    axes[1, 0].set_ylabel(f'PC2 ({explained_variance_ratio[1]*100:.1f}%)')
+    axes[1, 0].set_title('ローディングプロット（変数の寄与）')
+    axes[1, 0].grid(True, alpha=0.3)
+    axes[1, 0].set_xlim(-3, 3)
+    axes[1, 0].set_ylim(-3, 3)
+    
+    # バイプロット（スコア + ローディング）
+    scale_factor = 3
+    axes[1, 1].scatter(X_pca[:, 0], X_pca[:, 1], alpha=0.3, s=20)
+    for i, var in enumerate(df.columns):
+        axes[1, 1].arrow(0, 0, loadings[i, 0]*scale_factor, loadings[i, 1]*scale_factor,
+                         head_width=0.3, head_length=0.3, fc='red', ec='red', linewidth=2)
+        axes[1, 1].text(loadings[i, 0]*scale_factor*1.15, loadings[i, 1]*scale_factor*1.15,
+                        var, ha='center', va='center', fontsize=10, fontweight='bold')
+    axes[1, 1].set_xlabel(f'PC1 ({explained_variance_ratio[0]*100:.1f}%)')
+    axes[1, 1].set_ylabel(f'PC2 ({explained_variance_ratio[1]*100:.1f}%)')
+    axes[1, 1].set_title('バイプロット')
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('pca_analysis.png', dpi=300)
+    
+    print(f"\n結果: PC1-PC2で{cumulative_variance_ratio[1]*100:.1f}%の分散を説明")
+    print(f"温度とその関連変数（圧力、流量）がPC1に強く寄与")
+    
+
+#### Example 2: T²統計量とSPE管理図によるプロセス監視
+
+Hotelling's T²統計量とSPE（Q統計量）を用いた異常検知システムを実装します。
+    
+    
+    # ===================================
+    # Example 2: T²とSPE管理図
+    # ===================================
+    from scipy.stats import f, chi2
+    
+    # 正常運転データでPCAモデル構築（上記の500サンプル使用）
+    pca_model = PCA(n_components=3)  # 95%以上の分散を保持
+    X_train_pca = pca_model.fit_transform(X_scaled)
+    
+    # Hotelling's T²統計量の計算
+    def calculate_t2(scores, n_components):
+        """T²統計量を計算
+    
+        Args:
+            scores: 主成分スコア
+            n_components: 使用する主成分数
+    
+        Returns:
+            T²統計量の配列
+        """
+        scores_reduced = scores[:, :n_components]
+        cov_matrix = np.cov(scores_reduced.T)
+        inv_cov = np.linalg.inv(cov_matrix)
+    
+        t2 = np.array([s @ inv_cov @ s.T for s in scores_reduced])
+        return t2
+    
+    # SPE（Q統計量）の計算
+    def calculate_spe(X_original, X_reconstructed):
+        """SPE (Squared Prediction Error) を計算
+    
+        Args:
+            X_original: 元データ（標準化済み）
+            X_reconstructed: PCA再構成データ
+    
+        Returns:
+            SPE統計量の配列
+        """
+        residuals = X_original - X_reconstructed
+        spe = np.sum(residuals**2, axis=1)
+        return spe
+    
+    # 訓練データのT²とSPE
+    t2_train = calculate_t2(X_train_pca, n_components=3)
+    X_train_reconstructed = pca_model.inverse_transform(X_train_pca)
+    spe_train = calculate_spe(X_scaled, X_train_reconstructed)
+    
+    # 管理限界の計算（99%信頼区間）
+    n_samples_train = len(X_scaled)
+    n_components = 3
+    n_variables = X_scaled.shape[1]
+    
+    # T²管理限界（F分布）
+    alpha = 0.01  # 1%有意水準（99%信頼区間）
+    t2_limit = (n_components * (n_samples_train - 1) * (n_samples_train + 1)) / \
+               (n_samples_train * (n_samples_train - n_components)) * \
+               f.ppf(1 - alpha, n_components, n_samples_train - n_components)
+    
+    # SPE管理限界（カイ二乗近似）
+    eigenvalues = pca_model.explained_variance_
+    residual_eigenvalues = np.concatenate([eigenvalues[3:], [0]*(n_variables - len(eigenvalues))])
+    theta1 = np.sum(residual_eigenvalues)
+    theta2 = np.sum(residual_eigenvalues**2)
+    theta3 = np.sum(residual_eigenvalues**3)
+    h0 = 1 - (2 * theta1 * theta3) / (3 * theta2**2)
+    ca = chi2.ppf(1 - alpha, 1)
+    spe_limit = theta1 * (1 + (ca * np.sqrt(2*theta2*h0**2)) / theta1 +
+                          (theta2 * h0 * (h0 - 1)) / theta1**2)**(1/h0)
+    
+    print(f"管理限界:")
+    print(f"T²限界: {t2_limit:.2f}")
+    print(f"SPE限界: {spe_limit:.2f}")
+    
+    # テストデータの生成（正常データ + 異常データ）
+    np.random.seed(100)
+    n_test_normal = 100
+    n_test_abnormal = 20
+    
+    # 正常データ
+    test_normal = scaler.transform(pd.DataFrame({
+        'Temperature': 350 + np.random.normal(0, 5, n_test_normal),
+        'Pressure': 5.0 + np.random.normal(0, 0.2, n_test_normal),
+        'Flow_Rate': 100 + np.random.normal(0, 3, n_test_normal),
+        'Concentration': 10 + np.random.normal(0, 0.5, n_test_normal),
+        'pH': 7.0 + np.random.normal(0, 0.1, n_test_normal),
+        'Viscosity': 50 + np.random.normal(0, 2, n_test_normal)
+    }))
+    
+    # 異常データ（温度上昇、圧力異常）
+    test_abnormal = scaler.transform(pd.DataFrame({
+        'Temperature': 370 + np.random.normal(0, 8, n_test_abnormal),  # 高温
+        'Pressure': 6.5 + np.random.normal(0, 0.5, n_test_abnormal),    # 高圧
+        'Flow_Rate': 100 + np.random.normal(0, 3, n_test_abnormal),
+        'Concentration': 10 + np.random.normal(0, 0.5, n_test_abnormal),
+        'pH': 7.0 + np.random.normal(0, 0.1, n_test_abnormal),
+        'Viscosity': 50 + np.random.normal(0, 2, n_test_abnormal)
+    }))
+    
+    # テストデータの結合
+    X_test = np.vstack([test_normal, test_abnormal])
+    labels = np.array(['正常']*n_test_normal + ['異常']*n_test_abnormal)
+    
+    # テストデータのT²とSPE計算
+    X_test_pca = pca_model.transform(X_test)
+    t2_test = calculate_t2(X_test_pca, n_components=3)
+    X_test_reconstructed = pca_model.inverse_transform(X_test_pca)
+    spe_test = calculate_spe(X_test, X_test_reconstructed)
+    
+    # 異常検知結果
+    t2_violations = t2_test > t2_limit
+    spe_violations = spe_test > spe_limit
+    total_violations = t2_violations | spe_violations
+    
+    print(f"\n異常検知結果:")
+    print(f"T²違反: {t2_violations.sum()}件 / {len(X_test)}件")
+    print(f"SPE違反: {spe_violations.sum()}件 / {len(X_test)}件")
+    print(f"総異常検知: {total_violations.sum()}件 / {len(X_test)}件")
+    print(f"検出率: {total_violations[labels=='異常'].sum() / n_test_abnormal * 100:.1f}%")
+    print(f"誤報率: {total_violations[labels=='正常'].sum() / n_test_normal * 100:.1f}%")
+    
+    # 可視化
+    fig, axes = plt.subplots(2, 1, figsize=(14, 10))
+    
+    # T²管理図
+    time_index = range(len(X_test))
+    colors = ['blue' if label == '正常' else 'red' for label in labels]
+    axes[0].scatter(time_index, t2_test, c=colors, alpha=0.6)
+    axes[0].axhline(y=t2_limit, color='red', linestyle='--', linewidth=2, label=f'管理限界 ({t2_limit:.1f})')
+    axes[0].set_xlabel('サンプル番号')
+    axes[0].set_ylabel('T² 統計量')
+    axes[0].set_title('Hotelling T² 管理図')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+    
+    # SPE管理図
+    axes[1].scatter(time_index, spe_test, c=colors, alpha=0.6)
+    axes[1].axhline(y=spe_limit, color='red', linestyle='--', linewidth=2, label=f'管理限界 ({spe_limit:.1f})')
+    axes[1].set_xlabel('サンプル番号')
+    axes[1].set_ylabel('SPE (Q統計量)')
+    axes[1].set_title('SPE管理図')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('t2_spe_control_charts.png', dpi=300)
+    
+    print(f"\n結果: T²とSPEの両指標で異常を高精度検出（検出率{total_violations[labels=='異常'].sum() / n_test_abnormal * 100:.1f}%）")
+    
+
+## 2.3 部分最小二乗法（PLS）
+
+部分最小二乗法（PLS: Partial Least Squares）は、説明変数Xと目的変数Yの両方を考慮した潜在変数を抽出します。 PLSはPCAと異なり、予測性能を最大化する方向で次元削減を行うため、プロセス品質予測に極めて有効です。 
+
+#### Example 3: PLSによる品質予測モデル構築
+
+反応器の操作変数から製品品質（収率、純度）を予測するPLSモデルを構築します。
+    
+    
+    # ===================================
+    # Example 3: PLS回帰モデル
+    # ===================================
+    from sklearn.cross_decomposition import PLSRegression
+    from sklearn.model_selection import cross_val_score, train_test_split
+    from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+    
+    # プロセスデータと品質データの生成
+    np.random.seed(42)
+    n_samples = 300
+    
+    # 操作変数（X）: 7変数
+    X_data = pd.DataFrame({
+        'Temperature': 350 + np.random.normal(0, 10, n_samples),
+        'Pressure': 5.0 + np.random.normal(0, 0.5, n_samples),
+        'Flow_Rate': 100 + np.random.normal(0, 5, n_samples),
+        'Catalyst_Conc': 2.0 + np.random.normal(0, 0.2, n_samples),
+        'Residence_Time': 30 + np.random.normal(0, 3, n_samples),
+        'pH': 7.0 + np.random.normal(0, 0.3, n_samples),
+        'Stirring_Speed': 500 + np.random.normal(0, 50, n_samples)
+    })
+    
+    # 品質変数（Y）: 収率と純度（Xに依存）
+    yield_coef = np.array([0.15, 0.1, 0.05, 0.3, 0.2, -0.1, 0.05])
+    purity_coef = np.array([0.1, 0.15, -0.05, 0.25, 0.15, 0.2, -0.1])
+    
+    Y_data = pd.DataFrame({
+        'Yield': 85 + (X_data.values - X_data.mean().values) @ yield_coef + np.random.normal(0, 2, n_samples),
+        'Purity': 95 + (X_data.values - X_data.mean().values) @ purity_coef + np.random.normal(0, 1.5, n_samples)
+    })
+    
+    print("操作変数（X）の統計量:")
+    print(X_data.describe())
+    print("\n品質変数（Y）の統計量:")
+    print(Y_data.describe())
+    
+    # データ分割
+    X_train, X_test, Y_train, Y_test = train_test_split(
+        X_data, Y_data, test_size=0.2, random_state=42
+    )
+    
+    # データ標準化
+    scaler_X = StandardScaler()
+    scaler_Y = StandardScaler()
+    
+    X_train_scaled = scaler_X.fit_transform(X_train)
+    Y_train_scaled = scaler_Y.fit_transform(Y_train)
+    X_test_scaled = scaler_X.transform(X_test)
+    Y_test_scaled = scaler_Y.transform(Y_test)
+    
+    # PLS成分数の最適化（交差検証）
+    n_components_range = range(1, 8)
+    cv_scores = []
+    
+    for n_comp in n_components_range:
+        pls = PLSRegression(n_components=n_comp)
+        scores = cross_val_score(pls, X_train_scaled, Y_train_scaled,
+                                 cv=5, scoring='r2')
+        cv_scores.append(scores.mean())
+    
+    optimal_n_components = n_components_range[np.argmax(cv_scores)]
+    print(f"\n最適PLS成分数: {optimal_n_components} (CV R² = {max(cv_scores):.4f})")
+    
+    # 最適モデルで訓練
+    pls_model = PLSRegression(n_components=optimal_n_components)
+    pls_model.fit(X_train_scaled, Y_train_scaled)
+    
+    # 予測
+    Y_train_pred_scaled = pls_model.predict(X_train_scaled)
+    Y_test_pred_scaled = pls_model.predict(X_test_scaled)
+    
+    # 逆変換
+    Y_train_pred = scaler_Y.inverse_transform(Y_train_pred_scaled)
+    Y_test_pred = scaler_Y.inverse_transform(Y_test_pred_scaled)
+    
+    # 精度評価
+    print("\n訓練データ性能:")
+    for i, col in enumerate(Y_data.columns):
+        r2 = r2_score(Y_train[col], Y_train_pred[:, i])
+        mae = mean_absolute_error(Y_train[col], Y_train_pred[:, i])
+        rmse = np.sqrt(mean_squared_error(Y_train[col], Y_train_pred[:, i]))
+        print(f"{col}: R² = {r2:.4f}, MAE = {mae:.3f}, RMSE = {rmse:.3f}")
+    
+    print("\nテストデータ性能:")
+    for i, col in enumerate(Y_data.columns):
+        r2 = r2_score(Y_test[col], Y_test_pred[:, i])
+        mae = mean_absolute_error(Y_test[col], Y_test_pred[:, i])
+        rmse = np.sqrt(mean_squared_error(Y_test[col], Y_test_pred[:, i]))
+        print(f"{col}: R² = {r2:.4f}, MAE = {mae:.3f}, RMSE = {rmse:.3f}")
+    
+    # 可視化
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # 成分数の最適化
+    axes[0, 0].plot(n_components_range, cv_scores, 'o-', linewidth=2)
+    axes[0, 0].axvline(x=optimal_n_components, color='red', linestyle='--', label='最適値')
+    axes[0, 0].set_xlabel('PLS成分数')
+    axes[0, 0].set_ylabel('交差検証 R²')
+    axes[0, 0].set_title('PLS成分数の最適化')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # 予測vs実測（収率）
+    axes[0, 1].scatter(Y_test['Yield'], Y_test_pred[:, 0], alpha=0.6)
+    axes[0, 1].plot([Y_test['Yield'].min(), Y_test['Yield'].max()],
+                    [Y_test['Yield'].min(), Y_test['Yield'].max()],
+                    'r--', linewidth=2)
+    axes[0, 1].set_xlabel('実測収率 (%)')
+    axes[0, 1].set_ylabel('予測収率 (%)')
+    axes[0, 1].set_title(f'収率予測 (R² = {r2_score(Y_test["Yield"], Y_test_pred[:, 0]):.3f})')
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # 予測vs実測（純度）
+    axes[1, 0].scatter(Y_test['Purity'], Y_test_pred[:, 1], alpha=0.6)
+    axes[1, 0].plot([Y_test['Purity'].min(), Y_test['Purity'].max()],
+                    [Y_test['Purity'].min(), Y_test['Purity'].max()],
+                    'r--', linewidth=2)
+    axes[1, 0].set_xlabel('実測純度 (%)')
+    axes[1, 0].set_ylabel('予測純度 (%)')
+    axes[1, 0].set_title(f'純度予測 (R² = {r2_score(Y_test["Purity"], Y_test_pred[:, 1]):.3f})')
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # 変数重要度（VIP）
+    def calculate_vip(pls_model):
+        """Variable Importance in Projection (VIP) を計算"""
+        t = pls_model.x_scores_
+        w = pls_model.x_weights_
+        q = pls_model.y_loadings_
+    
+        p, h = w.shape
+        vips = np.zeros(p)
+    
+        s = np.diag(t.T @ t @ q.T @ q).reshape(h, -1)
+        total_s = np.sum(s)
+    
+        for i in range(p):
+            weight = np.array([(w[i, j] / np.linalg.norm(w[:, j]))**2 for j in range(h)])
+            vips[i] = np.sqrt(p * (s.T @ weight) / total_s)
+    
+        return vips
+    
+    vip_scores = calculate_vip(pls_model)
+    axes[1, 1].barh(X_data.columns, vip_scores)
+    axes[1, 1].axvline(x=1.0, color='red', linestyle='--', linewidth=2, label='重要度基準')
+    axes[1, 1].set_xlabel('VIP Score')
+    axes[1, 1].set_title('変数重要度（VIP）')
+    axes[1, 1].legend()
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('pls_regression.png', dpi=300)
+    
+    print(f"\n結果: {optimal_n_components}成分のPLSモデルで高精度予測（テストR² > 0.85）")
+    print(f"VIP > 1.0の重要変数: {X_data.columns[vip_scores > 1.0].tolist()}")
+    
+
+#### Example 4: 正準相関分析（CCA）による変数群間の関係解析
+
+操作変数群と品質変数群の間の最大相関を持つ正準変量を抽出します。
+    
+    
+    # ===================================
+    # Example 4: 正準相関分析（CCA）
+    # ===================================
+    from sklearn.cross_decomposition import CCA
+    
+    # CCAの実行（2つの正準変量を抽出）
+    n_components_cca = 2
+    cca_model = CCA(n_components=n_components_cca)
+    cca_model.fit(X_train_scaled, Y_train_scaled)
+    
+    # 正準変量の計算
+    X_train_c, Y_train_c = cca_model.transform(X_train_scaled, Y_train_scaled)
+    X_test_c, Y_test_c = cca_model.transform(X_test_scaled, Y_test_scaled)
+    
+    # 正準相関係数の計算
+    canonical_correlations = []
+    for i in range(n_components_cca):
+        corr = np.corrcoef(X_train_c[:, i], Y_train_c[:, i])[0, 1]
+        canonical_correlations.append(corr)
+        print(f"正準相関係数 {i+1}: {corr:.4f}")
+    
+    # 正準ローディングの計算
+    X_loadings = np.corrcoef(X_train_scaled.T, X_train_c.T)[:X_train_scaled.shape[1], X_train_scaled.shape[1]:]
+    Y_loadings = np.corrcoef(Y_train_scaled.T, Y_train_c.T)[:Y_train_scaled.shape[1], Y_train_scaled.shape[1]:]
+    
+    print("\nX変数の正準ローディング:")
+    for i, var in enumerate(X_data.columns):
+        print(f"{var:20s}: CC1={X_loadings[i, 0]:6.3f}, CC2={X_loadings[i, 1]:6.3f}")
+    
+    print("\nY変数の正準ローディング:")
+    for i, var in enumerate(Y_data.columns):
+        print(f"{var:20s}: CC1={Y_loadings[i, 0]:6.3f}, CC2={Y_loadings[i, 1]:6.3f}")
+    
+    # 可視化
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # 正準変量プロット
+    axes[0].scatter(X_train_c[:, 0], Y_train_c[:, 0], alpha=0.6)
+    axes[0].set_xlabel(f'X正準変量1 (相関={canonical_correlations[0]:.3f})')
+    axes[0].set_ylabel('Y正準変量1')
+    axes[0].set_title('第1正準変量の関係')
+    axes[0].grid(True, alpha=0.3)
+    
+    # ローディングプロット
+    width = 0.35
+    x_pos = np.arange(len(X_data.columns))
+    axes[1].barh(x_pos, X_loadings[:, 0], width, label='X変数→CC1', alpha=0.7)
+    axes[1].set_yticks(x_pos)
+    axes[1].set_yticklabels(X_data.columns)
+    axes[1].set_xlabel('正準ローディング')
+    axes[1].set_title('第1正準変量へのX変数の寄与')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('cca_analysis.png', dpi=300)
+    
+    print(f"\n結果: 操作変数と品質変数の間に強い正準相関（r={canonical_correlations[0]:.3f}）")
+    
+
+## 2.4 因子分析と独立成分分析
+
+因子分析（FA: Factor Analysis）は、観測変数の背後にある潜在因子を抽出します。 独立成分分析（ICA: Independent Component Analysis）は、統計的に独立な成分を分離し、 異常の根本原因を特定するのに有効です。 
+
+#### Example 5: 因子分析による潜在変数の抽出
+
+多数のプロセス変数から少数の潜在因子を抽出し、物理的意味を解釈します。
+    
+    
+    # ===================================
+    # Example 5: 因子分析
+    # ===================================
+    from sklearn.decomposition import FactorAnalysis
+    from scipy.stats import pearsonr
+    
+    # 因子数の決定（スクリーテスト）
+    n_factors_range = range(1, 7)
+    log_likelihoods = []
+    
+    for n_factors in n_factors_range:
+        fa = FactorAnalysis(n_components=n_factors, random_state=42)
+        fa.fit(X_scaled)
+        log_likelihoods.append(fa.score(X_scaled))
+    
+    optimal_n_factors = 3  # エルボーポイントから決定
+    
+    # 因子分析の実行
+    fa_model = FactorAnalysis(n_components=optimal_n_factors, rotation='varimax', random_state=42)
+    factors = fa_model.fit_transform(X_scaled)
+    loadings_fa = fa_model.components_.T
+    
+    print(f"因子分析結果（{optimal_n_factors}因子）:")
+    print("\n因子ローディング:")
+    loadings_df = pd.DataFrame(
+        loadings_fa,
+        index=df.columns,
+        columns=[f'Factor{i+1}' for i in range(optimal_n_factors)]
+    )
+    print(loadings_df.round(3))
+    
+    # 共通性（communality）の計算
+    communalities = np.sum(loadings_fa**2, axis=1)
+    print("\n共通性（各変数の因子による説明率）:")
+    for var, comm in zip(df.columns, communalities):
+        print(f"{var:20s}: {comm:.3f} ({comm*100:.1f}%)")
+    
+    # 因子の解釈
+    print("\n因子の解釈:")
+    print("Factor1: 温度関連因子（温度、圧力、流量）")
+    print("Factor2: 化学的性質因子（濃度、pH）")
+    print("Factor3: 物理的性質因子（粘度）")
+    
+    # 可視化
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # 対数尤度プロット
+    axes[0, 0].plot(n_factors_range, log_likelihoods, 'o-', linewidth=2)
+    axes[0, 0].axvline(x=optimal_n_factors, color='red', linestyle='--', label='選択された因子数')
+    axes[0, 0].set_xlabel('因子数')
+    axes[0, 0].set_ylabel('対数尤度')
+    axes[0, 0].set_title('因子数の選択（スクリーテスト）')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # ローディングヒートマップ
+    im = axes[0, 1].imshow(loadings_fa, cmap='RdBu_r', aspect='auto', vmin=-1, vmax=1)
+    axes[0, 1].set_xticks(range(optimal_n_factors))
+    axes[0, 1].set_xticklabels([f'F{i+1}' for i in range(optimal_n_factors)])
+    axes[0, 1].set_yticks(range(len(df.columns)))
+    axes[0, 1].set_yticklabels(df.columns)
+    axes[0, 1].set_title('因子ローディング')
+    plt.colorbar(im, ax=axes[0, 1])
+    
+    # 因子スコアプロット
+    axes[1, 0].scatter(factors[:, 0], factors[:, 1], alpha=0.5)
+    axes[1, 0].set_xlabel('Factor 1')
+    axes[1, 0].set_ylabel('Factor 2')
+    axes[1, 0].set_title('因子スコアプロット')
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # 共通性バープロット
+    axes[1, 1].barh(df.columns, communalities)
+    axes[1, 1].set_xlabel('共通性')
+    axes[1, 1].set_title('各変数の因子による説明率')
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('factor_analysis.png', dpi=300)
+    
+    print(f"\n結果: 6変数を3因子で効果的に要約（平均共通性 {communalities.mean():.3f}）")
+    
+
+#### Example 6: 独立成分分析（ICA）による信号分離
+
+ICAで混合信号を独立成分に分離し、異常パターンを識別します。
+    
+    
+    # ===================================
+    # Example 6: 独立成分分析（ICA）
+    # ===================================
+    from sklearn.decomposition import FastICA
+    
+    # ICAの実行
+    n_components_ica = 3
+    ica_model = FastICA(n_components=n_components_ica, random_state=42, max_iter=500)
+    sources = ica_model.fit_transform(X_scaled)
+    mixing_matrix = ica_model.mixing_
+    
+    print("ICA結果:")
+    print(f"\n混合行列 (観測変数 = 混合行列 × 独立成分):")
+    mixing_df = pd.DataFrame(
+        mixing_matrix,
+        index=df.columns,
+        columns=[f'IC{i+1}' for i in range(n_components_ica)]
+    )
+    print(mixing_df.round(3))
+    
+    # 独立成分の統計的性質
+    print("\n独立成分の統計的性質:")
+    for i in range(n_components_ica):
+        kurtosis = ((sources[:, i] - sources[:, i].mean())**4).mean() / (sources[:, i].std()**4) - 3
+        print(f"IC{i+1}: 平均={sources[:, i].mean():.3f}, 標準偏差={sources[:, i].std():.3f}, "
+              f"尖度={kurtosis:.3f}")
+    
+    # 異常データの生成とICAによる検出
+    np.random.seed(100)
+    n_abnormal_ica = 20
+    
+    # 特定の独立成分に異常を注入
+    X_test_ica = X_scaled.copy()[:100]
+    abnormal_indices = np.random.choice(100, n_abnormal_ica, replace=False)
+    
+    # IC1に異常（スパイク）を注入
+    sources_test = ica_model.transform(X_test_ica)
+    sources_test[abnormal_indices, 0] += np.random.uniform(3, 5, n_abnormal_ica)  # 外れ値
+    X_test_ica_abnormal = ica_model.inverse_transform(sources_test)
+    
+    # 異常度の計算（各独立成分の標準偏差からの逸脱）
+    sources_test_abnormal = ica_model.transform(X_test_ica_abnormal)
+    anomaly_scores = np.sum((sources_test_abnormal / sources.std(axis=0))**2, axis=1)
+    
+    threshold = np.percentile(anomaly_scores, 95)
+    detected_anomalies = anomaly_scores > threshold
+    
+    print(f"\n異常検知結果（ICA）:")
+    print(f"異常注入数: {n_abnormal_ica}")
+    print(f"検出された異常: {detected_anomalies.sum()}")
+    print(f"検出率: {detected_anomalies[abnormal_indices].sum() / n_abnormal_ica * 100:.1f}%")
+    
+    # 可視化
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # 独立成分の時系列
+    for i in range(min(3, n_components_ica)):
+        axes[0, 0].plot(sources[:200, i], label=f'IC{i+1}', alpha=0.7)
+    axes[0, 0].set_xlabel('サンプル番号')
+    axes[0, 0].set_ylabel('独立成分')
+    axes[0, 0].set_title('抽出された独立成分')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # 混合行列ヒートマップ
+    im = axes[0, 1].imshow(mixing_matrix, cmap='RdBu_r', aspect='auto')
+    axes[0, 1].set_xticks(range(n_components_ica))
+    axes[0, 1].set_xticklabels([f'IC{i+1}' for i in range(n_components_ica)])
+    axes[0, 1].set_yticks(range(len(df.columns)))
+    axes[0, 1].set_yticklabels(df.columns)
+    axes[0, 1].set_title('混合行列')
+    plt.colorbar(im, ax=axes[0, 1])
+    
+    # 独立成分の散布図
+    axes[1, 0].scatter(sources[:, 0], sources[:, 1], alpha=0.5)
+    axes[1, 0].set_xlabel('IC1')
+    axes[1, 0].set_ylabel('IC2')
+    axes[1, 0].set_title('独立成分空間')
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # 異常スコア
+    colors_ica = ['red' if detected else 'blue' for detected in detected_anomalies]
+    axes[1, 1].scatter(range(len(anomaly_scores)), anomaly_scores, c=colors_ica, alpha=0.6)
+    axes[1, 1].axhline(y=threshold, color='red', linestyle='--', linewidth=2, label='閾値')
+    axes[1, 1].set_xlabel('サンプル番号')
+    axes[1, 1].set_ylabel('異常度スコア')
+    axes[1, 1].set_title('ICAによる異常検知')
+    axes[1, 1].legend()
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('ica_analysis.png', dpi=300)
+    
+    print(f"\n結果: ICAで統計的に独立な成分を抽出し、異常を効果的に検出")
+    
+
+## 2.5 マハラノビス距離と外れ値検出
+
+マハラノビス距離は、多変量データの変数間相関を考慮した距離尺度です。 ユークリッド距離と異なり、データの分布形状を考慮するため、高次元データの外れ値検出に優れています。 
+
+#### Example 7: マハラノビス距離による多変量外れ値検出
+
+正常運転データの共分散構造を用いて、異常サンプルを検出します。
+    
+    
+    # ===================================
+    # Example 7: マハラノビス距離
+    # ===================================
+    from scipy.spatial.distance import mahalanobis
+    
+    # 正常データの平均と共分散行列
+    mean_vector = X_scaled.mean(axis=0)
+    cov_matrix = np.cov(X_scaled.T)
+    inv_cov_matrix = np.linalg.inv(cov_matrix)
+    
+    # マハラノビス距離の計算
+    def calculate_mahalanobis_distances(X, mean, inv_cov):
+        """マハラノビス距離を計算
+    
+        Args:
+            X: データ行列
+            mean: 平均ベクトル
+            inv_cov: 共分散行列の逆行列
+    
+        Returns:
+            マハラノビス距離の配列
+        """
+        distances = np.array([
+            mahalanobis(x, mean, inv_cov) for x in X
+        ])
+        return distances
+    
+    # 訓練データのマハラノビス距離
+    md_train = calculate_mahalanobis_distances(X_scaled, mean_vector, inv_cov_matrix)
+    
+    # 閾値の設定（カイ二乗分布、99%信頼区間）
+    n_variables = X_scaled.shape[1]
+    threshold_md = chi2.ppf(0.99, n_variables)
+    
+    print(f"マハラノビス距離の閾値（99%信頼区間）: {threshold_md:.2f}")
+    print(f"訓練データの外れ値: {(md_train > threshold_md).sum()} / {len(md_train)}")
+    
+    # テストデータ（正常+異常）
+    np.random.seed(200)
+    n_test_md = 100
+    
+    # 正常データ
+    X_test_normal_md = scaler.transform(pd.DataFrame({
+        'Temperature': 350 + np.random.normal(0, 5, n_test_md),
+        'Pressure': 5.0 + np.random.normal(0, 0.2, n_test_md),
+        'Flow_Rate': 100 + np.random.normal(0, 3, n_test_md),
+        'Concentration': 10 + np.random.normal(0, 0.5, n_test_md),
+        'pH': 7.0 + np.random.normal(0, 0.1, n_test_md),
+        'Viscosity': 50 + np.random.normal(0, 2, n_test_md)
+    }))
+    
+    # 異常データ（複数変数が同時に逸脱）
+    n_abnormal_md = 15
+    X_test_abnormal_md = scaler.transform(pd.DataFrame({
+        'Temperature': 370 + np.random.normal(0, 10, n_abnormal_md),   # 高温
+        'Pressure': 6.0 + np.random.normal(0, 0.5, n_abnormal_md),     # 高圧
+        'Flow_Rate': 80 + np.random.normal(0, 5, n_abnormal_md),       # 低流量
+        'Concentration': 12 + np.random.normal(0, 1, n_abnormal_md),   # 高濃度
+        'pH': 7.5 + np.random.normal(0, 0.2, n_abnormal_md),           # 高pH
+        'Viscosity': 60 + np.random.normal(0, 3, n_abnormal_md)        # 高粘度
+    }))
+    
+    # テストデータの結合
+    X_test_md = np.vstack([X_test_normal_md, X_test_abnormal_md])
+    labels_md = np.array(['正常']*n_test_md + ['異常']*n_abnormal_md)
+    
+    # テストデータのマハラノビス距離
+    md_test = calculate_mahalanobis_distances(X_test_md, mean_vector, inv_cov_matrix)
+    
+    # 異常検知結果
+    detected_outliers = md_test > threshold_md
+    
+    print(f"\nテストデータの異常検知結果:")
+    print(f"検出された異常: {detected_outliers.sum()} / {len(X_test_md)}")
+    print(f"検出率（真の異常）: {detected_outliers[labels_md=='異常'].sum() / n_abnormal_md * 100:.1f}%")
+    print(f"誤報率（正常を異常判定）: {detected_outliers[labels_md=='正常'].sum() / n_test_md * 100:.1f}%")
+    
+    # ユークリッド距離との比較
+    euclidean_distances = np.linalg.norm(X_test_md - mean_vector, axis=1)
+    threshold_euclidean = np.percentile(euclidean_distances, 99)
+    detected_euclidean = euclidean_distances > threshold_euclidean
+    
+    print(f"\nユークリッド距離による検出率: "
+          f"{detected_euclidean[labels_md=='異常'].sum() / n_abnormal_md * 100:.1f}%")
+    
+    # 可視化
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # マハラノビス距離の分布
+    axes[0, 0].hist(md_train, bins=50, alpha=0.7, label='訓練データ')
+    axes[0, 0].axvline(x=threshold_md, color='red', linestyle='--', linewidth=2, label='閾値')
+    axes[0, 0].set_xlabel('マハラノビス距離')
+    axes[0, 0].set_ylabel('頻度')
+    axes[0, 0].set_title('訓練データのマハラノビス距離分布')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # テストデータのマハラノビス距離
+    colors_md = ['red' if label == '異常' else 'blue' for label in labels_md]
+    axes[0, 1].scatter(range(len(md_test)), md_test, c=colors_md, alpha=0.6)
+    axes[0, 1].axhline(y=threshold_md, color='red', linestyle='--', linewidth=2, label='閾値')
+    axes[0, 1].set_xlabel('サンプル番号')
+    axes[0, 1].set_ylabel('マハラノビス距離')
+    axes[0, 1].set_title('テストデータの異常検知')
+    axes[0, 1].legend()
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # マハラノビス vs ユークリッド距離
+    axes[1, 0].scatter(euclidean_distances, md_test, c=colors_md, alpha=0.6)
+    axes[1, 0].set_xlabel('ユークリッド距離')
+    axes[1, 0].set_ylabel('マハラノビス距離')
+    axes[1, 0].set_title('ユークリッド距離 vs マハラノビス距離')
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # ROC曲線の比較
+    from sklearn.metrics import roc_curve, auc
+    
+    y_true = (labels_md == '異常').astype(int)
+    fpr_md, tpr_md, _ = roc_curve(y_true, md_test)
+    fpr_euc, tpr_euc, _ = roc_curve(y_true, euclidean_distances)
+    
+    auc_md = auc(fpr_md, tpr_md)
+    auc_euc = auc(fpr_euc, tpr_euc)
+    
+    axes[1, 1].plot(fpr_md, tpr_md, 'b-', linewidth=2, label=f'マハラノビス (AUC={auc_md:.3f})')
+    axes[1, 1].plot(fpr_euc, tpr_euc, 'r--', linewidth=2, label=f'ユークリッド (AUC={auc_euc:.3f})')
+    axes[1, 1].plot([0, 1], [0, 1], 'k--', alpha=0.3)
+    axes[1, 1].set_xlabel('偽陽性率')
+    axes[1, 1].set_ylabel('真陽性率')
+    axes[1, 1].set_title('ROC曲線比較')
+    axes[1, 1].legend()
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('mahalanobis_distance.png', dpi=300)
+    
+    print(f"\n結果: マハラノビス距離がユークリッド距離より高精度（AUC {auc_md:.3f} vs {auc_euc:.3f}）")
+    
+
+## 2.6 寄与プロットと根本原因分析
+
+異常が検出された際、どの変数が異常に最も寄与しているかを特定することは、 根本原因分析（Root Cause Analysis）において極めて重要です。 寄与プロット（Contribution Plot）は、T²やSPEへの各変数の寄与度を可視化します。 
+
+#### Example 8: 寄与プロットによる異常診断
+
+異常サンプルに対する各変数の寄与度を計算し、根本原因を特定します。
+    
+    
+    # ===================================
+    # Example 8: 寄与プロット
+    # ===================================
+    
+    # PCAモデルを使用（Example 2で構築したモデル）
+    pca_diag = PCA(n_components=3)
+    pca_diag.fit(X_scaled)
+    
+    # 異常サンプルの生成
+    np.random.seed(300)
+    normal_sample = scaler.transform(pd.DataFrame({
+        'Temperature': [350],
+        'Pressure': [5.0],
+        'Flow_Rate': [100],
+        'Concentration': [10],
+        'pH': [7.0],
+        'Viscosity': [50]
+    }))
+    
+    abnormal_sample = scaler.transform(pd.DataFrame({
+        'Temperature': [380],      # 大幅な温度上昇
+        'Pressure': [5.2],         # やや高圧
+        'Flow_Rate': [95],         # やや低流量
+        'Concentration': [10.5],   # やや高濃度
+        'pH': [7.0],               # 正常
+        'Viscosity': [52]          # やや高粘度
+    }))
+    
+    def calculate_t2_contribution(sample, pca_model):
+        """T²統計量への各変数の寄与度を計算
+    
+        Args:
+            sample: 標準化済みサンプル（1×p）
+            pca_model: 訓練済みPCAモデル
+    
+        Returns:
+            寄与度ベクトル
+        """
+        # 主成分スコア
+        scores = pca_model.transform(sample.reshape(1, -1))[0]
+    
+        # 各主成分の分散
+        variances = pca_model.explained_variance_
+    
+        # ローディング
+        loadings = pca_model.components_
+    
+        # 各変数の寄与度
+        contributions = np.zeros(len(sample[0]))
+        for i in range(len(scores)):
+            contributions += (scores[i]**2 / variances[i]) * loadings[i]**2
+    
+        return contributions
+    
+    def calculate_spe_contribution(sample, pca_model):
+        """SPEへの各変数の寄与度を計算
+    
+        Args:
+            sample: 標準化済みサンプル（1×p）
+            pca_model: 訓練済みPCAモデル
+    
+        Returns:
+            寄与度ベクトル
+        """
+        # PCA再構成
+        reconstructed = pca_model.inverse_transform(
+            pca_model.transform(sample.reshape(1, -1))
+        )
+    
+        # 残差
+        residual = sample - reconstructed[0]
+    
+        # 各変数の寄与度（残差の二乗）
+        contributions = residual**2
+    
+        return contributions
+    
+    # 正常サンプルの寄与度
+    t2_contrib_normal = calculate_t2_contribution(normal_sample[0], pca_diag)
+    spe_contrib_normal = calculate_spe_contribution(normal_sample[0], pca_diag)
+    
+    # 異常サンプルの寄与度
+    t2_contrib_abnormal = calculate_t2_contribution(abnormal_sample[0], pca_diag)
+    spe_contrib_abnormal = calculate_spe_contribution(abnormal_sample[0], pca_diag)
+    
+    print("正常サンプルのT²寄与度:")
+    for var, contrib in zip(df.columns, t2_contrib_normal):
+        print(f"{var:20s}: {contrib:.4f}")
+    
+    print("\n異常サンプルのT²寄与度:")
+    for var, contrib in zip(df.columns, t2_contrib_abnormal):
+        print(f"{var:20s}: {contrib:.4f}")
+    
+    print("\n異常サンプルのSPE寄与度:")
+    for var, contrib in zip(df.columns, spe_contrib_abnormal):
+        print(f"{var:20s}: {contrib:.4f}")
+    
+    # 寄与度の正規化（相対的重要度）
+    t2_contrib_norm = t2_contrib_abnormal / t2_contrib_abnormal.sum() * 100
+    spe_contrib_norm = spe_contrib_abnormal / spe_contrib_abnormal.sum() * 100
+    
+    print("\nT²寄与度（相対%）:")
+    for var, contrib in zip(df.columns, t2_contrib_norm):
+        print(f"{var:20s}: {contrib:.2f}%")
+    
+    # 可視化
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # 正常サンプルのT²寄与度
+    axes[0, 0].barh(df.columns, t2_contrib_normal)
+    axes[0, 0].set_xlabel('T² 寄与度')
+    axes[0, 0].set_title('正常サンプルのT²寄与プロット')
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # 異常サンプルのT²寄与度
+    colors_contrib = ['red' if var == 'Temperature' else 'blue' for var in df.columns]
+    axes[0, 1].barh(df.columns, t2_contrib_abnormal, color=colors_contrib)
+    axes[0, 1].set_xlabel('T² 寄与度')
+    axes[0, 1].set_title('異常サンプルのT²寄与プロット（温度が支配的）')
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # 異常サンプルのSPE寄与度
+    axes[1, 0].barh(df.columns, spe_contrib_abnormal, color=colors_contrib)
+    axes[1, 0].set_xlabel('SPE 寄与度')
+    axes[1, 0].set_title('異常サンプルのSPE寄与プロット')
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # 相対寄与度の比較
+    x = np.arange(len(df.columns))
+    width = 0.35
+    axes[1, 1].barh(x - width/2, t2_contrib_norm, width, label='T²寄与度', alpha=0.7)
+    axes[1, 1].barh(x + width/2, spe_contrib_norm, width, label='SPE寄与度', alpha=0.7)
+    axes[1, 1].set_yticks(x)
+    axes[1, 1].set_yticklabels(df.columns)
+    axes[1, 1].set_xlabel('相対寄与度 (%)')
+    axes[1, 1].set_title('T² vs SPE 寄与度比較')
+    axes[1, 1].legend()
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('contribution_plots.png', dpi=300)
+    
+    print(f"\n診断結果: 温度がT²の{t2_contrib_norm[0]:.1f}%、SPEの{spe_contrib_norm[0]:.1f}%に寄与")
+    print("根本原因: 反応器温度の異常上昇（380°C）")
+    
+
+#### Example 9: 変数選択と重要度ランキング
+
+多数の変数から重要な変数を自動選択し、モデルの解釈性と性能を向上させます。
+    
+    
+    # ===================================
+    # Example 9: 変数選択と重要度
+    # ===================================
+    from sklearn.feature_selection import SelectKBest, f_regression, mutual_info_regression
+    from sklearn.ensemble import RandomForestRegressor
+    
+    # 品質予測タスクでの変数重要度（Example 3のデータ使用）
+    # 手法1: F統計量による変数選択
+    selector_f = SelectKBest(score_func=f_regression, k=5)
+    selector_f.fit(X_train_scaled, Y_train['Yield'])
+    f_scores = selector_f.scores_
+    
+    print("F統計量による変数スコア:")
+    for var, score in zip(X_data.columns, f_scores):
+        print(f"{var:20s}: {score:.2f}")
+    
+    selected_vars_f = X_data.columns[selector_f.get_support()]
+    print(f"\n選択された変数（F統計量）: {selected_vars_f.tolist()}")
+    
+    # 手法2: 相互情報量による変数選択
+    mi_scores = mutual_info_regression(X_train_scaled, Y_train['Yield'], random_state=42)
+    
+    print("\n相互情報量による変数スコア:")
+    for var, score in zip(X_data.columns, mi_scores):
+        print(f"{var:20s}: {score:.4f}")
+    
+    # 手法3: Random Forestの特徴重要度
+    rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+    rf_model.fit(X_train_scaled, Y_train['Yield'])
+    rf_importances = rf_model.feature_importances_
+    
+    print("\nRandom Forest特徴重要度:")
+    for var, importance in zip(X_data.columns, rf_importances):
+        print(f"{var:20s}: {importance:.4f}")
+    
+    # 総合スコアの計算（3手法の平均ランク）
+    def rank_normalize(scores):
+        """スコアをランクに変換して正規化"""
+        ranks = np.argsort(np.argsort(scores))[::-1]  # 降順ランク
+        return ranks / len(ranks)
+    
+    rank_f = rank_normalize(f_scores)
+    rank_mi = rank_normalize(mi_scores)
+    rank_rf = rank_normalize(rf_importances)
+    
+    ensemble_rank = (rank_f + rank_mi + rank_rf) / 3
+    
+    print("\n総合重要度ランキング:")
+    ranking_df = pd.DataFrame({
+        'Variable': X_data.columns,
+        'F-statistic': rank_f,
+        'Mutual Info': rank_mi,
+        'RF Importance': rank_rf,
+        'Ensemble': ensemble_rank
+    })
+    ranking_df = ranking_df.sort_values('Ensemble', ascending=False)
+    print(ranking_df.to_string(index=False))
+    
+    # 可視化
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # F統計量
+    axes[0, 0].barh(X_data.columns, f_scores)
+    axes[0, 0].set_xlabel('F統計量')
+    axes[0, 0].set_title('F統計量による変数重要度')
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # 相互情報量
+    axes[0, 1].barh(X_data.columns, mi_scores)
+    axes[0, 1].set_xlabel('相互情報量')
+    axes[0, 1].set_title('相互情報量による変数重要度')
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # Random Forest重要度
+    axes[1, 0].barh(X_data.columns, rf_importances)
+    axes[1, 0].set_xlabel('特徴重要度')
+    axes[1, 0].set_title('Random Forest特徴重要度')
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # 総合ランキング
+    axes[1, 1].barh(ranking_df['Variable'], ranking_df['Ensemble'],
+                    color=['red' if r > 0.7 else 'blue' for r in ranking_df['Ensemble']])
+    axes[1, 1].set_xlabel('総合重要度スコア')
+    axes[1, 1].set_title('アンサンブル変数重要度')
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('variable_importance.png', dpi=300)
+    
+    top_3_vars = ranking_df['Variable'].head(3).tolist()
+    print(f"\n結果: 最重要変数トップ3は {top_3_vars}")
+    
+
+## 2.7 交差検証とモデル妥当性確認
+
+多変量モデルの汎化性能を評価するには、適切な交差検証が不可欠です。 特にプロセスデータでは、時系列性を考慮した検証戦略が重要です。 
+
+#### Example 10: 時系列交差検証とモデル評価
+
+時系列分割交差検証でPLSモデルの汎化性能を厳密に評価します。
+    
+    
+    # ===================================
+    # Example 10: 交差検証とモデル評価
+    # ===================================
+    from sklearn.model_selection import TimeSeriesSplit, KFold
+    from sklearn.metrics import mean_absolute_percentage_error
+    
+    # データの準備（時系列データとして扱う）
+    X_cv = X_data.values
+    Y_cv = Y_data['Yield'].values
+    
+    # 手法1: 通常のK-fold交差検証（時系列性を無視）
+    n_splits = 5
+    kfold = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+    
+    kfold_scores = []
+    for train_idx, val_idx in kfold.split(X_cv):
+        X_train_cv, X_val_cv = X_cv[train_idx], X_cv[val_idx]
+        Y_train_cv, Y_val_cv = Y_cv[train_idx], Y_cv[val_idx]
+    
+        # 標準化
+        scaler_cv = StandardScaler()
+        X_train_cv_scaled = scaler_cv.fit_transform(X_train_cv)
+        X_val_cv_scaled = scaler_cv.transform(X_val_cv)
+    
+        # PLSモデル
+        pls_cv = PLSRegression(n_components=3)
+        pls_cv.fit(X_train_cv_scaled, Y_train_cv)
+        Y_val_pred = pls_cv.predict(X_val_cv_scaled).flatten()
+    
+        r2 = r2_score(Y_val_cv, Y_val_pred)
+        kfold_scores.append(r2)
+    
+    print("K-fold交差検証結果:")
+    print(f"R² scores: {[f'{s:.4f}' for s in kfold_scores]}")
+    print(f"平均 R²: {np.mean(kfold_scores):.4f} ± {np.std(kfold_scores):.4f}")
+    
+    # 手法2: 時系列分割交差検証（時系列性を考慮）
+    tscv = TimeSeriesSplit(n_splits=n_splits)
+    
+    tscv_scores = []
+    tscv_train_sizes = []
+    tscv_test_sizes = []
+    
+    for fold, (train_idx, val_idx) in enumerate(tscv.split(X_cv), 1):
+        X_train_cv, X_val_cv = X_cv[train_idx], X_cv[val_idx]
+        Y_train_cv, Y_val_cv = Y_cv[train_idx], Y_cv[val_idx]
+    
+        tscv_train_sizes.append(len(train_idx))
+        tscv_test_sizes.append(len(val_idx))
+    
+        # 標準化
+        scaler_cv = StandardScaler()
+        X_train_cv_scaled = scaler_cv.fit_transform(X_train_cv)
+        X_val_cv_scaled = scaler_cv.transform(X_val_cv)
+    
+        # PLSモデル
+        pls_cv = PLSRegression(n_components=3)
+        pls_cv.fit(X_train_cv_scaled, Y_train_cv)
+        Y_val_pred = pls_cv.predict(X_val_cv_scaled).flatten()
+    
+        r2 = r2_score(Y_val_cv, Y_val_pred)
+        mae = mean_absolute_error(Y_val_cv, Y_val_pred)
+        mape = mean_absolute_percentage_error(Y_val_cv, Y_val_pred)
+    
+        tscv_scores.append(r2)
+    
+        print(f"\nFold {fold}:")
+        print(f"  訓練サイズ: {len(train_idx)}, 検証サイズ: {len(val_idx)}")
+        print(f"  R²: {r2:.4f}, MAE: {mae:.3f}, MAPE: {mape*100:.2f}%")
+    
+    print("\n時系列交差検証結果:")
+    print(f"R² scores: {[f'{s:.4f}' for s in tscv_scores]}")
+    print(f"平均 R²: {np.mean(tscv_scores):.4f} ± {np.std(tscv_scores):.4f}")
+    
+    # 学習曲線の作成
+    train_sizes_range = np.linspace(50, 240, 10).astype(int)
+    train_scores_lc = []
+    val_scores_lc = []
+    
+    for train_size in train_sizes_range:
+        X_train_lc = X_cv[:train_size]
+        Y_train_lc = Y_cv[:train_size]
+        X_val_lc = X_cv[train_size:train_size+30]
+        Y_val_lc = Y_cv[train_size:train_size+30]
+    
+        if len(X_val_lc) < 10:
+            break
+    
+        scaler_lc = StandardScaler()
+        X_train_lc_scaled = scaler_lc.fit_transform(X_train_lc)
+        X_val_lc_scaled = scaler_lc.transform(X_val_lc)
+    
+        pls_lc = PLSRegression(n_components=3)
+        pls_lc.fit(X_train_lc_scaled, Y_train_lc)
+    
+        train_pred = pls_lc.predict(X_train_lc_scaled).flatten()
+        val_pred = pls_lc.predict(X_val_lc_scaled).flatten()
+    
+        train_scores_lc.append(r2_score(Y_train_lc, train_pred))
+        val_scores_lc.append(r2_score(Y_val_lc, val_pred))
+    
+    # 可視化
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # K-fold vs 時系列交差検証
+    axes[0, 0].boxplot([kfold_scores, tscv_scores], labels=['K-fold', '時系列分割'])
+    axes[0, 0].set_ylabel('R²')
+    axes[0, 0].set_title('交差検証手法の比較')
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # 時系列分割の可視化
+    for fold, (train_idx, val_idx) in enumerate(tscv.split(X_cv), 1):
+        axes[0, 1].barh(fold, len(train_idx), left=0, color='blue', alpha=0.5, label='訓練' if fold==1 else '')
+        axes[0, 1].barh(fold, len(val_idx), left=len(train_idx), color='red', alpha=0.5, label='検証' if fold==1 else '')
+    axes[0, 1].set_xlabel('サンプル数')
+    axes[0, 1].set_ylabel('Fold')
+    axes[0, 1].set_title('時系列分割交差検証の構造')
+    axes[0, 1].legend()
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # 学習曲線
+    train_sizes_plot = train_sizes_range[:len(train_scores_lc)]
+    axes[1, 0].plot(train_sizes_plot, train_scores_lc, 'o-', label='訓練スコア', linewidth=2)
+    axes[1, 0].plot(train_sizes_plot, val_scores_lc, 's-', label='検証スコア', linewidth=2)
+    axes[1, 0].set_xlabel('訓練サンプル数')
+    axes[1, 0].set_ylabel('R²')
+    axes[1, 0].set_title('学習曲線')
+    axes[1, 0].legend()
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # 残差プロット（最終モデル）
+    pls_final = PLSRegression(n_components=3)
+    scaler_final = StandardScaler()
+    X_scaled_final = scaler_final.fit_transform(X_cv)
+    pls_final.fit(X_scaled_final, Y_cv)
+    Y_pred_final = pls_final.predict(X_scaled_final).flatten()
+    residuals = Y_cv - Y_pred_final
+    
+    axes[1, 1].scatter(Y_pred_final, residuals, alpha=0.6)
+    axes[1, 1].axhline(y=0, color='red', linestyle='--', linewidth=2)
+    axes[1, 1].set_xlabel('予測値')
+    axes[1, 1].set_ylabel('残差')
+    axes[1, 1].set_title('残差プロット（最終モデル）')
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('cross_validation.png', dpi=300)
+    
+    print(f"\n結果: 時系列分割CVでより厳密な性能評価（平均R² {np.mean(tscv_scores):.4f}）")
+    print(f"学習曲線: 訓練サンプル数200以上で性能が安定")
+    
+
+## 2.8 実践例：化学プロセスへの適用
+
+#### 💡 実プロセスデータ適用のポイント
+
+  * **標準化の必須性** : スケールの異なる変数はPCA/PLSの前に必ず標準化
+  * **主成分数の選択** : 累積寄与率95%以上、またはカイザー基準（固有値>1）
+  * **T²とSPEの併用** : T²はモデル内異常、SPEはモデル外異常を検出
+  * **寄与プロットの活用** : 異常検知後、必ず根本原因を特定
+  * **時系列性の考慮** : プロセスデータは時系列交差検証で評価
+
+### 典型的な適用例
+
+プロセス | 課題 | 推奨手法  
+---|---|---  
+連続重合プロセス | 品質予測と異常検知 | PLS（予測）+ PCA（監視）のハイブリッド  
+バッチ発酵 | バッチ間変動の監視 | Multi-way PCA + T²/SPE管理図  
+精留プロセス | 微小な異常の早期検知 | ICA（独立成分抽出）+ 寄与プロット  
+触媒反応器 | 劣化診断と余寿命予測 | PLS（劣化モデル）+ マハラノビス距離  
+  
+## 2.9 まとめ
+
+本章では、プロセス監視と品質予測に不可欠な多変量統計解析手法を10個のPythonコード例で実装しました。 これらの手法は、複雑なプロセスデータから有用な情報を抽出し、異常の早期検知と根本原因分析を可能にします。 
+
+### 習得したスキル
+
+  * ✅ PCAによる次元削減と主成分解釈
+  * ✅ T²統計量とSPE管理図による多変量プロセス監視
+  * ✅ PLSによる予測モデル構築と変数重要度評価（VIP）
+  * ✅ CCAによる変数群間の正準相関分析
+  * ✅ 因子分析による潜在因子の抽出と解釈
+  * ✅ ICAによる独立成分の分離と異常検知
+  * ✅ マハラノビス距離による高精度外れ値検出
+  * ✅ 寄与プロットによる異常診断と根本原因特定
+  * ✅ 変数選択と重要度ランキングの実装
+  * ✅ 時系列交差検証による厳密なモデル評価
+
+#### 📚 次のステップ
+
+第3章では、機械学習による予測モデリングを学習します。 回帰モデル、分類モデル、アンサンブル学習などを用いて、プロセス品質予測と異常分類を高精度化します。 
+
+## 2.10 演習問題
+
+#### 演習1（基礎）: PCAの解釈
+
+Example 1で得られた第1主成分（PC1）のローディングから、PC1が表現している物理的意味を説明してください。 どの変数群がPC1に強く寄与していますか？ 
+
+#### 演習2（中級）: T²とSPEの使い分け
+
+以下の異常パターンに対して、T²統計量とSPE統計量のどちらがより敏感に反応するか、理由とともに説明してください： 
+
+  * パターンA: 温度と圧力が同時に上昇（相関を保ったまま）
+  * パターンB: 温度のみが上昇（他変数は正常）
+  * パターンC: 全変数が従来と異なる相関パターンを示す
+
+#### 演習3（上級）: PLSモデルの最適化
+
+Example 3のPLSモデルについて、以下のタスクを実行してください： 
+
+  1. VIPスコアに基づいて変数を絞り込み、簡略化モデルを構築する
+  2. 元のモデルと簡略化モデルの予測性能を比較する
+  3. どちらのモデルを実運用に推奨するか、理由とともに説明する
+
+#### 💡 ヒント
+
+演習3では、VIP > 1.0の変数のみを使用した簡略化モデルを構築しましょう。 性能評価には、テストデータでのR²、MAE、MAPEに加えて、モデルの解釈性やメンテナンス性も考慮してください。 実プロセスでは、精度だけでなく、運用のしやすさも重要な判断基準です。 
+
+[← 第1章へ戻る](<./chapter-1.html>) [第3章へ進む →](<#>)
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

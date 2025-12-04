@@ -1,0 +1,633 @@
+---
+title: "Chapter 1: Statistical Quality Control under GMP Compliance"
+chapter_title: "Chapter 1: Statistical Quality Control under GMP Compliance"
+subtitle: Statistical Quality Control under GMP Requirements
+---
+
+[AI Terakoya Top](<../index.html>)›[Process Informatics](<../../index.html>)›[Pharma Manufacturing AI](<../../PI/pharma-manufacturing-ai/index.html>)›Chapter 1
+
+🌐 EN | [🇯🇵 JP](<../../../jp/PI/pharma-manufacturing-ai/chapter-1.html>) | Last sync: 2025-11-16
+
+[← Return to Series Index](<index.html>)
+
+## 📖 Chapter Overview
+
+In pharmaceutical manufacturing, stringent quality control based on GMP (Good Manufacturing Practice) is required. This chapter covers implementing GMP-compliant statistical quality control methods using Python, including Statistical Process Control (SPC), Process Capability Indices (Cp/Cpk), Continued Process Verification (CPV), and Annual Product Review (APR). 
+
+### 🎯 Learning Objectives
+
+  * Implementing Statistical Process Control (SPC) that meets GMP requirements
+  * Automatic generation of control charts (X-R chart, X-σ chart, CUSUM, EWMA)
+  * Calculation and evaluation of process capability indices (Cp, Cpk, Pp, Ppk)
+  * Automation of Continued Process Verification (CPV)
+  * Streamlining Annual Product Review (APR) data compilation
+  * Automatic alerts for deviation detection and control limit excursions
+  * Implementation of Audit Trail recording
+
+## 📊 1.1 Fundamentals of GMP Requirements and Statistical Quality Control
+
+### Quality Control Requirements in GMP Regulations
+
+Pharmaceutical manufacturing requires quality control that meets the following GMP requirements:
+
+  * **PIC/S GMP Annex 15** : Qualification and Validation
+  * **ICH Q7** : Good Manufacturing Practice Guide for Active Pharmaceutical Ingredients
+  * **ICH Q8-Q11** : Quality Risk Management, QbD (Quality by Design)
+  * **FDA 21 CFR Part 211** : GMP regulations for finished pharmaceuticals
+  * **EU GMP Annex 11** : Computerized Systems
+
+**🏭 GMP Compliance Key Points**  
+・Record and store all process parameters (minimum 3 years)  
+・Root Cause Analysis (RCA) and Corrective and Preventive Action (CAPA) when deviations occur  
+・Implementation of Continued Process Verification (CPV)  
+・Regular quality assessment through Annual Product Review (APR)  
+・Ensuring audit trail integrity (who, when, what was changed) 
+
+### Basic Concepts of Statistical Process Control (SPC)
+
+#### Control Limit Calculation
+
+$$ \text{UCL}_{\bar{X}} = \bar{\bar{X}} + A_2 \bar{R} $$ $$ \text{CL}_{\bar{X}} = \bar{\bar{X}} $$ $$ \text{LCL}_{\bar{X}} = \bar{\bar{X}} - A_2 \bar{R} $$ 
+
+Where \\( \bar{\bar{X}} \\) is the grand average of sample means, \\( \bar{R} \\) is the average range, and \\( A_2 \\) is a constant based on sample size (for n=5, A_2=0.577) 
+
+### 💻 Code Example 1.1: Automatic X-R Control Chart Generation (GMP Compliant Version)
+    
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from datetime import datetime, timedelta
+    import json
+    import warnings
+    warnings.filterwarnings('ignore')
+    
+    plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'DejaVu Sans']
+    plt.rcParams['axes.unicode_minus'] = False
+    
+    class GMPControlChart:
+        """GMP-compliant X-R control chart class (with audit trail functionality)"""
+    
+        def __init__(self, product_name, batch_prefix, specification_limits):
+            """
+            Args:
+                product_name: Product name
+                batch_prefix: Batch number prefix
+                specification_limits: Specification limits (lower, upper)
+            """
+            self.product_name = product_name
+            self.batch_prefix = batch_prefix
+            self.spec_lower, self.spec_upper = specification_limits
+            self.audit_trail = []  # Audit trail
+    
+            # SPC parameters
+            self.A2_table = {2: 1.880, 3: 1.023, 4: 0.729, 5: 0.577}
+            self.D3_table = {2: 0, 3: 0, 4: 0, 5: 0}
+            self.D4_table = {2: 3.267, 3: 2.574, 4: 2.282, 5: 2.114}
+    
+        def _log_audit(self, action, user="System", details=None):
+            """Record audit trail"""
+            entry = {
+                "timestamp": datetime.now().isoformat(),
+                "user": user,
+                "action": action,
+                "details": details or {}
+            }
+            self.audit_trail.append(entry)
+    
+        def generate_sample_data(self, n_batches=30, samples_per_batch=5):
+            """Generate sample data (assuming tablet weight)"""
+            np.random.seed(42)
+    
+            batches = []
+            batch_dates = []
+            start_date = datetime(2025, 1, 1)
+    
+            # Data in control state (Batches 1-20)
+            for i in range(20):
+                batch_id = f"{self.batch_prefix}{i+1:04d}"
+                batch_date = start_date + timedelta(days=i)
+                samples = np.random.normal(200, 2, samples_per_batch)  # Mean 200mg, SD 2mg
+    
+                batches.append({
+                    'batch_id': batch_id,
+                    'date': batch_date,
+                    'samples': samples,
+                    'mean': np.mean(samples),
+                    'range': np.ptp(samples)
+                })
+                batch_dates.append(batch_date)
+    
+            # Minor mean shift (Batches 21-25)
+            for i in range(20, 25):
+                batch_id = f"{self.batch_prefix}{i+1:04d}"
+                batch_date = start_date + timedelta(days=i)
+                samples = np.random.normal(202, 2, samples_per_batch)  # Mean increased by 2mg
+    
+                batches.append({
+                    'batch_id': batch_id,
+                    'date': batch_date,
+                    'samples': samples,
+                    'mean': np.mean(samples),
+                    'range': np.ptp(samples)
+                })
+                batch_dates.append(batch_date)
+    
+            # Increased variability (Batches 26-30)
+            for i in range(25, n_batches):
+                batch_id = f"{self.batch_prefix}{i+1:04d}"
+                batch_date = start_date + timedelta(days=i)
+                samples = np.random.normal(200, 4, samples_per_batch)  # SD doubled
+    
+                batches.append({
+                    'batch_id': batch_id,
+                    'date': batch_date,
+                    'samples': samples,
+                    'mean': np.mean(samples),
+                    'range': np.ptp(samples)
+                })
+                batch_dates.append(batch_date)
+    
+            df = pd.DataFrame(batches)
+            self._log_audit("Data generation", details={"n_batches": n_batches, "samples_per_batch": samples_per_batch})
+    
+            return df
+    
+        def calculate_control_limits(self, df, samples_per_batch=5):
+            """Calculate control limits"""
+            # Grand average and average range
+            X_bar_bar = df['mean'].mean()
+            R_bar = df['range'].mean()
+    
+            # Get constants
+            A2 = self.A2_table[samples_per_batch]
+            D3 = self.D3_table[samples_per_batch]
+            D4 = self.D4_table[samples_per_batch]
+    
+            # X-bar chart control limits
+            UCL_X = X_bar_bar + A2 * R_bar
+            CL_X = X_bar_bar
+            LCL_X = X_bar_bar - A2 * R_bar
+    
+            # R chart control limits
+            UCL_R = D4 * R_bar
+            CL_R = R_bar
+            LCL_R = D3 * R_bar
+    
+            control_limits = {
+                'X': {'UCL': UCL_X, 'CL': CL_X, 'LCL': LCL_X},
+                'R': {'UCL': UCL_R, 'CL': CL_R, 'LCL': LCL_R}
+            }
+    
+            self._log_audit("Control limit calculation", details=control_limits)
+    
+            return control_limits
+    
+        def detect_out_of_control(self, df, control_limits):
+            """Detect control limit violations"""
+            violations = []
+    
+            for idx, row in df.iterrows():
+                # X-bar chart violations
+                if row['mean'] > control_limits['X']['UCL']:
+                    violations.append({
+                        'batch_id': row['batch_id'],
+                        'type': 'X-bar UCL excursion',
+                        'value': row['mean'],
+                        'limit': control_limits['X']['UCL']
+                    })
+                elif row['mean'] < control_limits['X']['LCL']:
+                    violations.append({
+                        'batch_id': row['batch_id'],
+                        'type': 'X-bar LCL below',
+                        'value': row['mean'],
+                        'limit': control_limits['X']['LCL']
+                    })
+    
+                # R chart violations
+                if row['range'] > control_limits['R']['UCL']:
+                    violations.append({
+                        'batch_id': row['batch_id'],
+                        'type': 'R UCL excursion (increased variability)',
+                        'value': row['range'],
+                        'limit': control_limits['R']['UCL']
+                    })
+    
+            if violations:
+                self._log_audit("Control limit violation detected", details={"violations_count": len(violations)})
+    
+            return violations
+    
+        def plot_control_chart(self, df, control_limits):
+            """Plot X-R control chart"""
+            fig, axes = plt.subplots(2, 1, figsize=(14, 10))
+    
+            batch_indices = range(len(df))
+    
+            # X-bar control chart
+            axes[0].plot(batch_indices, df['mean'], marker='o', color='#11998e',
+                         linewidth=2, markersize=6, label='Batch mean')
+            axes[0].axhline(y=control_limits['X']['UCL'], color='red', linestyle='--',
+                            linewidth=2, label=f"UCL = {control_limits['X']['UCL']:.2f}")
+            axes[0].axhline(y=control_limits['X']['CL'], color='green', linestyle='-',
+                            linewidth=2, label=f"CL = {control_limits['X']['CL']:.2f}")
+            axes[0].axhline(y=control_limits['X']['LCL'], color='red', linestyle='--',
+                            linewidth=2, label=f"LCL = {control_limits['X']['LCL']:.2f}")
+    
+            # Display specification limits
+            axes[0].axhline(y=self.spec_upper, color='orange', linestyle=':',
+                            linewidth=1.5, alpha=0.7, label=f"USL = {self.spec_upper}")
+            axes[0].axhline(y=self.spec_lower, color='orange', linestyle=':',
+                            linewidth=1.5, alpha=0.7, label=f"LSL = {self.spec_lower}")
+    
+            axes[0].set_xlabel('Batch number')
+            axes[0].set_ylabel('Tablet weight average (mg)')
+            axes[0].set_title(f'X-bar Control Chart - {self.product_name}', fontsize=12, fontweight='bold')
+            axes[0].legend(loc='upper right', fontsize=9)
+            axes[0].grid(alpha=0.3)
+    
+            # R control chart
+            axes[1].plot(batch_indices, df['range'], marker='s', color='#38ef7d',
+                         linewidth=2, markersize=6, label='Batch range')
+            axes[1].axhline(y=control_limits['R']['UCL'], color='red', linestyle='--',
+                            linewidth=2, label=f"UCL = {control_limits['R']['UCL']:.2f}")
+            axes[1].axhline(y=control_limits['R']['CL'], color='green', linestyle='-',
+                            linewidth=2, label=f"CL = {control_limits['R']['CL']:.2f}")
+            axes[1].axhline(y=control_limits['R']['LCL'], color='red', linestyle='--',
+                            linewidth=2, label=f"LCL = {control_limits['R']['LCL']:.2f}")
+    
+            axes[1].set_xlabel('Batch number')
+            axes[1].set_ylabel('Range R (mg)')
+            axes[1].set_title('R Control Chart - Process Variability', fontsize=12, fontweight='bold')
+            axes[1].legend(loc='upper right', fontsize=9)
+            axes[1].grid(alpha=0.3)
+    
+            plt.tight_layout()
+            plt.savefig('gmp_xr_control_chart.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+            self._log_audit("Control chart creation", details={"chart_type": "X-R"})
+    
+        def export_audit_trail(self, filename="audit_trail.json"):
+            """Export audit trail"""
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(self.audit_trail, f, ensure_ascii=False, indent=2)
+            print(f"Audit trail exported to {filename}")
+    
+    # Execution example
+    print("=" * 60)
+    print("GMP-Compliant X-R Control Chart System")
+    print("=" * 60)
+    
+    # Create control chart instance
+    chart = GMPControlChart(
+        product_name="Acetaminophen Tablets 200mg",
+        batch_prefix="AP-",
+        specification_limits=(190, 210)  # Specification: 200±10mg
+    )
+    
+    # Generate data
+    df = chart.generate_sample_data(n_batches=30, samples_per_batch=5)
+    
+    print(f"\nProduct name: {chart.product_name}")
+    print(f"Total batches: {len(df)}")
+    print(f"Specification limits: {chart.spec_lower}-{chart.spec_upper} mg")
+    
+    # Calculate control limits
+    control_limits = chart.calculate_control_limits(df, samples_per_batch=5)
+    
+    print(f"\nX-bar control limits:")
+    print(f"  UCL = {control_limits['X']['UCL']:.2f} mg")
+    print(f"  CL  = {control_limits['X']['CL']:.2f} mg")
+    print(f"  LCL = {control_limits['X']['LCL']:.2f} mg")
+    
+    print(f"\nR control limits:")
+    print(f"  UCL = {control_limits['R']['UCL']:.2f} mg")
+    print(f"  CL  = {control_limits['R']['CL']:.2f} mg")
+    print(f"  LCL = {control_limits['R']['LCL']:.2f} mg")
+    
+    # Detect violations
+    violations = chart.detect_out_of_control(df, control_limits)
+    
+    if violations:
+        print(f"\n⚠️ {len(violations)} control limit violations detected:")
+        for v in violations[:5]:  # Display first 5
+            print(f"  - {v['batch_id']}: {v['type']} (value: {v['value']:.2f}, limit: {v['limit']:.2f})")
+    else:
+        print("\n✅ All batches are within control limits")
+    
+    # Plot control chart
+    chart.plot_control_chart(df, control_limits)
+    
+    # Export audit trail
+    chart.export_audit_trail("audit_trail_xr_chart.json")
+    
+    print(f"\nAudit trail record count: {len(chart.audit_trail)}")
+    
+
+**Implementation Key Points:**
+
+  * Implementation of audit trail functionality meeting GMP requirements
+  * Visualization of both control limits and specification limits
+  * Automatic deviation detection and alert functions
+  * Ensuring batch traceability (batch ID, date recording)
+  * Audit trail export in JSON format
+
+## 📈 1.2 Process Capability Index Calculation and Evaluation
+
+### Definition of Process Capability Indices
+
+#### Short-term Process Capability Indices (Cp, Cpk)
+
+$$ C_p = \frac{\text{USL} - \text{LSL}}{6\sigma} $$ $$ C_{pk} = \min\left(\frac{\text{USL} - \mu}{3\sigma}, \frac{\mu - \text{LSL}}{3\sigma}\right) $$ 
+
+#### Long-term Process Capability Indices (Pp, Ppk)
+
+$$ P_p = \frac{\text{USL} - \text{LSL}}{6s} $$ $$ P_{pk} = \min\left(\frac{\text{USL} - \bar{x}}{3s}, \frac{\bar{x} - \text{LSL}}{3s}\right) $$ 
+
+USL: Upper Specification Limit, LSL: Lower Specification Limit, μ: Process mean, σ: Process standard deviation (within-group), s: Overall standard deviation 
+
+**💡 Process Capability Evaluation Criteria**  
+・Cpk ≥ 1.67: Excellent (6σ quality level)  
+・Cpk ≥ 1.33: Good (GMP recommended level)  
+・Cpk ≥ 1.00: Minimum acceptable  
+・Cpk < 1.00: Unacceptable (improvement required)  
+※In pharmaceutical manufacturing, Cpk ≥ 1.33 is the general requirement level 
+
+### 💻 Code Example 1.2: Automatic Process Capability Index Calculation System
+    
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    import warnings
+    warnings.filterwarnings('ignore')
+    
+    plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'DejaVu Sans']
+    plt.rcParams['axes.unicode_minus'] = False
+    
+    class ProcessCapabilityAnalyzer:
+        """Process capability analysis class (GMP compliant)"""
+    
+        def __init__(self, spec_lower, spec_upper, target=None):
+            """
+            Args:
+                spec_lower: Lower specification limit (LSL)
+                spec_upper: Upper specification limit (USL)
+                target: Target value (center value if not specified)
+            """
+            self.LSL = spec_lower
+            self.USL = spec_upper
+            self.target = target if target is not None else (spec_lower + spec_upper) / 2
+    
+        def calculate_capability_indices(self, data, subgroup_size=5):
+            """
+            Calculate process capability indices
+    
+            Args:
+                data: Measurement data (1D array)
+                subgroup_size: Subgroup size (for Cp/Cpk calculation)
+    
+            Returns:
+                dict: Various process capability indices
+            """
+            # Basic statistics
+            n = len(data)
+            mean = np.mean(data)
+            std_overall = np.std(data, ddof=1)  # Overall standard deviation (for Pp/Ppk)
+    
+            # Estimate subgroup standard deviation (for Cp/Cpk)
+            n_subgroups = n // subgroup_size
+            subgroups = data[:n_subgroups * subgroup_size].reshape(n_subgroups, subgroup_size)
+            R_bar = np.mean([np.ptp(sg) for sg in subgroups])  # Average range
+    
+            # d2 constant (constant based on sample size)
+            d2_table = {2: 1.128, 3: 1.693, 4: 2.059, 5: 2.326, 6: 2.534}
+            d2 = d2_table.get(subgroup_size, 2.326)
+    
+            sigma_within = R_bar / d2  # Within-group standard deviation
+    
+            # Calculate Cp, Cpk
+            Cp = (self.USL - self.LSL) / (6 * sigma_within)
+            Cpu = (self.USL - mean) / (3 * sigma_within)
+            Cpl = (mean - self.LSL) / (3 * sigma_within)
+            Cpk = min(Cpu, Cpl)
+    
+            # Calculate Pp, Ppk
+            Pp = (self.USL - self.LSL) / (6 * std_overall)
+            Ppu = (self.USL - mean) / (3 * std_overall)
+            Ppl = (mean - self.LSL) / (3 * std_overall)
+            Ppk = min(Ppu, Ppl)
+    
+            # Calculate Cm (centering capability index)
+            Cm = (self.USL - self.LSL) / (6 * np.abs(mean - self.target)) if mean != self.target else np.inf
+    
+            # Estimate defect rate (assuming normal distribution)
+            z_usl = (self.USL - mean) / std_overall
+            z_lsl = (mean - self.LSL) / std_overall
+            ppm_upper = (1 - stats.norm.cdf(z_usl)) * 1e6
+            ppm_lower = (1 - stats.norm.cdf(z_lsl)) * 1e6
+            ppm_total = ppm_upper + ppm_lower
+    
+            results = {
+                'n': n,
+                'mean': mean,
+                'std_overall': std_overall,
+                'std_within': sigma_within,
+                'Cp': Cp,
+                'Cpk': Cpk,
+                'Cpu': Cpu,
+                'Cpl': Cpl,
+                'Pp': Pp,
+                'Ppk': Ppk,
+                'Ppu': Ppu,
+                'Ppl': Ppl,
+                'Cm': Cm,
+                'ppm_upper': ppm_upper,
+                'ppm_lower': ppm_lower,
+                'ppm_total': ppm_total
+            }
+    
+            return results
+    
+        def evaluate_capability(self, cpk_value):
+            """Evaluate process capability"""
+            if cpk_value >= 1.67:
+                return "Excellent (6σ level)", "green"
+            elif cpk_value >= 1.33:
+                return "Good (GMP recommended level)", "#38ef7d"
+            elif cpk_value >= 1.00:
+                return "Minimum acceptable", "orange"
+            else:
+                return "Unacceptable (improvement required)", "red"
+    
+        def plot_capability_analysis(self, data, results):
+            """Visualize process capability analysis"""
+            fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+            # Histogram and normal distribution
+            ax1 = axes[0, 0]
+            ax1.hist(data, bins=30, density=True, alpha=0.7, color='#11998e', edgecolor='black')
+    
+            # Fit normal distribution
+            x = np.linspace(data.min(), data.max(), 200)
+            ax1.plot(x, stats.norm.pdf(x, results['mean'], results['std_overall']),
+                     'r-', linewidth=2, label='Normal distribution fit')
+    
+            # Specification limits
+            ax1.axvline(self.LSL, color='red', linestyle='--', linewidth=2, label=f'LSL = {self.LSL}')
+            ax1.axvline(self.USL, color='red', linestyle='--', linewidth=2, label=f'USL = {self.USL}')
+            ax1.axvline(self.target, color='green', linestyle=':', linewidth=2, label=f'Target = {self.target}')
+            ax1.axvline(results['mean'], color='blue', linestyle='-', linewidth=2, label=f'Mean = {results["mean"]:.2f}')
+    
+            ax1.set_xlabel('Measured value')
+            ax1.set_ylabel('Probability density')
+            ax1.set_title('Histogram and Specification Limits', fontsize=12, fontweight='bold')
+            ax1.legend(fontsize=9)
+            ax1.grid(alpha=0.3)
+    
+            # Normal probability plot
+            ax2 = axes[0, 1]
+            stats.probplot(data, dist="norm", plot=ax2)
+            ax2.set_title('Normal Probability Plot', fontsize=12, fontweight='bold')
+            ax2.grid(alpha=0.3)
+    
+            # Bar chart of process capability indices
+            ax3 = axes[1, 0]
+            indices = ['Cp', 'Cpk', 'Pp', 'Ppk']
+            values = [results['Cp'], results['Cpk'], results['Pp'], results['Ppk']]
+            colors_bar = ['#11998e', '#38ef7d', '#11998e', '#38ef7d']
+    
+            bars = ax3.bar(indices, values, color=colors_bar, alpha=0.8, edgecolor='black')
+            ax3.axhline(y=1.33, color='green', linestyle='--', linewidth=2, label='GMP recommended level (1.33)')
+            ax3.axhline(y=1.00, color='orange', linestyle='--', linewidth=1.5, label='Minimum acceptable (1.00)')
+    
+            # Display value labels
+            for bar, val in zip(bars, values):
+                height = bar.get_height()
+                ax3.text(bar.get_x() + bar.get_width()/2., height,
+                         f'{val:.2f}', ha='center', va='bottom', fontweight='bold')
+    
+            ax3.set_ylabel('Index value')
+            ax3.set_title('Process Capability Indices', fontsize=12, fontweight='bold')
+            ax3.legend()
+            ax3.grid(axis='y', alpha=0.3)
+    
+            # Summary text
+            ax4 = axes[1, 1]
+            ax4.axis('off')
+    
+            evaluation, color = self.evaluate_capability(results['Cpk'])
+    
+            summary_text = f"""
+    Process Capability Analysis Summary
+    
+    Sample size: {results['n']}
+    Mean: {results['mean']:.2f}
+    Standard deviation (overall): {results['std_overall']:.2f}
+    Standard deviation (within): {results['std_within']:.2f}
+    
+    Specification limits:
+      LSL = {self.LSL}
+      USL = {self.USL}
+      Target = {self.target}
+    
+    Short-term process capability:
+      Cp  = {results['Cp']:.2f}
+      Cpk = {results['Cpk']:.2f}
+    
+    Long-term process capability:
+      Pp  = {results['Pp']:.2f}
+      Ppk = {results['Ppk']:.2f}
+    
+    Estimated defect rate:
+      Upper excursion: {results['ppm_upper']:.0f} ppm
+      Lower below: {results['ppm_lower']:.0f} ppm
+      Total: {results['ppm_total']:.0f} ppm
+    
+    Evaluation: {evaluation}
+            """
+    
+            ax4.text(0.1, 0.5, summary_text, fontsize=10, verticalalignment='center',
+                     family='monospace', bbox=dict(boxstyle='round', facecolor=color, alpha=0.2))
+    
+            plt.tight_layout()
+            plt.savefig('process_capability_analysis.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+    # Execution example
+    print("=" * 60)
+    print("Process Capability Analysis System (GMP Compliant)")
+    print("=" * 60)
+    
+    # Generate sample data (assuming acetaminophen tablet assay test)
+    np.random.seed(42)
+    n_samples = 150  # 30 batches × 5 samples/batch
+    
+    # Data when process is stable
+    data_stable = np.random.normal(100.0, 1.5, n_samples)  # Mean 100.0%, SD 1.5%
+    
+    # Process capability analysis
+    analyzer = ProcessCapabilityAnalyzer(
+        spec_lower=95.0,   # Lower specification limit: 95.0%
+        spec_upper=105.0,  # Upper specification limit: 105.0%
+        target=100.0       # Target value: 100.0%
+    )
+    
+    results = analyzer.calculate_capability_indices(data_stable, subgroup_size=5)
+    
+    print("\nProcess capability indices:")
+    print(f"Cp  = {results['Cp']:.3f}")
+    print(f"Cpk = {results['Cpk']:.3f}")
+    print(f"Pp  = {results['Pp']:.3f}")
+    print(f"Ppk = {results['Ppk']:.3f}")
+    
+    evaluation, _ = analyzer.evaluate_capability(results['Cpk'])
+    print(f"\nEvaluation: {evaluation}")
+    print(f"Estimated defect rate: {results['ppm_total']:.1f} ppm")
+    
+    # Visualization
+    analyzer.plot_capability_analysis(data_stable, results)
+    
+
+**Implementation Key Points:**
+
+  * Calculate both short-term capability (Cp/Cpk) and long-term capability (Pp/Ppk)
+  * Comparative evaluation with GMP recommended level (Cpk ≥ 1.33)
+  * Verify distribution normality with normal probability plot
+  * Quality prediction through calculation of estimated defect rate (ppm)
+  * Generation of visually clear reports
+
+## 📚 Summary
+
+In this chapter, we learned the fundamentals of GMP-compliant statistical quality control.
+
+### Key Points
+
+  * Process control using X-R control charts and audit trail recording
+  * Calculation of process capability indices (Cp/Cpk) and GMP evaluation criteria
+  * Automatic deviation detection and alert functions
+  * Clear distinction between specification limits and control limits
+  * Implementation patterns ensuring data integrity
+
+**🎯 Next Chapter Preview**  
+In Chapter 2, we will learn about automatic analysis of Electronic Batch Records (EBR) and deviation management. You will master more advanced data analysis techniques including batch trend analysis, anomaly detection, Root Cause Analysis (RCA), and automation of CAPA proposals. 
+
+[← Series Index](<index.html>) [Chapter 2: Electronic Batch Record Analysis →](<chapter-2.html>)
+
+## References
+
+  1. Montgomery, D. C. (2019). _Design and Analysis of Experiments_ (9th ed.). Wiley.
+  2. Box, G. E. P., Hunter, J. S., & Hunter, W. G. (2005). _Statistics for Experimenters: Design, Innovation, and Discovery_ (2nd ed.). Wiley.
+  3. Seborg, D. E., Edgar, T. F., Mellichamp, D. A., & Doyle III, F. J. (2016). _Process Dynamics and Control_ (4th ed.). Wiley.
+  4. McKay, M. D., Beckman, R. J., & Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." _Technometrics_ , 42(1), 55-61.
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

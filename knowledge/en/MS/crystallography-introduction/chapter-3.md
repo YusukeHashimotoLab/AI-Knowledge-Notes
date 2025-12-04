@@ -1,0 +1,879 @@
+---
+title: "Chapter 3: Miller Indices and Crystal Planes/Directions"
+chapter_title: "Chapter 3: Miller Indices and Crystal Planes/Directions"
+subtitle: Learning the Universal Notation for Describing Crystal Structures
+reading_time: 28 minutes
+difficulty: Beginner to Intermediate
+code_examples: 8
+---
+
+🌐 EN | [🇯🇵 JP](<../../../jp/MS/crystallography-introduction/chapter-3.html>) | Last sync: 2025-11-16
+
+[AI Terakoya Top](<../index.html>) > [MS Dojo](<../index.html>) > [Introduction to Crystallography](<index.html>) > Chapter 3 
+
+## Learning Objectives
+
+By studying this chapter, you will acquire the following knowledge and skills:
+
+  * Understand the **definition of Miller indices (hkl)** and be able to accurately represent crystal planes
+  * Understand the **notation for crystal directions [uvw]** and be able to describe vectors within crystals
+  * Execute **calculation of interplanar spacing d hkl** for each crystal system
+  * Identify **equivalent planes and directions based on symmetry**
+  * Deepen practical understanding through **application examples in real materials**
+
+## 1\. What are Miller Indices?
+
+In crystallography, **Miller indices** are the **standard notation for representing planes and directions** within crystals. They were proposed in 1839 by British mineralogist William Hallowes Miller. 
+
+### 1.1 Why Miller Indices are Needed
+
+Infinite planes and directions exist within crystals. A method to uniquely and concisely express these is necessary:
+
+  * **Universality** : Can be used with a common notation across all crystal systems
+  * **Conciseness** : Planes can be specified with three integers (h, k, l)
+  * **Expression of symmetry** : Can identify equivalent planes that reflect crystal symmetry
+  * **Correspondence with X-ray diffraction** : Directly corresponds to peaks in diffraction patterns
+
+#### Notational Conventions
+
+  * **(hkl)** : Represents a specific crystal plane
+  * **{hkl}** : Set of all equivalent planes based on symmetry
+  * **[uvw]** : Represents a specific crystal direction
+  * **< uvw>**: Set of all equivalent directions based on symmetry
+  * **Negative values** : Indicated by a bar over the number (e.g., \\(\bar{1}\\) is -1)
+
+### 1.2 Definition of Miller Indices
+
+Miller indices (hkl) are determined through the following procedure:
+    
+    
+    ```mermaid
+    flowchart TD
+                    A[Find the intersection points of the crystal plane with the three crystal axes] --> B[Divide each intercept by the lattice constant]
+                    B --> C[Take the reciprocals of each value]
+                    C --> D[Multiply by the least common multiple to convert to integers]
+                    D --> E[Obtain Miller indices hkl]
+    
+                    style A fill:#e3f2fd
+                    style B fill:#e3f2fd
+                    style C fill:#fff3e0
+                    style D fill:#fff3e0
+                    style E fill:#e8f5e9
+    ```
+
+#### Example: How to Find the (111) Plane
+
+  1. **Intercepts** : The intercepts are 1 lattice constant on all a, b, and c axes
+  2. **Divide by lattice constant** : 1/a, 1/b, 1/c = 1, 1, 1
+  3. **Reciprocals** : 1/1, 1/1, 1/1 = 1, 1, 1
+  4. **Convert to integers** : Already integers, so keep as is
+  5. **Result** : Miller indices are **(111)**
+
+#### Example: How to Find the (200) Plane
+
+  1. **Intercepts** : Intercept at 1/2 on a-axis, infinity (parallel) on b and c axes
+  2. **Divide by lattice constant** : 1/2, ∞, ∞
+  3. **Reciprocals** : 2, 0, 0
+  4. **Result** : Miller indices are **(200)**
+
+This means planes arranged at twice the density of the (100) plane.
+
+## 2\. Calculating Miller Indices with Python
+
+### 2.1 Finding Miller Indices from Intercepts
+
+#### Code Example 1: Calculation of Miller Indices
+
+A program that automatically calculates Miller indices from intercepts with crystal axes:
+    
+    
+    import numpy as np
+    from fractions import Fraction
+    
+    def calculate_miller_indices(intercepts):
+        """
+        Calculate Miller indices from intercepts
+    
+        Parameters:
+        -----------
+        intercepts : tuple of float
+            (a-axis intercept, b-axis intercept, c-axis intercept)
+            Use np.inf for infinity
+    
+        Returns:
+        --------
+        tuple : Miller indices (h, k, l)
+        """
+        # Calculate reciprocals (reciprocal of infinity is 0)
+        reciprocals = []
+        for intercept in intercepts:
+            if np.isinf(intercept):
+                reciprocals.append(0)
+            else:
+                reciprocals.append(1 / intercept)
+    
+        # Handle as fractions and find least common multiple
+        fractions = [Fraction(r).limit_denominator(100) for r in reciprocals]
+    
+        # Calculate least common multiple of denominators
+        denominators = [f.denominator for f in fractions]
+        lcm = np.lcm.reduce(denominators)
+    
+        # Convert to integers
+        h, k, l = [int(f * lcm) for f in fractions]
+    
+        # Simplify by greatest common divisor
+        gcd = np.gcd.reduce([abs(h), abs(k), abs(l)])
+        if gcd > 0:
+            h, k, l = h // gcd, k // gcd, l // gcd
+    
+        return (h, k, l)
+    
+    # Test examples
+    print("=== Miller Indices Calculation ===\n")
+    
+    # (111) plane: intercept of 1 on all axes
+    intercepts_111 = (1, 1, 1)
+    hkl = calculate_miller_indices(intercepts_111)
+    print(f"Intercepts {intercepts_111} → Miller indices {hkl}")
+    
+    # (100) plane: intercept only on a-axis, parallel to others
+    intercepts_100 = (1, np.inf, np.inf)
+    hkl = calculate_miller_indices(intercepts_100)
+    print(f"Intercepts {intercepts_100} → Miller indices {hkl}")
+    
+    # (110) plane: intercepts on a and b axes, parallel to c-axis
+    intercepts_110 = (1, 1, np.inf)
+    hkl = calculate_miller_indices(intercepts_110)
+    print(f"Intercepts {intercepts_110} → Miller indices {hkl}")
+    
+    # (210) plane: intercept at 1/2 on a-axis, 1 on b-axis
+    intercepts_210 = (0.5, 1, np.inf)
+    hkl = calculate_miller_indices(intercepts_210)
+    print(f"Intercepts {intercepts_210} → Miller indices {hkl}")
+    
+    # (123) plane: different intercepts
+    intercepts_123 = (1, 0.5, 0.333333)
+    hkl = calculate_miller_indices(intercepts_123)
+    print(f"Intercepts {intercepts_123} → Miller indices {hkl}")
+    
+
+#### Execution Result
+    
+    
+    === Miller Indices Calculation ===
+    
+    Intercepts (1, 1, 1) → Miller indices (1, 1, 1)
+    Intercepts (1, inf, inf) → Miller indices (1, 0, 0)
+    Intercepts (1, 1, inf) → Miller indices (1, 1, 0)
+    Intercepts (0.5, 1, inf) → Miller indices (2, 1, 0)
+    Intercepts (1, 0.5, 0.333333) → Miller indices (1, 2, 3)
+
+### 2.2 Visualization of Major Low-Index Planes
+
+#### Code Example 2: 3D Display of Major Planes in Cubic Crystals
+
+Visualize representative crystal planes to understand the meaning of Miller indices:
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    
+    def plot_lattice_plane(hkl, ax, color='cyan', alpha=0.6):
+        """
+        Draw crystal plane specified by Miller indices
+    
+        Parameters:
+        -----------
+        hkl : tuple
+            Miller indices (h, k, l)
+        ax : Axes3D
+            matplotlib 3D axes
+        color : str
+            plane color
+        alpha : float
+            transparency
+        """
+        h, k, l = hkl
+    
+        # Calculate intercepts (set large value for 0)
+        intercepts = []
+        for index in [h, k, l]:
+            if index == 0:
+                intercepts.append(10)  # Large value instead of infinity
+            else:
+                intercepts.append(1 / index)
+    
+        # Calculate vertices constituting the plane
+        vertices = []
+    
+        # Set vertices by case
+        if h != 0 and k != 0 and l != 0:
+            # (111) type: has three intercepts
+            vertices = [
+                [intercepts[0], 0, 0],
+                [0, intercepts[1], 0],
+                [0, 0, intercepts[2]]
+            ]
+        elif h != 0 and k != 0 and l == 0:
+            # (110) type: two intercepts, parallel to c-axis
+            vertices = [
+                [intercepts[0], 0, 0],
+                [intercepts[0], 0, 2],
+                [0, intercepts[1], 2],
+                [0, intercepts[1], 0]
+            ]
+        elif h != 0 and k == 0 and l == 0:
+            # (100) type: one intercept, parallel to other axes
+            vertices = [
+                [intercepts[0], 0, 0],
+                [intercepts[0], 2, 0],
+                [intercepts[0], 2, 2],
+                [intercepts[0], 0, 2]
+            ]
+    
+        # Draw plane
+        if len(vertices) > 0:
+            poly = Poly3DCollection([vertices], alpha=alpha, facecolor=color, edgecolor='black', linewidth=2)
+            ax.add_collection3d(poly)
+    
+    def plot_crystal_axes():
+        """Display crystal axes and major planes of cubic crystal"""
+        fig = plt.figure(figsize=(15, 5))
+    
+        planes = [
+            ((1, 0, 0), 'cyan', '(100) Plane'),
+            ((1, 1, 0), 'yellow', '(110) Plane'),
+            ((1, 1, 1), 'magenta', '(111) Plane')
+        ]
+    
+        for idx, (hkl, color, title) in enumerate(planes):
+            ax = fig.add_subplot(1, 3, idx + 1, projection='3d')
+    
+            # Draw crystal axes
+            ax.quiver(0, 0, 0, 1.5, 0, 0, color='red', arrow_length_ratio=0.1, linewidth=2, label='a-axis')
+            ax.quiver(0, 0, 0, 0, 1.5, 0, color='green', arrow_length_ratio=0.1, linewidth=2, label='b-axis')
+            ax.quiver(0, 0, 0, 0, 0, 1.5, color='blue', arrow_length_ratio=0.1, linewidth=2, label='c-axis')
+    
+            # Draw crystal plane
+            plot_lattice_plane(hkl, ax, color=color, alpha=0.6)
+    
+            # Axis labels
+            ax.set_xlabel('a', fontsize=12, fontweight='bold')
+            ax.set_ylabel('b', fontsize=12, fontweight='bold')
+            ax.set_zlabel('c', fontsize=12, fontweight='bold')
+    
+            ax.set_xlim([0, 1.5])
+            ax.set_ylim([0, 1.5])
+            ax.set_zlim([0, 1.5])
+    
+            ax.set_title(title, fontsize=14, fontweight='bold')
+            ax.legend(loc='upper left', fontsize=8)
+    
+            # Add grid
+            ax.grid(True, alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('miller_indices_planes.png', dpi=150, bbox_inches='tight')
+        plt.show()
+        print("Saved visualization of major crystal planes: miller_indices_planes.png")
+    
+    # Execute
+    plot_crystal_axes()
+    
+
+## 3\. Calculation of Interplanar Spacing dhkl
+
+The **interplanar spacing d hkl** of crystal planes specified by Miller indices (hkl) is an important parameter that determines the position of Bragg peaks observed in X-ray diffraction experiments. 
+
+### 3.1 Interplanar Spacing in Cubic Crystal Systems
+
+In cubic crystals (a = b = c, α = β = γ = 90°), the interplanar spacing is expressed with a very concise formula:
+
+$$ d_{hkl} = \frac{a}{\sqrt{h^2 + k^2 + l^2}} $$ 
+
+Where a is the lattice constant, and h, k, l are Miller indices.
+
+#### Code Example 3: Calculation of Interplanar Spacing in Cubic Crystals
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def cubic_d_spacing(a, h, k, l):
+        """
+        Calculate interplanar spacing for cubic crystal system
+    
+        Parameters:
+        -----------
+        a : float
+            Lattice constant (Å)
+        h, k, l : int
+            Miller indices
+    
+        Returns:
+        --------
+        float : Interplanar spacing d_hkl (Å)
+        """
+        return a / np.sqrt(h**2 + k**2 + l**2)
+    
+    # Calculation for Silicon (cubic, a = 5.431 Å)
+    a_Si = 5.431
+    
+    print("=== Interplanar Spacing for Silicon (Si) ===")
+    print(f"Lattice constant a = {a_Si} Å\n")
+    
+    # Calculate interplanar spacing for major planes
+    planes = [
+        (1, 0, 0), (1, 1, 0), (1, 1, 1),
+        (2, 0, 0), (2, 2, 0), (3, 1, 1),
+        (2, 2, 2), (4, 0, 0), (3, 3, 1)
+    ]
+    
+    results = []
+    for hkl in planes:
+        h, k, l = hkl
+        d = cubic_d_spacing(a_Si, h, k, l)
+        results.append((hkl, d))
+        print(f"({h}{k}{l}) plane: d = {d:.4f} Å")
+    
+    # Visualize with graph
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    hkl_labels = [f"({h}{k}{l})" for (h, k, l), d in results]
+    d_values = [d for hkl, d in results]
+    
+    bars = ax.bar(range(len(results)), d_values, color='skyblue', edgecolor='navy', linewidth=1.5)
+    ax.set_xticks(range(len(results)))
+    ax.set_xticklabels(hkl_labels, rotation=45, ha='right')
+    ax.set_ylabel('Interplanar Spacing d (Å)', fontsize=12, fontweight='bold')
+    ax.set_xlabel('Miller Indices', fontsize=12, fontweight='bold')
+    ax.set_title('Interplanar Spacing by Crystal Plane for Silicon (Si)', fontsize=14, fontweight='bold')
+    ax.grid(axis='y', alpha=0.3)
+    
+    # Display values on top of bars
+    for i, (bar, d) in enumerate(zip(bars, d_values)):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.05,
+                f'{d:.3f}', ha='center', va='bottom', fontsize=9)
+    
+    plt.tight_layout()
+    plt.savefig('si_d_spacing.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    print("\nSaved graph: si_d_spacing.png")
+    
+
+### 3.2 Interplanar Spacing in Tetragonal Crystal Systems
+
+In tetragonal crystals (a = b ≠ c, α = β = γ = 90°), the formula changes because the lattice constant in the c-axis direction is different:
+
+$$ d_{hkl} = \frac{1}{\sqrt{\frac{h^2 + k^2}{a^2} + \frac{l^2}{c^2}}} $$ 
+
+#### Code Example 4: Calculation of Interplanar Spacing in Tetragonal Crystals
+    
+    
+    def tetragonal_d_spacing(a, c, h, k, l):
+        """
+        Calculate interplanar spacing for tetragonal crystal system
+    
+        Parameters:
+        -----------
+        a : float
+            a-axis (= b-axis) lattice constant (Å)
+        c : float
+            c-axis lattice constant (Å)
+        h, k, l : int
+            Miller indices
+    
+        Returns:
+        --------
+        float : Interplanar spacing d_hkl (Å)
+        """
+        return 1 / np.sqrt((h**2 + k**2) / a**2 + l**2 / c**2)
+    
+    # TiO2 rutile (tetragonal, a = 4.594 Å, c = 2.958 Å)
+    a_TiO2 = 4.594
+    c_TiO2 = 2.958
+    
+    print("=== Interplanar Spacing for TiO2 (Rutile) ===")
+    print(f"Lattice constants a = {a_TiO2} Å, c = {c_TiO2} Å")
+    print(f"c/a ratio = {c_TiO2/a_TiO2:.3f}\n")
+    
+    planes_tetragonal = [
+        (1, 0, 0), (0, 0, 1), (1, 1, 0),
+        (1, 0, 1), (1, 1, 1), (2, 0, 0),
+        (2, 1, 0), (2, 1, 1), (2, 2, 0)
+    ]
+    
+    # Comparison: when incorrectly assumed to be cubic
+    print("Correctly calculated as tetragonal vs. incorrectly assumed as cubic:\n")
+    for hkl in planes_tetragonal[:5]:
+        h, k, l = hkl
+        d_correct = tetragonal_d_spacing(a_TiO2, c_TiO2, h, k, l)
+        d_wrong = cubic_d_spacing(a_TiO2, h, k, l)  # Incorrect assumption
+        error = abs(d_correct - d_wrong) / d_correct * 100
+    
+        print(f"({h}{k}{l}) plane:")
+        print(f"  Correct d = {d_correct:.4f} Å")
+        print(f"  Incorrect d = {d_wrong:.4f} Å (Error: {error:.2f}%)\n")
+    
+
+#### Important Note
+
+Incorrectly assuming the crystal system leads to significantly wrong interplanar spacing calculations. Especially when treating tetragonal crystals with significantly different c-axis as cubic, notable errors occur in planes involving the c-axis such as (001). 
+
+### 3.3 Interplanar Spacing in Hexagonal Crystal Systems
+
+Hexagonal crystals (a = b ≠ c, α = β = 90°, γ = 120°) often use **four-index notation (hkil)** , where i = -(h+k). 
+
+$$ d_{hkl} = \frac{1}{\sqrt{\frac{4}{3}\frac{h^2 + hk + k^2}{a^2} + \frac{l^2}{c^2}}} $$ 
+
+#### Code Example 5: Calculation of Interplanar Spacing in Hexagonal Crystals
+    
+    
+    def hexagonal_d_spacing(a, c, h, k, l):
+        """
+        Calculate interplanar spacing for hexagonal crystal system
+    
+        Parameters:
+        -----------
+        a : float
+            a-axis (= b-axis) lattice constant (Å)
+        c : float
+            c-axis lattice constant (Å)
+        h, k, l : int
+            Miller indices (3-axis notation)
+    
+        Returns:
+        --------
+        float : Interplanar spacing d_hkl (Å)
+        """
+        return 1 / np.sqrt((4/3) * (h**2 + h*k + k**2) / a**2 + l**2 / c**2)
+    
+    def miller_to_miller_bravais(h, k, l):
+        """
+        Convert 3-axis Miller indices to 4-axis Miller-Bravais indices
+    
+        Parameters:
+        -----------
+        h, k, l : int
+            3-axis Miller indices
+    
+        Returns:
+        --------
+        tuple : 4-axis indices (h, k, i, l) where i = -(h+k)
+        """
+        i = -(h + k)
+        return (h, k, i, l)
+    
+    # α-Al2O3 (corundum, hexagonal, a = 4.759 Å, c = 12.991 Å)
+    a_Al2O3 = 4.759
+    c_Al2O3 = 12.991
+    
+    print("=== Interplanar Spacing for α-Al2O3 (Corundum) ===")
+    print(f"Lattice constants a = {a_Al2O3} Å, c = {c_Al2O3} Å")
+    print(f"c/a ratio = {c_Al2O3/a_Al2O3:.3f}\n")
+    
+    planes_hexagonal = [
+        (1, 0, 0), (0, 0, 1), (1, 1, 0),
+        (1, 0, 1), (1, 1, 2), (2, 0, 0),
+        (1, 0, 4), (2, 1, 0), (0, 0, 6)
+    ]
+    
+    print(f"{'3-axis (hkl)':<15} {'4-axis (hkil)':<20} {'d (Å)':<10}")
+    print("-" * 50)
+    
+    for hkl in planes_hexagonal:
+        h, k, l = hkl
+        d = hexagonal_d_spacing(a_Al2O3, c_Al2O3, h, k, l)
+        hkil = miller_to_miller_bravais(h, k, l)
+    
+        # Display negative values
+        hkil_str = "("
+        for idx in hkil:
+            if idx < 0:
+                hkil_str += f"{idx}"
+            else:
+                hkil_str += f"{idx}"
+        hkil_str += ")"
+    
+        print(f"({h}{k}{l}){'':<12} {hkil_str:<20} {d:.4f}")
+    
+
+#### Advantage of Four-Index Notation
+
+Using four-index notation (hkil) in hexagonal crystals reflects the 6-fold symmetry of the crystal in the notation. For example, {10\\(\bar{1}\\)0} represents six equivalent planes, which becomes clear in the four-index notation. 
+
+## 4\. Equivalent Planes and Directions (Symmetry)
+
+Due to crystal symmetry, crystallographically **equivalent planes and directions** exist. To represent these collectively, curly brackets {hkl} and angle brackets <uvw> are used. 
+
+### 4.1 Equivalent Planes in Cubic Crystals
+
+In cubic crystals, the following equivalent relationships exist:
+
+Notation | Meaning | Example: Equivalent planes in {100}  
+---|---|---  
+**{100}** | Set of equivalent planes | (100), (010), (001), (\\(\bar{1}\\)00), (0\\(\bar{1}\\)0), (00\\(\bar{1}\\))  
+**{110}** | Set of equivalent planes | (110), (101), (011), (\\(\bar{1}\\)10), (\\(\bar{1}\\)0\\(\bar{1}\\)), etc., 12 planes  
+**{111}** | Set of equivalent planes | (111), (\\(\bar{1}\\)11), (1\\(\bar{1}\\)1), etc., 8 planes  
+  
+#### Code Example 6: Generation of Equivalent Planes
+    
+    
+    from itertools import permutations, product
+    
+    def generate_equivalent_planes(h, k, l, crystal_system='cubic'):
+        """
+        Generate all equivalent planes considering symmetry
+    
+        Parameters:
+        -----------
+        h, k, l : int
+            Reference Miller indices
+        crystal_system : str
+            Crystal system ('cubic', 'tetragonal', 'hexagonal')
+    
+        Returns:
+        --------
+        set : Set of equivalent planes
+        """
+        planes = set()
+    
+        if crystal_system == 'cubic':
+            # Cubic: all combinations of signs and permutations
+            for perm in permutations([abs(h), abs(k), abs(l)]):
+                for signs in product([1, -1], repeat=3):
+                    plane = tuple(s * p for s, p in zip(signs, perm))
+                    if plane != (0, 0, 0):  # Exclude (000)
+                        planes.add(plane)
+    
+        elif crystal_system == 'tetragonal':
+            # Tetragonal: a, b axes are equivalent, c-axis is independent
+            # Only permutation and sign change of h, k
+            for h_sign, k_sign, l_sign in product([1, -1], repeat=3):
+                planes.add((h_sign * h, k_sign * k, l_sign * l))
+                planes.add((k_sign * k, h_sign * h, l_sign * l))  # Permutation of h, k
+    
+        elif crystal_system == 'hexagonal':
+            # Hexagonal: more complex symmetry (simplified version)
+            # Consider 6-fold rotational symmetry
+            for l_sign in [1, -1]:
+                planes.add((h, k, l_sign * l))
+                planes.add((k, -(h+k), l_sign * l))
+                planes.add((-(h+k), h, l_sign * l))
+    
+        return sorted(planes)
+    
+    # Equivalent planes in cubic crystals
+    print("=== Equivalent Planes in Cubic Crystals ===\n")
+    
+    for base_plane in [(1, 0, 0), (1, 1, 0), (1, 1, 1)]:
+        h, k, l = base_plane
+        equiv = generate_equivalent_planes(h, k, l, 'cubic')
+        print(f"{{{h}{k}{l}}} equivalent planes ({len(equiv)} total):")
+    
+        # Display in formatted manner
+        for i in range(0, len(equiv), 6):
+            planes_str = ', '.join([f"({p[0]:2}{p[1]:2}{p[2]:2})" for p in equiv[i:i+6]])
+            print(f"  {planes_str}")
+        print()
+    
+    # Equivalent planes in tetragonal crystals
+    print("=== Equivalent Planes in Tetragonal Crystals ===\n")
+    base_plane = (1, 1, 0)
+    equiv_tetra = generate_equivalent_planes(*base_plane, 'tetragonal')
+    print(f"{{{base_plane[0]}{base_plane[1]}{base_plane[2]}}} equivalent planes (tetragonal) ({len(equiv_tetra)} total):")
+    for plane in equiv_tetra:
+        print(f"  ({plane[0]:2}{plane[1]:2}{plane[2]:2})")
+    
+
+### 4.2 Notation for Crystal Directions [uvw]
+
+Crystal directions are represented by **[uvw]** , meaning a **vector** from the origin to coordinates (u·a, v·b, w·c). 
+
+  * **[100]** : a-axis direction
+  * **[110]** : diagonal direction of a and b axes
+  * **[111]** : body diagonal direction
+  * **< 100>**: All equivalent directions ([100], [010], [001], etc.)
+
+#### Relationship Between Planes and Directions
+
+In **cubic crystals** , the direction perpendicular to the (hkl) plane is [hkl]. However, this is a property specific to cubic crystals and generally does not hold for other crystal systems. 
+
+#### Code Example 7: Visualization of Crystal Direction Vectors
+    
+    
+    def plot_crystal_directions():
+        """Visualize major crystal directions in cubic crystals"""
+        fig = plt.figure(figsize=(15, 5))
+    
+        directions = [
+            ([1, 0, 0], 'red', '[100]'),
+            ([1, 1, 0], 'green', '[110]'),
+            ([1, 1, 1], 'blue', '[111]')
+        ]
+    
+        for idx, (uvw, color, title) in enumerate(directions):
+            ax = fig.add_subplot(1, 3, idx + 1, projection='3d')
+    
+            # Draw cubic frame
+            r = [0, 1]
+            for s, e in combinations(np.array(list(product(r, r, r))), 2):
+                if np.sum(np.abs(s - e)) == 1:
+                    ax.plot3D(*zip(s, e), color='gray', alpha=0.3, linewidth=1)
+    
+            # Draw direction vector
+            ax.quiver(0, 0, 0, uvw[0], uvw[1], uvw[2],
+                     color=color, arrow_length_ratio=0.15, linewidth=3,
+                     label=f'{title} direction')
+    
+            # Axis labels
+            ax.set_xlabel('a', fontsize=12, fontweight='bold')
+            ax.set_ylabel('b', fontsize=12, fontweight='bold')
+            ax.set_zlabel('c', fontsize=12, fontweight='bold')
+    
+            ax.set_xlim([0, 1.5])
+            ax.set_ylim([0, 1.5])
+            ax.set_zlim([0, 1.5])
+    
+            ax.set_title(title + ' Crystal Direction', fontsize=14, fontweight='bold')
+            ax.legend(loc='upper left')
+            ax.grid(True, alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('crystal_directions.png', dpi=150, bbox_inches='tight')
+        plt.show()
+        print("Saved crystal direction visualization: crystal_directions.png")
+    
+    from itertools import combinations, product
+    
+    # Execute
+    plot_crystal_directions()
+    
+
+## 5\. Applications in Real Materials
+
+Miller indices are used in all areas of materials science. Here, we will learn about interplanar spacing calculations and applications using actual materials as examples. 
+
+### 5.1 Interpretation of X-ray Diffraction Patterns
+
+In X-ray diffraction (XRD), peaks are observed at specific angles according to Bragg's law: 
+
+$$ n\lambda = 2d_{hkl}\sin\theta $$ 
+
+Where λ is the X-ray wavelength, θ is the Bragg angle, and n is the order of reflection (usually 1). By knowing the interplanar spacing dhkl, we can identify which crystal plane the observed peak is reflected from. 
+
+#### Code Example 8: XRD Peak Prediction for Real Materials
+    
+    
+    def bragg_angle(d_hkl, wavelength, n=1):
+        """
+        Calculate diffraction angle from Bragg's law
+    
+        Parameters:
+        -----------
+        d_hkl : float
+            Interplanar spacing (Å)
+        wavelength : float
+            X-ray wavelength (Å)
+        n : int
+            Order of reflection (usually 1)
+    
+        Returns:
+        --------
+        float : Bragg angle θ (degrees), None if diffraction impossible
+        """
+        sin_theta = n * wavelength / (2 * d_hkl)
+        if abs(sin_theta) > 1:
+            return None  # Does not satisfy diffraction condition
+        return np.degrees(np.arcsin(sin_theta))
+    
+    def predict_xrd_pattern(material_name, a, c=None, crystal_system='cubic',
+                           wavelength=1.5406, max_hkl=3):
+        """
+        Predict XRD diffraction pattern for material
+    
+        Parameters:
+        -----------
+        material_name : str
+            Material name
+        a : float
+            Lattice constant a (Å)
+        c : float, optional
+            Lattice constant c (Å) (for tetragonal/hexagonal)
+        crystal_system : str
+            Crystal system
+        wavelength : float
+            X-ray wavelength (Å), Cu Kα line by default
+        max_hkl : int
+            Maximum Miller index to calculate
+        """
+        print(f"\n=== XRD Diffraction Pattern Prediction for {material_name} ===")
+        print(f"Crystal system: {crystal_system}")
+        print(f"Lattice constants: a = {a:.4f} Å" + (f", c = {c:.4f} Å" if c else ""))
+        print(f"X-ray wavelength: {wavelength:.4f} Å (Cu Kα)\n")
+    
+        print(f"{'(hkl)':<10} {'d (Å)':<12} {'2θ (deg)':<12} {'Intensity':<10}")
+        print("-" * 55)
+    
+        results = []
+    
+        # Generate combinations of Miller indices
+        for h in range(max_hkl + 1):
+            for k in range(h, max_hkl + 1):
+                for l in range(k, max_hkl + 1):
+                    if h == 0 and k == 0 and l == 0:
+                        continue
+    
+                    # Calculate interplanar spacing
+                    if crystal_system == 'cubic':
+                        d = cubic_d_spacing(a, h, k, l)
+                    elif crystal_system == 'tetragonal':
+                        d = tetragonal_d_spacing(a, c, h, k, l)
+                    elif crystal_system == 'hexagonal':
+                        d = hexagonal_d_spacing(a, c, h, k, l)
+    
+                    # Calculate Bragg angle
+                    theta = bragg_angle(d, wavelength)
+    
+                    if theta is not None and theta < 90:
+                        # Simple estimation of relative intensity considering multiplicity (number of equivalent planes)
+                        multiplicity = len(generate_equivalent_planes(h, k, l, crystal_system))
+                        intensity = multiplicity / (h**2 + k**2 + l**2)  # Simple structure factor
+    
+                        results.append(((h, k, l), d, 2 * theta, intensity))
+    
+        # Sort by 2θ in ascending order
+        results.sort(key=lambda x: x[2])
+    
+        # Display top 10 peaks
+        for i, ((h, k, l), d, two_theta, intensity) in enumerate(results[:10]):
+            # Visualize intensity
+            intensity_bar = '█' * int(intensity * 10)
+            print(f"({h}{k}{l}){'':<8} {d:8.4f}    {two_theta:8.2f}    {intensity_bar}")
+    
+    # Execute: Predict XRD patterns for representative materials
+    
+    # 1. Silicon (Si, cubic)
+    predict_xrd_pattern('Silicon (Si)', a=5.4310, crystal_system='cubic', max_hkl=3)
+    
+    # 2. Gold (Au, cubic)
+    predict_xrd_pattern('Gold (Au)', a=4.0782, crystal_system='cubic', max_hkl=2)
+    
+    # 3. TiO2 rutile (tetragonal)
+    predict_xrd_pattern('TiO2 (Rutile)', a=4.594, c=2.958,
+                       crystal_system='tetragonal', max_hkl=2)
+    
+    # 4. α-Al2O3 (hexagonal)
+    predict_xrd_pattern('α-Al2O3 (Corundum)', a=4.759, c=12.991,
+                       crystal_system='hexagonal', max_hkl=2)
+    
+
+#### Application to XRD Analysis
+
+This program is a basic tool for comparing experimentally obtained XRD patterns with theoretical calculations. In actual analysis, structure factors and temperature factors based on atomic positions must also be considered, but understanding Miller indices and interplanar spacing forms the foundation for everything. 
+
+### 5.2 Material Anisotropy and Crystal Planes
+
+Material properties vary greatly depending on crystal planes. For example: 
+
+  * **Surface energy** : {111} planes have lower surface energy than {100} planes (fcc metals)
+  * **Growth rate** : Specific planes grow preferentially, determining crystal shape
+  * **Catalytic activity** : Specific planes show high reactivity
+  * **Mechanical properties** : Slip systems are determined by specific plane and direction combinations
+
+## 6\. Exercises
+
+### Exercise 1: Determining Miller Indices
+
+For a cubic crystal, determine the Miller indices for crystal planes with the following intercepts: 
+
+  1. Intercept at 2 on a-axis, 1 on b-axis, infinity (parallel) on c-axis
+  2. Intercept at 1 on a-axis, 1 on b-axis, 2 on c-axis
+  3. Intercept at -1 on a-axis, 1 on b-axis, 1 on c-axis
+
+View Answer
+
+  1. Intercepts (2, 1, ∞) → Reciprocals (1/2, 1, 0) → Convert to integers (1, 2, 0) → **(120)**
+  2. Intercepts (1, 1, 2) → Reciprocals (1, 1, 1/2) → Convert to integers (2, 2, 1) → **(221)**
+  3. Intercepts (-1, 1, 1) → Reciprocals (-1, 1, 1) → **(\\(\bar{1}\\)11)**
+
+### Exercise 2: Calculation of Interplanar Spacing
+
+Copper (Cu) has a face-centered cubic structure (fcc) with lattice constant a = 3.615 Å. Calculate the interplanar spacing for the following planes: 
+
+  1. (111) plane
+  2. (200) plane
+  3. (220) plane
+
+Also, calculate at what angles (2θ) diffraction peaks from these planes will appear in XRD measurements using Cu Kα radiation (λ = 1.5406 Å). 
+
+View Answer
+
+**Interplanar spacings:**
+
+  1. d111 = 3.615 / √3 = 2.087 Å
+  2. d200 = 3.615 / √4 = 1.808 Å
+  3. d220 = 3.615 / √8 = 1.278 Å
+
+**Bragg angles:** (from λ = 2d sinθ)
+
+  1. 2θ111 = 2 × arcsin(1.5406/(2×2.087)) ≈ 43.3°
+  2. 2θ200 = 2 × arcsin(1.5406/(2×1.808)) ≈ 50.4°
+  3. 2θ220 = 2 × arcsin(1.5406/(2×1.278)) ≈ 74.1°
+
+### Exercise 3: Understanding Equivalent Planes
+
+In a cubic crystal, list all equivalent planes included in {110}. Also, state how many planes there are. 
+
+View Answer
+
+**Answer: 12 planes**
+
+Equivalent planes:
+
+  * (110), (101), (011)
+  * (\\(\bar{1}\\)10), (\\(\bar{1}\\)0\\(\bar{1}\\)), (0\\(\bar{1}\\)\\(\bar{1}\\))
+  * (1\\(\bar{1}\\)0), (10\\(\bar{1}\\)), (01\\(\bar{1}\\))
+  * (\\(\bar{1}\\)\\(\bar{1}\\)0), (\\(\bar{1}\\)0\\(\bar{1}\\)), (0\\(\bar{1}\\)1)
+
+These become equivalent due to the symmetry of cubic crystals (24 symmetry operations) and have the same physical properties. 
+
+### Exercise 4: Programming Assignment
+
+For a tetragonal material (e.g., ZrO2, a = 3.64 Å, c = 5.27 Å), create a Python program that performs the following: 
+
+  1. Calculate interplanar spacing for all planes from (100) to (333)
+  2. Extract only planes with interplanar spacing of 2.0 Å or greater
+  3. Sort and display results in descending order of interplanar spacing
+
+Hint
+
+Use the `tetragonal_d_spacing` function from Code Example 4, and calculate by varying h, k, l from 1 to 3 in a triple loop. Results can be stored in a list and sorted using the `sorted()` function. 
+
+## Summary
+
+In this chapter, we learned about **Miller indices** , the most important notation in crystallography:
+
+#### Key Points
+
+  * **Miller indices (hkl)** are the standard notation representing crystal planes with three integers
+  * **Interplanar spacing d hkl** is calculated using different formulas for each crystal system
+  * **Cubic crystals** : d = a / √(h² + k² + l²)
+  * **Tetragonal and hexagonal crystals** : Contribution of c-axis must be considered separately
+  * **Crystal directions [uvw]** are expressed with different notation from planes
+  * **Symmetry** creates many equivalent planes and directions
+  * **X-ray diffraction** applications form the foundation of material identification and structure analysis
+
+In the next chapter, we will learn in detail about **the principles of X-ray diffraction and Bragg's law** , applying knowledge of Miller indices and interplanar spacing to actual structure analysis. 
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

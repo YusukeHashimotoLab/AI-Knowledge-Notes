@@ -1,0 +1,86 @@
+---
+title: "第5章: 線積分・面積分と積分定理"
+chapter_title: "第5章: 線積分・面積分と積分定理"
+subtitle: Line Integrals, Surface Integrals, and Integral Theorems
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/FM/calculus-vector-analysis/chapter-5.html>) | Last sync: 2025-11-16
+
+[基礎数理道場](<../index.html>) > [微積分とベクトル解析入門](<index.html>) > 第5章 
+
+## 5.1 線積分の基礎
+
+**📐 定義: 線積分**  
+曲線 C 上でのスカラー場 f の線積分： $$\int_C f \, ds = \int_a^b f(\mathbf{r}(t)) \|\mathbf{r}'(t)\| \, dt$$ ベクトル場 F の線積分（仕事）： $$\int_C \mathbf{F} \cdot d\mathbf{r} = \int_a^b \mathbf{F}(\mathbf{r}(t)) \cdot \mathbf{r}'(t) \, dt$$ 
+
+### 💻 コード例1: スカラー場の線積分
+
+import numpy as np import matplotlib.pyplot as plt from scipy import integrate # 曲線のパラメータ表示: r(t) = (cos t, sin t), 0 ≤ t ≤ π def curve(t): x = np.cos(t) y = np.sin(t) return x, y # スカラー場: f(x,y) = x² + y² def scalar_field(x, y): return x**2 + y**2 # 線積分の被積分関数 def integrand(t): x, y = curve(t) f_val = scalar_field(x, y) # 速度ベクトルの大きさ ||r'(t)|| dx_dt = -np.sin(t) dy_dt = np.cos(t) speed = np.sqrt(dx_dt**2 + dy_dt**2) return f_val * speed # 線積分の計算 result, error = integrate.quad(integrand, 0, np.pi) print(f"スカラー場の線積分:") print(f"∫_C f ds = {result:.6f} (推定誤差: {error:.2e})") # 可視化 t = np.linspace(0, np.pi, 100) x, y = curve(t) plt.figure(figsize=(8, 8)) plt.plot(x, y, 'r-', linewidth=3, label='曲線 C') plt.arrow(0, 1, 0.1, 0, head_width=0.1, head_length=0.05, fc='red', ec='red') plt.scatter([x[0]], [y[0]], color='green', s=150, marker='o', label='始点', zorder=5) plt.scatter([x[-1]], [y[-1]], color='blue', s=150, marker='s', label='終点', zorder=5) plt.xlabel('x') plt.ylabel('y') plt.title('線積分の経路') plt.legend() plt.grid(True, alpha=0.3) plt.axis('equal') plt.show()
+
+### 💻 コード例2: ベクトル場の線積分（仕事）
+
+# ベクトル場: F(x,y) = (y, -x) def vector_field(x, y): return y, -x # 線積分 ∫_C F·dr def integrand_vector(t): x, y = curve(t) Fx, Fy = vector_field(x, y) dx_dt = -np.sin(t) dy_dt = np.cos(t) return Fx * dx_dt + Fy * dy_dt result_work, error = integrate.quad(integrand_vector, 0, np.pi) print(f"\nベクトル場の線積分（仕事）:") print(f"∫_C F·dr = {result_work:.6f}") # ベクトル場の可視化 x_grid = np.linspace(-1.5, 1.5, 15) y_grid = np.linspace(-1.5, 1.5, 15) X, Y = np.meshgrid(x_grid, y_grid) Fx, Fy = vector_field(X, Y) plt.figure(figsize=(10, 8)) plt.quiver(X, Y, Fx, Fy, alpha=0.6) plt.plot(x, y, 'r-', linewidth=3, label='経路 C') plt.scatter([x[0]], [y[0]], color='green', s=150, marker='o', zorder=5) plt.scatter([x[-1]], [y[-1]], color='blue', s=150, marker='s', zorder=5) plt.xlabel('x') plt.ylabel('y') plt.title('ベクトル場 F=(y,-x) と積分経路') plt.legend() plt.grid(True, alpha=0.3) plt.axis('equal') plt.show()
+
+## 5.2 Greenの定理
+
+**📐 定理: Greenの定理**  
+領域 D の境界 C（反時計回り）に対して： $$\oint_C (P \, dx + Q \, dy) = \iint_D \left(\frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y}\right) dA$$ 線積分を二重積分に変換できます。 
+
+### 💻 コード例3: Greenの定理の検証
+
+# ベクトル場 F = (P, Q) = (x, y) # 領域 D: 単位円 x² + y² ≤ 1 # 左辺: 線積分 ∮_C (x dx + y dy) def curve_circle(t): return np.cos(t), np.sin(t) def line_integral(t): x, y = curve_circle(t) dx_dt, dy_dt = -np.sin(t), np.cos(t) P, Q = x, y return P * dx_dt + Q * dy_dt left_side, _ = integrate.quad(line_integral, 0, 2*np.pi) # 右辺: 二重積分 ∬_D (∂Q/∂x - ∂P/∂y) dA # ∂Q/∂x = ∂y/∂x = 0, ∂P/∂y = ∂x/∂y = 0 # したがって積分値は 0 right_side = 0.0 print("Greenの定理の検証:") print(f"F = (x, y), D = 単位円") print(f"左辺 (線積分): ∮_C F·dr = {left_side:.6f}") print(f"右辺 (二重積分): ∬_D (∂Q/∂x - ∂P/∂y) dA = {right_side:.6f}") print(f"差: {abs(left_side - right_side):.2e}") # より興味深い例: F = (-y, x) def line_integral2(t): x, y = curve_circle(t) dx_dt, dy_dt = -np.sin(t), np.cos(t) P, Q = -y, x return P * dx_dt + Q * dy_dt left_side2, _ = integrate.quad(line_integral2, 0, 2*np.pi) # 右辺: ∂Q/∂x - ∂P/∂y = 1 - (-(-1)) = 2 # ∬_D 2 dA = 2 × (円の面積) = 2π right_side2 = 2 * np.pi print(f"\nF = (-y, x), D = 単位円") print(f"左辺 (線積分): {left_side2:.6f}") print(f"右辺 (二重積分): {right_side2:.6f}") print(f"誤差: {abs(left_side2 - right_side2):.2e}")
+
+## 5.3 面積分の基礎
+
+**📐 定義: 面積分**  
+曲面 S 上でのスカラー場 f の面積分： $$\iint_S f \, dS$$ ベクトル場 F の面積分（流束）： $$\iint_S \mathbf{F} \cdot \mathbf{n} \, dS$$ ここで n は曲面の単位法線ベクトルです。 
+
+### 💻 コード例4: 球面上の面積分
+
+from scipy import integrate # 球面のパラメータ表示: r(θ,φ) = (sin θ cos φ, sin θ sin φ, cos θ) # 0 ≤ θ ≤ π, 0 ≤ φ ≤ 2π def sphere_parametrization(theta, phi): x = np.sin(theta) * np.cos(phi) y = np.sin(theta) * np.sin(phi) z = np.cos(theta) return x, y, z # スカラー場: f(x,y,z) = z def scalar_field_3d(x, y, z): return z # 面積分の被積分関数（ヤコビアンを含む） def surface_integrand(theta, phi): x, y, z = sphere_parametrization(theta, phi) f_val = scalar_field_3d(x, y, z) # 球面のヤコビアン: r² sin θ (半径 r=1) jacobian = np.sin(theta) return f_val * jacobian # 面積分の計算 result, error = integrate.dblquad(surface_integrand, 0, 2*np.pi, # φ の範囲 0, np.pi) # θ の範囲 print("球面上の面積分:") print(f"∬_S z dS = {result:.6f} (解析解: 0 by symmetry)") print(f"推定誤差: {error:.2e}")
+
+## 5.4 Gaussの発散定理
+
+**📐 定理: Gaussの発散定理**  
+閉曲面 S で囲まれた領域 V に対して： $$\oiint_S \mathbf{F} \cdot \mathbf{n} \, dS = \iiint_V (\nabla \cdot \mathbf{F}) \, dV$$ 面積分を体積積分に変換できます。 
+
+### 💻 コード例5: Gaussの発散定理の検証
+
+# ベクトル場 F = (x, y, z) # 領域: 単位球 x² + y² + z² ≤ 1 # 右辺: 体積積分 ∭_V div F dV # div F = ∂x/∂x + ∂y/∂y + ∂z/∂z = 3 # ∭_V 3 dV = 3 × (球の体積) = 3 × (4π/3) = 4π right_side_gauss = 4 * np.pi # 左辺: 面積分 ∬_S F·n dS # 球面上で F·n = (x,y,z)·(x,y,z) = x²+y²+z² = 1 (半径1の球面上) # ∬_S 1 dS = 球の表面積 = 4π left_side_gauss = 4 * np.pi print("Gaussの発散定理の検証:") print(f"F = (x, y, z), V = 単位球") print(f"左辺 (面積分): ∬_S F·n dS = {left_side_gauss:.6f}") print(f"右辺 (体積積分): ∭_V div F dV = {right_side_gauss:.6f}") print(f"両辺一致 ✓")
+
+## 5.5 Stokesの定理
+
+**📐 定理: Stokesの定理**  
+曲面 S の境界 C に対して： $$\oint_C \mathbf{F} \cdot d\mathbf{r} = \iint_S (\nabla \times \mathbf{F}) \cdot \mathbf{n} \, dS$$ 線積分を面積分に変換できます。Greenの定理の3次元版です。 
+
+### 💻 コード例6: Stokesの定理の応用
+
+# ベクトル場 F = (-y, x, 0) # 曲面 S: 半球 z = √(1-x²-y²), 境界 C: 単位円 x²+y²=1 (z=0平面上) # 左辺: 線積分 ∮_C F·dr def stokes_line_integral(t): x, y, z = np.cos(t), np.sin(t), 0 dx_dt, dy_dt, dz_dt = -np.sin(t), np.cos(t), 0 Fx, Fy, Fz = -y, x, 0 return Fx*dx_dt + Fy*dy_dt + Fz*dz_dt left_stokes, _ = integrate.quad(stokes_line_integral, 0, 2*np.pi) # 右辺: curl F = (0, 0, 2) # ∬_S (0,0,2)·n dS = 2 × (半球の投影面積) = 2π right_stokes = 2 * np.pi print("\nStokesの定理の検証:") print(f"F = (-y, x, 0), S = 半球") print(f"左辺 (線積分): ∮_C F·dr = {left_stokes:.6f}") print(f"右辺 (面積分): ∬_S (curl F)·n dS = {right_stokes:.6f}") print(f"誤差: {abs(left_stokes - right_stokes):.2e}")
+
+## 5.6 材料科学への応用: 拡散流束と保存則
+
+**🔬 応用例:** 材料中の原子拡散では、Gaussの発散定理から保存則が導かれます： $$\frac{\partial C}{\partial t} = -\nabla \cdot \mathbf{J} + S$$ ここで C は濃度、J は拡散流束、S は生成項です。 
+
+### 💻 コード例7: 拡散方程式の数値シミュレーション
+
+# 1次元拡散方程式: ∂C/∂t = D ∂²C/∂x² # 初期条件: ガウス分布 # 境界条件: 両端で濃度ゼロ def diffusion_1d(C0, D, dx, dt, n_steps): """1次元拡散方程式の数値解（陽的Euler法）""" C = C0.copy() C_history = [C.copy()] for step in range(n_steps): C_new = C.copy() for i in range(1, len(C)-1): # ラプラシアン: (C[i+1] - 2C[i] + C[i-1]) / dx² laplacian = (C[i+1] - 2*C[i] + C[i-1]) / dx**2 C_new[i] = C[i] + D * dt * laplacian C = C_new if step % 10 == 0: C_history.append(C.copy()) return C_history # パラメータ設定 nx = 100 L = 10.0 x = np.linspace(0, L, nx) dx = x[1] - x[0] # 初期濃度分布（ガウス分布） C0 = np.exp(-(x - L/2)**2 / 0.5) C0[0] = C0[-1] = 0 # 境界条件 # 拡散係数と時間刻み D = 0.1 dt = 0.01 n_steps = 100 # シミュレーション実行 C_history = diffusion_1d(C0, D, dx, dt, n_steps) # 可視化 plt.figure(figsize=(12, 6)) for i, C in enumerate(C_history[::2]): plt.plot(x, C, label=f't = {i*2*10*dt:.2f}', alpha=0.7) plt.xlabel('位置 x') plt.ylabel('濃度 C') plt.title('1次元拡散方程式の時間発展') plt.legend(loc='upper right') plt.grid(True, alpha=0.3) plt.show() print("\n拡散シミュレーション:") print(f"初期ピーク濃度: {C0.max():.4f}") print(f"最終ピーク濃度: {C_history[-1].max():.4f}") print(f"濃度の拡散による減少: {(1 - C_history[-1].max()/C0.max())*100:.1f}%")
+
+## まとめ
+
+  * 線積分はスカラー場の経路に沿った累積値、ベクトル場の仕事を計算
+  * 面積分は曲面上の累積値、ベクトル場の流束を計算
+  * Greenの定理は線積分を二重積分に変換（2次元）
+  * Gaussの発散定理は面積分を体積積分に変換（3次元）
+  * Stokesの定理は線積分を面積分に変換（3次元版Greenの定理）
+  * 材料科学では拡散流束、保存則などの計算に応用される
+
+← 第4章: ベクトル場（準備中） [シリーズトップへ](<index.html>)
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

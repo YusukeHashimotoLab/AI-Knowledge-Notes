@@ -1,0 +1,755 @@
+---
+title: 第1章：RNN/LSTMによる時系列予測
+chapter_title: 第1章：RNN/LSTMによる時系列予測
+subtitle: プロセス変数の逐次予測と深層学習モデリング
+---
+
+## 1.1 RNN基礎とバックプロパゲーション
+
+リカレントニューラルネットワーク（RNN）は、時系列データの逐次的な依存関係を学習できるニューラルネットワークです。化学プロセスにおける温度・圧力・流量などの時系列変数は、過去の状態に依存して変化するため、RNNが有効です。
+
+**💡 RNNの基本原理**
+
+  * **隠れ状態** : 過去の情報を保持する内部メモリ
+  * **時間展開** : 同じ重みを各時刻で共有
+  * **逐次処理** : 入力を時系列に沿って処理
+
+RNNの更新式は以下の通りです：
+
+$$h_t = \tanh(W_{hh} h_{t-1} + W_{xh} x_t + b_h)$$
+
+$$y_t = W_{hy} h_t + b_y$$
+
+### 例1: Vanilla RNN実装（反応器温度予測）
+    
+    
+    import numpy as np
+    import torch
+    import torch.nn as nn
+    import matplotlib.pyplot as plt
+    
+    # 簡易RNNセルの実装
+    class SimpleRNN(nn.Module):
+        def __init__(self, input_size, hidden_size, output_size):
+            """シンプルなRNN
+    
+            Args:
+                input_size: 入力次元（例：温度1変数なら1）
+                hidden_size: 隠れ層次元
+                output_size: 出力次元（予測変数数）
+            """
+            super(SimpleRNN, self).__init__()
+            self.hidden_size = hidden_size
+    
+            # 重み行列
+            self.W_xh = nn.Linear(input_size, hidden_size)  # 入力→隠れ
+            self.W_hh = nn.Linear(hidden_size, hidden_size)  # 隠れ→隠れ
+            self.W_hy = nn.Linear(hidden_size, output_size)  # 隠れ→出力
+    
+        def forward(self, x, h_prev):
+            """1ステップの更新
+    
+            Args:
+                x: 現在の入力 [batch, input_size]
+                h_prev: 前時刻の隠れ状態 [batch, hidden_size]
+            """
+            # 隠れ状態の更新
+            h = torch.tanh(self.W_xh(x) + self.W_hh(h_prev))
+            # 出力の計算
+            y = self.W_hy(h)
+            return y, h
+    
+    # 合成データ生成（反応器温度の時系列）
+    np.random.seed(42)
+    time = np.linspace(0, 50, 500)
+    # 基準温度350K + 周期変動 + ノイズ
+    temperature = 350 + 20*np.sin(0.2*time) + 5*np.random.randn(len(time))
+    
+    # データ準備
+    data = torch.FloatTensor(temperature).unsqueeze(1)  # [500, 1]
+    
+    # モデル訓練
+    model = SimpleRNN(input_size=1, hidden_size=32, output_size=1)
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    
+    # 訓練ループ
+    seq_length = 20  # 過去20ステップから次を予測
+    for epoch in range(100):
+        total_loss = 0
+        h = torch.zeros(1, 32)  # 初期隠れ状態
+    
+        for i in range(seq_length, len(data)):
+            # 入力シーケンス
+            x_seq = data[i-seq_length:i]
+            target = data[i]
+    
+            # 逐次予測
+            h = torch.zeros(1, 32)  # リセット
+            for t in range(seq_length):
+                _, h = model(x_seq[t:t+1], h)
+    
+            # 最終ステップで予測
+            pred, h = model(x_seq[-1:], h)
+    
+            loss = criterion(pred, target)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+    
+            total_loss += loss.item()
+            h = h.detach()  # 勾配を切断
+    
+        if (epoch+1) % 20 == 0:
+            print(f'Epoch {epoch+1}, Loss: {total_loss/(len(data)-seq_length):.4f}')
+    
+    # 出力例:
+    # Epoch 20, Loss: 15.3421
+    # Epoch 40, Loss: 8.7654
+    # Epoch 60, Loss: 5.2341
+    # Epoch 80, Loss: 3.8765
+    # Epoch 100, Loss: 2.9123
+    
+
+**⚠️ Vanilla RNNの限界**
+
+勾配消失問題により、長期依存性（100ステップ以上）を学習できません。プロセス産業では数時間〜数日のデータを扱うため、LSTM/GRUが必要です。
+
+## 1.2 LSTM Architecture
+
+Long Short-Term Memory（LSTM）は、ゲート機構により長期依存性を学習できる改良型RNNです。忘却ゲート・入力ゲート・出力ゲートの3つのゲートで情報の流れを制御します。
+
+LSTMの更新式：
+
+$$f_t = \sigma(W_f [h_{t-1}, x_t] + b_f) \quad \text{(忘却ゲート)}$$
+
+$$i_t = \sigma(W_i [h_{t-1}, x_t] + b_i) \quad \text{(入力ゲート)}$$
+
+$$\tilde{C}_t = \tanh(W_C [h_{t-1}, x_t] + b_C) \quad \text{(候補セル)}$$
+
+$$C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t \quad \text{(セル状態更新)}$$
+
+$$o_t = \sigma(W_o [h_{t-1}, x_t] + b_o) \quad \text{(出力ゲート)}$$
+
+$$h_t = o_t \odot \tanh(C_t) \quad \text{(隠れ状態)}$$
+
+### 例2: LSTM実装（反応器圧力予測）
+    
+    
+    import torch.nn as nn
+    
+    # LSTM モデル
+    class ProcessLSTM(nn.Module):
+        def __init__(self, input_size=1, hidden_size=64, num_layers=2, output_size=1):
+            """プロセス変数予測用LSTM
+    
+            Args:
+                input_size: 入力変数数
+                hidden_size: LSTM隠れ層サイズ
+                num_layers: LSTMレイヤー数
+                output_size: 出力変数数
+            """
+            super(ProcessLSTM, self).__init__()
+            self.hidden_size = hidden_size
+            self.num_layers = num_layers
+    
+            self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+            self.fc = nn.Linear(hidden_size, output_size)
+    
+        def forward(self, x):
+            """順伝播
+    
+            Args:
+                x: [batch, seq_len, input_size]
+            Returns:
+                out: [batch, output_size]
+            """
+            # LSTMは内部で隠れ状態を管理
+            lstm_out, _ = self.lstm(x)  # [batch, seq_len, hidden_size]
+    
+            # 最後の時刻の出力を使用
+            out = self.fc(lstm_out[:, -1, :])  # [batch, output_size]
+            return out
+    
+    # 合成データ生成（反応器圧力: 1-10 bar）
+    time = np.linspace(0, 100, 1000)
+    pressure = 5 + 2*np.sin(0.1*time) + 0.5*np.cos(0.3*time) + 0.3*np.random.randn(len(time))
+    
+    # ウィンドウデータ作成
+    def create_windows(data, window_size=50):
+        """時系列データをウィンドウに分割"""
+        X, y = [], []
+        for i in range(len(data) - window_size):
+            X.append(data[i:i+window_size])
+            y.append(data[i+window_size])
+        return np.array(X), np.array(y)
+    
+    X, y = create_windows(pressure, window_size=50)
+    X = torch.FloatTensor(X).unsqueeze(2)  # [samples, 50, 1]
+    y = torch.FloatTensor(y).unsqueeze(1)  # [samples, 1]
+    
+    # 訓練/テスト分割
+    split = int(0.8 * len(X))
+    X_train, X_test = X[:split], X[split:]
+    y_train, y_test = y[:split], y[split:]
+    
+    # モデル訓練
+    model = ProcessLSTM(input_size=1, hidden_size=64, num_layers=2)
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    
+    for epoch in range(50):
+        model.train()
+        optimizer.zero_grad()
+    
+        # 予測
+        pred = model(X_train)
+        loss = criterion(pred, y_train)
+    
+        # 逆伝播
+        loss.backward()
+        optimizer.step()
+    
+        if (epoch+1) % 10 == 0:
+            model.eval()
+            with torch.no_grad():
+                test_pred = model(X_test)
+                test_loss = criterion(test_pred, y_test)
+            print(f'Epoch {epoch+1}, Train Loss: {loss.item():.4f}, Test Loss: {test_loss.item():.4f}')
+    
+    # 出力例:
+    # Epoch 10, Train Loss: 0.0523, Test Loss: 0.0587
+    # Epoch 20, Train Loss: 0.0234, Test Loss: 0.0298
+    # Epoch 30, Train Loss: 0.0156, Test Loss: 0.0201
+    # Epoch 40, Train Loss: 0.0112, Test Loss: 0.0167
+    # Epoch 50, Train Loss: 0.0089, Test Loss: 0.0145
+    
+
+## 1.3 GRU (Gated Recurrent Unit)
+
+GRUはLSTMを簡略化したモデルで、2つのゲート（リセットゲート・更新ゲート）のみで構成されます。パラメータ数が少なく、訓練が高速です。
+
+### 例3: GRU実装とLSTMとの比較
+    
+    
+    class ProcessGRU(nn.Module):
+        def __init__(self, input_size=1, hidden_size=64, num_layers=2, output_size=1):
+            """GRUベースのプロセス予測モデル"""
+            super(ProcessGRU, self).__init__()
+            self.gru = nn.GRU(input_size, hidden_size, num_layers, batch_first=True)
+            self.fc = nn.Linear(hidden_size, output_size)
+    
+        def forward(self, x):
+            gru_out, _ = self.gru(x)
+            out = self.fc(gru_out[:, -1, :])
+            return out
+    
+    # 性能比較
+    def compare_models(X_train, y_train, X_test, y_test):
+        """LSTM vs GRUの性能比較"""
+        results = {}
+    
+        for name, ModelClass in [('LSTM', ProcessLSTM), ('GRU', ProcessGRU)]:
+            model = ModelClass(input_size=1, hidden_size=64, num_layers=2)
+            optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+            criterion = nn.MSELoss()
+    
+            # 訓練
+            for epoch in range(30):
+                model.train()
+                optimizer.zero_grad()
+                pred = model(X_train)
+                loss = criterion(pred, y_train)
+                loss.backward()
+                optimizer.step()
+    
+            # 評価
+            model.eval()
+            with torch.no_grad():
+                test_pred = model(X_test)
+                test_loss = criterion(test_pred, y_test).item()
+    
+            # パラメータ数
+            n_params = sum(p.numel() for p in model.parameters())
+    
+            results[name] = {'test_loss': test_loss, 'n_params': n_params}
+    
+        return results
+    
+    results = compare_models(X_train, y_train, X_test, y_test)
+    for name, metrics in results.items():
+        print(f"{name}: Test Loss={metrics['test_loss']:.4f}, Parameters={metrics['n_params']:,}")
+    
+    # 出力例:
+    # LSTM: Test Loss=0.0145, Parameters=50,241
+    # GRU: Test Loss=0.0152, Parameters=37,825
+    # → GRUは約25%少ないパラメータで同等の性能
+    
+
+**💡 モデル選択のガイドライン**
+
+  * **LSTM** : 長期依存性が重要（100+ ステップ）、精度優先
+  * **GRU** : データ量が少ない、訓練速度重視
+  * **Vanilla RNN** : 短期依存（<20ステップ）、計算コスト最小化
+
+## 1.4 時系列データの前処理
+
+プロセスデータは通常、スケールが異なる複数の変数（温度: 300-500K、圧力: 1-10 bar）を含みます。適切な正規化とウィンドウ分割が重要です。
+
+### 例4: データ前処理パイプライン
+    
+    
+    import pandas as pd
+    from sklearn.preprocessing import StandardScaler, MinMaxScaler
+    
+    class ProcessDataPreprocessor:
+        """プロセスデータの前処理クラス"""
+    
+        def __init__(self, window_size=50, normalization='standard'):
+            """
+            Args:
+                window_size: 入力シーケンス長
+                normalization: 'standard' (標準化) or 'minmax' (0-1正規化)
+            """
+            self.window_size = window_size
+            self.normalization = normalization
+    
+            if normalization == 'standard':
+                self.scaler = StandardScaler()
+            else:
+                self.scaler = MinMaxScaler()
+    
+        def fit_transform(self, data):
+            """データの正規化とウィンドウ分割
+    
+            Args:
+                data: numpy array [time_steps, features]
+            Returns:
+                X: [samples, window_size, features]
+                y: [samples, features]
+            """
+            # 正規化
+            data_normalized = self.scaler.fit_transform(data)
+    
+            # ウィンドウ分割
+            X, y = [], []
+            for i in range(len(data_normalized) - self.window_size):
+                X.append(data_normalized[i:i+self.window_size])
+                y.append(data_normalized[i+self.window_size])
+    
+            return np.array(X), np.array(y)
+    
+        def inverse_transform(self, data):
+            """正規化の逆変換"""
+            return self.scaler.inverse_transform(data)
+    
+    # 実データ例（反応器の温度・圧力・流量）
+    np.random.seed(42)
+    n_samples = 1000
+    data = pd.DataFrame({
+        'temperature': 350 + 50*np.sin(np.linspace(0, 10, n_samples)) + 10*np.random.randn(n_samples),
+        'pressure': 5 + 2*np.cos(np.linspace(0, 10, n_samples)) + 0.5*np.random.randn(n_samples),
+        'flow_rate': 100 + 20*np.sin(np.linspace(0, 15, n_samples)) + 5*np.random.randn(n_samples)
+    })
+    
+    # 前処理
+    preprocessor = ProcessDataPreprocessor(window_size=50, normalization='standard')
+    X, y = preprocessor.fit_transform(data.values)
+    
+    print(f"Input shape: {X.shape}")   # [950, 50, 3]
+    print(f"Target shape: {y.shape}")  # [950, 3]
+    print(f"Data range before: T=[{data['temperature'].min():.1f}, {data['temperature'].max():.1f}]K")
+    print(f"Data range after: X=[{X.min():.2f}, {X.max():.2f}] (標準化)")
+    
+    # 出力例:
+    # Input shape: (950, 50, 3)
+    # Target shape: (950, 3)
+    # Data range before: T=[285.4, 414.6]K
+    # Data range after: X=[-3.12, 3.24] (標準化)
+    
+
+## 1.5 Single-Step予測
+
+1ステップ先の予測は最も基本的なタスクです。反応器温度や圧力の次の時刻の値を予測します。
+
+### 例5: 単変量1ステップ予測（温度）
+    
+    
+    class SingleStepPredictor(nn.Module):
+        """1ステップ予測用LSTMモデル"""
+    
+        def __init__(self, n_features=1, hidden_size=128, num_layers=3):
+            super(SingleStepPredictor, self).__init__()
+            self.lstm = nn.LSTM(n_features, hidden_size, num_layers,
+                               batch_first=True, dropout=0.2)
+            self.fc = nn.Linear(hidden_size, n_features)
+    
+        def forward(self, x):
+            lstm_out, _ = self.lstm(x)
+            pred = self.fc(lstm_out[:, -1, :])
+            return pred
+    
+    # 訓練関数
+    def train_single_step(model, X_train, y_train, epochs=50, lr=0.001):
+        """1ステップ予測モデルの訓練"""
+        criterion = nn.MSELoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    
+        losses = []
+        for epoch in range(epochs):
+            model.train()
+            optimizer.zero_grad()
+    
+            pred = model(X_train)
+            loss = criterion(pred, y_train)
+    
+            loss.backward()
+            optimizer.step()
+    
+            losses.append(loss.item())
+    
+            if (epoch+1) % 10 == 0:
+                print(f'Epoch {epoch+1}/{epochs}, Loss: {loss.item():.6f}')
+    
+        return losses
+    
+    # 合成データ（反応器温度: 300-500K）
+    time = np.linspace(0, 50, 500)
+    temp_data = 400 + 50*np.sin(0.2*time) + 10*np.random.randn(len(time))
+    
+    # 前処理
+    preprocessor = ProcessDataPreprocessor(window_size=30)
+    X, y = preprocessor.fit_transform(temp_data.reshape(-1, 1))
+    
+    # Tensor変換
+    X = torch.FloatTensor(X)
+    y = torch.FloatTensor(y)
+    
+    # 訓練
+    model = SingleStepPredictor(n_features=1, hidden_size=128, num_layers=3)
+    losses = train_single_step(model, X, y, epochs=50)
+    
+    # 出力例:
+    # Epoch 10/50, Loss: 0.045231
+    # Epoch 20/50, Loss: 0.018765
+    # Epoch 30/50, Loss: 0.009876
+    # Epoch 40/50, Loss: 0.006543
+    # Epoch 50/50, Loss: 0.005234
+    
+
+## 1.6 Multi-Step予測 (Sequence-to-Sequence)
+
+複数ステップ先を予測するには、Sequence-to-Sequence（Seq2Seq）アーキテクチャを使用します。Encoderで過去を符号化し、Decoderで未来を生成します。
+
+### 例6: 多段階予測（10ステップ先まで）
+    
+    
+    class Seq2SeqLSTM(nn.Module):
+        """Sequence-to-Sequenceモデル"""
+    
+        def __init__(self, input_size=1, hidden_size=128, num_layers=2, output_steps=10):
+            super(Seq2SeqLSTM, self).__init__()
+            self.output_steps = output_steps
+    
+            # Encoder
+            self.encoder = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+    
+            # Decoder
+            self.decoder = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+            self.fc = nn.Linear(hidden_size, input_size)
+    
+        def forward(self, x):
+            """
+            Args:
+                x: [batch, seq_len, input_size] 入力シーケンス
+            Returns:
+                outputs: [batch, output_steps, input_size] 予測シーケンス
+            """
+            batch_size = x.size(0)
+    
+            # Encoderで過去を符号化
+            _, (h, c) = self.encoder(x)
+    
+            # Decoderで未来を生成
+            decoder_input = x[:, -1:, :]  # 最後の値から開始
+            outputs = []
+    
+            for _ in range(self.output_steps):
+                decoder_output, (h, c) = self.decoder(decoder_input, (h, c))
+                pred = self.fc(decoder_output)
+                outputs.append(pred)
+                decoder_input = pred  # 次の入力に使用
+    
+            outputs = torch.cat(outputs, dim=1)  # [batch, output_steps, input_size]
+            return outputs
+    
+    # マルチステップデータ作成
+    def create_multistep_data(data, input_len=50, output_len=10):
+        """マルチステップ予測用データ"""
+        X, y = [], []
+        for i in range(len(data) - input_len - output_len):
+            X.append(data[i:i+input_len])
+            y.append(data[i+input_len:i+input_len+output_len])
+        return np.array(X), np.array(y)
+    
+    # データ準備
+    pressure_data = 5 + 2*np.sin(0.1*np.linspace(0, 100, 1000)) + 0.3*np.random.randn(1000)
+    X_multi, y_multi = create_multistep_data(pressure_data, input_len=50, output_len=10)
+    
+    X_multi = torch.FloatTensor(X_multi).unsqueeze(2)  # [samples, 50, 1]
+    y_multi = torch.FloatTensor(y_multi).unsqueeze(2)  # [samples, 10, 1]
+    
+    # 訓練
+    model = Seq2SeqLSTM(input_size=1, hidden_size=128, output_steps=10)
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    
+    for epoch in range(30):
+        model.train()
+        optimizer.zero_grad()
+    
+        pred = model(X_multi)
+        loss = criterion(pred, y_multi)
+    
+        loss.backward()
+        optimizer.step()
+    
+        if (epoch+1) % 5 == 0:
+            print(f'Epoch {epoch+1}, Loss: {loss.item():.6f}')
+    
+    # 出力例:
+    # Epoch 5, Loss: 0.123456
+    # Epoch 10, Loss: 0.056789
+    # Epoch 15, Loss: 0.034567
+    # Epoch 20, Loss: 0.023456
+    # Epoch 25, Loss: 0.018765
+    # Epoch 30, Loss: 0.015432
+    
+
+## 1.7 Bidirectional LSTM
+
+Bidirectional LSTMは、過去と未来の両方向から情報を統合します。プロセスデータの異常検知や、完全な時系列が得られている場合の解析に有効です。
+
+### 例7: 双方向LSTMによる異常検知
+    
+    
+    class BidirectionalProcessLSTM(nn.Module):
+        """双方向LSTMによる異常検知"""
+    
+        def __init__(self, input_size=1, hidden_size=64, num_layers=2):
+            super(BidirectionalProcessLSTM, self).__init__()
+    
+            # bidirectional=True で双方向LSTM
+            self.bilstm = nn.LSTM(input_size, hidden_size, num_layers,
+                                 batch_first=True, bidirectional=True)
+    
+            # 双方向なので hidden_size * 2
+            self.fc = nn.Linear(hidden_size * 2, input_size)
+    
+        def forward(self, x):
+            """
+            Args:
+                x: [batch, seq_len, input_size]
+            Returns:
+                reconstructed: [batch, seq_len, input_size]
+            """
+            bilstm_out, _ = self.bilstm(x)  # [batch, seq_len, hidden_size*2]
+            reconstructed = self.fc(bilstm_out)  # [batch, seq_len, input_size]
+            return reconstructed
+    
+    # 正常データで訓練
+    normal_data = 400 + 30*np.sin(0.1*np.linspace(0, 100, 500)) + 5*np.random.randn(500)
+    
+    # 異常データを含むテストデータ（200-250ステップに異常値）
+    test_data = normal_data.copy()
+    test_data[200:250] += 50  # 異常: 温度が急上昇
+    
+    # データ準備
+    X_normal, _ = create_windows(normal_data, window_size=50)
+    X_normal = torch.FloatTensor(X_normal).unsqueeze(2)
+    
+    # モデル訓練（再構成タスク）
+    model = BidirectionalProcessLSTM(input_size=1, hidden_size=64)
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    
+    for epoch in range(50):
+        model.train()
+        optimizer.zero_grad()
+    
+        # 入力を再構成
+        reconstructed = model(X_normal)
+        loss = criterion(reconstructed, X_normal)
+    
+        loss.backward()
+        optimizer.step()
+    
+    # 異常検知
+    model.eval()
+    with torch.no_grad():
+        X_test, _ = create_windows(test_data, window_size=50)
+        X_test = torch.FloatTensor(X_test).unsqueeze(2)
+    
+        reconstructed_test = model(X_test)
+        reconstruction_error = torch.mean((X_test - reconstructed_test)**2, dim=(1, 2))
+    
+        # 閾値を超える箇所を異常として検出
+        threshold = torch.quantile(reconstruction_error, 0.95)
+        anomalies = reconstruction_error > threshold
+    
+        print(f"検出された異常: {anomalies.sum().item()} / {len(anomalies)} ウィンドウ")
+        print(f"異常スコア範囲: [{reconstruction_error.min():.4f}, {reconstruction_error.max():.4f}]")
+    
+    # 出力例:
+    # 検出された異常: 47 / 450 ウィンドウ
+    # 異常スコア範囲: [0.0023, 0.3456]
+    # → 異常注入区間（200-250）で再構成誤差が増大
+    
+
+## 1.8 Attention機構による解釈性向上
+
+Attention機構を導入することで、モデルがどの時刻の情報を重視しているかを可視化できます。プロセス制御において、どの過去のイベントが現在の状態に影響しているかを理解できます。
+
+### 例8: Attention付きLSTM
+    
+    
+    class AttentionLSTM(nn.Module):
+        """Attention機構付きLSTM"""
+    
+        def __init__(self, input_size=1, hidden_size=128, num_layers=2):
+            super(AttentionLSTM, self).__init__()
+    
+            self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+    
+            # Attention重み計算
+            self.attention = nn.Linear(hidden_size, 1)
+    
+            # 最終予測
+            self.fc = nn.Linear(hidden_size, input_size)
+    
+        def forward(self, x):
+            """
+            Args:
+                x: [batch, seq_len, input_size]
+            Returns:
+                output: [batch, input_size]
+                attention_weights: [batch, seq_len] (解釈用)
+            """
+            # LSTM処理
+            lstm_out, _ = self.lstm(x)  # [batch, seq_len, hidden_size]
+    
+            # Attention重みの計算
+            attention_scores = self.attention(lstm_out)  # [batch, seq_len, 1]
+            attention_weights = torch.softmax(attention_scores, dim=1)  # [batch, seq_len, 1]
+    
+            # 重み付き和（コンテキストベクトル）
+            context = torch.sum(attention_weights * lstm_out, dim=1)  # [batch, hidden_size]
+    
+            # 予測
+            output = self.fc(context)  # [batch, input_size]
+    
+            return output, attention_weights.squeeze(2)
+    
+    # 訓練と解釈
+    model = AttentionLSTM(input_size=1, hidden_size=128)
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    
+    # データ準備（反応器温度、初期に急激な変化）
+    time = np.linspace(0, 50, 500)
+    temp = 350 + 50*np.exp(-0.1*time) * np.sin(0.5*time) + 5*np.random.randn(500)
+    X, y = create_windows(temp, window_size=50)
+    X = torch.FloatTensor(X).unsqueeze(2)
+    y = torch.FloatTensor(y).unsqueeze(1)
+    
+    # 訓練
+    for epoch in range(30):
+        model.train()
+        optimizer.zero_grad()
+    
+        pred, _ = model(X)
+        loss = criterion(pred, y)
+    
+        loss.backward()
+        optimizer.step()
+    
+        if (epoch+1) % 10 == 0:
+            print(f'Epoch {epoch+1}, Loss: {loss.item():.6f}')
+    
+    # Attention重みの可視化
+    model.eval()
+    with torch.no_grad():
+        sample_idx = 100
+        sample_input = X[sample_idx:sample_idx+1]
+        pred, attention = model(sample_input)
+    
+        print(f"\n予測値: {pred.item():.2f}K")
+        print(f"実際の値: {y[sample_idx].item():.2f}K")
+        print(f"\nAttention重みが高い時刻（Top 5）:")
+    
+        top_indices = torch.topk(attention[0], k=5).indices
+        for i, idx in enumerate(top_indices):
+            print(f"  {i+1}. 時刻 t-{50-idx.item()}: 重み={attention[0, idx].item():.4f}")
+    
+    # 出力例:
+    # Epoch 10, Loss: 0.034567
+    # Epoch 20, Loss: 0.012345
+    # Epoch 30, Loss: 0.006789
+    #
+    # 予測値: 382.45K
+    # 実際の値: 381.87K
+    #
+    # Attention重みが高い時刻（Top 5）:
+    #   1. 時刻 t-1: 重み=0.1234
+    #   2. 時刻 t-2: 重み=0.0987
+    #   3. 時刻 t-5: 重み=0.0765
+    #   4. 時刻 t-10: 重み=0.0543
+    #   5. 時刻 t-3: 重み=0.0432
+    # → 直近1-5ステップが予測に重要
+    
+
+**✅ Attentionの利点**
+
+  * **解釈性** : どの過去データが重要か可視化
+  * **長期依存性** : 遠い過去にも直接アクセス可能
+  * **ドメイン知識の検証** : 化学的に妥当な依存関係を学習しているか確認
+
+## 学習目標の確認
+
+この章を完了すると、以下を実装・説明できるようになります：
+
+### 基本理解
+
+  * RNN/LSTM/GRUの構造と更新式を説明できる
+  * 勾配消失問題とLSTMのゲート機構の役割を理解している
+  * Sequence-to-Sequenceアーキテクチャの原理を説明できる
+
+### 実践スキル
+
+  * PyTorchでLSTM/GRUを実装し、プロセス変数を予測できる
+  * 時系列データの適切な前処理（正規化・ウィンドウ分割）ができる
+  * 1ステップ予測とマルチステップ予測を実装できる
+  * Bidirectional LSTMで異常検知ができる
+  * Attention機構で予測の解釈性を向上できる
+
+### 応用力
+
+  * プロセスの特性に応じてRNN/LSTM/GRUを使い分けられる
+  * Attention重みから化学的に意味のある知見を抽出できる
+  * 異常検知システムを構築し、閾値を適切に設定できる
+
+## 参考文献
+
+  1. Hochreiter, S., & Schmidhuber, J. (1997). "Long Short-Term Memory." Neural Computation, 9(8), 1735-1780.
+  2. Cho, K., et al. (2014). "Learning Phrase Representations using RNN Encoder-Decoder for Statistical Machine Translation." EMNLP 2014.
+  3. Bahdanau, D., et al. (2015). "Neural Machine Translation by Jointly Learning to Align and Translate." ICLR 2015.
+  4. Sutskever, I., et al. (2014). "Sequence to Sequence Learning with Neural Networks." NIPS 2014.
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

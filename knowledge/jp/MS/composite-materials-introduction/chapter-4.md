@@ -1,0 +1,922 @@
+---
+title: 第4章 複合材料の評価
+chapter_title: 第4章 複合材料の評価
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/MS/composite-materials-introduction/chapter-4.html>) | Last sync: 2025-11-16
+
+### 複合材料入門
+
+  * [目次](<index.html>)
+  * [第1章 複合材料の基礎](<chapter-1.html>)
+  * [第2章 繊維強化複合材料](<chapter-2.html>)
+  * [第3章 粒子・積層複合材料](<chapter-3.html>)
+  * 第4章 複合材料の評価（準備中）
+  * [第5章 Python実践](<chapter-5.html>)
+
+#### Materials Science シリーズ
+
+  * [高分子材料入門](<../polymer-materials-introduction/index.html>)
+  * 薄膜・ナノ材料入門 (準備中)
+  * [複合材料入門](<index.html>)
+
+# 第4章 複合材料の評価
+
+### 学習目標
+
+  * **基礎レベル:** 引張・曲げ・せん断試験の原理を理解し、基本的な機械的特性を測定できる
+  * **応用レベル:** S-N曲線から疲労寿命を予測し、非破壊検査法を適切に選定できる
+  * **発展レベル:** 複数の評価法を統合して材料の信頼性を総合評価し、品質保証体系を構築できる
+
+## 4.1 機械的試験法
+
+### 4.1.1 引張試験
+
+複合材料の引張試験は、ASTM D3039(繊維強化プラスチック)、 JIS K 7164(CFRP)などの規格に準拠して実施します。 
+
+項目 | 内容 | 注意点  
+---|---|---  
+試験片形状 | ストレート型、ダンベル型 | タブ(つかみ部補強)が必要  
+寸法 | 長さ250 mm、幅25 mm | 繊維配向により調整  
+ひずみ速度 | 1-2 mm/min | 準静的条件  
+測定項目 | 弾性率、引張強度、破断ひずみ | ひずみゲージまたは伸び計使用  
+      
+    
+    ```mermaid
+    flowchart TD
+                                A[複合材料の機械的試験] --> B[静的試験]
+                                A --> C[動的試験]
+    
+                                B --> D[引張試験E, σ_u, ε_f]
+                                B --> E[圧縮試験σ_c, 座屈]
+                                B --> F[曲げ試験E_f, σ_f]
+                                B --> G[層間せん断試験τ_ILS]
+    
+                                C --> H[疲労試験S-N曲線]
+                                C --> I[衝撃試験Charpy, Izod]
+                                C --> J[クリープ試験時間依存変形]
+    
+                                style A fill:#e1f5ff
+                                style D fill:#ffe1e1
+                                style E fill:#ffe1e1
+                                style F fill:#ffe1e1
+                                style G fill:#ffe1e1
+                                style H fill:#c8e6c9
+                                style I fill:#c8e6c9
+                                style J fill:#c8e6c9
+    ```
+
+#### 例題 4.1: 引張試験データの解析
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    
+    def analyze_tensile_test(strain, stress):
+        """
+        引張試験データから機械的特性を抽出
+    
+        Parameters:
+        -----------
+        strain : array
+            ひずみ [-]
+        stress : array
+            応力 [MPa]
+    
+        Returns:
+        --------
+        properties : dict
+            機械的特性
+        """
+        # 弾性率(線形領域の傾き)
+        linear_region = (strain > 0.0005) & (strain < 0.003)
+        slope, intercept, r_value, _, _ = stats.linregress(
+            strain[linear_region], stress[linear_region])
+    
+        E = slope  # [MPa]
+    
+        # 引張強度(最大応力)
+        sigma_u = np.max(stress)
+        idx_max = np.argmax(stress)
+    
+        # 破断ひずみ
+        epsilon_f = strain[idx_max]
+    
+        # 破壊エネルギー(応力-ひずみ曲線下の面積)
+        U_f = np.trapz(stress[:idx_max+1], strain[:idx_max+1])
+    
+        properties = {
+            'modulus': E,
+            'ultimate_strength': sigma_u,
+            'failure_strain': epsilon_f,
+            'fracture_energy': U_f,
+            'r_squared': r_value**2
+        }
+    
+        return properties
+    
+    # 模擬データの生成(CFRP一方向材)
+    np.random.seed(42)
+    
+    # ひずみ範囲
+    strain_max = 0.015
+    n_points = 200
+    strain = np.linspace(0, strain_max, n_points)
+    
+    # 線形弾性領域
+    E_true = 140000  # MPa
+    stress_elastic = E_true * strain
+    
+    # 非線形損傷領域(簡易モデル)
+    damage_start = 0.008
+    damage_factor = np.where(
+        strain > damage_start,
+        1 - 0.3 * ((strain - damage_start) / (strain_max - damage_start))**2,
+        1.0
+    )
+    
+    stress = stress_elastic * damage_factor
+    
+    # ノイズ追加
+    noise = np.random.normal(0, 50, n_points)
+    stress += noise
+    
+    # 破断設定
+    failure_idx = int(0.92 * n_points)
+    strain = strain[:failure_idx]
+    stress = stress[:failure_idx]
+    
+    # 特性抽出
+    props = analyze_tensile_test(strain, stress)
+    
+    # 可視化
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # 応力-ひずみ曲線
+    ax1.plot(strain * 100, stress, 'b-', linewidth=2, label='実験データ')
+    
+    # 線形回帰線
+    linear_region = (strain > 0.0005) & (strain < 0.003)
+    strain_fit = strain[linear_region]
+    stress_fit = props['modulus'] * strain_fit
+    ax1.plot(strain_fit * 100, stress_fit, 'r--', linewidth=2,
+             label=f"E = {props['modulus']/1000:.1f} GPa (R² = {props['r_squared']:.4f})")
+    
+    # 引張強度マーク
+    ax1.plot(props['failure_strain'] * 100, props['ultimate_strength'],
+             'ro', markersize=10, label=f"σ_u = {props['ultimate_strength']:.0f} MPa")
+    
+    ax1.set_xlabel('ひずみ [%]')
+    ax1.set_ylabel('応力 [MPa]')
+    ax1.set_title('CFRP 一方向材の引張試験')
+    ax1.grid(True, alpha=0.3)
+    ax1.legend()
+    
+    # 統計情報
+    info_text = f"""機械的特性:
+    ━━━━━━━━━━━━━━━━━━━━━━
+    ヤング率:    {props['modulus']/1000:.1f} GPa
+    引張強度:    {props['ultimate_strength']:.0f} MPa
+    破断ひずみ:  {props['failure_strain']*100:.2f} %
+    破壊エネルギー: {props['fracture_energy']:.1f} J/m³
+    決定係数:    {props['r_squared']:.4f}
+    """
+    
+    ax2.text(0.1, 0.5, info_text, fontsize=12, family='monospace',
+             verticalalignment='center', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    ax2.axis('off')
+    ax2.set_title('測定結果', fontsize=14, weight='bold')
+    
+    plt.tight_layout()
+    plt.savefig('tensile_test_analysis.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(info_text)
+
+### 4.1.2 曲げ試験
+
+3点曲げ試験は、複合材料の曲げ剛性と曲げ強度を評価します。 特に積層板の層間剥離の初期検出に有効です。 
+
+曲げ弾性率の計算式(3点曲げ):
+
+$$E_f = \frac{L^3 m}{4bh^3}$$ 
+
+\\(L\\): 支点間距離、\\(m\\): 荷重-たわみ曲線の傾き、\\(b\\): 試験片幅、\\(h\\): 試験片厚さ 
+
+#### 例題 4.2: 3点曲げ試験のシミュレーション
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def three_point_bending(L, b, h, E, P_max, n_points=100):
+        """
+        3点曲げ試験のシミュレーション
+    
+        Parameters:
+        -----------
+        L : float
+            支点間距離 [mm]
+        b : float
+            試験片幅 [mm]
+        h : float
+            試験片厚さ [mm]
+        E : float
+            ヤング率 [GPa]
+        P_max : float
+            最大荷重 [N]
+        n_points : int
+            データポイント数
+    
+        Returns:
+        --------
+        deflection, load : array
+            たわみ [mm]、荷重 [N]
+        """
+        # 最大たわみの計算
+        E_Pa = E * 1e9  # GPa → Pa
+        I = (b * h**3) / 12  # 断面二次モーメント [mm^4] → [m^4] 変換必要
+    
+        delta_max = (P_max * L**3) / (48 * E_Pa * I * 1e-12)  # [mm]
+    
+        # 線形領域
+        deflection = np.linspace(0, delta_max, n_points)
+        load = (48 * E_Pa * I * 1e-12 * deflection) / L**3
+    
+        return deflection, load
+    
+    def calculate_flexural_modulus(L, b, h, slope):
+        """
+        荷重-たわみ曲線の傾きから曲げ弾性率を計算
+    
+        Parameters:
+        -----------
+        slope : float
+            荷重-たわみ曲線の傾き [N/mm]
+    
+        Returns:
+        --------
+        E_f : float
+            曲げ弾性率 [GPa]
+        """
+        E_f = (L**3 * slope) / (4 * b * h**3) / 1000  # MPa → GPa
+        return E_f
+    
+    # CFRP積層板の設定
+    L = 80  # mm (支点間距離)
+    b = 15  # mm (幅)
+    h = 2   # mm (厚さ)
+    E = 100 # GPa
+    P_max = 500  # N
+    
+    # シミュレーション実行
+    deflection, load = three_point_bending(L, b, h, E, P_max)
+    
+    # 曲げ弾性率の計算
+    slope = load[1] / deflection[1]  # 初期傾き [N/mm]
+    E_f_calculated = calculate_flexural_modulus(L, b, h, slope)
+    
+    # 曲げ応力の計算(最大荷重時)
+    sigma_f_max = (3 * P_max * L) / (2 * b * h**2)  # [MPa]
+    
+    # 可視化
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # 荷重-たわみ曲線
+    ax1.plot(deflection, load, 'b-', linewidth=2)
+    ax1.plot(deflection[-1], load[-1], 'ro', markersize=10,
+             label=f'最大荷重: {P_max} N\nたわみ: {deflection[-1]:.2f} mm')
+    ax1.set_xlabel('たわみ [mm]')
+    ax1.set_ylabel('荷重 [N]')
+    ax1.set_title('3点曲げ試験: 荷重-たわみ曲線')
+    ax1.grid(True, alpha=0.3)
+    ax1.legend()
+    
+    # 応力分布(断面)
+    y = np.linspace(-h/2, h/2, 100)  # 中立軸からの距離
+    M_max = P_max * L / 4  # 最大曲げモーメント [N·mm]
+    I = (b * h**3) / 12
+    
+    sigma_bending = -(M_max * y * 1000) / I  # [MPa] (圧縮側が負)
+    
+    ax2.plot(sigma_bending, y, 'r-', linewidth=2)
+    ax2.axhline(y=0, color='k', linestyle='--', linewidth=1, label='中立軸')
+    ax2.axvline(x=0, color='k', linestyle='-', linewidth=0.5)
+    ax2.fill_betweenx(y, 0, sigma_bending, where=(sigma_bending > 0),
+                       alpha=0.3, color='red', label='引張応力')
+    ax2.fill_betweenx(y, 0, sigma_bending, where=(sigma_bending < 0),
+                       alpha=0.3, color='blue', label='圧縮応力')
+    ax2.set_xlabel('応力 [MPa]')
+    ax2.set_ylabel('板厚方向位置 [mm]')
+    ax2.set_title('断面の応力分布')
+    ax2.grid(True, alpha=0.3)
+    ax2.legend()
+    
+    plt.tight_layout()
+    plt.savefig('three_point_bending.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print("3点曲げ試験の解析結果:")
+    print("="*60)
+    print(f"支点間距離: {L} mm")
+    print(f"試験片寸法: {b} × {h} mm")
+    print(f"最大荷重: {P_max} N")
+    print(f"最大たわみ: {deflection[-1]:.2f} mm")
+    print(f"曲げ弾性率(計算): {E_f_calculated:.1f} GPa")
+    print(f"曲げ弾性率(入力): {E:.1f} GPa")
+    print(f"最大曲げ応力: {sigma_f_max:.1f} MPa")
+
+### 4.1.3 層間せん断試験 (ILSS)
+
+Short Beam Shear (SBS)試験により、積層板の層間せん断強度を評価します。 支点間距離を板厚の5倍程度に設定し、層間剥離を誘発させます。 
+
+$$\tau_{\text{ILSS}} = \frac{3P_{\max}}{4bh}$$ 
+
+#### 例題 4.3: 層間せん断強度の統計解析
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    
+    # 模擬実験データ(10個の試験片)
+    np.random.seed(123)
+    
+    # 試験片寸法
+    b = 10  # mm
+    h = 2   # mm
+    
+    # 最大荷重データ[N] (正規分布でばらつきを模擬)
+    P_max_mean = 800
+    P_max_std = 40
+    n_specimens = 10
+    
+    P_max_data = np.random.normal(P_max_mean, P_max_std, n_specimens)
+    
+    # 層間せん断強度の計算
+    ILSS = (3 * P_max_data) / (4 * b * h)
+    
+    # 統計解析
+    ILSS_mean = np.mean(ILSS)
+    ILSS_std = np.std(ILSS, ddof=1)
+    ILSS_cv = (ILSS_std / ILSS_mean) * 100  # 変動係数 [%]
+    
+    # 95%信頼区間
+    conf_interval = stats.t.interval(0.95, len(ILSS)-1, loc=ILSS_mean,
+                                      scale=ILSS_std/np.sqrt(len(ILSS)))
+    
+    # ワイブル分布のフィッティング
+    shape, loc, scale = stats.weibull_min.fit(ILSS, floc=0)
+    
+    # 可視化
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # ヒストグラムと正規分布
+    ax1.hist(ILSS, bins=6, density=True, alpha=0.7, color='skyblue',
+             edgecolor='black', label='実験データ')
+    
+    # 正規分布フィット
+    x_plot = np.linspace(ILSS.min(), ILSS.max(), 100)
+    normal_fit = stats.norm.pdf(x_plot, ILSS_mean, ILSS_std)
+    ax1.plot(x_plot, normal_fit, 'r-', linewidth=2, label='正規分布フィット')
+    
+    ax1.axvline(x=ILSS_mean, color='g', linestyle='--', linewidth=2,
+                label=f'平均値: {ILSS_mean:.1f} MPa')
+    ax1.axvline(x=conf_interval[0], color='orange', linestyle=':',
+                label=f'95%信頼区間')
+    ax1.axvline(x=conf_interval[1], color='orange', linestyle=':')
+    
+    ax1.set_xlabel('層間せん断強度 [MPa]')
+    ax1.set_ylabel('確率密度')
+    ax1.set_title('ILSS の分布')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # ワイブルプロット
+    sorted_ILSS = np.sort(ILSS)
+    n = len(sorted_ILSS)
+    prob_failure = np.arange(1, n+1) / (n+1)
+    
+    # ワイブル線形化: ln(ln(1/(1-P))) vs ln(ILSS)
+    y_weibull = np.log(-np.log(1 - prob_failure))
+    x_weibull = np.log(sorted_ILSS)
+    
+    ax2.plot(x_weibull, y_weibull, 'bo', markersize=8, label='実験データ')
+    
+    # 線形回帰
+    slope_w, intercept_w, r_w, _, _ = stats.linregress(x_weibull, y_weibull)
+    y_fit = slope_w * x_weibull + intercept_w
+    ax2.plot(x_weibull, y_fit, 'r-', linewidth=2,
+             label=f'形状パラメータ m = {slope_w:.2f}\nR² = {r_w**2:.4f}')
+    
+    ax2.set_xlabel('ln(ILSS)')
+    ax2.set_ylabel('ln(ln(1/(1-P)))')
+    ax2.set_title('ワイブルプロット')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('ilss_statistical_analysis.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # 結果出力
+    print("層間せん断強度(ILSS)の統計解析:")
+    print("="*60)
+    print(f"試験片数: {n_specimens}")
+    print(f"平均値: {ILSS_mean:.1f} MPa")
+    print(f"標準偏差: {ILSS_std:.2f} MPa")
+    print(f"変動係数: {ILSS_cv:.2f} %")
+    print(f"95%信頼区間: [{conf_interval[0]:.1f}, {conf_interval[1]:.1f}] MPa")
+    print(f"\nワイブル分布パラメータ:")
+    print(f"形状パラメータ m: {shape:.2f}")
+    print(f"尺度パラメータ: {scale:.1f} MPa")
+    print(f"\n個別データ:")
+    for i, (P, ilss) in enumerate(zip(P_max_data, ILSS), 1):
+        print(f"  試験片{i}: P_max = {P:.1f} N → ILSS = {ilss:.1f} MPa")
+
+## 4.2 疲労試験と寿命予測
+
+### 4.2.1 S-N 曲線
+
+応力振幅(Stress amplitude)と破壊繰返し数(Number of cycles to failure)の 関係を示すS-N曲線は、疲労寿命設計の基礎データです。 
+
+$$\sigma_a = \sigma_f' (2N_f)^b$$ 
+
+\\(\sigma_a\\): 応力振幅、\\(N_f\\): 破壊繰返し数、\\(\sigma_f'\\): 疲労強度係数、\\(b\\): 疲労強度指数 
+
+#### 例題 4.4: S-N 曲線のフィッティング
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.optimize import curve_fit
+    from scipy import stats
+    
+    def basquin_equation(N, sigma_f_prime, b):
+        """
+        Basquin の式: σ_a = σ_f' * (2N)^b
+    
+        Parameters:
+        -----------
+        N : array
+            繰返し数
+        sigma_f_prime : float
+            疲労強度係数 [MPa]
+        b : float
+            疲労強度指数 (負の値)
+    
+        Returns:
+        --------
+        sigma_a : array
+            応力振幅 [MPa]
+        """
+        return sigma_f_prime * (2 * N)**b
+    
+    # 模擬疲労試験データ(CFRP)
+    np.random.seed(456)
+    
+    # 応力振幅レベル [MPa]
+    stress_levels = np.array([700, 600, 500, 400, 300, 250])
+    n_specimens_per_level = 3
+    
+    # 真のパラメータ
+    sigma_f_prime_true = 1200  # MPa
+    b_true = -0.10
+    
+    # データ生成
+    stress_data = []
+    cycles_data = []
+    
+    for sigma in stress_levels:
+        # 各応力レベルでの破壊繰返し数を計算
+        N_mean = (sigma / sigma_f_prime_true)**(1/b_true) / 2
+    
+        # 対数正規分布でばらつきを付与
+        log_std = 0.3
+        for _ in range(n_specimens_per_level):
+            N_f = np.random.lognormal(np.log(N_mean), log_std)
+            stress_data.append(sigma)
+            cycles_data.append(N_f)
+    
+    stress_data = np.array(stress_data)
+    cycles_data = np.array(cycles_data)
+    
+    # Basquin式のフィッティング
+    # 対数変換して線形回帰
+    log_N = np.log10(2 * cycles_data)
+    log_sigma = np.log10(stress_data)
+    
+    slope, intercept, r_value, p_value, std_err = stats.linregress(log_N, log_sigma)
+    
+    b_fit = slope
+    sigma_f_prime_fit = 10**intercept
+    
+    print("S-N 曲線のフィッティング結果:")
+    print("="*60)
+    print(f"疲労強度係数 σ_f': {sigma_f_prime_fit:.0f} MPa (真値: {sigma_f_prime_true})")
+    print(f"疲労強度指数 b: {b_fit:.4f} (真値: {b_true})")
+    print(f"決定係数 R²: {r_value**2:.4f}")
+    
+    # 可視化
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # S-N曲線(片対数)
+    N_plot = np.logspace(2, 7, 100)
+    sigma_fit = basquin_equation(N_plot, sigma_f_prime_fit, b_fit)
+    
+    ax1.semilogx(cycles_data, stress_data, 'bo', markersize=8, alpha=0.6,
+                 label='実験データ')
+    ax1.semilogx(N_plot, sigma_fit, 'r-', linewidth=2,
+                 label=f'Basquin式: σ_a = {sigma_f_prime_fit:.0f} (2N)^{b_fit:.3f}')
+    
+    # 疲労限度(10^7サイクル)
+    sigma_endurance = basquin_equation(1e7, sigma_f_prime_fit, b_fit)
+    ax1.axhline(y=sigma_endurance, color='g', linestyle='--',
+                label=f'疲労限度(10⁷): {sigma_endurance:.0f} MPa')
+    
+    ax1.set_xlabel('破壊繰返し数 N_f')
+    ax1.set_ylabel('応力振幅 σ_a [MPa]')
+    ax1.set_title('S-N 曲線 (CFRP)')
+    ax1.grid(True, alpha=0.3, which='both')
+    ax1.legend()
+    
+    # 残差プロット
+    sigma_predicted = basquin_equation(cycles_data, sigma_f_prime_fit, b_fit)
+    residuals = stress_data - sigma_predicted
+    
+    ax2.semilogx(cycles_data, residuals, 'bo', markersize=8, alpha=0.6)
+    ax2.axhline(y=0, color='r', linestyle='-', linewidth=2)
+    ax2.axhline(y=np.std(residuals), color='orange', linestyle='--',
+                label=f'±1σ: ±{np.std(residuals):.1f} MPa')
+    ax2.axhline(y=-np.std(residuals), color='orange', linestyle='--')
+    ax2.set_xlabel('破壊繰返し数 N_f')
+    ax2.set_ylabel('残差 [MPa]')
+    ax2.set_title('フィッティング残差')
+    ax2.grid(True, alpha=0.3, which='both')
+    ax2.legend()
+    
+    plt.tight_layout()
+    plt.savefig('sn_curve_analysis.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # 寿命予測例
+    stress_service = 350  # MPa (実働応力)
+    N_predicted = (stress_service / sigma_f_prime_fit)**(1/b_fit) / 2
+    safety_factor = 2.0
+    N_design = N_predicted / safety_factor
+    
+    print(f"\n疲労寿命予測:")
+    print(f"実働応力: {stress_service} MPa")
+    print(f"予測破壊繰返し数: {N_predicted:.2e} サイクル")
+    print(f"設計繰返し数(SF={safety_factor}): {N_design:.2e} サイクル")
+
+### 4.2.2 損傷累積則
+
+変動荷重下での疲労寿命予測には、Minerの線形損傷累積則を用います： 
+
+$$D = \sum_{i=1}^{k} \frac{n_i}{N_{f,i}} \quad (D = 1 で破壊)$$ 
+
+\\(n_i\\): 応力レベル i の繰返し数、\\(N_{f,i}\\): 応力レベル i での破壊繰返し数
+
+#### 例題 4.5: Miner則による累積損傷計算
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def miner_rule_damage(stress_levels, cycle_counts, sigma_f_prime, b):
+        """
+        Minerの線形損傷累積則で損傷度を計算
+    
+        Parameters:
+        -----------
+        stress_levels : array
+            各荷重ブロックの応力レベル [MPa]
+        cycle_counts : array
+            各荷重ブロックの繰返し数
+        sigma_f_prime, b : float
+            S-N曲線のパラメータ
+    
+        Returns:
+        --------
+        damage : float
+            累積損傷度
+        damage_per_block : array
+            各ブロックの損傷度
+        """
+        N_f = (stress_levels / sigma_f_prime)**(1/b) / 2
+        damage_per_block = cycle_counts / N_f
+        damage = np.sum(damage_per_block)
+    
+        return damage, damage_per_block
+    
+    # CFRP のS-N曲線パラメータ
+    sigma_f_prime = 1200
+    b = -0.10
+    
+    # 荷重スペクトル(3段階)
+    stress_levels = np.array([500, 400, 300])  # MPa
+    cycle_counts = np.array([1e4, 5e4, 1e5])   # サイクル
+    
+    # 損傷計算
+    damage_total, damage_blocks = miner_rule_damage(
+        stress_levels, cycle_counts, sigma_f_prime, b)
+    
+    # 破壊までの繰返し数
+    N_f_individual = (stress_levels / sigma_f_prime)**(1/b) / 2
+    
+    # 可視化
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # 荷重スペクトル
+    x_pos = np.arange(len(stress_levels))
+    ax1.bar(x_pos, stress_levels, alpha=0.7, color=['red', 'orange', 'yellow'],
+            edgecolor='black')
+    ax1.set_xlabel('荷重ブロック')
+    ax1.set_ylabel('応力振幅 [MPa]')
+    ax1.set_title('荷重スペクトル')
+    ax1.set_xticks(x_pos)
+    ax1.set_xticklabels([f'Block {i+1}\n{n:.0e}' for i, n in enumerate(cycle_counts)])
+    ax1.grid(True, alpha=0.3, axis='y')
+    
+    # 各ブロックにN_fを表示
+    for i, (stress, N_f) in enumerate(zip(stress_levels, N_f_individual)):
+        ax1.text(i, stress + 20, f'N_f = {N_f:.1e}',
+                 ha='center', fontsize=9)
+    
+    # 累積損傷度
+    damage_cumulative = np.cumsum(damage_blocks)
+    
+    ax2.bar(x_pos, damage_blocks, alpha=0.7, color=['red', 'orange', 'yellow'],
+            edgecolor='black', label='ブロック損傷')
+    ax2.plot(x_pos, damage_cumulative, 'bo-', linewidth=2, markersize=10,
+             label='累積損傷')
+    ax2.axhline(y=1.0, color='r', linestyle='--', linewidth=2, label='破壊規準')
+    ax2.set_xlabel('荷重ブロック')
+    ax2.set_ylabel('損傷度')
+    ax2.set_title('Miner則による累積損傷')
+    ax2.set_xticks(x_pos)
+    ax2.set_xticklabels([f'Block {i+1}' for i in range(len(stress_levels))])
+    ax2.legend()
+    ax2.grid(True, alpha=0.3, axis='y')
+    
+    plt.tight_layout()
+    plt.savefig('miner_rule_damage.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # 結果出力
+    print("Miner則による累積損傷解析:")
+    print("="*60)
+    for i, (stress, cycles, N_f, d) in enumerate(
+        zip(stress_levels, cycle_counts, N_f_individual, damage_blocks), 1):
+        print(f"Block {i}: σ = {stress} MPa, n = {cycles:.0e}")
+        print(f"  破壊繰返し数 N_f = {N_f:.2e}")
+        print(f"  損傷度 d = {d:.4f}")
+        print()
+    
+    print(f"総累積損傷度: {damage_total:.4f}")
+    if damage_total < 1.0:
+        remaining_life = (1.0 - damage_total) / damage_total
+        print(f"状態: 安全 (破壊まで {remaining_life:.2f} 倍の寿命)")
+    elif damage_total >= 1.0:
+        print(f"状態: 破壊予測 (損傷度 > 1.0)")
+
+## 4.3 非破壊検査 (NDE/NDT)
+
+### 4.3.1 非破壊検査法の分類
+
+複合材料の内部欠陥(剥離、ボイド、繊維破断)を検出する主な手法： 
+
+手法 | 原理 | 検出対象 | 利点/欠点  
+---|---|---|---  
+超音波探傷 | 超音波の反射・減衰 | 剥離、ボイド、厚さ | 高精度 / 接触必要  
+X線CT | X線透過率の差 | 3D内部構造、繊維配向 | 高分解能 / 高コスト  
+サーモグラフィ | 熱伝導率の差 | 剥離、含浸不良 | 非接触・高速 / 表面近傍のみ  
+AE法 | 破壊時の弾性波 | 損傷進展、位置標定 | リアルタイム / ノイズ影響大  
+渦電流探傷 | 導電率の変化 | CFRP の繊維破断 | 高速 / 導電性材料のみ  
+  
+### 4.3.2 超音波探傷法
+
+超音波Cスキャンにより、積層板の剥離を2次元マッピングできます。 周波数: 5-10 MHz、水浸法または接触法を使用。 
+
+#### 例題 4.6: 超音波Cスキャンデータの解析
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.ndimage import gaussian_filter
+    
+    def simulate_c_scan(size_x, size_y, defects):
+        """
+        超音波Cスキャンデータのシミュレーション
+    
+        Parameters:
+        -----------
+        size_x, size_y : int
+            スキャン領域のサイズ [mm]
+        defects : list of dict
+            欠陥情報 [{'x': x, 'y': y, 'size': size, 'depth': depth}]
+    
+        Returns:
+        --------
+        c_scan : ndarray
+            Cスキャン画像(振幅値)
+        """
+        resolution = 0.5  # mm
+        nx = int(size_x / resolution)
+        ny = int(size_y / resolution)
+    
+        # 健全部の振幅(100%)
+        c_scan = np.ones((ny, nx)) * 100
+    
+        # ノイズ追加
+        noise = np.random.normal(0, 2, (ny, nx))
+        c_scan += noise
+    
+        # 欠陥の追加
+        for defect in defects:
+            x_center = int(defect['x'] / resolution)
+            y_center = int(defect['y'] / resolution)
+            size = int(defect['size'] / resolution)
+            depth = defect['depth']
+    
+            # ガウシアン形状の振幅低下
+            y, x = np.ogrid[-y_center:ny-y_center, -x_center:nx-x_center]
+            mask = x*x + y*y <= (size/2)**2
+    
+            # 深さに応じた振幅低下(深いほど検出しにくい)
+            attenuation = 100 * (1 - 0.8 * np.exp(-depth / 2))
+            c_scan[mask] = np.minimum(c_scan[mask], attenuation)
+    
+        # スムージング
+        c_scan = gaussian_filter(c_scan, sigma=1)
+    
+        return c_scan
+    
+    # スキャン設定
+    size_x = 100  # mm
+    size_y = 100  # mm
+    
+    # 欠陥データ(剥離を模擬)
+    defects = [
+        {'x': 30, 'y': 30, 'size': 15, 'depth': 1.0},  # 表面近く
+        {'x': 70, 'y': 40, 'size': 10, 'depth': 3.0},  # 深部
+        {'x': 50, 'y': 70, 'size': 20, 'depth': 0.5},  # 大きな剥離
+    ]
+    
+    # Cスキャンシミュレーション
+    c_scan = simulate_c_scan(size_x, size_y, defects)
+    
+    # 欠陥検出(閾値処理)
+    threshold = 80  # 振幅80%以下を欠陥と判定
+    defect_map = c_scan < threshold
+    
+    # 可視化
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
+    
+    # Cスキャン画像
+    im1 = ax1.imshow(c_scan, cmap='jet', origin='lower', extent=[0, size_x, 0, size_y])
+    ax1.set_xlabel('X [mm]')
+    ax1.set_ylabel('Y [mm]')
+    ax1.set_title('超音波 C スキャン(振幅)')
+    cbar1 = plt.colorbar(im1, ax=ax1)
+    cbar1.set_label('振幅 [%]')
+    
+    # 真の欠陥位置を重ねる
+    for defect in defects:
+        circle = plt.Circle((defect['x'], defect['y']), defect['size']/2,
+                            color='white', fill=False, linewidth=2, linestyle='--')
+        ax1.add_patch(circle)
+    
+    # 欠陥マップ
+    im2 = ax2.imshow(defect_map, cmap='gray_r', origin='lower',
+                     extent=[0, size_x, 0, size_y])
+    ax2.set_xlabel('X [mm]')
+    ax2.set_ylabel('Y [mm]')
+    ax2.set_title(f'欠陥検出(閾値 < {threshold}%)')
+    
+    # ヒストグラム
+    ax3.hist(c_scan.flatten(), bins=50, alpha=0.7, color='blue',
+             edgecolor='black')
+    ax3.axvline(x=threshold, color='r', linestyle='--', linewidth=2,
+                label=f'閾値: {threshold}%')
+    ax3.set_xlabel('振幅 [%]')
+    ax3.set_ylabel('ピクセル数')
+    ax3.set_title('振幅分布')
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('ultrasonic_c_scan.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # 欠陥面積の計算
+    resolution = 0.5
+    pixel_area = resolution**2
+    defect_area = np.sum(defect_map) * pixel_area
+    total_area = size_x * size_y
+    defect_ratio = (defect_area / total_area) * 100
+    
+    print("超音波Cスキャン解析結果:")
+    print("="*60)
+    print(f"スキャン領域: {size_x} × {size_y} mm")
+    print(f"分解能: {resolution} mm")
+    print(f"検出閾値: {threshold}%")
+    print(f"検出欠陥面積: {defect_area:.1f} mm²")
+    print(f"欠陥面積率: {defect_ratio:.2f}%")
+    print(f"\n設定欠陥:")
+    for i, defect in enumerate(defects, 1):
+        print(f"  欠陥{i}: 位置({defect['x']}, {defect['y']}) mm, "
+              f"サイズ {defect['size']} mm, 深さ {defect['depth']} mm")
+
+## 4.4 まとめ
+
+本章では、複合材料の評価技術について学びました：
+
+  * 機械的試験法(引張、曲げ、層間せん断)
+  * S-N曲線による疲労寿命予測
+  * Minerの線形損傷累積則
+  * 非破壊検査法(超音波、X線CT、サーモグラフィ)
+  * 統計解析とデータ処理手法
+
+次章では、Pythonを用いた実践的な複合材料解析として、 古典積層理論の実装、最適積層設計、有限要素法の前処理を行います。 
+
+## 演習問題
+
+### 基礎レベル
+
+#### 問題 4.1: 引張試験データの解析
+
+以下の引張試験データから、ヤング率と引張強度を求めよ：   
+ひずみ 0.002 で応力 280 MPa、最大応力 1450 MPa (ひずみ 0.012) 
+
+#### 問題 4.2: 曲げ弾性率の計算
+
+3点曲げ試験(L=80 mm, b=15 mm, h=2 mm)で、たわみ 3 mm 時に荷重 450 N を 測定した。曲げ弾性率を求めよ。 
+
+#### 問題 4.3: ILSS の計算
+
+Short Beam Shear試験で最大荷重 750 N (試験片: 幅10 mm、厚さ2 mm)を記録した。 層間せん断強度を求めよ。 
+
+### 応用レベル
+
+#### 問題 4.4: S-N曲線のフィッティング
+
+以下の疲労試験データからBasquin式のパラメータ(σ_f', b)を求めよ：   
+600 MPa: 5×10³, 500 MPa: 3×10⁴, 400 MPa: 2×10⁵, 300 MPa: 1×10⁶ サイクル 
+
+#### 問題 4.5: Miner則の適用
+
+2段階荷重(500 MPa で 1×10⁴サイクル、300 MPa で 5×10⁴サイクル)を受けた CFRP積層板の累積損傷度を計算せよ。(σ_f' = 1200 MPa, b = -0.10) 
+
+#### 問題 4.6: 統計解析
+
+引張強度データ[1420, 1450, 1380, 1460, 1410, 1440, 1400, 1430] MPa について、 平均値、標準偏差、95%信頼区間を求めよ。 
+
+#### 問題 4.7: プログラミング課題
+
+疲労試験データの可視化プログラムを作成せよ： 
+
+  * S-N曲線のプロット(片対数)
+  * Basquin式のフィッティング
+  * 95%信頼区間の表示
+
+### 発展レベル
+
+#### 問題 4.8: 確率論的疲労解析
+
+疲労寿命がワイブル分布に従う場合(形状パラメータ m=3)、 信頼性90%を満たす設計繰返し数を求めよ。 (平均破壊繰返し数: 1×10⁶ サイクル) 
+
+#### 問題 4.9: 多軸疲労
+
+引張-ねじり複合荷重下でのCFRP積層板の疲労寿命を、 臨界面法(Critical Plane Approach)で予測せよ。 
+
+#### 問題 4.10: NDEデータ処理
+
+超音波Cスキャンデータに対し、以下の画像処理を実装せよ： 
+
+  * ノイズ除去(メディアンフィルタ)
+  * エッジ検出(Sobel, Canny)
+  * 欠陥領域のセグメンテーション
+  * 欠陥サイズ・形状の定量評価
+
+## 参考文献
+
+  1. ASTM D3039, "Standard Test Method for Tensile Properties of Polymer Matrix Composite Materials", ASTM International, 2017
+  2. Talreja, R. and Singh, C. V., "Damage and Failure of Composite Materials", Cambridge University Press, 2012, pp. 156-234
+  3. Reifsnider, K. L., "Fatigue of Composite Materials", Elsevier, 1991, pp. 89-167
+  4. Harris, B., "Fatigue in Composites", Woodhead Publishing, 2003, pp. 234-312
+  5. Miner, M. A., "Cumulative Damage in Fatigue", Journal of Applied Mechanics, Vol. 12, 1945, pp. A159-A164
+  6. Gao, F., Handley, L., and Phillips, J., "Nondestructive Evaluation of Composite Materials", in ASM Handbook Vol. 17: Nondestructive Evaluation and Quality Control, 1989, pp. 778-812
+  7. Halmshaw, R., "Non-Destructive Testing", 2nd ed., Edward Arnold, 1991, pp. 145-223
+  8. Hellier, C. J., "Handbook of Nondestructive Evaluation", 2nd ed., McGraw-Hill, 2013, pp. 312-389, 456-523
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

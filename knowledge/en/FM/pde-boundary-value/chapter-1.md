@@ -1,0 +1,208 @@
+---
+title: "Chapter 1: Wave Equation and Oscillatory Phenomena"
+chapter_title: "Chapter 1: Wave Equation and Oscillatory Phenomena"
+subtitle: Wave Equation and Oscillations
+---
+
+🌐 EN | [🇯🇵 JP](<../../../jp/FM/pde-boundary-value/chapter-1.html>) | Last sync: 2025-11-16
+
+[FM Dojo](<../index.html>) > [Partial Differential Equations and Boundary Value Problems](<index.html>) > Chapter 1 
+
+## 1.1 Derivation of the Wave Equation
+
+We derive the one-dimensional wave equation from string vibrations. 
+
+**📐 Theory**  
+
+**One-Dimensional Wave Equation:**
+
+\\[\frac{\partial^2 u}{\partial t^2} = c^2 \frac{\partial^2 u}{\partial x^2}\\] 
+
+where \\(u(x,t)\\) is the displacement and \\(c\\) is the wave propagation velocity
+
+**Derivation:** For a string with tension \\(T\\) and linear density \\(\rho\\), we have \\(c = \sqrt{T/\rho}\\)
+
+💻 Code Example 1: Numerical simulation of wave equation (finite difference method)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example: Derivation:For a string with tension \(T\) and linear densit
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Intermediate
+    Execution time: 2-5 seconds
+    Dependencies: None
+    """
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
+    from IPython.display import HTML
+    
+    # Parameters
+    L = 10.0 # string length
+    c = 1.0 # wave propagation velocity
+    T = 20.0 # time range
+    Nx = 200 # number of spatial grid points
+    Nt = 1000 # number of time steps
+    
+    # Grid
+    x = np.linspace(0, L, Nx)
+    t = np.linspace(0, T, Nt)
+    dx = x[1] - x[0]
+    dt = t[1] - t[0]
+    
+    # CFL condition verification
+    r = c * dt / dx # Courant number
+    print(f"Courant number r = {r:.3f} (stability condition: r ≤ 1)")
+    
+    # Initial condition: triangular wave
+    def initial_displacement(x):
+     u = np.zeros_like(x)
+     peak = L / 2
+     width = L / 5
+     mask = np.abs(x - peak) < width
+     u[mask] = 1 - np.abs(x[mask] - peak) / width
+     return u
+    
+    # Initialization
+    u = np.zeros((Nt, Nx))
+    u[0] = initial_displacement(x)
+    u[1] = u[0].copy() # initial velocity = 0
+    
+    # finite difference method（explicit scheme）
+    for n in range(1, Nt-1):
+     for i in range(1, Nx-1):
+     u[n+1, i] = (2*(1-r**2)*u[n, i] - u[n-1, i] +
+     r**2*(u[n, i+1] + u[n, i-1]))
+    
+     # Boundary conditions: u(0,t) = u(L,t) = 0
+     u[n+1, 0] = 0
+     u[n+1, -1] = 0
+    
+    # Visualization
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # Snapshots
+    times = [0, Nt//4, Nt//2, 3*Nt//4]
+    for idx, n in enumerate(times):
+     ax = axes[idx//2, idx%2]
+     ax.plot(x, u[n], 'b-', linewidth=2)
+     ax.axhline(0, color='gray', linewidth=0.5)
+     ax.grid(True, alpha=0.3)
+     ax.set_xlabel('Position x', fontsize=12)
+     ax.set_ylabel('Displacement u(x,t)', fontsize=12)
+     ax.set_title(f't = {t[n]:.2f}', fontsize=12)
+     ax.set_ylim(-1.2, 1.2)
+    
+    plt.suptitle('Numerical solution of wave equation (finite difference method)', fontsize=14)
+    plt.tight_layout()
+    plt.show()
+    
+    # Spacetime plot
+    plt.figure(figsize=(12, 6))
+    plt.contourf(x, t, u, levels=50, cmap='RdBu_r')
+    plt.colorbar(label='Displacement u(x,t)')
+    plt.xlabel('Position x', fontsize=12)
+    plt.ylabel('Time t', fontsize=12)
+    plt.title('Wave propagation (Spacetime diagram)', fontsize=14)
+    plt.tight_layout()
+    plt.show()
+    
+    print("\nProperties of wave equation:")
+    print("- Waves propagate left and right, and reflect at boundaries")
+    print("- Energy is conserved")
+    print(f"- Propagation velocity: c = {c} m/s")
+
+## 1.2 d'Alembert's Solution (Traveling Wave Solution)
+
+The general solution of the wave equation in an infinite domain is given by d'Alembert's formula. 
+
+**📐 Theory**  
+
+**d'Alembert's solution:**
+
+\\[u(x,t) = f(x-ct) + g(x+ct)\\] 
+
+Superposition of left-traveling wave \\(f(x-ct)\\) and right-traveling wave \\(g(x+ct)\\)
+
+💻 Code Example 2: Visualization of d'Alembert's solution
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # Parameters
+    c = 1.0
+    x = np.linspace(-10, 10, 500)
+    t_values = np.linspace(0, 5, 6)
+    
+    # Initial waveforms
+    def f(xi):
+     """left-traveling wave"""
+     return np.exp(-xi**2)
+    
+    def g(xi):
+     """right-traveling wave"""
+     return 0.5 * np.exp(-(xi-2)**2 / 0.5)
+    
+    # Visualization
+    fig, axes = plt.subplots(3, 2, figsize=(14, 12))
+    axes = axes.flatten()
+    
+    for idx, t in enumerate(t_values):
+     ax = axes[idx]
+    
+     # d'Alembert's solution
+     u_left = f(x - c*t)
+     u_right = g(x + c*t)
+     u_total = u_left + u_right
+    
+     ax.plot(x, u_left, 'b--', linewidth=1.5, alpha=0.7, label='left-traveling wave f(x-ct)')
+     ax.plot(x, u_right, 'r--', linewidth=1.5, alpha=0.7, label='right-traveling wave g(x+ct)')
+     ax.plot(x, u_total, 'k-', linewidth=2, label='total waveform u(x,t)')
+    
+     ax.axhline(0, color='gray', linewidth=0.5)
+     ax.grid(True, alpha=0.3)
+     ax.set_xlabel('Position x', fontsize=11)
+     ax.set_ylabel('Displacement u', fontsize=11)
+     ax.set_title(f't = {t:.2f}', fontsize=12)
+     ax.set_ylim(-0.5, 1.5)
+     ax.legend(fontsize=9)
+    
+    plt.suptitle('d'Alembert's solution: superposition of traveling waves', fontsize=14)
+    plt.tight_layout()
+    plt.show()
+    
+    print("=== Properties of d'Alembert's solution ===")
+    print("- Left-traveling wave: f(x-ct) moves to the right with velocity c")
+    print("- Right-traveling wave: g(x+ct) moves to the left with velocity c")
+    print("- Total waveform: u = f + g by the superposition principle")
+
+## Summary
+
+  * The wave equation is derived from string vibrations and describes wave propagation
+  * d'Alembert's solution allows us to understand waves as a superposition of left and right traveling waves
+  * The equation can be solved numerically using the finite difference method (pay attention to CFL condition)
+  * In materials science, it is applied to ultrasonic testing and other applications
+
+[← Series Top](<index.html>) [Chapter 2 →](<chapter-2.html>)
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

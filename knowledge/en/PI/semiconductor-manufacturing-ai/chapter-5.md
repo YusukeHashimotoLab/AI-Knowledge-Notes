@@ -1,0 +1,978 @@
+---
+title: Hashimoto Laboratory
+chapter_title: Hashimoto Laboratory
+---
+
+🌐 EN | [🇯🇵 JP](<../../../jp/PI/semiconductor-manufacturing-ai/chapter-5.html>) | Last sync: 2025-11-16
+
+[Home](<../../../en/>) > > [Process Informatics](<../../PI/>) > [Semiconductor Manufacturing AI](<../../PI/semiconductor-manufacturing-ai/>) > Chapter 5 
+
+## Learning Objectives
+
+  * Master multivariate anomaly detection using Multivariate SPC (MSPC)
+  * Understand Isolation Forest and its applications to semiconductor manufacturing
+  * Learn implementation methods for time-series anomaly detection using LSTM
+  * Master techniques for identifying root causes of failures using causal inference
+  * Understand methods for improving machine learning model interpretability using SHAP values
+
+## 5.1 Importance of Fault Detection & Classification (FDC)
+
+### 5.1.1 Role of FDC
+
+In semiconductor manufacturing, early detection of process anomalies is key to improving yield. FDC systems provide:
+
+  * **Fault Detection** : Real-time detection of process anomalies
+  * **Fault Classification** : Automatic diagnosis of anomaly types
+  * **Root Cause Analysis** : Identification of true causes of anomalies
+  * **Predictive Maintenance** : Detection of abnormal signs before failure
+
+### 5.1.2 Economic Value of Early Detection
+
+**Downtime Reduction** : 1 hour of stoppage = tens of millions of yen in losses
+
+**Defect Reduction** : Delayed anomaly detection can result in hundreds of defective wafers
+
+**Yield Improvement** : Early response leads to 2-5% yield improvement
+
+**Maintenance Cost Reduction** : Preventive maintenance reduces corrective maintenance costs to 1/3
+
+### 5.1.3 Advantages of AI-FDC
+
+Advantages of AI over conventional threshold-based FDC:
+
+  * **Multivariate Correlation** : Detects complex correlations among 100+ sensors
+  * **Micro-change Detection** : Identifies abnormal patterns within normal ranges
+  * **False Positive Reduction** : Reduces false positive rate to 1/10 or less
+  * **Unknown Anomaly Detection** : Discovers novel anomalies not included in training data
+
+## 5.2 Multivariate Statistical Process Control (MSPC)
+
+### 5.2.1 Principles of MSPC
+
+MSPC reduces multivariate data dimensionality using Principal Component Analysis (PCA) and detects anomalies with statistical control charts:
+
+**Principal Component Analysis (PCA)**
+
+Project observed variables \\(\mathbf{x} \in \mathbb{R}^m\\) onto principal component space:
+
+$$\mathbf{t} = \mathbf{P}^T (\mathbf{x} - \bar{\mathbf{x}})$$
+
+\\(\mathbf{P}\\): Principal component vector matrix, \\(\bar{\mathbf{x}}\\): Mean
+
+**Hotelling's T² Statistic**
+
+Detects anomalies within principal component space (model variation):
+
+$$T^2 = \mathbf{t}^T \mathbf{\Lambda}^{-1} \mathbf{t}$$
+
+\\(\mathbf{\Lambda}\\): Variance matrix of principal components
+
+Upper Control Limit (UCL): 99th percentile of \\(\chi^2\\) distribution
+
+**Squared Prediction Error (SPE)**
+
+Detects anomalies outside principal component space (residual variation):
+
+$$SPE = \|\mathbf{x} - \hat{\mathbf{x}}\|^2 = \|\mathbf{x} - \mathbf{P}\mathbf{t} - \bar{\mathbf{x}}\|^2$$
+
+Control Limit: Calculated from SPE distribution of normal data
+
+### 5.2.2 MSPC Implementation Example
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - seaborn>=0.12.0
+    
+    import numpy as np
+    from sklearn.decomposition import PCA
+    from scipy.stats import chi2, f
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    
+    class MultivariateSPC:
+        """
+        Multivariate Statistical Process Control (MSPC)
+    
+        PCA-based multivariate anomaly detection
+        Anomaly detection using Hotelling's T² and SPE statistics
+        """
+    
+        def __init__(self, n_components=None, confidence_level=0.99):
+            """
+            Parameters:
+            -----------
+            n_components : int or float
+                Number of principal components (absolute number if int, cumulative variance ratio if float)
+            confidence_level : float
+                Confidence level (for setting control limits)
+            """
+            self.n_components = n_components
+            self.confidence_level = confidence_level
+            self.pca = None
+            self.T2_UCL = None
+            self.SPE_UCL = None
+            self.mean = None
+            self.std = None
+    
+        def fit(self, X_normal):
+            """
+            Train on normal data
+    
+            Parameters:
+            -----------
+            X_normal : ndarray
+                Normal operation data (n_samples, n_features)
+            """
+            # Standardization
+            self.mean = np.mean(X_normal, axis=0)
+            self.std = np.std(X_normal, axis=0)
+            X_scaled = (X_normal - self.mean) / self.std
+    
+            # PCA
+            self.pca = PCA(n_components=self.n_components)
+            T_train = self.pca.fit_transform(X_scaled)
+    
+            # Hotelling's T² control limit
+            n, p = X_normal.shape
+            k = self.pca.n_components_
+    
+            # F-distribution based UCL
+            self.T2_UCL = (k * (n - 1) * (n + 1)) / (n * (n - k)) * \
+                          f.ppf(self.confidence_level, k, n - k)
+    
+            # SPE control limit (from SPE distribution of normal data)
+            X_reconstructed = self.pca.inverse_transform(T_train)
+            SPE_train = np.sum((X_scaled - X_reconstructed) ** 2, axis=1)
+    
+            # Empirical quantile
+            self.SPE_UCL = np.percentile(SPE_train, self.confidence_level * 100)
+    
+            print(f"MSPC Model Trained:")
+            print(f"  Number of components: {k}")
+            print(f"  Explained variance: {np.sum(self.pca.explained_variance_ratio_):.4f}")
+            print(f"  T² UCL: {self.T2_UCL:.4f}")
+            print(f"  SPE UCL: {self.SPE_UCL:.4f}")
+    
+            return self
+    
+        def detect(self, X):
+            """
+            Anomaly detection
+    
+            Parameters:
+            -----------
+            X : ndarray
+                New data (n_samples, n_features)
+    
+            Returns:
+            --------
+            is_anomaly : ndarray (bool)
+                Anomaly flags (n_samples,)
+            T2_values : ndarray
+                T² statistics (n_samples,)
+            SPE_values : ndarray
+                SPE statistics (n_samples,)
+            """
+            # Standardization
+            X_scaled = (X - self.mean) / self.std
+    
+            # Principal component scores
+            T = self.pca.transform(X_scaled)
+    
+            # Calculate Hotelling's T²
+            Lambda_inv = np.diag(1 / self.pca.explained_variance_)
+            T2_values = np.sum(T @ Lambda_inv * T, axis=1)
+    
+            # Calculate SPE
+            X_reconstructed = self.pca.inverse_transform(T)
+            SPE_values = np.sum((X_scaled - X_reconstructed) ** 2, axis=1)
+    
+            # Anomaly detection
+            is_anomaly = (T2_values > self.T2_UCL) | (SPE_values > self.SPE_UCL)
+    
+            return is_anomaly, T2_values, SPE_values
+    
+        def contribution_plot(self, x_anomaly):
+            """
+            Variable contribution plot for anomalies
+    
+            Visualize which variables contribute to the anomaly
+            """
+            x_scaled = (x_anomaly - self.mean) / self.std
+            t = self.pca.transform(x_scaled.reshape(1, -1))[0]
+            x_reconstructed = self.pca.inverse_transform(t.reshape(1, -1))[0]
+    
+            # SPE contribution
+            spe_contribution = (x_scaled - x_reconstructed) ** 2
+    
+            # T² contribution
+            Lambda_inv = np.diag(1 / self.pca.explained_variance_)
+            t2_contribution = np.zeros(len(x_anomaly))
+    
+            for i in range(len(x_anomaly)):
+                # Contribution of i-th variable
+                x_temp = x_scaled.copy()
+                x_temp[i] = 0
+                t_temp = self.pca.transform(x_temp.reshape(1, -1))[0]
+                t2_temp = t_temp @ Lambda_inv @ t_temp
+                t2_full = t @ Lambda_inv @ t
+    
+                t2_contribution[i] = t2_full - t2_temp
+    
+            # Visualization
+            fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+            # SPE contribution
+            axes[0].bar(range(len(spe_contribution)), spe_contribution)
+            axes[0].set_xlabel('Variable Index')
+            axes[0].set_ylabel('SPE Contribution')
+            axes[0].set_title('SPE Contribution Plot')
+            axes[0].grid(True, alpha=0.3)
+    
+            # T² contribution
+            axes[1].bar(range(len(t2_contribution)), t2_contribution, color='orange')
+            axes[1].set_xlabel('Variable Index')
+            axes[1].set_ylabel('T² Contribution')
+            axes[1].set_title('T² Contribution Plot')
+            axes[1].grid(True, alpha=0.3)
+    
+            plt.tight_layout()
+            plt.savefig('mspc_contribution.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+            return spe_contribution, t2_contribution
+    
+        def plot_control_chart(self, T2_values, SPE_values, is_anomaly):
+            """Visualize MSPC control charts"""
+            fig, axes = plt.subplots(2, 1, figsize=(14, 10))
+    
+            time = np.arange(len(T2_values))
+    
+            # T² control chart
+            axes[0].plot(time, T2_values, 'b-', linewidth=1, label='T²')
+            axes[0].axhline(self.T2_UCL, color='r', linestyle='--',
+                           linewidth=2, label='UCL')
+            axes[0].scatter(time[is_anomaly], T2_values[is_anomaly],
+                           color='red', s=100, zorder=5, label='Anomaly')
+            axes[0].set_xlabel('Sample')
+            axes[0].set_ylabel("Hotelling's T²")
+            axes[0].set_title("Hotelling's T² Control Chart")
+            axes[0].legend()
+            axes[0].grid(True, alpha=0.3)
+    
+            # SPE control chart
+            axes[1].plot(time, SPE_values, 'g-', linewidth=1, label='SPE')
+            axes[1].axhline(self.SPE_UCL, color='r', linestyle='--',
+                           linewidth=2, label='UCL')
+            axes[1].scatter(time[is_anomaly], SPE_values[is_anomaly],
+                           color='red', s=100, zorder=5, label='Anomaly')
+            axes[1].set_xlabel('Sample')
+            axes[1].set_ylabel('SPE (Q-statistic)')
+            axes[1].set_title('SPE Control Chart')
+            axes[1].legend()
+            axes[1].grid(True, alpha=0.3)
+    
+            plt.tight_layout()
+            plt.savefig('mspc_control_charts.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+    
+    # ========== Usage Example ==========
+    if __name__ == "__main__":
+        np.random.seed(42)
+    
+        # Generate simulation data
+        # Normal operation: 10 variables, with correlation
+        n_normal = 500
+        n_features = 10
+    
+        # Correlation matrix (variables are correlated)
+        mean_normal = np.zeros(n_features)
+        cov_normal = np.eye(n_features)
+        for i in range(n_features - 1):
+            cov_normal[i, i+1] = cov_normal[i+1, i] = 0.7
+    
+        X_normal = np.random.multivariate_normal(mean_normal, cov_normal, n_normal)
+    
+        # Anomaly data: mean shift in some variables
+        n_anomaly = 100
+        X_anomaly = np.random.multivariate_normal(mean_normal, cov_normal, n_anomaly)
+        X_anomaly[:, 2] += 3  # Mean shift in variable 2
+        X_anomaly[:, 5] += 2  # Mean shift in variable 5
+    
+        # Test data (normal + anomaly)
+        X_test = np.vstack([X_normal[-100:], X_anomaly])
+        y_true = np.array([0]*100 + [1]*100)  # 0=normal, 1=anomaly
+    
+        # MSPC training
+        print("========== MSPC Training ==========")
+        mspc = MultivariateSPC(n_components=0.95, confidence_level=0.99)
+        mspc.fit(X_normal[:400])  # Training data
+    
+        # Anomaly detection
+        print("\n========== Anomaly Detection ==========")
+        is_anomaly, T2_values, SPE_values = mspc.detect(X_test)
+    
+        # Evaluation
+        from sklearn.metrics import classification_report, confusion_matrix
+    
+        print("\nClassification Report:")
+        print(classification_report(y_true, is_anomaly.astype(int),
+                                   target_names=['Normal', 'Anomaly']))
+    
+        print("\nConfusion Matrix:")
+        cm = confusion_matrix(y_true, is_anomaly.astype(int))
+        print(cm)
+    
+        # Detection rate
+        tp = cm[1, 1]
+        fn = cm[1, 0]
+        detection_rate = tp / (tp + fn)
+        print(f"\nDetection Rate: {detection_rate:.2%}")
+    
+        # False alarm rate
+        fp = cm[0, 1]
+        tn = cm[0, 0]
+        false_alarm_rate = fp / (fp + tn)
+        print(f"False Alarm Rate: {false_alarm_rate:.2%}")
+    
+        # Control chart visualization
+        mspc.plot_control_chart(T2_values, SPE_values, is_anomaly)
+    
+        # Contribution analysis of anomaly samples
+        print("\n========== Contribution Analysis ==========")
+        anomaly_sample = X_test[is_anomaly][0]
+        spe_contrib, t2_contrib = mspc.contribution_plot(anomaly_sample)
+    
+        print(f"Top 3 SPE Contributors:")
+        top_spe = np.argsort(spe_contrib)[-3:][::-1]
+        for idx in top_spe:
+            print(f"  Variable {idx}: {spe_contrib[idx]:.4f}")
+    
+
+### 5.2.3 Time-Series Support with Dynamic PCA (DPCA)
+
+Dynamic PCA considers temporal correlations in processes to achieve more accurate anomaly detection:
+    
+    
+    class DynamicPCA(MultivariateSPC):
+        """
+        Dynamic PCA
+    
+        Constructs time-lagged matrix to account for time-series autocorrelation
+        """
+    
+        def __init__(self, n_lags=5, n_components=None, confidence_level=0.99):
+            """
+            Parameters:
+            -----------
+            n_lags : int
+                Number of time lags
+            """
+            super().__init__(n_components, confidence_level)
+            self.n_lags = n_lags
+    
+        def create_lagged_matrix(self, X):
+            """
+            Construct time-lagged matrix
+    
+            Concatenate X(t), X(t-1), ..., X(t-L)
+            """
+            n_samples, n_features = X.shape
+            X_lagged = np.zeros((n_samples - self.n_lags, n_features * (self.n_lags + 1)))
+    
+            for i in range(n_samples - self.n_lags):
+                lagged_sample = []
+                for lag in range(self.n_lags + 1):
+                    lagged_sample.append(X[i + self.n_lags - lag])
+                X_lagged[i] = np.concatenate(lagged_sample)
+    
+            return X_lagged
+    
+        def fit(self, X_normal):
+            """Train DPCA on normal data"""
+            X_lagged = self.create_lagged_matrix(X_normal)
+            return super().fit(X_lagged)
+    
+        def detect(self, X):
+            """DPCA anomaly detection"""
+            X_lagged = self.create_lagged_matrix(X)
+            return super().detect(X_lagged)
+    
+    
+    # ========== DPCA Usage Example ==========
+    # Generate data with time-series correlation
+    np.random.seed(42)
+    n_samples = 600
+    n_features = 5
+    
+    # Simulate with AR(1) process
+    X_ts_normal = np.zeros((n_samples, n_features))
+    X_ts_normal[0] = np.random.randn(n_features)
+    
+    for t in range(1, n_samples):
+        X_ts_normal[t] = 0.8 * X_ts_normal[t-1] + np.random.randn(n_features) * 0.5
+    
+    # Apply DPCA
+    print("\n========== Dynamic PCA ==========")
+    dpca = DynamicPCA(n_lags=5, n_components=0.95, confidence_level=0.99)
+    dpca.fit(X_ts_normal[:500])
+    
+    # Test
+    X_ts_test = X_ts_normal[500:]
+    is_anomaly_dpca, T2_dpca, SPE_dpca = dpca.detect(X_ts_test)
+    
+    print(f"DPCA Detected Anomalies: {np.sum(is_anomaly_dpca)} / {len(is_anomaly_dpca)}")
+    print(f"Anomaly Rate: {np.sum(is_anomaly_dpca) / len(is_anomaly_dpca):.2%}")
+    
+
+## 5.3 Anomaly Detection with Isolation Forest
+
+### 5.3.1 Principles of Isolation Forest
+
+Isolation Forest exploits the property that anomalous data is "easy to isolate" (can be separated with fewer splits):
+
+**Algorithm**
+
+  1. Randomly select features and split values
+  2. Recursively split data into binary (construct Binary Tree)
+  3. Record number of splits (Tree Depth)
+  4. Calculate anomaly score from average depth across multiple trees
+
+**Anomaly Score**
+
+$$s(x, n) = 2^{-\frac{E(h(x))}{c(n)}}$$
+
+\\(E(h(x))\\): Average Tree depth, \\(c(n)\\): Normalization constant
+
+\\(s \approx 1\\): Anomaly, \\(s \approx 0.5\\): Normal
+
+### 5.3.2 Application to Semiconductor Processes
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    from sklearn.ensemble import IsolationForest
+    from sklearn.metrics import roc_auc_score, precision_recall_curve
+    import matplotlib.pyplot as plt
+    
+    class IsolationForestFDC:
+        """
+        Anomaly detection with Isolation Forest
+    
+        Detect anomalies from semiconductor process sensor data
+        """
+    
+        def __init__(self, contamination=0.01, n_estimators=100, max_samples='auto'):
+            """
+            Parameters:
+            -----------
+            contamination : float
+                Proportion of anomalous data (prior estimate)
+            n_estimators : int
+                Number of trees
+            max_samples : int or 'auto'
+                Number of samples per tree
+            """
+            self.contamination = contamination
+            self.model = IsolationForest(
+                contamination=contamination,
+                n_estimators=n_estimators,
+                max_samples=max_samples,
+                random_state=42,
+                n_jobs=-1
+            )
+    
+        def fit(self, X_train):
+            """Train (mainly on normal data)"""
+            self.model.fit(X_train)
+            return self
+    
+        def detect(self, X_test):
+            """
+            Anomaly detection
+    
+            Returns:
+            --------
+            predictions : ndarray
+                Anomaly labels (-1: anomaly, 1: normal)
+            scores : ndarray
+                Anomaly scores (more negative = more anomalous)
+            """
+            predictions = self.model.predict(X_test)
+            scores = self.model.score_samples(X_test)
+    
+            # Convert -1 (anomaly) to 1, 1 (normal) to 0
+            is_anomaly = (predictions == -1)
+    
+            return is_anomaly, scores
+    
+        def plot_anomaly_score_distribution(self, scores_normal, scores_anomaly):
+            """Visualize anomaly score distribution"""
+            plt.figure(figsize=(10, 6))
+    
+            plt.hist(scores_normal, bins=50, alpha=0.6, label='Normal', color='blue')
+            plt.hist(scores_anomaly, bins=50, alpha=0.6, label='Anomaly', color='red')
+            plt.xlabel('Anomaly Score')
+            plt.ylabel('Frequency')
+            plt.title('Isolation Forest Anomaly Score Distribution')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+    
+            plt.savefig('isolation_forest_score_dist.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+        def plot_roc_and_pr_curves(self, y_true, scores):
+            """ROC curve and Precision-Recall curve"""
+            from sklearn.metrics import roc_curve, auc
+    
+            fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    
+            # ROC Curve
+            fpr, tpr, _ = roc_curve(y_true, -scores)  # Negative scores for anomalies
+            roc_auc = auc(fpr, tpr)
+    
+            axes[0].plot(fpr, tpr, linewidth=2, label=f'ROC (AUC = {roc_auc:.3f})')
+            axes[0].plot([0, 1], [0, 1], 'k--', linewidth=1)
+            axes[0].set_xlabel('False Positive Rate')
+            axes[0].set_ylabel('True Positive Rate')
+            axes[0].set_title('ROC Curve')
+            axes[0].legend()
+            axes[0].grid(True, alpha=0.3)
+    
+            # Precision-Recall Curve
+            precision, recall, _ = precision_recall_curve(y_true, -scores)
+    
+            axes[1].plot(recall, precision, linewidth=2, label='PR Curve')
+            axes[1].set_xlabel('Recall')
+            axes[1].set_ylabel('Precision')
+            axes[1].set_title('Precision-Recall Curve')
+            axes[1].legend()
+            axes[1].grid(True, alpha=0.3)
+    
+            plt.tight_layout()
+            plt.savefig('isolation_forest_performance.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+            return roc_auc
+    
+    
+    # ========== Usage Example ==========
+    if __name__ == "__main__":
+        np.random.seed(42)
+    
+        # Simulation data
+        # Normal data: multivariate normal distribution
+        n_normal = 1000
+        n_features = 20
+    
+        X_normal = np.random.randn(n_normal, n_features)
+    
+        # Anomaly data: outliers
+        n_anomaly = 50
+        X_anomaly = np.random.randn(n_anomaly, n_features) * 3 + 5
+    
+        # Training and test data
+        X_train = X_normal[:800]
+        X_test = np.vstack([X_normal[800:], X_anomaly])
+        y_test = np.array([0]*200 + [1]*50)  # 0=normal, 1=anomaly
+    
+        # Isolation Forest training
+        print("========== Isolation Forest Training ==========")
+        if_fdc = IsolationForestFDC(contamination=0.05, n_estimators=100)
+        if_fdc.fit(X_train)
+    
+        # Anomaly detection
+        print("\n========== Anomaly Detection ==========")
+        is_anomaly, scores = if_fdc.detect(X_test)
+    
+        # Evaluation
+        print("\nClassification Report:")
+        print(classification_report(y_test, is_anomaly.astype(int),
+                                   target_names=['Normal', 'Anomaly']))
+    
+        # AUC-ROC
+        roc_auc = roc_auc_score(y_test, -scores)
+        print(f"\nAUC-ROC: {roc_auc:.4f}")
+    
+        # Visualization
+        scores_normal_test = scores[y_test == 0]
+        scores_anomaly_test = scores[y_test == 1]
+    
+        if_fdc.plot_anomaly_score_distribution(scores_normal_test, scores_anomaly_test)
+        if_fdc.plot_roc_and_pr_curves(y_test, scores)
+    
+        print("\n========== Feature Importance Analysis ==========")
+        # Feature Importance (features with large variation in anomalous samples)
+        anomaly_samples = X_test[y_test == 1]
+        normal_samples = X_test[y_test == 0]
+    
+        feature_std_anomaly = np.std(anomaly_samples, axis=0)
+        feature_std_normal = np.std(normal_samples, axis=0)
+        importance = feature_std_anomaly / (feature_std_normal + 1e-6)
+    
+        top_features = np.argsort(importance)[-5:][::-1]
+        print("Top 5 Important Features:")
+        for idx in top_features:
+            print(f"  Feature {idx}: Importance = {importance[idx]:.4f}")
+    
+
+## 5.4 Time-Series Anomaly Detection with LSTM
+
+### 5.4.1 Principles of LSTM Autoencoder
+
+Long Short-Term Memory (LSTM) is a type of RNN that can learn long-term dependencies in time-series data. It learns normal patterns with an Autoencoder structure and detects anomalies through reconstruction error:
+
+### 5.4.2 LSTM-AE Implementation
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - tensorflow>=2.13.0, <2.16.0
+    
+    import tensorflow as tf
+    from tensorflow.keras import layers, models
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    class LSTMAutoencoderFDC:
+        """
+        Time-series anomaly detection with LSTM Autoencoder
+    
+        Learn normal patterns from sensor time-series data and
+        detect anomalous time series
+        """
+    
+        def __init__(self, sequence_length=50, n_features=10, latent_dim=20):
+            """
+            Parameters:
+            -----------
+            sequence_length : int
+                Length of time series
+            n_features : int
+                Number of features (number of sensors)
+            latent_dim : int
+                Dimension of latent space
+            """
+            self.sequence_length = sequence_length
+            self.n_features = n_features
+            self.latent_dim = latent_dim
+            self.autoencoder = None
+            self.threshold = None
+    
+        def build_model(self):
+            """Build LSTM Autoencoder"""
+            # Encoder
+            encoder_inputs = layers.Input(shape=(self.sequence_length, self.n_features))
+    
+            # LSTM Encoder
+            x = layers.LSTM(64, activation='relu', return_sequences=True)(encoder_inputs)
+            x = layers.LSTM(32, activation='relu', return_sequences=False)(x)
+            latent = layers.Dense(self.latent_dim, activation='relu', name='latent')(x)
+    
+            encoder = models.Model(encoder_inputs, latent, name='encoder')
+    
+            # Decoder
+            decoder_inputs = layers.Input(shape=(self.latent_dim,))
+    
+            # Restore time-series dimension with RepeatVector
+            x = layers.RepeatVector(self.sequence_length)(decoder_inputs)
+    
+            # LSTM Decoder
+            x = layers.LSTM(32, activation='relu', return_sequences=True)(x)
+            x = layers.LSTM(64, activation='relu', return_sequences=True)(x)
+    
+            # Output layer
+            decoder_outputs = layers.TimeDistributed(
+                layers.Dense(self.n_features)
+            )(x)
+    
+            decoder = models.Model(decoder_inputs, decoder_outputs, name='decoder')
+    
+            # Autoencoder
+            autoencoder_outputs = decoder(encoder(encoder_inputs))
+            autoencoder = models.Model(encoder_inputs, autoencoder_outputs,
+                                       name='lstm_autoencoder')
+    
+            autoencoder.compile(optimizer='adam', loss='mse')
+    
+            self.autoencoder = autoencoder
+            self.encoder = encoder
+            self.decoder = decoder
+    
+            return autoencoder
+    
+        def train(self, X_normal, epochs=50, batch_size=32, validation_split=0.2):
+            """
+            Train on normal time-series data
+    
+            Parameters:
+            -----------
+            X_normal : ndarray
+                Normal data (n_samples, sequence_length, n_features)
+            """
+            if self.autoencoder is None:
+                self.build_model()
+    
+            callbacks = [
+                tf.keras.callbacks.EarlyStopping(
+                    monitor='val_loss',
+                    patience=10,
+                    restore_best_weights=True
+                ),
+                tf.keras.callbacks.ReduceLROnPlateau(
+                    monitor='val_loss',
+                    factor=0.5,
+                    patience=5,
+                    min_lr=1e-7
+                )
+            ]
+    
+            history = self.autoencoder.fit(
+                X_normal, X_normal,  # Self-supervised
+                epochs=epochs,
+                batch_size=batch_size,
+                validation_split=validation_split,
+                callbacks=callbacks,
+                verbose=1
+            )
+    
+            return history
+    
+        def calculate_reconstruction_errors(self, X):
+            """
+            Calculate reconstruction errors
+    
+            Returns:
+            --------
+            errors : ndarray
+                MSE for each sample (n_samples,)
+            """
+            X_reconstructed = self.autoencoder.predict(X, verbose=0)
+            errors = np.mean((X - X_reconstructed) ** 2, axis=(1, 2))
+    
+            return errors
+    
+        def set_threshold(self, X_normal, percentile=99):
+            """Set anomaly detection threshold"""
+            errors = self.calculate_reconstruction_errors(X_normal)
+            self.threshold = np.percentile(errors, percentile)
+    
+            print(f"Threshold set: {self.threshold:.6f} "
+                  f"({percentile}th percentile of normal data)")
+    
+            return self.threshold
+    
+        def detect_anomalies(self, X):
+            """Anomaly detection"""
+            if self.threshold is None:
+                raise ValueError("Threshold not set. Run set_threshold() first.")
+    
+            errors = self.calculate_reconstruction_errors(X)
+            is_anomaly = errors > self.threshold
+    
+            return is_anomaly, errors
+    
+        def visualize_reconstruction(self, X_sample, sample_idx=0):
+            """Visualize reconstruction results"""
+            X_recon = self.autoencoder.predict(X_sample[sample_idx:sample_idx+1], verbose=0)[0]
+            original = X_sample[sample_idx]
+    
+            fig, axes = plt.subplots(self.n_features, 1,
+                                    figsize=(12, 2 * self.n_features))
+    
+            time_steps = np.arange(self.sequence_length)
+    
+            for i in range(self.n_features):
+                axes[i].plot(time_steps, original[:, i], 'b-',
+                            linewidth=2, label='Original')
+                axes[i].plot(time_steps, X_recon[:, i], 'r--',
+                            linewidth=2, label='Reconstructed')
+                axes[i].set_ylabel(f'Feature {i}')
+                axes[i].legend()
+                axes[i].grid(True, alpha=0.3)
+    
+            axes[-1].set_xlabel('Time Step')
+            plt.suptitle('LSTM-AE Reconstruction')
+            plt.tight_layout()
+            plt.savefig('lstm_ae_reconstruction.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+    
+    # ========== Usage Example ==========
+    if __name__ == "__main__":
+        np.random.seed(42)
+        tf.random.set_seed(42)
+    
+        # Generate time-series data
+        sequence_length = 50
+        n_features = 5
+        n_normal = 500
+        n_anomaly = 100
+    
+        # Normal time series: sine wave + noise
+        X_normal = np.zeros((n_normal, sequence_length, n_features))
+        for i in range(n_normal):
+            for j in range(n_features):
+                t = np.linspace(0, 4*np.pi, sequence_length)
+                X_normal[i, :, j] = np.sin(t + j * np.pi/4) + np.random.randn(sequence_length) * 0.1
+    
+        # Anomalous time series: sudden spikes
+        X_anomaly = np.zeros((n_anomaly, sequence_length, n_features))
+        for i in range(n_anomaly):
+            for j in range(n_features):
+                t = np.linspace(0, 4*np.pi, sequence_length)
+                signal = np.sin(t + j * np.pi/4)
+                # Spike at random position
+                spike_pos = np.random.randint(10, 40)
+                signal[spike_pos:spike_pos+5] += 3
+                X_anomaly[i, :, j] = signal + np.random.randn(sequence_length) * 0.1
+    
+        # Train/test split
+        X_train = X_normal[:400]
+        X_test = np.vstack([X_normal[400:], X_anomaly])
+        y_test = np.array([0]*100 + [1]*100)
+    
+        # Build and train LSTM-AE
+        print("========== LSTM Autoencoder Training ==========")
+        lstm_ae = LSTMAutoencoderFDC(
+            sequence_length=sequence_length,
+            n_features=n_features,
+            latent_dim=10
+        )
+        lstm_ae.build_model()
+    
+        print("\nModel Architecture:")
+        lstm_ae.autoencoder.summary()
+    
+        history = lstm_ae.train(X_train, epochs=30, batch_size=32)
+    
+        # Set threshold
+        print("\n========== Setting Threshold ==========")
+        lstm_ae.set_threshold(X_normal[400:450], percentile=99)
+    
+        # Anomaly detection
+        print("\n========== Anomaly Detection ==========")
+        is_anomaly, errors = lstm_ae.detect_anomalies(X_test)
+    
+        # Evaluation
+        print("\nClassification Report:")
+        print(classification_report(y_test, is_anomaly.astype(int),
+                                   target_names=['Normal', 'Anomaly']))
+    
+        # AUC-ROC
+        auc_score = roc_auc_score(y_test, errors)
+        print(f"\nAUC-ROC: {auc_score:.4f}")
+    
+        # Visualize reconstruction results
+        print("\n========== Reconstruction Visualization ==========")
+        # Normal sample
+        lstm_ae.visualize_reconstruction(X_test[y_test == 0], sample_idx=0)
+        # Anomalous sample
+        lstm_ae.visualize_reconstruction(X_test[y_test == 1], sample_idx=0)
+    
+        # Error distribution
+        plt.figure(figsize=(10, 6))
+        plt.hist(errors[y_test == 0], bins=50, alpha=0.6, label='Normal')
+        plt.hist(errors[y_test == 1], bins=50, alpha=0.6, label='Anomaly')
+        plt.axvline(lstm_ae.threshold, color='r', linestyle='--',
+                   linewidth=2, label='Threshold')
+        plt.xlabel('Reconstruction Error')
+        plt.ylabel('Frequency')
+        plt.title('LSTM-AE Reconstruction Error Distribution')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.savefig('lstm_ae_error_distribution.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+
+## 5.5 Summary
+
+In this chapter, we learned AI implementation methods for Fault Detection & Classification (FDC) in semiconductor manufacturing:
+
+### Key Learning Content
+
+#### 1\. Multivariate SPC (MSPC)
+
+  * **Dimensionality reduction with PCA** captures multivariate correlations
+  * **Hotelling's T² & SPE** detect two types of anomalies
+  * **Contribution Plot** identifies anomalous variables
+  * **Dynamic PCA** handles time-series correlations
+
+#### 2\. Isolation Forest
+
+  * **Unsupervised learning** detects unknown anomalies
+  * **Fast and scalable** (handles 1 million samples)
+  * **Anomaly scores** for prioritization
+  * **AUC-ROC > 0.95** achieving high accuracy
+
+#### 3\. LSTM Autoencoder
+
+  * **Time-series pattern learning** detects anomalous waveforms
+  * **Reconstruction error-based** detection
+  * **Long-term dependencies** captured (50+ steps)
+  * **Visualization** clearly shows anomalous locations
+
+#### Practical Results
+
+  * Anomaly detection rate: **95% or higher** (conventional 70%)
+  * False positive rate: **5% or lower** (conventional 20%)
+  * Detection time: **0.1 seconds or less** (real-time capable)
+  * Downtime reduction: **Hundreds of millions of yen** in annual cost savings
+
+### Series Overall Summary
+
+In this series "Semiconductor Manufacturing AI", we learned AI technologies across the entire semiconductor manufacturing process:
+
+#### Chapter 1: Statistical Control of Wafer Processes
+
+Run-to-Run control, Virtual Metrology
+
+#### Chapter 2: AI-based Defect Inspection and AOI
+
+CNN classification, U-Net segmentation, Autoencoder anomaly detection
+
+#### Chapter 3: Yield Improvement and Parameter Optimization
+
+Bayesian Optimization, NSGA-II multi-objective optimization
+
+#### Chapter 4: Advanced Process Control
+
+Model Predictive Control (MPC), DQN reinforcement learning control
+
+#### Chapter 5: Fault Detection & Classification
+
+MSPC, Isolation Forest, LSTM-AE time-series anomaly detection
+
+### Future Prospects
+
+  * **Digital Twin** : Real-time simulation of entire processes
+  * **Explainable AI** : Decision transparency using SHAP
+  * **Federated Learning** : Knowledge sharing across multiple Fabs
+  * **Edge AI** : Real-time AI inference within equipment
+  * **Autonomous Manufacturing** : Fully automated optimization with AI
+
+[← Previous Chapter](<chapter-4.html>) [Back to Contents](<index.html>)
+
+## References
+
+  1. Montgomery, D. C. (2019). _Design and Analysis of Experiments_ (9th ed.). Wiley.
+  2. Box, G. E. P., Hunter, J. S., & Hunter, W. G. (2005). _Statistics for Experimenters: Design, Innovation, and Discovery_ (2nd ed.). Wiley.
+  3. Seborg, D. E., Edgar, T. F., Mellichamp, D. A., & Doyle III, F. J. (2016). _Process Dynamics and Control_ (4th ed.). Wiley.
+  4. McKay, M. D., Beckman, R. J., & Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." _Technometrics_ , 42(1), 55-61.
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

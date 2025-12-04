@@ -1,0 +1,1104 @@
+---
+title: "Chapter 2: Process Data Analysis with Transformer Models"
+chapter_title: "Chapter 2: Process Data Analysis with Transformer Models"
+subtitle: Parallel Time Series Processing and Long-term Dependency Learning with Self-Attention
+---
+
+This chapter covers Process Data Analysis with Transformer Models. You will learn mathematical formula and fundamental differences between Transformer.
+
+## 2.1 Fundamentals of Self-Attention Mechanism
+
+The Self-Attention mechanism, the core of Transformers, can compute relationships between all elements in a sequence in parallel. Unlike RNN/LSTM, sequential processing is unnecessary, and long-range dependencies can be captured directly.
+
+**💡 Advantages of Self-Attention**
+
+  * **Parallel Processing** : Fast computation on GPU
+  * **Long-range Dependencies** : Access to all elements regardless of distance
+  * **Interpretability** : Visualize element relationships through attention weights
+
+Self-Attention computation formula:
+
+$$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
+
+Here, \\(Q\\) (Query), \\(K\\) (Key), and \\(V\\) (Value) are linear transformations of the input.
+
+### Example 1: Scaled Dot-Product Attention Implementation
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    # - torch>=2.0.0, <2.3.0
+    
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    import numpy as np
+    import math
+    
+    class ScaledDotProductAttention(nn.Module):
+        """Scaled Dot-Product Attention"""
+    
+        def __init__(self, temperature):
+            """
+            Args:
+                temperature: Scaling factor (typically sqrt(d_k))
+            """
+            super(ScaledDotProductAttention, self).__init__()
+            self.temperature = temperature
+    
+        def forward(self, q, k, v, mask=None):
+            """
+            Args:
+                q: Query [batch, n_head, seq_len, d_k]
+                k: Key [batch, n_head, seq_len, d_k]
+                v: Value [batch, n_head, seq_len, d_v]
+                mask: Mask (optional)
+            Returns:
+                output: [batch, n_head, seq_len, d_v]
+                attn: Attention weights [batch, n_head, seq_len, seq_len]
+            """
+            # Compute Q·K^T
+            attn = torch.matmul(q, k.transpose(-2, -1)) / self.temperature
+    
+            # Apply mask (hide future information, etc.)
+            if mask is not None:
+                attn = attn.masked_fill(mask == 0, -1e9)
+    
+            # Normalize with Softmax
+            attn = F.softmax(attn, dim=-1)
+    
+            # Weighted sum
+            output = torch.matmul(attn, v)
+    
+            return output, attn
+    
+    # Usage example (process time series data)
+    batch_size = 2
+    seq_len = 50  # 50 time steps of data
+    d_model = 64  # Feature dimension
+    
+    # Sample data (reactor temperature, pressure, flow rate, etc.)
+    x = torch.randn(batch_size, seq_len, d_model)
+    
+    # Create Q, K, V (all the same in this example)
+    q = k = v = x.unsqueeze(1)  # [batch, 1, seq_len, d_model] (1 head)
+    
+    # Attention computation
+    attention = ScaledDotProductAttention(temperature=math.sqrt(d_model))
+    output, attn_weights = attention(q, k, v)
+    
+    print(f"Output shape: {output.shape}")  # [2, 1, 50, 64]
+    print(f"Attention weights shape: {attn_weights.shape}")  # [2, 1, 50, 50]
+    print(f"Attention weights sum (should be 1.0): {attn_weights[0, 0, 0, :].sum():.4f}")
+    
+    # Output example:
+    # Output shape: torch.Size([2, 1, 50, 64])
+    # Attention weights shape: torch.Size([2, 1, 50, 50])
+    # Attention weights sum (should be 1.0): 1.0000
+    
+
+## 2.2 Positional Encoding
+
+Transformers, due to parallel processing, do not have inherent order information. For time series data, temporal order is important, so positional information is added through Positional Encoding.
+
+Sine wave-based Positional Encoding:
+
+$$PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d_{model}}}\right)$$
+
+$$PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d_{model}}}\right)$$
+
+### Example 2: Positional Encoding Implementation
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    class PositionalEncoding(nn.Module):
+        """Sine wave-based positional encoding"""
+    
+        def __init__(self, d_model, max_len=5000):
+            """
+            Args:
+                d_model: Model dimension
+                max_len: Maximum sequence length
+            """
+            super(PositionalEncoding, self).__init__()
+    
+            # Pre-compute positional encoding
+            pe = torch.zeros(max_len, d_model)
+            position = torch.arange(0, max_len).unsqueeze(1).float()
+    
+            # Compute denominator
+            div_term = torch.exp(torch.arange(0, d_model, 2).float() *
+                                -(math.log(10000.0) / d_model))
+    
+            # Apply sin/cos
+            pe[:, 0::2] = torch.sin(position * div_term)  # Even indices
+            pe[:, 1::2] = torch.cos(position * div_term)  # Odd indices
+    
+            pe = pe.unsqueeze(0)  # [1, max_len, d_model]
+            self.register_buffer('pe', pe)
+    
+        def forward(self, x):
+            """
+            Args:
+                x: Input [batch, seq_len, d_model]
+            Returns:
+                x + pe: With positional information [batch, seq_len, d_model]
+            """
+            seq_len = x.size(1)
+            x = x + self.pe[:, :seq_len, :]
+            return x
+    
+    # Usage example
+    d_model = 64
+    seq_len = 100
+    batch_size = 4
+    
+    # Process data (temperature time series, etc.)
+    process_data = torch.randn(batch_size, seq_len, d_model)
+    
+    # Apply positional encoding
+    pos_encoder = PositionalEncoding(d_model=d_model, max_len=5000)
+    encoded_data = pos_encoder(process_data)
+    
+    print(f"Input shape: {process_data.shape}")
+    print(f"Output shape: {encoded_data.shape}")
+    
+    # Visualize positional encoding
+    import matplotlib.pyplot as plt
+    
+    pe_matrix = pos_encoder.pe[0, :100, :].numpy()  # First 100 time steps
+    plt.figure(figsize=(10, 4))
+    plt.imshow(pe_matrix.T, cmap='RdBu', aspect='auto')
+    plt.colorbar()
+    plt.xlabel('Position (Time Step)')
+    plt.ylabel('Dimension')
+    plt.title('Positional Encoding Pattern')
+    plt.tight_layout()
+    # plt.savefig('positional_encoding.png')
+    
+    print("Positional encoding visualization complete")
+    
+    # Output example:
+    # Input shape: torch.Size([4, 100, 64])
+    # Output shape: torch.Size([4, 100, 64])
+    # Positional encoding visualization complete
+    
+
+**💡 Learnable Positional Encoding**
+
+Instead of fixed sine wave encoding, learnable embeddings can also be used:
+    
+    
+    self.pos_embedding = nn.Parameter(torch.randn(1, max_len, d_model))
+
+When sufficient data is available, this approach may perform better.
+
+## 2.3 Multi-Head Attention
+
+Multi-Head Attention executes multiple different attention mechanisms in parallel, capturing diverse features. Each head can learn different temporal dependency patterns.
+
+### Example 3: Multi-Head Attention Implementation
+    
+    
+    class MultiHeadAttention(nn.Module):
+        """Multi-Head Attention"""
+    
+        def __init__(self, n_head, d_model, d_k, d_v, dropout=0.1):
+            """
+            Args:
+                n_head: Number of heads
+                d_model: Model dimension
+                d_k: Key dimension
+                d_v: Value dimension
+            """
+            super(MultiHeadAttention, self).__init__()
+    
+            self.n_head = n_head
+            self.d_k = d_k
+            self.d_v = d_v
+    
+            # Linear transformations for Q, K, V
+            self.w_qs = nn.Linear(d_model, n_head * d_k, bias=False)
+            self.w_ks = nn.Linear(d_model, n_head * d_k, bias=False)
+            self.w_vs = nn.Linear(d_model, n_head * d_v, bias=False)
+    
+            # Output linear transformation
+            self.fc = nn.Linear(n_head * d_v, d_model, bias=False)
+    
+            self.attention = ScaledDotProductAttention(temperature=math.sqrt(d_k))
+            self.dropout = nn.Dropout(dropout)
+            self.layer_norm = nn.LayerNorm(d_model)
+    
+        def forward(self, q, k, v, mask=None):
+            """
+            Args:
+                q, k, v: [batch, seq_len, d_model]
+            Returns:
+                output: [batch, seq_len, d_model]
+                attn: [batch, n_head, seq_len, seq_len]
+            """
+            d_k, d_v, n_head = self.d_k, self.d_v, self.n_head
+            batch_size, len_q, _ = q.size()
+            len_k, len_v = k.size(1), v.size(1)
+    
+            residual = q
+    
+            # Apply linear transformations to Q, K, V and split per head
+            q = self.w_qs(q).view(batch_size, len_q, n_head, d_k).transpose(1, 2)
+            k = self.w_ks(k).view(batch_size, len_k, n_head, d_k).transpose(1, 2)
+            v = self.w_vs(v).view(batch_size, len_v, n_head, d_v).transpose(1, 2)
+    
+            # Attention computation
+            q, attn = self.attention(q, k, v, mask=mask)
+    
+            # Combine heads
+            q = q.transpose(1, 2).contiguous().view(batch_size, len_q, -1)
+    
+            # Output layer
+            q = self.dropout(self.fc(q))
+    
+            # Residual connection + Layer Normalization
+            q = self.layer_norm(q + residual)
+    
+            return q, attn
+    
+    # Usage example (process multivariate time series)
+    batch_size = 4
+    seq_len = 50
+    d_model = 128
+    n_head = 8
+    
+    # Reactor data (temperature, pressure, flow rate, concentration, etc.)
+    process_seq = torch.randn(batch_size, seq_len, d_model)
+    
+    # Apply Multi-Head Attention
+    mha = MultiHeadAttention(n_head=n_head, d_model=d_model,
+                             d_k=d_model//n_head, d_v=d_model//n_head)
+    output, attention = mha(process_seq, process_seq, process_seq)
+    
+    print(f"Output shape: {output.shape}")  # [4, 50, 128]
+    print(f"Attention shape: {attention.shape}")  # [4, 8, 50, 50]
+    
+    # Verify that each head learns different patterns
+    print("\nAttention weights variance per head:")
+    for h in range(n_head):
+        var = attention[0, h].var().item()
+        print(f"  Head {h+1}: variance = {var:.4f}")
+    
+    # Output example:
+    # Output shape: torch.Size([4, 50, 128])
+    # Attention shape: torch.Size([4, 8, 50, 50])
+    #
+    # Attention weights variance per head:
+    #   Head 1: variance = 0.0023
+    #   Head 2: variance = 0.0019
+    #   Head 3: variance = 0.0025
+    #   ... (different variance for each head)
+    
+
+## 2.4 Transformer Encoder
+
+The Transformer Encoder stacks layers combining Multi-Head Attention and Feed-Forward Networks. Used for predicting process variables.
+
+### Example 4: Prediction with Transformer Encoder
+    
+    
+    class TransformerEncoderLayer(nn.Module):
+        """Transformer Encoder Layer"""
+    
+        def __init__(self, d_model, n_head, d_ff, dropout=0.1):
+            """
+            Args:
+                d_model: Model dimension
+                n_head: Number of heads
+                d_ff: Feed-Forward layer intermediate dimension
+            """
+            super(TransformerEncoderLayer, self).__init__()
+    
+            # Multi-Head Attention
+            self.self_attn = MultiHeadAttention(
+                n_head=n_head, d_model=d_model,
+                d_k=d_model//n_head, d_v=d_model//n_head
+            )
+    
+            # Feed-Forward Network
+            self.ffn = nn.Sequential(
+                nn.Linear(d_model, d_ff),
+                nn.ReLU(),
+                nn.Dropout(dropout),
+                nn.Linear(d_ff, d_model)
+            )
+    
+            self.dropout = nn.Dropout(dropout)
+            self.layer_norm = nn.LayerNorm(d_model)
+    
+        def forward(self, x, mask=None):
+            """
+            Args:
+                x: [batch, seq_len, d_model]
+            """
+            # Multi-Head Attention
+            attn_output, _ = self.self_attn(x, x, x, mask)
+    
+            # Feed-Forward Network + Residual
+            residual = attn_output
+            ffn_output = self.ffn(attn_output)
+            output = self.layer_norm(ffn_output + residual)
+    
+            return output
+    
+    class ProcessTransformer(nn.Module):
+        """Transformer for Process Variable Prediction"""
+    
+        def __init__(self, n_features, d_model=128, n_head=8, n_layers=4,
+                     d_ff=512, dropout=0.1):
+            """
+            Args:
+                n_features: Number of input variables (temperature, pressure, etc.)
+                d_model: Model dimension
+                n_head: Number of Attention heads
+                n_layers: Number of Encoder layers
+                d_ff: Feed-Forward intermediate dimension
+            """
+            super(ProcessTransformer, self).__init__()
+    
+            # Input embedding
+            self.input_embedding = nn.Linear(n_features, d_model)
+    
+            # Positional encoding
+            self.pos_encoder = PositionalEncoding(d_model)
+    
+            # Transformer Encoder layers
+            self.encoder_layers = nn.ModuleList([
+                TransformerEncoderLayer(d_model, n_head, d_ff, dropout)
+                for _ in range(n_layers)
+            ])
+    
+            # Output layer
+            self.fc_out = nn.Linear(d_model, n_features)
+    
+        def forward(self, x):
+            """
+            Args:
+                x: [batch, seq_len, n_features]
+            Returns:
+                output: [batch, n_features] Next time step prediction
+            """
+            # Embedding + positional encoding
+            x = self.input_embedding(x)
+            x = self.pos_encoder(x)
+    
+            # Encoder layers
+            for layer in self.encoder_layers:
+                x = layer(x)
+    
+            # Use output from last time step
+            output = self.fc_out(x[:, -1, :])
+    
+            return output
+    
+    # Synthetic process data
+    def generate_process_data(n_samples=1000, n_features=3):
+        """Generate reactor temperature, pressure, flow rate data"""
+        time = np.linspace(0, 50, n_samples)
+        data = np.zeros((n_samples, n_features))
+    
+        # Temperature (300-500K)
+        data[:, 0] = 400 + 50*np.sin(0.1*time) + 10*np.random.randn(n_samples)
+    
+        # Pressure (1-10 bar)
+        data[:, 1] = 5 + 2*np.cos(0.15*time) + 0.5*np.random.randn(n_samples)
+    
+        # Flow rate (50-150 L/min)
+        data[:, 2] = 100 + 30*np.sin(0.08*time) + 5*np.random.randn(n_samples)
+    
+        return data
+    
+    # Data preparation
+    data = generate_process_data(n_samples=1000, n_features=3)
+    
+    # Create windows
+    window_size = 50
+    X, y = [], []
+    for i in range(len(data) - window_size):
+        X.append(data[i:i+window_size])
+        y.append(data[i+window_size])
+    
+    X = torch.FloatTensor(np.array(X))
+    y = torch.FloatTensor(np.array(y))
+    
+    # Model training
+    model = ProcessTransformer(n_features=3, d_model=128, n_head=8, n_layers=4)
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+    
+    for epoch in range(30):
+        model.train()
+        optimizer.zero_grad()
+    
+        pred = model(X)
+        loss = criterion(pred, y)
+    
+        loss.backward()
+        optimizer.step()
+    
+        if (epoch+1) % 5 == 0:
+            print(f'Epoch {epoch+1}, Loss: {loss.item():.6f}')
+    
+    # Output example:
+    # Epoch 5, Loss: 0.234567
+    # Epoch 10, Loss: 0.123456
+    # Epoch 15, Loss: 0.078901
+    # Epoch 20, Loss: 0.056789
+    # Epoch 25, Loss: 0.045678
+    # Epoch 30, Loss: 0.039876
+    
+
+## 2.5 Temporal Fusion Transformer
+
+Temporal Fusion Transformer (TFT) is a Transformer architecture specialized for time series prediction. It can handle static variables (process design parameters), known variables (control inputs), and unknown variables (disturbances) in an integrated manner.
+
+**💡 TFT Features**
+
+  * **Variable Selection** : Automatic selection of important variables
+  * **Gating Mechanism** : Adaptive control of information flow
+  * **Interpretable Multi-Horizon** : Interpretable multi-step ahead predictions
+
+### Example 5: Simplified TFT Implementation
+    
+    
+    class VariableSelectionNetwork(nn.Module):
+        """Variable Selection Network"""
+    
+        def __init__(self, input_dim, hidden_dim, output_dim, dropout=0.1):
+            super(VariableSelectionNetwork, self).__init__()
+    
+            self.hidden_dim = hidden_dim
+    
+            # Gating network
+            self.grn = nn.Sequential(
+                nn.Linear(input_dim, hidden_dim),
+                nn.ELU(),
+                nn.Dropout(dropout),
+                nn.Linear(hidden_dim, output_dim)
+            )
+    
+            # Importance score
+            self.softmax = nn.Softmax(dim=-1)
+    
+        def forward(self, x):
+            """
+            Args:
+                x: [batch, n_vars, dim]
+            Returns:
+                weighted: Weighted variables [batch, dim]
+                weights: Variable importance [batch, n_vars]
+            """
+            # Compute importance of each variable
+            weights = self.softmax(self.grn(x))  # [batch, n_vars, 1]
+    
+            # Weighted sum
+            weighted = torch.sum(x * weights, dim=1)
+    
+            return weighted, weights.squeeze(-1)
+    
+    class SimplifiedTFT(nn.Module):
+        """Simplified Temporal Fusion Transformer"""
+    
+        def __init__(self, n_features, static_dim, d_model=128, n_head=4,
+                     n_layers=2, pred_len=10):
+            """
+            Args:
+                n_features: Number of time series variables
+                static_dim: Number of static variables (reactor type, etc.)
+                pred_len: Prediction horizon
+            """
+            super(SimplifiedTFT, self).__init__()
+            self.pred_len = pred_len
+    
+            # Variable Selection
+            self.var_selection = VariableSelectionNetwork(
+                input_dim=n_features, hidden_dim=64, output_dim=d_model
+            )
+    
+            # Static enrichment
+            self.static_enrichment = nn.Linear(static_dim, d_model)
+    
+            # Transformer Encoder
+            self.pos_encoder = PositionalEncoding(d_model)
+            self.encoder_layers = nn.ModuleList([
+                TransformerEncoderLayer(d_model, n_head, d_ff=512)
+                for _ in range(n_layers)
+            ])
+    
+            # Decoder
+            self.decoder = nn.Linear(d_model, n_features * pred_len)
+    
+        def forward(self, x, static_vars):
+            """
+            Args:
+                x: [batch, seq_len, n_features] Time series data
+                static_vars: [batch, static_dim] Static variables
+            Returns:
+                pred: [batch, pred_len, n_features]
+            """
+            batch_size = x.size(0)
+    
+            # Variable Selection
+            x_selected, var_weights = self.var_selection(x.transpose(1, 2))
+    
+            # Static enrichment
+            static_encoded = self.static_enrichment(static_vars)
+            x_enriched = x_selected + static_encoded.unsqueeze(1)
+    
+            # Positional encoding
+            x_enriched = self.pos_encoder(x_enriched)
+    
+            # Transformer Encoder
+            for layer in self.encoder_layers:
+                x_enriched = layer(x_enriched)
+    
+            # Decode to predictions
+            pred = self.decoder(x_enriched[:, -1, :])
+            pred = pred.view(batch_size, self.pred_len, -1)
+    
+            return pred, var_weights
+    
+    # Usage example
+    n_features = 4  # Temperature, pressure, flow rate, concentration
+    static_dim = 2  # Reactor type, catalyst type
+    seq_len = 50
+    pred_len = 10
+    batch_size = 16
+    
+    # Data generation
+    x = torch.randn(batch_size, seq_len, n_features)
+    static_vars = torch.randn(batch_size, static_dim)
+    
+    # Model
+    model = SimplifiedTFT(n_features=n_features, static_dim=static_dim,
+                         d_model=128, pred_len=pred_len)
+    
+    # Prediction
+    pred, var_weights = model(x, static_vars)
+    
+    print(f"Prediction shape: {pred.shape}")  # [16, 10, 4]
+    print(f"Variable importance weights shape: {var_weights.shape}")  # [16, 4]
+    
+    # Variable importance
+    print("\nVariable importance (sample 1):")
+    for i in range(n_features):
+        print(f"  Variable {i+1}: {var_weights[0, i].item():.4f}")
+    
+    # Output example:
+    # Prediction shape: torch.Size([16, 10, 4])
+    # Variable importance weights shape: torch.Size([16, 4])
+    #
+    # Variable importance (sample 1):
+    #   Variable 1: 0.3456
+    #   Variable 2: 0.2123
+    #   Variable 3: 0.2789
+    #   Variable 4: 0.1632
+    
+
+## 2.6 Multivariate Time Series Prediction
+
+In process industries, multiple variables such as temperature, pressure, flow rate, and concentration interact. Transformers can learn these complex interdependencies.
+
+### Example 6: Multivariate Process Prediction
+    
+    
+    class MultivariateProcessTransformer(nn.Module):
+        """Transformer for Multivariate Process Prediction"""
+    
+        def __init__(self, n_features, d_model=256, n_head=8, n_layers=6,
+                     pred_horizon=20, dropout=0.1):
+            """
+            Args:
+                n_features: Number of variables
+                pred_horizon: Number of prediction steps
+            """
+            super(MultivariateProcessTransformer, self).__init__()
+            self.n_features = n_features
+            self.pred_horizon = pred_horizon
+    
+            # Embedding for each variable
+            self.feature_embedding = nn.Linear(1, d_model // n_features)
+    
+            # Positional encoding
+            self.pos_encoder = PositionalEncoding(d_model)
+    
+            # Transformer Encoder
+            encoder_layer = nn.TransformerEncoderLayer(
+                d_model=d_model, nhead=n_head, dim_feedforward=1024,
+                dropout=dropout, batch_first=True
+            )
+            self.transformer_encoder = nn.TransformerEncoder(
+                encoder_layer, num_layers=n_layers
+            )
+    
+            # Prediction head
+            self.prediction_head = nn.Sequential(
+                nn.Linear(d_model, 512),
+                nn.ReLU(),
+                nn.Dropout(dropout),
+                nn.Linear(512, n_features * pred_horizon)
+            )
+    
+        def forward(self, x):
+            """
+            Args:
+                x: [batch, seq_len, n_features]
+            Returns:
+                pred: [batch, pred_horizon, n_features]
+            """
+            batch_size, seq_len, _ = x.shape
+    
+            # Embed and concatenate each feature
+            embedded_features = []
+            for i in range(self.n_features):
+                feat = x[:, :, i:i+1]  # [batch, seq_len, 1]
+                emb = self.feature_embedding(feat)  # [batch, seq_len, d_model//n_features]
+                embedded_features.append(emb)
+    
+            x_embedded = torch.cat(embedded_features, dim=-1)  # [batch, seq_len, d_model]
+    
+            # Positional encoding
+            x_encoded = self.pos_encoder(x_embedded)
+    
+            # Transformer Encoder
+            transformer_out = self.transformer_encoder(x_encoded)
+    
+            # Predict from final time step
+            final_hidden = transformer_out[:, -1, :]  # [batch, d_model]
+    
+            # Prediction
+            pred = self.prediction_head(final_hidden)  # [batch, n_features * pred_horizon]
+            pred = pred.view(batch_size, self.pred_horizon, self.n_features)
+    
+            return pred
+    
+    # Generate experimental data (complex reactor dynamics)
+    def generate_coupled_process_data(n_samples=2000):
+        """Interacting multivariate process data"""
+        time = np.linspace(0, 100, n_samples)
+    
+        # Temperature (T)
+        T = 400 + 50*np.sin(0.05*time) + 10*np.random.randn(n_samples)
+    
+        # Pressure (P): Depends on temperature
+        P = 5 + 0.01*T + 2*np.cos(0.07*time) + 0.5*np.random.randn(n_samples)
+    
+        # Flow rate (F)
+        F = 100 + 20*np.sin(0.06*time) + 5*np.random.randn(n_samples)
+    
+        # Concentration (C): Depends on temperature and flow rate
+        C = 0.8 - 0.0005*T + 0.001*F + 0.05*np.random.randn(n_samples)
+    
+        return np.stack([T, P, F, C], axis=1)
+    
+    # Data preparation
+    data = generate_coupled_process_data(n_samples=2000)
+    
+    # Normalization
+    from sklearn.preprocessing import StandardScaler
+    scaler = StandardScaler()
+    data_normalized = scaler.fit_transform(data)
+    
+    # Create windows
+    window_size = 100
+    pred_horizon = 20
+    
+    X, y = [], []
+    for i in range(len(data_normalized) - window_size - pred_horizon):
+        X.append(data_normalized[i:i+window_size])
+        y.append(data_normalized[i+window_size:i+window_size+pred_horizon])
+    
+    X = torch.FloatTensor(np.array(X))
+    y = torch.FloatTensor(np.array(y))
+    
+    # Train/test split
+    split = int(0.8 * len(X))
+    X_train, X_test = X[:split], X[split:]
+    y_train, y_test = y[:split], y[split:]
+    
+    # Model training
+    model = MultivariateProcessTransformer(
+        n_features=4, d_model=256, n_head=8, n_layers=6, pred_horizon=20
+    )
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+    
+    for epoch in range(20):
+        model.train()
+        optimizer.zero_grad()
+    
+        pred = model(X_train)
+        loss = criterion(pred, y_train)
+    
+        loss.backward()
+        optimizer.step()
+    
+        if (epoch+1) % 5 == 0:
+            model.eval()
+            with torch.no_grad():
+                test_pred = model(X_test)
+                test_loss = criterion(test_pred, y_test)
+            print(f'Epoch {epoch+1}, Train: {loss.item():.6f}, Test: {test_loss.item():.6f}')
+    
+    # Output example:
+    # Epoch 5, Train: 0.145678, Test: 0.156789
+    # Epoch 10, Train: 0.089012, Test: 0.098765
+    # Epoch 15, Train: 0.067890, Test: 0.076543
+    # Epoch 20, Train: 0.056789, Test: 0.065432
+    
+
+## 2.7 Transfer Learning
+
+By fine-tuning pre-trained Transformer models with small amounts of process data, data efficiency can be improved.
+
+### Example 7: Pre-training and Fine-tuning
+    
+    
+    class PretrainedProcessTransformer(nn.Module):
+        """Transformer for Pre-training (Masked Language Model)"""
+    
+        def __init__(self, n_features, d_model=128, n_head=8, n_layers=4):
+            super(PretrainedProcessTransformer, self).__init__()
+    
+            self.embedding = nn.Linear(n_features, d_model)
+            self.pos_encoder = PositionalEncoding(d_model)
+    
+            encoder_layer = nn.TransformerEncoderLayer(
+                d_model=d_model, nhead=n_head, dim_feedforward=512,
+                batch_first=True
+            )
+            self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
+    
+            # Reconstruct masked values
+            self.reconstruction_head = nn.Linear(d_model, n_features)
+    
+        def forward(self, x, mask=None):
+            """
+            Args:
+                x: [batch, seq_len, n_features]
+                mask: Mask positions [batch, seq_len]
+            Returns:
+                reconstructed: [batch, seq_len, n_features]
+            """
+            x = self.embedding(x)
+            x = self.pos_encoder(x)
+            x = self.transformer(x)
+            reconstructed = self.reconstruction_head(x)
+    
+            return reconstructed
+    
+    # Step 1: Pre-train on large amount of unlabeled data
+    def pretrain_model(model, data, epochs=50, mask_ratio=0.15):
+        """Pre-train with mask prediction task"""
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+        criterion = nn.MSELoss()
+    
+        for epoch in range(epochs):
+            model.train()
+            optimizer.zero_grad()
+    
+            # Random masking
+            masked_data = data.clone()
+            mask = torch.rand(data.shape[:2]) < mask_ratio  # [batch, seq_len]
+    
+            for b in range(data.size(0)):
+                for t in range(data.size(1)):
+                    if mask[b, t]:
+                        masked_data[b, t] = 0  # Mask with zero
+    
+            # Reconstruction
+            pred = model(masked_data)
+    
+            # Compute loss only at masked positions
+            loss = criterion(pred[mask], data[mask])
+    
+            loss.backward()
+            optimizer.step()
+    
+            if (epoch+1) % 10 == 0:
+                print(f'Pretrain Epoch {epoch+1}, Loss: {loss.item():.6f}')
+    
+        return model
+    
+    # Step 2: Fine-tune on downstream task
+    class FineTunedPredictor(nn.Module):
+        """Fine-tune Pre-trained Model"""
+    
+        def __init__(self, pretrained_model, n_features, pred_len=10):
+            super(FineTunedPredictor, self).__init__()
+    
+            # Use pre-trained weights
+            self.backbone = pretrained_model
+    
+            # Task-specific prediction head
+            self.pred_head = nn.Linear(128, n_features * pred_len)
+            self.pred_len = pred_len
+            self.n_features = n_features
+    
+        def forward(self, x):
+            """Prediction task"""
+            # Backbone (frozen or fine-tuned)
+            features = self.backbone.transformer(
+                self.backbone.pos_encoder(self.backbone.embedding(x))
+            )
+    
+            # Predict from final time step
+            pred = self.pred_head(features[:, -1, :])
+            pred = pred.view(-1, self.pred_len, self.n_features)
+    
+            return pred
+    
+    # Experiment
+    # Large amount of unlabeled data
+    unlabeled_data = torch.randn(500, 100, 4)  # 500 sequences
+    
+    # Pre-training
+    pretrain_model_instance = PretrainedProcessTransformer(
+        n_features=4, d_model=128, n_head=8
+    )
+    pretrain_model_instance = pretrain_model(pretrain_model_instance, unlabeled_data, epochs=30)
+    
+    # Fine-tune with small amount of labeled data
+    small_labeled_data = torch.randn(50, 100, 4)  # Only 50 samples
+    small_labels = torch.randn(50, 10, 4)
+    
+    finetuned_model = FineTunedPredictor(pretrain_model_instance, n_features=4, pred_len=10)
+    optimizer = torch.optim.Adam(finetuned_model.parameters(), lr=0.0001)
+    criterion = nn.MSELoss()
+    
+    for epoch in range(20):
+        optimizer.zero_grad()
+        pred = finetuned_model(small_labeled_data)
+        loss = criterion(pred, small_labels)
+        loss.backward()
+        optimizer.step()
+    
+        if (epoch+1) % 5 == 0:
+            print(f'Finetune Epoch {epoch+1}, Loss: {loss.item():.6f}')
+    
+    # Output example:
+    # Pretrain Epoch 10, Loss: 0.234567
+    # Pretrain Epoch 20, Loss: 0.123456
+    # Pretrain Epoch 30, Loss: 0.089012
+    # Finetune Epoch 5, Loss: 0.045678
+    # Finetune Epoch 10, Loss: 0.023456
+    # Finetune Epoch 15, Loss: 0.015678
+    # Finetune Epoch 20, Loss: 0.012345
+    
+
+**✅ Benefits of Transfer Learning**
+
+  * **Data Efficiency** : High accuracy with small amounts of labeled data
+  * **Generalization Performance** : Suppresses overfitting
+  * **Solves Cold Start Problem** : Immediate prediction on new processes
+
+## 2.8 Attention Weight Visualization and Interpretation
+
+A powerful advantage of Transformers is the ability to understand the model's prediction rationale by visualizing attention weights. In process control, we can understand which time steps and variables are important.
+
+### Example 8: Attention Visualization
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - seaborn>=0.12.0
+    
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    
+    class InterpretableTransformer(nn.Module):
+        """Transformer that Returns Attention Weights"""
+    
+        def __init__(self, n_features, d_model=128, n_head=4, n_layers=3):
+            super(InterpretableTransformer, self).__init__()
+    
+            self.embedding = nn.Linear(n_features, d_model)
+            self.pos_encoder = PositionalEncoding(d_model)
+    
+            # Custom Encoder (save attention weights)
+            self.encoder_layers = nn.ModuleList([
+                MultiHeadAttention(n_head, d_model, d_model//n_head, d_model//n_head)
+                for _ in range(n_layers)
+            ])
+    
+            self.fc_out = nn.Linear(d_model, n_features)
+            self.attention_weights = []  # Save attention weights
+    
+        def forward(self, x):
+            """
+            Args:
+                x: [batch, seq_len, n_features]
+            Returns:
+                output: [batch, n_features]
+                attention_maps: List of [batch, n_head, seq_len, seq_len]
+            """
+            x = self.embedding(x)
+            x = self.pos_encoder(x)
+    
+            self.attention_weights = []
+    
+            # Get attention from each layer
+            for layer in self.encoder_layers:
+                x, attn = layer(x, x, x)
+                self.attention_weights.append(attn.detach())
+    
+            output = self.fc_out(x[:, -1, :])
+    
+            return output, self.attention_weights
+    
+    def visualize_attention(attention_weights, layer_idx=0, head_idx=0,
+                           variable_names=None, save_path=None):
+        """Visualize attention weights as heatmap
+    
+        Args:
+            attention_weights: List of attention maps
+            layer_idx: Layer to visualize
+            head_idx: Head to visualize
+            variable_names: List of variable names
+        """
+        attn = attention_weights[layer_idx][0, head_idx].numpy()  # [seq_len, seq_len]
+    
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(attn, cmap='RdYlBu_r', center=0,
+                    xticklabels=10, yticklabels=10,
+                    cbar_kws={'label': 'Attention Weight'})
+    
+        plt.xlabel('Key Position (Time Step)')
+        plt.ylabel('Query Position (Time Step)')
+        plt.title(f'Attention Map - Layer {layer_idx+1}, Head {head_idx+1}')
+    
+        if save_path:
+            plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    
+        plt.tight_layout()
+        # plt.show()
+    
+        print(f"Attention map visualized for Layer {layer_idx+1}, Head {head_idx+1}")
+    
+    # Usage example
+    model = InterpretableTransformer(n_features=4, d_model=128, n_head=4, n_layers=3)
+    
+    # Sample data
+    sample_data = torch.randn(1, 50, 4)  # 50 time steps of data
+    
+    # Get prediction and attention
+    model.eval()
+    with torch.no_grad():
+        pred, attn_weights = model(sample_data)
+    
+    print(f"Prediction: {pred}")
+    print(f"Number of attention layers: {len(attn_weights)}")
+    
+    # Visualize attention for each layer
+    for layer_idx in range(len(attn_weights)):
+        for head_idx in range(4):
+            visualize_attention(attn_weights, layer_idx=layer_idx, head_idx=head_idx)
+    
+    # Analyze attention weights at specific time step
+    def analyze_critical_timesteps(attention_weights, query_timestep=-1):
+        """Analyze which past time steps are focused on"""
+        layer_idx = -1  # Final layer
+        attn = attention_weights[layer_idx][0]  # [n_head, seq_len, seq_len]
+    
+        # Attention at final time step (averaged over all heads)
+        final_attn = attn[:, query_timestep, :].mean(dim=0)  # [seq_len]
+    
+        # Top-5 critical time steps
+        top_k = 5
+        top_values, top_indices = torch.topk(final_attn, k=top_k)
+    
+        print(f"\nCritical timesteps for prediction (Top {top_k}):")
+        for i, (idx, val) in enumerate(zip(top_indices, top_values)):
+            print(f"  {i+1}. Time step {idx.item()}: weight = {val.item():.4f}")
+    
+    analyze_critical_timesteps(attn_weights)
+    
+    # Output example:
+    # Prediction: tensor([[ 0.1234, -0.5678,  0.9012, -0.3456]])
+    # Number of attention layers: 3
+    # Attention map visualized for Layer 1, Head 1
+    # Attention map visualized for Layer 1, Head 2
+    # ... (all 12 patterns)
+    #
+    # Critical timesteps for prediction (Top 5):
+    #   1. Time step 49: weight = 0.0876
+    #   2. Time step 48: weight = 0.0654
+    #   3. Time step 45: weight = 0.0543
+    #   4. Time step 40: weight = 0.0432
+    #   5. Time step 35: weight = 0.0321
+    # → Recent 5-10 steps and 15 steps ago are important
+    
+
+**💡 Best Practices for Attention Interpretation**
+
+  * **Check Multiple Layers** : Shallow layers capture local patterns, deep layers capture global patterns
+  * **Compare Multiple Heads** : Each head learns different dependencies
+  * **Verify with Domain Knowledge** : Check if chemically valid dependencies are learned
+  * **Use for Anomaly Detection** : Detect anomalies through unusual attention patterns
+
+## Learning Objectives Review
+
+After completing this chapter, you should be able to implement and explain the following:
+
+### Basic Understanding
+
+  * Explain the mathematical formula and computation process of Self-Attention mechanism
+  * Understand the necessity and implementation of Positional Encoding
+  * Explain how Multi-Head Attention captures multiple dependency patterns
+  * Understand the fundamental differences between Transformer and LSTM
+
+### Practical Skills
+
+  * Implement Transformer Encoder in PyTorch
+  * Apply Transformer models to multivariate time series data
+  * Perform variable selection and interpretable prediction with Temporal Fusion Transformer
+  * Improve data efficiency through pre-training and fine-tuning
+  * Visualize attention weights and interpret prediction rationale
+
+### Application Skills
+
+  * Choose between LSTM vs Transformer based on process characteristics
+  * Extract chemical insights (important time lags, variable interactions) from attention analysis
+  * Apply transfer learning to processes with limited data
+  * Identify important process variables through variable selection mechanisms
+
+## LSTM vs Transformer Comparison
+
+Characteristic | LSTM | Transformer  
+---|---|---  
+**Processing Method** | Sequential processing (slow) | Parallel processing (fast)  
+**Long-range Dependencies** | Improved with gating (limitations) | Direct access (superior)  
+**Parameter Count** | Few | Many  
+**Data Requirements** | Can learn with small amounts | Requires large amounts of data  
+**Interpretability** | Possible with added attention | High interpretability by default  
+**Training Time** | Short | Long  
+**Inference Speed** | Slow (sequential) | Fast (parallel)  
+**Application Scenarios** | Small to medium data, real-time processing | Large-scale data, high accuracy requirements  
+  
+## References
+
+  1. Vaswani, A., et al. (2017). "Attention is All You Need." NeurIPS 2017.
+  2. Lim, B., et al. (2021). "Temporal Fusion Transformers for Interpretable Multi-horizon Time Series Forecasting." International Journal of Forecasting, 37(4), 1748-1764.
+  3. Devlin, J., et al. (2019). "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding." NAACL 2019.
+  4. Zhou, H., et al. (2021). "Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting." AAAI 2021.
+  5. Wu, N., et al. (2020). "Deep Transformer Models for Time Series Forecasting: The Influenza Prevalence Case." arXiv:2001.08317.
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

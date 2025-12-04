@@ -1,0 +1,771 @@
+---
+title: "Chapter 1: Time Series Prediction with RNN/LSTM"
+chapter_title: "Chapter 1: Time Series Prediction with RNN/LSTM"
+subtitle: Sequential Prediction of Process Variables and Deep Learning Modeling
+---
+
+This chapter covers Time Series Prediction with RNN/LSTM. You will learn vanishing gradient problem and principles of Sequence-to-Sequence architecture.
+
+## 1.1 RNN Fundamentals and Backpropagation
+
+Recurrent Neural Networks (RNNs) are neural networks that can learn sequential dependencies in time series data. Time series variables in chemical processes, such as temperature, pressure, and flow rate, change depending on past states, making RNNs effective.
+
+**💡 Basic Principles of RNN**
+
+  * **Hidden State** : Internal memory that retains past information
+  * **Time Unrolling** : Same weights are shared at each time step
+  * **Sequential Processing** : Processes input along the time series
+
+The RNN update equations are as follows:
+
+$$h_t = \tanh(W_{hh} h_{t-1} + W_{xh} x_t + b_h)$$
+
+$$y_t = W_{hy} h_t + b_y$$
+
+### Example 1: Vanilla RNN Implementation (Reactor Temperature Prediction)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - torch>=2.0.0, <2.3.0
+    
+    import numpy as np
+    import torch
+    import torch.nn as nn
+    import matplotlib.pyplot as plt
+    
+    # Simple RNN cell implementation
+    class SimpleRNN(nn.Module):
+        def __init__(self, input_size, hidden_size, output_size):
+            """Simple RNN
+    
+            Args:
+                input_size: Input dimension (e.g., 1 for temperature)
+                hidden_size: Hidden layer dimension
+                output_size: Output dimension (number of prediction variables)
+            """
+            super(SimpleRNN, self).__init__()
+            self.hidden_size = hidden_size
+    
+            # Weight matrices
+            self.W_xh = nn.Linear(input_size, hidden_size)  # Input to hidden
+            self.W_hh = nn.Linear(hidden_size, hidden_size)  # Hidden to hidden
+            self.W_hy = nn.Linear(hidden_size, output_size)  # Hidden to output
+    
+        def forward(self, x, h_prev):
+            """One-step update
+    
+            Args:
+                x: Current input [batch, input_size]
+                h_prev: Previous hidden state [batch, hidden_size]
+            """
+            # Update hidden state
+            h = torch.tanh(self.W_xh(x) + self.W_hh(h_prev))
+            # Calculate output
+            y = self.W_hy(h)
+            return y, h
+    
+    # Generate synthetic data (reactor temperature time series)
+    np.random.seed(42)
+    time = np.linspace(0, 50, 500)
+    # Base temperature 350K + periodic variation + noise
+    temperature = 350 + 20*np.sin(0.2*time) + 5*np.random.randn(len(time))
+    
+    # Data preparation
+    data = torch.FloatTensor(temperature).unsqueeze(1)  # [500, 1]
+    
+    # Model training
+    model = SimpleRNN(input_size=1, hidden_size=32, output_size=1)
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    
+    # Training loop
+    seq_length = 20  # Predict next from past 20 steps
+    for epoch in range(100):
+        total_loss = 0
+        h = torch.zeros(1, 32)  # Initial hidden state
+    
+        for i in range(seq_length, len(data)):
+            # Input sequence
+            x_seq = data[i-seq_length:i]
+            target = data[i]
+    
+            # Sequential prediction
+            h = torch.zeros(1, 32)  # Reset
+            for t in range(seq_length):
+                _, h = model(x_seq[t:t+1], h)
+    
+            # Predict at final step
+            pred, h = model(x_seq[-1:], h)
+    
+            loss = criterion(pred, target)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+    
+            total_loss += loss.item()
+            h = h.detach()  # Detach gradient
+    
+        if (epoch+1) % 20 == 0:
+            print(f'Epoch {epoch+1}, Loss: {total_loss/(len(data)-seq_length):.4f}')
+    
+    # Output example:
+    # Epoch 20, Loss: 15.3421
+    # Epoch 40, Loss: 8.7654
+    # Epoch 60, Loss: 5.2341
+    # Epoch 80, Loss: 3.8765
+    # Epoch 100, Loss: 2.9123
+    
+
+**⚠️ Limitations of Vanilla RNN**
+
+Due to the vanishing gradient problem, it cannot learn long-term dependencies (100+ steps). Since the process industry deals with data spanning hours to days, LSTM/GRU are necessary.
+
+## 1.2 LSTM Architecture
+
+Long Short-Term Memory (LSTM) is an improved RNN that can learn long-term dependencies through gate mechanisms. It controls information flow with three gates: forget gate, input gate, and output gate.
+
+LSTM update equations:
+
+$$f_t = \sigma(W_f [h_{t-1}, x_t] + b_f) \quad \text{(Forget Gate)}$$
+
+$$i_t = \sigma(W_i [h_{t-1}, x_t] + b_i) \quad \text{(Input Gate)}$$
+
+$$\tilde{C}_t = \tanh(W_C [h_{t-1}, x_t] + b_C) \quad \text{(Candidate Cell)}$$
+
+$$C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t \quad \text{(Cell State Update)}$$
+
+$$o_t = \sigma(W_o [h_{t-1}, x_t] + b_o) \quad \text{(Output Gate)}$$
+
+$$h_t = o_t \odot \tanh(C_t) \quad \text{(Hidden State)}$$
+
+### Example 2: LSTM Implementation (Reactor Pressure Prediction)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - torch>=2.0.0, <2.3.0
+    
+    import torch.nn as nn
+    
+    # LSTM model
+    class ProcessLSTM(nn.Module):
+        def __init__(self, input_size=1, hidden_size=64, num_layers=2, output_size=1):
+            """LSTM for process variable prediction
+    
+            Args:
+                input_size: Number of input variables
+                hidden_size: LSTM hidden layer size
+                num_layers: Number of LSTM layers
+                output_size: Number of output variables
+            """
+            super(ProcessLSTM, self).__init__()
+            self.hidden_size = hidden_size
+            self.num_layers = num_layers
+    
+            self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+            self.fc = nn.Linear(hidden_size, output_size)
+    
+        def forward(self, x):
+            """Forward propagation
+    
+            Args:
+                x: [batch, seq_len, input_size]
+            Returns:
+                out: [batch, output_size]
+            """
+            # LSTM manages hidden states internally
+            lstm_out, _ = self.lstm(x)  # [batch, seq_len, hidden_size]
+    
+            # Use output at last time step
+            out = self.fc(lstm_out[:, -1, :])  # [batch, output_size]
+            return out
+    
+    # Generate synthetic data (reactor pressure: 1-10 bar)
+    time = np.linspace(0, 100, 1000)
+    pressure = 5 + 2*np.sin(0.1*time) + 0.5*np.cos(0.3*time) + 0.3*np.random.randn(len(time))
+    
+    # Create windowed data
+    def create_windows(data, window_size=50):
+        """Split time series data into windows"""
+        X, y = [], []
+        for i in range(len(data) - window_size):
+            X.append(data[i:i+window_size])
+            y.append(data[i+window_size])
+        return np.array(X), np.array(y)
+    
+    X, y = create_windows(pressure, window_size=50)
+    X = torch.FloatTensor(X).unsqueeze(2)  # [samples, 50, 1]
+    y = torch.FloatTensor(y).unsqueeze(1)  # [samples, 1]
+    
+    # Train/test split
+    split = int(0.8 * len(X))
+    X_train, X_test = X[:split], X[split:]
+    y_train, y_test = y[:split], y[split:]
+    
+    # Model training
+    model = ProcessLSTM(input_size=1, hidden_size=64, num_layers=2)
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    
+    for epoch in range(50):
+        model.train()
+        optimizer.zero_grad()
+    
+        # Prediction
+        pred = model(X_train)
+        loss = criterion(pred, y_train)
+    
+        # Backpropagation
+        loss.backward()
+        optimizer.step()
+    
+        if (epoch+1) % 10 == 0:
+            model.eval()
+            with torch.no_grad():
+                test_pred = model(X_test)
+                test_loss = criterion(test_pred, y_test)
+            print(f'Epoch {epoch+1}, Train Loss: {loss.item():.4f}, Test Loss: {test_loss.item():.4f}')
+    
+    # Output example:
+    # Epoch 10, Train Loss: 0.0523, Test Loss: 0.0587
+    # Epoch 20, Train Loss: 0.0234, Test Loss: 0.0298
+    # Epoch 30, Train Loss: 0.0156, Test Loss: 0.0201
+    # Epoch 40, Train Loss: 0.0112, Test Loss: 0.0167
+    # Epoch 50, Train Loss: 0.0089, Test Loss: 0.0145
+    
+
+## 1.3 GRU (Gated Recurrent Unit)
+
+GRU is a simplified version of LSTM, consisting of only two gates (reset gate and update gate). It has fewer parameters and faster training.
+
+### Example 3: GRU Implementation and Comparison with LSTM
+    
+    
+    class ProcessGRU(nn.Module):
+        def __init__(self, input_size=1, hidden_size=64, num_layers=2, output_size=1):
+            """GRU-based process prediction model"""
+            super(ProcessGRU, self).__init__()
+            self.gru = nn.GRU(input_size, hidden_size, num_layers, batch_first=True)
+            self.fc = nn.Linear(hidden_size, output_size)
+    
+        def forward(self, x):
+            gru_out, _ = self.gru(x)
+            out = self.fc(gru_out[:, -1, :])
+            return out
+    
+    # Performance comparison
+    def compare_models(X_train, y_train, X_test, y_test):
+        """Performance comparison between LSTM and GRU"""
+        results = {}
+    
+        for name, ModelClass in [('LSTM', ProcessLSTM), ('GRU', ProcessGRU)]:
+            model = ModelClass(input_size=1, hidden_size=64, num_layers=2)
+            optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+            criterion = nn.MSELoss()
+    
+            # Training
+            for epoch in range(30):
+                model.train()
+                optimizer.zero_grad()
+                pred = model(X_train)
+                loss = criterion(pred, y_train)
+                loss.backward()
+                optimizer.step()
+    
+            # Evaluation
+            model.eval()
+            with torch.no_grad():
+                test_pred = model(X_test)
+                test_loss = criterion(test_pred, y_test).item()
+    
+            # Parameter count
+            n_params = sum(p.numel() for p in model.parameters())
+    
+            results[name] = {'test_loss': test_loss, 'n_params': n_params}
+    
+        return results
+    
+    results = compare_models(X_train, y_train, X_test, y_test)
+    for name, metrics in results.items():
+        print(f"{name}: Test Loss={metrics['test_loss']:.4f}, Parameters={metrics['n_params']:,}")
+    
+    # Output example:
+    # LSTM: Test Loss=0.0145, Parameters=50,241
+    # GRU: Test Loss=0.0152, Parameters=37,825
+    # → GRU achieves similar performance with approximately 25% fewer parameters
+    
+
+**💡 Model Selection Guidelines**
+
+  * **LSTM** : Long-term dependencies are important (100+ steps), accuracy priority
+  * **GRU** : Limited data, training speed priority
+  * **Vanilla RNN** : Short-term dependencies (<20 steps), computational cost minimization
+
+## 1.4 Time Series Data Preprocessing
+
+Process data typically contains multiple variables with different scales (temperature: 300-500K, pressure: 1-10 bar). Proper normalization and window splitting are important.
+
+### Example 4: Data Preprocessing Pipeline
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - pandas>=2.0.0, <2.2.0
+    
+    import pandas as pd
+    from sklearn.preprocessing import StandardScaler, MinMaxScaler
+    
+    class ProcessDataPreprocessor:
+        """Process data preprocessing class"""
+    
+        def __init__(self, window_size=50, normalization='standard'):
+            """
+            Args:
+                window_size: Input sequence length
+                normalization: 'standard' (standardization) or 'minmax' (0-1 normalization)
+            """
+            self.window_size = window_size
+            self.normalization = normalization
+    
+            if normalization == 'standard':
+                self.scaler = StandardScaler()
+            else:
+                self.scaler = MinMaxScaler()
+    
+        def fit_transform(self, data):
+            """Data normalization and window splitting
+    
+            Args:
+                data: numpy array [time_steps, features]
+            Returns:
+                X: [samples, window_size, features]
+                y: [samples, features]
+            """
+            # Normalization
+            data_normalized = self.scaler.fit_transform(data)
+    
+            # Window splitting
+            X, y = [], []
+            for i in range(len(data_normalized) - self.window_size):
+                X.append(data_normalized[i:i+self.window_size])
+                y.append(data_normalized[i+self.window_size])
+    
+            return np.array(X), np.array(y)
+    
+        def inverse_transform(self, data):
+            """Inverse transformation of normalization"""
+            return self.scaler.inverse_transform(data)
+    
+    # Real data example (reactor temperature, pressure, flow rate)
+    np.random.seed(42)
+    n_samples = 1000
+    data = pd.DataFrame({
+        'temperature': 350 + 50*np.sin(np.linspace(0, 10, n_samples)) + 10*np.random.randn(n_samples),
+        'pressure': 5 + 2*np.cos(np.linspace(0, 10, n_samples)) + 0.5*np.random.randn(n_samples),
+        'flow_rate': 100 + 20*np.sin(np.linspace(0, 15, n_samples)) + 5*np.random.randn(n_samples)
+    })
+    
+    # Preprocessing
+    preprocessor = ProcessDataPreprocessor(window_size=50, normalization='standard')
+    X, y = preprocessor.fit_transform(data.values)
+    
+    print(f"Input shape: {X.shape}")   # [950, 50, 3]
+    print(f"Target shape: {y.shape}")  # [950, 3]
+    print(f"Data range before: T=[{data['temperature'].min():.1f}, {data['temperature'].max():.1f}]K")
+    print(f"Data range after: X=[{X.min():.2f}, {X.max():.2f}] (standardized)")
+    
+    # Output example:
+    # Input shape: (950, 50, 3)
+    # Target shape: (950, 3)
+    # Data range before: T=[285.4, 414.6]K
+    # Data range after: X=[-3.12, 3.24] (standardized)
+    
+
+## 1.5 Single-Step Prediction
+
+One-step-ahead prediction is the most basic task. It predicts the next time step values of reactor temperature or pressure.
+
+### Example 5: Univariate Single-Step Prediction (Temperature)
+    
+    
+    class SingleStepPredictor(nn.Module):
+        """LSTM model for single-step prediction"""
+    
+        def __init__(self, n_features=1, hidden_size=128, num_layers=3):
+            super(SingleStepPredictor, self).__init__()
+            self.lstm = nn.LSTM(n_features, hidden_size, num_layers,
+                               batch_first=True, dropout=0.2)
+            self.fc = nn.Linear(hidden_size, n_features)
+    
+        def forward(self, x):
+            lstm_out, _ = self.lstm(x)
+            pred = self.fc(lstm_out[:, -1, :])
+            return pred
+    
+    # Training function
+    def train_single_step(model, X_train, y_train, epochs=50, lr=0.001):
+        """Training single-step prediction model"""
+        criterion = nn.MSELoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    
+        losses = []
+        for epoch in range(epochs):
+            model.train()
+            optimizer.zero_grad()
+    
+            pred = model(X_train)
+            loss = criterion(pred, y_train)
+    
+            loss.backward()
+            optimizer.step()
+    
+            losses.append(loss.item())
+    
+            if (epoch+1) % 10 == 0:
+                print(f'Epoch {epoch+1}/{epochs}, Loss: {loss.item():.6f}')
+    
+        return losses
+    
+    # Synthetic data (reactor temperature: 300-500K)
+    time = np.linspace(0, 50, 500)
+    temp_data = 400 + 50*np.sin(0.2*time) + 10*np.random.randn(len(time))
+    
+    # Preprocessing
+    preprocessor = ProcessDataPreprocessor(window_size=30)
+    X, y = preprocessor.fit_transform(temp_data.reshape(-1, 1))
+    
+    # Tensor conversion
+    X = torch.FloatTensor(X)
+    y = torch.FloatTensor(y)
+    
+    # Training
+    model = SingleStepPredictor(n_features=1, hidden_size=128, num_layers=3)
+    losses = train_single_step(model, X, y, epochs=50)
+    
+    # Output example:
+    # Epoch 10/50, Loss: 0.045231
+    # Epoch 20/50, Loss: 0.018765
+    # Epoch 30/50, Loss: 0.009876
+    # Epoch 40/50, Loss: 0.006543
+    # Epoch 50/50, Loss: 0.005234
+    
+
+## 1.6 Multi-Step Prediction (Sequence-to-Sequence)
+
+To predict multiple steps ahead, a Sequence-to-Sequence (Seq2Seq) architecture is used. The Encoder encodes the past and the Decoder generates the future.
+
+### Example 6: Multi-Step Prediction (Up to 10 Steps Ahead)
+    
+    
+    class Seq2SeqLSTM(nn.Module):
+        """Sequence-to-Sequence model"""
+    
+        def __init__(self, input_size=1, hidden_size=128, num_layers=2, output_steps=10):
+            super(Seq2SeqLSTM, self).__init__()
+            self.output_steps = output_steps
+    
+            # Encoder
+            self.encoder = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+    
+            # Decoder
+            self.decoder = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+            self.fc = nn.Linear(hidden_size, input_size)
+    
+        def forward(self, x):
+            """
+            Args:
+                x: [batch, seq_len, input_size] input sequence
+            Returns:
+                outputs: [batch, output_steps, input_size] prediction sequence
+            """
+            batch_size = x.size(0)
+    
+            # Encode past with Encoder
+            _, (h, c) = self.encoder(x)
+    
+            # Generate future with Decoder
+            decoder_input = x[:, -1:, :]  # Start from last value
+            outputs = []
+    
+            for _ in range(self.output_steps):
+                decoder_output, (h, c) = self.decoder(decoder_input, (h, c))
+                pred = self.fc(decoder_output)
+                outputs.append(pred)
+                decoder_input = pred  # Use for next input
+    
+            outputs = torch.cat(outputs, dim=1)  # [batch, output_steps, input_size]
+            return outputs
+    
+    # Create multi-step data
+    def create_multistep_data(data, input_len=50, output_len=10):
+        """Data for multi-step prediction"""
+        X, y = [], []
+        for i in range(len(data) - input_len - output_len):
+            X.append(data[i:i+input_len])
+            y.append(data[i+input_len:i+input_len+output_len])
+        return np.array(X), np.array(y)
+    
+    # Data preparation
+    pressure_data = 5 + 2*np.sin(0.1*np.linspace(0, 100, 1000)) + 0.3*np.random.randn(1000)
+    X_multi, y_multi = create_multistep_data(pressure_data, input_len=50, output_len=10)
+    
+    X_multi = torch.FloatTensor(X_multi).unsqueeze(2)  # [samples, 50, 1]
+    y_multi = torch.FloatTensor(y_multi).unsqueeze(2)  # [samples, 10, 1]
+    
+    # Training
+    model = Seq2SeqLSTM(input_size=1, hidden_size=128, output_steps=10)
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    
+    for epoch in range(30):
+        model.train()
+        optimizer.zero_grad()
+    
+        pred = model(X_multi)
+        loss = criterion(pred, y_multi)
+    
+        loss.backward()
+        optimizer.step()
+    
+        if (epoch+1) % 5 == 0:
+            print(f'Epoch {epoch+1}, Loss: {loss.item():.6f}')
+    
+    # Output example:
+    # Epoch 5, Loss: 0.123456
+    # Epoch 10, Loss: 0.056789
+    # Epoch 15, Loss: 0.034567
+    # Epoch 20, Loss: 0.023456
+    # Epoch 25, Loss: 0.018765
+    # Epoch 30, Loss: 0.015432
+    
+
+## 1.7 Bidirectional LSTM
+
+Bidirectional LSTM integrates information from both past and future directions. It is effective for anomaly detection in process data and analysis when complete time series data is available.
+
+### Example 7: Anomaly Detection with Bidirectional LSTM
+    
+    
+    class BidirectionalProcessLSTM(nn.Module):
+        """Anomaly detection with bidirectional LSTM"""
+    
+        def __init__(self, input_size=1, hidden_size=64, num_layers=2):
+            super(BidirectionalProcessLSTM, self).__init__()
+    
+            # Bidirectional LSTM with bidirectional=True
+            self.bilstm = nn.LSTM(input_size, hidden_size, num_layers,
+                                 batch_first=True, bidirectional=True)
+    
+            # hidden_size * 2 due to bidirectionality
+            self.fc = nn.Linear(hidden_size * 2, input_size)
+    
+        def forward(self, x):
+            """
+            Args:
+                x: [batch, seq_len, input_size]
+            Returns:
+                reconstructed: [batch, seq_len, input_size]
+            """
+            bilstm_out, _ = self.bilstm(x)  # [batch, seq_len, hidden_size*2]
+            reconstructed = self.fc(bilstm_out)  # [batch, seq_len, input_size]
+            return reconstructed
+    
+    # Train on normal data
+    normal_data = 400 + 30*np.sin(0.1*np.linspace(0, 100, 500)) + 5*np.random.randn(500)
+    
+    # Test data with anomalies (anomalous values in steps 200-250)
+    test_data = normal_data.copy()
+    test_data[200:250] += 50  # Anomaly: temperature spike
+    
+    # Data preparation
+    X_normal, _ = create_windows(normal_data, window_size=50)
+    X_normal = torch.FloatTensor(X_normal).unsqueeze(2)
+    
+    # Model training (reconstruction task)
+    model = BidirectionalProcessLSTM(input_size=1, hidden_size=64)
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    
+    for epoch in range(50):
+        model.train()
+        optimizer.zero_grad()
+    
+        # Reconstruct input
+        reconstructed = model(X_normal)
+        loss = criterion(reconstructed, X_normal)
+    
+        loss.backward()
+        optimizer.step()
+    
+    # Anomaly detection
+    model.eval()
+    with torch.no_grad():
+        X_test, _ = create_windows(test_data, window_size=50)
+        X_test = torch.FloatTensor(X_test).unsqueeze(2)
+    
+        reconstructed_test = model(X_test)
+        reconstruction_error = torch.mean((X_test - reconstructed_test)**2, dim=(1, 2))
+    
+        # Detect anomalies exceeding threshold
+        threshold = torch.quantile(reconstruction_error, 0.95)
+        anomalies = reconstruction_error > threshold
+    
+        print(f"Detected anomalies: {anomalies.sum().item()} / {len(anomalies)} windows")
+        print(f"Anomaly score range: [{reconstruction_error.min():.4f}, {reconstruction_error.max():.4f}]")
+    
+    # Output example:
+    # Detected anomalies: 47 / 450 windows
+    # Anomaly score range: [0.0023, 0.3456]
+    # → Reconstruction error increases in anomaly-injected region (200-250)
+    
+
+## 1.8 Improving Interpretability with Attention Mechanism
+
+By introducing an attention mechanism, it is possible to visualize which time steps the model is focusing on. In process control, this helps understand which past events are influencing the current state.
+
+### Example 8: LSTM with Attention
+    
+    
+    class AttentionLSTM(nn.Module):
+        """LSTM with Attention mechanism"""
+    
+        def __init__(self, input_size=1, hidden_size=128, num_layers=2):
+            super(AttentionLSTM, self).__init__()
+    
+            self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+    
+            # Attention weight calculation
+            self.attention = nn.Linear(hidden_size, 1)
+    
+            # Final prediction
+            self.fc = nn.Linear(hidden_size, input_size)
+    
+        def forward(self, x):
+            """
+            Args:
+                x: [batch, seq_len, input_size]
+            Returns:
+                output: [batch, input_size]
+                attention_weights: [batch, seq_len] (for interpretation)
+            """
+            # LSTM processing
+            lstm_out, _ = self.lstm(x)  # [batch, seq_len, hidden_size]
+    
+            # Calculate attention weights
+            attention_scores = self.attention(lstm_out)  # [batch, seq_len, 1]
+            attention_weights = torch.softmax(attention_scores, dim=1)  # [batch, seq_len, 1]
+    
+            # Weighted sum (context vector)
+            context = torch.sum(attention_weights * lstm_out, dim=1)  # [batch, hidden_size]
+    
+            # Prediction
+            output = self.fc(context)  # [batch, input_size]
+    
+            return output, attention_weights.squeeze(2)
+    
+    # Training and interpretation
+    model = AttentionLSTM(input_size=1, hidden_size=128)
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    
+    # Data preparation (reactor temperature with sharp initial change)
+    time = np.linspace(0, 50, 500)
+    temp = 350 + 50*np.exp(-0.1*time) * np.sin(0.5*time) + 5*np.random.randn(500)
+    X, y = create_windows(temp, window_size=50)
+    X = torch.FloatTensor(X).unsqueeze(2)
+    y = torch.FloatTensor(y).unsqueeze(1)
+    
+    # Training
+    for epoch in range(30):
+        model.train()
+        optimizer.zero_grad()
+    
+        pred, _ = model(X)
+        loss = criterion(pred, y)
+    
+        loss.backward()
+        optimizer.step()
+    
+        if (epoch+1) % 10 == 0:
+            print(f'Epoch {epoch+1}, Loss: {loss.item():.6f}')
+    
+    # Visualize attention weights
+    model.eval()
+    with torch.no_grad():
+        sample_idx = 100
+        sample_input = X[sample_idx:sample_idx+1]
+        pred, attention = model(sample_input)
+    
+        print(f"\nPredicted value: {pred.item():.2f}K")
+        print(f"Actual value: {y[sample_idx].item():.2f}K")
+        print(f"\nTime steps with high attention weights (Top 5):")
+    
+        top_indices = torch.topk(attention[0], k=5).indices
+        for i, idx in enumerate(top_indices):
+            print(f"  {i+1}. Time t-{50-idx.item()}: weight={attention[0, idx].item():.4f}")
+    
+    # Output example:
+    # Epoch 10, Loss: 0.034567
+    # Epoch 20, Loss: 0.012345
+    # Epoch 30, Loss: 0.006789
+    #
+    # Predicted value: 382.45K
+    # Actual value: 381.87K
+    #
+    # Time steps with high attention weights (Top 5):
+    #   1. Time t-1: weight=0.1234
+    #   2. Time t-2: weight=0.0987
+    #   3. Time t-5: weight=0.0765
+    #   4. Time t-10: weight=0.0543
+    #   5. Time t-3: weight=0.0432
+    # → Recent 1-5 steps are important for prediction
+    
+
+**✅ Advantages of Attention**
+
+  * **Interpretability** : Visualize which past data is important
+  * **Long-term dependencies** : Direct access to distant past
+  * **Domain knowledge validation** : Verify if chemically plausible dependencies are learned
+
+## Verification of Learning Objectives
+
+Upon completing this chapter, you will be able to implement and explain the following:
+
+### Basic Understanding
+
+  * Explain the structure and update equations of RNN/LSTM/GRU
+  * Understand the vanishing gradient problem and the role of LSTM gate mechanisms
+  * Explain the principles of Sequence-to-Sequence architecture
+
+### Practical Skills
+
+  * Implement LSTM/GRU in PyTorch and predict process variables
+  * Perform proper preprocessing of time series data (normalization, window splitting)
+  * Implement single-step and multi-step predictions
+  * Perform anomaly detection with Bidirectional LSTM
+  * Improve prediction interpretability with attention mechanism
+
+### Application Ability
+
+  * Select RNN/LSTM/GRU according to process characteristics
+  * Extract chemically meaningful insights from attention weights
+  * Build anomaly detection systems and set thresholds appropriately
+
+## References
+
+  1. Hochreiter, S., & Schmidhuber, J. (1997). "Long Short-Term Memory." Neural Computation, 9(8), 1735-1780.
+  2. Cho, K., et al. (2014). "Learning Phrase Representations using RNN Encoder-Decoder for Statistical Machine Translation." EMNLP 2014.
+  3. Bahdanau, D., et al. (2015). "Neural Machine Translation by Jointly Learning to Align and Translate." ICLR 2015.
+  4. Sutskever, I., et al. (2014). "Sequence to Sequence Learning with Neural Networks." NIPS 2014.
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

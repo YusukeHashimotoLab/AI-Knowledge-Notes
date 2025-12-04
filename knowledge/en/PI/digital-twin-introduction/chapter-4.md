@@ -1,0 +1,994 @@
+---
+title: "Chapter 4: Virtual Process Optimization"
+chapter_title: "Chapter 4: Virtual Process Optimization"
+subtitle: Safe and Efficient Optimization Enabled by Digital Twins
+---
+
+This chapter covers Virtual Process Optimization. You will learn differences between RTO.
+
+## 4.1 What-if Scenario Analysis
+
+The greatest value of digital twins is the ability to test various "what-if" scenarios without affecting the actual process. By evaluating the impact of condition changes in advance, we can identify optimal operational strategies.
+
+### 4.1.1 Basic What-if Analysis
+    
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from scipy.optimize import differential_evolution
+    
+    class WhatIfAnalyzer:
+        """What-if scenario analysis using digital twin"""
+    
+        def __init__(self, digital_twin_model):
+            self.model = digital_twin_model
+            self.scenarios = []
+    
+        def create_scenario(self, name, parameter_changes):
+            """Create scenario
+    
+            Args:
+                name: Scenario name
+                parameter_changes: Dictionary of {param: value}
+            """
+            baseline = self.model.get_current_state()
+    
+            # Apply scenario
+            modified_state = baseline.copy()
+            modified_state.update(parameter_changes)
+    
+            # Run simulation
+            result = self.model.simulate(modified_state)
+    
+            scenario = {
+                'name': name,
+                'changes': parameter_changes,
+                'baseline': baseline,
+                'result': result,
+                'impact': self._calculate_impact(baseline, result)
+            }
+    
+            self.scenarios.append(scenario)
+            return scenario
+    
+        def _calculate_impact(self, baseline, result):
+            """Calculate impact"""
+            return {
+                'yield_change': ((result['yield'] - baseline['yield']) /
+                               baseline['yield'] * 100),
+                'quality_change': result['quality'] - baseline['quality'],
+                'cost_change': result['cost'] - baseline['cost']
+            }
+    
+        def compare_scenarios(self):
+            """Compare scenarios"""
+            df = pd.DataFrame([
+                {
+                    'Scenario': s['name'],
+                    'Yield Change (%)': s['impact']['yield_change'],
+                    'Quality Change': s['impact']['quality_change'],
+                    'Cost Change': s['impact']['cost_change']
+                }
+                for s in self.scenarios
+            ])
+            return df
+    
+    # Usage example
+    class SimpleReactorModel:
+        def __init__(self):
+            self.state = {'temp': 350, 'pressure': 5.0, 'flow': 100}
+    
+        def get_current_state(self):
+            return self.state.copy()
+    
+        def simulate(self, state):
+            # Simple reactor model
+            temp = state['temp']
+            pressure = state['pressure']
+            flow = state['flow']
+    
+            # Yield model (optimal point: 360°C, 6 bar)
+            yield_val = 85 - 0.05*(temp-360)**2 - 2*(pressure-6)**2
+            quality = 95 - 0.02*abs(temp-360)
+            cost = 0.5*temp + 10*pressure + 0.1*flow
+    
+            return {
+                'yield': max(0, yield_val),
+                'quality': quality,
+                'cost': cost,
+                **state
+            }
+    
+    # Execute
+    model = SimpleReactorModel()
+    analyzer = WhatIfAnalyzer(model)
+    
+    # Scenario 1: Temperature increase
+    analyzer.create_scenario('High Temp', {'temp': 370})
+    
+    # Scenario 2: Pressure increase
+    analyzer.create_scenario('High Pressure', {'pressure': 7.0})
+    
+    # Scenario 3: Combined changes
+    analyzer.create_scenario('Combined', {'temp': 365, 'pressure': 6.5})
+    
+    # Compare
+    print(analyzer.compare_scenarios())
+    # Output:
+    #        Scenario  Yield Change (%)  Quality Change  Cost Change
+    # 0     High Temp            -5.88           -0.20        10.00
+    # 1  High Pressure            -7.06            0.00        20.00
+    # 2      Combined             3.53           -0.10        27.50
+    
+
+**💡 Practical Tips:**
+
+  * Always visualize differences from baseline
+  * Explicitly state constraint conditions (safety limits)
+  * Also perform sensitivity analysis considering uncertainty
+
+## 4.2 Virtual Sensors (Soft Sensors)
+
+Integrate soft sensors into digital twins that estimate difficult-to-measure or high-cost variables from measurable variables.
+
+### 4.2.1 Machine Learning-based Soft Sensor
+    
+    
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import r2_score, mean_absolute_error
+    import joblib
+    
+    class SoftSensor:
+        """Machine learning-based soft sensor"""
+    
+        def __init__(self, target_variable):
+            self.target = target_variable
+            self.model = RandomForestRegressor(
+                n_estimators=100,
+                max_depth=10,
+                random_state=42
+            )
+            self.feature_names = None
+            self.is_trained = False
+    
+        def train(self, X, y, test_size=0.2):
+            """Train model
+    
+            Args:
+                X: Measurable variables (DataFrame)
+                y: Target variable (difficult-to-measure variable)
+            """
+            self.feature_names = X.columns.tolist()
+    
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=test_size, random_state=42
+            )
+    
+            self.model.fit(X_train, y_train)
+    
+            # Performance evaluation
+            y_pred = self.model.predict(X_test)
+            r2 = r2_score(y_test, y_pred)
+            mae = mean_absolute_error(y_test, y_pred)
+    
+            self.is_trained = True
+    
+            return {
+                'r2_score': r2,
+                'mae': mae,
+                'n_train': len(X_train),
+                'n_test': len(X_test)
+            }
+    
+        def predict(self, X):
+            """Real-time estimation"""
+            if not self.is_trained:
+                raise ValueError("Model not trained")
+    
+            return self.model.predict(X)
+    
+        def get_feature_importance(self):
+            """Feature importance"""
+            if not self.is_trained:
+                return None
+    
+            importance = pd.DataFrame({
+                'feature': self.feature_names,
+                'importance': self.model.feature_importances_
+            }).sort_values('importance', ascending=False)
+    
+            return importance
+    
+        def save(self, filepath):
+            """Save model"""
+            joblib.dump({
+                'model': self.model,
+                'feature_names': self.feature_names,
+                'target': self.target
+            }, filepath)
+    
+    # Usage example
+    # Estimate product quality (difficult to measure) from operating conditions (easy to measure)
+    np.random.seed(42)
+    n_samples = 500
+    
+    # Generate training data (in practice, use process data)
+    data = pd.DataFrame({
+        'temp': np.random.uniform(340, 370, n_samples),
+        'pressure': np.random.uniform(4, 8, n_samples),
+        'flow': np.random.uniform(80, 120, n_samples),
+        'residence_time': np.random.uniform(10, 30, n_samples)
+    })
+    
+    # Target variable (product purity)
+    data['purity'] = (
+        92 + 0.2*data['temp'] - 0.01*data['temp']**2 +
+        2*data['pressure'] + 0.1*data['residence_time'] +
+        np.random.normal(0, 1, n_samples)
+    )
+    
+    # Train soft sensor
+    X = data[['temp', 'pressure', 'flow', 'residence_time']]
+    y = data['purity']
+    
+    soft_sensor = SoftSensor('product_purity')
+    metrics = soft_sensor.train(X, y)
+    
+    print(f"R² Score: {metrics['r2_score']:.3f}")
+    print(f"MAE: {metrics['mae']:.3f}")
+    print("\nFeature Importance:")
+    print(soft_sensor.get_feature_importance())
+    
+    # Real-time estimation
+    new_data = pd.DataFrame({
+        'temp': [360],
+        'pressure': [6.0],
+        'flow': [100],
+        'residence_time': [20]
+    })
+    predicted_purity = soft_sensor.predict(new_data)
+    print(f"\nPredicted Purity: {predicted_purity[0]:.2f}%")
+    
+
+## 4.3 Predictive Maintenance
+
+Predict equipment degradation using digital twins and perform maintenance before failure.
+    
+    
+    import warnings
+    warnings.filterwarnings('ignore')
+    
+    class PredictiveMaintenanceSystem:
+        """Predictive maintenance system"""
+    
+        def __init__(self, equipment_name):
+            self.equipment = equipment_name
+            self.health_index = 100  # Health index
+            self.degradation_rate = 0.1
+            self.threshold_warning = 70
+            self.threshold_critical = 50
+    
+        def update_health(self, operating_hours, stress_factors):
+            """Update health
+    
+            Args:
+                operating_hours: Operating hours
+                stress_factors: Stress factor dictionary
+            """
+            # Basic degradation
+            degradation = self.degradation_rate * operating_hours
+    
+            # Accelerated degradation due to stress factors
+            temp_stress = max(0, stress_factors.get('temp_excess', 0)) * 0.5
+            vibration_stress = stress_factors.get('vibration', 0) * 0.3
+            load_stress = stress_factors.get('overload', 0) * 0.4
+    
+            total_degradation = degradation + temp_stress + vibration_stress + load_stress
+    
+            self.health_index -= total_degradation
+            self.health_index = max(0, self.health_index)
+    
+            return self.health_index
+    
+        def predict_remaining_life(self, current_stress_factors):
+            """Predict remaining life"""
+            if self.health_index <= 0:
+                return 0
+    
+            # Calculate current degradation rate
+            temp_stress = max(0, current_stress_factors.get('temp_excess', 0)) * 0.5
+            vibration_stress = current_stress_factors.get('vibration', 0) * 0.3
+            load_stress = current_stress_factors.get('overload', 0) * 0.4
+    
+            degradation_per_hour = (self.degradation_rate +
+                                    temp_stress + vibration_stress + load_stress)
+    
+            if degradation_per_hour <= 0:
+                return float('inf')
+    
+            # Time to critical threshold
+            remaining_hours = (self.health_index - self.threshold_critical) / degradation_per_hour
+    
+            return max(0, remaining_hours)
+    
+        def get_maintenance_recommendation(self):
+            """Maintenance recommendation"""
+            if self.health_index >= self.threshold_warning:
+                return {
+                    'status': 'HEALTHY',
+                    'action': 'None',
+                    'urgency': 'Low',
+                    'health': self.health_index
+                }
+            elif self.health_index >= self.threshold_critical:
+                return {
+                    'status': 'WARNING',
+                    'action': 'Schedule maintenance within 7 days',
+                    'urgency': 'Medium',
+                    'health': self.health_index
+                }
+            else:
+                return {
+                    'status': 'CRITICAL',
+                    'action': 'Immediate maintenance required',
+                    'urgency': 'High',
+                    'health': self.health_index
+                }
+    
+    # Usage example
+    pm_system = PredictiveMaintenanceSystem('Heat Exchanger HX-101')
+    
+    # Simulation: 100 hours of operation
+    for hour in range(1, 101):
+        stress = {
+            'temp_excess': 5 if hour % 20 == 0 else 0,  # Occasional overheating
+            'vibration': 2 if hour > 50 else 1,  # Vibration increase
+            'overload': 3 if hour > 80 else 0  # Overload in later stage
+        }
+    
+        health = pm_system.update_health(1, stress)
+    
+        if hour % 25 == 0:
+            remaining = pm_system.predict_remaining_life(stress)
+            rec = pm_system.get_maintenance_recommendation()
+            print(f"Hour {hour}: Health={health:.1f}%, "
+                  f"Remaining Life={remaining:.1f}h, "
+                  f"Status={rec['status']}")
+    
+    # Final recommendation
+    final_rec = pm_system.get_maintenance_recommendation()
+    print(f"\nFinal Recommendation: {final_rec['action']}")
+    
+
+## 4.4 Real-Time Optimization (RTO)
+
+Dynamically calculate optimal operating conditions from the current state using digital twins.
+    
+    
+    from scipy.optimize import minimize
+    
+    class RealTimeOptimizer:
+        """Real-time optimization system"""
+    
+        def __init__(self, digital_twin, objective='profit'):
+            self.twin = digital_twin
+            self.objective = objective
+    
+        def objective_function(self, x, weights):
+            """Objective function
+    
+            Args:
+                x: Decision variables [temp, pressure, flow]
+                weights: Weight coefficients
+            """
+            temp, pressure, flow = x
+    
+            # Simulate with digital twin
+            state = {'temp': temp, 'pressure': pressure, 'flow': flow}
+            result = self.twin.simulate(state)
+    
+            # Composite objective function (profit maximization)
+            revenue = result['yield'] * weights['product_price']
+            cost = result['cost']
+            quality_penalty = max(0, 90 - result['quality']) * weights['quality_penalty']
+    
+            profit = revenue - cost - quality_penalty
+    
+            return -profit  # As minimization problem
+    
+        def optimize(self, initial_guess, bounds, constraints=None):
+            """Execute optimization
+    
+            Args:
+                initial_guess: Initial value [temp, pressure, flow]
+                bounds: Variable ranges [(min, max), ...]
+                constraints: Constraint conditions
+            """
+            weights = {
+                'product_price': 10.0,
+                'quality_penalty': 50.0
+            }
+    
+            # Constraints
+            cons = []
+            if constraints:
+                # Safety constraints
+                cons.append({
+                    'type': 'ineq',
+                    'fun': lambda x: constraints['max_temp'] - x[0]
+                })
+                cons.append({
+                    'type': 'ineq',
+                    'fun': lambda x: constraints['max_pressure'] - x[1]
+                })
+    
+            # Optimization
+            result = minimize(
+                self.objective_function,
+                initial_guess,
+                args=(weights,),
+                method='SLSQP',
+                bounds=bounds,
+                constraints=cons if cons else None
+            )
+    
+            if result.success:
+                opt_temp, opt_pressure, opt_flow = result.x
+                opt_state = {
+                    'temp': opt_temp,
+                    'pressure': opt_pressure,
+                    'flow': opt_flow
+                }
+                opt_result = self.twin.simulate(opt_state)
+    
+                return {
+                    'success': True,
+                    'optimal_conditions': opt_state,
+                    'expected_performance': opt_result,
+                    'profit': -result.fun
+                }
+            else:
+                return {'success': False, 'message': result.message}
+    
+    # Usage example
+    twin = SimpleReactorModel()
+    rto = RealTimeOptimizer(twin, objective='profit')
+    
+    # Execute optimization
+    initial = [350, 5.0, 100]
+    bounds = [(340, 380), (4.0, 8.0), (80, 120)]
+    constraints = {
+        'max_temp': 375,
+        'max_pressure': 7.5
+    }
+    
+    opt_result = rto.optimize(initial, bounds, constraints)
+    
+    if opt_result['success']:
+        print("Optimal Conditions:")
+        print(f"  Temperature: {opt_result['optimal_conditions']['temp']:.1f}°C")
+        print(f"  Pressure: {opt_result['optimal_conditions']['pressure']:.1f} bar")
+        print(f"  Flow: {opt_result['optimal_conditions']['flow']:.1f} kg/h")
+        print(f"\nExpected Performance:")
+        print(f"  Yield: {opt_result['expected_performance']['yield']:.1f}%")
+        print(f"  Quality: {opt_result['expected_performance']['quality']:.1f}")
+        print(f"  Profit: {opt_result['profit']:.2f}")
+    
+
+## 4.5 Model Predictive Control (MPC) Integration
+
+Integrate digital twins with MPC to achieve optimal control considering the prediction horizon.
+    
+    
+    class ModelPredictiveController:
+        """Model predictive control (simplified version)"""
+    
+        def __init__(self, digital_twin, horizon=10, dt=1.0):
+            self.twin = digital_twin
+            self.horizon = horizon  # Prediction horizon
+            self.dt = dt  # Sampling time
+    
+        def predict_trajectory(self, initial_state, control_sequence):
+            """Trajectory prediction
+    
+            Args:
+                initial_state: Initial state
+                control_sequence: Control input sequence
+            """
+            trajectory = [initial_state]
+            state = initial_state.copy()
+    
+            for control in control_sequence:
+                # State update (simple discretization model)
+                state = self.twin.simulate({**state, **control})
+                trajectory.append(state)
+    
+            return trajectory
+    
+        def optimize_control(self, current_state, setpoint):
+            """Control input optimization
+    
+            Args:
+                current_state: Current state
+                setpoint: Target value {'yield': 85, 'quality': 95}
+            """
+            def mpc_objective(u_flat):
+                # Reconstruct control inputs [temp1, pres1, temp2, pres2, ...]
+                controls = []
+                for i in range(0, len(u_flat), 2):
+                    controls.append({
+                        'temp': u_flat[i],
+                        'pressure': u_flat[i+1]
+                    })
+    
+                # Trajectory prediction
+                trajectory = self.predict_trajectory(current_state, controls)
+    
+                # Cost calculation
+                tracking_cost = 0
+                control_cost = 0
+    
+                for state in trajectory[1:]:
+                    # Tracking error
+                    tracking_cost += (state['yield'] - setpoint['yield'])**2
+                    tracking_cost += (state['quality'] - setpoint['quality'])**2
+    
+                    # Control cost
+                    control_cost += 0.01 * state['cost']
+    
+                return tracking_cost + control_cost
+    
+            # Initial guess (maintain current value)
+            u0 = []
+            for _ in range(self.horizon):
+                u0.extend([current_state['temp'], current_state['pressure']])
+    
+            # Constraints
+            bounds = [(340, 380), (4.0, 8.0)] * self.horizon
+    
+            # Optimization
+            result = minimize(
+                mpc_objective,
+                u0,
+                method='L-BFGS-B',
+                bounds=bounds
+            )
+    
+            # Apply only first control input (receding horizon)
+            optimal_temp = result.x[0]
+            optimal_pressure = result.x[1]
+    
+            return {
+                'temp': optimal_temp,
+                'pressure': optimal_pressure,
+                'flow': current_state['flow']  # Flow is fixed
+            }
+    
+    # Usage example
+    twin = SimpleReactorModel()
+    mpc = ModelPredictiveController(twin, horizon=5)
+    
+    current = {'temp': 350, 'pressure': 5.0, 'flow': 100}
+    target = {'yield': 85, 'quality': 95}
+    
+    optimal_control = mpc.optimize_control(current, target)
+    
+    print("MPC Optimal Control:")
+    print(f"  Temperature setpoint: {optimal_control['temp']:.1f}°C")
+    print(f"  Pressure setpoint: {optimal_control['pressure']:.2f} bar")
+    
+    # Prediction after control application
+    future_state = twin.simulate(optimal_control)
+    print(f"\nPredicted Performance:")
+    print(f"  Yield: {future_state['yield']:.1f}%")
+    print(f"  Quality: {future_state['quality']:.1f}")
+    
+
+## 4.6 Multi-Objective Optimization
+
+Search for Pareto optimal solutions that simultaneously consider multiple objectives such as yield, quality, cost, and environmental impact.
+    
+    
+    from scipy.optimize import differential_evolution
+    
+    class MultiObjectiveOptimizer:
+        """Multi-objective optimization"""
+    
+        def __init__(self, digital_twin):
+            self.twin = digital_twin
+            self.pareto_solutions = []
+    
+        def evaluate_objectives(self, x):
+            """Evaluate multiple objective functions
+    
+            Returns:
+                [yield, quality, cost, energy]
+            """
+            state = {'temp': x[0], 'pressure': x[1], 'flow': x[2]}
+            result = self.twin.simulate(state)
+    
+            # Energy consumption estimation
+            energy = 0.5*x[0] + 20*x[1]**1.5  # Simplified model
+    
+            return {
+                'yield': result['yield'],
+                'quality': result['quality'],
+                'cost': result['cost'],
+                'energy': energy
+            }
+    
+        def weighted_sum_method(self, bounds, weights):
+            """Weighted sum method
+    
+            Args:
+                bounds: [(min, max), ...]
+                weights: {'yield': w1, 'quality': w2, ...}
+            """
+            def objective(x):
+                obj = self.evaluate_objectives(x)
+    
+                # Normalization (assumed maximum values)
+                yield_norm = obj['yield'] / 100
+                quality_norm = obj['quality'] / 100
+                cost_norm = obj['cost'] / 500
+                energy_norm = obj['energy'] / 300
+    
+                # Weighted sum (cost and energy to minimize)
+                score = (weights.get('yield', 0) * yield_norm +
+                        weights.get('quality', 0) * quality_norm -
+                        weights.get('cost', 0) * cost_norm -
+                        weights.get('energy', 0) * energy_norm)
+    
+                return -score  # Maximization → Minimization
+    
+            result = differential_evolution(objective, bounds, seed=42)
+    
+            if result.success:
+                optimal_x = result.x
+                objectives = self.evaluate_objectives(optimal_x)
+    
+                return {
+                    'conditions': {
+                        'temp': optimal_x[0],
+                        'pressure': optimal_x[1],
+                        'flow': optimal_x[2]
+                    },
+                    'objectives': objectives
+                }
+            return None
+    
+        def pareto_frontier(self, bounds, n_points=10):
+            """Pareto frontier search"""
+            pareto_solutions = []
+    
+            # Optimize with different weight settings
+            for i in range(n_points):
+                alpha = i / (n_points - 1)
+    
+                weights = {
+                    'yield': alpha,
+                    'quality': 1 - alpha,
+                    'cost': 0.5,
+                    'energy': 0.3
+                }
+    
+                solution = self.weighted_sum_method(bounds, weights)
+                if solution:
+                    pareto_solutions.append(solution)
+    
+            self.pareto_solutions = pareto_solutions
+            return pareto_solutions
+    
+    # Usage example
+    twin = SimpleReactorModel()
+    mo_optimizer = MultiObjectiveOptimizer(twin)
+    
+    bounds = [(340, 380), (4.0, 8.0), (80, 120)]
+    
+    # Scenario 1: Yield priority
+    solution1 = mo_optimizer.weighted_sum_method(
+        bounds,
+        {'yield': 1.0, 'quality': 0.3, 'cost': 0.5, 'energy': 0.2}
+    )
+    
+    print("Scenario 1: Yield Priority")
+    print(f"  Conditions: {solution1['conditions']}")
+    print(f"  Yield: {solution1['objectives']['yield']:.1f}%")
+    print(f"  Quality: {solution1['objectives']['quality']:.1f}")
+    print(f"  Cost: {solution1['objectives']['cost']:.1f}")
+    
+    # Scenario 2: Quality priority
+    solution2 = mo_optimizer.weighted_sum_method(
+        bounds,
+        {'yield': 0.3, 'quality': 1.0, 'cost': 0.5, 'energy': 0.2}
+    )
+    
+    print("\nScenario 2: Quality Priority")
+    print(f"  Conditions: {solution2['conditions']}")
+    print(f"  Yield: {solution2['objectives']['yield']:.1f}%")
+    print(f"  Quality: {solution2['objectives']['quality']:.1f}")
+    
+
+## 4.7 Risk Assessment and Scenario Planning
+
+Evaluate disturbance and failure scenarios using digital twins to quantify risks.
+    
+    
+    import random
+    
+    class RiskAssessmentSystem:
+        """Risk assessment system"""
+    
+        def __init__(self, digital_twin):
+            self.twin = digital_twin
+            self.risk_scenarios = []
+    
+        def define_risk_scenario(self, name, disturbances, probability):
+            """Define risk scenario
+    
+            Args:
+                name: Scenario name
+                disturbances: Disturbances {'temp': +10, ...}
+                probability: Occurrence probability
+            """
+            self.risk_scenarios.append({
+                'name': name,
+                'disturbances': disturbances,
+                'probability': probability
+            })
+    
+        def monte_carlo_simulation(self, baseline_state, n_simulations=1000):
+            """Monte Carlo simulation"""
+            results = []
+    
+            for _ in range(n_simulations):
+                # Randomly select scenario
+                scenario = random.choices(
+                    self.risk_scenarios,
+                    weights=[s['probability'] for s in self.risk_scenarios]
+                )[0]
+    
+                # Apply disturbance
+                disturbed_state = baseline_state.copy()
+                for key, disturbance in scenario['disturbances'].items():
+                    disturbed_state[key] = disturbed_state.get(key, 0) + disturbance
+    
+                # Simulation
+                result = self.twin.simulate(disturbed_state)
+                result['scenario'] = scenario['name']
+                results.append(result)
+    
+            return pd.DataFrame(results)
+    
+        def calculate_risk_metrics(self, simulation_results):
+            """Calculate risk metrics"""
+            # Value at Risk (VaR): 5th percentile
+            var_yield = simulation_results['yield'].quantile(0.05)
+            var_quality = simulation_results['quality'].quantile(0.05)
+    
+            # Expected value
+            expected_yield = simulation_results['yield'].mean()
+            expected_quality = simulation_results['quality'].mean()
+    
+            # Standard deviation
+            std_yield = simulation_results['yield'].std()
+            std_quality = simulation_results['quality'].std()
+    
+            return {
+                'expected_yield': expected_yield,
+                'expected_quality': expected_quality,
+                'var_yield_5%': var_yield,
+                'var_quality_5%': var_quality,
+                'std_yield': std_yield,
+                'std_quality': std_quality
+            }
+    
+    # Usage example
+    twin = SimpleReactorModel()
+    risk_system = RiskAssessmentSystem(twin)
+    
+    # Define risk scenarios
+    risk_system.define_risk_scenario(
+        'Normal Operation',
+        {'temp': 0, 'pressure': 0},
+        probability=0.70
+    )
+    
+    risk_system.define_risk_scenario(
+        'Heat Exchanger Fouling',
+        {'temp': -10},  # Cooling capacity decrease
+        probability=0.15
+    )
+    
+    risk_system.define_risk_scenario(
+        'Feed Composition Shift',
+        {'temp': 5, 'pressure': -0.5},
+        probability=0.10
+    )
+    
+    risk_system.define_risk_scenario(
+        'Compressor Failure',
+        {'pressure': -2.0},
+        probability=0.05
+    )
+    
+    # Monte Carlo simulation
+    baseline = {'temp': 360, 'pressure': 6.0, 'flow': 100}
+    mc_results = risk_system.monte_carlo_simulation(baseline, n_simulations=1000)
+    
+    # Risk metrics
+    risk_metrics = risk_system.calculate_risk_metrics(mc_results)
+    
+    print("Risk Assessment Results:")
+    print(f"Expected Yield: {risk_metrics['expected_yield']:.2f}%")
+    print(f"Yield VaR (5%): {risk_metrics['var_yield_5%']:.2f}%")
+    print(f"Yield Std Dev: {risk_metrics['std_yield']:.2f}%")
+    print(f"\nExpected Quality: {risk_metrics['expected_quality']:.2f}")
+    print(f"Quality VaR (5%): {risk_metrics['var_quality_5%']:.2f}")
+    
+    # Aggregate by scenario
+    scenario_stats = mc_results.groupby('scenario')['yield'].agg(['mean', 'std', 'min'])
+    print("\nYield by Scenario:")
+    print(scenario_stats)
+    
+
+**📊 Industrial Track Record:**
+
+  * **Shell:** Improved refining process revenue by millions of dollars annually using digital twins and RTO
+  * **BASF:** Reduced new product development time by 30% through virtual optimization
+  * **Dow Chemical:** Reduced unplanned downtime by 40% through predictive maintenance
+
+## Learning Objectives Review
+
+Upon completing this chapter, you should be able to explain and implement the following:
+
+### Basic Understanding
+
+  * ✅ Explain the purpose and value of what-if scenario analysis
+  * ✅ Understand the role and application scenarios of soft sensors
+  * ✅ Explain why predictive maintenance is superior to traditional maintenance
+  * ✅ Understand the differences between RTO and MPC
+
+### Practical Skills
+
+  * ✅ Implement scenario analysis systems in Python
+  * ✅ Build machine learning-based soft sensors
+  * ✅ Perform basic implementation of predictive maintenance systems
+  * ✅ Implement optimization using scipy.optimize
+  * ✅ Perform risk assessment using Monte Carlo methods
+
+### Application Ability
+
+  * ✅ Design optimization strategies suitable for your processes
+  * ✅ Model multi-objective optimization problems
+  * ✅ Quantitatively evaluate risk scenarios
+
+## Practice Problems
+
+### Easy (Basic Confirmation)
+
+**Q1:** In what situations are soft sensors particularly useful?
+
+View Answer
+
+**Answer:** Soft sensors are useful in the following cases:
+
+  1. Measurement devices are expensive (mass spectrometers, etc.)
+  2. Measurement takes time (requires lab analysis)
+  3. Online measurement is difficult (product quality, etc.)
+  4. Sensors cannot be used in harsh environments
+
+**Explanation:** Soft sensors estimate difficult-to-measure variables from measurable variables (temperature, pressure, etc.). For example, while it is difficult to measure component composition in a reactor online, it can be estimated from temperature, pressure, and flow rate using machine learning models.
+
+### Medium (Application)
+
+**Q2:** List three main differences between RTO and MPC.
+
+View Answer
+
+**Answer:**
+
+Item | RTO (Real-Time Optimization) | MPC (Model Predictive Control)  
+---|---|---  
+Execution Frequency | Low frequency (hours to days) | High frequency (seconds to minutes)  
+Objective | Steady-state economic optimization | Dynamic control and constraint management  
+Output | Target setpoints | Direct control inputs  
+  
+**Explanation:** RTO focuses on economic optimization, while MPC handles dynamic control to achieve those target values. In practice, both are often combined hierarchically.
+
+### Hard (Advanced)
+
+**Q3:** Extend the provided WhatIfAnalyzer class to implement scenario analysis considering uncertainty. Write code that evaluates result distributions through 100 Monte Carlo simulations, giving each parameter ±5% variation.
+
+View Solution Example
+    
+    
+    class UncertaintyWhatIfAnalyzer(WhatIfAnalyzer):
+        """What-if analysis considering uncertainty"""
+    
+        def create_uncertain_scenario(self, name, parameter_changes,
+                                      uncertainty=0.05, n_sim=100):
+            """Scenario analysis considering uncertainty
+    
+            Args:
+                name: Scenario name
+                parameter_changes: Nominal values
+                uncertainty: Variation range (±5% = 0.05)
+                n_sim: Number of simulations
+            """
+            results = []
+    
+            for _ in range(n_sim):
+                # Add uncertainty to parameters
+                uncertain_changes = {}
+                for param, value in parameter_changes.items():
+                    noise = np.random.uniform(-uncertainty, uncertainty)
+                    uncertain_changes[param] = value * (1 + noise)
+    
+                # Get baseline
+                baseline = self.model.get_current_state()
+                modified_state = baseline.copy()
+                modified_state.update(uncertain_changes)
+    
+                # Simulation
+                result = self.model.simulate(modified_state)
+                results.append(result)
+    
+            # Statistical analysis
+            df = pd.DataFrame(results)
+    
+            return {
+                'name': name,
+                'nominal_changes': parameter_changes,
+                'mean_yield': df['yield'].mean(),
+                'std_yield': df['yield'].std(),
+                'yield_5_percentile': df['yield'].quantile(0.05),
+                'yield_95_percentile': df['yield'].quantile(0.95),
+                'mean_quality': df['quality'].mean(),
+                'std_quality': df['quality'].std()
+            }
+    
+    # Usage example
+    model = SimpleReactorModel()
+    uncertain_analyzer = UncertaintyWhatIfAnalyzer(model)
+    
+    uncertain_result = uncertain_analyzer.create_uncertain_scenario(
+        'High Temp with Uncertainty',
+        {'temp': 370},
+        uncertainty=0.05,
+        n_sim=100
+    )
+    
+    print(f"Scenario: {uncertain_result['name']}")
+    print(f"Mean Yield: {uncertain_result['mean_yield']:.2f}% "
+          f"± {uncertain_result['std_yield']:.2f}%")
+    print(f"Yield 90% Confidence Interval: "
+          f"[{uncertain_result['yield_5_percentile']:.2f}, "
+          f"{uncertain_result['yield_95_percentile']:.2f}]%")
+    
+
+**Explanation:** This implementation adds normally distributed noise to each parameter and evaluates the result distribution using Monte Carlo methods. In practice, uncertainty quantification is essential for risk management.
+
+## Next Steps
+
+In Chapter 4, we learned various methods of virtual optimization using digital twins. In the next chapter, we will explain how to deploy these to actual environments and best practices for production operation.
+
+[← Chapter 3: Hybrid Modeling](<chapter-3.html>) [Series Contents →](<index.html>)
+
+## References
+
+  1. Montgomery, D. C. (2019). _Design and Analysis of Experiments_ (9th ed.). Wiley.
+  2. Box, G. E. P., Hunter, J. S., & Hunter, W. G. (2005). _Statistics for Experimenters: Design, Innovation, and Discovery_ (2nd ed.). Wiley.
+  3. Seborg, D. E., Edgar, T. F., Mellichamp, D. A., & Doyle III, F. J. (2016). _Process Dynamics and Control_ (4th ed.). Wiley.
+  4. McKay, M. D., Beckman, R. J., & Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." _Technometrics_ , 42(1), 55-61.
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

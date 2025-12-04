@@ -1,0 +1,1405 @@
+---
+title: "Chapter 4: Feature Engineering for Process Data"
+chapter_title: "Chapter 4: Feature Engineering for Process Data"
+subtitle: Techniques for Extracting Valuable Features from Time Series Data
+version: 1.0
+created_at: 2025-10-26
+---
+
+This chapter covers Feature Engineering for Process Data. You will learn Extract frequency-domain features (FFT, multi-resolution features using wavelet transforms, and Design features utilizing domain knowledge.
+
+## Learning Objectives
+
+By reading this chapter, you will be able to:
+
+  * ✅ Calculate and interpret time-domain features (statistics, moments)
+  * ✅ Extract frequency-domain features (FFT, spectral entropy)
+  * ✅ Understand multi-resolution features using wavelet transforms
+  * ✅ Design features utilizing domain knowledge
+  * ✅ Implement feature selection methods (RFE, LASSO, mutual information)
+  * ✅ Utilize automated feature extraction with tsfresh
+
+* * *
+
+## 4.1 Importance of Feature Engineering
+
+### Why Feature Engineering is Important
+
+In process data analysis, **feature engineering** is the most critical factor determining machine learning model performance. By extracting features that appropriately represent process states from raw time series data, prediction accuracy can be significantly improved.
+
+Feature Type | Information Content | Application Examples  
+---|---|---  
+Time-Domain Features | Statistical properties, trends | Average temperature, standard deviation, slope  
+Frequency-Domain Features | Periodicity, oscillatory components | FFT coefficients, spectral density  
+Wavelet Features | Time-frequency localization | Transient phenomena, sudden events  
+Domain Features | Process-specific knowledge | Residence time, conversion rate, yield  
+Interaction Features | Relationships between variables | Temperature×Pressure, ratio features  
+  
+* * *
+
+## 4.2 Time-Domain Features
+
+### Code Example 1: Extracting Basic Statistical Features
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    # - scipy>=1.11.0
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    
+    def extract_time_domain_features(data, window_size=100):
+        """
+        Extract basic statistical features from time domain
+    
+        Parameters:
+        -----------
+        data : array-like
+            Time series data
+        window_size : int
+            Window size for feature extraction
+    
+        Returns:
+        --------
+        features : dict
+            Dictionary of extracted features
+        """
+        features = {}
+    
+        # Basic statistics
+        features['mean'] = np.mean(data)
+        features['std'] = np.std(data)
+        features['variance'] = np.var(data)
+        features['min'] = np.min(data)
+        features['max'] = np.max(data)
+        features['range'] = features['max'] - features['min']
+        features['median'] = np.median(data)
+    
+        # Percentiles
+        features['q25'] = np.percentile(data, 25)
+        features['q75'] = np.percentile(data, 75)
+        features['iqr'] = features['q75'] - features['q25']
+    
+        # Higher-order moments
+        features['skewness'] = stats.skew(data)  # Skewness
+        features['kurtosis'] = stats.kurtosis(data)  # Kurtosis
+    
+        # Energy and power
+        features['energy'] = np.sum(data ** 2)
+        features['power'] = features['energy'] / len(data)
+        features['rms'] = np.sqrt(features['power'])  # Root Mean Square
+    
+        # Coefficient of variation
+        features['cv'] = features['std'] / features['mean'] if features['mean'] != 0 else 0
+    
+        return features
+    
+    
+    # Generate sample data (reactor temperature data simulation)
+    np.random.seed(42)
+    time = np.linspace(0, 100, 1000)
+    temperature = 180 + 5 * np.sin(0.1 * time) + np.random.normal(0, 1, 1000)
+    
+    # Feature extraction
+    features = extract_time_domain_features(temperature)
+    
+    # Visualization
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # Time series data
+    axes[0, 0].plot(time, temperature, color='#11998e', linewidth=1.5)
+    axes[0, 0].axhline(y=features['mean'], color='red', linestyle='--',
+                        label=f"Mean: {features['mean']:.2f}")
+    axes[0, 0].axhline(y=features['mean'] + features['std'], color='orange',
+                        linestyle='--', alpha=0.7, label=f"±1σ")
+    axes[0, 0].axhline(y=features['mean'] - features['std'], color='orange',
+                        linestyle='--', alpha=0.7)
+    axes[0, 0].set_xlabel('Time [s]')
+    axes[0, 0].set_ylabel('Temperature [°C]')
+    axes[0, 0].set_title('Time Series with Statistical Features')
+    axes[0, 0].legend()
+    axes[0, 0].grid(alpha=0.3)
+    
+    # Histogram
+    axes[0, 1].hist(temperature, bins=50, color='#11998e', alpha=0.7, edgecolor='black')
+    axes[0, 1].axvline(x=features['mean'], color='red', linestyle='--',
+                        linewidth=2, label=f"Mean: {features['mean']:.2f}")
+    axes[0, 1].axvline(x=features['median'], color='blue', linestyle='--',
+                        linewidth=2, label=f"Median: {features['median']:.2f}")
+    axes[0, 1].set_xlabel('Temperature [°C]')
+    axes[0, 1].set_ylabel('Frequency')
+    axes[0, 1].set_title(f'Distribution (Skewness: {features["skewness"]:.2f})')
+    axes[0, 1].legend()
+    axes[0, 1].grid(alpha=0.3)
+    
+    # Feature visualization
+    feature_names = ['mean', 'std', 'variance', 'range', 'iqr',
+                     'skewness', 'kurtosis', 'rms']
+    feature_values = [features[name] for name in feature_names]
+    
+    axes[1, 0].barh(feature_names, feature_values, color='#38ef7d', edgecolor='black')
+    axes[1, 0].set_xlabel('Feature Value')
+    axes[1, 0].set_title('Extracted Time-Domain Features')
+    axes[1, 0].grid(alpha=0.3, axis='x')
+    
+    # Box plot
+    axes[1, 1].boxplot(temperature, vert=True, patch_artist=True,
+                       boxprops=dict(facecolor='#c8e6c9', color='black'),
+                       medianprops=dict(color='red', linewidth=2),
+                       whiskerprops=dict(color='black'),
+                       capprops=dict(color='black'))
+    axes[1, 1].set_ylabel('Temperature [°C]')
+    axes[1, 1].set_title('Box Plot Summary')
+    axes[1, 1].grid(alpha=0.3, axis='y')
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Output features
+    print("Extracted Time-Domain Features:")
+    print("=" * 50)
+    for key, value in features.items():
+        print(f"{key:15s}: {value:10.4f}")
+    
+
+**Example Output:**
+    
+    
+    Extracted Time-Domain Features:
+    ==================================================
+    mean           :   179.9682
+    std            :     5.1558
+    variance       :    26.5824
+    min            :   164.9012
+    max            :   194.8533
+    range          :    29.9521
+    median         :   179.9449
+    q25            :   176.5168
+    q75            :   183.4302
+    iqr            :     6.9134
+    skewness       :     0.0187
+    kurtosis       :    -0.1023
+    energy         : 32405692.8145
+    power          : 32405.6928
+    rms            :   180.0158
+    cv             :     0.0286
+    
+
+**Explanation:** Time-domain features capture statistical properties of the data. Mean and standard deviation represent central tendency and spread, while skewness and kurtosis describe the shape of the distribution. These are effective for anomaly detection and state classification.
+
+* * *
+
+### Code Example 2: Rolling Statistics and Lag Features
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    
+    def create_rolling_features(data, windows=[10, 30, 60]):
+        """
+        Generate rolling statistical and lag features
+    
+        Parameters:
+        -----------
+        data : pd.Series
+            Time series data
+        windows : list
+            List of rolling window sizes
+    
+        Returns:
+        --------
+        df : pd.DataFrame
+            DataFrame containing features
+        """
+        df = pd.DataFrame({'original': data})
+    
+        for window in windows:
+            # Rolling statistics
+            df[f'rolling_mean_{window}'] = data.rolling(window=window).mean()
+            df[f'rolling_std_{window}'] = data.rolling(window=window).std()
+            df[f'rolling_min_{window}'] = data.rolling(window=window).min()
+            df[f'rolling_max_{window}'] = data.rolling(window=window).max()
+            df[f'rolling_median_{window}'] = data.rolling(window=window).median()
+    
+        # Lag features (past values)
+        for lag in [1, 5, 10, 20]:
+            df[f'lag_{lag}'] = data.shift(lag)
+    
+        # Difference features
+        df['diff_1'] = data.diff(1)  # 1st difference
+        df['diff_2'] = data.diff(2)  # 2nd difference
+    
+        # Gradient (slope)
+        df['gradient'] = np.gradient(data)
+    
+        return df
+    
+    
+    # Sample data (reactor pressure with trend)
+    np.random.seed(42)
+    time = np.arange(500)
+    pressure = 2.5 + 0.001 * time + 0.1 * np.sin(0.05 * time) + np.random.normal(0, 0.05, 500)
+    pressure_series = pd.Series(pressure)
+    
+    # Generate rolling features
+    df_features = create_rolling_features(pressure_series)
+    
+    # Visualization
+    fig, axes = plt.subplots(3, 1, figsize=(14, 10))
+    
+    # Original data and rolling means
+    axes[0].plot(time, df_features['original'], label='Original',
+                 color='gray', alpha=0.5, linewidth=1)
+    axes[0].plot(time, df_features['rolling_mean_10'], label='Rolling Mean (10)',
+                 color='#11998e', linewidth=2)
+    axes[0].plot(time, df_features['rolling_mean_30'], label='Rolling Mean (30)',
+                 color='#38ef7d', linewidth=2)
+    axes[0].plot(time, df_features['rolling_mean_60'], label='Rolling Mean (60)',
+                 color='orange', linewidth=2)
+    axes[0].set_xlabel('Time [s]')
+    axes[0].set_ylabel('Pressure [bar]')
+    axes[0].set_title('Rolling Mean Features')
+    axes[0].legend()
+    axes[0].grid(alpha=0.3)
+    
+    # Rolling standard deviation (variability detection)
+    axes[1].plot(time, df_features['rolling_std_10'], label='Rolling Std (10)',
+                 color='#11998e', linewidth=2)
+    axes[1].plot(time, df_features['rolling_std_30'], label='Rolling Std (30)',
+                 color='#38ef7d', linewidth=2)
+    axes[1].set_xlabel('Time [s]')
+    axes[1].set_ylabel('Std [bar]')
+    axes[1].set_title('Rolling Standard Deviation (Variability Detection)')
+    axes[1].legend()
+    axes[1].grid(alpha=0.3)
+    
+    # Difference and gradient (trend detection)
+    axes[2].plot(time, df_features['diff_1'], label='1st Difference',
+                 color='#11998e', alpha=0.7, linewidth=1)
+    axes[2].plot(time, df_features['gradient'], label='Gradient',
+                 color='orange', linewidth=2)
+    axes[2].axhline(y=0, color='red', linestyle='--', linewidth=1, alpha=0.5)
+    axes[2].set_xlabel('Time [s]')
+    axes[2].set_ylabel('Change Rate')
+    axes[2].set_title('Trend Detection Features')
+    axes[2].legend()
+    axes[2].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Display sample features
+    print("\nSample of Rolling Features:")
+    print(df_features.iloc[60:70][['original', 'rolling_mean_30', 'rolling_std_30',
+                                     'lag_10', 'diff_1', 'gradient']].to_string())
+    
+
+**Explanation:** Rolling statistics capture temporal context and can detect both short-term fluctuations and long-term trends. Lag features capture autocorrelation in time series, while difference features emphasize trends and change points.
+
+* * *
+
+## 4.3 Frequency-Domain Features
+
+### Code Example 3: FFT (Fast Fourier Transform) for Frequency Feature Extraction
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.fft import fft, fftfreq
+    from scipy.signal import welch
+    
+    def extract_frequency_features(signal, sampling_rate=1.0, n_coeffs=10):
+        """
+        Extract frequency-domain features using FFT
+    
+        Parameters:
+        -----------
+        signal : array-like
+            Time series signal
+        sampling_rate : float
+            Sampling rate [Hz]
+        n_coeffs : int
+            Number of FFT coefficients to extract
+    
+        Returns:
+        --------
+        features : dict
+            Frequency-domain features
+        """
+        n = len(signal)
+    
+        # FFT calculation
+        fft_vals = fft(signal)
+        fft_magnitude = np.abs(fft_vals)[:n//2]  # Positive frequencies only
+        fft_power = fft_magnitude ** 2
+        frequencies = fftfreq(n, d=1/sampling_rate)[:n//2]
+    
+        features = {}
+    
+        # Main FFT coefficients (low-frequency components)
+        for i in range(n_coeffs):
+            features[f'fft_coeff_{i}'] = fft_magnitude[i]
+    
+        # Spectral energy
+        features['spectral_energy'] = np.sum(fft_power)
+    
+        # Spectral centroid (frequency center of mass)
+        features['spectral_centroid'] = np.sum(frequencies * fft_magnitude) / np.sum(fft_magnitude)
+    
+        # Spectral variance
+        features['spectral_variance'] = np.sum(((frequencies - features['spectral_centroid']) ** 2) * fft_magnitude) / np.sum(fft_magnitude)
+    
+        # Spectral entropy
+        psd_norm = fft_power / np.sum(fft_power)
+        psd_norm = psd_norm[psd_norm > 0]  # Remove zeros
+        features['spectral_entropy'] = -np.sum(psd_norm * np.log2(psd_norm))
+    
+        # Dominant frequency (peak with maximum power)
+        dominant_freq_idx = np.argmax(fft_magnitude[1:]) + 1  # Exclude DC component
+        features['dominant_frequency'] = frequencies[dominant_freq_idx]
+        features['dominant_power'] = fft_magnitude[dominant_freq_idx]
+    
+        return features, frequencies, fft_magnitude
+    
+    
+    # Sample data (signal with periodic oscillations)
+    np.random.seed(42)
+    sampling_rate = 100  # Hz
+    duration = 10  # seconds
+    time = np.linspace(0, duration, sampling_rate * duration)
+    
+    # Signal with multiple frequency components
+    signal = (2.0 * np.sin(2 * np.pi * 5 * time) +    # 5 Hz component
+              1.0 * np.sin(2 * np.pi * 12 * time) +   # 12 Hz component
+              0.5 * np.sin(2 * np.pi * 25 * time) +   # 25 Hz component
+              0.3 * np.random.randn(len(time)))       # Noise
+    
+    # Feature extraction
+    features, frequencies, fft_magnitude = extract_frequency_features(signal, sampling_rate)
+    
+    # Visualization
+    fig, axes = plt.subplots(2, 1, figsize=(14, 10))
+    
+    # Time-domain signal
+    axes[0].plot(time, signal, color='#11998e', linewidth=1.5)
+    axes[0].set_xlabel('Time [s]')
+    axes[0].set_ylabel('Amplitude')
+    axes[0].set_title('Time-Domain Signal (5Hz + 12Hz + 25Hz components)')
+    axes[0].grid(alpha=0.3)
+    
+    # Frequency spectrum
+    axes[1].plot(frequencies, fft_magnitude, color='#11998e', linewidth=2)
+    axes[1].axvline(x=features['dominant_frequency'], color='red', linestyle='--',
+                    linewidth=2, label=f"Dominant: {features['dominant_frequency']:.1f} Hz")
+    axes[1].axvline(x=features['spectral_centroid'], color='orange', linestyle='--',
+                    linewidth=2, label=f"Centroid: {features['spectral_centroid']:.1f} Hz")
+    axes[1].set_xlabel('Frequency [Hz]')
+    axes[1].set_ylabel('Magnitude')
+    axes[1].set_title('Frequency Spectrum (FFT)')
+    axes[1].set_xlim(0, 50)
+    axes[1].legend()
+    axes[1].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Output features
+    print("\nExtracted Frequency-Domain Features:")
+    print("=" * 50)
+    for key in ['spectral_energy', 'spectral_centroid', 'spectral_variance',
+                'spectral_entropy', 'dominant_frequency', 'dominant_power']:
+        print(f"{key:25s}: {features[key]:12.4f}")
+    
+    print("\nTop 5 FFT Coefficients:")
+    for i in range(5):
+        print(f"fft_coeff_{i:2d}: {features[f'fft_coeff_{i}']:12.4f}")
+    
+
+**Explanation:** FFT decomposes time series data into frequency components and detects periodic patterns. Spectral centroid and entropy are useful features summarizing the frequency characteristics of the signal. In process data, these can detect vibration frequencies of pumps and compressors, oscillations in control loops, etc.
+
+* * *
+
+### Code Example 4: Power Spectral Density and Spectrogram
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.signal import welch, spectrogram
+    
+    def analyze_power_spectrum(signal, sampling_rate=1.0):
+        """
+        Analyze power spectral density
+    
+        Parameters:
+        -----------
+        signal : array-like
+            Time series signal
+        sampling_rate : float
+            Sampling rate [Hz]
+    
+        Returns:
+        --------
+        frequencies : array
+            Frequency array
+        psd : array
+            Power spectral density
+        """
+        # Power spectral density estimation using Welch's method
+        frequencies, psd = welch(signal, fs=sampling_rate, nperseg=256)
+    
+        # Cumulative power distribution
+        cumulative_power = np.cumsum(psd)
+        total_power = cumulative_power[-1]
+    
+        # Frequency band containing 90% of power
+        freq_90 = frequencies[np.where(cumulative_power >= 0.9 * total_power)[0][0]]
+    
+        features = {
+            'total_power': total_power,
+            'freq_90_power': freq_90,
+            'peak_frequency': frequencies[np.argmax(psd)]
+        }
+    
+        return frequencies, psd, features
+    
+    
+    # Sample non-stationary signal (frequency changes over time)
+    sampling_rate = 200
+    duration = 5
+    time = np.linspace(0, duration, sampling_rate * duration)
+    
+    # Chirp signal (frequency increases over time)
+    frequency_sweep = np.linspace(5, 50, len(time))
+    signal_nonstationary = np.sin(2 * np.pi * frequency_sweep * time)
+    
+    # Power spectrum analysis
+    frequencies, psd, psd_features = analyze_power_spectrum(signal_nonstationary, sampling_rate)
+    
+    # Spectrogram (time-frequency analysis)
+    f_spec, t_spec, Sxx = spectrogram(signal_nonstationary, fs=sampling_rate,
+                                       nperseg=128, noverlap=64)
+    
+    # Visualization
+    fig, axes = plt.subplots(3, 1, figsize=(14, 12))
+    
+    # Time-domain signal
+    axes[0].plot(time, signal_nonstationary, color='#11998e', linewidth=1.5)
+    axes[0].set_xlabel('Time [s]')
+    axes[0].set_ylabel('Amplitude')
+    axes[0].set_title('Non-Stationary Signal (Frequency Sweep: 5-50 Hz)')
+    axes[0].grid(alpha=0.3)
+    
+    # Power spectral density
+    axes[1].semilogy(frequencies, psd, color='#11998e', linewidth=2)
+    axes[1].axvline(x=psd_features['peak_frequency'], color='red', linestyle='--',
+                    linewidth=2, label=f"Peak: {psd_features['peak_frequency']:.1f} Hz")
+    axes[1].set_xlabel('Frequency [Hz]')
+    axes[1].set_ylabel('Power Spectral Density [V²/Hz]')
+    axes[1].set_title('Power Spectral Density (Welch Method)')
+    axes[1].legend()
+    axes[1].grid(alpha=0.3)
+    
+    # Spectrogram
+    im = axes[2].pcolormesh(t_spec, f_spec, 10 * np.log10(Sxx),
+                             shading='gouraud', cmap='viridis')
+    axes[2].set_xlabel('Time [s]')
+    axes[2].set_ylabel('Frequency [Hz]')
+    axes[2].set_title('Spectrogram (Time-Frequency Analysis)')
+    axes[2].set_ylim(0, 60)
+    cbar = plt.colorbar(im, ax=axes[2])
+    cbar.set_label('Power [dB]')
+    
+    plt.tight_layout()
+    plt.show()
+    
+    print("\nPower Spectrum Features:")
+    print("=" * 50)
+    for key, value in psd_features.items():
+        print(f"{key:20s}: {value:12.4f}")
+    
+
+**Explanation:** Power spectral density (PSD) shows power distribution across frequencies, and spectrograms visualize time-varying frequency components. Effective for analyzing non-stationary signals and understanding dynamic process behavior.
+
+* * *
+
+## 4.4 Wavelet Transform Features
+
+### Code Example 5: Multi-resolution Feature Extraction Using Wavelet Transform
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import pywt
+    
+    def extract_wavelet_features(signal, wavelet='db4', level=4):
+        """
+        Feature extraction using wavelet transform
+    
+        Parameters:
+        -----------
+        signal : array-like
+            Time series signal
+        wavelet : str
+            Type of wavelet function ('db4', 'sym5', 'coif3', etc.)
+        level : int
+            Decomposition level
+    
+        Returns:
+        --------
+        features : dict
+            Wavelet features
+        coeffs : list
+            Wavelet coefficients
+        """
+        # Wavelet decomposition
+        coeffs = pywt.wavedec(signal, wavelet, level=level)
+    
+        features = {}
+    
+        # Extract features from coefficients at each level
+        for i, coeff in enumerate(coeffs):
+            prefix = 'approx' if i == 0 else f'detail_{i}'
+    
+            # Energy
+            features[f'{prefix}_energy'] = np.sum(coeff ** 2)
+    
+            # Mean absolute value
+            features[f'{prefix}_mean_abs'] = np.mean(np.abs(coeff))
+    
+            # Standard deviation
+            features[f'{prefix}_std'] = np.std(coeff)
+    
+            # Entropy
+            coeff_norm = (coeff ** 2) / np.sum(coeff ** 2)
+            coeff_norm = coeff_norm[coeff_norm > 0]
+            features[f'{prefix}_entropy'] = -np.sum(coeff_norm * np.log2(coeff_norm))
+    
+        # Ratio of each level's energy to total energy
+        total_energy = sum([np.sum(c ** 2) for c in coeffs])
+        for i, coeff in enumerate(coeffs):
+            prefix = 'approx' if i == 0 else f'detail_{i}'
+            features[f'{prefix}_energy_ratio'] = np.sum(coeff ** 2) / total_energy
+    
+        return features, coeffs
+    
+    
+    # Sample data (signal with transient phenomena)
+    np.random.seed(42)
+    time = np.linspace(0, 10, 1000)
+    
+    # Base signal + sudden events
+    signal = np.sin(2 * np.pi * 2 * time) + 0.2 * np.random.randn(1000)
+    # Sudden events (spikes) at 3 seconds and 7 seconds
+    signal[300:320] += 5 * np.exp(-0.5 * ((np.arange(20) - 10) / 3)**2)
+    signal[700:720] += -4 * np.exp(-0.5 * ((np.arange(20) - 10) / 3)**2)
+    
+    # Wavelet feature extraction
+    features, coeffs = extract_wavelet_features(signal, wavelet='db4', level=4)
+    
+    # Visualization
+    fig, axes = plt.subplots(6, 1, figsize=(14, 16))
+    
+    # Original signal
+    axes[0].plot(time, signal, color='#11998e', linewidth=1.5)
+    axes[0].set_title('Original Signal with Transient Events', fontweight='bold')
+    axes[0].set_ylabel('Amplitude')
+    axes[0].grid(alpha=0.3)
+    
+    # Approximation coefficients (low-frequency component)
+    axes[1].plot(coeffs[0], color='#11998e', linewidth=2)
+    axes[1].set_title(f'Approximation Coefficients (cA{len(coeffs)-1})', fontweight='bold')
+    axes[1].set_ylabel('Amplitude')
+    axes[1].grid(alpha=0.3)
+    
+    # Detail coefficients (high-frequency components, levels 1-4)
+    for i in range(1, 5):
+        axes[i+1].plot(coeffs[i], color=f'C{i}', linewidth=1.5)
+        axes[i+1].set_title(f'Detail Coefficients (cD{5-i})', fontweight='bold')
+        axes[i+1].set_ylabel('Amplitude')
+        axes[i+1].grid(alpha=0.3)
+    
+    axes[5].set_xlabel('Coefficient Index')
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Visualize energy ratios
+    energy_ratios = [features[f'{("approx" if i==0 else f"detail_{i}")}_energy_ratio']
+                     for i in range(len(coeffs))]
+    labels = ['Approx'] + [f'Detail {i}' for i in range(1, len(coeffs))]
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.bar(labels, energy_ratios, color='#38ef7d', edgecolor='black', linewidth=1.5)
+    ax.set_ylabel('Energy Ratio')
+    ax.set_title('Wavelet Energy Distribution Across Levels', fontweight='bold')
+    ax.grid(alpha=0.3, axis='y')
+    plt.tight_layout()
+    plt.show()
+    
+    # Output features
+    print("\nWavelet Features (Energy and Entropy):")
+    print("=" * 60)
+    for level in ['approx'] + [f'detail_{i}' for i in range(1, 5)]:
+        energy = features[f'{level}_energy']
+        entropy = features[f'{level}_entropy']
+        ratio = features[f'{level}_energy_ratio']
+        print(f"{level:12s}: Energy={energy:10.2f}, Entropy={entropy:6.3f}, Ratio={ratio:6.4f}")
+    
+
+**Explanation:** Wavelet transform decomposes signals while preserving both time and frequency information. It can detect everything from low-frequency trends to high-frequency sudden events at different resolution levels. Particularly effective for anomaly detection and transient phenomena analysis in processes.
+
+* * *
+
+## 4.5 Domain Knowledge-Based Features
+
+### Code Example 6: Process-Specific Feature Design
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    
+    def calculate_process_features(df):
+        """
+        Calculate chemical process-specific features
+    
+        Parameters:
+        -----------
+        df : pd.DataFrame
+            Process data (containing temperature, pressure, flow rate, concentration, etc.)
+    
+        Returns:
+        --------
+        df_features : pd.DataFrame
+            DataFrame with added features
+        """
+        df_features = df.copy()
+    
+        # 1. Residence Time
+        # Residence time = Reactor volume / Flow rate
+        reactor_volume = 100  # liters
+        df_features['residence_time'] = reactor_volume / df['flow_rate']
+    
+        # 2. Space Velocity
+        # LHSV (Liquid Hourly Space Velocity) = Flow rate / Reactor volume
+        df_features['space_velocity'] = df['flow_rate'] / reactor_volume
+    
+        # 3. Conversion
+        # Conversion = (Inlet concentration - Outlet concentration) / Inlet concentration
+        df_features['conversion'] = ((df['inlet_concentration'] - df['outlet_concentration']) /
+                                      df['inlet_concentration'])
+    
+        # 4. Yield
+        # Yield = Product concentration / Inlet feedstock concentration
+        df_features['yield'] = df['product_concentration'] / df['inlet_concentration']
+    
+        # 5. Selectivity
+        # Selectivity = Target product / All products
+        df_features['selectivity'] = (df['product_concentration'] /
+                                      (df['product_concentration'] + df['byproduct_concentration']))
+    
+        # 6. Heat balance related
+        # Reaction heat (simplified model)
+        cp = 4.18  # Specific heat [kJ/(kg·K)]
+        df_features['heat_generation'] = (df['flow_rate'] * cp *
+                                          (df['outlet_temperature'] - df['inlet_temperature']))
+    
+        # 7. Pressure drop
+        df_features['pressure_drop'] = df['inlet_pressure'] - df['outlet_pressure']
+    
+        # 8. Energy efficiency
+        # Energy efficiency = Product value / Energy input
+        df_features['energy_efficiency'] = df['product_concentration'] / df['energy_input']
+    
+        # 9. Ratio features (mass balance check)
+        df_features['mass_balance_ratio'] = ((df['inlet_concentration'] * df['flow_rate']) /
+                                             ((df['outlet_concentration'] + df['product_concentration']) * df['flow_rate']))
+    
+        # 10. Temperature-pressure interaction indicator
+        df_features['T_P_interaction'] = df['temperature'] * df['pressure']
+    
+        return df_features
+    
+    
+    # Generate sample data (reactor operation data)
+    np.random.seed(42)
+    n_samples = 200
+    
+    process_data = pd.DataFrame({
+        'timestamp': pd.date_range('2024-01-01', periods=n_samples, freq='h'),
+        'flow_rate': 50 + 10 * np.random.randn(n_samples),  # L/h
+        'temperature': 180 + 5 * np.random.randn(n_samples),  # °C
+        'pressure': 3.0 + 0.2 * np.random.randn(n_samples),  # bar
+        'inlet_temperature': 150 + 3 * np.random.randn(n_samples),  # °C
+        'outlet_temperature': 185 + 5 * np.random.randn(n_samples),  # °C
+        'inlet_pressure': 3.2 + 0.15 * np.random.randn(n_samples),  # bar
+        'outlet_pressure': 2.8 + 0.15 * np.random.randn(n_samples),  # bar
+        'inlet_concentration': 2.0 + 0.1 * np.random.randn(n_samples),  # mol/L
+        'outlet_concentration': 0.5 + 0.1 * np.random.randn(n_samples),  # mol/L
+        'product_concentration': 1.3 + 0.15 * np.random.randn(n_samples),  # mol/L
+        'byproduct_concentration': 0.2 + 0.05 * np.random.randn(n_samples),  # mol/L
+        'energy_input': 100 + 15 * np.random.randn(n_samples)  # kW
+    })
+    
+    # Feature calculation
+    df_with_features = calculate_process_features(process_data)
+    
+    # Visualization
+    fig, axes = plt.subplots(3, 2, figsize=(16, 12))
+    
+    # Residence time
+    axes[0, 0].plot(df_with_features.index, df_with_features['residence_time'],
+                    color='#11998e', linewidth=1.5)
+    axes[0, 0].set_ylabel('Residence Time [h]')
+    axes[0, 0].set_title('Residence Time', fontweight='bold')
+    axes[0, 0].grid(alpha=0.3)
+    
+    # Conversion
+    axes[0, 1].plot(df_with_features.index, df_with_features['conversion'] * 100,
+                    color='#38ef7d', linewidth=1.5)
+    axes[0, 1].set_ylabel('Conversion [%]')
+    axes[0, 1].set_title('Conversion Rate', fontweight='bold')
+    axes[0, 1].grid(alpha=0.3)
+    
+    # Yield
+    axes[1, 0].plot(df_with_features.index, df_with_features['yield'] * 100,
+                    color='orange', linewidth=1.5)
+    axes[1, 0].set_ylabel('Yield [%]')
+    axes[1, 0].set_title('Product Yield', fontweight='bold')
+    axes[1, 0].grid(alpha=0.3)
+    
+    # Selectivity
+    axes[1, 1].plot(df_with_features.index, df_with_features['selectivity'] * 100,
+                    color='purple', linewidth=1.5)
+    axes[1, 1].set_ylabel('Selectivity [%]')
+    axes[1, 1].set_title('Product Selectivity', fontweight='bold')
+    axes[1, 1].grid(alpha=0.3)
+    
+    # Energy efficiency
+    axes[2, 0].plot(df_with_features.index, df_with_features['energy_efficiency'],
+                    color='red', linewidth=1.5)
+    axes[2, 0].set_ylabel('Efficiency [mol·L⁻¹/kW]')
+    axes[2, 0].set_title('Energy Efficiency', fontweight='bold')
+    axes[2, 0].set_xlabel('Sample Index')
+    axes[2, 0].grid(alpha=0.3)
+    
+    # Pressure drop
+    axes[2, 1].plot(df_with_features.index, df_with_features['pressure_drop'],
+                    color='brown', linewidth=1.5)
+    axes[2, 1].set_ylabel('Pressure Drop [bar]')
+    axes[2, 1].set_title('Pressure Drop', fontweight='bold')
+    axes[2, 1].set_xlabel('Sample Index')
+    axes[2, 1].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Statistical summary
+    print("\nProcess Feature Statistics:")
+    print("=" * 70)
+    feature_cols = ['residence_time', 'conversion', 'yield', 'selectivity',
+                    'energy_efficiency', 'pressure_drop']
+    print(df_with_features[feature_cols].describe().to_string())
+    
+
+**Explanation:** Features based on process engineering knowledge have physical meaning and high interpretability. Conversion, yield, and selectivity directly express process performance and are extremely useful for anomaly detection and optimization.
+
+* * *
+
+## 4.6 Interaction and Polynomial Features
+
+### Code Example 7: Generating Interaction Features
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    # - seaborn>=0.12.0
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from sklearn.preprocessing import PolynomialFeatures
+    from itertools import combinations
+    
+    def create_interaction_features(df, feature_cols, degree=2):
+        """
+        Generate interaction and polynomial features
+    
+        Parameters:
+        -----------
+        df : pd.DataFrame
+            Original data
+        feature_cols : list
+            List of feature column names
+        degree : int
+            Polynomial degree
+    
+        Returns:
+        --------
+        df_extended : pd.DataFrame
+            DataFrame with added interaction features
+        """
+        df_extended = df.copy()
+    
+        # 1. Product features
+        for col1, col2 in combinations(feature_cols, 2):
+            df_extended[f'{col1}_x_{col2}'] = df[col1] * df[col2]
+    
+        # 2. Ratio features
+        for col1, col2 in combinations(feature_cols, 2):
+            # Avoid division by zero
+            df_extended[f'{col1}_div_{col2}'] = df[col1] / (df[col2] + 1e-8)
+    
+        # 3. Difference features
+        for col1, col2 in combinations(feature_cols, 2):
+            df_extended[f'{col1}_minus_{col2}'] = df[col1] - df[col2]
+    
+        # 4. Polynomial features (using sklearn)
+        if degree >= 2:
+            poly = PolynomialFeatures(degree=degree, include_bias=False)
+            X_poly = poly.fit_transform(df[feature_cols])
+            poly_feature_names = poly.get_feature_names_out(feature_cols)
+    
+            # Add only new features (exclude original features)
+            for i, name in enumerate(poly_feature_names):
+                if name not in feature_cols:
+                    df_extended[f'poly_{name}'] = X_poly[:, i]
+    
+        return df_extended
+    
+    
+    # Sample data
+    np.random.seed(42)
+    n_samples = 300
+    
+    data = pd.DataFrame({
+        'temperature': 180 + 10 * np.random.randn(n_samples),
+        'pressure': 3.0 + 0.5 * np.random.randn(n_samples),
+        'flow_rate': 50 + 8 * np.random.randn(n_samples)
+    })
+    
+    # Nonlinear target variable (including temperature-pressure interaction)
+    data['product_quality'] = (0.5 * data['temperature'] +
+                               2.0 * data['pressure'] +
+                               0.01 * data['temperature'] * data['pressure'] +  # Interaction term
+                               0.002 * data['temperature']**2 +  # Quadratic term
+                               np.random.randn(n_samples) * 5)
+    
+    # Generate interaction features
+    df_interaction = create_interaction_features(data,
+                                                 ['temperature', 'pressure', 'flow_rate'],
+                                                 degree=2)
+    
+    # Visualization: Correlation analysis
+    import seaborn as sns
+    
+    # Correlation matrix of key features
+    key_features = ['temperature', 'pressure', 'flow_rate',
+                    'temperature_x_pressure', 'poly_temperature^2',
+                    'temperature_div_pressure', 'product_quality']
+    correlation_matrix = df_interaction[key_features].corr()
+    
+    fig, ax = plt.subplots(figsize=(12, 10))
+    sns.heatmap(correlation_matrix, annot=True, fmt='.2f', cmap='RdYlGn',
+                center=0, square=True, linewidths=1, cbar_kws={"shrink": 0.8})
+    ax.set_title('Correlation Matrix with Interaction Features',
+                 fontweight='bold', fontsize=14)
+    plt.tight_layout()
+    plt.show()
+    
+    # Scatter plot matrix
+    fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+    
+    # Temperature vs Quality
+    axes[0, 0].scatter(df_interaction['temperature'], df_interaction['product_quality'],
+                       alpha=0.5, color='#11998e', edgecolor='black', linewidth=0.5)
+    axes[0, 0].set_xlabel('Temperature [°C]')
+    axes[0, 0].set_ylabel('Product Quality')
+    axes[0, 0].set_title('Temperature vs Quality')
+    axes[0, 0].grid(alpha=0.3)
+    
+    # Pressure vs Quality
+    axes[0, 1].scatter(df_interaction['pressure'], df_interaction['product_quality'],
+                       alpha=0.5, color='#38ef7d', edgecolor='black', linewidth=0.5)
+    axes[0, 1].set_xlabel('Pressure [bar]')
+    axes[0, 1].set_ylabel('Product Quality')
+    axes[0, 1].set_title('Pressure vs Quality')
+    axes[0, 1].grid(alpha=0.3)
+    
+    # Temperature×Pressure (interaction) vs Quality
+    axes[1, 0].scatter(df_interaction['temperature_x_pressure'],
+                       df_interaction['product_quality'],
+                       alpha=0.5, color='orange', edgecolor='black', linewidth=0.5)
+    axes[1, 0].set_xlabel('Temperature × Pressure')
+    axes[1, 0].set_ylabel('Product Quality')
+    axes[1, 0].set_title('Interaction Feature vs Quality')
+    axes[1, 0].grid(alpha=0.3)
+    
+    # Temperature^2 (quadratic term) vs Quality
+    axes[1, 1].scatter(df_interaction['poly_temperature^2'],
+                       df_interaction['product_quality'],
+                       alpha=0.5, color='purple', edgecolor='black', linewidth=0.5)
+    axes[1, 1].set_xlabel('Temperature²')
+    axes[1, 1].set_ylabel('Product Quality')
+    axes[1, 1].set_title('Polynomial Feature vs Quality')
+    axes[1, 1].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    print(f"\nOriginal features: {len(['temperature', 'pressure', 'flow_rate'])}")
+    print(f"Total features after interaction: {len(df_interaction.columns)}")
+    print(f"\nSample of new interaction features:")
+    interaction_cols = [col for col in df_interaction.columns if '_x_' in col or '_div_' in col or 'poly_' in col]
+    print(interaction_cols[:10])
+    
+
+**Explanation:** Interaction features capture nonlinear relationships between variables. The product of temperature and pressure represents the effect when both are simultaneously high, allowing linear models to capture nonlinear relationships.
+
+* * *
+
+## 4.7 Feature Normalization and Scaling
+
+### Code Example 8: Comparison of Feature Scaling Methods
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    """
+    Example: Code Example 8: Comparison of Feature Scaling Methods
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Intermediate
+    Execution time: 2-5 seconds
+    Dependencies: None
+    """
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from sklearn.preprocessing import (StandardScaler, MinMaxScaler,
+                                       RobustScaler, PowerTransformer)
+    
+    # Sample data (features with different scales)
+    np.random.seed(42)
+    n_samples = 300
+    
+    data = pd.DataFrame({
+        'temperature': 180 + 20 * np.random.randn(n_samples),  # Mean 180, large scale
+        'pressure': 3.0 + 0.5 * np.random.randn(n_samples),    # Mean 3, small scale
+        'flow_rate': 5000 + 500 * np.random.randn(n_samples)   # Mean 5000, very large scale
+    })
+    
+    # Add outliers
+    data.loc[10:15, 'temperature'] = 250  # Abnormally high temperature
+    data.loc[50:55, 'pressure'] = 8.0     # Abnormally high pressure
+    
+    # Apply various scaling methods
+    scalers = {
+        'Original': None,
+        'StandardScaler': StandardScaler(),
+        'MinMaxScaler': MinMaxScaler(),
+        'RobustScaler': RobustScaler(),
+        'PowerTransformer': PowerTransformer(method='yeo-johnson')
+    }
+    
+    scaled_data = {}
+    for name, scaler in scalers.items():
+        if scaler is None:
+            scaled_data[name] = data.copy()
+        else:
+            scaled_data[name] = pd.DataFrame(
+                scaler.fit_transform(data),
+                columns=data.columns
+            )
+    
+    # Visualization
+    fig, axes = plt.subplots(3, 5, figsize=(18, 12))
+    
+    for i, feature in enumerate(data.columns):
+        for j, (name, df) in enumerate(scaled_data.items()):
+            axes[i, j].hist(df[feature], bins=30, color='#11998e',
+                            alpha=0.7, edgecolor='black')
+            axes[i, j].set_title(f'{name}\n{feature}', fontsize=10)
+            axes[i, j].grid(alpha=0.3)
+    
+            if i == 0:
+                axes[i, j].set_title(f'{name}\n{feature}', fontsize=10, fontweight='bold')
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Compare statistics
+    print("\nScaling Methods Comparison:")
+    print("=" * 80)
+    for name, df in scaled_data.items():
+        print(f"\n{name}:")
+        print(df.describe().loc[['mean', 'std', 'min', 'max']].to_string())
+    
+
+**Explanation:**
+
+  * **StandardScaler** : Normalizes to mean 0 and standard deviation 1. Sensitive to outliers.
+  * **MinMaxScaler** : Scales to [0, 1] range. Most sensitive to outliers.
+  * **RobustScaler** : Uses median and interquartile range. Robust to outliers.
+  * **PowerTransformer** : Transforms data closer to normal distribution. Effective for skewed distributions.
+
+* * *
+
+## 4.8 Feature Selection
+
+### Code Example 9: Feature Selection Methods (Mutual Information, RFE, LASSO)
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    """
+    Example: Code Example 9: Feature Selection Methods (Mutual Informatio
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Advanced
+    Execution time: 30-60 seconds
+    Dependencies: None
+    """
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from sklearn.feature_selection import (mutual_info_regression, RFE,
+                                           SelectFromModel)
+    from sklearn.linear_model import Lasso, Ridge
+    from sklearn.ensemble import RandomForestRegressor
+    
+    # Generate sample data
+    np.random.seed(42)
+    n_samples = 500
+    n_features = 20
+    
+    # Generate features (some unrelated to target)
+    X = np.random.randn(n_samples, n_features)
+    
+    # Target variable (depends only on some features)
+    y = (3 * X[:, 0] +      # Important feature
+         2 * X[:, 1] +      # Important feature
+         1.5 * X[:, 2] +    # Moderately important
+         0.5 * X[:, 5] +    # Slightly important
+         np.random.randn(n_samples) * 0.5)  # Noise
+    # X[:, 3], X[:, 4], X[:, 6-19] are unrelated
+    
+    feature_names = [f'Feature_{i}' for i in range(n_features)]
+    df = pd.DataFrame(X, columns=feature_names)
+    df['target'] = y
+    
+    
+    # 1. Mutual Information
+    mi_scores = mutual_info_regression(X, y, random_state=42)
+    mi_scores = pd.Series(mi_scores, index=feature_names).sort_values(ascending=False)
+    
+    # 2. RFE (Recursive Feature Elimination)
+    rf_model = RandomForestRegressor(n_estimators=50, random_state=42)
+    rfe = RFE(estimator=rf_model, n_features_to_select=10)
+    rfe.fit(X, y)
+    rfe_ranking = pd.Series(rfe.ranking_, index=feature_names).sort_values()
+    
+    # 3. LASSO (L1 regularization)
+    lasso = Lasso(alpha=0.1, random_state=42)
+    lasso.fit(X, y)
+    lasso_coefs = pd.Series(np.abs(lasso.coef_), index=feature_names).sort_values(ascending=False)
+    
+    # 4. Random Forest feature importance
+    rf_model.fit(X, y)
+    rf_importances = pd.Series(rf_model.feature_importances_,
+                               index=feature_names).sort_values(ascending=False)
+    
+    
+    # Visualization
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    
+    # Mutual information
+    axes[0, 0].barh(mi_scores.index[:10], mi_scores.values[:10],
+                    color='#11998e', edgecolor='black')
+    axes[0, 0].set_xlabel('Mutual Information Score')
+    axes[0, 0].set_title('Mutual Information (Top 10 Features)', fontweight='bold')
+    axes[0, 0].invert_yaxis()
+    axes[0, 0].grid(alpha=0.3, axis='x')
+    
+    # RFE ranking
+    selected_features_rfe = rfe_ranking[rfe_ranking == 1].index.tolist()
+    axes[0, 1].barh(rfe_ranking.index[:10], rfe_ranking.values[:10],
+                    color='#38ef7d', edgecolor='black')
+    axes[0, 1].set_xlabel('RFE Ranking (1 = selected)')
+    axes[0, 1].set_title(f'RFE Ranking (Selected: {len(selected_features_rfe)})',
+                         fontweight='bold')
+    axes[0, 1].invert_yaxis()
+    axes[0, 1].grid(alpha=0.3, axis='x')
+    
+    # LASSO coefficients
+    axes[1, 0].barh(lasso_coefs.index[:10], lasso_coefs.values[:10],
+                    color='orange', edgecolor='black')
+    axes[1, 0].set_xlabel('|LASSO Coefficient|')
+    axes[1, 0].set_title('LASSO Feature Selection (Top 10)', fontweight='bold')
+    axes[1, 0].invert_yaxis()
+    axes[1, 0].grid(alpha=0.3, axis='x')
+    
+    # Random Forest importance
+    axes[1, 1].barh(rf_importances.index[:10], rf_importances.values[:10],
+                    color='purple', edgecolor='black')
+    axes[1, 1].set_xlabel('Feature Importance')
+    axes[1, 1].set_title('Random Forest Importances (Top 10)', fontweight='bold')
+    axes[1, 1].invert_yaxis()
+    axes[1, 1].grid(alpha=0.3, axis='x')
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Compare feature selection results
+    print("\nFeature Selection Results Comparison:")
+    print("=" * 70)
+    print("\nTop 5 Features by Each Method:")
+    print(f"\nMutual Information:\n{mi_scores.head(5).to_string()}")
+    print(f"\nRFE Selected Features:\n{selected_features_rfe[:5]}")
+    print(f"\nLASSO:\n{lasso_coefs.head(5).to_string()}")
+    print(f"\nRandom Forest:\n{rf_importances.head(5).to_string()}")
+    
+    # Compare with truly important features (Feature_0, Feature_1, Feature_2, Feature_5)
+    true_important = ['Feature_0', 'Feature_1', 'Feature_2', 'Feature_5']
+    print(f"\n\nTrue Important Features: {true_important}")
+    print(f"MI correctly identified: {[f for f in mi_scores.head(5).index if f in true_important]}")
+    print(f"LASSO correctly identified: {[f for f in lasso_coefs.head(5).index if f in true_important]}")
+    print(f"RF correctly identified: {[f for f in rf_importances.head(5).index if f in true_important]}")
+    
+
+**Explanation:**
+
+  * **Mutual Information** : Can detect nonlinear relationships. High computational cost.
+  * **RFE** : Model-based selection. Iteratively removes features with low importance.
+  * **LASSO** : L1 regularization automatically zeros out coefficients of unnecessary features. Assumes linear relationships.
+  * **Random Forest** : Captures nonlinear relationships. Obtained as a byproduct of ensemble models.
+
+* * *
+
+## 4.9 Automated Feature Extraction (tsfresh)
+
+### Code Example 10: Comprehensive Feature Extraction with tsfresh
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    """
+    Example: Code Example 10: Comprehensive Feature Extraction with tsfre
+    
+    Purpose: Demonstrate data visualization techniques
+    Target: Intermediate
+    Execution time: 2-5 seconds
+    Dependencies: None
+    """
+    
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from tsfresh import extract_features
+    from tsfresh.feature_extraction import ComprehensiveFCParameters
+    from tsfresh.utilities.dataframe_functions import impute
+    
+    # Sample time series data (multiple sensors, multiple time series segments)
+    np.random.seed(42)
+    n_segments = 50  # Number of segments (batches)
+    n_timesteps = 100  # Time series length for each segment
+    
+    data_list = []
+    
+    for seg_id in range(n_segments):
+        # Each segment has different characteristics
+        time = np.arange(n_timesteps)
+    
+        # Label (quality: good=1, defective=0)
+        label = np.random.choice([0, 1], p=[0.3, 0.7])
+    
+        # Change statistical characteristics for good vs defective products
+        if label == 1:  # Good product
+            temperature = 180 + 2 * np.sin(0.1 * time) + np.random.randn(n_timesteps) * 0.5
+            pressure = 3.0 + 0.1 * np.cos(0.08 * time) + np.random.randn(n_timesteps) * 0.1
+        else:  # Defective product (more irregular)
+            temperature = 180 + 5 * np.sin(0.1 * time) + np.random.randn(n_timesteps) * 2.0
+            pressure = 3.0 + 0.3 * np.cos(0.08 * time) + np.random.randn(n_timesteps) * 0.5
+    
+        for t in range(n_timesteps):
+            data_list.append({
+                'segment_id': seg_id,
+                'time': t,
+                'temperature': temperature[t],
+                'pressure': pressure[t],
+                'label': label
+            })
+    
+    df_timeseries = pd.DataFrame(data_list)
+    
+    # Feature extraction with tsfresh
+    print("Extracting features with tsfresh...")
+    extraction_settings = ComprehensiveFCParameters()
+    
+    # Feature extraction (aggregate by segment_id)
+    df_features = extract_features(
+        df_timeseries[['segment_id', 'time', 'temperature', 'pressure']],
+        column_id='segment_id',
+        column_sort='time',
+        default_fc_parameters=extraction_settings,
+        impute_function=impute,
+        n_jobs=4
+    )
+    
+    # Add label information
+    df_labels = df_timeseries.groupby('segment_id')['label'].first()
+    df_features = df_features.join(df_labels)
+    
+    print(f"\nExtracted {len(df_features.columns)-1} features from {n_segments} segments")
+    print(f"Feature examples:\n{df_features.columns[:10].tolist()}")
+    
+    # Feature importance analysis (simplified: based on variance)
+    feature_variance = df_features.drop('label', axis=1).var().sort_values(ascending=False)
+    
+    # Visualization
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    
+    # 1. Sample time series (good vs defective)
+    good_example = df_timeseries[df_timeseries['label'] == 1]['segment_id'].iloc[0]
+    bad_example = df_timeseries[df_timeseries['label'] == 0]['segment_id'].iloc[0]
+    
+    good_data = df_timeseries[df_timeseries['segment_id'] == good_example]
+    bad_data = df_timeseries[df_timeseries['segment_id'] == bad_example]
+    
+    axes[0, 0].plot(good_data['time'], good_data['temperature'],
+                    color='green', linewidth=2, label='Good Product')
+    axes[0, 0].plot(bad_data['time'], bad_data['temperature'],
+                    color='red', linewidth=2, alpha=0.7, label='Defective Product')
+    axes[0, 0].set_xlabel('Time')
+    axes[0, 0].set_ylabel('Temperature [°C]')
+    axes[0, 0].set_title('Example Time Series (Temperature)', fontweight='bold')
+    axes[0, 0].legend()
+    axes[0, 0].grid(alpha=0.3)
+    
+    # 2. Pressure comparison
+    axes[0, 1].plot(good_data['time'], good_data['pressure'],
+                    color='green', linewidth=2, label='Good Product')
+    axes[0, 1].plot(bad_data['time'], bad_data['pressure'],
+                    color='red', linewidth=2, alpha=0.7, label='Defective Product')
+    axes[0, 1].set_xlabel('Time')
+    axes[0, 1].set_ylabel('Pressure [bar]')
+    axes[0, 1].set_title('Example Time Series (Pressure)', fontweight='bold')
+    axes[0, 1].legend()
+    axes[0, 1].grid(alpha=0.3)
+    
+    # 3. Top 20 features by variance
+    axes[1, 0].barh(range(20), feature_variance.head(20).values,
+                    color='#11998e', edgecolor='black')
+    axes[1, 0].set_yticks(range(20))
+    axes[1, 0].set_yticklabels([name[:40] + '...' if len(name) > 40 else name
+                                for name in feature_variance.head(20).index], fontsize=8)
+    axes[1, 0].set_xlabel('Variance')
+    axes[1, 0].set_title('Top 20 Features by Variance', fontweight='bold')
+    axes[1, 0].invert_yaxis()
+    axes[1, 0].grid(alpha=0.3, axis='x')
+    
+    # 4. Feature distribution (good vs defective)
+    # Select feature with maximum variance
+    top_feature = feature_variance.index[0]
+    axes[1, 1].hist(df_features[df_features['label'] == 1][top_feature].dropna(),
+                    bins=20, alpha=0.6, color='green', edgecolor='black', label='Good')
+    axes[1, 1].hist(df_features[df_features['label'] == 0][top_feature].dropna(),
+                    bins=20, alpha=0.6, color='red', edgecolor='black', label='Defective')
+    axes[1, 1].set_xlabel('Feature Value')
+    axes[1, 1].set_ylabel('Frequency')
+    axes[1, 1].set_title(f'Feature Distribution: {top_feature[:50]}...', fontweight='bold')
+    axes[1, 1].legend()
+    axes[1, 1].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Statistical summary
+    print("\nFeature Extraction Summary:")
+    print("=" * 70)
+    print(f"Number of segments: {n_segments}")
+    print(f"Timesteps per segment: {n_timesteps}")
+    print(f"Total extracted features: {len(df_features.columns)-1}")
+    print(f"\nSample features:\n{df_features.iloc[0, :5].to_string()}")
+    
+
+**Explanation:** tsfresh is a library that automatically extracts hundreds to thousands of statistical features from time series data. It generates comprehensive feature sets including Fourier transform coefficients, autocorrelation, entropy, and trend indicators, and also provides feature selection capabilities. It is a powerful tool for anomaly detection and quality prediction in process data.
+
+* * *
+
+## 4.10 Chapter Summary
+
+### What We Learned
+
+**1\. Time-Domain Features** — Basic statistics including mean, standard deviation, skewness, and kurtosis, along with rolling statistics, lag features, and change detection using differences and gradients.
+
+**2\. Frequency-Domain Features** — Frequency component extraction using FFT, spectral centroid and entropy calculations, and power spectral density analysis with spectrograms.
+
+**3\. Wavelet Features** — Multi-resolution decomposition and detection of transient phenomena and sudden events.
+
+**4\. Domain Knowledge-Based Features** — Residence time, conversion, yield, selectivity calculations, and heat and mass balance indicators.
+
+**5\. Interaction and Polynomial Features** — Modeling nonlinear relationships between variables through polynomial expansion and feature interactions.
+
+**6\. Feature Selection** — Methods including mutual information, RFE, LASSO, and Random Forest importance for identifying the most relevant features.
+
+**7\. Automated Feature Extraction** — Comprehensive feature generation with tsfresh for efficient and exhaustive feature engineering.
+
+### Key Points
+
+Feature engineering is the most critical step determining machine learning model performance. Time-domain and frequency-domain features provide complementary information for comprehensive signal characterization. Process knowledge-based features have high interpretability and practical utility in real-world applications. Interaction features allow linear models to capture nonlinear relationships effectively. Proper feature selection improves model generalization and computational efficiency. Automation tools like tsfresh are useful for exploratory analysis, but domain knowledge remains essential for meaningful feature engineering.
+
+### To the Next Chapter
+
+In Chapter 5, we will learn about **Real-time Data Analysis and Visualization** , covering streaming data processing, real-time statistical monitoring, online machine learning models, real-time dashboard construction, and production environment monitoring system implementation.

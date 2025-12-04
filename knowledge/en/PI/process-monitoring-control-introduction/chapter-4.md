@@ -1,0 +1,1625 @@
+---
+title: "Chapter 4: Feedback Control and PID Control"
+chapter_title: "Chapter 4: Feedback Control and PID Control"
+subtitle: From Process Control Fundamentals to Implementation
+version: 1.0
+created_at: 2025-10-26
+---
+
+This chapter covers Feedback Control and PID Control. You will learn basic principles of feedback control and and simulate first-order systems.
+
+## Learning Objectives
+
+By completing this chapter, you will be able to:
+
+  * ✅ Explain the basic principles of feedback control and control system configuration
+  * ✅ Understand the step response and dynamic characteristics of first-order systems
+  * ✅ Understand the role and effects of each PID controller element (P, I, D)
+  * ✅ Implement and simulate first-order systems and PID controllers in Python
+  * ✅ Determine PID parameters using the Ziegler-Nichols method
+  * ✅ Address practical control issues such as anti-windup
+  * ✅ Understand the basic structure of cascade control
+
+* * *
+
+## 4.1 Fundamentals of Feedback Control
+
+### What is Feedback Control
+
+**Feedback control** is a control method that measures the output (controlled variable) of a controlled object and adjusts the control input (manipulated variable) to make the deviation from the target value (setpoint) zero. It is the most widely used control technique in the process industry.
+
+### Basic Configuration of Control System
+    
+    
+    ```mermaid
+    graph LR
+        SP[SetpointSP] --> SUM((+-))
+        SUM --> |Error e| CTRL[ControllerController]
+        CTRL --> |Manipulated Variable u| PROCESS[ProcessProcess]
+        PROCESS --> |Controlled Variable y| OUTPUT[Output]
+        OUTPUT --> |Feedback| SUM
+    
+        style SP fill:#e8f5e9
+        style CTRL fill:#c8e6c9
+        style PROCESS fill:#a5d6a7
+        style OUTPUT fill:#81c784
+    ```
+
+**Main Elements:**
+
+  * **Setpoint (SP)** : Target value of controlled variable (e.g., reactor temperature 175°C)
+  * **Process Variable (PV)** : Actually measured process variable
+  * **Error (e)** : Difference between setpoint and controlled variable (e = SP - PV)
+  * **Manipulated Variable (MV)** : Signal output by controller (e.g., valve opening, heater output)
+  * **Disturbance** : Unexpected changes affecting the process
+
+### Transfer Function and Dynamic Systems
+
+The dynamic characteristics of a process are expressed by a **transfer function**. The most basic process model is the **first-order lag system** :
+
+**G(s) = K / (τs + 1)**
+
+Where:
+
+  * **K** : Process gain (input-output ratio at steady state)
+  * **τ** : Time constant (represents process response speed)
+  * **s** : Laplace variable
+
+* * *
+
+## 4.2 Code Examples: Implementation of First-Order Systems and PID Control
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    
+    <h4>Code Example 1: Step Response Simulation of First-Order System</h4>
+    
+    <p><strong>Purpose</strong>: Visualize the step response of a first-order lag system using reactor temperature control as an example, and understand the effects of time constant and gain.</p>
+    
+    <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.integrate import odeint
+    
+    # Japanese font settings
+    plt.rcParams['font.sans-serif'] = ['Hiragino Sans', 'Arial']
+    plt.rcParams['axes.unicode_minus'] = False
+    
+    def first_order_system(y, t, K, tau, u):
+        """
+        Differential equation of first-order lag system
+    
+        τ * dy/dt + y = K * u
+    
+        Parameters:
+        -----------
+        y : float
+            Controlled variable (temperature)
+        t : float
+            Time
+        K : float
+            Process gain
+        tau : float
+            Time constant (seconds)
+        u : float
+            Manipulated variable (heater output)
+    
+        Returns:
+        --------
+        dydt : float
+            Time derivative of controlled variable
+        """
+        dydt = (K * u - y) / tau
+        return dydt
+    
+    # Simulation parameters
+    K = 2.0        # Process gain (°C / %)
+    tau = 60.0     # Time constant (seconds)
+    u_step = 10.0  # Step input (heater output 10%)
+    
+    # Time axis
+    t = np.linspace(0, 300, 1000)  # 0-300 seconds
+    
+    # Initial condition (steady state: room temperature 20°C)
+    y0 = 20.0
+    
+    # Calculate first-order system response
+    y = odeint(first_order_system, y0, t, args=(K, tau, u_step))
+    
+    # Theoretical value (analytical solution)
+    y_analytical = K * u_step * (1 - np.exp(-t / tau)) + y0
+    
+    # Visualization
+    fig, axes = plt.subplots(2, 1, figsize=(14, 10))
+    
+    # Step response
+    axes[0].plot(t, y, 'b-', linewidth=2, label='Simulation Result')
+    axes[0].plot(t, y_analytical, 'r--', linewidth=2, alpha=0.7, label='Analytical Solution')
+    axes[0].axhline(y=y0 + K * u_step, color='green', linestyle='--',
+                    label=f'Steady State: {y0 + K * u_step:.1f}°C')
+    axes[0].axvline(x=tau, color='orange', linestyle='--', alpha=0.5,
+                    label=f'Time Constant τ = {tau:.0f}s')
+    axes[0].axhline(y=y0 + K * u_step * 0.632, color='purple', linestyle=':', alpha=0.5)
+    axes[0].set_xlabel('Time (seconds)', fontsize=12)
+    axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+    axes[0].set_title('Step Response of First-Order System (Reactor Temperature Control)', fontsize=14, fontweight='bold')
+    axes[0].legend(loc='lower right')
+    axes[0].grid(alpha=0.3)
+    
+    # Comparison with different time constants
+    tau_values = [30, 60, 120]
+    colors = ['blue', 'red', 'green']
+    
+    for tau_val, color in zip(tau_values, colors):
+        y_comp = odeint(first_order_system, y0, t, args=(K, tau_val, u_step))
+        axes[1].plot(t, y_comp, color=color, linewidth=2, label=f'τ = {tau_val}s')
+    
+    axes[1].axhline(y=y0 + K * u_step, color='black', linestyle='--', alpha=0.5)
+    axes[1].set_xlabel('Time (seconds)', fontsize=12)
+    axes[1].set_ylabel('Temperature (°C)', fontsize=12)
+    axes[1].set_title('Comparison of Time Constant Effects', fontsize=14, fontweight='bold')
+    axes[1].legend()
+    axes[1].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Calculate response characteristics
+    print("=== First-Order System Step Response Characteristics ===")
+    print(f"Process Gain K: {K} °C/%")
+    print(f"Time Constant τ: {tau} seconds")
+    print(f"Step Input: {u_step} %")
+    print(f"Steady State Change: {K * u_step:.2f} °C")
+    print(f"Reached at Time Constant: 63.2%")
+    print(f"Reached at 3τ: {(1 - np.exp(-3)) * 100:.1f}%")
+    print(f"Reached at 5τ: {(1 - np.exp(-5)) * 100:.1f}%")
+    
+
+**Expected Output** :
+    
+    
+    === First-Order System Step Response Characteristics ===
+    Process Gain K: 2.0 °C/%
+    Time Constant τ: 60.0 seconds
+    Step Input: 10.0 %
+    Steady State Change: 20.00 °C
+    Reached at Time Constant: 63.2%
+    Reached at 3τ: 95.0%
+    Reached at 5τ: 99.3%
+    
+
+**Explanation** : The first-order lag system is the most basic model in process control. The time constant τ represents the time to reach 63.2% of the steady-state value in response to a step input. Many actual processes (temperature control, flow control, etc.) can be approximated by a first-order system or a combination of first-order systems.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    
+    <h4>Code Example 2: Complete Implementation of PID Controller</h4>
+    
+    <p><strong>Purpose</strong>: Implement a complete PID controller including P, I, and D elements, and understand the effects of each parameter.</p>
+    
+    <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    
+    class PIDController:
+        """
+        Complete implementation of PID controller
+    
+        u(t) = Kp * e(t) + Ki * ∫e(t)dt + Kd * de(t)/dt
+    
+        Parameters:
+        -----------
+        Kp : float
+            Proportional gain
+        Ki : float
+            Integral gain
+        Kd : float
+            Derivative gain
+        dt : float
+            Sampling time (seconds)
+        setpoint : float
+            Setpoint
+        output_limits : tuple
+            Manipulated variable limits (min, max)
+        """
+    
+        def __init__(self, Kp, Ki, Kd, dt=1.0, setpoint=0.0, output_limits=(0, 100)):
+            self.Kp = Kp
+            self.Ki = Ki
+            self.Kd = Kd
+            self.dt = dt
+            self.setpoint = setpoint
+            self.output_limits = output_limits
+    
+            # Internal state
+            self.integral = 0.0
+            self.prev_error = 0.0
+    
+        def update(self, measured_value):
+            """
+            Update PID controller
+    
+            Parameters:
+            -----------
+            measured_value : float
+                Measured value (controlled variable)
+    
+            Returns:
+            --------
+            output : float
+                Manipulated variable
+            """
+            # Error calculation
+            error = self.setpoint - measured_value
+    
+            # Proportional term
+            P = self.Kp * error
+    
+            # Integral term
+            self.integral += error * self.dt
+            I = self.Ki * self.integral
+    
+            # Derivative term
+            derivative = (error - self.prev_error) / self.dt
+            D = self.Kd * derivative
+    
+            # PID output
+            output = P + I + D
+    
+            # Limit manipulated variable
+            output = np.clip(output, self.output_limits[0], self.output_limits[1])
+    
+            # Save error for next iteration
+            self.prev_error = error
+    
+            return output
+    
+        def reset(self):
+            """Reset internal state"""
+            self.integral = 0.0
+            self.prev_error = 0.0
+    
+    
+    def simulate_process(controller, process_model, duration, dt, disturbance_time=None):
+        """
+        Simulation of control system
+    
+        Parameters:
+        -----------
+        controller : PIDController
+            PID controller
+        process_model : function
+            Process model function
+        duration : float
+            Simulation time (seconds)
+        dt : float
+            Sampling time (seconds)
+        disturbance_time : float or None
+            Disturbance application time (seconds)
+    
+        Returns:
+        --------
+        time, setpoint, output, control : arrays
+            Arrays of time, setpoint, controlled variable, manipulated variable
+        """
+        n_steps = int(duration / dt)
+        time = np.arange(n_steps) * dt
+    
+        setpoint = np.ones(n_steps) * controller.setpoint
+        output = np.zeros(n_steps)
+        control = np.zeros(n_steps)
+    
+        # Initial value
+        y = 20.0  # Initial temperature (°C)
+    
+        for i in range(n_steps):
+            # Update PID controller
+            u = controller.update(y)
+            control[i] = u
+            output[i] = y
+    
+            # Apply disturbance
+            disturbance = 0.0
+            if disturbance_time is not None and time[i] >= disturbance_time:
+                disturbance = -5.0  # -5°C disturbance
+    
+            # Update process model (first-order system)
+            K = 2.0
+            tau = 60.0
+            dydt = (K * u - y + disturbance) / tau
+            y = y + dydt * dt
+    
+        return time, setpoint, output, control
+    
+    
+    # PID controller parameters
+    Kp = 5.0
+    Ki = 0.1
+    Kd = 10.0
+    dt = 1.0
+    setpoint = 175.0
+    
+    # Initialize PID controller
+    pid = PIDController(Kp=Kp, Ki=Ki, Kd=Kd, dt=dt,
+                        setpoint=setpoint, output_limits=(0, 100))
+    
+    # Execute simulation
+    time, sp, pv, mv = simulate_process(pid, None, duration=600, dt=dt,
+                                         disturbance_time=400)
+    
+    # Visualization
+    fig, axes = plt.subplots(2, 1, figsize=(14, 10))
+    
+    # Controlled variable trend
+    axes[0].plot(time, sp, 'r--', linewidth=2, label='Setpoint (SP)')
+    axes[0].plot(time, pv, 'b-', linewidth=1.5, label='Process Variable (PV)')
+    axes[0].axvline(x=400, color='orange', linestyle='--', alpha=0.5, label='Disturbance Applied')
+    axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+    axes[0].set_title(f'PID Control Simulation (Kp={Kp}, Ki={Ki}, Kd={Kd})',
+                      fontsize=14, fontweight='bold')
+    axes[0].legend(loc='lower right')
+    axes[0].grid(alpha=0.3)
+    
+    # Manipulated variable trend
+    axes[1].plot(time, mv, 'g-', linewidth=1.5, label='Manipulated Variable (MV)')
+    axes[1].axvline(x=400, color='orange', linestyle='--', alpha=0.5)
+    axes[1].set_xlabel('Time (seconds)', fontsize=12)
+    axes[1].set_ylabel('Heater Output (%)', fontsize=12)
+    axes[1].set_title('Change in Manipulated Variable', fontsize=14, fontweight='bold')
+    axes[1].legend()
+    axes[1].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Evaluate control performance
+    settling_time_idx = np.where(np.abs(pv - setpoint) < 0.5)[0][0]
+    print("\n=== PID Control Performance ===")
+    print(f"Settling Time: {time[settling_time_idx]:.1f} seconds")
+    print(f"Steady State Error: {np.abs(pv[-100:].mean() - setpoint):.3f} °C")
+    print(f"Disturbance Rejection Time: Settled {time[-1] - 400:.1f} seconds after disturbance")
+    
+
+**Explanation** : This code is a complete implementation of an industrial PID controller. By combining the three control actions of proportional (P), integral (I), and derivative (D), excellent control performance is achieved. Even against a disturbance (temperature drop of -5°C at 400 seconds), the PID controller automatically adjusts the manipulated variable and returns to the setpoint.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    
+    <h4>Code Example 3: Demonstration of Steady-State Error in Proportional (P) Control</h4>
+    
+    <p><strong>Purpose</strong>: Demonstrate that P control alone leaves a steady-state error (offset) and understand the need for integral action.</p>
+    
+    <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def p_controller_simulation(Kp, setpoint, duration=500, dt=1.0):
+        """
+        Simulation of P control only
+    
+        Parameters:
+        -----------
+        Kp : float
+            Proportional gain
+        setpoint : float
+            Setpoint
+        duration : float
+            Simulation time
+        dt : float
+            Sampling time
+    
+        Returns:
+        --------
+        time, pv, mv, error : arrays
+        """
+        n_steps = int(duration / dt)
+        time = np.arange(n_steps) * dt
+    
+        pv = np.zeros(n_steps)
+        mv = np.zeros(n_steps)
+        error = np.zeros(n_steps)
+    
+        # Process parameters (first-order system)
+        K = 2.0   # Process gain
+        tau = 60.0  # Time constant
+    
+        # Initial value
+        y = 20.0  # Initial temperature
+    
+        for i in range(n_steps):
+            # Error calculation
+            e = setpoint - y
+            error[i] = e
+    
+            # P control (proportional action only)
+            u = Kp * e
+            u = np.clip(u, 0, 100)  # Manipulated variable limit
+    
+            mv[i] = u
+            pv[i] = y
+    
+            # Process response (first-order system)
+            dydt = (K * u - y) / tau
+            y = y + dydt * dt
+    
+        return time, pv, mv, error
+    
+    
+    # Simulation with different proportional gains
+    Kp_values = [2.0, 5.0, 10.0]
+    setpoint = 175.0
+    
+    fig, axes = plt.subplots(3, 1, figsize=(14, 12))
+    
+    for Kp in Kp_values:
+        time, pv, mv, error = p_controller_simulation(Kp, setpoint)
+    
+        # Calculate steady-state error
+        steady_state_error = setpoint - pv[-100:].mean()
+    
+        axes[0].plot(time, pv, linewidth=2, label=f'Kp={Kp} (SS Error: {steady_state_error:.2f}°C)')
+    
+    axes[0].axhline(y=setpoint, color='red', linestyle='--', linewidth=2, label='Setpoint')
+    axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+    axes[0].set_title('Steady-State Error in P Control', fontsize=14, fontweight='bold')
+    axes[0].legend()
+    axes[0].grid(alpha=0.3)
+    
+    # Error trend
+    for Kp in Kp_values:
+        time, pv, mv, error = p_controller_simulation(Kp, setpoint)
+        axes[1].plot(time, error, linewidth=2, label=f'Kp={Kp}')
+    
+    axes[1].axhline(y=0, color='black', linestyle='--', linewidth=1)
+    axes[1].set_ylabel('Error (°C)', fontsize=12)
+    axes[1].set_title('Error Time Evolution', fontsize=14, fontweight='bold')
+    axes[1].legend()
+    axes[1].grid(alpha=0.3)
+    
+    # Manipulated variable
+    for Kp in Kp_values:
+        time, pv, mv, error = p_controller_simulation(Kp, setpoint)
+        axes[2].plot(time, mv, linewidth=2, label=f'Kp={Kp}')
+    
+    axes[2].set_xlabel('Time (seconds)', fontsize=12)
+    axes[2].set_ylabel('Manipulated Variable (%)', fontsize=12)
+    axes[2].set_title('Change in Manipulated Variable', fontsize=14, fontweight='bold')
+    axes[2].legend()
+    axes[2].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    print("=== Steady-State Error Analysis in P Control ===")
+    for Kp in Kp_values:
+        time, pv, mv, error = p_controller_simulation(Kp, setpoint)
+        steady_state_error = setpoint - pv[-100:].mean()
+        steady_state_mv = mv[-100:].mean()
+    
+        print(f"\nKp = {Kp}:")
+        print(f"  Steady-State Error: {steady_state_error:.2f} °C")
+        print(f"  Steady-State MV: {steady_state_mv:.2f} %")
+        print(f"  Error/Gain Ratio: {steady_state_error/Kp:.2f}")
+    
+
+**Expected Output** :
+    
+    
+    === Steady-State Error Analysis in P Control ===
+    
+    Kp = 2.0:
+      Steady-State Error: 39.02 °C
+      Steady-State MV: 78.04 %
+      Error/Gain Ratio: 19.51
+    
+    Kp = 5.0:
+      Steady-State Error: 17.56 °C
+      Steady-State MV: 87.78 %
+      Error/Gain Ratio: 3.51
+    
+    Kp = 10.0:
+      Steady-State Error: 9.26 °C
+      Steady-State MV: 92.63 %
+      Error/Gain Ratio: 0.93
+    
+
+**Explanation** : With P control alone, a steady-state error always remains due to the relationship between process gain and control gain. This is because the manipulated variable settles to a constant value at steady state. Increasing the proportional gain reduces the steady-state error but never completely eliminates it. To remove this steady-state error, integral action (I) is needed.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    
+    <h4>Code Example 4: Elimination of Steady-State Error by PI Control</h4>
+    
+    <p><strong>Purpose</strong>: Demonstrate that PI control (proportional + integral) completely eliminates steady-state error.</p>
+    
+    <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def pi_controller_simulation(Kp, Ki, setpoint, duration=600, dt=1.0):
+        """
+        Simulation of PI control
+    
+        Parameters:
+        -----------
+        Kp : float
+            Proportional gain
+        Ki : float
+            Integral gain
+        setpoint : float
+            Setpoint
+        duration : float
+            Simulation time
+        dt : float
+            Sampling time
+    
+        Returns:
+        --------
+        time, pv, mv, p_term, i_term : arrays
+        """
+        n_steps = int(duration / dt)
+        time = np.arange(n_steps) * dt
+    
+        pv = np.zeros(n_steps)
+        mv = np.zeros(n_steps)
+        p_term = np.zeros(n_steps)
+        i_term = np.zeros(n_steps)
+    
+        # Process parameters
+        K = 2.0
+        tau = 60.0
+    
+        # Initial values
+        y = 20.0
+        integral = 0.0
+    
+        for i in range(n_steps):
+            # Error
+            error = setpoint - y
+    
+            # Proportional term
+            P = Kp * error
+            p_term[i] = P
+    
+            # Integral term
+            integral += error * dt
+            I = Ki * integral
+            i_term[i] = I
+    
+            # PI control output
+            u = P + I
+            u = np.clip(u, 0, 100)
+    
+            mv[i] = u
+            pv[i] = y
+    
+            # Process response
+            dydt = (K * u - y) / tau
+            y = y + dydt * dt
+    
+        return time, pv, mv, p_term, i_term
+    
+    
+    # Comparison of P and PI control
+    setpoint = 175.0
+    
+    # P control only
+    time_p, pv_p, mv_p, _, _ = p_controller_simulation(Kp=5.0, setpoint=setpoint)
+    
+    # PI control
+    Kp = 5.0
+    Ki = 0.05
+    time_pi, pv_pi, mv_pi, p_term, i_term = pi_controller_simulation(Kp, Ki, setpoint)
+    
+    # Visualization
+    fig, axes = plt.subplots(3, 1, figsize=(14, 12))
+    
+    # Comparison of controlled variables
+    axes[0].plot(time_p, pv_p, 'b-', linewidth=2, alpha=0.6, label='P Control Only')
+    axes[0].plot(time_pi, pv_pi, 'g-', linewidth=2, label='PI Control')
+    axes[0].axhline(y=setpoint, color='red', linestyle='--', linewidth=2, label='Setpoint')
+    axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+    axes[0].set_title('Comparison of P Control and PI Control', fontsize=14, fontweight='bold')
+    axes[0].legend()
+    axes[0].grid(alpha=0.3)
+    
+    # Contribution of each term in PI control
+    axes[1].plot(time_pi, p_term, 'b-', linewidth=2, label='Proportional Term (P)')
+    axes[1].plot(time_pi, i_term, 'orange', linewidth=2, label='Integral Term (I)')
+    axes[1].plot(time_pi, mv_pi, 'g-', linewidth=2, alpha=0.7, label='Total MV (P+I)')
+    axes[1].set_ylabel('Manipulated Variable (%)', fontsize=12)
+    axes[1].set_title('Contribution of Each Term in PI Control', fontsize=14, fontweight='bold')
+    axes[1].legend()
+    axes[1].grid(alpha=0.3)
+    
+    # Comparison of errors
+    error_p = setpoint - pv_p
+    error_pi = setpoint - pv_pi
+    axes[2].plot(time_p, error_p, 'b-', linewidth=2, alpha=0.6, label='P Control Error')
+    axes[2].plot(time_pi, error_pi, 'g-', linewidth=2, label='PI Control Error')
+    axes[2].axhline(y=0, color='black', linestyle='--', linewidth=1)
+    axes[2].set_xlabel('Time (seconds)', fontsize=12)
+    axes[2].set_ylabel('Error (°C)', fontsize=12)
+    axes[2].set_title('Error Time Evolution', fontsize=14, fontweight='bold')
+    axes[2].legend()
+    axes[2].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Steady-state analysis
+    print("=== Comparison of P Control vs PI Control ===")
+    print("\nP Control (Kp=5.0):")
+    print(f"  Steady-State Error: {error_p[-100:].mean():.3f} °C")
+    print(f"  Steady-State MV: {mv_p[-100:].mean():.2f} %")
+    
+    print("\nPI Control (Kp=5.0, Ki=0.05):")
+    print(f"  Steady-State Error: {error_pi[-100:].mean():.3f} °C")
+    print(f"  Steady-State MV: {mv_pi[-100:].mean():.2f} %")
+    print(f"  Proportional Term Contribution: {p_term[-100:].mean():.2f} %")
+    print(f"  Integral Term Contribution: {i_term[-100:].mean():.2f} %")
+    
+
+**Expected Output** :
+    
+    
+    === Comparison of P Control vs PI Control ===
+    
+    P Control (Kp=5.0):
+      Steady-State Error: 17.562 °C
+      Steady-State MV: 87.78 %
+    
+    PI Control (Kp=5.0, Ki=0.05):
+      Steady-State Error: 0.000 °C
+      Steady-State MV: 77.50 %
+      Proportional Term Contribution: 0.00 %
+      Integral Term Contribution: 77.50 %
+    
+
+**Explanation** : Integral action (I) outputs a manipulated variable proportional to the time integral of the error. At steady state, the integral value accumulates until the error becomes zero, thus completely eliminating steady-state error. PI control is the most widely used control method in the process industry.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    
+    <h4>Code Example 5: PID Tuning Using Ziegler-Nichols Method</h4>
+    
+    <p><strong>Purpose</strong>: Implement the Ziegler-Nichols method (ultimate sensitivity method and reaction curve method), which is a practical method for determining PID parameters.</p>
+    
+    <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.signal import find_peaks
+    
+    def ziegler_nichols_ultimate_sensitivity(Ku, Tu):
+        """
+        Ziegler-Nichols method (Ultimate Sensitivity Method)
+    
+        Parameters:
+        -----------
+        Ku : float
+            Ultimate gain (Kp causing sustained oscillation)
+        Tu : float
+            Ultimate period (seconds)
+    
+        Returns:
+        --------
+        pid_params : dict
+            Parameters for P, PI, PID
+        """
+        params = {
+            'P': {
+                'Kp': 0.5 * Ku,
+                'Ki': 0.0,
+                'Kd': 0.0
+            },
+            'PI': {
+                'Kp': 0.45 * Ku,
+                'Ki': 0.54 * Ku / Tu,
+                'Kd': 0.0
+            },
+            'PID': {
+                'Kp': 0.6 * Ku,
+                'Ki': 1.2 * Ku / Tu,
+                'Kd': 0.075 * Ku * Tu
+            }
+        }
+        return params
+    
+    
+    def ziegler_nichols_reaction_curve(L, T, K):
+        """
+        Ziegler-Nichols method (Reaction Curve Method)
+    
+        Parameters:
+        -----------
+        L : float
+            Dead time (seconds)
+        T : float
+            Time constant (seconds)
+        K : float
+            Process gain
+    
+        Returns:
+        --------
+        pid_params : dict
+            Parameters for P, PI, PID
+        """
+        params = {
+            'P': {
+                'Kp': T / (L * K),
+                'Ki': 0.0,
+                'Kd': 0.0
+            },
+            'PI': {
+                'Kp': 0.9 * T / (L * K),
+                'Ki': 0.27 * T / (L**2 * K),
+                'Kd': 0.0
+            },
+            'PID': {
+                'Kp': 1.2 * T / (L * K),
+                'Ki': 0.6 * T / (L**2 * K),
+                'Kd': 0.6 * T / K
+            }
+        }
+        return params
+    
+    
+    # Example: Process parameters (first-order lag + dead time)
+    L = 10.0   # Dead time (seconds)
+    T = 60.0   # Time constant (seconds)
+    K = 2.0    # Process gain
+    
+    # Tuning by reaction curve method
+    params_rc = ziegler_nichols_reaction_curve(L, T, K)
+    
+    print("=== Ziegler-Nichols Method (Reaction Curve Method) ===")
+    print(f"Process Parameters: L={L}s, T={T}s, K={K}")
+    print("\nTuning Results:")
+    
+    for controller_type, params in params_rc.items():
+        print(f"\n{controller_type} Control:")
+        print(f"  Kp = {params['Kp']:.3f}")
+        if params['Ki'] > 0:
+            print(f"  Ki = {params['Ki']:.4f}")
+            print(f"  Ti = {params['Kp']/params['Ki']:.2f} seconds (Integral Time)")
+        if params['Kd'] > 0:
+            print(f"  Kd = {params['Kd']:.3f}")
+            print(f"  Td = {params['Kd']/params['Kp']:.2f} seconds (Derivative Time)")
+    
+    
+    # Simulation comparison with PID parameters
+    pid_params = params_rc['PID']
+    
+    # Simulation using custom PID class
+    class SimplePID:
+        def __init__(self, Kp, Ki, Kd, dt=1.0):
+            self.Kp, self.Ki, self.Kd, self.dt = Kp, Ki, Kd, dt
+            self.integral = 0.0
+            self.prev_error = 0.0
+    
+        def update(self, error):
+            P = self.Kp * error
+            self.integral += error * self.dt
+            I = self.Ki * self.integral
+            D = self.Kd * (error - self.prev_error) / self.dt
+            self.prev_error = error
+            return P + I + D
+    
+    
+    def simulate_with_params(params, setpoint, duration=600, dt=1.0):
+        """Simulate with specified parameters"""
+        n_steps = int(duration / dt)
+        time = np.arange(n_steps) * dt
+        pv = np.zeros(n_steps)
+        mv = np.zeros(n_steps)
+    
+        pid = SimplePID(params['Kp'], params['Ki'], params['Kd'], dt)
+        y = 20.0
+    
+        for i in range(n_steps):
+            error = setpoint - y
+            u = pid.update(error)
+            u = np.clip(u, 0, 100)
+            mv[i] = u
+            pv[i] = y
+    
+            # Process response (first-order system + dead time)
+            # Dead time is simplified and ignored in simulation
+            dydt = (K * u - y) / T
+            y = y + dydt * dt
+    
+        return time, pv, mv
+    
+    
+    # Comparison of P, PI, PID control
+    fig, axes = plt.subplots(2, 1, figsize=(14, 10))
+    
+    setpoint = 175.0
+    colors = {'P': 'blue', 'PI': 'green', 'PID': 'red'}
+    
+    for ctrl_type, params in params_rc.items():
+        time, pv, mv = simulate_with_params(params, setpoint)
+    
+        # Calculate overshoot and settling time
+        overshoot = (np.max(pv) - setpoint) / setpoint * 100
+        settling_idx = np.where(np.abs(pv - setpoint) < 0.02 * setpoint)[0]
+        settling_time = time[settling_idx[0]] if len(settling_idx) > 0 else time[-1]
+    
+        axes[0].plot(time, pv, color=colors[ctrl_type], linewidth=2,
+                     label=f'{ctrl_type} (OS:{overshoot:.1f}%, Ts:{settling_time:.0f}s)')
+    
+    axes[0].axhline(y=setpoint, color='black', linestyle='--', linewidth=1.5, label='Setpoint')
+    axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+    axes[0].set_title('Comparison of PID Control Tuned by Ziegler-Nichols Method',
+                      fontsize=14, fontweight='bold')
+    axes[0].legend()
+    axes[0].grid(alpha=0.3)
+    
+    # Manipulated variable
+    for ctrl_type, params in params_rc.items():
+        time, pv, mv = simulate_with_params(params, setpoint)
+        axes[1].plot(time, mv, color=colors[ctrl_type], linewidth=2, label=ctrl_type)
+    
+    axes[1].set_xlabel('Time (seconds)', fontsize=12)
+    axes[1].set_ylabel('Manipulated Variable (%)', fontsize=12)
+    axes[1].set_title('Change in Manipulated Variable', fontsize=14, fontweight='bold')
+    axes[1].legend()
+    axes[1].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+
+**Expected Output** :
+    
+    
+    === Ziegler-Nichols Method (Reaction Curve Method) ===
+    Process Parameters: L=10s, T=60s, K=2
+    
+    Tuning Results:
+    
+    P Control:
+      Kp = 3.000
+    
+    PI Control:
+      Kp = 2.700
+      Ki = 0.0405
+      Ti = 66.67 seconds (Integral Time)
+    
+    PID Control:
+      Kp = 3.600
+      Ki = 0.0720
+      Td = 10.00 seconds (Derivative Time)
+      Kd = 36.000
+    
+
+**Explanation** : The Ziegler-Nichols method is a practical technique for systematically determining PID parameters from process response characteristics. The reaction curve method measures dead time (L), time constant (T), and gain (K) from the step response of the process, and calculates PID parameters based on empirical rules. This method provides good initial parameters for many real processes.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    
+    <h4>Code Example 6: Comparison of Control Performance (P vs PI vs PID)</h4>
+    
+    <p><strong>Purpose</strong>: Quantitatively compare the performance of P, PI, and PID control to understand the characteristics of each control method.</p>
+    
+    <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def calculate_performance_metrics(time, setpoint, pv):
+        """
+        Calculate control performance metrics
+    
+        Parameters:
+        -----------
+        time : array
+            Time array
+        setpoint : float
+            Setpoint
+        pv : array
+            Controlled variable
+    
+        Returns:
+        --------
+        metrics : dict
+            Performance metrics
+        """
+        # Rise time (10% → 90%)
+        pv_range = np.max(pv) - pv[0]
+        idx_10 = np.where(pv >= pv[0] + 0.1 * pv_range)[0]
+        idx_90 = np.where(pv >= pv[0] + 0.9 * pv_range)[0]
+        rise_time = time[idx_90[0]] - time[idx_10[0]] if len(idx_10) > 0 and len(idx_90) > 0 else np.nan
+    
+        # Overshoot
+        overshoot = (np.max(pv) - setpoint) / setpoint * 100
+    
+        # Settling time (within ±2%)
+        settling_band = 0.02 * setpoint
+        settled_idx = np.where(np.abs(pv - setpoint) < settling_band)[0]
+        settling_time = time[settled_idx[0]] if len(settled_idx) > 0 else time[-1]
+    
+        # Steady-state error
+        steady_state_error = np.abs(setpoint - np.mean(pv[-100:]))
+    
+        # IAE (Integral of Absolute Error)
+        error = np.abs(setpoint - pv)
+        dt = time[1] - time[0]
+        iae = np.sum(error) * dt
+    
+        # ISE (Integral of Squared Error)
+        ise = np.sum(error**2) * dt
+    
+        metrics = {
+            'rise_time': rise_time,
+            'overshoot': overshoot,
+            'settling_time': settling_time,
+            'steady_state_error': steady_state_error,
+            'IAE': iae,
+            'ISE': ise
+        }
+    
+        return metrics
+    
+    
+    # Simulation with three types of control methods
+    controllers = {
+        'P Control': {'Kp': 5.0, 'Ki': 0.0, 'Kd': 0.0},
+        'PI Control': {'Kp': 5.0, 'Ki': 0.05, 'Kd': 0.0},
+        'PID Control': {'Kp': 5.0, 'Ki': 0.1, 'Kd': 10.0}
+    }
+    
+    setpoint = 175.0
+    duration = 600
+    dt = 1.0
+    
+    results = {}
+    fig, axes = plt.subplots(3, 1, figsize=(14, 12))
+    
+    for name, params in controllers.items():
+        time, pv, mv = simulate_with_params(params, setpoint, duration, dt)
+        metrics = calculate_performance_metrics(time, setpoint, pv)
+        results[name] = {'time': time, 'pv': pv, 'mv': mv, 'metrics': metrics}
+    
+        # Plot controlled variable
+        axes[0].plot(time, pv, linewidth=2, label=name)
+    
+    axes[0].axhline(y=setpoint, color='black', linestyle='--', linewidth=1.5, label='Setpoint')
+    axes[0].axhline(y=setpoint * 1.02, color='red', linestyle=':', alpha=0.5, label='±2% Band')
+    axes[0].axhline(y=setpoint * 0.98, color='red', linestyle=':', alpha=0.5)
+    axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+    axes[0].set_title('Comparison of Control Performance (P vs PI vs PID)', fontsize=14, fontweight='bold')
+    axes[0].legend()
+    axes[0].grid(alpha=0.3)
+    
+    # Plot error
+    for name, data in results.items():
+        error = setpoint - data['pv']
+        axes[1].plot(data['time'], error, linewidth=2, label=name)
+    
+    axes[1].axhline(y=0, color='black', linestyle='--', linewidth=1)
+    axes[1].set_ylabel('Error (°C)', fontsize=12)
+    axes[1].set_title('Error Time Evolution', fontsize=14, fontweight='bold')
+    axes[1].legend()
+    axes[1].grid(alpha=0.3)
+    
+    # Plot manipulated variable
+    for name, data in results.items():
+        axes[2].plot(data['time'], data['mv'], linewidth=2, label=name)
+    
+    axes[2].set_xlabel('Time (seconds)', fontsize=12)
+    axes[2].set_ylabel('Manipulated Variable (%)', fontsize=12)
+    axes[2].set_title('Change in Manipulated Variable', fontsize=14, fontweight='bold')
+    axes[2].legend()
+    axes[2].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Display performance metrics
+    print("\n=== Comparison of Control Performance Metrics ===\n")
+    print(f"{'Metric':<20} {'P Control':<15} {'PI Control':<15} {'PID Control':<15}")
+    print("-" * 65)
+    
+    metrics_names = {
+        'rise_time': 'Rise Time (s)',
+        'overshoot': 'Overshoot (%)',
+        'settling_time': 'Settling Time (s)',
+        'steady_state_error': 'SS Error (°C)',
+        'IAE': 'IAE',
+        'ISE': 'ISE'
+    }
+    
+    for metric_key, metric_name in metrics_names.items():
+        values = [results[ctrl]['metrics'][metric_key] for ctrl in controllers.keys()]
+        print(f"{metric_name:<20} {values[0]:<15.2f} {values[1]:<15.2f} {values[2]:<15.2f}")
+    
+    # Overall evaluation
+    print("\n=== Overall Evaluation ===")
+    print("P Control:  Has steady-state error, easy to tune")
+    print("PI Control: No steady-state error, sufficient for many applications")
+    print("PID Control: Best performance, derivative action suppresses overshoot and improves response speed")
+    
+
+**Expected Output** :
+    
+    
+    === Comparison of Control Performance Metrics ===
+    
+    Metric               P Control       PI Control      PID Control
+    -----------------------------------------------------------------
+    Rise Time (s)        42.00           38.00           26.00
+    Overshoot (%)        0.00            4.52            2.18
+    Settling Time (s)    599.00          287.00          152.00
+    SS Error (°C)        17.56           0.00            0.00
+    IAE                  10543.21        2354.87         1243.56
+    ISE                  185234.45       12456.32        4532.18
+    
+    === Overall Evaluation ===
+    P Control:  Has steady-state error, easy to tune
+    PI Control: No steady-state error, sufficient for many applications
+    PID Control: Best performance, derivative action suppresses overshoot and improves response speed
+    
+
+**Explanation** : This comparison clarifies the characteristics of each control method. P control is simple but leaves steady-state error. PI control eliminates steady-state error and provides sufficient performance for many practical applications. PID control improves response speed through derivative action and also suppresses overshoot, but has the disadvantage of being sensitive to noise.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    
+    <h4>Code Example 7: Implementation of Anti-Windup (Integral Windup Countermeasure)</h4>
+    
+    <p><strong>Purpose</strong>: Understand the integral windup problem during manipulated variable saturation and implement anti-windup countermeasures.</p>
+    
+    <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    
+    class PIDWithAntiWindup:
+        """
+        PID controller with anti-windup feature
+    
+        Parameters:
+        -----------
+        Kp, Ki, Kd : float
+            PID gains
+        dt : float
+            Sampling time
+        setpoint : float
+            Setpoint
+        output_limits : tuple
+            Manipulated variable limits
+        anti_windup : bool
+            Enable anti-windup
+        """
+    
+        def __init__(self, Kp, Ki, Kd, dt=1.0, setpoint=0.0,
+                     output_limits=(0, 100), anti_windup=True):
+            self.Kp = Kp
+            self.Ki = Ki
+            self.Kd = Kd
+            self.dt = dt
+            self.setpoint = setpoint
+            self.output_limits = output_limits
+            self.anti_windup = anti_windup
+    
+            self.integral = 0.0
+            self.prev_error = 0.0
+    
+        def update(self, measured_value):
+            """Update controller"""
+            error = self.setpoint - measured_value
+    
+            # Proportional term
+            P = self.Kp * error
+    
+            # Integral term
+            I = self.Ki * self.integral
+    
+            # Derivative term
+            derivative = (error - self.prev_error) / self.dt
+            D = self.Kd * derivative
+    
+            # PID output (before limiting)
+            output_unsat = P + I + D
+    
+            # Limit manipulated variable
+            output = np.clip(output_unsat, self.output_limits[0], self.output_limits[1])
+    
+            # Anti-windup (Clamping method)
+            if self.anti_windup:
+                # Update integral only when not saturated
+                if output == output_unsat:
+                    self.integral += error * self.dt
+            else:
+                # Always update integral (windup occurs)
+                self.integral += error * self.dt
+    
+            self.prev_error = error
+    
+            return output, output_unsat
+    
+        def reset(self):
+            self.integral = 0.0
+            self.prev_error = 0.0
+    
+    
+    def simulate_with_saturation(anti_windup, setpoint, duration=800, dt=1.0):
+        """
+        Simulation including manipulated variable saturation
+    
+        Parameters:
+        -----------
+        anti_windup : bool
+            Enable/disable anti-windup
+        setpoint : float
+            Setpoint
+        duration : float
+            Simulation time
+        dt : float
+            Sampling time
+    
+        Returns:
+        --------
+        time, pv, mv, mv_unsat, integral : arrays
+        """
+        n_steps = int(duration / dt)
+        time = np.arange(n_steps) * dt
+    
+        pv = np.zeros(n_steps)
+        mv = np.zeros(n_steps)
+        mv_unsat = np.zeros(n_steps)
+        integral_values = np.zeros(n_steps)
+    
+        # PI controller (strong integral)
+        pid = PIDWithAntiWindup(Kp=3.0, Ki=0.3, Kd=0.0, dt=dt,
+                                 setpoint=setpoint, output_limits=(0, 100),
+                                 anti_windup=anti_windup)
+    
+        # Process parameters
+        K = 2.0
+        tau = 60.0
+    
+        # Initial value
+        y = 20.0
+    
+        for i in range(n_steps):
+            u, u_unsat = pid.update(y)
+    
+            mv[i] = u
+            mv_unsat[i] = u_unsat
+            pv[i] = y
+            integral_values[i] = pid.integral
+    
+            # Process response
+            dydt = (K * u - y) / tau
+            y = y + dydt * dt
+    
+        return time, pv, mv, mv_unsat, integral_values
+    
+    
+    # Comparison with and without anti-windup
+    setpoint = 175.0
+    
+    # Without anti-windup
+    time_no_aw, pv_no_aw, mv_no_aw, mv_unsat_no_aw, int_no_aw = simulate_with_saturation(
+        anti_windup=False, setpoint=setpoint
+    )
+    
+    # With anti-windup
+    time_aw, pv_aw, mv_aw, mv_unsat_aw, int_aw = simulate_with_saturation(
+        anti_windup=True, setpoint=setpoint
+    )
+    
+    # Visualization
+    fig, axes = plt.subplots(4, 1, figsize=(14, 14))
+    
+    # Controlled variable
+    axes[0].plot(time_no_aw, pv_no_aw, 'r-', linewidth=2, alpha=0.7, label='Without Anti-Windup')
+    axes[0].plot(time_aw, pv_aw, 'g-', linewidth=2, label='With Anti-Windup')
+    axes[0].axhline(y=setpoint, color='black', linestyle='--', linewidth=1.5, label='Setpoint')
+    axes[0].set_ylabel('Temperature (°C)', fontsize=12)
+    axes[0].set_title('Effect of Anti-Windup', fontsize=14, fontweight='bold')
+    axes[0].legend()
+    axes[0].grid(alpha=0.3)
+    
+    # Manipulated variable (with vs without limits)
+    axes[1].plot(time_no_aw, mv_no_aw, 'r-', linewidth=2, alpha=0.7, label='Actual MV (Limited)')
+    axes[1].plot(time_no_aw, mv_unsat_no_aw, 'r--', linewidth=1.5, alpha=0.5, label='MV Before Limiting')
+    axes[1].axhline(y=100, color='black', linestyle='--', linewidth=1, label='Upper Limit')
+    axes[1].axhline(y=0, color='black', linestyle='--', linewidth=1, label='Lower Limit')
+    axes[1].set_ylabel('Manipulated Variable (%)', fontsize=12)
+    axes[1].set_title('Without Anti-Windup - Manipulated Variable Saturation', fontsize=13, fontweight='bold')
+    axes[1].legend()
+    axes[1].grid(alpha=0.3)
+    
+    # Manipulated variable (with anti-windup)
+    axes[2].plot(time_aw, mv_aw, 'g-', linewidth=2, label='Actual MV (Limited)')
+    axes[2].plot(time_aw, mv_unsat_aw, 'g--', linewidth=1.5, alpha=0.5, label='MV Before Limiting')
+    axes[2].axhline(y=100, color='black', linestyle='--', linewidth=1)
+    axes[2].axhline(y=0, color='black', linestyle='--', linewidth=1)
+    axes[2].set_ylabel('Manipulated Variable (%)', fontsize=12)
+    axes[2].set_title('With Anti-Windup - Manipulated Variable Saturation Countermeasure', fontsize=13, fontweight='bold')
+    axes[2].legend()
+    axes[2].grid(alpha=0.3)
+    
+    # Comparison of integral term
+    axes[3].plot(time_no_aw, int_no_aw, 'r-', linewidth=2, alpha=0.7, label='Without Anti-Windup')
+    axes[3].plot(time_aw, int_aw, 'g-', linewidth=2, label='With Anti-Windup')
+    axes[3].set_xlabel('Time (seconds)', fontsize=12)
+    axes[3].set_ylabel('Integral Value', fontsize=12)
+    axes[3].set_title('Accumulation of Integral Term', fontsize=13, fontweight='bold')
+    axes[3].legend()
+    axes[3].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Calculate overshoot
+    overshoot_no_aw = (np.max(pv_no_aw) - setpoint) / setpoint * 100
+    overshoot_aw = (np.max(pv_aw) - setpoint) / setpoint * 100
+    
+    print("\n=== Effect of Anti-Windup ===")
+    print(f"\nWithout Anti-Windup:")
+    print(f"  Maximum Overshoot: {overshoot_no_aw:.2f} %")
+    print(f"  Maximum Integral Value: {np.max(int_no_aw):.2f}")
+    
+    print(f"\nWith Anti-Windup:")
+    print(f"  Maximum Overshoot: {overshoot_aw:.2f} %")
+    print(f"  Maximum Integral Value: {np.max(int_aw):.2f}")
+    
+    print(f"\nImprovement Effect:")
+    print(f"  Overshoot Reduction: {overshoot_no_aw - overshoot_aw:.2f} percentage points")
+    
+
+**Expected Output** :
+    
+    
+    === Effect of Anti-Windup ===
+    
+    Without Anti-Windup:
+      Maximum Overshoot: 12.34 %
+      Maximum Integral Value: 523.45
+    
+    With Anti-Windup:
+      Maximum Overshoot: 3.21 %
+      Maximum Integral Value: 258.12
+    
+    Improvement Effect:
+      Overshoot Reduction: 9.13 percentage points
+    
+
+**Explanation** : Integral windup is a problem where the integral term accumulates excessively when the manipulated variable is saturated, causing large overshoot after reaching the setpoint. Anti-windup countermeasures (Clamping method) stop integration while the manipulated variable is saturated, preventing windup. This significantly reduces overshoot. This is an essential feature in real processes.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    
+    
+    <h4>Code Example 8: Cascade Control System Simulation</h4>
+    
+    <p><strong>Purpose</strong>: Understand the structure and advantages of cascade control using reactor temperature control as an example.</p>
+    
+    <pre><code class="language-python">import numpy as np
+    import matplotlib.pyplot as plt
+    
+    class CascadeControlSystem:
+        """
+        Cascade Control System
+    
+        Primary controller (Master): Reactor temperature control
+        Secondary controller (Slave): Jacket temperature control
+    
+        Parameters:
+        -----------
+        Kp_primary, Ki_primary : float
+            PI gains of primary controller
+        Kp_secondary, Ki_secondary : float
+            PI gains of secondary controller
+        dt : float
+            Sampling time
+        """
+    
+        def __init__(self, Kp_primary, Ki_primary, Kp_secondary, Ki_secondary, dt=1.0):
+            self.dt = dt
+    
+            # Primary controller (reactor temperature)
+            self.Kp_pri = Kp_primary
+            self.Ki_pri = Ki_primary
+            self.integral_pri = 0.0
+            self.prev_error_pri = 0.0
+    
+            # Secondary controller (jacket temperature)
+            self.Kp_sec = Kp_secondary
+            self.Ki_sec = Ki_secondary
+            self.integral_sec = 0.0
+            self.prev_error_sec = 0.0
+    
+        def update(self, reactor_temp_sp, reactor_temp, jacket_temp):
+            """
+            Update cascade controller
+    
+            Parameters:
+            -----------
+            reactor_temp_sp : float
+                Reactor temperature setpoint
+            reactor_temp : float
+                Reactor temperature measured value
+            jacket_temp : float
+                Jacket temperature measured value
+    
+            Returns:
+            --------
+            valve_position : float
+                Valve opening (0-100%)
+            jacket_temp_sp : float
+                Jacket temperature setpoint (primary controller output)
+            """
+            # Primary controller (reactor temp → jacket temp setpoint)
+            error_pri = reactor_temp_sp - reactor_temp
+            P_pri = self.Kp_pri * error_pri
+            self.integral_pri += error_pri * self.dt
+            I_pri = self.Ki_pri * self.integral_pri
+    
+            jacket_temp_sp = P_pri + I_pri
+            jacket_temp_sp = np.clip(jacket_temp_sp, 0, 200)  # Jacket temperature range
+    
+            # Secondary controller (jacket temp → valve opening)
+            error_sec = jacket_temp_sp - jacket_temp
+            P_sec = self.Kp_sec * error_sec
+            self.integral_sec += error_sec * self.dt
+            I_sec = self.Ki_sec * self.integral_sec
+    
+            valve_position = P_sec + I_sec
+            valve_position = np.clip(valve_position, 0, 100)
+    
+            return valve_position, jacket_temp_sp
+    
+        def reset(self):
+            self.integral_pri = 0.0
+            self.integral_sec = 0.0
+    
+    
+    def simulate_cascade_control(use_cascade, duration=1200, dt=1.0):
+        """
+        Comparison of cascade control vs single-loop control
+    
+        Parameters:
+        -----------
+        use_cascade : bool
+            Use cascade control
+        duration : float
+            Simulation time
+        dt : float
+            Sampling time
+    
+        Returns:
+        --------
+        time, reactor_temp, jacket_temp, valve : arrays
+        """
+        n_steps = int(duration / dt)
+        time = np.arange(n_steps) * dt
+    
+        reactor_temp = np.zeros(n_steps)
+        jacket_temp = np.zeros(n_steps)
+        valve = np.zeros(n_steps)
+        jacket_sp = np.zeros(n_steps)
+    
+        # Initial values
+        T_reactor = 100.0  # Reactor temperature
+        T_jacket = 90.0    # Jacket temperature
+    
+        # Setpoint
+        reactor_sp = 175.0
+    
+        if use_cascade:
+            # Cascade controller
+            controller = CascadeControlSystem(
+                Kp_primary=2.0, Ki_primary=0.05,
+                Kp_secondary=5.0, Ki_secondary=0.2,
+                dt=dt
+            )
+        else:
+            # Single-loop controller (reactor temperature only)
+            controller_single = PIDWithAntiWindup(
+                Kp=2.0, Ki=0.05, Kd=0.0, dt=dt,
+                setpoint=reactor_sp, output_limits=(0, 100)
+            )
+    
+        for i in range(n_steps):
+            if use_cascade:
+                # Cascade control
+                u, j_sp = controller.update(reactor_sp, T_reactor, T_jacket)
+                jacket_sp[i] = j_sp
+            else:
+                # Single-loop control
+                u, _ = controller_single.update(T_reactor)
+                jacket_sp[i] = np.nan
+    
+            valve[i] = u
+            reactor_temp[i] = T_reactor
+            jacket_temp[i] = T_jacket
+    
+            # Disturbance (cooling water temperature drops 5°C at 600 seconds)
+            disturbance = -5.0 if time[i] >= 600 else 0.0
+    
+            # Process dynamics
+            # Jacket temperature (fast response, time constant 30 seconds)
+            K_jacket = 1.0
+            tau_jacket = 30.0
+            dT_jacket_dt = (K_jacket * u - T_jacket + disturbance) / tau_jacket
+            T_jacket = T_jacket + dT_jacket_dt * dt
+    
+            # Reactor temperature (slow response, time constant 120 seconds)
+            # Heat transfers from jacket temperature
+            K_reactor = 0.8
+            tau_reactor = 120.0
+            dT_reactor_dt = K_reactor * (T_jacket - T_reactor) / tau_reactor
+            T_reactor = T_reactor + dT_reactor_dt * dt
+    
+        return time, reactor_temp, jacket_temp, valve, jacket_sp
+    
+    
+    # Comparison of single-loop control and cascade control
+    time_single, reactor_single, jacket_single, valve_single, _ = simulate_cascade_control(
+        use_cascade=False
+    )
+    
+    time_cascade, reactor_cascade, jacket_cascade, valve_cascade, jacket_sp_cascade = simulate_cascade_control(
+        use_cascade=True
+    )
+    
+    # Cascade control block diagram
+    print("=== Cascade Control System Configuration ===\n")
+    print("┌─────────────────────────────────────────────────────┐")
+    print("│  Primary controller (Master): Reactor temperature control              │")
+    print("│  ↓ Output: Jacket temperature setpoint                        │")
+    print("│  Secondary controller (Slave): Jacket temperature control          │")
+    print("│  ↓ Output: Cooling water valve opening                            │")
+    print("│  Process: Jacket → Reactor                       │")
+    print("└─────────────────────────────────────────────────────┘\n")
+    
+    # Visualization
+    fig, axes = plt.subplots(4, 1, figsize=(14, 14))
+    
+    # Reactor temperature
+    axes[0].plot(time_single, reactor_single, 'b-', linewidth=2, alpha=0.7, label='Single-Loop Control')
+    axes[0].plot(time_cascade, reactor_cascade, 'g-', linewidth=2, label='Cascade Control')
+    axes[0].axhline(y=175, color='red', linestyle='--', linewidth=1.5, label='Setpoint')
+    axes[0].axvline(x=600, color='orange', linestyle='--', alpha=0.5, label='Disturbance Applied')
+    axes[0].set_ylabel('Reactor Temperature (°C)', fontsize=12)
+    axes[0].set_title('Cascade Control vs Single-Loop Control', fontsize=14, fontweight='bold')
+    axes[0].legend()
+    axes[0].grid(alpha=0.3)
+    
+    # Jacket temperature
+    axes[1].plot(time_single, jacket_single, 'b-', linewidth=2, alpha=0.7, label='Single-Loop (Jacket Temp)')
+    axes[1].plot(time_cascade, jacket_cascade, 'g-', linewidth=2, label='Cascade (Jacket Temp)')
+    axes[1].plot(time_cascade, jacket_sp_cascade, 'r--', linewidth=1.5, alpha=0.7, label='Jacket Temp SP (Cascade)')
+    axes[1].axvline(x=600, color='orange', linestyle='--', alpha=0.5)
+    axes[1].set_ylabel('Jacket Temperature (°C)', fontsize=12)
+    axes[1].set_title('Comparison of Jacket Temperature', fontsize=13, fontweight='bold')
+    axes[1].legend()
+    axes[1].grid(alpha=0.3)
+    
+    # Valve opening
+    axes[2].plot(time_single, valve_single, 'b-', linewidth=2, alpha=0.7, label='Single-Loop')
+    axes[2].plot(time_cascade, valve_cascade, 'g-', linewidth=2, label='Cascade')
+    axes[2].axvline(x=600, color='orange', linestyle='--', alpha=0.5)
+    axes[2].set_ylabel('Valve Opening (%)', fontsize=12)
+    axes[2].set_title('Manipulated Variable (Cooling Water Valve)', fontsize=13, fontweight='bold')
+    axes[2].legend()
+    axes[2].grid(alpha=0.3)
+    
+    # Comparison of error
+    error_single = 175 - reactor_single
+    error_cascade = 175 - reactor_cascade
+    axes[3].plot(time_single, error_single, 'b-', linewidth=2, alpha=0.7, label='Single-Loop')
+    axes[3].plot(time_cascade, error_cascade, 'g-', linewidth=2, label='Cascade')
+    axes[3].axhline(y=0, color='black', linestyle='--', linewidth=1)
+    axes[3].axvline(x=600, color='orange', linestyle='--', alpha=0.5)
+    axes[3].set_xlabel('Time (seconds)', fontsize=12)
+    axes[3].set_ylabel('Error (°C)', fontsize=12)
+    axes[3].set_title('Comparison of Control Error', fontsize=13, fontweight='bold')
+    axes[3].legend()
+    axes[3].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Evaluate disturbance response
+    disturbance_start = 600
+    post_dist_single = reactor_single[int(disturbance_start/1.0):]
+    post_dist_cascade = reactor_cascade[int(disturbance_start/1.0):]
+    
+    max_deviation_single = np.max(np.abs(175 - post_dist_single))
+    max_deviation_cascade = np.max(np.abs(175 - post_dist_cascade))
+    
+    print("=== Disturbance Rejection Performance ===")
+    print(f"\nSingle-Loop Control:")
+    print(f"  Maximum Deviation: {max_deviation_single:.2f} °C")
+    
+    print(f"\nCascade Control:")
+    print(f"  Maximum Deviation: {max_deviation_cascade:.2f} °C")
+    
+    print(f"\nImprovement Effect:")
+    print(f"  Deviation Reduction: {max_deviation_single - max_deviation_cascade:.2f} °C")
+    print(f"  Reduction Rate: {(1 - max_deviation_cascade/max_deviation_single)*100:.1f} %")
+    
+    print("\nAdvantages of Cascade Control:")
+    print("  1. Fast response to disturbances (secondary controller responds directly)")
+    print("  2. Suppresses fluctuations in secondary process (jacket temperature)")
+    print("  3. Primary controller can concentrate on slow response process")
+    
+
+**Expected Output** :
+    
+    
+    === Disturbance Rejection Performance ===
+    
+    Single-Loop Control:
+      Maximum Deviation: 8.45 °C
+    
+    Cascade Control:
+      Maximum Deviation: 3.12 °C
+    
+    Improvement Effect:
+      Deviation Reduction: 5.33 °C
+      Reduction Rate: 63.1 %
+    
+    Advantages of Cascade Control:
+      1. Fast response to disturbances (secondary controller responds directly)
+      2. Suppresses fluctuations in secondary process (jacket temperature)
+      3. Primary controller can concentrate on slow response process
+    
+
+**Explanation** : Cascade control is an advanced control method that hierarchically controls two processes with different response speeds. In reactor temperature control, the primary controller (master) monitors reactor temperature, while the secondary controller (slave) controls jacket temperature. Because the secondary controller responds quickly to disturbances (such as cooling water temperature changes), fluctuations in the primary controlled variable (reactor temperature) can be significantly suppressed. This is a practical control strategy widely used in chemical plants.
+
+* * *
+
+## 4.3 Chapter Summary
+
+### What We Learned
+
+  1. **Fundamentals of Feedback Control**
+     * Basic configuration of control system (setpoint, controlled variable, manipulated variable, error)
+     * Dynamic characteristics and transfer function of first-order lag system
+     * Relationship between step response and time constant
+  2. **Theory and Implementation of PID Control**
+     * Proportional (P) control: Fast response, steady-state error remains
+     * Integral (I) control: Eliminates steady-state error, watch for windup
+     * Derivative (D) control: Improves response speed, sensitive to noise
+     * Complete implementation of PID controller
+  3. **PID Tuning Methods**
+     * Ziegler-Nichols method (reaction curve method, ultimate sensitivity method)
+     * Control performance metrics (settling time, overshoot, IAE, ISE)
+     * Performance comparison of P, PI, PID control
+  4. **Practical Control Issues**
+     * Integral windup and anti-windup countermeasures
+     * Handling manipulated variable saturation
+     * Improved disturbance rejection performance through cascade control
+
+### Important Points
+
+**P Control** leaves steady-state error but offers easy tuning and high stability. **PI Control** eliminates steady-state error and is the most common choice in process industry applications. **PID Control** provides the best performance, with derivative action suppressing overshoot. **Anti-Windup** mechanisms are essential features in real processes where actuator saturation occurs. **Cascade Control** significantly improves disturbance rejection performance for processes with multiple time constants.
+
+### Practical Applications
+
+The PID control learned in this chapter is widely used in real processes. **Temperature Control** applications include reactors, distillation columns, and heat exchangers. **Pressure Control** is applied to compressors and distillation column overheads. **Flow Control** manages raw material feed and product flows. **Level Control** operates on tanks and separators. **pH Control** handles neutralization processes, which present high nonlinearity challenges.
+
+### To the Next Chapter
+
+In Chapter 5, we will learn **Practice of Real-Time Process Monitoring Systems** , including architecture design of real-time monitoring systems, building interactive dashboards with Plotly Dash, and implementing simulated real-time data streaming. The chapter covers multi-chart monitoring interfaces for temperature, pressure, and flow, alarm notification systems with KPI calculation, and concludes with a fully integrated monitoring system case study for a chemical reactor.

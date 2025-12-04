@@ -1,0 +1,1256 @@
+---
+title: "Chapter 5: Python and Simulator Integration"
+chapter_title: "Chapter 5: Python and Simulator Integration"
+subtitle: Integrated Workflows for Automation, Optimization, and Machine Learning
+---
+
+This chapter covers Python and Simulator Integration. You will learn Control simulators like DWSIM from Python, automated parameter sweeps, and Efficiently analyze simulation results with pandas.
+
+## Learning Objectives
+
+By completing this chapter, you will be able to:
+
+  * ✅ Control simulators like DWSIM from Python
+  * ✅ Implement automated parameter sweeps and data extraction
+  * ✅ Efficiently analyze simulation results with pandas
+  * ✅ Integrate scipy optimization with simulators
+  * ✅ Accelerate process predictions with machine learning models
+  * ✅ Build complete automated workflows (simulation → analysis → optimization)
+
+* * *
+
+## 5.1 DWSIM Python Interface Basics
+
+### What is DWSIM
+
+**DWSIM** is an open-source process simulator (alternative to Aspen HYSYS and Aspen Plus). By controlling it from Python, automation and advanced analysis become possible.
+
+> **Note** : DWSIM works most stably in Windows environments. On Linux it can run via `mono`, and on macOS via Wine, but this chapter presents code examples assuming Windows. 
+    
+    
+    """
+    Example 1: DWSIM Python Interface Basics
+    DWSIM Python Interface Fundamentals
+    """
+    import os
+    import sys
+    import clr  # pythonnet (pip install pythonnet)
+    
+    # Add DWSIM path (change according to your environment)
+    DWSIM_PATH = r"C:\Program Files\DWSIM\DWSIM.exe"
+    sys.path.append(os.path.dirname(DWSIM_PATH))
+    
+    # Load DWSIM .NET assemblies
+    clr.AddReference("DWSIM.Automation")
+    clr.AddReference("DWSIM.Interfaces")
+    clr.AddReference("DWSIM.Thermodynamics")
+    
+    from DWSIM.Automation import Automation3
+    from DWSIM.Interfaces.Enums.GraphicObjects import ObjectType
+    
+    class DWSIMInterface:
+        """DWSIM Python Interface"""
+    
+        def __init__(self):
+            """Initialize DWSIM automation object"""
+            self.interf = Automation3()
+            self.flowsheet = None
+    
+        def create_flowsheet(self, name="PythonFlowsheet"):
+            """Create a new flowsheet"""
+            self.flowsheet = self.interf.CreateFlowsheet()
+            self.flowsheet.Options.SelectedPropertyPackage = "Peng-Robinson"
+            print(f"Flowsheet created: {name}")
+            return self.flowsheet
+    
+        def add_compound(self, compound_name):
+            """Add compound"""
+            self.flowsheet.AddComponent(compound_name)
+            print(f"Added compound: {compound_name}")
+    
+        def add_material_stream(self, name, temperature=298.15,
+                               pressure=101325, mass_flow=1000,
+                               composition=None):
+            """
+            Add material stream
+    
+            Args:
+                name: Stream name
+                temperature: Temperature [K]
+                pressure: Pressure [Pa]
+                mass_flow: Mass flow rate [kg/h]
+                composition: Composition {compound: mole_fraction}
+            """
+            stream = self.flowsheet.AddObject(ObjectType.MaterialStream, name)
+    
+            # Set conditions
+            stream.SetTemperature(temperature)
+            stream.SetPressure(pressure)
+            stream.SetMassFlow(mass_flow)
+    
+            # Set composition
+            if composition:
+                comp_list = []
+                for compound, frac in composition.items():
+                    comp_list.append(frac)
+                stream.SetComposition(comp_list)
+    
+            print(f"Added material stream: {name}")
+            return stream
+    
+        def calculate(self):
+            """Calculate flowsheet"""
+            self.flowsheet.Solve()
+            print("Flowsheet calculated successfully")
+    
+        def get_stream_property(self, stream_name, property_name):
+            """Get stream property"""
+            stream = self.flowsheet.GetFlowsheetObject(stream_name)
+    
+            if property_name == "Temperature":
+                return stream.GetTemperature()
+            elif property_name == "Pressure":
+                return stream.GetPressure()
+            elif property_name == "MassFlow":
+                return stream.GetMassFlow()
+            elif property_name == "Composition":
+                return stream.GetComposition()
+            else:
+                raise ValueError(f"Unknown property: {property_name}")
+    
+        def save_flowsheet(self, filepath):
+            """Save flowsheet"""
+            self.flowsheet.SaveToFile(filepath)
+            print(f"Flowsheet saved to: {filepath}")
+    
+        def load_flowsheet(self, filepath):
+            """Load flowsheet"""
+            self.flowsheet = self.interf.LoadFlowsheet(filepath)
+            print(f"Flowsheet loaded from: {filepath}")
+            return self.flowsheet
+    
+    # Usage example
+    if __name__ == "__main__":
+        # Initialize DWSIM interface
+        dwsim = DWSIMInterface()
+    
+        # Create new flowsheet
+        fs = dwsim.create_flowsheet("SimpleFlowsheet")
+    
+        # Add compounds
+        dwsim.add_compound("Water")
+        dwsim.add_compound("Ethanol")
+    
+        # Add material stream
+        stream1 = dwsim.add_material_stream(
+            "Feed",
+            temperature=298.15,
+            pressure=101325,
+            mass_flow=1000,
+            composition={"Water": 0.5, "Ethanol": 0.5}
+        )
+    
+        # Execute calculation
+        dwsim.calculate()
+    
+        # Get results
+        temp = dwsim.get_stream_property("Feed", "Temperature")
+        print(f"Feed temperature: {temp:.2f} K")
+    
+        # Save
+        dwsim.save_flowsheet("simple_flowsheet.dwxmz")
+    
+
+* * *
+
+## 5.2 Automated Flowsheet Creation
+
+### Building Processes with Python Scripts
+
+Instead of manually operating the GUI, automatically generate complete flowsheets with Python scripts.
+    
+    
+    """
+    Example 2: Automated Flowsheet Creation
+    Automated Flowsheet Creation (Distillation Column Setup)
+    """
+    from dwsim_interface import DWSIMInterface
+    
+    class DistillationColumnBuilder:
+        """Automated distillation column builder"""
+    
+        def __init__(self, dwsim_interface):
+            self.dwsim = dwsim_interface
+            self.fs = None
+    
+        def build_simple_distillation(self):
+            """Build simple distillation column flowsheet"""
+    
+            # 1. Create flowsheet
+            self.fs = self.dwsim.create_flowsheet("Distillation")
+    
+            # 2. Add compounds
+            compounds = ["Benzene", "Toluene", "Ethylbenzene"]
+            for comp in compounds:
+                self.dwsim.add_compound(comp)
+    
+            # 3. Feed stream
+            feed = self.dwsim.add_material_stream(
+                "Feed",
+                temperature=350,  # K
+                pressure=101325,  # Pa
+                mass_flow=10000,  # kg/h
+                composition={
+                    "Benzene": 0.33,
+                    "Toluene": 0.34,
+                    "Ethylbenzene": 0.33
+                }
+            )
+    
+            # 4. Add distillation column
+            column = self.fs.AddObject(ObjectType.DistillationColumn,
+                                       "Column-01")
+    
+            # Set column specifications
+            column.NumberOfStages = 20
+            column.CondenserType = 0  # Total condenser
+            column.ReboilerType = 0   # Kettle reboiler
+            column.FeedStage = 10
+    
+            # Operating conditions
+            column.RefluxRatio = 2.0
+            column.BottomsFlowRate = 6500  # kg/h
+    
+            # 5. Connect streams
+            # Feed → Column
+            self.fs.ConnectObjects(feed.Name, column.Name, 0, 0)
+    
+            # Column → Distillate
+            distillate = self.dwsim.add_material_stream("Distillate")
+            self.fs.ConnectObjects(column.Name, distillate.Name, 0, 0)
+    
+            # Column → Bottoms
+            bottoms = self.dwsim.add_material_stream("Bottoms")
+            self.fs.ConnectObjects(column.Name, bottoms.Name, 1, 0)
+    
+            print("Distillation flowsheet built successfully")
+    
+            return self.fs
+    
+        def run_and_extract_results(self):
+            """Execute calculation and extract results"""
+            # Execute calculation
+            self.dwsim.calculate()
+    
+            # Extract results
+            results = {
+                'distillate': {
+                    'T': self.dwsim.get_stream_property("Distillate", "Temperature"),
+                    'P': self.dwsim.get_stream_property("Distillate", "Pressure"),
+                    'F': self.dwsim.get_stream_property("Distillate", "MassFlow"),
+                    'comp': self.dwsim.get_stream_property("Distillate", "Composition")
+                },
+                'bottoms': {
+                    'T': self.dwsim.get_stream_property("Bottoms", "Temperature"),
+                    'P': self.dwsim.get_stream_property("Bottoms", "Pressure"),
+                    'F': self.dwsim.get_stream_property("Bottoms", "MassFlow"),
+                    'comp': self.dwsim.get_stream_property("Bottoms", "Composition")
+                }
+            }
+    
+            return results
+    
+    # Usage example
+    dwsim = DWSIMInterface()
+    builder = DistillationColumnBuilder(dwsim)
+    
+    # Build flowsheet
+    flowsheet = builder.build_simple_distillation()
+    
+    # Calculate and get results
+    results = builder.run_and_extract_results()
+    
+    print("\n=== Simulation Results ===")
+    print(f"Distillate flow: {results['distillate']['F']:.2f} kg/h")
+    print(f"Bottoms flow: {results['bottoms']['F']:.2f} kg/h")
+    
+
+* * *
+
+## 5.3 Parameter Sweep and Data Extraction
+
+### Automating Large-Scale Case Studies
+
+Scan ranges of design parameters to explore optimal operating conditions.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    """
+    Example 3: Parameter Sweep and Data Extraction
+    Parameter Sweep and Data Extraction
+    """
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    
+    class ParameterSweep:
+        """Parameter sweep automation"""
+    
+        def __init__(self, dwsim_interface):
+            self.dwsim = dwsim_interface
+            self.results = []
+    
+        def sweep_reflux_ratio(self, reflux_range):
+            """
+            Sweep reflux ratio and evaluate performance
+    
+            Args:
+                reflux_range: Range of reflux ratios (array)
+    
+            Returns:
+                DataFrame: Results data
+            """
+            for reflux in reflux_range:
+                print(f"Calculating reflux ratio = {reflux:.2f}...")
+    
+                # Set reflux ratio
+                column = self.dwsim.flowsheet.GetFlowsheetObject("Column-01")
+                column.RefluxRatio = reflux
+    
+                try:
+                    # Execute calculation
+                    self.dwsim.calculate()
+    
+                    # Get results
+                    dist_flow = self.dwsim.get_stream_property("Distillate", "MassFlow")
+                    dist_comp = self.dwsim.get_stream_property("Distillate", "Composition")
+                    btms_comp = self.dwsim.get_stream_property("Bottoms", "Composition")
+    
+                    # Benzene purity in distillate
+                    benzene_purity = dist_comp[0]  # Assuming Benzene is first
+    
+                    # Reboiler duty (simplified)
+                    reboiler_duty = column.ReboilerDuty / 1000  # kW
+    
+                    self.results.append({
+                        'reflux_ratio': reflux,
+                        'distillate_flow': dist_flow,
+                        'benzene_purity': benzene_purity,
+                        'reboiler_duty': reboiler_duty
+                    })
+    
+                except Exception as e:
+                    print(f"  ⚠ Calculation failed: {e}")
+                    self.results.append({
+                        'reflux_ratio': reflux,
+                        'distillate_flow': np.nan,
+                        'benzene_purity': np.nan,
+                        'reboiler_duty': np.nan
+                    })
+    
+            return pd.DataFrame(self.results)
+    
+        def plot_results(self, df):
+            """Plot results"""
+            fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+    
+            # Distillate flow
+            axes[0].plot(df['reflux_ratio'], df['distillate_flow'], 'o-')
+            axes[0].set_xlabel('Reflux Ratio')
+            axes[0].set_ylabel('Distillate Flow [kg/h]')
+            axes[0].grid(True, alpha=0.3)
+    
+            # Benzene purity
+            axes[1].plot(df['reflux_ratio'], df['benzene_purity'] * 100, 'o-')
+            axes[1].set_xlabel('Reflux Ratio')
+            axes[1].set_ylabel('Benzene Purity [%]')
+            axes[1].axhline(y=95, color='r', linestyle='--', label='Target 95%')
+            axes[1].legend()
+            axes[1].grid(True, alpha=0.3)
+    
+            # Reboiler duty
+            axes[2].plot(df['reflux_ratio'], df['reboiler_duty'], 'o-', color='orangered')
+            axes[2].set_xlabel('Reflux Ratio')
+            axes[2].set_ylabel('Reboiler Duty [kW]')
+            axes[2].grid(True, alpha=0.3)
+    
+            plt.tight_layout()
+            plt.show()
+    
+    # Usage example
+    sweep = ParameterSweep(dwsim)
+    
+    # Vary reflux ratio from 1.5 to 5.0
+    reflux_range = np.linspace(1.5, 5.0, 10)
+    
+    # Execute sweep
+    df_results = sweep.sweep_reflux_ratio(reflux_range)
+    
+    # Display results
+    print(df_results)
+    
+    # Plot
+    sweep.plot_results(df_results)
+    
+    # Save as CSV
+    df_results.to_csv("reflux_sweep_results.csv", index=False)
+    print("Results saved to reflux_sweep_results.csv")
+    
+
+* * *
+
+## 5.4 Data Analysis with pandas
+
+### Statistical Analysis of Simulation Results
+
+Leverage pandas to efficiently analyze large volumes of simulation results.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    # - seaborn>=0.12.0
+    
+    """
+    Example 4: Data Analysis with Pandas
+    Simulation Result Analysis with pandas
+    """
+    import pandas as pd
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    
+    class SimulationDataAnalyzer:
+        """Simulation data analysis tool"""
+    
+        def __init__(self, csv_file=None):
+            """
+            Args:
+                csv_file: Path to results CSV file
+            """
+            if csv_file:
+                self.df = pd.read_csv(csv_file)
+            else:
+                self.df = None
+    
+        def load_multiple_sweeps(self, file_pattern):
+            """
+            Consolidate multiple sweep results
+    
+            Args:
+                file_pattern: File pattern (e.g., "sweep_*.csv")
+            """
+            import glob
+            files = glob.glob(file_pattern)
+    
+            dfs = []
+            for file in files:
+                df = pd.read_csv(file)
+                dfs.append(df)
+    
+            self.df = pd.concat(dfs, ignore_index=True)
+            print(f"Loaded {len(files)} files, {len(self.df)} total rows")
+    
+        def calculate_economics(self, product_price=1000,
+                               energy_cost=0.05):
+            """
+            Calculate economic metrics
+    
+            Args:
+                product_price: Product price [$/ton]
+                energy_cost: Energy cost [$/kWh]
+            """
+            # Revenue
+            self.df['revenue'] = (self.df['distillate_flow'] / 1000) * \
+                                product_price * \
+                                self.df['benzene_purity']
+    
+            # Energy cost
+            self.df['energy_cost'] = self.df['reboiler_duty'] * energy_cost
+    
+            # Profit
+            self.df['profit'] = self.df['revenue'] - self.df['energy_cost']
+    
+            return self.df
+    
+        def find_optimal_condition(self, objective='profit',
+                                  constraint_col='benzene_purity',
+                                  constraint_val=0.95):
+            """
+            Find optimal condition
+    
+            Args:
+                objective: Metric to maximize
+                constraint_col: Constraint column
+                constraint_val: Constraint value
+            """
+            # Only data satisfying constraints
+            df_valid = self.df[self.df[constraint_col] >= constraint_val]
+    
+            if len(df_valid) == 0:
+                print("No solutions satisfy the constraint")
+                return None
+    
+            # Optimal solution
+            optimal_idx = df_valid[objective].idxmax()
+            optimal = df_valid.loc[optimal_idx]
+    
+            print("\n=== Optimal Condition ===")
+            print(optimal)
+    
+            return optimal
+    
+        def sensitivity_analysis(self):
+            """Sensitivity analysis (correlation matrix)"""
+            # Select only numeric columns
+            numeric_cols = self.df.select_dtypes(include=[np.number]).columns
+    
+            # Correlation matrix
+            corr_matrix = self.df[numeric_cols].corr()
+    
+            # Heatmap
+            plt.figure(figsize=(10, 8))
+            sns.heatmap(corr_matrix, annot=True, cmap='coolwarm',
+                       center=0, vmin=-1, vmax=1)
+            plt.title('Correlation Matrix - Sensitivity Analysis')
+            plt.tight_layout()
+            plt.show()
+    
+            return corr_matrix
+    
+        def plot_pareto_front(self, obj1='benzene_purity', obj2='profit'):
+            """
+            Pareto front (trade-off curve)
+    
+            Args:
+                obj1: Objective function 1
+                obj2: Objective function 2
+            """
+            plt.figure(figsize=(8, 6))
+            plt.scatter(self.df[obj1] * 100, self.df[obj2],
+                       c=self.df['reflux_ratio'], cmap='viridis',
+                       s=80, alpha=0.7)
+            plt.colorbar(label='Reflux Ratio')
+            plt.xlabel(f'{obj1} [%]')
+            plt.ylabel(f'{obj2} [$/h]')
+            plt.title('Pareto Front: Purity vs Profit')
+            plt.grid(True, alpha=0.3)
+            plt.tight_layout()
+            plt.show()
+    
+    # Usage example
+    analyzer = SimulationDataAnalyzer("reflux_sweep_results.csv")
+    
+    # Calculate economics
+    df_econ = analyzer.calculate_economics(
+        product_price=1000,
+        energy_cost=0.05
+    )
+    
+    # Find optimal condition
+    optimal = analyzer.find_optimal_condition(
+        objective='profit',
+        constraint_col='benzene_purity',
+        constraint_val=0.95
+    )
+    
+    # Sensitivity analysis
+    corr = analyzer.sensitivity_analysis()
+    
+    # Pareto front
+    analyzer.plot_pareto_front('benzene_purity', 'profit')
+    
+
+* * *
+
+## 5.5 Integration with scipy Optimization
+
+### Coupling Simulators with Numerical Optimization
+
+Combine scipy optimization algorithms with DWSIM to automatically search for optimal designs.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example 5: Integration with scipy Optimization
+    Integration of scipy Optimization with Simulator
+    """
+    from scipy.optimize import minimize, differential_evolution
+    import numpy as np
+    
+    class SimulatorOptimizer:
+        """Simulator-based optimization"""
+    
+        def __init__(self, dwsim_interface):
+            self.dwsim = dwsim_interface
+            self.eval_count = 0
+    
+        def objective_function(self, x):
+            """
+            Objective function: Profit maximization
+    
+            Args:
+                x: Decision variables [reflux_ratio, feed_stage_ratio]
+    
+            Returns:
+                -profit (minimization problem)
+            """
+            reflux_ratio, feed_stage_ratio = x
+            self.eval_count += 1
+    
+            try:
+                # Set DWSIM parameters
+                column = self.dwsim.flowsheet.GetFlowsheetObject("Column-01")
+                column.RefluxRatio = reflux_ratio
+    
+                # Feed stage (1 = top, 20 = bottom)
+                feed_stage = int(20 * feed_stage_ratio)
+                column.FeedStage = max(1, min(feed_stage, 19))
+    
+                # Execute simulation
+                self.dwsim.calculate()
+    
+                # Get results
+                dist_flow = self.dwsim.get_stream_property("Distillate", "MassFlow")
+                dist_comp = self.dwsim.get_stream_property("Distillate", "Composition")
+                reboiler_duty = column.ReboilerDuty / 1000  # kW
+    
+                # Calculate economics
+                revenue = (dist_flow / 1000) * 1000 * dist_comp[0]  # Benzene purity
+                energy_cost = reboiler_duty * 0.05
+    
+                profit = revenue - energy_cost
+    
+                # Penalty (purity constraint)
+                if dist_comp[0] < 0.95:
+                    penalty = 1000 * (0.95 - dist_comp[0])
+                    profit -= penalty
+    
+                print(f"Eval {self.eval_count}: x={x}, profit=${profit:.2f}/h")
+    
+                return -profit  # Maximize→Minimize
+    
+            except Exception as e:
+                print(f"  ⚠ Simulation failed: {e}")
+                return 1e6  # Penalty
+    
+        def optimize_local(self, x0):
+            """Local optimization"""
+            bounds = [
+                (1.5, 5.0),   # reflux_ratio
+                (0.3, 0.7)    # feed_stage_ratio
+            ]
+    
+            result = minimize(
+                self.objective_function,
+                x0,
+                method='Nelder-Mead',
+                bounds=bounds,
+                options={'maxiter': 50, 'disp': True}
+            )
+    
+            return result
+    
+        def optimize_global(self):
+            """Global optimization"""
+            bounds = [
+                (1.5, 5.0),   # reflux_ratio
+                (0.3, 0.7)    # feed_stage_ratio
+            ]
+    
+            result = differential_evolution(
+                self.objective_function,
+                bounds,
+                maxiter=20,
+                popsize=10,
+                disp=True,
+                workers=1  # Simulator cannot be parallelized
+            )
+    
+            return result
+    
+    # Usage example
+    optimizer = SimulatorOptimizer(dwsim)
+    
+    # Initial guess
+    x0 = np.array([2.5, 0.5])
+    
+    # Local optimization
+    print("=== Local Optimization ===")
+    result_local = optimizer.optimize_local(x0)
+    
+    print(f"\nOptimal reflux ratio: {result_local.x[0]:.4f}")
+    print(f"Optimal feed stage: {int(20 * result_local.x[1])}")
+    print(f"Maximum profit: ${-result_local.fun:.2f}/h")
+    
+    # (Global optimization takes time, execute as needed)
+    # result_global = optimizer.optimize_global()
+    
+
+* * *
+
+## 5.6 Machine Learning for Process Prediction
+
+### Surrogate Models for Simulation Replacement
+
+Instead of time-consuming simulations, use machine learning models for fast predictions.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    """
+    Example 6: Machine Learning for Process Prediction
+    Process Prediction with Machine Learning (Surrogate Model)
+    """
+    import numpy as np
+    import pandas as pd
+    from sklearn.model_selection import train_test_split
+    from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import r2_score, mean_absolute_error
+    import matplotlib.pyplot as plt
+    
+    class SurrogateModel:
+        """Simulation surrogate model"""
+    
+        def __init__(self):
+            self.model = None
+            self.scaler_X = StandardScaler()
+            self.scaler_y = StandardScaler()
+    
+        def train(self, df, features, target):
+            """
+            Train model
+    
+            Args:
+                df: Simulation result data
+                features: Input feature column names list
+                target: Output target column name
+            """
+            X = df[features].values
+            y = df[target].values.reshape(-1, 1)
+    
+            # Split data
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42
+            )
+    
+            # Standardize
+            X_train_scaled = self.scaler_X.fit_transform(X_train)
+            X_test_scaled = self.scaler_X.transform(X_test)
+            y_train_scaled = self.scaler_y.fit_transform(y_train)
+    
+            # Train model (Random Forest)
+            self.model = RandomForestRegressor(
+                n_estimators=100,
+                max_depth=10,
+                random_state=42
+            )
+            self.model.fit(X_train_scaled, y_train_scaled.ravel())
+    
+            # Performance evaluation
+            y_pred_scaled = self.model.predict(X_test_scaled)
+            y_pred = self.scaler_y.inverse_transform(
+                y_pred_scaled.reshape(-1, 1)
+            )
+    
+            r2 = r2_score(y_test, y_pred)
+            mae = mean_absolute_error(y_test, y_pred)
+    
+            print(f"\n=== Model Performance ===")
+            print(f"R² score: {r2:.4f}")
+            print(f"MAE: {mae:.4f}")
+    
+            # Parity plot
+            plt.figure(figsize=(6, 6))
+            plt.scatter(y_test, y_pred, alpha=0.6)
+            plt.plot([y_test.min(), y_test.max()],
+                    [y_test.min(), y_test.max()],
+                    'r--', lw=2, label='Perfect prediction')
+            plt.xlabel(f'Actual {target}')
+            plt.ylabel(f'Predicted {target}')
+            plt.title(f'Parity Plot (R²={r2:.3f})')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+            plt.tight_layout()
+            plt.show()
+    
+            return r2, mae
+    
+        def predict(self, X_new):
+            """Predict with new conditions"""
+            X_scaled = self.scaler_X.transform(X_new)
+            y_pred_scaled = self.model.predict(X_scaled)
+            y_pred = self.scaler_y.inverse_transform(
+                y_pred_scaled.reshape(-1, 1)
+            )
+            return y_pred.flatten()
+    
+        def feature_importance(self, feature_names):
+            """Feature importance"""
+            importances = self.model.feature_importances_
+            indices = np.argsort(importances)[::-1]
+    
+            plt.figure(figsize=(8, 5))
+            plt.bar(range(len(importances)),
+                   importances[indices],
+                   color='steelblue')
+            plt.xticks(range(len(importances)),
+                      [feature_names[i] for i in indices],
+                      rotation=45, ha='right')
+            plt.ylabel('Importance')
+            plt.title('Feature Importance')
+            plt.tight_layout()
+            plt.show()
+    
+    # Usage example
+    # Create training data from simulation results
+    df_train = pd.DataFrame({
+        'reflux_ratio': np.random.uniform(1.5, 5.0, 200),
+        'feed_stage': np.random.randint(5, 16, 200),
+        'feed_temp': np.random.uniform(340, 360, 200),
+        'benzene_purity': np.random.uniform(0.85, 0.99, 200),
+        'reboiler_duty': np.random.uniform(800, 2000, 200)
+    })
+    
+    # Train surrogate model
+    surrogate = SurrogateModel()
+    
+    features = ['reflux_ratio', 'feed_stage', 'feed_temp']
+    target = 'benzene_purity'
+    
+    r2, mae = surrogate.train(df_train, features, target)
+    
+    # Feature importance
+    surrogate.feature_importance(features)
+    
+    # Predict with new conditions (1/1000 of simulation time)
+    X_new = np.array([
+        [3.0, 10, 350],
+        [2.5, 12, 345],
+        [4.0, 8, 355]
+    ])
+    
+    predictions = surrogate.predict(X_new)
+    print("\n=== Predictions ===")
+    for i, pred in enumerate(predictions):
+        print(f"Condition {i+1}: Predicted purity = {pred:.4f}")
+    
+
+* * *
+
+## 5.7 Automated Report Generation
+
+### Automatic Documentation of Results
+
+Automatically convert simulation results into PDF reports or HTML dashboards.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    """
+    Example 7: Automated Report Generation
+    Automated Report Generation (HTML/PDF)
+    """
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from jinja2 import Template
+    import base64
+    from io import BytesIO
+    
+    class ReportGenerator:
+        """Automated simulation result report generation"""
+    
+        def __init__(self, title="Process Simulation Report"):
+            self.title = title
+            self.sections = []
+    
+        def add_table(self, df, caption):
+            """Add data table"""
+            html_table = df.to_html(classes='table', index=False)
+            self.sections.append({
+                'type': 'table',
+                'caption': caption,
+                'content': html_table
+            })
+    
+        def add_plot(self, fig, caption):
+            """Add plot"""
+            # Encode figure to Base64
+            buffer = BytesIO()
+            fig.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+            buffer.seek(0)
+            img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+    
+            self.sections.append({
+                'type': 'plot',
+                'caption': caption,
+                'content': img_base64
+            })
+    
+        def add_text(self, text):
+            """Add text section"""
+            self.sections.append({
+                'type': 'text',
+                'content': text
+            })
+    
+        def generate_html(self, output_file="report.html"):
+            """Generate HTML report"""
+    
+            template_str = """
+    <!DOCTYPE html>
+    
+    
+    
+    
+        <meta charset="utf-8"/>
+        <title>{{ title }}</title>
+            <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    
+    
+        <h1>{{ title }}</h1>
+        <p>Generated: {{ timestamp }}</p>
+    
+        {% for section in sections %}
+            {% if section.type == 'table' %}
+                <h2>{{ section.caption }}</h2>
+                {{ section.content|safe }}
+    
+            {% elif section.type == 'plot' %}
+                <div class="plot">
+                    <h2>{{ section.caption }}</h2>
+                    <img src="data:image/png;base64,{{ section.content }}" style="max-width:100%;"/>
+                </div>
+    
+            {% elif section.type == 'text' %}
+                <p>{{ section.content }}</p>
+    
+            {% endif %}
+        {% endfor %}
+    
+    
+    
+            """
+    
+            template = Template(template_str)
+    
+            from datetime import datetime
+            html_content = template.render(
+                title=self.title,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                sections=self.sections
+            )
+    
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+    
+            print(f"Report generated: {output_file}")
+    
+    # Usage example
+    report = ReportGenerator("Distillation Column Optimization Report")
+    
+    # Add text
+    report.add_text(
+        "This report summarizes the results of the distillation column "
+        "optimization study. The objective was to maximize benzene purity "
+        "while minimizing energy consumption."
+    )
+    
+    # Add table
+    df_summary = pd.DataFrame({
+        'Parameter': ['Reflux Ratio', 'Feed Stage', 'Benzene Purity', 'Reboiler Duty'],
+        'Optimal Value': [3.2, 10, '96.5%', '1250 kW']
+    })
+    report.add_table(df_summary, "Optimal Operating Conditions")
+    
+    # Add plot
+    fig, ax = plt.subplots(figsize=(8, 5))
+    x = np.linspace(1.5, 5.0, 50)
+    y = 95 + 3 * np.exp(-0.5 * (x - 3)**2)  # Example curve
+    ax.plot(x, y, 'o-', linewidth=2)
+    ax.set_xlabel('Reflux Ratio')
+    ax.set_ylabel('Benzene Purity [%]')
+    ax.set_title('Purity vs Reflux Ratio')
+    ax.grid(True, alpha=0.3)
+    
+    report.add_plot(fig, "Performance Curve")
+    
+    # Generate HTML report
+    report.generate_html("optimization_report.html")
+    print("Open optimization_report.html in your browser")
+    
+
+* * *
+
+## 5.8 Complete Workflow: Simulation → Analysis → Optimization
+
+### End-to-End Automation Pipeline
+
+Build an automated workflow that integrates all steps.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    # - pandas>=2.0.0, <2.2.0
+    
+    """
+    Example 8: Complete Workflow - Simulation to Optimization
+    Complete Workflow (Simulation → Analysis → Optimization → Report)
+    """
+    import numpy as np
+    import pandas as pd
+    from datetime import datetime
+    
+    class AutomatedWorkflow:
+        """Fully automated workflow for process design"""
+    
+        def __init__(self, dwsim_interface):
+            self.dwsim = dwsim_interface
+            self.results = []
+            self.optimal_conditions = None
+    
+        def step1_initial_design(self):
+            """Step 1: Initial design (flowsheet construction)"""
+            print("\n=== Step 1: Initial Design ===")
+    
+            # Build flowsheet (code from Example 2)
+            builder = DistillationColumnBuilder(self.dwsim)
+            self.flowsheet = builder.build_simple_distillation()
+    
+            print("✓ Flowsheet created")
+    
+        def step2_parameter_sweep(self):
+            """Step 2: Parameter sweep"""
+            print("\n=== Step 2: Parameter Sweep ===")
+    
+            sweep = ParameterSweep(self.dwsim)
+            reflux_range = np.linspace(1.5, 5.0, 20)
+    
+            self.df_sweep = sweep.sweep_reflux_ratio(reflux_range)
+    
+            print(f"✓ Completed {len(self.df_sweep)} simulations")
+    
+        def step3_data_analysis(self):
+            """Step 3: Data analysis"""
+            print("\n=== Step 3: Data Analysis ===")
+    
+            analyzer = SimulationDataAnalyzer()
+            analyzer.df = self.df_sweep
+    
+            # Calculate economics
+            self.df_economics = analyzer.calculate_economics(
+                product_price=1000,
+                energy_cost=0.05
+            )
+    
+            # Find optimal condition
+            self.optimal_conditions = analyzer.find_optimal_condition(
+                objective='profit',
+                constraint_col='benzene_purity',
+                constraint_val=0.95
+            )
+    
+            print("✓ Analysis completed")
+    
+        def step4_surrogate_model(self):
+            """Step 4: Surrogate model training"""
+            print("\n=== Step 4: Surrogate Model Training ===")
+    
+            surrogate = SurrogateModel()
+            features = ['reflux_ratio']
+            target = 'profit'
+    
+            r2, mae = surrogate.train(self.df_economics, features, target)
+            self.surrogate = surrogate
+    
+            print(f"✓ Model trained (R²={r2:.3f})")
+    
+        def step5_optimization(self):
+            """Step 5: Optimization"""
+            print("\n=== Step 5: Optimization ===")
+    
+            # Surrogate model-based fast optimization
+            def fast_objective(x):
+                return -self.surrogate.predict(x.reshape(1, -1))[0]
+    
+            from scipy.optimize import minimize
+            result = minimize(
+                fast_objective,
+                x0=[3.0],
+                bounds=[(1.5, 5.0)],
+                method='L-BFGS-B'
+            )
+    
+            self.optimized_reflux = result.x[0]
+            print(f"✓ Optimal reflux ratio: {self.optimized_reflux:.4f}")
+    
+        def step6_verification(self):
+            """Step 6: Verification of optimal solution"""
+            print("\n=== Step 6: Verification ===")
+    
+            # Execute detailed simulation at optimal condition
+            column = self.dwsim.flowsheet.GetFlowsheetObject("Column-01")
+            column.RefluxRatio = self.optimized_reflux
+    
+            self.dwsim.calculate()
+    
+            # Get results
+            dist_comp = self.dwsim.get_stream_property("Distillate", "Composition")
+            reboiler_duty = column.ReboilerDuty / 1000
+    
+            print(f"✓ Verified benzene purity: {dist_comp[0]*100:.2f}%")
+            print(f"✓ Reboiler duty: {reboiler_duty:.1f} kW")
+    
+        def step7_generate_report(self):
+            """Step 7: Report generation"""
+            print("\n=== Step 7: Report Generation ===")
+    
+            report = ReportGenerator("Automated Process Design Report")
+    
+            # Results summary
+            report.add_text(
+                f"Automated workflow completed on {datetime.now().strftime('%Y-%m-%d')}. "
+                f"Optimal reflux ratio determined: {self.optimized_reflux:.4f}"
+            )
+    
+            # Optimal condition table
+            report.add_table(
+                pd.DataFrame([self.optimal_conditions]),
+                "Optimal Operating Conditions"
+            )
+    
+            # Plot
+            fig, ax = plt.subplots(figsize=(8, 5))
+            ax.plot(self.df_economics['reflux_ratio'],
+                   self.df_economics['profit'], 'o-')
+            ax.axvline(x=self.optimized_reflux, color='r',
+                      linestyle='--', label='Optimized')
+            ax.set_xlabel('Reflux Ratio')
+            ax.set_ylabel('Profit [$/h]')
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+    
+            report.add_plot(fig, "Profit vs Reflux Ratio")
+    
+            report.generate_html("automated_workflow_report.html")
+    
+            print("✓ Report generated")
+    
+        def run_full_workflow(self):
+            """Execute complete workflow"""
+            print("="*50)
+            print("AUTOMATED PROCESS DESIGN WORKFLOW")
+            print("="*50)
+    
+            start_time = datetime.now()
+    
+            try:
+                self.step1_initial_design()
+                self.step2_parameter_sweep()
+                self.step3_data_analysis()
+                self.step4_surrogate_model()
+                self.step5_optimization()
+                self.step6_verification()
+                self.step7_generate_report()
+    
+                elapsed = (datetime.now() - start_time).total_seconds()
+    
+                print("\n" + "="*50)
+                print("✓ WORKFLOW COMPLETED SUCCESSFULLY")
+                print(f"Total time: {elapsed:.1f} seconds")
+                print("="*50)
+    
+            except Exception as e:
+                print(f"\n⚠ Workflow failed: {e}")
+                raise
+    
+    # Usage example (requires DWSIM interface)
+    # dwsim = DWSIMInterface()
+    # workflow = AutomatedWorkflow(dwsim)
+    # workflow.run_full_workflow()
+    
+
+* * *
+
+## Verification of Learning Objectives
+
+Upon completing this chapter, you will be able to:
+
+### Fundamental Understanding
+
+  * ✅ Understand the mechanisms of DWSIM's Python interface
+  * ✅ Explain integration methods for simulators and data analysis tools
+  * ✅ Understand the role and benefits of surrogate models
+
+### Practical Skills
+
+  * ✅ Automatically construct flowsheets with Python scripts
+  * ✅ Automate parameter sweeps and analyze results with pandas
+  * ✅ Integrate scipy optimization algorithms with simulators
+  * ✅ Predict process performance with machine learning models
+  * ✅ Automatically compile results into HTML reports
+
+### Applied Capabilities
+
+  * ✅ Build end-to-end automated workflows
+  * ✅ Efficiently execute large-scale design space exploration
+  * ✅ Develop practical systems combining commercial simulators with open-source tools
+
+* * *
+
+## Summary
+
+In this chapter, we mastered advanced automation through the integration of Python and process simulators:
+
+  * **DWSIM Integration** : Complete flowsheet manipulation from Python
+  * **Parameter Sweeps** : Automation of large-scale case studies
+  * **Data Analysis** : Efficient result analysis and visualization with pandas
+  * **Optimization Integration** : Coupling scipy algorithms with simulators
+  * **Machine Learning** : Fast prediction with surrogate models
+  * **Automated Report Generation** : Documentation of results in HTML/PDF format
+  * **Complete Workflow** : Integration of simulation → analysis → optimization
+
+**Applications in Practice** :
+
+  * Dramatic efficiency improvement in process design (1/10 of manual time)
+  * Automatic exploration of optimal operating conditions
+  * Improved prediction accuracy through fusion of AI and simulation
+  * Reproducible and documented design processes
+
+This concludes the Process Simulation Introduction series. Apply these concepts to real projects and pursue further development!
+
+* * *
+
+### Disclaimer
+
+  * This content is created for educational purposes; expert supervision is required for actual plant design
+  * DWSIM's Python interface specifications may vary by version
+  * Machine learning models are only reliable within the range of training data
+  * Optimization results must always be verified with detailed simulations
+  * Please check the license of each software for commercial use
+
+## References
+
+  1. Montgomery, D. C. (2019). _Design and Analysis of Experiments_ (9th ed.). Wiley.
+  2. Box, G. E. P., Hunter, J. S., & Hunter, W. G. (2005). _Statistics for Experimenters: Design, Innovation, and Discovery_ (2nd ed.). Wiley.
+  3. Seborg, D. E., Edgar, T. F., Mellichamp, D. A., & Doyle III, F. J. (2016). _Process Dynamics and Control_ (4th ed.). Wiley.
+  4. McKay, M. D., Beckman, R. J., & Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." _Technometrics_ , 42(1), 55-61.

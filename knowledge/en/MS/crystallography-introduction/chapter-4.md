@@ -1,0 +1,1327 @@
+---
+title: "Chapter 4: Principles and Applications of X-ray Diffraction"
+chapter_title: "Chapter 4: Principles and Applications of X-ray Diffraction"
+subtitle: From Bragg's Law to Measured Data Analysis
+reading_time: 30 minutes
+difficulty: Intermediate
+code_examples: 8
+---
+
+🌐 EN | [🇯🇵 JP](<../../../jp/MS/crystallography-introduction/chapter-4.html>) | Last sync: 2025-11-16
+
+[AI Terakoya Top](<../index.html>) > [MS Dojo](<../index.html>) > [Introduction to Crystallography](<index.html>) > Chapter 4 
+
+## Learning Objectives
+
+By studying this chapter, you will acquire the following knowledge and skills:
+
+  * Understand the fundamentals of **X-ray and matter interactions**
+  * Derive **Bragg's Law nλ = 2d sinθ** and explain its physical meaning
+  * Calculate the **structure factor F hkl** and understand its influence on diffraction intensity
+  * Estimate crystal structures from **systematic absences (extinction rules)**
+  * Interpret **powder X-ray diffraction patterns** and identify peaks
+  * Understand the fundamental concepts of **Rietveld analysis**
+  * Analyze **measured XRD data** using Python
+
+## 1\. Interaction of X-rays with Crystals
+
+### 1.1 What Are X-rays?
+
+**X-rays** are electromagnetic waves with wavelengths ranging from approximately 0.01 to 10 nm (10 Å). In materials science, primarily **Cu Kα radiation (λ = 1.5406 Å)** and **Mo Kα radiation (λ = 0.7107 Å)** are used. 
+
+Since the wavelength of X-rays is on the same order as interatomic distances (several Å), **diffraction phenomena** occur due to crystal lattices.
+
+#### Major X-ray Sources
+
+X-ray Source | Wavelength (Å) | Energy (keV) | Primary Applications  
+---|---|---|---  
+Cu Kα | 1.5406 | 8.05 | Powder XRD, general structure analysis  
+Mo Kα | 0.7107 | 17.48 | Single crystal XRD, when short wavelength needed  
+Co Kα | 1.7902 | 6.93 | Iron-containing samples (avoiding fluorescence)  
+Synchrotron | Variable | Variable | High-brilliance, high-resolution measurements  
+  
+### 1.2 Basic Principles of X-ray Diffraction
+
+When X-rays enter a crystal, the following process occurs:
+    
+    
+    ```mermaid
+    flowchart TD
+                    A[X-ray incidence] --> B[Scattering by each atom]
+                    B --> C{Interference of scattered waves}
+                    C -->|Phases aligned| D[Constructive interference: diffraction peak]
+                    C -->|Phases misaligned| E[Destructive interference: extinction]
+                    D --> F[Peak observation at detector]
+                    E --> G[Background]
+    
+                    style A fill:#e3f2fd
+                    style B fill:#e3f2fd
+                    style C fill:#fff3e0
+                    style D fill:#e8f5e9
+                    style E fill:#ffebee
+                    style F fill:#e8f5e9
+                    style G fill:#ffebee
+    ```
+
+Each atom in the crystal scatters X-rays, and the scattered waves **interfere**. When the phases of scattered waves align at specific angles, they **constructively interfere** , observed as **diffraction peaks**. 
+
+## 2\. Bragg's Law
+
+### 2.1 Derivation of Bragg's Law
+
+In 1913, William Lawrence Bragg and his father William Henry Bragg proposed a simple yet powerful model that treats X-ray diffraction as **specular reflection from crystal planes**. 
+
+#### Bragg's Law
+
+$$ n\lambda = 2d_{hkl}\sin\theta $$ 
+
+Where:
+
+  * **n** : order of reflection (typically 1)
+  * **λ** : X-ray wavelength
+  * **d hkl**: interplanar spacing of (hkl) plane
+  * **θ** : Bragg angle (angle of incidence = angle of reflection)
+
+#### Derivation Concept
+
+Consider X-rays incident at angle θ on crystal planes spaced at distance d. If the **path difference** between waves reflected from the upper and lower planes equals an integer multiple of wavelength λ, constructive interference occurs. 
+
+The path difference is geometrically calculated as:
+
+$$ \text{Path difference} = 2d\sin\theta $$ 
+
+The condition for constructive interference is:
+
+$$ 2d\sin\theta = n\lambda \quad (n = 1, 2, 3, \ldots) $$ 
+
+#### Important Note
+
+Bragg's law is a **necessary condition** for diffraction to occur, but **not sufficient**. In practice, the **structure factor F hkl** must also be non-zero (discussed later). 
+
+### 2.2 Calculations Using Bragg's Law
+
+#### Code Example 1: Calculating Bragg Angles
+
+Calculate diffraction angles from major crystal planes of silicon (Si):
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def cubic_d_spacing(a, h, k, l):
+        """
+        Calculate interplanar spacing for cubic crystal
+    
+        Parameters:
+        -----------
+        a : float
+            Lattice parameter (Å)
+        h, k, l : int
+            Miller indices
+    
+        Returns:
+        --------
+        float : Interplanar spacing (Å)
+        """
+        return a / np.sqrt(h**2 + k**2 + l**2)
+    
+    def bragg_angle(d_hkl, wavelength, n=1):
+        """
+        Calculate diffraction angle 2θ from Bragg's law
+    
+        Parameters:
+        -----------
+        d_hkl : float
+            Interplanar spacing (Å)
+        wavelength : float
+            X-ray wavelength (Å)
+        n : int
+            Order of reflection
+    
+        Returns:
+        --------
+        float : Diffraction angle 2θ (degrees), or None if diffraction not possible
+        """
+        sin_theta = n * wavelength / (2 * d_hkl)
+        if abs(sin_theta) > 1:
+            return None  # Diffraction condition not satisfied
+        theta = np.arcsin(sin_theta)
+        return np.degrees(2 * theta)  # Return 2θ
+    
+    # Silicon (Si) parameters
+    a_Si = 5.4310  # Å
+    wavelength_CuKa = 1.5406  # Å
+    
+    print("=== X-ray Diffraction Pattern Prediction for Silicon (Si) ===")
+    print(f"Lattice parameter: a = {a_Si} Å")
+    print(f"X-ray wavelength: λ = {wavelength_CuKa} Å (Cu Kα)\n")
+    
+    # Major crystal planes
+    planes = [
+        (1, 1, 1), (2, 2, 0), (3, 1, 1),
+        (4, 0, 0), (3, 3, 1), (4, 2, 2)
+    ]
+    
+    print(f"{'(hkl)':<10} {'d (Å)':<12} {'2θ (deg)':<12}")
+    print("-" * 40)
+    
+    results = []
+    for hkl in planes:
+        h, k, l = hkl
+        d = cubic_d_spacing(a_Si, h, k, l)
+        two_theta = bragg_angle(d, wavelength_CuKa)
+    
+        if two_theta is not None:
+            print(f"({h}{k}{l}){'':<8} {d:8.4f}    {two_theta:8.3f}")
+            results.append((hkl, two_theta))
+    
+    # Visualize peak pattern in graph
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    for (h, k, l), two_theta in results:
+        ax.axvline(two_theta, color='red', linewidth=2, alpha=0.7)
+        ax.text(two_theta, 1.05, f'({h}{k}{l})',
+                rotation=90, va='bottom', ha='right', fontsize=9)
+    
+    ax.set_xlim(20, 100)
+    ax.set_ylim(0, 1.2)
+    ax.set_xlabel('2θ (degrees)', fontsize=14, fontweight='bold')
+    ax.set_ylabel('Relative Intensity (arbitrary units)', fontsize=14, fontweight='bold')
+    ax.set_title('Theoretical XRD Pattern of Silicon (Si)', fontsize=16, fontweight='bold')
+    ax.grid(axis='x', alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('si_xrd_pattern.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    print("\nXRD pattern saved: si_xrd_pattern.png")
+    
+
+### 2.3 Relationship Between Wavelength and Diffraction Angle
+
+#### Code Example 2: Comparing Diffraction Patterns with Different X-ray Sources
+
+Compare how diffraction angles change for the same crystal plane with Cu Kα and Mo Kα radiation:
+    
+    
+    def compare_xray_sources():
+        """Compare diffraction patterns with different X-ray sources"""
+    
+        # X-ray source parameters
+        sources = {
+            'Cu Kα': 1.5406,
+            'Mo Kα': 0.7107,
+            'Co Kα': 1.7902
+        }
+    
+        # Aluminum (Al) parameters
+        a_Al = 4.0495  # Å
+        planes = [(1, 1, 1), (2, 0, 0), (2, 2, 0), (3, 1, 1)]
+    
+        print("=== Comparison of Diffraction Angles with Different X-ray Sources (Al) ===\n")
+        print(f"Lattice parameter: a = {a_Al} Å\n")
+    
+        # Calculations for each X-ray source
+        fig, ax = plt.subplots(figsize=(14, 8))
+        colors = {'Cu Kα': 'red', 'Mo Kα': 'blue', 'Co Kα': 'green'}
+    
+        for source_name, wavelength in sources.items():
+            print(f"--- {source_name} (λ = {wavelength} Å) ---")
+            print(f"{'(hkl)':<10} {'d (Å)':<12} {'2θ (deg)':<12}")
+            print("-" * 40)
+    
+            y_offset = list(sources.keys()).index(source_name) * 0.3
+    
+            for hkl in planes:
+                h, k, l = hkl
+                d = cubic_d_spacing(a_Al, h, k, l)
+                two_theta = bragg_angle(d, wavelength)
+    
+                if two_theta is not None:
+                    print(f"({h}{k}{l}){'':<8} {d:8.4f}    {two_theta:8.3f}")
+    
+                    # Display as bar graph
+                    ax.plot([two_theta, two_theta], [y_offset, y_offset + 0.25],
+                           color=colors[source_name], linewidth=3)
+                    if y_offset == 0:  # Display labels only for first source
+                        ax.text(two_theta, y_offset + 0.28, f'({h}{k}{l})',
+                               rotation=90, va='bottom', ha='center', fontsize=8)
+            print()
+    
+        # Graph decoration
+        ax.set_xlim(0, 150)
+        ax.set_ylim(-0.1, 1.0)
+        ax.set_xlabel('2θ (degrees)', fontsize=14, fontweight='bold')
+        ax.set_yticks([0.125, 0.425, 0.725])
+        ax.set_yticklabels(['Cu Kα', 'Mo Kα', 'Co Kα'])
+        ax.set_title('Comparison of Aluminum (Al) Diffraction Patterns with Different X-ray Sources',
+                    fontsize=16, fontweight='bold')
+        ax.grid(axis='x', alpha=0.3)
+    
+        # Legend
+        from matplotlib.lines import Line2D
+        legend_elements = [Line2D([0], [0], color=color, lw=3, label=name)
+                          for name, color in colors.items()]
+        ax.legend(handles=legend_elements, loc='upper right', fontsize=12)
+    
+        plt.tight_layout()
+        plt.savefig('xray_source_comparison.png', dpi=150, bbox_inches='tight')
+        plt.show()
+        print("Comparison graph saved: xray_source_comparison.png")
+    
+    # Execute
+    compare_xray_sources()
+    
+
+#### Practical Considerations for Wavelength Selection
+
+  * **Short wavelength (Mo Kα)** : Can measure to high angles, less absorption, advantageous for single crystal analysis
+  * **Long wavelength (Cu Kα)** : Higher resolution at low angles, most commonly used
+  * **Sample dependent** : Use Co Kα for iron-containing samples (to avoid fluorescence)
+
+## 3\. Structure Factor and Diffraction Intensity
+
+### 3.1 What is the Structure Factor Fhkl?
+
+Even if Bragg's law is satisfied, not all reflections are observed. The **structure factor F hkl** determines the actual diffraction intensity. 
+
+$$ F_{hkl} = \sum_{j=1}^{N} f_j \exp\left[2\pi i(hx_j + ky_j + lz_j)\right] $$ 
+
+Where:
+
+  * **f j**: **atomic scattering factor** of the j-th atom (proportional to number of electrons)
+  * **(x j, yj, zj)**: **fractional coordinates** of the j-th atom
+  * **N** : number of atoms in the unit cell
+
+**Important** : When Fhkl = 0, diffraction does not occur even if Bragg's law is satisfied. This is called **systematic absence**. 
+
+### 3.2 Structure Factor Calculations for Simple Structures
+
+#### Code Example 3: Structure Factors for Simple Cubic, Body-Centered Cubic, and Face-Centered Cubic
+    
+    
+    import numpy as np
+    import pandas as pd
+    
+    def structure_factor(positions, f_atoms, h, k, l):
+        """
+        Calculate structure factor F_hkl
+    
+        Parameters:
+        -----------
+        positions : list of tuples
+            Fractional coordinates of atoms in unit cell [(x1,y1,z1), (x2,y2,z2), ...]
+        f_atoms : list of float
+            Atomic scattering factor for each atom
+        h, k, l : int
+            Miller indices
+    
+        Returns:
+        --------
+        complex : Structure factor F_hkl
+        """
+        F = 0 + 0j
+        for (x, y, z), f in zip(positions, f_atoms):
+            phase = 2 * np.pi * (h*x + k*y + l*z)
+            F += f * np.exp(1j * phase)
+        return F
+    
+    def analyze_structure_factors():
+        """Analyze structure factors for different lattice types"""
+    
+        # Atomic positions for each lattice type
+        structures = {
+            'SC (Simple Cubic)': [
+                (0, 0, 0)
+            ],
+            'BCC (Body-Centered Cubic)': [
+                (0, 0, 0),
+                (0.5, 0.5, 0.5)
+            ],
+            'FCC (Face-Centered Cubic)': [
+                (0, 0, 0),
+                (0.5, 0.5, 0),
+                (0.5, 0, 0.5),
+                (0, 0.5, 0.5)
+            ],
+            'Diamond Structure': [
+                (0, 0, 0),
+                (0.5, 0.5, 0),
+                (0.5, 0, 0.5),
+                (0, 0.5, 0.5),
+                (0.25, 0.25, 0.25),
+                (0.75, 0.75, 0.25),
+                (0.75, 0.25, 0.75),
+                (0.25, 0.75, 0.75)
+            ]
+        }
+    
+        # List of Miller indices
+        planes = [
+            (1, 0, 0), (1, 1, 0), (1, 1, 1),
+            (2, 0, 0), (2, 2, 0), (3, 1, 1),
+            (2, 2, 2), (4, 0, 0), (3, 3, 1)
+        ]
+    
+        print("=== Structure Factors and Extinction Rules for Different Lattice Types ===\n")
+    
+        for structure_name, positions in structures.items():
+            print(f"\n【{structure_name}】")
+            print(f"Number of atoms in unit cell: {len(positions)}\n")
+            print(f"{'(hkl)':<10} {'|F_hkl|^2':<15} {'Observable':<10} {'Note'}")
+            print("-" * 60)
+    
+            # Assume all atoms are identical with atomic scattering factor f = 1
+            f_atoms = [1.0] * len(positions)
+    
+            for hkl in planes:
+                h, k, l = hkl
+                F = structure_factor(positions, f_atoms, h, k, l)
+                F_squared = abs(F)**2
+    
+                # Determine observability (|F|^2 > 0.01 considered observable)
+                observable = "○" if F_squared > 0.01 else "×"
+    
+                # Explanation of extinction conditions
+                remarks = ""
+                if structure_name == 'BCC (Body-Centered Cubic)':
+                    if (h + k + l) % 2 != 0:
+                        remarks = "h+k+l is odd → extinct"
+                elif structure_name == 'FCC (Face-Centered Cubic)':
+                    if not (h % 2 == k % 2 == l % 2):
+                        remarks = "h,k,l mixed → extinct"
+    
+                print(f"({h}{k}{l}){'':<8} {F_squared:12.4f}   {observable:<10} {remarks}")
+    
+        print("\n" + "="*60)
+        print("Summary of Extinction Rules:")
+        print("  SC : All reflections are observed")
+        print("  BCC: Only h+k+l even are observed")
+        print("  FCC: Only all even or all odd h,k,l are observed")
+        print("  Diamond: FCC + additionally only h+k+l=4n (n:integer) show strong reflections")
+        print("="*60)
+    
+    # Execute
+    analyze_structure_factors()
+    
+
+#### Importance of Extinction Rules
+
+Extinction rules are extremely important for determining crystal structures. For example, if the (100) peak is not observed, you know it is not simple cubic (SC) but BCC or FCC. 
+
+### 3.3 Factors Affecting Diffraction Intensity
+
+The actual diffraction intensity Ihkl depends on many factors beyond the structure factor:
+
+$$ I_{hkl} \propto |F_{hkl}|^2 \cdot m_{hkl} \cdot L \cdot P \cdot A \cdot \exp(-2M) $$ 
+
+Factor | Name | Physical Meaning  
+---|---|---  
+|Fhkl|2 | Structure factor | Effect of atomic arrangement in unit cell  
+mhkl | Multiplicity | Number of symmetrically equivalent planes  
+L | Lorentz factor | Geometric effect of crystal  
+P | Polarization factor | Effect of X-ray polarization state  
+A | Absorption factor | X-ray absorption by sample  
+exp(-2M) | Temperature factor (Debye-Waller factor) | Diffuse scattering due to atomic thermal vibration  
+  
+#### Code Example 4: Intensity Calculation Including Multiplicity and Lorentz-Polarization Factor
+    
+    
+    from itertools import permutations, product
+    
+    def multiplicity(h, k, l, crystal_system='cubic'):
+        """
+        Calculate multiplicity (number of equivalent planes)
+    
+        Parameters:
+        -----------
+        h, k, l : int
+            Miller indices
+        crystal_system : str
+            Crystal system
+    
+        Returns:
+        --------
+        int : Multiplicity
+        """
+        planes = set()
+    
+        if crystal_system == 'cubic':
+            for perm in permutations([abs(h), abs(k), abs(l)]):
+                for signs in product([1, -1], repeat=3):
+                    plane = tuple(s * p for s, p in zip(signs, perm))
+                    if plane != (0, 0, 0):
+                        planes.add(plane)
+    
+        return len(planes)
+    
+    def lorentz_polarization_factor(two_theta):
+        """
+        Lorentz-polarization factor for powder X-ray diffraction
+    
+        Parameters:
+        -----------
+        two_theta : float
+            Diffraction angle 2θ (radians)
+    
+        Returns:
+        --------
+        float : LP factor
+        """
+        theta = two_theta / 2
+        LP = (1 + np.cos(two_theta)**2) / (np.sin(theta)**2 * np.cos(theta))
+        return LP
+    
+    def calculate_intensity_with_factors():
+        """Calculate diffraction intensity considering various factors"""
+    
+        # Aluminum (FCC, a = 4.0495 Å)
+        a_Al = 4.0495
+        wavelength = 1.5406  # Cu Kα
+    
+        # Atomic positions for FCC structure
+        fcc_positions = [
+            (0, 0, 0),
+            (0.5, 0.5, 0),
+            (0.5, 0, 0.5),
+            (0, 0.5, 0.5)
+        ]
+        f_Al = 13  # Aluminum atomic number (simplified as atomic scattering factor)
+    
+        planes = [
+            (1, 1, 1), (2, 0, 0), (2, 2, 0),
+            (3, 1, 1), (2, 2, 2), (4, 0, 0)
+        ]
+    
+        print("=== XRD Intensity Calculation with Various Factors (Al, FCC) ===\n")
+        print(f"{'(hkl)':<10} {'d (Å)':<10} {'2θ':<10} {'|F|^2':<12} {'m':<6} {'LP':<10} {'I_rel':<10}")
+        print("-" * 80)
+    
+        intensities = []
+    
+        for hkl in planes:
+            h, k, l = hkl
+    
+            # Interplanar spacing
+            d = cubic_d_spacing(a_Al, h, k, l)
+    
+            # Bragg angle
+            two_theta_deg = bragg_angle(d, wavelength)
+            if two_theta_deg is None:
+                continue
+            two_theta_rad = np.radians(two_theta_deg)
+    
+            # Structure factor
+            F = structure_factor(fcc_positions, [f_Al]*4, h, k, l)
+            F_squared = abs(F)**2
+    
+            # Check extinction rule (mixed indices extinct for FCC)
+            if F_squared < 0.01:
+                continue
+    
+            # Multiplicity
+            m = multiplicity(h, k, l, 'cubic')
+    
+            # Lorentz-polarization factor
+            LP = lorentz_polarization_factor(two_theta_rad)
+    
+            # Relative intensity (temperature factor and absorption omitted)
+            I_rel = F_squared * m * LP
+    
+            intensities.append((hkl, I_rel))
+    
+            print(f"({h}{k}{l}){'':<8} {d:8.4f}  {two_theta_deg:8.2f}  {F_squared:10.2f}  {m:<6} {LP:8.4f}  {I_rel:8.2f}")
+    
+        # Normalize by maximum intensity
+        max_intensity = max(I for _, I in intensities)
+    
+        print("\n--- Normalized Relative Intensity (maximum = 100) ---")
+        print(f"{'(hkl)':<10} {'Relative Intensity':<15}")
+        print("-" * 30)
+    
+        for hkl, I in intensities:
+            I_normalized = 100 * I / max_intensity
+            print(f"({hkl[0]}{hkl[1]}{hkl[2]}){'':<8} {I_normalized:8.1f}")
+    
+    # Execute
+    calculate_intensity_with_factors()
+    
+
+## 4\. Interpreting Powder X-ray Diffraction Patterns
+
+### 4.1 What is Powder XRD?
+
+**Powder X-ray Diffraction (PXRD)** is a measurement method for samples consisting of fine crystalline grains oriented in **random directions**. It is one of the most frequently used structural characterization techniques in materials science. 
+
+#### Characteristics of Powder XRD
+
+  * **Easy sample preparation** : No single crystal required
+  * **Phase identification** : Can identify crystalline phases in unknown samples
+  * **Quantitative analysis** : Can estimate proportions of each phase in mixtures
+  * **Lattice parameter determination** : Can obtain precise lattice parameters from peak positions
+  * **Crystallite size** : Can estimate nanoparticle size from peak width
+
+### 4.2 XRD Pattern Simulation
+
+#### Code Example 5: Complete XRD Pattern Simulation
+
+Generate realistic XRD patterns including peak shapes (Gaussian functions) and background:
+    
+    
+    def gaussian_peak(two_theta, center, intensity, fwhm):
+        """
+        Gaussian peak function
+    
+        Parameters:
+        -----------
+        two_theta : array
+            Array of 2θ values
+        center : float
+            Peak center position
+        intensity : float
+            Peak intensity
+        fwhm : float
+            Full Width at Half Maximum
+    
+        Returns:
+        --------
+        array : Intensity of Gaussian peak
+        """
+        sigma = fwhm / (2 * np.sqrt(2 * np.log(2)))
+        return intensity * np.exp(-((two_theta - center)**2) / (2 * sigma**2))
+    
+    def simulate_xrd_pattern(material_name, a, c=None, crystal_system='cubic',
+                            positions=None, f_atoms=None,
+                            wavelength=1.5406, two_theta_range=(20, 100),
+                            fwhm=0.2, background=50):
+        """
+        Simulate complete XRD pattern
+    
+        Parameters:
+        -----------
+        material_name : str
+            Material name
+        a, c : float
+            Lattice parameters
+        crystal_system : str
+            Crystal system
+        positions : list
+            Fractional coordinates of atoms in unit cell
+        f_atoms : list
+            Atomic scattering factors
+        wavelength : float
+            X-ray wavelength
+        two_theta_range : tuple
+            Measurement range of 2θ
+        fwhm : float
+            Full width at half maximum of peaks
+        background : float
+            Background intensity
+    
+        Returns:
+        --------
+        two_theta, intensity : arrays
+        """
+        # Array of 2θ values
+        two_theta = np.linspace(two_theta_range[0], two_theta_range[1], 4000)
+        intensity = np.ones_like(two_theta) * background  # Background
+    
+        # Calculate peaks
+        max_hkl = 5
+        peaks_info = []
+    
+        for h in range(max_hkl + 1):
+            for k in range(h, max_hkl + 1):
+                for l in range(k, max_hkl + 1):
+                    if h == 0 and k == 0 and l == 0:
+                        continue
+    
+                    # Interplanar spacing
+                    if crystal_system == 'cubic':
+                        d = cubic_d_spacing(a, h, k, l)
+    
+                    # Bragg angle
+                    two_theta_peak = bragg_angle(d, wavelength)
+                    if two_theta_peak is None or two_theta_peak > two_theta_range[1]:
+                        continue
+    
+                    # Structure factor
+                    if positions is not None and f_atoms is not None:
+                        F = structure_factor(positions, f_atoms, h, k, l)
+                        F_squared = abs(F)**2
+                        if F_squared < 0.01:
+                            continue
+                    else:
+                        F_squared = 1.0
+    
+                    # Multiplicity
+                    m = multiplicity(h, k, l, crystal_system)
+    
+                    # Lorentz-polarization factor
+                    LP = lorentz_polarization_factor(np.radians(two_theta_peak))
+    
+                    # Peak intensity
+                    I_peak = F_squared * m * LP
+    
+                    # Add Gaussian peak
+                    intensity += gaussian_peak(two_theta, two_theta_peak, I_peak, fwhm)
+                    peaks_info.append(((h, k, l), two_theta_peak, I_peak))
+    
+        # Normalize intensity
+        intensity = (intensity / intensity.max()) * 1000
+    
+        return two_theta, intensity, peaks_info
+    
+    # Simulate XRD pattern for silicon
+    a_Si = 5.4310
+    diamond_positions = [
+        (0, 0, 0), (0.5, 0.5, 0), (0.5, 0, 0.5), (0, 0.5, 0.5),
+        (0.25, 0.25, 0.25), (0.75, 0.75, 0.25),
+        (0.75, 0.25, 0.75), (0.25, 0.75, 0.75)
+    ]
+    f_Si = [14] * 8  # Silicon atomic number
+    
+    two_theta, intensity, peaks = simulate_xrd_pattern(
+        'Silicon (Si)',
+        a=a_Si,
+        crystal_system='cubic',
+        positions=diamond_positions,
+        f_atoms=f_Si,
+        fwhm=0.15
+    )
+    
+    # Display graph
+    fig, ax = plt.subplots(figsize=(14, 6))
+    
+    ax.plot(two_theta, intensity, 'b-', linewidth=1.5, label='Simulation')
+    ax.fill_between(two_theta, 0, intensity, alpha=0.2, color='blue')
+    
+    # Label major peaks
+    peaks_sorted = sorted(peaks, key=lambda x: x[2], reverse=True)[:6]
+    for (h, k, l), pos, I in peaks_sorted:
+        ax.annotate(f'({h}{k}{l})',
+                   xy=(pos, I * 1000 / intensity.max()),
+                   xytext=(pos, I * 1000 / intensity.max() + 80),
+                   ha='center', fontsize=10,
+                   arrowprops=dict(arrowstyle='->', color='red', lw=1))
+    
+    ax.set_xlim(20, 100)
+    ax.set_ylim(0, 1100)
+    ax.set_xlabel('2θ (degrees)', fontsize=14, fontweight='bold')
+    ax.set_ylabel('Intensity (arbitrary units)', fontsize=14, fontweight='bold')
+    ax.set_title('Powder XRD Pattern of Silicon (Si) (Simulation)',
+                fontsize=16, fontweight='bold')
+    ax.grid(axis='both', alpha=0.3)
+    ax.legend(fontsize=12)
+    
+    plt.tight_layout()
+    plt.savefig('si_powder_xrd_simulation.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    print("Powder XRD simulation saved: si_powder_xrd_simulation.png")
+    
+
+### 4.3 Reading and Analyzing Measured Data
+
+#### Code Example 6: Reading XRD Data and Peak Detection
+
+Read actual XRD measurement data (text file) and automatically detect peaks:
+    
+    
+    from scipy.signal import find_peaks
+    from scipy.optimize import curve_fit
+    
+    def read_xrd_data(filename):
+        """
+        Read XRD data file
+    
+        Common format:
+        2theta  Intensity
+        20.0    150.2
+        20.1    152.3
+        ...
+    
+        Parameters:
+        -----------
+        filename : str
+            Path to data file
+    
+        Returns:
+        --------
+        two_theta, intensity : arrays
+        """
+        try:
+            data = np.loadtxt(filename, skiprows=1)  # Skip header row
+            two_theta = data[:, 0]
+            intensity = data[:, 1]
+            return two_theta, intensity
+        except FileNotFoundError:
+            print(f"File {filename} not found.")
+            print("Generating sample data.")
+            # Generate sample data
+            return simulate_xrd_pattern('Sample', a=5.0, fwhm=0.3)[:2]
+    
+    def detect_peaks_in_xrd(two_theta, intensity, prominence=50, distance=10):
+        """
+        Detect peaks in XRD pattern
+    
+        Parameters:
+        -----------
+        two_theta : array
+            2θ data
+        intensity : array
+            Intensity data
+        prominence : float
+            Threshold for peak detection (prominence)
+        distance : int
+            Minimum distance between peaks (number of data points)
+    
+        Returns:
+        --------
+        peak_positions, peak_intensities : arrays
+        """
+        peaks_idx, properties = find_peaks(intensity,
+                                           prominence=prominence,
+                                           distance=distance)
+    
+        peak_positions = two_theta[peaks_idx]
+        peak_intensities = intensity[peaks_idx]
+        peak_prominences = properties['prominences']
+    
+        return peak_positions, peak_intensities, peak_prominences
+    
+    def analyze_xrd_data():
+        """Demonstration of measured XRD data analysis"""
+    
+        # Read data (simulate if actual file doesn't exist)
+        two_theta, intensity = read_xrd_data('sample_xrd.txt')
+    
+        # Peak detection
+        peak_pos, peak_int, peak_prom = detect_peaks_in_xrd(
+            two_theta, intensity,
+            prominence=100,
+            distance=20
+        )
+    
+        print("=== Detected Peaks ===\n")
+        print(f"{'Peak Number':<12} {'2θ (deg)':<12} {'Intensity':<15} {'d-spacing (Å)':<12}")
+        print("-" * 60)
+    
+        wavelength = 1.5406  # Cu Kα
+    
+        for i, (pos, intensity_val) in enumerate(zip(peak_pos, peak_int), 1):
+            # Calculate d-spacing from Bragg's law
+            theta = np.radians(pos / 2)
+            d_spacing = wavelength / (2 * np.sin(theta))
+    
+            print(f"{i:<12} {pos:10.2f}  {intensity_val:12.1f}  {d_spacing:10.4f}")
+    
+        # Display graph
+        fig, ax = plt.subplots(figsize=(14, 7))
+    
+        # Plot XRD pattern
+        ax.plot(two_theta, intensity, 'b-', linewidth=1.5, label='Measured Data')
+    
+        # Mark detected peaks
+        ax.plot(peak_pos, peak_int, 'ro', markersize=8, label='Detected Peaks')
+    
+        # Display peak numbers
+        for i, (pos, int_val) in enumerate(zip(peak_pos, peak_int), 1):
+            ax.annotate(f'{i}',
+                       xy=(pos, int_val),
+                       xytext=(pos, int_val + 80),
+                       ha='center', fontsize=10, fontweight='bold',
+                       bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.7))
+    
+        ax.set_xlabel('2θ (degrees)', fontsize=14, fontweight='bold')
+        ax.set_ylabel('Intensity (arbitrary units)', fontsize=14, fontweight='bold')
+        ax.set_title('XRD Pattern and Peak Detection', fontsize=16, fontweight='bold')
+        ax.legend(fontsize=12)
+        ax.grid(axis='both', alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('xrd_peak_detection.png', dpi=150, bbox_inches='tight')
+        plt.show()
+        print("\nPeak detection results saved: xrd_peak_detection.png")
+    
+    # Execute
+    analyze_xrd_data()
+    
+
+### 4.4 Peak Fitting
+
+#### Code Example 7: Peak Fitting with Gaussian-Lorentzian Functions
+
+Mathematically fit peak shapes to determine accurate peak positions and widths:
+    
+    
+    def pseudo_voigt(x, amplitude, center, fwhm, eta):
+        """
+        Pseudo-Voigt function (mixture of Gaussian and Lorentzian components)
+    
+        Parameters:
+        -----------
+        x : array
+            Data points
+        amplitude : float
+            Peak amplitude
+        center : float
+            Peak center
+        fwhm : float
+            Full width at half maximum
+        eta : float
+            Fraction of Lorentzian component (0: Gaussian, 1: Lorentzian)
+    
+        Returns:
+        --------
+        array : Peak shape
+        """
+        # Gaussian component
+        sigma = fwhm / (2 * np.sqrt(2 * np.log(2)))
+        gaussian = np.exp(-((x - center)**2) / (2 * sigma**2))
+    
+        # Lorentzian component
+        gamma = fwhm / 2
+        lorentzian = gamma**2 / ((x - center)**2 + gamma**2)
+    
+        # Mixture
+        return amplitude * (eta * lorentzian + (1 - eta) * gaussian)
+    
+    def fit_single_peak(two_theta, intensity, peak_center, window=2.0):
+        """
+        Fit single peak
+    
+        Parameters:
+        -----------
+        two_theta : array
+            2θ data
+        intensity : array
+            Intensity data
+        peak_center : float
+            Approximate peak center position
+        window : float
+            Fitting range (±window degrees)
+    
+        Returns:
+        --------
+        popt : array
+            Optimized parameters [amplitude, center, fwhm, eta]
+        pcov : array
+            Covariance matrix
+        """
+        # Extract fitting range
+        mask = (two_theta >= peak_center - window) & (two_theta <= peak_center + window)
+        x_data = two_theta[mask]
+        y_data = intensity[mask]
+    
+        # Initial estimates
+        amplitude_init = np.max(y_data) - np.min(y_data)
+        center_init = peak_center
+        fwhm_init = 0.2
+        eta_init = 0.5
+    
+        p0 = [amplitude_init, center_init, fwhm_init, eta_init]
+    
+        # Boundary conditions
+        bounds = ([0, peak_center - 1, 0.05, 0],
+                  [amplitude_init * 2, peak_center + 1, 1.0, 1])
+    
+        try:
+            popt, pcov = curve_fit(pseudo_voigt, x_data, y_data, p0=p0, bounds=bounds)
+            return popt, pcov, x_data, y_data
+        except RuntimeError:
+            print(f"Fitting failed for peak at {peak_center:.2f}°.")
+            return None, None, x_data, y_data
+    
+    def demo_peak_fitting():
+        """Demonstration of peak fitting"""
+    
+        # Generate sample data
+        two_theta, intensity = simulate_xrd_pattern('Sample', a=5.4, fwhm=0.2)[:2]
+    
+        # Peak detection
+        peak_pos, _, _ = detect_peaks_in_xrd(two_theta, intensity, prominence=100)
+    
+        # Fit three strongest peaks
+        strongest_peaks = sorted(zip(peak_pos, intensity[np.isin(two_theta, peak_pos)]),
+                                key=lambda x: x[1], reverse=True)[:3]
+    
+        fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+    
+        for ax, (peak_center, _) in zip(axes, strongest_peaks):
+            result = fit_single_peak(two_theta, intensity, peak_center, window=2.5)
+    
+            if result[0] is not None:
+                popt, pcov, x_fit, y_fit = result
+                amplitude, center, fwhm, eta = popt
+    
+                # Fitting curve
+                x_fine = np.linspace(x_fit.min(), x_fit.max(), 500)
+                y_fine = pseudo_voigt(x_fine, *popt)
+    
+                # Plot
+                ax.plot(x_fit, y_fit, 'bo', markersize=4, label='Measured Data')
+                ax.plot(x_fine, y_fine, 'r-', linewidth=2, label='Fitting')
+    
+                # Display results
+                textstr = f'Center: {center:.3f}°\nFWHM: {fwhm:.3f}°\nη: {eta:.2f}'
+                ax.text(0.05, 0.95, textstr, transform=ax.transAxes,
+                       fontsize=10, verticalalignment='top',
+                       bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+    
+                ax.set_xlabel('2θ (degrees)', fontsize=12, fontweight='bold')
+                ax.set_ylabel('Intensity', fontsize=12, fontweight='bold')
+                ax.set_title(f'Peak @ {center:.1f}°', fontsize=13, fontweight='bold')
+                ax.legend(fontsize=10)
+                ax.grid(alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('xrd_peak_fitting.png', dpi=150, bbox_inches='tight')
+        plt.show()
+        print("Peak fitting results saved: xrd_peak_fitting.png")
+    
+    # Execute
+    demo_peak_fitting()
+    
+
+## 5\. Advanced XRD Analysis with pymatgen
+
+### 5.1 Generating XRD Patterns with pymatgen
+
+**pymatgen** is a powerful Python library for materials science that can automatically generate XRD patterns from crystal structures. 
+
+#### Code Example 8: XRD Pattern Generation and Comparison with pymatgen
+    
+    
+    try:
+        from pymatgen.core import Structure, Lattice
+        from pymatgen.analysis.diffraction.xrd import XRDCalculator
+        PYMATGEN_AVAILABLE = True
+    except ImportError:
+        print("pymatgen is not installed.")
+        print("Install with: pip install pymatgen")
+        PYMATGEN_AVAILABLE = False
+    
+    def generate_xrd_with_pymatgen():
+        """Generate XRD pattern using pymatgen"""
+    
+        if not PYMATGEN_AVAILABLE:
+            print("This example is skipped because pymatgen is not installed.")
+            return
+    
+        # Define silicon structure
+        lattice = Lattice.cubic(5.4310)
+        species = ['Si', 'Si', 'Si', 'Si', 'Si', 'Si', 'Si', 'Si']
+        coords = [
+            [0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5],
+            [0.25, 0.25, 0.25], [0.75, 0.75, 0.25],
+            [0.75, 0.25, 0.75], [0.25, 0.75, 0.75]
+        ]
+    
+        si_structure = Structure(lattice, species, coords)
+    
+        print("=== XRD Pattern Generation with pymatgen ===\n")
+        print(f"Crystal structure: {si_structure.composition}")
+        print(f"Space group: {si_structure.get_space_group_info()}\n")
+    
+        # Initialize XRD calculator
+        calculator = XRDCalculator(wavelength='CuKa')  # Cu Kα radiation
+    
+        # Calculate XRD pattern
+        pattern = calculator.get_pattern(si_structure, two_theta_range=(20, 100))
+    
+        print(f"{'2θ (deg)':<12} {'d-spacing (Å)':<15} {'(hkl)':<15} {'Relative Int.':<12}")
+        print("-" * 60)
+    
+        for i in range(len(pattern.x)):
+            two_theta = pattern.x[i]
+            intensity = pattern.y[i]
+            hkl = pattern.hkls[i][0]['hkl']  # Get first hkl
+            d_spacing = pattern.d_hkls[i]
+    
+            print(f"{two_theta:10.2f}  {d_spacing:12.4f}  {str(hkl):<15} {intensity:10.1f}")
+    
+        # Display graph
+        fig, ax = plt.subplots(figsize=(14, 7))
+    
+        # Plot as bar graph
+        ax.vlines(pattern.x, 0, pattern.y, colors='blue', linewidth=2, label='pymatgen')
+    
+        # Label peaks with hkl
+        for i, (two_theta, intensity, hkls_data) in enumerate(zip(pattern.x, pattern.y, pattern.hkls)):
+            if intensity > 20:  # Display label only for peaks with intensity > 20
+                hkl = hkls_data[0]['hkl']
+                ax.text(two_theta, intensity + 5, f'({hkl[0]}{hkl[1]}{hkl[2]})',
+                       rotation=90, va='bottom', ha='center', fontsize=9)
+    
+        ax.set_xlim(20, 100)
+        ax.set_ylim(0, max(pattern.y) * 1.15)
+        ax.set_xlabel('2θ (degrees)', fontsize=14, fontweight='bold')
+        ax.set_ylabel('Relative Intensity', fontsize=14, fontweight='bold')
+        ax.set_title('XRD Pattern of Silicon (Si) - pymatgen Generated',
+                    fontsize=16, fontweight='bold')
+        ax.legend(fontsize=12)
+        ax.grid(axis='both', alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('si_xrd_pymatgen.png', dpi=150, bbox_inches='tight')
+        plt.show()
+        print("\npymatgen XRD pattern saved: si_xrd_pymatgen.png")
+    
+        # Compare multiple materials
+        compare_materials_xrd()
+    
+    def compare_materials_xrd():
+        """Compare XRD patterns of multiple materials"""
+    
+        if not PYMATGEN_AVAILABLE:
+            return
+    
+        # Define materials
+        materials = {
+            'Si (Diamond)': Structure(
+                Lattice.cubic(5.4310),
+                ['Si']*8,
+                [[0,0,0], [0.5,0.5,0], [0.5,0,0.5], [0,0.5,0.5],
+                 [0.25,0.25,0.25], [0.75,0.75,0.25], [0.75,0.25,0.75], [0.25,0.75,0.75]]
+            ),
+            'Al (FCC)': Structure(
+                Lattice.cubic(4.0495),
+                ['Al']*4,
+                [[0,0,0], [0.5,0.5,0], [0.5,0,0.5], [0,0.5,0.5]]
+            ),
+            'Fe (BCC)': Structure(
+                Lattice.cubic(2.8665),
+                ['Fe']*2,
+                [[0,0,0], [0.5,0.5,0.5]]
+            )
+        }
+    
+        calculator = XRDCalculator(wavelength='CuKa')
+    
+        fig, axes = plt.subplots(3, 1, figsize=(14, 12))
+    
+        for ax, (name, structure) in zip(axes, materials.items()):
+            pattern = calculator.get_pattern(structure, two_theta_range=(20, 100))
+    
+            # Bar graph
+            ax.vlines(pattern.x, 0, pattern.y, colors='darkblue', linewidth=2.5)
+    
+            # Peak labels
+            for two_theta, intensity, hkls_data in zip(pattern.x, pattern.y, pattern.hkls):
+                if intensity > 15:
+                    hkl = hkls_data[0]['hkl']
+                    ax.text(two_theta, intensity + 3, f'({hkl[0]}{hkl[1]}{hkl[2]})',
+                           rotation=90, va='bottom', ha='center', fontsize=9)
+    
+            ax.set_xlim(20, 100)
+            ax.set_ylim(0, 110)
+            ax.set_ylabel('Relative Intensity', fontsize=12, fontweight='bold')
+            ax.set_title(name, fontsize=14, fontweight='bold', loc='left')
+            ax.grid(axis='x', alpha=0.3)
+    
+        axes[-1].set_xlabel('2θ (degrees)', fontsize=14, fontweight='bold')
+    
+        plt.tight_layout()
+        plt.savefig('materials_xrd_comparison.png', dpi=150, bbox_inches='tight')
+        plt.show()
+        print("Material comparison graph saved: materials_xrd_comparison.png")
+    
+    # Execute
+    generate_xrd_with_pymatgen()
+    
+
+#### Advantages of pymatgen
+
+  * **Structure database integration** : Can directly obtain structures from Materials Project and others
+  * **Automatic structure factor calculation** : Accurate calculations including atomic scattering factors and temperature factors
+  * **Automatic space group recognition** : Accurate pattern generation considering symmetry
+  * **Phase identification function** : Identification of unknown samples by comparison with measured patterns
+
+## 6\. Introduction to Rietveld Analysis
+
+### 6.1 What is the Rietveld Method?
+
+**Rietveld refinement** is a technique that fits the entire powder XRD pattern with a crystal structure model. It was developed by Hugo Rietveld in 1969. 
+
+#### Information Obtained from the Rietveld Method
+
+  * **Lattice parameters** : High precision (±0.0001 Å or better)
+  * **Atomic coordinates** : Atomic positions within the unit cell
+  * **Occupancy** : Occupancy of atomic sites (evaluation of alloys and defects)
+  * **Temperature factors** : Magnitude of atomic thermal vibrations
+  * **Crystallite size** : Estimation from peak widths
+  * **Microstrain** : Lattice distortion
+  * **Phase quantification** : Weight fractions of each phase in multiphase mixtures
+
+### 6.2 Principles of the Rietveld Method
+
+The Rietveld method optimizes the following function by least squares:
+
+$$ S = \sum_i w_i (y_{i,\text{obs}} - y_{i,\text{calc}})^2 $$ 
+
+Where:
+
+  * **y i,obs**: Observed intensity at the i-th measurement point
+  * **y i,calc**: Calculated intensity at the i-th measurement point
+  * **w i**: Weight (typically 1/yi,obs)
+
+The calculated intensity is expressed as:
+
+$$ y_{i,\text{calc}} = \text{scale} \sum_{K} L_K |F_K|^2 \Phi(2\theta_i - 2\theta_K) P_K A + y_{i,\text{bg}} $$ 
+
+#### Important Notes on Rietveld Analysis
+
+The Rietveld method is a technique that **requires a structure model**. If the initial structure model is significantly incorrect, it will not converge to the correct solution. Typically, initial models are created from known similar structures or single crystal XRD data. 
+
+### 6.3 Rietveld Analysis Workflow
+    
+    
+    ```mermaid
+    flowchart TD
+                    A[Powder XRD Data Measurement] --> B[Peak Identification and Phase Determination]
+                    B --> C[Create Initial Structure Model]
+                    C --> D[Background Setting]
+                    D --> E[Lattice Parameter Refinement]
+                    E --> F[Profile Shape Refinement]
+                    F --> G[Structural Parameter Refinement]
+                    G --> H{Check Goodness of Fit}
+                    H -->|Good| I[Validate and Report Results]
+                    H -->|Poor| J[Model Correction]
+                    J --> D
+    
+                    style A fill:#e3f2fd
+                    style B fill:#e3f2fd
+                    style C fill:#fff3e0
+                    style I fill:#e8f5e9
+                    style J fill:#ffebee
+    ```
+
+## 7\. Exercises
+
+### Exercise 1: Application of Bragg's Law
+
+For the face-centered cubic (FCC) structure of copper (Cu) with lattice parameter a = 3.615 Å. Using Cu Kα radiation (λ = 1.5406 Å) for powder XRD measurement, at what angle (2θ) will diffraction peaks from the following (hkl) planes be observed? 
+
+  1. (111) plane
+  2. (200) plane
+  3. (220) plane
+
+Also, explain whether the (100) peak is observed according to the FCC extinction rule.
+
+View Answer
+
+**Calculation of interplanar spacings:**
+
+  1. d111 = 3.615 / √3 = 2.087 Å
+  2. d200 = 3.615 / √4 = 1.808 Å
+  3. d220 = 3.615 / √8 = 1.278 Å
+
+**Calculation of Bragg angles (λ = 2d sinθ):**
+
+  1. 2θ111 = 2 × arcsin(1.5406/(2×2.087)) ≈ **43.3°**
+  2. 2θ200 = 2 × arcsin(1.5406/(2×1.808)) ≈ **50.4°**
+  3. 2θ220 = 2 × arcsin(1.5406/(2×1.278)) ≈ **74.1°**
+
+**About the (100) plane:**
+
+The FCC extinction rule is "only all even or all odd h, k, l are observed." (100) has h=1 (odd), k=0 (even), l=0 (even), so it is mixed, and the structure factor F100 = 0. Therefore it is **not observed**. 
+
+### Exercise 2: Structure Factor and Extinction Rules
+
+The following peaks were observed in an XRD measurement: (110), (200), (211), (220), (310), (222), (321), (400) 
+
+Is this material simple cubic (SC), body-centered cubic (BCC), or face-centered cubic (FCC)? Determine from the extinction rules. 
+
+View Answer
+
+Check the sum h+k+l for each index:
+
+  * (110): 1+1+0 = 2 (even)
+  * (200): 2+0+0 = 2 (even)
+  * (211): 2+1+1 = 4 (even)
+  * (220): 2+2+0 = 4 (even)
+  * (310): 3+1+0 = 4 (even)
+  * (222): 2+2+2 = 6 (even)
+  * (321): 3+2+1 = 6 (even)
+  * (400): 4+0+0 = 4 (even)
+
+All peaks have even h+k+l. This matches the **BCC (body-centered cubic)** extinction rule. 
+
+If it were FCC, mixed indices like (210) or (221) would be extinct, but there is no such regularity in the observed peaks. If it were SC, all peaks including (100) should be observed. 
+
+**Answer: BCC (body-centered cubic)**
+
+### Exercise 3: Crystal Identification from d-spacings
+
+From the XRD pattern of an unknown sample, the following d-spacings (Å) were obtained: 3.35, 2.46, 2.13, 1.91, 1.80 
+
+Which of the following materials could this sample be? Determine from lattice parameters. 
+
+  * A) NaCl (rock salt structure, FCC, a = 5.64 Å)
+  * B) Si (diamond structure, a = 5.43 Å)
+  * C) Graphite (hexagonal, a = 2.46 Å, c = 6.71 Å)
+
+View Answer
+
+Calculate representative d-spacings for each material:
+
+**A) NaCl (FCC, a=5.64 Å):**
+
+  * d111 = 5.64/√3 = 3.26 Å
+  * d200 = 5.64/√4 = 2.82 Å
+  * d220 = 5.64/√8 = 2.00 Å
+
+**B) Si (a=5.43 Å):**
+
+  * d111 = 5.43/√3 = 3.14 Å
+  * d220 = 5.43/√8 = 1.92 Å
+
+**C) Graphite (hexagonal, a=2.46, c=6.71 Å):**
+
+  * d002 = c/2 = 3.35 Å ✓
+  * d100 = a√(3/4) = 2.13 Å ✓
+  * d004 = c/4 = 1.68 Å
+
+**Answer: C) Graphite**
+
+The maximum d-spacing of 3.35 Å matches the characteristic (002) plane spacing of graphite. This corresponds to the important peak for graphite interlayer distance. 
+
+### Exercise 4: Programming Challenge
+
+Under the following conditions, create a program that simulates the XRD pattern of a fictional material and displays the positions and relative intensities of the major peaks (top 5): 
+
+  * Crystal system: Cubic (FCC structure)
+  * Lattice parameter: a = 4.00 Å
+  * X-ray wavelength: Cu Kα radiation (λ = 1.5406 Å)
+  * Measurement range: 2θ = 20° to 90°
+
+Hint
+
+Use a combination of Code Examples 1 and 3. Implement FCC atomic positions and structure factor calculations, Bragg angle calculations using Bragg's law, and intensity calculations considering multiplicity. 
+
+The completed program should display peaks like (111), (200), (220), (311), (222) at correct angles and relative intensities. 
+
+## Summary
+
+In this chapter, we learned the principles of X-ray diffraction and practical analysis methods:
+
+#### Key Points
+
+  * **Bragg's law nλ = 2d sinθ** is the necessary condition for diffraction
+  * **Structure factor F hkl** when zero means no diffraction even if Bragg's law is satisfied (extinction rules)
+  * **Extinction rules** allow estimation of crystal structure (SC, BCC, FCC, etc.)
+  * **Diffraction intensity** depends on many factors including structure factor, multiplicity, Lorentz-polarization factor, temperature factor
+  * **Powder XRD** is widely used for material identification, phase analysis, and lattice parameter determination
+  * **Peak fitting** enables determination of accurate peak positions and widths
+  * **pymatgen** allows automatic generation of XRD patterns from crystal structures
+  * **Rietveld analysis** is a technique that fits the entire pattern and refines structural parameters
+
+In the next chapter, we will learn **crystal structure visualization and analysis** , and acquire practical skills to retrieve and analyze structures from actual materials databases. 
+
+### Disclaimer
+
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * The content may be changed, updated, or discontinued without notice.
+  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

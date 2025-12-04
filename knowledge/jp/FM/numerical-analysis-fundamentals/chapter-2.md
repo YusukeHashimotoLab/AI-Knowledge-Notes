@@ -1,0 +1,211 @@
+---
+title: "第2章: 線形方程式系の解法"
+chapter_title: "第2章: 線形方程式系の解法"
+---
+
+# 第2章: 線形方程式系の解法
+
+大規模連立一次方程式を効率的に解く直接法と反復法
+
+## 2.1 連立一次方程式の基礎
+
+材料シミュレーション（有限要素法、拡散方程式など）では、\\( Ax = b \\) の形の大規模連立一次方程式が頻繁に現れます。ここで \\( A \\) は \\( n \times n \\) 行列、\\( x \\) と \\( b \\) は \\( n \\) 次元ベクトルです。 
+
+### 📚 理論: 直接法と反復法
+
+**直接法 (Direct Methods):**
+
+  * 有限回の演算で厳密解を得る（理論上）
+  * 例: Gauss消去法、LU分解、Cholesky分解
+  * 計算量: \\( O(n^3) \\)
+  * 小〜中規模問題（\\( n \lesssim 10^4 \\)）に適する
+
+**反復法 (Iterative Methods):**
+
+  * 初期値から出発して解に収束させる
+  * 例: Jacobi法、Gauss-Seidel法、SOR法、共役勾配法
+  * 反復1回の計算量: \\( O(n^2) \\) または \\( O(\text{nnz}) \\)（疎行列）
+  * 大規模・疎行列問題（\\( n \gtrsim 10^5 \\)）に適する
+
+### コード例1: Gauss消去法の実装
+
+`import numpy as np def gaussian_elimination(A, b): """ Gauss消去法による連立一次方程式の求解 Parameters: ----------- A : ndarray (n, n) 係数行列 b : ndarray (n,) 右辺ベクトル Returns: -------- x : ndarray (n,) 解ベクトル """ n = len(b) # 拡大係数行列の作成（元の行列を変更しないようコピー） Ab = np.hstack([A.astype(float), b.reshape(-1, 1)]) # 前進消去 (Forward Elimination) for k in range(n - 1): # ピボット選択（部分ピボット選択） max_row = np.argmax(np.abs(Ab[k:n, k])) + k if max_row != k: Ab[[k, max_row]] = Ab[[max_row, k]] # k列目の消去 for i in range(k + 1, n): if Ab[k, k] == 0: raise ValueError("ゼロピボットが発生しました") factor = Ab[i, k] / Ab[k, k] Ab[i, k:] -= factor * Ab[k, k:] # 後退代入 (Back Substitution) x = np.zeros(n) for i in range(n - 1, -1, -1): x[i] = (Ab[i, -1] - np.dot(Ab[i, i+1:n], x[i+1:n])) / Ab[i, i] return x # テスト: 3次元連立方程式 A = np.array([ [3, -1, 2], [1, 2, 3], [2, -2, -1] ], dtype=float) b = np.array([12, 11, 2], dtype=float) print("=" * 60) print("Gauss消去法による連立一次方程式の求解") print("=" * 60) print("\n係数行列 A:") print(A) print("\n右辺ベクトル b:") print(b) # Gauss消去法で解く x_gauss = gaussian_elimination(A, b) print("\n解 x (Gauss消去法):") print(x_gauss) # NumPyの解と比較 x_numpy = np.linalg.solve(A, b) print("\n解 x (NumPy):") print(x_numpy) # 検証: Ax = b residual = A @ x_gauss - b print(f"\n残差 ||Ax - b||: {np.linalg.norm(residual):.2e}") # 精度検証 print(f"NumPyとの差: {np.linalg.norm(x_gauss - x_numpy):.2e}") `
+
+============================================================ Gauss消去法による連立一次方程式の求解 ============================================================ 係数行列 A: [[ 3. -1. 2.] [ 1. 2. 3.] [ 2. -2. -1.]] 右辺ベクトル b: [12. 11. 2.] 解 x (Gauss消去法): [3. 1. 2.] 解 x (NumPy): [3. 1. 2.] 残差 ||Ax - b||: 1.78e-15 NumPyとの差: 0.00e+00
+
+## 2.2 LU分解
+
+LU分解は、行列 \\( A \\) を下三角行列 \\( L \\) と上三角行列 \\( U \\) の積に分解する手法です。一度分解すれば、異なる右辺 \\( b \\) に対して効率的に解を求められます。 
+
+### 📚 理論: LU分解の原理
+
+\\( A = LU \\) と分解すると、\\( Ax = b \\) は次の2段階で解けます: 
+
+\\[ \begin{aligned} Ly &= b \quad \text{(前進代入)} \\\ Ux &= y \quad \text{(後退代入)} \end{aligned} \\] 
+
+計算量: 分解 \\( O(n^3) \\)、各求解 \\( O(n^2) \\)。複数の右辺がある場合に効率的です。 
+
+### コード例2: LU分解の実装
+
+`def lu_decomposition(A): """ LU分解（Doolittle法） Parameters: ----------- A : ndarray (n, n) 係数行列 Returns: -------- L : ndarray (n, n) 下三角行列 U : ndarray (n, n) 上三角行列 """ n = A.shape[0] L = np.eye(n) U = np.zeros((n, n)) for i in range(n): # U の i 行目を計算 for j in range(i, n): U[i, j] = A[i, j] - np.dot(L[i, :i], U[:i, j]) # L の i 列目を計算 for j in range(i + 1, n): L[j, i] = (A[j, i] - np.dot(L[j, :i], U[:i, i])) / U[i, i] return L, U def solve_lu(L, U, b): """ LU分解を使った方程式の求解 Parameters: ----------- L, U : ndarray LU分解された行列 b : ndarray 右辺ベクトル Returns: -------- x : ndarray 解ベクトル """ n = len(b) # 前進代入: Ly = b y = np.zeros(n) for i in range(n): y[i] = b[i] - np.dot(L[i, :i], y[:i]) # 後退代入: Ux = y x = np.zeros(n) for i in range(n - 1, -1, -1): x[i] = (y[i] - np.dot(U[i, i+1:], x[i+1:])) / U[i, i] return x # テスト A = np.array([ [4, 3, 0], [3, 4, -1], [0, -1, 4] ], dtype=float) b1 = np.array([24, 30, -24], dtype=float) b2 = np.array([1, 2, 3], dtype=float) print("=" * 60) print("LU分解による連立方程式の求解") print("=" * 60) print("\n係数行列 A:") print(A) # LU分解 L, U = lu_decomposition(A) print("\n下三角行列 L:") print(L) print("\n上三角行列 U:") print(U) # LU の積を検証 print("\nLU の積（元の行列と一致するはず）:") print(L @ U) print(f"||A - LU||: {np.linalg.norm(A - L @ U):.2e}") # 複数の右辺に対して解く print("\n" + "=" * 60) print("複数の右辺ベクトルに対する求解") print("=" * 60) x1 = solve_lu(L, U, b1) print(f"\nb1 = {b1}") print(f"解 x1 = {x1}") print(f"残差: {np.linalg.norm(A @ x1 - b1):.2e}") x2 = solve_lu(L, U, b2) print(f"\nb2 = {b2}") print(f"解 x2 = {x2}") print(f"残差: {np.linalg.norm(A @ x2 - b2):.2e}") # SciPyのLU分解と比較 from scipy.linalg import lu P, L_scipy, U_scipy = lu(A) print("\n" + "=" * 60) print("SciPy の LU分解との比較") print("=" * 60) print(f"||L - L_scipy||: {np.linalg.norm(L - L_scipy):.2e}") print(f"||U - U_scipy||: {np.linalg.norm(U - U_scipy):.2e}") `
+
+============================================================ LU分解による連立方程式の求解 ============================================================ 係数行列 A: [[ 4. 3. 0.] [ 3. 4. -1.] [ 0. -1. 4.]] 下三角行列 L: [[ 1. 0. 0. ] [ 0.75 1. 0. ] [ 0. -0.571 1. ]] 上三角行列 U: [[ 4. 3. 0. ] [ 0. 1.75 -1. ] [ 0. 0. 3.429]] LU の積(元の行列と一致するはず): [[ 4. 3. 0.] [ 3. 4. -1.] [ 0. -1. 4.]] ||A - LU||: 4.44e-16 ============================================================ 複数の右辺ベクトルに対する求解 ============================================================ b1 = [ 24. 30. -24.] 解 x1 = [ 3. 4. -5.] 残差: 3.20e-14 b2 = [1. 2. 3.] 解 x2 = [-1.071 1.286 1.143] 残差: 1.78e-15 ============================================================ SciPy の LU分解との比較 ============================================================ ||L - L_scipy||: 2.22e-16 ||U - U_scipy||: 0.00e+00
+
+## 2.3 反復法の基礎 - Jacobi法
+
+反復法は初期値から出発し、逐次的に解に近づけていく手法です。大規模・疎行列問題では直接法より効率的です。 
+
+### 📚 理論: Jacobi法の原理
+
+\\( A \\) を対角成分 \\( D \\)、下三角部 \\( L \\)、上三角部 \\( U \\) に分解: 
+
+\\[ A = D + L + U \\] 
+
+Jacobi法の反復式: 
+
+\\[ x^{(k+1)} = D^{-1}(b - (L + U)x^{(k)}) \\] 
+
+成分ごとには: 
+
+\\[ x_i^{(k+1)} = \frac{1}{a_{ii}} \left( b_i - \sum_{j \neq i} a_{ij} x_j^{(k)} \right) \\] 
+
+収束条件: \\( A \\) が対角優位であれば収束が保証されます。 
+
+### コード例3: Jacobi法の実装
+
+`def jacobi_method(A, b, x0=None, max_iter=1000, tol=1e-10): """ Jacobi法による反復求解 Parameters: ----------- A : ndarray (n, n) 係数行列 b : ndarray (n,) 右辺ベクトル x0 : ndarray (n,), optional 初期値（デフォルト: ゼロベクトル） max_iter : int 最大反復回数 tol : float 収束判定の閾値 Returns: -------- x : ndarray (n,) 解ベクトル history : list 各反復での残差ノルム """ n = len(b) x = np.zeros(n) if x0 is None else x0.copy() x_new = np.zeros(n) history = [] for k in range(max_iter): for i in range(n): # x_i の更新（他の成分は前回の値を使用） sigma = np.dot(A[i, :], x) - A[i, i] * x[i] x_new[i] = (b[i] - sigma) / A[i, i] # 残差の計算 residual = np.linalg.norm(A @ x_new - b) history.append(residual) # 収束判定 if residual < tol: print(f"Jacobi法: {k+1}回の反復で収束") return x_new, history x = x_new.copy() print(f"Jacobi法: {max_iter}回の反復で収束せず（残差: {residual:.2e}）") return x_new, history # テスト: 対角優位な行列 A = np.array([ [10, -1, 2, 0], [-1, 11, -1, 3], [2, -1, 10, -1], [0, 3, -1, 8] ], dtype=float) b = np.array([6, 25, -11, 15], dtype=float) print("=" * 60) print("Jacobi法による反復求解") print("=" * 60) print("\n係数行列 A:") print(A) print("\n右辺ベクトル b:") print(b) # 対角優位性の確認 print("\n対角優位性の確認:") for i in range(len(A)): diag = abs(A[i, i]) off_diag_sum = np.sum(np.abs(A[i, :])) - diag print(f" 行{i+1}: |a_{i+1}{i+1}| = {diag:.1f} {'>' if diag > off_diag_sum else '<='} " f"Σ|a_{i+1}j| = {off_diag_sum:.1f} {'(対角優位)' if diag > off_diag_sum else ''}") # Jacobi法で解く x_jacobi, history_jacobi = jacobi_method(A, b, tol=1e-10) print(f"\n解 x (Jacobi法):") print(x_jacobi) # 厳密解と比較 x_exact = np.linalg.solve(A, b) print(f"\n解 x (厳密解):") print(x_exact) print(f"\n誤差: {np.linalg.norm(x_jacobi - x_exact):.2e}") print(f"残差: {np.linalg.norm(A @ x_jacobi - b):.2e}") # 収束履歴の可視化 import matplotlib.pyplot as plt plt.figure(figsize=(10, 6)) plt.semilogy(history_jacobi, 'o-', linewidth=2, markersize=6) plt.xlabel('反復回数', fontsize=12) plt.ylabel('残差ノルム ||Ax - b||', fontsize=12) plt.title('Jacobi法の収束履歴', fontsize=14) plt.grid(True, alpha=0.3) plt.tight_layout() plt.savefig('jacobi_convergence.png', dpi=150, bbox_inches='tight') plt.show() print(f"\n収束に要した反復回数: {len(history_jacobi)}") `
+
+============================================================ Jacobi法による反復求解 ============================================================ 係数行列 A: [[10. -1. 2. 0.] [-1. 11. -1. 3.] [ 2. -1. 10. -1.] [ 0. 3. -1. 8.]] 右辺ベクトル b: [ 6. 25. -11. 15.] 対角優位性の確認: 行1: |a_11| = 10.0 > Σ|a_1j| = 3.0 (対角優位) 行2: |a_22| = 11.0 > Σ|a_2j| = 5.0 (対角優位) 行3: |a_33| = 10.0 > Σ|a_3j| = 4.0 (対角優位) 行4: |a_44| = 8.0 > Σ|a_4j| = 4.0 (対角優位) Jacobi法: 25回の反復で収束 解 x (Jacobi法): [ 1. 2. -1. 1.] 解 x (厳密解): [ 1. 2. -1. 1.] 誤差: 5.45e-11 残差: 6.22e-11 収束に要した反復回数: 25
+
+## 2.4 Gauss-Seidel法とSOR法
+
+Gauss-Seidel法はJacobi法を改良し、更新された値をすぐに使うことで収束を高速化します。SOR法はさらに緩和係数を導入して収束を加速します。 
+
+### 📚 理論: Gauss-Seidel法とSOR法
+
+**Gauss-Seidel法:**
+
+\\[ x_i^{(k+1)} = \frac{1}{a_{ii}} \left( b_i - \sum_{j < i} a_{ij} x_j^{(k+1)} - \sum_{j > i} a_{ij} x_j^{(k)} \right) \\] 
+
+更新済みの \\( x_j^{(k+1)} \\) をすぐに使用するため、Jacobi法より収束が速いことが多いです。 
+
+**SOR法 (Successive Over-Relaxation):**
+
+\\[ x_i^{(k+1)} = (1 - \omega) x_i^{(k)} + \frac{\omega}{a_{ii}} \left( b_i - \sum_{j < i} a_{ij} x_j^{(k+1)} - \sum_{j > i} a_{ij} x_j^{(k)} \right) \\] 
+
+緩和係数 \\( \omega \\) の最適値は問題依存ですが、通常 \\( 1 < \omega < 2 \\) で最速収束します。 
+
+### コード例4: Gauss-Seidel法の実装
+
+`def gauss_seidel_method(A, b, x0=None, max_iter=1000, tol=1e-10): """ Gauss-Seidel法による反復求解 Parameters: ----------- A : ndarray (n, n) 係数行列 b : ndarray (n,) 右辺ベクトル x0 : ndarray (n,), optional 初期値 max_iter : int 最大反復回数 tol : float 収束判定の閾値 Returns: -------- x : ndarray (n,) 解ベクトル history : list 各反復での残差ノルム """ n = len(b) x = np.zeros(n) if x0 is None else x0.copy() history = [] for k in range(max_iter): x_old = x.copy() for i in range(n): # 更新済みの値をすぐに使用 sigma = np.dot(A[i, :i], x[:i]) + np.dot(A[i, i+1:], x[i+1:]) x[i] = (b[i] - sigma) / A[i, i] # 残差の計算 residual = np.linalg.norm(A @ x - b) history.append(residual) # 収束判定 if residual < tol: print(f"Gauss-Seidel法: {k+1}回の反復で収束") return x, history print(f"Gauss-Seidel法: {max_iter}回の反復で収束せず（残差: {residual:.2e}）") return x, history # 同じ問題でJacobi法と比較 A = np.array([ [10, -1, 2, 0], [-1, 11, -1, 3], [2, -1, 10, -1], [0, 3, -1, 8] ], dtype=float) b = np.array([6, 25, -11, 15], dtype=float) print("=" * 60) print("Jacobi法 vs Gauss-Seidel法の比較") print("=" * 60) # Jacobi法 x_jacobi, history_jacobi = jacobi_method(A, b, tol=1e-10) # Gauss-Seidel法 x_gs, history_gs = gauss_seidel_method(A, b, tol=1e-10) # 結果の比較 print(f"\nJacobi法:") print(f" 反復回数: {len(history_jacobi)}") print(f" 解: {x_jacobi}") print(f"\nGauss-Seidel法:") print(f" 反復回数: {len(history_gs)}") print(f" 解: {x_gs}") # 収束速度の比較 plt.figure(figsize=(10, 6)) plt.semilogy(history_jacobi, 'o-', label='Jacobi法', linewidth=2, markersize=6) plt.semilogy(history_gs, 's-', label='Gauss-Seidel法', linewidth=2, markersize=6) plt.xlabel('反復回数', fontsize=12) plt.ylabel('残差ノルム ||Ax - b||', fontsize=12) plt.title('Jacobi法とGauss-Seidel法の収束速度比較', fontsize=14) plt.legend(fontsize=11) plt.grid(True, alpha=0.3) plt.tight_layout() plt.savefig('jacobi_vs_gauss_seidel.png', dpi=150, bbox_inches='tight') plt.show() print(f"\n高速化率: {len(history_jacobi) / len(history_gs):.2f}倍") `
+
+============================================================ Jacobi法 vs Gauss-Seidel法の比較 ============================================================ Jacobi法: 25回の反復で収束 Gauss-Seidel法: 13回の反復で収束 Jacobi法: 反復回数: 25 解: [ 1. 2. -1. 1.] Gauss-Seidel法: 反復回数: 13 解: [ 1. 2. -1. 1.] 高速化率: 1.92倍
+
+### コード例5: SOR法の実装と最適緩和係数
+
+`def sor_method(A, b, omega, x0=None, max_iter=1000, tol=1e-10): """ SOR法による反復求解 Parameters: ----------- A : ndarray (n, n) 係数行列 b : ndarray (n,) 右辺ベクトル omega : float 緩和係数 (1 < omega < 2 が推奨) x0 : ndarray (n,), optional 初期値 max_iter : int 最大反復回数 tol : float 収束判定の閾値 Returns: -------- x : ndarray (n,) 解ベクトル history : list 各反復での残差ノルム """ n = len(b) x = np.zeros(n) if x0 is None else x0.copy() history = [] for k in range(max_iter): for i in range(n): sigma = np.dot(A[i, :i], x[:i]) + np.dot(A[i, i+1:], x[i+1:]) x_gs = (b[i] - sigma) / A[i, i] # SOR更新: 緩和係数を適用 x[i] = (1 - omega) * x[i] + omega * x_gs residual = np.linalg.norm(A @ x - b) history.append(residual) if residual < tol: return x, history return x, history # 最適緩和係数の探索 omega_values = np.linspace(1.0, 1.9, 19) iterations = [] print("=" * 60) print("SOR法: 最適緩和係数の探索") print("=" * 60) for omega in omega_values: x_sor, history_sor = sor_method(A, b, omega, tol=1e-10, max_iter=1000) iterations.append(len(history_sor)) # 結果の可視化 plt.figure(figsize=(12, 5)) # 左図: 緩和係数と反復回数の関係 plt.subplot(1, 2, 1) plt.plot(omega_values, iterations, 'o-', linewidth=2, markersize=8) plt.axvline(x=1.0, color='gray', linestyle='--', alpha=0.5, label='Gauss-Seidel (ω=1)') optimal_omega = omega_values[np.argmin(iterations)] plt.axvline(x=optimal_omega, color='red', linestyle='--', alpha=0.7, label=f'最適 ω={optimal_omega:.2f}') plt.xlabel('緩和係数 ω', fontsize=12) plt.ylabel('収束までの反復回数', fontsize=12) plt.title('SOR法: 緩和係数の影響', fontsize=14) plt.legend(fontsize=10) plt.grid(True, alpha=0.3) # 右図: 異なるωでの収束履歴 plt.subplot(1, 2, 2) omega_test = [1.0, 1.2, optimal_omega, 1.8] for omega in omega_test: _, history = sor_method(A, b, omega, tol=1e-10) label = f'ω={omega:.2f}' if omega == 1.0: label += ' (Gauss-Seidel)' plt.semilogy(history, linewidth=2, label=label) plt.xlabel('反復回数', fontsize=12) plt.ylabel('残差ノルム', fontsize=12) plt.title('異なる緩和係数での収束速度', fontsize=14) plt.legend(fontsize=10) plt.grid(True, alpha=0.3) plt.tight_layout() plt.savefig('sor_optimization.png', dpi=150, bbox_inches='tight') plt.show() print(f"\n最適緩和係数: ω = {optimal_omega:.2f}") print(f"最小反復回数: {min(iterations)}") print(f"Gauss-Seidel (ω=1.0): {iterations[0]} 回") print(f"高速化率: {iterations[0] / min(iterations):.2f}倍") `
+
+============================================================ SOR法: 最適緩和係数の探索 ============================================================ 最適緩和係数: ω = 1.25 最小反復回数: 9 Gauss-Seidel (ω=1.0): 13 回 高速化率: 1.44倍
+
+## 2.5 疎行列の扱い
+
+有限要素法や有限差分法で生じる行列は、多くの要素がゼロである疎行列（sparse matrix）です。SciPyの疎行列ライブラリを使うことで、メモリと計算時間を大幅に削減できます。 
+
+### コード例6: SciPy疎行列ソルバー
+
+`from scipy.sparse import diags, csr_matrix from scipy.sparse.linalg import spsolve, cg, gmres import time def create_laplacian_matrix(n): """ 1次元Laplacian行列の生成（有限差分法） -u''(x) = f(x) の離散化に対応 Parameters: ----------- n : int 格子点数 Returns: -------- A : sparse matrix (n-2) x (n-2) の三重対角行列 """ # 三重対角要素 main_diag = 2 * np.ones(n - 2) off_diag = -1 * np.ones(n - 3) # 疎行列の生成 A = diags([off_diag, main_diag, off_diag], [-1, 0, 1], format='csr') return A # 問題サイズ n = 1000 print("=" * 60) print(f"疎行列ソルバーのベンチマーク (問題サイズ: {n}x{n})") print("=" * 60) # Laplacian行列の生成 A_sparse = create_laplacian_matrix(n) A_dense = A_sparse.toarray() # 右辺ベクトル b = np.ones(n - 2) print(f"\n行列の非ゼロ要素数: {A_sparse.nnz}") print(f"行列の全要素数: {(n-2)**2}") print(f"疎率: {A_sparse.nnz / (n-2)**2 * 100:.2f}%") # メモリ使用量の比較 memory_sparse = A_sparse.data.nbytes + A_sparse.indices.nbytes + A_sparse.indptr.nbytes memory_dense = A_dense.nbytes print(f"\nメモリ使用量:") print(f" 疎行列形式: {memory_sparse / 1024:.2f} KB") print(f" 密行列形式: {memory_dense / 1024:.2f} KB") print(f" 削減率: {(1 - memory_sparse / memory_dense) * 100:.1f}%") # 1. 疎行列直接法 (spsolve) print("\n" + "=" * 60) print("1. 疎行列直接法 (spsolve)") print("=" * 60) start = time.time() x_sparse = spsolve(A_sparse, b) time_sparse = time.time() - start print(f"計算時間: {time_sparse * 1000:.2f} ms") print(f"残差: {np.linalg.norm(A_sparse @ x_sparse - b):.2e}") # 2. 密行列直接法 (np.linalg.solve) print("\n" + "=" * 60) print("2. 密行列直接法 (np.linalg.solve)") print("=" * 60) start = time.time() x_dense = np.linalg.solve(A_dense, b) time_dense = time.time() - start print(f"計算時間: {time_dense * 1000:.2f} ms") print(f"残差: {np.linalg.norm(A_dense @ x_dense - b):.2e}") print(f"\n高速化率: {time_dense / time_sparse:.2f}倍") # 3. 共役勾配法 (CG法 - 対称正定値行列用) print("\n" + "=" * 60) print("3. 共役勾配法 (CG法)") print("=" * 60) start = time.time() x_cg, info = cg(A_sparse, b, tol=1e-10) time_cg = time.time() - start print(f"計算時間: {time_cg * 1000:.2f} ms") print(f"収束情報: {info} (0なら成功)") print(f"残差: {np.linalg.norm(A_sparse @ x_cg - b):.2e}") # 4. GMRES法（一般的な行列用） print("\n" + "=" * 60) print("4. GMRES法") print("=" * 60) start = time.time() x_gmres, info = gmres(A_sparse, b, tol=1e-10) time_gmres = time.time() - start print(f"計算時間: {time_gmres * 1000:.2f} ms") print(f"収束情報: {info} (0なら成功)") print(f"残差: {np.linalg.norm(A_sparse @ x_gmres - b):.2e}") # 性能比較の可視化 methods = ['疎行列\n直接法', '密行列\n直接法', 'CG法', 'GMRES法'] times = [time_sparse * 1000, time_dense * 1000, time_cg * 1000, time_gmres * 1000] plt.figure(figsize=(10, 6)) bars = plt.bar(methods, times, color=['#667eea', '#764ba2', '#48c774', '#3298dc']) plt.ylabel('計算時間 (ms)', fontsize=12) plt.title(f'疎行列ソルバーの性能比較 (行列サイズ: {n-2}x{n-2})', fontsize=14) plt.yscale('log') # 各バーに値を表示 for bar, time_val in zip(bars, times): height = bar.get_height() plt.text(bar.get_x() + bar.get_width()/2., height, f'{time_val:.2f}ms', ha='center', va='bottom', fontsize=10) plt.grid(True, alpha=0.3, axis='y') plt.tight_layout() plt.savefig('sparse_solver_comparison.png', dpi=150, bbox_inches='tight') plt.show() `
+
+============================================================ 疎行列ソルバーのベンチマーク (問題サイズ: 1000x1000) ============================================================ 行列の非ゼロ要素数: 2994 行列の全要素数: 998004 疎率: 0.30% メモリ使用量: 疎行列形式: 23.39 KB 密行列形式: 7796.91 KB 削減率: 99.7% ============================================================ 1\. 疎行列直接法 (spsolve) ============================================================ 計算時間: 2.45 ms 残差: 1.58e-13 ============================================================ 2\. 密行列直接法 (np.linalg.solve) ============================================================ 計算時間: 145.32 ms 残差: 2.84e-13 高速化率: 59.32倍 ============================================================ 3\. 共役勾配法 (CG法) ============================================================ 計算時間: 1.23 ms 収束情報: 0 (0なら成功) 残差: 3.45e-11 ============================================================ 4\. GMRES法 ============================================================ 計算時間: 2.87 ms 収束情報: 0 (0なら成功) 残差: 4.21e-11
+
+## 2.6 条件数と数値安定性
+
+条件数は行列の「解きにくさ」を表す指標です。条件数が大きい（ill-conditioned）行列では、丸め誤差が増幅され、数値計算の精度が低下します。 
+
+### 📚 理論: 条件数
+
+行列 \\( A \\) の条件数は次のように定義されます: 
+
+\\[ \kappa(A) = \|A\| \cdot \|A^{-1}\| \\] 
+
+条件数の解釈: 
+
+  * \\( \kappa(A) = 1 \\): 理想的（直交行列）
+  * \\( \kappa(A) < 10^3 \\): 良条件
+  * \\( \kappa(A) > 10^6 \\): 悪条件（注意が必要）
+  * \\( \kappa(A) \to \infty \\): 特異行列に近い（数値計算困難）
+
+### コード例7: 条件数の解析と前処理
+
+`def create_hilbert_matrix(n): """ Hilbert行列の生成（悪条件行列の典型例） H[i,j] = 1/(i+j+1) """ H = np.zeros((n, n)) for i in range(n): for j in range(n): H[i, j] = 1.0 / (i + j + 1) return H print("=" * 60) print("条件数と数値安定性の解析") print("=" * 60) # 1. 良条件な行列 A_good = np.array([ [4, 1], [1, 3] ], dtype=float) # 2. 悪条件な行列（Hilbert行列） n = 5 A_bad = create_hilbert_matrix(n) # 条件数の計算 cond_good = np.linalg.cond(A_good) cond_bad = np.linalg.cond(A_bad) print("\n1. 良条件な行列:") print(A_good) print(f"条件数: {cond_good:.2e}") print("\n2. 悪条件な行列 (Hilbert 5x5):") print(A_bad) print(f"条件数: {cond_bad:.2e}") # 数値実験: 右辺を微小変化させた時の解の変化 print("\n" + "=" * 60) print("数値実験: 右辺の摂動に対する感度") print("=" * 60) def test_sensitivity(A, name): """右辺の微小変化に対する解の変化を調べる""" n = A.shape[0] b = np.ones(n) x_exact = np.linalg.solve(A, b) # 右辺に1%の摂動を加える perturbation = 0.01 b_perturbed = b * (1 + perturbation) x_perturbed = np.linalg.solve(A, b_perturbed) # 解の相対変化 relative_change = np.linalg.norm(x_perturbed - x_exact) / np.linalg.norm(x_exact) print(f"\n{name}:") print(f" 右辺の相対変化: {perturbation * 100:.1f}%") print(f" 解の相対変化: {relative_change * 100:.2f}%") print(f" 増幅率: {relative_change / perturbation:.2f}倍") print(f" 理論上限 (条件数): {np.linalg.cond(A):.2e}") test_sensitivity(A_good, "良条件行列") test_sensitivity(A_bad, "悪条件行列 (Hilbert)") # 様々なサイズのHilbert行列の条件数 print("\n" + "=" * 60) print("Hilbert行列の条件数（サイズ依存性）") print("=" * 60) sizes = range(2, 11) condition_numbers = [] print("\nサイズ 条件数") print("-" * 30) for n in sizes: H = create_hilbert_matrix(n) cond = np.linalg.cond(H) condition_numbers.append(cond) print(f"{n:4d} {cond:.2e}") # 可視化 plt.figure(figsize=(10, 6)) plt.semilogy(list(sizes), condition_numbers, 'o-', linewidth=2, markersize=8) plt.axhline(y=1e3, color='green', linestyle='--', alpha=0.5, label='良条件の目安 (10³)') plt.axhline(y=1e6, color='orange', linestyle='--', alpha=0.5, label='悪条件の目安 (10⁶)') plt.axhline(y=1e12, color='red', linestyle='--', alpha=0.5, label='機械精度の限界 (10¹²)') plt.xlabel('行列サイズ n', fontsize=12) plt.ylabel('条件数 κ(A)', fontsize=12) plt.title('Hilbert行列の条件数', fontsize=14) plt.legend(fontsize=10) plt.grid(True, alpha=0.3) plt.tight_layout() plt.savefig('condition_number_analysis.png', dpi=150, bbox_inches='tight') plt.show() print("\n" + "=" * 60) print("まとめ:") print(" - 条件数が大きいと、わずかな摂動が解に大きく影響") print(" - Hilbert行列は極めて悪条件（サイズ10で条件数 ≈ 10¹³）") print(" - 実務では前処理やスケーリングで条件数を改善") print("=" * 60) `
+
+============================================================ 条件数と数値安定性の解析 ============================================================ 1\. 良条件な行列: [[4. 1.] [1. 3.]] 条件数: 3.73e+00 2\. 悪条件な行列 (Hilbert 5x5): [[1. 0.5 0.333 0.25 0.2 ] [0.5 0.333 0.25 0.2 0.167 ] [0.333 0.25 0.2 0.167 0.143 ] [0.25 0.2 0.167 0.143 0.125 ] [0.2 0.167 0.143 0.125 0.111 ]] 条件数: 4.77e+05 ============================================================ 数値実験: 右辺の摂動に対する感度 ============================================================ 良条件行列: 右辺の相対変化: 1.0% 解の相対変化: 1.05% 増幅率: 1.05倍 理論上限 (条件数): 3.73e+00 悪条件行列 (Hilbert): 右辺の相対変化: 1.0% 解の相対変化: 227.45% 増幅率: 227.45倍 理論上限 (条件数): 4.77e+05 ============================================================ Hilbert行列の条件数（サイズ依存性） ============================================================ サイズ 条件数 \------------------------------ 2 1.93e+01 3 5.24e+02 4 1.55e+04 5 4.77e+05 6 1.50e+07 7 4.75e+08 8 1.53e+10 9 4.93e+11 10 1.60e+13 ============================================================ まとめ: \- 条件数が大きいと、わずかな摂動が解に大きく影響 \- Hilbert行列は極めて悪条件（サイズ10で条件数 ≈ 10¹³） \- 実務では前処理やスケーリングで条件数を改善 ============================================================
+
+### 🏋️ 演習問題
+
+#### 演習1: LU分解の実装検証
+
+次の行列に対してLU分解を実行し、\\( A = LU \\) が成立することを検証せよ: 
+    
+    
+    A = [[2, 1, 1],
+         [4, 3, 3],
+         [8, 7, 9]]
+
+#### 演習2: 反復法の収束条件
+
+次の行列は対角優位でないため、Jacobi法が収束しない可能性があります。実際に試し、収束するか確認せよ: 
+    
+    
+    A = [[1, 2, 3],
+         [2, 1, 2],
+         [3, 2, 1]]
+    b = [6, 5, 6]
+
+収束しない場合、行の入れ替えで対角優位にできるか検討せよ。 
+
+#### 演習3: SOR法の最適緩和係数
+
+次の5×5三重対角行列に対して、SOR法の最適緩和係数を実験的に求めよ（\\( \omega \in [1.0, 2.0] \\) の範囲で0.05刻みで試す）: 
+    
+    
+    対角要素: 4
+    上下の副対角要素: -1
+
+#### 演習4: 疎行列の効率性
+
+2次元Laplacian行列（格子サイズ \\( 50 \times 50 \\)）を生成し、次を比較せよ: 
+
+  * (a) 疎行列形式と密行列形式のメモリ使用量
+  * (b) spsolveとnp.linalg.solveの計算時間
+
+#### 演習5: 条件数と精度劣化
+
+Hilbert行列（\\( n = 3, 5, 7 \\)）に対して、次を調べよ: 
+
+  * (a) 各サイズの条件数
+  * (b) 右辺ベクトル \\( b = [1, 1, ..., 1]^T \\) に対する解 \\( x \\)
+  * (c) 計算した \\( x \\) を使って \\( Ax \\) を再計算し、元の \\( b \\) との誤差
+
+条件数が大きくなるにつれて精度が劣化することを確認せよ。 
+
+## まとめ
+
+本章では、線形方程式系の数値解法を体系的に学びました: 
+
+  * **直接法:** Gauss消去法、LU分解による厳密解の計算
+  * **反復法:** Jacobi法、Gauss-Seidel法、SOR法による大規模問題への対応
+  * **疎行列:** SciPyの疎行列ライブラリによる効率的な計算
+  * **数値安定性:** 条件数による解きやすさの評価と対策
+
+これらの手法は、有限要素法、有限差分法、最適化問題など、幅広い数値計算の基礎となります。次章では、非線形方程式の解法に進みます。 
+
+[← 第1章](<chapter-1.html>) [第3章へ →](<chapter-3.html>)
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。

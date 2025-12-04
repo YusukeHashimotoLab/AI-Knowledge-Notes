@@ -1,0 +1,1185 @@
+---
+title: "Chapter 4: Process Flowsheet Simulation"
+chapter_title: "Chapter 4: Process Flowsheet Simulation"
+subtitle: Multi-Unit Integration, Recycle Stream Convergence, Optimization
+---
+
+This chapter covers Process Flowsheet Simulation. You will learn Representing flowsheet topology using graph theory, Implementing sequential calculation methods, and Executing sensitivity analysis.
+
+## Learning Objectives
+
+By reading this chapter, you will master:
+
+  * ✅ Representing flowsheet topology using graph theory
+  * ✅ Implementing sequential calculation methods and recycle stream convergence
+  * ✅ Building complete process simulations integrating multiple units
+  * ✅ Executing sensitivity analysis and parameter optimization
+  * ✅ Understanding fundamentals of heat integration
+
+* * *
+
+## 4.1 Flowsheet Topology Representation
+
+### Flowsheet Representation Using Graph Theory
+
+Chemical process flowsheets can be represented as directed graphs. Each unit corresponds to a node, and material/energy streams correspond to edges.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - networkx>=3.1.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example 1: Flowsheet Topology Representation
+    Flowsheet topology representation (directed graph)
+    """
+    import numpy as np
+    import networkx as nx
+    import matplotlib.pyplot as plt
+    from typing import Dict, List, Tuple
+    
+    class FlowsheetTopology:
+        """Class to manage flowsheet topology"""
+    
+        def __init__(self):
+            self.graph = nx.DiGraph()
+            self.streams = {}  # Stream information
+    
+        def add_unit(self, unit_name: str, unit_type: str):
+            """Add a unit"""
+            self.graph.add_node(unit_name, type=unit_type)
+    
+        def add_stream(self, from_unit: str, to_unit: str,
+                       stream_name: str, stream_data: Dict = None):
+            """Add a stream"""
+            self.graph.add_edge(from_unit, to_unit, name=stream_name)
+            if stream_data:
+                self.streams[stream_name] = stream_data
+    
+        def get_calculation_order(self) -> List[str]:
+            """Determine calculation order using topological sort"""
+            try:
+                # Simple topological sort if no recycles
+                return list(nx.topological_sort(self.graph))
+            except nx.NetworkXError:
+                # Handle cycles (recycles)
+                return self._handle_recycle()
+    
+        def _handle_recycle(self) -> List[str]:
+            """Determine calculation order with recycle streams"""
+            # Cut the edge with smallest impact for topological sort
+            cycles = list(nx.simple_cycles(self.graph))
+            print(f"Recycle loops detected: {cycles}")
+    
+            # Identify recycle streams (simplified: only first cycle)
+            if cycles:
+                recycle_edge = (cycles[0][-1], cycles[0][0])
+                temp_graph = self.graph.copy()
+                temp_graph.remove_edge(*recycle_edge)
+                order = list(nx.topological_sort(temp_graph))
+                print(f"Calculation order (with recycle): {order}")
+                return order
+            return []
+    
+        def visualize(self):
+            """Visualize the flowsheet"""
+            plt.figure(figsize=(10, 6))
+            pos = nx.spring_layout(self.graph, seed=42)
+    
+            # Color nodes by unit type
+            node_colors = []
+            for node in self.graph.nodes():
+                unit_type = self.graph.nodes[node].get('type', 'unknown')
+                colors = {'reactor': '#ff6b6b', 'separator': '#4ecdc4',
+                         'heater': '#ffe66d', 'cooler': '#95e1d3'}
+                node_colors.append(colors.get(unit_type, '#gray'))
+    
+            nx.draw(self.graph, pos, with_labels=True,
+                   node_color=node_colors, node_size=2000,
+                   font_size=10, font_weight='bold',
+                   arrows=True, arrowsize=20, edge_color='#666')
+    
+            # Edge labels (stream names)
+            edge_labels = nx.get_edge_attributes(self.graph, 'name')
+            nx.draw_networkx_edge_labels(self.graph, pos, edge_labels)
+    
+            plt.title("Process Flowsheet Topology")
+            plt.axis('off')
+            plt.tight_layout()
+            plt.show()
+    
+    # Usage example
+    flowsheet = FlowsheetTopology()
+    
+    # Add units
+    flowsheet.add_unit("FEED", "feed")
+    flowsheet.add_unit("R-101", "reactor")
+    flowsheet.add_unit("T-101", "separator")
+    flowsheet.add_unit("PRODUCT", "product")
+    
+    # Add streams
+    flowsheet.add_stream("FEED", "R-101", "S-01")
+    flowsheet.add_stream("R-101", "T-101", "S-02")
+    flowsheet.add_stream("T-101", "PRODUCT", "S-03")
+    flowsheet.add_stream("T-101", "R-101", "S-04")  # Recycle
+    
+    # Get calculation order
+    calc_order = flowsheet.get_calculation_order()
+    print(f"Calculation order: {calc_order}")
+    
+    # Visualize
+    flowsheet.visualize()
+    
+
+### Determining Calculation Order
+
+Topological sort automatically determines the calculation order from upstream to downstream. Iterative calculations are required when recycle streams are present.
+
+* * *
+
+## 4.2 Recycle Stream Convergence Calculation
+
+### Successive Substitution Method
+
+For flowsheets with recycle streams, iterative calculations are performed starting from assumed values until convergence.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example 2: Recycle Stream Convergence
+    Recycle stream convergence calculation (successive substitution method)
+    """
+    import numpy as np
+    from scipy.optimize import fsolve
+    
+    class RecycleConvergence:
+        """Recycle stream convergence calculation"""
+    
+        def __init__(self, max_iter=100, tol=1e-6):
+            self.max_iter = max_iter
+            self.tol = tol
+            self.history = []
+    
+        def successive_substitution(self, flowsheet_func,
+                                    initial_guess, damping=0.5):
+            """
+            Convergence calculation using successive substitution
+    
+            Args:
+                flowsheet_func: Flowsheet calculation function (input→output)
+                initial_guess: Initial guess for recycle stream
+                damping: Damping factor (0-1, improves convergence stability)
+    
+            Returns:
+                converged_value: Converged value
+                iterations: Number of iterations
+            """
+            x_old = np.array(initial_guess)
+    
+            for iteration in range(self.max_iter):
+                # Flowsheet calculation
+                x_new = flowsheet_func(x_old)
+    
+                # Damping (improves convergence)
+                x_damped = damping * x_new + (1 - damping) * x_old
+    
+                # Convergence check
+                error = np.linalg.norm(x_damped - x_old)
+                self.history.append({'iter': iteration, 'error': error,
+                                   'value': x_damped.copy()})
+    
+                print(f"Iter {iteration}: error = {error:.2e}")
+    
+                if error < self.tol:
+                    print(f"Converged in {iteration} iterations")
+                    return x_damped, iteration
+    
+                x_old = x_damped
+    
+            print("WARNING: Did not converge")
+            return x_old, self.max_iter
+    
+        def wegstein_acceleration(self, flowsheet_func, initial_guess):
+            """
+            Wegstein acceleration method (improved convergence)
+    
+            Often converges faster than successive substitution
+            """
+            x0 = np.array(initial_guess)
+            x1 = flowsheet_func(x0)
+    
+            for iteration in range(self.max_iter):
+                x2 = flowsheet_func(x1)
+    
+                # Wegstein acceleration parameter
+                q = (x2 - x1) / (x1 - x0 + 1e-10)
+                q_safe = np.clip(q, -5, 0)  # Stabilization
+    
+                # Acceleration
+                x_new = (q_safe * x1 - x0) / (q_safe - 1)
+    
+                # Convergence check
+                error = np.linalg.norm(x_new - x1)
+                self.history.append({'iter': iteration, 'error': error})
+    
+                if error < self.tol:
+                    print(f"Wegstein converged in {iteration} iterations")
+                    return x_new, iteration
+    
+                x0, x1 = x1, x_new
+    
+            return x1, self.max_iter
+    
+    # Usage example: Simple recycle loop
+    def simple_recycle_flowsheet(recycle_flow):
+        """
+        Simple recycle flowsheet
+        recycle_flow: Recycle flowrate [kmol/h]
+        returns: New recycle flowrate
+        """
+        feed_flow = 100.0  # kmol/h
+        conversion = 0.8
+    
+        total_feed = feed_flow + recycle_flow
+        product = total_feed * conversion
+        recycle_new = total_feed * (1 - conversion)
+    
+        return np.array([recycle_new])
+    
+    # Convergence calculation
+    solver = RecycleConvergence(tol=1e-6)
+    initial = np.array([10.0])  # Initial guess
+    
+    # Successive substitution
+    recycle_conv, iters = solver.successive_substitution(
+        simple_recycle_flowsheet, initial, damping=0.7
+    )
+    print(f"Converged recycle flow: {recycle_conv[0]:.2f} kmol/h")
+    
+
+* * *
+
+## 4.3 Complete Flowsheet Simulation
+
+### Integration of Distillation Column + Reactor + Separator
+
+In practical flowsheets, multiple units interact with each other. Here we build a process that reacts purified feedstock from a distillation column in a reactor and separates the products.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example 3: Complete Flowsheet Simulation
+    Complete flowsheet simulation (distillation + reaction + separation + recycle)
+    """
+    import numpy as np
+    from dataclasses import dataclass
+    from typing import Dict
+    
+    @dataclass
+    class Stream:
+        """Stream data structure"""
+        flow: float  # kmol/h
+        composition: Dict[str, float]  # mol fraction
+        temperature: float  # K
+        pressure: float  # bar
+    
+        def __repr__(self):
+            return f"Stream(F={self.flow:.1f}, T={self.temperature:.1f}K)"
+    
+    class CompleteFlowsheet:
+        """Complete process flowsheet"""
+    
+        def __init__(self):
+            self.streams = {}
+            self.convergence_history = []
+    
+        def reactor(self, feed: Stream, conversion=0.75) -> Stream:
+            """Reactor: A → B"""
+            product = Stream(
+                flow=feed.flow,
+                composition={
+                    'A': feed.composition['A'] * (1 - conversion),
+                    'B': feed.composition['A'] * conversion + feed.composition.get('B', 0)
+                },
+                temperature=feed.temperature + 50,  # Exothermic reaction
+                pressure=feed.pressure
+            )
+            return product
+    
+        def distillation(self, feed: Stream, recovery_A=0.95) -> Tuple[Stream, Stream]:
+            """Distillation column: Separate A and B"""
+            # Distillate (A rich)
+            distillate_flow = feed.flow * feed.composition['A'] * recovery_A
+            distillate = Stream(
+                flow=distillate_flow,
+                composition={'A': 0.98, 'B': 0.02},
+                temperature=350,
+                pressure=1.5
+            )
+    
+            # Bottoms (B rich)
+            bottoms_flow = feed.flow - distillate_flow
+            bottoms = Stream(
+                flow=bottoms_flow,
+                composition={'A': 0.05, 'B': 0.95},
+                temperature=400,
+                pressure=1.5
+            )
+    
+            return distillate, bottoms
+    
+        def mixer(self, streams: List[Stream]) -> Stream:
+            """Mixer: Mix multiple streams"""
+            total_flow = sum(s.flow for s in streams)
+    
+            # Material balance
+            comp_A = sum(s.flow * s.composition['A'] for s in streams) / total_flow
+            comp_B = sum(s.flow * s.composition['B'] for s in streams) / total_flow
+    
+            mixed = Stream(
+                flow=total_flow,
+                composition={'A': comp_A, 'B': comp_B},
+                temperature=sum(s.flow * s.temperature for s in streams) / total_flow,
+                pressure=min(s.pressure for s in streams)
+            )
+            return mixed
+    
+        def simulate(self, feed: Stream, recycle_ratio=0.5,
+                    max_iter=50, tol=1e-4):
+            """
+            Complete flowsheet simulation
+    
+            Flow: Feed → Mixer → Reactor → Distillation
+                         ↑              ↓
+                         ← Recycle ←─── Distillate
+            """
+            # Initial recycle estimate
+            recycle = Stream(
+                flow=feed.flow * recycle_ratio,
+                composition={'A': 0.98, 'B': 0.02},
+                temperature=350,
+                pressure=1.5
+            )
+    
+            for iteration in range(max_iter):
+                # 1. Mixer
+                mixed = self.mixer([feed, recycle])
+    
+                # 2. Reactor
+                reactor_out = self.reactor(mixed, conversion=0.75)
+    
+                # 3. Distillation column
+                distillate, bottoms = self.distillation(reactor_out, recovery_A=0.95)
+    
+                # 4. Update recycle
+                recycle_new = distillate
+    
+                # Convergence check
+                error = abs(recycle_new.flow - recycle.flow)
+                self.convergence_history.append(error)
+    
+                print(f"Iter {iteration}: Recycle flow error = {error:.2e} kmol/h")
+    
+                if error < tol:
+                    print(f"✓ Converged in {iteration} iterations")
+    
+                    # Save results
+                    self.streams = {
+                        'feed': feed,
+                        'mixed': mixed,
+                        'reactor_out': reactor_out,
+                        'distillate': distillate,
+                        'bottoms': bottoms,
+                        'recycle': recycle_new
+                    }
+    
+                    return self.streams
+    
+                recycle = recycle_new
+    
+            print("⚠ Did not converge")
+            return self.streams
+    
+        def print_results(self):
+            """Display results"""
+            print("\n=== Flowsheet Simulation Results ===")
+            for name, stream in self.streams.items():
+                print(f"{name:15s}: {stream}")
+                print(f"  Composition: A={stream.composition['A']:.3f}, "
+                      f"B={stream.composition['B']:.3f}")
+    
+    # Usage example
+    flowsheet = CompleteFlowsheet()
+    
+    # Feed conditions
+    feed = Stream(
+        flow=100.0,
+        composition={'A': 1.0, 'B': 0.0},
+        temperature=300,
+        pressure=2.0
+    )
+    
+    # Execute simulation
+    results = flowsheet.simulate(feed, recycle_ratio=0.3)
+    flowsheet.print_results()
+    
+    # Plot convergence history
+    import matplotlib.pyplot as plt
+    plt.figure(figsize=(8, 5))
+    plt.semilogy(flowsheet.convergence_history, 'o-')
+    plt.xlabel('Iteration')
+    plt.ylabel('Recycle Flow Error [kmol/h]')
+    plt.title('Convergence History')
+    plt.grid(True, alpha=0.3)
+    plt.show()
+    
+
+* * *
+
+## 4.4 Sensitivity Analysis
+
+### Impact Assessment of Parameter Changes
+
+Quantify the impact of operating condition changes on product yield and energy consumption.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example 4: Sensitivity Analysis
+    Sensitivity analysis (parameter change impact assessment)
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    class SensitivityAnalyzer:
+        """Sensitivity analysis tool"""
+    
+        def __init__(self, flowsheet):
+            self.flowsheet = flowsheet
+    
+        def analyze_parameter(self, param_name, param_range,
+                             output_metrics):
+            """
+            Single parameter sensitivity analysis
+    
+            Args:
+                param_name: Parameter name
+                param_range: Parameter range (array)
+                output_metrics: List of output metrics
+            """
+            results = {metric: [] for metric in output_metrics}
+    
+            for param_value in param_range:
+                # Set parameter and run simulation
+                # (Implementation omitted: modify parameter in flowsheet)
+    
+                # Example: Reactor conversion impact
+                conversion = param_value
+                # Execute flowsheet.simulate here
+    
+                # Calculate output metrics
+                yield_B = 0.75 * conversion  # Simplified
+                energy = 1000 + 500 * conversion  # kW
+    
+                results['yield'].append(yield_B)
+                results['energy'].append(energy)
+    
+            return results
+    
+        def plot_sensitivity(self, param_name, param_range, results):
+            """Plot sensitivity analysis results"""
+            fig, axes = plt.subplots(1, len(results), figsize=(12, 4))
+    
+            if len(results) == 1:
+                axes = [axes]
+    
+            for ax, (metric, values) in zip(axes, results.items()):
+                ax.plot(param_range, values, 'o-', linewidth=2)
+                ax.set_xlabel(param_name)
+                ax.set_ylabel(metric)
+                ax.grid(True, alpha=0.3)
+                ax.set_title(f'{metric} vs {param_name}')
+    
+            plt.tight_layout()
+            plt.show()
+    
+        def tornado_plot(self, params_impact):
+            """
+            Tornado diagram (comparison of multiple parameter impacts)
+    
+            Args:
+                params_impact: {param_name: (min_value, max_value), ...}
+            """
+            params = list(params_impact.keys())
+            impacts = [abs(max_val - min_val)
+                      for min_val, max_val in params_impact.values()]
+    
+            # Sort by impact
+            sorted_idx = np.argsort(impacts)
+            params_sorted = [params[i] for i in sorted_idx]
+            impacts_sorted = [impacts[i] for i in sorted_idx]
+    
+            plt.figure(figsize=(8, 6))
+            plt.barh(params_sorted, impacts_sorted, color='steelblue')
+            plt.xlabel('Impact on Product Yield')
+            plt.title('Tornado Diagram - Parameter Sensitivity')
+            plt.grid(True, alpha=0.3, axis='x')
+            plt.tight_layout()
+            plt.show()
+    
+    # Usage example
+    analyzer = SensitivityAnalyzer(flowsheet)
+    
+    # Reactor conversion sensitivity analysis
+    conversion_range = np.linspace(0.5, 0.95, 10)
+    results = {
+        'yield': 100 * conversion_range * 0.75,
+        'energy': 1000 + 500 * conversion_range
+    }
+    
+    # Plot
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+    
+    ax1.plot(conversion_range, results['yield'], 'o-', linewidth=2)
+    ax1.set_xlabel('Reactor Conversion')
+    ax1.set_ylabel('Product Yield [kmol/h]')
+    ax1.grid(True, alpha=0.3)
+    
+    ax2.plot(conversion_range, results['energy'], 'o-',
+            linewidth=2, color='orangered')
+    ax2.set_xlabel('Reactor Conversion')
+    ax2.set_ylabel('Energy Consumption [kW]')
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+
+* * *
+
+## 4.5 Optimization
+
+### Balancing Economics and Environmental Impact
+
+Optimize objective functions such as profit maximization, cost minimization, and environmental impact reduction.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example 5: Flowsheet Optimization
+    Flowsheet optimization (profit maximization)
+    """
+    from scipy.optimize import minimize, differential_evolution
+    import numpy as np
+    
+    class FlowsheetOptimizer:
+        """Flowsheet optimization"""
+    
+        def __init__(self, flowsheet):
+            self.flowsheet = flowsheet
+    
+        def objective_profit(self, x):
+            """
+            Objective function: Profit maximization = Revenue - Cost
+    
+            Args:
+                x: Decision variables [conversion, recycle_ratio]
+    
+            Returns:
+                -profit (converted to minimization problem)
+            """
+            conversion, recycle_ratio = x
+    
+            # Flowsheet simulation (simplified)
+            feed_flow = 100.0
+            product_flow = feed_flow * conversion * 0.9
+    
+            # Revenue
+            product_price = 1000  # $/kmol
+            revenue = product_flow * product_price
+    
+            # Cost
+            raw_material_cost = feed_flow * 500  # $/kmol
+            energy_cost = (1000 + 500 * conversion) * 0.1  # $/kW
+            recycle_cost = recycle_ratio * 1000
+    
+            total_cost = raw_material_cost + energy_cost + recycle_cost
+    
+            profit = revenue - total_cost
+    
+            return -profit  # Maximization → Minimization
+    
+        def constraints(self, x):
+            """Constraints"""
+            conversion, recycle_ratio = x
+    
+            # Constraints: conversion 0.5-0.95, recycle ratio 0-0.8
+            constraints = [
+                conversion - 0.5,      # conversion >= 0.5
+                0.95 - conversion,     # conversion <= 0.95
+                recycle_ratio,         # recycle_ratio >= 0
+                0.8 - recycle_ratio    # recycle_ratio <= 0.8
+            ]
+    
+            return constraints
+    
+        def optimize_local(self, x0):
+            """Local optimization (gradient method)"""
+            bounds = [(0.5, 0.95), (0, 0.8)]
+    
+            result = minimize(
+                self.objective_profit,
+                x0,
+                method='SLSQP',
+                bounds=bounds,
+                options={'disp': True}
+            )
+    
+            return result
+    
+        def optimize_global(self):
+            """Global optimization (Differential Evolution)"""
+            bounds = [(0.5, 0.95), (0, 0.8)]
+    
+            result = differential_evolution(
+                self.objective_profit,
+                bounds,
+                maxiter=100,
+                popsize=15,
+                disp=True
+            )
+    
+            return result
+    
+    # Usage example
+    optimizer = FlowsheetOptimizer(flowsheet)
+    
+    # Initial guess
+    x0 = np.array([0.75, 0.3])
+    
+    # Local optimization
+    print("=== Local Optimization ===")
+    result_local = optimizer.optimize_local(x0)
+    print(f"Optimal conversion: {result_local.x[0]:.4f}")
+    print(f"Optimal recycle ratio: {result_local.x[1]:.4f}")
+    print(f"Maximum profit: ${-result_local.fun:.2f}/h")
+    
+    # Global optimization
+    print("\n=== Global Optimization ===")
+    result_global = optimizer.optimize_global()
+    print(f"Optimal conversion: {result_global.x[0]:.4f}")
+    print(f"Optimal recycle ratio: {result_global.x[1]:.4f}")
+    print(f"Maximum profit: ${-result_global.fun:.2f}/h")
+    
+
+* * *
+
+## 4.6 Heat Integration Fundamentals
+
+### Introduction to Pinch Analysis
+
+Optimize heat exchange within the process to reduce energy consumption.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example 6: Heat Integration Basics
+    Heat integration fundamentals (pinch analysis)
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from dataclasses import dataclass
+    from typing import List
+    
+    @dataclass
+    class HeatStream:
+        """Heat stream"""
+        name: str
+        type: str  # 'hot' or 'cold'
+        T_supply: float  # K
+        T_target: float  # K
+        heat_capacity_flow: float  # kW/K
+    
+        @property
+        def heat_load(self):
+            """Heat load [kW]"""
+            return abs(self.heat_capacity_flow * (self.T_target - self.T_supply))
+    
+    class PinchAnalyzer:
+        """Pinch analysis tool"""
+    
+        def __init__(self, min_approach_temp=10):
+            """
+            Args:
+                min_approach_temp: Minimum approach temperature [K]
+            """
+            self.dT_min = min_approach_temp
+            self.hot_streams = []
+            self.cold_streams = []
+    
+        def add_stream(self, stream: HeatStream):
+            """Add stream"""
+            if stream.type == 'hot':
+                self.hot_streams.append(stream)
+            else:
+                self.cold_streams.append(stream)
+    
+        def calculate_composite_curves(self):
+            """Calculate composite curves"""
+            # Create temperature intervals
+            temps = []
+            for stream in self.hot_streams + self.cold_streams:
+                temps.extend([stream.T_supply, stream.T_target])
+            temps = sorted(set(temps))
+    
+            # Hot composite curve
+            hot_curve = []
+            Q_hot = 0
+            for T in sorted(temps, reverse=True):
+                for stream in self.hot_streams:
+                    if stream.T_target <= T <= stream.T_supply:
+                        dT = T - max(T - 1, stream.T_target)
+                        Q_hot += stream.heat_capacity_flow * abs(dT)
+                hot_curve.append((T, Q_hot))
+    
+            # Cold composite curve (shifted by dT_min)
+            cold_curve = []
+            Q_cold = 0
+            for T in sorted(temps):
+                for stream in self.cold_streams:
+                    if stream.T_supply <= T <= stream.T_target:
+                        dT = min(T + 1, stream.T_target) - T
+                        Q_cold += stream.heat_capacity_flow * abs(dT)
+                cold_curve.append((T + self.dT_min, Q_cold))
+    
+            return hot_curve, cold_curve
+    
+        def find_pinch_point(self, hot_curve, cold_curve):
+            """Identify pinch point"""
+            # Search for minimum distance (simplified)
+            min_distance = float('inf')
+            pinch_temp = None
+    
+            for T_hot, Q_hot in hot_curve:
+                for T_cold, Q_cold in cold_curve:
+                    if abs(T_hot - T_cold) < min_distance:
+                        min_distance = abs(T_hot - T_cold)
+                        pinch_temp = T_hot
+    
+            return pinch_temp, min_distance
+    
+        def calculate_utilities(self):
+            """Calculate required utilities (heating/cooling)"""
+            total_hot_load = sum(s.heat_load for s in self.hot_streams)
+            total_cold_load = sum(s.heat_load for s in self.cold_streams)
+    
+            if total_hot_load > total_cold_load:
+                heating_utility = 0
+                cooling_utility = total_hot_load - total_cold_load
+            else:
+                heating_utility = total_cold_load - total_hot_load
+                cooling_utility = 0
+    
+            return heating_utility, cooling_utility
+    
+        def plot_composite_curves(self):
+            """Plot composite curves"""
+            hot_curve, cold_curve = self.calculate_composite_curves()
+    
+            plt.figure(figsize=(10, 6))
+    
+            # Hot composite curve
+            T_hot, Q_hot = zip(*hot_curve)
+            plt.plot(Q_hot, T_hot, 'r-', linewidth=2, label='Hot Composite')
+    
+            # Cold composite curve
+            T_cold, Q_cold = zip(*cold_curve)
+            plt.plot(Q_cold, T_cold, 'b-', linewidth=2, label='Cold Composite')
+    
+            plt.xlabel('Heat Load [kW]')
+            plt.ylabel('Temperature [K]')
+            plt.title('Composite Curves (Pinch Analysis)')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+            plt.tight_layout()
+            plt.show()
+    
+    # Usage example
+    analyzer = PinchAnalyzer(min_approach_temp=10)
+    
+    # Add heat streams
+    analyzer.add_stream(HeatStream('H1', 'hot', 450, 350, 20))
+    analyzer.add_stream(HeatStream('H2', 'hot', 400, 320, 15))
+    analyzer.add_stream(HeatStream('C1', 'cold', 300, 420, 18))
+    analyzer.add_stream(HeatStream('C2', 'cold', 330, 390, 12))
+    
+    # Calculate utilities
+    heating, cooling = analyzer.calculate_utilities()
+    print(f"Heating utility required: {heating:.1f} kW")
+    print(f"Cooling utility required: {cooling:.1f} kW")
+    
+    # Plot composite curves
+    analyzer.plot_composite_curves()
+    
+
+* * *
+
+## 4.7 Case Study: Complete Chemical Plant Simulation
+
+### Integrated Process Design
+
+In actual chemical plant design, reaction, separation, heat exchange, and recycle are all integrated.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example 7: Complete Chemical Plant Simulation
+    Complete chemical plant simulation (integrated case study)
+    """
+    import numpy as np
+    from dataclasses import dataclass, field
+    from typing import Dict, List
+    
+    @dataclass
+    class PlantPerformance:
+        """Plant performance metrics"""
+        production_rate: float  # kmol/h
+        yield_overall: float  # %
+        energy_consumption: float  # kW
+        raw_material_usage: float  # kmol/h
+        profit_per_hour: float  # $/h
+    
+        def display(self):
+            print("\n=== Plant Performance ===")
+            print(f"Production rate:    {self.production_rate:.2f} kmol/h")
+            print(f"Overall yield:      {self.yield_overall:.2f} %")
+            print(f"Energy consumption: {self.energy_consumption:.1f} kW")
+            print(f"Raw material usage: {self.raw_material_usage:.2f} kmol/h")
+            print(f"Profit:            ${self.profit_per_hour:.2f}/h")
+    
+    class ChemicalPlant:
+        """Complete chemical plant simulator"""
+    
+        def __init__(self, config: Dict):
+            self.config = config
+            self.streams = {}
+            self.unit_operations = {}
+    
+        def simulate_full_plant(self, feed_rate=100.0,
+                               optimization_mode=False):
+            """
+            Complete plant simulation
+    
+            Process Flow:
+            Feed → Preheater → Reactor → Flash → Distillation → Product
+                      ↑           ↓                    ↓
+                  Heat Recovery   ←──── Recycle ───────┘
+            """
+            # 1. Feed preheater
+            feed_temp_in = 300  # K
+            feed_temp_out = 400  # K
+            preheat_duty = feed_rate * 2.5 * (feed_temp_out - feed_temp_in)
+    
+            # 2. Reactor
+            conversion = self.config.get('conversion', 0.80)
+            reaction_temp = 450  # K
+            reaction_heat = feed_rate * conversion * 50  # kJ/kmol
+    
+            product_from_reactor = feed_rate * conversion
+            unreacted = feed_rate * (1 - conversion)
+    
+            # 3. Flash separator
+            vapor_frac = 0.3
+            flash_vapor = (product_from_reactor + unreacted) * vapor_frac
+            flash_liquid = (product_from_reactor + unreacted) * (1 - vapor_frac)
+    
+            # 4. Distillation column
+            distillate_purity = 0.98
+            distillate_recovery = 0.95
+    
+            distillate = flash_liquid * distillate_recovery * distillate_purity
+            bottoms = flash_liquid - distillate
+    
+            # 5. Recycle
+            recycle_ratio = self.config.get('recycle_ratio', 0.5)
+            recycle_flow = distillate * recycle_ratio
+    
+            # 6. Energy integration
+            heat_recovery = 0.7 * reaction_heat  # 70% recovery
+            heating_utility = preheat_duty - heat_recovery
+            cooling_utility = reaction_heat - heat_recovery
+    
+            total_energy = heating_utility + cooling_utility
+    
+            # Calculate performance metrics
+            performance = PlantPerformance(
+                production_rate=distillate * (1 - recycle_ratio),
+                yield_overall=100 * distillate * (1 - recycle_ratio) / feed_rate,
+                energy_consumption=total_energy,
+                raw_material_usage=feed_rate,
+                profit_per_hour=self._calculate_profit(
+                    distillate * (1 - recycle_ratio),
+                    feed_rate,
+                    total_energy
+                )
+            )
+    
+            return performance
+    
+        def _calculate_profit(self, product, feed, energy):
+            """Profit calculation"""
+            revenue = product * 1000  # $/kmol
+            feed_cost = feed * 500
+            energy_cost = energy * 0.1  # $/kW
+            return revenue - feed_cost - energy_cost
+    
+        def optimize_operation(self):
+            """Operation optimization"""
+            from scipy.optimize import minimize
+    
+            def objective(x):
+                conversion, recycle_ratio = x
+                self.config['conversion'] = conversion
+                self.config['recycle_ratio'] = recycle_ratio
+    
+                perf = self.simulate_full_plant()
+                return -perf.profit_per_hour  # Maximization→Minimization
+    
+            result = minimize(
+                objective,
+                x0=[0.75, 0.4],
+                bounds=[(0.6, 0.95), (0.2, 0.7)],
+                method='SLSQP'
+            )
+    
+            return result
+    
+    # Usage example
+    config = {
+        'conversion': 0.80,
+        'recycle_ratio': 0.5,
+        'min_approach_temp': 10
+    }
+    
+    plant = ChemicalPlant(config)
+    
+    # Normal operation
+    print("=== Normal Operation ===")
+    perf_normal = plant.simulate_full_plant(feed_rate=100.0)
+    perf_normal.display()
+    
+    # Optimized operation
+    print("\n=== Optimized Operation ===")
+    result = plant.optimize_operation()
+    print(f"Optimal conversion: {result.x[0]:.4f}")
+    print(f"Optimal recycle ratio: {result.x[1]:.4f}")
+    
+    perf_optimized = plant.simulate_full_plant(feed_rate=100.0)
+    perf_optimized.display()
+    
+    # Improvement rate
+    improvement = (perf_optimized.profit_per_hour - perf_normal.profit_per_hour) / perf_normal.profit_per_hour * 100
+    print(f"\nProfit improvement: {improvement:.2f}%")
+    
+
+* * *
+
+## 4.8 Introduction to Dynamic Simulation
+
+### Simulation Considering Time Variation
+
+Analyze dynamic behavior such as startup/shutdown and disturbance response.
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - matplotlib>=3.7.0
+    # - numpy>=1.24.0, <2.0.0
+    
+    """
+    Example 8: Dynamic Simulation Introduction
+    Dynamic simulation introduction (considering time variation)
+    """
+    import numpy as np
+    from scipy.integrate import odeint
+    import matplotlib.pyplot as plt
+    
+    class DynamicCSTR:
+        """Dynamic continuous stirred tank reactor (CSTR)"""
+    
+        def __init__(self, volume=10.0, k=0.5, rho=1000, Cp=4.18):
+            """
+            Args:
+                volume: Reactor volume [m³]
+                k: Reaction rate constant [1/min]
+                rho: Density [kg/m³]
+                Cp: Specific heat [kJ/kg/K]
+            """
+            self.V = volume
+            self.k = k
+            self.rho = rho
+            self.Cp = Cp
+    
+        def model(self, y, t, F_in, C_in, T_in, Q_heat):
+            """
+            Dynamic model (differential equations)
+    
+            State variables: y = [C, T]
+            C: Concentration [kmol/m³]
+            T: Temperature [K]
+            """
+            C, T = y
+    
+            # Material balance
+            r = self.k * C  # Reaction rate [kmol/m³/min]
+            dC_dt = (F_in / self.V) * (C_in - C) - r
+    
+            # Energy balance
+            dH_r = -50  # Heat of reaction [kJ/kmol]
+            Q_reaction = r * dH_r * self.V
+    
+            dT_dt = (F_in / self.V) * (T_in - T) + \
+                    (Q_heat + Q_reaction) / (self.rho * self.V * self.Cp)
+    
+            return [dC_dt, dT_dt]
+    
+        def simulate(self, t_span, y0, F_in, C_in, T_in, Q_heat):
+            """
+            Dynamic simulation
+    
+            Args:
+                t_span: Time range [min]
+                y0: Initial state [C0, T0]
+                F_in: Inlet flowrate [m³/min] (can be function of time)
+                C_in: Inlet concentration [kmol/m³]
+                T_in: Inlet temperature [K]
+                Q_heat: Heating rate [kW]
+            """
+            solution = odeint(self.model, y0, t_span,
+                             args=(F_in, C_in, T_in, Q_heat))
+    
+            return solution
+    
+    # Usage example: Startup simulation
+    reactor = DynamicCSTR(volume=10.0, k=0.5)
+    
+    # Time range
+    t = np.linspace(0, 60, 300)  # 0-60 min
+    
+    # Initial conditions (empty reactor)
+    y0 = [0.0, 300.0]  # [C0=0, T0=300K]
+    
+    # Operating conditions
+    F_in = 1.0  # m³/min
+    C_in = 2.0  # kmol/m³
+    T_in = 320.0  # K
+    Q_heat = 50.0  # kW
+    
+    # Execute simulation
+    solution = reactor.simulate(t, y0, F_in, C_in, T_in, Q_heat)
+    
+    # Plot results
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+    
+    # Concentration time profile
+    ax1.plot(t, solution[:, 0], 'b-', linewidth=2)
+    ax1.set_xlabel('Time [min]')
+    ax1.set_ylabel('Concentration [kmol/m³]')
+    ax1.set_title('CSTR Startup: Concentration Profile')
+    ax1.grid(True, alpha=0.3)
+    
+    # Temperature time profile
+    ax2.plot(t, solution[:, 1], 'r-', linewidth=2)
+    ax2.set_xlabel('Time [min]')
+    ax2.set_ylabel('Temperature [K]')
+    ax2.set_title('CSTR Startup: Temperature Profile')
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Time to reach steady state
+    C_steady = solution[-1, 0]
+    idx_90 = np.where(solution[:, 0] >= 0.9 * C_steady)[0][0]
+    print(f"Time to reach 90% of steady state: {t[idx_90]:.2f} min")
+    
+
+* * *
+
+## Learning Objectives Review
+
+Upon completing this chapter, you will be able to:
+
+### Basic Understanding
+
+  * ✅ Represent flowsheets using graph theory and determine calculation order
+  * ✅ Understand principles of recycle stream convergence calculation
+  * ✅ Explain fundamentals of heat integration (Pinch analysis)
+
+### Practical Skills
+
+  * ✅ Build flowsheet topology using NetworkX
+  * ✅ Implement recycle calculations with successive substitution and Wegstein methods
+  * ✅ Construct complete flowsheets integrating multiple units
+  * ✅ Execute sensitivity analysis and parameter optimization
+
+### Application Capability
+
+  * ✅ Evaluate economics of actual plants and determine optimal operating conditions
+  * ✅ Reduce utility costs through energy integration
+  * ✅ Analyze startup and disturbance response with dynamic simulation
+
+* * *
+
+## Summary
+
+In this chapter, we mastered practical methods for process flowsheet simulation:
+
+  * **Topology Representation** : Automatic calculation order determination using graph theory
+  * **Recycle Convergence** : Successive substitution and Wegstein acceleration methods
+  * **Integrated Simulation** : Overall optimization of reaction, separation, and heat exchange
+  * **Sensitivity Analysis** : Quantitative evaluation of parameter change impacts
+  * **Economic Optimization** : Determining operating conditions for profit maximization
+  * **Heat Integration** : Energy reduction through Pinch analysis
+  * **Dynamic Behavior** : Startup and disturbance simulation considering time variation
+
+**Next Chapter Preview** : In Chapter 5, we will achieve more advanced process design by integrating Python with commercial simulators such as DWSIM.
+
+* * *
+
+### Disclaimer
+
+  * This content is created for educational purposes; actual plant design requires expert supervision
+  * Code examples are simplified models for concept understanding; additional validation is required for actual systems
+  * Numerical examples are for illustration; they may differ from actual process parameters
+  * Always consult experts regarding safety and environmental regulations for actual projects
+
+## References
+
+  1. Montgomery, D. C. (2019). _Design and Analysis of Experiments_ (9th ed.). Wiley.
+  2. Box, G. E. P., Hunter, J. S., & Hunter, W. G. (2005). _Statistics for Experimenters: Design, Innovation, and Discovery_ (2nd ed.). Wiley.
+  3. Seborg, D. E., Edgar, T. F., Mellichamp, D. A., & Doyle III, F. J. (2016). _Process Dynamics and Control_ (4th ed.). Wiley.
+  4. McKay, M. D., Beckman, R. J., & Conover, W. J. (2000). "A Comparison of Three Methods for Selecting Values of Input Variables in the Analysis of Output from a Computer Code." _Technometrics_ , 42(1), 55-61.

@@ -1,0 +1,860 @@
+---
+title: 第2章 繊維強化複合材料
+chapter_title: 第2章 繊維強化複合材料
+---
+
+🌐 JP | [🇬🇧 EN](<../../../en/MS/composite-materials-introduction/chapter-2.html>) | Last sync: 2025-11-16
+
+[AI寺子屋トップ](<../../index.html>)›[材料科学](<../../MS/index.html>)›[Composite Materials](<../../MS/composite-materials-introduction/index.html>)›Chapter 2
+
+### 複合材料入門
+
+  * [目次](<index.html>)
+  * [第1章 複合材料の基礎](<chapter-1.html>)
+  * [第2章 繊維強化複合材料](<chapter-2.html>)
+  * [第3章 粒子・積層複合材料](<chapter-3.html>)
+  * 第4章 複合材料の評価（準備中）
+  * [第5章 Python実践](<chapter-5.html>)
+
+#### Materials Science シリーズ
+
+  * [高分子材料入門](<../polymer-materials-introduction/index.html>)
+  * 薄膜・ナノ材料入門 (準備中)
+  * [複合材料入門](<index.html>)
+
+# 第2章 繊維強化複合材料
+
+### 学習目標
+
+  * **基礎レベル:** CFRP/GFRPの製造法を理解し、単層の応力-ひずみ関係を計算できる
+  * **応用レベル:** 古典積層理論(CLT)を適用し、A-B-D行列から積層板の剛性を評価できる
+  * **発展レベル:** Tsai-Wu破壊規準を用いて多軸応力下の強度を予測し、最適積層構成を設計できる
+
+## 2.1 繊維強化複合材料の種類
+
+### 2.1.1 CFRP (炭素繊維強化プラスチック)
+
+炭素繊維(Carbon Fiber)を強化材とする複合材料で、航空宇宙、自動車、スポーツ用品に広く使用されます。 
+
+繊維種類 | 弾性率 [GPa] | 引張強度 [MPa] | 用途  
+---|---|---|---  
+高強度(HS) | 230-240 | 3500-4500 | 航空機一次構造材  
+中弾性率(IM) | 280-300 | 4500-5500 | スポーツ用品  
+高弾性率(HM) | 350-500 | 2500-3500 | 衛星構造材  
+超高弾性率(UHM) | 500-700 | 2000-2500 | 精密機器  
+  
+### 2.1.2 GFRP (ガラス繊維強化プラスチック)
+
+ガラス繊維(Glass Fiber)を強化材とする複合材料で、コストパフォーマンスに優れます。 
+
+ガラス種類 | 弾性率 [GPa] | 引張強度 [MPa] | 特徴  
+---|---|---|---  
+Eガラス | 72-73 | 3400-3800 | 汎用、低コスト  
+Sガラス | 85-90 | 4500-4900 | 高強度、高価  
+Rガラス | 85-86 | 4400-4800 | 高強度、耐疲労  
+      
+    
+    ```mermaid
+    flowchart TD
+                                A[繊維強化複合材料] --> B[製造プロセス]
+                                B --> C[プリプレグ法]
+                                B --> D[RTM法]
+                                B --> E[ハンドレイアップ]
+                                B --> F[フィラメントワインディング]
+    
+                                C --> G[オートクレーブ成形高品質・高コスト]
+                                D --> H[樹脂注入複雑形状対応]
+                                E --> I[手作業低コスト・小ロット]
+                                F --> J[回転体圧力容器]
+    
+                                style A fill:#e1f5ff
+                                style G fill:#c8e6c9
+                                style H fill:#c8e6c9
+                                style I fill:#fff9c4
+                                style J fill:#c8e6c9
+    ```
+
+## 2.2 単層(Lamina)の力学
+
+### 2.2.1 応力-ひずみ関係
+
+一方向繊維強化単層の主軸座標系(1-2系、繊維方向を1軸)における 応力-ひずみ関係は以下のように表されます： 
+
+$$\begin{Bmatrix} \sigma_1 \\\ \sigma_2 \\\ \tau_{12} \end{Bmatrix} = \begin{bmatrix} Q_{11} & Q_{12} & 0 \\\ Q_{12} & Q_{22} & 0 \\\ 0 & 0 & Q_{66} \end{bmatrix} \begin{Bmatrix} \epsilon_1 \\\ \epsilon_2 \\\ \gamma_{12} \end{Bmatrix}$$ 
+
+ここで、縮約剛性マトリクス \\([Q]\\) の成分は：
+
+$$Q_{11} = \frac{E_1}{1 - \nu_{12}\nu_{21}}, \quad Q_{22} = \frac{E_2}{1 - \nu_{12}\nu_{21}}, \quad Q_{12} = \frac{\nu_{12} E_2}{1 - \nu_{12}\nu_{21}}, \quad Q_{66} = G_{12}$$ 
+
+\\(E_1, E_2\\): 縦・横弾性率、\\(\nu_{12}, \nu_{21}\\): ポアソン比、\\(G_{12}\\): せん断弾性率   
+(相反定理: \\(\nu_{12}/E_1 = \nu_{21}/E_2\\)) 
+
+#### 例題 2.1: 単層の剛性マトリクス計算
+    
+    
+    import numpy as np
+    
+    def lamina_stiffness_matrix(E1, E2, nu12, G12):
+        """
+        単層の縮約剛性マトリクス [Q] を計算
+    
+        Parameters:
+        -----------
+        E1 : float
+            縦弾性率 [GPa]
+        E2 : float
+            横弾性率 [GPa]
+        nu12 : float
+            主ポアソン比
+        G12 : float
+            せん断弾性率 [GPa]
+    
+        Returns:
+        --------
+        Q : ndarray (3x3)
+            縮約剛性マトリクス [GPa]
+        """
+        # 相反定理から nu21 を計算
+        nu21 = nu12 * E2 / E1
+    
+        # Q マトリクスの成分
+        denom = 1 - nu12 * nu21
+        Q11 = E1 / denom
+        Q22 = E2 / denom
+        Q12 = nu12 * E2 / denom
+        Q66 = G12
+    
+        Q = np.array([
+            [Q11, Q12, 0],
+            [Q12, Q22, 0],
+            [0, 0, Q66]
+        ])
+    
+        return Q
+    
+    # CFRP/エポキシ 単層の材料特性
+    E1 = 140.0   # GPa
+    E2 = 10.0    # GPa
+    nu12 = 0.30
+    G12 = 5.0    # GPa
+    
+    Q = lamina_stiffness_matrix(E1, E2, nu12, G12)
+    
+    print("縮約剛性マトリクス [Q] (GPa):")
+    print(Q)
+    print(f"\nQ11 = {Q[0,0]:.2f} GPa")
+    print(f"Q22 = {Q[1,1]:.2f} GPa")
+    print(f"Q12 = {Q[0,1]:.2f} GPa")
+    print(f"Q66 = {Q[2,2]:.2f} GPa")
+    
+    # 応力計算例: ε1=0.005, ε2=0, γ12=0
+    strain = np.array([0.005, 0, 0])
+    stress = Q @ strain
+    
+    print(f"\nひずみ [ε1, ε2, γ12]: {strain}")
+    print(f"応力 [σ1, σ2, τ12] (MPa): {stress}")
+    print(f"繊維方向応力 σ1: {stress[0]:.1f} MPa")
+
+### 2.2.2 座標変換(Off-Axis Loading)
+
+繊維が荷重方向と角度 \\(\theta\\) をなす場合、座標変換が必要です。 全体座標系(x-y)での剛性マトリクス \\([\bar{Q}]\\) は： 
+
+$$[\bar{Q}] = [T]^{-1} [Q] [T]^{-T}$$ 
+
+変換マトリクス \\([T]\\) は：
+
+$$[T] = \begin{bmatrix} c^2 & s^2 & 2sc \\\ s^2 & c^2 & -2sc \\\ -sc & sc & c^2 - s^2 \end{bmatrix}$$ 
+
+ここで、\\(c = \cos\theta\\)、\\(s = \sin\theta\\)
+
+#### 例題 2.2: Off-Axis 剛性の計算
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def transformation_matrix(theta_deg):
+        """
+        応力・ひずみ変換マトリクス [T]
+    
+        Parameters:
+        -----------
+        theta_deg : float
+            繊維配向角度 [度]
+    
+        Returns:
+        --------
+        T : ndarray (3x3)
+            変換マトリクス
+        """
+        theta = np.radians(theta_deg)
+        c = np.cos(theta)
+        s = np.sin(theta)
+    
+        T = np.array([
+            [c**2, s**2, 2*s*c],
+            [s**2, c**2, -2*s*c],
+            [-s*c, s*c, c**2 - s**2]
+        ])
+    
+        return T
+    
+    def offaxis_stiffness(Q, theta_deg):
+        """
+        Off-axis 剛性マトリクス [Q̄] を計算
+    
+        Parameters:
+        -----------
+        Q : ndarray (3x3)
+            主軸座標系での剛性マトリクス
+        theta_deg : float
+            繊維配向角度 [度]
+    
+        Returns:
+        --------
+        Q_bar : ndarray (3x3)
+            Off-axis 剛性マトリクス
+        """
+        T = transformation_matrix(theta_deg)
+        T_inv = np.linalg.inv(T)
+    
+        Q_bar = T_inv @ Q @ T_inv.T
+    
+        return Q_bar
+    
+    # CFRP材料特性
+    E1 = 140.0
+    E2 = 10.0
+    nu12 = 0.30
+    G12 = 5.0
+    
+    Q = lamina_stiffness_matrix(E1, E2, nu12, G12)
+    
+    # 配向角度の範囲
+    angles = np.arange(0, 91, 5)
+    Q_bar_11 = []
+    Q_bar_22 = []
+    Q_bar_66 = []
+    Q_bar_16 = []  # カップリング項
+    
+    for theta in angles:
+        Q_bar = offaxis_stiffness(Q, theta)
+        Q_bar_11.append(Q_bar[0, 0])
+        Q_bar_22.append(Q_bar[1, 1])
+        Q_bar_66.append(Q_bar[2, 2])
+        Q_bar_16.append(Q_bar[0, 2])
+    
+    # 可視化
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # 剛性成分
+    ax1.plot(angles, Q_bar_11, 'b-', linewidth=2, label='Q̄₁₁ (x方向)')
+    ax1.plot(angles, Q_bar_22, 'r-', linewidth=2, label='Q̄₂₂ (y方向)')
+    ax1.plot(angles, Q_bar_66, 'g-', linewidth=2, label='Q̄₆₆ (せん断)')
+    ax1.set_xlabel('繊維配向角度 θ [度]')
+    ax1.set_ylabel('剛性成分 [GPa]')
+    ax1.set_title('Off-Axis 剛性の角度依存性')
+    ax1.grid(True, alpha=0.3)
+    ax1.legend()
+    
+    # カップリング項
+    ax2.plot(angles, Q_bar_16, 'm-', linewidth=2)
+    ax2.axhline(y=0, color='k', linestyle='--', alpha=0.3)
+    ax2.set_xlabel('繊維配向角度 θ [度]')
+    ax2.set_ylabel('Q̄₁₆ [GPa]')
+    ax2.set_title('伸張-せん断カップリング')
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('offaxis_stiffness.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"0度 (繊維方向): Q̄11 = {Q_bar_11[0]:.1f} GPa")
+    print(f"45度: Q̄11 = {Q_bar_11[9]:.1f} GPa, Q̄16 = {Q_bar_16[9]:.1f} GPa")
+    print(f"90度 (繊維垂直): Q̄11 = {Q_bar_11[-1]:.1f} GPa")
+
+## 2.3 古典積層理論 (Classical Laminate Theory)
+
+### 2.3.1 積層板の仮定
+
+古典積層理論(CLT)は以下の仮定に基づきます：
+
+  * 各層は完全に接着されている(層間すべりなし)
+  * 板厚方向の垂直応力は無視できる(平面応力状態)
+  * Kirchhoff-Love仮定: 板厚方向の法線は変形後も法線のまま
+
+これにより、積層板の中央面からの距離 \\(z\\) における面内ひずみは：
+
+$$\begin{Bmatrix} \epsilon_x \\\ \epsilon_y \\\ \gamma_{xy} \end{Bmatrix} = \begin{Bmatrix} \epsilon_x^0 \\\ \epsilon_y^0 \\\ \gamma_{xy}^0 \end{Bmatrix} + z \begin{Bmatrix} \kappa_x \\\ \kappa_y \\\ \kappa_{xy} \end{Bmatrix}$$ 
+
+\\(\epsilon^0\\): 中央面のひずみ、\\(\kappa\\): 曲率 
+
+### 2.3.2 A-B-D マトリクス
+
+積層板の合応力・合モーメントと中央面ひずみ・曲率の関係： 
+
+$$\begin{Bmatrix} N \\\ M \end{Bmatrix} = \begin{bmatrix} [A] & [B] \\\ [B] & [D] \end{bmatrix} \begin{Bmatrix} \epsilon^0 \\\ \kappa \end{Bmatrix}$$ 
+
+各マトリクスの物理的意味：
+
+  * **[A]:** 伸張剛性マトリクス (Extensional stiffness)
+  * **[B]:** 伸張-曲げカップリングマトリクス (Coupling stiffness)
+  * **[D]:** 曲げ剛性マトリクス (Bending stiffness)
+
+計算式：
+
+$$A_{ij} = \sum_{k=1}^{n} (\bar{Q}_{ij})_k (z_k - z_{k-1})$$ $$B_{ij} = \frac{1}{2} \sum_{k=1}^{n} (\bar{Q}_{ij})_k (z_k^2 - z_{k-1}^2)$$ $$D_{ij} = \frac{1}{3} \sum_{k=1}^{n} (\bar{Q}_{ij})_k (z_k^3 - z_{k-1}^3)$$ 
+
+#### 例題 2.3: 対称積層板の A-B-D マトリクス
+    
+    
+    import numpy as np
+    
+    class Laminate:
+        """積層板の解析クラス"""
+    
+        def __init__(self, Q, layup, t_ply):
+            """
+            Parameters:
+            -----------
+            Q : ndarray (3x3)
+                単層の主軸剛性マトリクス
+            layup : list of float
+                積層構成 [θ1, θ2, ..., θn] (度)
+            t_ply : float
+                単層厚さ [mm]
+            """
+            self.Q = Q
+            self.layup = layup
+            self.t_ply = t_ply
+            self.n_plies = len(layup)
+            self.total_thickness = self.n_plies * t_ply
+    
+            # z座標の計算(中央面を基準)
+            self.z = np.linspace(
+                -self.total_thickness/2,
+                self.total_thickness/2,
+                self.n_plies + 1
+            )
+    
+        def compute_ABD(self):
+            """A-B-D マトリクスを計算"""
+            A = np.zeros((3, 3))
+            B = np.zeros((3, 3))
+            D = np.zeros((3, 3))
+    
+            for k in range(self.n_plies):
+                # 各層の Q̄ マトリクス
+                Q_bar = offaxis_stiffness(self.Q, self.layup[k])
+    
+                # 層の厚さ座標
+                z_k = self.z[k]
+                z_k1 = self.z[k + 1]
+    
+                # A, B, D の計算
+                A += Q_bar * (z_k1 - z_k)
+                B += 0.5 * Q_bar * (z_k1**2 - z_k**2)
+                D += (1/3) * Q_bar * (z_k1**3 - z_k**3)
+    
+            return A, B, D
+    
+        def is_symmetric(self):
+            """積層構成が対称かどうか判定"""
+            n = len(self.layup)
+            for i in range(n // 2):
+                if self.layup[i] != self.layup[n - 1 - i]:
+                    return False
+            return True
+    
+    # CFRP材料特性
+    E1 = 140.0
+    E2 = 10.0
+    nu12 = 0.30
+    G12 = 5.0
+    Q = lamina_stiffness_matrix(E1, E2, nu12, G12)
+    
+    # 積層構成の例
+    layup_symmetric = [0, 45, -45, 90, 90, -45, 45, 0]  # 対称積層
+    layup_unsymmetric = [0, 45, -45, 90]                 # 非対称積層
+    
+    t_ply = 0.125  # mm
+    
+    # 対称積層板
+    lam_sym = Laminate(Q, layup_symmetric, t_ply)
+    A_sym, B_sym, D_sym = lam_sym.compute_ABD()
+    
+    print("=== 対称積層板 [0/45/-45/90]s ===")
+    print(f"積層構成: {layup_symmetric}")
+    print(f"総板厚: {lam_sym.total_thickness} mm")
+    print(f"対称性: {lam_sym.is_symmetric()}")
+    print("\n[A] マトリクス (N/mm):")
+    print(A_sym)
+    print("\n[B] マトリクス (N·mm):")
+    print(B_sym)
+    print(f"B マトリクスのノルム: {np.linalg.norm(B_sym):.2e} (対称積層では ≈ 0)")
+    print("\n[D] マトリクス (N·mm²):")
+    print(D_sym)
+    
+    # 非対称積層板
+    lam_unsym = Laminate(Q, layup_unsymmetric, t_ply)
+    A_unsym, B_unsym, D_unsym = lam_unsym.compute_ABD()
+    
+    print("\n\n=== 非対称積層板 [0/45/-45/90] ===")
+    print(f"積層構成: {layup_unsymmetric}")
+    print(f"対称性: {lam_unsym.is_symmetric()}")
+    print("\n[B] マトリクス (N·mm):")
+    print(B_unsym)
+    print(f"B マトリクスのノルム: {np.linalg.norm(B_unsym):.2e} (伸張-曲げカップリング有)")
+
+### 2.3.3 準等方性積層板
+
+特定の積層構成により、面内で等方的な特性を持つ積層板を設計できます。 準等方性(Quasi-isotropic)の条件は、3層以上で \\(180°/n\\) ずつ角度が異なる配向： 
+
+  * 3層: [0/60/-60] または [0/60/120]
+  * 4層: [0/45/-45/90] (最も一般的)
+
+#### 例題 2.4: 準等方性積層板の検証
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def check_quasi_isotropic(A):
+        """
+        準等方性を判定
+    
+        準等方性の条件:
+        - A11 = A22
+        - A16 = A26 = 0
+        - A66 = (A11 - A12) / 2
+        """
+        tol = 1e-6
+    
+        condition1 = np.abs(A[0,0] - A[1,1]) < tol
+        condition2 = np.abs(A[0,2]) < tol and np.abs(A[1,2]) < tol
+        condition3 = np.abs(A[2,2] - (A[0,0] - A[0,1])/2) < tol
+    
+        is_quasi_iso = condition1 and condition2 and condition3
+    
+        return is_quasi_iso, {
+            'A11 = A22': condition1,
+            'A16 = A26 = 0': condition2,
+            'A66 = (A11-A12)/2': condition3
+        }
+    
+    # CFRP材料
+    E1 = 140.0
+    E2 = 10.0
+    nu12 = 0.30
+    G12 = 5.0
+    Q = lamina_stiffness_matrix(E1, E2, nu12, G12)
+    
+    # 様々な積層構成をテスト
+    layups = {
+        '[0/45/-45/90]': [0, 45, -45, 90],
+        '[0/60/-60]': [0, 60, -60],
+        '[0/90]': [0, 90],
+        '[45/-45]': [45, -45]
+    }
+    
+    t_ply = 0.125
+    
+    print("準等方性の判定:\n" + "="*60)
+    for name, layup in layups.items():
+        lam = Laminate(Q, layup, t_ply)
+        A, B, D = lam.compute_ABD()
+    
+        is_qi, conditions = check_quasi_isotropic(A)
+    
+        print(f"\n積層構成: {name}")
+        print(f"準等方性: {is_qi}")
+        for cond, result in conditions.items():
+            status = "✓" if result else "✗"
+            print(f"  {status} {cond}")
+    
+        if is_qi:
+            # 等価等方性特性を計算
+            E_eq = A[0,0] / lam.total_thickness
+            nu_eq = A[0,1] / A[0,0]
+            G_eq = A[2,2] / lam.total_thickness
+    
+            print(f"  等価ヤング率: {E_eq:.1f} GPa")
+            print(f"  等価ポアソン比: {nu_eq:.3f}")
+            print(f"  等価せん断弾性率: {G_eq:.1f} GPa")
+
+## 2.4 積層板の強度予測
+
+### 2.4.1 最大応力規準
+
+各層の主軸座標系での応力が許容値を超えないこと： 
+
+$$\sigma_1 \leq X_t \text{ (引張)}, \quad \sigma_1 \geq -X_c \text{ (圧縮)}$$ $$\sigma_2 \leq Y_t \text{ (引張)}, \quad \sigma_2 \geq -Y_c \text{ (圧縮)}$$ $$|\tau_{12}| \leq S$$ 
+
+### 2.4.2 Tsai-Wu 破壊規準
+
+多軸応力状態における破壊を予測する二次形式の規準： 
+
+$$F_1\sigma_1 + F_2\sigma_2 + F_{11}\sigma_1^2 + F_{22}\sigma_2^2 + F_{66}\tau_{12}^2 + 2F_{12}\sigma_1\sigma_2 \leq 1$$ 
+
+係数の決定：
+
+$$F_1 = \frac{1}{X_t} - \frac{1}{X_c}, \quad F_2 = \frac{1}{Y_t} - \frac{1}{Y_c}$$ $$F_{11} = \frac{1}{X_t X_c}, \quad F_{22} = \frac{1}{Y_t Y_c}, \quad F_{66} = \frac{1}{S^2}$$ $$F_{12} = -\frac{1}{2}\sqrt{F_{11} F_{22}}$$ 
+
+#### 例題 2.5: Tsai-Wu 破壊規準による強度予測
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    class TsaiWuCriterion:
+        """Tsai-Wu破壊規準"""
+    
+        def __init__(self, X_t, X_c, Y_t, Y_c, S):
+            """
+            Parameters:
+            -----------
+            X_t, X_c : float
+                縦方向引張・圧縮強度 [MPa]
+            Y_t, Y_c : float
+                横方向引張・圧縮強度 [MPa]
+            S : float
+                せん断強度 [MPa]
+            """
+            self.X_t = X_t
+            self.X_c = X_c
+            self.Y_t = Y_t
+            self.Y_c = Y_c
+            self.S = S
+    
+            # Tsai-Wu 係数の計算
+            self.F1 = 1/X_t - 1/X_c
+            self.F2 = 1/Y_t - 1/Y_c
+            self.F11 = 1/(X_t * X_c)
+            self.F22 = 1/(Y_t * Y_c)
+            self.F66 = 1/S**2
+            self.F12 = -0.5 * np.sqrt(self.F11 * self.F22)
+    
+        def failure_index(self, sigma1, sigma2, tau12):
+            """
+            破壊指数を計算
+    
+            Returns:
+            --------
+            FI : float
+                破壊指数 (FI < 1: 安全、FI = 1: 破壊、FI > 1: 破損)
+            """
+            FI = (self.F1 * sigma1 + self.F2 * sigma2 +
+                  self.F11 * sigma1**2 + self.F22 * sigma2**2 +
+                  self.F66 * tau12**2 + 2 * self.F12 * sigma1 * sigma2)
+    
+            return FI
+    
+        def safety_factor(self, sigma1, sigma2, tau12):
+            """安全率を計算"""
+            FI = self.failure_index(sigma1, sigma2, tau12)
+            if FI <= 0:
+                return np.inf
+            return 1 / np.sqrt(FI)
+    
+    # CFRP/エポキシの強度特性
+    X_t = 1500  # MPa
+    X_c = 1200  # MPa
+    Y_t = 50    # MPa
+    Y_c = 200   # MPa
+    S = 70      # MPa
+    
+    criterion = TsaiWuCriterion(X_t, X_c, Y_t, Y_c, S)
+    
+    # 破壊包絡線の作成(σ1-σ2 平面)
+    sigma1_range = np.linspace(-X_c, X_t, 200)
+    sigma2_range = np.linspace(-Y_c, Y_t, 200)
+    
+    # グリッド作成
+    S1, S2 = np.meshgrid(sigma1_range, sigma2_range)
+    FI_grid = np.zeros_like(S1)
+    
+    for i in range(len(sigma2_range)):
+        for j in range(len(sigma1_range)):
+            FI_grid[i, j] = criterion.failure_index(S1[i, j], S2[i, j], 0)
+    
+    # 可視化
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # 破壊包絡線(τ12 = 0)
+    contour = ax1.contour(S1, S2, FI_grid, levels=[1.0], colors='r', linewidths=2)
+    ax1.contourf(S1, S2, FI_grid, levels=[0, 1.0], colors=['lightgreen'], alpha=0.3)
+    ax1.set_xlabel('σ₁ [MPa]')
+    ax1.set_ylabel('σ₂ [MPa]')
+    ax1.set_title('Tsai-Wu 破壊包絡線 (τ₁₂ = 0)')
+    ax1.grid(True, alpha=0.3)
+    ax1.axhline(y=0, color='k', linewidth=0.5)
+    ax1.axvline(x=0, color='k', linewidth=0.5)
+    
+    # 特定応力状態での安全率
+    test_cases = [
+        (500, 20, 0, "引張-引張"),
+        (500, -50, 0, "引張-圧縮"),
+        (-400, -100, 0, "圧縮-圧縮"),
+        (300, 0, 40, "引張-せん断")
+    ]
+    
+    results = []
+    for sigma1, sigma2, tau12, case_name in test_cases:
+        FI = criterion.failure_index(sigma1, sigma2, tau12)
+        SF = criterion.safety_factor(sigma1, sigma2, tau12)
+        results.append((case_name, sigma1, sigma2, tau12, FI, SF))
+    
+        if tau12 == 0:  # τ12=0 の場合のみプロット
+            marker = 'o' if FI < 1 else 'x'
+            color = 'blue' if FI < 1 else 'red'
+            ax1.plot(sigma1, sigma2, marker, markersize=10, color=color,
+                    label=f"{case_name} (SF={SF:.2f})")
+    
+    ax1.legend()
+    
+    # 結果テーブル
+    ax2.axis('off')
+    table_data = [["荷重状態", "σ₁", "σ₂", "τ₁₂", "FI", "SF"]]
+    for case_name, s1, s2, t12, fi, sf in results:
+        table_data.append([
+            case_name,
+            f"{s1:.0f}",
+            f"{s2:.0f}",
+            f"{t12:.0f}",
+            f"{fi:.3f}",
+            f"{sf:.2f}" if sf != np.inf else "∞"
+        ])
+    
+    table = ax2.table(cellText=table_data, cellLoc='center', loc='center',
+                      colWidths=[0.25, 0.15, 0.15, 0.15, 0.15, 0.15])
+    table.auto_set_font_size(False)
+    table.set_fontsize(10)
+    table.scale(1, 2)
+    
+    # ヘッダー行のスタイル
+    for i in range(6):
+        table[(0, i)].set_facecolor('#4CAF50')
+        table[(0, i)].set_text_props(weight='bold', color='white')
+    
+    # データ行の色分け
+    for i in range(1, len(table_data)):
+        fi_val = float(table_data[i][4])
+        color = '#c8e6c9' if fi_val < 1 else '#ffcdd2'
+        for j in range(6):
+            table[(i, j)].set_facecolor(color)
+    
+    ax2.set_title('破壊指数と安全率', fontsize=12, weight='bold', pad=20)
+    
+    plt.tight_layout()
+    plt.savefig('tsai_wu_failure.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # コンソール出力
+    print("Tsai-Wu 破壊規準による強度評価:")
+    print("="*70)
+    for case_name, s1, s2, t12, fi, sf in results:
+        status = "安全" if fi < 1 else "破損"
+        print(f"\n{case_name}: σ1={s1} MPa, σ2={s2} MPa, τ12={t12} MPa")
+        print(f"  破壊指数 FI = {fi:.3f} ({status})")
+        print(f"  安全率 SF = {sf:.2f}" if sf != np.inf else f"  安全率 SF = ∞")
+
+### 2.4.3 First Ply Failure (FPF)
+
+積層板の破壊は、最初の層が破壊する荷重(FPF)から最終破壊(LPF)まで 段階的に進行します。FPF解析では各層の応力を計算し、最も早く破壊規準を 満たす層を特定します。 
+
+#### 例題 2.6: 積層板の FPF 解析
+    
+    
+    import numpy as np
+    
+    def first_ply_failure_analysis(lam, applied_strain, criterion):
+        """
+        First Ply Failure 解析
+    
+        Parameters:
+        -----------
+        lam : Laminate
+            積層板オブジェクト
+        applied_strain : ndarray (3,)
+            印加ひずみ [εx, εy, γxy]
+        criterion : TsaiWuCriterion
+            破壊規準オブジェクト
+    
+        Returns:
+        --------
+        results : list of dict
+            各層の応力と破壊指数
+        """
+        results = []
+    
+        for k in range(lam.n_plies):
+            # 層の中央位置
+            z_mid = (lam.z[k] + lam.z[k+1]) / 2
+    
+            # 全体座標系での応力計算
+            Q_bar = offaxis_stiffness(lam.Q, lam.layup[k])
+            stress_global = Q_bar @ applied_strain
+    
+            # 主軸座標系へ変換
+            T = transformation_matrix(lam.layup[k])
+            stress_local = T @ stress_global
+    
+            sigma1, sigma2, tau12 = stress_local
+    
+            # 破壊指数計算
+            FI = criterion.failure_index(sigma1, sigma2, tau12)
+            SF = criterion.safety_factor(sigma1, sigma2, tau12)
+    
+            results.append({
+                'ply': k + 1,
+                'angle': lam.layup[k],
+                'z': z_mid,
+                'stress_global': stress_global,
+                'stress_local': stress_local,
+                'FI': FI,
+                'SF': SF
+            })
+    
+        return results
+    
+    # 積層板設定
+    E1 = 140.0
+    E2 = 10.0
+    nu12 = 0.30
+    G12 = 5.0
+    Q = lamina_stiffness_matrix(E1, E2, nu12, G12)
+    
+    layup = [0, 45, -45, 90]
+    t_ply = 0.125
+    
+    lam = Laminate(Q, layup, t_ply)
+    
+    # 破壊規準
+    X_t = 1500
+    X_c = 1200
+    Y_t = 50
+    Y_c = 200
+    S = 70
+    criterion = TsaiWuCriterion(X_t, X_c, Y_t, Y_c, S)
+    
+    # 印加ひずみ(x方向引張)
+    applied_strain = np.array([0.005, 0, 0])
+    
+    # FPF解析実行
+    results = first_ply_failure_analysis(lam, applied_strain, criterion)
+    
+    # 結果表示
+    print("First Ply Failure 解析結果:")
+    print("="*80)
+    print(f"積層構成: {layup}")
+    print(f"印加ひずみ: εx = {applied_strain[0]:.4f}, εy = {applied_strain[1]:.4f}, "
+          f"γxy = {applied_strain[2]:.4f}")
+    print("\n各層の応力状態:")
+    print("-"*80)
+    print(f"{'層':>3} {'角度':>6} {'σ1':>10} {'σ2':>10} {'τ12':>10} {'FI':>8} {'SF':>8}")
+    print("-"*80)
+    
+    fpf_ply = None
+    min_sf = np.inf
+    
+    for r in results:
+        print(f"{r['ply']:3d} {r['angle']:6.0f}° {r['stress_local'][0]:10.1f} "
+              f"{r['stress_local'][1]:10.1f} {r['stress_local'][2]:10.1f} "
+              f"{r['FI']:8.3f} {r['SF']:8.2f}")
+    
+        if r['SF'] < min_sf:
+            min_sf = r['SF']
+            fpf_ply = r['ply']
+    
+    print("-"*80)
+    print(f"\nFirst Ply Failure: 層 {fpf_ply} (角度 {layup[fpf_ply-1]}°)")
+    print(f"安全率: {min_sf:.2f}")
+    print(f"破壊ひずみ: {applied_strain[0] * min_sf:.4f}")
+
+## 2.5 まとめ
+
+本章では、繊維強化複合材料の力学について学びました：
+
+  * CFRP/GFRPの種類と製造法
+  * 単層の応力-ひずみ関係と座標変換
+  * 古典積層理論(CLT)とA-B-D行列
+  * 対称積層と準等方性積層の設計
+  * Tsai-Wu破壊規準による強度予測
+  * First Ply Failure解析
+
+次章では、粒子強化複合材料(MMC, CMC)と積層複合材料について学び、 強化メカニズムと特性評価法を習得します。 
+
+## 演習問題
+
+### 基礎レベル
+
+#### 問題 2.1: 単層剛性の計算
+
+GFRP単層(E₁=40 GPa, E₂=8 GPa, ν₁₂=0.25, G₁₂=4 GPa)の 縮約剛性マトリクス[Q]を求めよ。 
+
+#### 問題 2.2: Off-Axis 弾性率
+
+問題2.1のGFRP単層を45°配向させた場合の全体座標系での 剛性マトリクス[Q̄]を計算せよ。 
+
+#### 問題 2.3: 対称積層の判定
+
+以下の積層構成について、対称積層かどうか判定せよ：   
+(a) [0/90/90/0]   
+(b) [0/45/-45/90]   
+(c) [0/90/0] 
+
+### 応用レベル
+
+#### 問題 2.4: A-B-D マトリクスの計算
+
+[0/90]s 積層板(単層厚さ 0.125 mm, CFRP: E₁=140 GPa, E₂=10 GPa, ν₁₂=0.30, G₁₂=5 GPa)のA-B-D マトリクスを計算し、 Bマトリクスがゼロになることを確認せよ。 
+
+#### 問題 2.5: 準等方性積層の設計
+
+3層構成の準等方性積層板を設計し、Aマトリクスが準等方性条件を 満たすことをプログラムで検証せよ。 
+
+#### 問題 2.6: Tsai-Wu 規準の適用
+
+CFRP単層(X_t=1500 MPa, X_c=1200 MPa, Y_t=50 MPa, Y_c=200 MPa, S=70 MPa)に σ₁=600 MPa, σ₂=30 MPa, τ₁₂=0 MPa が作用する場合の安全率を計算せよ。 
+
+#### 問題 2.7: FPF 解析プログラム
+
+[0/45/-45/90] 積層板に一軸引張ひずみを印加した場合の First Ply Failure を予測するプログラムを作成せよ。 
+
+### 発展レベル
+
+#### 問題 2.8: 積層構成の最適化
+
+二軸荷重(Nx, Ny)を受ける積層板について、以下を満たす 最適積層構成(角度と枚数)を scipy.optimize で求めよ： 
+
+  * 目標: 板厚を最小化
+  * 制約: First Ply Failure が発生しない
+  * 使用可能角度: 0°, ±45°, 90°
+
+#### 問題 2.9: 熱残留応力の評価
+
+CFRP積層板の硬化過程(180°C → 25°C)で発生する熱残留応力を計算せよ。 熱膨張係数を考慮したCLTの拡張が必要。 (α₁ = -0.5×10⁻⁶ /°C, α₂ = 30×10⁻⁶ /°C) 
+
+#### 問題 2.10: 損傷進展シミュレーション
+
+First Ply Failure 後の損傷進展を模擬するプログラムを実装せよ。 破損した層の剛性を低下させ(剛性低下モデル)、 Last Ply Failure までの荷重-変位曲線を求めよ。 
+
+## 参考文献
+
+  1. Jones, R. M., "Mechanics of Composite Materials", 2nd ed., Taylor & Francis, 1999, pp. 190-267
+  2. Kaw, A. K., "Mechanics of Composite Materials", 2nd ed., CRC Press, 2005, pp. 145-223
+  3. Tsai, S. W. and Wu, E. M., "A General Theory of Strength for Anisotropic Materials", Journal of Composite Materials, Vol. 5, 1971, pp. 58-80
+  4. Hyer, M. W., "Stress Analysis of Fiber-Reinforced Composite Materials", DEStech Publications, 2009, pp. 312-389
+  5. Barbero, E. J., "Introduction to Composite Materials Design", 2nd ed., CRC Press, 2010, pp. 89-156
+  6. Reddy, J. N., "Mechanics of Laminated Composite Plates and Shells: Theory and Analysis", 2nd ed., CRC Press, 2003, pp. 234-301
+  7. Daniel, I. M. and Ishai, O., "Engineering Mechanics of Composite Materials", 2nd ed., Oxford University Press, 2006, pp. 147-218
+  8. Herakovich, C. T., "Mechanics of Fibrous Composites", Wiley, 1998, pp. 178-245
+
+### 免責事項
+
+  * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
+  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
+  * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
+  * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。
+  * 本コンテンツの著作権・ライセンスは明記された条件(例: CC BY 4.0)に従います。当該ライセンスは通常、無保証条項を含みます。
