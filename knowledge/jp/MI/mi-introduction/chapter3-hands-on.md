@@ -8,6 +8,24 @@ code_examples: 0
 exercises: 0
 ---
 
+## 動画講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/9SvXCQAT960"
+    title="MI入門 第3章：Pythonで体験するMI"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> この動画は以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 # 第3章：Pythonで体験するMI - 実践的な材料特性予測
 
 回帰モデル6種を同一データで実装して比較し、評価とチューニングの勘所を掴みます。SHAPで“なぜ予測できたか”まで解釈します。

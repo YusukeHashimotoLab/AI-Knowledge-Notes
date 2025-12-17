@@ -8,6 +8,24 @@ code_examples: 0
 exercises: 0
 ---
 
+## 動画講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/cWfDGqg6c-8"
+    title="MI入門 第2章：MIの基礎知識"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> この動画は以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 # 第2章：MIの基礎知識 - 概念・手法・エコシステム
 
 材料記述子と主要データベースの全体像を把握し、pymatgen/MP APIで実データを引き出せるようになります。matminerで特徴量生成まで一気通貫の流れを確認します。

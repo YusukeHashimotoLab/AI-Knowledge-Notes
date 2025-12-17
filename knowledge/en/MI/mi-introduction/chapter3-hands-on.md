@@ -10,6 +10,24 @@ version: 3.0
 created_at: 2025-10-16
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/9SvXCQAT960"
+    title="MI Introduction Ch.3: Hands-on Python for Materials Informatics"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 # Chapter 3: Hands-on MI with Python - Practical Material Property Prediction
 
 We implement and compare six regression models on the same dataset, gaining practical insights into evaluation and tuning. We use SHAP to interpret "why predictions work."

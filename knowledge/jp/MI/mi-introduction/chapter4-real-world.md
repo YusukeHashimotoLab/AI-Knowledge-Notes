@@ -8,6 +8,24 @@ code_examples: 0
 exercises: 0
 ---
 
+## 動画講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/Wuc1XsYtP-s"
+    title="MI入門 第4章：MIの実世界への応用"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> この動画は以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 ## 第4章：MIの実世界への応用 - 成功事例と将来展望
 
 電池・触媒などの実例から、MIの投資対効果と導入手順を具体的に学びます。研究/産業それぞれのキャリアパスと次の一歩を明確にします。

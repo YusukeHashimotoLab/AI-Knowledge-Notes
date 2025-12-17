@@ -10,6 +10,24 @@ version: 3.0
 created_at: 2025-10-16
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/cWfDGqg6c-8"
+    title="MI Introduction Ch.2: Fundamentals of Materials Informatics"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 # Chapter 2: Fundamentals of MI - Concepts, Methods, and Ecosystem
 
 Grasp the complete picture of material descriptors and major databases, and learn to retrieve actual data using pymatgen/MP API. Understand the end-to-end workflow from feature generation with matminer.

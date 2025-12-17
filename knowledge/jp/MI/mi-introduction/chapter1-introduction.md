@@ -8,6 +8,24 @@ code_examples: 0
 exercises: 0
 ---
 
+## 動画講義
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/xuyOM6ba3x4"
+    title="MI入門 第1章：なぜ今マテリアルズインフォマティクスなのか"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> この動画は以下のテキストと同じ内容をカバーしています。お好みの学習形式をお選びください。
+
+---
+
 # 第1章：なぜ今マテリアルズインフォマティクスなのか
 
 材料開発の歴史と従来手法の限界を整理し、なぜ今MIが必要かを直感的に掴みます。MGI以降の潮流と成功事例をざっと眺め、以降の学習の地図を作ります。

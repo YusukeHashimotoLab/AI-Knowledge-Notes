@@ -10,6 +10,24 @@ version: 3.0
 created_at: 2025-10-16
 ---
 
+## Video Lecture
+
+<div class="video-container">
+  <iframe
+    width="560"
+    height="315"
+    src="https://www.youtube.com/embed/xuyOM6ba3x4"
+    title="MI Introduction Ch.1: Why Materials Informatics Now?"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
+> This video covers the same content as the text below. Choose your preferred learning format.
+
+---
+
 # Chapter 1: Why Materials Informatics Now?
 
 This chapter organizes the history of materials development and the limitations of conventional methods to build an intuitive understanding of why MI is needed today. We will survey the trends and success stories since the Materials Genome Initiative (MGI) and create a roadmap for subsequent learning.
