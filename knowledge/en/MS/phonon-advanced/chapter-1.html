@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 1: First-Principles Phonon Calculations - Advanced Phonon Physics</title>
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "$", right: "$", display: false}
+                ],
+                throwOnError: false
+            });
+            mermaid.initialize({ startOnLoad: true, theme: 'default' });
+        });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <a href="../../index.html">Home</a> &gt;
+        <a href="../index.html">Materials Science</a> &gt;
+        <a href="index.html">Advanced Phonon Physics</a> &gt;
+        <span>Chapter 1: First-Principles Phonon Calculations</span>
+    </nav>
+
+    <div class="locale-switcher">
+        <a href="../../../jp/MS/phonon-advanced/chapter-1.html">日本語</a> |
+        <span class="current">English</span>
+    </div>
+
+    <header>
+        <h1>Chapter 1: First-Principles Phonon Calculations</h1>
+        <p class="subtitle">DFPT, Frozen Phonon Method, and Modern Computational Tools</p>
+    </header>
+
+    <main class="container">
+        <div class="content">
+            <!-- Learning Objectives -->
+            <section class="objectives">
+                <h2>Learning Objectives</h2>
+                <ul>
+                    <li>Understand the theoretical foundations of Density Functional Perturbation Theory (DFPT)</li>
+                    <li>Master linear response theory and the 2n+1 theorem</li>
+                    <li>Implement and compare frozen phonon and DFPT methods</li>
+                    <li>Calculate force constants and perform Fourier interpolation</li>
+                    <li>Use modern software tools (Quantum ESPRESSO, VASP, Phonopy) effectively</li>
+                    <li>Understand convergence parameters (k-points, q-points, supercell size)</li>
+                    <li>Apply non-analytic corrections for LO-TO splitting in polar materials</li>
+                    <li>Develop complete Python workflows for phonon calculations</li>
+                </ul>
+            </section>
+
+            <!-- Introduction -->
+            <section class="intro">
+                <h2>Introduction</h2>
+                <p>
+                    First-principles phonon calculations have revolutionized materials science by enabling
+                    accurate prediction of vibrational properties without empirical parameters. Unlike classical
+                    force-field approaches, ab initio methods compute phonon properties directly from electronic
+                    structure calculations based on density functional theory (DFT).
+                </p>
+                <p>
+                    This chapter covers the two main approaches to first-principles phonon calculations:
+                    Density Functional Perturbation Theory (DFPT) and the frozen phonon (finite displacement) method.
+                    We will explore their theoretical foundations, practical implementations, advantages and
+                    limitations, and integration with modern software packages. Understanding these methods is
+                    essential for computational materials research and phonon engineering.
+                </p>
+            </section>
+
+            <!-- Section 1: Theoretical Foundations of DFPT -->
+            <section>
+                <h2>1.1 Density Functional Perturbation Theory (DFPT)</h2>
+
+                <h3>1.1.1 Motivation and Overview</h3>
+                <p>
+                    The dynamical matrix requires second derivatives of the total energy with respect to
+                    atomic displacements. A naive approach would use finite differences, requiring many
+                    self-consistent calculations for displaced configurations. DFPT provides an elegant
+                    alternative by computing the response of the electronic structure to perturbations
+                    analytically.
+                </p>
+
+                <div class="definition">
+                    <h4>Definition: DFPT Philosophy</h4>
+                    <p>
+                        DFPT calculates the response of the electronic ground state to external perturbations
+                        (atomic displacements, electric fields) self-consistently, yielding second-order
+                        derivatives of the energy directly without computing finite differences.
+                    </p>
+                </div>
+
+                <h3>1.1.2 Linear Response Theory</h3>
+                <p>
+                    Consider a perturbation to the Hamiltonian:
+                </p>
+                $$\hat{H} = \hat{H}_0 + \lambda \hat{V}$$
+                <p>
+                    where $\hat{H}_0$ is the unperturbed Hamiltonian and $\lambda$ is the perturbation strength.
+                    The electronic ground state energy can be expanded as:
+                </p>
+                $$E = E^{(0)} + \lambda E^{(1)} + \frac{1}{2}\lambda^2 E^{(2)} + \mathcal{O}(\lambda^3)$$
+
+                <p>The density matrix also expands perturbatively:</p>
+                $$\rho(\mathbf{r}) = \rho^{(0)}(\mathbf{r}) + \lambda \rho^{(1)}(\mathbf{r}) + \frac{1}{2}\lambda^2 \rho^{(2)}(\mathbf{r}) + \cdots$$
+
+                <h3>1.1.3 The 2n+1 Theorem</h3>
+
+                <div class="theorem">
+                    <h4>Theorem: 2n+1 Theorem (Wigner, 1935)</h4>
+                    <p>
+                        If the ground state wavefunction (or density) is known to order $n$ in the perturbation,
+                        the energy can be computed to order $2n+1$.
+                    </p>
+                    <p><strong>Corollary for Phonons:</strong></p>
+                    <p>
+                        Knowing only the unperturbed ground state ($n=0$), we can compute second-order energy
+                        derivatives exactly by solving for the first-order response of the wavefunction/density.
+                    </p>
+                </div>
+
+                <p><strong>Proof Sketch:</strong></p>
+                <p>
+                    The energy functional in DFT is:
+                </p>
+                $$E[\rho] = T[\rho] + \int V_\text{ext}(\mathbf{r})\rho(\mathbf{r})d\mathbf{r} + E_\text{H}[\rho] + E_\text{xc}[\rho]$$
+                <p>
+                    The second-order energy change involves:
+                </p>
+                $$E^{(2)} = \int \frac{\delta^2 E}{\delta\rho(\mathbf{r})\delta\rho(\mathbf{r}')} \rho^{(1)}(\mathbf{r})\rho^{(1)}(\mathbf{r}')d\mathbf{r}d\mathbf{r}' + \int \frac{\delta E}{\delta\rho(\mathbf{r})}\rho^{(2)}(\mathbf{r})d\mathbf{r}$$
+                <p>
+                    However, the variational principle ensures $\delta E/\delta\rho = 0$ at the ground state,
+                    so the second term vanishes! Thus, $E^{(2)}$ depends only on $\rho^{(1)}$, not $\rho^{(2)}$.
+                </p>
+
+                <h3>1.1.4 Self-Consistent Phonon Equation</h3>
+                <p>
+                    For an atomic displacement perturbation $\lambda u_{\kappa\alpha}$ at atom $\kappa$ in
+                    direction $\alpha$, the first-order change in the Kohn-Sham potential must be solved
+                    self-consistently:
+                </p>
+                $$\delta V_\text{KS}(\mathbf{r}) = \delta V_\text{ext}(\mathbf{r}) + \int \frac{\delta^2 E_\text{H}}{\delta\rho(\mathbf{r})\delta\rho(\mathbf{r}')} \delta\rho(\mathbf{r}')d\mathbf{r}' + \int \frac{\delta^2 E_\text{xc}}{\delta\rho(\mathbf{r})\delta\rho(\mathbf{r}')} \delta\rho(\mathbf{r}')d\mathbf{r}'$$
+
+                <p>where the first-order density change is:</p>
+                $$\delta\rho(\mathbf{r}) = \sum_{n,\mathbf{k}} f_{n\mathbf{k}} \left[\psi^*_{n\mathbf{k}}(\mathbf{r})\delta\psi_{n\mathbf{k}}(\mathbf{r}) + \text{c.c.}\right]$$
+
+                <p>The first-order wavefunctions satisfy:</p>
+                $$(\hat{H}_\text{KS}^{(0)} - \epsilon_{n\mathbf{k}})\delta\psi_{n\mathbf{k}} = -(\delta V_\text{KS} - \delta\epsilon_{n\mathbf{k}})\psi_{n\mathbf{k}}^{(0)}$$
+
+                <p>
+                    This is solved iteratively until self-consistency, yielding $\delta\rho$ and ultimately
+                    the force constant matrix via:
+                </p>
+                $$\Phi_{\alpha\beta}(\kappa, \kappa') = \frac{\partial^2 E}{\partial u_{\kappa\alpha} \partial u_{\kappa'\beta}}$$
+
+                <div class="note">
+                    <h4>Computational Advantage</h4>
+                    <p>
+                        DFPT requires solving the linear response equation for each phonon mode, which scales
+                        as $\mathcal{O}(N_\text{atoms} \times N_\text{q-points})$. For each $\mathbf{q}$-point,
+                        one self-consistent calculation yields the entire dynamical matrix, making it highly
+                        efficient for commensurate phonon wavevectors.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Section 2: Frozen Phonon Method -->
+            <section>
+                <h2>1.2 Frozen Phonon (Finite Displacement) Method</h2>
+
+                <h3>1.2.1 Conceptual Framework</h3>
+                <p>
+                    The frozen phonon method is conceptually simpler: displace atoms in a supercell by small
+                    amounts, compute forces (negative energy gradients) via DFT, and extract force constants
+                    from the finite-difference approximation.
+                </p>
+
+                <div class="definition">
+                    <h4>Definition: Frozen Phonon Approach</h4>
+                    <p>
+                        For a displacement $u_{\kappa'\alpha'}$ of atom $\kappa'$ in direction $\alpha'$,
+                        the force constant is approximated by:
+                    </p>
+                    $$\Phi_{\alpha\alpha'}(\kappa, \kappa') \approx -\frac{F_\alpha(\kappa; u_{\kappa'\alpha'}) - F_\alpha(\kappa; 0)}{u_{\kappa'\alpha'}}$$
+                    <p>
+                        where $F_\alpha(\kappa; u)$ is the force on atom $\kappa$ in direction $\alpha$
+                        when displacement $u$ is applied.
+                    </p>
+                </div>
+
+                <h3>1.2.2 Supercell Construction</h3>
+                <p>
+                    To compute force constants in real space, we construct a supercell of size
+                    $N_1 \times N_2 \times N_3$ unit cells. The supercell must be large enough to:
+                </p>
+                <ul>
+                    <li>Ensure force constants decay to zero at the supercell boundaries</li>
+                    <li>Avoid artificial interactions between periodic images</li>
+                    <li>Capture long-range interactions in polar materials</li>
+                </ul>
+
+                <div class="example">
+                    <h4>Example: Silicon (Diamond Structure)</h4>
+                    <p>
+                        For silicon with a diamond structure (2 atoms per primitive cell), a $3 \times 3 \times 3$
+                        supercell contains 54 atoms. With 3 Cartesian directions, we have 162 degrees of freedom.
+                        However, symmetry reduces the number of independent displacements dramatically.
+                    </p>
+                    <p>
+                        Typical procedure:
+                    </p>
+                    <ol>
+                        <li>Displace one atom in the supercell by $\pm\delta u$ in each Cartesian direction</li>
+                        <li>Compute forces on all atoms via DFT</li>
+                        <li>Apply central differences: $\Phi \approx [F(+\delta u) - F(-\delta u)]/(2\delta u)$</li>
+                        <li>Use symmetry to generate remaining force constants</li>
+                    </ol>
+                </div>
+
+                <h3>1.2.3 Displacement Magnitude</h3>
+                <p>
+                    The displacement magnitude $\delta u$ must be chosen carefully:
+                </p>
+                <ul>
+                    <li><strong>Too small:</strong> Numerical noise dominates, poor force accuracy</li>
+                    <li><strong>Too large:</strong> Anharmonic effects contaminate harmonic force constants</li>
+                    <li><strong>Optimal range:</strong> Typically 0.01 – 0.03 Å for most materials</li>
+                </ul>
+
+                <p>Higher-order finite differences can improve accuracy:</p>
+                $$\Phi \approx \frac{-F(+2\delta u) + 8F(+\delta u) - 8F(-\delta u) + F(-2\delta u)}{12\delta u} + \mathcal{O}(\delta u^4)$$
+
+                <h3>1.2.4 Workflow Diagram</h3>
+
+                <div class="mermaid">
+graph TD
+    A[Optimized Crystal Structure] --> B[Construct Supercell]
+    B --> C[Apply Symmetry Analysis]
+    C --> D[Generate Displacement Patterns]
+    D --> E{For Each Displacement}
+    E --> F[Run DFT SCF Calculation]
+    F --> G[Extract Forces on All Atoms]
+    G --> E
+    E --> H[Collect Force Constants]
+    H --> I[Apply Acoustic Sum Rule]
+    I --> J[Fourier Transform to q-space]
+    J --> K[Compute Phonon Dispersion]
+</div>
+
+                <h3>1.2.5 Advantages and Limitations</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Aspect</th>
+                            <th>Advantages</th>
+                            <th>Limitations</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Conceptual Simplicity</strong></td>
+                            <td>Intuitive, easy to understand and implement</td>
+                            <td>—</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Software Compatibility</strong></td>
+                            <td>Works with any DFT code (only needs forces)</td>
+                            <td>—</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Computational Cost</strong></td>
+                            <td>Can exploit symmetry to reduce calculations</td>
+                            <td>Requires many DFT runs for large supercells</td>
+                        </tr>
+                        <tr>
+                            <td><strong>q-point Sampling</strong></td>
+                            <td>Provides real-space force constants for all q</td>
+                            <td>Limited q-resolution by supercell size</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Numerical Accuracy</strong></td>
+                            <td>Higher-order finite differences available</td>
+                            <td>Sensitive to force convergence and $\delta u$</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Anharmonicity</strong></td>
+                            <td>Can extend to third/fourth-order force constants</td>
+                            <td>Harmonic approximation may break for large $\delta u$</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Section 3: DFPT vs Frozen Phonon Comparison -->
+            <section>
+                <h2>1.3 DFPT vs. Frozen Phonon: Detailed Comparison</h2>
+
+                <h3>1.3.1 Accuracy Considerations</h3>
+
+                <div class="theorem">
+                    <h4>Accuracy Comparison</h4>
+                    <p><strong>DFPT:</strong></p>
+                    <ul>
+                        <li>Exact within DFT for infinitesimal perturbations</li>
+                        <li>No finite-difference errors</li>
+                        <li>Limited by DFT functional approximations only</li>
+                    </ul>
+                    <p><strong>Frozen Phonon:</strong></p>
+                    <ul>
+                        <li>Finite-difference truncation error $\mathcal{O}(\delta u^2)$ or higher</li>
+                        <li>Requires tight force convergence (typically $< 10^{-5}$ eV/Å)</li>
+                        <li>Anharmonic contamination for large displacements</li>
+                    </ul>
+                </div>
+
+                <p>
+                    In practice, with careful convergence testing, both methods yield nearly identical results
+                    for harmonic phonon frequencies (differences $< 1$ cm$^{-1}$).
+                </p>
+
+                <h3>1.3.2 Computational Cost Analysis</h3>
+
+                <p>
+                    For a system with $N_\text{atoms}$ atoms per primitive cell and $N_\mathbf{q}$ q-points:
+                </p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Number of SCF Calculations</th>
+                            <th>Cost per Calculation</th>
+                            <th>Total Scaling</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>DFPT</strong></td>
+                            <td>$N_\mathbf{q}$ (one per q-point)</td>
+                            <td>$\sim 3 \times$ ground state</td>
+                            <td>$\mathcal{O}(N_\mathbf{q})$</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Frozen Phonon</strong></td>
+                            <td>$6N_\text{atoms}^{\text{super}}$ (symmetry-reduced)</td>
+                            <td>Standard ground state</td>
+                            <td>$\mathcal{O}(N_\text{atoms}^{\text{super}})$</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p><strong>Key Trade-offs:</strong></p>
+                <ul>
+                    <li><strong>Few q-points needed:</strong> DFPT is more efficient</li>
+                    <li><strong>Dense q-grid needed:</strong> Frozen phonon may be better (compute once, interpolate everywhere)</li>
+                    <li><strong>Large primitive cell:</strong> Frozen phonon often faster</li>
+                    <li><strong>Small primitive cell:</strong> DFPT typically faster</li>
+                </ul>
+
+                <h3>1.3.3 Special Cases and Best Practices</h3>
+
+                <div class="note">
+                    <h4>When to Use Each Method</h4>
+                    <p><strong>Prefer DFPT when:</strong></p>
+                    <ul>
+                        <li>Working with simple structures (1–4 atoms per cell)</li>
+                        <li>Need phonons at specific high-symmetry q-points</li>
+                        <li>Computing dielectric responses and Born charges</li>
+                        <li>Polar materials requiring non-analytic corrections</li>
+                    </ul>
+                    <p><strong>Prefer Frozen Phonon when:</strong></p>
+                    <ul>
+                        <li>Large primitive cells (> 10 atoms)</li>
+                        <li>Software doesn't support DFPT (e.g., some DFT codes)</li>
+                        <li>Need third/fourth-order anharmonic force constants</li>
+                        <li>Studying disordered or defect systems</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Section 4: Force Constant Calculation -->
+            <section>
+                <h2>1.4 Force Constant Calculation and Fourier Interpolation</h2>
+
+                <h3>1.4.1 Real-Space Force Constants</h3>
+                <p>
+                    Both DFPT and frozen phonon methods ultimately provide force constants in real space:
+                </p>
+                $$\Phi_{\alpha\beta}(\mathbf{R}_0 + \boldsymbol{\tau}_\kappa, \mathbf{R}_n + \boldsymbol{\tau}_{\kappa'})$$
+                <p>
+                    where $\mathbf{R}_n$ is a lattice vector, $\boldsymbol{\tau}_\kappa$ is the position of
+                    atom $\kappa$ within the unit cell, and $\alpha, \beta$ are Cartesian indices.
+                </p>
+
+                <p>
+                    Due to translational symmetry, force constants depend only on the relative lattice vector:
+                </p>
+                $$\Phi_{\alpha\beta}(\mathbf{R}_0 + \boldsymbol{\tau}_\kappa, \mathbf{R}_n + \boldsymbol{\tau}_{\kappa'}) = \Phi_{\alpha\beta}(\mathbf{R}_n; \kappa, \kappa')$$
+
+                <h3>1.4.2 Fourier Transform to q-Space</h3>
+                <p>
+                    The dynamical matrix at wavevector $\mathbf{q}$ is obtained via Fourier transform:
+                </p>
+                $$D_{\kappa\alpha,\kappa'\beta}(\mathbf{q}) = \frac{1}{\sqrt{M_\kappa M_{\kappa'}}} \sum_{\mathbf{R}_n} \Phi_{\alpha\beta}(\mathbf{R}_n; \kappa, \kappa') e^{i\mathbf{q}\cdot(\mathbf{R}_n + \boldsymbol{\tau}_{\kappa'} - \boldsymbol{\tau}_\kappa)}$$
+
+                <p>
+                    This allows computing phonons at any $\mathbf{q}$-point in the Brillouin zone from
+                    a finite set of real-space force constants.
+                </p>
+
+                <h3>1.4.3 Fourier Interpolation</h3>
+                <p>
+                    The frozen phonon method with an $N_1 \times N_2 \times N_3$ supercell directly yields
+                    force constants on a commensurate grid:
+                </p>
+                $$\mathbf{q} = \frac{m_1}{N_1}\mathbf{b}_1 + \frac{m_2}{N_2}\mathbf{b}_2 + \frac{m_3}{N_3}\mathbf{b}_3$$
+                <p>
+                    To obtain phonons at arbitrary $\mathbf{q}$, we use Fourier interpolation:
+                </p>
+                <ol>
+                    <li>Compute real-space force constants from supercell displacements</li>
+                    <li>Fourier transform to get $D(\mathbf{q})$ at any desired $\mathbf{q}$</li>
+                    <li>Diagonalize to obtain $\omega_j(\mathbf{q})$ and eigenvectors</li>
+                </ol>
+
+                <div class="note">
+                    <h4>Convergence with Supercell Size</h4>
+                    <p>
+                        The accuracy of Fourier interpolation depends on how well the supercell captures
+                        the range of force constants. If $\Phi(\mathbf{R})$ has not decayed to zero at
+                        the supercell boundary, phonon frequencies will show unphysical oscillations.
+                        Always test convergence by increasing supercell size until phonon frequencies
+                        change by less than your target accuracy (e.g., 1 cm$^{-1}$).
+                    </p>
+                </div>
+
+                <h3>1.4.4 Acoustic Sum Rule Enforcement</h3>
+                <p>
+                    Numerical errors can violate the acoustic sum rule:
+                </p>
+                $$\sum_{\mathbf{R}_n, \kappa'} \Phi_{\alpha\beta}(\mathbf{R}_n; \kappa, \kappa') = 0$$
+                <p>
+                    This results in spurious imaginary frequencies at the $\Gamma$ point. Post-processing
+                    tools (e.g., Phonopy) can enforce the sum rule by symmetrizing force constants:
+                </p>
+                $$\Phi^\text{corrected}_{\alpha\beta}(0; \kappa, \kappa) = -\sum_{\mathbf{R}_n \neq 0, \kappa'} \Phi_{\alpha\beta}(\mathbf{R}_n; \kappa, \kappa')$$
+            </section>
+
+            <!-- Section 5: Software Tools -->
+            <section>
+                <h2>1.5 Modern Software Tools</h2>
+
+                <h3>1.5.1 Quantum ESPRESSO (PHonon Package)</h3>
+                <p>
+                    Quantum ESPRESSO provides the <code>PHonon</code> package implementing DFPT for
+                    phonon calculations. It uses plane-wave basis sets and pseudopotentials.
+                </p>
+
+                <div class="code-title">Quantum ESPRESSO: Basic Phonon Workflow</div>
+                <div class="code-example"># Step 1: Ground state SCF calculation
+pw.x < scf.in > scf.out
+
+# scf.in structure:
+&control
+    calculation = 'scf'
+    prefix = 'silicon'
+    outdir = './tmp/'
+/
+&system
+    ibrav = 2, celldm(1) = 10.26
+    nat = 2, ntyp = 1
+    ecutwfc = 60.0
+/
+&electrons
+    conv_thr = 1.0d-10
+/
+ATOMIC_SPECIES
+ Si  28.086  Si.pbe-n-rrkjus_psl.1.0.0.UPF
+ATOMIC_POSITIONS (alat)
+ Si 0.00 0.00 0.00
+ Si 0.25 0.25 0.25
+K_POINTS (automatic)
+ 12 12 12 0 0 0
+
+# Step 2: Phonon calculation at Gamma point
+ph.x < ph.in > ph.out
+
+# ph.in:
+&inputph
+    prefix = 'silicon'
+    outdir = './tmp/'
+    fildyn = 'silicon.dyn'
+    tr2_ph = 1.0d-14
+/
+0.0 0.0 0.0  ! q-point (Gamma)
+
+# Step 3: Compute phonon dispersion along high-symmetry path
+# Use q2r.x and matdyn.x for Fourier interpolation</div>
+
+                <h3>1.5.2 VASP with Phonopy</h3>
+                <p>
+                    VASP does not include DFPT for phonons, so the frozen phonon method with Phonopy is standard.
+                </p>
+
+                <div class="code-title">VASP + Phonopy: Complete Workflow</div>
+                <div class="code-example">#!/bin/bash
+# Phonon calculation workflow with VASP and Phonopy
+
+# Step 1: Structure optimization
+# Run VASP with ISIF=3 to optimize cell and atomic positions
+# (INCAR, POSCAR, POTCAR, KPOINTS prepared)
+
+# Step 2: Create SPOSCAR (supercell) with Phonopy
+phonopy -d --dim="3 3 3" -c POSCAR
+
+# This creates:
+#   SPOSCAR: supercell structure
+#   phonopy_disp.yaml: displacement information
+#   POSCAR-{001,002,...}: displaced configurations
+
+# Step 3: Calculate forces for each displacement
+for i in POSCAR-{001..027}; do
+    mkdir disp-${i##*-}
+    cp $i disp-${i##*-}/POSCAR
+    cd disp-${i##*-}
+    # Copy INCAR, POTCAR, KPOINTS
+    # INCAR must have: NSW=0, IBRION=-1, PREC=Accurate
+    mpirun -np 16 vasp_std > log
+    cd ..
+done
+
+# Step 4: Collect forces and create FORCE_SETS
+phonopy -f disp-*/vasprun.xml
+
+# Step 5: Compute phonon band structure
+# Create band.conf:
+cat > band.conf << EOF
+ATOM_NAME = Si
+DIM = 3 3 3
+BAND = 0.5 0.5 0.5  0.0 0.0 0.0  0.5 0.0 0.5
+BAND_POINTS = 101
+EOF
+
+phonopy -p band.conf
+# Generates band.yaml and band.pdf</div>
+
+                <h3>1.5.3 ABINIT DFPT</h3>
+                <p>
+                    ABINIT has comprehensive DFPT implementation including electric field perturbations
+                    for Born effective charges and dielectric tensors.
+                </p>
+
+                <div class="code-title">ABINIT: Phonon Calculation Example</div>
+                <div class="code-example"># Dataset 1: Ground state
+ndtset 2
+jdtset 1 2
+
+# Common parameters
+nband 8
+ecut 30.0
+nstep 100
+toldfe 1.0d-10
+
+# Dataset 1: Ground state SCF
+kptopt1 1
+ngkpt1 8 8 8
+
+# Dataset 2: DFPT phonon calculation
+kptopt2 3
+ngkpt2 8 8 8
+qpt2 0.25 0.0 0.0  # Q-point for phonon
+rfphon2 1
+rfatpol2 1 2
+rfdir2 1 1 1
+tolvrs2 1.0d-10</div>
+
+                <h3>1.5.4 Phonopy: Universal Post-Processing</h3>
+                <p>
+                    Phonopy is a Python-based tool that interfaces with multiple DFT codes (VASP, Quantum ESPRESSO,
+                    ABINIT, CASTEP, etc.) for phonon analysis.
+                </p>
+
+                <div class="code-title">Python: Phonopy API Usage</div>
+                <div class="code-example">#!/usr/bin/env python
+"""
+Phonopy API example: Load force constants and compute phonon DOS
+"""
+from phonopy import Phonopy
+from phonopy.interface.vasp import read_vasp
+from phonopy.file_IO import parse_FORCE_SETS, parse_BORN
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Read crystal structure
+unitcell = read_vasp("POSCAR")
+
+# Create Phonopy object
+phonon = Phonopy(unitcell,
+                 supercell_matrix=[[3, 0, 0],
+                                   [0, 3, 0],
+                                   [0, 0, 3]])
+
+# Load force constants
+force_sets = parse_FORCE_SETS()
+phonon.dataset = force_sets
+phonon.produce_force_constants()
+
+# For polar materials: load Born charges and dielectric tensor
+try:
+    nac_params = parse_BORN(phonon.primitive, filename="BORN")
+    phonon.nac_params = nac_params
+except FileNotFoundError:
+    print("BORN file not found, skipping non-analytic corrections")
+
+# Set q-mesh for DOS calculation
+mesh = [20, 20, 20]
+phonon.run_mesh(mesh)
+phonon.run_total_dos()
+
+# Plot phonon DOS
+plt.figure(figsize=(8, 6))
+plt.plot(phonon.total_dos.frequency_points,
+         phonon.total_dos.dos,
+         linewidth=2)
+plt.xlabel('Frequency (THz)', fontsize=12)
+plt.ylabel('Density of States', fontsize=12)
+plt.title('Phonon Density of States', fontsize=14)
+plt.grid(True, alpha=0.3)
+plt.xlim(0, None)
+plt.tight_layout()
+plt.savefig('phonon_dos.png', dpi=150)
+plt.show()
+
+# Compute thermal properties
+temperatures = np.arange(0, 1001, 10)
+phonon.run_thermal_properties(temperatures)
+tp = phonon.get_thermal_properties_dict()
+
+# Plot heat capacity
+plt.figure(figsize=(8, 6))
+plt.plot(tp['temperatures'], tp['heat_capacity'], 'r-', linewidth=2)
+plt.xlabel('Temperature (K)', fontsize=12)
+plt.ylabel('Heat Capacity (J/K/mol)', fontsize=12)
+plt.title('Phonon Heat Capacity', fontsize=14)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('heat_capacity.png', dpi=150)
+plt.show()</div>
+            </section>
+
+            <!-- Section 6: Convergence Parameters -->
+            <section>
+                <h2>1.6 Convergence Parameters</h2>
+
+                <h3>1.6.1 Electronic Structure Convergence</h3>
+                <p>
+                    Phonon calculations require tighter convergence than standard DFT calculations:
+                </p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Standard DFT</th>
+                            <th>Phonon Calculations</th>
+                            <th>Rationale</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Energy cutoff</strong></td>
+                            <td>Converged to ~1 meV</td>
+                            <td>Converged to ~0.1 meV</td>
+                            <td>Forces are energy derivatives</td>
+                        </tr>
+                        <tr>
+                            <td><strong>k-point grid</strong></td>
+                            <td>0.03 Å$^{-1}$ spacing</td>
+                            <td>0.02 Å$^{-1}$ spacing or denser</td>
+                            <td>Force convergence requires dense k-mesh</td>
+                        </tr>
+                        <tr>
+                            <td><strong>SCF threshold</strong></td>
+                            <td>$10^{-6}$ eV</td>
+                            <td>$10^{-8}$ – $10^{-10}$ eV</td>
+                            <td>Tight convergence for accurate forces</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Force threshold</strong></td>
+                            <td>$10^{-3}$ eV/Å</td>
+                            <td>$10^{-5}$ – $10^{-6}$ eV/Å</td>
+                            <td>Essential for frozen phonon method</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>1.6.2 q-Point Sampling (DFPT)</h3>
+                <p>
+                    In DFPT, each q-point requires a separate calculation. The required q-mesh depends on:
+                </p>
+                <ul>
+                    <li><strong>Purpose:</strong> Band structure (high-symmetry path) vs. DOS (dense grid)</li>
+                    <li><strong>Force constant range:</strong> Long-range interactions need dense q-mesh</li>
+                    <li><strong>Material type:</strong> Metals require denser meshes than insulators</li>
+                </ul>
+
+                <p>Typical q-meshes:</p>
+                <ul>
+                    <li><strong>Band structure:</strong> 20–50 points along high-symmetry paths</li>
+                    <li><strong>DOS:</strong> $20 \times 20 \times 20$ to $40 \times 40 \times 40$ grids</li>
+                    <li><strong>Thermal properties:</strong> Same as DOS requirements</li>
+                </ul>
+
+                <h3>1.6.3 Supercell Size (Frozen Phonon)</h3>
+                <p>
+                    Convergence testing procedure:
+                </p>
+                <ol>
+                    <li>Start with $2 \times 2 \times 2$ supercell</li>
+                    <li>Calculate phonon frequencies at several q-points</li>
+                    <li>Increase to $3 \times 3 \times 3$, then $4 \times 4 \times 4$</li>
+                    <li>Check if frequencies change by less than target accuracy (e.g., 1 cm$^{-1}$ or 0.03 THz)</li>
+                    <li>If not converged, continue increasing until convergence</li>
+                </ol>
+
+                <div class="note">
+                    <h4>Material-Dependent Convergence</h4>
+                    <ul>
+                        <li><strong>Covalent materials (Si, C):</strong> $3 \times 3 \times 3$ often sufficient</li>
+                        <li><strong>Ionic materials (NaCl, MgO):</strong> $4 \times 4 \times 4$ or larger (long-range Coulomb)</li>
+                        <li><strong>Metals:</strong> $5 \times 5 \times 5$ or larger (screening length)</li>
+                        <li><strong>Layered materials (graphene, MoS$_2$):</strong> Anisotropic supercells (e.g., $5 \times 5 \times 2$)</li>
+                    </ul>
+                </div>
+
+                <h3>1.6.4 Displacement Magnitude Convergence</h3>
+                <p>
+                    For frozen phonon calculations, test displacement magnitude:
+                </p>
+
+                <div class="code-title">Python: Displacement Convergence Test</div>
+                <div class="code-example">import numpy as np
+import matplotlib.pyplot as plt
+
+# Test different displacement magnitudes
+displacements = np.array([0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05])  # Angstrom
+
+# Example: phonon frequency at Gamma point (TO mode) for different displacements
+# (In practice, these would come from actual DFT calculations)
+frequencies_example = np.array([15.2, 15.25, 15.28, 15.29, 15.30, 15.30, 15.35, 15.45])  # THz
+
+plt.figure(figsize=(8, 6))
+plt.plot(displacements, frequencies_example, 'o-', linewidth=2, markersize=8)
+plt.xlabel('Displacement Magnitude (Å)', fontsize=12)
+plt.ylabel('Phonon Frequency (THz)', fontsize=12)
+plt.title('Convergence of Phonon Frequency with Displacement', fontsize=14)
+plt.grid(True, alpha=0.3)
+plt.axhline(y=15.30, color='r', linestyle='--', linewidth=1,
+            label='Converged value')
+plt.legend(fontsize=11)
+plt.tight_layout()
+plt.savefig('displacement_convergence.png', dpi=150)
+plt.show()
+
+# Optimal displacement: plateau region (0.015-0.03 Å typical)</div>
+            </section>
+
+            <!-- Section 7: LO-TO Splitting -->
+            <section>
+                <h2>1.7 LO-TO Splitting and Non-Analytic Corrections</h2>
+
+                <h3>1.7.1 Physical Origin</h3>
+                <p>
+                    In polar materials (ionic crystals, polar semiconductors), long-range Coulomb interactions
+                    between ions cause longitudinal optical (LO) and transverse optical (TO) phonons to split
+                    at the $\Gamma$ point ($\mathbf{q} \to 0$).
+                </p>
+
+                <p>
+                    The dynamical matrix has a non-analytic term proportional to $\mathbf{q}\mathbf{q}^T/|\mathbf{q}|^2$:
+                </p>
+                $$D^{\text{NA}}_{\kappa\alpha,\kappa'\beta}(\mathbf{q}) = \frac{4\pi}{\Omega\epsilon_\infty} \frac{(\mathbf{q} \cdot \mathbf{Z}^*_\kappa)_\alpha (\mathbf{q} \cdot \mathbf{Z}^*_{\kappa'})_\beta}{|\mathbf{q}|^2}$$
+
+                <p>where:</p>
+                <ul>
+                    <li>$\Omega$ is the unit cell volume</li>
+                    <li>$\epsilon_\infty$ is the high-frequency dielectric tensor</li>
+                    <li>$\mathbf{Z}^*_\kappa$ is the Born effective charge tensor of atom $\kappa$</li>
+                </ul>
+
+                <h3>1.7.2 Direction Dependence</h3>
+                <p>
+                    The non-analytic term depends on the direction of $\mathbf{q}$ as $\mathbf{q} \to 0$,
+                    leading to different limiting frequencies for different directions:
+                </p>
+                $$\lim_{\mathbf{q} \to 0} \omega(\mathbf{q}) \neq \omega(\Gamma)$$
+                <p>
+                    This causes discontinuities in phonon dispersion plots near $\Gamma$ unless properly handled.
+                </p>
+
+                <div class="example">
+                    <h4>Example: GaAs (Zinc Blende Structure)</h4>
+                    <p>
+                        GaAs has two atoms per primitive cell (Ga, As), both with significant Born charges.
+                        At the $\Gamma$ point:
+                    </p>
+                    <ul>
+                        <li><strong>TO mode:</strong> $\omega_{\text{TO}}(\Gamma) \approx 8.0$ THz (transverse motion)</li>
+                        <li><strong>LO mode:</strong> $\omega_{\text{LO}}(\Gamma) \approx 8.8$ THz (longitudinal motion)</li>
+                        <li><strong>Splitting:</strong> $\Delta\omega \approx 0.8$ THz due to macroscopic electric field</li>
+                    </ul>
+                </div>
+
+                <h3>1.7.3 Computing Born Charges and Dielectric Tensor</h3>
+                <p>
+                    DFPT can compute Born effective charges and dielectric tensors directly:
+                </p>
+
+                <div class="code-title">Quantum ESPRESSO: Born Charges Calculation</div>
+                <div class="code-example"># ph.in for Born charges and dielectric tensor
+&inputph
+    prefix = 'gaas'
+    outdir = './tmp/'
+    fildyn = 'gaas.dyn'
+    epsil = .true.     ! Compute dielectric tensor
+    zeu = .true.       ! Compute Born effective charges
+    tr2_ph = 1.0d-14
+/
+0.0 0.0 0.0
+
+# Output contains:
+#   - High-frequency dielectric tensor epsilon_infinity
+#   - Born effective charge tensors Z* for each atom</div>
+
+                <p>For VASP (frozen phonon approach), use DFPT for dielectric properties:</p>
+                <div class="code-title">VASP: BORN File for Phonopy</div>
+                <div class="code-example"># BORN file format for Phonopy
+# Line 1: Default (scaling factors, usually 1.0)
+default
+# Lines 2-4: High-frequency dielectric tensor (3x3)
+12.40  0.00  0.00
+ 0.00 12.40  0.00
+ 0.00  0.00 12.40
+# Subsequent lines: Born effective charge tensor for each atom (3x3)
+# Atom 1 (Ga):
+ 2.12  0.00  0.00
+ 0.00  2.12  0.00
+ 0.00  0.00  2.12
+# Atom 2 (As):
+-2.12  0.00  0.00
+ 0.00 -2.12  0.00
+ 0.00  0.00 -2.12</div>
+
+                <h3>1.7.4 Implementing Non-Analytic Corrections</h3>
+
+                <div class="code-title">Python: Non-Analytic Correction in Dynamical Matrix</div>
+                <div class="code-example">import numpy as np
+
+def add_nac_correction(D, q, born_charges, epsilon_inf, volume, masses):
+    """
+    Add non-analytic correction to dynamical matrix for polar materials
+
+    Parameters:
+    -----------
+    D : ndarray (3N, 3N)
+        Dynamical matrix without NAC
+    q : ndarray (3,)
+        Wavevector (Cartesian coordinates)
+    born_charges : list of ndarray (N x 3 x 3)
+        Born effective charge tensors for each atom
+    epsilon_inf : ndarray (3, 3)
+        High-frequency dielectric tensor
+    volume : float
+        Unit cell volume
+    masses : ndarray (N,)
+        Atomic masses
+
+    Returns:
+    --------
+    D_corrected : ndarray (3N, 3N)
+        Dynamical matrix with NAC included
+    """
+    N_atoms = len(masses)
+    q_norm = np.linalg.norm(q)
+
+    if q_norm < 1e-8:
+        # At Gamma, use a small finite q in desired direction
+        # Or handle separately for each approach direction
+        return D
+
+    # q-direction unit vector
+    q_hat = q / q_norm
+
+    # Inverse dielectric tensor
+    epsilon_inv = np.linalg.inv(epsilon_inf)
+
+    # NAC contribution (4π/Ω in atomic units)
+    prefactor = 4 * np.pi / volume
+
+    D_nac = np.zeros_like(D, dtype=complex)
+
+    for kappa in range(N_atoms):
+        for kappa_p in range(N_atoms):
+            # (q · Z*_κ)
+            qZ_kappa = np.dot(q, born_charges[kappa])
+            # (q · Z*_κ')
+            qZ_kappa_p = np.dot(q, born_charges[kappa_p])
+
+            # Construct 3x3 block
+            for alpha in range(3):
+                for beta in range(3):
+                    i = 3 * kappa + alpha
+                    j = 3 * kappa_p + beta
+
+                    D_nac[i, j] = prefactor / (q_norm**2) * \
+                                  qZ_kappa[alpha] * qZ_kappa_p[beta] / \
+                                  np.sqrt(masses[kappa] * masses[kappa_p])
+
+    return D + D_nac
+
+# Example usage
+# D = construct_dynamical_matrix(q, force_constants, masses, ...)
+# D_with_nac = add_nac_correction(D, q, born_charges, epsilon_inf, volume, masses)</div>
+            </section>
+
+            <!-- Section 8: Complete Python Workflow -->
+            <section>
+                <h2>1.8 Complete Python Workflow Example</h2>
+
+                <h3>1.8.1 End-to-End Phonon Calculation</h3>
+                <p>
+                    Here we present a comprehensive example combining all concepts: force constant loading,
+                    Fourier interpolation, NAC corrections, and band structure plotting.
+                </p>
+
+                <div class="code-title">Python: Complete Phonon Calculation Workflow</div>
+                <div class="code-example">#!/usr/bin/env python
+"""
+Complete phonon calculation workflow for silicon
+Demonstrates: Force constants, Fourier interpolation, band structure
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from phonopy import Phonopy
+from phonopy.interface.vasp import read_vasp
+from phonopy.file_IO import parse_FORCE_SETS
+from phonopy.structure.atoms import PhonopyAtoms
+
+def create_silicon_structure():
+    """Create silicon crystal structure (diamond)"""
+    lattice = [[0, 2.73, 2.73],
+               [2.73, 0, 2.73],
+               [2.73, 2.73, 0]]  # FCC lattice vectors, Angstrom
+
+    positions = [[0, 0, 0],
+                 [0.25, 0.25, 0.25]]  # Diamond structure
+
+    atoms = PhonopyAtoms(symbols=['Si', 'Si'],
+                         cell=lattice,
+                         scaled_positions=positions)
+    return atoms
+
+def compute_band_structure(phonon, path_labels, num_points=51):
+    """
+    Compute phonon band structure along high-symmetry path
+
+    Parameters:
+    -----------
+    phonon : Phonopy object
+    path_labels : list of tuples
+        [(label, q-point), ...] defining high-symmetry path
+    num_points : int
+        Number of points per segment
+
+    Returns:
+    --------
+    distances : ndarray
+        Cumulative distance along path
+    frequencies : ndarray (n_bands, n_points)
+        Phonon frequencies in THz
+    """
+    # Extract path
+    labels = [label for label, _ in path_labels]
+    qpoints = [q for _, q in path_labels]
+
+    # Generate path
+    bands = []
+    for i in range(len(qpoints) - 1):
+        segment = np.linspace(qpoints[i], qpoints[i+1], num_points)
+        if i > 0:
+            segment = segment[1:]  # Avoid double-counting
+        bands.append(segment)
+
+    qpoints_path = np.vstack(bands)
+
+    # Compute phonon frequencies
+    phonon.run_band_structure(qpoints_path, is_band_connection=False)
+    band_dict = phonon.get_band_structure_dict()
+
+    frequencies = band_dict['frequencies']
+    distances = band_dict['distances']
+
+    return distances, frequencies, labels, [sum(len(b)-1 for b in bands[:i])
+                                           for i in range(len(bands)+1)]
+
+def plot_band_structure(distances, frequencies, labels, label_positions):
+    """Plot phonon band structure"""
+    fig, ax = plt.subplots(figsize=(10, 7))
+
+    # Plot all branches
+    for band in range(frequencies.shape[1]):
+        ax.plot(distances, frequencies[:, band], 'b-', linewidth=1.5)
+
+    # High-symmetry point labels
+    ax.set_xlim(distances[0], distances[-1])
+    ax.set_xticks([distances[pos] for pos in label_positions])
+    ax.set_xticklabels(labels)
+
+    # Vertical lines at high-symmetry points
+    for pos in label_positions[1:-1]:
+        ax.axvline(x=distances[pos], color='k', linewidth=0.5, linestyle='--')
+
+    ax.set_ylabel('Frequency (THz)', fontsize=14)
+    ax.set_title('Silicon Phonon Band Structure', fontsize=16, fontweight='bold')
+    ax.grid(True, alpha=0.3, axis='y')
+    ax.set_ylim(0, None)
+
+    plt.tight_layout()
+    plt.savefig('silicon_phonon_bands.png', dpi=200)
+    plt.show()
+
+def main():
+    """Main workflow"""
+    print("=== Silicon Phonon Calculation Workflow ===\n")
+
+    # Step 1: Create structure
+    print("Step 1: Creating silicon crystal structure...")
+    unitcell = create_silicon_structure()
+
+    # Step 2: Initialize Phonopy
+    print("Step 2: Initializing Phonopy with 3x3x3 supercell...")
+    phonon = Phonopy(unitcell,
+                     supercell_matrix=[[3, 0, 0],
+                                       [0, 3, 0],
+                                       [0, 0, 3]])
+
+    # Step 3: Load force constants
+    # (In practice, this would come from VASP/QE calculations)
+    print("Step 3: Loading force constants from FORCE_SETS...")
+    try:
+        force_sets = parse_FORCE_SETS()
+        phonon.dataset = force_sets
+        phonon.produce_force_constants()
+        print("  ✓ Force constants loaded successfully")
+    except FileNotFoundError:
+        print("  ✗ FORCE_SETS not found. Using example for demonstration.")
+        # For demonstration, use Phonopy's built-in example or skip
+        return
+
+    # Step 4: Verify acoustic sum rule
+    print("\nStep 4: Checking acoustic sum rule at Gamma...")
+    phonon.run_qpoints([[0, 0, 0]])
+    freqs_gamma = phonon.get_qpoints_dict()['frequencies'][0]
+    acoustic_freqs = freqs_gamma[:3]
+    print(f"  Acoustic mode frequencies at Gamma: {acoustic_freqs} THz")
+    if np.all(np.abs(acoustic_freqs) < 0.01):
+        print("  ✓ Acoustic sum rule satisfied")
+    else:
+        print("  ⚠ Acoustic sum rule may be violated. Consider enforcement.")
+
+    # Step 5: Compute band structure
+    print("\nStep 5: Computing phonon band structure...")
+    path_labels = [
+        ('L', [0.5, 0.5, 0.5]),
+        ('Γ', [0.0, 0.0, 0.0]),
+        ('X', [0.5, 0.0, 0.5]),
+        ('K', [0.375, 0.375, 0.75]),
+        ('Γ', [0.0, 0.0, 0.0])
+    ]
+
+    distances, frequencies, labels, label_pos = compute_band_structure(
+        phonon, path_labels, num_points=51)
+
+    print(f"  ✓ Computed {frequencies.shape[0]} q-points, {frequencies.shape[1]} bands")
+
+    # Step 6: Plot
+    print("\nStep 6: Plotting band structure...")
+    plot_band_structure(distances, frequencies, labels, label_pos)
+    print("  ✓ Plot saved to silicon_phonon_bands.png")
+
+    # Step 7: Compute DOS
+    print("\nStep 7: Computing phonon density of states...")
+    phonon.run_mesh([20, 20, 20])
+    phonon.run_total_dos()
+
+    dos_freq = phonon.total_dos.frequency_points
+    dos = phonon.total_dos.dos
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(dos_freq, dos, 'r-', linewidth=2)
+    plt.fill_between(dos_freq, dos, alpha=0.3, color='red')
+    plt.xlabel('Frequency (THz)', fontsize=12)
+    plt.ylabel('Density of States', fontsize=12)
+    plt.title('Silicon Phonon DOS', fontsize=14)
+    plt.grid(True, alpha=0.3)
+    plt.xlim(0, None)
+    plt.tight_layout()
+    plt.savefig('silicon_phonon_dos.png', dpi=150)
+    plt.show()
+    print("  ✓ DOS saved to silicon_phonon_dos.png")
+
+    # Step 8: Thermal properties
+    print("\nStep 8: Computing thermal properties...")
+    temperatures = np.arange(0, 1001, 10)
+    phonon.run_thermal_properties(temperatures)
+    tp = phonon.get_thermal_properties_dict()
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+    # Heat capacity
+    ax1.plot(tp['temperatures'], tp['heat_capacity'], 'b-', linewidth=2)
+    ax1.set_xlabel('Temperature (K)', fontsize=12)
+    ax1.set_ylabel('Heat Capacity (J/K/mol)', fontsize=12)
+    ax1.set_title('Phonon Heat Capacity', fontsize=13)
+    ax1.grid(True, alpha=0.3)
+
+    # Free energy
+    ax2.plot(tp['temperatures'], tp['free_energy'], 'g-', linewidth=2)
+    ax2.set_xlabel('Temperature (K)', fontsize=12)
+    ax2.set_ylabel('Free Energy (kJ/mol)', fontsize=12)
+    ax2.set_title('Phonon Free Energy', fontsize=13)
+    ax2.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('silicon_thermal_properties.png', dpi=150)
+    plt.show()
+    print("  ✓ Thermal properties saved")
+
+    print("\n=== Workflow Complete ===")
+
+if __name__ == '__main__':
+    main()</div>
+            </section>
+
+            <!-- Section 9: Best Practices and Common Pitfalls -->
+            <section>
+                <h2>1.9 Best Practices and Common Pitfalls</h2>
+
+                <h3>1.9.1 Best Practices Checklist</h3>
+
+                <div class="note">
+                    <h4>Essential Best Practices</h4>
+                    <ol>
+                        <li><strong>Always perform convergence tests</strong>
+                            <ul>
+                                <li>k-point mesh, energy cutoff, SCF threshold</li>
+                                <li>Supercell size (frozen phonon) or q-mesh (DFPT)</li>
+                                <li>Displacement magnitude (frozen phonon)</li>
+                            </ul>
+                        </li>
+                        <li><strong>Verify acoustic sum rule</strong>
+                            <ul>
+                                <li>Check that 3 acoustic modes have $\omega(\Gamma) \approx 0$</li>
+                                <li>Use symmetry to reduce numerical errors</li>
+                                <li>Apply post-processing corrections if needed</li>
+                            </ul>
+                        </li>
+                        <li><strong>Use appropriate pseudopotentials/PAW</strong>
+                            <ul>
+                                <li>Validated for phonon calculations (check literature)</li>
+                                <li>Include semicore states if necessary (e.g., Ga 3d)</li>
+                                <li>Test different pseudopotentials for consistency</li>
+                            </ul>
+                        </li>
+                        <li><strong>Handle polar materials carefully</strong>
+                            <ul>
+                                <li>Compute Born charges and dielectric tensor</li>
+                                <li>Apply non-analytic corrections for LO-TO splitting</li>
+                                <li>Use BORN file in Phonopy for correct dispersions</li>
+                            </ul>
+                        </li>
+                        <li><strong>Validate against experiments or literature</strong>
+                            <ul>
+                                <li>Compare key phonon frequencies to Raman/IR spectra</li>
+                                <li>Check elastic constants from phonon dispersion slopes</li>
+                                <li>Verify thermal properties against calorimetry data</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </div>
+
+                <h3>1.9.2 Common Pitfalls to Avoid</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pitfall</th>
+                            <th>Symptom</th>
+                            <th>Solution</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Imaginary frequencies everywhere</strong></td>
+                            <td>Negative eigenvalues across entire BZ</td>
+                            <td>Structure not at equilibrium; re-optimize geometry with tight thresholds</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Imaginary acoustic modes at Γ</strong></td>
+                            <td>$\omega^2 < 0$ for acoustic modes</td>
+                            <td>Acoustic sum rule violated; enforce symmetry or use tighter convergence</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Missing LO-TO splitting</strong></td>
+                            <td>LO and TO degenerate at Γ in polar material</td>
+                            <td>Apply non-analytic corrections (BORN file)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Discontinuous bands</strong></td>
+                            <td>Jumps in phonon dispersion</td>
+                            <td>Supercell too small (frozen phonon) or band connection issues</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Inconsistent frequencies</strong></td>
+                            <td>Different software/methods give different results</td>
+                            <td>Check unit conventions (THz vs. cm$^{-1}$), convergence, mass conventions</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Huge computational cost</strong></td>
+                            <td>Calculations take weeks</td>
+                            <td>Exploit symmetry, use coarser initial mesh, consider DFPT vs. frozen phonon</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>1.9.3 Debugging Imaginary Frequencies</h3>
+
+                <div class="code-title">Python: Diagnostic Tool for Imaginary Frequencies</div>
+                <div class="code-example">import numpy as np
+from phonopy import Phonopy
+
+def diagnose_imaginary_frequencies(phonon, tolerance=1e-3):
+    """
+    Diagnose imaginary phonon frequencies and suggest fixes
+
+    Parameters:
+    -----------
+    phonon : Phonopy object
+    tolerance : float
+        Threshold for identifying imaginary frequencies (THz)
+    """
+    print("=== Imaginary Frequency Diagnostics ===\n")
+
+    # Check Gamma point
+    phonon.run_qpoints([[0, 0, 0]])
+    freqs_gamma = phonon.get_qpoints_dict()['frequencies'][0]
+
+    imaginary_mask = freqs_gamma < -tolerance
+    n_imaginary = np.sum(imaginary_mask)
+
+    print(f"Gamma point frequencies: {freqs_gamma} THz")
+    print(f"Number of imaginary modes: {n_imaginary}")
+
+    if n_imaginary == 0:
+        print("✓ No imaginary frequencies at Gamma\n")
+    elif n_imaginary <= 3:
+        print("⚠ Acoustic modes may be slightly imaginary (numerical error)")
+        print("  → Check acoustic sum rule enforcement")
+        print(f"  → Imaginary frequencies: {freqs_gamma[imaginary_mask]}\n")
+    else:
+        print("✗ Significant imaginary frequencies detected!")
+        print("  Possible causes:")
+        print("  1. Structure not fully optimized (forces > 1e-5 eV/Å)")
+        print("  2. Phonon instability (material unstable at 0K)")
+        print("  3. Numerical errors in force constants")
+        print("  4. Supercell too small (frozen phonon method)")
+        print("  5. k-point mesh too coarse in DFT calculations\n")
+
+    # Check a few other q-points
+    test_qpoints = [[0.1, 0.1, 0.1], [0.5, 0.5, 0.5], [0.5, 0.0, 0.5]]
+    phonon.run_qpoints(test_qpoints)
+    all_freqs = phonon.get_qpoints_dict()['frequencies']
+
+    for i, (q, freqs) in enumerate(zip(test_qpoints, all_freqs)):
+        n_imag = np.sum(freqs < -tolerance)
+        if n_imag > 0:
+            print(f"q = {q}: {n_imag} imaginary modes")
+            print(f"  Min frequency: {freqs.min():.3f} THz")
+
+    # Overall assessment
+    all_imaginary = np.sum(all_freqs < -tolerance)
+    total_modes = all_freqs.size
+
+    print(f"\nOverall: {all_imaginary}/{total_modes} imaginary modes ({100*all_imaginary/total_modes:.1f}%)")
+
+    if all_imaginary == 0:
+        print("✓ All frequencies real and positive")
+    elif all_imaginary < 0.05 * total_modes:
+        print("⚠ Minor imaginary frequencies, likely numerical")
+    else:
+        print("✗ Significant instability or calculation error")
+
+# Usage:
+# diagnose_imaginary_frequencies(phonon)</div>
+            </section>
+
+            <!-- Summary -->
+            <section>
+                <h2>Summary</h2>
+                <p>
+                    This chapter provided a comprehensive introduction to first-principles phonon calculations,
+                    covering both theoretical foundations and practical implementations:
+                </p>
+                <ul>
+                    <li><strong>DFPT:</strong> Theoretical basis via linear response theory and the 2n+1 theorem,
+                        enabling direct computation of second-order energy derivatives</li>
+                    <li><strong>Frozen Phonon Method:</strong> Finite-displacement approach using supercells and
+                        force calculations, more flexible but computationally intensive</li>
+                    <li><strong>Comparison:</strong> Accuracy, computational cost, and appropriate use cases for
+                        each method</li>
+                    <li><strong>Force Constants:</strong> Real-space calculation, Fourier interpolation to arbitrary
+                        q-points, and acoustic sum rule enforcement</li>
+                    <li><strong>Software Tools:</strong> Practical workflows with Quantum ESPRESSO, VASP+Phonopy,
+                        ABINIT, and Python APIs</li>
+                    <li><strong>Convergence:</strong> Systematic testing of k-points, q-points, supercell size,
+                        and displacement magnitude</li>
+                    <li><strong>LO-TO Splitting:</strong> Non-analytic corrections for polar materials using Born
+                        charges and dielectric tensors</li>
+                    <li><strong>Best Practices:</strong> Validation procedures, common pitfalls, and debugging strategies</li>
+                </ul>
+                <p>
+                    These methods form the foundation for all advanced phonon physics topics covered in subsequent
+                    chapters, including anharmonicity, thermal transport, and phonon engineering.
+                </p>
+            </section>
+
+            <!-- Exercises -->
+            <section class="exercise">
+                <h2>Exercises</h2>
+
+                <h3>Problem 1: DFPT Theory (Fundamental)</h3>
+                <p>
+                    Prove that the 2n+1 theorem allows second-order energy derivatives to be computed from
+                    first-order wavefunctions. Start from the variational principle
+                    $\delta E[\psi]/\delta\psi = 0$ at the ground state and show that the second-order
+                    energy change $E^{(2)}$ does not depend on $\psi^{(2)}$.
+                </p>
+
+                <h3>Problem 2: Frozen Phonon Convergence (Intermediate)</h3>
+                <p>
+                    For a 1D diatomic chain, numerically test the convergence of force constants with respect
+                    to displacement magnitude. Use displacements from 0.001 to 0.1 Å and implement both
+                    central differences and 5-point stencil methods. Compare accuracy and identify the optimal
+                    displacement range.
+                </p>
+
+                <h3>Problem 3: Supercell Size Effects (Intermediate)</h3>
+                <p>
+                    Using Phonopy, calculate the phonon dispersion of silicon with supercell sizes
+                    $2 \times 2 \times 2$, $3 \times 3 \times 3$, and $4 \times 4 \times 4$.
+                    Compare the phonon frequencies at the X and L points. Determine the minimum supercell
+                    size needed for 1 cm$^{-1}$ accuracy. Explain why convergence differs for different q-points.
+                </p>
+
+                <h3>Problem 4: LO-TO Splitting Calculation (Advanced)</h3>
+                <p>
+                    For GaAs:
+                </p>
+                <ol>
+                    <li>Compute the Born effective charges and high-frequency dielectric tensor using DFPT</li>
+                    <li>Implement the non-analytic correction formula in Python</li>
+                    <li>Plot the phonon dispersion near the $\Gamma$ point along the [100], [110], and [111]
+                        directions, showing the LO-TO splitting explicitly</li>
+                    <li>Verify the Lyddane-Sachs-Teller relation: $\epsilon_0/\epsilon_\infty = (\omega_{\text{LO}}/\omega_{\text{TO}})^2$</li>
+                </ol>
+
+                <h3>Problem 5: Acoustic Sum Rule Enforcement (Advanced)</h3>
+                <p>
+                    Given a set of force constants that violate the acoustic sum rule:
+                </p>
+                <ol>
+                    <li>Quantify the violation by computing $\sum_{n', \kappa'} \Phi_{\alpha\beta}(0\kappa, n'\kappa')$
+                        for each atom and direction</li>
+                    <li>Implement a symmetry-preserving correction algorithm that enforces the sum rule while
+                        maintaining crystallographic symmetry</li>
+                    <li>Verify that the corrected force constants yield zero acoustic frequencies at $\Gamma$</li>
+                    <li>Compare the phonon DOS before and after correction</li>
+                </ol>
+
+                <h3>Problem 6: Complete Workflow Implementation (Research-Level)</h3>
+                <p>
+                    Choose a material system (e.g., diamond, wurtzite GaN, or cubic perovskite) and perform
+                    a complete phonon calculation:
+                </p>
+                <ol>
+                    <li>Structure optimization with tight convergence criteria</li>
+                    <li>Convergence tests for all relevant parameters</li>
+                    <li>Phonon calculations using both DFPT and frozen phonon methods</li>
+                    <li>Comparison of results and computational cost</li>
+                    <li>Application of NAC corrections if applicable</li>
+                    <li>Validation against experimental Raman/IR spectra or literature</li>
+                    <li>Computation of thermodynamic properties and comparison with experimental heat capacity</li>
+                </ol>
+            </section>
+
+            <!-- References -->
+            <section>
+                <h2>References</h2>
+                <ol>
+                    <li>S. Baroni, S. de Gironcoli, A. Dal Corso, and P. Giannozzi,
+                        "Phonons and related crystal properties from density-functional perturbation theory",
+                        <em>Rev. Mod. Phys.</em> <strong>73</strong>, 515 (2001).
+                        — The definitive DFPT review</li>
+                    <li>X. Gonze and C. Lee, "Dynamical matrices, Born effective charges, dielectric permittivity
+                        tensors, and interatomic force constants from density-functional perturbation theory",
+                        <em>Phys. Rev. B</em> <strong>55</strong>, 10355 (1997).
+                        — Theoretical foundations of DFPT</li>
+                    <li>A. Togo and I. Tanaka, "First principles phonon calculations in materials science",
+                        <em>Scr. Mater.</em> <strong>108</strong>, 1 (2015).
+                        — Phonopy methodology and applications</li>
+                    <li>K. Parlinski, Z. Q. Li, and Y. Kawazoe, "First-Principles Determination of the Soft Mode
+                        in Cubic ZrO$_2$", <em>Phys. Rev. Lett.</em> <strong>78</strong>, 4063 (1997).
+                        — Early frozen phonon methodology</li>
+                    <li>W. Kohn, "Nobel Lecture: Electronic structure of matter—wave functions and density functionals",
+                        <em>Rev. Mod. Phys.</em> <strong>71</strong>, 1253 (1999).
+                        — DFT foundations</li>
+                    <li>D. C. Wallace, <em>Thermodynamics of Crystals</em>, Dover (1998).
+                        — Statistical mechanics and phonon thermodynamics</li>
+                    <li>M. T. Dove, <em>Introduction to Lattice Dynamics</em>, Cambridge University Press (1993).
+                        — Comprehensive lattice dynamics textbook</li>
+                    <li>G. Grimvall, <em>Thermophysical Properties of Materials</em>, North-Holland (1999).
+                        — Connection to experimental thermodynamics</li>
+                </ol>
+            </section>
+
+            <!-- Navigation -->
+            <div class="nav-buttons">
+                <a href="index.html" class="nav-button">← Series Index</a>
+                <a href="chapter-2.html" class="nav-button">Chapter 2: Anharmonic Phonons →</a>
+            </div>
+        </div>
+    </main>
+
+    <section class="disclaimer">
+        <h2>Disclaimer</h2>
+        <p>
+            This educational content was generated with AI assistance for the Hashimoto Lab
+            knowledge base. While efforts have been made to ensure accuracy, readers should
+            verify critical information with primary sources and peer-reviewed literature.
+        </p>
+    </section>
+
+    <footer>
+        <p>&copy; 2025 Hashimoto Lab, Tohoku University. All rights reserved.</p>
+    </footer>
+</body>
+</html>

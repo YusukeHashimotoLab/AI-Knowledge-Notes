@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="第3章：フォノン状態密度 - フォノンDOSの定義、DebyeモデルとEinsteinモデル、Van Hove特異点について学びます。">
+    <title>第3章：フォノン状態密度 - フォノン入門</title>
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <a href="../../index.html">ホーム</a> &gt;
+        <a href="../index.html">材料科学</a> &gt;
+        <a href="index.html">フォノン入門</a> &gt;
+        <span>第3章</span>
+    </nav>
+
+    <div class="locale-switcher">
+        <span class="current">日本語</span> |
+        <a href="../../../en/MS/phonon-introduction/chapter-3.html">English</a>
+    </div>
+
+    <header class="article-header">
+        <h1>第3章：フォノン状態密度</h1>
+        <p class="subtitle">周波数空間におけるフォノンモードの分布を理解する</p>
+        <div class="meta">
+            <span class="level beginner">入門レベル</span>
+            <span class="reading-time">読了時間: 約40分</span>
+            <span class="topics">DOS, Debyeモデル, Einsteinモデル</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="learning-objectives">
+            <h2>学習目標</h2>
+            <ul>
+                <li>フォノン状態密度（DOS）の定義と物理的意味を理解する</li>
+                <li>DOSと分散関係の関係を説明できる</li>
+                <li>Van Hove特異点の起源と意義を理解する</li>
+                <li>Debyeモデルの仮定とDOSの導出を学ぶ</li>
+                <li>Einsteinモデルとの比較を通じてモデルの適用範囲を理解する</li>
+                <li>Pythonで実際のDOSを計算しプロットできる</li>
+            </ul>
+        </section>
+
+        <section class="content-section">
+            <h2>1. 状態密度とは何か？</h2>
+
+            <h3>1.1 物理的イメージ</h3>
+            <p>
+                第2章で学んだフォノン分散関係 \(\omega(\mathbf{k})\) は、各波数ベクトル \(\mathbf{k}\) に対して
+                どのような振動数のフォノンが存在するかを教えてくれます。しかし、材料の熱的性質を理解するには、
+                「特定の振動数 \(\omega\) を持つフォノンモードがどれだけ存在するか」という情報が重要です。
+            </p>
+
+            <div class="info-box">
+                <h4>日常の例：楽器のアナロジー</h4>
+                <p>
+                    ピアノには88個の鍵盤があり、それぞれ異なる音の高さ（振動数）を出します。
+                    もし「どの音の高さが最も多く演奏可能か」を知りたい場合、鍵盤が周波数空間で
+                    どのように分布しているかを調べます。これが状態密度の概念に相当します。
+                </p>
+            </div>
+
+            <h3>1.2 フォノン状態密度の定義</h3>
+            <p>
+                フォノン状態密度（Density of States, DOS）\(g(\omega)\) は、単位周波数あたりに
+                存在するフォノンモードの数として定義されます：
+            </p>
+
+            <div class="equation">
+                $$g(\omega) = \sum_{\mathbf{k}, s} \delta(\omega - \omega_s(\mathbf{k}))$$
+            </div>
+
+            <p>ここで：</p>
+            <ul>
+                <li>\(\mathbf{k}\)：波数ベクトル</li>
+                <li>\(s\)：フォノンブランチのインデックス（音響・光学モード）</li>
+                <li>\(\omega_s(\mathbf{k})\)：ブランチ \(s\)、波数 \(\mathbf{k}\) のフォノン振動数</li>
+                <li>\(\delta(x)\)：ディラックのデルタ関数</li>
+            </ul>
+
+            <p>
+                実際の計算では、ブリルアンゾーン内の \(\mathbf{k}\) 点を離散的にサンプリングし、
+                積分形式に書き換えます：
+            </p>
+
+            <div class="equation">
+                $$g(\omega) = \frac{V}{(2\pi)^3} \sum_s \int_{\text{BZ}} \delta(\omega - \omega_s(\mathbf{k})) \, d\mathbf{k}$$
+            </div>
+
+            <h3>1.3 DOSと分散関係の関係</h3>
+            <p>
+                状態密度は分散関係の「逆関数」的な情報を含んでいます。分散が平坦な領域
+                （\(\nabla_\mathbf{k} \omega \approx 0\)）では、多くの \(\mathbf{k}\) 点が
+                同じ振動数 \(\omega\) に対応するため、DOSが大きくなります。
+            </p>
+
+            <div class="mermaid">
+graph LR
+    A[分散関係 ω k] -->|微分が小さい| B[DOSが大きい]
+    A -->|微分が大きい| C[DOSが小さい]
+    B --> D[Van Hove特異点]
+</div>
+
+            <h3>1.4 規格化条件</h3>
+            <p>
+                全フォノンモード数は \(3N\)（\(N\) は単位胞あたりの原子数）に等しいため、
+                DOSは次の規格化条件を満たします：
+            </p>
+
+            <div class="equation">
+                $$\int_0^{\omega_{\text{max}}} g(\omega) \, d\omega = 3N$$
+            </div>
+        </section>
+
+        <section class="content-section">
+            <h2>2. Van Hove特異点</h2>
+
+            <h3>2.1 特異点の起源</h3>
+            <p>
+                Van Hove特異点は、分散関係が極値（最大値または最小値）を持つ点で発生します。
+                これらの点では、\(\nabla_\mathbf{k} \omega_s(\mathbf{k}) = 0\) となり、
+                状態密度が特異的に増大します。
+            </p>
+
+            <h3>2.2 3次元結晶における特異点の分類</h3>
+            <p>3次元結晶では、以下の4種類のVan Hove特異点が存在します：</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>タイプ</th>
+                        <th>特性</th>
+                        <th>DOSの振る舞い</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>M<sub>0</sub></td>
+                        <td>極小値</td>
+                        <td>\(g(\omega) \propto \sqrt{\omega - \omega_0}\)</td>
+                    </tr>
+                    <tr>
+                        <td>M<sub>1</sub></td>
+                        <td>鞍点（1方向極大）</td>
+                        <td>\(g(\omega)\) は一定</td>
+                    </tr>
+                    <tr>
+                        <td>M<sub>2</sub></td>
+                        <td>鞍点（2方向極大）</td>
+                        <td>\(g(\omega)\) は一定</td>
+                    </tr>
+                    <tr>
+                        <td>M<sub>3</sub></td>
+                        <td>極大値</td>
+                        <td>\(g(\omega) \propto \sqrt{\omega_0 - \omega}\)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>2.3 物理的重要性</h3>
+            <p>
+                Van Hove特異点は以下の現象に重要な役割を果たします：
+            </p>
+            <ul>
+                <li><strong>比熱の温度依存性：</strong>特異点での状態密度の増大が比熱に寄与</li>
+                <li><strong>中性子散乱実験：</strong>散乱強度がDOSに比例するため、特異点が顕著に観測される</li>
+                <li><strong>フォノン-フォノン散乱：</strong>特異点近傍でフォノン寿命が変化</li>
+            </ul>
+        </section>
+
+        <section class="content-section">
+            <h2>3. Debyeモデル</h2>
+
+            <h3>3.1 モデルの仮定</h3>
+            <p>
+                Debyeモデルは、1912年にPeter Debyeによって提案された、
+                フォノンDOSを近似するための簡単なモデルです。以下の仮定に基づいています：
+            </p>
+
+            <ol>
+                <li><strong>線形分散近似：</strong>すべてのフォノンモードが音速 \(v\) で線形に分散する
+                    $$\omega = v|\mathbf{k}|$$
+                </li>
+                <li><strong>等方的媒質：</strong>音速はすべての方向で同じ</li>
+                <li><strong>単一音速：</strong>縦波と横波の音速を平均化（または3つの音響ブランチを考慮）</li>
+                <li><strong>カットオフ周波数：</strong>全モード数を \(3N\) に保つため、最大周波数 \(\omega_D\)（Debye周波数）を導入</li>
+            </ol>
+
+            <h3>3.2 Debye状態密度の導出</h3>
+            <p>
+                線形分散 \(\omega = v k\) を仮定すると、3次元での状態密度は：
+            </p>
+
+            <div class="equation">
+                $$g(\omega) = \frac{V}{2\pi^2} \frac{k^2}{v} \frac{dk}{d\omega}$$
+            </div>
+
+            <p>\(k = \omega/v\) より \(dk/d\omega = 1/v\) なので：</p>
+
+            <div class="equation">
+                $$g(\omega) = \frac{V}{2\pi^2 v^3} \omega^2 = \frac{9N}{\omega_D^3} \omega^2 \quad (\omega \leq \omega_D)$$
+            </div>
+
+            <p>ここで、規格化条件から Debye周波数 \(\omega_D\) を決定します：</p>
+
+            <div class="equation">
+                $$\int_0^{\omega_D} g(\omega) \, d\omega = 3N$$
+            </div>
+
+            <p>これより：</p>
+
+            <div class="equation">
+                $$\omega_D = v \left( 6\pi^2 \frac{N}{V} \right)^{1/3}$$
+            </div>
+
+            <h3>3.3 Debye温度</h3>
+            <p>
+                Debye周波数に対応する温度を<strong>Debye温度</strong> \(\Theta_D\) と呼びます：
+            </p>
+
+            <div class="equation">
+                $$\Theta_D = \frac{\hbar \omega_D}{k_B}$$
+            </div>
+
+            <p>
+                Debye温度は材料の固有の特性であり、以下の意味を持ちます：
+            </p>
+            <ul>
+                <li>\(T \ll \Theta_D\)：低温極限（量子効果が顕著）</li>
+                <li>\(T \gg \Theta_D\)：高温極限（古典的挙動）</li>
+                <li>比熱の温度依存性を決定する重要なパラメータ</li>
+            </ul>
+
+            <div class="info-box">
+                <h4>代表的な材料のDebye温度</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>材料</th>
+                            <th>\(\Theta_D\) (K)</th>
+                            <th>特徴</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>ダイヤモンド</td>
+                            <td>2230</td>
+                            <td>非常に硬い、軽い原子</td>
+                        </tr>
+                        <tr>
+                            <td>アルミニウム</td>
+                            <td>428</td>
+                            <td>軽い金属</td>
+                        </tr>
+                        <tr>
+                            <td>鉛</td>
+                            <td>105</td>
+                            <td>重い金属、柔らかい</td>
+                        </tr>
+                        <tr>
+                            <td>シリコン</td>
+                            <td>645</td>
+                            <td>半導体</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>3.4 Debyeモデルの物理的解釈</h3>
+            <p>
+                Debyeモデルは、結晶を<strong>等方的弾性体</strong>として扱います。
+                この近似は以下の場合に良く機能します：
+            </p>
+            <ul>
+                <li>低周波数（長波長）フォノン：分散が線形に近い</li>
+                <li>高温での比熱：細かいDOS構造が平均化される</li>
+                <li>単純な結晶構造（単原子基底）</li>
+            </ul>
+
+            <p>一方、以下の場合には不適切です：</p>
+            <ul>
+                <li>光学フォノンが重要な多原子系</li>
+                <li>Van Hove特異点の影響が大きい場合</li>
+                <li>強い異方性を持つ結晶</li>
+            </ul>
+        </section>
+
+        <section class="content-section">
+            <h2>4. Einsteinモデル</h2>
+
+            <h3>4.1 モデルの仮定</h3>
+            <p>
+                Einsteinモデルは、1907年にAlbert Einsteinによって提案された、
+                さらに簡単な近似です。このモデルでは：
+            </p>
+
+            <ol>
+                <li><strong>単一周波数仮定：</strong>すべてのフォノンモードが同じ周波数 \(\omega_E\) を持つ</li>
+                <li><strong>独立調和振動子：</strong>各原子が独立に振動する</li>
+            </ol>
+
+            <p>
+                この仮定の下では、状態密度は以下のように書けます：
+            </p>
+
+            <div class="equation">
+                $$g(\omega) = 3N \delta(\omega - \omega_E)$$
+            </div>
+
+            <h3>4.2 Einstein温度</h3>
+            <p>
+                Einstein周波数に対応する温度を<strong>Einstein温度</strong> \(\Theta_E\) と呼びます：
+            </p>
+
+            <div class="equation">
+                $$\Theta_E = \frac{\hbar \omega_E}{k_B}$$
+            </div>
+
+            <h3>4.3 物理的解釈と適用範囲</h3>
+            <p>
+                Einsteinモデルは、以下の状況で有用です：
+            </p>
+            <ul>
+                <li><strong>光学フォノン：</strong>分散が平坦（\(\omega \approx \text{const}\)）なモードの記述</li>
+                <li><strong>高温極限：</strong>古典的振動子の挙動</li>
+                <li><strong>局在振動：</strong>不純物や欠陥周辺の局在モード</li>
+            </ul>
+
+            <p>
+                しかし、低温での比熱を正しく記述できないという重大な欠点があります。
+                実験的には、低温で \(C_V \propto T^3\) となる（Debyeの \(T^3\) 則）のに対し、
+                Einsteinモデルは指数関数的に減衰する予測を与えます。
+            </p>
+        </section>
+
+        <section class="content-section">
+            <h2>5. DebyeモデルとEinsteinモデルの比較</h2>
+
+            <h3>5.1 定性的比較</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th>Debyeモデル</th>
+                        <th>Einsteinモデル</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>DOS形状</td>
+                        <td>\(\omega^2\) 依存（連続的）</td>
+                        <td>デルタ関数（単一周波数）</td>
+                    </tr>
+                    <tr>
+                        <td>物理的描像</td>
+                        <td>集団的な音波的運動</td>
+                        <td>独立な局在振動</td>
+                    </tr>
+                    <tr>
+                        <td>低温比熱</td>
+                        <td>\(T^3\) 依存（正確）</td>
+                        <td>指数関数的減衰（不正確）</td>
+                    </tr>
+                    <tr>
+                        <td>高温比熱</td>
+                        <td>Dulong-Petit則</td>
+                        <td>Dulong-Petit則</td>
+                    </tr>
+                    <tr>
+                        <td>適用対象</td>
+                        <td>音響フォノン</td>
+                        <td>光学フォノン</td>
+                    </tr>
+                    <tr>
+                        <td>パラメータ</td>
+                        <td>\(\Theta_D\)（Debye温度）</td>
+                        <td>\(\Theta_E\)（Einstein温度）</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>5.2 視覚的比較</h3>
+            <div class="mermaid">
+graph TB
+    subgraph Debye["Debyeモデル"]
+        D1[線形分散 ω = vk]
+        D2[DOS ∝ ω²]
+        D3[低温: C_V ∝ T³]
+        D1 --> D2 --> D3
+    end
+
+    subgraph Einstein["Einsteinモデル"]
+        E1[一定周波数 ω = ω_E]
+        E2[DOS = δω - ω_E]
+        E3[低温: C_V ∝ exp-Θ_E/T]
+        E1 --> E2 --> E3
+    end
+</div>
+
+            <h3>5.3 実材料への適用：混合モデル</h3>
+            <p>
+                実際の材料では、DebyeモデルとEinsteinモデルを組み合わせることで、
+                より良い近似が得られます：
+            </p>
+
+            <div class="equation">
+                $$g(\omega) = g_{\text{Debye}}(\omega) + \sum_i A_i \delta(\omega - \omega_{E,i})$$
+            </div>
+
+            <p>
+                ここで、\(g_{\text{Debye}}(\omega)\) は音響フォノンを記述し、
+                デルタ関数の項は光学フォノンを表します。
+            </p>
+        </section>
+
+        <section class="content-section">
+            <h2>6. 実際のDOSと近似モデルの比較</h2>
+
+            <h3>6.1 単原子結晶（例：FCC金属）</h3>
+            <p>
+                面心立方（FCC）構造を持つアルミニウムのような単原子結晶では、
+                実際のDOSは以下の特徴を示します：
+            </p>
+            <ul>
+                <li>低周波数領域：Debye近似 \(g(\omega) \propto \omega^2\) に従う</li>
+                <li>中間領域：Van Hove特異点による鋭いピーク</li>
+                <li>高周波数端：分散が平坦になる領域で状態密度が増大</li>
+            </ul>
+
+            <h3>6.2 二原子結晶（例：NaCl型イオン結晶）</h3>
+            <p>
+                NaCl型構造を持つイオン結晶では：
+            </p>
+            <ul>
+                <li>音響フォノン：低周波数に3つのブランチ（1縦波、2横波）</li>
+                <li>ギャップ：音響モードと光学モードの間に周波数ギャップ</li>
+                <li>光学フォノン：高周波数にピーク（Einstein的）</li>
+            </ul>
+
+            <h3>6.3 実DOSの計算方法</h3>
+            <p>
+                第一原理計算では、以下の手順でDOSを計算します：
+            </p>
+            <ol>
+                <li>密度汎関数摂動論（DFPT）でフォノン分散 \(\omega_s(\mathbf{k})\) を計算</li>
+                <li>ブリルアンゾーン内で \(\mathbf{k}\) 点を密にサンプリング</li>
+                <li>各 \(\mathbf{k}\) 点でのフォノン周波数をヒストグラム化</li>
+                <li>適切な平滑化（Gaussian smearing など）を適用</li>
+            </ol>
+        </section>
+
+        <section class="content-section">
+            <h2>7. PythonでフォノンDOSを計算する</h2>
+
+            <h3>7.1 Debye DOSのプロット</h3>
+            <p>
+                まず、Debyeモデルの状態密度を実装してみましょう。
+            </p>
+
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# パラメータ設定
+N = 1000  # 原子数
+omega_D = 20.0  # Debye周波数（THz）
+
+# 周波数範囲
+omega = np.linspace(0, omega_D * 1.5, 500)
+
+# Debye DOS
+def debye_dos(omega, omega_D, N):
+    """
+    Debyeモデルの状態密度
+
+    Parameters:
+    -----------
+    omega : array
+        周波数配列（THz）
+    omega_D : float
+        Debye周波数（THz）
+    N : int
+        原子数
+
+    Returns:
+    --------
+    g : array
+        状態密度
+    """
+    g = np.zeros_like(omega)
+    mask = omega <= omega_D
+    g[mask] = (9 * N / omega_D**3) * omega[mask]**2
+    return g
+
+# DOSを計算
+g_debye = debye_dos(omega, omega_D, N)
+
+# プロット
+plt.figure(figsize=(10, 6))
+plt.plot(omega, g_debye, linewidth=2, label='Debye model')
+plt.axvline(omega_D, color='red', linestyle='--',
+            label=f'$\\omega_D$ = {omega_D} THz')
+plt.xlabel('Frequency ω (THz)', fontsize=12)
+plt.ylabel('DOS g(ω) (states/THz)', fontsize=12)
+plt.title('Debye Phonon Density of States', fontsize=14)
+plt.legend(fontsize=11)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('debye_dos.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 規格化チェック
+total_modes = np.trapz(g_debye, omega)
+print(f"Total modes: {total_modes:.1f} (expected: {3*N})")
+</code></pre>
+
+            <h3>7.2 EinsteinモデルとDebyeモデルの比較</h3>
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# パラメータ
+N = 1000
+omega_D = 20.0  # Debye周波数
+omega_E = 15.0  # Einstein周波数
+
+omega = np.linspace(0, 30, 1000)
+
+# Debye DOS
+def debye_dos(omega, omega_D, N):
+    g = np.zeros_like(omega)
+    mask = omega <= omega_D
+    g[mask] = (9 * N / omega_D**3) * omega[mask]**2
+    return g
+
+# Einstein DOS（Gaussianで近似）
+def einstein_dos(omega, omega_E, N, sigma=0.5):
+    """
+    EinsteinモデルのDOS（Gaussian近似）
+
+    Parameters:
+    -----------
+    sigma : float
+        Gaussianの幅（THz）
+    """
+    return 3 * N / (sigma * np.sqrt(2 * np.pi)) * \
+           np.exp(-0.5 * ((omega - omega_E) / sigma)**2)
+
+# 計算
+g_debye = debye_dos(omega, omega_D, N)
+g_einstein = einstein_dos(omega, omega_E, N)
+
+# プロット
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# 左：個別プロット
+axes[0].plot(omega, g_debye, linewidth=2, label='Debye model')
+axes[0].plot(omega, g_einstein, linewidth=2, label='Einstein model')
+axes[0].axvline(omega_D, color='blue', linestyle='--', alpha=0.5)
+axes[0].axvline(omega_E, color='orange', linestyle='--', alpha=0.5)
+axes[0].set_xlabel('Frequency ω (THz)', fontsize=12)
+axes[0].set_ylabel('DOS g(ω)', fontsize=12)
+axes[0].set_title('Debye vs Einstein Models', fontsize=14)
+axes[0].legend(fontsize=11)
+axes[0].grid(True, alpha=0.3)
+
+# 右：積分DOS（累積モード数）
+cumulative_debye = np.array([np.trapz(g_debye[:i+1], omega[:i+1])
+                               for i in range(len(omega))])
+cumulative_einstein = np.array([np.trapz(g_einstein[:i+1], omega[:i+1])
+                                 for i in range(len(omega))])
+
+axes[1].plot(omega, cumulative_debye, linewidth=2, label='Debye')
+axes[1].plot(omega, cumulative_einstein, linewidth=2, label='Einstein')
+axes[1].axhline(3*N, color='red', linestyle='--',
+                label=f'Total modes = {3*N}')
+axes[1].set_xlabel('Frequency ω (THz)', fontsize=12)
+axes[1].set_ylabel('Cumulative modes', fontsize=12)
+axes[1].set_title('Integrated DOS', fontsize=14)
+axes[1].legend(fontsize=11)
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('debye_vs_einstein.png', dpi=300, bbox_inches='tight')
+plt.show()
+</code></pre>
+
+            <h3>7.3 実材料のDOS（単原子鎖モデル）</h3>
+            <p>
+                第2章で学んだ単原子鎖の分散関係から、実際のDOSを計算してみましょう。
+            </p>
+
+            <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# パラメータ
+M = 1.0      # 質量（任意単位）
+K = 10.0     # バネ定数（任意単位）
+a = 1.0      # 格子定数（任意単位）
+N_atoms = 100  # 原子数
+
+# 単原子鎖の分散関係
+def monatomic_dispersion(k, K, M, a):
+    """単原子鎖のフォノン分散"""
+    return 2 * np.sqrt(K / M) * np.abs(np.sin(k * a / 2))
+
+# ブリルアンゾーン内でk点をサンプリング
+k_points = np.linspace(-np.pi/a, np.pi/a, 1000)
+omega_k = monatomic_dispersion(k_points, K, M, a)
+
+# DOSをヒストグラムで計算
+omega_max = 2 * np.sqrt(K / M)
+omega_bins = np.linspace(0, omega_max * 1.1, 200)
+dos_hist, bin_edges = np.histogram(omega_k, bins=omega_bins, density=True)
+omega_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+
+# 規格化（全モード数 = N_atoms）
+dos_normalized = dos_hist * N_atoms / np.trapz(dos_hist, omega_centers)
+
+# 解析的DOS（1D単原子鎖）
+def analytical_dos_1d(omega, omega_max, N):
+    """
+    1次元単原子鎖の解析的DOS
+    g(ω) = N / (π√(ω_max² - ω²))
+    """
+    g = np.zeros_like(omega)
+    mask = (omega > 0) & (omega < omega_max)
+    g[mask] = N / (np.pi * np.sqrt(omega_max**2 - omega[mask]**2))
+    return g
+
+omega_analytical = np.linspace(0.01, omega_max * 0.99, 500)
+dos_analytical = analytical_dos_1d(omega_analytical, omega_max, N_atoms)
+
+# プロット
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# 左：分散関係
+axes[0].plot(k_points * a / np.pi, omega_k, linewidth=2)
+axes[0].set_xlabel('Wave vector ka/π', fontsize=12)
+axes[0].set_ylabel('Frequency ω', fontsize=12)
+axes[0].set_title('Phonon Dispersion (Monatomic Chain)', fontsize=14)
+axes[0].grid(True, alpha=0.3)
+axes[0].axhline(omega_max, color='red', linestyle='--', alpha=0.5,
+                label=f'$\\omega_{{max}}$ = {omega_max:.2f}')
+axes[0].legend()
+
+# 右：DOS
+axes[1].plot(omega_centers, dos_normalized, 'o-',
+             label='Numerical (histogram)', markersize=3)
+axes[1].plot(omega_analytical, dos_analytical, linewidth=2,
+             label='Analytical', color='red', alpha=0.7)
+axes[1].set_xlabel('Frequency ω', fontsize=12)
+axes[1].set_ylabel('DOS g(ω)', fontsize=12)
+axes[1].set_title('Phonon Density of States', fontsize=14)
+axes[1].legend(fontsize=11)
+axes[1].grid(True, alpha=0.3)
+
+# Van Hove特異点（ω = ω_maxで発散）を強調
+axes[1].axvline(omega_max, color='green', linestyle='--', alpha=0.5,
+                label='Van Hove singularity')
+
+plt.tight_layout()
+plt.savefig('monatomic_chain_dos.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print(f"Maximum frequency: {omega_max:.4f}")
+print(f"Total modes (numerical): {np.trapz(dos_normalized, omega_centers):.1f}")
+</code></pre>
+
+            <div class="info-box">
+                <h4>コードの解説</h4>
+                <p>
+                    このコードでは、単原子鎖の分散関係から数値的にDOSを計算し、
+                    解析解と比較しています。注目すべき点：
+                </p>
+                <ul>
+                    <li>\(\omega \to \omega_{\text{max}}\) でDOSが発散（Van Hove特異点）</li>
+                    <li>1次元では \(g(\omega) \propto 1/\sqrt{\omega_{\text{max}}^2 - \omega^2}\)</li>
+                    <li>分散が平坦な領域（ブリルアンゾーン端）で状態密度が大きい</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="content-section">
+            <h2>8. DOSの実験的測定方法</h2>
+
+            <h3>8.1 非弾性中性子散乱（INS）</h3>
+            <p>
+                中性子散乱は、フォノンDOSを直接測定する最も強力な実験手法です。
+                中性子が試料中のフォノンと相互作用し、エネルギーと運動量を交換します。
+            </p>
+
+            <div class="info-box">
+                <h4>測定原理</h4>
+                <p>
+                    入射中性子のエネルギー \(E_i\) と散乱後のエネルギー \(E_f\) の差が、
+                    フォノンのエネルギー \(\hbar\omega\) に対応します：
+                </p>
+                <div class="equation">
+                    $$\hbar\omega = E_i - E_f$$
+                </div>
+                <p>
+                    散乱強度 \(S(\mathbf{Q}, \omega)\) は、フォノンDOSに比例します。
+                </p>
+            </div>
+
+            <h3>8.2 ラマン分光</h3>
+            <p>
+                ラマン分光では、光がフォノンと相互作用してエネルギーを交換します。
+                特に光学フォノンの測定に適しています。
+            </p>
+
+            <h3>8.3 比熱測定からの推定</h3>
+            <p>
+                比熱の温度依存性を測定し、逆問題を解くことでDOSを推定できます。
+                特に低温での \(C_V(T)\) データから、低周波数DOSの情報が得られます。
+            </p>
+
+            <h3>8.4 測定方法の比較</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>手法</th>
+                        <th>測定対象</th>
+                        <th>利点</th>
+                        <th>欠点</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>中性子散乱</td>
+                        <td>全フォノンDOS</td>
+                        <td>直接測定、\(\mathbf{k}\) 分解可能</td>
+                        <td>大型施設が必要、高コスト</td>
+                    </tr>
+                    <tr>
+                        <td>ラマン分光</td>
+                        <td>光学フォノン</td>
+                        <td>実験室レベル、高分解能</td>
+                        <td>選択則により限定的</td>
+                    </tr>
+                    <tr>
+                        <td>比熱測定</td>
+                        <td>間接的にDOS</td>
+                        <td>簡便、幅広い温度範囲</td>
+                        <td>逆問題、一意性なし</td>
+                    </tr>
+                    <tr>
+                        <td>第一原理計算</td>
+                        <td>全フォノンDOS</td>
+                        <td>詳細情報、予測可能</td>
+                        <td>計算コスト、近似の影響</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="content-section">
+            <h2>まとめ</h2>
+            <p>
+                この章では、フォノン状態密度（DOS）の概念と計算方法を学びました。
+                重要なポイントをまとめます：
+            </p>
+
+            <div class="summary-box">
+                <h3>核心概念</h3>
+                <ul>
+                    <li><strong>状態密度 \(g(\omega)\)：</strong>単位周波数あたりのフォノンモード数</li>
+                    <li><strong>Van Hove特異点：</strong>分散が極値を持つ点でDOSが特異的に増大</li>
+                    <li><strong>Debyeモデル：</strong>線形分散を仮定、\(g(\omega) \propto \omega^2\)、低温比熱を正確に記述</li>
+                    <li><strong>Einsteinモデル：</strong>単一周波数を仮定、光学フォノンや高温極限で有効</li>
+                </ul>
+
+                <h3>実用的知識</h3>
+                <ul>
+                    <li>Debye温度 \(\Theta_D\) は材料の固有特性で、熱的性質を決定</li>
+                    <li>実材料のDOSは、DebyeモデルとEinsteinモデルの混合で近似可能</li>
+                    <li>第一原理計算と実験測定を組み合わせて、正確なDOSを得る</li>
+                    <li>DOSから比熱、熱伝導率などの熱的性質を計算できる</li>
+                </ul>
+            </div>
+
+            <div class="mermaid">
+graph TD
+    A[フォノン分散 ω k] --> B[状態密度 g ω]
+    B --> C[Van Hove特異点]
+    B --> D[Debyeモデル]
+    B --> E[Einsteinモデル]
+    D --> F[Debye温度 Θ_D]
+    E --> G[Einstein温度 Θ_E]
+    F --> H[低温比熱 T³則]
+    G --> I[光学フォノン記述]
+    B --> J[実験測定]
+    J --> K[中性子散乱]
+    J --> L[ラマン分光]
+    J --> M[比熱測定]
+</div>
+        </section>
+
+        <section class="exercises">
+            <h2>演習問題</h2>
+
+            <div class="exercise">
+                <h3>問題 1：概念理解</h3>
+                <p>
+                    以下の記述が正しいか誤りか答え、理由を説明してください。
+                </p>
+                <ol type="a">
+                    <li>Debyeモデルは光学フォノンの記述に適している。</li>
+                    <li>Van Hove特異点は分散関係が極値を持つ点で発生する。</li>
+                    <li>Einstein温度が高い材料ほど、室温で大きな比熱を持つ。</li>
+                    <li>1次元結晶では、DOSがブリルアンゾーン端で発散する。</li>
+                </ol>
+                <details>
+                    <summary>解答例</summary>
+                    <ol type="a">
+                        <li><strong>誤り。</strong>Debyeモデルは線形分散を仮定しており、音響フォノンの記述に適しています。光学フォノンは分散が平坦であるため、Einsteinモデルの方が適切です。</li>
+                        <li><strong>正しい。</strong>Van Hove特異点は \(\nabla_\mathbf{k} \omega = 0\) となる点で発生し、状態密度が増大します。</li>
+                        <li><strong>誤り。</strong>Einstein温度が高いほど、室温ではフォノンモードが十分に励起されず、比熱は小さくなります。高温極限（\(T \gg \Theta_E\)）で初めてDulong-Petit則に従います。</li>
+                        <li><strong>正しい。</strong>1次元では、分散が平坦になるブリルアンゾーン端で \(g(\omega) \propto 1/\sqrt{\omega_{\text{max}}^2 - \omega^2}\) となり、発散します。</li>
+                    </ol>
+                </details>
+            </div>
+
+            <div class="exercise">
+                <h3>問題 2：Debye温度の計算</h3>
+                <p>
+                    銅（Cu）の音速を \(v = 3.9 \times 10^3\) m/s、密度を \(\rho = 8.96 \times 10^3\) kg/m³、
+                    原子質量を \(M = 63.5\) u とします。銅のDebye温度 \(\Theta_D\) を計算してください。
+                </p>
+                <p><strong>ヒント：</strong>\(\omega_D = v(6\pi^2 n)^{1/3}\)、\(n = N/V = \rho N_A / M\)</p>
+                <details>
+                    <summary>解答例</summary>
+                    <p>まず、単位体積あたりの原子数密度を計算：</p>
+                    <div class="equation">
+                        $$n = \frac{\rho N_A}{M} = \frac{8.96 \times 10^3 \times 6.022 \times 10^{23}}{63.5 \times 10^{-3}} = 8.49 \times 10^{28} \text{ m}^{-3}$$
+                    </div>
+                    <p>Debye周波数：</p>
+                    <div class="equation">
+                        $$\omega_D = v(6\pi^2 n)^{1/3} = 3.9 \times 10^3 \times (6\pi^2 \times 8.49 \times 10^{28})^{1/3} = 5.09 \times 10^{13} \text{ rad/s}$$
+                    </div>
+                    <p>Debye温度：</p>
+                    <div class="equation">
+                        $$\Theta_D = \frac{\hbar \omega_D}{k_B} = \frac{1.055 \times 10^{-34} \times 5.09 \times 10^{13}}{1.381 \times 10^{-23}} \approx 389 \text{ K}$$
+                    </div>
+                    <p>（実験値：約343 K。差は音速の平均化に起因）</p>
+                </details>
+            </div>
+
+            <div class="exercise">
+                <h3>問題 3：プログラミング課題</h3>
+                <p>
+                    二原子鎖（質量 \(M_1\)、\(M_2\)）の分散関係から、数値的にDOSを計算し、
+                    音響ブランチと光学ブランチの寄与を分離してプロットしてください。
+                </p>
+                <p>
+                    <strong>パラメータ：</strong>\(M_1 = 1.0\)、\(M_2 = 2.0\)、\(K = 10.0\)、\(a = 1.0\)
+                </p>
+                <details>
+                    <summary>解答例</summary>
+                    <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+# パラメータ
+M1, M2 = 1.0, 2.0
+K = 10.0
+a = 1.0
+
+# 二原子鎖の分散関係
+def diatomic_dispersion(k, K, M1, M2, a):
+    """音響・光学ブランチの周波数を返す"""
+    C = K * (1/M1 + 1/M2)
+    D = K * np.sqrt((1/M1 + 1/M2)**2 - 4*np.sin(k*a/2)**2/(M1*M2))
+    omega_optical = np.sqrt(C + D)
+    omega_acoustic = np.sqrt(C - D)
+    return omega_acoustic, omega_optical
+
+# k点サンプリング
+k = np.linspace(-np.pi/a, np.pi/a, 2000)
+omega_ac, omega_op = diatomic_dispersion(k, K, M1, M2, a)
+
+# DOSをヒストグラムで計算
+omega_range = np.linspace(0, np.max(omega_op)*1.1, 300)
+dos_ac, _ = np.histogram(omega_ac, bins=omega_range, density=True)
+dos_op, _ = np.histogram(omega_op, bins=omega_range, density=True)
+omega_centers = 0.5 * (omega_range[1:] + omega_range[:-1])
+
+# プロット
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# 左：分散関係
+axes[0].plot(k*a/np.pi, omega_ac, label='Acoustic', linewidth=2)
+axes[0].plot(k*a/np.pi, omega_op, label='Optical', linewidth=2)
+axes[0].set_xlabel('Wave vector ka/π', fontsize=12)
+axes[0].set_ylabel('Frequency ω', fontsize=12)
+axes[0].set_title('Diatomic Chain Dispersion', fontsize=14)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+# 右：DOS
+axes[1].fill_between(omega_centers, dos_ac, alpha=0.5,
+                      label='Acoustic branch')
+axes[1].fill_between(omega_centers, dos_op, alpha=0.5,
+                      label='Optical branch')
+axes[1].set_xlabel('Frequency ω', fontsize=12)
+axes[1].set_ylabel('DOS (arbitrary units)', fontsize=12)
+axes[1].set_title('Phonon Density of States', fontsize=14)
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('diatomic_dos.png', dpi=300, bbox_inches='tight')
+plt.show()
+</code></pre>
+                </details>
+            </div>
+
+            <div class="exercise">
+                <h3>問題 4：発展課題</h3>
+                <p>
+                    第一原理計算ツール（例：Quantum ESPRESSOのmatdyn.x）を使って、
+                    実材料（例：シリコン）のフォノンDOSを計算し、以下を調べてください：
+                </p>
+                <ol type="a">
+                    <li>Van Hove特異点の位置とその起源（分散関係のどの点に対応するか）</li>
+                    <li>Debyeモデルとの低周波数領域での比較</li>
+                    <li>音響・光学モードの寄与の分離</li>
+                </ol>
+                <p>
+                    <strong>ヒント：</strong>QEチュートリアルの<code>example07</code>（diamond）を参考にしてください。
+                </p>
+            </div>
+        </section>
+
+        <nav class="chapter-nav">
+            <a href="chapter-2.html" class="prev">← 第2章：フォノン分散関係</a>
+            <a href="index.html" class="index">目次</a>
+            <a href="chapter-4.html" class="next">第4章：固体の熱的性質 →</a>
+        </nav>
+    </main>
+
+    <section class="disclaimer">
+        <h2>免責事項</h2>
+        <p>
+            この教育コンテンツは、橋本研究室のナレッジベース用にAIの支援を受けて
+            作成されました。正確性を期していますが、重要な情報については
+            一次資料や教科書で確認することをお勧めします。
+        </p>
+    </section>
+
+    <footer>
+        <p>&copy; 2025 東北大学 橋本研究室. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // KaTeX自動レンダリング
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "$", right: "$", display: false},
+                    {left: "\\(", right: "\\)", display: false},
+                    {left: "\\[", right: "\\]", display: true}
+                ],
+                throwOnError: false
+            });
+        });
+
+        // Mermaid初期化
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#f093fb',
+                primaryTextColor: '#2c3e50',
+                primaryBorderColor: '#f093fb',
+                lineColor: '#f5576c',
+                secondaryColor: '#f5576c',
+                tertiaryColor: '#fff'
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第2章: 非調和フォノンと相転移 | Advanced Phonon Physics</title>
+    <meta name="description" content="有限温度でのフォノン理論、自己無撞着法、相転移の理論を学ぶ">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="../../assets/css/knowledge-base.css">
+
+    <!-- KaTeX for Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <!-- Mermaid for Diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <!-- Prism.js for Code Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Breadcrumb Navigation -->
+        <nav class="breadcrumb" aria-label="パンくずリスト">
+            <a href="../../../index.html">ホーム</a> &gt;
+            <a href="../../index.html">知識ベース</a> &gt;
+            <a href="../index.html">材料科学</a> &gt;
+            <a href="index.html">Advanced Phonon Physics</a> &gt;
+            <span>第2章</span>
+        </nav>
+
+        <!-- Article Header -->
+        <article class="knowledge-article">
+            <header class="article-header">
+                <h1>第2章: 非調和フォノンと相転移</h1>
+                <p class="article-meta">
+                    Advanced Phonon Physics シリーズ | 推定読了時間: 45分
+                </p>
+                <div class="tag-container">
+                    <span class="tag">非調和性</span>
+                    <span class="tag">相転移</span>
+                    <span class="tag">SCP理論</span>
+                    <span class="tag">SSCHA</span>
+                    <span class="tag">上級</span>
+                </div>
+            </header>
+
+            <!-- Table of Contents -->
+            <nav class="toc">
+                <h2>目次</h2>
+                <ol>
+                    <li><a href="#learning-objectives">学習目標</a></li>
+                    <li><a href="#introduction">導入</a></li>
+                    <li><a href="#harmonic-limits">調和近似の限界</a></li>
+                    <li><a href="#scp-theory">自己無撞着フォノン理論</a></li>
+                    <li><a href="#scaild">SCAILD法</a></li>
+                    <li><a href="#sscha">確率的自己無撞着調和近似</a></li>
+                    <li><a href="#temperature-dependence">温度依存フォノン振動数</a></li>
+                    <li><a href="#soft-modes">ソフトモードと構造不安定性</a></li>
+                    <li><a href="#landau-theory">相転移のランダウ理論</a></li>
+                    <li><a href="#transition-types">転移のタイプ</a></li>
+                    <li><a href="#perovskites">ペロブスカイト相転移</a></li>
+                    <li><a href="#nte">負熱膨張材料</a></li>
+                    <li><a href="#implementation">計算実装</a></li>
+                    <li><a href="#software">ソフトウェアツール</a></li>
+                    <li><a href="#summary">まとめ</a></li>
+                    <li><a href="#exercises">演習問題</a></li>
+                    <li><a href="#references">参考文献</a></li>
+                </ol>
+            </nav>
+
+            <!-- Learning Objectives -->
+            <section id="learning-objectives">
+                <h2>学習目標</h2>
+                <div class="objectives-box">
+                    <p>この章を学ぶことで、以下ができるようになります：</p>
+                    <ul>
+                        <li>調和近似の限界を理解し、非調和効果の重要性を説明できる</li>
+                        <li>自己無撞着フォノン理論の基礎を理解し、実装できる</li>
+                        <li>SCAILD、SSCHAなどの先端的手法の原理を理解できる</li>
+                        <li>ソフトモードと相転移の関係を説明できる</li>
+                        <li>ランダウ理論を用いて相転移を解析できる</li>
+                        <li>ペロブスカイトなどの実際の材料系で相転移を理解できる</li>
+                        <li>ALAMODEやSSCHAなどのソフトウェアを使用できる</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Introduction -->
+            <section id="introduction">
+                <h2>1. 導入</h2>
+                <p>
+                    第1章では調和近似に基づくフォノン理論を学びました。調和近似は低温では優れた近似ですが、
+                    有限温度では格子振動の振幅が大きくなり、非調和効果が無視できなくなります。
+                </p>
+                <p>
+                    非調和効果は以下のような重要な物理現象を引き起こします：
+                </p>
+                <ul>
+                    <li><strong>熱膨張</strong>：調和近似では熱膨張はゼロ</li>
+                    <li><strong>フォノン振動数の温度依存性</strong>：ソフト化やハード化</li>
+                    <li><strong>フォノン寿命の有限性</strong>：熱伝導率への影響</li>
+                    <li><strong>構造相転移</strong>：ソフトモードによる不安定性</li>
+                    <li><strong>負熱膨張</strong>：特殊な非調和相互作用</li>
+                </ul>
+
+                <div class="info-box">
+                    <p><strong>重要概念：</strong></p>
+                    <p>
+                        非調和性は格子振動の振幅が大きくなると重要になります。温度が上昇すると、
+                        原子はより大きく振動し、ポテンシャルエネルギー面の調和的でない部分を探索します。
+                        これにより、調和近似では説明できない現象が現れます。
+                    </p>
+                </div>
+            </section>
+
+            <!-- Limits of Harmonic Approximation -->
+            <section id="harmonic-limits">
+                <h2>2. 調和近似の限界</h2>
+
+                <h3>2.1 調和近似の仮定</h3>
+                <p>調和近似では、ポテンシャルエネルギーを平衡位置の周りで2次まで展開します：</p>
+                <div class="equation">
+                    $$
+                    V(\{u_i\}) = V_0 + \frac{1}{2}\sum_{ij\alpha\beta} \Phi_{ij}^{\alpha\beta} u_i^\alpha u_j^\beta
+                    $$
+                </div>
+                <p>ここで、\(u_i^\alpha\)は原子\(i\)の\(\alpha\)方向の変位、\(\Phi_{ij}^{\alpha\beta}\)は力定数行列です。</p>
+
+                <h3>2.2 調和近似で無視される効果</h3>
+
+                <h4>熱膨張の不在</h4>
+                <p>
+                    調和近似では、ポテンシャルが対称的なため、熱平均した変位は常にゼロです：
+                </p>
+                <div class="equation">
+                    $$
+                    \langle u_i^\alpha \rangle = 0
+                    $$
+                </div>
+                <p>
+                    実際の材料では、非調和性により平衡位置が温度とともに変化し、熱膨張が生じます。
+                </p>
+
+                <h4>フォノンの相互作用</h4>
+                <p>
+                    調和近似では、フォノンは独立な粒子として振る舞い、互いに散乱しません。
+                    これは熱伝導率が無限大になることを意味します（非物理的）。
+                </p>
+
+                <h4>相転移の不在</h4>
+                <p>
+                    調和近似では、力定数が温度に依存しないため、構造相転移を記述できません。
+                </p>
+
+                <h3>2.3 非調和ポテンシャル</h3>
+                <p>完全なポテンシャルエネルギーは高次項を含みます：</p>
+                <div class="equation">
+                    $$
+                    V(\{u_i\}) = V_0 + \frac{1}{2}\sum_{ij\alpha\beta} \Phi_{ij}^{\alpha\beta} u_i^\alpha u_j^\beta + \frac{1}{6}\sum_{ijk\alpha\beta\gamma} \Phi_{ijk}^{\alpha\beta\gamma} u_i^\alpha u_j^\beta u_k^\gamma + \cdots
+                    $$
+                </div>
+                <p>ここで：</p>
+                <ul>
+                    <li>\(\Phi_{ijk}^{\alpha\beta\gamma}\)：3次の力定数（3フォノン相互作用）</li>
+                    <li>4次以上の項：より高次のフォノン相互作用</li>
+                </ul>
+
+                <div class="mermaid">
+                graph TD
+                    A[調和ポテンシャル] --> B[対称的な放物線]
+                    A --> C[熱膨張なし]
+                    A --> D[フォノン独立]
+                    E[非調和ポテンシャル] --> F[非対称性]
+                    E --> G[熱膨張あり]
+                    E --> H[フォノン相互作用]
+                    E --> I[相転移可能]
+                </div>
+            </section>
+
+            <!-- Self-Consistent Phonon Theory -->
+            <section id="scp-theory">
+                <h2>3. 自己無撞着フォノン（SCP）理論</h2>
+
+                <h3>3.1 基本的なアイデア</h3>
+                <p>
+                    自己無撞着フォノン理論は、非調和性を効果的な調和ポテンシャルに繰り込む方法です。
+                    基本的な考え方は：
+                </p>
+                <ol>
+                    <li>非調和ポテンシャルを熱平均する</li>
+                    <li>効果的な調和ポテンシャルを得る</li>
+                    <li>このポテンシャルでフォノンを再計算</li>
+                    <li>収束するまで繰り返す</li>
+                </ol>
+
+                <h3>3.2 理論的導出</h3>
+
+                <h4>Helmholtz自由エネルギー</h4>
+                <p>系の自由エネルギーは：</p>
+                <div class="equation">
+                    $$
+                    F = -k_B T \ln Z = -k_B T \ln \text{Tr} e^{-\beta H}
+                    $$
+                </div>
+                <p>ここで、\(\beta = 1/(k_B T)\)、\(H\)はハミルトニアンです。</p>
+
+                <h4>変分原理</h4>
+                <p>
+                    試行的な調和ハミルトニアン\(H_0\)を導入し、Gibbs-Bogoliubov不等式を用います：
+                </p>
+                <div class="equation">
+                    $$
+                    F \leq F_0 + \langle H - H_0 \rangle_0 = \Phi[H_0]
+                    $$
+                </div>
+                <p>
+                    ここで、\(\langle \cdots \rangle_0\)は\(H_0\)に関する熱平均です。
+                    \(\Phi[H_0]\)を最小化することで、最適な調和ハミルトニアンを得ます。
+                </p>
+
+                <h4>自己無撞着条件</h4>
+                <p>最小化条件\(\delta \Phi / \delta H_0 = 0\)から：</p>
+                <div class="equation">
+                    $$
+                    \Phi_{ij}^{\alpha\beta}(T) = \left. \frac{\partial^2 V}{\partial u_i^\alpha \partial u_j^\beta} \right|_{\langle u \rangle} + \text{熱揺らぎ項}
+                    $$
+                </div>
+                <p>
+                    この効果的な力定数は温度に依存し、熱平均した変位\(\langle u \rangle\)の周りで評価されます。
+                </p>
+
+                <h3>3.3 SCP方程式</h3>
+                <p>実際のSCP方程式は以下の形になります：</p>
+                <div class="equation">
+                    $$
+                    \Phi_{ij}^{\alpha\beta}(T) = \Phi_{ij}^{\alpha\beta}(0) + \sum_{kl\gamma\delta} \Phi_{ijkl}^{\alpha\beta\gamma\delta}(0) \langle u_k^\gamma u_l^\delta \rangle_T
+                    $$
+                </div>
+                <p>ここで：</p>
+                <ul>
+                    <li>\(\Phi_{ij}^{\alpha\beta}(0)\)：\(T=0\)での調和力定数</li>
+                    <li>\(\Phi_{ijkl}^{\alpha\beta\gamma\delta}(0)\)：4次の力定数</li>
+                    <li>\(\langle u_k^\gamma u_l^\delta \rangle_T\)：温度\(T\)での変位相関</li>
+                </ul>
+
+                <h3>3.4 反復解法</h3>
+                <p>SCP方程式は自己無撞着に解く必要があります：</p>
+                <ol>
+                    <li>初期推定：\(\Phi^{(0)}_{ij}(T) = \Phi_{ij}(0)\)</li>
+                    <li>\(\Phi^{(n)}_{ij}(T)\)を用いてフォノンを計算</li>
+                    <li>変位相関\(\langle u_k^\gamma u_l^\delta \rangle_T\)を計算</li>
+                    <li>新しい力定数\(\Phi^{(n+1)}_{ij}(T)\)を計算</li>
+                    <li>収束するまで2-4を繰り返す</li>
+                </ol>
+
+                <div class="mermaid">
+                flowchart LR
+                    A[初期力定数 Φ⁰] --> B[フォノン計算]
+                    B --> C[変位相関計算]
+                    C --> D[新しい力定数 Φⁿ⁺¹]
+                    D --> E{収束?}
+                    E -->|No| B
+                    E -->|Yes| F[自己無撞着解]
+                </div>
+
+                <div class="warning-box">
+                    <p><strong>注意：</strong></p>
+                    <p>
+                        SCP理論は準調和近似（QHA）よりも正確ですが、強い非調和性や相転移の近くでは
+                        破綻する可能性があります。そのような場合は、SSCHAなどのより高度な手法が必要です。
+                    </p>
+                </div>
+            </section>
+
+            <!-- SCAILD -->
+            <section id="scaild">
+                <h2>4. 自己無撞着第一原理格子力学（SCAILD）</h2>
+
+                <h3>4.1 SCAILD法の概要</h3>
+                <p>
+                    SCAILD（Self-Consistent Ab Initio Lattice Dynamics）は、第一原理計算とSCP理論を
+                    組み合わせた手法です。主な特徴：
+                </p>
+                <ul>
+                    <li>第一原理計算から力定数を直接計算</li>
+                    <li>温度効果を自己無撞着に取り入れる</li>
+                    <li>熱膨張と非調和効果を同時に扱う</li>
+                </ul>
+
+                <h3>4.2 計算手順</h3>
+                <ol>
+                    <li><strong>初期構造の最適化</strong>：\(T=0\)で構造を最適化</li>
+                    <li><strong>力定数の計算</strong>：有限変位法やDFPTで2次、3次力定数を計算</li>
+                    <li><strong>フォノン計算</strong>：調和フォノン振動数を計算</li>
+                    <li><strong>熱平均の計算</strong>：Bose-Einstein統計で変位相関を計算</li>
+                    <li><strong>格子定数の更新</strong>：熱膨張により格子定数を更新</li>
+                    <li><strong>力定数の更新</strong>：新しい格子定数で力定数を再計算</li>
+                    <li><strong>収束判定</strong>：格子定数とフォノン振動数が収束するまで4-6を繰り返す</li>
+                </ol>
+
+                <h3>4.3 熱膨張の計算</h3>
+                <p>格子定数の温度依存性は以下のように計算されます：</p>
+                <div class="equation">
+                    $$
+                    a(T) = a_0 + \Delta a(T)
+                    $$
+                </div>
+                <p>ここで、\(\Delta a(T)\)は熱膨張による変化です。線形熱膨張係数は：</p>
+                <div class="equation">
+                    $$
+                    \alpha(T) = \frac{1}{a} \frac{da}{dT}
+                    $$
+                </div>
+
+                <h3>4.4 応用例</h3>
+                <p>
+                    SCAILDは以下のような材料で成功を収めています：
+                </p>
+                <ul>
+                    <li>金属（Cu, Al, Pt）の熱膨張</li>
+                    <li>半導体（Si, GaAs）のフォノン振動数の温度依存性</li>
+                    <li>酸化物（MgO, Al₂O₃）の高温物性</li>
+                </ul>
+
+                <div class="mermaid">
+                graph TD
+                    A[T=0構造最適化] --> B[力定数計算 DFT]
+                    B --> C[フォノン計算]
+                    C --> D[熱平均計算]
+                    D --> E[格子定数更新]
+                    E --> F{収束?}
+                    F -->|No| B
+                    F -->|Yes| G[温度依存物性]
+                </div>
+            </section>
+
+            <!-- SSCHA -->
+            <section id="sscha">
+                <h2>5. 確率的自己無撞着調和近似（SSCHA）</h2>
+
+                <h3>5.1 SSCHAの動機</h3>
+                <p>
+                    従来のSCP理論には限界があります：
+                </p>
+                <ul>
+                    <li>強い非調和性では収束しない</li>
+                    <li>相転移の臨界点近傍で破綻</li>
+                    <li>量子揺らぎの扱いが不十分</li>
+                </ul>
+                <p>
+                    SSCHA（Stochastic Self-Consistent Harmonic Approximation）は、
+                    これらの問題を確率的サンプリングで解決します。
+                </p>
+
+                <h3>5.2 理論的基礎</h3>
+
+                <h4>変分密度行列</h4>
+                <p>SSCHAでは、試行的な密度行列を導入します：</p>
+                <div class="equation">
+                    $$
+                    \rho_0 = \frac{e^{-\beta H_0}}{Z_0}
+                    $$
+                </div>
+                <p>ここで、\(H_0\)は試行的な調和ハミルトニアンです。</p>
+
+                <h4>自由エネルギー汎関数</h4>
+                <p>変分自由エネルギーは：</p>
+                <div class="equation">
+                    $$
+                    \mathcal{F}[\rho_0] = \langle H \rangle_0 - TS_0 = F_0 + \langle V - V_0 \rangle_0
+                    $$
+                </div>
+                <p>ここで、\(S_0 = -k_B \text{Tr}(\rho_0 \ln \rho_0)\)は試行系のエントロピーです。</p>
+
+                <h3>5.3 確率的サンプリング</h3>
+                <p>
+                    SSCHAの核心は、調和分布からサンプリングした構造で非調和ポテンシャルを評価することです：
+                </p>
+                <ol>
+                    <li>調和分布\(\rho_0\)から構造\(\{R^{(n)}\}\)をサンプリング</li>
+                    <li>各構造で第一原理計算を実行し、エネルギーと力を計算</li>
+                    <li>サンプル平均から効果的な力定数を計算</li>
+                    <li>新しい調和ハミルトニアンを構築</li>
+                    <li>収束するまで繰り返す</li>
+                </ol>
+
+                <h3>5.4 力定数の計算</h3>
+                <p>効果的な調和力定数は以下のように計算されます：</p>
+                <div class="equation">
+                    $$
+                    \Phi_{ij}^{\alpha\beta} = \left\langle \frac{\partial^2 V}{\partial R_i^\alpha \partial R_j^\beta} \right\rangle_0
+                    $$
+                </div>
+                <p>実際には、有限差分で近似します：</p>
+                <div class="equation">
+                    $$
+                    \Phi_{ij}^{\alpha\beta} \approx \frac{F_i^\alpha(R_j^\beta + \delta) - F_i^\alpha(R_j^\beta - \delta)}{2\delta}
+                    $$
+                </div>
+
+                <h3>5.5 自由エネルギーハイサーフェス</h3>
+                <p>
+                    SSCHAは自由エネルギーハイサーフェス上での最小化と見なせます：
+                </p>
+                <div class="equation">
+                    $$
+                    F(\mathcal{R}, \Phi; T) = \min_{\rho_0} \mathcal{F}[\rho_0]
+                    $$
+                </div>
+                <p>
+                    ここで、\(\mathcal{R}\)は平衡位置、\(\Phi\)は効果的な力定数です。
+                    この自由エネルギー面で相転移を解析できます。
+                </p>
+
+                <h3>5.6 SSCHAの利点</h3>
+                <ul>
+                    <li><strong>強い非調和性</strong>：摂動論を使わないため、強い非調和性も扱える</li>
+                    <li><strong>相転移</strong>：自由エネルギー面の不安定性から相転移を予測</li>
+                    <li><strong>量子効果</strong>：量子揺らぎを正しく取り入れる</li>
+                    <li><strong>一般性</strong>：任意の第一原理計算コードと組み合わせ可能</li>
+                </ul>
+
+                <div class="info-box">
+                    <p><strong>SSCHAの成功例：</strong></p>
+                    <ul>
+                        <li>SnTe、PbTeの構造相転移</li>
+                        <li>水素化物超伝導体の安定性</li>
+                        <li>熱電材料の格子熱伝導率</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Temperature-Dependent Frequencies -->
+            <section id="temperature-dependence">
+                <h2>6. 温度依存フォノン振動数</h2>
+
+                <h3>6.1 実験的観測</h3>
+                <p>
+                    フォノン振動数は温度とともに変化します。主な測定手法：
+                </p>
+                <ul>
+                    <li><strong>ラマン分光</strong>：光学フォノンの振動数と線幅</li>
+                    <li><strong>中性子散乱</strong>：全ブリルアンゾーンのフォノン分散</li>
+                    <li><strong>赤外分光</strong>：極性光学フォノン</li>
+                </ul>
+
+                <h3>6.2 温度シフトのメカニズム</h3>
+
+                <h4>体積効果（準調和）</h4>
+                <p>
+                    熱膨張により格子定数が変化し、フォノン振動数が変化します：
+                </p>
+                <div class="equation">
+                    $$
+                    \omega(T) = \omega_0 \left(1 + \gamma \frac{\Delta V(T)}{V_0}\right)
+                    $$
+                </div>
+                <p>ここで、\(\gamma\)はGrüneisenパラメータです。</p>
+
+                <h4>真の非調和効果</h4>
+                <p>
+                    3フォノン、4フォノン相互作用により、フォノン自己エネルギーが生じます：
+                </p>
+                <div class="equation">
+                    $$
+                    \Pi(\mathbf{q}, \omega; T) = \Delta(\mathbf{q}, T) - i\Gamma(\mathbf{q}, T)
+                    $$
+                </div>
+                <ul>
+                    <li>\(\Delta(\mathbf{q}, T)\)：振動数シフト（実部）</li>
+                    <li>\(\Gamma(\mathbf{q}, T)\)：線幅（虚部、逆寿命）</li>
+                </ul>
+
+                <h3>6.3 繰り込み振動数</h3>
+                <p>観測される振動数は繰り込まれた値です：</p>
+                <div class="equation">
+                    $$
+                    \omega_{\text{obs}}(\mathbf{q}, T) = \omega_0(\mathbf{q}) + \Delta(\mathbf{q}, T)
+                    $$
+                </div>
+                <p>温度依存性は以下のようになります：</p>
+                <div class="equation">
+                    $$
+                    \Delta(\mathbf{q}, T) \propto \left(1 + 2n_B(\omega/T)\right)
+                    $$
+                </div>
+                <p>ここで、\(n_B\)はBose-Einstein分布関数です。</p>
+
+                <h3>6.4 ソフト化とハード化</h3>
+                <p>材料により、温度とともにフォノンがソフト化またはハード化します：</p>
+                <ul>
+                    <li><strong>ソフト化</strong>（\(\omega\)減少）：多くの強誘電体、相転移物質</li>
+                    <li><strong>ハード化</strong>（\(\omega\)増加）：一部の金属、半導体</li>
+                </ul>
+
+                <div class="mermaid">
+                graph LR
+                    A[温度上昇] --> B[熱膨張]
+                    A --> C[フォノン占有増加]
+                    B --> D[体積効果]
+                    C --> E[非調和散乱]
+                    D --> F[振動数シフト]
+                    E --> F
+                    E --> G[線幅増加]
+                </div>
+            </section>
+
+            <!-- Soft Modes -->
+            <section id="soft-modes">
+                <h2>7. ソフトモードと構造不安定性</h2>
+
+                <h3>7.1 ソフトモードの定義</h3>
+                <p>
+                    ソフトモードとは、温度や圧力などのパラメータを変化させると、
+                    振動数がゼロに近づくフォノンモードです：
+                </p>
+                <div class="equation">
+                    $$
+                    \omega_s(\mathbf{q}, T) \to 0 \quad \text{as} \quad T \to T_c
+                    $$
+                </div>
+                <p>
+                    \(T_c\)は相転移温度です。振動数がゼロになると、系は新しい構造に対して不安定になります。
+                </p>
+
+                <h3>7.2 不安定性の物理</h3>
+                <p>
+                    フォノン振動数の二乗は、力定数（復元力）に比例します：
+                </p>
+                <div class="equation">
+                    $$
+                    \omega^2 \propto \Phi
+                    $$
+                </div>
+                <p>
+                    \(\omega^2 < 0\)（虚の振動数）は、現在の構造が不安定であることを意味します。
+                    系はソフトモードの方向に変位し、より低いエネルギーの構造を見つけます。
+                </p>
+
+                <h3>7.3 ソフトモードと秩序変数</h3>
+                <p>
+                    ソフトモードの振幅は、相転移の秩序変数と関連します：
+                </p>
+                <div class="equation">
+                    $$
+                    \eta \propto \sqrt{\langle |u_{\mathbf{q}_s}|^2 \rangle}
+                    $$
+                </div>
+                <p>
+                    ここで、\(u_{\mathbf{q}_s}\)はソフトモードの変位、\(\eta\)は秩序変数です。
+                </p>
+
+                <h3>7.4 ソフトモードの種類</h3>
+
+                <h4>Γ点ソフトモード（\(\mathbf{q}=0\)）</h4>
+                <ul>
+                    <li>ゾーン中心のモード</li>
+                    <li>単位胞内での歪み</li>
+                    <li>例：BaTiO₃の強誘電転移</li>
+                </ul>
+
+                <h4>ゾーン境界ソフトモード</h4>
+                <ul>
+                    <li>\(\mathbf{q} \neq 0\)のモード</li>
+                    <li>単位胞の倍化を伴う</li>
+                    <li>例：SrTiO₃の\(R\)点ソフトモード</li>
+                </ul>
+
+                <h3>7.5 凍結（Freezing-in）</h3>
+                <p>
+                    相転移点以下では、ソフトモードが「凍結」し、有限振幅を持ちます：
+                </p>
+                <div class="equation">
+                    $$
+                    u_{\mathbf{q}_s} \neq 0 \quad \text{for} \quad T < T_c
+                    $$
+                </div>
+                <p>
+                    これにより、対称性が破れ、新しい結晶構造が形成されます。
+                </p>
+
+                <div class="info-box">
+                    <p><strong>古典的な例：SrTiO₃</strong></p>
+                    <p>
+                        SrTiO₃は105 Kで立方晶から正方晶への構造相転移を示します。
+                        この転移は、\(R\)点（ブリルアンゾーン境界）のソフトモードの凍結によるものです。
+                        ソフトモードの振動数は、\(T_c\)に近づくと\(\omega \propto (T - T_c)^{1/2}\)のように減少します。
+                    </p>
+                </div>
+            </section>
+
+            <!-- Landau Theory -->
+            <section id="landau-theory">
+                <h2>8. 相転移のランダウ理論</h2>
+
+                <h3>8.1 ランダウ理論の基本原理</h3>
+                <p>
+                    ランダウ理論は、相転移を秩序変数\(\eta\)の関数としての自由エネルギー展開で記述します：
+                </p>
+                <div class="equation">
+                    $$
+                    F(\eta, T) = F_0 + \frac{1}{2}a(T)\eta^2 + \frac{1}{4}b\eta^4 + \frac{1}{6}c\eta^6 + \cdots
+                    $$
+                </div>
+                <p>ここで：</p>
+                <ul>
+                    <li>\(\eta\)：秩序変数（例：自発分極、変位振幅）</li>
+                    <li>\(a(T) = a_0(T - T_c)\)：温度依存係数</li>
+                    <li>\(b, c, \ldots\)：高次係数</li>
+                </ul>
+
+                <h3>8.2 2次相転移</h3>
+                <p>
+                    \(b > 0\)の場合、2次（連続）相転移が起こります：
+                </p>
+                <div class="equation">
+                    $$
+                    F(\eta, T) = F_0 + \frac{1}{2}a_0(T - T_c)\eta^2 + \frac{1}{4}b\eta^4
+                    $$
+                </div>
+
+                <h4>平衡条件</h4>
+                <p>自由エネルギーを最小化します：</p>
+                <div class="equation">
+                    $$
+                    \frac{\partial F}{\partial \eta} = 0 \Rightarrow a(T)\eta + b\eta^3 = 0
+                    $$
+                </div>
+                <p>解は：</p>
+                <ul>
+                    <li>\(T > T_c\)：\(\eta = 0\)（対称相）</li>
+                    <li>\(T < T_c\)：\(\eta = \pm\sqrt{\frac{a_0(T_c - T)}{b}}\)（対称性の破れた相）</li>
+                </ul>
+
+                <h3>8.3 1次相転移</h3>
+                <p>
+                    \(b < 0\)の場合、1次（不連続）相転移が起こります。安定化のため\(c > 0\)が必要：
+                </p>
+                <div class="equation">
+                    $$
+                    F(\eta, T) = F_0 + \frac{1}{2}a(T)\eta^2 + \frac{1}{4}b\eta^4 + \frac{1}{6}c\eta^6
+                    $$
+                </div>
+                <p>
+                    この場合、\(\eta\)は転移点で不連続に変化し、潜熱が発生します。
+                </p>
+
+                <h3>8.4 対称性と許容項</h3>
+                <p>
+                    ランダウ展開の許容項は、系の対称性によって決まります：
+                </p>
+                <ul>
+                    <li>高対称性：奇数次項が禁止される（例：\(\eta^3\)項なし）</li>
+                    <li>低対称性：奇数次項が許される → 常に1次転移</li>
+                </ul>
+
+                <h3>8.5 臨界指数</h3>
+                <p>
+                    相転移近傍での物理量のスケーリング則：
+                </p>
+                <div class="equation">
+                    $$
+                    \begin{align}
+                    \eta &\propto (T_c - T)^\beta \quad &(\text{秩序変数}) \\
+                    C &\propto |T - T_c|^{-\alpha} \quad &(\text{比熱}) \\
+                    \chi &\propto |T - T_c|^{-\gamma} \quad &(\text{感受率})
+                    \end{align}
+                    $$
+                </div>
+                <p>平均場理論（ランダウ理論）では：</p>
+                <ul>
+                    <li>\(\beta = 1/2\)</li>
+                    <li>\(\alpha = 0\)（対数発散）</li>
+                    <li>\(\gamma = 1\)</li>
+                </ul>
+
+                <div class="mermaid">
+                graph TD
+                    A[自由エネルギー F(η,T)] --> B{b > 0?}
+                    B -->|Yes| C[2次相転移]
+                    B -->|No| D[1次相転移]
+                    C --> E[連続的変化]
+                    C --> F[潜熱なし]
+                    D --> G[不連続変化]
+                    D --> H[潜熱あり]
+                </div>
+            </section>
+
+            <!-- Transition Types -->
+            <section id="transition-types">
+                <h2>9. 転移のタイプ：変位型 vs 秩序-無秩序型</h2>
+
+                <h3>9.1 変位型転移（Displacive）</h3>
+
+                <h4>特徴</h4>
+                <ul>
+                    <li>高温相ですでにソフトモードが存在</li>
+                    <li>転移により原子位置が連続的に変化</li>
+                    <li>短距離秩序がほとんどない</li>
+                </ul>
+
+                <h4>メカニズム</h4>
+                <p>
+                    温度低下に伴い、ソフトモードの振動数が減少し、臨界温度でゼロになります。
+                    その後、変位が凍結して新しい構造が形成されます。
+                </p>
+
+                <h4>典型例</h4>
+                <ul>
+                    <li><strong>BaTiO₃</strong>：常誘電-強誘電転移</li>
+                    <li><strong>SrTiO₃</strong>：立方晶-正方晶転移</li>
+                    <li><strong>水晶</strong>：α-β転移</li>
+                </ul>
+
+                <h3>9.2 秩序-無秩序型転移（Order-Disorder）</h3>
+
+                <h4>特徴</h4>
+                <ul>
+                    <li>高温相で原子が複数のサイトを占有</li>
+                    <li>転移により特定サイトへの占有秩序化</li>
+                    <li>強い短距離秩序が存在</li>
+                </ul>
+
+                <h4>メカニズム</h4>
+                <p>
+                    高温では、原子が熱的に複数の等価サイト間を移動します（無秩序）。
+                    温度低下により、特定のサイト占有が優位になり、秩序化します。
+                </p>
+
+                <h4>典型例</h4>
+                <ul>
+                    <li><strong>KH₂PO₄（KDP）</strong>：強誘電転移</li>
+                    <li><strong>氷</strong>：プロトン秩序化</li>
+                    <li><strong>合金</strong>：化学的秩序化</li>
+                </ul>
+
+                <h3>9.3 両者の比較</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>特性</th>
+                            <th>変位型</th>
+                            <th>秩序-無秩序型</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>高温相</td>
+                            <td>単一の平衡位置</td>
+                            <td>複数の等価サイト</td>
+                        </tr>
+                        <tr>
+                            <td>ソフトモード</td>
+                            <td>明瞭に観測される</td>
+                            <td>観測困難（強い減衰）</td>
+                        </tr>
+                        <tr>
+                            <td>短距離秩序</td>
+                            <td>弱い</td>
+                            <td>強い</td>
+                        </tr>
+                        <tr>
+                            <td>転移の性質</td>
+                            <td>多くは2次</td>
+                            <td>1次も多い</td>
+                        </tr>
+                        <tr>
+                            <td>理論的扱い</td>
+                            <td>ランダウ理論、SCPが有効</td>
+                            <td>Isingモデルなど統計力学</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>9.4 中間的挙動</h3>
+                <p>
+                    実際の材料では、純粋な変位型や秩序-無秩序型は稀で、多くは中間的挙動を示します：
+                </p>
+                <ul>
+                    <li>部分的な秩序-無秩序特性を持つ変位型転移</li>
+                    <li>温度により転移の性質が変化</li>
+                    <li>異なるフォノンモードが異なる性質を持つ</li>
+                </ul>
+
+                <div class="info-box">
+                    <p><strong>実験的区別法：</strong></p>
+                    <ul>
+                        <li><strong>中性子散乱</strong>：ソフトモードの観測可否</li>
+                        <li><strong>NMR</strong>：局所的な無秩序の検出</li>
+                        <li><strong>X線散乱</strong>：短距離秩序の有無</li>
+                        <li><strong>比熱測定</strong>：転移のエントロピー変化</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Perovskite Phase Transitions -->
+            <section id="perovskites">
+                <h2>10. ペロブスカイト相転移</h2>
+
+                <h3>10.1 ペロブスカイト構造</h3>
+                <p>
+                    ペロブスカイトは化学式ABO₃を持つ結晶構造です：
+                </p>
+                <ul>
+                    <li>A：大きな陽イオン（12配位）</li>
+                    <li>B：小さな陽イオン（6配位、酸素八面体の中心）</li>
+                    <li>O：酸素イオン（八面体を形成）</li>
+                </ul>
+
+                <h3>10.2 BaTiO₃の強誘電転移</h3>
+
+                <h4>相転移系列</h4>
+                <p>BaTiO₃は温度により複数の相転移を示します：</p>
+                <div class="equation">
+                    $$
+                    \begin{array}{ccccc}
+                    \text{立方晶} & \xrightarrow{393\text{ K}} & \text{正方晶} & \xrightarrow{278\text{ K}} & \text{斜方晶} & \xrightarrow{183\text{ K}} & \text{菱面体} \\
+                    Pm\bar{3}m & & P4mm & & Amm2 & & R3m \\
+                    \text{常誘電} & & \multicolumn{5}{c}{\text{強誘電}}
+                    \end{array}
+                    $$
+                </div>
+
+                <h4>ソフトモードメカニズム</h4>
+                <p>
+                    立方晶→正方晶転移は、Γ点の横波光学（TO）フォノンのソフト化により起こります：
+                </p>
+                <ul>
+                    <li>Ti⁴⁺イオンが酸素八面体の中心から変位</li>
+                    <li>自発分極が生じる（強誘電性）</li>
+                    <li>変位型転移の典型例</li>
+                </ul>
+
+                <h3>10.3 SrTiO₃の構造相転移</h3>
+
+                <h4>105 K転移</h4>
+                <p>
+                    SrTiO₃は105 Kで立方晶から正方晶へ転移します：
+                </p>
+                <ul>
+                    <li>\(R\)点（\(\mathbf{q} = (\pi/a, \pi/a, \pi/a)\)）のソフトモード</li>
+                    <li>酸素八面体の回転による</li>
+                    <li>単位胞が2倍になる</li>
+                    <li>強誘電性は現れない</li>
+                </ul>
+
+                <h4>量子臨界性</h4>
+                <p>
+                    SrTiO₃は「量子常誘電体」として知られています：
+                </p>
+                <ul>
+                    <li>ソフトモードが0 Kでも有限の振動数を持つ</li>
+                    <li>量子揺らぎが強誘電転移を抑制</li>
+                    <li>低温で異常に大きな誘電率</li>
+                </ul>
+
+                <h3>10.4 PbTiO₃とSnTe</h3>
+                <p>
+                    これらの材料は、SSCHAの成功例です：
+                </p>
+                <ul>
+                    <li><strong>PbTiO₃</strong>：高温で強誘電転移（763 K）</li>
+                    <li><strong>SnTe</strong>：低温で強誘電転移（変位型、弱い）</li>
+                </ul>
+                <p>
+                    両者とも、準調和近似では転移温度を正確に予測できませんが、
+                    SSCHAでは実験値とよく一致します。
+                </p>
+
+                <h3>10.5 トレランス因子</h3>
+                <p>
+                    ペロブスカイトの構造安定性は、トレランス因子\(t\)で予測されます：
+                </p>
+                <div class="equation">
+                    $$
+                    t = \frac{r_A + r_O}{\sqrt{2}(r_B + r_O)}
+                    $$
+                </div>
+                <p>ここで、\(r_A, r_B, r_O\)はイオン半径です。</p>
+                <ul>
+                    <li>\(t \approx 1\)：理想的な立方晶</li>
+                    <li>\(t < 1\)：八面体の回転による歪み</li>
+                    <li>\(t > 1\)：六方晶ペロブスカイトなど</li>
+                </ul>
+
+                <div class="mermaid">
+                graph TD
+                    A[ペロブスカイト ABO₃] --> B[t ≈ 1: 立方晶]
+                    A --> C[t < 1: 歪んだ構造]
+                    A --> D[t > 1: 他の構造]
+                    B --> E[BaTiO₃ 高温相]
+                    C --> F[SrTiO₃ 低温相]
+                    C --> G[八面体回転]
+                    E --> H[強誘電転移]
+                    H --> I[Ti変位]
+                </div>
+            </section>
+
+            <!-- Negative Thermal Expansion -->
+            <section id="nte">
+                <h2>11. 負熱膨張材料</h2>
+
+                <h3>11.1 負熱膨張の定義</h3>
+                <p>
+                    ほとんどの材料は加熱により膨張しますが、一部の材料は収縮します（負熱膨張、NTE）：
+                </p>
+                <div class="equation">
+                    $$
+                    \alpha = \frac{1}{V}\frac{dV}{dT} < 0
+                    $$
+                </div>
+                <p>ここで、\(\alpha\)は体積熱膨張係数です。</p>
+
+                <h3>11.2 NTEのメカニズム</h3>
+
+                <h4>1. 横振動メカニズム（RUM: Rigid Unit Mode）</h4>
+                <p>
+                    剛体ユニット（例：八面体、四面体）が回転または振動することで、
+                    全体の体積が減少します。
+                </p>
+                <ul>
+                    <li>例：ZrW₂O₈、ScF₃</li>
+                    <li>メカニズム：M-O-M結合角の曲げ振動</li>
+                    <li>広い温度範囲でNTE</li>
+                </ul>
+
+                <h4>2. 磁気体積効果</h4>
+                <p>
+                    磁気秩序の消失により体積が減少：
+                </p>
+                <ul>
+                    <li>例：反強磁性体Mn₃AN（A=Ga, Zn）</li>
+                    <li>Néel温度付近でNTE</li>
+                </ul>
+
+                <h4>3. 電荷移動</h4>
+                <p>
+                    価数変化により原子サイズが変化：
+                </p>
+                <ul>
+                    <li>例：BiNiO₃</li>
+                    <li>温度により電荷分布が変化</li>
+                </ul>
+
+                <h3>11.3 ZrW₂O₈の例</h3>
+                <p>
+                    ZrW₂O₈は、0-1050 Kの広い温度範囲で等方的なNTEを示します：
+                </p>
+                <ul>
+                    <li>線形熱膨張係数：\(\alpha_L = -9 \times 10^{-6}\) K⁻¹</li>
+                    <li>立方晶構造（\(P2_13\)）</li>
+                    <li>ZrO₆八面体とWO₄四面体が頂点共有</li>
+                </ul>
+
+                <h4>RUMモード</h4>
+                <p>
+                    ZrW₂O₈のNTEは、低エネルギーの横振動フォノンに起因します：
+                </p>
+                <ul>
+                    <li>剛体ユニット（八面体、四面体）は変形しない</li>
+                    <li>ユニット間の結合角が変化</li>
+                    <li>平均二乗変位が増加すると、平均結合角が減少</li>
+                    <li>結果として体積が減少</li>
+                </ul>
+
+                <h3>11.4 理論的記述</h3>
+                <p>
+                    NTEは、負のGrüneisenパラメータを持つフォノンモードで説明されます：
+                </p>
+                <div class="equation">
+                    $$
+                    \gamma_i = -\frac{V}{\omega_i}\frac{\partial \omega_i}{\partial V}
+                    $$
+                </div>
+                <p>全体の熱膨張係数は：</p>
+                <div class="equation">
+                    $$
+                    \alpha = \frac{1}{BV}\sum_i \gamma_i C_{V,i}
+                    $$
+                </div>
+                <p>
+                    ここで、\(B\)は体積弾性率、\(C_{V,i}\)はモード\(i\)の熱容量です。
+                    低周波のRUMモードが負の\(\gamma_i\)を持つと、全体でNTEになります。
+                </p>
+
+                <h3>11.5 応用</h3>
+                <ul>
+                    <li><strong>ゼロ熱膨張材料</strong>：正と負のNTE材料を複合化</li>
+                    <li><strong>精密機器</strong>：光学部品、センサー</li>
+                    <li><strong>熱応力緩和</strong>：接合部、コーティング</li>
+                </ul>
+
+                <div class="info-box">
+                    <p><strong>第一原理計算の役割：</strong></p>
+                    <p>
+                        NTE材料の設計には、第一原理フォノン計算が不可欠です：
+                    </p>
+                    <ul>
+                        <li>フォノン分散からRUMモードを同定</li>
+                        <li>Grüneisenパラメータの計算</li>
+                        <li>新材料のスクリーニング</li>
+                        <li>SCPやSSCHAで温度依存性を予測</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Implementation -->
+            <section id="implementation">
+                <h2>12. 計算実装</h2>
+
+                <h3>12.1 簡易SCP計算</h3>
+                <p>以下は、3次の力定数を用いた簡易的なSCP計算の実装例です：</p>
+
+<pre><code class="language-python">import numpy as np
+from scipy.linalg import eigh
+
+class SimpleSCP:
+    """
+    簡易的な自己無撞着フォノン計算
+
+    1次元モデルでSCP理論を実装
+    """
+
+    def __init__(self, phi2, phi3, phi4, mass, n_atoms=1):
+        """
+        Parameters:
+        -----------
+        phi2 : float
+            2次の力定数 (調和項)
+        phi3 : float
+            3次の力定数
+        phi4 : float
+            4次の力定数
+        mass : float
+            原子質量
+        n_atoms : int
+            単位胞内の原子数
+        """
+        self.phi2_0 = phi2  # 元の2次力定数
+        self.phi3 = phi3
+        self.phi4 = phi4
+        self.mass = mass
+        self.n_atoms = n_atoms
+        self.kB = 1.380649e-23  # Boltzmann constant (J/K)
+
+    def bose_einstein(self, omega, T):
+        """Bose-Einstein分布関数"""
+        if T == 0:
+            return 0.0
+        hbar = 1.054571817e-34
+        x = hbar * omega / (self.kB * T)
+        if x > 100:  # オーバーフロー回避
+            return 0.0
+        return 1.0 / (np.exp(x) - 1.0)
+
+    def mean_square_displacement(self, omega, T):
+        """平均二乗変位 &lt;u²&gt; の計算"""
+        if omega <= 0:
+            return np.inf
+        hbar = 1.054571817e-34
+        n_BE = self.bose_einstein(omega, T)
+        # &lt;u²&gt; = (ℏ/2Mω)(2n + 1)
+        return (hbar / (2 * self.mass * omega)) * (2 * n_BE + 1)
+
+    def effective_force_constant(self, T, omega_current):
+        """
+        温度依存の効果的力定数を計算
+
+        Φ(T) = Φ₂ + Φ₄·&lt;u²&gt;
+
+        (3次項は1次元では平均がゼロになるため省略)
+        """
+        u2_mean = self.mean_square_displacement(omega_current, T)
+        phi_eff = self.phi2_0 + self.phi4 * u2_mean
+        return phi_eff
+
+    def calculate_frequency(self, phi_eff):
+        """力定数から振動数を計算"""
+        if phi_eff <= 0:
+            return 0.0  # 不安定
+        omega2 = phi_eff / self.mass
+        return np.sqrt(omega2)
+
+    def self_consistent_solve(self, T, max_iter=100, tol=1e-6):
+        """
+        自己無撞着方程式を解く
+
+        Parameters:
+        -----------
+        T : float
+            温度 (K)
+        max_iter : int
+            最大反復回数
+        tol : float
+            収束判定の閾値
+
+        Returns:
+        --------
+        omega : float
+            自己無撞着なフォノン振動数
+        converged : bool
+            収束したかどうか
+        """
+        # 初期推定：T=0の振動数
+        omega_old = self.calculate_frequency(self.phi2_0)
+
+        for iteration in range(max_iter):
+            # 効果的力定数を計算
+            phi_eff = self.effective_force_constant(T, omega_old)
+
+            # 新しい振動数を計算
+            omega_new = self.calculate_frequency(phi_eff)
+
+            # 収束判定
+            diff = abs(omega_new - omega_old)
+            if diff < tol:
+                return omega_new, True
+
+            # 混合（収束を安定化）
+            mixing = 0.5
+            omega_old = mixing * omega_new + (1 - mixing) * omega_old
+
+        # 収束しなかった
+        return omega_new, False
+
+    def temperature_scan(self, T_min=0, T_max=1000, n_points=50):
+        """
+        温度範囲でフォノン振動数を計算
+
+        Returns:
+        --------
+        temperatures : ndarray
+            温度の配列
+        frequencies : ndarray
+            対応する振動数の配列
+        """
+        temperatures = np.linspace(T_min, T_max, n_points)
+        frequencies = np.zeros(n_points)
+
+        for i, T in enumerate(temperatures):
+            omega, converged = self.self_consistent_solve(T)
+            if not converged:
+                print(f"Warning: Not converged at T={T:.1f} K")
+            frequencies[i] = omega
+
+        return temperatures, frequencies
+
+
+# 使用例
+if __name__ == "__main__":
+    # パラメータ設定（任意単位）
+    phi2 = 100.0      # 調和力定数
+    phi3 = -5.0       # 3次力定数（1次元では寄与しない）
+    phi4 = 0.5        # 4次力定数（正：ハード化）
+    mass = 1.0        # 原子質量
+
+    # SCPオブジェクト作成
+    scp = SimpleSCP(phi2, phi3, phi4, mass)
+
+    # 温度スキャン
+    temperatures, frequencies = scp.temperature_scan(T_min=0, T_max=500, n_points=50)
+
+    # 結果の出力
+    print("Temperature (K) | Frequency (rad/s)")
+    print("-" * 40)
+    for T, omega in zip(temperatures[::10], frequencies[::10]):
+        print(f"{T:14.1f} | {omega:18.6e}")
+
+    # プロット（matplotlib必要）
+    try:
+        import matplotlib.pyplot as plt
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(temperatures, frequencies / 1e12, 'b-', linewidth=2)
+        plt.xlabel('Temperature (K)', fontsize=14)
+        plt.ylabel('Frequency (THz)', fontsize=14)
+        plt.title('Temperature-Dependent Phonon Frequency (SCP)', fontsize=16)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.savefig('scp_temperature_dependence.png', dpi=150)
+        print("\nPlot saved as 'scp_temperature_dependence.png'")
+    except ImportError:
+        print("\nMatplotlib not available. Skipping plot.")
+</code></pre>
+
+                <h3>12.2 ソフトモード検出</h3>
+                <p>フォノン計算から構造不安定性を検出する例：</p>
+
+<pre><code class="language-python">import numpy as np
+
+def detect_soft_modes(frequencies, q_points, threshold=1.0):
+    """
+    ソフトモード（低振動数モード）を検出
+
+    Parameters:
+    -----------
+    frequencies : ndarray, shape (n_q, n_modes)
+        各q点でのフォノン振動数 (THz)
+    q_points : ndarray, shape (n_q, 3)
+        q点の座標
+    threshold : float
+        ソフトモードの閾値 (THz)
+
+    Returns:
+    --------
+    soft_modes : list of dict
+        ソフトモードの情報
+    """
+    soft_modes = []
+
+    for iq, (q, omega_q) in enumerate(zip(q_points, frequencies)):
+        for imode, omega in enumerate(omega_q):
+            if omega < threshold:
+                soft_mode_info = {
+                    'q_index': iq,
+                    'q_point': q,
+                    'mode_index': imode,
+                    'frequency': omega,
+                    'is_unstable': omega < 0  # 虚振動数
+                }
+                soft_modes.append(soft_mode_info)
+
+    return soft_modes
+
+
+def analyze_instability(soft_modes):
+    """構造不安定性を解析"""
+    if not soft_modes:
+        print("No soft modes detected. Structure is stable.")
+        return
+
+    print(f"Found {len(soft_modes)} soft mode(s):")
+    print("-" * 60)
+
+    for i, mode in enumerate(soft_modes):
+        q = mode['q_point']
+        omega = mode['frequency']
+        status = "UNSTABLE" if mode['is_unstable'] else "soft"
+
+        print(f"Mode {i+1}:")
+        print(f"  q-point: ({q[0]:.3f}, {q[1]:.3f}, {q[2]:.3f})")
+        print(f"  Frequency: {omega:.4f} THz [{status}]")
+
+        # q点の特殊点判定
+        if np.allclose(q, [0, 0, 0]):
+            print("  → Γ-point mode: uniform distortion")
+        elif np.allclose(np.abs(q), [0.5, 0.5, 0.5]):
+            print("  → R-point mode: unit cell doubling")
+        print()
+
+
+# 使用例
+if __name__ == "__main__":
+    # ダミーデータ（実際にはフォノン計算から取得）
+    n_qpoints = 10
+    n_modes = 12
+
+    # ランダムな振動数（一部にソフトモードを含む）
+    np.random.seed(42)
+    frequencies = np.random.uniform(0.5, 15.0, (n_qpoints, n_modes))
+
+    # Γ点にソフトモードを追加
+    frequencies[0, 0] = 0.3  # ソフト
+    frequencies[0, 1] = -0.5  # 不安定
+
+    # q点（簡略化）
+    q_points = np.random.uniform(-0.5, 0.5, (n_qpoints, 3))
+    q_points[0] = [0, 0, 0]  # Γ点
+
+    # ソフトモード検出
+    soft_modes = detect_soft_modes(frequencies, q_points, threshold=1.0)
+
+    # 解析
+    analyze_instability(soft_modes)
+</code></pre>
+
+                <h3>12.3 ランダウ自由エネルギー</h3>
+                <p>ランダウ理論の自由エネルギーを可視化：</p>
+
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def landau_free_energy(eta, T, Tc, a0, b, c=0):
+    """
+    ランダウ自由エネルギー
+
+    F(η,T) = (a₀/2)(T-Tc)η² + (b/4)η⁴ + (c/6)η⁶
+
+    Parameters:
+    -----------
+    eta : float or ndarray
+        秩序変数
+    T : float
+        温度
+    Tc : float
+        臨界温度
+    a0, b, c : float
+        ランダウ係数
+    """
+    a = a0 * (T - Tc)
+    F = 0.5 * a * eta**2 + 0.25 * b * eta**4
+    if c != 0:
+        F += (1.0/6.0) * c * eta**6
+    return F
+
+
+def plot_landau_evolution(Tc=400, a0=1.0, b=1.0, c=0, T_range=None):
+    """
+    温度変化に伴うランダウ自由エネルギーの変化を可視化
+    """
+    if T_range is None:
+        T_range = [Tc + 100, Tc + 50, Tc, Tc - 50, Tc - 100]
+
+    eta = np.linspace(-2, 2, 500)
+
+    plt.figure(figsize=(12, 8))
+
+    for T in T_range:
+        F = landau_free_energy(eta, T, Tc, a0, b, c)
+        label = f'T = {T:.0f} K'
+        if T > Tc:
+            label += ' (T > Tc)'
+        elif T == Tc:
+            label += ' (T = Tc)'
+        else:
+            label += ' (T < Tc)'
+        plt.plot(eta, F, linewidth=2, label=label)
+
+    plt.xlabel('Order Parameter η', fontsize=14)
+    plt.ylabel('Free Energy F(η,T)', fontsize=14)
+    plt.title('Landau Free Energy vs Temperature', fontsize=16)
+    plt.legend(fontsize=12)
+    plt.grid(True, alpha=0.3)
+    plt.axhline(y=0, color='k', linestyle='--', alpha=0.3)
+    plt.axvline(x=0, color='k', linestyle='--', alpha=0.3)
+    plt.tight_layout()
+    plt.savefig('landau_free_energy.png', dpi=150)
+    print("Plot saved as 'landau_free_energy.png'")
+
+
+def find_equilibrium(T, Tc, a0, b, c=0):
+    """平衡状態の秩序変数を求める"""
+    from scipy.optimize import minimize_scalar
+
+    # η > 0 の領域で最小化
+    result = minimize_scalar(
+        lambda eta: landau_free_energy(eta, T, Tc, a0, b, c),
+        bounds=(0, 5),
+        method='bounded'
+    )
+
+    eta_eq = result.x
+    F_eq = result.fun
+
+    # 対称性を考慮（±η）
+    if T < Tc and abs(eta_eq) > 1e-6:
+        return eta_eq, F_eq
+    else:
+        return 0.0, landau_free_energy(0, T, Tc, a0, b, c)
+
+
+# 使用例
+if __name__ == "__main__":
+    # パラメータ
+    Tc = 400  # 臨界温度 (K)
+    a0 = 1.0
+    b = 1.0
+
+    # 2次相転移の場合
+    print("Second-order phase transition (b > 0):")
+    plot_landau_evolution(Tc=Tc, a0=a0, b=1.0, c=0)
+
+    temperatures = np.linspace(Tc - 150, Tc + 150, 50)
+    order_params = []
+
+    for T in temperatures:
+        eta_eq, _ = find_equilibrium(T, Tc, a0, b=1.0, c=0)
+        order_params.append(eta_eq)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(temperatures, order_params, 'b-', linewidth=2)
+    plt.xlabel('Temperature (K)', fontsize=14)
+    plt.ylabel('Order Parameter η', fontsize=14)
+    plt.title('Order Parameter vs Temperature (2nd Order)', fontsize=16)
+    plt.axvline(x=Tc, color='r', linestyle='--', label=f'Tc = {Tc} K')
+    plt.grid(True, alpha=0.3)
+    plt.legend(fontsize=12)
+    plt.tight_layout()
+    plt.savefig('order_parameter_vs_T.png', dpi=150)
+    print("Plot saved as 'order_parameter_vs_T.png'")
+</code></pre>
+            </section>
+
+            <!-- Software Tools -->
+            <section id="software">
+                <h2>13. ソフトウェアツール</h2>
+
+                <h3>13.1 ALAMODE</h3>
+
+                <h4>概要</h4>
+                <ul>
+                    <li><strong>開発</strong>：東北大学（寺倉研究室）</li>
+                    <li><strong>機能</strong>：格子力学、フォノン-フォノン相互作用</li>
+                    <li><strong>特徴</strong>：高次力定数の抽出、熱伝導率計算</li>
+                    <li><strong>ライセンス</strong>：MIT License（オープンソース）</li>
+                </ul>
+
+                <h4>主な機能</h4>
+                <ul>
+                    <li>2次、3次、4次の力定数抽出（有限変位データから）</li>
+                    <li>フォノン分散、状態密度の計算</li>
+                    <li>3フォノン散乱率の計算</li>
+                    <li>格子熱伝導率の計算（Boltzmann輸送方程式）</li>
+                    <li>温度依存フォノン振動数（SCP理論）</li>
+                </ul>
+
+                <h4>ワークフロー</h4>
+                <ol>
+                    <li>超格子を作成（`alm` ツール）</li>
+                    <li>第一原理計算で変位構造のエネルギー・力を計算</li>
+                    <li>力定数を抽出（最小二乗法）</li>
+                    <li>`anphon` でフォノン計算、熱伝導率計算</li>
+                </ol>
+
+                <h4>インストール</h4>
+                <pre><code class="language-bash"># GitHubからクローン
+git clone https://github.com/ttadano/ALM.git
+git clone https://github.com/ttadano/ANPHON.git
+
+# ビルド
+cd ALM
+mkdir build && cd build
+cmake ..
+make
+
+cd ../../ANPHON
+mkdir build && cd build
+cmake ..
+make
+</code></pre>
+
+                <h3>13.2 TDEP（Temperature Dependent Effective Potential）</h3>
+
+                <h4>概要</h4>
+                <ul>
+                    <li><strong>開発</strong>：Linköping大学（Olle Hellman）</li>
+                    <li><strong>手法</strong>：分子動力学ベースの効果的力定数抽出</li>
+                    <li><strong>特徴</strong>：有限温度での実効フォノン</li>
+                </ul>
+
+                <h4>原理</h4>
+                <p>
+                    TDEPは、第一原理分子動力学（AIMD）のトラジェクトリから、
+                    温度依存の効果的力定数を抽出します：
+                </p>
+                <ol>
+                    <li>有限温度でAIMDシミュレーション</li>
+                    <li>時系列の原子座標と力を記録</li>
+                    <li>効果的な調和力定数を最小二乗法で決定</li>
+                    <li>この力定数でフォノンを計算</li>
+                </ol>
+
+                <h4>利点</h4>
+                <ul>
+                    <li>強い非調和性も扱える</li>
+                    <li>相転移を自然に記述</li>
+                    <li>高温でも安定</li>
+                </ul>
+
+                <h4>制限</h4>
+                <ul>
+                    <li>計算コストが高い（AIMD必要）</li>
+                    <li>統計的サンプリングが重要</li>
+                </ul>
+
+                <h3>13.3 SSCHA（Python実装）</h3>
+
+                <h4>概要</h4>
+                <ul>
+                    <li><strong>開発</strong>：イタリア、フランスの研究グループ</li>
+                    <li><strong>言語</strong>：Python</li>
+                    <li><strong>手法</strong>：確率的自己無撞着調和近似</li>
+                    <li><strong>URL</strong>：<a href="http://sscha.eu/" target="_blank">http://sscha.eu/</a></li>
+                </ul>
+
+                <h4>インストール</h4>
+                <pre><code class="language-bash"># pipでインストール
+pip install python-sscha
+
+# または GitHubから
+git clone https://github.com/SSCHAcode/python-sscha.git
+cd python-sscha
+python setup.py install
+</code></pre>
+
+                <h4>基本的な使い方</h4>
+                <pre><code class="language-python">import sscha, sscha.Ensemble
+
+# 初期動力学行列を読み込み
+dyn = sscha.Phonons.Phonons("harmonic_dyn", nqirr=1)
+
+# アンサンブルを生成
+ensemble = sscha.Ensemble.Ensemble(dyn, T=300, supercell=(2,2,2))
+ensemble.generate(N=100)  # 100構造
+
+# 各構造で第一原理計算を実行（外部で）
+# ...
+
+# エネルギーと力を読み込み
+ensemble.load_energies_forces("data_dir")
+
+# SCF最小化
+minimizer = sscha.SchaMinimizer.SSCHA_Minimizer(ensemble)
+minimizer.init()
+minimizer.run()
+
+# 自由エネルギーヘッセ行列で安定性をチェック
+minimizer.compute_free_energy_hessian()
+</code></pre>
+
+                <h4>主な機能</h4>
+                <ul>
+                    <li>自由エネルギー最小化</li>
+                    <li>温度依存フォノン分散</li>
+                    <li>構造相転移の予測</li>
+                    <li>スペクトル関数の計算</li>
+                    <li>熱膨張の計算</li>
+                </ul>
+
+                <h3>13.4 Phonopy（参考：調和近似）</h3>
+                <p>
+                    非調和計算の比較のため、Phonopy（調和）も有用です：
+                </p>
+                <ul>
+                    <li>準調和近似（QHA）の実装あり</li>
+                    <li>温度依存性は体積効果のみ</li>
+                    <li>多くの第一原理コードと連携</li>
+                </ul>
+
+                <div class="info-box">
+                    <p><strong>ツール選択のガイドライン：</strong></p>
+                    <ul>
+                        <li><strong>ALAMODE</strong>：熱伝導、弱い非調和性</li>
+                        <li><strong>TDEP</strong>：強い非調和性、高温</li>
+                        <li><strong>SSCHA</strong>：相転移、構造不安定性</li>
+                        <li><strong>Phonopy</strong>：ベンチマーク、調和近似で十分な系</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Summary -->
+            <section id="summary">
+                <h2>14. まとめ</h2>
+                <div class="summary-box">
+                    <h3>重要ポイント</h3>
+                    <ul>
+                        <li><strong>非調和性の重要性</strong>：有限温度では調和近似では説明できない現象（熱膨張、フォノン寿命、相転移）が現れる</li>
+                        <li><strong>SCP理論</strong>：非調和性を効果的な調和ポテンシャルに繰り込む自己無撞着な方法</li>
+                        <li><strong>SCAILD</strong>：第一原理計算とSCPを組み合わせ、熱膨張と温度依存フォノンを計算</li>
+                        <li><strong>SSCHA</strong>：確率的サンプリングにより、強い非調和性や相転移を扱える高度な手法</li>
+                        <li><strong>ソフトモード</strong>：振動数がゼロに近づくモードで、構造不安定性と相転移を引き起こす</li>
+                        <li><strong>ランダウ理論</strong>：秩序変数の自由エネルギー展開により、相転移を現象論的に記述</li>
+                        <li><strong>転移のタイプ</strong>：変位型と秩序-無秩序型では、微視的メカニズムが異なる</li>
+                        <li><strong>ペロブスカイト</strong>：多様な相転移を示す代表的な材料群</li>
+                        <li><strong>負熱膨張</strong>：特殊な非調和相互作用により、加熱で収縮する材料</li>
+                        <li><strong>計算ツール</strong>：ALAMODE、TDEP、SSCHAなど、目的に応じた選択が重要</li>
+                    </ul>
+
+                    <h3>次のステップ</h3>
+                    <p>次章では、フォノン-フォノン相互作用と格子熱伝導を詳しく学びます。</p>
+                </div>
+            </section>
+
+            <!-- Exercises -->
+            <section id="exercises">
+                <h2>15. 演習問題</h2>
+
+                <div class="exercise">
+                    <h3>演習 2.1: 調和近似の限界</h3>
+                    <p><strong>問題：</strong></p>
+                    <p>
+                        調和近似において、なぜ熱膨張がゼロになるか、ポテンシャルエネルギーの対称性に基づいて説明せよ。
+                    </p>
+                    <details>
+                        <summary>解答例</summary>
+                        <p>
+                            調和近似では、ポテンシャルエネルギーは平衡位置\(u=0\)の周りで放物線的：
+                            \(V(u) = \frac{1}{2}\Phi u^2\)。このポテンシャルは\(u \to -u\)に対して対称なので、
+                            熱平均した変位は\(\langle u \rangle = 0\)となります。非調和項（例：\(u^3, u^4\)）が
+                            あると対称性が破れ、\(\langle u \rangle \neq 0\)となり、熱膨張が生じます。
+                        </p>
+                    </details>
+                </div>
+
+                <div class="exercise">
+                    <h3>演習 2.2: SCP方程式の反復</h3>
+                    <p><strong>問題：</strong></p>
+                    <p>
+                        提供されたPythonコード（SimpleSCP）を実行し、4次力定数\(\Phi_4\)を変化させて
+                        （正、ゼロ、負）、温度依存性がどう変わるかプロットせよ。
+                    </p>
+                    <details>
+                        <summary>ヒント</summary>
+                        <p>
+                            \(\Phi_4 > 0\)：フォノンは温度とともにハード化（振動数増加）<br>
+                            \(\Phi_4 = 0\)：温度依存性なし（調和近似）<br>
+                            \(\Phi_4 < 0\)：フォノンは温度とともにソフト化（振動数減少、ある温度で不安定）
+                        </p>
+                    </details>
+                </div>
+
+                <div class="exercise">
+                    <h3>演習 2.3: ランダウ自由エネルギー</h3>
+                    <p><strong>問題：</strong></p>
+                    <p>
+                        1次相転移のランダウ自由エネルギー
+                        \(F(\eta, T) = \frac{1}{2}a(T - T_c)\eta^2 - \frac{1}{4}|\!b\!|\eta^4 + \frac{1}{6}c\eta^6\)
+                        （\(b < 0, c > 0\)）において、転移温度\(T_t\)（2つの極小のエネルギーが等しくなる温度）を
+                        求めよ。
+                    </p>
+                    <details>
+                        <summary>解答例</summary>
+                        <p>
+                            \(T > T_c\)では\(\eta = 0\)が最小、\(T < T_c\)では有限の\(\eta_0\)が最小になります。
+                            2つの極小\(F(0, T_t) = F(\eta_0, T_t)\)となる温度\(T_t\)が実際の転移温度です。
+                            具体的には、\(T_t = T_c - \frac{b^2}{4ac}\)（\(b < 0\)）となり、\(T_t < T_c\)です。
+                            これにより、過冷却が起こり得ます。
+                        </p>
+                    </details>
+                </div>
+
+                <div class="exercise">
+                    <h3>演習 2.4: ソフトモードの同定</h3>
+                    <p><strong>問題：</strong></p>
+                    <p>
+                        BaTiO₃の強誘電転移とSrTiO₃の構造転移におけるソフトモードの違い
+                        （q点、原子変位パターン、転移のタイプ）をまとめよ。
+                    </p>
+                    <details>
+                        <summary>解答例</summary>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>特性</th>
+                                    <th>BaTiO₃</th>
+                                    <th>SrTiO₃</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>q点</td>
+                                    <td>Γ点 (0,0,0)</td>
+                                    <td>R点 (π/a, π/a, π/a)</td>
+                                </tr>
+                                <tr>
+                                    <td>変位</td>
+                                    <td>Tiの極性変位</td>
+                                    <td>酸素八面体の回転</td>
+                                </tr>
+                                <tr>
+                                    <td>物性</td>
+                                    <td>強誘電性</td>
+                                    <td>非極性（構造転移のみ）</td>
+                                </tr>
+                                <tr>
+                                    <td>単位胞</td>
+                                    <td>変化なし</td>
+                                    <td>2倍</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </details>
+                </div>
+
+                <div class="exercise">
+                    <h3>演習 2.5: 負熱膨張の機構</h3>
+                    <p><strong>問題：</strong></p>
+                    <p>
+                        ZrW₂O₈の負熱膨張が、剛体ユニットモード（RUM）によって説明されることを、
+                        Grüneisenパラメータの符号と関連付けて説明せよ。
+                    </p>
+                    <details>
+                        <summary>解答例</summary>
+                        <p>
+                            RUMは低振動数の横振動モードで、剛体ユニット（八面体、四面体）間の
+                            結合角が変化します。このモードは、体積が減少すると振動数が下がるため、
+                            負のGrüneisenパラメータ\(\gamma < 0\)を持ちます。熱膨張係数は
+                            \(\alpha \propto \sum_i \gamma_i C_{V,i}\)なので、負の\(\gamma_i\)を持つ
+                            RUMの寄与が支配的だと、全体として\(\alpha < 0\)（負熱膨張）になります。
+                        </p>
+                    </details>
+                </div>
+
+                <div class="exercise">
+                    <h3>演習 2.6: SSCHAの適用（発展）</h3>
+                    <p><strong>問題：</strong></p>
+                    <p>
+                        SSCHAを用いて、ある材料の構造相転移を予測する場合、どのような量を計算し、
+                        どのような基準で転移を判定するか、手順を説明せよ。
+                    </p>
+                    <details>
+                        <summary>解答例</summary>
+                        <ol>
+                            <li><strong>温度スキャン</strong>：複数の温度で自由エネルギー最小化</li>
+                            <li><strong>構造変化の観測</strong>：平衡原子座標の温度依存性</li>
+                            <li><strong>自由エネルギーヘッセ行列</strong>：各温度で計算し、固有値をチェック</li>
+                            <li><strong>不安定性の判定</strong>：負の固有値（虚振動数）が現れる温度が転移点の兆候</li>
+                            <li><strong>複数の極小の比較</strong>：異なる構造の自由エネルギーを比較し、最安定相を決定</li>
+                        </ol>
+                        <p>
+                            転移温度は、2つの相の自由エネルギーが等しくなる点です。
+                        </p>
+                    </details>
+                </div>
+            </section>
+
+            <!-- References -->
+            <section id="references">
+                <h2>16. 参考文献</h2>
+                <div class="references">
+                    <h3>教科書・レビュー</h3>
+                    <ol>
+                        <li>
+                            Dove, M. T. (1993). <em>Introduction to Lattice Dynamics</em>.
+                            Cambridge University Press.
+                            <br><span class="ref-note">格子力学の基礎、非調和効果の導入</span>
+                        </li>
+                        <li>
+                            Wallace, D. C. (1998). <em>Thermodynamics of Crystals</em>.
+                            Dover Publications.
+                            <br><span class="ref-note">統計力学的視点からの格子振動理論</span>
+                        </li>
+                        <li>
+                            Baroni, S., de Gironcoli, S., Dal Corso, A., & Giannozzi, P. (2001).
+                            Phonons and related crystal properties from density-functional perturbation theory.
+                            <em>Reviews of Modern Physics</em>, 73(2), 515.
+                            <br><span class="ref-note">第一原理フォノン計算の基礎理論</span>
+                        </li>
+                        <li>
+                            Hellman, O., Abrikosov, I. A., & Simak, S. I. (2011).
+                            Lattice dynamics of anharmonic solids from first principles.
+                            <em>Physical Review B</em>, 84(18), 180301.
+                            <br><span class="ref-note">TDEP法の原論文</span>
+                        </li>
+                        <li>
+                            Errea, I., Calandra, M., & Mauri, F. (2014).
+                            Anharmonic free energies and phonon dispersions from the stochastic self-consistent harmonic approximation.
+                            <em>Physical Review B</em>, 89(6), 064302.
+                            <br><span class="ref-note">SSCHA法の理論的基礎</span>
+                        </li>
+                    </ol>
+
+                    <h3>ソフトモードと相転移</h3>
+                    <ol start="6">
+                        <li>
+                            Bruce, A. D., & Cowley, R. A. (1981). <em>Structural Phase Transitions</em>.
+                            Taylor & Francis.
+                            <br><span class="ref-note">構造相転移の包括的教科書</span>
+                        </li>
+                        <li>
+                            Shirane, G., Axe, J. D., Harada, J., & Remeika, J. P. (1970).
+                            Soft ferroelectric modes in lead titanate.
+                            <em>Physical Review B</em>, 2(1), 155.
+                            <br><span class="ref-note">PbTiO₃のソフトモードの古典的研究</span>
+                        </li>
+                        <li>
+                            Müller, K. A., & Burkard, H. (1979).
+                            SrTiO₃: An intrinsic quantum paraelectric below 4 K.
+                            <em>Physical Review B</em>, 19(7), 3593.
+                            <br><span class="ref-note">SrTiO₃の量子常誘電性</span>
+                        </li>
+                    </ol>
+
+                    <h3>負熱膨張</h3>
+                    <ol start="9">
+                        <li>
+                            Mary, T. A., Evans, J. S. O., Vogt, T., & Sleight, A. W. (1996).
+                            Negative thermal expansion from 0.3 to 1050 Kelvin in ZrW₂O₈.
+                            <em>Science</em>, 272(5258), 90-92.
+                            <br><span class="ref-note">ZrW₂O₈の負熱膨張の発見</span>
+                        </li>
+                        <li>
+                            Dove, M. T., & Fang, H. (2016).
+                            Negative thermal expansion and associated anomalous physical properties.
+                            <em>Reports on Progress in Physics</em>, 79(6), 066503.
+                            <br><span class="ref-note">負熱膨張の包括的レビュー</span>
+                        </li>
+                    </ol>
+
+                    <h3>計算ツール</h3>
+                    <ol start="11">
+                        <li>
+                            Tadano, T., Gohda, Y., & Tsuneyuki, S. (2014).
+                            Anharmonic force constants extracted from first-principles molecular dynamics.
+                            <em>Journal of the Physical Society of Japan</em>, 83(2), 023702.
+                            <br><span class="ref-note">ALAMODEの原論文</span>
+                        </li>
+                        <li>
+                            Bianco, R., Errea, I., Paulatto, L., Calandra, M., & Mauri, F. (2017).
+                            Second-order structural phase transitions, free energy curvature, and temperature-dependent anharmonic phonons.
+                            <em>Physical Review B</em>, 96(1), 014111.
+                            <br><span class="ref-note">SSCHAによる相転移解析</span>
+                        </li>
+                    </ol>
+
+                    <h3>オンラインリソース</h3>
+                    <ul>
+                        <li>ALAMODE: <a href="https://alamode.readthedocs.io/" target="_blank">https://alamode.readthedocs.io/</a></li>
+                        <li>SSCHA: <a href="http://sscha.eu/" target="_blank">http://sscha.eu/</a></li>
+                        <li>TDEP: <a href="https://ollehellman.github.io/program/index.html" target="_blank">https://ollehellman.github.io/program/index.html</a></li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Navigation -->
+            <nav class="chapter-nav">
+                <a href="chapter-1.html" class="nav-previous">← 第1章: 基礎理論</a>
+                <a href="index.html" class="nav-index">目次</a>
+                <a href="chapter-3.html" class="nav-next">第3章: フォノン輸送 →</a>
+            </nav>
+        </article>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 Hashimoto Lab, Tohoku University. All rights reserved.</p>
+    </footer>
+
+    <!-- KaTeX Auto-render -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "$", right: "$", display: false},
+                    {left: "\\(", right: "\\)", display: false},
+                    {left: "\\[", right: "\\]", display: true}
+                ],
+                throwOnError: false
+            });
+        });
+    </script>
+
+    <!-- Mermaid Initialization -->
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                fontSize: '16px'
+            }
+        });
+    </script>
+</body>
+</html>
