@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="第2章：超伝導体の計算手法 - 第一原理計算、電子-格子結合、機械学習によるTc予測">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第2章：超伝導体の計算手法 - MS寺子屋</title>
+
+    <link rel="stylesheet" href="../../assets/css/knowledge-base.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+        onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../index.html">AI寺子屋トップ</a>
+            <span class="breadcrumb-separator">></span>
+            <a href="../index.html">材料科学</a>
+            <span class="breadcrumb-separator">></span>
+            <a href="index.html">超伝導上級</a>
+            <span class="breadcrumb-separator">></span>
+            <span class="breadcrumb-current">第2章：計算手法</span>
+        </div>
+    </nav>
+
+    <div class="locale-switcher">
+        <span class="current-locale">JP</span>
+        <span class="locale-separator">|</span>
+        <a href="../../../en/MS/superconductivity-advanced/chapter-2.html" class="locale-link">EN</a>
+        <span class="locale-separator">|</span>
+        <span class="locale-meta">最終更新: 2025-12-19</span>
+    </div>
+
+    <header>
+        <div class="header-content">
+            <h1>第2章：超伝導体の計算手法</h1>
+            <p class="subtitle">第一原理計算、電子-格子結合、機械学習によるTc予測</p>
+            <div class="meta">
+                <span class="meta-item">学習時間: 45-55分</span>
+                <span class="meta-item">コード例: 8個</span>
+                <span class="meta-item">難易度: 上級</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2>学習目標</h2>
+        <p>本章を修了することで、以下のスキルを習得できます：</p>
+        <ul>
+            <li>超伝導体への密度汎関数理論（DFT）の適用を理解する</li>
+            <li>電子-格子結合計算（DFPT、Wannier補間）を実行できる</li>
+            <li>超伝導DFT（SCDFT）形式の基礎を理解する</li>
+            <li>量子モンテカルロ法の超伝導への応用を学ぶ</li>
+            <li>機械学習を用いて$T_c$を予測する手法を実装できる</li>
+            <li>ハイスループットスクリーニング手法を理解する</li>
+            <li>Quantum ESPRESSO、EPWを用いた実践的計算を実行できる</li>
+            <li>計算的超伝導体発見の事例を理解する</li>
+        </ul>
+
+        <h2>1. 超伝導体への第一原理アプローチ</h2>
+
+        <h3>1.1 密度汎関数理論（DFT）の基礎</h3>
+        <p>密度汎関数理論は、多電子系の基底状態を電子密度$n(\mathbf{r})$のみから決定する量子力学的手法です。Kohn-Sham方程式は：</p>
+        <p>$$\left[-\frac{\hbar^2}{2m}\nabla^2 + V_{\text{eff}}(\mathbf{r})\right]\psi_i(\mathbf{r}) = \varepsilon_i\psi_i(\mathbf{r})$$</p>
+        <p>ここで、有効ポテンシャル$V_{\text{eff}}$は以下を含みます：</p>
+        <p>$$V_{\text{eff}}(\mathbf{r}) = V_{\text{ext}}(\mathbf{r}) + V_{\text{H}}(\mathbf{r}) + V_{\text{xc}}(\mathbf{r})$$</p>
+
+        <div class="info-box">
+            <h4>超伝導計算のための重要な考慮事項</h4>
+            <ul>
+                <li><strong>交換相関汎関数の選択</strong>：LDA（局所密度近似）やGGA（一般化勾配近似）が超伝導体に広く使用されます</li>
+                <li><strong>k点サンプリング</strong>：フェルミ面近傍の電子状態を正確に記述するため、高密度メッシュが必要</li>
+                <li><strong>擬ポテンシャル</strong>：ノルム保存型またはUltrasoft擬ポテンシャル</li>
+                <li><strong>スピン-軌道結合</strong>：重元素を含む系では重要</li>
+            </ul>
+        </div>
+
+        <h3>1.2 電子構造とフェルミ面</h3>
+        <p>超伝導性は主にフェルミ面近傍の電子によって決定されます。電子状態密度（DOS）$N(E_F)$は$T_c$の重要な指標です：</p>
+        <p>$$N(E_F) = \sum_{n,\mathbf{k}} \delta(E_{n\mathbf{k}} - E_F)$$</p>
+
+        <div class="code-example">
+            <h4>コード例1：Quantum ESPRESSOによる電子構造計算</h4>
+            <pre><code># pw.x input file for MgB2
+&control
+    calculation = 'scf'
+    prefix = 'mgb2'
+    outdir = './tmp/'
+    pseudo_dir = './pseudo/'
+/
+&system
+    ibrav = 4
+    a = 3.086
+    c = 3.524
+    nat = 3
+    ntyp = 2
+    ecutwfc = 50.0
+    ecutrho = 400.0
+    occupations = 'smearing'
+    smearing = 'mp'
+    degauss = 0.02
+/
+&electrons
+    conv_thr = 1.0d-8
+    mixing_beta = 0.7
+/
+ATOMIC_SPECIES
+ Mg  24.305  Mg.pbe-n-kjpaw_psl.0.3.0.UPF
+ B   10.811  B.pbe-n-kjpaw_psl.0.1.UPF
+ATOMIC_POSITIONS crystal
+ Mg  0.0000  0.0000  0.0000
+ B   0.3333  0.6667  0.5000
+ B   0.6667  0.3333  0.5000
+K_POINTS automatic
+ 24 24 16 0 0 0
+</code></pre>
+        </div>
+
+        <h2>2. 電子-格子結合計算</h2>
+
+        <h3>2.1 密度汎関数摂動理論（DFPT）</h3>
+        <p>DFPTは格子振動（フォノン）とその電子構造への影響を計算します。動的行列$D_{\alpha\beta}(\mathbf{q})$は：</p>
+        <p>$$D_{\alpha\beta}^{\kappa\kappa'}(\mathbf{q}) = \frac{1}{\sqrt{M_\kappa M_{\kappa'}}} \frac{\partial^2 E}{\partial u_\alpha^\kappa \partial u_\beta^{\kappa'}} e^{i\mathbf{q}\cdot(\mathbf{R}_\kappa - \mathbf{R}_{\kappa'})}$$</p>
+
+        <p>フォノン周波数$\omega_{\mathbf{q}\nu}$は動的行列の固有値から得られます：</p>
+        <p>$$\sum_{\kappa'\beta} D_{\alpha\beta}^{\kappa\kappa'}(\mathbf{q}) e_{\kappa'\beta}(\mathbf{q}\nu) = \omega_{\mathbf{q}\nu}^2 e_{\kappa\alpha}(\mathbf{q}\nu)$$</p>
+
+        <h3>2.2 電子-格子結合行列要素</h3>
+        <p>電子-格子結合行列要素$g_{mn\nu}(\mathbf{k},\mathbf{q})$は超伝導の鍵となる量です：</p>
+        <p>$$g_{mn\nu}(\mathbf{k},\mathbf{q}) = \left\langle\psi_{m\mathbf{k}+\mathbf{q}}\left|\frac{\partial V_{\text{SCF}}}{\partial u_{\mathbf{q}\nu}}\right|\psi_{n\mathbf{k}}\right\rangle$$</p>
+
+        <p>ここで、$\psi_{n\mathbf{k}}$はKohn-Sham波動関数、$u_{\mathbf{q}\nu}$はフォノン変位です。</p>
+
+        <div class="code-example">
+            <h4>コード例2：DFPTによるフォノン計算</h4>
+            <pre><code># ph.x input file for phonon calculation
+&inputph
+    prefix = 'mgb2'
+    outdir = './tmp/'
+    fildyn = 'mgb2.dyn'
+    tr2_ph = 1.0d-14
+    ldisp = .true.
+    nq1 = 6
+    nq2 = 6
+    nq3 = 4
+    electron_phonon = 'simple'
+/
+</code></pre>
+        </div>
+
+        <h3>2.3 Eliashberg関数$\alpha^2F(\omega)$</h3>
+        <p>Eliashberg関数は電子-格子相互作用の周波数依存性を特徴付けます：</p>
+        <p>$$\alpha^2F(\omega) = \frac{1}{N(E_F)}\sum_{\mathbf{q}\nu}\delta(\omega - \omega_{\mathbf{q}\nu})\gamma_{\mathbf{q}\nu}$$</p>
+
+        <p>ここで、$\gamma_{\mathbf{q}\nu}$はフォノンモード$(\mathbf{q},\nu)$の線幅です：</p>
+        <p>$$\gamma_{\mathbf{q}\nu} = 2\pi\omega_{\mathbf{q}\nu}\sum_{mn}\int\frac{d\mathbf{k}}{\Omega_{\text{BZ}}}|g_{mn\nu}(\mathbf{k},\mathbf{q})|^2\delta(\varepsilon_{n\mathbf{k}} - E_F)\delta(\varepsilon_{m\mathbf{k}+\mathbf{q}} - E_F)$$</p>
+
+        <p>電子-格子結合強度$\lambda$は：</p>
+        <p>$$\lambda = 2\int_0^\infty \frac{d\omega}{\omega}\alpha^2F(\omega)$$</p>
+
+        <div class="info-box warning">
+            <h4>計算コスト</h4>
+            <p>電子-格子結合計算は計算コストが高く、特に以下が必要です：</p>
+            <ul>
+                <li>高密度k点メッシュ（フェルミ面の正確な記述のため）</li>
+                <li>高密度q点メッシュ（フォノン分散の正確な記述のため）</li>
+                <li>全てのk点とq点の組み合わせに対する行列要素計算</li>
+            </ul>
+            <p>次に説明するWannier補間法は、この計算コストを大幅に削減します。</p>
+        </div>
+
+        <h3>2.4 Wannier補間とEPW</h3>
+        <p>Wannier関数は、Bloch関数を局在化した基底に変換します：</p>
+        <p>$$|w_{n\mathbf{R}}\rangle = \frac{V}{(2\pi)^3}\int_{\text{BZ}} d\mathbf{k}\, e^{-i\mathbf{k}\cdot\mathbf{R}}|\psi_{n\mathbf{k}}\rangle$$</p>
+
+        <p>EPW（Electron-Phonon coupling using Wannier functions）コードは、粗いメッシュで計算した電子-格子結合行列要素を、Wannier表現を通じて任意の細かいメッシュに補間します。これにより計算コストが劇的に削減されます。</p>
+
+        <div class="code-example">
+            <h4>コード例3：EPWによるWannier補間</h4>
+            <pre><code># EPW input file
+&inputepw
+    prefix = 'mgb2'
+    outdir = './tmp/'
+
+    ! Wannierization
+    elph = .true.
+    epwwrite = .true.
+    epwread = .false.
+
+    ! Coarse grids (DFT calculation)
+    nk1 = 6
+    nk2 = 6
+    nk3 = 4
+    nq1 = 6
+    nq2 = 6
+    nq3 = 4
+
+    ! Fine grids (interpolation)
+    nkf1 = 24
+    nkf2 = 24
+    nkf3 = 16
+    nqf1 = 24
+    nqf2 = 24
+    nqf3 = 16
+
+    ! Temperature for Eliashberg equations
+    temps = 10.0
+
+    ! Broadening
+    degaussw = 0.05
+
+    ! Output
+    a2f = .true.
+/
+</code></pre>
+        </div>
+
+        <h2>3. McMillan公式とAllen-Dynes公式</h2>
+
+        <h3>3.1 McMillan公式</h3>
+        <p>McMillan（1968）は、$T_c$の半経験的公式を導出しました：</p>
+        <p>$$T_c = \frac{\omega_{\log}}{1.2}\exp\left[-\frac{1.04(1+\lambda)}{\lambda - \mu^*(1+0.62\lambda)}\right]$$</p>
+
+        <p>ここで：</p>
+        <ul>
+            <li>$\omega_{\log}$は対数平均フォノン周波数：$\omega_{\log} = \exp\left[\frac{2}{\lambda}\int_0^\infty d\omega \frac{\alpha^2F(\omega)}{\omega}\log\omega\right]$</li>
+            <li>$\lambda$は電子-格子結合強度</li>
+            <li>$\mu^*$は繰り込みクーロン擬ポテンシャル（典型的に0.10-0.15）</li>
+        </ul>
+
+        <h3>3.2 Allen-Dynes公式</h3>
+        <p>Allen-Dynes（1975）は、McMillan公式をより広範な$\lambda$値に拡張しました：</p>
+        <p>$$T_c = \frac{\omega_{\log}}{1.2}\exp\left[-\frac{1.04(1+\lambda)}{\lambda - \mu^*(1+0.62\lambda)}\right]\times f_1 f_2$$</p>
+
+        <p>補正因子は：</p>
+        <p>$$f_1 = \left[1 + \left(\frac{\lambda}{2.46(1+3.8\mu^*)}\right)^{3/2}\right]^{1/3}$$</p>
+        <p>$$f_2 = 1 + \frac{(\omega_2/\omega_{\log} - 1)\lambda^2}{\lambda^2 + [1.82(1+6.3\mu^*)(\omega_2/\omega_{\log})]^2}$$</p>
+
+        <div class="code-example">
+            <h4>コード例4：Allen-Dynes公式の実装</h4>
+            <pre><code>import numpy as np
+from scipy.integrate import quad
+
+def alpha2F_example(omega, omega_ph=50, gamma=10):
+    """
+    簡略化されたEliashberg関数（Lorentzian）
+    omega: エネルギー (meV)
+    omega_ph: フォノンエネルギー (meV)
+    gamma: 線幅 (meV)
+    """
+    return gamma / (np.pi * ((omega - omega_ph)**2 + gamma**2))
+
+def calculate_lambda(alpha2F, omega_max=200):
+    """電子-格子結合強度の計算"""
+    integrand = lambda omega: 2 * alpha2F(omega) / omega if omega > 0 else 0
+    lambda_val, _ = quad(integrand, 0.01, omega_max)
+    return lambda_val
+
+def calculate_omega_log(alpha2F, lambda_val, omega_max=200):
+    """対数平均フォノン周波数の計算"""
+    integrand = lambda omega: (2/lambda_val) * alpha2F(omega) * np.log(omega) / omega if omega > 0 else 0
+    log_integral, _ = quad(integrand, 0.01, omega_max)
+    omega_log = np.exp(log_integral)
+    return omega_log
+
+def allen_dynes_tc(lambda_val, omega_log, mu_star=0.13):
+    """
+    Allen-Dynes公式によるTc計算
+
+    Parameters:
+    -----------
+    lambda_val : float
+        電子-格子結合強度
+    omega_log : float
+        対数平均フォノン周波数 (meV)
+    mu_star : float
+        繰り込みクーロン擬ポテンシャル
+
+    Returns:
+    --------
+    Tc : float
+        臨界温度 (K)
+    """
+    # 基本のMcMillan項
+    exponent = -1.04 * (1 + lambda_val) / (lambda_val - mu_star * (1 + 0.62 * lambda_val))
+
+    # Allen-Dynes補正因子
+    f1 = (1 + (lambda_val / (2.46 * (1 + 3.8 * mu_star)))**(3/2))**(1/3)
+
+    # f2の計算（簡略版：omega_2 ≈ omega_log を仮定）
+    omega_ratio = 1.0  # 簡略化
+    f2_num = (omega_ratio - 1) * lambda_val**2
+    f2_denom = lambda_val**2 + (1.82 * (1 + 6.3 * mu_star) * omega_ratio)**2
+    f2 = 1 + f2_num / f2_denom
+
+    # Tcの計算 (omega_logをKに変換：1 meV ≈ 11.6 K)
+    Tc = (omega_log / 1.2) * np.exp(exponent) * f1 * f2 / 11.6
+
+    return Tc
+
+# MgB2の例
+lambda_mgb2 = 0.87  # 実験値
+omega_log_mgb2 = 65  # meV
+Tc_mgb2 = allen_dynes_tc(lambda_mgb2, omega_log_mgb2)
+print(f"MgB2の予測Tc: {Tc_mgb2:.1f} K (実験値: 39 K)")
+
+# パラメータスキャン
+lambdas = np.linspace(0.3, 2.0, 50)
+Tcs = [allen_dynes_tc(l, 60) for l in lambdas]
+
+import matplotlib.pyplot as plt
+plt.figure(figsize=(8, 5))
+plt.plot(lambdas, Tcs, linewidth=2)
+plt.xlabel('電子-格子結合強度 λ', fontsize=12)
+plt.ylabel('Tc (K)', fontsize=12)
+plt.title('Allen-Dynes公式：λ依存性', fontsize=14)
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.savefig('allen_dynes_lambda_dependence.png', dpi=300)
+plt.show()
+</code></pre>
+        </div>
+
+        <h2>4. 超伝導密度汎関数理論（SCDFT）</h2>
+
+        <h3>4.1 SCDFT形式の基礎</h3>
+        <p>通常のDFTは基底状態のみを扱いますが、SCDFTは超伝導秩序パラメータ$\Delta(\mathbf{r})$を直接含みます。Kohn-Sham方程式は拡張され：</p>
+        <p>$$\begin{pmatrix} \hat{H}_0 - \mu & \Delta(\mathbf{r}) \\ \Delta^*(\mathbf{r}) & -(\hat{H}_0 - \mu) \end{pmatrix}\begin{pmatrix} u_n(\mathbf{r}) \\ v_n(\mathbf{r}) \end{pmatrix} = E_n\begin{pmatrix} u_n(\mathbf{r}) \\ v_n(\mathbf{r}) \end{pmatrix}$$</p>
+
+        <p>秩序パラメータは自己無撞着に決定されます：</p>
+        <p>$$\Delta(\mathbf{r}) = -\int d\mathbf{r}' K(\mathbf{r},\mathbf{r}')\chi(\mathbf{r},\mathbf{r}')$$</p>
+
+        <p>ここで、$K$は超伝導カーネル、$\chi$は異常密度です：</p>
+        <p>$$\chi(\mathbf{r},\mathbf{r}') = \sum_n u_n(\mathbf{r})v_n^*(\mathbf{r}')f(E_n)$$</p>
+
+        <div class="info-box">
+            <h4>SCDFTの利点</h4>
+            <ul>
+                <li>秩序パラメータの空間変化を直接計算可能</li>
+                <li>不純物や界面における超伝導の記述</li>
+                <li>多バンド超伝導体の取り扱い</li>
+                <li>非従来型対称性の超伝導の調査</li>
+            </ul>
+        </div>
+
+        <h3>4.2 実装の課題</h3>
+        <p>SCDFTの実装には以下の課題があります：</p>
+        <ul>
+            <li><strong>カーネルの選択</strong>：適切な超伝導カーネル$K$の構築が非自明</li>
+            <li><strong>自己無撞着性</strong>：Δと電子構造の同時最適化が必要</li>
+            <li><strong>温度依存性</strong>：有限温度への拡張</li>
+            <li><strong>計算コスト</strong>：通常のDFTよりも計算負荷が高い</li>
+        </ul>
+
+        <h2>5. 量子モンテカルロ法</h2>
+
+        <h3>5.1 拡散モンテカルロ（DMC）</h3>
+        <p>DMCは多体波動関数の基底状態を確率論的に求めます。虚時間シュレディンガー方程式：</p>
+        <p>$$-\frac{\partial\psi(\mathbf{R},\tau)}{\partial\tau} = (H - E_T)\psi(\mathbf{R},\tau)$$</p>
+
+        <p>を、$\tau \to \infty$で基底状態に収束するランダムウォークとして解きます。</p>
+
+        <h3>5.2 経路積分モンテカルロ（PIMC）</h3>
+        <p>PIMCは有限温度の量子系を扱います。分配関数は経路積分として：</p>
+        <p>$$Z = \int \mathcal{D}[\mathbf{R}(\tau)] \exp\left(-\frac{1}{\hbar}\int_0^{\beta\hbar} d\tau\, L[\mathbf{R}(\tau), \dot{\mathbf{R}}(\tau)]\right)$$</p>
+
+        <div class="info-box warning">
+            <h4>符号問題</h4>
+            <p>フェルミオン系のPIMCは「符号問題」に悩まされます。フェルミオンの反対称性により、経路積分の重みが正負を持ち、統計誤差が指数関数的に増大します。これは超伝導計算の大きな課題です。</p>
+        </div>
+
+        <h2>6. 機械学習による$T_c$予測</h2>
+
+        <h3>6.1 記述子設計</h3>
+        <p>機械学習による$T_c$予測では、物質の特性を数値ベクトル（記述子）で表現します。典型的な記述子：</p>
+        <ul>
+            <li><strong>元素的特徴</strong>：原子番号、電気陰性度、原子半径、価電子数</li>
+            <li><strong>結晶構造特徴</strong>：空間群、格子定数、配位数</li>
+            <li><strong>電子的特徴</strong>：フェルミエネルギーでの状態密度$N(E_F)$、バンドギャップ</li>
+            <li><strong>振動的特徴</strong>：デバイ温度、平均フォノン周波数</li>
+            <li><strong>理論的特徴</strong>：DFT計算から得られる$\lambda$、$\omega_{\log}$</li>
+        </ul>
+
+        <h3>6.2 機械学習モデル</h3>
+        <p>様々なMLアルゴリズムが超伝導研究に適用されています：</p>
+        <ul>
+            <li><strong>ランダムフォレスト</strong>：解釈可能性が高く、特徴量の重要度を評価可能</li>
+            <li><strong>勾配ブースティング（XGBoost, LightGBM）</strong>：高精度、欠損値に強い</li>
+            <li><strong>ニューラルネットワーク</strong>：複雑な非線形関係を捕捉</li>
+            <li><strong>ガウス過程回帰</strong>：不確実性の定量化が可能</li>
+        </ul>
+
+        <div class="code-example">
+            <h4>コード例5：ランダムフォレストによるTc予測</h4>
+            <pre><code>import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, r2_score
+import matplotlib.pyplot as plt
+
+# サンプルデータ生成（実際にはSuperConデータベースなどを使用）
+np.random.seed(42)
+n_samples = 200
+
+# 特徴量：電気陰性度、平均原子質量、状態密度、デバイ温度など
+electronegativity = np.random.uniform(1.0, 3.5, n_samples)
+atomic_mass = np.random.uniform(10, 200, n_samples)
+dos_ef = np.random.uniform(0.5, 5.0, n_samples)  # states/eV/atom
+debye_temp = np.random.uniform(200, 800, n_samples)  # K
+
+# 簡略化された合成Tc（実際の物理関係を模倣）
+Tc_true = (5 * dos_ef + 0.05 * debye_temp - 2 * electronegativity +
+           np.random.normal(0, 3, n_samples))
+Tc_true = np.clip(Tc_true, 0, 150)  # 物理的範囲に制限
+
+# データフレーム作成
+df = pd.DataFrame({
+    'electronegativity': electronegativity,
+    'atomic_mass': atomic_mass,
+    'dos_ef': dos_ef,
+    'debye_temp': debye_temp,
+    'Tc': Tc_true
+})
+
+# 特徴量とターゲット
+X = df.drop('Tc', axis=1)
+y = df['Tc']
+
+# 訓練/テスト分割
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# ランダムフォレストモデル
+rf_model = RandomForestRegressor(
+    n_estimators=100,
+    max_depth=10,
+    min_samples_split=5,
+    random_state=42,
+    n_jobs=-1
+)
+
+# 訓練
+rf_model.fit(X_train, y_train)
+
+# 予測
+y_pred_train = rf_model.predict(X_train)
+y_pred_test = rf_model.predict(X_test)
+
+# 評価
+train_mae = mean_absolute_error(y_train, y_pred_train)
+test_mae = mean_absolute_error(y_test, y_pred_test)
+train_r2 = r2_score(y_train, y_pred_train)
+test_r2 = r2_score(y_test, y_pred_test)
+
+print("=== モデル性能 ===")
+print(f"訓練 MAE: {train_mae:.2f} K")
+print(f"テスト MAE: {test_mae:.2f} K")
+print(f"訓練 R²: {train_r2:.3f}")
+print(f"テスト R²: {test_r2:.3f}")
+
+# 特徴量重要度
+feature_importance = pd.DataFrame({
+    'feature': X.columns,
+    'importance': rf_model.feature_importances_
+}).sort_values('importance', ascending=False)
+
+print("\n=== 特徴量重要度 ===")
+print(feature_importance)
+
+# クロスバリデーション
+cv_scores = cross_val_score(rf_model, X, y, cv=5,
+                            scoring='neg_mean_absolute_error')
+print(f"\n5-Fold CV MAE: {-cv_scores.mean():.2f} ± {cv_scores.std():.2f} K")
+
+# 可視化
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+# 予測 vs 実測
+axes[0].scatter(y_test, y_pred_test, alpha=0.6, edgecolors='k')
+axes[0].plot([0, 150], [0, 150], 'r--', linewidth=2, label='理想直線')
+axes[0].set_xlabel('実測 Tc (K)', fontsize=12)
+axes[0].set_ylabel('予測 Tc (K)', fontsize=12)
+axes[0].set_title(f'テストセット予測 (R² = {test_r2:.3f})', fontsize=14)
+axes[0].legend()
+axes[0].grid(alpha=0.3)
+
+# 特徴量重要度
+axes[1].barh(feature_importance['feature'], feature_importance['importance'])
+axes[1].set_xlabel('重要度', fontsize=12)
+axes[1].set_title('特徴量重要度', fontsize=14)
+axes[1].grid(axis='x', alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('ml_tc_prediction.png', dpi=300)
+plt.show()
+</code></pre>
+        </div>
+
+        <h3>6.3 深層学習アプローチ</h3>
+        <p>グラフニューラルネットワーク（GNN）は、結晶構造を直接グラフとして扱い、より豊かな構造情報を活用できます。</p>
+
+        <div class="code-example">
+            <h4>コード例6：簡単なニューラルネットワークによるTc予測</h4>
+            <pre><code>import tensorflow as tf
+from tensorflow import keras
+from sklearn.preprocessing import StandardScaler
+
+# データの標準化
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# ニューラルネットワークモデル
+model = keras.Sequential([
+    keras.layers.Input(shape=(X_train.shape[1],)),
+    keras.layers.Dense(64, activation='relu'),
+    keras.layers.Dropout(0.2),
+    keras.layers.Dense(32, activation='relu'),
+    keras.layers.Dropout(0.2),
+    keras.layers.Dense(16, activation='relu'),
+    keras.layers.Dense(1)  # 出力層（Tc予測）
+])
+
+# コンパイル
+model.compile(
+    optimizer=keras.optimizers.Adam(learning_rate=0.001),
+    loss='mse',
+    metrics=['mae']
+)
+
+# 訓練
+history = model.fit(
+    X_train_scaled, y_train,
+    validation_split=0.2,
+    epochs=100,
+    batch_size=16,
+    verbose=0,
+    callbacks=[
+        keras.callbacks.EarlyStopping(patience=10, restore_best_weights=True)
+    ]
+)
+
+# 評価
+y_pred_nn = model.predict(X_test_scaled).flatten()
+nn_mae = mean_absolute_error(y_test, y_pred_nn)
+nn_r2 = r2_score(y_test, y_pred_nn)
+
+print(f"\n=== ニューラルネットワーク性能 ===")
+print(f"テスト MAE: {nn_mae:.2f} K")
+print(f"テスト R²: {nn_r2:.3f}")
+
+# 学習曲線
+plt.figure(figsize=(10, 4))
+plt.subplot(1, 2, 1)
+plt.plot(history.history['loss'], label='訓練損失')
+plt.plot(history.history['val_loss'], label='検証損失')
+plt.xlabel('エポック')
+plt.ylabel('MSE損失')
+plt.legend()
+plt.grid(alpha=0.3)
+
+plt.subplot(1, 2, 2)
+plt.plot(history.history['mae'], label='訓練 MAE')
+plt.plot(history.history['val_mae'], label='検証 MAE')
+plt.xlabel('エポック')
+plt.ylabel('MAE (K)')
+plt.legend()
+plt.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('nn_learning_curves.png', dpi=300)
+plt.show()
+</code></pre>
+        </div>
+
+        <h2>7. ハイスループットスクリーニング</h2>
+
+        <h3>7.1 ワークフロー設計</h3>
+        <p>超伝導体のハイスループットスクリーニングは以下のステップで構成されます：</p>
+
+        <div class="mermaid">
+flowchart TD
+    A[結晶構造データベース<br/>Materials Project, ICSD] --> B[構造緩和<br/>DFT計算]
+    B --> C[電子構造計算<br/>バンド構造, DOS]
+    C --> D{スクリーニング条件}
+    D -->|金属的| E[フォノン計算<br/>DFPT]
+    D -->|絶縁体| F[除外]
+    E --> G[電子-格子結合<br/>EPW]
+    G --> H[Tc推定<br/>Allen-Dynes公式]
+    H --> I{Tc > 閾値?}
+    I -->|Yes| J[候補材料リスト]
+    I -->|No| K[除外]
+    J --> L[詳細計算<br/>Eliashberg方程式]
+    L --> M[実験的検証の提案]
+
+    style A fill:#e3f2fd
+    style J fill:#c8e6c9
+    style M fill:#fff9c4
+</div>
+
+        <h3>7.2 スクリーニング基準</h3>
+        <p>効率的なスクリーニングのための基準：</p>
+        <ul>
+            <li><strong>動的安定性</strong>：虚のフォノンモードがない（$\omega_{\mathbf{q}\nu}^2 > 0$）</li>
+            <li><strong>金属性</strong>：バンドギャップがゼロまたは小さい</li>
+            <li><strong>高い状態密度</strong>：$N(E_F) > N_{\text{threshold}}$</li>
+            <li><strong>軽元素の存在</strong>：高いフォノン周波数（高デバイ温度）</li>
+            <li><strong>結晶構造</strong>：層状構造、カゴ状構造など有望な構造タイプ</li>
+        </ul>
+
+        <div class="code-example">
+            <h4>コード例7：ハイスループットスクリーニングのスケルトン</h4>
+            <pre><code>import numpy as np
+from pymatgen.core import Structure
+from pymatgen.io.vasp import Poscar
+from pymatgen.ext.matproj import MPRester
+import json
+
+class SuperconductorScreening:
+    """超伝導体ハイスループットスクリーニングクラス"""
+
+    def __init__(self, api_key):
+        """
+        Parameters:
+        -----------
+        api_key : str
+            Materials Project API key
+        """
+        self.mpr = MPRester(api_key)
+        self.candidates = []
+
+    def screen_metallic(self, structures):
+        """金属性スクリーニング"""
+        metallic = []
+        for struct_id, data in structures.items():
+            if data.get('band_gap', 1.0) < 0.1:  # eV
+                metallic.append(struct_id)
+        return metallic
+
+    def screen_dos(self, structures, dos_threshold=1.0):
+        """状態密度スクリーニング"""
+        high_dos = []
+        for struct_id, data in structures.items():
+            dos_ef = data.get('dos_ef', 0)  # states/eV/atom
+            if dos_ef > dos_threshold:
+                high_dos.append(struct_id)
+        return high_dos
+
+    def screen_light_elements(self, structures):
+        """軽元素含有スクリーニング"""
+        light_element_structures = []
+        light_elements = {'H', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F',
+                         'Na', 'Mg', 'Al', 'Si'}
+
+        for struct_id, data in structures.items():
+            elements = set(data['elements'])
+            if elements & light_elements:  # 積集合が空でない
+                light_element_structures.append(struct_id)
+        return light_element_structures
+
+    def estimate_tc_simple(self, lambda_val, omega_log, mu_star=0.13):
+        """簡易Tc推定（Allen-Dynes）"""
+        if lambda_val <= mu_star:
+            return 0.0
+
+        exponent = -1.04 * (1 + lambda_val) / (lambda_val - mu_star * (1 + 0.62 * lambda_val))
+        f1 = (1 + (lambda_val / (2.46 * (1 + 3.8 * mu_star)))**(3/2))**(1/3)
+        Tc = (omega_log / 1.2) * np.exp(exponent) * f1 / 11.6  # meV to K
+        return Tc
+
+    def run_screening_pipeline(self, chemical_system, tc_threshold=10):
+        """
+        スクリーニングパイプライン実行
+
+        Parameters:
+        -----------
+        chemical_system : str
+            化学系（例：'Mg-B', 'La-H'）
+        tc_threshold : float
+            Tc閾値 (K)
+        """
+        print(f"化学系 {chemical_system} のスクリーニング開始...")
+
+        # ステップ1: 構造取得（簡略版）
+        # 実際にはMPResterを使用
+        structures = {
+            'mp-1234': {
+                'formula': 'MgB2',
+                'band_gap': 0.0,
+                'dos_ef': 2.5,
+                'elements': ['Mg', 'B'],
+                'lambda': 0.87,
+                'omega_log': 65  # meV
+            },
+            'mp-5678': {
+                'formula': 'LaH10',
+                'band_gap': 0.0,
+                'dos_ef': 3.2,
+                'elements': ['La', 'H'],
+                'lambda': 2.1,
+                'omega_log': 120  # meV
+            }
+        }
+
+        # ステップ2: 金属性スクリーニング
+        metallic = self.screen_metallic(structures)
+        print(f"金属性材料: {len(metallic)} 個")
+
+        # ステップ3: DOS スクリーニング
+        high_dos = self.screen_dos(structures)
+        print(f"高DOS材料: {len(high_dos)} 個")
+
+        # ステップ4: Tc推定
+        for struct_id in metallic:
+            if struct_id in high_dos:
+                data = structures[struct_id]
+                tc = self.estimate_tc_simple(data['lambda'], data['omega_log'])
+
+                if tc > tc_threshold:
+                    self.candidates.append({
+                        'id': struct_id,
+                        'formula': data['formula'],
+                        'Tc_estimated': tc,
+                        'lambda': data['lambda'],
+                        'omega_log': data['omega_log']
+                    })
+
+        # 結果表示
+        print(f"\n=== スクリーニング結果 ===")
+        print(f"候補材料数: {len(self.candidates)}")
+        for cand in sorted(self.candidates, key=lambda x: x['Tc_estimated'], reverse=True):
+            print(f"  {cand['formula']}: Tc ≈ {cand['Tc_estimated']:.1f} K "
+                  f"(λ = {cand['lambda']:.2f})")
+
+        return self.candidates
+
+# 使用例（API keyが必要）
+# screener = SuperconductorScreening(api_key='YOUR_API_KEY')
+# candidates = screener.run_screening_pipeline('Mg-B', tc_threshold=20)
+
+# デモ実行（API keyなし）
+screener = SuperconductorScreening(api_key=None)
+candidates = screener.run_screening_pipeline('Mg-B-La-H', tc_threshold=20)
+</code></pre>
+        </div>
+
+        <h2>8. 計算的超伝導体発見の事例</h2>
+
+        <h3>8.1 MgB₂の理論予測</h3>
+        <p>2001年に発見されたMgB₂（$T_c$ = 39 K）は、発見後すぐにDFT計算によってそのメカニズムが解明されました：</p>
+        <ul>
+            <li>2つのσバンドが超伝導に主に寄与</li>
+            <li>B原子の$E_{2g}$フォノンモードとの強い結合</li>
+            <li>二ギャップ超伝導：$\Delta_\sigma \approx 7$ meV、$\Delta_\pi \approx 2$ meV</li>
+        </ul>
+
+        <h3>8.2 水素化物超伝導体</h3>
+        <p>近年、DFT計算は高圧水素化物超伝導体の発見を先導しています：</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>物質</th>
+                    <th>圧力 (GPa)</th>
+                    <th>予測$T_c$ (K)</th>
+                    <th>実験$T_c$ (K)</th>
+                    <th>年</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>H₃S</td>
+                    <td>200</td>
+                    <td>191-204</td>
+                    <td>203</td>
+                    <td>2015</td>
+                </tr>
+                <tr>
+                    <td>LaH₁₀</td>
+                    <td>170</td>
+                    <td>274-286</td>
+                    <td>250</td>
+                    <td>2019</td>
+                </tr>
+                <tr>
+                    <td>CaH₆</td>
+                    <td>150</td>
+                    <td>200-235</td>
+                    <td>未確認</td>
+                    <td>2020（予測）</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>8.3 機械学習による発見</h3>
+        <p>最近の成功例：</p>
+        <ul>
+            <li><strong>SuperCon データベース</strong>：16,000以上の超伝導体データをMLで分析</li>
+            <li><strong>新規Heusler化合物</strong>：MLスクリーニングで数百の候補を同定</li>
+            <li><strong>トポロジカル超伝導体</strong>：結晶対称性とバンドトポロジーのML予測</li>
+        </ul>
+
+        <div class="info-box">
+            <h4>計算的発見の成功要因</h4>
+            <ol>
+                <li><strong>物理的洞察</strong>：純粋なデータ駆動ではなく、物理理論（BCS、Eliashberg）に基づくモデリング</li>
+                <li><strong>実験との緊密な連携</strong>：計算予測を迅速に実験検証</li>
+                <li><strong>データベースの充実</strong>：高品質な超伝導体データの蓄積</li>
+                <li><strong>計算資源の進歩</strong>：大規模DFT計算とMLの実現</li>
+            </ol>
+        </div>
+
+        <h2>9. 実践的計算ワークフロー</h2>
+
+        <h3>9.1 Quantum ESPRESSOによる完全なワークフロー</h3>
+
+        <div class="code-example">
+            <h4>コード例8：MgB₂の電子-格子結合計算（完全ワークフロー）</h4>
+            <pre><code>#!/bin/bash
+# MgB2の超伝導特性計算ワークフロー
+
+# ステップ1: 構造緩和
+cat > relax.in << EOF
+&control
+    calculation = 'vc-relax'
+    prefix = 'mgb2'
+    outdir = './tmp/'
+    pseudo_dir = './pseudo/'
+/
+&system
+    ibrav = 4
+    a = 3.086
+    c = 3.524
+    nat = 3
+    ntyp = 2
+    ecutwfc = 50.0
+    ecutrho = 400.0
+/
+&electrons
+    conv_thr = 1.0d-8
+/
+&ions
+    ion_dynamics = 'bfgs'
+/
+&cell
+    cell_dynamics = 'bfgs'
+/
+ATOMIC_SPECIES
+ Mg  24.305  Mg.pbe-n-kjpaw_psl.0.3.0.UPF
+ B   10.811  B.pbe-n-kjpaw_psl.0.1.UPF
+ATOMIC_POSITIONS crystal
+ Mg  0.0000  0.0000  0.0000
+ B   0.3333  0.6667  0.5000
+ B   0.6667  0.3333  0.5000
+K_POINTS automatic
+ 12 12 8 0 0 0
+EOF
+
+pw.x < relax.in > relax.out
+
+# ステップ2: 自己無撞着計算（粗いk点メッシュ）
+cat > scf.in << EOF
+&control
+    calculation = 'scf'
+    prefix = 'mgb2'
+    outdir = './tmp/'
+    pseudo_dir = './pseudo/'
+/
+&system
+    ibrav = 4
+    a = 3.086
+    c = 3.524
+    nat = 3
+    ntyp = 2
+    ecutwfc = 50.0
+    ecutrho = 400.0
+    occupations = 'smearing'
+    smearing = 'mp'
+    degauss = 0.02
+/
+&electrons
+    conv_thr = 1.0d-10
+/
+ATOMIC_SPECIES
+ Mg  24.305  Mg.pbe-n-kjpaw_psl.0.3.0.UPF
+ B   10.811  B.pbe-n-kjpaw_psl.0.1.UPF
+ATOMIC_POSITIONS crystal
+ Mg  0.0000  0.0000  0.0000
+ B   0.3333  0.6667  0.5000
+ B   0.6667  0.3333  0.5000
+K_POINTS automatic
+ 24 24 16 0 0 0
+EOF
+
+pw.x < scf.in > scf.out
+
+# ステップ3: フォノン計算（DFPT）
+cat > ph.in << EOF
+&inputph
+    prefix = 'mgb2'
+    outdir = './tmp/'
+    fildyn = 'mgb2.dyn'
+    tr2_ph = 1.0d-14
+    ldisp = .true.
+    nq1 = 6
+    nq2 = 6
+    nq3 = 4
+    electron_phonon = 'interpolated'
+    el_ph_sigma = 0.005
+    el_ph_nsigma = 10
+/
+EOF
+
+ph.x < ph.in > ph.out
+
+# ステップ4: q2r（動的行列のフーリエ変換）
+cat > q2r.in << EOF
+&input
+    fildyn = 'mgb2.dyn'
+    flfrc = 'mgb2.fc'
+/
+EOF
+
+q2r.x < q2r.in > q2r.out
+
+# ステップ5: lambda.x（Eliashberg関数計算）
+cat > lambda.in << EOF
+&input
+    flfrc = 'mgb2.fc'
+    prefix = 'mgb2'
+    outdir = './tmp/'
+    la2F = .true.
+    dos = .true.
+/
+EOF
+
+lambda.x < lambda.in > lambda.out
+
+# lambda.outからλとω_logを抽出
+grep "lambda" lambda.out
+grep "omega_log" lambda.out
+
+# ステップ6: Pythonでの後処理とTc推定
+python3 << 'PYEOF'
+import numpy as np
+import matplotlib.pyplot as plt
+
+# lambda.outから読み込み（実際のファイル解析が必要）
+# ここでは既知の値を使用
+lambda_val = 0.87
+omega_log = 65  # meV
+mu_star = 0.13
+
+# Allen-Dynes公式
+exponent = -1.04 * (1 + lambda_val) / (lambda_val - mu_star * (1 + 0.62 * lambda_val))
+f1 = (1 + (lambda_val / (2.46 * (1 + 3.8 * mu_star)))**(3/2))**(1/3)
+Tc = (omega_log / 1.2) * np.exp(exponent) * f1 / 11.6
+
+print(f"計算結果:")
+print(f"  λ = {lambda_val:.3f}")
+print(f"  ω_log = {omega_log:.1f} meV")
+print(f"  予測 Tc = {Tc:.1f} K")
+print(f"  実験 Tc = 39 K")
+PYEOF
+
+echo "ワークフロー完了！"
+</code></pre>
+        </div>
+
+        <h2>まとめ</h2>
+        <p>本章では、超伝導体研究における計算手法の包括的な概観を提供しました：</p>
+        <ul>
+            <li><strong>第一原理計算</strong>：DFTによる電子構造、DFPTによるフォノン、電子-格子結合の計算</li>
+            <li><strong>Wannier補間</strong>：EPWによる効率的な電子-格子結合計算</li>
+            <li><strong>$T_c$推定</strong>：McMillan・Allen-Dynes公式による半経験的予測</li>
+            <li><strong>SCDFT</strong>：秩序パラメータを直接扱う高度な手法</li>
+            <li><strong>量子モンテカルロ</strong>：精密な多体計算（符号問題に注意）</li>
+            <li><strong>機械学習</strong>：ランダムフォレスト、ニューラルネットワークによる$T_c$予測</li>
+            <li><strong>ハイスループットスクリーニング</strong>：大規模材料探索のワークフロー</li>
+            <li><strong>計算的発見</strong>：MgB₂、水素化物超伝導体などの成功事例</li>
+        </ul>
+
+        <p>これらの計算手法は、現代の超伝導体研究において不可欠であり、新材料発見を加速しています。第一原理計算と機械学習を組み合わせたハイブリッドアプローチが、今後さらに重要性を増すでしょう。</p>
+
+        <h2>演習問題</h2>
+
+        <div class="info-box">
+            <h3>演習1：Allen-Dynes公式の実装と検証</h3>
+            <p>コード例4を拡張し、以下を実行してください：</p>
+            <ol>
+                <li>$\mu^*$を0.10から0.20まで変化させた時の$T_c$の変化をプロット</li>
+                <li>$\omega_{\log}$を30 meVから150 meVまで変化させた時の$T_c$の変化をプロット</li>
+                <li>実際の超伝導体（Al: λ=0.43, ω_log=27 meV, Tc=1.2 K）で検証</li>
+            </ol>
+        </div>
+
+        <div class="info-box">
+            <h3>演習2：機械学習モデルの比較</h3>
+            <p>コード例5のランダムフォレストと、以下のモデルを比較してください：</p>
+            <ol>
+                <li>線形回帰（ベースライン）</li>
+                <li>勾配ブースティング（XGBoost）</li>
+                <li>サポートベクター回帰（SVR）</li>
+                <li>どのモデルが最も性能が良いか、その理由を考察してください</li>
+            </ol>
+        </div>
+
+        <div class="info-box">
+            <h3>演習3：Eliashberg関数の解析</h3>
+            <p>以下のタスクを実行してください：</p>
+            <ol>
+                <li>複数のローレンツ型ピークを持つ$\alpha^2F(\omega)$を定義</li>
+                <li>$\lambda$と$\omega_{\log}$を数値積分で計算</li>
+                <li>各フォノンモードの$T_c$への寄与を評価</li>
+                <li>結果をMgB₂の実験データ（E_{2g}モードが支配的）と比較</li>
+            </ol>
+        </div>
+
+        <div class="info-box">
+            <h3>演習4：ハイスループットスクリーニングの設計</h3>
+            <p>以下の課題に取り組んでください：</p>
+            <ol>
+                <li>特定の化学系（例：遷移金属ホウ化物）のスクリーニング基準を設計</li>
+                <li>Materials Projectから候補構造を抽出（APIを使用）</li>
+                <li>DFTデータ（バンドギャップ、DOS）でフィルタリング</li>
+                <li>上位10候補をランク付けし、実験検証の優先順位を提案</li>
+            </ol>
+        </div>
+
+        <div class="info-box">
+            <h3>発展課題：計算予測の実験検証計画</h3>
+            <p>以下を含む研究提案を作成してください：</p>
+            <ol>
+                <li>計算で同定した有望な新規超伝導体候補</li>
+                <li>合成法の提案（固相反応、高圧合成など）</li>
+                <li>特性評価法（抵抗測定、磁化測定、比熱測定）</li>
+                <li>計算予測と実験結果の比較検証計画</li>
+                <li>予測が外れた場合の原因分析手法</li>
+            </ol>
+        </div>
+
+        <h2>参考文献</h2>
+        <ol>
+            <li>Giustino, F. (2017). "Electron-phonon interactions from first principles." <em>Reviews of Modern Physics</em>, 89(1), 015003.</li>
+            <li>Allen, P. B., & Dynes, R. C. (1975). "Transition temperature of strong-coupled superconductors reanalyzed." <em>Physical Review B</em>, 12(3), 905.</li>
+            <li>Poncé, S., Margine, E. R., Verdi, C., & Giustino, F. (2016). "EPW: Electron-phonon coupling, transport and superconducting properties using maximally localized Wannier functions." <em>Computer Physics Communications</em>, 209, 116-133.</li>
+            <li>Saal, J. E., Kirklin, S., Aykol, M., Meredig, B., & Wolverton, C. (2013). "Materials design and discovery with high-throughput density functional theory." <em>JOM</em>, 65(11), 1501-1509.</li>
+            <li>Stanev, V., et al. (2018). "Machine learning modeling of superconducting critical temperature." <em>npj Computational Materials</em>, 4(1), 29.</li>
+            <li>Marques, M. A., et al. (2005). "Ab initio theory of superconductivity. I. Density functional formalism." <em>Physical Review B</em>, 72(2), 024545.</li>
+            <li>Quan, Y., & Pickett, W. E. (2016). "van Hove singularities and spectral smearing in high-temperature superconducting H3S." <em>Physical Review B</em>, 93(10), 104526.</li>
+            <li>Konno, T., et al. (2021). "Deep learning model for finding new superconductors." <em>Physical Review B</em>, 103(1), 014509.</li>
+        </ol>
+
+        <h2>オンラインリソース</h2>
+        <ul>
+            <li><a href="https://www.quantum-espresso.org/" target="_blank">Quantum ESPRESSO</a>：第一原理計算パッケージ</li>
+            <li><a href="https://epw-code.org/" target="_blank">EPW Code</a>：電子-格子結合計算</li>
+            <li><a href="https://www.materialsproject.org/" target="_blank">Materials Project</a>：材料データベース</li>
+            <li><a href="http://supercon.nims.go.jp/index_en.html" target="_blank">SuperCon Database</a>：超伝導体データベース（NIMS）</li>
+            <li><a href="https://wiki.fysik.dtu.dk/gpaw/" target="_blank">GPAW</a>：Python ベースDFTコード</li>
+            <li><a href="https://scikit-learn.org/" target="_blank">scikit-learn</a>：機械学習ライブラリ</li>
+        </ul>
+
+        <div class="navigation">
+            <a href="chapter-1.html" class="nav-button">← 第1章：強結合理論</a>
+            <a href="index.html" class="nav-button">シリーズトップ</a>
+            <a href="chapter-3.html" class="nav-button">第3章：メゾスコピック超伝導 →</a>
+        </div>
+    </main>
+
+    <section class="disclaimer">
+        <h3>免責事項</h3>
+        <ul>
+            <li>本コンテンツは教育・研究・情報提供のみを目的としており、専門的なアドバイスを構成するものではありません。</li>
+            <li>本コンテンツおよび付随するコード例はいかなる保証もなく「現状のまま」提供されます。</li>
+            <li>著者および東北大学は、外部リンク、サードパーティのデータ、ツール、ライブラリについて一切の責任を負いません。</li>
+            <li>適用法で許容される最大限の範囲において、本コンテンツの使用から生じる損害について責任を負いません。</li>
+            <li>コンテンツは予告なく変更、更新、または廃止される場合があります。</li>
+            <li>計算コードは教育目的であり、研究用途には十分な検証が必要です。</li>
+        </ul>
+    </section>
+
+    <footer>
+        <p><strong>著者</strong>：MSナレッジハブ コンテンツチーム</p>
+        <p><strong>バージョン</strong>：1.0 | <strong>作成日</strong>：2025-12-19</p>
+        <p><strong>ライセンス</strong>：Creative Commons BY 4.0</p>
+        <p>© 2025 MS寺子屋. All rights reserved.</p>
+    </footer>
+</body>
+</html>

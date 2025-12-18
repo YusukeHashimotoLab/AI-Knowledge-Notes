@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="第3章：メゾスコピック超伝導 - 超伝導上級シリーズ。Bogoliubov-de Gennes方程式、Andreev反射、近接効果、トポロジカル超伝導を学ぶ">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3章：メゾスコピック超伝導 - MS寺子屋</title>
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+        onload="renderMathInElement(document.body, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+        });"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <div class="breadcrumb-content">
+            <a href="../index.html">AI寺子屋トップ</a>
+            <span class="breadcrumb-separator">></span>
+            <a href="../index.html">材料科学</a>
+            <span class="breadcrumb-separator">></span>
+            <a href="index.html">超伝導上級</a>
+            <span class="breadcrumb-separator">></span>
+            <span class="breadcrumb-current">第3章</span>
+        </div>
+    </nav>
+
+    <div class="locale-switcher">
+        <span class="current-locale">JP</span>
+        <span class="locale-separator">|</span>
+        <a href="../../../en/MS/superconductivity-advanced/chapter-3.html" class="locale-link">EN</a>
+        <span class="locale-separator">|</span>
+        <span class="locale-meta">最終更新: 2025-12-19</span>
+    </div>
+
+    <header>
+        <div class="header-content">
+            <h1>第3章：メゾスコピック超伝導</h1>
+            <p class="subtitle">Bogoliubov-de Gennes理論から量子ドット、トポロジカル量子ビットまで</p>
+            <div class="meta">
+                <span class="meta-item">学習時間: 50-60分</span>
+                <span class="meta-item">コード例: 8個</span>
+                <span class="meta-item">難易度: 上級</span>
+                <span class="meta-item">前提: BCS理論、量子力学</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section id="learning-objectives">
+            <h2>学習目標</h2>
+            <div class="info-box">
+                <p>本章を学習することで、以下の知識とスキルを習得できます：</p>
+                <ul>
+                    <li>Bogoliubov-de Gennes (BdG) 方程式を導出し、その物理的意味を理解する</li>
+                    <li>Andreev反射の機構と超伝導/常伝導界面での準粒子変換を説明できる</li>
+                    <li>近接効果の物理を理解し、SNSジャンクションでの応用を学ぶ</li>
+                    <li>超伝導量子ドットとYu-Shiba-Rusinov (YSR) 状態の理論を理解する</li>
+                    <li>トポロジカル超伝導体とMajorana束縛状態の基礎を学ぶ</li>
+                    <li>タイトバインディングBdG方程式を数値的に解くPythonコードを実装できる</li>
+                    <li>メゾスコピック超伝導の量子コンピューティングへの応用を理解する</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="introduction">
+            <h2>1. メゾスコピック超伝導とは</h2>
+
+            <p>メゾスコピック超伝導は、系のサイズが超伝導のコヒーレンス長$\xi$と同程度または小さくなる領域における超伝導現象を扱います。このスケールでは、量子力学的な波動関数の位相コヒーレンスが重要な役割を果たし、バルク超伝導とは異なる新奇な物理が現れます。</p>
+
+            <div class="info-box">
+                <h3>メゾスコピック領域の特徴</h3>
+                <ul>
+                    <li><strong>サイズ効果</strong>: 系のサイズ $L \sim \xi$ で準粒子スペクトルが離散化</li>
+                    <li><strong>界面効果</strong>: 超伝導/常伝導界面でのAndreev反射と近接効果</li>
+                    <li><strong>位相コヒーレンス</strong>: 超伝導位相の空間変化が顕著に</li>
+                    <li><strong>量子閉じ込め</strong>: 量子ドットや1次元系での離散準位構造</li>
+                </ul>
+            </div>
+
+            <h3>1.1 特徴的な長さスケール</h3>
+
+            <p>メゾスコピック超伝導を理解するには、以下の特徴的長さスケールの理解が不可欠です：</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>長さスケール</th>
+                        <th>定義</th>
+                        <th>典型的な値</th>
+                        <th>物理的意味</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>コヒーレンス長 $\xi_0$</td>
+                        <td>$\hbar v_F / \pi \Delta_0$</td>
+                        <td>10-1000 nm</td>
+                        <td>Cooper対のサイズ</td>
+                    </tr>
+                    <tr>
+                        <td>ロンドン侵入長 $\lambda_L$</td>
+                        <td>$\sqrt{m/\mu_0 n_s e^2}$</td>
+                        <td>50-500 nm</td>
+                        <td>磁場の侵入深さ</td>
+                    </tr>
+                    <tr>
+                        <td>熱的長さ $\xi_T$</td>
+                        <td>$\hbar v_F / 2\pi k_B T$</td>
+                        <td>T依存</td>
+                        <td>有限温度での準粒子コヒーレンス</td>
+                    </tr>
+                    <tr>
+                        <td>Thouless長さ $L_T$</td>
+                        <td>$\sqrt{\hbar D / E_T}$</td>
+                        <td>拡散依存</td>
+                        <td>エネルギー緩和長</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="bdg-equations">
+            <h2>2. Bogoliubov-de Gennes方程式</h2>
+
+            <h3>2.1 BdG方程式の導出</h3>
+
+            <p>BCS平均場ハミルトニアンから出発して、空間変化する超伝導秩序を記述するBogoliubov-de Gennes (BdG) 方程式を導出します。</p>
+
+            <p>出発点は平均場BCSハミルトニアン：</p>
+
+            $$
+            H = \sum_{\sigma} \int d\mathbf{r} \, \psi_{\sigma}^{\dagger}(\mathbf{r}) \left[ -\frac{\hbar^2 \nabla^2}{2m} + V(\mathbf{r}) - \mu \right] \psi_{\sigma}(\mathbf{r})
+            + \int d\mathbf{r} \left[ \Delta(\mathbf{r}) \psi_{\uparrow}^{\dagger}(\mathbf{r}) \psi_{\downarrow}^{\dagger}(\mathbf{r}) + \text{h.c.} \right]
+            $$
+
+            <p>ここで $\Delta(\mathbf{r})$ は空間に依存する超伝導ギャップ関数です。準粒子演算子を導入：</p>
+
+            $$
+            \psi_{\uparrow}(\mathbf{r}) = \sum_n \left[ u_n(\mathbf{r}) \gamma_n - v_n^*(\mathbf{r}) \gamma_n^{\dagger} \right]
+            $$
+
+            $$
+            \psi_{\downarrow}(\mathbf{r}) = \sum_n \left[ v_n(\mathbf{r}) \gamma_n + u_n^*(\mathbf{r}) \gamma_n^{\dagger} \right]
+            $$
+
+            <p>対角化により、BdG方程式が得られます：</p>
+
+            <div class="info-box warning">
+                <h4>Bogoliubov-de Gennes方程式</h4>
+                $$
+                \begin{pmatrix}
+                H_0(\mathbf{r}) & \Delta(\mathbf{r}) \\
+                \Delta^*(\mathbf{r}) & -H_0^*(\mathbf{r})
+                \end{pmatrix}
+                \begin{pmatrix}
+                u_n(\mathbf{r}) \\
+                v_n(\mathbf{r})
+                \end{pmatrix}
+                = E_n
+                \begin{pmatrix}
+                u_n(\mathbf{r}) \\
+                v_n(\mathbf{r})
+                \end{pmatrix}
+                $$
+                <p>ここで $H_0(\mathbf{r}) = -\frac{\hbar^2 \nabla^2}{2m} + V(\mathbf{r}) - \mu$ は単一粒子ハミルトニアンです。</p>
+            </div>
+
+            <h3>2.2 BdG方程式の性質</h3>
+
+            <p>BdG方程式は以下の重要な性質を持ちます：</p>
+
+            <ul>
+                <li><strong>粒子-正孔対称性</strong>: $(u_n, v_n, E_n)$ が解ならば $(v_n^*, u_n^*, -E_n)$ も解</li>
+                <li><strong>正規化条件</strong>: $\int d\mathbf{r} \, (|u_n(\mathbf{r})|^2 + |v_n(\mathbf{r})|^2) = 1$</li>
+                <li><strong>自己無撞着性</strong>: ギャップ関数は $\Delta(\mathbf{r}) = g \sum_{E_n > 0} u_n(\mathbf{r}) v_n^*(\mathbf{r}) \tanh(E_n/2k_B T)$ で更新</li>
+            </ul>
+
+            <h3>2.3 1次元BdG方程式の例</h3>
+
+            <p>1次元系での離散化BdG方程式は、実際の計算で広く用いられます。タイトバインディング近似では：</p>
+
+            $$
+            H_{\text{BdG}} = \sum_i \begin{pmatrix} c_i^{\dagger} & c_i \end{pmatrix}
+            \begin{pmatrix}
+            \epsilon_i - \mu & \Delta_i \\
+            \Delta_i^* & -(\epsilon_i - \mu)
+            \end{pmatrix}
+            \begin{pmatrix} c_i \\ c_i^{\dagger} \end{pmatrix}
+            + \sum_{\langle i,j \rangle} \begin{pmatrix} c_i^{\dagger} & c_i \end{pmatrix}
+            \begin{pmatrix}
+            -t & 0 \\
+            0 & t
+            \end{pmatrix}
+            \begin{pmatrix} c_j \\ c_j^{\dagger} \end{pmatrix}
+            $$
+
+            <div class="code-example">
+                <h4>Python実装例: 1次元BdG方程式のソルバー</h4>
+                <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.linalg import eigh
+
+class BdGSolver1D:
+    """1次元Bogoliubov-de Gennes方程式のソルバー"""
+
+    def __init__(self, N_sites, t, mu, Delta):
+        """
+        Parameters:
+        -----------
+        N_sites : int
+            格子点の数
+        t : float
+            ホッピング積分 (eV)
+        mu : float
+            化学ポテンシャル (eV)
+        Delta : float or array
+            超伝導ギャップ (eV), スカラーまたはサイト依存配列
+        """
+        self.N = N_sites
+        self.t = t
+        self.mu = mu
+
+        # ギャップ関数の設定（スカラーの場合は配列に変換）
+        if np.isscalar(Delta):
+            self.Delta = Delta * np.ones(N_sites)
+        else:
+            self.Delta = np.array(Delta)
+
+    def build_hamiltonian(self, potential=None):
+        """BdGハミルトニアン行列を構築
+
+        Parameters:
+        -----------
+        potential : array, optional
+            サイトポテンシャル V(i)
+
+        Returns:
+        --------
+        H_BdG : ndarray
+            2N × 2N BdGハミルトニアン行列
+        """
+        N = self.N
+        H_BdG = np.zeros((2*N, 2*N), dtype=complex)
+
+        # ポテンシャルの設定
+        if potential is None:
+            potential = np.zeros(N)
+
+        # 対角要素（サイトエネルギー）
+        for i in range(N):
+            # 粒子ブロック
+            H_BdG[i, i] = potential[i] - self.mu
+            # 正孔ブロック
+            H_BdG[N+i, N+i] = -(potential[i] - self.mu)
+
+        # ギャップ関数（粒子-正孔結合）
+        for i in range(N):
+            H_BdG[i, N+i] = self.Delta[i]
+            H_BdG[N+i, i] = np.conj(self.Delta[i])
+
+        # ホッピング項
+        for i in range(N-1):
+            # 粒子ブロック
+            H_BdG[i, i+1] = -self.t
+            H_BdG[i+1, i] = -self.t
+            # 正孔ブロック
+            H_BdG[N+i, N+i+1] = self.t
+            H_BdG[N+i+1, N+i] = self.t
+
+        return H_BdG
+
+    def solve(self, potential=None):
+        """BdG方程式を対角化
+
+        Returns:
+        --------
+        energies : ndarray
+            準粒子エネルギー（昇順）
+        u_vectors : ndarray
+            粒子成分 u_n(i)
+        v_vectors : ndarray
+            正孔成分 v_n(i)
+        """
+        H_BdG = self.build_hamiltonian(potential)
+
+        # エルミート行列の対角化
+        energies, eigenvectors = eigh(H_BdG)
+
+        N = self.N
+        u_vectors = eigenvectors[:N, :]
+        v_vectors = eigenvectors[N:, :]
+
+        return energies, u_vectors, v_vectors
+
+    def calculate_ldos(self, energies, u_vectors, v_vectors,
+                       energy_range, eta=0.01):
+        """局所状態密度 (LDOS) を計算
+
+        Parameters:
+        -----------
+        energies : ndarray
+            準粒子エネルギー
+        u_vectors, v_vectors : ndarray
+            Bogoliubov波動関数
+        energy_range : ndarray
+            LDOSを計算するエネルギー範囲
+        eta : float
+            ブロードニングパラメータ (eV)
+
+        Returns:
+        --------
+        ldos : ndarray (N_sites, len(energy_range))
+            各サイトのLDOS
+        """
+        N = self.N
+        ldos = np.zeros((N, len(energy_range)))
+
+        for i in range(N):
+            for n in range(2*N):
+                # Lorentzブロードニング
+                ldos[i, :] += (np.abs(u_vectors[i, n])**2 +
+                              np.abs(v_vectors[i, n])**2) * \
+                             (eta / np.pi) / ((energy_range - energies[n])**2 + eta**2)
+
+        return ldos
+
+# 使用例：一様超伝導体の計算
+if __name__ == "__main__":
+    # パラメータ設定
+    N_sites = 100
+    t = 1.0  # eV
+    mu = 0.0  # eV（ハーフフィリング）
+    Delta = 0.2  # eV
+
+    # ソルバーの初期化
+    solver = BdGSolver1D(N_sites, t, mu, Delta)
+
+    # BdG方程式を解く
+    energies, u_vecs, v_vecs = solver.solve()
+
+    # 準粒子スペクトルのプロット
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+
+    # エネルギースペクトル
+    ax1.plot(energies, 'o', markersize=3)
+    ax1.axhline(y=Delta, color='r', linestyle='--', label=f'Δ = {Delta} eV')
+    ax1.axhline(y=-Delta, color='r', linestyle='--')
+    ax1.set_xlabel('State index')
+    ax1.set_ylabel('Energy (eV)')
+    ax1.set_title('BdG Quasiparticle Spectrum')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+
+    # LDOS計算
+    E_range = np.linspace(-0.5, 0.5, 500)
+    ldos = solver.calculate_ldos(energies, u_vecs, v_vecs, E_range)
+
+    # 中心サイトのLDOS
+    center = N_sites // 2
+    ax2.plot(E_range, ldos[center, :])
+    ax2.axvline(x=Delta, color='r', linestyle='--', alpha=0.5)
+    ax2.axvline(x=-Delta, color='r', linestyle='--', alpha=0.5)
+    ax2.set_xlabel('Energy (eV)')
+    ax2.set_ylabel('LDOS (states/eV)')
+    ax2.set_title(f'Local Density of States (site {center})')
+    ax2.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('bdg_spectrum_ldos.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+    print(f"最低励起エネルギー: {np.min(np.abs(energies)):.4f} eV")
+    print(f"理論ギャップ: {Delta:.4f} eV")</code></pre>
+            </div>
+        </section>
+
+        <section id="andreev-reflection">
+            <h2>3. Andreev反射と近接効果</h2>
+
+            <h3>3.1 Andreev反射の機構</h3>
+
+            <p>Andreev反射は、超伝導/常伝導 (SN) 界面における特有の準粒子変換過程です。エネルギーが超伝導ギャップより小さい電子が超伝導体に入射すると、電子は正孔に変換されて反射され、Cooper対が超伝導体に注入されます。</p>
+
+            <div class="mermaid">
+graph LR
+    A[常伝導金属<br/>N] -->|電子 e⁻<br/>E < Δ| B[SN界面]
+    B -->|正孔 h⁺| A
+    B -->|Cooper対| C[超伝導体<br/>S]
+
+    style A fill:#e8f4f8,stroke:#2980b9,stroke-width:2px
+    style B fill:#ffeaa7,stroke:#fdcb6e,stroke-width:2px
+    style C fill:#dfe6e9,stroke:#636e72,stroke-width:2px
+            </div>
+
+            <h4>Andreev反射の境界条件</h4>
+
+            <p>SN界面（$x=0$）での波動関数のマッチング条件：</p>
+
+            $$
+            u_N(0) = u_S(0), \quad v_N(0) = v_S(0)
+            $$
+
+            $$
+            \left. \frac{du_N}{dx} \right|_0 = \left. \frac{du_S}{dx} \right|_0, \quad
+            \left. \frac{dv_N}{dx} \right|_0 = \left. \frac{dv_S}{dx} \right|_0
+            $$
+
+            <p>Andreev近似（$E \ll E_F$）では、入射電子と反射正孔のフェルミ波数がほぼ等しく：</p>
+
+            $$
+            k_e^- \approx k_h^+ = k_F \left(1 - \frac{E}{E_F}\right) \approx k_F
+            $$
+
+            <h3>3.2 Andreev反射確率とBTK理論</h3>
+
+            <p>Blonder-Tinkham-Klapwijk (BTK) 理論は、SN界面でのAndreev反射を定量的に記述します。界面散乱を特徴づける無次元パラメータ $Z$ を導入：</p>
+
+            $$
+            Z = \frac{H_b}{k_F \hbar v_F}
+            $$
+
+            <p>ここで $H_b$ は界面障壁の高さです。Andreev反射確率は：</p>
+
+            $$
+            A(E) = \frac{1 + Z^2 - \left(\frac{E}{\Delta}\right)^2}{\left[1 + Z^2 - \left(\frac{E}{\Delta}\right)^2\right]^2 + \left(\frac{E}{\Delta}\right)^2}
+            $$
+
+            <div class="code-example">
+                <h4>Python実装例: BTK理論によるAndreev反射確率</h4>
+                <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def andreev_reflection_probability(E, Delta, Z):
+    """Andreev反射確率（BTK理論）
+
+    Parameters:
+    -----------
+    E : float or array
+        準粒子エネルギー
+    Delta : float
+        超伝導ギャップ
+    Z : float
+        界面障壁パラメータ
+
+    Returns:
+    --------
+    A : float or array
+        Andreev反射確率
+    """
+    # エネルギーを正規化
+    e = E / Delta
+
+    # |E| < Delta の範囲
+    mask_gap = np.abs(e) < 1.0
+    A = np.zeros_like(e)
+
+    # ギャップ内のAndreev反射
+    numerator = 1 + Z**2 - e[mask_gap]**2
+    denominator = (1 + Z**2 - e[mask_gap]**2)**2 + e[mask_gap]**2
+    A[mask_gap] = numerator / denominator
+
+    return A
+
+def normal_reflection_probability(E, Delta, Z):
+    """正常反射確率（BTK理論）"""
+    e = E / Delta
+    mask_gap = np.abs(e) < 1.0
+    B = np.zeros_like(e)
+
+    numerator = Z**2 * e[mask_gap]**2
+    denominator = (1 + Z**2 - e[mask_gap]**2)**2 + e[mask_gap]**2
+    B[mask_gap] = numerator / denominator
+
+    return B
+
+def conductance_ns_junction(E, Delta, Z, T=0):
+    """NS接合のコンダクタンス（BTK理論）
+
+    Parameters:
+    -----------
+    E : float or array
+        印加電圧 eV (= 準粒子エネルギー)
+    Delta : float
+        超伝導ギャップ
+    Z : float
+        界面障壁パラメータ
+    T : float
+        温度 (K)
+
+    Returns:
+    --------
+    G_NS : float or array
+        正規化コンダクタンス G_NS / G_N
+    """
+    A = andreev_reflection_probability(E, Delta, Z)
+    B = normal_reflection_probability(E, Delta, Z)
+
+    # T=0でのコンダクタンス
+    # Andreev反射は電荷2eを運ぶため係数2
+    G_NS = 1 + A - B
+
+    return G_NS
+
+# プロット
+fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+
+Delta = 1.0  # 正規化単位
+E = np.linspace(-2, 2, 500)
+
+# (a) Andreev反射確率 vs Z
+Z_values = [0, 0.5, 1.0, 2.0, 5.0]
+ax = axes[0, 0]
+for Z in Z_values:
+    A = andreev_reflection_probability(E, Delta, Z)
+    ax.plot(E/Delta, A, label=f'Z = {Z}')
+
+ax.axvline(x=-1, color='k', linestyle='--', alpha=0.3)
+ax.axvline(x=1, color='k', linestyle='--', alpha=0.3)
+ax.set_xlabel('E / Δ')
+ax.set_ylabel('Andreev Reflection Probability A(E)')
+ax.set_title('(a) Andreev Reflection vs Barrier Strength')
+ax.legend()
+ax.grid(True, alpha=0.3)
+ax.set_xlim(-2, 2)
+ax.set_ylim(0, 1.05)
+
+# (b) 正常反射確率 vs Z
+ax = axes[0, 1]
+for Z in Z_values:
+    B = normal_reflection_probability(E, Delta, Z)
+    ax.plot(E/Delta, B, label=f'Z = {Z}')
+
+ax.axvline(x=-1, color='k', linestyle='--', alpha=0.3)
+ax.axvline(x=1, color='k', linestyle='--', alpha=0.3)
+ax.set_xlabel('E / Δ')
+ax.set_ylabel('Normal Reflection Probability B(E)')
+ax.set_title('(b) Normal Reflection vs Barrier Strength')
+ax.legend()
+ax.grid(True, alpha=0.3)
+ax.set_xlim(-2, 2)
+ax.set_ylim(0, 1.05)
+
+# (c) コンダクタンス vs バイアス電圧
+ax = axes[1, 0]
+for Z in Z_values:
+    G = conductance_ns_junction(E, Delta, Z)
+    ax.plot(E/Delta, G, label=f'Z = {Z}')
+
+ax.axvline(x=-1, color='k', linestyle='--', alpha=0.3)
+ax.axvline(x=1, color='k', linestyle='--', alpha=0.3)
+ax.axhline(y=1, color='k', linestyle=':', alpha=0.3)
+ax.set_xlabel('eV / Δ')
+ax.set_ylabel('G$_{NS}$ / G$_N$')
+ax.set_title('(c) NS Junction Conductance')
+ax.legend()
+ax.grid(True, alpha=0.3)
+ax.set_xlim(-2, 2)
+
+# (d) ゼロバイアスコンダクタンス vs Z
+Z_range = np.linspace(0, 10, 200)
+G_zero = np.array([conductance_ns_junction(0, Delta, Z) for Z in Z_range])
+
+ax = axes[1, 1]
+ax.plot(Z_range, G_zero, 'b-', linewidth=2)
+ax.axhline(y=2, color='r', linestyle='--', label='Perfect Andreev (Z=0)')
+ax.axhline(y=1, color='g', linestyle='--', label='Normal transmission')
+ax.set_xlabel('Barrier Strength Z')
+ax.set_ylabel('G(V=0) / G$_N$')
+ax.set_title('(d) Zero-Bias Conductance vs Barrier')
+ax.legend()
+ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('andreev_reflection_btk.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("BTK理論の主要な結果:")
+print(f"Z = 0 (透明界面): G(V=0)/G_N = {conductance_ns_junction(0, Delta, 0):.2f}")
+print(f"Z = 1 (中程度障壁): G(V=0)/G_N = {conductance_ns_junction(0, Delta, 1):.2f}")
+print(f"Z → ∞ (トンネル極限): G(V=0)/G_N → 1")</code></pre>
+            </div>
+
+            <h3>3.3 近接効果</h3>
+
+            <p>近接効果は、超伝導体に接する常伝導金属中にCooper対が染み出し、常伝導体に超伝導相関が誘起される現象です。この効果は以下のUsadelまたはEilenberger方程式で記述されます。</p>
+
+            <h4>拡散極限でのUsadel方程式</h4>
+
+            <p>平均自由行程 $\ell \ll \xi$ の汚れた極限では：</p>
+
+            $$
+            \hbar D \nabla \left( \hat{g} \nabla \hat{g} \right) + \left[ i\omega_n \hat{\tau}_3 + \hat{\Delta}, \hat{g} \right] = 0
+            $$
+
+            <p>ここで $\hat{g}$ はGreen関数、$D$ は拡散定数、$\hat{\tau}_3$ はPauli行列です。境界条件として、SN界面では：</p>
+
+            $$
+            \xi_N \left. \frac{\partial \theta}{\partial x} \right|_{x=0} = -\frac{R_b}{\rho_N \xi_N} \sin\theta(0)
+            $$
+
+            <p>ここで $\theta$ は超伝導位相、$R_b$ は界面抵抗、$\xi_N = \sqrt{\hbar D / 2\pi k_B T}$ は常伝導側のコヒーレンス長です。</p>
+
+            <div class="info-box">
+                <h4>近接効果の特徴的長さスケール</h4>
+                <ul>
+                    <li><strong>清浄極限</strong> ($\ell \gg \xi$): 誘起ギャップは $\sim \hbar v_F / L$ の範囲で振動しながら減衰</li>
+                    <li><strong>拡散極限</strong> ($\ell \ll \xi$): 誘起ギャップは $\xi_N = \sqrt{\hbar D / 2\pi k_B T}$ で単調減衰</li>
+                    <li><strong>温度依存性</strong>: $\xi_N \propto T^{-1/2}$ なので、低温ほど近接効果は長距離に及ぶ</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="sns-junctions">
+            <h2>4. SNSジャンクションとJosephson効果</h2>
+
+            <h3>4.1 SNSジャンクションの物理</h3>
+
+            <p>超伝導体-常伝導体-超伝導体 (SNS) ジャンクションでは、2つの超伝導体間の位相差 $\phi$ に依存した超電流が流れます。常伝導領域の長さ $L$ とコヒーレンス長 $\xi$ の比によって、短接合 ($L \ll \xi$) と長接合 ($L \gg \xi$) の2つの極限があります。</p>
+
+            <h4>短接合極限</h4>
+
+            <p>$L \ll \xi_N$ では、電流-位相関係は正弦的です：</p>
+
+            $$
+            I_c(\phi) = I_c \sin\phi
+            $$
+
+            <p>臨界電流は温度に強く依存：</p>
+
+            $$
+            I_c(T) = \frac{\pi \Delta(T)}{2 e R_N} \tanh\left(\frac{\Delta(T)}{2 k_B T}\right)
+            $$
+
+            <h4>長接合極限（拡散型）</h4>
+
+            <p>$L \gg \xi_N$ では、電流-位相関係は非正弦的になります。Kulik-Omelyanchuk理論によると：</p>
+
+            $$
+            I(\phi, T) = \frac{2\pi k_B T}{e R_N} \sum_{n=0}^{\infty} \frac{\sin\phi}{\sqrt{\omega_n^2 + \Delta^2 \sin^2(\phi/2)}}
+            $$
+
+            <div class="code-example">
+                <h4>Python実装例: SNSジャンクションの電流-位相関係</h4>
+                <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import quad
+
+class SNSJunction:
+    """SNSジャンクションシミュレーター"""
+
+    def __init__(self, L, xi_N, R_N, Delta_0):
+        """
+        Parameters:
+        -----------
+        L : float
+            常伝導領域の長さ (nm)
+        xi_N : float
+            常伝導コヒーレンス長 (nm)
+        R_N : float
+            常伝導抵抗 (Ω)
+        Delta_0 : float
+            超伝導ギャップ (meV)
+        """
+        self.L = L
+        self.xi_N = xi_N
+        self.R_N = R_N
+        self.Delta_0 = Delta_0
+        self.ratio = L / xi_N
+
+    def critical_current_short(self, T, T_c):
+        """短接合の臨界電流（解析式）
+
+        Parameters:
+        -----------
+        T : float
+            温度 (K)
+        T_c : float
+            臨界温度 (K)
+        """
+        # BCS温度依存性
+        if T >= T_c:
+            return 0.0
+
+        Delta_T = self.Delta_0 * np.tanh(1.74 * np.sqrt(T_c/T - 1))
+        k_B = 8.617e-5  # eV/K
+        e = 1.602e-19  # C
+
+        I_c = (np.pi * Delta_T * 1e-3) / (2 * e * self.R_N) * \
+              np.tanh(Delta_T * 1e-3 / (2 * k_B * T))
+
+        return I_c
+
+    def current_phase_relation_short(self, phi, T, T_c):
+        """短接合の電流-位相関係（正弦的）"""
+        I_c = self.critical_current_short(T, T_c)
+        return I_c * np.sin(phi)
+
+    def current_phase_relation_long(self, phi, T, T_c, n_matsubara=50):
+        """長接合の電流-位相関係（Kulik-Omelyanchuk）
+
+        Parameters:
+        -----------
+        phi : float or array
+            位相差
+        T : float
+            温度 (K)
+        T_c : float
+            臨界温度 (K)
+        n_matsubara : int
+            Matsubara和の項数
+        """
+        if T >= T_c:
+            return 0.0
+
+        k_B = 8.617e-5  # eV/K
+        e = 1.602e-19  # C
+        Delta_T = self.Delta_0 * 1e-3 * np.tanh(1.74 * np.sqrt(T_c/T - 1))
+
+        # Matsubara周波数
+        omega_n = np.pi * k_B * T * (2 * np.arange(n_matsubara) + 1)
+
+        # 位相依存性
+        phi_array = np.atleast_1d(phi)
+        I = np.zeros_like(phi_array)
+
+        for i, ph in enumerate(phi_array):
+            summand = np.sin(ph) / np.sqrt(omega_n**2 + Delta_T**2 * np.sin(ph/2)**2)
+            I[i] = (2 * np.pi * k_B * T / (e * self.R_N)) * np.sum(summand)
+
+        return I if phi_array.size > 1 else I[0]
+
+    def plot_cpr(self, T, T_c):
+        """電流-位相関係のプロット"""
+        phi = np.linspace(0, 2*np.pi, 200)
+
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+        # (a) 短接合と長接合の比較
+        ax = axes[0]
+        I_short = self.current_phase_relation_short(phi, T, T_c)
+        I_long = np.array([self.current_phase_relation_long(p, T, T_c) for p in phi])
+
+        ax.plot(phi, I_short * 1e9, 'b-', linewidth=2, label='Short junction (L << ξ)')
+        ax.plot(phi, I_long * 1e9, 'r--', linewidth=2, label='Long junction (L >> ξ)')
+        ax.set_xlabel('Phase difference φ (rad)')
+        ax.set_ylabel('Supercurrent I (nA)')
+        ax.set_title(f'(a) Current-Phase Relation (T = {T} K)')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        ax.set_xticks([0, np.pi/2, np.pi, 3*np.pi/2, 2*np.pi])
+        ax.set_xticklabels(['0', 'π/2', 'π', '3π/2', '2π'])
+
+        # (b) 温度依存性
+        ax = axes[1]
+        T_range = np.linspace(0.1, T_c*0.95, 20)
+        I_c_short = [self.critical_current_short(t, T_c) * 1e9 for t in T_range]
+        phi_max = np.pi/2  # 最大電流の位相
+        I_c_long = [self.current_phase_relation_long(phi_max, t, T_c) * 1e9
+                    for t in T_range]
+
+        ax.plot(T_range, I_c_short, 'b-', linewidth=2, label='Short junction')
+        ax.plot(T_range, I_c_long, 'r--', linewidth=2, label='Long junction')
+        ax.set_xlabel('Temperature (K)')
+        ax.set_ylabel('Critical Current (nA)')
+        ax.set_title('(b) Temperature Dependence of I$_c$')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        return fig
+
+# 使用例
+if __name__ == "__main__":
+    # パラメータ設定（典型的なアルミニウムSNSジャンクション）
+    L = 100  # nm
+    xi_N = 500  # nm (T依存、ここでは代表値)
+    R_N = 100  # Ω
+    Delta_0 = 0.18  # meV (Al)
+    T_c = 1.2  # K (Al)
+    T = 0.3  # K
+
+    # 短接合の例
+    print("=== 短接合 (L << ξ_N) ===")
+    sns_short = SNSJunction(L=50, xi_N=500, R_N=R_N, Delta_0=Delta_0)
+    I_c_short = sns_short.critical_current_short(T, T_c)
+    print(f"L/ξ_N = {sns_short.ratio:.3f}")
+    print(f"臨界電流 I_c = {I_c_short*1e9:.2f} nA")
+
+    fig1 = sns_short.plot_cpr(T, T_c)
+    plt.savefig('sns_short_junction.png', dpi=300, bbox_inches='tight')
+
+    # 長接合の例
+    print("\n=== 長接合 (L >> ξ_N) ===")
+    sns_long = SNSJunction(L=2000, xi_N=500, R_N=R_N, Delta_0=Delta_0)
+    print(f"L/ξ_N = {sns_long.ratio:.3f}")
+
+    fig2 = sns_long.plot_cpr(T, T_c)
+    plt.savefig('sns_long_junction.png', dpi=300, bbox_inches='tight')
+
+    plt.show()</code></pre>
+            </div>
+
+            <h3>4.2 π接合とスピン三重項超伝導</h3>
+
+            <p>通常のSNSジャンクションでは位相差0で電流が最大（0接合）ですが、特定の条件下では位相πで電流が最大となる「π接合」が実現します。π接合の実現方法：</p>
+
+            <ul>
+                <li><strong>強磁性層の挿入</strong>: SFS接合で交換相互作用により位相シフト</li>
+                <li><strong>スピン軌道相互作用</strong>: Rashba型SOIによる異常Josephson効果</li>
+                <li><strong>トポロジカル超伝導</strong>: Majorana束縛状態による4π周期性</li>
+            </ul>
+        </section>
+
+        <section id="quantum-dots">
+            <h2>5. 超伝導量子ドットとYSR状態</h2>
+
+            <h3>5.1 Anderson不純物モデルと超伝導</h3>
+
+            <p>超伝導体中または超伝導体に結合した量子ドット（磁性不純物）は、Anderson不純物モデルで記述されます：</p>
+
+            $$
+            H = H_{\text{BCS}} + \epsilon_d d^{\dagger} d + U n_{\uparrow} n_{\downarrow} + \sum_k V_k (c_k^{\dagger} d + d^{\dagger} c_k)
+            $$
+
+            <p>ここで $\epsilon_d$ は量子ドットの準位、$U$ はCoulomb相互作用、$V_k$ はトンネル結合です。</p>
+
+            <h3>5.2 Yu-Shiba-Rusinov (YSR) 状態</h3>
+
+            <p>磁性不純物（スピン $S$）が超伝導体中に置かれると、超伝導ギャップ内に準粒子束縛状態が形成されます。これがYu-Shiba-Rusinov状態です。</p>
+
+            <div class="info-box warning">
+                <h4>YSR状態のエネルギー</h4>
+                <p>Born近似では、YSR状態のエネルギーは：</p>
+                $$
+                E_{\text{YSR}} = \pm \Delta \frac{1 - \alpha^2}{1 + \alpha^2}
+                $$
+                <p>ここで $\alpha = \pi \nu_0 J S / 2$ は無次元化された交換相互作用強度、$\nu_0$ は常伝導状態密度、$J$ は交換結合定数です。</p>
+            </div>
+
+            <h4>YSR状態の量子相転移</h4>
+
+            <p>$\alpha$ を変化させると、$\alpha = 1$ で量子相転移が起こります：</p>
+
+            <ul>
+                <li><strong>$\alpha < 1$ (弱結合)</strong>: 一重項基底状態、正のエネルギーにYSR状態</li>
+                <li><strong>$\alpha > 1$ (強結合)</strong>: 二重項基底状態、負のエネルギーにYSR状態</li>
+                <li><strong>$\alpha = 1$</strong>: 零エネルギー束縛状態（量子相転移点）</li>
+            </ul>
+
+            <div class="code-example">
+                <h4>Python実装例: YSR状態の計算</h4>
+                <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def ysr_energy(alpha):
+    """YSR状態のエネルギー（Δで規格化）
+
+    Parameters:
+    -----------
+    alpha : float or array
+        無次元交換相互作用強度 πν₀JS/2
+
+    Returns:
+    --------
+    E_YSR : float or array
+        YSR準位エネルギー（単位：Δ）
+    """
+    alpha = np.atleast_1d(alpha)
+    E_YSR = np.zeros_like(alpha)
+
+    # 正のエネルギー分岐
+    mask_weak = alpha < 1
+    E_YSR[mask_weak] = (1 - alpha[mask_weak]**2) / (1 + alpha[mask_weak]**2)
+
+    # 負のエネルギー分岐
+    mask_strong = alpha >= 1
+    E_YSR[mask_strong] = -(1 - alpha[mask_strong]**2) / (1 + alpha[mask_strong]**2)
+
+    return E_YSR if alpha.size > 1 else E_YSR[0]
+
+def ysr_wavefunction(r, xi, alpha, Delta):
+    """YSR状態の空間波動関数
+
+    Parameters:
+    -----------
+    r : float or array
+        不純物からの距離
+    xi : float
+        コヒーレンス長
+    alpha : float
+        交換相互作用強度
+    Delta : float
+        超伝導ギャップ
+
+    Returns:
+    --------
+    psi : complex array
+        YSR波動関数
+    """
+    E_YSR = ysr_energy(alpha) * Delta
+    kappa = np.sqrt(Delta**2 - E_YSR**2) / (const.hbar * const.v_F)
+
+    # 球対称1/r × exp(-κr)型の減衰
+    psi = np.exp(-kappa * r) / r
+
+    return psi
+
+# YSRエネルギーのプロット
+fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+
+# (a) YSRエネルギー vs 交換相互作用
+alpha_range = np.linspace(0.1, 3, 300)
+E_YSR = ysr_energy(alpha_range)
+
+ax = axes[0, 0]
+ax.plot(alpha_range, E_YSR, 'b-', linewidth=2)
+ax.axhline(y=0, color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=1, color='r', linestyle='--', alpha=0.5, label='QPT at α=1')
+ax.fill_between(alpha_range, -1, 1, alpha=0.1, color='gray', label='SC gap')
+ax.set_xlabel('Exchange coupling α = πν₀JS/2')
+ax.set_ylabel('E$_{YSR}$ / Δ')
+ax.set_title('(a) YSR State Energy vs Coupling Strength')
+ax.legend()
+ax.grid(True, alpha=0.3)
+ax.set_ylim(-1.2, 1.2)
+
+# (b) 基底状態の相図
+ax = axes[0, 1]
+alpha_phase = np.linspace(0, 2, 500)
+phase = np.where(alpha_phase < 1, 0, 1)  # 0: singlet, 1: doublet
+
+ax.fill_between(alpha_phase, 0, 1, where=(phase==0),
+                alpha=0.3, color='blue', label='Singlet (|BCS⟩)')
+ax.fill_between(alpha_phase, 0, 1, where=(phase==1),
+                alpha=0.3, color='red', label='Doublet (|S=1/2⟩)')
+ax.axvline(x=1, color='k', linestyle='--', linewidth=2, label='QPT')
+ax.set_xlabel('Exchange coupling α')
+ax.set_ylabel('Ground State')
+ax.set_title('(b) Quantum Phase Diagram')
+ax.set_yticks([0.25, 0.75])
+ax.set_yticklabels(['Singlet', 'Doublet'])
+ax.legend(loc='upper right')
+ax.grid(True, alpha=0.3, axis='x')
+
+# (c) YSR状態密度
+energy = np.linspace(-1.5, 1.5, 500)
+eta = 0.02  # ブロードニング
+
+ax = axes[1, 0]
+for alpha_val in [0.3, 0.7, 1.0, 1.5, 2.0]:
+    E_YSR_val = ysr_energy(alpha_val)
+    dos = (eta / np.pi) / ((energy - E_YSR_val)**2 + eta**2)
+    ax.plot(energy, dos, label=f'α = {alpha_val}')
+
+ax.axvline(x=-1, color='k', linestyle=':', alpha=0.3)
+ax.axvline(x=1, color='k', linestyle=':', alpha=0.3)
+ax.axvline(x=0, color='r', linestyle='--', alpha=0.5)
+ax.set_xlabel('Energy / Δ')
+ax.set_ylabel('Density of States (arb. units)')
+ax.set_title('(c) YSR State Density of States')
+ax.legend()
+ax.grid(True, alpha=0.3)
+
+# (d) YSR状態数 vs 不純物濃度（簡単なモデル）
+n_imp = np.logspace(-4, -1, 100)  # 不純物濃度
+# 平均準位間隔 δ ∼ 1/(ν₀ V)
+# 多数不純物でYSRバンド形成
+delta_E = 2 * np.abs(ysr_energy(0.5))  # YSR準位幅
+n_states = n_imp / (1e-3)  # 簡単化したモデル
+
+ax = axes[1, 1]
+ax.loglog(n_imp, n_states, 'b-', linewidth=2)
+ax.set_xlabel('Impurity concentration n$_{imp}$')
+ax.set_ylabel('Number of YSR states in gap')
+ax.set_title('(d) YSR Band Formation (simplified)')
+ax.grid(True, alpha=0.3, which='both')
+
+plt.tight_layout()
+plt.savefig('ysr_states_analysis.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 重要な物理的結果の出力
+print("=== YSR状態の重要な特性 ===")
+print(f"\n弱結合 (α=0.5):")
+print(f"  E_YSR/Δ = +{ysr_energy(0.5):.3f} (正エネルギー)")
+print(f"  基底状態: 一重項 |BCS⟩")
+
+print(f"\n量子相転移点 (α=1.0):")
+print(f"  E_YSR/Δ = {ysr_energy(1.0):.3f} (零エネルギー)")
+print(f"  量子相転移: 一重項 ↔ 二重項")
+
+print(f"\n強結合 (α=1.5):")
+print(f"  E_YSR/Δ = {ysr_energy(1.5):.3f} (負エネルギー)")
+print(f"  基底状態: 二重項 |S=1/2⟩")</code></pre>
+            </div>
+        </section>
+
+        <section id="majorana">
+            <h2>6. トポロジカル超伝導とMajorana束縛状態</h2>
+
+            <h3>6.1 トポロジカル超伝導の基礎</h3>
+
+            <p>トポロジカル超伝導体は、バルクにギャップがあり、エッジや界面に保護された零エネルギー状態（Majorana束縛状態）を持つ超伝導体です。最も単純なモデルは1次元Kitaev鎖です。</p>
+
+            <h4>Kitaev鎖モデル</h4>
+
+            <p>スピンレスフェルミオンの1次元鎖：</p>
+
+            $$
+            H = -\mu \sum_j c_j^{\dagger} c_j - t \sum_j (c_{j+1}^{\dagger} c_j + \text{h.c.})
+            + \Delta \sum_j (c_{j+1}^{\dagger} c_j^{\dagger} + \text{h.c.})
+            $$
+
+            <p>ここで $\mu$ は化学ポテンシャル、$t$ はホッピング、$\Delta$ はp波超伝導ギャップです。</p>
+
+            <div class="info-box">
+                <h3>Kitaev鎖の位相相転移</h3>
+                <p>化学ポテンシャル $\mu$ を変化させると、系は位相的トリビアル相とトポロジカル相の間を転移します：</p>
+                <ul>
+                    <li><strong>トリビアル相</strong>: $|\mu| > 2t$、エッジ状態なし</li>
+                    <li><strong>トポロジカル相</strong>: $|\mu| < 2t$、エッジにMajorana零モード</li>
+                </ul>
+                <p>位相不変量（Pfaffian数）で分類：$\nu = \text{sgn}[\Delta/t] \in \{-1, +1\}$</p>
+            </div>
+
+            <h3>6.2 Majorana束縛状態</h3>
+
+            <p>トポロジカル超伝導体の端や磁束渦中心には、Majorana束縛状態（MBS）が出現します。Majorana演算子は以下の性質を持ちます：</p>
+
+            $$
+            \gamma = \gamma^{\dagger}, \quad \{\gamma_i, \gamma_j\} = 2\delta_{ij}
+            $$
+
+            <p>2つのMajorana演算子から1つの通常のフェルミオンが構成されます：</p>
+
+            $$
+            c = \frac{\gamma_1 + i\gamma_2}{2}, \quad c^{\dagger} = \frac{\gamma_1 - i\gamma_2}{2}
+            $$
+
+            <div class="code-example">
+                <h4>Python実装例: Kitaev鎖とMajorana零モード</h4>
+                <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.linalg import eigh
+
+class KitaevChain:
+    """1次元Kitaev鎖のシミュレーター"""
+
+    def __init__(self, N_sites, t, mu, Delta):
+        """
+        Parameters:
+        -----------
+        N_sites : int
+            格子サイト数
+        t : float
+            ホッピング積分
+        mu : float
+            化学ポテンシャル
+        Delta : float
+            p波超伝導ギャップ
+        """
+        self.N = N_sites
+        self.t = t
+        self.mu = mu
+        self.Delta = Delta
+
+    def build_hamiltonian(self, periodic=False):
+        """Kitaev鎖のBdGハミルトニアンを構築
+
+        Parameters:
+        -----------
+        periodic : bool
+            周期境界条件の有無
+
+        Returns:
+        --------
+        H : ndarray (2N, 2N)
+            BdGハミルトニアン
+        """
+        N = self.N
+        H = np.zeros((2*N, 2*N), dtype=complex)
+
+        # サイトエネルギー
+        for i in range(N):
+            H[i, i] = -self.mu
+            H[N+i, N+i] = self.mu
+
+        # ホッピングとp波ペアリング
+        for i in range(N-1):
+            # 粒子ホッピング
+            H[i, i+1] = -self.t
+            H[i+1, i] = -self.t
+
+            # 正孔ホッピング
+            H[N+i, N+i+1] = self.t
+            H[N+i+1, N+i] = self.t
+
+            # p波ペアリング（異常項）
+            H[i, N+i+1] = self.Delta
+            H[i+1, N+i] = self.Delta
+            H[N+i, i+1] = np.conj(self.Delta)
+            H[N+i+1, i] = np.conj(self.Delta)
+
+        # 周期境界条件
+        if periodic:
+            # N-1サイトと0サイトを結合
+            H[N-1, 0] = -self.t
+            H[0, N-1] = -self.t
+            H[2*N-1, N] = self.t
+            H[N, 2*N-1] = self.t
+
+            H[N-1, N] = self.Delta
+            H[0, 2*N-1] = self.Delta
+            H[2*N-1, 0] = np.conj(self.Delta)
+            H[N, N-1] = np.conj(self.Delta)
+
+        return H
+
+    def solve(self, periodic=False):
+        """ハミルトニアンを対角化
+
+        Returns:
+        --------
+        energies : ndarray
+            準粒子エネルギー
+        wavefunctions : ndarray
+            Nambu基底での波動関数
+        """
+        H = self.build_hamiltonian(periodic)
+        energies, wavefunctions = eigh(H)
+        return energies, wavefunctions
+
+    def check_topological_phase(self):
+        """位相相を判定
+
+        Returns:
+        --------
+        phase : str
+            'Topological' または 'Trivial'
+        """
+        # 簡単な判定: |μ| < 2t かつ Δ ≠ 0
+        if abs(self.mu) < 2 * abs(self.t) and abs(self.Delta) > 1e-10:
+            return 'Topological'
+        else:
+            return 'Trivial'
+
+    def calculate_majorana_polarization(self, energies, wavefunctions,
+                                       zero_threshold=1e-3):
+        """Majorana零モードの空間分布を計算
+
+        Parameters:
+        -----------
+        energies : ndarray
+            準粒子エネルギー
+        wavefunctions : ndarray
+            波動関数
+        zero_threshold : float
+            零エネルギーとみなす閾値
+
+        Returns:
+        --------
+        majorana_weight : ndarray
+            各サイトでのMajorana重み
+        """
+        N = self.N
+        zero_modes_indices = np.where(np.abs(energies) < zero_threshold)[0]
+
+        if len(zero_modes_indices) == 0:
+            return np.zeros(N)
+
+        # 零エネルギーモードの粒子成分
+        majorana_weight = np.zeros(N)
+        for idx in zero_modes_indices:
+            psi = wavefunctions[:N, idx]  # 粒子成分
+            majorana_weight += np.abs(psi)**2
+
+        # 正規化
+        majorana_weight /= np.sum(majorana_weight)
+
+        return majorana_weight
+
+# 位相図の作成
+def plot_phase_diagram():
+    """Kitaev鎖の位相図"""
+    mu_range = np.linspace(-3, 3, 100)
+    Delta_range = np.linspace(0, 2, 100)
+
+    t = 1.0  # 固定
+    phase_diagram = np.zeros((len(Delta_range), len(mu_range)))
+
+    for i, Delta in enumerate(Delta_range):
+        for j, mu in enumerate(mu_range):
+            # 簡易的位相判定: |μ| < 2t かつ Δ ≠ 0
+            if abs(mu) < 2*t and abs(Delta) > 1e-10:
+                phase_diagram[i, j] = 1  # Topological
+            else:
+                phase_diagram[i, j] = 0  # Trivial
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    im = ax.imshow(phase_diagram, extent=[mu_range[0], mu_range[-1],
+                                           Delta_range[0], Delta_range[-1]],
+                   origin='lower', aspect='auto', cmap='RdBu_r', alpha=0.7)
+
+    # 相境界を強調
+    ax.axvline(x=-2*t, color='k', linestyle='--', linewidth=2, label='Phase boundary')
+    ax.axvline(x=2*t, color='k', linestyle='--', linewidth=2)
+
+    ax.set_xlabel('Chemical potential μ / t', fontsize=12)
+    ax.set_ylabel('Pairing Δ / t', fontsize=12)
+    ax.set_title('Kitaev Chain Phase Diagram', fontsize=14)
+
+    # カラーバー
+    cbar = plt.colorbar(im, ax=ax)
+    cbar.set_ticks([0, 1])
+    cbar.set_ticklabels(['Trivial', 'Topological'])
+
+    ax.text(-1, 1.5, 'Topological\n(MBS at edges)',
+            fontsize=11, ha='center', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    ax.text(2.5, 1.5, 'Trivial\n(No edge states)',
+            fontsize=11, ha='center', bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.5))
+
+    plt.tight_layout()
+    return fig
+
+# メイン計算
+if __name__ == "__main__":
+    # パラメータ
+    N_sites = 100
+    t = 1.0
+
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+    # (a) トポロジカル相のスペクトル
+    kitaev_topo = KitaevChain(N_sites, t, mu=0.5, Delta=1.0)
+    energies_topo, wf_topo = kitaev_topo.solve(periodic=False)
+
+    ax = axes[0, 0]
+    ax.plot(energies_topo, 'o', markersize=3)
+    ax.axhline(y=0, color='r', linestyle='--', alpha=0.5)
+    ax.set_xlabel('State index')
+    ax.set_ylabel('Energy / t')
+    ax.set_title(f'(a) Topological Phase (μ={kitaev_topo.mu}t, Δ={kitaev_topo.Delta}t)')
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(-2.5, 2.5)
+
+    # (b) トリビアル相のスペクトル
+    kitaev_triv = KitaevChain(N_sites, t, mu=2.5, Delta=1.0)
+    energies_triv, wf_triv = kitaev_triv.solve(periodic=False)
+
+    ax = axes[0, 1]
+    ax.plot(energies_triv, 'o', markersize=3, color='orange')
+    ax.axhline(y=0, color='r', linestyle='--', alpha=0.5)
+    ax.set_xlabel('State index')
+    ax.set_ylabel('Energy / t')
+    ax.set_title(f'(b) Trivial Phase (μ={kitaev_triv.mu}t, Δ={kitaev_triv.Delta}t)')
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(-2.5, 2.5)
+
+    # (c) Majorana零モードの空間分布
+    majorana_weight = kitaev_topo.calculate_majorana_polarization(
+        energies_topo, wf_topo, zero_threshold=1e-2)
+
+    ax = axes[1, 0]
+    ax.plot(range(N_sites), majorana_weight, 'b-', linewidth=2)
+    ax.set_xlabel('Site index')
+    ax.set_ylabel('Majorana weight |ψ|²')
+    ax.set_title('(c) Majorana Zero Mode Spatial Distribution')
+    ax.grid(True, alpha=0.3)
+    ax.set_yscale('log')
+
+    # (d) ギャップクロージング（位相転移）
+    mu_scan = np.linspace(-3, 3, 200)
+    min_gap = []
+
+    for mu in mu_scan:
+        kitaev_scan = KitaevChain(N_sites, t, mu, Delta=1.0)
+        energies_scan, _ = kitaev_scan.solve(periodic=True)  # PBC
+        # バルクギャップ（最小正エネルギー）
+        positive_E = energies_scan[energies_scan > 0]
+        if len(positive_E) > 0:
+            min_gap.append(np.min(positive_E))
+        else:
+            min_gap.append(0)
+
+    ax = axes[1, 1]
+    ax.plot(mu_scan, min_gap, 'g-', linewidth=2)
+    ax.axvline(x=-2*t, color='r', linestyle='--', label='Phase boundary')
+    ax.axvline(x=2*t, color='r', linestyle='--')
+    ax.fill_between(mu_scan, 0, 3,
+                    where=(np.abs(mu_scan) < 2*t),
+                    alpha=0.2, color='blue', label='Topological phase')
+    ax.set_xlabel('Chemical potential μ / t')
+    ax.set_ylabel('Bulk gap / t')
+    ax.set_title('(d) Gap Closing at Phase Transition')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(0, 2.5)
+
+    plt.tight_layout()
+    plt.savefig('kitaev_chain_majorana.png', dpi=300, bbox_inches='tight')
+
+    # 位相図
+    fig_phase = plot_phase_diagram()
+    plt.savefig('kitaev_phase_diagram.png', dpi=300, bbox_inches='tight')
+
+    plt.show()
+
+    # 結果の要約
+    print("=== Kitaev鎖の計算結果 ===")
+    print(f"\nトポロジカル相 (μ={kitaev_topo.mu}t):")
+    print(f"  相: {kitaev_topo.check_topological_phase()}")
+    zero_E_topo = energies_topo[np.abs(energies_topo) < 1e-2]
+    print(f"  零エネルギーモード数: {len(zero_E_topo)}")
+    if len(zero_E_topo) > 0:
+        print(f"  零モードエネルギー: {zero_E_topo}")
+
+    print(f"\nトリビアル相 (μ={kitaev_triv.mu}t):")
+    print(f"  相: {kitaev_triv.check_topological_phase()}")
+    zero_E_triv = energies_triv[np.abs(energies_triv) < 1e-2]
+    print(f"  零エネルギーモード数: {len(zero_E_triv)}")</code></pre>
+            </div>
+
+            <h3>6.3 半導体-超伝導体ハイブリッド系</h3>
+
+            <p>実験的には、以下の系でMajorana束縛状態が追求されています：</p>
+
+            <ul>
+                <li><strong>半導体ナノワイヤー + s波超伝導</strong>: InSb/InAsナノワイヤーとAl超伝導体</li>
+                <li><strong>トポロジカル絶縁体 + 超伝導</strong>: Bi₂Se₃表面状態と超伝導近接効果</li>
+                <li><strong>鉄系超伝導体</strong>: FeTe₀.₅Se₀.₅のトポロジカル表面状態</li>
+            </ul>
+
+            <p>半導体ナノワイヤー系の有効ハミルトニアン：</p>
+
+            $$
+            H = \frac{p^2}{2m^*} - \mu + \alpha (\sigma_x p_y - \sigma_y p_x) + \frac{1}{2} g \mu_B B \sigma_z + \Delta \sigma_y \tau_y
+            $$
+
+            <p>ここで $\alpha$ はRashbaスピン軌道相互作用、$B$ はZeeman磁場、$\Delta$ は誘起された超伝導ギャップです。</p>
+        </section>
+
+        <section id="numerical-methods">
+            <h2>7. BdG方程式の数値解法</h2>
+
+            <h3>7.1 実空間離散化とタイトバインディング</h3>
+
+            <p>実空間でのBdG方程式の数値解法は、一般に以下のステップで行います：</p>
+
+            <ol>
+                <li><strong>空間離散化</strong>: 連続空間を格子点に離散化（格子定数 $a$）</li>
+                <li><strong>差分近似</strong>: 微分を有限差分で近似 $\nabla^2 \to (V_{i+1} - 2V_i + V_{i-1})/a^2$</li>
+                <li><strong>行列構築</strong>: $2N \times 2N$ エルミート行列（$N$ は格子点数）</li>
+                <li><strong>対角化</strong>: エルミート行列の固有値問題を解く</li>
+                <li><strong>自己無撞着</strong>: ギャップ関数を更新し収束まで反復</li>
+            </ol>
+
+            <h3>7.2 自己無撞着計算アルゴリズム</h3>
+
+            <div class="code-example">
+                <h4>Python実装例: 自己無撞着BdG計算</h4>
+                <pre><code class="language-python">import numpy as np
+from scipy.linalg import eigh
+import matplotlib.pyplot as plt
+
+class SelfConsistentBdG:
+    """自己無撞着BdG方程式ソルバー"""
+
+    def __init__(self, N_sites, t, U, T, mu=0):
+        """
+        Parameters:
+        -----------
+        N_sites : int
+            格子点数
+        t : float
+            ホッピング積分 (eV)
+        U : float
+            引力相互作用強度 (eV, 負の値)
+        T : float
+            温度 (K)
+        mu : float
+            化学ポテンシャル (eV)
+        """
+        self.N = N_sites
+        self.t = t
+        self.U = U  # 引力: U < 0
+        self.T = T
+        self.mu = mu
+        self.k_B = 8.617e-5  # eV/K
+
+        # 初期ギャップ（小さなランダム値）
+        self.Delta = 0.1 * np.random.rand(N_sites)
+
+    def build_hamiltonian(self, Delta):
+        """BdGハミルトニアンを構築"""
+        N = self.N
+        H = np.zeros((2*N, 2*N), dtype=complex)
+
+        # サイトエネルギー
+        for i in range(N):
+            H[i, i] = -self.mu
+            H[N+i, N+i] = self.mu
+
+        # ホッピング
+        for i in range(N-1):
+            H[i, i+1] = -self.t
+            H[i+1, i] = -self.t
+            H[N+i, N+i+1] = self.t
+            H[N+i+1, N+i] = self.t
+
+        # ギャップ関数
+        for i in range(N):
+            H[i, N+i] = Delta[i]
+            H[N+i, i] = np.conj(Delta[i])
+
+        return H
+
+    def fermi_function(self, E):
+        """Fermi-Dirac分布関数"""
+        if self.T < 1e-6:
+            # T=0極限
+            return np.where(E < 0, 1.0, 0.0)
+        else:
+            beta = 1 / (self.k_B * self.T)
+            # 数値安定性のための処理
+            x = beta * E
+            return 1 / (1 + np.exp(np.clip(x, -500, 500)))
+
+    def update_gap(self, energies, u_vectors, v_vectors):
+        """ギャップ関数を自己無撞着に更新
+
+        Parameters:
+        -----------
+        energies : ndarray
+            準粒子エネルギー
+        u_vectors, v_vectors : ndarray
+            Bogoliubov波動関数
+
+        Returns:
+        --------
+        Delta_new : ndarray
+            更新されたギャップ関数
+        """
+        N = self.N
+        Delta_new = np.zeros(N, dtype=complex)
+
+        for i in range(N):
+            sum_val = 0
+            for n in range(2*N):
+                # 負エネルギー状態のみを足す（基底状態からの寄与）
+                if energies[n] < 0:
+                    sum_val += u_vectors[i, n] * np.conj(v_vectors[i, n])
+                # 有限温度の場合
+                elif self.T > 1e-6:
+                    f = 1 - self.fermi_function(energies[n])
+                    sum_val += u_vectors[i, n] * np.conj(v_vectors[i, n]) * f
+
+            Delta_new[i] = -self.U * sum_val
+
+        return Delta_new
+
+    def solve_self_consistent(self, max_iter=100, tol=1e-6, mixing=0.5):
+        """自己無撞着ループ
+
+        Parameters:
+        -----------
+        max_iter : int
+            最大反復回数
+        tol : float
+            収束判定の閾値
+        mixing : float
+            混合パラメータ（0-1、小さいほど安定）
+
+        Returns:
+        --------
+        converged : bool
+            収束したかどうか
+        Delta_history : list
+            各反復でのギャップ関数
+        """
+        Delta_history = []
+
+        for iteration in range(max_iter):
+            # BdGハミルトニアンを解く
+            H = self.build_hamiltonian(self.Delta)
+            energies, eigvecs = eigh(H)
+
+            N = self.N
+            u_vecs = eigvecs[:N, :]
+            v_vecs = eigvecs[N:, :]
+
+            # ギャップ関数を更新
+            Delta_new = self.update_gap(energies, u_vecs, v_vecs)
+
+            # 混合（収束安定化）
+            Delta_mixed = mixing * Delta_new + (1 - mixing) * self.Delta
+
+            # 収束判定
+            diff = np.max(np.abs(Delta_mixed - self.Delta))
+            Delta_history.append(np.copy(self.Delta))
+
+            if diff < tol:
+                print(f"収束しました（{iteration+1}回の反復）")
+                self.Delta = Delta_mixed
+                return True, Delta_history
+
+            self.Delta = Delta_mixed
+
+            if (iteration + 1) % 10 == 0:
+                print(f"反復 {iteration+1}: 差分 = {diff:.6e}")
+
+        print(f"警告: {max_iter}回の反復で収束しませんでした")
+        return False, Delta_history
+
+# 使用例
+if __name__ == "__main__":
+    # パラメータ設定
+    N_sites = 50
+    t = 1.0  # eV
+    U = -1.5  # eV (引力)
+    T = 0.01  # K (ほぼゼロ温度)
+
+    # ソルバー初期化
+    solver = SelfConsistentBdG(N_sites, t, U, T, mu=0)
+
+    # 自己無撞着計算
+    print("自己無撞着BdG計算を開始...")
+    converged, Delta_history = solver.solve_self_consistent(
+        max_iter=100, tol=1e-6, mixing=0.3)
+
+    # 最終結果の計算
+    H_final = solver.build_hamiltonian(solver.Delta)
+    energies_final, eigvecs_final = eigh(H_final)
+
+    # 結果のプロット
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+    # (a) ギャップ関数の空間分布
+    ax = axes[0, 0]
+    ax.plot(range(N_sites), np.abs(solver.Delta), 'b-', linewidth=2)
+    ax.set_xlabel('Site index')
+    ax.set_ylabel('|Δ(i)| (eV)')
+    ax.set_title('(a) Self-Consistent Gap Function')
+    ax.grid(True, alpha=0.3)
+
+    # (b) 準粒子スペクトル
+    ax = axes[0, 1]
+    ax.plot(energies_final, 'o', markersize=3)
+    ax.axhline(y=0, color='r', linestyle='--', alpha=0.5)
+    ax.set_xlabel('State index')
+    ax.set_ylabel('Energy (eV)')
+    ax.set_title('(b) Quasiparticle Spectrum')
+    ax.grid(True, alpha=0.3)
+
+    # (c) 収束過程
+    ax = axes[1, 0]
+    Delta_max_history = [np.max(np.abs(D)) for D in Delta_history]
+    ax.plot(Delta_max_history, 'g-', linewidth=2)
+    ax.set_xlabel('Iteration')
+    ax.set_ylabel('max|Δ| (eV)')
+    ax.set_title('(c) Convergence of Gap Function')
+    ax.grid(True, alpha=0.3)
+
+    # (d) 状態密度
+    ax = axes[1, 1]
+    E_range = np.linspace(-3, 3, 500)
+    dos = np.zeros_like(E_range)
+    eta = 0.05  # ブロードニング
+
+    for E_n in energies_final:
+        dos += (eta/np.pi) / ((E_range - E_n)**2 + eta**2)
+
+    ax.plot(E_range, dos, 'r-', linewidth=2)
+    ax.axvline(x=np.max(np.abs(solver.Delta)), color='b',
+              linestyle='--', label=f'Δ = {np.max(np.abs(solver.Delta)):.3f} eV')
+    ax.axvline(x=-np.max(np.abs(solver.Delta)), color='b', linestyle='--')
+    ax.set_xlabel('Energy (eV)')
+    ax.set_ylabel('Density of States')
+    ax.set_title('(d) Self-Consistent DOS')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('self_consistent_bdg.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+    print(f"\n最終結果:")
+    print(f"最大ギャップ: {np.max(np.abs(solver.Delta)):.4f} eV")
+    print(f"平均ギャップ: {np.mean(np.abs(solver.Delta)):.4f} eV")
+    print(f"最小準粒子エネルギー: {np.min(np.abs(energies_final)):.4f} eV")</code></pre>
+            </div>
+
+            <h3>7.3 大規模系への拡張と並列計算</h3>
+
+            <p>実際の研究では、3次元系や不純物を多数含む系など、より大規模な計算が必要です。効率化のテクニック：</p>
+
+            <ul>
+                <li><strong>疎行列手法</strong>: scipy.sparse を用いたメモリ効率化</li>
+                <li><strong>Krylov部分空間法</strong>: 全ての固有値ではなく、低エネルギー状態のみを求める</li>
+                <li><strong>並列化</strong>: MPI/OpenMPによるマルチコア計算</li>
+                <li><strong>GPU加速</strong>: CuPy/PyTorchによる大規模行列計算</li>
+            </ul>
+        </section>
+
+        <section id="quantum-computing">
+            <h2>8. 量子コンピューティングへの応用</h2>
+
+            <h3>8.1 トポロジカル量子ビット</h3>
+
+            <p>Majorana束縛状態は、フォールトトレラント量子計算のためのトポロジカル量子ビットの候補です。2つのMajorana演算子 $\gamma_1, \gamma_2$ から1つのフェルミオン準位が形成され、これが量子ビットとして機能します。</p>
+
+            <div class="info-box">
+                <h3>トポロジカル保護の原理</h3>
+                <p>Majorana量子ビットの優位性：</p>
+                <ul>
+                    <li><strong>非局所性</strong>: 量子情報が空間的に分離したMajorana対に符号化</li>
+                    <li><strong>トポロジカル保護</strong>: 局所的な摂動に対して量子情報が安定</li>
+                    <li><strong>非アーベルエニオン統計</strong>: ブレイディング操作で量子ゲートを実装</li>
+                    <li><strong>デコヒーレンス抑制</strong>: 環境との結合が指数関数的に抑制</li>
+                </ul>
+            </div>
+
+            <h4>Majoranaブレイディング</h4>
+
+            <p>Majorana束縛状態の交換（ブレイディング）は非アーベル統計に従います。4つのMajorana演算子 $\gamma_1, \gamma_2, \gamma_3, \gamma_4$ があるとき、$\gamma_1$ と $\gamma_2$ を交換する操作は：</p>
+
+            $$
+            \gamma_1 \to \gamma_2, \quad \gamma_2 \to -\gamma_1, \quad \gamma_3, \gamma_4 \to \text{不変}
+            $$
+
+            <p>これはユニタリ演算子 $U_{12} = e^{\pi \gamma_1 \gamma_2 / 4}$ で表されます。</p>
+
+            <h3>8.2 Microsoftのトポロジカル量子ビット</h3>
+
+            <p>Microsoft Azure Quantumは、InAsナノワイヤー上のMajorana束縛状態を用いたトポロジカル量子ビットの開発を進めています。実験的に以下が観測されています：</p>
+
+            <ul>
+                <li>零バイアスコンダクタンスピーク（Majoranaの証拠候補）</li>
+                <li>磁場・化学ポテンシャル依存性の位相図</li>
+                <li>非局所伝導度測定によるMajorana相関</li>
+            </ul>
+
+            <h3>8.3 課題と展望</h3>
+
+            <p>トポロジカル量子コンピューティングの実現には、以下の技術的課題があります：</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>課題</th>
+                        <th>現状</th>
+                        <th>必要な進展</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Majorana検出の確実性</td>
+                        <td>間接的証拠のみ</td>
+                        <td>確定的な同定手法の確立</td>
+                    </tr>
+                    <tr>
+                        <td>量子ビットの読み出し</td>
+                        <td>基礎実験段階</td>
+                        <td>高忠実度読み出しプロトコル</td>
+                    </tr>
+                    <tr>
+                        <td>ブレイディング操作</td>
+                        <td>理論提案段階</td>
+                        <td>T字ジャンクション等での実証</td>
+                    </tr>
+                    <tr>
+                        <td>スケーラビリティ</td>
+                        <td>数個のMajorana</td>
+                        <td>多数量子ビットアレイ</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="summary">
+            <h2>まとめ</h2>
+
+            <p>本章では、メゾスコピック超伝導の理論と応用を包括的に学習しました。主要なポイントを振り返ります：</p>
+
+            <div class="info-box">
+                <h3>本章の重要事項</h3>
+                <ul>
+                    <li><strong>Bogoliubov-de Gennes方程式</strong>は、空間変化する超伝導を記述する基礎理論であり、粒子-正孔対称性を持つ</li>
+                    <li><strong>Andreev反射</strong>は、SN界面での電子-正孔変換過程であり、ゼロバイアスコンダクタンスの倍化をもたらす</li>
+                    <li><strong>近接効果</strong>により、常伝導体中にCooper対相関が誘起され、SNSジャンクションでJosephson効果が発現</li>
+                    <li><strong>Yu-Shiba-Rusinov状態</strong>は、磁性不純物が超伝導ギャップ内に作る束縛状態であり、量子相転移を示す</li>
+                    <li><strong>Majorana束縛状態</strong>は、トポロジカル超伝導体のエッジに現れ、フォールトトレラント量子計算への応用が期待される</li>
+                    <li><strong>自己無撞着BdG計算</strong>は、実際の超伝導系の準粒子スペクトルとギャップ関数を第一原理的に求める手法</li>
+                    <li><strong>トポロジカル量子ビット</strong>は、Majoranaの非局所性とトポロジカル保護により、デコヒーレンスに強い</li>
+                </ul>
+            </div>
+
+            <h3>次章への接続</h3>
+
+            <p>第4章「超伝導量子デバイス」では、本章で学んだメゾスコピック物理を実際のデバイス応用に展開します。超伝導量子干渉計（SQUID）、超伝導量子ビット（transmon, fluxoniumなど）、超伝導検出器の動作原理と設計を詳しく学びます。</p>
+        </section>
+
+        <section id="exercises">
+            <h2>演習問題</h2>
+
+            <div class="info-box warning">
+                <h3>演習1: BdG方程式の粒子-正孔対称性</h3>
+                <p><strong>問題</strong>: BdG方程式が粒子-正孔対称性を持つことを示し、この対称性がエネルギースペクトルに与える影響を説明せよ。</p>
+                <p><strong>ヒント</strong>: 粒子-正孔演算子 $\mathcal{C}$ を定義し、BdGハミルトニアンとの交換関係を調べよ。</p>
+            </div>
+
+            <div class="info-box warning">
+                <h3>演習2: BTK理論の数値計算</h3>
+                <p><strong>問題</strong>: 本章のBTKコードを用いて、以下を計算せよ：</p>
+                <ol>
+                    <li>界面障壁 $Z$ を変化させたときのゼロバイアスコンダクタンスの変化</li>
+                    <li>$Z = 0$ （完全透明界面）での電流-電圧特性</li>
+                    <li>有限温度効果を考慮した場合のコンダクタンスの温度依存性</li>
+                </ol>
+            </div>
+
+            <div class="info-box warning">
+                <h3>演習3: SNSジャンクションの臨界電流</h3>
+                <p><strong>問題</strong>: 短接合SNSジャンクションの臨界電流 $I_c(T)$ が、温度 $T$ の関数としてどのように変化するか、数値的に計算し、BCS理論のギャップ温度依存性 $\Delta(T)$ との関係を議論せよ。</p>
+            </div>
+
+            <div class="info-calls warning">
+                <h3>演習4: YSR状態の相転移</h3>
+                <p><strong>問題</strong>: YSR状態のエネルギーが $E_{\text{YSR}} = \Delta (1-\alpha^2)/(1+\alpha^2)$ で与えられることを用いて：</p>
+                <ol>
+                    <li>$\alpha = 1$ で零エネルギー状態が実現することを確認せよ</li>
+                    <li>基底状態の一重項-二重項転移が起こる物理的機構を説明せよ</li>
+                    <li>STMトンネル分光でYSR状態をどのように観測できるか議論せよ</li>
+                </ol>
+            </div>
+
+            <div class="info-box warning">
+                <h3>演習5: Kitaev鎖の位相不変量（発展問題）</h3>
+                <p><strong>問題</strong>: Kitaev鎖のトポロジカル相とトリビアル相を区別する位相不変量（Pfaffian不変量）を計算し、エッジ状態の存在との関係を示せ。周期境界条件と開放境界条件での違いを議論せよ。</p>
+            </div>
+
+            <div class="info-box warning">
+                <h3>演習6: 自己無撞着BdG計算の収束（プログラミング課題）</h3>
+                <p><strong>問題</strong>: 本章の自己無撞着BdGコードを拡張し、以下を実装せよ：</p>
+                <ol>
+                    <li>不純物ポテンシャル $V_{\text{imp}}(i)$ を含む系の計算</li>
+                    <li>2次元正方格子への拡張</li>
+                    <li>収束性を改善するためのAnderson混合法の実装</li>
+                </ol>
+            </div>
+
+            <div class="info-box warning">
+                <h3>演習7: Majoranaブレイディング（理論問題）</h3>
+                <p><strong>問題</strong>: 4つのMajorana束縛状態 $\gamma_1, \gamma_2, \gamma_3, \gamma_4$ があるとき：</p>
+                <ol>
+                    <li>$\gamma_1$ と $\gamma_2$ のブレイディング演算子 $U_{12} = e^{\pi \gamma_1 \gamma_2 / 4}$ が、フェルミオン占有数演算子 $n = c^{\dagger} c$ （ただし $c = (\gamma_1 + i\gamma_2)/2$）にどう作用するか計算せよ</li>
+                    <li>連続ブレイディング $U_{12} U_{23}$ と $U_{23} U_{12}$ が非可換であることを示し、非アーベル統計の物理的意味を説明せよ</li>
+                </ol>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>参考文献</h2>
+            <ol>
+                <li>de Gennes, P. G. "Superconductivity of Metals and Alloys" (1966) - BdG方程式の古典的教科書</li>
+                <li>Tinkham, M. "Introduction to Superconductivity" 2nd ed. (2004) - メゾスコピック超伝導の包括的解説</li>
+                <li>Blonder, G. E., Tinkham, M., & Klapwijk, T. M. "Transition from metallic to tunneling regimes in superconducting microconstrictions: Excess current, charge imbalance, and supercurrent conversion" Phys. Rev. B 25, 4515 (1982) - BTK理論の原著論文</li>
+                <li>Buzdin, A. I. "Proximity effects in superconductor-ferromagnet heterostructures" Rev. Mod. Phys. 77, 935 (2005) - 近接効果の詳細レビュー</li>
+                <li>Franke, K. J., Schulze, G., & Pascual, J. I. "Competition of Superconducting Phenomena and Kondo Screening at the Nanoscale" Science 332, 940 (2011) - YSR状態のSTM観測</li>
+                <li>Kitaev, A. Yu. "Unpaired Majorana fermions in quantum wires" Physics-Uspekhi 44, 131 (2001) - Kitaev鎖の原著論文</li>
+                <li>Alicea, J. "New directions in the pursuit of Majorana fermions in solid state systems" Rep. Prog. Phys. 75, 076501 (2012) - Majorana束縛状態の包括的レビュー</li>
+                <li>Nayak, C., Simon, S. H., Stern, A., Freedman, M., & Das Sarma, S. "Non-Abelian anyons and topological quantum computation" Rev. Mod. Phys. 80, 1083 (2008) - トポロジカル量子計算の理論的基礎</li>
+                <li>Lutchyn, R. M., Bakkers, E. P. A. M., Kouwenhoven, L. P., Krogstrup, P., Marcus, C. M., & Oreg, Y. "Majorana zero modes in superconductor–semiconductor heterostructures" Nat. Rev. Mater. 3, 52 (2018) - 半導体-超伝導ハイブリッド系の最新レビュー</li>
+                <li>Microsoft Quantum: "Topological Quantum Computing" (2023) - トポロジカル量子ビットの実験的進展</li>
+            </ol>
+        </section>
+
+        <nav class="chapter-nav">
+            <a href="chapter-2.html" class="nav-button prev">← 第2章: 計算手法</a>
+            <a href="index.html" class="nav-button">目次に戻る</a>
+            <a href="chapter-4.html" class="nav-button next">第4章: 量子デバイス →</a>
+        </nav>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <p>&copy; 2025 AI寺子屋 (MS Terakoya). All rights reserved.</p>
+            <p>本コンテンツは教育目的で提供されています。</p>
+        </div>
+    </footer>
+</body>
+</html>
