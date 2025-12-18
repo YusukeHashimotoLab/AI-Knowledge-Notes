@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 4: Applications and Computational Methods - Chiral Phonons. Complete guide to DFT calculations, phonon angular momentum transport, valleytronics, and device applications" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 4: Applications and Computational Methods - Chiral Phonons</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<!-- Prism.js for syntax highlighting -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+    </script>
+<script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoreHtmlClass: 'mermaid'
+            }
+        };
+    </script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body><div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/MS/chiral-phonons/chapter-4.html" class="locale-link">🇯🇵 JP</a>
+<span class="locale-separator">|</span>
+<span class="locale-meta">Last sync: 2025-12-19</span>
+</div>
+<header>
+<div class="header-content">
+<h1>Chapter 4: Applications and Computational Methods</h1>
+<p class="subtitle">Chiral Phonons Series - From DFT Calculations to Device Applications</p>
+<div class="meta">
+<span class="meta-item">📖 Reading time: 45-60min</span>
+<span class="meta-item">📊 Difficulty: Advanced</span>
+<span class="meta-item">💻 Code examples: 8 examples</span>
+</div>
+</div>
+</header>
+<div class="breadcrumb">
+<a href="../index.html">AI Terakoya Top</a> &gt;
+        <a href="../index.html">MS Dojo</a> &gt;
+        <a href="index.html">Chiral Phonons</a> &gt;
+        Chapter 4
+    </div>
+<main class="container">
+<p class="chapter-description" style="margin: 1.5rem 0; padding: 1rem; background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%); border-left: 4px solid #00acc1; border-radius: 8px; font-size: 1.05rem; line-height: 1.8; color: #2d3748;">
+            This chapter bridges theory and application by covering computational methods for calculating phonon chirality and emerging applications in valleytronics and phonon-based devices. You will learn how to extract phonon angular momentum from DFT calculations using Phonopy and Quantum ESPRESSO, understand phonon angular momentum transport phenomena, and explore device concepts that leverage chiral phonons for information processing.
+        </p>
+<div class="learning-objectives">
+<h2>Learning Objectives</h2>
+<p>By reading this chapter, you will be able to:</p>
+<ul>
+<li>✅ Calculate phonon eigenvectors and extract circular polarization from DFT results</li>
+<li>✅ Compute phonon angular momentum using the formula $\mathbf{L} = \text{Im}[\mathbf{e}^* \times \mathbf{e}]$</li>
+<li>✅ Set up and run phonon calculations with Phonopy and Quantum ESPRESSO</li>
+<li>✅ Understand phonon angular momentum transport and the phononic Einstein-de Haas effect</li>
+<li>✅ Apply chiral phonons to valleytronics applications including valley manipulation</li>
+<li>✅ Explore emerging device concepts: phonon transistors, polarizers, and filters</li>
+<li>✅ Understand chiral phonon-polaritons and light-matter coupling</li>
+</ul>
+</div>
+<hr/>
+<h2>4.1 Computational Methods for Phonon Chirality</h2>
+<h3>4.1.1 Overview of DFT-Based Phonon Calculations</h3>
+<p>The calculation of chiral phonons requires determining phonon eigenvectors from first-principles density functional theory (DFT). The workflow consists of:</p>
+<div class="mermaid">
+flowchart TD
+    A[Structure Optimization<br/>DFT relaxation] --> B[Force Constant Calculation<br/>Phonopy/DFPT]
+    B --> C[Diagonalize Dynamical Matrix<br/>Obtain eigenvalues & eigenvectors]
+    C --> D[Extract Phonon Eigenvectors<br/>Complex vectors e<sub>κα</sub>]
+    D --> E[Calculate Circular Polarization<br/>C = Im[e* × e]]
+    E --> F[Compute Phonon Angular Momentum<br/>L = ℏC]
+
+    style A fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style B fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style C fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style D fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style E fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    style F fill:#e0f2f1,stroke:#00796b,stroke-width:2px
+</div>
+<h4>Dynamical Matrix Formalism</h4>
+<p>The phonon eigenvectors are obtained from the dynamical matrix:</p>
+<p>$$D_{\kappa\alpha,\kappa'\beta}(\mathbf{q}) = \frac{1}{\sqrt{M_\kappa M_{\kappa'}}} \sum_{\mathbf{R}} \Phi_{\kappa\alpha,\kappa'\beta}(\mathbf{R}) e^{i\mathbf{q}\cdot\mathbf{R}}$$</p>
+<p>where:</p>
+<ul>
+<li>$\kappa, \kappa'$: Atom indices in the unit cell</li>
+<li>$\alpha, \beta$: Cartesian components ($x, y, z$)</li>
+<li>$M_\kappa$: Mass of atom $\kappa$</li>
+<li>$\Phi_{\kappa\alpha,\kappa'\beta}(\mathbf{R})$: Force constant matrix</li>
+<li>$\mathbf{q}$: Phonon wavevector</li>
+</ul>
+<p>Diagonalization yields phonon frequencies $\omega_j$ and eigenvectors $\mathbf{e}_j$:</p>
+<p>$$D(\mathbf{q}) \mathbf{e}_j(\mathbf{q}) = \omega_j^2(\mathbf{q}) \mathbf{e}_j(\mathbf{q})$$</p>
+<h3>4.1.2 Extracting Circular Polarization from Eigenvectors</h3>
+<p>The phonon eigenvector $\mathbf{e}_j(\mathbf{q})$ is a complex vector describing the atomic displacement pattern. For a phonon mode with atoms displaced in a circular pattern, the eigenvector exhibits a phase difference between orthogonal components.</p>
+<h4>Circular Polarization Formula</h4>
+<p>The <strong>circular polarization</strong> (or pseudoangular momentum) vector is:</p>
+<p>$$\mathbf{C}_j(\mathbf{q}) = \text{Im}\left[\mathbf{e}_j^*(\mathbf{q}) \times \mathbf{e}_j(\mathbf{q})\right]$$</p>
+<p>For an individual atom $\kappa$:</p>
+<p>$$\mathbf{C}_{j,\kappa}(\mathbf{q}) = \text{Im}\left[e_{j,\kappa}^*(x) e_{j,\kappa}(y) - e_{j,\kappa}^*(y) e_{j,\kappa}(x)\right] \hat{z} + \text{cyclic permutations}$$</p>
+<p>In 2D materials (e.g., monolayer TMDs), focusing on in-plane motion:</p>
+<p>$$C_{j,\kappa}^z = \text{Im}\left[e_{j,\kappa,x}^* e_{j,\kappa,y} - e_{j,\kappa,y}^* e_{j,\kappa,x}\right]$$</p>
+<blockquote>
+<strong>Physical Interpretation</strong>: $C_{j,\kappa}^z > 0$ indicates counterclockwise circular motion (left-handed chirality), while $C_{j,\kappa}^z < 0$ indicates clockwise motion (right-handed chirality).
+</blockquote>
+<h4>Phonon Angular Momentum (PAM)</h4>
+<p>The total phonon angular momentum per unit cell is:</p>
+<p>$$\mathbf{L}_j(\mathbf{q}) = \hbar \sum_\kappa M_\kappa \mathbf{C}_{j,\kappa}(\mathbf{q})$$</p>
+<p>Units: $\hbar$ per phonon (quantized angular momentum)</p>
+<h3>4.1.3 Software Tools: Phonopy and Quantum ESPRESSO</h3>
+<h4>Phonopy</h4>
+<p><a href="https://phonopy.github.io/phonopy/">Phonopy</a> is a Python-based phonon calculation tool that interfaces with various DFT codes (VASP, Quantum ESPRESSO, Abinit, etc.).</p>
+<p><strong>Key capabilities</strong>:</p>
+<ul>
+<li>Finite displacement method for force constants</li>
+<li>Phonon dispersion and DOS calculations</li>
+<li>Extraction of eigenvectors at arbitrary q-points</li>
+<li>Group theory analysis of phonon modes</li>
+</ul>
+<p><strong>Installation</strong>:</p>
+<pre><code class="language-bash">pip install phonopy
+# For plotting
+pip install matplotlib seekpath
+</code></pre>
+<h4>Quantum ESPRESSO</h4>
+<p><a href="https://www.quantum-espresso.org/">Quantum ESPRESSO</a> is an open-source DFT suite with powerful phonon capabilities via DFPT (Density Functional Perturbation Theory).</p>
+<p><strong>Key modules</strong>:</p>
+<ul>
+<li><code>pw.x</code>: Ground state DFT calculations</li>
+<li><code>ph.x</code>: Phonon calculations using DFPT</li>
+<li><code>dynmat.x</code>: Post-processing of dynamical matrices</li>
+</ul>
+<h3>4.1.4 Complete Python Code Example: PAM Calculation</h3>
+<p>Below is a complete Python script to calculate phonon angular momentum from Phonopy output:</p>
+<pre><code class="language-python">#!/usr/bin/env python3
+"""
+Phonon Angular Momentum (PAM) Calculator
+Calculates circular polarization and PAM from Phonopy eigenvectors
+
+Requirements: phonopy, numpy, matplotlib
+"""
+
+import numpy as np
+from phonopy import Phonopy
+from phonopy.interface.vasp import read_vasp
+from phonopy.file_io import parse_FORCE_SETS, parse_BORN
+import matplotlib.pyplot as plt
+
+class PAMCalculator:
+    """Calculate phonon angular momentum from phonon eigenvectors"""
+
+    def __init__(self, phonopy_obj, hbar=1.0545718e-34):
+        """
+        Parameters
+        ----------
+        phonopy_obj : Phonopy
+            Phonopy object with force constants set
+        hbar : float
+            Reduced Planck constant (J·s)
+        """
+        self.phonopy = phonopy_obj
+        self.hbar = hbar
+        self.unitcell = phonopy_obj.get_unitcell()
+        self.masses = self.unitcell.masses
+        self.num_atoms = len(self.masses)
+
+    def calculate_circular_polarization(self, eigvec):
+        """
+        Calculate circular polarization vector C = Im[e* × e]
+
+        Parameters
+        ----------
+        eigvec : ndarray, shape (num_atoms, 3)
+            Complex phonon eigenvector for one mode
+
+        Returns
+        -------
+        C_total : float
+            Total z-component of circular polarization
+        C_per_atom : ndarray, shape (num_atoms,)
+            z-component per atom
+        """
+        C_per_atom = np.zeros(self.num_atoms)
+
+        for atom_idx in range(self.num_atoms):
+            ex = eigvec[atom_idx, 0]  # x component (complex)
+            ey = eigvec[atom_idx, 1]  # y component (complex)
+
+            # C_z = Im[e_x* e_y - e_y* e_x]
+            #     = Im[e_x* e_y] - Im[e_y* e_x]
+            #     = 2 * Im[e_x* e_y]
+            C_z = 2 * np.imag(np.conj(ex) * ey)
+            C_per_atom[atom_idx] = C_z
+
+        C_total = np.sum(C_per_atom)
+        return C_total, C_per_atom
+
+    def calculate_PAM(self, eigvec):
+        """
+        Calculate phonon angular momentum L = ℏ Σ_κ M_κ C_κ
+
+        Parameters
+        ----------
+        eigvec : ndarray, shape (num_atoms, 3)
+            Complex phonon eigenvector
+
+        Returns
+        -------
+        L_total : float
+            Total PAM in units of ℏ
+        L_per_atom : ndarray
+            PAM contribution per atom
+        """
+        C_total, C_per_atom = self.calculate_circular_polarization(eigvec)
+
+        # Mass-weighted circular polarization
+        L_per_atom = self.masses * C_per_atom
+        L_total = np.sum(L_per_atom)
+
+        return L_total, L_per_atom
+
+    def analyze_qpoint(self, qpoint, plot=True):
+        """
+        Analyze all phonon modes at a specific q-point
+
+        Parameters
+        ----------
+        qpoint : array-like, shape (3,)
+            q-point in fractional coordinates
+        plot : bool
+            Whether to plot results
+
+        Returns
+        -------
+        results : dict
+            Dictionary containing frequencies, PAM values, etc.
+        """
+        # Set q-point
+        self.phonopy.set_qpoints_phonon([qpoint])
+
+        # Get frequencies and eigenvectors
+        freqs = self.phonopy.get_qpoints_phonon()[0]  # THz
+        eigvecs_raw = self.phonopy.get_qpoints_phonon()[1][0]
+
+        # Reshape eigenvectors: (num_modes, num_atoms, 3)
+        num_modes = 3 * self.num_atoms
+        eigvecs = eigvecs_raw.reshape(num_modes, self.num_atoms, 3)
+
+        # Calculate PAM for each mode
+        PAM_values = []
+        C_values = []
+
+        for mode_idx in range(num_modes):
+            L_total, _ = self.calculate_PAM(eigvecs[mode_idx])
+            C_total, _ = self.calculate_circular_polarization(eigvecs[mode_idx])
+
+            PAM_values.append(L_total)
+            C_values.append(C_total)
+
+        results = {
+            'qpoint': qpoint,
+            'frequencies': freqs,  # THz
+            'PAM': np.array(PAM_values),
+            'circular_polarization': np.array(C_values)
+        }
+
+        if plot:
+            self._plot_PAM_spectrum(results)
+
+        return results
+
+    def _plot_PAM_spectrum(self, results):
+        """Plot frequency vs PAM"""
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+
+        freqs = results['frequencies']
+        PAM = results['PAM']
+        C = results['circular_polarization']
+
+        # Filter out acoustic modes (near-zero frequency)
+        mask = freqs > 0.5  # THz
+
+        # Plot PAM
+        ax1.scatter(freqs[mask], PAM[mask], c=PAM[mask],
+                   cmap='RdBu', s=100, alpha=0.7)
+        ax1.axhline(0, color='k', linestyle='--', linewidth=0.5)
+        ax1.set_xlabel('Frequency (THz)', fontsize=12)
+        ax1.set_ylabel('PAM (ℏ per phonon)', fontsize=12)
+        ax1.set_title(f'Phonon Angular Momentum at q = {results["qpoint"]}',
+                     fontsize=14)
+        ax1.grid(True, alpha=0.3)
+
+        # Plot circular polarization
+        ax2.scatter(freqs[mask], C[mask], c=C[mask],
+                   cmap='RdBu', s=100, alpha=0.7)
+        ax2.axhline(0, color='k', linestyle='--', linewidth=0.5)
+        ax2.set_xlabel('Frequency (THz)', fontsize=12)
+        ax2.set_ylabel('Circular Polarization', fontsize=12)
+        ax2.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        plt.savefig('PAM_spectrum.png', dpi=300, bbox_inches='tight')
+        plt.show()
+
+        return fig
+
+# Example usage
+def main():
+    """Example: Calculate PAM for monolayer WSe2"""
+
+    # Read structure from VASP POSCAR
+    unitcell = read_vasp("POSCAR")
+
+    # Create Phonopy object
+    phonon = Phonopy(unitcell,
+                     supercell_matrix=[[4, 0, 0], [0, 4, 0], [0, 0, 1]],
+                     primitive_matrix='auto')
+
+    # Read force constants from FORCE_SETS
+    force_sets = parse_FORCE_SETS()
+    phonon.set_displacement_dataset(force_sets)
+    phonon.produce_force_constants()
+
+    # Optional: NAC parameters for polar materials
+    try:
+        nac_params = parse_BORN(phonon.get_primitive())
+        phonon.set_nac_params(nac_params)
+    except:
+        print("No NAC parameters found, proceeding without NAC")
+
+    # Create PAM calculator
+    pam_calc = PAMCalculator(phonon)
+
+    # Analyze K-point (valley point in TMD)
+    # K = (1/3, 1/3, 0) in fractional coordinates
+    K_point = np.array([1./3., 1./3., 0.0])
+    results_K = pam_calc.analyze_qpoint(K_point, plot=True)
+
+    # Print chiral phonon modes (|PAM| > 0.1)
+    print("\n=== Chiral Phonon Modes at K-point ===")
+    for i, (freq, pam) in enumerate(zip(results_K['frequencies'],
+                                        results_K['PAM'])):
+        if abs(pam) > 0.1 and freq > 0.5:
+            chirality = "Left" if pam > 0 else "Right"
+            print(f"Mode {i}: {freq:.2f} THz, PAM = {pam:+.3f} ℏ ({chirality})")
+
+if __name__ == "__main__":
+    main()
+</code></pre>
+<h4>Key Steps in the Code</h4>
+<ol>
+<li><strong>Initialization</strong>: Load structure and force constants from Phonopy</li>
+<li><strong>Eigenvector Extraction</strong>: Get complex eigenvectors at specified q-point</li>
+<li><strong>Circular Polarization</strong>: Calculate $C_z = 2\text{Im}[e_x^* e_y]$ per atom</li>
+<li><strong>PAM Calculation</strong>: Mass-weighted sum $L = \hbar \sum_\kappa M_\kappa C_\kappa$</li>
+<li><strong>Visualization</strong>: Plot frequency vs PAM to identify chiral modes</li>
+</ol>
+<h3>4.1.5 Example: Quantum ESPRESSO Workflow</h3>
+<p>For polar materials requiring accurate treatment of long-range electrostatic interactions, Quantum ESPRESSO with DFPT is preferred:</p>
+<pre><code class="language-bash"># Step 1: SCF calculation
+pw.x &lt; scf.in &gt; scf.out
+
+# Step 2: Phonon calculation at K-point
+ph.x &lt; ph_K.in &gt; ph_K.out
+
+# Step 3: Post-process dynamical matrix
+dynmat.x &lt; dynmat.in &gt; dynmat.out
+</code></pre>
+<p><strong>Example ph.x input (ph_K.in)</strong>:</p>
+<pre><code class="language-bash">&amp;inputph
+  prefix = 'wse2'
+  outdir = './tmp/'
+  fildyn = 'wse2.dyn'
+
+  ! K-point in TMD Brillouin zone
+  ldisp = .false.
+  qplot = .true.
+
+  tr2_ph = 1.0d-14
+  alpha_mix = 0.7
+/
+1              ! Number of q-points
+0.333333 0.333333 0.0   ! K-point
+</code></pre>
+<p>The eigenvectors can then be extracted from the dynamical matrix file and post-processed with Python to calculate PAM.</p>
+<hr/>
+<h2>4.2 Phonon Angular Momentum Transport</h2>
+<h3>4.2.1 Einstein-de Haas Effect for Phonons</h3>
+<p>The <strong>Einstein-de Haas effect</strong> demonstrates that angular momentum can be transferred between different degrees of freedom. For phonons, this means:</p>
+<blockquote>
+Excitation of chiral phonons carrying angular momentum $\mathbf{L}_{\text{phonon}}$ induces mechanical rotation of the crystal lattice to conserve total angular momentum.
+</blockquote>
+<p>$$\mathbf{L}_{\text{total}} = \mathbf{L}_{\text{phonon}} + \mathbf{L}_{\text{lattice}} = \text{constant}$$</p>
+<h4>Experimental Observation</h4>
+<p>In 2020, experiments on suspended graphene nanoribbons demonstrated:</p>
+<ul>
+<li>Circularly polarized laser excites chiral phonons</li>
+<li>Phonon angular momentum transferred to lattice rotation</li>
+<li>Torsional oscillations detected via optical microscopy</li>
+</ul>
+<p><strong>Angular momentum per phonon</strong>: $L_z \approx 0.7\hbar$ for the chiral optical phonon in graphene</p>
+<h3>4.2.2 Phonon Spin Current</h3>
+<p>Analogous to electronic spin currents, <strong>phonon spin currents</strong> represent flow of phonon angular momentum without net energy transport.</p>
+<h4>Definition</h4>
+<p>The phonon spin current density:</p>
+<p>$$\mathbf{j}_s = \sum_j \mathbf{L}_j \cdot \mathbf{v}_{g,j} \cdot n_j$$</p>
+<p>where:</p>
+<ul>
+<li>$\mathbf{L}_j$: PAM of mode $j$</li>
+<li>$\mathbf{v}_{g,j}$: Group velocity</li>
+<li>$n_j$: Phonon occupation number</li>
+</ul>
+<h4>Generation Mechanisms</h4>
+<ol>
+<li><strong>Thermal Gradient</strong>: Temperature difference drives phonon flow with net angular momentum</li>
+<li><strong>Optical Excitation</strong>: Circularly polarized light selectively excites one chirality</li>
+<li><strong>Phonon Pumping</strong>: Ultrafast laser pulses generate coherent chiral phonons</li>
+</ol>
+<h3>4.2.3 Thermal Hall Effect and Phonon Angular Momentum</h3>
+<p>The <strong>thermal Hall effect</strong> is the transverse heat flow perpendicular to a temperature gradient, observed in some insulators.</p>
+<h4>Connection to Chiral Phonons</h4>
+<p>In materials with broken time-reversal symmetry (e.g., under magnetic field), chiral phonons can contribute to the thermal Hall conductivity:</p>
+<p>$$\kappa_{xy} = \frac{1}{T} \sum_j \int \frac{d^3q}{(2\pi)^3} c_j(\mathbf{q}) v_{j,x}(\mathbf{q}) \Omega_{j,y}(\mathbf{q})$$</p>
+<p>where:</p>
+<ul>
+<li>$c_j$: Phonon heat capacity</li>
+<li>$v_{j,x}$: Group velocity in $x$-direction</li>
+<li>$\Omega_{j,y}$: Berry curvature in $y$-direction (related to PAM)</li>
+</ul>
+<p><strong>Key insight</strong>: Phonon Berry curvature and angular momentum are closely related topological properties.</p>
+<h3>4.2.4 Phonon Nernst Effect</h3>
+<p>The <strong>phonon Nernst effect</strong> generates a transverse voltage from a thermal gradient in the presence of chiral phonons coupled to electronic degrees of freedom.</p>
+<p>$$E_y = S_{yx} \nabla_x T$$</p>
+<p>where $S_{yx}$ is the Nernst coefficient.</p>
+<p><strong>Mechanism in TMDs</strong>:</p>
+<ol>
+<li>Temperature gradient drives thermal phonon current</li>
+<li>Chiral phonons carry net angular momentum</li>
+<li>Valley-phonon coupling transfers angular momentum to valley carriers</li>
+<li>Valley polarization induces transverse electric field via valley Hall effect</li>
+</ol>
+<div class="mermaid">
+flowchart LR
+    A[Thermal Gradient<br/>∇T] --> B[Chiral Phonon Flow<br/>with PAM]
+    B --> C[Valley-Phonon Coupling<br/>Angular Momentum Transfer]
+    C --> D[Valley Polarization<br/>in Carriers]
+    D --> E[Transverse Voltage<br/>V<sub>⊥</sub>]
+
+    style A fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style B fill:#e0f2f1,stroke:#00796b,stroke-width:2px
+    style C fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style D fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style E fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+</div>
+<hr/>
+<h2>4.3 Applications in Valleytronics</h2>
+<h3>4.3.1 Valley-Phonon Coupling for Valley Manipulation</h3>
+<p>In 2D TMDs, the valley degree of freedom (K and K' valleys) can be manipulated using chiral phonons due to angular momentum conservation.</p>
+<h4>Selection Rules</h4>
+<p>For valley-phonon coupling in monolayer WSe₂:</p>
+<table>
+<thead>
+<tr>
+<th>Valley</th>
+<th>Exciton Angular Momentum</th>
+<th>Phonon Chirality Required</th>
+<th>Optical Helicity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>K</td>
+<td>$+1$</td>
+<td>Left-handed (PAM > 0)</td>
+<td>$\sigma^+$</td>
+</tr>
+<tr>
+<td>K'</td>
+<td>$-1$</td>
+<td>Right-handed (PAM &lt; 0)</td>
+<td>$\sigma^-$</td>
+</tr>
+</tbody>
+</table>
+<h4>Valley Initialization via Phonons</h4>
+<ol>
+<li><strong>Optical Pumping</strong>: $\sigma^+$ light excites K-valley excitons</li>
+<li><strong>Phonon Emission</strong>: Exciton relaxation emits chiral phonon (PAM = $+1\hbar$)</li>
+<li><strong>Momentum Conservation</strong>: Total angular momentum conserved</li>
+</ol>
+<p>$$L_{\text{exciton}}^{\text{initial}} = L_{\text{exciton}}^{\text{final}} + L_{\text{phonon}}$$</p>
+<h3>4.3.2 Chiral Phonon-Mediated Intervalley Scattering</h3>
+<p>Intervalley scattering (K → K' transitions) can occur via emission or absorption of chiral phonons.</p>
+<h4>Scattering Rate</h4>
+<p>The intervalley scattering rate mediated by chiral phonons:</p>
+<p>$$\Gamma_{K\rightarrow K'} = \frac{2\pi}{\hbar} |g_{ep}|^2 [n(\omega) + 1] \delta(E_K - E_{K'} - \hbar\omega)$$</p>
+<p>where:</p>
+<ul>
+<li>$g_{ep}$: Electron-phonon coupling strength</li>
+<li>$n(\omega)$: Phonon occupation number (Bose-Einstein)</li>
+<li>$\omega$: Chiral phonon frequency</li>
+</ul>
+<p><strong>Temperature Dependence</strong>: At low temperatures, phonon occupation is suppressed, leading to longer valley lifetimes.</p>
+<h3>4.3.3 Valley Information Storage</h3>
+<p>Chiral phonons enable <strong>valley information storage</strong> by encoding binary information in the valley index:</p>
+<ul>
+<li><strong>Bit "0"</strong>: K valley (angular momentum $+1$)</li>
+<li><strong>Bit "1"</strong>: K' valley (angular momentum $-1$)</li>
+</ul>
+<h4>Read/Write Operations</h4>
+<p><strong>Write</strong>:</p>
+<ul>
+<li>$\sigma^+$ laser pulse → Initialize K valley (bit "0")</li>
+<li>$\sigma^-$ laser pulse → Initialize K' valley (bit "1")</li>
+</ul>
+<p><strong>Read</strong>:</p>
+<ul>
+<li>Detect valley-selective photoluminescence</li>
+<li>Measure valley Hall voltage</li>
+</ul>
+<p><strong>Coherence Time</strong>: Limited by intervalley scattering (typically ps to ns range at room temperature)</p>
+<h3>4.3.4 Code Example: Valley-Phonon Scattering Simulation</h3>
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+class ValleyPhononScattering:
+    """Simulate valley-phonon scattering dynamics"""
+
+    def __init__(self, temperature, phonon_freq, coupling_strength):
+        """
+        Parameters
+        ----------
+        temperature : float
+            Temperature in Kelvin
+        phonon_freq : float
+            Chiral phonon frequency in THz
+        coupling_strength : float
+            Electron-phonon coupling in meV
+        """
+        self.T = temperature
+        self.omega = phonon_freq * 1e12  # Convert THz to Hz
+        self.g_ep = coupling_strength * 1.60218e-22  # Convert meV to Joules
+
+        # Constants
+        self.hbar = 1.0545718e-34  # J·s
+        self.kB = 1.380649e-23     # J/K
+
+    def phonon_occupation(self):
+        """Bose-Einstein distribution"""
+        x = self.hbar * self.omega / (self.kB * self.T)
+        if x > 50:  # Avoid overflow
+            return 0.0
+        return 1.0 / (np.exp(x) - 1.0)
+
+    def intervalley_rate(self):
+        """
+        Calculate intervalley scattering rate (1/s)
+        Assumes energy conservation is satisfied
+        """
+        n_ph = self.phonon_occupation()
+
+        # Emission rate
+        rate_emission = (2 * np.pi / self.hbar) * self.g_ep**2 * (n_ph + 1)
+
+        # Absorption rate
+        rate_absorption = (2 * np.pi / self.hbar) * self.g_ep**2 * n_ph
+
+        return rate_emission + rate_absorption
+
+    def valley_lifetime(self):
+        """Valley lifetime in seconds"""
+        return 1.0 / self.intervalley_rate()
+
+    def valley_dynamics(self, t_max=10e-12, n_K_init=1.0):
+        """
+        Simulate valley population dynamics
+
+        Parameters
+        ----------
+        t_max : float
+            Maximum time in seconds
+        n_K_init : float
+            Initial K-valley population (normalized)
+
+        Returns
+        -------
+        t : ndarray
+            Time array
+        n_K : ndarray
+            K-valley population vs time
+        """
+        rate = self.intervalley_rate()
+        tau = self.valley_lifetime()
+
+        t = np.linspace(0, t_max, 1000)
+
+        # Exponential decay to equilibrium (50% at long times)
+        n_K = 0.5 + (n_K_init - 0.5) * np.exp(-t / tau)
+        n_Kp = 1.0 - n_K  # K' valley population
+
+        return t, n_K, n_Kp
+
+# Example: Temperature dependence of valley lifetime
+temperatures = np.linspace(10, 300, 50)  # K
+lifetimes = []
+
+phonon_freq = 5.0  # THz (typical for TMD chiral phonon)
+coupling = 10.0    # meV
+
+for T in temperatures:
+    sim = ValleyPhononScattering(T, phonon_freq, coupling)
+    tau = sim.valley_lifetime()
+    lifetimes.append(tau * 1e12)  # Convert to ps
+
+plt.figure(figsize=(10, 6))
+plt.plot(temperatures, lifetimes, linewidth=2, color='#1976d2')
+plt.xlabel('Temperature (K)', fontsize=14)
+plt.ylabel('Valley Lifetime (ps)', fontsize=14)
+plt.title('Valley Lifetime vs Temperature (Phonon-Mediated Scattering)', fontsize=16)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig('valley_lifetime_vs_T.png', dpi=300)
+plt.show()
+
+print(f"Valley lifetime at 300 K: {lifetimes[-1]:.2f} ps")
+print(f"Valley lifetime at 10 K: {lifetimes[0]:.2f} ps")
+</code></pre>
+<hr/>
+<h2>4.4 Emerging Device Concepts</h2>
+<h3>4.4.1 Phonon-Based Information Processing</h3>
+<p>Chiral phonons offer a new platform for information processing with potential advantages:</p>
+<ul>
+<li><strong>Low Power</strong>: Phononic devices operate at lower power than electronic counterparts</li>
+<li><strong>High Frequency</strong>: THz phonons enable ultrafast switching</li>
+<li><strong>Coherence</strong>: Phonon coherence times can reach nanoseconds</li>
+<li><strong>Valley Integration</strong>: Direct coupling to valleytronic logic</li>
+</ul>
+<h4>Phonon Logic Gates</h4>
+<p>Proposed schemes for phononic logic:</p>
+<ol>
+<li><strong>AND Gate</strong>: Two chiral phonon inputs with opposite chirality annihilate (output = 0) unless both have same chirality</li>
+<li><strong>NOT Gate</strong>: Chirality reversal via coupling to valley degrees of freedom</li>
+<li><strong>XOR Gate</strong>: Detect chirality mismatch through interference effects</li>
+</ol>
+<h3>4.4.2 Chiral Phonon Transistors</h3>
+<p>A <strong>chiral phonon transistor</strong> modulates phonon angular momentum current using an external control.</p>
+<h4>Device Structure</h4>
+<div class="mermaid">
+flowchart LR
+    A[Source<br/>Chiral Phonon<br/>Emitter] --> B[Channel<br/>2D TMD]
+    B --> C[Drain<br/>Phonon Detector]
+    D[Gate<br/>Electric Field/<br/>Optical Pulse] -.->|Control| B
+
+    style A fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style B fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style C fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+</div>
+<h4>Operating Principle</h4>
+<ol>
+<li><strong>Source</strong>: Generate chiral phonons (e.g., via $\sigma^+$ laser on TMD)</li>
+<li><strong>Channel</strong>: 2D material where valley-phonon coupling is controlled</li>
+<li><strong>Gate</strong>: Electric field or optical pulse modulates valley polarization</li>
+<li><strong>Drain</strong>: Detect phonon angular momentum (e.g., via thermal Hall effect)</li>
+</ol>
+<p><strong>Switching Mechanism</strong>: Gate voltage changes valley population, altering scattering rate for chiral phonons</p>
+<h3>4.4.3 Phonon Polarizers and Filters</h3>
+<p>Analogous to optical polarizers, <strong>phonon polarizers</strong> selectively transmit phonons of specific chirality.</p>
+<h4>Design Strategies</h4>
+<ol>
+<li>
+<p><strong>Symmetry-Based Filtering</strong>:</p>
+<ul>
+<li>Use materials with broken mirror symmetry</li>
+<li>One chirality couples strongly to electronic states (absorbed)</li>
+<li>Opposite chirality passes through</li>
+</ul>
+</li>
+<li>
+<p><strong>Resonant Filtering</strong>:</p>
+<ul>
+<li>Design cavity with chiral resonance</li>
+<li>Only left-handed phonons at specific frequency resonate</li>
+</ul>
+</li>
+<li>
+<p><strong>Valley-Selective Filtering</strong>:</p>
+<ul>
+<li>Apply valley-polarized carrier population (via optical pumping)</li>
+<li>Phonons matching valley chirality are absorbed by carrier scattering</li>
+<li>Opposite chirality transmitted</li>
+</ul>
+</li>
+</ol>
+<h4>Performance Metrics</h4>
+<ul>
+<li><strong>Extinction Ratio</strong>: $\eta = I_{\text{transmitted}}^{\text{left}} / I_{\text{transmitted}}^{\text{right}}$</li>
+<li><strong>Bandwidth</strong>: Frequency range of filtering</li>
+<li><strong>Loss</strong>: Total phonon intensity reduction</li>
+</ul>
+<h3>4.4.4 Phonon Circulators</h4>
+<p>A <strong>phonon circulator</strong> routes phonons unidirectionally based on chirality, enabling non-reciprocal phonon transport.</p>
+<h4>Three-Port Circulator</h4>
+<ul>
+<li><strong>Port 1 → Port 2</strong>: Left-handed phonons</li>
+<li><strong>Port 2 → Port 3</strong>: Right-handed phonons</li>
+<li><strong>Port 3 → Port 1</strong>: Neutral phonons</li>
+</ul>
+<p><strong>Application</strong>: Phononic signal routing in integrated phononic circuits</p>
+<hr/>
+<h2>4.5 Chiral Phonon-Polaritons</h2>
+<h3>4.5.1 Coupling Chiral Phonons to Photons</h3>
+<p><strong>Phonon-polaritons</strong> are hybrid quasiparticles arising from strong coupling between photons and phonons. When the phonon carries angular momentum, the resulting polariton inherits chirality.</p>
+<h4>Coupling Hamiltonian</h4>
+<p>$$H = \hbar\omega_{\text{ph}} a_{\text{ph}}^\dagger a_{\text{ph}} + \hbar\omega_{\gamma} a_{\gamma}^\dagger a_{\gamma} + \hbar g (a_{\text{ph}}^\dagger a_{\gamma} + a_{\gamma}^\dagger a_{\text{ph}})$$</p>
+<p>where:</p>
+<ul>
+<li>$a_{\text{ph}}$: Phonon annihilation operator</li>
+<li>$a_{\gamma}$: Photon annihilation operator</li>
+<li>$g$: Coupling strength</li>
+</ul>
+<h4>Polariton Dispersion</h4>
+<p>In the strong coupling regime ($g &gt; \gamma_{\text{ph}}, \gamma_{\gamma}$), the dispersion splits into upper and lower polariton branches:</p>
+<p>$$E_{\pm} = \frac{\hbar(\omega_{\text{ph}} + \omega_{\gamma})}{2} \pm \frac{\hbar}{2}\sqrt{(\omega_{\text{ph}} - \omega_{\gamma})^2 + 4g^2}$$</p>
+<p><strong>Rabi splitting</strong>: $\Omega_R = 2g$ (observable in spectroscopy)</p>
+<h3>4.5.2 Enhanced Light-Matter Interaction</h3>
+<p>Chiral phonon-polaritons exhibit enhanced circular dichroism (CD) compared to pure phonons.</p>
+<h4>Circular Dichroism Enhancement</h4>
+<p>$$\text{CD} = \frac{A_{\sigma^+} - A_{\sigma^-}}{A_{\sigma^+} + A_{\sigma^-}}$$</p>
+<p>where $A_{\sigma^\pm}$ is the absorption for $\sigma^\pm$ polarized light.</p>
+<p><strong>Mechanism</strong>: Polariton combines phonon chirality with photon spin, leading to stronger angular momentum coupling.</p>
+<h3>4.5.3 Applications</h3>
+<ol>
+<li><strong>Tunable THz Sources</strong>: Chiral polaritons emit circularly polarized THz radiation</li>
+<li><strong>Quantum Optics</strong>: Single-phonon-polariton sources for quantum information</li>
+<li><strong>Nonlinear Optics</strong>: Enhanced second-harmonic generation with chirality transfer</li>
+</ol>
+<hr/>
+<h2>4.6 Future Directions and Challenges</h2>
+<h3>4.6.1 Quantum Phononics with Chirality</h3>
+<p><strong>Quantum phononics</strong> aims to utilize phonons as quantum information carriers. Chiral phonons add angular momentum as a quantum degree of freedom.</p>
+<h4>Potential Applications</h4>
+<ul>
+<li><strong>Phonon Qubits</strong>: Encode quantum information in phonon chirality (left/right)</li>
+<li><strong>Phonon Entanglement</strong>: Create entangled chiral phonon pairs</li>
+<li><strong>Quantum Transduction</strong>: Convert between photonic and phononic qubits</li>
+</ul>
+<h4>Challenges</h4>
+<ul>
+<li><strong>Decoherence</strong>: Phonon-phonon scattering limits coherence times</li>
+<li><strong>Single-Phonon Sources</strong>: Difficult to generate and detect single phonons</li>
+<li><strong>Temperature</strong>: Thermal occupation of phonons limits quantum fidelity</li>
+</ul>
+<h3>4.6.2 Topological Protection of Chiral Phonons</h3>
+<p>Combining chiral phonons with topological protection could yield robust phononic states.</p>
+<h4>Topological Chiral Phonons</h4>
+<ul>
+<li><strong>Edge States</strong>: Chiral phonons propagating unidirectionally along material edges</li>
+<li><strong>Weyl Phonons</strong>: 3D topological phonons with chiral character</li>
+<li><strong>Floquet Engineering</strong>: Use time-periodic driving to create topological chiral phonon bands</li>
+</ul>
+<p><strong>Advantage</strong>: Topological protection prevents backscattering, enabling low-loss phonon transport</p>
+<h3>4.6.3 Room-Temperature Applications</h3>
+<p>Most current studies of chiral phonons focus on low temperatures. For practical devices, room-temperature operation is essential.</p>
+<h4>Strategies for Room-Temperature Phononics</h4>
+<ol>
+<li><strong>Large Energy Splitting</strong>: Use materials with large phonon energies (&gt; kT at 300 K)</li>
+<li><strong>Ultrafast Dynamics</strong>: Operate on timescales faster than thermalization (sub-picosecond)</li>
+<li><strong>High Valley Contrast</strong>: Materials with large valley splitting suppress thermal mixing</li>
+<li><strong>Encapsulation</strong>: Protect 2D materials from environmental scattering</li>
+</ol>
+<h4>Promising Materials</h4>
+<ul>
+<li><strong>h-BN</strong>: Large bandgap, stable phonons at room temperature</li>
+<li><strong>Transition Metal Monochalcogenides</strong>: High Curie temperatures for ferroelectric/valley properties</li>
+<li><strong>Heterostructures</strong>: Engineer valley and phonon properties through stacking</li>
+</ul>
+<h3>4.6.4 Integration with Existing Technologies</h3>
+<p>For widespread adoption, chiral phononic devices must integrate with electronics and photonics.</p>
+<h4>Integration Pathways</h4>
+<ol>
+<li><strong>CMOS Compatibility</strong>: Fabricate phononic elements on Si substrates</li>
+<li><strong>Hybrid Circuits</strong>: Combine electronic control with phononic logic</li>
+<li><strong>Optical Interconnects</strong>: Use chiral phonon-polaritons to bridge optics and phononics</li>
+<li><strong>Thermal Management</strong>: Leverage phononic crystals with chiral properties for heat control</li>
+</ol>
+<hr/>
+<h2>4.7 Exercises</h2>
+<div class="exercise-box">
+<h4>Exercise 4.1: PAM Calculation from Eigenvector</h4>
+<p>Consider a phonon mode in a monolayer TMD where the metal atom (M, mass = 180 amu) has the following complex eigenvector components:</p>
+<ul>
+<li>$e_x = \frac{1}{\sqrt{2}}$</li>
+<li>$e_y = \frac{i}{\sqrt{2}}$</li>
+<li>$e_z = 0$</li>
+</ul>
+<p><strong>(a)</strong> Calculate the circular polarization $C_z$ for this atom.<br/>
+<strong>(b)</strong> Calculate the phonon angular momentum in units of $\hbar$.<br/>
+<strong>(c)</strong> Determine the chirality (left-handed or right-handed) based on the sign of PAM.</p>
+</div>
+<div class="exercise-box">
+<h4>Exercise 4.2: Temperature Dependence of Valley Lifetime</h4>
+<p>Using the valley-phonon scattering simulation code, investigate:</p>
+<p><strong>(a)</strong> Plot the valley lifetime vs temperature for a chiral phonon frequency of 6.0 THz and electron-phonon coupling of 15 meV.<br/>
+<strong>(b)</strong> At what temperature does the valley lifetime drop below 1 ps?<br/>
+<strong>(c)</strong> Explain physically why the lifetime decreases with temperature.</p>
+</div>
+<div class="exercise-box">
+<h4>Exercise 4.3: Phonon Polarizer Design</h4>
+<p>Design a phonon polarizer using a 2D TMD material.</p>
+<p><strong>(a)</strong> Sketch the device structure, indicating source, filter medium, and detector.<br/>
+<strong>(b)</strong> Explain how valley-selective optical pumping can filter phonon chirality.<br/>
+<strong>(c)</strong> Estimate the extinction ratio if the valley polarization is 80% and the phonon-valley coupling efficiency is 50%.</p>
+</div>
+<div class="exercise-box">
+<h4>Exercise 4.4: Phonon-Polariton Rabi Splitting</h4>
+<p>A chiral phonon at $\omega_{\text{ph}} = 5.0$ THz is coupled to a photon mode at $\omega_{\gamma} = 5.2$ THz with coupling strength $g = 0.3$ THz.</p>
+<p><strong>(a)</strong> Calculate the upper and lower polariton energies $E_+$ and $E_-$ (in meV).<br/>
+<strong>(b)</strong> What is the Rabi splitting $\Omega_R$?<br/>
+<strong>(c)</strong> Sketch the polariton dispersion diagram showing the anti-crossing.</p>
+</div>
+<div class="exercise-box">
+<h4>Exercise 4.5: Quantum Phononic Qubit</h4>
+<p>Consider using a chiral phonon as a qubit, where $|0\rangle$ represents left-handed chirality and $|1\rangle$ represents right-handed chirality.</p>
+<p><strong>(a)</strong> If the phonon coherence time is $\tau_c = 500$ ps and a single-qubit gate takes 10 ps, estimate the maximum number of gate operations before decoherence.<br/>
+<strong>(b)</strong> What is the required temperature to suppress thermal occupation below 1% for a 5 THz phonon?<br/>
+<strong>(c)</strong> Propose a scheme to initialize, manipulate, and read out this phonon qubit.</p>
+</div>
+<hr/>
+<h2>Summary</h2>
+<p>This chapter covered computational methods and applications of chiral phonons:</p>
+<ul>
+<li><strong>Computational Methods</strong>: DFT calculations with Phonopy/Quantum ESPRESSO, extraction of circular polarization $\mathbf{C} = \text{Im}[\mathbf{e}^* \times \mathbf{e}]$, and PAM calculation</li>
+<li><strong>PAM Transport</strong>: Einstein-de Haas effect, phonon spin currents, thermal Hall effect, and phonon Nernst effect</li>
+<li><strong>Valleytronics</strong>: Valley-phonon coupling, intervalley scattering, valley initialization and storage</li>
+<li><strong>Devices</strong>: Phonon transistors, polarizers, filters, and circulators for information processing</li>
+<li><strong>Phonon-Polaritons</strong>: Strong light-matter coupling with chiral phonons, enhanced circular dichroism</li>
+<li><strong>Future Directions</strong>: Quantum phononics, topological protection, room-temperature operation, and technology integration</li>
+</ul>
+<p>Chiral phonons represent a frontier in condensed matter physics with rich opportunities for fundamental research and technological innovation.</p>
+</main>
+<div class="navigation-buttons">
+<a class="nav-button prev" href="chapter-3.html">← Chapter 3: Experimental Detection</a>
+<a class="nav-button" href="index.html">Back to Index</a>
+</div>
+<section class="disclaimer">
+<h2>Disclaimer</h2>
+<p>
+            This educational content was generated with AI assistance for the Hashimoto Lab knowledge base.
+            While efforts have been made to ensure accuracy, readers should verify critical information with
+            primary sources and peer-reviewed literature. For the latest research on chiral phonons, consult
+            recent publications in journals such as Nature, Physical Review Letters, and Science.
+        </p>
+</section>
+<footer>
+<p>© 2025 Hashimoto Lab, Tohoku University. All rights reserved.</p>
+</footer>
+</body>
+</html>

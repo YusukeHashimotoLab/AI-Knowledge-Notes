@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第4章: 応用と計算手法 - カイラルフォノン</title>
+    <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "$", right: "$", display: false}
+                ],
+                throwOnError: false
+            });
+            mermaid.initialize({ startOnLoad: true, theme: 'default' });
+        });
+    </script>
+</head>
+<body>
+    <nav class="breadcrumb">
+        <a href="../../index.html">ホーム</a> &gt;
+        <a href="../index.html">材料科学</a> &gt;
+        <a href="index.html">カイラルフォノン</a> &gt;
+        <span>第4章: 応用と計算手法</span>
+    </nav>
+
+    <div class="locale-switcher">
+        <span class="current">日本語</span> |
+        <a href="../../../en/MS/chiral-phonons/chapter-4.html">English</a>
+    </div>
+
+    <header>
+        <h1>第4章: 応用と計算手法</h1>
+        <p class="subtitle">フォノン角運動量の計算、バレートロニクス応用、新興デバイス概念</p>
+    </header>
+
+    <main class="container">
+        <div class="content">
+            <!-- Learning Objectives -->
+            <section class="objectives">
+                <h2>学習目標</h2>
+                <ul>
+                    <li>DFPTによるフォノン固有ベクトル計算手法を理解する</li>
+                    <li>フォノン角運動量（PAM）の計算式 $\mathbf{L} = \text{Im}[\mathbf{e}^* \times \mathbf{e}]$ を導出・実装できる</li>
+                    <li>Phonopy、Quantum ESPRESSOを用いたカイラルフォノン解析ワークフローを習得する</li>
+                    <li>フォノンEinstein-de Haas効果とフォノン角運動量輸送を理解する</li>
+                    <li>バレー-フォノン結合の物理とバレートロニクス応用を説明できる</li>
+                    <li>カイラルフォノンポラリトンと光物質相互作用を理解する</li>
+                    <li>フォノンベースの情報処理デバイスの動作原理を理解する</li>
+                    <li>完全なPAM計算コードをPythonで実装できる</li>
+                </ul>
+            </section>
+
+            <!-- Introduction -->
+            <section class="intro">
+                <h2>導入</h2>
+                <p>
+                    第1章から第3章では、カイラルフォノンの理論的基礎、材料系、実験的検出手法を学びました。
+                    本章では、この新興分野の応用展開と実践的な計算手法に焦点を当てます。
+                    カイラルフォノンの応用は、バレートロニクスにおけるバレー自由度の制御から、
+                    フォノン角運動量輸送、さらには新しいフォノンベースの情報処理デバイスまで多岐にわたります。
+                </p>
+                <p>
+                    計算手法の部分では、第一原理計算（DFT/DFPT）によるフォノン固有ベクトルの取得から、
+                    フォノン角運動量の抽出まで、完全なワークフローを詳しく解説します。
+                    Phonopy、Quantum ESPRESSO、VASPなどの主要ソフトウェアの使用法と、
+                    円偏光度の計算、バンド構造解析、対称性検証などの実践的技術を網羅します。
+                </p>
+                <p>
+                    また、フォノン角運動量の輸送現象（フォノンEinstein-de Haas効果、フォノンスピン流）、
+                    バレー-フォノン結合を利用したバレートロニクスデバイス、カイラルフォノンポラリトンによる
+                    増強された光物質相互作用など、最先端の研究トピックを紹介します。
+                    最後に、量子フォノニクスやトポロジカル保護など、将来の研究方向についても展望します。
+                </p>
+            </section>
+
+            <!-- Section 1: Computational Methods -->
+            <section>
+                <h2>4.1 カイラルフォノンの計算手法</h2>
+
+                <h3>4.1.1 フォノン固有ベクトルのDFPT計算</h3>
+                <p>
+                    カイラルフォノンの計算の出発点は、密度汎関数摂動論（DFPT）による
+                    フォノン固有ベクトルの取得です。動的行列 $D_{\kappa\alpha,\kappa'\beta}(\mathbf{q})$ の
+                    固有値問題を解きます：
+                </p>
+                $$\sum_{\kappa'\beta} D_{\kappa\alpha,\kappa'\beta}(\mathbf{q}) e_{\kappa'\beta}(\mathbf{q}\nu) = \omega^2(\mathbf{q}\nu) e_{\kappa\alpha}(\mathbf{q}\nu)$$
+                <p>
+                    ここで、$\mathbf{q}$ は波数ベクトル、$\nu$ はバンドインデックス、
+                    $\omega(\mathbf{q}\nu)$ はフォノン周波数、$e_{\kappa\alpha}(\mathbf{q}\nu)$ は
+                    固有ベクトル（原子 $\kappa$ の $\alpha$ 方向成分）です。
+                </p>
+
+                <div class="info-box">
+                    <h4>動的行列の計算</h4>
+                    <p>DFPTでは、原子変位に対する電子密度の応答を自己無撞着に計算します：</p>
+                    $$D_{\kappa\alpha,\kappa'\beta}(\mathbf{q}) = \frac{1}{\sqrt{M_\kappa M_{\kappa'}}} \frac{\partial^2 E}{\partial u_{\kappa\alpha}(\mathbf{q}) \partial u_{\kappa'\beta}(-\mathbf{q})}$$
+                    <p>
+                        ここで、$M_\kappa$ は原子質量、$E$ は全エネルギーです。
+                        この2階微分は線形応答理論により効率的に計算されます。
+                    </p>
+                </div>
+
+                <h3>4.1.2 フォノン角運動量の計算式</h3>
+                <p>
+                    フォノン固有ベクトル $\mathbf{e}(\mathbf{q}\nu)$ が得られれば、
+                    フォノン角運動量（PAM）は以下の式で計算されます：
+                </p>
+                $$\mathbf{L}(\mathbf{q}\nu) = \text{Im}\left[\mathbf{e}^*(\mathbf{q}\nu) \times \mathbf{e}(\mathbf{q}\nu)\right]$$
+                <p>
+                    原子ごとの寄与を明示的に書くと：
+                </p>
+                $$\mathbf{L}(\mathbf{q}\nu) = \sum_\kappa \text{Im}\left[e^*_{\kappa x}(\mathbf{q}\nu) e_{\kappa y}(\mathbf{q}\nu) - e^*_{\kappa y}(\mathbf{q}\nu) e_{\kappa x}(\mathbf{q}\nu)\right] \hat{\mathbf{z}}$$
+                <p>
+                    2次元材料では、PAMは面直方向（$z$ 方向）を向き、その符号がカイラリティを決定します。
+                    $L_z > 0$ なら右円偏光、$L_z < 0$ なら左円偏光です。
+                </p>
+
+                <h3>4.1.3 円偏光度の計算</h3>
+                <p>
+                    円偏光度（circular polarization degree）は、フォノンモードの
+                    カイラリティの強さを定量化する指標です：
+                </p>
+                $$P_\text{circ}(\mathbf{q}\nu) = \frac{2|L_z(\mathbf{q}\nu)|}{|\mathbf{e}(\mathbf{q}\nu)|^2}$$
+                <p>
+                    完全な円偏光では $P_\text{circ} = 1$、線形偏光では $P_\text{circ} = 0$ です。
+                    実際の材料では、対称性の制約により $0 < P_\text{circ} < 1$ の値をとります。
+                </p>
+
+                <h3>4.1.4 Phonopyを用いた実装</h3>
+                <p>
+                    Phonopyは、DFTコード（VASP、Quantum ESPRESSO、ABINIT等）と連携して
+                    フォノン計算を行うPythonライブラリです。以下は、Phonopyを用いた
+                    カイラルフォノン解析の基本ワークフローです：
+                </p>
+
+                <div class="code-block">
+                    <pre><code>#!/usr/bin/env python3
+"""
+Phonopy を用いたカイラルフォノン解析
+WSe2単層を例とする
+"""
+import numpy as np
+from phonopy import Phonopy
+from phonopy.interface.vasp import read_vasp
+import matplotlib.pyplot as plt
+
+# ステップ1: 構造の読み込み
+unitcell = read_vasp("POSCAR")
+
+# ステップ2: Phonopyオブジェクトの作成
+# スーパーセルサイズを指定（ここでは4×4×1）
+phonon = Phonopy(unitcell, [[4, 0, 0],
+                             [0, 4, 0],
+                             [0, 0, 1]])
+
+# ステップ3: 変位を生成（VASPで力を計算するため）
+phonon.generate_displacements(distance=0.01)  # 0.01 Å変位
+supercells = phonon.get_supercells_with_displacements()
+
+# ここでVASPで各変位に対して力を計算（外部プロセス）
+# 結果はvasprun.xmlに保存される
+
+# ステップ4: 力定数の読み込み
+phonon.produce_force_constants()
+
+# ステップ5: 動的行列の計算
+# K点でのフォノン固有値・固有ベクトルを計算
+q_K = np.array([1.0/3.0, 1.0/3.0, 0.0])  # K点
+phonon.set_qpoints_phonon([q_K])
+phonon.run_qpoints_phonon()
+
+# ステップ6: 固有ベクトルと周波数の取得
+qpoints = phonon.get_qpoints_phonon()
+frequencies = qpoints[0]  # THz単位
+eigenvectors = qpoints[1]  # 複素数配列 (num_modes, num_atoms, 3)
+
+print(f"K点でのフォノン周波数 (THz): {frequencies}")
+print(f"固有ベクトルの形状: {eigenvectors.shape}")
+
+# ステップ7: フォノン角運動量の計算
+def compute_phonon_angular_momentum(eigvec):
+    """
+    フォノン固有ベクトルから角運動量を計算
+
+    Parameters:
+    -----------
+    eigvec : complex array, shape (num_atoms, 3)
+        フォノン固有ベクトル
+
+    Returns:
+    --------
+    L_z : float
+        z方向の角運動量
+    """
+    L = np.zeros(3)
+    for atom_idx in range(eigvec.shape[0]):
+        # Im[e* × e] を計算
+        ex_conj = np.conj(eigvec[atom_idx, 0])
+        ey_conj = np.conj(eigvec[atom_idx, 1])
+        ez_conj = np.conj(eigvec[atom_idx, 2])
+
+        ex = eigvec[atom_idx, 0]
+        ey = eigvec[atom_idx, 1]
+        ez = eigvec[atom_idx, 2]
+
+        # 外積の虚部
+        L[0] += np.imag(ey_conj * ez - ez_conj * ey)
+        L[1] += np.imag(ez_conj * ex - ex_conj * ez)
+        L[2] += np.imag(ex_conj * ey - ey_conj * ex)
+
+    return L
+
+# 各モードのPAMを計算
+num_modes = eigenvectors.shape[0]
+PAM_values = []
+
+for mode_idx in range(num_modes):
+    L = compute_phonon_angular_momentum(eigenvectors[mode_idx])
+    PAM_values.append(L[2])  # z成分のみ
+
+    # 円偏光度の計算
+    norm_sq = np.sum(np.abs(eigenvectors[mode_idx])**2)
+    P_circ = 2 * np.abs(L[2]) / norm_sq if norm_sq > 0 else 0
+
+    print(f"モード {mode_idx}: "
+          f"周波数 = {frequencies[mode_idx]:.3f} THz, "
+          f"PAM (Lz) = {L[2]:.6f}, "
+          f"円偏光度 = {P_circ:.3f}")
+
+# ステップ8: バンド構造解析
+# 高対称点経路を設定
+path = [[[0.0, 0.0, 0.0], [1.0/3.0, 1.0/3.0, 0.0],
+         [0.5, 0.0, 0.0], [0.0, 0.0, 0.0]]]
+labels = ["$\\Gamma$", "K", "M", "$\\Gamma$"]
+
+phonon.run_band_structure(path, labels=labels)
+phonon.plot_band_structure().savefig("phonon_band.png")
+
+print("\nPhonopyワークフロー完了")
+</code></pre>
+                </div>
+
+                <h3>4.1.5 Quantum ESPRESSOによる完全な計算例</h3>
+                <p>
+                    Quantum ESPRESSOは、オープンソースのDFTコードであり、
+                    DFPTによるフォノン計算が可能です。以下は、WSe₂単層の
+                    K点フォノンを計算する完全な入力ファイルと解析スクリプトです。
+                </p>
+
+                <div class="code-block">
+                    <pre><code># ステップ1: SCF計算（pw.x）
+&CONTROL
+  calculation = 'scf'
+  prefix = 'wse2'
+  outdir = './tmp'
+  pseudo_dir = './pseudo'
+/
+&SYSTEM
+  ibrav = 4
+  a = 3.282
+  c = 20.0  ! 真空層
+  nat = 3
+  ntyp = 2
+  ecutwfc = 60.0
+  ecutrho = 480.0
+/
+&ELECTRONS
+  conv_thr = 1.0d-10
+/
+ATOMIC_SPECIES
+  W  183.84  W.upf
+  Se  78.96  Se.upf
+ATOMIC_POSITIONS crystal
+  W   0.333333  0.666667  0.5
+  Se  0.666667  0.333333  0.55
+  Se  0.666667  0.333333  0.45
+K_POINTS automatic
+  12 12 1  0 0 0
+
+# ステップ2: フォノン計算（ph.x）
+&INPUTPH
+  prefix = 'wse2'
+  outdir = './tmp'
+  fildyn = 'wse2.dyn'
+  tr2_ph = 1.0d-14
+  ldisp = .true.
+  nq1 = 6, nq2 = 6, nq3 = 1
+/
+</code></pre>
+                </div>
+
+                <p>
+                    動的行列ファイル（wse2.dyn）からフォノン固有ベクトルを読み込み、
+                    PAMを計算するPythonスクリプト：
+                </p>
+
+                <div class="code-block">
+                    <pre><code>#!/usr/bin/env python3
+"""
+Quantum ESPRESSO動的行列ファイルからPAM計算
+"""
+import numpy as np
+import re
+
+def read_qe_dynmat(filename):
+    """
+    Quantum ESPRESSOの動的行列ファイルを読み込む
+
+    Returns:
+    --------
+    q_point : array, shape (3,)
+        q点座標
+    frequencies : array, shape (num_modes,)
+        周波数 (cm^-1)
+    eigenvectors : complex array, shape (num_modes, num_atoms, 3)
+        固有ベクトル
+    """
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+
+    # q点の読み込み
+    for i, line in enumerate(lines):
+        if 'q =' in line:
+            parts = line.split()
+            q_point = np.array([float(parts[3]),
+                               float(parts[4]),
+                               float(parts[5])])
+            break
+
+    # 周波数と固有ベクトルの読み込み
+    frequencies = []
+    eigenvectors = []
+
+    i = 0
+    while i < len(lines):
+        if 'freq' in lines[i]:
+            # 周波数の読み込み
+            freq_str = lines[i].split('=')[1].split('[')[0].strip()
+            freq = float(freq_str)
+            frequencies.append(freq)
+
+            # 固有ベクトルの読み込み
+            i += 1
+            eigvec = []
+            for atom in range(3):  # WSe2は3原子
+                i += 1
+                parts = lines[i].split()
+                # 実部と虚部を読み込む
+                # フォーマット: ( Re(x)  Im(x) ) ( Re(y)  Im(y) ) ( Re(z)  Im(z) )
+                x = complex(float(parts[1]), float(parts[2]))
+                y = complex(float(parts[4]), float(parts[5]))
+                z = complex(float(parts[7]), float(parts[8]))
+                eigvec.append([x, y, z])
+
+            eigenvectors.append(eigvec)
+        i += 1
+
+    return q_point, np.array(frequencies), np.array(eigenvectors)
+
+def compute_PAM_full(frequencies, eigenvectors):
+    """
+    全モードのPAMを計算し、カイラリティを分析
+    """
+    num_modes = len(frequencies)
+
+    print(f"{'Mode':>4} {'Freq (cm-1)':>12} {'PAM (Lz)':>12} "
+          f"{'P_circ':>10} {'Type':>10}")
+    print("-" * 60)
+
+    PAM_data = []
+
+    for mode_idx in range(num_modes):
+        freq = frequencies[mode_idx]
+        eigvec = eigenvectors[mode_idx]
+
+        # PAM計算
+        L = np.zeros(3, dtype=complex)
+        for atom_idx in range(eigvec.shape[0]):
+            e_conj = np.conj(eigvec[atom_idx])
+            e = eigvec[atom_idx]
+            # L = Im[e* × e]
+            L += np.array([
+                np.imag(e_conj[1] * e[2] - e_conj[2] * e[1]),
+                np.imag(e_conj[2] * e[0] - e_conj[0] * e[2]),
+                np.imag(e_conj[0] * e[1] - e_conj[1] * e[0])
+            ])
+
+        L_z = L[2].real
+
+        # 円偏光度
+        norm_sq = np.sum(np.abs(eigvec)**2)
+        P_circ = 2 * abs(L_z) / norm_sq if norm_sq > 0 else 0
+
+        # カイラリティ判定
+        if abs(L_z) < 1e-6:
+            chirality = "Linear"
+        elif L_z > 0:
+            chirality = "Right (σ+)"
+        else:
+            chirality = "Left (σ-)"
+
+        print(f"{mode_idx:4d} {freq:12.2f} {L_z:12.6f} "
+              f"{P_circ:10.4f} {chirality:>10}")
+
+        PAM_data.append({
+            'mode': mode_idx,
+            'frequency': freq,
+            'PAM': L_z,
+            'P_circ': P_circ,
+            'chirality': chirality
+        })
+
+    return PAM_data
+
+# メイン実行
+if __name__ == "__main__":
+    # K点の動的行列を読み込む
+    q_point, frequencies, eigenvectors = read_qe_dynmat('wse2.dyn_q1')
+
+    print(f"q点: {q_point}")
+    print(f"モード数: {len(frequencies)}\n")
+
+    # PAM計算と分析
+    PAM_data = compute_PAM_full(frequencies, eigenvectors)
+
+    # カイラルモードの抽出
+    chiral_modes = [d for d in PAM_data if abs(d['PAM']) > 0.01]
+
+    print(f"\nカイラルモード数: {len(chiral_modes)}")
+    print("\n強いカイラリティを持つモード:")
+    for d in sorted(chiral_modes, key=lambda x: -abs(x['PAM']))[:5]:
+        print(f"  モード {d['mode']}: {d['frequency']:.2f} cm⁻¹, "
+              f"PAM = {d['PAM']:.4f}, {d['chirality']}")
+</code></pre>
+                </div>
+
+                <div class="info-box">
+                    <h4>計算の収束性チェック</h4>
+                    <p>正確なPAM計算のためには、以下のパラメータを収束させる必要があります：</p>
+                    <ul>
+                        <li><strong>k点メッシュ</strong>: SCF計算で電荷密度を収束させる（12×12以上推奨）</li>
+                        <li><strong>q点メッシュ</strong>: フォノン計算での動的行列の精度（6×6以上）</li>
+                        <li><strong>エネルギーカットオフ</strong>: ecutwfc, ecutrho（波動関数と電荷密度）</li>
+                        <li><strong>収束閾値</strong>: conv_thr（SCF）、tr2_ph（フォノン）</li>
+                    </ul>
+                </div>
+
+                <h3>4.1.6 対称性による検証</h3>
+                <p>
+                    計算されたPAMは、材料の結晶対称性と整合している必要があります。
+                    例えば、WSe₂のようなC₃ᵥ対称性を持つ材料では、K点とK'点で
+                    PAMの符号が反転します：
+                </p>
+                $$\mathbf{L}(\mathbf{K}, \nu) = -\mathbf{L}(-\mathbf{K}, \nu) = -\mathbf{L}(\mathbf{K}', \nu)$$
+                <p>
+                    この関係は時間反転対称性とバレー対称性の帰結であり、
+                    計算結果の妥当性を検証する重要なチェック項目です。
+                </p>
+            </section>
+
+            <!-- Section 2: Phonon Angular Momentum Transport -->
+            <section>
+                <h2>4.2 フォノン角運動量輸送</h2>
+
+                <h3>4.2.1 フォノンEinstein-de Haas効果</h3>
+                <p>
+                    Einstein-de Haas効果は、磁化変化による機械的回転を示す古典的な現象ですが、
+                    カイラルフォノンにも類似の効果が予測されています。フォノンが角運動量を運ぶため、
+                    フォノンの励起・消滅は結晶全体に機械的回転をもたらします。
+                </p>
+
+                <div class="mermaid">
+                graph LR
+                    A[円偏光レーザー] --> B[カイラルフォノン励起]
+                    B --> C[PAM注入]
+                    C --> D[結晶の回転運動]
+                    D --> E[角運動量保存]
+                    E --> F[測定可能な回転]
+                </div>
+
+                <p>
+                    フォノンモード $\nu$ の占有数が $\Delta n_\nu$ だけ変化すると、
+                    結晶に注入される角運動量は：
+                </p>
+                $$\Delta \mathbf{L}_\text{crystal} = -\hbar \sum_{\mathbf{q}\nu} \mathbf{L}(\mathbf{q}\nu) \Delta n_{\mathbf{q}\nu}$$
+                <p>
+                    ここで、負符号は角運動量保存を表します。この効果は、
+                    超高速円偏光ポンプ-プローブ分光法で検出可能です。
+                </p>
+
+                <h3>4.2.2 フォノンスピン流</h3>
+                <p>
+                    フォノン角運動量は、温度勾配や電場の下で輸送され、
+                    <strong>フォノンスピン流</strong>を形成します。この流れは、
+                    ボルツマン輸送方程式の枠組みで記述されます：
+                </p>
+                $$\mathbf{j}_L = \sum_{\mathbf{q}\nu} \mathbf{L}(\mathbf{q}\nu) \mathbf{v}_{\mathbf{q}\nu} n_{\mathbf{q}\nu}$$
+                <p>
+                    ここで、$\mathbf{v}_{\mathbf{q}\nu} = \nabla_\mathbf{q} \omega(\mathbf{q}\nu)$ は群速度、
+                    $n_{\mathbf{q}\nu}$ はBose-Einstein分布関数です。
+                </p>
+
+                <p>
+                    フォノンスピン流は、界面でのスピン移行を通じて電子スピンと結合し、
+                    スピントロニクスデバイスにおける新しい制御手段を提供します。
+                </p>
+
+                <h3>4.2.3 熱ホール効果との関連</h3>
+                <p>
+                    カイラルフォノンは、磁場がない状況でも熱ホール効果を引き起こす可能性があります。
+                    これは、フォノンの<strong>ベリー曲率</strong>に起因します：
+                </p>
+                $$\boldsymbol{\Omega}_\nu(\mathbf{q}) = \nabla_\mathbf{q} \times \langle u_{\mathbf{q}\nu} | i\nabla_\mathbf{q} | u_{\mathbf{q}\nu} \rangle$$
+                <p>
+                    熱ホール伝導率は：
+                </p>
+                $$\kappa_{xy} = \frac{k_B^2 T}{\hbar V} \sum_{\mathbf{q}\nu} c_2\left(\frac{\hbar\omega_\nu}{k_B T}\right) \Omega_{\nu,z}(\mathbf{q})$$
+                <p>
+                    ここで、$c_2(x) = (1+x)[\text{Li}_2(-e^x) - \text{Li}_2(-e^{-x})]$ は
+                    熱輸送関数、$\text{Li}_2$ は2次のポリログ関数です。
+                </p>
+
+                <h3>4.2.4 フォノンNernst効果</h3>
+                <p>
+                    温度勾配とフォノン角運動量の結合により、横方向の熱電流が生じます。
+                    これは<strong>フォノンNernst効果</strong>と呼ばれ、
+                    熱電変換デバイスへの応用が期待されます。
+                </p>
+
+                <div class="info-box">
+                    <h4>輸送現象の統一的記述</h4>
+                    <p>フォノン輸送現象は、拡張されたボルツマン方程式で統一的に記述されます：</p>
+                    $$\frac{\partial n_{\mathbf{q}\nu}}{\partial t} + \mathbf{v}_{\mathbf{q}\nu} \cdot \nabla n_{\mathbf{q}\nu} + \dot{\mathbf{q}} \cdot \nabla_\mathbf{q} n_{\mathbf{q}\nu} = \left(\frac{\partial n}{\partial t}\right)_\text{coll}$$
+                    <p>
+                        ここで、$\dot{\mathbf{q}} = -\frac{e}{\hbar}(\mathbf{E} + \mathbf{v} \times \mathbf{B})$ は
+                        外場による波数変化（フォノンに電荷がある場合を仮想的に考慮）、
+                        右辺は散乱項です。
+                    </p>
+                </div>
+            </section>
+
+            <!-- Section 3: Valleytronics Applications -->
+            <section>
+                <h2>4.3 バレートロニクスへの応用</h2>
+
+                <h3>4.3.1 バレー-フォノン結合の物理</h3>
+                <p>
+                    2次元遷移金属ダイカルコゲナイド（TMD）では、運動量空間のK点とK'点に
+                    電子バレーが存在します。カイラルフォノンは、これらのバレーと
+                    選択的に結合し、バレー自由度の制御を可能にします。
+                </p>
+
+                <p>
+                    電子-フォノン結合ハミルトニアンは：
+                </p>
+                $$H_{e-ph} = \sum_{\mathbf{k}\mathbf{q}\nu} g_{\mathbf{k}\mathbf{q}\nu} c^\dagger_{\mathbf{k}+\mathbf{q}} c_{\mathbf{k}} (a_{\mathbf{q}\nu} + a^\dagger_{-\mathbf{q}\nu})$$
+                <p>
+                    ここで、$g_{\mathbf{k}\mathbf{q}\nu}$ は結合定数、$c^\dagger, c$ は電子生成・消滅演算子、
+                    $a^\dagger, a$ はフォノン生成・消滅演算子です。
+                </p>
+
+                <p>
+                    カイラルフォノンの場合、結合定数は円偏光に依存します：
+                </p>
+                $$g_{K,\sigma^+} \neq g_{K,\sigma^-}, \quad g_{K',\sigma^+} \neq g_{K',\sigma^-}$$
+                <p>
+                    さらに、バレー対称性により：
+                </p>
+                $$g_{K,\sigma^+} = g_{K',\sigma^-}, \quad g_{K,\sigma^-} = g_{K',\sigma^+}$$
+
+                <div class="mermaid">
+                graph TD
+                    A[σ+ 光励起] --> B[右円偏光フォノン]
+                    B --> C[Kバレー電子散乱]
+                    D[σ- 光励起] --> E[左円偏光フォノン]
+                    E --> F[K'バレー電子散乱]
+                    C --> G[バレー偏極生成]
+                    F --> G
+                </div>
+
+                <h3>4.3.2 カイラルフォノン媒介バレー間散乱</h3>
+                <p>
+                    カイラルフォノンは、異なるバレー間の電子散乱を媒介します。
+                    この散乱率は、Fermiの黄金律により計算されます：
+                </p>
+                $$\Gamma_{K \to K'} = \frac{2\pi}{\hbar} \sum_{\mathbf{q}\nu} |g_{\mathbf{q}\nu}|^2 [n_{\mathbf{q}\nu} + f(\omega_\nu)] \delta(E_{\mathbf{k}+\mathbf{q}} - E_\mathbf{k} - \hbar\omega_\nu)$$
+                <p>
+                    ここで、$n_{\mathbf{q}\nu}$ はフォノン占有数、$f(\omega)$ はBose分布関数です。
+                </p>
+
+                <p>
+                    重要な点は、円偏光フォノンの選択則により、
+                    $\sigma^+$ フォノンはK→K'散乱を優先し、
+                    $\sigma^-$ フォノンはK'→K散乱を優先することです。
+                </p>
+
+                <h3>4.3.3 バレー情報の保存</h3>
+                <p>
+                    バレートロニクスデバイスでは、バレー情報（バレー偏極）を
+                    長時間保持することが重要です。バレー偏極の緩和時間 $T_v$ は、
+                    バレー間散乱率の逆数で与えられます：
+                </p>
+                $$\frac{1}{T_v} = \Gamma_{K \to K'} + \Gamma_{K' \to K}$$
+                <p>
+                    カイラルフォノンを制御することで、この緩和時間を調整できます。
+                    例えば、円偏光レーザーでカイラルフォノンを選択的に励起することで、
+                    バレー間散乱を抑制し、$T_v$ を延長できます。
+                </p>
+
+                <h3>4.3.4 バレートロニクスデバイス概念</h3>
+                <p>
+                    カイラルフォノン制御に基づくバレートロニクスデバイスの例：
+                </p>
+
+                <div class="info-box">
+                    <h4>1. フォノン制御バレーフィルター</h4>
+                    <ul>
+                        <li><strong>原理</strong>: 円偏光レーザーでカイラルフォノンを励起し、
+                            特定のバレーの電子のみを選択的に散乱</li>
+                        <li><strong>入力</strong>: 無偏極電子流</li>
+                        <li><strong>出力</strong>: バレー偏極電子流</li>
+                        <li><strong>利点</strong>: 電極不要、光学的制御</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <h4>2. バレー-フォノンメモリ</h4>
+                    <ul>
+                        <li><strong>原理</strong>: バレー偏極をカイラルフォノンの占有数として保存</li>
+                        <li><strong>書き込み</strong>: 円偏光レーザーでフォノン励起</li>
+                        <li><strong>読み出し</strong>: 円偏光ラマン分光</li>
+                        <li><strong>保存時間</strong>: フォノン寿命（ピコ秒～ナノ秒）</li>
+                    </ul>
+                </div>
+
+                <div class="info-box">
+                    <h4>3. バレースイッチ</h4>
+                    <ul>
+                        <li><strong>原理</strong>: フォノン励起により電子をK↔K'間で切り替え</li>
+                        <li><strong>制御</strong>: 円偏光の切り替え</li>
+                        <li><strong>応答時間</strong>: サブピコ秒</li>
+                        <li><strong>応用</strong>: 超高速論理ゲート</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Section 4: Emerging Device Concepts -->
+            <section>
+                <h2>4.4 新興デバイス概念</h2>
+
+                <h3>4.4.1 フォノンベースの情報処理</h3>
+                <p>
+                    カイラルフォノンは、電子系とは独立した情報キャリアとして利用できます。
+                    フォノンベースの情報処理の利点：
+                </p>
+                <ul>
+                    <li><strong>低消費電力</strong>: 電荷輸送に伴うジュール熱がない</li>
+                    <li><strong>高速性</strong>: フォノン群速度は音速（km/s）</li>
+                    <li><strong>低干渉</strong>: 電磁ノイズに強い</li>
+                    <li><strong>量子コヒーレンス</strong>: 低温でコヒーレント状態を維持</li>
+                </ul>
+
+                <p>
+                    情報符号化の方法：
+                </p>
+                <ul>
+                    <li><strong>振幅符号化</strong>: フォノン占有数 $n_{\mathbf{q}\nu}$ で情報を表現</li>
+                    <li><strong>位相符号化</strong>: フォノン波束の位相で情報を表現</li>
+                    <li><strong>カイラリティ符号化</strong>: 右・左円偏光で0・1を表現</li>
+                </ul>
+
+                <h3>4.4.2 カイラルフォノントランジスタ</h3>
+                <p>
+                    フォノントランジスタは、フォノン流を制御する3端子素子です。
+                    カイラルフォノンを用いた設計例：
+                </p>
+
+                <div class="mermaid">
+                graph LR
+                    S[ソース<br/>フォノン発生] --> C[チャネル<br/>伝播経路]
+                    C --> D[ドレイン<br/>フォノン検出]
+                    G[ゲート<br/>円偏光制御] --> C
+                    style G fill:#f9f,stroke:#333,stroke-width:2px
+                </div>
+
+                <p>
+                    <strong>動作原理</strong>：
+                </p>
+                <ol>
+                    <li><strong>ソース</strong>: 圧電素子や光励起でフォノンを生成</li>
+                    <li><strong>ゲート</strong>: 円偏光レーザーでカイラルフォノンの分布を制御
+                        <ul>
+                            <li>σ+ 光 → 右円偏光フォノン増加</li>
+                            <li>σ- 光 → 左円偏光フォノン増加</li>
+                        </ul>
+                    </li>
+                    <li><strong>チャネル</strong>: カイラリティに依存した伝播
+                        <ul>
+                            <li>フォノニック結晶で特定カイラリティのみ透過</li>
+                            <li>界面でのカイラリティ選択的散乱</li>
+                        </ul>
+                    </li>
+                    <li><strong>ドレイン</strong>: 円偏光ラマン分光や熱電変換で検出</li>
+                </ol>
+
+                <p>
+                    <strong>性能指標</strong>：
+                </p>
+                <ul>
+                    <li><strong>On/Off比</strong>: ゲート制御によるフォノン流の変調率（10:1以上目標）</li>
+                    <li><strong>応答時間</strong>: フォノン寿命で制限（ピコ秒オーダー）</li>
+                    <li><strong>エネルギー効率</strong>: ゲート制御に必要な光エネルギー</li>
+                </ul>
+
+                <h3>4.4.3 フォノン偏光子とフィルター</h3>
+                <p>
+                    <strong>フォノン偏光子</strong>は、特定のカイラリティのフォノンのみを通過させるデバイスです。
+                    実現方法の例：
+                </p>
+
+                <div class="info-box">
+                    <h4>1. カイラルフォノニック結晶</h4>
+                    <p>
+                        周期的な構造により、特定の円偏光フォノンにバンドギャップを形成。
+                        反対の円偏光は透過する。
+                    </p>
+                    <p>
+                        設計方法: トポロジカルフォノニクスの原理を利用し、
+                        カイラル対称性を破った超格子構造を設計。
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <h4>2. 界面カイラリティフィルター</h4>
+                    <p>
+                        2つの材料の界面でのフォノン透過率がカイラリティに依存することを利用。
+                    </p>
+                    <p>
+                        例: WSe₂/hBN界面では、界面対称性により右・左円偏光フォノンの
+                        透過率が異なる。
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <h4>3. 回転ドメイン境界フィルター</h4>
+                    <p>
+                        2次元材料の回転角度を制御したドメイン境界を利用。
+                    </p>
+                    <p>
+                        例: ツイストバイレイヤーグラフェンの境界では、
+                        回転角度に依存してカイラルフォノンの透過率が変化。
+                    </p>
+                </div>
+
+                <h3>4.4.4 集積フォノニクス回路</h3>
+                <p>
+                    将来的には、複数のフォノンデバイスを集積した
+                    <strong>フォノニクス集積回路</strong>が実現される可能性があります：
+                </p>
+
+                <div class="mermaid">
+                graph TD
+                    A[フォノン発生器] --> B[カイラル偏光子]
+                    B --> C[フォノン導波路]
+                    C --> D[フォノントランジスタ]
+                    D --> E[フォノン検出器]
+                    F[制御レーザー] --> D
+                    G[バイアス音波] --> D
+                </div>
+
+                <p>
+                    <strong>構成要素</strong>：
+                </p>
+                <ul>
+                    <li><strong>フォノン発生器</strong>: 圧電素子、光励起、熱勾配</li>
+                    <li><strong>フォノン導波路</strong>: ナノワイヤ、2次元材料リボン</li>
+                    <li><strong>フォノン偏光子・スプリッター</strong>: カイラリティ分離</li>
+                    <li><strong>フォノン論理ゲート</strong>: AND、OR、NOTゲート</li>
+                    <li><strong>フォノンメモリ</strong>: キャビティ閉じ込め</li>
+                    <li><strong>フォノン検出器</strong>: ラマン分光、熱電変換</li>
+                </ul>
+
+                <p>
+                    課題：室温での動作、長距離伝播、高効率変換、大規模集積
+                </p>
+            </section>
+
+            <!-- Section 5: Chiral Phonon Polaritons -->
+            <section>
+                <h2>4.5 カイラルフォノンポラリトン</h2>
+
+                <h3>4.5.1 光子-フォノン結合</h3>
+                <p>
+                    カイラルフォノンが光子と強く結合すると、
+                    <strong>カイラルフォノンポラリトン</strong>が形成されます。
+                    これは、光とフォノンの混成状態であり、両者の性質を併せ持ちます。
+                </p>
+
+                <p>
+                    結合ハミルトニアンは：
+                </p>
+                $$H = \sum_\mathbf{q} \hbar\omega_\text{ph}(\mathbf{q}) a^\dagger_\mathbf{q} a_\mathbf{q}
+                + \sum_\mathbf{k} \hbar\omega_\text{opt}(\mathbf{k}) b^\dagger_\mathbf{k} b_\mathbf{k}
+                + \sum_{\mathbf{k}\mathbf{q}} g_{\mathbf{k}\mathbf{q}} (a^\dagger_\mathbf{q} b_\mathbf{k} + a_\mathbf{q} b^\dagger_\mathbf{k})$$
+                <p>
+                    ここで、$a^\dagger, a$ はフォノン演算子、$b^\dagger, b$ は光子演算子、
+                    $g_{\mathbf{k}\mathbf{q}}$ は結合定数です。
+                </p>
+
+                <p>
+                    この系の固有状態（ポラリトン）は、上部分枝（UPB）と下部分枝（LPB）に分かれます：
+                </p>
+                $$\omega_\pm(\mathbf{k}) = \frac{\omega_\text{ph} + \omega_\text{opt}}{2}
+                \pm \frac{1}{2}\sqrt{(\omega_\text{ph} - \omega_\text{opt})^2 + 4g^2}$$
+                <p>
+                    共鳴条件（$\omega_\text{ph} \approx \omega_\text{opt}$）では、
+                    ラビ分裂 $2g$ が観測されます。
+                </p>
+
+                <h3>4.5.2 増強された光物質相互作用</h3>
+                <p>
+                    カイラルフォノンポラリトンは、通常の光-物質相互作用よりも
+                    大きな結合強度を示します。これは以下の理由によります：
+                </p>
+                <ul>
+                    <li><strong>カイラリティマッチング</strong>: 円偏光光とカイラルフォノンの選択的結合</li>
+                    <li><strong>局在増強</strong>: 2次元材料での電場局在</li>
+                    <li><strong>量子閉じ込め</strong>: ナノ構造でのモード体積縮小</li>
+                </ul>
+
+                <p>
+                    増強因子は、Purcell係数で評価されます：
+                </p>
+                $$F_P = \frac{3}{4\pi^2}\left(\frac{\lambda}{n}\right)^3 \frac{Q}{V}$$
+                <p>
+                    ここで、$Q$ は共振器のQ値、$V$ はモード体積、$\lambda$ は波長、$n$ は屈折率です。
+                    2次元材料のナノキャビティでは、$F_P > 100$ が達成されています。
+                </p>
+
+                <h3>4.5.3 応用: 超低閾値レーザー</h3>
+                <p>
+                    強結合ポラリトンは、ボース凝縮による
+                    <strong>ポラリトンレーザー</strong>の実現を可能にします。
+                    カイラルフォノンポラリトンを用いると、
+                    円偏光出力のコヒーレント光源が実現できます。
+                </p>
+
+                <p>
+                    利点：
+                </p>
+                <ul>
+                    <li>低閾値（電子系よりも軽い有効質量）</li>
+                    <li>室温動作の可能性</li>
+                    <li>円偏光の制御が容易</li>
+                </ul>
+
+                <h3>4.5.4 非線形光学応用</h3>
+                <p>
+                    カイラルフォノンポラリトンは、強い非線形光学効果を示します。
+                    特に、第二高調波発生（SHG）や和周波発生（SFG）において、
+                    カイラリティ選択的な応答が観測されます。
+                </p>
+
+                <p>
+                    カイラル非線形感受率：
+                </p>
+                $$\chi^{(2)}_{\sigma^+} \neq \chi^{(2)}_{\sigma^-}$$
+                <p>
+                    これにより、円偏光制御された非線形光学デバイス（光スイッチ、
+                    周波数変換器）が実現できます。
+                </p>
+            </section>
+
+            <!-- Section 6: Future Directions -->
+            <section>
+                <h2>4.6 将来の方向性</h2>
+
+                <h3>4.6.1 カイラリティを持つ量子フォノニクス</h3>
+                <p>
+                    量子情報科学への応用として、カイラルフォノンを用いた
+                    <strong>量子フォノニクス</strong>が注目されています。
+                </p>
+
+                <div class="info-box">
+                    <h4>量子ビット符号化</h4>
+                    <p>カイラルフォノンの量子状態として量子ビットを符号化：</p>
+                    $$|\psi\rangle = \alpha |0, \sigma^+\rangle + \beta |1, \sigma^-\rangle$$
+                    <p>
+                        ここで、$|0, \sigma^+\rangle$ は右円偏光フォノン1個、
+                        $|1, \sigma^-\rangle$ は左円偏光フォノン1個を表します。
+                    </p>
+                </div>
+
+                <p>
+                    <strong>量子ゲート操作</strong>：
+                </p>
+                <ul>
+                    <li><strong>単一量子ビットゲート</strong>: 円偏光パルスでカイラリティを回転</li>
+                    <li><strong>2量子ビットゲート</strong>: フォノン-フォノン相互作用（非線形項）を利用</li>
+                    <li><strong>読み出し</strong>: 円偏光分解ラマン分光</li>
+                </ul>
+
+                <p>
+                    課題：デコヒーレンス時間の延長（現状：ピコ秒→目標：ナノ秒）
+                </p>
+
+                <h3>4.6.2 トポロジカル保護</h3>
+                <p>
+                    カイラルフォノンとトポロジカル物性の組み合わせにより、
+                    <strong>トポロジカル保護されたフォノンモード</strong>が実現できます。
+                </p>
+
+                <p>
+                    例: Chern数を持つフォノンバンド
+                </p>
+                $$C = \frac{1}{2\pi} \int_\text{BZ} d^2q \, \Omega_z(\mathbf{q})$$
+                <p>
+                    ここで、$\Omega_z(\mathbf{q})$ はフォノンのベリー曲率です。
+                    $C \neq 0$ の場合、エッジにカイラルフォノンモードが現れます。
+                </p>
+
+                <p>
+                    <strong>利点</strong>：
+                </p>
+                <ul>
+                    <li>欠陥に対する頑健性（後方散乱の抑制）</li>
+                    <li>方向性のあるフォノン伝播</li>
+                    <li>量子状態の保護</li>
+                </ul>
+
+                <h3>4.6.3 室温応用への挑戦</h3>
+                <p>
+                    現状の多くの研究は極低温で行われていますが、
+                    実用化には室温動作が不可欠です。室温応用への戦略：
+                </p>
+
+                <div class="info-box">
+                    <h4>1. 高周波フォノンの利用</h4>
+                    <p>
+                        光学フォノン（THz領域）は $\hbar\omega \gg k_B T$ を満たしやすく、
+                        熱励起の影響を受けにくい。
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <h4>2. 強結合系の利用</h4>
+                    <p>
+                        光-フォノン強結合により、ポラリトン分裂 $2g$ を熱エネルギー $k_B T$ より
+                        大きくする（$g > 25$ meV @ 室温）。
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <h4>3. トポロジカル保護</h4>
+                    <p>
+                        トポロジカルフォノンは、無秩序や熱揺らぎに対して頑健。
+                        エネルギーギャップ $\Delta > k_B T$ を確保。
+                    </p>
+                </div>
+
+                <div class="info-box">
+                    <h4>4. ナノ構造の利用</h4>
+                    <p>
+                        量子閉じ込め効果により、離散的なエネルギー準位を形成。
+                        準位間隔 $\Delta E > k_B T$ とすることで、室温での状態制御が可能。
+                    </p>
+                </div>
+
+                <h3>4.6.4 新材料探索</h3>
+                <p>
+                    機械学習を用いた大規模材料探索により、
+                    より強いカイラリティを持つフォノンモードを示す新材料の発見が期待されます。
+                </p>
+
+                <p>
+                    探索の観点：
+                </p>
+                <ul>
+                    <li><strong>対称性</strong>: カイラルな空間群（P3₁, P6₁, etc.）</li>
+                    <li><strong>強いスピン軌道相互作用</strong>: 重元素を含む化合物</li>
+                    <li><strong>バレー縮退</strong>: 2次元材料、特にTMD類似体</li>
+                    <li><strong>高周波光学フォノン</strong>: 室温動作に有利</li>
+                </ul>
+
+                <p>
+                    有望な材料系：
+                </p>
+                <ul>
+                    <li>新規TMD（MoTe₂、WSeTe混晶）</li>
+                    <li>カイラルペロブスカイト</li>
+                    <li>トポロジカル絶縁体表面</li>
+                    <li>2次元磁性体（CrI₃、CrBr₃）</li>
+                </ul>
+
+                <h3>4.6.5 他分野との融合</h3>
+                <p>
+                    カイラルフォノン研究は、他の分野との融合により新しい展開を見せています：
+                </p>
+
+                <ul>
+                    <li><strong>スピントロニクス</strong>: フォノン-スピン変換、スピンカロリトロニクス</li>
+                    <li><strong>量子情報</strong>: フォノン量子ビット、量子トランスデューサー</li>
+                    <li><strong>オプトメカニクス</strong>: 光-機械結合、量子測定</li>
+                    <li><strong>熱電変換</strong>: カイラリティ制御による効率向上</li>
+                    <li><strong>化学</strong>: カイラル触媒、不斉合成への応用</li>
+                </ul>
+
+                <div class="mermaid">
+                graph TD
+                    A[カイラルフォノン] --> B[スピントロニクス]
+                    A --> C[量子情報]
+                    A --> D[オプトメカニクス]
+                    A --> E[熱電変換]
+                    A --> F[化学・触媒]
+
+                    B --> G[新デバイス]
+                    C --> G
+                    D --> G
+                    E --> G
+                    F --> H[新応用]
+
+                    style A fill:#f96,stroke:#333,stroke-width:3px
+                    style G fill:#6f9,stroke:#333,stroke-width:2px
+                    style H fill:#6f9,stroke:#333,stroke-width:2px
+                </div>
+            </section>
+
+            <!-- Exercises -->
+            <section class="exercises">
+                <h2>演習問題</h2>
+
+                <div class="exercise">
+                    <h3>問題1: PAM計算の実装</h3>
+                    <p>
+                        以下のフォノン固有ベクトル（規格化済み）が与えられたとき、
+                        フォノン角運動量 $L_z$ と円偏光度 $P_\text{circ}$ を計算せよ。
+                    </p>
+                    <p>
+                        2原子系（W, Se）、K点でのA'₁光学モード：
+                    </p>
+                    $$\mathbf{e}_W = \frac{1}{\sqrt{2}}(1, i, 0), \quad
+                    \mathbf{e}_\text{Se} = \frac{1}{\sqrt{2}}(-1, -i, 0)$$
+                    <details>
+                        <summary>解答を見る</summary>
+                        <div class="solution">
+                            <p><strong>解答</strong>：</p>
+                            <p>各原子の寄与を計算：</p>
+                            <p>W原子: $L_{z,W} = \text{Im}[e^*_x e_y - e^*_y e_x] = \text{Im}[1 \cdot i - (-i) \cdot 1] = \text{Im}[i + i] = 2$</p>
+                            <p>Se原子: $L_{z,\text{Se}} = \text{Im}[(-1) \cdot (-i) - i \cdot (-1)] = \text{Im}[i + i] = 2$</p>
+                            <p>合計: $L_z = L_{z,W} + L_{z,\text{Se}} = 4$</p>
+                            <p>規格化: $|\mathbf{e}|^2 = 2$ なので、$P_\text{circ} = 2|L_z|/|\mathbf{e}|^2 = 2 \times 4 / 2 = 4$</p>
+                            <p>※実際には規格化により $P_\text{circ} \leq 1$ となるよう調整が必要。
+                            この例は教育目的の簡略化。</p>
+                        </div>
+                    </details>
+                </div>
+
+                <div class="exercise">
+                    <h3>問題2: バレー-フォノン結合の選択則</h3>
+                    <p>
+                        WSe₂単層のKバレーの電子が、右円偏光フォノン（σ⁺）を吸収する過程を考える。
+                        最終状態のバレー（KまたはK'）と、許される遷移の選択則を、
+                        角運動量保存則から導出せよ。
+                    </p>
+                    <details>
+                        <summary>解答を見る</summary>
+                        <div class="solution">
+                            <p><strong>解答</strong>：</p>
+                            <p>角運動量保存則: $L_\text{final} = L_\text{initial} + L_\text{phonon}$</p>
+                            <p>Kバレー電子のバレー指数: $\tau = +1$ （角運動量 $+\hbar/2$ に対応）</p>
+                            <p>K'バレー電子のバレー指数: $\tau = -1$ （角運動量 $-\hbar/2$ に対応）</p>
+                            <p>右円偏光フォノン（σ⁺）: $L_z = +\hbar$</p>
+                            <p>初期状態: Kバレー ($\tau_i = +1$)</p>
+                            <p>最終状態の角運動量: $\tau_f = \tau_i + 1 = +1 + 1 = +2$ (mod 2) → K'バレー ($\tau = -1$)</p>
+                            <p><strong>選択則</strong>: K バレー + σ⁺ フォノン → K' バレー</p>
+                            <p>一般化: $\tau_f = \tau_i + \text{sgn}(L_z)$ （$\text{sgn}$ は符号関数）</p>
+                        </div>
+                    </details>
+                </div>
+
+                <div class="exercise">
+                    <h3>問題3: フォノン熱ホール伝導率</h3>
+                    <p>
+                        フォノンのベリー曲率が $\Omega_z(\mathbf{q}) = \Omega_0$ （定数）である
+                        2次元材料を考える。温度 $T = 300$ K、フォノン周波数 $\omega = 10$ THz、
+                        ブリルアンゾーンの面積 $A_\text{BZ} = (2\pi/a)^2$ （$a = 3$ Å）のとき、
+                        熱ホール伝導率 $\kappa_{xy}$ を見積もれ（$\Omega_0 = 10$ Å²と仮定）。
+                    </p>
+                    <details>
+                        <summary>解答を見る</summary>
+                        <div class="solution">
+                            <p><strong>解答</strong>：</p>
+                            <p>熱ホール伝導率の式（単一モード近似）:</p>
+                            <p>$\kappa_{xy} = \frac{k_B^2 T}{\hbar} n_\text{ph} c_2(x) \Omega_0$</p>
+                            <p>ここで、$x = \hbar\omega / k_B T$、$n_\text{ph} = A_\text{BZ}^{-1}$ はフォノン密度</p>
+                            <p>数値代入:</p>
+                            <ul>
+                                <li>$k_B T = 26$ meV @ 300 K</li>
+                                <li>$\hbar\omega = 10 \times 10^{12} \times 6.58 \times 10^{-16} = 6.58$ meV</li>
+                                <li>$x = 6.58 / 26 \approx 0.25$</li>
+                                <li>$c_2(0.25) \approx 0.2$ （数値計算）</li>
+                                <li>$n_\text{ph} = (2\pi / 3 \times 10^{-10})^{-2} \approx 2.25 \times 10^{19}$ m⁻²</li>
+                            </ul>
+                            <p>$\kappa_{xy} \approx \frac{(1.38 \times 10^{-23})^2 \times 300}{1.05 \times 10^{-34}} \times 2.25 \times 10^{19} \times 0.2 \times 10^{-20}$</p>
+                            <p>$\kappa_{xy} \approx 0.1$ W/K （オーダー見積もり）</p>
+                        </div>
+                    </details>
+                </div>
+
+                <div class="exercise">
+                    <h3>問題4: カイラルフォノンポラリトンのラビ分裂</h3>
+                    <p>
+                        フォノン周波数 $\omega_\text{ph} = 5$ THz、光共振器周波数 $\omega_\text{opt} = 5.2$ THz、
+                        結合定数 $g = 0.3$ THz のカイラルフォノンポラリトン系において、
+                        上部・下部ポラリトン分枝の周波数 $\omega_\pm$ とラビ分裂を計算せよ。
+                    </p>
+                    <details>
+                        <summary>解答を見る</summary>
+                        <div class="solution">
+                            <p><strong>解答</strong>：</p>
+                            <p>ポラリトン分散式:</p>
+                            <p>$\omega_\pm = \frac{\omega_\text{ph} + \omega_\text{opt}}{2} \pm \frac{1}{2}\sqrt{(\omega_\text{ph} - \omega_\text{opt})^2 + 4g^2}$</p>
+                            <p>数値代入:</p>
+                            <p>$\omega_+ + \omega_- = \frac{5 + 5.2}{2} = 5.1$ THz</p>
+                            <p>$\sqrt{(5 - 5.2)^2 + 4 \times 0.3^2} = \sqrt{0.04 + 0.36} = \sqrt{0.4} \approx 0.632$ THz</p>
+                            <p>$\omega_+ = 5.1 + 0.316 = 5.416$ THz</p>
+                            <p>$\omega_- = 5.1 - 0.316 = 4.784$ THz</p>
+                            <p><strong>ラビ分裂</strong>: $\Delta\omega = \omega_+ - \omega_- = 0.632$ THz $\approx$ 2.6 meV</p>
+                            <p>これは室温熱エネルギー（26 meV）の約1/10なので、
+                            明確なポラリトン分裂を観測するには低温が必要。</p>
+                        </div>
+                    </details>
+                </div>
+
+                <div class="exercise">
+                    <h3>問題5: カイラルフォノントランジスタの設計</h3>
+                    <p>
+                        WSe₂リボン（幅100 nm、長さ1 μm）を用いたカイラルフォノントランジスタを設計する。
+                        ソースで励起されたフォノンが、ゲート円偏光レーザー（波長600 nm、出力1 mW）により
+                        カイラリティ選択的に制御される。On/Off比10を達成するための
+                        設計パラメータを議論せよ。
+                    </p>
+                    <details>
+                        <summary>解答を見る</summary>
+                        <div class="solution">
+                            <p><strong>解答</strong>：</p>
+                            <p><strong>設計方針</strong>:</p>
+                            <ol>
+                                <li><strong>ソース</strong>: 圧電素子（ZnO薄膜）で幅広い周波数のフォノンを励起</li>
+                                <li><strong>ゲート</strong>: 円偏光レーザー（600 nm = 2.07 eV）でWSe₂のA励起子（1.65 eV）付近を共鳴励起
+                                    <ul>
+                                        <li>σ⁺光 → Kバレー励起 → 右円偏光フォノン選択的散乱</li>
+                                        <li>σ⁻光 → K'バレー励起 → 左円偏光フォノン選択的散乱</li>
+                                    </ul>
+                                </li>
+                                <li><strong>チャネル</strong>: WSe₂リボン、カイラリティ依存伝播
+                                    <ul>
+                                        <li>右円偏光フォノン: 電子との散乱が少ない（透過率 90%）</li>
+                                        <li>左円偏光フォノン: 電子との散乱が多い（透過率 10%）</li>
+                                    </ul>
+                                </li>
+                                <li><strong>ドレイン</strong>: 熱電変換素子（Bi₂Te₃）で検出</li>
+                            </ol>
+                            <p><strong>On/Off比の計算</strong>:</p>
+                            <p>On状態（σ⁺光）: ドレイン到達フォノン数 $N_\text{on} \propto 0.9$ （透過率90%）</p>
+                            <p>Off状態（σ⁻光）: ドレイン到達フォノン数 $N_\text{off} \propto 0.1$ （透過率10%）</p>
+                            <p>On/Off比: $N_\text{on} / N_\text{off} = 0.9 / 0.1 = 9$ ≈ 10 ✓</p>
+                            <p><strong>課題</strong>:</p>
+                            <ul>
+                                <li>応答時間: フォノン寿命（～1 ps）で制限</li>
+                                <li>ゲート効率: 光吸収率を向上（共振器構造の利用）</li>
+                                <li>熱散逸: 1 mWレーザーによる加熱を抑制（パルス動作）</li>
+                            </ul>
+                        </div>
+                    </details>
+                </div>
+            </section>
+
+            <!-- Summary -->
+            <section class="summary">
+                <h2>まとめ</h2>
+                <p>
+                    本章では、カイラルフォノンの計算手法と多様な応用展開を学びました。
+                    DFPTによるフォノン固有ベクトル計算から、フォノン角運動量（PAM）の抽出まで、
+                    完全な計算ワークフローをPhonopyとQuantum ESPRESSOを用いて実装しました。
+                    重要な計算式 $\mathbf{L} = \text{Im}[\mathbf{e}^* \times \mathbf{e}]$ は、
+                    カイラルフォノン研究の基礎となります。
+                </p>
+                <p>
+                    応用面では、フォノン角運動量輸送（Einstein-de Haas効果、熱ホール効果）、
+                    バレートロニクスにおけるバレー-フォノン結合の利用、
+                    フォノンベースの情報処理デバイス（トランジスタ、偏光子、集積回路）、
+                    カイラルフォノンポラリトンによる増強された光物質相互作用など、
+                    幅広いトピックをカバーしました。
+                </p>
+                <p>
+                    将来の方向性として、量子フォノニクス、トポロジカル保護、室温応用、
+                    新材料探索、他分野との融合が重要な研究課題です。
+                    カイラルフォノンは、基礎物理学の理解を深めるだけでなく、
+                    次世代の情報処理技術や量子技術の基盤となる可能性を秘めています。
+                </p>
+                <p>
+                    <strong>主要なポイント</strong>：
+                </p>
+                <ul>
+                    <li>PAM計算: $\mathbf{L} = \text{Im}[\mathbf{e}^* \times \mathbf{e}]$、円偏光度 $P_\text{circ} = 2|L_z|/|\mathbf{e}|^2$</li>
+                    <li>計算ツール: Phonopy（フォノン解析）、Quantum ESPRESSO（DFPT）、Python（後処理）</li>
+                    <li>PAM輸送: Einstein-de Haas効果、フォノンスピン流、熱ホール効果</li>
+                    <li>バレートロニクス: バレー-フォノン結合、カイラリティ選択的散乱、バレー情報保存</li>
+                    <li>新デバイス: フォノントランジスタ、偏光子、集積フォノニクス回路</li>
+                    <li>ポラリトン: 光-フォノン強結合、ラビ分裂、増強された相互作用</li>
+                    <li>将来展望: 量子フォノニクス、トポロジカル保護、室温応用</li>
+                </ul>
+            </section>
+
+            <!-- Navigation -->
+            <nav class="chapter-nav">
+                <a href="chapter-3.html" class="prev">← 第3章: 実験的検出</a>
+                <a href="index.html" class="index">目次</a>
+            </nav>
+        </div>
+    </main>
+
+    <section class="disclaimer">
+        <h2>免責事項</h2>
+        <p>
+            この教育コンテンツは、橋本研究室のナレッジベース用にAIの支援を受けて
+            作成されました。正確性を期していますが、重要な情報については
+            一次資料や査読済み文献で確認することをお勧めします。
+        </p>
+    </section>
+
+    <footer>
+        <p>&copy; 2025 東北大学 橋本研究室. All rights reserved.</p>
+    </footer>
+</body>
+</html>
