@@ -93,7 +93,7 @@ The Raman scattering intensity is determined by the Raman tensor \\(\mathbf{R}\\
 I \propto |\mathbf{e}_s \cdot \mathbf{R} \cdot \mathbf{e}_i|^2
 \\]
 
-For chiral phonons with angular momentum \\(m\\), the Raman tensor has specific symmetry properties. In monolayer TMDs (point group \\(D_{3h}\\)), the \\(E'\\) mode splits into left-handed (\\(E'_L\\)) and right-handed (\\(E'_R\\)) components with different Raman tensors.
+For chiral phonons with angular momentum \\(m\\), the Raman tensor has specific symmetry properties. In monolayer TMDs (point group \\(D_{3h}\\)), the \\(E'\\) mode can be described in a circular basis with left-handed (\\(E'_L\\)) and right-handed (\\(E'_R\\)) components (a degenerate pair at Γ) that are addressed differently by circular polarizations.
 
 | Phonon Mode | Angular Momentum | Active Configuration | Inactive Configuration |
 |-------------|------------------|----------------------|------------------------|
@@ -263,22 +263,22 @@ For chiral phonons, **polarized neutron scattering** is particularly interesting
 
 ## 3.6 Key Experimental Results
 
-### 3.6.1 WSe₂ Experiments (Chen et al. 2015)
+### 3.6.1 WSe₂ Experiments (2018–2019)
 
-The landmark discovery of chiral phonons was reported by Chen et al. in 2015 using circularly polarized Raman spectroscopy on monolayer WSe₂:
+Landmark reports on chiral phonons in monolayer WSe₂ include the 2018 experimental observation (Zhu et al., Science) and subsequent works exploring valley–phonon coupling and angular momentum (e.g., Chen et al., 2019, Nat. Phys.). Representative observations include:
 
-> **🔬 Key Findings in Monolayer WSe₂**
-> 1. **\\(E'\\) mode splitting:** The doubly degenerate \\(E'\\) phonon mode at ~250 cm⁻¹ splits into left-handed and right-handed chiral components
-> 2. **Valley-dependent selection rules:** \\(\sigma^+/\sigma^-\\) configuration excites chiral phonons at K valley, while \\(\sigma^-/\sigma^+\\) excites K' valley
-> 3. **Polarization degree:** Circular polarization degree \\(|P_c| \approx 0.8-0.9\\) for chiral modes
-> 4. **Temperature dependence:** Chiral phonon signatures persist up to room temperature
-> 5. **Layer dependence:** Chirality is strongest in monolayer, weakens in bilayer due to interlayer coupling
+> **🔬 Representative Findings in Monolayer WSe₂**
+> 1. **E' circular components:** The doubly degenerate \\(E'\\) mode near ~250 cm⁻¹ can be addressed in circular polarization basis (left/right components as a degenerate pair)
+> 2. **Valley-dependent selection rules:** Opposite circular helicities couple to K and K' valleys, consistent with angular momentum conservation
+> 3. **Polarization contrast:** High circular polarization contrast is observed for chiral-sensitive configurations (magnitude is setup- and sample-dependent)
+> 4. **Temperature robustness:** Chiral-sensitive signals persist to elevated temperatures in high-quality samples
+> 5. **Layer dependence:** Monolayers show the strongest signatures; interlayer coupling can reduce contrast
 
-**Experimental Configuration:**
-- Laser wavelength: 532 nm (green laser, resonant with exciton transitions)
-- Sample: Mechanically exfoliated monolayer WSe₂ on SiO₂/Si substrate
-- Temperature: 10 K to 300 K
-- Backscattering geometry with confocal microscope
+**Typical Experimental Configuration:**
+- Laser wavelength near excitonic resonance (e.g., 532 nm)
+- Sample: Mechanically exfoliated monolayer WSe₂ on SiO₂/Si (or encapsulated)
+- Temperature range: cryogenic to room temperature
+- Backscattering geometry with polarization control and analysis
 
 ### 3.6.2 α-Quartz Experiments (Zhu et al. 2018)
 
@@ -738,8 +738,8 @@ These experimental advances have transformed chiral phonons from a theoretical c
 This educational content was generated with AI assistance for the Hashimoto Lab knowledge base. While efforts have been made to ensure accuracy, readers should verify critical information with primary sources and peer-reviewed literature.
 
 **Key References:**
-- Chen et al., "Chiral phonons in the honeycomb optical lattices," *Nat. Phys.* **11**, 1008 (2015)
 - Zhu et al., "Observation of chiral phonons," *Science* **359**, 579 (2018)
+- Chen et al., "Entanglement of angular momentum and valley in chiral phonons," *Nature Physics* **15**, 221 (2019)
 - Zhang & Niu, "Angular Momentum of Phonons and the Einstein–de Haas Effect," *Phys. Rev. Lett.* **112**, 085503 (2014)
 
 ---

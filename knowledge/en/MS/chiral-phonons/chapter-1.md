@@ -37,13 +37,13 @@ By completing this chapter, you will be able to:
 
 ### The Birth of Chiral Phonon Physics
 
-The concept of **chiral phonons**—lattice vibrations carrying intrinsic angular momentum—was first theoretically predicted and experimentally demonstrated in 2015 by Zhang and Niu in monolayer transition metal dichalcogenides (TMDs). Their seminal work in *Physical Review Letters* revealed that certain phonon modes in materials lacking inversion symmetry can exhibit circular atomic motion, analogous to circularly polarized light.
+The concept of **chiral phonons**—lattice vibrations carrying intrinsic angular momentum—was first theoretically predicted in 2015 by Zhang and Niu in the context of monolayer hexagonal lattices. Their seminal work in *Physical Review Letters* revealed that certain phonon modes in materials lacking inversion symmetry can exhibit circular atomic motion, analogous to circularly polarized light. The first widely cited experimental observation in a 2D material was reported later in 2018 for monolayer WSe₂.
 
-> **📚 Historical Milestone**
+> **📚 Historical Milestones**
 >
-> **Zhang, L. & Niu, Q. (2015)**. "Chiral Phonons at High-Symmetry Points in Monolayer Hexagonal Lattices." *Physical Review Letters*, 115, 115502.
+> • **Zhang, L. & Niu, Q. (2015)**. "Chiral Phonons at High-Symmetry Points in Monolayer Hexagonal Lattices." *Physical Review Letters*, 115, 115502. — Theoretical prediction of chiral phonons (e.g., at K/K' valleys) and their angular momentum properties.
 >
-> This paper demonstrated that E' phonons at the K and K' valleys of monolayer WSe₂ carry angular momentum ±ℏ per phonon, locking phonon chirality to valley pseudospin.
+> • **Zhu, H. et al. (2018)**. "Observation of chiral phonons." *Science*, 359(6375), 579–582. — Experimental observation of chiral phonons in monolayer WSe₂.
 
 ### Why Chiral Phonons Matter
 
@@ -58,13 +58,12 @@ Chiral phonons represent a paradigm shift in lattice dynamics for several reason
 ```mermaid
 timeline
     title Development of Chiral Phonon Research
-    2015 : Zhang & Niu predict chiral phonons in TMD monolayers
-    2016 : Experimental observation in MoS₂ and WSe₂ via Raman
-    2017 : Extension to 3D chiral crystals (α-quartz, tellurium)
-    2018 : Valley-phonon coupling mechanisms elucidated
-    2019 : Chiral phonon transport and phonon Hall effects
-    2020 : Connection to topological phonons established
-    2021-2025 : Applications in valleytronics and phonon devices
+    2015 : Zhang & Niu predict chiral phonons in hexagonal monolayers (PRL)
+    2018 : First experimental observation in monolayer WSe₂ (Science)
+    2018 : Extension to 3D chiral crystals (e.g., α-quartz)
+    2019 : Valley–phonon entanglement and related phenomena (Nat Phys)
+    2020 : Connections to topological phonons developed further
+    2021-2025 : Applications explored in valleytronics and devices
 ```
 
 ---
@@ -415,9 +414,16 @@ For chiral phonons at high-symmetry points, \\(\epsilon \to \pm 1\\) (circular),
 
 """
 Calculate Phonon Angular Momentum (PAM) from Complex Eigenvectors
-Purpose: Demonstrate PAM calculation for 2D phonon modes
+Purpose: Demonstrate qualitative PAM calculation for 2D phonon modes
 Target: Graduate students and researchers
 Execution time: <1 second
+
+Important notes on units/normalization:
+- This example uses arbitrary eigenvector amplitudes and does not enforce
+  one-phonon normalization. As such, the printed "PAM" value is in
+  unnormalized arbitrary units and should NOT be interpreted as ±ħ.
+- The circularity χ in [-1, 1] is the robust, dimensionless indicator of
+  handedness. Use χ for physical interpretation in this demo.
 """
 
 import numpy as np
@@ -439,7 +445,7 @@ def calculate_pam(eigenvector, masses, omega):
     Returns:
     --------
     L_z : float
-        z-component of PAM in units of ℏ
+        z-component of PAM (unnormalized, arbitrary units)
     circularity : float
         Circularity parameter χ ∈ [-1, 1]
     """
@@ -532,7 +538,7 @@ omega = 10.0  # THz
 
 L_z, chi = calculate_pam(eigenvector_L, masses, omega)
 print(f"Eigenvector: {eigenvector_L[0]}")
-print(f"PAM (L_z): {L_z:.4f} ℏ")
+print(f"PAM (unnormalized): {L_z:.4f}")
 print(f"Circularity χ: {chi:.4f}")
 print(f"Interpretation: {'Left-handed' if chi > 0 else 'Right-handed'} phonon\n")
 
@@ -552,7 +558,7 @@ eigenvector_R = np.array([
 
 L_z, chi = calculate_pam(eigenvector_R, masses, omega)
 print(f"Eigenvector: {eigenvector_R[0]}")
-print(f"PAM (L_z): {L_z:.4f} ℏ")
+print(f"PAM (unnormalized): {L_z:.4f}")
 print(f"Circularity χ: {chi:.4f}")
 print(f"Interpretation: {'Left-handed' if chi > 0 else 'Right-handed'} phonon\n")
 
@@ -572,13 +578,13 @@ eigenvector_linear = np.array([
 
 L_z, chi = calculate_pam(eigenvector_linear, masses, omega)
 print(f"Eigenvector: {eigenvector_linear[0]}")
-print(f"PAM (L_z): {L_z:.4f} ℏ")
+print(f"PAM (unnormalized): {L_z:.4f}")
 print(f"Circularity χ: {chi:.4f}")
 print(f"Interpretation: Linear polarization (achiral)\n")
 
 
 # ============================================================
-# Example 4: Monolayer MoS₂ E' Mode at K Point (Realistic)
+# Example 4: Monolayer MoS₂ E' Mode at K Point (Illustrative)
 # ============================================================
 print("=" * 60)
 print("Example 4: MoS₂ E' Mode at K Point (Simplified 3-Atom)")
@@ -595,7 +601,7 @@ masses_MoS2 = np.array([95.94, 32.06, 32.06])  # Mo, S, S (amu)
 omega_MoS2 = 12.5  # THz (typical E' mode frequency)
 
 L_z, chi = calculate_pam(eigenvector_MoS2, masses_MoS2, omega_MoS2)
-print(f"PAM (L_z): {L_z:.4f} ℏ")
+print(f"PAM (unnormalized): {L_z:.4f}")
 print(f"Circularity χ: {chi:.4f}")
 print(f"Interpretation: Strong left-handed chirality (L mode)")
 print(f"Valley-locked: Excitable by σ⁺ light at K valley\n")
@@ -607,14 +613,14 @@ print("All examples completed successfully!")
 print("=" * 60)
 ```
 
-**Expected Output:**
+**Expected Output (PAM in arbitrary units):**
 
 ```
 ============================================================
 Example 1: Left-Handed Chiral Phonon (L mode)
 ============================================================
 Eigenvector: [1.+0.j 0.+1.j 0.+0.j]
-PAM (L_z): 160.0000 ℏ
+PAM (unnormalized): 160.0000
 Circularity χ: 1.0000
 Interpretation: Left-handed phonon
 
@@ -622,7 +628,7 @@ Interpretation: Left-handed phonon
 Example 2: Right-Handed Chiral Phonon (R mode)
 ============================================================
 Eigenvector: [1.+0.j 0.-1.j 0.+0.j]
-PAM (L_z): -160.0000 ℏ
+PAM (unnormalized): -160.0000
 Circularity χ: -1.0000
 Interpretation: Right-handed phonon
 
@@ -630,14 +636,14 @@ Interpretation: Right-handed phonon
 Example 3: Linear Polarization (No Chirality)
 ============================================================
 Eigenvector: [1.+0.j 0.+0.j 0.+0.j]
-PAM (L_z): 0.0000 ℏ
+PAM (unnormalized): 0.0000
 Circularity χ: 0.0000
 Interpretation: Linear polarization (achiral)
 
 ============================================================
 Example 4: MoS₂ E' Mode at K Point (Simplified 3-Atom)
 ============================================================
-PAM (L_z): 204.8000 ℏ
+PAM (unnormalized): 204.8000
 Circularity χ: 1.0000
 Interpretation: Strong left-handed chirality (L mode)
 Valley-locked: Excitable by σ⁺ light at K valley
@@ -713,7 +719,7 @@ In Chapter 2, we will explore chiral phonons in real materials:
 
 ## Disclaimer
 
-This educational content was created with AI assistance for the Hashimoto Lab knowledge base. While efforts have been made to ensure theoretical accuracy and alignment with current research (Zhang & Niu 2015, PRL 115, 115502), readers should verify critical information with primary sources and peer-reviewed literature. Computational examples are for educational purposes and may require validation for research applications.
+This educational content was created with AI assistance for the Hashimoto Lab knowledge base. While efforts have been made to ensure theoretical accuracy and alignment with current research (e.g., Zhang & Niu 2015, PRL 115, 115502; Zhu et al. 2018, Science 359, 579), readers should verify critical information with primary sources and peer-reviewed literature. Computational examples are for educational purposes and may require validation and proper normalization for research applications.
 
 ---
 

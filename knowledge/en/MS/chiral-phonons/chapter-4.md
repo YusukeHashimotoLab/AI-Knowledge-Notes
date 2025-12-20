@@ -408,15 +408,9 @@ The **Einstein-de Haas effect** demonstrates that angular momentum can be transf
 
 \\[\mathbf{L}_{\text{total}} = \mathbf{L}_{\text{phonon}} + \mathbf{L}_{\text{lattice}} = \text{constant}\\]
 
-#### Experimental Observation
+#### Experimental Status
 
-In 2020, experiments on suspended graphene nanoribbons demonstrated:
-
-- Circularly polarized laser excites chiral phonons
-- Phonon angular momentum transferred to lattice rotation
-- Torsional oscillations detected via optical microscopy
-
-**Angular momentum per phonon**: \\(L_z \approx 0.7\hbar\\) for the chiral optical phonon in graphene
+Experimental demonstrations of a phononic Einstein–de Haas effect remain an active area of research. Building on theoretical proposals (e.g., Zhang & Niu 2014, PRL 112, 085503), ongoing efforts explore optical excitation of chiral phonons and possible transfer of phonon angular momentum to lattice rotations. Reported observations and inferred magnitudes vary by system and methodology; careful calibration and controls are essential.
 
 ### 4.2.2 Phonon Spin Current
 

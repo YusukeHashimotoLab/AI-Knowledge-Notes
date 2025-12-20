@@ -20,7 +20,7 @@ Phonons carrying intrinsic angular momentum represent a frontier in condensed ma
 
 ## Series Overview
 
-Chiral phonons are lattice vibrations that carry angular momentum, discovered in 2015 in monolayer WSe₂. Unlike conventional phonons described by scalar displacement fields, chiral phonons exhibit circular atomic motion and couple to valley degrees of freedom in 2D materials. This emerging field connects phonon physics with topology, valleytronics, and quantum information science.
+Chiral phonons are lattice vibrations that carry angular momentum. They were theoretically predicted in 2015 (Zhang & Niu, PRL 115, 115502), and their first widely cited experimental observation in a 2D material was reported in 2018 for monolayer WSe₂ (Zhu et al., Science 359, 579). Unlike conventional phonons described by scalar displacement fields, chiral phonons exhibit circular atomic motion and can couple to valley degrees of freedom in 2D materials. This emerging field connects phonon physics with topology, valleytronics, and quantum information science.
 
 ### What You'll Learn
 

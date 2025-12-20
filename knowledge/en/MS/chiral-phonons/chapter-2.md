@@ -10,7 +10,7 @@ subtitle: "From 2D TMD Monolayers to 3D Chiral Crystals"
 
 ---
 
-Chiral phonons were first experimentally observed in 2D transition metal dichalcogenides (TMDs) in 2015, revolutionizing our understanding of phonon physics. This chapter explores the materials that host chiral phonons, from valley-coupled phonons in WSe₂ and MoS₂ monolayers to intrinsic chirality in 3D crystals like α-quartz and tellurium. We examine the symmetry requirements, experimental signatures, and temperature-dependent behavior that make these materials platforms for exploring phonon angular momentum.
+Chiral phonons were theoretically predicted in 2015 and first widely reported experimentally in 2018 for monolayer WSe₂, revolutionizing our understanding of phonon physics. This chapter explores the materials that host chiral phonons, from valley-coupled phonons in WSe₂ and MoS₂ monolayers to intrinsic chirality in 3D crystals like α-quartz and tellurium. We examine the symmetry requirements, experimental signatures, and temperature-dependent behavior that make these materials platforms for exploring phonon angular momentum.
 
 **📖 Reading time:** 30-40min | **📊 Difficulty:** Advanced | **💻 Code examples:** 3 examples
 
@@ -70,11 +70,11 @@ graph TD
 
 ### E' and E'' Phonon Modes at Γ Point
 
-The chiral phonon modes in TMD monolayers are doubly degenerate E' and E'' modes at the Brillouin zone center (Γ point):
+The E' and E'' modes in TMD monolayers are doubly degenerate at the Brillouin zone center (Γ point). Although these 2D irreps can be expressed in a circular polarization basis, the degeneracy at Γ implies no intrinsic energy splitting between opposite circular components.
 
-**Chiral E Modes**
+**E Modes and Circular Basis**
 
-For D₃ₕ symmetry, the doubly degenerate E modes can be written as circularly polarized eigenstates:
+For D₃ₕ symmetry, the doubly degenerate E modes can be represented in circularly polarized eigenstates:
 
 \\[
 |\text{E}^+\rangle = \frac{1}{\sqrt{2}}(|E_x\rangle + i|E_y\rangle), \quad L_z = +\hbar
@@ -84,14 +84,13 @@ For D₃ₕ symmetry, the doubly degenerate E modes can be written as circularly
 |\text{E}^-\rangle = \frac{1}{\sqrt{2}}(|E_x\rangle - i|E_y\rangle), \quad L_z = -\hbar
 \\]
 
-where the superscripts ± denote opposite phonon angular momentum (PAM) along the z-axis.
+where the superscripts ± denote opposite circular components in the chosen basis. Whether a mode carries a nonzero net phonon angular momentum (PAM) depends on symmetry and wavevector; valley-locked chiral phonons are typically discussed at the K/K' points.
 
-**Physical characteristics**:
+**Physical characteristics (material dependent)**:
 
-- **E' mode (~250-260 cm⁻¹ for WSe₂)**: In-plane optical mode where M and X atoms vibrate in opposite directions
-- **E'' mode (~310-380 cm⁻¹ for WSe₂)**: Out-of-plane acoustic-like mode
-- Circular atomic motion with definite handedness (clockwise or counterclockwise)
-- Intrinsic phonon angular momentum \\(L_z = \pm\hbar\\)
+- **E' mode (~250–260 cm⁻¹ for WSe₂)**: Predominantly in-plane optical motion
+- **E'' mode (frequency varies by material)**: Often involves out-of-plane motion and remains an optical mode in typical TMDs
+- Circular basis is a convenient representation; net PAM and selection rules are most prominent at K/K'
 
 ### Valley-Phonon Coupling at K and K' Points
 
@@ -283,15 +282,11 @@ This is analogous to Rashba or Dresselhaus splitting in electronic bands, but fo
 
 ### Phonon Dispersion in WSe₂
 
-For WSe₂ monolayer, the phonon dispersion shows characteristic features:
+For WSe₂ monolayer, representative features often discussed include:
 
-1. **Γ point**: E' and E'' modes are doubly degenerate (E⁺ and E⁻ have same frequency)
-2. **K and K' points**: Degeneracy lifting due to valley-phonon coupling
-3. **General q-points**: Linear splitting near Γ point:
-   \\[
-   \Delta\omega(\mathbf{q}) \approx \alpha |\mathbf{q}|
-   \\]
-   where \\(\alpha\\) is the chirality-dependent group velocity difference
+1. **Γ point**: E' and E'' modes are doubly degenerate (circular components are basis choices)
+2. **K and K' points**: Valley-resolved chiral character emerges; opposite valleys host opposite handedness
+3. **General q-points**: Small wavevector-dependent effects can appear; details are material- and calculation-dependent
 
 ```mermaid
 graph TD
@@ -299,7 +294,7 @@ graph TD
     A --> C[K/K' Points: Valley Splitting]
     A --> D[General q: Linear Splitting]
     B --> E[ω_E' ≈ 250 cm⁻¹]
-    C --> F[Δω ~ 5-10 cm⁻¹]
+    C --> F[Δω: material dependent]
     D --> G[Δω ∝ |q|]
 
     style A fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
@@ -308,13 +303,11 @@ graph TD
     style D fill:#fce7f3,stroke:#f093fb,stroke-width:2px
 ```
 
-### Acoustic vs Optical Chiral Phonons
+### Acoustic vs Optical Considerations
 
-| Mode Type | Frequency Range | Chirality Origin | Example |
-|-----------|----------------|------------------|---------|
-| **Acoustic** | 0-50 cm⁻¹ | Flexural mode (ZA) in 2D | WSe₂ ZA mode near Γ |
-| **Optical** | 200-400 cm⁻¹ | E', E'' modes | WSe₂ E' at 250 cm⁻¹ |
-| **High-freq** | > 1000 cm⁻¹ | Molecular rotations | Organic crystal librational modes |
+- Evidence for chiral behavior in acoustic branches is system- and context-dependent and typically subtle.
+- Demonstrations and discussions of chiral phonons in 2D TMDs most commonly focus on optical E modes.
+- High-frequency librational modes in molecular crystals can exhibit circular motion; quantitative PAM requires case-by-case analysis with proper normalization.
 
 ---
 
