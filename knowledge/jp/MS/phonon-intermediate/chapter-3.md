@@ -1,0 +1,661 @@
+---
+title: 第3章：熱伝導
+chapter_title: 第3章：熱伝導
+subtitle: フォノン輸送とボルツマン方程式による熱伝導率の理論
+---
+
+[🌐 EN](../../../en/MS/phonon-intermediate/chapter-3.md) | 🇯🇵 JP | Last sync: 2025-12-20
+
+[材料科学道場](../index.html) > [フォノン物理学（中級）](index.md) > 第3章
+
+# 第3章：熱伝導
+
+**フォノン輸送とボルツマン方程式による熱伝導率の理論**
+
+## 学習目標
+
+  * フォノンによる熱流とFourierの法則の関係を理解する
+  * ボルツマン輸送方程式（BTE）の基本概念を把握する
+  * 緩和時間近似（RTA）とその物理的意味を説明できる
+  * 様々なフォノン散乱機構（フォノン-フォノン、境界、不純物）を理解する
+  * 運動論的公式から熱伝導率を計算できる
+  * サイズ効果と平均自由行程の概念を把握する
+
+## 3.1 はじめに：なぜフォノンは熱を運ぶのか？
+
+固体材料における熱伝導の主要な担い手は、多くの場合**フォノン** です。 金属では電子も寄与しますが、絶縁体やセラミックスではフォノンがほぼ全ての熱を運びます。 本章では、フォノンがどのように熱を輸送するのか、そしてその効率を決める 散乱機構について詳しく学びます。 
+
+熱伝導率は材料設計において極めて重要なパラメータです。 高熱伝導率材料（ダイヤモンド、窒化アルミニウム）は熱拡散板として、 低熱伝導率材料（断熱材、熱電材料）は遮熱や熱電変換に利用されます。 
+
+## 3.2 フォノン熱流と熱伝導率テンソル
+
+### 3.2.1 Fourierの法則
+
+巨視的な熱伝導現象は、**Fourierの法則** で記述されます： 
+
+#### Fourierの法則
+
+\\[ \mathbf{J}_Q = -\boldsymbol{\kappa} \cdot \nabla T \\] 
+
+ここで、\\(\mathbf{J}_Q\\) は熱流密度ベクトル [W/m²]、 \\(\boldsymbol{\kappa}\\) は熱伝導率テンソル [W/(m·K)]、 \\(\nabla T\\) は温度勾配です。 
+
+等方的な材料では、\\(\boldsymbol{\kappa}\\) はスカラー量 \\(\kappa\\) となり、 
+
+\\[ \mathbf{J}_Q = -\kappa \nabla T \\] 
+
+#### 熱伝導率テンソルと結晶対称性
+
+異方性結晶では、熱伝導率は方向によって異なります。 例えば、黒鉛（グラファイト）では、層内方向の熱伝導率は 層間方向の約100倍にもなります。一般に、熱伝導率テンソルは 結晶の点群対称性によって制約されます： 
+
+  * **立方晶** ：等方的（\\(\kappa_{xx} = \kappa_{yy} = \kappa_{zz}\\)）
+  * **六方晶** ：c軸方向とab面内で異なる
+  * **斜方晶** ：三つの主軸方向で異なる値
+
+### 3.2.2 フォノンによる熱流
+
+微視的には、熱流はフォノンのエネルギー輸送として理解できます。 波数 \\(\mathbf{k}\\)、枝 \\(s\\) のフォノンモードに対して： 
+
+#### フォノンの熱流密度
+
+フォノンによる熱流密度は、各モードの寄与を足し合わせて： 
+
+\\[ \mathbf{J}_Q = \sum_{\mathbf{k},s} \hbar\omega_s(\mathbf{k}) \, \mathbf{v}_s(\mathbf{k}) \, n_s(\mathbf{k}) \\] 
+
+ここで、 
+
+  * \\(\hbar\omega_s(\mathbf{k})\\)：フォノンのエネルギー
+  * \\(\mathbf{v}_s(\mathbf{k}) = \nabla_{\mathbf{k}}\omega_s(\mathbf{k})\\)：群速度（エネルギー伝播速度）
+  * \\(n_s(\mathbf{k})\\)：フォノン分布関数（平衡状態でBose-Einstein分布）
+
+平衡状態では、すべての方向に等しく熱が流れるため、巨視的な熱流はゼロです。 温度勾配がある場合、分布関数が平衡からずれて \\(n_s(\mathbf{k}) = n_0 + \delta n\\) となり、 このずれ \\(\delta n\\) が熱流を生み出します。 
+
+## 3.3 ボルツマン輸送方程式（BTE）
+
+### 3.3.1 BTEの導出と物理的意味
+
+フォノン分布関数 \\(n(\mathbf{r}, \mathbf{k}, t)\\) の時間発展は、 **ボルツマン輸送方程式** （Boltzmann Transport Equation, BTE）で記述されます。 
+
+#### フォノンのボルツマン輸送方程式
+
+\\[ \frac{\partial n}{\partial t} + \mathbf{v} \cdot \nabla_{\mathbf{r}} n + \mathbf{F} \cdot \nabla_{\mathbf{k}} n = \left(\frac{\partial n}{\partial t}\right)_{\text{coll}} \\] 
+
+各項の物理的意味： 
+
+  * \\(\frac{\partial n}{\partial t}\\)：時間的変化
+  * \\(\mathbf{v} \cdot \nabla_{\mathbf{r}} n\\)：実空間での拡散項
+  * \\(\mathbf{F} \cdot \nabla_{\mathbf{k}} n\\)：外力による波数空間での変化（通常、フォノンでは無視）
+  * \\(\left(\frac{\partial n}{\partial t}\right)_{\text{coll}}\\)：散乱による変化（衝突項）
+
+    
+    
+    ```mermaid
+    flowchart TD
+                    A[平衡分布 n₀] --> B{温度勾配あり?}
+                    B -->|なし| A
+                    B -->|あり| C[分布のずれ δn 発生]
+                    C --> D[ドリフト項: v·∇n]
+                    C --> E[散乱項: 平衡に戻す]
+                    D --> F[熱流 JQ 発生]
+                    E --> G[定常状態: ドリフト = 散乱]
+                    F --> H[熱伝導率 κ]
+                    G --> H
+                    style A fill:#e7f3ff
+                    style H fill:#ffe7e7
+    ```
+
+### 3.3.2 定常状態と緩和時間近似（RTA）
+
+熱伝導の定常状態では \\(\frac{\partial n}{\partial t} = 0\\) であり、 外力がない場合、BTEは次のように簡略化されます： 
+
+\\[ \mathbf{v} \cdot \nabla_{\mathbf{r}} n = \left(\frac{\partial n}{\partial t}\right)_{\text{coll}} \\] 
+
+衝突項の正確な取り扱いは複雑ですが、最も単純で広く用いられる近似が **緩和時間近似** （Relaxation Time Approximation, RTA）です。 
+
+#### 緩和時間近似（RTA）
+
+散乱によって分布関数が平衡分布 \\(n_0\\) に指数関数的に緩和すると仮定します： 
+
+\\[ \left(\frac{\partial n}{\partial t}\right)_{\text{coll}} = -\frac{n - n_0}{\tau} \\] 
+
+ここで、\\(\tau\\) は**緩和時間** （relaxation time）で、 フォノンが散乱されるまでの平均時間を表します。 \\(\tau\\) は一般に波数と枝に依存します：\\(\tau = \tau_s(\mathbf{k})\\)。 
+
+RTAを用いると、BTEは次のようになります： 
+
+\\[ \mathbf{v} \cdot \nabla_{\mathbf{r}} n = -\frac{n - n_0}{\tau} \\] 
+
+温度勾配が小さい線形応答領域では、\\(n = n_0 + \delta n\\) として、 \\(\nabla_{\mathbf{r}} n \approx \nabla_{\mathbf{r}} n_0 = \frac{\partial n_0}{\partial T}\nabla T\\) と近似できます。 これより、 
+
+\\[ \delta n = -\tau \, \mathbf{v} \cdot \frac{\partial n_0}{\partial T} \nabla T \\] 
+
+## 3.4 運動論的公式による熱伝導率の導出
+
+### 3.4.1 熱伝導率の一般式
+
+分布のずれ \\(\delta n\\) を熱流の式に代入すると： 
+
+\\[ \mathbf{J}_Q = \sum_{\mathbf{k},s} \hbar\omega \, \mathbf{v} \, \delta n = -\sum_{\mathbf{k},s} \hbar\omega \, \mathbf{v} \, \tau \, \mathbf{v} \cdot \frac{\partial n_0}{\partial T} \nabla T \\] 
+
+Bose-Einstein分布 \\(n_0 = 1/(e^{\hbar\omega/k_B T} - 1)\\) に対して、 \\(\frac{\partial n_0}{\partial T} = \frac{\hbar\omega}{k_B T^2} n_0(n_0 + 1)\\) です。 等方的な系を考え、\\(\mathbf{v}\\) の方向平均をとると、 \\(\mathbf{v} \otimes \mathbf{v} = \frac{1}{3}v^2\mathbf{I}\\)（\\(\mathbf{I}\\) は単位テンソル）となり、 
+
+#### 熱伝導率の運動論的公式
+
+\\[ \kappa = \sum_{\mathbf{k},s} C_s(\mathbf{k}) \, v_s^2(\mathbf{k}) \, \tau_s(\mathbf{k}) \\] 
+
+または、連続体近似で状態密度 \\(g(\omega)\\) を用いると、 
+
+\\[ \kappa = \frac{1}{3}\int d\omega \, g(\omega) \, C(\omega) \, v^2(\omega) \, \tau(\omega) \\] 
+
+ここで、\\(C(\omega)\\) はモードあたりの比熱： 
+
+\\[ C(\omega) = k_B \left(\frac{\hbar\omega}{k_B T}\right)^2 \frac{e^{\hbar\omega/k_B T}}{(e^{\hbar\omega/k_B T} - 1)^2} \\] 
+
+### 3.4.2 簡略化された形：\\(\kappa = \frac{1}{3}Cv^2\tau\\)
+
+さらに簡略化して、平均的な値を用いると、有名な**運動論的公式** が得られます： 
+
+#### 簡略化された熱伝導率の公式
+
+\\[ \kappa = \frac{1}{3} C v^2 \tau = \frac{1}{3} C v \ell \\] 
+
+ここで、 
+
+  * \\(C\\)：単位体積あたりの比熱 [J/(m³·K)]
+  * \\(v\\)：平均群速度（音速に近い） [m/s]
+  * \\(\tau\\)：平均緩和時間 [s]
+  * \\(\ell = v\tau\\)：**平均自由行程** （mean free path）[m]
+
+#### 例：シリコンの室温熱伝導率の見積もり
+
+シリコン（Si）の室温における典型的な値： 
+
+  * \\(C \approx 1.6 \times 10^6\\) J/(m³·K)
+  * \\(v \approx 6000\\) m/s（音速）
+  * \\(\ell \approx 40\\) nm（実験値）
+
+これより、 
+
+\\[ \kappa = \frac{1}{3} \times 1.6 \times 10^6 \times 6000 \times 40 \times 10^{-9} \approx 128 \text{ W/(m·K)} \\] 
+
+実験値（\\(\kappa \approx 150\\) W/(m·K)）とおおむね一致します。 
+
+## 3.5 フォノン散乱機構
+
+緩和時間 \\(\tau\\) は、様々な散乱機構によって決まります。 主要な散乱機構には以下のものがあります。 
+
+### 3.5.1 フォノン-フォノン散乱（非調和散乱）
+
+結晶の非調和性により、フォノン同士が相互作用して散乱されます。 主要な過程は**三フォノン散乱** です。 
+
+#### 三フォノン散乱過程
+
+**1\. 通常過程（Normal process, N-process）**
+
+\\[ \mathbf{k}_1 + \mathbf{k}_2 = \mathbf{k}_3 \\] 
+
+準運動量が厳密に保存される過程。熱流の方向を変えますが、 熱抵抗には直接寄与しません（再分配のみ）。 
+
+**2\. ウムクラップ過程（Umklapp process, U-process）**
+
+\\[ \mathbf{k}_1 + \mathbf{k}_2 = \mathbf{k}_3 + \mathbf{G} \\] 
+
+逆格子ベクトル \\(\mathbf{G}\\) が現れる過程。運動量の実効的な反転が起こり、 **熱抵抗の主要な原因** となります。 
+
+U過程の散乱率は温度に強く依存します： 
+
+\\[ \tau_U^{-1} \propto \omega^2 T \exp\left(-\frac{\Theta_D}{bT}\right) \\] 
+
+ここで、\\(b \approx 2-3\\) です。高温では指数因子が1に近づき、 \\(\tau_U^{-1} \propto T\\)、したがって \\(\kappa \propto 1/T\\) となります。 これが高温での熱伝導率の温度依存性の主要な原因です。 
+
+### 3.5.2 境界散乱（Casimir散乱）
+
+試料の表面や粒界でフォノンが散乱される効果です。 
+
+#### Casimir境界散乱
+
+試料サイズ \\(L\\) が平均自由行程より小さい場合、 フォノンは主に境界で散乱されます。緩和時間は： 
+
+\\[ \tau_B = \frac{L}{v} \\] 
+
+この効果により、\\(\kappa \propto L\\) となります（サイズ効果）。 
+
+ナノ構造材料や薄膜では、境界散乱が支配的となり、 バルク材料より大幅に低い熱伝導率を示します。 これは熱電材料設計で積極的に利用されています。 
+
+### 3.5.3 不純物・欠陥散乱
+
+質量の異なる不純物原子や格子欠陥により、フォノンが散乱されます。 
+
+#### 質量欠陥散乱（Rayleigh散乱）
+
+質量差 \\(\Delta M\\) を持つ不純物濃度 \\(x\\) の場合： 
+
+\\[ \tau_I^{-1} = A x \left(\frac{\Delta M}{M}\right)^2 \omega^4 \\] 
+
+\\(\omega^4\\) 依存性（**Rayleigh散乱** ）により、 高周波フォノンほど強く散乱されます。 
+
+### 3.5.4 同位体散乱
+
+天然存在比の同位体混合も質量欠陥として作用します。 例えば、天然シリコンには Si-28（92.2%）、Si-29（4.7%）、Si-30（3.1%）が含まれ、 これが熱伝導率を約10%低下させます。 
+
+#### 例：同位体濃縮による熱伝導率向上
+
+同位体を純化したシリコン（Si-28 のみ）では、室温での熱伝導率が 天然Siの約150 W/(m·K)から約450 W/(m·K)へと3倍近く増加します。 これは、同位体散乱が無視できない寄与をしていることを示しています。 
+
+## 3.6 マティーセンの規則とその限界
+
+### 3.6.1 マティーセンの規則
+
+複数の独立な散乱機構がある場合、散乱率は加算されます： 
+
+#### マティーセンの規則（Matthiessen's Rule）
+
+\\[ \tau^{-1} = \tau_U^{-1} + \tau_B^{-1} + \tau_I^{-1} + \cdots \\] 
+
+または、緩和時間を用いて： 
+
+\\[ \frac{1}{\tau_{\text{total}}} = \sum_i \frac{1}{\tau_i} \\] 
+
+各散乱機構が独立で、散乱確率が小さい場合に成立します。 
+
+### 3.6.2 限界と修正
+
+マティーセンの規則は便利ですが、以下の限界があります： 
+
+  * **モード依存性** ：各散乱機構の強さは \\(\mathbf{k}\\) と \\(s\\) に依存するため、単純な加算は近似
+  * **干渉効果** ：散乱機構間の相関が無視されている
+  * **強散乱** ：散乱が強い場合、独立性の仮定が破綻
+
+精密な計算では、BTEを完全に解くか、より高度な近似（variational method など）を用います。 
+
+## 3.7 温度依存性と熱伝導率のピーク
+
+多くの結晶材料の熱伝導率は、温度に対して特徴的な振る舞いを示します。 
+    
+    
+    ```mermaid
+    graph TD
+                    A[低温 T → 0] --> B[境界散乱支配]
+                    B --> C[κ ∝ T³]
+                    C --> D[ピーク温度 T ~ ΘD/20]
+                    D --> E[高温 T > ΘD]
+                    E --> F[U過程散乱支配]
+                    F --> G[κ ∝ 1/T]
+                    style D fill:#ffe7e7
+    ```
+
+### 3.7.1 低温領域（\\(T \ll \Theta_D\\)）
+
+  * **比熱** ：Debye \\(T^3\\) 則により \\(C \propto T^3\\)
+  * **散乱** ：U過程は凍結（\\(\exp(-\Theta_D/T) \to 0\\)）、境界散乱が支配的
+  * **熱伝導率** ：\\(\kappa \propto C v \tau_B \propto T^3\\)
+
+### 3.7.2 中温領域（\\(T \sim \Theta_D/20\\)）
+
+U過程が活性化し始め、\\(C\\) の増加と \\(\tau\\) の減少が釣り合う温度で **熱伝導率がピークを示します** 。 
+
+### 3.7.3 高温領域（\\(T \gg \Theta_D\\)）
+
+  * **比熱** ：Dulong-Petit値で飽和（\\(C \approx \text{const}\\)）
+  * **散乱** ：U過程が支配的、\\(\tau_U^{-1} \propto T\\)
+  * **熱伝導率** ：\\(\kappa \propto 1/T\\)
+
+#### 例：ダイヤモンドの熱伝導率
+
+ダイヤモンドは室温で約2200 W/(m·K)という極めて高い熱伝導率を持ちます。 これは以下の要因によります： 
+
+  * 軽い原子（炭素）による高い振動数（\\(\Theta_D \approx 2200\\) K）
+  * 強い共有結合による高い群速度
+  * 単純な結晶構造による長い平均自由行程
+
+熱伝導率は約100 Kでピークを示し、低温では \\(T^3\\)、 高温では \\(1/T\\) に従います。 
+
+## 3.8 平均自由行程分布とサイズ効果
+
+### 3.8.1 平均自由行程の分布
+
+すべてのフォノンモードが同じ平均自由行程を持つわけではありません。 一般に、低周波の音響フォノンは長い自由行程を持ち、 高周波フォノンは短い自由行程を持ちます。 
+
+#### 累積熱伝導率
+
+平均自由行程が \\(\ell\\) 以下のフォノンによる熱伝導率の寄与を \\(\kappa(\ell)\\) とすると、 
+
+\\[ \kappa(\ell) = \int_0^{\ell} \frac{d\kappa}{d\ell'} d\ell' \\] 
+
+この累積分布を解析することで、どのスケールのフォノンが 熱輸送を支配しているかがわかります。 
+
+### 3.8.2 サイズ効果と弾道輸送
+
+試料サイズ \\(L\\) が平均自由行程 \\(\ell\\) より小さくなると、 フォノンは散乱されずに試料を横断します。 これを**弾道輸送** （ballistic transport）といいます。 
+
+#### Knudsen数とサイズ効果
+
+**Knudsen数** を \\(Kn = \ell/L\\) と定義すると： 
+
+  * \\(Kn \ll 1\\)：拡散輸送（バルク的、\\(\kappa\\) は \\(L\\) に依存しない）
+  * \\(Kn \sim 1\\)：遷移領域（\\(\kappa\\) が \\(L\\) に依存し始める）
+  * \\(Kn \gg 1\\)：弾道輸送（\\(\kappa \propto L\\)）
+
+ナノワイヤや薄膜では、サイズ効果により熱伝導率が大幅に低下します。 例えば、直径50 nmのシリコンナノワイヤの熱伝導率は バルクSiの約1/100になります。 
+
+## 3.9 Callawayモデルとその改良
+
+### 3.9.1 Callawayモデル
+
+Callaway（1959）は、N過程とU過程を区別した熱伝導率の表式を提案しました。 
+
+#### Callawayモデル
+
+熱伝導率は、緩和時間 \\(\tau_C\\)（結合緩和時間）と \\(\tau_N\\)（N過程のみ）を用いて： 
+
+\\[ \kappa = \frac{k_B}{2\pi^2 v} \left[ \int \frac{\tau_C}{\tau_N} x^4 e^x (e^x - 1)^{-2} dx \right]^2 \left[ \int \tau_C^{-1} x^4 e^x (e^x - 1)^{-2} dx \right]^{-1} \\] 
+
+ここで、\\(x = \hbar\omega/k_B T\\)。第一項がN過程の寄与、 第二項が抵抗過程（U過程など）の寄与を表します。 
+
+### 3.9.2 改良モデル
+
+Callawayモデルは単純化が多く、現代的な改良には以下があります： 
+
+  * **Holland モデル** ：フォノン枝（LA, TA, LO, TO）を明示的に区別
+  * **第一原理計算** ：密度汎関数摂動論（DFPT）で力定数を計算し、BTEを数値的に解く
+  * **機械学習アプローチ** ：散乱率をデータから学習
+
+## 3.10 最小熱伝導率の概念
+
+非晶質材料や極度に無秩序な材料では、フォノンの平均自由行程が 格子定数程度まで短くなります。この極限での熱伝導率を **最小熱伝導率** （minimum thermal conductivity）といいます。 
+
+#### 最小熱伝導率（Cahill-Pohl モデル）
+
+平均自由行程が原子間距離 \\(a\\) と等しいと仮定すると： 
+
+\\[ \kappa_{\min} = \left(\frac{\pi}{6}\right)^{1/3} k_B n^{2/3} \sum_i v_i \\] 
+
+ここで、\\(n\\) は数密度、\\(v_i\\) は音速（縦波と横波）です。 この値は、非晶質材料の実測値とよく一致します。 
+
+## 3.11 Pythonによる熱伝導率計算
+
+Debyeモデルと簡単な散乱モデルを用いて、熱伝導率の温度依存性を計算してみましょう。 
+
+Debyeモデルに基づく熱伝導率計算
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.integrate import quad
+    
+    # 物理定数
+    k_B = 1.381e-23  # J/K
+    hbar = 1.055e-34  # J·s
+    
+    # 材料パラメータ（シリコンを想定）
+    theta_D = 645  # K（Debye温度）
+    v = 6000  # m/s（平均音速）
+    a = 5.43e-10  # m（格子定数）
+    n = 8 / a**3  # 数密度（ダイヤモンド構造）
+    
+    def integrand_C(x):
+        """Debye比熱の被積分関数"""
+        if x > 100:  # オーバーフロー防止
+            return 0
+        ex = np.exp(x)
+        return x**4 * ex / (ex - 1)**2
+    
+    def specific_heat_debye(T, theta_D):
+        """Debye比熱 [J/(m³·K)]"""
+        if T < 1e-3:
+            return 0
+        x_max = theta_D / T
+        integral, _ = quad(integrand_C, 0, x_max)
+        C = 9 * n * k_B * (T / theta_D)**3 * integral
+        return C
+    
+    def tau_umklapp(T, omega, theta_D):
+        """U過程の緩和時間 [s]"""
+        if T < theta_D / 10:
+            # 低温でU過程は凍結
+            return 1e-6 * np.exp(theta_D / (2 * T))
+        else:
+            # 高温
+            return 1e-12 / (omega**2 * T)
+    
+    def tau_boundary(v, L):
+        """境界散乱の緩和時間 [s]"""
+        return L / v
+    
+    def tau_impurity(omega, omega_D):
+        """不純物散乱の緩和時間（Rayleigh散乱）[s]"""
+        A = 1e-42  # 散乱強度パラメータ
+        return 1 / (A * omega**4)
+    
+    def thermal_conductivity_simple(T, L=1e-3):
+        """
+        簡略化された熱伝導率計算
+    
+        Parameters:
+        -----------
+        T : float
+            温度 [K]
+        L : float
+            試料サイズ [m]（境界散乱用）
+    
+        Returns:
+        --------
+        kappa : float
+            熱伝導率 [W/(m·K)]
+        """
+        if T < 1:
+            return 0
+    
+        # Debye振動数
+        omega_D = k_B * theta_D / hbar
+    
+        # 比熱
+        C = specific_heat_debye(T, theta_D)
+    
+        # 平均的な緩和時間（各散乱機構の逆数の和）
+        omega_avg = omega_D / 2  # 平均振動数
+    
+        tau_U = tau_umklapp(T, omega_avg, theta_D)
+        tau_B = tau_boundary(v, L)
+        tau_I = tau_impurity(omega_avg, omega_D)
+    
+        # マティーセンの規則
+        tau_total = 1 / (1/tau_U + 1/tau_B + 1/tau_I)
+    
+        # 熱伝導率
+        kappa = (1/3) * C * v**2 * tau_total
+    
+        return kappa
+    
+    # 温度範囲
+    T_range = np.logspace(0, 3, 100)  # 1 K - 1000 K
+    
+    # 異なるサイズでの計算
+    sizes = [1e-6, 1e-5, 1e-4, 1e-3]  # 1μm, 10μm, 100μm, 1mm
+    labels = ['1 μm', '10 μm', '100 μm', '1 mm (bulk)']
+    
+    plt.figure(figsize=(12, 8))
+    
+    for L, label in zip(sizes, labels):
+        kappa_list = [thermal_conductivity_simple(T, L) for T in T_range]
+        plt.loglog(T_range, kappa_list, linewidth=2, label=label)
+    
+    plt.axvline(x=theta_D, color='red', linestyle='--',
+                label=f'Debye温度 ({theta_D} K)', alpha=0.7)
+    plt.xlabel('温度 [K]', fontsize=14)
+    plt.ylabel('熱伝導率 [W/(m·K)]', fontsize=14)
+    plt.title('熱伝導率の温度依存性とサイズ効果', fontsize=16)
+    plt.legend(fontsize=12)
+    plt.grid(True, alpha=0.3, which='both')
+    plt.tight_layout()
+    plt.show()
+    
+
+平均自由行程分布の可視化
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def mfp_distribution(T=300, theta_D=645):
+        """
+        平均自由行程の分布を計算
+    
+        Parameters:
+        -----------
+        T : float
+            温度 [K]
+        theta_D : float
+            Debye温度 [K]
+        """
+        # パラメータ
+        v = 6000  # m/s
+        omega_D = k_B * theta_D / hbar
+    
+        # 振動数範囲
+        omega = np.linspace(0.01 * omega_D, omega_D, 500)
+    
+        # 各振動数での緩和時間
+        tau = np.zeros_like(omega)
+        for i, w in enumerate(omega):
+            tau_U = tau_umklapp(T, w, theta_D)
+            tau_I = tau_impurity(w, omega_D)
+            tau[i] = 1 / (1/tau_U + 1/tau_I)
+    
+        # 平均自由行程
+        mfp = v * tau
+    
+        # モードあたりの比熱（重み）
+        x = hbar * omega / (k_B * T)
+        weight = x**2 * np.exp(x) / (np.exp(x) - 1)**2
+        weight = weight / np.sum(weight)  # 正規化
+    
+        # プロット
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+        # 平均自由行程vs振動数
+        ax1.loglog(omega / omega_D, mfp * 1e9, linewidth=2, color='blue')
+        ax1.set_xlabel(r'規格化振動数 $\omega/\omega_D$', fontsize=12)
+        ax1.set_ylabel('平均自由行程 [nm]', fontsize=12)
+        ax1.set_title(f'平均自由行程の振動数依存性（T = {T} K）', fontsize=14)
+        ax1.grid(True, alpha=0.3, which='both')
+    
+        # 累積熱伝導率
+        sorted_indices = np.argsort(mfp)
+        mfp_sorted = mfp[sorted_indices]
+        weight_sorted = weight[sorted_indices]
+        cumulative = np.cumsum(weight_sorted)
+    
+        ax2.semilogx(mfp_sorted * 1e9, cumulative, linewidth=2, color='red')
+        ax2.set_xlabel('平均自由行程 [nm]', fontsize=12)
+        ax2.set_ylabel('累積寄与', fontsize=12)
+        ax2.set_title('累積熱伝導率分布', fontsize=14)
+        ax2.axhline(y=0.5, color='gray', linestyle='--', alpha=0.5)
+        ax2.grid(True, alpha=0.3)
+    
+        plt.tight_layout()
+        plt.show()
+    
+        # 統計情報
+        median_mfp = mfp_sorted[np.argmin(np.abs(cumulative - 0.5))]
+        mean_mfp = np.sum(mfp * weight)
+    
+        print(f"温度: {T} K")
+        print(f"平均自由行程（平均値）: {mean_mfp*1e9:.2f} nm")
+        print(f"平均自由行程（中央値）: {median_mfp*1e9:.2f} nm")
+        print(f"最小 MFP: {np.min(mfp)*1e9:.2f} nm")
+        print(f"最大 MFP: {np.max(mfp)*1e9:.2f} nm")
+    
+    # 実行
+    mfp_distribution(T=300)
+    
+
+#### コードの解説
+
+  * **最初のコード** ：Debyeモデルに基づいて比熱を計算し、 マティーセンの規則で散乱時間を求めて熱伝導率を計算します。 異なる試料サイズでの温度依存性を比較できます。 
+  * **二つ目のコード** ：平均自由行程の分布と累積寄与を可視化します。 どのスケールのフォノンが熱輸送を支配しているかがわかります。 
+  * 実際の第一原理計算では、Phonopy、ShengBTE、ALMABTE などの 専用ソフトウェアが使用されます。 
+
+## 3.12 実験データとの比較
+
+### 3.12.1 代表的な材料の熱伝導率
+
+材料 | κ [W/(m·K)] @ 300K | 特徴  
+---|---|---  
+ダイヤモンド | 2200 | 最高の熱伝導体（絶縁体）  
+銀 | 429 | 金属（電子寄与大）  
+シリコン | 150 | 半導体  
+石英ガラス | 1.4 | 非晶質（最小熱伝導率）  
+空気 | 0.026 | 気体  
+  
+### 3.12.2 理論と実験の比較
+
+第一原理計算による熱伝導率予測は、以下の精度を達成しています： 
+
+  * **高品質結晶** ：実験値の±20%以内
+  * **合金・複雑系** ：定性的傾向は一致、定量値は±50%程度
+  * **ナノ構造** ：サイズ依存性の傾向は一致するが、界面抵抗の扱いが課題
+
+主な誤差要因： 
+
+  * 力定数計算の精度（DFT汎関数の選択）
+  * 四フォノン以上の高次散乱の無視
+  * 欠陥や不純物濃度の不確定性
+  * 非調和効果の取り扱い
+
+## 3.13 まとめ
+
+#### 本章の要点
+
+  * 熱伝導は**フォノンのエネルギー輸送** として理解でき、 Fourierの法則により巨視的に記述される 
+  * **ボルツマン輸送方程式（BTE）** が微視的な熱輸送理論の基礎であり、 **緩和時間近似（RTA）** により簡略化できる 
+  * 熱伝導率は運動論的公式 \\(\kappa = \frac{1}{3}Cv^2\tau = \frac{1}{3}Cv\ell\\) で 近似的に表される 
+  * 主要な散乱機構には、**フォノン-フォノン散乱** （特にU過程）、 **境界散乱** 、**不純物散乱** がある 
+  * **マティーセンの規則** により、散乱率が加算的に扱える 
+  * 熱伝導率は温度に対して特徴的な振る舞いを示し、 低温で \\(T^3\\)、高温で \\(1/T\\) に従う 
+  * **サイズ効果** により、ナノ構造では熱伝導率が大幅に低下する （弾道輸送） 
+  * **最小熱伝導率** の概念により、非晶質材料の熱伝導を理解できる 
+
+### 演習問題
+
+#### 問題1：基礎概念の確認
+
+  1. Fourierの法則 \\(\mathbf{J}_Q = -\kappa \nabla T\\) において、負号の物理的意味を説明しなさい。
+  2. 緩和時間近似（RTA）における「緩和時間」とは何を意味するか説明しなさい。
+  3. 通常過程（N-process）とウムクラップ過程（U-process）の違いを、準運動量保存則の観点から説明しなさい。
+
+#### 問題2：数値計算
+
+ある材料の室温（300 K）における物性値が以下の通りとします： 
+
+  * 比熱：\\(C = 2.0 \times 10^6\\) J/(m³·K)
+  * 平均音速：\\(v = 5000\\) m/s
+  * 平均自由行程：\\(\ell = 50\\) nm
+
+  1. 運動論的公式 \\(\kappa = \frac{1}{3}Cv\ell\\) を用いて熱伝導率を計算しなさい。
+  2. 平均自由行程が半分（25 nm）になった場合、熱伝導率はどう変化するか。
+
+#### 問題3：温度依存性
+
+結晶材料の熱伝導率が次の温度依存性を示すとします： 
+
+  * 低温（\\(T < 50\\) K）：\\(\kappa \propto T^3\\)
+  * 高温（\\(T > 300\\) K）：\\(\kappa \propto 1/T\\)
+
+  1. 低温での \\(T^3\\) 依存性の起源を、比熱と散乱機構の観点から説明しなさい。
+  2. 高温での \\(1/T\\) 依存性がU過程によるものであることを、散乱率の温度依存性から示しなさい。
+  3. 熱伝導率がピークを示す温度とDebye温度 \\(\Theta_D\\) の関係を議論しなさい。
+
+#### 問題4：サイズ効果
+
+シリコンのバルク熱伝導率が300 Kで150 W/(m·K)、平均自由行程が40 nmとします。 
+
+  1. 直径100 nmのシリコンナノワイヤでは、境界散乱が支配的になると予想されます。 Casimir境界散乱を仮定して、ナノワイヤの熱伝導率を見積もりなさい。
+  2. Knudsen数 \\(Kn = \ell/L\\) を計算し、輸送regime（拡散/遷移/弾道）を判定しなさい。
+  3. 熱電材料では低熱伝導率が望ましい。ナノ構造化が有効である理由を説明しなさい。
+
+#### 問題5：応用問題
+
+  1. 同位体濃縮により熱伝導率が向上する理由を、散乱機構の観点から説明しなさい。 また、どの温度範囲で効果が最も顕著になるか考察しなさい。 
+  2. 非晶質材料の熱伝導率が最小熱伝導率に近い値を示す理由を、 平均自由行程の概念を用いて説明しなさい。 
+  3. 第一原理計算により熱伝導率を予測する際の主要な課題を3つ挙げ、 それぞれについて簡潔に説明しなさい。 
+
+[← 前章：フォノン相互作用](<chapter-2.html>) [シリーズトップへ](<index.html>) [次章：電子-フォノン結合 →](<chapter-4.html>)
