@@ -156,7 +156,7 @@ Coherent phonons are collective lattice vibrations with well-defined phase relat
 
 SASER = Sound Amplification by Stimulated Emission of Radiation
 
-A phonon laser produces coherent, monochromatic phonons, analogous to optical lasers. The first SASER was demonstrated in 2010 in a GaAs/AlAs superlattice at 440 GHz.
+A phonon laser produces coherent, monochromatic phonons, analogous to optical lasers. Early SASER demonstrations were achieved around 2010 in semiconductor superlattices (e.g., GaAs/AlAs) operating at hundreds of GHz, with theoretical foundations established by Maryam et al. (2013, Nat. Phys.) and experimental advances continuing in various material platforms.
 
 ## 6. Heat Management in Electronics
 

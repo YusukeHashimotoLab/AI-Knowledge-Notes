@@ -13,9 +13,18 @@ this series is 、metallic materials of fundamentals and becomemetallic bond and
 ### learning of
     
     
-    ```mermaid
-    flowchart LR A[Chapter1metallic bond andCrystal Structure] -->B[Chapter2Alloydesign andPhase Diagram] B -->C[Chapter3Strengthening Mechanisms] C -->D[Chapter4functionitymetallic materials] D -->E[Chapter5Dataanalyzepractice] style A fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff style B fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff style C fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff style D fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff style E fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
-    ```
+```mermaid
+flowchart LR
+    A[Chapter 1: Metallic Bonding and Crystal Structure]-->B[Chapter 2: Alloy Design and Phase Diagrams]
+    B-->C[Chapter 3: Strengthening Mechanisms]
+    C-->D[Chapter 4: Functional Metallic Materials]
+    D-->E[Chapter 5: Data Analysis Practice]
+    style A fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+    style B fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+    style C fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+    style D fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+    style E fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+```
 
 ## Series
 

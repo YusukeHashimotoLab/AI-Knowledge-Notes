@@ -13,9 +13,20 @@ subtitle: 固溶強化、析出強化、加工硬化、結晶粒微細化、Hall
 金属材料の強度を向上させるには、転位の運動を妨げることが基本原理です。主な強化機構として、(1)固溶強化、(2)析出強化、(3)加工硬化、(4)結晶粒微細化、(5)分散強化があります。
     
     
-    ```mermaid
-    flowchart TD; A[金属材料の強化機構]-->B[固溶強化]; A-->C[析出強化]; A-->D[加工硬化]; A-->E[結晶粒微細化]; A-->F[分散強化]; B-->B1[置換型固溶強化]; B-->B2[侵入型固溶強化]; C-->C1[Orowan機構]; C-->C2[せん断機構]; D-->D1[転位密度増加]; E-->E1[Hall-Petch則]
-    ```
+```mermaid
+flowchart TD
+    A[金属材料の強化機構]-->B[固溶強化]
+    A-->C[析出強化]
+    A-->D[加工硬化]
+    A-->E[結晶粒微細化]
+    A-->F[分散強化]
+    B-->B1[置換型固溶強化]
+    B-->B2[侵入型固溶強化]
+    C-->C1[Orowan機構]
+    C-->C2[せん断機構]
+    D-->D1[転位密度増加]
+    E-->E1[Hall-Petch則]
+```
 
 ### 3.1.1 Hall-Petch則
 
@@ -39,13 +50,13 @@ $$\sigma_y = \sigma_0 + k_y d^{-1/2}$$
     
     # 鋼のパラメータ
     sigma_0_steel = 70  # MPa
-    k_y_steel = 0.74    # MPa·mm^0.5 = 740 MPa·μm^0.5
+    k_y_steel = 0.74    # MPa·mm^0.5 = 23.4 MPa·μm^0.5 (× √1000)
     d_range = np.linspace(1, 100, 100)  # μm
-    sigma_y_steel = hall_petch_strength(d_range, sigma_0_steel, k_y_steel * 1000)
+    sigma_y_steel = hall_petch_strength(d_range, sigma_0_steel, k_y_steel * np.sqrt(1000))
     
     # アルミニウムのパラメータ
     sigma_0_al = 20
-    k_y_al = 0.11 * 1000
+    k_y_al = 0.11 * np.sqrt(1000)  # MPa·mm^0.5 → 3.5 MPa·μm^0.5
     sigma_y_al = hall_petch_strength(d_range, sigma_0_al, k_y_al)
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
@@ -64,7 +75,7 @@ $$\sigma_y = \sigma_0 + k_y d^{-1/2}$$
     ax2.set_title('Hall-Petch プロット（直線関係）', fontsize=14, fontweight='bold')
     ax2.legend(fontsize=11); ax2.grid(True, alpha=0.3)
     plt.tight_layout(); plt.savefig('hall_petch_law.png', dpi=300, bbox_inches='tight'); plt.show()
-    print(f"鋼（d=10μm）: σy = {hall_petch_strength(10, sigma_0_steel, k_y_steel*1000):.1f} MPa")
+    print(f"鋼（d=10μm）: σy = {hall_petch_strength(10, sigma_0_steel, k_y_steel*np.sqrt(1000)):.1f} MPa")
     print(f"Al（d=10μm）: σy = {hall_petch_strength(10, sigma_0_al, k_y_al):.1f} MPa")
 
 ## 3.2 固溶強化

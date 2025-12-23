@@ -15,9 +15,20 @@ Solid Solution Strengthening, Precipitation Strengthening, Work Hardening, Grain
 The fundamental principle of improving the strength of metallic materials is to impede dislocation motion. The main strengthening mechanisms include: (1) solid solution strengthening, (2) precipitation strengthening, (3) work hardening, (4) grain refinement, and (5) dispersion strengthening.
     
     
-    ```mermaid
-    flowchart TD; A[Strengthening Mechanisms of Metallic Materials]-->B[Solid Solution Strengthening]; A-->C[Precipitation Strengthening]; A-->D[Work Hardening]; A-->E[Grain Refinement]; A-->F[Dispersion Strengthening]; B-->B1[Substitutional Solid Solution Strengthening]; B-->B2[Interstitial Solid Solution Strengthening]; C-->C1[Orowan Mechanism]; C-->C2[Shearing Mechanism]; D-->D1[Increase in Dislocation Density]; E-->E1[Hall-Petch Relationship]
-    ```
+```mermaid
+flowchart TD
+    A[Strengthening Mechanisms of Metallic Materials]-->B[Solid Solution Strengthening]
+    A-->C[Precipitation Strengthening]
+    A-->D[Work Hardening]
+    A-->E[Grain Refinement]
+    A-->F[Dispersion Strengthening]
+    B-->B1[Substitutional Solid Solution Strengthening]
+    B-->B2[Interstitial Solid Solution Strengthening]
+    C-->C1[Orowan Mechanism]
+    C-->C2[Shearing Mechanism]
+    D-->D1[Increase in Dislocation Density]
+    E-->E1[Hall-Petch Relationship]
+```
 
 ### 3.1.1 Hall-Petch Relationship
 
@@ -43,13 +54,13 @@ where $\sigma_y$: yield stress, $\sigma_0$: friction stress, $k_y$: Hall-Petch c
     
     # Steel parameters
     sigma_0_steel = 70  # MPa
-    k_y_steel = 0.74    # MPa·mm^0.5 = 740 MPa·μm^0.5
+    k_y_steel = 0.74    # MPa·mm^0.5 = 23.4 MPa·μm^0.5 (× √1000)
     d_range = np.linspace(1, 100, 100)  # μm
-    sigma_y_steel = hall_petch_strength(d_range, sigma_0_steel, k_y_steel * 1000)
+    sigma_y_steel = hall_petch_strength(d_range, sigma_0_steel, k_y_steel * np.sqrt(1000))
     
     # Aluminum parameters
     sigma_0_al = 20
-    k_y_al = 0.11 * 1000
+    k_y_al = 0.11 * np.sqrt(1000)  # MPa·mm^0.5 → 3.5 MPa·μm^0.5
     sigma_y_al = hall_petch_strength(d_range, sigma_0_al, k_y_al)
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
@@ -68,7 +79,7 @@ where $\sigma_y$: yield stress, $\sigma_0$: friction stress, $k_y$: Hall-Petch c
     ax2.set_title('Hall-Petch Plot (Linear Relationship)', fontsize=14, fontweight='bold')
     ax2.legend(fontsize=11); ax2.grid(True, alpha=0.3)
     plt.tight_layout(); plt.savefig('hall_petch_law.png', dpi=300, bbox_inches='tight'); plt.show()
-    print(f"Steel (d=10μm): σy = {hall_petch_strength(10, sigma_0_steel, k_y_steel*1000):.1f} MPa")
+    print(f"Steel (d=10μm): σy = {hall_petch_strength(10, sigma_0_steel, k_y_steel*np.sqrt(1000)):.1f} MPa")
     print(f"Al (d=10μm): σy = {hall_petch_strength(10, sigma_0_al, k_y_al):.1f} MPa")
 
 ## 3.2 Solid Solution Strengthening
