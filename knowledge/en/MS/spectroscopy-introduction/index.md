@@ -1,11 +1,11 @@
 ---
-title: Introduction to Spectroscopy Series
-chapter_title: Introduction to Spectroscopy Series
-subtitle: Fundamentals and Applications of UV-Vis, IR, Raman, and XPS
-difficulty: Intermediate
+title: "Introduction to Spectroscopy Series"
+chapter_title: "Introduction to Spectroscopy Series"
+subtitle: "Fundamentals and Applications of UV-Vis, IR, Raman, and XPS"
+difficulty: "Intermediate"
 code_examples: 35
-version: 1.0
-created_at: 2025-10-28
+version: "1.0"
+created_at: "2025-10-28"
 ---
 
 ## Series Overview
@@ -15,21 +15,21 @@ This series covers fundamental spectroscopic techniques used in materials charac
 ### Learning Path
     
     
-    ```mermaid
-    flowchart LR
-        A[Chapter 1Fundamentals] --> B[Chapter 2UV-Vis]
-        B --> C[Chapter 3IR/FTIR]
-        C --> D[Chapter 4Raman]
-        D --> E[Chapter 5XPS]
-        E --> F[Chapter 6Python Practice]
-    
-        style A fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
-        style B fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
-        style C fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
-        style D fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
-        style E fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
-        style F fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
-    ```
+```mermaid
+flowchart LR
+    A[Chapter 1<br/>Fundamentals] --> B[Chapter 2<br/>UV-Vis]
+    B --> C[Chapter 3<br/>IR/FTIR]
+    C --> D[Chapter 4<br/>Raman]
+    D --> E[Chapter 5<br/>XPS]
+    E --> F[Chapter 6<br/>Python Practice]
+
+    style A fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+    style B fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+    style C fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+    style D fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+    style E fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+    style F fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+```
 
 ## Series Structure
 
