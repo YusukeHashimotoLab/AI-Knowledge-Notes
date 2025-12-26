@@ -10,17 +10,17 @@ created_at: 2025-10-28
 
 ## Series Overview
 
-This series is an intermediate course covering materials microstructure and its control methods from fundamentals to practice. Understand core microstructural concepts including grains, grain boundaries, phase transformations, precipitation, and dislocations while acquiring practical skills in microstructure analysis using Python. This series provides foundational knowledge for microstructural data analysis in Materials Informatics (MI).
+This series covers fundamental spectroscopic techniques used in materials characterization. Learn UV-Vis spectroscopy for electronic transitions, IR/FTIR for molecular vibrations, Raman spectroscopy for structural analysis, and XPS for surface chemistry. Acquire practical skills in spectral data analysis using Python.
 
 ### Learning Path
     
     
     ```mermaid
     flowchart LR
-        A[Chapter 1Grains & Boundaries] --> B[Chapter 2Phase Transformations]
-        B --> C[Chapter 3Precipitation & Solid Solution]
-        C --> D[Chapter 4Dislocations & Plasticity]
-        D --> E[Chapter 5Microstructure Analysis]
+        A[Chapter 1Fundamentals] --> B[Chapter 2UV-Vis]
+        B --> C[Chapter 3IR/FTIR]
+        C --> D[Chapter 4Raman]
+        D --> E[Chapter 5XPS]
     
         style A fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
         style B fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
@@ -33,148 +33,147 @@ This series is an intermediate course covering materials microstructure and its 
 
 Chapter 1
 
-Grains and Grain Boundaries
+Fundamentals of Spectroscopy
 
-Learn grain formation and growth mechanisms, types and properties of grain boundaries, Hall-Petch relationship, EBSD analysis basics, and principles of material strengthening through grain size control. 
+Learn the fundamental principles of light-matter interactions, the electromagnetic spectrum and its regions, absorption and emission processes, selection rules, and the relationship between molecular structure and spectral features. 
 
-⏱️ 25-35 min 💻 7 Code Examples 📊 Intermediate
+25-35 min 7 Code Examples Intermediate
 
-[Start Learning →](<chapter-1.html>)
+[Start Learning](<chapter-1.html>)
 
 Chapter 2
 
-Phase Transformation Fundamentals
+UV-Vis Spectroscopy
 
-Study phase diagram interpretation, diffusional and diffusionless transformations, TTT and CCT diagrams, martensitic transformation, and fundamentals of phase diagram calculation (CALPHAD). 
+Study electronic transitions, Beer-Lambert law and quantitative analysis, chromophores and auxochromes, instrumentation principles, and applications in band gap determination, concentration measurements, and materials characterization. 
 
-⏱️ 25-35 min 💻 7 Code Examples 📊 Intermediate
+25-35 min 7 Code Examples Intermediate
 
-[Start Learning →](<chapter-2.html>)
+[Start Learning](<chapter-2.html>)
 
 Chapter 3
 
-Precipitation and Solid Solution
+Infrared Spectroscopy
 
-Explore types and properties of solid solutions, precipitation mechanisms (nucleation and growth), age hardening, Orowan mechanism, Guinier-Preston (GP) zones, and quantitative analysis of precipitate distributions. 
+Explore molecular vibrations and vibrational modes, FTIR principles and instrumentation, functional group identification, fingerprint region analysis, and applications in polymer characterization and surface analysis. 
 
-⏱️ 25-35 min 💻 7 Code Examples 📊 Intermediate
+25-35 min 7 Code Examples Intermediate
 
-[Start Learning →](<chapter-3.html>)
+[Start Learning](<chapter-3.html>)
 
 Chapter 4
 
-Dislocations and Plastic Deformation
+Raman Spectroscopy
 
-Study dislocation types and motion, Burgers vector, dislocation density measurement, work hardening and dynamic recovery, recrystallization and texture, and deformed microstructure analysis. 
+Study Raman scattering mechanisms (Stokes and anti-Stokes), selection rules and comparison with IR, instrumentation and laser sources, SERS (Surface-Enhanced Raman Spectroscopy), and applications in carbon materials and crystallinity analysis. 
 
-⏱️ 25-35 min 💻 7 Code Examples 📊 Intermediate~Advanced
+25-35 min 7 Code Examples Intermediate to Advanced
 
-[Start Learning →](<chapter-4.html>)
+[Start Learning](<chapter-4.html>)
 
 Chapter 5
 
-Practical Microstructure Analysis with Python
+X-ray Photoelectron Spectroscopy (XPS)
 
-Practice grain size measurement through image analysis, phase fraction quantification, precipitate distribution analysis, EBSD data processing, microstructure classification using machine learning, and statistical analysis of microstructure-property relationships. 
+Learn photoelectric effect principles, binding energy and chemical state analysis, survey and high-resolution spectra interpretation, quantitative surface composition analysis, and applications in surface chemistry and thin film characterization. 
 
-⏱️ 30-40 min 💻 7 Code Examples 📊 Advanced
+30-40 min 7 Code Examples Advanced
 
-[Start Learning →](<chapter-5.html>)
+[Start Learning](<chapter-5.html>)
 
 ## Learning Objectives
 
 Upon completing this series, you will acquire the following skills and knowledge:
 
-  * ✅ Understand fundamental concepts of grains and grain boundaries and apply Hall-Petch relationship for strength design
-  * ✅ Read phase diagrams and TTT/CCT diagrams to explain principles of microstructure control through heat treatment
-  * ✅ Comprehend precipitation strengthening mechanisms and formulate optimization strategies for aging conditions
-  * ✅ Grasp dislocation theory fundamentals and explain relationships between plastic deformation behavior and microstructural changes
-  * ✅ Extract quantitative data from microstructure images using Python image analysis libraries
-  * ✅ Process EBSD data to analyze crystallographic orientation and grain boundary characteristics
-  * ✅ Implement basic microstructure classification and property prediction using machine learning
-  * ✅ Build a foundation for microstructural data analysis in Materials Informatics (MI)
+  * Understand fundamental principles of light-matter interactions and the electromagnetic spectrum
+  * Apply Beer-Lambert law for quantitative analysis using UV-Vis spectroscopy
+  * Identify functional groups and molecular structures from IR/FTIR spectra
+  * Interpret Raman spectra and understand complementary information to IR spectroscopy
+  * Analyze surface chemistry and chemical states using XPS data
+  * Process and analyze spectral data using Python libraries (numpy, scipy, matplotlib)
+  * Perform baseline correction, peak fitting, and spectral deconvolution
+  * Build a foundation for advanced materials characterization and data-driven analysis
 
 ## Recommended Learning Patterns
 
 ### Pattern 1: Standard Learning - Balanced Theory and Practice (5 Days)
 
-  * Day 1: Chapter 1 (Grains and Grain Boundaries)
-  * Day 2: Chapter 2 (Phase Transformations)
-  * Day 3: Chapter 3 (Precipitation and Solid Solution)
-  * Day 4: Chapter 4 (Dislocations and Plastic Deformation)
-  * Day 5: Chapter 5 (Practical Microstructure Analysis) + Comprehensive Review
+  * Day 1: Chapter 1 (Fundamentals of Spectroscopy)
+  * Day 2: Chapter 2 (UV-Vis Spectroscopy)
+  * Day 3: Chapter 3 (Infrared Spectroscopy)
+  * Day 4: Chapter 4 (Raman Spectroscopy)
+  * Day 5: Chapter 5 (XPS) + Comprehensive Review
 
-### Pattern 2: Intensive Learning - Microstructure Master (2-3 Days)
+### Pattern 2: Intensive Learning - Spectroscopy Master (2-3 Days)
 
-  * Day 1: Chapters 1-2 (Basic Theory: Boundaries and Transformations)
-  * Day 2: Chapters 3-4 (Applied Theory: Precipitation and Dislocations)
-  * Day 3: Chapter 5 (Practical Analysis) + Exercise Problems from Each Chapter
+  * Day 1: Chapters 1-2 (Fundamentals and UV-Vis)
+  * Day 2: Chapters 3-4 (Vibrational Spectroscopy: IR and Raman)
+  * Day 3: Chapter 5 (XPS) + Exercise Problems from Each Chapter
 
 ### Pattern 3: Practice-Focused - Data Analysis Skills Acquisition (Half Day)
 
   * Chapters 1-4: Execute code examples only (theory as reference)
-  * Chapter 5: Deep dive and practice analysis with actual microstructure data
+  * Chapter 5: Deep dive and practice analysis with spectral data
   * Return to theory sections as needed for clarification
 
 ## Prerequisites
 
 Field | Required Level | Description  
 ---|---|---  
-**Materials Science Basics** | Introductory Level Complete | Understanding of crystal structures, chemical bonding, and material classification  
-**Physics** | Undergraduate Year 1-2 | Basics of thermodynamics, diffusion, and mechanics  
-**Mathematics** | Undergraduate Year 1 | Fundamentals of calculus, linear algebra, and statistics  
-**Python** | Beginner~Intermediate | Basic operations with numpy, matplotlib, pandas, and scikit-image  
+**Materials Science Basics** | Introductory Level Complete | Understanding of atomic structure, chemical bonding, and material classification  
+**Physics** | Undergraduate Year 1-2 | Basics of electromagnetic waves, quantum mechanics concepts, and optics  
+**Chemistry** | Undergraduate Year 1-2 | Molecular structure, functional groups, and chemical bonding  
+**Python** | Beginner to Intermediate | Basic operations with numpy, matplotlib, scipy, and pandas  
   
 ## Python Libraries Used
 
 Main libraries used in this series:
 
   * **numpy** : Numerical computation and array operations
-  * **matplotlib** : 2D plotting and image display
-  * **scipy** : Scientific computing (optimization, statistics, signal processing)
-  * **pandas** : Data processing and analysis
-  * **scikit-image** : Image processing and microstructure analysis
-  * **opencv-python** : Advanced image processing
-  * **scikit-learn** : Machine learning (classification, clustering)
-  * **pyebsdindex** : EBSD data analysis (Chapter 5)
-  * **pycalphad** : Phase diagram calculation (Chapter 2)
+  * **matplotlib** : Spectral plotting and visualization
+  * **scipy** : Peak fitting, signal processing, and optimization
+  * **pandas** : Data processing and spectral database handling
+  * **lmfit** : Advanced curve fitting and peak deconvolution
+  * **scikit-learn** : Machine learning for spectral classification
+  * **rampy** : Raman spectroscopy data processing (Chapter 4)
+  * **xps-tools** : XPS data analysis utilities (Chapter 5)
 
 ## FAQ - Frequently Asked Questions
 
 ### Q1: Is it difficult without completing the Introduction to Materials Science series?
 
-Yes, the Introduction to Materials Science series or equivalent knowledge is a prerequisite. Understanding of crystal structures, chemical bonding, and basic material properties is particularly necessary. If uncertain, we recommend first completing the "Introduction to Materials Science" series.
+Basic knowledge of atomic structure and chemical bonding is helpful. If you are unfamiliar with these concepts, we recommend first reviewing the "Introduction to Materials Science" series or equivalent introductory chemistry/physics materials.
 
-### Q2: Is it okay without experimental experience in microstructure observation?
+### Q2: Do I need hands-on experience with spectroscopic instruments?
 
-Yes, it's fine. This series focuses on theory and computational/data analysis, not experimental techniques. However, methods for viewing and interpreting microstructure images are explained in detail.
+No, this series focuses on understanding spectral data interpretation and computational analysis. However, familiarity with how spectra are acquired will enhance your understanding. The series includes explanations of instrumentation principles.
 
 ### Q3: What is the relationship with Materials Informatics (MI)?
 
-Microstructure is an important application area of MI. The microstructure analysis techniques learned in this series can be directly applied to materials database construction, microstructure-property correlation modeling, and process optimization in MI.
+Spectroscopy is a key data source for MI. The spectral analysis techniques learned here can be directly applied to building spectral databases, automated peak identification, and structure-property correlation models in MI workflows.
 
-### Q4: Can the image analysis in Chapter 5 be used with actual microstructure images?
+### Q4: Can the analysis techniques be applied to my own experimental data?
 
-Yes, it can. Chapter 5 covers general-purpose image analysis techniques that are applicable to your own research data. However, since actual data can vary in quality, preprocessing adjustments may be necessary.
+Yes, the Python-based analysis workflows are designed to be general-purpose. You can apply peak fitting, baseline correction, and data processing techniques to your own UV-Vis, IR, Raman, or XPS data with minor modifications.
 
-### Q5: Can this be applied to materials other than steel?
+### Q5: How do IR and Raman spectroscopy complement each other?
 
-Yes, the microstructural principles learned in this series are applicable to metals in general (aluminum alloys, titanium alloys, nickel-based superalloys, etc.). Some content (like martensitic transformation) uses steel-specific examples, but the fundamental concepts are universal.
+IR and Raman are complementary vibrational techniques with different selection rules. Some vibrations are IR-active but Raman-inactive (and vice versa). Chapter 4 covers this relationship in detail, helping you choose the appropriate technique for your analysis.
 
 ## Key Learning Points
 
-  * **Careful Observation of Microstructure Images** : Carefully examine microstructure images in each chapter to understand their features
-  * **Develop Scale Awareness** : Be conscious of scales: grains (μm~mm), precipitates (nm~μm), dislocations (nm)
-  * **Microstructure-Property-Processing Triangle** : Always consider causal relationships: Processing (heat treatment) → Microstructure (grain size, phase fraction) → Properties (strength, ductility)
-  * **Importance of Quantification** : Form the habit of numerical expression like "average grain size 5μm" rather than "fine grains"
-  * **Practice with Real Data** : In Chapter 5, if possible, try analyzing microstructure images from your own research or papers
+  * **Understand the Physical Basis** : Focus on why spectral features appear, not just how to identify them
+  * **Master Peak Analysis** : Learn systematic approaches to peak identification, fitting, and quantification
+  * **Compare Techniques** : Understand when to use each spectroscopic method and their complementary nature
+  * **Practice Data Processing** : Apply baseline correction, smoothing, and normalization to real spectral data
+  * **Build Interpretation Skills** : Develop the ability to extract chemical and structural information from spectra
 
 ## Next Steps
 
 After completing this series, we recommend the following advanced learning:
 
-  * Introduction to Materials Thermodynamics - Deep dive into phase equilibria and phase diagrams
-  * Introduction to Materials Strength - Theory and prediction of mechanical properties
-  * Introduction to Computational Materials Science - Phase-field method, molecular dynamics
-  * Materials Informatics Practice - Microstructural database construction and machine learning modeling
-  * Process Informatics Practice - Heat treatment process optimization
+  * Introduction to Electron Microscopy - SEM, TEM, and EDS for structural characterization
+  * X-ray Diffraction Fundamentals - Crystal structure analysis and phase identification
+  * Introduction to Surface Analysis - Advanced surface characterization techniques
+  * Materials Informatics Practice - Spectral database construction and machine learning
+  * Computational Spectroscopy - DFT-based spectral prediction and interpretation
