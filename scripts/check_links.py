@@ -320,7 +320,9 @@ class LinkChecker:
         """Check all files"""
         print(f"\nChecking links in {len(self.html_files)} HTML files...")
 
-        files_to_check = self.html_files + self.md_files
+        # Only check HTML files - MD files contain links relative to their HTML output location
+        # which causes false positives when checked from the MD source location
+        files_to_check = self.html_files
 
         if HAS_TQDM:
             iterator = tqdm.tqdm(files_to_check, desc="Checking files")
