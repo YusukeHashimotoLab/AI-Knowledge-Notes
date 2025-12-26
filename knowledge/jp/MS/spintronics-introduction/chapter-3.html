@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="description" content="第3章: Pythonで学ぶスピン輸送 - スピン拡散方程式、GMR/TMRシミュレーション"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>第3章: Pythonで学ぶスピン輸送 - MS寺子屋</title>
+  <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"/>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });</script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">材料科学</a><span class="breadcrumb-separator">›</span><a href="index.html">スピントロニクス入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第3章</span>
+    </div>
+  </nav>
+  <div class="locale-switcher">
+    <span class="current-locale">JP</span>
+    <span class="locale-separator">|</span>
+    <a href="../../../en/MS/spintronics-introduction/chapter-3.html" class="locale-link">EN</a>
+  </div>
+
+  <header>
+    <div class="header-content">
+      <h1>第3章: Pythonで学ぶスピン輸送</h1>
+      <p class="subtitle">スピン拡散方程式からGMR/TMRシミュレーションまで</p>
+      <div class="meta">
+        <span class="meta-item">読了時間: 30-40分</span>
+        <span class="meta-item">難易度: 中級</span>
+        <span class="meta-item">コード例: 8個</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <p class="chapter-description">
+      この章では、Pythonを使ってスピントロニクスの物理を実践的に学びます。スピン拡散方程式の数値解法、FM/NM接合のスピン蓄積、GMR/TMR特性のシミュレーションを通じて、理論を「手を動かして」理解します。
+    </p>
+
+    <div class="info-box">
+      <h3>必要なライブラリ</h3>
+      <pre><code>pip install numpy scipy matplotlib</code></pre>
+    </div>
+
+    <hr/>
+
+    <h2>3.1 スピン拡散方程式の数値解法</h2>
+
+    <p>1次元スピン拡散方程式を有限差分法で解きます：</p>
+    $$D \frac{d^2 \mu_s}{dx^2} = \frac{\mu_s}{\tau_s}$$
+
+    <h3>コード例3.1: スピン拡散方程式ソルバー</h3>
+    <pre><code class="language-python">"""
+スピン拡散方程式の有限差分法による数値解
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.linalg import solve_banded
+
+def solve_spin_diffusion(L, N, D, tau_s, mu_s_boundary):
+    """
+    1Dスピン拡散方程式を解く
+
+    Parameters:
+    L: 系の長さ (m)
+    N: 格子点数
+    D: 拡散係数 (m²/s)
+    tau_s: スピン緩和時間 (s)
+    mu_s_boundary: 左境界でのスピン蓄積
+
+    Returns:
+    x, mu_s: 位置とスピン蓄積の配列
+    """
+    dx = L / (N - 1)
+    x = np.linspace(0, L, N)
+    lambda_s = np.sqrt(D * tau_s)
+
+    # 係数行列（三重対角）
+    alpha = D / dx**2
+    beta = 1 / tau_s + 2 * D / dx**2
+
+    # バンド行列形式
+    ab = np.zeros((3, N))
+    ab[0, 1:] = -alpha      # 上対角
+    ab[1, :] = beta          # 主対角
+    ab[2, :-1] = -alpha      # 下対角
+
+    # 境界条件
+    ab[1, 0] = 1
+    ab[1, -1] = 1
+
+    # 右辺ベクトル
+    b = np.zeros(N)
+    b[0] = mu_s_boundary
+    b[-1] = 0  # 右端でスピン蓄積ゼロ
+
+    # 解く
+    mu_s = solve_banded((1, 1), ab, b)
+
+    return x, mu_s, lambda_s
+
+# パラメータ（銅を想定）
+L = 1e-6  # 1 μm
+N = 200
+D = 1e-2  # m²/s
+tau_s = 10e-12  # 10 ps
+
+x, mu_s, lambda_s = solve_spin_diffusion(L, N, D, tau_s, mu_s_boundary=1.0)
+
+# 解析解との比較
+mu_s_analytical = np.exp(-x / lambda_s)
+
+# プロット
+plt.figure(figsize=(10, 6))
+plt.plot(x * 1e9, mu_s, 'b-', linewidth=2, label='数値解')
+plt.plot(x * 1e9, mu_s_analytical, 'r--', linewidth=2, label='解析解')
+plt.xlabel('位置 x (nm)', fontsize=12)
+plt.ylabel('スピン蓄積 μs (正規化)', fontsize=12)
+plt.title(f'スピン拡散（λs = {lambda_s*1e9:.1f} nm）', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+print(f"スピン拡散長: λs = {lambda_s*1e9:.1f} nm")</code></pre>
+
+    <hr/>
+
+    <h2>3.2 FM/NM接合のスピン蓄積</h2>
+
+    <h3>コード例3.2: 接合界面のスピン蓄積</h3>
+    <pre><code class="language-python">"""
+FM/NM接合でのスピン蓄積プロファイル
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def fm_nm_junction(x_fm, x_nm, P, lambda_fm, lambda_nm, j):
+    """
+    FM/NM接合でのスピン蓄積を計算
+
+    Parameters:
+    x_fm, x_nm: FM側、NM側の位置配列
+    P: FMのスピン偏極率
+    lambda_fm, lambda_nm: 各領域のスピン拡散長
+    j: 電流密度
+    """
+    # 界面でのスピン蓄積（簡易モデル）
+    mu_s0 = P * j * lambda_nm
+
+    # FM側：界面から離れると減衰
+    mu_s_fm = mu_s0 * np.exp(x_fm / lambda_fm)
+
+    # NM側：指数関数的減衰
+    mu_s_nm = mu_s0 * np.exp(-x_nm / lambda_nm)
+
+    return mu_s_fm, mu_s_nm
+
+# パラメータ
+x_fm = np.linspace(-200e-9, 0, 100)  # FM側（負の位置）
+x_nm = np.linspace(0, 500e-9, 200)    # NM側（正の位置）
+P = 0.4  # Fe程度
+lambda_fm = 5e-9   # FMのスピン拡散長
+lambda_nm = 350e-9  # Cu程度
+
+mu_s_fm, mu_s_nm = fm_nm_junction(x_fm, x_nm, P, lambda_fm, lambda_nm, j=1)
+
+# プロット
+plt.figure(figsize=(12, 6))
+plt.fill_between(x_fm * 1e9, 0, 1, alpha=0.2, color='red', label='FM (Fe)')
+plt.fill_between(x_nm * 1e9, 0, 1, alpha=0.2, color='blue', label='NM (Cu)')
+plt.plot(x_fm * 1e9, mu_s_fm / max(mu_s_nm), 'r-', linewidth=2)
+plt.plot(x_nm * 1e9, mu_s_nm / max(mu_s_nm), 'b-', linewidth=2)
+plt.axvline(x=0, color='k', linestyle='--', label='界面')
+plt.xlabel('位置 (nm)', fontsize=12)
+plt.ylabel('スピン蓄積（正規化）', fontsize=12)
+plt.title('FM/NM接合でのスピン蓄積', fontsize=14)
+plt.legend()
+plt.xlim(-200, 500)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>3.3 GMR特性シミュレーション</h2>
+
+    <h3>コード例3.3: 完全なGMRシミュレータ</h3>
+    <pre><code class="language-python">"""
+スピンバルブGMRの完全なシミュレーション
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+class SpinValve:
+    """スピンバルブGMRシミュレータ"""
+
+    def __init__(self, R_up, R_down, Hc_free, Hc_pinned, H_exchange=0):
+        self.R_up = R_up
+        self.R_down = R_down
+        self.Hc_free = Hc_free
+        self.Hc_pinned = Hc_pinned
+        self.H_exchange = H_exchange
+
+        # 初期状態
+        self.m_free = 1   # +1 or -1
+        self.m_pinned = 1
+
+    def calculate_resistance(self):
+        """現在の磁化配置から抵抗を計算"""
+        if self.m_free == self.m_pinned:
+            # 平行配置
+            R_total = (self.R_up * self.R_down) / (self.R_up + self.R_down)
+        else:
+            # 反平行配置
+            R_series_up = self.R_up + self.R_down
+            R_series_down = self.R_down + self.R_up
+            R_total = (R_series_up * R_series_down) / (R_series_up + R_series_down)
+        return R_total
+
+    def apply_field(self, H):
+        """外部磁場を印加し磁化状態を更新"""
+        # ピン層は交換バイアスでシフト
+        if H > self.Hc_pinned + self.H_exchange:
+            self.m_pinned = 1
+        elif H < -self.Hc_pinned + self.H_exchange:
+            self.m_pinned = -1
+
+        # フリー層は低保磁力で反転
+        if H > self.Hc_free:
+            self.m_free = 1
+        elif H < -self.Hc_free:
+            self.m_free = -1
+
+        return self.calculate_resistance()
+
+    def field_sweep(self, H_range):
+        """磁場掃引"""
+        resistances = []
+        for H in H_range:
+            R = self.apply_field(H)
+            resistances.append(R)
+        return np.array(resistances)
+
+# スピンバルブの作成
+sv = SpinValve(
+    R_up=1.0,      # 多数スピン抵抗
+    R_down=5.0,    # 少数スピン抵抗
+    Hc_free=20,    # フリー層保磁力
+    Hc_pinned=200, # ピン層保磁力
+    H_exchange=100 # 交換バイアス
+)
+
+# 磁場掃引
+H_forward = np.linspace(400, -400, 500)
+H_backward = np.linspace(-400, 400, 500)
+
+# 初期化してスイープ
+sv.m_free, sv.m_pinned = 1, 1
+R_forward = sv.field_sweep(H_forward)
+
+sv.m_free, sv.m_pinned = -1, -1
+R_backward = sv.field_sweep(H_backward)
+
+# GMR比の計算
+R_P = min(R_forward)
+R_AP = max(R_forward)
+GMR = (R_AP - R_P) / R_P * 100
+
+# プロット
+plt.figure(figsize=(12, 6))
+plt.plot(H_forward, R_forward, 'b-', linewidth=2, label='減少方向')
+plt.plot(H_backward, R_backward, 'r--', linewidth=2, label='増加方向')
+plt.xlabel('外部磁場 H (Oe)', fontsize=12)
+plt.ylabel('抵抗 R (Ω)', fontsize=12)
+plt.title(f'スピンバルブGMR（GMR比 = {GMR:.1f}%）', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+print(f"平行配置抵抗: R_P = {R_P:.3f} Ω")
+print(f"反平行配置抵抗: R_AP = {R_AP:.3f} Ω")
+print(f"GMR比: {GMR:.1f}%")</code></pre>
+
+    <hr/>
+
+    <h2>3.4 TMR特性とバイアス依存性</h2>
+
+    <h3>コード例3.4: TMRのバイアス電圧依存性</h3>
+    <pre><code class="language-python">"""
+TMRのバイアス電圧依存性シミュレーション
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def tmr_bias_dependence(V, P1, P2, V_half):
+    """
+    バイアス電圧依存のTMR
+
+    TMR(V) = TMR(0) / (1 + (V/V_half)²)
+    """
+    TMR_0 = 2 * P1 * P2 / (1 - P1 * P2)
+    TMR_V = TMR_0 / (1 + (V / V_half)**2)
+    return TMR_V
+
+# パラメータ
+V = np.linspace(-1, 1, 200)  # バイアス電圧 (V)
+P1, P2 = 0.56, 0.56  # CoFeBの偏極率
+V_half = 0.5  # TMRが半減する電圧
+
+TMR = tmr_bias_dependence(V, P1, P2, V_half) * 100
+
+# プロット
+plt.figure(figsize=(10, 6))
+plt.plot(V * 1000, TMR, 'b-', linewidth=2)
+plt.xlabel('バイアス電圧 (mV)', fontsize=12)
+plt.ylabel('TMR比 (%)', fontsize=12)
+plt.title('MTJのTMRバイアス依存性', fontsize=14)
+plt.axhline(y=TMR[len(TMR)//2], color='r', linestyle='--', alpha=0.5,
+            label=f'TMR(0) = {TMR[len(TMR)//2]:.0f}%')
+plt.axhline(y=TMR[len(TMR)//2]/2, color='g', linestyle='--', alpha=0.5,
+            label=f'TMR(V_half) = {TMR[len(TMR)//2]/2:.0f}%')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+print(f"ゼロバイアスTMR: {TMR[len(TMR)//2]:.0f}%")
+print(f"半減電圧: V_half = {V_half*1000:.0f} mV")</code></pre>
+
+    <hr/>
+
+    <h2>3.5 スピンホール効果のシミュレーション</h2>
+
+    <h3>コード例3.5: スピンホール効果による磁化ダイナミクス</h3>
+    <pre><code class="language-python">"""
+スピン軌道トルクによる磁化ダイナミクス（簡易LLG方程式）
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+def llg_equation(m, t, H_eff, alpha, gamma, H_SOT):
+    """
+    Landau-Lifshitz-Gilbert方程式（スピン軌道トルク項付き）
+
+    dm/dt = -γ m × H_eff + α m × dm/dt + τ_SOT
+    """
+    mx, my, mz = m
+
+    # 有効磁場
+    Hx, Hy, Hz = H_eff
+
+    # 歳差運動項
+    dmdt = -gamma * np.cross(m, H_eff)
+
+    # 減衰項
+    dmdt += alpha * np.cross(m, dmdt)
+
+    # SOTトルク（ダンピング様トルク）
+    sigma = np.array([1, 0, 0])  # スピン偏極方向
+    dmdt += H_SOT * np.cross(m, np.cross(m, sigma))
+
+    return dmdt
+
+# パラメータ
+gamma = 1.76e11  # ジャイロ磁気比 (rad/s/T)
+alpha = 0.01     # ダンピング定数
+H_eff = np.array([0, 0, 0.1])  # 有効磁場 (T)
+
+# 時間設定
+t = np.linspace(0, 5e-9, 1000)
+
+# 初期磁化（+z方向から少しずらす）
+m0 = np.array([0.1, 0, 0.995])
+m0 = m0 / np.linalg.norm(m0)
+
+# SOTなしとありで比較
+results = {}
+for H_SOT in [0, 0.5e11]:
+    sol = odeint(llg_equation, m0, t, args=(H_eff, alpha, gamma, H_SOT))
+    results[H_SOT] = sol
+
+# プロット
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+for i, (H_SOT, sol) in enumerate(results.items()):
+    ax = axes[i]
+    ax.plot(t * 1e9, sol[:, 0], 'r-', label='mx')
+    ax.plot(t * 1e9, sol[:, 1], 'g-', label='my')
+    ax.plot(t * 1e9, sol[:, 2], 'b-', label='mz')
+    ax.set_xlabel('時間 (ns)', fontsize=12)
+    ax.set_ylabel('磁化成分', fontsize=12)
+    title = 'SOTなし' if H_SOT == 0 else f'SOTあり (H_SOT = {H_SOT:.0e})'
+    ax.set_title(title, fontsize=14)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>3.6 まとめとベストプラクティス</h2>
+
+    <div class="info-box">
+      <h3>シミュレーションのポイント</h3>
+      <ul>
+        <li>スピン拡散長 $\lambda_s$ は系のサイズ設定の目安</li>
+        <li>GMR/TMR計算では磁化状態のヒステリシスを考慮</li>
+        <li>LLG方程式は硬い微分方程式、適切なソルバーを選択</li>
+        <li>実験値との比較で材料パラメータを検証</li>
+      </ul>
+    </div>
+
+    <hr/>
+
+    <div class="navigation">
+      <a href="chapter-2.html" class="nav-button secondary">← 第2章: 基本原理</a>
+      <a href="chapter-4.html" class="nav-button">第4章: 応用と将来展望 →</a>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <p>© 2025 AI Terakoya - MS Dojo. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>

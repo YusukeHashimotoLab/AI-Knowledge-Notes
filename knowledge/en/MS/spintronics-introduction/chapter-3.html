@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="description" content="Chapter 3: Learning Spin Transport with Python - Spin diffusion equation, GMR/TMR simulation"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chapter 3: Learning Spin Transport with Python - MS Terakoya</title>
+  <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"/>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });</script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../index.html">Materials Science</a><span class="breadcrumb-separator">›</span><a href="index.html">Spintronics Introduction</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+    </div>
+  </nav>
+  <div class="locale-switcher">
+    <span class="current-locale">EN</span>
+    <span class="locale-separator">|</span>
+    <a href="../../../jp/MS/spintronics-introduction/chapter-3.html" class="locale-link">JP</a>
+  </div>
+
+  <header>
+    <div class="header-content">
+      <h1>Chapter 3: Learning Spin Transport with Python</h1>
+      <p class="subtitle">From Spin Diffusion Equation to GMR/TMR Simulation</p>
+      <div class="meta">
+        <span class="meta-item">Reading Time: 30-40 min</span>
+        <span class="meta-item">Difficulty: Intermediate</span>
+        <span class="meta-item">Code Examples: 8</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <p class="chapter-description">
+      In this chapter, we learn spintronics physics hands-on using Python. Through numerical solutions of the spin diffusion equation, spin accumulation at FM/NM junctions, and GMR/TMR simulations, we develop understanding by actually coding.
+    </p>
+
+    <div class="info-box">
+      <h3>Required Libraries</h3>
+      <pre><code>pip install numpy scipy matplotlib</code></pre>
+    </div>
+
+    <hr/>
+
+    <h2>3.1 Numerical Solution of Spin Diffusion Equation</h2>
+
+    <p>We solve the 1D spin diffusion equation using finite differences:</p>
+    $$D \frac{d^2 \mu_s}{dx^2} = \frac{\mu_s}{\tau_s}$$
+
+    <h3>Code Example 3.1: Spin Diffusion Equation Solver</h3>
+    <pre><code class="language-python">"""
+Numerical solution of spin diffusion equation using finite differences
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.linalg import solve_banded
+
+def solve_spin_diffusion(L, N, D, tau_s, mu_s_boundary):
+    """
+    Solve 1D spin diffusion equation
+
+    Parameters:
+    L: System length (m)
+    N: Number of grid points
+    D: Diffusion coefficient (m²/s)
+    tau_s: Spin relaxation time (s)
+    mu_s_boundary: Spin accumulation at left boundary
+    """
+    dx = L / (N - 1)
+    x = np.linspace(0, L, N)
+    lambda_s = np.sqrt(D * tau_s)
+
+    # Coefficient matrix (tridiagonal)
+    alpha = D / dx**2
+    beta = 1 / tau_s + 2 * D / dx**2
+
+    ab = np.zeros((3, N))
+    ab[0, 1:] = -alpha
+    ab[1, :] = beta
+    ab[2, :-1] = -alpha
+    ab[1, 0] = 1
+    ab[1, -1] = 1
+
+    b = np.zeros(N)
+    b[0] = mu_s_boundary
+    b[-1] = 0
+
+    mu_s = solve_banded((1, 1), ab, b)
+    return x, mu_s, lambda_s
+
+# Parameters (Copper)
+L, N, D, tau_s = 1e-6, 200, 1e-2, 10e-12
+x, mu_s, lambda_s = solve_spin_diffusion(L, N, D, tau_s, 1.0)
+mu_s_analytical = np.exp(-x / lambda_s)
+
+plt.figure(figsize=(10, 6))
+plt.plot(x * 1e9, mu_s, 'b-', linewidth=2, label='Numerical')
+plt.plot(x * 1e9, mu_s_analytical, 'r--', linewidth=2, label='Analytical')
+plt.xlabel('Position x (nm)', fontsize=12)
+plt.ylabel('Spin Accumulation μs', fontsize=12)
+plt.title(f'Spin Diffusion (λs = {lambda_s*1e9:.1f} nm)', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>3.2 Spin Accumulation at FM/NM Junction</h2>
+
+    <h3>Code Example 3.2: Junction Interface Spin Accumulation</h3>
+    <pre><code class="language-python">"""
+Spin accumulation profile at FM/NM junction
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def fm_nm_junction(x_fm, x_nm, P, lambda_fm, lambda_nm, j):
+    mu_s0 = P * j * lambda_nm
+    mu_s_fm = mu_s0 * np.exp(x_fm / lambda_fm)
+    mu_s_nm = mu_s0 * np.exp(-x_nm / lambda_nm)
+    return mu_s_fm, mu_s_nm
+
+x_fm = np.linspace(-200e-9, 0, 100)
+x_nm = np.linspace(0, 500e-9, 200)
+mu_s_fm, mu_s_nm = fm_nm_junction(x_fm, x_nm, 0.4, 5e-9, 350e-9, 1)
+
+plt.figure(figsize=(12, 6))
+plt.fill_between(x_fm * 1e9, 0, 1, alpha=0.2, color='red', label='FM')
+plt.fill_between(x_nm * 1e9, 0, 1, alpha=0.2, color='blue', label='NM')
+plt.plot(x_fm * 1e9, mu_s_fm / max(mu_s_nm), 'r-', linewidth=2)
+plt.plot(x_nm * 1e9, mu_s_nm / max(mu_s_nm), 'b-', linewidth=2)
+plt.axvline(x=0, color='k', linestyle='--', label='Interface')
+plt.xlabel('Position (nm)')
+plt.ylabel('Spin Accumulation (normalized)')
+plt.title('Spin Accumulation at FM/NM Junction')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>3.3 GMR Characteristics Simulation</h2>
+
+    <h3>Code Example 3.3: Complete GMR Simulator</h3>
+    <pre><code class="language-python">"""
+Complete spin valve GMR simulation
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+class SpinValve:
+    def __init__(self, R_up, R_down, Hc_free, Hc_pinned, H_exchange=0):
+        self.R_up, self.R_down = R_up, R_down
+        self.Hc_free, self.Hc_pinned = Hc_free, Hc_pinned
+        self.H_exchange = H_exchange
+        self.m_free, self.m_pinned = 1, 1
+
+    def calculate_resistance(self):
+        if self.m_free == self.m_pinned:
+            return (self.R_up * self.R_down) / (self.R_up + self.R_down)
+        else:
+            R_s = self.R_up + self.R_down
+            return (R_s * R_s) / (R_s + R_s)
+
+    def apply_field(self, H):
+        if H > self.Hc_pinned + self.H_exchange:
+            self.m_pinned = 1
+        elif H < -self.Hc_pinned + self.H_exchange:
+            self.m_pinned = -1
+        if H > self.Hc_free:
+            self.m_free = 1
+        elif H < -self.Hc_free:
+            self.m_free = -1
+        return self.calculate_resistance()
+
+    def field_sweep(self, H_range):
+        return np.array([self.apply_field(H) for H in H_range])
+
+sv = SpinValve(1.0, 5.0, 20, 200, 100)
+H_forward = np.linspace(400, -400, 500)
+sv.m_free, sv.m_pinned = 1, 1
+R_forward = sv.field_sweep(H_forward)
+
+GMR = (max(R_forward) - min(R_forward)) / min(R_forward) * 100
+
+plt.figure(figsize=(12, 6))
+plt.plot(H_forward, R_forward, 'b-', linewidth=2)
+plt.xlabel('External Field H (Oe)')
+plt.ylabel('Resistance R (Ω)')
+plt.title(f'Spin Valve GMR (GMR ratio = {GMR:.1f}%)')
+plt.grid(True, alpha=0.3)
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>3.4 TMR Bias Dependence</h2>
+
+    <h3>Code Example 3.4: TMR Bias Voltage Dependence</h3>
+    <pre><code class="language-python">"""
+TMR bias voltage dependence simulation
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def tmr_bias_dependence(V, P1, P2, V_half):
+    TMR_0 = 2 * P1 * P2 / (1 - P1 * P2)
+    return TMR_0 / (1 + (V / V_half)**2)
+
+V = np.linspace(-1, 1, 200)
+TMR = tmr_bias_dependence(V, 0.56, 0.56, 0.5) * 100
+
+plt.figure(figsize=(10, 6))
+plt.plot(V * 1000, TMR, 'b-', linewidth=2)
+plt.xlabel('Bias Voltage (mV)')
+plt.ylabel('TMR Ratio (%)')
+plt.title('MTJ TMR Bias Dependence')
+plt.grid(True, alpha=0.3)
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>3.5 Spin Hall Effect Simulation</h2>
+
+    <h3>Code Example 3.5: Magnetization Dynamics via Spin-Orbit Torque</h3>
+    <pre><code class="language-python">"""
+Magnetization dynamics via spin-orbit torque (simplified LLG equation)
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+def llg_equation(m, t, H_eff, alpha, gamma, H_SOT):
+    dmdt = -gamma * np.cross(m, H_eff)
+    dmdt += alpha * np.cross(m, dmdt)
+    sigma = np.array([1, 0, 0])
+    dmdt += H_SOT * np.cross(m, np.cross(m, sigma))
+    return dmdt
+
+gamma, alpha = 1.76e11, 0.01
+H_eff = np.array([0, 0, 0.1])
+t = np.linspace(0, 5e-9, 1000)
+m0 = np.array([0.1, 0, 0.995])
+m0 = m0 / np.linalg.norm(m0)
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+for i, H_SOT in enumerate([0, 0.5e11]):
+    sol = odeint(llg_equation, m0, t, args=(H_eff, alpha, gamma, H_SOT))
+    axes[i].plot(t * 1e9, sol[:, 0], 'r-', label='mx')
+    axes[i].plot(t * 1e9, sol[:, 1], 'g-', label='my')
+    axes[i].plot(t * 1e9, sol[:, 2], 'b-', label='mz')
+    axes[i].set_xlabel('Time (ns)')
+    axes[i].set_ylabel('Magnetization')
+    axes[i].set_title('Without SOT' if H_SOT == 0 else 'With SOT')
+    axes[i].legend()
+    axes[i].grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>3.6 Summary and Best Practices</h2>
+
+    <div class="info-box">
+      <h3>Simulation Tips</h3>
+      <ul>
+        <li>Spin diffusion length $\lambda_s$ guides system size</li>
+        <li>Consider magnetization hysteresis in GMR/TMR calculations</li>
+        <li>LLG equation is stiff; choose appropriate solver</li>
+        <li>Validate parameters against experimental data</li>
+      </ul>
+    </div>
+
+    <hr/>
+
+    <div class="navigation">
+      <a href="chapter-2.html" class="nav-button secondary">← Chapter 2: Basic Principles</a>
+      <a href="chapter-4.html" class="nav-button">Chapter 4: Applications →</a>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <p>© 2025 AI Terakoya - MS Dojo. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>

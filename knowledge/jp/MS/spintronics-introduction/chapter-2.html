@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="description" content="第2章: スピントロニクスの基本原理 - GMR、TMR、スピン注入、スピンホール効果"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>第2章: スピントロニクスの基本原理 - MS寺子屋</title>
+  <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"/>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+  </script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">材料科学</a><span class="breadcrumb-separator">›</span><a href="index.html">スピントロニクス入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第2章</span>
+    </div>
+  </nav>
+  <div class="locale-switcher">
+    <span class="current-locale">JP</span>
+    <span class="locale-separator">|</span>
+    <a href="../../../en/MS/spintronics-introduction/chapter-2.html" class="locale-link">EN</a>
+    <span class="locale-separator">|</span>
+    <span class="locale-meta">最終更新: 2025-12-26</span>
+  </div>
+
+  <header>
+    <div class="header-content">
+      <h1>第2章: スピントロニクスの基本原理</h1>
+      <p class="subtitle">GMR、TMR、スピン注入からスピンホール効果まで</p>
+      <div class="meta">
+        <span class="meta-item">読了時間: 25-35分</span>
+        <span class="meta-item">難易度: 入門〜中級</span>
+        <span class="meta-item">コード例: 6個</span>
+        <span class="meta-item">演習問題: 4問</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <p class="chapter-description">
+      この章では、スピントロニクスの核心となる物理現象を詳しく学びます。スピン偏極電流の概念から始め、GMR・TMR効果のメカニズム、スピン注入・蓄積、そして近年注目を集めるスピンホール効果まで、理論とPythonコードで理解を深めます。
+    </p>
+
+    <div class="learning-objectives">
+      <h2>学習目標</h2>
+      <ul>
+        <li>スピン偏極電流と2電流モデルを理解する</li>
+        <li>GMR効果のメカニズムを説明できる</li>
+        <li>TMR効果とトンネル障壁の役割を理解する</li>
+        <li>スピン注入・蓄積の概念を数式で表現できる</li>
+        <li>スピンホール効果の原理と応用を説明できる</li>
+      </ul>
+    </div>
+
+    <hr/>
+
+    <h2>2.1 スピン偏極電流と2電流モデル</h2>
+
+    <p>強磁性金属中では、上向きスピン（↑）と下向きスピン（↓）の電子の状態密度がフェルミ準位で異なります。この非対称性により、電流は<strong>スピン偏極</strong>を持ちます。</p>
+
+    <h3>2電流モデル（Two-Current Model）</h3>
+    <p>Mottによって提唱された2電流モデルでは、電流を2つの独立したスピンチャネルの並列とみなします：</p>
+
+    $$
+    I_{total} = I_\uparrow + I_\downarrow
+    $$
+
+    <p>各スピンチャネルの電流は、そのスピンに対する抵抗で決まります：</p>
+
+    $$
+    I_\uparrow = \frac{V}{R_\uparrow}, \quad I_\downarrow = \frac{V}{R_\downarrow}
+    $$
+
+    <p>強磁性体中では、多数スピン（磁化と平行）の抵抗 $R_\uparrow$ は少数スピン（磁化と反平行）の抵抗 $R_\downarrow$ より小さくなります。</p>
+
+    <h3>コード例2.1: 2電流モデルの可視化</h3>
+    <pre><code class="language-python">"""
+2電流モデルによるスピン依存伝導の可視化
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def two_current_model(V, R_up, R_down):
+    """
+    2電流モデルで電流を計算
+
+    Parameters:
+    V: 印加電圧
+    R_up: 上向きスピンの抵抗
+    R_down: 下向きスピンの抵抗
+
+    Returns:
+    I_up, I_down, I_total, polarization
+    """
+    I_up = V / R_up
+    I_down = V / R_down
+    I_total = I_up + I_down
+    polarization = (I_up - I_down) / I_total
+    return I_up, I_down, I_total, polarization
+
+# パラメータ設定
+V = 1.0  # 電圧（任意単位）
+
+# 異なる材料でのスピン非対称性
+asymmetry_ratios = np.linspace(1, 10, 50)  # R_down / R_up
+
+# 計算
+polarizations = []
+for ratio in asymmetry_ratios:
+    R_up = 1.0
+    R_down = ratio * R_up
+    _, _, _, P = two_current_model(V, R_up, R_down)
+    polarizations.append(P)
+
+# プロット
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# 左: 抵抗の図解
+ax1.bar(['R↑\n(多数スピン)', 'R↓\n(少数スピン)'], [1, 5],
+        color=['red', 'blue'], alpha=0.7)
+ax1.set_ylabel('抵抗（相対値）', fontsize=12)
+ax1.set_title('強磁性体中のスピン依存抵抗', fontsize=14)
+
+# 右: スピン偏極率の非対称性依存
+ax2.plot(asymmetry_ratios, polarizations, 'b-', linewidth=2)
+ax2.set_xlabel('抵抗非対称性 (R↓/R↑)', fontsize=12)
+ax2.set_ylabel('電流のスピン偏極率', fontsize=12)
+ax2.set_title('抵抗非対称性とスピン偏極電流', fontsize=14)
+ax2.grid(True, alpha=0.3)
+ax2.set_ylim(0, 1)
+
+plt.tight_layout()
+plt.show()
+
+# 具体例
+print("=" * 50)
+print("具体例: Fe の場合（R↓/R↑ ≈ 5）")
+I_up, I_down, I_total, P = two_current_model(1.0, 1.0, 5.0)
+print(f"I↑ = {I_up:.3f}, I↓ = {I_down:.3f}")
+print(f"I_total = {I_total:.3f}")
+print(f"スピン偏極率 P = {P:.1%}")
+print("=" * 50)</code></pre>
+
+    <hr/>
+
+    <h2>2.2 巨大磁気抵抗効果（GMR）の詳細</h2>
+
+    <p>GMR効果は、強磁性体/非磁性金属/強磁性体（FM/NM/FM）の3層構造で観測されます。2つの強磁性層の磁化配置によって抵抗が変化します。</p>
+
+    <div class="mermaid">
+flowchart LR
+    subgraph 平行配置
+        FM1_P["FM (↑)"] --> NM_P["NM"] --> FM2_P["FM (↑)"]
+    end
+    subgraph 反平行配置
+        FM1_AP["FM (↑)"] --> NM_AP["NM"] --> FM2_AP["FM (↓)"]
+    end
+    </div>
+
+    <h3>物理的メカニズム</h3>
+    <p><strong>平行配置</strong>：多数スピン電子は両FM層で低抵抗、少数スピン電子は両層で高抵抗。全体として低抵抗。</p>
+    <p><strong>反平行配置</strong>：各スピンが一方のFM層で高抵抗を経験。全体として高抵抗。</p>
+
+    <p>GMR比は以下で定義されます：</p>
+
+    $$
+    \text{GMR} = \frac{R_{AP} - R_P}{R_P} = \frac{(R_\uparrow - R_\downarrow)^2}{4 R_\uparrow R_\downarrow}
+    $$
+
+    <p>これは、スピン偏極率 $P$ を用いて次のように書けます（Jullière公式）：</p>
+
+    $$
+    \text{GMR} = \frac{2P_1 P_2}{1 - P_1 P_2}
+    $$
+
+    <h3>コード例2.2: GMRの磁場依存性シミュレーション</h3>
+    <pre><code class="language-python">"""
+GMRの磁場依存性をシミュレーション
+スピンバルブ構造を想定
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def gmr_vs_field(H, Hc1, Hc2, R_P, R_AP):
+    """
+    磁場依存のGMR抵抗を計算
+
+    Parameters:
+    H: 外部磁場（配列）
+    Hc1, Hc2: 各FM層の保磁力
+    R_P: 平行配置の抵抗
+    R_AP: 反平行配置の抵抗
+
+    Returns:
+    抵抗値の配列
+    """
+    R = np.zeros_like(H)
+
+    for i, h in enumerate(H):
+        # 各FM層の磁化方向を決定（ヒステリシスを簡略化）
+        if h > Hc2:
+            # 両層とも正方向
+            config = 'parallel'
+        elif h < -Hc1:
+            # 両層とも負方向
+            config = 'parallel'
+        elif -Hc1 <= h <= Hc2:
+            # 反平行（層1が正、層2が負、または逆）
+            config = 'antiparallel'
+        else:
+            config = 'parallel'
+
+        R[i] = R_P if config == 'parallel' else R_AP
+
+    return R
+
+# パラメータ
+H = np.linspace(-200, 200, 1000)  # 磁場（Oe）
+Hc1, Hc2 = 50, 150  # 保磁力（フリー層とピン層で異なる）
+R_P, R_AP = 100, 180  # 抵抗（Ω）
+
+# 磁場掃引（正方向 → 負方向）
+R_sweep_pos = []
+R_sweep_neg = []
+
+# 正から負へ
+H_forward = np.linspace(200, -200, 500)
+state1, state2 = 1, 1  # 両層正
+for h in H_forward:
+    if h < Hc2 and state2 == 1:
+        state2 = -1  # 層2反転
+    if h < -Hc1 and state1 == 1:
+        state1 = -1  # 層1反転
+    R_sweep_pos.append(R_P if state1 == state2 else R_AP)
+
+# 負から正へ
+H_backward = np.linspace(-200, 200, 500)
+state1, state2 = -1, -1
+for h in H_backward:
+    if h > -Hc2 and state2 == -1:
+        state2 = 1
+    if h > Hc1 and state1 == -1:
+        state1 = 1
+    R_sweep_neg.append(R_P if state1 == state2 else R_AP)
+
+# プロット
+plt.figure(figsize=(12, 6))
+plt.plot(H_forward, R_sweep_pos, 'b-', linewidth=2, label='磁場減少')
+plt.plot(H_backward, R_sweep_neg, 'r--', linewidth=2, label='磁場増加')
+plt.xlabel('外部磁場 H (Oe)', fontsize=12)
+plt.ylabel('抵抗 R (Ω)', fontsize=12)
+plt.title('スピンバルブのGMR特性', fontsize=14)
+plt.axhline(y=R_P, color='g', linestyle=':', alpha=0.5, label=f'R_P = {R_P}Ω')
+plt.axhline(y=R_AP, color='orange', linestyle=':', alpha=0.5, label=f'R_AP = {R_AP}Ω')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+gmr_ratio = (R_AP - R_P) / R_P * 100
+print(f"GMR比: {gmr_ratio:.1f}%")</code></pre>
+
+    <hr/>
+
+    <h2>2.3 トンネル磁気抵抗効果（TMR）</h2>
+
+    <p>TMR（Tunnel Magnetoresistance）効果は、2つの強磁性体の間に薄い絶縁層（トンネル障壁）を挟んだ<strong>磁気トンネル接合（MTJ）</strong>で観測されます。</p>
+
+    <h3>Jullièreモデル</h3>
+    <p>1975年にJullièreが提唱したモデルでは、TMR比は両FM層のスピン偏極率で決まります：</p>
+
+    $$
+    \text{TMR} = \frac{R_{AP} - R_P}{R_P} = \frac{2P_1 P_2}{1 - P_1 P_2}
+    $$
+
+    <p>理想的なハーフメタル（$P = 1$）を使えば、TMRは無限大になります！</p>
+
+    <div class="info-box">
+      <h3>MTJ材料の進化</h3>
+      <ul>
+        <li><strong>Al-O障壁</strong>（〜2000年）：TMR比 30-70%</li>
+        <li><strong>MgO障壁</strong>（2004年〜）：TMR比 200-600%</li>
+        <li><strong>CoFeB/MgO/CoFeB</strong>：室温で600%以上を達成</li>
+      </ul>
+    </div>
+
+    <h3>コード例2.3: TMR比の計算</h3>
+    <pre><code class="language-python">"""
+Jullièreモデルに基づくTMR比の計算
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def tmr_julliere(P1, P2):
+    """
+    JullièreモデルでTMR比を計算
+
+    TMR = 2*P1*P2 / (1 - P1*P2)
+    """
+    return 2 * P1 * P2 / (1 - P1 * P2)
+
+# スピン偏極率の範囲
+P_values = np.linspace(0.01, 0.99, 100)
+
+# 同じ偏極率のFM層を仮定
+TMR_values = [tmr_julliere(P, P) * 100 for P in P_values]
+
+# プロット
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# 左: TMR vs 偏極率
+ax1.plot(P_values * 100, TMR_values, 'b-', linewidth=2)
+ax1.set_xlabel('スピン偏極率 P (%)', fontsize=12)
+ax1.set_ylabel('TMR比 (%)', fontsize=12)
+ax1.set_title('Jullièreモデル: TMR vs スピン偏極率', fontsize=14)
+ax1.set_yscale('log')
+ax1.grid(True, alpha=0.3)
+ax1.axhline(y=100, color='r', linestyle='--', alpha=0.5)
+ax1.axhline(y=600, color='g', linestyle='--', alpha=0.5, label='MgO障壁（最新）')
+ax1.legend()
+
+# 右: 材料別の比較
+materials = {
+    'Fe': 0.45,
+    'Co': 0.42,
+    'Ni': 0.33,
+    'CoFe': 0.50,
+    'CoFeB': 0.56,
+    'Half-metal\n(ideal)': 0.99
+}
+
+mat_names = list(materials.keys())
+mat_P = list(materials.values())
+mat_TMR = [tmr_julliere(p, p) * 100 for p in mat_P]
+
+bars = ax2.bar(mat_names, mat_TMR, color='steelblue', alpha=0.7)
+ax2.set_ylabel('予測TMR比 (%)', fontsize=12)
+ax2.set_title('材料別TMR比（Jullière予測）', fontsize=14)
+ax2.set_yscale('log')
+
+# 値をバーの上に表示
+for bar, tmr in zip(bars, mat_TMR):
+    ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height(),
+             f'{tmr:.0f}%', ha='center', va='bottom', fontsize=10)
+
+plt.tight_layout()
+plt.show()
+
+print("=" * 50)
+print("注: 実際のMgO-MTJでは、コヒーレントトンネリングにより")
+print("    Jullière予測を大きく超えるTMR比が実現されています")
+print("=" * 50)</code></pre>
+
+    <hr/>
+
+    <h2>2.4 スピン注入と蓄積</h2>
+
+    <p>スピン注入（Spin Injection）は、強磁性体から非磁性体へスピン偏極電流を流し込む現象です。注入されたスピンは非磁性体中で<strong>スピン蓄積</strong>（Spin Accumulation）を形成します。</p>
+
+    <h3>スピン拡散方程式</h3>
+    <p>非磁性体中でのスピン蓄積 $\mu_s = \mu_\uparrow - \mu_\downarrow$（スピン分裂した化学ポテンシャル差）は、スピン拡散方程式に従います：</p>
+
+    $$
+    D \frac{d^2 \mu_s}{dx^2} = \frac{\mu_s}{\tau_s}
+    $$
+
+    <p>境界条件を考慮すると、界面からの距離 $x$ における解は：</p>
+
+    $$
+    \mu_s(x) = \mu_s(0) \exp\left(-\frac{x}{\lambda_s}\right)
+    $$
+
+    <p>ここで $\lambda_s = \sqrt{D \tau_s}$ はスピン拡散長です。</p>
+
+    <h3>コード例2.4: スピン蓄積の空間分布</h3>
+    <pre><code class="language-python">"""
+スピン蓄積の空間分布をシミュレーション
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def spin_accumulation(x, mu_s0, lambda_s):
+    """
+    スピン蓄積の空間分布
+
+    Parameters:
+    x: 界面からの距離
+    mu_s0: 界面でのスピン蓄積
+    lambda_s: スピン拡散長
+    """
+    return mu_s0 * np.exp(-np.abs(x) / lambda_s)
+
+# パラメータ
+lambda_s_values = {
+    'Cu': 350e-9,    # 350 nm
+    'Al': 650e-9,    # 650 nm
+    'Ag': 200e-9,    # 200 nm
+    'Py': 5e-9,      # 5 nm (Permalloy, FM)
+}
+
+x = np.linspace(-500e-9, 500e-9, 1000)  # -500 nm to 500 nm
+mu_s0 = 1.0  # 界面でのスピン蓄積（正規化）
+
+# プロット
+fig, ax = plt.subplots(figsize=(12, 6))
+
+for material, lambda_s in lambda_s_values.items():
+    mu_s = spin_accumulation(x, mu_s0, lambda_s)
+    ax.plot(x * 1e9, mu_s, linewidth=2, label=f'{material} (λs = {lambda_s*1e9:.0f} nm)')
+
+ax.axvline(x=0, color='k', linestyle='--', alpha=0.5, label='FM/NM界面')
+ax.set_xlabel('界面からの距離 (nm)', fontsize=12)
+ax.set_ylabel('スピン蓄積 μs (正規化)', fontsize=12)
+ax.set_title('非磁性金属中のスピン蓄積分布', fontsize=14)
+ax.legend()
+ax.grid(True, alpha=0.3)
+ax.set_xlim(-500, 500)
+
+plt.tight_layout()
+plt.show()
+
+print("スピン蓄積はスピン拡散長λsのスケールで指数関数的に減衰")
+print("Cu, Alは長いλsを持ち、スピン輸送に適している")</code></pre>
+
+    <hr/>
+
+    <h2>2.5 スピンホール効果</h2>
+
+    <p><strong>スピンホール効果</strong>（Spin Hall Effect, SHE）は、電荷電流が流れると、スピン軌道相互作用によりスピンが電流に垂直方向に分離される現象です。外部磁場を必要としないため、スピン流生成に非常に重要です。</p>
+
+    <h3>逆スピンホール効果</h3>
+    <p><strong>逆スピンホール効果</strong>（Inverse SHE）は、スピン流から電荷電流（電圧）が生成される現象で、スピン流の電気的検出に使われます。</p>
+
+    $$
+    \mathbf{J}_c = \theta_{SH} \frac{2e}{\hbar} (\mathbf{J}_s \times \mathbf{\sigma})
+    $$
+
+    <p>ここで $\theta_{SH}$ はスピンホール角、$\mathbf{J}_s$ はスピン流密度、$\mathbf{\sigma}$ はスピン偏極方向です。</p>
+
+    <div class="mermaid">
+flowchart LR
+    subgraph SHE
+        direction LR
+        A["電荷電流 Jc<br/>→"] --> B["スピン流 Js<br/>⬆⬇"]
+    end
+    subgraph ISHE
+        direction LR
+        C["スピン流 Js<br/>⬆⬇"] --> D["電圧 V<br/>→"]
+    end
+    </div>
+
+    <h3>コード例2.5: スピンホール角の材料比較</h3>
+    <pre><code class="language-python">"""
+スピンホール角の材料比較
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+# スピンホール角（室温での代表値）
+materials = {
+    'Pt': 0.08,      # 白金
+    'W (β相)': -0.33, # タングステン
+    'Ta (β相)': -0.15, # タンタル
+    'Au': 0.0035,    # 金
+    'Cu': 0.001,     # 銅
+    'Pd': 0.01,      # パラジウム
+    'Bi2Se3': 0.5,   # トポロジカル絶縁体
+}
+
+# 絶対値でソート
+sorted_materials = dict(sorted(materials.items(), key=lambda x: abs(x[1]), reverse=True))
+
+names = list(sorted_materials.keys())
+sha = list(sorted_materials.values())
+colors = ['red' if s > 0 else 'blue' for s in sha]
+
+# プロット
+fig, ax = plt.subplots(figsize=(12, 6))
+bars = ax.barh(names, sha, color=colors, alpha=0.7)
+ax.axvline(x=0, color='k', linestyle='-', linewidth=0.5)
+ax.set_xlabel('スピンホール角 θSH', fontsize=12)
+ax.set_title('材料別スピンホール角（室温）', fontsize=14)
+
+# 値を表示
+for bar, s in zip(bars, sha):
+    x_pos = bar.get_width() + 0.01 if s > 0 else bar.get_width() - 0.03
+    ax.text(x_pos, bar.get_y() + bar.get_height()/2, f'{s:.3f}',
+            va='center', fontsize=10)
+
+ax.set_xlim(-0.5, 0.6)
+plt.tight_layout()
+plt.show()
+
+print("=" * 60)
+print("ポイント:")
+print("- 重元素（Pt, W, Ta）は強いスピン軌道結合で大きなθSH")
+print("- 負のθSHは反対方向へのスピン分離を意味")
+print("- Bi2Se3などトポロジカル絶縁体は巨大なスピンホール効果を示す")
+print("=" * 60)</code></pre>
+
+    <h3>コード例2.6: スピンホール効果によるスピン流生成</h3>
+    <pre><code class="language-python">"""
+スピンホール効果によるスピン流生成のシミュレーション
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def spin_current_she(J_c, theta_sh, t, lambda_s):
+    """
+    スピンホール効果によるスピン流を計算
+
+    Parameters:
+    J_c: 電荷電流密度 (A/m²)
+    theta_sh: スピンホール角
+    t: 薄膜厚さ (m)
+    lambda_s: スピン拡散長 (m)
+
+    Returns:
+    生成されるスピン流密度
+    """
+    # 有効スピン流（薄膜効果を考慮）
+    J_s = theta_sh * J_c * (1 - 1/np.cosh(t / lambda_s))
+    return J_s
+
+# パラメータ
+J_c = 1e11  # 電荷電流密度 (A/m²) = 10 MA/cm²
+theta_sh = 0.1  # Ptのスピンホール角
+lambda_s = 2e-9  # Ptのスピン拡散長 (2 nm)
+
+# 膜厚依存性
+thicknesses = np.linspace(0.1e-9, 20e-9, 100)
+J_s_values = [spin_current_she(J_c, theta_sh, t, lambda_s) for t in thicknesses]
+
+# プロット
+plt.figure(figsize=(10, 6))
+plt.plot(thicknesses * 1e9, np.array(J_s_values) / 1e9, 'b-', linewidth=2)
+plt.axhline(y=theta_sh * J_c / 1e9, color='r', linestyle='--',
+            label=f'理論最大値 θSH×Jc = {theta_sh * J_c / 1e9:.1f} GA/m²')
+plt.axvline(x=lambda_s * 1e9, color='g', linestyle='--',
+            label=f'スピン拡散長 λs = {lambda_s*1e9:.1f} nm')
+plt.xlabel('Pt膜厚 (nm)', fontsize=12)
+plt.ylabel('スピン流密度 Js (GA/m²)', fontsize=12)
+plt.title('スピンホール効果によるスピン流生成', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+print(f"電荷電流密度: Jc = {J_c/1e10:.0f} × 10¹⁰ A/m²")
+print(f"スピンホール角: θSH = {theta_sh}")
+print(f"最大スピン流密度: Js ≈ {theta_sh * J_c / 1e9:.1f} GA/m²")
+print("\n膜厚 > 3λs でスピン流は飽和")</code></pre>
+
+    <hr/>
+
+    <h2>本章のまとめ</h2>
+
+    <div class="info-box">
+      <h3>キーポイント</h3>
+      <ul>
+        <li><strong>2電流モデル</strong>：電流を上向き・下向きスピンの2チャネルの並列として扱う</li>
+        <li><strong>GMR効果</strong>：FM/NM/FM構造で磁化配置により抵抗が変化（典型値 10-80%）</li>
+        <li><strong>TMR効果</strong>：FM/絶縁体/FM（MTJ）で巨大な抵抗変化（MgO障壁で600%以上）</li>
+        <li><strong>スピン蓄積</strong>：FM/NM界面でスピン偏極が非磁性体中に拡散、$\lambda_s$ で減衰</li>
+        <li><strong>スピンホール効果</strong>：電荷電流からスピン流を生成、逆効果で検出可能</li>
+      </ul>
+    </div>
+
+    <hr/>
+
+    <h2>演習問題</h2>
+
+    <h3>問題1（難易度: Easy）</h3>
+    <p>2電流モデルにおいて、$R_\uparrow = 2\Omega$、$R_\downarrow = 8\Omega$ のとき、全抵抗を求めてください。</p>
+    <details>
+      <summary>解答を見る</summary>
+      <p>並列抵抗なので $R_{total} = \frac{R_\uparrow R_\downarrow}{R_\uparrow + R_\downarrow} = \frac{2 \times 8}{2 + 8} = 1.6\Omega$</p>
+    </details>
+
+    <h3>問題2（難易度: Medium）</h3>
+    <p>スピン偏極率が $P_1 = P_2 = 0.6$ の2つのFM層からなるMTJのTMR比をJullièreモデルで計算してください。</p>
+    <details>
+      <summary>解答を見る</summary>
+      <p>$\text{TMR} = \frac{2 \times 0.6 \times 0.6}{1 - 0.6 \times 0.6} = \frac{0.72}{0.64} = 1.125 = 112.5\%$</p>
+    </details>
+
+    <h3>問題3（難易度: Medium）</h3>
+    <p>スピン拡散長 $\lambda_s = 400$ nm の金属において、界面から 1 μm 離れた位置でのスピン蓄積は界面の何%ですか？</p>
+    <details>
+      <summary>解答を見る</summary>
+      <p>$\mu_s(1\mu m) / \mu_s(0) = \exp(-1000/400) = \exp(-2.5) \approx 0.082 = 8.2\%$</p>
+    </details>
+
+    <h3>問題4（難易度: Hard）</h3>
+    <p>Ptのスピンホール角が $\theta_{SH} = 0.1$、電荷電流密度が $J_c = 10^{11}$ A/m² のとき、生成されるスピン流密度の理論最大値を計算してください。また、このスピン流で隣接するFM層の磁化を反転させるために必要な条件について考察してください。</p>
+    <details>
+      <summary>解答を見る</summary>
+      <p>$J_s = \theta_{SH} \times J_c = 0.1 \times 10^{11} = 10^{10}$ A/m² = 10 GA/m²</p>
+      <p>磁化反転にはスピン移行トルク（STT）またはスピン軌道トルク（SOT）が必要です。臨界電流密度は材料や構造に依存しますが、典型的には $10^{10}$ - $10^{11}$ A/m² オーダーです。上記のスピン流密度はこの範囲にあるため、適切な構造設計により磁化反転が可能です。</p>
+    </details>
+
+    <hr/>
+
+    <h2>参考文献</h2>
+    <ol>
+      <li>Jullière, M. (1975). "Tunneling between ferromagnetic films." <em>Physics Letters A</em>, 54(3), 225-226.</li>
+      <li>Valet, T., &amp; Fert, A. (1993). "Theory of the perpendicular magnetoresistance in magnetic multilayers." <em>Physical Review B</em>, 48(10), 7099.</li>
+      <li>Sinova, J., et al. (2015). "Spin Hall effects." <em>Reviews of Modern Physics</em>, 87(4), 1213-1260.</li>
+    </ol>
+
+    <hr/>
+
+    <div class="navigation">
+      <a href="chapter-1.html" class="nav-button secondary">← 第1章: スピントロニクスとは？</a>
+      <a href="chapter-3.html" class="nav-button">第3章: Python実践 →</a>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <p>© 2025 AI Terakoya - MS Dojo. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>

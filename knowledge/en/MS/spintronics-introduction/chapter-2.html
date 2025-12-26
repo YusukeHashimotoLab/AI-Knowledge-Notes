@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="description" content="Chapter 2: Basic Principles of Spintronics - GMR, TMR, Spin Injection, and Spin Hall Effect"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chapter 2: Basic Principles of Spintronics - MS Terakoya</title>
+  <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"/>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+  </script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../index.html">Materials Science</a><span class="breadcrumb-separator">›</span><a href="index.html">Spintronics Introduction</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+    </div>
+  </nav>
+  <div class="locale-switcher">
+    <span class="current-locale">EN</span>
+    <span class="locale-separator">|</span>
+    <a href="../../../jp/MS/spintronics-introduction/chapter-2.html" class="locale-link">JP</a>
+    <span class="locale-separator">|</span>
+    <span class="locale-meta">Last update: 2025-12-26</span>
+  </div>
+
+  <header>
+    <div class="header-content">
+      <h1>Chapter 2: Basic Principles of Spintronics</h1>
+      <p class="subtitle">From GMR and TMR to Spin Injection and Spin Hall Effect</p>
+      <div class="meta">
+        <span class="meta-item">Reading Time: 25-35 min</span>
+        <span class="meta-item">Difficulty: Intro-Intermediate</span>
+        <span class="meta-item">Code Examples: 6</span>
+        <span class="meta-item">Exercises: 4</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <p class="chapter-description">
+      In this chapter, we explore the core physical phenomena of spintronics in detail. Starting from spin-polarized currents, we delve into the mechanisms of GMR and TMR effects, spin injection and accumulation, and the recently prominent Spin Hall Effect, building understanding through theory and Python code.
+    </p>
+
+    <div class="learning-objectives">
+      <h2>Learning Objectives</h2>
+      <ul>
+        <li>Understand spin-polarized currents and the two-current model</li>
+        <li>Explain the mechanism of the GMR effect</li>
+        <li>Understand the TMR effect and the role of tunnel barriers</li>
+        <li>Express spin injection and accumulation concepts mathematically</li>
+        <li>Explain the principles and applications of the Spin Hall Effect</li>
+      </ul>
+    </div>
+
+    <hr/>
+
+    <h2>2.1 Spin-Polarized Currents and the Two-Current Model</h2>
+
+    <p>In ferromagnetic metals, the density of states for spin-up (↑) and spin-down (↓) electrons differ at the Fermi level. This asymmetry causes the current to be <strong>spin-polarized</strong>.</p>
+
+    <h3>Two-Current Model</h3>
+    <p>The two-current model, proposed by Mott, treats current as a parallel combination of two independent spin channels:</p>
+
+    $$
+    I_{total} = I_\uparrow + I_\downarrow
+    $$
+
+    <p>The current in each spin channel is determined by its resistance:</p>
+
+    $$
+    I_\uparrow = \frac{V}{R_\uparrow}, \quad I_\downarrow = \frac{V}{R_\downarrow}
+    $$
+
+    <p>In ferromagnets, the majority spin (parallel to magnetization) resistance $R_\uparrow$ is smaller than the minority spin (antiparallel) resistance $R_\downarrow$.</p>
+
+    <h3>Code Example 2.1: Visualizing the Two-Current Model</h3>
+    <pre><code class="language-python">"""
+Visualization of spin-dependent conduction using the two-current model
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def two_current_model(V, R_up, R_down):
+    """
+    Calculate currents using the two-current model
+
+    Parameters:
+    V: Applied voltage
+    R_up: Spin-up resistance
+    R_down: Spin-down resistance
+
+    Returns:
+    I_up, I_down, I_total, polarization
+    """
+    I_up = V / R_up
+    I_down = V / R_down
+    I_total = I_up + I_down
+    polarization = (I_up - I_down) / I_total
+    return I_up, I_down, I_total, polarization
+
+# Parameters
+V = 1.0  # Voltage (a.u.)
+
+# Spin asymmetry for different materials
+asymmetry_ratios = np.linspace(1, 10, 50)  # R_down / R_up
+
+# Calculate
+polarizations = []
+for ratio in asymmetry_ratios:
+    R_up = 1.0
+    R_down = ratio * R_up
+    _, _, _, P = two_current_model(V, R_up, R_down)
+    polarizations.append(P)
+
+# Plot
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+# Left: Resistance illustration
+ax1.bar(['R↑\n(majority)', 'R↓\n(minority)'], [1, 5],
+        color=['red', 'blue'], alpha=0.7)
+ax1.set_ylabel('Resistance (relative)', fontsize=12)
+ax1.set_title('Spin-Dependent Resistance in Ferromagnets', fontsize=14)
+
+# Right: Spin polarization vs asymmetry
+ax2.plot(asymmetry_ratios, polarizations, 'b-', linewidth=2)
+ax2.set_xlabel('Resistance Asymmetry (R↓/R↑)', fontsize=12)
+ax2.set_ylabel('Current Spin Polarization', fontsize=12)
+ax2.set_title('Resistance Asymmetry and Spin-Polarized Current', fontsize=14)
+ax2.grid(True, alpha=0.3)
+ax2.set_ylim(0, 1)
+
+plt.tight_layout()
+plt.show()
+
+# Example
+print("=" * 50)
+print("Example: Fe case (R↓/R↑ ≈ 5)")
+I_up, I_down, I_total, P = two_current_model(1.0, 1.0, 5.0)
+print(f"I↑ = {I_up:.3f}, I↓ = {I_down:.3f}")
+print(f"I_total = {I_total:.3f}")
+print(f"Spin polarization P = {P:.1%}")
+print("=" * 50)</code></pre>
+
+    <hr/>
+
+    <h2>2.2 Giant Magnetoresistance (GMR) in Detail</h2>
+
+    <p>The GMR effect is observed in trilayer structures of ferromagnet/non-magnetic metal/ferromagnet (FM/NM/FM). The resistance changes depending on the magnetization configuration of the two ferromagnetic layers.</p>
+
+    <h3>Physical Mechanism</h3>
+    <p><strong>Parallel configuration</strong>: Majority spin electrons experience low resistance in both FM layers; minority spin electrons experience high resistance in both. Overall low resistance.</p>
+    <p><strong>Antiparallel configuration</strong>: Each spin experiences high resistance in one FM layer. Overall high resistance.</p>
+
+    <p>GMR ratio is defined as:</p>
+
+    $$
+    \text{GMR} = \frac{R_{AP} - R_P}{R_P} = \frac{(R_\uparrow - R_\downarrow)^2}{4 R_\uparrow R_\downarrow}
+    $$
+
+    <p>Using spin polarization $P$, this can be written (Jullière formula):</p>
+
+    $$
+    \text{GMR} = \frac{2P_1 P_2}{1 - P_1 P_2}
+    $$
+
+    <h3>Code Example 2.2: GMR Field Dependence Simulation</h3>
+    <pre><code class="language-python">"""
+Simulating field dependence of GMR (spin valve structure)
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Parameters
+H_forward = np.linspace(200, -200, 500)
+H_backward = np.linspace(-200, 200, 500)
+Hc1, Hc2 = 50, 150  # Coercivities (free and pinned layers)
+R_P, R_AP = 100, 180  # Resistances (Ω)
+
+# Forward sweep (positive to negative)
+R_sweep_pos = []
+state1, state2 = 1, 1
+for h in H_forward:
+    if h < Hc2 and state2 == 1:
+        state2 = -1
+    if h < -Hc1 and state1 == 1:
+        state1 = -1
+    R_sweep_pos.append(R_P if state1 == state2 else R_AP)
+
+# Backward sweep (negative to positive)
+R_sweep_neg = []
+state1, state2 = -1, -1
+for h in H_backward:
+    if h > -Hc2 and state2 == -1:
+        state2 = 1
+    if h > Hc1 and state1 == -1:
+        state1 = 1
+    R_sweep_neg.append(R_P if state1 == state2 else R_AP)
+
+# Plot
+plt.figure(figsize=(12, 6))
+plt.plot(H_forward, R_sweep_pos, 'b-', linewidth=2, label='Field decreasing')
+plt.plot(H_backward, R_sweep_neg, 'r--', linewidth=2, label='Field increasing')
+plt.xlabel('External Field H (Oe)', fontsize=12)
+plt.ylabel('Resistance R (Ω)', fontsize=12)
+plt.title('GMR Characteristics of Spin Valve', fontsize=14)
+plt.axhline(y=R_P, color='g', linestyle=':', alpha=0.5, label=f'R_P = {R_P}Ω')
+plt.axhline(y=R_AP, color='orange', linestyle=':', alpha=0.5, label=f'R_AP = {R_AP}Ω')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+gmr_ratio = (R_AP - R_P) / R_P * 100
+print(f"GMR ratio: {gmr_ratio:.1f}%")</code></pre>
+
+    <hr/>
+
+    <h2>2.3 Tunnel Magnetoresistance (TMR)</h2>
+
+    <p>The TMR (Tunnel Magnetoresistance) effect is observed in <strong>Magnetic Tunnel Junctions (MTJ)</strong>, where a thin insulating layer (tunnel barrier) is sandwiched between two ferromagnets.</p>
+
+    <h3>Jullière Model</h3>
+    <p>In the 1975 model by Jullière, the TMR ratio is determined by the spin polarizations of both FM layers:</p>
+
+    $$
+    \text{TMR} = \frac{R_{AP} - R_P}{R_P} = \frac{2P_1 P_2}{1 - P_1 P_2}
+    $$
+
+    <p>With ideal half-metals ($P = 1$), TMR becomes infinite!</p>
+
+    <div class="info-box">
+      <h3>Evolution of MTJ Materials</h3>
+      <ul>
+        <li><strong>Al-O barrier</strong> (~2000): TMR ratio 30-70%</li>
+        <li><strong>MgO barrier</strong> (2004~): TMR ratio 200-600%</li>
+        <li><strong>CoFeB/MgO/CoFeB</strong>: Over 600% at room temperature</li>
+      </ul>
+    </div>
+
+    <h3>Code Example 2.3: TMR Ratio Calculation</h3>
+    <pre><code class="language-python">"""
+TMR ratio calculation based on Jullière model
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def tmr_julliere(P1, P2):
+    """
+    Calculate TMR ratio using Jullière model
+    TMR = 2*P1*P2 / (1 - P1*P2)
+    """
+    return 2 * P1 * P2 / (1 - P1 * P2)
+
+# Range of spin polarization
+P_values = np.linspace(0.01, 0.99, 100)
+TMR_values = [tmr_julliere(P, P) * 100 for P in P_values]
+
+# Plot
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+ax1.plot(P_values * 100, TMR_values, 'b-', linewidth=2)
+ax1.set_xlabel('Spin Polarization P (%)', fontsize=12)
+ax1.set_ylabel('TMR Ratio (%)', fontsize=12)
+ax1.set_title('Jullière Model: TMR vs Spin Polarization', fontsize=14)
+ax1.set_yscale('log')
+ax1.grid(True, alpha=0.3)
+
+# Material comparison
+materials = {
+    'Fe': 0.45, 'Co': 0.42, 'Ni': 0.33,
+    'CoFe': 0.50, 'CoFeB': 0.56, 'Half-metal\n(ideal)': 0.99
+}
+
+mat_names = list(materials.keys())
+mat_TMR = [tmr_julliere(p, p) * 100 for p in materials.values()]
+
+bars = ax2.bar(mat_names, mat_TMR, color='steelblue', alpha=0.7)
+ax2.set_ylabel('Predicted TMR Ratio (%)', fontsize=12)
+ax2.set_title('TMR Ratio by Material (Jullière)', fontsize=14)
+ax2.set_yscale('log')
+
+for bar, tmr in zip(bars, mat_TMR):
+    ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height(),
+             f'{tmr:.0f}%', ha='center', va='bottom', fontsize=10)
+
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>2.4 Spin Injection and Accumulation</h2>
+
+    <p>Spin injection is the phenomenon of driving spin-polarized current from a ferromagnet into a non-magnetic material. The injected spins form <strong>spin accumulation</strong> in the non-magnetic material.</p>
+
+    <h3>Spin Diffusion Equation</h3>
+    <p>The spin accumulation $\mu_s = \mu_\uparrow - \mu_\downarrow$ in a non-magnetic material follows the spin diffusion equation:</p>
+
+    $$
+    D \frac{d^2 \mu_s}{dx^2} = \frac{\mu_s}{\tau_s}
+    $$
+
+    <p>The solution at distance $x$ from the interface is:</p>
+
+    $$
+    \mu_s(x) = \mu_s(0) \exp\left(-\frac{x}{\lambda_s}\right)
+    $$
+
+    <h3>Code Example 2.4: Spatial Distribution of Spin Accumulation</h3>
+    <pre><code class="language-python">"""
+Simulating spatial distribution of spin accumulation
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def spin_accumulation(x, mu_s0, lambda_s):
+    return mu_s0 * np.exp(-np.abs(x) / lambda_s)
+
+# Parameters
+lambda_s_values = {
+    'Cu': 350e-9, 'Al': 650e-9, 'Ag': 200e-9, 'Py': 5e-9
+}
+
+x = np.linspace(-500e-9, 500e-9, 1000)
+mu_s0 = 1.0
+
+# Plot
+fig, ax = plt.subplots(figsize=(12, 6))
+
+for material, lambda_s in lambda_s_values.items():
+    mu_s = spin_accumulation(x, mu_s0, lambda_s)
+    ax.plot(x * 1e9, mu_s, linewidth=2,
+            label=f'{material} (λs = {lambda_s*1e9:.0f} nm)')
+
+ax.axvline(x=0, color='k', linestyle='--', alpha=0.5, label='FM/NM interface')
+ax.set_xlabel('Distance from Interface (nm)', fontsize=12)
+ax.set_ylabel('Spin Accumulation μs (normalized)', fontsize=12)
+ax.set_title('Spin Accumulation in Non-Magnetic Metals', fontsize=14)
+ax.legend()
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>2.5 Spin Hall Effect</h2>
+
+    <p>The <strong>Spin Hall Effect</strong> (SHE) is a phenomenon where charge current causes spin separation perpendicular to the current flow due to spin-orbit interaction. It's important for spin current generation without external magnetic fields.</p>
+
+    <h3>Inverse Spin Hall Effect</h3>
+    <p>The <strong>Inverse SHE</strong> converts spin current into charge current (voltage), used for electrical detection of spin currents:</p>
+
+    $$
+    \mathbf{J}_c = \theta_{SH} \frac{2e}{\hbar} (\mathbf{J}_s \times \mathbf{\sigma})
+    $$
+
+    <h3>Code Example 2.5: Spin Hall Angle Comparison</h3>
+    <pre><code class="language-python">"""
+Comparison of spin Hall angles across materials
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+materials = {
+    'Pt': 0.08, 'W (β)': -0.33, 'Ta (β)': -0.15,
+    'Au': 0.0035, 'Cu': 0.001, 'Pd': 0.01, 'Bi2Se3': 0.5
+}
+
+sorted_mats = dict(sorted(materials.items(), key=lambda x: abs(x[1]), reverse=True))
+names = list(sorted_mats.keys())
+sha = list(sorted_mats.values())
+colors = ['red' if s > 0 else 'blue' for s in sha]
+
+fig, ax = plt.subplots(figsize=(12, 6))
+bars = ax.barh(names, sha, color=colors, alpha=0.7)
+ax.axvline(x=0, color='k', linestyle='-', linewidth=0.5)
+ax.set_xlabel('Spin Hall Angle θSH', fontsize=12)
+ax.set_title('Spin Hall Angle by Material (Room Temp.)', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <h3>Code Example 2.6: Spin Current Generation via SHE</h3>
+    <pre><code class="language-python">"""
+Spin current generation via Spin Hall Effect
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def spin_current_she(J_c, theta_sh, t, lambda_s):
+    J_s = theta_sh * J_c * (1 - 1/np.cosh(t / lambda_s))
+    return J_s
+
+J_c = 1e11  # A/m²
+theta_sh = 0.1
+lambda_s = 2e-9
+
+thicknesses = np.linspace(0.1e-9, 20e-9, 100)
+J_s_values = [spin_current_she(J_c, theta_sh, t, lambda_s) for t in thicknesses]
+
+plt.figure(figsize=(10, 6))
+plt.plot(thicknesses * 1e9, np.array(J_s_values) / 1e9, 'b-', linewidth=2)
+plt.xlabel('Pt Thickness (nm)', fontsize=12)
+plt.ylabel('Spin Current Density Js (GA/m²)', fontsize=12)
+plt.title('Spin Current Generation via SHE', fontsize=14)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>Chapter Summary</h2>
+
+    <div class="info-box">
+      <h3>Key Points</h3>
+      <ul>
+        <li><strong>Two-current model</strong>: Treats current as parallel spin-up and spin-down channels</li>
+        <li><strong>GMR effect</strong>: Resistance changes with magnetization in FM/NM/FM (typical 10-80%)</li>
+        <li><strong>TMR effect</strong>: Giant resistance change in FM/insulator/FM MTJ (>600% with MgO)</li>
+        <li><strong>Spin accumulation</strong>: Spin polarization diffuses into NM, decays over $\lambda_s$</li>
+        <li><strong>Spin Hall Effect</strong>: Generates spin current from charge current; ISHE for detection</li>
+      </ul>
+    </div>
+
+    <hr/>
+
+    <h2>Exercises</h2>
+
+    <h3>Problem 1 (Easy)</h3>
+    <p>In the two-current model with $R_\uparrow = 2\Omega$ and $R_\downarrow = 8\Omega$, calculate the total resistance.</p>
+    <details>
+      <summary>Show Answer</summary>
+      <p>Parallel: $R_{total} = \frac{2 \times 8}{2 + 8} = 1.6\Omega$</p>
+    </details>
+
+    <h3>Problem 2 (Medium)</h3>
+    <p>Calculate TMR ratio using Jullière model for an MTJ with $P_1 = P_2 = 0.6$.</p>
+    <details>
+      <summary>Show Answer</summary>
+      <p>$\text{TMR} = \frac{2 \times 0.6 \times 0.6}{1 - 0.36} = \frac{0.72}{0.64} = 112.5\%$</p>
+    </details>
+
+    <h3>Problem 3 (Medium)</h3>
+    <p>For a metal with $\lambda_s = 400$ nm, what percentage of spin accumulation remains at 1 μm from the interface?</p>
+    <details>
+      <summary>Show Answer</summary>
+      <p>$\exp(-1000/400) = \exp(-2.5) \approx 8.2\%$</p>
+    </details>
+
+    <h3>Problem 4 (Hard)</h3>
+    <p>With Pt spin Hall angle $\theta_{SH} = 0.1$ and $J_c = 10^{11}$ A/m², calculate the maximum spin current density.</p>
+    <details>
+      <summary>Show Answer</summary>
+      <p>$J_s = 0.1 \times 10^{11} = 10^{10}$ A/m² = 10 GA/m²</p>
+    </details>
+
+    <hr/>
+
+    <h2>References</h2>
+    <ol>
+      <li>Jullière, M. (1975). "Tunneling between ferromagnetic films." <em>Physics Letters A</em>, 54(3), 225-226.</li>
+      <li>Valet, T., &amp; Fert, A. (1993). "Theory of the perpendicular magnetoresistance." <em>Physical Review B</em>, 48(10), 7099.</li>
+      <li>Sinova, J., et al. (2015). "Spin Hall effects." <em>Reviews of Modern Physics</em>, 87(4), 1213-1260.</li>
+    </ol>
+
+    <hr/>
+
+    <div class="navigation">
+      <a href="chapter-1.html" class="nav-button secondary">← Chapter 1: What is Spintronics?</a>
+      <a href="chapter-3.html" class="nav-button">Chapter 3: Python Practice →</a>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <p>© 2025 AI Terakoya - MS Dojo. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>
