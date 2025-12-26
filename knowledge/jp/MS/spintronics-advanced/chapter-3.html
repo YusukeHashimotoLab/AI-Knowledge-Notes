@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第3章: 計算スピントロニクス - スピントロニクス上級編</title>
+  <link rel="stylesheet" href="../../assets/css/knowledge-base.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'base' });
+  </script>
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <a href="../../index.html">ホーム</a> &gt;
+    <a href="../index.html">材料科学</a> &gt;
+    <a href="index.html">スピントロニクス上級編</a> &gt;
+    <span>第3章</span>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="chapter-badge">第3章</div>
+    <h1>計算スピントロニクス</h1>
+    <p class="chapter-description">
+      マイクロマグネティック・シミュレーション、原子スピンダイナミクス、
+      第一原理計算、機械学習の活用まで、計算手法を体系的に学びます。
+    </p>
+    <div class="chapter-meta">
+      <span class="reading-time">80-100分</span>
+      <span class="difficulty">上級</span>
+    </div>
+  </header>
+
+  <main class="chapter-content">
+    <section id="introduction">
+      <h2>3.1 計算手法の階層</h2>
+      <p>
+        スピントロニクスの計算手法は、扱うスケールに応じて階層化されています。
+        各手法の特徴と適用範囲を理解することが重要です。
+      </p>
+
+      <div class="mermaid">
+        graph TB
+          A[第一原理計算] --> B[原子スピンダイナミクス]
+          B --> C[マイクロマグネティクス]
+          C --> D[連続体モデル]
+
+          A1["電子構造<br/>~nm, ~fs"] --> A
+          B1["原子スケール<br/>~10nm, ~ps"] --> B
+          C1["メソスケール<br/>~μm, ~ns"] --> C
+          D1["マクロスケール<br/>~mm, ~μs"] --> D
+
+          style A fill:#e8f5e9
+          style B fill:#e3f2fd
+          style C fill:#fff3e0
+          style D fill:#fce4ec
+      </div>
+
+      <div class="concept-box">
+        <h4>計算手法の選択基準</h4>
+        <table>
+          <tr>
+            <th>手法</th>
+            <th>空間スケール</th>
+            <th>時間スケール</th>
+            <th>典型的用途</th>
+          </tr>
+          <tr>
+            <td>DFT</td>
+            <td>~1-10 nm</td>
+            <td>~fs</td>
+            <td>電子構造、磁気パラメータ</td>
+          </tr>
+          <tr>
+            <td>ASD</td>
+            <td>~10-100 nm</td>
+            <td>~ps-ns</td>
+            <td>熱揺らぎ、スピン輸送</td>
+          </tr>
+          <tr>
+            <td>Micromagnetics</td>
+            <td>~100 nm-μm</td>
+            <td>~ns-μs</td>
+            <td>磁区構造、デバイス動作</td>
+          </tr>
+        </table>
+      </div>
+    </section>
+
+    <section id="micromagnetics">
+      <h2>3.2 マイクロマグネティック・シミュレーション</h2>
+      <p>
+        <strong>マイクロマグネティクス</strong>は、磁化を連続体として扱い、
+        有限差分法または有限要素法でLLG方程式を数値的に解く手法です。
+      </p>
+
+      <h3>有効磁場の成分</h3>
+      <div class="equation-box">
+        <h4>全有効磁場</h4>
+        <p>$$\mathbf{H}_{\text{eff}} = \mathbf{H}_{\text{ext}} + \mathbf{H}_{\text{exch}} + \mathbf{H}_{\text{anis}} + \mathbf{H}_{\text{demag}} + \mathbf{H}_{\text{DMI}}$$</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">マイクロマグネティック・シミュレータ（簡易版）</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+from scipy.integrate import solve_ivp
+from scipy.ndimage import laplace
+import matplotlib.pyplot as plt
+
+class MicromagneticSimulator:
+    """
+    2Dマイクロマグネティック・シミュレータ
+    """
+    def __init__(self, nx, ny, dx, dy, Ms, A_ex, K_u, alpha):
+        """
+        Parameters:
+        -----------
+        nx, ny : int
+            グリッドサイズ
+        dx, dy : float
+            グリッド間隔 [m]
+        Ms : float
+            飽和磁化 [A/m]
+        A_ex : float
+            交換剛性 [J/m]
+        K_u : float
+            異方性定数 [J/m³]
+        alpha : float
+            ギルバート減衰定数
+        """
+        self.nx, self.ny = nx, ny
+        self.dx, self.dy = dx, dy
+        self.Ms = Ms
+        self.A_ex = A_ex
+        self.K_u = K_u
+        self.alpha = alpha
+        self.gamma = 1.76e11  # ジャイロ磁気比
+        self.mu0 = 4 * np.pi * 1e-7
+
+        # 磁化ベクトル場 (nx, ny, 3)
+        self.m = np.zeros((nx, ny, 3))
+        self.initialize_uniform([0, 0, 1])
+
+    def initialize_uniform(self, direction):
+        """一様磁化で初期化"""
+        direction = np.array(direction) / np.linalg.norm(direction)
+        self.m[:, :, 0] = direction[0]
+        self.m[:, :, 1] = direction[1]
+        self.m[:, :, 2] = direction[2]
+
+    def initialize_vortex(self, polarity=1, chirality=1):
+        """渦磁化構造で初期化"""
+        cx, cy = self.nx // 2, self.ny // 2
+        for i in range(self.nx):
+            for j in range(self.ny):
+                x, y = i - cx, j - cy
+                r = np.sqrt(x**2 + y**2) + 1e-10
+                phi = np.arctan2(y, x)
+
+                # 面内成分（渦）
+                self.m[i, j, 0] = -chirality * np.sin(phi) * np.tanh(r / 5)
+                self.m[i, j, 1] = chirality * np.cos(phi) * np.tanh(r / 5)
+
+                # 面外成分（コア）
+                core_radius = 5
+                self.m[i, j, 2] = polarity * np.exp(-(r/core_radius)**2)
+
+        # 正規化
+        norm = np.linalg.norm(self.m, axis=2, keepdims=True)
+        self.m /= (norm + 1e-10)
+
+    def calculate_exchange_field(self):
+        """交換場の計算（ラプラシアン）"""
+        H_ex = np.zeros_like(self.m)
+        factor = 2 * self.A_ex / (self.mu0 * self.Ms)
+
+        for i in range(3):
+            # 5点ステンシルのラプラシアン
+            H_ex[:, :, i] = factor * laplace(self.m[:, :, i]) / (self.dx**2)
+
+        return H_ex
+
+    def calculate_anisotropy_field(self, easy_axis=[0, 0, 1]):
+        """一軸異方性場"""
+        easy_axis = np.array(easy_axis)
+        m_dot_k = np.sum(self.m * easy_axis, axis=2, keepdims=True)
+        H_anis = (2 * self.K_u / (self.mu0 * self.Ms)) * m_dot_k * easy_axis
+        return H_anis
+
+    def calculate_zeeman_field(self, H_ext):
+        """ゼーマン場"""
+        H_z = np.zeros_like(self.m)
+        H_z[:, :, :] = H_ext
+        return H_z
+
+    def calculate_effective_field(self, H_ext=[0, 0, 0]):
+        """全有効場"""
+        H_eff = (self.calculate_exchange_field() +
+                 self.calculate_anisotropy_field() +
+                 self.calculate_zeeman_field(H_ext))
+        return H_eff
+
+    def llg_rhs(self, t, m_flat, H_ext):
+        """LLG方程式の右辺"""
+        m = m_flat.reshape(self.nx, self.ny, 3)
+        self.m = m  # 一時的に更新
+
+        H_eff = self.calculate_effective_field(H_ext)
+
+        # 歳差運動項
+        precession = -self.gamma / (1 + self.alpha**2) * np.cross(m, H_eff)
+
+        # 減衰項
+        damping = (-self.gamma * self.alpha / (1 + self.alpha**2) *
+                   np.cross(m, np.cross(m, H_eff)))
+
+        dm_dt = precession + damping
+
+        return dm_dt.flatten()
+
+    def run(self, t_max, H_ext=[0, 0, 0], n_steps=1000):
+        """シミュレーション実行"""
+        t_span = (0, t_max)
+        t_eval = np.linspace(0, t_max, n_steps)
+
+        m0_flat = self.m.flatten()
+
+        sol = solve_ivp(
+            lambda t, m: self.llg_rhs(t, m, H_ext),
+            t_span, m0_flat,
+            t_eval=t_eval,
+            method='RK45',
+            max_step=t_max / 100
+        )
+
+        # 結果の再形成
+        m_history = sol.y.T.reshape(-1, self.nx, self.ny, 3)
+
+        return sol.t, m_history
+
+    def calculate_total_energy(self, m=None):
+        """全エネルギー密度"""
+        if m is not None:
+            self.m = m
+
+        # 交換エネルギー
+        grad_mx = np.gradient(self.m[:, :, 0], self.dx, axis=0)
+        grad_my = np.gradient(self.m[:, :, 1], self.dy, axis=1)
+        grad_mz_x = np.gradient(self.m[:, :, 2], self.dx, axis=0)
+        grad_mz_y = np.gradient(self.m[:, :, 2], self.dy, axis=1)
+
+        E_ex = self.A_ex * (grad_mx**2 + grad_my**2 + grad_mz_x**2 + grad_mz_y**2)
+
+        # 異方性エネルギー
+        E_anis = -self.K_u * self.m[:, :, 2]**2
+
+        return np.sum(E_ex + E_anis) * self.dx * self.dy
+
+
+# シミュレーション実行
+print("=== マイクロマグネティック・シミュレーション ===")
+
+# パラメータ（Permalloy）
+nx, ny = 64, 64
+dx = dy = 5e-9  # 5 nm
+Ms = 8e5        # 800 kA/m
+A_ex = 13e-12   # 13 pJ/m
+K_u = 0         # 異方性なし（soft material）
+alpha = 0.02    # ギルバート減衰
+
+sim = MicromagneticSimulator(nx, ny, dx, dy, Ms, A_ex, K_u, alpha)
+
+# 渦構造の初期化
+sim.initialize_vortex(polarity=1, chirality=1)
+
+# 初期状態のプロット
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+# mx成分
+im0 = axes[0].imshow(sim.m[:, :, 0].T, cmap='RdBu', vmin=-1, vmax=1, origin='lower')
+axes[0].set_title('$m_x$', fontsize=14)
+plt.colorbar(im0, ax=axes[0])
+
+# my成分
+im1 = axes[1].imshow(sim.m[:, :, 1].T, cmap='RdBu', vmin=-1, vmax=1, origin='lower')
+axes[1].set_title('$m_y$', fontsize=14)
+plt.colorbar(im1, ax=axes[1])
+
+# mz成分
+im2 = axes[2].imshow(sim.m[:, :, 2].T, cmap='RdBu', vmin=-1, vmax=1, origin='lower')
+axes[2].set_title('$m_z$ (渦コア)', fontsize=14)
+plt.colorbar(im2, ax=axes[2])
+
+plt.suptitle('磁気渦構造の初期状態', fontsize=16)
+plt.tight_layout()
+plt.savefig('micromagnetic_vortex.png', dpi=150)
+plt.show()
+
+print(f"グリッドサイズ: {nx}×{ny}")
+print(f"サンプルサイズ: {nx*dx*1e9:.0f}×{ny*dy*1e9:.0f} nm²")
+print(f"初期エネルギー: {sim.calculate_total_energy():.3e} J")
+</code></pre>
+      </div>
+
+      <h3>代表的なソフトウェア</h3>
+      <div class="tools-grid">
+        <div class="tool-item">
+          <h4>OOMMF</h4>
+          <p>NIST開発、有限差分法、広く使用</p>
+        </div>
+        <div class="tool-item">
+          <h4>mumax³</h4>
+          <p>GPU加速、高速計算、Cuベース</p>
+        </div>
+        <div class="tool-item">
+          <h4>VAMPIRE</h4>
+          <p>原子スピン対応、有限温度</p>
+        </div>
+        <div class="tool-item">
+          <h4>Ubermag</h4>
+          <p>Pythonインターフェース、Jupyter対応</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="atomistic">
+      <h2>3.3 原子スピンダイナミクス</h2>
+      <p>
+        <strong>原子スピンダイナミクス（ASD）</strong>は、個々の原子サイトの
+        スピンを追跡し、熱揺らぎを含めた動力学を記述します。
+      </p>
+
+      <h3>確率的LLG方程式</h3>
+      <div class="equation-box">
+        <h4>ランジュバン・ダイナミクス</h4>
+        <p>$$\frac{d\mathbf{S}_i}{dt} = -\frac{\gamma}{1+\alpha^2}\mathbf{S}_i \times (\mathbf{H}_i^{\text{eff}} + \boldsymbol{\zeta}_i) - \frac{\gamma\alpha}{(1+\alpha^2)S}\mathbf{S}_i \times [\mathbf{S}_i \times (\mathbf{H}_i^{\text{eff}} + \boldsymbol{\zeta}_i)]$$</p>
+        <p>$\boldsymbol{\zeta}_i$: 熱揺動場（ガウス白色ノイズ）</p>
+        <p>$$\langle \zeta_i^\alpha(t) \zeta_j^\beta(t') \rangle = \frac{2\alpha k_B T}{\gamma \mu_s}\delta_{ij}\delta_{\alpha\beta}\delta(t-t')$$</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">原子スピンダイナミクス・シミュレータ</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from numba import jit
+
+class AtomisticSpinDynamics:
+    """
+    原子スピンダイナミクス・シミュレータ
+    1D強磁性鎖モデル
+    """
+    def __init__(self, N, J, mu_s, alpha, T):
+        """
+        Parameters:
+        -----------
+        N : int
+            原子数
+        J : float
+            交換相互作用 [J]
+        mu_s : float
+            原子磁気モーメント [J/T]
+        alpha : float
+            ギルバート減衰
+        T : float
+            温度 [K]
+        """
+        self.N = N
+        self.J = J
+        self.mu_s = mu_s
+        self.alpha = alpha
+        self.T = T
+        self.gamma = 1.76e11
+        self.kB = 1.38e-23
+
+        # スピンベクトル (N, 3)
+        self.spins = np.zeros((N, 3))
+        self.initialize_ferromagnetic()
+
+        # 熱揺動の強度
+        self.sigma = np.sqrt(2 * alpha * self.kB * T / (self.gamma * mu_s))
+
+    def initialize_ferromagnetic(self):
+        """強磁性配列で初期化"""
+        self.spins[:, 2] = 1.0
+
+    def initialize_random(self):
+        """ランダム配向で初期化"""
+        for i in range(self.N):
+            theta = np.arccos(2 * np.random.random() - 1)
+            phi = 2 * np.pi * np.random.random()
+            self.spins[i] = [np.sin(theta)*np.cos(phi),
+                            np.sin(theta)*np.sin(phi),
+                            np.cos(theta)]
+
+    def calculate_effective_field(self, H_ext=np.array([0, 0, 0])):
+        """有効場の計算（交換 + 外部場）"""
+        H_eff = np.zeros_like(self.spins)
+
+        # 交換場
+        for i in range(self.N):
+            if i > 0:
+                H_eff[i] += self.J / self.mu_s * self.spins[i-1]
+            if i < self.N - 1:
+                H_eff[i] += self.J / self.mu_s * self.spins[i+1]
+
+        # 外部場
+        H_eff += H_ext
+
+        return H_eff
+
+    def step(self, dt, H_ext=np.array([0, 0, 0])):
+        """1ステップのスピン更新（Heun法）"""
+        # 熱揺動場
+        if self.T > 0:
+            zeta = np.random.normal(0, self.sigma / np.sqrt(dt),
+                                    size=(self.N, 3))
+        else:
+            zeta = np.zeros((self.N, 3))
+
+        # 有効場
+        H_eff = self.calculate_effective_field(H_ext) + zeta
+
+        # LLG方程式の右辺
+        def llg_rhs(s, H):
+            s_cross_H = np.cross(s, H)
+            s_cross_s_cross_H = np.cross(s, s_cross_H)
+
+            ds_dt = (-self.gamma / (1 + self.alpha**2) * s_cross_H
+                     - self.gamma * self.alpha / (1 + self.alpha**2) * s_cross_s_cross_H)
+            return ds_dt
+
+        # Heun法
+        k1 = llg_rhs(self.spins, H_eff)
+        s_pred = self.spins + dt * k1
+
+        # 正規化
+        s_pred /= np.linalg.norm(s_pred, axis=1, keepdims=True)
+
+        H_eff_pred = self.calculate_effective_field(H_ext) + zeta
+        k2 = llg_rhs(s_pred, H_eff_pred)
+
+        self.spins += dt * 0.5 * (k1 + k2)
+
+        # 正規化
+        self.spins /= np.linalg.norm(self.spins, axis=1, keepdims=True)
+
+    def run(self, t_max, dt, H_ext=np.array([0, 0, 0])):
+        """シミュレーション実行"""
+        n_steps = int(t_max / dt)
+        magnetization = []
+        times = []
+
+        for step in range(n_steps):
+            self.step(dt, H_ext)
+
+            if step % 100 == 0:
+                m = np.mean(self.spins, axis=0)
+                magnetization.append(m)
+                times.append(step * dt)
+
+        return np.array(times), np.array(magnetization)
+
+    def calculate_magnetization(self):
+        """平均磁化"""
+        return np.mean(self.spins, axis=0)
+
+
+def simulate_thermal_fluctuations():
+    """熱揺らぎによる磁化の時間発展"""
+    N = 100  # 原子数
+    J = 1e-21  # 交換相互作用 [J] (約10 meV)
+    mu_s = 2.2 * 9.274e-24  # 磁気モーメント [J/T] (約2.2 μB)
+    alpha = 0.1
+
+    temperatures = [10, 100, 300, 500]  # K
+    dt = 1e-15  # 1 fs
+    t_max = 10e-12  # 10 ps
+
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    axes = axes.flatten()
+
+    for idx, T in enumerate(temperatures):
+        sim = AtomisticSpinDynamics(N, J, mu_s, alpha, T)
+        sim.initialize_ferromagnetic()
+
+        times, magnetization = sim.run(t_max, dt)
+
+        axes[idx].plot(times * 1e12, magnetization[:, 0], 'r-', label='$m_x$', alpha=0.7)
+        axes[idx].plot(times * 1e12, magnetization[:, 1], 'g-', label='$m_y$', alpha=0.7)
+        axes[idx].plot(times * 1e12, magnetization[:, 2], 'b-', label='$m_z$', linewidth=2)
+        axes[idx].set_xlabel('時間 [ps]', fontsize=12)
+        axes[idx].set_ylabel('磁化成分', fontsize=12)
+        axes[idx].set_title(f'T = {T} K', fontsize=14)
+        axes[idx].legend()
+        axes[idx].grid(True, alpha=0.3)
+        axes[idx].set_ylim([-1.1, 1.1])
+
+    plt.suptitle('熱揺らぎによる磁化の時間発展', fontsize=16)
+    plt.tight_layout()
+    plt.savefig('asd_thermal.png', dpi=150)
+    plt.show()
+
+
+def simulate_spin_wave():
+    """スピン波の励起と伝播"""
+    N = 200
+    J = 1e-21
+    mu_s = 2.2 * 9.274e-24
+    alpha = 0.01
+    T = 0  # 絶対零度（熱揺らぎなし）
+
+    sim = AtomisticSpinDynamics(N, J, mu_s, alpha, T)
+
+    # 端のスピンを傾ける（スピン波励起）
+    sim.spins[0] = [0.1, 0, np.sqrt(1-0.01)]
+    sim.spins[0] /= np.linalg.norm(sim.spins[0])
+
+    dt = 1e-15
+    t_max = 5e-12
+
+    # スピン波の伝播を記録
+    snapshots = []
+    snapshot_times = []
+
+    n_steps = int(t_max / dt)
+    for step in range(n_steps):
+        sim.step(dt)
+
+        if step % 500 == 0:
+            snapshots.append(sim.spins[:, 0].copy())  # x成分
+            snapshot_times.append(step * dt)
+
+    snapshots = np.array(snapshots)
+
+    # 時空間プロット
+    plt.figure(figsize=(12, 6))
+    plt.imshow(snapshots.T, aspect='auto', origin='lower',
+               extent=[0, t_max*1e12, 0, N],
+               cmap='RdBu', vmin=-0.2, vmax=0.2)
+    plt.xlabel('時間 [ps]', fontsize=12)
+    plt.ylabel('原子位置', fontsize=12)
+    plt.title('スピン波の伝播（$m_x$成分）', fontsize=14)
+    plt.colorbar(label='$m_x$')
+    plt.tight_layout()
+    plt.savefig('asd_spin_wave.png', dpi=150)
+    plt.show()
+
+# 実行
+simulate_thermal_fluctuations()
+simulate_spin_wave()
+
+print("\n=== 原子スピンダイナミクスの特徴 ===")
+print("• 熱揺らぎを自然に取り込める")
+print("• 個々の原子サイトを追跡")
+print("• 有限温度での磁化曲線、転移点を計算可能")
+print("• 計算コストは原子数に比例")
+</code></pre>
+      </div>
+    </section>
+
+    <section id="dft">
+      <h2>3.4 第一原理スピン計算</h2>
+      <p>
+        密度汎関数理論（DFT）を用いて、電子構造から磁気的性質を予測します。
+      </p>
+
+      <h3>スピン分極DFT</h3>
+      <div class="equation-box">
+        <h4>コーン-シャム方程式（スピン分極版）</h4>
+        <p>$$\left[-\frac{\hbar^2}{2m}\nabla^2 + V_{\text{eff}}^\sigma(\mathbf{r})\right]\psi_{n\sigma}(\mathbf{r}) = \varepsilon_{n\sigma}\psi_{n\sigma}(\mathbf{r})$$</p>
+        <p>$$V_{\text{eff}}^\sigma = V_{\text{ext}} + V_H + V_{xc}^\sigma$$</p>
+        <p>$\sigma = \uparrow, \downarrow$: スピン指数</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">DFT計算結果の解析例</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def analyze_spin_polarized_dos():
+    """
+    スピン分極状態密度の解析（模擬データ）
+    実際の計算にはVASP、Quantum ESPRESSO等を使用
+    """
+    # エネルギー範囲
+    E = np.linspace(-10, 5, 1000)  # eV
+    E_fermi = 0
+
+    # 強磁性金属（Fe様）のDOS模擬
+    # 多数スピン（↑）
+    dos_up = np.zeros_like(E)
+    # d電子バンド
+    dos_up += 2.0 * np.exp(-((E + 2) / 2)**2)
+    dos_up += 1.5 * np.exp(-((E + 0.5) / 1)**2)
+    dos_up += 0.5 * np.exp(-((E - 2) / 1.5)**2)
+    # s電子バンド
+    dos_up += 0.3 * np.ones_like(E) * (E > -8) * (E < 4)
+
+    # 少数スピン（↓）- 交換分裂でシフト
+    exchange_splitting = 2.0  # eV
+    dos_down = np.zeros_like(E)
+    dos_down += 2.0 * np.exp(-((E + 2 + exchange_splitting) / 2)**2)
+    dos_down += 1.5 * np.exp(-((E + 0.5 + exchange_splitting) / 1)**2)
+    dos_down += 0.5 * np.exp(-((E - 2 + exchange_splitting) / 1.5)**2)
+    dos_down += 0.3 * np.ones_like(E) * (E > -8) * (E < 4)
+
+    # フェルミ準位での分極率
+    idx_fermi = np.argmin(np.abs(E - E_fermi))
+    n_up_fermi = dos_up[idx_fermi]
+    n_down_fermi = dos_down[idx_fermi]
+    polarization = (n_up_fermi - n_down_fermi) / (n_up_fermi + n_down_fermi)
+
+    # 磁気モーメントの計算（積分）
+    dE = E[1] - E[0]
+    occupied_up = np.sum(dos_up[E < E_fermi]) * dE
+    occupied_down = np.sum(dos_down[E < E_fermi]) * dE
+    magnetic_moment = occupied_up - occupied_down
+
+    # プロット
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # スピン分極DOS
+    axes[0].fill_between(E, 0, dos_up, alpha=0.5, color='blue', label='↑スピン')
+    axes[0].fill_between(E, 0, -dos_down, alpha=0.5, color='red', label='↓スピン')
+    axes[0].axvline(x=E_fermi, color='black', linestyle='--', label='$E_F$')
+    axes[0].axhline(y=0, color='gray', linewidth=0.5)
+    axes[0].set_xlabel('エネルギー (eV)', fontsize=12)
+    axes[0].set_ylabel('状態密度 (states/eV)', fontsize=12)
+    axes[0].set_title('スピン分極状態密度', fontsize=14)
+    axes[0].legend()
+    axes[0].set_xlim([-10, 5])
+    axes[0].grid(True, alpha=0.3)
+
+    # 交換分裂の可視化
+    E_up = E + exchange_splitting / 2
+    E_down = E - exchange_splitting / 2
+
+    axes[1].plot(E_up, dos_up, 'b-', linewidth=2, label='↑バンド')
+    axes[1].plot(E_down, dos_down, 'r-', linewidth=2, label='↓バンド')
+    axes[1].axvline(x=E_fermi, color='black', linestyle='--', label='$E_F$')
+    axes[1].annotate('', xy=(1.5, 1.8), xytext=(-0.5, 1.8),
+                    arrowprops=dict(arrowstyle='<->', color='green', lw=2))
+    axes[1].text(0.5, 2.0, f'Δex = {exchange_splitting} eV', fontsize=12,
+                ha='center', color='green')
+    axes[1].set_xlabel('エネルギー (eV)', fontsize=12)
+    axes[1].set_ylabel('状態密度', fontsize=12)
+    axes[1].set_title('交換分裂', fontsize=14)
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('spin_polarized_dos.png', dpi=150)
+    plt.show()
+
+    return polarization, magnetic_moment
+
+
+def calculate_magnetic_anisotropy_energy():
+    """
+    磁気異方性エネルギー（MAE）の計算概念
+    SOC込みのDFT計算から得られる
+    """
+    # 異方性エネルギーの角度依存性
+    theta = np.linspace(0, np.pi, 100)
+
+    # 一軸異方性
+    K_u = 1.0  # MJ/m³
+    E_uni = K_u * np.sin(theta)**2
+
+    # 立方晶異方性
+    K_1 = 0.5  # MJ/m³
+
+    # 簡易的な表現（[001]と[111]の比較）
+    E_cubic = K_1 * (np.sin(theta)**2 * np.cos(theta)**2)
+
+    # プロット
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # エネルギー曲線
+    axes[0].plot(np.degrees(theta), E_uni, 'b-', linewidth=2, label='一軸異方性')
+    axes[0].plot(np.degrees(theta), E_cubic, 'r--', linewidth=2, label='立方晶異方性')
+    axes[0].set_xlabel('磁化方向 θ [度]', fontsize=12)
+    axes[0].set_ylabel('異方性エネルギー [MJ/m³]', fontsize=12)
+    axes[0].set_title('磁気異方性エネルギー', fontsize=14)
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+
+    # SOC効果の説明図
+    axes[1].text(0.5, 0.8, r'$H_{SOC} = \lambda \mathbf{L} \cdot \mathbf{S}$',
+                fontsize=16, ha='center', transform=axes[1].transAxes)
+    axes[1].text(0.5, 0.6, r'$E_{MAE} = E(\hat{z}) - E(\hat{x})$',
+                fontsize=16, ha='center', transform=axes[1].transAxes)
+    axes[1].text(0.5, 0.4, '軌道角運動量と格子の結合により', fontsize=12,
+                ha='center', transform=axes[1].transAxes)
+    axes[1].text(0.5, 0.3, 'スピンが特定方向を向きやすくなる', fontsize=12,
+                ha='center', transform=axes[1].transAxes)
+    axes[1].axis('off')
+    axes[1].set_title('スピン軌道相互作用と磁気異方性', fontsize=14)
+
+    plt.tight_layout()
+    plt.savefig('magnetic_anisotropy.png', dpi=150)
+    plt.show()
+
+    print("=== DFT計算の典型的パラメータ ===")
+    print("• 交換相関汎関数: PBE, PBE+U")
+    print("• スピン軌道結合: 第二変分法または全相対論的計算")
+    print("• k点メッシュ: 高密度（12×12×12以上）")
+    print("• カットオフエネルギー: 400-600 eV")
+
+    return None
+
+# 実行
+polarization, moment = analyze_spin_polarized_dos()
+print(f"\n=== DFT解析結果 ===")
+print(f"フェルミ準位でのスピン分極率: {polarization:.2f}")
+print(f"磁気モーメント（模擬）: {moment:.2f} μB/atom")
+
+calculate_magnetic_anisotropy_energy()
+</code></pre>
+      </div>
+    </section>
+
+    <section id="ml-spintronics">
+      <h2>3.5 機械学習とスピントロニクス</h2>
+      <p>
+        機械学習は、材料探索、シミュレーション加速、デバイス最適化に活用されています。
+      </p>
+
+      <div class="mermaid">
+        graph LR
+          A[DFT計算データ] --> B[特徴量抽出]
+          B --> C[機械学習モデル]
+          C --> D[物性予測]
+
+          E[実験データ] --> B
+          F[シミュレーション] --> B
+
+          D --> G[新材料提案]
+          D --> H[デバイス最適化]
+
+          style C fill:#e8f5e9
+          style D fill:#fff3e0
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">機械学習による磁気特性予測</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error, r2_score
+
+def generate_synthetic_magnetic_data(n_samples=500):
+    """
+    合成磁気材料データの生成
+    特徴量: 組成、構造パラメータ
+    ターゲット: キュリー温度、飽和磁化
+    """
+    np.random.seed(42)
+
+    # 特徴量（組成と構造）
+    Fe_content = np.random.uniform(0, 1, n_samples)
+    Co_content = np.random.uniform(0, 1 - Fe_content, n_samples)
+    Ni_content = 1 - Fe_content - Co_content
+
+    lattice_constant = 2.8 + 0.3 * Fe_content + 0.2 * Co_content
+    d_electron_count = 6 * Fe_content + 7 * Co_content + 8 * Ni_content
+
+    # 物性値（経験的関係に基づく模擬）
+    # キュリー温度 [K]
+    Tc = (1043 * Fe_content + 1388 * Co_content + 631 * Ni_content +
+          100 * np.random.randn(n_samples))
+
+    # 飽和磁化 [μB/atom]
+    Ms = (2.2 * Fe_content + 1.7 * Co_content + 0.6 * Ni_content +
+          0.1 * np.random.randn(n_samples))
+
+    # 磁気異方性エネルギー [MJ/m³]
+    K_u = (0.05 * Fe_content + 0.5 * Co_content + 0.005 * Ni_content +
+           0.01 * np.random.randn(n_samples))
+    K_u = np.abs(K_u)
+
+    # 特徴量行列
+    X = np.column_stack([Fe_content, Co_content, Ni_content,
+                         lattice_constant, d_electron_count])
+
+    # ターゲット
+    y_Tc = Tc
+    y_Ms = Ms
+    y_Ku = K_u
+
+    feature_names = ['Fe含有率', 'Co含有率', 'Ni含有率',
+                     '格子定数', 'd電子数']
+
+    return X, y_Tc, y_Ms, y_Ku, feature_names
+
+
+def train_and_evaluate_model(X, y, target_name):
+    """モデルの学習と評価"""
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # ランダムフォレスト
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+
+    # 予測
+    y_pred = model.predict(X_test)
+
+    # 評価
+    mae = mean_absolute_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+    return model, y_test, y_pred, mae, r2
+
+
+# データ生成
+X, y_Tc, y_Ms, y_Ku, feature_names = generate_synthetic_magnetic_data(1000)
+
+# 各物性の予測モデル
+results = {}
+for target, y, name in [(y_Tc, y_Tc, 'キュリー温度 [K]'),
+                         (y_Ms, y_Ms, '飽和磁化 [μB]'),
+                         (y_Ku, y_Ku, '異方性エネルギー [MJ/m³]')]:
+    model, y_test, y_pred, mae, r2 = train_and_evaluate_model(X, y, name)
+    results[name] = {
+        'model': model,
+        'y_test': y_test,
+        'y_pred': y_pred,
+        'mae': mae,
+        'r2': r2
+    }
+
+# 結果のプロット
+fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+
+# 予測 vs 実測（キュリー温度）
+ax = axes[0, 0]
+r = results['キュリー温度 [K]']
+ax.scatter(r['y_test'], r['y_pred'], alpha=0.5)
+ax.plot([r['y_test'].min(), r['y_test'].max()],
+        [r['y_test'].min(), r['y_test'].max()], 'r--')
+ax.set_xlabel('実測値', fontsize=12)
+ax.set_ylabel('予測値', fontsize=12)
+ax.set_title(f'キュリー温度予測 (R² = {r["r2"]:.3f})', fontsize=14)
+ax.grid(True, alpha=0.3)
+
+# 特徴量重要度
+ax = axes[0, 1]
+model_Tc = results['キュリー温度 [K]']['model']
+importances = model_Tc.feature_importances_
+ax.barh(feature_names, importances)
+ax.set_xlabel('重要度', fontsize=12)
+ax.set_title('キュリー温度予測の特徴量重要度', fontsize=14)
+ax.grid(True, alpha=0.3)
+
+# 飽和磁化
+ax = axes[1, 0]
+r = results['飽和磁化 [μB]']
+ax.scatter(r['y_test'], r['y_pred'], alpha=0.5, color='green')
+ax.plot([r['y_test'].min(), r['y_test'].max()],
+        [r['y_test'].min(), r['y_test'].max()], 'r--')
+ax.set_xlabel('実測値', fontsize=12)
+ax.set_ylabel('予測値', fontsize=12)
+ax.set_title(f'飽和磁化予測 (R² = {r["r2"]:.3f})', fontsize=14)
+ax.grid(True, alpha=0.3)
+
+# 異方性エネルギー
+ax = axes[1, 1]
+r = results['異方性エネルギー [MJ/m³]']
+ax.scatter(r['y_test'], r['y_pred'], alpha=0.5, color='orange')
+ax.plot([r['y_test'].min(), r['y_test'].max()],
+        [r['y_test'].min(), r['y_test'].max()], 'r--')
+ax.set_xlabel('実測値', fontsize=12)
+ax.set_ylabel('予測値', fontsize=12)
+ax.set_title(f'異方性エネルギー予測 (R² = {r["r2"]:.3f})', fontsize=14)
+ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('ml_magnetic_prediction.png', dpi=150)
+plt.show()
+
+print("\n=== 機械学習による磁気特性予測 ===")
+for name, r in results.items():
+    print(f"{name}: MAE = {r['mae']:.3f}, R² = {r['r2']:.3f}")
+
+print("\n=== 機械学習の応用例 ===")
+print("• 高Tcスピントロニクス材料の探索")
+print("• 永久磁石材料の組成最適化")
+print("• シミュレーション結果の高速代理モデル")
+print("• 実験条件の最適化")
+</code></pre>
+      </div>
+    </section>
+
+    <section id="multiscale">
+      <h2>3.6 マルチスケール・シミュレーション</h2>
+      <p>
+        異なるスケールの計算手法を連携させることで、
+        電子構造から巨視的振る舞いまでを一貫してシミュレートします。
+      </p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">マルチスケール・パラメータ転送</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+
+class MultiscaleParameterTransfer:
+    """
+    DFT → ASD → Micromagnetics のパラメータ転送
+    """
+    def __init__(self):
+        self.dft_results = {}
+        self.asd_params = {}
+        self.micromag_params = {}
+
+    def dft_to_asd(self, dft_output):
+        """
+        DFT結果から原子スピンダイナミクスパラメータへ変換
+
+        DFT出力:
+        - 磁気モーメント
+        - 交換相互作用（ハイゼンベルグ-J）
+        - 磁気異方性エネルギー（SOC計算から）
+        """
+        self.dft_results = dft_output
+
+        # 交換相互作用 [eV] → [J]
+        J_eV = dft_output.get('exchange_J', 0.05)  # 典型値 ~50 meV
+        J_J = J_eV * 1.602e-19
+
+        # 原子磁気モーメント [μB] → [J/T]
+        mu_s_muB = dft_output.get('magnetic_moment', 2.2)
+        mu_s_JT = mu_s_muB * 9.274e-24
+
+        # 単一イオン異方性 [meV] → [J]
+        D_meV = dft_output.get('singleion_anisotropy', 0.1)
+        D_J = D_meV * 1.602e-22
+
+        self.asd_params = {
+            'J': J_J,
+            'mu_s': mu_s_JT,
+            'D': D_J,
+            'lattice_constant': dft_output.get('a', 2.87e-10)
+        }
+
+        return self.asd_params
+
+    def asd_to_micromagnetics(self, asd_params, lattice='bcc'):
+        """
+        原子パラメータからマイクロマグネティクス・パラメータへ変換
+        """
+        a = asd_params.get('lattice_constant', 2.87e-10)
+        J = asd_params.get('J', 1e-21)
+        mu_s = asd_params.get('mu_s', 2.2 * 9.274e-24)
+        D = asd_params.get('D', 1e-23)
+
+        # 格子定数から原子密度
+        if lattice == 'bcc':
+            n_atoms = 2 / a**3  # BCC: 2原子/単位胞
+            z = 8  # 最近接原子数
+        elif lattice == 'fcc':
+            n_atoms = 4 / a**3
+            z = 12
+        else:
+            n_atoms = 1 / a**3
+            z = 6
+
+        # 飽和磁化 Ms = n * μ_s [A/m]
+        Ms = n_atoms * mu_s / (4 * np.pi * 1e-7)
+
+        # 交換剛性 A = (z * J * S^2) / (2 * a) [J/m]
+        # 簡略化: S=1として
+        S = 1
+        A_ex = z * J * S**2 / (2 * a)
+
+        # 異方性定数 K_u = n * D [J/m³]
+        K_u = n_atoms * D
+
+        self.micromag_params = {
+            'Ms': Ms,
+            'A_ex': A_ex,
+            'K_u': K_u
+        }
+
+        return self.micromag_params
+
+    def print_parameter_summary(self):
+        """パラメータサマリーの表示"""
+        print("=" * 50)
+        print("マルチスケール・パラメータ")
+        print("=" * 50)
+
+        if self.dft_results:
+            print("\n【DFT計算結果】")
+            for k, v in self.dft_results.items():
+                print(f"  {k}: {v}")
+
+        if self.asd_params:
+            print("\n【原子スピンダイナミクス・パラメータ】")
+            print(f"  交換相互作用 J: {self.asd_params['J']:.3e} J")
+            print(f"  原子磁気モーメント: {self.asd_params['mu_s']:.3e} J/T")
+            print(f"  異方性 D: {self.asd_params['D']:.3e} J")
+
+        if self.micromag_params:
+            print("\n【マイクロマグネティクス・パラメータ】")
+            print(f"  飽和磁化 Ms: {self.micromag_params['Ms']:.3e} A/m")
+            print(f"  交換剛性 A: {self.micromag_params['A_ex']:.3e} J/m")
+            print(f"  異方性定数 K_u: {self.micromag_params['K_u']:.3e} J/m³")
+
+
+# 使用例
+transfer = MultiscaleParameterTransfer()
+
+# DFT計算結果（模擬）
+dft_output = {
+    'exchange_J': 0.050,  # 50 meV
+    'magnetic_moment': 2.2,  # μB
+    'singleion_anisotropy': 0.1,  # 0.1 meV
+    'a': 2.87e-10  # m (bcc-Fe)
+}
+
+# パラメータ変換
+asd_params = transfer.dft_to_asd(dft_output)
+micromag_params = transfer.asd_to_micromagnetics(asd_params, lattice='bcc')
+
+transfer.print_parameter_summary()
+
+# 既知の実験値との比較
+print("\n【実験値との比較（bcc-Fe）】")
+print(f"  Ms (計算): {micromag_params['Ms']/1e6:.2f} MA/m")
+print(f"  Ms (実験): 1.71 MA/m")
+print(f"  A (計算): {micromag_params['A_ex']*1e12:.1f} pJ/m")
+print(f"  A (実験): 21 pJ/m")
+</code></pre>
+      </div>
+    </section>
+
+    <section id="summary">
+      <h2>まとめ</h2>
+      <div class="summary-box">
+        <h4>この章で学んだこと</h4>
+        <ul>
+          <li><strong>マイクロマグネティクス</strong>: 連続体近似、有効場、LLG方程式の数値解</li>
+          <li><strong>原子スピンダイナミクス</strong>: 熱揺らぎ、確率的LLG方程式</li>
+          <li><strong>第一原理計算</strong>: スピン分極DFT、磁気異方性</li>
+          <li><strong>機械学習</strong>: 材料探索、物性予測への応用</li>
+          <li><strong>マルチスケール</strong>: スケール間のパラメータ転送</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="nav-section">
+      <div class="nav-links">
+        <a href="chapter-2.html" class="nav-link prev">
+          <span class="nav-direction">← 前へ</span>
+          <span class="nav-title">第2章: 量子スピントロニクス</span>
+        </a>
+        <a href="chapter-4.html" class="nav-link next">
+          <span class="nav-direction">次へ →</span>
+          <span class="nav-title">第4章: フロンティア応用</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="chapter-footer">
+    <p>AI寺子屋 材料科学道場 - スピントロニクス上級編 第3章</p>
+  </footer>
+</body>
+</html>

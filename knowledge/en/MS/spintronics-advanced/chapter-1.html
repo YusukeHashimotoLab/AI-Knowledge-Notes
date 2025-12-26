@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 1: Magnonics and Spin Waves - Advanced Spintronics</title>
+  <link rel="stylesheet" href="../../assets/css/knowledge-base.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'base' });
+  </script>
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <a href="../../index.html">Home</a> &gt;
+    <a href="../index.html">Materials Science</a> &gt;
+    <a href="index.html">Advanced Spintronics</a> &gt;
+    <span>Chapter 1</span>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="chapter-badge">Chapter 1</div>
+    <h1>Magnonics and Spin Waves</h1>
+    <p class="chapter-description">
+      Learn the physics of spin waves as collective excitations in magnetic materials, magnon quantization,
+      and the principles behind magnonic devices that enable novel information processing paradigms.
+    </p>
+    <div class="chapter-meta">
+      <span class="reading-time">60-75 min read</span>
+      <span class="difficulty">Advanced</span>
+    </div>
+  </header>
+
+  <main class="chapter-content">
+    <!-- Section 1: Spin Wave Fundamentals -->
+    <section class="content-section">
+      <h2>1.1 Physics of Spin Waves</h2>
+
+      <p>
+        Spin waves are collective excitations of magnetic moments in ordered magnetic materials.
+        They arise from the exchange interaction between neighboring spins and propagate through
+        the material as wave-like oscillations of the magnetization.
+      </p>
+
+      <div class="concept-box">
+        <h4>Definition of a Spin Wave</h4>
+        <p>
+          Consider a ferromagnetic chain with the Heisenberg Hamiltonian:
+        </p>
+        <p>
+          $$\mathcal{H} = -J\sum_{\langle i,j \rangle} \mathbf{S}_i \cdot \mathbf{S}_j - g\mu_B H \sum_i S_i^z$$
+        </p>
+        <p>
+          where $J$ is the exchange constant (positive for ferromagnets), $\mathbf{S}_i$ is the spin operator
+          at site $i$, $H$ is the external magnetic field, and $g$ is the g-factor.
+        </p>
+      </div>
+
+      <h3>Spin Wave Dispersion Relation</h3>
+      <p>
+        Spin wave propagation characteristics are determined by the dispersion relation.
+        In ferromagnets, this depends strongly on whether exchange or dipolar interactions dominate.
+      </p>
+
+      <div class="two-column">
+        <div class="column">
+          <h4>Exchange-Dominated Region (Short Wavelength)</h4>
+          <p>
+            $$\omega_k = \gamma(H + Dk^2)$$
+          </p>
+          <p>where $D = 2JSa^2/\hbar$ is the exchange stiffness constant.</p>
+        </div>
+        <div class="column">
+          <h4>Dipolar-Dominated Region (Long Wavelength)</h4>
+          <p>
+            $$\omega_k = \gamma\sqrt{H(H + 4\pi M_s \sin^2\theta_k)}$$
+          </p>
+          <p>where $\theta_k$ is the angle between $\mathbf{k}$ and $\mathbf{M}$.</p>
+        </div>
+      </div>
+
+      <div class="code-example">
+        <h4>Spin Wave Dispersion Calculation</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def spin_wave_dispersion(k, H, Ms, D, gamma=1.76e11, mode='exchange'):
+    """
+    Calculate spin wave dispersion relation
+
+    Parameters:
+    -----------
+    k : array-like, wave vector (1/m)
+    H : float, external field (A/m)
+    Ms : float, saturation magnetization (A/m)
+    D : float, exchange stiffness (J/m)
+    gamma : float, gyromagnetic ratio (rad/s/T)
+    mode : str, 'exchange' or 'dipolar' or 'full'
+
+    Returns:
+    --------
+    omega : array-like, angular frequency (rad/s)
+    """
+    mu0 = 4 * np.pi * 1e-7
+    H_eff = mu0 * H
+    M_eff = mu0 * Ms
+
+    if mode == 'exchange':
+        # Exchange-dominated regime
+        omega = gamma * (H_eff + D * k**2 / (mu0 * Ms))
+    elif mode == 'dipolar':
+        # Dipolar-dominated (k || M case)
+        omega = gamma * np.sqrt(H_eff * (H_eff + M_eff))
+    else:
+        # Full dispersion including both
+        H_exchange = D * k**2 / (mu0 * Ms)
+        omega = gamma * np.sqrt((H_eff + H_exchange) * (H_eff + H_exchange + M_eff))
+
+    return omega
+
+# YIG (Yttrium Iron Garnet) parameters
+H = 1e5      # External field: 100 kA/m
+Ms = 1.4e5   # Saturation magnetization: 140 kA/m
+D = 3e-17    # Exchange stiffness: 3×10^-17 J/m
+
+# Wave vector range
+k = np.linspace(1e4, 1e8, 1000)  # 10^4 to 10^8 /m
+
+# Calculate dispersion
+omega_exchange = spin_wave_dispersion(k, H, Ms, D, mode='exchange')
+omega_full = spin_wave_dispersion(k, H, Ms, D, mode='full')
+
+# Plot
+plt.figure(figsize=(10, 6))
+plt.loglog(k, omega_exchange/(2*np.pi*1e9), 'b-', label='Exchange mode')
+plt.loglog(k, omega_full/(2*np.pi*1e9), 'r--', label='Full dispersion')
+plt.xlabel('Wave vector k (1/m)')
+plt.ylabel('Frequency f (GHz)')
+plt.title('Spin Wave Dispersion Relation in YIG')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+print(f"Frequency at k = 10^6 /m: {omega_full[500]/(2*np.pi*1e9):.2f} GHz")</code></pre>
+      </div>
+
+      <div class="info-box">
+        <h4>Damon-Eshbach Mode</h4>
+        <p>
+          For magnetostatic surface waves propagating perpendicular to the magnetization direction,
+          the dispersion relation becomes:
+        </p>
+        <p>
+          $$\omega_{DE} = \gamma\sqrt{H(H + 4\pi M_s) + (2\pi M_s)^2(1 - e^{-2kd})}$$
+        </p>
+        <p>
+          where $d$ is the film thickness. These surface spin waves are non-reciprocal,
+          propagating preferentially in one direction.
+        </p>
+      </div>
+    </section>
+
+    <!-- Section 2: Magnon Quantization -->
+    <section class="content-section">
+      <h2>1.2 Magnon Quantization</h2>
+
+      <p>
+        Magnons are the quantized excitations of spin waves, just as phonons are quantized lattice vibrations
+        and photons are quantized electromagnetic waves. Each magnon carries spin angular momentum $\hbar$
+        and reduces the total magnetization by $g\mu_B$.
+      </p>
+
+      <h3>Holstein-Primakoff Transformation</h3>
+      <p>
+        To quantize spin waves, we express spin operators in terms of bosonic creation and annihilation operators.
+        The Holstein-Primakoff transformation is:
+      </p>
+
+      <div class="equation-box">
+        $$S^+ = \sqrt{2S}\sqrt{1 - \frac{a^\dagger a}{2S}}\ a$$
+        $$S^- = \sqrt{2S}\ a^\dagger\sqrt{1 - \frac{a^\dagger a}{2S}}$$
+        $$S^z = S - a^\dagger a$$
+      </div>
+
+      <p>
+        where $a^\dagger$ and $a$ are the magnon creation and annihilation operators, satisfying
+        $[a, a^\dagger] = 1$. For low-temperature (low magnon density) conditions,
+        we can expand to lowest order:
+      </p>
+
+      <div class="concept-box">
+        <h4>Linear Spin Wave Approximation</h4>
+        <p>
+          $$S^+ \approx \sqrt{2S}\ a, \quad S^- \approx \sqrt{2S}\ a^\dagger$$
+        </p>
+        <p>
+          With this approximation, the Hamiltonian becomes diagonal in momentum space:
+        </p>
+        <p>
+          $$\mathcal{H} = \sum_k \hbar\omega_k \left(a_k^\dagger a_k + \frac{1}{2}\right)$$
+        </p>
+      </div>
+
+      <div class="code-example">
+        <h4>Magnon Number Density Calculation</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy import integrate
+
+def magnon_number_density(T, omega, D, a, S):
+    """
+    Calculate magnon number density using Bose-Einstein statistics
+
+    Parameters:
+    -----------
+    T : float, temperature (K)
+    omega : array-like, magnon frequencies (rad/s)
+    D : float, exchange stiffness (J/m)
+    a : float, lattice constant (m)
+    S : float, spin quantum number
+
+    Returns:
+    --------
+    n : float, magnon number density (per site)
+    """
+    kB = 1.381e-23  # Boltzmann constant
+    hbar = 1.055e-34
+
+    if T == 0:
+        return 0.0
+
+    # Bose-Einstein distribution
+    def bose_einstein(omega_k):
+        x = hbar * omega_k / (kB * T)
+        if x > 100:  # Avoid overflow
+            return 0.0
+        return 1 / (np.exp(x) - 1)
+
+    # Integration over k-space (3D)
+    # n = (1/N) * sum_k n_k = (a^3 / 8pi^3) * integral of n_k * 4pi*k^2 dk
+    def integrand(k):
+        omega_k = D * k**2 / hbar  # Exchange-dominated
+        return k**2 * bose_einstein(omega_k)
+
+    k_max = np.pi / a  # Brillouin zone boundary
+    result, _ = integrate.quad(integrand, 0, k_max)
+
+    n = (a**3 / (2 * np.pi**2)) * result
+    return n
+
+def bloch_law(T, T_C, beta=3/2):
+    """
+    Bloch's T^(3/2) law for magnetization reduction
+    M(T)/M(0) = 1 - B * T^(3/2)
+    """
+    B = 1 / T_C**1.5  # Approximate coefficient
+    return 1 - B * T**beta
+
+# Calculate temperature dependence
+T_range = np.linspace(1, 300, 100)
+
+# Parameters for iron
+D = 2.8e-40  # Exchange stiffness × hbar^2
+a = 2.87e-10  # Lattice constant
+S = 1  # Spin
+
+# Calculate magnon density
+n_magnon = []
+for T in T_range:
+    # Simplified calculation for demonstration
+    kB = 1.381e-23
+    zeta = 2.612  # Riemann zeta(3/2)
+    n = (kB * T / (4 * np.pi * D/1.055e-34**2))**1.5 * zeta / (4 * np.pi)
+    n_magnon.append(n)
+
+# Magnetization reduction
+M_reduction = [bloch_law(T, 1043) for T in T_range]  # T_C = 1043 K for Fe
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+ax1.plot(T_range, n_magnon)
+ax1.set_xlabel('Temperature (K)')
+ax1.set_ylabel('Magnon density (per site)')
+ax1.set_title('Magnon Number Density vs Temperature')
+ax1.set_yscale('log')
+ax1.grid(True, alpha=0.3)
+
+ax2.plot(T_range, M_reduction)
+ax2.set_xlabel('Temperature (K)')
+ax2.set_ylabel('M(T)/M(0)')
+ax2.set_title("Bloch's T^{3/2} Law")
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()</code></pre>
+      </div>
+
+      <h3>Magnon Statistics</h3>
+      <p>
+        Magnons are bosons and follow Bose-Einstein statistics. The average occupation number of a magnon mode with energy $\hbar\omega_k$ at temperature $T$ is:
+      </p>
+
+      <div class="equation-box">
+        $$\langle n_k \rangle = \frac{1}{e^{\hbar\omega_k/k_BT} - 1}$$
+      </div>
+
+      <p>
+        This leads to Bloch's $T^{3/2}$ law for the temperature dependence of spontaneous magnetization at low temperatures:
+      </p>
+
+      <div class="equation-box">
+        $$M(T) = M(0)\left[1 - \left(\frac{T}{T_C}\right)^{3/2}\right]$$
+      </div>
+    </section>
+
+    <!-- Section 3: Magnonic Crystals -->
+    <section class="content-section">
+      <h2>1.3 Magnonic Crystals</h2>
+
+      <p>
+        Magnonic crystals are artificial periodic structures that modify the spin wave dispersion,
+        creating band gaps where spin wave propagation is forbidden. They are the magnetic
+        analog of photonic crystals.
+      </p>
+
+      <div class="concept-box">
+        <h4>Principles of Magnonic Crystals</h4>
+        <ul>
+          <li><strong>Bragg reflection</strong>: Spin waves are reflected at periodic interfaces</li>
+          <li><strong>Band gap formation</strong>: Forbidden frequency ranges appear at Brillouin zone boundaries</li>
+          <li><strong>Waveguiding</strong>: Defects in periodic structures act as waveguides</li>
+          <li><strong>Control</strong>: External field or current enables dynamic tuning</li>
+        </ul>
+      </div>
+
+      <h3>1D Magnonic Crystal</h3>
+      <p>
+        The simplest magnonic crystal is a 1D periodic structure with alternating materials A and B.
+        The band gap appears at wave vectors satisfying the Bragg condition:
+      </p>
+
+      <div class="equation-box">
+        $$k_n = \frac{n\pi}{\Lambda}$$
+      </div>
+
+      <p>
+        where $\Lambda = a_A + a_B$ is the period. The band gap width depends on the
+        contrast in magnetic parameters between the two materials.
+      </p>
+
+      <div class="code-example">
+        <h4>1D Magnonic Crystal Band Structure Calculation</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.linalg import eig
+
+def magnonic_crystal_bands(N_periods, a_A, a_B, omega_A, omega_B, k_points=100):
+    """
+    Calculate band structure of 1D magnonic crystal using transfer matrix method
+
+    Parameters:
+    -----------
+    N_periods : int, number of unit cells
+    a_A, a_B : float, thicknesses of layers A and B
+    omega_A, omega_B : float, resonance frequencies of layers A and B
+    k_points : int, number of k-points
+
+    Returns:
+    --------
+    k_array : array, wave vectors
+    bands : array, band frequencies
+    """
+    Lambda = a_A + a_B  # Period
+    k_array = np.linspace(-np.pi/Lambda, np.pi/Lambda, k_points)
+
+    # Simplified model: effective medium with periodic modulation
+    # Dispersion: omega = omega_0 + delta_omega * cos(2*pi*x/Lambda)
+    omega_avg = (omega_A + omega_B) / 2
+    delta_omega = (omega_A - omega_B) / 2
+
+    bands = []
+    for k in k_array:
+        # First few bands (simplified)
+        band_energies = []
+        for n in range(4):
+            # Approximate band structure
+            if n == 0:
+                omega = omega_avg - np.abs(delta_omega) * np.sqrt(1 - (k*Lambda/np.pi)**2)
+            elif n == 1:
+                omega = omega_avg + np.abs(delta_omega) * np.sqrt(1 - (k*Lambda/np.pi)**2)
+            else:
+                omega = omega_avg + n * np.pi * np.sqrt(omega_A * omega_B) / Lambda
+            band_energies.append(omega)
+        bands.append(band_energies)
+
+    return k_array, np.array(bands)
+
+# Parameters (normalized units)
+a_A = 100e-9  # 100 nm
+a_B = 100e-9  # 100 nm
+omega_A = 10e9 * 2 * np.pi  # 10 GHz
+omega_B = 15e9 * 2 * np.pi  # 15 GHz
+
+k_array, bands = magnonic_crystal_bands(10, a_A, a_B, omega_A, omega_B)
+
+# Plot band structure
+plt.figure(figsize=(8, 6))
+Lambda = a_A + a_B
+
+for i in range(bands.shape[1]):
+    plt.plot(k_array * Lambda / np.pi, bands[:, i] / (2*np.pi*1e9), 'b-')
+
+# Band gap region
+gap_lower = min(omega_A, omega_B) / (2*np.pi*1e9)
+gap_upper = max(omega_A, omega_B) / (2*np.pi*1e9)
+plt.axhspan(gap_lower, gap_upper, alpha=0.3, color='red', label='Band gap')
+
+plt.xlabel('Wave vector (k$\\Lambda$/π)')
+plt.ylabel('Frequency (GHz)')
+plt.title('1D Magnonic Crystal Band Structure')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.xlim(-1, 1)
+plt.show()
+
+print(f"Period: {Lambda*1e9:.0f} nm")
+print(f"Band gap: {gap_lower:.1f} - {gap_upper:.1f} GHz")</code></pre>
+      </div>
+
+      <h3>2D Magnonic Crystals</h3>
+      <p>
+        In 2D magnonic crystals, periodic arrays of holes, dots, or compositional variations create
+        more complex band structures with possible omnidirectional band gaps.
+      </p>
+
+      <div class="two-column">
+        <div class="column">
+          <h4>Antidot Lattice</h4>
+          <p>Holes etched in a magnetic film create a periodic potential for spin waves.</p>
+          <p>Common geometries: square, hexagonal, honeycomb lattices</p>
+        </div>
+        <div class="column">
+          <h4>Dot Lattice</h4>
+          <p>Arrays of magnetic nanodots on a substrate.</p>
+          <p>Strong confinement effects create discrete mode spectra.</p>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <h4>Application: Magnonic Filters</h4>
+        <p>
+          Magnonic crystals can function as frequency filters for spin wave signals.
+          By designing the band gap position and width, specific frequency components
+          can be selectively transmitted or blocked. The band gap is tunable via external
+          magnetic field.
+        </p>
+      </div>
+    </section>
+
+    <!-- Section 4: Spin Wave Logic -->
+    <section class="content-section">
+      <h2>1.4 Spin Wave Logic Devices</h2>
+
+      <p>
+        Spin wave logic exploits the wave nature of spin waves to perform computations.
+        Key advantages include low energy consumption (no charge transport) and
+        the ability to perform parallel processing via wave interference.
+      </p>
+
+      <h3>Mach-Zehnder Interferometer</h3>
+      <p>
+        The spin wave Mach-Zehnder interferometer is a fundamental building block for spin wave logic.
+        The input spin wave is split into two paths, undergoes phase accumulation, and recombines:
+      </p>
+
+      <div class="equation-box">
+        $$\psi_{out} = \frac{1}{2}(\psi_1 e^{i\phi_1} + \psi_2 e^{i\phi_2})$$
+      </div>
+
+      <p>
+        The output depends on the phase difference $\Delta\phi = \phi_1 - \phi_2$:
+      </p>
+      <ul>
+        <li>$\Delta\phi = 0$: Constructive interference → Output = 1</li>
+        <li>$\Delta\phi = \pi$: Destructive interference → Output = 0</li>
+      </ul>
+
+      <div class="code-example">
+        <h4>Spin Wave Mach-Zehnder Interferometer Simulation</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+class SpinWaveInterferometer:
+    """Mach-Zehnder spin wave interferometer simulation"""
+
+    def __init__(self, L1, L2, k, gamma=1.76e11):
+        """
+        Parameters:
+        -----------
+        L1, L2 : float, path lengths (m)
+        k : float, wave vector (1/m)
+        gamma : float, gyromagnetic ratio
+        """
+        self.L1 = L1
+        self.L2 = L2
+        self.k = k
+        self.gamma = gamma
+
+    def phase_difference(self, H1, H2, D):
+        """Calculate phase difference between two paths"""
+        # Different fields in two arms
+        omega1 = self.gamma * H1
+        omega2 = self.gamma * H2
+
+        # Phase accumulation
+        phi1 = self.k * self.L1
+        phi2 = self.k * self.L2
+
+        # Additional phase from field difference
+        delta_phi = phi1 - phi2 + (omega1 - omega2) * self.L1 / (D * self.k)
+        return delta_phi
+
+    def output_amplitude(self, phi1, phi2, A1=1, A2=1):
+        """Calculate output amplitude from interference"""
+        psi1 = A1 * np.exp(1j * phi1)
+        psi2 = A2 * np.exp(1j * phi2)
+        return 0.5 * (psi1 + psi2)
+
+    def logic_gate(self, input_A, input_B, phase_A=0, phase_B=np.pi):
+        """
+        Implement logic gate using phase control
+
+        XOR: inputs with π phase difference → interference
+        AND: inputs with 0 phase difference
+        """
+        if input_A and input_B:
+            out = self.output_amplitude(phase_A, phase_B)
+        elif input_A:
+            out = 0.5 * np.exp(1j * phase_A)
+        elif input_B:
+            out = 0.5 * np.exp(1j * phase_B)
+        else:
+            out = 0
+        return np.abs(out)**2
+
+# Demonstration
+interferometer = SpinWaveInterferometer(L1=1e-6, L2=1e-6, k=1e7)
+
+# Phase sweep
+phases = np.linspace(0, 4*np.pi, 200)
+outputs = []
+for phi in phases:
+    out = interferometer.output_amplitude(0, phi)
+    outputs.append(np.abs(out)**2)
+
+plt.figure(figsize=(10, 5))
+
+plt.subplot(1, 2, 1)
+plt.plot(phases/np.pi, outputs)
+plt.xlabel('Phase difference (π)')
+plt.ylabel('Output intensity')
+plt.title('Interferometer Output vs Phase')
+plt.grid(True, alpha=0.3)
+
+# Logic gate truth table
+plt.subplot(1, 2, 2)
+inputs = [(0, 0), (0, 1), (1, 0), (1, 1)]
+labels = ['00', '01', '10', '11']
+
+xor_out = [interferometer.logic_gate(a, b, 0, np.pi) for a, b in inputs]
+and_out = [interferometer.logic_gate(a, b, 0, 0) for a, b in inputs]
+
+x = np.arange(4)
+width = 0.35
+plt.bar(x - width/2, xor_out, width, label='XOR (π phase)')
+plt.bar(x + width/2, and_out, width, label='AND (0 phase)')
+plt.xticks(x, labels)
+plt.xlabel('Input (A, B)')
+plt.ylabel('Output')
+plt.title('Spin Wave Logic Gates')
+plt.legend()
+plt.grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.show()</code></pre>
+      </div>
+
+      <h3>Majority Gate</h3>
+      <p>
+        The majority gate is another key component of spin wave logic. It takes three inputs
+        and outputs the majority value:
+      </p>
+
+      <div class="equation-box">
+        $$\text{MAJ}(A, B, C) = \begin{cases} 1 & \text{if } A + B + C \geq 2 \\ 0 & \text{otherwise} \end{cases}$$
+      </div>
+
+      <p>
+        Implementation uses three input spin wave paths converging to a single output.
+        When two or more inputs are in phase, constructive interference produces a strong output.
+      </p>
+
+      <div class="concept-box">
+        <h4>Advantages of Spin Wave Logic</h4>
+        <ul>
+          <li><strong>Low power</strong>: No charge transport → no Joule heating</li>
+          <li><strong>Parallelism</strong>: Wave interference enables natural parallel processing</li>
+          <li><strong>Miniaturization</strong>: Spin wave wavelengths can be sub-100 nm</li>
+          <li><strong>Reconfigurability</strong>: Logic function controlled by phase</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 5: Spin Wave Propagation -->
+    <section class="content-section">
+      <h2>1.5 Spin Wave Propagation and Damping</h2>
+
+      <p>
+        Practical magnonics requires understanding of spin wave propagation characteristics
+        including group velocity, attenuation, and damping mechanisms.
+      </p>
+
+      <h3>Group Velocity</h3>
+      <p>
+        The group velocity determines the speed of spin wave packet propagation:
+      </p>
+
+      <div class="equation-box">
+        $$v_g = \frac{\partial\omega}{\partial k}$$
+      </div>
+
+      <p>
+        For exchange-dominated spin waves ($\omega = \gamma H + D k^2/\hbar$):
+      </p>
+
+      <div class="equation-box">
+        $$v_g = \frac{2Dk}{\hbar}$$
+      </div>
+
+      <h3>Damping Mechanisms</h3>
+      <p>
+        Spin wave propagation is limited by various damping processes:
+      </p>
+
+      <div class="two-column">
+        <div class="column">
+          <h4>Intrinsic Damping</h4>
+          <ul>
+            <li>Gilbert damping (spin-orbit coupling)</li>
+            <li>Magnon-magnon scattering</li>
+            <li>Magnon-phonon scattering</li>
+          </ul>
+        </div>
+        <div class="column">
+          <h4>Extrinsic Damping</h4>
+          <ul>
+            <li>Two-magnon scattering (from defects)</li>
+            <li>Eddy current losses (in metals)</li>
+            <li>Radiative damping</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="code-example">
+        <h4>Spin Wave Propagation Simulation (1D FDTD)</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def spin_wave_propagation_1d(Nx, dx, Nt, dt, D, H0, alpha, source_freq):
+    """
+    1D spin wave propagation using simplified FDTD
+
+    Parameters:
+    -----------
+    Nx : int, number of spatial points
+    dx : float, spatial step (m)
+    Nt : int, number of time steps
+    dt : float, time step (s)
+    D : float, exchange stiffness
+    H0 : float, external field
+    alpha : float, Gilbert damping
+    source_freq : float, source frequency (Hz)
+    """
+    gamma = 1.76e11  # Gyromagnetic ratio
+
+    # Magnetization components (deviation from equilibrium)
+    mx = np.zeros(Nx)
+    my = np.zeros(Nx)
+
+    # Store history
+    mx_history = np.zeros((Nt, Nx))
+
+    # Source position
+    source_pos = Nx // 10
+
+    for t in range(Nt):
+        # Store current state
+        mx_history[t] = mx.copy()
+
+        # Source excitation
+        mx[source_pos] = 0.01 * np.sin(2 * np.pi * source_freq * t * dt)
+
+        # Compute exchange field (Laplacian)
+        Hex_x = np.zeros(Nx)
+        Hex_y = np.zeros(Nx)
+        for i in range(1, Nx-1):
+            Hex_x[i] = D * (mx[i+1] - 2*mx[i] + mx[i-1]) / dx**2
+            Hex_y[i] = D * (my[i+1] - 2*my[i] + my[i-1]) / dx**2
+
+        # LLG equation (linearized)
+        dmx = gamma * (H0 * my + Hex_y) - alpha * gamma * H0 * mx
+        dmy = -gamma * (H0 * mx + Hex_x) - alpha * gamma * H0 * my
+
+        mx += dmx * dt
+        my += dmy * dt
+
+        # Absorbing boundary conditions
+        mx[0] = mx[-1] = 0
+        my[0] = my[-1] = 0
+
+    return mx_history
+
+# Parameters
+Nx = 500
+dx = 10e-9  # 10 nm
+Nt = 2000
+dt = 1e-13  # 0.1 ps
+D = 3e-17   # Exchange stiffness
+H0 = 0.1    # External field (T)
+alpha = 0.01  # Gilbert damping
+source_freq = 10e9  # 10 GHz
+
+# Run simulation
+mx_history = spin_wave_propagation_1d(Nx, dx, Nt, dt, D, H0, alpha, source_freq)
+
+# Plot
+x = np.arange(Nx) * dx * 1e6  # Convert to micrometers
+t = np.arange(Nt) * dt * 1e9  # Convert to nanoseconds
+
+plt.figure(figsize=(12, 5))
+
+# Space-time plot
+plt.subplot(1, 2, 1)
+plt.imshow(mx_history.T, aspect='auto', cmap='RdBu',
+           extent=[0, t[-1], x[-1], 0], vmin=-0.01, vmax=0.01)
+plt.colorbar(label='$m_x$')
+plt.xlabel('Time (ns)')
+plt.ylabel('Position (μm)')
+plt.title('Spin Wave Propagation')
+
+# Snapshot at different times
+plt.subplot(1, 2, 2)
+for ti in [200, 500, 1000, 1500]:
+    plt.plot(x, mx_history[ti] + ti*0.01, label=f't = {ti*dt*1e12:.0f} ps')
+plt.xlabel('Position (μm)')
+plt.ylabel('$m_x$ (offset)')
+plt.title('Spin Wave Snapshots')
+plt.legend()
+plt.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()</code></pre>
+      </div>
+
+      <h3>Propagation Length</h3>
+      <p>
+        The characteristic propagation length before spin wave amplitude decays by 1/e is:
+      </p>
+
+      <div class="equation-box">
+        $$\lambda_{prop} = \frac{v_g}{\Gamma} = \frac{v_g}{2\alpha\omega}$$
+      </div>
+
+      <p>
+        where $\Gamma = 2\alpha\omega$ is the relaxation rate. For low-damping materials like YIG
+        ($\alpha \approx 10^{-5}$), propagation lengths can exceed millimeters.
+      </p>
+    </section>
+
+    <!-- Section 6: Nonlinear Magnonics -->
+    <section class="content-section">
+      <h2>1.6 Nonlinear Spin Wave Effects</h2>
+
+      <p>
+        At high spin wave amplitudes, nonlinear effects become important. These include
+        parametric amplification, soliton formation, and Bose-Einstein condensation of magnons.
+      </p>
+
+      <h3>Parametric Amplification</h3>
+      <p>
+        Parametric pumping uses a microwave field at frequency $2\omega$ to amplify spin waves at frequency $\omega$.
+        This is a three-wave process conserving energy and momentum.
+      </p>
+
+      <div class="equation-box">
+        $$\omega_{pump} = \omega_{signal} + \omega_{idler}$$
+        $$\mathbf{k}_{pump} = \mathbf{k}_{signal} + \mathbf{k}_{idler}$$
+      </div>
+
+      <div class="code-example">
+        <h4>Parametric Amplification Simulation</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+def parametric_amplification(y, t, omega0, gamma_rel, V_pump, omega_pump):
+    """
+    Coupled mode equations for parametric amplification
+
+    dy/dt for signal and idler modes
+    """
+    a_s, a_i = y[0] + 1j*y[1], y[2] + 1j*y[3]
+
+    # Pump detuning
+    delta = omega_pump - 2*omega0
+
+    # Coupled mode equations
+    da_s = -gamma_rel*a_s + 1j*V_pump*np.conj(a_i)*np.exp(1j*delta*t)
+    da_i = -gamma_rel*a_i + 1j*V_pump*np.conj(a_s)*np.exp(1j*delta*t)
+
+    return [da_s.real, da_s.imag, da_i.real, da_i.imag]
+
+# Parameters
+omega0 = 10e9 * 2 * np.pi  # Signal frequency: 10 GHz
+gamma_rel = 1e7  # Relaxation rate
+V_pump_values = [0.5e7, 1e7, 1.5e7, 2e7]  # Different pump strengths
+omega_pump = 2 * omega0  # Pump at 2ω
+
+t = np.linspace(0, 500e-9, 1000)  # 500 ns
+
+plt.figure(figsize=(10, 6))
+
+for V_pump in V_pump_values:
+    # Initial conditions: small signal, no idler
+    y0 = [0.01, 0, 0, 0]
+
+    sol = odeint(parametric_amplification, y0, t,
+                 args=(omega0, gamma_rel, V_pump, omega_pump))
+
+    # Signal amplitude
+    a_s = np.sqrt(sol[:, 0]**2 + sol[:, 1]**2)
+
+    label = f'V_pump = {V_pump/1e7:.1f}×10⁷ rad/s'
+    plt.semilogy(t*1e9, a_s, label=label)
+
+plt.xlabel('Time (ns)')
+plt.ylabel('Signal amplitude')
+plt.title('Parametric Amplification of Spin Waves')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.ylim(1e-3, 10)
+plt.show()
+
+# Threshold condition
+V_threshold = gamma_rel
+print(f"Amplification threshold: V_pump > {V_threshold:.2e} rad/s")</code></pre>
+      </div>
+
+      <h3>Spin Wave Solitons</h3>
+      <p>
+        When nonlinearity balances dispersion, stable localized spin wave packets (solitons) can form.
+        These are described by the nonlinear Schrödinger equation:
+      </p>
+
+      <div class="equation-box">
+        $$i\frac{\partial\psi}{\partial t} + \frac{D}{2}\frac{\partial^2\psi}{\partial x^2} + N|\psi|^2\psi = 0$$
+      </div>
+
+      <p>
+        where $D$ is the dispersion coefficient and $N$ is the nonlinearity parameter.
+        Bright solitons exist when $D \cdot N > 0$.
+      </p>
+
+      <div class="info-box">
+        <h4>Magnon Bose-Einstein Condensation</h4>
+        <p>
+          Under strong pumping, magnons can accumulate at the lowest energy state,
+          forming a Bose-Einstein condensate (BEC). This has been observed in YIG at room temperature
+          using parametric pumping. The magnon BEC exhibits spontaneous coherence and superfluidity-like behavior.
+        </p>
+      </div>
+    </section>
+
+    <!-- Summary -->
+    <section class="content-section summary-section">
+      <h2>Chapter Summary</h2>
+
+      <div class="summary-grid">
+        <div class="summary-item">
+          <h4>Spin Waves</h4>
+          <p>Collective magnetic excitations with dispersion determined by exchange and dipolar interactions</p>
+        </div>
+        <div class="summary-item">
+          <h4>Magnons</h4>
+          <p>Quantized spin waves following Bose-Einstein statistics, carrying $\hbar$ angular momentum</p>
+        </div>
+        <div class="summary-item">
+          <h4>Magnonic Crystals</h4>
+          <p>Periodic structures creating band gaps for spin wave filtering and waveguiding</p>
+        </div>
+        <div class="summary-item">
+          <h4>Spin Wave Logic</h4>
+          <p>Low-power computation using wave interference in Mach-Zehnder and majority gates</p>
+        </div>
+        <div class="summary-item">
+          <h4>Nonlinear Effects</h4>
+          <p>Parametric amplification, soliton formation, and magnon BEC at high amplitudes</p>
+        </div>
+      </div>
+
+      <div class="key-equations">
+        <h4>Key Equations</h4>
+        <ul>
+          <li>Exchange dispersion: $\omega_k = \gamma(H + Dk^2)$</li>
+          <li>Magnon occupation: $n_k = 1/(e^{\hbar\omega_k/k_BT} - 1)$</li>
+          <li>Holstein-Primakoff: $S^+ \approx \sqrt{2S}\ a$</li>
+          <li>Group velocity: $v_g = \partial\omega/\partial k$</li>
+          <li>Propagation length: $\lambda_{prop} = v_g/(2\alpha\omega)$</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Navigation -->
+    <nav class="chapter-navigation">
+      <a href="index.html" class="nav-button prev">
+        <span class="arrow">←</span>
+        <span class="nav-text">
+          <span class="label">Series Index</span>
+          <span class="title">Advanced Spintronics</span>
+        </span>
+      </a>
+      <a href="chapter-2.html" class="nav-button next">
+        <span class="nav-text">
+          <span class="label">Next Chapter</span>
+          <span class="title">Quantum Spintronics</span>
+        </span>
+        <span class="arrow">→</span>
+      </a>
+    </nav>
+  </main>
+
+  <footer class="chapter-footer">
+    <p>AI Terakoya Materials Science Dojo - Advanced Spintronics Chapter 1</p>
+  </footer>
+</body>
+</html>

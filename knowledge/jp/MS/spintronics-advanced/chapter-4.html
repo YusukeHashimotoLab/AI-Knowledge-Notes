@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第4章: フロンティア応用 - スピントロニクス上級編</title>
+  <link rel="stylesheet" href="../../assets/css/knowledge-base.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'base' });
+  </script>
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <a href="../../index.html">ホーム</a> &gt;
+    <a href="../index.html">材料科学</a> &gt;
+    <a href="index.html">スピントロニクス上級編</a> &gt;
+    <span>第4章</span>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="chapter-badge">第4章</div>
+    <h1>フロンティア応用</h1>
+    <p class="chapter-description">
+      ニューロモルフィック・コンピューティング、テラヘルツ・スピントロニクス、
+      スピン・カロリトロニクス、量子マグノニクスなど、最先端の応用研究を探求します。
+    </p>
+    <div class="chapter-meta">
+      <span class="reading-time">70-90分</span>
+      <span class="difficulty">上級</span>
+    </div>
+  </header>
+
+  <main class="chapter-content">
+    <section id="neuromorphic">
+      <h2>4.1 スピントロニクス・ニューロモルフィック素子</h2>
+      <p>
+        脳を模倣した<strong>ニューロモルフィック・コンピューティング</strong>は、
+        従来のフォン・ノイマン型計算機の限界を超える可能性を持っています。
+        スピントロニクス素子は、シナプスやニューロンの機能を模倣できます。
+      </p>
+
+      <div class="mermaid">
+        graph LR
+          A[入力スパイク] --> B[スピントロニクス・シナプス]
+          B --> C[スピントロニクス・ニューロン]
+          C --> D[出力スパイク]
+
+          B --> E[可塑性]
+          C --> F[非線形応答]
+          C --> G[閾値特性]
+
+          style B fill:#e3f2fd
+          style C fill:#fff3e0
+      </div>
+
+      <h3>MTJを用いたシナプス素子</h3>
+      <p>
+        磁気トンネル接合（MTJ）の抵抗状態を重みとして利用できます。
+      </p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">スピントロニクス・シナプスのモデル</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+class SpintronicSynapse:
+    """
+    MTJベースのスピントロニクス・シナプス
+    STT-MRAMを用いた多値重み表現
+    """
+    def __init__(self, n_levels=16, R_min=1000, R_max=2000):
+        """
+        Parameters:
+        -----------
+        n_levels : int
+            離散重みレベル数
+        R_min, R_max : float
+            最小・最大抵抗 [Ω]
+        """
+        self.n_levels = n_levels
+        self.R_min = R_min
+        self.R_max = R_max
+
+        # 抵抗状態（連続値で管理、読み出し時に離散化）
+        self.R = (R_min + R_max) / 2
+
+        # 書き込みパラメータ
+        self.I_c = 100e-6  # 臨界電流 [A]
+        self.tau = 1e-9    # 特性時間 [s]
+
+    def get_weight(self):
+        """正規化された重みを返す"""
+        return (self.R_max - self.R) / (self.R_max - self.R_min)
+
+    def set_weight(self, w):
+        """重みを設定（0-1）"""
+        w = np.clip(w, 0, 1)
+        self.R = self.R_max - w * (self.R_max - self.R_min)
+
+    def potentiation(self, delta_w):
+        """長期増強（LTP）"""
+        current_w = self.get_weight()
+        new_w = current_w + delta_w * (1 - current_w)  # 非線形更新
+        self.set_weight(new_w)
+
+    def depression(self, delta_w):
+        """長期抑圧（LTD）"""
+        current_w = self.get_weight()
+        new_w = current_w - delta_w * current_w  # 非線形更新
+        self.set_weight(new_w)
+
+    def stdp_update(self, dt, A_plus=0.1, A_minus=0.1,
+                    tau_plus=20e-3, tau_minus=20e-3):
+        """
+        スパイクタイミング依存可塑性（STDP）
+
+        Parameters:
+        -----------
+        dt : float
+            ポスト-プレ間の時間差 [s]
+        A_plus, A_minus : float
+            LTP, LTD の振幅
+        tau_plus, tau_minus : float
+            時定数 [s]
+        """
+        if dt > 0:
+            # LTP: ポストがプレより後
+            delta_w = A_plus * np.exp(-dt / tau_plus)
+            self.potentiation(delta_w)
+        else:
+            # LTD: ポストがプレより前
+            delta_w = A_minus * np.exp(dt / tau_minus)
+            self.depression(delta_w)
+
+
+class SpintronicNeuron:
+    """
+    スピントロニクス・ニューロン
+    磁化ダイナミクスを利用した積分発火モデル
+    """
+    def __init__(self, threshold=0.5, tau_m=10e-3, reset_value=0):
+        """
+        Parameters:
+        -----------
+        threshold : float
+            発火閾値
+        tau_m : float
+            膜時定数 [s]
+        reset_value : float
+            リセット値
+        """
+        self.threshold = threshold
+        self.tau_m = tau_m
+        self.reset_value = reset_value
+        self.membrane_potential = 0
+        self.spike_history = []
+
+    def integrate(self, input_current, dt):
+        """膜電位の積分"""
+        # 漏れ積分
+        self.membrane_potential += (
+            -self.membrane_potential / self.tau_m + input_current
+        ) * dt
+
+        # 発火判定
+        if self.membrane_potential >= self.threshold:
+            self.membrane_potential = self.reset_value
+            return 1  # スパイク発生
+        return 0
+
+    def reset(self):
+        """状態リセット"""
+        self.membrane_potential = 0
+        self.spike_history = []
+
+
+def demonstrate_spintronic_synapse():
+    """スピントロニクス・シナプスのデモ"""
+    synapse = SpintronicSynapse(n_levels=16)
+
+    # STDP学習曲線
+    dt_range = np.linspace(-50e-3, 50e-3, 100)
+    weight_changes = []
+
+    for dt in dt_range:
+        synapse.set_weight(0.5)  # 初期重み
+        synapse.stdp_update(dt)
+        weight_changes.append(synapse.get_weight() - 0.5)
+
+    # 連続書き込みによる重み変化
+    synapse.set_weight(0.0)
+    potentiation_curve = []
+    for _ in range(50):
+        synapse.potentiation(0.1)
+        potentiation_curve.append(synapse.get_weight())
+
+    synapse.set_weight(1.0)
+    depression_curve = []
+    for _ in range(50):
+        synapse.depression(0.1)
+        depression_curve.append(synapse.get_weight())
+
+    # プロット
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+    # STDP曲線
+    axes[0].plot(dt_range * 1000, weight_changes, 'b-', linewidth=2)
+    axes[0].axhline(y=0, color='gray', linestyle='--')
+    axes[0].axvline(x=0, color='gray', linestyle='--')
+    axes[0].set_xlabel('Δt = t_post - t_pre [ms]', fontsize=12)
+    axes[0].set_ylabel('重み変化 Δw', fontsize=12)
+    axes[0].set_title('STDP学習曲線', fontsize=14)
+    axes[0].fill_between(dt_range * 1000, 0, weight_changes,
+                         where=np.array(weight_changes) > 0,
+                         alpha=0.3, color='green', label='LTP')
+    axes[0].fill_between(dt_range * 1000, 0, weight_changes,
+                         where=np.array(weight_changes) < 0,
+                         alpha=0.3, color='red', label='LTD')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+
+    # 増強・抑圧曲線
+    axes[1].plot(potentiation_curve, 'g-', linewidth=2, label='増強（LTP）')
+    axes[1].plot(depression_curve, 'r-', linewidth=2, label='抑圧（LTD）')
+    axes[1].set_xlabel('書き込みパルス数', fontsize=12)
+    axes[1].set_ylabel('重み w', fontsize=12)
+    axes[1].set_title('シナプス重み変化', fontsize=14)
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+    axes[1].set_ylim([0, 1.1])
+
+    # MTJ抵抗と重みの関係
+    R_values = np.linspace(1000, 2000, 100)
+    w_values = (2000 - R_values) / 1000
+    axes[2].plot(R_values, w_values, 'b-', linewidth=2)
+    axes[2].set_xlabel('MTJ抵抗 [Ω]', fontsize=12)
+    axes[2].set_ylabel('シナプス重み', fontsize=12)
+    axes[2].set_title('MTJ抵抗-重み変換', fontsize=14)
+    axes[2].grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('spintronic_synapse.png', dpi=150)
+    plt.show()
+
+
+def simple_neural_network():
+    """簡単なスピントロニクス・ニューラルネットワーク"""
+    # 2入力、1出力のパーセプトロン
+    synapses = [SpintronicSynapse() for _ in range(2)]
+    neuron = SpintronicNeuron(threshold=0.5)
+
+    # 初期重み
+    synapses[0].set_weight(0.6)
+    synapses[1].set_weight(0.4)
+
+    # 入力パターン
+    input_patterns = [
+        [0, 0],
+        [0, 1],
+        [1, 0],
+        [1, 1]
+    ]
+
+    dt = 1e-3  # 1 ms
+
+    print("=== スピントロニクス・パーセプトロン ===")
+    print(f"重み: w1={synapses[0].get_weight():.2f}, w2={synapses[1].get_weight():.2f}")
+    print(f"閾値: {neuron.threshold}")
+    print()
+
+    for pattern in input_patterns:
+        neuron.reset()
+
+        # 100ステップの積分
+        spikes = 0
+        for _ in range(100):
+            input_current = sum(
+                p * s.get_weight() for p, s in zip(pattern, synapses)
+            )
+            spikes += neuron.integrate(input_current, dt)
+
+        print(f"入力: {pattern} → 出力スパイク数: {spikes}")
+
+# 実行
+demonstrate_spintronic_synapse()
+simple_neural_network()
+</code></pre>
+      </div>
+
+      <h3>リザバー・コンピューティング</h3>
+      <p>
+        スピントロニクス素子の非線形ダイナミクスを利用した<strong>リザバー計算</strong>が
+        注目されています。
+      </p>
+
+      <div class="equation-box">
+        <h4>リザバー状態更新</h4>
+        <p>$$\mathbf{x}(t+1) = f(\mathbf{W}^{in}\mathbf{u}(t) + \mathbf{W}\mathbf{x}(t))$$</p>
+        <p>$$\mathbf{y}(t) = \mathbf{W}^{out}\mathbf{x}(t)$$</p>
+        <p>$f$: スピンダイナミクスによる非線形変換</p>
+      </div>
+    </section>
+
+    <section id="thz-spintronics">
+      <h2>4.2 テラヘルツ・スピントロニクス</h2>
+      <p>
+        反強磁性体やフェリ磁性体の高周波ダイナミクスを利用した
+        <strong>テラヘルツ（THz）スピントロニクス</strong>は、
+        次世代高速通信・計算の基盤技術として期待されています。
+      </p>
+
+      <h3>反強磁性共鳴</h3>
+      <div class="equation-box">
+        <h4>反強磁性共鳴周波数</h4>
+        <p>$$\omega_{AFM} = \gamma\sqrt{2H_E H_A}$$</p>
+        <p>$H_E$: 交換磁場（~100-1000 T）、$H_A$: 異方性磁場</p>
+        <p>強磁性（~GHz）に比べて2-3桁高い周波数（~THz）</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">反強磁性共鳴の計算</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import solve_ivp
+
+def antiferromagnetic_resonance():
+    """反強磁性共鳴周波数の材料依存性"""
+    gamma = 1.76e11  # rad/(T·s)
+
+    # 材料パラメータ（代表値）
+    materials = {
+        'NiO': {'H_E': 500, 'H_A': 0.01, 'T_N': 523},
+        'MnO': {'H_E': 200, 'H_A': 0.005, 'T_N': 116},
+        'Cr2O3': {'H_E': 300, 'H_A': 0.02, 'T_N': 307},
+        'FeF2': {'H_E': 50, 'H_A': 0.1, 'T_N': 78},
+        'MnF2': {'H_E': 55, 'H_A': 0.08, 'T_N': 67},
+    }
+
+    afm_frequencies = {}
+    for mat, params in materials.items():
+        H_E = params['H_E']  # T
+        H_A = params['H_A']  # T
+        omega = gamma * np.sqrt(2 * H_E * H_A)
+        freq_THz = omega / (2 * np.pi * 1e12)
+        afm_frequencies[mat] = freq_THz
+
+    # プロット
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # 材料ごとの共鳴周波数
+    materials_list = list(afm_frequencies.keys())
+    frequencies = list(afm_frequencies.values())
+
+    bars = axes[0].bar(materials_list, frequencies, color='steelblue')
+    axes[0].set_ylabel('共鳴周波数 [THz]', fontsize=12)
+    axes[0].set_title('反強磁性体の共鳴周波数', fontsize=14)
+    axes[0].axhline(y=1, color='red', linestyle='--',
+                    label='THz帯域下限')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3, axis='y')
+
+    for bar, freq in zip(bars, frequencies):
+        axes[0].text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.05,
+                    f'{freq:.2f}', ha='center', fontsize=10)
+
+    # 強磁性vs反強磁性の比較
+    H_ext = np.linspace(0, 1, 100)  # 外部磁場 [T]
+
+    # 強磁性共鳴
+    fm_freq = gamma * H_ext / (2 * np.pi * 1e9)  # GHz
+
+    # 反強磁性共鳴（外部場依存性）
+    H_E = 100  # T
+    H_A = 0.01  # T
+    afm_freq = gamma * np.sqrt(2 * H_E * H_A + H_ext**2) / (2 * np.pi * 1e12)
+
+    axes[1].semilogy(H_ext, fm_freq, 'b-', linewidth=2, label='強磁性共鳴 (FM)')
+    axes[1].semilogy(H_ext, afm_freq * 1000, 'r-', linewidth=2,
+                     label='反強磁性共鳴 (AFM)')
+    axes[1].set_xlabel('外部磁場 [T]', fontsize=12)
+    axes[1].set_ylabel('共鳴周波数 [GHz]', fontsize=12)
+    axes[1].set_title('FM vs AFM 共鳴周波数', fontsize=14)
+    axes[1].axhspan(1000, 10000, alpha=0.2, color='yellow', label='THz帯')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('afm_resonance.png', dpi=150)
+    plt.show()
+
+    return afm_frequencies
+
+
+def thz_emission_simulation():
+    """THz放射のシミュレーション"""
+    # スピン・ゼーベック効果によるTHz生成
+
+    # 温度パルス（フェムト秒レーザー励起）
+    t = np.linspace(0, 10e-12, 1000)  # 10 ps
+    tau_pulse = 100e-15  # 100 fs
+    T_pulse = np.exp(-(t / tau_pulse)**2)
+
+    # スピン蓄積ダイナミクス
+    tau_spin = 1e-12  # 1 ps（スピン緩和時間）
+    spin_accumulation = np.zeros_like(t)
+
+    dt = t[1] - t[0]
+    for i in range(1, len(t)):
+        dsdt = T_pulse[i] - spin_accumulation[i-1] / tau_spin
+        spin_accumulation[i] = spin_accumulation[i-1] + dsdt * dt
+
+    # THz電場（スピン流の時間微分に比例）
+    E_THz = np.gradient(spin_accumulation, dt)
+
+    # プロット
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+    # 励起パルス
+    axes[0, 0].plot(t * 1e12, T_pulse, 'r-', linewidth=2)
+    axes[0, 0].set_xlabel('時間 [ps]', fontsize=12)
+    axes[0, 0].set_ylabel('温度上昇 [a.u.]', fontsize=12)
+    axes[0, 0].set_title('フェムト秒レーザー励起', fontsize=14)
+    axes[0, 0].grid(True, alpha=0.3)
+
+    # スピン蓄積
+    axes[0, 1].plot(t * 1e12, spin_accumulation, 'b-', linewidth=2)
+    axes[0, 1].set_xlabel('時間 [ps]', fontsize=12)
+    axes[0, 1].set_ylabel('スピン蓄積 [a.u.]', fontsize=12)
+    axes[0, 1].set_title('スピン蓄積ダイナミクス', fontsize=14)
+    axes[0, 1].grid(True, alpha=0.3)
+
+    # THz電場
+    axes[1, 0].plot(t * 1e12, E_THz / np.max(np.abs(E_THz)), 'g-', linewidth=2)
+    axes[1, 0].set_xlabel('時間 [ps]', fontsize=12)
+    axes[1, 0].set_ylabel('THz電場 [a.u.]', fontsize=12)
+    axes[1, 0].set_title('THz放射波形', fontsize=14)
+    axes[1, 0].grid(True, alpha=0.3)
+
+    # THzスペクトル
+    freq = np.fft.fftfreq(len(t), dt) / 1e12  # THz
+    spectrum = np.abs(np.fft.fft(E_THz))**2
+    mask = freq > 0
+
+    axes[1, 1].semilogy(freq[mask], spectrum[mask] / np.max(spectrum[mask]),
+                        'purple', linewidth=2)
+    axes[1, 1].set_xlabel('周波数 [THz]', fontsize=12)
+    axes[1, 1].set_ylabel('パワースペクトル [a.u.]', fontsize=12)
+    axes[1, 1].set_title('THz放射スペクトル', fontsize=14)
+    axes[1, 1].set_xlim([0, 5])
+    axes[1, 1].grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('thz_emission.png', dpi=150)
+    plt.show()
+
+# 実行
+afm_freqs = antiferromagnetic_resonance()
+print("\n=== 反強磁性共鳴周波数 ===")
+for mat, freq in afm_freqs.items():
+    print(f"{mat}: {freq:.2f} THz")
+
+thz_emission_simulation()
+</code></pre>
+      </div>
+    </section>
+
+    <section id="spin-caloritronics">
+      <h2>4.3 スピン・カロリトロニクス</h2>
+      <p>
+        <strong>スピン・カロリトロニクス</strong>は、熱とスピンの相互変換を扱う分野です。
+        廃熱からのスピン流生成や、スピン流による熱輸送制御が可能です。
+      </p>
+
+      <h3>スピン・ゼーベック効果</h3>
+      <div class="equation-box">
+        <h4>スピン・ゼーベック効果</h4>
+        <p>$$\mathbf{J}_s = -S_s \nabla T$$</p>
+        <p>$S_s$: スピン・ゼーベック係数、$\nabla T$: 温度勾配</p>
+        <p>温度勾配によりマグノンが励起され、スピン流が生成</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">スピン・ゼーベック効果のシミュレーション</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def spin_seebeck_effect():
+    """スピン・ゼーベック効果のモデル"""
+    # 強磁性体/重金属ヘテロ構造
+
+    # パラメータ
+    L_FM = 100e-9      # 強磁性体厚さ [m]
+    L_HM = 10e-9       # 重金属厚さ [m]
+    T_hot = 350        # 高温側 [K]
+    T_cold = 300       # 低温側 [K]
+
+    # 位置座標
+    x = np.linspace(0, L_FM, 100)
+
+    # 温度プロファイル（線形）
+    T = T_cold + (T_hot - T_cold) * (1 - x / L_FM)
+
+    # マグノン密度（温度依存）
+    def magnon_density(T, T_C=600):
+        """ブロッホの3/2乗則"""
+        if T >= T_C:
+            return 0
+        return (T / T_C) ** 1.5
+
+    n_magnon = np.array([magnon_density(t) for t in T])
+
+    # スピン流密度（マグノン勾配に比例）
+    dn_dx = np.gradient(n_magnon, x)
+    J_s = -dn_dx  # 拡散係数を1に規格化
+
+    # 逆スピンホール効果による電圧
+    theta_SH = 0.1  # スピンホール角
+    rho_HM = 100e-8  # 重金属の抵抗率 [Ω·m]
+    w = 1e-3         # サンプル幅 [m]
+
+    V_ISHE = theta_SH * rho_HM * w * J_s[-1]  # 境界でのスピン流
+
+    # プロット
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+    # 温度プロファイル
+    axes[0, 0].plot(x * 1e9, T, 'r-', linewidth=2)
+    axes[0, 0].fill_between(x * 1e9, T_cold, T, alpha=0.3, color='red')
+    axes[0, 0].set_xlabel('位置 [nm]', fontsize=12)
+    axes[0, 0].set_ylabel('温度 [K]', fontsize=12)
+    axes[0, 0].set_title('温度プロファイル', fontsize=14)
+    axes[0, 0].grid(True, alpha=0.3)
+
+    # マグノン密度
+    axes[0, 1].plot(x * 1e9, n_magnon, 'b-', linewidth=2)
+    axes[0, 1].set_xlabel('位置 [nm]', fontsize=12)
+    axes[0, 1].set_ylabel('マグノン密度 [a.u.]', fontsize=12)
+    axes[0, 1].set_title('マグノン分布', fontsize=14)
+    axes[0, 1].grid(True, alpha=0.3)
+
+    # スピン流密度
+    axes[1, 0].plot(x * 1e9, J_s, 'g-', linewidth=2)
+    axes[1, 0].axhline(y=0, color='gray', linestyle='--')
+    axes[1, 0].set_xlabel('位置 [nm]', fontsize=12)
+    axes[1, 0].set_ylabel('スピン流密度 [a.u.]', fontsize=12)
+    axes[1, 0].set_title('スピン・ゼーベック効果によるスピン流', fontsize=14)
+    axes[1, 0].grid(True, alpha=0.3)
+
+    # 温度差依存性
+    dT_range = np.linspace(0, 100, 50)
+    V_range = []
+
+    for dT in dT_range:
+        T_profile = T_cold + dT * (1 - x / L_FM)
+        n_mag = np.array([magnon_density(t) for t in T_profile])
+        dn = np.gradient(n_mag, x)
+        J = -dn[-1]
+        V = theta_SH * rho_HM * w * J * 1e6  # μV
+        V_range.append(V)
+
+    axes[1, 1].plot(dT_range, V_range, 'purple', linewidth=2)
+    axes[1, 1].set_xlabel('温度差 ΔT [K]', fontsize=12)
+    axes[1, 1].set_ylabel('ISHE電圧 [μV]', fontsize=12)
+    axes[1, 1].set_title('スピン・ゼーベック電圧の温度差依存性', fontsize=14)
+    axes[1, 1].grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('spin_seebeck.png', dpi=150)
+    plt.show()
+
+
+def spin_peltier_effect():
+    """スピン・ペルチェ効果のシミュレーション"""
+    # スピン流を流すと温度変化が生じる
+
+    # パラメータ
+    J_s = np.linspace(-1, 1, 100)  # スピン流密度 [a.u.]
+    Pi_s = 0.1  # スピン・ペルチェ係数
+
+    # 熱流
+    J_Q = Pi_s * J_s
+
+    # 温度変化（定常状態）
+    kappa = 1  # 熱伝導率
+    dT = J_Q / kappa
+
+    # プロット
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    ax.plot(J_s, dT, 'b-', linewidth=2)
+    ax.axhline(y=0, color='gray', linestyle='--')
+    ax.axvline(x=0, color='gray', linestyle='--')
+    ax.set_xlabel('スピン流密度 $J_s$ [a.u.]', fontsize=12)
+    ax.set_ylabel('温度変化 ΔT [a.u.]', fontsize=12)
+    ax.set_title('スピン・ペルチェ効果', fontsize=14)
+
+    # 加熱・冷却領域
+    ax.fill_between(J_s, 0, dT, where=dT > 0, alpha=0.3, color='red',
+                    label='加熱')
+    ax.fill_between(J_s, 0, dT, where=dT < 0, alpha=0.3, color='blue',
+                    label='冷却')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('spin_peltier.png', dpi=150)
+    plt.show()
+
+    print("=== スピン・カロリトロニクス効果 ===")
+    print("• スピン・ゼーベック効果: ∇T → Js（熱→スピン）")
+    print("• スピン・ペルチェ効果: Js → JQ（スピン→熱）")
+    print("• スピン依存ゼーベック効果: スピン依存の熱電効果")
+    print("• マグノン・ドラッグ: マグノンによる熱輸送")
+
+# 実行
+spin_seebeck_effect()
+spin_peltier_effect()
+</code></pre>
+      </div>
+    </section>
+
+    <section id="quantum-magnonics">
+      <h2>4.4 量子マグノニクス</h2>
+      <p>
+        <strong>量子マグノニクス</strong>は、マグノンの量子状態を制御・測定し、
+        量子情報処理や量子センシングに応用する分野です。
+      </p>
+
+      <h3>マグノン-マイクロ波光子結合</h3>
+      <div class="equation-box">
+        <h4>ハミルトニアン</h4>
+        <p>$$H = \hbar\omega_m a^\dagger a + \hbar\omega_c c^\dagger c + \hbar g(a^\dagger c + a c^\dagger)$$</p>
+        <p>$a$: マグノン演算子、$c$: キャビティ光子演算子、$g$: 結合定数</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">マグノン-光子結合系のシミュレーション</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.linalg import eigh
+
+def magnon_photon_coupling():
+    """マグノン-光子結合系の固有値"""
+    # パラメータ
+    omega_c = 10e9 * 2 * np.pi  # キャビティ周波数 10 GHz
+    g = 50e6 * 2 * np.pi        # 結合強度 50 MHz
+
+    # マグノン周波数をスイープ
+    omega_m_range = np.linspace(8e9, 12e9, 200) * 2 * np.pi
+
+    eigenfreqs = []
+
+    for omega_m in omega_m_range:
+        # 2モード結合ハミルトニアン
+        H = np.array([
+            [omega_m, g],
+            [g, omega_c]
+        ])
+
+        evals, _ = eigh(H)
+        eigenfreqs.append(evals / (2 * np.pi * 1e9))  # GHz
+
+    eigenfreqs = np.array(eigenfreqs)
+
+    # プロット
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # 反交差
+    axes[0].plot(omega_m_range / (2 * np.pi * 1e9), eigenfreqs[:, 0],
+                 'b-', linewidth=2, label='下側ハイブリッドモード')
+    axes[0].plot(omega_m_range / (2 * np.pi * 1e9), eigenfreqs[:, 1],
+                 'r-', linewidth=2, label='上側ハイブリッドモード')
+    axes[0].plot(omega_m_range / (2 * np.pi * 1e9),
+                 omega_m_range / (2 * np.pi * 1e9),
+                 'g--', linewidth=1, label='マグノン（非結合）')
+    axes[0].axhline(y=omega_c / (2 * np.pi * 1e9), color='orange',
+                    linestyle='--', label='キャビティ（非結合）')
+
+    axes[0].set_xlabel('マグノン周波数 [GHz]', fontsize=12)
+    axes[0].set_ylabel('固有周波数 [GHz]', fontsize=12)
+    axes[0].set_title('マグノン-光子反交差', fontsize=14)
+    axes[0].legend(loc='upper left')
+    axes[0].grid(True, alpha=0.3)
+
+    # ギャップの大きさ
+    gap = eigenfreqs[:, 1] - eigenfreqs[:, 0]
+    min_gap_idx = np.argmin(gap)
+
+    axes[1].plot(omega_m_range / (2 * np.pi * 1e9), gap * 1000,  # MHz
+                 'purple', linewidth=2)
+    axes[1].scatter([omega_m_range[min_gap_idx] / (2 * np.pi * 1e9)],
+                    [gap[min_gap_idx] * 1000], s=100, c='red',
+                    label=f'最小ギャップ: {gap[min_gap_idx]*1000:.1f} MHz')
+
+    axes[1].set_xlabel('マグノン周波数 [GHz]', fontsize=12)
+    axes[1].set_ylabel('モード分裂 [MHz]', fontsize=12)
+    axes[1].set_title('結合強度 2g の測定', fontsize=14)
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('magnon_photon.png', dpi=150)
+    plt.show()
+
+    print(f"=== マグノン-光子結合 ===")
+    print(f"結合強度 g/(2π) = {g/(2*np.pi)/1e6:.1f} MHz")
+    print(f"最小モード分裂 2g/(2π) = {2*g/(2*np.pi)/1e6:.1f} MHz")
+    print(f"強結合条件: g > κ_m, κ_c（減衰率）")
+
+
+def magnon_number_states():
+    """マグノン・フォック状態の可視化"""
+    # マグノン数の確率分布
+
+    n_max = 20
+    n = np.arange(n_max)
+
+    # コヒーレント状態
+    def coherent_state(alpha, n):
+        """コヒーレント状態のフォック成分"""
+        from scipy.special import factorial
+        return np.exp(-np.abs(alpha)**2) * np.abs(alpha)**(2*n) / factorial(n)
+
+    # 熱状態
+    def thermal_state(n_bar, n):
+        """熱状態のフォック成分"""
+        return (n_bar / (1 + n_bar))**n / (1 + n_bar)
+
+    # スクイズド状態
+    def squeezed_state(r, n):
+        """スクイズド状態（近似）"""
+        # 偶数フォック状態のみ
+        from scipy.special import factorial2, factorial
+        if n % 2 == 1:
+            return 0
+        m = n // 2
+        return (np.tanh(r)**n / np.cosh(r) *
+                np.sqrt(factorial(n)) / (2**m * factorial(m)))
+
+    # パラメータ
+    alpha = 3  # コヒーレント振幅
+    n_bar = 5  # 熱マグノン数
+    r = 1.0    # スクイーズパラメータ
+
+    P_coherent = coherent_state(alpha, n)
+    P_thermal = thermal_state(n_bar, n)
+    P_squeezed = np.array([squeezed_state(r, i) for i in n])
+
+    # プロット
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+    # コヒーレント状態
+    axes[0].bar(n, P_coherent, color='blue', alpha=0.7)
+    axes[0].set_xlabel('マグノン数 n', fontsize=12)
+    axes[0].set_ylabel('確率 P(n)', fontsize=12)
+    axes[0].set_title(f'コヒーレント状態 (α = {alpha})', fontsize=14)
+    axes[0].axvline(x=alpha**2, color='red', linestyle='--',
+                    label=f'⟨n⟩ = {alpha**2}')
+    axes[0].legend()
+
+    # 熱状態
+    axes[1].bar(n, P_thermal, color='red', alpha=0.7)
+    axes[1].set_xlabel('マグノン数 n', fontsize=12)
+    axes[1].set_ylabel('確率 P(n)', fontsize=12)
+    axes[1].set_title(f'熱状態 (n̄ = {n_bar})', fontsize=14)
+    axes[1].axvline(x=n_bar, color='blue', linestyle='--',
+                    label=f'⟨n⟩ = {n_bar}')
+    axes[1].legend()
+
+    # スクイズド状態
+    axes[2].bar(n, P_squeezed, color='green', alpha=0.7)
+    axes[2].set_xlabel('マグノン数 n', fontsize=12)
+    axes[2].set_ylabel('確率 P(n)', fontsize=12)
+    axes[2].set_title(f'スクイズド真空 (r = {r})', fontsize=14)
+
+    plt.tight_layout()
+    plt.savefig('magnon_states.png', dpi=150)
+    plt.show()
+
+# 実行
+magnon_photon_coupling()
+magnon_number_states()
+
+print("\n=== 量子マグノニクスの応用 ===")
+print("• 量子トランスデューサー: マイクロ波↔光学変換")
+print("• 量子メモリ: マグノンモードへの量子状態保存")
+print("• 量子センシング: 磁場の量子限界測定")
+print("• エンタングルメント生成: マグノン-光子もつれ")
+</code></pre>
+      </div>
+    </section>
+
+    <section id="outlook">
+      <h2>4.5 将来展望</h2>
+
+      <div class="mermaid">
+        graph TD
+          A[現在のスピントロニクス] --> B[ニューロモルフィック]
+          A --> C[量子スピントロニクス]
+          A --> D[THzデバイス]
+          A --> E[グリーンIT]
+
+          B --> F[脳型コンピュータ]
+          C --> G[量子コンピュータ]
+          D --> H[6G通信]
+          E --> I[超低消費電力デバイス]
+
+          F --> J[汎用人工知能]
+          G --> J
+          H --> K[ユビキタス接続]
+          I --> L[持続可能社会]
+
+          style A fill:#e8f5e9
+          style J fill:#fff3e0
+          style L fill:#e3f2fd
+      </div>
+
+      <div class="concept-box">
+        <h4>今後10年の重要課題</h4>
+        <ul>
+          <li><strong>材料</strong>: 室温で動作する2D磁性体、トポロジカル磁性体</li>
+          <li><strong>デバイス</strong>: 超低消費電力MRAM、スピン論理素子</li>
+          <li><strong>計算</strong>: マルチスケール・シミュレーション、AI活用設計</li>
+          <li><strong>応用</strong>: 量子コンピュータ、ニューロモルフィック・チップ</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="summary">
+      <h2>まとめ</h2>
+      <div class="summary-box">
+        <h4>この章で学んだこと</h4>
+        <ul>
+          <li><strong>ニューロモルフィック</strong>: MTJシナプス、リザバー計算</li>
+          <li><strong>THzスピントロニクス</strong>: 反強磁性共鳴、超高速ダイナミクス</li>
+          <li><strong>スピン・カロリトロニクス</strong>: 熱-スピン変換効果</li>
+          <li><strong>量子マグノニクス</strong>: マグノン-光子結合、量子状態制御</li>
+          <li><strong>将来展望</strong>: 脳型コンピュータ、量子情報処理</li>
+        </ul>
+      </div>
+
+      <div class="concept-box">
+        <h4>シリーズ全体のまとめ</h4>
+        <p>
+          スピントロニクス上級編では、入門・中級で学んだ基礎の上に、
+          最先端の研究トピックを探求しました。マグノニクス、量子スピントロニクス、
+          計算手法、そしてフロンティア応用まで、幅広い視野を持つことで、
+          この分野の将来を切り拓く準備ができたはずです。
+        </p>
+      </div>
+    </section>
+
+    <section class="nav-section">
+      <div class="nav-links">
+        <a href="chapter-3.html" class="nav-link prev">
+          <span class="nav-direction">← 前へ</span>
+          <span class="nav-title">第3章: 計算スピントロニクス</span>
+        </a>
+        <a href="index.html" class="nav-link next">
+          <span class="nav-direction">シリーズ概要 →</span>
+          <span class="nav-title">スピントロニクス上級編</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="chapter-footer">
+    <p>AI寺子屋 材料科学道場 - スピントロニクス上級編 第4章</p>
+  </footer>
+</body>
+</html>

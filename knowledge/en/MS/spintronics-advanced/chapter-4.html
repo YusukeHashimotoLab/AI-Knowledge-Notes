@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 4: Frontier Applications - Advanced Spintronics</title>
+  <link rel="stylesheet" href="../../assets/css/knowledge-base.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'base' });
+  </script>
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <a href="../../index.html">Home</a> &gt;
+    <a href="../index.html">Materials Science</a> &gt;
+    <a href="index.html">Advanced Spintronics</a> &gt;
+    <span>Chapter 4</span>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="chapter-badge">Chapter 4</div>
+    <h1>Frontier Applications</h1>
+    <p class="chapter-description">
+      Explore the cutting-edge frontiers of spintronics: neuromorphic computing, terahertz devices,
+      spin caloritronics, and quantum magnonics. Learn about technologies that will shape the future
+      of information processing and energy conversion.
+    </p>
+    <div class="chapter-meta">
+      <span class="reading-time">70-90 min read</span>
+      <span class="difficulty">Advanced</span>
+    </div>
+  </header>
+
+  <main class="chapter-content">
+    <!-- Section 1: Neuromorphic Computing -->
+    <section class="content-section">
+      <h2>4.1 Spintronic Neuromorphic Computing</h2>
+
+      <p>
+        Spintronic devices offer unique advantages for brain-inspired computing: non-volatility,
+        low power, and intrinsic dynamics that map naturally to neural network operations.
+      </p>
+
+      <h3>Spintronic Synapse</h3>
+      <p>
+        MTJ-based synapses exploit the multilevel resistance states achievable through domain wall
+        motion or gradual magnetization switching to implement synaptic weights.
+      </p>
+
+      <div class="concept-box">
+        <h4>Key Features of Spintronic Synapses</h4>
+        <ul>
+          <li><strong>Non-volatile weight storage</strong>: Retains values without power</li>
+          <li><strong>Analog tunability</strong>: Continuous resistance modulation</li>
+          <li><strong>Fast switching</strong>: ns-scale weight updates</li>
+          <li><strong>Compact integration</strong>: 3D stackable with CMOS</li>
+        </ul>
+      </div>
+
+      <div class="code-example">
+        <h4>Spintronic Synapse Model</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+class SpintronicSynapse:
+    """MTJ-based synapse with domain wall-mediated weight"""
+
+    def __init__(self, R_min, R_max, n_levels=32):
+        """
+        Parameters:
+        -----------
+        R_min : float, minimum resistance (parallel state)
+        R_max : float, maximum resistance (antiparallel state)
+        n_levels : int, number of discrete resistance levels
+        """
+        self.R_min = R_min
+        self.R_max = R_max
+        self.n_levels = n_levels
+        self.level = n_levels // 2  # Start at middle
+        self.TMR = (R_max - R_min) / R_min
+
+    @property
+    def resistance(self):
+        """Current resistance value"""
+        return self.R_min + (self.R_max - self.R_min) * self.level / (self.n_levels - 1)
+
+    @property
+    def weight(self):
+        """Normalized synaptic weight (0 to 1)"""
+        return self.level / (self.n_levels - 1)
+
+    @property
+    def conductance(self):
+        """Conductance for current-based computation"""
+        return 1 / self.resistance
+
+    def potentiate(self, n_pulses=1):
+        """Increase weight (LTP)"""
+        self.level = min(self.level + n_pulses, self.n_levels - 1)
+        return self.weight
+
+    def depress(self, n_pulses=1):
+        """Decrease weight (LTD)"""
+        self.level = max(self.level - n_pulses, 0)
+        return self.weight
+
+    def stdp_update(self, pre_spike_time, post_spike_time, A_plus=0.005, A_minus=0.005, tau=20e-3):
+        """
+        Spike-timing-dependent plasticity update
+
+        Parameters:
+        -----------
+        pre_spike_time : float, pre-synaptic spike time (s)
+        post_spike_time : float, post-synaptic spike time (s)
+        A_plus, A_minus : float, learning rates
+        tau : float, time constant (s)
+        """
+        dt = post_spike_time - pre_spike_time
+
+        if dt > 0:  # Pre before post: potentiation
+            dw = A_plus * np.exp(-dt / tau)
+            n_pulses = max(1, int(dw * self.n_levels))
+            self.potentiate(n_pulses)
+        else:  # Post before pre: depression
+            dw = -A_minus * np.exp(dt / tau)
+            n_pulses = max(1, int(-dw * self.n_levels))
+            self.depress(n_pulses)
+
+        return self.weight
+
+# STDP learning demonstration
+synapse = SpintronicSynapse(R_min=5000, R_max=15000, n_levels=64)
+
+# STDP curve
+dt_range = np.linspace(-50e-3, 50e-3, 100)
+dw_list = []
+
+for dt in dt_range:
+    synapse.level = 32  # Reset to middle
+    w_before = synapse.weight
+    if dt != 0:
+        synapse.stdp_update(0, dt)
+    w_after = synapse.weight
+    dw_list.append(w_after - w_before)
+
+plt.figure(figsize=(10, 5))
+
+plt.subplot(1, 2, 1)
+plt.plot(dt_range * 1000, dw_list)
+plt.axhline(0, color='k', linestyle='--', alpha=0.3)
+plt.axvline(0, color='k', linestyle='--', alpha=0.3)
+plt.xlabel('Δt = t_post - t_pre (ms)')
+plt.ylabel('Weight change Δw')
+plt.title('STDP Learning Rule')
+plt.grid(True, alpha=0.3)
+
+# Weight evolution during learning
+plt.subplot(1, 2, 2)
+synapse = SpintronicSynapse(R_min=5000, R_max=15000, n_levels=64)
+synapse.level = 0  # Start at minimum
+
+weights = [synapse.weight]
+for _ in range(50):
+    synapse.stdp_update(0, 5e-3)  # Consistent pre-before-post
+    weights.append(synapse.weight)
+
+plt.plot(weights, 'b-o', markersize=3)
+plt.xlabel('Update Number')
+plt.ylabel('Synaptic Weight')
+plt.title('Weight Evolution (Potentiation)')
+plt.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print(f"TMR ratio: {synapse.TMR*100:.1f}%")
+print(f"Weight levels: {synapse.n_levels}")</code></pre>
+      </div>
+
+      <h3>Spintronic Neuron</h3>
+      <p>
+        Spintronic neurons leverage magnetization dynamics for spiking behavior.
+        Stochastic MTJs naturally implement integrate-and-fire dynamics.
+      </p>
+
+      <div class="code-example">
+        <h4>Spintronic Integrate-and-Fire Neuron</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+class SpintronicNeuron:
+    """Stochastic MTJ-based integrate-and-fire neuron"""
+
+    def __init__(self, tau_m=10e-3, V_th=1.0, V_reset=0.0, T=300):
+        """
+        Parameters:
+        -----------
+        tau_m : float, membrane time constant (s)
+        V_th : float, threshold voltage
+        V_reset : float, reset voltage after spike
+        T : float, temperature (K)
+        """
+        self.tau_m = tau_m
+        self.V_th = V_th
+        self.V_reset = V_reset
+        self.T = T
+        self.V = V_reset  # Membrane potential
+        self.kB = 1.381e-23
+
+        # Stochasticity from thermal fluctuations
+        self.Delta = 60 * self.kB * T  # Energy barrier (approx)
+
+    def integrate(self, I_input, dt):
+        """
+        Integrate input current
+
+        Parameters:
+        -----------
+        I_input : float, input current
+        dt : float, time step
+
+        Returns:
+        --------
+        spike : bool, whether neuron spiked
+        """
+        # Leaky integration
+        dV = (-self.V / self.tau_m + I_input) * dt
+        self.V += dV
+
+        # Stochastic spiking probability
+        if self.V > 0:
+            # Neel-Brown activation
+            rate = 1e9 * np.exp(-self.Delta * (1 - self.V/self.V_th) / (self.kB * self.T))
+            p_spike = 1 - np.exp(-rate * dt)
+
+            if np.random.random() < p_spike or self.V >= self.V_th:
+                self.V = self.V_reset
+                return True
+
+        return False
+
+    def simulate(self, I_input_trace, dt):
+        """
+        Simulate neuron response to input trace
+
+        Returns:
+        --------
+        V_trace : array, membrane potential over time
+        spikes : array, spike times
+        """
+        V_trace = []
+        spikes = []
+
+        for t, I in enumerate(I_input_trace):
+            if self.integrate(I, dt):
+                spikes.append(t * dt)
+            V_trace.append(self.V)
+
+        return np.array(V_trace), np.array(spikes)
+
+# Simulation
+neuron = SpintronicNeuron(tau_m=10e-3, V_th=1.0)
+
+# Input current with varying intensity
+dt = 0.1e-3  # 0.1 ms
+T_sim = 0.5  # 500 ms
+t = np.arange(0, T_sim, dt)
+
+# Step input
+I_input = np.zeros_like(t)
+I_input[(t > 0.05) & (t < 0.45)] = 1.5
+
+V_trace, spikes = neuron.simulate(I_input, dt)
+
+# Plot
+fig, axes = plt.subplots(3, 1, figsize=(12, 8), sharex=True)
+
+axes[0].plot(t*1000, I_input)
+axes[0].set_ylabel('Input Current (a.u.)')
+axes[0].set_title('Spintronic Neuron Response')
+axes[0].grid(True, alpha=0.3)
+
+axes[1].plot(t*1000, V_trace)
+axes[1].axhline(neuron.V_th, color='r', linestyle='--', label='Threshold')
+axes[1].set_ylabel('Membrane Potential')
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+# Spike raster
+for spike_time in spikes:
+    axes[2].axvline(spike_time*1000, color='k', linewidth=2)
+axes[2].set_ylabel('Spikes')
+axes[2].set_xlabel('Time (ms)')
+axes[2].set_yticks([])
+axes[2].grid(True, alpha=0.3, axis='x')
+
+plt.tight_layout()
+plt.show()
+
+# Firing rate
+if len(spikes) > 1:
+    firing_rate = len(spikes) / (spikes[-1] - spikes[0])
+    print(f"Average firing rate: {firing_rate:.1f} Hz")
+print(f"Number of spikes: {len(spikes)}")</code></pre>
+      </div>
+
+      <h3>Reservoir Computing</h3>
+      <p>
+        Spin-torque oscillator networks exhibit rich nonlinear dynamics suitable for reservoir computing:
+      </p>
+
+      <div class="concept-box">
+        <h4>Reservoir Computing with STOs</h4>
+        <ul>
+          <li>Input signal modulates oscillator injection</li>
+          <li>Coupled oscillator network provides nonlinear transformation</li>
+          <li>Output layer performs linear classification/regression</li>
+          <li>Only output weights require training</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 2: THz Spintronics -->
+    <section class="content-section">
+      <h2>4.2 Terahertz Spintronics</h2>
+
+      <p>
+        The terahertz (THz) frequency range (0.1-10 THz) lies between electronics and photonics.
+        Antiferromagnetic spintronics enables access to these ultrafast timescales.
+      </p>
+
+      <h3>Antiferromagnetic Resonance</h3>
+      <p>
+        Antiferromagnets have resonance frequencies determined by exchange and anisotropy:
+      </p>
+
+      <div class="equation-box">
+        $$f_{\text{AFMR}} = \frac{\gamma}{2\pi}\sqrt{H_E \cdot H_A}$$
+      </div>
+
+      <p>
+        where $H_E$ is the exchange field (~ 100-1000 T) and $H_A$ is the anisotropy field.
+        This yields frequencies in the THz range.
+      </p>
+
+      <div class="code-example">
+        <h4>Antiferromagnetic Resonance Calculation</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def antiferromagnetic_resonance(J, K, S, z, a):
+    """
+    Calculate AFMR frequency
+
+    Parameters:
+    -----------
+    J : float, exchange constant (J)
+    K : float, anisotropy constant (J)
+    S : float, spin magnitude
+    z : int, coordination number
+    a : float, lattice constant (m)
+
+    Returns:
+    --------
+    f_afmr : float, resonance frequency (Hz)
+    """
+    mu_B = 9.274e-24  # Bohr magneton
+    g = 2  # g-factor
+    gamma = g * mu_B / 1.055e-34  # Gyromagnetic ratio
+
+    # Exchange field
+    H_E = z * J * S / (g * mu_B)
+
+    # Anisotropy field
+    H_A = 2 * K * S / (g * mu_B)
+
+    # AFMR frequency
+    omega = gamma * np.sqrt(2 * H_E * H_A + H_A**2)
+    f_afmr = omega / (2 * np.pi)
+
+    return f_afmr, H_E, H_A
+
+# Example materials
+materials = {
+    'NiO': {'J': 1.5e-21, 'K': 1e-23, 'S': 1, 'z': 12, 'a': 4.17e-10},
+    'Cr2O3': {'J': 2e-21, 'K': 5e-24, 'S': 1.5, 'z': 6, 'a': 4.96e-10},
+    'MnF2': {'J': 0.5e-21, 'K': 2e-24, 'S': 2.5, 'z': 2, 'a': 4.87e-10},
+}
+
+print("Antiferromagnetic Resonance Frequencies")
+print("=" * 50)
+
+for name, params in materials.items():
+    f, H_E, H_A = antiferromagnetic_resonance(**params)
+    print(f"\n{name}:")
+    print(f"  Exchange field H_E = {H_E:.1f} T")
+    print(f"  Anisotropy field H_A = {H_A*1e3:.2f} mT")
+    print(f"  AFMR frequency = {f/1e12:.2f} THz")
+
+# Frequency vs exchange constant
+J_range = np.linspace(0.1e-21, 5e-21, 100)
+frequencies = []
+
+for J in J_range:
+    f, _, _ = antiferromagnetic_resonance(J, K=1e-23, S=1, z=12, a=4e-10)
+    frequencies.append(f / 1e12)
+
+plt.figure(figsize=(8, 5))
+plt.plot(J_range * 1e21, frequencies)
+plt.xlabel('Exchange constant J (×10⁻²¹ J)')
+plt.ylabel('AFMR frequency (THz)')
+plt.title('Antiferromagnetic Resonance vs Exchange Strength')
+plt.grid(True, alpha=0.3)
+plt.show()</code></pre>
+      </div>
+
+      <h3>THz Emission from Spintronic Stacks</h3>
+      <p>
+        Femtosecond laser excitation of ferromagnet/heavy-metal bilayers generates THz pulses
+        via the inverse spin Hall effect:
+      </p>
+
+      <div class="equation-box">
+        $$\mathbf{E}_{\text{THz}} \propto \mathbf{J}_s \times \hat{\sigma}$$
+      </div>
+
+      <p>
+        where $\mathbf{J}_s$ is the spin current and $\hat{\sigma}$ is the spin polarization direction.
+      </p>
+
+      <div class="code-example">
+        <h4>THz Emission Simulation</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import hilbert
+
+def thz_emission_simulation(t, tau_pump=50e-15, tau_demag=200e-15, tau_recovery=1e-12):
+    """
+    Simulate THz emission from FM/HM bilayer
+
+    Parameters:
+    -----------
+    t : array, time array (s)
+    tau_pump : float, pump pulse width (s)
+    tau_demag : float, demagnetization time (s)
+    tau_recovery : float, magnetization recovery time (s)
+
+    Returns:
+    --------
+    M_t : array, magnetization dynamics
+    J_s : array, spin current
+    E_thz : array, THz electric field
+    """
+    # Pump pulse (Gaussian)
+    I_pump = np.exp(-(t / tau_pump)**2)
+
+    # Magnetization dynamics (3-temperature model simplified)
+    # Demagnetization followed by recovery
+    M_eq = 1.0
+    M_t = M_eq * (1 - 0.3 * (1 - np.exp(-t / tau_demag)) * np.exp(-t / tau_recovery))
+    M_t[t < 0] = M_eq
+
+    # Spin current proportional to dM/dt
+    J_s = -np.gradient(M_t, t)
+
+    # THz field proportional to dJ_s/dt (far field)
+    E_thz = np.gradient(J_s, t)
+
+    return M_t, J_s, E_thz
+
+# Time array
+t = np.linspace(-0.5e-12, 3e-12, 2000)
+
+# Simulate
+M_t, J_s, E_thz = thz_emission_simulation(t)
+
+# Calculate spectrum
+dt = t[1] - t[0]
+freq = np.fft.fftfreq(len(t), dt)
+spectrum = np.abs(np.fft.fft(E_thz))**2
+
+# Plot
+fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+
+axes[0, 0].plot(t*1e12, M_t)
+axes[0, 0].set_xlabel('Time (ps)')
+axes[0, 0].set_ylabel('Magnetization M/M_s')
+axes[0, 0].set_title('Ultrafast Demagnetization')
+axes[0, 0].grid(True, alpha=0.3)
+
+axes[0, 1].plot(t*1e12, J_s / np.max(np.abs(J_s)))
+axes[0, 1].set_xlabel('Time (ps)')
+axes[0, 1].set_ylabel('Spin Current (norm.)')
+axes[0, 1].set_title('Spin Current Pulse')
+axes[0, 1].grid(True, alpha=0.3)
+
+axes[1, 0].plot(t*1e12, E_thz / np.max(np.abs(E_thz)))
+axes[1, 0].set_xlabel('Time (ps)')
+axes[1, 0].set_ylabel('THz Field (norm.)')
+axes[1, 0].set_title('THz Emission')
+axes[1, 0].grid(True, alpha=0.3)
+axes[1, 0].set_xlim(-0.5, 2)
+
+# Spectrum (positive frequencies only)
+pos_freq = freq > 0
+axes[1, 1].plot(freq[pos_freq]/1e12, spectrum[pos_freq] / np.max(spectrum[pos_freq]))
+axes[1, 1].set_xlabel('Frequency (THz)')
+axes[1, 1].set_ylabel('Spectral Power (norm.)')
+axes[1, 1].set_title('THz Spectrum')
+axes[1, 1].set_xlim(0, 5)
+axes[1, 1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Peak frequency
+peak_idx = np.argmax(spectrum[pos_freq])
+peak_freq = freq[pos_freq][peak_idx]
+print(f"Peak THz frequency: {peak_freq/1e12:.2f} THz")</code></pre>
+      </div>
+
+      <div class="info-box">
+        <h4>Applications of THz Spintronics</h4>
+        <ul>
+          <li>THz spectroscopy sources</li>
+          <li>High-speed wireless communications (6G)</li>
+          <li>Non-destructive testing and imaging</li>
+          <li>Security screening</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 3: Spin Caloritronics -->
+    <section class="content-section">
+      <h2>4.3 Spin Caloritronics</h2>
+
+      <p>
+        Spin caloritronics studies the interplay between heat flow and spin transport,
+        enabling waste heat harvesting and thermal spin manipulation.
+      </p>
+
+      <h3>Spin Seebeck Effect (SSE)</h3>
+      <p>
+        A temperature gradient across a magnetic insulator generates a spin current:
+      </p>
+
+      <div class="equation-box">
+        $$\mathbf{J}_s = -S_S \nabla T$$
+      </div>
+
+      <p>
+        where $S_S$ is the spin Seebeck coefficient. The spin current is detected via the
+        inverse spin Hall effect in an adjacent heavy metal layer.
+      </p>
+
+      <div class="code-example">
+        <h4>Spin Seebeck Effect Modeling</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def spin_seebeck_effect(T_hot, T_cold, L, S_s, theta_SH, rho_N, t_N, w):
+    """
+    Calculate spin Seebeck voltage
+
+    Parameters:
+    -----------
+    T_hot, T_cold : float, temperature at hot/cold end (K)
+    L : float, sample length (m)
+    S_s : float, spin Seebeck coefficient (V/K)
+    theta_SH : float, spin Hall angle
+    rho_N : float, resistivity of heavy metal (Ohm·m)
+    t_N : float, heavy metal thickness (m)
+    w : float, sample width (m)
+
+    Returns:
+    --------
+    V_SSE : float, measured voltage (V)
+    J_s : float, spin current density (A/m²)
+    """
+    # Temperature gradient
+    dT_dx = (T_hot - T_cold) / L
+
+    # Spin current (simplified, interface-dominated)
+    J_s = S_s * dT_dx
+
+    # ISHE voltage
+    # V = (theta_SH * rho_N / t_N) * J_s * w * L
+    V_SSE = theta_SH * rho_N * J_s * w / t_N
+
+    return V_SSE, J_s
+
+# YIG/Pt parameters
+S_s = 1e-7  # Spin Seebeck coefficient (approximate)
+theta_SH = 0.1  # Pt spin Hall angle
+rho_N = 1e-7  # Pt resistivity (Ohm·m)
+t_N = 5e-9  # 5 nm Pt
+L = 5e-3  # 5 mm sample
+w = 2e-3  # 2 mm width
+
+# Temperature difference sweep
+dT_range = np.linspace(0, 50, 100)
+V_list = []
+Js_list = []
+
+T_cold = 300  # Room temperature
+for dT in dT_range:
+    T_hot = T_cold + dT
+    V, Js = spin_seebeck_effect(T_hot, T_cold, L, S_s, theta_SH, rho_N, t_N, w)
+    V_list.append(V * 1e6)  # Convert to μV
+    Js_list.append(Js)
+
+plt.figure(figsize=(10, 5))
+
+plt.subplot(1, 2, 1)
+plt.plot(dT_range, V_list)
+plt.xlabel('Temperature Difference ΔT (K)')
+plt.ylabel('SSE Voltage (μV)')
+plt.title('Spin Seebeck Effect: Voltage vs ΔT')
+plt.grid(True, alpha=0.3)
+
+plt.subplot(1, 2, 2)
+plt.plot(dT_range, np.array(Js_list) * 1e-6)
+plt.xlabel('Temperature Difference ΔT (K)')
+plt.ylabel('Spin Current Density (MA/m²)')
+plt.title('Spin Current vs Temperature Gradient')
+plt.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Calculate thermopower equivalent
+V_at_10K = V_list[20]  # ΔT = 10 K
+thermopower = V_at_10K / 10
+print(f"SSE voltage at ΔT = 10K: {V_at_10K:.2f} μV")
+print(f"Effective thermopower: {thermopower:.3f} μV/K")</code></pre>
+      </div>
+
+      <h3>Spin Peltier Effect</h3>
+      <p>
+        The reciprocal effect: a spin current causes heating or cooling:
+      </p>
+
+      <div class="equation-box">
+        $$\dot{Q} = \Pi_s \cdot J_s$$
+      </div>
+
+      <p>
+        where $\Pi_s$ is the spin Peltier coefficient. This enables spintronic thermal management.
+      </p>
+
+      <div class="concept-box">
+        <h4>Onsager Reciprocity</h4>
+        <p>
+          The spin Seebeck and spin Peltier coefficients are related by:
+        </p>
+        <p>
+          $$\Pi_s = T \cdot S_s$$
+        </p>
+        <p>
+          This is analogous to the Kelvin relation in conventional thermoelectrics.
+        </p>
+      </div>
+
+      <h3>Applications</h3>
+      <div class="two-column">
+        <div class="column">
+          <h4>Energy Harvesting</h4>
+          <ul>
+            <li>Waste heat recovery</li>
+            <li>Distributed temperature sensors</li>
+            <li>Self-powered sensors</li>
+          </ul>
+        </div>
+        <div class="column">
+          <h4>Thermal Management</h4>
+          <ul>
+            <li>Localized cooling</li>
+            <li>Thermal switching</li>
+            <li>Heat flow control</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Quantum Magnonics -->
+    <section class="content-section">
+      <h2>4.4 Quantum Magnonics</h2>
+
+      <p>
+        Quantum magnonics explores the quantum properties of magnons and their coupling
+        to other quantum systems such as photons, phonons, and superconducting qubits.
+      </p>
+
+      <h3>Magnon-Photon Coupling</h3>
+      <p>
+        Strong coupling between magnons and microwave photons in cavities creates hybrid
+        magnon-polariton states:
+      </p>
+
+      <div class="equation-box">
+        $$\hat{H} = \hbar\omega_c \hat{a}^\dagger\hat{a} + \hbar\omega_m \hat{m}^\dagger\hat{m} + \hbar g(\hat{a}^\dagger\hat{m} + \hat{a}\hat{m}^\dagger)$$
+      </div>
+
+      <p>
+        where $\hat{a}$ and $\hat{m}$ are cavity photon and magnon operators, respectively.
+      </p>
+
+      <div class="code-example">
+        <h4>Magnon-Photon Strong Coupling</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def magnon_photon_coupling(omega_c, omega_m_range, g, kappa, gamma_m):
+    """
+    Calculate magnon-photon coupled mode frequencies
+
+    Parameters:
+    -----------
+    omega_c : float, cavity frequency
+    omega_m_range : array, magnon frequency range
+    g : float, coupling strength
+    kappa : float, cavity decay rate
+    gamma_m : float, magnon decay rate
+
+    Returns:
+    --------
+    omega_plus, omega_minus : arrays, polariton frequencies
+    """
+    omega_plus = []
+    omega_minus = []
+
+    for omega_m in omega_m_range:
+        # Coupled mode equation: (omega - omega_c + i*kappa)(omega - omega_m + i*gamma_m) = g^2
+        # Eigenvalues of coupling matrix
+        detuning = omega_m - omega_c
+        avg = (omega_c + omega_m) / 2
+
+        # Discriminant
+        D = np.sqrt((detuning/2)**2 + g**2)
+
+        omega_plus.append(avg + D)
+        omega_minus.append(avg - D)
+
+    return np.array(omega_plus), np.array(omega_minus)
+
+# Parameters (in units of 2π GHz)
+omega_c = 10  # Cavity at 10 GHz
+g = 0.1  # Coupling strength 100 MHz
+kappa = 0.001  # Cavity linewidth 1 MHz
+gamma_m = 0.01  # Magnon linewidth 10 MHz
+
+# Magnon frequency sweep (by varying magnetic field)
+omega_m_range = np.linspace(9, 11, 200)
+
+omega_plus, omega_minus = magnon_photon_coupling(omega_c, omega_m_range, g, kappa, gamma_m)
+
+# Plot
+plt.figure(figsize=(10, 6))
+
+plt.plot(omega_m_range, omega_plus, 'r-', label='Upper polariton', linewidth=2)
+plt.plot(omega_m_range, omega_minus, 'b-', label='Lower polariton', linewidth=2)
+plt.plot(omega_m_range, omega_m_range, 'k--', alpha=0.3, label='Bare magnon')
+plt.axhline(omega_c, color='gray', linestyle='--', alpha=0.3, label='Bare cavity')
+
+# Highlight avoided crossing
+plt.axvline(omega_c, color='green', linestyle=':', alpha=0.5)
+plt.annotate(f'Coupling strength\n2g = {2*g*1000:.0f} MHz',
+             xy=(omega_c, omega_c), xytext=(omega_c + 0.5, omega_c + 0.3),
+             arrowprops=dict(arrowstyle='->', color='green'),
+             fontsize=10)
+
+plt.xlabel('Magnon Frequency (GHz)')
+plt.ylabel('Polariton Frequency (GHz)')
+plt.title('Magnon-Photon Avoided Crossing')
+plt.legend(loc='upper left')
+plt.grid(True, alpha=0.3)
+plt.xlim(9, 11)
+plt.ylim(9, 11)
+plt.show()
+
+# Strong coupling criterion
+cooperativity = g**2 / (kappa * gamma_m)
+print(f"Coupling strength g = {g*1000:.0f} MHz")
+print(f"Cooperativity C = g²/(κγ) = {cooperativity:.1f}")
+print(f"Strong coupling: g > κ, γ → {g > kappa and g > gamma_m}")</code></pre>
+      </div>
+
+      <h3>Quantum States of Magnons</h3>
+      <p>
+        At millikelvin temperatures, magnon number states become resolvable:
+      </p>
+
+      <div class="code-example">
+        <h4>Magnon Fock States</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.special import factorial
+
+def magnon_number_states(n_max, n_bar):
+    """
+    Calculate magnon number state probabilities
+
+    Parameters:
+    -----------
+    n_max : int, maximum magnon number
+    n_bar : float, average magnon number (thermal)
+
+    Returns:
+    --------
+    n : array, magnon numbers
+    P_n : array, probabilities
+    """
+    n = np.arange(n_max + 1)
+
+    # Thermal state (Bose-Einstein)
+    P_n = (n_bar**n) / ((1 + n_bar)**(n + 1))
+
+    return n, P_n
+
+def coherent_state_distribution(n_max, alpha):
+    """Coherent state |α⟩ magnon distribution"""
+    n = np.arange(n_max + 1)
+    n_bar = np.abs(alpha)**2
+
+    # Poisson distribution
+    P_n = np.exp(-n_bar) * (n_bar**n) / factorial(n)
+    return n, P_n
+
+# Compare thermal and coherent states
+n_max = 20
+n_bar = 5  # Average magnon number
+
+n, P_thermal = magnon_number_states(n_max, n_bar)
+_, P_coherent = coherent_state_distribution(n_max, np.sqrt(n_bar))
+
+plt.figure(figsize=(10, 5))
+
+plt.subplot(1, 2, 1)
+plt.bar(n - 0.2, P_thermal, width=0.4, label='Thermal state', alpha=0.7)
+plt.bar(n + 0.2, P_coherent, width=0.4, label='Coherent state', alpha=0.7)
+plt.xlabel('Magnon number n')
+plt.ylabel('Probability P(n)')
+plt.title(f'Magnon Number Distribution (⟨n⟩ = {n_bar})')
+plt.legend()
+plt.grid(True, alpha=0.3, axis='y')
+
+# Temperature dependence
+plt.subplot(1, 2, 2)
+temperatures = [0.01, 0.05, 0.1, 0.5]  # Kelvin
+omega = 10e9 * 2 * np.pi  # 10 GHz magnon
+kB = 1.381e-23
+hbar = 1.055e-34
+
+for T in temperatures:
+    n_bar_T = 1 / (np.exp(hbar * omega / (kB * T)) - 1)
+    n, P = magnon_number_states(n_max, n_bar_T)
+    plt.plot(n, P, 'o-', label=f'T = {T*1000:.0f} mK, ⟨n⟩={n_bar_T:.1f}', markersize=4)
+
+plt.xlabel('Magnon number n')
+plt.ylabel('Probability P(n)')
+plt.title('Temperature Dependence of Magnon Statistics')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.yscale('log')
+plt.ylim(1e-6, 1)
+
+plt.tight_layout()
+plt.show()
+
+# Critical temperature for quantum regime
+T_quantum = hbar * omega / kB
+print(f"Magnon frequency: {omega/(2*np.pi)/1e9:.1f} GHz")
+print(f"Quantum regime: T << ℏω/kB = {T_quantum*1000:.0f} mK")</code></pre>
+      </div>
+
+      <div class="info-box">
+        <h4>Quantum Magnonics Applications</h4>
+        <ul>
+          <li><strong>Quantum transduction</strong>: Converting between microwave and optical frequencies via magnons</li>
+          <li><strong>Quantum memory</strong>: Long-lived magnon modes for quantum state storage</li>
+          <li><strong>Entanglement generation</strong>: Creating magnon-photon or magnon-magnon entanglement</li>
+          <li><strong>Dark matter detection</strong>: Axion-magnon conversion for particle physics</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 5: Future Outlook -->
+    <section class="content-section">
+      <h2>4.5 Future Outlook and Emerging Directions</h2>
+
+      <h3>2D Magnetic Materials</h3>
+      <p>
+        Van der Waals magnets like CrI₃ and Fe₃GeTe₂ enable:
+      </p>
+      <ul>
+        <li>Atomically thin magnetic layers</li>
+        <li>Gate-tunable magnetism</li>
+        <li>Novel heterostructure engineering</li>
+        <li>Enhanced interface effects</li>
+      </ul>
+
+      <h3>Antiferromagnetic Spintronics</h3>
+      <div class="concept-box">
+        <h4>Advantages of Antiferromagnets</h4>
+        <ul>
+          <li>THz-scale dynamics (1000× faster than ferromagnets)</li>
+          <li>No stray fields (higher density integration)</li>
+          <li>Robustness to external fields</li>
+          <li>Abundant materials (most magnetic materials are AFM)</li>
+        </ul>
+      </div>
+
+      <h3>Spin-Orbit Torque Innovation</h3>
+      <p>
+        Beyond heavy metals:
+      </p>
+      <ul>
+        <li>Topological insulators (giant spin Hall angles)</li>
+        <li>Weyl semimetals (non-linear effects)</li>
+        <li>Oxide interfaces (2DEG with strong SOC)</li>
+        <li>Ferroelectric control of SOT</li>
+      </ul>
+
+      <h3>Probabilistic Computing</h3>
+      <p>
+        Stochastic magnetic tunnel junctions for:
+      </p>
+      <ul>
+        <li>True random number generation</li>
+        <li>Boltzmann machines</li>
+        <li>Optimization problems (simulated annealing)</li>
+        <li>Bayesian inference</li>
+      </ul>
+
+      <div class="mermaid">
+        graph TD
+          A[Current Spintronics] --> B[2D Magnets]
+          A --> C[AFM Spintronics]
+          A --> D[Quantum Magnonics]
+          A --> E[Probabilistic Computing]
+
+          B --> F[Ultimate Miniaturization]
+          C --> G[THz Devices]
+          D --> H[Quantum Networks]
+          E --> I[AI Hardware]
+
+          F --> J[Future<br/>Integration]
+          G --> J
+          H --> J
+          I --> J
+
+          style A fill:#e3f2fd
+          style J fill:#fce4ec
+      </div>
+    </section>
+
+    <!-- Summary -->
+    <section class="content-section summary-section">
+      <h2>Chapter Summary</h2>
+
+      <div class="summary-grid">
+        <div class="summary-item">
+          <h4>Neuromorphic</h4>
+          <p>MTJ synapses with STDP learning; stochastic neurons; reservoir computing with STOs</p>
+        </div>
+        <div class="summary-item">
+          <h4>THz Spintronics</h4>
+          <p>Antiferromagnetic resonance in THz range; spintronic THz emitters from ultrafast demagnetization</p>
+        </div>
+        <div class="summary-item">
+          <h4>Spin Caloritronics</h4>
+          <p>Spin Seebeck/Peltier effects for thermal-spin conversion; waste heat harvesting potential</p>
+        </div>
+        <div class="summary-item">
+          <h4>Quantum Magnonics</h4>
+          <p>Strong magnon-photon coupling; quantum states of magnons; transduction and memory applications</p>
+        </div>
+        <div class="summary-item">
+          <h4>Future Directions</h4>
+          <p>2D magnets, AFM spintronics, advanced SOT materials, probabilistic computing</p>
+        </div>
+      </div>
+
+      <div class="key-equations">
+        <h4>Key Equations</h4>
+        <ul>
+          <li>AFMR: $f_{\text{AFMR}} = \frac{\gamma}{2\pi}\sqrt{H_E \cdot H_A}$</li>
+          <li>Spin Seebeck: $\mathbf{J}_s = -S_S \nabla T$</li>
+          <li>Magnon-photon coupling: $H = \hbar\omega_c a^\dagger a + \hbar\omega_m m^\dagger m + \hbar g(a^\dagger m + am^\dagger)$</li>
+          <li>Cooperativity: $C = g^2/(\kappa\gamma_m)$</li>
+          <li>STDP: $\Delta w \propto \exp(-|\Delta t|/\tau)$</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Series Conclusion -->
+    <section class="content-section conclusion-section">
+      <h2>Series Conclusion</h2>
+
+      <p>
+        Congratulations on completing the Advanced Spintronics series! You have explored:
+      </p>
+
+      <ul>
+        <li><strong>Magnonics</strong>: Spin waves as information carriers</li>
+        <li><strong>Quantum Spintronics</strong>: From qubits to topological states</li>
+        <li><strong>Computational Methods</strong>: Multiscale simulation techniques</li>
+        <li><strong>Frontier Applications</strong>: Brain-inspired computing to quantum networks</li>
+      </ul>
+
+      <p>
+        These advanced topics represent the cutting edge of spintronics research. The field continues
+        to evolve rapidly, with new discoveries in materials, phenomena, and applications emerging regularly.
+      </p>
+
+      <div class="info-box">
+        <h4>Next Steps for Researchers</h4>
+        <ul>
+          <li>Choose a focus area matching your interests and expertise</li>
+          <li>Master the relevant simulation tools (mumax³, VAMPIRE, DFT codes)</li>
+          <li>Follow leading journals (Nature Materials, Physical Review B, APL)</li>
+          <li>Engage with the research community (MMM, JEMS conferences)</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Navigation -->
+    <nav class="chapter-navigation">
+      <a href="chapter-3.html" class="nav-button prev">
+        <span class="arrow">←</span>
+        <span class="nav-text">
+          <span class="label">Previous Chapter</span>
+          <span class="title">Computational Spintronics</span>
+        </span>
+      </a>
+      <a href="index.html" class="nav-button next">
+        <span class="nav-text">
+          <span class="label">Series Index</span>
+          <span class="title">Advanced Spintronics</span>
+        </span>
+        <span class="arrow">→</span>
+      </a>
+    </nav>
+  </main>
+
+  <footer class="chapter-footer">
+    <p>AI Terakoya Materials Science Dojo - Advanced Spintronics Chapter 4</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第2章: 量子スピントロニクス - スピントロニクス上級編</title>
+  <link rel="stylesheet" href="../../assets/css/knowledge-base.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'base' });
+  </script>
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <a href="../../index.html">ホーム</a> &gt;
+    <a href="../index.html">材料科学</a> &gt;
+    <a href="index.html">スピントロニクス上級編</a> &gt;
+    <span>第2章</span>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="chapter-badge">第2章</div>
+    <h1>量子スピントロニクス</h1>
+    <p class="chapter-description">
+      スピン量子ビット、量子コヒーレンス、スピン-光子結合など、
+      量子情報処理への応用を見据えたスピントロニクスの最前線を探求します。
+    </p>
+    <div class="chapter-meta">
+      <span class="reading-time">70-85分</span>
+      <span class="difficulty">上級</span>
+    </div>
+  </header>
+
+  <main class="chapter-content">
+    <section id="introduction">
+      <h2>2.1 量子スピントロニクスの基礎</h2>
+      <p>
+        <strong>量子スピントロニクス</strong>は、個々のスピンの量子力学的性質を
+        情報処理に活用する研究分野です。量子ビットとしてのスピン、
+        量子もつれ、量子誤り訂正など、量子コンピューティングの基盤技術を提供します。
+      </p>
+
+      <div class="concept-box">
+        <h4>なぜスピンを量子ビットに？</h4>
+        <ul>
+          <li><strong>自然な2準位系</strong>: スピン1/2は本来的に2準位</li>
+          <li><strong>長いコヒーレンス時間</strong>: 電荷よりデコヒーレンスに強い</li>
+          <li><strong>磁場制御</strong>: 外部磁場で容易に操作可能</li>
+          <li><strong>電気的読み出し</strong>: スピン-電荷変換で検出可能</li>
+        </ul>
+      </div>
+
+      <h3>スピン量子ビットの状態</h3>
+      <div class="equation-box">
+        <h4>一般的なスピン量子ビット状態</h4>
+        <p>$$|\psi\rangle = \alpha|\uparrow\rangle + \beta|\downarrow\rangle = \cos\frac{\theta}{2}|\uparrow\rangle + e^{i\phi}\sin\frac{\theta}{2}|\downarrow\rangle$$</p>
+        <p>ブロッホ球面上の点として表現: $(\theta, \phi)$</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">ブロッホ球面の可視化</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+def bloch_sphere_visualization():
+    """
+    スピン量子ビットのブロッホ球面表現
+    """
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # 球面の描画
+    u = np.linspace(0, 2 * np.pi, 100)
+    v = np.linspace(0, np.pi, 50)
+    x = np.outer(np.cos(u), np.sin(v))
+    y = np.outer(np.sin(u), np.sin(v))
+    z = np.outer(np.ones(np.size(u)), np.cos(v))
+    ax.plot_surface(x, y, z, alpha=0.1, color='blue')
+
+    # 座標軸
+    ax.quiver(0, 0, 0, 1.3, 0, 0, color='gray', arrow_length_ratio=0.1)
+    ax.quiver(0, 0, 0, 0, 1.3, 0, color='gray', arrow_length_ratio=0.1)
+    ax.quiver(0, 0, 0, 0, 0, 1.3, color='gray', arrow_length_ratio=0.1)
+    ax.text(1.4, 0, 0, 'X', fontsize=12)
+    ax.text(0, 1.4, 0, 'Y', fontsize=12)
+    ax.text(0, 0, 1.4, 'Z (|↑⟩)', fontsize=12)
+    ax.text(0, 0, -1.3, '|↓⟩', fontsize=12)
+
+    # 特定の量子状態をプロット
+    states = {
+        '|↑⟩': (0, 0),
+        '|↓⟩': (np.pi, 0),
+        '|+⟩': (np.pi/2, 0),
+        '|-⟩': (np.pi/2, np.pi),
+        '|+i⟩': (np.pi/2, np.pi/2),
+        '|-i⟩': (np.pi/2, -np.pi/2),
+    }
+
+    colors = ['red', 'blue', 'green', 'purple', 'orange', 'cyan']
+
+    for (name, (theta, phi)), color in zip(states.items(), colors):
+        x = np.sin(theta) * np.cos(phi)
+        y = np.sin(theta) * np.sin(phi)
+        z = np.cos(theta)
+        ax.scatter([x], [y], [z], s=100, c=color, label=name)
+        ax.quiver(0, 0, 0, x, y, z, color=color, arrow_length_ratio=0.1)
+
+    ax.set_xlim([-1.5, 1.5])
+    ax.set_ylim([-1.5, 1.5])
+    ax.set_zlim([-1.5, 1.5])
+    ax.set_box_aspect([1, 1, 1])
+    ax.legend(loc='upper left')
+    ax.set_title('スピン量子ビットのブロッホ球面', fontsize=14)
+
+    plt.tight_layout()
+    plt.savefig('bloch_sphere.png', dpi=150)
+    plt.show()
+
+def quantum_state_evolution(theta0, phi0, omega_L, T2, t_max):
+    """
+    スピン状態の時間発展（ラーモア歳差運動 + デコヒーレンス）
+
+    Parameters:
+    -----------
+    theta0, phi0 : float
+        初期状態のブロッホ角
+    omega_L : float
+        ラーモア周波数 [rad/s]
+    T2 : float
+        横緩和時間 [s]
+    t_max : float
+        シミュレーション時間 [s]
+    """
+    t = np.linspace(0, t_max, 1000)
+
+    # 歳差運動
+    phi = phi0 + omega_L * t
+
+    # デコヒーレンスによる減衰
+    r = np.sin(theta0) * np.exp(-t / T2)
+
+    # ブロッホ・ベクトル成分
+    x = r * np.cos(phi)
+    y = r * np.sin(phi)
+    z = np.cos(theta0) * np.ones_like(t)
+
+    return t, x, y, z
+
+# 実行
+bloch_sphere_visualization()
+
+# 時間発展の例
+theta0 = np.pi / 2  # 赤道上
+phi0 = 0
+omega_L = 2 * np.pi * 1e9  # 1 GHz
+T2 = 10e-6  # 10 μs
+
+t, x, y, z = quantum_state_evolution(theta0, phi0, omega_L, T2, 50e-6)
+
+plt.figure(figsize=(12, 4))
+plt.subplot(131)
+plt.plot(t * 1e6, x, 'b-')
+plt.xlabel('時間 [μs]')
+plt.ylabel('$\\langle X \\rangle$')
+plt.title('X成分')
+plt.grid(True, alpha=0.3)
+
+plt.subplot(132)
+plt.plot(t * 1e6, y, 'r-')
+plt.xlabel('時間 [μs]')
+plt.ylabel('$\\langle Y \\rangle$')
+plt.title('Y成分')
+plt.grid(True, alpha=0.3)
+
+plt.subplot(133)
+plt.plot(t * 1e6, z, 'g-')
+plt.xlabel('時間 [μs]')
+plt.ylabel('$\\langle Z \\rangle$')
+plt.title('Z成分')
+plt.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('spin_evolution.png', dpi=150)
+plt.show()
+</code></pre>
+      </div>
+    </section>
+
+    <section id="decoherence">
+      <h2>2.2 量子コヒーレンスと緩和</h2>
+      <p>
+        量子情報処理において最も重要な課題は、<strong>デコヒーレンス</strong>
+        （量子コヒーレンスの喪失）を抑制することです。
+      </p>
+
+      <h3>緩和時間</h3>
+      <div class="equation-box">
+        <h4>T1緩和（縦緩和、エネルギー緩和）</h4>
+        <p>$$\frac{d\langle S_z \rangle}{dt} = -\frac{\langle S_z \rangle - S_z^{eq}}{T_1}$$</p>
+        <p>エネルギー準位間の遷移によるポピュレーション緩和</p>
+      </div>
+
+      <div class="equation-box">
+        <h4>T2緩和（横緩和、位相緩和）</h4>
+        <p>$$\frac{d\langle S_+ \rangle}{dt} = -\frac{\langle S_+ \rangle}{T_2}$$</p>
+        <p>$\frac{1}{T_2} = \frac{1}{2T_1} + \frac{1}{T_\phi}$</p>
+        <p>$T_\phi$: 純粋位相緩和時間（デファレンス）</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">スピン緩和のシミュレーション</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import solve_ivp
+
+def bloch_equations(t, rho, T1, T2, omega_0, omega_1, omega_rf):
+    """
+    ブロッホ方程式（回転座標系）
+
+    Parameters:
+    -----------
+    rho : array
+        [rho_x, rho_y, rho_z] ブロッホ・ベクトル成分
+    T1, T2 : float
+        緩和時間
+    omega_0 : float
+        ラーモア周波数
+    omega_1 : float
+        RF場の強度（ラビ周波数）
+    omega_rf : float
+        RF場の周波数
+    """
+    rx, ry, rz = rho
+
+    # デチューニング
+    delta = omega_0 - omega_rf
+
+    # ブロッホ方程式
+    drx_dt = delta * ry - rx / T2
+    dry_dt = -delta * rx + omega_1 * rz - ry / T2
+    drz_dt = -omega_1 * ry - (rz - 1) / T1  # 熱平衡は rz = 1
+
+    return [drx_dt, dry_dt, drz_dt]
+
+def simulate_rabi_oscillation():
+    """ラビ振動のシミュレーション"""
+    T1 = 100e-6  # 100 μs
+    T2 = 50e-6   # 50 μs
+    omega_0 = 2 * np.pi * 10e9  # 10 GHz
+    omega_rf = omega_0  # 共鳴条件
+    omega_1 = 2 * np.pi * 10e6  # 10 MHz ラビ周波数
+
+    # 初期条件: |↑⟩状態
+    rho0 = [0, 0, 1]
+
+    t_span = (0, 500e-9)
+    t_eval = np.linspace(0, 500e-9, 1000)
+
+    sol = solve_ivp(bloch_equations, t_span, rho0, t_eval=t_eval,
+                    args=(T1, T2, omega_0, omega_1, omega_rf))
+
+    return sol.t, sol.y
+
+def simulate_T2_decay():
+    """自由誘導減衰（FID）のシミュレーション"""
+    T1 = 100e-6
+    T2 = 50e-6
+    omega_0 = 2 * np.pi * 10e9
+    omega_rf = omega_0 + 2 * np.pi * 1e6  # 1 MHz オフセット
+    omega_1 = 0  # RF オフ
+
+    # 初期条件: 赤道面上
+    rho0 = [1, 0, 0]
+
+    t_span = (0, 200e-6)
+    t_eval = np.linspace(0, 200e-6, 1000)
+
+    sol = solve_ivp(bloch_equations, t_span, rho0, t_eval=t_eval,
+                    args=(T1, T2, omega_0, omega_1, omega_rf))
+
+    return sol.t, sol.y
+
+# ラビ振動
+t_rabi, rho_rabi = simulate_rabi_oscillation()
+
+# FID
+t_fid, rho_fid = simulate_T2_decay()
+
+# プロット
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# ラビ振動
+axes[0, 0].plot(t_rabi * 1e9, rho_rabi[2], 'b-', linewidth=2)
+axes[0, 0].set_xlabel('時間 [ns]', fontsize=12)
+axes[0, 0].set_ylabel('$\\langle S_z \\rangle$', fontsize=12)
+axes[0, 0].set_title('ラビ振動', fontsize=14)
+axes[0, 0].grid(True, alpha=0.3)
+axes[0, 0].axhline(y=0, color='gray', linestyle='--')
+
+axes[0, 1].plot(t_rabi * 1e9, np.sqrt(rho_rabi[0]**2 + rho_rabi[1]**2),
+                'r-', linewidth=2)
+axes[0, 1].set_xlabel('時間 [ns]', fontsize=12)
+axes[0, 1].set_ylabel('$\\sqrt{\\langle S_x \\rangle^2 + \\langle S_y \\rangle^2}$', fontsize=12)
+axes[0, 1].set_title('横成分の振幅', fontsize=14)
+axes[0, 1].grid(True, alpha=0.3)
+
+# FID
+axes[1, 0].plot(t_fid * 1e6, rho_fid[0], 'b-', linewidth=2, label='X')
+axes[1, 0].plot(t_fid * 1e6, rho_fid[1], 'r-', linewidth=2, label='Y')
+axes[1, 0].set_xlabel('時間 [μs]', fontsize=12)
+axes[1, 0].set_ylabel('横成分', fontsize=12)
+axes[1, 0].set_title('自由誘導減衰（FID）', fontsize=14)
+axes[1, 0].legend()
+axes[1, 0].grid(True, alpha=0.3)
+
+# エンベロープ
+envelope = np.sqrt(rho_fid[0]**2 + rho_fid[1]**2)
+axes[1, 1].semilogy(t_fid * 1e6, envelope, 'g-', linewidth=2)
+axes[1, 1].semilogy(t_fid * 1e6, np.exp(-t_fid / 50e-6), 'k--',
+                    linewidth=2, label='$e^{-t/T_2}$')
+axes[1, 1].set_xlabel('時間 [μs]', fontsize=12)
+axes[1, 1].set_ylabel('横成分振幅', fontsize=12)
+axes[1, 1].set_title('T₂緩和', fontsize=14)
+axes[1, 1].legend()
+axes[1, 1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('spin_relaxation.png', dpi=150)
+plt.show()
+
+print("=== 緩和時間の物理的意味 ===")
+print(f"T1 (縦緩和): エネルギー散逸、スピン-格子緩和")
+print(f"T2 (横緩和): 位相のランダム化、コヒーレンス喪失")
+print(f"T2* (不均一緩和): 磁場不均一性による見かけの緩和")
+</code></pre>
+      </div>
+
+      <h3>デコヒーレンス源</h3>
+      <div class="mermaid">
+        graph TD
+          A[デコヒーレンス源] --> B[スピン-格子相互作用]
+          A --> C[スピン-スピン相互作用]
+          A --> D[磁場揺らぎ]
+          A --> E[核スピン浴]
+
+          B --> B1[T1緩和]
+          C --> C1[T2緩和]
+          D --> D1[位相揺らぎ]
+          E --> E1[核スピンによるデファレンス]
+
+          style A fill:#ffcdd2
+          style B1 fill:#e3f2fd
+          style C1 fill:#e3f2fd
+          style D1 fill:#e3f2fd
+          style E1 fill:#e3f2fd
+      </div>
+    </section>
+
+    <section id="spin-qubits">
+      <h2>2.3 スピン量子ビットの実装</h2>
+
+      <h3>半導体量子ドットスピン量子ビット</h3>
+      <p>
+        シリコンやGaAs量子ドット中の電子スピンは、有望な量子ビット候補です。
+      </p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">量子ドットスピン量子ビットのモデル</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+from scipy.linalg import expm
+import matplotlib.pyplot as plt
+
+class SpinQubit:
+    """
+    単一電子スピン量子ビットのシミュレーション
+    """
+    def __init__(self, g_factor=2.0, B_field=1.0):
+        """
+        Parameters:
+        -----------
+        g_factor : float
+            g因子
+        B_field : float
+            静磁場 [T]
+        """
+        self.g = g_factor
+        self.B = B_field
+        self.mu_B = 9.274e-24  # ボーア磁子 [J/T]
+        self.hbar = 1.054e-34
+
+        # ラーモア周波数
+        self.omega_L = self.g * self.mu_B * self.B / self.hbar
+
+        # パウリ行列
+        self.sigma_x = np.array([[0, 1], [1, 0]], dtype=complex)
+        self.sigma_y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+        self.sigma_z = np.array([[1, 0], [0, -1]], dtype=complex)
+
+        # 初期状態 |↑⟩
+        self.state = np.array([1, 0], dtype=complex)
+
+    def hamiltonian(self, omega_1=0, phi=0):
+        """
+        ハミルトニアン（回転座標系）
+
+        Parameters:
+        -----------
+        omega_1 : float
+            ラビ周波数（RF駆動強度）
+        phi : float
+            RF位相
+        """
+        H = (self.hbar / 2) * (
+            omega_1 * (np.cos(phi) * self.sigma_x + np.sin(phi) * self.sigma_y)
+        )
+        return H
+
+    def apply_gate(self, gate_type, angle=np.pi, phi=0):
+        """
+        量子ゲートの適用
+
+        Parameters:
+        -----------
+        gate_type : str
+            'X', 'Y', 'Z', 'H' (Hadamard), 'Rx', 'Ry', 'Rz'
+        angle : float
+            回転角（Rx, Ry, Rzの場合）
+        """
+        if gate_type == 'X':
+            U = self.sigma_x
+        elif gate_type == 'Y':
+            U = self.sigma_y
+        elif gate_type == 'Z':
+            U = self.sigma_z
+        elif gate_type == 'H':
+            U = (self.sigma_x + self.sigma_z) / np.sqrt(2)
+        elif gate_type == 'Rx':
+            U = expm(-1j * angle / 2 * self.sigma_x)
+        elif gate_type == 'Ry':
+            U = expm(-1j * angle / 2 * self.sigma_y)
+        elif gate_type == 'Rz':
+            U = expm(-1j * angle / 2 * self.sigma_z)
+        else:
+            raise ValueError(f"Unknown gate: {gate_type}")
+
+        self.state = U @ self.state
+
+    def measure_expectation(self, observable):
+        """期待値の計算"""
+        if observable == 'X':
+            op = self.sigma_x
+        elif observable == 'Y':
+            op = self.sigma_y
+        elif observable == 'Z':
+            op = self.sigma_z
+        else:
+            op = observable
+
+        return np.real(np.conj(self.state) @ op @ self.state)
+
+    def get_bloch_vector(self):
+        """ブロッホ・ベクトルの取得"""
+        x = self.measure_expectation('X')
+        y = self.measure_expectation('Y')
+        z = self.measure_expectation('Z')
+        return np.array([x, y, z])
+
+    def reset(self):
+        """初期状態にリセット"""
+        self.state = np.array([1, 0], dtype=complex)
+
+
+def demonstrate_quantum_gates():
+    """量子ゲートのデモンストレーション"""
+    qubit = SpinQubit()
+
+    gates_sequence = ['H', 'Rx', 'Ry', 'Z', 'H']
+    angles = [0, np.pi/4, np.pi/4, 0, 0]
+
+    trajectory = [qubit.get_bloch_vector()]
+    labels = ['初期 |↑⟩']
+
+    for gate, angle in zip(gates_sequence, angles):
+        if gate in ['Rx', 'Ry', 'Rz']:
+            qubit.apply_gate(gate, angle)
+        else:
+            qubit.apply_gate(gate)
+        trajectory.append(qubit.get_bloch_vector())
+        labels.append(f'{gate}後')
+
+    trajectory = np.array(trajectory)
+
+    # 3Dプロット
+    fig = plt.figure(figsize=(12, 5))
+
+    # ブロッホ球面上の軌跡
+    ax1 = fig.add_subplot(121, projection='3d')
+
+    # 球面
+    u = np.linspace(0, 2 * np.pi, 50)
+    v = np.linspace(0, np.pi, 25)
+    x = np.outer(np.cos(u), np.sin(v))
+    y = np.outer(np.sin(u), np.sin(v))
+    z = np.outer(np.ones(np.size(u)), np.cos(v))
+    ax1.plot_surface(x, y, z, alpha=0.1, color='blue')
+
+    # 軌跡
+    ax1.plot(trajectory[:, 0], trajectory[:, 1], trajectory[:, 2],
+             'ro-', markersize=8, linewidth=2)
+
+    for i, label in enumerate(labels):
+        ax1.text(trajectory[i, 0] + 0.1, trajectory[i, 1],
+                 trajectory[i, 2], label, fontsize=8)
+
+    ax1.set_xlabel('X')
+    ax1.set_ylabel('Y')
+    ax1.set_zlabel('Z')
+    ax1.set_title('量子ゲート適用の軌跡', fontsize=14)
+
+    # ブロッホ成分の変化
+    ax2 = fig.add_subplot(122)
+    x_pos = np.arange(len(labels))
+    width = 0.25
+
+    ax2.bar(x_pos - width, trajectory[:, 0], width, label='X', color='blue')
+    ax2.bar(x_pos, trajectory[:, 1], width, label='Y', color='red')
+    ax2.bar(x_pos + width, trajectory[:, 2], width, label='Z', color='green')
+
+    ax2.set_xticks(x_pos)
+    ax2.set_xticklabels(labels, rotation=45, ha='right')
+    ax2.set_ylabel('期待値', fontsize=12)
+    ax2.set_title('各ゲート後のブロッホ成分', fontsize=14)
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('quantum_gates.png', dpi=150)
+    plt.show()
+
+# 実行
+demonstrate_quantum_gates()
+
+# 量子ビットプラットフォームの比較
+print("\n=== スピン量子ビットプラットフォーム ===")
+print("| プラットフォーム | T1 | T2 | 操作時間 |")
+print("|-----------------|-----|-----|---------|")
+print("| Si量子ドット     | ~1s | ~1ms| ~1ns    |")
+print("| NVセンター       | ~1ms| ~1ms| ~10ns   |")
+print("| 超伝導量子ビット | ~100μs| ~100μs| ~10ns|")
+</code></pre>
+      </div>
+
+      <h3>NVセンター量子ビット</h3>
+      <p>
+        ダイヤモンド中の窒素-空孔（NV）センターは、室温で動作可能なスピン量子ビットとして注目されています。
+      </p>
+
+      <div class="equation-box">
+        <h4>NVセンターのスピンハミルトニアン</h4>
+        <p>$$H = D S_z^2 + g\mu_B \mathbf{B} \cdot \mathbf{S} + A_{||} S_z I_z + A_\perp (S_x I_x + S_y I_y)$$</p>
+        <p>$D \approx 2.87$ GHz: ゼロ磁場分裂、$A$: 超微細結合</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">NVセンターのエネルギー準位</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.linalg import eigh
+
+def nv_center_hamiltonian(B_z, B_x=0):
+    """
+    NVセンターの基底状態スピンハミルトニアン
+
+    Parameters:
+    -----------
+    B_z : float
+        z方向磁場 [T]
+    B_x : float
+        x方向磁場 [T]
+
+    Returns:
+    --------
+    H : array
+        3x3 ハミルトニアン [GHz]
+    """
+    D = 2.87  # ゼロ磁場分裂 [GHz]
+    g = 2.003  # g因子
+    mu_B = 9.274e-24  # ボーア磁子 [J/T]
+    h = 6.626e-34  # プランク定数
+
+    # ジャイロ磁気比 [GHz/T]
+    gamma = g * mu_B / h * 1e-9
+
+    # S=1 スピン演算子
+    Sz = np.array([[1, 0, 0], [0, 0, 0], [0, 0, -1]], dtype=complex)
+    Sx = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]], dtype=complex) / np.sqrt(2)
+    Sy = np.array([[0, -1j, 0], [1j, 0, -1j], [0, 1j, 0]], dtype=complex) / np.sqrt(2)
+
+    # ハミルトニアン
+    H = D * Sz @ Sz + gamma * (B_z * Sz + B_x * Sx)
+
+    return H
+
+def calculate_energy_levels(B_range):
+    """磁場依存性の計算"""
+    energies = []
+
+    for B in B_range:
+        H = nv_center_hamiltonian(B)
+        evals, _ = eigh(H)
+        energies.append(np.sort(np.real(evals)))
+
+    return np.array(energies)
+
+# 磁場範囲
+B_range = np.linspace(-0.1, 0.1, 200)  # -100 mT to 100 mT
+
+# エネルギー準位の計算
+energies = calculate_energy_levels(B_range)
+
+# プロット
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# エネルギー準位
+axes[0].plot(B_range * 1000, energies[:, 0], 'b-', linewidth=2, label='$|m_s=-1\\rangle$')
+axes[0].plot(B_range * 1000, energies[:, 1], 'g-', linewidth=2, label='$|m_s=0\\rangle$')
+axes[0].plot(B_range * 1000, energies[:, 2], 'r-', linewidth=2, label='$|m_s=+1\\rangle$')
+axes[0].set_xlabel('磁場 $B_z$ [mT]', fontsize=12)
+axes[0].set_ylabel('エネルギー [GHz]', fontsize=12)
+axes[0].set_title('NVセンターのエネルギー準位', fontsize=14)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+axes[0].axhline(y=0, color='gray', linestyle='--')
+
+# 遷移周波数
+trans_01 = energies[:, 1] - energies[:, 0]  # |0⟩ ↔ |-1⟩
+trans_02 = energies[:, 2] - energies[:, 1]  # |0⟩ ↔ |+1⟩
+
+axes[1].plot(B_range * 1000, trans_01, 'b-', linewidth=2, label='$|0\\rangle \\leftrightarrow |-1\\rangle$')
+axes[1].plot(B_range * 1000, trans_02, 'r-', linewidth=2, label='$|0\\rangle \\leftrightarrow |+1\\rangle$')
+axes[1].set_xlabel('磁場 $B_z$ [mT]', fontsize=12)
+axes[1].set_ylabel('遷移周波数 [GHz]', fontsize=12)
+axes[1].set_title('NVセンターの磁気共鳴周波数', fontsize=14)
+axes[1].axhline(y=2.87, color='gray', linestyle='--', label='ゼロ磁場分裂 D')
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('nv_center_levels.png', dpi=150)
+plt.show()
+
+print("=== NVセンターの特徴 ===")
+print(f"ゼロ磁場分裂: D = 2.87 GHz")
+print(f"室温でのT2: ~1 ms（同位体精製ダイヤモンドで~1 s）")
+print(f"光学的初期化・読み出しが可能")
+print(f"ナノスケール磁場センシングに応用")
+</code></pre>
+      </div>
+    </section>
+
+    <section id="entanglement">
+      <h2>2.4 スピンもつれ</h2>
+      <p>
+        量子もつれ（エンタングルメント）は量子情報処理の核心的リソースです。
+        スピン間のもつれ生成と検証について学びます。
+      </p>
+
+      <h3>ベル状態</h3>
+      <div class="equation-box">
+        <h4>4つのベル状態</h4>
+        <p>$$|\Phi^+\rangle = \frac{1}{\sqrt{2}}(|\uparrow\uparrow\rangle + |\downarrow\downarrow\rangle)$$</p>
+        <p>$$|\Phi^-\rangle = \frac{1}{\sqrt{2}}(|\uparrow\uparrow\rangle - |\downarrow\downarrow\rangle)$$</p>
+        <p>$$|\Psi^+\rangle = \frac{1}{\sqrt{2}}(|\uparrow\downarrow\rangle + |\downarrow\uparrow\rangle)$$</p>
+        <p>$$|\Psi^-\rangle = \frac{1}{\sqrt{2}}(|\uparrow\downarrow\rangle - |\downarrow\uparrow\rangle)$$</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">スピンもつれの生成と測定</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+from scipy.linalg import expm
+import matplotlib.pyplot as plt
+
+class TwoQubitSystem:
+    """2スピン量子ビット系のシミュレーション"""
+
+    def __init__(self):
+        # 基底状態
+        self.up = np.array([1, 0], dtype=complex)
+        self.down = np.array([0, 1], dtype=complex)
+
+        # 2量子ビット基底
+        self.uu = np.kron(self.up, self.up)     # |↑↑⟩
+        self.ud = np.kron(self.up, self.down)   # |↑↓⟩
+        self.du = np.kron(self.down, self.up)   # |↓↑⟩
+        self.dd = np.kron(self.down, self.down) # |↓↓⟩
+
+        # パウリ行列
+        self.I = np.eye(2, dtype=complex)
+        self.X = np.array([[0, 1], [1, 0]], dtype=complex)
+        self.Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+        self.Z = np.array([[1, 0], [0, -1]], dtype=complex)
+
+        # 初期状態: |↑↑⟩
+        self.state = self.uu.copy()
+
+    def create_bell_state(self, bell_type='Phi+'):
+        """ベル状態の生成"""
+        if bell_type == 'Phi+':
+            self.state = (self.uu + self.dd) / np.sqrt(2)
+        elif bell_type == 'Phi-':
+            self.state = (self.uu - self.dd) / np.sqrt(2)
+        elif bell_type == 'Psi+':
+            self.state = (self.ud + self.du) / np.sqrt(2)
+        elif bell_type == 'Psi-':
+            self.state = (self.ud - self.du) / np.sqrt(2)
+
+    def apply_two_qubit_gate(self, gate_type):
+        """2量子ビットゲート"""
+        if gate_type == 'CNOT':
+            # 制御NOT
+            U = np.array([
+                [1, 0, 0, 0],
+                [0, 1, 0, 0],
+                [0, 0, 0, 1],
+                [0, 0, 1, 0]
+            ], dtype=complex)
+        elif gate_type == 'SWAP':
+            U = np.array([
+                [1, 0, 0, 0],
+                [0, 0, 1, 0],
+                [0, 1, 0, 0],
+                [0, 0, 0, 1]
+            ], dtype=complex)
+        elif gate_type == 'iSWAP':
+            U = np.array([
+                [1, 0, 0, 0],
+                [0, 0, 1j, 0],
+                [0, 1j, 0, 0],
+                [0, 0, 0, 1]
+            ], dtype=complex)
+        else:
+            raise ValueError(f"Unknown gate: {gate_type}")
+
+        self.state = U @ self.state
+
+    def apply_single_qubit_gate(self, gate, qubit):
+        """単一量子ビットゲート"""
+        if qubit == 0:
+            U = np.kron(gate, self.I)
+        else:
+            U = np.kron(self.I, gate)
+        self.state = U @ self.state
+
+    def exchange_interaction(self, J, t):
+        """
+        交換相互作用による時間発展
+
+        H = J * (S1 · S2) = J/4 * (σx⊗σx + σy⊗σy + σz⊗σz)
+        """
+        H = J / 4 * (
+            np.kron(self.X, self.X) +
+            np.kron(self.Y, self.Y) +
+            np.kron(self.Z, self.Z)
+        )
+        U = expm(-1j * H * t)
+        self.state = U @ self.state
+
+    def calculate_concurrence(self):
+        """
+        コンカレンス（もつれ度の指標）の計算
+        """
+        # 密度行列
+        rho = np.outer(self.state, np.conj(self.state))
+
+        # スピンフリップ演算子
+        sigma_y = np.kron(self.Y, self.Y)
+
+        # R行列
+        rho_tilde = sigma_y @ np.conj(rho) @ sigma_y
+        R = rho @ rho_tilde
+
+        # 固有値
+        eigenvalues = np.sqrt(np.abs(np.linalg.eigvals(R)))
+        eigenvalues = np.sort(eigenvalues)[::-1]
+
+        # コンカレンス
+        C = max(0, eigenvalues[0] - eigenvalues[1] -
+                eigenvalues[2] - eigenvalues[3])
+
+        return C
+
+    def measure_correlation(self, theta1, theta2, phi1=0, phi2=0):
+        """
+        スピン相関関数の測定
+
+        Parameters:
+        -----------
+        theta1, theta2 : float
+            測定軸の極角
+        phi1, phi2 : float
+            測定軸の方位角
+        """
+        # 測定演算子
+        n1 = np.array([
+            np.sin(theta1) * np.cos(phi1),
+            np.sin(theta1) * np.sin(phi1),
+            np.cos(theta1)
+        ])
+        n2 = np.array([
+            np.sin(theta2) * np.cos(phi2),
+            np.sin(theta2) * np.sin(phi2),
+            np.cos(theta2)
+        ])
+
+        sigma_n1 = n1[0] * self.X + n1[1] * self.Y + n1[2] * self.Z
+        sigma_n2 = n2[0] * self.X + n2[1] * self.Y + n2[2] * self.Z
+
+        # 相関演算子
+        corr_op = np.kron(sigma_n1, sigma_n2)
+
+        # 期待値
+        correlation = np.real(np.conj(self.state) @ corr_op @ self.state)
+
+        return correlation
+
+
+def demonstrate_entanglement():
+    """もつれ生成のデモ"""
+    system = TwoQubitSystem()
+
+    # Hadamardゲート
+    H = (system.X + system.Z) / np.sqrt(2)
+
+    # ベル状態生成: H + CNOT
+    system.state = system.uu.copy()
+    system.apply_single_qubit_gate(H, 0)  # 第1量子ビットにH
+    system.apply_two_qubit_gate('CNOT')
+
+    print("=== ベル状態 |Φ⁺⟩ の生成 ===")
+    print("初期状態: |↑↑⟩")
+    print("操作: H₁ → CNOT")
+    print(f"最終状態: {system.state}")
+    print(f"コンカレンス: {system.calculate_concurrence():.4f}")
+
+    # 交換相互作用によるもつれ生成
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # 時間発展
+    J = 1.0  # 交換結合 [任意単位]
+    times = np.linspace(0, 4 * np.pi, 100)
+    concurrences = []
+
+    for t in times:
+        system.state = system.ud.copy()  # |↑↓⟩から開始
+        system.exchange_interaction(J, t)
+        concurrences.append(system.calculate_concurrence())
+
+    axes[0].plot(times / np.pi, concurrences, 'b-', linewidth=2)
+    axes[0].set_xlabel('時間 $Jt/\\pi$', fontsize=12)
+    axes[0].set_ylabel('コンカレンス', fontsize=12)
+    axes[0].set_title('交換相互作用によるもつれ生成', fontsize=14)
+    axes[0].grid(True, alpha=0.3)
+    axes[0].axhline(y=1, color='red', linestyle='--', label='最大もつれ')
+    axes[0].legend()
+
+    # CHSH不等式の検証
+    system.create_bell_state('Phi+')
+
+    angles = np.linspace(0, np.pi, 50)
+    chsh_values = []
+
+    for theta in angles:
+        E_ab = system.measure_correlation(0, theta)
+        E_ab_prime = system.measure_correlation(0, theta + np.pi/2)
+        E_a_prime_b = system.measure_correlation(np.pi/2, theta)
+        E_a_prime_b_prime = system.measure_correlation(np.pi/2, theta + np.pi/2)
+
+        S = E_ab - E_ab_prime + E_a_prime_b + E_a_prime_b_prime
+        chsh_values.append(np.abs(S))
+
+    axes[1].plot(angles / np.pi * 180, chsh_values, 'b-', linewidth=2)
+    axes[1].axhline(y=2, color='red', linestyle='--',
+                    label='古典限界 S=2')
+    axes[1].axhline(y=2*np.sqrt(2), color='green', linestyle='--',
+                    label=f'量子限界 S=2√2≈{2*np.sqrt(2):.2f}')
+    axes[1].set_xlabel('角度 θ [度]', fontsize=12)
+    axes[1].set_ylabel('CHSH パラメータ |S|', fontsize=12)
+    axes[1].set_title('CHSH不等式の検証', fontsize=14)
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('entanglement_demo.png', dpi=150)
+    plt.show()
+
+    print(f"\n=== CHSH不等式 ===")
+    print(f"最大 |S| = {max(chsh_values):.4f}")
+    print(f"古典限界: S ≤ 2")
+    print(f"量子限界: S ≤ 2√2 ≈ {2*np.sqrt(2):.4f}")
+    if max(chsh_values) > 2:
+        print("→ 古典限界を超過！量子もつれが存在")
+
+# 実行
+demonstrate_entanglement()
+</code></pre>
+      </div>
+    </section>
+
+    <section id="spin-photon">
+      <h2>2.5 スピン-光子結合</h2>
+      <p>
+        量子ネットワークの実現には、スピン量子ビットと光子の結合が不可欠です。
+      </p>
+
+      <h3>キャビティQED</h3>
+      <div class="equation-box">
+        <h4>ジェインズ-カミングス・ハミルトニアン</h4>
+        <p>$$H = \hbar\omega_c a^\dagger a + \frac{\hbar\omega_s}{2}\sigma_z + \hbar g(a^\dagger\sigma_- + a\sigma_+)$$</p>
+        <p>$\omega_c$: キャビティ周波数、$\omega_s$: スピン遷移周波数、$g$: 結合定数</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">スピン-光子結合のシミュレーション</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+from scipy.linalg import expm
+import matplotlib.pyplot as plt
+
+def jaynes_cummings_hamiltonian(omega_c, omega_s, g, n_photon_max=10):
+    """
+    ジェインズ-カミングス・ハミルトニアンの構築
+
+    Parameters:
+    -----------
+    omega_c : float
+        キャビティ周波数
+    omega_s : float
+        スピン遷移周波数
+    g : float
+        結合定数
+    n_photon_max : int
+        光子数カットオフ
+    """
+    dim = 2 * n_photon_max  # |n, ↑/↓⟩
+
+    # 消滅・生成演算子
+    a = np.zeros((n_photon_max, n_photon_max), dtype=complex)
+    for n in range(1, n_photon_max):
+        a[n-1, n] = np.sqrt(n)
+
+    a_dag = a.T.conj()
+
+    # スピン演算子
+    sigma_z = np.array([[1, 0], [0, -1]], dtype=complex)
+    sigma_plus = np.array([[0, 1], [0, 0]], dtype=complex)
+    sigma_minus = np.array([[0, 0], [1, 0]], dtype=complex)
+
+    I_photon = np.eye(n_photon_max)
+    I_spin = np.eye(2)
+
+    # ハミルトニアン成分
+    H_c = omega_c * np.kron(a_dag @ a, I_spin)
+    H_s = (omega_s / 2) * np.kron(I_photon, sigma_z)
+    H_int = g * (np.kron(a_dag, sigma_minus) + np.kron(a, sigma_plus))
+
+    H = H_c + H_s + H_int
+
+    return H
+
+def vacuum_rabi_oscillation():
+    """真空ラビ振動のシミュレーション"""
+    omega_c = 2 * np.pi * 10e9  # 10 GHz
+    omega_s = omega_c           # 共鳴条件
+    g = 2 * np.pi * 100e6       # 100 MHz
+
+    n_max = 5
+
+    H = jaynes_cummings_hamiltonian(omega_c, omega_s, g, n_max)
+
+    # 初期状態: |0, ↑⟩ (光子0, スピン上向き)
+    psi0 = np.zeros(2 * n_max, dtype=complex)
+    psi0[0] = 1  # インデックス構成に依存
+
+    # より正確な初期状態の構築
+    # 基底: |0,↑⟩, |0,↓⟩, |1,↑⟩, |1,↓⟩, ...
+    psi0 = np.zeros(2 * n_max, dtype=complex)
+    psi0[0] = 1  # |0, ↑⟩
+
+    # 時間発展
+    times = np.linspace(0, 50e-9, 500)
+    excitation_prob = []
+
+    for t in times:
+        U = expm(-1j * H * t)
+        psi_t = U @ psi0
+
+        # スピン励起確率
+        prob_up = sum(np.abs(psi_t[2*n])**2 for n in range(n_max))
+        excitation_prob.append(prob_up)
+
+    return times, excitation_prob
+
+def purcell_effect():
+    """パーセル効果のシミュレーション"""
+    omega_c = 2 * np.pi * 10e9
+    g = 2 * np.pi * 50e6
+
+    # デチューニング範囲
+    detunings = np.linspace(-500e6, 500e6, 100) * 2 * np.pi
+
+    # パーセルファクター（簡略化）
+    kappa = 2 * np.pi * 10e6  # キャビティ減衰率
+
+    purcell_rates = []
+    for delta in detunings:
+        omega_s = omega_c + delta
+        # パーセル増強率
+        gamma_p = 4 * g**2 / kappa * (kappa/2)**2 / (delta**2 + (kappa/2)**2)
+        purcell_rates.append(gamma_p / (2 * np.pi * 1e6))  # MHz単位
+
+    return detunings / (2 * np.pi * 1e6), purcell_rates
+
+# 真空ラビ振動
+times, prob = vacuum_rabi_oscillation()
+
+# パーセル効果
+detuning, purcell = purcell_effect()
+
+# プロット
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+axes[0].plot(times * 1e9, prob, 'b-', linewidth=2)
+axes[0].set_xlabel('時間 [ns]', fontsize=12)
+axes[0].set_ylabel('スピン励起確率', fontsize=12)
+axes[0].set_title('真空ラビ振動', fontsize=14)
+axes[0].grid(True, alpha=0.3)
+
+axes[1].plot(detuning, purcell, 'r-', linewidth=2)
+axes[1].set_xlabel('デチューニング Δ [MHz]', fontsize=12)
+axes[1].set_ylabel('パーセル増強率 [MHz]', fontsize=12)
+axes[1].set_title('パーセル効果', fontsize=14)
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('spin_photon_coupling.png', dpi=150)
+plt.show()
+
+print("=== スピン-光子結合 ===")
+print("強結合条件: g > κ, γ")
+print("κ: キャビティ減衰率, γ: スピン緩和率")
+print("協同度: C = 4g²/(κγ) >> 1")
+</code></pre>
+      </div>
+    </section>
+
+    <section id="topological">
+      <h2>2.6 トポロジカル量子状態</h2>
+      <p>
+        トポロジカルに保護された量子状態は、デコヒーレンスに対して頑健であり、
+        量子誤り訂正に有利です。
+      </p>
+
+      <h3>マヨラナ・フェルミオン</h3>
+      <div class="equation-box">
+        <h4>マヨラナ演算子</h4>
+        <p>$$\gamma = \gamma^\dagger, \quad \{\gamma_i, \gamma_j\} = 2\delta_{ij}$$</p>
+        <p>$$c = \frac{1}{2}(\gamma_1 + i\gamma_2), \quad c^\dagger = \frac{1}{2}(\gamma_1 - i\gamma_2)$$</p>
+        <p>マヨラナ零モードはトポロジカル超伝導体の端に局在</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="language">Python</span>
+          <span class="title">キタエフ鎖モデル</span>
+        </div>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.linalg import eigh
+
+def kitaev_chain(N, t, Delta, mu):
+    """
+    キタエフ鎖のハミルトニアン
+
+    H = -μ Σ c†_i c_i - t Σ (c†_i c_{i+1} + h.c.)
+        + Δ Σ (c_i c_{i+1} + h.c.)
+
+    Parameters:
+    -----------
+    N : int
+        サイト数
+    t : float
+        ホッピング
+    Delta : float
+        超伝導ギャップ
+    mu : float
+        化学ポテンシャル
+    """
+    # BdGハミルトニアン（粒子-正孔空間）
+    H = np.zeros((2*N, 2*N), dtype=complex)
+
+    for i in range(N):
+        # オンサイト項
+        H[i, i] = -mu          # 粒子
+        H[N+i, N+i] = mu       # 正孔
+
+        # ホッピング項
+        if i < N - 1:
+            H[i, i+1] = -t
+            H[i+1, i] = -t
+            H[N+i, N+i+1] = t
+            H[N+i+1, N+i] = t
+
+            # ペアリング項
+            H[i, N+i+1] = Delta
+            H[i+1, N+i] = -Delta
+            H[N+i+1, i] = np.conj(Delta)
+            H[N+i, i+1] = -np.conj(Delta)
+
+    return H
+
+def calculate_spectrum(N, t, Delta, mu_range):
+    """化学ポテンシャル依存性"""
+    spectra = []
+
+    for mu in mu_range:
+        H = kitaev_chain(N, t, Delta, mu)
+        eigenvalues, _ = eigh(H)
+        spectra.append(eigenvalues)
+
+    return np.array(spectra)
+
+def calculate_majorana_wavefunction(N, t, Delta, mu):
+    """マヨラナ零モードの波動関数"""
+    H = kitaev_chain(N, t, Delta, mu)
+    eigenvalues, eigenvectors = eigh(H)
+
+    # ゼロエネルギーに最も近い状態を探す
+    idx = np.argmin(np.abs(eigenvalues))
+
+    # 粒子成分と正孔成分
+    psi = eigenvectors[:, idx]
+    psi_particle = psi[:N]
+    psi_hole = psi[N:]
+
+    return psi_particle, psi_hole
+
+# パラメータ
+N = 50
+t = 1.0
+Delta = 0.5
+
+# 化学ポテンシャル依存性
+mu_range = np.linspace(-3, 3, 200)
+spectra = calculate_spectrum(N, t, Delta, mu_range)
+
+# トポロジカル相の波動関数
+psi_p_topo, psi_h_topo = calculate_majorana_wavefunction(N, t, Delta, 0.5)
+psi_p_trivial, psi_h_trivial = calculate_majorana_wavefunction(N, t, Delta, 3.0)
+
+# プロット
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# エネルギースペクトル
+for i in range(min(10, 2*N)):
+    axes[0, 0].plot(mu_range, spectra[:, N-5+i], 'b-', linewidth=0.5)
+
+axes[0, 0].axhline(y=0, color='red', linestyle='--')
+axes[0, 0].axvline(x=-2*t, color='green', linestyle=':', label='相転移点')
+axes[0, 0].axvline(x=2*t, color='green', linestyle=':')
+axes[0, 0].fill_betweenx([-1, 1], -2*t, 2*t, alpha=0.1, color='yellow',
+                          label='トポロジカル相')
+axes[0, 0].set_xlabel('化学ポテンシャル μ/t', fontsize=12)
+axes[0, 0].set_ylabel('エネルギー E/t', fontsize=12)
+axes[0, 0].set_title('キタエフ鎖のエネルギースペクトル', fontsize=14)
+axes[0, 0].set_ylim([-1.5, 1.5])
+axes[0, 0].legend()
+axes[0, 0].grid(True, alpha=0.3)
+
+# ゼロモードのギャップ
+zero_mode_energy = np.min(np.abs(spectra), axis=1)
+axes[0, 1].semilogy(mu_range, zero_mode_energy, 'b-', linewidth=2)
+axes[0, 1].axvline(x=-2*t, color='green', linestyle=':')
+axes[0, 1].axvline(x=2*t, color='green', linestyle=':')
+axes[0, 1].set_xlabel('化学ポテンシャル μ/t', fontsize=12)
+axes[0, 1].set_ylabel('ゼロモード・エネルギー', fontsize=12)
+axes[0, 1].set_title('マヨラナ零モードのエネルギー', fontsize=14)
+axes[0, 1].grid(True, alpha=0.3)
+
+# トポロジカル相の波動関数
+sites = np.arange(N)
+axes[1, 0].bar(sites, np.abs(psi_p_topo)**2, alpha=0.7, label='粒子')
+axes[1, 0].bar(sites, np.abs(psi_h_topo)**2, alpha=0.7, label='正孔')
+axes[1, 0].set_xlabel('サイト', fontsize=12)
+axes[1, 0].set_ylabel('$|\\psi|^2$', fontsize=12)
+axes[1, 0].set_title('トポロジカル相 (μ/t=0.5): 端に局在', fontsize=14)
+axes[1, 0].legend()
+
+# 自明相の波動関数
+axes[1, 1].bar(sites, np.abs(psi_p_trivial)**2, alpha=0.7, label='粒子')
+axes[1, 1].bar(sites, np.abs(psi_h_trivial)**2, alpha=0.7, label='正孔')
+axes[1, 1].set_xlabel('サイト', fontsize=12)
+axes[1, 1].set_ylabel('$|\\psi|^2$', fontsize=12)
+axes[1, 1].set_title('自明相 (μ/t=3.0): バルクに広がる', fontsize=14)
+axes[1, 1].legend()
+
+plt.tight_layout()
+plt.savefig('kitaev_chain.png', dpi=150)
+plt.show()
+
+print("=== キタエフ鎖モデル ===")
+print(f"トポロジカル相: |μ| < 2t")
+print(f"自明相: |μ| > 2t")
+print("トポロジカル相では端にマヨラナ零モードが局在")
+</code></pre>
+      </div>
+    </section>
+
+    <section id="summary">
+      <h2>まとめ</h2>
+      <div class="summary-box">
+        <h4>この章で学んだこと</h4>
+        <ul>
+          <li><strong>スピン量子ビット</strong>: ブロッホ球面表現、量子ゲート操作</li>
+          <li><strong>緩和過程</strong>: T1/T2緩和、デコヒーレンス源</li>
+          <li><strong>量子ビット実装</strong>: 量子ドット、NVセンター</li>
+          <li><strong>量子もつれ</strong>: ベル状態、CHSH不等式</li>
+          <li><strong>スピン-光子結合</strong>: キャビティQED、真空ラビ振動</li>
+          <li><strong>トポロジカル保護</strong>: マヨラナ・フェルミオン</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="nav-section">
+      <div class="nav-links">
+        <a href="chapter-1.html" class="nav-link prev">
+          <span class="nav-direction">← 前へ</span>
+          <span class="nav-title">第1章: マグノニクスとスピン波</span>
+        </a>
+        <a href="chapter-3.html" class="nav-link next">
+          <span class="nav-direction">次へ →</span>
+          <span class="nav-title">第3章: 計算スピントロニクス</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="chapter-footer">
+    <p>AI寺子屋 材料科学道場 - スピントロニクス上級編 第2章</p>
+  </footer>
+</body>
+</html>

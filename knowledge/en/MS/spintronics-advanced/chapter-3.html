@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 3: Computational Spintronics - Advanced Spintronics</title>
+  <link rel="stylesheet" href="../../assets/css/knowledge-base.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'base' });
+  </script>
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <a href="../../index.html">Home</a> &gt;
+    <a href="../index.html">Materials Science</a> &gt;
+    <a href="index.html">Advanced Spintronics</a> &gt;
+    <span>Chapter 3</span>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="chapter-badge">Chapter 3</div>
+    <h1>Computational Spintronics</h1>
+    <p class="chapter-description">
+      Master computational methods for spintronics research: micromagnetic simulations,
+      atomistic spin dynamics, first-principles calculations, and machine learning applications.
+      Acquire the numerical tools essential for cutting-edge research.
+    </p>
+    <div class="chapter-meta">
+      <span class="reading-time">80-100 min read</span>
+      <span class="difficulty">Advanced</span>
+    </div>
+  </header>
+
+  <main class="chapter-content">
+    <!-- Section 1: Micromagnetics -->
+    <section class="content-section">
+      <h2>3.1 Micromagnetic Simulations</h2>
+
+      <p>
+        Micromagnetics treats the magnetization as a continuous vector field $\mathbf{M}(\mathbf{r}, t)$,
+        enabling simulation of mesoscale magnetic structures (nm to μm). It bridges atomic-scale
+        physics and device-scale phenomena.
+      </p>
+
+      <h3>LLG Equation</h3>
+      <p>
+        The Landau-Lifshitz-Gilbert (LLG) equation governs magnetization dynamics:
+      </p>
+
+      <div class="equation-box">
+        $$\frac{d\mathbf{M}}{dt} = -\gamma_0\mathbf{M}\times\mathbf{H}_{\text{eff}} + \frac{\alpha}{M_s}\mathbf{M}\times\frac{d\mathbf{M}}{dt}$$
+      </div>
+
+      <p>
+        where $\gamma_0 = \gamma\mu_0$ is the gyromagnetic ratio, $\alpha$ is the Gilbert damping parameter,
+        and $\mathbf{H}_{\text{eff}}$ is the effective field.
+      </p>
+
+      <h3>Effective Field Components</h3>
+      <div class="concept-box">
+        <h4>Energy Contributions</h4>
+        <p>
+          $$\mathbf{H}_{\text{eff}} = -\frac{1}{\mu_0 M_s}\frac{\delta E}{\delta \mathbf{m}}$$
+        </p>
+        <p>The total energy includes:</p>
+        <ul>
+          <li><strong>Exchange</strong>: $E_{\text{ex}} = A\int |\nabla\mathbf{m}|^2 dV$</li>
+          <li><strong>Zeeman</strong>: $E_{\text{Z}} = -\mu_0 M_s \int \mathbf{m}\cdot\mathbf{H}_{\text{ext}} dV$</li>
+          <li><strong>Anisotropy</strong>: $E_{\text{K}} = K_u \int (1 - (\mathbf{m}\cdot\hat{u})^2) dV$</li>
+          <li><strong>Demagnetizing</strong>: $E_{\text{d}} = -\frac{\mu_0 M_s}{2} \int \mathbf{m}\cdot\mathbf{H}_{\text{d}} dV$</li>
+          <li><strong>DMI</strong>: $E_{\text{DMI}} = D \int \mathbf{m}\cdot(\nabla\times\mathbf{m}) dV$</li>
+        </ul>
+      </div>
+
+      <div class="code-example">
+        <h4>2D Micromagnetic Simulation</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from scipy.ndimage import laplace
+
+class MicromagneticSimulator:
+    """Simple 2D micromagnetic simulation"""
+
+    def __init__(self, Nx, Ny, dx, dy, Ms, A, Ku, alpha):
+        """
+        Parameters:
+        -----------
+        Nx, Ny : int, grid dimensions
+        dx, dy : float, cell sizes (m)
+        Ms : float, saturation magnetization (A/m)
+        A : float, exchange stiffness (J/m)
+        Ku : float, uniaxial anisotropy (J/m^3)
+        alpha : float, Gilbert damping
+        """
+        self.Nx, self.Ny = Nx, Ny
+        self.dx, self.dy = dx, dy
+        self.Ms = Ms
+        self.A = A
+        self.Ku = Ku
+        self.alpha = alpha
+        self.gamma = 2.211e5  # m/(A·s)
+        self.mu0 = 4 * np.pi * 1e-7
+
+        # Magnetization components (normalized)
+        self.mx = np.zeros((Nx, Ny))
+        self.my = np.zeros((Nx, Ny))
+        self.mz = np.ones((Nx, Ny))  # Initially saturated along z
+
+    def effective_field(self, mx, my, mz, Hext=[0, 0, 0]):
+        """Calculate total effective field"""
+        Hx = np.zeros_like(mx)
+        Hy = np.zeros_like(my)
+        Hz = np.zeros_like(mz)
+
+        # Exchange field
+        Aex = 2 * self.A / (self.mu0 * self.Ms)
+        Hx += Aex * laplace(mx) / self.dx**2
+        Hy += Aex * laplace(my) / self.dy**2
+        Hz += Aex * laplace(mz) / self.dx**2
+
+        # Anisotropy field (uniaxial, z-axis)
+        Hk = 2 * self.Ku / (self.mu0 * self.Ms)
+        Hz += Hk * mz
+
+        # External field
+        Hx += Hext[0]
+        Hy += Hext[1]
+        Hz += Hext[2]
+
+        return Hx, Hy, Hz
+
+    def llg_step(self, dt, Hext=[0, 0, 0]):
+        """Single LLG time step using RK4"""
+        mx, my, mz = self.mx, self.my, self.mz
+        alpha = self.alpha
+        gamma = self.gamma
+
+        def dmdt(mx, my, mz):
+            Hx, Hy, Hz = self.effective_field(mx, my, mz, Hext)
+
+            # m × H
+            cross_x = my * Hz - mz * Hy
+            cross_y = mz * Hx - mx * Hz
+            cross_z = mx * Hy - my * Hx
+
+            # m × (m × H)
+            mcross_x = my * cross_z - mz * cross_y
+            mcross_y = mz * cross_x - mx * cross_z
+            mcross_z = mx * cross_y - my * cross_x
+
+            # LLG equation (explicit form)
+            prefactor = -gamma / (1 + alpha**2)
+            dmx = prefactor * (cross_x + alpha * mcross_x)
+            dmy = prefactor * (cross_y + alpha * mcross_y)
+            dmz = prefactor * (cross_z + alpha * mcross_z)
+
+            return dmx, dmy, dmz
+
+        # RK4 integration
+        k1x, k1y, k1z = dmdt(mx, my, mz)
+        k2x, k2y, k2z = dmdt(mx + 0.5*dt*k1x, my + 0.5*dt*k1y, mz + 0.5*dt*k1z)
+        k3x, k3y, k3z = dmdt(mx + 0.5*dt*k2x, my + 0.5*dt*k2y, mz + 0.5*dt*k2z)
+        k4x, k4y, k4z = dmdt(mx + dt*k3x, my + dt*k3y, mz + dt*k3z)
+
+        self.mx += (dt/6) * (k1x + 2*k2x + 2*k3x + k4x)
+        self.my += (dt/6) * (k1y + 2*k2y + 2*k3y + k4y)
+        self.mz += (dt/6) * (k1z + 2*k2z + 2*k3z + k4z)
+
+        # Renormalize
+        norm = np.sqrt(self.mx**2 + self.my**2 + self.mz**2)
+        self.mx /= norm
+        self.my /= norm
+        self.mz /= norm
+
+    def total_energy(self):
+        """Calculate total micromagnetic energy"""
+        E_total = 0
+
+        # Exchange energy
+        dmx = np.gradient(self.mx, self.dx, axis=0)
+        dmy = np.gradient(self.my, self.dy, axis=1)
+        dmz = np.gradient(self.mz, self.dx, axis=0)
+        E_ex = self.A * np.sum(dmx**2 + dmy**2 + dmz**2) * self.dx * self.dy
+
+        # Anisotropy energy
+        E_K = self.Ku * np.sum(1 - self.mz**2) * self.dx * self.dy
+
+        return E_ex + E_K
+
+    def visualize(self, title="Magnetization"):
+        """Visualize magnetization configuration"""
+        fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+        # mz color map
+        im = axes[0].imshow(self.mz.T, cmap='RdBu', vmin=-1, vmax=1, origin='lower')
+        axes[0].set_title('m_z')
+        plt.colorbar(im, ax=axes[0])
+
+        # In-plane arrows
+        skip = max(1, self.Nx // 20)
+        X, Y = np.meshgrid(range(0, self.Nx, skip), range(0, self.Ny, skip))
+        axes[1].quiver(X, Y, self.mx[::skip, ::skip].T, self.my[::skip, ::skip].T,
+                       self.mz[::skip, ::skip].T, cmap='RdBu', clim=(-1, 1))
+        axes[1].set_title('In-plane magnetization')
+        axes[1].set_aspect('equal')
+
+        # Energy
+        axes[2].text(0.5, 0.5, f'E = {self.total_energy()*1e18:.2f} aJ',
+                     transform=axes[2].transAxes, fontsize=16, ha='center')
+        axes[2].set_title('Total Energy')
+        axes[2].axis('off')
+
+        plt.suptitle(title)
+        plt.tight_layout()
+        plt.show()
+
+# Simulation example: Domain wall relaxation
+sim = MicromagneticSimulator(
+    Nx=100, Ny=50,
+    dx=5e-9, dy=5e-9,  # 5 nm cells
+    Ms=8e5,  # Permalloy
+    A=1.3e-11,  # Exchange stiffness
+    Ku=5e3,  # Weak anisotropy
+    alpha=0.1
+)
+
+# Initial state: domain wall
+x = np.arange(sim.Nx)
+wall_pos = sim.Nx // 2
+wall_width = 10
+sim.mz = np.tanh((x[:, np.newaxis] - wall_pos) / wall_width) * np.ones((sim.Nx, sim.Ny))
+sim.mx = 1 / np.cosh((x[:, np.newaxis] - wall_pos) / wall_width) * np.ones((sim.Nx, sim.Ny))
+sim.my = np.zeros((sim.Nx, sim.Ny))
+
+sim.visualize("Initial: Domain Wall")
+
+# Relax
+dt = 1e-13  # 0.1 ps
+for step in range(1000):
+    sim.llg_step(dt)
+
+sim.visualize("After Relaxation")
+print(f"Final energy: {sim.total_energy()*1e18:.4f} aJ")</code></pre>
+      </div>
+    </section>
+
+    <!-- Section 2: Atomistic Spin Dynamics -->
+    <section class="content-section">
+      <h2>3.2 Atomistic Spin Dynamics</h2>
+
+      <p>
+        Atomistic spin dynamics (ASD) models individual atomic magnetic moments,
+        capturing effects beyond the continuum approximation. It is essential for
+        nanoscale structures, interfaces, and finite-temperature properties.
+      </p>
+
+      <h3>Stochastic LLG Equation</h3>
+      <p>
+        Thermal fluctuations are included via a stochastic field:
+      </p>
+
+      <div class="equation-box">
+        $$\frac{d\mathbf{S}_i}{dt} = -\frac{\gamma}{(1+\alpha^2)}\mathbf{S}_i \times (\mathbf{H}_i^{\text{eff}} + \mathbf{H}_i^{\text{th}}) - \frac{\gamma\alpha}{(1+\alpha^2)}\mathbf{S}_i \times [\mathbf{S}_i \times (\mathbf{H}_i^{\text{eff}} + \mathbf{H}_i^{\text{th}})]$$
+      </div>
+
+      <p>
+        The thermal field satisfies:
+      </p>
+      <div class="equation-box">
+        $$\langle H_i^{\text{th},\alpha}(t) H_j^{\text{th},\beta}(t') \rangle = \frac{2\alpha k_B T}{\gamma \mu_s}\delta_{ij}\delta_{\alpha\beta}\delta(t-t')$$
+      </div>
+
+      <div class="code-example">
+        <h4>Atomistic Spin Dynamics Simulation</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+class AtomisticSpinDynamics:
+    """Atomistic spin dynamics with thermal fluctuations"""
+
+    def __init__(self, N, J, mu_s, alpha, T=0):
+        """
+        Parameters:
+        -----------
+        N : int, number of spins (1D chain)
+        J : float, exchange constant (J)
+        mu_s : float, atomic moment (J/T)
+        alpha : float, Gilbert damping
+        T : float, temperature (K)
+        """
+        self.N = N
+        self.J = J
+        self.mu_s = mu_s
+        self.alpha = alpha
+        self.T = T
+        self.gamma = 1.76e11  # rad/(s·T)
+        self.kB = 1.381e-23
+
+        # Initialize spins (random)
+        self.S = np.random.randn(N, 3)
+        self.S /= np.linalg.norm(self.S, axis=1, keepdims=True)
+
+    def exchange_field(self):
+        """Calculate exchange field for each spin"""
+        H = np.zeros((self.N, 3))
+
+        for i in range(self.N):
+            # Neighbors with periodic boundary
+            j_left = (i - 1) % self.N
+            j_right = (i + 1) % self.N
+            H[i] = (self.J / self.mu_s) * (self.S[j_left] + self.S[j_right])
+
+        return H
+
+    def thermal_field(self, dt):
+        """Generate thermal fluctuation field"""
+        if self.T == 0:
+            return np.zeros((self.N, 3))
+
+        sigma = np.sqrt(2 * self.alpha * self.kB * self.T / (self.gamma * self.mu_s * dt))
+        return sigma * np.random.randn(self.N, 3)
+
+    def evolve(self, dt, H_ext=np.array([0, 0, 0])):
+        """Single time step using Heun method"""
+        S = self.S.copy()
+
+        # Predictor
+        H_eff = self.exchange_field() + H_ext + self.thermal_field(dt)
+        dS1 = self.dmdt(S, H_eff)
+        S_pred = S + dt * dS1
+
+        # Normalize
+        S_pred /= np.linalg.norm(S_pred, axis=1, keepdims=True)
+
+        # Corrector
+        self.S = S_pred
+        H_eff2 = self.exchange_field() + H_ext + self.thermal_field(dt)
+        dS2 = self.dmdt(S_pred, H_eff2)
+
+        self.S = S + 0.5 * dt * (dS1 + dS2)
+        self.S /= np.linalg.norm(self.S, axis=1, keepdims=True)
+
+    def dmdt(self, S, H):
+        """LLG right-hand side"""
+        gamma = self.gamma
+        alpha = self.alpha
+
+        # S × H
+        cross = np.cross(S, H)
+        # S × (S × H)
+        double_cross = np.cross(S, cross)
+
+        prefactor = -gamma / (1 + alpha**2)
+        return prefactor * (cross + alpha * double_cross)
+
+    def magnetization(self):
+        """Calculate total magnetization"""
+        return np.mean(self.S, axis=0)
+
+    def energy(self):
+        """Calculate total exchange energy"""
+        E = 0
+        for i in range(self.N):
+            j_right = (i + 1) % self.N
+            E -= self.J * np.dot(self.S[i], self.S[j_right])
+        return E
+
+# Simulation: Curie temperature estimation
+N = 100
+J = 1e-21  # Exchange constant
+mu_s = 2.2 * 9.274e-24  # ~2.2 Bohr magnetons
+
+temperatures = np.linspace(1, 500, 20)
+magnetizations = []
+
+for T in temperatures:
+    sim = AtomisticSpinDynamics(N, J, mu_s, alpha=0.1, T=T)
+
+    # Equilibration
+    dt = 1e-15
+    for _ in range(5000):
+        sim.evolve(dt)
+
+    # Measurement
+    M_samples = []
+    for _ in range(1000):
+        sim.evolve(dt)
+        M_samples.append(np.linalg.norm(sim.magnetization()))
+
+    magnetizations.append(np.mean(M_samples))
+
+# Plot M(T)
+plt.figure(figsize=(8, 6))
+plt.plot(temperatures, magnetizations, 'bo-')
+plt.xlabel('Temperature (K)')
+plt.ylabel('Magnetization |M|/M_s')
+plt.title('Magnetization vs Temperature (ASD Simulation)')
+plt.grid(True, alpha=0.3)
+plt.show()
+
+# Estimate Tc (where M drops to ~0.5)
+M_array = np.array(magnetizations)
+Tc_idx = np.argmin(np.abs(M_array - 0.5))
+print(f"Estimated T_C ≈ {temperatures[Tc_idx]:.0f} K")</code></pre>
+      </div>
+
+      <div class="info-box">
+        <h4>ASD Software: VAMPIRE</h4>
+        <p>
+          VAMPIRE is a widely-used open-source atomistic simulation package supporting:
+        </p>
+        <ul>
+          <li>Arbitrary crystal structures</li>
+          <li>Multiple magnetic species</li>
+          <li>Temperature-dependent properties</li>
+          <li>GPU acceleration for large systems</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 3: First-Principles Calculations -->
+    <section class="content-section">
+      <h2>3.3 First-Principles Calculations</h2>
+
+      <p>
+        Density functional theory (DFT) provides ab initio access to magnetic properties.
+        Spin-polarized DFT and extensions enable calculation of exchange parameters,
+        magnetic anisotropy, and spin-orbit effects.
+      </p>
+
+      <h3>Spin-Polarized DFT</h3>
+      <p>
+        The Kohn-Sham equations for spin-polarized systems:
+      </p>
+
+      <div class="equation-box">
+        $$\left[-\frac{\hbar^2}{2m}\nabla^2 + V_{\text{eff}}^{\sigma}(\mathbf{r})\right]\psi_{i\sigma}(\mathbf{r}) = \epsilon_{i\sigma}\psi_{i\sigma}(\mathbf{r})$$
+      </div>
+
+      <p>
+        where $\sigma = \uparrow, \downarrow$ is the spin index and the effective potential includes
+        exchange-correlation effects.
+      </p>
+
+      <div class="code-example">
+        <h4>Spin-Polarized DOS Analysis</h4>
+        <pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+def analyze_spin_polarized_dos(energies, dos_up, dos_down, E_fermi=0):
+    """
+    Analyze spin-polarized density of states
+
+    Parameters:
+    -----------
+    energies : array, energy grid (eV)
+    dos_up : array, spin-up DOS
+    dos_down : array, spin-down DOS
+    E_fermi : float, Fermi energy
+    """
+    # Shift to Fermi level
+    E = energies - E_fermi
+
+    # Spin polarization
+    P = (dos_up - dos_down) / (dos_up + dos_down + 1e-10)
+
+    # Magnetic moment (simplified)
+    dE = E[1] - E[0]
+    occupied_up = np.sum(dos_up[E < 0]) * dE
+    occupied_down = np.sum(dos_down[E < 0]) * dE
+    moment = occupied_up - occupied_down
+
+    # Plot
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    ax1.fill_between(E, dos_up, alpha=0.5, label='Spin ↑', color='blue')
+    ax1.fill_between(E, -dos_down, alpha=0.5, label='Spin ↓', color='red')
+    ax1.axvline(0, color='k', linestyle='--', label='E_F')
+    ax1.set_xlabel('E - E_F (eV)')
+    ax1.set_ylabel('DOS (states/eV)')
+    ax1.set_title('Spin-Polarized Density of States')
+    ax1.legend()
+    ax1.set_xlim(-8, 4)
+
+    ax2.plot(E, P)
+    ax2.axhline(0, color='k', linestyle='-', alpha=0.3)
+    ax2.axvline(0, color='k', linestyle='--')
+    ax2.set_xlabel('E - E_F (eV)')
+    ax2.set_ylabel('Spin Polarization')
+    ax2.set_title('Spin Polarization vs Energy')
+    ax2.set_xlim(-8, 4)
+    ax2.set_ylim(-1, 1)
+
+    plt.tight_layout()
+    plt.show()
+
+    return moment, P
+
+# Generate example data (Fe-like DOS)
+E = np.linspace(-10, 5, 500)
+
+# Simplified model: d-band with exchange splitting
+def model_dos(E, center, width, amplitude):
+    return amplitude * np.exp(-(E - center)**2 / (2*width**2))
+
+# Fe d-band: majority spin lower, minority spin higher
+dos_up = (model_dos(E, -2.5, 1.5, 3) +  # d-band
+          model_dos(E, -7, 2, 0.5))      # s-band
+dos_down = (model_dos(E, -1, 1.5, 2.5) +  # d-band (shifted up)
+            model_dos(E, -7, 2, 0.5))      # s-band
+
+moment, P = analyze_spin_polarized_dos(E, dos_up, dos_down)
+print(f"Magnetic moment: {moment:.2f} μ_B/atom")
+print(f"Spin polarization at E_F: {P[np.argmin(np.abs(E))]:.2%}")</code></pre>
+      </div>
+
+      <h3>Magnetic Anisotropy from DFT</h3>
+      <p>
+        Magnetic anisotropy energy (MAE) is calculated from the difference in total energies
+        for different magnetization directions:
+      </p>
+
+      <div class="equation-box">
+        $$\text{MAE} = E[\mathbf{M} \parallel \text{hard axis}] - E[\mathbf{M} \parallel \text{easy axis}]$$
+      </div>
+
+      <div class="code-example">
+        <h4>MAE Calculation Framework</h4>
+        <pre><code class="language-python">import numpy as np
+
+def calculate_magnetic_anisotropy_energy(E_001, E_100, E_110, volume):
+    """
+    Calculate magnetic anisotropy from DFT total energies
+
+    Parameters:
+    -----------
+    E_001, E_100, E_110 : float, total energies for M along [001], [100], [110] (eV)
+    volume : float, unit cell volume (Å³)
+
+    Returns:
+    --------
+    K1, K2 : float, anisotropy constants (MJ/m³)
+    """
+    # Convert volume to m³
+    V = volume * 1e-30
+
+    # Energy differences (J)
+    dE_001_100 = (E_001 - E_100) * 1.602e-19
+    dE_001_110 = (E_001 - E_110) * 1.602e-19
+
+    # For cubic system: E = K1(α1²α2² + α2²α3² + α3²α1²) + K2(α1²α2²α3²)
+    # [001]: α = (0,0,1) → E = 0
+    # [100]: α = (1,0,0) → E = 0
+    # [110]: α = (1/√2,1/√2,0) → E = K1/4
+
+    # This is simplified; actual fitting requires more directions
+    K1 = 4 * dE_001_110 / V / 1e6  # MJ/m³
+
+    # Effective anisotropy
+    K_eff = dE_001_100 / V / 1e6
+
+    return K1, K_eff
+
+# Example: Fe
+E_001 = -1234.56789  # Example DFT total energy (eV)
+E_100 = -1234.56790
+E_110 = -1234.56785
+volume = 11.82  # Fe bcc unit cell (Å³)
+
+K1, K_eff = calculate_magnetic_anisotropy_energy(E_001, E_100, E_110, volume)
+print(f"K1 ≈ {K1:.4f} MJ/m³")
+print(f"K_eff ≈ {K_eff:.4f} MJ/m³")
+print(f"\nExperimental K1 (Fe): ~0.048 MJ/m³")</code></pre>
+      </div>
+    </section>
+
+    <!-- Section 4: Machine Learning -->
+    <section class="content-section">
+      <h2>3.4 Machine Learning in Spintronics</h2>
+
+      <p>
+        Machine learning accelerates materials discovery and enables prediction of magnetic
+        properties from structural/compositional features, dramatically reducing the need for
+        expensive first-principles calculations.
+      </p>
+
+      <h3>Property Prediction</h3>
+      <p>
+        ML models can predict key spintronic properties:
+      </p>
+      <ul>
+        <li>Curie temperature (T<sub>C</sub>)</li>
+        <li>Saturation magnetization (M<sub>s</sub>)</li>
+        <li>Magnetic anisotropy energy (MAE)</li>
+        <li>Spin Hall angle</li>
+        <li>Gilbert damping parameter</li>
+      </ul>
+
+      <div class="code-example">
+        <h4>ML Prediction of Magnetic Properties</h4>
+        <pre><code class="language-python">import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error, r2_score
+import matplotlib.pyplot as plt
+
+# Generate synthetic training data
+# Features: atomic number, electronegativity, d-electron count, lattice parameter
+np.random.seed(42)
+n_samples = 200
+
+# Synthetic features (simplified elemental descriptors)
+Z = np.random.randint(20, 80, n_samples)  # Atomic number
+chi = 1.5 + 0.02 * Z + 0.1 * np.random.randn(n_samples)  # Electronegativity
+n_d = np.clip(Z - 20, 0, 10) + np.random.randn(n_samples)  # d-electrons
+a = 2.5 + 0.01 * Z + 0.1 * np.random.randn(n_samples)  # Lattice parameter
+
+X = np.column_stack([Z, chi, n_d, a])
+feature_names = ['Atomic Number', 'Electronegativity', 'd-electrons', 'Lattice (Å)']
+
+# Synthetic targets (based on physical intuition)
+# Tc correlates with d-electron count
+Tc = 500 + 50 * n_d - 2 * Z + 100 * np.random.randn(n_samples)
+Tc = np.maximum(Tc, 0)  # Non-negative
+
+# Ms correlates with d-electron count
+Ms = 0.5 + 0.2 * n_d + 0.3 * np.random.randn(n_samples)
+Ms = np.maximum(Ms, 0)
+
+# Ku has complex dependencies
+Ku = 0.1 * np.abs(n_d - 5) + 0.05 * chi + 0.1 * np.random.randn(n_samples)
+
+# Train models
+def train_and_evaluate(X, y, name):
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+
+    y_pred = model.predict(X_test)
+
+    mae = mean_absolute_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+    return model, y_test, y_pred, mae, r2
+
+# Train for each property
+results = {}
+properties = [('Tc', Tc, 'K'), ('Ms', Ms, 'MA/m'), ('Ku', Ku, 'MJ/m³')]
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+for ax, (name, y, unit) in zip(axes, properties):
+    model, y_test, y_pred, mae, r2 = train_and_evaluate(X, y, name)
+    results[name] = model
+
+    ax.scatter(y_test, y_pred, alpha=0.5)
+    ax.plot([y.min(), y.max()], [y.min(), y.max()], 'r--')
+    ax.set_xlabel(f'True {name} ({unit})')
+    ax.set_ylabel(f'Predicted {name} ({unit})')
+    ax.set_title(f'{name}: MAE={mae:.2f}, R²={r2:.2f}')
+
+plt.tight_layout()
+plt.show()
+
+# Feature importance
+print("\nFeature Importance for Tc prediction:")
+for name, importance in zip(feature_names, results['Tc'].feature_importances_):
+    print(f"  {name}: {importance:.3f}")</code></pre>
+      </div>
+
+      <h3>Active Learning for Materials Discovery</h3>
+      <div class="concept-box">
+        <h4>Active Learning Strategy</h4>
+        <ol>
+          <li>Train initial model on available DFT data</li>
+          <li>Use model to screen candidate materials</li>
+          <li>Identify materials with high uncertainty or predicted performance</li>
+          <li>Run DFT calculations on selected candidates</li>
+          <li>Add new data and retrain model</li>
+          <li>Repeat until target material is found</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Section 5: Multiscale Modeling -->
+    <section class="content-section">
+      <h2>3.5 Multiscale Modeling</h2>
+
+      <p>
+        Multiscale methods connect different simulation scales, transferring information from
+        electronic structure to atomistic to continuum levels.
+      </p>
+
+      <div class="mermaid">
+        graph LR
+          A[DFT] -->|Exchange J, MAE| B[Atomistic SD]
+          B -->|A, Ku, Ms| C[Micromagnetics]
+          C -->|M(r,t)| D[Device Simulation]
+
+          style A fill:#e3f2fd
+          style B fill:#e8f5e9
+          style C fill:#fff3e0
+          style D fill:#fce4ec
+      </div>
+
+      <div class="code-example">
+        <h4>Multiscale Parameter Transfer</h4>
+        <pre><code class="language-python">import numpy as np
+
+class MultiscaleParameterTransfer:
+    """Transfer parameters between simulation scales"""
+
+    def __init__(self):
+        self.dft_params = {}
+        self.atomistic_params = {}
+        self.micromagnetic_params = {}
+
+    def from_dft(self, J_values, moment, mae_surface, lattice_const):
+        """
+        Extract parameters from DFT calculations
+
+        Parameters:
+        -----------
+        J_values : dict, exchange constants {(i,j): J_ij} in meV
+        moment : float, magnetic moment in μ_B
+        mae_surface : float, surface MAE in meV/atom
+        lattice_const : float, lattice constant in Å
+        """
+        self.dft_params = {
+            'J': J_values,
+            'moment': moment,
+            'mae': mae_surface,
+            'a': lattice_const
+        }
+
+        # Convert to atomistic parameters
+        self.to_atomistic()
+
+    def to_atomistic(self):
+        """Convert DFT parameters to atomistic simulation inputs"""
+        # Exchange in Joules
+        J_meV = list(self.dft_params['J'].values())[0]  # Nearest neighbor
+        J_J = J_meV * 1.602e-22  # meV to J
+
+        # Moment in J/T
+        mu_B = 9.274e-24
+        mu_s = self.dft_params['moment'] * mu_B
+
+        # Anisotropy in J/atom
+        K_atom = self.dft_params['mae'] * 1.602e-22
+
+        self.atomistic_params = {
+            'J': J_J,
+            'mu_s': mu_s,
+            'K': K_atom,
+            'a': self.dft_params['a'] * 1e-10
+        }
+
+        # Estimate Curie temperature (mean field)
+        z = 8  # Coordination number (bcc)
+        kB = 1.381e-23
+        Tc_mf = z * J_J / (3 * kB)
+        self.atomistic_params['Tc_estimate'] = Tc_mf
+
+        # Convert to micromagnetic
+        self.to_micromagnetic()
+
+    def to_micromagnetic(self):
+        """Convert atomistic parameters to micromagnetic inputs"""
+        a = self.atomistic_params['a']
+        J = self.atomistic_params['J']
+        mu_s = self.atomistic_params['mu_s']
+        K = self.atomistic_params['K']
+
+        # Exchange stiffness: A = JS²/a (for simple cubic)
+        S = 1  # Assuming S=1
+        A = J * S**2 / a
+
+        # Saturation magnetization: Ms = μ_s / V_atom
+        V_atom = a**3 / 2  # bcc: 2 atoms per unit cell
+        Ms = mu_s / V_atom
+
+        # Uniaxial anisotropy: Ku = K / V_atom
+        Ku = K / V_atom
+
+        self.micromagnetic_params = {
+            'A': A,
+            'Ms': Ms,
+            'Ku': Ku,
+            'alpha': 0.01  # Typical value, or from experiments
+        }
+
+    def summary(self):
+        """Print parameter summary"""
+        print("=" * 50)
+        print("MULTISCALE PARAMETER TRANSFER")
+        print("=" * 50)
+
+        print("\nDFT Level:")
+        print(f"  Exchange J = {list(self.dft_params['J'].values())[0]:.1f} meV")
+        print(f"  Moment = {self.dft_params['moment']:.2f} μ_B")
+        print(f"  MAE = {self.dft_params['mae']:.3f} meV/atom")
+
+        print("\nAtomistic Level:")
+        print(f"  J = {self.atomistic_params['J']:.2e} J")
+        print(f"  μ_s = {self.atomistic_params['mu_s']:.2e} J/T")
+        print(f"  K = {self.atomistic_params['K']:.2e} J/atom")
+        print(f"  T_C (mean field) ≈ {self.atomistic_params['Tc_estimate']:.0f} K")
+
+        print("\nMicromagnetic Level:")
+        print(f"  A = {self.micromagnetic_params['A']*1e12:.2f} pJ/m")
+        print(f"  Ms = {self.micromagnetic_params['Ms']/1e6:.2f} MA/m")
+        print(f"  Ku = {self.micromagnetic_params['Ku']/1e6:.4f} MJ/m³")
+
+# Example: Fe parameters
+transfer = MultiscaleParameterTransfer()
+
+transfer.from_dft(
+    J_values={(0, 1): 20.0},  # 20 meV exchange
+    moment=2.2,  # 2.2 μ_B
+    mae_surface=0.05,  # 0.05 meV/atom
+    lattice_const=2.87  # Fe bcc
+)
+
+transfer.summary()</code></pre>
+      </div>
+    </section>
+
+    <!-- Section 6: Simulation Best Practices -->
+    <section class="content-section">
+      <h2>3.6 Simulation Best Practices</h2>
+
+      <div class="concept-box">
+        <h4>Convergence Checks</h4>
+        <ul>
+          <li><strong>Grid convergence</strong>: Verify results are independent of discretization</li>
+          <li><strong>Time step</strong>: Ensure stability and accuracy of time integration</li>
+          <li><strong>System size</strong>: Check for finite-size effects</li>
+          <li><strong>Statistics</strong>: For stochastic simulations, ensure adequate sampling</li>
+        </ul>
+      </div>
+
+      <div class="two-column">
+        <div class="column">
+          <h4>DFT Settings</h4>
+          <ul>
+            <li>k-point mesh: dense for metals</li>
+            <li>Energy cutoff: converge total energy</li>
+            <li>Spin-orbit: required for MAE</li>
+            <li>Exchange functional: check against experiment</li>
+          </ul>
+        </div>
+        <div class="column">
+          <h4>Micromagnetics</h4>
+          <ul>
+            <li>Cell size: < exchange length</li>
+            <li>Time step: < 1/(γH_eff)</li>
+            <li>Damping: physical vs. numerical</li>
+            <li>Demagnetizing field: FFT accuracy</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <h4>Validation Strategies</h4>
+        <ul>
+          <li>Compare with analytical solutions for simple cases</li>
+          <li>Benchmark against established codes (OOMMF, mumax³, VAMPIRE)</li>
+          <li>Validate against experimental data</li>
+          <li>Conservation laws: energy, angular momentum</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Summary -->
+    <section class="content-section summary-section">
+      <h2>Chapter Summary</h2>
+
+      <div class="summary-grid">
+        <div class="summary-item">
+          <h4>Micromagnetics</h4>
+          <p>Continuum modeling of magnetization dynamics via LLG equation with exchange, anisotropy, Zeeman, and demagnetizing fields</p>
+        </div>
+        <div class="summary-item">
+          <h4>Atomistic SD</h4>
+          <p>Individual spin dynamics with thermal fluctuations; captures nanoscale and temperature effects</p>
+        </div>
+        <div class="summary-item">
+          <h4>DFT</h4>
+          <p>First-principles calculation of exchange parameters, magnetic moments, and anisotropy</p>
+        </div>
+        <div class="summary-item">
+          <h4>Machine Learning</h4>
+          <p>Accelerated prediction of magnetic properties; enables high-throughput materials screening</p>
+        </div>
+        <div class="summary-item">
+          <h4>Multiscale</h4>
+          <p>Parameter transfer from electronic to atomistic to continuum scales</p>
+        </div>
+      </div>
+
+      <div class="key-equations">
+        <h4>Key Equations</h4>
+        <ul>
+          <li>LLG: $\frac{d\mathbf{M}}{dt} = -\gamma_0\mathbf{M}\times\mathbf{H}_{\text{eff}} + \frac{\alpha}{M_s}\mathbf{M}\times\frac{d\mathbf{M}}{dt}$</li>
+          <li>Exchange energy: $E_{\text{ex}} = A\int |\nabla\mathbf{m}|^2 dV$</li>
+          <li>Thermal field: $\langle H^{\text{th}}_\alpha(t) H^{\text{th}}_\beta(t') \rangle = \frac{2\alpha k_B T}{\gamma \mu_s}\delta_{\alpha\beta}\delta(t-t')$</li>
+          <li>Exchange stiffness: $A = JS^2/a$</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Navigation -->
+    <nav class="chapter-navigation">
+      <a href="chapter-2.html" class="nav-button prev">
+        <span class="arrow">←</span>
+        <span class="nav-text">
+          <span class="label">Previous Chapter</span>
+          <span class="title">Quantum Spintronics</span>
+        </span>
+      </a>
+      <a href="chapter-4.html" class="nav-button next">
+        <span class="nav-text">
+          <span class="label">Next Chapter</span>
+          <span class="title">Frontier Applications</span>
+        </span>
+        <span class="arrow">→</span>
+      </a>
+    </nav>
+  </main>
+
+  <footer class="chapter-footer">
+    <p>AI Terakoya Materials Science Dojo - Advanced Spintronics Chapter 3</p>
+  </footer>
+</body>
+</html>
