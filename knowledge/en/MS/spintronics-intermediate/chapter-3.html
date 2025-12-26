@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="description" content="Chapter 3: Spin-Orbit Torque (SOT) - From Spin Hall and Rashba Effects to SOT-MRAM"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chapter 3: Spin-Orbit Torque (SOT) - MS Terakoya</title>
+  <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"/>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });</script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../index.html">Materials Science</a><span class="breadcrumb-separator">›</span><a href="index.html">Intermediate Spintronics</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+    </div>
+  </nav>
+  <div class="locale-switcher">
+    <span class="current-locale">EN</span>
+    <span class="locale-separator">|</span>
+    <a href="../../../jp/MS/spintronics-intermediate/chapter-3.html" class="locale-link">JP</a>
+  </div>
+
+  <header>
+    <div class="header-content">
+      <h1>Chapter 3: Spin-Orbit Torque (SOT)</h1>
+      <p class="subtitle">From Spin Hall and Rashba Effects to SOT-MRAM</p>
+      <div class="meta">
+        <span class="meta-item">Reading Time: 35-45 min</span>
+        <span class="meta-item">Difficulty: Intermediate-Advanced</span>
+        <span class="meta-item">Code Examples: 7</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <p class="chapter-description">
+      Spin-Orbit Torque (SOT) is the torque exerted on magnetization by in-plane current through spin-orbit interaction in heavy metal/ferromagnet bilayer structures. It is attracting attention as a next-generation technology that overcomes the challenges of STT-MRAM. In this chapter, we learn the physical origins of SOT, the two torque components, switching mechanisms, and SOT-MRAM design principles.
+    </p>
+
+    <hr/>
+
+    <h2>3.1 Physical Origins of SOT</h2>
+
+    <p>SOT arises mainly from two mechanisms:</p>
+
+    <h3>Spin Hall Effect (SHE) Origin</h3>
+    <p>When in-plane current flows through a heavy metal (Pt, W, Ta, etc.), the Spin Hall Effect generates spin current perpendicular to the charge current:</p>
+
+    $$
+    \mathbf{J}_s = \theta_{SH} \frac{\hbar}{2e} (\hat{\sigma} \times \mathbf{J}_c)
+    $$
+
+    <p>where $\theta_{SH}$ is the spin Hall angle, $\hat{\sigma}$ is the spin polarization direction, and $\mathbf{J}_c$ is the charge current density.</p>
+
+    <h3>Rashba-Edelstein Effect Origin</h3>
+    <p>Interfacial Rashba SOI directly induces spin accumulation from current:</p>
+
+    $$
+    \boldsymbol{\mu}_s = \alpha_R \tau_s (\hat{z} \times \mathbf{J}_c)
+    $$
+
+    <div class="mermaid">
+flowchart LR
+    subgraph Heavy Metal Layer
+        HM[Pt, W, Ta<br/>Current J_c →]
+    end
+    subgraph Interface
+        IF[Rashba SOI<br/>Spin Accumulation]
+    end
+    subgraph Ferromagnetic Layer
+        FM[CoFeB<br/>Magnetization M]
+    end
+
+    HM -->|SHE Spin Current| IF
+    IF -->|SOT| FM
+
+    style HM fill:#3498db,stroke:#2980b9,color:#fff
+    style IF fill:#9b59b6,stroke:#8e44ad,color:#fff
+    style FM fill:#e74c3c,stroke:#c0392b,color:#fff
+    </div>
+
+    <h3>Code Example 3.1: Spin Current Generation via Spin Hall Effect</h3>
+    <pre><code class="language-python">"""
+Visualization of spin current generation via Spin Hall Effect
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+def spin_hall_current(J_c, theta_SH, direction='x'):
+    """
+    Spin current vector via SHE
+
+    Parameters:
+    J_c: Charge current density (A/m²)
+    theta_SH: Spin Hall angle
+    direction: Charge current direction
+    """
+    hbar = 1.055e-34
+    e = 1.6e-19
+
+    if direction == 'x':
+        # J_c || x → J_s || z, σ || y
+        J_s_magnitude = theta_SH * (hbar / (2 * e)) * J_c
+        return np.array([0, 0, J_s_magnitude]), np.array([0, 1, 0])
+    elif direction == 'y':
+        # J_c || y → J_s || z, σ || -x
+        J_s_magnitude = theta_SH * (hbar / (2 * e)) * J_c
+        return np.array([0, 0, J_s_magnitude]), np.array([-1, 0, 0])
+
+# Parameters
+J_c = 1e11  # A/m²
+theta_SH_values = {'Pt': 0.08, 'W': 0.30, 'Ta': 0.15}
+
+fig = plt.figure(figsize=(14, 5))
+
+for i, (material, theta_SH) in enumerate(theta_SH_values.items()):
+    ax = fig.add_subplot(1, 3, i+1, projection='3d')
+
+    # Charge current (red arrow)
+    ax.quiver(0, 0, 0, 1, 0, 0, color='red', arrow_length_ratio=0.2, linewidth=3, label='$J_c$')
+
+    # Spin current (blue arrow)
+    J_s, sigma = spin_hall_current(J_c, theta_SH)
+    scale = theta_SH / 0.30  # Scale relative to W
+    ax.quiver(0, 0, 0, 0, 0, scale, color='blue', arrow_length_ratio=0.2, linewidth=3, label='$J_s$')
+
+    # Spin polarization direction (green arrow)
+    ax.quiver(0.5, 0, scale/2, 0, 0.5, 0, color='green', arrow_length_ratio=0.3, linewidth=2, label='σ')
+
+    ax.set_xlim(-0.5, 1.5)
+    ax.set_ylim(-0.5, 1.0)
+    ax.set_zlim(-0.5, 1.5)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    ax.set_title(f'{material} (θ_SH = {theta_SH})', fontsize=12)
+
+plt.suptitle('Spin Current Generation via Spin Hall Effect', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>3.2 Two Components of SOT: Field-like and Damping-like</h2>
+
+    <p>SOT can be decomposed into two orthogonal components:</p>
+
+    $$
+    \boldsymbol{\tau}_{SOT} = \tau_{FL} \mathbf{m} \times \boldsymbol{\sigma} + \tau_{DL} \mathbf{m} \times (\mathbf{m} \times \boldsymbol{\sigma})
+    $$
+
+    <h3>Field-like Torque (FL)</h3>
+    <ul>
+      <li>Acts as effective field $\mathbf{H}_{FL} \propto \boldsymbol{\sigma}$</li>
+      <li>Mainly originates from Rashba effect</li>
+      <li>Induces magnetization precession</li>
+    </ul>
+
+    <h3>Damping-like Torque (DL)</h3>
+    <ul>
+      <li>Rotates magnetization toward $\boldsymbol{\sigma}$</li>
+      <li>Mainly originates from SHE</li>
+      <li>Directly contributes to magnetization switching</li>
+    </ul>
+
+    <h3>Code Example 3.2: Visualization of SOT Components</h3>
+    <pre><code class="language-python">"""
+Visualization of field-like and damping-like SOT components
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+def sot_components(m, sigma, tau_FL, tau_DL):
+    """
+    Calculate two SOT components
+
+    Parameters:
+    m: Magnetization direction (unit vector)
+    sigma: Spin polarization direction
+    tau_FL: Field-like torque strength
+    tau_DL: Damping-like torque strength
+    """
+    FL = tau_FL * np.cross(m, sigma)
+    DL = tau_DL * np.cross(m, np.cross(m, sigma))
+    return FL, DL
+
+# Magnetization and spin polarization setup
+sigma = np.array([0, 1, 0])  # y-direction polarization
+
+# Torque for various magnetization directions
+theta = np.linspace(0, 2*np.pi, 36)
+phi = np.pi / 4  # 45 degrees from xz plane
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# Left: Angular dependence of torque magnitude
+tau_FL_mag = []
+tau_DL_mag = []
+
+for th in theta:
+    m = np.array([np.sin(phi)*np.cos(th), np.sin(phi)*np.sin(th), np.cos(phi)])
+    m = m / np.linalg.norm(m)
+    FL, DL = sot_components(m, sigma, 1.0, 1.0)
+    tau_FL_mag.append(np.linalg.norm(FL))
+    tau_DL_mag.append(np.linalg.norm(DL))
+
+axes[0].plot(np.degrees(theta), tau_FL_mag, 'b-', linewidth=2, label='Field-like')
+axes[0].plot(np.degrees(theta), tau_DL_mag, 'r-', linewidth=2, label='Damping-like')
+axes[0].set_xlabel('Magnetization Azimuth (degrees)', fontsize=12)
+axes[0].set_ylabel('Torque Magnitude (a.u.)', fontsize=12)
+axes[0].set_title('Angular Dependence of SOT', fontsize=14)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+# Right: 3D vector plot
+ax2 = fig.add_subplot(122, projection='3d')
+
+m = np.array([1, 0, 1])
+m = m / np.linalg.norm(m)
+FL, DL = sot_components(m, sigma, 0.5, 0.5)
+
+# Draw vectors
+ax2.quiver(0, 0, 0, m[0], m[1], m[2], color='black', arrow_length_ratio=0.1,
+           linewidth=3, label='m (magnetization)')
+ax2.quiver(0, 0, 0, sigma[0], sigma[1], sigma[2], color='green', arrow_length_ratio=0.1,
+           linewidth=3, label='σ (spin)')
+ax2.quiver(m[0], m[1], m[2], FL[0], FL[1], FL[2], color='blue', arrow_length_ratio=0.15,
+           linewidth=2, label='τ_FL')
+ax2.quiver(m[0], m[1], m[2], DL[0], DL[1], DL[2], color='red', arrow_length_ratio=0.15,
+           linewidth=2, label='τ_DL')
+
+ax2.set_xlim(-1, 1.5)
+ax2.set_ylim(-1, 1.5)
+ax2.set_zlim(-0.5, 1.5)
+ax2.set_xlabel('x')
+ax2.set_ylabel('y')
+ax2.set_zlabel('z')
+ax2.set_title('SOT Torque Vectors', fontsize=14)
+ax2.legend(loc='upper left')
+
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>3.3 Magnetization Switching by SOT</h2>
+
+    <p>Perpendicular magnetization switching by SOT requires <strong>symmetry breaking</strong>.</p>
+
+    <h3>Methods of Symmetry Breaking</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Mechanism</th>
+          <th>Features</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>External field</td>
+          <td>Apply in-plane field</td>
+          <td>For research, impractical</td>
+        </tr>
+        <tr>
+          <td>Exchange bias</td>
+          <td>Coupling with antiferromagnet</td>
+          <td>No external field needed</td>
+        </tr>
+        <tr>
+          <td>Tilted anisotropy</td>
+          <td>Tilted magnetic anisotropy</td>
+          <td>Achieved by structure design</td>
+        </tr>
+        <tr>
+          <td>Interlayer coupling</td>
+          <td>Synthetic antiferromagnet</td>
+          <td>Reduces stray field</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Code Example 3.3: SOT Magnetization Switching Simulation</h3>
+    <pre><code class="language-python">"""
+LLG simulation of perpendicular magnetization switching by SOT
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+def llg_sot(m, t, gamma, alpha, H_k, H_x, tau_DL, sigma):
+    """
+    LLG equation with SOT
+
+    Parameters:
+    m: Magnetization direction
+    gamma: Gyromagnetic ratio
+    alpha: Damping
+    H_k: Anisotropy field (z-direction)
+    H_x: In-plane symmetry-breaking field
+    tau_DL: Damping-like torque strength
+    sigma: Spin polarization direction
+    """
+    m = m / np.linalg.norm(m)
+
+    # Effective field
+    H_eff = np.array([H_x, 0, H_k * m[2]])
+
+    # LLG precession and damping terms
+    precession = -gamma * np.cross(m, H_eff)
+    damping = alpha * np.cross(m, precession)
+
+    # SOT damping-like torque
+    sot_DL = tau_DL * np.cross(m, np.cross(m, sigma))
+
+    return precession + damping + sot_DL
+
+# Parameters
+gamma = 1.76e11
+alpha = 0.05
+H_k = 0.8  # PMA (T equivalent)
+sigma = np.array([0, 1, 0])  # y-direction spin polarization
+
+# Time settings
+t_max = 5e-9
+t = np.linspace(0, t_max, 5000)
+
+# Initial state
+m0 = np.array([0.01, 0, 0.99995])
+m0 = m0 / np.linalg.norm(m0)
+
+# Switching at different in-plane fields
+H_x_values = [0, 0.05, 0.1, 0.2]
+tau_DL = 5e11  # Fixed
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+axes = axes.flatten()
+
+for ax, H_x in zip(axes, H_x_values):
+    sol = odeint(llg_sot, m0, t, args=(gamma, alpha, H_k, H_x, tau_DL, sigma))
+
+    ax.plot(t*1e9, sol[:, 0], 'r-', label='$m_x$', linewidth=1.5)
+    ax.plot(t*1e9, sol[:, 1], 'g-', label='$m_y$', linewidth=1.5)
+    ax.plot(t*1e9, sol[:, 2], 'b-', label='$m_z$', linewidth=1.5)
+
+    ax.set_xlabel('Time (ns)', fontsize=11)
+    ax.set_ylabel('Magnetization Component', fontsize=11)
+    ax.set_title(f'$H_x$ = {H_x} T', fontsize=12)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(-1.1, 1.1)
+
+plt.suptitle('SOT Switching and Symmetry-Breaking Field', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+print("H_x=0: No switching due to symmetry")
+print("H_x>0: Symmetry broken, deterministic switching possible")</code></pre>
+
+    <hr/>
+
+    <h2>3.4 Evaluation of SOT Efficiency</h2>
+
+    <p>SOT efficiency is evaluated by effective field per unit current:</p>
+
+    $$
+    \xi_{DL} = \frac{2e}{\hbar} \frac{M_s t_F H_{eff}}{J_c}
+    $$
+
+    <h3>Code Example 3.4: SOT Efficiency Measurement Simulation</h3>
+    <pre><code class="language-python">"""
+Harmonic measurement simulation for SOT efficiency evaluation
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def sot_harmonic_response(H_ext, H_DL, H_FL, H_k, phi=0):
+    """
+    Magnetization tilt and second harmonic response from SOT
+
+    Parameters:
+    H_ext: External field
+    H_DL: Damping-like effective field
+    H_FL: Field-like effective field
+    H_k: Anisotropy field
+    phi: External field azimuthal angle
+    """
+    # Equilibrium magnetization tilt (small angle approx)
+    theta_0 = H_ext * np.cos(phi) / H_k
+
+    # First harmonic voltage (AMR + PHE)
+    V_1omega = np.cos(2*phi) + np.sin(2*phi)
+
+    # Second harmonic voltage (SOT origin)
+    V_2omega_DL = H_DL * np.cos(phi) / (H_k - H_ext * np.cos(phi))
+    V_2omega_FL = H_FL * np.sin(phi) / (H_k - H_ext * np.cos(phi))
+
+    return V_1omega, V_2omega_DL + V_2omega_FL
+
+# Parameters
+H_k = 1.0  # T
+H_DL = 0.1  # T (with current)
+H_FL = 0.02  # T
+
+# External field scan
+H_ext = np.linspace(-0.8, 0.8, 200)
+
+# Response at different azimuthal angles
+phi_values = [0, np.pi/4, np.pi/2]
+phi_names = ['φ=0° (x-axis)', 'φ=45°', 'φ=90° (y-axis)']
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+for phi, name in zip(phi_values, phi_names):
+    V_1, V_2 = sot_harmonic_response(H_ext, H_DL, H_FL, H_k, phi)
+    axes[0].plot(H_ext, V_1 * np.ones_like(H_ext), linewidth=2, label=name)
+    axes[1].plot(H_ext, V_2, linewidth=2, label=name)
+
+axes[0].set_xlabel('External Field (T)', fontsize=12)
+axes[0].set_ylabel('First Harmonic $V_{1ω}$ (a.u.)', fontsize=12)
+axes[0].set_title('First Harmonic Response', fontsize=14)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+axes[1].set_xlabel('External Field (T)', fontsize=12)
+axes[1].set_ylabel('Second Harmonic $V_{2ω}$ (a.u.)', fontsize=12)
+axes[1].set_title('Second Harmonic Response (SOT Origin)', fontsize=14)
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("φ=0°: Extract damping-like torque component")
+print("φ=90°: Extract field-like torque component")</code></pre>
+
+    <hr/>
+
+    <h2>3.5 SOT-MRAM</h2>
+
+    <p>SOT-MRAM is next-generation memory that overcomes challenges of STT-MRAM.</p>
+
+    <div class="mermaid">
+flowchart TD
+    subgraph SOT-MRAM Structure
+        MTJ[MTJ for Read]
+        FL[Free Layer CoFeB]
+        HM[Heavy Metal W/Ta]
+        WL[Write Line]
+    end
+
+    WL -->|Write Current| HM
+    HM -->|SOT| FL
+    FL -->|TMR| MTJ
+
+    style FL fill:#2ecc71,stroke:#27ae60,color:#fff
+    style HM fill:#3498db,stroke:#2980b9,color:#fff
+    style MTJ fill:#9b59b6,stroke:#8e44ad,color:#fff
+    </div>
+
+    <h3>Comparison with STT-MRAM</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Property</th>
+          <th>STT-MRAM</th>
+          <th>SOT-MRAM</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Read/Write path</td>
+          <td>Shared (2-terminal)</td>
+          <td>Separated (3-terminal)</td>
+        </tr>
+        <tr>
+          <td>Write speed</td>
+          <td>~10 ns</td>
+          <td>< 1 ns</td>
+        </tr>
+        <tr>
+          <td>Endurance</td>
+          <td>10¹² cycles</td>
+          <td>10¹⁵+ cycles</td>
+        </tr>
+        <tr>
+          <td>Read disturb</td>
+          <td>Present</td>
+          <td>None</td>
+        </tr>
+        <tr>
+          <td>Power consumption</td>
+          <td>Moderate</td>
+          <td>Slightly higher</td>
+        </tr>
+        <tr>
+          <td>Cell area</td>
+          <td>Small</td>
+          <td>Slightly larger</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Code Example 3.5: SOT-MRAM Switching Analysis</h3>
+    <pre><code class="language-python">"""
+SOT-MRAM switching characteristics analysis
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+class SOTMRAM:
+    def __init__(self, diameter_nm, t_FL_nm, t_HM_nm, M_s, H_k, alpha, theta_SH):
+        self.diameter = diameter_nm * 1e-9
+        self.t_FL = t_FL_nm * 1e-9
+        self.t_HM = t_HM_nm * 1e-9
+        self.M_s = M_s
+        self.H_k = H_k
+        self.alpha = alpha
+        self.theta_SH = theta_SH
+
+        self.area = np.pi * (self.diameter/2)**2
+        self.volume = self.area * self.t_FL
+
+    def critical_current_density(self):
+        """SOT switching critical current density"""
+        hbar = 1.055e-34
+        e = 1.6e-19
+        mu_0 = 4 * np.pi * 1e-7
+
+        J_c = (2 * e * self.M_s * self.t_FL * self.H_k * mu_0) / (hbar * self.theta_SH)
+        return J_c
+
+    def switching_time(self, J_ratio=1.5):
+        """Approximate switching time"""
+        gamma = 1.76e11
+        mu_0 = 4 * np.pi * 1e-7
+        return 1 / (self.alpha * gamma * mu_0 * self.M_s) * 1 / (J_ratio - 1)
+
+    def power_consumption(self, J_ratio=1.5, rho_HM=1e-6):
+        """Write power consumption"""
+        J_c = self.critical_current_density()
+        J = J_c * J_ratio
+        tau_sw = self.switching_time(J_ratio)
+
+        # Heavy metal layer resistance
+        L = self.diameter  # Write line length ≈ diameter
+        W = self.diameter
+        R_HM = rho_HM * L / (W * self.t_HM)
+
+        I = J * W * self.t_HM
+        E = I**2 * R_HM * tau_sw
+        return E
+
+# Design parameter comparison
+diameters = np.linspace(20, 80, 30)
+
+# Pt vs W comparison
+materials = {
+    'Pt': {'theta_SH': 0.08, 'color': 'blue'},
+    'W(β)': {'theta_SH': 0.30, 'color': 'red'},
+}
+
+M_s = 1.2e6
+H_k = 0.4e6
+alpha = 0.02
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+for name, params in materials.items():
+    J_cs = []
+    tau_sws = []
+    E_sws = []
+
+    for d in diameters:
+        cell = SOTMRAM(d, 1.5, 5, M_s, H_k, alpha, params['theta_SH'])
+        J_cs.append(cell.critical_current_density() / 1e11)
+        tau_sws.append(cell.switching_time() * 1e9)
+        E_sws.append(cell.power_consumption() * 1e15)
+
+    axes[0].plot(diameters, J_cs, color=params['color'], linewidth=2, label=name)
+    axes[1].plot(diameters, tau_sws, color=params['color'], linewidth=2, label=name)
+    axes[2].plot(diameters, E_sws, color=params['color'], linewidth=2, label=name)
+
+axes[0].set_xlabel('MTJ Diameter (nm)', fontsize=11)
+axes[0].set_ylabel('$J_c$ (×$10^{11}$ A/m²)', fontsize=11)
+axes[0].set_title('Critical Current Density', fontsize=12)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+axes[1].set_xlabel('MTJ Diameter (nm)', fontsize=11)
+axes[1].set_ylabel('Switching Time (ns)', fontsize=11)
+axes[1].set_title('Switching Time', fontsize=12)
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+axes[2].set_xlabel('MTJ Diameter (nm)', fontsize=11)
+axes[2].set_ylabel('Energy (fJ)', fontsize=11)
+axes[2].set_title('Write Energy', fontsize=12)
+axes[2].legend()
+axes[2].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("W enables lower current density switching due to high spin Hall angle")</code></pre>
+
+    <hr/>
+
+    <h2>3.6 Field-Free Switching</h2>
+
+    <p>Practical SOT-MRAM requires deterministic switching without external magnetic field.</p>
+
+    <h3>Main Approaches</h3>
+
+    <h4>1. Exchange Bias Method</h4>
+    <pre><code class="language-python">"""
+Field-free SOT switching with exchange bias
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+def llg_sot_exchange_bias(m, t, gamma, alpha, H_k, H_eb, tau_DL, sigma):
+    """SOT-LLG with exchange bias"""
+    m = m / np.linalg.norm(m)
+
+    # Effective field (PMA + exchange bias)
+    H_eff = np.array([H_eb, 0, H_k * m[2]])
+
+    precession = -gamma * np.cross(m, H_eff)
+    damping = alpha * np.cross(m, precession)
+    sot_DL = tau_DL * np.cross(m, np.cross(m, sigma))
+
+    return precession + damping + sot_DL
+
+# Parameters
+gamma = 1.76e11
+alpha = 0.05
+H_k = 0.8
+H_eb = 0.1  # Exchange bias field
+sigma = np.array([0, 1, 0])
+
+t = np.linspace(0, 3e-9, 3000)
+
+# Switching with positive and negative current
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+for ax, tau_sign, title in zip(axes, [1, -1], ['Positive Current (+J)', 'Negative Current (-J)']):
+    m0 = np.array([0.01, 0, 0.99995 * (-tau_sign)])
+    m0 = m0 / np.linalg.norm(m0)
+    tau_DL = tau_sign * 8e11
+
+    sol = odeint(llg_sot_exchange_bias, m0, t,
+                 args=(gamma, alpha, H_k, H_eb, tau_DL, sigma))
+
+    ax.plot(t*1e9, sol[:, 2], 'b-', linewidth=2)
+    ax.axhline(y=0, color='k', linestyle='--', alpha=0.3)
+    ax.set_xlabel('Time (ns)', fontsize=11)
+    ax.set_ylabel('$m_z$', fontsize=11)
+    ax.set_title(f'{title}: Exchange Bias H_eb = {H_eb} T', fontsize=12)
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(-1.2, 1.2)
+
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <h4>2. z-Component Spin Polarization Method</h4>
+    <h3>Code Example 3.6: Symmetry Breaking via Tilted Anisotropy</h3>
+    <pre><code class="language-python">"""
+Field-free switching with tilted magnetic anisotropy
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+def llg_sot_tilted_anisotropy(m, t, gamma, alpha, H_k, theta_tilt, tau_DL, sigma):
+    """SOT-LLG with tilted anisotropy"""
+    m = m / np.linalg.norm(m)
+
+    # Tilted anisotropy axis
+    n_easy = np.array([np.sin(theta_tilt), 0, np.cos(theta_tilt)])
+    H_anis = H_k * np.dot(m, n_easy) * n_easy
+
+    H_eff = H_anis
+
+    precession = -gamma * np.cross(m, H_eff)
+    damping = alpha * np.cross(m, precession)
+    sot_DL = tau_DL * np.cross(m, np.cross(m, sigma))
+
+    return precession + damping + sot_DL
+
+# Parameters
+gamma = 1.76e11
+alpha = 0.05
+H_k = 0.8
+sigma = np.array([0, 1, 0])
+
+t = np.linspace(0, 5e-9, 5000)
+
+# Comparison at different tilt angles
+theta_tilts = [0, 5, 10, 15]  # degrees
+
+fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+axes = axes.flatten()
+
+for ax, theta_deg in zip(axes, theta_tilts):
+    theta_tilt = np.radians(theta_deg)
+    m0 = np.array([0.01, 0, 0.99995])
+    m0 = m0 / np.linalg.norm(m0)
+    tau_DL = 6e11
+
+    sol = odeint(llg_sot_tilted_anisotropy, m0, t,
+                 args=(gamma, alpha, H_k, theta_tilt, tau_DL, sigma))
+
+    ax.plot(t*1e9, sol[:, 0], 'r-', label='$m_x$', linewidth=1.5)
+    ax.plot(t*1e9, sol[:, 2], 'b-', label='$m_z$', linewidth=1.5)
+    ax.axhline(y=0, color='k', linestyle='--', alpha=0.3)
+    ax.set_xlabel('Time (ns)', fontsize=10)
+    ax.set_ylabel('Magnetization Component', fontsize=10)
+    ax.set_title(f'Tilt Angle = {theta_deg}°', fontsize=11)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(-1.2, 1.2)
+
+plt.suptitle('Field-Free SOT Switching with Tilted Anisotropy', fontsize=13)
+plt.tight_layout()
+plt.show()
+
+print("θ_tilt > 0: Deterministic switching possible without external field")</code></pre>
+
+    <hr/>
+
+    <h2>3.7 Latest Research Trends</h2>
+
+    <h3>Code Example 3.7: SOT Efficiency Comparison of New Materials</h3>
+    <pre><code class="language-python">"""
+Performance metrics comparison of SOT materials
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Latest experimental data (approximate values)
+materials = {
+    'Pt': {'xi_DL': 0.08, 'xi_FL': 0.01, 'rho': 20},
+    'W(β)': {'xi_DL': 0.30, 'xi_FL': 0.02, 'rho': 150},
+    'Ta(β)': {'xi_DL': 0.15, 'xi_FL': 0.03, 'rho': 180},
+    'Pt/Co bilayer': {'xi_DL': 0.12, 'xi_FL': 0.08, 'rho': 25},
+    'WTe₂': {'xi_DL': 0.40, 'xi_FL': 0.05, 'rho': 500},
+    'Bi₂Se₃': {'xi_DL': 1.0, 'xi_FL': 0.2, 'rho': 1000},
+}
+
+names = list(materials.keys())
+xi_DL = [m['xi_DL'] for m in materials.values()]
+xi_FL = [m['xi_FL'] for m in materials.values()]
+rho = [m['rho'] for m in materials.values()]
+
+# Efficiency / resistivity figure of merit
+figure_of_merit = [x / r * 1e5 for x, r in zip(xi_DL, rho)]
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+# SOT efficiency
+x = np.arange(len(names))
+width = 0.35
+
+axes[0].bar(x - width/2, xi_DL, width, label='ξ_DL (Damping-like)', color='blue', alpha=0.7)
+axes[0].bar(x + width/2, xi_FL, width, label='ξ_FL (Field-like)', color='red', alpha=0.7)
+axes[0].set_xticks(x)
+axes[0].set_xticklabels(names, rotation=45, ha='right')
+axes[0].set_ylabel('SOT Efficiency ξ', fontsize=11)
+axes[0].set_title('SOT Efficiency', fontsize=12)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3, axis='y')
+
+# Resistivity
+axes[1].bar(names, rho, color='green', alpha=0.7)
+axes[1].set_xticklabels(names, rotation=45, ha='right')
+axes[1].set_ylabel('Resistivity (μΩ·cm)', fontsize=11)
+axes[1].set_title('Resistivity', fontsize=12)
+axes[1].set_yscale('log')
+axes[1].grid(True, alpha=0.3, axis='y')
+
+# Figure of Merit
+axes[2].bar(names, figure_of_merit, color='purple', alpha=0.7)
+axes[2].set_xticklabels(names, rotation=45, ha='right')
+axes[2].set_ylabel('ξ_DL / ρ (a.u.)', fontsize=11)
+axes[2].set_title('Figure of Merit (Efficiency/Resistivity)', fontsize=12)
+axes[2].grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.show()
+
+print("Topological insulators (Bi₂Se₃) have giant SOT efficiency but high resistivity is a challenge")
+print("W systems have good balance of efficiency and resistivity, advancing toward commercialization")</code></pre>
+
+    <hr/>
+
+    <h2>Chapter Summary</h2>
+
+    <div class="info-box">
+      <h3>What We Learned</h3>
+      <ul>
+        <li><strong>SOT origins</strong>: Two mechanisms - Spin Hall Effect and Rashba Effect</li>
+        <li><strong>Two torque components</strong>: Field-like (FL) and Damping-like (DL)</li>
+        <li><strong>Symmetry breaking</strong>: Required for perpendicular magnetization switching</li>
+        <li><strong>SOT-MRAM</strong>: Comparison with STT-MRAM, advantages in speed and endurance</li>
+        <li><strong>Field-free switching</strong>: Exchange bias, tilted anisotropy methods</li>
+      </ul>
+    </div>
+
+    <h3>Preparation for Next Chapter</h3>
+    <p>In the next chapter, we learn about advanced spintronics topics including antiferromagnetic spintronics, magnetic skyrmions, and 2D magnetic materials.</p>
+
+    <hr/>
+
+    <h2>References</h2>
+    <ol>
+      <li>Manchon, A., et al. (2019). "Current-induced spin-orbit torques in ferromagnetic and antiferromagnetic systems." <em>Rev. Mod. Phys.</em>, 91, 035004.</li>
+      <li>Miron, I. M., et al. (2011). "Perpendicular switching of a single ferromagnetic layer induced by in-plane current injection." <em>Nature</em>, 476, 189-193.</li>
+      <li>Liu, L., et al. (2012). "Spin-torque switching with the giant spin Hall effect of tantalum." <em>Science</em>, 336, 555-558.</li>
+      <li>Garello, K., et al. (2018). "SOT-MRAM 300MM integration for low power and ultrafast embedded memories." <em>IEEE Symp. VLSI Circuits</em>.</li>
+    </ol>
+
+    <hr/>
+
+    <div class="navigation">
+      <a href="chapter-2.html" class="nav-button secondary">← Chapter 2: Spin Transfer Torque</a>
+      <a href="chapter-4.html" class="nav-button">Chapter 4: Advanced Topics →</a>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <p>© 2025 AI Terakoya - MS Dojo. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>

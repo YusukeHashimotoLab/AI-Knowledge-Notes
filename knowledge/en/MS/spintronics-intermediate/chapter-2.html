@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="description" content="Chapter 2: Spin Transfer Torque (STT) - Slonczewski-Berger Model and Magnetization Dynamics"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chapter 2: Spin Transfer Torque (STT) - MS Terakoya</title>
+  <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"/>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });</script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI Terakoya Top</a><span class="breadcrumb-separator">›</span><a href="../index.html">Materials Science</a><span class="breadcrumb-separator">›</span><a href="index.html">Intermediate Spintronics</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+    </div>
+  </nav>
+  <div class="locale-switcher">
+    <span class="current-locale">EN</span>
+    <span class="locale-separator">|</span>
+    <a href="../../../jp/MS/spintronics-intermediate/chapter-2.html" class="locale-link">JP</a>
+  </div>
+
+  <header>
+    <div class="header-content">
+      <h1>Chapter 2: Spin Transfer Torque (STT)</h1>
+      <p class="subtitle">Slonczewski-Berger Model and Magnetization Dynamics</p>
+      <div class="meta">
+        <span class="meta-item">Reading Time: 35-45 min</span>
+        <span class="meta-item">Difficulty: Intermediate</span>
+        <span class="meta-item">Code Examples: 7</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <p class="chapter-description">
+      Spin Transfer Torque (STT) is the torque exerted on magnetization by spin-polarized current flowing through a magnetic material. Theoretically predicted independently by Slonczewski and Berger in 1996, it forms the operating principle of modern STT-MRAM. In this chapter, we learn from the theoretical foundations of STT through magnetization switching dynamics to device design applications.
+    </p>
+
+    <hr/>
+
+    <h2>2.1 Physical Origin of Spin Transfer Torque</h2>
+
+    <p>When spin-polarized current passes through a magnetic material, the spin angular momentum of electrons is transferred to the magnetization. This is the origin of <strong>spin transfer torque</strong>.</p>
+
+    <h3>Conservation of Angular Momentum</h3>
+    <p>When spin-polarized electrons enter a ferromagnet, their spins interact with the local magnetization $\mathbf{M}$ and change direction. By angular momentum conservation, the lost electron spin angular momentum is transferred to the magnetization:</p>
+
+    $$
+    \frac{d\mathbf{S}_{\text{electron}}}{dt} + \frac{d\mathbf{S}_{\text{magnet}}}{dt} = 0
+    $$
+
+    <div class="mermaid">
+flowchart LR
+    subgraph Fixed Layer
+        P[Pinned Layer<br/>M_p fixed]
+    end
+    subgraph Spacer
+        S[Non-magnetic Layer<br/>Cu/MgO]
+    end
+    subgraph Free Layer
+        F[Free Layer<br/>M_f switchable]
+    end
+
+    P -->|Spin-polarized current| S
+    S -->|Spin transfer| F
+
+    style P fill:#e74c3c,stroke:#c0392b,color:#fff
+    style S fill:#3498db,stroke:#2980b9,color:#fff
+    style F fill:#2ecc71,stroke:#27ae60,color:#fff
+    </div>
+
+    <h3>Slonczewski Model</h3>
+    <p>Slonczewski formulated STT in GMR/TMR devices. The spin transfer torque is expressed as:</p>
+
+    $$
+    \boldsymbol{\tau}_{\text{STT}} = \frac{\hbar}{2e} \frac{I P}{A M_s t_F} g(\theta) \mathbf{m} \times (\mathbf{m} \times \mathbf{m}_p)
+    $$
+
+    <p>where:</p>
+    <ul>
+      <li>$I$: Current</li>
+      <li>$P$: Spin polarization</li>
+      <li>$A$: Junction area</li>
+      <li>$M_s$: Saturation magnetization</li>
+      <li>$t_F$: Free layer thickness</li>
+      <li>$\mathbf{m}, \mathbf{m}_p$: Unit vectors of free layer and pinned layer magnetization</li>
+      <li>$g(\theta)$: Angular factor for spin-dependent conduction</li>
+    </ul>
+
+    <h3>Code Example 2.1: Angular Dependence of STT</h3>
+    <pre><code class="language-python">"""
+Angular dependence of Slonczewski STT
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def slonczewski_g(theta, P, Lambda=1.5):
+    """
+    Slonczewski angular factor
+
+    Parameters:
+    theta: Relative angle between free and pinned layers
+    P: Spin polarization
+    Lambda: Spin asymmetry parameter
+    """
+    cos_theta = np.cos(theta)
+    g = P * Lambda**2 / (Lambda**2 + 1 + (Lambda**2 - 1) * cos_theta)
+    return g
+
+# Plot angular dependence
+theta = np.linspace(0, np.pi, 200)
+P_values = [0.3, 0.5, 0.7]
+
+plt.figure(figsize=(10, 6))
+
+for P in P_values:
+    g = slonczewski_g(theta, P)
+    plt.plot(np.degrees(theta), g, linewidth=2, label=f'P = {P}')
+
+plt.xlabel('Relative Angle θ (degrees)', fontsize=12)
+plt.ylabel('Slonczewski Factor g(θ)', fontsize=12)
+plt.title('STT Angular Dependence (Slonczewski Model)', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.xlim(0, 180)
+plt.show()
+
+print("θ=0° (parallel): STT minimum")
+print("θ=180° (antiparallel): STT maximum")</code></pre>
+
+    <hr/>
+
+    <h2>2.2 LLG Equation with STT</h2>
+
+    <p>Magnetization dynamics is described by the <strong>Landau-Lifshitz-Gilbert (LLG) equation</strong>. The LLG equation including STT is:</p>
+
+    $$
+    \frac{d\mathbf{m}}{dt} = -\gamma \mathbf{m} \times \mathbf{H}_{\text{eff}} + \alpha \mathbf{m} \times \frac{d\mathbf{m}}{dt} + \boldsymbol{\tau}_{\text{STT}}
+    $$
+
+    <p>where $\gamma$ is the gyromagnetic ratio and $\alpha$ is the Gilbert damping constant.</p>
+
+    <h3>Two Components of STT</h3>
+    <p>STT can be decomposed into two orthogonal components:</p>
+
+    $$
+    \boldsymbol{\tau}_{\text{STT}} = a_J \mathbf{m} \times (\mathbf{m} \times \mathbf{m}_p) + b_J \mathbf{m} \times \mathbf{m}_p
+    $$
+
+    <ul>
+      <li><strong>Damping-like torque</strong> ($a_J$ term): Relaxation/anti-relaxation of magnetization toward $\mathbf{m}_p$</li>
+      <li><strong>Field-like torque</strong> ($b_J$ term): Acts as an effective magnetic field</li>
+    </ul>
+
+    <h3>Code Example 2.2: Numerical Solution of LLG with STT</h3>
+    <pre><code class="language-python">"""
+Numerical simulation of LLG equation with STT
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+def llg_with_stt(m, t, gamma, alpha, H_eff, a_J, m_p):
+    """
+    LLG equation with STT
+
+    Parameters:
+    m: Magnetization vector (normalized)
+    gamma: Gyromagnetic ratio (rad/s/T)
+    alpha: Gilbert damping
+    H_eff: Effective field vector (T)
+    a_J: STT strength
+    m_p: Pinned layer magnetization direction
+    """
+    m = m / np.linalg.norm(m)  # Normalize
+
+    # Precession term
+    precession = -gamma * np.cross(m, H_eff)
+
+    # Damping term
+    damping = alpha * np.cross(m, precession)
+
+    # STT damping-like torque
+    stt = a_J * np.cross(m, np.cross(m, m_p))
+
+    dmdt = precession + damping + stt
+    return dmdt
+
+# Parameters
+gamma = 1.76e11  # rad/s/T
+alpha = 0.01
+H_eff = np.array([0, 0, 0.1])  # Anisotropy field in z-direction (T)
+m_p = np.array([0, 0, 1])  # Pinned layer: +z direction
+
+# Time settings
+t_max = 5e-9  # 5 ns
+t = np.linspace(0, t_max, 5000)
+
+# Initial condition (slightly tilted from z-axis)
+m0 = np.array([0.1, 0, 0.995])
+m0 = m0 / np.linalg.norm(m0)
+
+# Comparison for different STT strengths
+a_J_values = [0, 5e10, 1e11, 2e11]
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+axes = axes.flatten()
+
+for ax, a_J in zip(axes, a_J_values):
+    sol = odeint(llg_with_stt, m0, t, args=(gamma, alpha, H_eff, a_J, m_p))
+
+    ax.plot(t*1e9, sol[:, 0], 'r-', label='$m_x$', linewidth=1.5)
+    ax.plot(t*1e9, sol[:, 1], 'g-', label='$m_y$', linewidth=1.5)
+    ax.plot(t*1e9, sol[:, 2], 'b-', label='$m_z$', linewidth=1.5)
+
+    ax.set_xlabel('Time (ns)', fontsize=11)
+    ax.set_ylabel('Magnetization Component', fontsize=11)
+    ax.set_title(f'$a_J$ = {a_J:.0e} rad/s', fontsize=12)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(-1.1, 1.1)
+
+plt.suptitle('Magnetization Dynamics with STT', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>2.3 Critical Current Density</h2>
+
+    <p>Magnetization switching by STT requires sufficient current to overcome the damping torque. This <strong>critical current density</strong> $J_c$ is:</p>
+
+    $$
+    J_c = \frac{2e}{\hbar} \frac{\alpha M_s t_F}{\eta P} (H_k + 2\pi M_s)
+    $$
+
+    <p>where $H_k$ is the anisotropy field and $\eta$ is the spin transfer efficiency.</p>
+
+    <div class="info-box">
+      <h3>How to Reduce Critical Current Density</h3>
+      <ul>
+        <li><strong>Lower damping $\alpha$</strong>: Material selection (low-damping alloys)</li>
+        <li><strong>Lower anisotropy $H_k$</strong>: Optimize perpendicular magnetic anisotropy</li>
+        <li><strong>Increase polarization $P$</strong>: High-polarization materials (CoFeB etc.)</li>
+        <li><strong>Thinner free layer</strong>: $J_c \propto t_F$</li>
+      </ul>
+    </div>
+
+    <h3>Code Example 2.3: Critical Current Density Calculation</h3>
+    <pre><code class="language-python">"""
+STT switching critical current density calculation
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def critical_current_density(alpha, M_s, t_F, H_k, P, eta=1.0):
+    """
+    STT critical current density
+
+    Parameters:
+    alpha: Gilbert damping
+    M_s: Saturation magnetization (A/m)
+    t_F: Free layer thickness (m)
+    H_k: Anisotropy field (A/m)
+    P: Spin polarization
+    eta: Spin transfer efficiency
+    """
+    hbar = 1.055e-34
+    e = 1.6e-19
+    mu_0 = 4 * np.pi * 1e-7
+
+    J_c = (2 * e / hbar) * (alpha * M_s * t_F) / (eta * P)
+    J_c *= (H_k + 2 * np.pi * M_s) * mu_0
+    return J_c
+
+# Typical parameters (CoFeB)
+alpha = 0.01
+M_s = 1.2e6  # A/m
+P = 0.56
+
+# Film thickness dependence
+t_F = np.linspace(0.5e-9, 3e-9, 50)
+H_k_values = [0.1e6, 0.3e6, 0.5e6]  # A/m
+
+plt.figure(figsize=(10, 6))
+
+for H_k in H_k_values:
+    J_c = critical_current_density(alpha, M_s, t_F, H_k, P)
+    plt.plot(t_F * 1e9, J_c / 1e10, linewidth=2,
+             label=f'$H_k$ = {H_k/1e6:.1f} MA/m')
+
+plt.xlabel('Free Layer Thickness $t_F$ (nm)', fontsize=12)
+plt.ylabel('Critical Current Density $J_c$ (×$10^{10}$ A/m²)', fontsize=12)
+plt.title('STT Switching Critical Current Density', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+# Typical value
+t_F_typ = 1.5e-9
+H_k_typ = 0.3e6
+J_c_typ = critical_current_density(alpha, M_s, t_F_typ, H_k_typ, P)
+print(f"Typical STT-MRAM: J_c ≈ {J_c_typ/1e10:.1f} × 10¹⁰ A/m²")</code></pre>
+
+    <hr/>
+
+    <h2>2.4 Magnetization Switching Dynamics</h2>
+
+    <h3>Switching Time</h3>
+    <p>The STT magnetization switching time $\tau_{sw}$ depends on current density $J$:</p>
+
+    $$
+    \tau_{sw} \approx \frac{1 + \alpha^2}{\alpha \gamma \mu_0 M_s} \ln\left(\frac{\pi}{2\theta_0}\right) \frac{J_c}{J - J_c}
+    $$
+
+    <p>where $\theta_0$ is the initial angle.</p>
+
+    <h3>Code Example 2.4: Switching Time Simulation</h3>
+    <pre><code class="language-python">"""
+Complete simulation of STT magnetization switching
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+def llg_stt_pma(m, t, gamma, alpha, H_k, a_J, m_p):
+    """
+    STT-LLG equation with perpendicular magnetic anisotropy
+    """
+    m = m / np.linalg.norm(m)
+
+    # Effective field (PMA)
+    H_eff = np.array([0, 0, H_k * m[2]])
+
+    # LLG + STT
+    precession = -gamma * np.cross(m, H_eff)
+    damping = alpha * np.cross(m, precession)
+    stt = a_J * np.cross(m, np.cross(m, m_p))
+
+    return precession + damping + stt
+
+def find_switching_time(t, mz, threshold=-0.5):
+    """Detect switching completion time"""
+    idx = np.where(mz < threshold)[0]
+    if len(idx) > 0:
+        return t[idx[0]]
+    return np.nan
+
+# Parameters
+gamma = 1.76e11
+alpha = 0.01
+H_k = 0.5  # Anisotropy equivalent to T
+m_p = np.array([0, 0, -1])  # Switch to antiparallel direction
+
+# Initial state (slightly tilted from +z)
+m0 = np.array([0.01, 0, 0.99995])
+m0 = m0 / np.linalg.norm(m0)
+
+# Switching at different current strengths
+t_max = 10e-9
+t = np.linspace(0, t_max, 10000)
+
+a_J_values = np.array([0.8, 1.0, 1.5, 2.0, 3.0]) * 1e11
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Left: mz time evolution
+colors = plt.cm.viridis(np.linspace(0, 0.9, len(a_J_values)))
+switching_times = []
+
+for a_J, color in zip(a_J_values, colors):
+    sol = odeint(llg_stt_pma, m0, t, args=(gamma, alpha, H_k, a_J, m_p))
+    mz = sol[:, 2]
+    axes[0].plot(t*1e9, mz, color=color, linewidth=1.5,
+                 label=f'$a_J$ = {a_J/1e11:.1f}×$10^{{11}}$')
+    switching_times.append(find_switching_time(t, mz))
+
+axes[0].axhline(y=0, color='k', linestyle='--', alpha=0.3)
+axes[0].set_xlabel('Time (ns)', fontsize=12)
+axes[0].set_ylabel('$m_z$', fontsize=12)
+axes[0].set_title('STT Magnetization Switching', fontsize=14)
+axes[0].legend(loc='right')
+axes[0].grid(True, alpha=0.3)
+
+# Right: Switching time vs current
+axes[1].plot(a_J_values/1e11, np.array(switching_times)*1e9, 'bo-', linewidth=2, markersize=8)
+axes[1].set_xlabel('STT Strength $a_J$ (×$10^{11}$ rad/s)', fontsize=12)
+axes[1].set_ylabel('Switching Time (ns)', fontsize=12)
+axes[1].set_title('Current Dependence', fontsize=14)
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>2.5 STT-MRAM</h2>
+
+    <p>STT-MRAM (Spin Transfer Torque Magnetoresistive RAM) is non-volatile memory using STT for writing.</p>
+
+    <div class="mermaid">
+flowchart TD
+    subgraph STT-MRAM Structure
+        Cap[Cap Layer]
+        FL[Free Layer<br/>CoFeB 1-2nm]
+        TB[Tunnel Barrier<br/>MgO 1nm]
+        PL[Reference Layer<br/>CoFeB]
+        SAF[SAF Structure]
+        BE[Bottom Electrode]
+    end
+
+    Cap --> FL --> TB --> PL --> SAF --> BE
+
+    style FL fill:#2ecc71,stroke:#27ae60,color:#fff
+    style TB fill:#3498db,stroke:#2980b9,color:#fff
+    style PL fill:#e74c3c,stroke:#c0392b,color:#fff
+    </div>
+
+    <h3>STT-MRAM Operation</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Operation</th>
+          <th>Current Direction</th>
+          <th>Final State</th>
+          <th>Resistance</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Write "0"</td>
+          <td>PL → FL</td>
+          <td>Parallel</td>
+          <td>Low ($R_P$)</td>
+        </tr>
+        <tr>
+          <td>Write "1"</td>
+          <td>FL → PL</td>
+          <td>Antiparallel</td>
+          <td>High ($R_{AP}$)</td>
+        </tr>
+        <tr>
+          <td>Read</td>
+          <td>Small current</td>
+          <td>(No change)</td>
+          <td>Detected by TMR</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Code Example 2.5: STT-MRAM Parameter Design</h3>
+    <pre><code class="language-python">"""
+STT-MRAM design parameter calculations
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+class STTMRAM:
+    def __init__(self, diameter_nm, t_FL_nm, M_s, H_k, alpha, P, TMR):
+        """
+        STT-MRAM cell design
+
+        Parameters:
+        diameter_nm: MTJ diameter (nm)
+        t_FL_nm: Free layer thickness (nm)
+        M_s: Saturation magnetization (A/m)
+        H_k: Anisotropy field (A/m)
+        alpha: Gilbert damping
+        P: Spin polarization
+        TMR: TMR ratio
+        """
+        self.diameter = diameter_nm * 1e-9
+        self.t_FL = t_FL_nm * 1e-9
+        self.M_s = M_s
+        self.H_k = H_k
+        self.alpha = alpha
+        self.P = P
+        self.TMR = TMR
+
+        self.area = np.pi * (self.diameter/2)**2
+        self.volume = self.area * self.t_FL
+
+    def thermal_stability(self, T=300):
+        """Thermal stability factor Δ = E_b / k_B T"""
+        k_B = 1.38e-23
+        mu_0 = 4 * np.pi * 1e-7
+        E_b = 0.5 * mu_0 * self.M_s * self.H_k * self.volume
+        return E_b / (k_B * T)
+
+    def critical_current(self):
+        """Critical current"""
+        hbar = 1.055e-34
+        e = 1.6e-19
+        mu_0 = 4 * np.pi * 1e-7
+        eta = 1.0
+
+        J_c = (2 * e / hbar) * (self.alpha * self.M_s * self.t_FL) / (eta * self.P)
+        J_c *= (self.H_k + 2 * np.pi * self.M_s) * mu_0
+        return J_c * self.area
+
+    def switching_voltage(self, R_P=1000):
+        """Switching voltage (referenced to R_P)"""
+        return self.critical_current() * R_P
+
+    def retention_time(self, T=300):
+        """Data retention time (10 years target)"""
+        delta = self.thermal_stability(T)
+        f0 = 1e9  # Attempt frequency
+        return np.exp(delta) / f0
+
+# Design parameter scan
+diameters = np.linspace(20, 100, 50)
+
+# Typical parameters
+M_s = 1.2e6
+H_k = 0.4e6
+alpha = 0.01
+P = 0.56
+TMR = 1.5
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+deltas = []
+I_cs = []
+
+for d in diameters:
+    cell = STTMRAM(d, 1.5, M_s, H_k, alpha, P, TMR)
+    deltas.append(cell.thermal_stability())
+    I_cs.append(cell.critical_current() * 1e6)
+
+# Thermal stability
+axes[0].plot(diameters, deltas, 'b-', linewidth=2)
+axes[0].axhline(y=60, color='r', linestyle='--', label='Target Δ=60')
+axes[0].set_xlabel('MTJ Diameter (nm)', fontsize=11)
+axes[0].set_ylabel('Thermal Stability Factor Δ', fontsize=11)
+axes[0].set_title('Thermal Stability vs Size', fontsize=12)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+# Critical current
+axes[1].plot(diameters, I_cs, 'g-', linewidth=2)
+axes[1].set_xlabel('MTJ Diameter (nm)', fontsize=11)
+axes[1].set_ylabel('Critical Current $I_c$ (μA)', fontsize=11)
+axes[1].set_title('Critical Current vs Size', fontsize=12)
+axes[1].grid(True, alpha=0.3)
+
+# Trade-off
+axes[2].plot(deltas, I_cs, 'mo-', linewidth=2, markersize=4)
+axes[2].axvline(x=60, color='r', linestyle='--', alpha=0.5)
+axes[2].set_xlabel('Thermal Stability Factor Δ', fontsize=11)
+axes[2].set_ylabel('Critical Current $I_c$ (μA)', fontsize=11)
+axes[2].set_title('Δ - $I_c$ Trade-off', fontsize=12)
+axes[2].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Design example
+cell = STTMRAM(50, 1.5, M_s, H_k, alpha, P, TMR)
+print(f"50nm MTJ diameter design:")
+print(f"  Thermal stability Δ = {cell.thermal_stability():.1f}")
+print(f"  Critical current Ic = {cell.critical_current()*1e6:.1f} μA")</code></pre>
+
+    <hr/>
+
+    <h2>2.6 Precessional Switching and Pulse Optimization</h2>
+
+    <p>For fast switching, <strong>precessional switching</strong> utilizing magnetization precession is effective.</p>
+
+    <h3>Code Example 2.6: Optimal Pulse Width Search</h3>
+    <pre><code class="language-python">"""
+High-speed switching by STT pulse driving
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+def llg_stt_pulse(m, t, gamma, alpha, H_k, a_J, m_p, t_pulse):
+    """STT with pulse current"""
+    m = m / np.linalg.norm(m)
+
+    H_eff = np.array([0, 0, H_k * m[2]])
+
+    precession = -gamma * np.cross(m, H_eff)
+    damping = alpha * np.cross(m, precession)
+
+    # Pulse control
+    if t < t_pulse:
+        stt = a_J * np.cross(m, np.cross(m, m_p))
+    else:
+        stt = np.zeros(3)
+
+    return precession + damping + stt
+
+# Parameters
+gamma = 1.76e11
+alpha = 0.01
+H_k = 0.5
+m_p = np.array([0, 0, -1])
+a_J = 2e11
+
+m0 = np.array([0.01, 0, 0.99995])
+m0 = m0 / np.linalg.norm(m0)
+
+t_max = 15e-9
+t = np.linspace(0, t_max, 15000)
+
+# Different pulse widths
+pulse_widths = [1e-9, 2e-9, 3e-9, 5e-9, 8e-9]
+
+fig, axes = plt.subplots(2, 3, figsize=(15, 8))
+axes = axes.flatten()
+
+for i, t_pulse in enumerate(pulse_widths):
+    sol = odeint(llg_stt_pulse, m0, t, args=(gamma, alpha, H_k, a_J, m_p, t_pulse))
+
+    ax = axes[i]
+    ax.plot(t*1e9, sol[:, 2], 'b-', linewidth=1.5)
+    ax.axvline(x=t_pulse*1e9, color='r', linestyle='--', alpha=0.5, label='Pulse end')
+    ax.axhline(y=0, color='k', linestyle=':', alpha=0.3)
+    ax.set_xlabel('Time (ns)', fontsize=10)
+    ax.set_ylabel('$m_z$', fontsize=10)
+    ax.set_title(f'Pulse Width = {t_pulse*1e9:.0f} ns', fontsize=11)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(-1.2, 1.2)
+
+# Summary
+axes[5].axis('off')
+axes[5].text(0.1, 0.7, 'Pulse Optimization Points:', fontsize=12, fontweight='bold')
+axes[5].text(0.1, 0.5, '• Too short: Incomplete switching', fontsize=10)
+axes[5].text(0.1, 0.35, '• Optimal: Reliable complete switching', fontsize=10)
+axes[5].text(0.1, 0.2, '• Too long: Energy waste, temperature rise', fontsize=10)
+
+plt.suptitle('STT Pulse-Driven Switching', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>2.7 Challenges and Solutions for STT-MRAM</h2>
+
+    <h3>Code Example 2.7: Error Rate Analysis</h3>
+    <pre><code class="language-python">"""
+STT-MRAM write error analysis
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def write_error_rate(delta, I_ratio, T=300):
+    """
+    Write error probability (thermal activation model)
+
+    Parameters:
+    delta: Thermal stability factor
+    I_ratio: I/Ic ratio
+    """
+    if I_ratio <= 1:
+        return 1.0  # Certain failure below critical current
+
+    # Error due to thermal activation
+    effective_delta = delta * (1 - 1/I_ratio)
+    P_error = np.exp(-effective_delta)
+    return P_error
+
+# Parameter scan
+delta_values = [40, 50, 60, 70, 80]
+I_ratios = np.linspace(1.01, 3, 100)
+
+plt.figure(figsize=(10, 6))
+
+for delta in delta_values:
+    P_errors = [write_error_rate(delta, I) for I in I_ratios]
+    plt.semilogy(I_ratios, P_errors, linewidth=2, label=f'Δ = {delta}')
+
+plt.axhline(y=1e-6, color='r', linestyle='--', label='Target BER < 10⁻⁶')
+plt.xlabel('$I/I_c$ Ratio', fontsize=12)
+plt.ylabel('Write Error Probability', fontsize=12)
+plt.title('STT-MRAM Write Error Analysis', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.ylim(1e-20, 1)
+plt.show()
+
+print("High thermal stability (Δ) and sufficient overdrive (I/Ic) required")
+print("Δ=60, I/Ic=1.5 can achieve BER ≈ 10⁻¹⁰")</code></pre>
+
+    <div class="info-box warning">
+      <h3>Main Challenges of STT-MRAM</h3>
+      <ul>
+        <li><strong>Shared read/write path</strong>: Read disturb (accidental writing during read)</li>
+        <li><strong>Incubation time</strong>: Variability in rise time from thermal fluctuations</li>
+        <li><strong>MTJ degradation</strong>: Tunnel barrier degradation from repeated current application</li>
+      </ul>
+      <p>To address these challenges, SOT-MRAM covered in the next chapter was developed.</p>
+    </div>
+
+    <hr/>
+
+    <h2>Chapter Summary</h2>
+
+    <div class="info-box">
+      <h3>What We Learned</h3>
+      <ul>
+        <li><strong>STT origin</strong>: Angular momentum transfer from spin-polarized current to magnetization</li>
+        <li><strong>Slonczewski model</strong>: Angular dependence and efficiency factor of STT</li>
+        <li><strong>LLG+STT</strong>: Numerical simulation of magnetization dynamics</li>
+        <li><strong>Critical current</strong>: Minimum current density required for switching</li>
+        <li><strong>STT-MRAM</strong>: Structure, operating principles, design trade-offs</li>
+      </ul>
+    </div>
+
+    <h3>Preparation for Next Chapter</h3>
+    <p>In the next chapter, we learn about Spin-Orbit Torque (SOT), which overcomes STT-MRAM challenges. SOT separates read and write paths, enabling high speed and high endurance.</p>
+
+    <hr/>
+
+    <h2>References</h2>
+    <ol>
+      <li>Slonczewski, J. C. (1996). "Current-driven excitation of magnetic multilayers." <em>J. Magn. Magn. Mater.</em>, 159, L1-L7.</li>
+      <li>Berger, L. (1996). "Emission of spin waves by a magnetic multilayer traversed by a current." <em>Phys. Rev. B</em>, 54, 9353.</li>
+      <li>Ralph, D. C., &amp; Stiles, M. D. (2008). "Spin transfer torques." <em>J. Magn. Magn. Mater.</em>, 320, 1190-1216.</li>
+      <li>Apalkov, D., et al. (2016). "Magnetoresistive RAM: A new paradigm for memory." <em>Proc. IEEE</em>, 104(10), 1796-1830.</li>
+    </ol>
+
+    <hr/>
+
+    <div class="navigation">
+      <a href="chapter-1.html" class="nav-button secondary">← Chapter 1: Spin-Orbit Interaction</a>
+      <a href="chapter-3.html" class="nav-button">Chapter 3: Spin-Orbit Torque →</a>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <p>© 2025 AI Terakoya - MS Dojo. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>

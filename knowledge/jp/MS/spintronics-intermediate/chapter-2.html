@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="description" content="第2章: スピン移行トルク（STT） - Slonczewski-Bergerモデルと磁化ダイナミクス"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>第2章: スピン移行トルク（STT） - MS寺子屋</title>
+  <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"/>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });</script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">材料科学</a><span class="breadcrumb-separator">›</span><a href="index.html">スピントロニクス中級</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第2章</span>
+    </div>
+  </nav>
+  <div class="locale-switcher">
+    <span class="current-locale">JP</span>
+    <span class="locale-separator">|</span>
+    <a href="../../../en/MS/spintronics-intermediate/chapter-2.html" class="locale-link">EN</a>
+  </div>
+
+  <header>
+    <div class="header-content">
+      <h1>第2章: スピン移行トルク（STT）</h1>
+      <p class="subtitle">Slonczewski-Bergerモデルと磁化ダイナミクス</p>
+      <div class="meta">
+        <span class="meta-item">学習時間: 35-45分</span>
+        <span class="meta-item">難易度: 中級</span>
+        <span class="meta-item">コード例: 7個</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <p class="chapter-description">
+      スピン移行トルク（STT: Spin Transfer Torque）は、スピン偏極電流が磁性体の磁化に及ぼすトルクです。1996年にSlonczewskiとBergerによって独立に理論的に予測され、現代のSTT-MRAMの動作原理となっています。本章では、STTの理論的基礎から磁化スイッチングのダイナミクス、そしてデバイス設計への応用を学びます。
+    </p>
+
+    <hr/>
+
+    <h2>2.1 スピン移行トルクの物理的起源</h2>
+
+    <p>スピン偏極電流が磁性体を通過する際、電子のスピン角運動量が磁化に移行します。これが<strong>スピン移行トルク</strong>の起源です。</p>
+
+    <h3>角運動量保存則</h3>
+    <p>スピン偏極電子が磁性体に入ると、電子スピンは局所磁化$\mathbf{M}$と相互作用して方向を変えます。角運動量保存により、失われた電子スピン角運動量は磁化に移行します：</p>
+
+    $$
+    \frac{d\mathbf{S}_{\text{electron}}}{dt} + \frac{d\mathbf{S}_{\text{magnet}}}{dt} = 0
+    $$
+
+    <div class="mermaid">
+flowchart LR
+    subgraph 固定層
+        P[ピン層<br/>M_p固定]
+    end
+    subgraph スペーサー
+        S[非磁性層<br/>Cu/MgO]
+    end
+    subgraph 自由層
+        F[フリー層<br/>M_f可変]
+    end
+
+    P -->|スピン偏極電流| S
+    S -->|スピン移行| F
+
+    style P fill:#e74c3c,stroke:#c0392b,color:#fff
+    style S fill:#3498db,stroke:#2980b9,color:#fff
+    style F fill:#2ecc71,stroke:#27ae60,color:#fff
+    </div>
+
+    <h3>Slonczewskiモデル</h3>
+    <p>Slonczewskiは、GMR/TMR素子におけるSTTを定式化しました。スピン移行トルクは次の形で表されます：</p>
+
+    $$
+    \boldsymbol{\tau}_{\text{STT}} = \frac{\hbar}{2e} \frac{I P}{A M_s t_F} g(\theta) \mathbf{m} \times (\mathbf{m} \times \mathbf{m}_p)
+    $$
+
+    <p>ここで：</p>
+    <ul>
+      <li>$I$: 電流</li>
+      <li>$P$: スピン偏極率</li>
+      <li>$A$: 接合面積</li>
+      <li>$M_s$: 飽和磁化</li>
+      <li>$t_F$: 自由層厚さ</li>
+      <li>$\mathbf{m}, \mathbf{m}_p$: 自由層・固定層の磁化単位ベクトル</li>
+      <li>$g(\theta)$: スピン依存伝導の角度因子</li>
+    </ul>
+
+    <h3>コード例2.1: STTの角度依存性</h3>
+    <pre><code class="language-python">"""
+Slonczewski STTの角度依存性
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def slonczewski_g(theta, P, Lambda=1.5):
+    """
+    Slonczewskiの角度依存因子
+
+    Parameters:
+    theta: 自由層と固定層の相対角度
+    P: スピン偏極率
+    Lambda: スピン非対称パラメータ
+    """
+    cos_theta = np.cos(theta)
+    g = P * Lambda**2 / (Lambda**2 + 1 + (Lambda**2 - 1) * cos_theta)
+    return g
+
+# 角度依存性のプロット
+theta = np.linspace(0, np.pi, 200)
+P_values = [0.3, 0.5, 0.7]
+
+plt.figure(figsize=(10, 6))
+
+for P in P_values:
+    g = slonczewski_g(theta, P)
+    plt.plot(np.degrees(theta), g, linewidth=2, label=f'P = {P}')
+
+plt.xlabel('相対角度 θ (度)', fontsize=12)
+plt.ylabel('Slonczewski因子 g(θ)', fontsize=12)
+plt.title('STT角度依存性（Slonczewskiモデル）', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.xlim(0, 180)
+plt.show()
+
+print("θ=0°（平行）: STT最小")
+print("θ=180°（反平行）: STT最大")</code></pre>
+
+    <hr/>
+
+    <h2>2.2 LLG方程式とSTT</h2>
+
+    <p>磁化ダイナミクスは<strong>Landau-Lifshitz-Gilbert（LLG）方程式</strong>で記述されます。STTを含むLLG方程式は：</p>
+
+    $$
+    \frac{d\mathbf{m}}{dt} = -\gamma \mathbf{m} \times \mathbf{H}_{\text{eff}} + \alpha \mathbf{m} \times \frac{d\mathbf{m}}{dt} + \boldsymbol{\tau}_{\text{STT}}
+    $$
+
+    <p>ここで$\gamma$は磁気回転比、$\alpha$はギルバートダンピング定数です。</p>
+
+    <h3>STTの2つの成分</h3>
+    <p>STTは2つの直交成分に分解できます：</p>
+
+    $$
+    \boldsymbol{\tau}_{\text{STT}} = a_J \mathbf{m} \times (\mathbf{m} \times \mathbf{m}_p) + b_J \mathbf{m} \times \mathbf{m}_p
+    $$
+
+    <ul>
+      <li><strong>ダンピング様トルク</strong>（$a_J$項）: 磁化の$\mathbf{m}_p$方向への緩和/反緩和</li>
+      <li><strong>フィールド様トルク</strong>（$b_J$項）: 有効磁場として作用</li>
+    </ul>
+
+    <h3>コード例2.2: STTを含むLLG方程式の数値解法</h3>
+    <pre><code class="language-python">"""
+STTを含むLLG方程式の数値シミュレーション
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+def llg_with_stt(m, t, gamma, alpha, H_eff, a_J, m_p):
+    """
+    STTを含むLLG方程式
+
+    Parameters:
+    m: 磁化ベクトル（規格化）
+    gamma: 磁気回転比 (rad/s/T)
+    alpha: ギルバートダンピング
+    H_eff: 有効磁場ベクトル (T)
+    a_J: STT強度
+    m_p: 固定層磁化方向
+    """
+    m = m / np.linalg.norm(m)  # 規格化
+
+    # 歳差項
+    precession = -gamma * np.cross(m, H_eff)
+
+    # ダンピング項
+    damping = alpha * np.cross(m, precession)
+
+    # STTダンピング様トルク
+    stt = a_J * np.cross(m, np.cross(m, m_p))
+
+    dmdt = precession + damping + stt
+    return dmdt
+
+# パラメータ
+gamma = 1.76e11  # rad/s/T
+alpha = 0.01
+H_eff = np.array([0, 0, 0.1])  # z方向の異方性磁場 (T)
+m_p = np.array([0, 0, 1])  # 固定層: +z方向
+
+# 時間設定
+t_max = 5e-9  # 5 ns
+t = np.linspace(0, t_max, 5000)
+
+# 初期条件（z軸から少し傾いた状態）
+m0 = np.array([0.1, 0, 0.995])
+m0 = m0 / np.linalg.norm(m0)
+
+# 異なるSTT強度での比較
+a_J_values = [0, 5e10, 1e11, 2e11]
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+axes = axes.flatten()
+
+for ax, a_J in zip(axes, a_J_values):
+    sol = odeint(llg_with_stt, m0, t, args=(gamma, alpha, H_eff, a_J, m_p))
+
+    ax.plot(t*1e9, sol[:, 0], 'r-', label='$m_x$', linewidth=1.5)
+    ax.plot(t*1e9, sol[:, 1], 'g-', label='$m_y$', linewidth=1.5)
+    ax.plot(t*1e9, sol[:, 2], 'b-', label='$m_z$', linewidth=1.5)
+
+    ax.set_xlabel('時間 (ns)', fontsize=11)
+    ax.set_ylabel('磁化成分', fontsize=11)
+    ax.set_title(f'$a_J$ = {a_J:.0e} rad/s', fontsize=12)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(-1.1, 1.1)
+
+plt.suptitle('STTによる磁化ダイナミクス', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>2.3 臨界電流密度</h2>
+
+    <p>STTによる磁化スイッチングには、ダンピングトルクを打ち消すのに十分な電流が必要です。この<strong>臨界電流密度</strong>$J_c$は：</p>
+
+    $$
+    J_c = \frac{2e}{\hbar} \frac{\alpha M_s t_F}{\eta P} (H_k + 2\pi M_s)
+    $$
+
+    <p>ここで$H_k$は異方性磁場、$\eta$はスピン移行効率です。</p>
+
+    <div class="info-box">
+      <h3>臨界電流密度を下げるには</h3>
+      <ul>
+        <li><strong>ダンピング$\alpha$を下げる</strong>: 材料選択（低ダンピング合金）</li>
+        <li><strong>異方性$H_k$を下げる</strong>: 垂直磁気異方性の最適化</li>
+        <li><strong>スピン偏極率$P$を上げる</strong>: 高偏極材料（CoFeB等）</li>
+        <li><strong>自由層を薄くする</strong>: $J_c \propto t_F$</li>
+      </ul>
+    </div>
+
+    <h3>コード例2.3: 臨界電流密度の計算</h3>
+    <pre><code class="language-python">"""
+STTスイッチングの臨界電流密度計算
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def critical_current_density(alpha, M_s, t_F, H_k, P, eta=1.0):
+    """
+    STT臨界電流密度
+
+    Parameters:
+    alpha: ギルバートダンピング
+    M_s: 飽和磁化 (A/m)
+    t_F: 自由層厚さ (m)
+    H_k: 異方性磁場 (A/m)
+    P: スピン偏極率
+    eta: スピン移行効率
+    """
+    hbar = 1.055e-34
+    e = 1.6e-19
+    mu_0 = 4 * np.pi * 1e-7
+
+    J_c = (2 * e / hbar) * (alpha * M_s * t_F) / (eta * P)
+    J_c *= (H_k + 2 * np.pi * M_s) * mu_0
+    return J_c
+
+# 典型的なパラメータ（CoFeB）
+alpha = 0.01
+M_s = 1.2e6  # A/m
+P = 0.56
+
+# 膜厚依存性
+t_F = np.linspace(0.5e-9, 3e-9, 50)
+H_k_values = [0.1e6, 0.3e6, 0.5e6]  # A/m
+
+plt.figure(figsize=(10, 6))
+
+for H_k in H_k_values:
+    J_c = critical_current_density(alpha, M_s, t_F, H_k, P)
+    plt.plot(t_F * 1e9, J_c / 1e10, linewidth=2,
+             label=f'$H_k$ = {H_k/1e6:.1f} MA/m')
+
+plt.xlabel('自由層厚さ $t_F$ (nm)', fontsize=12)
+plt.ylabel('臨界電流密度 $J_c$ (×$10^{10}$ A/m²)', fontsize=12)
+plt.title('STTスイッチング臨界電流密度', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+# 典型値
+t_F_typ = 1.5e-9
+H_k_typ = 0.3e6
+J_c_typ = critical_current_density(alpha, M_s, t_F_typ, H_k_typ, P)
+print(f"典型的なSTT-MRAM: J_c ≈ {J_c_typ/1e10:.1f} × 10¹⁰ A/m²")</code></pre>
+
+    <hr/>
+
+    <h2>2.4 磁化スイッチングダイナミクス</h2>
+
+    <h3>スイッチング時間</h3>
+    <p>STTによる磁化スイッチング時間$\tau_{sw}$は、電流密度$J$に依存します：</p>
+
+    $$
+    \tau_{sw} \approx \frac{1 + \alpha^2}{\alpha \gamma \mu_0 M_s} \ln\left(\frac{\pi}{2\theta_0}\right) \frac{J_c}{J - J_c}
+    $$
+
+    <p>ここで$\theta_0$は初期角度です。</p>
+
+    <h3>コード例2.4: スイッチング時間のシミュレーション</h3>
+    <pre><code class="language-python">"""
+STT磁化スイッチングの完全シミュレーション
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+def llg_stt_pma(m, t, gamma, alpha, H_k, a_J, m_p):
+    """
+    垂直磁気異方性を持つSTT-LLG方程式
+    """
+    m = m / np.linalg.norm(m)
+
+    # 有効磁場（PMA）
+    H_eff = np.array([0, 0, H_k * m[2]])
+
+    # LLG + STT
+    precession = -gamma * np.cross(m, H_eff)
+    damping = alpha * np.cross(m, precession)
+    stt = a_J * np.cross(m, np.cross(m, m_p))
+
+    return precession + damping + stt
+
+def find_switching_time(t, mz, threshold=-0.5):
+    """スイッチング完了時間を検出"""
+    idx = np.where(mz < threshold)[0]
+    if len(idx) > 0:
+        return t[idx[0]]
+    return np.nan
+
+# パラメータ
+gamma = 1.76e11
+alpha = 0.01
+H_k = 0.5  # T相当の異方性
+m_p = np.array([0, 0, -1])  # 反平行方向へスイッチング
+
+# 初期状態（+z方向から少し傾き）
+m0 = np.array([0.01, 0, 0.99995])
+m0 = m0 / np.linalg.norm(m0)
+
+# 異なる電流強度でのスイッチング
+t_max = 10e-9
+t = np.linspace(0, t_max, 10000)
+
+a_J_values = np.array([0.8, 1.0, 1.5, 2.0, 3.0]) * 1e11
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# 左: mzの時間発展
+colors = plt.cm.viridis(np.linspace(0, 0.9, len(a_J_values)))
+switching_times = []
+
+for a_J, color in zip(a_J_values, colors):
+    sol = odeint(llg_stt_pma, m0, t, args=(gamma, alpha, H_k, a_J, m_p))
+    mz = sol[:, 2]
+    axes[0].plot(t*1e9, mz, color=color, linewidth=1.5,
+                 label=f'$a_J$ = {a_J/1e11:.1f}×$10^{{11}}$')
+    switching_times.append(find_switching_time(t, mz))
+
+axes[0].axhline(y=0, color='k', linestyle='--', alpha=0.3)
+axes[0].set_xlabel('時間 (ns)', fontsize=12)
+axes[0].set_ylabel('$m_z$', fontsize=12)
+axes[0].set_title('STT磁化スイッチング', fontsize=14)
+axes[0].legend(loc='right')
+axes[0].grid(True, alpha=0.3)
+
+# 右: スイッチング時間 vs 電流
+axes[1].plot(a_J_values/1e11, np.array(switching_times)*1e9, 'bo-', linewidth=2, markersize=8)
+axes[1].set_xlabel('STT強度 $a_J$ (×$10^{11}$ rad/s)', fontsize=12)
+axes[1].set_ylabel('スイッチング時間 (ns)', fontsize=12)
+axes[1].set_title('電流依存性', fontsize=14)
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>2.5 STT-MRAM</h2>
+
+    <p>STT-MRAM（Spin Transfer Torque Magnetoresistive RAM）は、STTを書き込みに利用する不揮発性メモリです。</p>
+
+    <div class="mermaid">
+flowchart TD
+    subgraph STT-MRAM構造
+        Cap[キャップ層]
+        FL[自由層<br/>CoFeB 1-2nm]
+        TB[トンネル障壁<br/>MgO 1nm]
+        PL[参照層<br/>CoFeB]
+        SAF[SAF構造]
+        BE[下部電極]
+    end
+
+    Cap --> FL --> TB --> PL --> SAF --> BE
+
+    style FL fill:#2ecc71,stroke:#27ae60,color:#fff
+    style TB fill:#3498db,stroke:#2980b9,color:#fff
+    style PL fill:#e74c3c,stroke:#c0392b,color:#fff
+    </div>
+
+    <h3>STT-MRAMの動作</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>動作</th>
+          <th>電流方向</th>
+          <th>最終状態</th>
+          <th>抵抗</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>書き込み "0"</td>
+          <td>PL → FL</td>
+          <td>平行配置</td>
+          <td>低抵抗（$R_P$）</td>
+        </tr>
+        <tr>
+          <td>書き込み "1"</td>
+          <td>FL → PL</td>
+          <td>反平行配置</td>
+          <td>高抵抗（$R_{AP}$）</td>
+        </tr>
+        <tr>
+          <td>読み出し</td>
+          <td>小電流</td>
+          <td>（変化なし）</td>
+          <td>TMRで検出</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>コード例2.5: STT-MRAMパラメータ設計</h3>
+    <pre><code class="language-python">"""
+STT-MRAM設計パラメータの計算
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+class STTMRAM:
+    def __init__(self, diameter_nm, t_FL_nm, M_s, H_k, alpha, P, TMR):
+        """
+        STT-MRAMセルの設計
+
+        Parameters:
+        diameter_nm: MTJ直径 (nm)
+        t_FL_nm: 自由層厚さ (nm)
+        M_s: 飽和磁化 (A/m)
+        H_k: 異方性磁場 (A/m)
+        alpha: ギルバートダンピング
+        P: スピン偏極率
+        TMR: TMR比
+        """
+        self.diameter = diameter_nm * 1e-9
+        self.t_FL = t_FL_nm * 1e-9
+        self.M_s = M_s
+        self.H_k = H_k
+        self.alpha = alpha
+        self.P = P
+        self.TMR = TMR
+
+        self.area = np.pi * (self.diameter/2)**2
+        self.volume = self.area * self.t_FL
+
+    def thermal_stability(self, T=300):
+        """熱安定性因子 Δ = E_b / k_B T"""
+        k_B = 1.38e-23
+        mu_0 = 4 * np.pi * 1e-7
+        E_b = 0.5 * mu_0 * self.M_s * self.H_k * self.volume
+        return E_b / (k_B * T)
+
+    def critical_current(self):
+        """臨界電流"""
+        hbar = 1.055e-34
+        e = 1.6e-19
+        mu_0 = 4 * np.pi * 1e-7
+        eta = 1.0
+
+        J_c = (2 * e / hbar) * (self.alpha * self.M_s * self.t_FL) / (eta * self.P)
+        J_c *= (self.H_k + 2 * np.pi * self.M_s) * mu_0
+        return J_c * self.area
+
+    def switching_voltage(self, R_P=1000):
+        """スイッチング電圧（R_P基準）"""
+        return self.critical_current() * R_P
+
+    def retention_time(self, T=300):
+        """データ保持時間（10年を目標）"""
+        delta = self.thermal_stability(T)
+        f0 = 1e9  # 試行周波数
+        return np.exp(delta) / f0
+
+# 設計パラメータのスキャン
+diameters = np.linspace(20, 100, 50)
+
+# 典型的なパラメータ
+M_s = 1.2e6
+H_k = 0.4e6
+alpha = 0.01
+P = 0.56
+TMR = 1.5
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+deltas = []
+I_cs = []
+
+for d in diameters:
+    cell = STTMRAM(d, 1.5, M_s, H_k, alpha, P, TMR)
+    deltas.append(cell.thermal_stability())
+    I_cs.append(cell.critical_current() * 1e6)
+
+# 熱安定性
+axes[0].plot(diameters, deltas, 'b-', linewidth=2)
+axes[0].axhline(y=60, color='r', linestyle='--', label='目標 Δ=60')
+axes[0].set_xlabel('MTJ直径 (nm)', fontsize=11)
+axes[0].set_ylabel('熱安定性因子 Δ', fontsize=11)
+axes[0].set_title('熱安定性 vs サイズ', fontsize=12)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+# 臨界電流
+axes[1].plot(diameters, I_cs, 'g-', linewidth=2)
+axes[1].set_xlabel('MTJ直径 (nm)', fontsize=11)
+axes[1].set_ylabel('臨界電流 $I_c$ (μA)', fontsize=11)
+axes[1].set_title('臨界電流 vs サイズ', fontsize=12)
+axes[1].grid(True, alpha=0.3)
+
+# トレードオフ
+axes[2].plot(deltas, I_cs, 'mo-', linewidth=2, markersize=4)
+axes[2].axvline(x=60, color='r', linestyle='--', alpha=0.5)
+axes[2].set_xlabel('熱安定性因子 Δ', fontsize=11)
+axes[2].set_ylabel('臨界電流 $I_c$ (μA)', fontsize=11)
+axes[2].set_title('Δ - $I_c$ トレードオフ', fontsize=12)
+axes[2].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# 設計例
+cell = STTMRAM(50, 1.5, M_s, H_k, alpha, P, TMR)
+print(f"MTJ直径50nm設計:")
+print(f"  熱安定性 Δ = {cell.thermal_stability():.1f}")
+print(f"  臨界電流 Ic = {cell.critical_current()*1e6:.1f} μA")</code></pre>
+
+    <hr/>
+
+    <h2>2.6 プリセッション駆動とパルス最適化</h2>
+
+    <p>高速スイッチングには、磁化のプリセッション運動を利用した<strong>プリセッション駆動</strong>が有効です。</p>
+
+    <h3>コード例2.6: 最適パルス幅の探索</h3>
+    <pre><code class="language-python">"""
+STTパルス駆動による高速スイッチング
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+def llg_stt_pulse(m, t, gamma, alpha, H_k, a_J, m_p, t_pulse):
+    """パルス電流によるSTT"""
+    m = m / np.linalg.norm(m)
+
+    H_eff = np.array([0, 0, H_k * m[2]])
+
+    precession = -gamma * np.cross(m, H_eff)
+    damping = alpha * np.cross(m, precession)
+
+    # パルス制御
+    if t < t_pulse:
+        stt = a_J * np.cross(m, np.cross(m, m_p))
+    else:
+        stt = np.zeros(3)
+
+    return precession + damping + stt
+
+# パラメータ
+gamma = 1.76e11
+alpha = 0.01
+H_k = 0.5
+m_p = np.array([0, 0, -1])
+a_J = 2e11
+
+m0 = np.array([0.01, 0, 0.99995])
+m0 = m0 / np.linalg.norm(m0)
+
+t_max = 15e-9
+t = np.linspace(0, t_max, 15000)
+
+# 異なるパルス幅
+pulse_widths = [1e-9, 2e-9, 3e-9, 5e-9, 8e-9]
+
+fig, axes = plt.subplots(2, 3, figsize=(15, 8))
+axes = axes.flatten()
+
+for i, t_pulse in enumerate(pulse_widths):
+    sol = odeint(llg_stt_pulse, m0, t, args=(gamma, alpha, H_k, a_J, m_p, t_pulse))
+
+    ax = axes[i]
+    ax.plot(t*1e9, sol[:, 2], 'b-', linewidth=1.5)
+    ax.axvline(x=t_pulse*1e9, color='r', linestyle='--', alpha=0.5, label='パルス終了')
+    ax.axhline(y=0, color='k', linestyle=':', alpha=0.3)
+    ax.set_xlabel('時間 (ns)', fontsize=10)
+    ax.set_ylabel('$m_z$', fontsize=10)
+    ax.set_title(f'パルス幅 = {t_pulse*1e9:.0f} ns', fontsize=11)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(-1.2, 1.2)
+
+# 最終状態のまとめ
+axes[5].axis('off')
+axes[5].text(0.1, 0.7, 'パルス最適化のポイント:', fontsize=12, fontweight='bold')
+axes[5].text(0.1, 0.5, '• 短すぎ: 完全にスイッチングしない', fontsize=10)
+axes[5].text(0.1, 0.35, '• 最適: 確実にスイッチング完了', fontsize=10)
+axes[5].text(0.1, 0.2, '• 長すぎ: エネルギー浪費、温度上昇', fontsize=10)
+
+plt.suptitle('STTパルス駆動スイッチング', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>2.7 STT-MRAMの課題と解決策</h2>
+
+    <h3>コード例2.7: エラーレート解析</h3>
+    <pre><code class="language-python">"""
+STT-MRAMの書き込みエラー解析
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def write_error_rate(delta, I_ratio, T=300):
+    """
+    書き込みエラー確率（熱活性化モデル）
+
+    Parameters:
+    delta: 熱安定性因子
+    I_ratio: I/Ic比
+    """
+    if I_ratio <= 1:
+        return 1.0  # 臨界電流以下では確実に失敗
+
+    # 熱活性化によるエラー
+    effective_delta = delta * (1 - 1/I_ratio)
+    P_error = np.exp(-effective_delta)
+    return P_error
+
+# パラメータスキャン
+delta_values = [40, 50, 60, 70, 80]
+I_ratios = np.linspace(1.01, 3, 100)
+
+plt.figure(figsize=(10, 6))
+
+for delta in delta_values:
+    P_errors = [write_error_rate(delta, I) for I in I_ratios]
+    plt.semilogy(I_ratios, P_errors, linewidth=2, label=f'Δ = {delta}')
+
+plt.axhline(y=1e-6, color='r', linestyle='--', label='目標 BER < 10⁻⁶')
+plt.xlabel('$I/I_c$ 比', fontsize=12)
+plt.ylabel('書き込みエラー確率', fontsize=12)
+plt.title('STT-MRAM書き込みエラー解析', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.ylim(1e-20, 1)
+plt.show()
+
+print("高い熱安定性(Δ)と十分なオーバードライブ(I/Ic)が必要")
+print("Δ=60, I/Ic=1.5で BER ≈ 10⁻¹⁰ 程度を達成可能")</code></pre>
+
+    <div class="info-box warning">
+      <h3>STT-MRAMの主な課題</h3>
+      <ul>
+        <li><strong>読み書き経路の共有</strong>: 読み出し時の誤書き込み（read disturb）</li>
+        <li><strong>インキュベーション時間</strong>: 熱揺らぎからの立ち上がり時間のばらつき</li>
+        <li><strong>MTJ劣化</strong>: 繰り返し電流印加によるトンネル障壁劣化</li>
+      </ul>
+      <p>これらの課題を解決するため、次章で学ぶSOT-MRAMが開発されました。</p>
+    </div>
+
+    <hr/>
+
+    <h2>章のまとめ</h2>
+
+    <div class="info-box">
+      <h3>学んだこと</h3>
+      <ul>
+        <li><strong>STTの起源</strong>: スピン偏極電流から磁化への角運動量移行</li>
+        <li><strong>Slonczewskiモデル</strong>: STTの角度依存性と効率因子</li>
+        <li><strong>LLG+STT</strong>: 磁化ダイナミクスの数値シミュレーション</li>
+        <li><strong>臨界電流</strong>: スイッチングに必要な最小電流密度</li>
+        <li><strong>STT-MRAM</strong>: 構造、動作原理、設計トレードオフ</li>
+      </ul>
+    </div>
+
+    <h3>次章への準備</h3>
+    <p>次章では、STT-MRAMの課題を克服するスピン軌道トルク（SOT）を学びます。SOTは読み書き経路を分離し、高速・高耐久性を実現します。</p>
+
+    <hr/>
+
+    <h2>参考文献</h2>
+    <ol>
+      <li>Slonczewski, J. C. (1996). "Current-driven excitation of magnetic multilayers." <em>J. Magn. Magn. Mater.</em>, 159, L1-L7.</li>
+      <li>Berger, L. (1996). "Emission of spin waves by a magnetic multilayer traversed by a current." <em>Phys. Rev. B</em>, 54, 9353.</li>
+      <li>Ralph, D. C., &amp; Stiles, M. D. (2008). "Spin transfer torques." <em>J. Magn. Magn. Mater.</em>, 320, 1190-1216.</li>
+      <li>Apalkov, D., et al. (2016). "Magnetoresistive RAM: A new paradigm for memory." <em>Proc. IEEE</em>, 104(10), 1796-1830.</li>
+    </ol>
+
+    <hr/>
+
+    <div class="navigation">
+      <a href="chapter-1.html" class="nav-button secondary">← 第1章: スピン軌道相互作用</a>
+      <a href="chapter-3.html" class="nav-button">第3章: スピン軌道トルク →</a>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <p>© 2025 AI Terakoya - MS Dojo. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="description" content="第3章: スピン軌道トルク（SOT） - スピンホール効果とRashba効果からSOT-MRAMまで"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>第3章: スピン軌道トルク（SOT） - MS寺子屋</title>
+  <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"/>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });</script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">材料科学</a><span class="breadcrumb-separator">›</span><a href="index.html">スピントロニクス中級</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第3章</span>
+    </div>
+  </nav>
+  <div class="locale-switcher">
+    <span class="current-locale">JP</span>
+    <span class="locale-separator">|</span>
+    <a href="../../../en/MS/spintronics-intermediate/chapter-3.html" class="locale-link">EN</a>
+  </div>
+
+  <header>
+    <div class="header-content">
+      <h1>第3章: スピン軌道トルク（SOT）</h1>
+      <p class="subtitle">スピンホール効果とRashba効果からSOT-MRAMまで</p>
+      <div class="meta">
+        <span class="meta-item">学習時間: 35-45分</span>
+        <span class="meta-item">難易度: 中級〜上級</span>
+        <span class="meta-item">コード例: 7個</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <p class="chapter-description">
+      スピン軌道トルク（SOT: Spin-Orbit Torque）は、重金属/強磁性体二層膜構造において、面内電流がスピン軌道相互作用を介して磁化に及ぼすトルクです。STT-MRAMの課題を克服する次世代技術として注目されています。本章では、SOTの物理的起源、2つのトルク成分、スイッチングメカニズム、そしてSOT-MRAMの設計原理を学びます。
+    </p>
+
+    <hr/>
+
+    <h2>3.1 SOTの物理的起源</h2>
+
+    <p>SOTは主に2つのメカニズムから生じます：</p>
+
+    <h3>スピンホール効果（SHE）起源</h3>
+    <p>重金属（Pt, W, Ta等）に面内電流を流すと、スピンホール効果によりスピン流が垂直方向に発生します：</p>
+
+    $$
+    \mathbf{J}_s = \theta_{SH} \frac{\hbar}{2e} (\hat{\sigma} \times \mathbf{J}_c)
+    $$
+
+    <p>ここで$\theta_{SH}$はスピンホール角、$\hat{\sigma}$はスピン偏極方向、$\mathbf{J}_c$は電荷電流密度です。</p>
+
+    <h3>Rashba-Edelstein効果起源</h3>
+    <p>界面のRashba SOIにより、電流がスピン蓄積を直接誘起します：</p>
+
+    $$
+    \boldsymbol{\mu}_s = \alpha_R \tau_s (\hat{z} \times \mathbf{J}_c)
+    $$
+
+    <div class="mermaid">
+flowchart LR
+    subgraph 重金属層
+        HM[Pt, W, Ta<br/>電流 J_c →]
+    end
+    subgraph 界面
+        IF[Rashba SOI<br/>スピン蓄積]
+    end
+    subgraph 強磁性層
+        FM[CoFeB<br/>磁化 M]
+    end
+
+    HM -->|SHEスピン流| IF
+    IF -->|SOT| FM
+
+    style HM fill:#3498db,stroke:#2980b9,color:#fff
+    style IF fill:#9b59b6,stroke:#8e44ad,color:#fff
+    style FM fill:#e74c3c,stroke:#c0392b,color:#fff
+    </div>
+
+    <h3>コード例3.1: スピンホール効果によるスピン流生成</h3>
+    <pre><code class="language-python">"""
+スピンホール効果によるスピン流生成の可視化
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+def spin_hall_current(J_c, theta_SH, direction='x'):
+    """
+    SHEによるスピン流ベクトル
+
+    Parameters:
+    J_c: 電荷電流密度 (A/m²)
+    theta_SH: スピンホール角
+    direction: 電荷電流の方向
+    """
+    hbar = 1.055e-34
+    e = 1.6e-19
+
+    if direction == 'x':
+        # J_c || x → J_s || z, σ || y
+        J_s_magnitude = theta_SH * (hbar / (2 * e)) * J_c
+        return np.array([0, 0, J_s_magnitude]), np.array([0, 1, 0])
+    elif direction == 'y':
+        # J_c || y → J_s || z, σ || -x
+        J_s_magnitude = theta_SH * (hbar / (2 * e)) * J_c
+        return np.array([0, 0, J_s_magnitude]), np.array([-1, 0, 0])
+
+# パラメータ
+J_c = 1e11  # A/m²
+theta_SH_values = {'Pt': 0.08, 'W': 0.30, 'Ta': 0.15}
+
+fig = plt.figure(figsize=(14, 5))
+
+for i, (material, theta_SH) in enumerate(theta_SH_values.items()):
+    ax = fig.add_subplot(1, 3, i+1, projection='3d')
+
+    # 電荷電流（赤矢印）
+    ax.quiver(0, 0, 0, 1, 0, 0, color='red', arrow_length_ratio=0.2, linewidth=3, label='$J_c$')
+
+    # スピン流（青矢印）
+    J_s, sigma = spin_hall_current(J_c, theta_SH)
+    scale = theta_SH / 0.30  # W基準でスケール
+    ax.quiver(0, 0, 0, 0, 0, scale, color='blue', arrow_length_ratio=0.2, linewidth=3, label='$J_s$')
+
+    # スピン偏極方向（緑矢印）
+    ax.quiver(0.5, 0, scale/2, 0, 0.5, 0, color='green', arrow_length_ratio=0.3, linewidth=2, label='σ')
+
+    ax.set_xlim(-0.5, 1.5)
+    ax.set_ylim(-0.5, 1.0)
+    ax.set_zlim(-0.5, 1.5)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    ax.set_title(f'{material} (θ_SH = {theta_SH})', fontsize=12)
+
+plt.suptitle('スピンホール効果によるスピン流生成', fontsize=14)
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>3.2 SOTの2成分：フィールド様とダンピング様</h2>
+
+    <p>SOTは2つの直交成分に分解されます：</p>
+
+    $$
+    \boldsymbol{\tau}_{SOT} = \tau_{FL} \mathbf{m} \times \boldsymbol{\sigma} + \tau_{DL} \mathbf{m} \times (\mathbf{m} \times \boldsymbol{\sigma})
+    $$
+
+    <h3>フィールド様トルク（Field-like, FL）</h3>
+    <ul>
+      <li>有効磁場$\mathbf{H}_{FL} \propto \boldsymbol{\sigma}$として作用</li>
+      <li>主にRashba効果に起因</li>
+      <li>磁化の歳差運動を誘起</li>
+    </ul>
+
+    <h3>ダンピング様トルク（Damping-like, DL）</h3>
+    <ul>
+      <li>磁化を$\boldsymbol{\sigma}$方向に回転</li>
+      <li>主にSHEに起因</li>
+      <li>磁化スイッチングに直接寄与</li>
+    </ul>
+
+    <h3>コード例3.2: SOT成分の可視化</h3>
+    <pre><code class="language-python">"""
+SOTのフィールド様・ダンピング様成分の可視化
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+def sot_components(m, sigma, tau_FL, tau_DL):
+    """
+    SOTの2成分を計算
+
+    Parameters:
+    m: 磁化方向（単位ベクトル）
+    sigma: スピン偏極方向
+    tau_FL: フィールド様トルク強度
+    tau_DL: ダンピング様トルク強度
+    """
+    FL = tau_FL * np.cross(m, sigma)
+    DL = tau_DL * np.cross(m, np.cross(m, sigma))
+    return FL, DL
+
+# 磁化とスピン偏極の設定
+sigma = np.array([0, 1, 0])  # y方向偏極
+
+# 様々な磁化方向でのトルク
+theta = np.linspace(0, 2*np.pi, 36)
+phi = np.pi / 4  # xz面から45度
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# 左: トルクの大きさの角度依存性
+tau_FL_mag = []
+tau_DL_mag = []
+
+for th in theta:
+    m = np.array([np.sin(phi)*np.cos(th), np.sin(phi)*np.sin(th), np.cos(phi)])
+    m = m / np.linalg.norm(m)
+    FL, DL = sot_components(m, sigma, 1.0, 1.0)
+    tau_FL_mag.append(np.linalg.norm(FL))
+    tau_DL_mag.append(np.linalg.norm(DL))
+
+axes[0].plot(np.degrees(theta), tau_FL_mag, 'b-', linewidth=2, label='Field-like')
+axes[0].plot(np.degrees(theta), tau_DL_mag, 'r-', linewidth=2, label='Damping-like')
+axes[0].set_xlabel('磁化方位角 (度)', fontsize=12)
+axes[0].set_ylabel('トルク大きさ (a.u.)', fontsize=12)
+axes[0].set_title('SOTトルクの角度依存性', fontsize=14)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+# 右: 3Dベクトル図
+ax2 = fig.add_subplot(122, projection='3d')
+
+m = np.array([1, 0, 1])
+m = m / np.linalg.norm(m)
+FL, DL = sot_components(m, sigma, 0.5, 0.5)
+
+# ベクトル描画
+ax2.quiver(0, 0, 0, m[0], m[1], m[2], color='black', arrow_length_ratio=0.1,
+           linewidth=3, label='m (磁化)')
+ax2.quiver(0, 0, 0, sigma[0], sigma[1], sigma[2], color='green', arrow_length_ratio=0.1,
+           linewidth=3, label='σ (スピン)')
+ax2.quiver(m[0], m[1], m[2], FL[0], FL[1], FL[2], color='blue', arrow_length_ratio=0.15,
+           linewidth=2, label='τ_FL')
+ax2.quiver(m[0], m[1], m[2], DL[0], DL[1], DL[2], color='red', arrow_length_ratio=0.15,
+           linewidth=2, label='τ_DL')
+
+ax2.set_xlim(-1, 1.5)
+ax2.set_ylim(-1, 1.5)
+ax2.set_zlim(-0.5, 1.5)
+ax2.set_xlabel('x')
+ax2.set_ylabel('y')
+ax2.set_zlabel('z')
+ax2.set_title('SOTトルクベクトル', fontsize=14)
+ax2.legend(loc='upper left')
+
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>3.3 SOTによる磁化スイッチング</h2>
+
+    <p>SOTによる垂直磁化のスイッチングには、<strong>対称性破れ</strong>が必要です。</p>
+
+    <h3>対称性破れの方法</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>方法</th>
+          <th>メカニズム</th>
+          <th>特徴</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>外部磁場</td>
+          <td>面内磁場印加</td>
+          <td>研究用、実用には不向き</td>
+        </tr>
+        <tr>
+          <td>交換バイアス</td>
+          <td>反強磁性体との結合</td>
+          <td>外部磁場不要</td>
+        </tr>
+        <tr>
+          <td>傾斜異方性</td>
+          <td>磁気異方性の傾き</td>
+          <td>構造設計で実現</td>
+        </tr>
+        <tr>
+          <td>層間結合</td>
+          <td>合成反強磁性構造</td>
+          <td>漏れ磁場低減</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>コード例3.3: SOT磁化スイッチングシミュレーション</h3>
+    <pre><code class="language-python">"""
+SOTによる垂直磁化スイッチングのLLGシミュレーション
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+def llg_sot(m, t, gamma, alpha, H_k, H_x, tau_DL, sigma):
+    """
+    SOTを含むLLG方程式
+
+    Parameters:
+    m: 磁化方向
+    gamma: 磁気回転比
+    alpha: ダンピング
+    H_k: 異方性磁場（z方向）
+    H_x: 面内対称性破れ磁場
+    tau_DL: ダンピング様トルク強度
+    sigma: スピン偏極方向
+    """
+    m = m / np.linalg.norm(m)
+
+    # 有効磁場
+    H_eff = np.array([H_x, 0, H_k * m[2]])
+
+    # LLG歳差・ダンピング項
+    precession = -gamma * np.cross(m, H_eff)
+    damping = alpha * np.cross(m, precession)
+
+    # SOTダンピング様トルク
+    sot_DL = tau_DL * np.cross(m, np.cross(m, sigma))
+
+    return precession + damping + sot_DL
+
+# パラメータ
+gamma = 1.76e11
+alpha = 0.05
+H_k = 0.8  # PMA (T相当)
+sigma = np.array([0, 1, 0])  # y方向スピン偏極
+
+# 時間設定
+t_max = 5e-9
+t = np.linspace(0, t_max, 5000)
+
+# 初期状態
+m0 = np.array([0.01, 0, 0.99995])
+m0 = m0 / np.linalg.norm(m0)
+
+# 異なる面内磁場でのスイッチング
+H_x_values = [0, 0.05, 0.1, 0.2]
+tau_DL = 5e11  # 固定
+
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+axes = axes.flatten()
+
+for ax, H_x in zip(axes, H_x_values):
+    sol = odeint(llg_sot, m0, t, args=(gamma, alpha, H_k, H_x, tau_DL, sigma))
+
+    ax.plot(t*1e9, sol[:, 0], 'r-', label='$m_x$', linewidth=1.5)
+    ax.plot(t*1e9, sol[:, 1], 'g-', label='$m_y$', linewidth=1.5)
+    ax.plot(t*1e9, sol[:, 2], 'b-', label='$m_z$', linewidth=1.5)
+
+    ax.set_xlabel('時間 (ns)', fontsize=11)
+    ax.set_ylabel('磁化成分', fontsize=11)
+    ax.set_title(f'$H_x$ = {H_x} T', fontsize=12)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(-1.1, 1.1)
+
+plt.suptitle('SOTスイッチングと対称性破れ磁場', fontsize=14)
+plt.tight_layout()
+plt.show()
+
+print("H_x=0: 対称性によりスイッチングしない")
+print("H_x>0: 対称性が破れ、決定論的スイッチングが可能")</code></pre>
+
+    <hr/>
+
+    <h2>3.4 SOT効率の評価</h2>
+
+    <p>SOT効率は、単位電流あたりの有効磁場で評価されます：</p>
+
+    $$
+    \xi_{DL} = \frac{2e}{\hbar} \frac{M_s t_F H_{eff}}{J_c}
+    $$
+
+    <h3>コード例3.4: SOT効率の測定法シミュレーション</h3>
+    <pre><code class="language-python">"""
+SOT効率評価のためのハーモニック測定シミュレーション
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def sot_harmonic_response(H_ext, H_DL, H_FL, H_k, phi=0):
+    """
+    SOTによる磁化傾きと第2高調波応答
+
+    Parameters:
+    H_ext: 外部磁場
+    H_DL: ダンピング様有効磁場
+    H_FL: フィールド様有効磁場
+    H_k: 異方性磁場
+    phi: 外部磁場方位角
+    """
+    # 磁化の平衡傾き（小角近似）
+    theta_0 = H_ext * np.cos(phi) / H_k
+
+    # 第1高調波電圧（AMR + PHE）
+    V_1omega = np.cos(2*phi) + np.sin(2*phi)
+
+    # 第2高調波電圧（SOT起源）
+    V_2omega_DL = H_DL * np.cos(phi) / (H_k - H_ext * np.cos(phi))
+    V_2omega_FL = H_FL * np.sin(phi) / (H_k - H_ext * np.cos(phi))
+
+    return V_1omega, V_2omega_DL + V_2omega_FL
+
+# パラメータ
+H_k = 1.0  # T
+H_DL = 0.1  # T (電流印加時)
+H_FL = 0.02  # T
+
+# 外部磁場スキャン
+H_ext = np.linspace(-0.8, 0.8, 200)
+
+# 異なる方位角での応答
+phi_values = [0, np.pi/4, np.pi/2]
+phi_names = ['φ=0° (x軸)', 'φ=45°', 'φ=90° (y軸)']
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+for phi, name in zip(phi_values, phi_names):
+    V_1, V_2 = sot_harmonic_response(H_ext, H_DL, H_FL, H_k, phi)
+    axes[0].plot(H_ext, V_1 * np.ones_like(H_ext), linewidth=2, label=name)
+    axes[1].plot(H_ext, V_2, linewidth=2, label=name)
+
+axes[0].set_xlabel('外部磁場 (T)', fontsize=12)
+axes[0].set_ylabel('第1高調波 $V_{1ω}$ (a.u.)', fontsize=12)
+axes[0].set_title('第1高調波応答', fontsize=14)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+axes[1].set_xlabel('外部磁場 (T)', fontsize=12)
+axes[1].set_ylabel('第2高調波 $V_{2ω}$ (a.u.)', fontsize=12)
+axes[1].set_title('第2高調波応答（SOT起源）', fontsize=14)
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("φ=0°: ダンピング様トルク成分を抽出")
+print("φ=90°: フィールド様トルク成分を抽出")</code></pre>
+
+    <hr/>
+
+    <h2>3.5 SOT-MRAM</h2>
+
+    <p>SOT-MRAMは、STT-MRAMの課題を克服する次世代メモリです。</p>
+
+    <div class="mermaid">
+flowchart TD
+    subgraph SOT-MRAM構造
+        MTJ[MTJ読み出し用]
+        FL[自由層 CoFeB]
+        HM[重金属層 W/Ta]
+        WL[書き込み線]
+    end
+
+    WL -->|書き込み電流| HM
+    HM -->|SOT| FL
+    FL -->|TMR| MTJ
+
+    style FL fill:#2ecc71,stroke:#27ae60,color:#fff
+    style HM fill:#3498db,stroke:#2980b9,color:#fff
+    style MTJ fill:#9b59b6,stroke:#8e44ad,color:#fff
+    </div>
+
+    <h3>STT-MRAMとの比較</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>特性</th>
+          <th>STT-MRAM</th>
+          <th>SOT-MRAM</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>読み/書き経路</td>
+          <td>共有（2端子）</td>
+          <td>分離（3端子）</td>
+        </tr>
+        <tr>
+          <td>書き込み速度</td>
+          <td>~10 ns</td>
+          <td>< 1 ns</td>
+        </tr>
+        <tr>
+          <td>耐久性</td>
+          <td>10¹² サイクル</td>
+          <td>10¹⁵+ サイクル</td>
+        </tr>
+        <tr>
+          <td>Read disturb</td>
+          <td>あり</td>
+          <td>なし</td>
+        </tr>
+        <tr>
+          <td>消費電力</td>
+          <td>中程度</td>
+          <td>やや高い</td>
+        </tr>
+        <tr>
+          <td>セル面積</td>
+          <td>小さい</td>
+          <td>やや大きい</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>コード例3.5: SOT-MRAMスイッチング解析</h3>
+    <pre><code class="language-python">"""
+SOT-MRAMのスイッチング特性解析
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+class SOTMRAM:
+    def __init__(self, diameter_nm, t_FL_nm, t_HM_nm, M_s, H_k, alpha, theta_SH):
+        self.diameter = diameter_nm * 1e-9
+        self.t_FL = t_FL_nm * 1e-9
+        self.t_HM = t_HM_nm * 1e-9
+        self.M_s = M_s
+        self.H_k = H_k
+        self.alpha = alpha
+        self.theta_SH = theta_SH
+
+        self.area = np.pi * (self.diameter/2)**2
+        self.volume = self.area * self.t_FL
+
+    def critical_current_density(self):
+        """SOTスイッチング臨界電流密度"""
+        hbar = 1.055e-34
+        e = 1.6e-19
+        mu_0 = 4 * np.pi * 1e-7
+
+        J_c = (2 * e * self.M_s * self.t_FL * self.H_k * mu_0) / (hbar * self.theta_SH)
+        return J_c
+
+    def switching_time(self, J_ratio=1.5):
+        """概算スイッチング時間"""
+        gamma = 1.76e11
+        mu_0 = 4 * np.pi * 1e-7
+        return 1 / (self.alpha * gamma * mu_0 * self.M_s) * 1 / (J_ratio - 1)
+
+    def power_consumption(self, J_ratio=1.5, rho_HM=1e-6):
+        """書き込み消費電力"""
+        J_c = self.critical_current_density()
+        J = J_c * J_ratio
+        tau_sw = self.switching_time(J_ratio)
+
+        # 重金属層の抵抗
+        L = self.diameter  # 書き込み線長さ ≈ 直径
+        W = self.diameter
+        R_HM = rho_HM * L / (W * self.t_HM)
+
+        I = J * W * self.t_HM
+        E = I**2 * R_HM * tau_sw
+        return E
+
+# 設計パラメータ比較
+diameters = np.linspace(20, 80, 30)
+
+# Pt系とW系の比較
+materials = {
+    'Pt': {'theta_SH': 0.08, 'color': 'blue'},
+    'W(β)': {'theta_SH': 0.30, 'color': 'red'},
+}
+
+M_s = 1.2e6
+H_k = 0.4e6
+alpha = 0.02
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+for name, params in materials.items():
+    J_cs = []
+    tau_sws = []
+    E_sws = []
+
+    for d in diameters:
+        cell = SOTMRAM(d, 1.5, 5, M_s, H_k, alpha, params['theta_SH'])
+        J_cs.append(cell.critical_current_density() / 1e11)
+        tau_sws.append(cell.switching_time() * 1e9)
+        E_sws.append(cell.power_consumption() * 1e15)
+
+    axes[0].plot(diameters, J_cs, color=params['color'], linewidth=2, label=name)
+    axes[1].plot(diameters, tau_sws, color=params['color'], linewidth=2, label=name)
+    axes[2].plot(diameters, E_sws, color=params['color'], linewidth=2, label=name)
+
+axes[0].set_xlabel('MTJ直径 (nm)', fontsize=11)
+axes[0].set_ylabel('$J_c$ (×$10^{11}$ A/m²)', fontsize=11)
+axes[0].set_title('臨界電流密度', fontsize=12)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+axes[1].set_xlabel('MTJ直径 (nm)', fontsize=11)
+axes[1].set_ylabel('スイッチング時間 (ns)', fontsize=11)
+axes[1].set_title('スイッチング時間', fontsize=12)
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+axes[2].set_xlabel('MTJ直径 (nm)', fontsize=11)
+axes[2].set_ylabel('消費エネルギー (fJ)', fontsize=11)
+axes[2].set_title('書き込みエネルギー', fontsize=12)
+axes[2].legend()
+axes[2].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+print("W系は高いスピンホール角により低電流密度でスイッチング可能")</code></pre>
+
+    <hr/>
+
+    <h2>3.6 フィールドフリースイッチング</h2>
+
+    <p>実用的なSOT-MRAMには外部磁場なしでの決定論的スイッチングが必要です。</p>
+
+    <h3>主なアプローチ</h3>
+
+    <h4>1. 交換バイアス法</h4>
+    <pre><code class="language-python">"""
+交換バイアスによるフィールドフリーSOTスイッチング
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+def llg_sot_exchange_bias(m, t, gamma, alpha, H_k, H_eb, tau_DL, sigma):
+    """交換バイアスを持つSOT-LLG"""
+    m = m / np.linalg.norm(m)
+
+    # 有効磁場（PMA + 交換バイアス）
+    H_eff = np.array([H_eb, 0, H_k * m[2]])
+
+    precession = -gamma * np.cross(m, H_eff)
+    damping = alpha * np.cross(m, precession)
+    sot_DL = tau_DL * np.cross(m, np.cross(m, sigma))
+
+    return precession + damping + sot_DL
+
+# パラメータ
+gamma = 1.76e11
+alpha = 0.05
+H_k = 0.8
+H_eb = 0.1  # 交換バイアス磁場
+sigma = np.array([0, 1, 0])
+
+t = np.linspace(0, 3e-9, 3000)
+
+# 正負電流でのスイッチング
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+for ax, tau_sign, title in zip(axes, [1, -1], ['正電流 (+J)', '負電流 (-J)']):
+    m0 = np.array([0.01, 0, 0.99995 * (-tau_sign)])
+    m0 = m0 / np.linalg.norm(m0)
+    tau_DL = tau_sign * 8e11
+
+    sol = odeint(llg_sot_exchange_bias, m0, t,
+                 args=(gamma, alpha, H_k, H_eb, tau_DL, sigma))
+
+    ax.plot(t*1e9, sol[:, 2], 'b-', linewidth=2)
+    ax.axhline(y=0, color='k', linestyle='--', alpha=0.3)
+    ax.set_xlabel('時間 (ns)', fontsize=11)
+    ax.set_ylabel('$m_z$', fontsize=11)
+    ax.set_title(f'{title}: 交換バイアス H_eb = {H_eb} T', fontsize=12)
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(-1.2, 1.2)
+
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <h4>2. z成分スピン偏極法</h4>
+    <h3>コード例3.6: 傾斜異方性による対称性破れ</h3>
+    <pre><code class="language-python">"""
+傾斜した磁気異方性によるフィールドフリースイッチング
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+def llg_sot_tilted_anisotropy(m, t, gamma, alpha, H_k, theta_tilt, tau_DL, sigma):
+    """傾斜異方性を持つSOT-LLG"""
+    m = m / np.linalg.norm(m)
+
+    # 傾斜した異方性軸
+    n_easy = np.array([np.sin(theta_tilt), 0, np.cos(theta_tilt)])
+    H_anis = H_k * np.dot(m, n_easy) * n_easy
+
+    H_eff = H_anis
+
+    precession = -gamma * np.cross(m, H_eff)
+    damping = alpha * np.cross(m, precession)
+    sot_DL = tau_DL * np.cross(m, np.cross(m, sigma))
+
+    return precession + damping + sot_DL
+
+# パラメータ
+gamma = 1.76e11
+alpha = 0.05
+H_k = 0.8
+sigma = np.array([0, 1, 0])
+
+t = np.linspace(0, 5e-9, 5000)
+
+# 異なる傾斜角での比較
+theta_tilts = [0, 5, 10, 15]  # 度
+
+fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+axes = axes.flatten()
+
+for ax, theta_deg in zip(axes, theta_tilts):
+    theta_tilt = np.radians(theta_deg)
+    m0 = np.array([0.01, 0, 0.99995])
+    m0 = m0 / np.linalg.norm(m0)
+    tau_DL = 6e11
+
+    sol = odeint(llg_sot_tilted_anisotropy, m0, t,
+                 args=(gamma, alpha, H_k, theta_tilt, tau_DL, sigma))
+
+    ax.plot(t*1e9, sol[:, 0], 'r-', label='$m_x$', linewidth=1.5)
+    ax.plot(t*1e9, sol[:, 2], 'b-', label='$m_z$', linewidth=1.5)
+    ax.axhline(y=0, color='k', linestyle='--', alpha=0.3)
+    ax.set_xlabel('時間 (ns)', fontsize=10)
+    ax.set_ylabel('磁化成分', fontsize=10)
+    ax.set_title(f'傾斜角 = {theta_deg}°', fontsize=11)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(-1.2, 1.2)
+
+plt.suptitle('傾斜異方性によるフィールドフリーSOTスイッチング', fontsize=13)
+plt.tight_layout()
+plt.show()
+
+print("θ_tilt > 0: 外部磁場なしで決定論的スイッチングが可能")</code></pre>
+
+    <hr/>
+
+    <h2>3.7 最新の研究動向</h2>
+
+    <h3>コード例3.7: 新材料のSOT効率比較</h3>
+    <pre><code class="language-python">"""
+SOT材料の性能指標比較
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 最新の実験データ（概算値）
+materials = {
+    'Pt': {'xi_DL': 0.08, 'xi_FL': 0.01, 'rho': 20},
+    'W(β)': {'xi_DL': 0.30, 'xi_FL': 0.02, 'rho': 150},
+    'Ta(β)': {'xi_DL': 0.15, 'xi_FL': 0.03, 'rho': 180},
+    'Pt/Co bilayer': {'xi_DL': 0.12, 'xi_FL': 0.08, 'rho': 25},
+    'WTe₂': {'xi_DL': 0.40, 'xi_FL': 0.05, 'rho': 500},
+    'Bi₂Se₃': {'xi_DL': 1.0, 'xi_FL': 0.2, 'rho': 1000},
+}
+
+names = list(materials.keys())
+xi_DL = [m['xi_DL'] for m in materials.values()]
+xi_FL = [m['xi_FL'] for m in materials.values()]
+rho = [m['rho'] for m in materials.values()]
+
+# 効率 / 抵抗率の指標
+figure_of_merit = [x / r * 1e5 for x, r in zip(xi_DL, rho)]
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+# SOT効率
+x = np.arange(len(names))
+width = 0.35
+
+axes[0].bar(x - width/2, xi_DL, width, label='ξ_DL (Damping-like)', color='blue', alpha=0.7)
+axes[0].bar(x + width/2, xi_FL, width, label='ξ_FL (Field-like)', color='red', alpha=0.7)
+axes[0].set_xticks(x)
+axes[0].set_xticklabels(names, rotation=45, ha='right')
+axes[0].set_ylabel('SOT効率 ξ', fontsize=11)
+axes[0].set_title('SOT効率', fontsize=12)
+axes[0].legend()
+axes[0].grid(True, alpha=0.3, axis='y')
+
+# 抵抗率
+axes[1].bar(names, rho, color='green', alpha=0.7)
+axes[1].set_xticklabels(names, rotation=45, ha='right')
+axes[1].set_ylabel('抵抗率 (μΩ·cm)', fontsize=11)
+axes[1].set_title('抵抗率', fontsize=12)
+axes[1].set_yscale('log')
+axes[1].grid(True, alpha=0.3, axis='y')
+
+# Figure of Merit
+axes[2].bar(names, figure_of_merit, color='purple', alpha=0.7)
+axes[2].set_xticklabels(names, rotation=45, ha='right')
+axes[2].set_ylabel('ξ_DL / ρ (a.u.)', fontsize=11)
+axes[2].set_title('性能指標（効率/抵抗率）', fontsize=12)
+axes[2].grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.show()
+
+print("トポロジカル絶縁体（Bi₂Se₃）は巨大なSOT効率を持つが、高抵抗が課題")
+print("W系は効率と抵抗率のバランスが良く、実用化が進んでいる")</code></pre>
+
+    <hr/>
+
+    <h2>章のまとめ</h2>
+
+    <div class="info-box">
+      <h3>学んだこと</h3>
+      <ul>
+        <li><strong>SOTの起源</strong>: スピンホール効果とRashba効果の2つのメカニズム</li>
+        <li><strong>2つのトルク成分</strong>: フィールド様（FL）とダンピング様（DL）</li>
+        <li><strong>対称性破れ</strong>: 垂直磁化スイッチングには対称性破れが必要</li>
+        <li><strong>SOT-MRAM</strong>: STT-MRAMとの比較、高速・高耐久性の優位性</li>
+        <li><strong>フィールドフリー</strong>: 交換バイアス、傾斜異方性などの手法</li>
+      </ul>
+    </div>
+
+    <h3>次章への準備</h3>
+    <p>次章では、スピントロニクスの先端トピックとして、反強磁性スピントロニクス、磁気スキルミオン、2次元磁性材料などを学びます。</p>
+
+    <hr/>
+
+    <h2>参考文献</h2>
+    <ol>
+      <li>Manchon, A., et al. (2019). "Current-induced spin-orbit torques in ferromagnetic and antiferromagnetic systems." <em>Rev. Mod. Phys.</em>, 91, 035004.</li>
+      <li>Miron, I. M., et al. (2011). "Perpendicular switching of a single ferromagnetic layer induced by in-plane current injection." <em>Nature</em>, 476, 189-193.</li>
+      <li>Liu, L., et al. (2012). "Spin-torque switching with the giant spin Hall effect of tantalum." <em>Science</em>, 336, 555-558.</li>
+      <li>Garello, K., et al. (2018). "SOT-MRAM 300MM integration for low power and ultrafast embedded memories." <em>IEEE Symp. VLSI Circuits</em>.</li>
+    </ol>
+
+    <hr/>
+
+    <div class="navigation">
+      <a href="chapter-2.html" class="nav-button secondary">← 第2章: スピン移行トルク</a>
+      <a href="chapter-4.html" class="nav-button">第4章: 先端トピック →</a>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <p>© 2025 AI Terakoya - MS Dojo. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>

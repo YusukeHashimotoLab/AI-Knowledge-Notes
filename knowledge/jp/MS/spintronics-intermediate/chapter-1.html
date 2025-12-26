@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="description" content="第1章: スピン軌道相互作用 - 相対論的起源からRashba効果・Dresselhaus効果まで"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>第1章: スピン軌道相互作用 - MS寺子屋</title>
+  <link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"/>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });</script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <div class="breadcrumb-content">
+      <a href="../../index.html">AI寺子屋トップ</a><span class="breadcrumb-separator">›</span><a href="../index.html">材料科学</a><span class="breadcrumb-separator">›</span><a href="index.html">スピントロニクス中級</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第1章</span>
+    </div>
+  </nav>
+  <div class="locale-switcher">
+    <span class="current-locale">JP</span>
+    <span class="locale-separator">|</span>
+    <a href="../../../en/MS/spintronics-intermediate/chapter-1.html" class="locale-link">EN</a>
+  </div>
+
+  <header>
+    <div class="header-content">
+      <h1>第1章: スピン軌道相互作用</h1>
+      <p class="subtitle">相対論的起源からRashba効果・Dresselhaus効果まで</p>
+      <div class="meta">
+        <span class="meta-item">学習時間: 30-40分</span>
+        <span class="meta-item">難易度: 中級</span>
+        <span class="meta-item">コード例: 6個</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <p class="chapter-description">
+      スピン軌道相互作用（SOI: Spin-Orbit Interaction）は、電子のスピンと軌道運動を結びつける量子力学的効果です。本章では、その相対論的起源から始め、固体中での発現形態であるRashba効果とDresselhaus効果を学び、スピントロニクスデバイスへの応用を理解します。
+    </p>
+
+    <hr/>
+
+    <h2>1.1 スピン軌道相互作用の相対論的起源</h2>
+
+    <p>スピン軌道相互作用は、ディラック方程式の非相対論的近似から自然に導かれます。電場$\mathbf{E}$中を速度$\mathbf{v}$で運動する電子は、静止系で有効磁場を感じます：</p>
+
+    $$
+    \mathbf{B}_{\text{eff}} = -\frac{1}{c^2}\mathbf{v} \times \mathbf{E}
+    $$
+
+    <p>この有効磁場と電子スピンの相互作用がスピン軌道相互作用です。原子内では、核のクーロン場による電場が存在します：</p>
+
+    $$
+    \mathbf{E} = -\nabla V(r) = \frac{1}{e}\frac{dV}{dr}\frac{\mathbf{r}}{r}
+    $$
+
+    <p>これらを組み合わせ、Thomas半因子（1/2）を考慮すると、SOIハミルトニアンが得られます：</p>
+
+    $$
+    H_{\text{SOI}} = \frac{\hbar}{4m^2c^2}\frac{1}{r}\frac{dV}{dr}\mathbf{L} \cdot \mathbf{S} = \xi(r)\mathbf{L} \cdot \mathbf{S}
+    $$
+
+    <p>ここで$\mathbf{L}$は軌道角運動量、$\mathbf{S}$はスピン角運動量、$\xi(r)$はスピン軌道結合定数です。</p>
+
+    <div class="info-box">
+      <h3>原子番号依存性</h3>
+      <p>SOI強度は原子番号$Z$の4乗に比例します（$\xi \propto Z^4$）。これは、重い元素ほど核電荷が大きく、内殻電子が核に近づいて高速で運動するためです。例えば：</p>
+      <ul>
+        <li>軽元素（C, N, O）: SOI ≈ meV</li>
+        <li>遷移金属（Fe, Co, Ni）: SOI ≈ 10-100 meV</li>
+        <li>重金属（Pt, W, Ta）: SOI ≈ 0.1-1 eV</li>
+      </ul>
+    </div>
+
+    <h3>コード例1.1: 原子のSOI強度の計算</h3>
+    <pre><code class="language-python">"""
+水素様原子のスピン軌道結合定数の計算
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def soi_coupling_constant(Z, n, l):
+    """
+    水素様原子のSOI結合定数（eV単位）
+
+    Parameters:
+    Z: 原子番号
+    n: 主量子数
+    l: 方位量子数
+    """
+    # 物理定数
+    alpha = 1/137  # 微細構造定数
+    m_e = 0.511e6  # 電子質量 (eV/c^2)
+    a_0 = 0.529e-10  # ボーア半径 (m)
+
+    # Rydberg エネルギー
+    E_n = 13.6 * Z**2 / n**2  # eV
+
+    # SOI結合定数（近似式）
+    if l == 0:
+        return 0
+    xi = (alpha**2 * Z**4 * 13.6) / (n**3 * l * (l + 0.5) * (l + 1))
+    return xi
+
+# 様々な元素のSOI強度（2p軌道）
+elements = {
+    'H': 1, 'C': 6, 'O': 8, 'Si': 14, 'Fe': 26,
+    'Cu': 29, 'Ag': 47, 'W': 74, 'Pt': 78, 'Au': 79, 'Bi': 83
+}
+
+n, l = 2, 1  # 2p軌道
+
+Z_values = list(elements.values())
+names = list(elements.keys())
+xi_values = [soi_coupling_constant(Z, n, l) for Z in Z_values]
+
+plt.figure(figsize=(12, 6))
+plt.bar(names, xi_values, color='steelblue', alpha=0.7)
+plt.yscale('log')
+plt.xlabel('元素', fontsize=12)
+plt.ylabel('SOI結合定数 ξ (eV)', fontsize=12)
+plt.title('原子番号によるスピン軌道相互作用強度の変化', fontsize=14)
+plt.grid(True, alpha=0.3, axis='y')
+
+# Z^4依存性を示す補助線
+Z_fit = np.array(Z_values)
+xi_fit = xi_values[0] * (Z_fit / Z_values[0])**4
+plt.plot(names, xi_fit, 'r--', linewidth=2, label='$Z^4$依存性')
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+print(f"Pt(Z=78)のSOI強度はC(Z=6)の約{(78/6)**4:.0f}倍")</code></pre>
+
+    <hr/>
+
+    <h2>1.2 Rashba効果</h2>
+
+    <p><strong>Rashba効果</strong>は、空間反転対称性の破れた系で現れるSOIの一形態です。界面や表面など、構造的に対称性が破れた環境で重要になります。</p>
+
+    <p>Rashba SOIのハミルトニアンは：</p>
+
+    $$
+    H_{\text{Rashba}} = \alpha_R (\boldsymbol{\sigma} \times \mathbf{k}) \cdot \hat{z} = \alpha_R (k_y \sigma_x - k_x \sigma_y)
+    $$
+
+    <p>ここで$\alpha_R$はRashba係数、$\boldsymbol{\sigma}$はパウリ行列、$\mathbf{k}$は波数ベクトルです。</p>
+
+    <h3>Rashba効果によるバンド分裂</h3>
+    <p>2次元電子ガスに Rashba SOI が作用すると、エネルギー分散は：</p>
+
+    $$
+    E_{\pm}(\mathbf{k}) = \frac{\hbar^2 k^2}{2m^*} \pm \alpha_R k
+    $$
+
+    <p>となり、スピン縮退が解けて2つのバンドに分裂します。</p>
+
+    <h3>コード例1.2: Rashbaバンド構造</h3>
+    <pre><code class="language-python">"""
+Rashba効果によるバンド分裂の可視化
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+def rashba_energy(kx, ky, m_eff, alpha_R):
+    """Rashba SOIを含む2DEGのエネルギー分散"""
+    hbar = 1.055e-34
+    k = np.sqrt(kx**2 + ky**2)
+    E_kinetic = (hbar**2 * k**2) / (2 * m_eff) * 6.242e18  # eVに変換
+    E_rashba = alpha_R * k
+    return E_kinetic + E_rashba, E_kinetic - E_rashba
+
+# パラメータ
+m_eff = 0.067 * 9.109e-31  # GaAsの有効質量
+alpha_R = 1e-11  # Rashba係数 (eV·m)
+
+# k空間グリッド
+kx = np.linspace(-5e8, 5e8, 200)
+ky = np.linspace(-5e8, 5e8, 200)
+KX, KY = np.meshgrid(kx, ky)
+
+E_plus, E_minus = rashba_energy(KX, KY, m_eff, alpha_R)
+
+# 3D プロット
+fig = plt.figure(figsize=(14, 5))
+
+# バンド構造（3D）
+ax1 = fig.add_subplot(121, projection='3d')
+ax1.plot_surface(KX/1e8, KY/1e8, E_plus*1000, alpha=0.7, cmap='Reds', label='E+')
+ax1.plot_surface(KX/1e8, KY/1e8, E_minus*1000, alpha=0.7, cmap='Blues', label='E-')
+ax1.set_xlabel('$k_x$ (×$10^8$ m$^{-1}$)')
+ax1.set_ylabel('$k_y$ (×$10^8$ m$^{-1}$)')
+ax1.set_zlabel('Energy (meV)')
+ax1.set_title('Rashba バンド分裂（3D）')
+
+# 断面図（ky=0）
+ax2 = fig.add_subplot(122)
+idx = len(ky)//2
+ax2.plot(kx/1e8, E_plus[idx,:]*1000, 'r-', linewidth=2, label='E+ (↑)')
+ax2.plot(kx/1e8, E_minus[idx,:]*1000, 'b-', linewidth=2, label='E- (↓)')
+ax2.axhline(y=0, color='k', linestyle='--', alpha=0.3)
+ax2.set_xlabel('$k_x$ (×$10^8$ m$^{-1}$)', fontsize=12)
+ax2.set_ylabel('Energy (meV)', fontsize=12)
+ax2.set_title('Rashba バンド分裂（$k_y=0$断面）', fontsize=14)
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <h3>Rashba効果におけるスピンテクスチャ</h3>
+    <p>Rashba SOI下では、スピンは運動量に垂直かつ面内方向を向きます。これを<strong>スピンテクスチャ</strong>と呼びます。</p>
+
+    <h3>コード例1.3: スピンテクスチャの可視化</h3>
+    <pre><code class="language-python">"""
+Rashba SOIによるスピンテクスチャの可視化
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def rashba_spin_texture(kx, ky):
+    """Rashba SOIによるスピン方向（規格化）"""
+    k = np.sqrt(kx**2 + ky**2)
+    # E+バンド: スピンは (-ky, kx, 0) 方向
+    # E-バンド: スピンは (ky, -kx, 0) 方向
+    with np.errstate(invalid='ignore'):
+        sx_plus = -ky / k
+        sy_plus = kx / k
+        sx_minus = ky / k
+        sy_minus = -kx / k
+    return sx_plus, sy_plus, sx_minus, sy_minus
+
+# k空間グリッド（極座標）
+theta = np.linspace(0, 2*np.pi, 24)
+k_vals = [1, 2, 3]
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+for ax, (title, sign) in zip(axes, [('E+ バンド（外側）', 1), ('E- バンド（内側）', -1)]):
+    for k in k_vals:
+        kx = k * np.cos(theta)
+        ky = k * np.sin(theta)
+
+        sx = -sign * ky / k
+        sy = sign * kx / k
+
+        ax.quiver(kx, ky, sx, sy, color=plt.cm.viridis(k/4),
+                  scale=15, width=0.01, headwidth=4)
+        circle = plt.Circle((0, 0), k, fill=False, linestyle='--', alpha=0.3)
+        ax.add_patch(circle)
+
+    ax.set_xlim(-4, 4)
+    ax.set_ylim(-4, 4)
+    ax.set_aspect('equal')
+    ax.set_xlabel('$k_x$', fontsize=12)
+    ax.set_ylabel('$k_y$', fontsize=12)
+    ax.set_title(title, fontsize=14)
+    ax.grid(True, alpha=0.3)
+
+plt.suptitle('Rashba SOIによるスピンテクスチャ', fontsize=16)
+plt.tight_layout()
+plt.show()</code></pre>
+
+    <hr/>
+
+    <h2>1.3 Dresselhaus効果</h2>
+
+    <p><strong>Dresselhaus効果</strong>は、結晶構造自体の空間反転対称性の欠如に起因するSOIです。閃亜鉛鉱型（GaAs等）やウルツ鉱型結晶で重要です。</p>
+
+    <p>2次元系での線形Dresselhausハミルトニアン：</p>
+
+    $$
+    H_{\text{D}} = \beta (k_x \sigma_x - k_y \sigma_y)
+    $$
+
+    <p>ここで$\beta$はDresselhaus係数です。3次の項も存在し：</p>
+
+    $$
+    H_{\text{D3}} = \gamma (k_x k_y^2 \sigma_x - k_y k_x^2 \sigma_y)
+    $$
+
+    <h3>RashbaとDresselhausの比較</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>特性</th>
+          <th>Rashba効果</th>
+          <th>Dresselhaus効果</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>起源</td>
+          <td>構造的反転対称性の破れ</td>
+          <td>結晶構造の反転対称性の欠如</td>
+        </tr>
+        <tr>
+          <td>ハミルトニアン</td>
+          <td>$\alpha_R(k_y\sigma_x - k_x\sigma_y)$</td>
+          <td>$\beta(k_x\sigma_x - k_y\sigma_y)$</td>
+        </tr>
+        <tr>
+          <td>スピン方向</td>
+          <td>$\mathbf{k}$に垂直</td>
+          <td>対角線方向</td>
+        </tr>
+        <tr>
+          <td>制御性</td>
+          <td>ゲート電圧で可変</td>
+          <td>結晶成長で固定</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>コード例1.4: Rashba-Dresselhaus混合系</h3>
+    <pre><code class="language-python">"""
+RashbaとDresselhaus SOIの混合効果
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def mixed_soi_energy(kx, ky, m_eff, alpha, beta):
+    """Rashba + Dresselhaus SOIのエネルギー分散"""
+    hbar = 1.055e-34
+    k2 = kx**2 + ky**2
+    E_kin = (hbar**2 * k2) / (2 * m_eff) * 6.242e18
+
+    # SOI項
+    soi_x = alpha * ky + beta * kx
+    soi_y = -alpha * kx - beta * ky
+    E_soi = np.sqrt(soi_x**2 + soi_y**2)
+
+    return E_kin + E_soi, E_kin - E_soi
+
+# パラメータ
+m_eff = 0.067 * 9.109e-31
+kx = np.linspace(-5e8, 5e8, 200)
+
+# 異なるα/β比での分散
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+cases = [
+    (1e-11, 0, 'Rashba only (α=1, β=0)'),
+    (0, 1e-11, 'Dresselhaus only (α=0, β=1)'),
+    (1e-11, 1e-11, 'Equal mixing (α=β)')
+]
+
+for ax, (alpha, beta, title) in zip(axes, cases):
+    E_plus, E_minus = mixed_soi_energy(kx, 0, m_eff, alpha, beta)
+    ax.plot(kx/1e8, E_plus*1000, 'r-', linewidth=2, label='E+')
+    ax.plot(kx/1e8, E_minus*1000, 'b-', linewidth=2, label='E-')
+    ax.set_xlabel('$k_x$ (×$10^8$ m$^{-1}$)', fontsize=11)
+    ax.set_ylabel('Energy (meV)', fontsize=11)
+    ax.set_title(title, fontsize=12)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# α=βの特殊ケース：Persistent Spin Helix
+print("α=βの場合、[110]方向に沿ったスピンが保存される")
+print("→ Persistent Spin Helix（持続的スピンヘリックス）状態")</code></pre>
+
+    <div class="info-box">
+      <h3>Persistent Spin Helix</h3>
+      <p>$\alpha = \beta$の特殊条件では、[110]方向に沿ったスピン成分が保存され、スピン緩和が抑制されます。これは<strong>Persistent Spin Helix（PSH）</strong>と呼ばれ、スピン情報の長距離輸送に有利です。</p>
+    </div>
+
+    <hr/>
+
+    <h2>1.4 重金属・界面でのSOI</h2>
+
+    <p>スピントロニクスデバイスでは、重金属（Pt, W, Ta等）の強いSOIが活用されます。</p>
+
+    <h3>重金属薄膜でのSOI効果</h3>
+    <ul>
+      <li><strong>スピンホール効果（SHE）</strong>: 電流からスピン流への変換</li>
+      <li><strong>逆スピンホール効果（ISHE）</strong>: スピン流から電流への変換</li>
+      <li><strong>スピン軌道トルク（SOT）</strong>: 隣接磁性層の磁化制御</li>
+    </ul>
+
+    <h3>コード例1.5: 材料別スピンホール角</h3>
+    <pre><code class="language-python">"""
+様々な材料のスピンホール角とスピン拡散長
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 実験データ（典型値）
+materials = {
+    'Pt': {'theta_SH': 0.08, 'lambda_s': 3.0, 'Z': 78},
+    'Ta (β)': {'theta_SH': -0.15, 'lambda_s': 1.8, 'Z': 73},
+    'W (β)': {'theta_SH': -0.30, 'lambda_s': 1.4, 'Z': 74},
+    'Pd': {'theta_SH': 0.01, 'lambda_s': 9.0, 'Z': 46},
+    'Au': {'theta_SH': 0.01, 'lambda_s': 35, 'Z': 79},
+    'Cu': {'theta_SH': 0.003, 'lambda_s': 500, 'Z': 29},
+}
+
+names = list(materials.keys())
+theta_values = [abs(m['theta_SH']) for m in materials.values()]
+lambda_values = [m['lambda_s'] for m in materials.values()]
+Z_values = [m['Z'] for m in materials.values()]
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# スピンホール角
+ax1 = axes[0]
+colors = ['red' if materials[n]['theta_SH'] < 0 else 'blue' for n in names]
+bars = ax1.bar(names, [materials[n]['theta_SH'] for n in names], color=colors, alpha=0.7)
+ax1.axhline(y=0, color='k', linestyle='-', linewidth=0.5)
+ax1.set_ylabel('スピンホール角 θ_SH', fontsize=12)
+ax1.set_title('材料別スピンホール角', fontsize=14)
+ax1.grid(True, alpha=0.3, axis='y')
+
+# スピン拡散長
+ax2 = axes[1]
+ax2.bar(names, lambda_values, color='steelblue', alpha=0.7)
+ax2.set_yscale('log')
+ax2.set_ylabel('スピン拡散長 λ_s (nm)', fontsize=12)
+ax2.set_title('材料別スピン拡散長', fontsize=14)
+ax2.grid(True, alpha=0.3, axis='y')
+
+plt.tight_layout()
+plt.show()
+
+print("W, Taは負のスピンホール角を持つ（スピン方向が反転）")
+print("SOT-MRAMではPtやWが広く使用される")</code></pre>
+
+    <hr/>
+
+    <h2>1.5 SOIのスピントロニクス応用</h2>
+
+    <div class="mermaid">
+flowchart TD
+    SOI[スピン軌道相互作用] --> SHE[スピンホール効果]
+    SOI --> Rashba[Rashba効果]
+    SOI --> Dresselhaus[Dresselhaus効果]
+
+    SHE --> SOT[スピン軌道トルク]
+    SHE --> SpinPump[スピンポンピング検出]
+    Rashba --> SOT
+    Rashba --> SpinFET[スピンFET]
+    Dresselhaus --> PSH[Persistent Spin Helix]
+
+    SOT --> SOTMRAM[SOT-MRAM]
+    SpinFET --> Logic[スピン論理素子]
+
+    style SOI fill:#667eea,stroke:#5a67d8,stroke-width:2px,color:#fff
+    style SOTMRAM fill:#48bb78,stroke:#38a169,stroke-width:2px,color:#fff
+    </div>
+
+    <h3>コード例1.6: SOTスイッチングのシミュレーション概念</h3>
+    <pre><code class="language-python">"""
+SOIベースのスピントルク効率の比較
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def sot_efficiency(theta_SH, lambda_s, t_FM, t_HM):
+    """
+    SOTスイッチング効率の簡易モデル
+
+    Parameters:
+    theta_SH: スピンホール角
+    lambda_s: スピン拡散長 (nm)
+    t_FM: 強磁性体厚さ (nm)
+    t_HM: 重金属厚さ (nm)
+    """
+    # スピン流の界面透過を考慮
+    tanh_factor = np.tanh(t_HM / (2 * lambda_s))
+    efficiency = abs(theta_SH) * tanh_factor
+    return efficiency
+
+# パラメータスキャン
+t_HM = np.linspace(0.5, 10, 100)  # nm
+t_FM = 1.0  # nm
+
+materials_params = {
+    'Pt': {'theta_SH': 0.08, 'lambda_s': 3.0, 'color': 'blue'},
+    'W(β)': {'theta_SH': 0.30, 'lambda_s': 1.4, 'color': 'red'},
+    'Ta(β)': {'theta_SH': 0.15, 'lambda_s': 1.8, 'color': 'green'},
+}
+
+plt.figure(figsize=(10, 6))
+
+for name, params in materials_params.items():
+    eff = sot_efficiency(params['theta_SH'], params['lambda_s'], t_FM, t_HM)
+    plt.plot(t_HM, eff, linewidth=2, color=params['color'], label=name)
+
+plt.xlabel('重金属層厚さ (nm)', fontsize=12)
+plt.ylabel('SOT効率 (相対値)', fontsize=12)
+plt.title('重金属材料とSOTスイッチング効率', fontsize=14)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+print("W(β)は高いスピンホール角により最も高いSOT効率を示す")
+print("最適な重金属厚さはスピン拡散長の2-3倍程度")</code></pre>
+
+    <hr/>
+
+    <h2>章のまとめ</h2>
+
+    <div class="info-box">
+      <h3>学んだこと</h3>
+      <ul>
+        <li><strong>相対論的起源</strong>: SOIはディラック方程式から導かれ、強度は$Z^4$に比例</li>
+        <li><strong>Rashba効果</strong>: 構造的反転対称性の破れに起因し、ゲート電圧で制御可能</li>
+        <li><strong>Dresselhaus効果</strong>: 結晶構造に起因し、バルク特性として固定</li>
+        <li><strong>重金属SOI</strong>: Pt, W, Taの強いSOIがスピンホール効果とSOTの起源</li>
+        <li><strong>応用</strong>: SOT-MRAM、スピンFET、スピン論理素子への道</li>
+      </ul>
+    </div>
+
+    <h3>次章への準備</h3>
+    <p>次章では、SOIから派生するスピン移行トルク（STT）の詳細な理論を学びます。Slonczewski-Bergerモデルに基づく磁化ダイナミクスとSTT-MRAMの設計原理を理解します。</p>
+
+    <hr/>
+
+    <h2>参考文献</h2>
+    <ol>
+      <li>Winkler, R. (2003). <em>Spin-Orbit Coupling Effects in Two-Dimensional Electron and Hole Systems</em>. Springer.</li>
+      <li>Manchon, A., et al. (2015). "New perspectives for Rashba spin-orbit coupling." <em>Nat. Mater.</em>, 14, 871-882.</li>
+      <li>Hoffmann, A. (2013). "Spin Hall Effects in Metals." <em>IEEE Trans. Magn.</em>, 49(10), 5172-5193.</li>
+    </ol>
+
+    <hr/>
+
+    <div class="navigation">
+      <a href="index.html" class="nav-button secondary">← 目次に戻る</a>
+      <a href="chapter-2.html" class="nav-button">第2章: スピン移行トルク →</a>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <p>© 2025 AI Terakoya - MS Dojo. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>
