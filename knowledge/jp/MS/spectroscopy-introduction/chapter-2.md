@@ -1,1163 +1,1461 @@
 ---
-title: 第2章：赤外・ラマン分光法
-chapter_title: 第2章：赤外・ラマン分光法
-subtitle: 振動分光で探る分子構造と化学結合
+title: 第2章：UV-Vis分光法
+chapter_title: 第2章：UV-Vis分光法
+subtitle: 電子遷移で探る物質の電子構造とバンドギャップ
 ---
 
 ## イントロダクション
 
-赤外分光（Infrared Spectroscopy, IR）とラマン分光（Raman Spectroscopy）は、分子の振動情報を通じて化学結合、官能基、結晶構造を解明する相補的な手法です。IRは赤外光の吸収を測定し、Ramanは散乱光の周波数シフトを観測します。両者は異なる選択則に従うため、IRで活性な振動がRamanで不活性、またはその逆という相補性を持ちます。
+紫外可視分光法（UV-Vis Spectroscopy）は、紫外線（UV: 200-400 nm）から可視光線（Vis: 400-800 nm）の領域で物質による光の吸収を測定する分析手法です。この領域の光は分子の電子遷移を引き起こすため、UV-Visスペクトルは物質の電子状態に関する豊富な情報を提供します。
 
-**IRとRamanの使い分け**  
+材料科学においてUV-Visは、有機分子の共役系解析、半導体のバンドギャップ測定、金属錯体の配位子場分裂エネルギー決定、溶液中の濃度定量など、幅広い応用を持つ基本的な分析ツールです。
 
-  * **IR** : 極性基（C=O, O-H, N-H）の検出、有機物の官能基同定、固体・液体・気体すべてに適用可能
-  * **Raman** : 対称振動（C=C, S-S）の検出、水溶液試料、結晶性評価（低波数領域）、非破壊・非接触測定
+**この章で学ぶこと**  
 
-## 1\. 分子振動の基礎
+  * 電子遷移の種類と各遷移のエネルギー特性
+  * ランベルト・ベール則による定量分析の原理
+  * 発色団と助色団の概念
+  * UV-Vis分光光度計の構成と測定原理
+  * Taucプロットによる半導体バンドギャップの決定
+  * Pythonによるスペクトルデータ解析の実践
 
-### 1.1 調和振動子モデル
+## 1\. 電子遷移の基礎
 
-2原子分子の振動は調和振動子で近似できます。ポテンシャルエネルギーはHookeの法則に従います：
+### 1.1 分子軌道と電子遷移
 
-$$V(r) = \frac{1}{2}k(r - r_e)^2$$
+分子の電子状態は、結合性軌道、非結合性軌道（孤立電子対）、反結合性軌道で構成されます。UV-Vis領域での光吸収は、電子がより低いエネルギー準位からより高いエネルギー準位へ励起されることで生じます。主な電子遷移には以下の種類があります：
 
-ここで、$k$ は力の定数（N/m）、$r_e$ は平衡核間距離です。振動周波数 $\nu$ は以下で与えられます：
+遷移の種類 | エネルギー | 波長範囲 | 例  
+---|---|---|---  
+$\sigma \rightarrow \sigma^*$ | 非常に高い | < 150 nm（真空紫外） | メタン、エタン（C-C, C-H結合）  
+$n \rightarrow \sigma^*$ | 高い | 150-250 nm | 水、アルコール、アミン（孤立電子対）  
+$\pi \rightarrow \pi^*$ | 中程度 | 200-500 nm | エチレン、ベンゼン、共役ジエン  
+$n \rightarrow \pi^*$ | 低い | 250-400 nm | カルボニル化合物、アゾ化合物  
+      
+    
+    ```mermaid
+    graph TB
+        subgraph "分子軌道エネルギー準位"
+            A["反結合性 sigma* 軌道"]
+            B["反結合性 pi* 軌道"]
+            C["非結合性 n 軌道"]
+            D["結合性 pi 軌道"]
+            E["結合性 sigma 軌道"]
+        end
+    
+        E -->|"sigma-sigma* 高エネルギー"| A
+        D -->|"pi-pi*"| B
+        C -->|"n-pi*"| B
+        C -->|"n-sigma*"| A
+    
+        style A fill:#ff6b6b,stroke:#333,stroke-width:2px
+        style B fill:#ffa94d,stroke:#333,stroke-width:2px
+        style C fill:#69db7c,stroke:#333,stroke-width:2px
+        style D fill:#4dabf7,stroke:#333,stroke-width:2px
+        style E fill:#748ffc,stroke:#333,stroke-width:2px
+    ```
 
-$$\nu = \frac{1}{2\pi}\sqrt{\frac{k}{\mu}}$$
+### 1.2 遷移エネルギーと波長の関係
 
-$\mu = \frac{m_1 m_2}{m_1 + m_2}$ は換算質量です。振動エネルギー準位は量子化され、
+電子遷移に必要なエネルギー $\Delta E$ は、吸収される光の波長 $\lambda$ と以下の関係式で結ばれます：
 
-$$E_v = h\nu \left(v + \frac{1}{2}\right), \quad v = 0, 1, 2, \ldots$$
+$$\Delta E = h\nu = \frac{hc}{\lambda}$$
 
-調和振動子近似では、選択則は $\Delta v = \pm 1$ です（基本振動のみ許容）。実際の分子では非調和性により $\Delta v = \pm 2, \pm 3, \ldots$（倍音）も弱く観測されます。
+ここで、$h$ はプランク定数（$6.626 \times 10^{-34}$ J s）、$c$ は光速（$2.998 \times 10^8$ m/s）です。波長が短いほど光子のエネルギーは高く、より大きなエネルギーギャップを持つ遷移を引き起こします。
 
-#### コード例1: 調和振動子のエネルギー準位と振動周波数計算
+#### コード例1: 波長とエネルギーの相互変換
     
     
     import numpy as np
     import matplotlib.pyplot as plt
     
     # 物理定数
-    h = 6.62607015e-34  # J·s
-    c = 2.99792458e8    # m/s
-    u = 1.66053906660e-27  # kg (atomic mass unit)
+    h = 6.62607015e-34  # J s (プランク定数)
+    c = 2.99792458e8    # m/s (光速)
+    eV = 1.602176634e-19  # J (1 eV)
     
-    def vibrational_frequency(k, m1, m2):
+    def wavelength_to_energy(wavelength_nm):
         """
-        2原子分子の振動周波数（Hz）と波数（cm^-1）を計算
+        波長（nm）から光子エネルギー（eV）を計算
     
         Parameters:
         -----------
-        k : float
-            力の定数（N/m）
-        m1, m2 : float
-            原子の質量（amu）
+        wavelength_nm : float or array
+            波長（ナノメートル）
     
         Returns:
         --------
-        freq_Hz : float
-            振動周波数（Hz）
-        wavenumber : float
-            波数（cm^-1）
+        energy_eV : float or array
+            光子エネルギー（電子ボルト）
         """
-        # 換算質量
-        mu = (m1 * m2) / (m1 + m2) * u  # kg
+        wavelength_m = wavelength_nm * 1e-9
+        energy_J = h * c / wavelength_m
+        energy_eV = energy_J / eV
+        return energy_eV
     
-        # 振動周波数
-        freq_Hz = (1 / (2 * np.pi)) * np.sqrt(k / mu)
-    
-        # 波数に変換
-        wavenumber = freq_Hz / (c * 100)  # cm^-1
-    
-        return freq_Hz, wavenumber
-    
-    def energy_levels(v_max, freq_Hz):
+    def energy_to_wavelength(energy_eV_val):
         """
-        調和振動子のエネルギー準位
+        エネルギー（eV）から波長（nm）を計算
     
         Parameters:
         -----------
-        v_max : int
-            最大振動量子数
-        freq_Hz : float
-            振動周波数（Hz）
+        energy_eV_val : float or array
+            光子エネルギー（電子ボルト）
     
         Returns:
         --------
-        v : array
-            振動量子数
-        E : array
-            エネルギー（eV）
+        wavelength_nm : float or array
+            波長（ナノメートル）
         """
-        v = np.arange(0, v_max + 1)
-        E_J = h * freq_Hz * (v + 0.5)
-        E_eV = E_J / 1.602176634e-19
-        return v, E_eV
+        energy_J = energy_eV_val * eV
+        wavelength_m = h * c / energy_J
+        wavelength_nm = wavelength_m * 1e9
+        return wavelength_nm
     
-    # 典型的な化学結合の計算
-    bonds = {
-        'C-H': {'k': 500, 'm1': 12, 'm2': 1},
-        'C=O': {'k': 1200, 'm1': 12, 'm2': 16},
-        'C-C': {'k': 400, 'm1': 12, 'm2': 12},
-        'O-H': {'k': 750, 'm1': 16, 'm2': 1}
+    # 代表的な電子遷移の波長とエネルギー
+    transitions = {
+        'sigma-sigma* (C-C)': 135,
+        'n-sigma* (H2O)': 167,
+        'n-sigma* (CH3OH)': 183,
+        'pi-pi* (ethylene)': 165,
+        'pi-pi* (1,3-butadiene)': 217,
+        'pi-pi* (benzene)': 254,
+        'n-pi* (acetone)': 280,
+        'n-pi* (acetaldehyde)': 290
     }
     
     print("=" * 70)
-    print("典型的な化学結合の振動周波数")
+    print("電子遷移の波長とエネルギー")
     print("=" * 70)
-    print(f"{'結合':<8} {'力の定数 (N/m)':<18} {'周波数 (Hz)':<18} {'波数 (cm⁻¹)':<15}")
+    print(f"{'遷移':<25} {'波長 (nm)':<15} {'エネルギー (eV)':<15}")
     print("-" * 70)
     
-    for bond, params in bonds.items():
-        freq_Hz, wavenumber = vibrational_frequency(params['k'], params['m1'], params['m2'])
-        print(f"{bond:<8} {params['k']:<18} {freq_Hz:.3e} {wavenumber:<15.1f}")
+    for transition, wavelength in transitions.items():
+        energy = wavelength_to_energy(wavelength)
+        print(f"{transition:<25} {wavelength:<15} {energy:.2f}")
     
-    # C=O伸縮振動のエネルギー準位図
-    freq_Hz_CO, wn_CO = vibrational_frequency(1200, 12, 16)
-    v, E = energy_levels(5, freq_Hz_CO)
+    # UV-Vis領域のエネルギー分布をプロット
+    wavelengths = np.linspace(200, 800, 500)
+    energies = wavelength_to_energy(wavelengths)
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+    fig, ax1 = plt.subplots(figsize=(12, 6))
     
-    # エネルギー準位図
-    ax1.hlines(E, 0, 1, colors='#f093fb', linewidths=3)
-    for i, (vi, Ei) in enumerate(zip(v, E)):
-        ax1.text(1.1, Ei, f'v={vi}', fontsize=11, va='center')
-        if i < len(v) - 1:
-            # 遷移の矢印
-            ax1.annotate('', xy=(0.5, E[i+1]), xytext=(0.5, E[i]),
-                        arrowprops=dict(arrowstyle='->', color='red', lw=2))
+    # 波長-エネルギー曲線
+    ax1.plot(wavelengths, energies, 'b-', linewidth=2)
+    ax1.set_xlabel('Wavelength (nm)', fontsize=12)
+    ax1.set_ylabel('Photon Energy (eV)', fontsize=12, color='b')
+    ax1.tick_params(axis='y', labelcolor='b')
+    ax1.set_xlim(200, 800)
     
-    ax1.set_xlim(-0.2, 1.5)
-    ax1.set_ylim(E[0] - 0.05, E[-1] + 0.1)
-    ax1.set_ylabel('エネルギー (eV)', fontsize=12)
-    ax1.set_title('C=O伸縮振動のエネルギー準位', fontsize=14, fontweight='bold')
-    ax1.set_xticks([])
-    ax1.grid(axis='y', alpha=0.3)
+    # 可視光の色を背景に追加
+    colors = [
+        (380, 450, '#7B68EE'),  # 紫
+        (450, 495, '#0000FF'),  # 青
+        (495, 570, '#00FF00'),  # 緑
+        (570, 590, '#FFFF00'),  # 黄
+        (590, 620, '#FFA500'),  # 橙
+        (620, 750, '#FF0000'),  # 赤
+    ]
     
-    # 同位体効果
-    masses_C = np.array([12, 13, 14])
-    wavenumbers = []
-    for m_C in masses_C:
-        _, wn = vibrational_frequency(1200, m_C, 16)
-        wavenumbers.append(wn)
+    for start, end, color in colors:
+        ax1.axvspan(max(200, start), min(800, end), alpha=0.2, color=color)
     
-    ax2.bar([f'$^{{{int(m)}}}$C=O' for m in masses_C], wavenumbers,
-            color=['#f093fb', '#f5576c', '#4ecdc4'], alpha=0.7, edgecolor='black')
-    ax2.set_ylabel('波数 (cm⁻¹)', fontsize=12)
-    ax2.set_title('同位体効果：C=O伸縮振動', fontsize=14, fontweight='bold')
-    ax2.grid(axis='y', alpha=0.3)
+    # 紫外領域のマーク
+    ax1.axvspan(200, 380, alpha=0.1, color='purple', label='UV region')
     
-    for i, (m, wn) in enumerate(zip(masses_C, wavenumbers)):
-        ax2.text(i, wn + 20, f'{wn:.0f}', ha='center', fontsize=11, fontweight='bold')
+    ax1.set_title('UV-Vis Energy-Wavelength Relationship', fontsize=14, fontweight='bold')
+    ax1.grid(True, alpha=0.3)
+    ax1.legend(loc='upper right')
     
     plt.tight_layout()
-    plt.savefig('vibrational_fundamentals.png', dpi=300, bbox_inches='tight')
+    plt.savefig('uv_vis_energy_wavelength.png', dpi=300, bbox_inches='tight')
     plt.show()
     
-    print(f"\nC=O伸縮振動の波数: {wn_CO:.1f} cm⁻¹")
-    print(f"基底状態(v=0)のゼロ点エネルギー: {E[0]:.4f} eV")
-    print(f"v=0 → v=1 遷移エネルギー: {E[1] - E[0]:.4f} eV")
+    print("\n" + "=" * 70)
+    print("可視光の色と波長範囲")
+    print("=" * 70)
+    visible_colors = [
+        ('紫', 380, 450, wavelength_to_energy(415)),
+        ('青', 450, 495, wavelength_to_energy(472.5)),
+        ('緑', 495, 570, wavelength_to_energy(532.5)),
+        ('黄', 570, 590, wavelength_to_energy(580)),
+        ('橙', 590, 620, wavelength_to_energy(605)),
+        ('赤', 620, 750, wavelength_to_energy(685)),
+    ]
     
+    print(f"{'色':<8} {'波長範囲 (nm)':<20} {'平均エネルギー (eV)':<15}")
+    print("-" * 50)
+    for color, start, end, energy in visible_colors:
+        print(f"{color:<8} {start}-{end:<13} {energy:.2f}")
 
-### 1.2 多原子分子の振動モード
+## 2\. ランベルト・ベール則
 
-$N$ 原子からなる分子は $3N$ 個の自由度を持ち、そのうち3つは並進、（非線形分子では）3つは回転、残りの $3N - 6$（線形分子では $3N - 5$）が振動の自由度です。
+### 2.1 光吸収の定量的記述
+
+溶液による光吸収の強度は、ランベルト・ベール則（Lambert-Beer Law）によって定量的に記述されます。透過率 $T$ と吸光度 $A$ は以下のように定義されます：
+
+$$T = \frac{I}{I_0}$$
+
+$$A = -\log_{10}(T) = \log_{10}\left(\frac{I_0}{I}\right) = \varepsilon c l$$
+
+ここで：
+
+  * $I_0$：入射光強度
+  * $I$：透過光強度
+  * $\varepsilon$：モル吸光係数（L mol-1 cm-1）
+  * $c$：濃度（mol/L）
+  * $l$：光路長（cm）
+
+**モル吸光係数の意味**  
+モル吸光係数 $\varepsilon$ は、分子固有の光吸収能力を表します。$\varepsilon$ が大きいほど、その波長での光吸収が強いことを意味します。典型的な値の範囲： 
+
+  * $n \rightarrow \pi^*$ 遷移：$\varepsilon \approx 10-100$ L mol-1 cm-1（禁制遷移）
+  * $\pi \rightarrow \pi^*$ 遷移：$\varepsilon \approx 10^3-10^5$ L mol-1 cm-1（許容遷移）
+
+#### コード例2: ランベルト・ベール則と検量線作成
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    
+    def beer_lambert(epsilon, c, l):
+        """
+        ランベルト・ベール則による吸光度計算
+    
+        Parameters:
+        -----------
+        epsilon : float
+            モル吸光係数 (L mol^-1 cm^-1)
+        c : float or array
+            濃度 (mol/L)
+        l : float
+            光路長 (cm)
+    
+        Returns:
+        --------
+        A : float or array
+            吸光度
+        """
+        return epsilon * c * l
+    
+    def calculate_concentration(A, epsilon, l):
+        """
+        吸光度から濃度を計算
+    
+        Parameters:
+        -----------
+        A : float
+            吸光度
+        epsilon : float
+            モル吸光係数 (L mol^-1 cm^-1)
+        l : float
+            光路長 (cm)
+    
+        Returns:
+        --------
+        c : float
+            濃度 (mol/L)
+        """
+        return A / (epsilon * l)
+    
+    # 過マンガン酸カリウム（KMnO4）の検量線作成
+    # 525 nm での モル吸光係数: 約 2500 L mol^-1 cm^-1
+    epsilon_KMnO4 = 2500  # L mol^-1 cm^-1
+    path_length = 1.0  # cm
+    
+    # 標準溶液の調製（既知濃度）
+    concentrations_std = np.array([0.0, 0.02, 0.04, 0.06, 0.08, 0.10]) * 1e-3  # mol/L
+    
+    # 理論吸光度
+    absorbances_theoretical = beer_lambert(epsilon_KMnO4, concentrations_std, path_length)
+    
+    # 実験データをシミュレート（ノイズ付き）
+    np.random.seed(42)
+    noise = np.random.normal(0, 0.005, len(concentrations_std))
+    absorbances_exp = absorbances_theoretical + noise
+    absorbances_exp[0] = 0  # ブランクは0
+    
+    # 線形回帰
+    slope, intercept, r_value, p_value, std_err = stats.linregress(
+        concentrations_std * 1e3, absorbances_exp
+    )
+    
+    print("=" * 70)
+    print("KMnO4 検量線解析結果")
+    print("=" * 70)
+    print(f"波長: 525 nm")
+    print(f"光路長: {path_length} cm")
+    print(f"理論モル吸光係数: {epsilon_KMnO4} L mol^-1 cm^-1")
+    print("-" * 70)
+    print(f"回帰式: A = {slope:.2f} x c (mM) + {intercept:.4f}")
+    print(f"実験モル吸光係数: {slope * 1000:.0f} L mol^-1 cm^-1")
+    print(f"決定係数 R^2: {r_value**2:.6f}")
+    print(f"標準誤差: {std_err:.4f}")
+    
+    # 未知試料の濃度決定
+    unknown_absorbance = 0.175
+    unknown_concentration = (unknown_absorbance - intercept) / slope  # mM
+    print("-" * 70)
+    print(f"未知試料の吸光度: {unknown_absorbance}")
+    print(f"推定濃度: {unknown_concentration:.4f} mM ({unknown_concentration * 1e-3:.6f} mol/L)")
+    
+    # プロット
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # 検量線
+    ax1 = axes[0]
+    ax1.scatter(concentrations_std * 1e3, absorbances_exp, s=100, c='#f093fb',
+                edgecolors='black', zorder=5, label='Experimental data')
+    x_fit = np.linspace(0, 0.12, 100)
+    y_fit = slope * x_fit + intercept
+    ax1.plot(x_fit, y_fit, 'r-', linewidth=2, label=f'Linear fit (R$^2$ = {r_value**2:.4f})')
+    
+    # 未知試料のプロット
+    ax1.axhline(y=unknown_absorbance, color='green', linestyle='--', alpha=0.7)
+    ax1.axvline(x=unknown_concentration, color='green', linestyle='--', alpha=0.7)
+    ax1.scatter([unknown_concentration], [unknown_absorbance], s=150, c='green',
+                marker='*', zorder=6, label=f'Unknown sample: {unknown_concentration:.3f} mM')
+    
+    ax1.set_xlabel('Concentration (mM)', fontsize=12)
+    ax1.set_ylabel('Absorbance', fontsize=12)
+    ax1.set_title('KMnO4 Calibration Curve (525 nm)', fontsize=14, fontweight='bold')
+    ax1.legend(loc='upper left')
+    ax1.grid(True, alpha=0.3)
+    ax1.set_xlim(-0.005, 0.12)
+    ax1.set_ylim(-0.01, 0.30)
+    
+    # ビール則からの偏差（高濃度領域）
+    ax2 = axes[1]
+    concentrations_wide = np.linspace(0, 0.5e-3, 100)
+    absorbances_ideal = beer_lambert(epsilon_KMnO4, concentrations_wide, path_length)
+    
+    # 高濃度での負の偏差をシミュレート
+    absorbances_real = absorbances_ideal * (1 - 0.3 * (concentrations_wide / concentrations_wide.max())**2)
+    
+    ax2.plot(concentrations_wide * 1e3, absorbances_ideal, 'b-', linewidth=2,
+             label='Ideal (Beer-Lambert law)')
+    ax2.plot(concentrations_wide * 1e3, absorbances_real, 'r--', linewidth=2,
+             label='Real (with deviation)')
+    ax2.axvline(x=0.15, color='orange', linestyle=':', linewidth=2,
+                label='Recommended upper limit')
+    
+    ax2.set_xlabel('Concentration (mM)', fontsize=12)
+    ax2.set_ylabel('Absorbance', fontsize=12)
+    ax2.set_title('Deviation from Beer-Lambert Law', fontsize=14, fontweight='bold')
+    ax2.legend(loc='upper left')
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('beer_lambert_calibration.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+### 2.2 ビール則からの偏差
+
+ランベルト・ベール則は理想的な条件下でのみ成立します。以下の要因により偏差が生じることがあります：
+
+  * **化学的要因** ：高濃度での会合・解離平衡の変化
+  * **機器的要因** ：単色光の不完全性、迷光
+  * **屈折率変化** ：高濃度での溶液屈折率の変化
+
+実用上、吸光度 $A < 1.0$（透過率 $T > 10\%$）の範囲で測定することが推奨されます。
+
+## 3\. 発色団と助色団
+
+### 3.1 発色団（Chromophore）
+
+発色団は、UV-Vis領域で光を吸収する官能基です。発色団の電子構造が吸収波長を決定します。
+
+発色団 | 遷移 | 吸収極大 (nm) | モル吸光係数  
+---|---|---|---  
+C=C（エチレン） | $\pi \rightarrow \pi^*$ | 165 | 10,000  
+C=O（アルデヒド） | $n \rightarrow \pi^*$ | 290 | 15  
+C=O（ケトン） | $n \rightarrow \pi^*$ | 280 | 20  
+N=N（アゾ） | $n \rightarrow \pi^*$ | 350 | 15  
+ベンゼン環 | $\pi \rightarrow \pi^*$ | 254 | 200  
+  
+### 3.2 助色団（Auxochrome）
+
+助色団は、それ自体では発色しませんが、発色団に結合すると吸収波長や吸光度を変化させる官能基です。典型的な助色団には -OH、-NH2、-OR、-NR2、-Cl などがあります。
+
+**吸収スペクトルの変化**  
+
+  * **深色シフト（Bathochromic shift / Red shift）** ：吸収極大が長波長側へ移動
+  * **浅色シフト（Hypsochromic shift / Blue shift）** ：吸収極大が短波長側へ移動
+  * **濃色効果（Hyperchromic effect）** ：吸光度の増加
+  * **淡色効果（Hypochromic effect）** ：吸光度の減少
+
+#### コード例3: 共役系の拡張と吸収スペクトル変化
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.stats import norm
+    
+    def generate_absorption_spectrum(lambda_max, epsilon_max, fwhm, wavelengths):
+        """
+        ガウス型吸収スペクトルを生成
+    
+        Parameters:
+        -----------
+        lambda_max : float
+            吸収極大波長 (nm)
+        epsilon_max : float
+            最大モル吸光係数
+        fwhm : float
+            半値全幅 (nm)
+        wavelengths : array
+            波長配列 (nm)
+    
+        Returns:
+        --------
+        spectrum : array
+            モル吸光係数のスペクトル
+        """
+        sigma = fwhm / (2 * np.sqrt(2 * np.log(2)))
+        spectrum = epsilon_max * np.exp(-(wavelengths - lambda_max)**2 / (2 * sigma**2))
+        return spectrum
+    
+    # 共役ポリエンの吸収スペクトル（共役長の影響）
+    # エチレン → ブタジエン → ヘキサトリエン → オクタテトラエン
+    polyenes = {
+        'Ethylene (1 C=C)': {'lambda_max': 165, 'epsilon': 10000, 'fwhm': 30},
+        '1,3-Butadiene (2 C=C)': {'lambda_max': 217, 'epsilon': 21000, 'fwhm': 35},
+        '1,3,5-Hexatriene (3 C=C)': {'lambda_max': 258, 'epsilon': 35000, 'fwhm': 40},
+        '1,3,5,7-Octatetraene (4 C=C)': {'lambda_max': 290, 'epsilon': 52000, 'fwhm': 45},
+    }
+    
+    wavelengths = np.linspace(150, 450, 500)
+    
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # 吸収スペクトル
+    ax1 = axes[0]
+    colors = ['#f093fb', '#f5576c', '#4ecdc4', '#ffe66d']
+    
+    for (name, params), color in zip(polyenes.items(), colors):
+        spectrum = generate_absorption_spectrum(
+            params['lambda_max'], params['epsilon'], params['fwhm'], wavelengths
+        )
+        ax1.plot(wavelengths, spectrum / 1000, linewidth=2, color=color, label=name)
+        ax1.axvline(x=params['lambda_max'], color=color, linestyle='--', alpha=0.5)
+    
+    ax1.set_xlabel('Wavelength (nm)', fontsize=12)
+    ax1.set_ylabel('Molar absorptivity (x10$^3$ L mol$^{-1}$ cm$^{-1}$)', fontsize=12)
+    ax1.set_title('Conjugated Polyenes: Extended Conjugation Effect', fontsize=14, fontweight='bold')
+    ax1.legend(loc='upper right', fontsize=9)
+    ax1.grid(True, alpha=0.3)
+    ax1.set_xlim(150, 450)
+    ax1.set_ylim(0, 60)
+    
+    # 可視光領域のマーク
+    ax1.axvspan(380, 450, alpha=0.1, color='purple')
+    
+    # 共役長と吸収極大の関係
+    ax2 = axes[1]
+    n_double_bonds = [1, 2, 3, 4]
+    lambda_max_values = [165, 217, 258, 290]
+    epsilon_values = [10000, 21000, 35000, 52000]
+    
+    ax2.plot(n_double_bonds, lambda_max_values, 'o-', markersize=12, linewidth=2,
+             color='#f093fb', markeredgecolor='black', label='$\\lambda_{max}$')
+    ax2.set_xlabel('Number of conjugated C=C bonds', fontsize=12)
+    ax2.set_ylabel('$\\lambda_{max}$ (nm)', fontsize=12, color='#f093fb')
+    ax2.tick_params(axis='y', labelcolor='#f093fb')
+    ax2.set_xlim(0.5, 4.5)
+    ax2.set_ylim(100, 350)
+    
+    # 第2軸：モル吸光係数
+    ax2_twin = ax2.twinx()
+    ax2_twin.plot(n_double_bonds, np.array(epsilon_values) / 1000, 's-', markersize=10,
+                  linewidth=2, color='#4ecdc4', markeredgecolor='black', label='$\\epsilon_{max}$')
+    ax2_twin.set_ylabel('$\\epsilon_{max}$ (x10$^3$ L mol$^{-1}$ cm$^{-1}$)', fontsize=12, color='#4ecdc4')
+    ax2_twin.tick_params(axis='y', labelcolor='#4ecdc4')
+    ax2_twin.set_ylim(0, 60)
+    
+    ax2.set_title('Effect of Conjugation Length on UV-Vis Absorption', fontsize=14, fontweight='bold')
+    ax2.grid(True, alpha=0.3)
+    
+    # 凡例を結合
+    lines1, labels1 = ax2.get_legend_handles_labels()
+    lines2, labels2 = ax2_twin.get_legend_handles_labels()
+    ax2.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
+    
+    plt.tight_layout()
+    plt.savefig('conjugation_effect.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # 数値データの表示
+    print("=" * 70)
+    print("共役ポリエンのUV-Vis吸収特性")
+    print("=" * 70)
+    print(f"{'化合物':<35} {'共役C=C数':<12} {'lambda_max (nm)':<18} {'epsilon_max':<15}")
+    print("-" * 70)
+    for (name, params) in polyenes.items():
+        n_cc = name.split('(')[1].split()[0]
+        print(f"{name:<35} {n_cc:<12} {params['lambda_max']:<18} {params['epsilon']:<15}")
+
+## 4\. UV-Vis分光光度計の構成
+
+### 4.1 分光光度計の基本構成
+
+UV-Vis分光光度計は以下の主要構成要素から成ります：
     
     
     ```mermaid
-    flowchart TD
-                A[全自由度 3N] --> B[並進 3]
-                A --> C[回転]
-                A --> D[振動]
+    graph LR
+        A[光源] --> B[分光器]
+        B --> C[試料室]
+        C --> D[検出器]
+        D --> E[データ処理]
     
-                C --> C1[非線形分子: 3]
-                C --> C2[線形分子: 2]
+        subgraph "光源"
+            A1[重水素ランプ UV]
+            A2[タングステンランプ Vis]
+        end
     
-                D --> D1[非線形: 3N-6]
-                D --> D2[線形: 3N-5]
+        subgraph "分光器"
+            B1[回折格子]
+            B2[スリット]
+        end
     
-                D1 --> E[H₂O: 3モードCO₂: 4モードベンゼン: 30モード]
+        subgraph "試料室"
+            C1[セル]
+            C2[リファレンス]
+        end
     
-                style A fill:#f093fb,color:#fff
-                style D fill:#f5576c,color:#fff
-                style E fill:#a8e6cf,color:#000
+        style A fill:#f093fb,stroke:#333
+        style B fill:#f5576c,stroke:#333
+        style C fill:#4ecdc4,stroke:#333
+        style D fill:#ffe66d,stroke:#333
+        style E fill:#a29bfe,stroke:#333
     ```
 
-振動モードは**伸縮振動（stretching）** と**変角振動（bending）** に分類されます：
+  * **光源** ：重水素ランプ（UV領域: 190-350 nm）、タングステン-ハロゲンランプ（Vis-NIR領域: 350-2500 nm）
+  * **分光器** ：回折格子または プリズムで単色光を生成
+  * **試料室** ：セルホルダー、温度制御機構（オプション）
+  * **検出器** ：光電子増倍管（PMT）または フォトダイオードアレイ（PDA）
 
-  * **伸縮振動** : 対称伸縮（symmetric stretch, νₛ）、非対称伸縮（asymmetric stretch, νₐₛ）
-  * **変角振動** : はさみ振動（scissoring, δ）、横揺れ振動（rocking, ρ）、縦揺れ振動（wagging, ω）、ねじれ振動（twisting, τ）
+### 4.2 ダブルビーム方式
 
-#### コード例2: H₂O分子の3つの振動モードシミュレーション
-    
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from matplotlib.animation import FuncAnimation
-    from IPython.display import HTML
-    
-    def h2o_normal_modes():
-        """
-        H2O分子の3つの振動モード（対称伸縮、非対称伸縮、変角）の可視化
-    
-        Returns:
-        --------
-        fig : matplotlib figure
-            振動モードの図
-        """
-        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-    
-        # 平衡位置（O原子を原点）
-        O = np.array([0, 0])
-        H1 = np.array([-0.76, 0.59])  # 左のH
-        H2 = np.array([0.76, 0.59])   # 右のH
-    
-        modes = [
-            {
-                'name': '対称伸縮 (νₛ)',
-                'freq': '3657 cm⁻¹',
-                'displacements': {
-                    'O': np.array([0, 0]),
-                    'H1': np.array([-0.1, 0.08]),
-                    'H2': np.array([0.1, 0.08])
-                }
-            },
-            {
-                'name': '変角振動 (δ)',
-                'freq': '1595 cm⁻¹',
-                'displacements': {
-                    'O': np.array([0, 0]),
-                    'H1': np.array([-0.05, -0.1]),
-                    'H2': np.array([0.05, -0.1])
-                }
-            },
-            {
-                'name': '非対称伸縮 (νₐₛ)',
-                'freq': '3756 cm⁻¹',
-                'displacements': {
-                    'O': np.array([0, 0]),
-                    'H1': np.array([-0.1, 0.08]),
-                    'H2': np.array([0.1, -0.08])
-                }
-            }
-        ]
-    
-        for ax, mode in zip(axes, modes):
-            # 平衡位置
-            ax.plot(*O, 'ro', markersize=15, label='O')
-            ax.plot(*H1, 'bo', markersize=10, label='H')
-            ax.plot(*H2, 'bo', markersize=10)
-            ax.plot([O[0], H1[0]], [O[1], H1[1]], 'k-', linewidth=2)
-            ax.plot([O[0], H2[0]], [O[1], H2[1]], 'k-', linewidth=2)
-    
-            # 振動の変位（拡大表示）
-            scale = 2
-            O_disp = O + scale * mode['displacements']['O']
-            H1_disp = H1 + scale * mode['displacements']['H1']
-            H2_disp = H2 + scale * mode['displacements']['H2']
-    
-            ax.plot(*O_disp, 'ro', markersize=15, alpha=0.3)
-            ax.plot(*H1_disp, 'bo', markersize=10, alpha=0.3)
-            ax.plot(*H2_disp, 'bo', markersize=10, alpha=0.3)
-            ax.plot([O_disp[0], H1_disp[0]], [O_disp[1], H1_disp[1]], 'k--', linewidth=2, alpha=0.3)
-            ax.plot([O_disp[0], H2_disp[0]], [O_disp[1], H2_disp[1]], 'k--', linewidth=2, alpha=0.3)
-    
-            # 変位ベクトル
-            ax.arrow(*O, *mode['displacements']['O'], head_width=0.08, head_length=0.05, fc='red', ec='red')
-            ax.arrow(*H1, *mode['displacements']['H1'], head_width=0.08, head_length=0.05, fc='blue', ec='blue')
-            ax.arrow(*H2, *mode['displacements']['H2'], head_width=0.08, head_length=0.05, fc='blue', ec='blue')
-    
-            ax.set_xlim(-1.2, 1.2)
-            ax.set_ylim(-0.5, 1)
-            ax.set_aspect('equal')
-            ax.set_title(f"{mode['name']}\n{mode['freq']}", fontsize=12, fontweight='bold')
-            ax.axis('off')
-    
-        plt.tight_layout()
-        plt.savefig('h2o_normal_modes.png', dpi=300, bbox_inches='tight')
-        plt.show()
-    
-        return fig
-    
-    # 実行
-    fig = h2o_normal_modes()
-    
-    # 振動モードの特徴
-    print("=" * 60)
-    print("H₂O分子の3つの基本振動モード")
-    print("=" * 60)
-    print("1. 対称伸縮 (νₛ): 3657 cm⁻¹")
-    print("   - 両方のO-H結合が同時に伸縮")
-    print("   - IRで強い吸収（双極子モーメント変化大）")
-    print("")
-    print("2. 変角振動 (δ): 1595 cm⁻¹")
-    print("   - H-O-H角が変化")
-    print("   - 最も低い振動数（弱い力の定数）")
-    print("")
-    print("3. 非対称伸縮 (νₐₛ): 3756 cm⁻¹")
-    print("   - 一方のO-Hが伸びるとき、他方は縮む")
-    print("   - IRで最も強い吸収")
-    
+現代のUV-Vis分光光度計の多くはダブルビーム方式を採用しています。光を二つに分け、一方を試料セル、他方をリファレンス（参照）セルに通すことで、光源の強度変動やセルの汚れによる誤差を補正できます。
 
-## 2\. 赤外分光法（IR）
-
-### 2.1 IR吸収の選択則
-
-IRで振動が活性（IR active）であるためには、振動に伴って**双極子モーメント $\boldsymbol{\mu}$ が変化** する必要があります：
-
-$$\left(\frac{\partial \boldsymbol{\mu}}{\partial Q}\right)_0 \neq 0$$
-
-ここで、$Q$ は振動の規準座標です。対称分子（CO₂など）の対称伸縮振動はIR不活性ですが、非対称伸縮や変角振動はIR活性です。
-
-### 2.2 官能基と特性吸収
-
-有機化合物の官能基は特定の波数領域に特性吸収を示します。これにより、IRスペクトルから分子構造を推定できます。
-
-官能基 | 振動モード | 波数（cm⁻¹） | 強度  
----|---|---|---  
-O-H（アルコール） | 伸縮 | 3200-3600 | 強、幅広  
-N-H | 伸縮 | 3300-3500 | 中  
-C-H（脂肪族） | 伸縮 | 2850-2960 | 強  
-C≡N | 伸縮 | 2210-2260 | 中  
-C=O（カルボニル） | 伸縮 | 1650-1750 | 非常に強  
-C=C | 伸縮 | 1620-1680 | 弱〜中  
-C-O | 伸縮 | 1000-1300 | 強  
-芳香環 | 面外変角 | 690-900 | 強  
-  
-#### コード例3: IRスペクトルシミュレーション（エタノール）
-    
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
-    def lorentzian_peak(x, center, intensity, width):
-        """Lorentzian線形関数"""
-        return intensity * (width**2 / ((x - center)**2 + width**2))
-    
-    def simulate_ir_spectrum(peaks, x_range=(4000, 400)):
-        """
-        IRスペクトルのシミュレーション
-    
-        Parameters:
-        -----------
-        peaks : list of dict
-            各ピークの情報 [{'center': cm-1, 'intensity': 0-1, 'width': cm-1, 'label': str}, ...]
-        x_range : tuple
-            波数範囲（cm⁻¹）
-    
-        Returns:
-        --------
-        wavenumbers : array
-            波数軸
-        transmittance : array
-            透過率（%）
-        """
-        wavenumbers = np.linspace(x_range[0], x_range[1], 2000)
-        absorbance = np.zeros_like(wavenumbers)
-    
-        for peak in peaks:
-            absorbance += lorentzian_peak(wavenumbers, peak['center'],
-                                           peak['intensity'], peak['width'])
-    
-        transmittance = 100 * np.exp(-absorbance)
-        return wavenumbers, transmittance, peaks
-    
-    # エタノール (CH₃CH₂OH) のIRスペクトル
-    ethanol_peaks = [
-        {'center': 3350, 'intensity': 1.5, 'width': 100, 'label': 'O-H伸縮'},
-        {'center': 2970, 'intensity': 0.8, 'width': 20, 'label': 'C-H伸縮（CH₃）'},
-        {'center': 2930, 'intensity': 0.7, 'width': 20, 'label': 'C-H伸縮（CH₂）'},
-        {'center': 1450, 'intensity': 0.4, 'width': 30, 'label': 'C-H変角'},
-        {'center': 1380, 'intensity': 0.3, 'width': 20, 'label': 'C-H変角'},
-        {'center': 1050, 'intensity': 1.0, 'width': 40, 'label': 'C-O伸縮'},
-        {'center': 880, 'intensity': 0.5, 'width': 25, 'label': 'C-C伸縮'},
-    ]
-    
-    wavenumbers, transmittance, peaks = simulate_ir_spectrum(ethanol_peaks)
-    
-    # プロット
-    fig, ax = plt.subplots(figsize=(12, 6))
-    
-    ax.plot(wavenumbers, transmittance, linewidth=1.5, color='#f093fb')
-    ax.fill_between(wavenumbers, transmittance, 100, alpha=0.2, color='#f5576c')
-    
-    # ピークのラベル
-    for peak in peaks:
-        idx = np.argmin(np.abs(wavenumbers - peak['center']))
-        y_pos = transmittance[idx]
-        if y_pos < 50:
-            ax.annotate(peak['label'], xy=(peak['center'], y_pos),
-                       xytext=(peak['center'], y_pos - 15),
-                       fontsize=9, ha='center', rotation=90,
-                       arrowprops=dict(arrowstyle='->', color='black', lw=0.8))
-    
-    ax.set_xlabel('波数 (cm⁻¹)', fontsize=12)
-    ax.set_ylabel('透過率 (%)', fontsize=12)
-    ax.set_title('エタノール (CH₃CH₂OH) のIRスペクトル（シミュレーション）',
-                 fontsize=14, fontweight='bold')
-    ax.set_xlim(4000, 400)
-    ax.set_ylim(0, 105)
-    ax.invert_xaxis()  # IRスペクトルは通常高波数側が左
-    ax.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig('ethanol_ir_spectrum.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    # ピーク帰属表
-    print("=" * 70)
-    print("エタノールのIRスペクトル帰属")
-    print("=" * 70)
-    print(f"{'波数 (cm⁻¹)':<15} {'強度':<10} {'帰属':<30}")
-    print("-" * 70)
-    for peak in sorted(peaks, key=lambda x: x['center'], reverse=True):
-        intensity_str = '強' if peak['intensity'] > 1.0 else ('中' if peak['intensity'] > 0.5 else '弱')
-        print(f"{peak['center']:<15} {intensity_str:<10} {peak['label']:<30}")
-    
-
-### 2.3 FTIR（フーリエ変換赤外分光法）
-
-現代のIR分光計はマイケルソン干渉計を用いたFTIR（Fourier Transform Infrared Spectroscopy）が主流です。干渉計で得られたインターフェログラム（時間領域信号）をフーリエ変換して周波数領域のスペクトルを得ます。
-
-**FTIRの利点**
-
-  * **高速測定** : 全波数を同時測定（Fellgettの利点）
-  * **高感度** : 光エネルギーの利用効率が高い（Jacquinotの利点）
-  * **高波数精度** : He-Neレーザーによる内部校正
-  * **多数回積算** : S/N比向上
-
-#### コード例4: FTIRのインターフェログラムとフーリエ変換
-    
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.fft import fft, fftfreq
-    
-    def generate_interferogram(wavenumbers_cm, intensities, mirror_displacement_max=0.05):
-        """
-        IRスペクトルからインターフェログラムを生成（簡略化版）
-    
-        Parameters:
-        -----------
-        wavenumbers_cm : array
-            波数（cm⁻¹）
-        intensities : array
-            各波数の強度
-        mirror_displacement_max : float
-            ミラー移動距離の最大値（cm）
-    
-        Returns:
-        --------
-        displacement : array
-            ミラー変位
-        interferogram : array
-            インターフェログラム
-        """
-        # ミラー変位
-        n_points = 2048
-        displacement = np.linspace(-mirror_displacement_max, mirror_displacement_max, n_points)
-    
-        # インターフェログラム（各波数成分の干渉パターンの和）
-        interferogram = np.zeros_like(displacement)
-        for wn, intensity in zip(wavenumbers_cm, intensities):
-            # 波数をcm^-1からcm単位の波長に変換
-            # cos(2π * wavenumber * displacement)
-            interferogram += intensity * np.cos(2 * np.pi * wn * displacement)
-    
-        # DC成分追加
-        interferogram += np.sum(intensities)
-    
-        return displacement, interferogram
-    
-    def fourier_transform_spectrum(displacement, interferogram):
-        """
-        インターフェログラムをフーリエ変換してスペクトルを復元
-    
-        Parameters:
-        -----------
-        displacement : array
-            ミラー変位（cm）
-        interferogram : array
-            インターフェログラム
-    
-        Returns:
-        --------
-        wavenumbers : array
-            波数（cm⁻¹）
-        spectrum : array
-            復元されたスペクトル
-        """
-        # フーリエ変換
-        N = len(interferogram)
-        spectrum_complex = fft(interferogram)
-        spectrum = np.abs(spectrum_complex[:N//2])
-    
-        # 波数軸（cm⁻¹）
-        delta_x = displacement[1] - displacement[0]
-        wavenumbers = fftfreq(N, delta_x)[:N//2]
-    
-        return wavenumbers, spectrum
-    
-    # シミュレーション：3つのIRピーク
-    true_wavenumbers = np.array([1000, 1700, 2900])  # cm^-1
-    true_intensities = np.array([0.5, 1.0, 0.7])
-    
-    # インターフェログラム生成
-    displacement, interferogram = generate_interferogram(true_wavenumbers, true_intensities)
-    
-    # フーリエ変換でスペクトル復元
-    wavenumbers_ft, spectrum_ft = fourier_transform_spectrum(displacement, interferogram)
-    
-    # 可視化
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
-    
-    # インターフェログラム
-    ax1.plot(displacement, interferogram, linewidth=1.5, color='#f093fb')
-    ax1.set_xlabel('ミラー変位 (cm)', fontsize=12)
-    ax1.set_ylabel('インターフェログラム強度', fontsize=12)
-    ax1.set_title('FTIRインターフェログラム（時間領域）', fontsize=14, fontweight='bold')
-    ax1.grid(True, alpha=0.3)
-    ax1.axvline(x=0, color='red', linestyle='--', linewidth=2, alpha=0.5, label='Zero Path Difference')
-    ax1.legend()
-    
-    # フーリエ変換後のスペクトル
-    ax2.plot(wavenumbers_ft, spectrum_ft, linewidth=1.5, color='#f5576c')
-    ax2.set_xlabel('波数 (cm⁻¹)', fontsize=12)
-    ax2.set_ylabel('強度 (a.u.)', fontsize=12)
-    ax2.set_title('フーリエ変換後のIRスペクトル（周波数領域）', fontsize=14, fontweight='bold')
-    ax2.set_xlim(0, 4000)
-    ax2.grid(True, alpha=0.3)
-    
-    # 真のピーク位置をマーク
-    for wn, intensity in zip(true_wavenumbers, true_intensities):
-        ax2.axvline(x=wn, color='green', linestyle='--', alpha=0.7, linewidth=1.5)
-        ax2.text(wn, max(spectrum_ft) * 0.9, f'{wn} cm⁻¹',
-                rotation=90, va='bottom', fontsize=10, color='green')
-    
-    plt.tight_layout()
-    plt.savefig('ftir_interferogram.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    print("=" * 60)
-    print("FTIR測定の原理")
-    print("=" * 60)
-    print("1. マイケルソン干渉計でミラーを移動")
-    print("2. 干渉パターン（インターフェログラム）を記録")
-    print("3. フーリエ変換で周波数領域のスペクトルを復元")
-    print("")
-    print("真のピーク位置: ", true_wavenumbers, " cm⁻¹")
-    print("復元されたピーク: フーリエ変換後のスペクトルで確認")
-    
-
-## 3\. ラマン分光法
-
-### 3.1 Raman散乱の原理
-
-Raman散乱は、光と分子の相互作用により、入射光（周波数 $\nu_0$）が分子の振動エネルギー（周波数 $\nu_m$）だけシフトした散乱光として観測される現象です：
-
-  * **Rayleigh散乱** （弾性散乱）: $\nu_{\text{scatter}} = \nu_0$（大多数、106倍強い）
-  * **Stokes Raman散乱** : $\nu_{\text{scatter}} = \nu_0 - \nu_m$（分子が励起）
-  * **Anti-Stokes Raman散乱** : $\nu_{\text{scatter}} = \nu_0 + \nu_m$（既に励起状態にある分子が基底状態へ、弱い）
-
-Raman散乱の選択則は、振動に伴って**分極率 $\alpha$ が変化** することです：
-
-$$\left(\frac{\partial \alpha}{\partial Q}\right)_0 \neq 0$$
-
-この選択則はIRとは異なり、対称振動がRaman活性、非対称振動がRaman不活性となる場合が多いです（相補則）。
-
-#### コード例5: RamanスペクトルとStokes/Anti-Stokesの比
-    
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
-    def boltzmann_population(E_vib_cm, T=300):
-        """
-        Boltzmann分布による振動励起状態の占有率
-    
-        Parameters:
-        -----------
-        E_vib_cm : float
-            振動エネルギー（cm⁻¹）
-        T : float
-            温度（K）
-    
-        Returns:
-        --------
-        ratio : float
-            v=1とv=0の占有率比 n₁/n₀
-        """
-        k_B = 1.380649e-23  # J/K
-        h = 6.62607015e-34  # J·s
-        c = 2.99792458e8    # m/s
-    
-        E_J = h * c * E_vib_cm * 100  # cm^-1 to J
-        ratio = np.exp(-E_J / (k_B * T))
-        return ratio
-    
-    def raman_spectrum_simulation(laser_wavelength=532):
-        """
-        Ramanスペクトル（Stokes/Anti-Stokes）のシミュレーション
-    
-        Parameters:
-        -----------
-        laser_wavelength : float
-            励起レーザー波長（nm）
-    
-        Returns:
-        --------
-        fig : matplotlib figure
-        """
-        # 振動モード
-        vibrations = [
-            {'mode': 'C-C伸縮', 'shift': 1000, 'intensity': 0.8},
-            {'mode': 'C=O伸縮', 'shift': 1700, 'intensity': 1.0},
-            {'mode': 'C-H伸縮', 'shift': 2900, 'intensity': 0.6}
-        ]
-    
-        # レーザー周波数
-        laser_freq = 1e7 / laser_wavelength  # cm^-1
-    
-        # Raman shift軸（通常は-3500 ~ +3500 cm^-1）
-        raman_shift = np.linspace(-3500, 3500, 3000)
-    
-        # スペクトル初期化
-        spectrum = np.zeros_like(raman_shift)
-    
-        # 各振動モードのピーク
-        for vib in vibrations:
-            shift = vib['shift']
-            intensity = vib['intensity']
-    
-            # Stokesピーク（正のシフト）
-            stokes = intensity * np.exp(-(raman_shift - shift)**2 / (2 * 30**2))
-            spectrum += stokes
-    
-            # Anti-Stokesピーク（負のシフト）
-            # Boltzmann因子で強度が減少
-            boltzmann_ratio = boltzmann_population(shift, T=300)
-            anti_stokes = intensity * boltzmann_ratio * np.exp(-(raman_shift + shift)**2 / (2 * 30**2))
-            spectrum += anti_stokes
-    
-        # Rayleigh散乱（中心、非常に強い）
-        rayleigh = 100 * np.exp(-(raman_shift)**2 / (2 * 20**2))
-    
-        # プロット
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
-    
-        # 全スペクトル（Rayleigh含む）
-        ax1.plot(raman_shift, spectrum + rayleigh, linewidth=1.5, color='#f093fb')
-        ax1.fill_between(raman_shift, spectrum + rayleigh, alpha=0.3, color='#f5576c')
-        ax1.axvline(x=0, color='red', linestyle='--', linewidth=2, label='Rayleigh散乱')
-        ax1.set_xlabel('Raman Shift (cm⁻¹)', fontsize=12)
-        ax1.set_ylabel('強度 (a.u.)', fontsize=12)
-        ax1.set_title(f'Ramanスペクトル全体（レーザー: {laser_wavelength} nm）',
-                     fontsize=14, fontweight='bold')
-        ax1.legend()
-        ax1.grid(True, alpha=0.3)
-        ax1.set_yscale('log')
-        ax1.set_ylim(0.01, 150)
-    
-        # Stokes領域の拡大（実用的な測定範囲）
-        ax2.plot(raman_shift, spectrum, linewidth=1.5, color='#f5576c')
-        ax2.fill_between(raman_shift, spectrum, alpha=0.3, color='#f093fb')
-        ax2.set_xlabel('Raman Shift (cm⁻¹)', fontsize=12)
-        ax2.set_ylabel('強度 (a.u.)', fontsize=12)
-        ax2.set_title('Ramanスペクトル（Rayleigh除去後）', fontsize=14, fontweight='bold')
-        ax2.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
-        ax2.grid(True, alpha=0.3)
-    
-        # ピーク帰属
-        for vib in vibrations:
-            shift = vib['shift']
-            ax2.text(shift, vib['intensity'] * 1.1, vib['mode'],
-                    ha='center', fontsize=10, rotation=45)
-            ax2.text(-shift, vib['intensity'] * boltzmann_population(shift) * 1.1,
-                    vib['mode'] + '\n(Anti-Stokes)',
-                    ha='center', fontsize=9, rotation=45, alpha=0.7)
-    
-        plt.tight_layout()
-        plt.savefig('raman_spectrum_stokes_antistokes.png', dpi=300, bbox_inches='tight')
-        plt.show()
-    
-        # Boltzmann比の温度依存性
-        print("=" * 70)
-        print("Stokes/Anti-Stokes強度比の温度依存性")
-        print("=" * 70)
-        print(f"{'振動モード':<20} {'Raman shift (cm⁻¹)':<25} {'I(Anti-Stokes)/I(Stokes) at 300K':<30}")
-        print("-" * 70)
-        for vib in vibrations:
-            ratio = boltzmann_population(vib['shift'], T=300)
-            print(f"{vib['mode']:<20} {vib['shift']:<25} {ratio:<30.4f}")
-    
-        return fig
-    
-    # 実行
-    fig = raman_spectrum_simulation(laser_wavelength=532)
-    
-    # 温度依存性の計算
-    temperatures = np.linspace(100, 800, 50)
-    raman_shift_1000 = 1000  # cm^-1
-    
-    ratios = [boltzmann_population(raman_shift_1000, T) for T in temperatures]
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(temperatures, ratios, linewidth=2, color='#f093fb')
-    plt.xlabel('温度 (K)', fontsize=12)
-    plt.ylabel('I(Anti-Stokes) / I(Stokes)', fontsize=12)
-    plt.title('Raman強度比の温度依存性（1000 cm⁻¹モード）', fontsize=14, fontweight='bold')
-    plt.grid(True, alpha=0.3)
-    plt.axhline(y=boltzmann_population(1000, 300), color='red', linestyle='--',
-               label='室温 (300 K)')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig('raman_temperature_dependence.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-
-### 3.2 IRとRamanの相補則
-
-中心対称分子（例: CO₂、ベンゼン）では、IRとRamanの選択則が相補的です：
-
-**相互排他則（Mutual Exclusion Rule）**  
-中心対称分子において、IR活性な振動はRaman不活性、Raman活性な振動はIR不活性となります。これは対称性による選択則の違いから生じます。 
-
-振動モード | 対称性 | IR活性 | Raman活性  
----|---|---|---  
-CO₂対称伸縮 | Σg⁺ | 不活性 | 活性  
-CO₂非対称伸縮 | Σu⁺ | 活性 | 不活性  
-CO₂変角振動 | Πu | 活性 | 不活性  
-  
-### 3.3 Raman分光の応用
-
-  * **結晶性評価** : 低波数領域（<200 cm⁻¹）の格子振動モードから結晶化度を評価
-  * **水溶液試料** : 水のIR吸収が強いが、Ramanでは水の影響が少ない
-  * **非接触・非破壊測定** : レーザーを集光して微小領域測定（ラマン顕微鏡）
-  * **表面増強Raman（SERS）** : 金属ナノ粒子表面で106〜1014倍の増強
-
-#### コード例6: 結晶性評価のためのRamanピークフィッティング
-    
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.optimize import curve_fit
-    
-    def crystallinity_analysis(raman_shift, intensity):
-        """
-        Ramanスペクトルから結晶化度を評価（ポリマーの例）
-    
-        Parameters:
-        -----------
-        raman_shift : array
-            Raman shift（cm⁻¹）
-        intensity : array
-            Raman強度
-    
-        Returns:
-        --------
-        crystallinity : float
-            結晶化度（%）
-        fit_params : dict
-            フィッティングパラメータ
-        """
-        def two_peak_model(x, A1, c1, w1, A2, c2, w2):
-            """結晶ピークと非晶ピークの2成分モデル"""
-            peak1 = A1 * np.exp(-(x - c1)**2 / (2 * w1**2))  # 結晶ピーク
-            peak2 = A2 * np.exp(-(x - c2)**2 / (2 * w2**2))  # 非晶ピーク
-            return peak1 + peak2
-    
-        # 初期推定値
-        p0 = [100, 1095, 10, 80, 1080, 15]
-    
-        # フィッティング
-        popt, pcov = curve_fit(two_peak_model, raman_shift, intensity, p0=p0)
-    
-        # 個別ピーク
-        crystal_peak = popt[0] * np.exp(-(raman_shift - popt[1])**2 / (2 * popt[2]**2))
-        amorphous_peak = popt[3] * np.exp(-(raman_shift - popt[4])**2 / (2 * popt[5]**2))
-    
-        # 結晶化度（ピーク面積比）
-        crystal_area = popt[0] * popt[2] * np.sqrt(2 * np.pi)
-        amorphous_area = popt[3] * popt[5] * np.sqrt(2 * np.pi)
-        crystallinity = crystal_area / (crystal_area + amorphous_area) * 100
-    
-        fit_params = {
-            'crystal_center': popt[1],
-            'crystal_width': popt[2],
-            'amorphous_center': popt[4],
-            'amorphous_width': popt[5],
-            'crystal_peak': crystal_peak,
-            'amorphous_peak': amorphous_peak,
-            'fitted_curve': two_peak_model(raman_shift, *popt)
-        }
-    
-        return crystallinity, fit_params
-    
-    # 合成データ（半結晶性ポリマーのC-C伸縮領域）
-    raman_shift = np.linspace(1050, 1130, 300)
-    crystal_peak_true = 70 * np.exp(-(raman_shift - 1095)**2 / (2 * 8**2))
-    amorphous_peak_true = 50 * np.exp(-(raman_shift - 1080)**2 / (2 * 12**2))
-    intensity = crystal_peak_true + amorphous_peak_true + np.random.normal(0, 2, len(raman_shift))
-    
-    # 結晶化度解析
-    crystallinity, fit_params = crystallinity_analysis(raman_shift, intensity)
-    
-    # プロット
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-    
-    # ピーク分離
-    ax1.plot(raman_shift, intensity, 'k.', markersize=4, alpha=0.5, label='実験データ')
-    ax1.plot(raman_shift, fit_params['fitted_curve'], 'r-', linewidth=2, label='フィッティング')
-    ax1.plot(raman_shift, fit_params['crystal_peak'], 'b--', linewidth=2, label='結晶成分')
-    ax1.plot(raman_shift, fit_params['amorphous_peak'], 'g--', linewidth=2, label='非晶成分')
-    ax1.fill_between(raman_shift, fit_params['crystal_peak'], alpha=0.3, color='blue')
-    ax1.fill_between(raman_shift, fit_params['amorphous_peak'], alpha=0.3, color='green')
-    ax1.set_xlabel('Raman Shift (cm⁻¹)', fontsize=12)
-    ax1.set_ylabel('強度 (a.u.)', fontsize=12)
-    ax1.set_title('ピーク分離による結晶化度解析', fontsize=14, fontweight='bold')
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
-    
-    # 結晶化度の表示
-    ax2.bar(['結晶成分', '非晶成分'],
-           [crystallinity, 100 - crystallinity],
-           color=['#4ecdc4', '#ffe66d'], edgecolor='black', linewidth=2)
-    ax2.set_ylabel('割合 (%)', fontsize=12)
-    ax2.set_title(f'結晶化度: {crystallinity:.1f}%', fontsize=14, fontweight='bold')
-    ax2.set_ylim(0, 100)
-    ax2.grid(axis='y', alpha=0.3)
-    
-    for i, (label, value) in enumerate(zip(['結晶成分', '非晶成分'],
-                                            [crystallinity, 100 - crystallinity])):
-        ax2.text(i, value + 3, f'{value:.1f}%', ha='center', fontsize=12, fontweight='bold')
-    
-    plt.tight_layout()
-    plt.savefig('raman_crystallinity_analysis.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    # 結果の出力
-    print("=" * 60)
-    print("Raman結晶化度解析結果")
-    print("=" * 60)
-    print(f"結晶ピーク中心: {fit_params['crystal_center']:.1f} cm⁻¹")
-    print(f"結晶ピーク幅（FWHM）: {2.355 * fit_params['crystal_width']:.1f} cm⁻¹")
-    print(f"非晶ピーク中心: {fit_params['amorphous_center']:.1f} cm⁻¹")
-    print(f"非晶ピーク幅（FWHM）: {2.355 * fit_params['amorphous_width']:.1f} cm⁻¹")
-    print(f"\n結晶化度: {crystallinity:.1f}%")
-    print(f"非晶化度: {100 - crystallinity:.1f}%")
-    
-
-## 4\. 群論と振動選択則
-
-### 4.1 分子の対称性と既約表現
-
-分子の振動モードは、分子の対称性（点群）によって分類されます。各振動モードは点群の既約表現に対応し、その対称性から選択則（IR活性、Raman活性）が決まります。
-
-**主要な点群と既約表現の例**  
-
-  * **C 2v**（H₂O）: A₁, A₂, B₁, B₂
-  * **D 6h**（ベンゼン）: A1g, A2g, B1g, B2g, E1g, E2g, A1u, A2u, B1u, B2u, E1u, E2u
-  * **T d**（CH₄）: A₁, A₂, E, T₁, T₂
-
-#### コード例7: H₂O分子の振動モードと対称性
-    
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
-    def h2o_symmetry_analysis():
-        """
-        H₂O分子（C2v点群）の振動モードと選択則
-    
-        Returns:
-        --------
-        table : dict
-            振動モードの情報
-        """
-        # H2O分子の3つの基本振動モード
-        modes = {
-            'mode1': {
-                'name': '対称伸縮',
-                'symmetry': 'A₁',
-                'wavenumber': 3657,
-                'IR_active': True,
-                'Raman_active': True,
-                'description': '両O-H結合が同時に伸縮、対称'
-            },
-            'mode2': {
-                'name': '変角振動',
-                'symmetry': 'A₁',
-                'wavenumber': 1595,
-                'IR_active': True,
-                'Raman_active': True,
-                'description': 'H-O-H角が変化'
-            },
-            'mode3': {
-                'name': '非対称伸縮',
-                'symmetry': 'B₁',
-                'wavenumber': 3756,
-                'IR_active': True,
-                'Raman_active': True,
-                'description': '一方のO-Hが伸びる時、他方が縮む'
-            }
-        }
-    
-        # 表形式で表示
-        print("=" * 80)
-        print("H₂O分子（C₂v点群）の振動モードと選択則")
-        print("=" * 80)
-        print(f"{'モード':<12} {'対称性':<10} {'波数 (cm⁻¹)':<15} {'IR活性':<10} {'Raman活性':<12} {'説明':<30}")
-        print("-" * 80)
-    
-        for mode_id, mode in modes.items():
-            ir_str = '○' if mode['IR_active'] else '×'
-            raman_str = '○' if mode['Raman_active'] else '×'
-            print(f"{mode['name']:<12} {mode['symmetry']:<10} {mode['wavenumber']:<15} "
-                  f"{ir_str:<10} {raman_str:<12} {mode['description']:<30}")
-    
-        print("\n" + "=" * 80)
-        print("C₂v点群の指標表（Character Table）")
-        print("=" * 80)
-        print("  C₂v | E   C₂  σv  σv' | 基底関数")
-        print("-" * 80)
-        print("  A₁  | 1   1   1   1   | z, x², y², z²")
-        print("  A₂  | 1   1  -1  -1   | Rz")
-        print("  B₁  | 1  -1   1  -1   | x, Ry")
-        print("  B₂  | 1  -1  -1   1   | y, Rx")
-        print("\n選択則:")
-        print("  IR活性: μx, μy, μz（双極子モーメント）が基底に含まれる")
-        print("  Raman活性: αxx, αyy, αzz, αxy, αxz, αyz（分極率テンソル）が基底に含まれる")
-        print("\nH₂Oの場合、A₁とB₁はいずれもIRとRaman両方で活性")
-    
-        # 可視化：エネルギーレベル図
-        fig, ax = plt.subplots(figsize=(10, 8))
-    
-        # 基底状態と励起状態
-        y_ground = 0
-        modes_sorted = sorted(modes.items(), key=lambda x: x[1]['wavenumber'])
-    
-        colors = ['#f093fb', '#f5576c', '#4ecdc4']
-    
-        for i, (mode_id, mode) in enumerate(modes_sorted):
-            y_excited = mode['wavenumber'] / 100  # スケーリング
-            ax.hlines(y_excited, i*0.5, i*0.5 + 0.4, colors=colors[i], linewidths=5,
-                     label=f"{mode['name']} ({mode['symmetry']})")
-            ax.text(i*0.5 + 0.45, y_excited, f"{mode['wavenumber']} cm⁻¹",
-                   va='center', fontsize=10)
-    
-            # 遷移矢印
-            ax.annotate('', xy=(i*0.5 + 0.2, y_excited), xytext=(i*0.5 + 0.2, y_ground),
-                       arrowprops=dict(arrowstyle='->', color=colors[i], lw=2))
-    
-        ax.hlines(y_ground, -0.2, 1.5, colors='black', linewidths=3, label='基底状態 (v=0)')
-        ax.set_xlim(-0.3, 1.6)
-        ax.set_ylim(-2, 40)
-        ax.set_ylabel('相対エネルギー (cm⁻¹ / 100)', fontsize=12)
-        ax.set_title('H₂O分子の振動励起エネルギー準位', fontsize=14, fontweight='bold')
-        ax.set_xticks([])
-        ax.legend(loc='upper left', fontsize=10)
-        ax.grid(axis='y', alpha=0.3)
-    
-        plt.tight_layout()
-        plt.savefig('h2o_symmetry_modes.png', dpi=300, bbox_inches='tight')
-        plt.show()
-    
-        return modes
-    
-    # 実行
-    modes = h2o_symmetry_analysis()
-    
-
-### 4.2 選択則の決定
-
-既約表現に対応する振動モードがIR活性またはRaman活性であるかは、以下の規則で判定されます：
-
-  * **IR活性** : 振動モードの既約表現が、双極子モーメント成分（x, y, z）のいずれかと同じ対称性を持つ
-  * **Raman活性** : 振動モードの既約表現が、分極率テンソル成分（x², y², z², xy, xz, yz）のいずれかと同じ対称性を持つ
-
-## 5\. 実践的なスペクトル解析
-
-#### コード例8: IRとRamanの統合解析ワークフロー
+#### コード例4: UV-Visスペクトルのシミュレーションと解析
     
     
     import numpy as np
     import matplotlib.pyplot as plt
     from scipy.signal import find_peaks
+    from scipy.ndimage import gaussian_filter1d
     
-    class VibrationalSpectroscopyAnalyzer:
-        """IR・Ramanスペクトルの統合解析クラス"""
+    def simulate_uv_vis_spectrum(compounds, wavelengths):
+        """
+        複数成分の混合物のUV-Visスペクトルをシミュレート
     
-        def __init__(self):
-            # 官能基データベース（簡略版）
-            self.functional_groups = {
-                'O-H': {'IR': (3200, 3600), 'Raman': (3200, 3600), 'intensity_IR': 'strong'},
-                'N-H': {'IR': (3300, 3500), 'Raman': (3300, 3500), 'intensity_IR': 'medium'},
-                'C-H': {'IR': (2850, 3000), 'Raman': (2850, 3000), 'intensity_IR': 'strong'},
-                'C=O': {'IR': (1650, 1750), 'Raman': (1650, 1750), 'intensity_IR': 'very strong'},
-                'C=C': {'IR': (1620, 1680), 'Raman': (1620, 1680), 'intensity_Raman': 'strong'},
-                'C-C': {'IR': (800, 1200), 'Raman': (800, 1200), 'intensity_Raman': 'medium'},
+        Parameters:
+        -----------
+        compounds : list of dict
+            各化合物の情報 {'name', 'lambda_max', 'epsilon', 'fwhm', 'concentration'}
+        wavelengths : array
+            波長配列 (nm)
+    
+        Returns:
+        --------
+        total_absorbance : array
+            合計吸光度スペクトル
+        individual_spectra : dict
+            個別成分のスペクトル
+        """
+        total_absorbance = np.zeros_like(wavelengths, dtype=float)
+        individual_spectra = {}
+        path_length = 1.0  # cm
+    
+        for compound in compounds:
+            sigma = compound['fwhm'] / (2 * np.sqrt(2 * np.log(2)))
+            epsilon_spectrum = compound['epsilon'] * np.exp(
+                -(wavelengths - compound['lambda_max'])**2 / (2 * sigma**2)
+            )
+            absorbance = epsilon_spectrum * compound['concentration'] * path_length
+            individual_spectra[compound['name']] = absorbance
+            total_absorbance += absorbance
+    
+        return total_absorbance, individual_spectra
+    
+    def analyze_spectrum(wavelengths, absorbance, prominence=0.01):
+        """
+        スペクトルのピーク解析
+    
+        Parameters:
+        -----------
+        wavelengths : array
+            波長配列 (nm)
+        absorbance : array
+            吸光度配列
+        prominence : float
+            ピーク検出の閾値
+    
+        Returns:
+        --------
+        peaks_info : list of dict
+            検出されたピークの情報
+        """
+        peaks, properties = find_peaks(absorbance, prominence=prominence)
+    
+        peaks_info = []
+        for i, peak_idx in enumerate(peaks):
+            peaks_info.append({
+                'wavelength': wavelengths[peak_idx],
+                'absorbance': absorbance[peak_idx],
+                'prominence': properties['prominences'][i]
+            })
+    
+        return peaks_info
+    
+    # 有機分子混合物のスペクトルシミュレーション
+    compounds = [
+        {'name': 'Benzene', 'lambda_max': 254, 'epsilon': 200, 'fwhm': 15,
+         'concentration': 1e-4},
+        {'name': 'Naphthalene', 'lambda_max': 275, 'epsilon': 5600, 'fwhm': 18,
+         'concentration': 2e-5},
+        {'name': 'Naphthalene (2nd band)', 'lambda_max': 220, 'epsilon': 100000, 'fwhm': 25,
+         'concentration': 2e-5},
+        {'name': 'Acetone', 'lambda_max': 280, 'epsilon': 15, 'fwhm': 20,
+         'concentration': 1e-2},
+    ]
+    
+    wavelengths = np.linspace(200, 350, 500)
+    
+    # スペクトル計算
+    total_abs, individual = simulate_uv_vis_spectrum(compounds, wavelengths)
+    
+    # ノイズ追加（実験データのシミュレート）
+    np.random.seed(42)
+    noise = np.random.normal(0, 0.002, len(wavelengths))
+    measured_abs = total_abs + noise
+    
+    # スムージング
+    smoothed_abs = gaussian_filter1d(measured_abs, sigma=2)
+    
+    # ピーク検出
+    peaks_info = analyze_spectrum(wavelengths, smoothed_abs, prominence=0.005)
+    
+    # プロット
+    fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+    
+    # 個別成分スペクトル
+    ax1 = axes[0, 0]
+    colors = ['#f093fb', '#f5576c', '#4ecdc4', '#ffe66d']
+    for (name, spectrum), color in zip(individual.items(), colors):
+        ax1.plot(wavelengths, spectrum, linewidth=2, color=color, label=name)
+    
+    ax1.set_xlabel('Wavelength (nm)', fontsize=12)
+    ax1.set_ylabel('Absorbance', fontsize=12)
+    ax1.set_title('Individual Component Spectra', fontsize=14, fontweight='bold')
+    ax1.legend(loc='upper right', fontsize=9)
+    ax1.grid(True, alpha=0.3)
+    
+    # 合計スペクトルと測定スペクトル
+    ax2 = axes[0, 1]
+    ax2.plot(wavelengths, measured_abs, 'k-', alpha=0.3, linewidth=1, label='Measured (with noise)')
+    ax2.plot(wavelengths, smoothed_abs, 'b-', linewidth=2, label='Smoothed')
+    ax2.plot(wavelengths, total_abs, 'r--', linewidth=1.5, label='True spectrum')
+    
+    # ピークをマーク
+    for peak in peaks_info:
+        ax2.axvline(x=peak['wavelength'], color='green', linestyle=':', alpha=0.7)
+        ax2.annotate(f"{peak['wavelength']:.0f} nm",
+                    xy=(peak['wavelength'], peak['absorbance']),
+                    xytext=(peak['wavelength'] + 10, peak['absorbance'] + 0.02),
+                    fontsize=9, color='green')
+    
+    ax2.set_xlabel('Wavelength (nm)', fontsize=12)
+    ax2.set_ylabel('Absorbance', fontsize=12)
+    ax2.set_title('Mixed Sample UV-Vis Spectrum', fontsize=14, fontweight='bold')
+    ax2.legend(loc='upper right')
+    ax2.grid(True, alpha=0.3)
+    
+    # 透過率スペクトル
+    ax3 = axes[1, 0]
+    transmittance = 10**(-smoothed_abs) * 100  # パーセント透過率
+    ax3.plot(wavelengths, transmittance, 'g-', linewidth=2)
+    ax3.set_xlabel('Wavelength (nm)', fontsize=12)
+    ax3.set_ylabel('Transmittance (%)', fontsize=12)
+    ax3.set_title('Transmittance Spectrum', fontsize=14, fontweight='bold')
+    ax3.set_ylim(0, 105)
+    ax3.grid(True, alpha=0.3)
+    
+    # 一次微分スペクトル
+    ax4 = axes[1, 1]
+    derivative = np.gradient(smoothed_abs, wavelengths)
+    ax4.plot(wavelengths, derivative, 'm-', linewidth=2)
+    ax4.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+    ax4.set_xlabel('Wavelength (nm)', fontsize=12)
+    ax4.set_ylabel('dA/d$\\lambda$', fontsize=12)
+    ax4.set_title('First Derivative Spectrum', fontsize=14, fontweight='bold')
+    ax4.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('uv_vis_spectrum_analysis.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # ピーク情報の表示
+    print("=" * 60)
+    print("検出されたピーク情報")
+    print("=" * 60)
+    print(f"{'波長 (nm)':<15} {'吸光度':<15} {'プロミネンス':<15}")
+    print("-" * 60)
+    for peak in sorted(peaks_info, key=lambda x: x['wavelength']):
+        print(f"{peak['wavelength']:<15.1f} {peak['absorbance']:<15.4f} {peak['prominence']:<15.4f}")
+
+## 5\. 半導体のバンドギャップ決定
+
+### 5.1 Taucプロット法
+
+半導体材料のバンドギャップ（$E_g$）はUV-Vis拡散反射スペクトルから決定できます。Taucの関係式は以下で表されます：
+
+$$(\alpha h\nu)^n = A(h\nu - E_g)$$
+
+ここで：
+
+  * $\alpha$：吸収係数
+  * $h\nu$：光子エネルギー
+  * $A$：定数
+  * $n$：遷移の種類による指数（直接遷移: $n=2$、間接遷移: $n=1/2$）
+
+粉末試料の場合、Kubelka-Munk関数 $F(R)$ を用いて吸収係数を近似します：
+
+$$F(R) = \frac{(1-R)^2}{2R} \approx \alpha$$
+
+#### コード例5: Taucプロットによるバンドギャップ決定
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    from scipy.ndimage import gaussian_filter1d
+    
+    def kubelka_munk(reflectance):
+        """
+        Kubelka-Munk変換
+    
+        Parameters:
+        -----------
+        reflectance : array
+            反射率（0-1）
+    
+        Returns:
+        --------
+        F_R : array
+            Kubelka-Munk関数値
+        """
+        R = np.clip(reflectance, 0.001, 0.999)  # ゼロ除算を防ぐ
+        F_R = (1 - R)**2 / (2 * R)
+        return F_R
+    
+    def tauc_plot(wavelength_nm, reflectance, n=2, fit_range=None):
+        """
+        Taucプロットによるバンドギャップ決定
+    
+        Parameters:
+        -----------
+        wavelength_nm : array
+            波長（nm）
+        reflectance : array
+            反射率（0-1）
+        n : float
+            遷移タイプ（2: 直接許容遷移、1/2: 間接許容遷移）
+        fit_range : tuple
+            フィッティング範囲（eV）
+    
+        Returns:
+        --------
+        E_g : float
+            バンドギャップ（eV）
+        energy : array
+            光子エネルギー配列
+        tauc_y : array
+            Taucプロットのy軸値
+        fit_params : dict
+            フィッティングパラメータ
+        """
+        # 波長をエネルギーに変換
+        h = 6.62607015e-34  # J s
+        c = 2.99792458e8    # m/s
+        eV = 1.602176634e-19  # J
+    
+        wavelength_m = wavelength_nm * 1e-9
+        energy = (h * c / wavelength_m) / eV  # eV
+    
+        # Kubelka-Munk変換
+        F_R = kubelka_munk(reflectance)
+    
+        # Taucプロット値
+        tauc_y = (F_R * energy)**n
+    
+        # スムージング
+        tauc_y_smooth = gaussian_filter1d(tauc_y, sigma=3)
+    
+        # 線形領域の自動検出またはユーザー指定
+        if fit_range is None:
+            # 最大傾斜領域を探す
+            gradient = np.gradient(tauc_y_smooth, energy)
+            max_grad_idx = np.argmax(gradient)
+            # 傾斜が大きい領域の前後を取る
+            fit_mask = (energy > energy[max_grad_idx] - 0.3) & (energy < energy[max_grad_idx] + 0.3)
+        else:
+            fit_mask = (energy >= fit_range[0]) & (energy <= fit_range[1])
+    
+        # 線形回帰
+        if np.sum(fit_mask) > 10:
+            slope, intercept, r_value, p_value, std_err = stats.linregress(
+                energy[fit_mask], tauc_y_smooth[fit_mask]
+            )
+            E_g = -intercept / slope if slope > 0 else np.nan
+        else:
+            slope, intercept, E_g, r_value = np.nan, np.nan, np.nan, np.nan
+    
+        fit_params = {
+            'slope': slope,
+            'intercept': intercept,
+            'r_squared': r_value**2 if not np.isnan(r_value) else np.nan,
+            'fit_mask': fit_mask
+        }
+    
+        return E_g, energy, tauc_y_smooth, fit_params
+    
+    # 半導体材料のUV-Visデータシミュレーション
+    def simulate_semiconductor_spectrum(E_g, wavelength_nm, transition='direct'):
+        """
+        半導体の拡散反射スペクトルをシミュレート
+        """
+        h = 6.62607015e-34
+        c = 2.99792458e8
+        eV = 1.602176634e-19
+    
+        wavelength_m = wavelength_nm * 1e-9
+        energy = (h * c / wavelength_m) / eV
+    
+        # 吸収係数のモデル
+        n = 2 if transition == 'direct' else 0.5
+        alpha = np.where(energy > E_g, 1e5 * (energy - E_g)**n, 0)
+    
+        # 反射率に変換（簡略化モデル）
+        reflectance = np.exp(-alpha * 1e-4)  # 仮想的な膜厚
+        reflectance = np.clip(reflectance, 0.01, 0.99)
+    
+        # ノイズ追加
+        noise = np.random.normal(0, 0.01, len(reflectance))
+        reflectance = np.clip(reflectance + noise, 0.01, 0.99)
+    
+        return reflectance
+    
+    # 異なるバンドギャップの半導体をシミュレート
+    semiconductors = {
+        'TiO2 (anatase)': {'E_g_true': 3.2, 'transition': 'indirect'},
+        'ZnO': {'E_g_true': 3.37, 'transition': 'direct'},
+        'CdS': {'E_g_true': 2.42, 'transition': 'direct'},
+        'Fe2O3 (hematite)': {'E_g_true': 2.1, 'transition': 'indirect'},
+    }
+    
+    wavelength = np.linspace(300, 800, 500)
+    
+    fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+    
+    results = {}
+    
+    for idx, (name, params) in enumerate(semiconductors.items()):
+        ax = axes[idx // 2, idx % 2]
+    
+        # スペクトル生成
+        np.random.seed(idx)
+        reflectance = simulate_semiconductor_spectrum(
+            params['E_g_true'], wavelength, params['transition']
+        )
+    
+        # Taucプロット解析
+        n = 2 if params['transition'] == 'direct' else 0.5
+        E_g, energy, tauc_y, fit_params = tauc_plot(
+            wavelength, reflectance, n=n
+        )
+    
+        results[name] = {'E_g_measured': E_g, 'E_g_true': params['E_g_true']}
+    
+        # プロット
+        ax.plot(energy, tauc_y, 'b-', linewidth=2, label='Tauc plot')
+    
+        # フィッティング線
+        if not np.isnan(fit_params['slope']):
+            x_fit = np.linspace(E_g - 0.5, np.max(energy[fit_params['fit_mask']]) + 0.5, 100)
+            y_fit = fit_params['slope'] * x_fit + fit_params['intercept']
+            y_fit = np.clip(y_fit, 0, None)
+            ax.plot(x_fit, y_fit, 'r--', linewidth=2,
+                    label=f'Linear fit (R$^2$={fit_params["r_squared"]:.3f})')
+    
+        # バンドギャップのマーク
+        ax.axvline(x=E_g, color='green', linestyle=':', linewidth=2,
+                   label=f'$E_g$ = {E_g:.2f} eV')
+        ax.axvline(x=params['E_g_true'], color='orange', linestyle='--', linewidth=1.5,
+                   alpha=0.7, label=f'True $E_g$ = {params["E_g_true"]:.2f} eV')
+    
+        transition_type = 'Direct' if params['transition'] == 'direct' else 'Indirect'
+        ax.set_xlabel('Photon Energy (eV)', fontsize=11)
+        ax.set_ylabel(f'$(F(R) \\cdot h\\nu)^{{{n}}}$', fontsize=11)
+        ax.set_title(f'{name} ({transition_type} transition)', fontsize=12, fontweight='bold')
+        ax.legend(loc='upper left', fontsize=9)
+        ax.grid(True, alpha=0.3)
+        ax.set_xlim(1.5, 4.5)
+        ax.set_ylim(0, np.nanmax(tauc_y) * 1.2)
+    
+    plt.tight_layout()
+    plt.savefig('tauc_plot_bandgap.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # 結果の表示
+    print("=" * 70)
+    print("Taucプロットによるバンドギャップ決定結果")
+    print("=" * 70)
+    print(f"{'材料':<25} {'測定値 (eV)':<15} {'文献値 (eV)':<15} {'誤差 (%)':<10}")
+    print("-" * 70)
+    for name, values in results.items():
+        error = abs(values['E_g_measured'] - values['E_g_true']) / values['E_g_true'] * 100
+        print(f"{name:<25} {values['E_g_measured']:<15.2f} {values['E_g_true']:<15.2f} {error:<10.1f}")
+
+### 5.2 直接遷移と間接遷移
+
+半導体のバンド構造により、光学遷移は直接遷移と間接遷移に分類されます：
+
+  * **直接遷移型半導体** ：価電子帯の頂上と伝導帯の底が同じ波数ベクトル $k$ を持つ。GaAs、CdS、ZnOなど。Taucプロットで $n=2$ を使用。
+  * **間接遷移型半導体** ：価電子帯の頂上と伝導帯の底の $k$ が異なる。Si、Ge、TiO2など。Taucプロットで $n=1/2$ を使用。フォノンの関与が必要。
+
+#### コード例6: 複数試料のバンドギャップ比較解析
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    
+    def batch_bandgap_analysis(samples_data, plot=True):
+        """
+        複数試料のバンドギャップを一括解析
+    
+        Parameters:
+        -----------
+        samples_data : list of dict
+            各試料のデータ {'name', 'wavelength', 'reflectance', 'transition'}
+        plot : bool
+            プロットを表示するか
+    
+        Returns:
+        --------
+        results : dict
+            各試料のバンドギャップ結果
+        """
+        h = 6.62607015e-34
+        c = 2.99792458e8
+        eV = 1.602176634e-19
+    
+        results = {}
+    
+        if plot:
+            n_samples = len(samples_data)
+            n_cols = min(3, n_samples)
+            n_rows = (n_samples + n_cols - 1) // n_cols
+            fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 4*n_rows))
+            axes = np.atleast_2d(axes).flatten()
+    
+        for idx, sample in enumerate(samples_data):
+            wavelength = sample['wavelength']
+            reflectance = sample['reflectance']
+            n = 2 if sample['transition'] == 'direct' else 0.5
+    
+            # エネルギー変換
+            wavelength_m = wavelength * 1e-9
+            energy = (h * c / wavelength_m) / eV
+    
+            # Kubelka-Munk変換
+            R = np.clip(reflectance, 0.001, 0.999)
+            F_R = (1 - R)**2 / (2 * R)
+    
+            # Taucプロット
+            tauc_y = (F_R * energy)**n
+    
+            # 微分による線形領域検出
+            gradient = np.gradient(tauc_y, energy)
+            gradient_smooth = gaussian_filter1d(gradient, sigma=5)
+    
+            # 最大勾配点
+            max_grad_idx = np.argmax(gradient_smooth)
+    
+            # フィッティング領域
+            fit_width = int(len(energy) * 0.15)
+            start_idx = max(0, max_grad_idx - fit_width // 2)
+            end_idx = min(len(energy), max_grad_idx + fit_width // 2)
+    
+            # 線形回帰
+            slope, intercept, r_value, _, _ = stats.linregress(
+                energy[start_idx:end_idx], tauc_y[start_idx:end_idx]
+            )
+    
+            E_g = -intercept / slope if slope > 0 else np.nan
+    
+            results[sample['name']] = {
+                'E_g': E_g,
+                'R_squared': r_value**2,
+                'transition': sample['transition']
             }
     
-        def identify_functional_groups(self, wavenumbers, intensity, threshold=0.3):
-            """
-            スペクトルから官能基を同定
+            if plot:
+                ax = axes[idx]
+                ax.plot(energy, tauc_y, 'b-', linewidth=1.5, alpha=0.8)
     
-            Parameters:
-            -----------
-            wavenumbers : array
-                波数（cm⁻¹）
-            intensity : array
-                強度
-            threshold : float
-                ピーク検出の閾値（最大値に対する相対値）
+                # フィッティング線
+                x_fit = np.linspace(E_g - 0.3, energy[end_idx], 50)
+                y_fit = slope * x_fit + intercept
+                y_fit = np.clip(y_fit, 0, None)
+                ax.plot(x_fit, y_fit, 'r--', linewidth=2)
     
-            Returns:
-            --------
-            identified_groups : list
-                同定された官能基のリスト
-            """
-            # ピーク検出
-            peaks, properties = find_peaks(intensity, prominence=threshold * np.max(intensity))
+                ax.axvline(x=E_g, color='green', linestyle=':', linewidth=2)
+                ax.set_xlabel('Photon Energy (eV)', fontsize=10)
+                ax.set_ylabel(f'$(F(R) \\cdot h\\nu)^{{{n}}}$', fontsize=10)
+                ax.set_title(f"{sample['name']}\n$E_g$ = {E_g:.2f} eV", fontsize=11, fontweight='bold')
+                ax.grid(True, alpha=0.3)
+                ax.set_xlim(min(energy) - 0.2, max(energy) + 0.2)
+                ax.set_ylim(0, max(tauc_y) * 1.1)
     
-            identified_groups = []
+        # 未使用の軸を非表示
+        if plot:
+            for idx in range(len(samples_data), len(axes)):
+                axes[idx].set_visible(False)
     
-            for peak in peaks:
-                peak_wn = wavenumbers[peak]
+            plt.tight_layout()
+            plt.savefig('batch_bandgap_analysis.png', dpi=300, bbox_inches='tight')
+            plt.show()
     
-                # 官能基データベースと照合
-                for group, ranges in self.functional_groups.items():
-                    ir_range = ranges['IR']
-                    if ir_range[0] <= peak_wn <= ir_range[1]:
-                        identified_groups.append({
-                            'functional_group': group,
-                            'wavenumber': peak_wn,
-                            'intensity': intensity[peak]
-                        })
+        return results
     
-            return identified_groups
+    # ドーピングによるバンドギャップ変調のシミュレーション
+    def simulate_doped_semiconductor(base_E_g, dopant_concentration, wavelength):
+        """
+        ドーピングによるバンドギャップ変調をシミュレート
+        """
+        # バーンシュタイン-モス効果による青方シフト
+        delta_E = 0.1 * np.log(1 + dopant_concentration * 100)
+        effective_E_g = base_E_g + delta_E
     
-        def complementary_analysis(self, ir_spectrum, raman_spectrum):
-            """
-            IRとRamanの相補的解析
+        h = 6.62607015e-34
+        c = 2.99792458e8
+        eV = 1.602176634e-19
     
-            Parameters:
-            -----------
-            ir_spectrum : dict
-                {'wavenumbers': array, 'intensity': array}
-            raman_spectrum : dict
-                {'wavenumbers': array, 'intensity': array}
+        wavelength_m = wavelength * 1e-9
+        energy = (h * c / wavelength_m) / eV
     
-            Returns:
-            --------
-            analysis_result : dict
-                統合解析結果
-            """
-            # IRで検出された官能基
-            ir_groups = self.identify_functional_groups(ir_spectrum['wavenumbers'],
-                                                         ir_spectrum['intensity'])
+        # 吸収スペクトル
+        alpha = np.where(energy > effective_E_g, 1e5 * (energy - effective_E_g)**2, 0)
+        reflectance = np.exp(-alpha * 1e-4)
+        reflectance = np.clip(reflectance + np.random.normal(0, 0.005, len(wavelength)), 0.01, 0.99)
     
-            # Ramanで検出された官能基
-            raman_groups = self.identify_functional_groups(raman_spectrum['wavenumbers'],
-                                                            raman_spectrum['intensity'])
+        return reflectance, effective_E_g
     
-            # 統合
-            all_groups = set([g['functional_group'] for g in ir_groups] +
-                            [g['functional_group'] for g in raman_groups])
+    # ZnOドーピング系列のシミュレーション
+    wavelength = np.linspace(300, 600, 400)
+    dopant_levels = [0.0, 0.01, 0.02, 0.05, 0.10]
     
-            analysis_result = {
-                'IR_only': [g for g in ir_groups if g['functional_group'] not in
-                           [rg['functional_group'] for rg in raman_groups]],
-                'Raman_only': [g for g in raman_groups if g['functional_group'] not in
-                              [ig['functional_group'] for ig in ir_groups]],
-                'Both': list(all_groups.intersection(set([g['functional_group'] for g in ir_groups]),
-                                                     set([g['functional_group'] for g in raman_groups])))
-            }
+    samples = []
+    true_E_g_values = []
     
-            return analysis_result
+    for conc in dopant_levels:
+        np.random.seed(int(conc * 1000))
+        reflectance, true_E_g = simulate_doped_semiconductor(3.37, conc, wavelength)
+        true_E_g_values.append(true_E_g)
     
-    # 実行例：アセトン（CH₃COCH₃）のIR・Raman統合解析
-    analyzer = VibrationalSpectroscopyAnalyzer()
+        samples.append({
+            'name': f'ZnO (Al {conc*100:.0f}%)',
+            'wavelength': wavelength,
+            'reflectance': reflectance,
+            'transition': 'direct'
+        })
     
-    # 合成IRスペクトル
-    wn_ir = np.linspace(4000, 400, 2000)
-    ir_intensity = (
-        1.5 * np.exp(-(wn_ir - 2970)**2 / (2 * 20**2)) +  # C-H伸縮
-        2.0 * np.exp(-(wn_ir - 1715)**2 / (2 * 30**2)) +  # C=O伸縮
-        0.5 * np.exp(-(wn_ir - 1360)**2 / (2 * 25**2)) +  # C-H変角
-        0.3 * np.random.random(len(wn_ir))  # ノイズ
+    # バッチ解析
+    results = batch_bandgap_analysis(samples, plot=True)
+    
+    # 結果まとめ
+    print("\n" + "=" * 70)
+    print("Al-doped ZnOシリーズのバンドギャップ解析")
+    print("=" * 70)
+    print(f"{'試料':<20} {'測定E_g (eV)':<15} {'真E_g (eV)':<15} {'R^2':<10}")
+    print("-" * 70)
+    for (name, res), true_Eg in zip(results.items(), true_E_g_values):
+        print(f"{name:<20} {res['E_g']:<15.3f} {true_Eg:<15.3f} {res['R_squared']:<10.4f}")
+
+## 6\. 実践的スペクトル解析
+
+### 6.1 ベースライン補正とスムージング
+
+実験データには様々なノイズやベースラインのドリフトが含まれます。正確な解析のためには、前処理が重要です。
+
+#### コード例7: スペクトルデータの前処理
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.signal import savgol_filter
+    from scipy.ndimage import gaussian_filter1d
+    from scipy import sparse
+    from scipy.sparse.linalg import splu
+    
+    def baseline_als(y, lam=1e5, p=0.01, niter=10):
+        """
+        Asymmetric Least Squares (ALS) によるベースライン補正
+    
+        Parameters:
+        -----------
+        y : array
+            スペクトルデータ
+        lam : float
+            平滑化パラメータ（大きいほど滑らか）
+        p : float
+            非対称パラメータ（0-1、小さいほどベースラインが下に）
+        niter : int
+            反復回数
+    
+        Returns:
+        --------
+        baseline : array
+            推定されたベースライン
+        """
+        L = len(y)
+        D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(L, L-2))
+        w = np.ones(L)
+    
+        for i in range(niter):
+            W = sparse.spdiags(w, 0, L, L)
+            Z = W + lam * D.dot(D.T)
+            z = splu(Z).solve(w * y)
+            w = p * (y > z) + (1-p) * (y < z)
+    
+        return z
+    
+    def preprocess_spectrum(wavelength, absorbance, smooth_method='savgol',
+                            baseline_correct=True, normalize=True):
+        """
+        スペクトルデータの前処理パイプライン
+    
+        Parameters:
+        -----------
+        wavelength : array
+            波長配列
+        absorbance : array
+            吸光度配列
+        smooth_method : str
+            スムージング方法 ('savgol', 'gaussian', 'none')
+        baseline_correct : bool
+            ベースライン補正を行うか
+        normalize : bool
+            正規化を行うか
+    
+        Returns:
+        --------
+        processed : dict
+            前処理されたデータと中間結果
+        """
+        processed = {
+            'wavelength': wavelength,
+            'original': absorbance.copy()
+        }
+    
+        # スムージング
+        if smooth_method == 'savgol':
+            window_length = min(21, len(absorbance) // 10 * 2 + 1)
+            smoothed = savgol_filter(absorbance, window_length, polyorder=3)
+        elif smooth_method == 'gaussian':
+            smoothed = gaussian_filter1d(absorbance, sigma=2)
+        else:
+            smoothed = absorbance.copy()
+    
+        processed['smoothed'] = smoothed
+    
+        # ベースライン補正
+        if baseline_correct:
+            baseline = baseline_als(smoothed)
+            corrected = smoothed - baseline
+            processed['baseline'] = baseline
+            processed['corrected'] = corrected
+        else:
+            corrected = smoothed
+            processed['corrected'] = corrected
+    
+        # 正規化
+        if normalize:
+            max_abs = np.max(corrected)
+            if max_abs > 0:
+                normalized = corrected / max_abs
+            else:
+                normalized = corrected
+            processed['normalized'] = normalized
+        else:
+            processed['normalized'] = corrected
+    
+        return processed
+    
+    # ノイズとベースラインドリフトを持つスペクトルのシミュレーション
+    np.random.seed(42)
+    wavelength = np.linspace(200, 600, 500)
+    
+    # 真のスペクトル（3つのピーク）
+    true_spectrum = (
+        0.8 * np.exp(-(wavelength - 280)**2 / (2 * 15**2)) +
+        0.5 * np.exp(-(wavelength - 350)**2 / (2 * 20**2)) +
+        0.3 * np.exp(-(wavelength - 450)**2 / (2 * 25**2))
     )
     
-    # 合成Ramanスペクトル
-    wn_raman = np.linspace(3500, 100, 2000)
-    raman_intensity = (
-        0.8 * np.exp(-(wn_raman - 2970)**2 / (2 * 20**2)) +  # C-H伸縮
-        1.2 * np.exp(-(wn_raman - 1715)**2 / (2 * 30**2)) +  # C=O伸縮
-        1.5 * np.exp(-(wn_raman - 900)**2 / (2 * 25**2)) +   # C-C伸縮
-        0.2 * np.random.random(len(wn_raman))  # ノイズ
-    )
+    # ベースラインドリフト
+    baseline_drift = 0.1 + 0.0005 * (wavelength - 200) + 0.00001 * (wavelength - 200)**2
     
-    # 統合解析
-    ir_spec = {'wavenumbers': wn_ir, 'intensity': ir_intensity}
-    raman_spec = {'wavenumbers': wn_raman, 'intensity': raman_intensity}
+    # ノイズ
+    noise = np.random.normal(0, 0.02, len(wavelength))
     
-    result = analyzer.complementary_analysis(ir_spec, raman_spec)
+    # 測定データ
+    measured = true_spectrum + baseline_drift + noise
     
-    # 可視化
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+    # 前処理
+    result = preprocess_spectrum(wavelength, measured, smooth_method='savgol',
+                                 baseline_correct=True, normalize=True)
     
-    # IRスペクトル
-    ax1.plot(wn_ir, ir_intensity, linewidth=1.5, color='#f093fb', label='IRスペクトル')
-    ax1.fill_between(wn_ir, ir_intensity, alpha=0.3, color='#f5576c')
-    ax1.set_xlabel('波数 (cm⁻¹)', fontsize=12)
-    ax1.set_ylabel('吸光度 (a.u.)', fontsize=12)
-    ax1.set_title('アセトンのIRスペクトル', fontsize=14, fontweight='bold')
-    ax1.invert_xaxis()
+    # プロット
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # 生データ vs スムージング後
+    ax1 = axes[0, 0]
+    ax1.plot(wavelength, measured, 'b-', alpha=0.5, linewidth=1, label='Raw data')
+    ax1.plot(wavelength, result['smoothed'], 'r-', linewidth=2, label='Smoothed (Savitzky-Golay)')
+    ax1.set_xlabel('Wavelength (nm)', fontsize=11)
+    ax1.set_ylabel('Absorbance', fontsize=11)
+    ax1.set_title('Step 1: Smoothing', fontsize=12, fontweight='bold')
     ax1.legend()
     ax1.grid(True, alpha=0.3)
     
-    # Ramanスペクトル
-    ax2.plot(wn_raman, raman_intensity, linewidth=1.5, color='#4ecdc4', label='Ramanスペクトル')
-    ax2.fill_between(wn_raman, raman_intensity, alpha=0.3, color='#ffe66d')
-    ax2.set_xlabel('Raman Shift (cm⁻¹)', fontsize=12)
-    ax2.set_ylabel('強度 (a.u.)', fontsize=12)
-    ax2.set_title('アセトンのRamanスペクトル', fontsize=14, fontweight='bold')
+    # ベースライン推定
+    ax2 = axes[0, 1]
+    ax2.plot(wavelength, result['smoothed'], 'b-', linewidth=1.5, label='Smoothed data')
+    ax2.plot(wavelength, result['baseline'], 'g--', linewidth=2, label='Estimated baseline (ALS)')
+    ax2.plot(wavelength, baseline_drift, 'orange', linestyle=':', linewidth=2, label='True baseline')
+    ax2.set_xlabel('Wavelength (nm)', fontsize=11)
+    ax2.set_ylabel('Absorbance', fontsize=11)
+    ax2.set_title('Step 2: Baseline Estimation', fontsize=12, fontweight='bold')
     ax2.legend()
     ax2.grid(True, alpha=0.3)
     
+    # ベースライン補正後
+    ax3 = axes[1, 0]
+    ax3.plot(wavelength, result['corrected'], 'b-', linewidth=2, label='Baseline corrected')
+    ax3.plot(wavelength, true_spectrum, 'r--', linewidth=1.5, label='True spectrum')
+    ax3.set_xlabel('Wavelength (nm)', fontsize=11)
+    ax3.set_ylabel('Absorbance', fontsize=11)
+    ax3.set_title('Step 3: Baseline Correction', fontsize=12, fontweight='bold')
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+    
+    # 正規化後
+    ax4 = axes[1, 1]
+    ax4.plot(wavelength, result['normalized'], 'b-', linewidth=2, label='Processed & normalized')
+    ax4.plot(wavelength, true_spectrum / np.max(true_spectrum), 'r--', linewidth=1.5,
+             label='True (normalized)')
+    ax4.set_xlabel('Wavelength (nm)', fontsize=11)
+    ax4.set_ylabel('Normalized Absorbance', fontsize=11)
+    ax4.set_title('Step 4: Normalization', fontsize=12, fontweight='bold')
+    ax4.legend()
+    ax4.grid(True, alpha=0.3)
+    
     plt.tight_layout()
-    plt.savefig('acetone_ir_raman_complementary.png', dpi=300, bbox_inches='tight')
+    plt.savefig('spectrum_preprocessing.png', dpi=300, bbox_inches='tight')
     plt.show()
     
-    # 解析結果の表示
+    # 処理品質の評価
+    correlation = np.corrcoef(result['normalized'],
+                              true_spectrum / np.max(true_spectrum))[0, 1]
+    rmse = np.sqrt(np.mean((result['normalized'] - true_spectrum / np.max(true_spectrum))**2))
+    
+    print("=" * 60)
+    print("前処理品質評価")
+    print("=" * 60)
+    print(f"真のスペクトルとの相関係数: {correlation:.4f}")
+    print(f"RMSE: {rmse:.4f}")
+    print(f"処理ステップ: スムージング -> ベースライン補正 -> 正規化")
+
+### 6.2 多成分混合物のスペクトル分解
+
+#### コード例8: 最小二乗法による多成分解析
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.optimize import nnls
+    
+    def multicomponent_analysis(wavelength, mixture_spectrum, reference_spectra,
+                                method='nnls'):
+        """
+        多成分混合物のスペクトル分解
+    
+        Parameters:
+        -----------
+        wavelength : array
+            波長配列
+        mixture_spectrum : array
+            混合物の吸光度スペクトル
+        reference_spectra : dict
+            成分名をキー、参照スペクトルを値とする辞書
+        method : str
+            解析方法 ('nnls': 非負最小二乗法, 'lstsq': 通常の最小二乗法)
+    
+        Returns:
+        --------
+        concentrations : dict
+            各成分の相対濃度
+        reconstructed : array
+            再構成スペクトル
+        residual : array
+            残差スペクトル
+        """
+        # 参照スペクトル行列の構築
+        component_names = list(reference_spectra.keys())
+        A = np.column_stack([reference_spectra[name] for name in component_names])
+    
+        # 解析
+        if method == 'nnls':
+            coefficients, residual_norm = nnls(A, mixture_spectrum)
+        else:
+            coefficients, residual_norm, _, _ = np.linalg.lstsq(A, mixture_spectrum, rcond=None)
+    
+        # 結果の整理
+        concentrations = {name: coeff for name, coeff in zip(component_names, coefficients)}
+    
+        # 再構成
+        reconstructed = A @ coefficients
+        residual = mixture_spectrum - reconstructed
+    
+        return concentrations, reconstructed, residual
+    
+    # 3成分混合物のシミュレーション
+    wavelength = np.linspace(200, 500, 400)
+    
+    # 純成分の参照スペクトル
+    reference_spectra = {
+        'Component A': 0.8 * np.exp(-(wavelength - 250)**2 / (2 * 20**2)) + \
+                       0.3 * np.exp(-(wavelength - 350)**2 / (2 * 15**2)),
+        'Component B': 0.6 * np.exp(-(wavelength - 280)**2 / (2 * 25**2)) + \
+                       0.4 * np.exp(-(wavelength - 420)**2 / (2 * 30**2)),
+        'Component C': 0.9 * np.exp(-(wavelength - 320)**2 / (2 * 22**2))
+    }
+    
+    # 既知の混合比
+    true_concentrations = {'Component A': 0.4, 'Component B': 0.35, 'Component C': 0.25}
+    
+    # 混合スペクトルの生成
+    mixture_true = sum(conc * reference_spectra[name]
+                       for name, conc in true_concentrations.items())
+    
+    # ノイズ追加
+    np.random.seed(42)
+    mixture_measured = mixture_true + np.random.normal(0, 0.01, len(wavelength))
+    
+    # 多成分解析
+    conc_estimated, reconstructed, residual = multicomponent_analysis(
+        wavelength, mixture_measured, reference_spectra, method='nnls'
+    )
+    
+    # 正規化（合計を1に）
+    total_conc = sum(conc_estimated.values())
+    conc_normalized = {name: c / total_conc for name, c in conc_estimated.items()}
+    
+    # プロット
+    fig = plt.figure(figsize=(16, 10))
+    
+    # 参照スペクトル
+    ax1 = fig.add_subplot(2, 2, 1)
+    colors = ['#f093fb', '#f5576c', '#4ecdc4']
+    for (name, spectrum), color in zip(reference_spectra.items(), colors):
+        ax1.plot(wavelength, spectrum, linewidth=2, color=color, label=name)
+    ax1.set_xlabel('Wavelength (nm)', fontsize=11)
+    ax1.set_ylabel('Absorbance', fontsize=11)
+    ax1.set_title('Reference Spectra (Pure Components)', fontsize=12, fontweight='bold')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # 混合スペクトルと再構成
+    ax2 = fig.add_subplot(2, 2, 2)
+    ax2.plot(wavelength, mixture_measured, 'k-', linewidth=1.5, alpha=0.7, label='Measured mixture')
+    ax2.plot(wavelength, reconstructed, 'r--', linewidth=2, label='Reconstructed')
+    ax2.set_xlabel('Wavelength (nm)', fontsize=11)
+    ax2.set_ylabel('Absorbance', fontsize=11)
+    ax2.set_title('Mixture Spectrum Analysis', fontsize=12, fontweight='bold')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    # 残差
+    ax3 = fig.add_subplot(2, 2, 3)
+    ax3.plot(wavelength, residual, 'g-', linewidth=1.5)
+    ax3.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+    ax3.fill_between(wavelength, residual, alpha=0.3, color='green')
+    ax3.set_xlabel('Wavelength (nm)', fontsize=11)
+    ax3.set_ylabel('Residual', fontsize=11)
+    ax3.set_title(f'Residual (RMSE = {np.sqrt(np.mean(residual**2)):.4f})',
+                  fontsize=12, fontweight='bold')
+    ax3.grid(True, alpha=0.3)
+    
+    # 濃度比較
+    ax4 = fig.add_subplot(2, 2, 4)
+    x = np.arange(len(true_concentrations))
+    width = 0.35
+    
+    true_vals = [true_concentrations[name] for name in reference_spectra.keys()]
+    est_vals = [conc_normalized[name] for name in reference_spectra.keys()]
+    
+    bars1 = ax4.bar(x - width/2, true_vals, width, label='True', color='#4ecdc4', edgecolor='black')
+    bars2 = ax4.bar(x + width/2, est_vals, width, label='Estimated', color='#f093fb', edgecolor='black')
+    
+    ax4.set_ylabel('Relative Concentration', fontsize=11)
+    ax4.set_title('Component Concentration Comparison', fontsize=12, fontweight='bold')
+    ax4.set_xticks(x)
+    ax4.set_xticklabels([f'Comp. {c}' for c in ['A', 'B', 'C']])
+    ax4.legend()
+    ax4.set_ylim(0, 0.6)
+    ax4.grid(axis='y', alpha=0.3)
+    
+    # 値をバーの上に表示
+    for bar, val in zip(bars1, true_vals):
+        ax4.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
+                 f'{val:.2f}', ha='center', va='bottom', fontsize=10)
+    for bar, val in zip(bars2, est_vals):
+        ax4.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
+                 f'{val:.2f}', ha='center', va='bottom', fontsize=10)
+    
+    plt.tight_layout()
+    plt.savefig('multicomponent_analysis.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # 結果の表示
     print("=" * 70)
-    print("IRとRamanの統合解析結果（アセトン）")
+    print("多成分スペクトル解析結果")
     print("=" * 70)
-    print("\nIRのみで検出:")
-    for group in result['IR_only']:
-        print(f"  {group['functional_group']}: {group['wavenumber']:.0f} cm⁻¹")
+    print(f"{'成分':<15} {'真の濃度':<15} {'推定濃度':<15} {'誤差 (%)':<10}")
+    print("-" * 70)
+    for name in reference_spectra.keys():
+        true_c = true_concentrations[name]
+        est_c = conc_normalized[name]
+        error = abs(true_c - est_c) / true_c * 100
+        print(f"{name:<15} {true_c:<15.3f} {est_c:<15.3f} {error:<10.1f}")
     
-    print("\nRamanのみで検出:")
-    for group in result['Raman_only']:
-        print(f"  {group['functional_group']}: {group['wavenumber']:.0f} cm⁻¹")
-    
-    print("\n両方で検出:")
-    for group in result['Both']:
-        print(f"  {group}")
-    
-    print("\n結論:")
-    print("  - C=O伸縮: IRで非常に強い、Ramanでも観測")
-    print("  - C-H伸縮: IR・Raman両方で強い")
-    print("  - C-C伸縮: Ramanで強く観測（IRでは弱い）")
-    print("  → IRとRamanを組み合わせることで、分子構造の全体像を把握")
-    
+    print("-" * 70)
+    print(f"再構成RMSE: {np.sqrt(np.mean(residual**2)):.4f}")
+    print(f"R^2: {1 - np.sum(residual**2) / np.sum((mixture_measured - np.mean(mixture_measured))**2):.4f}")
 
-## 演習問題
+## 7\. 演習問題
 
-**演習問題（クリックして展開）**
+演習問題（クリックして展開）
 
-### Easy レベル（基本計算）
+### Basic レベル（基礎理解）
 
-**問題1** : C-O結合（力の定数 $k = 1000$ N/m）の振動周波数（cm⁻¹）を計算してください。炭素の質量は12 amu、酸素の質量は16 amuです。
+**問題1** : 波長 450 nm の光の光子エネルギー（eV）を計算してください。
 
 解答を見る
 
@@ -1165,168 +1463,126 @@ CO₂変角振動 | Πu | 活性 | 不活性
     
     
     # コード例1の関数を使用
-    freq_Hz, wavenumber = vibrational_frequency(k=1000, m1=12, m2=16)
-    print(f"C-O伸縮振動の波数: {wavenumber:.1f} cm⁻¹")
-    # 出力: 約1270 cm⁻¹
+    energy = wavelength_to_energy(450)
+    print(f"450 nm の光子エネルギー: {energy:.2f} eV")
+    # 出力: 約2.76 eV
     
 
-**問題2** : H₂O分子（非線形、3原子）の振動自由度の数を求めてください。
+**問題2** : モル吸光係数が 15000 L mol-1 cm-1、光路長が 1 cm のとき、吸光度 0.6 を示す溶液の濃度を求めてください。
 
 解答を見る
 
 **解答** :
 
-$$3N - 6 = 3 \times 3 - 6 = 3$$
+ランベルト・ベール則より：
 
-H₂Oは3つの振動モード（対称伸縮、変角振動、非対称伸縮）を持ちます。
+$$c = \frac{A}{\varepsilon l} = \frac{0.6}{15000 \times 1} = 4 \times 10^{-5} \text{ mol/L} = 40 \text{ }\mu\text{M}$$
 
-**問題3** : IRスペクトルで1715 cm⁻¹に強いピークが観測されました。この官能基は何ですか？
+**問題3** : n→pi* 遷移と pi→pi* 遷移のモル吸光係数の大きさの違いを説明してください。
 
 解答を見る
 
-**解答** : カルボニル基（C=O）の伸縮振動。1650-1750 cm⁻¹の領域はC=Oの特性吸収です。
+**解答** :
+
+n→pi* 遷移は軌道の対称性の観点から禁制遷移（または弱い許容遷移）であり、モル吸光係数は通常 10-100 L mol-1 cm-1 程度と小さい。一方、pi→pi* 遷移は許容遷移であり、モル吸光係数は 103-105 L mol-1 cm-1 と大きい。
 
 ### Medium レベル（実践的計算）
 
-**問題4** : 同位体効果を考慮し、¹²C=O と ¹³C=O の振動周波数の比を計算してください（力の定数は同じと仮定）。
-
-解答を見る
-
-**解答** :
-    
-    
-    _, wn_12C = vibrational_frequency(1200, 12, 16)
-    _, wn_13C = vibrational_frequency(1200, 13, 16)
-    
-    ratio = wn_12C / wn_13C
-    print(f"¹²C=O波数: {wn_12C:.1f} cm⁻¹")
-    print(f"¹³C=O波数: {wn_13C:.1f} cm⁻¹")
-    print(f"比率: {ratio:.4f}")
-    # 出力: 比率 ≈ 1.017（約1.7%のシフト）
-    
-
-**問題5** : Raman散乱において、室温（300 K）でStokes線とAnti-Stokes線の強度比を計算してください。振動モードは1500 cm⁻¹とします。
-
-解答を見る
-
-**解答** :
-    
-    
-    # コード例5のboltzmann_population関数を使用
-    ratio = boltzmann_population(1500, T=300)
-    print(f"I(Anti-Stokes) / I(Stokes) = {ratio:.4f}")
-    # 出力: 約0.023（Anti-StokesはStokesの約2.3%）
-    
-
-**問題6** : CO₂分子（線形、3原子）の振動自由度を求め、各振動モードの対称性（Σg⁺, Σu⁺, Πu）とIR/Raman活性を答えてください。
+**問題4** : 共役ジエンが長くなると吸収極大が長波長側にシフトする理由を、分子軌道論の観点から説明してください。
 
 解答を見る
 
 **解答** :
 
-$$3N - 5 = 3 \times 3 - 5 = 4$$
+共役系が長くなると、HOMO（最高被占分子軌道）のエネルギーは上昇し、LUMO（最低空分子軌道）のエネルギーは低下します。その結果、HOMO-LUMOギャップが小さくなり、励起に必要なエネルギーが減少します。エネルギーが小さくなると、吸収する光の波長は長くなります（深色シフト/レッドシフト）。
 
-モード| 対称性| 波数（cm⁻¹）| IR活性| Raman活性  
----|---|---|---|---  
-対称伸縮| Σg⁺| 1340| 不活性| 活性  
-非対称伸縮| Σu⁺| 2349| 活性| 不活性  
-変角振動（2重縮退）| Πu| 667| 活性| 不活性  
-  
-CO₂は中心対称分子なので、相互排他則が成立します。
+**問題5** : TiO2（アナターゼ相）のバンドギャップを Tauc プロットから決定する場合、n の値は 2 と 1/2 のどちらを使用すべきですか？理由も説明してください。
+
+解答を見る
+
+**解答** :
+
+TiO2（アナターゼ相）は間接遷移型半導体であるため、n = 1/2 を使用します。間接遷移では、電子の遷移にフォノンの関与が必要であり、遷移確率が直接遷移より低いため、吸収端の立ち上がりが緩やかになります。
+
+**問題6** : ある有機色素の水溶液で、濃度を 2 倍にしても吸光度が 2 倍にならなかった。考えられる原因を 2 つ挙げてください。
+
+解答を見る
+
+**解答** :
+
+  * **化学的要因** : 高濃度での色素分子の会合（二量体形成など）により、モル吸光係数が変化した。
+  * **機器的要因** : 吸光度が 1.0 を超えると、透過光強度が弱くなり、検出器のS/N比が低下して正確な測定ができなくなる（ビール則からの機器的偏差）。
 
 ### Hard レベル（高度な解析）
 
-**問題7** : 下記の実測IRスペクトルデータから、FTIRのインターフェログラムを逆算してください。その後、フーリエ変換で元のスペクトルが復元されることを確認してください。
+**問題7** : 以下の Python コードを完成させ、3 成分混合物のスペクトルから各成分の濃度を決定してください。
 
 解答を見る（完全なコード）
     
     
-    # コード例4の関数を利用
-    true_wavenumbers = np.array([1000, 1500, 2000, 2900])
-    true_intensities = np.array([0.6, 1.0, 0.8, 0.7])
+    # コード例8 を参照
+    # multicomponent_analysis 関数を使用して解析
     
-    # インターフェログラム生成
-    displacement, interferogram = generate_interferogram(true_wavenumbers, true_intensities,
-                                                         mirror_displacement_max=0.1)
+    # 参照スペクトルを用意（純成分の単位濃度当たりの吸光度）
+    reference_spectra = {
+        'Dye A': spectrum_A,  # 事前に測定
+        'Dye B': spectrum_B,
+        'Dye C': spectrum_C
+    }
     
-    # フーリエ変換でスペクトル復元
-    wavenumbers_ft, spectrum_ft = fourier_transform_spectrum(displacement, interferogram)
+    # 未知混合物のスペクトル
+    mixture_spectrum = measured_data  # 測定データ
     
-    # 検証プロット
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+    # 解析実行
+    concentrations, reconstructed, residual = multicomponent_analysis(
+        wavelength, mixture_spectrum, reference_spectra, method='nnls'
+    )
     
-    ax1.plot(displacement, interferogram, linewidth=1.5, color='#f093fb')
-    ax1.set_xlabel('ミラー変位 (cm)', fontsize=12)
-    ax1.set_ylabel('干渉強度', fontsize=12)
-    ax1.set_title('実測IRスペクトルから逆算したインターフェログラム', fontsize=14, fontweight='bold')
-    ax1.grid(True, alpha=0.3)
-    
-    ax2.plot(wavenumbers_ft, spectrum_ft, linewidth=1.5, color='#f5576c')
-    for wn in true_wavenumbers:
-        ax2.axvline(x=wn, color='green', linestyle='--', alpha=0.7)
-    ax2.set_xlabel('波数 (cm⁻¹)', fontsize=12)
-    ax2.set_ylabel('強度 (a.u.)', fontsize=12)
-    ax2.set_title('フーリエ変換で復元されたスペクトル', fontsize=14, fontweight='bold')
-    ax2.set_xlim(0, 4000)
-    ax2.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.show()
-    
-    print("真のピーク位置:", true_wavenumbers)
-    print("復元成功: フーリエ変換により元のスペクトルが再現されました")
+    # 結果表示
+    for name, conc in concentrations.items():
+        print(f"{name}: {conc:.4f}")
     
 
-**問題8** : ベンゼン（D6h点群）の振動モード（30個）のうち、IR活性なモードとRaman活性なモードの数を推定してください。対称性に基づいて考察してください。
+**問題8** : Kubelka-Munk 変換が必要な理由と、その限界について説明してください。
 
 解答を見る
 
 **解答** :
 
-ベンゼンは中心対称分子（D6h）なので、相互排他則が成立します。30個の振動モードのうち：
+**必要な理由** : 粉末試料や不透明試料では透過率を直接測定できないため、拡散反射率から吸収係数を推定する必要があります。Kubelka-Munk関数 F(R) = (1-R)2/(2R) は、吸収係数と散乱係数の比に比例し、吸収スペクトルの近似となります。
 
-  * **IR活性** : u（ungerade）対称性のモード → 約4個のE1uモード
-  * **Raman活性** : g（gerade）対称性のモード → 約7個のA1g, E1g, E2gモード
-  * 残りのモードは不活性（A2g, A2u, B1u, B2uなど）
+**限界** :
 
-詳細な指標表による解析が必要ですが、IR活性モードとRaman活性モードは互いに排他的です。
+  * 試料の散乱係数が波長に依存する場合、正確な吸収スペクトルが得られない
+  * 粒子サイズが不均一な場合、散乱特性が変化する
+  * 高吸収領域では精度が低下する
+  * 参照標準（BaSO4など）の品質に結果が依存する
 
-**問題9** : ポリエチレンの結晶化度をRamanスペクトルから評価する際、結晶ピーク（1130 cm⁻¹）と非晶ピーク（1080 cm⁻¹）の強度比が2:1でした。ピーク面積比から結晶化度を計算してください（ピーク幅はそれぞれ10 cm⁻¹、15 cm⁻¹とします）。
-
-解答を見る
-
-**解答** :
-    
-    
-    # Gaussian近似でピーク面積を計算
-    I_crystal = 2.0  # 強度比
-    I_amorphous = 1.0
-    width_crystal = 10  # cm^-1
-    width_amorphous = 15  # cm^-1
-    
-    # 面積 = 強度 × 幅 × sqrt(2π)（Gaussian近似）
-    area_crystal = I_crystal * width_crystal * np.sqrt(2 * np.pi)
-    area_amorphous = I_amorphous * width_amorphous * np.sqrt(2 * np.pi)
-    
-    crystallinity = area_crystal / (area_crystal + area_amorphous) * 100
-    print(f"結晶ピーク面積: {area_crystal:.1f}")
-    print(f"非晶ピーク面積: {area_amorphous:.1f}")
-    print(f"結晶化度: {crystallinity:.1f}%")
-    # 出力: 約51.3%
-    
-
-**問題10** : H₂O分子のC2v点群における3つの振動モード（A₁, A₁, B₁）が、なぜすべてIRとRaman両方で活性なのかを、指標表を用いて説明してください。
+**問題9** : 半導体ナノ粒子のサイズが小さくなるとバンドギャップが大きくなる現象（量子閉じ込め効果）を UV-Vis スペクトルで確認する方法を説明してください。
 
 解答を見る
 
 **解答** :
 
-C2v点群の指標表より：
+量子閉じ込め効果により、ナノ粒子のサイズが減少すると、エネルギー準位の間隔が広がり、有効バンドギャップが増加します。UV-Vis スペクトルでは：
 
-  * **A₁対称性** : 基底関数にz（双極子モーメント）とx², y², z²（分極率テンソル）が含まれる → IR活性かつRaman活性
-  * **B₁対称性** : 基底関数にx（双極子モーメント）とxz（分極率テンソル）が含まれる → IR活性かつRaman活性
+  1. 異なるサイズのナノ粒子懸濁液の吸収スペクトルを測定
+  2. 吸収端（onset）の波長を比較：小さい粒子ほど短波長側にシフト（青方シフト）
+  3. Tauc プロットからバンドギャップを定量：粒子サイズとバンドギャップの相関をプロット
+  4. Brus の式と比較して、量子閉じ込め効果の大きさを評価
 
-したがって、H₂Oの3つの振動モード（対称伸縮A₁、変角A₁、非対称伸縮B₁）はすべてIRとRaman両方で観測されます。中心対称分子ではないため、相互排他則は適用されません。
+**問題10** : アセトンのカルボニル基の n→pi* 遷移が溶媒の極性によって青方シフト（浅色シフト）する理由を説明してください。
+
+解答を見る
+
+**解答** :
+
+n→pi* 遷移では、基底状態の孤立電子対（n軌道）が励起状態ではpi*軌道に移動します。
+
+  * 基底状態: 孤立電子対は局在化しており、極性溶媒と強い水素結合や双極子-双極子相互作用を形成し、安定化されます
+  * 励起状態: 電子がpi*軌道に励起されると、孤立電子対の局在性が失われ、溶媒との相互作用による安定化が減少します
+
+結果として、極性溶媒中では基底状態がより安定化され、遷移に必要なエネルギーが増加します。これにより、吸収波長が短波長側にシフト（青方シフト）します。
 
 ## 学習目標の確認
 
@@ -1334,46 +1590,44 @@ C2v点群の指標表より：
 
 ### 基本理解
 
-  * ✅ 調和振動子モデルと振動周波数の質量・力の定数依存性を説明できる
-  * ✅ IRとRamanの選択則の違い（双極子モーメント変化 vs 分極率変化）を理解している
-  * ✅ 主要な官能基の特性吸収波数を暗記している（C=O: 1700 cm⁻¹、O-H: 3400 cm⁻¹など）
-  * ✅ 中心対称分子における相互排他則を説明できる
+  * 電子遷移の種類（sigma→sigma*, n→sigma*, pi→pi*, n→pi*）とそのエネルギー順序を説明できる
+  * ランベルト・ベール則を使って、吸光度・濃度・モル吸光係数を計算できる
+  * 発色団と助色団の違い、深色シフトと浅色シフトの意味を理解している
+  * UV-Vis分光光度計の基本構成を説明できる
 
 ### 実践スキル
 
-  * ✅ 振動周波数の計算と同位体効果の評価ができる
-  * ✅ IRスペクトルから官能基を同定できる
-  * ✅ RamanスペクトルからStokes/Anti-Stokes強度比を用いて温度推定ができる
-  * ✅ 結晶化度評価のためのピーク分離ができる
+  * 検量線を作成し、未知試料の濃度を決定できる
+  * Taucプロットを用いて半導体のバンドギャップを決定できる
+  * スペクトルデータの前処理（スムージング、ベースライン補正）ができる
+  * 多成分混合物のスペクトル分解ができる
 
 ### 応用力
 
-  * ✅ IRとRamanの相補的情報を組み合わせて分子構造を決定できる
-  * ✅ 群論を用いて振動モードの対称性とIR/Raman活性を判定できる
-  * ✅ FTIRの原理（インターフェログラムとフーリエ変換）を理解し、実装できる
+  * 共役系の長さと吸収波長の関係を分子軌道論で説明できる
+  * ビール則からの偏差の原因を識別し、適切な測定条件を設定できる
+  * 直接遷移型と間接遷移型半導体のTaucプロットの違いを理解している
 
 ## 参考文献
 
-  1. Raman, C. V., Krishnan, K. S. (1928). A new type of secondary radiation. _Nature_ , 121(3048), 501-502. DOI: 10.1038/121501c0 - Raman散乱効果の発見を報告した歴史的原著論文
-  2. Nakamoto, K. (2008). _Infrared and Raman Spectra of Inorganic and Coordination Compounds_ (6th ed.). Wiley, pp. 25-31 (IR theory), pp. 78-95 (Raman theory), pp. 115-140 (group theory applications). - IR・Ramanスペクトルの包括的教科書と官能基帰属表
-  3. Long, D. A. (2002). _The Raman Effect: A Unified Treatment of the Theory of Raman Scattering by Molecules_. Wiley, pp. 50-68 (classical theory), pp. 95-115 (quantum theory), pp. 145-160 (selection rules). - Raman散乱の量子力学的理論と選択則
-  4. Wilson, E. B., Decius, J. C., Cross, P. C. (1980). _Molecular Vibrations: The Theory of Infrared and Raman Vibrational Spectra_. Dover Publications, pp. 25-42 (normal modes), pp. 65-85 (group theory), pp. 95-110 (selection rules). - 分子振動の古典的名著、群論と選択則
-  5. Colthup, N. B., Daly, L. H., Wiberley, S. E. (1990). _Introduction to Infrared and Raman Spectroscopy_ (3rd ed.). Academic Press, pp. 100-125 (functional group frequencies), pp. 180-210 (spectral interpretation), pp. 220-240 (peak assignment). - 実践的なスペクトル解釈とピーク帰属
-  6. Savitzky, A., Golay, M. J. E. (1964). Smoothing and differentiation of data by simplified least squares procedures. _Analytical Chemistry_ , 36(8), 1627-1639. DOI: 10.1021/ac60214a047 - Savitzky-Golay平滑化フィルタの原著論文（コード例で使用）
-  7. SciPy 1.11 Signal Processing Documentation. _scipy.signal.find_peaks, scipy.signal.savgol_filter_. Available at: https://docs.scipy.org/doc/scipy/reference/signal.html - Pythonによるスペクトルデータ処理
-  8. Smith, E., Dent, G. (2019). _Modern Raman Spectroscopy: A Practical Approach_ (2nd ed.). Wiley, pp. 15-28 (instrumentation), pp. 45-65 (sampling techniques), pp. 72-80 (data processing). - 現代Raman分光法の実践的技術
-  9. Cotton, F. A. (1990). _Chemical Applications of Group Theory_ (3rd ed.). Wiley, pp. 250-275 (point groups), pp. 285-305 (vibrational modes), pp. 310-320 (selection rules). - 群論の化学応用と振動スペクトルの対称性解析
+  1. Skoog, D. A., Holler, F. J., Crouch, S. R. (2017). _Principles of Instrumental Analysis_ (7th ed.). Cengage Learning, pp. 336-380 (UV-Vis spectroscopy), pp. 381-420 (molecular luminescence). - 分光分析の標準的教科書
+  2. Perkampus, H. H. (1992). _UV-VIS Spectroscopy and Its Applications_. Springer-Verlag, pp. 15-45 (electronic transitions), pp. 68-95 (chromophores), pp. 120-150 (applications). - UV-Vis分光法の詳細な解説
+  3. Tauc, J. (1968). Optical properties and electronic structure of amorphous Ge and Si. _Materials Research Bulletin_ , 3(1), 37-46. DOI: 10.1016/0025-5408(68)90023-8 - Taucプロット法の原著論文
+  4. Murphy, A. B. (2007). Band-gap determination from diffuse reflectance measurements of semiconductor films, and application to photoelectrochemical water-splitting. _Solar Energy Materials and Solar Cells_ , 91(14), 1326-1337. DOI: 10.1016/j.solmat.2007.05.005 - バンドギャップ決定法の詳細な解説
+  5. Kubelka, P., Munk, F. (1931). Ein Beitrag zur Optik der Farbanstriche. _Zeitschrift fur technische Physik_ , 12, 593-601. - Kubelka-Munk理論の原著論文
+  6. Woodward, R. B. (1941). Structure and the absorption spectra of alpha, beta-unsaturated ketones. _Journal of the American Chemical Society_ , 63(4), 1123-1126. - Woodward則（共役系の吸収予測）
+  7. SciPy 1.11 Documentation. _scipy.optimize.nnls, scipy.signal.savgol_filter_. Available at: https://docs.scipy.org/doc/scipy/reference/ - Pythonによるスペクトルデータ処理
 
 ## 次のステップ
 
-第2章では、赤外・ラマン分光法の原理、選択則、官能基同定、群論による対称性解析を学びました。調和振動子モデル、FTIRの原理、Stokes/Anti-Stokes散乱、結晶化度評価など、実践的なデータ解析スキルも習得しました。
+第2章では、UV-Vis分光法の原理、ランベルト・ベール則、発色団・助色団、分光光度計の構成、Taucプロットによるバンドギャップ決定を学びました。Pythonを用いた検量線作成、スペクトル前処理、多成分解析の実践的スキルも習得しました。
 
-**第3章** では、UV-Vis（紫外可視）分光法を学びます。電子遷移、Lambert-Beer則の応用、Tauc plotによるバンドギャップ測定、配位子場理論、Python実践による吸収スペクトル解析など、半導体・有機材料の電子状態解析の全てをカバーします。
+**第3章** では、赤外分光法（IR/FTIR）を学びます。分子振動の理論、官能基の特性吸収、フーリエ変換赤外分光法の原理、高分子・有機材料の構造解析など、振動分光法の基礎から応用までをカバーします。
 
 ### 免責事項
 
   * 本コンテンツは教育・研究・情報提供のみを目的としており、専門的な助言(法律・会計・技術的保証など)を提供するものではありません。
-  * 本コンテンツおよび付随するCode examplesは「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
+  * 本コンテンツおよび付随するコード例は「現状有姿(AS IS)」で提供され、明示または黙示を問わず、商品性、特定目的適合性、権利非侵害、正確性・完全性、動作・安全性等いかなる保証もしません。
   * 外部リンク、第三者が提供するデータ・ツール・ライブラリ等の内容・可用性・安全性について、作成者および東北大学は一切の責任を負いません。
   * 本コンテンツの利用・実行・解釈により直接的・間接的・付随的・特別・結果的・懲罰的損害が生じた場合でも、適用法で許容される最大限の範囲で、作成者および東北大学は責任を負いません。
   * 本コンテンツの内容は、予告なく変更・更新・提供停止されることがあります。

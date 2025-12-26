@@ -1,1721 +1,1496 @@
 ---
-title: "Chapter 3: UV-Vis Spectroscopy"
-chapter_title: "Chapter 3: UV-Vis Spectroscopy"
+title: "Chapter 3: Infrared Spectroscopy"
+chapter_title: "Chapter 3: Infrared Spectroscopy"
+version: 1.0
 ---
 
-[AI Terakoya Top](<../index.html>):[Materials Science](<../../index.html>):[Spectroscopy](<../../MS/spectroscopy-introduction/index.html>):Chapter 3
+[AI Terakoya Top](<../../index.html>)>[Materials Science](<../index.html>)>[Spectroscopy Introduction](<index.html>)>Chapter 3
 
-🌐 EN | [🇯🇵 JP](<../../../jp/MS/spectroscopy-introduction/chapter-3.html>) | Last sync: 2025-11-16
+EN | [JP](<../../../jp/MS/spectroscopy-introduction/chapter-3.html>) | Last sync: 2025-12-26
 
-# Chapter 3: UV-Vis Spectroscopy
+# Chapter 3: Infrared Spectroscopy
 
-**What you will learn in this chapter:** Ultraviolet-visible (UV-Vis) spectroscopy is a spectroscopic method that observes electronic transitions in materials, and is an indispensable technique for optical property evaluation, bandgap measurement, and electronic state analysis of coordination compounds in materials science. In this chapter, you will systematically learn UV-Vis spectroscopy from fundamentals to practice, including the theoretical foundations of electronic transitions, practical applications of the Lambert-Beer law, bandgap determination using Tauc plot method, and interpretation of transition metal complexes using ligand field theory.
+**What you will learn in this chapter:** Infrared (IR) spectroscopy is a powerful analytical technique that probes molecular vibrations to identify functional groups and characterize materials. In this chapter, you will learn the fundamental principles of molecular vibrations including stretching and bending modes, understand IR selection rules based on dipole moment changes, explore Fourier Transform Infrared (FTIR) instrumentation and interferometry, master functional group identification using characteristic absorption frequencies, and discover ATR-FTIR for surface analysis. Practical Python code examples will guide you through IR spectral analysis, peak identification, and baseline correction.
 
-## 3.1 Electronic Transitions and Principles of UV-Vis Spectroscopy
+### Learning Objectives
 
-### 3.1.1 Energy of Electronic Transitions
+  * Understand molecular vibrations and distinguish between stretching and bending modes
+  * Apply IR selection rules based on dipole moment change requirements
+  * Explain the principles of FTIR spectroscopy and Michelson interferometry
+  * Identify functional groups from characteristic IR absorption frequencies
+  * Understand ATR-FTIR principles and applications for surface analysis
+  * Perform IR spectral analysis using Python including baseline correction and peak identification
 
-In UV-Vis spectroscopy, light absorption in the ultraviolet (10-400 nm) to visible (400-800 nm) region is measured. This wavelength range corresponds to molecular electronic transition energies (approximately 1.5-6 eV).
+## 3.1 Fundamentals of Molecular Vibrations
 
-**Relationship between electronic transition energy and wavelength:**
+### 3.1.1 The Harmonic Oscillator Model
 
-\\[ E = h\nu = \frac{hc}{\lambda} \\] 
+Molecular vibrations can be understood through the quantum mechanical harmonic oscillator model. Consider a diatomic molecule as two masses connected by a spring. The vibrational frequency depends on the force constant (bond strength) and the reduced mass of the atoms.
 
-Where \\( h = 6.626 \times 10^{-34} \\) J·s (Planck's constant), \\( c = 3.0 \times 10^8 \\) m/s (speed of light), and \\( \lambda \\) is wavelength.
+**Classical vibrational frequency:**
 
-Conversion formula between wavelength (nm) and energy (eV):
+$$ \nu = \frac{1}{2\pi}\sqrt{\frac{k}{\mu}} $$ 
 
-\\[ E\,(\text{eV}) = \frac{1239.8}{\lambda\,(\text{nm})} \\] 
+where $k$ is the force constant (N/m), and $\mu$ is the reduced mass:
 
-### 3.1.2 Types of Electronic Transitions
+$$ \mu = \frac{m_1 m_2}{m_1 + m_2} $$ 
 
-#### Major Electronic Transitions
+**Quantum mechanical energy levels:**
 
-  * **Ã ’ Ã* transition:** Transition from Ã orbital of single bond to antibonding Ã* orbital (far UV region, » < 200 nm)
-  * **n ’ Ã* transition:** Transition from non-bonding electron pair to antibonding Ã* orbital (150-250 nm)
-  * **À ’ À* transition:** Transition from À orbital of double bond to À* orbital (200-400 nm, main region of UV-Vis)
-  * **n ’ À* transition:** Transition from non-bonding electron pair to À* orbital (250-350 nm, weak absorption)
-  * **d ’ d transition:** Transition between d orbitals in transition metal complexes (visible region, explained by ligand field theory)
-  * **Charge transfer transition (CT):** Charge transfer from metal to ligand (MLCT) or ligand to metal (LMCT) (strong absorption)
+$$ E_v = \left(v + \frac{1}{2}\right)h\nu, \quad v = 0, 1, 2, \ldots $$ 
 
-### 3.1.3 HOMO-LUMO Transition and Bandgap
+The vibrational wavenumber in cm$^{-1}$ is:
 
-In organic molecules and semiconductor materials, the lowest energy electronic transition is from the highest occupied molecular orbital (HOMO) to the lowest unoccupied molecular orbital (LUMO). This transition energy corresponds to the bandgap \\( E_g \\) of semiconductors.
+$$ \tilde{\nu} = \frac{1}{2\pi c}\sqrt{\frac{k}{\mu}} $$ 
+    
+    
+    # Code Example 1: Calculating Vibrational Frequencies for Diatomic Molecules
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    # Physical constants
+    c = 2.998e10  # Speed of light in cm/s
+    h = 6.626e-34  # Planck's constant in J*s
+    amu_to_kg = 1.66054e-27  # Atomic mass unit to kg
+    
+    def calculate_vibrational_frequency(k, m1, m2):
+        """
+        Calculate vibrational frequency for a diatomic molecule.
+    
+        Parameters:
+        -----------
+        k : float
+            Force constant in N/m
+        m1, m2 : float
+            Atomic masses in amu
+    
+        Returns:
+        --------
+        nu_hz : float
+            Frequency in Hz
+        nu_wavenumber : float
+            Wavenumber in cm^-1
+        """
+        # Convert masses to kg
+        m1_kg = m1 * amu_to_kg
+        m2_kg = m2 * amu_to_kg
+    
+        # Calculate reduced mass
+        mu = (m1_kg * m2_kg) / (m1_kg + m2_kg)
+    
+        # Calculate frequency
+        nu_hz = (1 / (2 * np.pi)) * np.sqrt(k / mu)
+        nu_wavenumber = nu_hz / c
+    
+        return nu_hz, nu_wavenumber
+    
+    # Example calculations for common diatomic molecules
+    molecules = {
+        'H-Cl': {'k': 480, 'm1': 1.008, 'm2': 35.45},
+        'H-Br': {'k': 410, 'm1': 1.008, 'm2': 79.90},
+        'H-I': {'k': 320, 'm1': 1.008, 'm2': 126.9},
+        'C-O': {'k': 1860, 'm1': 12.01, 'm2': 16.00},
+        'N-N': {'k': 2260, 'm1': 14.01, 'm2': 14.01},
+    }
+    
+    print("Vibrational Frequencies of Diatomic Molecules")
+    print("=" * 60)
+    print(f"{'Molecule':<10} {'k (N/m)':<12} {'Frequency (Hz)':<18} {'Wavenumber (cm-1)'}")
+    print("-" * 60)
+    
+    for mol, params in molecules.items():
+        nu_hz, nu_cm = calculate_vibrational_frequency(
+            params['k'], params['m1'], params['m2']
+        )
+        print(f"{mol:<10} {params['k']:<12.0f} {nu_hz:<18.3e} {nu_cm:.0f}")
+    
+    # Visualize the effect of reduced mass on vibrational frequency
+    k_fixed = 500  # Fixed force constant
+    masses = np.linspace(1, 50, 100)  # Mass of second atom (first is H = 1)
+    
+    wavenumbers = []
+    for m2 in masses:
+        _, nu_cm = calculate_vibrational_frequency(k_fixed, 1.008, m2)
+        wavenumbers.append(nu_cm)
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(masses, wavenumbers, 'b-', linewidth=2)
+    plt.xlabel('Mass of Second Atom (amu)', fontsize=12)
+    plt.ylabel('Vibrational Wavenumber (cm$^{-1}$)', fontsize=12)
+    plt.title('Effect of Reduced Mass on Vibrational Frequency\n(H-X molecules, k = 500 N/m)', fontsize=14)
+    plt.grid(True, alpha=0.3)
+    plt.axhline(y=3000, color='r', linestyle='--', alpha=0.5, label='Typical C-H stretch region')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('vibrational_frequency_mass.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
 
-**Relationship between bandgap and UV-Vis absorption edge:**
+### 3.1.2 Types of Molecular Vibrations
 
-\\[ E_g = h\nu_{\text{onset}} = \frac{1239.8}{\lambda_{\text{onset}}\,(\text{nm})} \\] 
+For a molecule with $N$ atoms, the total number of vibrational modes is $3N - 6$ for nonlinear molecules and $3N - 5$ for linear molecules. These vibrations are classified into two main categories:
 
-Where \\( \lambda_{\text{onset}} \\) is the absorption onset wavelength.
+#### Stretching Vibrations
+
+  * **Symmetric stretching ($\nu_s$):** Both bonds stretch and compress in phase
+  * **Asymmetric stretching ($\nu_{as}$):** One bond stretches while the other compresses
+
+#### Bending Vibrations (Deformations)
+
+  * **Scissoring ($\delta$):** In-plane bending where bond angles change symmetrically
+  * **Rocking ($\rho$):** In-plane bending where atoms move in the same direction
+  * **Wagging ($\omega$):** Out-of-plane bending where atoms move together perpendicular to the plane
+  * **Twisting ($\tau$):** Out-of-plane bending where atoms move in opposite directions
+
     
     
     ```mermaid
-    flowchart TD
-            A[Ground StateHOMO Electron Configuration] -->|Light Absorption h½| B[Excited StateLUMO Electron Configuration]
-            B -->|Fluorescence| C[Ground StateEnergy Release]
-            B -->|Non-radiative Decay| D[Ground StateThermal Energy]
+    flowchart TB
+        A[Molecular Vibrations3N-6 or 3N-5 modes] --> B[Stretching]
+        A --> C[Bending]
     
-            style A fill:#e3f2fd
-            style B fill:#fff3e0
-            style C fill:#e8f5e9
-            style D fill:#fce4ec
-        
+        B --> D[SymmetricBoth bonds in phase]
+        B --> E[AsymmetricOut of phase]
     
-        3.2 Theory and Applications of the Lambert-Beer Law
-    3.2.1 Mathematical Expression of the Lambert-Beer Law
-    The Lambert-Beer law is a fundamental law that describes the relationship between light absorption and concentration in solutions. We reconsider the equation introduced in Chapter 1 in the context of UV-Vis spectroscopy.
+        C --> F[In-plane]
+        C --> G[Out-of-plane]
     
-    Definition of absorbance:
-            \[
-            A = \log_{10}\left(\frac{I_0}{I}\right) = \epsilon c l
-            \]
-            Where \( A \) is absorbance, \( I_0 \) is incident light intensity, \( I \) is transmitted light intensity, \( \epsilon \) is molar absorptivity (L mol-1 cm-1), \( c \) is concentration (mol/L), and \( l \) is path length (cm).
-    Relationship with transmittance:
-            \[
-            T = \frac{I}{I_0} = 10^{-A}
-            \]
-            \[
-            A = -\log_{10} T = 2 - \log_{10}(\%T)
-            \]
-        
-    3.2.2 Physical Meaning of Molar Absorptivity
-    Molar absorptivity \( \epsilon \) is an intrinsic property value that represents the light absorption ability of a substance at a specific wavelength. A large \( \epsilon \) value (\( \epsilon > 10^4 \) L mol-1 cm-1) indicates an allowed transition, while a small \( \epsilon \) value (\( \epsilon < 10^3 \)) indicates a forbidden transition.
+        F --> H[Scissoring]
+        F --> I[Rocking]
+    
+        G --> J[Wagging]
+        G --> K[Twisting]
+    
+        style A fill:#f093fb,color:#fff
+        style B fill:#f5576c,color:#fff
+        style C fill:#f5576c,color:#fff
+    ```
     
     
-    
-    Transition Type
-    Molar Absorptivity µ (L mol-1 cm-1)
-    Examples
-    
-    
-    
-    
-    À ’ À* (conjugated system)
-    10,000 - 100,000
-    Benzene, Anthracene
-    
-    
-    n ’ À*
-    10 - 1,000
-    Carbonyl compounds
-    
-    
-    d ’ d (transition metal)
-    1 - 100
-    Cu2+, Ni2+ complexes
-    
-    
-    Charge transfer (CT)
-    1,000 - 50,000
-    MnO4-, Fe-phenanthroline
-    
-    
-    
-    3.2.3 Quantitative Analysis Using Calibration Curves
-    Using the linearity of the Lambert-Beer law, the concentration of unknown samples can be determined. A series of standard solutions of known concentrations are measured to create a calibration curve of absorbance \( A \) vs. concentration \( c \).
-    Code Example 1: Creating Calibration Curves and Quantitative Analysis Using the Lambert-Beer Law
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
+    # Code Example 2: Visualizing Vibrational Modes of a Water Molecule
     import numpy as np
     import matplotlib.pyplot as plt
-    from scipy.stats import linregress
+    from matplotlib.patches import Circle, FancyArrowPatch
+    from matplotlib.animation import FuncAnimation
     
-    def create_calibration_curve(concentrations, absorbances):
+    def draw_water_molecule(ax, positions, title, arrows=None):
         """
-        Create calibration curve and return linear regression parameters
+        Draw a water molecule with optional displacement arrows.
     
         Parameters:
         -----------
-        concentrations : array-like
-            Concentrations of standard solutions (mol/L)
-        absorbances : array-like
-            Absorbance at each concentration
-    
-        Returns:
-        --------
-        slope : float
-            Slope of calibration curve (molar absorptivity × path length)
-        intercept : float
-            Intercept (should be zero)
-        r_value : float
-            Correlation coefficient
+        ax : matplotlib axis
+            Axis to draw on
+        positions : list of tuples
+            [(O_x, O_y), (H1_x, H1_y), (H2_x, H2_y)]
+        title : str
+            Title for the subplot
+        arrows : list of tuples or None
+            Displacement vectors for each atom
         """
-        # Linear regression
-        slope, intercept, r_value, p_value, std_err = linregress(concentrations, absorbances)
+        ax.clear()
+        ax.set_xlim(-2, 2)
+        ax.set_ylim(-1.5, 1.5)
+        ax.set_aspect('equal')
+        ax.set_title(title, fontsize=12, fontweight='bold')
+        ax.axis('off')
     
-        # Plot
-        plt.figure(figsize=(10, 6))
-        plt.scatter(concentrations, absorbances, s=100, alpha=0.7, label='Measured Data')
+        O_pos, H1_pos, H2_pos = positions
     
-        # Regression line
-        conc_fit = np.linspace(0, max(concentrations)*1.1, 100)
-        abs_fit = slope * conc_fit + intercept
-        plt.plot(conc_fit, abs_fit, 'r--', linewidth=2,
-                 label=f'Regression Line: A = {slope:.3f}c + {intercept:.4f}\nR² = {r_value**2:.4f}')
+        # Draw bonds
+        ax.plot([O_pos[0], H1_pos[0]], [O_pos[1], H1_pos[1]], 'k-', linewidth=3)
+        ax.plot([O_pos[0], H2_pos[0]], [O_pos[1], H2_pos[1]], 'k-', linewidth=3)
     
-        plt.xlabel('Concentration (mol/L)', fontsize=12)
-        plt.ylabel('Absorbance', fontsize=12)
-        plt.title('Calibration Curve Using Lambert-Beer Law', fontsize=14, fontweight='bold')
-        plt.legend()
-        plt.grid(alpha=0.3)
-        plt.tight_layout()
-        plt.show()
+        # Draw atoms
+        ax.add_patch(Circle(O_pos, 0.25, color='red', zorder=5))
+        ax.add_patch(Circle(H1_pos, 0.15, color='white', ec='blue', linewidth=2, zorder=5))
+        ax.add_patch(Circle(H2_pos, 0.15, color='white', ec='blue', linewidth=2, zorder=5))
     
-        return slope, intercept, r_value
+        # Add labels
+        ax.text(O_pos[0], O_pos[1], 'O', ha='center', va='center', fontsize=10, color='white', zorder=6)
+        ax.text(H1_pos[0], H1_pos[1], 'H', ha='center', va='center', fontsize=8, color='blue', zorder=6)
+        ax.text(H2_pos[0], H2_pos[1], 'H', ha='center', va='center', fontsize=8, color='blue', zorder=6)
     
-    def determine_concentration(absorbance_sample, slope, intercept):
-        """
-        Determine concentration of unknown sample from calibration curve
+        # Draw displacement arrows
+        if arrows:
+            for pos, arrow in zip(positions, arrows):
+                if np.linalg.norm(arrow) > 0.01:
+                    ax.annotate('', xy=(pos[0] + arrow[0], pos[1] + arrow[1]),
+                               xytext=pos,
+                               arrowprops=dict(arrowstyle='->', color='green', lw=2))
     
-        Parameters:
-        -----------
-        absorbance_sample : float
-            Absorbance of unknown sample
-        slope : float
-            Slope of calibration curve
-        intercept : float
-            Intercept of calibration curve
+    # Create figure for vibrational modes
+    fig, axes = plt.subplots(1, 3, figsize=(14, 4))
     
-        Returns:
-        --------
-        concentration : float
-            Concentration of unknown sample (mol/L)
-        """
-        concentration = (absorbance_sample - intercept) / slope
-        return concentration
+    # Equilibrium positions (water molecule geometry)
+    bond_length = 0.96  # O-H bond length (scaled for visualization)
+    angle = 104.5 * np.pi / 180  # H-O-H angle
     
-    # Execution example: Quantitative analysis of methylene blue
-    concentrations = np.array([0.5, 1.0, 2.0, 3.0, 4.0, 5.0]) * 1e-5  # mol/L
-    absorbances = np.array([0.12, 0.24, 0.48, 0.72, 0.96, 1.20])
+    O_eq = (0, 0)
+    H1_eq = (-bond_length * np.sin(angle/2), -bond_length * np.cos(angle/2))
+    H2_eq = (bond_length * np.sin(angle/2), -bond_length * np.cos(angle/2))
     
-    slope, intercept, r_value = create_calibration_curve(concentrations, absorbances)
+    # Mode 1: Symmetric stretch (3657 cm-1)
+    # Both H atoms move away from O simultaneously
+    sym_arrows = [(0, 0.15), (-0.3, -0.25), (0.3, -0.25)]
+    draw_water_molecule(axes[0], [O_eq, H1_eq, H2_eq],
+                       'Symmetric Stretch\n$\\nu_1$ = 3657 cm$^{-1}$', sym_arrows)
     
-    # Calculate molar absorptivity for path length of 1 cm
-    epsilon = slope  # L mol^-1 cm^-1
-    print(f"Molar absorptivity µ = {epsilon:.2e} L mol{¹ cm{¹")
+    # Mode 2: Bending/Scissoring (1595 cm-1)
+    # H atoms move toward each other, O moves up
+    bend_arrows = [(0, 0.2), (0.25, 0), (-0.25, 0)]
+    draw_water_molecule(axes[1], [O_eq, H1_eq, H2_eq],
+                       'Bending (Scissoring)\n$\\nu_2$ = 1595 cm$^{-1}$', bend_arrows)
     
-    # Determine concentration of unknown sample
-    A_unknown = 0.60
-    c_unknown = determine_concentration(A_unknown, slope, intercept)
-    print(f"Concentration of unknown sample: {c_unknown:.2e} mol/L")
-    print(f"Correlation coefficient of calibration curve R² = {r_value**2:.4f}")
+    # Mode 3: Asymmetric stretch (3756 cm-1)
+    # One H moves away while other moves toward O
+    asym_arrows = [(0.1, 0), (-0.3, -0.2), (0.15, 0.1)]
+    draw_water_molecule(axes[2], [O_eq, H1_eq, H2_eq],
+                       'Asymmetric Stretch\n$\\nu_3$ = 3756 cm$^{-1}$', asym_arrows)
     
-    3.3 Bandgap Measurement Using Tauc Plot Method
-    3.3.1 Theoretical Background of Tauc's Law
-    To precisely determine the bandgap of semiconductor and insulator materials, the analytical method proposed by Jan Tauc (1968) is widely used. Tauc's law describes the relationship between absorption coefficient \( \alpha \) and photon energy \( h\nu \).
+    plt.tight_layout()
+    plt.savefig('water_vibrational_modes.png', dpi=150, bbox_inches='tight')
+    plt.show()
     
-    Tauc's law (direct transition):
-            \[
-            (\alpha h\nu)^2 = B(h\nu - E_g)
-            \]
-            Where \( B \) is a material constant and \( E_g \) is the bandgap.
-    Tauc's law (indirect transition):
-            \[
-            (\alpha h\nu)^{1/2} = B(h\nu - E_g)
-            \]
+    print("\nWater Molecule Vibrational Modes Summary:")
+    print("=" * 50)
+    print("Atoms (N) = 3, Nonlinear molecule")
+    print(f"Number of vibrational modes = 3N - 6 = {3*3 - 6} modes")
+    print("\nMode    Type              Wavenumber (cm-1)")
+    print("-" * 50)
+    print("v1      Symmetric stretch     3657")
+    print("v2      Bending (scissor)     1595")
+    print("v3      Asymmetric stretch    3756")
     
-            Calculation of absorption coefficient:
-            \[
-            \alpha = \frac{2.303 \cdot A}{l}
-            \]
-            Where \( A \) is absorbance and \( l \) is sample thickness (cm).
+
+## 3.2 IR Selection Rules: Dipole Moment Change
+
+### 3.2.1 The Selection Rule for IR Absorption
+
+Not all molecular vibrations are IR active. For a vibration to absorb infrared radiation, it must cause a change in the molecular dipole moment during the vibration. This is the fundamental IR selection rule.
+
+**IR Selection Rule:**
+
+$$ \left(\frac{\partial \mu}{\partial Q}\right)_{Q=0} \neq 0 $$ 
+
+where $\mu$ is the dipole moment and $Q$ is the normal coordinate of the vibration.
+
+A vibration is **IR active** if the dipole moment changes during the vibration.
+
+A vibration is **IR inactive** if the dipole moment remains constant (e.g., symmetric stretches in homonuclear diatomic molecules).
+
+#### Examples of IR Active and Inactive Vibrations
+
+Molecule | Vibration | Dipole Change | IR Activity  
+---|---|---|---  
+H$_2$, N$_2$, O$_2$ | Symmetric stretch | No change | Inactive  
+HCl, CO | Stretch | Changes | Active  
+CO$_2$ | Symmetric stretch | No change | Inactive  
+CO$_2$ | Asymmetric stretch | Changes | Active  
+CO$_2$ | Bending | Changes | Active  
+H$_2$O | All modes | Changes | Active  
+      
     
-    3.3.2 Procedure for Creating Tauc Plots
-    
-    Measure UV-Vis absorption spectrum and obtain wavelength \( \lambda \) and absorbance \( A \)
-    Convert wavelength to photon energy \( h\nu = 1239.8/\lambda \) (eV)
-    Calculate absorption coefficient from absorbance \( \alpha = 2.303 \cdot A/l \)
-    For direct transitions: Plot \( (\alpha h\nu)^2 \) vs. \( h\nu \)
-    For indirect transitions: Plot \( (\alpha h\nu)^{1/2} \) vs. \( h\nu \)
-    Extrapolate the linear region of the absorption edge and determine bandgap \( E_g \) from the intersection with the horizontal axis
-    
-    Code Example 2: Bandgap Measurement Using Tauc Plot Method
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
+    # Code Example 3: Demonstrating IR Selection Rules with CO2
     import numpy as np
     import matplotlib.pyplot as plt
-    from scipy.optimize import curve_fit
     
-    def tauc_plot_direct(wavelength, absorbance, thickness_cm, plot_range=(2.0, 4.0)):
+    def calculate_dipole_moment(positions, charges):
         """
-        Create Tauc plot for direct transition material and determine bandgap
+        Calculate dipole moment vector for a set of point charges.
     
         Parameters:
         -----------
-        wavelength : array
-            Wavelength (nm)
-        absorbance : array
-            Absorbance
-        thickness_cm : float
-            Sample thickness (cm)
-        plot_range : tuple
-            Energy range for fitting (eV)
+        positions : array
+            Atomic positions [[x1,y1], [x2,y2], ...]
+        charges : array
+            Partial charges for each atom
     
         Returns:
         --------
-        Eg : float
-            Bandgap (eV)
+        dipole : array
+            Dipole moment vector [mu_x, mu_y]
         """
-        # Convert wavelength to photon energy
-        photon_energy = 1239.8 / wavelength  # eV
+        positions = np.array(positions)
+        charges = np.array(charges)
+        dipole = np.sum(positions.T * charges, axis=1)
+        return dipole
     
-        # Calculate absorption coefficient
-        alpha = 2.303 * absorbance / thickness_cm  # cm^-1
-    
-        # Tauc plot: (±h½)^2
-        tauc_y = (alpha * photon_energy)**2
-    
-        # Select fitting range
-        mask = (photon_energy >= plot_range[0]) & (photon_energy <= plot_range[1])
-        E_fit = photon_energy[mask]
-        tauc_fit = tauc_y[mask]
-    
-        # Linear fitting
-        def linear(x, B, Eg):
-            return B * (x - Eg)
-    
-        popt, pcov = curve_fit(linear, E_fit, tauc_fit, p0=[1e10, 3.0])
-        B, Eg = popt
-    
-        # Plot
-        plt.figure(figsize=(10, 6))
-        plt.plot(photon_energy, tauc_y, 'o-', label='Measured Data', alpha=0.7)
-    
-        # Fitting line
-        E_extended = np.linspace(Eg - 0.5, plot_range[1], 100)
-        tauc_extended = linear(E_extended, B, Eg)
-        plt.plot(E_extended, tauc_extended, 'r--', linewidth=2,
-                 label=f'Linear Fit\nEg = {Eg:.3f} eV')
-    
-        # Highlight bandgap position
-        plt.axvline(Eg, color='green', linestyle=':', linewidth=2, label=f'Bandgap: {Eg:.3f} eV')
-        plt.axhline(0, color='black', linestyle='-', linewidth=0.5)
-    
-        plt.xlabel('Photon Energy (eV)', fontsize=12)
-        plt.ylabel('(±h½)² (eV² cm{²)', fontsize=12)
-        plt.title('Tauc Plot (Direct Transition)', fontsize=14, fontweight='bold')
-        plt.legend()
-        plt.grid(alpha=0.3)
-        plt.xlim(photon_energy.min(), photon_energy.max())
-        plt.tight_layout()
-        plt.show()
-    
-        print(f"Determined bandgap: Eg = {Eg:.3f} eV")
-        print(f"Corresponding wavelength: » = {1239.8/Eg:.1f} nm")
-    
-        return Eg
-    
-    def tauc_plot_indirect(wavelength, absorbance, thickness_cm, plot_range=(1.5, 3.0)):
+    def simulate_co2_vibrations():
         """
-        Create Tauc plot for indirect transition material and determine bandgap
-    
-        Parameters:
-        -----------
-        wavelength : array
-            Wavelength (nm)
-        absorbance : array
-            Absorbance
-        thickness_cm : float
-            Sample thickness (cm)
-        plot_range : tuple
-            Energy range for fitting (eV)
-    
-        Returns:
-        --------
-        Eg : float
-            Bandgap (eV)
+        Simulate CO2 vibrational modes and dipole moment changes.
         """
-        # Convert wavelength to photon energy
-        photon_energy = 1239.8 / wavelength  # eV
+        # CO2 equilibrium geometry (linear)
+        # C at origin, O atoms at +/- 1.16 Angstrom
+        bond_length = 1.16
     
-        # Calculate absorption coefficient
-        alpha = 2.303 * absorbance / thickness_cm  # cm^-1
+        # Partial charges (simplified model)
+        q_C = +0.4  # Carbon
+        q_O = -0.2  # Oxygen (each)
     
-        # Tauc plot: (±h½)^(1/2)
-        tauc_y = np.sqrt(alpha * photon_energy)
+        # Time points for one vibrational period
+        t = np.linspace(0, 2*np.pi, 100)
+        amplitude = 0.1  # Vibrational amplitude
     
-        # Select fitting range
-        mask = (photon_energy >= plot_range[0]) & (photon_energy <= plot_range[1])
-        E_fit = photon_energy[mask]
-        tauc_fit = tauc_y[mask]
+        fig, axes = plt.subplots(3, 2, figsize=(14, 12))
     
-        # Linear fitting
-        def linear(x, B, Eg):
-            return B * (x - Eg)
-    
-        popt, pcov = curve_fit(linear, E_fit, tauc_fit, p0=[100, 2.0])
-        B, Eg = popt
-    
-        # Plot
-        plt.figure(figsize=(10, 6))
-        plt.plot(photon_energy, tauc_y, 'o-', label='Measured Data', alpha=0.7)
-    
-        # Fitting line
-        E_extended = np.linspace(Eg - 0.3, plot_range[1], 100)
-        tauc_extended = linear(E_extended, B, Eg)
-        plt.plot(E_extended, tauc_extended, 'r--', linewidth=2,
-                 label=f'Linear Fit\nEg = {Eg:.3f} eV')
-    
-        # Highlight bandgap position
-        plt.axvline(Eg, color='green', linestyle=':', linewidth=2, label=f'Bandgap: {Eg:.3f} eV')
-        plt.axhline(0, color='black', linestyle='-', linewidth=0.5)
-    
-        plt.xlabel('Photon Energy (eV)', fontsize=12)
-        plt.ylabel('(±h½)^(1/2) (eV^(1/2) cm^(-1/2))', fontsize=12)
-        plt.title('Tauc Plot (Indirect Transition)', fontsize=14, fontweight='bold')
-        plt.legend()
-        plt.grid(alpha=0.3)
-        plt.xlim(photon_energy.min(), photon_energy.max())
-        plt.tight_layout()
-        plt.show()
-    
-        print(f"Determined bandgap: Eg = {Eg:.3f} eV")
-        print(f"Corresponding wavelength: » = {1239.8/Eg:.1f} nm")
-    
-        return Eg
-    
-    # Execution example: TiO‚ nanoparticles (direct transition, Eg H 3.2 eV)
-    wavelength_nm = np.linspace(300, 500, 200)
-    # Simulation data (in practice obtained from spectrophotometer)
-    Eg_true = 3.2  # eV
-    alpha_true = 1e4 * np.maximum(0, (1239.8/wavelength_nm - Eg_true))**2
-    absorbance_sim = alpha_true * 0.01 / 2.303  # Sample thickness 0.01 cm
-    
-    Eg_measured = tauc_plot_direct(wavelength_nm, absorbance_sim, thickness_cm=0.01)
-    
-    3.4 Ligand Field Theory and d-d Transitions
-    3.4.1 Ligand Field Splitting Energy
-    Transition metal complexes (Cu2+, Ni2+, Co2+, etc.) exhibit characteristic colors in the visible region. This is because d orbitals are split by the electrostatic field of ligands, and d-d transitions cause absorption of visible light.
-    
-    d-Orbital Splitting in Octahedral Ligand Field (Oh Symmetry)
-    
-    eg orbitals (high energy): dz², dx²-y² (directly oppose ligands, large repulsion)
-    t2g orbitals (low energy): dxy, dxz, dyz (small repulsion with ligands)
-    
-    The splitting energy \( \Delta_o \) (10Dq) is directly related to the color of the complex:
-            \[
-            \Delta_o = h\nu = \frac{hc}{\lambda}
-            \]
-        
-    
-        flowchart TB
-            A[Free Ion5 Degenerate d Orbitals] -->|Octahedral Ligand Field| B[e_g OrbitalsHigh Energy]
-            A -->|Octahedral Ligand Field| C[t_2g OrbitalsLow Energy]
-    
-            B -.->|d-d TransitionLight Absorption| C
-    
-            D[d Electron ConfigurationGround State] -->|Visible Light Absorption| E[d Electron ConfigurationExcited State]
-    
-            style A fill:#e3f2fd
-            style B fill:#ffebee
-            style C fill:#e8f5e9
-            style D fill:#fff3e0
-            style E fill:#fce4ec
-        
-    
-        3.4.2 Spectrochemical Series
-    The magnitude of splitting energy \( \Delta_o \) varies depending on the type of ligand. This is called the spectrochemical series:
-    
-    Spectrochemical series (ligand strength order):
-            \[
-            \text{I}^- < \text{Br}^- < \text{Cl}^- < \text{F}^- < \text{OH}^- < \text{H}_2\text{O} < \text{NH}_3 < \text{en} < \text{NO}_2^- < \text{CN}^- < \text{CO}
-            \]
-            Weak field ligands (left side) ’ Small \( \Delta_o \), long wavelength absorption (red/yellow)
-    Strong field ligands (right side) ’ Large \( \Delta_o \), short wavelength absorption (blue/purple)
-    
-    Code Example 3: Color Prediction of Transition Metal Complexes Using Ligand Field Theory
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from matplotlib.patches import Rectangle
-    
-    def predict_complex_color(delta_o_cm, d_electron_count, geometry='octahedral'):
-        """
-        Predict d-d transition wavelength and complex color from ligand field splitting energy
-    
-        Parameters:
-        -----------
-        delta_o_cm : float
-            Ligand field splitting energy (cm^-1)
-        d_electron_count : int
-            Number of d electrons (1-10)
-        geometry : str
-            Coordination geometry ('octahedral' or 'tetrahedral')
-    
-        Returns:
-        --------
-        wavelength_nm : float
-            Wavelength of d-d transition (nm)
-        observed_color : str
-            Observed complex color (complementary color)
-        """
-        # Convert to wavelength
-        wavelength_nm = 1e7 / delta_o_cm  # nm
-    
-        # Color of absorbed light
-        if wavelength_nm < 450:
-            absorbed_color = 'Violet'
-            observed_color = 'Yellow-green'
-        elif wavelength_nm < 495:
-            absorbed_color = 'Blue'
-            observed_color = 'Yellow'
-        elif wavelength_nm < 570:
-            absorbed_color = 'Green'
-            observed_color = 'Red-purple'
-        elif wavelength_nm < 590:
-            absorbed_color = 'Yellow'
-            observed_color = 'Blue-purple'
-        elif wavelength_nm < 620:
-            absorbed_color = 'Orange'
-            observed_color = 'Blue'
-        elif wavelength_nm < 750:
-            absorbed_color = 'Red'
-            observed_color = 'Green'
-        else:
-            absorbed_color = 'Infrared'
-            observed_color = 'Colorless (infrared absorption)'
-    
-        print(f"Ligand field splitting energy ”o = {delta_o_cm:.0f} cm{¹")
-        print(f"d-d transition wavelength: » = {wavelength_nm:.1f} nm")
-        print(f"Absorbed light: {absorbed_color} ({wavelength_nm:.1f} nm)")
-        print(f"Observed complex color: {observed_color} (complementary color)")
-        print(f"d electron count: d^{d_electron_count} ({geometry} coordination)")
-    
-        return wavelength_nm, observed_color
-    
-    def plot_spectrochemical_series():
-        """
-        Visualize spectrochemical series of representative transition metal complexes
-        """
-        # ”o data for representative complexes (cm^-1)
-        complexes = [
-            '[Ti(H2O)6]3+',
-            '[V(H2O)6]3+',
-            '[Cr(H2O)6]3+',
-            '[Mn(H2O)6]2+',
-            '[Fe(H2O)6]2+',
-            '[Co(H2O)6]2+',
-            '[Ni(H2O)6]2+',
-            '[Cu(H2O)6]2+',
-            '[Co(NH3)6]3+',
-            '[Cr(CN)6]3-'
+        modes = [
+            ('Symmetric Stretch', 'sym'),
+            ('Asymmetric Stretch', 'asym'),
+            ('Bending', 'bend')
         ]
     
-        delta_o_values = np.array([20300, 18900, 17400, 21000, 10400, 9300, 8500, 12600, 22900, 26600])
-        wavelengths = 1e7 / delta_o_values  # nm
+        for i, (mode_name, mode_type) in enumerate(modes):
+            dipoles_x = []
+            dipoles_y = []
     
-        fig, ax = plt.subplots(figsize=(12, 8))
+            for phase in t:
+                if mode_type == 'sym':
+                    # Symmetric stretch: both O atoms move symmetrically
+                    O1_x = -bond_length - amplitude * np.sin(phase)
+                    O2_x = bond_length + amplitude * np.sin(phase)
+                    C_x = 0
+                    O1_y = O2_y = C_y = 0
+                elif mode_type == 'asym':
+                    # Asymmetric stretch: O atoms move in opposite directions
+                    O1_x = -bond_length - amplitude * np.sin(phase)
+                    O2_x = bond_length - amplitude * np.sin(phase)
+                    C_x = amplitude * 0.5 * np.sin(phase)
+                    O1_y = O2_y = C_y = 0
+                else:  # bend
+                    # Bending: O atoms move perpendicular to bond axis
+                    O1_x = -bond_length
+                    O2_x = bond_length
+                    C_x = 0
+                    O1_y = -amplitude * np.sin(phase)
+                    O2_y = -amplitude * np.sin(phase)
+                    C_y = amplitude * 0.5 * np.sin(phase)
     
-        # Display absorption wavelength of each complex with colored bars
-        colors_map = {
-            (380, 450): ('#8B00FF', 'Yellow-green'),
-            (450, 495): ('#0000FF', 'Yellow'),
-            (495, 570): ('#00FF00', 'Red-purple'),
-            (570, 590): ('#FFFF00', 'Blue-purple'),
-            (590, 620): ('#FFA500', 'Blue'),
-            (620, 750): ('#FF0000', 'Green')
-        }
+                positions = [[O1_x, O1_y], [C_x, C_y], [O2_x, O2_y]]
+                charges = [q_O, q_C, q_O]
     
-        for i, (name, wl) in enumerate(zip(complexes, wavelengths)):
-            # Color corresponding to absorption wavelength
-            color = '#808080'  # Default gray
-            observed = 'Unknown'
-            for (wl_min, wl_max), (c, obs) in colors_map.items():
-                if wl_min <= wl < wl_max:
-                    color = c
-                    observed = obs
-                    break
+                dipole = calculate_dipole_moment(positions, charges)
+                dipoles_x.append(dipole[0])
+                dipoles_y.append(dipole[1])
     
-            ax.barh(i, wl, color=color, alpha=0.7, edgecolor='black', linewidth=1.5)
-            ax.text(wl + 20, i, f'{wl:.1f} nm\nObserved: {observed}',
-                    va='center', fontsize=9, fontweight='bold')
+            # Plot molecular motion (snapshot)
+            ax1 = axes[i, 0]
+            ax1.set_xlim(-2, 2)
+            ax1.set_ylim(-0.5, 0.5)
+            ax1.set_aspect('equal')
     
-        ax.set_yticks(range(len(complexes)))
-        ax.set_yticklabels(complexes, fontsize=11)
-        ax.set_xlabel('d-d Transition Wavelength (nm)', fontsize=12)
-        ax.set_title('Spectrochemical Series and d-d Transition Wavelengths of Transition Metal Complexes', fontsize=14, fontweight='bold')
-        ax.set_xlim(0, 800)
-        ax.grid(axis='x', alpha=0.3)
+            # Draw equilibrium position
+            ax1.plot([-bond_length, 0], [0, 0], 'k-', linewidth=3, alpha=0.3)
+            ax1.plot([0, bond_length], [0, 0], 'k-', linewidth=3, alpha=0.3)
+            ax1.scatter([-bond_length, bond_length], [0, 0], s=200, c='red', alpha=0.3, zorder=5)
+            ax1.scatter([0], [0], s=150, c='gray', alpha=0.3, zorder=5)
     
-        # Highlight visible light region
-        ax.axvspan(380, 750, alpha=0.1, color='yellow', label='Visible Region')
-        ax.legend()
+            # Draw displaced position at t=pi/2
+            if mode_type == 'sym':
+                O1_disp = (-bond_length - amplitude, 0)
+                O2_disp = (bond_length + amplitude, 0)
+                C_disp = (0, 0)
+            elif mode_type == 'asym':
+                O1_disp = (-bond_length - amplitude, 0)
+                O2_disp = (bond_length - amplitude, 0)
+                C_disp = (amplitude * 0.5, 0)
+            else:
+                O1_disp = (-bond_length, -amplitude)
+                O2_disp = (bond_length, -amplitude)
+                C_disp = (0, amplitude * 0.5)
+    
+            ax1.plot([O1_disp[0], C_disp[0]], [O1_disp[1], C_disp[1]], 'b-', linewidth=3)
+            ax1.plot([C_disp[0], O2_disp[0]], [C_disp[1], O2_disp[1]], 'b-', linewidth=3)
+            ax1.scatter([O1_disp[0], O2_disp[0]], [O1_disp[1], O2_disp[1]], s=200, c='red', zorder=5)
+            ax1.scatter([C_disp[0]], [C_disp[1]], s=150, c='gray', zorder=5)
+    
+            ax1.set_title(f'{mode_name}', fontsize=12, fontweight='bold')
+            ax1.text(-bond_length, 0.3, 'O', ha='center', fontsize=10)
+            ax1.text(0, 0.3, 'C', ha='center', fontsize=10)
+            ax1.text(bond_length, 0.3, 'O', ha='center', fontsize=10)
+            ax1.set_xlabel('x position')
+            ax1.axis('off')
+    
+            # Plot dipole moment change
+            ax2 = axes[i, 1]
+            ax2.plot(t, dipoles_x, 'b-', linewidth=2, label='$\mu_x$')
+            ax2.plot(t, dipoles_y, 'r-', linewidth=2, label='$\mu_y$')
+            ax2.axhline(y=0, color='k', linestyle='--', alpha=0.5)
+            ax2.set_xlabel('Vibrational Phase', fontsize=10)
+            ax2.set_ylabel('Dipole Moment (a.u.)', fontsize=10)
+    
+            # Determine IR activity
+            max_change = max(np.ptp(dipoles_x), np.ptp(dipoles_y))
+            ir_active = "IR ACTIVE" if max_change > 0.01 else "IR INACTIVE"
+            color = 'green' if max_change > 0.01 else 'red'
+    
+            ax2.set_title(f'Dipole Moment Change - {ir_active}', fontsize=12,
+                         fontweight='bold', color=color)
+            ax2.legend(loc='upper right')
+            ax2.grid(True, alpha=0.3)
     
         plt.tight_layout()
+        plt.savefig('co2_ir_selection_rules.png', dpi=150, bbox_inches='tight')
         plt.show()
     
-    # Execution example 1: Color prediction of [Cu(H2O)6]2+ (d^9 electron configuration)
-    delta_o_cu = 12600  # cm^-1
-    wavelength, color = predict_complex_color(delta_o_cu, d_electron_count=9)
+    simulate_co2_vibrations()
     
-    print("\n" + "="*50)
-    # Execution example 2: Color prediction of [Cr(NH3)6]3+ (d^3 electron configuration, strong field ligand)
-    delta_o_cr = 21500  # cm^-1
-    wavelength2, color2 = predict_complex_color(delta_o_cr, d_electron_count=3)
+    print("\nCO2 Vibrational Modes and IR Activity:")
+    print("=" * 60)
+    print("Mode                  Wavenumber    Dipole Change    IR Active")
+    print("-" * 60)
+    print("Symmetric stretch     1388 cm-1     No change        NO")
+    print("Asymmetric stretch    2349 cm-1     Changes (x)      YES")
+    print("Bending (x2)          667 cm-1      Changes (y)      YES")
     
-    # Plot spectrochemical series
-    plot_spectrochemical_series()
-    
-    3.5 Charge Transfer Transition
-    3.5.1 LMCT and MLCT Transitions
-    Charge transfer transitions have larger molar absorptivity (\( \epsilon > 10^4 \)) than d-d transitions and exhibit strong colors.
-    
-    Classification of Charge Transfer Transitions
-    
-    LMCT (Ligand-to-Metal Charge Transfer): Transition where electrons move from ligand to metal ion. Examples: MnO4- (purple), CrO42- (yellow)
-    MLCT (Metal-to-Ligand Charge Transfer): Transition where electrons move from metal ion to ligand. Examples: Fe(II)-phenanthroline complex (red), Ru(bpy)32+ (orange)
+
+## 3.3 FTIR Principles and Instrumentation
+
+### 3.3.1 The Michelson Interferometer
+
+Fourier Transform Infrared (FTIR) spectroscopy uses a Michelson interferometer to measure all wavelengths simultaneously, providing significant advantages over dispersive instruments in terms of speed (Fellgett advantage) and sensitivity (Jacquinot advantage).
     
     
-    Code Example 4: LMCT Transition Analysis of Permanganate Ion
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
+    ```mermaid
+    flowchart LR
+        A[IR Source] --> B[Beamsplitter]
+        B --> C[Fixed Mirror]
+        B --> D[Moving Mirror]
+        C --> B
+        D --> B
+        B --> E[Sample]
+        E --> F[Detector]
+        F --> G[Computer FFT]
+        G --> H[IR Spectrum]
     
+        style A fill:#f093fb,color:#fff
+        style B fill:#4ecdc4,color:#fff
+        style G fill:#f5576c,color:#fff
+        style H fill:#a8e6cf,color:#000
+    ```
+
+**Interferogram:** The detector records intensity as a function of mirror displacement $\delta$:
+
+$$ I(\delta) = \int_0^{\infty} B(\tilde{\nu})[1 + \cos(2\pi\tilde{\nu}\delta)]d\tilde{\nu} $$ 
+
+**Fourier Transform:** The spectrum is obtained by Fourier transformation:
+
+$$ B(\tilde{\nu}) = \int_{-\infty}^{\infty} [I(\delta) - I(0)/2]\cos(2\pi\tilde{\nu}\delta)d\delta $$ 
+
+where $B(\tilde{\nu})$ is the spectral intensity and $\tilde{\nu}$ is the wavenumber.
+    
+    
+    # Code Example 4: Simulating FTIR Interferometry and Fourier Transform
     import numpy as np
     import matplotlib.pyplot as plt
+    from scipy.fft import fft, fftfreq
     
-    def simulate_lmct_spectrum(wavelength, lambda_max, epsilon_max, bandwidth):
+    def simulate_ftir_measurement():
         """
-        Simulate UV-Vis spectrum of LMCT transition with Gaussian function
-    
-        Parameters:
-        -----------
-        wavelength : array
-            Wavelength (nm)
-        lambda_max : float
-            Maximum absorption wavelength (nm)
-        epsilon_max : float
-            Maximum molar absorptivity (L mol^-1 cm^-1)
-        bandwidth : float
-            Absorption band width (full width at half maximum, nm)
-    
-        Returns:
-        --------
-        epsilon : array
-            Molar absorptivity at each wavelength
+        Simulate an FTIR measurement demonstrating interferometry principles.
         """
-        sigma = bandwidth / (2 * np.sqrt(2 * np.log(2)))
-        epsilon = epsilon_max * np.exp(-((wavelength - lambda_max)**2) / (2 * sigma**2))
-        return epsilon
-    
-    # Simulate LMCT transition spectrum of MnO4^-
-    wavelength = np.linspace(400, 700, 300)
-    
-    # MnO4^- has strong absorption at 526 nm (green) ’ appears purple
-    epsilon_mno4 = simulate_lmct_spectrum(wavelength, lambda_max=526, epsilon_max=2300, bandwidth=80)
-    
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
-    
-    # Spectrum plot
-    ax1.plot(wavelength, epsilon_mno4, linewidth=2, color='purple', label='MnO„{ LMCT Transition')
-    ax1.axvline(526, color='green', linestyle='--', linewidth=1.5, label='Absorption Maximum (526 nm)')
-    ax1.fill_between(wavelength, epsilon_mno4, alpha=0.3, color='purple')
-    ax1.set_xlabel('Wavelength (nm)', fontsize=12)
-    ax1.set_ylabel('Molar Absorptivity µ (L mol{¹ cm{¹)', fontsize=12)
-    ax1.set_title('LMCT Transition Spectrum of MnO„{', fontsize=14, fontweight='bold')
-    ax1.legend()
-    ax1.grid(alpha=0.3)
-    
-    # Visible spectrum and observed color
-    visible_colors = [
-        (380, 450, '#8B00FF'),
-        (450, 495, '#0000FF'),
-        (495, 570, '#00FF00'),
-        (570, 590, '#FFFF00'),
-        (590, 620, '#FFA500'),
-        (620, 750, '#FF0000')
-    ]
-    
-    for wl_min, wl_max, color in visible_colors:
-        ax2.axvspan(wl_min, wl_max, color=color, alpha=0.7)
-    
-    ax2.axvline(526, color='black', linestyle='--', linewidth=2, label='MnO„{ Absorption (526 nm)')
-    ax2.set_xlabel('Wavelength (nm)', fontsize=12)
-    ax2.set_title('Visible Spectrum and MnO„{ Absorption', fontsize=14, fontweight='bold')
-    ax2.set_xlim(380, 750)
-    ax2.set_yticks([])
-    ax2.legend()
-    
-    plt.tight_layout()
-    plt.show()
-    
-    print("MnO„{ ion:")
-    print("- Absorption maximum: 526 nm (green)")
-    print("- Observed color: Purple (complementary to green)")
-    print("- Transition type: LMCT (ligand O²{ ’ Mnwz)")
-    print("- Molar absorptivity: µ H 2300 L mol{¹ cm{¹ (strong absorption)")
-    
-    3.6 Solvent Effects and Solvent Shifts
-    3.6.1 Absorption Wavelength Changes Due to Solvent Polarity
-    Solvent polarity stabilizes or destabilizes the electronic states of solute molecules, causing absorption wavelength shifts.
-    
-    Classification of Solvent Shifts
-    
-    Red shift (bathochromic shift): Shift to longer wavelengths. Occurs when polar solvents stabilize excited states more.
-    Blue shift (hypsochromic shift): Shift to shorter wavelengths. Occurs when polar solvents stabilize ground states more.
-    
-    
-    Code Example 5: Simulation of Absorption Spectrum Shifts Due to Solvent Polarity
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
-    def simulate_solvent_shift(wavelength, lambda_max_nonpolar, shift_per_polarity_unit):
-        """
-        Simulate absorption spectrum shifts due to solvent polarity
-    
-        Parameters:
-        -----------
-        wavelength : array
-            Wavelength (nm)
-        lambda_max_nonpolar : float
-            Absorption maximum wavelength in nonpolar solvent (nm)
-        shift_per_polarity_unit : float
-            Shift amount per unit polarity (nm)
-    
-        Returns:
-        --------
-        spectra : dict
-            Spectra in each solvent
-        """
-        solvents = {
-            'Hexane': 0.0,
-            'Ethanol': 5.2,
-            'Methanol': 6.6,
-            'Water': 9.0,
-            'DMSO': 7.2
-        }
-    
-        fig, ax = plt.subplots(figsize=(12, 7))
-    
-        colors = ['blue', 'green', 'orange', 'red', 'purple']
-    
-        for (solvent, polarity), color in zip(solvents.items(), colors):
-            lambda_max = lambda_max_nonpolar + shift_per_polarity_unit * polarity
-    
-            # Gaussian absorption band
-            sigma = 30
-            absorbance = np.exp(-((wavelength - lambda_max)**2) / (2 * sigma**2))
-    
-            ax.plot(wavelength, absorbance, linewidth=2, label=f'{solvent} (»max = {lambda_max:.1f} nm)', color=color)
-            ax.axvline(lambda_max, linestyle='--', linewidth=1, color=color, alpha=0.5)
-    
-        ax.set_xlabel('Wavelength (nm)', fontsize=12)
-        ax.set_ylabel('Normalized Absorbance', fontsize=12)
-        ax.set_title('Red Shift of Absorption Spectrum Due to Solvent Polarity', fontsize=14, fontweight='bold')
-        ax.legend(fontsize=10)
-        ax.grid(alpha=0.3)
-        plt.tight_layout()
-        plt.show()
-    
-    # Solvatochromism of À ’ À* transition molecule
-    wavelength = np.linspace(300, 500, 200)
-    simulate_solvent_shift(wavelength, lambda_max_nonpolar=350, shift_per_polarity_unit=3.0)
-    
-    print("Absorption wavelength shift due to solvent polarity:")
-    print("- Polar solvent ’ Excited state stabilization ’ Red shift (long wavelength shift)")
-    print("- Nonpolar solvent ’ No shift")
-    print("- À ’ À* transition (high polarity) tends to red shift")
-    print("- n ’ À* transition (low polarity) may blue shift")
-    
-    3.7 Baseline Correction and Spectral Preprocessing
-    3.7.1 Scattering Light Correction
-    When measuring solid samples or suspensions, scattered light distorts the baseline. Appropriate baseline correction is necessary.
-    Code Example 6: Baseline Correction and Scattering Light Removal
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.signal import savgol_filter
-    from scipy.interpolate import UnivariateSpline
-    
-    def baseline_correction_polynomial(wavelength, absorbance, baseline_region, poly_order=2):
-        """
-        Baseline correction by polynomial fitting
-    
-        Parameters:
-        -----------
-        wavelength : array
-            Wavelength (nm)
-        absorbance : array
-            Raw absorbance data
-        baseline_region : tuple
-            Wavelength range for baseline region (nm)
-        poly_order : int
-            Polynomial order
-    
-        Returns:
-        --------
-        corrected_absorbance : array
-            Corrected absorbance
-        """
-        # Extract baseline region data
-        mask = (wavelength >= baseline_region[0]) & (wavelength <= baseline_region[1])
-        wl_base = wavelength[mask]
-        abs_base = absorbance[mask]
-    
-        # Polynomial fitting
-        poly_coef = np.polyfit(wl_base, abs_base, poly_order)
-        baseline = np.polyval(poly_coef, wavelength)
-    
-        # Baseline subtraction
-        corrected_absorbance = absorbance - baseline
-    
-        return corrected_absorbance, baseline
-    
-    def baseline_correction_spline(wavelength, absorbance, baseline_points):
-        """
-        Baseline correction by spline interpolation
-    
-        Parameters:
-        -----------
-        wavelength : array
-            Wavelength (nm)
-        absorbance : array
-            Raw absorbance data
-        baseline_points : list of tuples
-            Baseline points [(wl1, abs1), (wl2, abs2), ...]
-    
-        Returns:
-        --------
-        corrected_absorbance : array
-            Corrected absorbance
-        """
-        wl_base = np.array([p[0] for p in baseline_points])
-        abs_base = np.array([p[1] for p in baseline_points])
-    
-        # Spline interpolation
-        spline = UnivariateSpline(wl_base, abs_base, s=0, k=3)
-        baseline = spline(wavelength)
-    
-        # Baseline subtraction
-        corrected_absorbance = absorbance - baseline
-    
-        return corrected_absorbance, baseline
-    
-    # Simulation data: Spectrum including scattering light
-    wavelength = np.linspace(300, 700, 400)
-    
-    # True absorption spectrum (Gaussian peak)
-    true_abs = 0.8 * np.exp(-((wavelength - 450)**2) / (2 * 50**2))
-    
-    # Baseline due to scattering light (proportional to inverse power of wavelength)
-    scattering_baseline = 0.3 * (wavelength / 300)**(-4)
-    
-    # Noise
-    noise = np.random.normal(0, 0.01, len(wavelength))
-    
-    # Observed spectrum
-    observed_abs = true_abs + scattering_baseline + noise
-    
-    # Baseline correction (polynomial)
-    corrected_abs_poly, baseline_poly = baseline_correction_polynomial(
-        wavelength, observed_abs, baseline_region=(600, 700), poly_order=3
-    )
-    
-    # Baseline correction (spline)
-    baseline_points = [(300, observed_abs[0]), (380, observed_abs[80]),
-                       (600, observed_abs[300]), (700, observed_abs[-1])]
-    corrected_abs_spline, baseline_spline = baseline_correction_spline(
-        wavelength, observed_abs, baseline_points
-    )
-    
-    # Plot
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
-    # Original spectrum
-    axes[0, 0].plot(wavelength, observed_abs, label='Observed Spectrum (with scattering)', color='blue')
-    axes[0, 0].plot(wavelength, true_abs, '--', label='True Spectrum', color='red', linewidth=2)
-    axes[0, 0].plot(wavelength, scattering_baseline, ':', label='Scattering Baseline', color='green', linewidth=2)
-    axes[0, 0].set_xlabel('Wavelength (nm)')
-    axes[0, 0].set_ylabel('Absorbance')
-    axes[0, 0].set_title('Observed Spectrum Including Scattering Light')
-    axes[0, 0].legend()
-    axes[0, 0].grid(alpha=0.3)
-    
-    # Polynomial baseline correction
-    axes[0, 1].plot(wavelength, observed_abs, label='Observed Spectrum', color='blue', alpha=0.5)
-    axes[0, 1].plot(wavelength, baseline_poly, '--', label='Polynomial Baseline', color='orange', linewidth=2)
-    axes[0, 1].set_xlabel('Wavelength (nm)')
-    axes[0, 1].set_ylabel('Absorbance')
-    axes[0, 1].set_title('Polynomial Fitting')
-    axes[0, 1].legend()
-    axes[0, 1].grid(alpha=0.3)
-    
-    # Spline baseline correction
-    axes[1, 0].plot(wavelength, observed_abs, label='Observed Spectrum', color='blue', alpha=0.5)
-    axes[1, 0].plot(wavelength, baseline_spline, '--', label='Spline Baseline', color='purple', linewidth=2)
-    for wl, abs_val in baseline_points:
-        axes[1, 0].plot(wl, abs_val, 'ro', markersize=8)
-    axes[1, 0].set_xlabel('Wavelength (nm)')
-    axes[1, 0].set_ylabel('Absorbance')
-    axes[1, 0].set_title('Spline Interpolation')
-    axes[1, 0].legend()
-    axes[1, 0].grid(alpha=0.3)
-    
-    # Correction result comparison
-    axes[1, 1].plot(wavelength, true_abs, '--', label='True Spectrum', color='red', linewidth=2)
-    axes[1, 1].plot(wavelength, corrected_abs_poly, label='Polynomial Correction', color='orange', alpha=0.7)
-    axes[1, 1].plot(wavelength, corrected_abs_spline, label='Spline Correction', color='purple', alpha=0.7)
-    axes[1, 1].set_xlabel('Wavelength (nm)')
-    axes[1, 1].set_ylabel('Absorbance')
-    axes[1, 1].set_title('Baseline Correction Results')
-    axes[1, 1].legend()
-    axes[1, 1].grid(alpha=0.3)
-    
-    plt.tight_layout()
-    plt.show()
-    
-    print("Baseline correction evaluation:")
-    poly_error = np.mean((corrected_abs_poly - true_abs)**2)
-    spline_error = np.mean((corrected_abs_spline - true_abs)**2)
-    print(f"Mean squared error of polynomial correction: {poly_error:.6f}")
-    print(f"Mean squared error of spline correction: {spline_error:.6f}")
-    
-    3.8 Multi-wavelength Analysis and Multi-component Quantification
-    3.8.1 Principle of Absorption Additivity
-    In mixed solutions where multiple absorbing species coexist, the contribution of each component can be separated using the additivity of the Lambert-Beer law.
-    
-    Lambert-Beer law for multi-component systems:
-            \[
-            A(\lambda) = \sum_{i=1}^{n} \epsilon_i(\lambda) \cdot c_i \cdot l
-            \]
-            Matrix notation (\( m \) wavelengths, \( n \) components):
-            \[
-            \mathbf{A} = \mathbf{E} \mathbf{c} l
-            \]
-            Where \( \mathbf{A} \) is absorbance vector (\( m \times 1 \)), \( \mathbf{E} \) is molar absorptivity matrix (\( m \times n \)), and \( \mathbf{c} \) is concentration vector (\( n \times 1 \)).
-    
-    Code Example 7: Quantification of Two-component Mixtures by Multi-wavelength Analysis
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.optimize import nnls  # Non-Negative Least Squares
-    
-    def multiwavelength_analysis(wavelength, absorbance_mixture, epsilon_matrix, path_length=1.0):
-        """
-        Determine concentration of each component in mixed solution by multi-wavelength analysis
-    
-        Parameters:
-        -----------
-        wavelength : array
-            Measurement wavelength (nm)
-        absorbance_mixture : array
-            Absorbance spectrum of mixed solution
-        epsilon_matrix : 2D array
-            Molar absorptivity spectra of each component (shape: n_wavelengths × n_components)
-        path_length : float
-            Path length (cm)
-    
-        Returns:
-        --------
-        concentrations : array
-            Determined concentrations of each component (mol/L)
-        """
-        # Determine concentrations by non-negative least squares (prohibit negative concentrations)
-        concentrations, residual = nnls(epsilon_matrix * path_length, absorbance_mixture)
-    
-        # Reconstructed spectrum
-        absorbance_reconstructed = epsilon_matrix @ concentrations * path_length
-    
-        return concentrations, absorbance_reconstructed, residual
-    
-    # Simulation: Mixed solution of methylene blue (MB) and methyl orange (MO)
-    wavelength = np.linspace(400, 700, 300)
-    
-    # Component 1: Methylene blue (»max = 664 nm)
-    epsilon_MB = 8e4 * np.exp(-((wavelength - 664)**2) / (2 * 40**2))
-    
-    # Component 2: Methyl orange (»max = 464 nm)
-    epsilon_MO = 2.7e4 * np.exp(-((wavelength - 464)**2) / (2 * 35**2))
-    
-    # Molar absorptivity matrix
-    epsilon_matrix = np.column_stack([epsilon_MB, epsilon_MO])
-    
-    # True concentrations (mol/L)
-    c_MB_true = 1.5e-5
-    c_MO_true = 3.0e-5
-    
-    # Absorbance of mixed solution (path length 1 cm)
-    absorbance_mixture = epsilon_MB * c_MB_true + epsilon_MO * c_MO_true
-    absorbance_mixture += np.random.normal(0, 0.005, len(wavelength))  # Noise
-    
-    # Multi-wavelength analysis
-    concentrations, absorbance_recon, residual = multiwavelength_analysis(
-        wavelength, absorbance_mixture, epsilon_matrix, path_length=1.0
-    )
-    
-    c_MB_calc, c_MO_calc = concentrations
-    
-    # Plot
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
-    # Molar absorptivity spectra of each component
-    axes[0, 0].plot(wavelength, epsilon_MB, label='Methylene Blue (MB)', color='blue', linewidth=2)
-    axes[0, 0].plot(wavelength, epsilon_MO, label='Methyl Orange (MO)', color='orange', linewidth=2)
-    axes[0, 0].set_xlabel('Wavelength (nm)')
-    axes[0, 0].set_ylabel('Molar Absorptivity (L mol{¹ cm{¹)')
-    axes[0, 0].set_title('Molar Absorptivity Spectra of Each Component')
-    axes[0, 0].legend()
-    axes[0, 0].grid(alpha=0.3)
-    
-    # Spectrum of mixed solution
-    axes[0, 1].plot(wavelength, absorbance_mixture, 'o-', label='Observed Spectrum',
-                    color='purple', alpha=0.6, markersize=2)
-    axes[0, 1].plot(wavelength, absorbance_recon, '--', label='Reconstructed Spectrum',
-                    color='red', linewidth=2)
-    axes[0, 1].set_xlabel('Wavelength (nm)')
-    axes[0, 1].set_ylabel('Absorbance')
-    axes[0, 1].set_title('Spectrum of Mixed Solution and Fitting')
-    axes[0, 1].legend()
-    axes[0, 1].grid(alpha=0.3)
-    
-    # Contribution of each component
-    abs_MB_contrib = epsilon_MB * c_MB_calc
-    abs_MO_contrib = epsilon_MO * c_MO_calc
-    axes[1, 0].plot(wavelength, absorbance_mixture, label='Total Absorbance', color='black', linewidth=2)
-    axes[1, 0].fill_between(wavelength, 0, abs_MB_contrib, alpha=0.5, color='blue', label='MB Contribution')
-    axes[1, 0].fill_between(wavelength, abs_MB_contrib, abs_MB_contrib + abs_MO_contrib,
-                            alpha=0.5, color='orange', label='MO Contribution')
-    axes[1, 0].set_xlabel('Wavelength (nm)')
-    axes[1, 0].set_ylabel('Absorbance')
-    axes[1, 0].set_title('Absorbance Contribution of Each Component')
-    axes[1, 0].legend()
-    axes[1, 0].grid(alpha=0.3)
-    
-    # Concentration determination results
-    components = ['Methylene Blue', 'Methyl Orange']
-    concentrations_true = [c_MB_true, c_MO_true]
-    concentrations_calc = [c_MB_calc, c_MO_calc]
-    
-    x = np.arange(len(components))
-    width = 0.35
-    
-    axes[1, 1].bar(x - width/2, np.array(concentrations_true)*1e5, width, label='True Concentration', color='green', alpha=0.7)
-    axes[1, 1].bar(x + width/2, np.array(concentrations_calc)*1e5, width, label='Calculated Concentration', color='red', alpha=0.7)
-    axes[1, 1].set_xlabel('Component')
-    axes[1, 1].set_ylabel('Concentration (×10{u mol/L)')
-    axes[1, 1].set_title('Concentration Determination Results')
-    axes[1, 1].set_xticks(x)
-    axes[1, 1].set_xticklabels(components)
-    axes[1, 1].legend()
-    axes[1, 1].grid(alpha=0.3, axis='y')
-    
-    plt.tight_layout()
-    plt.show()
-    
-    print("Multi-wavelength analysis results:")
-    print(f"Methylene Blue: True concentration = {c_MB_true:.2e} mol/L, Calculated concentration = {c_MB_calc:.2e} mol/L")
-    print(f"Methyl Orange: True concentration = {c_MO_true:.2e} mol/L, Calculated concentration = {c_MO_calc:.2e} mol/L")
-    print(f"Relative error (MB): {abs(c_MB_calc - c_MB_true)/c_MB_true * 100:.2f}%")
-    print(f"Relative error (MO): {abs(c_MO_calc - c_MO_true)/c_MO_true * 100:.2f}%")
-    print(f"Residual: {residual:.6f}")
-    
-    3.9 Time-resolved UV-Vis Spectroscopy
-    3.9.1 Kinetic Analysis
-    UV-Vis spectroscopy can track the progress of chemical reactions in real-time. Reaction rate constants can be determined from time-dependent changes in absorbance.
-    
-    Rate equation for first-order reaction:
-            \[
-            \frac{d[A]}{dt} = -k[A]
-            \]
-            Integrated form:
-            \[
-            [A]_t = [A]_0 e^{-kt}
-            \]
-            Expression in terms of absorbance (\( A_t = \epsilon [A]_t l \)):
-            \[
-            A_t = A_0 e^{-kt}
-            \]
-            \[
-            \ln A_t = \ln A_0 - kt
-            \]
-        
-    Code Example 8: Determination of First-order Reaction Rate Constant by Time-resolved UV-Vis Spectroscopy
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.optimize import curve_fit
-    
-    def first_order_kinetics(time, A0, k):
-        """
-        Absorbance time change for first-order reaction
-    
-        Parameters:
-        -----------
-        time : array
-            Time (s)
-        A0 : float
-            Initial absorbance
-        k : float
-            Rate constant (s^-1)
-    
-        Returns:
-        --------
-        absorbance : array
-            Absorbance at time
-        """
-        return A0 * np.exp(-k * time)
-    
-    def determine_rate_constant(time, absorbance):
-        """
-        Determine first-order reaction rate constant from time-resolved UV-Vis data
-    
-        Parameters:
-        -----------
-        time : array
-            Time (s)
-        absorbance : array
-            Absorbance at each time
-    
-        Returns:
-        --------
-        k : float
-            Rate constant (s^-1)
-        half_life : float
-            Half-life (s)
-        """
-        # Nonlinear fitting
-        popt, pcov = curve_fit(first_order_kinetics, time, absorbance, p0=[absorbance[0], 0.01])
-        A0_fit, k_fit = popt
-    
-        # Half-life
-        half_life = np.log(2) / k_fit
-    
-        # Plot
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
-    
-        # Absorbance vs time (exponential plot)
-        ax1.plot(time, absorbance, 'o', label='Measured Data', markersize=8, alpha=0.7)
-        time_fit = np.linspace(0, time.max(), 200)
-        abs_fit = first_order_kinetics(time_fit, A0_fit, k_fit)
-        ax1.plot(time_fit, abs_fit, 'r--', linewidth=2,
-                 label=f'Fit: A = {A0_fit:.3f} exp(-{k_fit:.4f}t)\nk = {k_fit:.4f} s{¹\nt�/‚ = {half_life:.1f} s')
-        ax1.set_xlabel('Time (s)', fontsize=12)
-        ax1.set_ylabel('Absorbance', fontsize=12)
-        ax1.set_title('Time Change of First-order Reaction', fontsize=14, fontweight='bold')
-        ax1.legend()
-        ax1.grid(alpha=0.3)
-    
-        # ln(A) vs time (linear plot)
-        ln_abs = np.log(absorbance)
-        ax2.plot(time, ln_abs, 'o', label='Measured Data', markersize=8, alpha=0.7)
-        ln_abs_fit = np.log(A0_fit) - k_fit * time_fit
-        ax2.plot(time_fit, ln_abs_fit, 'r--', linewidth=2,
-                 label=f'Linear Fit\nSlope = -{k_fit:.4f} s{¹')
-        ax2.set_xlabel('Time (s)', fontsize=12)
-        ax2.set_ylabel('ln(Absorbance)', fontsize=12)
-        ax2.set_title('First-order Plot (logarithmic)', fontsize=14, fontweight='bold')
-        ax2.legend()
-        ax2.grid(alpha=0.3)
-    
-        plt.tight_layout()
-        plt.show()
-    
-        return k_fit, half_life, A0_fit
-    
-    # Simulation: Base hydrolysis reaction of crystal violet
-    time_data = np.linspace(0, 300, 30)  # 0-300 seconds, 30 measurements
-    k_true = 0.012  # s^-1
-    A0_true = 1.2
-    absorbance_data = first_order_kinetics(time_data, A0_true, k_true)
-    absorbance_data += np.random.normal(0, 0.02, len(time_data))  # Noise
-    
-    # Rate constant determination
-    k_calc, t_half, A0_calc = determine_rate_constant(time_data, absorbance_data)
-    
-    print("Kinetic analysis results:")
-    print(f"Rate constant k = {k_calc:.4f} s{¹ (true value: {k_true:.4f} s{¹)")
-    print(f"Half-life t�/‚ = {t_half:.1f} s")
-    print(f"Initial absorbance A€ = {A0_calc:.3f}")
-    print(f"Relative error: {abs(k_calc - k_true)/k_true * 100:.2f}%")
-    
-    3.10 Exercise Problems
-    
-    Basic Problems (Easy)
-    Problem 1: Wavelength and Energy Conversion
-    A compound observed by UV-Vis spectroscopy has an absorption maximum wavelength of 450 nm. Calculate the photon energy corresponding to this absorption in eV units.
-    
-    View Answer
-    
-    Answer:
-    Using the wavelength and energy conversion formula:
-                    \[
-                    E\,(\text{eV}) = \frac{1239.8}{\lambda\,(\text{nm})} = \frac{1239.8}{450} = 2.755\,\text{eV}
-                    \]
-                    Answer: 2.76 eV
-    Python code:
-    lambda_nm = 450
-    E_eV = 1239.8 / lambda_nm
-    print(f"Photon energy: {E_eV:.3f} eV")
-    
-    
-    
-    Problem 2: Concentration Calculation Using Lambert-Beer Law
-    A compound solution with molar absorptivity \( \epsilon = 1.5 \times 10^4 \) L mol-1 cm-1 (path length 1 cm) has an absorbance of 0.75. Calculate the concentration (mol/L) of this solution.
-    
-    View Answer
-    
-    Answer:
-    From Lambert-Beer law: \( A = \epsilon c l \),
-                    \[
-                    c = \frac{A}{\epsilon l} = \frac{0.75}{1.5 \times 10^4 \times 1} = 5.0 \times 10^{-5}\,\text{mol/L}
-                    \]
-                    Answer: 5.0 × 10-5 mol/L
-    Python code:
-    A = 0.75
-    epsilon = 1.5e4  # L mol^-1 cm^-1
-    l = 1.0  # cm
-    c = A / (epsilon * l)
-    print(f"Concentration: {c:.2e} mol/L")
-    
-    
-    
-    Problem 3: Conversion Between Transmittance and Absorbance
-    A solution has a transmittance of 40%. Calculate the absorbance of this solution.
-    
-    View Answer
-    
-    Answer:
-    Relationship between absorbance and transmittance: \( A = -\log_{10} T = 2 - \log_{10}(\%T) \)
-                    \[
-                    A = 2 - \log_{10}(40) = 2 - 1.602 = 0.398
-                    \]
-                    Answer: 0.398
-    Python code:
-    # Requirements:
-    # - Python 3.9+
-    # - numpy>=1.24.0, <2.0.0
-    
-    """
-    Example: Python code:
-    
-    Purpose: Demonstrate core concepts and implementation patterns
-    Target: Beginner to Intermediate
-    Execution time: ~5 seconds
-    Dependencies: None
-    """
-    
-    import numpy as np
-    T_percent = 40
-    A = 2 - np.log10(T_percent)
-    print(f"Absorbance: {A:.3f}")
-    
-    
-    
-    
-    
-    Intermediate Problems (Medium)
-    Problem 4: Bandgap Determination by Tauc Plot
-    The following data were obtained from the UV-Vis spectrum of a semiconductor material. Create a Tauc plot (direct transition) and determine the bandgap. Sample thickness: 0.01 cm
-    
-    Wavelength (nm)400420440460480500
-    Absorbance1.201.050.850.600.350.15
-    
-    
-    View Answer
-    
-    Answer:
-    1. Convert wavelength to photon energy: \( E = 1239.8 / \lambda \)
-    2. Calculate absorption coefficient: \( \alpha = 2.303 \cdot A / l \)
-    3. Tauc plot: Extrapolate linear region of \( (\alpha h\nu)^2 \) vs. \( h\nu \)
-    Python code:
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    """
-    Example: Python code:
-    
-    Purpose: Demonstrate data visualization techniques
-    Target: Intermediate
-    Execution time: 2-5 seconds
-    Dependencies: None
-    """
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.stats import linregress
-    
-    wavelength = np.array([400, 420, 440, 460, 480, 500])
-    absorbance = np.array([1.20, 1.05, 0.85, 0.60, 0.35, 0.15])
-    thickness = 0.01  # cm
-    
-    # Photon energy
-    E = 1239.8 / wavelength  # eV
-    
-    # Absorption coefficient
-    alpha = 2.303 * absorbance / thickness  # cm^-1
-    
-    # Tauc plot
-    tauc_y = (alpha * E)**2
-    
-    # Linear region fitting (E > 2.7 eV)
-    mask = E > 2.7
-    slope, intercept, r_value, _, _ = linregress(E[mask], tauc_y[mask])
-    
-    # Bandgap (horizontal axis intercept)
-    Eg = -intercept / slope
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(E, tauc_y, 'o', markersize=10, label='Measured Data')
-    E_fit = np.linspace(Eg, E.max(), 100)
-    tauc_fit = slope * E_fit + intercept
-    plt.plot(E_fit, tauc_fit, 'r--', linewidth=2, label=f'Eg = {Eg:.3f} eV')
-    plt.axvline(Eg, color='green', linestyle=':', linewidth=2)
-    plt.xlabel('Photon Energy (eV)', fontsize=12)
-    plt.ylabel('(±h½)² (eV² cm{²)', fontsize=12)
-    plt.title('Tauc Plot', fontsize=14, fontweight='bold')
-    plt.legend()
-    plt.grid(alpha=0.3)
-    plt.show()
-    
-    print(f"Bandgap Eg = {Eg:.3f} eV")
-    print(f"Corresponding wavelength: » = {1239.8/Eg:.1f} nm")
-    
-    Answer: Eg H 2.6-2.7 eV (depends on actual fitting results)
-    
-    
-    Problem 5: Color Prediction of Complex Using Ligand Field Theory
-    The ligand field splitting energy of [Co(H2O)6]2+ is \( \Delta_o = 9300 \) cm-1. Predict the wavelength of light absorbed by this complex and the observed color of the complex.
-    
-    View Answer
-    
-    Answer:
-    1. Calculate absorption wavelength:
-                    \[
-                    \lambda = \frac{1}{\Delta_o\,(\text{cm}^{-1})} \times 10^7\,(\text{nm}) = \frac{10^7}{9300} = 1075\,\text{nm}
-                    \]
-                    2. 1075 nm is in the near-infrared region (outside visible region). However, Co2+ (d7) has multiple d-d transitions, and actually has absorption in the visible region.
-    3. [Co(H2O)6]2+ has strong absorption around 510 nm (green) and appears pink (complementary to green).
-    Python code:
-    delta_o_cm = 9300
-    wavelength_nm = 1e7 / delta_o_cm
-    print(f"”o corresponding wavelength: {wavelength_nm:.1f} nm (near-infrared)")
-    print("Actual [Co(H2O)6]2+ complex:")
-    print("- Main absorption: 510 nm (green)")
-    print("- Observed color: Pink (complementary to green)")
-    
-    Answer: Complex color is pink
-    
-    
-    Problem 6: Two-component Quantification by Multi-wavelength Analysis
-    A mixed solution of methylene blue (MB, \( \epsilon_{664} = 8 \times 10^4 \) L mol-1 cm-1) and methyl orange (MO, \( \epsilon_{464} = 2.7 \times 10^4 \)) was measured in a 1 cm cell, yielding A664 = 0.40 and A464 = 0.54. Determine the concentration of each component. Assume that MO does not absorb at 664 nm and MB absorption at 464 nm is negligible.
-    
-    View Answer
-    
-    Answer:
-    At 664 nm (only MB absorbs):
-                    \[
-                    c_{\text{MB}} = \frac{A_{664}}{\epsilon_{\text{MB},664} \cdot l} = \frac{0.40}{8 \times 10^4 \times 1} = 5.0 \times 10^{-6}\,\text{mol/L}
-                    \]
-    
-                    At 464 nm (only MO absorbs):
-                    \[
-                    c_{\text{MO}} = \frac{A_{464}}{\epsilon_{\text{MO},464} \cdot l} = \frac{0.54}{2.7 \times 10^4 \times 1} = 2.0 \times 10^{-5}\,\text{mol/L}
-                    \]
-    
-                    Python code:
-    A_664 = 0.40
-    A_464 = 0.54
-    epsilon_MB_664 = 8e4  # L mol^-1 cm^-1
-    epsilon_MO_464 = 2.7e4
-    l = 1.0  # cm
-    
-    c_MB = A_664 / (epsilon_MB_664 * l)
-    c_MO = A_464 / (epsilon_MO_464 * l)
-    
-    print(f"Methylene Blue concentration: {c_MB:.2e} mol/L")
-    print(f"Methyl Orange concentration: {c_MO:.2e} mol/L")
-    
-    Answer: MB = 5.0 × 10-6 mol/L, MO = 2.0 × 10-5 mol/L
-    
-    
-    
-    
-    Advanced Problems (Hard)
-    Problem 7: Determination of Thermodynamic Parameters from Temperature-dependent UV-Vis Spectra
-    The equilibrium constant \( K \) for the equilibrium system A Ì B was determined by UV-Vis spectroscopy at different temperatures. From the following data, create a van't Hoff plot and determine the enthalpy change \( \Delta H^\circ \) and entropy change \( \Delta S^\circ \) of the reaction.
-    
-    Temperature (K)298308318328338
-    Equilibrium constant K0.500.801.201.752.40
-    
-    
-    View Answer
-    
-    Answer:
-    van't Hoff equation:
-                    \[
-                    \ln K = -\frac{\Delta H^\circ}{R} \cdot \frac{1}{T} + \frac{\Delta S^\circ}{R}
-                    \]
-                    Determine \( \Delta H^\circ \) from the slope and \( \Delta S^\circ \) from the intercept of the \( \ln K \) vs. \( 1/T \) plot.
-    Python code:
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    """
-    Example: Python code:
-    
-    Purpose: Demonstrate data visualization techniques
-    Target: Intermediate
-    Execution time: 2-5 seconds
-    Dependencies: None
-    """
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.stats import linregress
-    
-    T = np.array([298, 308, 318, 328, 338])  # K
-    K = np.array([0.50, 0.80, 1.20, 1.75, 2.40])
-    
-    # van't Hoff plot
-    inv_T = 1 / T  # K^-1
-    ln_K = np.log(K)
-    
-    # Linear regression
-    slope, intercept, r_value, _, _ = linregress(inv_T, ln_K)
-    
-    # Thermodynamic parameters
-    R = 8.314  # J mol^-1 K^-1
-    Delta_H = -slope * R  # J/mol
-    Delta_S = intercept * R  # J/(mol K)
-    
-    # Plot
-    plt.figure(figsize=(10, 6))
-    plt.plot(inv_T * 1000, ln_K, 'o', markersize=10, label='Measured Data')
-    inv_T_fit = np.linspace(inv_T.min(), inv_T.max(), 100)
-    ln_K_fit = slope * inv_T_fit + intercept
-    plt.plot(inv_T_fit * 1000, ln_K_fit, 'r--', linewidth=2,
-             label=f'”H° = {Delta_H/1000:.2f} kJ/mol\n”S° = {Delta_S:.2f} J/(mol·K)\nR² = {r_value**2:.4f}')
-    plt.xlabel('1000/T (K{¹)', fontsize=12)
-    plt.ylabel('ln K', fontsize=12)
-    plt.title("van't Hoff Plot", fontsize=14, fontweight='bold')
-    plt.legend()
-    plt.grid(alpha=0.3)
-    plt.show()
-    
-    print(f"Enthalpy change: ”H° = {Delta_H/1000:.2f} kJ/mol")
-    print(f"Entropy change: ”S° = {Delta_S:.2f} J/(mol·K)")
-    print(f"Correlation coefficient: R² = {r_value**2:.4f}")
-    
-    Answer: ”H° H 35-40 kJ/mol, ”S° H 90-100 J/(mol·K) (depends on actual data)
-    
-    
-    Problem 8: Advanced Baseline Correction for Spectra Including Scattering Light
-    The UV-Vis spectrum of nanoparticle suspension has superimposed Rayleigh scattering (\( \propto \lambda^{-4} \)) and Mie scattering (\( \propto \lambda^{-n}, n < 4 \)). Create a Python program to extract the true absorption spectrum from the following spectrum and determine the bandgap.
-    
-    View Answer
-    
-    Answer:
-    Baseline correction strategy:
-    
-    Fit scattering component from data at longer wavelengths than absorption edge
-    Fit with form \( A_{\text{scattering}} = C \lambda^{-n} \)
-    Subtract scattering component over entire wavelength range
-    Determine bandgap by Tauc plot from corrected spectrum
-    
-    Python code:
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.optimize import curve_fit
-    
-    def scattering_baseline(wavelength, C, n):
-        """Scattering baseline (power law)"""
-        return C * wavelength**(-n)
-    
-    def advanced_baseline_correction(wavelength, absorbance, scattering_region):
-        """
-        Advanced baseline correction for spectra including scattering light
-    
-        Parameters:
-        -----------
-        wavelength : array
-            Wavelength (nm)
-        absorbance : array
-            Observed absorbance
-        scattering_region : tuple
-            Scattering fitting region (nm)
-    
-        Returns:
-        --------
-        corrected_absorbance : array
-            Corrected absorbance
-        """
-        # Scattering region data
-        mask = (wavelength >= scattering_region[0]) & (wavelength <= scattering_region[1])
-        wl_scatter = wavelength[mask]
-        abs_scatter = absorbance[mask]
-    
-        # Power law fitting
-        popt, _ = curve_fit(scattering_baseline, wl_scatter, abs_scatter, p0=[1e7, 4.0], maxfev=5000)
-        C, n = popt
-    
-        # Calculate scattering component over entire wavelength range
-        baseline = scattering_baseline(wavelength, C, n)
-    
-        # Baseline subtraction
-        corrected = absorbance - baseline
-        corrected = np.maximum(corrected, 0)  # Clip negative values to 0
-    
-        # Plot
+        # Simulation parameters
+        n_points = 4096
+        max_displacement = 0.5  # cm (mirror travel)
+    
+        # Mirror displacement (optical path difference)
+        delta = np.linspace(-max_displacement, max_displacement, n_points)
+    
+        # Simulate a sample with multiple absorption peaks
+        # Peak positions in cm^-1 and their intensities
+        peaks = [
+            (1000, 0.3),   # C-O stretch
+            (1650, 0.5),   # C=O stretch
+            (2900, 0.8),   # C-H stretch
+            (3300, 0.4),   # O-H stretch
+        ]
+    
+        # Generate source spectrum (blackbody-like)
+        wavenumber_range = np.linspace(400, 4000, 2000)
+        source_spectrum = np.exp(-(wavenumber_range - 2000)**2 / (2 * 1500**2))
+    
+        # Apply absorption peaks (simulate transmission)
+        transmission = np.ones_like(wavenumber_range)
+        for peak_pos, intensity in peaks:
+            peak_width = 50  # cm^-1
+            absorption = intensity * np.exp(-(wavenumber_range - peak_pos)**2 / (2 * peak_width**2))
+            transmission *= (1 - absorption)
+    
+        detected_spectrum = source_spectrum * transmission
+    
+        # Calculate interferogram from spectrum
+        interferogram = np.zeros_like(delta)
+        for i, d in enumerate(delta):
+            # Sum contributions from all wavenumbers
+            for j, wn in enumerate(wavenumber_range):
+                interferogram[i] += detected_spectrum[j] * np.cos(2 * np.pi * wn * d)
+    
+        # Normalize interferogram
+        interferogram = interferogram / interferogram.max()
+    
+        # Apply apodization (triangular window)
+        apodization = 1 - np.abs(delta) / max_displacement
+        interferogram_apodized = interferogram * apodization
+    
+        # Perform FFT to recover spectrum
+        n_fft = len(delta)
+        fft_result = np.abs(fft(interferogram_apodized))[:n_fft//2]
+    
+        # Calculate wavenumber axis from FFT
+        sample_spacing = delta[1] - delta[0]
+        wavenumbers_fft = fftfreq(n_fft, sample_spacing)[:n_fft//2]
+    
+        # Create figure
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     
-        # Original spectrum
-        axes[0, 0].plot(wavelength, absorbance, label='Observed Spectrum', color='blue')
-        axes[0, 0].plot(wavelength, baseline, '--', label=f'Scattering Baseline\n(»^-{n:.2f})', color='red', linewidth=2)
-        axes[0, 0].set_xlabel('Wavelength (nm)')
-        axes[0, 0].set_ylabel('Absorbance')
-        axes[0, 0].set_title('Spectrum Including Scattering Light')
-        axes[0, 0].legend()
-        axes[0, 0].grid(alpha=0.3)
+        # Plot 1: Interferogram
+        ax1 = axes[0, 0]
+        ax1.plot(delta * 10, interferogram, 'b-', linewidth=0.5)
+        ax1.set_xlabel('Mirror Displacement (mm)', fontsize=11)
+        ax1.set_ylabel('Detector Signal (a.u.)', fontsize=11)
+        ax1.set_title('Raw Interferogram', fontsize=12, fontweight='bold')
+        ax1.set_xlim(-2, 2)
+        ax1.grid(True, alpha=0.3)
     
-        # Corrected spectrum
-        axes[0, 1].plot(wavelength, corrected, label='Corrected Spectrum', color='green', linewidth=2)
-        axes[0, 1].set_xlabel('Wavelength (nm)')
-        axes[0, 1].set_ylabel('Absorbance')
-        axes[0, 1].set_title('After Baseline Correction')
-        axes[0, 1].legend()
-        axes[0, 1].grid(alpha=0.3)
+        # Plot 2: Apodized interferogram
+        ax2 = axes[0, 1]
+        ax2.plot(delta * 10, interferogram_apodized, 'g-', linewidth=0.5)
+        ax2.set_xlabel('Mirror Displacement (mm)', fontsize=11)
+        ax2.set_ylabel('Detector Signal (a.u.)', fontsize=11)
+        ax2.set_title('Apodized Interferogram (Triangular Window)', fontsize=12, fontweight='bold')
+        ax2.set_xlim(-5, 5)
+        ax2.grid(True, alpha=0.3)
     
-        # Tauc plot
-        E = 1239.8 / wavelength
-        alpha = 2.303 * corrected / 0.01  # Assumption: sample thickness 0.01 cm
-        tauc_y = (alpha * E)**2
+        # Plot 3: Original spectrum
+        ax3 = axes[1, 0]
+        ax3.plot(wavenumber_range, detected_spectrum, 'b-', linewidth=1.5)
+        for peak_pos, intensity in peaks:
+            ax3.axvline(x=peak_pos, color='r', linestyle='--', alpha=0.5)
+            ax3.text(peak_pos, 0.9, f'{peak_pos}', rotation=90, va='top', ha='right', fontsize=9)
+        ax3.set_xlabel('Wavenumber (cm$^{-1}$)', fontsize=11)
+        ax3.set_ylabel('Intensity (a.u.)', fontsize=11)
+        ax3.set_title('Input Spectrum (with absorption peaks)', fontsize=12, fontweight='bold')
+        ax3.set_xlim(4000, 400)  # Conventional IR axis direction
+        ax3.grid(True, alpha=0.3)
     
-        # Bandgap determination
-        mask_tauc = (E > 2.5) & (E < 3.5)
-        if np.sum(mask_tauc) > 5:
-            from scipy.stats import linregress
-            slope_t, intercept_t, _, _, _ = linregress(E[mask_tauc], tauc_y[mask_tauc])
-            Eg = -intercept_t / slope_t if slope_t > 0 else np.nan
-        else:
-            Eg = np.nan
-    
-        axes[1, 0].plot(E, tauc_y, 'o-', label='Tauc Plot')
-        if not np.isnan(Eg):
-            E_fit = np.linspace(Eg, E[mask_tauc].max(), 100)
-            tauc_fit = slope_t * E_fit + intercept_t
-            axes[1, 0].plot(E_fit, tauc_fit, 'r--', linewidth=2, label=f'Eg = {Eg:.3f} eV')
-            axes[1, 0].axvline(Eg, color='green', linestyle=':', linewidth=2)
-        axes[1, 0].set_xlabel('Photon Energy (eV)')
-        axes[1, 0].set_ylabel('(±h½)² (eV² cm{²)')
-        axes[1, 0].set_title('Tauc Plot (After Correction)')
-        axes[1, 0].legend()
-        axes[1, 0].grid(alpha=0.3)
-    
-        # Scattering index evaluation
-        axes[1, 1].text(0.5, 0.5, f'Scattering Analysis Results:\n\nScattering Index n = {n:.2f}\n\nRayleigh Scattering (n=4): Small particles\nMie Scattering (n<4): Large particles\n\nBandgap Eg = {Eg:.3f} eV',
-                       transform=axes[1, 1].transAxes, fontsize=14, verticalalignment='center', horizontalalignment='center',
-                       bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-        axes[1, 1].axis('off')
+        # Plot 4: FFT recovered spectrum
+        ax4 = axes[1, 1]
+        valid_range = (wavenumbers_fft > 400) & (wavenumbers_fft < 4000)
+        ax4.plot(wavenumbers_fft[valid_range], fft_result[valid_range] / fft_result[valid_range].max(),
+                 'b-', linewidth=1.5)
+        ax4.set_xlabel('Wavenumber (cm$^{-1}$)', fontsize=11)
+        ax4.set_ylabel('Intensity (a.u.)', fontsize=11)
+        ax4.set_title('FFT Recovered Spectrum', fontsize=12, fontweight='bold')
+        ax4.set_xlim(4000, 400)
+        ax4.grid(True, alpha=0.3)
     
         plt.tight_layout()
+        plt.savefig('ftir_interferometry.png', dpi=150, bbox_inches='tight')
         plt.show()
     
-        return corrected, baseline, Eg
+        return delta, interferogram, wavenumber_range, detected_spectrum
     
-    # Simulation data
-    wavelength = np.linspace(300, 800, 500)
-    # True absorption (TiO2, Eg=3.2 eV)
-    Eg_true = 3.2
-    alpha_true = 1e4 * np.maximum(0, (1239.8/wavelength - Eg_true))**2
-    true_abs = alpha_true * 0.01 / 2.303
+    # Run simulation
+    delta, interferogram, wavenumbers, spectrum = simulate_ftir_measurement()
     
-    # Scattering component (Rayleigh + Mie)
-    scattering = 0.5 * (wavelength / 300)**(-3.5)
+    print("\nFTIR Advantages:")
+    print("=" * 50)
+    print("1. Fellgett (Multiplex) Advantage:")
+    print("   - All wavelengths measured simultaneously")
+    print("   - SNR improvement by factor of sqrt(N)")
+    print("\n2. Jacquinot (Throughput) Advantage:")
+    print("   - No slits needed, higher light throughput")
+    print("   - Typical improvement: 10-200x")
+    print("\n3. Connes Advantage:")
+    print("   - Internal laser reference for precise wavenumber calibration")
+    print("   - Wavenumber accuracy: +/- 0.01 cm-1")
     
-    # Observed spectrum
-    observed = true_abs + scattering + np.random.normal(0, 0.01, len(wavelength))
+
+### 3.3.2 FTIR Resolution and Spectral Quality
+
+The spectral resolution of an FTIR spectrometer is determined by the maximum optical path difference (OPD) achieved by the moving mirror:
+
+**Spectral Resolution:**
+
+$$ \Delta\tilde{\nu} = \frac{1}{2 \times \text{OPD}_{\text{max}}} $$ 
+
+For example, with OPD$_{\text{max}}$ = 0.5 cm, the resolution is 1 cm$^{-1}$.
+
+## 3.4 Functional Group Identification
+
+### 3.4.1 Characteristic Group Frequencies
+
+IR spectroscopy is particularly valuable for identifying functional groups because certain bonds absorb at characteristic frequencies regardless of the rest of the molecule. The IR spectrum is typically divided into two regions:
+
+#### Functional Group Region (4000-1500 cm-1)
+
+Contains characteristic stretching vibrations of functional groups. Peaks in this region are relatively easy to assign.
+
+#### Fingerprint Region (1500-400 cm-1)
+
+Contains complex patterns of bending vibrations and C-C stretches. This region is unique for each compound and is used for identification by comparison with reference spectra.
+
+Functional Group | Vibration Type | Wavenumber (cm-1) | Intensity  
+---|---|---|---  
+O-H (alcohol, free) | Stretch | 3650-3600 | Strong, sharp  
+O-H (alcohol, H-bonded) | Stretch | 3500-3200 | Strong, broad  
+N-H (amine) | Stretch | 3500-3300 | Medium  
+C-H (alkane) | Stretch | 3000-2850 | Strong  
+C-H (alkene) | Stretch | 3100-3000 | Medium  
+C-H (aromatic) | Stretch | 3150-3000 | Medium  
+C-H (aldehyde) | Stretch | 2850-2700 | Medium (two peaks)  
+C=O (carbonyl) | Stretch | 1750-1650 | Strong  
+C=C (alkene) | Stretch | 1680-1620 | Variable  
+C=C (aromatic) | Stretch | 1600, 1500 | Medium  
+C-O (ether, alcohol) | Stretch | 1300-1000 | Strong  
+C-N (amine) | Stretch | 1350-1000 | Medium  
+      
     
-    # Advanced baseline correction
-    corrected, baseline, Eg_calc = advanced_baseline_correction(
-        wavelength, observed, scattering_region=(600, 800)
-    )
-    
-    print(f"Determined bandgap: Eg = {Eg_calc:.3f} eV")
-    print(f"True bandgap: Eg = {Eg_true:.3f} eV")
-    print(f"Error: {abs(Eg_calc - Eg_true):.3f} eV")
-    
-    Answer: Precise determination of Eg (error within 0.1 eV)
-    
-    
-    Problem 9: Structure Prediction from UV-Vis Spectra Using Machine Learning
-    Build a machine learning model that predicts molecular structure (conjugation length, functional group types) from UV-Vis spectra of compounds. Create a program that predicts the number of conjugated double bonds from absorption maximum wavelength using scikit-learn's random forest regression.
-    
-    View Answer
-    
-    Answer:
-    Relationship between conjugation length and absorption wavelength (based on Woodward-Fieser rules):
-                    \[
-                    \lambda_{\max} = \lambda_{\text{base}} + \Delta \lambda \times n
-                    \]
-                    Where \( n \) is the number of conjugated double bonds.
-    Python code:
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    """
-    Example: Python code:
-    
-    Purpose: Demonstrate data visualization techniques
-    Target: Advanced
-    Execution time: 30-60 seconds
-    Dependencies: None
-    """
-    
+    # Code Example 5: Functional Group Identification Tool
     import numpy as np
     import matplotlib.pyplot as plt
-    from sklearn.ensemble import RandomForestRegressor
-    from sklearn.model_selection import train_test_split
-    from sklearn.metrics import r2_score, mean_absolute_error
     
-    # Training data (absorption wavelength data for conjugated polyenes)
-    # n: number of conjugated double bonds, lambda_max: absorption maximum wavelength (nm)
-    n_conjugated = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-    lambda_max = np.array([165, 217, 258, 290, 315, 334, 349, 364, 377, 390])
+    # Database of characteristic IR absorptions
+    IR_DATABASE = {
+        'O-H stretch (free)': {'range': (3600, 3650), 'intensity': 'strong', 'shape': 'sharp'},
+        'O-H stretch (H-bonded)': {'range': (3200, 3500), 'intensity': 'strong', 'shape': 'broad'},
+        'N-H stretch (primary amine)': {'range': (3300, 3500), 'intensity': 'medium', 'shape': 'two peaks'},
+        'N-H stretch (secondary amine)': {'range': (3300, 3400), 'intensity': 'medium', 'shape': 'one peak'},
+        'C-H stretch (sp3)': {'range': (2850, 3000), 'intensity': 'strong', 'shape': 'multiple'},
+        'C-H stretch (sp2)': {'range': (3000, 3100), 'intensity': 'medium', 'shape': 'sharp'},
+        'C-H stretch (sp, alkyne)': {'range': (3300, 3320), 'intensity': 'strong', 'shape': 'sharp'},
+        'C-H stretch (aldehyde)': {'range': (2700, 2850), 'intensity': 'medium', 'shape': 'two peaks'},
+        'C=O stretch (aldehyde)': {'range': (1720, 1740), 'intensity': 'strong', 'shape': 'sharp'},
+        'C=O stretch (ketone)': {'range': (1705, 1725), 'intensity': 'strong', 'shape': 'sharp'},
+        'C=O stretch (carboxylic acid)': {'range': (1700, 1725), 'intensity': 'strong', 'shape': 'sharp'},
+        'C=O stretch (ester)': {'range': (1735, 1750), 'intensity': 'strong', 'shape': 'sharp'},
+        'C=O stretch (amide)': {'range': (1640, 1690), 'intensity': 'strong', 'shape': 'sharp'},
+        'C=C stretch (alkene)': {'range': (1620, 1680), 'intensity': 'variable', 'shape': 'sharp'},
+        'C=C stretch (aromatic)': {'range': (1450, 1600), 'intensity': 'medium', 'shape': 'multiple'},
+        'C-C stretch (alkyne)': {'range': (2100, 2260), 'intensity': 'variable', 'shape': 'sharp'},
+        'C-N stretch (amine)': {'range': (1000, 1350), 'intensity': 'medium', 'shape': 'broad'},
+        'C-O stretch (alcohol)': {'range': (1000, 1260), 'intensity': 'strong', 'shape': 'broad'},
+        'C-O stretch (ether)': {'range': (1000, 1150), 'intensity': 'strong', 'shape': 'broad'},
+        'N-H bend (amine)': {'range': (1550, 1650), 'intensity': 'medium', 'shape': 'sharp'},
+        'C-H bend (methyl)': {'range': (1375, 1380), 'intensity': 'medium', 'shape': 'sharp'},
+        'C-H bend (methylene)': {'range': (1465, 1470), 'intensity': 'medium', 'shape': 'sharp'},
+    }
     
-    # Features (can include absorption wavelength, molar absorptivity, absorption bandwidth, etc.)
-    X = lambda_max.reshape(-1, 1)
-    y = n_conjugated
+    def identify_functional_groups(peak_positions, tolerance=50):
+        """
+        Identify possible functional groups from peak positions.
     
-    # Train-test data split
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+        Parameters:
+        -----------
+        peak_positions : list
+            List of peak wavenumbers in cm^-1
+        tolerance : float
+            Tolerance for peak matching in cm^-1
     
-    # Random forest regression model
-    rf_model = RandomForestRegressor(n_estimators=100, max_depth=5, random_state=42)
-    rf_model.fit(X_train, y_train)
+        Returns:
+        --------
+        assignments : dict
+            Dictionary mapping peaks to possible functional groups
+        """
+        assignments = {}
     
-    # Prediction
-    y_pred_train = rf_model.predict(X_train)
-    y_pred_test = rf_model.predict(X_test)
+        for peak in peak_positions:
+            assignments[peak] = []
+            for group_name, group_info in IR_DATABASE.items():
+                low, high = group_info['range']
+                if low - tolerance <= peak <= high + tolerance:
+                    assignments[peak].append({
+                        'group': group_name,
+                        'expected_range': group_info['range'],
+                        'intensity': group_info['intensity'],
+                        'shape': group_info['shape']
+                    })
     
-    # Evaluation
-    r2_train = r2_score(y_train, y_pred_train)
-    r2_test = r2_score(y_test, y_pred_test)
-    mae_test = mean_absolute_error(y_test, y_pred_test)
+        return assignments
     
-    # Plot
-    plt.figure(figsize=(12, 5))
+    def plot_ir_spectrum_with_assignments(wavenumbers, absorbance, peak_positions):
+        """
+        Plot IR spectrum with functional group assignments.
+        """
+        fig, ax = plt.subplots(figsize=(14, 8))
     
-    # Training data and model
-    plt.subplot(1, 2, 1)
-    lambda_range = np.linspace(150, 400, 200).reshape(-1, 1)
-    n_predicted = rf_model.predict(lambda_range)
-    plt.plot(lambda_range, n_predicted, 'r-', linewidth=2, label='RF Prediction Model')
-    plt.scatter(X_train, y_train, s=100, alpha=0.7, label='Training Data', color='blue')
-    plt.scatter(X_test, y_test, s=100, alpha=0.7, label='Test Data', color='green')
-    plt.xlabel('Absorption Maximum Wavelength (nm)', fontsize=12)
-    plt.ylabel('Number of Conjugated Double Bonds', fontsize=12)
-    plt.title(f'Random Forest Regression\nR²(train) = {r2_train:.3f}, R²(test) = {r2_test:.3f}',
-              fontsize=13, fontweight='bold')
-    plt.legend()
-    plt.grid(alpha=0.3)
+        # Plot spectrum
+        ax.plot(wavenumbers, absorbance, 'b-', linewidth=1.5)
+        ax.set_xlim(4000, 400)
+        ax.set_xlabel('Wavenumber (cm$^{-1}$)', fontsize=12)
+        ax.set_ylabel('Absorbance', fontsize=12)
+        ax.set_title('IR Spectrum with Functional Group Assignments', fontsize=14, fontweight='bold')
     
-    # Prediction accuracy
-    plt.subplot(1, 2, 2)
-    plt.scatter(y_test, y_pred_test, s=100, alpha=0.7, color='purple')
-    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--', linewidth=2, label='Ideal Line')
-    plt.xlabel('True Conjugated Bond Count', fontsize=12)
-    plt.ylabel('Predicted Conjugated Bond Count', fontsize=12)
-    plt.title(f'Prediction Accuracy\nMAE = {mae_test:.2f}', fontsize=13, fontweight='bold')
-    plt.legend()
-    plt.grid(alpha=0.3)
+        # Add region labels
+        ax.axvspan(4000, 1500, alpha=0.1, color='blue', label='Functional Group Region')
+        ax.axvspan(1500, 400, alpha=0.1, color='green', label='Fingerprint Region')
+    
+        # Get assignments and annotate peaks
+        assignments = identify_functional_groups(peak_positions)
+    
+        colors = plt.cm.Set1(np.linspace(0, 1, len(peak_positions)))
+    
+        for i, (peak, groups) in enumerate(assignments.items()):
+            # Find peak height for annotation
+            idx = np.argmin(np.abs(wavenumbers - peak))
+            height = absorbance[idx]
+    
+            # Mark peak
+            ax.axvline(x=peak, color=colors[i], linestyle='--', alpha=0.5)
+            ax.plot(peak, height, 'o', color=colors[i], markersize=8)
+    
+            # Add annotation
+            if groups:
+                label = groups[0]['group'].split('(')[0].strip()
+                ax.annotate(f'{peak}\n{label}',
+                           xy=(peak, height),
+                           xytext=(peak, height + 0.1),
+                           fontsize=8,
+                           ha='center',
+                           rotation=90,
+                           va='bottom')
+    
+        ax.legend(loc='upper right')
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.savefig('ir_functional_groups.png', dpi=150, bbox_inches='tight')
+        plt.show()
+    
+        return assignments
+    
+    # Generate synthetic IR spectrum (simulating ethanol)
+    wavenumbers = np.linspace(4000, 400, 2000)
+    
+    # Ethanol peaks
+    peaks_data = [
+        (3350, 0.6, 200),   # O-H stretch (broad)
+        (2970, 0.5, 30),    # C-H stretch (asymmetric)
+        (2920, 0.4, 30),    # C-H stretch
+        (2880, 0.3, 30),    # C-H stretch (symmetric)
+        (1450, 0.25, 20),   # C-H bend
+        (1380, 0.2, 15),    # C-H bend (methyl)
+        (1050, 0.5, 40),    # C-O stretch
+        (880, 0.15, 25),    # C-C stretch
+    ]
+    
+    # Generate spectrum
+    absorbance = np.zeros_like(wavenumbers)
+    for center, amplitude, width in peaks_data:
+        absorbance += amplitude * np.exp(-(wavenumbers - center)**2 / (2 * width**2))
+    
+    # Add some noise
+    absorbance += np.random.normal(0, 0.01, len(wavenumbers))
+    
+    # List of peak positions for analysis
+    peak_positions = [p[0] for p in peaks_data]
+    
+    # Plot and analyze
+    print("Functional Group Analysis for Synthetic Ethanol Spectrum")
+    print("=" * 60)
+    
+    assignments = plot_ir_spectrum_with_assignments(wavenumbers, absorbance, peak_positions)
+    
+    print("\nDetailed Peak Assignments:")
+    print("-" * 60)
+    for peak, groups in assignments.items():
+        print(f"\nPeak at {peak} cm-1:")
+        if groups:
+            for g in groups:
+                print(f"  - {g['group']}")
+                print(f"    Expected range: {g['expected_range'][0]}-{g['expected_range'][1]} cm-1")
+                print(f"    Intensity: {g['intensity']}, Shape: {g['shape']}")
+        else:
+            print("  No standard assignment found")
+    
+
+## 3.5 ATR-FTIR for Surface Analysis
+
+### 3.5.1 Principles of Attenuated Total Reflectance
+
+Attenuated Total Reflectance (ATR) is a sampling technique that enables direct measurement of solid and liquid samples without extensive preparation. It relies on total internal reflection of the IR beam at the interface between a high-refractive-index crystal and the sample.
+
+**Evanescent Wave Penetration Depth:**
+
+$$ d_p = \frac{\lambda}{2\pi n_1 \sqrt{\sin^2\theta - (n_2/n_1)^2}} $$ 
+
+where:
+
+  * $d_p$ = penetration depth
+  * $\lambda$ = wavelength of IR radiation
+  * $n_1$ = refractive index of ATR crystal
+  * $n_2$ = refractive index of sample
+  * $\theta$ = angle of incidence
+
+Typical penetration depths range from 0.5 to 5 micrometers, making ATR ideal for surface analysis.
+
+#### Common ATR Crystal Materials
+
+Crystal | Refractive Index | Spectral Range (cm-1) | Applications  
+---|---|---|---  
+Diamond | 2.4 | 4000-400 | Universal, hard samples  
+Germanium (Ge) | 4.0 | 5500-600 | Dark/absorbing samples  
+Zinc Selenide (ZnSe) | 2.4 | 20000-500 | General purpose  
+Silicon | 3.4 | 8300-1500 | Semiconductor samples  
+      
+    
+    # Code Example 6: ATR Penetration Depth Calculator
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def calculate_penetration_depth(wavelength_um, n1, n2, theta_deg):
+        """
+        Calculate evanescent wave penetration depth for ATR.
+    
+        Parameters:
+        -----------
+        wavelength_um : float or array
+            Wavelength in micrometers
+        n1 : float
+            Refractive index of ATR crystal
+        n2 : float
+            Refractive index of sample
+        theta_deg : float
+            Angle of incidence in degrees
+    
+        Returns:
+        --------
+        dp : float or array
+            Penetration depth in micrometers
+        """
+        theta = np.radians(theta_deg)
+    
+        # Check for total internal reflection condition
+        critical_angle = np.arcsin(n2 / n1)
+        if theta < critical_angle:
+            raise ValueError(f"Angle must be greater than critical angle: {np.degrees(critical_angle):.1f} degrees")
+    
+        # Calculate penetration depth
+        sin_term = np.sin(theta)**2 - (n2/n1)**2
+        dp = wavelength_um / (2 * np.pi * n1 * np.sqrt(sin_term))
+    
+        return dp
+    
+    def plot_atr_penetration():
+        """
+        Visualize ATR penetration depth as a function of wavelength.
+        """
+        # ATR crystal properties
+        crystals = {
+            'Diamond': {'n': 2.4, 'color': 'blue'},
+            'Germanium': {'n': 4.0, 'color': 'red'},
+            'ZnSe': {'n': 2.4, 'color': 'green'},
+            'Silicon': {'n': 3.4, 'color': 'purple'},
+        }
+    
+        # Typical sample refractive index (organic material)
+        n_sample = 1.5
+    
+        # Typical angle of incidence
+        theta = 45  # degrees
+    
+        # Wavelength range (mid-IR: 2.5-25 um = 4000-400 cm-1)
+        wavenumbers = np.linspace(4000, 400, 500)
+        wavelengths_um = 10000 / wavenumbers  # Convert cm-1 to um
+    
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+        # Plot 1: Penetration depth vs wavenumber for different crystals
+        for crystal_name, props in crystals.items():
+            try:
+                dp = calculate_penetration_depth(wavelengths_um, props['n'], n_sample, theta)
+                ax1.plot(wavenumbers, dp, label=f"{crystal_name} (n={props['n']})",
+                        color=props['color'], linewidth=2)
+            except ValueError:
+                continue
+    
+        ax1.set_xlabel('Wavenumber (cm$^{-1}$)', fontsize=12)
+        ax1.set_ylabel('Penetration Depth ($\mu$m)', fontsize=12)
+        ax1.set_title(f'ATR Penetration Depth vs Wavenumber\n(Sample n={n_sample}, $\\theta$={theta})',
+                      fontsize=12, fontweight='bold')
+        ax1.set_xlim(4000, 400)
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+    
+        # Add reference regions
+        ax1.axhspan(0, 1, alpha=0.1, color='yellow', label='Surface sensitive')
+        ax1.axhspan(1, 3, alpha=0.1, color='orange')
+    
+        # Plot 2: Effect of angle of incidence (Diamond crystal)
+        angles = [40, 45, 50, 55, 60]
+        n_diamond = 2.4
+    
+        for angle in angles:
+            try:
+                dp = calculate_penetration_depth(wavelengths_um, n_diamond, n_sample, angle)
+                ax2.plot(wavenumbers, dp, label=f'$\\theta$ = {angle}', linewidth=2)
+            except ValueError:
+                continue
+    
+        ax2.set_xlabel('Wavenumber (cm$^{-1}$)', fontsize=12)
+        ax2.set_ylabel('Penetration Depth ($\mu$m)', fontsize=12)
+        ax2.set_title(f'Effect of Incidence Angle on Penetration Depth\n(Diamond ATR, Sample n={n_sample})',
+                      fontsize=12, fontweight='bold')
+        ax2.set_xlim(4000, 400)
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('atr_penetration_depth.png', dpi=150, bbox_inches='tight')
+        plt.show()
+    
+        # Print summary table
+        print("\nATR Penetration Depth Summary (at 1000 cm-1)")
+        print("=" * 60)
+        print(f"{'Crystal':<15} {'n_crystal':<12} {'Depth (um)':<15}")
+        print("-" * 60)
+    
+        wl_1000 = 10  # wavelength at 1000 cm-1 in um
+        for crystal_name, props in crystals.items():
+            try:
+                dp = calculate_penetration_depth(wl_1000, props['n'], n_sample, theta)
+                print(f"{crystal_name:<15} {props['n']:<12.1f} {dp:<15.2f}")
+            except ValueError:
+                print(f"{crystal_name:<15} {props['n']:<12.1f} {'N/A (below critical angle)'}")
+    
+    plot_atr_penetration()
+    
+
+## 3.6 IR Spectral Data Analysis with Python
+
+### 3.6.1 Baseline Correction
+
+Raw IR spectra often contain baseline distortions due to scattering, instrumental drift, or sample preparation artifacts. Proper baseline correction is essential for accurate quantitative analysis.
+    
+    
+    # Code Example 7: Comprehensive IR Spectral Analysis Toolkit
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.signal import find_peaks, savgol_filter
+    from scipy.optimize import curve_fit
+    from scipy.interpolate import UnivariateSpline
+    
+    class IRSpectrumAnalyzer:
+        """
+        A comprehensive toolkit for IR spectral analysis.
+        """
+    
+        def __init__(self, wavenumbers, absorbance):
+            """
+            Initialize with spectral data.
+    
+            Parameters:
+            -----------
+            wavenumbers : array
+                Wavenumber values in cm^-1
+            absorbance : array
+                Absorbance values
+            """
+            self.wavenumbers = np.array(wavenumbers)
+            self.absorbance = np.array(absorbance)
+            self.baseline = None
+            self.corrected = None
+            self.peaks = None
+    
+        def smooth_spectrum(self, window_length=11, polyorder=3):
+            """
+            Apply Savitzky-Golay smoothing filter.
+            """
+            self.absorbance = savgol_filter(self.absorbance, window_length, polyorder)
+            return self
+    
+        def rubber_band_baseline(self, n_points=50):
+            """
+            Perform rubber band baseline correction.
+    
+            This method finds the convex hull of the spectrum and uses it
+            as the baseline.
+            """
+            from scipy.spatial import ConvexHull
+    
+            # Create points for convex hull
+            points = np.column_stack([self.wavenumbers, self.absorbance])
+    
+            # Find convex hull
+            hull = ConvexHull(points)
+    
+            # Extract lower boundary of hull
+            hull_points = points[hull.vertices]
+            hull_points = hull_points[hull_points[:, 0].argsort()]
+    
+            # Interpolate to get baseline
+            baseline_interp = np.interp(self.wavenumbers,
+                                         hull_points[:, 0],
+                                         hull_points[:, 1])
+    
+            # Take minimum envelope
+            self.baseline = np.minimum(baseline_interp, self.absorbance)
+            self.corrected = self.absorbance - self.baseline
+    
+            return self
+    
+        def polynomial_baseline(self, degree=3, regions=None):
+            """
+            Perform polynomial baseline correction.
+    
+            Parameters:
+            -----------
+            degree : int
+                Degree of polynomial
+            regions : list of tuples
+                Wavenumber regions to use for fitting [(low1, high1), (low2, high2), ...]
+                If None, uses automatic region selection
+            """
+            if regions is None:
+                # Automatically select baseline regions (avoid peaks)
+                peaks, _ = find_peaks(self.absorbance, prominence=0.05 * np.ptp(self.absorbance))
+                mask = np.ones(len(self.wavenumbers), dtype=bool)
+                for peak in peaks:
+                    width = 20  # Exclude 20 points around each peak
+                    mask[max(0, peak-width):min(len(mask), peak+width)] = False
+            else:
+                mask = np.zeros(len(self.wavenumbers), dtype=bool)
+                for low, high in regions:
+                    mask |= (self.wavenumbers >= low) & (self.wavenumbers <= high)
+    
+            # Fit polynomial to baseline regions
+            coeffs = np.polyfit(self.wavenumbers[mask], self.absorbance[mask], degree)
+            self.baseline = np.polyval(coeffs, self.wavenumbers)
+            self.corrected = self.absorbance - self.baseline
+    
+            return self
+    
+        def als_baseline(self, lam=1e6, p=0.01, n_iter=10):
+            """
+            Asymmetric Least Squares baseline correction.
+    
+            Parameters:
+            -----------
+            lam : float
+                Smoothness parameter (larger = smoother)
+            p : float
+                Asymmetry parameter (0 < p < 1, smaller = baseline below signal)
+            n_iter : int
+                Number of iterations
+            """
+            from scipy.sparse import diags, csc_matrix
+            from scipy.sparse.linalg import spsolve
+    
+            L = len(self.absorbance)
+            D = diags([1, -2, 1], [0, -1, -2], shape=(L, L-2))
+            D = csc_matrix(D)
+            w = np.ones(L)
+    
+            for _ in range(n_iter):
+                W = diags(w, 0, shape=(L, L))
+                Z = W + lam * D.dot(D.T)
+                self.baseline = spsolve(Z, w * self.absorbance)
+                w = p * (self.absorbance > self.baseline) + (1-p) * (self.absorbance <= self.baseline)
+    
+            self.corrected = self.absorbance - self.baseline
+            return self
+    
+        def find_peaks(self, prominence=0.02, width=5):
+            """
+            Find peaks in the spectrum.
+    
+            Parameters:
+            -----------
+            prominence : float
+                Minimum prominence of peaks (relative to max)
+            width : int
+                Minimum width of peaks in data points
+    
+            Returns:
+            --------
+            peaks_info : list of dict
+                List of dictionaries containing peak information
+            """
+            spectrum = self.corrected if self.corrected is not None else self.absorbance
+    
+            # Find peaks
+            peaks, properties = find_peaks(
+                spectrum,
+                prominence=prominence * np.ptp(spectrum),
+                width=width
+            )
+    
+            self.peaks = []
+            for i, peak_idx in enumerate(peaks):
+                peak_info = {
+                    'index': peak_idx,
+                    'wavenumber': self.wavenumbers[peak_idx],
+                    'absorbance': spectrum[peak_idx],
+                    'prominence': properties['prominences'][i],
+                    'width': properties['widths'][i]
+                }
+                self.peaks.append(peak_info)
+    
+            return self.peaks
+    
+        def plot_analysis(self, title="IR Spectrum Analysis"):
+            """
+            Create comprehensive analysis plot.
+            """
+            fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+            # Plot 1: Original spectrum
+            ax1 = axes[0, 0]
+            ax1.plot(self.wavenumbers, self.absorbance, 'b-', linewidth=1.5)
+            ax1.set_xlabel('Wavenumber (cm$^{-1}$)', fontsize=11)
+            ax1.set_ylabel('Absorbance', fontsize=11)
+            ax1.set_title('Original Spectrum', fontsize=12, fontweight='bold')
+            ax1.set_xlim(max(self.wavenumbers), min(self.wavenumbers))
+            ax1.grid(True, alpha=0.3)
+    
+            # Plot 2: Baseline correction
+            ax2 = axes[0, 1]
+            ax2.plot(self.wavenumbers, self.absorbance, 'b-', linewidth=1.5, label='Original', alpha=0.7)
+            if self.baseline is not None:
+                ax2.plot(self.wavenumbers, self.baseline, 'r--', linewidth=2, label='Baseline')
+            ax2.set_xlabel('Wavenumber (cm$^{-1}$)', fontsize=11)
+            ax2.set_ylabel('Absorbance', fontsize=11)
+            ax2.set_title('Baseline Detection', fontsize=12, fontweight='bold')
+            ax2.set_xlim(max(self.wavenumbers), min(self.wavenumbers))
+            ax2.legend()
+            ax2.grid(True, alpha=0.3)
+    
+            # Plot 3: Corrected spectrum with peaks
+            ax3 = axes[1, 0]
+            spectrum = self.corrected if self.corrected is not None else self.absorbance
+            ax3.plot(self.wavenumbers, spectrum, 'b-', linewidth=1.5)
+    
+            if self.peaks:
+                peak_wn = [p['wavenumber'] for p in self.peaks]
+                peak_abs = [p['absorbance'] for p in self.peaks]
+                ax3.scatter(peak_wn, peak_abs, c='red', s=50, zorder=5, label='Detected Peaks')
+    
+                for peak in self.peaks:
+                    ax3.annotate(f"{peak['wavenumber']:.0f}",
+                               xy=(peak['wavenumber'], peak['absorbance']),
+                               xytext=(0, 10), textcoords='offset points',
+                               ha='center', fontsize=8, rotation=90)
+    
+            ax3.set_xlabel('Wavenumber (cm$^{-1}$)', fontsize=11)
+            ax3.set_ylabel('Absorbance', fontsize=11)
+            ax3.set_title('Baseline-Corrected Spectrum with Peaks', fontsize=12, fontweight='bold')
+            ax3.set_xlim(max(self.wavenumbers), min(self.wavenumbers))
+            ax3.legend()
+            ax3.grid(True, alpha=0.3)
+    
+            # Plot 4: Peak table
+            ax4 = axes[1, 1]
+            ax4.axis('off')
+    
+            if self.peaks:
+                table_data = [['Peak #', 'Wavenumber\n(cm$^{-1}$)', 'Absorbance', 'Width']]
+                for i, peak in enumerate(self.peaks[:10]):  # Limit to top 10 peaks
+                    table_data.append([
+                        str(i+1),
+                        f"{peak['wavenumber']:.1f}",
+                        f"{peak['absorbance']:.4f}",
+                        f"{peak['width']:.1f}"
+                    ])
+    
+                table = ax4.table(cellText=table_data[1:],
+                                 colLabels=table_data[0],
+                                 cellLoc='center',
+                                 loc='center',
+                                 colWidths=[0.15, 0.25, 0.25, 0.2])
+                table.auto_set_font_size(False)
+                table.set_fontsize(10)
+                table.scale(1.2, 1.5)
+    
+                ax4.set_title('Peak Summary', fontsize=12, fontweight='bold', y=0.95)
+    
+            plt.suptitle(title, fontsize=14, fontweight='bold', y=1.02)
+            plt.tight_layout()
+            plt.savefig('ir_analysis_complete.png', dpi=150, bbox_inches='tight')
+            plt.show()
+    
+    # Demonstration with synthetic polymer spectrum
+    np.random.seed(42)
+    
+    # Generate synthetic PMMA-like IR spectrum
+    wavenumbers = np.linspace(4000, 400, 2000)
+    
+    # PMMA characteristic peaks
+    pmma_peaks = [
+        (2995, 0.35, 25),   # C-H stretch (CH3)
+        (2950, 0.40, 25),   # C-H stretch
+        (1730, 0.90, 35),   # C=O stretch (ester)
+        (1485, 0.25, 20),   # C-H bend
+        (1450, 0.30, 20),   # C-H bend
+        (1385, 0.20, 15),   # C-H bend (CH3)
+        (1240, 0.55, 40),   # C-O stretch
+        (1190, 0.50, 35),   # C-O stretch
+        (1145, 0.45, 30),   # C-O stretch
+        (985, 0.20, 25),    # C-C stretch
+        (840, 0.15, 20),    # CH2 rock
+        (750, 0.18, 25),    # Skeletal
+    ]
+    
+    # Generate spectrum with peaks
+    absorbance = np.zeros_like(wavenumbers)
+    for center, amplitude, width in pmma_peaks:
+        absorbance += amplitude * np.exp(-(wavenumbers - center)**2 / (2 * width**2))
+    
+    # Add baseline (polynomial drift + scattering)
+    baseline_true = 0.1 + 0.00002 * (wavenumbers - 2000)**2 - 0.0001 * (wavenumbers - 2000)
+    absorbance += baseline_true
+    
+    # Add noise
+    absorbance += np.random.normal(0, 0.01, len(wavenumbers))
+    
+    # Create analyzer and process
+    analyzer = IRSpectrumAnalyzer(wavenumbers, absorbance)
+    
+    # Apply processing steps
+    analyzer.smooth_spectrum(window_length=11, polyorder=3)
+    analyzer.polynomial_baseline(degree=2)
+    peaks = analyzer.find_peaks(prominence=0.03, width=3)
+    
+    # Plot results
+    analyzer.plot_analysis("PMMA IR Spectrum Analysis")
+    
+    # Print peak assignments
+    print("\nPeak Analysis Results:")
+    print("=" * 70)
+    print(f"{'Peak #':<8} {'Wavenumber':<15} {'Absorbance':<15} {'Possible Assignment'}")
+    print("-" * 70)
+    
+    assignments = identify_functional_groups([p['wavenumber'] for p in peaks])
+    for i, peak in enumerate(peaks):
+        wn = peak['wavenumber']
+        assignment = assignments.get(wn, [])
+        if assignment:
+            assign_text = assignment[0]['group']
+        else:
+            assign_text = "Unknown"
+        print(f"{i+1:<8} {wn:<15.1f} {peak['absorbance']:<15.4f} {assign_text}")
+    
+
+## Exercises
+
+#### Exercise 1: Vibrational Frequency Calculation
+
+Calculate the fundamental vibrational frequency (in cm-1) for the C=O bond in formaldehyde (H2CO). The force constant for C=O is approximately 1200 N/m.
+
+View Solution
+    
+    
+    # Solution
+    import numpy as np
+    
+    # Physical constants
+    c = 2.998e10  # cm/s
+    amu_to_kg = 1.66054e-27
+    
+    # Given data
+    k = 1200  # N/m (force constant)
+    m_C = 12.01  # amu
+    m_O = 16.00  # amu
+    
+    # Calculate reduced mass
+    mu = (m_C * m_O) / (m_C + m_O) * amu_to_kg
+    print(f"Reduced mass: {mu:.4e} kg")
+    
+    # Calculate frequency
+    nu_hz = (1 / (2 * np.pi)) * np.sqrt(k / mu)
+    nu_cm = nu_hz / c
+    print(f"Vibrational frequency: {nu_cm:.0f} cm^-1")
+    
+    # Compare with experimental value (~1746 cm^-1)
+    print(f"Experimental value: ~1746 cm^-1")
+    print(f"Difference: {abs(nu_cm - 1746):.0f} cm^-1")
+    
+
+#### Exercise 2: IR Selection Rules
+
+For each of the following molecules, determine how many vibrational modes are IR active and explain why:
+
+  * (a) N2 (nitrogen)
+  * (b) HCl (hydrogen chloride)
+  * (c) CO2 (carbon dioxide)
+  * (d) H2O (water)
+
+View Solution
+
+**(a) N 2:** Linear, homonuclear diatomic. 3(2)-5 = 1 vibrational mode. IR INACTIVE because symmetric stretch produces no dipole change.
+
+**(b) HCl:** Heteronuclear diatomic. 1 vibrational mode. IR ACTIVE because the stretch changes the dipole moment (asymmetric charge distribution).
+
+**(c) CO 2:** Linear molecule with 3(3)-5 = 4 modes: 
+
+  * Symmetric stretch: IR INACTIVE (no dipole change)
+  * Asymmetric stretch: IR ACTIVE
+  * Two degenerate bending modes: IR ACTIVE
+
+Total: 3 IR active modes (counting degeneracy as 1)
+
+**(d) H 2O:** Nonlinear molecule with 3(3)-6 = 3 modes: 
+
+  * Symmetric stretch: IR ACTIVE (dipole changes)
+  * Asymmetric stretch: IR ACTIVE
+  * Bending: IR ACTIVE
+
+Total: 3 IR active modes (all modes are active)
+
+#### Exercise 3: ATR Penetration Depth
+
+Calculate the penetration depth for a diamond ATR crystal (n = 2.4) at 1000 cm-1 with a 45 degree angle of incidence. The sample is an organic polymer with n = 1.5.
+
+View Solution
+    
+    
+    # Solution
+    import numpy as np
+    
+    # Given parameters
+    n1 = 2.4  # Diamond refractive index
+    n2 = 1.5  # Sample refractive index
+    theta = 45  # degrees
+    wavenumber = 1000  # cm^-1
+    
+    # Convert to wavelength
+    wavelength_um = 10000 / wavenumber  # 10 um
+    
+    # Convert angle to radians
+    theta_rad = np.radians(theta)
+    
+    # Calculate penetration depth
+    sin_term = np.sin(theta_rad)**2 - (n2/n1)**2
+    dp = wavelength_um / (2 * np.pi * n1 * np.sqrt(sin_term))
+    
+    print(f"Penetration depth: {dp:.2f} um")
+    print(f"This means the IR beam probes approximately the top {dp:.2f} um of the sample")
+    
+
+#### Exercise 4: Functional Group Identification
+
+An unknown organic compound shows IR absorption peaks at the following wavenumbers: 3350 (broad), 2920, 2850, 1710, 1465, 1380, and 1250 cm-1. Based on these peaks, propose a possible structure or functional groups present.
+
+View Solution
+
+**Peak assignments:**
+
+  * **3350 cm -1 (broad):** O-H stretch, hydrogen-bonded (carboxylic acid or alcohol)
+  * **2920, 2850 cm -1:** C-H stretch (alkane, CH2 and CH3)
+  * **1710 cm -1:** C=O stretch (carboxylic acid)
+  * **1465 cm -1:** CH2 bending
+  * **1380 cm -1:** CH3 bending
+  * **1250 cm -1:** C-O stretch
+
+**Conclusion:** The compound is likely a carboxylic acid (RCOOH). The broad O-H stretch combined with the C=O at 1710 cm-1 and C-O at 1250 cm-1 are characteristic of carboxylic acids. The alkane C-H stretches suggest an aliphatic chain. A possible structure could be a fatty acid like octanoic acid (CH3(CH2)6COOH).
+
+#### Exercise 5: Baseline Correction Practice
+
+Write Python code to implement a simple linear baseline correction between two user-specified wavenumber points. Apply it to correct a sloped baseline in a spectrum.
+
+View Solution
+    
+    
+    # Solution
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def linear_baseline_correction(wavenumbers, absorbance, point1_wn, point2_wn):
+        """
+        Perform linear baseline correction using two anchor points.
+    
+        Parameters:
+        -----------
+        wavenumbers : array
+            Wavenumber values
+        absorbance : array
+            Absorbance values
+        point1_wn, point2_wn : float
+            Wavenumber positions for baseline anchor points
+    
+        Returns:
+        --------
+        corrected : array
+            Baseline-corrected absorbance
+        baseline : array
+            Calculated baseline
+        """
+        # Find indices closest to specified wavenumbers
+        idx1 = np.argmin(np.abs(wavenumbers - point1_wn))
+        idx2 = np.argmin(np.abs(wavenumbers - point2_wn))
+    
+        # Get baseline anchor points
+        x1, y1 = wavenumbers[idx1], absorbance[idx1]
+        x2, y2 = wavenumbers[idx2], absorbance[idx2]
+    
+        # Calculate linear baseline
+        slope = (y2 - y1) / (x2 - x1)
+        intercept = y1 - slope * x1
+        baseline = slope * wavenumbers + intercept
+    
+        # Subtract baseline
+        corrected = absorbance - baseline
+    
+        return corrected, baseline
+    
+    # Example usage
+    wavenumbers = np.linspace(4000, 400, 1000)
+    # Create spectrum with sloped baseline
+    true_peak = 0.5 * np.exp(-(wavenumbers - 1700)**2 / (2 * 50**2))
+    sloped_baseline = 0.2 + 0.0001 * (wavenumbers - 2000)
+    noisy_spectrum = true_peak + sloped_baseline + np.random.normal(0, 0.01, len(wavenumbers))
+    
+    # Apply correction
+    corrected, baseline = linear_baseline_correction(wavenumbers, noisy_spectrum, 3800, 600)
+    
+    # Plot results
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    
+    ax1.plot(wavenumbers, noisy_spectrum, 'b-', label='Original')
+    ax1.plot(wavenumbers, baseline, 'r--', label='Baseline')
+    ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
+    ax1.set_ylabel('Absorbance')
+    ax1.set_title('Before Correction')
+    ax1.set_xlim(4000, 400)
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    ax2.plot(wavenumbers, corrected, 'g-', label='Corrected')
+    ax2.plot(wavenumbers, true_peak, 'k--', alpha=0.5, label='True Peak')
+    ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
+    ax2.set_ylabel('Absorbance')
+    ax2.set_title('After Correction')
+    ax2.set_xlim(4000, 400)
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
     
     plt.tight_layout()
     plt.show()
     
-    # Prediction for unknown samples
-    unknown_lambda = np.array([[280], [350], [400]])
-    predicted_n = rf_model.predict(unknown_lambda)
-    print("Structure prediction for unknown samples:")
-    for lam, n_pred in zip(unknown_lambda.flatten(), predicted_n):
-        print(f"  »max = {lam:.0f} nm ’ Predicted conjugation: {n_pred:.1f}")
-    
-    Answer: High-accuracy prediction model construction with R² > 0.95
-    
-    
-    
-    
-    Learning Objectives Check
-    Self-evaluate the following items:
-    Level 1: Basic Understanding
-    
-    Can explain the principles of UV-Vis spectroscopy and types of electronic transitions
-    Can perform concentration calculations using the Lambert-Beer law
-    Can convert between wavelength and energy
-    Understand the relationship between absorbance and transmittance
-    
-    Level 2: Practical Skills
-    
-    Can determine bandgap by Tauc plot method
-    Can perform quantitative analysis by calibration curve method
-    Can predict color of transition metal complexes using ligand field theory
-    Can perform baseline correction and spectral preprocessing
-    Can perform multi-component quantification by multi-wavelength analysis
-    
-    Level 3: Application
-    
-    Can correct complex spectra including scattering light
-    Can determine reaction rate constants by time-resolved UV-Vis spectroscopy
-    Can perform spectral analysis considering solvent effects
-    Can perform spectral data analysis using machine learning
-    
-    
-    
-    References
-    
-    Atkins, P., de Paula, J. (2010). Physical Chemistry (9th ed.). Oxford University Press, pp. 465-468 (Beer-Lambert law), pp. 495-502 (electronic transitions), pp. 510-518 (ligand field theory). - Detailed explanation of quantum mechanical foundations of UV-Vis spectroscopy, selection rules for electronic transitions, ligand field theory
-    Figgis, B.N., Hitchman, M.A. (2000). Ligand Field Theory and Its Applications. Wiley-VCH, pp. 85-105 (d-orbital splitting), pp. 120-135 (spectrochemical series), pp. 140-150 (electronic spectra of complexes). - Systematic explanation of ligand field theory, d-d transitions and complex colors, theoretical background of spectrochemical series
-    Tauc, J., Grigorovici, R., Vancu, A. (1966). Optical properties and electronic structure of amorphous germanium. Physica Status Solidi (b), 15(2), 627-637. DOI: 10.1002/pssb.19660150224 - Original paper of Tauc plot method, establishment of semiconductor bandgap determination method
-    Perkampus, H.-H. (1992). UV-VIS Spectroscopy and Its Applications. Springer, pp. 1-18 (principles), pp. 32-48 (quantitative analysis), pp. 120-145 (solvent effects), pp. 165-180 (practical applications). - Practical applications of UV-Vis spectroscopy, quantitative analysis methods, examples of spectral interpretation
-    Casida, M. E. (1995). Time-dependent density functional response theory for molecules. In Recent Advances in Density Functional Methods (Part I), pp. 155-192. World Scientific, Singapore. - Theoretical foundations of UV-Vis spectrum calculation by TDDFT method
-    SciPy 1.11 documentation. scipy.optimize.curve_fit, scipy.optimize.nnls. https://docs.scipy.org/doc/scipy/reference/optimize.html - Nonlinear least squares fitting, non-negative least squares method, application to spectral fitting
-    MakuBa, P., Pacia, M., Macyk, W. (2018). How to correctly determine the band gap energy of modified semiconductor photocatalysts based on UVVis spectra. Journal of Physical Chemistry Letters, 9(23), 6814-6817. DOI: 10.1021/acs.jpclett.8b02892 - Correct application of Tauc plot method, common errors and their avoidance
-    scikit-learn 1.3 documentation. Ensemble methods (RandomForestRegressor). https://scikit-learn.org/stable/modules/ensemble.html#forest - Random forest regression, application to machine learning analysis of UV-Vis spectra
-    ```
+
+## Summary
+
+#### Key Takeaways from Chapter 3
+
+  * **Molecular Vibrations:** IR spectroscopy probes molecular vibrations. Stretching modes (symmetric and asymmetric) occur at higher frequencies than bending modes (scissoring, rocking, wagging, twisting).
+  * **Selection Rules:** A vibration is IR active only if it causes a change in the molecular dipole moment. Homonuclear diatomics (H2, N2) are IR inactive.
+  * **FTIR Advantages:** The Fellgett (multiplex), Jacquinot (throughput), and Connes (wavelength precision) advantages make FTIR superior to dispersive instruments.
+  * **Functional Group Identification:** The functional group region (4000-1500 cm-1) contains characteristic absorptions that enable identification of chemical groups.
+  * **ATR-FTIR:** Enables direct measurement of samples with minimal preparation; penetration depth is wavelength and crystal dependent (typically 0.5-5 um).
+  * **Data Processing:** Baseline correction and peak identification are essential preprocessing steps for quantitative IR analysis.
+
+## References
+
+  1. Griffiths, P. R., de Haseth, J. A. (2007). _Fourier Transform Infrared Spectrometry_ (2nd ed.). Wiley-Interscience. ISBN: 978-0-471-19404-0
+  2. Stuart, B. H. (2004). _Infrared Spectroscopy: Fundamentals and Applications_. Wiley. ISBN: 978-0-470-85427-3
+  3. Silverstein, R. M., Webster, F. X., Kiemle, D. J. (2014). _Spectrometric Identification of Organic Compounds_ (8th ed.). Wiley. ISBN: 978-0-470-61637-6
+  4. Smith, B. C. (2011). _Fundamentals of Fourier Transform Infrared Spectroscopy_ (2nd ed.). CRC Press. ISBN: 978-1-4200-6929-7
+  5. Mirabella, F. M. (1998). _Modern Techniques in Applied Molecular Spectroscopy_. Wiley. ISBN: 978-0-471-12359-0
+  6. Socrates, G. (2004). _Infrared and Raman Characteristic Group Frequencies: Tables and Charts_ (3rd ed.). Wiley. ISBN: 978-0-470-09307-8
+  7. Larkin, P. (2017). _Infrared and Raman Spectroscopy: Principles and Spectral Interpretation_ (2nd ed.). Elsevier. ISBN: 978-0-12-804162-8
 
 ### Disclaimer
 
-  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice.
   * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
   * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
   * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
   * The content may be changed, updated, or discontinued without notice.
-  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.

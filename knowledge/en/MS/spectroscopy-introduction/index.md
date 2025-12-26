@@ -21,12 +21,14 @@ This series covers fundamental spectroscopic techniques used in materials charac
         B --> C[Chapter 3IR/FTIR]
         C --> D[Chapter 4Raman]
         D --> E[Chapter 5XPS]
+        E --> F[Chapter 6Python Practice]
     
         style A fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
         style B fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
         style C fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
         style D fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
         style E fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+        style F fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
     ```
 
 ## Series Structure
@@ -81,6 +83,16 @@ Learn photoelectric effect principles, binding energy and chemical state analysi
 
 [Start Learning](<chapter-5.html>)
 
+Chapter 6
+
+Python Practice: Spectroscopic Data Analysis
+
+Apply spectroscopic analysis techniques using Python. Practice complete workflows for UV-Vis, IR, Raman, and XPS data processing including baseline correction, peak fitting, quantitative analysis, and automated spectral interpretation. 
+
+35-45 min 10 Code Examples Intermediate to Advanced
+
+[Start Learning](<chapter-6.html>)
+
 ## Learning Objectives
 
 Upon completing this series, you will acquire the following skills and knowledge:
@@ -96,24 +108,25 @@ Upon completing this series, you will acquire the following skills and knowledge
 
 ## Recommended Learning Patterns
 
-### Pattern 1: Standard Learning - Balanced Theory and Practice (5 Days)
+### Pattern 1: Standard Learning - Balanced Theory and Practice (6 Days)
 
   * Day 1: Chapter 1 (Fundamentals of Spectroscopy)
   * Day 2: Chapter 2 (UV-Vis Spectroscopy)
   * Day 3: Chapter 3 (Infrared Spectroscopy)
   * Day 4: Chapter 4 (Raman Spectroscopy)
-  * Day 5: Chapter 5 (XPS) + Comprehensive Review
+  * Day 5: Chapter 5 (XPS)
+  * Day 6: Chapter 6 (Python Practice) + Comprehensive Review
 
-### Pattern 2: Intensive Learning - Spectroscopy Master (2-3 Days)
+### Pattern 2: Intensive Learning - Spectroscopy Master (3 Days)
 
   * Day 1: Chapters 1-2 (Fundamentals and UV-Vis)
   * Day 2: Chapters 3-4 (Vibrational Spectroscopy: IR and Raman)
-  * Day 3: Chapter 5 (XPS) + Exercise Problems from Each Chapter
+  * Day 3: Chapter 5-6 (XPS + Python Practice)
 
-### Pattern 3: Practice-Focused - Data Analysis Skills Acquisition (Half Day)
+### Pattern 3: Practice-Focused - Data Analysis Skills Acquisition (1 Day)
 
-  * Chapters 1-4: Execute code examples only (theory as reference)
-  * Chapter 5: Deep dive and practice analysis with spectral data
+  * Chapters 1-5: Execute code examples only (theory as reference)
+  * Chapter 6: Deep dive and practice complete spectral analysis workflows
   * Return to theory sections as needed for clarification
 
 ## Prerequisites

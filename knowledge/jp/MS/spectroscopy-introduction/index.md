@@ -17,12 +17,14 @@ subtitle: 光と物質の相互作用から材料の本質を探る - UV-Vis、I
         B --> C[第3章赤外分光法]
         C --> D[第4章ラマン分光法]
         D --> E[第5章X線光電子分光法]
+        E --> F[第6章Python実践]
     
         style A fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
         style B fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
         style C fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
         style D fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
         style E fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
+        style F fill:#f093fb,stroke:#f5576c,stroke-width:2px,color:#fff
     ```
 
 ## シリーズ構成
@@ -76,6 +78,16 @@ X線光電子分光法（XPS）
 25-30分 8コード例 中級
 
 [学習を開始](<chapter-5.html>)
+
+第6章
+
+Python実践：分光データ解析ワークフロー
+
+UV-Vis、IR、ラマン、XPSの総合的なデータ解析をPythonで実践します。ベースライン補正、ピークフィッティング、定量分析、自動スペクトル解釈など、完全なワークフローを習得します。 
+
+30-35分 10コード例 中級-上級
+
+[学習を開始](<chapter-6.html>)
 
 ## 学習目標
 

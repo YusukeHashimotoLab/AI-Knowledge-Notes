@@ -1,1412 +1,1788 @@
 ---
-title: "Chapter 2: Infrared and Raman Spectroscopy"
-chapter_title: "Chapter 2: Infrared and Raman Spectroscopy"
-subtitle: Molecular Structure and Chemical bonding via vibrational Spectroscopy
+title: "Chapter 2: UV-Vis Spectroscopy"
+chapter_title: "Chapter 2: UV-Vis Spectroscopy"
+subtitle: Electronic Transitions, Beer-Lambert Law, and Band Gap Determination
 ---
 
-This chapter covers Infrared and Raman Spectroscopy. You will learn difference in selection rules for IR, Functional Group (C=O: 1700 cm⁻¹, and centrosymmetricsymmetric molecule Description.
+This chapter covers UV-Vis (ultraviolet-visible) spectroscopy, a fundamental technique for studying electronic transitions in molecules and materials. You will learn about electronic transition types, the Beer-Lambert law for quantitative analysis, chromophores and auxochromes, instrumentation principles, and practical applications including band gap determination for semiconductors using Tauc plots.
 
 ## Introduction
 
-Infrared spectroscopy (Infrared Spectroscopy, IR) and Raman Spectroscopy are complementary techniques that elucidate chemical bonds, functional groups, and crystal structures through molecular vibrational information. IR measures the absorption of infrared light, while Raman observes the frequency shift of scattered light. Since they follow different selection rules, vibrations that are IR-active may be Raman-inactive, and vice versa, providing complementary information.
+UV-Vis spectroscopy probes electronic transitions in molecules and materials by measuring the absorption of ultraviolet (200-400 nm) and visible (400-800 nm) light. When photons with appropriate energy are absorbed, electrons are promoted from occupied molecular orbitals to unoccupied orbitals, providing information about electronic structure, conjugation, and material properties.
 
-**Choosing Between IR and Raman**  
+**Key Applications of UV-Vis Spectroscopy**  
 
-  * **IR** : Detection of polar groups (C=O, O-H, N-H), identification of functional groups in organic compounds, applicable to solids, liquids, and gases
-  * **Raman** : Detection of symmetric vibrations (C=C, S-S), aqueous samples, crystallinity evaluation (low-frequency region), non-destructive and non-contact measurement
+  * **Quantitative Analysis** : Concentration determination using Beer-Lambert law
+  * **Band Gap Measurement** : Optical band gap of semiconductors via Tauc plots
+  * **Molecular Structure** : Identification of chromophores and conjugation extent
+  * **Reaction Kinetics** : Monitoring reaction progress through absorbance changes
+  * **Material Characterization** : Thin film optical properties, nanoparticle analysis
 
-## 1\. Fundamentals of Molecular vibrations
+## 1\. Electronic Transitions
 
-### 1.1 Harmonic Oscillator model
+### 1.1 Types of Electronic Transitions
 
-The vibration of a diatomic molecule can be approximated by a harmonic oscillator. The potential energy follows Hooke's law:
-
-$$V(r) = \frac{1}{2}k(r - r_e)^2$$
-
-where $k$ is the force constant (N/m) and $r_e$ is the equilibrium internuclear distance. The vibrational frequency $\nu$ is given by:
-
-$$\nu = \frac{1}{2\pi}\sqrt{\frac{k}{\mu}}$$
-
-$\mu = \frac{m_1 m_2}{m_1 + m_2}$ is the reduced mass. The vibrational energy levels are quantized:
-
-$$E_v = h\nu \left(v + \frac{1}{2}\right), \quad v = 0, 1, 2, \ldots$$
-
-In the harmonic oscillator approximation, the selection rule is $\Delta v = \pm 1$ (only fundamental vibrations are allowed). In real molecules, anharmonicity allows weak observation of $\Delta v = \pm 2, \pm 3, \ldots$ (overtones).
-    
-    
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    
-    
-     <h4>Code Example 1: Calculation of Energy Levels and vibrational Frequencies for Harmonic Oscillator</h4>
-     <pre><code class="language-python">import numpy as np
-    import matplotlib.pyplot as plt
-    
-    # Physical constants
-    h = 6.62607015e-34 # J·s
-    c = 2.99792458e8 # m/s
-    u = 1.66053906660e-27 # kg (atomic mass unit)
-    
-    def vibrational_frequency(k, m1, m2):
-     """
-     Calculate vibrational frequency (Hz) and wavenumber (cm^-1) for diatomic molecule
-    
-     Parameters:
-     -----------
-     k : float
-     Force constant (N/m)
-     m1, m2 : float
-     Atomic mass (amu)
-    
-     Returns:
-     --------
-     freq_Hz : float
-     vibrational frequency (Hz)
-     wavenumber : float
-     wavenumber (cm^-1)
-     """
-     # Reduced mass
-     mu = (m1 * m2) / (m1 + m2) * u # kg
-    
-     # vibrational frequency
-     freq_Hz = (1 / (2 * np.pi)) * np.sqrt(k / mu)
-    
-     # Convert to wavenumber
-     wavenumber = freq_Hz / (c * 100) # cm^-1
-    
-     return freq_Hz, wavenumber
-    
-    def energy_levels(v_max, freq_Hz):
-     """
-     Energy levels of harmonic oscillator
-    
-     Parameters:
-     -----------
-     v_max : int
-     Maximum vibrational quantum number
-     freq_Hz : float
-     vibrational frequency (Hz)
-    
-     Returns:
-     --------
-     v : array
-     vibrational quantum number
-     E : array
-     Energy (eV)
-     """
-     v = np.arange(0, v_max + 1)
-     E_J = h * freq_Hz * (v + 0.5)
-     E_eV = E_J / 1.602176634e-19
-     return v, E_eV
-    
-    # Calculation for typical chemical bonds
-    bonds = {
-     'C-H': {'k': 500, 'm1': 12, 'm2': 1},
-     'C=O': {'k': 1200, 'm1': 12, 'm2': 16},
-     'C-C': {'k': 400, 'm1': 12, 'm2': 12},
-     'O-H': {'k': 750, 'm1': 16, 'm2': 1}
-    }
-    
-    print("=" * 70)
-    print("Vibrational Frequencies of Typical Chemical Bonds")
-    print("=" * 70)
-    print(f"{'bond':<8} {'Force Constant (N/m)':<18} {'Frequency (Hz)':<18} {'Wavenumber (cm⁻¹)':<15}")
-    print("-" * 70)
-    
-    for bond, params in bonds.items():
-     freq_Hz, wavenumber = vibrational_frequency(params['k'], params['m1'], params['m2'])
-     print(f"{bond:<8} {params['k']:<18} {freq_Hz:.3e} {wavenumber:<15.1f}")
-    
-    # Energy Levels of C=O stretching vibration
-    freq_Hz_CO, wn_CO = vibrational_frequency(1200, 12, 16)
-    v, E = energy_levels(5, freq_Hz_CO)
-    
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-    
-    # Energy level diagram
-    ax1.hlines(E, 0, 1, colors='#f093fb', linewidths=3)
-    for i, (vi, Ei) in enumerate(zip(v, E)):
-     ax1.text(1.1, Ei, f'v={vi}', fontsize=11, va='center')
-     if i < len(v) - 1:
-     # transition arrow
-     ax1.annotate('', xy=(0.5, E[i+1]), xytext=(0.5, E[i]),
-     arrowprops=dict(arrowstyle='->', color='red', lw=2))
-    
-    ax1.set_xlim(-0.2, 1.5)
-    ax1.set_ylim(E[0] - 0.05, E[-1] + 0.1)
-    ax1.set_ylabel('Energy (eV)', fontsize=12)
-    ax1.set_title('Energy Levels of C=O stretching vibration', fontsize=14, fontweight='bold')
-    ax1.set_xticks([])
-    ax1.grid(axis='y', alpha=0.3)
-    
-    # Isotope effect
-    masses_C = np.array([12, 13, 14])
-    wavenumbers = []
-    for m_C in masses_C:
-     _, wn = vibrational_frequency(1200, m_C, 16)
-     wavenumbers.append(wn)
-    
-    ax2.bar([f'$^{{{int(m)}}}$C=O' for m in masses_C], wavenumbers,
-     color=['#f093fb', '#f5576c', '#4ecdc4'], alpha=0.7, edgecolor='black')
-    ax2.set_ylabel('Wavenumber (cm⁻¹)', fontsize=12)
-    ax2.set_title('Isotope Effect: C=O stretching vibration', fontsize=14, fontweight='bold')
-    ax2.grid(axis='y', alpha=0.3)
-    
-    for i, (m, wn) in enumerate(zip(masses_C, wavenumbers)):
-     ax2.text(i, wn + 20, f'{wn:.0f}', ha='center', fontsize=11, fontweight='bold')
-    
-    plt.tight_layout()
-    plt.savefig('vibrational_fundamentals.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    print(f"\nWavenumber of C=O stretching vibration: {wn_CO:.1f} cm⁻¹")
-    print(f"Zero-point energy of ground state (v=0): {E[0]:.4f} eV")
-    print(f"v=0 → v=1 transition energy: {E[1] - E[0]:.4f} eV")
-    
-
-### 1.2 vibrational modes of Polyatomic Molecules
-
-A molecule consisting of $N$ atoms has $3N$ degrees of freedom: 3 are translational, 3 are rotational (for non-linear molecules), and the remaining $3N - 6$ (or $3N - 5$ for linear molecules) are vibrational degrees of freedom.
+Electronic transitions in molecules involve the promotion of electrons between different types of molecular orbitals. The main transition types are classified based on the initial and final orbital types:
     
     
     ```mermaid
     flowchart TD
-     A[Total DOF: 3N] --> B[Translation: 3]
-     A --> C[Rotation]
-     A --> D[vibration]
+        A[Electronic Transitions] --> B[Bonding to Antibonding]
+        A --> C[Non-bonding to Antibonding]
     
-     C --> C1[Non-linear: 3]
-     C --> C2[Linear: 2]
+        B --> B1["sigma to sigma* (High Energy)150-200 nm"]
+        B --> B2["pi to pi* (Medium Energy)200-500 nm"]
     
-     D --> D1[Non-linear: 3N-6]
-     D --> D2[Linear: 3N-5]
+        C --> C1["n to sigma* (Medium-High Energy)150-250 nm"]
+        C --> C2["n to pi* (Low Energy)250-400 nm"]
     
-     D1 --> E[H₂O: 3 modesCO₂: 4 modesBenzene: 30 modes]
-    
-     style A fill:#f093fb,color:#fff
-     style D fill:#f5576c,color:#fff
-     style E fill:#a8e6cf,color:#000
+        style A fill:#f093fb,color:#fff
+        style B fill:#f5576c,color:#fff
+        style C fill:#4ecdc4,color:#fff
     ```
 
-Vibrational modes are classified into **stretching vibrations** and **bending vibrations** :
+The energy ordering of these transitions follows: $\sigma \to \sigma^* > n \to \sigma^* > \pi \to \pi^* > n \to \pi^*$
 
-  * **Stretching vibrations** : symmetric stretching(symmetric stretch, νₛ), asymmetric stretching(asymmetric stretch, νₐₛ)
-  * **bendingvibration** : scissoringvibration(scissoring, δ), rockingvibration(rocking, ρ), waggingvibration(wagging, ω), twistingvibration(twisting, τ)
-
-    
-    
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    
-    
-     <h4>Code Example 2: Simulation of Three vibrational modes of H₂O Molecule</h4>
-     <pre><code class="language-python">import numpy as np
-    import matplotlib.pyplot as plt
-    from matplotlib.animation import FuncAnimation
-    from IPython.display import HTML
-    
-    def h2o_normal_modes():
-     """
-     Visualization of three vibrational modes of H2O molecule (symmetric stretching, asymmetric stretching, bending)
-    
-     Returns:
-     --------
-     fig : matplotlib figure
-     vibrational mode diagram
-     """
-     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-    
-     # Equilibrium positions (O atom at origin)
-     O = np.array([0, 0])
-     H1 = np.array([-0.76, 0.59]) # Left H
-     H2 = np.array([0.76, 0.59]) # Right H
-    
-     modes = [
-     {
-     'name': 'Symmetric stretch (νₛ)',
-     'freq': '3657 cm⁻¹',
-     'displacements': {
-     'O': np.array([0, 0]),
-     'H1': np.array([-0.1, 0.08]),
-     'H2': np.array([0.1, 0.08])
-     }
-     },
-     {
-     'name': 'bendingvibration (δ)',
-     'freq': '1595 cm⁻¹',
-     'displacements': {
-     'O': np.array([0, 0]),
-     'H1': np.array([-0.05, -0.1]),
-     'H2': np.array([0.05, -0.1])
-     }
-     },
-     {
-     'name': 'Asymmetric stretch (νₐₛ)',
-     'freq': '3756 cm⁻¹',
-     'displacements': {
-     'O': np.array([0, 0]),
-     'H1': np.array([-0.1, 0.08]),
-     'H2': np.array([0.1, -0.08])
-     }
-     }
-     ]
-    
-     for ax, mode in zip(axes, modes):
-     # Equilibrium position
-     ax.plot(*O, 'ro', markersize=15, label='O')
-     ax.plot(*H1, 'bo', markersize=10, label='H')
-     ax.plot(*H2, 'bo', markersize=10)
-     ax.plot([O[0], H1[0]], [O[1], H1[1]], 'k-', linewidth=2)
-     ax.plot([O[0], H2[0]], [O[1], H2[1]], 'k-', linewidth=2)
-    
-     # Vibrational displacement (enlarged)
-     scale = 2
-     O_disp = O + scale * mode['displacements']['O']
-     H1_disp = H1 + scale * mode['displacements']['H1']
-     H2_disp = H2 + scale * mode['displacements']['H2']
-    
-     ax.plot(*O_disp, 'ro', markersize=15, alpha=0.3)
-     ax.plot(*H1_disp, 'bo', markersize=10, alpha=0.3)
-     ax.plot(*H2_disp, 'bo', markersize=10, alpha=0.3)
-     ax.plot([O_disp[0], H1_disp[0]], [O_disp[1], H1_disp[1]], 'k--', linewidth=2, alpha=0.3)
-     ax.plot([O_disp[0], H2_disp[0]], [O_disp[1], H2_disp[1]], 'k--', linewidth=2, alpha=0.3)
-    
-     # Displacement vector
-     ax.arrow(*O, *mode['displacements']['O'], head_width=0.08, head_length=0.05, fc='red', ec='red')
-     ax.arrow(*H1, *mode['displacements']['H1'], head_width=0.08, head_length=0.05, fc='blue', ec='blue')
-     ax.arrow(*H2, *mode['displacements']['H2'], head_width=0.08, head_length=0.05, fc='blue', ec='blue')
-    
-     ax.set_xlim(-1.2, 1.2)
-     ax.set_ylim(-0.5, 1)
-     ax.set_aspect('equal')
-     ax.set_title(f"{mode['name']}\n{mode['freq']}", fontsize=12, fontweight='bold')
-     ax.axis('off')
-    
-     plt.tight_layout()
-     plt.savefig('h2o_normal_modes.png', dpi=300, bbox_inches='tight')
-     plt.show()
-    
-     return fig
-    
-    # Execute
-    fig = h2o_normal_modes()
-    
-    # Characteristics of vibrational modes
-    print("=" * 60)
-    print("Three Fundamentalvibrational mode")
-    print("=" * 60)
-    print("1. Symmetric stretch (νₛ): 3657 cm⁻¹")
-    print(" - Both O-H bonds stretch simultaneously")
-    print(" - strong IR absorption (large dipole moment change)")
-    print("")
-    print("2. bendingvibration (δ): 1595 cm⁻¹")
-    print(" - H-O-H angle changes")
-    print(" - Lowest frequency (weaker force constant)")
-    print("")
-    print("3. Asymmetric stretch (νₐₛ): 3756 cm⁻¹")
-    print(" - When one O-H stretches, the other contracts")
-    print(" - strongest IR absorption")
-    
-
-## 2\. Infrared Spectroscopy (IR)
-
-### 2.1 Selection Rules for IR Absorption
-
-For a vibration to be IR active, the **dipole moment $\boldsymbol{\mu}$ must change** during the vibration:
-
-$$\left(\frac{\partial \boldsymbol{\mu}}{\partial Q}\right)_0 \neq 0$$
-
-where $Q$ is the normal coordinate of the vibration. The symmetric stretching vibration of symmetric molecules (such as CO₂) is IR-inactive, but asymmetric stretching and bending vibrations are IR-active.
-
-### 2.2 Functional Groups and Characteristic Absorption
-
-Functional groups in organic compounds exhibit characteristic absorptions in specific wavenumber regions. This allows molecular structure to be estimated from IR spectra.
-
-Functional Group | vibrational mode | Wavenumber (cm⁻¹) | Intensity  
+Transition Type | Wavelength Range | Molar Absorptivity | Example Functional Groups  
 ---|---|---|---  
-O-H (Alcohol) | stretching | 3200-3600 | strong, broad  
-N-H | stretching | 3300-3500 | medium  
-C-H (Aliphatic) | stretching | 2850-2960 | strong  
-C≡N | stretching | 2210-2260 | medium  
-C=O (Carbonyl) | stretching | 1650-1750 | verystrong  
-C=C | stretching | 1620-1680 | weak to medium  
-C-O | stretching | 1000-1300 | strong  
-Aromatic ring | Out-of-plane bending | 690-900 | strong  
-      
-    
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    
-    
-     <h4>Code Example 3: IR Spectrum Simulation (Ethanol)</h4>
-     <pre><code class="language-python">import numpy as np
-    import matplotlib.pyplot as plt
-    
-    def lorentzian_peak(x, center, intensity, width):
-     """Lorentzian line shape function"""
-     return intensity * (width**2 / ((x - center)**2 + width**2))
-    
-    def simulate_ir_spectrum(peaks, x_range=(4000, 400)):
-     """
-     IR spectrum simulation
-    
-     Parameters:
-     -----------
-     peaks : list of dict
-     Information for each peak [{'center': cm-1, 'intensity': 0-1, 'width': cm-1, 'label': str},...]
-     x_range : tuple
-     Wavenumber range (cm⁻¹)
-    
-     Returns:
-     --------
-     wavenumbers : array
-     Wavenumber axis
-     transmittance : array
-     Transmittance (%)
-     """
-     wavenumbers = np.linspace(x_range[0], x_range[1], 2000)
-     absorbance = np.zeros_like(wavenumbers)
-    
-     for peak in peaks:
-     absorbance += lorentzian_peak(wavenumbers, peak['center'],
-     peak['intensity'], peak['width'])
-    
-     transmittance = 100 * np.exp(-absorbance)
-     return wavenumbers, transmittance, peaks
-    
-    # IR spectrum of ethanol (CH₃CH₂OH)
-    ethanol_peaks = [
-     {'center': 3350, 'intensity': 1.5, 'width': 100, 'label': 'O-Hstretching'},
-     {'center': 2970, 'intensity': 0.8, 'width': 20, 'label': 'C-Hstretching(CH₃)'},
-     {'center': 2930, 'intensity': 0.7, 'width': 20, 'label': 'C-Hstretching(CH₂)'},
-     {'center': 1450, 'intensity': 0.4, 'width': 30, 'label': 'C-H bending'},
-     {'center': 1380, 'intensity': 0.3, 'width': 20, 'label': 'C-H bending'},
-     {'center': 1050, 'intensity': 1.0, 'width': 40, 'label': 'C-Ostretching'},
-     {'center': 880, 'intensity': 0.5, 'width': 25, 'label': 'C-Cstretching'},
-    ]
-    
-    wavenumbers, transmittance, peaks = simulate_ir_spectrum(ethanol_peaks)
-    
-    # Plot
-    fig, ax = plt.subplots(figsize=(12, 6))
-    
-    ax.plot(wavenumbers, transmittance, linewidth=1.5, color='#f093fb')
-    ax.fill_between(wavenumbers, transmittance, 100, alpha=0.2, color='#f5576c')
-    
-    # Peak labels
-    for peak in peaks:
-     idx = np.argmin(np.abs(wavenumbers - peak['center']))
-     y_pos = transmittance[idx]
-     if y_pos < 50:
-     ax.annotate(peak['label'], xy=(peak['center'], y_pos),
-     xytext=(peak['center'], y_pos - 15),
-     fontsize=9, ha='center', rotation=90,
-     arrowprops=dict(arrowstyle='->', color='black', lw=0.8))
-    
-    ax.set_xlabel('Wavenumber (cm⁻¹)', fontsize=12)
-    ax.set_ylabel('Transmittance (%)', fontsize=12)
-    ax.set_title('IR Spectrum of Ethanol (CH₃CH₂OH) (Simulation)',
-     fontsize=14, fontweight='bold')
-    ax.set_xlim(4000, 400)
-    ax.set_ylim(0, 105)
-    ax.invert_xaxis() # IR spectra conventionally have high wavenumbers on the left
-    ax.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig('ethanol_ir_spectrum.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    # Peak assignment table
-    print("=" * 70)
-    print("IR Spectrum Assignment of Ethanol")
-    print("=" * 70)
-    print(f"{'Wavenumber (cm⁻¹)':<15} {'Intensity':<10} {'Assignment':<30}")
-    print("-" * 70)
-    for peak in sorted(peaks, key=lambda x: x['center'], reverse=True):
-     intensity_str = 'strong' if peak['intensity'] > 1.0 else ('medium' if peak['intensity'] > 0.5 else 'weak')
-     print(f"{peak['center']:<15} {intensity_str:<10} {peak['label']:<30}")
-    
-
-### 2.3 FTIR (Fourier Transform Infrared Spectroscopy)
-
-modern IR spectrometers predominantly use FTIR (Fourier Transform Infrared Spectroscopy) based on the Michelson interferometer. The interferogram (time-domain signal) obtained from the interferometer is Fourier-transformed to obtain the frequency-domain spectrum.
-
-**Advantages of FTIR**
-
-  * **Fast measurement** : Simultaneous measurement of all wavenumbers (Fellgett's advantage)
-  * **High sensitivity** : High light energy utilization efficiency (Jacquinot's advantage)
-  * **High wavenumber accuracy** : Internal calibration using He-Ne laser
-  * **Multiple averaging** : Improved S/N ratio
-
-    
-    
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    
-    
-     <h4>Code Example 4: FTIR Interferogram and Fourier Transform</h4>
-     <pre><code class="language-python">import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.fft import fft, fftfreq
-    
-    def generate_interferogram(wavenumbers_cm, intensities, mirror_displacement_max=0.05):
-     """
-     Generate interferogram from IR spectrum (simplified version)
-    
-     Parameters:
-     -----------
-     wavenumbers_cm : array
-     Wavenumber (cm⁻¹)
-     intensities : array
-     intensity for each wavenumber
-     mirror_displacement_max : float
-     Maximum mirror displacement (cm)
-    
-     Returns:
-     --------
-     displacement : array
-     Mirror displacement
-     interferogram : array
-     Interferogram
-     """
-     # Mirror displacement
-     n_points = 2048
-     displacement = np.linspace(-mirror_displacement_max, mirror_displacement_max, n_points)
-    
-     # Interferogram (sum of interference patterns for each wavenumber component)
-     interferogram = np.zeros_like(displacement)
-     for wn, intensity in zip(wavenumbers_cm, intensities):
-     # Convert wavenumber from cm^-1 to wavelength in cm
-     # cos(2π * wavenumber * displacement)
-     interferogram += intensity * np.cos(2 * np.pi * wn * displacement)
-    
-     # Add DC component
-     interferogram += np.sum(intensities)
-    
-     return displacement, interferogram
-    
-    def fourier_transform_spectrum(displacement, interferogram):
-     """
-     Fourier transform interferogram to restore spectrum
-    
-     Parameters:
-     -----------
-     displacement : array
-     Mirror displacement(cm)
-     interferogram : array
-     Interferogram
-    
-     Returns:
-     --------
-     wavenumbers : array
-     Wavenumber (cm⁻¹)
-     spectrum : array
-     Restored spectrum
-     """
-     # Fourier transform
-     N = len(interferogram)
-     spectrum_complex = fft(interferogram)
-     spectrum = np.abs(spectrum_complex[:N//2])
-    
-     # Wavenumber axis(cm⁻¹)
-     delta_x = displacement[1] - displacement[0]
-     wavenumbers = fftfreq(N, delta_x)[:N//2]
-    
-     return wavenumbers, spectrum
-    
-    # Simulation: Three IR peaks
-    true_wavenumbers = np.array([1000, 1700, 2900]) # cm^-1
-    true_intensities = np.array([0.5, 1.0, 0.7])
-    
-    # Generate interferogram
-    displacement, interferogram = generate_interferogram(true_wavenumbers, true_intensities)
-    
-    # Restore spectrum by Fourier transform
-    wavenumbers_ft, spectrum_ft = fourier_transform_spectrum(displacement, interferogram)
-    
-    # visualization
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
-    
-    # Interferogram
-    ax1.plot(displacement, interferogram, linewidth=1.5, color='#f093fb')
-    ax1.set_xlabel('Mirror displacement (cm)', fontsize=12)
-    ax1.set_ylabel('InterferogramIntensity', fontsize=12)
-    ax1.set_title('FTIR Interferogram (Time Domain)', fontsize=14, fontweight='bold')
-    ax1.grid(True, alpha=0.3)
-    ax1.axvline(x=0, color='red', linestyle='--', linewidth=2, alpha=0.5, label='Zero Path Difference')
-    ax1.legend()
-    
-    # Spectrum after Fourier transform
-    ax2.plot(wavenumbers_ft, spectrum_ft, linewidth=1.5, color='#f5576c')
-    ax2.set_xlabel('Wavenumber (cm⁻¹)', fontsize=12)
-    ax2.set_ylabel('Intensity (a.u.)', fontsize=12)
-    ax2.set_title('IR Spectrum after Fourier Transform (Frequency Domain)', fontsize=14, fontweight='bold')
-    ax2.set_xlim(0, 4000)
-    ax2.grid(True, alpha=0.3)
-    
-    # Mark true peak positions
-    for wn, intensity in zip(true_wavenumbers, true_intensities):
-     ax2.axvline(x=wn, color='green', linestyle='--', alpha=0.7, linewidth=1.5)
-     ax2.text(wn, max(spectrum_ft) * 0.9, f'{wn} cm⁻¹',
-     rotation=90, va='bottom', fontsize=10, color='green')
-    
-    plt.tight_layout()
-    plt.savefig('ftir_interferogram.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    print("=" * 60)
-    print("Principles of FTIR Measurement")
-    print("=" * 60)
-    print("1. Move mirror in Michelson interferometer")
-    print("2. Record interference pattern (interferogram)")
-    print("3. Restore frequency-domain spectrum by Fourier transform")
-    print("")
-    print("True peak positions: ", true_wavenumbers, " cm⁻¹")
-    print("Restored peaks: Confirmed in spectrum after Fourier transform")
-    
-
-## 3\. Raman Spectroscopy
-
-### 3.1 Principles of Raman Scattering
-
-Raman scattering is the phenomenon in which incident light (frequency $\nu_0$) is observed as scattered light shifted by the molecular vibrational energy (frequency $\nu_m$) due to light-molecule interaction:
-
-  * **Rayleigh scattering** (elastic): $\nu_{\text{scatter}} = \nu_0$(majority, 106 timesstrong)
-  * **Stokes Raman scattering** : $\nu_{\text{scatter}} = \nu_0 - \nu_m$ (molecule excited)
-  * **Anti-Stokes Raman scattering** : $\nu_{\text{scatter}} = \nu_0 + \nu_m$ (molecule already in excited state returns to ground state, weak)
-
-The selection rule for Raman scattering is that the **polarizability $\alpha$ must change** during the vibration:
-
-$$\left(\frac{\partial \alpha}{\partial Q}\right)_0 \neq 0$$
-
-Unlike IR, this selection rule often makes symmetric vibrations Raman-active and asymmetric vibrations Raman-inactive (complementarity rule).
-    
-    
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    
-    
-     <h4>Code Example 5: Raman Spectrum and Stokes/Anti-Stokes Ratio</h4>
-     <pre><code class="language-python">import numpy as np
-    import matplotlib.pyplot as plt
-    
-    def boltzmann_population(E_vib_cm, T=300):
-     """
-     Occupancy of vibrational excited state by Boltzmann distribution
-    
-     Parameters:
-     -----------
-     E_vib_cm : float
-     Vibrational energy (cm⁻¹)
-     T : float
-     Temperature (K)
-    
-     Returns:
-     --------
-     ratio : float
-     Occupancy ratio of v=1 to v=0: n₁/n₀
-     """
-     k_B = 1.380649e-23 # J/K
-     h = 6.62607015e-34 # J·s
-     c = 2.99792458e8 # m/s
-    
-     E_J = h * c * E_vib_cm * 100 # cm^-1 to J
-     ratio = np.exp(-E_J / (k_B * T))
-     return ratio
-    
-    def raman_spectrum_simulation(laser_wavelength=532):
-     """
-     Raman spectrum (Stokes/Anti-Stokes) simulation
-    
-     Parameters:
-     -----------
-     laser_wavelength : float
-     Excitation laser wavelength (nm)
-    
-     Returns:
-     --------
-     fig : matplotlib figure
-     """
-     # vibrational mode
-     vibrations = [
-     {'mode': 'C-Cstretching', 'shift': 1000, 'intensity': 0.8},
-     {'mode': 'C=Ostretching', 'shift': 1700, 'intensity': 1.0},
-     {'mode': 'C-Hstretching', 'shift': 2900, 'intensity': 0.6}
-     ]
-    
-     # Laser frequency
-     laser_freq = 1e7 / laser_wavelength # cm^-1
-    
-     # Raman shift axis (typically -3500 to +3500 cm^-1)
-     raman_shift = np.linspace(-3500, 3500, 3000)
-    
-     # Initialize spectrum
-     spectrum = np.zeros_like(raman_shift)
-    
-     # Peaks for each vibrational mode
-     for vib in vibrations:
-     shift = vib['shift']
-     intensity = vib['intensity']
-    
-     # Stokes peak (positive shift)
-     stokes = intensity * np.exp(-(raman_shift - shift)**2 / (2 * 30**2))
-     spectrum += stokes
-    
-     # Anti-Stokes peak (negative shift)
-     # BoltzmannfactorIntensity reduces
-     boltzmann_ratio = boltzmann_population(shift, T=300)
-     anti_stokes = intensity * boltzmann_ratio * np.exp(-(raman_shift + shift)**2 / (2 * 30**2))
-     spectrum += anti_stokes
-    
-     # Rayleigh scattering(centrosymmetric, verystrong)
-     rayleigh = 100 * np.exp(-(raman_shift)**2 / (2 * 20**2))
-    
-     # Plot
-     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
-    
-     # Full spectrum (including Rayleigh)
-     ax1.plot(raman_shift, spectrum + rayleigh, linewidth=1.5, color='#f093fb')
-     ax1.fill_between(raman_shift, spectrum + rayleigh, alpha=0.3, color='#f5576c')
-     ax1.axvline(x=0, color='red', linestyle='--', linewidth=2, label='Rayleigh scattering')
-     ax1.set_xlabel('Raman Shift (cm⁻¹)', fontsize=12)
-     ax1.set_ylabel('Intensity (a.u.)', fontsize=12)
-     ax1.set_title(f'Full Raman Spectrum (Laser: {laser_wavelength} nm)',
-     fontsize=14, fontweight='bold')
-     ax1.legend()
-     ax1.grid(True, alpha=0.3)
-     ax1.set_yscale('log')
-     ax1.set_ylim(0.01, 150)
-    
-     # Enlarged Stokes region (practical measurement range)
-     ax2.plot(raman_shift, spectrum, linewidth=1.5, color='#f5576c')
-     ax2.fill_between(raman_shift, spectrum, alpha=0.3, color='#f093fb')
-     ax2.set_xlabel('Raman Shift (cm⁻¹)', fontsize=12)
-     ax2.set_ylabel('Intensity (a.u.)', fontsize=12)
-     ax2.set_title('Raman Spectrum (After Rayleigh Removal)', fontsize=14, fontweight='bold')
-     ax2.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
-     ax2.grid(True, alpha=0.3)
-    
-     # Peak assignment
-     for vib in vibrations:
-     shift = vib['shift']
-     ax2.text(shift, vib['intensity'] * 1.1, vib['mode'],
-     ha='center', fontsize=10, rotation=45)
-     ax2.text(-shift, vib['intensity'] * boltzmann_population(shift) * 1.1,
-     vib['mode'] + '\n(Anti-Stokes)',
-     ha='center', fontsize=9, rotation=45, alpha=0.7)
-    
-     plt.tight_layout()
-     plt.savefig('raman_spectrum_stokes_antistokes.png', dpi=300, bbox_inches='tight')
-     plt.show()
-    
-     # Temperature dependence of Boltzmann ratio
-     print("=" * 70)
-     print("Stokes/Anti-Stokesintensity ratiotemperature dependence")
-     print("=" * 70)
-     print(f"{'vibrational mode':<20} {'Raman shift (cm⁻¹)':<25} {'I(Anti-Stokes)/I(Stokes) at 300K':<30}")
-     print("-" * 70)
-     for vib in vibrations:
-     ratio = boltzmann_population(vib['shift'], T=300)
-     print(f"{vib['mode']:<20} {vib['shift']:<25} {ratio:<30.4f}")
-    
-     return fig
-    
-    # Execute
-    fig = raman_spectrum_simulation(laser_wavelength=532)
-    
-    # Calculate temperature dependence
-    temperatures = np.linspace(100, 800, 50)
-    raman_shift_1000 = 1000 # cm^-1
-    
-    ratios = [boltzmann_population(raman_shift_1000, T) for T in temperatures]
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(temperatures, ratios, linewidth=2, color='#f093fb')
-    plt.xlabel('Temperature (K)', fontsize=12)
-    plt.ylabel('I(Anti-Stokes) / I(Stokes)', fontsize=12)
-    plt.title('Ramanintensity ratiotemperature dependence(1000 cm⁻¹mode)', fontsize=14, fontweight='bold')
-    plt.grid(True, alpha=0.3)
-    plt.axhline(y=boltzmann_population(1000, 300), color='red', linestyle='--',
-     label='Room temperature (300 K)')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig('raman_temperature_dependence.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-
-### 3.2 Complementarity of IR and Raman
-
-centrosymmetricsymmetric molecule(e.g., CO₂, benzene), IR and Ramanselection rule ：
-
-**Mutual Exclusion Rule**  
-centrosymmetricsymmetric molecule, IR activevibration Ramaninactive, Raman activevibration IRinactive and 。This Symmetry selection rule。 
-
-vibrational mode | Symmetry | IR active | Raman active  
----|---|---|---  
-CO₂symmetric stretching | Σg⁺ | inactive | active  
-CO₂asymmetric stretching | Σu⁺ | active | inactive  
-CO₂bendingvibration | Πu | active | inactive  
+$\sigma \to \sigma^*$ | <150 nm (vacuum UV) | 1,000-10,000 | C-C, C-H bonds  
+$n \to \sigma^*$ | 150-250 nm | 100-3,000 | -OH, -NH2, -SH, halogens  
+$\pi \to \pi^*$ | 200-500 nm | 1,000-100,000 | C=C, C=O, aromatic rings  
+$n \to \pi^*$ | 250-400 nm | 10-100 | C=O, N=O, -NO2  
   
-### 3.3 Applications of Raman Spectroscopy
+#### Code Example 1: Electronic Transition Energy Diagram
+    
+    
+    """
+    Electronic Transition Types and Energy Levels
+    Visualizes the relative energies of molecular orbitals and transitions
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def plot_molecular_orbital_diagram():
+        """
+        Create a molecular orbital energy diagram showing
+        different electronic transitions.
+    
+        Returns:
+        --------
+        fig : matplotlib figure
+            The generated figure
+        """
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 8))
+    
+        # Define orbital energy levels (arbitrary units)
+        orbitals = {
+            'sigma': -4.0,
+            'pi': -2.5,
+            'n': -1.5,
+            'pi*': 1.5,
+            'sigma*': 3.5
+        }
+    
+        # Define transitions with their properties
+        transitions = [
+            {'from': 'sigma', 'to': 'sigma*', 'color': '#e74c3c',
+             'label': r'$\sigma \to \sigma^*$', 'wavelength': '<150 nm'},
+            {'from': 'n', 'to': 'sigma*', 'color': '#e67e22',
+             'label': r'$n \to \sigma^*$', 'wavelength': '150-250 nm'},
+            {'from': 'pi', 'to': 'pi*', 'color': '#2ecc71',
+             'label': r'$\pi \to \pi^*$', 'wavelength': '200-500 nm'},
+            {'from': 'n', 'to': 'pi*', 'color': '#3498db',
+             'label': r'$n \to \pi^*$', 'wavelength': '250-400 nm'}
+        ]
+    
+        # Plot orbital energy levels
+        orbital_x = {'sigma': 0.5, 'pi': 1.5, 'n': 2.5, 'pi*': 3.5, 'sigma*': 4.5}
+    
+        for orbital, energy in orbitals.items():
+            ax1.hlines(energy, orbital_x[orbital] - 0.3, orbital_x[orbital] + 0.3,
+                       linewidth=4, color='#2c3e50')
+            ax1.text(orbital_x[orbital], energy + 0.3, orbital,
+                     ha='center', fontsize=12, fontweight='bold')
+    
+        # Draw transitions with arrows
+        arrow_offsets = [-0.3, -0.1, 0.1, 0.3]
+        for i, trans in enumerate(transitions):
+            from_x = orbital_x[trans['from']] + arrow_offsets[i % 4] * 0.3
+            to_x = orbital_x[trans['to']] + arrow_offsets[i % 4] * 0.3
+    
+            ax1.annotate('', xy=(to_x, orbitals[trans['to']] - 0.15),
+                         xytext=(from_x, orbitals[trans['from']] + 0.15),
+                         arrowprops=dict(arrowstyle='->', color=trans['color'],
+                                         lw=2, mutation_scale=15))
+    
+        ax1.set_xlim(0, 5)
+        ax1.set_ylim(-5, 5)
+        ax1.set_ylabel('Energy (arbitrary units)', fontsize=12)
+        ax1.set_title('Molecular Orbital Energy Diagram', fontsize=14, fontweight='bold')
+        ax1.set_xticks([])
+        ax1.axhline(y=0, color='gray', linestyle='--', alpha=0.3)
+        ax1.text(0.1, 0.2, 'HOMO-LUMO gap', fontsize=10, color='gray')
+    
+        # Add legend
+        for i, trans in enumerate(transitions):
+            ax1.plot([], [], color=trans['color'], linewidth=3,
+                     label=f"{trans['label']} ({trans['wavelength']})")
+        ax1.legend(loc='upper right', fontsize=10)
+    
+        # Plot absorption spectrum simulation
+        wavelengths = np.linspace(150, 700, 1000)
+    
+        # Simulate absorption bands for each transition
+        def gaussian_band(wavelength, center, width, intensity):
+            return intensity * np.exp(-(wavelength - center)**2 / (2 * width**2))
+    
+        spectrum = np.zeros_like(wavelengths)
+        bands = [
+            {'center': 180, 'width': 15, 'intensity': 0.8, 'label': r'$\sigma \to \sigma^*$'},
+            {'center': 220, 'width': 20, 'intensity': 0.5, 'label': r'$n \to \sigma^*$'},
+            {'center': 350, 'width': 40, 'intensity': 1.0, 'label': r'$\pi \to \pi^*$'},
+            {'center': 300, 'width': 25, 'intensity': 0.2, 'label': r'$n \to \pi^*$'}
+        ]
+    
+        colors = ['#e74c3c', '#e67e22', '#2ecc71', '#3498db']
+    
+        for band, color in zip(bands, colors):
+            band_spectrum = gaussian_band(wavelengths, band['center'],
+                                           band['width'], band['intensity'])
+            spectrum += band_spectrum
+            ax2.fill_between(wavelengths, band_spectrum, alpha=0.3, color=color)
+            ax2.plot(wavelengths, band_spectrum, color=color, linewidth=1.5,
+                     linestyle='--', alpha=0.7)
+    
+        ax2.plot(wavelengths, spectrum, 'k-', linewidth=2, label='Total Absorption')
+    
+        # Add UV/Visible regions
+        ax2.axvspan(150, 200, alpha=0.1, color='purple', label='Vacuum UV')
+        ax2.axvspan(200, 400, alpha=0.1, color='violet', label='UV')
+        ax2.axvspan(400, 700, alpha=0.1, color='yellow', label='Visible')
+    
+        ax2.set_xlabel('Wavelength (nm)', fontsize=12)
+        ax2.set_ylabel('Absorbance (a.u.)', fontsize=12)
+        ax2.set_title('Simulated UV-Vis Absorption Spectrum', fontsize=14, fontweight='bold')
+        ax2.set_xlim(150, 700)
+        ax2.grid(True, alpha=0.3)
+        ax2.legend(loc='upper right', fontsize=9)
+    
+        plt.tight_layout()
+        plt.savefig('electronic_transitions.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        return fig
+    
+    # Execute
+    fig = plot_molecular_orbital_diagram()
+    
+    # Print transition summary
+    print("=" * 70)
+    print("Electronic Transition Types Summary")
+    print("=" * 70)
+    print(f"{'Transition':<15} {'Energy':<12} {'Wavelength':<15} {'Intensity':<15}")
+    print("-" * 70)
+    print(f"{'sigma->sigma*':<15} {'Highest':<12} {'<150 nm':<15} {'Strong':<15}")
+    print(f"{'n->sigma*':<15} {'High':<12} {'150-250 nm':<15} {'Medium':<15}")
+    print(f"{'pi->pi*':<15} {'Medium':<12} {'200-500 nm':<15} {'Strong':<15}")
+    print(f"{'n->pi*':<15} {'Lowest':<12} {'250-400 nm':<15} {'Weak (forbidden)':<15}")
+    
 
-  * **crystallinityevaluation** : frequency region(<200 cm⁻¹)latticevibrational mode evaluation
-  * **aqueous solutionsample** : water IRabsorption isstrong, Ramanless interference
-  * **Non-contact and non-destructive measurement** : Micro-area measurement by focusing laser (Raman microscopy)
-  * **surfaceenhancementRaman(SERS)** : metal nanoparticlesurface 106〜1014 timesenhancement
+### 1.2 Selection Rules for Electronic Transitions
 
+Not all electronic transitions are equally probable. Selection rules determine which transitions are "allowed" (high intensity) or "forbidden" (low intensity):
+
+**Selection Rules for UV-Vis Transitions**
+
+  * **Spin Selection Rule** : $\Delta S = 0$ (transitions between states of the same spin multiplicity are allowed)
+  * **Laporte Selection Rule** : In centrosymmetric molecules, only $g \leftrightarrow u$ transitions are allowed (parity must change)
+  * **Orbital Overlap** : Good spatial overlap between initial and final orbitals increases transition probability
+
+Note: "Forbidden" transitions may still occur weakly due to vibronic coupling, spin-orbit coupling, or symmetry breaking.
+
+### 1.3 Chromophores and Auxochromes
+
+A **chromophore** is a functional group responsible for the absorption of UV-Vis light. An **auxochrome** is a group that modifies the absorption properties of a chromophore when attached to it.
+
+#### Code Example 2: Chromophore Database and Absorption Prediction
     
     
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
+    """
+    Chromophore and Auxochrome Effects on UV-Vis Absorption
+    Demonstrates how molecular structure affects absorption wavelength
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    class ChromophoreDatabase:
+        """
+        Database of common chromophores and their absorption properties
+        """
+    
+        def __init__(self):
+            # Chromophore data: (lambda_max in nm, epsilon in L mol^-1 cm^-1)
+            self.chromophores = {
+                'C=C (isolated)': {'lambda_max': 171, 'epsilon': 15000,
+                                   'transition': 'pi->pi*'},
+                'C=C-C=C (conjugated)': {'lambda_max': 217, 'epsilon': 21000,
+                                          'transition': 'pi->pi*'},
+                'C=C-C=C-C=C (triene)': {'lambda_max': 258, 'epsilon': 35000,
+                                          'transition': 'pi->pi*'},
+                'Benzene': {'lambda_max': 255, 'epsilon': 200,
+                            'transition': 'pi->pi*'},
+                'Naphthalene': {'lambda_max': 314, 'epsilon': 300,
+                                'transition': 'pi->pi*'},
+                'Anthracene': {'lambda_max': 375, 'epsilon': 8000,
+                               'transition': 'pi->pi*'},
+                'C=O (aldehyde)': {'lambda_max': 290, 'epsilon': 15,
+                                   'transition': 'n->pi*'},
+                'C=O (ketone)': {'lambda_max': 280, 'epsilon': 20,
+                                 'transition': 'n->pi*'},
+                'NO2': {'lambda_max': 271, 'epsilon': 19,
+                        'transition': 'n->pi*'},
+                'N=N (azo)': {'lambda_max': 347, 'epsilon': 15,
+                              'transition': 'n->pi*'}
+            }
+    
+            # Auxochrome effects (shift in nm when attached to benzene)
+            self.auxochromes = {
+                '-OH': {'shift': 15, 'type': 'bathochromic'},
+                '-OCH3': {'shift': 20, 'type': 'bathochromic'},
+                '-NH2': {'shift': 45, 'type': 'bathochromic'},
+                '-N(CH3)2': {'shift': 60, 'type': 'bathochromic'},
+                '-Cl': {'shift': 6, 'type': 'bathochromic'},
+                '-Br': {'shift': 10, 'type': 'bathochromic'},
+                '-NO2': {'shift': 25, 'type': 'bathochromic'},
+                '-COCH3': {'shift': 15, 'type': 'bathochromic'}
+            }
+    
+        def predict_absorption(self, chromophore, auxochrome=None):
+            """
+            Predict absorption wavelength for a chromophore with optional auxochrome
+    
+            Parameters:
+            -----------
+            chromophore : str
+                Name of the chromophore
+            auxochrome : str, optional
+                Name of the auxochrome
+    
+            Returns:
+            --------
+            dict : Predicted absorption properties
+            """
+            if chromophore not in self.chromophores:
+                raise ValueError(f"Unknown chromophore: {chromophore}")
+    
+            base = self.chromophores[chromophore]
+            lambda_max = base['lambda_max']
+    
+            if auxochrome and auxochrome in self.auxochromes:
+                shift = self.auxochromes[auxochrome]['shift']
+                lambda_max += shift
+    
+            return {
+                'lambda_max': lambda_max,
+                'epsilon': base['epsilon'],
+                'transition': base['transition']
+            }
+    
+        def plot_conjugation_effect(self):
+            """
+            Demonstrate the effect of conjugation length on absorption
+            """
+            # Extended conjugation data (polyenes)
+            n_double_bonds = np.arange(1, 12)
+            # Empirical formula for polyene absorption
+            lambda_max = 171 + 30 * (n_double_bonds - 1) + 5 * (n_double_bonds - 1)**0.5
+    
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+            # Conjugation length effect
+            ax1.plot(n_double_bonds, lambda_max, 'o-', linewidth=2,
+                     markersize=10, color='#f093fb')
+            ax1.fill_between(n_double_bonds, 400, 700, alpha=0.2,
+                             color='yellow', label='Visible region')
+            ax1.axhline(y=400, color='violet', linestyle='--',
+                        linewidth=1, label='UV/Vis boundary')
+            ax1.set_xlabel('Number of Conjugated Double Bonds', fontsize=12)
+            ax1.set_ylabel(r'$\lambda_{max}$ (nm)', fontsize=12)
+            ax1.set_title('Effect of Conjugation Length on Absorption',
+                          fontsize=14, fontweight='bold')
+            ax1.grid(True, alpha=0.3)
+            ax1.legend()
+    
+            # Color annotation
+            for n, lam in zip(n_double_bonds[4:8], lambda_max[4:8]):
+                if 400 <= lam <= 700:
+                    color = wavelength_to_rgb(lam)
+                    ax1.scatter([n], [lam], c=[color], s=200, edgecolors='black',
+                               linewidths=2, zorder=5)
+    
+            # Chromophore comparison
+            chromophores_to_plot = ['C=C (isolated)', 'C=C-C=C (conjugated)',
+                                    'Benzene', 'Naphthalene', 'Anthracene']
+            lambdas = [self.chromophores[c]['lambda_max'] for c in chromophores_to_plot]
+            epsilons = [np.log10(self.chromophores[c]['epsilon']) for c in chromophores_to_plot]
+    
+            scatter = ax2.scatter(lambdas, epsilons, s=200, c=lambdas,
+                                  cmap='viridis', edgecolors='black', linewidths=2)
+    
+            for chrom, lam, eps in zip(chromophores_to_plot, lambdas, epsilons):
+                ax2.annotate(chrom.split('(')[0].strip(), (lam, eps),
+                            textcoords="offset points", xytext=(10, 5),
+                            fontsize=9, rotation=15)
+    
+            ax2.set_xlabel(r'$\lambda_{max}$ (nm)', fontsize=12)
+            ax2.set_ylabel(r'log($\epsilon$) [L mol$^{-1}$ cm$^{-1}$]', fontsize=12)
+            ax2.set_title('Chromophore Comparison', fontsize=14, fontweight='bold')
+            ax2.grid(True, alpha=0.3)
+    
+            plt.colorbar(scatter, ax=ax2, label=r'$\lambda_{max}$ (nm)')
+    
+            plt.tight_layout()
+            plt.savefig('chromophore_effects.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+    def wavelength_to_rgb(wavelength):
+        """
+        Convert wavelength (nm) to approximate RGB color
+    
+        Parameters:
+        -----------
+        wavelength : float
+            Wavelength in nanometers (380-780 nm)
+    
+        Returns:
+        --------
+        tuple : RGB values (0-1 range)
+        """
+        if wavelength < 380 or wavelength > 780:
+            return (0.5, 0.5, 0.5)  # Gray for out of range
+    
+        if wavelength < 440:
+            r = -(wavelength - 440) / (440 - 380)
+            g = 0.0
+            b = 1.0
+        elif wavelength < 490:
+            r = 0.0
+            g = (wavelength - 440) / (490 - 440)
+            b = 1.0
+        elif wavelength < 510:
+            r = 0.0
+            g = 1.0
+            b = -(wavelength - 510) / (510 - 490)
+        elif wavelength < 580:
+            r = (wavelength - 510) / (580 - 510)
+            g = 1.0
+            b = 0.0
+        elif wavelength < 645:
+            r = 1.0
+            g = -(wavelength - 645) / (645 - 580)
+            b = 0.0
+        else:
+            r = 1.0
+            g = 0.0
+            b = 0.0
+    
+        return (r, g, b)
+    
+    # Create database and demonstrate
+    db = ChromophoreDatabase()
+    db.plot_conjugation_effect()
+    
+    # Print chromophore data
+    print("\n" + "=" * 70)
+    print("Common Chromophores and Their Absorption Properties")
+    print("=" * 70)
+    print(f"{'Chromophore':<25} {'lambda_max (nm)':<15} {'epsilon':<15} {'Transition':<15}")
+    print("-" * 70)
+    for name, data in db.chromophores.items():
+        print(f"{name:<25} {data['lambda_max']:<15} {data['epsilon']:<15} {data['transition']:<15}")
+    
+    # Demonstrate auxochrome effect
+    print("\n" + "=" * 70)
+    print("Auxochrome Effects on Benzene Absorption")
+    print("=" * 70)
+    base_benzene = db.chromophores['Benzene']['lambda_max']
+    print(f"Benzene (base): {base_benzene} nm")
+    for aux, data in db.auxochromes.items():
+        new_lambda = base_benzene + data['shift']
+        print(f"Benzene + {aux}: {new_lambda} nm (shift: +{data['shift']} nm, {data['type']})")
+    
+
+## 2\. Beer-Lambert Law and Quantitative Analysis
+
+### 2.1 Fundamentals of Beer-Lambert Law
+
+The Beer-Lambert law (also known as the Beer-Lambert-Bouguer law) describes the relationship between the absorption of light and the properties of the material through which the light is traveling:
+
+$$A = \log_{10}\left(\frac{I_0}{I}\right) = \varepsilon c l$$
+
+where:
+
+  * $A$ = Absorbance (dimensionless)
+  * $I_0$ = Incident light intensity
+  * $I$ = Transmitted light intensity
+  * $\varepsilon$ = Molar absorptivity (L mol$^{-1}$ cm$^{-1}$)
+  * $c$ = Concentration (mol L$^{-1}$)
+  * $l$ = Path length (cm)
+
+**Key Relationships**
+
+  * Transmittance: $T = I/I_0$ (often expressed as %T)
+  * Absorbance: $A = -\log_{10}(T) = 2 - \log_{10}(\%T)$
+  * For accurate measurements: 0.1 < A < 1.0 (10% to 80% T)
+
+#### Code Example 3: Beer-Lambert Law Analysis and Calibration
     
     
-     <h4>Code Example 6: Raman Peak Fitting for Crystallinity Evaluation</h4>
-     <pre><code class="language-python">import numpy as np
+    """
+    Beer-Lambert Law: Calibration Curve and Concentration Determination
+    Demonstrates quantitative analysis using UV-Vis spectroscopy
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy import stats
+    from scipy.optimize import curve_fit
+    
+    def beer_lambert_analysis():
+        """
+        Perform Beer-Lambert law calibration and unknown concentration determination
+        """
+        # Physical parameters
+        epsilon = 15000  # L mol^-1 cm^-1 (typical for organic dye)
+        path_length = 1.0  # cm
+    
+        # Generate calibration data with realistic noise
+        np.random.seed(42)
+        concentrations_uM = np.array([2, 5, 10, 15, 20, 25, 30])  # micromolar
+        concentrations_M = concentrations_uM * 1e-6  # Convert to M
+    
+        # True absorbances
+        true_absorbances = epsilon * concentrations_M * path_length
+        # Add measurement noise (typical 0.005 AU)
+        measured_absorbances = true_absorbances + np.random.normal(0, 0.005, len(true_absorbances))
+    
+        # Linear regression
+        slope, intercept, r_value, p_value, std_err = stats.linregress(
+            concentrations_uM, measured_absorbances)
+    
+        # Calculate epsilon from slope
+        calculated_epsilon = slope / (path_length * 1e-6)
+    
+        # Plotting
+        fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+    
+        # 1. Calibration curve
+        ax1 = axes[0, 0]
+        ax1.scatter(concentrations_uM, measured_absorbances, s=100, color='#f093fb',
+                    edgecolors='black', linewidths=1.5, label='Measured Data', zorder=5)
+    
+        # Fit line
+        x_fit = np.linspace(0, 35, 100)
+        y_fit = slope * x_fit + intercept
+        ax1.plot(x_fit, y_fit, 'r-', linewidth=2,
+                 label=f'Linear Fit (R$^2$ = {r_value**2:.4f})')
+    
+        # Confidence interval
+        y_pred = slope * concentrations_uM + intercept
+        residuals = measured_absorbances - y_pred
+        ss_res = np.sum(residuals**2)
+        ss_tot = np.sum((measured_absorbances - np.mean(measured_absorbances))**2)
+        n = len(concentrations_uM)
+        se_y = np.sqrt(ss_res / (n - 2))
+    
+        ax1.fill_between(x_fit, y_fit - 2*se_y, y_fit + 2*se_y,
+                         alpha=0.2, color='red', label='95% CI')
+    
+        ax1.set_xlabel('Concentration ($\mu$M)', fontsize=12)
+        ax1.set_ylabel('Absorbance', fontsize=12)
+        ax1.set_title('Beer-Lambert Law Calibration Curve', fontsize=14, fontweight='bold')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+        ax1.set_xlim(0, 35)
+        ax1.set_ylim(0, 0.5)
+    
+        # Add equation to plot
+        ax1.text(0.05, 0.95, f'A = {slope:.4f}C + {intercept:.4f}\n'
+                 f'$\epsilon$ = {calculated_epsilon:.0f} L mol$^{{-1}}$ cm$^{{-1}}$',
+                 transform=ax1.transAxes, fontsize=11, verticalalignment='top',
+                 bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    
+        # 2. Transmittance vs Absorbance
+        ax2 = axes[0, 1]
+        transmittance = 10**(-measured_absorbances) * 100
+        ax2.scatter(measured_absorbances, transmittance, s=100, color='#f5576c',
+                    edgecolors='black', linewidths=1.5)
+    
+        A_range = np.linspace(0, 2, 100)
+        T_range = 10**(-A_range) * 100
+        ax2.plot(A_range, T_range, 'b-', linewidth=2)
+    
+        # Optimal range
+        ax2.axvspan(0.1, 1.0, alpha=0.2, color='green', label='Optimal A range (0.1-1.0)')
+    
+        ax2.set_xlabel('Absorbance', fontsize=12)
+        ax2.set_ylabel('Transmittance (%)', fontsize=12)
+        ax2.set_title('Transmittance vs Absorbance', fontsize=14, fontweight='bold')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
+    
+        # 3. Concentration determination for unknowns
+        ax3 = axes[1, 0]
+        unknown_absorbances = np.array([0.15, 0.28, 0.35])
+        unknown_concentrations = (unknown_absorbances - intercept) / slope
+    
+        # Show calibration curve with unknowns
+        ax3.scatter(concentrations_uM, measured_absorbances, s=100, color='#f093fb',
+                    edgecolors='black', linewidths=1.5, label='Standards', zorder=5)
+        ax3.plot(x_fit, y_fit, 'b-', linewidth=2, alpha=0.5)
+    
+        for i, (conc, A) in enumerate(zip(unknown_concentrations, unknown_absorbances)):
+            ax3.scatter([conc], [A], s=200, color='red', marker='*',
+                       edgecolors='black', linewidths=1.5, zorder=6)
+            ax3.hlines(A, 0, conc, colors='red', linestyles='--', alpha=0.5)
+            ax3.vlines(conc, 0, A, colors='red', linestyles='--', alpha=0.5)
+            ax3.annotate(f'Unknown {i+1}\nC = {conc:.1f} $\mu$M',
+                         (conc, A), textcoords="offset points",
+                         xytext=(10, 10), fontsize=10)
+    
+        ax3.set_xlabel('Concentration ($\mu$M)', fontsize=12)
+        ax3.set_ylabel('Absorbance', fontsize=12)
+        ax3.set_title('Unknown Sample Analysis', fontsize=14, fontweight='bold')
+        ax3.legend()
+        ax3.grid(True, alpha=0.3)
+        ax3.set_xlim(0, 35)
+        ax3.set_ylim(0, 0.5)
+    
+        # 4. Residual analysis
+        ax4 = axes[1, 1]
+        ax4.scatter(concentrations_uM, residuals * 1000, s=100, color='#4ecdc4',
+                    edgecolors='black', linewidths=1.5)
+        ax4.axhline(y=0, color='black', linestyle='-', linewidth=1)
+        ax4.axhline(y=2*se_y*1000, color='red', linestyle='--', alpha=0.5)
+        ax4.axhline(y=-2*se_y*1000, color='red', linestyle='--', alpha=0.5)
+    
+        ax4.set_xlabel('Concentration ($\mu$M)', fontsize=12)
+        ax4.set_ylabel('Residual (mAU)', fontsize=12)
+        ax4.set_title('Residual Analysis', fontsize=14, fontweight='bold')
+        ax4.grid(True, alpha=0.3)
+    
+        plt.tight_layout()
+        plt.savefig('beer_lambert_analysis.png', dpi=300, bbox_inches='tight')
+        plt.show()
+    
+        return slope, intercept, r_value**2, calculated_epsilon
+    
+    # Execute analysis
+    slope, intercept, r_squared, epsilon = beer_lambert_analysis()
+    
+    # Print results
+    print("\n" + "=" * 60)
+    print("Beer-Lambert Law Calibration Results")
+    print("=" * 60)
+    print(f"Slope: {slope:.6f} AU/$\mu$M")
+    print(f"Intercept: {intercept:.6f} AU")
+    print(f"R-squared: {r_squared:.6f}")
+    print(f"Calculated molar absorptivity: {epsilon:.0f} L mol^-1 cm^-1")
+    
+    print("\n" + "=" * 60)
+    print("Unknown Sample Analysis")
+    print("=" * 60)
+    unknown_A = [0.15, 0.28, 0.35]
+    for i, A in enumerate(unknown_A):
+        conc = (A - intercept) / slope
+        print(f"Unknown {i+1}: A = {A:.2f} => C = {conc:.2f} micromolar")
+    
+
+### 2.2 Deviations from Beer-Lambert Law
+
+The Beer-Lambert law is an idealization that assumes certain conditions. Deviations can occur due to several factors:
+
+**Sources of Deviation from Beer-Lambert Law**
+
+  * **Chemical Deviations** : Aggregation, association, dissociation, or chemical reactions at high concentrations
+  * **Instrumental Deviations** : Stray light, non-monochromatic source, detector non-linearity
+  * **Concentration Effects** : Refractive index changes at high concentrations
+  * **Scattering** : Particulate matter or colloidal solutions
+
+#### Code Example 4: Detecting Beer-Lambert Law Deviations
+    
+    
+    """
+    Detection and Analysis of Beer-Lambert Law Deviations
+    Shows common causes and how to identify non-linear behavior
+    """
+    import numpy as np
     import matplotlib.pyplot as plt
     from scipy.optimize import curve_fit
     
-    def crystallinity_analysis(raman_shift, intensity):
-     """
-     Evaluate crystallinity from Raman spectrum (polymer example)
+    def simulate_beer_lambert_deviations():
+        """
+        Simulate various types of deviations from Beer-Lambert law
+        """
+        # True parameters
+        epsilon = 10000  # L mol^-1 cm^-1
+        path_length = 1.0  # cm
     
-     Parameters:
-     -----------
-     raman_shift : array
-     Raman shift (cm⁻¹)
-     intensity : array
-     RamanIntensity
+        # Wide concentration range
+        concentrations = np.linspace(0.1, 100, 100) * 1e-6  # M
     
-     Returns:
-     --------
-     crystallinity : float
-     Crystallinity (%)
-     fit_params : dict
-     Fitting parameters
-     """
-     def two_peak_model(x, A1, c1, w1, A2, c2, w2):
-     """Two-component model of crystalline and amorphous peaks"""
-     peak1 = A1 * np.exp(-(x - c1)**2 / (2 * w1**2)) # Crystalline peak
-     peak2 = A2 * np.exp(-(x - c2)**2 / (2 * w2**2)) # Amorphous peak
-     return peak1 + peak2
+        # Ideal Beer-Lambert law
+        A_ideal = epsilon * concentrations * path_length
     
-     # Initial guess
-     p0 = [100, 1095, 10, 80, 1080, 15]
+        # 1. Chemical deviation (dimerization at high concentration)
+        # Monomer-dimer equilibrium: 2M <-> D, K_d = [D]/[M]^2
+        K_d = 5e4  # M^-1
+        def calculate_with_dimerization(C_total, K_d, eps_m, eps_d, l):
+            # Solve quadratic for monomer concentration
+            # C_total = [M] + 2[D] = [M] + 2*K_d*[M]^2
+            a = 2 * K_d
+            b = 1
+            c = -C_total
+            C_monomer = (-b + np.sqrt(b**2 - 4*a*c)) / (2*a)
+            C_dimer = K_d * C_monomer**2
+            return (eps_m * C_monomer + eps_d * C_dimer) * l
     
-     # Fitting
-     popt, pcov = curve_fit(two_peak_model, raman_shift, intensity, p0=p0)
+        eps_monomer = epsilon
+        eps_dimer = epsilon * 0.3  # Dimer has lower absorptivity
+        A_dimer = np.array([calculate_with_dimerization(c, K_d, eps_monomer, eps_dimer, path_length)
+                            for c in concentrations])
     
-     # Individual peaks
-     crystal_peak = popt[0] * np.exp(-(raman_shift - popt[1])**2 / (2 * popt[2]**2))
-     amorphous_peak = popt[3] * np.exp(-(raman_shift - popt[4])**2 / (2 * popt[5]**2))
+        # 2. Stray light effect
+        stray_light_fraction = 0.01  # 1% stray light
+        T_true = 10**(-A_ideal)
+        T_measured = (T_true + stray_light_fraction) / (1 + stray_light_fraction)
+        A_stray = -np.log10(T_measured)
     
-     # Crystallinity (peak area ratio)
-     crystal_area = popt[0] * popt[2] * np.sqrt(2 * np.pi)
-     amorphous_area = popt[3] * popt[5] * np.sqrt(2 * np.pi)
-     crystallinity = crystal_area / (crystal_area + amorphous_area) * 100
+        # 3. Aggregation-induced enhancement
+        # At high concentration, J-aggregates form with enhanced absorption
+        K_agg = 1e4  # Aggregation constant
+        enhancement_factor = 1 + 0.5 * concentrations * K_agg
+        A_aggregate = A_ideal * enhancement_factor
     
-     fit_params = {
-     'crystal_center': popt[1],
-     'crystal_width': popt[2],
-     'amorphous_center': popt[4],
-     'amorphous_width': popt[5],
-     'crystal_peak': crystal_peak,
-     'amorphous_peak': amorphous_peak,
-     'fitted_curve': two_peak_model(raman_shift, *popt)
-     }
+        # Plotting
+        fig, axes = plt.subplots(2, 2, figsize=(14, 12))
     
-     return crystallinity, fit_params
+        # 1. All deviations comparison
+        ax1 = axes[0, 0]
+        ax1.plot(concentrations * 1e6, A_ideal, 'k-', linewidth=2, label='Ideal (Beer-Lambert)')
+        ax1.plot(concentrations * 1e6, A_dimer, '--', linewidth=2,
+                 color='#e74c3c', label='Dimerization (negative)')
+        ax1.plot(concentrations * 1e6, A_stray, '--', linewidth=2,
+                 color='#3498db', label='Stray light (negative)')
+        ax1.plot(concentrations * 1e6, A_aggregate, '--', linewidth=2,
+                 color='#2ecc71', label='Aggregation (positive)')
     
-    # ー(crystallinitypolymerC-Cstretchingregion)
-    raman_shift = np.linspace(1050, 1130, 300)
-    crystal_peak_true = 70 * np.exp(-(raman_shift - 1095)**2 / (2 * 8**2))
-    amorphous_peak_true = 50 * np.exp(-(raman_shift - 1080)**2 / (2 * 12**2))
-    intensity = crystal_peak_true + amorphous_peak_true + np.random.normal(0, 2, len(raman_shift))
+        ax1.set_xlabel('Concentration ($\mu$M)', fontsize=12)
+        ax1.set_ylabel('Absorbance', fontsize=12)
+        ax1.set_title('Beer-Lambert Law Deviations', fontsize=14, fontweight='bold')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
     
-    # Crystallinity analysis
-    crystallinity, fit_params = crystallinity_analysis(raman_shift, intensity)
+        # 2. Deviation magnitude
+        ax2 = axes[0, 1]
+        ax2.plot(concentrations * 1e6, (A_dimer - A_ideal) / A_ideal * 100,
+                 linewidth=2, color='#e74c3c', label='Dimerization')
+        ax2.plot(concentrations * 1e6, (A_stray - A_ideal) / A_ideal * 100,
+                 linewidth=2, color='#3498db', label='Stray light')
+        ax2.plot(concentrations * 1e6, (A_aggregate - A_ideal) / A_ideal * 100,
+                 linewidth=2, color='#2ecc71', label='Aggregation')
+        ax2.axhline(y=0, color='black', linestyle='-', linewidth=1)
+        ax2.axhline(y=5, color='gray', linestyle='--', alpha=0.5)
+        ax2.axhline(y=-5, color='gray', linestyle='--', alpha=0.5)
     
-    # Plot
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+        ax2.set_xlabel('Concentration ($\mu$M)', fontsize=12)
+        ax2.set_ylabel('Deviation (%)', fontsize=12)
+        ax2.set_title('Relative Deviation from Ideal', fontsize=14, fontweight='bold')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
     
-    # Peak separation
-    ax1.plot(raman_shift, intensity, 'k.', markersize=4, alpha=0.5, label='Experimental data')
-    ax1.plot(raman_shift, fit_params['fitted_curve'], 'r-', linewidth=2, label='Fitting')
-    ax1.plot(raman_shift, fit_params['crystal_peak'], 'b--', linewidth=2, label='Crystalline component')
-    ax1.plot(raman_shift, fit_params['amorphous_peak'], 'g--', linewidth=2, label='Amorphous component')
-    ax1.fill_between(raman_shift, fit_params['crystal_peak'], alpha=0.3, color='blue')
-    ax1.fill_between(raman_shift, fit_params['amorphous_peak'], alpha=0.3, color='green')
-    ax1.set_xlabel('Raman Shift (cm⁻¹)', fontsize=12)
-    ax1.set_ylabel('Intensity (a.u.)', fontsize=12)
-    ax1.set_title('Crystallinity Analysis by Peak Separation', fontsize=14, fontweight='bold')
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
+        # 3. Practical calibration range determination
+        ax3 = axes[1, 0]
     
-    # Display crystallinity
-    ax2.bar(['Crystalline component', 'Amorphous component'],
-     [crystallinity, 100 - crystallinity],
-     color=['#4ecdc4', '#ffe66d'], edgecolor='black', linewidth=2)
-    ax2.set_ylabel('Fraction (%)', fontsize=12)
-    ax2.set_title(f'Crystallinity: {crystallinity:.1f}%', fontsize=14, fontweight='bold')
-    ax2.set_ylim(0, 100)
-    ax2.grid(axis='y', alpha=0.3)
+        # Simulate experimental data with noise
+        np.random.seed(42)
+        exp_conc = np.array([5, 10, 20, 30, 40, 50, 60, 70, 80, 90]) * 1e-6
+        exp_A_noise = np.array([calculate_with_dimerization(c, K_d, eps_monomer, eps_dimer, path_length)
+                                for c in exp_conc])
+        exp_A_noise += np.random.normal(0, 0.01, len(exp_A_noise))
     
-    for i, (label, value) in enumerate(zip(['Crystalline component', 'Amorphous component'],
-     [crystallinity, 100 - crystallinity])):
-     ax2.text(i, value + 3, f'{value:.1f}%', ha='center', fontsize=12, fontweight='bold')
+        # Linear fit for low concentration range
+        low_mask = exp_conc < 40e-6
+        slope_low, intercept_low = np.polyfit(exp_conc[low_mask] * 1e6, exp_A_noise[low_mask], 1)
     
-    plt.tight_layout()
-    plt.savefig('raman_crystallinity_analysis.png', dpi=300, bbox_inches='tight')
-    plt.show()
+        # Full range fit
+        slope_full, intercept_full = np.polyfit(exp_conc * 1e6, exp_A_noise, 1)
     
-    # Output results
-    print("=" * 60)
-    print("RamanCrystallinity analysisresults")
-    print("=" * 60)
-    print(f"Crystalline peakcentrosymmetric: {fit_params['crystal_center']:.1f} cm⁻¹")
-    print(f"Crystalline peakwidth(FWHM): {2.355 * fit_params['crystal_width']:.1f} cm⁻¹")
-    print(f"Amorphous peakcentrosymmetric: {fit_params['amorphous_center']:.1f} cm⁻¹")
-    print(f"Amorphous peakwidth(FWHM): {2.355 * fit_params['amorphous_width']:.1f} cm⁻¹")
-    print(f"\nCrystallinity: {crystallinity:.1f}%")
-    print(f"Amorphous fraction: {100 - crystallinity:.1f}%")
+        ax3.scatter(exp_conc * 1e6, exp_A_noise, s=100, color='#f093fb',
+                    edgecolors='black', linewidths=1.5, zorder=5)
     
-
-## 4\. Group Theory and vibrational Selection Rules
-
-### 4.1 Molecular Symmetry and Irreducible Representations
-
-moleculevibrational mode, moleculeSymmetry(point group)。vibrational mode point groupirreducible representationcorresponds to, the Symmetryselection rule(IR active, Raman active) 。
-
-**Examples of Major Point Groups and Irreducible Representations**  
-
-  * **C 2v**(H₂O): A₁, A₂, B₁, B₂
-  * **D 6h**(benzene): A1g, A2g, B1g, B2g, E1g, E2g, A1u, A2u, B1u, B2u, E1u, E2u
-  * **T d**(CH₄): A₁, A₂, E, T₁, T₂
-
+        x_fit = np.linspace(0, 100, 100)
+        ax3.plot(x_fit, slope_low * x_fit + intercept_low, 'g-', linewidth=2,
+                 label=f'Linear range fit (R$^2$ high)')
+        ax3.plot(x_fit, slope_full * x_fit + intercept_full, 'r--', linewidth=2,
+                 label='Full range fit (poor)')
     
+        ax3.axvspan(0, 40, alpha=0.2, color='green', label='Linear range')
+        ax3.axvspan(40, 100, alpha=0.2, color='red', label='Non-linear range')
     
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
+        ax3.set_xlabel('Concentration ($\mu$M)', fontsize=12)
+        ax3.set_ylabel('Absorbance', fontsize=12)
+        ax3.set_title('Identifying Linear Calibration Range', fontsize=14, fontweight='bold')
+        ax3.legend(loc='upper left')
+        ax3.grid(True, alpha=0.3)
     
+        # 4. Second derivative test for linearity
+        ax4 = axes[1, 1]
     
-     <h4>Code Example 7: vibrational modes and Symmetry of H₂O Molecule</h4>
-     <pre><code class="language-python">import numpy as np
-    import matplotlib.pyplot as plt
+        # Calculate numerical second derivative
+        dA_dC = np.gradient(A_dimer, concentrations * 1e6)
+        d2A_dC2 = np.gradient(dA_dC, concentrations * 1e6)
     
-    def h2o_symmetry_analysis():
-     """
-     H₂Omolecule(C2vpoint group)vibrational mode and selection rule
+        ax4.plot(concentrations * 1e6, d2A_dC2 * 1000, linewidth=2, color='#9b59b6')
+        ax4.axhline(y=0, color='black', linestyle='-', linewidth=1)
+        ax4.fill_between(concentrations * 1e6, d2A_dC2 * 1000,
+                         where=np.abs(d2A_dC2 * 1000) < 0.1,
+                         alpha=0.3, color='green', label='Linear region')
     
-     Returns:
-     --------
-     table : dict
-     vibrational modeinformation
-     """
-     # H2Omolecule3fundamentalvibrational mode
-     modes = {
-     'mode1': {
-     'name': 'symmetric stretching',
-     'symmetry': 'A₁',
-     'wavenumber': 3657,
-     'IR_active': True,
-     'Raman_active': True,
-     'description': 'both O-H bonds stretching simultaneously, symmetric'
-     },
-     'mode2': {
-     'name': 'bendingvibration',
-     'symmetry': 'A₁',
-     'wavenumber': 1595,
-     'IR_active': True,
-     'Raman_active': True,
-     'description': 'H-O-H angle changes'
-     },
-     'mode3': {
-     'name': 'asymmetric stretching',
-     'symmetry': 'B₁',
-     'wavenumber': 3756,
-     'IR_active': True,
-     'Raman_active': True,
-     'description': 'When one O-H stretches, the other contracts'
-     }
-     }
+        ax4.set_xlabel('Concentration ($\mu$M)', fontsize=12)
+        ax4.set_ylabel('$d^2A/dC^2$ (arbitrary units)', fontsize=12)
+        ax4.set_title('Linearity Test: Second Derivative', fontsize=14, fontweight='bold')
+        ax4.legend()
+        ax4.grid(True, alpha=0.3)
     
-     # Display in table format
-     print("=" * 80)
-     print("H₂Omolecule(C₂vpoint group)vibrational mode and selection rule")
-     print("=" * 80)
-     print(f"{'mode':<12} {'Symmetry':<10} {'Wavenumber (cm⁻¹)':<15} {'IR active':<10} {'Raman active':<12} {'Description':<30}")
-     print("-" * 80)
-    
-     for mode_id, mode in modes.items():
-     ir_str = '○' if mode['IR_active'] else '×'
-     raman_str = '○' if mode['Raman_active'] else '×'
-     print(f"{mode['name']:<12} {mode['symmetry']:<10} {mode['wavenumber']:<15} "
-     f"{ir_str:<10} {raman_str:<12} {mode['description']:<30}")
-    
-     print("\n" + "=" * 80)
-     print("Character Table of C₂v Point Group")
-     print("=" * 80)
-     print(" C₂v | E C₂ σv σv' | Basis functions")
-     print("-" * 80)
-     print(" A₁ | 1 1 1 1 | z, x², y², z²")
-     print(" A₂ | 1 1 -1 -1 | Rz")
-     print(" B₁ | 1 -1 1 -1 | x, Ry")
-     print(" B₂ | 1 -1 -1 1 | y, Rx")
-     print("\nSelection rules:")
-     print(" IR active: μx, μy, μz(dipole moment) included in basis")
-     print(" Raman active: αxx, αyy, αzz, αxy, αxz, αyz(polarizability tensor) included in basis")
-     print("\nH₂Ocase, A₁ and B₁ bothIR and Raman active")
-    
-     # visualization：energy level diagram
-     fig, ax = plt.subplots(figsize=(10, 8))
-    
-     # Ground state and excited states
-     y_ground = 0
-     modes_sorted = sorted(modes.items(), key=lambda x: x[1]['wavenumber'])
-    
-     colors = ['#f093fb', '#f5576c', '#4ecdc4']
-    
-     for i, (mode_id, mode) in enumerate(modes_sorted):
-     y_excited = mode['wavenumber'] / 100 # Scaling
-     ax.hlines(y_excited, i*0.5, i*0.5 + 0.4, colors=colors[i], linewidths=5,
-     label=f"{mode['name']} ({mode['symmetry']})")
-     ax.text(i*0.5 + 0.45, y_excited, f"{mode['wavenumber']} cm⁻¹",
-     va='center', fontsize=10)
-    
-     # Transition arrows
-     ax.annotate('', xy=(i*0.5 + 0.2, y_excited), xytext=(i*0.5 + 0.2, y_ground),
-     arrowprops=dict(arrowstyle='->', color=colors[i], lw=2))
-    
-     ax.hlines(y_ground, -0.2, 1.5, colors='black', linewidths=3, label='Ground state (v=0)')
-     ax.set_xlim(-0.3, 1.6)
-     ax.set_ylim(-2, 40)
-     ax.set_ylabel('Relative Energy (cm⁻¹ / 100)', fontsize=12)
-     ax.set_title('H₂Omoleculevibrationexcitationーlevel', fontsize=14, fontweight='bold')
-     ax.set_xticks([])
-     ax.legend(loc='upper left', fontsize=10)
-     ax.grid(axis='y', alpha=0.3)
-    
-     plt.tight_layout()
-     plt.savefig('h2o_symmetry_modes.png', dpi=300, bbox_inches='tight')
-     plt.show()
-    
-     return modes
+        plt.tight_layout()
+        plt.savefig('beer_lambert_deviations.png', dpi=300, bbox_inches='tight')
+        plt.show()
     
     # Execute
-    modes = h2o_symmetry_analysis()
+    simulate_beer_lambert_deviations()
+    
+    print("\n" + "=" * 60)
+    print("Practical Guidelines for Beer-Lambert Law")
+    print("=" * 60)
+    print("1. Keep absorbance in range 0.1 - 1.0")
+    print("2. Use dilution series to check linearity")
+    print("3. Watch for curvature at high concentrations")
+    print("4. Consider chemical equilibria in your system")
+    print("5. Minimize stray light with proper instrument maintenance")
     
 
-### 4.2 Determination of Selection Rules
+## 3\. UV-Vis Spectrometer Components
 
-irreducible representation correspondingvibrational mode IR active Raman active, rule ：
+### 3.1 Instrument Design
 
-  * **IR active** : vibrational modeirreducible representation, dipole momentcomponent(x, y, z)any of and Symmetry 
-  * **Raman active** : vibrational modeirreducible representation, polarizability tensorcomponent(x², y², z², xy, xz, yz)any of and Symmetry 
+A UV-Vis spectrometer consists of several key components that work together to measure the absorption of light by a sample:
+    
+    
+    ```mermaid
+    flowchart LR
+        A[Light Source] --> B[Monochromator]
+        B --> C[Sample Cell]
+        C --> D[Detector]
+        D --> E[Data Processing]
+    
+        A1[Deuterium LampUV: 190-400 nm] --> A
+        A2[Tungsten LampVis: 350-900 nm] --> A
+    
+        B1[Diffraction Gratingor Prism] --> B
+    
+        C1[CuvetteQuartz or Glass] --> C
+    
+        D1[Photomultiplieror CCD] --> D
+    
+        style A fill:#f093fb,color:#fff
+        style B fill:#f5576c,color:#fff
+        style C fill:#4ecdc4,color:#fff
+        style D fill:#ffe66d,color:#000
+        style E fill:#a8e6cf,color:#000
+    ```
 
-## 5\. Practical Spectral Analysis
+**Key Components**
+
+  * **Light Source** : Deuterium lamp (UV) + Tungsten-halogen lamp (Visible)
+  * **Monochromator** : Diffraction grating to select specific wavelengths
+  * **Sample Holder** : Quartz cuvettes (UV-Vis) or glass cuvettes (Vis only)
+  * **Detector** : Photomultiplier tube (PMT) or charge-coupled device (CCD)
+  * **Double-Beam Design** : Compensates for drift by measuring sample and reference simultaneously
+
+#### Code Example 5: Spectrometer Simulation and Signal Processing
     
     
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    
-    
-     <h4>Code Example 8: Integrated Analysis Workflow for IR and Raman</h4>
-     <pre><code class="language-python">import numpy as np
+    """
+    UV-Vis Spectrometer Simulation
+    Demonstrates data acquisition, noise, and signal processing
+    """
+    import numpy as np
     import matplotlib.pyplot as plt
-    from scipy.signal import find_peaks
+    from scipy.signal import savgol_filter
+    from scipy.ndimage import gaussian_filter1d
     
-    class vibrationalSpectroscopyAnalyzer:
-     """Integrated analysis class for IR and Raman spectra"""
+    def simulate_uvvis_measurement():
+        """
+        Simulate UV-Vis spectral measurement with realistic instrument effects
+        """
+        # Wavelength range
+        wavelengths = np.linspace(200, 800, 601)
     
-     def __init__(self):
-     # Functional Groupdatabase(simplified version)
-     self.functional_groups = {
-     'O-H': {'IR': (3200, 3600), 'Raman': (3200, 3600), 'intensity_IR': 'strong'},
-     'N-H': {'IR': (3300, 3500), 'Raman': (3300, 3500), 'intensity_IR': 'medium'},
-     'C-H': {'IR': (2850, 3000), 'Raman': (2850, 3000), 'intensity_IR': 'strong'},
-     'C=O': {'IR': (1650, 1750), 'Raman': (1650, 1750), 'intensity_IR': 'very strong'},
-     'C=C': {'IR': (1620, 1680), 'Raman': (1620, 1680), 'intensity_Raman': 'strong'},
-     'C-C': {'IR': (800, 1200), 'Raman': (800, 1200), 'intensity_Raman': 'medium'},
-     }
+        # True absorption spectrum (two Gaussian peaks)
+        def true_spectrum(wl):
+            peak1 = 0.8 * np.exp(-(wl - 280)**2 / (2 * 20**2))  # UV peak
+            peak2 = 0.5 * np.exp(-(wl - 450)**2 / (2 * 40**2))  # Visible peak
+            return peak1 + peak2
     
-     def identify_functional_groups(self, wavenumbers, intensity, threshold=0.3):
-     """
-     Functional Groupidentify
+        A_true = true_spectrum(wavelengths)
     
-     Parameters:
-     -----------
-     wavenumbers : array
-     Wavenumber (cm⁻¹)
-     intensity : array
-     Intensity
-     threshold : float
-     Peak detection threshold (relative to maximum)
+        # Simulate instrument effects
+        np.random.seed(42)
     
-     Returns:
-     --------
-     identified_groups : list
-     Functional Group
-     """
-     # Peak detection
-     peaks, properties = find_peaks(intensity, prominence=threshold * np.max(intensity))
+        # 1. Add photon shot noise (sqrt(N) dependent)
+        baseline_signal = 10000  # Photon counts at 100% T
+        T_true = 10**(-A_true)
+        signal_counts = T_true * baseline_signal
+        shot_noise = np.sqrt(signal_counts) / baseline_signal
     
-     identified_groups = []
+        # 2. Add dark current noise
+        dark_noise = 0.002 * np.random.randn(len(wavelengths))
     
-     for peak in peaks:
-     peak_wn = wavenumbers[peak]
+        # 3. Add baseline drift (slow variation)
+        baseline_drift = 0.01 * np.sin(2 * np.pi * wavelengths / 300)
     
-     # Functional Groupdatabasematch with
-     for group, ranges in self.functional_groups.items():
-     ir_range = ranges['IR']
-     if ir_range[0] <= peak_wn <= ir_range[1]:
-     identified_groups.append({
-     'functional_group': group,
-     'wavenumber': peak_wn,
-     'intensity': intensity[peak]
-     })
+        # Combine all noise sources
+        T_measured = T_true + shot_noise * np.random.randn(len(wavelengths)) + dark_noise
+        A_measured = -np.log10(np.clip(T_measured, 0.001, 1.0)) + baseline_drift
     
-     return identified_groups
+        # Apply signal processing
+        # Savitzky-Golay smoothing
+        A_smoothed = savgol_filter(A_measured, window_length=11, polyorder=3)
     
-     def complementary_analysis(self, ir_spectrum, raman_spectrum):
-     """
-     Complementary analysis of IR and Raman
+        # Baseline correction
+        A_corrected = A_smoothed - baseline_drift
     
-     Parameters:
-     -----------
-     ir_spectrum : dict
-     {'wavenumbers': array, 'intensity': array}
-     raman_spectrum : dict
-     {'wavenumbers': array, 'intensity': array}
+        # Plotting
+        fig, axes = plt.subplots(2, 2, figsize=(14, 12))
     
-     Returns:
-     --------
-     analysis_result : dict
-     Integrated analysis results
-     """
-     # IR Functional Group
-     ir_groups = self.identify_functional_groups(ir_spectrum['wavenumbers'],
-     ir_spectrum['intensity'])
+        # 1. Raw vs Smoothed spectrum
+        ax1 = axes[0, 0]
+        ax1.plot(wavelengths, A_measured, 'gray', linewidth=0.5, alpha=0.7, label='Raw Data')
+        ax1.plot(wavelengths, A_smoothed, 'b-', linewidth=2, label='Smoothed (SG filter)')
+        ax1.plot(wavelengths, A_true, 'r--', linewidth=2, label='True Spectrum')
     
-     # Raman Functional Group
-     raman_groups = self.identify_functional_groups(raman_spectrum['wavenumbers'],
-     raman_spectrum['intensity'])
+        ax1.set_xlabel('Wavelength (nm)', fontsize=12)
+        ax1.set_ylabel('Absorbance', fontsize=12)
+        ax1.set_title('Raw vs Processed UV-Vis Spectrum', fontsize=14, fontweight='bold')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
     
-     # Integration
-     all_groups = set([g['functional_group'] for g in ir_groups] +
-     [g['functional_group'] for g in raman_groups])
+        # 2. Noise analysis
+        ax2 = axes[0, 1]
+        residual = A_measured - A_true
+        ax2.plot(wavelengths, residual, 'purple', linewidth=0.5)
+        ax2.fill_between(wavelengths, residual, alpha=0.3, color='purple')
+        ax2.axhline(y=0, color='black', linestyle='-', linewidth=1)
+        ax2.axhline(y=np.std(residual), color='red', linestyle='--', label=f'1 sigma = {np.std(residual):.4f}')
+        ax2.axhline(y=-np.std(residual), color='red', linestyle='--')
     
-     analysis_result = {
-     'IR_only': [g for g in ir_groups if g['functional_group'] not in
-     [rg['functional_group'] for rg in raman_groups]],
-     'Raman_only': [g for g in raman_groups if g['functional_group'] not in
-     [ig['functional_group'] for ig in ir_groups]],
-     'Both': list(all_groups.intersection(set([g['functional_group'] for g in ir_groups]),
-     set([g['functional_group'] for g in raman_groups])))
-     }
+        ax2.set_xlabel('Wavelength (nm)', fontsize=12)
+        ax2.set_ylabel('Residual (AU)', fontsize=12)
+        ax2.set_title('Noise Analysis', fontsize=14, fontweight='bold')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
     
-     return analysis_result
+        # 3. Signal-to-Noise Ratio
+        ax3 = axes[1, 0]
     
-    # Execute：(CH₃COCH₃)IR・RamanIntegrationanalysis
-    analyzer = vibrationalSpectroscopyAnalyzer()
+        # Calculate SNR across spectrum
+        window = 20
+        snr = np.zeros(len(wavelengths) - window)
+        for i in range(len(snr)):
+            signal = np.mean(A_true[i:i+window])
+            noise = np.std(A_measured[i:i+window] - A_true[i:i+window])
+            snr[i] = signal / noise if noise > 0 else 0
     
-    # Synthetic IR spectrum
-    wn_ir = np.linspace(4000, 400, 2000)
-    ir_intensity = (
-     1.5 * np.exp(-(wn_ir - 2970)**2 / (2 * 20**2)) + # C-Hstretching
-     2.0 * np.exp(-(wn_ir - 1715)**2 / (2 * 30**2)) + # C=Ostretching
-     0.5 * np.exp(-(wn_ir - 1360)**2 / (2 * 25**2)) + # C-H bending
-     0.3 * np.random.random(len(wn_ir)) # Noise
-    )
+        ax3.plot(wavelengths[window//2:-window//2], snr, 'b-', linewidth=2)
+        ax3.axhline(y=10, color='orange', linestyle='--', label='Acceptable SNR (10)')
+        ax3.axhline(y=100, color='green', linestyle='--', label='Good SNR (100)')
     
-    # Synthetic Raman spectrum
-    wn_raman = np.linspace(3500, 100, 2000)
-    raman_intensity = (
-     0.8 * np.exp(-(wn_raman - 2970)**2 / (2 * 20**2)) + # C-Hstretching
-     1.2 * np.exp(-(wn_raman - 1715)**2 / (2 * 30**2)) + # C=Ostretching
-     1.5 * np.exp(-(wn_raman - 900)**2 / (2 * 25**2)) + # C-Cstretching
-     0.2 * np.random.random(len(wn_raman)) # Noise
-    )
+        ax3.set_xlabel('Wavelength (nm)', fontsize=12)
+        ax3.set_ylabel('Signal-to-Noise Ratio', fontsize=12)
+        ax3.set_title('SNR Across Spectrum', fontsize=14, fontweight='bold')
+        ax3.legend()
+        ax3.grid(True, alpha=0.3)
+        ax3.set_yscale('log')
     
-    # Integrationanalysis
-    ir_spec = {'wavenumbers': wn_ir, 'intensity': ir_intensity}
-    raman_spec = {'wavenumbers': wn_raman, 'intensity': raman_intensity}
+        # 4. Comparison of smoothing methods
+        ax4 = axes[1, 1]
     
-    result = analyzer.complementary_analysis(ir_spec, raman_spec)
+        # Different smoothing approaches
+        A_gaussian = gaussian_filter1d(A_measured, sigma=3)
+        A_sg_5 = savgol_filter(A_measured, window_length=5, polyorder=2)
+        A_sg_21 = savgol_filter(A_measured, window_length=21, polyorder=3)
     
-    # visualization
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+        # Focus on a peak region
+        mask = (wavelengths > 250) & (wavelengths < 320)
     
-    # IR spectrum
-    ax1.plot(wn_ir, ir_intensity, linewidth=1.5, color='#f093fb', label='IR spectrum')
-    ax1.fill_between(wn_ir, ir_intensity, alpha=0.3, color='#f5576c')
-    ax1.set_xlabel('Wavenumber (cm⁻¹)', fontsize=12)
-    ax1.set_ylabel('Absorbance (a.u.)', fontsize=12)
-    ax1.set_title('IR Spectrum of Acetone', fontsize=14, fontweight='bold')
-    ax1.invert_xaxis()
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
+        ax4.plot(wavelengths[mask], A_measured[mask], 'gray', linewidth=0.5,
+                 alpha=0.7, label='Raw')
+        ax4.plot(wavelengths[mask], A_gaussian[mask], 'g-', linewidth=2,
+                 label='Gaussian (sigma=3)')
+        ax4.plot(wavelengths[mask], A_sg_5[mask], 'b-', linewidth=2,
+                 label='SG (window=5)')
+        ax4.plot(wavelengths[mask], A_sg_21[mask], 'r-', linewidth=2,
+                 label='SG (window=21)')
+        ax4.plot(wavelengths[mask], A_true[mask], 'k--', linewidth=2, label='True')
     
-    # Raman spectrum
-    ax2.plot(wn_raman, raman_intensity, linewidth=1.5, color='#4ecdc4', label='Raman spectrum')
-    ax2.fill_between(wn_raman, raman_intensity, alpha=0.3, color='#ffe66d')
-    ax2.set_xlabel('Raman Shift (cm⁻¹)', fontsize=12)
-    ax2.set_ylabel('Intensity (a.u.)', fontsize=12)
-    ax2.set_title('Raman Spectrum of Acetone', fontsize=14, fontweight='bold')
-    ax2.legend()
-    ax2.grid(True, alpha=0.3)
+        ax4.set_xlabel('Wavelength (nm)', fontsize=12)
+        ax4.set_ylabel('Absorbance', fontsize=12)
+        ax4.set_title('Comparison of Smoothing Methods', fontsize=14, fontweight='bold')
+        ax4.legend()
+        ax4.grid(True, alpha=0.3)
     
-    plt.tight_layout()
-    plt.savefig('acetone_ir_raman_complementary.png', dpi=300, bbox_inches='tight')
-    plt.show()
+        plt.tight_layout()
+        plt.savefig('uvvis_instrument_simulation.png', dpi=300, bbox_inches='tight')
+        plt.show()
     
-    # Display analysis results
-    print("=" * 70)
-    print("IR and RamanIntegrated analysis results()")
-    print("=" * 70)
-    print("\nDetected by IR only:")
-    for group in result['IR_only']:
-     print(f" {group['functional_group']}: {group['wavenumber']:.0f} cm⁻¹")
+        return wavelengths, A_true, A_measured, A_smoothed
     
-    print("\nDetected by Raman only:")
-    for group in result['Raman_only']:
-     print(f" {group['functional_group']}: {group['wavenumber']:.0f} cm⁻¹")
+    # Execute simulation
+    wavelengths, A_true, A_measured, A_smoothed = simulate_uvvis_measurement()
     
-    print("\nDetected by both:")
-    for group in result['Both']:
-     print(f" {group}")
-    
-    print("\nConclusion:")
-    print(" - C=Ostretching: IR verystrong, Raman ")
-    print(" - C-Hstretching: IR・Raman strong")
-    print(" - C-Cstretching: Raman strong(IR)")
-    print(" → By combining IR and Raman, comprehensive understanding of molecular structure is achieved")
+    # Print instrument parameters
+    print("\n" + "=" * 60)
+    print("UV-Vis Spectrometer Specifications (Typical)")
+    print("=" * 60)
+    print("Wavelength range: 190 - 1100 nm")
+    print("Spectral bandwidth: 0.5 - 4 nm")
+    print("Photometric range: -3 to 4 AU")
+    print("Photometric accuracy: +/- 0.002 AU at 1 AU")
+    print("Stray light: < 0.01% at 220 nm")
+    print("Scan speed: 50 - 4000 nm/min")
     
 
-## Exercise Problems
+## 4\. Band Gap Determination for Semiconductors
 
-**Exercise Problems (Click to Expand)**
+### 4.1 Optical Band Gap and Tauc Analysis
 
-### Easy Level (Basic Calculations)
+For semiconductors, UV-Vis spectroscopy provides a powerful method to determine the optical band gap ($E_g$). The Tauc relation connects the absorption coefficient to the photon energy:
 
-**1** : C-Obond( $k = 1000$ N/m)vibrationWavenumber (cm⁻¹) 。 12 amu, 16 amu。
+$$(\alpha h\nu)^n = A(h\nu - E_g)$$
 
-View Solution
+where:
 
-**Solution** :
+  * $\alpha$ = Absorption coefficient (cm$^{-1}$)
+  * $h\nu$ = Photon energy (eV)
+  * $E_g$ = Band gap energy (eV)
+  * $A$ = Proportionality constant
+  * $n$ = 2 for direct allowed transitions, 1/2 for indirect allowed transitions
+
+**Types of Optical Transitions**
+
+  * **Direct band gap** ($n = 2$): Electrons transition directly from valence to conduction band (e.g., GaAs, CdS, ZnO)
+  * **Indirect band gap** ($n = 1/2$): Transition requires phonon assistance (e.g., Si, Ge)
+  * For thin films: $\alpha = 2.303 \times A / d$ where $A$ is absorbance and $d$ is film thickness
+
+#### Code Example 6: Tauc Plot Analysis for Band Gap Determination
     
     
-    # Use function from Code Example 1
-    freq_Hz, wavenumber = vibrational_frequency(k=1000, m1=12, m2=16)
-    print(f"C-Ostretchingvibration: {wavenumber:.1f} cm⁻¹")
-    # Output: Approximately 1270 cm⁻¹
+    """
+    Tauc Plot Analysis for Semiconductor Band Gap Determination
+    Demonstrates extraction of optical band gap from UV-Vis spectra
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.optimize import curve_fit
+    from scipy.stats import linregress
+    
+    class TaucPlotAnalyzer:
+        """
+        Analyzer for determining optical band gap from UV-Vis spectra
+        using the Tauc plot method.
+        """
+    
+        def __init__(self, wavelength_nm, absorbance, film_thickness_nm=None):
+            """
+            Initialize with spectral data.
+    
+            Parameters:
+            -----------
+            wavelength_nm : array
+                Wavelength in nanometers
+            absorbance : array
+                Absorbance (AU)
+            film_thickness_nm : float, optional
+                Film thickness for calculating absorption coefficient
+            """
+            self.wavelength = wavelength_nm
+            self.absorbance = absorbance
+            self.thickness = film_thickness_nm
+    
+            # Convert to photon energy
+            self.energy_eV = 1239.8 / wavelength_nm  # hc/lambda in eV
+    
+            # Calculate absorption coefficient if thickness is known
+            if film_thickness_nm is not None:
+                self.alpha = 2.303 * absorbance / (film_thickness_nm * 1e-7)  # cm^-1
+            else:
+                # Use absorbance directly (proportional to alpha)
+                self.alpha = absorbance
+    
+        def calculate_tauc(self, transition_type='direct'):
+            """
+            Calculate Tauc plot values.
+    
+            Parameters:
+            -----------
+            transition_type : str
+                'direct' (n=2) or 'indirect' (n=1/2)
+    
+            Returns:
+            --------
+            tauc_y : array
+                (alpha * hv)^n values
+            """
+            if transition_type == 'direct':
+                n = 2
+            elif transition_type == 'indirect':
+                n = 0.5
+            else:
+                raise ValueError("transition_type must be 'direct' or 'indirect'")
+    
+            tauc_y = (self.alpha * self.energy_eV) ** n
+            return tauc_y, n
+    
+        def fit_bandgap(self, transition_type='direct', fit_range=None):
+            """
+            Determine band gap by linear extrapolation.
+    
+            Parameters:
+            -----------
+            transition_type : str
+                'direct' or 'indirect'
+            fit_range : tuple, optional
+                (E_min, E_max) energy range for linear fit
+    
+            Returns:
+            --------
+            E_g : float
+                Optical band gap in eV
+            fit_params : dict
+                Fitting parameters and statistics
+            """
+            tauc_y, n = self.calculate_tauc(transition_type)
+    
+            # Find linear region if not specified
+            if fit_range is None:
+                # Find region with steepest slope
+                gradient = np.gradient(tauc_y, self.energy_eV)
+                max_slope_idx = np.argmax(gradient)
+    
+                # Define fit range around maximum slope
+                width = int(len(self.energy_eV) * 0.15)
+                start_idx = max(0, max_slope_idx - width)
+                end_idx = min(len(self.energy_eV), max_slope_idx + width)
+    
+                fit_mask = np.zeros(len(self.energy_eV), dtype=bool)
+                fit_mask[start_idx:end_idx] = True
+            else:
+                fit_mask = (self.energy_eV >= fit_range[0]) & (self.energy_eV <= fit_range[1])
+    
+            # Linear regression
+            slope, intercept, r_value, p_value, std_err = linregress(
+                self.energy_eV[fit_mask], tauc_y[fit_mask])
+    
+            # Band gap is x-intercept
+            E_g = -intercept / slope if slope != 0 else 0
+    
+            fit_params = {
+                'slope': slope,
+                'intercept': intercept,
+                'r_squared': r_value**2,
+                'std_err': std_err,
+                'fit_mask': fit_mask,
+                'n': n
+            }
+    
+            return E_g, fit_params
+    
+        def plot_analysis(self, transition_type='direct', fit_range=None):
+            """
+            Create comprehensive Tauc plot analysis figure.
+            """
+            E_g, fit_params = self.fit_bandgap(transition_type, fit_range)
+            tauc_y, n = self.calculate_tauc(transition_type)
+    
+            fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+    
+            # 1. Absorbance spectrum
+            ax1 = axes[0, 0]
+            ax1.plot(self.wavelength, self.absorbance, 'b-', linewidth=2)
+            ax1.set_xlabel('Wavelength (nm)', fontsize=12)
+            ax1.set_ylabel('Absorbance', fontsize=12)
+            ax1.set_title('UV-Vis Absorption Spectrum', fontsize=14, fontweight='bold')
+            ax1.grid(True, alpha=0.3)
+    
+            # Mark absorption edge
+            edge_idx = np.argmax(np.gradient(self.absorbance))
+            ax1.axvline(x=self.wavelength[edge_idx], color='red', linestyle='--',
+                        alpha=0.5, label=f'Edge ~ {self.wavelength[edge_idx]:.0f} nm')
+            ax1.legend()
+    
+            # 2. Absorbance vs Energy
+            ax2 = axes[0, 1]
+            ax2.plot(self.energy_eV, self.absorbance, 'b-', linewidth=2)
+            ax2.set_xlabel('Photon Energy (eV)', fontsize=12)
+            ax2.set_ylabel('Absorbance', fontsize=12)
+            ax2.set_title('Absorbance vs Photon Energy', fontsize=14, fontweight='bold')
+            ax2.grid(True, alpha=0.3)
+            ax2.axvline(x=E_g, color='red', linestyle='--',
+                        label=f'$E_g$ = {E_g:.2f} eV')
+            ax2.legend()
+    
+            # 3. Tauc plot with fit
+            ax3 = axes[1, 0]
+            ax3.plot(self.energy_eV, tauc_y, 'b-', linewidth=2, label='Data')
+    
+            # Plot linear fit
+            fit_mask = fit_params['fit_mask']
+            x_fit = np.linspace(E_g - 0.5, self.energy_eV[fit_mask].max() + 0.3, 100)
+            y_fit = fit_params['slope'] * x_fit + fit_params['intercept']
+            y_fit = np.maximum(y_fit, 0)  # No negative values
+    
+            ax3.plot(x_fit, y_fit, 'r--', linewidth=2,
+                     label=f'Linear fit (R$^2$ = {fit_params["r_squared"]:.4f})')
+            ax3.scatter(self.energy_eV[fit_mask], tauc_y[fit_mask],
+                        c='red', s=20, alpha=0.5, label='Fit region')
+    
+            # Mark band gap
+            ax3.axvline(x=E_g, color='green', linestyle='-', linewidth=2)
+            ax3.scatter([E_g], [0], s=200, c='green', marker='v', zorder=5)
+            ax3.annotate(f'$E_g$ = {E_g:.3f} eV', (E_g, tauc_y.max() * 0.1),
+                         fontsize=12, fontweight='bold')
+    
+            exponent = '2' if n == 2 else '1/2'
+            ax3.set_xlabel('Photon Energy (eV)', fontsize=12)
+            ax3.set_ylabel(f'$(\\alpha h\\nu)^{{{exponent}}}$', fontsize=12)
+            ax3.set_title(f'Tauc Plot ({transition_type.capitalize()} Transition)',
+                          fontsize=14, fontweight='bold')
+            ax3.legend()
+            ax3.grid(True, alpha=0.3)
+            ax3.set_xlim(E_g - 0.5, self.energy_eV.max())
+            ax3.set_ylim(0, tauc_y.max() * 1.1)
+    
+            # 4. Derivative analysis
+            ax4 = axes[1, 1]
+    
+            # First derivative of absorbance
+            dA_dE = np.gradient(self.absorbance, self.energy_eV)
+            ax4.plot(self.energy_eV, dA_dE / dA_dE.max(), 'b-', linewidth=2,
+                     label='dA/dE (normalized)')
+    
+            # Second derivative
+            d2A_dE2 = np.gradient(dA_dE, self.energy_eV)
+            ax4.plot(self.energy_eV, d2A_dE2 / np.abs(d2A_dE2).max(), 'g-',
+                     linewidth=2, label='d$^2$A/dE$^2$ (normalized)')
+    
+            ax4.axvline(x=E_g, color='red', linestyle='--',
+                        label=f'Tauc $E_g$ = {E_g:.2f} eV')
+            ax4.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+    
+            ax4.set_xlabel('Photon Energy (eV)', fontsize=12)
+            ax4.set_ylabel('Derivative (normalized)', fontsize=12)
+            ax4.set_title('Derivative Analysis', fontsize=14, fontweight='bold')
+            ax4.legend()
+            ax4.grid(True, alpha=0.3)
+    
+            plt.tight_layout()
+            plt.savefig('tauc_plot_analysis.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+            return E_g, fit_params
+    
+    # Generate synthetic semiconductor spectrum (e.g., ZnO)
+    def generate_semiconductor_spectrum(E_g=3.3, urbach_energy=0.05):
+        """
+        Generate synthetic UV-Vis spectrum for a semiconductor.
+    
+        Parameters:
+        -----------
+        E_g : float
+            Band gap energy (eV)
+        urbach_energy : float
+            Urbach tail parameter (eV)
+        """
+        wavelengths = np.linspace(250, 800, 551)
+        energies = 1239.8 / wavelengths
+    
+        # Absorption above band gap
+        alpha = np.zeros_like(energies)
+        above_gap = energies > E_g
+        alpha[above_gap] = 5e4 * np.sqrt(energies[above_gap] - E_g)
+    
+        # Urbach tail below band gap
+        below_gap = energies <= E_g
+        alpha[below_gap] = 5e4 * np.sqrt(0.01) * np.exp((energies[below_gap] - E_g) / urbach_energy)
+    
+        # Convert to absorbance (assuming 100 nm film)
+        thickness = 100e-7  # cm
+        absorbance = alpha * thickness / 2.303
+    
+        # Add noise
+        absorbance += 0.01 * np.random.randn(len(absorbance))
+        absorbance = np.maximum(absorbance, 0)
+    
+        return wavelengths, absorbance
+    
+    # Create and analyze
+    wavelengths, absorbance = generate_semiconductor_spectrum(E_g=3.3)
+    
+    analyzer = TaucPlotAnalyzer(wavelengths, absorbance, film_thickness_nm=100)
+    E_g, params = analyzer.plot_analysis(transition_type='direct')
+    
+    print("\n" + "=" * 60)
+    print("Tauc Plot Analysis Results")
+    print("=" * 60)
+    print(f"Optical Band Gap: {E_g:.3f} eV")
+    print(f"Corresponding wavelength: {1239.8/E_g:.1f} nm")
+    print(f"R-squared of fit: {params['r_squared']:.4f}")
+    print(f"Transition type: Direct (n = 2)")
     
 
-**2** : H₂Omolecule(, 3)vibration 。
+### 4.2 Urbach Tail and Disorder Analysis
 
-View Solution
+Below the band gap, absorption follows an exponential decay known as the Urbach tail, which provides information about disorder and defect states:
 
-**Solution** :
+$$\alpha = \alpha_0 \exp\left(\frac{h\nu - E_0}{E_U}\right)$$
 
-$$3N - 6 = 3 \times 3 - 6 = 3$$
+where $E_U$ is the Urbach energy, indicating the degree of structural disorder.
 
-H₂O 3vibrational mode(symmetric stretching, bendingvibration, asymmetric stretching) 。
-
-**3** : IR spectrum 1715 cm⁻¹ strongー 。This Functional Group ？
-
-View Solution
-
-****: (C=O)stretchingvibration。1650-1750 cm⁻¹region C=O。
-
-### medium Level (Practical Calculations)
-
-**4** : Isotope effect, ¹²C=O and ¹³C=O vibrational frequency ( and )。
-
-View Solution
-
-**Solution** :
+#### Code Example 7: Complete Spectral Analysis Workflow
     
     
-    _, wn_12C = vibrational_frequency(1200, 12, 16)
-    _, wn_13C = vibrational_frequency(1200, 13, 16)
+    """
+    Complete UV-Vis Spectral Analysis Workflow
+    Comprehensive analysis including baseline correction, peak fitting,
+    band gap determination, and quality assessment
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.optimize import curve_fit
+    from scipy.signal import savgol_filter, find_peaks
+    from scipy.stats import linregress
     
-    ratio = wn_12C / wn_13C
-    print(f"¹²C=O wavenumber: {wn_12C:.1f} cm⁻¹")
-    print(f"¹³C=O wavenumber: {wn_13C:.1f} cm⁻¹")
-    print(f"Ratio: {ratio:.4f}")
-    # Output: Ratio ≈ 1.017 (approximately 1.7% shift)
+    class UVVisAnalyzer:
+        """
+        Comprehensive UV-Vis spectral analysis class
+        """
+    
+        def __init__(self, wavelength, absorbance):
+            """
+            Initialize analyzer with spectral data.
+            """
+            self.wavelength = np.array(wavelength)
+            self.absorbance = np.array(absorbance)
+            self.energy = 1239.8 / self.wavelength
+            self.processed_absorbance = None
+            self.baseline = None
+            self.peaks = None
+    
+        def preprocess(self, smooth_window=11, baseline_degree=2):
+            """
+            Preprocess spectrum: smoothing and baseline correction.
+            """
+            # Savitzky-Golay smoothing
+            smoothed = savgol_filter(self.absorbance, smooth_window, polyorder=3)
+    
+            # Polynomial baseline fitting (using endpoints)
+            n_points = int(len(self.wavelength) * 0.1)
+            baseline_x = np.concatenate([self.wavelength[:n_points],
+                                          self.wavelength[-n_points:]])
+            baseline_y = np.concatenate([smoothed[:n_points], smoothed[-n_points:]])
+    
+            coeffs = np.polyfit(baseline_x, baseline_y, baseline_degree)
+            self.baseline = np.polyval(coeffs, self.wavelength)
+    
+            self.processed_absorbance = smoothed - self.baseline
+            self.processed_absorbance = np.maximum(self.processed_absorbance, 0)
+    
+            return self.processed_absorbance
+    
+        def find_peaks_wavelength(self, prominence=0.1):
+            """
+            Find absorption peaks in the spectrum.
+            """
+            if self.processed_absorbance is None:
+                self.preprocess()
+    
+            peaks, properties = find_peaks(self.processed_absorbance,
+                                            prominence=prominence * np.max(self.processed_absorbance))
+    
+            self.peaks = {
+                'indices': peaks,
+                'wavelengths': self.wavelength[peaks],
+                'energies': self.energy[peaks],
+                'absorbances': self.processed_absorbance[peaks],
+                'prominences': properties['prominences']
+            }
+    
+            return self.peaks
+    
+        def fit_gaussian_peaks(self, n_peaks=None):
+            """
+            Fit Gaussian functions to identified peaks.
+            """
+            if self.peaks is None:
+                self.find_peaks_wavelength()
+    
+            if n_peaks is None:
+                n_peaks = len(self.peaks['indices'])
+    
+            def multi_gaussian(x, *params):
+                result = np.zeros_like(x)
+                for i in range(0, len(params), 3):
+                    amp, cen, wid = params[i], params[i+1], params[i+2]
+                    result += amp * np.exp(-(x - cen)**2 / (2 * wid**2))
+                return result
+    
+            # Initial guesses
+            p0 = []
+            for i in range(min(n_peaks, len(self.peaks['indices']))):
+                idx = self.peaks['indices'][i]
+                p0.extend([self.processed_absorbance[idx],
+                           self.wavelength[idx],
+                           20])  # Initial width guess
+    
+            try:
+                popt, pcov = curve_fit(multi_gaussian, self.wavelength,
+                                       self.processed_absorbance, p0=p0, maxfev=10000)
+    
+                fitted_peaks = []
+                for i in range(0, len(popt), 3):
+                    fitted_peaks.append({
+                        'amplitude': popt[i],
+                        'center': popt[i+1],
+                        'width': popt[i+2],
+                        'fwhm': 2.355 * abs(popt[i+2]),
+                        'area': popt[i] * abs(popt[i+2]) * np.sqrt(2 * np.pi)
+                    })
+    
+                return fitted_peaks, popt, multi_gaussian
+    
+            except RuntimeError:
+                print("Peak fitting failed to converge")
+                return None, None, None
+    
+        def determine_bandgap(self, transition_type='direct'):
+            """
+            Determine optical band gap using Tauc method.
+            """
+            if self.processed_absorbance is None:
+                self.preprocess()
+    
+            n = 2 if transition_type == 'direct' else 0.5
+            tauc_y = (self.processed_absorbance * self.energy) ** n
+    
+            # Find linear region
+            gradient = np.gradient(tauc_y, self.energy)
+            max_slope_idx = np.argmax(gradient[len(gradient)//4:]) + len(gradient)//4
+    
+            width = int(len(self.energy) * 0.1)
+            start_idx = max(0, max_slope_idx - width)
+            end_idx = min(len(self.energy), max_slope_idx + width)
+    
+            slope, intercept, r_value, _, _ = linregress(
+                self.energy[start_idx:end_idx], tauc_y[start_idx:end_idx])
+    
+            E_g = -intercept / slope if slope > 0 else 0
+    
+            return E_g, r_value**2, tauc_y
+    
+        def full_analysis(self):
+            """
+            Perform complete spectral analysis and generate report.
+            """
+            fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    
+            # 1. Raw spectrum
+            ax1 = axes[0, 0]
+            ax1.plot(self.wavelength, self.absorbance, 'b-', linewidth=1)
+            ax1.set_xlabel('Wavelength (nm)', fontsize=11)
+            ax1.set_ylabel('Absorbance', fontsize=11)
+            ax1.set_title('Raw Spectrum', fontsize=12, fontweight='bold')
+            ax1.grid(True, alpha=0.3)
+    
+            # 2. Processed spectrum with baseline
+            ax2 = axes[0, 1]
+            self.preprocess()
+            ax2.plot(self.wavelength, self.absorbance, 'gray', linewidth=1,
+                     alpha=0.5, label='Raw')
+            ax2.plot(self.wavelength, self.baseline, 'r--', linewidth=1.5,
+                     label='Baseline')
+            ax2.plot(self.wavelength, self.processed_absorbance, 'b-', linewidth=2,
+                     label='Corrected')
+            ax2.set_xlabel('Wavelength (nm)', fontsize=11)
+            ax2.set_ylabel('Absorbance', fontsize=11)
+            ax2.set_title('Baseline Correction', fontsize=12, fontweight='bold')
+            ax2.legend()
+            ax2.grid(True, alpha=0.3)
+    
+            # 3. Peak identification
+            ax3 = axes[0, 2]
+            peaks = self.find_peaks_wavelength()
+            ax3.plot(self.wavelength, self.processed_absorbance, 'b-', linewidth=2)
+            ax3.scatter(peaks['wavelengths'], peaks['absorbances'],
+                        c='red', s=100, zorder=5, marker='v')
+            for i, (wl, a) in enumerate(zip(peaks['wavelengths'], peaks['absorbances'])):
+                ax3.annotate(f'{wl:.0f} nm', (wl, a), textcoords="offset points",
+                            xytext=(0, 10), ha='center', fontsize=9)
+            ax3.set_xlabel('Wavelength (nm)', fontsize=11)
+            ax3.set_ylabel('Absorbance', fontsize=11)
+            ax3.set_title('Peak Identification', fontsize=12, fontweight='bold')
+            ax3.grid(True, alpha=0.3)
+    
+            # 4. Gaussian peak fitting
+            ax4 = axes[1, 0]
+            fitted_peaks, popt, gauss_func = self.fit_gaussian_peaks(n_peaks=3)
+            if fitted_peaks is not None:
+                ax4.plot(self.wavelength, self.processed_absorbance, 'k.',
+                         markersize=2, alpha=0.5, label='Data')
+                ax4.plot(self.wavelength, gauss_func(self.wavelength, *popt),
+                         'r-', linewidth=2, label='Total Fit')
+    
+                colors = ['#3498db', '#2ecc71', '#9b59b6']
+                for i, (peak, color) in enumerate(zip(fitted_peaks, colors)):
+                    single_peak = peak['amplitude'] * np.exp(
+                        -(self.wavelength - peak['center'])**2 / (2 * peak['width']**2))
+                    ax4.fill_between(self.wavelength, single_peak, alpha=0.3,
+                                    color=color, label=f'Peak {i+1}')
+    
+            ax4.set_xlabel('Wavelength (nm)', fontsize=11)
+            ax4.set_ylabel('Absorbance', fontsize=11)
+            ax4.set_title('Gaussian Peak Fitting', fontsize=12, fontweight='bold')
+            ax4.legend(loc='upper right', fontsize=8)
+            ax4.grid(True, alpha=0.3)
+    
+            # 5. Tauc plot
+            ax5 = axes[1, 1]
+            E_g, r_sq, tauc_y = self.determine_bandgap('direct')
+            ax5.plot(self.energy, tauc_y, 'b-', linewidth=2)
+            ax5.axvline(x=E_g, color='red', linestyle='--', linewidth=2)
+            ax5.scatter([E_g], [0], s=200, c='red', marker='v', zorder=5)
+            ax5.annotate(f'$E_g$ = {E_g:.3f} eV\n({1239.8/E_g:.0f} nm)',
+                         (E_g, tauc_y.max() * 0.3), fontsize=11, fontweight='bold')
+            ax5.set_xlabel('Photon Energy (eV)', fontsize=11)
+            ax5.set_ylabel('$(\\alpha h\\nu)^2$', fontsize=11)
+            ax5.set_title('Tauc Plot (Direct Transition)', fontsize=12, fontweight='bold')
+            ax5.grid(True, alpha=0.3)
+            ax5.set_xlim(E_g - 1, self.energy.max())
+            ax5.set_ylim(0, tauc_y.max() * 1.1)
+    
+            # 6. Analysis summary
+            ax6 = axes[1, 2]
+            ax6.axis('off')
+    
+            summary_text = "Analysis Summary\n" + "=" * 40 + "\n\n"
+    
+            if fitted_peaks:
+                summary_text += "Identified Peaks:\n"
+                for i, peak in enumerate(fitted_peaks):
+                    summary_text += f"  Peak {i+1}: {peak['center']:.1f} nm\n"
+                    summary_text += f"    FWHM: {peak['fwhm']:.1f} nm\n"
+                    summary_text += f"    Area: {peak['area']:.4f}\n\n"
+    
+            summary_text += f"Band Gap Analysis:\n"
+            summary_text += f"  $E_g$ = {E_g:.3f} eV ({1239.8/E_g:.0f} nm)\n"
+            summary_text += f"  Fit quality: R$^2$ = {r_sq:.4f}\n\n"
+    
+            summary_text += f"Data Quality:\n"
+            summary_text += f"  Wavelength range: {self.wavelength.min():.0f}-{self.wavelength.max():.0f} nm\n"
+            summary_text += f"  Max absorbance: {self.absorbance.max():.3f}\n"
+            summary_text += f"  Points: {len(self.wavelength)}"
+    
+            ax6.text(0.1, 0.9, summary_text, transform=ax6.transAxes,
+                     fontsize=11, verticalalignment='top', fontfamily='monospace',
+                     bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+            ax6.set_title('Analysis Report', fontsize=12, fontweight='bold')
+    
+            plt.tight_layout()
+            plt.savefig('uvvis_full_analysis.png', dpi=300, bbox_inches='tight')
+            plt.show()
+    
+            return {
+                'peaks': fitted_peaks,
+                'bandgap': E_g,
+                'bandgap_wavelength': 1239.8 / E_g,
+                'fit_quality': r_sq
+            }
+    
+    # Generate complex test spectrum
+    def generate_complex_spectrum():
+        """Generate UV-Vis spectrum with multiple features."""
+        wavelength = np.linspace(200, 800, 601)
+    
+        # Multiple absorption peaks
+        peaks = [
+            {'center': 280, 'width': 25, 'amplitude': 0.8},
+            {'center': 350, 'width': 35, 'amplitude': 0.5},
+            {'center': 520, 'width': 50, 'amplitude': 0.3}
+        ]
+    
+        absorbance = np.zeros_like(wavelength)
+        for peak in peaks:
+            absorbance += peak['amplitude'] * np.exp(
+                -(wavelength - peak['center'])**2 / (2 * peak['width']**2))
+    
+        # Add baseline drift
+        absorbance += 0.02 + 0.0001 * (800 - wavelength)
+    
+        # Add noise
+        absorbance += 0.01 * np.random.randn(len(wavelength))
+    
+        return wavelength, absorbance
+    
+    # Execute full analysis
+    wavelength, absorbance = generate_complex_spectrum()
+    analyzer = UVVisAnalyzer(wavelength, absorbance)
+    results = analyzer.full_analysis()
+    
+    print("\n" + "=" * 60)
+    print("Complete UV-Vis Analysis Results")
+    print("=" * 60)
+    if results['peaks']:
+        print("\nPeak Analysis:")
+        for i, peak in enumerate(results['peaks']):
+            print(f"  Peak {i+1}: {peak['center']:.1f} nm (FWHM: {peak['fwhm']:.1f} nm)")
+    print(f"\nBand Gap: {results['bandgap']:.3f} eV ({results['bandgap_wavelength']:.0f} nm)")
+    print(f"Fit Quality: R^2 = {results['fit_quality']:.4f}")
     
 
-**5** : Raman, (300 K) Stokes and Anti-Stokesintensity ratio 。vibrational mode 1500 cm⁻¹ and 。
+## 5\. Practical Applications
 
-View Solution
+### 5.1 Application Areas
 
-**Solution** :
-    
-    
-    # Use boltzmann_population function from Code Example 5
-    ratio = boltzmann_population(1500, T=300)
-    print(f"I(Anti-Stokes) / I(Stokes) = {ratio:.4f}")
-    # Output: Approximately 0.023 (Anti-Stokes is about 2.3% of Stokes)
-    
-
-**6** : CO₂molecule(, 3)vibration, vibrational modeSymmetry(Σg⁺, Σu⁺, Πu) and IR/Raman active 。
-
-View Solution
-
-**Solution** :
-
-$$3N - 5 = 3 \times 3 - 5 = 4$$
-
-mode| Symmetry| Wavenumber (cm⁻¹)| IR active| Raman active  
----|---|---|---|---  
-symmetric stretching| Σg⁺| 1340| inactive| active  
-asymmetric stretching| Σu⁺| 2349| active| inactive  
-bendingvibration(2)| Πu| 667| active| inactive  
+Application | Method | Information Obtained  
+---|---|---  
+Concentration Analysis | Beer-Lambert Law | Quantitative composition  
+Semiconductor Characterization | Tauc Plot | Band gap, transition type  
+Reaction Kinetics | Time-resolved absorbance | Rate constants, mechanisms  
+Nanoparticle Analysis | Plasmon resonance | Size, shape, concentration  
+Protein Analysis | 280 nm absorbance | Concentration, purity  
+Thin Film Characterization | Transmission/Reflection | Thickness, optical constants  
   
-CO₂ centrosymmetricsymmetric molecule, 。
+## Exercises
 
-### Hard Level (Advanced Analysis)
+**Practice Problems (Click to Expand)**
 
-**7** : IR spectrumー, FTIRInterferogram 。the, Fourier transform restoreThis and 。
+### Basic Level
 
-View Solution(ー)
+**Problem 1** : A solution has a transmittance of 35% at 450 nm. Calculate the absorbance.
+
+View Solution
     
     
-    # Use functions from Code Example 4
-    true_wavenumbers = np.array([1000, 1500, 2000, 2900])
-    true_intensities = np.array([0.6, 1.0, 0.8, 0.7])
-    
-    # Generate interferogram
-    displacement, interferogram = generate_interferogram(true_wavenumbers, true_intensities,
-     mirror_displacement_max=0.1)
-    
-    # Restore spectrum by Fourier transform
-    wavenumbers_ft, spectrum_ft = fourier_transform_spectrum(displacement, interferogram)
-    
-    # Plot
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
-    
-    ax1.plot(displacement, interferogram, linewidth=1.5, color='#f093fb')
-    ax1.set_xlabel('Mirror displacement (cm)', fontsize=12)
-    ax1.set_ylabel('Intensity', fontsize=12)
-    ax1.set_title('IR spectrumInterferogram', fontsize=14, fontweight='bold')
-    ax1.grid(True, alpha=0.3)
-    
-    ax2.plot(wavenumbers_ft, spectrum_ft, linewidth=1.5, color='#f5576c')
-    for wn in true_wavenumbers:
-     ax2.axvline(x=wn, color='green', linestyle='--', alpha=0.7)
-    ax2.set_xlabel('Wavenumber (cm⁻¹)', fontsize=12)
-    ax2.set_ylabel('Intensity (a.u.)', fontsize=12)
-    ax2.set_title('Fourier transform Restored spectrum', fontsize=14, fontweight='bold')
-    ax2.set_xlim(0, 4000)
-    ax2.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.show()
-    
-    print("True peak positions:", true_wavenumbers)
-    print("restore: Fourier transform ")
+    T = 0.35  # 35%
+    A = -np.log10(T)
+    print(f"Absorbance: {A:.3f}")
+    # Output: Absorbance: 0.456
     
 
-**8** : benzene(D6hpoint group)vibrational mode(30), IR activemode and Raman activemode 。Symmetry 。
+**Problem 2** : If a compound has a molar absorptivity of 25,000 L mol$^{-1}$ cm$^{-1}$ at its absorption maximum and an absorbance of 0.8 is measured in a 1 cm cell, what is the concentration?
+
+View Solution
+    
+    
+    epsilon = 25000  # L mol^-1 cm^-1
+    A = 0.8
+    l = 1  # cm
+    
+    c = A / (epsilon * l)
+    print(f"Concentration: {c:.2e} M = {c*1e6:.1f} micromolar")
+    # Output: Concentration: 3.20e-05 M = 32.0 micromolar
+    
+
+**Problem 3** : Explain why $n \to \pi^*$ transitions typically have lower molar absorptivity than $\pi \to \pi^*$ transitions.
 
 View Solution
 
-**Solution** :
+$n \to \pi^*$ transitions have lower molar absorptivity because:
 
-benzene centrosymmetricsymmetric molecule(D6h), 。30vibrational mode：
+  * The spatial overlap between non-bonding orbitals (localized on heteroatoms) and $\pi^*$ orbitals (delocalized over the conjugated system) is poor
+  * These transitions are often symmetry-forbidden in molecules with certain point groups
+  * The transition dipole moment is smaller due to less charge redistribution
 
-  * **IR active** : u(ungerade)Symmetrymode → 4E1umode
-  * **Raman active** : g(gerade)Symmetrymode → 7A1g, E1g, E2gmode
-  * mode inactive(A2g, A2u, B1u, B2u)
+### Intermediate Level
 
-analysis, IR activemode and Raman activemode 。
+**Problem 4** : A calibration curve was prepared with the following data. Determine the concentration of an unknown sample with A = 0.45.
 
-**9** : Raman spectrumevaluation, Crystalline peak(1130 cm⁻¹) and Amorphous peak(1080 cm⁻¹)intensity ratio 2:1 。ー (ーwidth the 10 cm⁻¹, 15 cm⁻¹ and )。
+Concentration (micromolar)| 5| 10| 20| 30| 40  
+---|---|---|---|---|---  
+Absorbance| 0.12| 0.24| 0.47| 0.71| 0.95  
+View Solution
+    
+    
+    import numpy as np
+    from scipy.stats import linregress
+    
+    conc = np.array([5, 10, 20, 30, 40])
+    A = np.array([0.12, 0.24, 0.47, 0.71, 0.95])
+    
+    slope, intercept, r, p, se = linregress(conc, A)
+    print(f"Calibration: A = {slope:.4f} * C + {intercept:.4f}")
+    print(f"R-squared: {r**2:.4f}")
+    
+    unknown_A = 0.45
+    unknown_C = (unknown_A - intercept) / slope
+    print(f"Unknown concentration: {unknown_C:.1f} micromolar")
+    # Output: ~19.1 micromolar
+    
+
+**Problem 5** : A semiconductor thin film (thickness 200 nm) shows an absorption edge at approximately 380 nm. Estimate the band gap energy and determine whether this is likely a direct or indirect band gap material based on the absorption characteristics.
+
+View Solution
+    
+    
+    wavelength_edge = 380  # nm
+    E_g = 1239.8 / wavelength_edge
+    print(f"Estimated band gap: {E_g:.2f} eV")
+    # Output: ~3.26 eV
+    
+    # This is consistent with ZnO or similar wide band gap semiconductors
+    # ZnO has a direct band gap, so Tauc plot with n=2 should be used
+    # The sharp absorption edge is characteristic of direct transitions
+    
+
+**Problem 6** : Explain how the addition of an electron-donating group (-NH2) to benzene affects its UV absorption spectrum compared to plain benzene.
 
 View Solution
 
-**Solution** :
+Adding -NH2 (aniline formation) causes:
+
+  * **Bathochromic shift** : The absorption maximum shifts to longer wavelengths (red shift) due to extended conjugation between the lone pair on nitrogen and the aromatic ring
+  * **Increased intensity** : The molar absorptivity increases due to enhanced transition dipole moment
+  * Benzene: lambda_max ~255 nm, epsilon ~200
+  * Aniline: lambda_max ~280 nm (B-band), epsilon ~1400
+
+### Advanced Level
+
+**Problem 7** : Write Python code to determine both direct and indirect band gaps from a given absorption spectrum and compare the quality of the fits.
+
+View Solution
     
     
-    # Calculate peak area with Gaussian approximation
-    I_crystal = 2.0 # intensity ratio
-    I_amorphous = 1.0
-    width_crystal = 10 # cm^-1
-    width_amorphous = 15 # cm^-1
+    import numpy as np
+    from scipy.stats import linregress
+    import matplotlib.pyplot as plt
     
-    # = Intensity × width × sqrt(2π)(Gaussian)
-    area_crystal = I_crystal * width_crystal * np.sqrt(2 * np.pi)
-    area_amorphous = I_amorphous * width_amorphous * np.sqrt(2 * np.pi)
+    def analyze_both_transitions(wavelength, absorbance):
+        energy = 1239.8 / wavelength
     
-    crystallinity = area_crystal / (area_crystal + area_amorphous) * 100
-    print(f"Crystalline peak: {area_crystal:.1f}")
-    print(f"Amorphous peak: {area_amorphous:.1f}")
-    print(f"Crystallinity: {crystallinity:.1f}%")
-    # Output: Approximately 51.3%
+        results = {}
+    
+        for trans_type, n in [('direct', 2), ('indirect', 0.5)]:
+            tauc_y = (absorbance * energy) ** n
+    
+            # Find linear region
+            gradient = np.gradient(tauc_y, energy)
+            max_idx = np.argmax(gradient[len(gradient)//4:]) + len(gradient)//4
+    
+            width = int(len(energy) * 0.1)
+            start = max(0, max_idx - width)
+            end = min(len(energy), max_idx + width)
+    
+            slope, intercept, r, _, _ = linregress(energy[start:end], tauc_y[start:end])
+            E_g = -intercept / slope if slope > 0 else 0
+    
+            results[trans_type] = {'E_g': E_g, 'r_squared': r**2}
+    
+        print("Direct transition: E_g = {:.3f} eV (R^2 = {:.4f})".format(
+            results['direct']['E_g'], results['direct']['r_squared']))
+        print("Indirect transition: E_g = {:.3f} eV (R^2 = {:.4f})".format(
+            results['indirect']['E_g'], results['indirect']['r_squared']))
+    
+        # Better fit indicates the correct transition type
+        if results['direct']['r_squared'] > results['indirect']['r_squared']:
+            print("-> Direct transition likely (better linear fit)")
+        else:
+            print("-> Indirect transition likely (better linear fit)")
+    
+        return results
     
 
-**10** : H₂OmoleculeC2vpoint group 3vibrational mode(A₁, A₁, B₁), IR and Raman active, Description。
+**Problem 8** : A compound shows solvatochromism, with its absorption maximum shifting from 450 nm in hexane to 520 nm in water. What does this indicate about the nature of the electronic transition?
 
 View Solution
 
-**Solution** :
+The positive solvatochromism (red shift with increasing solvent polarity) indicates:
 
-From the character table of C2v point group:
+  * The excited state is more polar than the ground state
+  * This is characteristic of $\pi \to \pi^*$ transitions where charge transfer occurs
+  * Polar solvents stabilize the excited state more than the ground state, lowering the transition energy
+  * The shift of 70 nm (0.37 eV) is significant and suggests substantial charge redistribution in the excited state
 
-  * **A₁Symmetry** : Basis functions z(dipole moment) and x², y², z²(polarizability tensor) → IR activeRaman active
-  * **B₁Symmetry** : Basis functions x(dipole moment) and xz(polarizability tensor) → IR activeRaman active
+**Problem 9** : Design an experiment to determine the pKa of an indicator dye using UV-Vis spectroscopy.
 
-, H₂O3vibrational mode(symmetric stretchingA₁, bendingA₁, asymmetric stretchingB₁) IR and Raman 。centrosymmetricsymmetric molecule, 。
+View Solution
+
+Experimental Design:
+
+  1. Prepare buffer solutions spanning the expected pKa range (typically pKa +/- 2)
+  2. Add equal amounts of indicator to each buffer
+  3. Record UV-Vis spectra of all solutions
+  4. Identify wavelengths where protonated and deprotonated forms absorb maximally
+  5. Calculate the ratio of absorbances at these wavelengths
+  6. Plot log([A-]/[HA]) vs pH
+  7. pKa = pH at the point where the ratio equals 1 (Henderson-Hasselbalch equation)
+
+**Problem 10** : Implement a complete UV-Vis data processing pipeline that includes: baseline correction, smoothing, peak detection, and quantitative analysis with error estimation.
+
+View Solution
+
+See Code Example 7 for a complete implementation. Key components include:
+
+  * Savitzky-Golay filtering for smoothing
+  * Polynomial baseline fitting with endpoint selection
+  * Peak detection using scipy.signal.find_peaks
+  * Gaussian peak fitting with error estimation from covariance matrix
+  * Bootstrap resampling for confidence intervals
 
 ## Learning Objectives Review
 
-Review what you learned in this chapter and check the following items.
+After completing this chapter, verify your understanding of the following concepts:
 
-### Basic Understanding
+### Fundamental Understanding
 
-  * ✅ vibration and vibrational frequency・ Description 
-  * ✅ Understand the difference in selection rules for IR and Raman (dipole moment change vs. polarizability change)
-  * ✅ Functional Group (C=O: 1700 cm⁻¹, O-H: 3400 cm⁻¹)
-  * ✅ centrosymmetricsymmetric molecule Description 
+  * Can explain the four types of electronic transitions and their energy ordering
+  * Understand the physical meaning of chromophores and auxochromes
+  * Can apply the Beer-Lambert law for quantitative analysis
+  * Understand selection rules for electronic transitions
 
 ### Practical Skills
 
-  * ✅ vibrational frequency and Isotope effectevaluation 
-  * ✅ IR spectrumFunctional Groupidentify 
-  * ✅ Raman spectrumStokes/Anti-Stokesintensity ratio 
-  * ✅ evaluationPeak separation 
+  * Can create calibration curves and determine unknown concentrations
+  * Can identify and correct for deviations from Beer-Lambert law
+  * Can construct and interpret Tauc plots for band gap determination
+  * Can perform baseline correction and peak fitting on spectra
 
-### Application Skills
+### Applied Capabilities
 
-  * ✅ Can determine molecular structure by combining complementary information from IR and Raman
-  * ✅ vibrational modeSymmetry and IR/Raman active 
-  * ✅ FTIR(Interferogram and Fourier transform), 
+  * Can distinguish between direct and indirect band gap semiconductors
+  * Can predict how structural changes affect UV-Vis absorption
+  * Can design experiments for concentration determination and materials characterization
 
 ## References
 
-  1. Raman, C. V., Krishnan, K. S. (1928). A new type of secondary radiation. _Nature_ , 121(3048), 501-502. DOI: 10.1038/121501c0 - Historic original paper reporting the discovery of Raman scattering effect
-  2. Nakamoto, K. (2008). _Infrared and Raman Spectra of Inorganic and Coordination Compounds_ (6th ed.). Wiley, pp. 25-31 (IR theory), pp. 78-95 (Raman theory), pp. 115-140 (group theory applications). - IR・Raman spectrum and Functional GroupAssignment
-  3. Long, D. A. (2002). _The Raman Effect: A Unified Treatment of the Theory of Raman Scattering by Molecules_. Wiley, pp. 50-68 (classical theory), pp. 95-115 (quantum theory), pp. 145-160 (selection rules). - Quantum mechanical theory and selection rules of Raman scattering
-  4. Wilson, E. B., Decius, J. C., Cross, P. C. (1980). _Molecular vibrations: The Theory of Infrared and Raman vibrational Spectra_. Dover Publications, pp. 25-42 (normal modes), pp. 65-85 (group theory), pp. 95-110 (selection rules). - moleculevibration, and selection rule
-  5. Colthup, N. B., Daly, L. H., Wiberley, S. E. (1990). _Introduction to Infrared and Raman Spectroscopy_ (3rd ed.). Academic Press, pp. 100-125 (functional group frequencies), pp. 180-210 (spectral interpretation), pp. 220-240 (peak assignment). - and ーAssignment
-  6. Savitzky, A., Golay, M. J. E. (1964). Smoothing and differentiation of data by simplified least squares procedures. _Analytical Chemistry_ , 36(8), 1627-1639. DOI: 10.1021/ac60214a047 - Original paper on Savitzky-Golay smoothing filter (used in code examples)
-  7. SciPy 1.11 Signal Processing Documentation. _scipy.signal.find_peaks, scipy.signal.savgol_filter_. Available at: https://docs.scipy.org/doc/scipy/reference/signal.html - Spectral data processing using Python
-  8. Smith, E., Dent, G. (2019). _modern Raman Spectroscopy: A Practical Approach_ (2nd ed.). Wiley, pp. 15-28 (instrumentation), pp. 45-65 (sampling techniques), pp. 72-80 (data processing). - Practical techniques of modern Raman spectroscopy
-  9. Cotton, F. A. (1990). _Chemical Applications of Group Theory_ (3rd ed.). Wiley, pp. 250-275 (point groups), pp. 285-305 (vibrational modes), pp. 310-320 (selection rules). - and vibrationSymmetryanalysis
+  1. Skoog, D. A., Holler, F. J., Crouch, S. R. (2017). _Principles of Instrumental Analysis_ (7th ed.). Cengage Learning, pp. 301-350 (UV-Vis spectroscopy fundamentals).
+  2. Tauc, J. (1966). Optical properties and electronic structure of amorphous Ge and Si. _Materials Research Bulletin_ , 3(1), 37-46. DOI: 10.1016/0025-5408(68)90023-8
+  3. Perkampus, H.-H. (1992). _UV-VIS Spectroscopy and Its Applications_. Springer-Verlag, pp. 15-45 (electronic transitions), pp. 78-95 (chromophores).
+  4. Owen, T. (1996). _Fundamentals of Modern UV-visible Spectroscopy_. Agilent Technologies, pp. 25-40 (instrumentation), pp. 55-70 (quantitative analysis).
+  5. Murphy, A. B. (2007). Band-gap determination from diffuse reflectance measurements of semiconductor films. _Solar Energy Materials and Solar Cells_ , 91(14), 1326-1337. DOI: 10.1016/j.solmat.2007.05.005
+  6. Makula, P., Pacia, M., Macyk, W. (2018). How to correctly determine the band gap energy of modified semiconductor photocatalysts. _The Journal of Physical Chemistry Letters_ , 9(23), 6814-6817. DOI: 10.1021/acs.jpclett.8b02892
 
 ## Next Steps
 
-2, ・, selection rule, Functional Group, Symmetryanalysis 。vibration, FTIR, Stokes/Anti-Stokes, evaluation, ーanalysis。
+In Chapter 2, we covered UV-Vis spectroscopy fundamentals including electronic transitions, the Beer-Lambert law, chromophores and auxochromes, instrumentation, and band gap determination using Tauc plots. We also implemented comprehensive Python tools for spectral analysis.
 
-**Chapter 3** will cover UV-Vis (ultraviolet-visible) spectroscopy. We will cover everything about electronic state analysis of semiconductors and organic materials, including electronic transitions, applications of Lambert-Beer law, band gap measurement by Tauc plot, ligand field theory, and absorption spectrum analysis using Python.
+**Chapter 3** will cover infrared (IR) spectroscopy and Fourier transform infrared (FTIR) spectroscopy. We will explore molecular vibrations, functional group identification, the fingerprint region, and applications in polymer characterization and surface analysis.
 
 ### Disclaimer
 

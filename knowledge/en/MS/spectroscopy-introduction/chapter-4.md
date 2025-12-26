@@ -1,1600 +1,1627 @@
 ---
-title: "Chapter 4: X-ray Photoelectron Spectroscopy (XPS: X-ray Photoelectron Spectroscopy)"
-chapter_title: "Chapter 4: X-ray Photoelectron Spectroscopy (XPS: X-ray Photoelectron Spectroscopy)"
+title: "Chapter 4: Raman Spectroscopy"
+chapter_title: "Chapter 4: Raman Spectroscopy"
+version: 1.0
+created_at: 2025-12-26
 ---
 
-[AI Terakoya Top](<../index.html>):[Materials Science](<../../index.html>):[Spectroscopy](<../../MS/spectroscopy-introduction/index.html>):Chapter 4
+[AI Terakoya Top](<../index.html>):[Materials Science](<../../index.html>):[Spectroscopy](<index.html>):Chapter 4
 
-🌐 EN | [🇯🇵 JP](<../../../jp/MS/spectroscopy-introduction/chapter-4.html>) | Last sync: 2025-11-16
+EN | [JP](<../../../jp/MS/spectroscopy-introduction/chapter-4.html>) | Last sync: 2025-12-26
 
-# Chapter 4: X-ray Photoelectron Spectroscopy (XPS: X-ray Photoelectron Spectroscopy)
+# Chapter 4: Raman Spectroscopy
 
-**What you will learn in this chapter:** X-ray Photoelectron Spectroscopy (XPS) is a surface analysis technique that analyzes the chemical composition and electronic states of material surfaces with high sensitivity. Based on the principle of the photoelectric effect, by measuring the kinetic energy of photoelectrons emitted from the sample surface, it enables element identification, chemical shift analysis, quantitative analysis, and depth profiling. In this chapter, you will systematically learn from the physical principles of XPS to practical peak fitting methods, quantitative analysis algorithms, and depth profiling, covering both the fundamentals and applications of XPS data analysis.
+**What you will learn in this chapter:** Raman spectroscopy is a powerful vibrational spectroscopy technique based on inelastic light scattering. Unlike infrared spectroscopy, Raman probes changes in molecular polarizability, making it complementary to IR for complete vibrational analysis. In this chapter, you will learn the physics of Raman scattering (Stokes and anti-Stokes), selection rules based on polarizability changes, the complementary relationship between Raman and IR spectroscopy, Surface-Enhanced Raman Spectroscopy (SERS), and practical applications in carbon materials analysis including graphene and carbon nanotubes. You will also develop Python programming skills for Raman spectral analysis, D/G band fitting, and peak deconvolution.
 
-## 4.1 Principles of X-ray Photoelectron Spectroscopy
+### Learning Objectives
 
-### 4.1.1 Photoelectric Effect and Einstein's Equation
+  * Understand the physical mechanism of Raman scattering and distinguish between Stokes, anti-Stokes, and Rayleigh scattering
+  * Apply Raman selection rules based on polarizability changes
+  * Explain the complementary relationship between Raman and IR spectroscopy
+  * Describe the principles and applications of Surface-Enhanced Raman Spectroscopy (SERS)
+  * Interpret Raman spectra of carbon materials (D, G, 2D bands)
+  * Implement Python code for Raman spectral analysis and peak deconvolution
 
-XPS is based on the photoelectric effect theorized by Albert Einstein (1905). When a sample is irradiated with X-rays, the photon energy of the X-rays is absorbed by electrons, and electrons are emitted from the sample surface (photoelectrons).
+## 4.1 Fundamentals of Raman Scattering
 
-**Kinetic Energy of Photoelectrons (Einstein's Equation):**
+### 4.1.1 The Raman Effect
 
-\\[ E_{\text{kinetic}} = h\nu - E_{\text{binding}} - \phi \\] 
+Raman spectroscopy is based on the inelastic scattering of light, discovered by C.V. Raman in 1928. When monochromatic light interacts with a molecule, most photons are elastically scattered (Rayleigh scattering) with no change in energy. However, a small fraction (approximately 1 in 10 million photons) undergoes inelastic scattering, where energy is exchanged between the photon and molecular vibrations.
 
-where \\( h\nu \\) is the photon energy of incident X-rays, \\( E_{\text{binding}} \\) is the binding energy of electrons, and \\( \phi \\) is the work function of the instrument.
+**Energy Conservation in Raman Scattering:**
 
-**Determination of Binding Energy:**
+\\[ E_{\text{scattered}} = E_{\text{incident}} \pm E_{\text{vibration}} \\] 
 
-\\[ E_{\text{binding}} = h\nu - E_{\text{kinetic}} - \phi \\] 
+where the plus sign corresponds to anti-Stokes scattering and the minus sign to Stokes scattering.
 
-In XPS, by measuring the kinetic energy \\( E_{\text{kinetic}} \\), the binding energy \\( E_{\text{binding}} \\) is determined. Binding energy has characteristic values for each element and chemical state, enabling element identification and chemical state analysis.
+**Raman Shift (in wavenumbers):**
 
-### 4.1.2 Characteristics of XPS Measurement
+\\[ \Delta \tilde{\nu} = \tilde{\nu}_{\text{incident}} - \tilde{\nu}_{\text{scattered}} = \frac{1}{\lambda_{\text{incident}}} - \frac{1}{\lambda_{\text{scattered}}} \\] 
 
-#### Main Features of XPS
+The Raman shift is expressed in cm-1 and is independent of the excitation wavelength, depending only on the vibrational energy of the molecule.
 
-  * **Surface Sensitivity:** The inelastic mean free path (IMFP) of photoelectrons is a few nm, obtaining information from approximately 5-10 nm of the sample surface
-  * **Element Identification:** All elements except Li can be detected (detection limit: 0.1-1 at%)
-  * **Chemical State Analysis:** Chemical shifts (0.1-10 eV) enable identification of oxidation states and coordination environments
-  * **Quantitative Analysis:** Elemental composition ratios are determined from peak areas (relative error: ±10%)
-  * **Non-destructive Analysis:** Normal measurements cause almost no sample damage
-  * **Ultra-high Vacuum Environment:** Measurements are conducted under ultra-high vacuum of 10-7 \- 10-9 Pa
+### 4.1.2 Stokes, Anti-Stokes, and Rayleigh Scattering
 
-### 4.1.3 X-ray Sources and Energy Resolution
-
-Typical X-ray sources used in XPS are Al K± radiation (1486.6 eV) and Mg K± radiation (1253.6 eV). Using a monochromatic X-ray source can improve energy resolution.
-
-X-ray Source | Photon Energy (eV) | Linewidth (eV) | Energy Resolution  
----|---|---|---  
-Mg K± (non-monochromatic) | 1253.6 | 0.7 | Standard  
-Al K± (non-monochromatic) | 1486.6 | 0.85 | Standard  
-Al K± (monochromatic) | 1486.6 | 0.2-0.3 | High Resolution  
-      
+The three types of light scattering can be understood through energy level diagrams:
+    
     
     ```mermaid
-    flowchart LR
-            A[X-ray Irradiationh½ = 1486.6 eV] --> B[Sample SurfaceAtomic Orbitals]
-            B --> C[Photoelectron EmissionE_kinetic Measurement]
-            C --> D[Energy AnalyzerHemispherical Analyzer]
-            D --> E[DetectorElectron Counting]
-            E --> F[XPS SpectrumE_binding vs. Intensity]
+    graph TD
+        subgraph "Rayleigh Scattering"
+        A1[Ground State v=0] -->|Incident photon| B1[Virtual State]
+        B1 -->|Scattered photonsame energy| A1
+        end
     
-            style A fill:#e3f2fd
-            style B fill:#fff3e0
-            style C fill:#fce4ec
-            style D fill:#e8f5e9
-            style E fill:#f3e5f5
-            style F fill:#ffe0b2
-        
+        subgraph "Stokes Raman"
+        A2[Ground State v=0] -->|Incident photon| B2[Virtual State]
+        B2 -->|Scattered photonlower energy| C2[Excited State v=1]
+        end
     
-        4.2 Chemical Shift and Peak Identification
-    4.2.1 Origin of Chemical Shift
-    When the chemical state (oxidation state, coordination environment) of an atom changes, the binding energy of core electrons shifts. This is called the chemical shift.
-    
-    Principle of Chemical Shift
-    High Oxidation State ’ Increase in Binding Energy (Shift to Higher Energy)
-    
-    As electrons are withdrawn, the effective nuclear charge of the atom increases
-    Core electrons are more strongly bound
-    Example: C 1s peak: C-C (284.5 eV) < C-O (286.5 eV) < C=O (288.0 eV) < O-C=O (289.5 eV)
-    
-    Increase in Electron Density ’ Decrease in Binding Energy (Shift to Lower Energy)
-    
-    Electron-donating groups increase the electron density of the atom
-    Screening effect of core electrons becomes stronger
-    Example: Si 2p peak: SiO2 (103.5 eV) > Si (99.3 eV)
+        subgraph "Anti-Stokes Raman"
+        A3[Excited State v=1] -->|Incident photon| B3[Virtual State]
+        B3 -->|Scattered photonhigher energy| C3[Ground State v=0]
+        end
+    ```
+
+#### Comparison of Scattering Types
+
+Property | Rayleigh | Stokes | Anti-Stokes  
+---|---|---|---  
+Energy change | None | Photon loses energy | Photon gains energy  
+Wavelength shift | None | Longer wavelength (red shift) | Shorter wavelength (blue shift)  
+Initial state | v = 0 | v = 0 | v = 1 (or higher)  
+Final state | v = 0 | v = 1 | v = 0  
+Intensity | Very strong | Weak | Very weak  
+Temperature dependence | Minimal | Minimal | Strong (Boltzmann)  
+  
+#### Code Example 1: Simulating Stokes and Anti-Stokes Spectra
     
     
-    4.2.2 XPS Peaks of Representative Elements
-    
-    
-    
-    Element
-    Peak
-    Binding Energy (eV)
-    Chemical State
-    
-    
-    
-    
-    C
-    1s
-    284.5
-    C-C, C-H (hydrocarbon)
-    
-    
-    1s
-    286.5
-    C-O (ether, alcohol)
-    
-    
-    1s
-    288.0
-    C=O (carbonyl)
-    
-    
-    1s
-    289.5
-    O-C=O (carboxyl)
-    
-    
-    Si
-    2p3/2
-    99.3
-    Si0 (metallic silicon)
-    
-    
-    2p3/2
-    103.5
-    Si4+ (SiO2)
-    
-    
-    Fe
-    2p3/2
-    707.0
-    Fe0 (metallic iron)
-    
-    
-    2p3/2
-    710.8
-    Fe3+ (Fe2O3)
-    
-    
-    2p3/2
-    709.5
-    Fe2+ (FeO)
-    
-    
-    O
-    1s
-    530.0
-    Metal oxide (M-O)
-    
-    
-    1s
-    532.5
-    Organic compound (C-O, C=O)
-    
-    
-    
-    Code Example 1: XPS Spectrum Simulation and Peak Identification
     # Requirements:
     # - Python 3.9+
+    # - numpy>=1.24.0
     # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
     
     import numpy as np
     import matplotlib.pyplot as plt
     
-    def gaussian_peak(x, amplitude, center, width):
+    def boltzmann_ratio(delta_E_cm, temperature):
         """
-        Generate Gaussian-type peak
+        Calculate the anti-Stokes to Stokes intensity ratio using Boltzmann distribution.
     
         Parameters:
         -----------
-        x : array
-            Binding energy (eV)
-        amplitude : float
-            Peak height
-        center : float
-            Peak center (eV)
-        width : float
-            Full width at half maximum (FWHM, eV)
+        delta_E_cm : float
+            Vibrational energy in cm^-1
+        temperature : float
+            Temperature in Kelvin
     
         Returns:
         --------
-        peak : array
-            Intensity of Gaussian peak
+        ratio : float
+            Anti-Stokes / Stokes intensity ratio
         """
-        sigma = width / (2 * np.sqrt(2 * np.log(2)))
-        peak = amplitude * np.exp(-((x - center)**2) / (2 * sigma**2))
-        return peak
+        # Physical constants
+        h = 6.62607015e-34  # J*s
+        c = 2.99792458e10   # cm/s
+        k_B = 1.380649e-23  # J/K
     
-    def simulate_xps_c1s_spectrum():
-        """
-        Simulate C 1s XPS spectrum (multiple chemical states)
-        """
-        # Binding energy range
-        BE = np.linspace(280, 295, 1500)
+        # Energy in Joules
+        delta_E_J = h * c * delta_E_cm
     
-        # C 1s peaks (4 chemical states)
-        C_CC = gaussian_peak(BE, amplitude=1000, center=284.5, width=1.2)   # C-C, C-H
-        C_CO = gaussian_peak(BE, amplitude=300, center=286.5, width=1.3)    # C-O
-        C_O = gaussian_peak(BE, amplitude=150, center=288.0, width=1.4)     # C=O
-        COO = gaussian_peak(BE, amplitude=80, center=289.5, width=1.5)      # O-C=O
+        # Boltzmann ratio
+        ratio = np.exp(-delta_E_J / (k_B * temperature))
+        return ratio
     
-        # Total spectrum
-        total_spectrum = C_CC + C_CO + C_O + COO
+    def lorentzian(x, center, width, amplitude):
+        """Generate Lorentzian peak."""
+        return amplitude * (width**2) / ((x - center)**2 + width**2)
     
-        # Noise
-        noise = np.random.normal(0, 10, len(BE))
-        observed_spectrum = total_spectrum + noise
+    # Simulation parameters
+    raman_shift = np.linspace(-1800, 1800, 1000)  # cm^-1
+    temperature = 300  # Kelvin
     
-        # Plot
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    # Define vibrational modes (example: organic molecule)
+    modes = [
+        {'shift': 500, 'width': 15, 'amplitude': 0.3},
+        {'shift': 1000, 'width': 20, 'amplitude': 0.5},
+        {'shift': 1450, 'width': 25, 'amplitude': 1.0},
+    ]
     
-        # Overall spectrum
-        ax1.plot(BE, observed_spectrum, 'k-', linewidth=1.5, label='Observed Spectrum')
-        ax1.fill_between(BE, C_CC, alpha=0.3, color='blue', label='C-C, C-H (284.5 eV)')
-        ax1.fill_between(BE, C_CO, alpha=0.3, color='green', label='C-O (286.5 eV)')
-        ax1.fill_between(BE, C_O, alpha=0.3, color='orange', label='C=O (288.0 eV)')
-        ax1.fill_between(BE, COO, alpha=0.3, color='red', label='O-C=O (289.5 eV)')
-        ax1.set_xlabel('Binding Energy (eV)', fontsize=12)
-        ax1.set_ylabel('Intensity (cps)', fontsize=12)
-        ax1.set_title('C 1s XPS Spectrum (Multi-component)', fontsize=14, fontweight='bold')
-        ax1.legend(loc='upper right', fontsize=9)
-        ax1.grid(alpha=0.3)
-        ax1.invert_xaxis()  # XPS convention (high energy ’ low energy)
+    # Generate Stokes and anti-Stokes spectra
+    stokes_spectrum = np.zeros_like(raman_shift)
+    anti_stokes_spectrum = np.zeros_like(raman_shift)
     
-        # Separation of each component
-        ax2.plot(BE, C_CC, 'b-', linewidth=2, label='C-C, C-H')
-        ax2.plot(BE, C_CO, 'g-', linewidth=2, label='C-O')
-        ax2.plot(BE, C_O, 'orange', linewidth=2, label='C=O')
-        ax2.plot(BE, COO, 'r-', linewidth=2, label='O-C=O')
-        ax2.axvline(284.5, color='blue', linestyle='--', alpha=0.5)
-        ax2.axvline(286.5, color='green', linestyle='--', alpha=0.5)
-        ax2.axvline(288.0, color='orange', linestyle='--', alpha=0.5)
-        ax2.axvline(289.5, color='red', linestyle='--', alpha=0.5)
-        ax2.set_xlabel('Binding Energy (eV)', fontsize=12)
-        ax2.set_ylabel('Intensity (cps)', fontsize=12)
-        ax2.set_title('Separation of Chemical States', fontsize=14, fontweight='bold')
-        ax2.legend()
-        ax2.grid(alpha=0.3)
-        ax2.invert_xaxis()
+    for mode in modes:
+        shift = mode['shift']
+        width = mode['width']
+        amp = mode['amplitude']
     
-        plt.tight_layout()
-        plt.show()
+        # Stokes peaks (positive shift)
+        stokes_spectrum += lorentzian(raman_shift, shift, width, amp)
     
-        print("C 1s Peak Identification:")
-        print("  284.5 eV: C-C, C-H (hydrocarbon skeleton)")
-        print("  286.5 eV: C-O (ether, alcohol)")
-        print("  288.0 eV: C=O (carbonyl group)")
-        print("  289.5 eV: O-C=O (carboxyl group)")
+        # Anti-Stokes peaks (negative shift, intensity reduced by Boltzmann factor)
+        ratio = boltzmann_ratio(shift, temperature)
+        anti_stokes_spectrum += lorentzian(raman_shift, -shift, width, amp * ratio)
     
-    # Execute
-    simulate_xps_c1s_spectrum()
+    # Add Rayleigh scattering (central peak)
+    rayleigh = lorentzian(raman_shift, 0, 5, 50)
     
-    4.3 Peak Fitting and Deconvolution
-    4.3.1 Selection of Peak Shape
-    XPS peaks are represented by a Voigt function, which is a mixture of Gaussian and Lorentzian types (or its approximation, the Gaussian-Lorentzian function).
+    # Total spectrum
+    total_spectrum = stokes_spectrum + anti_stokes_spectrum + rayleigh
     
-    Gaussian-Lorentzian (GL) Mixed Function:
-            \[
-            f(x) = m \cdot G(x) + (1-m) \cdot L(x)
-            \]
-            where \( G(x) \) is the Gaussian function, \( L(x) \) is the Lorentzian function, and \( m \) (0 d m d 1) is the mixing ratio.
-    Gaussian Function:
-            \[
-            G(x) = A \exp\left(-\frac{(x - x_0)^2}{2\sigma^2}\right)
-            \]
+    # Visualization
+    fig, axes = plt.subplots(2, 1, figsize=(12, 8))
     
-            Lorentzian Function:
-            \[
-            L(x) = A \frac{\gamma^2}{(x - x_0)^2 + \gamma^2}
-            \]
-        
-    4.3.2 Shirley Background
-    XPS spectra contain a background from inelastically scattered electrons. The Shirley background proposed by David A. Shirley (1972) is widely used.
-    Code Example 2: Shirley Background Subtraction and Peak Fitting
+    # Full spectrum
+    ax1 = axes[0]
+    ax1.fill_between(raman_shift[raman_shift < 0], anti_stokes_spectrum[raman_shift < 0],
+                      alpha=0.5, color='blue', label='Anti-Stokes')
+    ax1.fill_between(raman_shift[raman_shift > 0], stokes_spectrum[raman_shift > 0],
+                      alpha=0.5, color='red', label='Stokes')
+    ax1.plot(raman_shift, rayleigh, 'g-', linewidth=2, label='Rayleigh')
+    ax1.set_xlabel('Raman Shift (cm$^{-1}$)', fontsize=12)
+    ax1.set_ylabel('Intensity (a.u.)', fontsize=12)
+    ax1.set_title('Raman Spectrum: Stokes, Anti-Stokes, and Rayleigh Scattering', fontsize=14)
+    ax1.legend()
+    ax1.set_xlim(-1800, 1800)
+    ax1.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
+    ax1.grid(True, alpha=0.3)
+    
+    # Temperature dependence of anti-Stokes/Stokes ratio
+    ax2 = axes[1]
+    temperatures = np.linspace(100, 600, 100)
+    mode_shifts = [500, 1000, 1500]
+    
+    for shift in mode_shifts:
+        ratios = [boltzmann_ratio(shift, T) for T in temperatures]
+        ax2.plot(temperatures, ratios, linewidth=2, label=f'{shift} cm$^{{-1}}$')
+    
+    ax2.set_xlabel('Temperature (K)', fontsize=12)
+    ax2.set_ylabel('Anti-Stokes / Stokes Ratio', fontsize=12)
+    ax2.set_title('Temperature Dependence of Anti-Stokes/Stokes Intensity Ratio', fontsize=14)
+    ax2.legend(title='Vibrational Mode')
+    ax2.grid(True, alpha=0.3)
+    ax2.set_yscale('log')
+    
+    plt.tight_layout()
+    plt.savefig('raman_stokes_antistokes.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Print intensity ratios at room temperature
+    print("Anti-Stokes/Stokes intensity ratios at 300 K:")
+    print("-" * 40)
+    for shift in mode_shifts:
+        ratio = boltzmann_ratio(shift, 300)
+        print(f"  {shift} cm^-1: {ratio:.4f} ({ratio*100:.2f}%)")
+    
+
+## 4.2 Raman Selection Rules
+
+### 4.2.1 Polarizability and Raman Activity
+
+The fundamental selection rule for Raman spectroscopy is based on the change in molecular polarizability during vibration. A vibration is Raman-active if the polarizability changes during the vibration:
+
+**Raman Selection Rule:**
+
+\\[ \left(\frac{\partial \alpha}{\partial Q}\right)_{Q=0} \neq 0 \\] 
+
+where \\(\alpha\\) is the polarizability tensor and \\(Q\\) is the normal coordinate of vibration.
+
+**Induced Dipole Moment:**
+
+\\[ \vec{\mu}_{\text{induced}} = \alpha \cdot \vec{E} \\] 
+
+The polarizability \\(\alpha\\) is a tensor that relates the induced dipole moment to the electric field of the incident light.
+
+### 4.2.2 Comparison with IR Selection Rules
+
+#### IR vs. Raman Selection Rules
+
+Aspect | IR Spectroscopy | Raman Spectroscopy  
+---|---|---  
+Physical basis | Change in dipole moment | Change in polarizability  
+Selection rule | \\(\left(\frac{\partial \mu}{\partial Q}\right) \neq 0\\) | \\(\left(\frac{\partial \alpha}{\partial Q}\right) \neq 0\\)  
+Symmetric vibrations | Often IR-inactive | Often Raman-active  
+Asymmetric vibrations | Often IR-active | Often Raman-inactive  
+Centrosymmetric molecules | g modes: inactive | g modes: active  
+Water interference | Strong | Weak  
+  
+For molecules with a center of symmetry (centrosymmetric), the mutual exclusion rule applies: vibrations that are Raman-active are IR-inactive and vice versa. This makes IR and Raman spectroscopy complementary techniques.
+
+#### Code Example 2: Comparing IR and Raman Activity for CO2
+    
+    
     # Requirements:
     # - Python 3.9+
+    # - numpy>=1.24.0
     # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def gaussian(x, center, width, amplitude):
+        """Generate Gaussian peak."""
+        return amplitude * np.exp(-((x - center)**2) / (2 * width**2))
+    
+    # CO2 vibrational modes
+    # Mode | Wavenumber | Symmetry | IR Active | Raman Active
+    # --------------------------------------------------------
+    # Symmetric stretch | 1388 cm^-1 | Sigma_g+ | No | Yes
+    # Asymmetric stretch | 2349 cm^-1 | Sigma_u+ | Yes | No
+    # Bending (x2) | 667 cm^-1 | Pi_u | Yes | No
+    
+    wavenumber = np.linspace(400, 2600, 1000)
+    
+    # IR spectrum (only asymmetric stretch and bending are active)
+    ir_spectrum = np.zeros_like(wavenumber)
+    ir_spectrum += gaussian(wavenumber, 667, 20, 0.6)   # Bending mode
+    ir_spectrum += gaussian(wavenumber, 2349, 25, 1.0)  # Asymmetric stretch
+    
+    # Raman spectrum (only symmetric stretch is active)
+    raman_spectrum = np.zeros_like(wavenumber)
+    raman_spectrum += gaussian(wavenumber, 1388, 20, 1.0)  # Symmetric stretch
+    
+    # Create comparison plot
+    fig, axes = plt.subplots(3, 1, figsize=(12, 10))
+    
+    # IR spectrum
+    ax1 = axes[0]
+    ax1.plot(wavenumber, ir_spectrum, 'b-', linewidth=2)
+    ax1.fill_between(wavenumber, ir_spectrum, alpha=0.3, color='blue')
+    ax1.set_ylabel('Absorbance', fontsize=12)
+    ax1.set_title('CO$_2$ IR Spectrum (Asymmetric Stretch and Bending Active)', fontsize=14)
+    ax1.annotate('Bending\n667 cm$^{-1}$', xy=(667, 0.6), xytext=(500, 0.8),
+                 arrowprops=dict(arrowstyle='->', color='black'), fontsize=10)
+    ax1.annotate('Asymmetric Stretch\n2349 cm$^{-1}$', xy=(2349, 1.0), xytext=(2100, 0.8),
+                 arrowprops=dict(arrowstyle='->', color='black'), fontsize=10)
+    ax1.grid(True, alpha=0.3)
+    
+    # Raman spectrum
+    ax2 = axes[1]
+    ax2.plot(wavenumber, raman_spectrum, 'r-', linewidth=2)
+    ax2.fill_between(wavenumber, raman_spectrum, alpha=0.3, color='red')
+    ax2.set_ylabel('Intensity', fontsize=12)
+    ax2.set_title('CO$_2$ Raman Spectrum (Symmetric Stretch Active)', fontsize=14)
+    ax2.annotate('Symmetric Stretch\n1388 cm$^{-1}$', xy=(1388, 1.0), xytext=(1600, 0.8),
+                 arrowprops=dict(arrowstyle='->', color='black'), fontsize=10)
+    ax2.grid(True, alpha=0.3)
+    
+    # Molecular vibrations diagram
+    ax3 = axes[2]
+    ax3.axis('off')
+    ax3.set_xlim(0, 10)
+    ax3.set_ylim(0, 4)
+    
+    # Draw CO2 molecule and vibration modes
+    def draw_co2(ax, x, y, mode_name, arrows=None):
+        # Atoms
+        ax.plot(x, y, 'ko', markersize=20)  # Central C
+        ax.plot(x-1, y, 'ro', markersize=25)  # Left O
+        ax.plot(x+1, y, 'ro', markersize=25)  # Right O
+        ax.text(x, y, 'C', ha='center', va='center', fontsize=10, color='white')
+        ax.text(x-1, y, 'O', ha='center', va='center', fontsize=10, color='white')
+        ax.text(x+1, y, 'O', ha='center', va='center', fontsize=10, color='white')
+        ax.text(x, y-0.5, mode_name, ha='center', fontsize=10)
+    
+        # Draw arrows if provided
+        if arrows:
+            for arrow in arrows:
+                ax.annotate('', xy=(x+arrow[0]+arrow[2], y+arrow[3]),
+                           xytext=(x+arrow[0], y),
+                           arrowprops=dict(arrowstyle='->', color='green', lw=2))
+    
+    # Symmetric stretch (Raman active)
+    draw_co2(ax3, 2, 3, 'Symmetric Stretch\n(Raman Active)',
+             [(-1, 0, -0.3, 0), (1, 0, 0.3, 0)])
+    
+    # Asymmetric stretch (IR active)
+    draw_co2(ax3, 5, 3, 'Asymmetric Stretch\n(IR Active)',
+             [(-1, 0, -0.3, 0), (1, 0, -0.3, 0)])
+    
+    # Bending (IR active)
+    draw_co2(ax3, 8, 3, 'Bending\n(IR Active)',
+             [(0, 0, 0, 0.3)])
+    
+    ax3.set_title('CO$_2$ Vibrational Modes and Selection Rules (Mutual Exclusion)', fontsize=14)
+    
+    for ax in [ax1, ax2]:
+        ax.set_xlim(400, 2600)
+        ax.invert_xaxis()
+    
+    plt.tight_layout()
+    plt.savefig('ir_raman_comparison_co2.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Print summary table
+    print("\nCO2 Vibrational Modes Summary:")
+    print("=" * 70)
+    print(f"{'Mode':<25} {'Wavenumber':>12} {'Symmetry':>12} {'IR':>8} {'Raman':>8}")
+    print("-" * 70)
+    print(f"{'Symmetric stretch':<25} {'1388 cm^-1':>12} {'Sigma_g+':>12} {'No':>8} {'Yes':>8}")
+    print(f"{'Asymmetric stretch':<25} {'2349 cm^-1':>12} {'Sigma_u+':>12} {'Yes':>8} {'No':>8}")
+    print(f"{'Bending (2x degenerate)':<25} {'667 cm^-1':>12} {'Pi_u':>12} {'Yes':>8} {'No':>8}")
+    print("=" * 70)
+    print("\nNote: CO2 is centrosymmetric - mutual exclusion rule applies")
+    
+
+## 4.3 IR and Raman Complementarity
+
+### 4.3.1 Practical Advantages of Each Technique
+
+#### When to Use Raman vs. IR
+
+Application | Preferred Technique | Reason  
+---|---|---  
+Aqueous solutions | Raman | Water has weak Raman scattering  
+Symmetric vibrations | Raman | Strong polarizability change  
+C=C, C-C, S-S bonds | Raman | Highly polarizable bonds  
+Polar functional groups | IR | Strong dipole moment change  
+O-H, N-H, C=O groups | IR | Large dipole derivatives  
+In situ measurements | Raman | Fiber optic probes available  
+Low wavenumber region | Raman | No cutoff from optics  
+  
+#### Code Example 3: Combined IR-Raman Analysis of Polymers
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0
+    # - matplotlib>=3.7.0
+    # - scipy>=1.10.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.signal import find_peaks
+    
+    def generate_polymer_spectrum(wavenumber, peaks, widths, intensities, noise_level=0.02):
+        """
+        Generate synthetic polymer spectrum with noise.
+    
+        Parameters:
+        -----------
+        wavenumber : array
+            Wavenumber axis
+        peaks : list
+            Peak positions in cm^-1
+        widths : list
+            Peak widths (FWHM)
+        intensities : list
+            Peak intensities
+        noise_level : float
+            Standard deviation of Gaussian noise
+    
+        Returns:
+        --------
+        spectrum : array
+            Generated spectrum with noise
+        """
+        spectrum = np.zeros_like(wavenumber)
+        for peak, width, intensity in zip(peaks, widths, intensities):
+            spectrum += intensity * np.exp(-((wavenumber - peak)**2) / (2 * (width/2.355)**2))
+        spectrum += np.random.normal(0, noise_level, len(wavenumber))
+        return np.maximum(spectrum, 0)
+    
+    # Wavenumber range
+    wavenumber = np.linspace(400, 3500, 1000)
+    
+    # Polyethylene (PE) characteristic peaks
+    # IR-active modes
+    pe_ir_peaks = [720, 1465, 2850, 2920]  # CH2 rocking, CH2 scissor, CH2 sym stretch, CH2 asym stretch
+    pe_ir_widths = [30, 25, 40, 40]
+    pe_ir_intensities = [0.4, 0.6, 0.9, 1.0]
+    
+    # Raman-active modes
+    pe_raman_peaks = [1130, 1295, 1440, 2850, 2885]  # C-C stretch, CH2 twist, CH2 scissor, CH2 sym, CH2 asym
+    pe_raman_widths = [25, 20, 25, 35, 35]
+    pe_raman_intensities = [0.7, 0.5, 0.4, 1.0, 0.8]
+    
+    # Generate spectra
+    ir_spectrum = generate_polymer_spectrum(wavenumber, pe_ir_peaks, pe_ir_widths, pe_ir_intensities)
+    raman_spectrum = generate_polymer_spectrum(wavenumber, pe_raman_peaks, pe_raman_widths, pe_raman_intensities)
+    
+    # Create comparison plot
+    fig, axes = plt.subplots(2, 1, figsize=(14, 8), sharex=True)
+    
+    # IR spectrum
+    ax1 = axes[0]
+    ax1.plot(wavenumber, ir_spectrum, 'b-', linewidth=1.5)
+    ax1.fill_between(wavenumber, ir_spectrum, alpha=0.3, color='blue')
+    ax1.set_ylabel('Absorbance', fontsize=12)
+    ax1.set_title('Polyethylene (PE) - IR Spectrum', fontsize=14, fontweight='bold')
+    
+    # Annotate IR peaks
+    for peak, label in zip(pe_ir_peaks, ['CH$_2$ rocking', 'CH$_2$ scissor', 'CH$_2$ sym str.', 'CH$_2$ asym str.']):
+        idx = np.argmin(np.abs(wavenumber - peak))
+        ax1.annotate(f'{label}\n{peak} cm$^{{-1}}$',
+                     xy=(peak, ir_spectrum[idx]),
+                     xytext=(peak, ir_spectrum[idx] + 0.15),
+                     ha='center', fontsize=9,
+                     arrowprops=dict(arrowstyle='->', color='darkblue', lw=1))
+    ax1.grid(True, alpha=0.3)
+    ax1.set_ylim(0, 1.4)
+    
+    # Raman spectrum
+    ax2 = axes[1]
+    ax2.plot(wavenumber, raman_spectrum, 'r-', linewidth=1.5)
+    ax2.fill_between(wavenumber, raman_spectrum, alpha=0.3, color='red')
+    ax2.set_xlabel('Wavenumber (cm$^{-1}$)', fontsize=12)
+    ax2.set_ylabel('Intensity', fontsize=12)
+    ax2.set_title('Polyethylene (PE) - Raman Spectrum', fontsize=14, fontweight='bold')
+    
+    # Annotate Raman peaks
+    for peak, label in zip(pe_raman_peaks, ['C-C str.', 'CH$_2$ twist', 'CH$_2$ scissor', 'CH$_2$ sym', 'CH$_2$ asym']):
+        idx = np.argmin(np.abs(wavenumber - peak))
+        ax2.annotate(f'{label}\n{peak} cm$^{{-1}}$',
+                     xy=(peak, raman_spectrum[idx]),
+                     xytext=(peak, raman_spectrum[idx] + 0.15),
+                     ha='center', fontsize=9,
+                     arrowprops=dict(arrowstyle='->', color='darkred', lw=1))
+    ax2.grid(True, alpha=0.3)
+    ax2.set_ylim(0, 1.4)
+    
+    # Invert x-axis (spectroscopy convention)
+    for ax in axes:
+        ax.invert_xaxis()
+        ax.set_xlim(3500, 400)
+    
+    plt.tight_layout()
+    plt.savefig('ir_raman_polymer.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Print complementary information table
+    print("\nPolyethylene (PE) Vibrational Analysis Summary:")
+    print("=" * 80)
+    print(f"{'Mode':<20} {'Wavenumber':>12} {'IR Intensity':>15} {'Raman Intensity':>15}")
+    print("-" * 80)
+    modes = [
+        ('CH2 rocking', 720, 'Medium', 'Weak'),
+        ('C-C stretch', 1130, 'Weak', 'Strong'),
+        ('CH2 twist', 1295, 'Very weak', 'Medium'),
+        ('CH2 scissor', 1440, 'Medium', 'Medium'),
+        ('CH2 sym stretch', 2850, 'Strong', 'Very Strong'),
+        ('CH2 asym stretch', 2920, 'Very Strong', 'Strong'),
+    ]
+    for mode, wn, ir_int, raman_int in modes:
+        print(f"{mode:<20} {wn:>8} cm^-1 {ir_int:>15} {raman_int:>15}")
+    print("=" * 80)
+    
+
+## 4.4 Surface-Enhanced Raman Spectroscopy (SERS)
+
+### 4.4.1 Principles of SERS
+
+Surface-Enhanced Raman Spectroscopy (SERS) dramatically enhances Raman signals (by factors of 104 to 1010) for molecules adsorbed on or near nanostructured metal surfaces, particularly silver (Ag) and gold (Au). This enhancement arises from two mechanisms:
+
+#### SERS Enhancement Mechanisms
+
+  1. **Electromagnetic Enhancement (EM)** : Localized surface plasmon resonance (LSPR) creates intense electromagnetic fields near the metal nanostructure surface. This is the dominant mechanism, providing enhancement factors of 104 to 108.
+  2. **Chemical Enhancement (CE)** : Charge transfer between the adsorbed molecule and metal surface modifies the molecular polarizability. This provides additional enhancement of 101 to 102.
+
+**SERS Enhancement Factor:**
+
+\\[ \text{EF} = \frac{I_{\text{SERS}} / N_{\text{surf}}}{I_{\text{normal}} / N_{\text{vol}}} \\] 
+
+where \\(I_{\text{SERS}}\\) and \\(I_{\text{normal}}\\) are the SERS and normal Raman intensities, \\(N_{\text{surf}}\\) is the number of molecules on the SERS substrate, and \\(N_{\text{vol}}\\) is the number of molecules in the normal Raman scattering volume.
+
+**Electromagnetic Enhancement Approximation:**
+
+\\[ \text{EF}_{\text{EM}} \approx \left|\frac{E_{\text{local}}}{E_0}\right|^4 \\] 
+
+The fourth power dependence arises because both the incident and scattered fields are enhanced.
+
+#### Code Example 4: SERS Enhancement Factor Simulation
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0
+    # - matplotlib>=3.7.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    
+    def calculate_field_enhancement(wavelength, particle_radius, distance):
+        """
+        Simplified calculation of electric field enhancement near a spherical
+        metal nanoparticle using the quasi-static approximation.
+    
+        Parameters:
+        -----------
+        wavelength : float
+            Incident light wavelength (nm)
+        particle_radius : float
+            Nanoparticle radius (nm)
+        distance : float
+            Distance from particle surface (nm)
+    
+        Returns:
+        --------
+        enhancement : float
+            |E/E0|^2 field enhancement factor
+        """
+        # Simplified model parameters for silver
+        # Resonance wavelength ~400 nm for small Ag nanoparticles
+        omega_p = 9.0  # Plasma frequency (eV)
+        gamma = 0.05   # Damping (eV)
+        epsilon_m = 1.0  # Medium dielectric constant (air)
+    
+        # Convert wavelength to energy
+        energy = 1240.0 / wavelength  # eV
+    
+        # Drude model for silver dielectric function (simplified)
+        epsilon_r = 1 - omega_p**2 / (energy**2 + gamma**2)
+        epsilon_i = omega_p**2 * gamma / (energy * (energy**2 + gamma**2))
+        epsilon = complex(epsilon_r, epsilon_i)
+    
+        # Polarizability (quasi-static)
+        alpha = particle_radius**3 * (epsilon - epsilon_m) / (epsilon + 2*epsilon_m)
+    
+        # Field enhancement at distance r from center
+        r = particle_radius + distance
+    
+        # Near-field enhancement (radial component, simplified)
+        enhancement = 1 + 2 * np.abs(alpha) / (r**3)
+    
+        return enhancement
+    
+    # Wavelength dependence of enhancement
+    wavelengths = np.linspace(350, 700, 200)
+    particle_radius = 30  # nm
+    distance = 1  # nm from surface
+    
+    enhancements = [calculate_field_enhancement(wl, particle_radius, distance)
+                    for wl in wavelengths]
+    
+    # Distance dependence
+    distances = np.linspace(0.5, 20, 50)
+    enhancement_vs_distance = [calculate_field_enhancement(450, particle_radius, d)
+                               for d in distances]
+    
+    # SERS enhancement (|E/E0|^4)
+    sers_enhancement = np.array(enhancement_vs_distance)**2  # |E/E0|^4
+    
+    # Create visualization
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # Wavelength dependence
+    ax1 = axes[0, 0]
+    ax1.plot(wavelengths, enhancements, 'b-', linewidth=2)
+    ax1.set_xlabel('Wavelength (nm)', fontsize=12)
+    ax1.set_ylabel('|E/E$_0$|$^2$', fontsize=12)
+    ax1.set_title('Field Enhancement vs. Wavelength\n(Ag nanoparticle, r=30 nm, d=1 nm)', fontsize=12)
+    ax1.axvline(x=450, color='r', linestyle='--', alpha=0.5, label='Maximum enhancement')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Distance dependence
+    ax2 = axes[0, 1]
+    ax2.semilogy(distances, sers_enhancement, 'r-', linewidth=2)
+    ax2.set_xlabel('Distance from surface (nm)', fontsize=12)
+    ax2.set_ylabel('SERS Enhancement Factor', fontsize=12)
+    ax2.set_title('SERS Enhancement vs. Distance\n(|E/E$_0$|$^4$ decay)', fontsize=12)
+    ax2.grid(True, alpha=0.3)
+    ax2.axhline(y=1, color='gray', linestyle='--', alpha=0.5)
+    
+    # Normal vs SERS spectrum comparison
+    ax3 = axes[1, 0]
+    wavenumber = np.linspace(400, 2000, 500)
+    
+    # Normal Raman spectrum (weak)
+    normal_peaks = [600, 1000, 1350, 1580]
+    normal_spectrum = np.zeros_like(wavenumber)
+    for peak in normal_peaks:
+        normal_spectrum += 0.01 * np.exp(-((wavenumber - peak)**2) / (2 * 20**2))
+    normal_spectrum += np.random.normal(0, 0.002, len(wavenumber))
+    
+    # SERS spectrum (enhanced by 10^6)
+    sers_spectrum = normal_spectrum * 1e6 + np.random.normal(0, 1000, len(wavenumber))
+    
+    ax3.plot(wavenumber, normal_spectrum * 1e5, 'b-', linewidth=1.5, label='Normal Raman (x10$^5$)')
+    ax3.plot(wavenumber, sers_spectrum / 1e4, 'r-', linewidth=1.5, label='SERS (x10$^{-4}$)')
+    ax3.set_xlabel('Raman Shift (cm$^{-1}$)', fontsize=12)
+    ax3.set_ylabel('Intensity (a.u.)', fontsize=12)
+    ax3.set_title('Normal Raman vs. SERS Comparison', fontsize=12)
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+    ax3.invert_xaxis()
+    
+    # Hot spot illustration
+    ax4 = axes[1, 1]
+    ax4.set_aspect('equal')
+    
+    # Draw two nanoparticles with hot spot
+    theta = np.linspace(0, 2*np.pi, 100)
+    x1, y1 = 0, 0
+    x2, y2 = 2.2, 0
+    
+    circle1_x = x1 + np.cos(theta)
+    circle1_y = y1 + np.sin(theta)
+    circle2_x = x2 + np.cos(theta)
+    circle2_y = y2 + np.sin(theta)
+    
+    ax4.fill(circle1_x, circle1_y, color='gold', alpha=0.8)
+    ax4.fill(circle2_x, circle2_y, color='gold', alpha=0.8)
+    ax4.plot(circle1_x, circle1_y, 'k-', linewidth=2)
+    ax4.plot(circle2_x, circle2_y, 'k-', linewidth=2)
+    
+    # Hot spot region
+    hotspot = plt.Circle((1.1, 0), 0.3, color='red', alpha=0.5, label='Hot spot')
+    ax4.add_patch(hotspot)
+    
+    # Field lines (simplified)
+    for angle in np.linspace(-0.3, 0.3, 5):
+        ax4.annotate('', xy=(0.9, angle), xytext=(0.3, angle),
+                    arrowprops=dict(arrowstyle='->', color='blue', lw=1.5))
+        ax4.annotate('', xy=(1.9, angle), xytext=(1.3, angle),
+                    arrowprops=dict(arrowstyle='->', color='blue', lw=1.5))
+    
+    ax4.set_xlim(-2, 4.5)
+    ax4.set_ylim(-2, 2)
+    ax4.set_title('SERS Hot Spot Between Nanoparticles', fontsize=12)
+    ax4.text(1.1, -1.5, 'Enhancement up to 10$^{10}$\nin hot spot region', ha='center', fontsize=10)
+    ax4.text(-0.5, 0, 'Au/Ag\nNP', ha='center', va='center', fontsize=10)
+    ax4.text(2.7, 0, 'Au/Ag\nNP', ha='center', va='center', fontsize=10)
+    ax4.axis('off')
+    
+    plt.tight_layout()
+    plt.savefig('sers_enhancement.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    print("\nSERS Key Parameters:")
+    print("=" * 50)
+    print(f"Maximum field enhancement (|E/E0|^2): {max(enhancements):.1f}")
+    print(f"SERS enhancement at 1 nm: {sers_enhancement[0]:.2e}")
+    print(f"SERS enhancement at 5 nm: {sers_enhancement[np.argmin(np.abs(np.array(distances)-5))]:.2e}")
+    print(f"SERS enhancement at 10 nm: {sers_enhancement[np.argmin(np.abs(np.array(distances)-10))]:.2e}")
+    
+
+## 4.5 Applications in Carbon Materials
+
+### 4.5.1 Raman Spectroscopy of Carbon Materials
+
+Raman spectroscopy is particularly powerful for characterizing carbon materials due to the high polarizability of carbon-carbon bonds. The technique can distinguish between different carbon allotropes and assess structural quality, defects, and layer number.
+
+#### Key Raman Bands in Carbon Materials
+
+Band | Position (cm-1) | Origin | Information  
+---|---|---|---  
+D band | ~1350 | Breathing mode of sp2 rings (requires defect for activation) | Defect density, disorder  
+G band | ~1580 | E2g phonon at Brillouin zone center | sp2 hybridization  
+2D (G') band | ~2700 | Second-order overtone of D band | Layer number, stacking  
+D' band | ~1620 | Intravalley defect-activated mode | Edge defects  
+RBM (CNT) | 100-400 | Radial breathing mode | CNT diameter  
+  
+### 4.5.2 Graphene Characterization
+
+Raman spectroscopy is the primary technique for identifying the number of graphene layers and assessing quality. The 2D band shape and the I2D/IG ratio are particularly diagnostic:
+
+  * **Single-layer graphene** : Sharp, symmetric 2D band; I2D/IG > 2
+  * **Bilayer graphene** : Broader 2D band with 4-peak structure; I2D/IG ~ 1
+  * **Multilayer graphene** : Asymmetric 2D band; I2D/IG < 1
+  * **Graphite** : Asymmetric 2D band with shoulder; I2D/IG < 0.5
+
+#### Code Example 5: Graphene Layer Identification from Raman Spectra
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0
+    # - matplotlib>=3.7.0
+    # - scipy>=1.10.0
     
     import numpy as np
     import matplotlib.pyplot as plt
     from scipy.optimize import curve_fit
     
-    def shirley_background(x, y, tol=1e-5, max_iter=50):
+    def lorentzian(x, center, width, amplitude):
+        """Generate Lorentzian peak."""
+        return amplitude * (width**2) / ((x - center)**2 + width**2)
+    
+    def generate_graphene_spectrum(wavenumber, n_layers, defect_level=0.05):
         """
-        Calculate Shirley background
+        Generate synthetic Raman spectrum for graphene with different layer numbers.
     
         Parameters:
         -----------
-        x : array
-            Binding energy (eV)
-        y : array
-            Observed intensity
-        tol : float
-            Convergence criterion
-        max_iter : int
-            Maximum iteration count
+        wavenumber : array
+            Wavenumber axis (cm^-1)
+        n_layers : int
+            Number of graphene layers (1, 2, 3, or 'bulk' for graphite)
+        defect_level : float
+            Relative D band intensity (0 = pristine, 1 = highly defective)
     
         Returns:
         --------
-        background : array
-            Shirley background
-        """
-        # Sort data in ascending order (BE: high ’ low)
-        if x[0] < x[-1]:
-            x = x[::-1]
-            y = y[::-1]
-    
-        # Initialize
-        background = np.zeros_like(y)
-        y_max = np.max(y)
-        y_min = np.min(y)
-    
-        # Iterative calculation
-        for iteration in range(max_iter):
-            # Background calculation at each point
-            for i in range(1, len(x)):
-                integral = np.trapz(y[:i] - background[:i], x[:i])
-                background[i] = y_min + (y_max - y_min) * integral / np.trapz(y - background, x)
-    
-            # Convergence check
-            if iteration > 0:
-                change = np.max(np.abs(background - background_old))
-                if change < tol:
-                    break
-            background_old = background.copy()
-    
-        return background
-    
-    def voigt_approximation(x, amplitude, center, sigma, gamma):
-        """
-        Approximation of Voigt function (Gaussian-Lorentzian mixture)
-    
-        Parameters:
-        -----------
-        x : array
-            Binding energy
-        amplitude : float
-            Peak height
-        center : float
-            Peak center
-        sigma : float
-            Width of Gaussian component
-        gamma : float
-            Width of Lorentzian component
-    
-        Returns:
-        --------
-        voigt : array
-            Value of Voigt function
-        """
-        gaussian = np.exp(-((x - center)**2) / (2 * sigma**2))
-        lorentzian = gamma**2 / ((x - center)**2 + gamma**2)
-        voigt = amplitude * (0.7 * gaussian + 0.3 * lorentzian)
-        return voigt
-    
-    def multi_peak_fit(x, y, initial_params):
-        """
-        Fitting of multiple peaks
-    
-        Parameters:
-        -----------
-        x : array
-            Binding energy
-        y : array
-            Intensity
-        initial_params : list of tuples
-            Initial parameters for each peak [(A1, c1, s1, g1), (A2, c2, s2, g2), ...]
-    
-        Returns:
-        --------
-        fitted_params : array
-            Fitted parameters
-        fitted_peaks : list
-            Curve of each peak
-        """
-        def multi_voigt(x, *params):
-            """Sum of multiple Voigt peaks"""
-            n_peaks = len(params) // 4
-            result = np.zeros_like(x)
-            for i in range(n_peaks):
-                A, c, s, g = params[i*4:(i+1)*4]
-                result += voigt_approximation(x, A, c, s, g)
-            return result
-    
-        # Flatten initial parameters
-        p0 = [p for peak in initial_params for p in peak]
-    
-        # Fitting
-        popt, pcov = curve_fit(multi_voigt, x, y, p0=p0, maxfev=10000)
-    
-        # Reconstruct each peak
-        n_peaks = len(popt) // 4
-        fitted_peaks = []
-        for i in range(n_peaks):
-            A, c, s, g = popt[i*4:(i+1)*4]
-            peak = voigt_approximation(x, A, c, s, g)
-            fitted_peaks.append((peak, A, c, s, g))
-    
-        return popt, fitted_peaks
-    
-    # Simulation data (Si 2p: Si + SiO2)
-    BE = np.linspace(96, 108, 1200)
-    
-    # True peaks
-    Si_metal = voigt_approximation(BE, amplitude=800, center=99.3, sigma=0.4, gamma=0.2)
-    SiO2 = voigt_approximation(BE, amplitude=500, center=103.5, sigma=0.5, gamma=0.25)
-    true_spectrum = Si_metal + SiO2
-    
-    # Background (exponential decay type)
-    background_true = 100 * np.exp(-(BE - 96) / 10)
-    
-    # Observed spectrum
-    noise = np.random.normal(0, 15, len(BE))
-    observed = true_spectrum + background_true + noise
-    
-    # Shirley background subtraction
-    shirley_bg = shirley_background(BE, observed)
-    corrected = observed - shirley_bg
-    
-    # Peak fitting
-    initial_params = [
-        (800, 99.3, 0.4, 0.2),   # Si metal
-        (500, 103.5, 0.5, 0.25)  # SiO2
-    ]
-    fitted_params, fitted_peaks = multi_peak_fit(BE, corrected, initial_params)
-    
-    # Plot
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
-    # Original spectrum
-    axes[0, 0].plot(BE, observed, 'k-', label='Observed Spectrum', linewidth=1.5)
-    axes[0, 0].plot(BE, shirley_bg, 'r--', label='Shirley Background', linewidth=2)
-    axes[0, 0].set_xlabel('Binding Energy (eV)')
-    axes[0, 0].set_ylabel('Intensity (cps)')
-    axes[0, 0].set_title('Si 2p Spectrum (Raw Data)')
-    axes[0, 0].legend()
-    axes[0, 0].grid(alpha=0.3)
-    axes[0, 0].invert_xaxis()
-    
-    # After background subtraction
-    axes[0, 1].plot(BE, corrected, 'o', markersize=3, alpha=0.5, label='After BG Subtraction')
-    fitted_total = sum([peak[0] for peak in fitted_peaks])
-    axes[0, 1].plot(BE, fitted_total, 'r-', linewidth=2, label='Fitting Total')
-    axes[0, 1].set_xlabel('Binding Energy (eV)')
-    axes[0, 1].set_ylabel('Intensity (cps)')
-    axes[0, 1].set_title('After Shirley BG Subtraction and Fitting')
-    axes[0, 1].legend()
-    axes[0, 1].grid(alpha=0.3)
-    axes[0, 1].invert_xaxis()
-    
-    # Separation of each component
-    axes[1, 0].plot(BE, corrected, 'k-', alpha=0.3, label='Observed Data')
-    colors = ['blue', 'green']
-    labels = ['Si metal (99.3 eV)', 'SiO‚ (103.5 eV)']
-    for i, (peak, A, c, s, g) in enumerate(fitted_peaks):
-        axes[1, 0].fill_between(BE, peak, alpha=0.5, color=colors[i], label=labels[i])
-        axes[1, 0].axvline(c, color=colors[i], linestyle='--', linewidth=1.5)
-    axes[1, 0].set_xlabel('Binding Energy (eV)')
-    axes[1, 0].set_ylabel('Intensity (cps)')
-    axes[1, 0].set_title('Peak Separation (Deconvolution)')
-    axes[1, 0].legend()
-    axes[1, 0].grid(alpha=0.3)
-    axes[1, 0].invert_xaxis()
-    
-    # Residual
-    residual = corrected - fitted_total
-    axes[1, 1].plot(BE, residual, 'purple', linewidth=1)
-    axes[1, 1].axhline(0, color='black', linestyle='--', linewidth=1)
-    axes[1, 1].fill_between(BE, residual, alpha=0.3, color='purple')
-    axes[1, 1].set_xlabel('Binding Energy (eV)')
-    axes[1, 1].set_ylabel('Residual (cps)')
-    axes[1, 1].set_title('Fitting Residual')
-    axes[1, 1].grid(alpha=0.3)
-    axes[1, 1].invert_xaxis()
-    
-    plt.tight_layout()
-    plt.show()
-    
-    # Output fitting results
-    print("Peak Fitting Results:")
-    for i, (peak, A, c, s, g) in enumerate(fitted_peaks):
-        area = np.trapz(peak, BE)
-        print(f"  Peak {i+1}: Center = {c:.2f} eV, Area = {area:.1f}")
-    
-    4.4 Quantitative Analysis and Sensitivity Factors
-    4.4.1 Principles of XPS Quantitative Analysis
-    From the peak areas of XPS spectra, the atomic concentration of surface composition can be determined.
-    
-    Atomic Concentration Calculation Formula:
-            \[
-            C_i = \frac{I_i / S_i}{\sum_j (I_j / S_j)}
-            \]
-            where \( C_i \) is the atomic concentration (at%) of element \(i\), \( I_i \) is the peak area, and \( S_i \) is the Relative Sensitivity Factor (RSF).
-    Physical Meaning of Sensitivity Factor:
-    
-    \( S_i = \sigma_i \cdot \lambda_i \cdot D(\theta) \cdot T(E) \)
-    \( \sigma_i \): Photoionization cross-section (element and orbital dependent)
-    \( \lambda_i \): Inelastic mean free path (IMFP)
-    \( D(\theta) \): Angular dependence factor
-    \( T(E) \): Instrument transmission function
-    
-    
-    4.4.2 Scofield Relative Sensitivity Factors
-    Sensitivity factors based on photoionization cross-sections theoretically calculated by J.H. Scofield (1976) are widely used.
-    
-    
-    
-    Element
-    Orbital
-    Scofield RSF(Al K±)
-    Binding Energy (eV)
-    
-    
-    
-    C1s0.25284.5
-    O1s0.66532.0
-    Si2p0.2799.3
-    N1s0.42399.5
-    F1s1.00686.0
-    Al2p0.1974.0
-    Fe2p3/22.85707.0
-    Cu2p3/25.32932.5
-    
-    
-    Code Example 3: XPS Quantitative Analysis and Composition Determination
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
-    def xps_quantification(peak_areas, sensitivity_factors):
-        """
-        Calculate atomic concentration by XPS quantitative analysis
-    
-        Parameters:
-        -----------
-        peak_areas : dict
-            Peak area for each element {'C': area_C, 'O': area_O, ...}
-        sensitivity_factors : dict
-            Relative sensitivity factor for each element {'C': RSF_C, 'O': RSF_O, ...}
-    
-        Returns:
-        --------
-        atomic_concentrations : dict
-            Atomic concentration (at%) for each element
-        """
-        # Calculate normalized intensities
-        normalized_intensities = {}
-        for element, area in peak_areas.items():
-            RSF = sensitivity_factors[element]
-            normalized_intensities[element] = area / RSF
-    
-        # Total
-        total = sum(normalized_intensities.values())
-    
-        # Atomic concentration (at%)
-        atomic_concentrations = {}
-        for element, norm_int in normalized_intensities.items():
-            atomic_concentrations[element] = (norm_int / total) * 100
-    
-        return atomic_concentrations
-    
-    def plot_composition(atomic_concentrations):
-        """
-        Visualize composition with pie chart and bar chart
-        """
-        elements = list(atomic_concentrations.keys())
-        concentrations = list(atomic_concentrations.values())
-    
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
-    
-        # Pie chart
-        colors = plt.cm.Set3(np.linspace(0, 1, len(elements)))
-        wedges, texts, autotexts = ax1.pie(concentrations, labels=elements, autopct='%1.1f%%',
-                                             colors=colors, startangle=90, textprops={'fontsize': 12})
-        for autotext in autotexts:
-            autotext.set_color('white')
-            autotext.set_fontweight('bold')
-        ax1.set_title('Surface Composition (Atomic Concentration)', fontsize=14, fontweight='bold')
-    
-        # Bar chart
-        ax2.bar(elements, concentrations, color=colors, edgecolor='black', linewidth=1.5)
-        ax2.set_xlabel('Element', fontsize=12)
-        ax2.set_ylabel('Atomic Concentration (at%)', fontsize=12)
-        ax2.set_title('Surface Composition (Bar Chart)', fontsize=14, fontweight='bold')
-        ax2.grid(alpha=0.3, axis='y')
-    
-        # Display concentration on top of each bar
-        for i, (elem, conc) in enumerate(zip(elements, concentrations)):
-            ax2.text(i, conc + 1, f'{conc:.1f}%', ha='center', va='bottom', fontsize=11, fontweight='bold')
-    
-        plt.tight_layout()
-        plt.show()
-    
-    # Execution example: Analysis of SiO2 thin film
-    print("=== XPS Quantitative Analysis Example: SiO‚ Thin Film ===\n")
-    
-    # Measured peak areas (arbitrary units)
-    peak_areas = {
-        'Si': 12000,  # Si 2p
-        'O': 28000,   # O 1s
-        'C': 3000     # C 1s (carbon contamination)
-    }
-    
-    # Scofield relative sensitivity factors (Al K± radiation)
-    sensitivity_factors = {
-        'Si': 0.27,
-        'O': 0.66,
-        'C': 0.25
-    }
-    
-    # Quantitative analysis
-    atomic_conc = xps_quantification(peak_areas, sensitivity_factors)
-    
-    print("Peak Areas:")
-    for elem, area in peak_areas.items():
-        print(f"  {elem}: {area}")
-    
-    print("\nRelative Sensitivity Factors:")
-    for elem, RSF in sensitivity_factors.items():
-        print(f"  {elem}: {RSF}")
-    
-    print("\nAtomic Concentrations:")
-    for elem, conc in atomic_conc.items():
-        print(f"  {elem}: {conc:.2f} at%")
-    
-    # Comparison with theoretical composition (SiO2 = Si:O = 1:2 = 33.3:66.7)
-    Si_theory = 33.3
-    O_theory = 66.7
-    print(f"\nTheoretical Composition (SiO‚): Si = 33.3 at%, O = 66.7 at%")
-    print(f"Measured Composition: Si = {atomic_conc['Si']:.2f} at%, O = {atomic_conc['O']:.2f} at%")
-    print(f"Carbon Contamination: C = {atomic_conc['C']:.2f} at%")
-    
-    # Plot
-    plot_composition(atomic_conc)
-    
-    # Composition after contamination correction
-    Si_corrected = atomic_conc['Si'] / (atomic_conc['Si'] + atomic_conc['O']) * 100
-    O_corrected = atomic_conc['O'] / (atomic_conc['Si'] + atomic_conc['O']) * 100
-    print(f"\nAfter Carbon Correction: Si = {Si_corrected:.2f} at%, O = {O_corrected:.2f} at%")
-    
-    4.5 Depth Profiling
-    4.5.1 Ion Sputtering Method
-    By sputtering the sample surface with an Ar+ ion beam while repeatedly performing XPS measurements, a composition profile in the depth direction can be obtained.
-    
-    Procedure for Depth Profiling
-    
-    Measure XPS spectrum at the sample surface
-    Ar+ ion sputtering (remove several nm)
-    Perform XPS measurement again
-    Repeat steps 2-3 to construct a depth profile
-    
-    Calibration of Sputtering Rate:
-    
-    Use standard samples with known film thickness (SiO2/Si, etc.)
-    Convert sputtering time to depth
-    Sputtering rate: typically 0.1-1 nm/min
-    
-    
-    4.5.2 Non-destructive Angle-Resolved XPS
-    By changing the detection angle, depth information can be obtained non-destructively.
-    
-    Angular Dependence of Detection Depth:
-            \[
-            d = 3\lambda \sin\theta
-            \]
-            where \( d \) is the information depth, \( \lambda \) is the inelastic mean free path (IMFP), and \( \theta \) is the detection angle (angle from the sample surface).
-    Advantages of Angle-Resolved Measurement:
-    
-    Non-destructive: No damage to the sample
-    Rapid: No sputtering required
-    Surface sensitive: Information from 1-2 nm of surface at shallow angles (\( \theta = 15° \))
-    
-    
-    Code Example 4: Simulation and Analysis of Depth Profile
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.special import erf
-    
-    def depth_profile_simulation(depth, interface_position, interface_width, concentration_top, concentration_bottom):
-        """
-        Simulate depth concentration profile with interface
-    
-        Parameters:
-        -----------
-        depth : array
-            Depth (nm)
-        interface_position : float
-            Interface position (nm)
-        interface_width : float
-            Interface width (diffusion width, nm)
-        concentration_top : float
-            Concentration of surface layer (at%)
-        concentration_bottom : float
-            Concentration of substrate layer (at%)
-    
-        Returns:
-        --------
-        concentration : array
-            Concentration at each depth (at%)
-        """
-        # Represent interface with erf function
-        concentration = concentration_bottom + (concentration_top - concentration_bottom) * \
-                        0.5 * (1 - erf((depth - interface_position) / interface_width))
-        return concentration
-    
-    def simulate_sputter_depth_profiling():
-        """
-        Simulate sputtering depth profiling (SiO2/Si structure)
-        """
-        # Depth range
-        depth = np.linspace(0, 50, 200)  # 0-50 nm
-    
-        # SiO2 layer (0-20 nm) and Si substrate (beyond 20 nm)
-        Si_profile = depth_profile_simulation(depth, interface_position=20, interface_width=2,
-                                              concentration_top=33, concentration_bottom=100)
-        O_profile = depth_profile_simulation(depth, interface_position=20, interface_width=2,
-                                             concentration_top=67, concentration_bottom=0)
-    
-        # Sputtering measurement points (discrete)
-        sputter_times = np.array([0, 5, 10, 15, 20, 25, 30, 40, 50])  # Sputtering time (minutes)
-        sputter_rate = 1.0  # nm/min
-        measured_depths = sputter_times * sputter_rate
-    
-        # Measured concentrations (with noise)
-        Si_measured = np.interp(measured_depths, depth, Si_profile) + np.random.normal(0, 2, len(measured_depths))
-        O_measured = np.interp(measured_depths, depth, O_profile) + np.random.normal(0, 2, len(measured_depths))
-    
-        # Plot
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-    
-        # Theoretical profile
-        ax1.plot(depth, Si_profile, 'b-', linewidth=2, label='Si (Theoretical)')
-        ax1.plot(depth, O_profile, 'r-', linewidth=2, label='O (Theoretical)')
-        ax1.scatter(measured_depths, Si_measured, s=100, color='blue', marker='o',
-                    edgecolor='black', linewidth=1.5, label='Si (Measured)', zorder=5)
-        ax1.scatter(measured_depths, O_measured, s=100, color='red', marker='s',
-                    edgecolor='black', linewidth=1.5, label='O (Measured)', zorder=5)
-        ax1.axvline(20, color='green', linestyle='--', linewidth=2, label='Interface Position (20 nm)')
-        ax1.set_xlabel('Depth (nm)', fontsize=12)
-        ax1.set_ylabel('Atomic Concentration (at%)', fontsize=12)
-        ax1.set_title('Depth Profile (SiO‚/Si)', fontsize=14, fontweight='bold')
-        ax1.legend()
-        ax1.grid(alpha=0.3)
-        ax1.set_xlim(0, 50)
-        ax1.set_ylim(-5, 105)
-    
-        # Visualization of layer structure
-        ax2.fill_between([0, 20], 0, 100, alpha=0.3, color='red', label='SiO‚ Layer (20 nm)')
-        ax2.fill_between([20, 50], 0, 100, alpha=0.3, color='blue', label='Si Substrate')
-        ax2.text(10, 50, 'SiO‚', fontsize=16, fontweight='bold', ha='center')
-        ax2.text(35, 50, 'Si', fontsize=16, fontweight='bold', ha='center')
-        ax2.axvline(20, color='green', linestyle='--', linewidth=3, label='Interface')
-        ax2.set_xlabel('Depth (nm)', fontsize=12)
-        ax2.set_ylabel('Layer Structure', fontsize=12)
-        ax2.set_title('Sample Structure (Cross-section)', fontsize=14, fontweight='bold')
-        ax2.set_xlim(0, 50)
-        ax2.set_yticks([])
-        ax2.legend()
-        ax2.grid(alpha=0.3, axis='x')
-    
-        plt.tight_layout()
-        plt.show()
-    
-        # Estimate interface thickness
-        interface_region = (measured_depths >= 15) & (measured_depths <= 25)
-        if np.sum(interface_region) > 0:
-            interface_width_est = np.max(measured_depths[interface_region]) - np.min(measured_depths[interface_region])
-            print(f"Estimated Interface Width: {interface_width_est:.1f} nm")
-    
-    # Execute
-    simulate_sputter_depth_profiling()
-    
-    4.6 Auger Electrons and Peak Identification
-    4.6.1 Principles of Auger Process
-    In XPS measurements, in addition to photoelectron peaks, Auger electron peaks are also observed. Auger electrons are emitted during the relaxation process after a core hole is created.
-    
-        flowchart TD
-            A[X-ray Irradiation] --> B[1s Electron PhotoemissionCore Hole Creation]
-            B --> C{Relaxation Process}
-            C -->|Process 1| D[2p Electron Transitions to 1s OrbitalX-ray Fluorescence Emission]
-            C -->|Process 2| E[2p ’ 1s TransitionEnergy to 2p Electron]
-            E --> F[Auger Electron EmissionKL‚Lƒ Electron]
-    
-            style A fill:#e3f2fd
-            style B fill:#fff3e0
-            style C fill:#fce4ec
-            style D fill:#e8f5e9
-            style E fill:#ffe0b2
-            style F fill:#f3e5f5
-        
-    
-        
-    Kinetic Energy of Auger Electrons:
-            \[
-            E_{\text{Auger}} = E_1 - E_2 - E_3
-            \]
-            where \( E_1 \) is the energy of the initial hole, \( E_2 \) is the energy of the transitioning electron, and \( E_3 \) is the orbital energy of the emitted Auger electron.
-    Characteristics of Auger Electrons:
-    
-    Independent of incident X-ray energy (element-specific value)
-    High surface sensitivity (IMFP < 1 nm)
-    Small chemical shift (lower sensitivity than photoelectron peaks)
-    
-    
-    Code Example 5: Identification of Auger Electron and Photoelectron Peaks
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
-    def simulate_xps_with_auger(x_ray_energy):
-        """
-        Simulate photoelectron and Auger electron peaks in XPS spectrum
-    
-        Parameters:
-        -----------
-        x_ray_energy : float
-            X-ray energy (eV): Al K± = 1486.6, Mg K± = 1253.6
-    
-        Returns:
-        --------
-        Plot the spectrum
-        """
-        # Binding energy range (0-1500 eV)
-        BE = np.linspace(0, 1500, 3000)
-    
-        # Photoelectron peaks (displayed in binding energy)
-        C_1s = gaussian_peak(BE, amplitude=800, center=284.5, width=1.2)
-        O_1s = gaussian_peak(BE, amplitude=600, center=532.0, width=1.5)
-        Si_2p = gaussian_peak(BE, amplitude=400, center=99.3, width=1.0)
-    
-        # Auger electron peaks (convert from kinetic energy to binding energy)
-        # C KLL Auger: kinetic energy H 270 eV (independent of X-ray energy)
-        C_KLL_kinetic = 270  # eV
-        C_KLL_BE = x_ray_energy - C_KLL_kinetic
-        C_KLL = gaussian_peak(BE, amplitude=150, center=C_KLL_BE, width=8)
-    
-        # O KLL Auger: kinetic energy H 510 eV
-        O_KLL_kinetic = 510
-        O_KLL_BE = x_ray_energy - O_KLL_kinetic
-        O_KLL = gaussian_peak(BE, amplitude=120, center=O_KLL_BE, width=10)
-    
-        # Total spectrum
-        total_spectrum = C_1s + O_1s + Si_2p + C_KLL + O_KLL
-    
-        # Noise
-        noise = np.random.normal(0, 10, len(BE))
-        observed = total_spectrum + noise
-    
-        # Plot
-        fig, ax = plt.subplots(figsize=(14, 6))
-    
-        ax.plot(BE, observed, 'k-', linewidth=1.5, label='Observed Spectrum', alpha=0.7)
-        ax.fill_between(BE, C_1s, alpha=0.5, color='blue', label='C 1s (284.5 eV) Photoelectron')
-        ax.fill_between(BE, O_1s, alpha=0.5, color='red', label='O 1s (532.0 eV) Photoelectron')
-        ax.fill_between(BE, Si_2p, alpha=0.5, color='green', label='Si 2p (99.3 eV) Photoelectron')
-        ax.fill_between(BE, C_KLL, alpha=0.5, color='purple', label=f'C KLL ({C_KLL_BE:.1f} eV) Auger')
-        ax.fill_between(BE, O_KLL, alpha=0.5, color='orange', label=f'O KLL ({O_KLL_BE:.1f} eV) Auger')
-    
-        # Emphasize distinction between photoelectrons and Auger electrons
-        ax.axvline(284.5, color='blue', linestyle='--', linewidth=1, alpha=0.5)
-        ax.axvline(532.0, color='red', linestyle='--', linewidth=1, alpha=0.5)
-        ax.axvline(99.3, color='green', linestyle='--', linewidth=1, alpha=0.5)
-        ax.axvline(C_KLL_BE, color='purple', linestyle=':', linewidth=2)
-        ax.axvline(O_KLL_BE, color='orange', linestyle=':', linewidth=2)
-    
-        ax.set_xlabel('Binding Energy (eV)', fontsize=12)
-        ax.set_ylabel('Intensity (cps)', fontsize=12)
-        ax.set_title(f'XPS Wide Scan (X-ray Energy: {x_ray_energy:.1f} eV)', fontsize=14, fontweight='bold')
-        ax.legend(loc='upper right', fontsize=10)
-        ax.grid(alpha=0.3)
-        ax.invert_xaxis()
-        ax.set_xlim(1500, 0)
-    
-        plt.tight_layout()
-        plt.show()
-    
-        print(f"X-ray Energy: {x_ray_energy:.1f} eV")
-        print("\nPhotoelectron Peaks (Binding Energy):")
-        print(f"  C 1s: 284.5 eV")
-        print(f"  O 1s: 532.0 eV")
-        print(f"  Si 2p: 99.3 eV")
-        print("\nAuger Electron Peaks (Binding Energy Display):")
-        print(f"  C KLL: {C_KLL_BE:.1f} eV (Kinetic Energy: {C_KLL_kinetic} eV)")
-        print(f"  O KLL: {O_KLL_BE:.1f} eV (Kinetic Energy: {O_KLL_kinetic} eV)")
-        print("\nIdentification Method: When changing X-ray energy, the binding energy display position of Auger electrons changes,")
-        print("         but the binding energy of photoelectrons does not change.")
-    
-    # Measurement with Al K± radiation
-    print("=== Measurement with Al K± Radiation (1486.6 eV) ===")
-    simulate_xps_with_auger(x_ray_energy=1486.6)
-    
-    # Measurement with Mg K± radiation
-    print("\n=== Measurement with Mg K± Radiation (1253.6 eV) ===")
-    simulate_xps_with_auger(x_ray_energy=1253.6)
-    
-    4.7 XPS Data Preprocessing and Noise Removal
-    4.7.1 Smoothing with Savitzky-Golay Filter
-    XPS spectra contain statistical noise. The Savitzky-Golay (SG) filter is an effective method for removing noise while preserving peak shape.
-    Code Example 6: Savitzky-Golay Filter and Noise Removal
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.signal import savgol_filter
-    
-    def xps_noise_reduction(BE, noisy_spectrum, window_length=11, polyorder=3):
-        """
-        Noise removal with Savitzky-Golay filter
-    
-        Parameters:
-        -----------
-        BE : array
-            Binding energy
-        noisy_spectrum : array
-            Spectrum with noise
-        window_length : int
-            Length of filter window (odd number)
-        polyorder : int
-            Polynomial order
-    
-        Returns:
-        --------
-        smoothed_spectrum : array
-            Smoothed spectrum
-        """
-        smoothed = savgol_filter(noisy_spectrum, window_length=window_length, polyorder=polyorder)
-        return smoothed
-    
-    # Simulation: Low count rate measurement (high noise)
-    BE = np.linspace(280, 295, 1500)
-    
-    # True spectrum
-    true_spectrum = gaussian_peak(BE, amplitude=500, center=284.5, width=1.2) + \
-                    gaussian_peak(BE, amplitude=200, center=286.5, width=1.3)
-    
-    # Heavy noise
-    heavy_noise = np.random.normal(0, 30, len(BE))
-    noisy_spectrum = true_spectrum + heavy_noise
-    
-    # Apply SG filter with different parameters
-    smoothed_sg5 = xps_noise_reduction(BE, noisy_spectrum, window_length=5, polyorder=2)
-    smoothed_sg11 = xps_noise_reduction(BE, noisy_spectrum, window_length=11, polyorder=3)
-    smoothed_sg21 = xps_noise_reduction(BE, noisy_spectrum, window_length=21, polyorder=3)
-    
-    # Plot
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
-    # Original noisy spectrum
-    axes[0, 0].plot(BE, noisy_spectrum, 'gray', alpha=0.5, linewidth=0.5, label='With Noise')
-    axes[0, 0].plot(BE, true_spectrum, 'r-', linewidth=2, label='True Spectrum')
-    axes[0, 0].set_xlabel('Binding Energy (eV)')
-    axes[0, 0].set_ylabel('Intensity (cps)')
-    axes[0, 0].set_title('Original Spectrum (High Noise)')
-    axes[0, 0].legend()
-    axes[0, 0].grid(alpha=0.3)
-    axes[0, 0].invert_xaxis()
-    
-    # SG filter (window_length=5)
-    axes[0, 1].plot(BE, noisy_spectrum, 'gray', alpha=0.3, linewidth=0.5)
-    axes[0, 1].plot(BE, smoothed_sg5, 'b-', linewidth=2, label='SG (window=5, order=2)')
-    axes[0, 1].plot(BE, true_spectrum, 'r--', linewidth=1.5, label='True Spectrum')
-    axes[0, 1].set_xlabel('Binding Energy (eV)')
-    axes[0, 1].set_ylabel('Intensity (cps)')
-    axes[0, 1].set_title('Savitzky-Golay Filter (window=5)')
-    axes[0, 1].legend()
-    axes[0, 1].grid(alpha=0.3)
-    axes[0, 1].invert_xaxis()
-    
-    # SG filter (window_length=11)
-    axes[1, 0].plot(BE, noisy_spectrum, 'gray', alpha=0.3, linewidth=0.5)
-    axes[1, 0].plot(BE, smoothed_sg11, 'g-', linewidth=2, label='SG (window=11, order=3)')
-    axes[1, 0].plot(BE, true_spectrum, 'r--', linewidth=1.5, label='True Spectrum')
-    axes[1, 0].set_xlabel('Binding Energy (eV)')
-    axes[1, 0].set_ylabel('Intensity (cps)')
-    axes[1, 0].set_title('Savitzky-Golay Filter (window=11)')
-    axes[1, 0].legend()
-    axes[1, 0].grid(alpha=0.3)
-    axes[1, 0].invert_xaxis()
-    
-    # SG filter (window_length=21)
-    axes[1, 1].plot(BE, noisy_spectrum, 'gray', alpha=0.3, linewidth=0.5)
-    axes[1, 1].plot(BE, smoothed_sg21, 'purple', linewidth=2, label='SG (window=21, order=3)')
-    axes[1, 1].plot(BE, true_spectrum, 'r--', linewidth=1.5, label='True Spectrum')
-    axes[1, 1].set_xlabel('Binding Energy (eV)')
-    axes[1, 1].set_ylabel('Intensity (cps)')
-    axes[1, 1].set_title('Savitzky-Golay Filter (window=21)')
-    axes[1, 1].legend()
-    axes[1, 1].grid(alpha=0.3)
-    axes[1, 1].invert_xaxis()
-    
-    plt.tight_layout()
-    plt.show()
-    
-    # Error evaluation
-    mse_sg5 = np.mean((smoothed_sg5 - true_spectrum)**2)
-    mse_sg11 = np.mean((smoothed_sg11 - true_spectrum)**2)
-    mse_sg21 = np.mean((smoothed_sg21 - true_spectrum)**2)
-    
-    print("Smoothing Evaluation (Mean Squared Error):")
-    print(f"  SG (window=5, order=2): MSE = {mse_sg5:.2f}")
-    print(f"  SG (window=11, order=3): MSE = {mse_sg11:.2f} (Best)")
-    print(f"  SG (window=21, order=3): MSE = {mse_sg21:.2f}")
-    print("\nRecommendation: window_length = 11-15, polyorder = 2-3")
-    
-    4.8 Charge Correction and Reference Peak
-    4.8.1 Charging Effect in Insulating Samples
-    In insulating samples, the sample surface becomes positively charged due to photoelectron emission, and the entire spectrum shifts to the high binding energy side. Charge correction is essential.
-    
-    Charge Correction Methods
-    
-    C 1s Reference Method: Correct based on the C-C peak of hydrocarbon contamination (284.5 eV)
-    Au 4f Reference Method: Deposit Au thin film on sample surface and correct based on Au 4f7/2 (84.0 eV)
-    Flood Gun Method: Neutralize charging with low-energy electron beam
-    
-    
-    Code Example 7: Charging Shift Correction
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
-    def charge_shift_correction(BE, spectrum, reference_peak_position, true_reference_BE):
-        """
-        Correction of charging shift
-    
-        Parameters:
-        -----------
-        BE : array
-            Measured binding energy
         spectrum : array
-            Measured spectrum
-        reference_peak_position : float
-            Observed position of reference peak (eV)
-        true_reference_BE : float
-            True binding energy of reference peak (eV)
+            Simulated Raman spectrum
+        """
+        spectrum = np.zeros_like(wavenumber, dtype=float)
+    
+        # G band (always present, ~1580 cm^-1)
+        g_center = 1582
+        g_width = 15
+        g_amp = 1.0
+        spectrum += lorentzian(wavenumber, g_center, g_width, g_amp)
+    
+        # D band (defect-activated, ~1350 cm^-1)
+        d_center = 1350
+        d_width = 30
+        d_amp = defect_level * g_amp
+        spectrum += lorentzian(wavenumber, d_center, d_width, d_amp)
+    
+        # 2D band - shape depends on layer number
+        if n_layers == 1:
+            # Single layer: single sharp Lorentzian
+            spectrum += lorentzian(wavenumber, 2680, 25, 2.5 * g_amp)
+        elif n_layers == 2:
+            # Bilayer: 4-component structure (simplified as broader peak)
+            spectrum += lorentzian(wavenumber, 2660, 20, 0.4 * g_amp)
+            spectrum += lorentzian(wavenumber, 2690, 20, 0.6 * g_amp)
+            spectrum += lorentzian(wavenumber, 2710, 20, 0.4 * g_amp)
+            spectrum += lorentzian(wavenumber, 2730, 20, 0.2 * g_amp)
+        elif n_layers == 3:
+            # Trilayer: broader asymmetric
+            spectrum += lorentzian(wavenumber, 2670, 25, 0.3 * g_amp)
+            spectrum += lorentzian(wavenumber, 2700, 30, 0.5 * g_amp)
+            spectrum += lorentzian(wavenumber, 2730, 25, 0.2 * g_amp)
+        else:  # Graphite (bulk)
+            # Asymmetric with shoulder
+            spectrum += lorentzian(wavenumber, 2680, 35, 0.3 * g_amp)
+            spectrum += lorentzian(wavenumber, 2720, 25, 0.2 * g_amp)
+    
+        # Add small noise
+        spectrum += np.random.normal(0, 0.02, len(wavenumber))
+    
+        return spectrum
+    
+    # Generate wavenumber axis
+    wavenumber = np.linspace(1200, 2900, 1000)
+    
+    # Generate spectra for different layer numbers
+    layers = [1, 2, 3, 'bulk']
+    spectra = {}
+    for n in layers:
+        spectra[n] = generate_graphene_spectrum(wavenumber, n if isinstance(n, int) else 10, defect_level=0.1)
+    
+    # Visualization
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    colors = {'1': '#e74c3c', '2': '#3498db', '3': '#2ecc71', 'bulk': '#9b59b6'}
+    labels = {'1': 'Monolayer', '2': 'Bilayer', '3': 'Trilayer', 'bulk': 'Graphite'}
+    
+    for ax, (n, spectrum) in zip(axes.flat, spectra.items()):
+        key = str(n)
+        ax.plot(wavenumber, spectrum, color=colors[key], linewidth=1.5)
+        ax.fill_between(wavenumber, spectrum, alpha=0.3, color=colors[key])
+        ax.set_xlabel('Raman Shift (cm$^{-1}$)', fontsize=11)
+        ax.set_ylabel('Intensity (a.u.)', fontsize=11)
+        ax.set_title(f'{labels[key]} Graphene', fontsize=13, fontweight='bold')
+    
+        # Annotate bands
+        ax.annotate('D', xy=(1350, spectrum[np.argmin(np.abs(wavenumber - 1350))]),
+                    xytext=(1350, 0.4), ha='center', fontsize=12, fontweight='bold')
+        ax.annotate('G', xy=(1582, spectrum[np.argmin(np.abs(wavenumber - 1582))]),
+                    xytext=(1582, 1.2), ha='center', fontsize=12, fontweight='bold')
+        ax.annotate('2D', xy=(2700, spectrum[np.argmin(np.abs(wavenumber - 2700))]),
+                    xytext=(2700, max(spectrum)*1.1), ha='center', fontsize=12, fontweight='bold')
+    
+        ax.set_xlim(1200, 2900)
+        ax.set_ylim(0, max(spectrum) * 1.3)
+        ax.grid(True, alpha=0.3)
+        ax.invert_xaxis()
+    
+    plt.tight_layout()
+    plt.savefig('graphene_layer_raman.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Calculate I_2D/I_G ratios
+    print("\nGraphene Layer Identification Metrics:")
+    print("=" * 60)
+    print(f"{'Layer':<15} {'I_2D/I_G':>15} {'2D FWHM':>15} {'Characteristic':>15}")
+    print("-" * 60)
+    
+    for n, spectrum in spectra.items():
+        g_idx = np.argmin(np.abs(wavenumber - 1582))
+        d2_region = (wavenumber > 2600) & (wavenumber < 2800)
+        i_g = spectrum[g_idx]
+        i_2d = np.max(spectrum[d2_region])
+        ratio = i_2d / i_g
+    
+        fwhm = "~30" if n == 1 else "~50" if n == 2 else "~60" if n == 3 else "~70"
+        char = "Symmetric" if n == 1 else "4-peak" if n == 2 else "Asymmetric"
+    
+        print(f"{labels[str(n)]:<15} {ratio:>15.2f} {fwhm + ' cm^-1':>15} {char:>15}")
+    
+
+### 4.5.3 Carbon Nanotube Analysis
+
+Raman spectroscopy provides rich information about carbon nanotubes, including diameter, chirality, and electronic character (metallic vs. semiconducting).
+
+#### Code Example 6: CNT Diameter Determination from RBM
+    
+    
+    # Requirements:
+    # - Python 3.9+
+    # - numpy>=1.24.0
+    # - matplotlib>=3.7.0
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    def rbm_to_diameter(omega_rbm, A=248, B=0):
+        """
+        Calculate CNT diameter from RBM frequency.
+    
+        Parameters:
+        -----------
+        omega_rbm : float or array
+            RBM frequency in cm^-1
+        A : float
+            Constant (typically 234-248 for bundled/isolated CNTs)
+        B : float
+            Environmental correction term
     
         Returns:
         --------
-        corrected_BE : array
-            Corrected binding energy
-        shift : float
-            Charging shift amount (eV)
+        diameter : float or array
+            CNT diameter in nm
+    
+        The relation is: omega_RBM = A/d + B
         """
-        shift = reference_peak_position - true_reference_BE
-        corrected_BE = BE - shift
-        return corrected_BE, shift
+        return A / (omega_rbm - B)
     
-    # Simulation: Charging in insulating sample
-    BE_charged = np.linspace(280, 540, 2600)
+    def diameter_to_rbm(diameter, A=248, B=0):
+        """Convert diameter to RBM frequency."""
+        return A / diameter + B
     
-    # Spectrum shifted by +3.0 eV due to charging
-    charge_shift = 3.0
-    C_1s_charged = gaussian_peak(BE_charged, amplitude=800, center=284.5 + charge_shift, width=1.2)
-    O_1s_charged = gaussian_peak(BE_charged, amplitude=600, center=532.0 + charge_shift, width=1.5)
-    spectrum_charged = C_1s_charged + O_1s_charged + np.random.normal(0, 10, len(BE_charged))
+    def generate_cnt_raman(wavenumber, diameters, excitation_wavelength=532):
+        """
+        Generate synthetic CNT Raman spectrum.
     
-    # Detection of C 1s peak position (maximum value)
-    C_1s_region = (BE_charged >= 284.5 + charge_shift - 5) & (BE_charged <= 284.5 + charge_shift + 5)
-    C_1s_observed_pos = BE_charged[C_1s_region][np.argmax(spectrum_charged[C_1s_region])]
+        Parameters:
+        -----------
+        wavenumber : array
+            Wavenumber axis
+        diameters : list
+            List of CNT diameters in nm
+        excitation_wavelength : float
+            Laser wavelength in nm
     
-    # Charge correction
-    corrected_BE, detected_shift = charge_shift_correction(BE_charged, spectrum_charged,
-                                                            reference_peak_position=C_1s_observed_pos,
-                                                            true_reference_BE=284.5)
+        Returns:
+        --------
+        spectrum : array
+            Simulated Raman spectrum
+        """
+        spectrum = np.zeros_like(wavenumber, dtype=float)
     
-    # Spectrum after correction (same intensity, only horizontal axis corrected)
-    spectrum_corrected = spectrum_charged
+        # RBM peaks
+        for d in diameters:
+            rbm_freq = diameter_to_rbm(d)
+            # Intensity depends on resonance (simplified)
+            intensity = 0.5 + 0.5 * np.random.random()
+            spectrum += lorentzian(wavenumber, rbm_freq, 5, intensity)
     
-    # Plot
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+        # D band
+        spectrum += lorentzian(wavenumber, 1340, 25, 0.3)
     
-    # Before correction
-    ax1.plot(BE_charged, spectrum_charged, 'r-', linewidth=1.5, label='Charged Spectrum')
-    ax1.axvline(284.5 + charge_shift, color='blue', linestyle='--', linewidth=2, label=f'C 1s (Observed: {284.5 + charge_shift:.1f} eV)')
-    ax1.axvline(532.0 + charge_shift, color='green', linestyle='--', linewidth=2, label=f'O 1s (Observed: {532.0 + charge_shift:.1f} eV)')
-    ax1.set_xlabel('Binding Energy (Measured, eV)', fontsize=12)
-    ax1.set_ylabel('Intensity (cps)', fontsize=12)
-    ax1.set_title('Before Charge Shift (Before Correction)', fontsize=14, fontweight='bold')
-    ax1.legend()
-    ax1.grid(alpha=0.3)
+        # G band (G+ and G-)
+        spectrum += lorentzian(wavenumber, 1570, 15, 0.8)  # G- (metallic) or G+ (semiconducting)
+        spectrum += lorentzian(wavenumber, 1590, 10, 1.0)  # G+
+    
+        # 2D band
+        spectrum += lorentzian(wavenumber, 2680, 35, 0.6)
+    
+        return spectrum
+    
+    # Example CNT sample with different diameters
+    wavenumber_full = np.linspace(100, 3000, 2000)
+    wavenumber_rbm = np.linspace(100, 400, 500)
+    
+    # Sample containing CNTs with diameters 0.8, 1.0, 1.2, 1.4 nm
+    diameters = [0.8, 1.0, 1.2, 1.4]
+    cnt_spectrum = generate_cnt_raman(wavenumber_full, diameters)
+    rbm_spectrum = generate_cnt_raman(wavenumber_rbm, diameters)
+    
+    # Create visualization
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # Full spectrum
+    ax1 = axes[0, 0]
+    ax1.plot(wavenumber_full, cnt_spectrum, 'b-', linewidth=1.5)
+    ax1.fill_between(wavenumber_full, cnt_spectrum, alpha=0.3)
+    ax1.set_xlabel('Raman Shift (cm$^{-1}$)', fontsize=12)
+    ax1.set_ylabel('Intensity (a.u.)', fontsize=12)
+    ax1.set_title('CNT Raman Spectrum (Full Range)', fontsize=13, fontweight='bold')
+    ax1.annotate('RBM', xy=(250, 0.6), fontsize=11, fontweight='bold')
+    ax1.annotate('D', xy=(1340, 0.4), fontsize=11, fontweight='bold')
+    ax1.annotate('G', xy=(1580, 1.1), fontsize=11, fontweight='bold')
+    ax1.annotate('2D', xy=(2680, 0.7), fontsize=11, fontweight='bold')
+    ax1.grid(True, alpha=0.3)
     ax1.invert_xaxis()
     
-    # After correction
-    ax2.plot(corrected_BE, spectrum_corrected, 'b-', linewidth=1.5, label='Corrected Spectrum')
-    ax2.axvline(284.5, color='blue', linestyle='--', linewidth=2, label='C 1s (Corrected: 284.5 eV)')
-    ax2.axvline(532.0, color='green', linestyle='--', linewidth=2, label='O 1s (Corrected: 532.0 eV)')
-    ax2.set_xlabel('Binding Energy (Corrected, eV)', fontsize=12)
-    ax2.set_ylabel('Intensity (cps)', fontsize=12)
-    ax2.set_title('After Charge Shift Correction', fontsize=14, fontweight='bold')
-    ax2.legend()
-    ax2.grid(alpha=0.3)
+    # RBM region
+    ax2 = axes[0, 1]
+    ax2.plot(wavenumber_rbm, rbm_spectrum, 'r-', linewidth=1.5)
+    ax2.fill_between(wavenumber_rbm, rbm_spectrum, alpha=0.3, color='red')
+    ax2.set_xlabel('Raman Shift (cm$^{-1}$)', fontsize=12)
+    ax2.set_ylabel('Intensity (a.u.)', fontsize=12)
+    ax2.set_title('RBM Region (Diameter Information)', fontsize=13, fontweight='bold')
+    
+    # Annotate each RBM peak with corresponding diameter
+    for d in diameters:
+        rbm_freq = diameter_to_rbm(d)
+        idx = np.argmin(np.abs(wavenumber_rbm - rbm_freq))
+        ax2.annotate(f'd = {d:.1f} nm\n({rbm_freq:.0f} cm$^{{-1}}$)',
+                     xy=(rbm_freq, rbm_spectrum[idx]),
+                     xytext=(rbm_freq, rbm_spectrum[idx] + 0.2),
+                     ha='center', fontsize=9,
+                     arrowprops=dict(arrowstyle='->', color='darkred'))
+    ax2.grid(True, alpha=0.3)
     ax2.invert_xaxis()
     
+    # Diameter-RBM relationship
+    ax3 = axes[1, 0]
+    diameters_range = np.linspace(0.5, 3.0, 100)
+    rbm_range = diameter_to_rbm(diameters_range)
+    
+    ax3.plot(diameters_range, rbm_range, 'b-', linewidth=2)
+    ax3.scatter([0.8, 1.0, 1.2, 1.4], [diameter_to_rbm(d) for d in [0.8, 1.0, 1.2, 1.4]],
+               s=100, c='red', zorder=5, label='Sample CNTs')
+    ax3.set_xlabel('CNT Diameter (nm)', fontsize=12)
+    ax3.set_ylabel('RBM Frequency (cm$^{-1}$)', fontsize=12)
+    ax3.set_title('Diameter-RBM Relationship: $\\omega_{RBM} = 248/d$', fontsize=13, fontweight='bold')
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+    ax3.set_xlim(0.5, 3.0)
+    ax3.set_ylim(50, 500)
+    
+    # G band analysis (metallic vs semiconducting)
+    ax4 = axes[1, 1]
+    wavenumber_g = np.linspace(1500, 1650, 300)
+    
+    # Semiconducting CNT G band
+    g_semi = lorentzian(wavenumber_g, 1590, 10, 1.0) + lorentzian(wavenumber_g, 1570, 8, 0.3)
+    # Metallic CNT G band (broader G- due to Kohn anomaly)
+    g_metal = lorentzian(wavenumber_g, 1590, 10, 1.0) + lorentzian(wavenumber_g, 1550, 30, 0.6)
+    
+    ax4.plot(wavenumber_g, g_semi, 'b-', linewidth=2, label='Semiconducting CNT')
+    ax4.plot(wavenumber_g, g_metal, 'r-', linewidth=2, label='Metallic CNT')
+    ax4.set_xlabel('Raman Shift (cm$^{-1}$)', fontsize=12)
+    ax4.set_ylabel('Intensity (a.u.)', fontsize=12)
+    ax4.set_title('G Band: Metallic vs. Semiconducting CNT', fontsize=13, fontweight='bold')
+    ax4.annotate('G$^+$', xy=(1590, 1.0), xytext=(1600, 1.1), fontsize=11)
+    ax4.annotate('G$^-$ (narrow)', xy=(1570, 0.35), xytext=(1530, 0.5), fontsize=10,
+                arrowprops=dict(arrowstyle='->', color='blue'))
+    ax4.annotate('G$^-$ (broad, BWF)', xy=(1550, 0.6), xytext=(1510, 0.8), fontsize=10,
+                arrowprops=dict(arrowstyle='->', color='red'))
+    ax4.legend()
+    ax4.grid(True, alpha=0.3)
+    ax4.invert_xaxis()
+    
     plt.tight_layout()
+    plt.savefig('cnt_raman_analysis.png', dpi=300, bbox_inches='tight')
     plt.show()
     
-    print("Charge Correction Results:")
-    print(f"  Detected Charging Shift: {detected_shift:.2f} eV")
-    print(f"  True Charging Shift: {charge_shift:.2f} eV")
-    print(f"  C 1s Peak Position: {C_1s_observed_pos:.2f} eV ’ Corrected to 284.5 eV")
-    print(f"  O 1s Peak Position: {532.0 + charge_shift:.2f} eV ’ Corrected to 532.0 eV")
+    # Print diameter analysis
+    print("\nCNT Diameter Analysis from RBM:")
+    print("=" * 50)
+    print(f"{'RBM (cm^-1)':<15} {'Diameter (nm)':<15} {'Type':<20}")
+    print("-" * 50)
+    for d in diameters:
+        rbm = diameter_to_rbm(d)
+        cnt_type = "Semiconducting" if d > 1.0 else "Could be metallic"
+        print(f"{rbm:<15.0f} {d:<15.1f} {cnt_type:<20}")
     
-    4.9 Exercise Problems
-    
-    Basic Problems (Easy)
-    Problem 1: Calculation of Photoelectron Kinetic Energy
-    In XPS measurement using Al K± radiation (1486.6 eV), the kinetic energy of C 1s photoelectrons was measured as 1202.1 eV. Calculate the binding energy of C 1s electrons with a work function of 4.5 eV.
-    
-    See Answer
-    
-    Answer:
-    Einstein's equation:
-                    \[
-                    E_{\text{kinetic}} = h\nu - E_{\text{binding}} - \phi
-                    \]
-                    \[
-                    E_{\text{binding}} = h\nu - E_{\text{kinetic}} - \phi = 1486.6 - 1202.1 - 4.5 = 280.0\,\text{eV}
-                    \]
-                    Answer: 280.0 eV (Since actual C 1s is approximately 284.5 eV, there may be charging in the sample)
-    Python Code:
-    h_nu = 1486.6  # eV (Al K±)
-    E_kinetic = 1202.1  # eV
-    phi = 4.5  # eV
-    E_binding = h_nu - E_kinetic - phi
-    print(f"C 1s Binding Energy: {E_binding:.1f} eV")
-    
-    
-    
-    Problem 2: Interpretation of Chemical Shift
-    In the C 1s spectrum of a polymer sample, peaks were observed at 284.5 eV, 286.5 eV, and 288.0 eV. Identify the chemical state of each peak.
-    
-    See Answer
-    
-    Answer:
-    
-    284.5 eV: C-C, C-H (hydrocarbon skeleton)
-    286.5 eV: C-O (ether, alcohol bond)
-    288.0 eV: C=O (carbonyl group)
-    
-    Answer: Mixed structure of polymer backbone (C-C) and functional groups (C-O, C=O)
+
+## 4.6 D/G Band Analysis and Peak Fitting
+
+### 4.6.1 D/G Ratio as Defect Indicator
+
+The intensity ratio ID/IG is widely used to quantify the defect density in carbon materials. For graphene and graphite, the relationship between ID/IG and defect density follows the Tuinstra-Koenig relation:
+
+**Tuinstra-Koenig Relation:**
+
+\\[ \frac{I_D}{I_G} = \frac{C(\lambda_L)}{L_a} \\] 
+
+where \\(L_a\\) is the in-plane crystallite size and \\(C(\lambda_L)\\) is a constant that depends on the laser wavelength.
+
+**Modified Relation for Nano-crystalline Graphite:**
+
+\\[ \frac{I_D}{I_G} = C'(\lambda_L) \cdot L_a^2 \\] 
+
+This relation applies when \\(L_a\\) is small (< 2 nm), where the defect density is so high that the D band intensity increases with decreasing \\(L_a\\).
+
+#### Code Example 7: Complete D/G Band Fitting and Analysis
     
     
-    Problem 3: Sensitivity Factor in Quantitative Analysis
-    From the peaks of Si 2p (peak area 15000, RSF = 0.27) and O 1s (peak area 35000, RSF = 0.66), calculate the atomic concentrations of Si and O.
-    
-    See Answer
-    
-    Answer:
-    Normalized intensity:
-                    \[
-                    I_{\text{Si}} / S_{\text{Si}} = 15000 / 0.27 = 55556
-                    \]
-                    \[
-                    I_{\text{O}} / S_{\text{O}} = 35000 / 0.66 = 53030
-                    \]
-                    Atomic concentration:
-                    \[
-                    C_{\text{Si}} = \frac{55556}{55556 + 53030} \times 100 = 51.2\,\text{at\%}
-                    \]
-                    \[
-                    C_{\text{O}} = \frac{53030}{55556 + 53030} \times 100 = 48.8\,\text{at\%}
-                    \]
-                    Answer: Si = 51.2 at%, O = 48.8 at% (Si:O H 1:1, close to SiO)
-    Python Code:
-    I_Si = 15000
-    I_O = 35000
-    RSF_Si = 0.27
-    RSF_O = 0.66
-    
-    norm_Si = I_Si / RSF_Si
-    norm_O = I_O / RSF_O
-    total = norm_Si + norm_O
-    
-    C_Si = (norm_Si / total) * 100
-    C_O = (norm_O / total) * 100
-    
-    print(f"Si: {C_Si:.1f} at%")
-    print(f"O: {C_O:.1f} at%")
-    
-    
-    
-    
-    
-    Intermediate Problems (Medium)
-    Problem 4: Multi-component Peak Fitting
-    In the Fe 2p3/2 spectrum, three chemical states are mixed at 707.0 eV (Fe0), 709.5 eV (Fe2+), and 710.8 eV (Fe3+). Create a Python program to fit each peak with a Gaussian function (FWHM = 2.0 eV) and determine the ratio of each oxidation state.
-    
-    See Answer
-    
-    Answer:
-    Perform three-component fitting using the multi_peak_fit function from Code Example 2.
-    Python Code:
     # Requirements:
     # - Python 3.9+
+    # - numpy>=1.24.0
     # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    """
-    Example: Python Code:
-    
-    Purpose: Demonstrate data visualization techniques
-    Target: Intermediate
-    Execution time: 10-30 seconds
-    Dependencies: None
-    """
+    # - scipy>=1.10.0
+    # - lmfit>=1.2.0 (optional, for advanced fitting)
     
     import numpy as np
     import matplotlib.pyplot as plt
     from scipy.optimize import curve_fit
+    from scipy.signal import savgol_filter
     
-    # Simulation of Fe 2p3/2 spectrum
-    BE_Fe = np.linspace(700, 720, 2000)
-    
-    # Three chemical states
-    Fe0 = gaussian_peak(BE_Fe, amplitude=300, center=707.0, width=2.0)
-    Fe2 = gaussian_peak(BE_Fe, amplitude=500, center=709.5, width=2.0)
-    Fe3 = gaussian_peak(BE_Fe, amplitude=400, center=710.8, width=2.0)
-    observed_Fe = Fe0 + Fe2 + Fe3 + np.random.normal(0, 15, len(BE_Fe))
-    
-    # Fitting (using Gaussian function)
-    def three_gaussian(x, A1, c1, w1, A2, c2, w2, A3, c3, w3):
-        return (gaussian_peak(x, A1, c1, w1) +
-                gaussian_peak(x, A2, c2, w2) +
-                gaussian_peak(x, A3, c3, w3))
-    
-    p0 = [300, 707.0, 2.0, 500, 709.5, 2.0, 400, 710.8, 2.0]
-    popt, _ = curve_fit(three_gaussian, BE_Fe, observed_Fe, p0=p0, maxfev=10000)
-    
-    # Reconstruct each component
-    Fe0_fit = gaussian_peak(BE_Fe, popt[0], popt[1], popt[2])
-    Fe2_fit = gaussian_peak(BE_Fe, popt[3], popt[4], popt[5])
-    Fe3_fit = gaussian_peak(BE_Fe, popt[6], popt[7], popt[8])
-    
-    # Peak area
-    area_Fe0 = np.trapz(Fe0_fit, BE_Fe)
-    area_Fe2 = np.trapz(Fe2_fit, BE_Fe)
-    area_Fe3 = np.trapz(Fe3_fit, BE_Fe)
-    total_area = area_Fe0 + area_Fe2 + area_Fe3
-    
-    # Ratio of each oxidation state
-    ratio_Fe0 = (area_Fe0 / total_area) * 100
-    ratio_Fe2 = (area_Fe2 / total_area) * 100
-    ratio_Fe3 = (area_Fe3 / total_area) * 100
-    
-    print("Fe Oxidation State Ratio:")
-    print(f"  Fep (Metallic Iron): {ratio_Fe0:.1f}%")
-    print(f"  Fe²z (FeO): {ratio_Fe2:.1f}%")
-    print(f"  Fe³z (Fe‚Oƒ): {ratio_Fe3:.1f}%")
-    
-    # Plot
-    plt.figure(figsize=(12, 6))
-    plt.plot(BE_Fe, observed_Fe, 'ko', markersize=2, alpha=0.5, label='Observed Data')
-    plt.fill_between(BE_Fe, Fe0_fit, alpha=0.5, color='blue', label=f'Fep ({ratio_Fe0:.1f}%)')
-    plt.fill_between(BE_Fe, Fe2_fit, alpha=0.5, color='green', label=f'Fe²z ({ratio_Fe2:.1f}%)')
-    plt.fill_between(BE_Fe, Fe3_fit, alpha=0.5, color='red', label=f'Fe³z ({ratio_Fe3:.1f}%)')
-    plt.xlabel('Binding Energy (eV)', fontsize=12)
-    plt.ylabel('Intensity (cps)', fontsize=12)
-    plt.title('Fe 2pƒ/‚ Multi-component Fitting', fontsize=14, fontweight='bold')
-    plt.legend()
-    plt.grid(alpha=0.3)
-    plt.gca().invert_xaxis()
-    plt.tight_layout()
-    plt.show()
-    
-    Answer: Quantify the ratio of each oxidation state (according to fitting results)
-    
-    
-    Problem 5: Interpretation of Depth Profiling
-    In the sputtering depth profile of a TiO2/Ti sample, O concentration was 60 at% and Ti concentration was 40 at% from the surface to 10 nm, and beyond 10 nm, O concentration was 0 at% and Ti concentration was 100 at%. Determine the interface position and thickness of each layer.
-    
-    See Answer
-    
-    Answer:
-    Judgment from data:
-    
-    TiO2 Layer: 0-10 nm (Ti:O = 40:60 H 2:3, oxygen deficient from stoichiometric ratio)
-    Interface Position: 10 nm
-    Ti Substrate: Beyond 10 nm (Ti 100 at%)
-    
-    Answer: TiO2 layer thickness = 10 nm, Interface position = 10 nm, Ti substrate > 10 nm
-    
-    
-    Problem 6: Implementation of Charge Correction
-    The C 1s peak of an insulating sample was observed at 287.5 eV. Perform charge correction based on the normal C-C peak (284.5 eV) and find the true binding energy of the Si 2p peak measured simultaneously (observed value: 102.3 eV).
-    
-    See Answer
-    
-    Answer:
-    Charging shift:
-                    \[
-                    \Delta E = 287.5 - 284.5 = 3.0\,\text{eV}
-                    \]
-                    True binding energy of Si 2p:
-                    \[
-                    E_{\text{Si 2p, true}} = 102.3 - 3.0 = 99.3\,\text{eV}
-                    \]
-                    Answer: Si 2p = 99.3 eV (Metallic Silicon)
-    Python Code:
-    C_1s_observed = 287.5  # eV
-    C_1s_reference = 284.5  # eV
-    Si_2p_observed = 102.3  # eV
-    
-    charge_shift = C_1s_observed - C_1s_reference
-    Si_2p_corrected = Si_2p_observed - charge_shift
-    
-    print(f"Charging Shift: {charge_shift:.1f} eV")
-    print(f"Corrected Si 2p: {Si_2p_corrected:.1f} eV (Metallic Si)")
-    
-    
-    
-    
-    
-    Advanced Problems (Hard)
-    Problem 7: Surface Layer Thickness Determination by Angle-Resolved XPS
-    A SiO2 thin film on Si substrate was measured by angle-resolved XPS. At detection angle \( \theta = 90° \) (perpendicular), the intensity of Si 2p (metallic Si, 99.3 eV) was \( I_{90} = 1000 \) cps, and at \( \theta = 30° \) (shallow angle), it was \( I_{30} = 200 \) cps. With the inelastic mean free path of Si electrons as \( \lambda = 3.0 \) nm, estimate the thickness of the SiO2 layer.
-    
-    See Answer
-    
-    Answer:
-    Intensity equation for angle-resolved XPS (signal attenuation from substrate):
-                    \[
-                    I(\theta) = I_0 \exp\left(-\frac{d}{\lambda \sin\theta}\right)
-                    \]
-                    where \( d \) is the SiO2 layer thickness.
-    From data at two angles:
-                    \[
-                    \frac{I_{30}}{I_{90}} = \exp\left(-\frac{d}{\lambda}\left(\frac{1}{\sin 30°} - \frac{1}{\sin 90°}\right)\right)
-                    \]
-                    \[
-                    \ln\left(\frac{I_{30}}{I_{90}}\right) = -\frac{d}{\lambda}\left(\frac{1}{0.5} - \frac{1}{1.0}\right) = -\frac{d}{\lambda} \cdot 1.0
-                    \]
-                    \[
-                    d = -\lambda \ln\left(\frac{I_{30}}{I_{90}}\right) = -3.0 \times \ln\left(\frac{200}{1000}\right) = -3.0 \times (-1.609) = 4.83\,\text{nm}
-                    \]
-    
-                    Python Code:
-    # Requirements:
-    # - Python 3.9+
-    # - numpy>=1.24.0, <2.0.0
-    
-    """
-    Example: Python Code:
-    
-    Purpose: Demonstrate neural network implementation
-    Target: Beginner to Intermediate
-    Execution time: ~5 seconds
-    Dependencies: None
-    """
-    
-    import numpy as np
-    
-    I_90 = 1000  # cps
-    I_30 = 200   # cps
-    lambda_imfp = 3.0  # nm
-    theta_90 = np.radians(90)
-    theta_30 = np.radians(30)
-    
-    # Layer thickness calculation
-    d = -lambda_imfp * np.log(I_30 / I_90) / (1/np.sin(theta_30) - 1/np.sin(theta_90))
-    
-    print(f"SiO‚ Layer Thickness: {d:.2f} nm")
-    
-    Answer: SiO2 layer thickness H 4.8 nm
-    
-    
-    Problem 8: Classification of XPS Spectra by Machine Learning
-    Create a program to classify XPS spectra of different chemical states (metal, oxide, nitride) using machine learning (Random Forest). Use 10 samples for each state as training data and 5 samples for each state as test data.
-    
-    See Answer
-    
-    Answer:
-    Train a random forest classifier using features of XPS spectra (peak position, peak width, peak intensity).
-    Python Code:
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    # - seaborn>=0.12.0
-    
-    """
-    Example: Python Code:
-    
-    Purpose: Demonstrate data visualization techniques
-    Target: Advanced
-    Execution time: 1-5 minutes
-    Dependencies: None
-    """
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.model_selection import train_test_split
-    from sklearn.metrics import classification_report, confusion_matrix
-    import seaborn as sns
-    
-    # Generate training data (features: peak center position, FWHM, peak height)
-    np.random.seed(42)
-    
-    # Metal (BE H 99, FWHM H 1.0, height H 800)
-    metal_features = np.random.normal([99.0, 1.0, 800], [0.3, 0.1, 50], (10, 3))
-    
-    # Oxide (BE H 103, FWHM H 1.5, height H 600)
-    oxide_features = np.random.normal([103.0, 1.5, 600], [0.3, 0.15, 40], (10, 3))
-    
-    # Nitride (BE H 101, FWHM H 1.2, height H 700)
-    nitride_features = np.random.normal([101.0, 1.2, 700], [0.3, 0.12, 45], (10, 3))
-    
-    # Data integration
-    X = np.vstack([metal_features, oxide_features, nitride_features])
-    y = np.array([0]*10 + [1]*10 + [2]*10)  # 0: Metal, 1: Oxide, 2: Nitride
-    
-    # Split training and test data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42, stratify=y)
-    
-    # Random forest classifier
-    rf_classifier = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)
-    rf_classifier.fit(X_train, y_train)
-    
-    # Prediction
-    y_pred = rf_classifier.predict(X_test)
-    
-    # Evaluation
-    class_names = ['Metal', 'Oxide', 'Nitride']
-    print("Classification Report:")
-    print(classification_report(y_test, y_pred, target_names=class_names))
-    
-    # Confusion matrix
-    cm = confusion_matrix(y_test, y_pred)
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names, yticklabels=class_names)
-    plt.xlabel('Predicted Label', fontsize=12)
-    plt.ylabel('True Label', fontsize=12)
-    plt.title('Confusion Matrix (XPS Classification)', fontsize=14, fontweight='bold')
-    plt.tight_layout()
-    plt.show()
-    
-    # Feature importance
-    importances = rf_classifier.feature_importances_
-    feature_names = ['Peak Center (eV)', 'FWHM (eV)', 'Peak Height (cps)']
-    plt.figure(figsize=(8, 5))
-    plt.barh(feature_names, importances, color='skyblue', edgecolor='black')
-    plt.xlabel('Importance', fontsize=12)
-    plt.title('Feature Importance', fontsize=14, fontweight='bold')
-    plt.grid(alpha=0.3, axis='x')
-    plt.tight_layout()
-    plt.show()
-    
-    print("\nFeature Importance:")
-    for name, importance in zip(feature_names, importances):
-        print(f"  {name}: {importance:.3f}")
-    
-    Answer: Classify chemical states of XPS spectra with high accuracy (>95%)
-    
-    
-    Problem 9: Algorithm for Identification of XPS and Auger Electrons
-    Implement an algorithm to automatically identify photoelectron peaks and Auger electron peaks from XPS wide scan spectra. Take two spectra with different X-ray energies (Al K±, Mg K±) as input and determine which type each peak is.
-    
-    See Answer
-    
-    Answer:
-    Principle: Photoelectron peaks have constant binding energy, Auger electrons have constant kinetic energy.
-    Python Code:
-    # Requirements:
-    # - Python 3.9+
-    # - matplotlib>=3.7.0
-    # - numpy>=1.24.0, <2.0.0
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
-    def identify_photoelectron_auger(BE_AlKa, intensity_AlKa, BE_MgKa, intensity_MgKa, threshold=1.0):
+    def voigt(x, center, sigma, gamma, amplitude):
         """
-        Identify photoelectron and Auger electron peaks
+        Voigt profile (convolution of Gaussian and Lorentzian).
+        Approximation using the Faddeeva function approach.
+        """
+        from scipy.special import wofz
+        z = ((x - center) + 1j * gamma) / (sigma * np.sqrt(2))
+        return amplitude * np.real(wofz(z)) / (sigma * np.sqrt(2 * np.pi))
+    
+    def multi_peak_model(x, *params):
+        """
+        Multi-peak model for D and G band fitting.
+    
+        Parameters layout: [amp_D, center_D, sigma_D, gamma_D,
+                            amp_G, center_G, sigma_G, gamma_G,
+                            amp_D', center_D', sigma_D', gamma_D',
+                            baseline_slope, baseline_intercept]
+        """
+        n_peaks = (len(params) - 2) // 4
+        result = np.zeros_like(x, dtype=float)
+    
+        for i in range(n_peaks):
+            idx = i * 4
+            amp, center, sigma, gamma = params[idx:idx+4]
+            result += voigt(x, center, sigma, gamma, amp)
+    
+        # Linear baseline
+        result += params[-2] * x + params[-1]
+    
+        return result
+    
+    def fit_dg_bands(wavenumber, intensity, n_peaks=3):
+        """
+        Fit D, G, and D' bands in carbon Raman spectrum.
     
         Parameters:
         -----------
-        BE_AlKa, BE_MgKa : array
-            Binding energy for each X-ray source
-        intensity_AlKa, intensity_MgKa : array
-            Intensity of each spectrum
-        threshold : float
-            Threshold for peak position change (eV)
+        wavenumber : array
+            Wavenumber data
+        intensity : array
+            Intensity data
+        n_peaks : int
+            Number of peaks to fit (2=D+G, 3=D+G+D')
     
         Returns:
         --------
-        peak_types : dict
-            Type of each peak ('photoelectron' or 'Auger')
+        popt : array
+            Optimized parameters
+        fitted : array
+            Fitted curve
+        components : dict
+            Individual peak components
         """
-        # Peak detection (simple maximum value detection)
-        from scipy.signal import find_peaks
+        # Initial guesses
+        if n_peaks == 2:
+            # D and G bands only
+            p0 = [
+                intensity.max() * 0.3, 1350, 30, 20,  # D band
+                intensity.max(), 1580, 20, 10,         # G band
+                0, 0                                    # baseline
+            ]
+            bounds_low = [0, 1300, 5, 1, 0, 1550, 5, 1, -np.inf, -np.inf]
+            bounds_high = [np.inf, 1400, 100, 50, np.inf, 1610, 50, 30, np.inf, np.inf]
+        else:
+            # D, G, and D' bands
+            p0 = [
+                intensity.max() * 0.3, 1350, 30, 20,  # D band
+                intensity.max(), 1580, 20, 10,         # G band
+                intensity.max() * 0.1, 1620, 15, 10,   # D' band
+                0, 0                                    # baseline
+            ]
+            bounds_low = [0, 1300, 5, 1, 0, 1550, 5, 1, 0, 1600, 5, 1, -np.inf, -np.inf]
+            bounds_high = [np.inf, 1400, 100, 50, np.inf, 1610, 50, 30, np.inf, 1660, 50, 30, np.inf, np.inf]
     
-        peaks_AlKa, _ = find_peaks(intensity_AlKa, height=100, distance=50)
-        peaks_MgKa, _ = find_peaks(intensity_MgKa, height=100, distance=50)
+        try:
+            popt, pcov = curve_fit(multi_peak_model, wavenumber, intensity,
+                                   p0=p0, bounds=(bounds_low, bounds_high), maxfev=10000)
+        except RuntimeError:
+            print("Warning: Fitting did not converge, using initial guess")
+            popt = p0
     
-        # Search for correspondence of each peak
-        peak_types = {}
-        for i, peak_Al in enumerate(peaks_AlKa):
-            BE_Al = BE_AlKa[peak_Al]
+        fitted = multi_peak_model(wavenumber, *popt)
     
-            # Search for corresponding peak in MgKa spectrum (within ±5 eV)
-            matched = False
-            for peak_Mg in peaks_MgKa:
-                BE_Mg = BE_MgKa[peak_Mg]
-                if abs(BE_Al - BE_Mg) < threshold:
-                    # Binding energy matches ’ Photoelectron peak
-                    peak_types[f"Peak_{i+1} ({BE_Al:.1f} eV)"] = "Photoelectron"
-                    matched = True
-                    break
+        # Extract individual components
+        components = {}
+        peak_names = ['D', 'G', "D'"][:n_peaks]
+        for i, name in enumerate(peak_names):
+            idx = i * 4
+            amp, center, sigma, gamma = popt[idx:idx+4]
+            components[name] = {
+                'curve': voigt(wavenumber, center, sigma, gamma, amp),
+                'amplitude': amp,
+                'center': center,
+                'sigma': sigma,
+                'gamma': gamma,
+                'fwhm': 2 * (0.5346 * gamma + np.sqrt(0.2166 * gamma**2 + sigma**2 * 2.355**2 / 4))
+            }
     
-            if not matched:
-                # Binding energy changes ’ Auger electron peak
-                # Calculate expected position in MgKa
-                E_shift = 1486.6 - 1253.6  # Al K± - Mg K± = 233 eV
-                expected_BE_Mg = BE_Al - E_shift
-                peak_types[f"Peak_{i+1} ({BE_Al:.1f} eV, Mg: {expected_BE_Mg:.1f} eV)"] = "Auger"
+        # Baseline
+        components['baseline'] = popt[-2] * wavenumber + popt[-1]
     
-        return peak_types
+        return popt, fitted, components
     
-    # Implementation example (use data from Code Example 5)
-    # (Omitted: In practice, use simulation data from Code Example 5)
+    # Generate synthetic carbon spectrum with noise
+    np.random.seed(42)
+    wavenumber = np.linspace(1100, 1800, 500)
     
-    print("Identification Algorithm:")
-    print("  Photoelectron: Binding energy does not depend on X-ray energy")
-    print("  Auger: Binding energy display depends on X-ray energy")
+    # True parameters for a moderately defective graphene sample
+    true_D = voigt(wavenumber, 1350, 35, 25, 0.4)
+    true_G = voigt(wavenumber, 1582, 18, 12, 1.0)
+    true_Dp = voigt(wavenumber, 1620, 12, 8, 0.15)
+    baseline = 0.0001 * wavenumber + 0.05
+    noise = np.random.normal(0, 0.03, len(wavenumber))
     
-    Answer: Automatic identification of photoelectrons and Auger electrons (based on X-ray energy dependence)
+    synthetic_spectrum = true_D + true_G + true_Dp + baseline + noise
+    synthetic_spectrum = np.maximum(synthetic_spectrum, 0)
+    
+    # Perform fitting
+    popt, fitted, components = fit_dg_bands(wavenumber, synthetic_spectrum, n_peaks=3)
+    
+    # Calculate I_D/I_G ratio
+    id_ig_ratio = components['D']['amplitude'] / components['G']['amplitude']
+    
+    # Visualization
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # Fitting result
+    ax1 = axes[0, 0]
+    ax1.plot(wavenumber, synthetic_spectrum, 'ko', markersize=2, alpha=0.5, label='Data')
+    ax1.plot(wavenumber, fitted, 'r-', linewidth=2, label='Total Fit')
+    ax1.plot(wavenumber, components['D']['curve'] + components['baseline'], 'b--',
+             linewidth=1.5, label=f"D band ({components['D']['center']:.0f} cm$^{{-1}}$)")
+    ax1.plot(wavenumber, components['G']['curve'] + components['baseline'], 'g--',
+             linewidth=1.5, label=f"G band ({components['G']['center']:.0f} cm$^{{-1}}$)")
+    ax1.plot(wavenumber, components["D'"]['curve'] + components['baseline'], 'm--',
+             linewidth=1.5, label=f"D' band ({components[\"D'\"]['center']:.0f} cm$^{{-1}}$)")
+    ax1.plot(wavenumber, components['baseline'], 'k--', linewidth=1, alpha=0.5, label='Baseline')
+    ax1.set_xlabel('Raman Shift (cm$^{-1}$)', fontsize=12)
+    ax1.set_ylabel('Intensity (a.u.)', fontsize=12)
+    ax1.set_title('D/G Band Fitting with Voigt Profiles', fontsize=13, fontweight='bold')
+    ax1.legend(loc='upper left', fontsize=9)
+    ax1.grid(True, alpha=0.3)
+    ax1.invert_xaxis()
+    
+    # Residual
+    ax2 = axes[0, 1]
+    residual = synthetic_spectrum - fitted
+    ax2.plot(wavenumber, residual, 'b-', linewidth=1)
+    ax2.axhline(y=0, color='r', linestyle='--', linewidth=1)
+    ax2.fill_between(wavenumber, residual, alpha=0.3)
+    ax2.set_xlabel('Raman Shift (cm$^{-1}$)', fontsize=12)
+    ax2.set_ylabel('Residual', fontsize=12)
+    ax2.set_title(f'Fitting Residual (RMSE = {np.sqrt(np.mean(residual**2)):.4f})', fontsize=13)
+    ax2.grid(True, alpha=0.3)
+    ax2.invert_xaxis()
+    
+    # Deconvoluted peaks
+    ax3 = axes[1, 0]
+    ax3.fill_between(wavenumber, components['D']['curve'], alpha=0.5, color='blue', label='D band')
+    ax3.fill_between(wavenumber, components['G']['curve'], alpha=0.5, color='green', label='G band')
+    ax3.fill_between(wavenumber, components["D'"]['curve'], alpha=0.5, color='magenta', label="D' band")
+    ax3.set_xlabel('Raman Shift (cm$^{-1}$)', fontsize=12)
+    ax3.set_ylabel('Intensity (a.u.)', fontsize=12)
+    ax3.set_title('Deconvoluted Peak Components', fontsize=13, fontweight='bold')
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+    ax3.invert_xaxis()
+    
+    # Summary table
+    ax4 = axes[1, 1]
+    ax4.axis('off')
+    
+    # Create table
+    table_data = [
+        ['Parameter', 'D Band', 'G Band', "D' Band"],
+        ['Center (cm$^{-1}$)', f"{components['D']['center']:.1f}",
+         f"{components['G']['center']:.1f}", f"{components[\"D'\"]['center']:.1f}"],
+        ['Amplitude', f"{components['D']['amplitude']:.3f}",
+         f"{components['G']['amplitude']:.3f}", f"{components[\"D'\"]['amplitude']:.3f}"],
+        ['FWHM (cm$^{-1}$)', f"{components['D']['fwhm']:.1f}",
+         f"{components['G']['fwhm']:.1f}", f"{components[\"D'\"]['fwhm']:.1f}"],
+    ]
+    
+    table = ax4.table(cellText=table_data, loc='center', cellLoc='center',
+                      colWidths=[0.25, 0.25, 0.25, 0.25])
+    table.auto_set_font_size(False)
+    table.set_fontsize(11)
+    table.scale(1.2, 2)
+    
+    # Color header row
+    for i in range(4):
+        table[(0, i)].set_facecolor('#f093fb')
+        table[(0, i)].set_text_props(color='white', fontweight='bold')
+    
+    ax4.set_title(f'\nFitting Results Summary\n$I_D/I_G$ = {id_ig_ratio:.3f}',
+                  fontsize=14, fontweight='bold')
+    
+    plt.tight_layout()
+    plt.savefig('dg_band_fitting.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Print detailed results
+    print("\nD/G Band Fitting Results:")
+    print("=" * 60)
+    for name in ['D', 'G', "D'"]:
+        comp = components[name]
+        print(f"\n{name} Band:")
+        print(f"  Center: {comp['center']:.1f} cm^-1")
+        print(f"  Amplitude: {comp['amplitude']:.4f}")
+        print(f"  FWHM: {comp['fwhm']:.1f} cm^-1")
+    
+    print("\n" + "=" * 60)
+    print(f"I_D/I_G ratio: {id_ig_ratio:.3f}")
+    print(f"I_D'/I_G ratio: {components[\"D'\"]['amplitude']/components['G']['amplitude']:.3f}")
+    
+    # Estimate crystallite size using Tuinstra-Koenig (for 532 nm laser)
+    C_532 = 4.4  # nm for 532 nm laser
+    La = C_532 / id_ig_ratio
+    print(f"\nEstimated crystallite size (L_a): {La:.1f} nm")
+    print("(Using Tuinstra-Koenig relation with C(532 nm) = 4.4 nm)")
+    
+
+## Exercises
+
+#### Exercise 1: Stokes/Anti-Stokes Temperature Measurement (Basic)
+
+The anti-Stokes to Stokes intensity ratio for a vibrational mode at 1000 cm-1 is measured to be 0.15. Calculate the sample temperature.
+
+View Solution
     
     
+    import numpy as np
+    
+    # Physical constants
+    h = 6.62607015e-34  # J*s
+    c = 2.99792458e10   # cm/s
+    k_B = 1.380649e-23  # J/K
+    
+    # Given data
+    omega = 1000  # cm^-1
+    ratio = 0.15  # I_anti-Stokes / I_Stokes
+    
+    # From Boltzmann distribution:
+    # ratio = exp(-h*c*omega / (k_B * T))
+    # ln(ratio) = -h*c*omega / (k_B * T)
+    # T = -h*c*omega / (k_B * ln(ratio))
+    
+    delta_E = h * c * omega  # Energy in Joules
+    T = -delta_E / (k_B * np.log(ratio))
+    
+    print(f"Sample temperature: {T:.0f} K ({T-273.15:.0f} C)")
+    # Answer: approximately 758 K (485 C)
+    
+
+#### Exercise 2: Identifying Unknown Carbon Material (Intermediate)
+
+A carbon sample shows the following Raman features: D band at 1348 cm-1 with ID/IG = 0.85, G band at 1582 cm-1, and 2D band at 2695 cm-1 with I2D/IG = 0.45. The 2D band FWHM is approximately 65 cm-1. Identify the material and estimate its quality.
+
+View Solution
+
+**Analysis:**
+
+  * The I2D/IG ratio of 0.45 is less than 2, indicating this is NOT single-layer graphene.
+  * The 2D band FWHM of ~65 cm-1 is broader than single-layer (~30 cm-1) or bilayer (~50 cm-1).
+  * The significant D band (ID/IG = 0.85) indicates substantial defects or edges.
+
+**Conclusion:** This is most likely multilayer graphene (3+ layers) or graphite with significant defects/edges. The high ID/IG ratio suggests either:
+
+  1. Nano-crystalline graphite with small domain size
+  2. Reduced graphene oxide (rGO) with residual defects
+  3. Graphene with high edge density (e.g., graphene nanoribbons)
+
+Using the Tuinstra-Koenig relation with C(532 nm) = 4.4 nm:
+
+La = 4.4 / 0.85 = 5.2 nm
+
+This small crystallite size confirms nano-crystalline or heavily defected graphitic carbon.
+
+#### Exercise 3: CNT Diameter Distribution (Intermediate)
+
+Write a Python function that takes RBM peak positions as input and returns the diameter distribution of a CNT sample. Apply it to a sample with RBM peaks at 165, 195, 235, and 285 cm-1.
+
+View Solution
     
     
-    Learning Objectives Review
-    Please self-assess the following items:
-    Level 1: Basic Understanding
+    import numpy as np
+    import matplotlib.pyplot as plt
     
-    Understanding the photoelectric effect principle of XPS and Einstein's equation
-    Ability to explain the origin of chemical shifts and relationship with oxidation states
-    Ability to convert between binding energy and kinetic energy
-    Understanding basic reading of XPS spectra
+    def analyze_cnt_diameters(rbm_peaks, A=248, B=0):
+        """
+        Calculate CNT diameter distribution from RBM peaks.
     
-    Level 2: Practical Skills
+        Parameters:
+        -----------
+        rbm_peaks : list
+            RBM peak positions in cm^-1
+        A, B : float
+            Parameters for omega = A/d + B
     
-    Ability to perform Shirley background subtraction
-    Ability to perform multi-peak fitting (deconvolution)
-    Ability to calculate surface composition by quantitative analysis
-    Ability to implement charge correction
-    Ability to analyze depth profiles
+        Returns:
+        --------
+        diameters : list
+            Calculated diameters in nm
+        """
+        diameters = [A / (omega - B) for omega in rbm_peaks]
     
-    Level 3: Application Ability
+        # Print results
+        print("CNT Diameter Analysis:")
+        print("=" * 40)
+        print(f"{'RBM (cm^-1)':<15} {'Diameter (nm)':<15}")
+        print("-" * 40)
+        for rbm, d in zip(rbm_peaks, diameters):
+            print(f"{rbm:<15.0f} {d:<15.2f}")
     
-    Ability to determine surface layer thickness by angle-resolved XPS
-    Ability to identify photoelectron and Auger electron peaks
-    Ability to perform advanced noise removal and spectral preprocessing
-    Ability to classify XPS spectra using machine learning
+        # Statistics
+        print("-" * 40)
+        print(f"Mean diameter: {np.mean(diameters):.2f} nm")
+        print(f"Diameter range: {min(diameters):.2f} - {max(diameters):.2f} nm")
+    
+        return diameters
+    
+    # Apply to sample
+    rbm_peaks = [165, 195, 235, 285]
+    diameters = analyze_cnt_diameters(rbm_peaks)
+    
+    # Visualization
+    plt.figure(figsize=(8, 5))
+    plt.bar(range(len(diameters)), diameters, color='steelblue', edgecolor='black')
+    plt.xticks(range(len(diameters)), [f'{rbm} cm$^{{-1}}$' for rbm in rbm_peaks])
+    plt.xlabel('RBM Peak Position')
+    plt.ylabel('CNT Diameter (nm)')
+    plt.title('CNT Diameter Distribution')
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+    
+    # Results:
+    # 165 cm^-1 -> 1.50 nm
+    # 195 cm^-1 -> 1.27 nm
+    # 235 cm^-1 -> 1.06 nm
+    # 285 cm^-1 -> 0.87 nm
+    
+
+#### Exercise 4: SERS Enhancement Calculation (Advanced)
+
+A molecule shows a normal Raman signal of 100 counts per second at 1 M concentration. When the same molecule is adsorbed on a SERS substrate, it gives 108 counts per second at 10-6 M concentration. Calculate the analytical enhancement factor (AEF) and estimate the true enhancement factor assuming only 1% of molecules are in hot spots.
+
+View Solution
     
     
+    import numpy as np
     
-    References
+    # Given data
+    I_normal = 100  # counts/s
+    C_normal = 1    # M
+    I_SERS = 1e8    # counts/s
+    C_SERS = 1e-6   # M
     
-    Briggs, D., Seah, M.P. (1990). Practical Surface Analysis, Volume 1: Auger and X-ray Photoelectron Spectroscopy (2nd ed.). Wiley, pp. 26-31 (photoionization cross-sections), pp. 85-105 (quantification methods), pp. 201-215 (chemical shifts), pp. 312-335 (depth profiling). - Comprehensive explanation of XPS principles, quantitative analysis methods, and practical measurement techniques
-    Shirley, D.A. (1972). High-resolution X-ray photoemission spectrum of the valence bands of gold. Physical Review B, 5(12), 4709-4714. DOI: 10.1103/PhysRevB.5.4709 - Original paper on Shirley background subtraction method
-    Scofield, J.H. (1976). Hartree-Slater subshell photoionization cross-sections at 1254 and 1487 eV. Journal of Electron Spectroscopy and Related Phenomena, 8(2), 129-137. DOI: 10.1016/0368-2048(76)80015-1 - Foundational paper on theoretical calculation of XPS relative sensitivity factors
-    Hüfner, S. (2003). Photoelectron Spectroscopy: Principles and Applications (3rd ed.). Springer, pp. 1-28 (basic principles), pp. 45-65 (chemical shifts), pp. 350-380 (surface analysis), pp. 420-450 (applications). - Quantum mechanical fundamentals of photoelectron spectroscopy, theory of chemical shifts
-    Moulder, J.F., Stickle, W.F., Sobol, P.E., Bomben, K.D. (1992). Handbook of X-ray Photoelectron Spectroscopy. Physical Electronics, pp. 40-42 (C 1s), pp. 82-84 (O 1s), pp. 181-183 (Si 2p), pp. 230-232 (Fe 2p). - XPS spectrum database, standard peak position collection
-    Powell, C.J., Jablonski, A. (2010). NIST Electron Inelastic-Mean-Free-Path Database, Version 1.2. National Institute of Standards and Technology, Gaithersburg, MD. DOI: 10.18434/T48C78 - Inelastic mean free path (IMFP) database
-    Pielaszek, R., Andrearczyk, K., Wójcik, M. (2022). Machine learning for automated XPS data analysis. Surface and Interface Analysis, 54(4), 367-378. DOI: 10.1002/sia.7051 - Latest methods for automated XPS analysis using machine learning
-    SciPy 1.11 documentation. scipy.signal.savgol_filter, scipy.signal.find_peaks. https://docs.scipy.org/doc/scipy/reference/signal.html - Savitzky-Golay filter, peak detection, signal processing algorithms
-    ```
+    # Analytical Enhancement Factor (AEF)
+    # AEF = (I_SERS / C_SERS) / (I_normal / C_normal)
+    AEF = (I_SERS / C_SERS) / (I_normal / C_normal)
+    print(f"Analytical Enhancement Factor (AEF): {AEF:.2e}")
+    
+    # True Enhancement Factor considering hot spot fraction
+    hot_spot_fraction = 0.01  # 1% of molecules in hot spots
+    
+    # If only 1% contribute, the actual enhancement per molecule is higher
+    true_EF = AEF / hot_spot_fraction
+    print(f"True Enhancement Factor (1% in hot spots): {true_EF:.2e}")
+    
+    # The electromagnetic enhancement scales as |E/E0|^4
+    # So the field enhancement is:
+    field_enhancement = true_EF ** 0.25
+    print(f"Estimated field enhancement |E/E0|: {field_enhancement:.0f}")
+    
+    # Results:
+    # AEF = 10^12
+    # True EF = 10^14 (if 1% in hot spots)
+    # Field enhancement |E/E0| ~ 3162
+    
+
+#### Exercise 5: Complete Raman Spectrum Analysis (Advanced)
+
+Write a Python program that performs complete analysis of a carbon Raman spectrum, including: (1) baseline correction, (2) D/G band fitting with Voigt profiles, (3) calculation of ID/IG and crystallite size, and (4) generation of a publication-quality figure.
+
+View Solution
+    
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.optimize import curve_fit
+    from scipy.signal import savgol_filter
+    from scipy.special import wofz
+    
+    class CarbonRamanAnalyzer:
+        """Complete Raman spectrum analyzer for carbon materials."""
+    
+        def __init__(self, wavenumber, intensity, laser_wavelength=532):
+            self.wavenumber = np.array(wavenumber)
+            self.intensity = np.array(intensity)
+            self.laser_wavelength = laser_wavelength
+            self.results = {}
+    
+        def baseline_correct(self, degree=3, regions=None):
+            """Polynomial baseline correction."""
+            if regions is None:
+                # Default: use ends of spectrum for baseline
+                mask = (self.wavenumber < 1200) | (self.wavenumber > 1750)
+            else:
+                mask = np.zeros_like(self.wavenumber, dtype=bool)
+                for low, high in regions:
+                    mask |= (self.wavenumber > low) & (self.wavenumber < high)
+    
+            coeffs = np.polyfit(self.wavenumber[mask], self.intensity[mask], degree)
+            self.baseline = np.polyval(coeffs, self.wavenumber)
+            self.intensity_corrected = self.intensity - self.baseline
+            return self.intensity_corrected
+    
+        @staticmethod
+        def voigt(x, center, sigma, gamma, amplitude):
+            """Voigt profile."""
+            z = ((x - center) + 1j * gamma) / (sigma * np.sqrt(2))
+            return amplitude * np.real(wofz(z)) / (sigma * np.sqrt(2 * np.pi))
+    
+        def fit_bands(self):
+            """Fit D, G, and D' bands."""
+            def model(x, a_d, c_d, s_d, g_d, a_g, c_g, s_g, g_g, a_dp, c_dp, s_dp, g_dp):
+                return (self.voigt(x, c_d, s_d, g_d, a_d) +
+                        self.voigt(x, c_g, s_g, g_g, a_g) +
+                        self.voigt(x, c_dp, s_dp, g_dp, a_dp))
+    
+            p0 = [0.3, 1350, 30, 20, 1.0, 1580, 15, 10, 0.1, 1620, 10, 8]
+            bounds_low = [0, 1300, 5, 1, 0, 1550, 5, 1, 0, 1600, 5, 1]
+            bounds_high = [2, 1400, 80, 50, 2, 1610, 50, 30, 1, 1660, 40, 25]
+    
+            popt, pcov = curve_fit(model, self.wavenumber, self.intensity_corrected,
+                                   p0=p0, bounds=(bounds_low, bounds_high), maxfev=10000)
+    
+            self.results = {
+                'D': {'amp': popt[0], 'center': popt[1], 'sigma': popt[2], 'gamma': popt[3]},
+                'G': {'amp': popt[4], 'center': popt[5], 'sigma': popt[6], 'gamma': popt[7]},
+                "D'": {'amp': popt[8], 'center': popt[9], 'sigma': popt[10], 'gamma': popt[11]},
+            }
+    
+            for band in ['D', 'G', "D'"]:
+                r = self.results[band]
+                r['curve'] = self.voigt(self.wavenumber, r['center'], r['sigma'], r['gamma'], r['amp'])
+                r['fwhm'] = 2 * (0.5346*r['gamma'] + np.sqrt(0.2166*r['gamma']**2 + (2.355*r['sigma'])**2/4))
+    
+            self.fitted = model(self.wavenumber, *popt)
+            return self.results
+    
+        def calculate_metrics(self):
+            """Calculate I_D/I_G ratio and crystallite size."""
+            self.id_ig = self.results['D']['amp'] / self.results['G']['amp']
+    
+            # Tuinstra-Koenig constant depends on laser wavelength
+            C_lambda = 2.4e-10 * self.laser_wavelength**4  # nm
+            self.La = C_lambda / self.id_ig
+    
+            return {'I_D/I_G': self.id_ig, 'L_a (nm)': self.La}
+    
+        def plot_results(self, save_path=None):
+            """Generate publication-quality figure."""
+            fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    
+            # Original and baseline
+            ax1 = axes[0, 0]
+            ax1.plot(self.wavenumber, self.intensity, 'b-', lw=1.5, label='Original')
+            ax1.plot(self.wavenumber, self.baseline, 'r--', lw=1.5, label='Baseline')
+            ax1.set_xlabel('Raman Shift (cm$^{-1}$)')
+            ax1.set_ylabel('Intensity (a.u.)')
+            ax1.set_title('(a) Raw Spectrum with Baseline')
+            ax1.legend()
+            ax1.invert_xaxis()
+    
+            # Fitting
+            ax2 = axes[0, 1]
+            ax2.plot(self.wavenumber, self.intensity_corrected, 'ko', ms=2, alpha=0.5, label='Data')
+            ax2.plot(self.wavenumber, self.fitted, 'r-', lw=2, label='Fit')
+            for name, color in [('D', 'blue'), ('G', 'green'), ("D'", 'magenta')]:
+                ax2.plot(self.wavenumber, self.results[name]['curve'], '--', color=color,
+                         lw=1.5, label=f"{name} band")
+            ax2.set_xlabel('Raman Shift (cm$^{-1}$)')
+            ax2.set_ylabel('Intensity (a.u.)')
+            ax2.set_title('(b) Peak Fitting')
+            ax2.legend(fontsize=9)
+            ax2.invert_xaxis()
+    
+            # Residual
+            ax3 = axes[1, 0]
+            residual = self.intensity_corrected - self.fitted
+            ax3.plot(self.wavenumber, residual, 'b-', lw=1)
+            ax3.axhline(0, color='r', ls='--')
+            ax3.fill_between(self.wavenumber, residual, alpha=0.3)
+            ax3.set_xlabel('Raman Shift (cm$^{-1}$)')
+            ax3.set_ylabel('Residual')
+            ax3.set_title(f'(c) Residual (RMSE = {np.sqrt(np.mean(residual**2)):.4f})')
+            ax3.invert_xaxis()
+    
+            # Results table
+            ax4 = axes[1, 1]
+            ax4.axis('off')
+    
+            table_data = [['Band', 'Center', 'FWHM', 'Amplitude']]
+            for name in ['D', 'G', "D'"]:
+                r = self.results[name]
+                table_data.append([name, f"{r['center']:.1f}", f"{r['fwhm']:.1f}", f"{r['amp']:.3f}"])
+    
+            table = ax4.table(cellText=table_data, loc='center', cellLoc='center',
+                              colWidths=[0.2, 0.25, 0.25, 0.25])
+            table.auto_set_font_size(False)
+            table.set_fontsize(11)
+            table.scale(1.2, 2)
+    
+            for i in range(4):
+                table[(0, i)].set_facecolor('#f093fb')
+                table[(0, i)].set_text_props(color='white', fontweight='bold')
+    
+            ax4.set_title(f'(d) Results\n$I_D/I_G$ = {self.id_ig:.3f}, $L_a$ = {self.La:.1f} nm',
+                          fontsize=12, fontweight='bold')
+    
+            plt.tight_layout()
+            if save_path:
+                plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            plt.show()
+    
+    # Usage example
+    np.random.seed(42)
+    wavenumber = np.linspace(1100, 1800, 500)
+    intensity = (0.4 * CarbonRamanAnalyzer.voigt(wavenumber, 1350, 35, 25, 1) +
+                 1.0 * CarbonRamanAnalyzer.voigt(wavenumber, 1582, 18, 12, 1) +
+                 0.15 * CarbonRamanAnalyzer.voigt(wavenumber, 1620, 12, 8, 1) +
+                 0.0001 * wavenumber + 0.1 +
+                 np.random.normal(0, 0.03, len(wavenumber)))
+    
+    analyzer = CarbonRamanAnalyzer(wavenumber, intensity, laser_wavelength=532)
+    analyzer.baseline_correct()
+    analyzer.fit_bands()
+    metrics = analyzer.calculate_metrics()
+    analyzer.plot_results('carbon_raman_analysis.png')
+    
+    print("\nAnalysis Complete:")
+    print(f"I_D/I_G = {metrics['I_D/I_G']:.3f}")
+    print(f"Crystallite size L_a = {metrics['L_a (nm)']:.1f} nm")
+    
+
+## Chapter Summary
+
+#### Key Takeaways
+
+  * **Raman scattering** is an inelastic light scattering process where photons exchange energy with molecular vibrations. Stokes scattering (energy loss) is more intense than anti-Stokes scattering (energy gain) at room temperature.
+  * **Selection rules** : A vibration is Raman-active if it causes a change in molecular polarizability. This is complementary to IR spectroscopy, which requires a change in dipole moment.
+  * **IR-Raman complementarity** : Symmetric vibrations are typically Raman-active; asymmetric vibrations are typically IR-active. For centrosymmetric molecules, mutual exclusion applies.
+  * **SERS** provides dramatic enhancement (104-1010) through electromagnetic and chemical mechanisms, enabling single-molecule detection.
+  * **Carbon materials** are excellent candidates for Raman analysis. The D/G ratio indicates defect density, the 2D band reveals layer number in graphene, and RBM frequency gives CNT diameter.
+  * **Practical analysis** requires proper baseline correction, peak fitting (Voigt profiles recommended), and understanding of the physical meaning of spectral features.
+
+## References
+
+  1. Ferraro, J. R., Nakamoto, K., and Brown, C. W. (2003). _Introductory Raman Spectroscopy_ (2nd ed.). Academic Press. pp. 1-94. - Comprehensive introduction to Raman theory and instrumentation.
+  2. Ferrari, A. C. and Basko, D. M. (2013). Raman spectroscopy as a versatile tool for studying the properties of graphene. _Nature Nanotechnology_ , 8(4), 235-246. DOI: 10.1038/nnano.2013.46 - Essential reference for graphene Raman analysis.
+  3. Dresselhaus, M. S., Jorio, A., Hofmann, M., Dresselhaus, G., and Saito, R. (2010). Perspectives on carbon nanotubes and graphene Raman spectroscopy. _Nano Letters_ , 10(3), 751-758. DOI: 10.1021/nl904286r - CNT Raman fundamentals.
+  4. Le Ru, E. C. and Etchegoin, P. G. (2009). _Principles of Surface-Enhanced Raman Spectroscopy_. Elsevier. pp. 185-264. - Definitive guide to SERS theory and applications.
+  5. Tuinstra, F. and Koenig, J. L. (1970). Raman spectrum of graphite. _The Journal of Chemical Physics_ , 53(3), 1126-1130. DOI: 10.1063/1.1674108 - Original paper on D/G ratio and crystallite size.
+  6. Cancado, L. G., et al. (2006). General equation for the determination of the crystallite size La of nanographite by Raman spectroscopy. _Applied Physics Letters_ , 88(16), 163106. DOI: 10.1063/1.2196057 - Refined Tuinstra-Koenig relation.
+  7. Jorio, A., Saito, R., Dresselhaus, G., and Dresselhaus, M. S. (2011). _Raman Spectroscopy in Graphene Related Systems_. Wiley-VCH. - Comprehensive treatment of graphene and CNT Raman.
+  8. Long, D. A. (2002). _The Raman Effect: A Unified Treatment of the Theory of Raman Scattering by Molecules_. John Wiley and Sons. pp. 85-152. - Rigorous quantum mechanical treatment of Raman scattering.
 
 ### Disclaimer
 
-  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice (legal, accounting, technical warranty, etc.).
-  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied, including but not limited to merchantability, fitness for a particular purpose, non-infringement, accuracy, completeness, operation, or safety.
-  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, libraries, etc.
-  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising from the use, execution, or interpretation of this content.
+  * This content is provided solely for educational, research, and informational purposes and does not constitute professional advice.
+  * This content and accompanying code examples are provided "AS IS" without any warranty, express or implied.
+  * The author and Tohoku University assume no responsibility for the content, availability, or safety of external links, third-party data, tools, or libraries.
+  * To the maximum extent permitted by applicable law, the author and Tohoku University shall not be liable for any damages arising from the use of this content.
   * The content may be changed, updated, or discontinued without notice.
-  * The copyright and license of this content are subject to the stated conditions (e.g., CC BY 4.0). Such licenses typically include no-warranty clauses.
+  * License: Creative Commons BY 4.0

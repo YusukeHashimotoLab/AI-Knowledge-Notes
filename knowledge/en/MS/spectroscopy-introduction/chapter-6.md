@@ -1,22 +1,22 @@
 ---
-title: "Chapter 5: X-ray Photoelectron Spectroscopy (XPS)"
-chapter_title: "Chapter 5: X-ray Photoelectron Spectroscopy (XPS)"
+title: "Chapter 6: Python Practice - Spectroscopic Data Analysis Workflow"
+chapter_title: "Chapter 6: Python Practice - Spectroscopic Data Analysis Workflow"
 ---
 
-[AI Terakoya Top](<../../index.html>)>[Materials Science](<../index.html>)>[Spectroscopy Introduction](<index.html>)>Chapter 5
+[AI Terakoya Top](<../../index.html>)>[Materials Science](<../index.html>)>[Spectroscopy Introduction](<index.html>)>Chapter 6
 
-EN | [JP](<../../../jp/MS/spectroscopy-introduction/chapter-5.html>) | Last sync: 2025-12-26
+EN | [JP](<../../../jp/MS/spectroscopy-introduction/chapter-6.html>) | Last sync: 2025-12-26
 
-# Chapter 5: X-ray Photoelectron Spectroscopy (XPS)
+# Chapter 6: Python Practice - Spectroscopic Data Analysis Workflow
 
-**What you will learn in this chapter:** X-ray Photoelectron Spectroscopy (XPS), also known as Electron Spectroscopy for Chemical Analysis (ESCA), is a powerful surface-sensitive technique for analyzing the elemental composition and chemical states of materials. Based on the photoelectric effect discovered by Einstein, XPS measures the kinetic energy of photoelectrons ejected from a sample surface when irradiated with X-rays. This chapter covers the fundamental physics of XPS, instrumentation principles, chemical state analysis through peak fitting with Voigt functions, quantitative analysis using sensitivity factors, and depth profiling techniques. You will gain practical skills in XPS data analysis through Python code examples.
+**What you will learn in this chapter:** This chapter integrates all the spectroscopic analysis techniques learned in Chapters 1-5 (IR, Raman, UV-Vis, XPS) and builds practical Python data analysis workflows. You will develop a universal spectral data loader, automated peak detection algorithms, machine learning-based classification and regression, batch processing systems, and interactive visualization tools. All code is provided in reusable module format that can be readily applied to your own research data.
 
 ## Learning Objectives
 
-  * Understand the photoelectric effect and Einstein's equation for binding energy calculation
-  * Describe XPS instrumentation components including X-ray sources and energy analyzers
-  * Perform chemical state analysis using peak fitting with Voigt functions
-  * Calculate elemental compositions using relative sensitivity factors
+  * Design universal spectral data loaders for multiple file formats (CSV, TXT, binary)
+  * Implement automated peak detection and fitting algorithms using scipy
+  * Apply machine learning for spectral classification and property prediction
+  * Build batch processing pipelines for large spectral datasets
   * Apply depth profiling techniques to analyze layered structures
   * Implement XPS data analysis workflows in Python
 
