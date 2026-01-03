@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 3: AI Optimization Algorithms - Deep Dive into NIMO's Methods" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 3: AI Optimization Algorithms - NIMO Introduction</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
+<script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+    };
+</script>
+<script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="index.html">NIMO Introduction</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/MI/nimo-introduction/chapter-3.html" class="locale-link">🇯🇵 JP</a>
+</div>
+
+<header>
+<div class="header-content">
+<h1>Chapter 3: AI Optimization Algorithms</h1>
+<p class="subtitle">Deep Dive into NIMO's Methods</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 25-30 minutes</span>
+<span class="meta-item">📊 Difficulty: Beginner-Intermediate</span>
+<span class="meta-item">💻 Code Examples: 6</span>
+<span class="meta-item">📝 Exercises: 2</span>
+</div>
+</div>
+</header>
+
+<main class="container">
+<div class="content">
+
+<h2>Learning Objectives</h2>
+<ul>
+<li>Understand the principles of Bayesian Optimization (PHYSBO)</li>
+<li>Learn when to use each of NIMO's 11 algorithms</li>
+<li>Configure algorithm-specific parameters</li>
+<li>Choose the right algorithm for your optimization problem</li>
+</ul>
+
+<h2>3.1 The Exploration-Exploitation Trade-off</h2>
+
+<p>Before diving into specific algorithms, let's understand the fundamental challenge in optimization:</p>
+
+<div class="mermaid">
+graph LR
+    subgraph Exploration[Exploration]
+        E1[Try new regions]
+        E2[Discover unknowns]
+        E3[Avoid local optima]
+    end
+
+    subgraph Exploitation[Exploitation]
+        X1[Focus on known good areas]
+        X2[Refine best solutions]
+        X3[Maximize current knowledge]
+    end
+
+    Exploration <-->|Balance| Exploitation
+
+    style Exploration fill:#667eea,color:#fff
+    style Exploitation fill:#11998e,color:#fff
+</div>
+
+<div class="definition">
+<h4>Exploration vs Exploitation</h4>
+<p><strong>Exploration</strong>: Testing regions where we have little information, potentially finding better solutions in unexplored areas.</p>
+<p><strong>Exploitation</strong>: Focusing on regions where we've already found good results, refining our best solutions.</p>
+<p>Good optimization algorithms balance both strategies automatically.</p>
+</div>
+
+<h2>3.2 Bayesian Optimization (PHYSBO)</h2>
+
+<p>PHYSBO is NIMO's flagship algorithm, based on Bayesian Optimization principles. It's the recommended choice for most materials optimization problems.</p>
+
+<h3>How Bayesian Optimization Works</h3>
+
+<p>The algorithm follows a three-step process:</p>
+
+<ol>
+<li><strong>Build a surrogate model</strong>: Use a Gaussian Process (GP) to model the objective function based on existing data</li>
+<li><strong>Compute acquisition function</strong>: Calculate where the next experiment is most likely to improve results</li>
+<li><strong>Select next candidate</strong>: Choose the point that maximizes the acquisition function</li>
+</ol>
+
+<div class="mermaid">
+graph TB
+    A[Existing Data] --> B[Gaussian Process Model]
+    B --> C[Predict Mean & Variance]
+    C --> D[Acquisition Function]
+    D --> E[Select Next Candidate]
+    E --> F[Run Experiment]
+    F --> A
+
+    style B fill:#667eea,color:#fff
+    style D fill:#f093fb,color:#fff
+    style E fill:#28a745,color:#fff
+</div>
+
+<h3>PHYSBO in NIMO</h3>
+
+<div class="code-title">Code Example 1: Basic PHYSBO Usage</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# Basic Bayesian Optimization
+nimo.selection(
+    method="PHYSBO",
+    input_file="candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=1,
+    num_proposals=1
+)</code></pre>
+
+<div class="code-title">Code Example 2: PHYSBO with Advanced Options</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# Bayesian Optimization with configuration
+nimo.selection(
+    method="PHYSBO",
+    input_file="candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=1,
+    num_proposals=3,
+    physbo_score="EI",     # Acquisition function: EI, PI, or TS
+    physbo_seed=42         # Random seed for reproducibility
+)</code></pre>
+
+<h3>Acquisition Functions</h3>
+
+<p>PHYSBO supports three acquisition functions:</p>
+
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Full Name</th>
+<th>Strategy</th>
+<th>When to Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>EI</strong></td>
+<td>Expected Improvement</td>
+<td>Balanced</td>
+<td>Default choice, most situations</td>
+</tr>
+<tr>
+<td><strong>PI</strong></td>
+<td>Probability of Improvement</td>
+<td>Exploitation-heavy</td>
+<td>When close to optimal, need refinement</td>
+</tr>
+<tr>
+<td><strong>TS</strong></td>
+<td>Thompson Sampling</td>
+<td>Exploration-heavy</td>
+<td>Multi-modal functions, parallel experiments</td>
+</tr>
+</tbody>
+</table>
+
+<div class="note">
+<h4>Recommended: Expected Improvement (EI)</h4>
+<p>For most materials science problems, EI provides the best balance between exploration and exploitation. It naturally adapts to the optimization landscape.</p>
+</div>
+
+<h2>3.3 Random Exploration (RE)</h2>
+
+<p>RE is a simple but essential algorithm: it randomly selects from untested candidates.</p>
+
+<div class="code-title">Code Example 3: Random Exploration</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# Random selection for initial data collection
+nimo.selection(
+    method="RE",
+    input_file="candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=1,
+    num_proposals=5,
+    re_seed=42  # For reproducibility
+)</code></pre>
+
+<h3>When to Use RE</h3>
+
+<ul>
+<li><strong>First cycle</strong>: Collect initial data before other algorithms can work</li>
+<li><strong>Baseline comparison</strong>: Compare against random to validate AI improvement</li>
+<li><strong>High uncertainty</strong>: When you have no prior knowledge about the search space</li>
+</ul>
+
+<div class="example">
+<h4>Typical Workflow</h4>
+<pre><code>Cycle 1: RE (collect 5-10 random samples)
+Cycles 2+: PHYSBO (intelligent selection based on data)</code></pre>
+</div>
+
+<h2>3.4 BLOX: Random Forest Approach</h2>
+
+<p>BLOX uses Random Forest models instead of Gaussian Processes. This makes it faster for high-dimensional problems.</p>
+
+<div class="code-title">Code Example 4: BLOX Usage</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# Random Forest-based optimization
+nimo.selection(
+    method="BLOX",
+    input_file="candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=1,
+    num_proposals=3
+)</code></pre>
+
+<h3>BLOX vs PHYSBO Comparison</h3>
+
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>PHYSBO</th>
+<th>BLOX</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Model</td>
+<td>Gaussian Process</td>
+<td>Random Forest</td>
+</tr>
+<tr>
+<td>Uncertainty</td>
+<td>Well-calibrated</td>
+<td>Approximate</td>
+</tr>
+<tr>
+<td>Speed (low-dim)</td>
+<td>Fast</td>
+<td>Fast</td>
+</tr>
+<tr>
+<td>Speed (high-dim)</td>
+<td>Slow</td>
+<td>Fast</td>
+</tr>
+<tr>
+<td>Best for</td>
+<td>≤20 descriptors</td>
+<td>>20 descriptors</td>
+</tr>
+</tbody>
+</table>
+
+<h2>3.5 Phase Diagram Construction (PDC)</h2>
+
+<p>PDC is designed specifically for materials science problems where you need to map out different phases or regions.</p>
+
+<div class="code-title">Code Example 5: PDC Usage</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# Phase diagram construction
+nimo.selection(
+    method="PDC",
+    input_file="candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=1,
+    num_proposals=3
+)</code></pre>
+
+<h3>When to Use PDC</h3>
+
+<ul>
+<li>Mapping phase boundaries in alloy systems</li>
+<li>Identifying regions of different material properties</li>
+<li>Exploring multi-component composition spaces</li>
+</ul>
+
+<h2>3.6 Multi-Objective Algorithms</h2>
+
+<p>When optimizing multiple objectives simultaneously (e.g., maximize strength AND minimize cost), use these algorithms:</p>
+
+<h3>PTR: Pareto-based Thompson Ranking</h3>
+
+<div class="code-title">Code Example 6: Multi-Objective Optimization with PTR</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# Multi-objective optimization (2 objectives)
+nimo.selection(
+    method="PTR",
+    input_file="candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=2,  # Optimize 2 properties
+    num_proposals=3
+)</code></pre>
+
+<div class="definition">
+<h4>Pareto Optimality</h4>
+<p>A solution is Pareto optimal if no objective can be improved without worsening another. Multi-objective algorithms find the set of all Pareto optimal solutions (the Pareto front).</p>
+</div>
+
+<h2>3.7 Algorithm Selection Guide</h2>
+
+<p>Use this decision tree to choose the right algorithm:</p>
+
+<div class="mermaid">
+graph TD
+    A[Start] --> B{First cycle?}
+    B -->|Yes| C[Use RE]
+    B -->|No| D{Multi-objective?}
+    D -->|Yes| E{>2 objectives?}
+    D -->|No| F{>20 descriptors?}
+    E -->|Yes| G[Use PTR or BOMP]
+    E -->|No| H[Use PTR]
+    F -->|Yes| I[Use BLOX]
+    F -->|No| J{Phase mapping?}
+    J -->|Yes| K[Use PDC]
+    J -->|No| L[Use PHYSBO]
+
+    style C fill:#667eea,color:#fff
+    style G fill:#11998e,color:#fff
+    style H fill:#11998e,color:#fff
+    style I fill:#f093fb,color:#fff
+    style K fill:#28a745,color:#fff
+    style L fill:#667eea,color:#fff
+</div>
+
+<h3>Quick Reference Table</h3>
+
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommended Algorithm</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>First experiments</td>
+<td>RE</td>
+<td>Need initial random data</td>
+</tr>
+<tr>
+<td>General optimization</td>
+<td>PHYSBO</td>
+<td>Best overall performance</td>
+</tr>
+<tr>
+<td>High dimensions (>20)</td>
+<td>BLOX</td>
+<td>Faster with many features</td>
+</tr>
+<tr>
+<td>Phase mapping</td>
+<td>PDC</td>
+<td>Designed for phase diagrams</td>
+</tr>
+<tr>
+<td>Multi-objective</td>
+<td>PTR</td>
+<td>Pareto optimization</td>
+</tr>
+<tr>
+<td>Fast exploration</td>
+<td>SLESA</td>
+<td>Quick candidate selection</td>
+</tr>
+</tbody>
+</table>
+
+<h2>3.8 Algorithm-Specific Parameters</h2>
+
+<p>Each algorithm has specific parameters you can tune:</p>
+
+<h3>PHYSBO Parameters</h3>
+<ul>
+<li><code>physbo_score</code>: "EI", "PI", or "TS"</li>
+<li><code>physbo_seed</code>: Random seed for reproducibility</li>
+</ul>
+
+<h3>RE Parameters</h3>
+<ul>
+<li><code>re_seed</code>: Random seed for reproducibility</li>
+</ul>
+
+<h3>BLOX Parameters</h3>
+<ul>
+<li><code>blox_num_rand_basis</code>: Number of random basis functions</li>
+<li><code>blox_seed</code>: Random seed for reproducibility</li>
+</ul>
+
+<h2>Exercises</h2>
+
+<div class="exercise">
+<h4>Exercise 1: Algorithm Selection</h4>
+<p>For each scenario, choose the most appropriate algorithm:</p>
+<ol>
+<li>You're starting a new optimization with no prior data (10 descriptors)</li>
+<li>You want to optimize hardness and ductility simultaneously</li>
+<li>You're mapping the phase diagram of a ternary alloy system</li>
+<li>You have 50 descriptors and need fast optimization</li>
+</ol>
+</div>
+
+<div class="exercise">
+<h4>Exercise 2: PHYSBO Configuration</h4>
+<p>Write NIMO code to:</p>
+<ol>
+<li>Use PHYSBO with Thompson Sampling acquisition</li>
+<li>Select 5 proposals per cycle</li>
+<li>Set a random seed of 123 for reproducibility</li>
+</ol>
+</div>
+
+<h2>Summary</h2>
+
+<ul>
+<li><strong>Bayesian Optimization (PHYSBO)</strong> is the default choice for most problems</li>
+<li><strong>Random Exploration (RE)</strong> is essential for collecting initial data</li>
+<li><strong>BLOX</strong> scales better for high-dimensional problems</li>
+<li><strong>PDC</strong> is specialized for phase diagram construction</li>
+<li><strong>PTR</strong> handles multi-objective optimization</li>
+<li>Always start with RE for the first cycle, then switch to intelligent algorithms</li>
+</ul>
+
+<div class="nav-buttons">
+<a href="chapter-2.html" class="nav-button">← Chapter 2: NIMO Architecture</a>
+<a href="chapter-4.html" class="nav-button">Chapter 4: Hands-on Tutorial →</a>
+</div>
+
+</div>
+</main>
+
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<p>This content is provided for educational purposes. NIMO is developed and maintained by NIMS.</p>
+</section>
+
+<footer>
+<div class="container">
+<p>© 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+<p>Licensed under CC BY 4.0</p>
+</div>
+</footer>
+</body>
+</html>

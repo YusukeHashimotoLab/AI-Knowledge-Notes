@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="第3章: AI最適化アルゴリズム - NIMOの手法を深掘り" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第3章: AI最適化アルゴリズム - NIMO入門</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
+<script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+    };
+</script>
+<script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI寺子屋ホーム</a><span class="breadcrumb-separator">›</span><a href="../index.html">マテリアルズ・インフォマティクス</a><span class="breadcrumb-separator">›</span><a href="index.html">NIMO入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第3章</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">🌐 JP</span>
+<span class="locale-separator">|</span>
+<a href="../../../en/MI/nimo-introduction/chapter-3.html" class="locale-link">🇬🇧 EN</a>
+</div>
+
+<header>
+<div class="header-content">
+<h1>第3章: AI最適化アルゴリズム</h1>
+<p class="subtitle">NIMOの手法を深掘り</p>
+<div class="meta">
+<span class="meta-item">📖 読了時間: 25-30分</span>
+<span class="meta-item">📊 難易度: 初級-中級</span>
+<span class="meta-item">💻 コード例: 6</span>
+<span class="meta-item">📝 演習: 2</span>
+</div>
+</div>
+</header>
+
+<main class="container">
+<div class="content">
+
+<h2>学習目標</h2>
+<ul>
+<li>ベイズ最適化（PHYSBO）の原理を理解する</li>
+<li>NIMOの11種類のアルゴリズムをいつ使うべきか学ぶ</li>
+<li>アルゴリズム固有のパラメータを設定する</li>
+<li>最適化問題に適したアルゴリズムを選択する</li>
+</ul>
+
+<h2>3.1 探索と活用のトレードオフ</h2>
+
+<p>具体的なアルゴリズムに入る前に、最適化における根本的な課題を理解しましょう：</p>
+
+<div class="mermaid">
+graph LR
+    subgraph Exploration[探索 - Exploration]
+        E1[新しい領域を試す]
+        E2[未知を発見]
+        E3[局所解を回避]
+    end
+
+    subgraph Exploitation[活用 - Exploitation]
+        X1[既知の良い領域に集中]
+        X2[最良解を精緻化]
+        X3[現在の知識を最大化]
+    end
+
+    Exploration <-->|バランス| Exploitation
+
+    style Exploration fill:#667eea,color:#fff
+    style Exploitation fill:#11998e,color:#fff
+</div>
+
+<div class="definition">
+<h4>探索 vs 活用</h4>
+<p><strong>探索（Exploration）</strong>: 情報が少ない領域をテストし、未探索の場所でより良い解を見つける可能性を追求すること。</p>
+<p><strong>活用（Exploitation）</strong>: すでに良い結果が得られている領域に焦点を当て、最良の解を精緻化すること。</p>
+<p>優れた最適化アルゴリズムは、両方の戦略を自動的にバランスさせます。</p>
+</div>
+
+<h2>3.2 ベイズ最適化（PHYSBO）</h2>
+
+<p>PHYSBOはNIMOのフラッグシップアルゴリズムで、ベイズ最適化の原理に基づいています。ほとんどの材料最適化問題で推奨される選択肢です。</p>
+
+<h3>ベイズ最適化の仕組み</h3>
+
+<p>アルゴリズムは3つのステップのプロセスに従います：</p>
+
+<ol>
+<li><strong>代理モデルを構築</strong>: ガウス過程（GP）を使用して、既存のデータに基づいて目的関数をモデル化</li>
+<li><strong>獲得関数を計算</strong>: 次の実験が結果を改善する可能性が最も高い場所を計算</li>
+<li><strong>次の候補を選択</strong>: 獲得関数を最大化する点を選択</li>
+</ol>
+
+<div class="mermaid">
+graph TB
+    A[既存データ] --> B[ガウス過程モデル]
+    B --> C[平均と分散を予測]
+    C --> D[獲得関数]
+    D --> E[次の候補を選択]
+    E --> F[実験を実行]
+    F --> A
+
+    style B fill:#667eea,color:#fff
+    style D fill:#f093fb,color:#fff
+    style E fill:#28a745,color:#fff
+</div>
+
+<h3>NIMOでのPHYSBO</h3>
+
+<div class="code-title">コード例1: 基本的なPHYSBOの使用</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# 基本的なベイズ最適化
+nimo.selection(
+    method="PHYSBO",
+    input_file="candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=1,
+    num_proposals=1
+)</code></pre>
+
+<div class="code-title">コード例2: 詳細オプション付きPHYSBO</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# 設定付きベイズ最適化
+nimo.selection(
+    method="PHYSBO",
+    input_file="candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=1,
+    num_proposals=3,
+    physbo_score="EI",     # 獲得関数: EI, PI, または TS
+    physbo_seed=42         # 再現性のためのランダムシード
+)</code></pre>
+
+<h3>獲得関数</h3>
+
+<p>PHYSBOは3つの獲得関数をサポートしています：</p>
+
+<table>
+<thead>
+<tr>
+<th>関数</th>
+<th>正式名称</th>
+<th>戦略</th>
+<th>使用場面</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>EI</strong></td>
+<td>Expected Improvement</td>
+<td>バランス型</td>
+<td>デフォルトの選択、ほとんどの状況</td>
+</tr>
+<tr>
+<td><strong>PI</strong></td>
+<td>Probability of Improvement</td>
+<td>活用重視</td>
+<td>最適に近い場合、精緻化が必要な場合</td>
+</tr>
+<tr>
+<td><strong>TS</strong></td>
+<td>Thompson Sampling</td>
+<td>探索重視</td>
+<td>多峰性関数、並列実験</td>
+</tr>
+</tbody>
+</table>
+
+<div class="note">
+<h4>推奨: Expected Improvement (EI)</h4>
+<p>ほとんどの材料科学問題では、EIが探索と活用の最良のバランスを提供します。最適化の地形に自然に適応します。</p>
+</div>
+
+<h2>3.3 ランダム探索（RE）</h2>
+
+<p>REはシンプルですが不可欠なアルゴリズムです：未テストの候補からランダムに選択します。</p>
+
+<div class="code-title">コード例3: ランダム探索</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# 初期データ収集のためのランダム選択
+nimo.selection(
+    method="RE",
+    input_file="candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=1,
+    num_proposals=5,
+    re_seed=42  # 再現性のため
+)</code></pre>
+
+<h3>REを使用するタイミング</h3>
+
+<ul>
+<li><strong>最初のサイクル</strong>: 他のアルゴリズムが動作する前に初期データを収集</li>
+<li><strong>ベースライン比較</strong>: ランダムと比較してAIの改善を検証</li>
+<li><strong>高い不確実性</strong>: 探索空間について事前知識がない場合</li>
+</ul>
+
+<div class="example">
+<h4>典型的なワークフロー</h4>
+<pre><code>サイクル1: RE（5-10個のランダムサンプルを収集）
+サイクル2以降: PHYSBO（データに基づくインテリジェントな選択）</code></pre>
+</div>
+
+<h2>3.4 BLOX: ランダムフォレストアプローチ</h2>
+
+<p>BLOXはガウス過程の代わりにランダムフォレストモデルを使用します。これにより、高次元問題で高速に動作します。</p>
+
+<div class="code-title">コード例4: BLOXの使用</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# ランダムフォレストベースの最適化
+nimo.selection(
+    method="BLOX",
+    input_file="candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=1,
+    num_proposals=3
+)</code></pre>
+
+<h3>BLOX vs PHYSBO の比較</h3>
+
+<table>
+<thead>
+<tr>
+<th>観点</th>
+<th>PHYSBO</th>
+<th>BLOX</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>モデル</td>
+<td>ガウス過程</td>
+<td>ランダムフォレスト</td>
+</tr>
+<tr>
+<td>不確実性</td>
+<td>よく較正されている</td>
+<td>近似的</td>
+</tr>
+<tr>
+<td>速度（低次元）</td>
+<td>高速</td>
+<td>高速</td>
+</tr>
+<tr>
+<td>速度（高次元）</td>
+<td>低速</td>
+<td>高速</td>
+</tr>
+<tr>
+<td>最適な用途</td>
+<td>≤20記述子</td>
+<td>>20記述子</td>
+</tr>
+</tbody>
+</table>
+
+<h2>3.5 相図構築（PDC）</h2>
+
+<p>PDCは、異なる相や領域をマッピングする必要がある材料科学問題のために特別に設計されています。</p>
+
+<div class="code-title">コード例5: PDCの使用</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# 相図構築
+nimo.selection(
+    method="PDC",
+    input_file="candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=1,
+    num_proposals=3
+)</code></pre>
+
+<h3>PDCを使用するタイミング</h3>
+
+<ul>
+<li>合金系の相境界をマッピング</li>
+<li>異なる材料特性の領域を特定</li>
+<li>多成分組成空間を探索</li>
+</ul>
+
+<h2>3.6 多目的アルゴリズム</h2>
+
+<p>複数の目的を同時に最適化する場合（例：強度を最大化しつつコストを最小化）、これらのアルゴリズムを使用します：</p>
+
+<h3>PTR: パレートベースのトンプソンランキング</h3>
+
+<div class="code-title">コード例6: PTRによる多目的最適化</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# 多目的最適化（2つの目的関数）
+nimo.selection(
+    method="PTR",
+    input_file="candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=2,  # 2つの特性を最適化
+    num_proposals=3
+)</code></pre>
+
+<div class="definition">
+<h4>パレート最適性</h4>
+<p>ある解がパレート最適であるとは、他の目的を悪化させずにはどの目的も改善できない状態を指します。多目的アルゴリズムは、すべてのパレート最適解の集合（パレートフロント）を見つけます。</p>
+</div>
+
+<h2>3.7 アルゴリズム選択ガイド</h2>
+
+<p>適切なアルゴリズムを選択するための決定木を使用してください：</p>
+
+<div class="mermaid">
+graph TD
+    A[開始] --> B{最初のサイクル？}
+    B -->|はい| C[REを使用]
+    B -->|いいえ| D{多目的？}
+    D -->|はい| E{3目的以上？}
+    D -->|いいえ| F{20記述子以上？}
+    E -->|はい| G[PTRまたはBOMPを使用]
+    E -->|いいえ| H[PTRを使用]
+    F -->|はい| I[BLOXを使用]
+    F -->|いいえ| J{相マッピング？}
+    J -->|はい| K[PDCを使用]
+    J -->|いいえ| L[PHYSBOを使用]
+
+    style C fill:#667eea,color:#fff
+    style G fill:#11998e,color:#fff
+    style H fill:#11998e,color:#fff
+    style I fill:#f093fb,color:#fff
+    style K fill:#28a745,color:#fff
+    style L fill:#667eea,color:#fff
+</div>
+
+<h3>クイックリファレンス表</h3>
+
+<table>
+<thead>
+<tr>
+<th>シナリオ</th>
+<th>推奨アルゴリズム</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最初の実験</td>
+<td>RE</td>
+<td>初期ランダムデータが必要</td>
+</tr>
+<tr>
+<td>一般的な最適化</td>
+<td>PHYSBO</td>
+<td>最も優れた全体的性能</td>
+</tr>
+<tr>
+<td>高次元（>20）</td>
+<td>BLOX</td>
+<td>多くの特徴量で高速</td>
+</tr>
+<tr>
+<td>相マッピング</td>
+<td>PDC</td>
+<td>相図用に設計</td>
+</tr>
+<tr>
+<td>多目的</td>
+<td>PTR</td>
+<td>パレート最適化</td>
+</tr>
+<tr>
+<td>高速探索</td>
+<td>SLESA</td>
+<td>高速な候補選択</td>
+</tr>
+</tbody>
+</table>
+
+<h2>3.8 アルゴリズム固有のパラメータ</h2>
+
+<p>各アルゴリズムには調整可能な固有のパラメータがあります：</p>
+
+<h3>PHYSBOパラメータ</h3>
+<ul>
+<li><code>physbo_score</code>: "EI", "PI", または "TS"</li>
+<li><code>physbo_seed</code>: 再現性のためのランダムシード</li>
+</ul>
+
+<h3>REパラメータ</h3>
+<ul>
+<li><code>re_seed</code>: 再現性のためのランダムシード</li>
+</ul>
+
+<h3>BLOXパラメータ</h3>
+<ul>
+<li><code>blox_num_rand_basis</code>: ランダム基底関数の数</li>
+<li><code>blox_seed</code>: 再現性のためのランダムシード</li>
+</ul>
+
+<h2>演習</h2>
+
+<div class="exercise">
+<h4>演習1: アルゴリズム選択</h4>
+<p>各シナリオに対して、最も適切なアルゴリズムを選択してください：</p>
+<ol>
+<li>事前データなしで新しい最適化を開始する（10個の記述子）</li>
+<li>硬度と延性を同時に最適化したい</li>
+<li>三元合金系の相図をマッピングしている</li>
+<li>50個の記述子があり、高速な最適化が必要</li>
+</ol>
+</div>
+
+<div class="exercise">
+<h4>演習2: PHYSBOの設定</h4>
+<p>以下を行うNIMOコードを書いてください：</p>
+<ol>
+<li>トンプソンサンプリング獲得関数でPHYSBOを使用</li>
+<li>各サイクルで5つの提案を選択</li>
+<li>再現性のためにランダムシード123を設定</li>
+</ol>
+</div>
+
+<h2>まとめ</h2>
+
+<ul>
+<li><strong>ベイズ最適化（PHYSBO）</strong>はほとんどの問題でデフォルトの選択肢</li>
+<li><strong>ランダム探索（RE）</strong>は初期データ収集に不可欠</li>
+<li><strong>BLOX</strong>は高次元問題でより良くスケール</li>
+<li><strong>PDC</strong>は相図構築に特化</li>
+<li><strong>PTR</strong>は多目的最適化を処理</li>
+<li>最初のサイクルは常にREで開始し、その後インテリジェントなアルゴリズムに切り替える</li>
+</ul>
+
+<div class="nav-buttons">
+<a href="chapter-2.html" class="nav-button">← 第2章: NIMOのアーキテクチャ</a>
+<a href="chapter-4.html" class="nav-button">第4章: 実践チュートリアル →</a>
+</div>
+
+</div>
+</main>
+
+<section class="disclaimer">
+<h3>免責事項</h3>
+<p>本コンテンツは教育目的で提供されています。NIMOはNIMSによって開発・保守されています。</p>
+</section>
+
+<footer>
+<div class="container">
+<p>© 2025 AI寺子屋 - 東北大学 橋本佑介</p>
+<p>Licensed under CC BY 4.0</p>
+</div>
+</footer>
+</body>
+</html>

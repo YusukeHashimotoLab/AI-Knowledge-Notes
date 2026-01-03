@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="第4章: 実践チュートリアル - 材料最適化の完全ワークフロー" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第4章: 実践チュートリアル - NIMO入門</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
+<script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+    };
+</script>
+<script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI寺子屋ホーム</a><span class="breadcrumb-separator">›</span><a href="../index.html">マテリアルズ・インフォマティクス</a><span class="breadcrumb-separator">›</span><a href="index.html">NIMO入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第4章</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">🌐 JP</span>
+<span class="locale-separator">|</span>
+<a href="../../../en/MI/nimo-introduction/chapter-4.html" class="locale-link">🇬🇧 EN</a>
+</div>
+
+<header>
+<div class="header-content">
+<h1>第4章: 実践チュートリアル</h1>
+<p class="subtitle">材料最適化の完全ワークフロー</p>
+<div class="meta">
+<span class="meta-item">📖 読了時間: 25-30分</span>
+<span class="meta-item">📊 難易度: 中級</span>
+<span class="meta-item">💻 コード例: 8</span>
+<span class="meta-item">📝 演習: 2</span>
+</div>
+</div>
+</header>
+
+<main class="container">
+<div class="content">
+
+<h2>学習目標</h2>
+<ul>
+<li>NIMOの完全な最適化ワークフローを最初から最後まで実行する</li>
+<li>候補ファイルを適切に作成・準備する</li>
+<li>異なるアルゴリズムで複数の最適化サイクルを実行する</li>
+<li>最適化結果を可視化・分析する</li>
+</ul>
+
+<h2>4.1 問題設定：三元合金の最適化</h2>
+
+<p>このチュートリアルでは、シミュレートされた三元合金系を最適化します。目標は、目的特性を最大化する組成（x1, x2, x3）を見つけることです。</p>
+
+<div class="note">
+<h4>このチュートリアルについて</h4>
+<p>実際のロボットシステムにアクセスできないため、既知の数学関数を使用して実験をシミュレートします。実際のアプリケーションでは、ロボットが実際の実験を行い、測定値を返します。</p>
+</div>
+
+<h3>目的関数</h3>
+
+<p>シミュレートされた材料特性としてBranin関数を使用します：</p>
+
+<p>$$f(x_1, x_2) = \left(x_2 - \frac{5.1}{4\pi^2}x_1^2 + \frac{5}{\pi}x_1 - 6\right)^2 + 10\left(1 - \frac{1}{8\pi}\right)\cos(x_1) + 10$$</p>
+
+<div class="code-title">コード例1: 目的関数の定義</div>
+<pre class="code-example"><code class="language-python">import numpy as np
+
+def branin(x1, x2):
+    """
+    Branin関数 - 材料特性をシミュレート。
+    NIMOはデフォルトで最大化するため、符号を反転。
+    """
+    a = 1
+    b = 5.1 / (4 * np.pi**2)
+    c = 5 / np.pi
+    r = 6
+    s = 10
+    t = 1 / (8 * np.pi)
+
+    result = a * (x2 - b*x1**2 + c*x1 - r)**2 + s*(1-t)*np.cos(x1) + s
+    return -result  # 最大化のために符号反転
+
+# 関数のテスト
+print(f"f(0, 0) = {branin(0, 0):.4f}")
+print(f"f(5, 5) = {branin(5, 5):.4f}")</code></pre>
+
+<h2>4.2 候補ファイルの作成</h2>
+
+<p>まず、探索する可能性のあるすべての候補を含むCSVファイルを作成する必要があります。</p>
+
+<div class="code-title">コード例2: 候補グリッドの生成</div>
+<pre class="code-example"><code class="language-python">import pandas as pd
+import numpy as np
+
+# 候補のグリッドを作成
+# x1: 0から15（16点）
+# x2: 0から15（16点）
+x1_values = np.linspace(0, 15, 16)
+x2_values = np.linspace(0, 15, 16)
+
+# すべての組み合わせを作成
+candidates = []
+for x1 in x1_values:
+    for x2 in x2_values:
+        candidates.append({
+            'x1': x1,
+            'x2': x2,
+            'objective': np.nan  # 未テスト
+        })
+
+# DataFrameに変換して保存
+df = pd.DataFrame(candidates)
+df.to_csv('candidates.csv', index=False)
+
+print(f"{len(df)}個の候補を作成しました")
+print(df.head(10))</code></pre>
+
+<p><strong>出力</strong>:</p>
+<pre class="output"><code>256個の候補を作成しました
+    x1   x2  objective
+0  0.0  0.0        NaN
+1  0.0  1.0        NaN
+2  0.0  2.0        NaN
+3  0.0  3.0        NaN
+4  0.0  4.0        NaN
+5  0.0  5.0        NaN
+6  0.0  6.0        NaN
+7  0.0  7.0        NaN
+8  0.0  8.0        NaN
+9  0.0  9.0        NaN</code></pre>
+
+<h2>4.3 最適化ループの実行</h2>
+
+<p>NIMOを使用して完全な最適化を実行しましょう：</p>
+
+<div class="code-title">コード例3: 完全な最適化ループ</div>
+<pre class="code-example"><code class="language-python">import nimo
+import pandas as pd
+import numpy as np
+
+def branin(x1, x2):
+    """シミュレートされた材料特性（最大化のために符号反転）"""
+    b = 5.1 / (4 * np.pi**2)
+    c = 5 / np.pi
+    result = (x2 - b*x1**2 + c*x1 - 6)**2 + 10*(1-1/(8*np.pi))*np.cos(x1) + 10
+    return -result
+
+def simulate_experiments(proposals_file, output_file):
+    """目的値を計算してロボット実験をシミュレート"""
+    df = pd.read_csv(proposals_file)
+    df['objective'] = df.apply(lambda row: branin(row['x1'], row['x2']), axis=1)
+    df.to_csv(output_file, index=False)
+    return df
+
+def update_candidates(candidates_file, results_file):
+    """新しい実験結果で候補を更新"""
+    candidates = pd.read_csv(candidates_file)
+    results = pd.read_csv(results_file)
+
+    for _, result in results.iterrows():
+        mask = (candidates['x1'] == result['x1']) & (candidates['x2'] == result['x2'])
+        candidates.loc[mask, 'objective'] = result['objective']
+
+    candidates.to_csv(candidates_file, index=False)
+    return candidates
+
+# 設定
+NUM_CYCLES = 10
+PROPOSALS_PER_CYCLE = 3
+
+# 最適化履歴を追跡
+history = []
+
+# メイン最適化ループ
+for cycle in range(NUM_CYCLES):
+    print(f"\n{'='*50}")
+    print(f"サイクル {cycle + 1}/{NUM_CYCLES}")
+    print('='*50)
+
+    # ステップ1: 候補を選択
+    if cycle == 0:
+        method = "RE"  # 最初のサイクルはランダム
+        print("初期データ収集のためにランダム探索を使用")
+    else:
+        method = "PHYSBO"  # 以降のサイクルはベイズ最適化
+        print("ベイズ最適化を使用")
+
+    nimo.selection(
+        method=method,
+        input_file="candidates.csv",
+        output_file="proposals.csv",
+        num_objectives=1,
+        num_proposals=PROPOSALS_PER_CYCLE,
+        re_seed=42 + cycle if method == "RE" else None,
+        physbo_seed=42 if method == "PHYSBO" else None
+    )
+
+    # ステップ2: 選択された候補を表示
+    proposals = pd.read_csv("proposals.csv")
+    print(f"\n選択された候補:")
+    print(proposals[['x1', 'x2']])
+
+    # ステップ3: 実験をシミュレート（実際の使用ではロボットが行う）
+    results = simulate_experiments("proposals.csv", "results.csv")
+    print(f"\n実験結果:")
+    print(results)
+
+    # ステップ4: 候補ファイルを更新
+    candidates = update_candidates("candidates.csv", "results.csv")
+
+    # 見つかった最良値を追跡
+    tested = candidates[candidates['objective'].notna()]
+    best_value = tested['objective'].max()
+    best_idx = tested['objective'].idxmax()
+    best_x1 = tested.loc[best_idx, 'x1']
+    best_x2 = tested.loc[best_idx, 'x2']
+
+    history.append({
+        'cycle': cycle + 1,
+        'best_value': best_value,
+        'best_x1': best_x1,
+        'best_x2': best_x2,
+        'num_tested': len(tested)
+    })
+
+    print(f"\n現時点の最良値: f({best_x1:.2f}, {best_x2:.2f}) = {best_value:.4f}")
+
+# 最終サマリーを表示
+print("\n" + "="*50)
+print("最適化完了")
+print("="*50)
+print(f"総実験数: {history[-1]['num_tested']}")
+print(f"発見した最良値: {history[-1]['best_value']:.4f}")
+print(f"最良組成: x1={history[-1]['best_x1']:.2f}, x2={history[-1]['best_x2']:.2f}")</code></pre>
+
+<h2>4.4 結果の可視化</h2>
+
+<p>最適化の進捗を可視化しましょう：</p>
+
+<div class="code-title">コード例4: 最適化履歴のプロット</div>
+<pre class="code-example"><code class="language-python">import matplotlib.pyplot as plt
+
+# 履歴をDataFrameに変換
+history_df = pd.DataFrame(history)
+
+# サイクルごとの最良値をプロット
+plt.figure(figsize=(10, 6))
+plt.plot(history_df['cycle'], history_df['best_value'], 'b-o', linewidth=2, markersize=8)
+plt.xlabel('サイクル', fontsize=12)
+plt.ylabel('最良目的値', fontsize=12)
+plt.title('最適化の進捗', fontsize=14)
+plt.grid(True, alpha=0.3)
+plt.savefig('optimization_history.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+print("保存しました: optimization_history.png")</code></pre>
+
+<div class="code-title">コード例5: サンプリング点の可視化</div>
+<pre class="code-example"><code class="language-python">import matplotlib.pyplot as plt
+import numpy as np
+
+# 最終的な候補を読み込み
+candidates = pd.read_csv('candidates.csv')
+tested = candidates[candidates['objective'].notna()]
+untested = candidates[candidates['objective'].isna()]
+
+# 真の関数の等高線図を作成
+x1_grid = np.linspace(0, 15, 100)
+x2_grid = np.linspace(0, 15, 100)
+X1, X2 = np.meshgrid(x1_grid, x2_grid)
+Z = np.vectorize(branin)(X1, X2)
+
+plt.figure(figsize=(12, 5))
+
+# 左: サンプリング点付きの等高線
+plt.subplot(1, 2, 1)
+plt.contourf(X1, X2, Z, levels=20, cmap='viridis')
+plt.colorbar(label='目的値')
+plt.scatter(tested['x1'], tested['x2'], c='red', s=100, edgecolors='white', label='テスト済み')
+plt.xlabel('x1')
+plt.ylabel('x2')
+plt.title('目的関数ランドスケープ上のテスト点')
+plt.legend()
+
+# 右: テスト値の分布
+plt.subplot(1, 2, 2)
+plt.scatter(tested['x1'], tested['x2'], c=tested['objective'], s=100, cmap='viridis', edgecolors='black')
+plt.colorbar(label='測定値')
+plt.xlabel('x1')
+plt.ylabel('x2')
+plt.title('テスト点での測定値')
+
+plt.tight_layout()
+plt.savefig('sampling_visualization.png', dpi=150, bbox_inches='tight')
+plt.show()</code></pre>
+
+<h2>4.5 アルゴリズムの比較</h2>
+
+<p>異なるアルゴリズムの性能を比較しましょう：</p>
+
+<div class="code-title">コード例6: アルゴリズム比較</div>
+<pre class="code-example"><code class="language-python">import nimo
+import pandas as pd
+import numpy as np
+
+def run_optimization(method, num_cycles=10, proposals_per_cycle=3, seed=42):
+    """指定されたメソッドで最適化を実行し、履歴を返す"""
+    # 候補をリセット
+    x1_values = np.linspace(0, 15, 16)
+    x2_values = np.linspace(0, 15, 16)
+    candidates = []
+    for x1 in x1_values:
+        for x2 in x2_values:
+            candidates.append({'x1': x1, 'x2': x2, 'objective': np.nan})
+    pd.DataFrame(candidates).to_csv('candidates.csv', index=False)
+
+    history = []
+    for cycle in range(num_cycles):
+        # 最初のサイクルは常にREを使用
+        current_method = "RE" if cycle == 0 else method
+
+        nimo.selection(
+            method=current_method,
+            input_file="candidates.csv",
+            output_file="proposals.csv",
+            num_objectives=1,
+            num_proposals=proposals_per_cycle,
+            re_seed=seed + cycle,
+            physbo_seed=seed
+        )
+
+        # シミュレートして更新
+        simulate_experiments("proposals.csv", "results.csv")
+        candidates_df = update_candidates("candidates.csv", "results.csv")
+
+        tested = candidates_df[candidates_df['objective'].notna()]
+        best_value = tested['objective'].max()
+        history.append({'cycle': cycle + 1, 'best_value': best_value})
+
+    return pd.DataFrame(history)
+
+# 異なるメソッドを比較
+methods = ['PHYSBO', 'BLOX', 'RE']
+results = {}
+
+for method in methods:
+    print(f"{method}を実行中...")
+    results[method] = run_optimization(method)
+
+# 比較をプロット
+plt.figure(figsize=(10, 6))
+for method, history in results.items():
+    plt.plot(history['cycle'], history['best_value'], '-o', label=method, linewidth=2)
+
+plt.xlabel('サイクル', fontsize=12)
+plt.ylabel('最良目的値', fontsize=12)
+plt.title('アルゴリズム比較', fontsize=14)
+plt.legend(fontsize=10)
+plt.grid(True, alpha=0.3)
+plt.savefig('algorithm_comparison.png', dpi=150, bbox_inches='tight')
+plt.show()</code></pre>
+
+<h2>4.6 NIMOの組み込み可視化の使用</h2>
+
+<p>NIMOは組み込みの可視化関数を提供しています：</p>
+
+<div class="code-title">コード例7: NIMO可視化ツール</div>
+<pre class="code-example"><code class="language-python">import nimo
+from nimo.visualization import plot_history, plot_distribution
+
+# 最適化履歴をプロット
+fig1 = plot_history(
+    input_file="candidates.csv",
+    num_objectives=1
+)
+fig1.savefig('nimo_history.png', dpi=150)
+
+# テスト点の分布をプロット
+fig2 = plot_distribution(
+    input_file="candidates.csv",
+    num_objectives=1
+)
+fig2.savefig('nimo_distribution.png', dpi=150)
+
+print("保存しました: nimo_history.png, nimo_distribution.png")</code></pre>
+
+<h2>4.7 最適化状態の保存と読み込み</h2>
+
+<div class="code-title">コード例8: 最適化の保存と再開</div>
+<pre class="code-example"><code class="language-python">import shutil
+import os
+
+def save_checkpoint(checkpoint_name):
+    """現在の最適化状態を保存"""
+    checkpoint_dir = f"checkpoints/{checkpoint_name}"
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    shutil.copy("candidates.csv", f"{checkpoint_dir}/candidates.csv")
+    print(f"チェックポイントを{checkpoint_dir}に保存しました")
+
+def load_checkpoint(checkpoint_name):
+    """チェックポイントから最適化状態を読み込み"""
+    checkpoint_dir = f"checkpoints/{checkpoint_name}"
+    shutil.copy(f"{checkpoint_dir}/candidates.csv", "candidates.csv")
+    print(f"チェックポイントを{checkpoint_dir}から読み込みました")
+
+# 使用例
+# 5サイクル後:
+save_checkpoint("cycle_5")
+
+# 後で再開するには:
+# load_checkpoint("cycle_5")
+# サイクル6から最適化を続行...</code></pre>
+
+<h2>演習</h2>
+
+<div class="exercise">
+<h4>演習1: 独自の最適化を実行</h4>
+<p>最適化コードを以下のように変更してください：</p>
+<ol>
+<li>16x16の代わりに20x20グリッドを使用</li>
+<li>10サイクルの代わりに15サイクル実行</li>
+<li>3つの代わりに各サイクル5つの提案を選択</li>
+</ol>
+<p>結果を比較してください：高解像度グリッドはより良い解を見つけますか？</p>
+</div>
+
+<div class="exercise">
+<h4>演習2: 異なる獲得関数</h4>
+<p>異なるPHYSBO獲得関数を使用して最適化を3回実行してください：</p>
+<ol>
+<li>physbo_score="EI"（Expected Improvement）</li>
+<li>physbo_score="PI"（Probability of Improvement）</li>
+<li>physbo_score="TS"（Thompson Sampling）</li>
+</ol>
+<p>最適化曲線を一緒にプロットしてください。この問題に対してどの獲得関数が最も優れていますか？</p>
+</div>
+
+<h2>まとめ</h2>
+
+<ul>
+<li>NIMO最適化は明確なワークフローに従う：<strong>候補作成 → 選択 → 実行 → 更新 → 繰り返し</strong></li>
+<li>初期データには<strong>ランダム探索（RE）</strong>で開始し、その後<strong>PHYSBO</strong>に切り替え</li>
+<li><strong>candidates.csv</strong>ファイルでテスト済みと未テストの組成を追跡</li>
+<li>可視化は最適化の進捗とサンプリングパターンの理解に役立つ</li>
+<li>NIMOは<strong>履歴プロット</strong>と<strong>分布分析</strong>のための組み込みツールを提供</li>
+</ul>
+
+<div class="nav-buttons">
+<a href="chapter-3.html" class="nav-button">← 第3章: AI最適化アルゴリズム</a>
+<a href="chapter-5.html" class="nav-button">第5章: 応用と発展 →</a>
+</div>
+
+</div>
+</main>
+
+<section class="disclaimer">
+<h3>免責事項</h3>
+<p>本コンテンツは教育目的で提供されています。NIMOはNIMSによって開発・保守されています。</p>
+</section>
+
+<footer>
+<div class="container">
+<p>© 2025 AI寺子屋 - 東北大学 橋本佑介</p>
+<p>Licensed under CC BY 4.0</p>
+</div>
+</footer>
+</body>
+</html>

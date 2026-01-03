@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="第2章: NIMOのアーキテクチャ - モジュラー設計の理解" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第2章: NIMOのアーキテクチャ - NIMO入門</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
+<script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+    };
+</script>
+<script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI寺子屋ホーム</a><span class="breadcrumb-separator">›</span><a href="../index.html">マテリアルズ・インフォマティクス</a><span class="breadcrumb-separator">›</span><a href="index.html">NIMO入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第2章</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">🌐 JP</span>
+<span class="locale-separator">|</span>
+<a href="../../../en/MI/nimo-introduction/chapter-2.html" class="locale-link">🇬🇧 EN</a>
+</div>
+
+<header>
+<div class="header-content">
+<h1>第2章: NIMOのアーキテクチャ</h1>
+<p class="subtitle">モジュラー設計の理解</p>
+<div class="meta">
+<span class="meta-item">📖 読了時間: 20-25分</span>
+<span class="meta-item">📊 難易度: 初級</span>
+<span class="meta-item">💻 コード例: 5</span>
+<span class="meta-item">📝 演習: 2</span>
+</div>
+</div>
+</header>
+
+<main class="container">
+<div class="content">
+
+<h2>学習目標</h2>
+<ul>
+<li>NIMOの3層モジュラーアーキテクチャを理解する</li>
+<li>コンポーネント間のCSVベースのデータフローを学ぶ</li>
+<li>コアワークフロー関数をマスターする：selection()、preparation_input()、analysis_output()</li>
+<li>AI、ロボット、可視化モジュールがどのように連携するかを理解する</li>
+</ul>
+
+<h2>2.1 3層アーキテクチャ</h2>
+
+<p>NIMOは、関心事を明確に分離した3つの主要レイヤーで設計されています。このモジュラーアプローチにより、研究者は様々なAIアルゴリズムと様々なロボットシステムを自由に組み合わせることができます。</p>
+
+<div class="mermaid">
+graph TB
+    subgraph Layer1[レイヤー1: AI最適化]
+        AI1[PHYSBO<br/>ベイズ最適化]
+        AI2[BLOX<br/>ランダムフォレスト]
+        AI3[PDC<br/>相図構築]
+        AI4[RE<br/>ランダム]
+        AI5[... 他7種]
+    end
+
+    subgraph Layer2[レイヤー2: ロボットインターフェース]
+        R1[STAN<br/>標準]
+        R2[NAREE<br/>電気化学]
+        R3[COMBAT<br/>カスタム]
+    end
+
+    subgraph Layer3[レイヤー3: 可視化]
+        V1[履歴プロット]
+        V2[分布図]
+        V3[相図]
+    end
+
+    Layer1 -->|CSV| Layer2
+    Layer2 -->|CSV| Layer1
+    Layer1 --> Layer3
+    Layer2 --> Layer3
+
+    style Layer1 fill:#667eea,color:#fff
+    style Layer2 fill:#11998e,color:#fff
+    style Layer3 fill:#f093fb,color:#fff
+</div>
+
+<div class="definition">
+<h4>モジュラーアーキテクチャ（Modular Architecture）</h4>
+<p>システムを独立した交換可能なモジュールに分割するソフトウェア設計手法です。各モジュールは明確に定義されたインターフェースを持ち、他に影響を与えることなくコンポーネントを交換またはアップグレードできます。</p>
+</div>
+
+<h3>レイヤー1: AI最適化モジュール</h3>
+
+<p>このレイヤーには、次の実験候補を選択するための11種類のアルゴリズムが含まれています：</p>
+
+<table>
+<thead>
+<tr>
+<th>アルゴリズム</th>
+<th>正式名称</th>
+<th>最適な用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RE</strong></td>
+<td>Random Exploration</td>
+<td>初期データ収集</td>
+</tr>
+<tr>
+<td><strong>PHYSBO</strong></td>
+<td>Bayesian Optimization</td>
+<td>一般的な最適化（推奨）</td>
+</tr>
+<tr>
+<td><strong>BLOX</strong></td>
+<td>Random Forest</td>
+<td>高次元空間</td>
+</tr>
+<tr>
+<td><strong>PDC</strong></td>
+<td>Phase Diagram Construction</td>
+<td>多相材料</td>
+</tr>
+<tr>
+<td><strong>SLESA</strong></td>
+<td>Single-Loop Efficient Selection</td>
+<td>高速探索</td>
+</tr>
+<tr>
+<td><strong>PTR</strong></td>
+<td>Pareto-based Thompson Ranking</td>
+<td>多目的最適化</td>
+</tr>
+<tr>
+<td><strong>BOMP</strong></td>
+<td>Bayesian Opt. Multi-Phase</td>
+<td>複雑な相図</td>
+</tr>
+<tr>
+<td><strong>ES</strong></td>
+<td>Evolutionary Strategy</td>
+<td>大域的最適化</td>
+</tr>
+<tr>
+<td><strong>COMBI</strong></td>
+<td>Combination Search</td>
+<td>離散的組み合わせ</td>
+</tr>
+<tr>
+<td><strong>RSVM</strong></td>
+<td>Ranking SVM</td>
+<td>選好学習</td>
+</tr>
+<tr>
+<td><strong>WAM</strong></td>
+<td>Weighted Average Model</td>
+<td>アンサンブル予測</td>
+</tr>
+</tbody>
+</table>
+
+<h3>レイヤー2: ロボットインターフェースモジュール</h3>
+
+<p>このレイヤーは、物理的なロボットシステムとの通信を担当します：</p>
+
+<ul>
+<li><strong>STAN</strong>: 汎用ロボット向けの標準インターフェース</li>
+<li><strong>NAREE</strong>: NIMSの電気化学実験に特化</li>
+<li><strong>COMBAT</strong>: ユーザー定義のロボットシステム用カスタムインターフェース</li>
+</ul>
+
+<h3>レイヤー3: 可視化モジュール</h3>
+
+<p>このレイヤーは、最適化の進捗を監視・分析するためのツールを提供します：</p>
+
+<ul>
+<li><strong>plot_history</strong>: イテレーションごとの最良目的値を追跡</li>
+<li><strong>plot_distribution</strong>: サンプリングされた点の分布を可視化</li>
+<li><strong>plot_phase_diagram</strong>: 多成分系の相図を生成</li>
+</ul>
+
+<h2>2.2 CSVベースのデータフロー</h2>
+
+<p>NIMOは、すべてのコンポーネント間のユニバーサルインターフェースとしてCSVファイルを使用します。この設計選択には次のような利点があります：</p>
+
+<ul>
+<li><strong>透明性</strong>: 各ステップでデータを検査・編集できる</li>
+<li><strong>移植性</strong>: CSV読み書き可能なあらゆるシステムで動作</li>
+<li><strong>デバッグ</strong>: 中間ファイルを調べて問題を特定しやすい</li>
+<li><strong>柔軟性</strong>: シミュレーションと実際の実験の両方に対応</li>
+</ul>
+
+<div class="mermaid">
+graph LR
+    A[candidates.csv] -->|selection| B[proposals.csv]
+    B -->|preparation_input| C[robot_input.csv]
+    C -->|ロボット実行| D[robot_output.csv]
+    D -->|analysis_output| E[updated_candidates.csv]
+    E -->|次のサイクル| A
+
+    style A fill:#f8f9fa
+    style B fill:#667eea,color:#fff
+    style C fill:#11998e,color:#fff
+    style D fill:#f093fb,color:#fff
+    style E fill:#28a745,color:#fff
+</div>
+
+<h3>CSVファイルの形式</h3>
+
+<p>NIMO内のすべてのCSVファイルは一貫した形式に従います：</p>
+
+<div class="code-title">例: candidates.csv</div>
+<pre class="code-example"><code class="language-text">x1,x2,x3,objective
+0.1,0.5,0.4,NaN
+0.2,0.4,0.4,NaN
+0.3,0.3,0.4,1.25
+0.4,0.2,0.4,NaN
+0.5,0.1,0.4,2.31</code></pre>
+
+<div class="note">
+<h4>重要なポイント</h4>
+<ul>
+<li><strong>記述子列</strong>（x1, x2, x3）: 探索空間を定義</li>
+<li><strong>目的関数列</strong>: 最適化する値（NaN = 未テスト）</li>
+<li><code>NaN</code>の目的関数を持つ行は将来の実験候補</li>
+<li>値を持つ行はすでにテスト済み</li>
+</ul>
+</div>
+
+<h2>2.3 コアワークフロー関数</h2>
+
+<p>NIMOは、完全な最適化ループを形成する4つの主要関数を提供します：</p>
+
+<h3>1. selection() - 次の実験を選択</h3>
+
+<p>この関数は、AIアルゴリズムを使用して、未テストのプールから最も有望な候補を選択します。</p>
+
+<div class="code-title">コード例1: selection()の使用</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# ベイズ最適化を使用して候補を選択
+nimo.selection(
+    method="PHYSBO",           # 使用するAIアルゴリズム
+    input_file="candidates.csv",   # すべての候補を含むファイル
+    output_file="proposals.csv",   # 選択された候補の出力
+    num_objectives=1,          # 目的関数の数
+    num_proposals=3            # 選択する候補の数
+)</code></pre>
+
+<p><strong>パラメータの説明</strong>:</p>
+<ul>
+<li><code>method</code>: 使用するAIアルゴリズム（上記の表を参照）</li>
+<li><code>input_file</code>: 現在の結果を含むすべての候補のCSV</li>
+<li><code>output_file</code>: 選択された候補を書き込む場所</li>
+<li><code>num_objectives</code>: 単目的の場合は1、多目的の場合は2以上</li>
+<li><code>num_proposals</code>: 各サイクルで提案する実験の数</li>
+</ul>
+
+<h3>2. preparation_input() - ロボット用に準備</h3>
+
+<p>この関数は、選択された提案をロボットシステムが必要とする形式に変換します。</p>
+
+<div class="code-title">コード例2: preparation_input()の使用</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# STANロボットインターフェース用に提案を準備
+nimo.preparation_input(
+    machine="STAN",            # ロボットシステムの種類
+    input_file="proposals.csv",    # 選択された候補
+    output_file="robot_input.csv"  # ロボット用フォーマット
+)</code></pre>
+
+<h3>3. analysis_output() - ロボット結果を処理</h3>
+
+<p>ロボットが実験を実行した後、この関数は結果をNIMO形式に戻します。</p>
+
+<div class="code-title">コード例3: analysis_output()の使用</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# ロボットからの結果を処理
+nimo.analysis_output(
+    machine="STAN",            # ロボットシステムの種類
+    input_file="robot_output.csv", # 生のロボット結果
+    output_file="results.csv"      # 処理された結果
+)</code></pre>
+
+<h3>4. history() - 進捗を追跡</h3>
+
+<p>この関数は、最適化履歴の記録を提供します。</p>
+
+<div class="code-title">コード例4: history()の使用</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# 最適化履歴を取得
+history_data = nimo.history(
+    input_file="candidates.csv",
+    num_objectives=1
+)
+
+print("発見した最良値:", history_data['best_objective'])
+print("実験回数:", history_data['num_experiments'])</code></pre>
+
+<h2>2.4 完全なワークフロー例</h2>
+
+<p>典型的な最適化サイクルで、すべてのピースがどのように組み合わさるかを見てみましょう：</p>
+
+<div class="code-title">コード例5: 完全な最適化サイクル</div>
+<pre class="code-example"><code class="language-python">import nimo
+import pandas as pd
+
+# 設定
+NUM_CYCLES = 10
+PROPOSALS_PER_CYCLE = 3
+
+# 初期化: 探索空間を持つ候補ファイルを作成
+candidates = pd.DataFrame({
+    'x1': [i/10 for i in range(11)],
+    'x2': [1 - i/10 for i in range(11)],
+    'objective': [float('nan')] * 11
+})
+candidates.to_csv('candidates.csv', index=False)
+
+# メイン最適化ループ
+for cycle in range(NUM_CYCLES):
+    print(f"\n=== サイクル {cycle + 1} ===")
+
+    # ステップ1: 候補を選択
+    if cycle == 0:
+        # 最初のサイクル: ランダム選択を使用
+        method = "RE"
+    else:
+        # 以降のサイクル: ベイズ最適化を使用
+        method = "PHYSBO"
+
+    nimo.selection(
+        method=method,
+        input_file="candidates.csv",
+        output_file="proposals.csv",
+        num_objectives=1,
+        num_proposals=PROPOSALS_PER_CYCLE
+    )
+
+    # ステップ2: ロボット用に準備
+    nimo.preparation_input(
+        machine="STAN",
+        input_file="proposals.csv",
+        output_file="robot_input.csv"
+    )
+
+    # ステップ3: [ここでロボットが実験を実行]
+    # シミュレーションでは、目的値を計算します
+    # 実際の実験では、robot_output.csvはロボットが生成します
+
+    # ステップ4: 結果を処理
+    nimo.analysis_output(
+        machine="STAN",
+        input_file="robot_output.csv",
+        output_file="results.csv"
+    )
+
+    # ステップ5: 新しい結果で候補ファイルを更新
+    # （NIMOが内部で処理）
+
+    print(f"{PROPOSALS_PER_CYCLE}件の実験が完了")</code></pre>
+
+<div class="example">
+<h4>ワークフローのまとめ</h4>
+<ol>
+<li><strong>selection()</strong>: AIがテストする最良の候補を選択</li>
+<li><strong>preparation_input()</strong>: ロボット用にデータをフォーマット</li>
+<li><strong>[ロボット実行]</strong>: 物理的な実験が行われる</li>
+<li><strong>analysis_output()</strong>: 結果をNIMO形式に戻す</li>
+<li><strong>繰り返し</strong>: 新しいデータを使ってより良い選択を行う</li>
+</ol>
+</div>
+
+<h2>演習</h2>
+
+<div class="exercise">
+<h4>演習1: データフローを追跡する</h4>
+<p>この初期candidates.csvが与えられた場合：</p>
+<pre><code>x1,x2,objective
+0.2,0.8,NaN
+0.5,0.5,1.5
+0.8,0.2,NaN</code></pre>
+<p>NIMOのselection()が行0（x1=0.2, x2=0.8）を次の実験に選択した場合：</p>
+<ol>
+<li>proposals.csvはどのようになりますか？</li>
+<li>ロボットがこのサンプルでobjective=2.1を測定した後、更新されたcandidates.csvはどのようになりますか？</li>
+</ol>
+</div>
+
+<div class="exercise">
+<h4>演習2: アーキテクチャのマッチング</h4>
+<p>各NIMOコンポーネントをその役割にマッチさせてください：</p>
+<ol>
+<li>PHYSBO</li>
+<li>STAN</li>
+<li>plot_history</li>
+<li>RE</li>
+</ol>
+<p>役割: A) ロボットインターフェース、B) ベイズ最適化、C) ランダムサンプリング、D) 可視化</p>
+</div>
+
+<h2>まとめ</h2>
+
+<ul>
+<li>NIMOは<strong>3層アーキテクチャ</strong>を使用：AI、ロボット、可視化</li>
+<li><strong>CSVファイル</strong>がコンポーネント間のユニバーサルデータ形式として機能</li>
+<li>4つのコア関数：<code>selection()</code>、<code>preparation_input()</code>、<code>analysis_output()</code>、<code>history()</code></li>
+<li>モジュラー設計により、異なるAIアルゴリズムと様々なロボットシステムを組み合わせ可能</li>
+<li>各サイクル：選択 → 準備 → 実行 → 分析 → 繰り返し</li>
+</ul>
+
+<div class="nav-buttons">
+<a href="chapter-1.html" class="nav-button">← 第1章: NIMOとは？</a>
+<a href="chapter-3.html" class="nav-button">第3章: AI最適化アルゴリズム →</a>
+</div>
+
+</div>
+</main>
+
+<section class="disclaimer">
+<h3>免責事項</h3>
+<p>本コンテンツは教育目的で提供されています。NIMOはNIMSによって開発・保守されています。</p>
+</section>
+
+<footer>
+<div class="container">
+<p>© 2025 AI寺子屋 - 東北大学 橋本佑介</p>
+<p>Licensed under CC BY 4.0</p>
+</div>
+</footer>
+</body>
+</html>

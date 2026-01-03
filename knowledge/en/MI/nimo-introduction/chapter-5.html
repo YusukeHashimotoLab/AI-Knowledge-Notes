@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 5: Advanced Topics and Next Steps - Extending NIMO" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 5: Advanced Topics and Next Steps - NIMO Introduction</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
+<script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+    };
+</script>
+<script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../index.html">Materials Informatics</a><span class="breadcrumb-separator">›</span><a href="index.html">NIMO Introduction</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 5</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/MI/nimo-introduction/chapter-5.html" class="locale-link">🇯🇵 JP</a>
+</div>
+
+<header>
+<div class="header-content">
+<h1>Chapter 5: Advanced Topics and Next Steps</h1>
+<p class="subtitle">Extending NIMO for Real-World Applications</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 15-20 minutes</span>
+<span class="meta-item">📊 Difficulty: Intermediate</span>
+<span class="meta-item">💻 Code Examples: 4</span>
+<span class="meta-item">📝 Exercises: 2</span>
+</div>
+</div>
+</header>
+
+<main class="container">
+<div class="content">
+
+<h2>Learning Objectives</h2>
+<ul>
+<li>Implement custom robot interfaces using COMBAT</li>
+<li>Configure and run multi-objective optimization</li>
+<li>Understand constraints and advanced NIMO features</li>
+<li>Know the resources for continued learning</li>
+</ul>
+
+<h2>5.1 Custom Robot Integration with COMBAT</h2>
+
+<p>NIMO's COMBAT (Custom Robot) interface allows you to connect your own experimental systems. This is the key to using NIMO with real hardware.</p>
+
+<h3>COMBAT Architecture</h3>
+
+<div class="mermaid">
+graph LR
+    A[NIMO Core] -->|proposals.csv| B[COMBAT Interface]
+    B -->|Custom Format| C[Your Robot]
+    C -->|Results| D[COMBAT Interface]
+    D -->|results.csv| A
+
+    style A fill:#667eea,color:#fff
+    style B fill:#f093fb,color:#fff
+    style C fill:#11998e,color:#fff
+</div>
+
+<p>The COMBAT interface works through file-based communication:</p>
+
+<ol>
+<li>NIMO writes <code>proposals.csv</code> with selected candidates</li>
+<li>Your custom script reads proposals and controls the robot</li>
+<li>After experiments, your script writes <code>robot_output.csv</code></li>
+<li>NIMO reads results and updates the optimization</li>
+</ol>
+
+<div class="code-title">Code Example 1: Custom Robot Interface</div>
+<pre class="code-example"><code class="language-python">import nimo
+import pandas as pd
+import time
+
+class CustomRobotInterface:
+    """
+    Template for connecting your robot to NIMO.
+    Replace the execute_experiment method with your actual robot control.
+    """
+
+    def __init__(self, robot_connection):
+        self.robot = robot_connection
+
+    def execute_experiment(self, x1, x2, x3):
+        """
+        Execute a single experiment on the robot.
+        Replace this with your actual robot control code.
+
+        Returns:
+            float: Measured objective value
+        """
+        # Example: Send commands to robot
+        # self.robot.set_composition(x1, x2, x3)
+        # self.robot.start_synthesis()
+        # time.sleep(3600)  # Wait for synthesis
+        # result = self.robot.measure_property()
+
+        # For demonstration, return a placeholder
+        result = x1 * x2 + x3
+        return result
+
+    def run_experiments(self, proposals_file, output_file):
+        """Run all proposed experiments"""
+        proposals = pd.read_csv(proposals_file)
+        results = []
+
+        for idx, row in proposals.iterrows():
+            print(f"Running experiment {idx + 1}/{len(proposals)}")
+            value = self.execute_experiment(row['x1'], row['x2'], row['x3'])
+            results.append({
+                'x1': row['x1'],
+                'x2': row['x2'],
+                'x3': row['x3'],
+                'objective': value
+            })
+
+        pd.DataFrame(results).to_csv(output_file, index=False)
+        print(f"Results saved to {output_file}")
+
+# Usage with NIMO
+def run_with_custom_robot(robot_connection, num_cycles=10):
+    robot = CustomRobotInterface(robot_connection)
+
+    for cycle in range(num_cycles):
+        # Step 1: AI selects candidates
+        method = "RE" if cycle == 0 else "PHYSBO"
+        nimo.selection(
+            method=method,
+            input_file="candidates.csv",
+            output_file="proposals.csv",
+            num_objectives=1,
+            num_proposals=3
+        )
+
+        # Step 2: Robot executes experiments
+        robot.run_experiments("proposals.csv", "robot_output.csv")
+
+        # Step 3: Process results back to NIMO
+        nimo.analysis_output(
+            machine="COMBAT",
+            input_file="robot_output.csv",
+            output_file="results.csv"
+        )
+
+        # Step 4: Update candidates (manual merge for COMBAT)
+        update_candidates_from_results("candidates.csv", "results.csv")</code></pre>
+
+<h2>5.2 Multi-Objective Optimization</h2>
+
+<p>Real materials often need to optimize multiple properties simultaneously. For example, you might want to maximize both strength AND ductility.</p>
+
+<div class="definition">
+<h4>Multi-Objective Optimization</h4>
+<p>Finding solutions that represent the best trade-offs between competing objectives. The set of optimal trade-off solutions is called the <strong>Pareto front</strong>.</p>
+</div>
+
+<h3>Setting Up Multi-Objective Optimization</h3>
+
+<div class="code-title">Code Example 2: Multi-Objective Setup</div>
+<pre class="code-example"><code class="language-python">import nimo
+import pandas as pd
+import numpy as np
+
+# Create candidates with TWO objective columns
+candidates_data = {
+    'x1': np.linspace(0, 1, 11),
+    'x2': np.linspace(0, 1, 11),
+    'objective1': [np.nan] * 11,  # e.g., Strength
+    'objective2': [np.nan] * 11   # e.g., Ductility
+}
+df = pd.DataFrame(candidates_data)
+df.to_csv('multi_candidates.csv', index=False)
+
+# Multi-objective selection with PTR
+nimo.selection(
+    method="PTR",           # Pareto-based Thompson Ranking
+    input_file="multi_candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=2,       # Two objectives!
+    num_proposals=3
+)
+
+print("Selected candidates for multi-objective optimization:")
+print(pd.read_csv('proposals.csv'))</code></pre>
+
+<h3>Understanding the Pareto Front</h3>
+
+<div class="mermaid">
+graph LR
+    subgraph Pareto[Pareto Front]
+        P1[Solution A<br/>High Strength<br/>Low Ductility]
+        P2[Solution B<br/>Balanced]
+        P3[Solution C<br/>Low Strength<br/>High Ductility]
+    end
+
+    P1 --- P2
+    P2 --- P3
+
+    style P1 fill:#667eea,color:#fff
+    style P2 fill:#11998e,color:#fff
+    style P3 fill:#f093fb,color:#fff
+</div>
+
+<p>Multi-objective optimization returns multiple solutions on the Pareto front. You (or domain experts) then choose which trade-off best meets your needs.</p>
+
+<h2>5.3 Handling Constraints</h2>
+
+<p>In real materials design, you often have constraints:</p>
+
+<ul>
+<li>Composition must sum to 100%</li>
+<li>Certain element ratios must be maintained</li>
+<li>Some combinations are physically impossible</li>
+</ul>
+
+<div class="code-title">Code Example 3: Handling Composition Constraints</div>
+<pre class="code-example"><code class="language-python">import numpy as np
+import pandas as pd
+
+def generate_ternary_candidates(num_points=100):
+    """
+    Generate valid ternary compositions where x1 + x2 + x3 = 1.
+    Uses a simplex sampling approach.
+    """
+    candidates = []
+
+    # Grid-based approach for ternary compositions
+    steps = int(np.sqrt(num_points))
+    for i in range(steps + 1):
+        for j in range(steps + 1 - i):
+            x1 = i / steps
+            x2 = j / steps
+            x3 = 1 - x1 - x2  # Ensure sum = 1
+
+            if x3 >= 0:  # Valid composition
+                candidates.append({
+                    'x1': x1,
+                    'x2': x2,
+                    'x3': x3,
+                    'objective': np.nan
+                })
+
+    return pd.DataFrame(candidates)
+
+# Generate valid candidates
+candidates = generate_ternary_candidates(100)
+print(f"Generated {len(candidates)} valid ternary compositions")
+print(f"Sum check: {candidates[['x1', 'x2', 'x3']].sum(axis=1).unique()}")
+candidates.to_csv('ternary_candidates.csv', index=False)</code></pre>
+
+<h2>5.4 Batch vs Sequential Experiments</h2>
+
+<p>NIMO supports different experimental strategies:</p>
+
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>num_proposals</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Sequential</strong></td>
+<td>1</td>
+<td>Learn from each experiment before the next</td>
+</tr>
+<tr>
+<td><strong>Batch</strong></td>
+<td>3-10</td>
+<td>Run parallel experiments, faster throughput</td>
+</tr>
+<tr>
+<td><strong>Large Batch</strong></td>
+<td>10+</td>
+<td>High-throughput screening systems</td>
+</tr>
+</tbody>
+</table>
+
+<div class="code-title">Code Example 4: Batch Size Configuration</div>
+<pre class="code-example"><code class="language-python">import nimo
+
+# Sequential: Maximum learning per experiment
+nimo.selection(
+    method="PHYSBO",
+    input_file="candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=1,
+    num_proposals=1  # One at a time
+)
+
+# Batch: Balance learning and throughput
+nimo.selection(
+    method="PHYSBO",
+    input_file="candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=1,
+    num_proposals=5  # Parallel experiments
+)
+
+# Large batch: For high-throughput systems
+nimo.selection(
+    method="PHYSBO",
+    input_file="candidates.csv",
+    output_file="proposals.csv",
+    num_objectives=1,
+    num_proposals=20,  # Many parallel experiments
+    physbo_score="TS"  # Thompson Sampling for batch diversity
+)</code></pre>
+
+<div class="note">
+<h4>Batch Size Tip</h4>
+<p>When running batch experiments, use <strong>Thompson Sampling (TS)</strong> as the acquisition function. It naturally provides diverse candidates, avoiding redundant experiments in the same batch.</p>
+</div>
+
+<h2>5.5 Real-World Considerations</h2>
+
+<h3>Experiment Failures</h3>
+
+<p>Real experiments sometimes fail. Handle failures by:</p>
+
+<ul>
+<li>Marking failed experiments with a special value (e.g., -999)</li>
+<li>Excluding failed points from the optimization</li>
+<li>Re-running failed experiments in the next cycle</li>
+</ul>
+
+<h3>Noisy Measurements</h3>
+
+<p>Real measurements have noise. PHYSBO's Gaussian Process naturally handles measurement noise, but you can improve results by:</p>
+
+<ul>
+<li>Running replicate experiments</li>
+<li>Averaging measurements</li>
+<li>Including measurement uncertainty in your analysis</li>
+</ul>
+
+<h2>5.6 Next Steps and Resources</h2>
+
+<h3>Official Resources</h3>
+
+<ul>
+<li><a href="https://github.com/NIMS-DA/nimo"><strong>NIMO GitHub Repository</strong></a>: Source code and examples</li>
+<li><a href="https://issp-center-dev.github.io/PHYSBO/manual/master/en/index.html"><strong>PHYSBO Documentation</strong></a>: Detailed Bayesian Optimization guide</li>
+<li><a href="https://www.nims.go.jp/"><strong>NIMS Website</strong></a>: Research publications and case studies</li>
+</ul>
+
+<h3>Related AI Terakoya Series</h3>
+
+<ul>
+<li><a href="../bayesian-optimization-introduction/index.html"><strong>Bayesian Optimization Introduction</strong></a>: Deeper understanding of the core algorithm</li>
+<li><a href="../active-learning-introduction/index.html"><strong>Active Learning Introduction</strong></a>: Advanced experiment selection strategies</li>
+<li><a href="../high-throughput-computing-introduction/index.html"><strong>High-Throughput Computing</strong></a>: Scaling up computational workflows</li>
+</ul>
+
+<h3>Key Papers</h3>
+
+<ol>
+<li>Tamura, R., et al. "NIMS-OS: An automation software to implement a closed loop between artificial intelligence and robotic experiments in materials science." <em>Science and Technology of Advanced Materials: Methods</em> (2023)</li>
+<li>Ueno, T., et al. "COMBO: An efficient Bayesian optimization library for materials science." <em>Materials Discovery</em> (2016)</li>
+</ol>
+
+<h2>Exercises</h2>
+
+<div class="exercise">
+<h4>Exercise 1: Design a Robot Interface</h4>
+<p>Design (on paper or in pseudocode) a COMBAT interface for a hypothetical robot that:</p>
+<ol>
+<li>Controls a sputtering system with 3 material targets</li>
+<li>Measures film thickness after deposition</li>
+<li>Measures electrical conductivity</li>
+</ol>
+<p>Consider: How would you handle the two measurements (thickness and conductivity) for multi-objective optimization?</p>
+</div>
+
+<div class="exercise">
+<h4>Exercise 2: Multi-Objective Trade-offs</h4>
+<p>You're optimizing a battery electrode material with two objectives:</p>
+<ul>
+<li>Objective 1: Energy density (maximize)</li>
+<li>Objective 2: Cycle life (maximize)</li>
+</ul>
+<p>After running PTR optimization, you get these Pareto-optimal solutions:</p>
+<table>
+<tr><th>Solution</th><th>Energy Density</th><th>Cycle Life</th></tr>
+<tr><td>A</td><td>95</td><td>200</td></tr>
+<tr><td>B</td><td>85</td><td>500</td></tr>
+<tr><td>C</td><td>70</td><td>800</td></tr>
+</table>
+<p>Which solution would you choose for: (a) a smartphone battery? (b) an electric vehicle battery? Explain your reasoning.</p>
+</div>
+
+<h2>Summary</h2>
+
+<ul>
+<li><strong>COMBAT</strong> interface allows custom robot integration through file-based communication</li>
+<li><strong>Multi-objective optimization</strong> with PTR finds Pareto-optimal trade-off solutions</li>
+<li><strong>Constraints</strong> can be handled by pre-filtering the candidate space</li>
+<li><strong>Batch experiments</strong> balance learning efficiency with experimental throughput</li>
+<li>NIMO is part of a larger ecosystem including PHYSBO and other NIMS tools</li>
+</ul>
+
+<h2>Congratulations!</h2>
+
+<p>You've completed the NIMO Introduction series! You now have the knowledge to:</p>
+
+<ul>
+<li>Understand closed-loop materials optimization</li>
+<li>Set up and run NIMO optimizations</li>
+<li>Choose appropriate AI algorithms for your problems</li>
+<li>Visualize and analyze optimization results</li>
+<li>Extend NIMO for real-world applications</li>
+</ul>
+
+<p>Start experimenting with NIMO on your own materials problems, and don't hesitate to explore the advanced features as your needs grow!</p>
+
+<div class="nav-buttons">
+<a href="chapter-4.html" class="nav-button">← Chapter 4: Hands-on Tutorial</a>
+<a href="index.html" class="nav-button">Back to Series Index →</a>
+</div>
+
+</div>
+</main>
+
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<p>This content is provided for educational purposes. NIMO is developed and maintained by NIMS.</p>
+</section>
+
+<footer>
+<div class="container">
+<p>© 2025 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+<p>Licensed under CC BY 4.0</p>
+</div>
+</footer>
+</body>
+</html>
