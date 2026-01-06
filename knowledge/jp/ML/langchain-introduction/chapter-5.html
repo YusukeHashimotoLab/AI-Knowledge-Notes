@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="第5章：本番環境へのデプロイ - LangSmith、LangGraph、ベストプラクティス" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第5章：本番環境へのデプロイ - LangChain入門</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI寺子屋ホーム</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="index.html">LangChain入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第5章</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">🇯🇵 JP</span>
+<span class="locale-separator">|</span>
+<a href="../../../en/ML/langchain-introduction/chapter-5.html" class="locale-link">🌐 EN</a>
+</div>
+
+<header>
+<div class="header-content">
+<h1>第5章：本番環境へのデプロイ</h1>
+<p class="subtitle">LangSmith、LangGraph、ベストプラクティス</p>
+<div class="meta">
+<span class="meta-item">📖 読了時間: 15-20分</span>
+<span class="meta-item">📊 難易度: 中級</span>
+<span class="meta-item">💻 コード例: 4</span>
+<span class="meta-item">📝 演習: 1</span>
+</div>
+</div>
+</header>
+
+<main class="container">
+<div class="content">
+
+<h2>学習目標</h2>
+<ul>
+<li>LangSmithを使用した監視とデバッグ</li>
+<li>LCELからLangGraphへの移行タイミングを理解する</li>
+<li>MCP（Model Context Protocol）ツールを統合する</li>
+<li>本番環境のベストプラクティスと最適化を適用する</li>
+<li>高度なLangChain開発の次のステップを計画する</li>
+</ul>
+
+<h2>5.1 LangSmith：LLMアプリケーションの可観測性</h2>
+
+<p>LangSmithは、本番環境でLLMアプリケーションのトレース、デバッグ、監視を行うためのLangChainのプラットフォームです。</p>
+
+<div class="mermaid">
+graph TB
+    subgraph App["あなたのアプリケーション"]
+        A[LangChainコード]
+    end
+
+    subgraph LS["LangSmithプラットフォーム"]
+        B[トレース]
+        C[デバッグ]
+        D[評価]
+        E[モニタリング]
+    end
+
+    A -->|自動ログ| B
+    B --> C
+    B --> D
+    B --> E
+
+    style A fill:#667eea,color:#fff
+    style LS fill:#f8f9fa
+</div>
+
+<h3>LangSmithのセットアップ</h3>
+
+<div class="code-title">コード例1：LangSmithの設定</div>
+<pre class="code-example"><code class="language-python">import os
+
+# 環境変数を設定（または.envファイルを使用）
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_API_KEY"] = "your-langsmith-api-key"
+os.environ["LANGCHAIN_PROJECT"] = "my-project"  # オプション：トレースを整理
+
+# これで、すべてのLangChain操作が自動的にトレースされます！
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+
+llm = ChatOpenAI(model="gpt-4")
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "あなたは親切なアシスタントです。"),
+    ("human", "{question}")
+])
+
+chain = prompt | llm
+
+# この呼び出しは自動的にLangSmithに記録されます
+response = chain.invoke({"question": "フランスの首都はどこですか？"})
+print(response.content)
+
+# トレースを確認: https://smith.langchain.com</code></pre>
+
+<h3>LangSmithで確認できること</h3>
+
+<ul>
+<li><strong>完全なトレース階層</strong>：チェーン内のすべてのステップを確認</li>
+<li><strong>レイテンシ分析</strong>：遅いコンポーネントを特定</li>
+<li><strong>トークン使用量</strong>：リクエストごとのコストを追跡</li>
+<li><strong>エラー詳細</strong>：完全なコンテキストで失敗をデバッグ</li>
+<li><strong>入出力ペア</strong>：何が入力され、何が出力されたかを確認</li>
+</ul>
+
+<div class="note">
+<h4>LangSmithの料金（2025年）</h4>
+<ul>
+<li><strong>無料枠</strong>：月5,000トレース、1シート</li>
+<li><strong>有料プラン</strong>：より高い制限、チーム機能</li>
+<li><strong>セルフホスト</strong>：オンプレミスデプロイ用エンタープライズプラン</li>
+</ul>
+</div>
+
+<h2>5.2 LangGraphを使用するタイミング</h2>
+
+<p>LangGraphは、複雑でステートフルなエージェントワークフローを構築するためのLangChainのフレームワークです。シンプルなLCELチェーンを超える必要がある場合に使用します。</p>
+
+<h3>LCEL vs LangGraph 判断マトリックス</h3>
+
+<table>
+<thead>
+<tr>
+<th>ユースケース</th>
+<th>LCEL</th>
+<th>LangGraph</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>シンプルな prompt → model → parser</td>
+<td>✅</td>
+<td></td>
+</tr>
+<tr>
+<td>検索付きRAG</td>
+<td>✅</td>
+<td></td>
+</tr>
+<tr>
+<td>ツール付き基本エージェント</td>
+<td>✅</td>
+<td></td>
+</tr>
+<tr>
+<td>複雑な分岐ロジック</td>
+<td></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>マルチエージェントコラボレーション</td>
+<td></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Human-in-the-loop承認</td>
+<td></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>永続的な会話状態</td>
+<td></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>サイクル/ループを含むワークフロー</td>
+<td></td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+
+<div class="code-title">コード例2：LangGraphエージェントのプレビュー</div>
+<pre class="code-example"><code class="language-python"># LangGraphは状態を持つ複雑なワークフローを可能にする
+from langgraph.graph import StateGraph, END
+from typing import TypedDict, Annotated
+import operator
+
+# 状態スキーマを定義
+class AgentState(TypedDict):
+    messages: Annotated[list, operator.add]
+    next_step: str
+
+# グラフを作成
+workflow = StateGraph(AgentState)
+
+# ノードを追加（各ノードは関数）
+workflow.add_node("research", research_node)
+workflow.add_node("write", write_node)
+workflow.add_node("review", review_node)
+
+# エッジを追加（フローを定義）
+workflow.add_edge("research", "write")
+workflow.add_conditional_edges(
+    "write",
+    should_continue,  # 次のノードを返す関数
+    {"review": "review", "end": END}
+)
+
+# コンパイルして実行
+app = workflow.compile()
+result = app.invoke({"messages": ["AIについてブログ記事を書いて"]})</code></pre>
+
+<h2>5.3 MCP（Model Context Protocol）統合</h2>
+
+<p>MCPは、アプリケーションがLLMにツールを提供する方法を標準化するオープンプロトコルです。LangChainはアダプターを通じてMCPをサポートしています：</p>
+
+<div class="code-title">コード例3：MCPツールの使用</div>
+<pre class="code-example"><code class="language-python">from langchain_mcp_adapters import MultiServerMCPClient
+from langchain.agents import create_agent
+from langchain_openai import ChatOpenAI
+
+# MCPサーバーに接続
+async with MultiServerMCPClient(
+    {
+        "filesystem": {
+            "command": "npx",
+            "args": ["-y", "@anthropic/mcp-filesystem", "/path/to/allowed/dir"]
+        },
+        "web": {
+            "url": "http://localhost:8080/mcp"  # HTTPベースのMCPサーバー
+        }
+    }
+) as client:
+    # 接続されたすべてのサーバーからツールを取得
+    tools = client.get_tools()
+
+    # MCPツールでエージェントを作成
+    agent = create_agent(
+        model=ChatOpenAI(model="gpt-4"),
+        tools=tools,
+        system_prompt="あなたはファイルを読み取り、Webを閲覧できます。"
+    )
+
+    result = await agent.ainvoke({
+        "messages": [{"role": "user", "content": "README.mdファイルを読んでください"}]
+    })</code></pre>
+
+<div class="definition">
+<h4>MCP（Model Context Protocol）</h4>
+<p>アプリケーションがLLMにツールを公開する方法を標準化するオープンプロトコル（2025年にLinux Foundationに寄贈）。OpenAI、Anthropic、Googleなどが主要な採用者です。2026年までに、ほとんどの主要APIがREST APIと並んでMCPサーバーを提供すると予想されています。</p>
+</div>
+
+<h2>5.4 本番環境のベストプラクティス</h2>
+
+<h3>パフォーマンス最適化</h3>
+
+<div class="code-title">コード例4：キャッシングとストリーミング</div>
+<pre class="code-example"><code class="language-python">import asyncio
+from langchain_openai import ChatOpenAI
+from langchain_core.globals import set_llm_cache
+from langchain_community.cache import SQLiteCache
+
+# 冗長なAPI呼び出しを避けるためにキャッシングを有効化
+set_llm_cache(SQLiteCache(database_path=".langchain.db"))
+
+# より良いUXのためにストリーミングを使用
+llm = ChatOpenAI(model="gpt-4", streaming=True)
+
+# より良いスループットのためにAsyncを使用
+async def process_many(questions):
+    tasks = [llm.ainvoke(q) for q in questions]
+    return await asyncio.gather(*tasks)</code></pre>
+
+<h3>エラーハンドリング</h3>
+
+<pre class="code-example"><code class="language-python">from langchain_openai import ChatOpenAI
+from langchain_core.runnables import RunnableWithFallbacks
+
+# フォールバックチェーンを作成
+primary = ChatOpenAI(model="gpt-4")
+fallback = ChatOpenAI(model="gpt-3.5-turbo")
+
+robust_llm = primary.with_fallbacks([fallback])
+
+# gpt-4を試し、失敗したらgpt-3.5-turboを試す
+response = robust_llm.invoke("こんにちは")</code></pre>
+
+<h3>セキュリティチェックリスト</h3>
+
+<ul>
+<li>✅ APIキーを環境変数またはシークレットマネージャーに保存する</li>
+<li>✅ LLMに渡す前にユーザー入力を検証・サニタイズする</li>
+<li>✅ コスト暴走を防ぐためにトークン制限を設定する</li>
+<li>✅ 公開APIにはレート制限を使用する</li>
+<li>✅ 異常なパターンをログに記録し監視する</li>
+<li>✅ ツールの権限を確認する（特にシェル/ファイルアクセスを持つエージェント）</li>
+</ul>
+
+<h2>5.5 次のステップ</h2>
+
+<p>この入門の完了おめでとうございます！次に進むべき方向は以下の通りです：</p>
+
+<h3>知識を深める</h3>
+
+<ul>
+<li><strong>LangGraph</strong>：サイクルと状態を持つ複雑なマルチエージェントシステムを構築</li>
+<li><strong>高度なRAG</strong>：リランキング、クエリ拡張、ハイブリッド検索を探求</li>
+<li><strong>評価</strong>：LangSmithを使用してチェーンを体系的に評価</li>
+<li><strong>カスタムモデル</strong>：OllamaやvLLMでローカルLLMを統合</li>
+</ul>
+
+<h3>リソース</h3>
+
+<ul>
+<li><a href="https://python.langchain.com/">LangChainドキュメント</a></li>
+<li><a href="https://github.com/langchain-ai/langchain">LangChain GitHub</a></li>
+<li><a href="https://smith.langchain.com/">LangSmithプラットフォーム</a></li>
+<li><a href="https://langchain-ai.github.io/langgraph/">LangGraphドキュメント</a></li>
+</ul>
+
+<h2>演習</h2>
+
+<div class="exercise">
+<h4>演習：本番対応RAG</h4>
+<p>第4章のRAGシステムを本番対応にしてください：</p>
+<ol>
+<li>LangSmithトレースを有効化する</li>
+<li>埋め込みとLLM呼び出しのキャッシングを追加する</li>
+<li>フォールバックモデルを実装する</li>
+<li>入力検証を追加する</li>
+<li>APIエンドポイントとしてデプロイする（FastAPI推奨）</li>
+</ol>
+</div>
+
+<h2>まとめ</h2>
+
+<ul>
+<li><strong>LangSmith</strong>はトレース、デバッグ、監視を提供</li>
+<li>分岐、サイクル、または状態を持つ複雑なワークフローには<strong>LangGraph</strong>を使用</li>
+<li><strong>MCP</strong>はツール統合の新しい標準</li>
+<li>本番アプリにはキャッシング、フォールバック、エラーハンドリングが必要</li>
+<li>常にセキュリティを考慮：入力検証、レート制限、監視</li>
+</ul>
+
+<div class="nav-buttons">
+<a href="chapter-4.html" class="nav-button">← 第4章：RAG</a>
+<a href="index.html" class="nav-button">目次に戻る →</a>
+</div>
+
+</div>
+</main>
+
+<section class="disclaimer">
+<h3>免責事項</h3>
+<p>本コンテンツは教育目的で提供されています。LangChainはLangChain Inc.によって開発・保守されています。</p>
+</section>
+
+<footer>
+<div class="container">
+<p>© 2026 AI寺子屋 - 橋本佑介 博士、東北大学</p>
+<p>CC BY 4.0ライセンス</p>
+</div>
+</footer>
+</body>
+</html>

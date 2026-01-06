@@ -38,4 +38,4 @@ https://forms.gle/zmU3gN2iRG8WH8xR9
 
 担当：橋本 佑介（特任准教授）
 
-Email: yusuke.hashimoto.b3@tohoku.ac.jp
+Email: yusuke.hashimoto.b8@tohoku.ac.jp

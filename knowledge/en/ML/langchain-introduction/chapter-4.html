@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 4: RAG (Retrieval-Augmented Generation) - Building Knowledge-Grounded AI" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 4: RAG - LangChain Introduction</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="index.html">LangChain Introduction</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 4</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/ML/langchain-introduction/chapter-4.html" class="locale-link">🇯🇵 JP</a>
+</div>
+
+<header>
+<div class="header-content">
+<h1>Chapter 4: RAG (Retrieval-Augmented Generation)</h1>
+<p class="subtitle">Building Knowledge-Grounded AI Systems</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 20-25 minutes</span>
+<span class="meta-item">📊 Difficulty: Intermediate</span>
+<span class="meta-item">💻 Code Examples: 6</span>
+<span class="meta-item">📝 Exercises: 1</span>
+</div>
+</div>
+</header>
+
+<main class="container">
+<div class="content">
+
+<h2>Learning Objectives</h2>
+<ul>
+<li>Understand the RAG architecture and why it's important</li>
+<li>Load and process documents for retrieval</li>
+<li>Create embeddings and store them in vector databases</li>
+<li>Build retrieval chains for question answering</li>
+<li>Apply best practices for production RAG systems</li>
+</ul>
+
+<h2>4.1 What is RAG?</h2>
+
+<p>RAG (Retrieval-Augmented Generation) is a technique that enhances LLM responses by retrieving relevant information from a knowledge base before generating answers.</p>
+
+<div class="definition">
+<h4>RAG (Retrieval-Augmented Generation)</h4>
+<p>A two-step process: (1) Retrieve relevant documents from a knowledge base based on the user's query, (2) Generate a response using both the query and retrieved documents as context. This grounds the LLM's responses in factual, up-to-date information.</p>
+</div>
+
+<div class="mermaid">
+graph LR
+    A[User Query] --> B[Retriever]
+    B --> C[Vector Store]
+    C --> D[Relevant Docs]
+    D --> E[LLM + Context]
+    A --> E
+    E --> F[Grounded Response]
+
+    style B fill:#667eea,color:#fff
+    style C fill:#11998e,color:#fff
+    style E fill:#f093fb,color:#fff
+</div>
+
+<h3>Why RAG?</h3>
+
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>RAG Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LLMs have knowledge cutoffs</td>
+<td>Retrieve current information</td>
+</tr>
+<tr>
+<td>LLMs can hallucinate facts</td>
+<td>Ground responses in real documents</td>
+</tr>
+<tr>
+<td>LLMs lack domain knowledge</td>
+<td>Add custom knowledge bases</td>
+</tr>
+<tr>
+<td>LLMs can't access private data</td>
+<td>Query internal documents securely</td>
+</tr>
+</tbody>
+</table>
+
+<h2>4.2 Document Loading</h2>
+
+<p>The first step is loading documents from various sources:</p>
+
+<div class="note">
+<h4>Required Dependencies</h4>
+<p>Install additional packages for document loaders:</p>
+<pre><code>pip install beautifulsoup4 pypdf  # For WebBaseLoader and PyPDFLoader
+pip install chromadb              # For Chroma vector store</code></pre>
+</div>
+
+<div class="code-title">Code Example 1: Loading Documents</div>
+<pre class="code-example"><code class="language-python">from langchain_community.document_loaders import (
+    TextLoader,
+    PyPDFLoader,
+    WebBaseLoader,
+    DirectoryLoader
+)
+
+# Load a text file
+text_loader = TextLoader("./data/document.txt")
+text_docs = text_loader.load()
+
+# Load a PDF
+pdf_loader = PyPDFLoader("./data/paper.pdf")
+pdf_docs = pdf_loader.load()
+
+# Load a web page
+web_loader = WebBaseLoader("https://example.com/article")
+web_docs = web_loader.load()
+
+# Load all files in a directory
+dir_loader = DirectoryLoader("./data/", glob="**/*.txt")
+all_docs = dir_loader.load()
+
+# Each document has content and metadata
+for doc in text_docs:
+    print(f"Content: {doc.page_content[:100]}...")
+    print(f"Metadata: {doc.metadata}")</code></pre>
+
+<h2>4.3 Text Splitting</h2>
+
+<p>Documents need to be split into chunks for efficient retrieval:</p>
+
+<div class="code-title">Code Example 2: Text Splitting Strategies</div>
+<pre class="code-example"><code class="language-python">from langchain_text_splitters import (
+    RecursiveCharacterTextSplitter,
+    CharacterTextSplitter
+)
+
+# Recommended: RecursiveCharacterTextSplitter
+# Tries to split at natural boundaries (paragraphs, sentences, words)
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,      # Maximum characters per chunk
+    chunk_overlap=200,    # Overlap between chunks for context
+    separators=["\n\n", "\n", " ", ""]  # Split priority
+)
+
+# Split documents
+chunks = splitter.split_documents(text_docs)
+
+print(f"Original documents: {len(text_docs)}")
+print(f"After splitting: {len(chunks)} chunks")
+
+# Each chunk maintains metadata
+for i, chunk in enumerate(chunks[:3]):
+    print(f"\nChunk {i}: {len(chunk.page_content)} chars")
+    print(chunk.page_content[:100] + "...")</code></pre>
+
+<div class="note">
+<h4>Chunking Best Practices (2025)</h4>
+<ul>
+<li><strong>Semantic chunking</strong>: Keep related content together (paragraphs, sections)</li>
+<li><strong>Contextual headers</strong>: Include section headings in each chunk</li>
+<li><strong>Chunk size</strong>: 500-1500 tokens depending on your use case</li>
+<li><strong>Overlap</strong>: 10-20% overlap preserves context across chunk boundaries</li>
+</ul>
+</div>
+
+<h2>4.4 Embeddings and Vector Stores</h2>
+
+<p>Embeddings convert text into numerical vectors for similarity search:</p>
+
+<div class="code-title">Code Example 3: Creating Embeddings and Vector Store</div>
+<pre class="code-example"><code class="language-python">from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
+
+# Create embeddings model
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+
+# Test embedding
+test_embedding = embeddings.embed_query("What is machine learning?")
+print(f"Embedding dimension: {len(test_embedding)}")  # 1536
+
+# Create vector store from documents
+vectorstore = Chroma.from_documents(
+    documents=chunks,
+    embedding=embeddings,
+    persist_directory="./chroma_db"  # Persist to disk
+)
+
+# Query the vector store
+results = vectorstore.similarity_search(
+    "How does neural network training work?",
+    k=3  # Return top 3 results
+)
+
+for doc in results:
+    print(f"Score: {doc.metadata.get('score', 'N/A')}")
+    print(f"Content: {doc.page_content[:200]}...\n")</code></pre>
+
+<h3>Popular Vector Stores</h3>
+
+<table>
+<thead>
+<tr>
+<th>Vector Store</th>
+<th>Type</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Chroma</td>
+<td>Local/Cloud</td>
+<td>Development, small-medium scale</td>
+</tr>
+<tr>
+<td>FAISS</td>
+<td>Local</td>
+<td>High-performance local search</td>
+</tr>
+<tr>
+<td>Pinecone</td>
+<td>Cloud</td>
+<td>Production, managed service</td>
+</tr>
+<tr>
+<td>Weaviate</td>
+<td>Cloud/Self-hosted</td>
+<td>Hybrid search, filtering</td>
+</tr>
+<tr>
+<td>Milvus</td>
+<td>Cloud/Self-hosted</td>
+<td>Large-scale production</td>
+</tr>
+</tbody>
+</table>
+
+<h2>4.5 Building a RAG Chain</h2>
+
+<div class="code-title">Code Example 4: Complete RAG Pipeline</div>
+<pre class="code-example"><code class="language-python">from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+
+# Setup components
+embeddings = OpenAIEmbeddings()
+vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=embeddings)
+retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+llm = ChatOpenAI(model="gpt-4")
+
+# Create RAG prompt
+rag_prompt = ChatPromptTemplate.from_messages([
+    ("system", """You are a helpful assistant. Answer the question based only on the following context.
+If the context doesn't contain relevant information, say so.
+
+Context:
+{context}"""),
+    ("human", "{question}")
+])
+
+# Helper function to format documents
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
+
+# Build RAG chain with LCEL
+rag_chain = (
+    {"context": retriever | format_docs, "question": RunnablePassthrough()}
+    | rag_prompt
+    | llm
+    | StrOutputParser()
+)
+
+# Use the chain
+response = rag_chain.invoke("What are the main types of machine learning?")
+print(response)</code></pre>
+
+<h2>4.6 Advanced RAG Patterns</h2>
+
+<div class="code-title">Code Example 5: RAG with Source Citations</div>
+<pre class="code-example"><code class="language-python">from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from pydantic import BaseModel, Field
+from typing import List
+
+# Define structured output with citations
+class AnswerWithSources(BaseModel):
+    answer: str = Field(description="The answer to the question")
+    sources: List[str] = Field(description="List of source documents used")
+
+# Create chain with structured output
+llm_with_sources = ChatOpenAI(model="gpt-4").with_structured_output(AnswerWithSources)
+
+rag_prompt_with_sources = ChatPromptTemplate.from_messages([
+    ("system", """Answer based on the context. Include which sources you used.
+
+Context:
+{context}"""),
+    ("human", "{question}")
+])
+
+def format_docs_with_sources(docs):
+    formatted = []
+    for i, doc in enumerate(docs):
+        source = doc.metadata.get("source", f"doc_{i}")
+        formatted.append(f"[Source: {source}]\n{doc.page_content}")
+    return "\n\n".join(formatted)
+
+rag_chain_with_sources = (
+    {"context": retriever | format_docs_with_sources, "question": RunnablePassthrough()}
+    | rag_prompt_with_sources
+    | llm_with_sources
+)
+
+result = rag_chain_with_sources.invoke("What is deep learning?")
+print(f"Answer: {result.answer}")
+print(f"Sources: {result.sources}")</code></pre>
+
+<div class="code-title">Code Example 6: Hybrid Search (Vector + Keyword)</div>
+<pre class="code-example"><code class="language-python">from langchain.retrievers import EnsembleRetriever
+from langchain_community.retrievers import BM25Retriever
+
+# Create keyword-based retriever
+bm25_retriever = BM25Retriever.from_documents(chunks)
+bm25_retriever.k = 3
+
+# Create vector retriever
+vector_retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+
+# Combine with ensemble (hybrid search)
+ensemble_retriever = EnsembleRetriever(
+    retrievers=[bm25_retriever, vector_retriever],
+    weights=[0.4, 0.6]  # 40% keyword, 60% semantic
+)
+
+# Use in RAG chain
+results = ensemble_retriever.invoke("neural network optimization techniques")
+for doc in results:
+    print(doc.page_content[:100] + "...")</code></pre>
+
+<h2>Exercise</h2>
+
+<div class="exercise">
+<h4>Exercise: Build a Documentation Q&A System</h4>
+<p>Build a RAG system for answering questions about a documentation website:</p>
+<ol>
+<li>Load documentation pages using WebBaseLoader</li>
+<li>Split into chunks with RecursiveCharacterTextSplitter</li>
+<li>Store in a Chroma vector database</li>
+<li>Create a RAG chain that answers questions with source citations</li>
+</ol>
+<p>Test with questions like: "How do I install this library?" and "What are the main features?"</p>
+</div>
+
+<h2>Summary</h2>
+
+<ul>
+<li><strong>RAG</strong> grounds LLM responses in retrieved documents</li>
+<li><strong>Document loaders</strong> ingest data from files, PDFs, web pages, etc.</li>
+<li><strong>Text splitters</strong> break documents into searchable chunks</li>
+<li><strong>Embeddings</strong> convert text to vectors for similarity search</li>
+<li><strong>Vector stores</strong> enable efficient semantic search</li>
+<li>Use <strong>LCEL</strong> to compose retrieval chains</li>
+<li><strong>Hybrid search</strong> combines vector and keyword matching for better results</li>
+</ul>
+
+<div class="nav-buttons">
+<a href="chapter-3.html" class="nav-button">← Chapter 3: Agents and Tools</a>
+<a href="chapter-5.html" class="nav-button">Chapter 5: Production Deployment →</a>
+</div>
+
+</div>
+</main>
+
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<p>This content is provided for educational purposes. LangChain is developed and maintained by LangChain Inc.</p>
+</section>
+
+<footer>
+<div class="container">
+<p>© 2026 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+<p>Licensed under CC BY 4.0</p>
+</div>
+</footer>
+</body>
+</html>

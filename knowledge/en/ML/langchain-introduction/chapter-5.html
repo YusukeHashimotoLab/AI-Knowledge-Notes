@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 5: Production Deployment - LangSmith, LangGraph, and Best Practices" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 5: Production Deployment - LangChain Introduction</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="index.html">LangChain Introduction</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 5</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/ML/langchain-introduction/chapter-5.html" class="locale-link">🇯🇵 JP</a>
+</div>
+
+<header>
+<div class="header-content">
+<h1>Chapter 5: Production Deployment</h1>
+<p class="subtitle">LangSmith, LangGraph, and Best Practices</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 15-20 minutes</span>
+<span class="meta-item">📊 Difficulty: Intermediate</span>
+<span class="meta-item">💻 Code Examples: 4</span>
+<span class="meta-item">📝 Exercises: 1</span>
+</div>
+</div>
+</header>
+
+<main class="container">
+<div class="content">
+
+<h2>Learning Objectives</h2>
+<ul>
+<li>Use LangSmith for monitoring and debugging</li>
+<li>Understand when to migrate from LCEL to LangGraph</li>
+<li>Integrate MCP (Model Context Protocol) tools</li>
+<li>Apply production best practices and optimizations</li>
+<li>Plan next steps for advanced LangChain development</li>
+</ul>
+
+<h2>5.1 LangSmith: Observability for LLM Applications</h2>
+
+<p>LangSmith is LangChain's platform for tracing, debugging, and monitoring LLM applications in production.</p>
+
+<div class="mermaid">
+graph TB
+    subgraph App["Your Application"]
+        A[LangChain Code]
+    end
+
+    subgraph LS["LangSmith Platform"]
+        B[Tracing]
+        C[Debugging]
+        D[Evaluation]
+        E[Monitoring]
+    end
+
+    A -->|Auto-logged| B
+    B --> C
+    B --> D
+    B --> E
+
+    style A fill:#667eea,color:#fff
+    style LS fill:#f8f9fa
+</div>
+
+<h3>Setting Up LangSmith</h3>
+
+<div class="code-title">Code Example 1: LangSmith Configuration</div>
+<pre class="code-example"><code class="language-python">import os
+
+# Set environment variables (or use .env file)
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_API_KEY"] = "your-langsmith-api-key"
+os.environ["LANGCHAIN_PROJECT"] = "my-project"  # Optional: organize traces
+
+# Now all LangChain operations are automatically traced!
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+
+llm = ChatOpenAI(model="gpt-4")
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a helpful assistant."),
+    ("human", "{question}")
+])
+
+chain = prompt | llm
+
+# This invocation is automatically logged to LangSmith
+response = chain.invoke({"question": "What is the capital of France?"})
+print(response.content)
+
+# View traces at: https://smith.langchain.com</code></pre>
+
+<h3>What LangSmith Shows You</h3>
+
+<ul>
+<li><strong>Full trace hierarchy</strong>: See every step in your chain</li>
+<li><strong>Latency breakdown</strong>: Identify slow components</li>
+<li><strong>Token usage</strong>: Track costs per request</li>
+<li><strong>Error details</strong>: Debug failures with full context</li>
+<li><strong>Input/Output pairs</strong>: Review what went in and came out</li>
+</ul>
+
+<div class="note">
+<h4>LangSmith Pricing (2025)</h4>
+<ul>
+<li><strong>Free tier</strong>: 5,000 traces/month, 1 seat</li>
+<li><strong>Paid plans</strong>: Higher limits, team features</li>
+<li><strong>Self-hosted</strong>: Enterprise plan for on-premise deployment</li>
+</ul>
+</div>
+
+<h2>5.2 When to Use LangGraph</h2>
+
+<p>LangGraph is LangChain's framework for building complex, stateful agent workflows. Use it when you outgrow simple LCEL chains.</p>
+
+<h3>LCEL vs LangGraph Decision Matrix</h3>
+
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>LCEL</th>
+<th>LangGraph</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Simple prompt → model → parser</td>
+<td>✅</td>
+<td></td>
+</tr>
+<tr>
+<td>RAG with retrieval</td>
+<td>✅</td>
+<td></td>
+</tr>
+<tr>
+<td>Basic agent with tools</td>
+<td>✅</td>
+<td></td>
+</tr>
+<tr>
+<td>Complex branching logic</td>
+<td></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Multi-agent collaboration</td>
+<td></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Human-in-the-loop approval</td>
+<td></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Persistent conversation state</td>
+<td></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Workflows with cycles/loops</td>
+<td></td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+
+<div class="code-title">Code Example 2: LangGraph Agent Preview</div>
+<pre class="code-example"><code class="language-python"># LangGraph enables complex workflows with state
+from langgraph.graph import StateGraph, END
+from typing import TypedDict, Annotated
+import operator
+
+# Define state schema
+class AgentState(TypedDict):
+    messages: Annotated[list, operator.add]
+    next_step: str
+
+# Create graph
+workflow = StateGraph(AgentState)
+
+# Add nodes (each node is a function)
+workflow.add_node("research", research_node)
+workflow.add_node("write", write_node)
+workflow.add_node("review", review_node)
+
+# Add edges (define flow)
+workflow.add_edge("research", "write")
+workflow.add_conditional_edges(
+    "write",
+    should_continue,  # Function that returns next node
+    {"review": "review", "end": END}
+)
+
+# Compile and run
+app = workflow.compile()
+result = app.invoke({"messages": ["Write a blog post about AI"]})</code></pre>
+
+<h2>5.3 MCP (Model Context Protocol) Integration</h2>
+
+<p>MCP is an open protocol for standardizing how applications provide tools to LLMs. LangChain supports MCP through adapters:</p>
+
+<div class="code-title">Code Example 3: Using MCP Tools</div>
+<pre class="code-example"><code class="language-python">from langchain_mcp_adapters import MultiServerMCPClient
+from langchain.agents import create_agent
+from langchain_openai import ChatOpenAI
+
+# Connect to MCP servers
+async with MultiServerMCPClient(
+    {
+        "filesystem": {
+            "command": "npx",
+            "args": ["-y", "@anthropic/mcp-filesystem", "/path/to/allowed/dir"]
+        },
+        "web": {
+            "url": "http://localhost:8080/mcp"  # HTTP-based MCP server
+        }
+    }
+) as client:
+    # Get tools from all connected servers
+    tools = client.get_tools()
+
+    # Create agent with MCP tools
+    agent = create_agent(
+        model=ChatOpenAI(model="gpt-4"),
+        tools=tools,
+        system_prompt="You can read files and browse the web."
+    )
+
+    result = await agent.ainvoke({
+        "messages": [{"role": "user", "content": "Read the README.md file"}]
+    })</code></pre>
+
+<div class="definition">
+<h4>MCP (Model Context Protocol)</h4>
+<p>An open protocol (donated to Linux Foundation in 2025) that standardizes how applications expose tools to LLMs. Major adopters include OpenAI, Anthropic, and Google. By 2026, most major APIs are expected to ship MCP servers alongside REST APIs.</p>
+</div>
+
+<h2>5.4 Production Best Practices</h2>
+
+<h3>Performance Optimization</h3>
+
+<div class="code-title">Code Example 4: Caching and Streaming</div>
+<pre class="code-example"><code class="language-python">import asyncio
+from langchain_openai import ChatOpenAI
+from langchain_core.globals import set_llm_cache
+from langchain_community.cache import SQLiteCache
+
+# Enable caching to avoid redundant API calls
+set_llm_cache(SQLiteCache(database_path=".langchain.db"))
+
+# Use streaming for better UX
+llm = ChatOpenAI(model="gpt-4", streaming=True)
+
+# Async for better throughput
+async def process_many(questions):
+    tasks = [llm.ainvoke(q) for q in questions]
+    return await asyncio.gather(*tasks)</code></pre>
+
+<h3>Error Handling</h3>
+
+<pre class="code-example"><code class="language-python">from langchain_openai import ChatOpenAI
+from langchain_core.runnables import RunnableWithFallbacks
+
+# Create fallback chain
+primary = ChatOpenAI(model="gpt-4")
+fallback = ChatOpenAI(model="gpt-3.5-turbo")
+
+robust_llm = primary.with_fallbacks([fallback])
+
+# Will try gpt-4, then gpt-3.5-turbo if it fails
+response = robust_llm.invoke("Hello")</code></pre>
+
+<h3>Security Checklist</h3>
+
+<ul>
+<li>✅ Store API keys in environment variables or secrets manager</li>
+<li>✅ Validate and sanitize user inputs before passing to LLM</li>
+<li>✅ Set token limits to prevent runaway costs</li>
+<li>✅ Use rate limiting for public-facing APIs</li>
+<li>✅ Log and monitor for unusual patterns</li>
+<li>✅ Review tool permissions (especially for agents with shell/file access)</li>
+</ul>
+
+<h2>5.5 Next Steps</h2>
+
+<p>Congratulations on completing this introduction! Here's where to go next:</p>
+
+<h3>Deepen Your Knowledge</h3>
+
+<ul>
+<li><strong>LangGraph</strong>: Build complex multi-agent systems with cycles and state</li>
+<li><strong>Advanced RAG</strong>: Explore reranking, query expansion, and hybrid search</li>
+<li><strong>Evaluation</strong>: Use LangSmith to systematically evaluate your chains</li>
+<li><strong>Custom Models</strong>: Integrate local LLMs with Ollama or vLLM</li>
+</ul>
+
+<h3>Resources</h3>
+
+<ul>
+<li><a href="https://python.langchain.com/">LangChain Documentation</a></li>
+<li><a href="https://github.com/langchain-ai/langchain">LangChain GitHub</a></li>
+<li><a href="https://smith.langchain.com/">LangSmith Platform</a></li>
+<li><a href="https://langchain-ai.github.io/langgraph/">LangGraph Documentation</a></li>
+</ul>
+
+<h2>Exercise</h2>
+
+<div class="exercise">
+<h4>Exercise: Production-Ready RAG</h4>
+<p>Take your RAG system from Chapter 4 and make it production-ready:</p>
+<ol>
+<li>Enable LangSmith tracing</li>
+<li>Add caching for embeddings and LLM calls</li>
+<li>Implement a fallback model</li>
+<li>Add input validation</li>
+<li>Deploy as an API endpoint (FastAPI recommended)</li>
+</ol>
+</div>
+
+<h2>Summary</h2>
+
+<ul>
+<li><strong>LangSmith</strong> provides tracing, debugging, and monitoring</li>
+<li>Use <strong>LangGraph</strong> for complex workflows with branching, cycles, or state</li>
+<li><strong>MCP</strong> is the emerging standard for tool integration</li>
+<li>Production apps need caching, fallbacks, and error handling</li>
+<li>Always consider security: input validation, rate limiting, monitoring</li>
+</ul>
+
+<div class="nav-buttons">
+<a href="chapter-4.html" class="nav-button">← Chapter 4: RAG</a>
+<a href="index.html" class="nav-button">Back to Index →</a>
+</div>
+
+</div>
+</main>
+
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<p>This content is provided for educational purposes. LangChain is developed and maintained by LangChain Inc.</p>
+</section>
+
+<footer>
+<div class="container">
+<p>© 2026 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+<p>Licensed under CC BY 4.0</p>
+</div>
+</footer>
+</body>
+</html>

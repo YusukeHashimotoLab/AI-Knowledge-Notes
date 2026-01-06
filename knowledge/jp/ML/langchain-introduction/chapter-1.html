@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="第1章：LangChainとは？ - LLMアプリケーションフレームワークを理解する" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第1章：LangChainとは？ - LangChain入門</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI寺子屋ホーム</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="index.html">LangChain入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第1章</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">🇯🇵 JP</span>
+<span class="locale-separator">|</span>
+<a href="../../../en/ML/langchain-introduction/chapter-1.html" class="locale-link">🌐 EN</a>
+</div>
+
+<header>
+<div class="header-content">
+<h1>第1章：LangChainとは？</h1>
+<p class="subtitle">LLMアプリケーションフレームワークを理解する</p>
+<div class="meta">
+<span class="meta-item">📖 読了時間: 15-20分</span>
+<span class="meta-item">📊 難易度: 初級</span>
+<span class="meta-item">💻 コード例: 4</span>
+<span class="meta-item">📝 演習: 2</span>
+</div>
+</div>
+</header>
+
+<main class="container">
+<div class="content">
+
+<h2>学習目標</h2>
+<ul>
+<li>LLMアプリケーションをゼロから構築する際の課題を理解する</li>
+<li>LangChainとは何か、その核心的な価値を学ぶ</li>
+<li>LangChainエコシステム（LangChain、LangGraph、LangSmith）を探る</li>
+<li>LangChain v1.0の主要な変更点を理解する</li>
+<li>LangChainをシステムにインストールする</li>
+</ul>
+
+<h2>1.1 LLMアプリケーション構築の課題</h2>
+
+<p>GPT-4、Claude、GeminiなどのLarge Language Models（LLM）は、AIで可能なことを革新しました。しかし、これらのモデルを使用して本番対応のアプリケーションを構築するには、いくつかの課題があります：</p>
+
+<div class="mermaid">
+graph TB
+    subgraph Challenges["一般的な課題"]
+        C1[複数のLLMプロバイダー<br/>異なるAPI]
+        C2[プロンプト管理<br/>テンプレートとバージョニング]
+        C3[メモリと状態<br/>会話履歴]
+        C4[ツール統合<br/>外部APIとデータ]
+        C5[エラー処理<br/>リトライとフォールバック]
+    end
+
+    C1 --> Problem[複雑で断片化したコード]
+    C2 --> Problem
+    C3 --> Problem
+    C4 --> Problem
+    C5 --> Problem
+
+    style Problem fill:#e74c3c,color:#fff
+</div>
+
+<h3>フレームワークなしの場合</h3>
+
+<p>フレームワークなしでLLMアプリケーションを構築するには、以下が必要です：</p>
+
+<ul>
+<li><strong>複数のAPIを処理</strong>：各LLMプロバイダー（OpenAI、Anthropic、Google）は異なるAPI、認証方法、レスポンス形式を持つ</li>
+<li><strong>プロンプトを手動で管理</strong>：テンプレート化、バージョン管理、プロンプトの組み合わせの標準的な方法がない</li>
+<li><strong>メモリを自分で実装</strong>：会話履歴の追跡、コンテキストウィンドウの管理、トークン制限の処理</li>
+<li><strong>ツール統合をゼロから構築</strong>：データベース、API、外部サービスへの接続</li>
+<li><strong>エラーを個別に処理</strong>：リトライ、フォールバック、優雅な劣化の実装</li>
+</ul>
+
+<h2>1.2 LangChainの登場</h2>
+
+<p><strong>LangChain</strong>は、Large Language Modelsを活用したアプリケーション構築を簡素化するオープンソースフレームワークです。</p>
+
+<div class="definition">
+<h4>LangChainとは？</h4>
+<p>LangChainは、言語モデルを活用したアプリケーション開発のためのフレームワークです。あらゆるLLMと連携するための統一インターフェース、複雑なワークフローを構築するためのコンポーザブルなコンポーネント、そしてストリーミング、キャッシュ、可観測性などの本番対応機能を提供します。</p>
+</div>
+
+<h3>主な価値提案</h3>
+
+<table>
+<thead>
+<tr>
+<th>機能</th>
+<th>メリット</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>統一インターフェース</strong></td>
+<td>1行のコードでLLMプロバイダーを切り替え</td>
+</tr>
+<tr>
+<td><strong>コンポーザビリティ</strong></td>
+<td>シンプルなコンポーネントを連結して複雑なワークフローを構築</td>
+</tr>
+<tr>
+<td><strong>組み込みメモリ</strong></td>
+<td>会話履歴管理が標準搭載</td>
+</tr>
+<tr>
+<td><strong>ツール統合</strong></td>
+<td>LLMを外部ツールやAPIに簡単に接続</td>
+</tr>
+<tr>
+<td><strong>本番対応機能</strong></td>
+<td>ストリーミング、キャッシュ、リトライ、可観測性を含む</td>
+</tr>
+</tbody>
+</table>
+
+<div class="code-title">コード例1：統一インターフェースの威力</div>
+<pre class="code-example"><code class="language-python"># LangChain：シンプルで統一されたインターフェース
+from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+# 1行でプロバイダーを切り替え - 同じインターフェース！
+llm = ChatOpenAI(model="gpt-4")
+# llm = ChatAnthropic(model="claude-sonnet-4-20250514")
+# llm = ChatGoogleGenerativeAI(model="gemini-pro")
+
+# 同じコードがすべてのプロバイダーで動作
+response = llm.invoke("量子コンピューティングを簡単に説明してください")
+print(response.content)</code></pre>
+
+<h2>1.3 LangChainエコシステム</h2>
+
+<p>LangChainは単なるライブラリではなく、LLMアプリケーション開発のさまざまな側面に対応したツールのエコシステムです：</p>
+
+<div class="mermaid">
+graph TB
+    subgraph Ecosystem["LangChainエコシステム"]
+        LC[🔗 LangChain<br/>コアフレームワーク]
+        LG[🌐 LangGraph<br/>エージェントオーケストレーション]
+        LS[🔍 LangSmith<br/>可観測性]
+    end
+
+    LC -->|構築| Apps[アプリケーション]
+    LG -->|複雑なワークフロー| Apps
+    LS -->|監視とデバッグ| Apps
+
+    style LC fill:#667eea,color:#fff
+    style LG fill:#11998e,color:#fff
+    style LS fill:#f093fb,color:#fff
+    style Apps fill:#28a745,color:#fff
+</div>
+
+<h3>LangChain（コア）</h3>
+<p>主要フレームワークが提供するもの：</p>
+<ul>
+<li>チャットモデルとLLM抽象化</li>
+<li>プロンプトテンプレートと出力パーサー</li>
+<li>ドキュメントローダーとテキストスプリッター</li>
+<li>ベクトルストアとリトリーバー</li>
+<li>チェーンと新しい<code>create_agent</code> API</li>
+</ul>
+
+<h3>LangGraph</h3>
+<p>ステートフルなマルチアクターアプリケーション構築のための別ライブラリ：</p>
+<ul>
+<li>グラフベースのワークフロー定義</li>
+<li>耐久性のある状態管理</li>
+<li>Human-in-the-loop機能</li>
+<li>複雑なエージェントオーケストレーション</li>
+</ul>
+
+<h3>LangSmith</h3>
+<p>LLMアプリケーションの可観測性プラットフォーム：</p>
+<ul>
+<li>トレーシングとデバッグ</li>
+<li>評価とテスト</li>
+<li>本番環境での監視</li>
+<li>データセット管理</li>
+</ul>
+
+<h2>1.4 LangChain v1.0：新機能</h2>
+
+<p>LangChainは2025年10月に最初の安定版（v1.0）をリリースしました。このマイルストーンで重要な変更がありました：</p>
+
+<div class="note">
+<h4>v1.0の主な変更点</h4>
+<ul>
+<li><strong>新しい<code>create_agent</code> API</strong>：<code>create_react_agent</code>を置き換える簡素化されたエージェント作成</li>
+<li><strong><code>content_blocks</code>プロパティ</strong>：プロバイダー間でマルチモーダルコンテンツへの統一アクセス</li>
+<li><strong>簡素化された名前空間</strong>：コア機能は<code>langchain</code>に、レガシーは<code>langchain-classic</code>に</li>
+<li><strong>TypedDict状態</strong>：エージェントはPydanticモデルの代わりにTypedDictを使用</li>
+</ul>
+</div>
+
+<div class="code-title">コード例2：新しいcreate_agent API（v1.0）</div>
+<pre class="code-example"><code class="language-python">from langchain.agents import create_agent
+from langchain_openai import ChatOpenAI
+
+# ツールを定義（第3章で詳しく説明）
+def search_web(query: str) -> str:
+    """Webで情報を検索する。"""
+    return f"検索結果: {query}"
+
+# 新しいv1.0 APIでエージェントを作成
+agent = create_agent(
+    model=ChatOpenAI(model="gpt-4"),
+    tools=[search_web],
+    system_prompt="あなたは親切なリサーチアシスタントです。"
+)
+
+# エージェントを実行
+result = agent.invoke({
+    "messages": [
+        {"role": "user", "content": "今日の天気は？"}
+    ]
+})
+print(result)</code></pre>
+
+<h2>1.5 LangChainのインストール</h2>
+
+<p>LangChainはモジュラーインストール方式を採用しています。必要なものだけをインストールしてください：</p>
+
+<div class="code-title">基本インストール</div>
+<pre class="code-example"><code class="language-bash"># コアLangChainパッケージ
+pip install langchain
+
+# プロバイダー固有のパッケージ（必要に応じてインストール）
+pip install langchain-openai      # OpenAIモデル用
+pip install langchain-anthropic   # Anthropic Claude用
+pip install langchain-google-genai # Google Gemini用
+
+# コミュニティ統合
+pip install langchain-community
+
+# インストール確認
+python -c "import langchain; print(f'LangChain {langchain.__version__} installed!')"</code></pre>
+
+<div class="note">
+<h4>現在のバージョン（2026年1月）</h4>
+<ul>
+<li><code>langchain-core</code>：1.2.6</li>
+<li><code>langchain</code>：1.2.0</li>
+<li>Python要件：>= 3.9</li>
+</ul>
+</div>
+
+<h3>APIキーの設定</h3>
+
+<p>ほとんどのLLMプロバイダーはAPIキーが必要です。環境変数として設定してください：</p>
+
+<div class="code-title">環境設定</div>
+<pre class="code-example"><code class="language-bash"># Linux/macOS
+export OPENAI_API_KEY="your-openai-key"
+export ANTHROPIC_API_KEY="your-anthropic-key"
+
+# Windows (PowerShell)
+$env:OPENAI_API_KEY="your-openai-key"
+$env:ANTHROPIC_API_KEY="your-anthropic-key"</code></pre>
+
+<h2>1.6 最初のLangChainアプリケーション</h2>
+
+<p>すべてが動作することを確認するために、シンプルなチャットボットを構築しましょう：</p>
+
+<div class="code-title">コード例4：Hello LangChain</div>
+<pre class="code-example"><code class="language-python">from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
+
+# モデルを初期化
+llm = ChatOpenAI(
+    model="gpt-4",
+    temperature=0.7  # ランダム性を制御（0=決定論的、1=創造的）
+)
+
+# メッセージを作成
+messages = [
+    SystemMessage(content="あなたは物事を簡単に説明する親切なアシスタントです。"),
+    HumanMessage(content="機械学習とは何ですか？")
+]
+
+# レスポンスを取得
+response = llm.invoke(messages)
+print(response.content)</code></pre>
+
+<h2>演習</h2>
+
+<div class="exercise">
+<h4>演習1：インストール確認</h4>
+<p>LangChainと少なくとも1つのプロバイダーパッケージをインストールしてください。以下のコードを実行して確認します：</p>
+<pre><code class="language-python">import langchain
+from langchain_core.messages import HumanMessage
+
+print(f"LangChain version: {langchain.__version__}")
+print("インストール成功！")</code></pre>
+</div>
+
+<div class="exercise">
+<h4>演習2：マルチプロバイダー比較</h4>
+<p>複数のプロバイダーのAPIキーをお持ちの場合、同じ質問を異なるモデルに投げかけ、レスポンスを比較してみてください。スタイル、長さ、内容にどのような違いがありますか？</p>
+</div>
+
+<h2>まとめ</h2>
+
+<ul>
+<li>LLMアプリケーションをゼロから構築するのは複雑でエラーが起きやすい</li>
+<li><strong>LangChain</strong>はLLMアプリケーション開発のための統一フレームワークを提供</li>
+<li>エコシステムには<strong>LangChain</strong>（コア）、<strong>LangGraph</strong>（オーケストレーション）、<strong>LangSmith</strong>（可観測性）が含まれる</li>
+<li><strong>v1.0</strong>で新しい<code>create_agent</code> APIと簡素化されたアーキテクチャが導入された</li>
+<li>インストールはモジュラー：コア + プロバイダーパッケージを必要に応じてインストール</li>
+</ul>
+
+<div class="nav-buttons">
+<a href="index.html" class="nav-button">← 目次に戻る</a>
+<a href="chapter-2.html" class="nav-button">第2章：基本コンポーネント →</a>
+</div>
+
+</div>
+</main>
+
+<section class="disclaimer">
+<h3>免責事項</h3>
+<p>本コンテンツは教育目的で提供されています。LangChainはLangChain Inc.によって開発・保守されています。</p>
+</section>
+
+<footer>
+<div class="container">
+<p>© 2026 AI寺子屋 - 橋本佑介 博士、東北大学</p>
+<p>CC BY 4.0ライセンス</p>
+</div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 2: Core Components - Chat Models, Prompts, and LCEL" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 2: Core Components - LangChain Introduction</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="index.html">LangChain Introduction</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 2</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/ML/langchain-introduction/chapter-2.html" class="locale-link">🇯🇵 JP</a>
+</div>
+
+<header>
+<div class="header-content">
+<h1>Chapter 2: Core Components</h1>
+<p class="subtitle">Chat Models, Prompts, and LCEL</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 20-25 minutes</span>
+<span class="meta-item">📊 Difficulty: Beginner</span>
+<span class="meta-item">💻 Code Examples: 5</span>
+<span class="meta-item">📝 Exercises: 2</span>
+</div>
+</div>
+</header>
+
+<main class="container">
+<div class="content">
+
+<h2>Learning Objectives</h2>
+<ul>
+<li>Work with Chat Models from different providers</li>
+<li>Create dynamic prompts using Prompt Templates</li>
+<li>Parse LLM outputs into structured data</li>
+<li>Understand LangChain Expression Language (LCEL)</li>
+<li>Build your first chain by composing components</li>
+</ul>
+
+<h2>2.1 Chat Models</h2>
+
+<p>Chat Models are the foundation of LangChain applications. They provide a unified interface for interacting with LLMs from any provider.</p>
+
+<div class="mermaid">
+graph LR
+    subgraph Providers["LLM Providers"]
+        P1[OpenAI]
+        P2[Anthropic]
+        P3[Google]
+        P4[Others...]
+    end
+
+    subgraph Interface["LangChain Interface"]
+        CM[ChatModel]
+    end
+
+    subgraph Methods["Common Methods"]
+        M1[.invoke]
+        M2[.stream]
+        M3[.batch]
+    end
+
+    Providers --> CM
+    CM --> Methods
+
+    style CM fill:#667eea,color:#fff
+</div>
+
+<h3>Key Concepts</h3>
+
+<div class="definition">
+<h4>Chat Model</h4>
+<p>A wrapper around an LLM that provides a consistent interface for sending messages and receiving responses. All chat models support the same core methods: <code>invoke()</code>, <code>stream()</code>, and <code>batch()</code>.</p>
+</div>
+
+<div class="code-title">Code Example 1: Working with Chat Models</div>
+<pre class="code-example"><code class="language-python">from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+
+# Initialize a chat model
+llm = ChatOpenAI(
+    model="gpt-4",
+    temperature=0.7,    # Creativity level (0-1)
+    max_tokens=500      # Maximum response length
+)
+
+# Messages are the input format for chat models
+messages = [
+    SystemMessage(content="You are a helpful coding assistant."),
+    HumanMessage(content="Write a Python function to calculate factorial."),
+]
+
+# invoke() - Get a single response
+response = llm.invoke(messages)
+print(response.content)
+
+# stream() - Get response as it's generated
+for chunk in llm.stream(messages):
+    print(chunk.content, end="", flush=True)
+
+# batch() - Process multiple inputs efficiently
+batch_messages = [
+    [HumanMessage(content="What is 2+2?")],
+    [HumanMessage(content="What is 3+3?")],
+]
+responses = llm.batch(batch_messages)
+for r in responses:
+    print(r.content)</code></pre>
+
+<h3>Message Types</h3>
+
+<table>
+<thead>
+<tr>
+<th>Message Type</th>
+<th>Purpose</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SystemMessage</code></td>
+<td>Set behavior/persona</td>
+<td>"You are a helpful assistant"</td>
+</tr>
+<tr>
+<td><code>HumanMessage</code></td>
+<td>User input</td>
+<td>"Explain quantum computing"</td>
+</tr>
+<tr>
+<td><code>AIMessage</code></td>
+<td>Model's previous response</td>
+<td>Used for conversation history</td>
+</tr>
+</tbody>
+</table>
+
+<h2>2.2 Prompt Templates</h2>
+
+<p>Prompt Templates allow you to create reusable, parameterized prompts:</p>
+
+<div class="code-title">Code Example 2: Prompt Templates</div>
+<pre class="code-example"><code class="language-python">from langchain_core.prompts import ChatPromptTemplate
+
+# Create a template with variables
+template = ChatPromptTemplate.from_messages([
+    ("system", "You are an expert in {topic}. Explain concepts clearly."),
+    ("human", "{question}")
+])
+
+# Format with specific values
+messages = template.invoke({
+    "topic": "machine learning",
+    "question": "What is gradient descent?"
+})
+
+print(messages)
+# Output: [SystemMessage(content="You are an expert in machine learning..."),
+#          HumanMessage(content="What is gradient descent?")]
+
+# Use with a model
+from langchain_openai import ChatOpenAI
+llm = ChatOpenAI()
+response = llm.invoke(messages)
+print(response.content)</code></pre>
+
+<h3>Advanced Template Features</h3>
+
+<div class="code-title">Code Example 3: Few-Shot Prompting</div>
+<pre class="code-example"><code class="language-python">from langchain_core.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
+
+# Define examples
+examples = [
+    {"input": "happy", "output": "sad"},
+    {"input": "tall", "output": "short"},
+    {"input": "fast", "output": "slow"},
+]
+
+# Create example prompt
+example_prompt = ChatPromptTemplate.from_messages([
+    ("human", "{input}"),
+    ("ai", "{output}"),
+])
+
+# Create few-shot prompt
+few_shot_prompt = FewShotChatMessagePromptTemplate(
+    example_prompt=example_prompt,
+    examples=examples,
+)
+
+# Final template
+final_prompt = ChatPromptTemplate.from_messages([
+    ("system", "You give the opposite of words."),
+    few_shot_prompt,
+    ("human", "{input}"),
+])
+
+# Use it
+messages = final_prompt.invoke({"input": "big"})
+response = llm.invoke(messages)
+print(response.content)  # Expected: "small"</code></pre>
+
+<h2>2.3 Output Parsers</h2>
+
+<p>Output Parsers convert LLM text responses into structured data:</p>
+
+<div class="mermaid">
+graph LR
+    A[LLM Response<br/>Raw Text] --> B[Output Parser]
+    B --> C[Structured Data<br/>dict, list, Pydantic]
+
+    style B fill:#667eea,color:#fff
+</div>
+
+<div class="code-title">Code Example 4: Structured Output with Pydantic</div>
+<pre class="code-example"><code class="language-python">from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
+
+# Define the output structure
+class MovieReview(BaseModel):
+    title: str = Field(description="The movie title")
+    rating: int = Field(description="Rating from 1-10")
+    summary: str = Field(description="Brief summary of the review")
+
+# Create model with structured output
+llm = ChatOpenAI(model="gpt-4")
+structured_llm = llm.with_structured_output(MovieReview)
+
+# Create prompt
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a movie critic. Analyze the given movie."),
+    ("human", "Review the movie: {movie}")
+])
+
+# Chain and invoke
+chain = prompt | structured_llm
+result = chain.invoke({"movie": "Inception"})
+
+# Result is a Pydantic object!
+print(f"Title: {result.title}")
+print(f"Rating: {result.rating}/10")
+print(f"Summary: {result.summary}")</code></pre>
+
+<h2>2.4 LangChain Expression Language (LCEL)</h2>
+
+<p>LCEL is a declarative way to compose chains using the pipe (<code>|</code>) operator:</p>
+
+<div class="definition">
+<h4>LCEL (LangChain Expression Language)</h4>
+<p>A syntax for composing LangChain components into chains. Components connected with <code>|</code> pass their output as input to the next component. All LCEL chains support invoke, stream, and batch automatically.</p>
+</div>
+
+<div class="mermaid">
+graph LR
+    A[Prompt<br/>Template] -->|pipe| B[Chat<br/>Model] -->|pipe| C[Output<br/>Parser]
+
+    style A fill:#667eea,color:#fff
+    style B fill:#11998e,color:#fff
+    style C fill:#f093fb,color:#fff
+</div>
+
+<div class="code-title">Code Example 5: Building Chains with LCEL</div>
+<pre class="code-example"><code class="language-python">from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
+# Define components
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a helpful assistant."),
+    ("human", "Translate '{text}' to {language}.")
+])
+
+model = ChatOpenAI(model="gpt-4")
+
+parser = StrOutputParser()  # Extracts string from AIMessage
+
+# Compose with LCEL (pipe operator)
+chain = prompt | model | parser
+
+# Use the chain
+result = chain.invoke({
+    "text": "Hello, world!",
+    "language": "Japanese"
+})
+print(result)  # Output: "こんにちは、世界！"
+
+# Streaming works automatically!
+for chunk in chain.stream({"text": "Good morning", "language": "French"}):
+    print(chunk, end="", flush=True)
+# Output: "Bonjour" (streamed character by character)</code></pre>
+
+<h3>LCEL Benefits</h3>
+
+<ul>
+<li><strong>Automatic streaming</strong>: Stream support comes free</li>
+<li><strong>Automatic batching</strong>: Process multiple inputs efficiently</li>
+<li><strong>Automatic retries</strong>: Built-in error handling</li>
+<li><strong>Automatic logging</strong>: LangSmith integration</li>
+<li><strong>Parallel execution</strong>: <code>RunnableParallel</code> for concurrent operations</li>
+</ul>
+
+<div class="note">
+<h4>When to Use LCEL vs LangGraph</h4>
+<p>Use LCEL for simple, linear chains (prompt → model → parser). For complex workflows with branching, cycles, or state management, use LangGraph instead. You can always use LCEL within LangGraph nodes.</p>
+</div>
+
+<h2>Exercises</h2>
+
+<div class="exercise">
+<h4>Exercise 1: Custom Prompt Template</h4>
+<p>Create a prompt template for a code review assistant. It should accept <code>language</code> (programming language) and <code>code</code> as parameters, and ask the model to review the code for bugs and improvements.</p>
+</div>
+
+<div class="exercise">
+<h4>Exercise 2: Structured Output</h4>
+<p>Create a chain that extracts structured information from a job posting. Define a Pydantic model with fields: <code>job_title</code>, <code>company</code>, <code>salary_range</code> (optional), and <code>required_skills</code> (list of strings).</p>
+</div>
+
+<h2>Summary</h2>
+
+<ul>
+<li><strong>Chat Models</strong> provide a unified interface for all LLM providers</li>
+<li>Use <code>invoke()</code>, <code>stream()</code>, and <code>batch()</code> for different use cases</li>
+<li><strong>Prompt Templates</strong> create reusable, parameterized prompts</li>
+<li><strong>Output Parsers</strong> convert text to structured data</li>
+<li><strong>LCEL</strong> composes components with the pipe (<code>|</code>) operator</li>
+<li>LCEL chains automatically support streaming, batching, and logging</li>
+</ul>
+
+<div class="nav-buttons">
+<a href="chapter-1.html" class="nav-button">← Chapter 1: What is LangChain?</a>
+<a href="chapter-3.html" class="nav-button">Chapter 3: Agents and Tools →</a>
+</div>
+
+</div>
+</main>
+
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<p>This content is provided for educational purposes. LangChain is developed and maintained by LangChain Inc.</p>
+</section>
+
+<footer>
+<div class="container">
+<p>© 2026 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+<p>Licensed under CC BY 4.0</p>
+</div>
+</footer>
+</body>
+</html>

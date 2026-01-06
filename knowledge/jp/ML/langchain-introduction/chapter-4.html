@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="第4章：RAG（検索拡張生成） - 知識に基づいたAIシステムを構築" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第4章：RAG（検索拡張生成） - LangChain入門</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI寺子屋ホーム</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="index.html">LangChain入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第4章</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">🇯🇵 JP</span>
+<span class="locale-separator">|</span>
+<a href="../../../en/ML/langchain-introduction/chapter-4.html" class="locale-link">🌐 EN</a>
+</div>
+
+<header>
+<div class="header-content">
+<h1>第4章：RAG（検索拡張生成）</h1>
+<p class="subtitle">知識に基づいたAIシステムを構築</p>
+<div class="meta">
+<span class="meta-item">📖 読了時間: 20-25分</span>
+<span class="meta-item">📊 難易度: 中級</span>
+<span class="meta-item">💻 コード例: 6</span>
+<span class="meta-item">📝 演習: 1</span>
+</div>
+</div>
+</header>
+
+<main class="container">
+<div class="content">
+
+<h2>学習目標</h2>
+<ul>
+<li>RAGアーキテクチャとその重要性を理解する</li>
+<li>検索用にドキュメントを読み込み、処理する</li>
+<li>埋め込みを作成し、ベクトルデータベースに保存する</li>
+<li>質問応答用の検索チェーンを構築する</li>
+<li>本番RAGシステムのベストプラクティスを適用する</li>
+</ul>
+
+<h2>4.1 RAGとは？</h2>
+
+<p>RAG（Retrieval-Augmented Generation、検索拡張生成）は、回答を生成する前に知識ベースから関連情報を検索することで、LLMの応答を強化するテクニックです。</p>
+
+<div class="definition">
+<h4>RAG（検索拡張生成）</h4>
+<p>2段階のプロセス：（1）ユーザーのクエリに基づいて知識ベースから関連ドキュメントを検索、（2）クエリと検索されたドキュメントの両方をコンテキストとして使用してレスポンスを生成。これにより、LLMのレスポンスを事実に基づいた最新の情報に根付かせることができます。</p>
+</div>
+
+<div class="mermaid">
+graph LR
+    A[ユーザークエリ] --> B[Retriever]
+    B --> C[ベクトルストア]
+    C --> D[関連ドキュメント]
+    D --> E[LLM + コンテキスト]
+    A --> E
+    E --> F[根拠のあるレスポンス]
+
+    style B fill:#667eea,color:#fff
+    style C fill:#11998e,color:#fff
+    style E fill:#f093fb,color:#fff
+</div>
+
+<h3>なぜRAGか？</h3>
+
+<table>
+<thead>
+<tr>
+<th>課題</th>
+<th>RAGによる解決</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LLMには知識のカットオフがある</td>
+<td>最新情報を検索</td>
+</tr>
+<tr>
+<td>LLMは事実を捏造（ハルシネーション）する可能性がある</td>
+<td>実際のドキュメントに基づいてレスポンスを生成</td>
+</tr>
+<tr>
+<td>LLMはドメイン知識が不足している</td>
+<td>カスタム知識ベースを追加</td>
+</tr>
+<tr>
+<td>LLMはプライベートデータにアクセスできない</td>
+<td>内部ドキュメントを安全にクエリ</td>
+</tr>
+</tbody>
+</table>
+
+<h2>4.2 ドキュメントの読み込み</h2>
+
+<p>最初のステップは、さまざまなソースからドキュメントを読み込むことです：</p>
+
+<div class="note">
+<h4>必要な依存関係</h4>
+<p>ドキュメントローダー用の追加パッケージをインストールしてください：</p>
+<pre><code>pip install beautifulsoup4 pypdf  # WebBaseLoaderとPyPDFLoader用
+pip install chromadb              # Chromaベクトルストア用</code></pre>
+</div>
+
+<div class="code-title">コード例1：ドキュメントの読み込み</div>
+<pre class="code-example"><code class="language-python">from langchain_community.document_loaders import (
+    TextLoader,
+    PyPDFLoader,
+    WebBaseLoader,
+    DirectoryLoader
+)
+
+# テキストファイルを読み込む
+text_loader = TextLoader("./data/document.txt")
+text_docs = text_loader.load()
+
+# PDFを読み込む
+pdf_loader = PyPDFLoader("./data/paper.pdf")
+pdf_docs = pdf_loader.load()
+
+# Webページを読み込む
+web_loader = WebBaseLoader("https://example.com/article")
+web_docs = web_loader.load()
+
+# ディレクトリ内のすべてのファイルを読み込む
+dir_loader = DirectoryLoader("./data/", glob="**/*.txt")
+all_docs = dir_loader.load()
+
+# 各ドキュメントにはコンテンツとメタデータがある
+for doc in text_docs:
+    print(f"コンテンツ: {doc.page_content[:100]}...")
+    print(f"メタデータ: {doc.metadata}")</code></pre>
+
+<h2>4.3 テキスト分割</h2>
+
+<p>効率的な検索のために、ドキュメントをチャンクに分割する必要があります：</p>
+
+<div class="code-title">コード例2：テキスト分割戦略</div>
+<pre class="code-example"><code class="language-python">from langchain_text_splitters import (
+    RecursiveCharacterTextSplitter,
+    CharacterTextSplitter
+)
+
+# 推奨：RecursiveCharacterTextSplitter
+# 自然な境界（段落、文、単語）で分割しようとする
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,      # チャンクあたりの最大文字数
+    chunk_overlap=200,    # コンテキストのためのチャンク間オーバーラップ
+    separators=["\n\n", "\n", " ", ""]  # 分割優先順位
+)
+
+# ドキュメントを分割
+chunks = splitter.split_documents(text_docs)
+
+print(f"元のドキュメント数: {len(text_docs)}")
+print(f"分割後: {len(chunks)} チャンク")
+
+# 各チャンクはメタデータを保持
+for i, chunk in enumerate(chunks[:3]):
+    print(f"\nチャンク {i}: {len(chunk.page_content)} 文字")
+    print(chunk.page_content[:100] + "...")</code></pre>
+
+<div class="note">
+<h4>チャンキングのベストプラクティス（2025年）</h4>
+<ul>
+<li><strong>セマンティックチャンキング</strong>：関連するコンテンツを一緒に保持（段落、セクション）</li>
+<li><strong>コンテキストヘッダー</strong>：各チャンクにセクション見出しを含める</li>
+<li><strong>チャンクサイズ</strong>：ユースケースに応じて500-1500トークン</li>
+<li><strong>オーバーラップ</strong>：10-20%のオーバーラップでチャンク境界のコンテキストを保持</li>
+</ul>
+</div>
+
+<h2>4.4 埋め込みとベクトルストア</h2>
+
+<p>埋め込みはテキストを類似性検索用の数値ベクトルに変換します：</p>
+
+<div class="code-title">コード例3：埋め込みとベクトルストアの作成</div>
+<pre class="code-example"><code class="language-python">from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
+
+# 埋め込みモデルを作成
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+
+# 埋め込みをテスト
+test_embedding = embeddings.embed_query("機械学習とは何ですか？")
+print(f"埋め込み次元: {len(test_embedding)}")  # 1536
+
+# ドキュメントからベクトルストアを作成
+vectorstore = Chroma.from_documents(
+    documents=chunks,
+    embedding=embeddings,
+    persist_directory="./chroma_db"  # ディスクに永続化
+)
+
+# ベクトルストアをクエリ
+results = vectorstore.similarity_search(
+    "ニューラルネットワークの学習はどのように機能しますか？",
+    k=3  # 上位3件を返す
+)
+
+for doc in results:
+    print(f"スコア: {doc.metadata.get('score', 'N/A')}")
+    print(f"コンテンツ: {doc.page_content[:200]}...\n")</code></pre>
+
+<h3>一般的なベクトルストア</h3>
+
+<table>
+<thead>
+<tr>
+<th>ベクトルストア</th>
+<th>タイプ</th>
+<th>最適な用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Chroma</td>
+<td>ローカル/クラウド</td>
+<td>開発、小〜中規模</td>
+</tr>
+<tr>
+<td>FAISS</td>
+<td>ローカル</td>
+<td>高性能ローカル検索</td>
+</tr>
+<tr>
+<td>Pinecone</td>
+<td>クラウド</td>
+<td>本番環境、マネージドサービス</td>
+</tr>
+<tr>
+<td>Weaviate</td>
+<td>クラウド/セルフホスト</td>
+<td>ハイブリッド検索、フィルタリング</td>
+</tr>
+<tr>
+<td>Milvus</td>
+<td>クラウド/セルフホスト</td>
+<td>大規模本番環境</td>
+</tr>
+</tbody>
+</table>
+
+<h2>4.5 RAGチェーンの構築</h2>
+
+<div class="code-title">コード例4：完全なRAGパイプライン</div>
+<pre class="code-example"><code class="language-python">from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+
+# コンポーネントをセットアップ
+embeddings = OpenAIEmbeddings()
+vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=embeddings)
+retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+llm = ChatOpenAI(model="gpt-4")
+
+# RAGプロンプトを作成
+rag_prompt = ChatPromptTemplate.from_messages([
+    ("system", """あなたは親切なアシスタントです。以下のコンテキストのみに基づいて質問に回答してください。
+コンテキストに関連情報が含まれていない場合は、そのように伝えてください。
+
+コンテキスト:
+{context}"""),
+    ("human", "{question}")
+])
+
+# ドキュメントをフォーマットするヘルパー関数
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
+
+# LCELでRAGチェーンを構築
+rag_chain = (
+    {"context": retriever | format_docs, "question": RunnablePassthrough()}
+    | rag_prompt
+    | llm
+    | StrOutputParser()
+)
+
+# チェーンを使用
+response = rag_chain.invoke("機械学習の主な種類は何ですか？")
+print(response)</code></pre>
+
+<h2>4.6 高度なRAGパターン</h2>
+
+<div class="code-title">コード例5：ソース引用付きRAG</div>
+<pre class="code-example"><code class="language-python">from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from pydantic import BaseModel, Field
+from typing import List
+
+# 引用付きの構造化出力を定義
+class AnswerWithSources(BaseModel):
+    answer: str = Field(description="質問への回答")
+    sources: List[str] = Field(description="使用したソースドキュメントのリスト")
+
+# 構造化出力付きチェーンを作成
+llm_with_sources = ChatOpenAI(model="gpt-4").with_structured_output(AnswerWithSources)
+
+rag_prompt_with_sources = ChatPromptTemplate.from_messages([
+    ("system", """コンテキストに基づいて回答してください。使用したソースを含めてください。
+
+コンテキスト:
+{context}"""),
+    ("human", "{question}")
+])
+
+def format_docs_with_sources(docs):
+    formatted = []
+    for i, doc in enumerate(docs):
+        source = doc.metadata.get("source", f"doc_{i}")
+        formatted.append(f"[ソース: {source}]\n{doc.page_content}")
+    return "\n\n".join(formatted)
+
+rag_chain_with_sources = (
+    {"context": retriever | format_docs_with_sources, "question": RunnablePassthrough()}
+    | rag_prompt_with_sources
+    | llm_with_sources
+)
+
+result = rag_chain_with_sources.invoke("ディープラーニングとは何ですか？")
+print(f"回答: {result.answer}")
+print(f"ソース: {result.sources}")</code></pre>
+
+<div class="code-title">コード例6：ハイブリッド検索（ベクトル + キーワード）</div>
+<pre class="code-example"><code class="language-python">from langchain.retrievers import EnsembleRetriever
+from langchain_community.retrievers import BM25Retriever
+
+# キーワードベースのRetrieverを作成
+bm25_retriever = BM25Retriever.from_documents(chunks)
+bm25_retriever.k = 3
+
+# ベクトルRetrieverを作成
+vector_retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+
+# アンサンブルで組み合わせ（ハイブリッド検索）
+ensemble_retriever = EnsembleRetriever(
+    retrievers=[bm25_retriever, vector_retriever],
+    weights=[0.4, 0.6]  # 40% キーワード、60% セマンティック
+)
+
+# RAGチェーンで使用
+results = ensemble_retriever.invoke("ニューラルネットワーク最適化技術")
+for doc in results:
+    print(doc.page_content[:100] + "...")</code></pre>
+
+<h2>演習</h2>
+
+<div class="exercise">
+<h4>演習：ドキュメントQ&Aシステムを構築</h4>
+<p>ドキュメントサイトに関する質問に回答するRAGシステムを構築してください：</p>
+<ol>
+<li>WebBaseLoaderを使用してドキュメントページを読み込む</li>
+<li>RecursiveCharacterTextSplitterでチャンクに分割する</li>
+<li>Chromaベクトルデータベースに保存する</li>
+<li>ソース引用付きで質問に回答するRAGチェーンを作成する</li>
+</ol>
+<p>「このライブラリをインストールするにはどうすればよいですか？」や「主な機能は何ですか？」などの質問でテストしてください。</p>
+</div>
+
+<h2>まとめ</h2>
+
+<ul>
+<li><strong>RAG</strong>は検索されたドキュメントに基づいてLLMのレスポンスを根付かせる</li>
+<li><strong>Document Loaders</strong>はファイル、PDF、Webページなどからデータを取り込む</li>
+<li><strong>Text Splitters</strong>はドキュメントを検索可能なチャンクに分割する</li>
+<li><strong>Embeddings</strong>はテキストを類似性検索用のベクトルに変換する</li>
+<li><strong>Vector Stores</strong>は効率的なセマンティック検索を可能にする</li>
+<li><strong>LCEL</strong>を使用して検索チェーンを構成する</li>
+<li><strong>ハイブリッド検索</strong>はベクトルとキーワードマッチングを組み合わせてより良い結果を得る</li>
+</ul>
+
+<div class="nav-buttons">
+<a href="chapter-3.html" class="nav-button">← 第3章：エージェントとツール</a>
+<a href="chapter-5.html" class="nav-button">第5章：本番環境へのデプロイ →</a>
+</div>
+
+</div>
+</main>
+
+<section class="disclaimer">
+<h3>免責事項</h3>
+<p>本コンテンツは教育目的で提供されています。LangChainはLangChain Inc.によって開発・保守されています。</p>
+</section>
+
+<footer>
+<div class="container">
+<p>© 2026 AI寺子屋 - 橋本佑介 博士、東北大学</p>
+<p>CC BY 4.0ライセンス</p>
+</div>
+</footer>
+</body>
+</html>

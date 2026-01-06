@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="第2章：基本コンポーネント - Chat Models、Prompts、LCEL" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第2章：基本コンポーネント - LangChain入門</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI寺子屋ホーム</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="index.html">LangChain入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第2章</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">🇯🇵 JP</span>
+<span class="locale-separator">|</span>
+<a href="../../../en/ML/langchain-introduction/chapter-2.html" class="locale-link">🌐 EN</a>
+</div>
+
+<header>
+<div class="header-content">
+<h1>第2章：基本コンポーネント</h1>
+<p class="subtitle">Chat Models、Prompts、LCEL</p>
+<div class="meta">
+<span class="meta-item">📖 読了時間: 20-25分</span>
+<span class="meta-item">📊 難易度: 初級</span>
+<span class="meta-item">💻 コード例: 5</span>
+<span class="meta-item">📝 演習: 2</span>
+</div>
+</div>
+</header>
+
+<main class="container">
+<div class="content">
+
+<h2>学習目標</h2>
+<ul>
+<li>様々なプロバイダーのChat Modelsを使用する</li>
+<li>Prompt Templatesを使用して動的なプロンプトを作成する</li>
+<li>LLM出力を構造化データに解析する</li>
+<li>LangChain Expression Language（LCEL）を理解する</li>
+<li>コンポーネントを組み合わせて最初のチェーンを構築する</li>
+</ul>
+
+<h2>2.1 Chat Models</h2>
+
+<p>Chat ModelsはLangChainアプリケーションの基盤です。あらゆるプロバイダーのLLMと対話するための統一インターフェースを提供します。</p>
+
+<div class="mermaid">
+graph LR
+    subgraph Providers["LLMプロバイダー"]
+        P1[OpenAI]
+        P2[Anthropic]
+        P3[Google]
+        P4[その他...]
+    end
+
+    subgraph Interface["LangChainインターフェース"]
+        CM[ChatModel]
+    end
+
+    subgraph Methods["共通メソッド"]
+        M1[.invoke]
+        M2[.stream]
+        M3[.batch]
+    end
+
+    Providers --> CM
+    CM --> Methods
+
+    style CM fill:#667eea,color:#fff
+</div>
+
+<div class="definition">
+<h4>Chat Model</h4>
+<p>メッセージの送信とレスポンスの受信のための一貫したインターフェースを提供するLLMのラッパー。すべてのチャットモデルは同じコアメソッド（<code>invoke()</code>、<code>stream()</code>、<code>batch()</code>）をサポートしています。</p>
+</div>
+
+<div class="code-title">コード例1：Chat Modelsの使用</div>
+<pre class="code-example"><code class="language-python">from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+
+# チャットモデルを初期化
+llm = ChatOpenAI(
+    model="gpt-4",
+    temperature=0.7,    # 創造性レベル（0-1）
+    max_tokens=500      # 最大レスポンス長
+)
+
+# メッセージはチャットモデルの入力形式
+messages = [
+    SystemMessage(content="あなたは親切なコーディングアシスタントです。"),
+    HumanMessage(content="階乗を計算するPython関数を書いてください。"),
+]
+
+# invoke() - 単一のレスポンスを取得
+response = llm.invoke(messages)
+print(response.content)
+
+# stream() - 生成されるにつれてレスポンスを取得
+for chunk in llm.stream(messages):
+    print(chunk.content, end="", flush=True)
+
+# batch() - 複数の入力を効率的に処理
+batch_messages = [
+    [HumanMessage(content="2+2は？")],
+    [HumanMessage(content="3+3は？")],
+]
+responses = llm.batch(batch_messages)
+for r in responses:
+    print(r.content)</code></pre>
+
+<h2>2.2 Prompt Templates</h2>
+
+<p>Prompt Templatesを使用すると、再利用可能でパラメータ化されたプロンプトを作成できます：</p>
+
+<div class="code-title">コード例2：Prompt Templates</div>
+<pre class="code-example"><code class="language-python">from langchain_core.prompts import ChatPromptTemplate
+
+# 変数を含むテンプレートを作成
+template = ChatPromptTemplate.from_messages([
+    ("system", "あなたは{topic}の専門家です。概念を明確に説明してください。"),
+    ("human", "{question}")
+])
+
+# 特定の値でフォーマット
+messages = template.invoke({
+    "topic": "機械学習",
+    "question": "勾配降下法とは何ですか？"
+})
+
+print(messages)
+# 出力: [SystemMessage(content="あなたは機械学習の専門家です..."),
+#        HumanMessage(content="勾配降下法とは何ですか？")]
+
+# モデルと一緒に使用
+from langchain_openai import ChatOpenAI
+llm = ChatOpenAI()
+response = llm.invoke(messages)
+print(response.content)</code></pre>
+
+<h2>2.3 Output Parsers</h2>
+
+<p>Output ParsersはLLMのテキストレスポンスを構造化データに変換します：</p>
+
+<div class="code-title">コード例3：Pydanticを使用した構造化出力</div>
+<pre class="code-example"><code class="language-python">from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
+
+# 出力構造を定義
+class MovieReview(BaseModel):
+    title: str = Field(description="映画タイトル")
+    rating: int = Field(description="1-10のレーティング")
+    summary: str = Field(description="レビューの簡潔な要約")
+
+# 構造化出力を持つモデルを作成
+llm = ChatOpenAI(model="gpt-4")
+structured_llm = llm.with_structured_output(MovieReview)
+
+# プロンプトを作成
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "あなたは映画評論家です。与えられた映画を分析してください。"),
+    ("human", "映画をレビューしてください：{movie}")
+])
+
+# チェーンして実行
+chain = prompt | structured_llm
+result = chain.invoke({"movie": "インセプション"})
+
+# 結果はPydanticオブジェクト！
+print(f"タイトル: {result.title}")
+print(f"レーティング: {result.rating}/10")
+print(f"要約: {result.summary}")</code></pre>
+
+<h2>2.4 LangChain Expression Language（LCEL）</h2>
+
+<p>LCELは、パイプ（<code>|</code>）演算子を使用してチェーンを構成する宣言的な方法です：</p>
+
+<div class="definition">
+<h4>LCEL（LangChain Expression Language）</h4>
+<p>LangChainコンポーネントをチェーンに構成するための構文。<code>|</code>で接続されたコンポーネントは、その出力を次のコンポーネントへの入力として渡します。すべてのLCELチェーンは自動的にinvoke、stream、batchをサポートします。</p>
+</div>
+
+<div class="code-title">コード例4：LCELでチェーンを構築</div>
+<pre class="code-example"><code class="language-python">from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
+# コンポーネントを定義
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "あなたは親切なアシスタントです。"),
+    ("human", "'{text}'を{language}に翻訳してください。")
+])
+
+model = ChatOpenAI(model="gpt-4")
+
+parser = StrOutputParser()  # AIMessageから文字列を抽出
+
+# LCELで構成（パイプ演算子）
+chain = prompt | model | parser
+
+# チェーンを使用
+result = chain.invoke({
+    "text": "Hello, world!",
+    "language": "日本語"
+})
+print(result)  # 出力: "こんにちは、世界！"
+
+# ストリーミングは自動的に動作！
+for chunk in chain.stream({"text": "Good morning", "language": "フランス語"}):
+    print(chunk, end="", flush=True)</code></pre>
+
+<h3>LCELの利点</h3>
+
+<ul>
+<li><strong>自動ストリーミング</strong>：ストリームサポートが無料で付属</li>
+<li><strong>自動バッチ処理</strong>：複数の入力を効率的に処理</li>
+<li><strong>自動リトライ</strong>：組み込みのエラー処理</li>
+<li><strong>自動ロギング</strong>：LangSmith統合</li>
+<li><strong>並列実行</strong>：<code>RunnableParallel</code>で並行操作</li>
+</ul>
+
+<div class="note">
+<h4>LCELとLangGraphの使い分け</h4>
+<p>シンプルで線形なチェーン（prompt → model → parser）にはLCELを使用してください。分岐、サイクル、または状態管理を伴う複雑なワークフローには、代わりにLangGraphを使用してください。LangGraphノード内でLCELを使用することも常に可能です。</p>
+</div>
+
+<h2>演習</h2>
+
+<div class="exercise">
+<h4>演習1：カスタムPrompt Template</h4>
+<p>コードレビューアシスタント用のPrompt Templateを作成してください。<code>language</code>（プログラミング言語）と<code>code</code>をパラメータとして受け取り、バグと改善点についてコードをレビューするようモデルに依頼します。</p>
+</div>
+
+<div class="exercise">
+<h4>演習2：構造化出力</h4>
+<p>求人情報から構造化情報を抽出するチェーンを作成してください。次のフィールドを持つPydanticモデルを定義します：<code>job_title</code>、<code>company</code>、<code>salary_range</code>（オプション）、<code>required_skills</code>（文字列のリスト）。</p>
+</div>
+
+<h2>まとめ</h2>
+
+<ul>
+<li><strong>Chat Models</strong>はすべてのLLMプロバイダーに統一インターフェースを提供</li>
+<li>さまざまなユースケースに<code>invoke()</code>、<code>stream()</code>、<code>batch()</code>を使用</li>
+<li><strong>Prompt Templates</strong>で再利用可能でパラメータ化されたプロンプトを作成</li>
+<li><strong>Output Parsers</strong>でテキストを構造化データに変換</li>
+<li><strong>LCEL</strong>はパイプ（<code>|</code>）演算子でコンポーネントを構成</li>
+<li>LCELチェーンは自動的にストリーミング、バッチ処理、ロギングをサポート</li>
+</ul>
+
+<div class="nav-buttons">
+<a href="chapter-1.html" class="nav-button">← 第1章：LangChainとは？</a>
+<a href="chapter-3.html" class="nav-button">第3章：エージェントとツール →</a>
+</div>
+
+</div>
+</main>
+
+<section class="disclaimer">
+<h3>免責事項</h3>
+<p>本コンテンツは教育目的で提供されています。LangChainはLangChain Inc.によって開発・保守されています。</p>
+</section>
+
+<footer>
+<div class="container">
+<p>© 2026 AI寺子屋 - 橋本佑介 博士、東北大学</p>
+<p>CC BY 4.0ライセンス</p>
+</div>
+</footer>
+</body>
+</html>

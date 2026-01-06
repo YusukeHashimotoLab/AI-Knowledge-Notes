@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="Chapter 3: Agents and Tools - Building AI Agents with LangChain" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 3: Agents and Tools - LangChain Introduction</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI Terakoya Home</a><span class="breadcrumb-separator">›</span><a href="../index.html">Machine Learning</a><span class="breadcrumb-separator">›</span><a href="index.html">LangChain Introduction</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Chapter 3</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">🌐 EN</span>
+<span class="locale-separator">|</span>
+<a href="../../../jp/ML/langchain-introduction/chapter-3.html" class="locale-link">🇯🇵 JP</a>
+</div>
+
+<header>
+<div class="header-content">
+<h1>Chapter 3: Agents and Tools</h1>
+<p class="subtitle">Building AI Agents with LangChain</p>
+<div class="meta">
+<span class="meta-item">📖 Reading Time: 20-25 minutes</span>
+<span class="meta-item">📊 Difficulty: Beginner-Intermediate</span>
+<span class="meta-item">💻 Code Examples: 6</span>
+<span class="meta-item">📝 Exercises: 2</span>
+</div>
+</div>
+</header>
+
+<main class="container">
+<div class="content">
+
+<h2>Learning Objectives</h2>
+<ul>
+<li>Understand what AI agents are and how they work</li>
+<li>Use the new <code>create_agent</code> API (LangChain v1.0)</li>
+<li>Define custom tools for agents to use</li>
+<li>Work with built-in tools (search, calculator, etc.)</li>
+<li>Handle agent execution and monitor tool calls</li>
+</ul>
+
+<h2>3.1 What are AI Agents?</h2>
+
+<p>An AI agent is an LLM that can autonomously decide which actions to take to accomplish a goal. Unlike simple chains that follow a fixed path, agents can:</p>
+
+<ul>
+<li><strong>Reason</strong> about what steps are needed</li>
+<li><strong>Choose</strong> which tools to use</li>
+<li><strong>Execute</strong> actions and observe results</li>
+<li><strong>Iterate</strong> until the task is complete</li>
+</ul>
+
+<div class="mermaid">
+graph TB
+    A[User Query] --> B[Agent]
+    B --> C{Decide Action}
+    C -->|Use Tool| D[Execute Tool]
+    D --> E[Observe Result]
+    E --> C
+    C -->|Done| F[Final Response]
+
+    style B fill:#667eea,color:#fff
+    style D fill:#11998e,color:#fff
+    style F fill:#28a745,color:#fff
+</div>
+
+<div class="definition">
+<h4>Agent Loop</h4>
+<p>The cycle of: (1) LLM decides which tool to call, (2) Tool executes and returns result, (3) LLM observes result and decides next action. This continues until the LLM determines the task is complete.</p>
+</div>
+
+<h2>3.2 The create_agent API</h2>
+
+<p>LangChain v1.0 introduced <code>create_agent</code> as the standard way to build agents:</p>
+
+<div class="code-title">Code Example 1: Basic Agent with create_agent</div>
+<pre class="code-example"><code class="language-python">from langchain.agents import create_agent
+from langchain_openai import ChatOpenAI
+
+# Define a simple tool
+def get_weather(city: str) -> str:
+    """Get the current weather for a city."""
+    # In production, this would call a real weather API
+    return f"The weather in {city} is sunny, 22°C"
+
+def calculate(expression: str) -> str:
+    """Evaluate a mathematical expression.
+
+    Warning: This example uses eval() for simplicity. In production,
+    use a safe math parser like `numexpr` or `asteval` instead.
+    """
+    try:
+        # WARNING: eval() is dangerous with untrusted input!
+        # For production, use: import numexpr; numexpr.evaluate(expression)
+        return str(eval(expression))
+    except Exception as e:
+        return f"Error: {e}"
+
+# Create the agent
+agent = create_agent(
+    model=ChatOpenAI(model="gpt-4"),
+    tools=[get_weather, calculate],
+    system_prompt="You are a helpful assistant that can check weather and do math."
+)
+
+# Run the agent
+result = agent.invoke({
+    "messages": [
+        {"role": "user", "content": "What's the weather in Tokyo, and what's 25 * 4?"}
+    ]
+})
+
+print(result["messages"][-1].content)</code></pre>
+
+<h2>3.3 Defining Custom Tools</h2>
+
+<p>Tools can be defined in several ways. The simplest is using the <code>@tool</code> decorator:</p>
+
+<div class="code-title">Code Example 2: Custom Tools with @tool Decorator</div>
+<pre class="code-example"><code class="language-python">from langchain_core.tools import tool
+
+@tool
+def search_database(query: str) -> str:
+    """Search the product database for items matching the query.
+
+    Args:
+        query: The search term to look for in the database.
+    """
+    # Simulated database search
+    products = {
+        "laptop": "MacBook Pro - $1999",
+        "phone": "iPhone 15 - $999",
+        "tablet": "iPad Pro - $799"
+    }
+    query_lower = query.lower()
+    for key, value in products.items():
+        if key in query_lower:
+            return value
+    return "No products found"
+
+@tool
+def send_email(to: str, subject: str, body: str) -> str:
+    """Send an email to the specified recipient.
+
+    Args:
+        to: Email address of the recipient.
+        subject: Subject line of the email.
+        body: Body content of the email.
+    """
+    # In production, this would actually send an email
+    return f"Email sent to {to} with subject '{subject}'"
+
+# Use the tools
+print(search_database.name)  # "search_database"
+print(search_database.description)  # From docstring
+print(search_database.invoke("laptop"))  # "MacBook Pro - $1999"</code></pre>
+
+<h3>Tool Schema</h3>
+
+<p>LangChain automatically extracts the schema from type hints and docstrings:</p>
+
+<div class="note">
+<h4>Best Practices for Tool Definitions</h4>
+<ul>
+<li>Use clear, descriptive function names</li>
+<li>Write detailed docstrings—the LLM uses these to decide when to use the tool</li>
+<li>Add type hints for all parameters</li>
+<li>Keep tools focused on a single task</li>
+</ul>
+</div>
+
+<h2>3.4 Built-in Tools</h2>
+
+<p>LangChain provides many pre-built tools through <code>langchain-community</code>:</p>
+
+<div class="code-title">Code Example 3: Using Built-in Tools</div>
+<pre class="code-example"><code class="language-python">from langchain_community.tools import DuckDuckGoSearchRun
+from langchain_community.tools import WikipediaQueryRun
+from langchain_community.utilities import WikipediaAPIWrapper
+
+# Web search tool
+search = DuckDuckGoSearchRun()
+result = search.invoke("Latest news about AI")
+print(result)
+
+# Wikipedia tool
+wikipedia = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
+result = wikipedia.invoke("Machine Learning")
+print(result)</code></pre>
+
+<h3>Common Built-in Tools</h3>
+
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Package</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DuckDuckGoSearchRun</td>
+<td>langchain-community</td>
+<td>Web search</td>
+</tr>
+<tr>
+<td>WikipediaQueryRun</td>
+<td>langchain-community</td>
+<td>Wikipedia lookup</td>
+</tr>
+<tr>
+<td>ArxivQueryRun</td>
+<td>langchain-community</td>
+<td>Academic paper search</td>
+</tr>
+<tr>
+<td>PythonREPLTool</td>
+<td>langchain-community</td>
+<td>Execute Python code</td>
+</tr>
+<tr>
+<td>ShellTool</td>
+<td>langchain-community</td>
+<td>Run shell commands</td>
+</tr>
+</tbody>
+</table>
+
+<div class="warning">
+<h4>Security Warning: High-Risk Tools</h4>
+<p><strong>PythonREPLTool</strong> and <strong>ShellTool</strong> execute arbitrary code with full system access. Only use these tools in sandboxed environments or with strict input validation. Consider using allowlists, containerization (Docker), or restricted execution environments for production deployments.</p>
+</div>
+
+<h2>3.5 Structured Tool Output</h2>
+
+<p>For complex tools, you can define structured input/output with Pydantic:</p>
+
+<div class="code-title">Code Example 4: Structured Tool with Pydantic</div>
+<pre class="code-example"><code class="language-python">from langchain.agents import create_agent
+from langchain_openai import ChatOpenAI
+from langchain_core.tools import StructuredTool
+from pydantic import BaseModel, Field
+
+# Define input schema
+class FlightSearchInput(BaseModel):
+    origin: str = Field(description="Departure airport code (e.g., 'NRT')")
+    destination: str = Field(description="Arrival airport code (e.g., 'LAX')")
+    date: str = Field(description="Travel date in YYYY-MM-DD format")
+
+def search_flights(origin: str, destination: str, date: str) -> str:
+    """Search for available flights."""
+    # Simulated flight search
+    return f"Found 3 flights from {origin} to {destination} on {date}. Cheapest: $450"
+
+# Create structured tool
+flight_tool = StructuredTool.from_function(
+    func=search_flights,
+    name="flight_search",
+    description="Search for flights between airports",
+    args_schema=FlightSearchInput
+)
+
+# Use in agent
+agent = create_agent(
+    model=ChatOpenAI(model="gpt-4"),
+    tools=[flight_tool],
+    system_prompt="You are a travel assistant."
+)</code></pre>
+
+<h2>3.6 Agent Execution Patterns</h2>
+
+<div class="code-title">Code Example 5: Streaming Agent Execution</div>
+<pre class="code-example"><code class="language-python">from langchain.agents import create_agent
+from langchain_openai import ChatOpenAI
+
+# Assumes get_weather and calculate are defined as in Code Example 1
+
+agent = create_agent(
+    model=ChatOpenAI(model="gpt-4"),
+    tools=[get_weather, calculate],
+    system_prompt="You are a helpful assistant."
+)
+
+# Stream the agent's thinking process
+for event in agent.stream({
+    "messages": [{"role": "user", "content": "What's 15% of 250?"}]
+}):
+    if "messages" in event:
+        for msg in event["messages"]:
+            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                print(f"🔧 Calling tool: {msg.tool_calls[0]['name']}")
+            elif hasattr(msg, "content") and msg.content:
+                print(f"💬 {msg.content}")</code></pre>
+
+<h2>3.7 Error Handling</h2>
+
+<div class="code-title">Code Example 6: Handling Tool Errors</div>
+<pre class="code-example"><code class="language-python">from langchain_core.tools import tool
+
+@tool
+def divide(a: float, b: float) -> str:
+    """Divide a by b.
+
+    Args:
+        a: The numerator.
+        b: The denominator.
+    """
+    if b == 0:
+        return "Error: Cannot divide by zero"
+    return str(a / b)
+
+# The agent will receive the error message and can respond appropriately
+agent = create_agent(
+    model=ChatOpenAI(model="gpt-4"),
+    tools=[divide],
+    system_prompt="You are a math assistant. If a calculation fails, explain why."
+)
+
+result = agent.invoke({
+    "messages": [{"role": "user", "content": "What is 10 divided by 0?"}]
+})
+print(result["messages"][-1].content)
+# Agent will explain that division by zero is not possible</code></pre>
+
+<h2>Exercises</h2>
+
+<div class="exercise">
+<h4>Exercise 1: Build a Research Agent</h4>
+<p>Create an agent with tools for:</p>
+<ul>
+<li>Searching the web (use DuckDuckGoSearchRun)</li>
+<li>Looking up Wikipedia articles</li>
+<li>Summarizing text (a custom tool that uses the LLM)</li>
+</ul>
+<p>Test it by asking: "Research the history of neural networks and summarize the key milestones."</p>
+</div>
+
+<div class="exercise">
+<h4>Exercise 2: Task Automation Agent</h4>
+<p>Build an agent for a fictional task management system with tools:</p>
+<ul>
+<li><code>create_task(title, description, due_date)</code></li>
+<li><code>list_tasks()</code></li>
+<li><code>complete_task(task_id)</code></li>
+</ul>
+<p>Store tasks in a simple dictionary and test the agent's ability to manage tasks.</p>
+</div>
+
+<h2>Summary</h2>
+
+<ul>
+<li><strong>Agents</strong> are LLMs that can autonomously use tools to accomplish tasks</li>
+<li>Use <code>create_agent</code> (v1.0) to build agents with tools</li>
+<li>Define tools with <code>@tool</code> decorator or <code>StructuredTool</code></li>
+<li>Clear docstrings help the LLM understand when to use each tool</li>
+<li>Built-in tools available for search, Wikipedia, code execution, etc.</li>
+<li>Stream agent execution to see the reasoning process</li>
+</ul>
+
+<div class="nav-buttons">
+<a href="chapter-2.html" class="nav-button">← Chapter 2: Core Components</a>
+<a href="chapter-4.html" class="nav-button">Chapter 4: RAG →</a>
+</div>
+
+</div>
+</main>
+
+<section class="disclaimer">
+<h3>Disclaimer</h3>
+<p>This content is provided for educational purposes. LangChain is developed and maintained by LangChain Inc.</p>
+</section>
+
+<footer>
+<div class="container">
+<p>© 2026 AI Terakoya - Dr. Yusuke Hashimoto, Tohoku University</p>
+<p>Licensed under CC BY 4.0</p>
+</div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="第3章：エージェントとツール - LangChainでAIエージェントを構築" name="description"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>第3章：エージェントとツール - LangChain入門</title>
+<link href="../../assets/css/knowledge-base.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });
+</script>
+</head>
+<body>
+<nav class="breadcrumb">
+<div class="breadcrumb-content">
+<a href="../../index.html">AI寺子屋ホーム</a><span class="breadcrumb-separator">›</span><a href="../index.html">機械学習</a><span class="breadcrumb-separator">›</span><a href="index.html">LangChain入門</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">第3章</span>
+</div>
+</nav>
+<div class="locale-switcher">
+<span class="current-locale">🇯🇵 JP</span>
+<span class="locale-separator">|</span>
+<a href="../../../en/ML/langchain-introduction/chapter-3.html" class="locale-link">🌐 EN</a>
+</div>
+
+<header>
+<div class="header-content">
+<h1>第3章：エージェントとツール</h1>
+<p class="subtitle">LangChainでAIエージェントを構築</p>
+<div class="meta">
+<span class="meta-item">📖 読了時間: 20-25分</span>
+<span class="meta-item">📊 難易度: 初級-中級</span>
+<span class="meta-item">💻 コード例: 6</span>
+<span class="meta-item">📝 演習: 2</span>
+</div>
+</div>
+</header>
+
+<main class="container">
+<div class="content">
+
+<h2>学習目標</h2>
+<ul>
+<li>AIエージェントとは何か、どのように動作するかを理解する</li>
+<li>新しい<code>create_agent</code> API（LangChain v1.0）を使用する</li>
+<li>エージェント用のカスタムツールを定義する</li>
+<li>組み込みツール（検索、計算機など）を使用する</li>
+<li>エージェントの実行を処理し、ツール呼び出しを監視する</li>
+</ul>
+
+<h2>3.1 AIエージェントとは？</h2>
+
+<p>AIエージェントは、目標を達成するためにどのアクションを取るべきかを自律的に決定できるLLMです。固定パスに従う単純なチェーンとは異なり、エージェントは以下のことができます：</p>
+
+<ul>
+<li>必要なステップについて<strong>推論</strong>する</li>
+<li>使用する<strong>ツールを選択</strong>する</li>
+<li>アクションを<strong>実行</strong>し、結果を観察する</li>
+<li>タスクが完了するまで<strong>繰り返す</strong></li>
+</ul>
+
+<div class="mermaid">
+graph TB
+    A[ユーザークエリ] --> B[エージェント]
+    B --> C{アクションを決定}
+    C -->|ツール使用| D[ツール実行]
+    D --> E[結果を観察]
+    E --> C
+    C -->|完了| F[最終レスポンス]
+
+    style B fill:#667eea,color:#fff
+    style D fill:#11998e,color:#fff
+    style F fill:#28a745,color:#fff
+</div>
+
+<div class="definition">
+<h4>エージェントループ</h4>
+<p>以下のサイクル：（1）LLMが呼び出すツールを決定、（2）ツールが実行し結果を返す、（3）LLMが結果を観察し次のアクションを決定。これはLLMがタスクが完了したと判断するまで続きます。</p>
+</div>
+
+<h2>3.2 create_agent API</h2>
+
+<p>LangChain v1.0では、<code>create_agent</code>がエージェントを構築する標準的な方法として導入されました：</p>
+
+<div class="code-title">コード例1：create_agentで基本エージェント</div>
+<pre class="code-example"><code class="language-python">from langchain.agents import create_agent
+from langchain_openai import ChatOpenAI
+
+# シンプルなツールを定義
+def get_weather(city: str) -> str:
+    """都市の現在の天気を取得する。"""
+    # 本番環境では実際の天気APIを呼び出す
+    return f"{city}の天気は晴れ、22°Cです"
+
+def calculate(expression: str) -> str:
+    """数式を評価する。
+
+    警告: この例では簡略化のためeval()を使用しています。
+    本番環境では`numexpr`や`asteval`などの安全な数式パーサを使用してください。
+    """
+    try:
+        # 警告: eval()は信頼できない入力に対して危険です！
+        # 本番環境では: import numexpr; numexpr.evaluate(expression) を使用
+        return str(eval(expression))
+    except Exception as e:
+        return f"エラー: {e}"
+
+# エージェントを作成
+agent = create_agent(
+    model=ChatOpenAI(model="gpt-4"),
+    tools=[get_weather, calculate],
+    system_prompt="あなたは天気を確認し計算ができる親切なアシスタントです。"
+)
+
+# エージェントを実行
+result = agent.invoke({
+    "messages": [
+        {"role": "user", "content": "東京の天気と、25 * 4は？"}
+    ]
+})
+
+print(result["messages"][-1].content)</code></pre>
+
+<h2>3.3 カスタムツールの定義</h2>
+
+<p>ツールはいくつかの方法で定義できます。最も簡単なのは<code>@tool</code>デコレータを使用することです：</p>
+
+<div class="code-title">コード例2：@toolデコレータでカスタムツール</div>
+<pre class="code-example"><code class="language-python">from langchain_core.tools import tool
+
+@tool
+def search_database(query: str) -> str:
+    """クエリに一致するアイテムを製品データベースで検索する。
+
+    Args:
+        query: データベースで検索する検索語。
+    """
+    # シミュレートされたデータベース検索
+    products = {
+        "laptop": "MacBook Pro - ¥299,800",
+        "phone": "iPhone 15 - ¥149,800",
+        "tablet": "iPad Pro - ¥119,800"
+    }
+    query_lower = query.lower()
+    for key, value in products.items():
+        if key in query_lower:
+            return value
+    return "製品が見つかりません"
+
+@tool
+def send_email(to: str, subject: str, body: str) -> str:
+    """指定された受信者にメールを送信する。
+
+    Args:
+        to: 受信者のメールアドレス。
+        subject: メールの件名。
+        body: メールの本文。
+    """
+    # 本番環境では実際にメールを送信する
+    return f"'{subject}'という件名で{to}にメールを送信しました"
+
+# ツールを使用
+print(search_database.name)  # "search_database"
+print(search_database.description)  # docstringから
+print(search_database.invoke("laptop"))  # "MacBook Pro - ¥299,800"</code></pre>
+
+<div class="note">
+<h4>ツール定義のベストプラクティス</h4>
+<ul>
+<li>明確で説明的な関数名を使用する</li>
+<li>詳細なdocstringを書く—LLMはこれらを使用してツールをいつ使用するかを決定する</li>
+<li>すべてのパラメータに型ヒントを追加する</li>
+<li>ツールは単一のタスクに集中させる</li>
+</ul>
+</div>
+
+<h2>3.4 組み込みツール</h2>
+
+<p>LangChainは<code>langchain-community</code>を通じて多くの事前構築されたツールを提供しています：</p>
+
+<div class="code-title">コード例3：組み込みツールの使用</div>
+<pre class="code-example"><code class="language-python">from langchain_community.tools import DuckDuckGoSearchRun
+from langchain_community.tools import WikipediaQueryRun
+from langchain_community.utilities import WikipediaAPIWrapper
+
+# Web検索ツール
+search = DuckDuckGoSearchRun()
+result = search.invoke("AIに関する最新ニュース")
+print(result)
+
+# Wikipediaツール
+wikipedia = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
+result = wikipedia.invoke("機械学習")
+print(result)</code></pre>
+
+<h3>一般的な組み込みツール</h3>
+
+<table>
+<thead>
+<tr>
+<th>ツール</th>
+<th>パッケージ</th>
+<th>目的</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DuckDuckGoSearchRun</td>
+<td>langchain-community</td>
+<td>Web検索</td>
+</tr>
+<tr>
+<td>WikipediaQueryRun</td>
+<td>langchain-community</td>
+<td>Wikipedia検索</td>
+</tr>
+<tr>
+<td>ArxivQueryRun</td>
+<td>langchain-community</td>
+<td>学術論文検索</td>
+</tr>
+<tr>
+<td>PythonREPLTool</td>
+<td>langchain-community</td>
+<td>Pythonコード実行</td>
+</tr>
+<tr>
+<td>ShellTool</td>
+<td>langchain-community</td>
+<td>シェルコマンド実行</td>
+</tr>
+</tbody>
+</table>
+
+<div class="warning">
+<h4>セキュリティ警告：高リスクツール</h4>
+<p><strong>PythonREPLTool</strong>と<strong>ShellTool</strong>は完全なシステムアクセス権限で任意のコードを実行します。これらのツールはサンドボックス環境でのみ使用するか、厳格な入力検証を行ってください。本番環境では、許可リスト、コンテナ化（Docker）、または制限された実行環境の使用を検討してください。</p>
+</div>
+
+<h2>演習</h2>
+
+<div class="exercise">
+<h4>演習1：リサーチエージェントを構築</h4>
+<p>以下のツールを持つエージェントを作成してください：</p>
+<ul>
+<li>Webを検索する（DuckDuckGoSearchRunを使用）</li>
+<li>Wikipedia記事を調べる</li>
+<li>テキストを要約する（LLMを使用するカスタムツール）</li>
+</ul>
+<p>次のように質問してテストしてください：「ニューラルネットワークの歴史を調べて、主要なマイルストーンを要約してください。」</p>
+</div>
+
+<div class="exercise">
+<h4>演習2：タスク自動化エージェント</h4>
+<p>以下のツールを持つ架空のタスク管理システム用エージェントを構築してください：</p>
+<ul>
+<li><code>create_task(title, description, due_date)</code></li>
+<li><code>list_tasks()</code></li>
+<li><code>complete_task(task_id)</code></li>
+</ul>
+<p>タスクをシンプルな辞書に保存し、エージェントがタスクを管理する能力をテストしてください。</p>
+</div>
+
+<h2>まとめ</h2>
+
+<ul>
+<li><strong>エージェント</strong>はツールを自律的に使用してタスクを達成できるLLM</li>
+<li>ツール付きエージェントを構築するには<code>create_agent</code>（v1.0）を使用</li>
+<li><code>@tool</code>デコレータまたは<code>StructuredTool</code>でツールを定義</li>
+<li>明確なdocstringがLLMが各ツールをいつ使用するかを理解するのに役立つ</li>
+<li>検索、Wikipedia、コード実行などの組み込みツールが利用可能</li>
+<li>エージェント実行をストリーミングして推論プロセスを確認</li>
+</ul>
+
+<div class="nav-buttons">
+<a href="chapter-2.html" class="nav-button">← 第2章：基本コンポーネント</a>
+<a href="chapter-4.html" class="nav-button">第4章：RAG →</a>
+</div>
+
+</div>
+</main>
+
+<section class="disclaimer">
+<h3>免責事項</h3>
+<p>本コンテンツは教育目的で提供されています。LangChainはLangChain Inc.によって開発・保守されています。</p>
+</section>
+
+<footer>
+<div class="container">
+<p>© 2026 AI寺子屋 - 橋本佑介 博士、東北大学</p>
+<p>CC BY 4.0ライセンス</p>
+</div>
+</footer>
+</body>
+</html>
