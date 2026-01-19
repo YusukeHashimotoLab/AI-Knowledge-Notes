@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Chapter 4: Size-Dependent Properties - Introduction to Nanomaterials series. Learn about optical, electronic, magnetic, and catalytic properties at the nanoscale.">
+  <title>Chapter 4: Size-Dependent Properties - Introduction to Nanomaterials</title>
+  <link rel="stylesheet" href="../../assets/css/knowledge-base.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <nav class="breadcrumb">
+    <a href="../../index.html">Home</a> &gt;
+    <a href="../index.html">Materials Science</a> &gt;
+    <a href="index.html">Introduction to Nanomaterials</a> &gt;
+    <span>Chapter 4</span>
+  </nav>
+
+  <div class="locale-switcher">
+    <span class="current">English</span> |
+    <a href="../../../jp/MS/nanomaterials-introduction/chapter-4.html">日本語</a>
+  </div>
+
+  <header>
+    <div class="header-content">
+      <h1>Chapter 4: Size-Dependent Properties</h1>
+      <p class="subtitle">Optical, Electronic, Magnetic, and Catalytic Properties at the Nanoscale</p>
+      <div class="meta">
+        <span class="meta-item">Intermediate to Advanced</span>
+        <span class="meta-item">30-35 minutes</span>
+        <span class="meta-item">Plasmonics, Superparamagnetism, Catalysis</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="content">
+      <div class="objectives">
+        <h3>Learning Objectives</h3>
+        <ul>
+          <li>Understand localized surface plasmon resonance (LSPR) in metal nanoparticles</li>
+          <li>Explain quantum dot optical properties and size-tunable emission</li>
+          <li>Analyze superparamagnetism in magnetic nanoparticles</li>
+          <li>Evaluate size effects on catalytic activity and selectivity</li>
+          <li>Apply knowledge to predict nanomaterial behavior for specific applications</li>
+        </ul>
+      </div>
+
+      <h2>4.1 Optical Properties</h2>
+
+      <h3>4.1.1 Localized Surface Plasmon Resonance (LSPR)</h3>
+
+      <p>
+        When light interacts with metal nanoparticles smaller than the wavelength of light,
+        it induces collective oscillation of conduction electrons. This phenomenon, called
+        <strong>localized surface plasmon resonance (LSPR)</strong>, results in strong
+        light absorption and scattering at specific wavelengths.
+      </p>
+
+      <div class="definition">
+        <h4>Surface Plasmon</h4>
+        <p>
+          A coherent oscillation of free electrons at a metal-dielectric interface.
+          For nanoparticles, the resonance condition depends on particle size, shape,
+          composition, and the surrounding medium's dielectric constant.
+        </p>
+      </div>
+
+      <div class="theorem">
+        <h4>Mie Theory (Dipole Approximation)</h4>
+        <p>
+          For spherical particles much smaller than the wavelength (d << λ), the extinction
+          cross-section is:
+        </p>
+        <p class="text-center">
+          \[
+          C_{ext} = \frac{24\pi^2 R^3 \varepsilon_m^{3/2}}{\lambda} \cdot \frac{\varepsilon_2}{(\varepsilon_1 + 2\varepsilon_m)^2 + \varepsilon_2^2}
+          \]
+        </p>
+        <p>
+          where \(\varepsilon_1, \varepsilon_2\) are real and imaginary parts of the metal
+          dielectric function, and \(\varepsilon_m\) is the medium dielectric constant.
+        </p>
+      </div>
+
+      <div class="code-example">
+        <h4>Python Example: Gold Nanoparticle LSPR Simulation</h4>
+        <pre><code class="language-python">
+import numpy as np
+import matplotlib.pyplot as plt
+
+def gold_dielectric(wavelength_nm):
+    """
+    Drude-Lorentz model for gold dielectric function.
+
+    Returns complex dielectric function ε = ε1 + i*ε2
+    """
+    # Gold parameters
+    eps_inf = 9.5      # High-frequency dielectric constant
+    omega_p = 9.0      # Plasma frequency (eV)
+    gamma = 0.07       # Damping constant (eV)
+
+    # Convert wavelength to energy
+    hc = 1239.8  # eV·nm
+    omega = hc / wavelength_nm
+
+    # Drude model
+    eps = eps_inf - omega_p**2 / (omega**2 + 1j * gamma * omega)
+
+    return eps
+
+def mie_extinction(wavelength_nm, radius_nm, n_medium=1.33):
+    """
+    Calculate extinction cross-section using Mie theory (dipole approximation).
+
+    Parameters:
+    -----------
+    wavelength_nm : array
+        Wavelengths in nm
+    radius_nm : float
+        Particle radius in nm
+    n_medium : float
+        Refractive index of surrounding medium
+
+    Returns:
+    --------
+    array : Extinction cross-section (normalized)
+    """
+    eps_m = n_medium**2
+    eps_metal = gold_dielectric(wavelength_nm)
+    eps_1 = np.real(eps_metal)
+    eps_2 = np.imag(eps_metal)
+
+    # Extinction cross-section
+    numerator = eps_2
+    denominator = (eps_1 + 2*eps_m)**2 + eps_2**2
+
+    C_ext = (24 * np.pi**2 * radius_nm**3 * eps_m**1.5 / wavelength_nm) * \
+            (numerator / denominator)
+
+    return C_ext / np.max(C_ext)  # Normalize
+
+# Calculate LSPR for different sizes
+wavelengths = np.linspace(400, 800, 500)
+
+plt.figure(figsize=(12, 5))
+
+# Plot 1: Size dependence
+plt.subplot(1, 2, 1)
+radii = [5, 10, 20, 40]
+colors = plt.cm.plasma(np.linspace(0.2, 0.8, len(radii)))
+
+for r, c in zip(radii, colors):
+    ext = mie_extinction(wavelengths, r)
+    peak_idx = np.argmax(ext)
+    peak_wl = wavelengths[peak_idx]
+    plt.plot(wavelengths, ext, color=c, linewidth=2,
+             label=f'r = {r} nm (λ_max = {peak_wl:.0f} nm)')
+
+plt.xlabel('Wavelength (nm)')
+plt.ylabel('Normalized Extinction')
+plt.title('LSPR of Gold Nanoparticles: Size Effect')
+plt.legend()
+plt.grid(True, alpha=0.3)
+
+# Plot 2: Medium dependence
+plt.subplot(1, 2, 2)
+media = [(1.0, 'Air'), (1.33, 'Water'), (1.5, 'Glass'), (1.7, 'High-n polymer')]
+colors = plt.cm.viridis(np.linspace(0.2, 0.8, len(media)))
+
+for (n, name), c in zip(media, colors):
+    ext = mie_extinction(wavelengths, 20, n_medium=n)
+    peak_idx = np.argmax(ext)
+    peak_wl = wavelengths[peak_idx]
+    plt.plot(wavelengths, ext, color=c, linewidth=2,
+             label=f'{name} (n={n}, λ={peak_wl:.0f} nm)')
+
+plt.xlabel('Wavelength (nm)')
+plt.ylabel('Normalized Extinction')
+plt.title('LSPR of 20 nm Au NPs: Medium Effect')
+plt.legend()
+plt.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('lspr_simulation.png', dpi=150)
+plt.show()
+
+# LSPR peak position vs size
+print("\nLSPR Peak Wavelength vs Particle Size:")
+print("-" * 40)
+for r in [5, 10, 15, 20, 30, 40, 50]:
+    ext = mie_extinction(wavelengths, r)
+    peak_wl = wavelengths[np.argmax(ext)]
+    print(f"Radius = {r:2d} nm: λ_LSPR = {peak_wl:.1f} nm")
+        </code></pre>
+      </div>
+
+      <h3>4.1.2 Quantum Dot Photoluminescence</h3>
+
+      <p>
+        <strong>Quantum dots (QDs)</strong> exhibit size-tunable photoluminescence due to
+        quantum confinement. Smaller dots emit higher energy (blue) light, while larger
+        dots emit lower energy (red) light.
+      </p>
+
+      <div class="note">
+        <h4>Quantum Dot Properties</h4>
+        <ul>
+          <li><strong>High quantum yield</strong>: Up to 90% for core-shell structures</li>
+          <li><strong>Narrow emission</strong>: FWHM of 20-40 nm vs 50-100 nm for organic dyes</li>
+          <li><strong>Photostability</strong>: Resistant to photobleaching</li>
+          <li><strong>Broad absorption</strong>: Can be excited by multiple wavelengths</li>
+          <li><strong>Large Stokes shift</strong>: Separation between absorption and emission</li>
+        </ul>
+      </div>
+
+      <div class="code-example">
+        <h4>Python Example: Quantum Dot Emission Spectra</h4>
+        <pre><code class="language-python">
+import numpy as np
+import matplotlib.pyplot as plt
+
+def quantum_dot_emission(wavelength_nm, peak_nm, fwhm_nm=30, intensity=1.0):
+    """
+    Gaussian emission spectrum for quantum dot.
+    """
+    sigma = fwhm_nm / (2 * np.sqrt(2 * np.log(2)))
+    return intensity * np.exp(-(wavelength_nm - peak_nm)**2 / (2 * sigma**2))
+
+def size_to_emission_wavelength(diameter_nm, material='CdSe'):
+    """
+    Empirical relationship between QD size and emission wavelength.
+    Based on experimental calibration curves.
+    """
+    if material == 'CdSe':
+        # Empirical formula for CdSe QDs
+        wavelength = 350 + 50 * diameter_nm - 1.5 * diameter_nm**2
+        wavelength = max(400, min(700, wavelength))
+    elif material == 'InP':
+        wavelength = 450 + 40 * diameter_nm
+        wavelength = max(500, min(750, wavelength))
+    return wavelength
+
+def wavelength_to_rgb(wavelength):
+    """Convert wavelength to approximate RGB color."""
+    if wavelength < 440:
+        r, g, b = (440-wavelength)/(440-380), 0, 1
+    elif wavelength < 490:
+        r, g, b = 0, (wavelength-440)/(490-440), 1
+    elif wavelength < 510:
+        r, g, b = 0, 1, (510-wavelength)/(510-490)
+    elif wavelength < 580:
+        r, g, b = (wavelength-510)/(580-510), 1, 0
+    elif wavelength < 645:
+        r, g, b = 1, (645-wavelength)/(645-580), 0
+    else:
+        r, g, b = 1, 0, 0
+
+    return (min(1, max(0, r)), min(1, max(0, g)), min(1, max(0, b)))
+
+# Generate emission spectra for different sizes
+wavelengths = np.linspace(400, 750, 500)
+sizes = [2.5, 3.5, 4.5, 5.5, 6.5]
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Plot 1: Emission spectra
+ax1 = axes[0]
+for size in sizes:
+    peak = size_to_emission_wavelength(size)
+    emission = quantum_dot_emission(wavelengths, peak, fwhm_nm=30)
+    color = wavelength_to_rgb(peak)
+    ax1.fill_between(wavelengths, emission, alpha=0.6, color=color,
+                     label=f'd = {size} nm (λ = {peak:.0f} nm)')
+    ax1.plot(wavelengths, emission, color=color, linewidth=1)
+
+ax1.set_xlabel('Wavelength (nm)')
+ax1.set_ylabel('Emission Intensity (a.u.)')
+ax1.set_title('CdSe Quantum Dot Size-Tunable Emission')
+ax1.legend()
+ax1.grid(True, alpha=0.3)
+ax1.set_xlim(400, 750)
+
+# Plot 2: Size-wavelength relationship
+ax2 = axes[1]
+diameters = np.linspace(2, 8, 50)
+wavelengths_peak = [size_to_emission_wavelength(d) for d in diameters]
+
+# Color each point by its emission color
+for i in range(len(diameters)-1):
+    color = wavelength_to_rgb(wavelengths_peak[i])
+    ax2.plot(diameters[i:i+2], wavelengths_peak[i:i+2],
+             color=color, linewidth=4)
+
+ax2.set_xlabel('Quantum Dot Diameter (nm)')
+ax2.set_ylabel('Emission Wavelength (nm)')
+ax2.set_title('Size-Wavelength Calibration Curve')
+ax2.grid(True, alpha=0.3)
+
+# Add color bar representation
+for wl in [450, 500, 550, 600, 650, 700]:
+    ax2.axhline(wl, color=wavelength_to_rgb(wl), alpha=0.3, linestyle='--')
+
+plt.tight_layout()
+plt.savefig('quantum_dot_emission.png', dpi=150)
+plt.show()
+        </code></pre>
+      </div>
+
+      <h2>4.2 Magnetic Properties</h2>
+
+      <h3>4.2.1 Superparamagnetism</h3>
+
+      <p>
+        Below a critical size, magnetic nanoparticles become <strong>superparamagnetic</strong>:
+        they exhibit strong magnetization in an applied field but have zero remanence when the
+        field is removed. This occurs when thermal energy can overcome the magnetic anisotropy
+        energy barrier.
+      </p>
+
+      <div class="theorem">
+        <h4>Superparamagnetic Blocking Temperature</h4>
+        <p>
+          The blocking temperature \(T_B\) is the temperature below which a particle appears
+          ferromagnetic on the measurement timescale:
+        </p>
+        <p class="text-center">
+          \[
+          T_B = \frac{K_V V}{k_B \ln(\tau_m / \tau_0)}
+          \]
+        </p>
+        <p>
+          where \(K_V\) is the magnetic anisotropy constant, \(V\) is particle volume,
+          \(\tau_m\) is measurement time (~100 s for DC magnetization), and
+          \(\tau_0 \approx 10^{-9}\) s is the attempt time.
+        </p>
+      </div>
+
+      <div class="code-example">
+        <h4>Python Example: Superparamagnetic Nanoparticles</h4>
+        <pre><code class="language-python">
+import numpy as np
+import matplotlib.pyplot as plt
+
+def blocking_temperature(diameter_nm, K_V, tau_m=100):
+    """
+    Calculate superparamagnetic blocking temperature.
+
+    Parameters:
+    -----------
+    diameter_nm : float
+        Particle diameter in nm
+    K_V : float
+        Anisotropy constant (J/m³)
+    tau_m : float
+        Measurement time (s)
+
+    Returns:
+    --------
+    float : Blocking temperature (K)
+    """
+    kB = 1.381e-23  # J/K
+    tau_0 = 1e-9    # Attempt time (s)
+
+    r = diameter_nm * 1e-9 / 2
+    V = (4/3) * np.pi * r**3
+
+    TB = K_V * V / (kB * np.log(tau_m / tau_0))
+    return TB
+
+def langevin_function(x):
+    """Langevin function L(x) = coth(x) - 1/x"""
+    # Handle x = 0 case
+    result = np.zeros_like(x)
+    mask = np.abs(x) > 1e-6
+    result[mask] = 1/np.tanh(x[mask]) - 1/x[mask]
+    return result
+
+def superparamagnetic_magnetization(H, T, diameter_nm, Ms, K_V):
+    """
+    Calculate magnetization of superparamagnetic nanoparticles.
+
+    M = Ms * L(μH/kT) where μ = Ms * V
+    """
+    kB = 1.381e-23
+    mu0 = 4 * np.pi * 1e-7
+
+    r = diameter_nm * 1e-9 / 2
+    V = (4/3) * np.pi * r**3
+    mu = Ms * V  # Magnetic moment
+
+    x = mu0 * mu * H / (kB * T)
+    M = Ms * langevin_function(x)
+
+    return M
+
+# Material parameters
+materials = {
+    'Fe3O4': {'Ms': 4.8e5, 'K_V': 1.35e4, 'name': 'Magnetite'},
+    'gamma-Fe2O3': {'Ms': 3.9e5, 'K_V': 4.7e3, 'name': 'Maghemite'},
+    'CoFe2O4': {'Ms': 4.2e5, 'K_V': 2.0e5, 'name': 'Cobalt Ferrite'},
+}
+
+# Plot 1: Blocking temperature vs size
+plt.figure(figsize=(14, 5))
+
+plt.subplot(1, 2, 1)
+diameters = np.linspace(3, 30, 100)
+
+for mat_id, props in materials.items():
+    TB = [blocking_temperature(d, props['K_V']) for d in diameters]
+    plt.plot(diameters, TB, linewidth=2, label=props['name'])
+
+plt.axhline(300, color='gray', linestyle='--', label='Room temperature')
+plt.xlabel('Particle Diameter (nm)')
+plt.ylabel('Blocking Temperature (K)')
+plt.title('Superparamagnetic Blocking Temperature')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.ylim(0, 500)
+
+# Plot 2: M-H curves at different temperatures
+plt.subplot(1, 2, 2)
+H = np.linspace(-1e6, 1e6, 500)  # A/m
+temperatures = [10, 100, 300]
+diameter = 10  # nm
+mat = materials['Fe3O4']
+
+for T in temperatures:
+    M = superparamagnetic_magnetization(H, T, diameter, mat['Ms'], mat['K_V'])
+    plt.plot(H/1e6, M/mat['Ms'], linewidth=2, label=f'T = {T} K')
+
+plt.xlabel('Magnetic Field (MA/m)')
+plt.ylabel('M/Ms')
+plt.title(f'M-H Curves: {diameter} nm Fe₃O₄ Nanoparticles')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.xlim(-1, 1)
+
+plt.tight_layout()
+plt.savefig('superparamagnetism.png', dpi=150)
+plt.show()
+
+# Print critical sizes
+print("\nCritical Superparamagnetic Size at 300 K:")
+print("-" * 50)
+for mat_id, props in materials.items():
+    # Find diameter where TB = 300 K
+    for d in np.linspace(1, 50, 1000):
+        if blocking_temperature(d, props['K_V']) >= 300:
+            print(f"{props['name']}: d_critical = {d:.1f} nm")
+            break
+        </code></pre>
+      </div>
+
+      <h2>4.3 Catalytic Properties</h2>
+
+      <p>
+        Nanoparticles exhibit enhanced catalytic activity due to their high surface-to-volume
+        ratio and the presence of under-coordinated surface atoms with higher reactivity.
+      </p>
+
+      <h3>4.3.1 Size Effects in Catalysis</h3>
+
+      <div class="comparison-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Size Effect</th>
+              <th>Mechanism</th>
+              <th>Examples</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Geometric</strong></td>
+              <td>Fraction of edge, corner, terrace atoms</td>
+              <td>CO oxidation on Au, structure-sensitive reactions</td>
+            </tr>
+            <tr>
+              <td><strong>Electronic</strong></td>
+              <td>Quantum size effects, d-band shifts</td>
+              <td>ORR activity on Pt, bandgap-dependent photocatalysis</td>
+            </tr>
+            <tr>
+              <td><strong>Support interaction</strong></td>
+              <td>Metal-support electronic coupling</td>
+              <td>Au/TiO2, Pt/CeO2 for water-gas shift</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="code-example">
+        <h4>Python Example: Surface Atom Fraction and Catalytic Activity</h4>
+        <pre><code class="language-python">
+import numpy as np
+import matplotlib.pyplot as plt
+
+def cuboctahedral_atom_counts(n_shells):
+    """
+    Calculate number of atoms in different positions for cuboctahedral cluster.
+
+    Parameters:
+    -----------
+    n_shells : int
+        Number of complete shells (1 = 13 atoms, 2 = 55 atoms, etc.)
+
+    Returns:
+    --------
+    dict : Counts of corner, edge, face, and core atoms
+    """
+    # Magic numbers for cuboctahedra
+    total = 10 * n_shells**3 // 3 + 5 * n_shells**2 + 11 * n_shells // 3 + 1
+
+    if n_shells == 0:
+        return {'total': 1, 'corner': 1, 'edge': 0, 'face': 0, 'core': 0}
+
+    # Surface atoms
+    corner = 12  # Always 12 for cuboctahedron
+    edge = 24 * (n_shells - 1)
+    face_square = 6 * (n_shells - 1)**2
+    face_triangle = 8 * ((n_shells - 1) * (n_shells - 2) // 2) if n_shells > 1 else 0
+
+    surface = corner + edge + face_square + face_triangle
+    core = total - surface
+
+    return {
+        'total': total,
+        'corner': corner,
+        'edge': edge,
+        'face': face_square + face_triangle,
+        'core': max(0, core),
+        'surface': surface
+    }
+
+def diameter_from_shells(n_shells, atom_radius_nm=0.144):
+    """Estimate cluster diameter from number of shells."""
+    return 2 * atom_radius_nm * (2 * n_shells + 1)
+
+def turnover_frequency(diameter_nm, TOF_terrace=1, TOF_edge=5, TOF_corner=10):
+    """
+    Calculate effective TOF based on surface site distribution.
+
+    Assumes different intrinsic activities for different sites.
+    """
+    # Estimate number of shells from diameter
+    n_shells = max(1, int(diameter_nm / 0.5))
+
+    counts = cuboctahedral_atom_counts(n_shells)
+    if counts['surface'] == 0:
+        return TOF_terrace
+
+    # Weighted average TOF
+    f_corner = counts['corner'] / counts['surface']
+    f_edge = counts['edge'] / counts['surface']
+    f_face = counts['face'] / counts['surface']
+
+    TOF_eff = f_corner * TOF_corner + f_edge * TOF_edge + f_face * TOF_terrace
+
+    return TOF_eff
+
+# Calculate for different cluster sizes
+shells = list(range(1, 15))
+diameters = []
+surface_fractions = []
+corner_fractions = []
+edge_fractions = []
+tof_values = []
+
+for n in shells:
+    counts = cuboctahedral_atom_counts(n)
+    d = diameter_from_shells(n)
+    diameters.append(d)
+    surface_fractions.append(counts['surface'] / counts['total'])
+    corner_fractions.append(counts['corner'] / counts['surface'])
+    edge_fractions.append(counts['edge'] / counts['surface'])
+    tof_values.append(turnover_frequency(d))
+
+# Visualization
+fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+
+# Plot 1: Surface fraction vs size
+ax1 = axes[0, 0]
+ax1.plot(diameters, [f*100 for f in surface_fractions], 'bo-', linewidth=2)
+ax1.set_xlabel('Cluster Diameter (nm)')
+ax1.set_ylabel('Surface Atoms (%)')
+ax1.set_title('Surface Atom Fraction vs Size')
+ax1.grid(True, alpha=0.3)
+
+# Plot 2: Site distribution
+ax2 = axes[0, 1]
+ax2.stackplot(diameters,
+              [f*100 for f in corner_fractions],
+              [f*100 for f in edge_fractions],
+              [100 - 100*c - 100*e for c, e in zip(corner_fractions, edge_fractions)],
+              labels=['Corner', 'Edge', 'Face'], alpha=0.7)
+ax2.set_xlabel('Cluster Diameter (nm)')
+ax2.set_ylabel('Site Fraction (%)')
+ax2.set_title('Surface Site Distribution')
+ax2.legend(loc='upper right')
+ax2.set_xlim(min(diameters), max(diameters))
+
+# Plot 3: Effective TOF vs size
+ax3 = axes[1, 0]
+ax3.plot(diameters, tof_values, 'ro-', linewidth=2)
+ax3.axhline(1, color='gray', linestyle='--', label='Terrace TOF')
+ax3.set_xlabel('Cluster Diameter (nm)')
+ax3.set_ylabel('Effective TOF (relative)')
+ax3.set_title('Catalytic Activity vs Size\n(Structure-Sensitive Reaction)')
+ax3.legend()
+ax3.grid(True, alpha=0.3)
+
+# Plot 4: Mass activity
+ax4 = axes[1, 1]
+mass_activity = [tof * sf for tof, sf in zip(tof_values, surface_fractions)]
+ax4.plot(diameters, mass_activity, 'g^-', linewidth=2)
+ax4.set_xlabel('Cluster Diameter (nm)')
+ax4.set_ylabel('Mass Activity (a.u.)')
+ax4.set_title('Mass-Normalized Catalytic Activity')
+ax4.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('catalytic_size_effects.png', dpi=150)
+plt.show()
+
+# Print data table
+print("\nCuboctahedral Cluster Properties:")
+print("-" * 70)
+print(f"{'Shells':<8} {'Atoms':<8} {'Diameter':<10} {'Surface %':<12} {'Corner %':<10}")
+print("-" * 70)
+for n in [1, 2, 3, 5, 7, 10]:
+    counts = cuboctahedral_atom_counts(n)
+    d = diameter_from_shells(n)
+    sf = counts['surface'] / counts['total'] * 100
+    cf = counts['corner'] / counts['surface'] * 100 if counts['surface'] > 0 else 0
+    print(f"{n:<8} {counts['total']:<8} {d:.2f} nm{'':<4} {sf:.1f}%{'':<6} {cf:.1f}%")
+        </code></pre>
+      </div>
+
+      <h2>4.4 Thermal Properties</h2>
+
+      <p>
+        Nanomaterials exhibit modified thermal properties due to surface effects and phonon
+        confinement. Key phenomena include:
+      </p>
+
+      <ul>
+        <li><strong>Melting point depression</strong>: Surface atoms have lower binding energy (Gibbs-Thomson effect)</li>
+        <li><strong>Reduced thermal conductivity</strong>: Phonon scattering at boundaries</li>
+        <li><strong>Enhanced specific heat</strong>: Surface phonon contributions</li>
+        <li><strong>Modified phase transitions</strong>: Size-dependent transition temperatures</li>
+      </ul>
+
+      <div class="code-example">
+        <h4>Python Example: Phonon Mean Free Path and Thermal Conductivity</h4>
+        <pre><code class="language-python">
+import numpy as np
+import matplotlib.pyplot as plt
+
+def thermal_conductivity_nanostructure(d_nm, kappa_bulk, mfp_bulk):
+    """
+    Calculate thermal conductivity reduction in nanostructures.
+
+    Uses simple boundary scattering model:
+    κ/κ_bulk = d / (d + 3*mfp_bulk)
+
+    Parameters:
+    -----------
+    d_nm : float
+        Characteristic dimension (nm)
+    kappa_bulk : float
+        Bulk thermal conductivity (W/m·K)
+    mfp_bulk : float
+        Bulk phonon mean free path (nm)
+
+    Returns:
+    --------
+    float : Nanostructure thermal conductivity (W/m·K)
+    """
+    ratio = d_nm / (d_nm + 3 * mfp_bulk)
+    return kappa_bulk * ratio
+
+# Material properties
+materials = {
+    'Si': {'kappa_bulk': 148, 'mfp': 300, 'color': 'blue'},
+    'Ge': {'kappa_bulk': 60, 'mfp': 200, 'color': 'red'},
+    'GaAs': {'kappa_bulk': 55, 'mfp': 100, 'color': 'green'},
+}
+
+dimensions = np.logspace(0, 4, 100)  # 1 to 10000 nm
+
+plt.figure(figsize=(12, 5))
+
+# Plot 1: Thermal conductivity vs size
+plt.subplot(1, 2, 1)
+for mat, props in materials.items():
+    kappa = [thermal_conductivity_nanostructure(d, props['kappa_bulk'], props['mfp'])
+             for d in dimensions]
+    plt.semilogx(dimensions, kappa, color=props['color'], linewidth=2,
+                 label=f'{mat} (bulk: {props["kappa_bulk"]} W/m·K)')
+
+plt.xlabel('Characteristic Dimension (nm)')
+plt.ylabel('Thermal Conductivity (W/m·K)')
+plt.title('Size-Dependent Thermal Conductivity')
+plt.legend()
+plt.grid(True, alpha=0.3)
+
+# Plot 2: Reduction ratio
+plt.subplot(1, 2, 2)
+for mat, props in materials.items():
+    ratio = [thermal_conductivity_nanostructure(d, props['kappa_bulk'], props['mfp']) /
+             props['kappa_bulk'] for d in dimensions]
+    plt.semilogx(dimensions, [r*100 for r in ratio], color=props['color'],
+                 linewidth=2, label=mat)
+
+plt.axhline(50, color='gray', linestyle='--', alpha=0.5)
+plt.xlabel('Characteristic Dimension (nm)')
+plt.ylabel('κ / κ_bulk (%)')
+plt.title('Thermal Conductivity Reduction')
+plt.legend()
+plt.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('thermal_conductivity.png', dpi=150)
+plt.show()
+        </code></pre>
+      </div>
+
+      <h2>4.5 Summary</h2>
+
+      <div class="key-takeaways">
+        <h3>Key Takeaways</h3>
+        <ul>
+          <li><strong>LSPR</strong>: Metal nanoparticles exhibit size- and shape-dependent plasmon resonance; used in sensing and photothermal applications</li>
+          <li><strong>Quantum dots</strong>: Size-tunable emission from quantum confinement; applications in displays, imaging, and solar cells</li>
+          <li><strong>Superparamagnetism</strong>: Zero remanence below critical size; crucial for biomedical applications and data storage</li>
+          <li><strong>Catalysis</strong>: High surface area and under-coordinated sites enhance activity; size affects selectivity</li>
+          <li><strong>Thermal properties</strong>: Reduced thermal conductivity from boundary scattering; useful for thermoelectrics</li>
+        </ul>
+      </div>
+
+      <h2>Exercises</h2>
+
+      <div class="exercise">
+        <h4>Exercise 1: Biosensor Design</h4>
+        <p>
+          Design a gold nanoparticle-based colorimetric biosensor. What particle size would you
+          choose for maximum sensitivity to refractive index changes? How would the LSPR shift
+          upon analyte binding?
+        </p>
+      </div>
+
+      <div class="exercise">
+        <h4>Exercise 2: Magnetic Hyperthermia</h4>
+        <p>
+          For magnetic hyperthermia cancer treatment, you need Fe<sub>3</sub>O<sub>4</sub> nanoparticles
+          that are superparamagnetic at body temperature (37°C). What is the maximum allowable
+          particle size? How would you optimize heating efficiency?
+        </p>
+      </div>
+
+      <div class="exercise">
+        <h4>Exercise 3: Catalyst Optimization</h4>
+        <p>
+          A structure-sensitive reaction has TOF<sub>corner</sub> = 100, TOF<sub>edge</sub> = 20,
+          and TOF<sub>terrace</sub> = 1. At what particle size is mass activity maximized?
+          Consider both surface fraction and site distribution.
+        </p>
+      </div>
+    </section>
+
+    <nav class="chapter-nav">
+      <a href="chapter-3.html" class="prev">&larr; Chapter 3: Characterization</a>
+      <a href="chapter-5.html" class="next">Chapter 5: Applications &rarr;</a>
+    </nav>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 Hashimoto Lab, Tohoku University. Licensed under CC BY 4.0.</p>
+  </footer>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      renderMathInElement(document.body, {
+        delimiters: [
+          {left: "$$", right: "$$", display: true},
+          {left: "$", right: "$", display: false},
+          {left: "\\[", right: "\\]", display: true},
+          {left: "\\(", right: "\\)", display: false}
+        ]
+      });
+      mermaid.initialize({startOnLoad: true, theme: 'neutral'});
+    });
+  </script>
+</body>
+</html>
